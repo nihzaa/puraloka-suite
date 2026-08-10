@@ -340,7 +340,7 @@ export default function KontrakRingkasanPage() {
           {/* ── Apa yang BELUM bisa ditampilkan, dinyatakan terus terang ──── */}
           <div className="rise rise-2" style={{
             display: "flex", gap: 10, alignItems: "flex-start",
-            padding: "12px 14px", marginBottom: "var(--r4)",
+            padding: "12px var(--pad-kartu-lega)", marginBottom: "var(--r4)",
             border: `1px solid ${C.border}`, borderRadius: 10,
             background: C.subtle,
           }}>

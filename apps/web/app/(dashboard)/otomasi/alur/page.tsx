@@ -45,14 +45,15 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
-import { Workflow, Play, RefreshCw } from "lucide-react";
+import { Workflow, Play, RefreshCw, Plus, Pencil } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { KepalaHalaman, Lencana } from "@/components/dasar";
+import { KepalaHalaman, Lencana, Tombol } from "@/components/dasar";
 import { Kosong, Panel } from "@/components/ui-dasar";
 import { BarisRail, KartuRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
 import { usePasangRail } from "@/lib/rail-context";
+import { AlurFormModal, type AlurUntukForm } from "@/components/alur-form-modal";
 
 interface Alur {
   id: string;
@@ -176,6 +177,7 @@ export default function HalamanAlurOtomasi() {
 
 function Konten() {
   const bolehJalankan = hasPerm("otomasi:alur:jalankan");
+  const bolehKelola = hasPerm("otomasi:alur:kelola");
 
   const [daftar, setDaftar] = useState<Alur[]>([]);
   const [n8nSiap, setN8nSiap] = useState(true);
@@ -184,6 +186,8 @@ function Konten() {
   const [terbuka, setTerbuka] = useState<string | null>(null);
   const [sedang, setSedang] = useState<string | null>(null);
   const [pesan, setPesan] = useState<{ tipe: "ok" | "err"; teks: string } | null>(null);
+  const [formBuka, setFormBuka] = useState(false);
+  const [ubah, setUbah] = useState<AlurUntukForm | null>(null);
 
   const muat = useCallback(async () => {
     try {
@@ -312,19 +316,23 @@ function Konten() {
         judul="Alur Otomasi"
         keterangan="Workflow yang berjalan sendiri — statusnya, jejaknya, dan pemicu manualnya."
         /*
-          TIDAK ADA tombol "Daftarkan alur" di sini, dan itu keputusan.
+          Tombol ini sempat DICABUT, dan kembalinya punya syarat.
 
           Versi pertama memasangnya menuju `/pengaturan/kredensial` sebagai
-          penampung sementara. Dilihat di tangkapan layar dan dicabut: tombol
-          aksi utama yang mendarat di halaman yang sama sekali bukan tujuannya
-          adalah kebohongan kecil yang mahal — orang mengklik, sampai di
-          tempat asing, dan berhenti memercayai tombol lain di halaman ini.
+          penampung sementara — dilihat di tangkapan layar lalu dibuang: tombol
+          aksi utama yang mendarat di halaman yang bukan tujuannya adalah
+          kebohongan kecil yang membuat orang berhenti memercayai tombol lain.
 
-          Pendaftaran alur baru dilakukan lewat POST /api/v1/otomasi/alur
-          (sudah ada, sudah bergerbang izin `otomasi:alur:kelola`). Formulirnya
-          pekerjaan tersendiri; sampai ia ada, halaman ini jujur bahwa yang
-          bisa dilakukan di sini adalah MEMERIKSA dan MENJALANKAN.
+          Sekarang ia punya tujuan sungguhan (formulirnya ada), jadi ia boleh
+          ada. Urutannya disengaja: tombol menyusul fungsinya, bukan sebaliknya.
         */
+        aksi={
+          bolehKelola ? (
+            <Tombol jenis="utama" ikon={<Plus size={15} />} onClick={() => { setUbah(null); setFormBuka(true); }}>
+              Daftarkan alur
+            </Tombol>
+          ) : undefined
+        }
       />
 
       {/*
@@ -337,7 +345,7 @@ function Konten() {
           role="status"
           style={{
             display: "flex", gap: 10, alignItems: "flex-start",
-            padding: "12px 14px", marginBottom: 14,
+            padding: "12px var(--pad-kartu-lega)", marginBottom: 14,
             background: C.yellowBg, border: `1px solid ${C.yellowBorder}`,
             borderRadius: 12, fontSize: 13, color: C.onWarningBg, lineHeight: 1.6,
           }}
@@ -386,7 +394,10 @@ function Konten() {
                   key={a.id}
                   style={{
                     borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                    padding: "13px 16px",
+                    // Sejajar dengan padding header Panel (--pad-kartu-lega
+                    // = 16px). Baris yang lebih sempit dari kepalanya membuat
+                    // isi terlihat menempel ke tepi kartu.
+                    padding: "14px var(--pad-kartu-lega)",
                     opacity: a.aktif ? 1 : 0.72,
                   }}
                 >
@@ -455,6 +466,24 @@ function Konten() {
                         </p>
                       )}
                     </div>
+
+                    {bolehKelola && (
+                      <button
+                        onClick={() => { setUbah(a); setFormBuka(true); }}
+                        title="Ubah alur ini"
+                        aria-label={`Ubah ${a.nama}`}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "6px 10px", borderRadius: 8,
+                          border: `1px solid ${C.border}`, background: "transparent",
+                          color: C.muted, fontSize: 12.5, fontFamily: "inherit",
+                          cursor: "pointer", flexShrink: 0,
+                        }}
+                      >
+                        <Pencil size={13} />
+                        Ubah
+                      </button>
+                    )}
 
                     {bolehJalankan && (
                       <button
@@ -583,6 +612,16 @@ function Konten() {
           </div>
         )}
       </Panel>
+
+      <AlurFormModal
+        terbuka={formBuka}
+        awal={ubah}
+        onTutup={() => setFormBuka(false)}
+        onSimpan={() => {
+          setPesan({ tipe: "ok", teks: ubah ? "Alur diperbarui." : "Alur terdaftar." });
+          void muat();
+        }}
+      />
     </div>
   );
 }

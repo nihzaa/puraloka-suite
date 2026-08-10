@@ -9397,3 +9397,74 @@ dari server, bukan apa yang dibaca dari basis.
 Bukti: 9 test hijau; mutasi kebocoran isi → MERAH; mutasi cabut `.eq(company_id)`
 pada jejak keputusan → MERAH; `audit-kegagalan-senyap` kembali 186 (ambang
 186); 8 penjaga nav/rute hijau; migrasi 274 lulus verifikasi dua arah.
+
+---
+
+## 2026-08-10 (lanjutan 3) — Workflow bisa dibuat di UI, dan "mepet" ternyata 28 baris
+
+**Keluhan founder yang terakhir ditutup:** "bahkan bisa punya workflow yang
+bisa dibuat di ui". Sampai S7 katalog hanya bisa diisi lewat
+`POST /api/v1/otomasi/alur` — rutenya ada, bergerbang izin, dan tak ada satu
+pun layar memanggilnya. Endpoint tanpa layar adalah fitur yang hanya bisa
+dipakai orang yang bisa mengetik curl.
+
+Formulirnya memakai `DialogBersama` yang sudah patuh `<dialog>` (Esc menutup,
+fokus terkunci) — bukan `div position:fixed` yang penjaga `audit-modal-dialog`
+memang ada untuk menolaknya.
+
+**Tiga keputusan di formulir, semuanya untuk mencegah cacat yang tak bergejala:**
+
+1. `n8n_id` DIPILIH dari daftar workflow yang benar-benar ada di n8n, bukan
+   diketik. Id salah ketik tak menghasilkan galat — alurnya hanya diam
+   selamanya, karena yang dipanggil memang tak pernah ada.
+2. `kode` terisi otomatis dari nama, dan DIKUNCI saat mengubah. Mengubahnya
+   memutus seluruh jejak jalan dari induknya, dan yang terputus tak
+   mengumumkan dirinya terputus — ia hanya jadi riwayat yang tiba-tiba kosong.
+3. Kotak cron/webhook hanya muncul sesuai pemicu terpilih. Menampilkan
+   keduanya membuat orang mengisi kolom yang diabaikan sistem, dan yang
+   diabaikan diam-diam tak pernah dipertanyakan.
+
+**Katalog dummy diganti 14 alur nyata.** Bukan karangan: tiap alur diturunkan
+dari 14 `notification_rules` yang SEMUANYA sudah aktif, plus 2 `jadwal_tugas`
+yang sudah jalan (`cek-tenggat` 07:00, `cek-milestone` 07:05). Semuanya
+didaftarkan TANPA `n8n_id` — workflow-nya belum dibuat di n8n, dan menuliskan
+id karangan akan membuat katalog berbohong: alur terlihat siap jalan, tombolnya
+bisa ditekan, dan yang dipanggil tak pernah ada.
+
+**Dan tak ada satu pun berkas JSON workflow yang saya buat.** TJS menyimpan 43
+di repo-nya; itu sengaja TIDAK ditiru. Menyalin isi workflow ke basis kita
+berarti dua sumber kebenaran yang harus dijaga sinkron, dan yang basi tak akan
+menyatakan dirinya basi. Yang disimpan di sini hanya katalog dan jejaknya.
+
+**"Mepet" — satu kata founder yang ternyata 28 baris di 8 halaman.**
+
+Sebabnya: `<Panel padat>` menyetel padding badan jadi NOL (itu memang gunanya,
+supaya daftar mengatur jaraknya sendiri), sementara KEPALANYA tetap
+`var(--pad-kartu-lega)` = 16px. Baris yang memberi dirinya 14px membuat judul
+panel menjorok dan isinya tidak. Selisih 2px — cukup kecil untuk lolos
+tinjauan, cukup besar untuk terasa salah.
+
+Yang ditunjuk founder cuma 2 halaman. Diukur: 8 halaman, 28 baris — terparah
+`mandor/retensi` (9) dan `estimasi` (7). Dilunasi semua jadi NOL.
+
+**Penjaganya sendiri salah sekali sebelum sempat dipakai.** Versi pertama
+menghitung SEMUA `padding` dan menemukan 189 — sebagian besar padding TOMBOL
+(`6px 10px`) dan SEL TABEL yang memang benar kecil. Penjaga yang memerahkan
+hal yang bukan cacat akan dimatikan orang, dan setelah dimatikan ia tak
+menjaga apa pun. Disaring ke baris daftar saja (padding-Y ≥ 10px): 28 → 0.
+Bukti mutasinya menguji DUA arah: merah untuk baris mepet, dan HIJAU untuk
+padding tombol yang dikecilkan.
+
+**Jejak pengawasan dikeluarkan dari kolom "yang benar-benar terjadi".**
+Tangkapan layar founder menunjukkan 15 baris "Membaca percakapan orang lain"
+berturut-turut di puncak — jejak test saya sendiri, mendominasi 14 dari 99
+baris dan menenggelamkan 2 deteksi entitas asing yang justru paling perlu
+dilihat. Halaman itu menjawab "asisten ngapain?", bukan "siapa membaca apa";
+yang kedua tetap utuh di Audit Log. Disaring, bukan dihapus.
+
+**Dan satu pertanyaan founder yang jawabannya diukur, bukan ditebak:** "kenapa
+sekarang masih ngga konsisten". Dari 94 halaman dashboard — 36 masih memakai
+`<h1>` sendiri alih-alih `KepalaHalaman`, 37 membuat kartu sendiri alih-alih
+`Panel`, 37 menulis keadaan-kosong sendiri, 78 tanpa rail kanan, dan 14
+menyalin `hasPerm`. Itu pekerjaan tersendiri, disepakati dikerjakan bertahap
+sesudah sumbu ini, dengan penjaga ratchet per kelompok.

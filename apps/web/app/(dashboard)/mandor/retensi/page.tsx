@@ -195,7 +195,7 @@ export default function RetensiPage() {
 
       {galat && (
         <div role="alert" style={{
-          padding: "12px 12px", borderRadius: 10, marginBottom: 14,
+          padding: "12px var(--pad-kartu-lega)", borderRadius: 10, marginBottom: 14,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           color: C.onDangerBg, fontSize: 13,
         }}>
@@ -258,33 +258,33 @@ export default function RetensiPage() {
                       // teks berwarna: di tabel padat, warna teks tenggelam.
                       background: perluCair ? C.yellowBg : "transparent",
                     }}>
-                      <th scope="row" style={{ padding: "12px 12px", textAlign: "left", fontWeight: 400 }}>
+                      <th scope="row" style={{ padding: "12px var(--pad-kartu-lega)", textAlign: "left", fontWeight: 400 }}>
                         <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{s.scope_name}</div>
                         <div style={{ fontSize: 11, color: C.muted }}>{s.mandor?.name ?? "—"}</div>
                       </th>
-                      <td style={{ padding: "12px 12px", color: C.mid }}>{s.project?.name ?? "—"}</td>
-                      <td style={{ padding: "12px 12px" }}>
+                      <td style={{ padding: "12px var(--pad-kartu-lega)", color: C.mid }}>{s.project?.name ?? "—"}</td>
+                      <td style={{ padding: "12px var(--pad-kartu-lega)" }}>
                         <span style={{
                           fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 6,
                           background: selesai ? C.greenBg : "var(--surface-hover)",
                           color: selesai ? C.onSuccessBg : C.mid,
                         }}>{selesai ? "Selesai" : s.status}</span>
                       </td>
-                      <td style={{ padding: "12px 12px", textAlign: "right", color: C.mid, fontVariantNumeric: "tabular-nums" }}>
+                      <td style={{ padding: "12px var(--pad-kartu-lega)", textAlign: "right", color: C.mid, fontVariantNumeric: "tabular-nums" }}>
                         {s.retensi_pct != null ? `${s.retensi_pct}%` : "—"}
                       </td>
-                      <td style={{ padding: "12px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.text }}>
+                      <td style={{ padding: "12px var(--pad-kartu-lega)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.text }}>
                         {rp(s.ditahan)}
                       </td>
-                      <td style={{ padding: "12px 12px", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.green }}>
+                      <td style={{ padding: "12px var(--pad-kartu-lega)", textAlign: "right", fontVariantNumeric: "tabular-nums", color: C.green }}>
                         {s.dicairkan ? rp(s.dicairkan) : "—"}
                       </td>
                       <td style={{
-                        padding: "12px 12px", textAlign: "right", fontWeight: 700,
+                        padding: "12px var(--pad-kartu-lega)", textAlign: "right", fontWeight: 700,
                         fontVariantNumeric: "tabular-nums",
                         color: s.outstanding > 0 ? C.yellow : C.muted,
                       }}>{s.outstanding > 0 ? rp(s.outstanding) : "lunas"}</td>
-                      <td style={{ padding: "12px 12px", textAlign: "right" }}>
+                      <td style={{ padding: "12px var(--pad-kartu-lega)", textAlign: "right" }}>
                         {bolehCairkan && s.outstanding > 0 && (
                           <button onClick={() => setCairkan(s)} style={{
                             padding: "4px 12px", borderRadius: 6,

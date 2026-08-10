@@ -518,7 +518,7 @@ function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => voi
 
           {data && data.peringatan.length > 0 && (
             <div style={{
-              padding: "12px 12px", borderRadius: 10, marginBottom: 16,
+              padding: "12px var(--pad-kartu-lega)", borderRadius: 10, marginBottom: 16,
               background: "var(--warning-bg)", border: `1px solid var(--warning-border)`,
               fontSize: 12, color: "var(--warning)",
             }}>
@@ -649,7 +649,7 @@ function TerapkanKeRabModal({ version, onClose }: { version: VersionDetail; onCl
 
       {tahap === "konfirmasi" && dampak && (
         <>
-          <div style={{ padding: "12px 12px", background: C.yellowBg, borderRadius: 6, marginBottom: 14 }}>
+          <div style={{ padding: "12px var(--pad-kartu-lega)", background: C.yellowBg, borderRadius: 6, marginBottom: 14 }}>
             <p style={{ margin: 0, fontSize: 13, color: C.text, lineHeight: 1.6 }}>
               RAB proyek ini sudah berisi <b>{dampak.akan_dihapus} baris</b>.
               Menerapkan versi ini akan <b>menghapus semuanya</b> dan menggantinya dengan{" "}
@@ -1273,7 +1273,7 @@ function KatalogTab() {
                 aria-expanded={open === a.id}
                 aria-label={`${a.code} — ${a.name}. ${open === a.id ? "Tutup" : "Buka"} rincian harga.`}
                 style={{ display: "flex", width: "100%", alignItems: "flex-start", gap: 8,
-                         padding: "12px 12px", background: "none", border: "none",
+                         padding: "12px var(--pad-kartu-lega)", background: "none", border: "none",
                          cursor: "pointer", textAlign: "left" }}>
                 <span style={{ paddingTop: 2 }}>
                   {open === a.id ? <ChevronDown size={15} color={C.mid} /> : <ChevronRight size={15} color={C.mid} />}
@@ -2948,7 +2948,7 @@ function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; un
     <div style={{ ...card, marginBottom: 14, background: C.yellowBg, borderColor: C.yellow }}>
       <button onClick={() => setBuka(b => !b)} aria-expanded={buka}
         style={{ display: "flex", width: "100%", alignItems: "center", gap: 8,
-                 padding: "12px 12px", background: "none", border: "none", cursor: "pointer",
+                 padding: "12px var(--pad-kartu-lega)", background: "none", border: "none", cursor: "pointer",
                  textAlign: "left" }}>
         {buka ? <ChevronDown size={15} color={C.text} /> : <ChevronRight size={15} color={C.text} />}
         <CircleOff size={15} color={C.yellow} style={{ flexShrink: 0 }} />
@@ -3406,7 +3406,7 @@ const SEL: React.CSSProperties = {
 
 function KpiKas({ label, nilai, ket }: { label: string; nilai: string; ket?: string }) {
   return (
-    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 12px" }}>
+    <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px var(--pad-kartu-lega)" }}>
       <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 4 }}>{label}</div>
       <div style={{ fontSize: 17, fontWeight: 800, color: C.text, fontVariantNumeric: "tabular-nums" }}>{nilai}</div>
       {ket && <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>{ket}</div>}
@@ -3526,7 +3526,7 @@ function VariansTab() {
                  dan laporannya belum berguna. Ini bukan error — ini pekerjaan
                  yang menunggu, dan pengguna berhak tahu persis berapa. ─── */}
           {peta.belum_dipetakan > 0 && (
-            <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "12px 12px",
+            <div style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "12px var(--pad-kartu-lega)",
               background: C.yellowBg, borderRadius: 6, fontSize: 12, color: C.text, marginBottom: 14 }}>
               <AlertTriangle size={15} style={{ color: C.yellow, flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
               <span>
@@ -3716,7 +3716,7 @@ function VariansTab() {
           <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
             <button type="button" onClick={() => setBukaPeta(v => !v)}
               aria-expanded={bukaPeta}
-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px 12px",
+              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px var(--pad-kartu-lega)",
                 background: C.surface, border: "none", cursor: "pointer", fontSize: 13,
                 fontWeight: 700, color: C.text, textAlign: "left" }}>
               {bukaPeta ? <ChevronDown size={16} /> : <ChevronRight size={16} />}

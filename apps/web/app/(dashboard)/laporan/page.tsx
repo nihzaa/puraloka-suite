@@ -860,7 +860,7 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
           <SectionTitle icon={<Users size={15} color={C.navy} />} title="Mandor & Scope Pekerjaan" />
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {data.mandorAssignments.map(a => (
-              <div key={a.id} style={{ padding: "12px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
+              <div key={a.id} style={{ padding: "12px var(--pad-kartu-lega)", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{a.mandor?.name ?? "—"}</span>
                   <span style={{ fontSize: 11, color: C.muted }}>{a.mandor?.phone}</span>
@@ -1462,7 +1462,7 @@ function TabProgress({ data }: { data: ProgressData }) {
               const photos = log.project_photos ?? [];
               return (
                 <div key={log.id} style={{ borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)", overflow: "hidden" }}>
-                  <div style={{ padding: "12px 12px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ padding: "12px var(--pad-kartu-lega)", display: "flex", gap: 12, alignItems: "flex-start" }}>
                     <div style={{ width: 44, height: 44, borderRadius: 10, background: C.navyLight, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                       <span style={{ fontSize: 13, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)" }}>{Number(log.pct_overall).toFixed(0)}</span>
                       <span style={{ fontSize: 10, color: C.mid }}>%</span>
@@ -1721,7 +1721,7 @@ function WipTab() {
           {/* Keterbatasan DI ATAS tabel — catatan kaki tak pernah dibaca
               sebelum keputusan diambil. */}
           <div style={{
-            padding: "12px 12px", borderRadius: 10,
+            padding: "12px var(--pad-kartu-lega)", borderRadius: 10,
             background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
           }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 5 }}>

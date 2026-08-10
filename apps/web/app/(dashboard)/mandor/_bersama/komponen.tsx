@@ -1666,7 +1666,7 @@ export function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh,
                       const pct = Number(item.pct_done);
                       const pctColor = getProgressColor(pct);
                       return (
-                        <div key={item.id} style={{ padding: "12px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)", marginBottom: 6 }}>
+                        <div key={item.id} style={{ padding: "12px var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface-subtle)", marginBottom: 6 }}>
                           <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>{item.item_name}</div>

@@ -313,7 +313,7 @@ function Konten() {
                   key={p.id}
                   style={{
                     borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                    padding: "11px 14px",
+                    padding: "13px var(--pad-kartu-lega)",
                   }}
                 >
                   <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>
@@ -415,7 +415,7 @@ function Konten() {
                     key={k.id}
                     style={{
                       borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                      padding: "10px 14px",
+                      padding: "12px var(--pad-kartu-lega)",
                     }}
                   >
                     <div style={{ display: "flex", gap: 8, alignItems: "baseline", flexWrap: "wrap" }}>

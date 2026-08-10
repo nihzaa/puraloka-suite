@@ -1338,6 +1338,17 @@ jobs:
       - name: Token CSS yang dipakai harus ada
         run: node scripts/uji-token-css-ada.mjs
 
+      # `<Panel padat>` menyetel padding badan jadi NOL sementara kepalanya
+      # tetap 16px. Baris daftar yang lebih sempit membuat isi terlihat
+      # menepi — founder menunjuknya dengan satu kata, "mepet" (2026-08-10),
+      # dan saat diukur ternyata 28 baris di 8 halaman, bukan cuma yang ia
+      # lihat. Sudah dilunasi jadi NOL, jadi ini larangan, bukan ratchet.
+      #
+      # Terbukti bisa merah: `bash scripts/bukti-mutasi-mepet.sh` — dan
+      # terbukti TIDAK cerewet: padding tombol/sel tabel sengaja diabaikan.
+      - name: Baris daftar tak boleh lebih sempit dari kepala panel
+        run: node scripts/uji-baris-tak-mepet.mjs
+
       # Path API yang salah GAGAL DALAM DIAM: 404 hanya muncul di konsol
       # peramban, sementara halamannya tampil rapi bertuliskan "Tidak ada
       # invoice". Dua endpoint ditulis dari ingatan saat memecah modul

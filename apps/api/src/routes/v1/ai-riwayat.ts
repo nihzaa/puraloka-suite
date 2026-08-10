@@ -190,6 +190,20 @@ export default async function aiRiwayatRoutes(app: FastifyInstance) {
         .select('id, action, record_id, user_id, new_values, severity, created_at')
         .eq('company_id', request.companyId!)
         .like('action', 'ai.%')
+        /*
+         * Jejak PENGAWASAN dikeluarkan dari kolom "yang benar-benar terjadi".
+         *
+         * `ai.riwayat.baca_milik_orang_lain` adalah jejak orang membuka halaman
+         * ini, bukan jejak asisten mengerjakan sesuatu. Dibiarkan bercampur, ia
+         * MENDOMINASI: 14 dari 99 baris pada 2026-08-10, semuanya berturut-turut
+         * di puncak daftar, menenggelamkan 2 deteksi entitas asing yang justru
+         * paling perlu dilihat.
+         *
+         * Halaman ini menjawab "asisten ngapain?". Yang menjawab "siapa membaca
+         * apa" adalah Audit Log (`/audit`), dan di sanalah barisnya tetap utuh —
+         * disaring di sini, bukan dihapus.
+         */
+        .not('action', 'eq', 'ai.riwayat.baca_milik_orang_lain')
         .order('created_at', { ascending: false })
         .limit(BATAS)
 
@@ -296,7 +310,8 @@ async function ringkasan(request: import('fastify').FastifyRequest) {
       .unsafe('audit_logs', 'kategori D — disaring eksplisit dengan .eq(company_id) di bawah')
       .select('action')
       .eq('company_id', request.companyId!)
-      .like('action', 'ai.%'),
+      .like('action', 'ai.%')
+      .not('action', 'eq', 'ai.riwayat.baca_milik_orang_lain'),
     db.from('ai_biaya_token').select('biaya_idr'),
   ])
 

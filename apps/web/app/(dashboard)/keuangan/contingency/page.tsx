@@ -330,13 +330,13 @@ export default function ContingencyPage() {
 
       {galat && (
         <div role="alert" style={{
-          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
           border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red,
         }}>{galat}</div>
       )}
       {sukses && (
         <div role="status" style={{
-          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
           border: `1px solid ${C.greenBorder}`, background: C.greenBg, color: C.green,
         }}>{sukses}</div>
       )}
@@ -435,7 +435,7 @@ export default function ContingencyPage() {
                     Ikon: ShieldCheck,
                   },
                 ].map((k) => (
-                  <div key={k.label} style={{ ...kartu, padding: "10px 14px", flex: "1 1 200px", minWidth: 190 }}>
+                  <div key={k.label} style={{ ...kartu, padding: "10px var(--pad-kartu-lega)", flex: "1 1 200px", minWidth: 190 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                       <k.Ikon size={12} aria-hidden="true" style={{ color: k.warna }} />
                       <span style={labelGaya}>{k.label}</span>
@@ -453,7 +453,7 @@ export default function ContingencyPage() {
                   "tak ada cadangannya sama sekali". */}
               {hasil.proyek_tanpa_pos.length > 0 && (
                 <div role="status" style={{
-                  marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 12,
+                  marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
                   border: `1px solid ${C.yellowBorder}`, background: C.yellowBg, color: C.text,
                   display: "flex", alignItems: "flex-start", gap: 8, lineHeight: 1.5,
                 }}>
@@ -499,7 +499,7 @@ export default function ContingencyPage() {
                   />
 
                   <p style={{
-                    margin: 0, padding: "10px 14px", borderTop: `1px solid ${C.border}`,
+                    margin: 0, padding: "10px var(--pad-kartu-lega)", borderTop: `1px solid ${C.border}`,
                     background: "var(--surface-subtle)", fontSize: 11, color: C.mid, lineHeight: 1.55,
                   }}>
                     Sisa <strong>dihitung</strong>, tidak disimpan — kolom sisa yang disimpan bisa

@@ -248,7 +248,7 @@ function NcrInner() {
 
       {galat && (
         <div role="alert" style={{
-          padding: "12px 12px", borderRadius: 10, marginBottom: 14,
+          padding: "12px var(--pad-kartu-lega)", borderRadius: 10, marginBottom: 14,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           color: C.onDangerBg, fontSize: 13,
         }}>
