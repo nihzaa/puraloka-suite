@@ -835,10 +835,6 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
     } finally { setLoading(false); }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`,
-    borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box",
-  };
 
   if (!mounted) return null;
   return createPortal(
@@ -1026,10 +1022,6 @@ export function AddKasbonModal({ assignments, onClose, onSuccess }: {
     } finally { setLoading(false); }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`,
-    borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box",
-  };
 
   if (!mounted) return null;
   return createPortal(
@@ -1194,10 +1186,6 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
     } finally { setLoading(false); }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`,
-    borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)",
-  };
 
   if (!mounted) return null;
   return createPortal(
@@ -1380,7 +1368,6 @@ export function AddAssignmentModal({ mandors, onClose, onSuccess }: {
       .then(r => setProjects(r.data.projects)).catch(() => {});
   }, []);
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1462,7 +1449,6 @@ export function AddScopeModal({ assignmentId, onClose, onSuccess }: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1733,7 +1719,6 @@ export function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
   const estSubtotal = (Number(volume) || 0) * (Number(String(unitPrice).replace(/\D/g, "")) || 0);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -1920,7 +1905,6 @@ export function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess
     } finally { setLoading(false); }
   }
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   if (!mounted) return null;
   return createPortal(
@@ -2002,7 +1986,6 @@ export function PPConfirmModal({ payment, cashAccounts, loading, onClose, onActi
   const [notes, setNotes] = useState("");
   const [mode, setMode] = useState<"approve" | "reject">("approve");
   const fmtLocal = formatRupiah;
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   if (!mounted) return null;
   return createPortal(

@@ -56,10 +56,23 @@ export function NavBagian({ bagian }: { bagian: Bagian[] }) {
       }}
     >
       {bagian.map((b) => {
-        // Cocok PERSIS untuk akar modul, awalan untuk sisanya — kalau tidak,
-        // "/keuangan" akan selalu aktif bersama anak-anaknya.
+        // Cocok PERSIS untuk akar modul, anak-segmen untuk sisanya — kalau
+        // tidak, "/keuangan" akan selalu aktif bersama anak-anaknya.
+        //
+        // Dulu baris ini menulis aturannya sendiri dengan `startsWith` MENTAH.
+        // `lib/rute-aktif.ts` dibuat 2026-08-07 justru untuk menyatukan tiga
+        // aturan yang berbeda-beda, dan kepala berkasnya menyebut
+        // `nav-bagian.tsx:61` sebagai salah satu yang cacat — tetapi impornya
+        // ditambahkan tanpa baris ini pernah diganti. Lint hanya melaporkannya
+        // sebagai "impor tak terpakai", jadi perbaikan setengah jalan itu
+        // bertahan berhari-hari terlihat seperti sudah selesai.
+        //
+        // Bedanya bukan gaya: `"/pengaturan/situs-lama".startsWith("/pengaturan/situs")`
+        // bernilai true, jadi membuka "Situs Lama" menyalakan menu "Situs".
         const akarModul = b.href.split("/").filter(Boolean).length === 1;
-        const aktif = akarModul ? pathname === b.href : pathname.startsWith(b.href);
+        const aktif = akarModul
+          ? rutenyaAktifPersis(pathname, b.href)
+          : rutenyaAktif(pathname, b.href);
 
         return (
           <Link

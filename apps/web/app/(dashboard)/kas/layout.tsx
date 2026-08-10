@@ -26,42 +26,49 @@
  * terjangkau dari bagian mana pun, termasuk dari halaman Akun Kas tempat
  * orang baru menyadari saldonya tipis.
  *
- * ── Kenapa lencana dimuat di sini
+ * ── Lencana: pernah direncanakan di sini, TIDAK jadi
  *
- * Angka "menunggu" di navigasi berasal dari `/api/v1/cash/summary`, satu
- * panggilan yang menjawab seluruh modul. Kalau tiap halaman memanggilnya
- * sendiri, lencananya berkedip tiap kali orang berpindah bagian — dan angka
- * yang berkedip membuat orang ragu apakah datanya berubah.
+ * Bagian ini dulu berjudul "Kenapa lencana dimuat di sini" dan menjelaskan
+ * `/api/v1/cash/summary` sebagai satu panggilan yang menjawab seluruh modul.
+ * Penjelasannya benar sebagai rancangan, tetapi lencananya tak pernah dirender
+ * — layout ini tidak memuat navigasi bagian. Yang tersisa hanya permintaannya.
+ *
+ * Dibuang 2026-08-11 (lihat catatan di badan fungsi). Bagian ini dipertahankan
+ * dalam bentuk terkoreksi, bukan dihapus: penjelasan yang menyatakan sesuatu
+ * ADA padahal sudah tidak lebih berbahaya daripada tak ada penjelasan sama
+ * sekali — pembaca berikutnya akan mencarinya dan menyimpulkan ia rusak.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ArrowRightLeft, Plus } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { JudulBagian } from "@/components/judul-bagian";
 import { CreateExpenseModal, CreateTransferModal } from "./_bersama/modal";
-import type { CashAccount, CashSummary } from "./_bersama/tipe";
+import type { CashAccount } from "./_bersama/tipe";
 
 export default function KasLayout({ children }: { children: React.ReactNode }) {
   // ADR-004: capability, bukan nama jabatan. Diverifikasi ke `requirePermission`
   // di `routes/v1/cash.ts` — bukan ditebak dari nama tombolnya.
   const bolehTransfer = useIzin("cash:transfer:create");
 
-  const [ringkas, setRingkas] = useState<CashSummary | null>(null);
+  // `ringkas` DIBUANG bersama `muatRingkas` dan tiga pemanggilnya.
+  //
+  // `/api/v1/cash/summary` dipanggil saat layout dimuat DAN sesudah tiap
+  // transfer/pengeluaran berhasil — hasilnya disimpan, lalu tak pernah dibaca
+  // satu kali pun. Rencananya lencana navigasi (komentarnya masih menyebut
+  // "lencana"), tetapi layout ini tak merender navigasi bagian.
+  //
+  // Endpoint-nya GET murni, jadi tak ada efek samping server yang hilang.
+  // Yang dibuang adalah PERMINTAANNYA, bukan sekadar variabelnya: menghapus
+  // `ringkas` sambil membiarkan fetch berjalan menghijaukan lint tanpa
+  // memperbaiki apa pun — dan permintaan sia-sia itu jadi permanen karena tak
+  // ada lagi yang menandainya.
   const [akun, setAkun] = useState<CashAccount[]>([]);
   const [bukaTransfer, setBukaTransfer] = useState(false);
   const [bukaPengeluaran, setBukaPengeluaran] = useState(false);
 
-  const muatRingkas = useCallback((signal?: AbortSignal) => {
-    return api.get<CashSummary>("/api/v1/cash/summary", { signal })
-      .then((r) => setRingkas(r.data))
-      // Lencana adalah pelengkap, bukan angka utama. Kalau gagal, navigasi
-      // tetap tampil TANPA lencana — nol yang dikarang jauh lebih buruk
-      // daripada lencana yang absen, karena "0 menunggu" terbaca sebagai
-      // "tidak ada yang perlu saya kerjakan".
-      .catch((e) => { if (e?.name !== "CanceledError") setRingkas(null); });
-  }, []);
 
   const muatAkun = useCallback(() => {
     return api.get<{ accounts: CashAccount[] }>("/api/v1/cash/accounts")
@@ -69,11 +76,6 @@ export default function KasLayout({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    void muatRingkas(ac.signal);
-    return () => ac.abort();
-  }, [muatRingkas]);
 
 
   return (
@@ -123,7 +125,7 @@ export default function KasLayout({ children }: { children: React.ReactNode }) {
         <CreateTransferModal
           accounts={akun}
           onClose={() => setBukaTransfer(false)}
-          onSuccess={() => { setBukaTransfer(false); void muatRingkas(); void muatAkun(); }}
+          onSuccess={() => { setBukaTransfer(false); void muatAkun(); }}
           onNeedAccounts={muatAkun}
         />
       )}
@@ -131,7 +133,7 @@ export default function KasLayout({ children }: { children: React.ReactNode }) {
         <CreateExpenseModal
           accounts={akun.filter(a => a.type === "petty_cash" && a.is_active)}
           onClose={() => setBukaPengeluaran(false)}
-          onSuccess={() => { setBukaPengeluaran(false); void muatRingkas(); void muatAkun(); }}
+          onSuccess={() => { setBukaPengeluaran(false); void muatAkun(); }}
           onNeedAccounts={muatAkun}
         />
       )}

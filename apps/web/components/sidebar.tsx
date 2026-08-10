@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { rutenyaAktifPenuh } from "@/lib/rute-aktif";
 import { tujuanGrup } from "@/lib/tujuan-grup";
 import { TitikKesiapan } from "@/components/titik-kesiapan";

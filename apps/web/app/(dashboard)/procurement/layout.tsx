@@ -35,27 +35,22 @@
  * yang tak terlihat di halaman yang sedang dibuka.
  */
 
-import { useEffect, useState } from "react";
-import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { JudulBagian } from "@/components/judul-bagian";
-import type { KpiProcurement } from "./_bersama/tipe";
 
+// Dulu di sini ada `useEffect` yang memanggil `/procurement/dashboard` untuk
+// mengisi lencana navigasi. Permintaannya berjalan pada SETIAP muat layout,
+// hasilnya disimpan ke state, dan tak pernah dibaca satu kali pun — layout ini
+// tidak merender `NavBagian`, jadi lencananya tak punya tempat untuk muncul.
+//
+// Sisa rancangan yang berubah. Yang dibuang bukan hanya variabelnya melainkan
+// PERMINTAANNYA: menghapus `kpi` sambil membiarkan `api.get` berjalan akan
+// menghijaukan lint tanpa memperbaiki apa pun, dan permintaan sia-sia itu jadi
+// permanen justru karena tak ada lagi yang menandainya.
+//
+// Kalau lencana pengadaan dibutuhkan nanti, tempatnya `useHitunganLencana()`
+// seperti di `mandor/layout.tsx` — bukan fetch sendiri di layout.
 export default function ProcurementLayout({ children }: { children: React.ReactNode }) {
-  const [kpi, setKpi] = useState<KpiProcurement | null>(null);
-
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<KpiProcurement>("/api/v1/procurement/dashboard", { signal: ac.signal })
-      .then((r) => setKpi(r.data))
-      // Lencana adalah pelengkap, bukan angka utama. Kalau gagal, navigasi
-      // tetap tampil TANPA lencana — nol yang dikarang jauh lebih buruk
-      // daripada lencana yang absen, karena "0 menunggu" terbaca sebagai
-      // "tidak ada yang perlu saya kerjakan".
-      .catch(() => setKpi(null));
-    return () => ac.abort();
-  }, []);
-
 
   return (
     <div style={{

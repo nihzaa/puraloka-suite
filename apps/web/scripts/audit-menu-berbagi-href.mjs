@@ -15,15 +15,21 @@
  * taksonomi 191 sub-menu yang disusun justru supaya orang bisa menemukan
  * sesuatu. Menu yang diabaikan sama saja dengan menu yang tak ada.
  *
- * ── Kenapa RATCHET, bukan larangan mutlak
+ * ── Dulu RATCHET, sekarang LARANGAN MUTLAK
  *
- * Berbagi href tidak selalu salah. "Upah Harian & Borongan" dan "Upah Harian
- * Lapangan" memang dua nama untuk satu halaman `/mandor/upah`, dan itu sah:
- * dua kelompok berbeda (Mandor, SDM) mencari hal yang sama. Melarangnya akan
- * memaksa salah satu kelompok kehilangan jalan masuk.
+ * Bagian ini pernah berjudul "Kenapa RATCHET, bukan larangan mutlak" dan
+ * beralasan bahwa berbagi href tidak selalu salah — "Upah Harian & Borongan"
+ * dan "Upah Harian Lapangan" memang dua nama untuk satu halaman, dan dua
+ * kelompok berbeda mencari hal yang sama.
  *
- * Yang dijaga adalah **arahnya**: angka hari ini adalah lantai. Sub-menu baru
- * yang ditambahkan tanpa tujuan sendiri akan menaikkannya, dan itu merah.
+ * Alasan itu sah SELAMA 144 item berbagi href. Migrasi 232 merombak sidebar
+ * jadi satu route = satu link, dan angkanya kini NOL — ambangnya larangan
+ * mutlak, bukan lantai (lihat catatan panjangnya tepat di atas pemeriksaan).
+ *
+ * Dibiarkan dalam bentuk terkoreksi, bukan dihapus: sampai 2026-08-11 kepala
+ * berkas ini menyatakan "ratchet" sementara badannya menyatakan "larangan
+ * mutlak". Pembaca yang berhenti di kepala akan menyimpulkan boleh menambah
+ * sedikit — dan penjaganya akan merah tanpa ia mengerti kenapa.
  *
  * ── `/m/<key>` sengaja dikecualikan
  *
@@ -46,14 +52,20 @@
  * lebih berbahaya daripada penjaga yang absen.
  *
  * Pakai (dari akar repo): node apps/web/scripts/audit-menu-berbagi-href.mjs
- *                         node apps/web/scripts/audit-menu-berbagi-href.mjs --naikkan
+ *
+ * TIDAK ada `--naikkan`. Baris itu pernah tertulis di sini bersama impor
+ * `writeFileSync` dan konstanta `LANTAI` — sisa dari era ketika penjaga ini
+ * masih ratchet (lihat catatan "LARANGAN MUTLAK" di bawah). Sesudah migrasi
+ * 232 ambangnya NOL mutlak, jadi tak ada lantai untuk dinaikkan.
+ *
+ * Bendera yang didokumentasikan tapi tak diimplementasikan lebih buruk
+ * daripada bendera yang tak ada: menjalankannya tidak menghasilkan galat, ia
+ * hanya diam — dan pemakainya menyimpulkan lantainya sudah dinaikkan.
  */
-import { readFileSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const AKAR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
-const LANTAI = join(AKAR, 'apps', 'web', 'scripts', 'lantai-nav.json')
 
 let baris
 try {

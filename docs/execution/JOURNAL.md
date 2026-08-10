@@ -10383,3 +10383,96 @@ Typecheck menangkapnya.
 
 Masih merah: kerapatan (312/307), lint, tabel-mentah (11/7), tata-letak,
 a11y-runtime. Semuanya sudah merah di baseline — diverifikasi `git stash`.
+
+## 2026-08-11 (lanjutan 4) — `no-unused-vars` bukan keluhan gaya: dua fetch mati per halaman
+
+`lint-ratchet` merah untuk tujuh aturan. Yang paling jauh dari ambangnya
+`@typescript-eslint/no-unused-vars`: **22 (ambang 1)**.
+
+Terlihat sepele. Tidak.
+
+### Apa yang sebenarnya disembunyikan keluhan itu
+
+**Delapan `inputStyle` mati di `mandor/_bersama/komponen.tsx`.** Delapan salinan
+identik, masing-masing dengan `outline: none`, NOL pemakaian. Persis 8
+pelanggaran yang `isian-ratchet` catat di berkas itu — kode mati yang tetap
+disalin orang berikutnya karena ia ada di sana.
+
+**Tiga layout memanggil API lalu membuang hasilnya:**
+
+    kas/layout.tsx          /cash/summary            saat muat + tiap transfer
+    procurement/layout.tsx  /procurement/dashboard   saat muat
+    mandor/layout.tsx       /mandor/worker-kasbons   saat muat
+                            /mandor/progress-payments
+
+Ketiganya menyimpan hasilnya ke state yang tak pernah dibaca. Yang terakhir
+paling mahal: **dua daftar penuh diunduh hanya untuk menghitung panjangnya.**
+
+Sebabnya sama di ketiganya — lencana navigasi direncanakan, komentarnya masih
+menjelaskan alasannya, tetapi `NavBagian` tak pernah dipasang di layout mana
+pun. Lencananya tak punya tempat muncul.
+
+Yang dibuang PERMINTAANNYA, bukan variabelnya. Menghapus `kpi` sambil
+membiarkan `api.get` berjalan menghijaukan lint tanpa memperbaiki apa pun —
+dan permintaan sia-sia itu jadi permanen justru karena tak ada lagi yang
+menandainya.
+
+Diverifikasi di peramban: di sub-halaman (`/kas/akun`, `/procurement/supplier`,
+`/mandor/upah`) — tempat layout satu-satunya pemanggil yang mungkin —
+keempat endpoint kini **tak ditembak sama sekali**.
+
+Catatan alat ukur: percobaan pertama menguji di halaman INDUK dan melaporkan
+"masih menembak" untuk ketiganya. Itu salah — `/kas` dan `/procurement`
+memanggil endpoint yang sama untuk MENAMPILKAN angkanya, pemakaian yang sah,
+dan perekam permintaan tak bisa membedakan pemanggilnya. Kalau saya percaya
+laporan itu, saya akan membatalkan perbaikan yang berhasil.
+
+### Perbaikan yang berhenti di tengah, bertahan berhari-hari
+
+`nav-bagian.tsx` mengimpor `rutenyaAktif` dan `rutenyaAktifPersis` tanpa
+memakainya. Bukan impor nyasar: kepala `lib/rute-aktif.ts` **menyebut
+`nav-bagian.tsx:61` sebagai salah satu dari tiga aturan cacat yang ia dibuat
+untuk menggantikan** — ia memakai `startsWith` MENTAH, tanpa `+ "/"`.
+
+Impornya ditambahkan 2026-08-07. Barisnya tak pernah diganti.
+
+Yang membuatnya lolos: lint melaporkannya sebagai "impor tak terpakai" —
+keluhan yang terbaca seperti kelalaian gaya, bukan seperti perbaikan yang
+berhenti di tengah. Dan tak ada satu pun test yang menanyakan menu mana yang
+menyala.
+
+Akibat nyatanya: `"/pengaturan/situs-lama".startsWith("/pengaturan/situs")`
+bernilai `true` — membuka "Situs Lama" menyalakan menu "Situs".
+
+Ditulis `components/nav-bagian.test.tsx` (6 kasus) yang mengunci PERILAKUNYA,
+bukan fungsi mana yang dipanggil. Dibuktikan bisa merah: dikembalikan ke
+`startsWith` mentah → kasus saudara MERAH, lima lainnya tetap hijau.
+
+### Dua dokumentasi yang berbohong
+
+**`--naikkan` yang tak diimplementasikan.** `audit-menu-berbagi-href.mjs`
+mendokumentasikan bendera itu dan mengimpor `writeFileSync` + `LANTAI` untuknya
+— sisa dari era ketika penjaga itu masih ratchet. Sesudah migrasi 232
+ambangnya nol mutlak. Menjalankan `--naikkan` tidak menghasilkan galat, ia
+hanya diam, dan pemakainya menyimpulkan lantainya sudah dinaikkan.
+
+**Kepala berkas yang bertentangan dengan badannya.** Berkas yang sama
+berjudul "Kenapa RATCHET, bukan larangan mutlak" di baris 18, sementara baris
+99 menyatakan "LARANGAN MUTLAK, bukan ratchet lagi". Pembaca yang berhenti di
+kepala menyimpulkan boleh menambah sedikit.
+
+Keduanya dikoreksi, bukan dihapus — bersama `kas/layout.tsx` yang kepala
+berkasnya masih menjelaskan lencana yang tak ada.
+
+### Bukti
+
+    tsc --noEmit       0
+    vitest (web)       601 lulus / 46 berkas — 0 gagal  (+6 dari nav-bagian)
+    pnpm build         ✓ Compiled successfully in 10.8s
+    lint-ratchet       no-unused-vars HILANG dari daftar merah (22 → <1)
+    fetch mati         0/4 di sub-halaman (diukur di peramban)
+    audit-menu-href    ✅ nol href dipakai >1 link
+
+Enam aturan lint masih merah (set-state-in-effect, exhaustive-deps,
+click-events, noninteractive, label-has-control, unescaped-entities) —
+semuanya sudah merah di baseline.

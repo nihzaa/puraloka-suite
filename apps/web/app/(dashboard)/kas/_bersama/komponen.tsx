@@ -12,7 +12,6 @@
 import { ArrowRightLeft, FileText } from "lucide-react";
 import { C } from "@/lib/warna-ui";
 import { keadaanSaldo, labelSaldo } from "@/lib/keadaan-saldo";
-import { GAYA_KARTU } from "@/components/ui-dasar";
 import {
   type CashAccount, type CashTransfer, type Expense,
   ACCOUNT_TYPE_LABEL, TRANSFER_STATUS, EXPENSE_STATUS,

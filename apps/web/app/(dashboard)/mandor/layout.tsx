@@ -32,33 +32,23 @@ import { HardHat, Clock, Banknote, Users, AlertTriangle, FileText } from "lucide
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { JudulBagian } from "@/components/judul-bagian";
-import { fmt, type Summary, type WorkerKasbon, type ProgressPayment } from "./_bersama/tipe";
+import { fmt, type Summary } from "./_bersama/tipe";
 
 /**
- * Angka lencana navigasi — dimuat terpisah dari KPI.
+ * Lencana navigasi: pernah direncanakan, TIDAK jadi.
  *
- * Keduanya butuh sumber berbeda (`/summary` tak memuat jumlah kasbon aktif
- * per-baris maupun penagihan menunggu), dan keduanya boleh gagal sendiri-
- * sendiri: lencana yang hilang lebih baik daripada seluruh kerangka modul
- * yang tak muncul.
+ * Di sini dulu ada `useHitunganLencana()` — dua permintaan API (worker-kasbons
+ * dan progress-payments) yang masing-masing mengunduh SELURUH daftar hanya
+ * untuk menghitung panjangnya, lalu hasilnya tak pernah dibaca. Layout ini
+ * tidak merender navigasi bagian, jadi lencananya tak punya tempat muncul.
+ *
+ * Pola yang sama ditemukan di TIGA layout sekaligus (kas, procurement, mandor)
+ * — ketiganya menyisakan fetch lencana untuk navigasi yang tak pernah dipasang.
+ * Yang membuatnya bertahan: lint hanya melaporkannya sebagai "variabel tak
+ * terpakai", keluhan yang terbaca seperti kelalaian gaya.
+ *
+ * Ini yang paling mahal dari ketiganya: dua daftar penuh diunduh tiap muat.
  */
-function useHitunganLencana() {
-  const [kasbonAktif, setKasbonAktif] = useState<number>();
-  const [penagihanMenunggu, setPenagihanMenunggu] = useState<number>();
-
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ kasbons: WorkerKasbon[] }>("/api/v1/mandor/worker-kasbons", { signal: ac.signal })
-      .then((r) => setKasbonAktif((r.data.kasbons ?? []).filter((k) => !k.is_settled).length))
-      .catch(() => {});
-    api.get<{ payments: ProgressPayment[] }>("/api/v1/mandor/progress-payments", { signal: ac.signal })
-      .then((r) => setPenagihanMenunggu((r.data.payments ?? []).filter((p) => p.status === "pending").length))
-      .catch(() => {});
-    return () => ac.abort();
-  }, []);
-
-  return { kasbonAktif, penagihanMenunggu };
-}
 
 function KartuAngka({ label, nilai, sub, ikon, warna, tepi }: {
   label: string; nilai: string; sub?: string | null;
@@ -89,7 +79,6 @@ function KartuAngka({ label, nilai, sub, ikon, warna, tepi }: {
 export default function MandorLayout({ children }: { children: React.ReactNode }) {
   const [ringkas, setRingkas] = useState<Summary | null>(null);
   const [gagal, setGagal] = useState(false);
-  const { kasbonAktif, penagihanMenunggu } = useHitunganLencana();
 
   const muat = useCallback((signal?: AbortSignal) => {
     api.get<Summary>("/api/v1/mandor/summary", { signal })
