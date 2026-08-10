@@ -130,7 +130,13 @@ describe('tool terhadap data NYATA', () => {
       WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
     `)
     companyId = rows[0].id
-    izin = new Set(['projects:view', 'finance:view', 'procurement:view', 'gudang:view'])
+    // Satu izin per tool di katalog — `documents:manage` masuk sejak tool
+    // `cari_dokumen` (TJS-C2). Daftar yang tertinggal membuat test ini merah
+    // dengan pesan yang menyalahkan katalognya, bukan fixture-nya.
+    izin = new Set([
+      'projects:view', 'finance:view', 'procurement:view', 'gudang:view',
+      'documents:manage',
+    ])
   })
 
   /**
@@ -209,7 +215,7 @@ describe('tool terhadap data NYATA', () => {
     expect(props?.status?.enum).toEqual([...STATUS_PROYEK])
   })
 
-  it('katalog penuh berisi 4 tool untuk pengguna ber-izin lengkap', () => {
+  it('katalog penuh = SEMUA tool untuk pengguna ber-izin lengkap', () => {
     expect(katalogUntuk(izin)).toHaveLength(KATALOG_TOOL.length)
     expect(companyId).toBeTruthy()
   })

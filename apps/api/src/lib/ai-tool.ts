@@ -43,6 +43,8 @@
  */
 
 import type { TenantDb } from '../utils/tenant-db.js'
+import { cariPotongan } from './rag-cari.js'
+import { saringanUntuk } from './rag-acl.js'
 
 export interface KonteksTool {
   db: TenantDb
@@ -373,11 +375,112 @@ const toolStokMaterial: DefinisiToolAi = {
 }
 
 /** Seluruh tool yang ada. Read-only, tanpa kecuali. */
+
+/**
+ * CARI DOKUMEN — RAG, satu-satunya tool yang membaca isi dokumen.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * T-5: TIDAK PERNAH MENGEMBALIKAN `file_url`
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * `documents.ts:138` membuat signed URL berumur **10 TAHUN**. Kalau ia sampai
+ * ke WhatsApp, ia bertahan setelah hak akses dicabut, di riwayat chat yang di
+ * luar kendali kita — dan tak ada cara menariknya kembali.
+ *
+ * Yang dikembalikan: JUDUL, jenis, dan POTONGAN TEKS yang relevan. Orang yang
+ * butuh berkasnya membukanya lewat aplikasi, tempat haknya diperiksa saat itu
+ * juga.
+ *
+ * ── T-4: ACL penuh, bukan hanya company_id
+ *
+ * `saringanUntuk(izin)` menurunkan jenis dokumen yang boleh dibaca dari
+ * PERMISSION, bukan nama peran (ADR-004). Mandor yang bertanya "berapa nilai
+ * kontraknya?" tak mendapat isi kontrak — sama seperti di halaman Dokumen.
+ *
+ * ── Kegagalan jalur TERLIHAT
+ *
+ * Kalau jalur vektor mati, jawabannya tetap terbit dari jalur teks TAPI
+ * statusnya ikut dilaporkan. Tanpa itu gejalanya "asisten jadi agak bodoh
+ * untuk pertanyaan parafrase" — keluhan yang tak pernah sampai ke siapa pun.
+ */
+const toolCariDokumen: DefinisiToolAi = {
+  nama: 'cari_dokumen',
+  keterangan:
+    'Mencari ISI dokumen proyek (kontrak, SPK, berita acara, gambar kerja). ' +
+    'Pakai untuk pertanyaan yang jawabannya ada di dalam dokumen, mis. ' +
+    '"berapa nilai kontrak proyek X", "apa syarat retensinya", "mutu beton yang dipakai". ' +
+    'Mengembalikan kutipan teks — BUKAN tautan berkas.',
+  izin: 'documents:manage',
+  skema: {
+    type: 'object',
+    properties: {
+      kueri: {
+        type: 'string',
+        description:
+          'Kata kunci atau pertanyaan. Istilah persis boleh diapit tanda kutip, mis. "SNI 2847".',
+      },
+    },
+    required: ['kueri'],
+  },
+  async jalan({ db, companyId, izin }, argumen) {
+    const kueri = typeof argumen.kueri === 'string' ? argumen.kueri.trim() : ''
+    if (!kueri) {
+      return { isi: 'Kueri pencarian kosong.', isError: true, entitas: [] }
+    }
+
+    const hasil = await cariPotongan({
+      db,
+      companyId,
+      saringan: saringanUntuk(izin),
+      kueri,
+      // Embedding kueri belum disambungkan — jalur vektor DILEWATI, bukan
+      // gagal, dan bedanya dilaporkan. Jalur teks sudah menjawab pencocokan
+      // persis yang jadi kriteria utama C2.
+      embedKueri: null,
+      batas: 5,
+    })
+
+    if (hasil.jalurTeks === 'gagal') {
+      return {
+        isi: `Pencarian dokumen gagal: ${hasil.pesanGagal ?? 'tak diketahui'}`,
+        isError: true,
+        entitas: [],
+      }
+    }
+
+    if (hasil.potongan.length === 0) {
+      return {
+        isi: bungkusData('cari_dokumen', 'Tidak ada dokumen yang cocok dengan pencarian ini.'),
+        isError: false,
+        entitas: [],
+      }
+    }
+
+    const baris = hasil.potongan.map(
+      (p) => `— ${p.judul} (${p.docType}, bagian ${p.urutan + 1}):\n${p.isi}`,
+    )
+
+    // Status jalur ikut supaya jawaban yang lahir dari SATU jalur bisa
+    // dibedakan dari yang lahir dari dua.
+    const catatan =
+      hasil.jalurVektor === 'gagal'
+        ? '\n(Catatan: pencarian kemiripan gagal; hasil ini hanya dari pencocokan kata.)'
+        : ''
+
+    return {
+      isi: bungkusData('cari_dokumen', baris.join('\n\n') + catatan),
+      isError: false,
+      entitas: hasil.potongan.map((p) => p.judul),
+    }
+  },
+}
+
 export const KATALOG_TOOL: DefinisiToolAi[] = [
   toolDaftarProyek,
   toolRingkasKeuangan,
   toolMenungguPersetujuan,
   toolStokMaterial,
+  toolCariDokumen,
 ]
 
 /**

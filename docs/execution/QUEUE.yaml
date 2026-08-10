@@ -1630,13 +1630,54 @@ items:
       contains biasa tanpa indeks full-text. Niatnya diambil, implementasinya
       tidak.
 
+      SELESAI 2026-08-10 (migrasi 263/264/265; lib/rag-{acl,cari,ingest}.ts;
+      tool `cari_dokumen`).
+
+      KEPUTUSAN TENANCY (dituntut kriteria): tabel potongan MEMBAWA company_id
+      SENDIRI, bukan menyaring lewat daftar project_id seperti induknya yang
+      kategori C. Alasannya khusus RAG: pencarian vector mengembalikan "paling
+      mirip", dan spesifikasi beton K-300 di dua perusahaan konstruksi hampir
+      identik. Dengan penyaringan lewat subquery, satu query baru yang lupa
+      menyertakannya = kebocoran senyap; dengan company_id di barisnya sendiri,
+      policy RESTRICTIVE menegakkannya di SQL dan penjaga CI memeriksa satu
+      kata di WHERE. Trigger MENGISI nilainya dari proyeknya, jadi pemanggil
+      tak bisa salah mengisi (pola `wa-sesi.ts`).
+
+      T-4 diselesaikan lewat PERMISSION, bukan literal peran: `documents.ts:31-37`
+      memakai `admin`/`pm`/`mandor`/`client` sebagai kunci (hutang F3-1) dan itu
+      TIDAK direproduksi. Diukur dari basis, `documents:manage` memetakan persis
+      ke "lihat semua jenis" — dan peran KUSTOM `direktur` ikut benar tanpa
+      disebut namanya di mana pun.
+
+      TIGA KESALAHAN SAYA, semuanya ditemukan mutasi, bukan pembacaan:
+      (1) test isolasi BUTA — mencabut company_id tetap hijau karena TenantDb
+      menyaring di bawahnya, jadi yang diuji wrapper, bukan kode saya;
+      (2) test RPC juga buta — tanpa embedding tersimpan, hasilnya nol apa pun
+      keadaannya, dan "nol karena aman" tak bisa dibedakan dari "nol karena
+      rusak" tanpa assertion `> 0` pada jalur SAH;
+      (3) `auth_company_id()` KOSONG pada klien service-role (satu-satunya
+      klien yang bisa memanggil RPC di repo ini) — migrasi 264 memakainya dan
+      fungsinya mengembalikan nol baris untuk SETIAP pemanggilan sah. Fitur
+      mati total, testnya hijau. Diperbaiki migrasi 265: bukti keanggotaan
+      lewat `company_members`, sumber yang sama dengan login web.
+
+      Bukti: 22 test (dua tenant dengan isi SENGAJA nyaris identik, pencocokan
+      persis "SNI 2847"/"K-300"/nomor kontrak, stemming Indonesia, T-5 nol
+      file_url); penjaga `audit-rag-tenancy.mjs` ambang NOL; R-1..R-5 terbukti
+      bisa merah (`bash scripts/bukti-mutasi-rag.sh`).
+
+      SISA: embedding kueri belum disambungkan ke penyedia — jalur vektor
+      berstatus 'dilewati' (bukan gagal) dan jalur teks sudah menjawab seluruh
+      kriteria pencocokan persis. Biaya ingest sudah bisa dihitung
+      (`perkiraanTokenIngest`), tapi UI ingest-nya belum ada.
+
       T-2 adalah kebocoran lintas-tenant PALING MUNGKIN di seluruh rencana ini:
       pencarian vector mengembalikan "yang paling mirip", dan dokumen tenant
       lain BISA lebih mirip daripada dokumen tenant sendiri. Satu-satunya kelas
       query yang hasilnya tetap MASUK AKAL sekalipun salah tenant — tak ada
       error, tak ada yang merah, jawabannya justru terlihat bagus.
     bobot: L
-    status: todo
+    status: done
 
   - id: TJS-D1
     fase: 6

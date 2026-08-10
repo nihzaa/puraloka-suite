@@ -5,6 +5,93 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 12) — RAG dokumen, dan tiga test yang hijau tanpa arti (TJS-C2)
+
+Kriteria C2 menyebut sendiri taruhannya: *"T-2 adalah kebocoran lintas-tenant
+PALING MUNGKIN di seluruh rencana ini."* Alasannya bukan kodenya lebih sulit —
+melainkan **kebocorannya tak bergejala**. Pencarian vector mengembalikan "paling
+mirip", dan spesifikasi beton K-300 di dua perusahaan konstruksi hampir
+identik. Kalau dokumen tenant lain menang, jawabannya tetap terdengar benar.
+Tak ada yang melaporkan jawaban yang terdengar benar.
+
+### Keputusan tenancy: potongan membawa `company_id` sendiri
+
+`documents` kategori C — punya `project_id`, tanpa `company_id`. Tabel potongan
+RAG **tidak** mengikuti induknya.
+
+Dengan penyaringan lewat daftar project_id, saringannya harus ditulis ulang di
+setiap query, dan satu query baru yang lupa = kebocoran senyap. Dengan
+`company_id` di barisnya sendiri, policy RESTRICTIVE menegakkannya di SQL dan
+penjaga CI cukup memeriksa satu kata di WHERE. Trigger **mengisi** nilainya dari
+proyeknya, jadi pemanggil tak bisa salah mengisi — pola yang sama dengan
+`wa-sesi.ts` yang menolak menerima peran dari pemanggil.
+
+### T-4 lewat permission, bukan nama peran
+
+`documents.ts:31-37` memakai literal `admin`/`pm`/`mandor`/`client` sebagai kunci
+ACL. Itu hutang ADR-004 yang sudah tercatat (F3-1), dan saya tidak
+mereproduksinya. Diukur dari basis: `documents:manage` memetakan **persis** ke
+"lihat semua jenis" — dan peran kustom `direktur` ikut benar tanpa disebut
+namanya di kode mana pun. Itulah bedanya dengan tabel literal.
+
+### Tiga test hijau yang tak membuktikan apa pun
+
+Ini bagian yang pantas dicatat panjang, karena ketiganya lolos pembacaan saya.
+
+**(1) Test isolasi pertama BUTA.** Saya mencabut `company_id` dari WHERE — tetap
+hijau. Penyebabnya `TenantDb` menyaring di bawahnya. Pertahanan berlapis itu
+memang disengaja, tapi artinya test-test itu menguji **wrapper**, bukan kode
+saya.
+
+**(2) Test RPC juga buta.** Saya pindah menguji jalur RPC (yang benar-benar
+melewati `TenantDb`) — mencabut bukti tenant dari fungsinya, tetap hijau. Sebab:
+tanpa embedding tersimpan, `embedding IS NOT NULL` tak cocok apa pun, jadi
+hasilnya nol dalam keadaan apa pun. **"Nol karena aman" dan "nol karena rusak"
+terlihat identik dari luar.** Yang memisahkannya cuma satu baris:
+`expect(...).toBeGreaterThan(0)` pada jalur SAH.
+
+**(3) Dan di tengah itu, cacat sesungguhnya.** Saat (2) akhirnya bisa gagal, ia
+gagal — pada jalur yang sah. `auth_company_id()` (migrasi 126) membaca GUC
+`app.company_id` atau keanggotaan `auth_user_id()`; **keduanya kosong pada klien
+service-role**, satu-satunya klien yang bisa memanggil RPC di repo ini
+(`TenantDb.raw`, nol `set_config` di seluruh berkasnya).
+
+Artinya fungsi versi pertama saya mengembalikan **nol baris untuk setiap
+pemanggilan sah**. Bukan kebocoran — kebalikannya: fitur mati total. Dan
+testnya hijau selama dua iterasi.
+
+Migrasi 265 memperbaikinya: bukti keanggotaan lewat `company_members`, sumber
+yang sama dengan login web dan sesi WhatsApp. Satu pencabutan menutup semua
+jalur.
+
+### Fusi skor: RRF, bukan tiga hasil disambung
+
+TJS menyambung tiga pencarian jadi satu string. Yang hilang bukan kecepatan
+melainkan **sinyal**: potongan yang muncul di KEDUA jalur (tanda relevansi
+terkuat) diperlakukan sama dengan yang muncul di satu jalur.
+
+RRF memakai peringkat, bukan skor mentah — dan itu yang membuatnya bekerja di
+sini, karena `ts_rank` dan jarak kosinus tak punya skala yang sebanding. K=60
+dari makalah aslinya; gunanya membuat "muncul di dua jalur" mengalahkan "juara
+satu di satu jalur".
+
+### Bukti
+
+- 22 test: dua tenant dengan isi **sengaja nyaris identik**, pencocokan persis
+  ("SNI 2847", "K-300", nomor kontrak), stemming Indonesia, T-5 nol `file_url`
+- `bash scripts/bukti-mutasi-rag.sh` → R-1..R-5 MERAH, pulih HIJAU
+- 51/52 penjaga API hijau; satu merah pra-ada
+- `npx vitest run` 2.636 lulus, 3 gagal — semuanya pra-ada
+
+### Sisa
+
+Embedding kueri belum disambungkan ke penyedia; jalur vektor berstatus
+`dilewati` (bukan gagal), dan jalur teks sudah menjawab seluruh kriteria
+pencocokan persis. Biaya ingest bisa dihitung (`perkiraanTokenIngest`), tapi
+UI ingest-nya belum ada.
+
+---
+
 ## 2026-08-10 (lanjutan 11) — Hutang modal dibayar, dan port yang menyesatkan
 
 Commit E1 menyebut satu hutang yang saya buat sendiri: `rail-asisten.tsx`
