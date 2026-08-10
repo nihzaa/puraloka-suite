@@ -35,7 +35,8 @@
  * simpan. Baris "belum diatur" netral — ia keadaan, bukan peringatan.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useIzin } from "@/lib/use-izin";
 import { api } from "@/lib/api";
 import { ShieldCheck, Info } from "lucide-react";
 
@@ -66,26 +67,11 @@ interface Baris {
   sudah_diatur: boolean;
 }
 
-function hasPerm(key: string): boolean {
-  try {
-    const raw = localStorage.getItem("puraloka_permissions");
-    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
-  } catch {
-    return false;
-  }
-}
 
 const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 
 export default function PlafonAsistenPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
-  if (!mounted) return null;
-  return <Konten />;
-}
-
-function Konten() {
-  const bolehUbah = hasPerm("settings:ai:batas");
+  const bolehUbah = useIzin("settings:ai:batas");
 
   const [baris, setBaris] = useState<Baris[]>([]);
   const [memuat, setMemuat] = useState(true);

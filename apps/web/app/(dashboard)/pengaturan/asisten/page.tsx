@@ -37,7 +37,8 @@
  * saklar mati yang benar-benar dimatikan.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useIzin } from "@/lib/use-izin";
 import { api } from "@/lib/api";
 import { Bot, Info, Loader2, Power, Save, ShieldCheck } from "lucide-react";
 
@@ -99,24 +100,14 @@ const PERAN: Record<string, string> = {
 /** Asisten yang benar-benar memakai tool. `insight` tidak. */
 const PAKAI_TOOL = new Set(["owner", "staff", "web"]);
 
-function hasPerm(key: string): boolean {
-  try {
-    const raw = localStorage.getItem("puraloka_permissions");
-    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
-  } catch {
-    return false;
-  }
-}
-
+/*
+ * Tanpa penjaga `mounted` — `useIzin` memakai `useSyncExternalStore`, jadi
+ * React sendiri yang menangani beda server/klien. Penjaga manual yang dulu
+ * ada di sini membuat halaman merender NULL pada putaran pertama: layar
+ * kosong sepersekian detik yang terlihat seperti aplikasi lambat.
+ */
 export default function PerilakuAsistenPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
-  if (!mounted) return null;
-  return <Konten />;
-}
-
-function Konten() {
-  const bolehKelola = hasPerm("settings:ai:manage");
+  const bolehKelola = useIzin("settings:ai:manage");
 
   const [muatan, setMuatan] = useState<Muatan | null>(null);
   const [tenant, setTenant] = useState<PengaturanTenant | null>(null);

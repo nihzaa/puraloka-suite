@@ -1359,6 +1359,17 @@ jobs:
       - name: Keadaan kosong lewat komponen bersama
         run: node scripts/uji-kosong-seragam.mjs
 
+      # Salinan `hasPerm` membaca localStorage saat render → pohon server ≠
+      # klien → React membuang hasil server dan merender ulang. Tambalannya
+      # (penjaga `mounted`) merender NULL pada putaran pertama: layar kosong
+      # sepersekian detik tiap muat, yang terbaca sebagai aplikasi lambat.
+      # `useIzin` memakai useSyncExternalStore — tanpa layar kosong.
+      #
+      # Ratchet: enam berkas tersisa punya bentuk berbeda-beda dan menuntut
+      # dibaca satu per satu (hook tak boleh dipanggil bersyarat).
+      - name: Izin lewat satu sumber
+        run: node scripts/uji-izin-satu-sumber.mjs
+
       # Path API yang salah GAGAL DALAM DIAM: 404 hanya muncul di konsol
       # peramban, sementara halamannya tampil rapi bertuliskan "Tidak ada
       # invoice". Dua endpoint ditulis dari ingatan saat memecah modul

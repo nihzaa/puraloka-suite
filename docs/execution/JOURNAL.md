@@ -9708,3 +9708,44 @@ tulis hari ini). Tetapi konversinya menuntut membaca tiap berkas, bukan regex.
 
 Bukti: tsc bersih · bukti-mutasi-kosong dua arah lulus · 3 penjaga visual
 hijau · lantai kosong 49 terkunci.
+
+---
+
+## 2026-08-10 (lanjutan 9) — K-5: izin lewat satu sumber (13 → 6)
+
+Tujuh halaman dipindahkan dari salinan `hasPerm` lokal ke `useIzin`, dan
+penjaga `mounted`-nya ikut dibuang — karena itulah inti perbaikannya.
+
+**Salinan lokal bukan sekadar "tidak rapi".** Ia membaca `localStorage`
+langsung saat render: di server localStorage tak ada → `false`, di klien →
+`true`. Pohon server dan klien berbeda, React MEMBUANG hasil server dan
+merender ulang seluruhnya. Halaman yang menyalinnya menambal itu dengan
+`useReducer` + `if (!mounted) return null` — yang berarti halaman merender
+NULL pada putaran pertama. **Layar kosong sepersekian detik pada tiap muat**,
+yang terbaca sebagai aplikasi lambat.
+
+`useIzin` memakai `useSyncExternalStore`: React sendiri yang menangani beda
+server/klien, tanpa tambalan dan tanpa layar kosong. Ia sudah ada di
+`lib/use-izin.ts` sejak lama — dan tiga halaman yang SAYA tulis hari ini
+memakai penjaga manual itu, bukan hook yang sudah tersedia.
+
+**Skripnya ditulis ulang sesudah versi pertama merusak sepuluh berkas.**
+Versi lama mencari badan fungsi dengan `[\s\S]*?\n\}`, yang berhenti di kurung
+tutup pertama di kolom nol — bukan akhir fungsinya. Versi ini mencocokkan
+TEKS PERSIS fungsi yang memang seragam; yang tak persis dilewati dan
+dilaporkan. Enam berkas dilewati karena bentuknya berbeda.
+
+**Dan satu penahanan yang penting:** tiga halaman (`approval-inbox`, `mutu`,
+`otomasi`) punya penjaga `mounted` TANPA satu pun jejak izin atau
+localStorage — sebabnya ada di tempat lain yang tak terlihat dari kodenya.
+Membuangnya tanpa tahu sebabnya adalah persis kesalahan yang merusak sepuluh
+berkas beberapa menit sebelumnya, jadi penjaganya disaring: hanya berkas yang
+`useIzin`-nya sudah terpasang yang disentuh.
+
+**Verifikasi bukan dari typecheck saja.** Mengubah `export default` adalah
+perubahan yang paling mudah merusak halaman diam-diam: tsc tetap hijau, rute
+tetap 200, dan yang tampil bisa saja layar kosong. Ketujuh halaman dibuka di
+peramban dengan sesi nyata — judulnya terbaca, nol galat runtime.
+
+Bukti: 13 → 6 salinan · penjaga terbukti merah lalu pulih · 6 penjaga visual
+hijau · `uji-izin-hydration` hijau · 7 halaman terverifikasi di peramban.

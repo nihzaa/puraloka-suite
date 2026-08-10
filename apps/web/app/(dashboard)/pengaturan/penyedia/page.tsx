@@ -41,7 +41,8 @@
  * / bahaya / netral — karena itu STATUS, bukan penonjolan.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useIzin } from "@/lib/use-izin";
 import { Plug, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
@@ -116,14 +117,6 @@ function sejak(iso: string | null): string {
   return `${Math.floor(detik / 86400)} hr lalu`;
 }
 
-function hasPerm(key: string): boolean {
-  try {
-    const raw = localStorage.getItem("puraloka_permissions");
-    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
-  } catch {
-    return false;
-  }
-}
 
 const input: React.CSSProperties = {
   padding: "8px 10px",
@@ -136,13 +129,6 @@ const input: React.CSSProperties = {
   fontFamily: "inherit",
   width: "100%",
 };
-
-export default function PenyediaPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
-  if (!mounted) return null;
-  return <Konten />;
-}
 
 interface Draf {
   jenis: string;
@@ -164,8 +150,8 @@ const DRAF_KOSONG: Draf = {
   aktif: true,
 };
 
-function Konten() {
-  const bolehKelola = hasPerm("settings:penyedia:manage");
+export default function PenyediaPage() {
+  const bolehKelola = useIzin("settings:penyedia:manage");
 
   const [daftar, setDaftar] = useState<Penyedia[]>([]);
   const [katalog, setKatalog] = useState<KatalogAdaptor | null>(null);

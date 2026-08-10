@@ -35,7 +35,8 @@
  * melewati batas — bukan untuk menghias kartu yang baik-baik saja.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useIzin } from "@/lib/use-izin";
 import { api } from "@/lib/api";
 import { Bot, Info, Loader2, Save, TrendingUp, Wallet } from "lucide-react";
 
@@ -164,24 +165,9 @@ const MODEL_RINGAN = new Set(["claude-haiku-4-5"]);
  */
 const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
-function hasPerm(key: string): boolean {
-  try {
-    const raw = localStorage.getItem("puraloka_permissions");
-    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
-  } catch {
-    return false;
-  }
-}
 
 export default function PenyediaAiPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
-  if (!mounted) return null;
-  return <Konten />;
-}
-
-function Konten() {
-  const bolehKelola = hasPerm("settings:ai:manage");
+  const bolehKelola = useIzin("settings:ai:manage");
 
   const [muatan, setMuatan] = useState<Muatan | null>(null);
   const [memuat, setMemuat] = useState(true);

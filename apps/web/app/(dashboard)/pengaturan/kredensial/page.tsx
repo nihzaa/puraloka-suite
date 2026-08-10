@@ -32,7 +32,8 @@
  * peringatan — lalu yang benar-benar penting ikut tak terlihat.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useIzin } from "@/lib/use-izin";
 import { api } from "@/lib/api";
 import {
   KeyRound, Trash2, Info, CheckCircle2, XCircle, Loader2, ExternalLink, ShieldAlert,
@@ -84,24 +85,9 @@ const SUMBER_META: Record<Sumber, { teks: string; warna: string; latar: string }
   "tidak-ada": { teks: "Belum disetel", warna: C.muted, latar: "var(--surface-subtle)" },
 };
 
-function hasPerm(key: string): boolean {
-  try {
-    const raw = localStorage.getItem("puraloka_permissions");
-    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
-  } catch {
-    return false;
-  }
-}
 
 export default function KredensialPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
-  if (!mounted) return null;
-  return <Konten />;
-}
-
-function Konten() {
-  const bolehKelola = hasPerm("settings:credentials:manage");
+  const bolehKelola = useIzin("settings:credentials:manage");
 
   const [daftar, setDaftar] = useState<Kredensial[]>([]);
   const [enkripsiSiap, setEnkripsiSiap] = useState(true);

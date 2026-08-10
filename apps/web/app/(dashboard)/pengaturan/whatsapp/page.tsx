@@ -29,7 +29,8 @@
  * memang perlu dibedakan sekilas.
  */
 
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useIzin } from "@/lib/use-izin";
 import { api } from "@/lib/api";
 import {
   AlertTriangle, CheckCircle2, Info, Loader2, MessageCircle, Plus, ShieldAlert,
@@ -68,14 +69,6 @@ interface Muatan {
   kanal_siap: boolean;
 }
 
-function hasPerm(key: string): boolean {
-  try {
-    const raw = localStorage.getItem("puraloka_permissions");
-    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
-  } catch {
-    return false;
-  }
-}
 
 /** `628123456789` → `+62 812-3456-789` — dibaca manusia, disimpan mesin. */
 function tampilNomor(n: string): string {
@@ -84,14 +77,7 @@ function tampilNomor(n: string): string {
 }
 
 export default function WhatsAppPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
-  if (!mounted) return null;
-  return <Konten />;
-}
-
-function Konten() {
-  const bolehKelola = hasPerm("settings:wa:manage");
+  const bolehKelola = useIzin("settings:wa:manage");
 
   const [muatan, setMuatan] = useState<Muatan | null>(null);
   const [memuat, setMemuat] = useState(true);
@@ -429,7 +415,7 @@ function Konten() {
         menghapus nomornya di sini.
       </p>
 
-      <PanelTemplate bolehUbah={hasPerm("settings:wa:template")} />
+      <PanelTemplate bolehUbah={useIzin("settings:wa:template")} />
     </div>
   );
 }

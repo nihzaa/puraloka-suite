@@ -1,0 +1,5 @@
+{
+  "_catatan": "Salinan `hasPerm` lokal. Boleh TURUN, tidak boleh NAIK.",
+  "_kenapa": "Membaca localStorage saat render membuat pohon server ≠ klien; tambalannya (`mounted`) merender NULL pada putaran pertama. `useIzin` memakai useSyncExternalStore — tanpa layar kosong.",
+  "jumlah": 6
+}

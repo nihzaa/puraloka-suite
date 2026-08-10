@@ -44,7 +44,8 @@
  * sekilas tanpa membaca teksnya.
  */
 
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useIzin } from "@/lib/use-izin";
 import {
   Workflow, Play, RefreshCw, Plus, Pencil, ChevronRight,
   Radio, XCircle, Activity, PlugZap,
@@ -119,12 +120,14 @@ function sejak(iso: string | null): string {
   return `${Math.floor(jam / 24)} hari lalu`;
 }
 
-const NADA: Record<string, "sukses" | "bahaya" | "peringatan" | "netral" | "info"> = {
-  sehat: "sukses",
-  gagal: "bahaya",
-  jalan: "info",
-  belum_diketahui: "netral",
-};
+/*
+ * `NADA` (peta kesehatan → nada lencana) DIBUANG saat redesign `<details>`:
+ * statusnya kini digambar sebagai titik/cincin warna di baris ringkas, bukan
+ * lencana teks. Empat belas lencana berjajar jadi dinding kata.
+ *
+ * `LABEL_SEHAT` tetap — ia yang dieja untuk pembaca layar, karena warna saja
+ * bukan informasi.
+ */
 const LABEL_SEHAT: Record<string, string> = {
   sehat: "Berhasil",
   gagal: "Gagal",
@@ -175,14 +178,6 @@ function bacaCron(cron: string | null): string | null {
  * kontrol; gerbang sesungguhnya ada di server (`requirePermission`), dan
  * localStorage yang diutak-atik tak memberi wewenang apa pun.
  */
-function hasPerm(key: string): boolean {
-  try {
-    const raw = localStorage.getItem("puraloka_permissions");
-    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
-  } catch {
-    return false;
-  }
-}
 
 /*
  * Penjaga hidrasi: `hasPerm` membaca localStorage, yang tak ada di server.
@@ -191,15 +186,8 @@ function hasPerm(key: string): boolean {
  * berkedip muncul-hilang.
  */
 export default function HalamanAlurOtomasi() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
-  if (!mounted) return null;
-  return <Konten />;
-}
-
-function Konten() {
-  const bolehJalankan = hasPerm("otomasi:alur:jalankan");
-  const bolehKelola = hasPerm("otomasi:alur:kelola");
+  const bolehJalankan = useIzin("otomasi:alur:jalankan");
+  const bolehKelola = useIzin("otomasi:alur:kelola");
 
   const [daftar, setDaftar] = useState<Alur[]>([]);
   const [n8nSiap, setN8nSiap] = useState(true);

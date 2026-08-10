@@ -30,7 +30,8 @@
  * aksen, itu makna.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useIzin } from "@/lib/use-izin";
 import { api } from "@/lib/api";
 import { CalendarClock, Info, CheckCircle2, XCircle, CircleDashed, TriangleAlert } from "lucide-react";
 
@@ -92,14 +93,6 @@ const ALASAN: Record<AlasanKeputusan, { teks: string; nada: "diam" | "siap" | "p
 
 const HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
 
-function hasPerm(key: string): boolean {
-  try {
-    const raw = localStorage.getItem("puraloka_permissions");
-    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
-  } catch {
-    return false;
-  }
-}
 
 function waktuRelatif(iso: string | null): string {
   if (!iso) return "belum pernah";
@@ -114,14 +107,7 @@ function waktuRelatif(iso: string | null): string {
 }
 
 export default function JadwalPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
-  if (!mounted) return null;
-  return <Konten />;
-}
-
-function Konten() {
-  const bolehKelola = hasPerm("settings:schedule:manage");
+  const bolehKelola = useIzin("settings:schedule:manage");
 
   const [daftar, setDaftar] = useState<Tugas[]>([]);
   const [siap, setSiap] = useState(true);
