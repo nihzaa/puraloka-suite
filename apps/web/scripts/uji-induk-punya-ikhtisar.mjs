@@ -62,10 +62,16 @@ const DIR_APP = join(AKAR, "apps", "web", "app", "(dashboard)");
  *          biaya bulan berjalan, percakapan, dan percobaan akses ditolak.
  *          Pertanyaan "apakah otomasi saya sehat hari ini?" sebelumnya
  *          menuntut membuka lima halaman dan mengingat isinya (migrasi 267).
+ *   1 → 0  (2026-08-10) Mutu & K3 dapat `/mutu` — NCR terbuka, dokumen
+ *          kedaluwarsa, punch, izin kerja, dan angka K3 (migrasi 268).
+ *          Dokumen kedaluwarsa dapat kartu sendiri: ia satu-satunya kelas
+ *          masalah yang memburuk TANPA ada yang melakukan apa pun, jadi tak
+ *          ada notifikasi yang bisa lahir darinya.
  *
- * Sisa 1: Mutu & Kepatuhan.
+ * NOL. Setiap menu induk kini punya halaman ikhtisarnya. Kemunduran
+ * berikutnya langsung merah — dan itu memang gunanya angka ini.
  */
-const LANTAI = 1;
+const LANTAI = 0;
 
 // ── Aturan pemilihan: dipinjam dari lib/tujuan-grup.ts ──────────────────────
 //

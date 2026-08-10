@@ -5,6 +5,70 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 16) — Setiap menu induk kini punya ikhtisar. Lantai NOL.
+
+Founder mengingatkan: *"jangan lupakan dashboard untuk menu induknya"*.
+
+Untuk AI & Otomasi ia sudah jadi di commit sebelumnya. Yang tersisa satu —
+**Mutu & K3**, grup terakhir yang ditandai `uji-induk-punya-ikhtisar`.
+
+### Yang paling penting di modul ini: dokumen KEDALUWARSA
+
+Modul lain punya masalah yang lahir dari TINDAKAN — seseorang mengajukan,
+menyetujui, melewatkan tenggat. Kepatuhan punya satu kelas yang lahir dari
+**ketiadaan tindakan**: sertifikat dan asuransi yang habis berlaku.
+
+Tak ada notifikasi yang bisa lahir dari sesuatu yang tak terjadi. Jadi ia
+hanya ketahuan saat dibutuhkan — dan saat itu sudah terlambat.
+
+Karena itu ia dapat kartu KPI sendiri, kartu rail sendiri, DAN banner merah.
+Data nyata membuktikan alasannya: asuransi PT Baja Perkasa **lewat 101 hari**.
+
+### Empat tebakan yang salah, dan cara memperbaikinya
+
+**(1) Nama tabel.** `ncr`, `inspections`, `kepatuhan_dokumen`, `insiden` —
+tak satu pun ada. Yang nyata: `ncr_items` (18), `inspection_requests` (24),
+`dokumen_kepatuhan` (9), `izin_kerja` (4), `evaluasi_subkon` (4).
+
+**(2) Blok verifikasi migrasi TERLALU KETAT.** Saya menuntut "semua grup induk
+wajib punya href" dan langsung merah — 16 grup ber-href NULL. Ternyata bukan
+cacat: `tujuanGrup` MENYIMPULKAN tujuan dari anak-anaknya, dan 16 grup itu
+punya ikhtisar yang bekerja tanpa href tersimpan. Href eksplisit hanya perlu
+untuk grup yang halamannya BERDIRI SENDIRI — baru dua.
+
+Blok verifikasi yang lebih ketat daripada aturan sesungguhnya akan **menolak
+keadaan yang benar**.
+
+**(3) Komentar SQL menutup dirinya sendiri.** Catatan saya memuat path
+ber-tanda-bintang, dan `/* … */` di SQL tidak bersarang — ia berakhir di
+tengah kalimat. Galatnya "unterminated comment", menunjuk ke tempat yang salah.
+
+**(4) Skala skor K3 ditebak.** Saya menandai merah di bawah 60 tanpa tahu
+skalanya. Diperiksa ke CHECK constraint: memang 0–100, jadi tebakan saya
+kebetulan benar. Ditulis eksplisit `40 / 100` — benar karena diukur lebih baik
+daripada benar karena beruntung.
+
+### Lantai NOL
+
+    3 → 2  Gudang (2026-08-09)
+    2 → 1  AI & Otomasi (migrasi 267)
+    1 → 0  Mutu & K3 (migrasi 268)
+
+Sepuluh dari sepuluh grup induk punya halaman ikhtisarnya. Kemunduran
+berikutnya langsung merah — dan itu memang gunanya angka ini.
+
+### Bukti
+
+- `uji-induk-punya-ikhtisar` → 10/10, lantai 0; terbukti MERAH saat halamannya
+  dihapus, pulih hijau
+- migrasi 268 lulus blok verifikasinya (R-1: satu href satu menu aktif)
+- vitest 2.672 lulus, 5 gagal — IDENTIK dengan pohon bersih, nol regresi
+- 52/53 penjaga API hijau; seluruh penjaga web hijau
+- `tsc --noEmit` bersih di kedua app
+- halaman ditangkap layar, dinilai sendiri, direvisi 1×
+
+---
+
 ## 2026-08-10 (lanjutan 15) — Katalog tool 5 → 14, dan enam tebakan kolom yang salah
 
 Founder: TJS punya 38 tool, Puraloka 5. Jurang itu ditutup sebagian.
