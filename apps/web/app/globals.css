@@ -1143,3 +1143,36 @@ select.input-base { cursor: pointer; }
   background: rgba(0, 15, 30, 0.55);
   backdrop-filter: blur(2px);
 }
+
+/* ─── Baris yang bisa dibuka (`<details>`) ──────────────────────────
+ *
+ * Dipakai daftar yang barisnya punya detail: ringkas dulu, isi kalau
+ * diminta. `<details>` asli, bukan div + state — Enter/Space bekerja
+ * sendiri, pembaca layar mengumumkan terbuka/tertutup, dan Ctrl+F
+ * peramban menemukan teks di dalamnya walau tertutup.
+ *
+ * Marker bawaan dibuang di SINI, bukan per halaman: `list-style: none`
+ * saja tak cukup di WebKit, yang butuh pseudo-element-nya sendiri.
+ * Dilupakan satu kali dan segitiga hitam bawaan muncul berdampingan
+ * dengan ikon panah kita.
+ */
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::marker { content: ""; }
+
+/* Panah mengikuti keadaan, bukan animasi hiasan: 160ms, cukup untuk
+   terbaca sebagai gerakan dan tak cukup untuk ditunggu. */
+details[open] > summary .alur-panah { transform: rotate(90deg); }
+
+details > summary:hover { background: var(--surface-hover); }
+details > summary:focus-visible {
+  /* --aksen, bukan token fokus tersendiri: repo ini belum punya satu, dan
+     mengarang nama baru di sini berarti token yang tak pernah didefinisikan
+     — penjaga uji-token-css-ada berambang NOL menangkapnya. */
+  outline: 2px solid var(--aksen);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alur-panah { transition: none; }
+}

@@ -45,7 +45,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
-import { Workflow, Play, RefreshCw, Plus, Pencil } from "lucide-react";
+import { Workflow, Play, RefreshCw, Plus, Pencil, ChevronRight } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Lencana, Tombol } from "@/components/dasar";
@@ -282,13 +282,35 @@ function Konten() {
             dicoba sama sekali. Menyatukannya membuat yang kedua terlihat
             seperti masalah n8n, padahal ia masalah pendaftaran.
           */}
-          <KartuRail judul="Belum tersambung" kosong="Semua alur punya alamat di n8n.">
-            {belumTersambung.map((a) => (
+          {/*
+            Sub-teks TIDAK diulang per baris.
+
+            Versi pertama menulis "Belum punya n8n_id maupun jalur webhook" di
+            SETIAP baris — enam kali kalimat yang sama persis. Pengulangan itu
+            tak menambah apa pun dan justru mengajari mata melewati kartunya,
+            termasuk saat isinya berubah. Alasannya cukup disebut SEKALI, di
+            kepala kartu; barisnya tinggal menyebut namanya.
+          */}
+          <KartuRail
+            judul="Belum tersambung"
+            kosong="Semua alur punya alamat di n8n."
+          >
+            {belumTersambung.length > 0 && (
+              <p
+                style={{
+                  margin: "0 0 2px", fontSize: 11.5, color: C.muted,
+                  lineHeight: 1.5,
+                }}
+              >
+                Belum punya n8n_id maupun jalur webhook — takkan pernah dipicu.
+              </p>
+            )}
+            {belumTersambung.map((a, i) => (
               <BarisRail
                 key={a.id}
+                pertama={i === 0}
                 utama={a.nama}
-                sub="Belum punya n8n_id maupun jalur webhook"
-                kanan="—"
+                sub={LABEL_PEMICU[a.pemicu] ?? a.pemicu}
               />
             ))}
           </KartuRail>
@@ -390,223 +412,310 @@ function Konten() {
               const isi = jejak[a.id];
 
               return (
-                <div
+                /*
+                 * `<details>` — RINGKAS DULU, detail kalau diminta.
+                 *
+                 * Versi sebelumnya menampilkan semuanya sekaligus di tiap
+                 * baris: nama, lencana, keterangan dua baris, pemicu, jadwal,
+                 * waktu, dua tombol. Empat belas baris seragam, dan alur yang
+                 * SEHAT memakan ruang persis sebanyak yang GAGAL — mata tak
+                 * punya tempat berpijak.
+                 *
+                 * Elemen asli, bukan div + state: Enter/Space bekerja sendiri,
+                 * pembaca layar mengumumkan terbuka/tertutup, dan Ctrl+F
+                 * peramban menemukan teks di dalamnya walau tertutup. Tiga hal
+                 * yang harus ditulis tangan — dan biasanya lupa ditulis —
+                 * kalau memakai div.
+                 */
+                <details
                   key={a.id}
+                  open={a.aktif && a.kesehatan === "gagal"}
                   style={{
                     borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
-                    // Sejajar dengan padding header Panel (--pad-kartu-lega
-                    // = 16px). Baris yang lebih sempit dari kepalanya membuat
-                    // isi terlihat menempel ke tepi kartu.
-                    padding: "14px var(--pad-kartu-lega)",
-                    opacity: a.aktif ? 1 : 0.72,
+                    opacity: a.aktif ? 1 : 0.66,
                   }}
                 >
-                  <div style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 14, fontWeight: 600, color: C.text }}>{a.nama}</span>
-                        <Lencana nada={a.aktif ? NADA[a.kesehatan] ?? "netral" : "netral"}>
-                          {a.aktif ? LABEL_SEHAT[a.kesehatan] ?? a.kesehatan : "Nonaktif"}
-                        </Lencana>
-                        {!tersambung && <Lencana nada="peringatan">Belum tersambung</Lencana>}
-                      </div>
+                  <summary
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "13px var(--pad-kartu-lega)",
+                      cursor: "pointer", listStyle: "none",
+                    }}
+                  >
+                    <ChevronRight
+                      size={14}
+                      aria-hidden
+                      style={{ color: C.muted, flexShrink: 0, transition: "transform 160ms ease-out" }}
+                      className="alur-panah"
+                    />
 
-                      {a.keterangan && (
-                        <p style={{ margin: "4px 0 0", fontSize: 12.5, color: C.muted, lineHeight: 1.55 }}>
-                          {a.keterangan}
-                        </p>
+                    {/*
+                      Titik status, bukan lencana teks, di posisi pertama.
+                      Empat belas lencana berjajar jadi dinding kata; satu
+                      titik berwarna dibaca sekilas tanpa dieja.
+                    */}
+                    <span
+                      aria-hidden
+                      style={{
+                        width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+                        /*
+                          "Belum pernah jalan" digambar sebagai CINCIN kosong,
+                          bukan titik abu — titik abu tak bisa dibedakan dari
+                          nonaktif, dan dua keadaan yang berbeda artinya tak
+                          boleh terlihat sama.
+                        */
+                        background:
+                          a.aktif && a.kesehatan === "gagal" ? C.danger
+                            : a.aktif && a.kesehatan === "sehat" ? C.success
+                              : a.aktif && a.kesehatan === "jalan" ? C.info
+                                : "transparent",
+                        border:
+                          a.aktif && a.kesehatan === "belum_diketahui"
+                            ? `1.5px solid ${C.muted}`
+                            : !a.aktif
+                              ? `1.5px solid ${C.border}`
+                              : "none",
+                      }}
+                    />
+
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: C.text }}>
+                        {a.nama}
+                      </span>
+                      {/* Status dieja untuk pembaca layar — titik warna saja
+                          tak bisa dibaca, dan warna saja bukan informasi. */}
+                      <span className="sr-only">
+                        {" — "}
+                        {a.aktif ? LABEL_SEHAT[a.kesehatan] ?? a.kesehatan : "Nonaktif"}
+                      </span>
+                      {!tersambung && (
+                        <span style={{ marginInlineStart: 8 }}>
+                          <Lencana nada="peringatan">Belum tersambung</Lencana>
+                        </span>
                       )}
+                    </span>
 
-                      <div
+                    {/* Kolom kanan RINGKAS: kapan terakhir, itu saja. Sisanya
+                        menunggu di dalam. */}
+                    <span
+                      style={{
+                        fontSize: 11.5, color: C.muted, flexShrink: 0,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {/*
+                        Kolom kanan menyatakan KEADAAN, bukan "—".
+                        Versi pertama memanggil `sejak(null)` untuk alur yang
+                        belum pernah jalan, jadi dua belas baris berisi strip
+                        berjajar — kolom penuh tanda yang tak menjawab apa pun.
+                      */}
+                      {!a.aktif
+                        ? "nonaktif"
+                        : a.jalan_terakhir
+                          ? sejak(a.jalan_terakhir)
+                          : "belum jalan"}
+                    </span>
+                  </summary>
+
+                  <div
+                    style={{
+                      padding: "0 var(--pad-kartu-lega) 14px",
+                      display: "grid", gap: 10,
+                      // Sejajar dengan teks judul di summary (panah 14 + gap 10
+                      // + titik 7 + gap 10), supaya isi tak terlihat melayang.
+                      paddingInlineStart: "calc(var(--pad-kartu-lega) + 41px)",
+                    }}
+                  >
+                    {a.keterangan && (
+                      <p style={{ margin: 0, fontSize: 12.5, color: C.muted, lineHeight: 1.6 }}>
+                        {a.keterangan}
+                      </p>
+                    )}
+
+                    {a.aktif && a.kesehatan === "gagal" && a.pesan_gagal && (
+                      <p
                         style={{
-                          display: "flex", gap: 14, flexWrap: "wrap", marginTop: 6,
-                          fontSize: 11.5, color: C.muted,
-                          // Kolom waktu berdampingan; tanpa angka selebar-sama
-                          // "3 mnt lalu" dan "18 mnt lalu" tak berbaris.
-                          fontVariantNumeric: "tabular-nums",
+                          margin: 0, padding: "8px 11px",
+                          background: C.redBg, border: `1px solid ${C.redBorder}`,
+                          borderRadius: 8, fontSize: 12, color: C.onDangerBg,
+                          lineHeight: 1.55,
                         }}
                       >
-                        <span>{LABEL_PEMICU[a.pemicu] ?? a.pemicu}</span>
-                        {/* Cron dibacakan; aslinya tetap tersedia lewat title
-                            untuk yang memang perlu memeriksa ekspresinya. */}
-                        {a.jadwal_cron && (
-                          <span title={a.jadwal_cron}>{bacaCron(a.jadwal_cron)}</span>
-                        )}
-                        <span>Terakhir: {sejak(a.jalan_terakhir)}</span>
-                        <button
-                          type="button"
-                          onClick={() => bukaJejak(a)}
-                          style={{
-                            border: "none", background: "none", padding: 0,
-                            color: C.aksen, fontSize: 11.5, cursor: "pointer",
-                            fontFamily: "inherit", textDecoration: "underline",
-                          }}
-                          aria-expanded={terbuka === a.id}
-                        >
-                          {terbuka === a.id ? "Tutup jejak" : "Lihat jejak"}
-                        </button>
-                      </div>
+                        {a.pesan_gagal}
+                      </p>
+                    )}
 
-                      {/*
-                        Pesan gagal ditampilkan UTUH di daftar, bukan hanya di
-                        jejak yang harus dibuka. Yang membuka halaman ini
-                        sedang mencari sebabnya — menyembunyikannya satu klik
-                        lebih dalam berarti ia harus menebak dulu alur mana.
-                      */}
-                      {a.aktif && a.kesehatan === "gagal" && a.pesan_gagal && (
-                        <p
+                    {/* Fakta alur sebagai pasangan label-nilai, bukan deretan
+                        teks abu yang harus ditebak artinya. */}
+                    <dl
+                      style={{
+                        margin: 0, display: "grid", gap: "3px 18px",
+                        gridTemplateColumns: "auto 1fr",
+                        fontSize: 12, fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      <dt style={{ color: C.muted }}>Pemicu</dt>
+                      <dd style={{ margin: 0, color: C.text }}>
+                        {LABEL_PEMICU[a.pemicu] ?? a.pemicu}
+                        {a.jadwal_cron ? ` — ${bacaCron(a.jadwal_cron)}` : ""}
+                        {a.jalur_webhook ? ` — ${a.jalur_webhook}` : ""}
+                      </dd>
+
+                      <dt style={{ color: C.muted }}>Terakhir jalan</dt>
+                      <dd style={{ margin: 0, color: C.text }}>
+                        {a.jalan_terakhir ? sejak(a.jalan_terakhir) : "belum pernah"}
+                      </dd>
+
+                      {a.sukses_terakhir && (
+                        <>
+                          <dt style={{ color: C.muted }}>Berhasil terakhir</dt>
+                          <dd style={{ margin: 0, color: C.text }}>{sejak(a.sukses_terakhir)}</dd>
+                        </>
+                      )}
+                    </dl>
+
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      {bolehJalankan && (
+                        <button
+                          onClick={() => jalankan(a)}
+                          disabled={!bisaJalan || sedang === a.id}
+                          title={
+                            !a.aktif ? "Alur nonaktif"
+                              : !tersambung ? "Belum punya alamat di n8n"
+                                : !n8nSiap ? "N8N_BASE_URL belum diisi"
+                                  : "Jalankan sekarang"
+                          }
                           style={{
-                            margin: "7px 0 0", padding: "7px 10px",
-                            background: C.redBg, border: `1px solid ${C.redBorder}`,
-                            borderRadius: 8, fontSize: 12, color: C.onDangerBg,
-                            lineHeight: 1.5,
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            padding: "6px 11px", borderRadius: 8,
+                            border: `1px dashed ${C.border}`, background: "transparent",
+                            color: C.muted, fontSize: 12.5, fontFamily: "inherit",
+                            cursor: "not-allowed",
+                            ...(bisaJalan && {
+                              border: `1px solid ${C.border}`,
+                              background: "var(--surface)",
+                              color: C.text,
+                              cursor: sedang === a.id ? "wait" : "pointer",
+                              boxShadow: "var(--naik-1)",
+                            }),
                           }}
                         >
-                          {a.pesan_gagal}
-                        </p>
+                          <Play size={13} />
+                          {sedang === a.id ? "Menjalankan…" : "Jalankan"}
+                        </button>
                       )}
+
+                      {bolehKelola && (
+                        <button
+                          onClick={() => { setUbah(a); setFormBuka(true); }}
+                          aria-label={`Ubah ${a.nama}`}
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            padding: "6px 10px", borderRadius: 8,
+                            border: `1px solid ${C.border}`, background: "transparent",
+                            color: C.muted, fontSize: 12.5, fontFamily: "inherit",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <Pencil size={13} />
+                          Ubah
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => bukaJejak(a)}
+                        aria-expanded={terbuka === a.id}
+                        style={{
+                          border: "none", background: "none", padding: "6px 2px",
+                          color: C.aksen, fontSize: 12.5, cursor: "pointer",
+                          fontFamily: "inherit", textDecoration: "underline",
+                        }}
+                      >
+                        {terbuka === a.id ? "Tutup jejak" : "Lihat jejak"}
+                      </button>
                     </div>
 
-                    {bolehKelola && (
-                      <button
-                        onClick={() => { setUbah(a); setFormBuka(true); }}
-                        title="Ubah alur ini"
-                        aria-label={`Ubah ${a.nama}`}
-                        style={{
-                          display: "inline-flex", alignItems: "center", gap: 6,
-                          padding: "6px 10px", borderRadius: 8,
-                          border: `1px solid ${C.border}`, background: "transparent",
-                          color: C.muted, fontSize: 12.5, fontFamily: "inherit",
-                          cursor: "pointer", flexShrink: 0,
-                        }}
-                      >
-                        <Pencil size={13} />
-                        Ubah
-                      </button>
-                    )}
-
-                    {bolehJalankan && (
-                      <button
-                        onClick={() => jalankan(a)}
-                        disabled={!bisaJalan || sedang === a.id}
-                        title={
-                          !a.aktif ? "Alur nonaktif"
-                            : !tersambung ? "Belum punya alamat di n8n"
-                              : !n8nSiap ? "N8N_BASE_URL belum diisi"
-                                : "Jalankan sekarang"
-                        }
-                        /*
-                          Keadaan MATI harus TERLIHAT mati.
-                          Versi pertama hanya menyetel `disabled` dan mengganti
-                          warna teks — di tangkapan layar tombolnya tetap
-                          terbaca seperti bisa ditekan, padahal spanduk di atas
-                          sudah menyatakan n8n tak tersambung. Tombol yang
-                          tampak hidup untuk sesuatu yang pasti menolak
-                          mengajak orang mengklik lalu bertanya-tanya.
-                        */
-                        style={{
-                          display: "inline-flex", alignItems: "center", gap: 6,
-                          padding: "6px 11px", borderRadius: 8,
-                          border: `1px dashed ${C.border}`,
-                          background: "transparent",
-                          color: C.muted,
-                          fontSize: 12.5, fontFamily: "inherit",
-                          cursor: "not-allowed",
-                          flexShrink: 0,
-                          ...(bisaJalan && {
-                            border: `1px solid ${C.border}`,
-                            background: "var(--surface)",
-                            color: C.text,
-                            cursor: sedang === a.id ? "wait" : "pointer",
-                            boxShadow: "var(--naik-1)",
-                          }),
-                        }}
-                      >
-                        <Play size={13} />
-                        {sedang === a.id ? "Menjalankan…" : "Jalankan"}
-                      </button>
-                    )}
-                  </div>
-
-                  {terbuka === a.id && (
-                    <div style={{ marginTop: 10, paddingLeft: 2 }}>
-                      {!isi ? (
-                        <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Memuat jejak…</p>
-                      ) : isi.length === 0 ? (
-                        <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>
-                          Belum pernah dijalankan.
-                        </p>
-                      ) : (
-                        <div style={{ overflowX: "auto" }}>
-                          <table
-                            style={{
-                              width: "100%", borderCollapse: "collapse", fontSize: 12.5,
-                              fontVariantNumeric: "tabular-nums",
-                            }}
-                          >
-                            <caption
+                    {terbuka === a.id && (
+                      <div>
+                        {!isi ? (
+                          <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Memuat jejak…</p>
+                        ) : isi.length === 0 ? (
+                          <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>
+                            Belum pernah dijalankan.
+                          </p>
+                        ) : (
+                          <div style={{ overflowX: "auto" }}>
+                            <table
                               style={{
-                                captionSide: "top", textAlign: "left",
-                                fontSize: 11, color: C.muted, paddingBottom: 5,
+                                width: "100%", borderCollapse: "collapse", fontSize: 12.5,
+                                fontVariantNumeric: "tabular-nums",
                               }}
                             >
-                              50 jalan terakhir — {a.nama}
-                            </caption>
-                            <thead>
-                              <tr style={{ background: "var(--surface-2)" }}>
-                                {["Waktu", "Status", "Pemicu", "Durasi", "Catatan"].map((h) => (
-                                  <th
-                                    key={h}
-                                    scope="col"
-                                    style={{
-                                      textAlign: "left", padding: "6px 10px",
-                                      fontSize: 11, fontWeight: 600, color: C.muted,
-                                    }}
-                                  >
-                                    {h}
-                                  </th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {isi.map((j) => (
-                                <tr key={j.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                                  <th
-                                    scope="row"
-                                    style={{
-                                      padding: "6px 10px", textAlign: "left",
-                                      fontWeight: 400, color: C.text, whiteSpace: "nowrap",
-                                    }}
-                                  >
-                                    {sejak(j.dimulai_pada)}
-                                  </th>
-                                  <td style={{ padding: "6px 10px" }}>
-                                    <Lencana
-                                      nada={
-                                        j.status === "sukses" ? "sukses"
-                                          : j.status === "gagal" ? "bahaya" : "info"
-                                      }
+                              <caption
+                                style={{
+                                  captionSide: "top", textAlign: "left",
+                                  fontSize: 11, color: C.muted, paddingBottom: 5,
+                                }}
+                              >
+                                50 jalan terakhir — {a.nama}
+                              </caption>
+                              <thead>
+                                <tr style={{ background: "var(--surface-2)" }}>
+                                  {["Waktu", "Status", "Pemicu", "Durasi", "Catatan"].map((h) => (
+                                    <th
+                                      key={h}
+                                      scope="col"
+                                      style={{
+                                        textAlign: "left", padding: "6px 10px",
+                                        fontSize: 11, fontWeight: 600, color: C.muted,
+                                      }}
                                     >
-                                      {j.status === "sukses" ? "Berhasil"
-                                        : j.status === "gagal" ? "Gagal" : "Jalan"}
-                                    </Lencana>
-                                  </td>
-                                  <td style={{ padding: "6px 10px", color: C.muted }}>{j.sumber}</td>
-                                  <td style={{ padding: "6px 10px", color: C.muted, whiteSpace: "nowrap" }}>
-                                    {j.durasi_ms != null ? `${j.durasi_ms} ms` : "—"}
-                                  </td>
-                                  <td style={{ padding: "6px 10px", color: C.muted, lineHeight: 1.5 }}>
-                                    {j.pesan ?? "—"}
-                                  </td>
+                                      {h}
+                                    </th>
+                                  ))}
                                 </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                              </thead>
+                              <tbody>
+                                {isi.map((j) => (
+                                  <tr key={j.id} style={{ borderTop: `1px solid ${C.border}` }}>
+                                    <th
+                                      scope="row"
+                                      style={{
+                                        padding: "6px 10px", textAlign: "left",
+                                        fontWeight: 400, color: C.text, whiteSpace: "nowrap",
+                                      }}
+                                    >
+                                      {sejak(j.dimulai_pada)}
+                                    </th>
+                                    <td style={{ padding: "6px 10px" }}>
+                                      <Lencana
+                                        nada={
+                                          j.status === "sukses" ? "sukses"
+                                            : j.status === "gagal" ? "bahaya" : "info"
+                                        }
+                                      >
+                                        {j.status === "sukses" ? "Berhasil"
+                                          : j.status === "gagal" ? "Gagal" : "Jalan"}
+                                      </Lencana>
+                                    </td>
+                                    <td style={{ padding: "6px 10px", color: C.muted }}>{j.sumber}</td>
+                                    <td style={{ padding: "6px 10px", color: C.muted, whiteSpace: "nowrap" }}>
+                                      {j.durasi_ms != null ? `${j.durasi_ms} ms` : "—"}
+                                    </td>
+                                    <td style={{ padding: "6px 10px", color: C.muted, lineHeight: 1.5 }}>
+                                      {j.pesan ?? "—"}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </details>
               );
             })}
           </div>

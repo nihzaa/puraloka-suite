@@ -9522,3 +9522,57 @@ punya. Itu menambah, bukan memperbaiki, dan masuk kelompok berikutnya.
 
 Bukti: judul-ratchet 51 → 31 (lantai terkunci otomatis), tsc bersih dua app,
 5 penjaga web hijau.
+
+---
+
+## 2026-08-10 (lanjutan 5) — Redesign Alur Otomasi: ringkas dulu, detail kalau diminta
+
+Founder menunjuk halaman TJS `settings/ai-providers` — "saya suka ui nya" —
+dan menyatakan halaman AI & Otomasi Puraloka "kurang sreg". Diukur apa yang
+membuat TJS terasa lebih baik, bukan ditebak dari warnanya:
+
+- **`<details>` yang dibuka satu per satu.** Komentar TJS menyebut alasannya
+  sendiri: "supaya tidak membanjiri layar".
+- **Halaman itu MENGAJARI**, bukan cuma melaporkan: biaya, kelebihan (+),
+  kekurangan (−), tabel model, langkah ambil kunci.
+- **Lencana status di judul**, bukan kolom terpisah.
+
+**Yang TIDAK ditiru, dan itu keputusan.** `craft-floor` melarang "same-size
+cards of icon plus heading plus text as the page structure — cards are the
+lazy container". Jadi yang diambil PERILAKUNYA (progressive disclosure), bukan
+bentuk kartunya. Meniru bentuk tanpa alasannya adalah cara paling cepat
+menghasilkan halaman yang terlihat seperti halaman lain dan tak berfungsi
+seperti halaman lain.
+
+**Cacat versi lama, terlihat jelas begitu diukur:** 14 baris SERAGAM, tiap
+baris menampilkan semuanya sekaligus — nama, lencana, keterangan dua baris,
+pemicu, jadwal, waktu, dua tombol. Alur yang SEHAT memakan ruang persis
+sebanyak yang GAGAL, jadi mata tak punya tempat berpijak.
+
+Sesudahnya: 14 alur muat dalam satu layar, yang gagal terbuka sendiri
+(`open={a.kesehatan === "gagal"}`) lengkap dengan sebab dan tombolnya.
+
+**`<details>` asli, bukan div + state.** Enter/Space bekerja sendiri, pembaca
+layar mengumumkan terbuka/tertutup, dan Ctrl+F peramban menemukan teks di
+dalamnya walau tertutup — tiga hal yang harus ditulis tangan kalau memakai
+div, dan biasanya lupa ditulis. Marker bawaan dibuang di `globals.css`, bukan
+per halaman: `list-style: none` saja tak cukup di WebKit.
+
+**Tiga cacat versi pertama redesign, semuanya ketahuan dari layar:**
+
+1. Kolom kanan memanggil `sejak(null)` untuk alur yang belum pernah jalan →
+   dua belas baris berisi "—" berjajar. Kolom penuh tanda yang tak menjawab
+   apa pun. Diganti kata keadaan: "belum jalan".
+2. Titik status abu untuk "belum pernah jalan" tak bisa dibedakan dari
+   nonaktif — dua keadaan berbeda arti terlihat sama. Diganti CINCIN kosong.
+3. Rail "Belum tersambung" menulis sub-teks identik ENAM kali. Pengulangan itu
+   mengajari mata melewati kartunya, termasuk saat isinya berubah. Alasannya
+   disebut sekali di kepala kartu; barisnya menyebut pemicunya.
+
+**Dan satu token yang saya karang lalu ditangkap penjaga.** `var(--fokus)`
+tak pernah ada di repo ini — `uji-token-css-ada` berambang NOL menangkapnya
+seketika. Diganti `var(--aksen)` yang memang terdefinisi. Warna yang hilang
+karena nama token salah tak punya gejala sama sekali di CSS.
+
+Bukti: detektor mekanis impeccable NOL temuan · tsc bersih · 4 penjaga visual
+hijau · judul-ratchet tidak bertambah.
