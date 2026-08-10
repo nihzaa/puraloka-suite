@@ -170,7 +170,14 @@ function Konten() {
   );
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
+    <div style={{
+      // --w-page — dashboard kartu grid. Tanpa container, isi halaman ini melebar
+      // mengikuti induknya: diukur 1080px di layar 1600px sementara
+      // halaman lain 1380px — terlihat seperti dua aplikasi berbeda.
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
+      display: "grid", gap: 16,
+    }}>
       <KepalaHalaman
         judul="Mutu & K3"
         keterangan="Temuan yang belum beres dan dokumen yang habis berlaku — satu layar sebelum masuk ke rinciannya."

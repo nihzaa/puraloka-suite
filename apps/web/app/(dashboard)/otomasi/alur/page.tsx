@@ -387,7 +387,13 @@ export default function HalamanAlurOtomasi() {
   );
 
   return (
-    <div>
+    <div style={{
+      // --w-luas — dua tabel alur + katalog; kolomnya banyak. Tanpa container, isi halaman ini melebar
+      // mengikuti induknya: diukur 1080px di layar 1600px sementara
+      // halaman lain 1380px — terlihat seperti dua aplikasi berbeda.
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
+    }}>
       <KepalaHalaman
         ikon={<Workflow size={20} />}
         judul="Alur Otomasi"

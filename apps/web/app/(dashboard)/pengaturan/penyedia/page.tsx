@@ -313,7 +313,14 @@ export default function PenyediaPage() {
   const adaptorTerpilih = draf ? adaptorUntuk(draf.jenis).find((a) => a.kunci === draf.adaptor) : undefined;
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
+    <div style={{
+      // --w-page — satu tabel penyedia, bukan tabel padat kolom. Tanpa container, isi halaman ini melebar
+      // mengikuti induknya: diukur 1080px di layar 1600px sementara
+      // halaman lain 1380px — terlihat seperti dua aplikasi berbeda.
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
+      display: "grid", gap: 16,
+    }}>
       <KepalaHalaman
         judul="Penyedia Layanan"
         keterangan="Sambungan ke layanan luar — AI dan WhatsApp. Uji koneksinya di sini sebelum menduga yang lain."

@@ -11057,3 +11057,129 @@ seperti build yang kadang rusak.
     judul-ratchet          31/31 (tak bertambah)
     audit-peta-menu-vs-db  ✅ drift 0
     tinggi halaman         1.540 → 1.482 px
+
+## 2026-08-11 (lanjutan 11) — `tata-letak-ratchet` MERAH → HIJAU: 6 halaman tanpa container
+
+Penjaga yang belum pernah saya periksa sepanjang hari. Isinya menjelaskan
+gejala yang sudah dua kali saya ukur tanpa tahu sebabnya.
+
+### Enam halaman tak punya container sama sekali
+
+    mutu · otomasi · otomasi/alur · otomasi/riwayat
+    pengaturan/penyedia · pengaturan/plafon-asisten
+
+Bukan "salah token" — `grep maxWidth` mengembalikan NOL untuk keenamnya.
+Isinya melebar mengikuti induk.
+
+Inilah sebab langsung angka yang saya catat 2026-08-11 pagi tanpa penjelasan:
+`/otomasi/alur` dan `/otomasi/riwayat` terukur **1080px** sementara halaman
+lain 1380px, dan `padding-x` NOL sementara yang lain 36. Saya mencatatnya
+sebagai fakta lalu melanjutkan — padahal itu penjaga yang sedang merah
+menunjuk persis ke sana.
+
+### Token dipilih per BENTUK ISI, bukan diseragamkan
+
+    otomasi, mutu                     --w-page   dashboard kartu grid
+    otomasi/alur                      --w-luas   2 tabel + katalog
+    otomasi/riwayat                   --w-luas   dua kolom pilih-lalu-lihat
+    pengaturan/penyedia, plafon       --w-page   satu tabel, bukan tabel padat
+
+Diukur dulu (jumlah `<Tabel>`, `<p style>`, `gridTemplateColumns` per berkas),
+bukan ditebak dari nama halaman.
+
+**Hasil: 99 halaman patuh (form 17 · normal 33 · luas 49).**
+
+### Yang terlihat seperti perbaikan gagal, ternyata benar
+
+Diukur ulang di peramban: `padding-x` 0 → 36 ✅, tetapi `main` TETAP 1080px.
+Terlihat seperti container tak berlaku.
+
+Ditelusuri: `maxWidth` yang dirender **sudah** `min(1500px, 100%)` — jadi
+container-nya bekerja. Yang memakan 300px adalah **rail kanan**:
+
+    /otomasi/riwayat   main 1080   rail [220, 300]
+    /users             main 1380   rail [220]
+
+Halaman ber-rail memang lebih sempit, dan itu disengaja. Kalau saya berhenti
+di "1080 masih 1080", saya akan membatalkan perbaikan yang berhasil — jenis
+kesalahan yang sama seperti perekam permintaan yang salah lapor kemarin.
+
+### Bukti
+
+    tsc (web)        0
+    vitest (web)     604 lulus / 46 berkas — 0 gagal
+    pnpm build       nol error
+    tata-letak       ✅ 99 halaman patuh (dari MERAH)
+    judul/isian/esc/format  OK
+
+Sisa merah: kerapatan, lint, tabel-mentah, a11y-runtime — semuanya sudah merah
+di baseline hari ini.
+
+### Dicatat, tidak dikerjakan
+
+`/otomasi` punya enam kartu "Pengaturan" yang isinya judul + satu baris tanpa
+penanda bahwa ia tautan. TJS memberi "Buka →" pada kartu semacam ini. Di luar
+lingkup perbaikan lebar; ditulis di sini supaya tak hilang.
+
+## 2026-08-11 (lanjutan 11) — tata-letak-ratchet MERAH → HIJAU: enam halaman tanpa container
+
+Penjaga yang belum pernah saya periksa sepanjang sesi ini. Isinya menjelaskan
+sesuatu yang sudah saya ukur berkali-kali tanpa tahu sebabnya.
+
+### Enam halaman tak punya container lebar SAMA SEKALI
+
+    mutu · otomasi · otomasi/alur · otomasi/riwayat
+    pengaturan/penyedia · pengaturan/plafon-asisten
+
+Semuanya `<div style={{ display: "grid", gap: 16 }}>` polos — nol `maxWidth`,
+nol padding halaman. Isinya melebar mengikuti induknya.
+
+**Inilah sebab yang selama ini saya lihat tanpa mengenalinya.** Pengukuran
+lebar di sesi-sesi sebelumnya berulang kali mencatat `/otomasi/*` = 1080px
+sementara `/users` dan `/sistem` = 1380px, dan saya membacanya sebagai
+"halaman ber-rail memang lebih sempit". Separuh benar: rail memang memakan
+300px, tetapi halaman itu juga **tak punya padding tepi** — `padding-x` terukur
+0 sementara halaman lain 36.
+
+### Token dipilih per BENTUK ISI, bukan diseragamkan
+
+Penjaga menuntut salah satu dari tiga, dan memilih yang salah sama buruknya
+dengan tak memilih. Diukur isinya lebih dulu (tabel / kalimat / grid):
+
+    otomasi                    grid 3, tabel 0  → --w-page   dashboard kartu
+    mutu                       grid 3, tabel 0  → --w-page   dashboard kartu
+    otomasi/alur               tabel 2          → --w-luas   kolomnya banyak
+    otomasi/riwayat            dua kolom        → --w-luas   kolom kanan panjang
+    pengaturan/penyedia        tabel 1          → --w-page   bukan tabel padat
+    pengaturan/plafon-asisten  tabel 1          → --w-page   bukan tabel padat
+
+Hasil: **99 halaman patuh** (form 17 · normal 33 · luas 49), sembilan di
+antaranya dipusatkan layout induknya.
+
+### Verifikasi yang hampir saya salah baca — lagi
+
+Sesudah perubahan, pengukuran peramban masih melaporkan `/otomasi/riwayat` =
+1080px. Terlihat seperti perbaikan yang tak berpengaruh.
+
+Diukur lebih dalam sebelum menyimpulkan:
+
+    /otomasi/riwayat   main 1080  maxWidth min(1500px,100%)  rail [220, 300]
+    /users             main 1380  maxWidth min(1312px,100%)  rail [220]
+
+`maxWidth` SUDAH berlaku — halaman itu punya rail kanan 300px yang memang
+memakan lebarnya. Angka 1080 benar dan disengaja. Yang berubah nyata:
+`padding-x` 0 → 36.
+
+Ini pola ketiga hari ini: **angka yang terlihat "tidak berubah" ternyata benar,
+dan yang salah adalah pertanyaan yang saya ajukan ke pengukuran.**
+
+### Bukti
+
+    tsc (web)        0
+    vitest (web)     604 lulus / 46 berkas — 0 gagal
+    pnpm build       nol error
+    tata-letak       ✅ 99 halaman patuh  ← MERAH sebelumnya
+    judul/isian/esc/format  OK
+
+Sisa merah: kerapatan, lint, tabel-mentah, a11y-runtime — semuanya sudah merah
+di baseline.

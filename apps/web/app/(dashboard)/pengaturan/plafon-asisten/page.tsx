@@ -133,7 +133,14 @@ export default function PlafonAsistenPage() {
   }
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
+    <div style={{
+      // --w-page — satu tabel plafon per asisten. Tanpa container, isi halaman ini melebar
+      // mengikuti induknya: diukur 1080px di layar 1600px sementara
+      // halaman lain 1380px — terlihat seperti dua aplikasi berbeda.
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
+      display: "grid", gap: 16,
+    }}>
       <KepalaHalaman
         judul="Plafon Persetujuan Asisten"
         keterangan="Sampai berapa tiap orang boleh menyetujui lewat asisten, tanpa membuka aplikasi."

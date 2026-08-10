@@ -278,7 +278,13 @@ function Konten() {
   );
 
   return (
-    <div>
+    <div style={{
+      // --w-luas — dua kolom pilih-lalu-lihat; kolom kanan panjang. Tanpa container, isi halaman ini melebar
+      // mengikuti induknya: diukur 1080px di layar 1600px sementara
+      // halaman lain 1380px — terlihat seperti dua aplikasi berbeda.
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
+    }}>
       <KepalaHalaman
         ikon={<History size={20} />}
         judul="Riwayat Asisten"
