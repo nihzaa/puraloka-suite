@@ -54,6 +54,7 @@ export { angka, bungkusData, potong, rupiah } from './ai-tool-dasar.js'
 import { cariPotongan } from './rag-cari.js'
 import { saringanUntuk } from './rag-acl.js'
 import { TOOL_KONSTRUKSI } from './ai-tool-konstruksi.js'
+import { TOOL_SIAPKAN } from './ai-tool-siapkan.js'
 
 
 
@@ -426,6 +427,10 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
   toolCariDokumen,
   // Perluasan S5 — lihat `ai-tool-konstruksi.ts` untuk alasan 9, bukan 33.
   ...TOOL_KONSTRUKSI,
+  // S6 — tool PENYIAPAN. Ia tak menulis apa pun; tulisannya terjadi lewat
+  // rute `/api/v1/ai/tulis` yang menuntut token DAN klik manusia. I-1 tetap
+  // utuh: tak ada tombol tulis di katalog ini.
+  ...TOOL_SIAPKAN,
 ]
 
 /**

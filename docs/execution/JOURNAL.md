@@ -5,6 +5,96 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-10 (lanjutan 17) — CRUD terbatas: asisten menyiapkan, manusia menuliskan (S6)
+
+Founder memilih **"CRUD terbatas + token konfirmasi"** setelah saya mengukur
+bahwa TJS tak punya CRUD lewat asisten sama sekali. Ini yang MELAMPAUI
+referensinya — dan sekaligus keputusan paling berisiko sesi ini.
+
+### Yang membuatnya boleh ada: I-1 TETAP UTUH
+
+Godaan terbesarnya membuat tool yang benar-benar `INSERT`. Ditolak, dan
+`audit-tool-ai-read-only` sendiri yang menuliskan alasannya:
+
+> "Pertahanan itu punya satu titik lemah, dan bukan pada modelnya: **sesi
+> berikutnya menambahkan tool yang menulis karena kelihatannya berguna.**
+> 'Sekalian bisa update status' adalah kalimat yang wajar, tak ada test yang
+> merah karenanya, dan pertahanan I-1 lenyap dalam satu commit."
+
+Kalau saya menambahkan satu tool yang menulis, kalimat itu jadi ramalan yang
+saya penuhi sendiri — dan penjaganya harus dilemahkan untuk mengizinkannya.
+
+Jadi: **tak satu pun tool menulis.** Tool hanya MENYIAPKAN. Tulisannya terjadi
+lewat `POST /api/v1/ai/tulis` yang menuntut token — permintaan yang lahir dari
+KLIK, bukan dari kalimat model.
+
+Injeksi lewat dokumen bisa membuat model memanggil `siapkan_tulis`. Ia tak bisa
+membuat manusia menekan tombol.
+
+### Lubang yang ditemukan SEBELUM menambah apa pun
+
+`audit-tool-ai-read-only` hanya memindai `lib/ai-tool.ts`. Sembilan tool yang
+saya tambahkan kemarin di `ai-tool-konstruksi.ts` berada **DI LUAR
+jangkauannya** selama satu commit — I-1 hijau bukan karena tool-nya bersih,
+melainkan karena tak dilihat.
+
+Diperbaiki lebih dulu, sebelum menambahkan jalur tulis apa pun.
+
+### Test konkurensi saya BUTA — yang keempat sesi ini
+
+"LIMA klik BERSAMAAN → tepat SATU baris" tetap hijau setelah saya mencabut
+`.is('dipakai_pada', null)` dari klaimnya.
+
+Sebabnya: lima `app.inject` dalam satu proses cenderung **berurutan**, jadi
+balapannya tak pernah terjadi. Test yang mengaku menguji konkurensi tapi tak
+pernah membuat dua hal bersamaan adalah test yang hijau tanpa arti.
+
+Ditambah test yang menembak LANGSUNG ke basis: dua `UPDATE … WHERE
+dipakai_pada IS NULL` bersamaan, dan tepat satu boleh mengenai baris. Yang ini
+terbukti MERAH saat syaratnya dicabut.
+
+### Empat tebakan salah, semuanya soal enum dan kolom
+
+`punch_severity` ternyata **`ringan, sedang, berat, kritis`** — bukan
+`minor`/`major` yang saya karang dari nama field. `punch_items.nomor` wajib dan
+unik per proyek (format `PL-YYMM-NNN`). Nomor dihitung dari yang TERTINGGI,
+bukan dari jumlah baris: baris yang pernah dihapus akan membuat hitungan
+menabrak nomor yang masih terpakai.
+
+Yang membuat ini mahal: galatnya muncul **sesudah token terlanjur habis**.
+
+### Assertion yang membusuk — lagi, dan saya sendiri penulisnya
+
+`expect(KATALOG_TOOL.length).toBe(14)` yang saya tulis KEMARIN pecah hari ini
+jadi "expected 15 to be 14". Itu kesalahan yang sama persis yang saya perbaiki
+di `ai-tool.test.ts` sehari sebelumnya.
+
+Angka di dalam assertion membusuk; hubungan tidak. Diganti: tiap tool
+konstruksi wajib ADA di katalog, tanpa menyebut berapa totalnya.
+
+### Yang SENGAJA tak masuk daftar putih
+
+`kasbons` (uang) · `invoices` (uang + hukum) · `change_orders` (mengubah nilai
+kontrak) · `ncr_items` (dasar klaim ke subkon) · `izin_kerja` (gerbang
+keselamatan — izin yang terbit karena salah paham bisa membuat orang bekerja
+di tempat berbahaya).
+
+Dan **NOL delete**, di jenis apa pun — ditegakkan CHECK di basis, bukan hanya
+kode. Menghapus lewat kalimat adalah operasi yang tak punya jejak niat.
+
+### Bukti
+
+- 19 test: injeksi tak bisa menulis, token wajib/sekali-pakai/kedaluwarsa,
+  token orang lain ditolak, entitas berisiko tak ada jalannya, basis menolak
+  aksi hapus, jejak niat→hasil tertaut
+- `bash scripts/bukti-mutasi-tulis.sh` → W-2..W-5 MERAH, pulih HIJAU
+- test atomik BASIS terbukti merah saat syaratnya dicabut
+- 53/54 penjaga API hijau; `audit-tool-ai-read-only` tetap NOL dan tetap hijau
+  dengan 15 tool
+- vitest 2.690 lulus; 6 gagal IDENTIK dengan pohon bersih — nol regresi
+
+---
+
 ## 2026-08-10 (lanjutan 16) — Setiap menu induk kini punya ikhtisar. Lantai NOL.
 
 Founder mengingatkan: *"jangan lupakan dashboard untuk menu induknya"*.

@@ -159,10 +159,22 @@ describe('katalog utuh', () => {
     expect(new Set(nama).size).toBe(nama.length)
   })
 
-  it('katalog bertambah dari 5 ke 14', () => {
-    // Angka ini akan berubah saat tool ditambah, dan itu memang tujuannya:
-    // ia memaksa penambahan tool jadi keputusan yang terlihat di diff.
-    expect(KATALOG_TOOL.length).toBe(14)
+  it('katalog memuat SELURUH tool konstruksi, tak ada yang tercecer', () => {
+    /*
+     * Angka pasti sengaja TIDAK dipakai lagi.
+     *
+     * Versi pertama menuntut `toBe(14)` dan pecah sehari kemudian saat S6
+     * menambahkan `siapkan_tulis` — dengan pesan "expected 15 to be 14" yang
+     * terbaca seperti katalog rusak, padahal yang basi cuma angkanya.
+     *
+     * Itu kesalahan yang SAMA yang saya perbaiki di `ai-tool.test.ts` hari
+     * sebelumnya. Angka di dalam assertion membusuk; hubungan tidak.
+     */
+    for (const t of TOOL_KONSTRUKSI) {
+      expect(KATALOG_TOOL.map((k) => k.nama), `tool '${t.nama}' hilang dari katalog`)
+        .toContain(t.nama)
+    }
+    expect(KATALOG_TOOL.length).toBeGreaterThanOrEqual(TOOL_KONSTRUKSI.length)
   })
 
   it('tiap tool punya keterangan yang menyebut KAPAN dipakai', () => {

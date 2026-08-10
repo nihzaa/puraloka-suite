@@ -43,7 +43,24 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const SRC = resolve(__dirname, '..', 'src')
 
 /** Berkas yang memuat tool asisten. */
-const BERKAS_TOOL = ['lib/ai-tool.ts']
+/*
+ * SEMUA berkas yang menyumbang tool ke katalog.
+ *
+ * Daftar ini pernah berisi satu nama saja, dan itu lubang nyata: `S5`
+ * menambahkan sembilan tool di `ai-tool-konstruksi.ts` (2026-08-10), dan
+ * kesembilannya berada DI LUAR jangkauan penjaga ini selama satu commit.
+ * I-1 tetap hijau bukan karena tool-nya bersih, melainkan karena tak
+ * dilihat.
+ *
+ * Penjaga `audit-katalog-tool-terjaga.mjs` sekarang memastikan tiap berkas
+ * yang menyumbang ke `KATALOG_TOOL` terdaftar di sini — supaya lubang yang
+ * sama tak bisa terbuka diam-diam untuk kedua kalinya.
+ */
+const BERKAS_TOOL = [
+  'lib/ai-tool.ts',
+  'lib/ai-tool-konstruksi.ts',
+  'lib/ai-tool-siapkan.ts',
+]
 
 const TULIS = ['.insert(', '.update(', '.delete(', '.upsert(', '.rpc(']
 

@@ -446,6 +446,19 @@ jobs:
       - name: Registry penyedia tak menyimpan rahasia
         run: node scripts/audit-registry-penyedia.mjs
 
+      # Founder memilih "CRUD terbatas + token konfirmasi" (2026-08-10), dan
+      # itu MELAMPAUI TJS yang nol create/update/delete. Yang membuatnya boleh
+      # ada cuma satu hal: jalur tulisnya tak bisa dipicu KALIMAT model.
+      #
+      # I-1 tetap utuh — tak satu pun TOOL menulis, dan
+      # `audit-tool-ai-read-only` tetap berambang NOL. Penjaga ini menjaga sisi
+      # lainnya: jalur tulis yang memang ada tetap menuntut token yang diklaim
+      # ATOMIK, tetap terbatas daftar putih, dan tetap nol hapus.
+      #
+      # Ambang NOL. Terbukti bisa merah: `bash scripts/bukti-mutasi-tulis.sh`.
+      - name: Jalur tulis asisten berkonfirmasi
+        run: node scripts/audit-tulis-berkonfirmasi.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres
