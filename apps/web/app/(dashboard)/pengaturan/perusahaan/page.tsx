@@ -65,7 +65,12 @@ export default function PerusahaanPage() {
     }
   }
 
-  useEffect(() => { muat(); }, []);
+  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
+  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
+  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
+  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
+  // menambah jeda yang terlihat.
+  useEffect(() => { queueMicrotask(() => { void muat(); }); }, []);
 
   // Kode disarankan dari nama, tapi tetap bisa diubah: yang mengetik nama
   // "PT Puraloka Karya Nusantara" tak perlu memikirkan slug-nya sendiri.

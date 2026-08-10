@@ -145,7 +145,12 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
     }
   }, [projectId, loadSerapan]);
 
-  useEffect(() => { load(); }, [load]);
+  // `queueMicrotask`, bukan panggilan langsung: `load()` menyetel state
+  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
+  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
+  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
+  // menambah jeda yang terlihat.
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
   useEffect(() => { if (serapanRefreshKey) loadSerapan(); }, [serapanRefreshKey, loadSerapan]);
 
   // ── Upload ────────────────────────────────────────────────────────────────

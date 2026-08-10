@@ -16,7 +16,17 @@ import {
 interface AuditLog {
   id: string;
   table_name: string;
-  record_id: string;
+  /**
+   * NULLABLE — dan itu bukan kasus langka: diukur 2026-08-11, **554 baris**
+   * `audit_logs` punya `record_id` NULL (kolomnya `is_nullable=YES`).
+   *
+   * Tipenya dulu ditulis `string`. TypeScript karena itu diam saat
+   * `record_id.slice(0, 8)` dan `record_id.toLowerCase()` dipanggil, dan
+   * halaman ini **crash** dengan "Cannot read properties of null" begitu satu
+   * baris NULL masuk ke daftar. Tipe yang berbohong tak menghasilkan galat
+   * kompilasi — ia memindahkan galatnya ke peramban pengguna.
+   */
+  record_id: string | null;
   action: string;
   old_values: Record<string, unknown> | null;
   new_values: Record<string, unknown> | null;
@@ -163,9 +173,14 @@ export default function AuditPage() {
     }
   }, [filterTable, filterAction, filterFrom, filterTo, page]);
 
-  useEffect(() => { fetchMeta(); }, []);
+  // `queueMicrotask`, bukan panggilan langsung: `fetchMeta()` menyetel state
+  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
+  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
+  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
+  // menambah jeda yang terlihat.
+  useEffect(() => { queueMicrotask(() => { void fetchMeta(); }); }, []);
   useEffect(() => { setPage(1); fetchLogs(1); }, [filterTable, filterAction, filterFrom, filterTo]);
-  useEffect(() => { fetchLogs(page); }, [page]);
+  useEffect(() => { queueMicrotask(() => { void fetchLogs(page); }); }, [page]);
 
   // Kedua sisi di-lowercase. Sebelumnya hanya KATA KUNCI yang diturunkan
   // sementara nilainya tidak — kebetulan lolos untuk `table_name`/`action`
@@ -177,7 +192,9 @@ export default function AuditPage() {
         l.table_name.toLowerCase().includes(q) ||
         l.action.toLowerCase().includes(q) ||
         l.user?.name?.toLowerCase().includes(q) ||
-        l.record_id.toLowerCase().includes(q)
+        // `?.` — `record_id` nullable (554 baris NULL). Tanpa ini, mengetik
+        // apa pun di kotak cari mematikan seluruh halaman.
+        l.record_id?.toLowerCase().includes(q)
       )
     : logs;
 
@@ -354,8 +371,18 @@ export default function AuditPage() {
                         background: ast.bg, color: ast.color, textTransform: "uppercase",
                       }}>{log.action}</span>
                       <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>{log.table_name}</span>
+                      {/*
+                        `record_id` boleh NULL — 554 baris di antaranya. Baris
+                        semacam itu bukan cacat data: sebagian peristiwa audit
+                        (login, ekspor, perubahan pengaturan global) memang tak
+                        menunjuk satu baris tabel pun.
+
+                        Ditampilkan sebagai "—", bukan disembunyikan: kolom
+                        yang kosong tanpa penanda terbaca seperti nilainya
+                        gagal dimuat.
+                      */}
                       <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>
-                        {log.record_id.slice(0, 8)}…
+                        {log.record_id ? `${log.record_id.slice(0, 8)}…` : "—"}
                       </span>
                       {/* `critical` ditandai KATA, bukan hanya warna (WCAG 1.4.1).
                           Hanya `critical` yang diberi penanda: menandai ketiga

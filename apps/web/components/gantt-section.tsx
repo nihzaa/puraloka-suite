@@ -761,7 +761,12 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
     }
   }, [projectId]);
 
-  useEffect(() => { fetchTasks(); }, [fetchTasks]);
+  // `queueMicrotask`, bukan panggilan langsung: `fetchTasks()` menyetel state
+  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
+  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
+  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
+  // menambah jeda yang terlihat.
+  useEffect(() => { queueMicrotask(() => { void fetchTasks(); }); }, [fetchTasks]);
 
   useEffect(() => {
     if (!chartRef.current) return;

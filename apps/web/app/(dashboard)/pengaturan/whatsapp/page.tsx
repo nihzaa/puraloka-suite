@@ -86,7 +86,17 @@ export default function WhatsAppPage() {
     }
   }, []);
 
-  useEffect(() => { muat(); }, [muat]);
+  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
+  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
+  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
+  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
+  // menambah jeda yang terlihat.
+  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
+  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
+  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
+  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
+  // menambah jeda yang terlihat.
+  useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
 
   useEffect(() => {
     if (!toast) return;
@@ -509,7 +519,7 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
     }
   }, []);
 
-  useEffect(() => { muat(); }, [muat]);
+  useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
 
   async function simpan(t: Template, ubahan: { isi?: string; aktif?: boolean }) {
     setSedang(t.id);

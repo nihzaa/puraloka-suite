@@ -231,7 +231,12 @@ export default function HalamanAlurOtomasi() {
     }
   }, []);
 
-  useEffect(() => { muat(); }, [muat]);
+  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
+  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
+  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
+  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
+  // menambah jeda yang terlihat.
+  useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
 
   async function bukaJejak(a: Alur) {
     const baru = terbuka === a.id ? null : a.id;

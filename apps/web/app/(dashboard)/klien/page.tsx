@@ -96,7 +96,12 @@ export default function KlienPage() {
       setClients(r.data.clients);
     } finally { setLoading(false); }
   }
-  useEffect(() => { load(); }, []);
+  // `queueMicrotask`, bukan panggilan langsung: `load()` menyetel state
+  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
+  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
+  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
+  // menambah jeda yang terlihat.
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, []);
 
   async function toggleActive(client: Client) {
     setTogglingId(client.id);

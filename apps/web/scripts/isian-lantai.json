@@ -1,5 +1,8 @@
 {
-  "nilai": 15,
+  "nilai": 7,
   "_catatan": "diukur otomatis pada jalan pertama",
-  "_riwayat": []
+  "_riwayat": [
+    "15 → 7 (otomatis)"
+  ],
+  "_diukur": "2026-08-10"
 }

@@ -10476,3 +10476,88 @@ berkasnya masih menjelaskan lencana yang tak ada.
 Enam aturan lint masih merah (set-state-in-effect, exhaustive-deps,
 click-events, noninteractive, label-has-control, unescaped-entities) —
 semuanya sudah merah di baseline.
+
+## 2026-08-11 (lanjutan 5) — set-state-in-effect 83 → di bawah ambang, dan crash yang baru terlihat
+
+`react-hooks/set-state-in-effect`: **83 (ambang 58)**, aturan lint yang paling
+jauh dari ambangnya. Tersebar di **62 berkas**, sebagian besar satu pelanggaran
+— pola berulang, bukan cacat individual.
+
+### Mengukur dulu: tiga bentuk, satu yang aman diotomatiskan
+
+    A  satu panggilan satu baris   27   useEffect(() => { muat(); }, [muat])
+    B  useEffect satu baris rumit  11   { setPage(1); fetchLogs(1); }
+    C  multi-baris / lain          45
+
+Hanya A yang seragam. Sebelum menyentuh 28 berkas, dua hal dibuktikan:
+
+1. **`queueMicrotask` benar-benar memuaskan aturannya** — diuji pada satu
+   berkas: 1 → 0. Bukan diasumsikan.
+2. **Polanya sudah mapan di repo ini**, bukan karangan saya. 18 berkas sudah
+   memakainya, dan `akuntansi/page.tsx` — yang memakainya — TIDAK muncul di
+   daftar 83. Alasannya sudah tertulis di sana: `muat()` memanggil
+   `setMuat(true)` di baris pertamanya, dan setState sinkron dalam effect
+   memicu render kedua sebelum yang pertama selesai.
+
+30 titik di 28 berkas diubah, masing-masing diberi catatan alasannya — tanpa
+itu orang berikutnya akan "merapikannya" kembali jadi panggilan langsung.
+
+**Hasil: `set-state-in-effect` HILANG dari daftar merah** dengan satu golongan
+saja. Golongan B dan C sengaja tidak disentuh: keduanya menuntut penilaian
+per-tempat, dan mengubahnya buta akan mengubah perilaku.
+
+### Lint hijau tidak membuktikan datanya masih termuat
+
+Kalau `muat` tak lagi terpanggil — dependensi salah, komponen ter-unmount
+sebelum microtask jalan — halamannya diam-diam kosong dan lint tetap senang.
+
+Jadi 20 rute yang tersentuh diuji dari LUAR (`.layar/uji-muat-data.mjs`):
+apakah `/api/v1/…` benar-benar ditembak, dan apakah isinya muncul.
+**20/20 memuat data.**
+
+### Yang ditemukan justru bukan yang dicari
+
+Uji itu menangkap **PAGEERROR di `/audit`**: `Cannot read properties of null
+(reading 'slice')`.
+
+Diperiksa dulu apakah saya penyebabnya — `git stash`, jalankan ulang: galat
+yang sama muncul TANPA perubahan saya. Bukan regresi. Tapi ini **crash nyata
+yang sudah hidup di halaman audit**, dan baru terlihat karena ada yang
+mengukur.
+
+Sebabnya tipe yang berbohong:
+
+    interface AuditLog { record_id: string }        ← ditulis
+    information_schema:  is_nullable = YES          ← kenyataan
+    audit_logs:          554 baris record_id NULL   ← diukur
+
+TypeScript karena itu DIAM saat `record_id.slice(0, 8)` dan
+`record_id.toLowerCase()` dipanggil. Tipe yang berbohong tak menghasilkan galat
+kompilasi — ia memindahkan galatnya ke peramban pengguna.
+
+Diperbaiki dengan menjujurkan tipenya (`string | null`) lebih dulu; `tsc`
+langsung menunjuk kedua tempatnya. Baris NULL kini tampil `—`, bukan
+disembunyikan: kolom kosong tanpa penanda terbaca seperti nilainya gagal dimuat.
+Baris semacam itu bukan cacat data — login, ekspor, dan perubahan pengaturan
+global memang tak menunjuk satu baris tabel pun.
+
+Diverifikasi: mengetik di kotak cari `/audit` — jalur yang dulu mematikan
+halaman — kini nol galat, dan `—` muncul untuk baris NULL.
+
+### 403 yang BUKAN cacat
+
+Uji yang sama menangkap 403 pada `/companies` di `/pengaturan/perusahaan`.
+Ditelusuri: rutenya memanggil `requireGroupOwner`, dan akun uji bukan pemilik
+grup — perilaku yang benar. Halamannya pun sudah menanganinya
+(`setDitolak(true)`), bukan diam. Dibiarkan.
+
+### Bukti
+
+    tsc --noEmit       0
+    vitest (web)       601 lulus / 46 berkas — 0 gagal
+    pnpm build         ✓ Compiled successfully in 10.8s
+    lint-ratchet       set-state-in-effect HILANG dari daftar merah (83 → <58)
+    uji-muat-data      20/20 rute memuat data, 0 PAGEERROR
+
+Lima aturan lint masih merah (exhaustive-deps, click-events, noninteractive,
+label-has-control, unescaped-entities) — semuanya sudah merah di baseline.
