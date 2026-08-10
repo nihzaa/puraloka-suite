@@ -10665,3 +10665,109 @@ penjaga yang mengukurnya, dan meninggalkan angka lint apa adanya.
 
 Lima aturan lint masih merah — semuanya sudah merah di baseline, dan
 `click-events` sengaja dibiarkan dengan alasan di atas.
+
+## 2026-08-11 (lanjutan 7) — "Sudah niru semua TJS?" Diukur: belum, tapi bukan yang saya kira
+
+Founder bertanya dua hal: apakah menu AI & Otomasi sudah sama susunannya dengan
+TJS, dan apakah "mepet" sudah beres. Keduanya dijawab dengan pengukuran, bukan
+ingatan.
+
+### Mepet — beres, kecuali satu yang DISENGAJA
+
+    rute                        tersedia  isi   sisa
+    /users /sistem /notifications   1380  1312    68  (padding)
+    /otomasi/alur /riwayat          1080  1080     0
+    /pengaturan/kredensial          1380   900   480  ← masih
+
+`uji-baris-tak-mepet`: **0 pelanggaran** — kartu yang isinya mepet sudah nol.
+
+Sisa 480px di `kredensial` (dan 10 halaman `--w-form` lain) adalah keputusan
+sadar dari sesi sebelumnya: halaman itu padat kalimat penjelas (kredensial 7,
+penyedia-ai 6, asisten 6) dan kalimat selebar 1380px melelahkan dibaca.
+Dipotret ulang `/pengaturan/approval` untuk memeriksa: kartunya ~830px, lega,
+tidak mepet.
+
+### "Sudah niru semua?" — belum, dan asumsi saya sendiri salah
+
+Dibandingkan berkas-per-berkas ke `E:/Project/automation-tjs`:
+
+    SUDAH ADA  automation, automation/registry, ai-providers, credentials,
+               owner-ai, owner-ai/activity, wa-providers, wa-templates,
+               office-location  → 9 halaman
+    BELUM      ai-monitor, staff-ai, web-ai, owner-ai/templates,
+               security, settings  → 6 halaman
+
+**Tapi "settings" ternyata BUKAN halaman indeks.** Saya menganggapnya begitu
+dan hampir membangun halaman indeks kartu-menu. Dibaca isinya: ia form profil
+perusahaan — Puraloka sudah punya padanannya (`pengaturan/perusahaan`).
+
+Susunan menu TJS hidup di SIDEBAR, bukan di halaman: seksi "Admin & Sistem"
+berisi 22 rute, ditampilkan sebagai flyout. Puraloka punya struktur setara —
+8 item di "AI & Otomasi" + 13 di "Administrasi" = 21 rute.
+
+Jadi "susunan halaman sama seperti TJS" sudah terpenuhi secara struktur; yang
+kurang adalah ISI enam halaman di atas.
+
+### AI Monitor: sudah ada, dan LEBIH lengkap
+
+`ai-monitor` TJS memantau sesi WhatsApp pelanggan dengan skor closing — itu
+domain penjualan TJS, bukan padanan langsung untuk kontraktor.
+
+Diukur ke Puraloka: `/otomasi/riwayat` menampilkan percakapan, tindakan NYATA
+yang dilakukan asisten ("yang benar-benar terjadi"), penanda perlu-diperiksa
+(entitas asing, tulisan ditolak), dan ringkasan biaya token.
+`/pengaturan/biaya-ai` menampilkan KPI biaya/token/panggilan per-asisten dan
+per-model. Tabelnya pun sudah ada: `ai_percakapan`, `ai_pesan`,
+`ai_biaya_token`, `ai_akses_ditolak`, `wa_pesan_log`.
+
+Membangun `ai-monitor` terpisah = duplikat. Tidak dikerjakan.
+
+### Yang justru ditemukan: kolom timpang di /otomasi/riwayat
+
+Potret menunjukkan kolom "Percakapan" berisi SATU baris menempati ruang yang
+sama dengan kolom kanan berisi dua puluh — setengah layar kosong di sebelah
+daftar yang harus digulir.
+
+Sebabnya `repeat(auto-fit, minmax(…, 1fr))`: pola itu membagi lebar SAMA RATA,
+dan itu salah untuk tata letak pilih-lalu-lihat. Diganti kelas bersama
+`.kolom-pilih-isi` (globals.css): `minmax(320px, 380px) minmax(0, 1fr)`,
+menumpuk di bawah 780px.
+
+Ditulis sebagai kelas, bukan inline, karena media query tak bisa ditulis di
+`style={{}}` — dan pola ini akan muncul lagi.
+
+### Jebakan yang memakan waktu: CSS dev basi
+
+Sesudah perubahan, diukur di peramban: `display: block`, `grid-template-columns:
+none`. Kelasnya ADA di DOM, aturannya TIDAK ada di stylesheet.
+
+Ditelusuri berlapis — kurung CSS seimbang, tak ada `@layer`, kelas lain
+(`isian-fokus`, `alur-panah`) hadir normal. Yang menjawab akhirnya
+membandingkan dua keluaran:
+
+    .next/static/chunks/15fpnvyhlkwa9.css        kolom-pilih-isi: ADA   ✅
+    .next/dev/static/.../globals_css_….css       kolom-pilih-isi: TIDAK ❌
+
+Kodenya benar; **dev server yang tidak memuat ulang `globals.css`**. Aturan
+produksinya utuh termasuk media query-nya.
+
+Dev server itu milik founder, bukan dijalankan sesi ini — tidak dimatikan
+tanpa izin. Verifikasi dilakukan lewat keluaran build.
+
+Catatan kejujuran: sempat saya simpulkan "ADA di CSS hasil build" dari
+`grep -rl` yang ternyata menemukan keluaran DEV, lalu saya koreksi sendiri —
+`.next/static/css/` kosong. Kesimpulan akhirnya sama, tetapi baru sah setelah
+dua keluaran itu dibandingkan langsung.
+
+### Bukti
+
+    tsc --noEmit        0
+    vitest (web)        601 lulus / 46 berkas — 0 gagal
+    pnpm build          ✓ Compiled successfully in 7.7s
+    uji-token-css-ada   0 token hantu
+    esc-ratchet         OK (0)
+    uji-baris-tak-mepet 0 pelanggaran
+
+Sisa yang belum digarap: `staff-ai`, `web-ai`, `owner-ai/templates`
+(perlu keputusan — Puraloka menggabungnya di `pengaturan/asisten` 502 baris),
+dan `security` (perlu disesuaikan ke Supabase Auth, bukan tiru langsung).

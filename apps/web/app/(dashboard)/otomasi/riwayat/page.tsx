@@ -291,17 +291,14 @@ function Konten() {
         </p>
       )}
 
-      <div
-        style={{
-          display: "grid",
-          // Dua kolom di layar lebar, menumpuk di sempit. Kolom kanan
-          // ("yang terjadi") tak boleh hilang di layar kecil — justru ia yang
-          // menjawab pertanyaan yang membawa orang ke sini.
-          gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 380px), 1fr))",
-          gap: 14,
-          alignItems: "start",
-        }}
-      >
+      {/*
+        `kolom-pilih-isi` (globals.css) — daftar pilih di kiri, isi panjang di
+        kanan. Versi sebelumnya `repeat(auto-fit, minmax(…, 1fr))` membagi
+        lebar SAMA RATA, dan diukur di layar 1600px hasilnya timpang: kolom
+        "Percakapan" berisi satu baris menempati ruang yang sama dengan kolom
+        kanan berisi dua puluh. Menumpuk di bawah 780px, seperti sebelumnya.
+      */}
+      <div className="kolom-pilih-isi">
         <Panel judul="Percakapan" padat>
           {memuat ? (
             <div style={{ padding: 20, color: C.muted, fontSize: 13 }}>Memuat…</div>

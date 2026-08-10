@@ -1204,3 +1204,34 @@ details > summary:focus-visible {
   outline-color: var(--danger);
   border-color: var(--danger);
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DUA KOLOM TIMPANG — daftar pilih di kiri, isi panjang di kanan.
+   ══════════════════════════════════════════════════════════════════════════
+
+   Pola `repeat(auto-fit, minmax(…, 1fr))` membagi lebar SAMA RATA, dan itu
+   salah untuk tata letak pilih-lalu-lihat. Diukur di /otomasi/riwayat pada
+   layar 1600px: kolom "Percakapan" berisi SATU baris menempati ruang yang
+   sama dengan kolom kanan berisi dua puluh — setengah layar kosong di sebelah
+   daftar yang justru harus digulir.
+
+   Kolom kiri adalah daftar pilih: nama, jumlah, waktu. 380px cukup. Sisanya
+   milik kolom yang isinya panjang.
+
+   Ditulis sebagai kelas, bukan inline: media query tak bisa ditulis di
+   `style={{}}`, dan pola ini akan muncul lagi di halaman pilih-lalu-lihat
+   berikutnya. */
+.kolom-pilih-isi {
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+/* Menumpuk sebelum kolom kiri memakan terlalu banyak dari yang tersisa.
+   780px = 380 (daftar) + 380 (isi minimum layak baca) + gap. */
+@media (max-width: 780px) {
+  .kolom-pilih-isi {
+    grid-template-columns: 1fr;
+  }
+}
