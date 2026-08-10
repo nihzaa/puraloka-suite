@@ -9810,3 +9810,54 @@ notification-routing dan notification-builder di `/pengaturan/notifikasi`
 multi-instance lewat `penyedia_layanan`. Yang benar-benar belum ada tinggal
 form/status/dashboard-builder — dan ketiganya butuh tabel baru dari nol,
 jadi ditunda menunggu kebutuhan nyata.
+
+---
+
+## 2026-08-10 (lanjutan 11) — n8n & Evolution Puraloka dipisah dari TJS
+
+Founder: *"kan TJS sama puraloka dipisah, gimana sii. jangan disatuin"* —
+dan ia benar. Saya sempat menyarankan memakai instance Evolution TJS, yang
+salah.
+
+**Diukur, bukan ditebak.** `localhost:5678` dan `:8080` memang hidup:
+
+    :5678  n8n        → TJS  (showSetupOnFirstLoad: false — sudah ada akun)
+    :8080  Evolution  → TJS  (clientName `evolution_tjs`)
+
+Kalau Puraloka menumpang keduanya: pesan masuk untuk Puraloka dikirim ke
+webhook TJS, dan riwayat chat dua perusahaan bercampur di satu database.
+Tak satu pun dari itu mengeluarkan galat.
+
+**Dan ternyata tak ada Docker sama sekali** — asumsi saya yang berikutnya
+salah. Diukur dari `Win32_Process`: Evolution adalah kode Node biasa
+(`tsx ./src/main.ts`) dan n8n paket npm global. Jadi memisahkannya jauh lebih
+sederhana daripada yang saya bayangkan: n8n cukup `N8N_USER_FOLDER` berbeda.
+
+**Jebakan port yang memakan satu percobaan.** `N8N_PORT=5679` GAGAL, dan
+pesannya menyesatkan: *"Task Broker's port 5679 is already in use"* — 5679
+dipakai instance TJS sebagai port **internal** Task Broker, bukan port UI.
+Pesannya tak menyebut itu. Puraloka akhirnya memakai 5680 (UI) + 5681
+(broker), keduanya diukur bebas dulu.
+
+**Pemisahannya dibuktikan, bukan diasumsikan:**
+
+    TJS      :5678  showSetupOnFirstLoad = false  (punya akun)
+    PURALOKA :5680  showSetupOnFirstLoad = true   (database kosong)
+
+Yang kedua itu jawaban pertanyaan founder "kalo akun n8n nya terpisah
+gimana": akunnya **tidak dicari — dibuat sendiri** saat pertama membuka
+`localhost:5680`.
+
+Tiga skrip `.cmd` dibuat supaya tinggal diklik. `jalankan-evolution.cmd`
+MENOLAK jalan kalau `AUTHENTICATION_API_KEY` masih kosong: Evolution tetap
+mau start tanpa itu dan jadi terbuka tanpa autentikasi di jaringan lokal,
+tanpa satu pun peringatan.
+
+`.n8n-puraloka` ditaruh di `%USERPROFILE%`, DI LUAR repo — ia berisi
+`database.sqlite` dengan kredensial tersandi dan kunci enkripsinya. Satu
+`git add -A` yang ceroboh cukup untuk memasukkannya ke history, dan history
+tak bisa dibersihkan tanpa menulis ulang repo. `.gitignore` tetap diberi
+polanya juga: dua lapis untuk hal yang tak bisa ditarik kembali.
+
+Kredensial TIDAK diisi oleh saya, dan itu disengaja — key milik founder,
+dan sesi ini sudah punya satu kejadian private key tampil di layar.

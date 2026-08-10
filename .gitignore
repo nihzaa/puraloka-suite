@@ -51,3 +51,15 @@ playwright-report/
 
 # Keluaran coverage — lantainya di apps/api/scripts/coverage-lantai.json (ter-track)
 coverage/
+
+# ── n8n & Evolution: DATA, bukan kode ─────────────────────────────────
+#
+# `.n8n/` berisi `database.sqlite` (workflow + KREDENSIAL tersandi) dan
+# kunci enkripsinya. Ikut ter-commit = seluruh kredensial otomasi ada di
+# git history, dan history tak bisa dibersihkan tanpa menulis ulang repo.
+#
+# `evolution-api/` adalah instance terpisah milik Puraloka (port 8081,
+# `evolution_puraloka`) — kodenya milik proyek lain, dan sesi WhatsApp di
+# dalamnya adalah data.
+.n8n/
+evolution-api/

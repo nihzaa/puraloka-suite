@@ -197,6 +197,28 @@ grep NEXT_PUBLIC_API_URL apps/web/.env.local
 # terdaftar", pastikan dulu Anda memeriksa API yang BENAR-BENAR dipakai:
 netstat -ano | grep ':300[0-9].*LISTENING'
 cd apps/api && npx vitest run          # test (integration, butuh DB)
+
+# ── n8n & Evolution: MILIK PURALOKA, bukan milik TJS ──────────────────
+#
+# Di mesin ini ada DUA proyek yang memakai keduanya, dan instance-nya
+# TERPISAH. Diukur 2026-08-10:
+#
+#   :5678  n8n         → TJS      (sudah ada akun pemilik)
+#   :8080  Evolution   → TJS      (clientName `evolution_tjs`)
+#   :5680  n8n         → PURALOKA (scripts\jalankan-n8n.cmd)
+#   :8081  Evolution   → PURALOKA (scripts\jalankan-evolution.cmd)
+#
+# JANGAN mengarahkan Puraloka ke :5678 atau :8080. Pesan masuk untuk
+# Puraloka akan dikirim ke webhook TJS, dan riwayat chat dua perusahaan
+# bercampur di satu database — tanpa satu pun galat.
+#
+# Jebakan yang sudah memakan waktu: n8n memakai port KEDUA untuk "Task
+# Broker" internal. Menyetel N8N_PORT=5679 gagal karena instance TJS
+# memegang 5679 sebagai broker-nya, dan pesannya tak menyebut bahwa yang
+# bentrok adalah port internal. Puraloka memakai 5680 (UI) + 5681 (broker).
+scripts\jalankan-n8n.cmd              # n8n Puraloka  :5680
+scripts\siapkan-evolution.cmd         # sekali, menyiapkan folder + .env
+scripts\jalankan-evolution.cmd        # Evolution Puraloka :8081
 ```
 
 Env: `apps/api/.env`, `apps/web/.env.local` (contoh: `.env.example` masing-masing).
