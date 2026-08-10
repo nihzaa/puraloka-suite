@@ -9749,3 +9749,64 @@ peramban dengan sesi nyata — judulnya terbaca, nol galat runtime.
 
 Bukti: 13 → 6 salinan · penjaga terbukti merah lalu pulih · 6 penjaga visual
 hijau · `uji-izin-hydration` hijau · 7 halaman terverifikasi di peramban.
+
+---
+
+## 2026-08-10 (lanjutan 10) — Isolasi tenant: 6 policy PERMISSIVE jadi RESTRICTIVE
+
+**Enam tabel punya `tenant_isolation` yang PERMISSIVE** — `gudang`,
+`gudang_stok`, `rekening_koran`, `rekening_koran_baris`, `pencocokan_bank`,
+`penyesuaian_rekonsiliasi`. Ekspresinya BENAR; yang salah hanya sifatnya.
+
+**Dan karena itu ia tak bergejala.** Policy itu satu-satunya di tabelnya, jadi
+isolasinya masih bekerja hari ini. Itulah sebabnya cacat ini bertahan lama.
+
+**Bahayanya DIUKUR, bukan diduga.** Dalam transaksi ber-ROLLBACK, satu policy
+permissive kedua ditambahkan ke `gudang` dengan `USING (true)` — bentuk
+"policy dasar" yang persis dipakai enam tabel lain di repo ini:
+
+    sebelum policy kedua : 0 baris tenant lain terlihat
+    sesudah policy kedua : 1 baris tenant lain terlihat
+
+Postgres meng-OR yang PERMISSIVE dan meng-AND yang RESTRICTIVE. Jadi cacat ini
+bukan menunggu dipicu pengguna — ia menunggu dipicu oleh **migrasi berikutnya
+yang menyalin pola dari tetangganya**, dan itu tindakan yang di repo ini
+terlihat sepenuhnya wajar.
+
+**Dua kesalahan saya sendiri sebelum migrasinya benar:**
+
+1. **Versi pertama memaksakan `company_id = auth_company_id()` untuk
+   keenamnya** dan langsung gagal: *column "company_id" does not exist*. Dua
+   di antaranya kategori C — `gudang_stok` lewat `gudang_id`,
+   `rekening_koran_baris` lewat `koran_id`. Perbaikannya: ekspresi asli tiap
+   tabel DIBACA dari `pg_policies` dan dipertahankan; yang diubah hanya
+   sifatnya. Menyeragamkan ekspresi yang memang berbeda kebutuhannya adalah
+   cara membuat tabel turunan kehilangan seluruh isinya.
+
+2. **Uji cobanya sempat melaporkan "tenant sendiri terbaca: 0"** — terlihat
+   seperti migrasi yang mematikan akses, dan nyaris membuat saya membatalkannya.
+   Yang rusak alat ujinya: `auth_company_id()` membaca `auth.uid()` dari klaim
+   `sub`, yang isinya `users.auth_id` — BUKAN `owner_user_id` yang saya pakai.
+   Ditambah `SET LOCAL ROLE` alih-alih `set_config('role', …)` seperti
+   `rls-harness.ts`. Sesudah harness-nya disamakan dengan pola repo: 1 dan 0.
+
+**Yang dibuktikan sebelum diterapkan**, ketiganya dalam transaksi ROLLBACK:
+
+    tenant SENDIRI terbaca             : 1   (kalau 0, "aman" berarti "mati")
+    tenant LAIN terbaca                : 0
+    sesudah policy dasar KEDUA ditambah: 0   ← kebocoran tadi kini tertutup
+
+Policy dasar ikut dibuat, karena RESTRICTIVE hanya mempersempit: tanpa satu
+pun permissive yang mengizinkan, tabelnya jadi tak terbaca siapa pun.
+
+**Hasil pada test warisan: 6 merah → 4 merah, 2735 hijau.** Sisa empat adalah
+masalah lain (RLS ownership mandor, rantai submittal, `auth_client_id`).
+
+**Catatan pengukuran yang mengubah rencana:** tiga dari lima "builder" TJS
+ternyata SUDAH ADA di Puraloka dan saya nyaris membangunnya ulang —
+notification-routing dan notification-builder di `/pengaturan/notifikasi`
+(234 baris, lengkap dengan target peran/permission), approval-builder di
+`/pengaturan/approval` (253 baris, 8 rantai + 8 langkah), dan WA
+multi-instance lewat `penyedia_layanan`. Yang benar-benar belum ada tinggal
+form/status/dashboard-builder — dan ketiganya butuh tabel baru dari nol,
+jadi ditunda menunggu kebutuhan nyata.
