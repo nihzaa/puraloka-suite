@@ -184,7 +184,18 @@ function Konten() {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: 14,
+                // Kolom "Plafon" berisi nominal rata-kanan. Tanpa angka
+                // selebar-sama, dua nilai sepanjang sama tak berbaris — dan
+                // membandingkan plafon antar orang jadi menuntut membaca
+                // digit satu per satu.
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
               <thead>
                 <tr style={{ background: "var(--surface-2)" }}>
                   {["Nama", "Peran", "Plafon", ""].map((h, i) => (
@@ -211,10 +222,19 @@ function Konten() {
                   const berubah = nilaiDraf !== undefined;
                   return (
                     <tr key={b.user_id} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td style={{ padding: "10px 14px" }}>
+                      {/*
+                        `th scope="row"`, bukan `td`: nama adalah yang MEMILIKI
+                        baris ini. Tanpanya pembaca layar membacakan nominal
+                        plafon tanpa menyebut plafon siapa — dan angka tanpa
+                        pemilik tak bisa dipakai untuk apa pun.
+                      */}
+                      <th
+                        scope="row"
+                        style={{ padding: "10px 14px", textAlign: "left", fontWeight: 400 }}
+                      >
                         <div style={{ fontWeight: 500, color: C.text }}>{b.nama}</div>
                         <div style={{ fontSize: 12, color: C.muted }}>{b.email}</div>
-                      </td>
+                      </th>
                       <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap" }}>
                         {b.peran || "—"}
                       </td>

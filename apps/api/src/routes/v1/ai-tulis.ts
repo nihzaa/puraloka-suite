@@ -340,6 +340,11 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
 
       // Jejak dari NIAT ke HASIL: tanpa `hasil_id`, tak ada cara menghubungkan
       // baris yang tercipta dengan token yang membuatnya.
+      //
+      // best-effort: barisnya SUDAH tersimpan. Nol baris di sini hanya berarti
+      // tokennya lenyap di antara klaim dan penautan — jejaknya putus, tetapi
+      // membatalkan tulisan yang sudah ada jauh lebih berisiko. Dicatat di
+      // bawah supaya putusnya terlihat.
       const { error: errJejak } = await request.db!
         .from('ai_token_tulis')
         .update({ hasil_id: idBaru })

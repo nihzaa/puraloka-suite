@@ -29,7 +29,7 @@
  * memang perlu dibedakan sekilas.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import {
   AlertTriangle, CheckCircle2, Info, Loader2, MessageCircle, Plus, ShieldAlert,
@@ -433,6 +433,371 @@ function Konten() {
         seseorang di perusahaan ini langsung menutup akses WhatsApp-nya — tanpa perlu
         menghapus nomornya di sini.
       </p>
+
+      <PanelTemplate bolehUbah={hasPerm("settings:wa:template")} />
     </div>
+  );
+}
+
+interface Template {
+  id: string;
+  kode: string;
+  label: string;
+  isi: string;
+  variabel: string[];
+  aktif: boolean;
+}
+
+/** Placeholder yang dipakai sebuah teks — cermin `variabelDipakai` di API. */
+function variabelDipakai(isi: string): string[] {
+  return [...new Set([...isi.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]))];
+}
+
+/**
+ * Contoh nilai untuk PRATINJAU.
+ *
+ * Nilai contoh, bukan nilai sungguhan: yang menyunting perlu melihat BENTUK
+ * pesannya, dan kode verifikasi sungguhan tak boleh ada di layar pengaturan.
+ * Yang tak dikenal ditampilkan sebagai nama variabelnya dalam kurung siku,
+ * supaya jelas bagian itu diisi sistem — bukan tampak seperti teks kosong.
+ */
+const CONTOH: Record<string, string> = {
+  kode: "482913",
+  menit: "10",
+  nama: "Budi Santoso",
+  proyek: "Renovasi Kantor Pusat",
+};
+const contohNilai = (v: string) => CONTOH[v] ?? `[${v}]`;
+
+/**
+ * ISI PESAN sebagai data, bukan kode.
+ *
+ * Sebelum migrasi 270, tiap teks WhatsApp adalah literal di
+ * `wa-nomor.ts:142` dan `wa-webhook.ts:200` — mengubah satu kata butuh
+ * deploy, dan pemilik yang ingin nada pesannya berbeda tak punya jalan.
+ *
+ * Ditaruh di halaman yang SAMA dengan nomor, bukan halaman baru: keduanya
+ * jawaban untuk satu pertanyaan ("kenapa pesannya begitu?"), dan memisahkannya
+ * menuntut orang mengingat ada dua tempat.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA PRATINJAU, DAN KENAPA IA TAK BOLEH JADI ATURAN KEDUA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Versi pertama panel ini hanya kotak teks. Saya menilainya sendiri dari
+ * tangkapan layar dan menolaknya: seluruh guna template adalah APA YANG
+ * DITERIMA ORANG, dan kotak berisi `{{kode}}` mentah tak menunjukkan itu.
+ * Yang menyunting harus membayangkan hasilnya — dan yang dibayangkan tak
+ * pernah salah, jadi salah ketik tak pernah tertangkap mata.
+ *
+ * Yang TIDAK dilakukan: menulis ulang aturan penolakan di sini. Pratinjau ini
+ * hanya menandai variabel asing dan menampilkan contohnya; keputusan
+ * menerima/menolak tetap milik `render()` di API. Dua tempat yang sama-sama
+ * memutuskan akan berbeda pendapat cepat atau lambat, dan yang menang adalah
+ * yang tak terlihat.
+ *
+ * ── Kenapa variabel bisa DIKLIK
+ *
+ * "Variabel: {{kode}} {{menit}}" sebagai teks mati menuntut orang mengetik
+ * ulang persis — termasuk kurung ganda dan ejaannya. Itu justru cara utama
+ * salah ketik masuk, dan aturan daftar-tertutup lalu menolak simpanannya.
+ * Menyisipkan lewat klik menghapus seluruh kelas kesalahan itu.
+ */
+function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
+  const [daftar, setDaftar] = useState<Template[]>([]);
+  const [memuat, setMemuat] = useState(true);
+  const [draf, setDraf] = useState<Record<string, string>>({});
+  const [sedang, setSedang] = useState<string | null>(null);
+  const [pesan, setPesan] = useState<{ tipe: "ok" | "err"; teks: string } | null>(null);
+  const acuan = useRef<Record<string, HTMLTextAreaElement | null>>({});
+
+  const muat = useCallback(async () => {
+    try {
+      const r = await api.get<{ data: Template[] }>("/api/v1/wa/template");
+      /*
+       * Urutan DITETAPKAN di sini, bukan mengikuti `kode` dari API.
+       *
+       * Alfabetis menaruh `asisten_gagal` di atas dan `verifikasi_nomor` —
+       * satu-satunya yang dilihat pelanggan yang sedang menunggu — di paling
+       * bawah. Urutan yang tak berarti apa-apa tetap mengajarkan sesuatu ke
+       * pembacanya, dan yang diajarkannya di sini keliru.
+       */
+      const urut = ["verifikasi_nomor", "asisten_tanpa_izin", "asisten_gagal"];
+      const peringkat = (k: string) => {
+        const i = urut.indexOf(k);
+        return i === -1 ? urut.length : i;
+      };
+      setDaftar(
+        [...(r.data.data ?? [])].sort(
+          (a, b) => peringkat(a.kode) - peringkat(b.kode) || a.kode.localeCompare(b.kode),
+        ),
+      );
+    } catch {
+      setPesan({ tipe: "err", teks: "Gagal memuat template" });
+    } finally {
+      setMemuat(false);
+    }
+  }, []);
+
+  useEffect(() => { muat(); }, [muat]);
+
+  async function simpan(t: Template, ubahan: { isi?: string; aktif?: boolean }) {
+    setSedang(t.id);
+    try {
+      await api.put("/api/v1/wa/template", { id: t.id, ...ubahan });
+      setPesan({ tipe: "ok", teks: `Template "${t.label}" tersimpan.` });
+      setDraf((d) => { const x = { ...d }; delete x[t.id]; return x; });
+      await muat();
+    } catch (e) {
+      setPesan({
+        tipe: "err",
+        teks:
+          (e as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+          "Gagal menyimpan template",
+      });
+    } finally {
+      setSedang(null);
+    }
+  }
+
+  /** Menyisipkan `{{v}}` di posisi kursor, bukan di ujung teks. */
+  function sisipkan(t: Template, v: string) {
+    const ta = acuan.current[t.id];
+    const isi = draf[t.id] ?? t.isi;
+    const a = ta?.selectionStart ?? isi.length;
+    const b = ta?.selectionEnd ?? isi.length;
+    const baru = `${isi.slice(0, a)}{{${v}}}${isi.slice(b)}`;
+    setDraf((d) => ({ ...d, [t.id]: baru }));
+    // Kursor dikembalikan ke SESUDAH sisipan supaya mengetik bisa lanjut —
+    // tanpa ini kursor melompat ke awal dan kalimat tersusun terbalik.
+    requestAnimationFrame(() => {
+      const p = a + v.length + 4;
+      ta?.focus();
+      ta?.setSelectionRange(p, p);
+    });
+  }
+
+  if (memuat) return null;
+
+  return (
+    <section style={{ ...card, padding: 16, marginTop: 16 }}>
+      <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 4px", color: C.text }}>
+        Isi pesan
+      </h2>
+      <p style={{ fontSize: 12.5, color: C.muted, lineHeight: 1.6, margin: "0 0 16px" }}>
+        Teks yang dikirim ke WhatsApp. Bagian dalam <code>{"{{ }}"}</code> diisi sistem —
+        klik namanya untuk menyisipkan. Yang di luar daftar ditolak saat disimpan, supaya
+        pesan berlubang tak sampai ke penerima.
+      </p>
+
+      <div style={{ display: "grid", gap: 18 }}>
+        {daftar.map((t) => {
+          const nilai = draf[t.id] ?? t.isi;
+          const berubah = draf[t.id] !== undefined && draf[t.id] !== t.isi;
+          const asing = variabelDipakai(nilai).filter((v) => !t.variabel.includes(v));
+          const pratinjau = nilai.replace(/\{\{(\w+)\}\}/g, (_, k: string) => contohNilai(k));
+          const sibuk = sedang === t.id;
+
+          return (
+            <div key={t.id} style={{ display: "grid", gap: 7 }}>
+              {/* Judul + kode + saklar aktif. Kode DIIKAT ke judulnya, bukan
+                  melayang di ujung kanan seperti label tanpa tuan. */}
+              <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{t.label}</span>
+                <code
+                  style={{
+                    fontSize: 10.5,
+                    color: C.muted,
+                    background: "var(--surface-2)",
+                    padding: "1px 6px",
+                    borderRadius: 5,
+                  }}
+                >
+                  {t.kode}
+                </code>
+                <span style={{ flex: 1 }} />
+                {bolehUbah && (
+                  <label
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      fontSize: 11.5, color: C.muted, cursor: sibuk ? "wait" : "pointer",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={t.aktif}
+                      disabled={sibuk}
+                      onChange={(e) => simpan(t, { aktif: e.target.checked })}
+                      style={{ accentColor: C.aksen, cursor: "inherit" }}
+                    />
+                    Aktif
+                  </label>
+                )}
+              </div>
+
+              {/*
+                Template NONAKTIF dinyatakan, bukan hanya ditandai centang mati.
+                `render()` menolaknya dan pemanggil jatuh ke teks bawaan — jadi
+                yang terkirim BUKAN yang tertulis di kotak ini.
+              */}
+              {!t.aktif && (
+                <p style={{ fontSize: 11.5, color: C.warning, margin: 0 }}>
+                  Nonaktif — yang terkirim adalah teks bawaan sistem, bukan yang di bawah.
+                </p>
+              )}
+
+              <textarea
+                ref={(el) => { acuan.current[t.id] = el; }}
+                value={nilai}
+                disabled={!bolehUbah}
+                rows={Math.max(2, nilai.split("\n").length)}
+                aria-label={`Isi pesan — ${t.label}`}
+                aria-invalid={asing.length > 0}
+                onChange={(e) => setDraf((d) => ({ ...d, [t.id]: e.target.value }))}
+                style={{
+                  padding: "9px 11px",
+                  border: `1px solid ${asing.length > 0 ? C.danger : "var(--border)"}`,
+                  borderRadius: 8,
+                  fontSize: 13,
+                  lineHeight: 1.6,
+                  background: "var(--surface)",
+                  color: C.text,
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                  boxSizing: "border-box",
+                  width: "100%",
+                }}
+              />
+
+              {/* Variabel yang bisa DIKLIK, bukan daftar untuk diketik ulang. */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                {t.variabel.length > 0 ? (
+                  <>
+                    <span style={{ fontSize: 11.5, color: C.muted }}>Sisipkan:</span>
+                    {t.variabel.map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        disabled={!bolehUbah}
+                        onClick={() => sisipkan(t, v)}
+                        title={`Sisipkan {{${v}}} — contoh: ${contohNilai(v)}`}
+                        style={{
+                          fontSize: 11,
+                          fontFamily: "var(--font-mono, monospace)",
+                          padding: "2px 7px",
+                          borderRadius: 999,
+                          border: `1px solid ${C.border}`,
+                          background: "transparent",
+                          color: C.text,
+                          cursor: bolehUbah ? "pointer" : "default",
+                        }}
+                      >
+                        {`{{${v}}}`}
+                      </button>
+                    ))}
+                  </>
+                ) : (
+                  <span style={{ fontSize: 11.5, color: C.muted }}>Tanpa variabel.</span>
+                )}
+                <span style={{ flex: 1 }} />
+                <span style={{ fontSize: 11, color: C.muted }}>{nilai.length} karakter</span>
+              </div>
+
+              {/*
+                PRATINJAU — apa yang benar-benar diterima orang.
+                Ini yang membuat salah ketik terlihat oleh mata, bukan hanya
+                tertangkap validasi saat menyimpan.
+
+                Disembunyikan kalau hasilnya PERSIS sama dengan yang diketik
+                (template tanpa variabel). Pratinjau yang tak mungkin berbeda
+                dari sumbernya hanya menggandakan teks, dan panel yang penuh
+                pengulangan mengajari mata untuk melewatinya — termasuk saat
+                pratinjaunya benar-benar berbeda.
+              */}
+              {asing.length > 0 ? (
+                <p role="alert" style={{ fontSize: 11.5, color: C.danger, margin: 0, lineHeight: 1.55 }}>
+                  Variabel tak dikenal: <code>{asing.map((v) => `{{${v}}}`).join(" ")}</code> —
+                  akan ditolak saat disimpan. Yang tersedia:{" "}
+                  {t.variabel.map((v) => `{{${v}}}`).join(" ") || "(tidak ada)"}.
+                </p>
+              ) : pratinjau === nilai ? null : (
+                <div
+                  style={{
+                    borderLeft: `2px solid ${C.border}`,
+                    paddingLeft: 10,
+                    display: "grid",
+                    gap: 2,
+                  }}
+                >
+                  <span style={{ fontSize: 10.5, color: C.muted, letterSpacing: 0.3 }}>
+                    YANG DITERIMA
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12.5, color: C.text, lineHeight: 1.55, whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {pratinjau}
+                  </span>
+                </div>
+              )}
+
+              {bolehUbah && berubah && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <button
+                    onClick={() => simpan(t, { isi: nilai })}
+                    disabled={sibuk || asing.length > 0}
+                    style={{
+                      padding: "6px 12px",
+                      borderRadius: 8,
+                      border: "none",
+                      background: asing.length > 0 ? C.border : C.aksen,
+                      color: asing.length > 0 ? C.muted : "#fff",
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      cursor: sibuk ? "wait" : asing.length > 0 ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {sibuk ? "Menyimpan…" : "Simpan"}
+                  </button>
+                  <button
+                    onClick={() =>
+                      setDraf((d) => { const x = { ...d }; delete x[t.id]; return x; })
+                    }
+                    disabled={sibuk}
+                    style={{
+                      padding: "6px 10px",
+                      borderRadius: 8,
+                      border: `1px solid ${C.border}`,
+                      background: "transparent",
+                      color: C.muted,
+                      fontSize: 12.5,
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Batalkan
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {pesan && (
+        <p
+          role="status"
+          style={{
+            marginTop: 14,
+            fontSize: 12.5,
+            color: pesan.tipe === "ok" ? C.success : C.danger,
+          }}
+        >
+          {pesan.teks}
+        </p>
+      )}
+    </section>
   );
 }

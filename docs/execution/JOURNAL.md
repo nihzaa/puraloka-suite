@@ -9165,3 +9165,88 @@ meminta axe menyebutkan warna latar yang sebenarnya ia hitung.
 **Dua dari sembilan INTI ternyata sudah selesai sebelum diperiksa.** Dokumen
 yang menyatakan pekerjaan penting "belum ada" sama merusaknya dengan yang
 menyatakan "sudah selesai" padahal belum. Ukur di HEAD sebelum mulai.
+
+---
+
+## 2026-08-10 — Template pesan WA, dan empat kebutaan yang hanya mutasi temukan
+
+**Isi pesan WhatsApp jadi DATA.** Sebelum hari ini seluruh teks adalah literal
+di kode (`wa-nomor.ts:142`, `wa-webhook.ts:200`) — mengubah satu kata butuh
+deploy, dan pemilik yang ingin nada pesannya berbeda tak punya jalan sama
+sekali. Migrasi 270 memisahkan ISI dari STATUS PENYEDIA, meniru TJS dengan
+alasannya yang tepat: template yang sama bisa disetujui di Meta dan belum
+diajukan di BSP lain, jadi satu kolom status tak bisa mewakili keduanya.
+
+Placeholder memakai **daftar tertutup**, bukan interpolasi bebas. Satu baris
+`konteks[k] ?? ''` bekerja untuk semua kasus — dan itulah bahayanya: "Halo
+{{nma}}," terkirim sebagai "Halo ," tanpa satu pun galat, dan yang menulis
+template tak pernah tahu.
+
+**Empat hal hijau yang ternyata buta.** Semuanya saya tulis sendiri hari ini,
+dan tak satu pun ditemukan dengan membaca ulang:
+
+1. **Rute menjawab "tersimpan" untuk tulisan yang tak mendarat.**
+   `const { error } = await db…update(…)` tak bisa membedakan "satu baris
+   berubah" dari "tak ada baris yang cocok" — `error` hanya terisi kalau
+   QUERY-nya gagal. Penjaga `audit-tulis-tanpa-periksa` melewatkannya karena
+   premisnya ("ada `const {…} =` berarti penulisnya punya cara tahu") benar
+   untuk `insert` dan **tidak benar** untuk `update`/`delete`. Ambang kedua
+   ditambahkan: 76, tak boleh naik.
+
+2. **Angka ambang kedua itu sendiri salah dua kali.** 91 karena jendela
+   pemindaian 25 baris buta membuat `insert` dilaporkan sebagai `update`
+   (14 temuan hantu, menunjuk baris yang tak punya cacat). Lalu 77 karena
+   penanda `// best-effort` hanya dibaca 3 baris ke atas — batas yang
+   menghukum penanda yang MENYERTAKAN alasannya, persis kebiasaan yang
+   penjaga itu minta. Angka salah pada penjaga ratchet lebih buruk daripada
+   tak ada penjaga: ia mengizinkan pelanggaran baru sebanyak selisihnya
+   sambil terlihat sedang menjaga.
+
+3. **Dua test rute yang saya kira menguji gerbang TULIS ternyata menguji
+   gerbang BACA.** Saya cabut pemeriksaan nol-barisnya untuk membuktikan
+   testnya bisa merah — dan ketujuhnya TETAP HIJAU. Sebabnya: rute membaca
+   dulu dengan `maybeSingle()` yang sudah tersaring tenant, jadi id tak ada
+   dan id milik tenant lain sama-sama berhenti di 404 pembacaan; `update`-nya
+   tak pernah dijalankan. Yang benar-benar mengujinya cuma satu: baris yang
+   ADA saat dibaca lalu LENYAP sebelum ditulis, dipasang lewat trigger
+   sekali-pakai di basis. Tanpa perbaikannya rute menjawab **200**.
+
+4. **Satu test tetap tak bisa merah, dan itu ditulis di testnya.**
+   Pemeriksaan `aktif` hijau baik dengan maupun tanpa perbaikannya, karena
+   hari ini kedua bentuk memang berperilaku sama. Ia mengunci perilaku, bukan
+   membuktikan perbaikan itu perlu — dan test hijau yang tak bisa merah mudah
+   disalahbaca sebagai bukti.
+
+**Cacat yang ditemukan dari GAMBAR, bukan dari test.** Panel selesai,
+typecheck bersih, 22 test hijau. Lalu tangkapan layarnya dilihat: saklar
+"Aktif" tak ada di satu pun template. Migrasi 270 MEMBUAT
+`settings:wa:template` tetapi tak memberikannya ke peran mana pun — UI
+menyembunyikan seluruh kontrolnya, API membalas 403, dan tak ada satu pun
+galat yang menunjuk sebabnya. Fiturnya utuh, teruji, terdokumentasi, dan mati.
+Termasuk untuk founder.
+
+Yang lebih berbahaya ketahuan sekalian: **`ai:tulis` (migrasi 269) berfungsi
+di mesin ini hanya karena saya memberikannya DENGAN TANGAN saat menguji.** Di
+lingkungan bersih ia yatim juga, dan gejalanya akan muncul jauh dari sebabnya.
+Migrasi 271 memberikan keduanya, dan blok verifikasinya menolak SEMUA izin
+yatim di modul `ai`/`settings` — bukan hanya dua nama yang sudah diketahui,
+karena pemeriksaan yang cuma menyebut nama yang dikenal tak akan pernah
+menemukan yang berikutnya. Diuji-mutasi dalam transaksi ROLLBACK: cabut satu
+izin → MERAH.
+
+**Panel dinilai sendiri dan ditolak sekali.** Versi pertama hanya kotak teks.
+Seluruh guna template adalah APA YANG DITERIMA ORANG, dan kotak berisi
+`{{kode}}` mentah tak menunjukkan itu — yang menyunting harus membayangkan
+hasilnya, dan yang dibayangkan tak pernah salah. Sekarang: pratinjau (dengan
+contoh nilai, disembunyikan kalau hasilnya identik supaya tak jadi
+pengulangan), variabel yang DIKLIK alih-alih diketik ulang (mengetik ulang
+justru cara utama salah ketik masuk), urutan yang berarti (verifikasi dulu,
+bukan alfabetis yang menaruhnya paling bawah), saklar aktif, dan hitungan
+karakter. Tujuh interaksi diuji di peramban sungguhan, termasuk perubahan yang
+BERTAHAN sesudah muat ulang.
+
+**Utang tabel dari sesi sebelumnya ikut dilunasi sebagian.** `scope="row"`
+7 → 5, caption 2 → 0, `tabular-nums` untuk kolom waktu dan nominal. Diukur
+dengan `git stash`, bukan ditebak: di HEAD angkanya memang sudah 7, jadi
+sisanya bukan buatan hari ini — tetapi dua di antaranya milik saya, dan itu
+yang diperbaiki.

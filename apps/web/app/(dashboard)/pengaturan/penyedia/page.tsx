@@ -369,7 +369,16 @@ function Konten() {
           />
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: 14,
+                // Kolom "Diuji" berisi waktu; tanpa angka selebar-sama, digitnya
+                // bergeser antar baris dan mata kehilangan kolomnya.
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
               <thead>
                 <tr style={{ background: "var(--surface-2)" }}>
                   {["Nama", "Jenis", "Adaptor", "Kesehatan", "Diuji", ""].map((h, i) => (
@@ -393,12 +402,20 @@ function Konten() {
               <tbody>
                 {daftar.map((p) => (
                   <tr key={p.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "10px 14px" }}>
+                    {/*
+                      `th scope="row"`: nama penyedia adalah yang MEMILIKI
+                      baris ini. Tanpanya lencana kesehatan dibacakan tanpa
+                      menyebut penyedia mana yang sedang bermasalah.
+                    */}
+                    <th
+                      scope="row"
+                      style={{ padding: "10px 14px", textAlign: "left", fontWeight: 400 }}
+                    >
                       <div style={{ fontWeight: 500, color: C.text }}>{p.nama}</div>
                       {!p.aktif && (
                         <div style={{ fontSize: 12, color: C.muted }}>nonaktif</div>
                       )}
-                    </td>
+                    </th>
                     <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap" }}>
                       {LABEL_JENIS[p.jenis] ?? p.jenis}
                     </td>

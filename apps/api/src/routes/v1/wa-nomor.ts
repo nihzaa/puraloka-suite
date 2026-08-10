@@ -33,6 +33,7 @@ import {
   konfigurasiKanal as muatKonfigurasi,
   normalkanNomor,
 } from '../../lib/wa-kirim.js'
+import { renderDariDb, variabelDipakai } from '../../lib/wa-template.js'
 
 const UMUR_KODE_MS = 10 * 60_000
 const MAKS_PERCOBAAN = 5
@@ -320,6 +321,133 @@ export default async function waNomorRoutes(app: FastifyInstance) {
       })
 
       return reply.send({ ok: true, ...(data as object) })
+    },
+  )
+}
+
+/**
+ * TEMPLATE PESAN — isi pesan sebagai DATA (migrasi 270).
+ *
+ * Ditaruh di berkas ini, bukan berkas baru, karena ia bagian dari kanal
+ * WhatsApp yang sama dan halaman UI-nya pun satu. Berkas terpisah untuk dua
+ * endpoint akan menambah satu tempat lagi yang harus diingat saat kanal ini
+ * berubah.
+ */
+export async function waTemplateRoutes(app: FastifyInstance) {
+  app.get(
+    '/api/v1/wa/template',
+    { preHandler: [authenticate, requirePermission('settings:wa:view')] },
+    async (request, reply) => {
+      const { data, error } = await request.db!
+        .from('wa_template')
+        .select('id, kode, label, isi, variabel, aktif, diperbarui_pada')
+        .order('kode')
+
+      if (error) {
+        request.log.error({ err: error }, 'wa/template: gagal membaca')
+        return reply.status(500).send({ error: 'Gagal membaca template' })
+      }
+      return reply.send({ data: data ?? [] })
+    },
+  )
+
+  app.put<{ Body: { id?: string; isi?: string; aktif?: boolean } }>(
+    '/api/v1/wa/template',
+    { preHandler: [authenticate, requirePermission('settings:wa:template')] },
+    async (request, reply) => {
+      const b = request.body ?? {}
+      const id = (b.id ?? '').trim()
+      if (!id) return reply.status(422).send({ error: 'id wajib diisi' })
+
+      const { data: lama, error: errBaca } = await request.db!
+        .from('wa_template')
+        .select('kode, isi, variabel')
+        .eq('id', id)
+        .maybeSingle()
+
+      if (errBaca) {
+        request.log.error({ err: errBaca }, 'wa/template: gagal membaca template')
+        return reply.status(500).send({ error: 'Gagal membaca template' })
+      }
+      if (!lama) return reply.status(404).send({ error: 'Template tidak ditemukan' })
+
+      const t = lama as { kode: string; isi: string; variabel: string[] }
+      const isiBaru = typeof b.isi === 'string' ? b.isi : t.isi
+
+      /*
+       * Placeholder DIVALIDASI SEBELUM disimpan.
+       *
+       * Tanpa ini, template rusak baru ketahuan saat pesannya gagal terkirim —
+       * yaitu saat seseorang menunggu kode verifikasi yang tak pernah datang.
+       * Menolak di sini membuat kesalahannya terlihat oleh yang membuatnya,
+       * pada saat ia membuatnya.
+       */
+      const asing = variabelDipakai(isiBaru).filter((v) => !t.variabel.includes(v))
+      if (asing.length > 0) {
+        return reply.status(422).send({
+          error:
+            `Variabel tak dikenal: ${asing.join(', ')}. ` +
+            `Yang tersedia untuk template ini: ${t.variabel.join(', ') || '(tidak ada)'}.`,
+        })
+      }
+
+      /*
+       * Muatan disusun EKSPLISIT, bukan lewat `aktif: b.aktif ?? undefined`.
+       *
+       * Bentuk itu bergantung pada JSON.stringify yang membuang kunci
+       * bernilai `undefined` — benar hari ini, tetapi kebenaran yang letaknya
+       * dua lapis di bawah kode ini. Kalau lapisan itu berubah, `aktif`
+       * dinolkan diam-diam pada tiap penyimpanan isi, dan template yang
+       * sengaja dimatikan hidup kembali tanpa ada yang menyentuhnya.
+       */
+      const muatan: Record<string, unknown> = {
+        isi: isiBaru,
+        diperbarui_pada: new Date().toISOString(),
+        diperbarui_oleh: request.currentUser!.id,
+      }
+      if (typeof b.aktif === 'boolean') muatan.aktif = b.aktif
+
+      const { data: tersimpan, error } = await request.db!
+        .from('wa_template')
+        .update(muatan)
+        .eq('id', id)
+        .select('id')
+
+      if (error) {
+        request.log.error({ err: error }, 'wa/template: gagal menyimpan')
+        return reply.status(500).send({ error: 'Gagal menyimpan template' })
+      }
+
+      /*
+       * NOL BARIS TERSENTUH BUKAN KEBERHASILAN.
+       *
+       * `error` hanya terisi kalau querynya sendiri gagal. Id milik tenant
+       * lain — atau id yang barisnya terhapus di antara pembacaan dan
+       * penulisan — menghasilkan nol baris TANPA galat, dan versi sebelumnya
+       * menjawab `{ ok: true }` untuk itu.
+       *
+       * Akibatnya bukan sekadar tak rapi: yang mengubah isi pesan melihat
+       * "tersimpan", menutup halaman, dan pesan lama tetap yang terkirim ke
+       * pelanggan. Tak ada satu pun tanda bahwa suntingannya tak pernah ada.
+       */
+      if (!tersimpan || tersimpan.length === 0) {
+        request.log.warn({ id }, 'wa/template: update menyentuh nol baris')
+        return reply.status(404).send({ error: 'Template tidak ditemukan' })
+      }
+
+      // Perubahan isi pesan yang keluar ke pelanggan pantas punya jejak —
+      // "kenapa pesannya berubah?" adalah pertanyaan yang pasti datang.
+      void logAuditEvent(request, {
+        tableName: 'wa_template',
+        recordId: id,
+        action: 'wa.template.ubah',
+        actorId: request.currentUser!.id,
+        oldValues: { isi: t.isi },
+        newValues: { isi: isiBaru },
+        severity: 'warning',
+      })
+
+      return reply.send({ ok: true })
     },
   )
 }

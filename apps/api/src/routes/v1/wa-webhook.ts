@@ -54,6 +54,7 @@ import { createTenantDb } from '../../utils/tenant-db.js'
 import { klaimPesanMasuk, tandaiDiproses, uraiPesanMasuk } from '../../lib/wa-masuk.js'
 import { bangunSesiDariNomor, catatAksesDitolak } from '../../lib/wa-sesi.js'
 import { kirimWa, konfigurasiKanal } from '../../lib/wa-kirim.js'
+import { renderDariDb } from '../../lib/wa-template.js'
 import { jalankanGiliranAi, GAYA_WHATSAPP } from '../../lib/ai-jalankan.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
 
@@ -197,7 +198,15 @@ export default async function waWebhookRoutes(app: FastifyInstance) {
           db,
           companyId,
           nomor,
-          teks: 'Peran Anda belum memiliki akses ke asisten. Hubungi admin perusahaan.',
+          // Dari TEMPLATE (migrasi 270) — nada pesan ke orang yang ditolak
+          // adalah hal yang tiap perusahaan ingin atur sendiri.
+          teks: await renderDariDb(
+            db,
+            'asisten_tanpa_izin',
+            {},
+            'Peran Anda belum memiliki akses ke asisten. Hubungi admin perusahaan.',
+            (pesan) => request.log.warn(`wa/template: ${pesan}`),
+          ),
           konfigurasi: cfg,
           userId,
           kunciIdempotensi: `wa-tolak-izin:${pesan.pesanId}`,
@@ -225,10 +234,23 @@ export default async function waWebhookRoutes(app: FastifyInstance) {
          * potongan permintaan. Yang bukan untuk pengguna, jangan dikirim ke
          * pengguna.
          */
+        /*
+         * Pesan GERBANG dikirim apa adanya — ia sudah spesifik ("batas biaya
+         * tercapai") dan menggantinya dengan template umum justru membuang
+         * satu-satunya petunjuk yang berguna.
+         *
+         * Yang lewat template hanya pesan KEGAGALAN LOOP, yang memang generik.
+         */
         const teks =
           jalan.tahap === 'gerbang'
             ? jalan.pesan
-            : 'Asisten sedang tidak bisa dihubungi. Coba lagi sebentar lagi.'
+            : await renderDariDb(
+                db,
+                'asisten_gagal',
+                {},
+                'Asisten sedang tidak bisa dihubungi. Coba lagi sebentar lagi.',
+                (pesan) => request.log.warn(`wa/template: ${pesan}`),
+              )
         await kirimWa({
           db,
           companyId,
