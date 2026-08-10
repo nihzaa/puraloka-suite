@@ -29,6 +29,7 @@ import {
   kartu as card,
 } from "../_bersama/tipe";
 import { CreateWageReportModal, WageReportDetailModal } from "../_bersama/komponen";
+import { Kosong } from "@/components/ui-dasar";
 
 function LaporanUpahInner() {
   const router = useRouter();
@@ -276,11 +277,11 @@ function LaporanUpahInner() {
               </button>
           </div>
           {filteredReports.length === 0 ? (
-            <div style={{ ...card, padding: 48, textAlign: "center", color: C.muted }}>
-              <FileText size={32} color={C.border} style={{ marginBottom: 12 }} />
-              <div>Belum ada laporan upah</div>
-              <div style={{ fontSize: 12, marginTop: 4 }}>Klik &quot;Ajukan Upah&quot; untuk membuat laporan baru</div>
-            </div>
+            <Kosong
+              ikon={<FileText size={20} />}
+              judul="Belum ada laporan upah"
+              sebab={'Klik "Ajukan Upah" untuk membuat laporan baru.'}
+            />
           ) : laporanHalamanIni.map(r => {
             const st = getWageStatusBadge(r.status);
             const canApprove = r.status === "submitted";

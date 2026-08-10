@@ -1349,6 +1349,16 @@ jobs:
       - name: Baris daftar tak boleh lebih sempit dari kepala panel
         run: node scripts/uji-baris-tak-mepet.mjs
 
+      # Keadaan kosong yang digambar sendiri menyimpang bentuknya (padding 40
+      # vs 48, ikon 26 vs 32) dan biasanya lupa menyebut LANGKAH BERIKUTNYA —
+      # operate.md: "empty states that teach the interface, not nothing here".
+      # Ratchet, bukan ambang nol: sebagian "Belum ada …" memang teks sel
+      # tabel atau pesan toast, dan memaksanya jadi <Kosong> akan salah.
+      #
+      # Terbukti bisa merah DAN tidak cerewet: bash scripts/bukti-mutasi-kosong.sh
+      - name: Keadaan kosong lewat komponen bersama
+        run: node scripts/uji-kosong-seragam.mjs
+
       # Path API yang salah GAGAL DALAM DIAM: 404 hanya muncul di konsol
       # peramban, sementara halamannya tampil rapi bertuliskan "Tidak ada
       # invoice". Dua endpoint ditulis dari ingatan saat memecah modul

@@ -9661,3 +9661,50 @@ bedanya dengan cacat yang saya kejar hari ini.
 
 Bukti: tsc bersih · 5 penjaga visual hijau · judul-ratchet tetap · bentuk
 kartu 8 → 6 (sisanya di `components/`, di luar jangkauan konversi ini).
+
+---
+
+## 2026-08-10 (lanjutan 8) — K-3 + penjaga keadaan kosong, dan skrip yang merusak
+
+**K-3 dikerjakan, tetapi sebagian besar SENGAJA tidak dikonversi.** Diukur: 37
+halaman punya teks "Belum ada …", tetapi hanya 44 kemunculan yang benar-benar
+di cabang data-nol. Sisanya teks sel tabel, pesan toast, dan KOMENTAR KODE —
+memaksanya jadi `<Kosong>` akan salah, dan penjaga yang menuntutnya akan
+cerewet lalu dimatikan orang.
+
+Dua yang paling jelas dikonversi tangan (`akuntansi`, `mandor/upah`): 51 → 49.
+Sisanya dikunci ratchet, bukan dikonversi buta.
+
+**Penjaganya diuji DUA ARAH**, dan arah kedua yang paling sering terlewat:
+
+  K-1  keadaan kosong baru digambar sendiri  → MERAH ✓
+  K-2  teks "Belum ada" di sel tabel          → HIJAU ✓
+
+Arah kedua memastikan penjaganya tak memerahkan hal yang bukan cacat. Versi
+pertama penjaga "mepet" gagal di situ — ia menghitung padding tombol dan
+menemukan 189 "pelanggaran", sebagian besar benar apa adanya.
+
+**Dan satu kerusakan yang saya buat sendiri, lalu saya kembalikan.**
+
+Konverter `hasPerm` → `useIzin` memakai regex `[\s\S]*?\n\}` untuk menangkap
+badan fungsi. Regex itu berhenti di kurung tutup pertama yang berada di kolom
+nol — yang BUKAN akhir fungsinya. Akibatnya seluruh blok impor dan puluhan
+baris kode ikut terhapus di 10 berkas.
+
+Typecheck langsung merah dengan puluhan `Cannot find name 'useState'` — jadi
+kerusakannya berbunyi, bukan diam. Dikembalikan dengan `git checkout`.
+
+**Tetapi `git checkout` itu ikut membuang dua konversi K-3 yang sudah benar**,
+dan saya baru menyadarinya saat memeriksa. Dikerjakan ulang dengan Edit
+langsung, bukan skrip. Pelajarannya: pengembalian massal setelah kerusakan
+massal juga membuang pekerjaan yang benar di sekitarnya — dan yang hilang
+tak mengumumkan dirinya hilang.
+
+**K-5 (`hasPerm` → `useIzin`) DITUNDA, bukan gagal.** `useIzin` memang lebih
+baik — ia memakai `useSyncExternalStore` sehingga React sendiri yang menangani
+beda server/klien, tanpa layar kosong pada render pertama seperti penjaga
+`mounted` manual yang dipakai 10 halaman itu (termasuk tiga halaman yang saya
+tulis hari ini). Tetapi konversinya menuntut membaca tiap berkas, bukan regex.
+
+Bukti: tsc bersih · bukti-mutasi-kosong dua arah lulus · 3 penjaga visual
+hijau · lantai kosong 49 terkunci.

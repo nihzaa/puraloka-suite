@@ -38,6 +38,7 @@ import { C } from "@/lib/warna-ui";
 import { BukuBesar } from "@/components/buku-besar";
 import { NeracaLabaRugi } from "@/components/neraca-laba-rugi";
 import { Tabel, type Kolom } from "@/components/dasar";
+import { Kosong } from "@/components/ui-dasar";
 import { formatRupiah } from "@/lib/format";
 
 const card: React.CSSProperties = {
@@ -308,16 +309,11 @@ function TabJurnal({
 }) {
   if (jurnal.length === 0) {
     return (
-      <div style={{ ...card, padding: 40, textAlign: "center" }}>
-        <FileText size={26} color={C.muted} style={{ marginBottom: 10 }} />
-        <p style={{ fontSize: 13, fontWeight: 600, color: C.text, margin: "0 0 4px" }}>
-          Belum ada jurnal
-        </p>
-        <p style={{ fontSize: 12, color: C.mid, margin: 0 }}>
-          Jurnal manual dicatat di sini. Pencatatan otomatis dari kasbon,
-          pembayaran, dan pembelian menyusul di tahap berikutnya.
-        </p>
-      </div>
+      <Kosong
+        ikon={<FileText size={20} />}
+        judul="Belum ada jurnal"
+        sebab="Jurnal manual dicatat di sini. Pencatatan otomatis dari kasbon, pembayaran, dan pembelian menyusul di tahap berikutnya."
+      />
     );
   }
 
