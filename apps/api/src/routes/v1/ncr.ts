@@ -4,6 +4,7 @@ import type { TenantDb } from '../../utils/tenant-db.js'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
 import { createNotifications } from '../../utils/notifications.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { ringkasKandidatNcr } from '../../lib/inspeksi-ke-ncr.js'
 
 // Non-Conformance Report (NCR) — INTI #7.
 //
@@ -98,6 +99,89 @@ async function nomorBerikutnya(db: TenantDb, projectId: string): Promise<string>
 }
 
 export default async function ncrRoutes(app: FastifyInstance) {
+  // ── GET /api/v1/projects/:projectId/ncr/kandidat ────────────────────────
+  //
+  // Inspeksi yang GAGAL tapi belum punya NCR.
+  //
+  // ── Cacat yang ditutup, diukur 2026-08-11
+  //
+  //   inspection_requests   24 baris  — 3 di antaranya `tidak_lolos`
+  //   ncr_items             18 baris  — `inspection_request_id` terisi: 0
+  //
+  // Kolomnya ada, `POST /ncr` menerimanya, datanya ada di KEDUA sisi. Yang
+  // tak ada: satu pun cara di UI untuk mengirimkannya. Akibatnya inspeksi
+  // yang dinyatakan tidak lolos berhenti di situ — tak ada yang menugaskan
+  // perbaikan, tak ada yang memverifikasi.
+  //
+  // ── Kenapa MENGUSULKAN, bukan membuat NCR otomatis
+  //
+  // NCR menugaskan orang, memasang target waktu, dan `biaya_dampak`-nya masuk
+  // laporan. NCR yang lahir sendiri dari status inspeksi membanjiri daftar
+  // dengan temuan yang belum tentu perlu diformalkan — dan daftar yang
+  // dibanjiri berhenti dibaca.
+  //
+  // Endpoint ini GET dan tidak menulis apa pun. Yang menulis tetap
+  // `POST /ncr`, satu per satu, atas keputusan manusia.
+  //
+  // Ditaruh SEBELUM rute ber-`:id` — kalau di bawahnya, "kandidat" bisa
+  // tertangkap sebagai id NCR.
+  app.get<{ Params: { projectId: string } }>(
+    '/api/v1/projects/:projectId/ncr/kandidat',
+    { preHandler: [authenticate, requirePermission('ncr:view')] },
+    async (request, reply) => {
+      const { projectId } = request.params
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      const [inspRes, ncrRes] = await Promise.all([
+        request.db!
+          .viaProject('inspection_requests', projectId)
+          .select('id, nomor, judul, status, lokasi, hasil_catatan, rab_item_id, work_scope_id, diperiksa_pada')
+          .limit(500),
+        // Hanya `inspection_request_id` yang dibutuhkan — untuk tahu inspeksi
+        // MANA yang sudah punya NCR.
+        request.db!
+          .viaProject('ncr_items', projectId)
+          .select('inspection_request_id')
+          .not('inspection_request_id', 'is', null)
+          .limit(500),
+      ])
+
+      for (const r of [inspRes, ncrRes]) {
+        if (r.error) {
+          request.log.error({ err: r.error, projectId }, 'gagal memuat kandidat NCR')
+          return reply.status(500).send({ error: 'Gagal memuat kandidat NCR' })
+        }
+      }
+
+      const sudahBerNcr = new Set(
+        (ncrRes.data as Array<{ inspection_request_id: string }>)
+          .map((n) => n.inspection_request_id),
+      )
+
+      const daftar = (inspRes.data as Array<Record<string, unknown>>).map((i) => ({
+        id: i.id as string,
+        nomor: i.nomor as string,
+        judul: i.judul as string,
+        status: String(i.status),
+        lokasi: (i.lokasi as string | null) ?? null,
+        hasil_catatan: (i.hasil_catatan as string | null) ?? null,
+        rab_item_id: (i.rab_item_id as string | null) ?? null,
+        work_scope_id: (i.work_scope_id as string | null) ?? null,
+        diperiksa_pada: (i.diperiksa_pada as string | null) ?? null,
+        sudah_ber_ncr: sudahBerNcr.has(i.id as string),
+      }))
+
+      const hasil = ringkasKandidatNcr(daftar)
+      return reply.send({
+        ...hasil,
+        // Penyebutnya dibawa: "3" tak bisa dinilai, "3 dari 24" bisa.
+        jumlah_inspeksi: daftar.length,
+      })
+    },
+  )
+
   // ── GET /api/v1/projects/:projectId/ncr ─────────────────────────────────
   app.get<{ Params: { projectId: string }; Querystring: { status?: string; severity?: string } }>(
     '/api/v1/projects/:projectId/ncr',

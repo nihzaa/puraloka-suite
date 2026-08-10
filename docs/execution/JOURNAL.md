@@ -3625,6 +3625,116 @@ Nol baris kode UI ditulis. Kalau arah ini ditolak, biayanya nol.
 
 ---
 
+## 2026-08-11 — scope dibuka penuh, dan G1b menutup mata rantai kelima
+
+### Keputusan founder yang mengubah lingkup
+
+*"saya mau semuanya dimasukkan ke lingkup dan semuanya dikerjakan, gaada lagi
+yg 'jangan dibangun'."*
+
+Yang dicabut: **11 item** JANGAN DIBANGUN (F5-1 §2a) + **19 item** `gerbang`
+= **34 item** masuk lingkup. Tercatat sebagai **R-011**.
+
+**Dua gerbang SENGAJA dipertahankan.** `Rekonsiliasi Material` dan `Tracking
+Waste` terkunci **data**, bukan keputusan — pemetaan resource↔material baru
+cocok 0,1%, dan `Tracking Waste` bahkan kodenya sudah jalan dengan 34 test.
+Mencabut labelnya tak membuka apa pun.
+
+Urutan G1–G6 diturunkan dari pengukuran bahan, bukan dari selera. Dua
+angkanya mengubah rencana saya:
+
+```
+inspection_requests   24 baris   ← sesi 2026-08-08 mengukurnya NOL
+absensi_harian     1.279 baris   (2026-07-10 … 08-08)
+K3/HSE            NOL TABEL
+```
+
+### G1b — mata rantai kelima
+
+```
+ncr_items.inspection_request_id   ADA di schema
+POST /ncr                         menerimanya (ncr.ts:300)
+inspection_requests               24 baris, 3 `tidak_lolos`
+UI                                NOL rujukan
+hasilnya                          0 dari 18 NCR terisi
+```
+
+Kelas cacat yang sama untuk **kelima kalinya** — `rfq.po_id`, endpoint
+penawaran, `rfq.mr_id`, `sumber_change_order_id`, geotag.
+
+Akibatnya di sini lebih tajam daripada kolom kosong biasa: **tiga inspeksi
+dinyatakan tidak lolos dan berhenti di situ.** Waterproofing, instalasi
+listrik, pasangan bata — ketiganya jenis pekerjaan yang kalau salah,
+ketahuannya setelah tertutup pekerjaan lain.
+
+**Mengusulkan, bukan membuat otomatis.** NCR menugaskan orang, memasang target
+waktu, dan `biaya_dampak`-nya masuk laporan. NCR yang lahir sendiri dari
+status inspeksi membanjiri daftar dengan temuan yang belum tentu perlu
+diformalkan — dan daftar yang dibanjiri berhenti dibaca.
+
+**`severity` sengaja TIDAK ditebak.** Menebaknya dari kata-kata catatan
+("parah", "bahaya") berarti mesin memutuskan seberapa gawat sebuah temuan
+mutu, dan angka itu mengalir ke prioritas perbaikan. Dikosongkan; manusia
+memilih.
+
+### Dua cacat di TEST saya sendiri, ditemukan mutation testing
+
+1. **Test urutan pakai dua baris.** Mutasi yang menaikkan tanggal-kosong ke
+   atas tetap HIJAU — dengan dua elemen, membalik satu perbandingan tak selalu
+   mengubah urutan teramati. Diperbaiki jadi tiga baris.
+
+2. **Fixture melanggar constraint yang benar.** `inspeksi_hasil_berpemeriksa`
+   (migrasi 157) menuntut `diperiksa_oleh` untuk status lolos/tidak_lolos —
+   dan itu constraint yang tepat: hasil pemeriksaan tanpa pemeriksa tak punya
+   arti. Fixture saya melewatinya, artinya menguji keadaan yang mustahil di
+   produksi.
+
+Satu mutasi tetap hijau setelah diperiksa: membalik `return 1` → `return -1`
+pada komparator tanggal-kosong menghasilkan urutan yang **sama persis** untuk
+input mana pun yang diuji. Dibuktikan dengan simulasi langsung — mutasinya
+setara secara perilaku, bukan test hiasan.
+
+### Positif palsu di penjaga SAYA SENDIRI
+
+`audit-kolom-tak-tersambung` menuduh `alur_id` di modul otomasi. Polanya
+menangkap `baris.map((b) => b.alur_id)` — properti baris hasil query, bukan
+body request. Memeriksa "berkas punya `const b = request.body`" **tetap
+salah**: `otomasi-alur.ts` punya keduanya di berkas yang sama, variabel `b`
+yang berbeda.
+
+Diperbaiki dengan kedekatan 60 baris. **Lantai turun 19 → 18**, dan mutasi uji
+tetap MERAH — penjaga menolak positif palsu tanpa jadi buta.
+
+> Penjaga yang menuduh kode yang benar akan dimatikan orang, dan penjaga yang
+> dimatikan tak menjaga apa pun.
+
+### Yang TIDAK bisa saya buktikan di sesi ini
+
+**Layar belum diverifikasi di peramban.** Login uji membalas **401** dengan
+pesan *"salah. Pastikan huruf besar/kecil sudah benar"* — kata sandi yang
+dipakai sepanjang sesi-sesi sebelumnya tak lagi berlaku. Ini bukan
+infrastruktur: API hidup, rewrite Next bekerja, dan `.env.local` kini menunjuk
+localhost dengan benar.
+
+Sekalian tercatat: API yang dituju `.env.local` adalah **:3007**, dan ia
+menjalankan **kode lama** — dibuktikan `:3007` membalas 404 untuk
+`/ncr/kandidat` sementara :3016 (yang saya jalankan) membalas 401.
+
+Jadi yang terbukti: 24 test (16 pustaka + 8 endpoint Postgres nyata), 11
+mutasi MERAH, tsc bersih, 9 penjaga hijau. Yang belum: tampilan panelnya di
+layar sungguhan, dan axe.
+
+### Bukti
+
+```
+vitest  24 lulus (16 pustaka + 8 endpoint terhadap Postgres nyata)
+mutasi  11 MERAH (8 pustaka + 3 endpoint)
+tsc     api exit=0 · web exit=0
+penjaga 9 audit, semua exit=0
+```
+
+---
+
 ## 2026-08-08 — CVR dibangun: merah terakhir yang bukan "jangan dibangun"
 
 ### Penundaan yang dicabut SEBAGIAN, karena separuh alasannya sudah tak berlaku

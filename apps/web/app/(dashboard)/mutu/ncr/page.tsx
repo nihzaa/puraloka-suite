@@ -22,7 +22,7 @@
 
 import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Gavel, Plus, RefreshCw } from "lucide-react";
+import { CheckCircle2, Gavel, Plus, RefreshCw, TriangleAlert } from "lucide-react";
 import { api, hasPermission, makeAbortController } from "@/lib/api";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
@@ -55,6 +55,39 @@ interface Meta {
   kritis_terbuka: number;
   biaya_dampak_total: number;
   rekap_lengkap: boolean;
+}
+
+/**
+ * Inspeksi yang GAGAL tapi belum punya NCR.
+ *
+ * Diukur 2026-08-11: `inspection_requests` 24 baris (3 `tidak_lolos`),
+ * `ncr_items.inspection_request_id` terisi **0**. Kolomnya ada, API
+ * menerimanya, datanya ada di kedua sisi — yang tak ada satu pun cara di
+ * layar ini untuk mengirimkannya.
+ *
+ * Akibatnya: inspeksi yang dinyatakan tidak lolos berhenti di situ. Tak ada
+ * yang menugaskan perbaikan, tak ada yang memverifikasi, dan saat auditor
+ * bertanya "apa tindak lanjutnya", jawabannya cuma ingatan orang.
+ */
+interface KandidatNcr {
+  inspection_request_id: string;
+  nomor_inspeksi: string;
+  judul: string;
+  deskripsi: string;
+  lokasi: string | null;
+  rab_item_id: string | null;
+  work_scope_id: string | null;
+  /** SELALU null — severity tak ditebak mesin, manusia yang memilih. */
+  severity: null;
+  diperiksa_pada: string | null;
+}
+
+interface KandidatResponse {
+  kandidat: KandidatNcr[];
+  /** Sudah ber-NCR — dihitung supaya daftarnya tak terlihat menyusut. */
+  sudah_ber_ncr: number;
+  jumlah_diperiksa: number;
+  jumlah_inspeksi: number;
 }
 
 interface Proyek { id: string; name: string }
@@ -94,6 +127,16 @@ function NcrInner() {
   const [memuat, setMemuat] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
   const [buatBaru, setBuatBaru] = useState(false);
+  const [kandidat, setKandidat] = useState<KandidatResponse | null>(null);
+  /**
+   * Kandidat yang sedang dicatat jadi NCR.
+   *
+   * Form-nya SAMA dengan "Catat NCR" biasa, hanya terisi lebih dulu dari
+   * inspeksinya. Membuat form kedua yang mirip akan membuat dua tempat yang
+   * harus dijaga tetap sama — dan yang menyimpang di antara keduanya adalah
+   * data mutu yang dipakai dalam sengketa.
+   */
+  const [dariInspeksi, setDariInspeksi] = useState<KandidatNcr | null>(null);
   const [putuskan, setPutuskan] = useState<Ncr | null>(null);
 
   const bolehKelola = useSyncExternalStore(
@@ -122,6 +165,17 @@ function NcrInner() {
   const muat = useCallback((signal?: AbortSignal) => {
     if (!proyekId) return Promise.resolve();
     setMemuat(true);
+    // Kandidat dimuat BERSAMA register, bukan lewat tombol terpisah: yang
+    // perlu menindaklanjuti temuan sedang melihat layar ini sekarang, dan
+    // tombol tambahan hanya menambah satu langkah sebelum ia tahu bantuannya
+    // ada. Pola yang sama dengan panel saran cost-map.
+    void api.get<KandidatResponse>(`/api/v1/projects/${proyekId}/ncr/kandidat`, { signal })
+      .then((r) => setKandidat(r.data))
+      // Kandidat adalah PELENGKAP. Kalau gagal, register NCR tetap jalan —
+      // menggagalkan seluruh halaman karena usulannya tak termuat jauh lebih
+      // merugikan daripada usulan yang absen.
+      .catch((e) => { if (e?.name !== "CanceledError") setKandidat(null); });
+
     return api.get<{ data: Ncr[]; meta: Meta }>(
       `/api/v1/projects/${proyekId}/ncr`, { signal })
       .then((r) => { setData(r.data.data); setMeta(r.data.meta); setGalat(null); })
@@ -229,6 +283,78 @@ function NcrInner() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* ── Inspeksi gagal yang belum ditindaklanjuti ──────────────────
+          Ini mata rantai yang selama ini hilang: `ncr_items` punya kolom
+          `inspection_request_id`, API menerimanya, tapi 0 dari 18 NCR
+          terisi karena layar ini tak punya cara mengirimkannya.
+
+          Ditaruh DI ATAS register: inspeksi yang gagal dan tak
+          ditindaklanjuti lebih mendesak daripada membaca ulang NCR yang
+          sudah tercatat. */}
+      {kandidat && kandidat.kandidat.length > 0 && (
+        <section
+          aria-labelledby="judul-kandidat"
+          style={{
+            padding: "12px var(--pad-kartu-lega)", borderRadius: 10, marginBottom: 14,
+            background: C.yellowBg, border: `1px solid ${C.yellowBorder}`,
+          }}
+        >
+          <h2 id="judul-kandidat" style={{
+            fontSize: 13, fontWeight: 700, color: C.onWarningBg, margin: 0,
+            display: "flex", alignItems: "center", gap: 7,
+          }}>
+            <TriangleAlert size={14} aria-hidden="true" />
+            {kandidat.kandidat.length} inspeksi gagal belum jadi NCR
+          </h2>
+
+          <p style={{ fontSize: 12, color: C.onWarningBg, margin: "6px 0 10px", lineHeight: 1.55, maxWidth: "74ch" }}>
+            Pemeriksa sudah menyatakan pekerjaan ini <strong>tidak lolos</strong>.
+            Selama belum jadi NCR, tak ada yang ditugaskan memperbaiki dan tak ada
+            yang memverifikasi.
+            {kandidat.sudah_ber_ncr > 0 && (
+              <> {kandidat.sudah_ber_ncr} inspeksi gagal lain sudah punya NCR dan tak
+              ditampilkan di sini.</>
+            )}
+          </p>
+
+          <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 6 }}>
+            {kandidat.kandidat.map((k) => (
+              <li key={k.inspection_request_id} style={{
+                display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap",
+                padding: "8px 10px", background: "var(--surface)",
+                border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 12.5,
+              }}>
+                <span style={{ fontWeight: 700, color: C.text, fontVariantNumeric: "tabular-nums" }}>
+                  {k.nomor_inspeksi}
+                </span>
+                <span style={{ color: C.text }}>{k.judul}</span>
+                {k.lokasi && (
+                  <span style={{ color: C.mid, fontSize: 11 }}>· {k.lokasi}</span>
+                )}
+                {k.diperiksa_pada && (
+                  <span style={{ color: C.muted, fontSize: 11 }}>
+                    diperiksa {new Date(k.diperiksa_pada + "T00:00:00")
+                      .toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setDariInspeksi(k)}
+                  style={{
+                    marginLeft: "auto", padding: "8px 14px", borderRadius: 6,
+                    fontSize: 12, fontWeight: 700, minHeight: 40,
+                    border: "none", background: C.navy, color: "var(--on-navy)",
+                    cursor: "pointer", whiteSpace: "nowrap",
+                  }}
+                >
+                  Catat NCR
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Rekap yang gagal dihitung DITANDAI — angka yang salah di layar mutu
@@ -406,6 +532,19 @@ function NcrInner() {
           onSukses={() => { setBuatBaru(false); muat(); }}
         />
       )}
+
+      {/* NCR yang lahir dari inspeksi — komponen yang SAMA, hanya terisi
+          lebih dulu. Membuat form kedua yang mirip berarti dua tempat yang
+          harus dijaga tetap sama, dan yang menyimpang di antara keduanya
+          adalah data mutu yang dipakai dalam sengketa. */}
+      {dariInspeksi && proyekId && (
+        <ModalCatat
+          proyekId={proyekId}
+          awal={dariInspeksi}
+          onClose={() => setDariInspeksi(null)}
+          onSukses={() => { setDariInspeksi(null); muat(); }}
+        />
+      )}
       {putuskan && (
         <ModalDisposisi
           ncr={putuskan}
@@ -428,14 +567,25 @@ const gayaLabel: React.CSSProperties = {
 };
 
 /** Form catat NCR baru. */
-function ModalCatat({ proyekId, onClose, onSukses }: {
-  proyekId: string; onClose: () => void; onSukses: () => void;
+function ModalCatat({ proyekId, awal, onClose, onSukses }: {
+  proyekId: string;
+  /**
+   * Bahan awal dari inspeksi yang gagal. `undefined` = NCR dicatat dari nol.
+   *
+   * Judul, lokasi, dan deskripsi DIWARISI supaya penerima tugas perbaikan
+   * tahu pekerjaan mana yang dimaksud tanpa harus mencari sendiri.
+   * `severity` sengaja TIDAK diwarisi — ia null dari server, dan menebaknya
+   * berarti mesin memutuskan seberapa gawat sebuah temuan mutu.
+   */
+  awal?: KandidatNcr;
+  onClose: () => void;
+  onSukses: () => void;
 }) {
   useTutupEsc(onClose);
-  const [judul, setJudul] = useState("");
-  const [lokasi, setLokasi] = useState("");
-  const [acuan, setAcuan] = useState("");
-  const [deskripsi, setDeskripsi] = useState("");
+  const [judul, setJudul] = useState(awal?.judul ?? "");
+  const [lokasi, setLokasi] = useState(awal?.lokasi ?? "");
+  const [acuan, setAcuan] = useState(awal ? `Inspeksi ${awal.nomor_inspeksi}` : "");
+  const [deskripsi, setDeskripsi] = useState(awal?.deskripsi ?? "");
   const [severity, setSeverity] = useState("minor");
   const [target, setTarget] = useState("");
   const [kirim, setKirim] = useState(false);
@@ -452,6 +602,16 @@ function ModalCatat({ proyekId, onClose, onSukses }: {
         deskripsi: deskripsi.trim() || undefined,
         severity,
         target_selesai: target || undefined,
+        // INILAH mata rantai yang hilang. Tanpa baris ini, NCR yang lahir
+        // dari inspeksi tak punya jejak ke inspeksinya — dan pertanyaan
+        // "temuan ini dari pemeriksaan mana?" tak terjawab selamanya.
+        ...(awal
+          ? {
+              inspection_request_id: awal.inspection_request_id,
+              rab_item_id: awal.rab_item_id ?? undefined,
+              work_scope_id: awal.work_scope_id ?? undefined,
+            }
+          : {}),
       });
       onSukses();
     } catch (e: unknown) {
