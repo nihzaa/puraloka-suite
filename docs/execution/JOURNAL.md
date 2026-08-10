@@ -9861,3 +9861,45 @@ polanya juga: dua lapis untuk hal yang tak bisa ditarik kembali.
 
 Kredensial TIDAK diisi oleh saya, dan itu disengaja — key milik founder,
 dan sesi ini sudah punya satu kejadian private key tampil di layar.
+
+---
+
+## 2026-08-10 (lanjutan 12) — Kunci yang dibaca kode tak punya tempat diisi
+
+Founder membuka halaman Kredensial untuk mengisi API key n8n dan menemukan:
+*"cuma ada wa, ai, sama email disana."*
+
+**Ia benar, dan itu cacat saya.** `lib/otomasi-n8n.ts` membaca `N8N_BASE_URL`
+dan `N8N_API_KEY` sejak S7, dan halaman Alur Otomasi berkali-kali menampilkan
+"N8N_BASE_URL belum diisi di halaman Kredensial" — **padahal di halaman itu
+tak ada tempatnya.** `KATALOG_KREDENSIAL` yang menentukan apa yang muncul di
+layar, dan n8n tak pernah masuk ke sana.
+
+Bukan test yang menemukannya, bukan typecheck — keduanya hijau sempurna.
+
+**Ini bentuk KETIGA dari kesalahan yang sama dalam satu hari:**
+
+    migrasi 270  izin dibuat, tak diberikan ke siapa pun    → fitur mati
+    ai:history   izin dipegang, tak dibaca kode mana pun    → fitur mati
+    N8N_*        kunci dibaca kode, tak ada tempat mengisi  → fitur mati
+
+Ketiganya: satu ujung ada, ujung lainnya tidak, nol galat. Yang membedakan
+hanya ujung mana yang hilang. Dua yang pertama sudah berpenjaga (verifikasi
+migrasi 271/274); yang ketiga belum — jadi dibuat sekarang.
+
+**Dan penjaganya menemukan cacat KEDUA pada jalannya yang pertama.**
+
+`AI_PROVIDER_BASE_URL` dibaca dua tempat (`ai.ts:203`, `ai-jalankan.ts:237`),
+sementara katalog menawarkan nama LAIN: `AI_CUSTOM_BASE_URL` — dengan **nol
+pembaca**. Artinya kotak "Alamat penyedia AI lain" yang diisi orang **tidak
+pernah terpakai**: nilainya tersimpan rapi, halaman menampilkannya sebagai
+"terisi", asisten diam-diam tetap memanggil alamat bawaan, dan yang
+mengisinya tak punya cara tahu.
+
+Cacat itu sudah ada jauh sebelum sesi ini dan tak pernah bergejala. Yang
+diperbaiki katalognya, bukan kodenya — dua pembaca menang atas nol pembaca.
+
+Penjaga diuji-mutasi: nama kunci diubah → MERAH, dipulihkan → HIJAU.
+
+Bukti: penjaga ambang NOL · tsc bersih · `audit-kredensial-tak-bocor` tetap
+hijau (katalog hanya menyimpan NAMA, nilainya tak pernah keluar lewat API).

@@ -469,6 +469,17 @@ jobs:
       - name: Otomasi n8n satu pintu
         run: node scripts/audit-otomasi-satu-pintu.mjs
 
+      # Kunci yang DIBACA kode wajib punya tempat diisi di halaman Kredensial.
+      # Tanpa ini, halaman menyuruh orang mengisi sesuatu yang tak punya kotak
+      # — N8N_BASE_URL begitu selama S7, dan pesan galatnya menunjuk ke
+      # halaman yang memang tak memuatnya. Pada jalan PERTAMA penjaga ini juga
+      # menemukan AI_PROVIDER_BASE_URL: katalog menawarkan nama LAIN
+      # (AI_CUSTOM_BASE_URL), jadi kotak yang diisi orang tak pernah terpakai.
+      #
+      # Ambang NOL: kunci tanpa tempat isi selalu cacat, tak ada kasus sahnya.
+      - name: Kredensial yang dibaca punya tempat diisi
+        run: node scripts/audit-kredensial-punya-tempat.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres

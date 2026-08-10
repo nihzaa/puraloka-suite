@@ -120,7 +120,21 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
     grup: 'AI',
   },
   {
-    kunci: 'AI_CUSTOM_BASE_URL',
+    /*
+     * `AI_PROVIDER_BASE_URL`, BUKAN `AI_CUSTOM_BASE_URL`.
+     *
+     * Katalog ini menawarkan nama yang kedua sampai 2026-08-10, sementara
+     * kode membaca yang pertama (`ai.ts:203`, `ai-jalankan.ts:237` — nol
+     * pembaca untuk nama yang ditawarkan). Akibatnya: kotak yang diisi orang
+     * TIDAK PERNAH TERPAKAI, dan asisten diam-diam tetap memanggil alamat
+     * bawaan.
+     *
+     * Tak ada gejala sama sekali — nilainya tersimpan rapi di basis, halaman
+     * menampilkannya sebagai "terisi", dan yang mengisinya tak punya cara
+     * tahu. Ditemukan oleh `audit-kredensial-punya-tempat.mjs` pada
+     * jalannya yang PERTAMA.
+     */
+    kunci: 'AI_PROVIDER_BASE_URL',
     label: 'Alamat penyedia AI lain',
     keterangan: 'Biasanya berakhiran /v1. Bukan rahasia, tapi disimpan bersama kuncinya agar satu tempat.',
     grup: 'AI',
@@ -150,6 +164,39 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
     env: 'RESEND_API_KEY',
     tautan: 'https://resend.com/api-keys',
     grup: 'Email',
+  },
+
+  /*
+   * ── n8n (S7) ────────────────────────────────────────────────────────────
+   *
+   * DITAMBAHKAN 2026-08-10, dan keterlambatannya pantas dicatat.
+   *
+   * `lib/otomasi-n8n.ts` sudah membaca kedua kunci ini sejak S7, dan halaman
+   * Alur Otomasi berkali-kali menampilkan "N8N_BASE_URL belum diisi di
+   * halaman Kredensial" — padahal DI HALAMAN ITU TAK ADA TEMPATNYA. Katalog
+   * ini yang menentukan apa yang muncul di layar, dan n8n tak pernah masuk.
+   *
+   * Founder yang menemukannya: "cuma ada wa, ai, sama email disana."
+   *
+   * Bentuknya sama persis dengan izin yatim migrasi 271 — fitur utuh,
+   * teruji, dan tak bisa dicapai siapa pun. Bedanya, yang ini menyuruh orang
+   * pergi ke tempat yang tak punya pintunya.
+   */
+  {
+    kunci: 'N8N_BASE_URL',
+    label: 'n8n — alamat server',
+    keterangan:
+      'Bawaan http://localhost:5680 — instance Puraloka, TERPISAH dari TJS di :5678. ' +
+      'Tanpa garis miring di akhir. Jalankan lewat scripts\\jalankan-n8n.cmd.',
+    grup: 'Otomasi (n8n)',
+  },
+  {
+    kunci: 'N8N_API_KEY',
+    label: 'n8n — kunci API',
+    keterangan:
+      'Dari n8n: Settings → n8n API → Create an API key. Boleh dikosongkan bila ' +
+      'instance-nya tak menuntut autentikasi API.',
+    grup: 'Otomasi (n8n)',
   },
 ]
 
