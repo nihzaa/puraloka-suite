@@ -79,9 +79,22 @@ interface HasilUji {
   yang_diuji?: string;
 }
 
+/*
+ * "Dari server" adalah PERINGATAN, bukan status netral.
+ *
+ * Nilainya datang dari `process.env`, yang SATU untuk seluruh proses — bukan
+ * milik perusahaan ini. Di instalasi banyak-perusahaan itu berarti:
+ *
+ *   ANTHROPIC_API_KEY  memakai kunci pemilik server, tagihannya ke dia
+ *   WA_*               mengirim WhatsApp lewat nomor perusahaan LAIN
+ *
+ * Ditampilkan abu-abu sampai 2026-08-10 — sewarna "Belum disetel", jadi tak
+ * ada yang membedakannya dari keadaan biasa. Sekarang bernada peringatan,
+ * dan barisnya menjelaskan sebabnya.
+ */
 const SUMBER_META: Record<Sumber, { teks: string; warna: string; latar: string }> = {
   tenant: { teks: "Dari UI", warna: "var(--success)", latar: "var(--success-bg)" },
-  env: { teks: "Dari server", warna: C.mid, latar: "var(--surface-subtle)" },
+  env: { teks: "Dari server", warna: "var(--on-warning-bg)", latar: "var(--warning-bg)" },
   "tidak-ada": { teks: "Belum disetel", warna: C.muted, latar: "var(--surface-subtle)" },
 };
 
@@ -394,6 +407,27 @@ export default function KredensialPage() {
                           </button>
                         )}
                       </div>
+
+                      {/*
+                        Nilai dari env server DINYATAKAN, bukan cuma diberi
+                        lencana. Perusahaan ini memakai kunci milik SERVER —
+                        dan konsekuensinya berbeda per jenis kunci, jadi
+                        kalimatnya menyebut konsekuensinya, bukan faktanya.
+                      */}
+                      {k.sumber === "env" && (
+                        <p
+                          style={{
+                            fontSize: 11.5, color: "var(--on-warning-bg)",
+                            background: "var(--warning-bg)",
+                            border: "1px solid var(--warning-border)",
+                            borderRadius: 8, padding: "7px 10px", margin: "8px 0 0",
+                            lineHeight: 1.55,
+                          }}
+                        >
+                          Memakai nilai dari server, bukan milik perusahaan ini. Isi kunci
+                          sendiri di sini agar pemakaian dan tagihannya terpisah.
+                        </p>
+                      )}
 
                       {/* Menyatakan APA yang akan diuji — nilai yang sedang diketik
                           atau yang tersimpan. Tanpa ini, hasil "valid" ambigu. */}

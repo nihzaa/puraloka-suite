@@ -265,7 +265,54 @@ export async function ambilKredensial(
     nilai = bukaNilai(data.nilai_enc as string)
   } else {
     const meta = metaKredensial(kunci)
-    nilai = meta?.env ? (process.env[meta.env]?.trim() || null) : null
+    const dariEnv = meta?.env ? (process.env[meta.env]?.trim() || null) : null
+
+    /*
+     * ── SAKLAR MULTI-TENANT ─────────────────────────────────────────────
+     *
+     * Jatuhan `.env` adalah jaring pengaman satu-instalasi: tanpa itu,
+     * `/ai/insight` mati begitu lapisan kredensial dipasang. Tapi env
+     * server SATU untuk seluruh proses — jadi begitu ada tenant kedua,
+     * jaring itu berubah jadi kebocoran:
+     *
+     *   · tenant B yang belum mengisi ANTHROPIC_API_KEY memakai kunci
+     *     Anda — dan tagihannya jatuh ke Anda
+     *   · tenant B yang belum mengisi WA_* mengirim WhatsApp lewat
+     *     NOMOR TENANT A
+     *
+     * Diukur 2026-08-10: lima kunci punya jatuhan (ANTHROPIC_API_KEY,
+     * RESEND_API_KEY, WA_API_KEY, WA_BASE_URL, WA_INSTANCE), dan tak satu
+     * pun tersimpan per-tenant — artinya SEMUANYA sedang lewat env.
+     *
+     * `KREDENSIAL_TANPA_JATUHAN_ENV=1` mematikannya. Dipilih sebagai
+     * saklar env, BUKAN kolom basis: ia keputusan operator instalasi
+     * ("server ini melayani banyak perusahaan"), bukan pengaturan yang
+     * boleh diubah salah satu tenant untuk dirinya sendiri.
+     */
+    if (dariEnv && process.env.KREDENSIAL_TANPA_JATUHAN_ENV === '1') {
+      request.log.warn(
+        { kunci, companyId },
+        'kredensial jatuh ke env server tetapi jatuhan DIMATIKAN — tenant ini ' +
+          'belum mengisi kuncinya sendiri',
+      )
+      nilai = null
+    } else {
+      if (dariEnv) {
+        /*
+         * Jatuhan yang TERPAKAI dicatat, bukan diam.
+         *
+         * Tanpa baris ini, satu-satunya cara tahu bahwa tenant memakai kunci
+         * milik server adalah membaca kode. Dan yang tak terlihat tak pernah
+         * diperbaiki — persis kelas cacat yang sudah tiga kali muncul hari
+         * ini (izin yatim, izin tanpa pembaca, kunci tanpa tempat isi).
+         */
+        request.log.info(
+          { kunci, companyId },
+          'kredensial diambil dari env server, bukan milik tenant',
+        )
+      }
+      nilai = dariEnv
+    }
   }
 
   cache.set(ck, { nilai, kedaluwarsa: kini + TTL_MS })
@@ -278,6 +325,11 @@ export type SumberKredensial = 'tenant' | 'env' | 'tidak-ada'
 export function sumberKredensial(adaBarisTenant: boolean, kunci: string): SumberKredensial {
   if (adaBarisTenant) return 'tenant'
   const meta = metaKredensial(kunci)
+  // Saat jatuhan dimatikan, env yang terisi TIDAK berlaku — dan UI tak boleh
+  // melaporkannya sebagai sumber. Layar yang berkata "dari env server" untuk
+  // nilai yang sebenarnya tak terpakai membuat orang mengira integrasinya
+  // hidup, lalu bingung kenapa tak ada yang terkirim.
+  if (process.env.KREDENSIAL_TANPA_JATUHAN_ENV === '1') return 'tidak-ada'
   if (meta?.env && process.env[meta.env]?.trim()) return 'env'
   return 'tidak-ada'
 }

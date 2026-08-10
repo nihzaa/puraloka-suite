@@ -9962,3 +9962,57 @@ terdeteksi sebagai "hilang di n8n", lalu dikosongkan.
 karena endpoint log lintas-alur tak memeriksa error saat membaca nama alur —
 gagalnya akan menampilkan "(alur terhapus)" untuk SELURUH baris log, kalimat
 yang menuduh: orang lalu mencari alur yang tak pernah hilang. Kembali ke 186.
+
+---
+
+## 2026-08-11 — Jatuhan .env: jaring pengaman yang jadi kebocoran multi-tenant
+
+Founder: *"semua penyedia api ini sudah siap untuk multi tenant?"*
+
+**Diukur, dan jawabannya bernuansa.** Yang sudah benar: `app_credentials` punya
+`company_id` + `tenant_isolation` RESTRICTIVE, cache berkunci
+`(companyId, kunci)`, nilai tak pernah keluar lewat API (penjaga ambang nol).
+n8n, Evolution, OpenAI, dan AI custom murni per-tenant.
+
+**Yang belum: LIMA kunci punya jatuhan `process.env`** — `ANTHROPIC_API_KEY`,
+`RESEND_API_KEY`, `WA_API_KEY`, `WA_BASE_URL`, `WA_INSTANCE`. Dan `process.env`
+SATU untuk seluruh proses:
+
+    ANTHROPIC_API_KEY  tenant B memakai kunci pemilik server — tagihan ikut
+    WA_*               tenant B mengirim WhatsApp lewat NOMOR TENANT A
+
+Yang kedua tak bisa ditarik kembali: pesannya sudah sampai ke ponsel orang,
+atas nama perusahaan yang salah.
+
+**Jatuhannya TIDAK dicabut, dan itu disengaja.** Ia jaring pengaman
+satu-instalasi — mencabutnya mematikan asisten yang jalan hari ini. Yang
+ditambahkan: saklar `KREDENSIAL_TANPA_JATUHAN_ENV=1`. Dipilih sebagai env,
+BUKAN kolom basis, karena ia keputusan operator instalasi ("server ini
+melayani banyak perusahaan") — bukan pengaturan yang boleh diubah salah satu
+tenant untuk dirinya sendiri.
+
+Tiga hal ikut diperbaiki supaya jatuhan tak lagi tak terlihat:
+
+  · jatuhan yang TERPAKAI kini dicatat ke log (`info`), bukan diam
+  · `sumberKredensial()` melaporkan `tidak-ada` saat saklar hidup — UI tak
+    boleh berkata "dari env server" untuk nilai yang tak terpakai
+  · lencana "Dari server" berubah dari ABU jadi bernada peringatan, dengan
+    kalimat yang menyebut konsekuensinya, bukan faktanya
+
+**Dua alat ukur saya sendiri sempat salah, dan keduanya pantas dicatat:**
+
+1. Test "keterangan tak boleh memuat jejak mesin" memakai `/[A-Z]:[\/]/` dan
+   MERAH untuk tiga kunci yang benar — polanya cocok dengan `http://` (huruf
+   `I` dari "API", lalu titik dua). Alat ukurnya yang salah, bukan katalognya.
+   Pola yang benar: `\b[A-Z]:[\/]`.
+
+2. Sebelumnya, saat mencari kredensial Postgres lokal untuk membuat database
+   Evolution, tak satu pun kombinasi lazim berhasil — dan itu kabar baik.
+
+**Dan satu temuan sampingan:** 8 company "aktif", 7 di antaranya sampah test
+(`[UJI-ISOLASI]`, `[UJI-S8]`) yang tak pernah dibersihkan — termasuk dari test
+saya sendiri hari ini. Dinonaktifkan; tersisa satu tenant nyata.
+
+Bukti: 6 test hijau, mutasi saklar → MERAH lalu pulih · penjaga jatuhan
+terbukti merah dengan menyebut nama kunci yang salah · 2741 test hijau
+(4 merah pre-existing, tak berubah) · 6 penjaga kredensial/tenancy hijau.

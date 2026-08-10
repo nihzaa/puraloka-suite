@@ -480,6 +480,18 @@ jobs:
       - name: Kredensial yang dibaca punya tempat diisi
         run: node scripts/audit-kredensial-punya-tempat.mjs
 
+      # Jatuhan .env tak boleh bertambah. process.env SATU untuk seluruh
+      # proses, jadi tiap kunci berjatuhan adalah satu kunci yang diam-diam
+      # dibagi antar-tenant: ANTHROPIC memakai kunci pemilik server
+      # (tagihannya ikut), WA_* mengirim WhatsApp lewat NOMOR TENANT LAIN —
+      # dan yang kedua tak bisa ditarik kembali.
+      #
+      # Ratchet, bukan larangan: lima yang ada adalah jaring pengaman
+      # satu-instalasi, dan saklar KREDENSIAL_TANPA_JATUHAN_ENV=1 mematikannya
+      # untuk operator yang melayani banyak perusahaan.
+      - name: Jatuhan env kredensial tak bertambah
+        run: node scripts/audit-jatuhan-env-tak-bertambah.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres

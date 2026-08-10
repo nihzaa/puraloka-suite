@@ -1,0 +1,13 @@
+{
+  "_catatan": "Kunci kredensial yang punya jatuhan `env:`. Boleh TURUN, tidak boleh NAIK.",
+  "_kenapa": "process.env satu untuk seluruh proses — tiap jatuhan adalah satu kunci yang diam-diam dibagi antar-tenant. WA_* yang jatuh berarti tenant B mengirim WhatsApp lewat nomor tenant A.",
+  "_saklar": "KREDENSIAL_TANPA_JATUHAN_ENV=1 mematikan seluruh jatuhan.",
+  "jumlah": 5,
+  "kunci": [
+    "WA_BASE_URL",
+    "WA_API_KEY",
+    "WA_INSTANCE",
+    "ANTHROPIC_API_KEY",
+    "RESEND_API_KEY"
+  ]
+}
