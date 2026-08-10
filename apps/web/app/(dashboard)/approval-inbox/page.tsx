@@ -215,7 +215,16 @@ function Konten() {
           </div>
 
           <div style={{ ...card, overflow: "hidden" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: 13,
+                // Kolom nominal & tanggal sejajar antar baris; tanpa ini
+                // "Rp 111.111" lebih sempit daripada "Rp 888.888".
+                fontVariantNumeric: "tabular-nums",
+              }}
+            >
               <caption className="sr-only">
                 Dokumen yang menunggu persetujuan, diurutkan dari yang paling lama tertahan
               </caption>

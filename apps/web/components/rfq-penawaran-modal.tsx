@@ -251,7 +251,16 @@ export function RfqPenawaranModal({
       {/* Baris material. Tabel HTML, bukan grid div: pembaca layar
           mengumumkan "kolom Harga, baris 3", dan itu satu-satunya cara orang
           tahu di mana ia berada saat mengetik angka. */}
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "collapse",
+          fontSize: 13,
+          // Kolom nominal & tanggal sejajar antar baris; tanpa ini
+          // "Rp 111.111" lebih sempit daripada "Rp 888.888".
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
         <caption style={{
           captionSide: "top", textAlign: "left", ...label, paddingBottom: 6,
         }}>

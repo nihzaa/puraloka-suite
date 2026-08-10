@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 204 tabel · A=11 · AB=15 · ANCHOR=1 · B=86 · C=84 · D=7
+// 206 tabel · A=11 · AB=15 · ANCHOR=1 · B=88 · C=84 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -144,6 +144,8 @@ export const PETA_TENANCY = {
   'notifications': { kategori: 'B' },
   'notulen_rapat': { kategori: 'B' },
   'notulen_tindakan': { kategori: 'B' },
+  'otomasi_alur': { kategori: 'B' },
+  'otomasi_jalan': { kategori: 'B' },
   'payments': { kategori: 'C', lewat: 'invoice_id' },  // payments.invoice_id → invoices.project_id
   'pemakaian_alat': { kategori: 'B' },
   'penawaran_subkon': { kategori: 'C', lewat: 'tender_id' },  // penawaran_subkon.tender_id → tender_subkon.project_id

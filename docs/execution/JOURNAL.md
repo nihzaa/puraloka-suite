@@ -9250,3 +9250,79 @@ BERTAHAN sesudah muat ulang.
 dengan `git stash`, bukan ditebak: di HEAD angkanya memang sudah 7, jadi
 sisanya bukan buatan hari ini — tetapi dua di antaranya milik saya, dan itu
 yang diperbaiki.
+
+---
+
+## 2026-08-10 (lanjutan) — Alur otomasi n8n di UI, dan migrasi lama yang memundurkan waktu
+
+**Sumbu terakhir permintaan founder ditutup.** "Semua workflow yang ada di n8n
+di UI bisa dilihat statusnya dan log aktifitasnya" — sekarang ada: katalog alur,
+status jalan terakhir, jejak 50 eksekusi per alur, dan pemicu manual.
+
+**TJS diukur lebih dulu, bukan diduga.** 6 endpoint automation, 3 halaman, 43
+berkas workflow JSON. Dua bentuknya ditiru karena terbukti, satu sengaja tidak:
+
+- DITIRU — katalog TERPISAH dari n8n. Halaman yang kosong total justru saat
+  n8n mati adalah halaman yang gagal pada saat paling dibutuhkan.
+- DITIRU — kesehatan DIHITUNG ULANG dari log, bukan counter yang ditambah.
+  TJS menulis alasannya sendiri: increment per callback "rawan drift kalau n8n
+  gagal memanggilnya karena network blip". Counter yang meleset tak pernah
+  menyatakan dirinya meleset.
+- TIDAK — dua namespace yang dijembatani peta tulis-tangan. Di TJS
+  `AutomationLog.workflowId` memakai nama event ERP dan `WorkflowHealth`
+  memakai n8n id; jembatannya peta di kode, dan event tak ter-map dilewati.
+  Di sini `otomasi_jalan.alur_id` adalah FOREIGN KEY — tak ada yang perlu
+  dijembatani, jadi tak ada yang bisa gagal dijembatani. Migrasi 272
+  memverifikasi jejak tanpa induk memang ditolak basis.
+
+**Cacat paling mahal hari ini: menerapkan ulang migrasi yang sudah disusul.**
+
+Untuk mendaftarkan satu menu, saya meregenerasi `153_peta_menu_penuh.sql` —
+berkasnya sendiri berkata "jangan sunting langsung, regenerasi". Itu keliru,
+dan dua sebabnya baru terlihat setelah diukur:
+
+1. Berkas 153 di disk sudah lama tertinggal dari sumbernya. Regenerasi di HEAD
+   saja menghasilkan 106 insert/96 delete SEBELUM baris apa pun ditambahkan —
+   satu baris niat membawa ratusan perubahan yang tak pernah ditinjau.
+2. Lebih parah: 153 MENDAHULUI `232_sidebar_disiplin` ("satu route, satu
+   link"). Menerapkannya ulang membatalkan disiplin itu —
+   `audit-menu-berbagi-href` melompat ke **235 item berbagi 84 href**, dengan
+   26 item menunjuk `/proyek` sekaligus.
+
+Pulih dengan menerapkan ulang 232 dan seluruh migrasi menu sesudahnya, lalu
+menulis `273_menu_alur_otomasi.sql` yang hanya menyentuh satu baris.
+**Berkas yang di-generate BUKAN otomatis berkas yang aman di-regenerate:**
+kalau ada migrasi lebih baru yang mengubah tabel yang sama, menjalankan ulang
+yang lama adalah memundurkan waktu.
+
+Sempat pula saya menaikkan lantai `hanyaDb` 120 → 121 untuk mengakomodasi
+kerusakan itu. Sesudah pemulihan angkanya kembali 120 sendiri, dan suntingan
+lantai itu dibatalkan seluruhnya — **tak ada ratchet yang dilemahkan.**
+
+**Alat uji yang merusak yang diujinya.** `vi.stubGlobal('fetch', …)` untuk
+memalsukan n8n ikut memalsukan SETIAP query: klien Supabase memakai fetch
+global juga. Gejalanya menyesatkan — insert jejaknya "berhasil" tanpa galat
+dan tanpa baris, persis seperti bug tenancy. `FetchSeperti` disuntikkan
+sebagai gantinya, dan alasannya ditulis di kodenya supaya tak diulang.
+
+**Satu mutasi lagi menemukan test yang tak bisa merah.** Saya mengira 11 test
+sudah mengunci "jejak ditulis SEBELUM panggilan". Status awal saya ubah jadi
+`'sukses'` — kesebelasnya tetap hijau, karena baris itu SELALU ditimpa sebelum
+siapa pun sempat membacanya. Yang benar-benar mengujinya harus membaca basis
+DARI DALAM panggilan, dan itu satu-satunya saat "sedang berjalan" ada.
+
+**Penilaian visual sendiri menolak tiga hal.** Tombol "Daftarkan alur" yang
+mendarat di halaman kredensial — dicabut; tombol aksi utama yang menuju tempat
+yang bukan tujuannya adalah kebohongan kecil yang membuat orang berhenti
+memercayai tombol lain. Tombol "Jalankan" yang `disabled` tetapi TERLIHAT
+hidup — dibedakan (garis putus, redup). Dan `0 18 * * 1-6` — dibacakan jadi
+"tiap Senin–Sabtu, 18:00", karena bagi pengguna berliterasi digital rendah
+deretan simbol itu bukan jadwal, dan yang tak terbaca tak bisa diperiksa.
+
+**Utang tabel dilunasi sampai lantai.** `tabular-nums` 0 pelanggaran,
+`scope="row"` kembali 3/3, caption 0/0 — termasuk dua tabel warisan
+(`approval-inbox`, `rfq-penawaran-modal`) yang bukan buatan sesi ini.
+
+Bukti: 2724 test hijau (6 merah pre-existing yang sama sejak sebelum sumbu
+ini), `bukti-mutasi-otomasi.sh` O-1/O-1b/O-2/O-3 semuanya MERAH lalu pulih,
+7 interaksi peramban hijau.

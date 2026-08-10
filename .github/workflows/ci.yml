@@ -459,6 +459,16 @@ jobs:
       - name: Jalur tulis asisten berkonfirmasi
         run: node scripts/audit-tulis-berkonfirmasi.mjs
 
+      # n8n hanya disentuh lewat `lib/otomasi-n8n.ts`; jejak jalan ditulis
+      # SEBELUM panggilan (proses yang mati di tengah harus meninggalkan bukti
+      # bahwa alurnya mungkin sudah jalan — kalau tidak, orang memicunya lagi
+      # dan pelanggan menerima pesan yang sama dua kali); dan rute pemicu
+      # bergerbang `otomasi:alur:jalankan`, bukan izin melihat.
+      #
+      # Ambang NOL. Terbukti bisa merah: `bash scripts/bukti-mutasi-otomasi.sh`.
+      - name: Otomasi n8n satu pintu
+        run: node scripts/audit-otomasi-satu-pintu.mjs
+
       # Nominal dari permintaan yang dibaca `parseFloat` mentah. Rantai cacatnya
       # dibuktikan 2026-08-08 di Node DAN di Postgres: `qty: "abc"` → NaN → cek
       # saldo LOLOS (setiap perbandingan dengan NaN bernilai false) → Postgres
