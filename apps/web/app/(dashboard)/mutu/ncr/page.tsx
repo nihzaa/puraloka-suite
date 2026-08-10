@@ -26,7 +26,7 @@ import { CheckCircle2, Gavel, Plus, RefreshCw } from "lucide-react";
 import { api, hasPermission, makeAbortController } from "@/lib/api";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
-import { Tabel } from "@/components/dasar";
+import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
 
 interface Ncr {
@@ -151,11 +151,7 @@ function NcrInner() {
         gap: 16, marginBottom: 18, flexWrap: "wrap",
       }}>
         <div>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700,
-            color: C.text, marginBottom: 4,
-          }}>Register NCR</h1>
-          <p style={{ fontSize: 13, color: C.mid, maxWidth: 640 }}>
+          <KepalaHalaman judul="Register NCR" /><p style={{ fontSize: 13, color: C.mid, maxWidth: 640 }}>
             Ketidaksesuaian terhadap spesifikasi, gambar, atau standar — beserta
             keputusan formal atasnya. Berbeda dari punch list: NCR menuntut
             <strong> disposisi</strong> dan <strong>akar masalah</strong> sebelum bisa ditutup.

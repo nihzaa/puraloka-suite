@@ -67,7 +67,7 @@ import { usePasangRail } from "@/lib/rail-context";
 import { useTabUrl } from "@/lib/use-tab-url";
 import { TabBagian } from "@/components/tab-bagian";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
-import { Tabel } from "@/components/dasar";
+import { Tabel, KepalaHalaman } from "@/components/dasar";
 import {
   hariIniWIB, ringkasAset, sewaPerluDiputuskan,
   type BarisSewaPerhatian,
@@ -243,12 +243,7 @@ function IsiAset() {
     }}>
       <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
         <div style={{ minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text, fontFamily: "var(--font-display, inherit)" }}>
-            Aset &amp; Alat
-          </h1>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: C.mid }}>
-            Alat milik perusahaan, lokasinya sekarang, nilai bukunya, dan biaya sewa yang berjalan.
-          </p>
+          <KepalaHalaman judul="Aset &amp; Alat" keterangan="Alat milik perusahaan, lokasinya sekarang, nilai bukunya, dan biaya sewa yang berjalan." />
         </div>
         <button
           onClick={() => setFormBuka((v) => !v)}

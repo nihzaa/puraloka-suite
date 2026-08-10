@@ -53,7 +53,7 @@ import {
   Plus, Trophy, XCircle, Clock, Wallet, AlertTriangle, Hourglass,
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
-import { Tabel } from "@/components/dasar";
+import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { KartuKPI, Panel } from "@/components/ui-dasar";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
@@ -214,12 +214,7 @@ export default function TenderPage() {
     }}>
       <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
         <div style={{ minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text, fontFamily: "var(--font-display, inherit)" }}>
-            Register Tender
-          </h1>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: C.mid }}>
-            Tender yang diikuti, alasan menang/kalah, dan backlog yang sudah dimenangkan.
-          </p>
+          <KepalaHalaman judul="Register Tender" keterangan="Tender yang diikuti, alasan menang/kalah, dan backlog yang sudah dimenangkan." />
         </div>
         <button
           onClick={() => setFormBuka((v) => !v)}

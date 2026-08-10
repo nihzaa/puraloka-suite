@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useReducer, useState } from "react";
+import { KepalaHalaman } from "@/components/dasar";
 import { api } from "@/lib/api";
 import { BellRing, Plus, Trash2, Info, ShieldCheck, UserCog, Users, HardHat } from "lucide-react";
 
@@ -90,10 +91,7 @@ function Content() {
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <BellRing size={22} color={C.navy} />
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 24, fontWeight: 700, color: C.text, margin: 0 }}>
-          Aturan Notifikasi
-        </h1>
-      </div>
+        <KepalaHalaman judul="Aturan Notifikasi" /></div>
       <p style={{ color: C.mid, fontSize: 13, margin: "0 0 20px" }}>
         Tentukan siapa yang dikabari untuk setiap jenis kejadian. Perubahan langsung berlaku — tidak perlu rilis ulang.
       </p>

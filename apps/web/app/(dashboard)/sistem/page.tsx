@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
+import { KepalaHalaman } from "@/components/dasar";
 import {
   Settings2, Bell, Mail, RefreshCw, CheckCircle, AlertCircle,
   Clock, Wallet, Receipt, FolderKanban, Target,
@@ -78,10 +79,7 @@ export default function SistemPage() {
         <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
           <Settings2 size={20} color="#fff" />
         </div>
-        <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", margin: 0 }}>Sistem</h1>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Reminder, notifikasi, dan konfigurasi otomasi</p>
-        </div>
+        <KepalaHalaman judul="Sistem" keterangan="Reminder, notifikasi, dan konfigurasi otomasi" />
       </div>
 
       {/* Reminder checks */}

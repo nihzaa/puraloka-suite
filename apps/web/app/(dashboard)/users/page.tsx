@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { KepalaHalaman } from "@/components/dasar";
 
 const ROLES = [
   { key: "admin",  label: "Administrator", icon: ShieldCheck, color: C.purple, bg: C.purpleBg, border: C.purpleBorder },
@@ -92,18 +93,17 @@ export default function UsersPage() {
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: "-0.3px" }}>User Management</h1>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: C.muted }}>Kelola akun pengguna aplikasi Puraloka Suite</p>
-        </div>
-        {isAdmin && (
-          <button onClick={() => setShowAdd(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
-            <Plus size={14} /> Tambah User
-          </button>
-        )}
-      </div>
+      <KepalaHalaman
+        judul="User Management"
+        keterangan="Kelola akun pengguna aplikasi Puraloka Suite"
+        aksi={
+          isAdmin ? (
+            <button onClick={() => setShowAdd(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+              <Plus size={14} /> Tambah User
+            </button>
+          ) : undefined
+        }
+      />
 
       {/* Role summary cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 24 }}>

@@ -63,7 +63,7 @@ import { KartuKPI, Kosong } from "@/components/ui-dasar";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
 import { usePasangRail } from "@/lib/rail-context";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
 import { medanKurang, ringkasKlien } from "@/lib/ringkasan-klien";
 // Dipecah ke `_bersama/` 2026-08-07 (UI-2-3) mengikuti pola `kas/_bersama/`:
 // halaman ini melewati 800 baris setelah lapis ringkasan ditambahkan.
@@ -316,10 +316,7 @@ export default function KlienPage() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 700, color: C.text, marginBottom: 4 }}>
-            Klien
-          </h1>
-          {/* Cacah klien pindah ke kartu KPI — mengulanginya di sini membuat
+          <KepalaHalaman judul="Klien" />{/* Cacah klien pindah ke kartu KPI — mengulanginya di sini membuat
               angka yang sama tampil dua kali dalam satu layar. */}
           <p style={{ fontSize: 13, color: C.mid }}>
             Pemberi kerja, kelengkapan datanya, lalu daftarnya

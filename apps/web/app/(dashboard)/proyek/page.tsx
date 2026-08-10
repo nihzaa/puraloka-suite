@@ -44,6 +44,7 @@
  */
 
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { KepalaHalaman } from "@/components/dasar";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -279,15 +280,7 @@ function ProyekRingkasan() {
         display: "flex", justifyContent: "space-between", alignItems: "flex-start",
         gap: 12, flexWrap: "wrap", marginBottom: 20,
       }}>
-        <div>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700,
-            color: C.text, marginBottom: 4,
-          }}>Proyek</h1>
-          <p style={{ fontSize: 13, color: C.mid }}>
-            Keadaan seluruh portofolio, lalu daftarnya
-          </p>
-        </div>
+        <KepalaHalaman judul="Proyek" keterangan="Keadaan seluruh portofolio, lalu daftarnya" />
         {bolehBuatProyek && (
           <button
             onClick={() => setShowModal(true)}

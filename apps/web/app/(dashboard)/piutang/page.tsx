@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
 
 const card: React.CSSProperties = {
@@ -243,10 +243,7 @@ export default function PiutangPage() {
       {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: "-0.4px", margin: 0 }}>
-            Register Piutang
-          </h1>
-          <div style={{ fontSize: 13, color: C.mid, marginTop: 3 }}>
+          <KepalaHalaman judul="Register Piutang" /><div style={{ fontSize: 13, color: C.mid, marginTop: 3 }}>
             Umur tagihan, retensi tertahan, dan uang muka yang belum dipotong
             {aging && <> · per {fmtDate(aging.as_of)}</>}
           </div>

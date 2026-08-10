@@ -9468,3 +9468,57 @@ sekarang masih ngga konsisten". Dari 94 halaman dashboard — 36 masih memakai
 `Panel`, 37 menulis keadaan-kosong sendiri, 78 tanpa rail kanan, dan 14
 menyalin `hasPerm`. Itu pekerjaan tersendiri, disepakati dikerjakan bertahap
 sesudah sumbu ini, dengan penjaga ratchet per kelompok.
+
+---
+
+## 2026-08-10 (lanjutan 4) — K-1: 20 judul halaman diseragamkan
+
+Founder bertanya "kenapa sekarang masih ngga konsisten". Diukur, bukan
+ditebak: dari 94 halaman dashboard — **36 memakai `<h1>` sendiri**, 37 membuat
+kartu sendiri alih-alih `Panel`, 37 menulis keadaan-kosong sendiri, 78 tanpa
+rail kanan, 14 menyalin `hasPerm`. Disepakati dikerjakan bertahap per
+kelompok, dengan penjaga per kelompok. Ini kelompok pertama.
+
+**Pekerjaan ini ternyata sudah pernah dimulai dan berhenti di tengah.**
+`judul-ratchet.mjs` mencatat sejarahnya: sebelum UIR-2, `KepalaHalaman`
+dipakai **0 dari 105 halaman** dan ada **27 varian gaya `<h1>` berbeda**.
+Diseragamkan sebagian, tersisa 51, lalu diam. Ukuran judul 20px, 22px, dan
+24px masih bercampur — itulah yang terasa sebagai "tidak konsisten".
+
+**51 → 31.** 20 halaman dikonversi, dan lantainya ikut turun otomatis.
+
+**Konverternya sengaja MENOLAK yang tak bisa dipastikan.** 15 halaman
+dilaporkan untuk dikerjakan tangan: 4 memakai class CSS sendiri (`rf-judul`,
+`in-judul`, `pl-judul`, `sb-judul` — class-nya bisa dipakai media query yang
+tak terlihat dari kode halaman), 3 judulnya memuat ekspresi JSX, 8 bentuk
+`<h1>`-nya multi-baris. Konversi buta atas 15 itu akan menghasilkan halaman
+rusak yang terlihat rapi di diff — cacat yang paling lama hidup.
+
+**Dan konverter saya sendiri punya cacat yang hanya ketahuan dari layar.**
+Ia memindahkan `<h1>` ke `KepalaHalaman` tetapi MENINGGALKAN pembungkus
+flex-nya, sehingga tombol aksi tetap di luar komponen:
+
+    <div flex justify-between>
+      <div><KepalaHalaman … /></div>
+      {tombol}                        ← tak masuk prop `aksi`
+    </div>
+
+Hasilnya TERLIHAT mirip halaman lain, tetapi jarak dan perataannya tak ikut
+aturan komponen. Itu konsistensi yang SEMU — dan yang semu lebih berbahaya
+daripada yang jelas-jelas beda, karena tak ada yang memeriksanya lagi.
+Ketahuan dari tangkapan layar `/users`, bukan dari typecheck. 8 pembungkus
+dibuang otomatis, 2 yang punya tombol aksi (`users`, `notifications`)
+dipindahkan ke prop `aksi` dengan tangan.
+
+**Lima berkas sempat gagal impor**, dan itu justru tanda yang sehat: typecheck
+menangkapnya seketika. Satu di antaranya (`sistem/page.tsx`) sisipan import
+mendarat di TENGAH import multi-baris — kerusakan yang jelas dan langsung
+merah, bukan yang diam.
+
+**Yang MASIH belum konsisten, dan disebut supaya tak terlupa:** `KepalaHalaman`
+punya prop `ikon` opsional, dan 20 halaman hasil konversi ini tak
+mengirimnya — jadi halaman lama tetap tanpa ubin ikon sementara halaman baru
+punya. Itu menambah, bukan memperbaiki, dan masuk kelompok berikutnya.
+
+Bukti: judul-ratchet 51 → 31 (lantai terkunci otomatis), tsc bersih dua app,
+5 penjaga web hijau.

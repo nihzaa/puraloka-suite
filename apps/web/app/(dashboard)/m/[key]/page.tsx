@@ -37,6 +37,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { KepalaHalaman } from "@/components/dasar";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -134,9 +135,9 @@ export default function HalamanMenu() {
         padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
         width: "100%", maxWidth: "var(--w-form)", margin: "0 auto",
       }}>
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.text }}>
-          Menu tidak dikenal
-        </h1>
+        <KepalaHalaman judul="Menu tidak dikenal" />
+        {/* Keterangan tetap `<p>` sendiri, bukan prop `keterangan`: ia memuat
+            kode menu di dalam `<code>`, dan prop hanya menerima teks. */}
         <p style={{ margin: "8px 0 0", fontSize: 13, color: C.mid, lineHeight: 1.6 }}>
           Tak ada menu dengan kode <code style={{
             padding: "0px 6px", borderRadius: 6, background: "var(--surface-subtle)",

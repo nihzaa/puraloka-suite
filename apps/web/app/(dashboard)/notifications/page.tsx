@@ -12,6 +12,7 @@ import { api } from "@/lib/api";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 import { C } from "@/lib/warna-ui";
+import { KepalaHalaman } from "@/components/dasar";
 
 const card: React.CSSProperties = {
   background: C.white,
@@ -267,16 +268,11 @@ export default function NotificationsPage() {
   // ─────────────────────────────────────────────────────────────────────────
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", minHeight: "100vh", background: C.bg, width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: C.text }}>Notifikasi</h1>
-          <p style={{ margin: "2px 0 0", fontSize: 13, color: C.mid }}>
-            Riwayat semua notifikasi sistem
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          {unreadCount > 0 && (
+      <KepalaHalaman
+        judul="Notifikasi"
+        keterangan="Riwayat semua notifikasi sistem"
+        aksi={
+          unreadCount > 0 ? (
             <button
               onClick={markAllRead}
               style={{
@@ -288,9 +284,9 @@ export default function NotificationsPage() {
             >
               <CheckCheck size={14} /> Tandai Semua Dibaca
             </button>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {/* Filters row */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>

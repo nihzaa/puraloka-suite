@@ -16,6 +16,7 @@ import { Building2, Plus, Users, AlertTriangle, Check, X, ArrowRightLeft } from 
 // ============================================================
 
 import { C } from "@/lib/warna-ui";
+import { KepalaHalaman } from "@/components/dasar";
 
 const card: React.CSSProperties = {
   background: "var(--surface)",
@@ -134,13 +135,8 @@ export default function PerusahaanPage() {
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 18 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>
-            Badan Usaha
-          </h1>
-          <p style={{ fontSize: 13, color: C.mid, margin: 0 }}>
-            PT/CV dalam grup usaha Anda. Setiap badan usaha punya proyek, keuangan,
-            dan penomoran dokumen yang terpisah penuh.
-          </p>
+          <KepalaHalaman judul="Badan Usaha" keterangan="PT/CV dalam grup usaha Anda. Setiap badan usaha punya proyek, keuangan,
+            dan penomoran dokumen yang terpisah penuh." />
         </div>
         {!formTerbuka && (
           <button

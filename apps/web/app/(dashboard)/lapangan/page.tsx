@@ -54,7 +54,7 @@ import {
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { Galat, Lencana, Rangka, Tombol } from "@/components/dasar";
+import { Galat, Lencana, Rangka, Tombol, KepalaHalaman } from "@/components/dasar";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
@@ -174,15 +174,7 @@ export default function LapanganRingkasanPage() {
         display: "flex", justifyContent: "space-between", alignItems: "flex-start",
         gap: 12, flexWrap: "wrap", marginBottom: 20,
       }}>
-        <div>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700,
-            color: C.text, marginBottom: 4,
-          }}>Lapangan</h1>
-          <p style={{ fontSize: 13, color: C.mid }}>
-            Keadaan pekerjaan hari ini — progres, tenaga kerja, dan temuan mutu
-          </p>
-        </div>
+        <KepalaHalaman judul="Lapangan" keterangan="Keadaan pekerjaan hari ini — progres, tenaga kerja, dan temuan mutu" />
         <Tombol onClick={() => void muat()} ikon={<RefreshCw size={14} />}>
           Muat ulang
         </Tombol>

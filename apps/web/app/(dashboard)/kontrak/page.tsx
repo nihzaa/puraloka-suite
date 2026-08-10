@@ -62,7 +62,7 @@ import { C } from "@/lib/warna-ui";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
 import { usePasangRail } from "@/lib/rail-context";
-import { Galat, Lencana, Rangka, Tabel, Tombol, type Kolom } from "@/components/dasar";
+import { Galat, Lencana, Rangka, Tabel, Tombol, type Kolom, KepalaHalaman } from "@/components/dasar";
 import { GrafikBatang, KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
 import {
   LABEL_JAMINAN, hariIniWIB, ringkasKontrak,
@@ -253,15 +253,7 @@ export default function KontrakRingkasanPage() {
         display: "flex", justifyContent: "space-between", alignItems: "flex-start",
         gap: 12, flexWrap: "wrap", marginBottom: 20,
       }}>
-        <div>
-          <h1 style={{
-            fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700,
-            color: C.text, marginBottom: 4,
-          }}>Kontrak</h1>
-          <p style={{ fontSize: 13, color: C.mid }}>
-            Dokumen yang menjaga kontrak tetap sah — dan mana yang mau habis
-          </p>
-        </div>
+        <KepalaHalaman judul="Kontrak" keterangan="Dokumen yang menjaga kontrak tetap sah — dan mana yang mau habis" />
         <Tombol onClick={() => void muat()} ikon={<RefreshCw size={14} />}>
           Muat ulang
         </Tombol>

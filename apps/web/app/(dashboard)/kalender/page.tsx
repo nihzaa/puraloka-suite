@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import { KepalaHalaman } from "@/components/dasar";
 import { api } from "@/lib/api";
 import {
   ChevronLeft, ChevronRight, Calendar,
@@ -179,10 +180,7 @@ export default function KalenderPage() {
           <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Calendar size={20} color="#fff" />
           </div>
-          <div>
-            <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", margin: 0 }}>Kalender Proyek</h1>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Milestone, termin, dan aktivitas proyek</p>
-          </div>
+          <KepalaHalaman judul="Kalender Proyek" keterangan="Milestone, termin, dan aktivitas proyek" />
         </div>
 
         {/* Month summary chips.

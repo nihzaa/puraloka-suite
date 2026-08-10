@@ -33,7 +33,7 @@ import { C } from "@/lib/warna-ui";
 // dan pembungkus overflow-x. Tiga yang tersisa punya catatan alasannya
 // masing-masing di tempatnya — rekap tanpa kepala kolom, lembar AHSP bertingkat,
 // dan price book yang divirtualisasi.
-import { Tabel } from "@/components/dasar";
+import { Tabel, KepalaHalaman } from "@/components/dasar";
 
 const fmtRp = (n: number) => `Rp ${Number(n).toLocaleString("id-ID")}`;
 
@@ -3928,10 +3928,7 @@ function IsiEstimasi() {
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       <div style={{ marginBottom: 4 }}>
-        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: C.text, fontFamily: "var(--font-display, inherit)" }}>Estimasi</h1>
-        <p style={{ margin: "4px 0 0", fontSize: 13, color: C.mid }}>
-          RAB dari analisa AHSP ber-edisi × price book — setiap rupiah bisa ditelusuri ke koefisien &amp; harga sumbernya.
-        </p>
+        <KepalaHalaman judul="Estimasi" keterangan="RAB dari analisa AHSP ber-edisi × price book — setiap rupiah bisa ditelusuri ke koefisien &amp; harga sumbernya." />
       </div>
       {/* Komponen BERSAMA — gaya tab tak lagi ditulis per halaman. */}
       <TabBagian

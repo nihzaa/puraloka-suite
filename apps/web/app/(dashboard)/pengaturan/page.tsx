@@ -8,6 +8,7 @@ import { Building2, CreditCard, Upload, Save, X, Check, AlertTriangle } from "lu
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 import { C } from "@/lib/warna-ui";
+import { KepalaHalaman } from "@/components/dasar";
 
 const card: React.CSSProperties = {
   background: "var(--surface)",
@@ -182,12 +183,7 @@ function PengaturanContent() {
 
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, marginBottom: 4 }}>
-          Pengaturan
-        </h1>
-        <p style={{ fontSize: 13, color: C.mid }}>
-          Konfigurasi profil perusahaan, info pembayaran, dan format invoice
-        </p>
+        <KepalaHalaman judul="Pengaturan" keterangan="Konfigurasi profil perusahaan, info pembayaran, dan format invoice" />
         {!isAdmin && (
           <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12, color: C.mid }}>
             Hanya admin yang dapat mengubah pengaturan perusahaan.

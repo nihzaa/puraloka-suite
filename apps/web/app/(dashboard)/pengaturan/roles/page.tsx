@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useReducer, useState } from "react";
+import { KepalaHalaman } from "@/components/dasar";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api } from "@/lib/api";
@@ -269,14 +270,7 @@ function RolesContent() {
 
       {/* Header */}
       <div style={{ marginBottom: 28, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, marginBottom: 4 }}>
-            Role & Akses
-          </h1>
-          <p style={{ fontSize: 13, color: C.mid }}>
-            Kelola role pengguna dan permission akses ke setiap modul
-          </p>
-        </div>
+        <KepalaHalaman judul="Role & Akses" keterangan="Kelola role pengguna dan permission akses ke setiap modul" />
         {canManage && (
           <button
             onClick={() => setShowAddModal(true)}

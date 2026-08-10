@@ -1,8 +1,9 @@
 {
-  "nilai": 51,
+  "nilai": 31,
   "_catatan": "Dihitung SESUDAH komentar dibuang — enam 'dua <h1>' yang sempat terukur ternyata artefak komentar, nol yang nyata. Sisa 51 termasuk yang memang bukan judul halaman (sapaan dinamis beranda, portal ber-shell lain).",
-  "_diukur": "2026-08-08",
+  "_diukur": "2026-08-10",
   "_riwayat": [
-    "61 → 51 (UIR-2: 10 halaman ke KepalaHalaman — 5 kepala polos, 5 ber-ubin ikon)"
+    "61 → 51 (UIR-2: 10 halaman ke KepalaHalaman — 5 kepala polos, 5 ber-ubin ikon)",
+    "51 → 31 (otomatis)"
   ]
 }
