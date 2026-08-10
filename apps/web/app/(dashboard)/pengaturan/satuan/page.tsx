@@ -8,6 +8,7 @@ import type { UnitRow } from "@/lib/use-units";
 // ─── Design tokens (konsisten dgn /pengaturan) ─────────────────────────────────
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_ISIAN } from "@/components/isian";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -27,11 +28,6 @@ function hasPerm(key: string): boolean {
   } catch { return false; }
 }
 
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6,
-  fontSize: 13, outline: "none", background: "var(--surface)", color: C.text,
-  boxSizing: "border-box", fontFamily: "inherit",
-};
 
 export default function SatuanPage() {
   const [mounted, mount] = useReducer(() => true, false);
@@ -168,13 +164,13 @@ function AddUnitCard({ existing, onDone, onError }: { existing: UnitRow[]; onDon
     <div style={{ ...card, marginBottom: 18, padding: 16 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.4fr 1fr", gap: 12, alignItems: "end" }}>
         <Labeled label="Kode (unik)">
-          <input value={code} onChange={e => setCode(e.target.value)} placeholder="cth: dus" style={inputStyle} />
+          <input className="isian-fokus" value={code} onChange={e => setCode(e.target.value)} placeholder="cth: dus" style={GAYA_ISIAN} />
           {code && <div style={{ fontSize: 11, color: dup ? C.red : C.muted, marginTop: 3 }}>disimpan sebagai <code>{normalized || "—"}</code>{dup && " (sudah ada)"}</div>}
         </Labeled>
-        <Labeled label="Simbol"><input value={symbol} onChange={e => setSymbol(e.target.value)} placeholder="cth: dus" style={inputStyle} /></Labeled>
-        <Labeled label="Nama"><input value={label} onChange={e => setLabel(e.target.value)} placeholder="cth: Dus / Kardus" style={inputStyle} /></Labeled>
+        <Labeled label="Simbol"><input className="isian-fokus" value={symbol} onChange={e => setSymbol(e.target.value)} placeholder="cth: dus" style={GAYA_ISIAN} /></Labeled>
+        <Labeled label="Nama"><input className="isian-fokus" value={label} onChange={e => setLabel(e.target.value)} placeholder="cth: Dus / Kardus" style={GAYA_ISIAN} /></Labeled>
         <Labeled label="Kategori">
-          <select aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+          <select className="isian-fokus" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={GAYA_ISIAN}>
             {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </Labeled>
@@ -225,11 +221,11 @@ function UnitRowItem({ unit, canManage, onSaved, onError }: {
     return (
       <div style={{ ...rowStyle, gridTemplateColumns: "120px 90px 1fr 70px auto", background: "var(--surface-subtle)" }}>
         <code style={{ fontSize: 12, color: C.muted }}>{unit.code}</code>
-        <input value={symbol} onChange={e => setSymbol(e.target.value)} style={inputStyle} />
-        <input value={label} onChange={e => setLabel(e.target.value)} style={inputStyle} />
-        <input value={sortOrder} onChange={e => setSortOrder(e.target.value.replace(/[^0-9]/g, ""))} style={inputStyle} />
+        <input className="isian-fokus" value={symbol} onChange={e => setSymbol(e.target.value)} style={GAYA_ISIAN} />
+        <input className="isian-fokus" value={label} onChange={e => setLabel(e.target.value)} style={GAYA_ISIAN} />
+        <input className="isian-fokus" value={sortOrder} onChange={e => setSortOrder(e.target.value.replace(/[^0-9]/g, ""))} style={GAYA_ISIAN} />
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <select aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={{ ...inputStyle, width: 110 }}>
+          <select className="isian-fokus" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={{ ...GAYA_ISIAN, width: 110 }}>
             {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
           <button aria-label="Simpan" onClick={() => patch({ symbol, label, category, sort_order: Number(sortOrder) || 0 })} disabled={busy}

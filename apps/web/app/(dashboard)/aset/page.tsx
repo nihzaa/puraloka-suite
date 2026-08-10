@@ -68,6 +68,7 @@ import { useTabUrl } from "@/lib/use-tab-url";
 import { TabBagian } from "@/components/tab-bagian";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
+import { GAYA_ISIAN } from "@/components/isian";
 import {
   hariIniWIB, ringkasAset, sewaPerluDiputuskan,
   type BarisSewaPerhatian,
@@ -716,12 +717,7 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
     }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "8px 12px", borderRadius: 6,
-    border: `1px solid ${C.border}`, fontSize: 13, background: C.surface,
-    color: C.text, boxSizing: "border-box",
-  };
-  const labelStyle: React.CSSProperties = {
+    const labelStyle: React.CSSProperties = {
     display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 4,
   };
 
@@ -746,44 +742,44 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
           <>
             <div>
               <label htmlFor="asset_code" style={labelStyle}>Kode aset *</label>
-              <input id="asset_code" name="asset_code" required placeholder="AST-001" style={inputStyle} />
+              <input className="isian-fokus" id="asset_code" name="asset_code" required placeholder="AST-001" style={GAYA_ISIAN} />
             </div>
             <div>
               <label htmlFor="name" style={labelStyle}>Nama alat *</label>
-              <input id="name" name="name" required placeholder="Molen Semen 350L" style={inputStyle} />
+              <input className="isian-fokus" id="name" name="name" required placeholder="Molen Semen 350L" style={GAYA_ISIAN} />
             </div>
             <div>
               <label htmlFor="category" style={labelStyle}>Kategori</label>
-              <select id="category" name="category" defaultValue="alat_ringan" style={inputStyle}>
+              <select className="isian-fokus" id="category" name="category" defaultValue="alat_ringan" style={GAYA_ISIAN}>
                 {Object.entries(KATEGORI).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
             <div>
               <label htmlFor="brand" style={labelStyle}>Merek</label>
-              <input id="brand" name="brand" style={inputStyle} />
+              <input className="isian-fokus" id="brand" name="brand" style={GAYA_ISIAN} />
             </div>
             <div>
               <label htmlFor="purchase_date" style={labelStyle}>Tanggal perolehan</label>
-              <input id="purchase_date" name="purchase_date" type="date" style={inputStyle} />
+              <input className="isian-fokus" id="purchase_date" name="purchase_date" type="date" style={GAYA_ISIAN} />
             </div>
             <div>
               <label htmlFor="purchase_price" style={labelStyle}>Harga perolehan (Rp)</label>
-              <input id="purchase_price" name="purchase_price" type="number" min="0" style={inputStyle} />
+              <input className="isian-fokus" id="purchase_price" name="purchase_price" type="number" min="0" style={GAYA_ISIAN} />
             </div>
             <div>
               <label htmlFor="residual_value" style={labelStyle}>Nilai sisa (Rp)</label>
-              <input id="residual_value" name="residual_value" type="number" min="0" defaultValue={0} style={inputStyle} />
+              <input className="isian-fokus" id="residual_value" name="residual_value" type="number" min="0" defaultValue={0} style={GAYA_ISIAN} />
               <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
                 Perkiraan harga jual saat umur habis — bukan nol.
               </span>
             </div>
             <div>
               <label htmlFor="useful_life_months" style={labelStyle}>Umur ekonomis (bulan)</label>
-              <input id="useful_life_months" name="useful_life_months" type="number" min="1" defaultValue={60} style={inputStyle} />
+              <input className="isian-fokus" id="useful_life_months" name="useful_life_months" type="number" min="1" defaultValue={60} style={GAYA_ISIAN} />
             </div>
             <div>
               <label htmlFor="depreciation_method" style={labelStyle}>Metode penyusutan</label>
-              <select id="depreciation_method" name="depreciation_method" defaultValue="garis_lurus" style={inputStyle}>
+              <select className="isian-fokus" id="depreciation_method" name="depreciation_method" defaultValue="garis_lurus" style={GAYA_ISIAN}>
                 <option value="garis_lurus">Garis lurus</option>
                 <option value="saldo_menurun">Saldo menurun ganda</option>
               </select>
@@ -793,15 +789,15 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
           <>
             <div>
               <label htmlFor="item_name" style={labelStyle}>Nama alat *</label>
-              <input id="item_name" name="item_name" required placeholder="Excavator PC200" style={inputStyle} />
+              <input className="isian-fokus" id="item_name" name="item_name" required placeholder="Excavator PC200" style={GAYA_ISIAN} />
             </div>
             <div>
               <label htmlFor="rate" style={labelStyle}>Tarif (Rp) *</label>
-              <input id="rate" name="rate" type="number" min="0" required style={inputStyle} />
+              <input className="isian-fokus" id="rate" name="rate" type="number" min="0" required style={GAYA_ISIAN} />
             </div>
             <div>
               <label htmlFor="rate_unit" style={labelStyle}>Satuan tarif</label>
-              <select id="rate_unit" name="rate_unit" defaultValue="hari" style={inputStyle}>
+              <select className="isian-fokus" id="rate_unit" name="rate_unit" defaultValue="hari" style={GAYA_ISIAN}>
                 <option value="hari">Per hari</option>
                 <option value="minggu">Per minggu</option>
                 <option value="bulan">Per bulan</option>
@@ -812,11 +808,11 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
             </div>
             <div>
               <label htmlFor="start_date" style={labelStyle}>Mulai sewa *</label>
-              <input id="start_date" name="start_date" type="date" required style={inputStyle} />
+              <input className="isian-fokus" id="start_date" name="start_date" type="date" required style={GAYA_ISIAN} />
             </div>
             <div>
               <label htmlFor="end_date" style={labelStyle}>Selesai sewa</label>
-              <input id="end_date" name="end_date" type="date" style={inputStyle} />
+              <input className="isian-fokus" id="end_date" name="end_date" type="date" style={GAYA_ISIAN} />
               <span style={{ fontSize: 10, color: C.muted, display: "block", marginTop: 3 }}>
                 Kosongkan bila masih berjalan.
               </span>

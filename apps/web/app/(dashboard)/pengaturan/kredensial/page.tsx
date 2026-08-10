@@ -42,20 +42,9 @@ import {
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { KotakIsian } from "@/components/isian";
 
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "var(--pad-baris)",
-  border: `1px solid ${C.border}`,
-  borderRadius: 6,
-  fontSize: 13,
-  outline: "none",
-  background: "var(--surface)",
-  color: C.text,
-  boxSizing: "border-box",
-  fontFamily: "inherit",
-};
 
 type Sumber = "tenant" | "env" | "tidak-ada";
 
@@ -336,7 +325,7 @@ export default function KredensialPage() {
                       )}
 
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                        <input
+                        <KotakIsian
                           id={idInput}
                           type="password"
                           autoComplete="off"
@@ -353,7 +342,7 @@ export default function KredensialPage() {
                               ? `••••${k.empat_akhir} — tempel nilai baru untuk mengganti`
                               : "Belum disetel"
                           }
-                          style={{ ...inputStyle, flex: "1 1 260px" }}
+                          style={{ flex: "1 1 260px" }}
                         />
 
                         <button

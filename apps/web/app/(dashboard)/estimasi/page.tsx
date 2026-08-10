@@ -35,6 +35,7 @@ import { C } from "@/lib/warna-ui";
 // dan price book yang divirtualisasi.
 import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { GAYA_ISIAN } from "@/components/isian";
 
 const fmtRp = (n: number) => `Rp ${Number(n).toLocaleString("id-ID")}`;
 
@@ -175,10 +176,6 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
       </div>
     </div>, document.body);
 }
-const inputStyle: React.CSSProperties = {
-  width: "100%", boxSizing: "border-box", padding: "8px 8px", borderRadius: 6,
-  border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: C.surface,
-};
 const label = (t: string) => <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, margin: "10px 0 4px" }}>{t}</label>;
 function StatusBadge({ s }: { s: string }) {
   const map: Record<string, [string, string]> = {
@@ -240,7 +237,7 @@ function KomposerTab() {
   return (
     <div>
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
-        <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...inputStyle, width: 280 }}>
+        <select className="isian-fokus" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...GAYA_ISIAN, width: 280 }}>
           <option value="">— Pilih proyek —</option>
           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
@@ -699,16 +696,16 @@ function NewScenarioModal({ projectId, editions, onClose, onDone }:
   return (
     <Modal title="Skenario Estimasi Baru" onClose={onClose}>
       {label("Nama skenario")}
-      <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="mis. Penawaran tender" />
+      <input className="isian-fokus" style={GAYA_ISIAN} value={name} onChange={e => setName(e.target.value)} placeholder="mis. Penawaran tender" />
       {label("Tujuan (opsional)")}
-      <input style={inputStyle} value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="tender / rap / studi" />
+      <input className="isian-fokus" style={GAYA_ISIAN} value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="tender / rap / studi" />
       {label("Edisi AHSP nasional untuk versi pertama (opsional)")}
       {/* Edisi yang belum diimpor isinya DITANDAI, bukan disembunyikan.
           Registry memuat SE-68-2024 & SNI-2013 dengan nol analisa; memilihnya
           menghasilkan katalog kosong tanpa sebab yang terlihat. Menyembunyikan
           juga salah — keduanya memang direncanakan ada, dan menghilangkannya
           membuat pemakai mengira sistem hanya mendukung satu edisi. */}
-      <select aria-label="Pilih edisi AHSP" style={inputStyle} value={editionCode} onChange={e => setEditionCode(e.target.value)}>
+      <select className="isian-fokus" aria-label="Pilih edisi AHSP" style={GAYA_ISIAN} value={editionCode} onChange={e => setEditionCode(e.target.value)}>
         <option value="">— tanpa edisi (custom) —</option>
         {editions.filter(e => e.is_active).map(e => (
           <option key={e.id} value={e.code} disabled={(e.jumlah_analisa ?? 0) === 0}>
@@ -910,23 +907,23 @@ function AddItemModal({ version, onClose, onDone }:
             Analisa baru khusus proyek ini — tidak masuk katalog nasional/company lama.
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8 }}>
-            <div>{label("Kode")}<input style={inputStyle} value={customCode} onChange={e => setCustomCode(e.target.value)} placeholder="mis. CUSTOM-01" /></div>
-            <div>{label("Nama pekerjaan")}<input style={inputStyle} value={customName} onChange={e => setCustomName(e.target.value)} /></div>
+            <div>{label("Kode")}<input className="isian-fokus" style={GAYA_ISIAN} value={customCode} onChange={e => setCustomCode(e.target.value)} placeholder="mis. CUSTOM-01" /></div>
+            <div>{label("Nama pekerjaan")}<input className="isian-fokus" style={GAYA_ISIAN} value={customName} onChange={e => setCustomName(e.target.value)} /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8 }}>
             <div>{label("Kategori (cost code)")}
-              <select aria-label="Kode biaya item custom" style={inputStyle} value={customCostCodeId} onChange={e => setCustomCostCodeId(e.target.value)}>
+              <select className="isian-fokus" aria-label="Kode biaya item custom" style={GAYA_ISIAN} value={customCostCodeId} onChange={e => setCustomCostCodeId(e.target.value)}>
                 <option value="">— pilih —</option>
                 {costCodes.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
               </select></div>
-            <div>{label("Satuan output")}<input style={inputStyle} value={customUnit} onChange={e => setCustomUnit(e.target.value)} placeholder="mis. m2, kg, unit" /></div>
+            <div>{label("Satuan output")}<input className="isian-fokus" style={GAYA_ISIAN} value={customUnit} onChange={e => setCustomUnit(e.target.value)} placeholder="mis. m2, kg, unit" /></div>
           </div>
           {label("Komponen (resource code + koefisien)")}
           {customComps.map((c, i) => (
             <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6 }}>
-              <input style={{ ...inputStyle, flex: 2 }} value={c.resource_code} placeholder="kode resource"
+              <input className="isian-fokus" style={{ ...GAYA_ISIAN, flex: 2 }} value={c.resource_code} placeholder="kode resource"
                 onChange={e => setCustomComps(cs => cs.map((x, xi) => xi === i ? { ...x, resource_code: e.target.value } : x))} />
-              <input style={{ ...inputStyle, flex: 1 }} type="number" step="any" value={c.coefficient} placeholder="koefisien"
+              <input className="isian-fokus" style={{ ...GAYA_ISIAN, flex: 1 }} type="number" step="any" value={c.coefficient} placeholder="koefisien"
                 onChange={e => setCustomComps(cs => cs.map((x, xi) => xi === i ? { ...x, coefficient: e.target.value } : x))} />
               {customComps.length > 1 && (
                 <button aria-label="Hapus komponen" style={{ background: "none", border: "none", cursor: "pointer", color: C.red }}
@@ -938,7 +935,7 @@ function AddItemModal({ version, onClose, onDone }:
             <Plus size={13} /> Tambah komponen
           </button>
           {label("Volume")}
-          <input style={inputStyle} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} />
+          <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} />
         </>
       )}
 
@@ -946,24 +943,24 @@ function AddItemModal({ version, onClose, onDone }:
         <>
           {mode === "katalog" && (
             <>{label("Volume")}
-              <input style={inputStyle} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} placeholder="mis. 518.4" /></>
+              <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} placeholder="mis. 518.4" /></>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>{label("Tanggal harga (price book)")}
-              <input aria-label="Tanggal" style={inputStyle} type="date" value={priceDate} onChange={e => setPriceDate(e.target.value)} /></div>
+              <input className="isian-fokus" aria-label="Tanggal" style={GAYA_ISIAN} type="date" value={priceDate} onChange={e => setPriceDate(e.target.value)} /></div>
             <div>{label("Lokasi harga (opsional)")}
-              <input style={inputStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="mis. Bandung" /></div>
+              <input className="isian-fokus" style={GAYA_ISIAN} value={location} onChange={e => setLocation(e.target.value)} placeholder="mis. Bandung" /></div>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
             <div>{label("BUK %")}
-              <input style={inputStyle} type="number" min="0" max="100" step="any" value={bukPct} onChange={e => setBukPct(e.target.value)} /></div>
+              <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" max="100" step="any" value={bukPct} onChange={e => setBukPct(e.target.value)} /></div>
             <div>{label("Pembulatan")}
-              <select aria-label="Metode pembulatan" style={inputStyle} value={roundMode} onChange={e => setRoundMode(e.target.value as typeof roundMode)}>
+              <select className="isian-fokus" aria-label="Metode pembulatan" style={GAYA_ISIAN} value={roundMode} onChange={e => setRoundMode(e.target.value as typeof roundMode)}>
                 <option value="down">ROUNDDOWN</option><option value="up">ROUNDUP</option>
                 <option value="nearest">ROUND</option><option value="none">Tanpa</option>
               </select></div>
             <div>{label("Kelipatan (Rp)")}
-              <input style={inputStyle} type="number" min="0" value={roundStep} onChange={e => setRoundStep(e.target.value)} /></div>
+              <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" value={roundStep} onChange={e => setRoundStep(e.target.value)} /></div>
           </div>
         </>
       )}
@@ -974,14 +971,14 @@ function AddItemModal({ version, onClose, onDone }:
             Untuk pekerjaan yang bukan analisa AHSP (lift, pompa, septictank, air kerja, dll) — harga langsung, tanpa koefisien.
           </p>
           {label("Kategori (cost code)")}
-          <select aria-label="Kode biaya item lump-sum" style={inputStyle} value={lumpCostCodeId} onChange={e => setLumpCostCodeId(e.target.value)}>
+          <select className="isian-fokus" aria-label="Kode biaya item lump-sum" style={GAYA_ISIAN} value={lumpCostCodeId} onChange={e => setLumpCostCodeId(e.target.value)}>
             <option value="">— pilih —</option>
             {costCodes.map(c => <option key={c.id} value={c.id}>{c.code} — {c.name}</option>)}
           </select>
           {label("Jumlah (Rp)")}
-          <input style={inputStyle} type="number" min="0" step="any" value={lumpAmount} onChange={e => setLumpAmount(e.target.value)} />
+          <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={lumpAmount} onChange={e => setLumpAmount(e.target.value)} />
           {label("Catatan (opsional)")}
-          <input style={inputStyle} value={lumpNotes} onChange={e => setLumpNotes(e.target.value)} placeholder="mis. Sewa lift barang 1 bulan" />
+          <input className="isian-fokus" style={GAYA_ISIAN} value={lumpNotes} onChange={e => setLumpNotes(e.target.value)} placeholder="mis. Sewa lift barang 1 bulan" />
         </>
       )}
 
@@ -1196,18 +1193,18 @@ function KatalogTab() {
       )}
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
-        <input
+        <input className="isian-fokus"
           value={cari} onChange={e => setCari(e.target.value)}
           placeholder="Cari nama atau kode analisa…"
-          style={{ ...inputStyle, flex: 1, minWidth: 220 }}
+          style={{ ...GAYA_ISIAN, flex: 1, minWidth: 220 }}
         />
         {/* SATU dropdown, bukan dua yang saling memengaruhi.
             Sebelumnya "sumber" dan "edisi" terpisah, dan salah satunya bisa
             mematikan yang lain — pemakai harus memahami hubungan keduanya
             sebelum bisa menyaring. Di sini tiap pilihan menyebutkan sendiri apa
             yang akan tampil, beserta jumlahnya. */}
-        <select value={saring} onChange={e => setSaring(e.target.value)}
-          aria-label="Saring katalog" style={{ ...inputStyle, minWidth: 300 }}>
+        <select className="isian-fokus" value={saring} onChange={e => setSaring(e.target.value)}
+          aria-label="Saring katalog" style={{ ...GAYA_ISIAN, minWidth: 300 }}>
           <option value="">Semua ({(jumlahPerSaring.semua ?? 0).toLocaleString("id-ID")})</option>
           <option value="company">
             Analisa perusahaan saja ({(jumlahPerSaring.company ?? 0).toLocaleString("id-ID")})
@@ -1616,13 +1613,13 @@ function AdopsiModal({ asal, onClose, onDone }: {
         <div style={{ display: "grid", gap: 12, marginTop: 18 }}>
           <div>
             <label htmlFor="kode" style={lbl}>Kode analisa baru</label>
-            <input id="kode" value={kode} onChange={e => setKode(e.target.value)} required style={inputStyle} />
+            <input className="isian-fokus" id="kode" value={kode} onChange={e => setKode(e.target.value)} required style={GAYA_ISIAN} />
           </div>
           <div>
             <label htmlFor="alasan" style={lbl}>Alasan menyesuaikan</label>
-            <input id="alasan" value={alasan} onChange={e => setAlasan(e.target.value)}
+            <input className="isian-fokus" id="alasan" value={alasan} onChange={e => setAlasan(e.target.value)}
               placeholder="Mis. tim kami butuh waktu lebih lama untuk pekerjaan ini"
-              style={inputStyle} />
+              style={GAYA_ISIAN} />
           </div>
         </div>
 
@@ -1659,13 +1656,13 @@ function AdopsiModal({ asal, onClose, onDone }: {
                 <span style={{ fontFamily: "monospace", color: C.mid }}>{Number(c.coefficient)}</span>
               ) },
               { kunci: "jadi", judul: "Jadi", rata: "kanan", lebar: 130, render: c => (
-                <input
+                <input className="isian-fokus"
                   aria-label={`Koefisien baru untuk ${c.resource.name}`}
                   value={koef[c.resource.code] ?? ""}
                   onChange={e => setKoef(k => ({ ...k, [c.resource.code]: e.target.value }))}
                   placeholder={String(Number(c.coefficient))}
                   inputMode="decimal"
-                  style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "6px 8px" }}
+                  style={{ ...GAYA_ISIAN, textAlign: "right", fontFamily: "monospace", padding: "6px 8px" }}
                 />
               ) },
             ]}
@@ -1799,11 +1796,11 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
           </div>
           <div>
             <label htmlFor="alasan-2" style={lbl}>Alasan</label>
-            <input id="alasan-2" value={alasan} onChange={e => setAlasan(e.target.value)}
+            <input className="isian-fokus" id="alasan-2" value={alasan} onChange={e => setAlasan(e.target.value)}
               placeholder={editType === "correction"
                 ? "Mis. koefisien terbaca 0,07, seharusnya 0,7"
                 : "Mis. tim kami butuh waktu lebih lama untuk pekerjaan ini"}
-              required style={inputStyle} />
+              required style={GAYA_ISIAN} />
           </div>
         </div>
 
@@ -1833,13 +1830,13 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
                 <span style={{ fontFamily: "monospace", color: C.mid }}>{Number(c.coefficient)}</span>
               ) },
               { kunci: "jadi", judul: "Jadi", rata: "kanan", lebar: 130, render: c => (
-                <input
+                <input className="isian-fokus"
                   aria-label={`Koefisien baru untuk ${c.resource.name}`}
                   value={koef[c.resource.code] ?? ""}
                   onChange={e => setKoef(k => ({ ...k, [c.resource.code]: e.target.value }))}
                   placeholder={String(Number(c.coefficient))}
                   inputMode="decimal"
-                  style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "6px 8px" }}
+                  style={{ ...GAYA_ISIAN, textAlign: "right", fontFamily: "monospace", padding: "6px 8px" }}
                 />
               ) },
             ]}
@@ -1955,12 +1952,12 @@ function RapTab() {
       {err && <div style={{ background: C.redBg, color: C.red, border: `1px solid ${C.border}`, borderRadius: 6, padding: "8px 12px", fontSize: 12, marginBottom: 10 }}>{err}</div>}
 
       <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
-        <select aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...inputStyle, width: 280 }}>
+        <select className="isian-fokus" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={{ ...GAYA_ISIAN, width: 280 }}>
           <option value="">— Pilih proyek —</option>
           {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         {projectId && rapList.length > 0 && (
-          <select aria-label="Pilih RAP" value={rapId} onChange={e => setRapId(e.target.value)} style={{ ...inputStyle, width: 260 }}>
+          <select className="isian-fokus" aria-label="Pilih RAP" value={rapId} onChange={e => setRapId(e.target.value)} style={{ ...GAYA_ISIAN, width: 260 }}>
             <option value="">— Pilih RAP —</option>
             {rapList.map(r => <option key={r.id} value={r.id}>{r.name} ({r.status})</option>)}
           </select>
@@ -2035,19 +2032,19 @@ function RapTab() {
                 ) },
                 { kunci: "qtyAdj", judul: "Qty Disesuaikan", rata: "kanan", lebar: 110, render: m => (
                   locked ? Number(m.qty_adjusted).toLocaleString("id-ID") : (
-                    <input defaultValue={Number(m.qty_adjusted)} inputMode="decimal"
+                    <input className="isian-fokus" defaultValue={Number(m.qty_adjusted)} inputMode="decimal"
                       aria-label={`Qty disesuaikan untuk ${m.resource?.name ?? "material"}`}
                       onBlur={e => e.target.value !== String(Number(m.qty_adjusted)) && void simpanQty(m, "qty_adjusted", e.target.value)}
-                      style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "4px 8px" }} />
+                      style={{ ...GAYA_ISIAN, textAlign: "right", fontFamily: "monospace", padding: "4px 8px" }} />
                   )
                 ) },
                 { kunci: "sat", judul: "Sat", render: m => m.unit_code },
                 { kunci: "harga", judul: "Harga Supplier", rata: "kanan", lebar: 140, render: m => (
                   locked ? fmtRp(Number(m.supplier_price)) : (
-                    <input defaultValue={Number(m.supplier_price)} inputMode="decimal"
+                    <input className="isian-fokus" defaultValue={Number(m.supplier_price)} inputMode="decimal"
                       aria-label={`Harga supplier untuk ${m.resource?.name ?? "material"}`}
                       onBlur={e => e.target.value !== String(Number(m.supplier_price)) && void simpanQty(m, "supplier_price", e.target.value)}
-                      style={{ ...inputStyle, textAlign: "right", fontFamily: "monospace", padding: "4px 8px" }} />
+                      style={{ ...GAYA_ISIAN, textAlign: "right", fontFamily: "monospace", padding: "4px 8px" }} />
                   )
                 ) },
                 { kunci: "pagu", judul: "Pagu", rata: "kanan", render: m => (
@@ -2202,7 +2199,7 @@ function NewRapModal({ projectId, onClose, onDone }: { projectId: string; onClos
       <form onSubmit={kirim}>
         {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 6, fontSize: 12, color: C.text }}>{err}</div>}
         <label htmlFor="version-id" style={lbl}>Versi estimasi (sumber take-off material)</label>
-        <select id="version-id" aria-label="Pilih versi estimasi" value={versionId} onChange={e => setVersionId(e.target.value)} required style={{ ...inputStyle, marginBottom: 12 }}>
+        <select className="isian-fokus" id="version-id" aria-label="Pilih versi estimasi" value={versionId} onChange={e => setVersionId(e.target.value)} required style={{ ...GAYA_ISIAN, marginBottom: 12 }}>
           <option value="">— Pilih versi —</option>
           {allVersions.map(v => (
             <option key={v.id} value={v.id}>{v.scenarioName} · v{v.version_number} ({v.status}) · {fmtRp(Number(v.total_amount))}</option>
@@ -2210,9 +2207,9 @@ function NewRapModal({ projectId, onClose, onDone }: { projectId: string; onClos
         </select>
         {allVersions.length === 0 && <p style={{ fontSize: 12, color: C.muted, margin: "-6px 0 12px" }}>Belum ada versi estimasi di proyek ini — buat dulu di tab Komposer.</p>}
         <label htmlFor="name" style={lbl}>Nama RAP</label>
-        <input id="name" value={name} onChange={e => setName(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
+        <input className="isian-fokus" id="name" value={name} onChange={e => setName(e.target.value)} style={{ ...GAYA_ISIAN, marginBottom: 12 }} />
         <label htmlFor="notes" style={lbl}>Catatan (opsional)</label>
-        <input id="notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} />
+        <input className="isian-fokus" id="notes" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...GAYA_ISIAN, marginBottom: 16 }} />
         <div style={{ display: "flex", gap: 8 }}>
           <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>
             {busy ? "Membuat…" : "Buat RAP"}
@@ -2249,12 +2246,12 @@ function AddLaborModal({ rapId, onClose, onDone }: { rapId: string; onClose: () 
       <form onSubmit={kirim}>
         {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 6, fontSize: 12, color: C.text }}>{err}</div>}
         <label htmlFor="description" style={lbl}>Uraian pekerjaan</label>
-        <input id="description" value={description} onChange={e => setDescription(e.target.value)} required
-          placeholder="Mis. Borongan pasangan bata + plester lantai 1" style={{ ...inputStyle, marginBottom: 12 }} />
+        <input className="isian-fokus" id="description" value={description} onChange={e => setDescription(e.target.value)} required
+          placeholder="Mis. Borongan pasangan bata + plester lantai 1" style={{ ...GAYA_ISIAN, marginBottom: 12 }} />
         <label htmlFor="value" style={lbl}>Nilai borongan (Rp)</label>
-        <input id="value" value={value} onChange={e => setValue(e.target.value)} inputMode="decimal" style={{ ...inputStyle, marginBottom: 16 }} />
+        <input className="isian-fokus" id="value" value={value} onChange={e => setValue(e.target.value)} inputMode="decimal" style={{ ...GAYA_ISIAN, marginBottom: 16 }} />
         <label htmlFor="notes-2" style={lbl}>Catatan (opsional)</label>
-        <input id="notes-2" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...inputStyle, marginBottom: 16 }} />
+        <input className="isian-fokus" id="notes-2" value={notes} onChange={e => setNotes(e.target.value)} style={{ ...GAYA_ISIAN, marginBottom: 16 }} />
         <div style={{ display: "flex", gap: 8 }}>
           <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>
             {busy ? "Menyimpan…" : "Tambah"}
@@ -2300,20 +2297,20 @@ function ChangeLogModal({ rapId, table, lineId, label, onClose, onDone }: {
         </p>
         {err && <div style={{ marginBottom: 12, padding: "8px 12px", background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 6, fontSize: 12, color: C.text }}>{err}</div>}
         <label htmlFor="field-name" style={lbl}>Field yang berubah (opsional)</label>
-        <input id="field-name" value={fieldName} onChange={e => setFieldName(e.target.value)} placeholder="Mis. supplier_price" style={{ ...inputStyle, marginBottom: 12 }} />
+        <input className="isian-fokus" id="field-name" value={fieldName} onChange={e => setFieldName(e.target.value)} placeholder="Mis. supplier_price" style={{ ...GAYA_ISIAN, marginBottom: 12 }} />
         <div style={{ display: "flex", gap: 8 }}>
           <div style={{ flex: 1 }}>
             <label htmlFor="old-value" style={lbl}>Nilai lama (opsional)</label>
-            <input id="old-value" value={oldValue} onChange={e => setOldValue(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
+            <input className="isian-fokus" id="old-value" value={oldValue} onChange={e => setOldValue(e.target.value)} style={{ ...GAYA_ISIAN, marginBottom: 12 }} />
           </div>
           <div style={{ flex: 1 }}>
             <label htmlFor="new-value" style={lbl}>Nilai baru (opsional)</label>
-            <input id="new-value" value={newValue} onChange={e => setNewValue(e.target.value)} style={{ ...inputStyle, marginBottom: 12 }} />
+            <input className="isian-fokus" id="new-value" value={newValue} onChange={e => setNewValue(e.target.value)} style={{ ...GAYA_ISIAN, marginBottom: 12 }} />
           </div>
         </div>
         <label htmlFor="reason" style={lbl}>Alasan (wajib)</label>
-        <input id="reason" value={reason} onChange={e => setReason(e.target.value)} required
-          placeholder="Mis. supplier menaikkan harga semen setelah pagu dikunci" style={{ ...inputStyle, marginBottom: 16 }} />
+        <input className="isian-fokus" id="reason" value={reason} onChange={e => setReason(e.target.value)} required
+          placeholder="Mis. supplier menaikkan harga semen setelah pagu dikunci" style={{ ...GAYA_ISIAN, marginBottom: 16 }} />
         <div style={{ display: "flex", gap: 8 }}>
           <button type="submit" disabled={busy} style={{ ...btnPrimary, opacity: busy ? .7 : 1, cursor: busy ? "wait" : "pointer" }}>
             {busy ? "Menyimpan…" : "Simpan Catatan"}
@@ -2401,15 +2398,15 @@ function HargaTab() {
         {/* Upah / bahan / alat sudah terpisah di `resources.category` — tinggal
             disaring. Berguna karena keduanya diperlakukan berbeda: upah berubah
             per kesepakatan mandor, harga bahan per supplier. */}
-        <select value={kategori} onChange={e => setKategori(e.target.value)}
-          aria-label="Saring jenis harga pokok" style={{ ...inputStyle, width: 170 }}>
+        <select className="isian-fokus" value={kategori} onChange={e => setKategori(e.target.value)}
+          aria-label="Saring jenis harga pokok" style={{ ...GAYA_ISIAN, width: 170 }}>
           <option value="">Semua jenis</option>
           <option value="labor">Upah (tenaga kerja)</option>
           <option value="material">Bahan / material</option>
           <option value="equipment">Alat / peralatan</option>
         </select>
-        <select value={status} onChange={e => setStatus(e.target.value)}
-          aria-label="Saring status harga" style={{ ...inputStyle, width: 160 }}>
+        <select className="isian-fokus" value={status} onChange={e => setStatus(e.target.value)}
+          aria-label="Saring status harga" style={{ ...GAYA_ISIAN, width: 160 }}>
           <option value="">Semua status</option>
           <option value="draft">draft</option><option value="verified">verified</option>
           <option value="active">active</option><option value="expired">expired</option>
@@ -2418,9 +2415,9 @@ function HargaTab() {
           overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>
           Cari nama atau kode resource
         </label>
-        <input id="harga-cari" type="search" value={cari} onChange={e => setCari(e.target.value)}
+        <input className="isian-fokus" id="harga-cari" type="search" value={cari} onChange={e => setCari(e.target.value)}
           placeholder="Cari resource (semen, besi, pekerja…)"
-          style={{ ...inputStyle, width: 260 }} />
+          style={{ ...GAYA_ISIAN, width: 260 }} />
         <button style={btnPrimary} onClick={() => setShowNew(true)}><Plus size={14} /> Harga Baru</button>
         {/* Jujur soal pemotongan: 2.637 entri, hanya 200 termuat. Pemakai yang
             tak menemukan harganya perlu tahu daftarnya memang dipotong — bukan
@@ -3047,24 +3044,24 @@ function NewPriceModal({ initial, onClose, onDone }: {
   return (
     <Modal title="Entry Harga Baru (lahir draft)" onClose={onClose}>
       {label("Cari resource")}
-      <input style={inputStyle} value={query} onChange={e => setQuery(e.target.value)} placeholder="ketik nama resource… mis. semen" />
-      <select aria-label="Pilih resource" style={{ ...inputStyle, marginTop: 6 }} size={6} value={resourceCode} onChange={e => setResourceCode(e.target.value)}>
+      <input className="isian-fokus" style={GAYA_ISIAN} value={query} onChange={e => setQuery(e.target.value)} placeholder="ketik nama resource… mis. semen" />
+      <select className="isian-fokus" aria-label="Pilih resource" style={{ ...GAYA_ISIAN, marginTop: 6 }} size={6} value={resourceCode} onChange={e => setResourceCode(e.target.value)}>
         {resources.map(r => <option key={r.code} value={r.code}>{r.name} ({r.code}, per {r.unit_code})</option>)}
         {resources.length === 0 && <option value="" disabled>— tidak ada hasil —</option>}
       </select>
       {label("Harga (Rp)")}
-      <input style={inputStyle} type="number" min="0" step="any" value={amount} onChange={e => setAmount(e.target.value)} />
+      <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={amount} onChange={e => setAmount(e.target.value)} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <div>{label("Berlaku sejak")}
-          <input aria-label="Tanggal" style={inputStyle} type="date" value={effective} onChange={e => setEffective(e.target.value)} /></div>
+          <input className="isian-fokus" aria-label="Tanggal" style={GAYA_ISIAN} type="date" value={effective} onChange={e => setEffective(e.target.value)} /></div>
         <div>{label("Berlaku sampai (opsional)")}
-          <input aria-label="Tanggal" style={inputStyle} type="date" value={expired} onChange={e => setExpired(e.target.value)} /></div>
+          <input className="isian-fokus" aria-label="Tanggal" style={GAYA_ISIAN} type="date" value={expired} onChange={e => setExpired(e.target.value)} /></div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         <div>{label("Lokasi (kosong = umum)")}
-          <input style={inputStyle} value={location} onChange={e => setLocation(e.target.value)} placeholder="mis. Bandung" /></div>
+          <input className="isian-fokus" style={GAYA_ISIAN} value={location} onChange={e => setLocation(e.target.value)} placeholder="mis. Bandung" /></div>
         <div>{label("Tingkat keyakinan")}
-          <select aria-label="Tingkat keyakinan harga" style={inputStyle} value={confidence} onChange={e => setConfidence(e.target.value as typeof confidence)}>
+          <select className="isian-fokus" aria-label="Tingkat keyakinan harga" style={GAYA_ISIAN} value={confidence} onChange={e => setConfidence(e.target.value as typeof confidence)}>
             <option value="">— tak ditentukan —</option>
             <option value="high">Tinggi (mis. penawaran resmi supplier)</option>
             <option value="medium">Sedang (mis. survei pasar)</option>
@@ -3072,7 +3069,7 @@ function NewPriceModal({ initial, onClose, onDone }: {
           </select></div>
       </div>
       {label("Supplier (opsional)")}
-      <input style={inputStyle} value={supplier} onChange={e => setSupplier(e.target.value)} />
+      <input className="isian-fokus" style={GAYA_ISIAN} value={supplier} onChange={e => setSupplier(e.target.value)} />
       {err && <p style={{ color: C.red, fontSize: 12 }}>{err}</p>}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
         <button style={btnGhost} onClick={onClose}>Batal</button>

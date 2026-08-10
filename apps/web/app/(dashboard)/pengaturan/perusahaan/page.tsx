@@ -18,6 +18,7 @@ import { Building2, Plus, Users, AlertTriangle, Check, X, ArrowRightLeft } from 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { GAYA_ISIAN } from "@/components/isian";
 
 
 interface BadanUsaha {
@@ -175,34 +176,34 @@ export default function PerusahaanPage() {
 
           <div style={{ display: "grid", gap: 12 }}>
             <Kolom label="Nama badan usaha" wajib>
-              <input
+              <input className="isian-fokus"
                 value={nama} onChange={(e) => namaBerubah(e.target.value)}
-                placeholder="Puraloka Karya" required style={inputStyle}
+                placeholder="Puraloka Karya" required style={GAYA_ISIAN}
               />
             </Kolom>
 
             <Kolom label="Nama badan hukum" petunjuk="Nama lengkap sesuai akta. Dipakai di kontrak & invoice.">
-              <input
+              <input className="isian-fokus"
                 value={namaHukum} onChange={(e) => setNamaHukum(e.target.value)}
-                placeholder="PT Puraloka Karya Nusantara" style={inputStyle}
+                placeholder="PT Puraloka Karya Nusantara" style={GAYA_ISIAN}
               />
             </Kolom>
 
             <Kolom label="Kode" wajib petunjuk="Huruf kecil, angka, dan tanda hubung. Dipakai internal, tidak tampil di dokumen.">
-              <input
+              <input className="isian-fokus"
                 value={kode}
                 onChange={(e) => { setKode(e.target.value); setKodeDisentuh(true); }}
                 placeholder="puraloka-karya" required pattern="[a-z0-9][a-z0-9\-]{1,38}[a-z0-9]"
-                style={inputStyle}
+                style={GAYA_ISIAN}
               />
             </Kolom>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Kolom label="Awalan nomor invoice" petunjuk="Contoh: INVK/2026/01/001">
-                <input value={prefix} onChange={(e) => setPrefix(e.target.value)} style={inputStyle} />
+                <input className="isian-fokus" value={prefix} onChange={(e) => setPrefix(e.target.value)} style={GAYA_ISIAN} />
               </Kolom>
               <Kolom label="NPWP">
-                <input value={npwp} onChange={(e) => setNpwp(e.target.value)} placeholder="Opsional" style={inputStyle} />
+                <input className="isian-fokus" value={npwp} onChange={(e) => setNpwp(e.target.value)} placeholder="Opsional" style={GAYA_ISIAN} />
               </Kolom>
             </div>
           </div>
@@ -276,11 +277,6 @@ export default function PerusahaanPage() {
   );
 }
 
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 12px", borderRadius: 6,
-  border: `1px solid ${C.border}`, background: "var(--surface)",
-  fontSize: 13, color: C.text, boxSizing: "border-box",
-};
 
 function Kolom({
   label, petunjuk, wajib, children,

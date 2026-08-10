@@ -13,6 +13,7 @@ import {
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_ISIAN } from "@/components/isian";
 
 const ROLES = [
   { key: "admin",  label: "Administrator", icon: ShieldCheck, color: C.purple, bg: C.purpleBg, border: C.purpleBorder },
@@ -126,8 +127,11 @@ export default function UsersPage() {
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <div style={{ flex: 1, position: "relative" }}>
           <Search size={14} color={C.muted} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama, email, atau telepon..."
-            style={{ width: "100%", padding: "8px 12px 8px 32px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" }} />
+          {/* Padding kiri 32px memberi ruang untuk ikon kaca pembesar di
+              atasnya — itu satu-satunya alasan kotak ini menyimpang dari
+              `GAYA_ISIAN`, dan sisanya tetap dari kosakata bersama. */}
+          <input className="isian-fokus" value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari nama, email, atau telepon..."
+            style={{ ...GAYA_ISIAN, padding: "8px 12px 8px 32px" }} />
         </div>
         {filterRole !== "all" && (
           <button onClick={() => setFilterRole("all")} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 12, color: C.mid, display: "flex", alignItems: "center", gap: 6 }}>
@@ -224,8 +228,7 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
-
+  
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name || !email || !password) { setError("Nama, email, dan password wajib diisi"); return; }
@@ -255,19 +258,19 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
           {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label htmlFor="name" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Lengkap</label>
-            <input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="cth: Budi Santoso" style={inputStyle} required />
+            <input className="isian-fokus" id="name" value={name} onChange={e => setName(e.target.value)} placeholder="cth: Budi Santoso" style={GAYA_ISIAN} required />
           </div>
           <div>
             <label htmlFor="email" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Email</label>
-            <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" style={inputStyle} required />
+            <input className="isian-fokus" id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email@example.com" style={GAYA_ISIAN} required />
           </div>
           <div>
             <label htmlFor="password" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Password</label>
-            <input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 karakter" style={inputStyle} required />
+            <input className="isian-fokus" id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min. 8 karakter" style={GAYA_ISIAN} required />
           </div>
           <div>
             <label htmlFor="phone" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>No. Telepon (opsional)</label>
-            <input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0812-xxxx-xxxx" style={inputStyle} />
+            <input className="isian-fokus" id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0812-xxxx-xxxx" style={GAYA_ISIAN} />
           </div>
           <div>
             <span id="role" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 8 }}>Role</span>
@@ -310,7 +313,6 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const inputStyle: React.CSSProperties = { width: "100%", padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box", background: "var(--surface)" };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -340,11 +342,11 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
           {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label htmlFor="name-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Lengkap</label>
-            <input id="name-2" value={name} onChange={e => setName(e.target.value)} style={inputStyle} required />
+            <input className="isian-fokus" id="name-2" value={name} onChange={e => setName(e.target.value)} style={GAYA_ISIAN} required />
           </div>
           <div>
             <label htmlFor="phone-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>No. Telepon</label>
-            <input id="phone-2" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0812-xxxx-xxxx" style={inputStyle} />
+            <input className="isian-fokus" id="phone-2" value={phone} onChange={e => setPhone(e.target.value)} placeholder="0812-xxxx-xxxx" style={GAYA_ISIAN} />
           </div>
           <div>
             <span id="role-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 8 }}>Role</span>

@@ -45,20 +45,9 @@ import { Bot, Info, Loader2, Power, Save, ShieldCheck } from "lucide-react";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { GAYA_ISIAN } from "@/components/isian";
 
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "var(--pad-baris)",
-  border: `1px solid ${C.border}`,
-  borderRadius: 6,
-  fontSize: 13,
-  outline: "none",
-  background: "var(--surface)",
-  color: C.text,
-  boxSizing: "border-box",
-  fontFamily: "inherit",
-};
 
 interface ToolTersedia {
   nama: string;
@@ -310,7 +299,7 @@ export default function PerilakuAsistenPage() {
                 Simpan riwayat percakapan
               </label>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <input
+                <input className="isian-fokus"
                   id="retensi"
                   type="number"
                   min={1}
@@ -324,7 +313,7 @@ export default function PerilakuAsistenPage() {
                       retensi_hari: e.target.value === "" ? null : Number(e.target.value),
                     }))
                   }
-                  style={{ ...inputStyle, width: 120 }}
+                  style={{ ...GAYA_ISIAN, width: 120 }}
                 />
                 <span style={{ fontSize: 13, color: C.mid }}>hari</span>
               </div>
@@ -373,7 +362,7 @@ export default function PerilakuAsistenPage() {
                     <label htmlFor={idPrompt} style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                       Instruksi tambahan
                     </label>
-                    <textarea
+                    <textarea className="isian-fokus"
                       id={idPrompt}
                       aria-label={`Instruksi tambahan untuk ${nama}`}
                       rows={3}
@@ -382,7 +371,7 @@ export default function PerilakuAsistenPage() {
                       value={k.prompt_sistem ?? ""}
                       disabled={!bolehKelola}
                       onChange={(e) => ubah(k.asisten, { prompt_sistem: e.target.value || null })}
-                      style={{ ...inputStyle, resize: "vertical", lineHeight: 1.6 }}
+                      style={{ ...GAYA_ISIAN, resize: "vertical", lineHeight: 1.6 }}
                     />
                     <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                       Ditambahkan di bawah instruksi bawaan, tidak menggantikannya. Dikirim ulang
@@ -396,7 +385,7 @@ export default function PerilakuAsistenPage() {
                         <label htmlFor={idRonde} style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                           Batas langkah
                         </label>
-                        <input
+                        <input className="isian-fokus"
                           id={idRonde}
                           aria-label={`Batas langkah untuk ${nama}`}
                           type="number"
@@ -405,7 +394,7 @@ export default function PerilakuAsistenPage() {
                           value={k.maks_ronde}
                           disabled={!bolehKelola}
                           onChange={(e) => ubah(k.asisten, { maks_ronde: Number(e.target.value) })}
-                          style={inputStyle}
+                          style={GAYA_ISIAN}
                         />
                         <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                           Berapa kali asisten boleh membaca data sebelum wajib menjawab.

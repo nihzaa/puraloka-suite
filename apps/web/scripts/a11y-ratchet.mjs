@@ -135,12 +135,31 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
       // dengan huruf awal" ikut terhitung sebagai kontrol tanpa nama.
       // Angka yang digelembungkan laporan palsu melatih pembacanya
       // mengabaikan penjaga ini — persis yang mau dicegah.
+      //
+      // `/*` dan `/**` ikut dikenali, bukan hanya `//` dan `*` lanjutan.
+      // Tanpa itu, komentar JSDoc SATU BARIS seperti
+      //     /** `<select>` dengan bentuk yang sama — … */
+      // lolos: pola lama menuntut `*` berada di awal atau sesudah spasi,
+      // sedangkan di sini ia didahului `/`. Itulah yang membuat
+      // `components/isian.tsx:145` — sebuah kalimat penjelasan — dilaporkan
+      // sebagai kontrol tanpa nama, dan "memperbaikinya" berarti merusak
+      // dokumentasi yang benar demi menghijaukan penjaga.
       const sblm = baris[i].slice(0, baris[i].indexOf(`<${tag}`))
-      if (/(^|\s)(\/\/|\*|\{\/\*)/.test(sblm.trimStart().slice(0, 3)) || sblm.includes('{/*')) continue
+      const awal = sblm.trimStart().slice(0, 3)
+      if (/^(\/\/|\/\*|\*|\{\/\*)/.test(awal) || sblm.includes('{/*')) continue
       // Komponen pembungkus generik (`<select {...props}>`) MEWARISI nama dari
       // pemanggilnya — memberi aria-label di sini justru menimpa nama yang
       // spesifik dengan yang generik di SELURUH pemakaian.
-      if (baris.slice(i, i + 6).join('\n').includes('{...props}')) continue
+      //
+      // Nama variabelnya BEBAS, bukan harus `props`. Versi pertama memaku
+      // literal `{...props}`, lalu `components/isian.tsx` — yang menyebar
+      // `{...sisa}` setelah mencabut `style`/`className` — tertangkap sebagai
+      // pelanggar. Memberinya `aria-label` generik justru akan MENIMPA nama
+      // spesifik di seluruh pemakaiannya, yaitu kerusakan yang pengecualian
+      // ini ada untuk mencegahnya. Repo ini menulis kodenya dalam bahasa
+      // Indonesia; penjaga yang hanya mengenali kosakata Inggris akan
+      // memaksa kode dinamai ulang demi menyenangkan regex.
+      if (/\{\.\.\.\w+\}/.test(baris.slice(i, i + 6).join('\n'))) continue
       // Tag bisa multi-baris; lihat ke bawah sampai 14 baris — TAPI berhenti
       // di `>` yang menutup tag pembuka ini.
       //

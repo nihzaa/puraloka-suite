@@ -39,20 +39,9 @@ import {
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { GAYA_ISIAN } from "@/components/isian";
 
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "var(--pad-baris)",
-  border: `1px solid ${C.border}`,
-  borderRadius: 6,
-  fontSize: 13,
-  outline: "none",
-  background: "var(--surface)",
-  color: C.text,
-  boxSizing: "border-box",
-  fontFamily: "inherit",
-};
 
 interface Nomor {
   id: string;
@@ -239,14 +228,14 @@ export default function WhatsAppPage() {
             <label htmlFor="nomor-baru" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
               Nomor WhatsApp
             </label>
-            <input
+            <input className="isian-fokus"
               id="nomor-baru"
               value={nomorBaru}
               onChange={(e) => setNomorBaru(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") daftarkan(); }}
               placeholder="08123456789 atau +628123456789"
               disabled={!bolehKelola || sedang === "__daftar__"}
-              style={inputStyle}
+              style={GAYA_ISIAN}
             />
             <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
               Kode 6 digit dikirim ke nomor itu. Nomor baru berfungsi setelah kodenya
@@ -367,7 +356,7 @@ export default function WhatsAppPage() {
                       <label htmlFor={idKode} style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
                         Kode verifikasi untuk {tampilNomor(n.nomor)}
                       </label>
-                      <input
+                      <input className="isian-fokus"
                         id={idKode}
                         value={kode[n.id] ?? ""}
                         onChange={(e) => setKode((s) => ({ ...s, [n.id]: e.target.value }))}
@@ -376,7 +365,7 @@ export default function WhatsAppPage() {
                         inputMode="numeric"
                         maxLength={6}
                         disabled={!bolehKelola || sedang === n.id}
-                        style={{ ...inputStyle, letterSpacing: "0.15em", textAlign: "center" }}
+                        style={{ ...GAYA_ISIAN, letterSpacing: "0.15em", textAlign: "center" }}
                       />
                     </div>
                     <button
@@ -635,18 +624,16 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
                 aria-label={`Isi pesan — ${t.label}`}
                 aria-invalid={asing.length > 0}
                 onChange={(e) => setDraf((d) => ({ ...d, [t.id]: e.target.value }))}
+                className="isian-fokus"
                 style={{
-                  padding: "9px 11px",
-                  border: `1px solid ${asing.length > 0 ? C.danger : "var(--border)"}`,
-                  borderRadius: 8,
-                  fontSize: 13,
+                  ...GAYA_ISIAN,
                   lineHeight: 1.6,
-                  background: "var(--surface)",
-                  color: C.text,
-                  fontFamily: "inherit",
                   resize: "vertical",
-                  boxSizing: "border-box",
-                  width: "100%",
+                  // Border merah saat template memuat variabel yang tak dikenal:
+                  // `aria-invalid` di atas memberi tahu pembaca layar, dan ini
+                  // memberi tahu yang melihat. Cincin fokusnya ikut merah lewat
+                  // `.isian-fokus[aria-invalid="true"]` di globals.css.
+                  ...(asing.length > 0 && { borderColor: C.danger }),
                 }}
               />
 

@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { Globe, Save, Check, X, AlertTriangle, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { C } from "@/lib/warna-ui";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { GAYA_ISIAN } from "@/components/isian";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pengaturan konten situs publik (compro) — migrasi 205/206/207.
@@ -19,11 +20,6 @@ import { GAYA_KARTU } from "@/components/ui-dasar";
 // ─────────────────────────────────────────────────────────────────────────────
 
 
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 10px", border: `1px solid ${C.border}`, borderRadius: 6,
-  fontSize: 13, outline: "none", background: "var(--surface)", color: C.text,
-  boxSizing: "border-box", fontFamily: "inherit",
-};
 
 /** Varian tampilan seksi — cermin CHECK di migrasi 205. */
 const VARIAN = ["baku", "grid", "carousel", "split"] as const;
@@ -255,12 +251,12 @@ function SitusContent() {
                 {LABEL_SEKSI[s.kunci] ?? s.kunci}
               </span>
               <span style={{ fontSize: 12, color: C.muted }}>urutan {s.urutan}</span>
-              <select
+              <select className="isian-fokus"
                 value={s.varian}
                 disabled={!canManage || simpan === s.kunci}
                 onChange={(e) => ubahSeksi(s.kunci, { varian: e.target.value })}
                 aria-label={`Varian tampilan ${LABEL_SEKSI[s.kunci] ?? s.kunci}`}
-                style={{ ...inputStyle, width: "auto", fontSize: 12, padding: "5px 8px" }}
+                style={{ ...GAYA_ISIAN, width: "auto", fontSize: 12, padding: "5px 8px" }}
               >
                 {VARIAN.map((v) => <option key={v} value={v}>{v}</option>)}
               </select>
@@ -306,12 +302,12 @@ function SitusContent() {
                   aria-label={label}
                   style={{ width: 44, height: 34, border: `1px solid ${C.border}`, borderRadius: 6, padding: 2, cursor: "pointer" }}
                 />
-                <input
+                <input className="isian-fokus"
                   type="text"
                   value={merek[field]}
                   disabled={!canManage}
                   onChange={(e) => setMerek((m) => ({ ...m, [field]: e.target.value.toUpperCase() }))}
-                  style={{ ...inputStyle, width: 100, fontFamily: "ui-monospace, monospace" }}
+                  style={{ ...GAYA_ISIAN, width: 100, fontFamily: "ui-monospace, monospace" }}
                 />
               </span>
             </label>
@@ -350,22 +346,22 @@ function SitusContent() {
                 </label>
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                   {panjang ? (
-                    <textarea
+                    <textarea className="isian-fokus"
                       id={`konten-${k}`}
                       value={konten[k] ?? ""}
                       disabled={!canManage}
                       rows={3}
                       onChange={(e) => setKonten((c) => ({ ...c, [k]: e.target.value }))}
-                      style={{ ...inputStyle, resize: "vertical" }}
+                      style={{ ...GAYA_ISIAN, resize: "vertical" }}
                     />
                   ) : (
-                    <input
+                    <input className="isian-fokus"
                       id={`konten-${k}`}
                       type="text"
                       value={konten[k] ?? ""}
                       disabled={!canManage}
                       onChange={(e) => setKonten((c) => ({ ...c, [k]: e.target.value }))}
-                      style={inputStyle}
+                      style={GAYA_ISIAN}
                     />
                   )}
                   <button

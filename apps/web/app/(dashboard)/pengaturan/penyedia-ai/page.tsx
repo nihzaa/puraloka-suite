@@ -43,20 +43,9 @@ import { Bot, Info, Loader2, Save, TrendingUp, Wallet } from "lucide-react";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { GAYA_ISIAN } from "@/components/isian";
 
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  padding: "var(--pad-baris)",
-  border: `1px solid ${C.border}`,
-  borderRadius: 6,
-  fontSize: 13,
-  outline: "none",
-  background: "var(--surface)",
-  color: C.text,
-  boxSizing: "border-box",
-  fontFamily: "inherit",
-};
 
 interface ModelTersedia {
   id: string;
@@ -407,7 +396,7 @@ export default function PenyediaAiPage() {
                 <label htmlFor="batas-global" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                   Batas biaya per bulan
                 </label>
-                <input
+                <input className="isian-fokus"
                   id="batas-global"
                   aria-label="Batas biaya AI per bulan untuk seluruh asisten"
                   type="number"
@@ -417,7 +406,7 @@ export default function PenyediaAiPage() {
                   value={batasGlobal ?? ""}
                   disabled={!bolehKelola}
                   onChange={(e) => ubahBatasSemua(e.target.value === "" ? null : Number(e.target.value))}
-                  style={inputStyle}
+                  style={GAYA_ISIAN}
                 />
                 <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                   Berlaku untuk seluruh asisten digabung.
@@ -428,14 +417,13 @@ export default function PenyediaAiPage() {
                 <label htmlFor="mode-global" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                   Saat batas tercapai
                 </label>
-                <select
+                <select className="isian-fokus"
                   id="mode-global"
                   aria-label="Tindakan saat batas biaya AI tercapai"
                   value={modeGlobal}
                   disabled={!bolehKelola || batasGlobal === null}
                   onChange={(e) => ubahModeSemua(e.target.value as "blokir" | "peringatkan")}
-                  style={{
-                    ...inputStyle,
+                  style={{ ...GAYA_ISIAN,
                     cursor: bolehKelola && batasGlobal !== null ? "pointer" : "not-allowed",
                     opacity: batasGlobal === null ? 0.6 : 1,
                   }}
@@ -613,13 +601,13 @@ export default function PenyediaAiPage() {
                       <label htmlFor={idPenyedia} style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                         Penyedia
                       </label>
-                      <select
+                      <select className="isian-fokus"
                         id={idPenyedia}
                         aria-label={`Penyedia AI untuk ${peran.nama}`}
                         value={k.penyedia}
                         disabled={!bolehKelola}
                         onChange={(e) => ubah(k.asisten, { penyedia: e.target.value })}
-                        style={{ ...inputStyle, cursor: bolehKelola ? "pointer" : "not-allowed" }}
+                        style={{ ...GAYA_ISIAN, cursor: bolehKelola ? "pointer" : "not-allowed" }}
                       >
                         {(muatan?.penyedia_tersedia ?? []).map((p) => (
                           <option key={p.id} value={p.id}>
@@ -643,6 +631,7 @@ export default function PenyediaAiPage() {
                         Model
                       </label>
                       <select
+                        className="isian-fokus"
                         id={idModel}
                         // `aria-label` eksplisit meski `<label htmlFor>` sudah
                         // ada: halaman ini punya EMPAT kartu dengan kontrol
@@ -652,7 +641,7 @@ export default function PenyediaAiPage() {
                         value={k.model}
                         disabled={!bolehKelola}
                         onChange={(e) => ubah(k.asisten, { model: e.target.value })}
-                        style={{ ...inputStyle, cursor: bolehKelola ? "pointer" : "not-allowed" }}
+                        style={{ ...GAYA_ISIAN, cursor: bolehKelola ? "pointer" : "not-allowed" }}
                       >
                         {(muatan?.model_tersedia ?? []).map((m) => (
                           <option key={m.id} value={m.id}>
@@ -678,7 +667,7 @@ export default function PenyediaAiPage() {
                       <label htmlFor={idToken} style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                         Batas token jawaban
                       </label>
-                      <input
+                      <input className="isian-fokus"
                         id={idToken}
                         aria-label={`Batas token jawaban untuk ${peran.nama}`}
                         type="number"
@@ -688,7 +677,7 @@ export default function PenyediaAiPage() {
                         value={k.max_token}
                         disabled={!bolehKelola}
                         onChange={(e) => ubah(k.asisten, { max_token: Number(e.target.value) })}
-                        style={inputStyle}
+                        style={GAYA_ISIAN}
                       />
                       <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
                         Perkiraan {rupiah(perkiraan)} per panggilan.

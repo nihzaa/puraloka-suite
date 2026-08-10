@@ -1176,3 +1176,31 @@ details > summary:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .alur-panah { transition: none; }
 }
+
+/* ─── Cincin fokus untuk kotak isian ────────────────────────────────
+ *
+ * Diukur 2026-08-11: dari 11 bentuk `inputStyle` yang hidup di repo ini,
+ * EMPAT tak punya penanda fokus sama sekali — hanya `outline: none`.
+ * Orang yang menavigasi dengan Tab kehilangan jejak posisinya.
+ *
+ * `:focus-visible`, bukan `:focus`. Dengan `:focus`, cincin ikut muncul
+ * saat diklik mouse — yang memakai mouse membacanya sebagai gangguan lalu
+ * terbiasa mengabaikannya, dan saat ia benar-benar butuh (navigasi
+ * keyboard) matanya sudah dilatih melewatinya.
+ *
+ * Warna aksen, bukan biru bawaan peramban: biru bawaan bertabrakan dengan
+ * navy merek dan terlihat seperti cacat, bukan keputusan.
+ */
+.isian-fokus:focus-visible {
+  outline: 2px solid var(--aksen);
+  outline-offset: 1px;
+  border-color: var(--aksen);
+}
+
+/* Kotak yang salah isi tetap terbaca saat fokus — merah tak boleh hilang
+   tertimpa cincin aksen, karena justru saat memperbaikinya orang menaruh
+   fokus di situ. */
+.isian-fokus[aria-invalid="true"]:focus-visible {
+  outline-color: var(--danger);
+  border-color: var(--danger);
+}

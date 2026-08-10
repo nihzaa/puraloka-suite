@@ -447,9 +447,17 @@ export default function PenyediaPage() {
       {draf && (
         <Panel judul="Penyedia baru">
           <div style={{ display: "grid", gap: 12, maxWidth: 560 }}>
-            <label style={{ display: "grid", gap: 4 }}>
+            {/*
+              `htmlFor`+`id` eksplisit, bukan hanya <label> pembungkus.
+              Keduanya sah menurut HTML, tetapi label implisit membuat nama
+              kontrol bergantung pada struktur DOM yang bisa berubah saat
+              layout dirapikan — dan `a11y-ratchet` memang tak melihatnya.
+            */}
+            <label htmlFor="penyedia-jenis" style={{ display: "grid", gap: 4 }}>
               <span style={{ fontSize: 13, color: C.muted }}>Jenis</span>
               <select
+                id="penyedia-jenis"
+                aria-label="Jenis penyedia layanan"
                 style={input}
                 value={draf.jenis}
                 onChange={(e) =>
@@ -464,9 +472,11 @@ export default function PenyediaPage() {
               </select>
             </label>
 
-            <label style={{ display: "grid", gap: 4 }}>
+            <label htmlFor="penyedia-adaptor" style={{ display: "grid", gap: 4 }}>
               <span style={{ fontSize: 13, color: C.muted }}>Adaptor</span>
               <select
+                id="penyedia-adaptor"
+                aria-label="Adaptor penyedia layanan"
                 style={input}
                 value={draf.adaptor}
                 onChange={(e) => setDraf({ ...draf, adaptor: e.target.value })}

@@ -39,6 +39,7 @@ import { BukuBesar } from "@/components/buku-besar";
 import { NeracaLabaRugi } from "@/components/neraca-laba-rugi";
 import { Tabel, type Kolom } from "@/components/dasar";
 import { Kosong } from "@/components/ui-dasar";
+import { GAYA_ISIAN } from "@/components/isian";
 import { formatRupiah } from "@/lib/format";
 
 const card: React.CSSProperties = {
@@ -700,7 +701,7 @@ function ModalJurnal({
           <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 12, marginBottom: 18 }}>
             <div>
               <label htmlFor="jv-tanggal" style={labelStyle}>Tanggal</label>
-              <input
+              <input className="isian-fokus"
                 id="jv-tanggal" type="date" value={tanggal}
                 onChange={e => setTanggal(e.target.value)}
                 style={inputStyle}
@@ -708,7 +709,7 @@ function ModalJurnal({
             </div>
             <div>
               <label htmlFor="jv-ket" style={labelStyle}>Keterangan</label>
-              <input
+              <input className="isian-fokus"
                 id="jv-ket" type="text" value={keterangan}
                 onChange={e => setKeterangan(e.target.value)}
                 placeholder="mis. Pembayaran sewa kantor Agustus"
@@ -725,7 +726,7 @@ function ModalJurnal({
               }}>
                 <div>
                   {i === 0 && <label htmlFor={`jv-akun-${i}`} style={labelStyle}>Akun</label>}
-                  <select
+                  <select className="isian-fokus"
                     id={`jv-akun-${i}`}
                     aria-label={`Akun baris ${i + 1}`}
                     value={b.account_id}
@@ -740,7 +741,7 @@ function ModalJurnal({
                 </div>
                 <div>
                   {i === 0 && <label htmlFor={`jv-sisi-${i}`} style={labelStyle}>Sisi</label>}
-                  <select
+                  <select className="isian-fokus"
                     id={`jv-sisi-${i}`}
                     aria-label={`Sisi baris ${i + 1}`}
                     value={b.sisi}
@@ -753,7 +754,7 @@ function ModalJurnal({
                 </div>
                 <div>
                   {i === 0 && <label htmlFor={`jv-jml-${i}`} style={labelStyle}>Jumlah</label>}
-                  <input
+                  <input className="isian-fokus"
                     id={`jv-jml-${i}`}
                     aria-label={`Jumlah baris ${i + 1}`}
                     type="number" min="0" inputMode="numeric"
@@ -866,8 +867,13 @@ const labelStyle: React.CSSProperties = {
   marginBottom: 5, textTransform: "uppercase", letterSpacing: 0.3,
 };
 
+/**
+ * Halaman ini menyejajarkan isian dengan tombol di satu baris, jadi tingginya
+ * dipaku 38px — itu satu-satunya alasan ia tak memakai `GAYA_ISIAN` apa adanya.
+ * Sisanya (radius, border, fokus) tetap dari kosakata bersama.
+ */
 const inputStyle: React.CSSProperties = {
-  width: "100%", height: 38, padding: "0 11px", borderRadius: 6,
-  border: `1px solid ${C.border}`, background: "var(--surface)",
-  fontSize: 13, color: C.text, fontFamily: "inherit", boxSizing: "border-box",
+  ...GAYA_ISIAN,
+  height: 38,
+  padding: "0 11px",
 };

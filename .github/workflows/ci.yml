@@ -1320,6 +1320,26 @@ jobs:
       - name: Judul (KepalaHalaman, bukan <h1> sendiri)
         run: node scripts/judul-ratchet.mjs
 
+      # K-6 — kotak isian wajib lewat kosakata bersama `components/isian.tsx`.
+      #
+      # Diukur 2026-08-11: 16 halaman mendefinisikan `inputStyle` sendiri dalam
+      # 11 BENTUK berbeda, dan repo ini tak punya satu pun komponen input
+      # bersama. Empat bentuk tanpa penanda fokus sama sekali (WCAG 2.4.7), dan
+      # SELURUH varian ber-radius 6px sementara kartu pembungkusnya 14px —
+      # kontrol yang jauh lebih tajam dari wadahnya terlihat ditempel.
+      #
+      # Pola keempat yang sama: 27 varian <h1>, 8 bentuk kartu, 4 gaya tab,
+      # 11 bentuk isian. Sebabnya selalu halaman yang menyalin tetangga
+      # terdekat — tak ada satu pun yang salah saat ditulis.
+      #
+      # Penjaga ini menghitung DUA hal, karena keduanya lolos lewat jalur
+      # berbeda: definisi dari nol (terlihat saat membaca berkas) dan
+      # `GAYA_ISIAN` yang cincin fokusnya dibuang (TIDAK terlihat saat review —
+      # bentuknya sudah memakai kosakata bersama). Bukti mutasinya menguji
+      # keduanya terpisah: apps/web/scripts/bukti-mutasi-isian.sh
+      - name: Isian (kosakata bersama + cincin fokus)
+        run: node scripts/isian-ratchet.mjs
+
       # F4-1 — warna wajib lewat token, bukan hex di komponen.
       #
       # Alasannya bukan kerapian: WHITE-LABEL PER TENANT. Selama warna ditulis

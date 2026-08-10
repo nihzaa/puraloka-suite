@@ -55,6 +55,7 @@ import {
   SKILL_OPTIONS, getPaymentSystemBadge, getProgressColor,
 } from "./tipe";
 import { formatRupiah } from "@/lib/format";
+import { GAYA_ISIAN } from "@/components/isian";
 
 /**
  * Penjaga pemasangan modal.
@@ -254,11 +255,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
     } finally { setLoading(false); }
   }
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`,
-    borderRadius: 6, fontSize: 13, outline: "none", boxSizing: "border-box",
-  };
-
+  
   if (!mounted) return null;
   return createPortal(
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" }}>
@@ -292,7 +289,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                   Belum ada assignment mandor aktif. Assign mandor ke proyek terlebih dahulu di halaman detail proyek.
                 </div>
               ) : (
-                <select aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => { setAssignmentId(e.target.value); setScopeId(""); }} style={inputStyle}>
+                <select className="isian-fokus" aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => { setAssignmentId(e.target.value); setScopeId(""); }} style={GAYA_ISIAN}>
                   <option value="">-- Pilih mandor & proyek --</option>
                   {assignments.map(a => (
                     <option key={a.id} value={a.id}>{a.mandor?.name} — {a.project?.name}</option>
@@ -311,7 +308,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                   Belum ada scope — tambahkan di detail proyek.
                 </div>
               ) : (
-                <select aria-label="Pilih lingkup pekerjaan" value={scopeId} onChange={e => setScopeId(e.target.value)} style={inputStyle}>
+                <select className="isian-fokus" aria-label="Pilih lingkup pekerjaan" value={scopeId} onChange={e => setScopeId(e.target.value)} style={GAYA_ISIAN}>
                   <option value="">-- Pilih scope --</option>
                   {availableScopes.map(s => (
                     <option key={s.id} value={s.id}>{s.scope_name} ({PAYMENT_SYSTEM[s.payment_system]})</option>
@@ -321,7 +318,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
             </div>
             <div>
               <label htmlFor="week-start" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Minggu (Senin) <span style={{ color: C.red }}>*</span></label>
-              <input id="week-start" aria-label="Tanggal mulai" type="date" value={weekStart} onChange={e => setWeekStart(e.target.value)} style={inputStyle} />
+              <input className="isian-fokus" id="week-start" aria-label="Tanggal mulai" type="date" value={weekStart} onChange={e => setWeekStart(e.target.value)} style={GAYA_ISIAN} />
             </div>
           </div>
 
@@ -370,11 +367,11 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                   (parseFloat(item.overtime_hours || "0") * parseFloat(item.overtime_rate || "0"));
                 return (
                   <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 28px", gap: 6, alignItems: "center", padding: "8px", background: "var(--surface-subtle)", borderRadius: 6, border: `1px solid ${C.border}` }}>
-                    <input placeholder="Nama tukang" value={item.worker_name} onChange={e => updateItem(i, "worker_name", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
-                    <input type="number" placeholder="7" value={item.days_worked} onChange={e => updateItem(i, "days_worked", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} step="0.5" min="0" />
-                    <input type="number" placeholder="125000" value={item.daily_rate} onChange={e => updateItem(i, "daily_rate", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
-                    <input type="number" placeholder="0" value={item.overtime_hours} onChange={e => updateItem(i, "overtime_hours", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} step="0.5" min="0" />
-                    <input type="number" placeholder="15000" value={item.overtime_rate} onChange={e => updateItem(i, "overtime_rate", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
+                    <input className="isian-fokus" placeholder="Nama tukang" value={item.worker_name} onChange={e => updateItem(i, "worker_name", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }} />
+                    <input className="isian-fokus" type="number" placeholder="7" value={item.days_worked} onChange={e => updateItem(i, "days_worked", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }} step="0.5" min="0" />
+                    <input className="isian-fokus" type="number" placeholder="125000" value={item.daily_rate} onChange={e => updateItem(i, "daily_rate", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }} />
+                    <input className="isian-fokus" type="number" placeholder="0" value={item.overtime_hours} onChange={e => updateItem(i, "overtime_hours", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }} step="0.5" min="0" />
+                    <input className="isian-fokus" type="number" placeholder="15000" value={item.overtime_rate} onChange={e => updateItem(i, "overtime_rate", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }} />
                     <button aria-label="Hapus baris" type="button" onClick={() => removeItem(i)} disabled={items.length === 1} style={{ padding: 4, borderRadius: 6, border: "none", background: "transparent", cursor: items.length === 1 ? "not-allowed" : "pointer", color: C.red, opacity: items.length === 1 ? 0.3 : 1 }}>
                       <Trash2 size={13} />
                     </button>
@@ -417,22 +414,22 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                   {d.tipe === "kasbon_kolektif" ? (
                     /* Kolektif: label + nominal */
                     <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 6 }}>
-                      <input placeholder="Keterangan (mis: Kasbon rabu)" value={d.label} onChange={e => updateDeduction(i, "label", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
-                      <input type="number" placeholder="Nominal" value={d.amount} onChange={e => updateDeduction(i, "amount", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
+                      <input className="isian-fokus" placeholder="Keterangan (mis: Kasbon rabu)" value={d.label} onChange={e => updateDeduction(i, "label", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }} />
+                      <input className="isian-fokus" type="number" placeholder="Nominal" value={d.amount} onChange={e => updateDeduction(i, "amount", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }} />
                     </div>
                   ) : (
                     /* Per individu: nama pekerja + kasbon link + nominal */
                     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
                         {/* Nama: search dari pekerja di baris items */}
-                        <select aria-label="Pilih tukang" value={d.worker_name} onChange={e => updateDeduction(i, "worker_name", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }}>
+                        <select className="isian-fokus" aria-label="Pilih tukang" value={d.worker_name} onChange={e => updateDeduction(i, "worker_name", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }}>
                           <option value="">-- Pilih pekerja --</option>
                           {items.filter(it => it.worker_name.trim()).map((it, idx) => (
                             <option key={idx} value={it.worker_name}>{it.worker_name}</option>
                           ))}
                         </select>
                         {/* Kasbon aktif (opsional) */}
-                        <select aria-label="Pilih kasbon yang dipotong" value={d.worker_kasbon_id} onChange={e => onKasbonSelect(i, e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }}>
+                        <select className="isian-fokus" aria-label="Pilih kasbon yang dipotong" value={d.worker_kasbon_id} onChange={e => onKasbonSelect(i, e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }}>
                           <option value="">-- Link kasbon (opsional) --</option>
                           {projectKasbons.filter(k => !k.is_settled).map(k => (
                             <option key={k.id} value={k.id}>{k.worker?.name} — sisa {fmt(k.amount - k.amount_settled)}</option>
@@ -440,8 +437,8 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
                         </select>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 6 }}>
-                        <input placeholder="Keterangan (mis: Cicilan kasbon Ade)" value={d.label} onChange={e => updateDeduction(i, "label", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
-                        <input type="number" placeholder="Nominal" value={d.amount} onChange={e => updateDeduction(i, "amount", e.target.value)} style={{ ...inputStyle, background: "var(--surface)" }} />
+                        <input className="isian-fokus" placeholder="Keterangan (mis: Cicilan kasbon Ade)" value={d.label} onChange={e => updateDeduction(i, "label", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }} />
+                        <input className="isian-fokus" type="number" placeholder="Nominal" value={d.amount} onChange={e => updateDeduction(i, "amount", e.target.value)} style={{ ...GAYA_ISIAN, background: "var(--surface)" }} />
                       </div>
                     </div>
                   )}
@@ -453,7 +450,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
           {/* Catatan */}
           <div>
             <label htmlFor="notes" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Catatan</label>
-            <textarea id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...inputStyle, resize: "vertical" }} placeholder="Catatan tambahan..." />
+            <textarea className="isian-fokus" id="notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2} style={{ ...GAYA_ISIAN, resize: "vertical" }} placeholder="Catatan tambahan..." />
           </div>
 
           {/* Summary total */}
@@ -866,7 +863,7 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
           {!initialMandorId && !isEdit && (
             <div>
               <label htmlFor="mandor-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor <span style={{ color: C.red }}>*</span></label>
-              <select id="mandor-id" aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
+              <select className="isian-fokus" id="mandor-id" aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={GAYA_ISIAN}>
                 <option value="">-- Pilih mandor --</option>
                 {mandorOptions.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
               </select>
@@ -875,12 +872,12 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
 
           <div>
             <label htmlFor="name" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nama <span style={{ color: C.red }}>*</span></label>
-            <input id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Nama pekerja" style={inputStyle} autoFocus />
+            <input className="isian-fokus" id="name" value={name} onChange={e => setName(e.target.value)} placeholder="Nama pekerja" style={GAYA_ISIAN} autoFocus />
           </div>
 
           <div>
             <label htmlFor="tipe" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tipe (opsional)</label>
-            <select id="tipe" aria-label="Tipe pekerja" value={tipe} onChange={e => setTipe(e.target.value)} style={inputStyle}>
+            <select className="isian-fokus" id="tipe" aria-label="Tipe pekerja" value={tipe} onChange={e => setTipe(e.target.value)} style={GAYA_ISIAN}>
               <option value="">-- Tidak ditentukan --</option>
               <option value="tukang">Tukang</option>
               <option value="laden">Laden</option>
@@ -890,7 +887,7 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
 
           <div>
             <label htmlFor="phone" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>No. HP (opsional)</label>
-            <input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="08xxxxxxxxxx, tanpa tanda hubung" style={inputStyle} />
+            <input className="isian-fokus" id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="08xxxxxxxxxx, tanpa tanda hubung" style={GAYA_ISIAN} />
           </div>
 
           <div>
@@ -1045,14 +1042,14 @@ export function AddKasbonModal({ assignments, onClose, onSuccess }: {
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label htmlFor="assignment-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor / Proyek <span style={{ color: C.red }}>*</span></label>
-            <select id="assignment-id" aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => setAssignmentId(e.target.value)} style={inputStyle}>
+            <select className="isian-fokus" id="assignment-id" aria-label="Pilih penugasan proyek" value={assignmentId} onChange={e => setAssignmentId(e.target.value)} style={GAYA_ISIAN}>
               <option value="">-- Pilih mandor --</option>
               {assignments.map(a => <option key={a.id} value={a.id}>{a.mandor?.name} — {a.project?.name}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="worker-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tukang <span style={{ color: C.red }}>*</span></label>
-            <select id="worker-id" aria-label="Tukang penerima kasbon" value={workerId} onChange={e => setWorkerId(e.target.value)} style={inputStyle} disabled={!assignmentId}>
+            <select className="isian-fokus" id="worker-id" aria-label="Tukang penerima kasbon" value={workerId} onChange={e => setWorkerId(e.target.value)} style={GAYA_ISIAN} disabled={!assignmentId}>
               <option value="">-- Pilih tukang --</option>
               {workers.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
             </select>
@@ -1060,16 +1057,16 @@ export function AddKasbonModal({ assignments, onClose, onSuccess }: {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label htmlFor="amount" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
-              <input id="amount" type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" style={inputStyle} />
+              <input className="isian-fokus" id="amount" type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0" style={GAYA_ISIAN} />
             </div>
             <div>
               <label htmlFor="date" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal</label>
-              <input id="date" aria-label="Tanggal" type="date" value={date} onChange={e => setDate(e.target.value)} style={inputStyle} />
+              <input className="isian-fokus" id="date" aria-label="Tanggal" type="date" value={date} onChange={e => setDate(e.target.value)} style={GAYA_ISIAN} />
             </div>
           </div>
           <div>
             <label htmlFor="purpose" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tujuan</label>
-            <select id="purpose" aria-label="Tujuan kasbon tukang" value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
+            <select className="isian-fokus" id="purpose" aria-label="Tujuan kasbon tukang" value={purpose} onChange={e => setPurpose(e.target.value)} style={GAYA_ISIAN}>
               <option value="gaji_tukang">Gaji Tukang</option>
               <option value="uang_makan">Uang Makan</option>
               <option value="lain_lain">Lain-lain</option>
@@ -1077,7 +1074,7 @@ export function AddKasbonModal({ assignments, onClose, onSuccess }: {
           </div>
           <div>
             <label htmlFor="notes-2" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Catatan</label>
-            <textarea id="notes-2" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Catatan kasbon..." style={{ ...inputStyle, resize: "none" }} />
+            <textarea className="isian-fokus" id="notes-2" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Catatan kasbon..." style={{ ...GAYA_ISIAN, resize: "none" }} />
           </div>
           {/* D2 — Foto nota */}
           <div>
@@ -1234,9 +1231,9 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
               Proyek <span style={{ color: C.red }}>*</span>
             </label>
             {projects.length === 0 ? (
-              <div style={{ ...inputStyle, color: C.muted }}>Memuat...</div>
+              <div style={{ ...GAYA_ISIAN, color: C.muted }}>Memuat...</div>
             ) : (
-              <select aria-label="Proyek" value={projectId} onChange={e => { setProjectId(e.target.value); setScopeId(""); }} style={inputStyle} required>
+              <select className="isian-fokus" aria-label="Proyek" value={projectId} onChange={e => { setProjectId(e.target.value); setScopeId(""); }} style={GAYA_ISIAN} required>
                 <option value="">-- Pilih proyek --</option>
                 {projects.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
@@ -1254,12 +1251,12 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
             <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>
               Kosongkan jika kasbon bersifat umum dan tidak terikat scope tertentu.
             </div>
-            <select
+            <select className="isian-fokus"
               aria-label="Work scope yang dibebani kasbon (opsional)"
               value={scopeId}
               onChange={e => setScopeId(e.target.value)}
               disabled={!projectId}
-              style={{ ...inputStyle, opacity: projectId ? 1 : 0.6, background: projectId ? "var(--surface)" : "var(--surface-subtle)" }}
+              style={{ ...GAYA_ISIAN, opacity: projectId ? 1 : 0.6, background: projectId ? "var(--surface)" : "var(--surface-subtle)" }}
             >
               <option value="">— Kasbon umum (tidak terikat scope) —</option>
               {filteredScopes.map(s => (
@@ -1274,13 +1271,13 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
               <label htmlFor="amount-2" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Nominal <span style={{ color: C.red }}>*</span></label>
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", fontSize: 12, color: C.muted }}>Rp</span>
-                <input id="amount-2" type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} required
-                  style={{ ...inputStyle, paddingLeft: 30 }} />
+                <input className="isian-fokus" id="amount-2" type="number" min={1} value={amount} onChange={e => setAmount(e.target.value)} required
+                  style={{ ...GAYA_ISIAN, paddingLeft: 30 }} />
               </div>
             </div>
             <div>
               <label htmlFor="kasbon-date" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal</label>
-              <input id="kasbon-date" aria-label="Tanggal" type="date" value={kasbonDate} onChange={e => setKasbonDate(e.target.value)} style={inputStyle} />
+              <input className="isian-fokus" id="kasbon-date" aria-label="Tanggal" type="date" value={kasbonDate} onChange={e => setKasbonDate(e.target.value)} style={GAYA_ISIAN} />
             </div>
           </div>
 
@@ -1295,7 +1292,7 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label htmlFor="purpose-2" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Keperluan <span style={{ color: C.red }}>*</span></label>
-              <select id="purpose-2" aria-label="Keperluan kasbon mandor" value={purpose} onChange={e => setPurpose(e.target.value)} style={inputStyle}>
+              <select className="isian-fokus" id="purpose-2" aria-label="Keperluan kasbon mandor" value={purpose} onChange={e => setPurpose(e.target.value)} style={GAYA_ISIAN}>
                 {(kasbonPurposes.length > 0
                   ? kasbonPurposes.map(p => [p.code, p.label] as [string, string])
                   : [["gaji_tukang", "Gaji Tukang"], ["uang_makan", "Uang Makan"], ["pembelian_alat", "Pembelian Alat"], ["operasional", "Operasional"], ["lain_lain", "Lain-lain"]] as [string, string][]
@@ -1304,7 +1301,7 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
             </div>
             <div>
               <label htmlFor="sumber-dana-kasbon" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Sumber Dana <span style={{ color: C.red }}>*</span></label>
-              <select id="sumber-dana-kasbon" value={fundSource} onChange={e => setFundSource(e.target.value)} style={inputStyle}>
+              <select className="isian-fokus" id="sumber-dana-kasbon" value={fundSource} onChange={e => setFundSource(e.target.value)} style={GAYA_ISIAN}>
                 <option value="owner_advance">Dana Owner</option>
                 <option value="client_fund">Dana Klien</option>
               </select>
@@ -1316,9 +1313,9 @@ export function SubmitMandorKasbonModal({ onClose, onSuccess }: { onClose: () =>
             <label htmlFor="notes-6" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>
               Keterangan / Alasan <span style={{ color: C.red }}>*</span>
             </label>
-            <textarea id="notes-6" value={notes} onChange={e => setNotes(e.target.value)} rows={3} required
+            <textarea className="isian-fokus" id="notes-6" value={notes} onChange={e => setNotes(e.target.value)} rows={3} required
               placeholder="Jelaskan keperluan kasbon ini secara detail, misal: untuk beli semen 50 sak dan besi 10mm..."
-              style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit" }} />
+              style={{ ...GAYA_ISIAN, resize: "vertical", fontFamily: "inherit" }} />
             <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
               Keterangan yang jelas mempercepat persetujuan dari admin/PM.
             </div>
@@ -1413,25 +1410,25 @@ export function AddAssignmentModal({ mandors, onClose, onSuccess }: {
           {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label htmlFor="project-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek</label>
-            <select id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={inputStyle} required>
+            <select className="isian-fokus" id="project-id" aria-label="Proyek" value={projectId} onChange={e => setProjectId(e.target.value)} style={GAYA_ISIAN} required>
               <option value="">-- Pilih proyek --</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="mandor-id-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Mandor</label>
-            <select id="mandor-id-2" aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle} required>
+            <select className="isian-fokus" id="mandor-id-2" aria-label="Mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={GAYA_ISIAN} required>
               <option value="">-- Pilih mandor --</option>
               {mandors.map(m => <option key={m.id} value={m.id}>{m.name}{m.phone ? ` (${m.phone})` : ""}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="assigned-at" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai Tugas</label>
-            <input id="assigned-at" aria-label="Tanggal" type="date" value={assignedAt} onChange={e => setAssignedAt(e.target.value)} style={inputStyle} />
+            <input className="isian-fokus" id="assigned-at" aria-label="Tanggal" type="date" value={assignedAt} onChange={e => setAssignedAt(e.target.value)} style={GAYA_ISIAN} />
           </div>
           <div>
             <label htmlFor="notes-3" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
-            <textarea id="notes-3" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Deskripsi tugas, area kerja, dll" style={{ ...inputStyle, resize: "vertical" }} />
+            <textarea className="isian-fokus" id="notes-3" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Deskripsi tugas, area kerja, dll" style={{ ...GAYA_ISIAN, resize: "vertical" }} />
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
@@ -1504,11 +1501,11 @@ export function AddScopeModal({ assignmentId, onClose, onSuccess }: {
           {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label htmlFor="scope-name" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Scope Pekerjaan</label>
-            <input id="scope-name" value={scopeName} onChange={e => setScopeName(e.target.value)} placeholder="cth: Pekerjaan Struktur Lantai 1, Rangka Baja Atap" style={inputStyle} required />
+            <input className="isian-fokus" id="scope-name" value={scopeName} onChange={e => setScopeName(e.target.value)} placeholder="cth: Pekerjaan Struktur Lantai 1, Rangka Baja Atap" style={GAYA_ISIAN} required />
           </div>
           <div>
             <label htmlFor="description" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Deskripsi (opsional)</label>
-            <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Detail lingkup pekerjaan..." style={{ ...inputStyle, resize: "vertical" }} />
+            <textarea className="isian-fokus" id="description" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Detail lingkup pekerjaan..." style={{ ...GAYA_ISIAN, resize: "vertical" }} />
           </div>
           <div>
             <span id="sistem-pembayaran" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Sistem Pembayaran</span>
@@ -1527,23 +1524,23 @@ export function AddScopeModal({ assignmentId, onClose, onSuccess }: {
           {paymentSystem !== "harian" && (
             <div>
               <label htmlFor="borongan-value-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nilai Kontrak (Rp)</label>
-              <input id="borongan-value-2"
+              <input className="isian-fokus" id="borongan-value-2"
                 value={boronganValue}
                 onChange={e => {
                   const raw = e.target.value.replace(/\D/g, "");
                   setBoronganValue(raw ? Number(raw).toLocaleString("id-ID") : "");
                 }}
-                placeholder="0" style={inputStyle} required />
+                placeholder="0" style={GAYA_ISIAN} required />
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
               <label htmlFor="start-date" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai</label>
-              <input id="start-date" aria-label="Tanggal mulai" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={inputStyle} />
+              <input className="isian-fokus" id="start-date" aria-label="Tanggal mulai" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} style={GAYA_ISIAN} />
             </div>
             <div>
               <label htmlFor="end-date" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Target Selesai</label>
-              <input id="end-date" aria-label="Tanggal akhir" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={inputStyle} />
+              <input className="isian-fokus" id="end-date" aria-label="Tanggal akhir" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={GAYA_ISIAN} />
             </div>
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
@@ -1794,12 +1791,12 @@ export function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
           {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: C.redBg, color: C.red, fontSize: 13, border: `1px solid ${C.redBorder}` }}>{error}</div>}
           <div>
             <label htmlFor="item-name" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Nama Item Pekerjaan</label>
-            <input id="item-name" value={itemName} onChange={e => setItemName(e.target.value)} placeholder="cth: Kolom Baja WF 200x100, Pasang Keramik 60x60, Cor Pondasi" style={inputStyle} required />
+            <input className="isian-fokus" id="item-name" value={itemName} onChange={e => setItemName(e.target.value)} placeholder="cth: Kolom Baja WF 200x100, Pasang Keramik 60x60, Cor Pondasi" style={GAYA_ISIAN} required />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
               <label htmlFor="category" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Kategori</label>
-              <select id="category" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={inputStyle}>
+              <select className="isian-fokus" id="category" aria-label="Kategori" value={category} onChange={e => setCategory(e.target.value)} style={GAYA_ISIAN}>
                 {(workCategories.length > 0
                   ? workCategories.map(c => [c.code, c.label] as [string, string])
                   : Object.entries(CATEGORY_LABELS)
@@ -1808,7 +1805,7 @@ export function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             </div>
             <div>
               <label htmlFor="unit" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Satuan</label>
-              <select id="unit" aria-label="Satuan" value={unit} onChange={e => setUnit(e.target.value)} style={inputStyle}>
+              <select className="isian-fokus" id="unit" aria-label="Satuan" value={unit} onChange={e => setUnit(e.target.value)} style={GAYA_ISIAN}>
                 {UNITS_GROUPED.map(g => (
                   <optgroup key={g.group} label={g.group}>
                     {g.opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -1820,11 +1817,11 @@ export function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Volume ({symbolOf(unit)})</label>
-              <input value={volume} onChange={e => setVolume(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" style={inputStyle} required />
+              <input className="isian-fokus" value={volume} onChange={e => setVolume(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" style={GAYA_ISIAN} required />
             </div>
             <div>
               <label htmlFor="unit-price" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Harga/satuan (Rp)</label>
-              <input id="unit-price" value={unitPrice} onChange={e => { const r = e.target.value.replace(/\D/g, ""); setUnitPrice(r ? Number(r).toLocaleString("id-ID") : ""); }} placeholder="0" style={inputStyle} required />
+              <input className="isian-fokus" id="unit-price" value={unitPrice} onChange={e => { const r = e.target.value.replace(/\D/g, ""); setUnitPrice(r ? Number(r).toLocaleString("id-ID") : ""); }} placeholder="0" style={GAYA_ISIAN} required />
             </div>
           </div>
           {estSubtotal > 0 && (
@@ -1835,11 +1832,11 @@ export function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
           )}
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Volume Sudah Dikerjakan ({symbolOf(unit)}) — opsional</label>
-            <input value={volumeDone} onChange={e => setVolumeDone(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" style={inputStyle} />
+            <input className="isian-fokus" value={volumeDone} onChange={e => setVolumeDone(e.target.value.replace(/[^0-9.]/g, ""))} placeholder="0" style={GAYA_ISIAN} />
           </div>
           <div>
             <label htmlFor="description-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Deskripsi (opsional)</label>
-            <textarea id="description-2" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Spesifikasi teknis umum, dll" style={{ ...inputStyle, resize: "vertical" }} />
+            <textarea className="isian-fokus" id="description-2" value={description} onChange={e => setDescription(e.target.value)} rows={2} placeholder="Spesifikasi teknis umum, dll" style={{ ...GAYA_ISIAN, resize: "vertical" }} />
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
@@ -1852,8 +1849,8 @@ export function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
             <div style={{ fontSize: 11, color: C.muted, marginBottom: 8 }}>Contoh: Profil → WF 200x100x5.5x8, Grade → BJ41, Diameter → 4 inch</div>
             {specs.map((sp, i) => (
               <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 6, marginBottom: 6 }}>
-                <input value={sp.key} onChange={e => { const s = [...specs]; s[i].key = e.target.value; setSpecs(s); }} placeholder="Nama spec" style={{ ...inputStyle, fontSize: 12 }} />
-                <input value={sp.value} onChange={e => { const s = [...specs]; s[i].value = e.target.value; setSpecs(s); }} placeholder="Nilai" style={{ ...inputStyle, fontSize: 12 }} />
+                <input className="isian-fokus" value={sp.key} onChange={e => { const s = [...specs]; s[i].key = e.target.value; setSpecs(s); }} placeholder="Nama spec" style={{ ...GAYA_ISIAN, fontSize: 12 }} />
+                <input className="isian-fokus" value={sp.value} onChange={e => { const s = [...specs]; s[i].value = e.target.value; setSpecs(s); }} placeholder="Nilai" style={{ ...GAYA_ISIAN, fontSize: 12 }} />
                 <button aria-label="Hapus item" type="button" onClick={() => setSpecs(specs.filter((_, j) => j !== i))} style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.redBorder}`, background: C.redBg, cursor: "pointer", color: C.red }}>
                   <X size={12} />
                 </button>
@@ -1862,7 +1859,7 @@ export function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
           </div>
           <div>
             <label htmlFor="notes-4" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan (opsional)</label>
-            <input id="notes-4" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Catatan tambahan..." style={inputStyle} />
+            <input className="isian-fokus" id="notes-4" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Catatan tambahan..." style={GAYA_ISIAN} />
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
@@ -1938,16 +1935,16 @@ export function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess
           {error && <div style={{ padding: "8px 12px", borderRadius: 6, background: "var(--danger-bg)", color: "var(--danger)", fontSize: 13, border: "1px solid var(--danger-border)" }}>{error}</div>}
           <div>
             <label htmlFor="borongan-value" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Nilai Kontrak Borongan (Rp) *</label>
-            <input id="borongan-value" type="number" min={1} value={boronganValue} onChange={e => setBoronganValue(e.target.value)} placeholder="0" style={inputStyle} />
+            <input className="isian-fokus" id="borongan-value" type="number" min={1} value={boronganValue} onChange={e => setBoronganValue(e.target.value)} placeholder="0" style={GAYA_ISIAN} />
           </div>
           <div>
             <label htmlFor="total-kasbon" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Total Kasbon Mandor (Rp)</label>
-            <input id="total-kasbon" type="number" min={0} value={totalKasbon} onChange={e => setTotalKasbon(e.target.value)} placeholder="0" style={inputStyle} />
+            <input className="isian-fokus" id="total-kasbon" type="number" min={0} value={totalKasbon} onChange={e => setTotalKasbon(e.target.value)} placeholder="0" style={GAYA_ISIAN} />
             <div style={{ fontSize: 11, color: C.muted, marginTop: 3 }}>Kasbon yang sudah diajukan mandor untuk scope ini</div>
           </div>
           <div>
             <label htmlFor="total-other-expense" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Pengeluaran Lain (Rp)</label>
-            <input id="total-other-expense" type="number" min={0} value={totalOtherExpense} onChange={e => setTotalOtherExpense(e.target.value)} placeholder="0" style={inputStyle} />
+            <input className="isian-fokus" id="total-other-expense" type="number" min={0} value={totalOtherExpense} onChange={e => setTotalOtherExpense(e.target.value)} placeholder="0" style={GAYA_ISIAN} />
           </div>
           <div style={{ background: "var(--navy-light)", borderRadius: 10, padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>
@@ -1965,7 +1962,7 @@ export function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess
           </div>
           <div>
             <label htmlFor="cash-account-id-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Akun Kas *</label>
-            <select id="cash-account-id-2" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={inputStyle}>
+            <select className="isian-fokus" id="cash-account-id-2" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={GAYA_ISIAN}>
               <option value="">Pilih akun kas...</option>
               {cashAccounts.map(a => (
                 <option key={a.id} value={a.id}>{a.name} -- {fmtLocal(a.balance)}</option>
@@ -1974,7 +1971,7 @@ export function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess
           </div>
           <div>
             <label htmlFor="notes-5" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Catatan</label>
-            <textarea id="notes-5" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Opsional" style={{ ...inputStyle, resize: "none" }} />
+            <textarea className="isian-fokus" id="notes-5" value={notes} onChange={e => setNotes(e.target.value)} rows={2} placeholder="Opsional" style={{ ...GAYA_ISIAN, resize: "none" }} />
           </div>
           <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>
@@ -2048,7 +2045,7 @@ export function PPConfirmModal({ payment, cashAccounts, loading, onClose, onActi
           {mode === "approve" && (
             <div>
               <label htmlFor="cash-account-id-3" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Akun Kas *</label>
-              <select id="cash-account-id-3" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={inputStyle}>
+              <select className="isian-fokus" id="cash-account-id-3" aria-label="Sumber kas pembayaran" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} style={GAYA_ISIAN}>
                 <option value="">Pilih akun kas...</option>
                 {cashAccounts.map(a => <option key={a.id} value={a.id}>{a.name} -- {fmtLocal(a.balance)}</option>)}
               </select>
@@ -2058,9 +2055,9 @@ export function PPConfirmModal({ payment, cashAccounts, loading, onClose, onActi
             <label style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>
               {mode === "reject" ? "Alasan Penolakan *" : "Catatan (opsional)"}
             </label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+            <textarea className="isian-fokus" value={notes} onChange={e => setNotes(e.target.value)} rows={2}
               placeholder={mode === "reject" ? "Jelaskan alasan penolakan..." : "Opsional"}
-              style={{ ...inputStyle, resize: "none" }} />
+              style={{ ...GAYA_ISIAN, resize: "none" }} />
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, color: "var(--text-secondary)", cursor: "pointer" }}>Batal</button>

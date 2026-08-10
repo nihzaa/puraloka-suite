@@ -7,13 +7,10 @@ import type { WorkCategoryRow } from "@/lib/use-work-categories";
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { GAYA_ISIAN } from "@/components/isian";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)",
-};
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6,
-  fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit",
 };
 
 function hasPerm(key: string): boolean {
@@ -117,12 +114,12 @@ function AddCard({ existing, onDone, onError }: { existing: WorkCategoryRow[]; o
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 12, alignItems: "end" }}>
         <div>
           <label htmlFor="code" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Kode (unik)</label>
-          <input id="code" value={code} onChange={e => setCode(e.target.value)} placeholder="cth: mep" style={inputStyle} />
+          <input className="isian-fokus" id="code" value={code} onChange={e => setCode(e.target.value)} placeholder="cth: mep" style={GAYA_ISIAN} />
           {code && <div style={{ fontSize: 11, color: dup ? C.red : C.muted, marginTop: 3 }}>disimpan sebagai <code>{normalized || "—"}</code>{dup && " (sudah ada)"}</div>}
         </div>
         <div>
           <label htmlFor="label" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Nama</label>
-          <input id="label" value={label} onChange={e => setLabel(e.target.value)} placeholder="cth: Mekanikal Elektrikal Plumbing" style={inputStyle} />
+          <input className="isian-fokus" id="label" value={label} onChange={e => setLabel(e.target.value)} placeholder="cth: Mekanikal Elektrikal Plumbing" style={GAYA_ISIAN} />
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
@@ -157,8 +154,8 @@ function RowItem({ row, canManage, onSaved, onError }: { row: WorkCategoryRow; c
     return (
       <div style={{ ...rowStyle, gridTemplateColumns: "160px 1fr 70px auto" }}>
         <code style={{ fontSize: 12, color: C.muted }}>{row.code}</code>
-        <input value={label} onChange={e => setLabel(e.target.value)} style={inputStyle} />
-        <input value={sortOrder} onChange={e => setSortOrder(e.target.value.replace(/[^0-9]/g, ""))} style={inputStyle} />
+        <input className="isian-fokus" value={label} onChange={e => setLabel(e.target.value)} style={GAYA_ISIAN} />
+        <input className="isian-fokus" value={sortOrder} onChange={e => setSortOrder(e.target.value.replace(/[^0-9]/g, ""))} style={GAYA_ISIAN} />
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <button aria-label="Simpan" onClick={() => patch({ label, sort_order: Number(sortOrder) || 0 })} disabled={busy} title="Simpan" style={{ padding: 6, borderRadius: 6, border: "none", background: C.green, color: "#fff", cursor: "pointer" }}><Check size={14} /></button>
           <button aria-label="Batal" onClick={() => { setEditing(false); setLabel(row.label); setSortOrder(String(row.sort_order)); }} title="Batal" style={{ padding: 6, borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, cursor: "pointer" }}><X size={14} /></button>
