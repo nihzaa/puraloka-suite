@@ -421,10 +421,22 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
        * terpisah karena `TenantDb` tak menyusun join, dan dua query yang jelas
        * lebih mudah diperiksa daripada satu join yang tersirat.
        */
-      const { data: alur } = await request.db!
+      const { data: alur, error: errNama } = await request.db!
         .from('otomasi_alur')
         .select('id, nama, kode')
         .in('id', [...new Set(baris.map((b) => b.alur_id))])
+
+      /*
+       * Gagal membaca nama TIDAK boleh jadi "(alur terhapus)" diam-diam.
+       *
+       * Itu kalimat yang menuduh: seluruh log akan terbaca seolah alurnya
+       * memang sudah dihapus, padahal yang gagal cuma satu query nama. Yang
+       * membaca log lalu mencari alur yang tak pernah hilang.
+       */
+      if (errNama) {
+        request.log.error({ err: errNama }, 'otomasi/alur/jalan: nama alur gagal dibaca')
+        return reply.status(500).send({ error: 'Gagal membaca nama alur untuk log' })
+      }
 
       const nama = new Map(
         ((alur ?? []) as Array<{ id: string; nama: string; kode: string }>).map((x) => [

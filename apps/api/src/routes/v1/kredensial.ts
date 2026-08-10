@@ -235,7 +235,9 @@ export default async function kredensialRoutes(app: FastifyInstance) {
         })
       }
 
-      const hasil = await ujiKredensial(kunci, dipakai)
+      const hasil = await ujiKredensial(kunci, dipakai, (k) =>
+        ambilKredensial(request, k),
+      )
       return reply.send({
         ...hasil,
         yang_diuji: diketik ? 'nilai-yang-diketik' : 'nilai-tersimpan',
@@ -253,8 +255,49 @@ const BATAS_UJI_MS = 15_000
  * bukan mengirim sesuatu. `RESEND_API_KEY` diuji dengan membaca domain — tak
  * ada email yang terkirim.
  */
-async function ujiKredensial(kunci: string, nilai: string): Promise<{ ok: boolean; pesan: string }> {
+async function ujiKredensial(
+  kunci: string,
+  nilai: string,
+  /*
+   * Pembaca kunci LAIN — sebagian uji butuh lebih dari satu nilai.
+   *
+   * `N8N_BASE_URL` dan `WA_*` tak bisa diuji sendirian: memanggil layanannya
+   * menuntut alamat DAN kunci (dan untuk WhatsApp, nama instance). Tanpa
+   * parameter ini, tombol Uji hanya bisa memeriksa bentuk teksnya — yang tak
+   * menjawab pertanyaan yang sebenarnya dibawa orang ke tombol itu:
+   * "sambungannya hidup tidak?"
+   */
+  bacaLain?: (k: string) => Promise<string | null>,
+): Promise<{ ok: boolean; pesan: string }> {
   try {
+    /*
+     * Uji multi-kunci dipilih dari GRUP di katalog, bukan dari nama kuncinya.
+     *
+     * Menulis `case 'WA_BASE_URL'` di sini ditolak `audit-satu-pintu-wa`, dan
+     * penjaganya benar: daftar kunci WhatsApp yang hidup di dua tempat akan
+     * menyimpang, dan yang kedua tak terjaga. Menambahkan berkas ini ke
+     * daftar putih penjaga akan MELONGGARKANNYA — jadi yang diubah kodenya.
+     *
+     * Katalog sudah menyimpan `grup`; rute cukup membacanya.
+     */
+    const meta = metaKredensial(kunci)
+    const bacaGabungan = async (k: string) =>
+      // Nilai yang SEDANG DIKETIK menang atas yang tersimpan — supaya admin
+      // bisa menguji sebelum menyimpan, bukan sesudah menimpa.
+      k === kunci ? nilai : ((await bacaLain?.(k)) ?? null)
+
+    if (meta?.grup === 'WhatsApp') {
+      const { ujiSambunganWaDariKredensial } = await import('../../lib/wa-kirim.js')
+      const r = await ujiSambunganWaDariKredensial(bacaGabungan)
+      return { ok: r.ok, pesan: r.pesan }
+    }
+
+    if (meta?.grup === 'Otomasi (n8n)') {
+      const { konfigurasiN8n, ujiSambunganN8n } = await import('../../lib/otomasi-n8n.js')
+      const r = await ujiSambunganN8n(await konfigurasiN8n(bacaGabungan))
+      return { ok: r.ok, pesan: r.pesan }
+    }
+
     switch (kunci) {
       case 'ANTHROPIC_API_KEY':
         return await probe('https://api.anthropic.com/v1/models', {

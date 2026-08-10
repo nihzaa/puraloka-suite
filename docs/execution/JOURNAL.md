@@ -9903,3 +9903,62 @@ Penjaga diuji-mutasi: nama kunci diubah → MERAH, dipulihkan → HIJAU.
 
 Bukti: penjaga ambang NOL · tsc bersih · `audit-kredensial-tak-bocor` tetap
 hijau (katalog hanya menyimpan NAMA, nilainya tak pernah keluar lewat API).
+
+---
+
+## 2026-08-10 (lanjutan 13) — Teks UI bukan catatan developer, dan tombol Uji akhirnya menguji
+
+Dua temuan founder dalam satu tangkapan layar.
+
+**1. "Kenapa ada tulisan terpisah-terpisah gitu si, kan ini nanti bakal
+multi-tenant."**
+
+Keterangan di halaman Kredensial berbunyi *"instance Puraloka, TERPISAH dari
+TJS di :5678"* dan menyebut `scripts\jalankan-n8n.cmd`. Itu **catatan mesin
+developer yang bocor ke layar penyewa** — TJS adalah proyek LAIN, penyewa tak
+tahu apa itu, tak punya skrip itu, dan port 5678 di mesinnya berisi hal yang
+sama sekali berbeda.
+
+Lebih buruk: `EVOLUTION_API_KEY` berketerangan *"Lihat E:/Project/puraloka-wa/
+.env"* — path absolut mesin saya, di UI produk multi-tenant.
+
+Ketiganya diganti kalimat yang menjelaskan APA YANG HARUS DIISI. Catatan
+mesinnya dipindah ke komentar kode, tempatnya memang di situ.
+
+**2. "Kenapa uji nya masih belum?"**
+
+Diukur: endpoint `/uji` hanya menangani TIGA kunci — Anthropic, OpenAI,
+Resend. `N8N_*` dan `WA_*` jatuh ke `default` yang menjawab "Uji otomatis
+untuk kredensial ini belum tersedia."
+
+Yang menyebalkan: `ujiSambunganN8n()` dan `ujiSambunganWa()` **sudah ada sejak
+S7 dan TJS-D1** — hanya tak pernah disambungkan. Fitur yang sudah dibayar
+ongkos pembuatannya, lalu tak dipakai.
+
+**Dan penjaga menolak percobaan pertama saya, dengan benar.**
+`audit-satu-pintu-wa` merah: saya menulis `case 'WA_BASE_URL'` di rute, dan
+aturannya melarang menyebut kunci WA di luar `lib/kredensial.ts` — *"kredensial
+di dua tempat berarti dua jalur kirim, dan yang kedua tak terjaga."*
+
+Godaan pertama: menambahkan berkas itu ke daftar putih penjaga. Ditolak — itu
+MELONGGARKAN penjaga untuk kenyamanan saya. Yang diubah kodenya: uji multi-kunci
+kini dipilih dari **`grup`** di katalog, bukan dari nama kunci yang ditulis
+ulang. Logika WhatsApp-nya pindah ke `ujiSambunganWaDariKredensial()` di
+`wa-kirim.ts` — pintu yang memang satu-satunya.
+
+Hasil nyata sesudahnya:
+
+    N8N_BASE_URL       ok: true   "Terhubung (8 ms)"
+    N8N_API_KEY        ok: true   "Terhubung (6 ms)"
+    WA_BASE_URL        ok: false  "belum disetel — tidak ada yang bisa diuji"
+    ANTHROPIC_API_KEY  ok: true   "Kunci Anthropic valid dan aktif."
+
+Dan `n8n_siap` di halaman Alur Otomasi berubah **false → true**: founder sudah
+mengisi kredensialnya sendiri, menunjuk :5680 (instance Puraloka), dan
+pencocokan katalog langsung bekerja — dua `n8n_id` karangan sisa seed dummy
+terdeteksi sebagai "hilang di n8n", lalu dikosongkan.
+
+**Satu kegagalan senyap ikut ditutup.** `audit-kegagalan-senyap` naik 186 → 187
+karena endpoint log lintas-alur tak memeriksa error saat membaca nama alur —
+gagalnya akan menampilkan "(alur terhapus)" untuk SELURUH baris log, kalimat
+yang menuduh: orang lalu mencari alur yang tak pernah hilang. Kembali ke 186.

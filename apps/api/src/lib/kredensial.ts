@@ -142,13 +142,13 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
   {
     kunci: 'EVOLUTION_API_KEY',
     label: 'Evolution API (WhatsApp)',
-    keterangan: 'Kunci gateway WhatsApp. Lihat E:/Project/puraloka-wa/.env',
+    keterangan: 'Kunci global gateway WhatsApp Anda (AUTHENTICATION_API_KEY di server Evolution).',
     grup: 'WhatsApp',
   },
   {
     kunci: 'EVOLUTION_API_URL',
     label: 'Alamat Evolution API',
-    keterangan: 'Bawaan http://localhost:8081 — instalasi Puraloka, terpisah dari TJS.',
+    keterangan: 'Alamat server Evolution Anda, mis. http://localhost:8081. Tanpa garis miring di akhir.',
     grup: 'WhatsApp',
   },
   {
@@ -169,6 +169,19 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
   /*
    * ── n8n (S7) ────────────────────────────────────────────────────────────
    *
+   * ⚠ KETERANGAN DI BAWAH DIBACA PENYEWA, bukan developer.
+   *
+   * Versi pertama menulis "instance Puraloka, TERPISAH dari TJS di :5678" dan
+   * menyebut `scripts\jalankan-n8n.cmd`. Founder menolaknya, dan ia benar:
+   * TJS adalah proyek LAIN di mesin developer. Penyewa yang membuka halaman
+   * ini tak tahu apa itu, tak punya skrip itu, dan port 5678 di mesinnya
+   * berisi hal yang sama sekali berbeda.
+   *
+   * Catatan tentang mesin developer tempatnya DI SINI, di komentar kode:
+   * n8n TJS memakai :5678 (+ :5679 sebagai Task Broker internal), jadi
+   * instance Puraloka di mesin ini dijalankan pada :5680 (+ :5681) lewat
+   * `scripts/jalankan-n8n.cmd`. Itu fakta mesin, bukan fakta produk.
+   *
    * DITAMBAHKAN 2026-08-10, dan keterlambatannya pantas dicatat.
    *
    * `lib/otomasi-n8n.ts` sudah membaca kedua kunci ini sejak S7, dan halaman
@@ -186,8 +199,7 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
     kunci: 'N8N_BASE_URL',
     label: 'n8n — alamat server',
     keterangan:
-      'Bawaan http://localhost:5680 — instance Puraloka, TERPISAH dari TJS di :5678. ' +
-      'Tanpa garis miring di akhir. Jalankan lewat scripts\\jalankan-n8n.cmd.',
+      'Alamat server n8n Anda, mis. http://localhost:5680. Tanpa garis miring di akhir.',
     grup: 'Otomasi (n8n)',
   },
   {

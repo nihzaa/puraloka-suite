@@ -445,6 +445,36 @@ export interface HasilUjiWa {
   pesan: string
 }
 
+/**
+ * Uji sambungan WA dari SEBUAH PEMBACA KREDENSIAL, bukan dari konfigurasi jadi.
+ *
+ * ── Kenapa pembungkus ini ada, dan kenapa ia tinggal DI SINI
+ *
+ * Halaman Kredensial butuh menguji WhatsApp, dan itu menuntut TIGA kunci
+ * sekaligus (alamat, kunci, instance). Versi pertama menyusunnya di
+ * `routes/v1/kredensial.ts` — dan penjaga `audit-satu-pintu-wa` menolaknya
+ * dengan alasan yang tepat: *"kredensial di dua tempat berarti dua jalur
+ * kirim, dan yang kedua tak terjaga."*
+ *
+ * Jadi yang berpindah bukan penjaganya, melainkan kodenya. Rute cukup
+ * menyerahkan cara membaca kunci; bentuk konfigurasinya tetap urusan berkas
+ * ini, satu-satunya tempat yang tahu apa arti "lengkap" untuk tiap penyedia.
+ */
+export async function ujiSambunganWaDariKredensial(
+  baca: (kunci: string) => Promise<string | null>,
+): Promise<HasilUjiWa> {
+  const cfg = await konfigurasiKanal(baca)
+  // `null` berarti ada bagian yang belum diisi — jawaban yang BERGUNA, bukan
+  // galat. Pesannya menyebut apa yang kurang, bukan "gagal".
+  if (!cfg) {
+    return {
+      ok: false,
+      pesan: 'Belum lengkap — alamat, kunci, dan nama instance ketiganya wajib terisi.',
+    }
+  }
+  return ujiSambunganWa(cfg)
+}
+
 export async function ujiSambunganWa(
   cfg: KonfigurasiWa,
   timeoutMs = 12_000,
