@@ -83,7 +83,17 @@ echo.
 echo     AUTHENTICATION_API_KEY   ^(buat baru, jangan pakai punya TJS^)
 echo     DATABASE_CONNECTION_URI  ^(database sendiri^)
 echo.
-echo   Lalu: cd evolution-api ^&^& npm install
+echo   Lalu, dari folder evolution-api:
+echo     npm install
+echo     npx prisma generate --schema ./prisma/postgresql-schema.prisma
+echo     npx prisma db push --schema ./prisma/postgresql-schema.prisma
+echo.
+echo   ^(Dua perintah prisma itu WAJIB. Tanpa `generate`, Evolution mati saat
+echo    start dengan "@prisma/client did not initialize yet" — pesan yang tak
+echo    menyebut bahwa langkahnya memang belum dijalankan. Jangan pakai
+echo    `npm run db:generate`: pembungkusnya CommonJS dan gagal di package
+echo    ber-type module.^)
+echo.
 echo   Lalu: scripts\jalankan-evolution.cmd
 echo  ================================================================
 
