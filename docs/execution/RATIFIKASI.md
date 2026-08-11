@@ -261,7 +261,7 @@ Enam item di atas diukur ke kode sebelum dibangun. Hasilnya mengubah rencana:
 | Dokumen Prakualifikasi | `vendor-kualifikasi.ts` + `/procurement/kualifikasi` | ✅ **sudah selesai** 2026-08-07 — daftar ini yang basi |
 | **Markup & Margin** | nol kolom markup/margin/overhead di SELURUH skema | ✅ **SELESAI** — migrasi 301/302, lihat di bawah |
 | Tracking Waste | `assemblies.waste_factor` ada; **3.042 dari 3.043 bernilai 0** | pemicunya belum menyala (sesuai triase F5-1) |
-| Baseline Schedule | nol tabel `baseline*`; `jadwal_tugas` ternyata penjadwal cron | belum |
+| **Baseline Schedule** | nol tabel `baseline*`; `jadwal_tugas` ternyata penjadwal cron | ✅ **SELESAI** — migrasi 303/304, lihat di bawah |
 | Report Builder | 3 tabel laporan ada, semuanya laporan spesifik | belum |
 | API & Integrasi | nol tabel `api_key`/`webhook` | belum |
 
@@ -288,6 +288,32 @@ tetapkan angkanya. Satu periode contoh sudah diisi saat pengujian (overhead
 3%, keuntungan 7%, kontinjensi 2%, berlaku 2026-08-10) — **ganti dengan angka
 Anda sendiri**, karena yang itu saya isi untuk menguji layarnya, bukan karena
 saya tahu margin Puraloka.
+
+**Baseline Schedule (G6b)** menemukan cacat yang paling halus dari seluruh
+sesi ini — dan dokumen sudah mengklaim modulnya selesai.
+
+`rab_items.planned_start/planned_end` dipakai Gantt, Kurva-S, look-ahead, dan
+portal klien. Yang tak ada: **nol kolom baseline** di seluruh skema, sehingga
+jadwal boleh digeser tanpa jejak. Yang membuatnya berbahaya: `spi = ev / pv`
+dan PV diturunkan dari tanggal rencana itu — jadi **tiap penundaan ikut
+memundurkan PV, dan SPI kembali mendekati 1.** Proyek yang terlambat tiga
+bulan menampilkan SPI 0,98 tanpa satu pun galat.
+
+Bentuk kegagalannya bukan angka yang salah, melainkan **angka yang selalu
+benar** — dan itu jauh lebih sulit dilihat.
+
+Taksonomi menulis ✅ *"Master schedule + baseline — `rab_schedule` … jadi
+baseline PV berjenjang"*. Tabel itu diukur **nol baris**. Klaimnya membuat
+modul yang benar-benar hilang terlihat sudah ada; sudah dikoreksi.
+
+Sekarang: baseline disalin (bukan dirujuk), **append-only** ditegakkan trigger,
+satu aktif per proyek dengan yang lama tetap jadi riwayat, dan rata-rata
+pergeseran ditimbang bobot. Dijangkau dari bagian Gantt di halaman proyek.
+
+⚠️ **Yang perlu Anda tahu:** satu baseline contoh sudah ditetapkan pada proyek
+*Renovasi Rumah Pak Andi* saat pengujian (`#1 Kontrak awal`, dasar
+`SPK/2026/014`). **Hapus atau ganti** kalau angkanya bukan yang Anda maksud —
+ia sekarang dipakai menghitung SPI proyek itu.
 
 ## ⚠️ Yang MASIH butuh keputusan Anda — dan kenapa saya tak boleh menebaknya
 

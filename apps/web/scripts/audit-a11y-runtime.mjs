@@ -101,6 +101,9 @@ const CONTOH_ID = {
   // halaman terbaca seperti cakupan penuh.
   '/m/[key]': process.env.LAYAR_KUNCI_MENU,
   '/verify/invoice/[id]': process.env.LAYAR_ID_INVOICE,
+  // G6b — baseline jadwal. Memakai id proyek yang sama: halamannya sub-rute
+  // proyek, jadi tak butuh id tersendiri.
+  '/proyek/[id]/baseline': process.env.LAYAR_ID_PROYEK,
 }
 
 function halamanDariBerkas() {

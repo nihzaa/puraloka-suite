@@ -66,6 +66,7 @@ import k3LapanganRoutes from './routes/v1/k3-lapangan.js'
 import tutupBukuRoutes from './routes/v1/tutup-buku.js'
 import penjurnalanOtomatisRoutes from './routes/v1/penjurnalan-otomatis.js'
 import markupRoutes from './routes/v1/markup.js'
+import baselineJadwalRoutes from './routes/v1/baseline-jadwal.js'
 import absensiRoutes from './routes/v1/absensi.js'
 import rekonsiliasiMaterialRoutes from './routes/v1/rekonsiliasi-material.js'
 import rekonsiliasiBankRoutes from './routes/v1/rekonsiliasi-bank.js'
@@ -355,6 +356,7 @@ await app.register(k3LapanganRoutes)
 await app.register(tutupBukuRoutes)
 await app.register(penjurnalanOtomatisRoutes)
 await app.register(markupRoutes)
+await app.register(baselineJadwalRoutes)
 await app.register(absensiRoutes)
 await app.register(rekonsiliasiMaterialRoutes)
 await app.register(rekonsiliasiBankRoutes)

@@ -5,6 +5,120 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — G6b: bukan angka yang salah, melainkan angka yang selalu benar
+
+Baseline jadwal. Yang ditemukan dengan mengukur lebih dulu:
+`rab_items.planned_start/planned_end` sudah ada dan **hidup** — dipakai Gantt,
+Kurva-S, look-ahead, dan portal klien (6 berkas). Yang tak ada: **nol kolom
+baseline** di seluruh skema.
+
+Sendirian itu terdengar seperti keleluasaan wajar. Yang membuatnya berbahaya
+adalah apa yang bergantung padanya:
+
+    lib/evm-calculation.ts:44   spi = ev / pv
+    lib/rencana-dari-gantt.ts   PV diturunkan dari planned_start/end
+
+**SPI dihitung terhadap jadwal yang bisa ikut bergeser.** Tiap kali tanggal
+rencana dimundurkan, PV ikut mundur dan SPI kembali mendekati 1. Proyek yang
+terlambat tiga bulan menampilkan SPI 0,98 — tanpa satu pun galat, tanpa baris
+merah, dan tak ada yang bisa membantahnya karena rencana pembandingnya sudah
+tidak ada.
+
+Ini bentuk kegagalan paling mahal di modul jadwal: **bukan angka yang salah,
+melainkan angka yang selalu benar.**
+
+### Dan dokumen sudah mengklaim ini selesai
+
+`ERP-KONTRAKTOR-TAKSONOMI-MENU.md:106` berbunyi ✅ *"Master schedule + baseline
+— `rab_schedule` … jadi baseline PV berjenjang"*. Saya ukur tabel itu: **nol
+baris**. Klaimnya membuat modul yang benar-benar hilang terlihat sudah ada,
+dan itu persis racun konteks yang pembuka `CLAUDE.md` peringatkan. Dikoreksi
+di commit yang sama.
+
+### Tiga keputusan bentuk
+
+**Tanggal DISALIN, bukan dirujuk.** Baseline adalah pernyataan tentang apa yang
+dijanjikan pada suatu tanggal; kalau ia hanya merujuk `rab_items`, ia ikut
+berubah saat itemnya disunting — dan pembanding yang ikut berubah bukan
+pembanding. Pelajaran yang sama sudah dibayar dua kali (slip gaji G2c, markup
+G6a).
+
+**Append-only lewat trigger.** UPDATE ditolak selalu; DELETE ditolak KECUALI
+lewat CASCADE (`pg_trigger_depth() > 1`), supaya baseline salah ketik tetap
+bisa dibuang. Dibuktikan test lewat **SQL langsung**, bukan lewat rute: skrip
+impor dan perbaikan manual tak melewati satu pun preHandler.
+
+**Satu baseline aktif, yang lama tetap ada.** Adendum adalah kejadian normal
+dalam proyek konstruksi, dan tiap baseline sah sebagai pembanding untuk
+periodenya. Yang tak boleh: dua yang aktif, karena "terlambat terhadap yang
+mana?" kembali tak punya jawaban tunggal. Dijaga indeks parsial.
+
+Rata-rata pergeseran **ditimbang bobot**. Rata-rata polos memperlakukan
+pemasangan kusen (bobot 0,4%) setara struktur (22%): proyek dengan seratus item
+kecil tepat waktu plus satu item besar mundur 60 hari akan terlihat nyaris
+sehat — 15 hari alih-alih 58.
+
+### Tiga kesalahan saya, dan yang menemukannya
+
+**1. Menebak nama kolom lagi.** `projects:manage` (yang benar `projects:edit`)
+dan `rab_items.description` (yang benar `name`). Kesalahan yang sama persis
+dengan G6a beberapa jam sebelumnya — dan yang membedakan hanya bahwa kali ini
+saya mengukurnya sebelum migrasi dijalankan, bukan sesudah gagal.
+
+**2. Empat mutasi LOLOS.** Tiga ditutup dengan test baru — yang paling nyata:
+membuang `.not('planned_start','is',null)` tak membuat satu test pun merah,
+padahal akibatnya item tanpa jadwal ikut masuk baseline sebagai baris yang
+selalu "tak bergeser" dan mengencerkan seluruh rata-rata. Yang keempat
+(pembersihan baseline kosong saat INSERT gagal) **tak bisa dipicu lewat rute
+tanpa mematikan basis di tengah permintaan** — dinyatakan di kode, tidak
+disembunyikan.
+
+**3. Test yang merusak data nyata — dan nol test yang menangkapnya.**
+Menetapkan baseline uji MENONAKTIFKAN baseline nyata lebih dulu
+(`uq_baseline_satu_aktif` menuntutnya), lalu `purge()` menghapus yang uji dan
+baseline nyata tertinggal **tidak aktif**. Akibatnya: proyek yang punya
+baseline berhenti punya pembanding, layar berkata "belum punya baseline", dan
+SPI kembali dihitung terhadap jadwal yang bergeser — persis keadaan yang
+seluruh modul ini perbaiki.
+
+Nol test merah, karena test-nya sudah selesai saat itu terjadi. **Ditemukan
+dengan melihat layar sesudah test dijalankan**, dan dibuktikan sembuh: baseline
+nyata tetap `aktif = true` sesudah 44 test.
+
+Dua test lain juga diperbaiki karena mengandaikan basis kosong: nomor baseline
+diuji sebagai KENAIKAN bukan nilai absolut, dan "tanpa baseline" diuji pada
+proyek yang memang belum punya — **test yang menuntut data nyata dihapus supaya
+dirinya hijau adalah test yang salah, bukan datanya.**
+
+### Layar menemukan yang test lewatkan
+
+"0 dari **285** pekerjaan" dan "lingkup berubah **271**" — padahal hanya 14 item
+punya jadwal. 271 item tanpa tanggal dilaporkan sebagai "item baru", padahal
+mereka tak pernah masuk baseline karena tak bisa dibandingkan. Angka yang benar
+secara harfiah, menyesatkan secara praktis. Sesudah diperbaiki: "1 dari 14",
+"lingkup berubah 0".
+
+### Bukti
+
+    tsc (api + web)          0
+    vitest baseline          44 lulus (30 pustaka + 14 endpoint)
+    mutasi pustaka           16/16 MERAH
+    mutasi endpoint          9/10 MERAH (3 ditutup test baru; 1 dinyatakan di kode)
+    next build               nol error, /proyek/[id]/baseline terdaftar
+    axe terang/gelap         0 pelanggaran
+    alur UI nyata            baseline ditetapkan lewat FORM; jadwal digeser 45 hari;
+                             pergeseran terbaca +45, tertimbang 5,8 (bobot 12,9%)
+    data nyata               baseline tetap AKTIF & jadwal dipulihkan sesudah test
+    13 penjaga web + 13 penjaga API + taksonomi + peta-menu   hijau
+    migrasi 303, 304         diterapkan; 303 lulus 7 blok verifikasi termasuk
+                             "DELETE ditolak tapi CASCADE jalan"
+
+**TIDAK hijau** (diukur di HEAD bersih, angka identik, nol kecocokan dengan
+berkas G6b): `audit-tulis-tanpa-periksa` 78/76, `lint-ratchet`,
+`kerapatan-ratchet`, `tabel-mentah-ratchet`, `uji-kosong-seragam`. Utang lama.
+
+---
+
 ## 2026-08-12 (lanjutan) — G6a: angka yang menentukan seluruh laba perusahaan, dan tak punya rumah
 
 Daftar G6 menyebut enam item. Saya ukur dulu ke kode sebelum membangun apa pun

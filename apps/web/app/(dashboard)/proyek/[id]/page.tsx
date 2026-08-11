@@ -4,6 +4,7 @@ import { useCallback, useEffect, useReducer, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { api, getStoredUser } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import {
@@ -1379,17 +1380,34 @@ function ProjectDetailContent() {
               {ganttCollapsed && <div style={{ fontSize: 11, color: C.muted }}>Klik untuk expand</div>}
             </div>
           </div>
-          <button
-            onClick={() => setGanttCollapsed(c => !c)}
-            style={{
-              display: "flex", alignItems: "center", gap: 6,
-              padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
-              background: "var(--surface-subtle)", cursor: "pointer", fontSize: 12, color: C.mid,
-            }}
-          >
-            {ganttCollapsed ? "Tampilkan" : "Sembunyikan"}
-            <ChevronDown size={13} style={{ transform: ganttCollapsed ? "rotate(-90deg)" : "none", transition: "transform 0.2s" }} />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {/* Baseline dijangkau DARI SINI — ia rute dinamis, jadi tak bisa
+                ditautkan dari sidebar (lihat migrasi 304). Tanpa tautan ini
+                halamannya hanya bisa dibuka dengan mengetik URL, dan itu sama
+                saja dengan tidak ada. */}
+            <Link
+              href={`/proyek/${id}/baseline`}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
+                background: "var(--surface-subtle)", fontSize: 12, color: C.mid,
+                textDecoration: "none",
+              }}
+            >
+              Baseline jadwal
+            </Link>
+            <button
+              onClick={() => setGanttCollapsed(c => !c)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "6px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
+                background: "var(--surface-subtle)", cursor: "pointer", fontSize: 12, color: C.mid,
+              }}
+            >
+              {ganttCollapsed ? "Tampilkan" : "Sembunyikan"}
+              <ChevronDown size={13} style={{ transform: ganttCollapsed ? "rotate(-90deg)" : "none", transition: "transform 0.2s" }} />
+            </button>
+          </div>
         </div>
         {!ganttCollapsed && (
           <GanttSection
