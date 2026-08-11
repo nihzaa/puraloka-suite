@@ -5,6 +5,82 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (sapu akhir) — tujuh tabel yang saya bangun ternyata MATI TOTAL
+
+R-011 tuntas (34 item). Sapu akhir menjalankan seluruh test API — dan test
+invarian RLS menemukan cacat yang seluruh pengujian saya lewatkan.
+
+### Yang ditemukan
+
+Tujuh tabel yang dibangun di G6a–G6e menyalakan RLS **tanpa satu pun policy**:
+
+    markup_periode           baseline_jadwal        baseline_jadwal_item
+    api_key                  api_key_pakai
+    peta_resource_material   rencana_susut_material
+
+Di Postgres, `ENABLE ROW LEVEL SECURITY` tanpa policy berarti tabelnya **mati
+total**: nol baris terbaca oleh siapa pun yang tunduk RLS, termasuk pemiliknya
+sendiri. Bukan "kurang aman" — sebaliknya, terlalu tertutup.
+
+Dan itu belum cukup. Sesudah `tenant_isolation` RESTRICTIVE ditambahkan
+(migrasi 312), test masih merah. Sebabnya cara Postgres menggabungkan policy:
+
+    (OR seluruh PERMISSIVE) AND (AND seluruh RESTRICTIVE)
+
+`OR` atas himpunan kosong adalah **FALSE**. Tabel yang hanya punya RESTRICTIVE
+tetap mati, betapa pun benar predikatnya. Perlu migrasi 313.
+
+### Kenapa seluruh pengujian saya melewatkannya
+
+Alur UI yang saya jalankan — markup, baseline, kunci API, susut, semuanya —
+memakai koneksi service-role yang **MELEWATI RLS**. Layarnya jalan, datanya
+tersimpan, angkanya benar, screenshot-nya meyakinkan.
+
+Ini bentuk kegagalan yang sama dengan yang berulang sepanjang sesi ini, dan
+kali ini mengenai saya sendiri di lapisan yang paling dalam: **yang terlihat
+di layar tidak membuktikan yang terjadi di basis.**
+
+Yang menemukannya bukan mata saya, bukan alur UI, bukan 128 test fitur — tetapi
+test invarian yang membaca `pg_policy` langsung.
+
+### Yang diperbaiki, dan yang TIDAK
+
+Diukur: **40 tabel** ber-RLS punya RESTRICTIVE tanpa PERMISSIVE. Sepuluh dari
+G5/G6/R-012 — itu yang diperbaiki (312 + 313). Sesudahnya: 40 → 30, dan **nol**
+dari tabel yang saya bangun.
+
+**Tiga puluh sisanya utang lama** (`insiden_k3`, `audit_mutu`, `cuti_hak`, dan
+seterusnya — sebagian dari G3/G4 sesi sebelumnya). TIDAK disentuh, dan itu
+keputusan sadar: tiap tabel butuh penilaian izin mana yang tepat untuk
+membacanya, dan menebaknya massal akan memberi akses yang tak pernah
+diputuskan siapa pun — kesalahan yang lebih mahal daripada tabel yang terlalu
+tertutup.
+
+Angkanya dicetak blok verifikasi migrasi 313 supaya tak terbaca "sudah beres".
+
+### Satu kesalahan di tengah perbaikan
+
+Migrasi 312 versi pertama memasukkan `baseline_jadwal` ke daftar tabel
+ber-`company_id`, dan GAGAL: tabel itu menyaring lewat `project_id`, persis
+klasifikasinya di peta tenancy. Kegagalan itu berguna — policy yang mengacu
+kolom tak ada ditolak Postgres. Yang berbahaya justru kebalikannya: policy
+yang mengacu kolom yang ADA tetapi salah artinya, karena ia diterima tanpa
+keluhan.
+
+### Bukti
+
+    vitest fitur G5/G6/R-012   128 lulus SESUDAH policy ditambahkan
+    test RLS yang tadi merah   6 → 2 (dua sisanya menghitung 30 utang lama)
+    tabel tanpa permissive     40 → 30, nol dari G6
+    5 halaman diuji lewat UI   markup · api-key · susut · jurnalkan · periode
+                               — kelimanya termuat dengan data
+    21 penjaga API + 18 web    hijau
+    tsc api + web              0
+    next build                 nol error
+    migrasi 312, 313           diterapkan, blok verifikasi lulus
+
+---
+
 ## 2026-08-12 (lanjutan) — G6e: penundaan yang sah, dengan sebab yang keliru dicatat
 
 Item terakhir G6. Yang saya temukan: **Tracking Waste sudah selesai sejak
