@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 244 tabel · A=11 · AB=15 · ANCHOR=1 · B=97 · C=113 · D=7
+// 246 tabel · A=11 · AB=15 · ANCHOR=1 · B=99 · C=113 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -183,6 +183,7 @@ export const PETA_TENANCY = {
   'permission_scopes': { kategori: 'A' },
   'permissions': { kategori: 'A' },
   'peta_akun_jurnal': { kategori: 'B' },
+  'peta_resource_material': { kategori: 'B' },
   'po_delivery_log': { kategori: 'C', lewat: 'project_id' },  // po_delivery_log.project_id
   'pola_kerja': { kategori: 'B' },
   'polis_asuransi': { kategori: 'C', lewat: 'project_id' },  // polis_asuransi.project_id
@@ -217,6 +218,7 @@ export const PETA_TENANCY = {
   'rekening_koran': { kategori: 'B' },
   'rekening_koran_baris': { kategori: 'C', lewat: 'koran_id' },  // rekening_koran_baris.koran_id
   'rencana_mutu': { kategori: 'C', lewat: 'project_id' },  // rencana_mutu.project_id
+  'rencana_susut_material': { kategori: 'B' },
   'resources': { kategori: 'A' },
   'rfq': { kategori: 'C', lewat: 'project_id' },  // rfq.project_id
   'rfq_penawaran': { kategori: 'C', lewat: 'rfq_id' },  // rfq_penawaran.rfq_id → rfq.project_id

@@ -5,6 +5,115 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — G6e: penundaan yang sah, dengan sebab yang keliru dicatat
+
+Item terakhir G6. Yang saya temukan: **Tracking Waste sudah selesai sejak
+2026-08-06** (`/gudang/rekonsiliasi`, commit `3d5a38b`). Yang ditunda hanya
+pembandingnya — *"12% hilang padahal yang dianggarkan 5%"* — dengan pemicu
+tertulis di F5-1: `waste_factor` terisi + ada relasi assembly→material.
+
+Diukur ulang: `waste_factor` **masih 1 dari 3.043**. Pemicunya belum menyala,
+dan penundaannya sah.
+
+### Tetapi sebabnya bukan yang dicatat
+
+Pengukuran yang lebih dalam:
+
+    resources   2.830 baris   kodenya  AHSP-SEMEN-PC, AHSP-BATA-MERAH, …
+    materials      24 baris   kodenya  MAT-001, MAT-002, …
+    kode cocok PERSIS: 0
+
+Jalur assembly→material bukan "belum dibuat" — ia **tak mungkin dibuat tanpa
+keputusan manusia**. Dua penomoran yang tak pernah dirancang untuk bertemu.
+
+Itu mengubah apa yang harus dibangun: bukan menunggu pemicu yang takkan pernah
+menyala sendiri, melainkan **menyediakan jalan bagi manusia untuk
+menyalakannya**.
+
+### Dan saya sendiri membuktikan kekhawatirannya nyata
+
+Saat menguji alurnya lewat UI, saya mencari "semen", mengambil hasil pertama,
+dan memetakannya ke `MAT-001 Semen Portland 50kg` dengan faktor 0,02.
+
+Hasil pertama itu ternyata **`AHSP-R0260 — Plafon Serat Semen/GRC Tebal 4 mm`**.
+Satuannya m², bukan kg.
+
+Kalau dibiarkan, sistem akan melaporkan susut plafon sebagai susut semen —
+dengan angka yang terlihat sah dan menuduh orang yang tak pernah memegang
+barangnya. Persis cacat yang seluruh modul ini dibangun untuk mencegah, dan
+saya melakukannya dalam sepuluh menit karena mengambil hasil pencarian tanpa
+membacanya. Pemetaan itu dihapus.
+
+Itu memperkuat keputusan bentuknya: pemetaan **tak boleh** ditebak sistem, dan
+juga tak boleh ditebak siapa pun yang tak tahu barangnya.
+
+### Yang dibangun
+
+Jembatan `peta_resource_material` (nol ter-seed) beserta **faktor konversi** —
+karena satuan AHSP dan gudang jarang sama. Tanpa faktor, 500 kg semen menurut
+AHSP dibandingkan 10 sak di gudang menghasilkan "susut 98%": angka yang
+menuduh orang atas kesalahan satuan.
+
+`rencana_susut_material` menaruh rencana per MATERIAL, bukan di
+`assemblies.waste_factor`. Alasannya jumlah: puluhan material versus 3.043
+assembly, dan mengisi yang kedua menuntut menyunting katalog AHSP nasional.
+
+Penilaian **hanya diberikan bila rencananya ada**. `tak_terukur` bukan
+kegagalan — ia keadaan sah yang harus terlihat, karena angka susut tanpa
+pembanding tak boleh dipakai menilai siapa pun.
+
+`hilang` NEGATIF dibiarkan negatif. Terpakai + sisa yang melebihi yang
+diterima berarti ada yang salah catat; memaksanya nol menyembunyikan cacat
+pencatatan yang justru perlu diperbaiki, dan membuat susutnya terlihat
+sempurna.
+
+Rencana NOL punya cabang tersendiri: `rencana * 2` tetap nol, jadi tanpa itu
+susut 0,5% pada material berencana 0% langsung dicap "jauh melebihi" — tuduhan
+berat untuk selisih setengah persen.
+
+### Tiga mutasi yang lolos, dan sebabnya satu
+
+Menghapus pemeriksaan `!b.resource_id` tak membuat test merah — basis pun
+menolaknya lewat NOT NULL, dan status-nya sama-sama 400. Yang BERBEDA adalah
+pesannya: galat Postgres berbunyi *"null value in column resource_id violates
+not-null constraint"*, kalimat yang tak berarti apa pun bagi orang yang sedang
+memetakan material.
+
+Test diperbaiki untuk menguji **pesannya**, bukan sekadar status. Ketiganya
+MERAH sesudah itu.
+
+### Satu celah yang saya temukan sendiri sebelum commit
+
+Halaman pertama bisa MEMBACA dan MENGHAPUS pemetaan, tetapi tak bisa
+MEMBUATNYA — endpoint PUT-nya ada dan tak terjangkau. Persis cacat "endpoint
+ada, UI tak punya cara memakainya" yang saya kritik di awal sesi ini.
+Ditambahkan formulir pencarian + pemetaan, beserta endpoint pencarian resource
+(2.830 baris tak bisa jadi pemilih).
+
+Pencariannya memakai `.or()` PostgREST, dan `%`, `,`, serta tanda kurung
+DILUCUTI — disamakan dengan pola `ahsp.ts:308` yang sudah ada, karena dua
+pembersihan berbeda untuk masalah yang sama akan berbeda cacatnya.
+
+### Bukti
+
+    tsc (api + web)      0
+    vitest susut         52 lulus (36 pustaka + 16 endpoint)
+    mutasi pustaka       15/15 MERAH
+    mutasi endpoint      11/11 MERAH (3 lolos → test diperbaiki → MERAH)
+    next build           nol error, /gudang/susut terdaftar
+    axe terang/gelap     0 pelanggaran
+    alur UI nyata        rencana 5% tersimpan · pencarian "semen" → 12 hasil ·
+                         pemetaan berhasil · spanduk hilang
+    9 penjaga web + 9 penjaga API   hijau
+    migrasi 310, 311     diterapkan; 310 lulus 6 blok verifikasi termasuk
+                         "faktor 0 ditolak" dan "susut 500% ditolak"
+
+**TIDAK hijau** (utang lama, diukur di HEAD bersih): `audit-tulis-tanpa-periksa`
+78/76, `lint-ratchet`, `kerapatan-ratchet`, `tabel-mentah-ratchet`,
+`uji-kosong-seragam`.
+
+---
+
 ## 2026-08-12 (lanjutan) — G6d: report builder yang sengaja tak punya kotak kondisi
 
 Diukur lebih dulu: `/laporan` sudah punya **sembilan** laporan siap-pakai

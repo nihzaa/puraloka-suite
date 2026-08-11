@@ -260,7 +260,7 @@ Enam item di atas diukur ke kode sebelum dibangun. Hasilnya mengubah rencana:
 |---|---|---|
 | Dokumen Prakualifikasi | `vendor-kualifikasi.ts` + `/procurement/kualifikasi` | ✅ **sudah selesai** 2026-08-07 — daftar ini yang basi |
 | **Markup & Margin** | nol kolom markup/margin/overhead di SELURUH skema | ✅ **SELESAI** — migrasi 301/302, lihat di bawah |
-| Tracking Waste | `assemblies.waste_factor` ada; **3.042 dari 3.043 bernilai 0** | pemicunya belum menyala (sesuai triase F5-1) |
+| **Tracking Waste** | `assemblies.waste_factor` ada; **3.042 dari 3.043 bernilai 0** | ✅ **SELESAI** — migrasi 310–311, lihat di bawah |
 | **Baseline Schedule** | nol tabel `baseline*`; `jadwal_tugas` ternyata penjadwal cron | ✅ **SELESAI** — migrasi 303/304, lihat di bawah |
 | **Report Builder** | 3 tabel laporan ada, semuanya laporan spesifik | ✅ **SELESAI** — migrasi 308–309, lihat di bawah |
 | **API & Integrasi** | nol tabel `api_key`/`webhook` | ✅ **SELESAI** — migrasi 305–307, lihat di bawah |
@@ -354,6 +354,39 @@ izinnya. Itu batas yang disengaja: menambah sumber lewat kode berarti tak ada
 laporan yang bisa membaca data yang tak boleh dibacanya.
 
 Buka **Laporan & BI → Susun Laporan**.
+
+**Tracking Waste (G6e)** — dan di sini penundaan lama ternyata **sah, tetapi
+sebabnya keliru dicatat**.
+
+`/gudang/rekonsiliasi` sudah menjawab "berapa yang hilang" sejak 2026-08-06.
+Yang ditunda: pembandingnya — *"12% hilang padahal yang dianggarkan 5%"*.
+Pemicu yang dicatat: `waste_factor` terisi + ada relasi assembly→material.
+
+Diukur ulang: `waste_factor` **masih 1 dari 3.043** — pemicunya memang belum
+menyala. Tetapi pengukuran yang lebih dalam menemukan sebab yang berbeda:
+
+    resources   2.830 baris   kodenya  AHSP-SEMEN-PC, AHSP-BATA-MERAH, …
+    materials      24 baris   kodenya  MAT-001, MAT-002, …
+    kode cocok PERSIS: 0
+
+Jalur itu bukan "belum dibuat" — ia **tak mungkin dibuat tanpa keputusan
+manusia**. Dua penomoran yang tak pernah dirancang untuk bertemu, dan
+menyambungkannya lewat pencocokan nama adalah tebakan yang menghasilkan angka
+susut menuduh orang atas material yang tak pernah mereka pegang.
+
+Yang dibangun karena itu: jembatan sebagai **data yang Anda isi**, bukan
+tebakan. Plus rencana susut per material — puluhan angka, bukan ribuan seperti
+kalau ditaruh di katalog AHSP.
+
+⚠️ **Bukti bahwa kekhawatiran itu nyata:** saat menguji, saya sendiri
+memetakan **"Plafon Serat Semen/GRC"** ke **"Semen Portland 50kg"** — karena
+keduanya muncul saat mencari "semen". Pemetaan itu **sudah saya hapus**. Kalau
+dibiarkan, ia akan melaporkan susut plafon sebagai susut semen.
+
+**Yang perlu Anda lakukan:** buka **Gudang & Material → Rencana Susut**. Satu
+rencana contoh sudah ada (Semen Portland 5%, dasar "pengalaman 3 proyek
+terakhir") — ganti kalau angkanya bukan yang Anda maksud. Pemetaan AHSP→gudang
+masih **kosong**, dan memang harus diisi orang yang tahu barangnya.
 
 ## ⚠️ Yang MASIH butuh keputusan Anda — dan kenapa saya tak boleh menebaknya
 
