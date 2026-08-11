@@ -5,6 +5,114 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-11 (lanjutan 7) — G2a: tarif payroll sebagai data, dan `Number('') === 0`
+
+Kelompok G2 (SDM & Payroll) dimulai dari **tarifnya**, bukan dari payroll-nya.
+Alasannya mengikat: R-011 mencabut larangan membangun payroll dengan syarat
+yang diucapkan founder lewat penolakan aslinya —
+
+> *"aturan pajak berubah tiap tahun; salah hitung = urusan hukum, bukan bug"*
+
+Itu masih benar. Yang berubah: mesinnya dibangun. Yang **tidak** berubah: PTKP,
+lapisan PPh 21, dan persentase BPJS tak boleh ditulis ke dalam kode. Jadi
+kalau tarifnya belum jadi data, mesin hitungnya tak boleh ada.
+
+### Penjaga anti-seed di migrasinya sendiri
+
+Migrasi 284 **gagal keras kalau ada baris tarif** — termasuk yang ditanam
+migrasi itu sendiri:
+
+```
+284 gagal: 1 baris tarif ter-seed. Tarif WAJIB diisi founder lewat halaman
+pengaturan (R-011) — angka bawaan menghasilkan slip gaji yang tampak benar
+tanpa seorang pun memutuskannya.
+```
+
+Dibuktikan: jalankan berkasnya sementara ada satu baris → ditolak; bersihkan →
+jalan lagi (idempoten).
+
+Ini bukan kehati-hatian berlebihan. Slip gaji yang salah keluar dengan
+tampilan meyakinkan — nama benar, periode benar, potongan tampak masuk akal —
+dan penerimanya tak punya cara tahu angkanya lahir dari tebakan.
+
+### Cacat yang ditemukan test-nya sendiri: `Number('') === 0`
+
+Saya menulis `angka()` dengan pola yang sudah dipakai di modul lain repo ini,
+dan test-nya langsung merah:
+
+```
+expected +0 to be null
+```
+
+`Number('')` adalah **0**, bukan NaN. Begitu juga `Number('   ')`. Artinya
+kolom tarif yang **dikosongkan di form** akan terbaca sebagai **tarif nol** —
+persis kelas cacat yang seluruh modul ini ada untuk mencegah, dan bentuknya
+paling berbahaya: potongan Rp 0 yang tampak sah, tanpa satu pun peringatan.
+
+Kodenya yang salah, bukan test-nya. Diperbaiki di **dua sisi**: baca (`angka()`)
+dan tulis (endpoint `num()`), lalu dibuktikan dari layar sampai basis — kolom
+yang dikosongkan tersimpan `null`, bukan 0.
+
+### Mutasi menemukan test yang hanya menguji SATU ARAH
+
+Dua mutasi tak merah: melepas `.toUpperCase()` dari sisi TABEL pada
+`ptkpSetahun` dan `tarifTer`. Test-nya menguji `'tk/0'` sebagai **masukan**,
+tapi fixture-nya menyimpan `'TK/0'` yang sudah huruf besar — jadi normalisasi
+sisi tabel tak pernah diuji.
+
+Data nyata datang dari form: kunci yang **tersimpan** bisa `'tk/0'` atau
+`' K/1 '`. Tanpa normalisasi dua arah, PTKP-nya "tidak ditemukan" dan slip
+memakai PTKP `null` — yang berarti seluruh penghasilan kena pajak.
+
+Ditambah dua test; kedua mutasi sekarang merah.
+
+### Keputusan rancangan yang menentukan kebenaran angka
+
+| Hal | Keputusan | Kenapa |
+|---|---|---|
+| Tarif tak ada | `null`, bukan 0 | 0 adalah jawaban yang bisa salah dan tampak sah; `null` memaksa layar bilang "belum ditetapkan" |
+| Periode | DITAMBAH bertanggal berlaku, tak menimpa | slip Januari harus tetap bisa dihitung ulang sesudah tarif berubah Juli |
+| Lapisan TER | bawah INKLUSIF, atas EKSKLUSIF | dua sisi inklusif → satu nilai cocok di DUA lapisan, pemenangnya bergantung urutan baris |
+| Ceiling BPJS | MENGGIGIT | 2% dari ceiling 8jt = 160rb; mengabaikannya untuk gaji 20jt → 400rb, dan tak ada yang bisa menjelaskan selisihnya dari slip |
+| Pihak tak menanggung | `null`, bukan 0 | 0 berarti "ditanggung, sebesar nol" |
+| Periode ada tapi NOL BARIS | dilaporkan TERPISAH | lolos pemeriksaan "sudah ada", tapi menghitungnya menghasilkan nol — kegagalan paling sulit dilihat |
+
+### Dua migrasi gagal, dan itu benar
+
+- **282** (G1e) gagal FK: `approval_chains` punya baris menunjuk company yang
+  sudah dihapus. Diperbaiki `JOIN companies`.
+- **285** gagal tipe: `required_permissions` ternyata `text[]`, bukan `jsonb` —
+  saya menebak dari namanya. Diukur ke `information_schema`, diperbaiki.
+
+Keduanya: buku migrasi **tidak ditulis** (cacat 043 dijaga).
+
+### Yang saya nilai kurang di layar, lalu revisi
+
+Tabel BPJS menampilkan tiga kolom yang isinya "—" selamanya (Rentang, Nominal,
+Persen) — jenis itu memang tak memakainya. Kolom kosong yang tak akan pernah
+terisi membuat pembacanya mengira ada data yang belum diisi. Kolom kini
+disaring per jenis, begitu juga isian di modalnya.
+
+### Bukti
+
+```
+tsc api+web exit=0
+25 penjaga arsitektural exit=0 (nol merah)
+43 test (28 pustaka + 15 endpoint Postgres nyata)
+20 mutasi MERAH (14 pustaka + 6 rute)
+8 penjaga DB terbukti MENOLAK, termasuk penjaga anti-seed
+axe halaman 0 · modal 0
+DARI LAYAR: 3 jenis "belum ada tarif" → isi BPJS → BPJS hilang dari
+  peringatan, PTKP & PPh 21 tetap disebut
+DARI LAYAR SAMPAI BASIS: 4 kolom dikosongkan → tersimpan null, bukan 0
+baris tarif di basis sesudah selesai: 0 (sesuai R-011)
+```
+
+Berikutnya **G2b — timesheet** di atas `absensi_harian` (1.279 baris), lalu
+G2c payroll staf yang memakai tarif ini.
+
+---
+
 ## 2026-08-11 (lanjutan 6) — G1f: kelompok Mutu TUNTAS, dan kesalahan yang saya ulangi
 
 Audit Mutu selesai. **Ketujuh sub-item Mutu kini hidup** — kelompok G1 (R-011)

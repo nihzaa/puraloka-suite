@@ -205,6 +205,18 @@ const PETA = {
     berkas: ['audit-mutu'], tabel: ['audit_mutu', 'temuan_audit'], web: ['/mutu/audit'],
   },
 
+  // ── G2a (2026-08-11) — tarif payroll sebagai DATA ────────────────────
+  //
+  // Dipetakan ke TABEL + halaman, bukan ke jumlah barisnya: tabelnya sengaja
+  // KOSONG sampai founder mengisi (R-011). Menuntut baris di sini akan
+  // membuat penjaga merah untuk keadaan yang justru benar.
+  'Potongan statutori (BPJS)': {
+    berkas: ['tarif-payroll'], tabel: ['tarif_payroll_periode'], web: ['/pengaturan/tarif-payroll'],
+  },
+  'PPh 21': {
+    berkas: ['tarif-payroll'], tabel: ['tarif_payroll_baris'], web: ['/pengaturan/tarif-payroll'],
+  },
+
   // Ditambahkan 2026-08-07 sesudah kekeliruan KEDELAPAN (F5-1 §3c).
   //
   // 'Laporan keuangan' tertulis 🔴 selama berminggu-minggu — dan taksonomi
