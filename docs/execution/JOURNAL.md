@@ -5,6 +5,103 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — G6c: sistem luar tak punya jalan masuk sama sekali
+
+Yang terukur: nol tabel `api_key` di seluruh skema, dan satu-satunya jalan
+masuk ke API adalah token Supabase Auth (`plugins/auth.ts:103`) — yaitu **sesi
+manusia yang login lewat peramban**.
+
+`otomasi_alur.jalur_webhook` yang sudah ada (14 alur, 6 ber-webhook) berjalan
+ke ARAH SEBALIKNYA: Puraloka memanggil n8n. Yang tak ada adalah arah masuk.
+
+Akibatnya: tiap integrasi menuntut seseorang menaruh **kredensial login
+manusia** di sistem lain. Kredensial itu punya seluruh kewenangan orangnya,
+tak bisa dicabut tanpa mengunci orangnya, dan jejaknya di audit log tertulis
+sebagai perbuatan orang itu — bukan mesin.
+
+### Keputusan yang paling menentukan: hash, bukan enkripsi
+
+Repo ini sudah punya `lib/kredensial-sandi.ts` (AES-256-GCM, ditulis rapi
+dengan KDF dan IV acak) dan menggoda dipakai ulang. Untuk API key itu **salah**:
+enkripsi bisa dibalik, jadi siapa pun yang memegang server bisa membaca kembali
+kunci setiap pelanggan.
+
+Kunci di-hash SATU ARAH. Konsekuensinya disengaja: nilainya muncul **sekali**,
+dan sesudah itu tak ada yang bisa memulihkannya — termasuk kami.
+
+SHA-256 dan bukan bcrypt/scrypt, dan alasannya kebalikan dari kata sandi: API
+key adalah **32 byte acak**, bukan frasa yang bisa ditebak. KDF lambat
+melindungi dari serangan kamus yang tak berlaku di sini, sementara biayanya
+dibayar pada SETIAP permintaan — dan integrasi berarti banyak permintaan.
+
+### Yang dibuat gagal-tertutup, satu per satu
+
+- **Izin bawaan KOSONG.** Kunci lahir tak bisa apa-apa. Yang lahir berwenang
+  penuh tak pernah disempitkan kemudian, karena tak ada yang rusak saat izinnya
+  berlebih.
+- **Tak ada wildcard.** `'*'` diperlakukan sebagai izin bernama bintang, bukan
+  "semua izin" — satu salah ketik tak boleh memberi akses penuh.
+- **Masa berlaku WAJIB**, maksimal 730 hari. Kunci tanpa masa berlaku tak
+  pernah dipertanyakan lagi setelah dibuat.
+- **Hash BEKU** lewat trigger: mengganti hash diam-diam memindahkan akses tanpa
+  pemilik lama tahu.
+- **Yang dicabut tak bisa dihidupkan lagi.** Pencabutan adalah pernyataan bahwa
+  kunci itu bocor; menghidupkannya menghapus arti pernyataan itu.
+- **Middleware jalur TERPISAH**, bukan cabang di `authenticate()` — menambahkan
+  cabang di sana berarti setiap rute yang memakainya diam-diam ikut menerima
+  API key, termasuk yang tak pernah dimaksudkan untuk mesin.
+- **Balasan penolakan tak membedakan sebab.** `periksaKunci()` membedakan
+  tak-dikenal/dicabut/kedaluwarsa untuk LOG; yang dikirim ke pemanggil selalu
+  401 identik. Memberi tahu bahwa sebuah kunci "dikenal tetapi kedaluwarsa"
+  sudah mengkonfirmasi kunci itu pernah ada.
+- **Penghitung pemakaian ATOMIK** (migrasi 306). Read-modify-write kehilangan
+  hitungan saat permintaan bersamaan — dan integrasi berarti permintaan
+  bersamaan.
+
+### Satu mutasi yang lolos, dan kenapa ia yang paling penting
+
+Menambahkan `hash_kunci` ke SELECT tak membuat **satu test pun merah** — test
+kebocoran saya hanya memeriksa NILAI kunci.
+
+Hash memang bukan kunci; ia tak bisa dibalik. Tapi ia cukup untuk memverifikasi
+tebakan **secara offline**: siapa pun yang memegangnya bisa menguji jutaan
+calon kunci tanpa menyentuh server kami — tanpa satu pun permintaan yang bisa
+dibatasi laju atau dicatat. Dua test ditambahkan, mutasi diulang, MERAH.
+
+Satu mutasi lain (`timingSafeEqual` → `===`) memang **tak bisa dikunci test
+unit**: keduanya menghasilkan jawaban yang sama, yang berbeda hanya waktunya.
+Dinyatakan di kode, tidak disembunyikan.
+
+### Dibuktikan lewat UI nyata
+
+Kunci dibuat lewat FORM, nilainya muncul dengan peringatan, lalu halaman
+**dimuat ulang** — dan nilainya hilang selamanya. Yang tersisa di layar hanya
+awalan `plk_Ipna…`.
+
+Kunci uji itu kemudian **dihapus**: nilainya sempat tercetak di output kerja
+saya, jadi ia tak boleh tetap hidup.
+
+### Bukti
+
+    tsc (api + web)      0
+    vitest api-key       61 lulus (37 pustaka + 24 endpoint)
+    vitest seluruh G6    159 lulus (markup 54 + baseline 44 + api-key 61)
+    mutasi pustaka       17/18 MERAH (1 dinyatakan: waktu tak terukur test unit)
+    mutasi endpoint      11/11 MERAH (1 lolos → 2 test ditambah → MERAH)
+    next build           nol error, /pengaturan/api-key terdaftar
+    axe terang/gelap     0 pelanggaran
+    alur UI nyata        kunci muncul SEKALI; hilang sesudah muat ulang
+    audit-kredensial-tak-bocor  OK (ambang NOL)
+    10 penjaga web + 11 penjaga API   hijau
+    migrasi 305, 306, 307  diterapkan; 305 lulus 8 blok verifikasi,
+                           306 membuktikan kunci dicabut tak menaikkan penghitung
+
+**TIDAK hijau** (diukur di HEAD bersih, angka identik, nol kecocokan dengan
+berkas G6c): `audit-tulis-tanpa-periksa` 78/76, `lint-ratchet`,
+`kerapatan-ratchet`, `tabel-mentah-ratchet`, `uji-kosong-seragam`. Utang lama.
+
+---
+
 ## 2026-08-12 (lanjutan) — G6b: bukan angka yang salah, melainkan angka yang selalu benar
 
 Baseline jadwal. Yang ditemukan dengan mengukur lebih dulu:

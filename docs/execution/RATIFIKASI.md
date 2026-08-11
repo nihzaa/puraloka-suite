@@ -263,7 +263,7 @@ Enam item di atas diukur ke kode sebelum dibangun. Hasilnya mengubah rencana:
 | Tracking Waste | `assemblies.waste_factor` ada; **3.042 dari 3.043 bernilai 0** | pemicunya belum menyala (sesuai triase F5-1) |
 | **Baseline Schedule** | nol tabel `baseline*`; `jadwal_tugas` ternyata penjadwal cron | ✅ **SELESAI** — migrasi 303/304, lihat di bawah |
 | Report Builder | 3 tabel laporan ada, semuanya laporan spesifik | belum |
-| API & Integrasi | nol tabel `api_key`/`webhook` | belum |
+| **API & Integrasi** | nol tabel `api_key`/`webhook` | ✅ **SELESAI** — migrasi 305–307, lihat di bawah |
 
 **Markup & Margin (G6a)** menemukan cacat yang tak ada di daftar mana pun:
 `buk_fraction` — angka yang menentukan **seluruh keuntungan perusahaan** —
@@ -310,10 +310,30 @@ Sekarang: baseline disalin (bukan dirujuk), **append-only** ditegakkan trigger,
 satu aktif per proyek dengan yang lama tetap jadi riwayat, dan rata-rata
 pergeseran ditimbang bobot. Dijangkau dari bagian Gantt di halaman proyek.
 
-⚠️ **Yang perlu Anda tahu:** satu baseline contoh sudah ditetapkan pada proyek
+ℹ️ **Tentang baseline contoh:** satu baseline sudah ditetapkan pada proyek
 *Renovasi Rumah Pak Andi* saat pengujian (`#1 Kontrak awal`, dasar
-`SPK/2026/014`). **Hapus atau ganti** kalau angkanya bukan yang Anda maksud —
-ia sekarang dipakai menghitung SPI proyek itu.
+`SPK/2026/014`). **Isinya jadwal asli proyek itu sendiri** — bukan angka
+karangan; yang saya karang hanya nama dan alasannya ("kontrak ditandatangani
+10 Agustus 2026"). Aman dibiarkan. Kalau tanggal kontrak sebenarnya lain dan
+Anda ingin catatannya akurat, tetapkan baseline baru — yang lama otomatis jadi
+riwayat.
+
+**API & Integrasi (G6c)** menemukan celah yang tak ada di daftar mana pun:
+**tak ada satu pun cara bagi sistem luar untuk masuk.** Satu-satunya jalan
+adalah token Supabase Auth, yaitu sesi manusia yang login lewat peramban.
+
+Akibatnya nyata: tiap integrasi menuntut seseorang menaruh **kredensial login
+manusia** di sistem lain. Kredensial itu punya seluruh kewenangan orangnya,
+tak bisa dicabut tanpa mengunci orangnya sendiri, dan jejaknya di audit log
+tertulis sebagai perbuatan orang itu — bukan mesin.
+
+Sekarang ada kunci API: di-**hash satu arah** (nilainya muncul sekali dan kami
+pun tak bisa memulihkannya), lahir **tanpa izin apa pun**, masa berlaku
+**wajib** maksimal 2 tahun, dan yang dicabut **tak bisa dihidupkan lagi**.
+
+**Tidak ada yang perlu Anda lakukan** — belum ada integrasi yang membutuhkannya.
+Kunci uji yang saya buat sudah dihapus. Buka **Pengaturan → Kunci API** kalau
+kelak ada sistem luar yang perlu masuk.
 
 ## ⚠️ Yang MASIH butuh keputusan Anda — dan kenapa saya tak boleh menebaknya
 
