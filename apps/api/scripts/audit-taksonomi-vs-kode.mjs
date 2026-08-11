@@ -170,6 +170,23 @@ const PETA = {
   'Non-Conformance Report (NCR)': { berkas: ['ncr'], web: ['/ncr'] },
   'Absensi lapangan': { berkas: ['absensi'], web: ['/absensi'] },
 
+  // ── G1d (2026-08-11) — didaftarkan di commit yang SAMA dengan kodenya ──
+  //
+  // R-011 menyatakannya sebagai kewajiban: begitu sebuah item mulai dibangun,
+  // entrinya wajib masuk PETA di commit yang sama. Kalau tidak, ia menempuh
+  // jalan yang sudah dilalui tujuh sub-menu lain — kode hidup berbulan-bulan
+  // sementara taksonomi menandainya 🔴 dan penjaga ini setuju, karena barisnya
+  // memang tak pernah dipetakan.
+  //
+  // Bukti dipilih dari artefak yang TERBUKTI ADA (migrasi 279 + `mutu.ts` +
+  // halaman web), bukan dari nama yang terdengar masuk akal — pelajaran yang
+  // tertulis dua kali di komentar-komentar di atas dan sudah menghasilkan dua
+  // penjaga hijau abadi.
+  'Checklist inspeksi mutu': { berkas: ['mutu'], tabel: ['inspeksi_checklist'] },
+  'Hasil uji material': {
+    berkas: ['mutu-checklist'], tabel: ['uji_material'], web: ['/uji-material'],
+  },
+
   // Ditambahkan 2026-08-07 sesudah kekeliruan KEDELAPAN (F5-1 §3c).
   //
   // 'Laporan keuangan' tertulis 🔴 selama berminggu-minggu — dan taksonomi

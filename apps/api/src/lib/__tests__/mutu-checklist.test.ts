@@ -217,6 +217,25 @@ describe('ringkasUji — daftar untuk dibaca manusia', () => {
     expect(r.bertentangan).toBe(1)
   })
 
+  // Ditemukan dari LAYAR, bukan dari test: baris kadar lumpur — satu-satunya
+  // yang ditandai bertentangan, dan alasan seluruh rancangan ini ada —
+  // terdorong ke bawah lipatan karena kesimpulannya "memenuhi". Spanduk di
+  // atas menyebutnya; tabel di bawah tak menunjukkannya.
+  //
+  // Pertentangan angka-vs-ahli adalah satu-satunya hal di halaman ini yang
+  // menuntut PERTANYAAN, dan pertanyaan yang tak terlihat tak pernah
+  // ditanyakan.
+  it('yang BERTENTANGAN naik ke atas, apa pun kesimpulannya', () => {
+    const r = ringkasUji([
+      u({ id: 'gagal', kesimpulan: 'tidak_memenuhi', nilai_hasil: 200, nilai_syarat: 250 }),
+      // Kadar lumpur: angka di bawah syarat, dan itu justru MEMENUHI.
+      u({ id: 'lumpur', kesimpulan: 'memenuhi', nilai_hasil: 4.2, nilai_syarat: 5 }),
+      u({ id: 'aman', kesimpulan: 'memenuhi', nilai_hasil: 300, nilai_syarat: 250 }),
+    ])
+    expect(r.baris[0].id).toBe('lumpur')
+    expect(r.baris[0].bertentangan).toBe(true)
+  })
+
   it('daftar kosong tidak melempar', () => {
     expect(ringkasUji([]).baris).toEqual([])
   })

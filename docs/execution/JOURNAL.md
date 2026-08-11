@@ -5,6 +5,67 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-11 (lanjutan 4) — G1d UI: baris yang paling penting justru terdorong ke bawah lipatan
+
+Layar `/mutu/uji-material` selesai, dan tangkapan layarnya membantah rancangan
+saya sendiri.
+
+Seluruh alasan modul ini ada tertulis di kepala `lib/mutu-checklist.ts`:
+kesimpulan uji TIDAK diturunkan dari angka, karena sebagian uji dibaca terbalik
+(kadar lumpur: makin kecil makin baik), sebagian punya toleransi, sebagian butuh
+penilaian ahli. Yang dilakukan modul ini hanya **melaporkan bila angka tak
+sejalan dengan kesimpulan manusia**.
+
+Di basis dummy ada persis satu baris seperti itu: `UJI-2608-003`, kadar lumpur
+4,2 % dengan syarat 5 %, disimpulkan "memenuhi". Angka bilang `4,2 < 5` → tak
+memadai; ahli bilang memenuhi. Justru itu kasusnya.
+
+Dan di layar, baris itu ada **di bawah lipatan** — karena `ringkasUji()`
+mengurutkan menurut kesimpulan, dan "memenuhi" ada di urutan paling akhir.
+Spanduk kuning di atas menyebut "1 uji punya angka yang tak sejalan", tapi
+tabel di bawahnya tak menunjukkan yang mana tanpa menggulir.
+
+**Saya salah**: mengurutkan menurut kesimpulan itu benar untuk daftar biasa,
+tetapi halaman ini bukan daftar biasa — satu-satunya hal di sini yang menuntut
+PERTANYAAN adalah pertentangan, dan pertanyaan yang tak terlihat tak pernah
+ditanyakan. Komparator diperbaiki: `bertentangan` naik ke atas apa pun
+kesimpulannya, baru kemudian urutan kesimpulan.
+
+Ini tak akan tertangkap test unit yang saya tulis — ke-38-nya lulus sebelum dan
+sesudah perbaikan, karena semuanya menguji ISI, tak satu pun menguji apa yang
+terbaca lebih dulu. Yang menangkapnya adalah melihat layarnya.
+
+### Yang dikerjakan
+
+| Hal | Bukti |
+|---|---|
+| Perbaikan urutan + test | `mutu-checklist.ts` · test baru untuk komparator |
+| Halaman `/mutu/uji-material` | 4 kartu KPI · spanduk penjelas · penanda "beda dari angka" |
+| `peta-menu.ts` | `qc-uji` → hidup · `qc-checklist` → sebagian · `qc-ncr` → hidup (status basi sejak 2026-08-06) |
+| Entri PETA penjaga taksonomi | `Checklist inspeksi mutu` + `Hasil uji material` — **di commit yang sama**, seperti diwajibkan R-011 |
+
+### Bukti
+
+```
+tsc(api) exit=0 · tsc(web) exit=0
+14 penjaga arsitektural exit=0
+axe pada /mutu/uji-material : 0 pelanggaran
+mutasi entri PETA: uji_material → uji_material_hantu → MUNCUL di daftar hantu → pulih
+```
+
+`tata-letak-ratchet` menangkap halaman baru saya tanpa token lebar — dipakaikan
+`--w-luas` (tabel padat kolom, angka uji kehilangan arti begitu membungkus).
+
+### Catatan untuk sesi berikutnya
+
+Nomor **R-011 dipakai dua kali** di `RATIFIKASI.md`: baris 9 (scope dibuka
+penuh, 2026-08-11) dan baris 726 (ratchet akses mentah 364→366, 2026-08-04).
+Rujukan silang "R-011" karena itu ambigu. Belum diperbaiki — penomoran ulang
+menyentuh dokumen yang sudah diratifikasi, jadi butuh keputusan founder tentang
+mana yang dinomori ulang.
+
+---
+
 ## 2026-08-10 (lanjutan 17) — CRUD terbatas: asisten menyiapkan, manusia menuliskan (S6)
 
 Founder memilih **"CRUD terbatas + token konfirmasi"** setelah saya mengukur

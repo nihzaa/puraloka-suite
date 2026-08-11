@@ -203,6 +203,18 @@ const URUTAN: Record<string, number> = {
  */
 export function ringkasUji(daftar: BarisUji[]): RingkasanUji {
   const baris = daftar.map(nilaiUji).sort((a, b) => {
+    // Yang BERTENTANGAN naik ke atas, apa pun kesimpulannya.
+    //
+    // Ditemukan dari layar 2026-08-11: baris kadar lumpur — satu-satunya yang
+    // ditandai bertentangan, dan alasan seluruh rancangan ini ada — terdorong
+    // ke bawah lipatan karena kesimpulannya "memenuhi". Spanduk di atas
+    // menyebutnya, layar di bawah tak menunjukkannya.
+    //
+    // Pertentangan angka-vs-ahli adalah satu-satunya hal di halaman ini yang
+    // menuntut PERTANYAAN, dan pertanyaan yang tak terlihat tak pernah
+    // ditanyakan.
+    if (a.bertentangan !== b.bertentangan) return a.bertentangan ? -1 : 1
+
     const ua = URUTAN[a.kesimpulan ?? 'belum'] ?? 9
     const ub = URUTAN[b.kesimpulan ?? 'belum'] ?? 9
     // Dalam kelompok yang sama: yang terbaru lebih dulu — uji lama sudah
