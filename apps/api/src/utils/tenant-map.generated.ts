@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 214 tabel · A=11 · AB=15 · ANCHOR=1 · B=89 · C=91 · D=7
+// 216 tabel · A=11 · AB=15 · ANCHOR=1 · B=90 · C=92 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -150,6 +150,7 @@ export const PETA_TENANCY = {
   'otomasi_alur': { kategori: 'B' },
   'otomasi_jalan': { kategori: 'B' },
   'payments': { kategori: 'C', lewat: 'invoice_id' },  // payments.invoice_id → invoices.project_id
+  'pegawai': { kategori: 'B' },
   'pemakaian_alat': { kategori: 'B' },
   'penawaran_subkon': { kategori: 'C', lewat: 'tender_id' },  // penawaran_subkon.tender_id → tender_subkon.project_id
   'pencocokan_bank': { kategori: 'B' },
@@ -228,6 +229,7 @@ export const PETA_TENANCY = {
   'temuan_audit': { kategori: 'C', lewat: 'audit_id' },  // temuan_audit.audit_id → audit_mutu.project_id
   'tender_subkon': { kategori: 'C', lewat: 'project_id' },  // tender_subkon.project_id
   'termin_schedules': { kategori: 'C', lewat: 'project_id' },  // termin_schedules.project_id
+  'timesheet_staf': { kategori: 'C', lewat: 'pegawai_id' },  // timesheet_staf.pegawai_id
   'transmittal': { kategori: 'B' },
   'transmittal_item': { kategori: 'B' },
   'uji_material': { kategori: 'C', lewat: 'project_id' },  // uji_material.project_id

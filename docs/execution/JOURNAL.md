@@ -5,6 +5,142 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-11 (lanjutan 8) — G2b: halaman lengkap yang tak bisa dibuka siapa pun, dan penjaga yang tak melihatnya
+
+Timesheet staf kantor selesai. Yang paling berharga dari sesi ini: **celah
+penjaga yang baru terlihat karena saya menabraknya.**
+
+### `nav-yatim` hijau, halamannya tetap tak terjangkau
+
+`/sdm/timesheet` dibangun lengkap — halaman, 5 endpoint, migrasi menu, entri
+`peta-menu.ts`. Ketiga penjaga menu hijau. Tapi mengkliknya membawa pengguna
+ke `/dashboard`.
+
+Sebabnya: `middleware.ts` punya `ROLE_ALLOWED` — daftar prefiks rute per peran
+— dan `/sdm` tak ada di sana. Halamannya ditolak untuk **semua** peran,
+termasuk admin.
+
+`nav-yatim` memeriksa **tautan**; yang hilang adalah **izin**. Dua hal berbeda
+yang sama-sama harus ada, dan hanya satu yang dijaga.
+
+Bentuk kegagalannya sama dengan yang sudah berulang di repo ini: dua sumber
+masing-masing konsisten, nol galat. Yang membedakan: **redirect diam-diam
+lebih buruk daripada 403** — tak ada pesan, tak ada jejak log, dan yang
+mengklik menyangka salah klik.
+
+### Penjaga baru: `audit-rute-terkunci.mjs`
+
+Untuk tiap menu AKTIF, tanya: adakah satu peran pun yang boleh membukanya?
+
+Dibuktikan bisa merah lewat mutasi (buang `/sdm` → `NAIK dari 6 ke 7`), dan
+langsung menemukan **enam menu yang sudah terkunci sebelum G2b**:
+
+```
+crm-proposal → /crm/penawaran     md-karyawan     → /master/karyawan
+crm-lead     → /crm/prospek       md-penomoran    → /master/penomoran
+md-wbs       → /master/wbs        md-template-dok → /master/template-dokumen
+```
+
+Diukur: folder `app/(dashboard)/master/` dan `crm/` **tidak ada**. Jadi
+keenamnya bukan sekadar terkunci — halamannya belum dibangun. Itu keputusan
+tersendiri, jadi dijadikan **lantai ratchet 6** dengan alasan tertulis, bukan
+dicampur ke commit ini.
+
+Versi pertama penjaga melaporkan **lima positif palsu** (`/akuntansi?tab=akun`
+dan sejenisnya): middleware memeriksa `pathname` yang tak memuat query string.
+Diperbaiki — penjaga yang berbohong akan dimatikan orang, bukan diperbaiki.
+
+### Yang membentuk modulnya: timesheet ≠ absensi lapangan
+
+Catatan taksonomi lama menulis *"timesheet staf kantor menyusul pola yang
+sama"* dengan `absensi_harian`. **Itu keliru**, dan kekeliruannya menentukan
+bentuk tabel:
+
+| | Absensi lapangan | Timesheet staf |
+|---|---|---|
+| Dibayar | per hari hadir, mingguan | bulanan TETAP |
+| Jamnya menentukan | upah | biaya overhead per proyek |
+| Pertanyaannya | "berapa upah minggu ini" | "berapa jam jatuh ke proyek A" |
+
+Menyatukannya membuat gaji terlihat bergantung kehadiran (padahal tidak) dan
+biaya proyek kehilangan komponen overhead-nya (padahal ada).
+
+### Lembur TIDAK diturunkan dari total, dan itu berpihak pada pegawai
+
+Godaannya `lembur = max(0, total − standar)`. Salah di dua arah:
+
+- lembur harus **diperintahkan** — menurunkannya otomatis membuat setiap
+  keterlambatan pulang jadi tagihan lembur yang tak pernah disetujui siapa pun
+- lembur di **hari libur** adalah lembur penuh meski total di bawah standar —
+  rumus itu menghasilkan nol
+
+Jadi `jam_lembur` kolom yang diisi manusia, dan modul hanya **melaporkan**
+bila jam kerja normal melebihi standar. Pola yang sama dengan `nilaiUji`
+(G1d): selisih pendapat adalah informasi, bukan kesalahan.
+
+### Belum diisi ≠ nol jam
+
+Hari tanpa baris berarti **belum diisi**. Menghitungnya nol membuat pegawai
+yang lupa mengisi terbaca seperti tidak bekerja — dan angka itu masuk laporan
+biaya proyek. Akhir pekan sengaja tak ikut diperingatkan: peringatan yang
+selalu menyala berhenti dibaca.
+
+### Yang saya nilai kurang di layar, lalu revisi
+
+Baris 9 jam bertanda "di atas jam standar" di kolom Jam — tapi tombol
+**Setujui** di baris yang sama tampak biasa. Yang menyetujui bisa mengklik
+tanpa menyadari ada yang perlu ditanya. Peringatan diangkat ke **tempat
+keputusan diambil**: tombolnya berubah kuning dengan ikon peringatan dan
+`aria-label` yang menyebutkan alasannya.
+
+### Satu kesalahan diagnosis yang saya luruskan sendiri
+
+Test gagal dengan `expected 201 to be 409`. Penyebabnya `new Date(row.tanggal)
+.toISOString()` menggeser tanggal sehari (driver `pg` mengembalikan kolom
+`date` sebagai Date tengah malam WAKTU LOKAL, mesin ini UTC+7).
+
+Dugaan pertama saya: cacat produksi. **Diukur, ternyata bukan** — balasan API
+mengembalikan `"2026-08-03"` dengan benar, karena PostgREST mengirim kolom
+`date` sebagai teks tanpa melewati objek Date. Yang salah hanya test saya.
+Dicatat di test supaya tak salah didiagnosis lagi.
+
+### Pengecualian approval dengan SYARAT PENCABUTAN yang bisa diukur
+
+`audit-approval-satu-pintu` merah untuk `disetujui_oleh` di timesheet. Diukur:
+nol nominal, nol jenjang, dan jam timesheet tak dipakai menghitung uang di
+mana pun — kriteria `VERIFIKASI_LAPANGAN` cocok.
+
+Tapi **G2c akan memakainya** untuk membebankan overhead ke proyek. Jadi
+pengecualiannya ditulis bersama perintah yang mengukur syarat pencabutannya:
+
+```
+grep -rn "timesheet_staf" apps/api/src/lib apps/api/src/routes \
+  | grep -viE "timesheet-staf|tenant-map"
+```
+
+Pengecualian yang syarat pencabutannya tak tertulis akan bertahan selamanya —
+CLAUDE.md §5.5 sudah mencatat pelajaran itu tentang peringatan basi.
+
+### Bukti
+
+```
+tsc api+web exit=0
+27 penjaga arsitektural exit=0 (termasuk penjaga BARU)
+38 test (21 pustaka + 17 endpoint Postgres nyata)
+20 mutasi MERAH (12 pustaka + 8 rute)
+9 penjaga DB terbukti MENOLAK
+penjaga baru dibuktikan MERAH lewat mutasi, lalu pulih
+axe halaman 0 · modal 0
+DARI LAYAR: 7 baris → isi ulang tanggal yang sama → TETAP 7 (memperbarui,
+  bukan menambah) · penanda ">standar" tepat 1× · hari kosong mulai Rab 12
+  Agu (melompati Sab/Min) · overhead kantor jadi kelompok sendiri ·
+  Setujui bekerja 2→1→0
+```
+
+Berikutnya **G2c — payroll staf** yang memakai tarif G2a dan timesheet ini.
+
+---
+
 ## 2026-08-11 (lanjutan 7) — G2a: tarif payroll sebagai data, dan `Number('') === 0`
 
 Kelompok G2 (SDM & Payroll) dimulai dari **tarifnya**, bukan dari payroll-nya.

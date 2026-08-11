@@ -1472,6 +1472,19 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
 
+      # `nav-yatim` di atas memeriksa TAUTAN; ini memeriksa IZIN.
+      #
+      # 2026-08-11 (G2b): `/sdm/timesheet` punya halaman, endpoint, migrasi
+      # menu, dan entri peta-menu — `nav-yatim` HIJAU. Tapi mengkliknya
+      # membawa pengguna ke /dashboard, karena `/sdm` tak ada di ROLE_ALLOWED
+      # `middleware.ts`. Redirect diam-diam: nol pesan galat, nol jejak log,
+      # dan yang mengklik menyangka salah klik.
+      - name: Menu aktif yang rutenya dikunci middleware
+        run: node apps/web/scripts/audit-rute-terkunci.mjs
+        working-directory: .
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
       # Dua sumber kebenaran untuk menu: `peta-menu.ts` (halaman "segera hadir")
       # dan tabel `menu_items` (sidebar). `gen-migrasi-menu.mjs` meramalkan
       # keduanya akan berpisah diam-diam — dan itu terjadi: 23 href berbeda,

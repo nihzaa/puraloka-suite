@@ -119,8 +119,31 @@ const KOLOM_KEPUTUSAN = [
  * Pengecualian ini SEMPIT dan harus tetap begitu. Menambah nama ke sini adalah
  * keputusan yang terlihat di diff; kalau kelak modulnya menyentuh uang, ia
  * harus keluar dari daftar.
+ *
+ * ── `timesheet-staf.ts` (ditambahkan 2026-08-11, G2b) — DENGAN SYARAT
+ *
+ * Atasan menyetujui jam kerja anak buahnya. Diukur saat ditambahkan:
+ * nol nominal, nol jenjang, dan jam timesheet tak dipakai menghitung uang di
+ * mana pun (`grep jam_kerja|jam_lembur` di `lib/` — hanya `rekap-absensi.ts`
+ * yang cocok, dan itu absensi LAPANGAN, tabel yang berbeda).
+ *
+ * Staf digaji bulanan tetap; jamnya tak menentukan gajinya. Yang dicatat
+ * adalah "saya sudah memeriksa" — verifikasi, bukan gerbang pengeluaran.
+ *
+ * ⚠ SYARAT PENCABUTAN, dan ini BISA DIUKUR:
+ *
+ *     grep -rn "timesheet_staf" apps/api/src/lib apps/api/src/routes  *       | grep -viE "timesheet-staf|tenant-map"
+ *
+ * Begitu jam timesheet dipakai membebankan BIAYA overhead ke proyek — yang
+ * direncanakan di G2c — angkanya mulai menentukan uang, dan berkas ini
+ * HARUS keluar dari daftar ini. Persetujuan yang menentukan pembebanan biaya
+ * adalah keputusan, bukan catatan.
+ *
+ * Menuliskan syaratnya di sini, bukan mengandalkan ingatan, karena
+ * pengecualian yang syarat pencabutannya tak tertulis akan bertahan selamanya
+ * — pelajaran yang sudah dicatat CLAUDE.md §5.5 tentang peringatan basi.
  */
-const VERIFIKASI_LAPANGAN = ['ncr.ts', 'punch-list.ts']
+const VERIFIKASI_LAPANGAN = ['ncr.ts', 'punch-list.ts', 'timesheet-staf.ts']
 
 /** Buang komentar TANPA mengubah jumlah baris. */
 function tanpaKomentar(src) {

@@ -58,7 +58,15 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // `/otomasi` = ikhtisar AI & Otomasi (migrasi 267). Ditahan di admin karena
   // isinya menyebut BIAYA bulan berjalan dan percobaan akses yang ditolak —
   // dua hal yang jadi bahan kesimpulan tentang orang, bukan tentang pekerjaan.
-  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/m", "/peta-modul"],
+  // `/sdm` = data kepegawaian & timesheet staf (migrasi 286). DITAHAN DI
+  // ADMIN, tidak dibuka untuk PM: halaman pegawai memuat gaji pokok, status
+  // PTKP, dan NPWP. Yang boleh melihat jam kerja belum tentu boleh melihat
+  // berapa gaji rekannya — dan sekali terlihat, tak bisa ditarik kembali.
+  //
+  // Kalau kelak staf perlu mengisi timesheet-nya sendiri, yang dibuka adalah
+  // rute terpisah (mis. `/sdm/saya`) dengan endpoint yang menyaring ke
+  // pegawai yang sedang masuk — bukan membuka `/sdm` seluruhnya.
+  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/m", "/peta-modul"],
 };
 
 /**

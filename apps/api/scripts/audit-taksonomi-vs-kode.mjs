@@ -217,6 +217,11 @@ const PETA = {
     berkas: ['tarif-payroll'], tabel: ['tarif_payroll_baris'], web: ['/pengaturan/tarif-payroll'],
   },
 
+  // ── G2b (2026-08-11) — timesheet staf kantor ─────────────────────────
+  'Absensi & timesheet': {
+    berkas: ['timesheet-staf'], tabel: ['timesheet_staf'], web: ['/sdm/timesheet'],
+  },
+
   // Ditambahkan 2026-08-07 sesudah kekeliruan KEDELAPAN (F5-1 §3c).
   //
   // 'Laporan keuangan' tertulis 🔴 selama berminggu-minggu — dan taksonomi
