@@ -5,6 +5,131 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — G6a: angka yang menentukan seluruh laba perusahaan, dan tak punya rumah
+
+Daftar G6 menyebut enam item. Saya ukur dulu ke kode sebelum membangun apa pun
+— disiplin yang sudah tiga kali mengubah rencana (G3, G4, G5) — dan hasilnya
+mengubah rencana lagi:
+
+| Item | Kenyataan terukur |
+|---|---|
+| Dokumen Prakualifikasi | **sudah selesai** 2026-08-07 (`vendor-kualifikasi.ts` + `/procurement/kualifikasi`) |
+| Tracking Waste | kolomnya ada, tapi **3.042 dari 3.043** `assemblies.waste_factor` bernilai 0 — pemicunya memang belum menyala |
+| Markup & Margin | **nol kolom** markup/margin/overhead/profit di SELURUH skema |
+| Baseline Schedule | nol tabel `baseline*`; `jadwal_tugas` ternyata penjadwal cron, bukan jadwal proyek |
+| Report Builder | tiga tabel laporan ada, semuanya laporan spesifik — bukan builder |
+| API & Integrasi | nol tabel `api_key`/`webhook` |
+
+Daftar basi lagi, seperti G3. Saya mulai dari yang paling terukur hilangnya.
+
+### Yang ditemukan: `buk_fraction` tak tersimpan di mana pun
+
+`buk_fraction` menentukan **seluruh keuntungan perusahaan** dari sebuah
+penawaran. Diukur: nol kolom bernama `buk*` di seluruh skema, nol kunci
+markup di `company_settings`, nol kolom margin di `estimate_versions` yang
+berisi **2.221 baris**.
+
+Ia dikirim ulang pada setiap permintaan. Akibatnya berlapis: dua estimator
+menawar proyek yang sama dengan margin berbeda tanpa satu pun tempat yang bisa
+ditanya "berapa margin kita?"; estimasi yang sudah disetujui tak bisa dihitung
+ulang dengan angka yang sama; dan saat direksi bertanya kenapa sebuah penawaran
+tipis, jawabannya harus ditebak dari ingatan orang yang mengetik.
+
+### Dan yang lebih buruk: penjaga API dibatalkan satu baris di UI
+
+`routes/v1/ahsp.ts:411` tegas:
+
+    'buk_fraction wajib angka 0..1 (mis. 0.1) — tidak ada default'
+
+Penolakan yang benar. Tapi `estimasi/page.tsx:789`:
+
+    // C1: parameter bisnis TERLIHAT & dikirim eksplisit (bukan default tersembunyi).
+    const [bukPct, setBukPct] = useState("10")
+
+**Komentarnya menyatakan niat yang tepat sementara kodenya melakukan
+kebalikannya.** Sepuluh persen jadi angka bawaan tanpa seorang pun
+memutuskannya, dan karena hasilnya terlihat wajar, tak ada yang pernah
+mempertanyakannya.
+
+Ini kelas cacat yang sama dengan tarif payroll (G2a) dan peta akun jurnal
+(R-012): **angka bawaan yang menghasilkan keluaran meyakinkan adalah bentuk
+paling berbahaya dari menebak.**
+
+### Yang dibangun
+
+Migrasi 301 `markup_periode`, config-first, **nol baris ter-seed** (migrasi
+GAGAL kalau ada). Tiga keputusan bentuk yang bukan kosmetik:
+
+- **Overhead dan keuntungan DIPISAH.** BUK ditulis tradisional sebagai satu
+  angka; menggabungkannya membuat "berapa laba kita sebenarnya?" tak terjawab
+  — 10% BUK bisa berarti 10% laba dengan overhead nol, atau 2% laba dengan
+  overhead 8%. `buk_fraksi` GENERATED, jadi tak pernah ada baris yang totalnya
+  berbeda dari jumlah komponennya.
+- **Kontinjensi dipisah lagi, dan dihitung SEJAJAR** — bukan bertingkat di
+  atas BUK. Menumpuknya berarti perusahaan mengambil keuntungan dari cadangan
+  risikonya sendiri.
+- **Periode DITAMBAH, tak ditimpa**, dan angkanya ikut tersalin ke
+  `estimate_versions`. Pelajaran yang sama sudah dibayar di G2c: slip gaji
+  menyimpan hasilnya, tak menghitung ulang dengan tarif baru.
+
+Batas 0..1 menangkap kesalahan ketik yang paling mahal di modul ini: "15" yang
+dimaksud 15% menghasilkan penawaran 15× lipat yang terlihat sah, dan yang
+menemukan biasanya panitia lelang. Dijaga DUA lapis — aplikasi dan basis; test
+membuktikan lapisan basis lewat SQL langsung, karena skrip impor dan perbaikan
+manual tak lewat rute mana pun.
+
+`pilihMarkup` mengembalikan **null** saat tak ada yang berlaku, bukan angka
+aman. Nol adalah jawaban yang masuk akal bagi rumus (penawaran tanpa
+keuntungan), lolos setiap pemeriksaan tipe, dan satu-satunya gejalanya adalah
+perusahaan menawar pada harga pokok.
+
+### Empat kesalahan saya, dan yang menemukannya
+
+1. **Menebak bentuk `permissions`** — memakai kolom `category` yang tak ada,
+   dan prefiks `estimasi:` padahal seluruh izin estimasi berawalan `cecep:`.
+   Izin berprefiks karangan akan lolos INSERT lalu tak pernah cocok dengan apa
+   pun: gerbang yang selalu tertutup untuk semua orang. Ditangkap saat migrasi
+   dijalankan, lalu diukur — bukan ditebak ulang.
+2. **`??` di helper test** menelan `null` yang sengaja dikirim, sehingga test
+   "baris kosong ditolak" hijau sambil menguji hal lain.
+3. **Satu mutasi LOLOS** (`jenis berspasi tak dinormalkan`) — nyata: baris
+   berjenis `" "` tak akan cocok dengan jenis mana pun DAN tak dianggap umum,
+   jadi tersimpan rapi lalu tak pernah dipakai. Test ditambah, mutasi diulang,
+   MERAH.
+4. **Test mengasumsikan basis kosong.** Empat test merah begitu markup pertama
+   ditetapkan lewat UI — `purge` hanya menyapu baris bertanda `[TEST-MK]`.
+   Perbaikannya bukan menghapus data perusahaan: disingkirkan ke `markupAsli`
+   lalu dikembalikan di `afterAll` dengan `try/finally`, karena satu test merah
+   tak boleh menghapus kebijakan margin. **Dibuktikan**: 1 periode utuh di
+   basis sesudah 54 test.
+
+### Layar menemukan satu cacat yang nol test bisa lihat
+
+Kartu "BUK berlaku 10%" berdiri di sebelah penawaran yang naik **12%** —
+pembaca wajar menyimpulkan penawaran naik 10%, dan selisih 2% itu justru
+kontinjensi. Angka yang benar sendiri-sendiri tetap menyesatkan saat
+berdampingan. Diganti "Kenaikan total" dengan rinciannya di bawah.
+
+### Bukti
+
+    tsc (api + web)          0
+    vitest markup            54 lulus (33 pustaka + 21 endpoint)
+    mutasi pustaka           15/15 MERAH
+    mutasi endpoint          12/12 MERAH (1 lolos → test ditambah → MERAH)
+    next build               nol error, /pengaturan/markup terdaftar
+    axe terang/gelap         0 pelanggaran
+    alur UI nyata            markup diisi lewat FORM; spanduk 2 → 1; 1 baris tersimpan
+    data perusahaan          1 periode utuh SESUDAH test — pemulihan terbukti
+    7 penjaga web + 9 penjaga API + indeks docs + taksonomi   hijau
+    migrasi 301, 302         diterapkan, blok verifikasi lulus
+
+**TIDAK hijau, diukur di HEAD bersih dengan `git stash` — angka identik, nol
+kecocokan dengan berkas G6a:** `lint-ratchet` (7 kategori), `audit-tulis-tanpa-periksa`
+(78/76), `kerapatan-ratchet`, `tabel-mentah-ratchet`, `uji-kosong-seragam`.
+Utang lama, bukan bagian commit ini.
+
+---
+
 ## 2026-08-12 (lanjutan) — R-012: yang saya sebut "tak boleh ditebak" ternyata "belum saya cari"
 
 Founder bertanya: *"apa yg menunggu keputusan sayaa? coba kamu cari jawabannya

@@ -786,7 +786,22 @@ function AddItemModal({ version, onClose, onDone }:
   const [priceDate, setPriceDate] = useState(new Date().toISOString().slice(0, 10));
   const [location, setLocation] = useState("");
   // C1: parameter bisnis TERLIHAT & dikirim eksplisit (bukan default tersembunyi).
-  const [bukPct, setBukPct] = useState("10");
+  //
+  // ── Kosong, BUKAN "10" (G6, migrasi 301)
+  //
+  // Sampai 2026-08-12 baris ini berbunyi `useState("10")`, dan komentar di
+  // atasnya sudah menyatakan niat yang benar sementara kodenya melakukan
+  // kebalikannya: sepuluh persen menjadi angka bawaan tanpa seorang pun
+  // memutuskannya. API bahkan MENOLAK default dengan tegas
+  // (`ahsp.ts:411`: "tidak ada default") — penjaga itu dibatalkan diam-diam
+  // oleh satu nilai awal di sini.
+  //
+  // Sekarang: kosong, lalu diisi dari markup perusahaan yang BERLAKU. Kalau
+  // belum ditetapkan, kolomnya tetap kosong dan layar mengatakannya —
+  // estimator memilih sadar, bukan mewarisi tebakan.
+  const [bukPct, setBukPct] = useState("");
+  const [markupBelumAda, setMarkupBelumAda] = useState(false);
+  const [markupUmum, setMarkupUmum] = useState(false);
   const [roundMode, setRoundMode] = useState<"down" | "up" | "nearest" | "none">("down");
   const [roundStep, setRoundStep] = useState("100");
   const [err, setErr] = useState("");
@@ -839,6 +854,22 @@ function AddItemModal({ version, onClose, onDone }:
 
     api.get<{ data: CostCodeOpt[] }>("/api/v1/cecep/cost-codes?limit=200")
       .then(r => { if (!batal) setCostCodes(r.data.data ?? []); }).catch(() => {});
+
+    // Markup perusahaan yang BERLAKU (G6). Kalau belum ditetapkan, kolom BUK
+    // dibiarkan kosong dan spanduk muncul — tak diisi angka aman.
+    api.get<{ markup: { buk: number; dari_umum: boolean } | null }>(
+      "/api/v1/markup/berlaku")
+      .then(r => {
+        if (batal) return;
+        const m = r.data.markup;
+        setMarkupBelumAda(!m);
+        setMarkupUmum(!!m?.dari_umum);
+        // Dibulatkan 2 desimal persen: 0.0825 → "8.25". Tanpa pembulatan,
+        // galat titik-mengambang menampilkan "8.250000000000001".
+        if (m) setBukPct(String(Math.round(m.buk * 10000) / 100));
+      })
+      .catch(() => { if (!batal) setMarkupBelumAda(true); });
+
     return () => { batal = true; };
   }, [version.edition]);
 
@@ -975,7 +1006,22 @@ function AddItemModal({ version, onClose, onDone }:
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
             <div>{label("BUK %")}
-              <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" max="100" step="any" value={bukPct} onChange={e => setBukPct(e.target.value)} /></div>
+              <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" max="100" step="any"
+                value={bukPct} onChange={e => setBukPct(e.target.value)}
+                aria-describedby="buk-asal" />
+              {/* Dari mana angkanya. Kolom terisi tanpa keterangan tak bisa
+                  dibedakan dari kolom yang diketik sendiri — dan itu justru
+                  keadaan yang G6 perbaiki. */}
+              <span id="buk-asal" style={{
+                display: "block", fontSize: 11, marginTop: 3, lineHeight: 1.45,
+                color: markupBelumAda ? "var(--danger)" : "var(--text-muted)",
+              }}>
+                {markupBelumAda
+                  ? "Markup perusahaan belum ditetapkan — isi sendiri, atau tetapkan di Pengaturan → Markup & Margin."
+                  : markupUmum
+                    ? "Dari markup umum perusahaan (bukan khusus jenis pekerjaan ini)."
+                    : "Dari markup perusahaan yang berlaku."}
+              </span></div>
             <div>{label("Pembulatan")}
               <select className="isian-fokus" aria-label="Metode pembulatan" style={GAYA_ISIAN} value={roundMode} onChange={e => setRoundMode(e.target.value as typeof roundMode)}>
                 <option value="down">ROUNDDOWN</option><option value="up">ROUNDUP</option>

@@ -252,6 +252,43 @@ K3/HSE            NOL TABEL
 | **G5** | Tutup Buku + jurnal | 1 | `accounts` 38 ada, `journal_entries` 0. Paling berisiko — pembukuan berpasangan masuk Ember [C] |
 | **G6** | Sisa | 6 | Tracking Waste · Markup & Margin · Dokumen Prakualifikasi · Baseline Schedule · Report Builder · API & Integrasi |
 
+### G6 — daftarnya BASI, diukur ulang 2026-08-12
+
+Enam item di atas diukur ke kode sebelum dibangun. Hasilnya mengubah rencana:
+
+| Item | Terukur | Status |
+|---|---|---|
+| Dokumen Prakualifikasi | `vendor-kualifikasi.ts` + `/procurement/kualifikasi` | ✅ **sudah selesai** 2026-08-07 — daftar ini yang basi |
+| **Markup & Margin** | nol kolom markup/margin/overhead di SELURUH skema | ✅ **SELESAI** — migrasi 301/302, lihat di bawah |
+| Tracking Waste | `assemblies.waste_factor` ada; **3.042 dari 3.043 bernilai 0** | pemicunya belum menyala (sesuai triase F5-1) |
+| Baseline Schedule | nol tabel `baseline*`; `jadwal_tugas` ternyata penjadwal cron | belum |
+| Report Builder | 3 tabel laporan ada, semuanya laporan spesifik | belum |
+| API & Integrasi | nol tabel `api_key`/`webhook` | belum |
+
+**Markup & Margin (G6a)** menemukan cacat yang tak ada di daftar mana pun:
+`buk_fraction` — angka yang menentukan **seluruh keuntungan perusahaan** —
+tidak tersimpan di mana pun. Ia dikirim ulang tiap permintaan, jadi dua
+estimator bisa menawar proyek yang sama dengan margin berbeda tanpa satu pun
+tempat yang bisa ditanya "berapa margin kita?".
+
+Dan lebih buruk: `ahsp.ts:411` menolak default dengan tegas (*"tidak ada
+default"*), tetapi `estimasi/page.tsx:789` menulis `useState("10")` —
+**penjaga di lapisan API dibatalkan satu nilai awal di UI**, dan 10% jadi
+bawaan tanpa seorang pun memutuskannya. Komentar di atas baris itu bahkan
+sudah menyatakan niat yang benar sementara kodenya melakukan kebalikannya.
+
+Sekarang: `markup_periode` config-first (nol ter-seed), overhead/keuntungan/
+kontinjensi dipisah, periode ditambah bukan ditimpa, dan angkanya ikut
+tersalin ke `estimate_versions` supaya penawaran lama tetap bisa dijelaskan.
+Layar estimasi mengisi BUK dari markup yang berlaku dan **menyatakan
+asalnya**; kalau belum ditetapkan, kolomnya kosong dan layar mengatakannya.
+
+⚠️ **Yang perlu Anda lakukan:** buka **Pengaturan → Markup & Margin** dan
+tetapkan angkanya. Satu periode contoh sudah diisi saat pengujian (overhead
+3%, keuntungan 7%, kontinjensi 2%, berlaku 2026-08-10) — **ganti dengan angka
+Anda sendiri**, karena yang itu saya isi untuk menguji layarnya, bukan karena
+saya tahu margin Puraloka.
+
 ## ⚠️ Yang MASIH butuh keputusan Anda — dan kenapa saya tak boleh menebaknya
 
 Pencabutan ini menghapus larangan **membangun**, bukan kebutuhan akan **angka
