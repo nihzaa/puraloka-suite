@@ -5,6 +5,128 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-11 (lanjutan 11) — G2e: kelompok SDM TUNTAS, dan tiga item yang pemicunya tak setara
+
+Sertifikasi, penilaian kinerja, dan rekrutmen selesai. **Kelompok G2 tuntas —
+8 dari 8 item.**
+
+### Keputusan yang membentuk seluruh bagian ini: kedalaman berbeda
+
+Ketiganya item terakhir G2, tetapi pemicunya **tak setara** — dan membangun
+ketiganya sedalam yang sama berarti menghabiskan waktu pada dua yang belum
+dibutuhkan siapa pun.
+
+| Item | Pemicu | Yang dibangun |
+|---|---|---|
+| **Sertifikasi** | NYATA — `prakualifikasi_vendor` 5 baris, `dokumen_prakualifikasi` 11 baris sudah hidup dan punya `berlaku_sampai`. SKA/SKT tenaga ahli adalah hal yang SAMA untuk ORANG | penuh, termasuk `POST /periksa-syarat` |
+| **Kinerja** | belum, tapi bentuknya pasti | cukup untuk mencatat — BUKAN menghitung skor gabungan, karena formula pembobotan adalah kebijakan yang belum diputuskan founder |
+| **Rekrutmen** | belum, DAN bentuknya bergantung cara kerja yang belum ada | pencatat lamaran + tahap, bukan ATS penuh |
+
+Ini bukan under-engineering: yang dibangun **lengkap untuk pertanyaan yang
+benar-benar ada**. Yang tidak dibangun dinyatakan di migrasi dan taksonomi,
+bukan disembunyikan.
+
+### Yang membuat sertifikasi berbahaya
+
+Sertifikat kedaluwarsa yang dipakai memenuhi syarat tender adalah **dokumen
+palsu di mata panitia** — dan yang menandatangani penawaran adalah direktur,
+bukan yang menginput datanya.
+
+Tiga keputusan yang menjaganya:
+
+**Kolom `berjangka` terpisah dari `berlaku_sampai IS NULL`.** NULL punya dua
+arti dengan akibat berbeda: seumur hidup (selalu sah) vs berjangka tapi
+tanggalnya lupa diisi (TIDAK sah). Tanpa pembedaan itu, SKA yang tanggalnya
+kosong terbaca "berlaku selamanya".
+
+**Dinilai terhadap TANGGAL ACUAN, bukan hari ini.** Prakualifikasi yang
+diajukan bulan lalu diperiksa dengan keadaan bulan lalu — sertifikat yang
+habis minggu ini tak membatalkan penawaran lama, dan yang baru diperpanjang
+hari ini tak membenarkan penawaran yang sudah dikirim.
+
+**Batas `< 0`, bukan `<= 0`.** Sertifikat yang habis HARI INI masih sah hari
+ini; masa berlakunya habis pada AKHIR hari itu. Memakai `<=` menolaknya sehari
+lebih cepat, dan tender bisa gagal karenanya.
+
+### Mutasi menemukan penjaga yang tak pernah diuji
+
+Melepas penjaga *"dari diterima/ditolak tak bisa berpindah"* **tidak membuat
+satu test pun merah** — tiga jalur di test tertangkap pemeriksaan lain (mundur,
+tahap tak dikenal).
+
+Yang lolos justru **`diterima → ditolak`**: `ditolak` bukan bagian
+`URUTAN_TAHAP`, dan cabang `ke === 'ditolak'` mengembalikan `true` sebelum
+urutan diperiksa. Akibatnya orang yang sudah diterima jadi pegawai bisa
+"ditolak" belakangan — meninggalkan lamaran ditolak yang tersambung ke pegawai
+aktif, dan constraint `lamaran_diterima_berpegawai` tak menangkapnya karena
+barisnya tak lagi berstatus `diterima`.
+
+Ditambah test khusus; mutasi sekarang merah.
+
+### Test lomba yang menguji lapisan salah — LAGI
+
+Test "dua perpindahan bersamaan" mengirim `wawancara` dua kali dan mendapat
+`[200, 422]`: permintaan kedua ditolak `bolehPindahTahap` ("tahapnya sudah
+itu") **sebelum menyentuh query**.
+
+Kelemahan yang sama sudah ditemukan di G1e dan G1f. Diperbaiki dengan tujuan
+BERBEDA (`seleksi_berkas` vs `wawancara`) supaya keduanya lolos pemeriksaan
+aplikasi dan benar-benar berlomba.
+
+### Penjaga menangkap tab yang saya gambar sendiri
+
+`audit-tab-seragam` merah: saya menggambar `role="tab"` sendiri alih-alih
+memakai `TabBagian`. Komponen bersama itu sudah menangani `role="tablist"` +
+`aria-selected` dan **tiga penanda aktif** (warna, tebal, garis bawah) — WCAG
+1.4.1 melarang bergantung warna saja.
+
+Dan memakainya membuka hal yang lebih baik: lencana `jumlah` + `mendesak` di
+tab, jadi jumlah sertifikat kedaluwarsa terlihat **tanpa membuka tabnya**.
+
+### Yang saya nilai kurang di layar, lalu revisi — di KOMPONEN BERSAMA
+
+Lencana `1` di tab tak menjelaskan apa yang dihitung: 1 sertifikat? 1 yang
+bermasalah? Angka telanjang di sebelah label adalah tebakan bagi yang tak
+melihat warnanya — **dan yang memakai pembaca layar tidak melihat warnanya.**
+
+Ditambahkan `artiJumlah` ke `TabBagian` (bukan hanya ke halaman ini), sehingga
+lencana dibaca "1 sertifikat kedaluwarsa". Lima halaman lain yang memakai
+komponen itu ikut mendapat tempatnya.
+
+### Bukti
+
+```
+tsc api+web exit=0
+27 penjaga arsitektural exit=0
+61 test (33 pustaka + 28 endpoint Postgres nyata)
+29 mutasi MERAH (15 pustaka + 14 rute)
+11 penjaga DB terbukti MENOLAK, 3 jalur sah DITERIMA
+axe tab sertifikat 0 · tab rekrutmen 0
+DARI LAYAR: spanduk "1 sertifikat kedaluwarsa — tak boleh dipakai tender ·
+  SKT Juru Gambar · lewat 436 hari" · lencana merah di TABNYA · rata-rata
+  final 87% dinormalkan dari skala campuran (5 dan 100), skor mentah tetap
+  terlihat · sidebar /sdm kini 4 tautan
+```
+
+### Kelompok G2 TUNTAS — 8 dari 8
+
+| Item | Status |
+|---|---|
+| Tarif Payroll (PTKP · PPh 21 · BPJS) | hidup (G2a) — nol tarif ter-seed |
+| Absensi & Timesheet | hidup (G2b) |
+| Payroll Staf | hidup (G2c) |
+| BPJS & Potongan | hidup (G2a) |
+| PPh 21 | hidup (G2a) |
+| Cuti & Izin | hidup (G2d) |
+| Sertifikasi & Kompetensi | hidup (G2e) |
+| Penilaian Kinerja | hidup (G2e) |
+| Rekrutmen | sebagian (G2e) — onboarding menunggu perekrutan pertama |
+
+Berikutnya **G3 — Risiko & Kepatuhan** (5 item), dengan `izin_kerja` 4 baris
+sebagai titik mula.
+
+---
+
 ## 2026-08-11 (lanjutan 10) — G2d: dua aturan yang saling berlawanan, dan keduanya benar
 
 Cuti & izin selesai. Modul ini punya dua keputusan rancangan yang **saling

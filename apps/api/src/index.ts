@@ -60,6 +60,7 @@ import tarifPayrollRoutes from './routes/v1/tarif-payroll.js'
 import timesheetStafRoutes from './routes/v1/timesheet-staf.js'
 import payrollStafRoutes from './routes/v1/payroll-staf.js'
 import cutiKaryawanRoutes from './routes/v1/cuti-karyawan.js'
+import kompetensiSdmRoutes from './routes/v1/kompetensi-sdm.js'
 import absensiRoutes from './routes/v1/absensi.js'
 import rekonsiliasiMaterialRoutes from './routes/v1/rekonsiliasi-material.js'
 import rekonsiliasiBankRoutes from './routes/v1/rekonsiliasi-bank.js'
@@ -343,6 +344,7 @@ await app.register(tarifPayrollRoutes)
 await app.register(timesheetStafRoutes)
 await app.register(payrollStafRoutes)
 await app.register(cutiKaryawanRoutes)
+await app.register(kompetensiSdmRoutes)
 await app.register(absensiRoutes)
 await app.register(rekonsiliasiMaterialRoutes)
 await app.register(rekonsiliasiBankRoutes)

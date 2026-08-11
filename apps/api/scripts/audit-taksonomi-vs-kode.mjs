@@ -232,6 +232,21 @@ const PETA = {
     berkas: ['cuti-karyawan'], tabel: ['cuti_ambil', 'cuti_hak'], web: ['/sdm/cuti'],
   },
 
+  // ── G2e (2026-08-11) — tiga item TERAKHIR kelompok G2 ────────────────
+  'Sertifikasi & kompetensi': {
+    berkas: ['kompetensi-sdm'], tabel: ['sertifikat_pegawai'], web: ['/sdm/kompetensi'],
+  },
+  // Kinerja & rekrutmen dipetakan lewat TABEL saja: keduanya tab di halaman
+  // yang sama (`/sdm/kompetensi`), dan menuntut `web` masing-masing akan
+  // mencari halaman yang memang sengaja tak dibuat — bentuk penjaga hijau
+  // abadi yang komentar-komentar di atas peringatkan.
+  'Penilaian kinerja': {
+    berkas: ['kompetensi-sdm'], tabel: ['penilaian_kinerja'],
+  },
+  'Rekrutmen & onboarding': {
+    berkas: ['kompetensi-sdm'], tabel: ['lamaran_kerja'],
+  },
+
   // Ditambahkan 2026-08-07 sesudah kekeliruan KEDELAPAN (F5-1 §3c).
   //
   // 'Laporan keuangan' tertulis 🔴 selama berminggu-minggu — dan taksonomi

@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 221 tabel · A=11 · AB=15 · ANCHOR=1 · B=91 · C=96 · D=7
+// 224 tabel · A=11 · AB=15 · ANCHOR=1 · B=92 · C=98 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -126,6 +126,7 @@ export const PETA_TENANCY = {
   'kebutuhan_sumber_daya': { kategori: 'B' },
   'kontrak_payung': { kategori: 'B' },
   'kontrak_payung_item': { kategori: 'B' },
+  'lamaran_kerja': { kategori: 'B' },
   'lesson_propagation_proposals': { kategori: 'C', lewat: 'lesson_id' },  // lesson_propagation_proposals.lesson_id → lessons_learned_records.project_id
   'lessons_learned_records': { kategori: 'C', lewat: 'project_id' },  // lessons_learned_records.project_id
   'mandor_assignments': { kategori: 'C', lewat: 'project_id' },  // mandor_assignments.project_id
@@ -159,6 +160,7 @@ export const PETA_TENANCY = {
   'pencocokan_bank': { kategori: 'B' },
   'penerimaan_material_klien': { kategori: 'C', lewat: 'project_id' },  // penerimaan_material_klien.project_id
   'penggunaan_contingency': { kategori: 'C', lewat: 'pos_id' },  // penggunaan_contingency.pos_id → pos_contingency.project_id
+  'penilaian_kinerja': { kategori: 'C', lewat: 'pegawai_id' },  // penilaian_kinerja.pegawai_id
   'penyedia_layanan': { kategori: 'B' },
   'penyedia_uji_log': { kategori: 'B' },
   'penyesuaian_rekonsiliasi': { kategori: 'B' },
@@ -208,6 +210,7 @@ export const PETA_TENANCY = {
   'root_cause_analyses': { kategori: 'C', lewat: 'lesson_id' },  // root_cause_analyses.lesson_id → lessons_learned_records.project_id
   'scenarios': { kategori: 'C', lewat: 'project_id' },  // scenarios.project_id
   'sertifikat_ipc': { kategori: 'C', lewat: 'project_id' },  // sertifikat_ipc.project_id
+  'sertifikat_pegawai': { kategori: 'C', lewat: 'pegawai_id' },  // sertifikat_pegawai.pegawai_id
   'situs_kategori': { kategori: 'B' },
   'situs_konten': { kategori: 'B' },
   'situs_legalitas': { kategori: 'B' },

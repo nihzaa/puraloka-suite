@@ -65,6 +65,17 @@ export interface BagianTab<T extends string> {
   jumlah?: number;
   /** `true` bila angkanya perlu ditandai merah, bukan abu. */
   mendesak?: boolean;
+  /**
+   * Apa yang dihitung `jumlah` — dibaca pembaca layar dan muncul di tooltip.
+   *
+   * Tanpa ini, lencana dibaca sebagai "Sertifikasi & Kompetensi 1" tanpa
+   * konteks: 1 sertifikat? 1 yang bermasalah? 1 pegawai? Angka telanjang di
+   * sebelah label adalah tebakan bagi yang tak melihat warnanya — dan yang
+   * memakai pembaca layar TIDAK melihat warnanya.
+   *
+   * Ditemukan 2026-08-11 saat menilai layar `/sdm/kompetensi` (G2e).
+   */
+  artiJumlah?: string;
 }
 
 export interface TabBagianProps<T extends string> {
@@ -113,6 +124,12 @@ export function TabBagian<T extends string>({
             {b.label}
             {b.jumlah !== undefined && b.jumlah > 0 && (
               <span
+                // `artiJumlah` jadi teks yang BENAR-BENAR dibaca; angkanya
+                // sendiri disembunyikan dari pembaca layar supaya tak dibaca
+                // dua kali ("1 1 sertifikat kedaluwarsa").
+                title={b.artiJumlah}
+                aria-label={b.artiJumlah ? `${b.jumlah} ${b.artiJumlah}` : undefined}
+                role={b.artiJumlah ? 'img' : undefined}
                 style={{
                   fontSize: 11, fontWeight: 700, padding: "1px 6px",
                   borderRadius: 999, lineHeight: 1.6,
