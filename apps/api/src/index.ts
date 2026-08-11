@@ -63,6 +63,7 @@ import cutiKaryawanRoutes from './routes/v1/cuti-karyawan.js'
 import kompetensiSdmRoutes from './routes/v1/kompetensi-sdm.js'
 import risikoProyekRoutes from './routes/v1/risiko-proyek.js'
 import k3LapanganRoutes from './routes/v1/k3-lapangan.js'
+import tutupBukuRoutes from './routes/v1/tutup-buku.js'
 import absensiRoutes from './routes/v1/absensi.js'
 import rekonsiliasiMaterialRoutes from './routes/v1/rekonsiliasi-material.js'
 import rekonsiliasiBankRoutes from './routes/v1/rekonsiliasi-bank.js'
@@ -349,6 +350,7 @@ await app.register(cutiKaryawanRoutes)
 await app.register(kompetensiSdmRoutes)
 await app.register(risikoProyekRoutes)
 await app.register(k3LapanganRoutes)
+await app.register(tutupBukuRoutes)
 await app.register(absensiRoutes)
 await app.register(rekonsiliasiMaterialRoutes)
 await app.register(rekonsiliasiBankRoutes)

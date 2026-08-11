@@ -5,6 +5,191 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — G5: penguncian yang tak punya jalan keluar sah mendorong jalan keluar yang tak sah
+
+Tutup buku selesai. Kelompok paling berisiko dari seluruh sisa — Ember [C] —
+dan yang paling menentukan justru pengukuran sebelum menulis kode.
+
+### RATIFIKASI berkata "accounts 38 ada, journal_entries 0, paling berisiko"
+
+Benar untuk angkanya. Yang tak tertulis: **fondasi GL sudah kokoh dan sudah
+dipikirkan matang.** Diukur 2026-08-12:
+
+```
+accounts              38 baris, bagan lengkap & tertata (aset → beban)
+journal_entries        0 baris — TAPI strukturnya ada
+trigger GL             6 SUDAH TERPASANG (wajib_seimbang, posted_immutable,
+                       baris_posted_immutable, akun_satu_company, …)
+constraint             jel_debit_xor_credit · jel_tak_negatif
+test                   48 (gl-api · gl-invarian · gl-coa-seed)
+routes/v1/gl.ts        10 endpoint · /akuntansi + 2 komponen
+```
+
+Jadi yang belum ada justru satu-satunya hal yang jadi nama kelompok ini:
+**PERIODE dan PENGUNCIANNYA.** Tak ada satu pun kolom `terkunci`/`closed`
+berkaitan akuntansi di seluruh basis.
+
+Taksonomi masih menulis GL sebagai 🔵 *"migration 047 forward-draft, belum
+di-apply, 0 kode"* — basi, dan diperbaiki di commit ini.
+
+### Keputusan yang membentuk seluruh bagian ini
+
+**Penguncian ditegakkan TRIGGER, bukan pemeriksaan rute.**
+
+Tutup buku yang hanya diperiksa di lapisan aplikasi bukan tutup buku. Yang
+menembusnya bukan penyerang, melainkan hal biasa: skrip impor, migrasi data,
+rute lain yang kelak menulis ke tabel yang sama, atau perbaikan manual lewat
+SQL "sekali saja".
+
+Dan akibatnya tak terlihat: laporan yang sudah dicetak, dikirim ke bank, atau
+dipakai menghitung pajak berubah angkanya SETELAH dikirim. Yang menemukan
+bukan sistemnya — melainkan orang lain yang memegang cetakan lama.
+
+Test membuktikannya **lewat SQL LANGSUNG**, bukan lewat rute.
+
+**Yang dikunci `entry_date`, bukan `created_at`.**
+
+Jurnal yang dibuat hari ini untuk transaksi bulan lalu HARUS ditolak bila
+bulan lalu sudah ditutup — justru itulah yang dijaga. Mengunci berdasarkan
+waktu pembuatan akan meloloskan tepat kasus yang paling merusak.
+
+**Membuka kembali DIIZINKAN — dan itu keputusan, bukan kelonggaran.**
+
+Larangan mutlak terdengar lebih aman, tetapi menghasilkan hal yang lebih
+buruk: saat koreksi benar-benar diperlukan (audit menemukan salah posting),
+orang akan mengubah basis lewat SQL langsung — dan itu **tidak berjejak sama
+sekali**.
+
+Syaratnya dibuat mahal dan terlihat: alasan ≥20 huruf, tercatat siapa dan
+kapan, riwayat append-only, dan `dibuka_ulang` ditampilkan di layar. Periode
+yang dibuka tiga kali tak bisa berpura-pura tak pernah dibuka.
+
+**Satu-satunya PENGHALANG: periode sebelumnya yang masih terbuka.**
+
+Draft dan periode kosong hanya peringatan. Memaksa draft jadi penghalang akan
+membuat orang MENGHAPUS draft asal periodenya bisa ditutup — persis kebalikan
+dari yang diinginkan. Periode sebelumnya lain soal: saldo awal periode ini
+diambil dari sana, dan angka yang masih bisa berubah membuat laporannya tak
+bisa dijumlahkan. Itu bukan preferensi, itu aritmetika.
+
+### Test menemukan dua cacat rancangan saya sendiri
+
+**1. `gl:periode:reopen` tak bisa dipakai siapa pun.**
+
+Migrasi 294 memberikannya hanya ke peran `direktur` — alasannya masih benar.
+Yang tak saya ukur: **nol pengguna berperan direktur** di basis ini (admin 2,
+client 3, mandor 4, pm 1, direktur 0).
+
+Akibat dari akibatnya jauh lebih buruk daripada "fitur tak jalan": penguncian
+yang tak punya jalan keluar yang sah **mendorong jalan keluar yang tak sah**.
+Migrasi 295 memperluasnya ke admin, dengan syarat pencabutan tertulis —
+pemisahan capability-nya TIDAK dihapus.
+
+**2. `ON DELETE CASCADE` + trigger append-only saling meniadakan.**
+
+Riwayat periode punya keduanya, dan akibatnya **periode tak bisa dihapus sama
+sekali**: CASCADE mencoba menghapus riwayat, trigger menolak, penghapusan
+periode gagal dengan pesan yang menunjuk ke tabel LAIN.
+
+Migrasi 296 memperbaikinya dengan `pg_trigger_depth() > 1` — DELETE dari
+CASCADE diizinkan, DELETE langsung tetap ditolak. Cara lain yang ditolak:
+memeriksa apakah induknya masih ada; urutan penghapusan CASCADE tak dijamin,
+dan perilaku yang bergantung urutan adalah kelas cacat yang lolos di satu
+lingkungan dan gagal di lain.
+
+### Satu penjaga terbukti HIASAN, dan diperbaiki di KODE
+
+Mutasi "hapus penjaga string-kosong" tetap hijau. Diselidiki, bukan ditebak:
+
+```
+Number('')   = 0
+Number('  ') = 0
+isFinite(0)  = true
+```
+
+Jadi penjaga `if (s === '') return 0` **tidak mengubah satu pun keluaran** —
+karena hasilnya sama-sama dijatuhkan ke 0. Penjaga yang tak bisa dibuat merah
+adalah hiasan.
+
+Yang salah bukan test-nya, melainkan kodenya: `angka()` seharusnya membedakan
+"nol" dari "tak terbaca". Diubah jadi `number | null`, dan `selisihSeimbang`
+ikut mengembalikan `null` bila salah satu sisi tak terbaca — bedanya nyata di
+layar: periode yang debitnya gagal dibaca TIDAK boleh dinyatakan seimbang.
+
+Sesudah diperbaiki, empat mutasi baru semuanya MERAH.
+
+### Dua mutasi yang TAK BISA merah — dinyatakan, bukan disembunyikan
+
+**`selisih: selisihSeimbang(...)` → `selisih: 0`** tetap hijau, karena setiap
+jurnal yang bisa masuk ke basis dijamin seimbang oleh `trg_gl_wajib_seimbang`
+— jadi selisih nyata SELALU 0. Yang menjaga perilakunya ada di pustaka (6
+test, 4 mutasi merah).
+
+Alternatif yang ditolak: menyuntik jurnal timpang lewat
+`session_replication_role = replica`. Itu melemahkan Ember [C] demi
+menghijaukan mutasi — persis yang dilarang G-5.
+
+**Cabang "riwayat gagal ditulis"** hanya berjalan bila INSERT gagal padahal
+periodenya sudah berubah — tak bisa dipicu tanpa memalsukan basis. Yang
+menjaganya: penjaga `audit-tulis-tanpa-periksa`, dan itu **dibuktikan** —
+menghapus `if (eRiwayat)` membuat penjaganya MERAH.
+
+### Layar menemukan satu cacat
+
+Kolom jurnal menulis "terkunci" di bawah angka pada SEMUA periode — termasuk
+yang statusnya **Terbuka** dua kolom di sebelahnya. Maksudnya "yang akan
+terkunci", tetapi yang terbaca adalah status.
+
+Pada halaman yang seluruh gunanya membedakan terkunci dari tidak, itu bukan
+salah kata — itu berbohong tentang hal yang justru sedang ditanyakan.
+
+### Yang TIDAK dibangun, dan kenapa itu ditulis ke RATIFIKASI
+
+Penjurnalan otomatis dari invoice/pembayaran/upah. Kolomnya sudah menunggu
+(`source`, `ref_type`, `ref_id`), dan secara teknis tinggal ditulis.
+
+Alasan menahannya: **pemetaan akun adalah kebijakan akuntansi, bukan keputusan
+teknis.** Empat pertanyaan yang tak boleh saya tebak sendiri:
+
+1. pendapatan diakui saat invoice terbit (akrual) atau saat dibayar (kas)?
+2. retensi 5% → `4130 Retensi` atau `1124 Retensi Belum Ditagih`?
+3. uang muka klien → `2150` lalu diakui bertahap, atau langsung pendapatan?
+4. PPN keluaran belum punya akunnya di bagan yang ada
+
+Menebaknya menghasilkan laporan keuangan yang salah dengan meyakinkan — dan di
+sini korbannya bukan layar, melainkan SPT tahunan. Tercatat sebagai **R-012**;
+ada 99 transaksi (26 invoice, 23 pembayaran, 50 laporan upah) yang bisa
+langsung dijurnalkan surut begitu jawabannya turun.
+
+### Bukti
+
+```
+migrasi 294 + 295 + 296 terpasang di lingkungan bersih
+16 penjaga DB terbukti MENOLAK · 6 jalur sah DITERIMA
+   termasuk: posting ke periode tertutup (lewat SQL LANGSUNG),
+   memindahkan tanggal jurnal posted ke periode tertutup,
+   menambah/menghapus baris jurnal posted, periode tumpang tindih (EXCLUDE),
+   riwayat append-only (UPDATE & DELETE langsung)
+68 test G5 (37 pustaka + 31 endpoint Postgres nyata)
+43 mutasi MERAH (24 pustaka + 19 rute); 2 dinyatakan tak bisa merah
+116 test G5 + GL lama hijau BERSAMA (tak ada yang dilemahkan)
+tsc api 0 · tsc web 0 · build OK
+axe-core 0 × 4 keadaan (halaman + 3 dialog)
+lint set-state-in-effect: 67 sebelum → 67 sesudah
+penjaga `audit-tulis-tanpa-periksa` menangkap 2 insert riwayat saya
+DARI LAYAR: "1 rentang tanggal tak tercakup periode mana pun · 1 Agu – 31 Agu
+   2026" · dialog "Yang akan terkunci — 4 jurnal sudah diposting ·
+   Rp 108.600.000 debit · debit dan kredit seimbang" · Juni berpita kuning
+   "pernah dibuka kembali 1×"
+```
+
+### Berikutnya
+
+**G6 — sisa 6 item**: Tracking Waste · Markup & Margin · Dokumen
+Prakualifikasi · Baseline Schedule · Report Builder · API & Integrasi.
+
+---
+
 ## 2026-08-12 (lanjutan) — G4: sistem ini sudah menggugurkan orang dari pekerjaan berdasarkan angka tanpa sumber
 
 Kelompok K3 & Lingkungan selesai. Pemicunya bukan yang tertulis di rencana.

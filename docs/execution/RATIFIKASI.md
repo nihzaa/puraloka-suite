@@ -6,6 +6,75 @@ bawah entrinya.
 
 ---
 
+# ❓ R-012 · PENJURNALAN OTOMATIS — empat pertanyaan yang tak boleh saya tebak (2026-08-12)
+
+> **Butuh keputusan Anda.** Mesinnya sudah siap; yang belum ada adalah
+> kebijakannya. Diam BUKAN berarti setuju di sini — tanpa jawaban, penjurnalan
+> otomatis tetap tak dibangun.
+
+G5 (Tutup Buku) selesai: periode akuntansi bisa dikunci, dan penguncian itu
+ditegakkan basis data — skrip impor dan perbaikan manual lewat SQL pun ditolak.
+
+Yang **sengaja tidak** saya bangun: jurnal otomatis dari invoice, pembayaran,
+dan upah. Kolomnya sudah menunggu (`journal_entries.source`, `ref_type`,
+`ref_id`), dan secara teknis tinggal ditulis.
+
+**Alasan menahannya:** pemetaan akun adalah kebijakan akuntansi, bukan
+keputusan teknis. Kalau saya menebak, hasilnya laporan keuangan yang **salah
+dengan meyakinkan** — dan korbannya bukan layar yang jelek, melainkan SPT
+tahunan dan angka yang dikirim ke bank.
+
+Diukur 2026-08-12: 26 invoice, 23 pembayaran, 50 laporan upah sudah ada di
+basis — dan **nol** di antaranya berjurnal. Jadi ini bukan pertanyaan
+hipotetis; begitu jawabannya turun, ada 99 transaksi yang bisa langsung
+dijurnalkan surut.
+
+## Empat pertanyaan
+
+**1. Pendapatan diakui KAPAN?**
+
+| Pilihan | Artinya |
+|---|---|
+| **Akrual** — saat invoice terbit | Pendapatan naik meski uangnya belum masuk. Standar PSAK, dan cocok dengan `lib/wip-psak.ts` yang sudah ada |
+| **Kas** — saat pembayaran diterima | Lebih sederhana dan cocok dengan cara berpikir sehari-hari, tetapi laba jadi bergerak mengikuti kapan klien membayar |
+
+Rekomendasi saya: **akrual**, karena modul WIP/PSAK yang sudah dibangun memakai
+dasar itu — memilih kas membuat dua laporan bercerita berbeda tentang bulan
+yang sama.
+
+**2. Retensi 5% masuk akun mana saat invoice terbit?**
+
+Bagan yang ada punya DUA akun yang keduanya masuk akal:
+`4130 Retensi` (pendapatan) dan `1124 Retensi Belum Ditagih` (aset).
+
+Bedanya nyata: yang pertama membuat retensi terhitung pendapatan sejak awal;
+yang kedua menahannya sebagai piutang sampai benar-benar ditagih setelah masa
+pemeliharaan.
+
+**3. Uang muka klien: ditahan atau langsung pendapatan?**
+
+`2150 Uang Muka Klien` (liabilitas) lalu diakui bertahap seiring progres —
+atau langsung masuk pendapatan saat diterima? Yang pertama benar secara
+akuntansi; yang kedua yang biasa dilakukan kalau pembukuannya sederhana.
+
+**4. PPN keluaran belum punya akunnya.**
+
+Bagan 38 akun tak memuat akun PPN keluaran. Yang ada hanya `2130 Utang Pajak`
+— dan mencampur PPN dengan PPh di satu akun membuat rekonsiliasi SPT masa jadi
+pekerjaan manual tiap bulan. Perlu akun sendiri, dan penamaannya sebaiknya
+mengikuti yang dipakai konsultan pajak Anda.
+
+## Yang terjadi bila tak dijawab
+
+Penjurnalan otomatis tetap tak dibangun, dan itu **bukan keadaan darurat**:
+GL tetap bisa dipakai manual, laporan keuangan tetap jalan dari jurnal yang
+diinput tangan, dan periode tetap bisa dikunci.
+
+Yang hilang hanya otomatisasinya — dan itu jauh lebih murah daripada
+memperbaiki ribuan jurnal yang salah petakan.
+
+---
+
 # 🔓 R-011 · SCOPE DIBUKA PENUH — tak ada lagi "jangan dibangun" (2026-08-11)
 
 > **Keputusan founder, diucapkan langsung:** *"saya mau semuanya dimasukkan ke
