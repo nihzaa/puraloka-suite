@@ -6,72 +6,212 @@ bawah entrinya.
 
 ---
 
-# ❓ R-012 · PENJURNALAN OTOMATIS — empat pertanyaan yang tak boleh saya tebak (2026-08-12)
+# 📋 R-013 · SELURUH YANG MENUNGGU ANDA — dipisah: bisa saya jawab vs tidak (2026-08-12)
 
-> **Butuh keputusan Anda.** Mesinnya sudah siap; yang belum ada adalah
-> kebijakannya. Diam BUKAN berarti setuju di sini — tanpa jawaban, penjurnalan
-> otomatis tetap tak dibangun.
+> **Diminta founder:** *"apa yg menunggu keputusan sayaa? coba kamu cari
+> jawabannya sendiri sesuai standar ERP profesional dan perusahaan konstruksi
+> besar."*
 
-G5 (Tutup Buku) selesai: periode akuntansi bisa dikunci, dan penguncian itu
-ditegakkan basis data — skrip impor dan perbaikan manual lewat SQL pun ditolak.
+Saya periksa seluruh yang tercatat menunggu Anda, lalu memisahkannya jadi dua
+tumpukan. Pemisahnya satu pertanyaan: **apakah jawabannya ada di standar, atau
+hanya ada di kepala Anda?**
 
-Yang **sengaja tidak** saya bangun: jurnal otomatis dari invoice, pembayaran,
-dan upah. Kolomnya sudah menunggu (`journal_entries.source`, `ref_type`,
-`ref_id`), dan secara teknis tinggal ditulis.
+Yang mengejutkan dari pemeriksaan ini: **tumpukan pertama jauh lebih besar dari
+yang saya kira.** Beberapa hal yang bertahun-tahun tercatat "menunggu founder"
+sebenarnya menunggu saya mencarinya — persis kekeliruan yang saya akui di R-012.
 
-**Alasan menahannya:** pemetaan akun adalah kebijakan akuntansi, bukan
-keputusan teknis. Kalau saya menebak, hasilnya laporan keuangan yang **salah
-dengan meyakinkan** — dan korbannya bukan layar yang jelek, melainkan SPT
-tahunan dan angka yang dikirim ke bank.
+## Tumpukan A — SUDAH SAYA JAWAB dari standar (Anda tinggal menolak bila salah)
 
-Diukur 2026-08-12: 26 invoice, 23 pembayaran, 50 laporan upah sudah ada di
-basis — dan **nol** di antaranya berjurnal. Jadi ini bukan pertanyaan
-hipotetis; begitu jawabannya turun, ada 99 transaksi yang bisa langsung
-dijurnalkan surut.
+| Perkara | Jawaban dari standar | Dasar |
+|---|---|---|
+| **R-012** penjurnalan otomatis (4 pertanyaan) | akrual PSAK 72 · retensi = aset `1124` · uang muka = liabilitas `2150` · PPh final = beban (bukan PPN) | PSAK 72 + `lib/wip-psak.ts` yang sudah jalan + 16/16 proyek terukur `pph_final` |
+| **F4-2** pilih pustaka lapis data | **TanStack Query** | invalidasi terarah dibutuhkan sesudah approval berjenjang; devtools membuat "kenapa data ini basi" bisa dijawab pada 93 halaman |
+| **R-006** `pg_dump` mati | buka tiket Support dengan teks yang sudah disiapkan; **jangan tunda pekerjaan lain** | cadangan terbukti jalan (147 tabel, 58.430 baris) — yang mustahil hanya jalur resmi |
+| **F7-1** bentuk langganan | lihat §R-013.1 di bawah — **saya jawab keempatnya** | praktik SaaS B2B + kenyataan segmen kontraktor Indonesia |
+| **R-007** bentuk grup/holding | tunda sampai pelanggan multi-PT PERTAMA, dengan tripwire | membangun eliminasi antar-entitas tanpa satu pun kasus nyata menghasilkan bentuk yang salah dan harus dirawat selamanya |
 
-## Empat pertanyaan
+## Tumpukan B — HANYA ANDA yang tahu (saya tak akan menebaknya)
 
-**1. Pendapatan diakui KAPAN?**
-
-| Pilihan | Artinya |
+| Perkara | Kenapa saya tak bisa menjawabnya |
 |---|---|
-| **Akrual** — saat invoice terbit | Pendapatan naik meski uangnya belum masuk. Standar PSAK, dan cocok dengan `lib/wip-psak.ts` yang sudah ada |
-| **Kas** — saat pembayaran diterima | Lebih sederhana dan cocok dengan cara berpikir sehari-hari, tetapi laba jadi bergerak mengikuti kapan klien membayar |
+| **SITUS-2** materi jual: harga, cerita proyek, screenshot | Harga adalah keputusan bisnis, bukan turunan standar. Cerita proyek adalah fakta tentang pekerjaan Anda. Mengarang keduanya = janji yang tak bisa ditepati. |
+| **SITUS-3** foto 2 kategori | Berkas aslinya tak ada di mana pun (nol kecocokan pHash dari 4 sumber). **Bisa diekstrak dari PDF compro hal. 17 & 19 kalau Anda izinkan** — kualitas turun tapi ada. |
+| **E9** 19 harga AHSP bentrok | Dua sumber sah memberi angka berbeda untuk pekerjaan yang sama. Memilih salah satunya = memutuskan harga penawaran Anda. |
+| **E10** 81 harga draft | Sama: mengaktifkannya berarti harga itu dipakai menawar pekerjaan nyata. |
 
-Rekomendasi saya: **akrual**, karena modul WIP/PSAK yang sudah dibangun memakai
-dasar itu — memilih kas membuat dua laporan bercerita berbeda tentang bulan
-yang sama.
+## R-013.1 · F7-1 — keempat pertanyaan langganan, saya jawab
 
-**2. Retensi 5% masuk akun mana saat invoice terbit?**
+Diukur ulang 2026-08-12: **nol tabel langganan** di skema aplikasi.
 
-Bagan yang ada punya DUA akun yang keduanya masuk akal:
-`4130 Retensi` (pendapatan) dan `1124 Retensi Belum Ditagih` (aset).
+**1. Paket apa saja? → SATU paket berbayar, plus masa coba.**
+Praktik SaaS B2B yang dijual ke segmen ini hampir selalu dimulai satu paket.
+Tiga paket sejak awal menuntut Anda tahu fitur mana yang orang bayar lebih —
+dan itu tak bisa diketahui sebelum ada yang membayar. Menambah paket kedua
+nanti adalah satu migrasi; membongkar tiga paket yang salah bentuk adalah
+membongkar seluruh gerbang fitur yang sudah tersebar di kode.
 
-Bedanya nyata: yang pertama membuat retensi terhitung pendapatan sejak awal;
-yang kedua menahannya sebagai piutang sampai benar-benar ditagih setelah masa
-pemeliharaan.
+**2. Batas apa yang ditegakkan? → JUMLAH PROYEK AKTIF.**
+Bukan pengguna, bukan penyimpanan. Alasannya khas konstruksi: nilai yang
+kontraktor peroleh dari ERP tumbuh sebanding jumlah proyek yang ia kelola,
+sementara jumlah pengguna tidak — proyek yang sama bisa melibatkan 5 atau 50
+orang tergantung apakah mandornya diberi akun. Membatasi pengguna justru
+mendorong pelanggan berbagi akun, dan akun bersama menghancurkan audit trail
+yang jadi nilai jual produk ini.
 
-**3. Uang muka klien: ditahan atau langsung pendapatan?**
+Penyimpanan juga salah: foto lapangan adalah bukti pekerjaan, dan pelanggan
+yang menahan diri mengunggah foto karena kuota sedang merusak datanya sendiri.
 
-`2150 Uang Muka Klien` (liabilitas) lalu diakui bertahap seiring progres —
-atau langsung masuk pendapatan saat diterima? Yang pertama benar secara
-akuntansi; yang kedua yang biasa dilakukan kalau pembukuannya sederhana.
+**3. Siklus tagih? → BULANAN, dengan diskon tahunan.**
+Kontraktor segmen ini punya arus kas bergelombang mengikuti termin. Memaksa
+tahunan di muka menaikkan penghalang masuk tepat di titik mereka paling ragu.
 
-**4. PPN keluaran belum punya akunnya.**
+**4. Saat lewat batas? → PERINGATKAN, JANGAN TOLAK.**
+Ini yang paling menentukan dan paling mudah salah. Menolak pembuatan proyek
+karena batas berarti menghentikan pekerjaan pelanggan pada hari mereka paling
+sibuk — dan yang mereka ingat bukan "saya lupa upgrade", melainkan "software
+ini menghalangi saya kerja".
 
-Bagan 38 akun tak memuat akun PPN keluaran. Yang ada hanya `2130 Utang Pajak`
-— dan mencampur PPN dengan PPh di satu akun membuat rekonsiliasi SPT masa jadi
-pekerjaan manual tiap bulan. Perlu akun sendiri, dan penamaannya sebaiknya
-mengikuti yang dipakai konsultan pajak Anda.
+Yang ditegakkan keras HANYA satu hal: **data tak pernah disandera.** Langganan
+berakhir → akun jadi baca-saja dan ekspor tetap jalan, tak pernah dihapus.
+Menyandera data pelanggan konstruksi berarti menyandera bukti hukum proyek
+mereka, dan itu bukan model bisnis, itu risiko tuntutan.
 
-## Yang terjadi bila tak dijawab
+**Bentuk teknisnya:** kolom `paket`, `langganan_mulai`, `langganan_akhir`,
+`batas_proyek` di `companies` — nol tabel baru. Penghitung proyek aktif sudah
+bisa dihitung dari `projects`. Spanduk peringatan saat mendekati dan melewati
+batas.
 
-Penjurnalan otomatis tetap tak dibangun, dan itu **bukan keadaan darurat**:
-GL tetap bisa dipakai manual, laporan keuangan tetap jalan dari jurnal yang
-diinput tangan, dan periode tetap bisa dikunci.
+**Yang saya TIDAK bangun tanpa Anda:** angka harganya. Struktur boleh saya
+tetapkan dari standar; berapa rupiah per bulan adalah keputusan Anda.
 
-Yang hilang hanya otomatisasinya — dan itu jauh lebih murah daripada
-memperbaiki ribuan jurnal yang salah petakan.
+---
+
+# ✅ R-012 · PENJURNALAN OTOMATIS — DIJAWAB dari standar, bukan ditebak (2026-08-12)
+
+> **Diminta founder:** *"apa yg menunggu keputusan saya? coba kamu cari
+> jawabannya sendiri sesuai standar ERP profesional dan perusahaan konstruksi
+> besar."*
+>
+> Saya cari, dan ternyata **keempatnya punya jawaban baku** — tiga dari PSAK,
+> satu dari kenyataan yang sudah terukur di basis. Yang tadinya saya sebut
+> "tak boleh ditebak" sebenarnya "belum saya cari". Itu keliru, dan ini
+> koreksinya.
+>
+> **Tetap bisa Anda tolak.** Tiap jawaban di bawah menyebut dasarnya, jadi
+> yang Anda tolak adalah dasarnya — bukan selera saya.
+
+## Yang berubah dari perumusan awal
+
+Perumusan awal menempatkan keempatnya sebagai "pilihan bebas". Sesudah
+diukur ke basis dan kode yang sudah ada, tiga di antaranya **sudah terjawab
+oleh keputusan yang pernah diambil** — menanyakannya lagi justru berisiko
+menghasilkan dua modul yang bercerita berbeda tentang bulan yang sama.
+
+---
+
+## 1. Pendapatan diakui KAPAN? → **AKRUAL** (saat invoice terbit)
+
+**Dasar:** PSAK 72 (Pendapatan dari Kontrak dengan Pelanggan), metode
+persentase penyelesaian.
+
+**Dan ini bukan pilihan terbuka lagi:** `lib/wip-psak.ts` sudah dibangun
+2026-08-01 memakai PSAK 72 cost-to-cost, dan halaman `/laporan` sudah
+menampilkannya. Memilih basis kas untuk jurnal berarti neraca dan laporan WIP
+akan **berbeda angkanya untuk bulan yang sama** — dan yang menemukan bukan
+sistem, melainkan orang yang membandingkan dua cetakan.
+
+Praktik kontraktor besar: seluruhnya akrual. Basis kas hanya dipakai UMKM
+di bawah ambang pembukuan, dan Puraloka sudah jauh di atas itu.
+
+## 2. Retensi 5% → **`1124 Retensi Belum Ditagih`** (aset), bukan `4130`
+
+**Dasar:** retensi adalah **hak tagih yang tertunda**, bukan pengurang
+pendapatan. Pekerjaannya sudah dilakukan dan pendapatannya sudah diakui penuh;
+yang belum adalah haknya menagih sampai masa pemeliharaan berakhir.
+
+Jurnalnya saat invoice terbit:
+
+```
+Dr  1121 Piutang Usaha            (yang boleh ditagih sekarang)
+Dr  1124 Retensi Belum Ditagih    (5% yang ditahan klien)
+    Cr  4120 Pendapatan Termin    (nilai penuh)
+```
+
+Kalau retensi dicatat sebagai `4130 Retensi` (akun pendapatan), pendapatan
+periode ini berkurang — padahal pekerjaannya sudah selesai. Itu menyesatkan
+justru pada angka yang dipakai menilai kinerja proyek.
+
+Saat retensi cair kelak: `Dr 1113 Bank / Cr 1124`.
+
+**Akun `4130 Retensi` tetap ada tetapi TIDAK dipakai penjurnalan otomatis.**
+Saya tidak menghapusnya — bagan akun milik Anda, dan menghapus akun yang
+mungkin dipakai manual adalah keputusan lain.
+
+## 3. Uang muka klien → **`2150 Uang Muka Klien`** (liabilitas), diakui bertahap
+
+**Dasar:** PSAK 72 — uang yang diterima sebelum kewajiban kinerja terpenuhi
+adalah **liabilitas kontrak**, bukan pendapatan. Kontraktor yang mencatatnya
+langsung sebagai pendapatan akan melaporkan laba di bulan uang muka masuk,
+lalu rugi di bulan-bulan pekerjaannya benar-benar dikerjakan.
+
+Terima uang muka: `Dr 1113 Bank / Cr 2150 Uang Muka Klien`.
+Tiap invoice termin yang memotong uang muka (`dp_deduction_amount` — kolomnya
+**sudah ada**): `Dr 2150 / Cr 1121 Piutang Usaha`.
+
+## 4. Akun PPN keluaran → **pertanyaannya salah sasaran**
+
+Diukur 2026-08-12: **16 dari 16 proyek memakai `tax_scheme = 'pph_final'`,
+nol memakai PPN.** Dan `lib/tax-calculation.ts` sudah menetapkan tarifnya:
+PPh final 2%, PPN 11%.
+
+Jadi yang mendesak bukan akun PPN, melainkan pembedaan yang lebih dasar:
+
+| | PPh final 2% | PPN 11% |
+|---|---|---|
+| Sifat | **BEBAN** perusahaan | **TITIPAN** dari pelanggan |
+| Akun | beban pajak | utang pajak |
+| Boleh dicampur? | **Tidak** — mencampurnya membuat laba terlihat lebih besar dari yang sebenarnya |
+
+Bagan sekarang hanya punya `2130 Utang Pajak`, dan itu benar untuk PPN tetapi
+**salah untuk PPh final** — PPh final mengurangi laba, bukan menambah utang.
+
+**Yang saya lakukan:** migrasi menambah dua akun,
+`5950 Beban PPh Final` dan `2131 PPN Keluaran`, dan membiarkan `2130` untuk
+PPh 21 karyawan yang memang utang. Penambahan akun tak menghapus apa pun.
+
+Jurnal invoice ber-PPh final:
+
+```
+Dr  1121 Piutang Usaha        nilai + PPh (yang ditagih ke klien)
+    Cr  4120 Pendapatan Termin    nilai pekerjaan
+    Cr  2131 PPN Keluaran /
+        atau 5950 Beban PPh Final  tergantung skema proyek
+```
+
+⚠️ Satu hal yang saya temukan sambil mengukur dan **perlu Anda periksa**:
+`tax_amount` saat ini **DITAMBAHKAN** ke `base_amount` (`total = base + tax`).
+Itu perilaku PPN yang benar. Untuk PPh final jasa konstruksi, praktik yang
+lazim justru **dipotong pemberi kerja** dari nilai tagihan — bukan ditambahkan
+di atasnya. Yang mana yang benar bergantung isi kontrak Anda, dan itu
+**tak bisa saya tentukan dari data**. Penjurnalan otomatis mengikuti angka
+yang sudah ada di invoice, jadi ia tetap konsisten apa pun jawabannya.
+
+---
+
+## Yang dibangun atas jawaban ini
+
+**Peta akun jadi DATA, bukan konstanta di kode** (pelajaran G2a tarif payroll):
+tabel `peta_akun_jurnal` yang bisa Anda ubah dari halaman pengaturan. Kalau
+jawaban di atas salah untuk cara kerja Anda, yang berubah cukup satu baris
+data — bukan deploy.
+
+Sampai petanya diisi, penjurnalan otomatis **menolak berjalan** dan layarnya
+menyatakan "peta akun belum ditetapkan" — bukan menebak akun yang kelihatan
+masuk akal.
+
+**Yang TIDAK dijurnalkan otomatis** dan tetap manual: penyusutan, koreksi
+audit, jurnal penutup, dan apa pun yang butuh pertimbangan. Otomatisasi
+berhenti di tempat yang jawabannya tunggal.
 
 ---
 

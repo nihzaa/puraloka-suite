@@ -5,6 +5,147 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — R-012: yang saya sebut "tak boleh ditebak" ternyata "belum saya cari"
+
+Founder bertanya: *"apa yg menunggu keputusan sayaa? coba kamu cari jawabannya
+sendiri sesuai standar ERP profesional dan perusahaan konstruksi besar."*
+
+Saya membuka `RATIFIKASI.md` dan menemukan empat pertanyaan akuntansi yang saya
+sendiri tulis sebagai **"tak boleh ditebak"**. Lalu saya mencarinya. Tiga dari
+empat sudah terjawab oleh keputusan yang ADA DI REPO INI, dan yang keempat salah
+sasaran.
+
+**Saya salah.** Bukan salah menolak menebak — itu benar. Salahnya menyebut
+"tak boleh ditebak" untuk sesuatu yang sebenarnya "belum saya cari". Keduanya
+terlihat sama dari luar (pertanyaan menganggur di dokumen), tapi yang pertama
+menunggu founder dan yang kedua menunggu saya. Selama entah berapa lama, empat
+pertanyaan ini duduk di daftar "menunggu founder" padahal jawabannya ada di
+`lib/wip-psak.ts` dan di kolom `tax_scheme` yang bisa dihitung dalam satu query.
+
+### Yang ditemukan dengan mengukur, bukan menimbang
+
+| Pertanyaan | Jawaban | Dari mana |
+|---|---|---|
+| Pendapatan diakui kapan? | Akrual saat invoice terbit | PSAK 72, **dan** itu dasar yang sudah dipakai `lib/wip-psak.ts` yang berjalan — memilih basis kas membuat dua laporan bercerita berbeda tentang bulan yang sama |
+| Retensi 5% ke mana? | `1124` — **aset**, bukan pengurang pendapatan | Pekerjaan selesai, pendapatan diakui penuh; yang tertunda adalah HAK MENAGIH |
+| Uang muka klien? | `2150` — **liabilitas** kontrak | PSAK 72. Mencatatnya sebagai pendapatan membuat laba melonjak di bulan uang muka masuk lalu rugi saat dikerjakan |
+| Akun PPN keluaran? | **pertanyaannya salah sasaran** | Diukur: 16/16 proyek memakai `pph_final`. Bedanya bukan PPN-vs-PPh melainkan PPh final = BEBAN (mengurangi laba) sementara PPN = UTANG titipan. Mencatat beban sebagai utang membuat laba terlihat lebih besar dari yang sebenarnya |
+
+### Yang dibangun
+
+`peta_akun_jurnal` **config-first dengan nol baris ter-seed** — dan migrasi 297
+GAGAL bila ada satu baris pun tertanam:
+
+    SELECT count(*) INTO n FROM peta_akun_jurnal;
+    IF n > 0 THEN RAISE EXCEPTION '297 gagal: % baris peta akun ter-seed …', n;
+
+Alasannya sama dengan tarif payroll (G2a): peta akun menentukan bentuk seluruh
+laporan keuangan, dan **bawaan yang terisi sendiri tak pernah ditanyakan siapa
+pun karena hasilnya terlihat wajar**. Layar MENAWARKAN usulan beserta dasar
+PSAK-nya; founder yang menekan simpan.
+
+Satu invoice hanya bisa dijurnalkan sekali — dijaga `uq_jurnal_satu_per_rujukan`
+di BASIS, bukan pemeriksaan aplikasi. Dua permintaan bersamaan lolos pemeriksaan
+aplikasi, dan **jurnal gandanya tetap seimbang debit-kredit** sehingga tak ada
+satu pun invariant pembukuan yang menangkapnya. Yang tergandakan: pendapatan.
+
+Jurnal dibuat `draft`, tak langsung posted. Penjurnalan otomatis adalah tafsir;
+draft memberi kesempatan menangkap peta akun keliru SEBELUM angkanya masuk
+neraca. Kalau langsung posted, koreksinya menuntut jurnal balik — dua baris di
+buku besar untuk satu kesalahan.
+
+### Empat kesalahan saya sendiri, dan yang menemukannya
+
+**1. Membajak menu orang lain.** Migrasi 297 saya arahkan menu `akun-pajak`
+("Pajak") ke `/akuntansi/peta-akun`. Peta akun bukan pajak — pajak hanya dua
+dari tujuh barisnya. Akibatnya: yang mencari pengaturan pajak menemukan
+pemetaan akun, dan yang mencari pemetaan akun tak menemukannya sama sekali.
+Dikoreksi migrasi 299. **Ditemukan sendiri sebelum founder melihat.**
+
+**2. Halaman tanpa jalan menuju ke sana.** `audit-nav-yatim` merahkan
+`/akuntansi/jurnalkan`: halaman jadi, endpoint jalan, nol tautan. Halaman yang
+hanya bisa dibuka dengan mengetik URL sama saja dengan tidak ada. Migrasi 300.
+
+**3. Test yang hijau sekali lalu merah selamanya.** `purge()` di test endpoint
+langsung DELETE jurnal — berhasil pada run pertama (belum ada yang posted saat
+`beforeAll`), lalu GAGAL di setiap run berikutnya karena residu satu jurnal
+posted yang immutable. Bentuk paling menjengkelkan dari test rapuh: hijau saat
+ditulis, merah pada orang berikutnya, dengan galat yang menunjuk trigger
+pembukuan alih-alih ke test-nya.
+
+Yang TIDAK saya lakukan: melemahkan trigger-nya. Jalan sahnya sudah disediakan
+basis — `void` lalu hapus, persis pola blok verifikasi migrasi 169. **Dibuktikan
+dengan menjalankan dua kali berturut-turut.**
+
+**4. Menulis tanpa memeriksa.** `audit-tulis-tanpa-periksa` menangkap dua
+`DELETE` pembersihan jurnal kepala yang hasilnya tak diperiksa. Kalau pembersihan
+itu sendiri gagal, jurnal kosong TETAP ADA sementara pengguna melihat "gagal".
+Sekarang nomornya disebut supaya bisa dicari dan dihapus.
+
+### Layar menemukan tiga cacat yang nol test bisa lihat
+
+Saya potret halaman peta akun, dan melihat sendiri:
+
+- **empat penanda untuk satu pesan** — spanduk merah + latar baris merah + pita
+  kiri + lencana merah. §3d bilang satu aksen per layar. Layar yang menandai
+  segalanya tak menandai apa pun.
+- **tujuh paragraf dasar PSAK** membuat tabel jadi dinding teks. Dasar hukum
+  dibaca SEKALI saat memutuskan; menaruhnya permanen menghapus kemampuan
+  memindai. Dipecah `ringkas` (selalu terlihat) / `rinci` (`<details>`).
+- **26 tombol navy sederajat** di halaman jurnalkan. Diturunkan jadi sekunder.
+
+Dan axe menemukan yang keempat: `--navy` + `#fff` lolos di mode terang lalu
+GAGAL kontras di mode gelap. `--navy` bernilai sama di kedua mode; `--aksen`
+tidak. Nol pelanggaran sesudahnya di 4 kombinasi (2 halaman × 2 mode).
+
+### Diuji lewat UI NYATA, bukan INSERT ke basis
+
+Peta akun diisi dengan menekan "pakai" + "Simpan" tujuh kali lewat Playwright,
+bukan `INSERT` langsung. Bedanya: kalau saya menanam barisnya lewat SQL, saya
+menguji basisnya, bukan layarnya — dan tombol yang dipakai founder belum tentu
+bekerja. Lalu satu invoice nyata dijurnalkan lewat tombolnya, dan ia berpindah
+ke tab "Sudah" berstatus Draft.
+
+(Satu kegagalan skrip di sini milik saya, bukan halaman: `.first()` pada tombol
+"pakai" menunjuk baris LAIN sesudah satu baris tersimpan. Diagnosisnya dengan
+probe terpisah, bukan menebak.)
+
+### Bukti
+
+    tsc (api + web)          0
+    vitest R-012             61 lulus (39 pustaka + 22 endpoint)
+    vitest R-012 ×2 berturut 61 lulus — cacat purge terbukti hilang
+    next build               nol error, 2 halaman baru terdaftar
+    eslint 2 halaman         0 error 0 warning
+    axe terang/gelap         4 kombinasi, 0 pelanggaran
+    audit-tulis-tanpa-periksa hijau (dulu MERAH oleh 2 baris saya)
+    audit-nav-yatim          hijau (dulu MERAH — /akuntansi/jurnalkan yatim)
+    uji-token-css-ada        hijau (dulu MERAH — `--garis` tak ada)
+    audit-peta-menu-vs-db    drift TURUN 120 → 119, lantai dikunci
+    13 penjaga API           hijau
+    migrasi 297–300          diterapkan, blok verifikasi lulus
+
+**Yang TIDAK saya perbaiki, dan saya sebut supaya tak terlihat seperti hijau:**
+`kerapatan-ratchet` (322/307), `tabel-mentah-ratchet` (13 halaman/7), dan
+`uji-kosong-seragam` (53/49) MERAH. Ketiganya saya ukur di HEAD bersih dengan
+`git stash` — angkanya identik, nol kecocokan dengan halaman saya. Utang lama,
+bukan bagian R-012, dan menumpangkannya ke commit ini akan mengaburkan
+keduanya.
+
+### Dan yang lebih penting dari kodenya
+
+Founder bertanya apa yang menunggu keputusannya. Saya periksa seluruhnya lalu
+pisahkan jadi dua tumpukan (R-013): **yang jawabannya ada di standar** (R-012,
+F4-2 → TanStack Query, R-006 → buka tiket jangan tunda, F7-1 → keempat
+pertanyaan langganan saya jawab, R-007 → tunda dengan tripwire) dan **yang
+hanya founder tahu** (harga, cerita proyek, foto, 19 harga AHSP bentrok).
+
+Tumpukan pertama jauh lebih besar dari yang saya kira. Pelajaran R-012 berlaku
+untuk seluruh daftar itu: sebelum menulis "menunggu founder", ukur dulu apakah
+ia menunggu founder atau menunggu saya.
+
+---
+
 ## 2026-08-12 (lanjutan) — G5: penguncian yang tak punya jalan keluar sah mendorong jalan keluar yang tak sah
 
 Tutup buku selesai. Kelompok paling berisiko dari seluruh sisa — Ember [C] —

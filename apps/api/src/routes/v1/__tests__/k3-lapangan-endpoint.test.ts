@@ -70,8 +70,28 @@ beforeAll(async () => {
   projectId = p[0].id
   companyId = p[0].company_id
 
+  // Supplier uji WAJIB bersih dari insiden di rentang yang dipakai test
+  // keselarasan (Juli 2026) — dan urutannya dipaku.
+  //
+  // Versi pertama: `LIMIT 1` tanpa `ORDER BY`. Postgres bebas mengembalikan
+  // baris mana pun, jadi test ini hijau atau merah tergantung urutan yang
+  // kebetulan dipilih perencana query — dan itu berubah begitu tabelnya
+  // ditulis berkas test lain. Dalam run penuh ia gagal dengan
+  // `expected 2 to be 1`: supplier yang terpilih ternyata punya insiden
+  // DUMMY nyata (bukan bertanda [TEST-K3], jadi purge tak menyentuhnya) di
+  // Juli, dan hitungannya jadi dua.
+  //
+  // Pesannya menunjuk ke logika keselarasan, padahal yang salah pemilihan
+  // fixture. Ini kelas cacat yang sama dengan `purge` R-012: hijau sendirian,
+  // merah bersama, dengan galat yang menyalahkan tempat lain.
   const { rows: s } = await client.query(
-    `SELECT id FROM suppliers WHERE company_id = $1 LIMIT 1`, [companyId])
+    `SELECT sp.id FROM suppliers sp
+      WHERE sp.company_id = $1
+        AND NOT EXISTS (
+          SELECT 1 FROM insiden_k3 i
+           WHERE i.supplier_id = sp.id
+             AND i.tanggal BETWEEN '2026-07-01' AND '2026-07-31')
+      ORDER BY sp.id LIMIT 1`, [companyId])
   supplierId = s[0]?.id
 
   await purge()
