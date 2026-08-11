@@ -116,6 +116,27 @@ const DISPOSISI: Record<string, { label: string; ket: string }> = {
 
 const rp = formatRupiah;
 
+/**
+ * Tanggal pemeriksaan — aman untuk `timestamptz` MAUPUN `date`.
+ *
+ * `inspection_requests.diperiksa_pada` bertipe **`timestamptz`**, nilainya
+ * "2026-08-04T20:11:25.172Z". Versi pertama panel kandidat menambahkan
+ * `"T00:00:00"` — pola yang benar untuk kolom `date` di halaman lain — dan
+ * menghasilkan **"Invalid Date"** di layar.
+ *
+ * Ketahuan dari tangkapan layar, bukan dari test: keduanya lolos TypeScript
+ * karena sama-sama `string`.
+ *
+ * Nilai tak terbaca mengembalikan `null`, bukan "Invalid Date": tanggal yang
+ * absen lebih jujur daripada tanggal yang salah.
+ */
+function tanggalPeriksa(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+}
+
 function NcrInner() {
   const router = useRouter();
   const params = useSearchParams();
@@ -333,10 +354,17 @@ function NcrInner() {
                 {k.lokasi && (
                   <span style={{ color: C.mid, fontSize: 11 }}>· {k.lokasi}</span>
                 )}
-                {k.diperiksa_pada && (
+                {/* `diperiksa_pada` bertipe `timestamptz`, BUKAN `date` —
+                    nilainya "2026-08-04T20:11:25.172Z". Versi pertama
+                    menambahkan "T00:00:00" (pola yang benar untuk kolom
+                    `date` di halaman lain) dan menghasilkan **"Invalid
+                    Date"** di layar.
+                    
+                    Ketahuan dari tangkapan layar, bukan dari test: keduanya
+                    lolos tipe TypeScript karena sama-sama `string`. */}
+                {tanggalPeriksa(k.diperiksa_pada) && (
                   <span style={{ color: C.muted, fontSize: 11 }}>
-                    diperiksa {new Date(k.diperiksa_pada + "T00:00:00")
-                      .toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                    diperiksa {tanggalPeriksa(k.diperiksa_pada)}
                   </span>
                 )}
                 <button
