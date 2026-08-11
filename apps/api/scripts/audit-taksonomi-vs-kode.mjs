@@ -200,6 +200,11 @@ const PETA = {
     tabel: ['itp_titik'], rute: ['/rencana-mutu'],
   },
 
+  // ── G1f (2026-08-11) — item TERAKHIR kelompok G1 ─────────────────────
+  'Audit mutu': {
+    berkas: ['audit-mutu'], tabel: ['audit_mutu', 'temuan_audit'], web: ['/mutu/audit'],
+  },
+
   // Ditambahkan 2026-08-07 sesudah kekeliruan KEDELAPAN (F5-1 §3c).
   //
   // 'Laporan keuangan' tertulis 🔴 selama berminggu-minggu — dan taksonomi

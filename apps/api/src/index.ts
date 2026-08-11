@@ -55,6 +55,7 @@ import punchListRoutes from './routes/v1/punch-list.js'
 import ncrRoutes from './routes/v1/ncr.js'
 import mutuRoutes from './routes/v1/mutu.js'
 import rencanaMutuRoutes from './routes/v1/rencana-mutu.js'
+import auditMutuRoutes from './routes/v1/audit-mutu.js'
 import absensiRoutes from './routes/v1/absensi.js'
 import rekonsiliasiMaterialRoutes from './routes/v1/rekonsiliasi-material.js'
 import rekonsiliasiBankRoutes from './routes/v1/rekonsiliasi-bank.js'
@@ -333,6 +334,7 @@ await app.register(punchListRoutes)
 await app.register(ncrRoutes)
 await app.register(mutuRoutes)
 await app.register(rencanaMutuRoutes)
+await app.register(auditMutuRoutes)
 await app.register(absensiRoutes)
 await app.register(rekonsiliasiMaterialRoutes)
 await app.register(rekonsiliasiBankRoutes)

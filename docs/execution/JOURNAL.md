@@ -5,6 +5,111 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-11 (lanjutan 6) — G1f: kelompok Mutu TUNTAS, dan kesalahan yang saya ulangi
+
+Audit Mutu selesai. **Ketujuh sub-item Mutu kini hidup** — kelompok G1 (R-011)
+tuntas.
+
+### Yang membentuk modulnya: klasifikasi menentukan AKIBAT
+
+Audit mutu memeriksa SISTEM, bukan pekerjaan. Inspeksi bertanya "beton ini kuat
+berapa?"; auditor bertanya "ITP benar-benar diikuti?". Auditor tak mengukur
+beton.
+
+Karena itu temuannya tak menunjuk elemen struktur melainkan KLAUSUL, dan
+klasifikasinya menentukan apa yang terjadi berikutnya:
+
+- **MAJOR** — sistem mutunya gagal di titik itu. Wajib melahirkan NCR, dan
+  **menghalangi audit diselesaikan** sampai NCR-nya ada.
+- **MINOR** — wajib diperbaiki, tak wajib jadi NCR.
+- **OBSERVASI** — catatan, bukan tuntutan.
+
+Tanpa pembedaan itu, audit jadi ritual: temuan dicatat, laporan dicetak, tak
+ada yang berubah di lapangan.
+
+### Trigger DUA SISI, dan pintu yang tak terlihat
+
+"Major wajib ber-NCR saat audit selesai" tak bisa jadi CHECK constraint —
+aturannya melibatkan dua tabel. Yang penting: trigger dipasang di **kedua**
+tabel, karena pelanggarannya datang dari tiga arah, dan dua di antaranya tak
+terlihat sebagai "menutup audit":
+
+1. audit ditutup sementara ada major tanpa NCR
+2. **NCR dilepas** dari temuan major di audit yang sudah selesai
+3. **major baru ditambahkan** ke audit yang sudah selesai
+
+Ketiganya dibuktikan ditolak — lewat SQL langsung dan lewat HTTP.
+
+### Kesalahan yang saya ULANGI dari G1e
+
+Mutasi menemukan test penyelesaian-ganda saya **lolos palsu**: melepas
+`.neq('status','selesai')` tak membuatnya merah, karena permintaan kedua sudah
+ditolak `bolehDiselesaikan` sebelum menyentuh query.
+
+Ini persis cacat yang saya temukan dan tulis penjelasannya di G1e, beberapa jam
+sebelumnya. Saya menulis test berurutan lagi.
+
+Diganti dua permintaan **bersamaan**. Sekarang mutasi itu merah.
+
+Pelajaran yang lebih umum, dan yang jelas belum saya serap: **test yang menguji
+"tak boleh dua kali" hampir selalu menguji lapisan aplikasi, bukan basis.**
+Satu-satunya cara membedakannya adalah membuat keduanya berlomba.
+
+### Cacat plpgsql yang galatnya tak menunjuk penyebabnya
+
+Trigger versi pertama memakai `CASE TG_TABLE_NAME WHEN 'audit_mutu' THEN NEW.id
+ELSE NEW.audit_id END`. Gagal — plpgsql menentukan tipe SELURUH ekspresi CASE
+sebelum mengevaluasinya, jadi `NEW.audit_id` tetap diperiksa meski cabangnya
+tak akan diambil, dan `audit_mutu` tak punya kolom itu.
+
+Galatnya (`plpgsql_exec_get_datum_type_info`) tidak menyebut kolom mana, dan
+muncul pada UPDATE yang kelihatan tak berhubungan. Diganti `IF`.
+
+### Yang saya nilai kurang di layar sendiri, lalu revisi
+
+Kartu **"Ditutup 0/4"** menyesatkan: ia menghitung observasi, yang tak menuntut
+penutupan sama sekali. Terbaca seperti nol dari empat pekerjaan selesai,
+padahal yang benar-benar menunggu hanya 3 (1 major + 2 minor).
+
+Penyebut yang salah **menciptakan hutang yang tak ada**. Ditambahkan
+`menuntut_tindakan` (major + minor), dan observasi dinyatakan terpisah di
+sub-label. Ini tak akan tertangkap test unit — semuanya lulus sebelum dan
+sesudah.
+
+### Bukti
+
+```
+tsc api+web exit=0
+26 penjaga arsitektural exit=0 (nol merah)
+17 test pustaka + 17 test endpoint Postgres nyata
+18 mutasi MERAH (11 pustaka + 7 rute)
+7 penjaga DB terbukti MENOLAK (constraint + trigger tiga jalur)
+axe /mutu/audit : 0 · modal: 0
+alur penuh DARI LAYAR: "1 major belum punya NCR" → tautkan → "Semua temuan
+  major sudah ditindaklanjuti" + tombol Selesaikan muncul
+opsi NCR di modal: 11
+sidebar /mutu : 5 tautan (ncr · insiden · rencana · uji-material · audit)
+```
+
+### Kelompok G1 tuntas — 7 dari 7
+
+| Sub-item | Status |
+|---|---|
+| Register NCR | hidup (2026-08-06) + kandidat dari inspeksi (G1b) |
+| Tindakan Korektif | sebagian — sisi korektif hidup (G1c); preventif belum |
+| Checklist Inspeksi | sebagian — endpoint & data hidup (G1d) |
+| Hasil Uji Material | hidup (G1d) |
+| Rencana Mutu Proyek | hidup (G1e) |
+| Inspection & Test Plan | hidup (G1e) |
+| Audit Mutu | hidup (G1f) |
+
+Berikutnya **G2 — SDM & Payroll** (8 item). Tarif PTKP/PPh 21/BPJS **wajib
+config-first**: data yang founder isi lewat halaman pengaturan, bukan konstanta
+di kode. Sampai diisi, layarnya menyatakan "tarif belum ditetapkan" — tidak
+menghitung dengan angka bawaan yang kelihatan wajar (R-011).
+
+---
+
 ## 2026-08-11 (lanjutan 5) — G1e: dua halaman yang saya bangun ternyata tak bisa dicapai siapa pun
 
 Rencana Mutu Proyek + ITP selesai. Yang paling berharga dari sesi ini bukan

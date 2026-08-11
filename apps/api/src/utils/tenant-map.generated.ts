@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 210 tabel · A=11 · AB=15 · ANCHOR=1 · B=88 · C=88 · D=7
+// 212 tabel · A=11 · AB=15 · ANCHOR=1 · B=88 · C=90 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -59,6 +59,7 @@ export const PETA_TENANCY = {
   'asset_rentals': { kategori: 'B' },
   'assets': { kategori: 'B' },
   'audit_logs': { kategori: 'D' },  // Punya company_id NOT NULL tapi ditulis langsung (tak pernah lewat join) supaya trail tetap terbaca meski baris induk hilang. Append-only (073).
+  'audit_mutu': { kategori: 'C', lewat: 'project_id' },  // audit_mutu.project_id
   'biaya_operasional_alat': { kategori: 'B' },
   'bids': { kategori: 'B' },
   'borongan_settlements': { kategori: 'C', lewat: 'work_scope_id' },  // borongan_settlements.work_scope_id → work_scopes.assignment_id → mandor_assignments.project_id
@@ -222,6 +223,7 @@ export const PETA_TENANCY = {
   'suppliers': { kategori: 'B' },
   'tanda_tangan_elektronik': { kategori: 'B' },
   'tax_records': { kategori: 'C', lewat: 'invoice_id' },  // tax_records.invoice_id → invoices.project_id
+  'temuan_audit': { kategori: 'C', lewat: 'audit_id' },  // temuan_audit.audit_id → audit_mutu.project_id
   'tender_subkon': { kategori: 'C', lewat: 'project_id' },  // tender_subkon.project_id
   'termin_schedules': { kategori: 'C', lewat: 'project_id' },  // termin_schedules.project_id
   'transmittal': { kategori: 'B' },
