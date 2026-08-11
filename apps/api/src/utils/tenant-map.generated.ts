@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 216 tabel · A=11 · AB=15 · ANCHOR=1 · B=90 · C=92 · D=7
+// 219 tabel · A=11 · AB=15 · ANCHOR=1 · B=91 · C=94 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -150,6 +150,7 @@ export const PETA_TENANCY = {
   'otomasi_alur': { kategori: 'B' },
   'otomasi_jalan': { kategori: 'B' },
   'payments': { kategori: 'C', lewat: 'invoice_id' },  // payments.invoice_id → invoices.project_id
+  'payroll_periode': { kategori: 'B' },
   'pegawai': { kategori: 'B' },
   'pemakaian_alat': { kategori: 'B' },
   'penawaran_subkon': { kategori: 'C', lewat: 'tender_id' },  // penawaran_subkon.tender_id → tender_subkon.project_id
@@ -212,6 +213,8 @@ export const PETA_TENANCY = {
   'situs_merek': { kategori: 'B' },
   'situs_milestone': { kategori: 'B' },
   'situs_seksi': { kategori: 'B' },
+  'slip_gaji': { kategori: 'C', lewat: 'pegawai_id' },  // slip_gaji.pegawai_id
+  'slip_komponen': { kategori: 'C', lewat: 'slip_id' },  // slip_komponen.slip_id → slip_gaji.pegawai_id
   'steel_profiles': { kategori: 'A' },
   'stock_movements': { kategori: 'C', lewat: 'project_id' },  // stock_movements.project_id
   'stock_transfers': { kategori: 'C', lewat: 'project_asal_id' },  // stock_transfers.project_asal_id

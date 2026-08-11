@@ -5,6 +5,116 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-11 (lanjutan 9) — G2c: slip nyaris terkunci dengan potongan Rp 0 untuk semua orang
+
+Payroll staf selesai. Yang paling berharga: **cacat yang ditemukan dari layar,
+bukan dari test** — dan ia nyaris membekukan angka gaji yang salah.
+
+### Cacat: periode tarif ADA, barisnya KOSONG
+
+Saat menguji alur penuh lewat browser, sebagian baris tarif gagal tersimpan
+(skrip uji saya salah menargetkan kartu). Akibatnya:
+
+- periode tarif **ada** → `slip_gaji.tarif_bpjs_id` dan `tarif_ter_id` **terisi**
+- pemeriksaan `slip-tanpa-tarif` di `/kunci` **lolos**
+- periode **berhasil dikunci** dengan potongan Rp 0 untuk kelima pegawai
+
+Slip yang tampak sah dengan angka yang salah — persis bentuk kegagalan yang
+seluruh G2a ada untuk mencegah. Dan sesudah terkunci, trigger 287 membuatnya
+**tak bisa diperbaiki**.
+
+`kesiapanTarif` (G2a) sudah memperingatkan kelas cacat ini secara harfiah —
+*"periode ada tapi NOL BARIS ... lolos pemeriksaan 'sudah ada periode', tetapi
+menghitung dengannya menghasilkan nol potongan"* — tetapi endpoint `/kunci`
+tak memakainya. Saya menulis peringatannya sendiri, lalu membangun endpoint
+yang mengabaikannya.
+
+**Yang menutupnya**: pemeriksaan berdasarkan HASIL, bukan berdasarkan
+keberadaan periode. Pegawai bergaji yang nol potongan hampir selalu berarti
+tabel tarifnya kosong.
+
+### Dan penjaga baru itu langsung salah juga
+
+Penjaga `slip-nol-potongan` menolak SEMUA periode, termasuk yang benar.
+Sebabnya: `total_potongan` tak ikut di `.select()`, jadi tiba sebagai
+`undefined`, dan `Number(undefined ?? 0) === 0`.
+
+Ketahuan karena test menolak periode yang slipnya jelas punya potongan
+(Rp 1.080.000 untuk PEG-001). Mutasi kemudian membuktikan keduanya bisa merah:
+melepas penjaganya, dan menghapus kolom dari `select`.
+
+### Aturan yang membentuk seluruh modul: SLIP MENYIMPAN HASILNYA
+
+Berlawanan dengan naluri "jangan simpan yang bisa dihitung".
+
+Slip yang sudah dibayarkan adalah pernyataan tentang uang yang **sudah**
+berpindah. Kalau ia dihitung ulang dengan tarif hari ini, angka di layar tak
+lagi cocok dengan angka di rekening — dan penerimanya tak punya cara
+membuktikan mana yang benar. Pemeriksaan pajak pun menuntut bukti berapa yang
+dipotong SAAT ITU.
+
+Dibuktikan test: ubah tarif BPJS dari 2% jadi 50% sesudah slip dibuat →
+`GET` mengembalikan angka yang **tetap sama**.
+
+Yang ikut disimpan bukan cuma angkanya, tapi **ID periode tarifnya**. Supaya
+saat seseorang mempertanyakan potongannya, jawabannya "PMK-168/2023 yang Anda
+tetapkan berlaku 1 Januari" — bukan "5% menurut sistem".
+
+### Immutability: trigger DUA SISI, lima jalur
+
+"Periode dikunci tak boleh berubah" melibatkan dua tabel, jadi trigger — bukan
+constraint. Dipasang di `slip_gaji` DAN `slip_komponen`, karena mengubah
+komponen tanpa menyentuh slip juga mengubah isi slip yang sudah dibayarkan.
+
+Lima jalur dibuktikan ditolak: ubah slip, hapus slip, ubah komponen,
+**tambah** komponen, hapus komponen. Yang keempat paling mudah terlewat kalau
+hanya UPDATE yang dijaga.
+
+### Tiga keputusan yang menentukan kebenaran angka gaji
+
+| Hal | Keputusan | Kenapa |
+|---|---|---|
+| PPh 21 | dari BRUTO, PTKP TIDAK dikurangkan | TER sudah mengandung PTKP — itulah arti "efektif". Mengurangkannya lagi menghitung dua kali |
+| BPJS perusahaan | `informasi`, bukan `potongan` | ia hak pegawai yang wajib terlihat, tapi bukan tanggungannya. Di fixture uji angkanya 2× bagian karyawan |
+| Masa pajak Desember | dilaporkan sebagai PENGHALANG | Pasal 17 setahunan, bentuknya berbeda — menebaknya berarti menulis aturan pajak ke dalam kode |
+
+Ketiganya dibuktikan lewat mutasi: menjadikan BPJS perusahaan potongan → 3
+test merah; mengurangkan PTKP dari dasar pajak → 3 test merah.
+
+### Yang saya nilai kurang di layar, lalu revisi
+
+Blok "5 slip punya penghalang" mengulang pesan yang **sama persis** lima kali
+(~250 kata) karena kelima pegawai punya masalah identik. Yang dibaca orang
+cuma yang pertama, dan pengulangan itu justru **menyembunyikan** kalau ada satu
+pegawai dengan masalah berbeda. Dikelompokkan menurut sebab, dengan nama orang
+yang terkena di belakangnya.
+
+### Bukti
+
+```
+tsc api+web exit=0
+27 penjaga arsitektural exit=0
+40 test (22 pustaka + 18 endpoint Postgres nyata)
+21 mutasi MERAH (11 pustaka + 10 rute)
+12 penjaga DB terbukti MENOLAK, termasuk 5 jalur immutability
+axe halaman 0 · rincian terbuka 0
+DARI LAYAR: tarif kosong → semua Rp 0, tombol Kunci TIDAK ADA, sebabnya
+  disebut per pegawai · tarif lengkap → Rp 48jt penghasilan, Rp 2,13jt
+  potongan (PPh 21 Rp 690rb), Rp 45,87jt dibayarkan · rincian slip memuat
+  "ditanggung perusahaan · tidak mengurangi" tanpa tanda minus · sesudah
+  dikunci, tombol Hitung ulang HILANG
+basis sesudah selesai: 0 tarif, 0 slip (sesuai R-011)
+```
+
+`audit-tulis-tanpa-periksa` naik 76→78 dan diperbaiki, bukan dinaikkan
+ambangnya: `.delete()` slip lama memang best-effort (periode baru belum punya
+slip) dan dinyatakan begitu; `.update()` status periode TIDAK — nol baris di
+sana berarti periodenya hilang dan slip yang baru ditulis jadi yatim.
+
+Berikutnya **G2d — cuti & izin**.
+
+---
+
 ## 2026-08-11 (lanjutan 8) — G2b: halaman lengkap yang tak bisa dibuka siapa pun, dan penjaga yang tak melihatnya
 
 Timesheet staf kantor selesai. Yang paling berharga dari sesi ini: **celah

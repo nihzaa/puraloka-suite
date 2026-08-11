@@ -222,6 +222,11 @@ const PETA = {
     berkas: ['timesheet-staf'], tabel: ['timesheet_staf'], web: ['/sdm/timesheet'],
   },
 
+  // ── G2c (2026-08-11) — payroll staf ──────────────────────────────────
+  'Payroll staf': {
+    berkas: ['payroll-staf'], tabel: ['slip_gaji', 'payroll_periode'], web: ['/sdm/payroll'],
+  },
+
   // Ditambahkan 2026-08-07 sesudah kekeliruan KEDELAPAN (F5-1 §3c).
   //
   // 'Laporan keuangan' tertulis 🔴 selama berminggu-minggu — dan taksonomi
