@@ -22,7 +22,7 @@
 
 import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Gavel, Plus, RefreshCw, TriangleAlert } from "lucide-react";
+import { CheckCircle2, Gavel, Plus, RefreshCw, TriangleAlert, UserPlus } from "lucide-react";
 import { api, hasPermission, makeAbortController } from "@/lib/api";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
@@ -159,6 +159,19 @@ function NcrInner() {
    */
   const [dariInspeksi, setDariInspeksi] = useState<KandidatNcr | null>(null);
   const [putuskan, setPutuskan] = useState<Ncr | null>(null);
+  /**
+   * NCR yang sedang ditugaskan / diisi tindakan korektifnya.
+   *
+   * Diukur 2026-08-11: `ditugaskan_ke` terisi **0 dari 19** — termasuk enam
+   * NCR yang sudah berstatus `perbaikan`. Enam pekerjaan "sedang diperbaiki"
+   * tanpa satu pun orang bertanggung jawab.
+   *
+   * API sudah menerimanya (`PATCH /ncr/:id`) dan bahkan MENGIRIM NOTIFIKASI
+   * ke yang ditugaskan (`ncr.ts:322`) — notifikasi yang tak pernah terkirim
+   * karena tak ada yang bisa mengisi kolomnya.
+   */
+  const [tindaki, setTindaki] = useState<Ncr | null>(null);
+  const [pengguna, setPengguna] = useState<Array<{ id: string; name: string }>>([]);
 
   const bolehKelola = useSyncExternalStore(
     () => () => {}, () => hasPermission("ncr:manage"), () => false,
@@ -169,6 +182,12 @@ function NcrInner() {
 
   useEffect(() => {
     const ac = makeAbortController();
+    // Daftar pengguna untuk dropdown penugasan. Gagal memuatnya TIDAK
+    // menggagalkan halaman — register NCR tetap terbaca, hanya penugasannya
+    // yang tak bisa dilakukan.
+    api.get<{ users: Array<{ id: string; name: string }> }>("/api/v1/users", { signal: ac.signal })
+      .then((r) => setPengguna(r.data.users ?? []))
+      .catch(() => {});
     api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
       .then((r) => {
         setProyek(r.data.projects);
@@ -536,16 +555,49 @@ function NcrInner() {
               {
                 kunci: "aksi", judul: "", rata: "kanan",
                 render: (n) => (
-                  bolehDisposisi && n.status === "terbuka" ? (
-                    <button onClick={() => setPutuskan(n)} style={{
-                      display: "inline-flex", alignItems: "center", gap: 4,
-                      padding: "4px 12px", borderRadius: 6, border: "none",
-                      background: "var(--grad-aksen)", color: "var(--on-aksen)",
-                      fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
-                    }}>
-                      <Gavel size={12} aria-hidden="true" /> Putuskan
-                    </button>
-                  ) : null
+                  <span style={{ display: "inline-flex", gap: 6, justifyContent: "flex-end" }}>
+                    {bolehDisposisi && n.status === "terbuka" && (
+                      <button onClick={() => setPutuskan(n)} style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        padding: "4px 12px", borderRadius: 6, border: "none",
+                        background: "var(--grad-aksen)", color: "var(--on-aksen)",
+                        fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                      }}>
+                        <Gavel size={12} aria-hidden="true" /> Putuskan
+                      </button>
+                    )}
+
+                    {/* Tindak lanjut: menugaskan orang + akar masalah +
+                        tindakan perbaikan.
+
+                        Diukur 2026-08-11: `ditugaskan_ke` terisi 0 dari 19,
+                        termasuk enam NCR berstatus `perbaikan`. Enam pekerjaan
+                        "sedang diperbaiki" tanpa penanggung jawab.
+
+                        Muncul untuk status yang MASIH BERJALAN saja — NCR yang
+                        sudah ditutup atau dibatalkan tak perlu ditugaskan lagi,
+                        dan tombol yang pasti ditolak adalah jalan buntu. */}
+                    {bolehKelola && !["ditutup", "dibatalkan"].includes(n.status) && (
+                      <button
+                        onClick={() => setTindaki(n)}
+                        title={n.petugas ? `Ditugaskan ke ${n.petugas.name}` : "Belum ada penanggung jawab"}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "4px 12px", borderRadius: 6,
+                          // Yang BELUM punya petugas dibuat menonjol: itu
+                          // keadaan yang menuntut tindakan, bukan sekadar
+                          // pilihan yang tersedia.
+                          border: n.petugas ? `1px solid ${C.border}` : `1px solid ${C.navy}`,
+                          background: "transparent",
+                          color: n.petugas ? C.mid : C.navy,
+                          fontSize: 11, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap",
+                        }}
+                      >
+                        <UserPlus size={12} aria-hidden="true" />
+                        {n.petugas ? "Tindak lanjut" : "Tugaskan"}
+                      </button>
+                    )}
+                  </span>
                 ),
               },
             ]}
@@ -573,6 +625,15 @@ function NcrInner() {
           onSukses={() => { setDariInspeksi(null); muat(); }}
         />
       )}
+      {tindaki && (
+        <ModalTindakLanjut
+          ncr={tindaki}
+          pengguna={pengguna}
+          onClose={() => setTindaki(null)}
+          onSukses={() => { setTindaki(null); muat(); }}
+        />
+      )}
+
       {putuskan && (
         <ModalDisposisi
           ncr={putuskan}
@@ -899,5 +960,183 @@ export default function NcrPage() {
     }>
       <NcrInner />
     </Suspense>
+  );
+}
+
+/**
+ * TINDAK LANJUT NCR — menugaskan orang, akar masalah, tindakan perbaikan.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA KOMPONEN INI ADA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Diukur 2026-08-11:
+ *
+ *   ncr_items                     19 baris
+ *   ditugaskan_ke terisi           0
+ *   berstatus `perbaikan`          6
+ *
+ * **Enam pekerjaan "sedang diperbaiki" tanpa satu pun orang bertanggung
+ * jawab.** Kolomnya ada, `PATCH /ncr/:id` menerimanya, dan server bahkan
+ * MENGIRIM NOTIFIKASI ke yang ditugaskan (`ncr.ts:322`) — notifikasi yang tak
+ * pernah terkirim karena tak ada yang bisa mengisi kolomnya.
+ *
+ * Komentar di server sudah menyebutkan akibatnya: NCR yang menunggu tanpa ada
+ * yang tahu adalah cara paling umum ketidaksesuaian menumpuk sampai serah
+ * terima. Itulah yang terjadi.
+ *
+ * Kelas cacat yang sama untuk KEENAM kalinya — `rfq.po_id`, endpoint
+ * penawaran, `rfq.mr_id`, `sumber_change_order_id`, geotag,
+ * `inspection_request_id`.
+ *
+ * ── Kenapa tiga hal ini SATU modal
+ *
+ * Menugaskan tanpa menyebut apa yang harus diperbaiki adalah melempar
+ * pekerjaan. Mencatat tindakan perbaikan tanpa penanggung jawab adalah
+ * mencatat harapan. Ketiganya satu keputusan, jadi satu layar — dan API
+ * memang menerimanya dalam satu `PATCH`.
+ *
+ * ── Kenapa akar masalah TERPISAH dari tindakan
+ *
+ * Tindakan tanpa akar masalah memperbaiki gejala. Kolomnya sudah dipisah di
+ * basis sejak migrasi 189, dan pemisahan itu yang membuat pola berulang bisa
+ * ketahuan: sepuluh NCR dengan akar masalah yang sama adalah masalah proses,
+ * bukan sepuluh kecelakaan.
+ */
+function ModalTindakLanjut({ ncr, pengguna, onClose, onSukses }: {
+  ncr: Ncr;
+  pengguna: Array<{ id: string; name: string }>;
+  onClose: () => void;
+  onSukses: () => void;
+}) {
+  useTutupEsc(onClose);
+  const [petugas, setPetugas] = useState(ncr.petugas?.id ?? "");
+  const [akar, setAkar] = useState(ncr.akar_masalah ?? "");
+  const [tindakan, setTindakan] = useState(ncr.tindakan_perbaikan ?? "");
+  const [target, setTarget] = useState(ncr.target_selesai ?? "");
+  const [kirim, setKirim] = useState(false);
+  const [galat, setGalat] = useState<string | null>(null);
+
+  // Setidaknya SATU hal harus berubah — menyimpan tanpa perubahan hanya
+  // menambah baris audit yang tak berarti apa-apa.
+  const berubah =
+    petugas !== (ncr.petugas?.id ?? "") ||
+    akar.trim() !== (ncr.akar_masalah ?? "") ||
+    tindakan.trim() !== (ncr.tindakan_perbaikan ?? "") ||
+    target !== (ncr.target_selesai ?? "");
+
+  async function simpan() {
+    if (!berubah) return;
+    setKirim(true); setGalat(null);
+    try {
+      await api.patch(`/api/v1/ncr/${ncr.id}`, {
+        // `null` eksplisit, bukan `undefined`: mengosongkan penugasan adalah
+        // tindakan yang sah (orangnya keluar, pekerjaannya dialihkan), dan
+        // `undefined` akan membuat server MENGABAIKANNYA alih-alih menghapus.
+        ditugaskan_ke: petugas || null,
+        akar_masalah: akar.trim() || undefined,
+        tindakan_perbaikan: tindakan.trim() || undefined,
+        target_selesai: target || null,
+      });
+      onSukses();
+    } catch (e: unknown) {
+      setGalat((e as { response?: { data?: { error?: string } } })?.response?.data?.error
+        ?? "Gagal menyimpan tindak lanjut.");
+    } finally { setKirim(false); }
+  }
+
+  const isian: React.CSSProperties = {
+    width: "100%", padding: "8px 10px", borderRadius: 8,
+    border: `1px solid ${C.border}`, background: "var(--surface)",
+    color: C.text, fontSize: 13,
+  };
+  const label: React.CSSProperties = {
+    display: "block", fontSize: 11, fontWeight: 700, color: C.muted,
+    textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4,
+  };
+
+  return (
+    <div role="presentation" style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)",
+      display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999,
+    }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-labelledby="judul-tindak" style={{
+        background: "var(--surface)", borderRadius: 14, padding: 20,
+        width: "min(540px, 94vw)", maxHeight: "90vh", overflowY: "auto",
+        display: "flex", flexDirection: "column", gap: 12,
+        boxShadow: "var(--naik-3)",
+      }}>
+        <div>
+          <h2 id="judul-tindak" style={{
+            margin: 0, fontSize: 15, fontWeight: 700, color: C.text,
+            fontFamily: "var(--font-display)",
+          }}>Tindak lanjut {ncr.nomor}</h2>
+          <p style={{ margin: "4px 0 0", fontSize: 12, color: C.mid }}>{ncr.judul}</p>
+        </div>
+
+        {galat && (
+          <div role="alert" style={{
+            padding: "8px 12px", borderRadius: 8, fontSize: 12.5,
+            background: C.redBg, border: `1px solid ${C.redBorder}`, color: C.onDangerBg,
+          }}>{galat}</div>
+        )}
+
+        <div>
+          <label htmlFor="nc-petugas" style={label}>Penanggung jawab</label>
+          <select id="nc-petugas" value={petugas} onChange={(e) => setPetugas(e.target.value)}
+            style={isian} aria-describedby="nc-petugas-ket">
+            <option value="">— belum ditugaskan —</option>
+            {pengguna.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+          </select>
+          <span id="nc-petugas-ket" style={{ fontSize: 11, color: C.mid, lineHeight: 1.5, display: "block", marginTop: 4 }}>
+            Yang ditugaskan menerima notifikasi. Tanpa penanggung jawab,
+            ketidaksesuaian menumpuk sampai serah terima tanpa ada yang merasa
+            berkewajiban menutupnya.
+          </span>
+        </div>
+
+        <div>
+          <label htmlFor="nc-akar" style={label}>Akar masalah</label>
+          <textarea id="nc-akar" value={akar} onChange={(e) => setAkar(e.target.value)}
+            rows={2} style={{ ...isian, resize: "vertical" }}
+            placeholder="mis. adukan tidak sesuai takaran; tukang belum diberi contoh"
+            aria-describedby="nc-akar-ket" />
+          <span id="nc-akar-ket" style={{ fontSize: 11, color: C.mid, lineHeight: 1.5, display: "block", marginTop: 4 }}>
+            Dipisah dari tindakan dengan sengaja: tindakan tanpa akar masalah
+            memperbaiki gejala. Sepuluh NCR berakar sama adalah masalah proses,
+            bukan sepuluh kecelakaan.
+          </span>
+        </div>
+
+        <div>
+          <label htmlFor="nc-tindakan" style={label}>Tindakan perbaikan</label>
+          <textarea id="nc-tindakan" value={tindakan} onChange={(e) => setTindakan(e.target.value)}
+            rows={3} style={{ ...isian, resize: "vertical" }}
+            placeholder="apa yang dikerjakan untuk memperbaiki" />
+        </div>
+
+        <div>
+          <label htmlFor="nc-target" style={label}>Target selesai</label>
+          <input id="nc-target" type="date" value={target}
+            onChange={(e) => setTarget(e.target.value)} style={isian} />
+        </div>
+
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+          <button type="button" onClick={onClose} disabled={kirim} style={{
+            padding: "9px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+            minHeight: 40, border: `1px solid ${C.border}`,
+            background: "transparent", color: C.text,
+            cursor: kirim ? "not-allowed" : "pointer",
+          }}>Batal</button>
+          <button type="button" onClick={simpan} disabled={!berubah || kirim} style={{
+            padding: "9px 16px", borderRadius: 8, fontSize: 13, fontWeight: 700,
+            minHeight: 40, border: "none",
+            background: !berubah || kirim ? C.border : C.navy,
+            color: !berubah || kirim ? C.mid : "var(--on-navy)",
+            cursor: !berubah || kirim ? "not-allowed" : "pointer",
+          }}>{kirim ? "Menyimpan…" : "Simpan"}</button>
+        </div>
+      </div>
+    </div>
   );
 }
