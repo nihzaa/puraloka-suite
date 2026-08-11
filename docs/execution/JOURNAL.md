@@ -5,6 +5,112 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — G6d: report builder yang sengaja tak punya kotak kondisi
+
+Diukur lebih dulu: `/laporan` sudah punya **sembilan** laporan siap-pakai
+(ringkasan, keuangan, progress, pajak, WIP, cashflow, mandor, pengeluaran,
+portofolio). Yang hilang: pengguna menyusun laporannya sendiri.
+
+### Yang TIDAK dibangun, dan kenapa itu keputusan
+
+Taksonomi sendiri memperingatkan: *"jebakan klasik: membangun Excel di dalam
+ERP."* Peringatan itu **dipatuhi sebagai batas bentuk**, bukan diabaikan.
+
+"Report builder" biasanya berarti layar tempat orang mengetik kondisi. Bentuk
+itu ditolak karena dua hal:
+
+1. **SQL injection.** Kondisi yang diketik adalah teks yang berakhir di query.
+   Tiap penyaring adalah tebakan tentang apa yang berbahaya, dan tebakan itu
+   selalu tertinggal dari yang menyerangnya.
+2. **Kebocoran tenant — lebih halus dan lebih mahal.** Query bebas melewati
+   `request.db` yang sadar-tenant. Satu JOIN ke tabel tanpa `company_id` sudah
+   cukup menarik data perusahaan lain, dan hasilnya terlihat seperti laporan
+   yang wajar. Nol galat, nol gejala.
+
+Yang dibangun: **sumber data terdaftar di kode**. Bukan di basis — menaruhnya
+di sana membuat "tabel mana yang boleh dibaca laporan" bisa diubah lewat UI,
+dan itu memindahkan keputusan keamanan ke tempat yang paling mudah salah tekan.
+
+### Tiga lapis, dan yang ketiga lahir dari kesalahan saya
+
+Saya mendaftarkan `project_expenses.amount`. Kolom itu tak ada — yang benar
+`total_amount`. Yang membuatnya berbahaya: **kolom karangan LOLOS seluruh
+pemeriksaan pustaka**, karena ia ada di daftar saya sendiri, jadi sah. Ia baru
+gagal di basis, dengan pesan yang menunjuk query — sehingga yang membacanya
+akan mengira query-nya yang salah, bukan daftarnya.
+
+Itu melahirkan `audit-sumber-laporan-nyata.mjs`, yang mencocokkan tiap tabel
+dan kolom dengan `information_schema` **dan** memeriksa kolom penyaring
+tenant-nya. Dibuktikan MERAH pada tiga mutasi, termasuk yang paling mahal:
+menyatakan `invoices` ber-tenancy `company` → *"laporannya akan menarik data
+perusahaan lain"*.
+
+Lapis pertama datang belakangan, dari typecheck: `.unsafe()` menuntut nama
+tabel yang terdaftar di peta tenancy. Godaannya memaksa lewat `as string` —
+yang saya lakukan sebaliknya: tipe medannya diubah jadi `TabelTerklasifikasi`,
+sehingga **tsc menolak tabel karangan saat menulis**, bukan hanya di CI.
+
+### Dua gerbang izin, bukan satu
+
+`reports:susun` menjawab "boleh memakai fiturnya?". Apakah orangnya boleh
+membaca SUMBER yang dipilih diperiksa terpisah dengan izin milik sumber itu.
+Tanpa gerbang kedua, satu izin membuka seluruh sumber — termasuk untuk peran
+yang seluruh menu keuangannya disembunyikan.
+
+Layar pun hanya menampilkan sumber yang boleh dibaca orangnya. Menampilkan
+seluruhnya lalu menolak saat dijalankan menghasilkan layar yang menjanjikan
+sesuatu yang tak bisa ditepati.
+
+### Satu mutasi yang lolos, dan sebabnya jujur
+
+`jenis === 'teks'` → `true` tak membuat satu test pun merah, karena test saya
+memakai operator `>` yang memang tak pernah membungkus apa pun — jadi ia tak
+menguji apa yang saya kira diujinya. Kalau lolos, saringan `>` pada kolom uang
+menerima `"%100%"` dan Postgres menolaknya sebagai numeric tak sah: galat yang
+menunjuk basis, padahal salahnya di pustaka. Test ditambah, mutasi diulang,
+MERAH.
+
+### Layar menemukan yang test tak bisa lihat
+
+Tangkapan pertama menampilkan `active` dan `on_hold` apa adanya — nilai BASIS,
+bukan bahasa yang dibaca orang. Laporan yang keluar dari sini dibawa ke rapat.
+
+Peta terjemahannya **diukur dari `pg_enum`**, bukan dari isi tabel: nilai yang
+belum pernah terpakai hari ini tetap bisa muncul besok. Dan ekspor Excel
+memakai peta yang SAMA — kalau tidak, layar berkata "Berjalan" sementara
+berkas berkata "active", dan yang membandingkan keduanya mengira ada dua data
+berbeda. Angka dan tanggal sengaja dibiarkan mentah supaya kolomnya masih bisa
+dijumlah di Excel.
+
+### Bukti
+
+    tsc (api + web)      0
+    vitest laporan-susun 36 lulus
+    mutasi pustaka       15/15 MERAH (1 lolos → test ditambah → MERAH)
+    penjaga baru         MERAH pada 3 mutasi, hijau saat pulih
+    tabel karangan       ditolak tsc (diverifikasi)
+    next build           nol error, /laporan/susun terdaftar
+    axe terang/gelap     0 pelanggaran
+    alur UI nyata        4 langkah → 15 baris nyata, terurut, uang berformat
+    saringan kosong      DITOLAK lewat UI (hasil lama ikut dibuang);
+                         sesudah diisi "Villa" → tepat 2 baris
+    13 penjaga web + 7 penjaga API   hijau
+    migrasi 308, 309     diterapkan, verifikasi izin & menu lulus
+
+**TIDAK hijau** (utang lama, diukur di HEAD bersih): `audit-tulis-tanpa-periksa`
+78/76, `lint-ratchet`, `kerapatan-ratchet`, `tabel-mentah-ratchet`,
+`uji-kosong-seragam`.
+
+### Kesalahan saya yang perlu dicatat
+
+`git checkout --` pada berkas yang **belum ter-track** menghapusnya, bukan
+memulihkannya. Saya kehilangan `laporan-susun.ts` di tengah kerja dan harus
+menulis ulang. Tak ada yang hilang permanen, tapi perintah itu tak boleh
+dipakai untuk memulihkan mutasi pada berkas baru — yang benar: salinan
+cadangan sendiri, seperti yang dipakai skrip mutasi.
+
+---
+
 ## 2026-08-12 (lanjutan) — G6c: sistem luar tak punya jalan masuk sama sekali
 
 Yang terukur: nol tabel `api_key` di seluruh skema, dan satu-satunya jalan

@@ -262,7 +262,7 @@ Enam item di atas diukur ke kode sebelum dibangun. Hasilnya mengubah rencana:
 | **Markup & Margin** | nol kolom markup/margin/overhead di SELURUH skema | ✅ **SELESAI** — migrasi 301/302, lihat di bawah |
 | Tracking Waste | `assemblies.waste_factor` ada; **3.042 dari 3.043 bernilai 0** | pemicunya belum menyala (sesuai triase F5-1) |
 | **Baseline Schedule** | nol tabel `baseline*`; `jadwal_tugas` ternyata penjadwal cron | ✅ **SELESAI** — migrasi 303/304, lihat di bawah |
-| Report Builder | 3 tabel laporan ada, semuanya laporan spesifik | belum |
+| **Report Builder** | 3 tabel laporan ada, semuanya laporan spesifik | ✅ **SELESAI** — migrasi 308–309, lihat di bawah |
 | **API & Integrasi** | nol tabel `api_key`/`webhook` | ✅ **SELESAI** — migrasi 305–307, lihat di bawah |
 
 **Markup & Margin (G6a)** menemukan cacat yang tak ada di daftar mana pun:
@@ -334,6 +334,26 @@ pun tak bisa memulihkannya), lahir **tanpa izin apa pun**, masa berlaku
 **Tidak ada yang perlu Anda lakukan** — belum ada integrasi yang membutuhkannya.
 Kunci uji yang saya buat sudah dihapus. Buka **Pengaturan → Kunci API** kalau
 kelak ada sistem luar yang perlu masuk.
+
+**Report Builder (G6d)** — peringatan lama di taksonomi berbunyi *"jebakan
+klasik: membangun Excel di dalam ERP"*. Itu **dipatuhi sebagai batas bentuk**,
+bukan diabaikan.
+
+Yang TIDAK dibangun: layar tempat orang mengetik kondisi. Sebabnya dua —
+kondisi yang diketik adalah teks yang berakhir di query, dan yang lebih halus:
+query bebas melewati penyaring tenant, sehingga satu sambungan ke tabel yang
+salah sudah cukup menarik data perusahaan lain **tanpa satu pun galat**.
+
+Yang dibangun: pemilihan dari **sumber terdaftar** — sekarang tiga (Proyek,
+Invoice, Pengeluaran). Pengguna memilih kolom, saringan, urutan, lalu mengunduh
+Excel-nya.
+
+**Yang perlu Anda tahu:** kalau butuh sumber data lain (mandor, material,
+absensi, apa pun), **sebutkan saja** — ia ditambahkan beserta pemeriksaan
+izinnya. Itu batas yang disengaja: menambah sumber lewat kode berarti tak ada
+laporan yang bisa membaca data yang tak boleh dibacanya.
+
+Buka **Laporan & BI → Susun Laporan**.
 
 ## ⚠️ Yang MASIH butuh keputusan Anda — dan kenapa saya tak boleh menebaknya
 
