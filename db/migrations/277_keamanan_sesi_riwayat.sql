@@ -37,7 +37,7 @@
 -- ============================================================================
 
 -- ── Sesi aktif ──────────────────────────────────────────────────────────────
-CREATE OR REPLACE FUNCTION public.keamanan_sesi(p_user_id UUID)
+CREATE OR REPLACE FUNCTION keamanan_sesi(p_user_id UUID)
 RETURNS TABLE (
   id         UUID,
   dibuat     TIMESTAMPTZ,
@@ -57,7 +57,7 @@ AS $$
    LIMIT 20;
 $$;
 
-COMMENT ON FUNCTION public.keamanan_sesi(UUID) IS
+COMMENT ON FUNCTION keamanan_sesi(UUID) IS
   'Sesi auth milik SATU pengguna. Dipanggil routes/v1/keamanan.ts dengan '
   'auth_id pemanggil — jangan pernah dari parameter HTTP.';
 
@@ -69,7 +69,7 @@ COMMENT ON FUNCTION public.keamanan_sesi(UUID) IS
 -- menyaringnya di Node, dan itu salah dua kali — ia membaca peristiwa milik
 -- orang lain ke dalam proses, dan tetap bisa mengembalikan NOL baris untuk
 -- pengguna yang peristiwanya lebih tua dari 200 baris terakhir.
-CREATE OR REPLACE FUNCTION public.keamanan_riwayat_masuk(p_user_id UUID)
+CREATE OR REPLACE FUNCTION keamanan_riwayat_masuk(p_user_id UUID)
 RETURNS TABLE (
   id      UUID,
   aksi    TEXT,
@@ -91,15 +91,15 @@ AS $$
    LIMIT 10;
 $$;
 
-COMMENT ON FUNCTION public.keamanan_riwayat_masuk(UUID) IS
+COMMENT ON FUNCTION keamanan_riwayat_masuk(UUID) IS
   'Sepuluh peristiwa auth terakhir milik SATU pengguna. Penyaringan di SQL '
   'supaya peristiwa orang lain tak pernah masuk ke proses aplikasi.';
 
 -- ── Hak jalan: service_role SAJA ────────────────────────────────────────────
-REVOKE ALL ON FUNCTION public.keamanan_sesi(UUID)          FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.keamanan_riwayat_masuk(UUID) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.keamanan_sesi(UUID)          TO service_role;
-GRANT EXECUTE ON FUNCTION public.keamanan_riwayat_masuk(UUID) TO service_role;
+REVOKE ALL ON FUNCTION keamanan_sesi(UUID)          FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION keamanan_riwayat_masuk(UUID) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION keamanan_sesi(UUID)          TO service_role;
+GRANT EXECUTE ON FUNCTION keamanan_riwayat_masuk(UUID) TO service_role;
 
 -- ── VERIFIKASI ──────────────────────────────────────────────────────────────
 --
@@ -150,7 +150,7 @@ BEGIN
    GROUP BY s.user_id ORDER BY count(*) DESC LIMIT 1;
 
   IF uji_id IS NOT NULL THEN
-    SELECT count(*) INTO n_sesi FROM public.keamanan_sesi(uji_id);
+    SELECT count(*) INTO n_sesi FROM keamanan_sesi(uji_id);
     IF n_sesi = 0 THEN
       RAISE EXCEPTION '277 gagal: keamanan_sesi mengembalikan 0 baris untuk pengguna yang punya sesi';
     END IF;

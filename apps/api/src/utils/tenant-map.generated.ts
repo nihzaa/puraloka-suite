@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 206 tabel · A=11 · AB=15 · ANCHOR=1 · B=88 · C=84 · D=7
+// 208 tabel · A=11 · AB=15 · ANCHOR=1 · B=88 · C=86 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -107,6 +107,7 @@ export const PETA_TENANCY = {
   'idempotency_keys': { kategori: 'B' },
   'information_requests': { kategori: 'C', lewat: 'project_id' },  // information_requests.project_id
   'inspection_requests': { kategori: 'C', lewat: 'project_id' },  // inspection_requests.project_id
+  'inspeksi_checklist': { kategori: 'C', lewat: 'inspection_id' },  // inspeksi_checklist.inspection_id → inspection_requests.project_id
   'invoice_line_items': { kategori: 'C', lewat: 'invoice_id' },  // invoice_line_items.invoice_id → invoices.project_id
   'invoice_penalties': { kategori: 'C', lewat: 'invoice_id' },  // invoice_penalties.invoice_id → invoices.project_id
   'invoices': { kategori: 'C', lewat: 'project_id' },  // invoices.project_id
@@ -223,6 +224,7 @@ export const PETA_TENANCY = {
   'termin_schedules': { kategori: 'C', lewat: 'project_id' },  // termin_schedules.project_id
   'transmittal': { kategori: 'B' },
   'transmittal_item': { kategori: 'B' },
+  'uji_material': { kategori: 'C', lewat: 'project_id' },  // uji_material.project_id
   'units': { kategori: 'A' },
   'users': { kategori: 'D' },  // Identitas lintas-tenant. Satu orang bisa jadi anggota >1 company dengan peran berbeda — keanggotaan hidup di company_members (ADR-011 D6), bukan di users.
   'v_situs_publik': { kategori: 'B', view: true },
