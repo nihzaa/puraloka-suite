@@ -5,6 +5,163 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — G4: sistem ini sudah menggugurkan orang dari pekerjaan berdasarkan angka tanpa sumber
+
+Kelompok K3 & Lingkungan selesai. Pemicunya bukan yang tertulis di rencana.
+
+### RATIFIKASI berkata "7 item, dari NOL TABEL". Benar untuk tabelnya, salah untuk pemicunya.
+
+Diukur sebelum menulis kode:
+
+```
+izin_kerja               4 baris · `pengendalian_risiko` & `apd_wajib` TERISI
+evaluasi_subkon          4 baris · 1 kecelakaan · 8 pelanggaran K3
+workers                 60 · mandor_assignments 16
+permissions k3:permit:*  3 capability sudah ada
+K3 selebihnya            NOL TABEL
+```
+
+Baris kedua yang mengubah segalanya:
+
+> `lib/kepatuhan-k3.ts` **MENGGUGURKAN subkon dari pekerjaan** bila
+> `jumlah_kecelakaan > 0` — dan angka itu **diketik manual**, tanpa satu pun
+> baris yang menjelaskan kecelakaan apa, kapan, siapa yang terluka.
+
+Jadi sistem ini sudah mengambil keputusan berat tentang orang berdasarkan
+angka tanpa sumber. Yang mengetik bisa salah ingat; yang dinilai tak punya
+cara membantah, karena tak ada yang bisa ditunjuk.
+
+Peta menu menyebut pemicu K3 adalah *"saat tender mensyaratkan"*. Yang
+sebenarnya menuntut jauh lebih mendesak, dan sudah berjalan berbulan-bulan.
+
+`GET /proyek/:id/k3/selaras` menutup itu — dan terbukti di layar:
+
+> **"Toko Bangunan Maju Jaya — evaluasi menulis 0, tercatat 1 kecelakaan ·
+> subkon yang seharusnya gugur tetap dipakai"**
+
+Yang dikembalikan bukan hanya jumlah, melainkan **id insidennya** — supaya
+yang dinilai bisa membantah dengan menunjuk baris, bukan berdebat soal ingatan.
+
+### Tiga keputusan yang menentukan apakah modul ini akan dipakai atau dihindari
+
+**Nyaris celaka TIDAK menggugurkan, dan ditampilkan NETRAL.**
+
+Godaannya kuat: nyaris celaka adalah kecelakaan yang kebetulan tak melukai,
+dan menandainya merah terasa "lebih peduli keselamatan". Tapi kalau ia ikut
+menggugurkan subkon, **tak akan ada yang melaporkannya lagi** — dan sistemnya
+berhenti melihat hal yang paling ingin ia lihat. Satu kecelakaan berat
+biasanya didahului puluhan nyaris celaka yang tak dilaporkan karena "tidak ada
+apa-apa".
+
+Kartunya berbunyi: *"naiknya kabar baik — artinya orang melapor"*.
+
+**JSA tabel sendiri, meski `izin_kerja.pengendalian_risiko` sudah terisi 4/4.**
+
+Keduanya menjawab pertanyaan berbeda: izin menjawab pengendalian untuk
+PEKERJAAN INI hari ini; JSA menjawab analisa untuk JENIS pekerjaan yang dipakai
+ULANG. JSA yang ditulis ulang tiap izin akan berbeda-beda tiap kali — dan yang
+berbeda-beda itu justru pengendalian yang menyelamatkan orang.
+
+`insiden_k3.jsa_id` adalah jalan pelajaran insiden MASUK KEMBALI: satu
+perbaikan JSA berlaku untuk semua izin berikutnya.
+
+**RK3K sengaja TIDAK dibangun.** Ia rangkuman dari enam item lain, dan
+menyusunnya sebelum isinya ada menghasilkan template kosong yang diisi asal
+supaya tendernya lolos — template seperti itu justru jadi bukti bahwa K3-nya
+administratif belaka. Syarat pencabutannya ditulis: tender nyata yang
+mensyaratkan.
+
+### Layar menemukan cacat yang 112 test lewatkan
+
+Kartu induksi berbunyi **"3 dari 60 pekerja · 5%"** untuk proyek yang
+sebenarnya punya 30 pekerja. Penyebutnya seluruh `workers` perusahaan.
+
+Yang membuatnya menyakitkan: **komentar di kode saya sendiri menyatakan niat
+yang benar** — *"Diambil dari penugasan mandor, bukan dari seluruh `workers`
+perusahaan"* — sementara kodenya justru mengambil semua begitu proyeknya punya
+penugasan. Komentar yang benar di atas kode yang salah lebih berbahaya daripada
+tak ada komentar: ia menghentikan pemeriksaan.
+
+Angka yang menuduh proyek baik-baik saja membuat orang berhenti mempercayai
+seluruh kartunya. Diperbaiki lewat rantai `mandor_assignments.mandor_id` →
+`workers.mandor_id` (DIUKUR), test baru ditambahkan, mutasinya MERAH.
+
+Perbaikan itu lalu menyingkap cacat kedua — **data dummy saya sendiri**:
+seed mengambil 6 pekerja pertama perusahaan tanpa memeriksa apakah mereka
+bertugas di proyek ini. Hanya 1 yang benar, dan induksinya kedaluwarsa. Layar
+berbunyi "0 dari 30" — dan itu **jujur**. Seed diperbaiki, bukan angkanya.
+
+Dua cacat layar lain: baris strip "—" kosong yang menempati ruang tanpa
+menyampaikan apa pun, dan faktor risiko "4×4" di bawah "16 → 4" (dua angka 4
+yang artinya berbeda; pembacanya bisa mengira 4×4 adalah asal angka 4).
+
+### Mutasi menemukan test yang tak membedakan apa pun
+
+**10 dari 61 mutasi lolos pada percobaan pertama.** Tiga yang paling
+menjelaskan:
+
+- **`Number('')` jadi 0** — test-nya memeriksa hasilnya 0, dan itu TIDAK
+  membuktikan apa pun: `?? 0` menghasilkan 0 baik dari `null` maupun dari
+  `Number('')`. Yang membedakan cuma ada di SATU tempat di modul ini —
+  `nilaiLingkungan`, di mana `null` berarti "belum bisa dinilai" dan 0 berarti
+  "aman". Test dipindah ke sana.
+- **skor tertinggi JSA** — urutan menaik saja tak membuktikan `max`;
+  `tertinggi = l.skor` tanpa perbandingan memberi jawaban yang sama. Yang
+  membedakan: langkah berskor besar di TENGAH.
+- **temuan berat `>= 3`** — pembandingnya tingkat 1, jadi menurunkan ambang ke
+  `>= 2` tetap hijau karena tak ada satu pun baris bertingkat 2.
+
+Empat lainnya lolos karena constraint DB menangkap duluan — diperbaiki dengan
+menegaskan bahwa **pesannya bisa dibaca manusia**, bukan galat Postgres.
+
+### Penjaga menangkap saya tiga kali (lagi)
+
+- `audit-rute-terkunci`: ketiga halaman K3 tak bisa dibuka siapa pun.
+  Diperbaiki dengan memikirkan peran — `/k3` dibuka untuk **mandor**, karena
+  yang mengalami insiden adalah orang di lapangan.
+- `audit-kolom-tak-tersambung`: `korban_worker_id` diterima API tanpa jalan
+  pengisian. Nama yang diketik ("Budi", "budi santoso", "Pak Budi") tak bisa
+  dihubungkan ke riwayat orangnya — dan riwayat itulah yang dicari saat
+  menilai apakah kecelakaan berulang pada orang yang sama.
+- `audit-peta-menu-vs-db`: hrefBeda 0 → 3, persis cacat G3 yang terulang.
+
+### Syarat pencabutan G3 dipenuhi
+
+`izin_kerja_id` masuk lantai di G3 dengan syarat tertulis: *"begitu G4 selesai,
+sambungkan dari register risiko dan turunkan lantai ini."* G4 membangun JSA dan
+menautkannya ke izin kerja, jadi bentuknya kini pasti. Pemilih izin kerja
+dipasang di dialog risiko kategori K3; lantai 19 → 18.
+
+Ini kali pertama syarat pencabutan yang ditulis di sesi sebelumnya benar-benar
+ditagih dan dipenuhi — bukan dilupakan lalu jadi peringatan basi seperti yang
+dicatat pembuka `CLAUDE.md`.
+
+### Bukti
+
+```
+migrasi 293 terpasang di lingkungan bersih
+21 penjaga DB terbukti MENOLAK · 5 jalur sah DITERIMA
+113 test G4 (63 pustaka + 50 endpoint Postgres nyata)
+61 mutasi MERAH (29 pustaka + 32 rute)
+213 test G3+G4 hijau bersama
+tsc api 0 · tsc web 0 · pnpm build OK (6 halaman prerender statis)
+axe-core 0 pelanggaran × 6 keadaan BERISI (termasuk 3 tab)
+lint set-state-in-effect: 67 sebelum → 67 sesudah (nol tambahan)
+lantai kolom-tersambung 19 → 18
+DARI LAYAR: "Toko Bangunan Maju Jaya — evaluasi menulis 0, tercatat 1
+   kecelakaan" · "apd — 3× sejak 20 Jun 2026 · 1 masih terbuka" ·
+   "73,3% · 22 dari 30 pekerja · 2 kedaluwarsa" · TRIR "—" bukan 0
+```
+
+### Berikutnya
+
+**G5 — Tutup Buku + jurnal.** `accounts` 38 baris, `journal_entries` 0.
+Paling berisiko dari seluruh sisa: pembukuan berpasangan masuk **Ember [C]**
+(tak boleh dikonfigurasi), dan invariant debit=kredit adalah hal yang tak
+boleh salah satu kali pun.
+
+---
+
 ## 2026-08-12 — G3: tiga dari lima item ternyata sudah ada, dan layar menemukan apa yang 100 test lewatkan
 
 Kelompok Risiko & Kepatuhan selesai. Yang paling menentukan hasilnya bukan

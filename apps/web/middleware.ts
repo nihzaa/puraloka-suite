@@ -34,7 +34,14 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // `/lapangan` (punch list, inspeksi, submittal) dan `/mutu` (NCR): temuan
   // lapangan DITEMUKAN mandor, jadi ia harus bisa mencatatnya. Apa yang boleh
   // DILAKUKAN tetap dijaga permission — middleware hanya soal membuka halaman.
-  mandor:  ["/mandor-portal", "/pm-portal", "/proyek", "/verify", "/mutu", "/lapangan"],
+  // `/k3` DIBUKA untuk mandor: yang menemukan bahaya dan mengalami insiden
+  // adalah orang di lapangan, dan melaporkan kecelakaan tak boleh menuntut
+  // kewenangan administratif. Menahannya di admin berarti laporan insiden
+  // berhenti di lisan — yang persis keadaan sebelum modul ini ada, dan
+  // persis alasan `evaluasi_subkon.jumlah_kecelakaan` dulu diketik dari
+  // ingatan. Apa yang boleh DILAKUKAN tetap dijaga permission: mandor punya
+  // `k3:insiden:manage` tetapi tidak `k3:inspeksi:manage`.
+  mandor:  ["/mandor-portal", "/pm-portal", "/proyek", "/verify", "/mutu", "/lapangan", "/k3"],
   // `/m` = halaman peta menu (`/m/<key>`). Satu rute untuk 100+ menu yang
   // belum punya halamannya sendiri — mendaftarkannya satu per satu di sini
   // akan jadi daftar 100 baris yang pasti ketinggalan saat menu bertambah.
@@ -72,7 +79,7 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // Itu DISENGAJA untuk sekarang: membukanya butuh rute register dipisah dari
   // induk yang menaungi sengketa — pekerjaan tersendiri, bukan tambalan satu
   // baris yang kebetulan lolos penjaga.
-  pm:      ["/pm-portal", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/approval-inbox", "/risiko/izin", "/m"],
+  pm:      ["/pm-portal", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/approval-inbox", "/risiko/izin", "/k3", "/m"],
   // `/gudang` = rekonsiliasi material. Ditahan di admin: angkanya menuduh —
   // "susut 12%" pada material yang dipegang mandor tertentu. Yang dituduh
   // tidak boleh jadi yang pertama membacanya.
@@ -87,7 +94,7 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // Kalau kelak staf perlu mengisi timesheet-nya sendiri, yang dibuka adalah
   // rute terpisah (mis. `/sdm/saya`) dengan endpoint yang menyaring ke
   // pegawai yang sedang masuk — bukan membuka `/sdm` seluruhnya.
-  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/risiko", "/m", "/peta-modul"],
+  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/risiko", "/k3", "/m", "/peta-modul"],
 };
 
 /**

@@ -225,7 +225,29 @@ Semua 🔴 — terkonfirmasi (0 hit di kode). Bangun saat tender mensyaratkan.
 
 ## 11. HSE / K3 & LINGKUNGAN
 
-Semua 🔴 — terkonfirmasi. Bangun saat tender mensyaratkan (syarat prakualifikasi proyek besar).
+**Diperbarui 2026-08-12 (G4).** Baris "Semua 🔴 · bangun saat tender
+mensyaratkan" sudah BASI — dan alasan pembangunannya ternyata BUKAN tender.
+
+> **Pemicunya ditemukan saat mengukur, bukan saat merencanakan.**
+> `lib/kepatuhan-k3.ts` sudah **menggugurkan subkon dari pekerjaan** bila
+> `jumlah_kecelakaan > 0` — dan angka itu **diketik manual**, tanpa satu pun
+> baris yang menjelaskan kecelakaan apa, kapan, siapa yang terluka. Jadi
+> sistem ini sudah mengambil keputusan berat tentang orang berdasarkan angka
+> tanpa sumber: yang mengetik bisa salah ingat, dan yang dinilai tak punya
+> cara membantah karena tak ada yang bisa ditunjuk.
+
+| Menu | Status | Catatan |
+|---|---|---|
+| Laporan insiden | ✅ | Migrasi 293 · `insiden_k3` · `/k3/insiden`. **Inti G4.** `GET /proyek/:id/k3/selaras` membandingkan angka kecelakaan yang DIKETIK di evaluasi subkon dengan yang DIHITUNG dari insiden, beserta **id insidennya** — supaya yang dinilai bisa membantah dengan menunjuk baris, bukan berdebat soal ingatan. Terbukti di layar: *"Toko Bangunan Maju Jaya — evaluasi menulis 0, tercatat 1 kecelakaan · subkon yang seharusnya gugur tetap dipakai"*. **`nyaris_celaka` TIDAK menggugurkan dan ditampilkan NETRAL, bukan merah**: kalau ia ikut menggugurkan, tak akan ada yang melaporkannya lagi — dan satu kecelakaan berat biasanya didahului puluhan nyaris celaka yang tak dilaporkan karena "tidak ada apa-apa". Angka nyaris celaka yang NAIK adalah kabar baik. TRIR (per 200.000 jam, baku OSHA) `null` bila jam kerja belum didata — bukan 0, karena 0 berarti "tak ada insiden". Insiden `ditutup` wajib bertindakan korektif ≥10 huruf: yang ditutup tanpa perbaikan hanya menunggu terulang. Tanggal di masa depan ditolak trigger — angka itu masuk ke rekap yang menggugurkan orang. Dibuka untuk **mandor**: yang mengalami insiden adalah orang di lapangan, dan melapor tak boleh menuntut kewenangan administratif |
+| Job Safety Analysis | ✅ | Migrasi 293 · `jsa` + `jsa_langkah` · `/k3/jsa`. **Tabel sendiri meski `izin_kerja.pengendalian_risiko` sudah ada** (4/4 baris terisi): izin menjawab pengendalian untuk PEKERJAAN INI hari ini; JSA menjawab analisa untuk JENIS pekerjaan yang **dipakai ulang**. JSA yang ditulis ulang tiap izin akan berbeda-beda tiap kali — dan yang berbeda-beda itu justru pengendalian yang menyelamatkan orang. `izin_kerja.jsa_id` menautkan keduanya; **`insiden_k3.jsa_id` adalah jalan pelajaran insiden MASUK KEMBALI**, berlaku untuk semua izin berikutnya. Skor kolom TERHITUNG, skala 1–5 **sama dengan register risiko** (dua skala untuk hal yang sama membuat orang salah ingat, dan yang salah ingat adalah angka keselamatan). Langkah tanpa pengendalian ditolak constraint: itu daftar bahaya, bukan analisa. Yang ditandai **bukan** bahaya berskor tinggi — hampir semua pekerjaan konstruksi punya itu — melainkan langkah yang MASIH tinggi SESUDAH pengendalian |
+| Inspeksi K3 | ✅ | Migrasi 293 · `inspeksi_k3` + `temuan_k3` · `/k3`. Yang membuatnya berguna bukan daftar temuannya melainkan **PENGULANGANNYA**: tiga kali "APD tak dipakai di area las" adalah SATU masalah yang tak pernah selesai, bukan tiga temuan yang masing-masing ditutup — dan daftar yang memperlakukannya sebagai tiga baris terpisah menyembunyikan bahwa perbaikannya tak bekerja. Kategori dinormalkan huruf kecil; temuan tanpa kategori TIDAK dipaksa dibandingkan lewat teks uraian (itu akan menyatukan "APD tak dipakai" dengan "APD rusak") |
+| Induksi & pelatihan K3 | ✅ | Migrasi 293 · `induksi_k3` · TAB di `/k3`. Persentase dihitung terhadap pekerja **PROYEK INI** (`mandor_assignments.mandor_id` → `workers.mandor_id`), bukan seluruh pekerja perusahaan. Cacat itu terlihat di LAYAR sebagai *"3 dari 60 pekerja · 5%"* untuk proyek berpekerja 30 — dan komentar di kodenya sendiri sudah menyatakan niat yang benar sementara kodenya melakukan sebaliknya. Angka yang menuduh proyek baik-baik saja membuat orang berhenti mempercayai seluruh kartunya. Nol pekerja terdata menjawab `null`, BUKAN 0% |
+| Alat pelindung diri | ✅ | Migrasi 293 · `apd_serah_terima` · TAB di `/k3`. Menyimpan `ganti_sebelum`: helm punya masa pakai, harness wajib diperiksa berkala — **APD kedaluwarsa memberi rasa aman TANPA melindungi**, dan itu lebih berbahaya daripada tak punya APD sama sekali |
+| Pengelolaan lingkungan | ✅ | Migrasi 293 · `pemantauan_lingkungan` · TAB di `/k3`. Baku mutu **disimpan bersama hasilnya**: baku mutu berubah lewat peraturan, dan hasil lama harus tetap terbaca dengan baku yang berlaku saat itu. Satuan WAJIB (constraint) — "55" bisa berarti aman atau tiga kali ambang. Pengukuran tanpa baku mutu menjawab `null` dan dihitung TERPISAH sebagai "belum bisa dinilai", bukan diam-diam masuk hitungan aman |
+| RK3K | 🟡 | **SENGAJA belum dibangun**, menunya `is_active=false`. RK3K adalah RANGKUMAN dari keenam di atas — menyusunnya SEBELUM isinya ada menghasilkan template kosong yang diisi asal supaya tendernya lolos, dan template seperti itu justru jadi bukti bahwa K3-nya administratif belaka. Isinya kini sudah ada; **syarat pencabutan: tender nyata yang mensyaratkan RK3K** |
+
+**Belum:** statistik keselamatan lintas proyek, papan skor K3 per mandor, dan
+integrasi pelaporan Disnaker untuk insiden fatal.
 
 ---
 

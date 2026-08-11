@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 228 tabel · A=11 · AB=15 · ANCHOR=1 · B=92 · C=102 · D=7
+// 236 tabel · A=11 · AB=15 · ANCHOR=1 · B=93 · C=109 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -48,6 +48,7 @@ export const PETA_TENANCY = {
   'ai_provider_config': { kategori: 'B' },
   'ai_token_setujui': { kategori: 'B' },
   'ai_token_tulis': { kategori: 'B' },
+  'apd_serah_terima': { kategori: 'C', lewat: 'project_id' },  // apd_serah_terima.project_id
   'app_credentials': { kategori: 'B' },
   'approval_chains': { kategori: 'B' },
   'approval_progress': { kategori: 'B' },
@@ -108,9 +109,12 @@ export const PETA_TENANCY = {
   'gudang_stok': { kategori: 'C', lewat: 'gudang_id' },  // gudang_stok.gudang_id
   'hari_libur': { kategori: 'B' },
   'idempotency_keys': { kategori: 'B' },
+  'induksi_k3': { kategori: 'C', lewat: 'project_id' },  // induksi_k3.project_id
   'information_requests': { kategori: 'C', lewat: 'project_id' },  // information_requests.project_id
+  'insiden_k3': { kategori: 'C', lewat: 'project_id' },  // insiden_k3.project_id
   'inspection_requests': { kategori: 'C', lewat: 'project_id' },  // inspection_requests.project_id
   'inspeksi_checklist': { kategori: 'C', lewat: 'inspection_id' },  // inspeksi_checklist.inspection_id → inspection_requests.project_id
+  'inspeksi_k3': { kategori: 'C', lewat: 'project_id' },  // inspeksi_k3.project_id
   'invoice_line_items': { kategori: 'C', lewat: 'invoice_id' },  // invoice_line_items.invoice_id → invoices.project_id
   'invoice_penalties': { kategori: 'C', lewat: 'invoice_id' },  // invoice_penalties.invoice_id → invoices.project_id
   'invoices': { kategori: 'C', lewat: 'project_id' },  // invoices.project_id
@@ -122,6 +126,8 @@ export const PETA_TENANCY = {
   'jadwal_tugas': { kategori: 'B' },
   'journal_entries': { kategori: 'B' },
   'journal_entry_lines': { kategori: 'C', lewat: 'account_id' },  // journal_entry_lines.account_id
+  'jsa': { kategori: 'B' },
+  'jsa_langkah': { kategori: 'C', lewat: 'jsa_id' },  // jsa_langkah.jsa_id
   'kasbon_purposes': { kategori: 'AB' },
   'kasbons': { kategori: 'B' },
   'kebutuhan_sumber_daya': { kategori: 'B' },
@@ -157,6 +163,7 @@ export const PETA_TENANCY = {
   'payroll_periode': { kategori: 'B' },
   'pegawai': { kategori: 'B' },
   'pemakaian_alat': { kategori: 'B' },
+  'pemantauan_lingkungan': { kategori: 'C', lewat: 'project_id' },  // pemantauan_lingkungan.project_id
   'penawaran_subkon': { kategori: 'C', lewat: 'tender_id' },  // penawaran_subkon.tender_id → tender_subkon.project_id
   'pencocokan_bank': { kategori: 'B' },
   'penerimaan_material_klien': { kategori: 'C', lewat: 'project_id' },  // penerimaan_material_klien.project_id
@@ -238,6 +245,7 @@ export const PETA_TENANCY = {
   'tarif_payroll_periode': { kategori: 'B' },
   'tax_records': { kategori: 'C', lewat: 'invoice_id' },  // tax_records.invoice_id → invoices.project_id
   'temuan_audit': { kategori: 'C', lewat: 'audit_id' },  // temuan_audit.audit_id → audit_mutu.project_id
+  'temuan_k3': { kategori: 'C', lewat: 'inspeksi_id' },  // temuan_k3.inspeksi_id → inspeksi_k3.project_id
   'tender_subkon': { kategori: 'C', lewat: 'project_id' },  // tender_subkon.project_id
   'termin_schedules': { kategori: 'C', lewat: 'project_id' },  // termin_schedules.project_id
   'timesheet_staf': { kategori: 'C', lewat: 'pegawai_id' },  // timesheet_staf.pegawai_id

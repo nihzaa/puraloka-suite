@@ -115,6 +115,7 @@ interface Muatan {
 
 interface Proyek { id: string; name: string }
 interface Orang { id: string; name: string }
+interface IzinKerja { id: string; nomor: string | null; jenis: string; uraian_pekerjaan: string | null }
 
 /**
  * Empat tingkat, empat tindakan berbeda — dan itulah alasan warnanya berbeda.
@@ -197,6 +198,7 @@ function IsiRisiko() {
   const [tab, setTab] = useState<"register" | "mitigasi">("register");
 
   const [orang, setOrang] = useState<Orang[]>([]);
+  const [izinKerja, setIzinKerja] = useState<IzinKerja[]>([]);
 
   const [tambah, setTambah] = useState(false);
   const [fJudul, setFJudul] = useState("");
@@ -207,6 +209,7 @@ function IsiRisiko() {
   const [fStrategi, setFStrategi] = useState("kurangi");
   const [fUraian, setFUraian] = useState("");
   const [fTenggat, setFTenggat] = useState("");
+  const [fIzinKerja, setFIzinKerja] = useState("");
 
   const [mitigasiUntuk, setMitigasiUntuk] = useState<RisikoBaris | null>(null);
   const [mTindakan, setMTindakan] = useState("");
@@ -249,6 +252,30 @@ function IsiRisiko() {
     return () => ac.abort();
   }, []);
 
+  /**
+   * Izin kerja proyek — untuk menautkan risiko K3 ke izin yang mengendalikannya.
+   *
+   * Sambungan ini DITUNDA di G3 dengan syarat pencabutan tertulis di
+   * `kolom-tersambung-lantai.json`: *"begitu G4 selesai, sambungkan dari
+   * register risiko dan turunkan lantai ini."* G4 sudah membangun JSA dan
+   * menautkannya ke izin kerja, jadi bentuknya kini pasti.
+   *
+   * Gagal memuatnya TIDAK menggagalkan halaman — risiko tetap bisa dicatat
+   * tanpa menyebut izin kerja (sebagian besar risiko memang bukan K3).
+   */
+  useEffect(() => {
+    // Lewat mikrotask — setState sinkron di badan efek memicu render
+    // bertingkat (`react-hooks/set-state-in-effect`), dan ratchet lint
+    // mengukurnya: 67 → 68 pada percobaan pertama.
+    if (!proyekId) { void Promise.resolve().then(() => setIzinKerja([])); return; }
+    const ac = makeAbortController();
+    api.get<{ izin: IzinKerja[] }>(
+      `/api/v1/kepatuhan/izin-kerja?project_id=${proyekId}`, { signal: ac.signal })
+      .then((r) => setIzinKerja(r.data.izin ?? []))
+      .catch(() => setIzinKerja([]));
+    return () => ac.abort();
+  }, [proyekId]);
+
   const muat = useCallback(async (id: string) => {
     // Lewat mikrotask, BUKAN setState langsung di badan efek: yang kedua
     // memicu render bertingkat (`set-state-in-effect`). Pola yang sama sudah
@@ -286,16 +313,17 @@ function IsiRisiko() {
         uraian: fUraian.trim() || null,
         tenggat_tinjau: fTenggat || null,
         pemilik_id: fPemilik || null,
+        izin_kerja_id: fIzinKerja || null,
       });
       setTambah(false);
-      setFJudul(""); setFUraian(""); setFTenggat(""); setFPemilik("");
+      setFJudul(""); setFUraian(""); setFTenggat(""); setFPemilik(""); setFIzinKerja("");
       await muat(proyekId);
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menambah risiko");
     } finally { setMenyimpan(false); }
   }, [proyekId, fJudul, fKategori, fDampak, fKemungkinan, fStrategi, fUraian,
-      fTenggat, fPemilik, muat]);
+      fTenggat, fPemilik, fIzinKerja, muat]);
 
   const simpanMitigasi = useCallback(async () => {
     if (!mitigasiUntuk) return;
@@ -801,6 +829,26 @@ function IsiRisiko() {
               onChange={(e) => setFTenggat(e.target.value)} style={gayaInput} />
           }
         />
+        {fKategori === "k3" && (
+          <Medan id="rk-izin-kerja" label="Izin kerja terkait"
+            keterangan={izinKerja.length === 0
+              ? "Belum ada izin kerja tercatat di proyek ini."
+              : "Menautkan izin kerja membuat pengendalian yang sudah disetujui di izin itu terbaca bersama risikonya — dan JSA-nya ikut terbawa."}
+            anak={
+              <select id="rk-izin-kerja" value={fIzinKerja}
+                onChange={(e) => setFIzinKerja(e.target.value)} style={gayaInput}
+                disabled={izinKerja.length === 0}>
+                <option value="">— tanpa izin kerja —</option>
+                {izinKerja.map((z) => (
+                  <option key={z.id} value={z.id}>
+                    {z.nomor ? `${z.nomor} — ` : ""}{z.jenis.replace(/_/g, " ")}
+                    {z.uraian_pekerjaan ? ` · ${z.uraian_pekerjaan.slice(0, 40)}` : ""}
+                  </option>
+                ))}
+              </select>
+            }
+          />
+        )}
         <Medan id="rk-uraian" label="Uraian"
           anak={
             <textarea id="rk-uraian" value={fUraian} rows={3}
