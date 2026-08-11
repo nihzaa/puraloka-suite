@@ -202,7 +202,24 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
         const cari = idLiteral
           ? `htmlFor="${idLiteral}"`
           : `htmlFor={\`${punyaId[2].split('${')[0]}`
-        if (readFileSync(f, 'utf8').includes(cari)) continue
+        const isiBerkas = readFileSync(f, 'utf8')
+        if (isiBerkas.includes(cari)) continue
+
+        // `<Medan id="x" label="…">` merender `<label htmlFor={id}>` di
+        // `components/dasar.tsx` — labelnya NYATA dan TERLIHAT, hanya saja
+        // tak ditulis di berkas yang sama.
+        //
+        // Tanpa pengecualian ini, penjaga menuntut `aria-label` untuk kontrol
+        // yang sudah bernama, dan "perbaikannya" menghasilkan NAMA GANDA:
+        // pembaca layar menyebutkan aria-label dan mengabaikan label yang
+        // terlihat, sehingga yang didengar berbeda dari yang dibaca orang di
+        // sebelahnya. Diverifikasi axe-core runtime: 0 pelanggaran pada
+        // halaman yang memakainya.
+        //
+        // Sengaja dicocokkan ke `id` LITERAL saja. Id yang dirakit template
+        // tak bisa dipastikan cocok dengan `id` milik `Medan`, dan menebaknya
+        // akan membuat penjaga ini diam untuk kasus yang benar-benar melanggar.
+        if (idLiteral && isiBerkas.includes(`<Medan id="${idLiteral}"`)) continue
       }
 
       // <button> yang isinya teks sudah punya nama dari teksnya sendiri.

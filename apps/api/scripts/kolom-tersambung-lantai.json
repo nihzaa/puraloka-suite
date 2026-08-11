@@ -1,5 +1,5 @@
 {
-  "jumlah": 18,
+  "jumlah": 19,
   "kolom": {
     "asset_id": "modul aset dipilih lewat penelusuran, bukan field id di body",
     "bid_id": "HALAMAN BELUM ADA — rantai kontrak (tender subkon) belum punya layar",
@@ -18,7 +18,8 @@
     "surat_id": "HALAMAN BELUM ADA — modul surat belum punya layar",
     "termin_id": "HALAMAN BELUM ADA — sertifikat IPC belum punya layar",
     "to_project_id": "HALAMAN BELUM ADA — pemindahan aset antar-proyek belum punya layar",
-    "wbs_node_id": "HALAMAN ADA (estimasi) — tabel wbs_nodes NOL BARIS, ditriase TUNDA di F5-1 §5b; pemicunya proyek kedua yang mengulang struktur pertama"
+    "wbs_node_id": "HALAMAN ADA (estimasi) — tabel wbs_nodes NOL BARIS, ditriase TUNDA di F5-1 §5b; pemicunya proyek kedua yang mengulang struktur pertama",
+    "izin_kerja_id": "HALAMAN ADA (/kepatuhan?bagian=kesiapan, `izin_kerja` 4 baris) tapi bentuk pemilihnya BELUM PASTI: G4 (K3 & Lingkungan) akan menautkan JSA ↔ izin kerja, dan sambungan risiko→izin kerja ikut berubah bentuk di situ — membangunnya sekarang berarti membangun yang pasti dibongkar dalam satu kelompok kerja. SYARAT PENCABUTAN: begitu G4 selesai, sambungkan dari register risiko dan turunkan lantai ini."
   },
-  "catatan": "Lantai 2026-08-08. Kolom yang rute BACA DARI BODY tapi tak satu pun berkas UI menyebutkan namanya. Turunkan saat sambungannya dibangun; jangan naikkan tanpa alasan tertulis per kolom. | 2026-08-08: 20 → 19, sumber_change_order_id disambungkan (form penarikan cadangan + pemilih CO)."
+  "catatan": "Lantai 2026-08-08. Kolom yang rute BACA DARI BODY tapi tak satu pun berkas UI menyebutkan namanya. Turunkan saat sambungannya dibangun; jangan naikkan tanpa alasan tertulis per kolom. | 2026-08-08: 20 → 19, sumber_change_order_id disambungkan (form penarikan cadangan + pemilih CO). | 2026-08-12 (G3): 18 → 19. `pemilik_id` & `penanggung_id` TIDAK masuk lantai — keduanya disambungkan (pemilih orang di dialog risiko & mitigasi) setelah penjaga ini menangkap bahwa API menerimanya tanpa jalan pengisian. `izin_kerja_id` masuk lantai dengan syarat pencabutan tertulis."
 }

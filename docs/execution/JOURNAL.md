@@ -5,6 +5,173 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 — G3: tiga dari lima item ternyata sudah ada, dan layar menemukan apa yang 100 test lewatkan
+
+Kelompok Risiko & Kepatuhan selesai. Yang paling menentukan hasilnya bukan
+kode yang ditulis, melainkan **pengukuran sebelum menulis kode.**
+
+### RATIFIKASI berkata "5 item, dari nol". Diukur: tidak.
+
+`RATIFIKASI.md` menempatkan G3 sebagai "5 item, `izin_kerja` sudah ada sebagai
+titik mula". Sebelum menyentuh migrasi, saya ukur ke basis:
+
+```
+dokumen_kepatuhan   9 baris   → `rk-kepatuhan` SUDAH HIDUP di /kepatuhan
+contract_claims     0 baris   → tabel + rute + 20 test SUDAH ADA
+polis_asuransi      0 baris   → tabel + lib/register-asuransi.ts ADA
+izin_kerja          4 baris   → izin K3, BUKAN perizinan bangunan
+risiko / mitigasi   NOL TABEL
+```
+
+Tiga dari lima bukan lahan kosong. Yang berubah karenanya:
+
+| Item | Rencana naif | Yang dikerjakan |
+|---|---|---|
+| Register risiko | bangun | **bangun penuh** — nol tabel, inti G3 |
+| Rencana mitigasi | bangun halaman | tabel terpisah, **TAB** di halaman yang sama |
+| Perizinan | tambah jenis `imb` ke `dokumen_kepatuhan` | **tabel sendiri** — alasannya di bawah |
+| Kepatuhan regulasi | bangun | **TIDAK dibangun** — sudah hidup sejak migrasi 218 |
+| Sengketa | modul baru | **eskalasi** dari `contract_claims` |
+
+Membangun ulang yang sudah ada adalah cara paling mahal untuk terlihat
+produktif. Taksonomi §17 yang berbunyi *"Semua 🔴 — terkonfirmasi"* ternyata
+salah pada satu barisnya selama berbulan-bulan.
+
+### Kenapa perizinan TIDAK menumpang dokumen_kepatuhan
+
+Godaannya kuat: tabelnya sudah ada, punya `berlaku_dari`/`berlaku_sampai`,
+tinggal tambah jenis `'imb'`.
+
+Yang membatalkannya: **kolom penentunya berbeda.** Dokumen kepatuhan menjawab
+*"PIHAK ini boleh bekerja?"* (kunci `supplier_id`/`pihak_nama`). Izin bangunan
+menjawab *"PEKERJAAN ini boleh dimulai?"* (kunci `project_id`) — dan tak punya
+pihak sama sekali.
+
+Menumpangkannya berarti setiap query harus mengingat *"kalau jenisnya imb maka
+supplier_id NULL dan project_id wajib"* — aturan yang tak bisa dijaga
+constraint dan hanya hidup di kepala orang yang menulisnya.
+
+### Kenapa sengketa jadi eskalasi, bukan modul
+
+`claim_status` berakhir di `ditolak` dan `gugur`. Di situlah lubangnya: **klaim
+yang ditolak tidak hilang, ia jadi sengketa.**
+
+Modul lepas akan membuat orang mengetik ulang nilai, tanggal kejadian, dan
+dasar klaimnya. Angka yang diketik ulang akan berbeda dari aslinya — dan dalam
+sengketa, selisih angka antara dua dokumen milik sendiri adalah senjata pihak
+lawan.
+
+Trigger DB menolak sengketa dari klaim yang masih diproses, **pada INSERT dan
+UPDATE**. Yang kedua sering dilupakan: tanpa itu, sengketa dibuat tanpa klaim
+lalu ditautkan belakangan ke klaim yang masih berjalan.
+
+### Layar menemukan yang 100 test lewatkan
+
+Semua test hijau, 53 mutasi merah, tsc bersih. Lalu saya buka halamannya, dan
+**empat cacat langsung terlihat**:
+
+**1. Dua baris tanpa judul sama sekali.** Sisa mutasi "judul kosong lolos" yang
+tak terhapus — dan basisnya MENERIMANYA. `judul TEXT NOT NULL` bukan "tidak
+kosong"; `''` adalah nilai yang sah. Pemeriksaan rute menolaknya, tetapi skrip
+impor atau rute lain yang kelak menulis ke tabel yang sama tak melewati
+validasi rute mana pun.
+
+Migrasi 292 memasang `length(trim(...)) > 0` untuk lima medan di empat tabel.
+Bukan `<> ''` — satu spasi lolos pemeriksaan itu dan terlihat persis sama
+dengan kosong di layar. Enam penjaga baru terbukti menolak.
+
+**2. `belum ada pemiliknya` muncul DUA KALI dalam satu baris.** Saya menulisnya
+di baris kategori DAN sebagai alasan mendesak.
+
+**3. Kolom skor tak sejajar.** Baris ber-skor-sisa (`15 ↓ 5`) memakai
+inline-flex, sehingga angka utamanya bergeser dan tak lagi sejajar dengan `16`
+di atasnya. Digit yang tak sejajar tak bisa dibandingkan sekilas — dan itu
+satu-satunya alasan kolomnya rata kanan. Diganti grid tiga kolom berlebar tetap.
+
+**4. `SELISIH PUTUSAN Rp 0`.** Nol di situ berarti "dituntut Rp 780 jt, diputus
+Rp 780 jt" — hasil terbaik yang mungkin. Tapi "Rp 0" terbaca seperti "tidak ada
+data", persis yang saya larang di kode saya sendiri lima jam sebelumnya. Kini
+berbunyi "Nihil · yang selesai diputus persis sebesar tuntutannya".
+
+### Penjaga menangkap saya tiga kali
+
+**`audit-rute-terkunci`** (penjaga yang saya bangun di G2b): 6 → 9. Ketiga
+halaman baru tak bisa dibuka siapa pun — `middleware.ts` tak punya `/risiko`.
+Persis cacat G2b, ditangkap sebelum founder melihatnya.
+
+Perbaikannya butuh keputusan, bukan satu baris: `cocokRute` mencocokkan di
+batas segmen, dan `/risiko/sengketa` ADALAH sub-segmen `/risiko`. Memberi PM
+prefiks induknya akan membuka sengketa sekaligus — isinya posisi hukum
+perusahaan terhadap pihak lawan. PM diberi `/risiko/izin` saja. Perilaku
+pencocokannya saya uji, bukan saya baca.
+
+**`audit-kolom-tak-tersambung`**: 18 → 21. API menerima `pemilik_id` dan
+`penanggung_id` tanpa satu pun jalan pengisian di UI — kolomnya NULL selamanya.
+Itu bukan cacat kosmetik: *"belum ada pemiliknya"* ADALAH alasan mendesak yang
+ditampilkan register ini, dan **menampilkan keluhan yang tak bisa diperbaiki
+pengguna adalah cara tercepat membuat orang berhenti membaca.** Dibangun
+pemilih orang di kedua dialog. `izin_kerja_id` masuk lantai dengan syarat
+pencabutan tertulis (menunggu G4).
+
+**`audit-peta-menu-vs-db`**: hrefBeda 0 → 3. Migrasi mengubah href di DB,
+`peta-menu.ts` belum. Cacat "dokumen tertinggal dari kode" yang persis dijaga.
+
+### Penjaga a11y statik melaporkan halaman saya — dan ia benar
+
+`a11y-ratchet` menandai 8 kontrol "tanpa nama". Axe runtime berkata 0
+pelanggaran. Yang menengahi: ketiga halaman saya adalah **satu-satunya pemakai
+`<Medan>` di seluruh `(dashboard)`** — jadi ini bukan pola mapan yang penjaga
+lupa dukung, sayalah yang memperkenalkannya.
+
+`Medan` merender `<label htmlFor={id}>` di `components/dasar.tsx`. Penjaga
+mencari `htmlFor="..."` di berkas yang sama, jadi tak bisa melihatnya.
+Penjaganya diperluas — dan pengecualiannya dibuktikan **masih bisa merah**:
+select tanpa `Medan` tetap tertangkap, dan id yang berbeda dari id `Medan`
+tetap tertangkap.
+
+Memaksa `aria-label` justru akan membuat NAMA GANDA: pembaca layar menyebut
+aria-label dan mengabaikan label yang terlihat, sehingga yang didengar berbeda
+dari yang dibaca orang di sebelahnya.
+
+### Ratchet lint: 67 → 71 → 67
+
+Empat halaman menyumbang `set-state-in-effect`. Percobaan pertama
+(`Promise.resolve()` di dalam `muat`) tidak menurunkannya — aturannya melihat
+`useEffect` yang MEMANGGIL fungsi ber-setState, bukan sinkronitasnya. Yang
+menyelesaikan: `queueMicrotask` di sisi PEMANGGIL, pola yang sudah dipakai
+`/mutu/ncr` dan terbukti lolos.
+
+Diukur dengan `git stash -u` (bukan `git stash` — yang itu tak menyertakan
+berkas baru, dan angkanya sama persis sebelum/sesudah sehingga tak
+membuktikan apa pun).
+
+### Bukti
+
+```
+migrasi 291 + 292 terpasang di lingkungan bersih
+28 penjaga DB terbukti MENOLAK · 9 jalur sah DITERIMA
+   termasuk: skor GENERATED tak bisa diketik, trigger sengketa-dari-klaim
+   pada INSERT dan UPDATE, teks wajib tak boleh berisi spasi saja
+100 test (56 pustaka + 44 endpoint Postgres nyata)
+53 mutasi MERAH (27 pustaka + 26 rute)
+tsc api 0 · tsc web 0 · pnpm build OK (3 halaman prerender statis)
+axe-core 0 pelanggaran × 4 keadaan BERISI (termasuk tab mitigasi)
+lint ratchet set-state-in-effect: 67 sebelum → 67 sesudah (nol tambahan)
+penjaga: 3 merah, ketiganya terukur PRA-ADA (git stash -u)
+DARI LAYAR: PBG "Akan habis · 50 hari lagi" (sah hari ini, habis 30 Sep,
+   proyek selesai 31 Okt) · spanduk "1 izin penghalang bermasalah —
+   Izin Pemanfaatan Ruang kedaluwarsa 279 hari lalu" · "Rp 420 jt"
+   bersebelahan dengan "2 nilainya belum dicatat"
+```
+
+### Berikutnya
+
+**G4 — K3 & Lingkungan** (7 item), dari NOL TABEL. Urutannya sesudah G3 karena
+JSA ↔ izin kerja saling merujuk, dan sambungan `risiko_proyek.izin_kerja_id`
+menunggu bentuk itu.
+
+---
+
 ## 2026-08-11 (lanjutan 11) — G2e: kelompok SDM TUNTAS, dan tiga item yang pemicunya tak setara
 
 Sertifikasi, penilaian kinerja, dan rekrutmen selesai. **Kelompok G2 tuntas —

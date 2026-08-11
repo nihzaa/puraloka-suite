@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 224 tabel · A=11 · AB=15 · ANCHOR=1 · B=92 · C=98 · D=7
+// 228 tabel · A=11 · AB=15 · ANCHOR=1 · B=92 · C=102 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -116,6 +116,7 @@ export const PETA_TENANCY = {
   'invoices': { kategori: 'C', lewat: 'project_id' },  // invoices.project_id
   'itp_titik': { kategori: 'C', lewat: 'rencana_mutu_id' },  // itp_titik.rencana_mutu_id → rencana_mutu.project_id
   'izin_kerja': { kategori: 'B' },
+  'izin_proyek': { kategori: 'C', lewat: 'project_id' },  // izin_proyek.project_id
   'jadwal_distribusi_laporan': { kategori: 'B' },
   'jadwal_perawatan': { kategori: 'B' },
   'jadwal_tugas': { kategori: 'B' },
@@ -204,11 +205,13 @@ export const PETA_TENANCY = {
   'resources': { kategori: 'A' },
   'rfq': { kategori: 'C', lewat: 'project_id' },  // rfq.project_id
   'rfq_penawaran': { kategori: 'C', lewat: 'rfq_id' },  // rfq_penawaran.rfq_id → rfq.project_id
+  'risiko_proyek': { kategori: 'C', lewat: 'project_id' },  // risiko_proyek.project_id
   'riwayat_perawatan': { kategori: 'B' },
   'role_permissions': { kategori: 'AB' },
   'roles': { kategori: 'AB' },
   'root_cause_analyses': { kategori: 'C', lewat: 'lesson_id' },  // root_cause_analyses.lesson_id → lessons_learned_records.project_id
   'scenarios': { kategori: 'C', lewat: 'project_id' },  // scenarios.project_id
+  'sengketa': { kategori: 'C', lewat: 'project_id' },  // sengketa.project_id
   'sertifikat_ipc': { kategori: 'C', lewat: 'project_id' },  // sertifikat_ipc.project_id
   'sertifikat_pegawai': { kategori: 'C', lewat: 'pegawai_id' },  // sertifikat_pegawai.pegawai_id
   'situs_kategori': { kategori: 'B' },
@@ -238,6 +241,7 @@ export const PETA_TENANCY = {
   'tender_subkon': { kategori: 'C', lewat: 'project_id' },  // tender_subkon.project_id
   'termin_schedules': { kategori: 'C', lewat: 'project_id' },  // termin_schedules.project_id
   'timesheet_staf': { kategori: 'C', lewat: 'pegawai_id' },  // timesheet_staf.pegawai_id
+  'tindakan_mitigasi': { kategori: 'C', lewat: 'risiko_id' },  // tindakan_mitigasi.risiko_id → risiko_proyek.project_id
   'transmittal': { kategori: 'B' },
   'transmittal_item': { kategori: 'B' },
   'uji_material': { kategori: 'C', lewat: 'project_id' },  // uji_material.project_id

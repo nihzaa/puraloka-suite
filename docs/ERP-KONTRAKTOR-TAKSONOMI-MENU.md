@@ -324,7 +324,27 @@ sebagai kategori B/C. 045 dibiarkan di tempatnya — riwayat tak diubah.
 
 ## 17. RISIKO & KEPATUHAN
 
-Semua 🔴 — terkonfirmasi.
+**Diperbarui 2026-08-12 (G3).** Baris "Semua 🔴 — terkonfirmasi" sudah BASI:
+empat dari lima item hidup, dan salah satunya ternyata sudah hidup sejak
+migrasi 218 tanpa pernah dicatat di sini.
+
+> **Yang paling penting dari kelompok ini bukan apa yang dibangun, melainkan
+> apa yang TIDAK dibangun.** Diukur ke basis sebelum menulis kode: tiga dari
+> lima item ternyata bukan lahan kosong. Membangun ulang yang sudah ada adalah
+> cara paling mahal untuk terlihat produktif.
+
+| Menu | Status | Catatan |
+|---|---|---|
+| Register risiko | ✅ | Migrasi 291 · `risiko_proyek` · `lib/risiko-proyek.ts` (56 test, 27 mutasi MERAH) · `/risiko`. **`skor` kolom TERHITUNG** (`dampak * kemungkinan`) — tak bisa diketik, jadi tak bisa menyimpang dari faktornya; migrasi memverifikasi `is_generated = 'ALWAYS'` supaya penurunannya jadi kolom biasa tak lolos senyap. Skor SESUDAH mitigasi disimpan TERPISAH: menimpanya menghapus bukti bahwa mitigasinya berguna, padahal itu pertanyaan pertama saat risikonya terjadi. Constraint menolak skor sisa yang MELEBIHI skor awal — mitigasi yang menaikkan risiko adalah salah input, dan angka itu yang dibawa ke rapat sebagai "sudah kami tangani". Menutup risiko wajib beralasan ≥10 huruf: tanpa itu, "kami memutuskan menerimanya" tak bisa dibedakan dari "kami lupa", dan keduanya terlihat sama — barisnya tidak ada. Yang ditandai merah **bukan yang skornya tinggi** melainkan yang menuntut tindakan; alasannya ditulis di barisnya, bukan disembunyikan di balik klik |
+| Rencana mitigasi | ✅ | Migrasi 291 · `tindakan_mitigasi` · **TAB di `/risiko`**, bukan halaman sendiri. Sebagai TABEL memang terpisah (satu risiko banyak tindakan); sebagai HALAMAN tidak boleh — mitigasi tanpa risikonya adalah daftar tugas tanpa alasan, dan itu hal pertama yang diabaikan orang. Tiap tindakan menyebut risiko yang dijawabnya beserta skornya. Tenancy lewat `risiko_id`, BUKAN `project_id` — salah argumen `viaProject` mengembalikan nol baris tanpa galat, dan halamannya terlihat seperti risiko yang memang belum punya mitigasi (diuji khusus) |
+| Perizinan (IMB/PBG, lingkungan) | ✅ | Migrasi 291 · `izin_proyek` · `/risiko/izin`. **Tabel sendiri, bukan menumpang `dokumen_kepatuhan`**: yang itu menjawab *"PIHAK ini boleh bekerja?"* (kunci `supplier_id`), yang ini *"PEKERJAAN ini boleh dimulai?"* (kunci `project_id`) — menumpangkannya menuntut aturan "kalau jenisnya imb maka supplier_id NULL" yang tak bisa dijaga constraint dan hanya hidup di kepala penulisnya. Dinilai terhadap **rentang proyek**, bukan hari ini: izin yang habis sebelum proyek selesai sudah bermasalah SEKARANG, karena perpanjangan PBG makan waktu berminggu-minggu. Enam keadaan — `dicabut` dipisah dari `ditolak` justru karena lebih berbahaya: pekerjaan mungkin sudah berjalan atas dasarnya. **Nol izin tercatat menjawab `null`, bukan "boleh jalan"** (pelajaran sama dengan ITP kosong, G1e) |
+| Kepatuhan regulasi | ✅ | **SUDAH ADA sejak migrasi 218** (`dokumen_kepatuhan`, 9 baris) — diukur 2026-08-12 dan TIDAK dibangun ulang. Halamannya `/kepatuhan?bagian=dokumen`, hidup lewat `kep-dokumen`. Menu `rk-kepatuhan` sengaja `is_active=false`: dua item aktif untuk satu route melanggar aturan 232. Register risiko menautkannya lewat `risiko_proyek.dokumen_kepatuhan_id`. **Baris ini pernah 🔴 selama berbulan-bulan padahal modulnya hidup** — persis cacat yang dijaga `audit-taksonomi-vs-kode.mjs` |
+| Sengketa & klaim | ✅ | Migrasi 291 · `sengketa` · `/risiko/sengketa`. Dibangun sebagai **ESKALASI** dari `contract_claims` yang sudah ada (migrasi 184), bukan modul lepas: enum `claim_status` berakhir di `ditolak`/`gugur`, dan di situlah lubangnya — klaim yang ditolak tidak hilang, ia jadi sengketa. Modul lepas memaksa orang mengetik ulang nilai dan tanggalnya, dan **selisih angka antara dua dokumen milik sendiri adalah senjata pihak lawan**. Trigger DB menolak sengketa dari klaim yang MASIH DIPROSES — pada INSERT *dan* UPDATE (diuji keduanya). Tahap boleh melompat maju, tak boleh mundur; `selesai` terkunci. Dua angka dipisah sengaja: paparan berjalan, dan berapa yang **nilainya belum dicatat** — menghitung yang kedua sebagai nol adalah cara paling halus berbohong dengan angka yang benar |
+
+**Belum:** analisis risiko kuantitatif (Monte Carlo), matriks risiko korporat
+lintas proyek, dan sambungan register risiko → izin kerja K3 (`izin_kerja_id`
+ada di skema, pemilihnya menunggu G4 karena JSA ↔ izin kerja akan mengubah
+bentuknya — syarat pencabutan tertulis di `kolom-tersambung-lantai.json`).
 
 ---
 

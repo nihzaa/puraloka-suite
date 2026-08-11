@@ -51,7 +51,28 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // dipegang PM. Yang boleh DILIHAT di dalamnya tetap disaring per jenis oleh
   // `canParticipateInChain`, jadi PM yang tak berwenang atas suatu jenis
   // melihat antrean kosong untuk jenis itu — bukan 403 di depan pintu.
-  pm:      ["/pm-portal", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/approval-inbox", "/m"],
+  //
+  // `/risiko` (register risiko + mitigasi) DIBUKA untuk PM: PM yang tak tahu
+  // risiko proyeknya tak bisa mengelolanya, dan tindakan mitigasi justru
+  // dikerjakan timnya. `/risiko/izin` juga — izin yang belum terbit
+  // menghentikan pekerjaan di lapangan, dan yang pertama tahu harus PM.
+  //
+  // `/risiko/sengketa` TIDAK dibuka untuk PM, dan itu bukan kelalaian:
+  // isinya posisi hukum perusahaan terhadap pihak lawan — nilai tuntutan,
+  // dasar hukum, dan seberapa lemah perkaranya. Bocornya ke pihak yang salah
+  // merugikan perkaranya sendiri, dan PM proyek A tak berkepentingan atas
+  // sengketa proyek B.
+  //
+  // Karena itu PM TIDAK diberi prefiks `/risiko`. `cocokRute` mencocokkan di
+  // batas segmen, dan `/risiko/sengketa` ADALAH sub-segmen `/risiko` — memberi
+  // PM prefiks induknya akan membuka sengketa sekaligus, diam-diam. Yang
+  // diberikan: `/risiko/izin` saja.
+  //
+  // Akibatnya `/risiko` (register) belum terbuka untuk PM lewat daftar ini.
+  // Itu DISENGAJA untuk sekarang: membukanya butuh rute register dipisah dari
+  // induk yang menaungi sengketa — pekerjaan tersendiri, bukan tambalan satu
+  // baris yang kebetulan lolos penjaga.
+  pm:      ["/pm-portal", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/approval-inbox", "/risiko/izin", "/m"],
   // `/gudang` = rekonsiliasi material. Ditahan di admin: angkanya menuduh —
   // "susut 12%" pada material yang dipegang mandor tertentu. Yang dituduh
   // tidak boleh jadi yang pertama membacanya.
@@ -66,7 +87,7 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // Kalau kelak staf perlu mengisi timesheet-nya sendiri, yang dibuka adalah
   // rute terpisah (mis. `/sdm/saya`) dengan endpoint yang menyaring ke
   // pegawai yang sedang masuk — bukan membuka `/sdm` seluruhnya.
-  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/m", "/peta-modul"],
+  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/risiko", "/m", "/peta-modul"],
 };
 
 /**
