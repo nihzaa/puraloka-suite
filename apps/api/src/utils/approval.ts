@@ -16,6 +16,16 @@ export type ApprovalEntityType =
                         // Ikut engine ini, BUKAN status sendiri: membuat mekanisme
                         // approval keempat berarti mengulang persis masalah yang
                         // Program B selesaikan (Blueprint melarangnya eksplisit).
+  | 'cuti_karyawan'    // G2d (2026-08-11) — persetujuan cuti & izin karyawan.
+                        // Masuk engine ini, BUKAN `diputuskan_oleh` langsung:
+                        // cuti TANPA GAJI memotong gaji, dan sebagian
+                        // perusahaan menuntut cuti panjang disetujui
+                        // berjenjang (atasan langsung lalu HRD). Menulis
+                        // kolomnya langsung membuat rantai dua langkah lolos
+                        // dengan satu ketukan.
+                        //
+                        // Nominalnya `null`: yang berjenjang adalah KEWENANGAN
+                        // atas hak karyawan, bukan besaran rupiah.
   | 'rencana_mutu'      // G1e (2026-08-11) — persetujuan Rencana Mutu Proyek.
                         // Masuk engine ini, BUKAN `disetujui_oleh` langsung:
                         // persetujuan RMP MENGIKAT (sesudahnya ITP tak boleh

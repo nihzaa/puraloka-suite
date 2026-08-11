@@ -227,6 +227,11 @@ const PETA = {
     berkas: ['payroll-staf'], tabel: ['slip_gaji', 'payroll_periode'], web: ['/sdm/payroll'],
   },
 
+  // ── G2d (2026-08-11) — cuti & izin karyawan ──────────────────────────
+  'Cuti & izin': {
+    berkas: ['cuti-karyawan'], tabel: ['cuti_ambil', 'cuti_hak'], web: ['/sdm/cuti'],
+  },
+
   // Ditambahkan 2026-08-07 sesudah kekeliruan KEDELAPAN (F5-1 §3c).
   //
   // 'Laporan keuangan' tertulis 🔴 selama berminggu-minggu — dan taksonomi

@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 219 tabel · A=11 · AB=15 · ANCHOR=1 · B=91 · C=94 · D=7
+// 221 tabel · A=11 · AB=15 · ANCHOR=1 · B=91 · C=96 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -81,6 +81,8 @@ export const PETA_TENANCY = {
   'cost_code_category_map': { kategori: 'C', lewat: 'category_id' },  // cost_code_category_map.category_id → project_expense_categories.project_id
   'cost_codes': { kategori: 'AB' },
   'critical_audit_events': { kategori: 'D', view: true },  // VIEW tanpa company_id — tentukan tenancy-nya secara sadar
+  'cuti_ambil': { kategori: 'C', lewat: 'pegawai_id' },  // cuti_ambil.pegawai_id
+  'cuti_hak': { kategori: 'C', lewat: 'pegawai_id' },  // cuti_hak.pegawai_id
   'daily_wage_logs': { kategori: 'C', lewat: 'work_scope_id' },  // daily_wage_logs.work_scope_id → work_scopes.assignment_id → mandor_assignments.project_id
   'document_access_logs': { kategori: 'C', lewat: 'document_id' },  // document_access_logs.document_id → documents.project_id
   'document_number_series': { kategori: 'D' },  // Counter penomoran per company; di-scope eksplisit oleh pemakainya.

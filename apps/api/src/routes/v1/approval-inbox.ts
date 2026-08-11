@@ -61,6 +61,7 @@ function kolomUntuk(s: SumberInbox): string {
   if (s.kolomPengaju) k.add(s.kolomPengaju)
   if (s.tenancy === 'C') k.add('project_id')
   if (s.tenancy === 'C-scenario') k.add('scenario_id')
+  if (s.tenancy === 'C-pegawai') k.add('pegawai_id')
   return [...k].join(', ')
 }
 
@@ -103,6 +104,24 @@ export default async function approvalInboxRoutes(app: FastifyInstance) {
         let query = q.select(kolomUntuk(s)).in('status', s.statusMenunggu)
         if (s.tenancy === 'C') {
           query = query.in('project_id', await request.db!.projectIds())
+        }
+        if (s.tenancy === 'C-pegawai') {
+          // Cuti menuju tenant lewat PEGAWAI, bukan proyek — cuti bukan milik
+          // proyek mana pun. Dibatasi di query, bukan disaring sesudah
+          // membaca: menyaring di aplikasi berarti baris tenant lain sempat
+          // terbaca.
+          const { data: peg, error: errPeg } = await request.db!
+            .from('pegawai')
+            .select('id')
+          if (errPeg) {
+            request.log.error({ err: errPeg, jenis: s.jenis },
+              'inbox: gagal membaca pegawai untuk tenancy cuti')
+            dilewati.push({ jenis: s.jenis, sebab: 'daftar pegawai tak terbaca' })
+            continue
+          }
+          const idPeg = (peg ?? []).map((x) => (x as { id: string }).id)
+          if (idPeg.length === 0) continue
+          query = query.in('pegawai_id', idPeg)
         }
         if (s.tenancy === 'C-scenario') {
           // Dua lompatan: skenario milik proyek tenant ini, lalu versi milik

@@ -61,12 +61,14 @@ export interface SumberInbox {
    *   'B'          punya `company_id` langsung
    *   'C'          punya `project_id`
    *   'C-scenario' lewat `scenario_id` → `scenarios.project_id`
+   *   'C-pegawai'  lewat `pegawai_id`  → `pegawai.company_id`
    *
-   * Yang ketiga bukan kerumitan yang dikarang: `estimate_versions` memang tak
-   * punya kolom proyek, dan peta tenancy sudah mencatatnya jauh sebelum inbox
-   * ini ada.
+   * Dua yang terakhir bukan kerumitan yang dikarang: `estimate_versions`
+   * memang tak punya kolom proyek, dan `cuti_ambil` menuju tenant lewat
+   * PEGAWAI (cuti bukan milik proyek). Peta tenancy sudah mencatat keduanya
+   * jauh sebelum inbox ini ada.
    */
-  tenancy: 'B' | 'C' | 'C-scenario'
+  tenancy: 'B' | 'C' | 'C-scenario' | 'C-pegawai'
   /** Rute UI untuk membuka dokumennya. `:id` diganti id entitas. */
   jalurUi: string
 }
@@ -172,6 +174,23 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomPengaju: 'created_by',
     tenancy: 'C',
     jalurUi: '/lessons-learned',
+  },
+  {
+    jenis: 'cuti_karyawan',
+    label: 'Cuti Karyawan',
+    tabel: 'cuti_ambil',
+    // `diajukan` — diverifikasi ke enum `status_cuti` di basis
+    // (diajukan|disetujui|ditolak|dibatalkan), bukan diingat.
+    statusMenunggu: ['diajukan'],
+    // Cuti tak bernominal rupiah; yang berjenjang adalah kewenangan atas
+    // hak karyawan.
+    kolomNominal: null,
+    kolomJudul: 'alasan',
+    kolomNomor: null,
+    kolomPengaju: 'diajukan_oleh',
+    // Kategori C lewat `pegawai_id` — BUKAN `project_id`.
+    tenancy: 'C-pegawai',
+    jalurUi: '/sdm/cuti',
   },
   {
     jenis: 'rencana_mutu',

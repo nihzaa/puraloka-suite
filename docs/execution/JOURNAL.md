@@ -5,6 +5,110 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-11 (lanjutan 10) — G2d: dua aturan yang saling berlawanan, dan keduanya benar
+
+Cuti & izin selesai. Modul ini punya dua keputusan rancangan yang **saling
+berlawanan**, dan justru itu yang membuatnya benar.
+
+### Aturan 1: saldo DITURUNKAN, tak pernah disimpan
+
+Kolom `sisa_cuti` yang di-update tiap pengajuan akan menyimpang diam-diam dari
+riwayatnya: satu update gagal separuh, satu pembatalan lupa mengembalikan, satu
+koreksi manual — dan angkanya tak lagi cocok dengan daftar cutinya sendiri.
+
+Yang paling berkepentingan angkanya benar adalah **karyawan**, dan ia tak punya
+cara memeriksa. Jadi saldo = SUM(hak) − SUM(ambil disetujui), selalu bisa
+ditelusuri ke barisnya.
+
+Catatan taksonomi lama sudah memprediksinya: *"saldo cuti wajib dihitung, bukan
+disimpan"*. Kali ini catatannya benar sejak awal.
+
+### Aturan 2: `jumlah_hari` DISIMPAN, tak dihitung ulang
+
+Berlawanan dengan aturan pertama, dan sengaja.
+
+Jumlah hari cuti bergantung pada kalender libur **yang berlaku saat itu** — dan
+kalender berubah: cuti bersama sering diumumkan pemerintah di tengah tahun.
+Kalau dihitung ulang saat dibaca, cuti yang sudah disetujui tiba-tiba memakan
+jatah berbeda dari yang disepakati.
+
+Dibuktikan test: tambah libur BARU di tengah rentang yang sudah diajukan →
+`jumlah_hari` **tetap sama**.
+
+Bedanya dengan aturan 1: saldo adalah **turunan yang selalu benar sekarang**;
+jumlah hari adalah **kesepakatan yang sudah terjadi**. Menyamakan keduanya
+merusak salah satunya.
+
+### Tiga hal yang merugikan karyawan secara diam-diam, dan dijaga
+
+| Kesalahan | Akibatnya |
+|---|---|
+| akhir pekan ikut memotong jatah | cuti Jumat–Senin jadi 4 hari, bukan 2 |
+| cuti SAKIT memotong jatah tahunan | karyawan yang sakit kehilangan liburannya, dan baru sadar saat cuti tahunan ditolak "jatah habis" |
+| sisa negatif dipotong ke nol | jatah yang terlanjur terpakai berlebih tersembunyi — padahal itu justru yang perlu diputuskan |
+
+Ketiganya dibuktikan lewat mutasi: masing-masing membuat test merah.
+
+Satu lagi yang halus: libur ber-`tetap_bekerja` **TETAP memotong jatah**. Bagi
+yang tetap masuk hari itu, cuti di tanggal tersebut memakan jatah — memperlakukannya
+libur memberi cuti gratis yang tak pernah diputuskan siapa pun.
+
+### Dua penjaga menangkap kode saya
+
+**`audit-kegagalan-senyap`** (186→189): tiga query yang errornya tak diperiksa.
+Yang paling berbahaya: `hak` dan `lain` yang saya destructure tanpa `error` —
+query gagal → `data = null` → saldo 0 → pengajuan ditolak dengan pesan **"sisa
+jatah 0 hari" yang SALAH**, dan karyawan mengira jatahnya habis.
+
+**`audit-approval-satu-pintu`**: `diputuskan_oleh` ditulis langsung. Kali ini
+alasannya lebih tajam daripada RMP (G1e) — **cuti tanpa gaji memotong gaji**,
+dan sebagian perusahaan menuntut cuti panjang disetujui berjenjang.
+
+Dikerjakan lengkap: `cuti_karyawan` masuk `ApprovalEntityType`, `SUMBER_INBOX`,
+dan rantainya sendiri (migrasi 289). Melahirkan tenancy baru **`C-pegawai`** di
+katalog inbox — cuti menuju tenant lewat PEGAWAI, bukan proyek.
+
+**Penolakan sengaja TIDAK menuntut rantai.** Menolak bukan "menyetujui
+langkah", dan menuntut rantai penuh untuk menolak berarti pengajuan yang jelas
+salah tetap menggantung menunggu level berikutnya. Dibuktikan test: penolakan
+berhasil dan **tak meninggalkan jejak di `approval_progress`**.
+
+### Mutasi menemukan test yang tak pernah menguji saringannya
+
+Melepas saringan tahun (`.filter(tahun)`) tak membuat satu test pun merah —
+seluruh fixture ada di 2027. Jatah 2027 yang dimakan cuti 2028 adalah kesalahan
+yang baru terlihat saat karyawan ditolak tanpa sebab jelas.
+
+Ditambah dua test (sisi baca DAN sisi tulis); kedua mutasi sekarang merah.
+
+### Yang saya nilai kurang di layar, lalu revisi
+
+Kolom Hari menampilkan "2 hari dilewati" — masih menuntut hover untuk tahu
+apakah itu akhir pekan atau libur nasional, dan bedanya penting (yang satu
+wajar, yang satu perlu diperiksa). Diganti **"−Sabtu, Minggu"**: sebabnya
+langsung terbaca.
+
+### Bukti
+
+```
+tsc api+web exit=0
+27 penjaga arsitektural exit=0
+47 test (24 pustaka + 23 endpoint Postgres nyata)
+29 mutasi MERAH (14 pustaka + 15 rute)
+9 penjaga DB terbukti MENOLAK
+axe halaman 0 · modal 0
+DARI LAYAR: penolakan rentang akhir pekan dengan penjelasannya · pengajuan
+  sah → riwayat 3→4, "menunggu putusan" naik (jatah tertahan) · sisa jatah
+  15 − 3 terpakai − 8 tertahan = 4 · label "Sakit" abu-abu vs "Tahunan"
+  navy, dan sakit TIDAK menambah terpakai · kolom Hari membaca "4 −Sabtu,
+  Minggu"
+```
+
+Berikutnya **G2e — rekrutmen, penilaian kinerja, sertifikasi** (tiga item
+terakhir G2).
+
+---
+
 ## 2026-08-11 (lanjutan 9) — G2c: slip nyaris terkunci dengan potongan Rp 0 untuk semua orang
 
 Payroll staf selesai. Yang paling berharga: **cacat yang ditemukan dari layar,
