@@ -187,6 +187,19 @@ const PETA = {
     berkas: ['mutu-checklist'], tabel: ['uji_material'], web: ['/uji-material'],
   },
 
+  // ── G1e (2026-08-11) — juga di commit yang SAMA dengan kodenya ────────
+  'Rencana Mutu Proyek': {
+    berkas: ['rencana-mutu'], tabel: ['rencana_mutu'], web: ['/mutu/rencana'],
+  },
+  // ITP dipetakan lewat TABEL + rute, bukan halaman sendiri: ia tinggal di
+  // halaman Rencana Mutu (ITP adalah ISI dari RMP, bukan dokumen lain), dan
+  // menuntut `web: ['/itp']` akan mencari halaman yang memang sengaja tak
+  // dibuat — bentuk penjaga hijau abadi yang komentar-komentar di atas
+  // peringatkan dua kali.
+  'Inspection & Test Plan': {
+    tabel: ['itp_titik'], rute: ['/rencana-mutu'],
+  },
+
   // Ditambahkan 2026-08-07 sesudah kekeliruan KEDELAPAN (F5-1 §3c).
   //
   // 'Laporan keuangan' tertulis 🔴 selama berminggu-minggu — dan taksonomi

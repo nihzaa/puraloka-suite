@@ -5,6 +5,118 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-11 (lanjutan 5) — G1e: dua halaman yang saya bangun ternyata tak bisa dicapai siapa pun
+
+Rencana Mutu Proyek + ITP selesai. Yang paling berharga dari sesi ini bukan
+modulnya, melainkan **empat penjaga yang merah karena kode saya** — dan
+ketiganya menunjuk cacat nyata, bukan gangguan.
+
+### 1. `audit-nav-yatim` — dan saya salah tentang di mana menu tinggal
+
+Penjaga menyebut `/mutu/rencana` DAN `/mutu/uji-material` tak punya satu pun
+tautan navigasi. Yang kedua itu G1d, **sudah saya commit sesi lalu** sebagai
+"selesai".
+
+Sebabnya: saya memperbarui `apps/web/lib/peta-menu.ts` di tiap commit G1b–G1e
+dan menganggap menunya beres. `peta-menu.ts` adalah dokumentasi status per
+sub-menu — **bukan sumber sidebar**. Sidebar dibaca dari tabel `menu_items`.
+
+Diukur: **ketujuh menu `qc-*` berhref `/m/<key>` dan `is_active = false`** —
+sisa status `gerbang` sebelum R-011 mencabut larangan bangun. Larangannya
+dicabut, halamannya dibangun, saklarnya tak pernah ikut dinyalakan.
+
+Dua sumber yang masing-masing konsisten dengan dirinya sendiri, tanpa satu pun
+galat, dan hasilnya fitur yang sudah jadi tak terlihat di mana pun.
+
+### 2. Perbaikan pertama saya melanggar aturan lain
+
+Migrasi 281 versi pertama mengarahkan enam menu ke halamannya. Dua penjaga lain
+langsung merah:
+
+- `audit-menu-berbagi-href` — **satu route = satu link sidebar** (aturan sejak
+  migrasi 232). Tiga item menunjuk `/mutu/ncr`, dua menunjuk `/mutu/rencana`.
+- `audit-peta-menu-vs-db` — saya menulis `/mutu/ncr` di TS tapi
+  `/lapangan/inspeksi` di migrasi. **Cacat yang sama persis dengan yang sedang
+  saya perbaiki**, dibuat di commit yang sama.
+
+Dan saat memperbaikinya, terukur hal ketiga: **`mutu-ncr` sudah ada dan aktif**
+menunjuk `/mutu/ncr`. Itulah tautan NCR selama ini. `qc-ncr` yang saya nyalakan
+adalah item ketiga untuk halaman yang sama.
+
+Yang benar: hanya `qc-uji` dan `qc-rencana` dinyalakan. `qc-capa`, `qc-itp`,
+`qc-checklist`, `qc-ncr` **dinonaktifkan** — ketiganya bukan halaman tersendiri
+(tahap dalam siklus NCR, isi dari RMP, butir yang lahir-mati bersama inspeksi).
+
+### 3. `audit-approval-satu-pintu` — dan kenapa saya tidak mendaftarkan pengecualian
+
+Endpoint persetujuan RMP versi pertama menulis `disetujui_oleh` langsung.
+Penjaga merah, dengan alasan yang tertulis di dalamnya sendiri: entitas yang
+menurut konfigurasi butuh dua level bisa lolos dengan satu ketukan, sementara
+halaman pengaturannya tetap menampilkan dua.
+
+Ada pintu keluar yang mudah — daftar `VERIFIKASI_LAPANGAN` (tempat `ncr.ts` dan
+`punch-list.ts`). Kriterianya cocok: RMP tak bernominal, tak menyentuh uang.
+
+Saya tidak memakainya. Bedanya: persetujuan RMP **mengikat** — sesudahnya ITP
+tak boleh diubah tanpa revisi. Itu keputusan, bukan catatan "saya sudah
+memeriksa". Jadi `rencana_mutu` masuk `ApprovalEntityType`, `SUMBER_INBOX`,
+dan dapat rantainya sendiri (migrasi 282) dengan permission `mutu:rmp:approve`
+yang terpisah dari `ncr:manage` — penyusun tak boleh menyetujui karyanya
+sendiri.
+
+Ditambah `POST /rencana-mutu/:id/ajukan` (draf → diajukan), tanpanya inbox
+persetujuan terpusat selamanya kosong.
+
+### 4. Test yang hijau tapi tak membuktikan apa pun
+
+Mutasi menemukan test persetujuan-ganda saya **lolos palsu**: melepas
+`.neq('status','disetujui')` tak membuatnya merah, karena permintaan kedua
+sudah ditolak pemeriksaan aplikasi sebelum menyentuh query.
+
+Diganti dengan dua permintaan **bersamaan** (`Promise.all`). Sekarang mutasi itu
+merah. Yang diuji versi lama adalah lapisan yang bukan penjaganya.
+
+Hal serupa di `purge()`: `approval_progress` tak punya FK ke `rencana_mutu`,
+jadi test "tercatat di mesin" akan hijau dari sisa run sebelumnya.
+
+### Yang dibangun
+
+| Hal | Bukti |
+|---|---|
+| Migrasi 280 | `rencana_mutu` + `itp_titik` + enum `hold`/`witness`/`review` + sambungan `inspection_requests.itp_titik_id`; 4 constraint terbukti MENOLAK |
+| `lib/rencana-mutu.ts` | 18 test · **13 mutasi MERAH** |
+| 6 endpoint | 22 test Postgres nyata · **9 mutasi MERAH** |
+| `/mutu/rencana` | verdict "ditahan/boleh lanjut" · modal pemeriksaan · penautan inspeksi |
+| Migrasi 281 | menu mutu; idempoten dibuktikan 2× |
+| Migrasi 282 | rantai approval `rencana_mutu` |
+
+### Bukti
+
+```
+tsc api+web exit=0
+25 penjaga arsitektural exit=0 (nol merah)
+79 test mutu hijau (4 berkas)
+axe /mutu/rencana : 0 · modal: 0
+itp_titik_id  0 → 1  (dibuktikan DARI LAYAR, bukan dari test)
+opsi inspeksi 1 → 13 (kunci balasan `data`, bukan `inspections` — tebakan saya salah)
+sidebar /mutu : 0 → /mutu/rencana, /mutu/uji-material
+draf → diajukan terbukti dari layar; inbox 8 jenis, 0 tak terwakili
+```
+
+Migrasi 282 percobaan pertama **gagal** dengan pelanggaran foreign key —
+`approval_chains` punya baris yang menunjuk company yang sudah dihapus.
+`apply-migrasi.mjs` menolak menulis ke buku (cacat 043). Diperbaiki dengan
+`JOIN companies`.
+
+### Yang saya nilai kurang di layar sendiri, lalu revisi
+
+"38% sudah diperiksa" berdampingan dengan "67% lolos" — dua persentase dengan
+**penyebut berbeda**, dan pembaca cepat akan mengurangkan keduanya. Diganti
+pecahan `3/8`. Kartu "Titik hold menahan" juga dibuang: verdict tepat di atasnya
+sudah menyebutnya beserta nama titiknya, dan versi kartu lebih lemah.
+
+---
+
 ## 2026-08-11 (lanjutan 4) — G1d UI: baris yang paling penting justru terdorong ke bawah lipatan
 
 Layar `/mutu/uji-material` selesai, dan tangkapan layarnya membantah rancangan

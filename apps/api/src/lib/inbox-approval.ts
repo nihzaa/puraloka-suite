@@ -173,6 +173,24 @@ export const SUMBER_INBOX: SumberInbox[] = [
     tenancy: 'C',
     jalurUi: '/lessons-learned',
   },
+  {
+    jenis: 'rencana_mutu',
+    label: 'Rencana Mutu Proyek',
+    tabel: 'rencana_mutu',
+    // `diajukan` — diverifikasi ke enum `rmp_status` di basis
+    // (draf|diajukan|disetujui|kedaluwarsa), bukan diingat. Peringatan di
+    // entri `lessons_learned` tepat di atas menyebut kelas kesalahan ini,
+    // dan RMP dibuat di sesi yang sama pun tetap saya ukur.
+    statusMenunggu: ['diajukan'],
+    // RMP tak menyentuh uang: yang berjenjang adalah KEWENANGAN (QA lalu
+    // direktur), bukan besaran. Ambang nominal tak berlaku.
+    kolomNominal: null,
+    kolomJudul: 'judul',
+    kolomNomor: 'nomor',
+    kolomPengaju: 'dibuat_oleh',
+    tenancy: 'C',
+    jalurUi: '/mutu/rencana',
+  },
 ]
 
 export function sumberInbox(jenis: string): SumberInbox | undefined {

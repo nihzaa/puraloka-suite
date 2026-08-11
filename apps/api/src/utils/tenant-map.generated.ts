@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 208 tabel · A=11 · AB=15 · ANCHOR=1 · B=88 · C=86 · D=7
+// 210 tabel · A=11 · AB=15 · ANCHOR=1 · B=88 · C=88 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -111,6 +111,7 @@ export const PETA_TENANCY = {
   'invoice_line_items': { kategori: 'C', lewat: 'invoice_id' },  // invoice_line_items.invoice_id → invoices.project_id
   'invoice_penalties': { kategori: 'C', lewat: 'invoice_id' },  // invoice_penalties.invoice_id → invoices.project_id
   'invoices': { kategori: 'C', lewat: 'project_id' },  // invoices.project_id
+  'itp_titik': { kategori: 'C', lewat: 'rencana_mutu_id' },  // itp_titik.rencana_mutu_id → rencana_mutu.project_id
   'izin_kerja': { kategori: 'B' },
   'jadwal_distribusi_laporan': { kategori: 'B' },
   'jadwal_perawatan': { kategori: 'B' },
@@ -192,6 +193,7 @@ export const PETA_TENANCY = {
   'register_gambar': { kategori: 'B' },
   'rekening_koran': { kategori: 'B' },
   'rekening_koran_baris': { kategori: 'C', lewat: 'koran_id' },  // rekening_koran_baris.koran_id
+  'rencana_mutu': { kategori: 'C', lewat: 'project_id' },  // rencana_mutu.project_id
   'resources': { kategori: 'A' },
   'rfq': { kategori: 'C', lewat: 'project_id' },  // rfq.project_id
   'rfq_penawaran': { kategori: 'C', lewat: 'rfq_id' },  // rfq_penawaran.rfq_id → rfq.project_id

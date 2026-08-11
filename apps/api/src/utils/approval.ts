@@ -16,6 +16,18 @@ export type ApprovalEntityType =
                         // Ikut engine ini, BUKAN status sendiri: membuat mekanisme
                         // approval keempat berarti mengulang persis masalah yang
                         // Program B selesaikan (Blueprint melarangnya eksplisit).
+  | 'rencana_mutu'      // G1e (2026-08-11) — persetujuan Rencana Mutu Proyek.
+                        // Masuk engine ini, BUKAN `disetujui_oleh` langsung:
+                        // persetujuan RMP MENGIKAT (sesudahnya ITP tak boleh
+                        // diubah tanpa revisi), dan dokumen yang mengikat pada
+                        // sebagian tenant butuh dua tanda tangan — QA lalu
+                        // direktur. Menulis kolomnya langsung membuat rantai
+                        // dua langkah lolos dengan satu ketukan, sementara
+                        // halaman pengaturannya tetap menampilkan dua.
+                        //
+                        // Nominalnya `null`: RMP tak menyentuh uang, jadi
+                        // ambang nilai tak berlaku. Yang berjenjang di sini
+                        // adalah KEWENANGAN, bukan besaran.
 
 /**
  * Ambil langkah rantai aktif untuk sebuah entitas — MILIK COMPANY INI.
