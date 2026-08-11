@@ -249,6 +249,19 @@ jobs:
       - name: Penulisan senyap (update/delete/insert tanpa cek hasil)
         run: node scripts/audit-tulis-tanpa-periksa.mjs
 
+      # Report builder (G6d) bersandar sepenuhnya pada daftar sumber di
+      # `lib/laporan-susun.ts`: apa pun yang tak ada di daftar ditolak. Yang
+      # TIDAK dijaga siapa pun sebelum ini: apakah yang ADA di daftar benar-
+      # benar ada di basis. Kolom karangan LOLOS seluruh pemeriksaan pustaka
+      # — ia ada di daftar, jadi sah — lalu gagal di basis dengan pesan yang
+      # menunjuk query, sehingga yang membacanya mengira query-nya yang salah.
+      # Sudah terjadi sekali (`project_expenses.amount`, yang benar
+      # `total_amount`). Yang paling mahal kalau salah: sumber yang keliru
+      # menyatakan cara penyaringan tenant-nya menarik data perusahaan lain,
+      # dan hasilnya terlihat seperti laporan yang wajar. Ambang NOL.
+      - name: Sumber laporan cocok dengan skema nyata
+        run: node scripts/audit-sumber-laporan-nyata.mjs
+
       # `catch {}` kosong membuang justru pesan yang dibutuhkan untuk menemukan
       # sebab kegagalan. 18 di antaranya membungkus pengiriman notifikasi — dan
       # rantai Web Push di repo ini PUTUS berbulan-bulan tanpa satu pun gejala,

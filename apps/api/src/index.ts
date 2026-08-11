@@ -68,6 +68,7 @@ import penjurnalanOtomatisRoutes from './routes/v1/penjurnalan-otomatis.js'
 import markupRoutes from './routes/v1/markup.js'
 import baselineJadwalRoutes from './routes/v1/baseline-jadwal.js'
 import apiKeyRoutes from './routes/v1/api-key.js'
+import laporanSusunRoutes from './routes/v1/laporan-susun.js'
 import absensiRoutes from './routes/v1/absensi.js'
 import rekonsiliasiMaterialRoutes from './routes/v1/rekonsiliasi-material.js'
 import rekonsiliasiBankRoutes from './routes/v1/rekonsiliasi-bank.js'
@@ -359,6 +360,7 @@ await app.register(penjurnalanOtomatisRoutes)
 await app.register(markupRoutes)
 await app.register(baselineJadwalRoutes)
 await app.register(apiKeyRoutes)
+await app.register(laporanSusunRoutes)
 await app.register(absensiRoutes)
 await app.register(rekonsiliasiMaterialRoutes)
 await app.register(rekonsiliasiBankRoutes)
