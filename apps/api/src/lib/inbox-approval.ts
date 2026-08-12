@@ -57,6 +57,16 @@ export interface SumberInbox {
   /** Kolom pengaju — dipakai menegakkan SoD di UI (pengaju tak melihat tombol setujui). */
   kolomPengaju: string | null
   /**
+   * Kolom waktu dibuat. TIDAK seragam — dan itu yang membuatnya harus di sini.
+   *
+   * Sampai 2026-08-12 rutenya memaku `created_at`. Modul berbahasa Indonesia
+   * (`opname_bersama`, `back_charge`) memakai `dibuat_pada`, jadi keduanya
+   * GAGAL dibaca begitu ditambahkan — dan gagalnya masuk daftar `dilewati`,
+   * bukan melempar. Penjaga `audit-inbox-lengkap` tetap hijau karena ia
+   * memeriksa keberadaan ENTRI, bukan kolomnya.
+   */
+  kolomDibuat: string
+  /**
    * Jalur tenancy:
    *   'B'          punya `company_id` langsung
    *   'C'          punya `project_id`
@@ -89,6 +99,7 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomJudul: 'purpose',
     kolomNomor: null,
     kolomPengaju: 'requested_by',
+    kolomDibuat: 'created_at',
     tenancy: 'B',
     jalurUi: '/mandor/kasbon',
   },
@@ -108,6 +119,7 @@ export const SUMBER_INBOX: SumberInbox[] = [
     // menandai pengeluaran milik sendiri. Ditemukan saat membangun TJS-P4,
     // ketika kesembilan kolom pengaju diukur langsung ke information_schema.
     kolomPengaju: 'submitted_by',
+    kolomDibuat: 'created_at',
     tenancy: 'C',
     jalurUi: '/kas',
   },
@@ -131,6 +143,8 @@ export const SUMBER_INBOX: SumberInbox[] = [
     // mengukur di lapangan tak boleh memverifikasi ukurannya sendiri, dan
     // basis pun menolaknya lewat CHECK.
     kolomPengaju: 'diukur_oleh',
+    // `dibuat_pada`, bukan `created_at` — diukur ke information_schema.
+    kolomDibuat: 'dibuat_pada',
     tenancy: 'B',
     jalurUi: '/mandor/opname',
   },
@@ -146,6 +160,8 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomJudul: 'uraian',
     kolomNomor: 'nomor',
     kolomPengaju: 'diajukan_oleh',
+    // `dibuat_pada`, bukan `created_at`.
+    kolomDibuat: 'dibuat_pada',
     tenancy: 'B',
     jalurUi: '/mandor/back-charge',
   },
@@ -158,6 +174,7 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomJudul: 'title',
     kolomNomor: 'co_number',
     kolomPengaju: 'created_by',
+    kolomDibuat: 'created_at',
     tenancy: 'C',
     jalurUi: '/kontrak/change-order',
   },
@@ -170,6 +187,7 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomJudul: 'notes',
     kolomNomor: 'mr_number',
     kolomPengaju: 'requested_by',
+    kolomDibuat: 'created_at',
     tenancy: 'C',
     jalurUi: '/procurement/material-request',
   },
@@ -182,6 +200,7 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomJudul: null,
     kolomNomor: null,
     kolomPengaju: 'created_by',
+    kolomDibuat: 'created_at',
     // Kategori C TAPI lewat `scenario_id`, bukan `project_id` — tabel ini tak
     // punya kolom proyek sama sekali. Peta tenancy sudah mencatatnya
     // (`lewat: 'scenario_id'`), dan mengabaikannya membuat query gagal dengan
@@ -200,6 +219,7 @@ export const SUMBER_INBOX: SumberInbox[] = [
     // Sama seperti `project_expense` di atas: `null` ini SALAH.
     // `submittals.diajukan_oleh` ada sejak tabelnya dibuat.
     kolomPengaju: 'diajukan_oleh',
+    kolomDibuat: 'created_at',
     tenancy: 'C',
     jalurUi: '/kontrak/submittal',
   },
@@ -216,6 +236,7 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomJudul: 'title',
     kolomNomor: null,
     kolomPengaju: 'created_by',
+    kolomDibuat: 'created_at',
     tenancy: 'C',
     jalurUi: '/lessons-learned',
   },
@@ -232,6 +253,7 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomJudul: 'alasan',
     kolomNomor: null,
     kolomPengaju: 'diajukan_oleh',
+    kolomDibuat: 'created_at',
     // Kategori C lewat `pegawai_id` — BUKAN `project_id`.
     tenancy: 'C-pegawai',
     jalurUi: '/sdm/cuti',
@@ -251,6 +273,7 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomJudul: 'judul',
     kolomNomor: 'nomor',
     kolomPengaju: 'dibuat_oleh',
+    kolomDibuat: 'created_at',
     tenancy: 'C',
     jalurUi: '/mutu/rencana',
   },

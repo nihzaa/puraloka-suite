@@ -15404,3 +15404,101 @@ dengan hasil fungsi basis.
 
 `audit-asumsi-global-test` merah — sudah merah di HEAD sebelum F1
 (`ai-config`, `belanja-aktual-endpoint`, `cvr-endpoint`).
+
+---
+
+## 2026-08-12 — F2 · Template WBS, dan tiga lubang tenancy yang ikut ketahuan
+
+**Cabang:** `feat/sumbu-ui-roadmap`
+
+### Lubang yang ditutup
+
+**13 dari 15 proyek punya NOL item RAB.** Dua yang terisi punya 285 dan 88
+item — dan **8 dari 16 kategori uniknya IDENTIK kata demi kata**: "PEKERJAAN
+PERSIAPAN", "PEKERJAAN BETON", "PEKERJAAN PASANGAN", dan seterusnya.
+
+Struktur yang sama diketik ulang tiap proyek. Yang hilang bukan waktunya saja:
+proyek yang strukturnya diketik dari ingatan akan MELEWATKAN pos pekerjaan, dan
+pos yang tak ada di RAB tak pernah dianggarkan.
+
+`cbs_templates` + `cbs_nodes` sudah ada untuk persis ini sejak awal. Isinya
+satu baris smoke test berstatus `superseded`, dua node, **nol pembaca di
+seluruh kode**. Pola ketiga kalinya dalam rangkaian ini, sesudah
+`requires_opname` (D1) dan lima kolom kontrak `work_scopes` (E1).
+
+### Tiga lubang tenancy yang ketahuan saat mengukur
+
+**1. `WITH CHECK` mengizinkan `company_id IS NULL` saat MENULIS.** Policy-nya
+berbunyi `(company_id IS NULL OR company_id = auth_company_id())` untuk baca
+DAN tulis. Benar untuk baca — katalog `standard` memang milik bersama. Pada
+tulis ia berarti tenant mana pun bisa membuat baris yang langsung terlihat
+seluruh tenant lain. Struktur pekerjaan satu perusahaan bocor ke pesaingnya
+tanpa satu pun galat.
+
+**2. Unik `(code, version_number)` tanpa company.** Tenant B ditolak kode milik
+tenant A, dan penolakannya membocorkan keberadaannya. Cacat #4 migrasi 135,
+dan cacat yang sama baru ditutup F1 di tiga tabel lain.
+
+**3. `FORCE ROW LEVEL SECURITY` mati** di ketiga tabel WBS. Tanpa FORCE,
+pemilik tabel melewati RLS sepenuhnya — dan repo ini punya banyak rute
+service-role.
+
+### Dua trigger yang saya tulis ternyata sudah ada
+
+Versi pertama migrasi 335 menambahkan trigger untuk "template aktif terkunci"
+dan "induk node wajib setemplate". Keduanya SUDAH ditegakkan
+`fn_cbs_node_guard` sejak tabelnya lahir. Dibuang — dua tempat untuk aturan
+yang sama berarti dua pesan galat berbeda untuk satu pelanggaran, dan dua
+tempat yang bisa berselisih.
+
+Yang tersisa hanya satu yang benar-benar baru: node wajib sekompanyi dengan
+templatenya. Sisanya diverifikasi, bukan diduplikasi — jaminan yang dipakai
+tanpa diperiksa bisa hilang tanpa disadari.
+
+### Baris warisan: CHECK yang menyesuaikan, bukan data yang dipaksa
+
+Template `CBS-SMOKE` melanggar aturan baru (company NULL, source `company`).
+Percobaan menandainya `standard` DITOLAK `fn_cbs_template_immutable` — trigger
+yang melarang mengubah `source` pada template non-draft, dan trigger itu benar
+(Estimate Item yang merujuk nodenya tak boleh berubah retroaktif).
+
+Jadi CHECK-nya yang mengenali warisan, bukan jaminan lama yang dilemahkan demi
+kerapian baru.
+
+### Saya salah: cacat E1 baru ketahuan sekarang
+
+`approval-inbox.test.ts` merah — entri inbox `opname_bersama` dan
+`back_charge` yang saya tambahkan di E1 menyebut `created_at`, sementara kedua
+tabel memakai `dibuat_pada`. Kedua jenis itu **tak pernah sampai ke approver**
+sejak E1; gagalnya masuk daftar `dilewati` di respons, bukan melempar.
+
+Penjaga `audit-inbox-lengkap` hijau selama itu karena ia hanya memeriksa
+KEBERADAAN entri, bukan kolomnya — padahal pesan merahnya sendiri berbunyi
+*"VERIFIKASI tiap kolom ke information_schema, jangan diingat."*
+
+Diperbaiki tiga lapis: `created_at` yang dipaku di rute jadi `kolomDibuat` di
+katalog; kedua entri dikoreksi; dan penjaganya diperluas untuk memeriksa
+SELURUH kolom katalog ke `information_schema` — lalu dibuktikan merah dengan
+mengembalikan cacat aslinya.
+
+### Catatan jujur: satu saringan tak terbukti
+
+Saringan `.or(company_id.eq…)` pada GET daftar template TIDAK bisa dibuat
+merah lewat mutasi — RLS ber-FORCE sudah menahannya lebih dulu. Dibiarkan
+sebagai lapis kedua dan dicatat di testnya sebagai tak terbukti, bukan
+dihapus. Gantinya ditambahkan test yang menguji POLICY-nya sendiri (FORCE
+menyala, WITH CHECK tak lagi menerima NULL), dan itu terbukti merah dua kali.
+
+### Bukti
+
+    migrasi 335   ✅ 12 pemeriksaan: FORCE RLS, unik per-tenant, node
+                     sekompanyi, template aktif terkunci, dua versi aktif ditolak
+    migrasi 336   ✅ menu hidup berizin; dua tautan 404 tetap mati
+    vitest        81 lulus / 5 berkas
+    mutasi        7 (lib) + 5 (rute) + 2 (RLS basis) + 1 (penjaga inbox)
+                  MERAH lalu pulih; 1 dicatat tak terbukti
+    tsc api/web   0 / 0
+    penjaga API   66 dijalankan, 65 hijau
+    penjaga web   8 hijau
+
+`audit-asumsi-global-test` merah — sudah merah di HEAD sebelum F2.

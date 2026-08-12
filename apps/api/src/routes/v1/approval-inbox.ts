@@ -54,7 +54,10 @@ interface BarisInbox {
 
 /** Kolom yang perlu diambil untuk satu sumber, tanpa duplikat. */
 function kolomUntuk(s: SumberInbox): string {
-  const k = new Set(['id', 'status', 'created_at'])
+  // `kolomDibuat` dari katalog, BUKAN 'created_at' yang dipaku. Modul
+  // berbahasa Indonesia memakai `dibuat_pada`, dan memakunya membuat jenis itu
+  // GAGAL dibaca — masuk daftar `dilewati`, bukan melempar.
+  const k = new Set(['id', 'status', s.kolomDibuat])
   if (s.kolomNominal) k.add(s.kolomNominal)
   if (s.kolomJudul) k.add(s.kolomJudul)
   if (s.kolomNomor) k.add(s.kolomNomor)
@@ -145,7 +148,7 @@ export default async function approvalInboxRoutes(app: FastifyInstance) {
           query = query.in('scenario_id', idSkenario)
         }
 
-        const { data, error } = await query.order('created_at', { ascending: true }).limit(200)
+        const { data, error } = await query.order(s.kolomDibuat, { ascending: true }).limit(200)
 
         if (error) {
           request.log.error({ err: error, jenis: s.jenis }, 'inbox: gagal membaca entitas')
@@ -199,7 +202,7 @@ export default async function approvalInboxRoutes(app: FastifyInstance) {
               ? Number(b[s.kolomNominal])
               : null,
             pengaju_id: pengaju,
-            dibuat_pada: (b.created_at as string | null) ?? null,
+            dibuat_pada: (b[s.kolomDibuat] as string | null) ?? null,
             project_id: (b.project_id as string | null) ?? null,   // null untuk C-scenario
             level_selesai: levelTertinggi.get(id) ?? 0,
             jalur_ui: s.jalurUi,
