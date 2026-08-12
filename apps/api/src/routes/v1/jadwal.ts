@@ -82,6 +82,29 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Menghapus percakapan asisten yang melewati batas retensi tiap tenant.',
     jalur: '/api/v1/ai/retensi/bersihkan',
   },
+
+  // ── Otomasi terjadwal (katalog automation Phase 2, rule-based) ────────────
+  //
+  // Ketiganya rule-based — NOL ketergantungan AI. Gerbangnya Phase 2, dan
+  // Phase 2 sudah lewat, jadi tak ada yang menahannya selain belum ditulis.
+  //
+  // Dedup harian ada di endpoint-nya masing-masing (ledger = tabel
+  // `notifications`), jadi denyut 15 menit tak menghasilkan pesan berulang.
+  'kasbon-outstanding': {
+    label: 'Kasbon Belum Lunas',
+    keterangan: 'Kasbon yang sudah disetujui tapi belum dilunasi melewati ambang hari.',
+    jalur: '/api/v1/otomasi/jalankan/kasbon-outstanding',
+  },
+  'kasbon-tukang': {
+    label: 'Cicilan Kasbon Tukang',
+    keterangan: 'Kasbon tukang yang belum lunas dan perlu dipotong dari upah.',
+    jalur: '/api/v1/otomasi/jalankan/kasbon-tukang',
+  },
+  'progres-belum-lapor': {
+    label: 'Progres Belum Dilaporkan',
+    keterangan: 'Mandor ber-penugasan aktif yang belum mengirim laporan progres hari ini.',
+    jalur: '/api/v1/otomasi/jalankan/progres-belum-lapor',
+  },
 }
 
 interface BarisJadwal {
