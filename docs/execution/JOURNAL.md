@@ -5,6 +5,93 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (koreksi) — founder membaca Peta Modul, dan empat kartu berstatus belum-jalan ternyata sudah selesai
+
+Founder membuka `/peta-modul` dan bertanya: *"ini di peta modulnya masih banyak
+yang belum dikerjakan, bener?"*
+
+Diukur ke kode, dan jawabannya: **tidak seluruhnya benar.** Dari empat kartu
+berstatus "Direncanakan", TIGA sudah punya halaman yang jalan:
+
+    Markup & Margin          → /pengaturan/markup        SELESAI G6a, hari ini
+    Dokumen Prakualifikasi   → /procurement/kualifikasi  SELESAI 2026-08-07
+    API & Integrasi          → /pengaturan/api-key       SEBAGIAN sejak G6c
+
+### Kenapa ini terjadi, dan kenapa ia bukan kelalaian kecil
+
+Peta Modul adalah SATU-SATUNYA layar yang menjawab "apa yang sudah bisa
+dipakai". Founder membacanya persis untuk itu — dan mendapat jawaban yang
+salah tentang pekerjaannya sendiri.
+
+Untuk `crm-markup` dan `crm-prakualifikasi`, sebabnya sama: entri itu ada di
+grup LAIN dari yang saya sentuh. Saya memperbarui `set-markup` (grup Keuangan)
+saat menyelesaikan G6a, dan tak pernah mencari apakah markup juga terdaftar di
+grup CRM & Tender. Satu modul, dua entri, satu diperbarui.
+
+`sy-api` berbeda: catatannya *"butuh kredensial pihak ketiga dari founder"*
+MASIH BENAR untuk sambungan KELUAR. Yang berubah hanya arah masuk. Karena itu
+ia jadi `sebagian`, bukan `hidup` — dan catatannya sekarang membedakan
+keduanya secara eksplisit: pihak luar kini bisa masuk, kita belum bisa keluar.
+
+### Yang saya periksa sesudahnya — dan yang tetap saya lewatkan
+
+Saya menyapu ulang 226 entri dengan mata, menyimpulkan sisanya bersih, lalu
+menulis penjaga `audit-peta-modul-vs-halaman.mjs` untuk memastikan.
+
+**Penjaga itu langsung menemukan entri KEEMPAT** yang tak saya lihat:
+`iv-rekonsiliasi` ("Rekonsiliasi Material"), berstatus `gerbang`, halaman
+`/gudang/rekonsiliasi` hidup sejak 2026-08-06 dengan 34 test. Catatannya
+berbunyi *"pemetaan resource ↔ material baru cocok 0,1%"* — gerbang yang
+saya buka sendiri hari itu juga lewat G6e (`/gudang/susut`).
+
+Jadi tiga kartu ditemukan founder, satu ditemukan penjaga, **nol ditemukan
+oleh penyapuan manual saya** — termasuk yang gerbangnya saya buka sendiri
+beberapa jam sebelumnya.
+
+Sisa `rencana`: satu (RK3K), dan catatannya benar — ia sengaja belum dibangun
+karena RK3K adalah RANGKUMAN dari JSA + inspeksi + induksi + APD + insiden,
+dan menyusunnya sebelum sumbernya terisi menghasilkan dokumen yang tampak
+resmi tanpa isi.
+
+    Direncanakan   4 → 1
+    Bisa dipakai   172 → 175
+    Sebagian       49 → 50
+
+Yang masih benar dari catatan lama `iv-rekonsiliasi`: `project_expenses`
+belum punya atribusi per-item, jadi susut per ITEM PEKERJAAN (bukan per
+material) memang belum bisa dihitung. Itu dipindah ke catatan, bukan
+dipakai lagi sebagai alasan menahan status.
+
+### Penjaga versi pertamanya sendiri berbohong
+
+Ia membaca **224 dari 226** entri, karena dua baris menulis `href` sebelum
+`status` sementara sisanya sesudah, dan polanya mengandaikan urutan. Dua yang
+terlewat: `crm-eskalasi` dan `iv-rekonsiliasi` — persis yang salah.
+
+Penjaga yang melewatkan entri melaporkan "0 pelanggaran" dengan percaya diri.
+Sekarang medannya dibaca tanpa mengandaikan urutan, dan jumlah terbaca
+diverifikasi terhadap jumlah `key`; timpang berarti exit 1, bukan hijau.
+
+Bukti bisa merah — dua mutasi: satu `status: 'hidup'` diubah jadi `'rencana'`
+→ MERAH; satu `key` dirusak namanya → MERAH pada pemeriksaan cakupan.
+
+### Pelajarannya
+
+CLAUDE.md §8a.4 menyebut ini cacat paling sering di repo ini, dengan contoh
+**tujuh sub-menu** yang ditandai merah padahal UI-nya sudah hidup berbulan-
+bulan. Penjaga `audit-taksonomi-vs-kode.mjs` dibuat untuk itu.
+
+Penjaga itu HIJAU sepanjang waktu — karena ia memeriksa taksonomi, bukan
+`peta-menu.ts`. Dua dokumen, dua sumber kebenaran, satu penjaga.
+
+Dan pelajaran keduanya lebih tajam: **penyapuan manual saya sendiri juga
+hijau sepanjang waktu.** Saya sudah tahu apa yang dicari, sudah membaca
+seluruh berkasnya, dan tetap melewatkan satu. Yang membedakan penjaga bukan
+ketelitian yang lebih tinggi — melainkan bahwa ia tak bisa lelah di entri
+ke-194.
+
+---
+
 ## 2026-08-12 (lanjutan) — TJS-P3: importer, dan yang sudah ada ternyata persis bentuk yang hendak dicegah
 
 Item ini meminta lima hal, dan yang paling menentukan: *"commit ALL-OR-NOTHING

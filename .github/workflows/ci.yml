@@ -662,6 +662,24 @@ jobs:
       - name: Status sub-menu vs kode (F8-1)
         run: node scripts/audit-taksonomi-vs-kode.mjs
 
+      # Penjaga di atas membaca `ERP-KONTRAKTOR-TAKSONOMI-MENU.md`. Layar yang
+      # DIBACA FOUNDER adalah `/peta-modul`, yang sumbernya `peta-menu.ts` —
+      # berkas lain, tak pernah diperiksa siapa pun.
+      #
+      # 2026-08-12 founder membuka layar itu dan bertanya "masih banyak yang
+      # belum dikerjakan, bener?". Dari empat kartu "Direncanakan", TIGA sudah
+      # punya halaman yang jalan. Penjaga di atas hijau sepanjang waktu.
+      #
+      # Dua dokumen, dua sumber kebenaran, satu penjaga. Ini penjaga keduanya.
+      #
+      # Terbukti bisa merah lewat dua mutasi: status `hidup` diubah jadi
+      # `rencana` (→ MERAH), dan satu `key` dirusak namanya sehingga tak
+      # terbaca (→ MERAH pada pemeriksaan cakupan, bukan "0 pelanggaran"
+      # dengan percaya diri — versi pertamanya membaca 224 dari 226 dan
+      # melewatkan tepat entri yang salah).
+      - name: Peta Modul vs halaman nyata (F8-1b)
+        run: node ../web/scripts/audit-peta-modul-vs-halaman.mjs
+
       # F8-2 — CLAUDE.md §8: "Kolom DB sudah ada BUKAN selesai." Commit
       # db463d9: lima modul berturut-turut dibangun sampai endpoint lalu
       # dilaporkan "INTI #N selesai" — endpoint `retensi-register` yang
