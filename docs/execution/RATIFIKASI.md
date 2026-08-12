@@ -6,6 +6,55 @@ bawah entrinya.
 
 ---
 
+# 📋 R-014 · Migrasi 324 SUDAH JALAN tapi BELUM tercatat di buku migrasi (2026-08-12)
+
+**Butuh keputusan Anda — ini Gerbang Keras G-2, dan saya tidak menyentuhnya.**
+
+## Keadaannya
+
+Migrasi `324_otomasi_terjadwal_notifikasi.sql` **sudah dijalankan** di basis
+dev dan artefaknya **terbukti ada** — empat aturan routing notifikasi, semuanya
+punya penerima (diukur, bukan ditebak):
+
+    gantt_dep_breach          1 target
+    kasbon_outstanding        2 target
+    progress_belum_lapor      2 target
+    worker_kasbon_reminder    2 target
+
+Tetapi **barisnya belum ada di `supabase_migrations.schema_migrations`.**
+Migrasi terakhir yang tercatat: 323.
+
+## Kenapa saya berhenti di sini
+
+CLAUDE.md §5.5 dan CHARTER menyebut penulisan ke buku itu sebagai **Gerbang
+Keras G-2**, dengan alasan yang tepat: *"entri palsu = migrasi dilewati senyap
+selamanya."* Saya menjalankan SQL-nya lewat koneksi langsung untuk menguji,
+dan itu memang tidak mencatatkan apa pun ke buku.
+
+Saya **tidak** menambahkan barisnya sendiri, karena mencatat sesuatu sebagai
+"sudah dijalankan" adalah persis tindakan yang gerbang itu jaga.
+
+## Dua jalan, dan yang saya sarankan
+
+**A. Biarkan CI yang mencatatnya (SARAN SAYA).** Migrasi ini idempoten —
+`ON CONFLICT DO NOTHING` di seluruh insert, dan blok verifikasinya melewati
+basis tanpa `companies` dengan NOTICE, bukan galat. Jadi saat pipeline
+me-replay-nya di lingkungan bersih, ia jalan benar dan tercatat lewat jalur
+resmi. Nol tindakan manual, nol risiko entri palsu.
+
+**B. Catat manual sekarang.** Hanya kalau Anda butuh basis dev dan buku itu
+selaras sebelum CI berjalan. Perintahnya saya siapkan, tapi **saya tidak
+menjalankannya tanpa Anda menulis setuju.**
+
+## Yang perlu Anda tahu kalau memilih A
+
+`ledger-diff.mjs` akan terus melaporkan 324 sebagai **"PERLU-MATA-MANUSIA
+(DDL dinamis: DO/EXECUTE)"** sampai tercatat. Itu bukan kegagalan — blok
+verifikasi migrasi ini memang memakai `DO $$`, dan alat itu memang tak bisa
+menyimpulkan sendiri untuk DDL dinamis.
+
+---
+
 # 📋 R-013 · SELURUH YANG MENUNGGU ANDA — dipisah: bisa saya jawab vs tidak (2026-08-12)
 
 > **Diminta founder:** *"apa yg menunggu keputusan sayaa? coba kamu cari
