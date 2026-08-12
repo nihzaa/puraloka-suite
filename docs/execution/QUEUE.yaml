@@ -1807,8 +1807,32 @@ items:
       - "registry: modul baru cukup mendaftar"
       - "restore memulihkan lewat jalur yang sama dengan create/update"
     cara_verifikasi: "test: hapus -> muncul di recycle bin -> pulihkan -> utuh"
+    catatan: >-
+      ── SELESAI 2026-08-12 ────────────────────────────────────────────────
+      `lib/recycle-bin.ts` (18 test, 11/11 mutasi MERAH) ·
+      `routes/v1/recycle-bin.ts` (11 test Postgres nyata, 8/9 mutasi MERAH) ·
+      `audit-recycle-bin-nyata.mjs` (ambang NOL, terbukti MERAH pada 4 mutasi) ·
+      `/sistem/recycle-bin` · migrasi 315.
+
+      Kedua kriteria terpenuhi: REGISTRY (modul baru cukup menambah satu entri
+      di `REGISTRY`), dan restore lewat jalur yang sama dengan update biasa
+      (`.update()` pada tabel aslinya, bukan tabel bayangan).
+
+      ⚠ BATASNYA JUJUR, dan ditulis di layar: diukur dari 34 endpoint DELETE
+      di seluruh API, hanya SATU tabel yang punya soft delete (`projects`).
+      Tiga puluh tiga penghapusan lain PERMANEN dan tak meninggalkan apa pun
+      untuk dipulihkan.
+
+      Item ini menyediakan JALANNYA, bukan mengubah 33 endpoint itu jadi soft
+      delete — melakukannya massal berarti mengubah arti tombol "hapus" di 33
+      tempat tanpa seorang pun memutuskannya. Kalau kelak sebuah modul
+      dijadikan soft delete, ia cukup menambah entri dan langsung punya
+      recycle bin beserta pemulihannya.
+
+      `deleted_by` TIDAK dikosongkan saat pulih — ia jejak siapa yang pernah
+      menghapus, dan menghapusnya membuat pemulihan menutupi penghapusan.
     bobot: M
-    status: todo
+    status: done
 
   - id: TJS-P2
     fase: 6

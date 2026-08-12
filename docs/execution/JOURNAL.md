@@ -5,6 +5,91 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — TJS-P1: recycle bin, dan 33 penghapusan yang tak punya apa pun untuk dipulihkan
+
+Judul item ini berbunyi *"soft delete sudah ada, restore tidak"*. Diukur, dan
+keadaannya lebih sempit dari itu:
+
+    tabel dengan is_deleted + deleted_at + deleted_by : 1  (`projects`)
+    endpoint DELETE di seluruh API                    : 34
+    endpoint restore                                  : 0
+
+Jadi bukan "restore-nya belum dibuat" — **33 dari 34 penghapusan bersifat
+permanen** dan tak meninggalkan apa pun untuk dipulihkan.
+
+### Yang dibangun, dan batas yang ditulis di layar
+
+Registry + jalur pulih untuk tabel yang MEMANG punya soft delete. Yang
+**tidak** dilakukan: mengubah 33 endpoint lain jadi soft delete — itu
+mengubah arti tombol "hapus" di 33 tempat tanpa seorang pun memutuskannya.
+
+Batas itu tidak disembunyikan. Layar menulisnya di atas daftar: *"kalau sebuah
+jenis tidak ada di sini, itu berarti tak bisa dipulihkan — bukan berarti belum
+pernah ada yang dihapus."* Daftar pendek yang jujur lebih berguna daripada
+daftar panjang yang menjanjikan pemulihan yang tak ada.
+
+### Tiga keputusan yang bukan kosmetik
+
+**`deleted_by` TIDAK dikosongkan saat pulih.** Yang dikosongkan hanya
+`is_deleted` dan `deleted_at`. Jejak siapa yang pernah menghapus itulah
+satu-satunya keterangan saat orang bertanya *"kenapa data ini sempat
+hilang?"* — menghapusnya membuat pemulihan menutupi penghapusan, dan
+riwayatnya bersih seolah tak pernah terjadi apa-apa.
+
+**`.eq('is_deleted', true)` ikut di WHERE**, bukan hanya diperiksa lebih dulu.
+Dua permintaan bersamaan sama-sama lolos pemeriksaan aplikasi, dan yang kedua
+akan "memulihkan" baris yang sudah pulih.
+
+**Tidak ada penghapusan otomatis.** Item lama hanya ditandai. Data yang hilang
+karena waktu berlalu baru disadari saat dicari, dan saat itu sudah terlambat —
+kalau kelak pembersihan otomatis diputuskan, ia harus jadi keputusan
+tersendiri, bukan efek samping sebuah konstanta.
+
+### Penjaganya dibuat BERSAMAAN, bukan sesudah cacatnya
+
+`audit-recycle-bin-nyata.mjs` mencocokkan registry dengan `information_schema`:
+tabelnya ada, punya ketiga kolom soft delete, `kolomNama` ada, tenancy cocok,
+dan izinnya terdaftar. Ambang NOL, terbukti MERAH pada empat mutasi.
+
+Di G6d penjaga serupa lahir SESUDAH cacatnya (`project_expenses.amount` yang
+tak ada). Kali ini dibuat bersamaan — itu pelajaran yang benar-benar dipakai,
+bukan sekadar dicatat.
+
+### Cacat yang ditemukan test, dan yang lolos mutasi
+
+**Umur −1 hari.** `deleted_at` diisi `now()` basis; kalau jam basis sedikit di
+depan jam proses yang membacanya, `Math.floor` membulatkan selisih negatif ke
+−1. Layar akan menampilkan "dihapus −1 hari lalu" — angka mustahil yang
+membuat pembacanya menyimpulkan jamnya rusak. Diperbaiki `Math.max(0, …)`.
+
+**Test race menguji lapisan yang salah** — lagi. Membuang `.eq('is_deleted',
+true)` dari WHERE tak membuat test merah, karena `periksaPulih` sudah
+menangkap permintaan kedua sebelum WHERE-nya pernah diuji. Ditambah test yang
+mengubah keadaan baris LANGSUNG DI BASIS setelah pemeriksaan aplikasi
+membacanya, lalu memastikan `updated_at` tak berubah. Kelas cacat ini sudah
+muncul di G1e, G1f, G2e, G3, G5 — dan sekarang di sini.
+
+**Satu mutasi tetap lolos** (`izin pulih tak diperiksa`): seluruh test berjalan
+sebagai admin yang memegang izin lihat MAUPUN pulih, jadi membuang gerbangnya
+tak mengubah apa pun untuknya. Membuktikannya menuntut fixture peran yang
+belum ada di harness. Dinyatakan di kode, tidak disembunyikan.
+
+### Bukti
+
+    tsc (api + web)      0
+    vitest recycle-bin   29 lulus (18 pustaka + 11 endpoint)
+    mutasi pustaka       11/11 MERAH
+    mutasi endpoint      8/9 MERAH (2 lolos → test ditambah → MERAH; 1 dinyatakan)
+    penjaga baru         MERAH pada 4 mutasi, hijau saat pulih
+    next build           nol error, /sistem/recycle-bin terdaftar
+    axe terang/gelap     0 pelanggaran
+    alur UI nyata        item terlihat · umur 45 hari berlencana · pulihkan
+                         berhasil · `deleted_by` TETAP ADA di basis
+    9 penjaga web + 7 penjaga API   hijau
+    migrasi 315          diterapkan, verifikasi menu & parent lulus
+
+---
+
 ## 2026-08-12 (lanjutan) — T5A: tiga puluh tabel mati total, dan izin yang harus DIUKUR bukan ditebak
 
 Migrasi 313 memperbaiki sepuluh tabel G5/G6/R-012 dan **menyebut** 30 sisanya
