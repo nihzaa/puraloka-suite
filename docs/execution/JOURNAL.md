@@ -5,6 +5,85 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — TJS-P3: importer, dan yang sudah ada ternyata persis bentuk yang hendak dicegah
+
+Item ini meminta lima hal, dan yang paling menentukan: *"commit ALL-OR-NOTHING
+dalam satu transaksi (bukan per-baris)"*.
+
+Yang ditemukan saat mengukur: repo ini SUDAH punya importer Excel
+(`routes/v1/rab.ts`), dan bentuknya persis yang item ini hendak cegah — ia
+**menghapus data lama lebih dulu**, lalu insert bertahap. Gagal di tengah
+berarti data lama hilang DAN data baru setengah jadi.
+
+### Kenapa commit lewat RPC plpgsql
+
+Supabase client tak punya transaksi. Menulis 500 baris berarti 500 permintaan
+terpisah; gagal di baris ke-300 meninggalkan 299 yang masuk.
+
+ (migrasi 316) adalah satu pemanggilan = satu pernyataan = satu
+transaksi. Blok verifikasinya membuktikan langsung di basis: dua baris, yang
+kedua melanggar NOT NULL — dan yang PERTAMA tidak tersisa.
+
+Daftar tabelnya TERTUTUP (, bukan ). Nama tabel dari luar
+yang disambung ke query adalah SQL injection, dan quoting hanya menunda
+masalahnya.
+
+### Kenapa pemetaan kolom deterministik, bukan AI
+
+Item ini memintanya, dan alasannya layak ditulis: impor terjadi SEKALI di awal
+onboarding, hasilnya jadi dasar seluruh data pelanggan, dan kesalahannya **tak
+terlihat** — kolom harga yang salah dipetakan ke stok menghasilkan angka wajar
+di kedua tempat.
+
+Skor kemiripan bisa dijelaskan, diulang, dan dikoreksi. Model bahasa yang
+menjawab berbeda pada dua unggahan identik tak bisa dipercaya untuk itu, dan
+pengguna tak punya cara tahu ia berubah pikiran.
+
+Semua pemetaan hanya USULAN, dan skornya ditampilkan — pengguna berhak tahu
+mana yang ditebak yakin.
+
+### Dua cacat parser yang ditemukan TEST
+
+** terbaca null.** Versi pertama hanya menangani angka berkoma
+desimal, sehingga titik-ribuan-tanpa-desimal jatuh ke cabang yang salah dan
+ = NaN. Harga hilang seluruhnya, dan validasi
+menolaknya sebagai "harus angka" — pesan yang membuat orang mengira berkasnya
+salah, padahal parsernya.
+
+**Kolom teks tak-wajib yang kosong dilaporkan galat.** Ditemukan mutasi: test
+pertama memakai kolom ANGKA, yang cabangnya berbeda. Kalau lolos, impor 500
+baris tanpa kolom opsional menghasilkan 500 galat palsu.
+
+### Tiga mutasi yang lolos, dan sebabnya satu
+
+Membuang validasi ulang di commit, membuang pemeriksaan galat, dan membuang
+pemeriksaan kolom wajib — ketiganya tak membuat test merah, karena **basis pun
+menolaknya** lewat NOT NULL dan status-nya sama-sama 400.
+
+Yang BERBEDA pesannya. Galat Postgres berbunyi  — kalimat yang tak menyebut BARIS KE BERAPA.
+Pada berkas 500 baris, itu berarti pengguna mencarinya sendiri.
+
+Test diperbaiki untuk menguji **isi  beserta nomor barisnya**, bukan
+sekadar status. Ketiganya MERAH sesudah itu. Kelas cacat yang sama dengan
+TJS-P1 kemarin: status yang benar tak membuktikan lapisan yang benar.
+
+### Bukti
+
+    tsc (api + web)      0
+    vitest importer      57 lulus (39 pustaka + 18 endpoint)
+    mutasi pustaka       15 MERAH, 1 dinyatakan (indexOf: hasil kebetulan sama)
+    mutasi endpoint      9/9 MERAH (3 lolos → test diperbaiki → MERAH)
+    next build           nol error, /sistem/impor terdaftar
+    axe terang/gelap     0 pelanggaran
+    alur UI NYATA        rusak → tak bisa commit, galat sebut baris 3 kolom Nama
+                         baik  → 3 baris masuk; diverifikasi ke basis, dan
+                         "82.500" tersimpan 82500 (bukan 82,5)
+    lint-ratchet         immutability kembali 4 sesudah fungsi dipindah keluar
+    8 penjaga web + 6 penjaga API   hijau
+    migrasi 316, 317     diterapkan; 316 membuktikan all-or-nothing di basis
+
+---
+
 ## 2026-08-12 (lanjutan) — TJS-P1: recycle bin, dan 33 penghapusan yang tak punya apa pun untuk dipulihkan
 
 Judul item ini berbunyi *"soft delete sudah ada, restore tidak"*. Diukur, dan

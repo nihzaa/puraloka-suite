@@ -1885,8 +1885,30 @@ items:
       TJS punya dua importer: wizard klasik (per-baris, tanpa rollback) dan
       Universal (all-or-nothing). Ambil wizard-nya, ambil transaksinya dari yang
       Universal — TJS sendiri menunjukkan mana yang benar.
+
+      ── SELESAI 2026-08-12 ────────────────────────────────────────────────
+      lib/importer.ts (39 test, 15 mutasi MERAH) · routes/v1/importer.ts
+      (18 test Postgres nyata, 9/9 mutasi MERAH) · migrasi 316 (impor_commit)
+      & 317 · /sistem/impor.
+
+      KELIMA kriteria terpenuhi, dan cara_verifikasi dibuktikan LEWAT UI:
+      berkas 1 baris rusak -> tak bisa commit (galat menyebut baris 3, kolom
+      Nama); diperbaiki -> 3 baris masuk seluruhnya, diverifikasi ke basis.
+
+      Yang ditemukan saat mengukur: importer RAB yang sudah ada (rab.ts)
+      adalah persis bentuk yang item ini hendak cegah — ia MENGHAPUS data
+      lama lebih dulu lalu insert bertahap. Gagal di tengah berarti data
+      lama hilang DAN data baru setengah jadi.
+
+      Commit lewat RPC plpgsql, bukan perulangan: Supabase client tak punya
+      transaksi. Daftar tabel TERTUTUP (CASE, bukan format %I) — nama tabel
+      dari luar adalah SQL injection.
+
+      Dua cacat parser ditemukan TEST: "1.250.000" terbaca null (titik ribuan
+      tanpa desimal tak tertangani), dan kolom teks tak-wajib yang kosong
+      dilaporkan sebagai galat.
     bobot: L
-    status: todo
+    status: done
 
   - id: TJS-P4
     fase: 6
