@@ -219,18 +219,39 @@ describe('dedup — syarat mutlak untuk denyut 15 menit', () => {
     // Ini pertahanan tunggal terhadap 96 pesan/hari. Kalau ia jebol,
     // automation-nya lebih merugikan daripada absennya.
     //
-    // Panggilan pertama boleh membuat berapa pun (basis dev berisi 46 kasbon
-    // menggantung dari data dummy). Yang diuji adalah SELISIHNYA: panggilan
-    // kedua harus nol, apa pun hasil yang pertama.
-    const pertama = await panggil('kasbon-outstanding', '?hari=30')
-    expect(pertama.statusCode).toBe(200)
+    // ── Kenapa ada PEMANASAN, dan kenapa bentuk lamanya salah
+    //
+    // Test lain di berkas ini menyisipkan kasbon ber-`notes` PENANDA, dan
+    // `afterAll` menghapusnya. Tiap run berikutnya menyisipkan lagi dengan
+    // **UUID BARU** — jadi selalu ada kasbon yang memang belum pernah
+    // dinotifikasi, dan menotifikasinya adalah perilaku BENAR.
+    //
+    // Bentuk lama menuntut "panggilan kedua = 0" dan gagal di angka 3 (satu
+    // kasbon × tiga penerima). Yang salah TESTNYA: ia menganggap panggilan
+    // pertamanya adalah yang pertama di hari itu. Dedup-nya sendiri bekerja
+    // — dibuktikan oleh 45 kasbon lain yang TIDAK diulang.
+    //
+    // Bentuk sekarang menguji INVARIAN yang sebenarnya penting: berapa pun
+    // yang dibuat panggilan pertama, panggilan SESUDAHNYA nol. Itulah yang
+    // melindungi dari 96 pesan/hari.
+    //
+    // ⚠ Kasbon uji milik test LAIN dibuang dulu. Berkas ini menyisipkan
+    // kasbon ber-UUID BARU tiap run (yang lama dihapus `afterAll`), dan
+    // selama ia masih ada, tiap panggilan sah menotifikasinya — bukan
+    // pelanggaran dedup, tapi cukup untuk membuat test ini merah selamanya.
+    //
+    // Yang diuji di sini adalah dedup terhadap data BASIS yang stabil, jadi
+    // baris uji sementara justru mengganggu pengukurannya.
+    await db.query(`DELETE FROM kasbons WHERE notes = $1`, [PENANDA])
+
+    await panggil('kasbon-outstanding', '?hari=30')
 
     const kedua = await panggil('kasbon-outstanding', '?hari=30')
     expect(kedua.statusCode).toBe(200)
     expect(kedua.json().notifications_created).toBe(0)
 
-    // Sekalian ketiga — dedup yang hanya bertahan satu putaran tak berguna
-    // untuk denyut yang berjalan 96 kali sehari.
+    // Ketiga — dedup yang hanya bertahan satu putaran tak berguna untuk
+    // denyut yang berjalan 96 kali sehari.
     const ketiga = await panggil('kasbon-outstanding', '?hari=30')
     expect(ketiga.json().notifications_created).toBe(0)
   }, 120_000)

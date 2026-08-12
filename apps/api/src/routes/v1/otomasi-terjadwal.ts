@@ -299,14 +299,14 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     if (eLaporan) return reply.status(500).send({ error: eLaporan.message })
 
     const sudahLapor = new Set(
-      (laporan ?? []).map(l => `${l.project_id} ${l.reported_by}`),
+      (laporan ?? []).map(l => `${l.project_id} ${l.reported_by}`),
     )
     const namaProyek = new Map((proyek ?? []).map(p => [p.id, p.name]))
 
     let dibuat = 0
     let belum = 0
     for (const t of penugasan ?? []) {
-      if (sudahLapor.has(`${t.project_id} ${t.mandor_id}`)) continue
+      if (sudahLapor.has(`${t.project_id} ${t.mandor_id}`)) continue
       belum++
 
       // Kunci sintetis: tak ada satu baris pun yang mewakili "ketiadaan
@@ -489,11 +489,11 @@ async function pembuatDedup(request: FastifyRequest, today: string, tipe: string
   const terkirim = new Set<string>()
   for (const n of data ?? []) {
     const rid = (n.action_data as { record_id?: unknown } | null)?.record_id
-    if (typeof rid === 'string') terkirim.add(`${n.type} ${rid}`)
+    if (typeof rid === 'string') terkirim.add(`${n.type} ${rid}`)
   }
 
   // Sinkron: pemanggilnya tetap `await`-able tanpa menyentuh basis lagi.
   return function sudahDikirim(type: string, recordId: string): boolean {
-    return terkirim.has(`${type} ${recordId}`)
+    return terkirim.has(`${type} ${recordId}`)
   }
 }

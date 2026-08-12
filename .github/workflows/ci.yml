@@ -493,6 +493,26 @@ jobs:
       - name: Kredensial yang dibaca punya tempat diisi
         run: node scripts/audit-kredensial-punya-tempat.mjs
 
+      # Byte kontrol TAK KASAT MATA di kode sumber (NUL, BEL, ESC, dst).
+      #
+      # Lahir dari cacat nyata 2026-08-12: dedup automation kasbon menulis
+      # kunci ber-NUL (`${type}<NUL>${id}`) lalu mencarinya dengan SPASI.
+      # Panjang string sama, tampilan identik di editor/diff/log, TypeScript
+      # menerima keduanya sebagai `string` — dan notifikasi terkirim ulang
+      # tiap denyut penjadwal tanpa satu pun gejala.
+      #
+      # Biayanya lima putaran diagnosis salah sebelum ketemu. Asalnya bukan
+      # diketik manusia melainkan skrip `node -e` yang memangsa spasi jadi
+      # NUL — cacat yang lahir dari ALAT, jadi ia akan berulang.
+      #
+      # Penjaga ini juga langsung menemukan satu contoh LAMA di
+      # `extract-harga-analisa-cibuluh.mjs` pada jalan pertamanya.
+      #
+      # Ambang NOL: tak ada alasan sah menaruh byte kontrol mentah di kode.
+      # Kalau memang perlu, tulis sebagai escape TERLIHAT (`' '`).
+      - name: Nol byte kontrol tersembunyi di kode sumber
+        run: node scripts/audit-byte-kontrol.mjs
+
       # Jatuhan .env tak boleh bertambah. process.env SATU untuk seluruh
       # proses, jadi tiap kunci berjatuhan adalah satu kunci yang diam-diam
       # dibagi antar-tenant: ANTHROPIC memakai kunci pemilik server

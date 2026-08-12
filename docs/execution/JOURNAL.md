@@ -125,6 +125,62 @@ menaikkan ambang:
 
 Ratchet kembali hijau di 366, 17 test automation tetap lulus.
 
+### Cacat KEENAM: satu byte yang tak kasat mata, dan lima diagnosis salah
+
+Test dedup 2.10 merah dan **saya gagal menemukannya lima kali berturut-turut.**
+Layak dicatat lengkap, karena kelas cacatnya akan berulang.
+
+Gejalanya: panggilan kedua tetap membuat 138 notifikasi. Sebabnya satu byte:
+
+    terkirim.add(`${n.type}<NUL>${rid}`)     ← ditulis: NUL (kode 0)
+    terkirim.has(`${type} ${recordId}`)      ← dicari: SPASI
+
+Panjang string **SAMA** (55 karakter). Di editor, `git diff`, `console.log`,
+dan seluruh keluaran test — keduanya terlihat **identik**. TypeScript
+menerima keduanya sebagai `string`. Lint diam. Test unit lolos saat barisnya
+masih sedikit.
+
+**Lima perbaikan yang saya buat berdasarkan hipotesis, semuanya salah:**
+paging PostgREST 1000-baris · `ORDER BY` untuk LIMIT/OFFSET · zona waktu
+`sent_at` · urutan antar-`it` · isolasi fixture. Tiap hipotesis masuk akal,
+tiap perbaikannya sah secara teknis, **tak satu pun menyentuh sebabnya.**
+
+Yang akhirnya menemukannya: berhenti menebak, lalu mencetak
+`JSON.stringify` **di titik perbandingan** — satu-satunya tempat yang
+memunculkan `<NUL>`. Pelajarannya keras dan sederhana: **saya memperbaiki
+sebelum membuktikan**, empat kali.
+
+Asalnya bukan diketik manusia. Skrip `node -e` yang saya pakai untuk menulis
+berkas memangsa spasi di dalam template literal jadi NUL. **Cacat yang lahir
+dari ALAT**, bukan kelalaian — dan itu justru membuatnya pasti berulang.
+
+Karena itu ia tidak cukup diperbaiki, ia dijaga: `audit-byte-kontrol.mjs`
+(ambang NOL, terpasang di CI). Pada jalan **pertamanya** ia langsung
+menemukan satu contoh LAMA di `extract-harga-analisa-cibuluh.mjs` — cacat
+yang sama, ditulis sesi lain, tak pernah terdeteksi. Ikut dibersihkan.
+
+Mutasi penjaga: HIJAU → NUL disuntik → **MERAH** → dipulihkan → HIJAU.
+
+Satu detail yang menegaskan betapa liciknya: saat menulis komentar CI yang
+MENJELASKAN cacat ini, tool edit saya **menyisipkan NUL sungguhan** ke
+`ci.yml`. Mendokumentasikannya pun mengulanginya.
+
+### Tujuh berkas merah lain: ENAM sudah merah sebelum saya mulai
+
+Diukur, bukan diasumsikan. Saya kembalikan `apps/api/src` + `scripts` ke
+commit dasar `36581478`, lalu menjalankan ketujuhnya:
+
+    di commit DASAR → 6 berkas MERAH (7 test gagal)
+
+Keenamnya menyangkut RLS/tenancy dan GL: `t5a-policy-tenant`,
+`t5b-kill-switch`, `t7-exit-criteria-l2`, `rls-ownership-recursion`,
+`gl-api`, `submittal-aturan`. Tak satu pun saya sentuh — dan `T5A-PERMISSIVE`
+di `QUEUE.yaml` memang sudah mencatat sebagiannya sebagai merah di main.
+
+Yang ketujuh (`audit-mutu-endpoint`) **HIJAU** saat dijalankan sendiri di
+commit dasar maupun sesudahnya — gejala berbagi-basis antar-test paralel,
+bukan regresi.
+
 ### Satu temuan yang saya laporkan terlalu cepat
 
 Saya sempat menyampaikan ke founder bahwa grup **"AI & Otomasi" tidak punya
