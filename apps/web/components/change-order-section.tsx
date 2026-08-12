@@ -701,14 +701,31 @@ function CreateCoModal({
             style={{ ...inpStyle, resize: "vertical" }} />
         </div>
 
+        {/* ── Mode penagihan: pilihan yang MENENTUKAN, bukan pelengkap ────
+            Sampai 2026-08-13 kolom ini disimpan tapi tak pernah dibaca satu
+            baris kode pun, dan approve menaikkan nilai kontrak untuk SEMUA CO
+            — termasuk yang ditandai "tagihan tersendiri". Sekarang ia
+            menentukan, jadi akibat tiap pilihan dinyatakan di sini alih-alih
+            dibiarkan jadi istilah yang harus ditebak. */}
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <label htmlFor="billing-mode" style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase" }}>Mode Penagihan</label>
-          <select id="billing-mode" aria-label="Mode penagihan change order" value={billingMode} onChange={e => setBillingMode(e.target.value)} style={inpStyle}>
+          <select id="billing-mode" aria-label="Mode penagihan change order"
+            aria-describedby="billing-mode-bantu"
+            value={billingMode} onChange={e => setBillingMode(e.target.value)} style={inpStyle}>
             <option value="">— Belum ditentukan —</option>
             <option value="include_termin">Termasuk dalam Termin</option>
             <option value="separate_co">Tagihan CO Tersendiri</option>
             <option value="final_account">Final Account Settlement</option>
           </select>
+          <p id="billing-mode-bantu" style={{ fontSize: 11, color: C.muted, margin: 0, lineHeight: 1.5 }}>
+            {billingMode === "include_termin"
+              ? "Nilai kontrak naik sebesar CO ini, dan IPC berikutnya otomatis menagihnya sesuai progres."
+              : billingMode === "separate_co"
+                ? "Nilai kontrak TIDAK naik — tagihannya diterbitkan tersendiri, supaya pekerjaan yang sama tidak ikut tertagih lewat IPC."
+                : billingMode === "final_account"
+                  ? "Ditahan sampai perhitungan akhir. Nilai kontrak tidak berubah sekarang."
+                  : "Boleh dikosongkan sekarang, tetapi WAJIB dipilih sebelum CO ini bisa disetujui — pilihan inilah yang menentukan apakah nilai kontrak naik."}
+          </p>
         </div>
 
         {err && (

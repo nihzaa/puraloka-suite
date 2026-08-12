@@ -5,6 +5,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { periksaPenyetujuanCo } from '../../lib/penagihan-co.js'
 import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan , periksaGerbangSod } from '../../utils/approval.js'
 
 const CO_SELECT = `
@@ -599,7 +600,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       const { data: coFull } = await supabase
         .from('change_orders')
         .select(`
-          id, status, project_id, co_number, title, total_amount_delta,
+          id, status, project_id, co_number, title, total_amount_delta, billing_mode,
           items:change_order_items ( id, item_type, rab_item_id, description, unit, volume_delta, unit_price, amount_delta )
         `)
         .eq('id', id)
@@ -661,6 +662,25 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             message: `Persetujuan level ${decision.step.level} tercatat. Menunggu persetujuan level ${next?.level ?? '-'}.`,
           })
         }
+      }
+
+      // ── CARA PENAGIHAN diperiksa SEBELUM apa pun disentuh ──────────────
+      //
+      // `billing_mode` ada sejak migrasi 053 dan diterima rute ini sejak awal,
+      // tetapi disisir 2026-08-13: TAK SATU PUN baris kode membacanya. Ketiga
+      // nilainya hanya muncul di CHECK constraint yang mendefinisikannya.
+      //
+      // Akibatnya langkah 2 di bawah menaikkan `contract_value` untuk SEMUA CO
+      // yang disetujui — termasuk yang ditandai `separate_co`, yang justru
+      // berarti "jangan tagih lewat termin". IPC lalu menagihnya lewat progres,
+      // dan bila tagihan terpisahnya juga terbit, pekerjaan yang sama tertagih
+      // dua kali tanpa satu pun galat.
+      const caraTagih = periksaPenyetujuanCo({
+        billingMode: coFull.billing_mode,
+        deltaNilai: coFull.total_amount_delta,
+      })
+      if (!caraTagih.boleh) {
+        return reply.status(422).send({ error: caraTagih.sebab })
       }
 
       // Get current project contract_value and RAB total
@@ -733,7 +753,11 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       // Hasilnya tetap DIPERIKSA — nilai kontrak adalah angka yang dipakai
       // seluruh laporan, dan kegagalan senyap di sini berarti CO tercatat
       // disetujui sementara nilainya tak pernah berubah.
-      const newContractValue = (project.contract_value ?? 0) + coFull.total_amount_delta
+      // HANYA `include_termin` yang menaikkan nilai kontrak. Dua cara lain
+      // ditagih di luar jalur termin; menaikkannya membuat IPC ikut menagih.
+      const newContractValue = caraTagih.naikkanKontrak
+        ? (project.contract_value ?? 0) + coFull.total_amount_delta
+        : (project.contract_value ?? 0)
       // `.select('id')` supaya NOL BARIS terbarui tak menyamar jadi sukses.
       // Ini yang paling mahal kalau lolos: change order tercatat disetujui,
       // nilai kontrak proyek TIDAK berubah, dan selisihnya baru ketahuan saat

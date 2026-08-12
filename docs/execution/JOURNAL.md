@@ -107,6 +107,94 @@ menghijaukan angka.
 
 ---
 
+## 2026-08-13 (lanjutan 2) — kolom yang ditulis dengan patuh lalu diabaikan sepenuhnya
+
+### Temuan pokok: `billing_mode` tak pernah dibaca satu baris pun
+
+`change_orders.billing_mode` ada sejak migrasi 053 dengan tiga nilai —
+`include_termin`, `separate_co`, `final_account`. Rutenya menulisnya
+(`change-orders.ts:190`, `:240`), formulir mengisinya, dan badge di UI
+menampilkannya.
+
+Disisir 2026-08-13 di seluruh `apps/api/src`, `apps/web/app`, `apps/web/lib`:
+**ketiga nilai itu hanya muncul SEKALI di seluruh repo** — di CHECK constraint
+migrasi 053 yang mendefinisikannya.
+
+Akibatnya bukan "fitur belum jalan". Approve menaikkan `contract_value` untuk
+SEMUA CO (`change-orders.ts:736`), lalu `sertifikat-ipc.ts:163` membekukan
+angka itu dan menagih progres × nilai kontrak. Jadi CO bertanda `separate_co`
+— yang justru berarti "JANGAN tagih lewat termin" — tetap tertagih lewat
+termin. Bila tagihan terpisahnya juga terbit, pekerjaan yang sama tertagih
+**dua kali**, dan tak ada satu pun galat: kedua angka benar menurut jalurnya.
+
+Kelas cacat yang sama dengan `kasbons.settled_at` (dibaca keuangan, tak pernah
+ditulis) dan `sdm:pegawai:*` (permission ada, rute nol).
+
+### Tiga catatan Peta Modul yang keliru, bukan pekerjaan yang kurang
+
+- **`tg-tambah`** menulis "penarikan CO ke tagihan kini disalin manual".
+  Salah — CO `include_termin` SUDAH mengalir otomatis, dan `change-orders.ts`
+  bahkan sudah menjaga race condition penambahan ganda. Yang benar-benar
+  rusak adalah `billing_mode` yang tak dibaca.
+
+- **`crm-lead`** ditandai `sebagian` menunggu pekerjaan. Padahal CRM pipeline
+  penuh **sengaja dicoret** (`PETA-PRIORITAS-ERP.md` §Sengaja tidak dibangun,
+  ditegaskan migrasi 147:15-20), dan register tender `bids` sudah memikul
+  perannya dengan halaman 571 baris.
+
+- **`sk-paket`** (dikoreksi di commit sebelumnya) menyebut "nol tabel
+  `paket_subkon`" seolah kekurangan, padahal `work_scopes` +
+  `work_scope_items` memikulnya penuh.
+
+### Dan dua menu aktif menunjuk halaman yang TAK PERNAH ADA
+
+`crm-lead` → `/crm/prospek`, `crm-proposal` → `/crm/penawaran`. Tidak ada
+direktori `crm/` sama sekali di `apps/web/app/(dashboard)/`. Keduanya AKTIF,
+jadi siapa pun yang mengkliknya menemui 404.
+
+### Penjaga yang membetulkan saya, lagi
+
+Rancangan pertama migrasi 349 mengarahkan keduanya ke `/tender` sebagai tautan
+aktif. `audit-menu-berbagi-href` MERAH: `/tender` sudah dipegang baris
+"Register Tender" — aturan 232, satu rute satu tautan aktif. Penjaganya benar;
+keduanya dinonaktifkan, bukan diarahkan.
+
+### Bukti
+
+- `lib/penagihan-co.ts` — 19 test hijau, 7 mutasi merah lalu pulih
+- `co-billing-mode.test.ts` — 11 hijau terhadap Postgres nyata, 3 mutasi merah.
+  **M2 mengembalikan perilaku lama persis** (`newContractValue` selalu naik)
+  dan test langsung merah — membuktikan test ini menangkap cacat aslinya.
+- Migrasi 348 (3 mutasi merah): tipe `change_order_billing`, kolom penunjuk,
+  satu tagihan aktif per CO, trigger yang menolak menagih CO `include_termin`.
+  Diuji pada data nyata: CO-001 ditolak dengan kalimat yang menjelaskan sebabnya.
+- Migrasi 349 (2 mutasi merah) + verifikasi tambahan "nol href aktif kembar"
+  yang lahir DARI penjaga yang memerahkan saya.
+- 21 test change-order lama tetap hijau — perubahan tak merusak jalur mereka.
+- Penjaga API 9/9, penjaga menu 6/6.
+
+### Catatan jujur tentang mutasi migrasi 348
+
+M2 (kolom tak dibuat) dan M3 (indeks tak dibuat) **LOLOS** saat dijalankan
+pada basis yang sudah bermigrasi — menghapus perintah pembuat tak mengubah
+apa pun karena artefaknya sudah ada. Diulang setelah menurunkan artefaknya
+lebih dulu: keduanya MERAH. Verifikasinya benar; mutasi pertamanya yang tak
+bermakna di lingkungan itu.
+
+### Yang TIDAK dikerjakan
+
+- **UI penerbitan tagihan CO tersendiri.** Basis dan aturannya siap
+  (`invoice_type = 'change_order_billing'`), tetapi halaman penerbitannya
+  pekerjaan tersendiri.
+- **Takeoff dimensional umum** (`crm-boq` tetap `sebagian`). Yang ada baru
+  geometri besi & baja profil (migrasi 122); volume beton/galian/pasangan
+  masih angka jadi tanpa jejak perhitungan dari gambar.
+- **Dokumen penawaran ke klien** (`crm-proposal` → `direncanakan`). Yang ada
+  baru ANGKA (`bids.bid_value`), bukan dokumennya. Generator PDF sudah terbukti
+  di `contracts.ts` dan polanya bisa dipakai ulang.
+
+---
+
 ## 2026-08-13 (lanjutan) — subkon: modul yang berhenti tepat sebelum gunanya
 
 ### Yang ditemukan sebelum menulis kode
