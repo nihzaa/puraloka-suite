@@ -1939,9 +1939,33 @@ items:
       permissive" melainkan "30 tabel tanpa permissive". Dua masalah yang
       berlawanan arah, dan yang membaca judulnya akan mencari yang salah.
 
+      ── SELESAI 2026-08-12 (migrasi 314) ─────────────────────────────────
+      Tabel mati total sekarang **NOL** (dari 40 → 30 → 0).
+
+      Izin baca tiap tabel DIUKUR dari rute yang benar-benar membacanya
+      (`requirePermission` pada endpoint yang menyentuhnya), lalu diverifikasi
+      ADA di tabel `permissions` — bukan ditebak dari nama tabel. Dua tebakan
+      tertangkap saat mengukur: `tarif_payroll_*` ternyata punya rutenya
+      sendiri (`payroll:tarif:view`, bukan `payroll:jalankan:view`), dan
+      `pegawai` dipakai LIMA rute sehingga ia master data SDM.
+
+      Isolasi tenant TIDAK dilonggarkan: `(OR PERMISSIVE) AND (AND
+      RESTRICTIVE)` berarti yang restriktif tetap harus lolos. Blok verifikasi
+      memeriksa keduanya masih terpasang pada ketiga puluh tabel.
+
+      Keempat test RLS hijau (t5a, t5a0, t7, f2-3), dan 196 test modul
+      terdampak (K3, mutu, cuti, payroll, kompetensi, timesheet, risiko) tetap
+      lulus sesudah policy ditambahkan.
+
       Kelasnya sama dengan yang dicatat di spec lapisan AI (§5.4): perlindungan
       tenant di repo ini bertumpu pada penyaringan aplikasi, dan policy RLS-nya
       belum bisa diandalkan sebagai lapis kedua. Ditulis sebagai item tersendiri
       supaya tak tenggelam di antara pekerjaan AI.
+
+      ⚠ Yang TIDAK dijawab item ini: apakah RLS kini bisa diandalkan sebagai
+      lapis kedua. Yang dibuktikan hanya bahwa tiap tabel punya policy yang
+      SAH BENTUKNYA — bukan bahwa predikatnya benar untuk setiap peran.
+      Membuktikan itu menuntut pengujian dengan sesi tiap peran, bukan
+      koneksi service-role. Item tersendiri kalau kelak dibutuhkan.
     bobot: M
-    status: todo
+    status: done

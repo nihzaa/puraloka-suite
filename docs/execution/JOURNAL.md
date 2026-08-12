@@ -5,6 +5,81 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — T5A: tiga puluh tabel mati total, dan izin yang harus DIUKUR bukan ditebak
+
+Migrasi 313 memperbaiki sepuluh tabel G5/G6/R-012 dan **menyebut** 30 sisanya
+tak disentuh, dengan alasan: *"tiap tabel butuh penilaian izin mana yang tepat
+untuk membacanya."* Migrasi 314 melakukan penilaian itu.
+
+### Bagaimana izin ditentukan
+
+Bukan dari nama tabel, bukan dari modul yang "sepertinya" memilikinya —
+melainkan dari **rute yang benar-benar membacanya**: `grep` ke `routes/v1/*.ts`
+mencari `requirePermission` pada endpoint yang menyentuh tabel itu, lalu
+diverifikasi izinnya ADA di tabel `permissions`.
+
+Dua tebakan tertangkap saat mengukur:
+
+- **`tarif_payroll_*`** — semula saya kira `payroll:jalankan:view` karena
+  `payroll-staf.ts` menyebutnya. Ternyata ia punya rutenya sendiri
+  (`tarif-payroll.ts`) dengan `payroll:tarif:view`.
+- **`pegawai`** — dipakai LIMA rute berbeda, jadi ia master data SDM, bukan
+  milik satu modul. Diberi empat izin yang benar-benar membacanya.
+
+### Arah kesalahan yang menentukan bentuknya
+
+Policy yang terlalu **sempit** merusak fitur yang bekerja — terlihat segera.
+Policy yang terlalu **longgar** membuka data diam-diam — tak terlihat sama
+sekali.
+
+Karena itu tak ada satu pun tabel yang diberi izin di luar modulnya, dan
+`penilaian_kinerja` justru diberi DUA izin: ia dibaca lewat endpoint
+ber-izin `sdm:sertifikat:view` tetapi punya `sdm:kinerja:view` sendiri.
+Memilih satu saja akan mematikan fitur yang sudah jalan.
+
+### Isolasi tenant tidak dilonggarkan
+
+`(OR PERMISSIVE) AND (AND RESTRICTIVE)` — menambah permissive tak melebarkan
+akses lintas tenant, karena yang restriktif tetap harus lolos. Blok verifikasi
+memeriksa **keduanya** masih terpasang pada ketiga puluh tabel, dan menolak
+kalau salah satunya hilang.
+
+### Cacat test yang ikut ketahuan
+
+`kompetensi-sdm-endpoint` merah sejak 2026-08-09 dan saya kira regresi RLS.
+Bukan. Test-nya memakai kualifikasi SUNGGUHAN `'Ahli Madya'`, dan `PEG-001`
+(data dummy) memegang SKA Ahli Madya berlaku sampai 2027.
+
+Akibatnya: test *"syarat 2 orang TIDAK terpenuhi karena satu sertifikat mati"*
+justru menemukan DUA yang hidup dan menjawab `cukup: true`. Yang gagal
+test-nya — tetapi pesannya menunjuk logika periksa-syarat, jadi ia terbaca
+sebagai cacat modul.
+
+Diperbaiki dengan memberi prefiks `[TEST-KM]` pada kualifikasinya, sama seperti
+`nomor_induk` dan `nama` di berkas itu. **Ini kelas cacat keempat kalinya di
+sesi ini** (markup, baseline, k3-lapangan, dan sekarang kompetensi): test yang
+mengandaikan basis kosong akan merah pada orang berikutnya.
+
+### Yang TIDAK dijawab, dan disebut supaya tak terbaca sebaliknya
+
+Yang dibuktikan hanya bahwa tiap tabel punya policy yang **sah bentuknya** —
+bukan bahwa predikatnya benar untuk setiap peran. Membuktikan itu menuntut
+pengujian dengan sesi tiap peran, bukan koneksi service-role.
+
+### Bukti
+
+    tabel mati total       40 → 30 → 0
+    test RLS               4 berkas, 21 test — hijau seluruhnya
+    modul terdampak        196 lulus (K3, mutu, cuti, payroll, kompetensi,
+                           timesheet, risiko) SESUDAH policy ditambahkan
+    kompetensi-sdm         28 lulus, dua run berturut
+    6 penjaga RLS/migrasi  hijau
+    tsc                    0
+    migrasi 314            diterapkan; verifikasi menolak kalau permissive
+                           maupun restrictive hilang
+
+---
+
 ## 2026-08-12 (sapu akhir) — tujuh tabel yang saya bangun ternyata MATI TOTAL
 
 R-011 tuntas (34 item). Sapu akhir menjalankan seluruh test API — dan test

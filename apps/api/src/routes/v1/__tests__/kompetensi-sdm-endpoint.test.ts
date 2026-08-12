@@ -116,7 +116,7 @@ describe('POST /sdm/pegawai/:id/sertifikat', () => {
 
   it('sertifikat berjangka tersimpan dengan tanggalnya', async () => {
     const r = await kirim('POST', `/api/v1/sdm/pegawai/${pegawaiId}/sertifikat`, {
-      jenis: 'SKA', nama: '[TEST-KM] Ahli Madya', kualifikasi: 'Ahli Madya',
+      jenis: 'SKA', nama: '[TEST-KM] Ahli Madya', kualifikasi: '[TEST-KM] Ahli Madya',
       klasifikasi: 'Teknik Bangunan Gedung',
       tanggal_terbit: '2024-01-15', berlaku_sampai: '2027-01-15',
     })
@@ -167,20 +167,38 @@ describe('GET /sdm/pegawai/:id/kompetensi', () => {
   })
 })
 
+/**
+ * ── Kenapa kualifikasinya berprefiks `[TEST-KM]`
+ *
+ * Semula test ini memakai `'Ahli Madya'` — kualifikasi SUNGGUHAN, dan itu
+ * membuatnya merah selamanya di basis yang punya data dummy: `PEG-001`
+ * memegang SKA Ahli Madya yang berlaku sampai 2027.
+ *
+ * Akibatnya, test "syarat 2 orang TIDAK terpenuhi karena satu sertifikat
+ * mati" justru menemukan DUA yang hidup (satu fixture + satu dummy) dan
+ * menjawab `cukup: true`. Yang gagal test-nya, bukan kodenya — tetapi
+ * pesannya menunjuk logika periksa-syarat, jadi ia terbaca sebagai cacat
+ * modul.
+ *
+ * Prefiks membuat kualifikasi ini milik test seorang diri, sama seperti
+ * `nomor_induk` dan `nama` di berkas ini. Pelajaran yang sama sudah dibayar
+ * di test markup, baseline, dan k3-lapangan pada sesi 2026-08-12: **test
+ * yang mengandaikan basis kosong akan merah pada orang berikutnya.**
+ */
 describe('POST /sdm/periksa-syarat — inti alasan modul ini ada', () => {
   beforeAll(async () => {
     // Pegawai kedua: SKA yang SUDAH kedaluwarsa.
     await client.query(
       `INSERT INTO sertifikat_pegawai (pegawai_id, jenis, nama, kualifikasi,
                                        tanggal_terbit, berlaku_sampai, berjangka)
-       VALUES ($1, 'SKA', '[TEST-KM] Mati', 'Ahli Madya',
+       VALUES ($1, 'SKA', '[TEST-KM] Mati', '[TEST-KM] Ahli Madya',
                '2020-01-01', '2025-01-01', true)`, [pegawaiId2])
   })
 
   it('syarat terpenuhi oleh sertifikat yang MASIH berlaku', async () => {
     const r = await kirim('POST', '/api/v1/sdm/periksa-syarat', {
       pada: '2026-08-11',
-      syarat: [{ jenis: 'SKA', kualifikasi: 'Ahli Madya', jumlah: 1 }],
+      syarat: [{ jenis: 'SKA', kualifikasi: '[TEST-KM] Ahli Madya', jumlah: 1 }],
     })
     expect(r.statusCode).toBe(200)
     expect(r.json().semua_terpenuhi).toBe(true)
@@ -191,7 +209,7 @@ describe('POST /sdm/periksa-syarat — inti alasan modul ini ada', () => {
     // TIDAK terpenuhi.
     const r = await kirim('POST', '/api/v1/sdm/periksa-syarat', {
       pada: '2026-08-11',
-      syarat: [{ jenis: 'SKA', kualifikasi: 'Ahli Madya', jumlah: 2 }],
+      syarat: [{ jenis: 'SKA', kualifikasi: '[TEST-KM] Ahli Madya', jumlah: 2 }],
     })
     const h = r.json().hasil[0]
     // Tender yang dipenuhi sertifikat kedaluwarsa adalah dokumen palsu di
@@ -204,7 +222,7 @@ describe('POST /sdm/periksa-syarat — inti alasan modul ini ada', () => {
   it('pada tanggal SAAT sertifikat itu masih hidup, ia menghitung', async () => {
     const r = await kirim('POST', '/api/v1/sdm/periksa-syarat', {
       pada: '2024-06-01',
-      syarat: [{ jenis: 'SKA', kualifikasi: 'Ahli Madya', jumlah: 1 }],
+      syarat: [{ jenis: 'SKA', kualifikasi: '[TEST-KM] Ahli Madya', jumlah: 1 }],
     })
     const h = r.json().hasil[0]
     expect(h.pemenuhi.map((x: { pegawai_id: string }) => x.pegawai_id))
