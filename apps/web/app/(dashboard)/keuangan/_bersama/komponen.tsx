@@ -49,7 +49,7 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }:
       onMouseEnter={e => { if (!overdue) e.currentTarget.style.background = "var(--surface-subtle)"; }}
       onMouseLeave={e => { e.currentTarget.style.background = overdue ? "var(--surface-subtle)" : "transparent"; }}
     >
-      <td style={{ padding: "12px 12px" }}>
+      <td style={{ padding: "var(--pad-baris)" }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: C.navy, fontFamily: "var(--font-display)", marginBottom: 2 }}>
           {inv.invoice_number}
         </div>
@@ -58,30 +58,30 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }:
           {inv.termin_schedules && ` · Termin ${inv.termin_schedules.termin_number}`}
         </div>
       </td>
-      <td style={{ padding: "12px 12px" }}>
+      <td style={{ padding: "var(--pad-baris)" }}>
         <div style={{ fontSize: 13, fontWeight: 500, color: C.text, marginBottom: 2 }}>{inv.projects?.name ?? "—"}</div>
         {inv.projects?.location && <div style={{ fontSize: 11, color: C.muted }}>{inv.projects.location}</div>}
       </td>
-      <td style={{ padding: "12px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 13, fontWeight: 600, color: C.text }}>
+      <td style={{ padding: "var(--pad-baris)", textAlign: "right", fontFamily: "monospace", fontSize: 13, fontWeight: 600, color: C.text }}>
         {fmt(Number(inv.total_amount))}
       </td>
-      <td style={{ padding: "12px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 13, color: C.green }}>
+      <td style={{ padding: "var(--pad-baris)", textAlign: "right", fontFamily: "monospace", fontSize: 13, color: C.green }}>
         {fmt(Number(inv.amount_paid))}
       </td>
-      <td style={{ padding: "12px 12px", textAlign: "right", fontFamily: "monospace", fontSize: 13, fontWeight: 600, color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>
+      <td style={{ padding: "var(--pad-baris)", textAlign: "right", fontFamily: "monospace", fontSize: 13, fontWeight: 600, color: Number(inv.amount_due) > 0 ? C.yellow : C.green }}>
         {fmt(Number(inv.amount_due))}
       </td>
-      <td style={{ padding: "12px 12px", textAlign: "right" }}>
+      <td style={{ padding: "var(--pad-baris)", textAlign: "right" }}>
         <div style={{ fontSize: 12, color: overdue ? C.red : dueSoon ? C.yellow : C.mid, fontWeight: overdue || dueSoon ? 600 : 400 }}>
           {fmtDate(inv.due_date)}
         </div>
         {overdue && <div style={{ fontSize: 10, color: C.red }}>{Math.abs(days)}h lewat</div>}
         {dueSoon && <div style={{ fontSize: 10, color: C.yellow }}>{days}h lagi</div>}
       </td>
-      <td style={{ padding: "12px 12px", textAlign: "center" }}>
+      <td style={{ padding: "var(--pad-baris)", textAlign: "center" }}>
         <StatusBadge status={overdue ? "overdue" : inv.status} map={INVOICE_STATUS} />
       </td>
-      <td style={{ padding: "12px 12px", textAlign: "center" }}>
+      <td style={{ padding: "var(--pad-baris)", textAlign: "center" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
           {canEdit && inv.status !== "paid" && inv.status !== "cancelled" && (
             <button
@@ -514,7 +514,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
 
                 {/* Pilih dari pengeluaran */}
-                <div style={{ padding: "12px 12px", borderRadius: 6, background: "var(--success-bg)", border: "1px solid var(--success-border)" }}>
+                <div style={{ padding: "var(--pad-baris)", borderRadius: 6, background: "var(--success-bg)", border: "1px solid var(--success-border)" }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: "var(--on-success-bg)", marginBottom: 8 }}>
                     Pengeluaran Tersedia ({billableExpenses.length})
                   </div>
@@ -614,7 +614,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
 
             {/* ── COMMISSION FEE: nominal fee saja ── */}
             {isCommFee && (
-              <div style={{ padding: "12px 12px", borderRadius: 6, background: "var(--navy-light)", border: "1px solid #C4B5FD", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ padding: "var(--pad-baris)", borderRadius: 6, background: "var(--navy-light)", border: "1px solid #C4B5FD", display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--aksen-pekat)" }}>Fee Komisi</div>
                 {commissionFeeSuggest && (
                   <div style={{ background: "var(--surface)", borderRadius: 6, padding: "8px 12px", fontSize: 12, display: "flex", flexDirection: "column", gap: 4 }}>
@@ -648,7 +648,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
 
             {/* ── KOMISI LANGSUNG (legacy): input total pengeluaran + % ── */}
             {isCommBill && (
-              <div style={{ padding: "12px 12px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ padding: "var(--pad-baris)", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: "var(--on-warning-bg)" }}>Komisi Langsung</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
@@ -979,7 +979,7 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
           </div>
 
           {/* Mode: langsung setujui vs pending */}
-          <div style={{ padding: "12px 12px", borderRadius: 10, background: autoApprove ? C.greenBg : C.yellowBg, border: `1px solid ${autoApprove ? C.greenBorder : C.yellowBorder}` }}>
+          <div style={{ padding: "var(--pad-baris)", borderRadius: 10, background: autoApprove ? C.greenBg : C.yellowBg, border: `1px solid ${autoApprove ? C.greenBorder : C.yellowBorder}` }}>
             <label htmlFor="auto-approve-invoice" style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
               <input id="auto-approve-invoice" type="checkbox" checked={autoApprove} onChange={e => setAutoApprove(e.target.checked)}
                 style={{ width: 16, height: 16, marginTop: 1, flexShrink: 0 }} />
@@ -1101,13 +1101,13 @@ export function PenaltyModal({ invoiceId, invoiceNumber, onClose }: { invoiceId:
                 <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Denda keterlambatan <b>nonaktif</b> untuk invoice ini. Aktifkan di Konfigurasi Keuangan atau atur per proyek.</div>
               )}
               {auth ? (
-                <div style={{ padding: "12px 12px", borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+                <div style={{ padding: "var(--pad-baris)", borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
                   <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 4 }}>Denda resmi (tercatat)</div>
                   <div style={{ fontSize: 24, fontWeight: 800, color: "var(--danger)", fontFamily: "var(--font-display)" }}>{fmtIdr(Number(auth.penalty_amount))}</div>
                   <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{auth.days_late} hari telat · basis {BASIS[auth.basis] ?? auth.basis} {fmtIdr(Number(auth.base_amount))} · per {auth.anchor_date}</div>
                 </div>
               ) : est?.enabled && (
-                <div style={{ padding: "12px 12px", borderRadius: 10, background: "var(--surface-subtle)", border: "1px dashed var(--border)" }}>
+                <div style={{ padding: "var(--pad-baris)", borderRadius: 10, background: "var(--surface-subtle)", border: "1px dashed var(--border)" }}>
                   <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-muted)", marginBottom: 4 }}>Estimasi per {est.as_of} · belum final</div>
                   <div style={{ fontSize: 24, fontWeight: 800, color: est.applicable ? "var(--warning)" : "var(--text-muted)", fontFamily: "var(--font-display)" }}>{fmtIdr(Number(est.penaltyAmount))}</div>
                   <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>

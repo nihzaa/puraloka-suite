@@ -240,9 +240,14 @@ function InvoicePageInner() {
               <tr style={{ background: "var(--surface-subtle)", borderBottom: `1px solid ${C.border}` }}>
                 {["No Invoice", "Proyek", "Total", "Terbayar", "Sisa", "Jatuh Tempo", "Status", "Aksi"].map((h, i) => (
                   <th key={h} scope="col" style={{
-                    padding: "8px 12px",
+                    // Disamakan dengan `<Tabel>` bersama (components/dasar.tsx):
+                    // `--pad-baris`, `--t-mikro`, bobot 700. Diukur di peramban
+                    // 2026-08-12, tabel ini merender kepala 11px/600 sementara
+                    // 61 halaman ber-`<Tabel>` merender 10px/700 — cukup untuk
+                    // terbaca sebagai tabel dari aplikasi lain.
+                    padding: "var(--pad-baris)",
                     textAlign: i >= 2 && i <= 4 ? "right" : i === 7 ? "center" : "left",
-                    fontSize: 11, fontWeight: 600, letterSpacing: "0.05em",
+                    fontSize: "var(--t-mikro)", fontWeight: 700, letterSpacing: "0.05em",
                     textTransform: "uppercase", color: C.mid, whiteSpace: "nowrap",
                   }}>{h}</th>
                 ))}

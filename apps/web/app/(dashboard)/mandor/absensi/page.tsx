@@ -361,7 +361,7 @@ export default function AbsensiPage() {
         <div className="rise rise-3" style={{ ...kartu, overflow: "hidden" }}>
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "10px 16px", borderBottom: `1px solid ${C.border}`, gap: 10, flexWrap: "wrap",
+            padding: "var(--pad-baris)", borderBottom: `1px solid ${C.border}`, gap: 10, flexWrap: "wrap",
           }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
               {scopeAktif?.scope_name ?? "Lingkup"} — {workers.length} pekerja
@@ -394,9 +394,9 @@ export default function AbsensiPage() {
             </caption>
             <thead>
               <tr style={{ background: "var(--surface-subtle)" }}>
-                <th scope="col" style={{ textAlign: "left", padding: "8px 16px", fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Pekerja</th>
-                <th scope="col" style={{ textAlign: "left", padding: "8px 12px", fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Kehadiran</th>
-                <th scope="col" style={{ textAlign: "right", padding: "8px 16px", fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Lembur (jam)</th>
+                <th scope="col" style={{ textAlign: "left", padding: "var(--pad-baris)", fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Pekerja</th>
+                <th scope="col" style={{ textAlign: "left", padding: "var(--pad-baris)", fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Kehadiran</th>
+                <th scope="col" style={{ textAlign: "right", padding: "var(--pad-baris)", fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>Lembur (jam)</th>
               </tr>
             </thead>
             <tbody>
@@ -412,7 +412,7 @@ export default function AbsensiPage() {
                         kurang. Warna bukan satu-satunya pembeda: kata "belum
                         dijawab" ikut ditulis. */}
                     <th scope="row" style={{
-                      textAlign: "left", padding: "10px 16px", fontWeight: 500, color: C.text,
+                      textAlign: "left", padding: "var(--pad-baris)", fontWeight: 500, color: C.text,
                       borderLeft: `3px solid ${belum ? C.yellow : "transparent"}`,
                     }}>
                       {w.name}
@@ -423,7 +423,7 @@ export default function AbsensiPage() {
                         </span>
                       )}
                     </th>
-                    <td style={{ padding: "8px 12px" }}>
+                    <td style={{ padding: "var(--pad-baris)" }}>
                       <div role="group" aria-label={`Kehadiran ${w.name}`} style={{ display: "flex", gap: 4 }}>
                         {PILIHAN.map((p) => {
                           const aktif = nilai?.porsi === p.nilai;
@@ -448,7 +448,7 @@ export default function AbsensiPage() {
                         })}
                       </div>
                     </td>
-                    <td style={{ padding: "8px 16px", textAlign: "right" }}>
+                    <td style={{ padding: "var(--pad-baris)", textAlign: "right" }}>
                       <input
                         type="number"
                         min={0} max={16} step={0.5}

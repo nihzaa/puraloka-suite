@@ -403,7 +403,26 @@ export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris
           }}>
             {kolom.map((k) => (
               <th key={k.kunci} scope="col" style={{
-                padding: "10px var(--r3)",
+                /*
+                  `--pad-baris`, bukan `10px var(--r3)` yang berdiri di sini
+                  sebelumnya.
+
+                  Selisihnya cuma 1px vertikal (10 vs 9), jadi ini bukan soal
+                  tampilan — ini soal SIAPA yang memegang angkanya. `globals.css`
+                  sudah menyediakan `--pad-baris` khusus untuk "baris tabel &
+                  daftar", sepuluh berkas memakainya, dan satu-satunya yang
+                  tidak justru komponen tabel bersama ini.
+
+                  Akibatnya token itu tak bisa dipercaya sebagai kenop: menggeser
+                  `--pad-baris` menggeser sepuluh halaman dan MELEWATI 61 halaman
+                  yang memakai `<Tabel>` — persis kebalikan dari yang diharapkan
+                  orang yang menyentuhnya.
+
+                  Catatan token itu sendiri sudah memperingatkan kelas cacat ini:
+                  "token yang tak pernah dipakai tak pernah teruji". Token yang
+                  dipakai SEPARUH lebih buruk — ia teruji dan tetap bohong.
+                */
+                padding: "var(--pad-baris)",
                 textAlign: k.rata === "kanan" ? "right" : k.rata === "tengah" ? "center" : "left",
                 fontSize: "var(--t-mikro)", fontWeight: 700,
                 letterSpacing: ".05em", textTransform: "uppercase",
@@ -430,7 +449,7 @@ export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris
                 }}>
                 {kolom.map((k) => {
                   const gaya: CSSProperties = {
-                    padding: "10px var(--r3)",
+                    padding: "var(--pad-baris)",
                     textAlign: k.rata === "kanan" ? "right" : k.rata === "tengah" ? "center" : "left",
                     fontVariantNumeric: k.rata === "kanan" ? "tabular-nums" : undefined,
                     color: C.text,
@@ -451,7 +470,7 @@ export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris
             }}>
               {total.map((sel) => (
                 <td key={sel.kunci} colSpan={sel.rentang} style={{
-                  padding: "10px var(--r3)",
+                  padding: "var(--pad-baris)",
                   textAlign: sel.rata === "kanan" ? "right" : sel.rata === "tengah" ? "center" : "left",
                   fontVariantNumeric: sel.rata === "kanan" ? "tabular-nums" : undefined,
                   fontWeight: 700,

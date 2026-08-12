@@ -1471,6 +1471,29 @@ jobs:
       - name: Token CSS yang dipakai harus ada
         run: node scripts/uji-token-css-ada.mjs
 
+      # Tiap halaman dashboard wajib punya <h1>. Diukur di peramban
+      # 2026-08-12: TIGA BELAS halaman tak punya, dan semuanya TERLIHAT
+      # berjudul — yang terbaca ("Ajukan cuti", "Tambah sertifikat") ternyata
+      # judul FORM di tengah halaman. Mata membaca sesuatu di puncak dan
+      # menganggapnya judul; pembaca layar membaca struktur, dan strukturnya
+      # bolong di puncak (WCAG 1.3.1).
+      #
+      # Ambang NOL: ketiga belasnya sudah diperbaiki, jadi lantainya memang
+      # nol. Bukti merah: scripts/bukti-mutasi-judul-halaman.sh (5/5).
+      - name: Tiap halaman dashboard punya judul <h1>
+        run: node scripts/uji-judul-halaman-ada.mjs
+
+      # Sel tabel tak boleh memaku padding. 61 halaman memakai <Tabel>
+      # bersama; tabel `<table>` mentah mengarang gayanya sendiri — diukur
+      # tiga tabel, tiga gaya berbeda, semuanya beda dari yang bersama.
+      #
+      # RATCHET, bukan ambang nol: sebagian tabel memang sengaja rapat (kisi
+      # jadwal, tabel dalam modal), dan memaksanya ke `--pad-baris` akan
+      # memperburuk halaman demi menghijaukan angka.
+      # Bukti merah: scripts/bukti-mutasi-tabel-seragam.sh (5/5).
+      - name: Sel tabel memakai token padding (ratchet)
+        run: node scripts/uji-tabel-seragam.mjs
+
       # `<Panel padat>` menyetel padding badan jadi NOL sementara kepalanya
       # tetap 16px. Baris daftar yang lebih sempit membuat isi terlihat
       # menepi — founder menunjuknya dengan satu kata, "mepet" (2026-08-10),

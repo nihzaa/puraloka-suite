@@ -237,8 +237,12 @@ function Konten() {
                       style={{
                         textAlign: i === 2 ? "right" : "left",
                         padding: "var(--pad-baris)",
-                        fontSize: 11.5, fontWeight: 600, color: C.muted,
-                        textTransform: "uppercase", letterSpacing: "0.03em",
+                        // Disamakan dengan `<Tabel>` bersama: `--t-mikro`/700,
+                        // bukan 11.5px/600. Halaman ini adalah inbox terpusat —
+                        // ia menampilkan baris dari SEMUA modul, jadi tabel yang
+                        // gayanya sendiri di sini paling terasa asing.
+                        fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted,
+                        textTransform: "uppercase", letterSpacing: ".05em",
                         borderBottom: "1px solid var(--border)",
                         whiteSpace: "nowrap",
                       }}
