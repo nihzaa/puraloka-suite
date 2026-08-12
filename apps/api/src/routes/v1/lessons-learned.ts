@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { validasiPelajaran } from '../../lib/pelajaran.js'
 import {
   evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan , periksaGerbangSod } from '../../utils/approval.js'
 
@@ -19,6 +20,166 @@ import {
 // lama (immutability M1-M2 menegakkan). Atomik lewat fungsi DB.
 
 export default async function lessonsLearnedRoutes(app: FastifyInstance) {
+
+
+  // ── GET /api/v1/lessons-learned ──────────────────────────────────────────
+  //
+  // Endpoint yang selama ini HILANG. Diukur 2026-08-13: modul ini punya tabel,
+  // empat trigger (immutable, no-delete, transisi status, touch), fungsi
+  // propagasi atomik, tiga PATCH untuk alur persetujuan, dan lima test — tetapi
+  // **tak ada GET dan tak ada POST**.
+  //
+  // Artinya pelajaran tak bisa dibuat maupun dilihat lewat aplikasi. Ia hanya
+  // bisa DISETUJUI — kalau ada yang menyisipkannya lewat SQL. Nol menu, nol
+  // halaman, nol entri Peta Modul; modulnya tak terlihat dari mana pun.
+  //
+  // Ini yang membedakan CAPA dari sekadar perbaikan: sisi korektif (memperbaiki
+  // cacat yang sudah terjadi) hidup di NCR, sedangkan sisi PREVENTIF — mengubah
+  // angka yang dipakai merencanakan supaya kesalahan yang sama tak terulang —
+  // ada di sini, dan selama ini tak terjangkau.
+  app.get<{ Querystring: { project_id?: string; status?: string } }>(
+    '/api/v1/lessons-learned',
+    { preHandler: [authenticate, requirePermission('cecep:lessons:view')] },
+    async (request, reply) => {
+      const db = request.db!
+      const q = request.query
+
+      const idProyek = await db.projectIds()
+      if (idProyek.length === 0) return reply.send({ lessons: [], total: 0 })
+
+      if (q.project_id && !idProyek.includes(q.project_id)) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      let query = db
+        .unsafe('lessons_learned_records', 'kategori C; disaring project_id lewat projectIds() di baris berikutnya')
+        .select(`
+          id, project_id, title, summary, status, planned_amount, actual_amount,
+          variance_amount, approved_at, propagated_at, created_at,
+          proyek:projects ( id, name ),
+          usulan:lesson_propagation_proposals ( id, target_type, proposed_value, created_record_id ),
+          akar:root_cause_analyses ( id, description, category, sort_order )
+        `, { count: 'exact' })
+        .in('project_id', q.project_id ? [q.project_id] : idProyek)
+        .order('created_at', { ascending: false })
+
+      if (q.status) query = query.eq('status', q.status)
+
+      const { data, error, count } = await query
+      if (error) return reply.status(500).send({ error: error.message })
+
+      return reply.send({ lessons: data ?? [], total: count ?? 0 })
+    },
+  )
+
+  // ── POST /api/v1/lessons-learned ─────────────────────────────────────────
+  //
+  // Pelajaran lahir sebagai `draft`, beserta akar masalah dan usulan
+  // propagasinya sekaligus. Ketiganya dalam satu permintaan karena pelajaran
+  // tanpa usulan tak mengubah apa pun saat disetujui — dan pelajaran tanpa
+  // akar masalah adalah keluhan, bukan pelajaran.
+  app.post(
+    '/api/v1/lessons-learned',
+    { preHandler: [authenticate, requirePermission('cecep:lessons:manage')] },
+    async (request, reply) => {
+      const db = request.db!
+      const b = request.body as {
+        project_id?: string
+        title?: string
+        summary?: string
+        estimate_version_id?: string
+        cost_code_id?: string
+        planned_amount?: number | string
+        actual_amount?: number | string
+        akar?: Array<{ description?: string; category?: string }>
+        usulan?: Array<{
+          target_type?: string; resource_id?: string; cost_code_id?: string
+          proposed_value?: number | string
+        }>
+      }
+
+      const v = validasiPelajaran(b)
+      if (!v.ok) return reply.status(400).send({ error: v.galat })
+
+      if (!(await db.projectIds()).includes(v.nilai.project_id)) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      const { data: rec, error } = await db
+        .unsafe('lessons_learned_records', 'project_id sudah diverifikasi lewat projectIds() di atas')
+        .insert({
+          project_id: v.nilai.project_id,
+          title: v.nilai.title,
+          summary: v.nilai.summary,
+          estimate_version_id: b.estimate_version_id ?? null,
+          cost_code_id: b.cost_code_id ?? null,
+          planned_amount: v.nilai.planned_amount,
+          actual_amount: v.nilai.actual_amount,
+          created_by: request.currentUser!.id,
+        })
+        .select('id, title, status, planned_amount, actual_amount, variance_amount')
+        .single()
+
+      if (error) return reply.status(500).send({ error: error.message })
+
+      const lessonId = (rec as { id: string }).id
+
+      // Akar masalah & usulan ditulis SESUDAH induknya ada. Kalau salah satu
+      // gagal, pelajarannya tetap tersimpan sebagai draft tanpa keduanya —
+      // dan itu keadaan yang bisa diperbaiki manusia, bukan baris hantu.
+      // Karena itu kegagalannya DILAPORKAN, bukan ditelan.
+      if (v.nilai.akar.length > 0) {
+        const { error: eAkar } = await db
+          .viaProject('root_cause_analyses', lessonId)
+          .insert(v.nilai.akar.map((a, i) => ({
+            lesson_id: lessonId,
+            description: a.description,
+            category: a.category,
+            sort_order: i,
+          })))
+        if (eAkar) {
+          return reply.status(500).send({
+            error: `Pelajaran tersimpan sebagai draft, tetapi akar masalahnya gagal ditulis: ${eAkar.message}`,
+          })
+        }
+      }
+
+      if (v.nilai.usulan.length > 0) {
+        const { error: eUsul } = await db
+          .viaProject('lesson_propagation_proposals', lessonId)
+          .insert(v.nilai.usulan.map((u) => ({
+            lesson_id: lessonId,
+            target_type: u.target_type,
+            resource_id: u.resource_id,
+            cost_code_id: u.cost_code_id,
+            proposed_value: u.proposed_value,
+          })))
+        if (eUsul) {
+          return reply.status(500).send({
+            error: `Pelajaran tersimpan sebagai draft, tetapi usulan propagasinya gagal ditulis: ${eUsul.message}`,
+          })
+        }
+      }
+
+      await logAuditEvent(request, {
+        tableName: 'lessons_learned_records',
+        recordId: lessonId,
+        action: 'create',
+        actorId: request.currentUser!.id,
+        newValues: {
+          title: v.nilai.title,
+          jumlah_akar: v.nilai.akar.length,
+          jumlah_usulan: v.nilai.usulan.length,
+        },
+      })
+
+      return reply.status(201).send({
+        lesson: rec,
+        jumlah_akar: v.nilai.akar.length,
+        jumlah_usulan: v.nilai.usulan.length,
+      })
+    },
+  )
 
   // ── PATCH /submit — draft → under_review ────────────────────────────────────
   app.patch<{ Params: { id: string } }>(

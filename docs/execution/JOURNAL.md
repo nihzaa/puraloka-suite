@@ -107,6 +107,141 @@ menghijaukan angka.
 
 ---
 
+## 2026-08-13 (lanjutan 3) — mesin belajar yang lengkap, tanpa satu pun pintu
+
+### `qc-capa`: sisi preventifnya SUDAH ADA, hanya tak terjangkau
+
+Taksonomi menandainya "sebagian" — yang hidup baru sisi korektif lewat NCR.
+Diukur, sisi PREVENTIF ternyata sudah dibangun penuh:
+
+    tabel     lessons_learned_records + root_cause_analyses
+                                      + lesson_propagation_proposals
+    trigger   immutable · no-delete · transisi status · touch
+    fungsi    fn_propagate_lesson (propagasi ATOMIK ke price book & produktivitas)
+    alur      draft → under_review → approved → propagated, lewat engine ADR-007
+    test      lima, terhadap Postgres nyata
+
+Dan rutenya **hanya tiga PATCH**: submit, approve, reject. Nol GET, nol POST,
+nol menu, nol halaman, nol entri Peta Modul.
+
+Jadi pelajaran hanya bisa DISETUJUI — kalau ada yang menyisipkannya lewat SQL.
+Mesin belajarnya lengkap sampai propagasi atomik; pintunya tak pernah dipasang.
+
+Ditambahkan: `lib/pelajaran.ts`, GET + POST, halaman `/mutu/pelajaran`,
+migrasi 350. Yang ditolak SEBELUM tersimpan — pelajaran tanpa usulan (approve
+berhasil, knowledge base tetap sama, nol galat) dan tanpa akar masalah (itu
+keluhan, bukan pelajaran).
+
+### 1.873 baris residu test yang menumpuk tiga minggu
+
+Saat mengukur, `lesson_propagation_proposals` berisi 1.873 baris **yatim** —
+induknya tak ada, padahal FK-nya VALID dengan ON DELETE CASCADE. Kontradiksi
+yang mustahil sampai sebabnya ketemu: `session_replication_role='replica'`
+di harness test **mematikan cascade**, jadi menghapus induk meninggalkan anak.
+
+Cacat itu sudah diperbaiki untuk `lessons_learned_records` pada 2026-08-01 —
+komentarnya bahkan mencatat "913 baris yatim sempat dibaca sebagai '828 data
+Lessons Learned'". Tetapi **tabel anaknya luput ikut diperbaiki**, dan
+luputnya tak terlihat karena tak ada test yang memeriksa apa yang TERTINGGAL.
+
+Tumbuh 15–150 baris per hari sejak 2026-07-25. Pembersihannya diperbaiki
+(termasuk menyapu yatim dari run sebelumnya), dan kini ada pemeriksaan di
+`afterAll` yang membuat yatim dengan sengaja lalu menuntutnya hilang —
+dibuktikan MERAH saat perbaikannya dilepas. 1.873 → 0.
+
+### Tiga entri master data: catatannya basi, kodenya tidak
+
+- **`md-cost-code`** "pemetaan ke material belum" — KELIRU. Jembatannya
+  lengkap: 44 cost code, `cost_code_category_map`, `GET /cost-map/saran` yang
+  mengusulkan tanpa menerapkan (dengan alasan tertulis kenapa GET dan bukan
+  POST), `PUT /cost-map/:categoryId`, dan layarnya. Yang kosong DATANYA:
+  1 dari 8 kategori terpeta.
+- **`md-resource`** — 2.830 resource terisi. `peta_resource_material` punya
+  rute bertest dan layar di `/gudang/susut`, nol baris terpeta.
+- **`md-price-book`** — diperiksa di layar: 3.025 harga aktif, alur
+  draft→verified→active yang dijaga basis, tingkat keyakinan per harga,
+  override per proyek yang menuntut alasan. Bukan "sebagian".
+
+Ketiganya dinaikkan ke `hidup`. Yang kurang adalah pekerjaan rumah pengisian
+data, bukan kode — dan layarnya sudah menyatakan kekosongan itu apa adanya
+("0/0 terpetakan", pagu ditulis "—" bukan Rp 0).
+
+### Penjaga yang membetulkan saya, dua kali
+
+- `audit-peta-modul-vs-halaman` MERAH: `crm-proposal` bertanda `rencana`
+  tetapi href-nya `/tender` yang PUNYA halaman — Peta Modul jadi membaca
+  "halamannya ada" padahal yang ada halaman lain. Href-nya dikosongkan.
+- `audit-peta-menu-vs-db` MERAH saat saya menambah menu ke DB tanpa entri
+  `peta-menu.ts`. Keduanya benar.
+
+Dan satu cacat saya sendiri yang lolos ke commit sebelumnya: status
+`'direncanakan'` tak ada dalam tipe `StatusMenu` (yang sah `'rencana'`).
+Tertangkap `tsc` saat berkas itu disentuh lagi.
+
+### Test yang salah asumsi, bukan trigger yang rusak
+
+Test saya menuntut `trg_lessons_no_delete` menolak SEMUA penghapusan. Ia
+gagal — dan yang salah asumsinya: dibaca dari `prosrc`, larangan hanya
+berlaku untuk `status <> 'draft'`. Rancangan yang belum jadi rekam jejak
+memang boleh dibuang. Test dibetulkan menguji perilaku sebenarnya, dua sisi.
+
+Cacat berikutnya lahir dari situ: test memajukan satu baris ke `under_review`,
+lalu pembersihannya tak bisa menghapusnya dan SELURUH berkas di-skip pada run
+berikutnya. Diperbaiki dengan menurunkan status ke draft lebih dulu — bukan
+dengan menonaktifkan trigger, yang akan melemahkan pagar produksi demi
+kenyamanan test. Dibuktikan dengan dua run berturut-turut, nol residu.
+
+### Form yang MUSTAHIL berhasil — ketahuan dari layar, bukan dari test
+
+Rancangan pertama halaman `/mutu/pelajaran` mengirim `usulan: []` selalu,
+dengan alasan tertulis "usulannya menyusul lewat layar tersendiri yang memberi
+konteks harga". Alasannya masuk akal di atas kertas.
+
+Tetapi saya sendiri yang membuat aturan menolak pelajaran tanpa usulan. Jadi
+formnya tak akan pernah berhasil sekali pun: setiap penyimpanan berakhir
+dengan pesan merah "Sebutkan minimal satu usulan perubahan".
+
+Tak satu pun dari 34 test menangkapnya — keduanya benar sendiri-sendiri,
+yang salah adalah pertemuannya. Yang menangkap: tangkapan layar sesudah
+menekan Simpan.
+
+Diperbaiki dengan menambahkan pemilih resource + harga usulan ke form yang
+sama, memakai `GET /cecep/resources` yang sudah ada.
+
+### Cacat kedua dari layar: kegagalan yang saya telan sendiri
+
+Sesudah medan usulan ditambahkan, dropdown resource-nya KOSONG di layar —
+padahal ada 2.829 resource aktif dan permission `cecep:resource:view` dimiliki
+admin. `.catch()` saya menelan galatnya, jadi yang terbaca pengguna adalah
+"Tak ada resource yang cocok": **pesan yang salah, lebih berbahaya daripada
+tak ada pesan.**
+
+Diperbaiki — kegagalan pemuatan kini dinyatakan sebagai galat, terpisah dari
+"hasil pencarian kosong".
+
+### Batas verifikasi yang dinyatakan, bukan disamarkan
+
+Konfirmasi terakhir (dropdown terisi sesudah perbaikan) **tidak sempat
+diambil**: build Next gagal mengunduh font Google — kendala jaringan mesin ini,
+bukan kode. Yang SUDAH terbukti di layar: halaman hidup, menu tersorot,
+dialog terbuka dengan seluruh medannya, bagian "Yang harus berubah" tampil
+beserta alasan tombol Simpan mati. Yang BELUM: dropdown terisi dan satu
+pelajaran tersimpan lewat peramban.
+
+Jalur simpannya sendiri terbukti lewat 10 test integrasi terhadap Postgres
+nyata, termasuk pemeriksaan bahwa akar & usulan benar-benar tersimpan di basis.
+
+### Bukti
+
+- `lib/pelajaran.ts` — 24 hijau, 8 mutasi merah lalu pulih
+- `lessons-crud.test.ts` — 10 hijau terhadap Postgres nyata, 6 mutasi merah
+- `lessons-writeback.test.ts` — 5 hijau, pemeriksaan residu dibuktikan merah
+- Migrasi 350 — 3 mutasi merah (baris mati, sort_order di luar rentang, izin
+  menu tak sejalan dengan izin rutenya)
+- Penjaga menu 5/5 hijau sesudah dua koreksi di atas
+
+---
+
 ## 2026-08-13 (lanjutan 2) — kolom yang ditulis dengan patuh lalu diabaikan sepenuhnya
 
 ### Temuan pokok: `billing_mode` tak pernah dibaca satu baris pun

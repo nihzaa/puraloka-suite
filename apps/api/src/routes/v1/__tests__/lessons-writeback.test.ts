@@ -82,6 +82,29 @@ async function purge() {
     // pada hari ini — dan angka itu sempat dibaca sebagai "modul Lessons
     // Learned punya 828 data", padahal seluruhnya residu test yang menumpuk.
     // Pembersihan yang melewatkan tabel utamanya bukan pembersihan.
+    // ⚠️ USULAN-nya juga, dan SEBELUM lesson-nya — alasan yang PERSIS SAMA
+    // dengan blok di bawah, hanya satu tabel lebih dalam.
+    //
+    // `lesson_propagation_proposals.lesson_id` ber-ON DELETE CASCADE, tetapi
+    // `session_replication_role='replica'` mematikan cascade itu juga. Jadi
+    // menghapus lesson meninggalkan usulannya sebagai yatim.
+    //
+    // Diukur 2026-08-13: 1.873 baris yatim, tumbuh 15–150 per hari sejak
+    // 2026-07-25, seluruhnya residu berkas test ini. Cacat yang sama persis
+    // dengan yang sudah diperbaiki untuk `lessons_learned_records` pada
+    // 2026-08-01 — tabel anaknya luput ikut diperbaiki.
+    await client.query(
+      `DELETE FROM lesson_propagation_proposals
+        WHERE lesson_id IN (
+          SELECT l.id FROM lessons_learned_records l
+           WHERE l.title = '[TEST] Lesson'
+              OR l.project_id IN (SELECT id FROM projects WHERE name = '[TEST] Loop Intelijen'))
+           -- Yatim dari run SEBELUMNYA: induknya sudah lenyap, jadi subquery
+           -- di atas tak menjangkaunya. Tanpa cabang ini, residu lama tak
+           -- pernah terbersihkan oleh perbaikan ini sendiri.
+           OR NOT EXISTS (
+             SELECT 1 FROM lessons_learned_records l2 WHERE l2.id = lesson_id)`)
+
     await client.query(
       `DELETE FROM lessons_learned_records
        -- Judul '[TEST] Lesson' adalah milik berkas INI, dan sudah mencakup
@@ -130,7 +153,43 @@ beforeAll(async () => {
 }, 90_000)
 
 afterEach(() => { vi.restoreAllMocks() })
-afterAll(async () => { await purge(); await app.close(); await client.end() })
+afterAll(async () => {
+  // ── Pembersihan SENDIRI yang diperiksa di sini, bukan fiturnya ───────────
+  //
+  // Diukur 2026-08-13: 1.873 baris `lesson_propagation_proposals` yatim,
+  // tumbuh 15–150 per hari sejak 2026-07-25, seluruhnya residu berkas INI.
+  // Sebabnya `session_replication_role='replica'` mematikan ON DELETE CASCADE,
+  // jadi menghapus lesson meninggalkan usulannya menggantung.
+  //
+  // Cacat itu sudah diperbaiki untuk `lessons_learned_records` pada
+  // 2026-08-01, tetapi tabel ANAKNYA luput — dan luputnya tak terlihat karena
+  // tak ada satu pun test yang memeriksa apa yang TERTINGGAL.
+  //
+  // Diperiksa di `afterAll` (bukan sebagai `it` tersendiri) karena `purge()`
+  // menghapus proyek fixture: memanggilnya di tengah membuat test setelahnya
+  // kehilangan induknya.
+  const lid = await newLessonWithProposal('price_book', 12345)
+  await client.query(`SET session_replication_role='replica'`)
+  await client.query('DELETE FROM lessons_learned_records WHERE id=$1', [lid])
+  await client.query(`SET session_replication_role='origin'`)
+
+  const { rows: sebelum } = await client.query(
+    'SELECT count(*)::int n FROM lesson_propagation_proposals WHERE lesson_id=$1', [lid])
+
+  await purge()
+
+  const { rows: sesudah } = await client.query(
+    'SELECT count(*)::int n FROM lesson_propagation_proposals WHERE lesson_id=$1', [lid])
+
+  await app.close(); await client.end()
+
+  // Dilempar SESUDAH koneksi ditutup — kalau tidak, kegagalan di sini
+  // meninggalkan client menggantung dan run berikutnya ikut kacau.
+  if (sebelum[0].n !== 1) throw new Error('yatim tak terbentuk — pemeriksaan ini tak menguji apa pun')
+  if (sesudah[0].n !== 0) throw new Error('usulan propagasi tertinggal sebagai yatim sesudah purge')
+})
+
+
 
 describe('Gerbang manusia — knowledge base HANYA berubah lewat approval', () => {
   it('NEGATIF: pm (tanpa cecep:lessons:approve) tak bisa approve → 403, nol propagasi', async () => {
