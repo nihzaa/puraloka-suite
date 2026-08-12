@@ -45,7 +45,7 @@ export type NotificationType =
   | 'inspeksi_diminta'
   | 'inspeksi_lolos'
   | 'inspeksi_gagal'
-  // Otomasi terjadwal (migrasi 324). Tipe SENDIRI, bukan menumpang
+  // Otomasi terjadwal (migrasi 331). Tipe SENDIRI, bukan menumpang
   // `kasbon_pending`, dan itu bukan soal kerapian:
   //
   // 1. Dedup harian di `otomasi-terjadwal.ts` menyaring `.eq('type', …)`.

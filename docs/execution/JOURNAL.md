@@ -750,7 +750,7 @@ tinggi daripada kenyataannya.
 
 Yang ditemukan saat mengukur bagan akun: `1511 Akumulasi Penyusutan` ada -
 **lawan kreditnya**. Akun BEBAN-nya tidak. Jurnal penyusutan tak mungkin
-disusun berpasangan sejak awal. Migrasi 324 menambah `5960`.
+disusun berpasangan sejak awal. Migrasi 331 menambah `5960`.
 
 ### Jalan buntu yang saya buat sendiri, lalu saya bersihkan
 
@@ -821,7 +821,7 @@ literal.
                                                20  hijau
 
 Mutasi: 4 di lib (1/2/1/1 merah), 3 di rute (1/2/1 merah).
-Migrasi 324 lulus blok verifikasinya. tsc api & web exit 0. Lima penjaga API +
+Migrasi 331 lulus blok verifikasinya. tsc api & web exit 0. Lima penjaga API +
 empat penjaga web hijau.
 
 Peta Modul: 179 -> **182** hidup.

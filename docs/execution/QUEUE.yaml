@@ -2105,7 +2105,7 @@ items:
       2.10 kasbon outstanding · 6.6 kasbon tukang · 3.11 progres belum lapor
       · 3.10 dependency breach. Semuanya jadi entri `KATALOG_TUGAS`
       (`routes/v1/jadwal.ts`), dipicu cron GitHub Actions tiap 15 menit.
-      Migrasi 324 menyediakan aturan routing-nya.
+      Migrasi 331 menyediakan aturan routing-nya.
 
       ── SISA (4) ─────────────────────────────────────────────────────────
       5.1  invoice dari termin — KEDUA HALFNYA SUDAH ADA, tinggal disambung:
@@ -2138,7 +2138,7 @@ items:
     cara_verifikasi: >-
       node scripts/db/introspect.mjs columns | grep notification_rules
     catatan: >-
-      Ditemukan 2026-08-12 saat menulis migrasi 324. Kolom `company_id` NOT
+      Ditemukan 2026-08-12 saat menulis migrasi 331. Kolom `company_id` NOT
       NULL, tetapi `event_type` unik GLOBAL — jadi satu event_type hanya bisa
       dimiliki SATU tenant. Selama basis masih satu perusahaan ini tak
       bergejala; begitu tenant kedua masuk, ia tak bisa punya aturan sendiri

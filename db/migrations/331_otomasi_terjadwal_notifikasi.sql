@@ -1,5 +1,5 @@
 -- ============================================================================
--- 324 — OTOMASI TERJADWAL: ATURAN ROUTING NOTIFIKASI
+-- 331 — OTOMASI TERJADWAL: ATURAN ROUTING NOTIFIKASI
 -- ============================================================================
 --
 -- Lima automation dari katalog `06-agentic-ai-and-automation-architecture.md`
@@ -116,7 +116,7 @@ BEGIN
   -- rujukan, jadi seed di atas tidak menyisipkan apa pun. Itu SAH — bukan
   -- kegagalan — selama dinyatakan, bukan lolos diam-diam.
   IF NOT EXISTS (SELECT 1 FROM companies) THEN
-    RAISE NOTICE '324: basis tanpa company — seed aturan dilewati';
+    RAISE NOTICE '331: basis tanpa company — seed aturan dilewati';
     RETURN;
   END IF;
 
@@ -124,7 +124,7 @@ BEGIN
   WHERE event_type IN ('kasbon_outstanding', 'worker_kasbon_reminder',
                        'progress_belum_lapor', 'gantt_dep_breach');
   IF n <> 4 THEN
-    RAISE EXCEPTION '324 gagal: harusnya 4 aturan baru, yang ada %', n;
+    RAISE EXCEPTION '331 gagal: harusnya 4 aturan baru, yang ada %', n;
   END IF;
 
   -- Aturan tanpa target = automation yang jalan sukses tanpa penerima.
@@ -136,8 +136,8 @@ BEGIN
       SELECT 1 FROM notification_rule_targets t WHERE t.rule_id = r.id
     );
   IF yatim IS NOT NULL THEN
-    RAISE EXCEPTION '324 gagal: aturan tanpa penerima — % (notifikasi akan hilang senyap)', yatim;
+    RAISE EXCEPTION '331 gagal: aturan tanpa penerima — % (notifikasi akan hilang senyap)', yatim;
   END IF;
 
-  RAISE NOTICE '324 OK — 4 aturan routing baru, semuanya punya penerima';
+  RAISE NOTICE '331 OK — 4 aturan routing baru, semuanya punya penerima';
 END $$;

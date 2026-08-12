@@ -6,13 +6,13 @@ bawah entrinya.
 
 ---
 
-# 📋 R-014 · Migrasi 324 SUDAH JALAN tapi BELUM tercatat di buku migrasi (2026-08-12)
+# 📋 R-014 · Migrasi 331 SUDAH JALAN tapi BELUM tercatat di buku migrasi (2026-08-12)
 
 **Butuh keputusan Anda — ini Gerbang Keras G-2, dan saya tidak menyentuhnya.**
 
 ## Keadaannya
 
-Migrasi `324_otomasi_terjadwal_notifikasi.sql` **sudah dijalankan** di basis
+Migrasi `331_otomasi_terjadwal_notifikasi.sql` **sudah dijalankan** di basis
 dev dan artefaknya **terbukti ada** — empat aturan routing notifikasi, semuanya
 punya penerima (diukur, bukan ditebak):
 
