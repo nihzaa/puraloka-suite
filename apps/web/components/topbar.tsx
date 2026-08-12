@@ -8,6 +8,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { CommandPalette } from "@/components/command-palette";
 import { CompanySwitcher } from "@/components/company-switcher";
 import { BuatCepat } from "@/components/buat-cepat";
+import { RemahHalaman } from "@/components/remah-halaman";
 
 /**
  * Rute → nama yang ditampilkan di breadcrumb.
@@ -27,7 +28,7 @@ const breadcrumbMap: Array<[string, string]> = [
   ["/mandor-portal", "Portal Mandor"],
   ["/pm-portal",     "Portal PM"],
   ["/portal",        "Portal Klien"],
-  ["/dashboard",     "Dashboard"],
+  ["/dashboard",     "Beranda"],
   ["/proyek",        "Proyek"],
   ["/keuangan",      "Keuangan"],
   ["/kas",           "Kas"],
@@ -38,7 +39,7 @@ const breadcrumbMap: Array<[string, string]> = [
   ["/procurement",   "Pengadaan"],
   ["/estimasi",      "Estimasi & RAB"],
   ["/akuntansi",     "Akuntansi"],
-  ["/aset",          "Alat & Aset"],
+  ["/aset",          "Aset & Alat"],
   ["/lapangan",      "Operasi Lapangan"],
   ["/kontrak",       "Kontrak"],
   // "Mutu & K3", bukan "Mutu (QA/QC)". Nama kedua itu milik GRUP SIDEBAR
@@ -51,8 +52,8 @@ const breadcrumbMap: Array<[string, string]> = [
   // "Mutu & K3", breadcrumb "Mutu (QA/QC)".
   ["/mutu",          "Mutu & K3"],
   ["/tender",        "Tender"],
-  ["/users",         "User"],
-  ["/audit",         "Audit Trail"],
+  ["/users",         "Pengguna"],
+  ["/audit",         "Audit Log"],
   ["/kalender",      "Kalender"],
   ["/sistem",        "Sistem"],
   ["/notifications", "Notifikasi"],
@@ -61,6 +62,30 @@ const breadcrumbMap: Array<[string, string]> = [
   // "Approval Inbox" — bahasa Inggris di aplikasi yang seluruhnya
   // berbahasa Indonesia. Ketahuan lewat tangkap-layar, bukan lewat kode.
   ["/approval-inbox", "Menunggu Persetujuan"],
+
+  // ── Sebelas modul yang sebelumnya JATUH KE TEBAKAN URL ────────────────
+  //
+  // Diukur 2026-08-12: `/sdm/timesheet` menampilkan **"Sdm"** di breadcrumb.
+  // Cadangan yang menurunkan nama dari rute memang sengaja terlihat mentah
+  // ("yang mentah menuntut diperbaiki, yang berbohong tidak" — lihat komentar
+  // `getPageTitle`), dan ini penagihan janji itu.
+  //
+  // Namanya diambil dari label GRUP SIDEBAR di `menu_items`, bukan dikarang:
+  // orang yang mengklik grup "SDM & Payroll" harus membaca kata yang sama di
+  // breadcrumb, atau ia mengira mendarat di tempat lain.
+  ["/sdm",           "SDM & Payroll"],
+  ["/gudang",        "Gudang & Material"],
+  ["/dokumen",       "Dokumen"],
+  ["/jadwal",        "Perencanaan & Jadwal"],
+  ["/kepatuhan",     "Risiko & Kepatuhan"],
+  ["/risiko",        "Risiko & Kepatuhan"],
+  ["/k3",            "K3 & Lingkungan"],
+  ["/master",        "Master Data"],
+  ["/otomasi",       "AI & Otomasi"],
+  // Dua rute alat, bukan modul bisnis — tak punya grup sidebar. Diberi nama
+  // apa adanya supaya tak muncul sebagai "M" (satu huruf) di breadcrumb.
+  ["/peta-modul",    "Peta Modul"],
+  ["/m",             "Pintasan"],
 ];
 
 /**
@@ -154,11 +179,29 @@ export function Topbar() {
               adalah yang paling sedikit gunanya, bukan yang paling mudah. */}
           <span className="e11-sembunyi-sempit" style={{ fontSize: 13, color: "var(--text-muted)", whiteSpace: "nowrap" }}>Puraloka Suite</span>
           <span className="e11-sembunyi-sempit" style={{ fontSize: 13, color: "var(--border-strong)" }}>/</span>
+          {/*
+            Label MODUL — hasil pencocokan prefix, jadi seluruh `/keuangan/*`
+            menghasilkan "Keuangan". Warnanya diredupkan karena ia kini
+            tingkat TENGAH, bukan akhir: yang tebal adalah tempat orang
+            berada sekarang, bukan lorong yang dilewatinya.
+          */}
           <span style={{
-            fontSize: 13, fontWeight: 600, color: "var(--text-primary)",
+            fontSize: 13, fontWeight: 500, color: "var(--text-secondary)",
             // Judul panjang dipotong dengan elipsis, bukan mendorong layout.
             whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0,
           }}>{title}</span>
+
+          {/*
+            Tingkat terakhir: nama HALAMAN dari `menu_items`.
+
+            Tanpa ini `/keuangan/kasbon` berhenti di "Keuangan" — breadcrumb
+            yang tak pernah menyebut halaman yang sedang dibuka. Diukur
+            2026-08-12, itu berlaku untuk seluruh sub-halaman.
+
+            Ia menampilkan diri HANYA bila labelnya berbeda dari modul, jadi
+            halaman ikhtisar tidak berbunyi "Keuangan / Keuangan".
+          */}
+          <RemahHalaman modul={title} />
           <div style={{ marginLeft: 10, flexShrink: 0 }}>
             <CompanySwitcher />
           </div>

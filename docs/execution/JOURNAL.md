@@ -5,6 +5,108 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12/13 — konsistensi visual: tiga sumbu, dan alat ukur yang salah tiga kali
+
+Founder menunjuk satu halaman ("ini yg terlalu longgar" — /keuangan), lalu
+memperluasnya: "sekalian aja periksa secara menyeluruh agar semuanya konsisten".
+
+### Disapu di peramban, bukan dari pemindaian berkas
+
+Sapuan pertama memakai argumen rute berawalan `/`, dan Git Bash mengubahnya
+jadi jalur Windows (`C:/Program Files/Git/dashboard`). Setiap `goto` gagal,
+browser tetap di halaman yang sama, dan **28 halaman melaporkan angka identik
+sampai digit terakhir**. Tak ada satu pun galat. Yang menyelamatkan cuma
+kecurigaan atas hasil yang terlalu rapi. `MSYS_NO_PATHCONV=1` memperbaikinya.
+
+### Yang ditemukan (sesudah pengukuran benar)
+
+```
+angka KPI    28px x13 · 22px x10 · 20px x2      tiga hierarki, kartu yang sama
+judul <h1>   26 x67 · 20 x39 · 24 x5 · 28 · 40  lima ukuran
+tanpa <h1>   13 halaman
+gaya tabel   4 gaya berbeda
+breadcrumb   berhenti di modul; 11 modul jatuh ke tebakan URL
+```
+
+Tiga belas halaman itu TERLIHAT berjudul. Yang terbaca — "Ajukan cuti",
+"Tambah sertifikat", "Tetapkan tarif baru" — ternyata judul FORM di tengah
+halaman. Mata membaca sesuatu di puncak dan menganggapnya judul; pembaca layar
+membaca struktur, dan strukturnya bolong di puncak (WCAG 1.3.1).
+
+### Hasil (diukur ulang di peramban)
+
+```
+angka KPI    28px x25, satu ukuran
+judul <h1>   26px di semua halaman; tanpa <h1>: 13 -> 0
+gaya tabel   1 gaya (9px 12px / 10px / 700) di 9 halaman
+breadcrumb   tiga tingkat; "Sdm" -> "SDM & Payroll / Absensi & Timesheet"
+```
+
+Commit: 2e6951f6 (judul+KPI), ee60ad72 (tabel), + topbar.
+
+### Saya salah: penjaga judul menuduh 31 halaman yang sudah benar
+
+Versi pertama `uji-judul-halaman-ada.mjs` tak tahu `JudulBagian` — komponen
+yang mengambil judul dari `menu_items` dan dipakai lima layout grup. Ia
+melaporkan 31 pelanggar.
+
+Kalau angka itu saya percaya, "perbaikan"-nya menghasilkan DUA `<h1>` per
+halaman: cacat a11y yang lebih buruk daripada yang sedang diperbaiki. Yang
+menyelamatkan adalah pengukuran peramban sebelumnya yang sudah mencatat
+halaman-halaman itu PUNYA `<h1>`. Dua sumber tak cocok -> ukur lagi, jangan
+pilih yang lebih nyaman (CHARTER §7).
+
+### Saya salah: penjaga menghitung nama komponen di dalam KOMENTAR
+
+Bukti mutasi M1 tetap hijau meski `<KepalaHalaman` dilumpuhkan. Sebabnya
+`/kepatuhan/page.tsx` menyebutnya enam kali — sekali di JSX, lima kali di
+komentar penjelasan yang saya tulis sendiri. Penjaga kini membuang komentar
+sebelum memeriksa.
+
+### Saya salah: `local nyata="X"; [ $? -ne 0 ]` selalu membaca 0
+
+`$?` di sana adalah hasil `local`, bukan perintah sebelumnya. Akibatnya
+SETIAP pemeriksaan di `bukti-mutasi-tabel-seragam.sh` melaporkan HIJAU,
+termasuk saat penjaganya benar-benar merah — bukti mutasi yang menuduh
+penjaga sehat.
+
+Tiga cacat di atas semuanya ada di ALAT UKUR, bukan di kode yang diukur.
+Pola yang sama dengan sesi-sesi sebelumnya (alat ukur padding kartu salah
+tiga kali, query audit sidebar menyaring baris yang dicarinya sendiri).
+
+### Komentar yang salah kutip aturan
+
+Empat belas berkas memuat "Angka KPI tenang (§3d: satu aksen per layar)" di
+atas `fontSize: 22` — tampak seperti pilihan sadar. Dibaca: ARAH-VISUAL-2026
+§3d mengatur WARNA aksen ("boleh indigo: angka KPI paling penting"), tak satu
+barisnya menyebut ukuran font. Komentarnya merujuk aturan yang tak mengatakan
+apa yang dikutipnya, dan ikut diperbaiki: komentar salah-kutip membuat pembaca
+berikutnya mengira ada larangan yang tak ada.
+
+### Token yang dipakai SEPARUH
+
+`--pad-baris` disediakan khusus "baris tabel & daftar", sepuluh berkas
+memakainya, dan satu-satunya yang TIDAK justru `<Tabel>` bersama (memaku
+`10px var(--r3)`). Menggeser token itu menggeser sepuluh halaman dan MELEWATI
+61 halaman ber-`<Tabel>` — kenop yang bohong. Catatan token itu sendiri sudah
+memperingatkan "token yang tak pernah dipakai tak pernah teruji"; token yang
+dipakai separuh lebih buruk, ia teruji dan tetap bohong.
+
+### Penjaga baru (semua dibuktikan bisa merah)
+
+| Penjaga | Ambang | Mutasi |
+|---|---|---|
+| `uji-judul-halaman-ada.mjs` | NOL | 5/5 |
+| `uji-tabel-seragam.mjs` | ratchet 102 | 5/5 |
+| `uji-remah-lengkap.mjs` | NOL | 4/4 |
+
+`uji-tabel-seragam` sengaja RATCHET, bukan nol: 102 pelanggar diperiksa satu
+per satu dan sebagian besar bukan cacat (tabel dalam modal, kisi jadwal, pohon
+RAB — sengaja rapat). Memaksanya ke `--pad-baris` memperburuk halaman demi
+menghijaukan angka.
+
+---
+
 ## 2026-08-13 — kt-register: dua angka yang keduanya benar, dan menu yang membetulkan baris mati
 
 ### Yang dibangun

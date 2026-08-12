@@ -1494,6 +1494,17 @@ jobs:
       - name: Sel tabel memakai token padding (ratchet)
         run: node scripts/uji-tabel-seragam.mjs
 
+      # Tiap modul wajib punya nama di `breadcrumbMap`. Cadangan
+      # `getPageTitle` menurunkan nama dari URL dan sengaja terlihat mentah
+      # ("yang mentah menuntut diperbaiki, yang berbohong tidak") — tapi itu
+      # hanya bekerja kalau ada yang MELIHAT. Diukur 2026-08-12:
+      # `/sdm/timesheet` menampilkan "Sdm", dan sebelas modul lain sedang
+      # menunggu giliran yang sama.
+      #
+      # Ambang NOL. Bukti merah: scripts/bukti-mutasi-remah-lengkap.sh (4/4).
+      - name: Tiap modul punya nama di breadcrumb
+        run: node scripts/uji-remah-lengkap.mjs
+
       # `<Panel padat>` menyetel padding badan jadi NOL sementara kepalanya
       # tetap 16px. Baris daftar yang lebih sempit membuat isi terlihat
       # menepi — founder menunjuknya dengan satu kata, "mepet" (2026-08-10),

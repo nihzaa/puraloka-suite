@@ -61,7 +61,17 @@ describe("breadcrumb — halaman yang dulu salah kini benar", () => {
   it.each([
     ["/piutang", "Piutang"],
     ["/akuntansi", "Akuntansi"],
-    ["/aset", "Alat & Aset"],
+    // "Aset & Alat", urutan kata yang SAMA dengan label `menu_items`.
+    //
+    // Breadcrumb sempat berbunyi "Alat & Aset" sementara sidebar berbunyi
+    // "Aset & Alat" — dua nama untuk satu tempat, terpaut hanya urutan kata,
+    // jadi tak seorang pun melaporkannya sebagai bug. Dibandingkan terhadap
+    // DB 2026-08-12: 18 dari 23 entri peta ini menyimpang dari `menu_items`.
+    //
+    // Sebagian penyimpangan itu SENGAJA dan benar (breadcrumb menyebut modul
+    // "Keuangan", sidebar menyebut halaman "Ringkasan Keuangan"). Yang ini
+    // tidak — ia cuma pembusukan.
+    ["/aset", "Aset & Alat"],
     ["/estimasi", "Estimasi & RAB"],
     ["/tender", "Tender"],
     ["/lapangan/inspeksi", "Operasi Lapangan"],

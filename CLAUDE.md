@@ -165,6 +165,9 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-kredensial-tak-bocor.mjs` | nilai kredensial tak pernah keluar server (ambang NOL) |
 | `audit-jadwal-punya-pembaca.mjs` | kolom jadwal wajib punya pembaca — L-4 (ambang NOL) |
 | `uji-token-css-ada.mjs` | `var(--token)` yang dipakai wajib ada di globals.css (ambang NOL) |
+| `uji-judul-halaman-ada.mjs` | tiap halaman dashboard wajib punya `<h1>` (ambang NOL) |
+| `uji-tabel-seragam.mjs` | sel tabel memakai token padding, bukan angka dipaku (ratchet) |
+| `uji-remah-lengkap.mjs` | tiap modul wajib punya nama di breadcrumb (ambang NOL) |
 | `audit-approval-satu-pintu.mjs` | keputusan persetujuan hanya lewat `utils/approval.ts` |
 | `audit-inbox-lengkap.mjs` | tiap jenis approval wajib muncul di inbox terpusat (ambang NOL) |
 | `audit-jejak-tak-hilang.mjs` | audit ber-`recordId` bukan-UUID tak boleh gagal senyap (ambang NOL) |
