@@ -1825,8 +1825,25 @@ items:
       Menu fn-tutup-buku sudah ada di sidebar (href masih halaman generik).
       Prasyaratnya lunas: CLAUDE.md §5.5 mencatat cacat 047<->167 selesai.
       Tanpa ini, jurnal periode lampau masih bisa berubah.
+
+      ── SELESAI 2026-08-12 lewat G5, diverifikasi ulang saat sapu akhir ──
+      Ketiga kriteria terpenuhi, diukur ke basis bukan diklaim:
+
+        status periode + checklist  → `periode_akuntansi` +
+                                      `lib/tutup-buku.ts` (`periksaKesiapan`)
+        permission terpisah         → gl:periode:view / :manage / :reopen
+        DITEGAKKAN LINTAS MODUL     → 2 trigger di `journal_entries`
+
+      Kriteria "lintas modul" terpenuhi LEBIH KUAT dari yang diminta: item
+      ini meminta 423 dari setiap modul yang bisa memposting, sementara yang
+      dibangun menegakkannya di TRIGGER BASIS — jadi berlaku untuk setiap
+      jalur termasuk skrip impor, migrasi data, dan SQL langsung. Modul yang
+      belum ada pun sudah tunduk.
+
+      Migrasi 294–296 · 37 test pustaka (24 mutasi MERAH) · 31 test endpoint ·
+      `/akuntansi/periode`. Detail di JOURNAL 2026-08-12 (G5).
     bobot: M
-    status: todo
+    status: done
 
   - id: TJS-P3
     fase: 6
@@ -1880,7 +1897,7 @@ items:
 
   - id: T5A-PERMISSIVE
     fase: 2
-    judul: "6 tabel punya policy tenant PERMISSIVE, seharusnya RESTRICTIVE"
+    judul: "RLS: 30 tabel ber-restrictive TANPA permissive = mati total (dulu: '6 tabel permissive')"
     blokir_oleh: []
     kriteria_selesai:
       - "nol policy tenant_isolation yang permissive"
@@ -1896,6 +1913,31 @@ items:
 
       Pesannya: "policy tenant jadi PERMISSIVE = ia MELEBARKAN akses, bukan
       membatasi" — 6 tabel, salah satunya `pencocokan_bank`.
+
+      ── DIUKUR ULANG 2026-08-12 (sesudah R-011) ──────────────────────────
+      Kriteria PERTAMA sudah LUNAS: `tenant_isolation` yang permissive kini
+      NOL (diukur ke `pg_policy`). Keenam tabel itu sudah diperbaiki entah
+      kapan tanpa item ini ditutup.
+
+      Tetapi test-nya MASIH MERAH, dan sebabnya HAL LAIN — bukan yang ditulis
+      judul item ini. Assertion yang gagal: "tiap tabel ber-policy-restriktif
+      masih punya policy permissive". Postgres menggabungkan policy sebagai
+      `(OR seluruh PERMISSIVE) AND (AND seluruh RESTRICTIVE)`, dan `OR` atas
+      himpunan kosong adalah FALSE — jadi tabel yang HANYA punya restrictive
+      MATI TOTAL: nol baris terbaca siapa pun yang tunduk RLS.
+
+      Diukur: 40 tabel begitu. Sepuluh di antaranya (G5/G6/R-012) diperbaiki
+      migrasi 312+313 → tersisa **30**, seluruhnya utang lama (`insiden_k3`,
+      `audit_mutu`, `cuti_hak`, dan seterusnya — sebagian dari G3/G4).
+
+      TIDAK diperbaiki massal, dan itu keputusan sadar: tiap tabel butuh
+      penilaian izin mana yang tepat untuk membacanya, dan menebaknya akan
+      memberi akses yang tak pernah diputuskan siapa pun — kesalahan yang
+      lebih mahal daripada tabel yang terlalu tertutup.
+
+      JUDUL ITEM INI SEKARANG MENYESATKAN. Yang tersisa bukan "6 tabel
+      permissive" melainkan "30 tabel tanpa permissive". Dua masalah yang
+      berlawanan arah, dan yang membaca judulnya akan mencari yang salah.
 
       Kelasnya sama dengan yang dicatat di spec lapisan AI (§5.4): perlindungan
       tenant di repo ini bertumpu pada penyaringan aplikasi, dan policy RLS-nya
