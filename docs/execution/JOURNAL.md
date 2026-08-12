@@ -15304,3 +15304,103 @@ dihapus supaya semuanya termutasi. Kesimpulan yang sama dengan D3.
 `uji-izin-satu-sumber`, `uji-kosong-seragam`, `uji-opacity-teks`,
 `uji-tabel-terbaca`) merah — **diverifikasi lewat `git stash` sudah merah di
 HEAD**, nol di antaranya menyebut berkas E2.
+
+---
+
+## 2026-08-12 — F1 · Penomoran dokumen, dan penjaga yang menangkap saya lagi
+
+**Cabang:** `feat/sumbu-ui-roadmap`
+
+### Yang saya kira sudah selesai
+
+Catatan peta modul saya sendiri berbunyi *"counter per-company sudah jalan
+(migrasi 135); UI pengaturannya belum."* Diukur, tiga hal tertinggal — dan
+dua di antaranya bukan soal UI:
+
+**1. Kolom `prefix` TAK PERNAH DIBACA.** `next_document_number()` mengembalikan
+`BIGINT` saja; prefix hanya tersimpan saat baris counter pertama dibuat.
+Keempat baris di dev berprefix `''`. Akibatnya format nomor dipaku di kode, dan
+`INV/PRL/2026/001` membawa singkatan **Puraloka** ke tenant lain.
+
+**2. `COUNT(*) + 1` masih hidup** di `termin-payment.ts:186` — untuk nomor
+INVOICE, dokumen yang keluar ke klien. `COUNT` menghitung baris yang ADA, bukan
+yang PERNAH ada: hapus invoice terakhir, nomornya lahir kembali.
+
+**3. Tiga unik masih GLOBAL** — `rfq`, `tender_subkon`, `sertifikat_ipc`.
+Ketiganya punya `project_id`. Tenant B ditolak nomor yang dipakai tenant A, dan
+penolakan itu sendiri membocorkan keberadaan dokumen orang lain. Persis cacat
+#4 migrasi 135, di tiga tabel yang terlewat.
+
+### Verifikasi saya sendiri LULUS padahal cacat
+
+Migrasi 333 versi pertama menulis `DROP INDEX rfq_nomor_key` — nama bawaan
+Postgres untuk UNIQUE constraint. Ketiga index itu sebenarnya bernama
+`*_nomor_unik`, jadi ketiga DROP no-op, unik globalnya **tetap terpasang**, dan
+blok verifikasi LULUS karena ia pun mencari nama yang salah.
+
+Ketahuan karena saya memeriksa `pg_indexes` sesudahnya, bukan karena
+verifikasinya. Diperbaiki dengan mencari **bentuk** (index UNIQUE atas persis
+satu kolom `nomor`), bukan nama. Ini kelas cacat yang sama dengan penjaga
+Peta Modul di E1: penjaga yang mencari nama tebakan tak pernah bisa merah.
+
+### `audit-lpad-memangkas` menangkap cacat nyata
+
+`LPAD` di Postgres bukan hanya menambal — ia **memangkas**:
+`LPAD('10001', 4, '0')` = `'1000'`. Fungsi baru saya memanggilnya telanjang,
+jadi begitu counter melewati batas lebarnya nomor mulai BERULANG, dan unique
+index menolak setiap INSERT berikutnya — dokumen jenis itu berhenti bisa
+dibuat sama sekali.
+
+Test murni tak bisa menangkap ini: `padStart` di JavaScript **tidak** memangkas,
+jadi pemodelan JS-nya hijau sementara basisnya salah. Yang menangkapnya penjaga
+yang menguji perilaku Postgres sungguhan.
+
+### Penjaga itu sendiri ternyata buta pada bentuk yang sah
+
+Sesudah diperbaiki, penjaganya tetap merah. Ia mencari
+`CASE WHEN … < 1000 … LPAD` — pola dengan lebar KONSTANTA, dipakai
+`generate_mr_number`/`po`/`gr`. Fungsi F1 berlebar per-tenant (`p_padding`),
+jadi pola itu mustahil dipenuhi.
+
+Penjaganya diperluas untuk mengenali penjagaan berlebar variabel
+(`length(v) >= p_padding`), lalu **dibuktikan masih bisa merah** dengan
+memasang ulang LPAD telanjang di fungsi yang sama. Penjaga yang merah pada kode
+yang benar cepat atau lambat dilemahkan orang yang kehabisan kesabaran — itu
+sebabnya diperluas, bukan di-skip.
+
+### Empat menu `/master/*` aktif dengan NOL halaman
+
+`md-penomoran` sudah aktif menunjuk `/master/penomoran` — halaman yang tak
+pernah dibuat. Begitu juga `md-wbs`, `md-karyawan`, `md-template-dok`: empat
+tautan 404 yang terlihat semua orang, semuanya ber-`required_permissions`
+kosong.
+
+F1 menutup satu (halamannya dibuat) dan **menonaktifkan tiga sisanya** sampai
+halamannya ada. `md-wbs` dihidupkan lagi di F2; kalau F2 tak jadi, ia tetap
+mati — dan itu jujur.
+
+### Yang SENGAJA tak dibangun
+
+**Memundurkan counter.** Bukan tombol berkonfirmasi, bukan endpoint berizin —
+tak ada sama sekali. Satu-satunya alasan orang menginginkannya adalah "supaya
+nomornya rapi kembali", dan hasilnya dokumen kembar di tangan pihak ketiga.
+Ada test yang memeriksa PERMUKAAN rutenya, bukan hanya perilakunya.
+
+**Pratinjau lewat fungsi basis.** Fungsi itu MENAIKKAN counter; memakainya
+untuk pratinjau membakar satu nomor tiap kali halaman pengaturan dibuka.
+Pratinjau dihitung di aplikasi, dan bentuknya dijaga test yang membandingkannya
+dengan hasil fungsi basis.
+
+### Bukti
+
+    migrasi 333   ✅ prefix terbaca, LPAD berpenjaga, 3 unik global dihapus
+    migrasi 334   ✅ menu berizin, 3 tautan 404 dimatikan
+    vitest        53 lulus / 3 berkas
+    mutasi        6 (lib) + 4 (rute) + 1 (LPAD basis) MERAH lalu pulih
+                  + penjaga lpad dibuktikan masih merah sesudah diperluas
+    tsc api/web   0 / 0
+    penjaga API   66 dijalankan, 65 hijau
+    penjaga web   8 hijau
+
+`audit-asumsi-global-test` merah — sudah merah di HEAD sebelum F1
+(`ai-config`, `belanja-aktual-endpoint`, `cvr-endpoint`).

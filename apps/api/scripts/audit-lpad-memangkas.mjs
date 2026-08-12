@@ -88,9 +88,27 @@ console.log('\nPENJAGA: LPAD memangkas nomor dokumen\n')
 
   for (const r of rows) {
     const src = r.src || ''
-    // Aman bila LPAD-nya dijaga `CASE WHEN … < 1000` (atau pembanding lain
-    // yang membatasi lebarnya), bukan dipanggil telanjang.
-    const berpenjaga = /CASE\s+WHEN[^]*?<\s*\d{3,}[^]*?LPAD/i.test(src)
+    // Aman bila LPAD-nya dijaga, bukan dipanggil telanjang. DUA bentuk
+    // penjagaan yang sah, dan keduanya harus dikenali:
+    //
+    //   a. lebar KONSTANTA  →  `CASE WHEN v_urut < 1000 THEN LPAD(…, 3, …)`
+    //      Dipakai generate_mr_number / po / gr.
+    //
+    //   b. lebar VARIABEL   →  `CASE WHEN length(v::TEXT) >= p_padding THEN v::TEXT
+    //                           ELSE lpad(…) END`
+    //      Dipakai next_document_number_full (F1), yang lebarnya per-tenant.
+    //
+    // Versi pertama penjaga ini hanya mengenal (a), jadi ia menabrak fungsi
+    // yang penjagaannya BENAR — dan penjaga yang merah pada kode yang benar
+    // cepat atau lambat dilemahkan orang yang kehabisan kesabaran.
+    //
+    // Yang TIDAK diterima sebagai penjagaan: `LPAD` telanjang, dan
+    // `LEAST/GREATEST` yang membatasi lebarnya (itu memangkas juga, hanya
+    // dengan nama lain).
+    const penjagaKonstanta = /CASE\s+WHEN[^]*?<\s*\d{3,}[^]*?LPAD/i.test(src)
+    const penjagaLebarVariabel =
+      /length\s*\([^)]*\)\s*>=?\s*\w+[^]*?lpad/i.test(src)
+    const berpenjaga = penjagaKonstanta || penjagaLebarVariabel
     if (berpenjaga) {
       console.log(`  ✅ ${r.proname}: LPAD berpenjaga batas lebar`)
       aman++

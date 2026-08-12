@@ -181,14 +181,52 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       if (existingInvoice) {
         invoiceId = existingInvoice.id
       } else {
-        // Generate invoice number: INV/PRL/YYYY/NNN
-        const year = new Date().getFullYear()
-        const { count } = await request.db!
-          .viaProject('invoices', projectId)
-          .select('id', { count: 'exact', head: true })
+        // ── Nomor invoice: counter transaksional, BUKAN COUNT(*) + 1 ────────
+        //
+        // Sampai 2026-08-12 baris ini berbunyi `count(*) + 1` dan formatnya
+        // dipaku `INV/PRL/YYYY/NNN` — dengan "PRL" (Puraloka) di dalam kode.
+        // Dua cacat, keduanya pada dokumen yang KELUAR KE KLIEN:
+        //
+        //   1. `COUNT(*)` menghitung baris yang ADA, bukan yang PERNAH ada.
+        //      Menghapus invoice terakhir membuat nomornya lahir kembali —
+        //      nomor kembar untuk dokumen yang sudah terkirim. Persis cacat
+        //      yang migrasi 135 tutup, di rute yang terlewat.
+        //
+        //   2. "PRL" dipaku, jadi tenant lain menerbitkan invoice bertuliskan
+        //      singkatan perusahaan orang lain, dan satu-satunya cara
+        //      mengubahnya adalah menyunting kode.
+        //
+        // Keduanya ditutup dengan memakai jalur yang SAMA dengan `finance.ts`:
+        // prefix dari `companies.invoice_prefix`, nomor dari counter. Dua
+        // tempat yang menomori invoice dengan dua cara berbeda pasti berselisih
+        // — dan selisihnya baru terlihat saat dua nomor bertabrakan.
+        const now = new Date()
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, '0')
 
-        const seq = String((count ?? 0) + 1).padStart(3, '0')
-        const invoiceNumber = `INV/PRL/${year}/${seq}`
+        const { data: companyRow } = await request.db!
+          .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
+          .select('invoice_prefix')
+          .eq('id', request.companyId!)
+          .maybeSingle()
+        const prefix = (companyRow as { invoice_prefix?: string } | null)?.invoice_prefix ?? 'INV'
+        const numberPrefix = `${prefix}/${year}/${month}/`
+
+        const { data: nomorUrut, error: nomorErr } = await supabase.rpc('next_document_number', {
+          p_company_id: request.companyId!,
+          p_doc_type:   'invoice',
+          p_period:     `${year}-${month}`,
+          p_prefix:     numberPrefix,
+        })
+        // Galat DIPERIKSA: nomor yang gagal diambil TIDAK boleh diperlakukan
+        // sebagai nol — `String(null).padStart` menghasilkan "null" dan invoice
+        // lahir bernomor `INV/2026/08/null`.
+        if (nomorErr) {
+          app.log.error({ err: nomorErr }, 'gagal mengambil nomor invoice termin')
+          return reply.status(500).send({ error: 'Gagal membuat nomor invoice' })
+        }
+        const seq = String(nomorUrut).padStart(3, '0')
+        const invoiceNumber = `${numberPrefix}${seq}`
 
         // Hitung pajak — rumus di lib/tax-calculation.ts (struktur = kode ber-test [C3]).
         // AKTA 3 (config-first, effective-dated): tarif dibaca EFFECTIVE pada tanggal
