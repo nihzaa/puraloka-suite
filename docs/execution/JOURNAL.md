@@ -15777,3 +15777,90 @@ terbuka kehilangan nama aksesibel pada logonya.
     esc-ratchet            ✅ tidak bertambah
     uji-token-css-ada      ✅ nol token hantu
     di PERAMBAN            23 grup semuanya BUTTON; ciut 27 ikon / 24 unik
+
+---
+
+## 2026-08-12 — Peta Modul: koreksi status basi + data kepegawaian
+
+**Cabang:** `feat/sumbu-ui-roadmap`
+
+Founder membuka Peta Modul: *"masih ada yg sebagian dan masih ada yg
+direncanakan, tuntaskan."* Diukur, ke-32 entri itu ternyata bukan satu jenis —
+dan memperlakukannya sama akan membuang waktu di tempat yang salah.
+
+### Empat kelompok, biaya sangat berbeda
+
+    KELOMPOK 1  status BASI, tinggal koreksi          3 entri
+    KELOMPOK 2  data & endpoint ADA, layar belum      8 entri
+    KELOMPOK 3  butuh modul baru                     12 entri
+    KELOMPOK 4  tergantung pihak luar                 8 entri
+
+Founder memilih semua, bertahap sesuai urutan biaya.
+
+### Kelompok 1 — dan salah satunya SALAH sejak ditulis
+
+`sy-penomoran` dan `jd-wbs` basi karena kerja saya sendiri hari itu (F1 dan
+F2 membangun halamannya beberapa jam sebelumnya). Itu wajar.
+
+`iv-minstok` berbeda: catatannya menyatakan *"ambang minimum per material
+sebagai DATA yang bisa disetel belum ada; kini diturunkan dari pemakaian"*.
+Diukur — `materials.min_stock` ADA, **terisi 24 dari 24**, bisa disetel di
+`/procurement/material`, punya `PATCH /procurement/materials/:id/min-stock`
+berizin, dibandingkan dengan stok nyata di dua halaman, dan dikenali importer.
+Tak satu pun bagian catatan itu benar.
+
+Ketiga menunya TETAP nonaktif: href-nya sudah dipakai menu aktif lain, dan
+menghidupkan yang kembar melanggar aturan 232.
+
+195 → **198 bisa dipakai**, 31 → **28 sebagian**.
+
+### Kelompok 2, entri pertama — izin yang tak pernah dipakai
+
+`sdm:pegawai:view` dan `sdm:pegawai:manage` ADA, DIBERIKAN ke dua peran, dan
+dipakai policy RLS `pegawai_baca`/`pegawai_tulis`. **Nol rute memakainya.**
+
+Satu-satunya endpoint yang menyentuh `pegawai` bergerbang `sdm:timesheet:view`
+dan hanya membaca. Akibatnya data kepegawaian tak bisa dibuat maupun disunting
+dari mana pun: 5 pegawai masuk lewat seed, 21 pengguna lain tak punya data.
+
+Yang menabraknya bukan galat melainkan kebuntuan — klaim perjalanan (G1) yang
+saya bangun beberapa jam sebelumnya menolak dengan *"hubungi HRD"*, dan HRD pun
+tak punya layarnya.
+
+### Cacat yang ketahuan saat membangun
+
+PATCH versi pertama menulis **seluruh** kolom, dan `validasiPegawai` mengisi
+`null` untuk apa pun yang tak ada di body. Akibatnya menyunting SATU kolom
+menghapus sisanya: memperbarui tanggal keluar menghapus gaji, NPWP, dan status
+PTKP — diam-diam, tanpa satu pun galat.
+
+Ketahuan lewat test yang membandingkan gaji SESUDAH patch lain, bukan lewat
+test patch-nya sendiri. Itu sebabnya testnya menyimpan angka nyata dan
+membandingkannya, bukan sekadar memeriksa status 200.
+
+Dua cacat lain di versi pertama: embed `company_members → users` ambigu (ada
+DUA FK ke `users`), dan deteksi galat trigger mencari kata "check" yang tak ada
+di pesannya — penolakan yang benar jatuh jadi 500.
+
+### Yang dibedakan layarnya
+
+Data kritis (NPWP, PTKP, tanggal masuk) dipisah dari yang sekadar kurang rapi.
+Yang pertama membuat PPh 21 dihitung dengan tarif salah — uang yang keliru
+masuk ke kantong orang atau ke kas negara. Yang kedua hanya membuat laporan
+kurang rapi. Menyamakannya menghasilkan daftar panjang yang diabaikan.
+
+Yang sudah keluar tak dihitung mendesak: datanya memang tak akan dilengkapi
+lagi, dan menghitungnya membuat angka mendesak tak pernah bisa turun ke nol.
+
+### Bukti
+
+    migrasi 340   ✅ 10 pemeriksaan: FORCE RLS, nomor induk unik per tenant,
+                     pegawai keluar terkunci, catatan tetap boleh diubah
+    migrasi 341   ✅ menu hidup berizin; satu tautan 404 tersisa
+    vitest        71 lulus / 3 berkas
+    mutasi        7 (lib) + 6 (rute) MERAH lalu pulih; 1 dicatat tak terbukti
+    tsc api/web   0 / 0
+    penjaga API   66 dijalankan, 65 hijau
+    penjaga web   8 hijau
+
+`audit-asumsi-global-test` merah — sudah merah di HEAD sebelum ini.
