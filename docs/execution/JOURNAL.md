@@ -15220,3 +15220,87 @@ berapa pun kartu konteks di atasnya.
     vitest (web)   604 lulus / 46 berkas — 0 gagal
     pnpm build     nol error
     di PERAMBAN    4 halaman, celah 16px konsisten
+
+---
+
+## 2026-08-12 — E2 · Serah Terima PHO/FHO, dan retensi yang akhirnya berarti
+
+**Cabang:** `feat/sumbu-ui-roadmap`
+
+### Lubang yang ditutup
+
+`POST /mandor/retensi-releases` mencairkan retensi setelah memeriksa SATU hal:
+
+    ditahan − sudahDicairkan >= diminta   →   cair
+
+Nol pemeriksaan mutu. Diukur sebelum dibangun: **36 dari 40 punch item masih
+terbuka**, termasuk satu proyek dengan **19 dari 19**. Uang jaminan mutu bisa
+cair penuh sementara sembilan belas cacat menunggu diperbaiki.
+
+`lib/retensi-subkontrak.ts` menulis sendiri di headernya: *"kalau ada cacat
+yang harus diperbaiki mandor, tak ada uang tertahan untuk memaksanya kembali —
+itu justru seluruh gunanya retensi."* Mekanisme **menahan**nya dibangun
+2026-08-04; syarat **melepas**nya tidak. E2 adalah syarat itu.
+
+Sekarang bertahap: PHO membuka 50%, FHO membuka sisanya, dan tanpa berita
+acara ditandatangani porsinya **nol** (fail-closed). Draf tak membuka apa pun.
+
+### Yang ditegakkan basis, dan yang sengaja tidak
+
+Basis: FHO menuntut PHO ditandatangani lebih dulu · tanggal FHO tak boleh
+mendahului PHO · `ditandatangani` menuntut KEDUA tanda tangan · isi terkunci
+sesudahnya · satu PHO + satu FHO per proyek (index PARSIAL, supaya yang
+dibatalkan boleh berulang).
+
+**Tidak** ditegakkan: "punch list wajib nol sebelum PHO". PHO bersyarat adalah
+praktik nyata, dan melarangnya membuat orang menutup punch item massal supaya
+tombolnya menyala — daftar cacatnya berhenti berarti apa-apa. Gantinya jumlah
+cacat terbuka **disimpan permanen** di berita acaranya. PHO dengan 19 cacat
+terbuka tercatat selamanya begitu, dan itu jauh lebih berguna saat sengketa
+daripada tombol yang pernah menolak.
+
+### Saya salah: delapan test D1 saya tinggalkan merah
+
+`retensi-subkontrak-endpoint.test.ts` merah **8 dari 9** sejak D1 — gerbang
+opname menolak pembayaran `progress_pct` tanpa berita acara, dan fixture-nya
+memodelkan dunia sebelum gerbang itu ada. Saya melewatkannya waktu itu:
+menjalankan test modul yang saya bangun, bukan test yang modul saya sentuh.
+
+Diverifikasi lewat `git stash` bahwa kedelapan merah itu ada di HEAD sebelum
+E2. Yang benar adalah memberi fixture opname-nya, **bukan** melonggarkan
+gerbang — gerbangnya menutup lubang berumur dua tahun.
+
+Sekaligus terpelajari urutannya: **ajukan → isi item → verifikasi**. Trigger
+D1 mengunci item begitu berita acaranya diverifikasi, jadi fixture yang
+menyisipkan item sesudah verifikasi ditolak. Itu urutan yang sama di lapangan.
+
+### Mutasi: dua lolos, keduanya berakhir berbeda
+
+**M4** (`if (status !== 'draf')` dibuang) lolos karena test hanya menguji
+tanda tangan pada berita acara yang sudah DITANDATANGANI — dan trigger basis
+menahannya di situ, jadi gerbang aplikasi tak pernah terlihat. Ditambah test
+tanda tangan pada berita acara **dibatalkan**, yang basisnya tak menahan.
+Mutasi ulang: MERAH.
+
+**M5** (`.eq('status', status)` pada transisi) tetap lolos, dan saya berhenti
+mencoba. `periksaTransisiSerahTerima` sudah menolak tiap perpindahan tak sah
+dari hasil baca, jadi WHERE-nya hanya tercapai bila status berubah persis di
+antara baca dan tulis — menyusun balapan itu berarti menyuntik jeda ke kode
+produksi. Dibiarkan ada dan **dicatat di testnya sebagai tak terbukti**, bukan
+dihapus supaya semuanya termutasi. Kesimpulan yang sama dengan D3.
+
+### Bukti
+
+    migrasi 331   ✅ 7 kasus negatif ditolak, izin diberikan, RLS 2 policy
+    migrasi 332   ✅ href tak null, satu rute satu tautan, izin ada
+    vitest        142 lulus / 7 berkas
+    mutasi        6 (lib) + 5 (rute ST) + 3 (gerbang di mandor.ts) MERAH lalu pulih
+                  1 dicatat tak terbukti (lapis kedua WHERE transisi)
+    tsc api/web   0 / 0
+    penjaga API   66 dijalankan, 65 hijau
+    penjaga web   8 hijau
+
+`audit-asumsi-global-test` (API) dan lima ratchet web (`uji-baris-tak-mepet`,
+`uji-izin-satu-sumber`, `uji-kosong-seragam`, `uji-opacity-teks`,
+`uji-tabel-terbaca`) merah — **diverifikasi lewat `git stash` sudah merah di
+HEAD**, nol di antaranya menyebut berkas E2.

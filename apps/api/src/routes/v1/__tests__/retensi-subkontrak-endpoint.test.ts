@@ -60,6 +60,19 @@ async function purge() {
       `DELETE FROM subcontract_retention_releases WHERE work_scope_id IN (${sc})`, [`${PREFIX}%`])
     await client.query(
       `DELETE FROM progress_payments WHERE work_scope_id IN (${sc})`, [`${PREFIX}%`])
+    // Opname dibersihkan SEBELUM work_scopes — `opname_bersama.work_scope_id`
+    // menahan penghapusannya, dan sisa dari run sebelumnya membuat purge gagal
+    // senyap di balik `session_replication_role = replica`.
+    await client.query(
+      `DELETE FROM serah_terima WHERE work_scope_id IN (${sc})`, [`${PREFIX}%`])
+    await client.query(
+      `DELETE FROM serah_terima WHERE project_id IN
+         (SELECT id FROM projects WHERE name LIKE $1)`, [`${PREFIX}%`])
+    await client.query(
+      `DELETE FROM opname_bersama_item WHERE opname_id IN
+         (SELECT id FROM opname_bersama WHERE work_scope_id IN (${sc}))`, [`${PREFIX}%`])
+    await client.query(
+      `DELETE FROM opname_bersama WHERE work_scope_id IN (${sc})`, [`${PREFIX}%`])
     await client.query(`DELETE FROM work_scopes WHERE assignment_id IN
       (SELECT ma.id FROM mandor_assignments ma JOIN projects p ON p.id = ma.project_id
        WHERE p.name LIKE $1)`, [`${PREFIX}%`])
@@ -106,7 +119,82 @@ async function buatScope(nama: string, retensiPct: number | null): Promise<strin
                               borongan_value, retensi_pct, status)
      VALUES ($1, $2, 'progress_pct', 100000000, $3, 'active') RETURNING id`,
     [a[0].id, `${PREFIX} ${nama}`, retensiPct])
+
+  // ── Opname terverifikasi — syarat sejak D1 (migrasi 325) ────────────────
+  //
+  // `progress_pct` termasuk `SISTEM_WAJIB_OPNAME`: pembayarannya DITOLAK tanpa
+  // berita acara pengukuran yang terverifikasi. Delapan test di berkas ini
+  // merah sejak D1 karena fixture-nya memodelkan dunia sebelum gerbang itu ada
+  // — dan saya melewatkannya waktu itu.
+  //
+  // Yang benar adalah memberi fixture opname-nya, BUKAN melonggarkan gerbang:
+  // gerbangnya menutup lubang berumur dua tahun, dan test yang menuntutnya
+  // dicabut akan menghapus justru yang baru saja dibangun.
+  //
+  // 100% terukur supaya pembayaran sampai 100% tak tertahan pembandingan
+  // persen — yang diuji berkas ini adalah RETENSI, bukan gerbang opname.
+  // Urutannya: ajukan → isi item → verifikasi. Bukan gaya penulisan — trigger
+  // D1 mengunci item begitu berita acaranya diverifikasi, dan menyisipkan item
+  // sesudahnya ditolak "Item opname tak bisa diubah setelah berita acaranya
+  // diverifikasi." Itu urutan yang sama di lapangan.
+  const { rows: op } = await client.query(
+    `INSERT INTO opname_bersama (company_id, project_id, work_scope_id, nomor,
+                                 tanggal_opname, diukur_oleh, status)
+     VALUES ($1, $2, $3, $4, CURRENT_DATE, $5, 'diajukan') RETURNING id`,
+    [companyId, p[0].id, s[0].id, `${PREFIX}-BA-${Date.now()}-${nama}`.slice(0, 60),
+     mandorUserId])
+
+  await client.query(
+    `INSERT INTO opname_bersama_item (opname_id, uraian, satuan, volume_terukur, pct_selesai, urutan)
+     VALUES ($1, $2, 'ls', 1, 100, 1)`,
+    [op[0].id, `${PREFIX} seluruh lingkup`])
+
+  await client.query(
+    `UPDATE opname_bersama SET status = 'diverifikasi', diverifikasi_oleh = $2,
+            diverifikasi_pada = now() WHERE id = $1`,
+    [op[0].id, adminUserId])
+
   return s[0].id
+}
+
+/**
+ * Terbitkan PHO + FHO yang ditandatangani untuk proyek sebuah scope.
+ *
+ * Sejak E2 (migrasi 331), pencairan retensi menuntut berita acara serah terima
+ * — PHO membuka setengah, FHO membuka sisanya. Test yang menguji ARITMETIKA
+ * pencairan butuh plafon penuh, jadi ia memakai FHO.
+ *
+ * Ditulis lewat SQL, bukan lewat rutenya: yang diuji berkas ini adalah retensi,
+ * dan memanggil rute serah terima di sini membuat kegagalannya sulit dibaca —
+ * merah di sini akan menunjuk modul yang salah.
+ */
+async function serahTerimakan(scopeId: string, sampaiFho = true) {
+  const { rows: pr } = await client.query(
+    `SELECT ma.project_id FROM work_scopes ws
+       JOIN mandor_assignments ma ON ma.id = ws.assignment_id
+      WHERE ws.id = $1`, [scopeId])
+  const projectId = pr[0].project_id
+  const cap = `${PREFIX}-${Date.now()}-${Math.floor(performance.now() * 1000)}`
+
+  await client.query(
+    `INSERT INTO serah_terima (company_id, project_id, work_scope_id, jenis, nomor,
+                               tanggal, lingkup_serah, masa_pemeliharaan_hari,
+                               status, ttd_penyerah_url, ttd_penerima_url, diterbitkan_oleh)
+     VALUES ($1, $2, $3, 'pho', $4, CURRENT_DATE - 1, $5, 90,
+             'ditandatangani', 'a.png', 'b.png', $6)`,
+    [companyId, projectId, scopeId, `${cap}-PHO`.slice(0, 60),
+     `${PREFIX} serah terima uji`, adminUserId])
+
+  if (sampaiFho) {
+    await client.query(
+      `INSERT INTO serah_terima (company_id, project_id, work_scope_id, jenis, nomor,
+                                 tanggal, lingkup_serah, status,
+                                 ttd_penyerah_url, ttd_penerima_url, diterbitkan_oleh)
+       VALUES ($1, $2, $3, 'fho', $4, CURRENT_DATE, $5,
+               'ditandatangani', 'a.png', 'b.png', $6)`,
+      [companyId, projectId, scopeId, `${cap}-FHO`.slice(0, 60),
+       `${PREFIX} serah terima uji`, adminUserId])
+  }
 }
 
 async function bacaPembayaran(id: string) {
@@ -309,6 +397,10 @@ describe('register + pencairan retensi', () => {
     })
     // Ditahan: 10jt × 10% = 1jt
 
+    // FHO supaya plafon mutu PENUH — yang diuji di sini adalah gerbang SALDO,
+    // dan tanpa serah terima ia tak pernah sampai ke sana (E2).
+    await serahTerimakan(scopeId)
+
     const res = await post('/api/v1/mandor/retensi-releases', {
       work_scope_id: scopeId, amount: 1_000_001,
     })
@@ -335,6 +427,8 @@ describe('register + pencairan retensi', () => {
       status: 'approved', cash_account_id: acc[0].id,
     })
 
+    await serahTerimakan(scopeId)
+
     const c1 = await post('/api/v1/mandor/retensi-releases', {
       work_scope_id: scopeId, amount: 600_000,
     })
@@ -359,6 +453,163 @@ describe('register + pencairan retensi', () => {
     const baris = reg.json().scopes.find((s: any) => s.work_scope_id === scopeId)
     expect(baris.dicairkan).toBe(1_000_000)
     expect(baris.outstanding).toBe(0)
+  })
+
+  // ── Gerbang MUTU (E2) ───────────────────────────────────────────────────
+  //
+  // Sampai 2026-08-12 pencairan hanya memeriksa saldo. Diukur saat itu: 36 dari
+  // 40 punch item terbuka, termasuk satu proyek dengan 19 dari 19 — uang
+  // jaminan mutu bisa cair penuh sementara sembilan belas cacat menunggu.
+  it('DITOLAK tanpa serah terima — retensi adalah jaminan, bukan simpanan', async () => {
+    actAs(adminAuth)
+    const scopeId = await buatScope('tanpa-pho', 10)
+
+    const buat = await post('/api/v1/mandor/progress-payments', {
+      work_scope_id: scopeId, pct_completed: 10, gross_payment: 10_000_000,
+    })
+    const { rows: acc } = await client.query(
+      `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
+       VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
+      [companyId, `${PREFIX} KasE2a`, adminUserId])
+    actAs(pmAuth)
+    await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
+      status: 'approved', cash_account_id: acc[0].id,
+    })
+
+    // SALDO-nya cukup — 1jt tertahan, diminta 1. Yang menolak adalah MUTU.
+    const res = await post('/api/v1/mandor/retensi-releases', {
+      work_scope_id: scopeId, amount: 1,
+    })
+    expect(res.statusCode,
+      'retensi cair tanpa satu pun berita acara serah terima — jaminan mutu ' +
+      'yang bisa dilepas kapan saja bukan jaminan').toBe(422)
+    expect(res.json().error).toMatch(/belum ada berita acara serah terima/i)
+    expect(res.json().plafon).toBe(0)
+  })
+
+  it('PHO membuka SETENGAH, bukan seluruhnya', async () => {
+    actAs(adminAuth)
+    const scopeId = await buatScope('pho-saja', 10)
+
+    const buat = await post('/api/v1/mandor/progress-payments', {
+      work_scope_id: scopeId, pct_completed: 10, gross_payment: 10_000_000,
+    })
+    const { rows: acc } = await client.query(
+      `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
+       VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
+      [companyId, `${PREFIX} KasE2b`, adminUserId])
+    actAs(pmAuth)
+    await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
+      status: 'approved', cash_account_id: acc[0].id,
+    })
+
+    // PHO SAJA — masa pemeliharaan sedang berjalan.
+    await serahTerimakan(scopeId, false)
+
+    // Ditahan 1jt. Plafon PHO = 500rb.
+    const lewat = await post('/api/v1/mandor/retensi-releases', {
+      work_scope_id: scopeId, amount: 600_000,
+    })
+    expect(lewat.statusCode,
+      'PHO mencairkan seluruh retensi — masa pemeliharaan kehilangan jaminannya ' +
+      'justru pada rentang waktu yang paling membutuhkannya').toBe(422)
+    expect(lewat.json().plafon).toBe(500_000)
+    expect(lewat.json().error).toMatch(/setelah FHO/i)
+
+    const pas = await post('/api/v1/mandor/retensi-releases', {
+      work_scope_id: scopeId, amount: 500_000,
+    })
+    expect(pas.statusCode, `body: ${pas.body.slice(0, 300)}`).toBe(201)
+  })
+
+  it('PHO DRAF tidak membuka apa pun — draf adalah niat, bukan kesepakatan', async () => {
+    actAs(adminAuth)
+    const scopeId = await buatScope('pho-draf', 10)
+
+    const buat = await post('/api/v1/mandor/progress-payments', {
+      work_scope_id: scopeId, pct_completed: 10, gross_payment: 10_000_000,
+    })
+    const { rows: acc } = await client.query(
+      `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
+       VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
+      [companyId, `${PREFIX} KasE2d`, adminUserId])
+    actAs(pmAuth)
+    await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
+      status: 'approved', cash_account_id: acc[0].id,
+    })
+    actAs(adminAuth)
+
+    // PHO ADA, tapi masih DRAF — belum ditandatangani siapa pun.
+    const { rows: pr } = await client.query(
+      `SELECT ma.project_id FROM work_scopes ws
+         JOIN mandor_assignments ma ON ma.id = ws.assignment_id
+        WHERE ws.id = $1`, [scopeId])
+    await client.query(
+      `INSERT INTO serah_terima (company_id, project_id, work_scope_id, jenis, nomor,
+                                 tanggal, lingkup_serah, status, diterbitkan_oleh)
+       VALUES ($1, $2, $3, 'pho', $4, CURRENT_DATE, $5, 'draf', $6)`,
+      [companyId, pr[0].project_id, scopeId, `${PREFIX}-DRAF-${Date.now()}`.slice(0, 60),
+       `${PREFIX} draf`, adminUserId])
+
+    const res = await post('/api/v1/mandor/retensi-releases', {
+      work_scope_id: scopeId, amount: 1,
+    })
+    expect(res.statusCode,
+      'berita acara DRAF membuka retensi — siapa pun bisa mencairkan jaminan ' +
+      'dengan membuat draf yang tak pernah ditandatangani pihak mana pun').toBe(422)
+    expect(res.json().error).toMatch(/belum ada berita acara serah terima/i)
+  })
+
+  it('serah terima lingkup kerja LAIN tidak membuka retensi scope ini', async () => {
+    actAs(adminAuth)
+    const scopeA = await buatScope('scope-a', 10)
+
+    const buat = await post('/api/v1/mandor/progress-payments', {
+      work_scope_id: scopeA, pct_completed: 10, gross_payment: 10_000_000,
+    })
+    const { rows: acc } = await client.query(
+      `INSERT INTO cash_accounts (company_id, name, type, balance, is_active, created_by)
+       VALUES ($1, $2, 'main', 90000000, true, $3) RETURNING id`,
+      [companyId, `${PREFIX} KasE2c`, adminUserId])
+    actAs(pmAuth)
+    await patch(`/api/v1/mandor/progress-payments/${buat.json().payment.id}/confirm`, {
+      status: 'approved', cash_account_id: acc[0].id,
+    })
+    actAs(adminAuth)
+
+    // PHO ber-work_scope_id LAIN pada PROYEK yang sama. Ia tak boleh membuka
+    // retensi scope ini — itu pekerjaan orang lain.
+    //
+    // PHO, bukan FHO: trigger `fn_serah_terima_fho_butuh_pho` menuntut PHO
+    // lebih dulu PER PROYEK (bukan per scope), dan FHO di sini ditolak basis
+    // sebelum sempat menguji apa pun. Aturan itu benar — masa pemeliharaan
+    // proyek tak bisa berakhir sebelum dimulai — jadi fixture-nya yang
+    // menyesuaikan, bukan triggernya yang dilonggarkan.
+    const { rows: pr } = await client.query(
+      `SELECT ma.project_id, ma.id AS asg FROM work_scopes ws
+         JOIN mandor_assignments ma ON ma.id = ws.assignment_id
+        WHERE ws.id = $1`, [scopeA])
+    const { rows: wsB } = await client.query(
+      `INSERT INTO work_scopes (assignment_id, scope_name, payment_system,
+                                borongan_value, retensi_pct, status)
+       VALUES ($1, $2, 'progress_pct', 100000000, 10, 'active') RETURNING id`,
+      [pr[0].asg, `${PREFIX} scope-b`])
+    await client.query(
+      `INSERT INTO serah_terima (company_id, project_id, work_scope_id, jenis, nomor,
+                                 tanggal, lingkup_serah, status,
+                                 ttd_penyerah_url, ttd_penerima_url, diterbitkan_oleh)
+       VALUES ($1, $2, $3, 'pho', $4, CURRENT_DATE, $5,
+               'ditandatangani', 'a.png', 'b.png', $6)`,
+      [companyId, pr[0].project_id, wsB[0].id, `${PREFIX}-LAIN-${Date.now()}`.slice(0, 60),
+       `${PREFIX} scope lain`, adminUserId])
+
+    const res = await post('/api/v1/mandor/retensi-releases', {
+      work_scope_id: scopeA, amount: 1,
+    })
+    expect(res.statusCode,
+      'serah terima lingkup kerja LAIN membuka retensi scope ini — satu subkon ' +
+      'yang selesai mencairkan jaminan subkon yang belum').toBe(422)
+    expect(res.json().error).toMatch(/belum ada berita acara serah terima/i)
   })
 
   it('pembayaran PENDING tidak menahan retensi — belum ada uang keluar', async () => {

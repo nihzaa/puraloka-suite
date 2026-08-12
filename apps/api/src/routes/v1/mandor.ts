@@ -7,6 +7,7 @@ import { flattenUserRole } from '../../utils/user-role.js'
 import { validateMime } from '../../utils/mime.js'
 import { proyekMilikTenant, scopeIdsTenant } from '../../utils/tenant-guard.js'
 import { hitungPotonganRetensi, validasiPencairanRetensi } from '../../lib/retensi-subkontrak.js'
+import { periksaPencairanRetensi } from '../../lib/serah-terima.js'
 import { periksaGerbangOpname, pctOpname } from '../../lib/gerbang-opname.js'
 import { ringkasBackCharge, hitungNetoLengkap } from '../../lib/back-charge.js'
 
@@ -2657,6 +2658,68 @@ export default async function mandorRoutes(app: FastifyInstance) {
     })
     if (!verdict.ok) {
       return reply.status(422).send({ error: verdict.galat, tersedia: verdict.tersedia })
+    }
+
+    // ── Gerbang MUTU di atas gerbang SALDO (E2) ─────────────────────────────
+    //
+    // `validasiPencairanRetensi` di atas menjaga aritmetikanya; ia tak pernah
+    // menanyakan apakah pekerjaannya sudah diserahkan. Sampai 2026-08-12 itu
+    // satu-satunya pemeriksaan — dan diukur saat itu, 36 dari 40 punch item
+    // masih terbuka, termasuk satu proyek dengan 19 dari 19. Uang jaminan mutu
+    // bisa cair penuh sementara sembilan belas cacat menunggu diperbaiki.
+    //
+    // `lib/retensi-subkontrak.ts` menulis sendiri di headernya bahwa itulah
+    // seluruh guna retensi. Mekanisme MENAHANnya dibangun; syarat MELEPASnya
+    // tidak sampai sekarang.
+    //
+    // Dipisah dari verdict saldo dengan sengaja: dua sebab kegagalan yang
+    // menuntut dua tindakan berbeda. "Melebihi sisa" diperbaiki dengan
+    // mengubah angka; "belum ada PHO" diperbaiki dengan menyelesaikan
+    // pekerjaan.
+    //
+    // Berita acara dibaca lewat PROYEK scope-nya, bukan lewat scope: serah
+    // terima ke owner tercatat per-proyek (tanpa `work_scope_id`), dan
+    // membacanya lewat scope saja membuat PHO proyek tak pernah terlihat.
+    const { data: scopeProyek, error: errProyek } = await request.db!
+      .unsafe('work_scopes', 'id sudah diverifikasi lewat scopeIdsTenant di atas')
+      .select('id, assignment:mandor_assignments!inner(project_id)')
+      .eq('id', body.work_scope_id)
+      .maybeSingle()
+    if (errProyek) return reply.status(500).send({ error: errProyek.message })
+    const projectIdScope = ((scopeProyek as Record<string, unknown> | null)
+      ?.assignment as { project_id?: string } | undefined)?.project_id
+    if (!projectIdScope) {
+      return reply.status(500).send({ error: 'Lingkup kerja tanpa proyek' })
+    }
+
+    const { data: beritaAcara, error: errBa } = await request.db!
+      .unsafe('serah_terima', 'kategori B; disaring company_id di baris berikutnya')
+      .select('jenis, status, tanggal, masa_pemeliharaan_hari, work_scope_id')
+      .eq('company_id', request.companyId!)
+      .eq('project_id', projectIdScope)
+    if (errBa) return reply.status(500).send({ error: errBa.message })
+
+    // Yang berlaku: berita acara PROYEK (tanpa scope) atau berita acara scope
+    // INI. Serah terima lingkup kerja LAIN pada proyek yang sama tak membuka
+    // retensi scope ini — itu pekerjaan orang lain.
+    const baBerlaku = ((beritaAcara ?? []) as Array<Record<string, unknown>>)
+      .filter(b => !b.work_scope_id || b.work_scope_id === body.work_scope_id)
+      .map(b => ({
+        jenis: b.jenis as 'pho' | 'fho',
+        status: b.status as 'draf' | 'ditandatangani' | 'dibatalkan',
+        tanggal: String(b.tanggal),
+        masaPemeliharaanHari: b.masa_pemeliharaan_hari as number | null,
+      }))
+
+    const gerbangMutu = periksaPencairanRetensi({
+      ditahan, sudahDicairkan, diminta: Number(body.amount), daftar: baBerlaku,
+    })
+    if (!gerbangMutu.ok) {
+      return reply.status(422).send({
+        error: gerbangMutu.galat,
+        plafon: gerbangMutu.plafon,
+        tersedia: gerbangMutu.tersedia,
+      })
     }
 
     const { data, error } = await request.db!
