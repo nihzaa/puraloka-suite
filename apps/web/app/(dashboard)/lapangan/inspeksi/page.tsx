@@ -7,8 +7,9 @@ import { api } from "@/lib/api";
 import { useToast } from "@/components/toast";
 import {
   ClipboardList, Plus, MapPin, CheckCircle2, X, Clock,
-  AlertTriangle, ArrowRight, ChevronDown, Loader2,
+  AlertTriangle, ArrowRight, ChevronDown, Loader2, ListChecks,
 } from "lucide-react";
+import { ChecklistInspeksi } from "@/components/checklist-inspeksi";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REQUEST FOR INSPECTION — izin cor, izin tutup.
@@ -419,6 +420,31 @@ export default function InspeksiPage() {
                         </p>
                       )}
 
+                      {/* Checklist — endpointnya hidup sejak G1d dengan 17 test,
+                          dan sampai 2026-08-12 NOL halaman memanggilnya. Tanpa
+                          ini, inspeksi diputuskan lolos/tidak lolos tanpa
+                          daftar yang diperiksa.
+
+                          Dilipat: sebagian besar inspeksi dibuka untuk melihat
+                          statusnya, bukan butirnya — dan checklist yang selalu
+                          terbuka membuat daftar inspeksi jadi gulungan panjang. */}
+                      <details className="in-checklist">
+                        <summary className="in-checklist-kepala">
+                          <ListChecks size={13} aria-hidden /> Checklist pemeriksaan
+                        </summary>
+                        <div className="in-checklist-isi">
+                          <ChecklistInspeksi
+                            inspeksiId={it.id}
+                            bolehUbah={it.status !== "dibatalkan"}
+                            // Memuat ulang lewat `muat()` yang sudah ada, bukan
+                            // state putaran baru: `muat` juga menyegarkan cache
+                            // offline, dan dua jalur muat-ulang di satu layar
+                            // pasti berselisih soal mana yang paling baru.
+                            onBerubah={() => { void muat(proyekId); }}
+                          />
+                        </div>
+                      </details>
+
                       <div className="in-aksi">
                         {LANJUTAN[it.status].map((baru) => (
                           <button
@@ -594,6 +620,32 @@ export default function InspeksiPage() {
         .in-temuan-status {
           font-size: 11px; padding: 1px 7px; border-radius: 4px;
           background: var(--danger-bg); color: var(--danger);
+        }
+
+        /* Checklist dilipat: sebagian besar inspeksi dibuka untuk melihat
+           STATUS-nya, bukan butirnya. Yang selalu terbuka membuat daftar
+           inspeksi jadi gulungan panjang di layar HP lapangan. */
+        .in-checklist { margin-top: 11px; border-top: 1px solid var(--border); }
+        .in-checklist-kepala {
+          display: flex; align-items: center; gap: 6px;
+          padding: 8px 0; cursor: pointer;
+          font-size: 12.5px; font-weight: 600; color: var(--text-secondary);
+          list-style: none;
+        }
+        .in-checklist-kepala::-webkit-details-marker { display: none; }
+        .in-checklist-kepala::after {
+          content: "▸"; margin-inline-start: auto; color: var(--text-muted);
+          transition: transform 140ms ease;
+        }
+        .in-checklist[open] .in-checklist-kepala::after { transform: rotate(90deg); }
+        /* Fokus keyboard WAJIB terlihat — summary kehilangan outline bawaan
+           begitu list-style disetel. */
+        .in-checklist-kepala:focus-visible {
+          outline: 2px solid var(--aksen); outline-offset: 2px; border-radius: 4px;
+        }
+        .in-checklist-isi { padding-bottom: 6px; }
+        @media (prefers-reduced-motion: reduce) {
+          .in-checklist-kepala::after { transition: none; }
         }
 
         .in-aksi { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }

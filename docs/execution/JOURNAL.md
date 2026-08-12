@@ -15926,3 +15926,83 @@ Diperbaiki dengan DUA baris stok (12.5 + 7.5 = 20; sebagai teks jadi
 31 → **26 sebagian** (3 koreksi status + md-karyawan + md-gudang).
 
 `audit-asumsi-global-test` merah — sudah merah di HEAD sebelum ini.
+
+---
+
+## 2026-08-12 — Kelompok 2 (3–5/8): checklist inspeksi + dua koreksi lagi
+
+**Cabang:** `feat/sumbu-ui-roadmap`
+
+### Dua catatan lagi ternyata salah
+
+**`crm-skenario`** — catatannya berbunyi *"tabel `scenarios` ada, endpoint-nya
+belum"*. Diukur: **208 skenario di 206 proyek**, `GET/POST
+/projects/:projectId/scenarios` dan `POST /scenarios/:scenarioId/versions`
+hidup di `estimate-versions.ts`, dan ketiganya **dipanggil halaman /estimasi** —
+skenario dibaca, dibuat lewat form, versinya diterbitkan dari sana.
+
+**`sy-import`** — catatannya *"impor RAB & AHSP sudah ada; jenis data lain
+belum"*. Salah arah: yang ada justru sebaliknya. `importer.ts` punya SATU
+skema, `material`, lengkap dengan halaman `/sistem/impor`, unduh template,
+pratinjau sebelum commit, dan pengenalan alias kolom. RAB dan AHSP **tidak**
+ada di daftar skemanya — impor RAB yang dimaksud catatan lama adalah jalur
+terpisah di modul estimasi (`golden-boq-adapter.ts`).
+
+Tetap `sebagian`, tapi dengan alasan yang benar: satu skema dari banyak jenis
+data yang layak diimpor.
+
+Ini catatan basi keempat dan kelima dalam sehari, sesudah `iv-minstok`,
+`sy-penomoran`, dan `jd-wbs`. Polanya cukup jelas untuk disebut: **status di
+Peta Modul membusuk lebih cepat daripada kodenya**, dan yang paling menyesatkan
+bukan yang menyatakan sesuatu belum selesai — melainkan yang menyatakan sesuatu
+belum ADA padahal sudah dipakai berbulan-bulan.
+
+### `qc-checklist` — endpoint hidup, nol UI
+
+Migrasi 279 (G1d) membangun `inspeksi_checklist` dengan 17 test terhadap
+Postgres nyata: tiga keadaan (`null` belum diperiksa ≠ `false` tidak lolos),
+butir gagal wajib beralasan lewat constraint, gerbang tenancy yang benar
+untuk tabel kategori C.
+
+Diukur 2026-08-12: **nol halaman memanggilnya**. Butirnya tersimpan dan
+dijaga, tanpa satu pun cara mengisinya dari layar — jadi inspeksi diputuskan
+lolos/tidak lolos tanpa daftar yang diperiksa.
+
+Komponen `checklist-inspeksi.tsx` menempel di tiap kartu inspeksi. Yang
+menentukan rancangannya:
+
+- **Dilipat** (`<details>`), karena sebagian besar inspeksi dibuka untuk
+  melihat statusnya, bukan butirnya — dan yang selalu terbuka membuat daftar
+  jadi gulungan panjang di HP lapangan.
+- **Tiga ikon, bukan dua.** `null` tak pernah terlihat seperti lolos.
+- **Dialog alasan mendahului penolakan basis.** Constraint
+  `checklist_gagal_beralasan` akan menolak `lolos = false` tanpa catatan;
+  tombolnya menuntut alasan lebih dulu supaya penolakan itu tak datang sesudah
+  orang mengira pekerjaannya selesai.
+- Memuat ulang lewat `muat()` yang sudah ada, bukan state putaran baru: `muat`
+  juga menyegarkan cache offline, dan dua jalur muat-ulang di satu layar pasti
+  berselisih soal mana yang paling baru.
+
+### Dua kesalahan kecil saat menyisipkan
+
+`import` ganda (patch kedua mengira yang pertama gagal), dan **backtick di
+komentar CSS** — `` `summary` `` di dalam template literal `<style jsx>`
+mengakhiri literalnya, dan tsc mengeluh soal `}` yang hilang tiga baris
+setelahnya. Keduanya ditangkap `tsc`, bukan lolos ke peramban.
+
+### `crm-boq` diukur, dan ia BUKAN Kelompok 2
+
+Volume pekerjaan bisa diketik (260 dari 375 baris RAB terisi `qty`), tetapi
+MENGHITUNGNYA dari gambar — takeoff yang sebenarnya — nol tabel, nol rute.
+Itu modul baru, jadi ia pindah ke Kelompok 3.
+
+### Bukti
+
+    vitest        17 lulus (mutu-endpoint, checklist)
+    tsc api/web   0 / 0
+    penjaga API   66 dijalankan, 65 hijau
+    penjaga web   8 hijau
+
+Peta Modul: 200 → **202 bisa dipakai** · 26 → **24 sebagian**.
+
+`audit-asumsi-global-test` merah — sudah merah di HEAD sebelum ini.
