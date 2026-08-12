@@ -48,7 +48,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIzin } from "@/lib/use-izin";
 import {
   Workflow, Play, RefreshCw, Plus, Pencil, ChevronRight,
-  Radio, XCircle, Activity, PlugZap,
+  Radio, XCircle, Activity, PlugZap, Trash2,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
@@ -201,6 +201,11 @@ export default function HalamanAlurOtomasi() {
   const [bagian, setBagian] = useState<Bagian>("monitor");
   const [formBuka, setFormBuka] = useState(false);
   const [ubah, setUbah] = useState<AlurUntukForm | null>(null);
+  // Dua state terpisah: yang MENUNGGU konfirmasi, dan yang SEDANG dihapus.
+  // Satu state gabungan membuat tombol kembali ke "Hapus" selagi permintaan
+  // masih berjalan — dan orang menekannya lagi.
+  const [konfirmHapus, setKonfirmHapus] = useState<string | null>(null);
+  const [sedangHapus, setSedangHapus] = useState<string | null>(null);
 
   const muat = useCallback(async () => {
     try {
@@ -274,6 +279,38 @@ export default function HalamanAlurOtomasi() {
       await muat();
     } finally {
       setSedang(null);
+    }
+  }
+
+  /**
+   * Menghapus alur beserta seluruh jejak jalannya (FK CASCADE, migrasi 272).
+   *
+   * Dipanggil hanya pada tekanan KEDUA — tekanan pertama mengubah tombolnya
+   * jadi "Yakin hapus?". Jejak penghapusannya sendiri tetap tercatat di audit
+   * log yang append-only, jadi "siapa menghapus apa" tetap bisa dijawab
+   * meski barisnya sudah tak ada.
+   */
+  async function hapusAlur(a: Alur) {
+    setKonfirmHapus(null);
+    setSedangHapus(a.id);
+    setPesan(null);
+    try {
+      await api.delete(`/api/v1/otomasi/alur/${a.id}`);
+      setPesan({ tipe: "ok", teks: `Alur "${a.nama}" dihapus.` });
+      // Jejak yang tersimpan di memori ikut dibuang — kalau tidak, panel
+      // jejaknya masih bisa terbuka untuk alur yang sudah tak ada.
+      setJejak((j) => { const x = { ...j }; delete x[a.id]; return x; });
+      if (terbuka === a.id) setTerbuka(null);
+      await muat();
+    } catch (e) {
+      setPesan({
+        tipe: "err",
+        teks:
+          (e as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+          "Gagal menghapus alur",
+      });
+    } finally {
+      setSedangHapus(null);
     }
   }
 
@@ -857,6 +894,52 @@ export default function HalamanAlurOtomasi() {
                         >
                           <Pencil size={13} />
                           Ubah
+                        </button>
+                      )}
+
+                      {/*
+                        Hapus — dua langkah, bukan konfirmasi modal.
+
+                        Sebelum ini alur TIDAK BISA dihapus sama sekali: yang
+                        salah ketik atau sisa percobaan menetap selamanya, dan
+                        daftar yang tak bisa dibersihkan pelan-pelan berhenti
+                        dipercaya.
+
+                        Tombolnya berubah jadi "Yakin hapus?" alih-alih
+                        membuka dialog: pertanyaannya muncul TEPAT di tempat
+                        jarinya sudah berada, dan salah tekan dipulihkan
+                        dengan menekan apa pun yang lain. Dialog untuk satu
+                        baris daftar adalah gangguan yang dilatih untuk
+                        di-klik-tanpa-dibaca.
+                      */}
+                      {bolehKelola && (
+                        <button
+                          type="button"
+                          onClick={() => (konfirmHapus === a.id ? hapusAlur(a) : setKonfirmHapus(a.id))}
+                          onBlur={() => konfirmHapus === a.id && setKonfirmHapus(null)}
+                          disabled={sedangHapus === a.id}
+                          aria-label={
+                            konfirmHapus === a.id
+                              ? `Konfirmasi hapus ${a.nama}`
+                              : `Hapus ${a.nama}`
+                          }
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 6,
+                            padding: "6px 10px", borderRadius: 8,
+                            border: `1px solid ${konfirmHapus === a.id ? C.danger : C.border}`,
+                            background: "transparent",
+                            color: konfirmHapus === a.id ? C.danger : C.muted,
+                            fontSize: 12.5, fontFamily: "inherit",
+                            cursor: sedangHapus === a.id ? "wait" : "pointer",
+                            fontWeight: konfirmHapus === a.id ? 600 : 400,
+                          }}
+                        >
+                          <Trash2 size={13} />
+                          {sedangHapus === a.id
+                            ? "Menghapus…"
+                            : konfirmHapus === a.id
+                              ? "Yakin hapus?"
+                              : "Hapus"}
                         </button>
                       )}
 

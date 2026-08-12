@@ -160,24 +160,34 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
     keterangan: 'Biasanya berakhiran /v1. Bukan rahasia, tapi disimpan bersama kuncinya agar satu tempat.',
     grup: 'AI',
   },
-  {
-    kunci: 'EVOLUTION_API_KEY',
-    label: 'Evolution API (WhatsApp)',
-    keterangan: 'Kunci global gateway WhatsApp Anda (AUTHENTICATION_API_KEY di server Evolution).',
-    grup: 'WhatsApp',
-  },
-  {
-    kunci: 'EVOLUTION_API_URL',
-    label: 'Alamat Evolution API',
-    keterangan: 'Alamat server Evolution Anda, mis. http://localhost:8081. Tanpa garis miring di akhir.',
-    grup: 'WhatsApp',
-  },
-  {
-    kunci: 'EVOLUTION_INSTANCE',
-    label: 'Nama instance WhatsApp',
-    keterangan: 'Instance yang dipakai tenant ini, mis. puraloka-bot.',
-    grup: 'WhatsApp',
-  },
+  /*
+   * ── `EVOLUTION_API_KEY` / `EVOLUTION_API_URL` / `EVOLUTION_INSTANCE` DIHAPUS
+   *   (2026-08-12)
+   *
+   * Ketiganya kembar persis `WA_API_KEY` / `WA_BASE_URL` / `WA_INSTANCE` di
+   * atas — arti sama, grup sama, bahkan contoh di keterangannya sama
+   * (`http://localhost:8081`, `puraloka-bot`). Bedanya cuma satu, dan itu
+   * yang menentukan: **hanya `WA_*` yang dibaca kode.** `wa-kirim.ts`
+   * memanggil `ambil('WA_BASE_URL')`, tak pernah `EVOLUTION_API_URL`.
+   *
+   * Jadi halaman Kredensial menampilkan SIX kotak untuk TIGA nilai, dan tiga
+   * di antaranya tidak berpengaruh apa pun. Orang yang mengisi pasangan yang
+   * salah melihat "tersimpan", melihat kotaknya terisi, lalu WhatsApp-nya
+   * tetap mati — tanpa satu pun galat menyebut sebabnya.
+   *
+   * Itu kelas cacat yang sama dengan `AI_PROVIDER_API_KEY` (dibaca tanpa
+   * kotak) dan `OPENAI_API_KEY` (berkotak tanpa pembaca), hanya bentuk
+   * ketiganya: DUA kotak untuk satu nilai, satu di antaranya bohong.
+   *
+   * Dihapus, bukan disambungkan ke `WA_*`: dua nama untuk satu nilai berarti
+   * pertanyaan "yang mana yang berlaku?" harus dijawab tiap kali seseorang
+   * membaca kode ini, dan jawabannya akan berbeda-beda.
+   *
+   * ⚠ Nilai yang TERLANJUR tersimpan di `app_credentials` dengan kunci
+   * `EVOLUTION_*` tidak ikut terhapus — menghapus data tenant butuh migrasi
+   * dan konfirmasi. Ia hanya berhenti ditampilkan; `sumberKredensial()`
+   * tetap bisa melaporkannya kalau ditanya. Dicatat di JOURNAL.
+   */
   {
     kunci: 'RESEND_API_KEY',
     label: 'Resend (email)',
