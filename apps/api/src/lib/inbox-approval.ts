@@ -166,6 +166,26 @@ export const SUMBER_INBOX: SumberInbox[] = [
     jalurUi: '/mandor/back-charge',
   },
   {
+    jenis: 'klaim_perjalanan',
+    label: 'Klaim Perjalanan',
+    tabel: 'klaim_perjalanan',
+    // Enum `klaim_status` = diajukan|disetujui|ditolak|dibayar (diukur ke
+    // pg_enum). Hanya `diajukan` yang menunggu KEPUTUSAN — `disetujui`
+    // menunggu pencairan, yang jalurnya sendiri dan izinnya berbeda.
+    statusMenunggu: ['diajukan'],
+    kolomNominal: 'total_diajukan',
+    kolomJudul: 'keperluan',
+    kolomNomor: 'nomor',
+    // `dibuat_oleh` (user), BUKAN `pegawai_id`. Yang dibandingkan inbox
+    // dengan id penggunanya adalah kolom ini; `pegawai_id` menunjuk tabel
+    // lain dan akan selalu tak cocok — tombol setujui muncul untuk pengaju
+    // sendiri, dan SoD-nya baru menahan di server.
+    kolomPengaju: 'dibuat_oleh',
+    kolomDibuat: 'dibuat_pada',
+    tenancy: 'B',
+    jalurUi: '/sdm/klaim-perjalanan',
+  },
+  {
     jenis: 'change_order',
     label: 'Change Order',
     tabel: 'change_orders',

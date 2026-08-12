@@ -60,6 +60,16 @@ export type ApprovalEntityType =
                         // sesudah kasbon/expense yang ambang rupiahnya
                         // bermakna. Ambangnya sendiri tetap NULL di migrasi
                         // 330: memilih angkanya adalah kebijakan tenant.
+  | 'klaim_perjalanan'  // G1 (2026-08-12) — penggantian biaya yang ditalangi
+                        // karyawan. Masuk engine ini karena persetujuannya
+                        // MENGELUARKAN uang perusahaan, dan sebagian tenant
+                        // menuntut klaim di atas nominal tertentu disetujui
+                        // atasan langsung lalu keuangan.
+                        //
+                        // Nominalnya nilai yang DISETUJUI, bukan yang
+                        // diajukan: yang menjadi kewajiban perusahaan adalah
+                        // yang disepakati, dan ambang rantai harus dinilai
+                        // dari angka itu.
 
 /**
  * Ambil langkah rantai aktif untuk sebuah entitas — MILIK COMPANY INI.

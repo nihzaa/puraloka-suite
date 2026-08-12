@@ -84,6 +84,18 @@ export const ATURAN_SOD: readonly AturanSod[] = [
   // dilarang menyetujui adalah orang yang mengukur di lapangan.
   { jenis: 'opname_bersama',   tabel: 'opname_bersama',          kolomPengaju: 'diukur_oleh',   label: 'Verifikasi Opname' },
   { jenis: 'back_charge',      tabel: 'back_charge',             kolomPengaju: 'diajukan_oleh', label: 'Back-Charge' },
+  // G1 (2026-08-12). Kolom pengajunya `pegawai_id` — dan itu BUKAN user_id.
+  //
+  // `periksaGerbangSod` membandingkan nilai kolom ini dengan id user yang
+  // menyetujui, jadi `pegawai_id` di sini akan SELALU berbeda dan gerbangnya
+  // tak pernah menahan siapa pun. Yang menahan adalah pemeriksaan di rutenya
+  // (yang menerjemahkan pegawai -> user) plus trigger basis `fn_klaim_sod`.
+  //
+  // Didaftarkan tetap, karena `periksaGerbangSod` menolak jenis yang tak
+  // terdaftar (fail-closed) dan approval-nya akan mati total. Yang dijaga
+  // baris ini adalah pencatatan override lewat satu pintu, bukan deteksi
+  // pengajunya.
+  { jenis: 'klaim_perjalanan', tabel: 'klaim_perjalanan',       kolomPengaju: 'dibuat_oleh',   label: 'Klaim Perjalanan' },
 ] as const
 
 export function aturanSod(jenis: string): AturanSod | undefined {

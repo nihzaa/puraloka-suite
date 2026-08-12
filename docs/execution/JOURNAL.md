@@ -15556,3 +15556,87 @@ yang dirender.
 
 `tata-letak-ratchet` masih merah untuk `akuntansi/*` — diverifikasi berasal
 dari commit TJS-P4/P5, bukan pekerjaan ini.
+
+---
+
+## 2026-08-12 — G1 · Klaim perjalanan, dan kolom yang dibaca tapi tak pernah ditulis
+
+**Cabang:** `feat/sumbu-ui-roadmap`
+
+### Lubang 1: penggantian biaya tak punya jalurnya
+
+Yang ada hanya KASBON — uang muka, dicairkan SEBELUM belanja. Klaim arah
+uangnya berlawanan: karyawan menalangi, perusahaan mengganti.
+
+Bedanya bukan istilah. Kasbon yang belum diselesaikan adalah **piutang**;
+klaim yang belum dibayar adalah **utang**. Mencatat keduanya di satu tabel
+membuat saldo "kasbon beredar" salah tanda.
+
+Diukur: nol tabel perjalanan. `expense_reports` dan `project_expenses` yang
+muncul saat mencari keduanya **nol baris**, dan keduanya untuk biaya PROYEK.
+
+Status `disetujui` dipisah dari `dibayar` dengan sengaja — klaim yang disetujui
+tapi belum cair adalah utang yang harus terlihat di neraca.
+
+### Lubang 2: `kasbons.settled_at` dibaca laporan, tak pernah ditulis
+
+`finance.ts` menghitung "kasbon lunas dalam periode" dengan
+`.eq('status','settled').gte('settled_at', dari)`.
+
+Diukur: **7 kasbon `settled` senilai Rp 54.000.000, dan 0 dari 56 punya
+`settled_at`.** Nol baris memenuhi `gte(...)`, jadi angka itu **selalu Rp 0** —
+bukan karena tak ada yang lunas, melainkan karena tanggalnya tak pernah
+dicatat. Tak ada satu pun rute yang menulis kolom itu.
+
+Ditambal dengan `approved_at`, **bukan `now()`**: `now()` akan memindahkan
+Rp 54 juta pelunasan lama ke periode berjalan, dan laporan arus kas bulan ini
+melonjak karena migrasi. Hasilnya bertanggal Januari–Maret, sebagaimana
+mestinya. Trigger memasang tanggalnya sendiri ke depan, dan **mengosongkannya**
+saat status mundur — `settled_at` yang tertinggal membuat kasbon yang dibuka
+kembali terhitung lunas dua kali.
+
+### Penjaga menangkap saya lagi, dan uji yang sama berlaku
+
+`audit-approval-satu-pintu` merah: `disetujui_oleh` ditulis langsung.
+Ujinya sama dengan E1 dan 330 — apakah kolomnya MENGELUARKAN uang? Menyetujui
+klaim mengubahnya jadi utang yang wajib dibayar. Lulus, jadi masuk engine
+lewat migrasi 339, dan dua penjaga lain (`sod-gerbang`, `inbox-lengkap`)
+menyusul menuntut kelengkapannya.
+
+### Tiga mutasi lolos, tiga sebab berbeda
+
+**M3** (SoD aplikasi dilucuti) lolos karena admin di dev **bukan pegawai
+terdaftar** — klaim di test diajukan atas nama orang lain, jadi SoD tak pernah
+terpicu dan test-nya `return` diam-diam. Diperbaiki dengan membuat pegawai
+untuk user yang login, lalu menguji bahwa pesannya **bisa ditindaklanjuti**
+(403 berbahasa manusia), bukan galat Postgres dari trigger. Mutasi ulang MERAH.
+
+**M5** mutasinya sendiri yang salah tulis — tak melucuti apa pun. Diulang
+dengan benar: MERAH.
+
+**M6** (status lama di WHERE saat bayar) tetap lolos: `periksaTransisiKlaim`
+menolak dari hasil baca, jadi WHERE-nya hanya tercapai pada balapan nyata.
+Dicatat di testnya sebagai **tak terbukti**, bukan dihapus. Kesimpulan yang
+sama dengan D3 dan E2.
+
+### Urutan validasi yang saya perbaiki
+
+Versi pertama memeriksa pegawai SEBELUM memvalidasi rincian, jadi klaim
+bermasalah isian dijawab *"akun Anda belum terhubung ke kepegawaian"* (422)
+— mengirim orang ke HRD untuk masalah yang sebenarnya salah ketik. Dibalik:
+kesalahan isian (400) dilaporkan lebih dulu.
+
+### Bukti
+
+    migrasi 337   ✅ 14 pemeriksaan: total diturunkan, rincian terkunci,
+                     SoD basis, settled_at tertambal JUJUR
+    migrasi 338   ✅ menu hidup berizin
+    migrasi 339   ✅ rantai approval berlangkah, izin nyata
+    vitest        71 lulus / 4 berkas
+    mutasi        8 (lib) + 5 (rute) + 1 (rantai basis) MERAH lalu pulih;
+                  1 dicatat tak terbukti
+    tsc api/web   0 / 0
+    penjaga API   66 dijalankan, 65 hijau
+    penjaga web   8 hijau
+
+`audit-asumsi-global-test` merah — sudah merah di HEAD sebelum G1.
