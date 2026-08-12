@@ -510,7 +510,18 @@ function IsiKepatuhan() {
     !data || (data.dokumen.total === 0 && data.evaluasi.length === 0 && (izin?.izin.length ?? 0) === 0);
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+    <div style={{
+      // `padding` IKUT, bukan hanya `maxWidth` + `margin`.
+      //
+      // Tiga halaman ini punya dua dari tiga bagian pola container, dan
+      // isinya menyentuh tepi kiri-kanan tanpa jarak sama sekali — diukur di
+      // peramban 2026-08-12: kiri=0 kanan=0.
+      //
+      // `tata-letak-ratchet` tidak menangkapnya: ia memeriksa TOKEN LEBAR
+      // (`--w-luas` memang ada), bukan apakah paddingnya ikut.
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
+    }}>
       <div className="rise" style={{
         marginBottom: "var(--gap-bagian)", display: "flex",
         justifyContent: "space-between", alignItems: "flex-start",

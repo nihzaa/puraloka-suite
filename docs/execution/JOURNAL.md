@@ -15502,3 +15502,57 @@ menyala, WITH CHECK tak lagi menerima NULL), dan itu terbukti merah dua kali.
     penjaga web   8 hijau
 
 `audit-asumsi-global-test` merah — sudah merah di HEAD sebelum F2.
+
+## 2026-08-12 (lanjutan 4) — "Mepet": empat halaman menyentuh tepi
+
+Founder: *"semua halaman di grup dokumen masih pada mepet"*, lalu
+*"/aset/operasional juga, dan semua di grup perencanaan"*.
+
+### Sebabnya: pola container yang tinggal DUA dari tiga bagian
+
+    <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+
+`maxWidth` ada, `margin` ada, **`padding` tidak**. Isinya karena itu menyentuh
+tepi kiri-kanan tanpa jarak. Diukur di peramban: `kiri=0 kanan=0`.
+
+`tata-letak-ratchet` tidak menangkapnya — ia memeriksa **token lebar**
+(`--w-luas` memang ada), bukan apakah paddingnya ikut. Penjaga yang menanyakan
+setengah pertanyaan melaporkan hijau untuk halaman yang setengah benar.
+
+### Memindai BERKAS melaporkan 44; yang nyata 4
+
+Pemindaian kode ("punya `maxWidth` tapi tak punya `--pad-x`") menemukan **44
+berkas**. Diukur di peramban: **hanya 4 yang benar-benar mepet.**
+
+    /dokumen/kendali    kiri=0   ← yang founder tunjuk
+    /jadwal             kiri=0   ← grup Perencanaan
+    /aset/operasional   kiri=0
+    /kepatuhan          kiri=0
+
+Empat puluh sisanya dipusatkan **layout induknya** (`/kas`, `/mandor`,
+`/procurement`, `/keuangan/*`) — mereka sudah benar, dan menyuntingnya akan
+menambah padding ganda.
+
+Ini pengulangan pelajaran yang sama dari sesi ini: ukuran statis atas kode
+menghasilkan daftar yang terlihat mengerikan, dan yang menentukan selalu apa
+yang dirender.
+
+### Sesudah perbaikan
+
+    /dokumen/kendali   kiri=36 kanan=36
+    /jadwal            kiri=36 kanan=36
+    /kalender          kiri=70 kanan=70   (memang punya pola sendiri)
+    /aset/operasional  kiri=36 kanan=36
+    /kepatuhan         kiri=36 kanan=36
+
+36px itu `--pad-x`, sama dengan seluruh halaman lain.
+
+### Bukti
+
+    tsc (web)      0
+    vitest (web)   604 lulus / 46 berkas — 0 gagal
+    pnpm build     nol error
+    di PERAMBAN    0 dari 5 mepet (sebelumnya 4)
+
+`tata-letak-ratchet` masih merah untuk `akuntansi/*` — diverifikasi berasal
+dari commit TJS-P4/P5, bukan pekerjaan ini.

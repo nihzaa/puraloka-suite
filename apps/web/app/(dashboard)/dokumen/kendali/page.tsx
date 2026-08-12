@@ -412,7 +412,21 @@ function IsiKendaliDokumen() {
       data.jadwalLaporan.jadwal.length === 0);
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+    <div style={{
+      // `padding` IKUT, bukan hanya `maxWidth` + `margin`.
+      //
+      // Versi sebelumnya punya dua dari tiga bagian pola container, dan
+      // hasilnya isi halaman menyentuh tepi kiri-kanan tanpa jarak sama
+      // sekali. Diukur di peramban 2026-08-12, keempat tab:
+      //
+      //     tersedia 1380 · isi 1380 · padding-x 0
+      //
+      // `tata-letak-ratchet` tidak menangkapnya — ia memeriksa TOKEN LEBAR
+      // (`--w-luas` memang ada), bukan apakah paddingnya ikut. Founder yang
+      // melihatnya: "semua halaman di grup dokumen masih pada mepet".
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
+    }}>
       <div className="rise" style={{
         marginBottom: "var(--gap-bagian)", display: "flex",
         justifyContent: "space-between", alignItems: "flex-start",
