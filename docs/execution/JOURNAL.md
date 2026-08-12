@@ -5,6 +5,143 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — D1: gerbang yang dijanjikan schema selama dua tahun
+
+### C2 lebih dulu: sudah selesai, catatan saya yang keliru
+
+Halaman `/proyek/[id]` punya TIGA BELAS bagian — Info, Termin, RAB, Serapan,
+Gantt, Change Order, Kurva S, Dokumen, Foto, Mandor, Kasbon, Progress Log,
+Milestone, Invoice — dengan CPI, SPI, EAC, VAC, sisa anggaran, dan kasbon
+beredar sudah dirender di kartu keuangannya.
+
+Catatan yang saya tulis beberapa jam sebelumnya berbunyi *"belum ada dashboard
+yang bisa disusun sendiri per tenant"*. Itu fitur BERBEDA (widget layout) yang
+tak pernah diminta; menjadikannya syarat selesai membuat modul yang lengkap
+terlihat setengah jadi. Diukur: nol tabel widget/layout di basis.
+
+### D1 — dan yang ditemukan sebelum membangunnya
+
+`progress_payments` punya `requires_opname` (DEFAULT true) dan
+`opname_report_id` sejak migrasi 044 (2024). Komentar migrasi itu menyebut
+maksudnya persis:
+
+> PM WAJIB submit dan admin/PM verify sebelum progress payment bisa dibuat
+> untuk work_scope dengan payment_system IN ('borongan', 'progress_pct').
+
+Tabel yang ditunjuknya **tak pernah terbentuk**, dan kedua kolom itu **tak
+pernah dibaca satu baris kode pun**.
+
+    17 dari 20 work_scope wajib opname (borongan 14, progress_pct 3)
+     5 dari  5 progress_payment bertanda requires_opname = true
+     0 punya opname_report_id
+     0 baris kode membaca kedua kolom itu
+
+Gerbang yang dijanjikan schema selama dua tahun, tak pernah menjaga apa pun.
+
+### Audit ledger: 16 migrasi, satu yang berisiko
+
+`ledger-diff` memberi verdict TERCATAT-TAPI-ARTEFAK-HILANG untuk 044 — dan
+**15 migrasi lain bernasib sama**. Founder memilih mengaudit semuanya dulu
+sebelum menyentuh apa pun. Hasilnya jauh lebih tenang dari dugaan awal:
+
+    012/014/015/016/097/098   policy storage bucket   diganti kebijakan lebih ketat
+    049                       54 policy RLS lama      tabelnya kini punya policy BARU
+    081/093                   5 tabel workflow_*      SENGAJA ditinggalkan (ADR-007
+                                                      → approval_chains, 10 baris,
+                                                      dipakai TJS-P4 hari ini)
+    002/043/045/127/258/301    index & fungsi trigger  tabelnya ada dan berfungsi
+    044                       TABEL field_opname      ← satu-satunya yang berisiko
+
+301 (buatan saya hari ini) ternyata hanya salah baca alat: `markup_periode`
+lengkap; ledger-diff mencari kolom `markup_periode_id` yang tak pernah ada di
+rancangan saya.
+
+Satu hal yang meringankan 044: FK-nya TIDAK menggantung — `opname_report_id`
+tak punya foreign key sama sekali, jadi basisnya konsisten. Yang hilang cuma
+gerbangnya.
+
+### Migrasi MAJU, bukan menjalankan ulang 044
+
+Tiga alasan:
+
+1. Rancangan 2024 tak mengenal `company_id`. Repo ini multi-tenant sekarang;
+   tabel tanpa itu langsung ditolak penjaga tenancy.
+2. 044 juga menyentuh `work_scopes` (kolom kontrak) yang SUDAH ADA dan benar.
+3. Menulis ke `supabase_migrations.schema_migrations` adalah Gerbang Keras
+   G-2. Migrasi maju tak menyentuhnya sama sekali.
+
+Migrasi 325 membuat `opname_bersama` + `opname_bersama_item`, lalu memasang
+FK yang hilang sejak 2024.
+
+### Yang ditegakkan BASIS, bukan hanya aplikasi
+
+    CHECK  diverifikasi_oleh <> diukur_oleh     SoD — pengukur tak boleh
+                                                menyetujui ukurannya sendiri
+    CHECK  status='diverifikasi' → penyetuju    gerbang yang mengaku terbuka
+           dan waktunya WAJIB ada               tanpa seorang pun membukanya
+    CHECK  sengketa WAJIB beralasan             tanpa itu pembayaran berhenti
+                                                tanpa ada yang tahu sebabnya
+    TRIGGER berita acara terverifikasi          yang bisa disunting sesudah
+            TAK BISA diubah                     ditandatangani bukan berita acara
+
+Importer dan psql menulis ke sini juga — lapisan aplikasi tak menjaga mereka.
+
+### Gerbang yang membandingkan PERSEN, bukan sekadar "ada opname"
+
+Berita acara bulan lalu yang mencatat 40% tak membenarkan pembayaran 80% hari
+ini. Tanpa perbandingan itu, satu opname di awal proyek membuka seluruh
+pembayaran sesudahnya — gerbang yang hanya dilewati sekali.
+
+`opname_report_id` diisi dengan berita acara yang PERSENNYA MENCUKUPI, bukan
+yang pertama ditemukan: jejak yang menunjuk dokumen yang isinya tak mendukung
+angkanya sama saja tak berjejak.
+
+### Persen opname = rata-rata TERTIMBANG
+
+Sebuah opname bisa memuat "pengecatan 100%" (nilai kecil) dan "struktur 20%"
+(nilai besar). Rata-rata polos menghasilkan 60% — angka yang membuka
+pembayaran lebih dari separuh nilai borongan untuk pekerjaan yang sebagian
+besar belum berdiri. Ditimbang volume × harga bila ada; dasarnya DISEBUTKAN
+di layar.
+
+### Tiga penjaga menabrak kode saya, tiga-tiganya benar
+
+`audit-modal-dialog` — modal sengketa saya memakai overlay tangan. Diganti
+`DialogBersama`: fokus terkunci, Esc menutup, tanpa perang z-index.
+
+`audit-sidebar-urutan` — menu `sk-opname` lama menempel di `g-subkon` yang
+MATI. Ada DUA grup berlabel "Mandor & Subkon" (`g-subkon` mati,
+`g-mandor-subkon` hidup) — sisa penataan ulang yang tak menyapu entri
+nonaktif. Item aktif di bawah grup mati tetap dirender sidebar dan muncul
+menggantung.
+
+`audit-tulis-tanpa-periksa` — pembersih kepala opname yang gagal tak diperiksa
+hasilnya. Sama persis dengan kasus A2 pagi ini.
+
+Dan verifikasi migrasi 326 menangkap cacat saya sendiri: `sort_order` 804
+bentrok dengan `mandor-upah`. Diukur ulang — grup terisi 801-808, dipakai 809.
+
+### Bukti
+
+    lib/__tests__/gerbang-opname.test.ts     20  aturan gerbang (murni)
+    __tests__/opname-bersama.test.ts         13  HTTP + basis
+                                             --
+                                             33  hijau
+
+Mutasi: 4 di lib (3/3/2/9 merah), 3 di rute (2/1/1 merah).
+Migrasi 325 & 326 lulus blok verifikasinya sendiri. tsc api & web exit 0.
+Delapan penjaga API + delapan penjaga web hijau.
+
+Satu test fixture juga diperbaiki: pengguna kedua dipilih dengan syarat
+ber-`auth_id` DAN berizin `opname:verifikasi`. Versi pertama memakai `LIMIT 1`
+apa adanya, mendapat pengguna tanpa auth, verifikasinya dilewati, dan empat
+test sesudahnya berpijak pada opname yang tak pernah terverifikasi —
+hijau/merahnya jadi soal urutan baris di basis.
+
+Peta Modul: 186 -> **188** hidup (`bi-proyek` dikoreksi, `sk-opname` hidup).
+
+---
+
 ## 2026-08-12 (lanjutan) — C1: lima angka yang sudah ada, dan AC yang nol karena salah tabel
 
 Catatan Peta Modul untuk `bi-kpi` berbunyi: *"CPI/SPI ADA, umur piutang ADA,

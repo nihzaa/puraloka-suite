@@ -7,6 +7,7 @@ import { flattenUserRole } from '../../utils/user-role.js'
 import { validateMime } from '../../utils/mime.js'
 import { proyekMilikTenant, scopeIdsTenant } from '../../utils/tenant-guard.js'
 import { hitungPotonganRetensi, validasiPencairanRetensi } from '../../lib/retensi-subkontrak.js'
+import { periksaGerbangOpname, pctOpname } from '../../lib/gerbang-opname.js'
 
 const KASBON_PHOTO_BUCKET = 'kasbon-photos'
 const KASBON_PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
@@ -1590,6 +1591,45 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(422).send({ error: retensi.galat })
     }
 
+    // ── GERBANG OPNAME (D1 · migrasi 325) ───────────────────────────────────
+    //
+    // `progress_payments.requires_opname` ada sejak migrasi 044 (2024) dengan
+    // DEFAULT true, dan komentarnya menyebut maksudnya persis: opname WAJIB
+    // terverifikasi sebelum pembayaran borongan/progress_pct dirilis.
+    //
+    // Tabel yang ditunjuknya tak pernah terbentuk (ledger-diff:
+    // TERCATAT-TAPI-ARTEFAK-HILANG), dan kedua kolomnya TAK PERNAH DIBACA
+    // satu baris kode pun. Diukur 2026-08-12: 5 dari 5 pembayaran bertanda
+    // wajib opname, nol punya berita acara.
+    //
+    // Gerbang yang dijanjikan schema selama dua tahun, tak pernah menjaga
+    // apa pun. Ini penegakannya.
+    const { data: opnameScope, error: errOpname } = await request.db!
+      .unsafe('opname_bersama', 'kategori B; disaring company_id + work_scope_id di baris berikutnya')
+      .select('id, status, opname_bersama_item(pct_selesai, volume_rencana)')
+      .eq('company_id', request.companyId!)
+      .eq('work_scope_id', body.work_scope_id)
+    if (errOpname) {
+      // Fail-closed: gagal membaca opname TIDAK boleh berarti "berarti tak
+      // ada yang menghalangi". Itu justru membuka gerbang saat basis
+      // bermasalah.
+      return reply.status(500).send({ error: 'Gagal memeriksa berita acara opname: ' + errOpname.message })
+    }
+
+    const gerbang = periksaGerbangOpname({
+      sistemPembayaran: scope.payment_system,
+      pctDiminta: Number(body.pct_completed),
+      opname: (opnameScope ?? []).map((o) => {
+        const r = o as Record<string, unknown>
+        return {
+          id: r.id as string,
+          status: r.status as string,
+          pctTertinggi: pctOpname((r.opname_bersama_item ?? []) as never[]).pct,
+        }
+      }),
+    })
+    if (!gerbang.boleh) return reply.status(422).send({ error: gerbang.sebab })
+
     const { data, error } = await supabase
       .from('progress_payments')
       .insert({
@@ -1598,6 +1638,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
         earned_value: earnedValue,
         gross_payment: body.gross_payment,
         deducted_kasbon: 0,
+        // Jejak: berita acara MANA yang membenarkan pembayaran ini. Tanpa ini
+        // kolomnya tetap null dan gerbangnya tak meninggalkan bukti apa pun.
+        opname_report_id: gerbang.opnameId,
         retensi_amount: retensi.retensi,
         net_payment: retensi.neto,
         paid_at: new Date().toISOString().split('T')[0],
