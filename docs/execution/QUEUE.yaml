@@ -2152,3 +2152,49 @@ items:
       ⚠ HARUS LUNAS SEBELUM TENANT KEDUA DIBUAT.
     bobot: S
     status: todo
+
+  - id: TEST-MERAH-MAIN
+    fase: 2
+    judul: "Enam berkas test MERAH di commit dasar — RLS/tenancy & GL, bukan regresi sesi mana pun"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "keenam berkas hijau, atau sebabnya tercatat sebagai keputusan sadar"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/routes/v1/__tests__/t5a-policy-tenant.test.ts
+      src/routes/v1/__tests__/t5b-kill-switch.test.ts
+      src/routes/v1/__tests__/t7-exit-criteria-l2.test.ts
+      src/routes/v1/__tests__/rls-ownership-recursion.test.ts
+      src/routes/v1/__tests__/gl-api.test.ts
+      src/routes/v1/__tests__/submittal-aturan.test.ts
+    catatan: >-
+      DIUKUR 2026-08-12, bukan diasumsikan. `apps/api/src` + `scripts`
+      dikembalikan ke commit dasar 36581478, lalu ketujuh berkas yang merah di
+      suite penuh dijalankan: ENAM tetap merah. Artinya mereka BUKAN akibat
+      pekerjaan otomasi/AI sesi ini.
+
+      Yang merah beserta pesannya:
+
+        t5a-policy-tenant        tabel ber-tenant tanpa policy tenant_isolation
+        t5b-kill-switch          auth_client_id() memulangkan baris klien
+                                 company lain — kebocoran lintas-tenant
+        t7-exit-criteria-l2      axis company belum di seluruh tabel ber-tenant
+                                 (custom_field_def dkk)
+        rls-ownership-recursion  is_assigned_mandor() false untuk proyek sendiri
+        gl-api                   trial balance tak seimbang -1.19e-7 (galat
+                                 pembulatan floating point pada penjumlahan)
+        submittal-aturan         keputusan tak lewat evaluateEntityApproval —
+                                 "mekanisme approval keempat"
+
+      Sebagian tumpang tindih dengan `T5A-PERMISSIVE` yang sudah tercatat merah
+      di main. `gl-api` beda kelas: -1.19e-7 adalah pembulatan, bukan pembukuan
+      yang salah — tapi assertion `toBe(0)` menolak epsilon, dan itu yang perlu
+      diputuskan (perbaiki assertion atau perbaiki penjumlahannya).
+
+      Berkas KETUJUH (`audit-mutu-endpoint`) HIJAU saat dijalankan sendiri, di
+      commit dasar maupun sesudahnya — gejala berbagi basis antar-test paralel,
+      bukan regresi. Tidak dimasukkan ke item ini.
+
+      ⚠ Dicatat supaya tak terulang: sesi berikutnya yang menjalankan suite
+      penuh akan melihat 6 berkas merah dan mengira dirinya merusak sesuatu.
+    bobot: L
+    status: todo
