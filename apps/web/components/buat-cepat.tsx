@@ -91,8 +91,8 @@ export function BuatCepat() {
         aria-label="Buat baru"
         style={{
           display: "flex", alignItems: "center", gap: 6,
-          height: 34, padding: "0 12px",
-          borderRadius: 6, border: "1px solid transparent",
+          height: 38, padding: "0 14px",
+          borderRadius: 8, border: "1px solid transparent",
           /*
             `--on-navy`, BUKAN `--on-merek`. Keduanya putih di mode terang,
             jadi salah pilih tak terlihat sama sekali di sana — dan itulah

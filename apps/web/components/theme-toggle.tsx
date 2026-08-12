@@ -11,7 +11,7 @@ export function ThemeToggle() {
   useEffect(() => setMounted(true), []);
 
   if (!mounted) {
-    return <div style={{ width: 36, height: 36 }} />;
+    return <div style={{ width: 38, height: 38 }} />;
   }
 
   const isDark = theme === "dark";
@@ -21,9 +21,9 @@ export function ThemeToggle() {
       onClick={() => setTheme(isDark ? "light" : "dark")}
       title={isDark ? "Ganti ke mode terang" : "Ganti ke mode gelap"}
       style={{
-        width: 36,
-        height: 36,
-        borderRadius: 6,
+        width: 38,
+        height: 38,
+        borderRadius: 8,
         background: "transparent",
         border: "none",
         cursor: "pointer",

@@ -219,13 +219,30 @@ export function Topbar() {
             "saya di mana" pada aplikasi 105 halaman — referensi hanya punya
             belasan, jadi ketiadaannya di sana bukan bukti ia tak berguna.
           */}
-          <div style={{ marginLeft: 12, flex: 1, minWidth: 0, maxWidth: 420 }}>
+          {/*
+            `maxWidth` 560, bukan 420.
+
+            Diukur 2026-08-12 pada 1600px: pencarian berakhir di x=1052 dan
+            gugus kanan mulai di x=1420 — **368px kosong** di tengah topbar,
+            sementara kolom pencariannya sendiri dibatasi 420px.
+
+            Ruang kosong itu bukan napas; ia jarak yang harus dilintasi mata
+            antara dua gugus yang sama-sama padat. Batas tetap ada supaya di
+            layar sangat lebar kolomnya tak jadi selokan panjang, tapi 420
+            terlalu ketat untuk layar kantor yang lazim di sini.
+          */}
+          <div style={{ marginLeft: 12, flex: 1, minWidth: 0, maxWidth: 560 }}>
             <TombolCari onClick={() => setPaletteOpen(true)} />
           </div>
         </div>
 
-        {/* Right actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+        {/*
+          Gugus kanan. `gap: 8` bukan 4: lencana "99+" pada lonceng meluber
+          keluar kotak ikonnya, dan dengan jarak 4px ia memotong tepi tombol
+          tema di sebelahnya — terlihat seperti kerusakan render, bukan
+          keputusan. Diukur dari tangkapan layar, bukan dari kode.
+        */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {/*
             "Buat" ditaruh SESUDAH pencarian dan SEBELUM tema/notifikasi.
             Referensi menaruh Quick Create paling kiri di gugus kanan, dan
@@ -265,7 +282,13 @@ function TombolCari({ onClick }: { onClick: () => void }) {
       onClick={onClick}
       style={{
         display: "flex", alignItems: "center", gap: 8,
-        width: "100%", height: 34, padding: "0 10px 0 12px",
+        // 38px, setinggi tombol "Buat"/tema/lonceng di gugus kanan.
+        //
+        // Topbar sempat memuat dua tinggi (34 dan 36) dan tiga radius. Pada
+        // bar setinggi 56px, unsur 34px menyisakan 11px di atas-bawah dan
+        // unsur 38px menyisakan 9 — selisih yang tak terbaca sebagai angka
+        // tapi membuat barisnya tampak tak duduk pada satu garis.
+        width: "100%", height: 38, padding: "0 10px 0 12px",
         borderRadius: 8,
         background: "var(--surface-subtle)",
         border: "1px solid var(--border)",

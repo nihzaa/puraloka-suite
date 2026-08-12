@@ -392,7 +392,14 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
       title="Notifikasi"
       style={{
         position: "relative",
-        width: 36, height: 36, borderRadius: 6,
+        // 38px + radius 8, sama dengan tombol tema & "Buat" di sebelahnya.
+        //
+        // Diukur dari tangkapan layar 2026-08-12: gugus kanan memuat TIGA
+        // radius dan dua tinggi berbeda (cari 8px, tombol/ikon 6px; 34 vs
+        // 36). Tak satu pun salah sendirian, tapi berdempet dalam 156px
+        // ketidakseragamannya terbaca sebagai kurang rapi — dan itu keluhan
+        // founder soal topbar, dituliskan tanpa menyebut angkanya.
+        width: 38, height: 38, borderRadius: 8,
         background: open ? C.navyLight : "transparent",
         border: "none", cursor: "pointer",
         color: open ? C.navy : C.mid,
@@ -415,7 +422,18 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
       <Bell size={15} />
       {unreadCount > 0 && (
         <span style={{
-          position: "absolute", top: 5, right: 5,
+          // `right: 3` di kotak 38px, bukan `right: 5` di kotak 36px.
+          //
+          // "99+" butuh ~22px (tiga karakter + padding), sementara
+          // `minWidth: 16` cuma lantai — lebarnya tetap tumbuh dan
+          // meluber ke KANAN dari titik jangkarnya. Di gugus ber-`gap: 4`
+          // ia sampai memotong tepi tombol tema di sebelahnya, dan itu
+          // terbaca sebagai kerusakan render, bukan keputusan.
+          //
+          // Dua perbaikan bersamaan: jangkar digeser masuk, dan jarak
+          // gugus dinaikkan jadi 8px (topbar.tsx). Salah satu saja tak
+          // cukup — angka tiga digit memang selebar itu.
+          position: "absolute", top: 4, right: 3,
           minWidth: unreadCount > 9 ? 16 : 14,
           height: unreadCount > 9 ? 16 : 14,
           borderRadius: 9999,
