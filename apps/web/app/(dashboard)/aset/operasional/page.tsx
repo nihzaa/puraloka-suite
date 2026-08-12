@@ -33,7 +33,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Wrench, RefreshCw, TriangleAlert, Clock, Gauge } from "lucide-react";
+import { Wrench, RefreshCw, TriangleAlert, Clock, Gauge, BookOpen, Check } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
@@ -99,6 +99,9 @@ type Alat = {
     nilai: number | string;
     akumulasi: number | string;
     journal_entry_id: string | null;
+    /** `draft` BELUM masuk laporan — hanya `posted` yang dibaca /gl/laporan. */
+    jurnal_status: string | null;
+    jurnal_nomor: string | null;
   }>;
 };
 
@@ -552,8 +555,189 @@ export default function OperasionalAlatPage() {
               kunciBaris={(a) => a.id}
             />
           </div>
+
+          <PanelPenyusutan alat={alat} onSelesai={muatUlang} />
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * PENYUSUTAN → JURNAL (A2).
+ *
+ * ── Kenapa panel ini ada
+ *
+ * Diukur 2026-08-12: `penyusutan_alat` berisi 12 baris dengan
+ * `journal_entry_id` NULL SELURUHNYA. Kolomnya ada sejak lama; tak ada satu
+ * pun layar yang bisa mengisinya.
+ *
+ * Akibatnya beban penyusutan tak pernah masuk laba-rugi, dan nilai buku aset
+ * di neraca lebih tinggi daripada kenyataannya — dua laporan yang paling
+ * sering ditanyakan calon pelanggan, dua-duanya salah, tanpa satu pun galat.
+ *
+ * ── Kenapa dikelompokkan PER PERIODE, bukan per alat
+ *
+ * Jurnal penyusutan disusun per periode: satu jurnal untuk semua alat pada
+ * bulan yang sama. Menampilkannya per alat akan menyarankan bahwa tiap alat
+ * dijurnalkan sendiri — dan pengguna yang menekan sepuluh tombol akan
+ * mengharapkan sepuluh jurnal.
+ *
+ * ── Yang SUDAH dijurnalkan tetap ditampilkan
+ *
+ * Menyembunyikannya membuat pengguna tak bisa memastikan bulan lalu sudah
+ * masuk buku. Yang membedakan cuma lencananya, dan tombolnya hilang.
+ */
+function PanelPenyusutan({ alat, onSelesai }: { alat: Alat[]; onSelesai: () => void }) {
+  const [sibuk, setSibuk] = useState<string | null>(null);
+  const [pesan, setPesan] = useState<{ jenis: "ok" | "galat"; teks: string } | null>(null);
+
+  // Kelompokkan seluruh baris penyusutan menurut periodenya.
+  const perPeriode = new Map<string, {
+    nilai: number; alat: number; terjurnal: number; terposting: number; nomor: string | null;
+  }>();
+  for (const a of alat) {
+    for (const p of a.penyusutan ?? []) {
+      const kunci = String(p.periode).slice(0, 10);
+      const e = perPeriode.get(kunci) ?? { nilai: 0, alat: 0, terjurnal: 0, terposting: 0, nomor: null };
+      e.nilai += Number(p.nilai) || 0;
+      e.alat += 1;
+      if (p.journal_entry_id) {
+        e.terjurnal += 1;
+        e.nomor = p.jurnal_nomor ?? e.nomor;
+        // HANYA `posted` yang benar-benar masuk laporan. Menghitung draft
+        // sebagai selesai membuat layar berkata neraca sudah memuatnya,
+        // padahal belum bergerak sedikit pun.
+        if (p.jurnal_status === "posted") e.terposting += 1;
+      }
+      perPeriode.set(kunci, e);
+    }
+  }
+  const baris = [...perPeriode.entries()]
+    .map(([periode, v]) => ({ periode, ...v }))
+    .sort((x, y) => y.periode.localeCompare(x.periode));
+
+  if (baris.length === 0) return null;
+
+  async function jurnalkan(periode: string) {
+    setSibuk(periode);
+    setPesan(null);
+    try {
+      const { data } = await api.post<{ baris_dijurnalkan: number; jurnal: { entry_number: string } }>(
+        "/api/v1/alat-operasional/penyusutan/jurnalkan", { periode },
+      );
+      setPesan({
+        jenis: "ok",
+        teks: `Jurnal ${data.jurnal.entry_number} dibuat — ${data.baris_dijurnalkan} alat, periode ${periode}.`,
+      });
+      onSelesai();
+    } catch (e) {
+      // Pesan server ditampilkan apa adanya: ia sudah ditulis untuk manusia
+      // ("Akun 5960 belum ada di bagan akun…"), dan menggantinya dengan
+      // "gagal" membuang satu-satunya petunjuk yang bisa ditindaklanjuti.
+      const t = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setPesan({ jenis: "galat", teks: t ?? "Gagal menjurnalkan penyusutan." });
+    } finally {
+      setSibuk(null);
+    }
+  }
+
+  return (
+    <div className="rise rise-3" style={{ ...GAYA_KARTU, marginTop: "var(--gap-bagian)", overflow: "hidden" }}>
+      <div style={{ padding: "var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <BookOpen size={15} aria-hidden="true" />
+          Penyusutan ke Buku Besar
+        </h3>
+        <p style={{ fontSize: 12, color: C.mid, margin: "4px 0 0", lineHeight: 1.5, maxWidth: "72ch" }}>
+          Selama belum dijurnalkan, beban penyusutan <strong>tak muncul di laba-rugi</strong> dan
+          nilai aset di neraca lebih tinggi daripada kenyataannya. Satu jurnal per periode:
+          debit Beban Penyusutan Alat, kredit Akumulasi Penyusutan.
+          {" "}Jurnalnya dibuat sebagai <strong>draft</strong> — ia baru masuk neraca setelah
+          diposting di Buku Besar, dan itu memang dua langkah: yang menyusun jurnal tak
+          selalu yang mengesahkannya.
+        </p>
+      </div>
+
+      {pesan && (
+        <div
+          role="alert"
+          style={{
+            padding: "10px 14px", fontSize: 13, lineHeight: 1.5,
+            borderBottom: `1px solid ${C.border}`,
+            background: pesan.jenis === "ok" ? "var(--success-bg)" : "var(--danger-bg)",
+            color: pesan.jenis === "ok" ? "var(--success)" : "var(--danger)",
+          }}
+        >
+          {pesan.teks}
+        </div>
+      )}
+
+      <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 150px 160px", gap: 12, padding: "10px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+        <div>Periode</div><div>Alat</div>
+        <div style={{ textAlign: "right" }}>Nilai</div>
+        <div style={{ textAlign: "right" }}>Status</div>
+      </div>
+
+      {baris.map((b) => {
+        const belum = b.alat - b.terjurnal;
+        // TIGA keadaan, bukan dua. Draft sudah punya nomor jurnal tetapi
+        // BELUM masuk laporan — menyamakannya dengan selesai adalah
+        // kebohongan yang paling mahal di layar ini.
+        const perluPosting = belum === 0 && b.terposting < b.alat;
+        return (
+          <div key={b.periode} style={{ display: "grid", gridTemplateColumns: "140px 1fr 150px 160px", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, alignItems: "center", fontSize: 13 }}>
+            <div style={{ color: C.text, fontVariantNumeric: "tabular-nums" }}>{b.periode}</div>
+            <div style={{ color: C.mid }}>
+              {b.alat} alat
+              {belum > 0 && b.terjurnal > 0 && (
+                <span style={{ marginInlineStart: 6, fontSize: 11, color: "var(--warning-teks)" }}>
+                  {belum} belum masuk buku
+                </span>
+              )}
+            </div>
+            <div style={{ textAlign: "right", color: C.text, fontVariantNumeric: "tabular-nums" }}>
+              {rupiah(b.nilai)}
+            </div>
+            <div style={{ textAlign: "right" }}>
+              {belum === 0 && !perluPosting ? (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "var(--success)" }}>
+                  <Check size={13} aria-hidden="true" /> Masuk buku
+                </span>
+              ) : perluPosting ? (
+                <a
+                  href="/akuntansi?tab=jurnal"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, fontWeight: 600,
+                    color: "var(--warning-teks)", textDecoration: "none",
+                    padding: "5px 10px", borderRadius: 8,
+                    border: "1px solid var(--warning-border)", background: "var(--warning-bg)",
+                  }}
+                  title={`${b.nomor ?? "Jurnal"} masih draft — belum masuk neraca & laba-rugi`}
+                >
+                  <BookOpen size={12} aria-hidden="true" />
+                  {b.nomor ?? "Draft"} · perlu posting
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void jurnalkan(b.periode)}
+                  disabled={sibuk !== null}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6,
+                    padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy,
+                    cursor: sibuk ? "wait" : "pointer", opacity: sibuk && sibuk !== b.periode ? 0.5 : 1,
+                  }}
+                >
+                  <BookOpen size={12} aria-hidden="true" />
+                  {sibuk === b.periode ? "Menjurnalkan…" : "Jurnalkan"}
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -5,6 +5,111 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — A1-A3: satu sudah jadi, satu jalan buntu yang saya buat sendiri
+
+Founder mulai mengerjakan sisa pekerjaan dari Peta Modul. Saya susun urutannya,
+lalu kesalahan pertama datang sebelum satu baris kode pun ditulis.
+
+### A1 ternyata sudah selesai - dan saya menyusun urutan dari label, bukan kode
+
+`components/neraca-laba-rugi.tsx`, 365 baris, sudah dirender di tab Laporan
+halaman Akuntansi, membaca `/gl/laporan`, menampilkan status seimbang/tidak di
+paling atas.
+
+Saya menaruhnya sebagai pekerjaan #1 karena catatan Peta Modul berbunyi
+"neraca & L/R menunggu GL". GL sudah hidup: 40 akun, 15 jurnal. Dan sebagian
+catatan itu **saya sendiri** yang tulis beberapa jam sebelumnya.
+
+Tiga entri dikoreksi (`fn-laporan`, `fn-aset-tetap`, `as-gl`) - ketiganya
+menyebut "menunggu GL".
+
+### A2 - beban penyusutan yang tak pernah sampai ke buku
+
+`penyusutan_alat`: 12 baris, `journal_entry_id` NULL **seluruhnya**. Kolomnya
+ada sejak lama; jalur yang mengisinya tak pernah dibangun. Akibatnya beban
+penyusutan tak pernah masuk laba-rugi, dan nilai buku aset di neraca lebih
+tinggi daripada kenyataannya.
+
+Yang ditemukan saat mengukur bagan akun: `1511 Akumulasi Penyusutan` ada -
+**lawan kreditnya**. Akun BEBAN-nya tidak. Jurnal penyusutan tak mungkin
+disusun berpasangan sejak awal. Migrasi 324 menambah `5960`.
+
+### Jalan buntu yang saya buat sendiri, lalu saya bersihkan
+
+Endpoint jadi, test hijau, saya jurnalkan data nyata: tiga periode, 201 semua.
+Lalu saya coba posting - ketiganya ditolak: *"Periode Mei 2026 sudah ditutup"*.
+
+Penolakan itu **benar**. Yang salah endpoint saya: ia membuat jurnal ke periode
+tertutup tanpa memeriksa dulu. Hasilnya draft yang tak akan pernah bisa
+diposting, sementara `penyusutan_alat` sudah tertandai "sudah dijurnalkan" -
+jalan buntu yang harus dibersihkan tangan.
+
+Diperbaiki: periode diperiksa DI DEPAN, ditolak 409 dengan kalimat yang bisa
+ditindaklanjuti. Ketiga jurnal buntu dibersihkan, Juli dibuka lewat endpoint
+tutup-buku yang sah, lalu dijurnalkan dan diposting sungguhan.
+
+### A3 - terbukti dari ujung ke ujung
+
+    NERACA  1511 Akumulasi Penyusutan : -55.272.321,43
+    L/R     5960 Beban Penyusutan     : +55.272.321,43
+    neraca seimbang: true - selisih: 0
+
+Kontra-aset bekerja tanpa perlakuan khusus: saldo akun `asset` dihitung
+`debit - credit`, jadi akumulasi yang bersaldo kredit otomatis negatif dan
+mengurangi total aset. Diverifikasi, bukan diandaikan.
+
+### Draft bukan "sudah masuk buku"
+
+Layar saya sempat menampilkan "Sudah dijurnalkan" begitu panggilan berhasil.
+Padahal jurnal baru selalu `draft`, dan `/gl/laporan` hanya membaca `posted`.
+Pengguna akan mencari selisihnya di tempat yang salah.
+
+Sekarang tiga keadaan: belum dijurnalkan - draft (perlu posting, bertaut ke
+Buku Besar) - masuk buku. Posting tetap langkah terpisah dengan izin
+tersendiri: yang menyusun jurnal tak selalu yang mengesahkannya.
+
+### Join yang tak ada FK-nya merusak halaman
+
+Untuk membedakan draft dari posted, saya tambahkan `journal_entries(status)`
+ke query. Halaman `/aset/operasional` langsung **500** - `penyusutan_alat`
+tak punya FK ke `journal_entries` (diukur ke `pg_constraint`), jadi PostgREST
+tak mengenali relasinya. tsc tak melihatnya; hanya permintaan sungguhan yang
+menangkapnya. Diganti query terpisah.
+
+### Dua nama kolom yang saya tebak
+
+`journal_entry_lines` ternyata memakai `entry_id` dan `line_order` - saya
+menulis `journal_entry_id` dan `line_number`. Ditemukan test rute, bukan tsc.
+
+### Penjaga yang menandai baris benar dengan alasan benar
+
+`audit-kegagalan-senyap` merah gara-gara kode saya. Dua temuannya sah (query
+nama aset dan pembacaan nomor jurnal tanpa memeriksa `error`), tapi yang
+ketiga menunjuk baris yang sudah diperiksa dengan benar.
+
+Sebabnya: penjaga mengumpulkan variabel rawan **per-berkas**, bukan per-blok.
+Berkas itu punya tiga destructuring lama tanpa `error` memakai nama yang sama,
+jadi tiap pemakaian nama itu ikut ditandai. Nama variabel saya ganti jadi unik.
+
+Lalu ia merah sekali lagi - kali ini karena **komentar saya sendiri**, yang
+memuat contoh kode literal yang cocok dengan polanya. Ditulis ulang tanpa
+literal.
+
+### Bukti
+
+    lib/__tests__/jurnal-penyusutan.test.ts    12  bentuk jurnal (murni)
+    __tests__/penyusutan-jurnal.test.ts         8  HTTP + basis
+                                               --
+                                               20  hijau
+
+Mutasi: 4 di lib (1/2/1/1 merah), 3 di rute (1/2/1 merah).
+Migrasi 324 lulus blok verifikasinya. tsc api & web exit 0. Lima penjaga API +
+empat penjaga web hijau.
+
+Peta Modul: 179 -> **182** hidup.
+
+---
+
 ## 2026-08-12 (koreksi) — "Sebagian" adalah kata yang bisa berarti apa saja
 
 Founder bertanya: *"sekarang semua modul baik menu ataupun taksonomi sudah

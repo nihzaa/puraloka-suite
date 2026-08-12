@@ -4,6 +4,11 @@ import {
   hitungJatuhTempo, ringkasBiayaAlat, nilaiKesehatanAlat,
   type JadwalPerawatan,
 } from '../../lib/alat-operasional.js'
+import {
+  susunJurnalPenyusutan,
+  AKUN_BEBAN_PENYUSUTAN, AKUN_AKUMULASI_PENYUSUTAN,
+} from '../../lib/jurnal-penyusutan.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 /**
  * OPERASIONAL ALAT (TUNDA kelompok B)
@@ -97,6 +102,39 @@ export default async function alatOperasionalRoutes(app: FastifyInstance) {
     const mBiaya = perAset((biaya.data ?? []) as never[])
     const mSusut = perAset((susut.data ?? []) as never[])
 
+    // Status jurnal dibaca TERPISAH, bukan lewat join PostgREST.
+    //
+    // `penyusutan_alat` tak punya FK ke `journal_entries` — diukur ke
+    // `pg_constraint`, hanya ada FK ke assets/companies/users. Tanpa FK,
+    // PostgREST tak mengenali relasinya dan `journal_entries(status)`
+    // membuat SELURUH permintaan gagal 500. Terbukti: halaman ini sempat
+    // rusak total karenanya.
+    //
+    // Kenapa statusnya perlu: jurnal baru berstatus `draft`, dan draft TIDAK
+    // masuk laporan (`/gl/laporan` menyaring `posted`). Tanpa ini layar
+    // berkata "sudah dijurnalkan" sementara neraca belum bergerak sedikit
+    // pun, dan pengguna mencari selisihnya di tempat yang salah.
+    const idJurnal = [...new Set(
+      (susut.data ?? [])
+        .map((r) => (r as Baris).journal_entry_id as string | null)
+        .filter((x): x is string => !!x),
+    )]
+    const statusJurnal = new Map<string, { status: string; entry_number: string }>()
+    if (idJurnal.length > 0) {
+      const { data: je, error: jeErr } = await db.from('journal_entries')
+        .select('id, status, entry_number').in('id', idJurnal)
+      // Galat DIPERIKSA: tanpa status, layar akan menampilkan seluruh
+      // penyusutan sebagai "belum dijurnalkan" dan menawarkan tombol yang
+      // menghasilkan 404.
+      if (jeErr) return reply.status(500).send({ error: jeErr.message })
+      for (const j of je ?? []) {
+        statusJurnal.set((j as { id: string }).id, {
+          status: (j as { status: string }).status,
+          entry_number: (j as { entry_number: string }).entry_number,
+        })
+      }
+    }
+
     const alat = (aset.data ?? []).map((a) => {
       const id = (a as Baris).id as string
       const pakai = mPakai.get(id) ?? []
@@ -138,7 +176,11 @@ export default async function alatOperasionalRoutes(app: FastifyInstance) {
           (mRiwayat.get(id) ?? []) as never[]),
         kesehatan: nilaiKesehatanAlat((mRiwayat.get(id) ?? []) as never[]),
         riwayat: mRiwayat.get(id) ?? [],
-        penyusutan: mSusut.get(id) ?? [],
+        penyusutan: (mSusut.get(id) ?? []).map((p) => {
+          const j = (p as Baris).journal_entry_id as string | null
+          const st = j ? statusJurnal.get(j) : undefined
+          return { ...(p as Baris), jurnal_status: st?.status ?? null, jurnal_nomor: st?.entry_number ?? null }
+        }),
       }
     })
 
@@ -330,4 +372,237 @@ export default async function alatOperasionalRoutes(app: FastifyInstance) {
 
     return reply.status(201).send({ biaya: data })
   })
+
+  // ── POST /alat-operasional/penyusutan/jurnalkan ──────────────────────────
+  //
+  // Menutup lubang yang diukur 2026-08-12: `penyusutan_alat` berisi 12 baris
+  // dengan `journal_entry_id` NULL SELURUHNYA. Kolomnya ada sejak lama;
+  // jalur yang mengisinya tak pernah dibangun.
+  //
+  // Akibatnya beban penyusutan tak pernah masuk laba-rugi, dan nilai buku
+  // aset di neraca lebih tinggi daripada kenyataannya — dua laporan yang
+  // paling sering ditanyakan calon pelanggan, dua-duanya salah, tanpa satu
+  // pun galat.
+  //
+  // ── Kenapa izin `gl:manage`, bukan `assets:manage`
+  //
+  // Yang dihasilkan endpoint ini adalah JURNAL, dan jurnal mengubah laporan
+  // keuangan. Orang yang boleh mencatat pemakaian alat belum tentu boleh
+  // menyentuh buku besar — dan `assets:manage` diberikan jauh lebih luas.
+  app.post<{ Body: { periode?: string } }>(
+    '/api/v1/alat-operasional/penyusutan/jurnalkan',
+    { preHandler: [authenticate, requirePermission('gl:manage')] },
+    async (request, reply) => {
+      const db = request.db!
+      const cid = request.companyId!
+      const periode = String(request.body?.periode ?? '').slice(0, 10)
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(periode)) {
+        return reply.status(400).send({ error: 'periode wajib, bentuk YYYY-MM-DD' })
+      }
+
+      const alasan = 'kategori B; disaring company_id di baris berikutnya'
+
+      // Hanya yang BELUM dijurnalkan. Tanpa `.is(null)` ini, memanggil ulang
+      // endpoint yang sama menjurnalkan periode itu dua kali — beban ganda
+      // yang totalnya tetap seimbang, jadi tak ada satu pun pemeriksaan yang
+      // menabraknya.
+      const { data: baris, error: errBaca } = await db
+        .unsafe('penyusutan_alat', alasan)
+        .select('id, asset_id, periode, nilai')
+        .eq('company_id', cid)
+        .eq('periode', periode)
+        .is('journal_entry_id', null)
+      if (errBaca) return reply.status(500).send({ error: errBaca.message })
+      if (!baris || baris.length === 0) {
+        return reply.status(404).send({
+          error: `Tak ada penyusutan periode ${periode} yang belum dijurnalkan.`,
+        })
+      }
+
+      // Nama alat untuk keterangan jurnal — dibaca terpisah, bukan lewat
+      // join, karena `penyusutan_alat` diakses `unsafe` dan join di sana
+      // menyulitkan pembacaan saringan tenant-nya.
+      // Nama variabel SENGAJA berbeda dari yang dipakai tiga handler lain di
+      // berkas ini.
+      //
+      // Penjaga `audit-kegagalan-senyap` mengumpulkan variabel rawan
+      // per-BERKAS, bukan per-blok: selama ada satu destructuring tanpa
+      // `error` memakai nama yang sama di mana pun, tiap pemakaian nama itu
+      // dengan fallback array kosong ikut ditandai — termasuk yang sudah
+      // diperiksa dengan benar. Nama yang unik menghindarkannya.
+      const { data: asetNama, error: errAset } = await db.unsafe('assets', alasan)
+        .select('id, name, asset_code').eq('company_id', cid)
+      // Galat DIPERIKSA meski ini "hanya" nama untuk keterangan: kalau
+      // gagal, `?? []` mengubahnya jadi nol baris dan seluruh jurnal
+      // berketerangan "Penyusutan alat" tanpa satu pun nama. Jejak yang tak
+      // bisa dirunut, dan tak ada yang tahu kenapa.
+      if (errAset) return reply.status(500).send({ error: errAset.message })
+      const namaAset = new Map((asetNama ?? []).map(a => [
+        (a as { id: string }).id,
+        `${(a as { asset_code?: string }).asset_code ?? ''} ${(a as { name?: string }).name ?? ''}`.trim(),
+      ]))
+
+      const susun = susunJurnalPenyusutan(
+        (baris as Array<Record<string, unknown>>).map(b => ({
+          id: b.id as string,
+          periode: String(b.periode),
+          nilai: b.nilai as string,
+          namaAlat: namaAset.get(b.asset_id as string) ?? null,
+        })),
+      )
+      if (!susun.ok) return reply.status(422).send({ error: susun.sebab })
+
+      // Kode akun → id, MILIK TENANT INI. `accounts.company_id` NOT NULL,
+      // jadi memakai kode saja tanpa saringan akan menulis jurnal ke akun
+      // tenant lain pada basis multi-tenant.
+      const { data: akun, error: errAkun } = await db.from('accounts')
+        .select('id, code')
+        .in('code', [AKUN_BEBAN_PENYUSUTAN, AKUN_AKUMULASI_PENYUSUTAN])
+      if (errAkun) return reply.status(500).send({ error: errAkun.message })
+      const petaAkun = new Map((akun ?? []).map(a => [(a as { code: string }).code, (a as { id: string }).id]))
+      const hilang = [AKUN_BEBAN_PENYUSUTAN, AKUN_AKUMULASI_PENYUSUTAN].filter(k => !petaAkun.has(k))
+      if (hilang.length > 0) {
+        // Fail-closed dengan pesan yang menyebut apa yang harus dilakukan.
+        // Menulis jurnal separuh akan meninggalkan buku besar tak seimbang.
+        return reply.status(422).send({
+          error: `Akun ${hilang.join(' & ')} belum ada di bagan akun. `
+            + 'Jalankan migrasi 324 atau buat akunnya di Bagan Akun.',
+        })
+      }
+
+      // ── Periode tertutup ditolak DI DEPAN, bukan saat posting ────────────
+      //
+      // Ditemukan 2026-08-12 saat memposting hasil endpoint ini: Mei, Juni,
+      // Juli 2026 semuanya `tertutup`, dan trigger basis menolak posting
+      // dengan benar.
+      //
+      // Tapi jurnalnya SUDAH TERBUAT sebagai draft, dan
+      // `penyusutan_alat.journal_entry_id` sudah tertandai. Hasilnya draft
+      // yang tak akan pernah bisa diposting, sementara penyusutannya mengaku
+      // sudah dijurnalkan — jalan buntu yang harus dibersihkan tangan.
+      //
+      // Memeriksanya di sini mengubah jalan buntu jadi kalimat yang bisa
+      // ditindaklanjuti: buka kembali periodenya, atau jangan jurnalkan.
+      const { data: per, error: perErr } = await db.from('periode_akuntansi')
+        .select('nama, status')
+        .lte('tanggal_mulai', periode)
+        .gte('tanggal_akhir', periode)
+        .maybeSingle()
+      if (perErr) return reply.status(500).send({ error: perErr.message })
+      if (per && (per as { status: string }).status !== 'terbuka') {
+        return reply.status(409).send({
+          error: `Periode "${(per as { nama: string }).nama}" sudah ditutup — `
+            + 'jurnal penyusutan bertanggal itu tak akan bisa diposting. '
+            + 'Buka kembali periodenya di Tutup Buku lebih dulu.',
+        })
+      }
+
+      const tahun = Number(periode.slice(0, 4))
+      // Galat DIPERIKSA: kalau pembacaan nomor terakhir gagal, `terakhir`
+      // jadi null dan nomornya kembali ke JV-<tahun>-0001 — bentrok dengan
+      // jurnal yang sudah ada, dan penolakannya muncul sebagai galat unik
+      // yang membicarakan hal lain.
+      const { data: terakhir, error: errNomor } = await db.from('journal_entries')
+        .select('entry_number').like('entry_number', `JV-${tahun}-%`)
+        .order('entry_number', { ascending: false }).limit(1).maybeSingle()
+      if (errNomor) return reply.status(500).send({ error: errNomor.message })
+      const urut = terakhir?.entry_number
+        ? Number(String(terakhir.entry_number).split('-').pop()) + 1
+        : 1
+      const nomor = `JV-${tahun}-${String(urut).padStart(4, '0')}`
+
+      const { data: kepala, error: errKepala } = await db.from('journal_entries')
+        .insert({
+          entry_number: nomor,
+          entry_date: susun.entryDate,
+          description: susun.description,
+          notes: 'Dibuat otomatis dari register penyusutan alat.',
+          created_by: request.currentUser!.id,
+        })
+        .select('id, entry_number, status')
+        .single()
+      if (errKepala || !kepala) {
+        return reply.status(500).send({ error: errKepala?.message ?? 'Gagal membuat jurnal' })
+      }
+      const jurnalId = (kepala as { id: string }).id
+
+      const { error: errBaris } = await db
+        .unsafe('journal_entry_lines', 'mewarisi tenancy dari kepala jurnal yang baru dibuat di atas')
+        .insert(susun.lines.map((l, i) => ({
+          // Nama kolom DIUKUR ke information_schema, bukan ditebak:
+          // `entry_id` (bukan journal_entry_id) dan `line_order` (bukan
+          // line_number). Versi pertama menebak keduanya dan ditolak
+          // PostgREST dengan "column not found in schema cache" — galat yang
+          // hanya muncul saat benar-benar menulis, bukan saat tsc.
+          entry_id: jurnalId,
+          account_id: petaAkun.get(l.account_code),
+          debit: l.debit,
+          credit: l.credit,
+          description: l.description,
+          line_order: i + 1,
+        })))
+      if (errBaris) {
+        // Kepala jurnal SUDAH tertulis. Membiarkannya berarti jurnal kosong
+        // yang tak seimbang menggantung di buku besar selamanya.
+        //
+        // Hasil penghapusannya DIPERIKSA: nol baris terhapus berarti jurnal
+        // kosong itu tetap ada, dan pesannya harus menyebutkan nomornya
+        // supaya bisa dibereskan tangan — bukan menghilang di balik pesan
+        // galat yang membicarakan hal lain.
+        const { data: terhapus } = await db.from('journal_entries')
+          .delete().eq('id', jurnalId).select('id')
+        const sisa = !terhapus || terhapus.length === 0
+        return reply.status(500).send({
+          error: 'Gagal menulis baris jurnal: ' + errBaris.message
+            + (sisa ? ` Jurnal kosong ${nomor} gagal dibersihkan — hapus manual di Buku Besar.` : ''),
+        })
+      }
+
+      // Tandai barisnya SESUDAH jurnal utuh. Menandai lebih dulu berarti
+      // kegagalan di atas meninggalkan penyusutan yang mengaku sudah
+      // dijurnalkan padahal jurnalnya tak ada.
+      const idBaris = (baris as Array<{ id: string }>).map(b => b.id)
+      const { data: ditandai, error: errTandai } = await db
+        .unsafe('penyusutan_alat', alasan)
+        .update({ journal_entry_id: jurnalId, dijurnal_pada: new Date().toISOString() })
+        .in('id', idBaris)
+        .eq('company_id', cid)
+        .select('id')
+      if (errTandai) return reply.status(500).send({ error: errTandai.message })
+      if (!ditandai || ditandai.length !== idBaris.length) {
+        // NOL atau SEBAGIAN baris tertandai tak boleh menyamar jadi sukses:
+        // yang tak tertandai akan ikut terjurnalkan lagi pada panggilan
+        // berikutnya, dan bebannya jadi ganda.
+        return reply.status(500).send({
+          error: `Jurnal ${nomor} dibuat, tetapi hanya ${ditandai?.length ?? 0} dari `
+            + `${idBaris.length} baris penyusutan tertandai. Periksa sebelum mengulang.`,
+        })
+      }
+
+      void logAuditEvent(request, {
+        tableName: 'penyusutan_alat', recordId: jurnalId,
+        action: 'penyusutan.jurnalkan', actorId: request.currentUser!.id,
+        newValues: { entry_number: nomor, periode, baris: idBaris.length, total: susun.total },
+        severity: 'critical',
+      })
+
+      // `status` DIKEMBALIKAN apa adanya — dan itu penting.
+      //
+      // Jurnal baru selalu berstatus `draft`, dan draft TIDAK masuk laporan
+      // (`/gl/laporan` menyaring `status = 'posted'`). Posting adalah langkah
+      // tersendiri dengan izinnya sendiri (`gl:post`), dan itu benar secara
+      // akuntansi: yang menyusun jurnal tak selalu yang mengesahkannya.
+      //
+      // Versi pertama endpoint ini tak mengembalikan status, dan layarnya
+      // menampilkan "Sudah dijurnalkan" begitu panggilan berhasil — padahal
+      // neraca belum bergerak sedikit pun. Pengguna akan mencari selisihnya
+      // di tempat yang salah.
+      return reply.status(201).send({
+        jurnal: kepala,
+        baris_dijurnalkan: idBaris.length,
+        total: susun.total,
+        perlu_diposting: (kepala as { status?: string }).status === 'draft',
+      })
+    },
+  )
 }
