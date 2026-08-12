@@ -95,6 +95,58 @@ WA — semuanya terbukti bisa merah lalu pulih), `tsc --noEmit` bersih di
 `apps/api` dan `apps/web`, penjaga `kegagalan-senyap` **turun 186 → 185**
 karena cacat 1.
 
+### Suite penuh menemukan cacat KELIMA — milik saya, dan Gerbang Keras
+
+Menjalankan `npx vitest run` penuh (3.913 test, 11 menit): **10 gagal**.
+Semuanya satu berkas — `tenancy-ratchet.test.ts`:
+
+    Akses supabase mentah NAIK: 370 (ambang 366)
+
+Empat kenaikan itu **milik saya**: keempat endpoint automation memakai
+`supabase` mentah + `.in('project_id', …)`. Lolos seluruh test unit,
+lolos `audit-gerbang-tenancy` (yang mengukur GERBANG, bukan JUMLAH), dan
+lolos typecheck — tapi menabrak ratchet yang dijaga **G-5**.
+
+Yang penting: exit code perintahnya **0**. Kalau saya berhenti di exit
+code, saya akan melaporkan "suite hijau" kepada founder dengan 10 test
+merah di dalamnya. Ini persis alasan CHARTER §7 menuntut ringkasan
+run ditempel, bukan diklaim.
+
+Diperbaiki dengan memakai wrapper yang memang disediakan, bukan
+menaikkan ambang:
+
+    kasbons            kategori B → `request.db.from()` langsung
+                       (`.in('project_id')` bahkan tak perlu — ia punya
+                       `company_id` sendiri)
+    worker_kasbons     kategori C → `.unsafe(tabel, alasan)` +
+    mandor_assignments              `.in('project_id', await projectIds())`
+    progress_logs                   — pola LINTAS-PROYEK yang sudah
+                                      didokumentasikan di `tenant-db.ts:108`
+
+Ratchet kembali hijau di 366, 17 test automation tetap lulus.
+
+### Satu temuan yang saya laporkan terlalu cepat
+
+Saya sempat menyampaikan ke founder bahwa grup **"AI & Otomasi" tidak punya
+grup menu sendiri** dan item-itemnya "menumpang di Administrasi". Itu benar
+untuk `apps/web/lib/peta-menu.ts` — dan **salah untuk kenyataan.**
+
+Diukur ke basis: `g-ai` "AI & Otomasi" **ADA**, `sort_order` 185, dengan
+sembilan anak (`ai-asisten`, `ai-biaya`, `ai-whatsapp`, `ai-alur`,
+`ai-riwayat`, dst.). Sidebar dirender dari `menu_items`, bukan dari
+`peta-menu.ts` — jadi di layar grupnya memang sudah berdiri sendiri.
+
+Yang nyata: `peta-menu.ts` tertinggal dari DB untuk **124 entri**, dan
+`g-ai` cuma salah satunya. Itu drift yang sudah diketahui dan sudah
+di-ratchet (`audit-peta-menu-vs-db.mjs` — "Drift tidak bertambah"), bukan
+cacat yang lahir hari ini. **Tidak dikerjakan**, karena menutup 124 entri
+adalah pekerjaan tersendiri dan menutup satu saja tak mengubah apa pun
+yang dilihat pengguna.
+
+Pelajarannya persis yang dikejar CLAUDE.md §8a.4: **ukur dulu ke kenyataan
+sebelum menyatakan sesuatu belum dikerjakan.** Saya membaca satu berkas TS
+dan menyimpulkan tentang UI yang sumbernya tabel lain.
+
 ### Utang yang dicatat, bukan ditambal diam-diam
 
 - **`notification_rules.event_type` UNIQUE GLOBAL** padahal `company_id`

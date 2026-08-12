@@ -39,7 +39,6 @@
  * pengaturan; sampai itu ada, ambangnya minimal tidak terkubur di kode.
  */
 import type { FastifyInstance, FastifyRequest } from 'fastify'
-import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 
 /** Rupiah tanpa desimal — dipakai di seluruh pesan agar bentuknya seragam. */
@@ -87,15 +86,18 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
 
     // T4i — isi notifikasi memuat nominal kasbon, jadi datanya disaring di
     // sumbernya, bukan cuma penerimanya.
-    const idProyek = await request.db!.projectIds()
-    const { data: kasbons, error } = await supabase
+    //
+    // `kasbons` kategori B (punya `company_id` sendiri), jadi `.from()` di
+    // `request.db` sudah menyaringnya. Bentuk pertama memakai `supabase`
+    // mentah + `.in('project_id', …)` — lolos test unit tapi MENAIKKAN
+    // `tenancy-ratchet` 366 → 370, dan ratchet itu Gerbang Keras G-5.
+    const { data: kasbons, error } = await request.db!
       .from('kasbons')
       .select(`
         id, amount, purpose, kasbon_date, approved_at, settled_at, status,
         project:projects!kasbons_project_id_fkey(id, name, pm_id),
         mandor:users!kasbons_requested_by_fkey(id, name)
       `)
-      .in('project_id', idProyek)
       .eq('status', 'approved')
       .is('settled_at', null)
       .lt('approved_at', batas)
@@ -158,9 +160,13 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
 
     const sudah = await pembuatDedup(request, today, ['worker_kasbon_reminder'])
 
+    // `worker_kasbons` kategori C (mewarisi tenancy lewat `project_id`) dan
+    // ini layar LINTAS-PROYEK, jadi polanya `.unsafe()` + `.in('project_id',
+    // await projectIds())` — persis yang didokumentasikan di `tenant-db.ts`.
+    // `viaProject()` tak berlaku: tak ada satu proyek sebagai konteks.
     const idProyek = await request.db!.projectIds()
-    const { data: kasbons, error } = await supabase
-      .from('worker_kasbons')
+    const { data: kasbons, error } = await request
+      .db!.unsafe('worker_kasbons', 'penjadwal lintas-proyek: disaring .in(project_id, projectIds())')
       .select(`
         id, amount, amount_settled, kasbon_date, mandor_id,
         worker:workers!worker_kasbons_worker_id_fkey(id, name),
@@ -267,8 +273,8 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     // 'active' | 'completed'. Menebak `is_active` menghasilkan galat kolom,
     // dan itu justru nasib baik: saringan yang salah tapi SAH secara SQL akan
     // mengirimi pengingat ke mandor yang penugasannya sudah selesai.
-    const { data: penugasan, error: ePenugasan } = await supabase
-      .from('mandor_assignments')
+    const { data: penugasan, error: ePenugasan } = await request
+      .db!.unsafe('mandor_assignments', 'penjadwal lintas-proyek: disaring .in(project_id, proyek aktif tenant)')
       .select('mandor_id, project_id')
       .in('project_id', idProyek)
       .eq('status', 'active')
@@ -276,8 +282,8 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     if (ePenugasan) return reply.status(500).send({ error: ePenugasan.message })
 
     // Yang SUDAH melapor hari ini — sisi kanan anti-join.
-    const { data: laporan, error: eLaporan } = await supabase
-      .from('progress_logs')
+    const { data: laporan, error: eLaporan } = await request
+      .db!.unsafe('progress_logs', 'penjadwal lintas-proyek: disaring .in(project_id, proyek aktif tenant)')
       .select('project_id, reported_by')
       .in('project_id', idProyek)
       // `logged_at` bertipe TIMESTAMPTZ, bukan kolom DATE — "hari ini" adalah
