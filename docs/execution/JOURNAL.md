@@ -5,6 +5,104 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (koreksi) — "Sebagian" adalah kata yang bisa berarti apa saja
+
+Founder bertanya: *"sekarang semua modul baik menu ataupun taksonomi sudah
+selesai semua kah? dan yg di halaman peta-modul sekarang kondisinya gimana"*.
+
+Taksonomi memang sudah bersih — `audit-taksonomi-vs-kode.mjs` melaporkan
+**0 status basi**. Tapi saat mengukur Peta Modul, ketemu yang lebih halus
+daripada cacat pagi ini.
+
+### 20 dari 50 entri "Sebagian" tak punya satu kata penjelasan
+
+Kartu "Direncanakan" yang salah pagi tadi mudah terlihat — founder sendiri
+yang menemukannya. "Sebagian" tidak: ia terdengar seperti jawaban yang wajar
+untuk apa saja, jadi ketiadaan penjelasan tak pernah tampak sebagai cacat.
+
+Saya ukur kedua puluhnya ke basis, rute, dan halaman. Isinya salah ke **dua
+arah sekaligus**:
+
+    SEBENARNYA HIDUP PENUH
+      cc-acl        ACL-nya `cost_code_category_map` (migrasi 112) +
+                    lib/varians-cost-code.ts + endpoint di cost-control.ts
+      iv-gudang     tabel gudang + gudang_stok, /gudang beserta rekonsiliasi
+      hr-karyawan   tabel pegawai + timesheet, cuti, kompetensi, payroll
+                    (catatan lamanya "baru sebatas akun pengguna" — basi)
+
+    SEBENARNYA BELUM DIMULAI
+      sk-wo          nol tabel, nol rute, nol halaman
+      sk-opname      nol — dan ini yang paling menipu
+      sk-backcharge  nol
+      lp-serah       nol
+      hr-reimburse   nol
+
+`sk-opname` layak dicatat tersendiri. Mencari kata "opname" di repo
+memulangkan `POST /procurement/stocks/opname` — yang **opname STOK MATERIAL**,
+bukan opname pekerjaan bersama subkon. Dua hal berbeda dengan satu nama, dan
+kemiripan kata itulah yang agaknya membuat entri ini ditandai "sebagian"
+alih-alih "belum".
+
+### Yang justru lebih hidup dari label: cuaca & tenaga kerja
+
+`lp-cuaca` dan `lp-tenaga` ditandai "sebagian" tanpa penjelasan. Kenyataannya
+`progress_logs` sudah punya kolom `weather` dan `worker_count`, **98 baris
+terisi**, dan tiga rute membacanya (`dashboard.ts`, `lapangan.ts`,
+`progress.ts`).
+
+Jadi datanya dikumpulkan setiap hari; yang belum hanya layar yang
+membacanya sebagai riwayat. Selisih antara "modul belum ada" dan "layar
+pembacanya belum ada" itu besar sekali kalau yang membaca sedang
+merencanakan pekerjaan.
+
+### Hasilnya
+
+    Bisa dipakai   176 → 179
+    Sebagian        50 → 42
+    Direncanakan     1 → 6
+                   ─────────
+                   227 entri, NOL tanpa penjelasan
+
+Angka "Direncanakan" NAIK, dan itu yang benar. Peta yang jujur tak selalu
+terlihat lebih maju.
+
+### Penjaganya sendiri punya dua cacat, keduanya ditemukan mutasi
+
+**Cacat 1 — mencetak keluhan lalu melaporkan lulus.** `process.exit(1)` ada
+di dalam blok pemeriksaan lama; saat pemeriksaan baru ditambahkan di ATASNYA,
+ia mencetak seluruh keluhannya, jatuh ke baris `✅`, dan keluar dengan kode 0.
+
+Penjaga yang bicara tapi tak menghentikan CI adalah penjaga yang paling
+meyakinkan sekaligus paling tak berguna. Diperbaiki: `gagal++` di kedua blok,
+`exit` sesudah keduanya.
+
+**Cacat 2 — pemeriksaan cakupan yang buta pada dirinya sendiri.** Ia
+membandingkan jumlah baris berpola `{ key: '` dengan jumlah kecocokan
+`{ key: '` — dua sisi yang bergerak bersama. Mutasi yang mengubah `key:` jadi
+`keyX:` mengurangi keduanya, selisih tetap nol, cakupan dilaporkan penuh.
+
+Pembandingnya sekarang dihitung dari BENTUK baris entri, tak bergantung nama
+medannya.
+
+Ini kedua kalinya hari ini pemeriksaan cakupan penjaga ini yang bermasalah
+(pagi tadi: membaca 224 dari 226 karena urutan medan). Polanya jelas —
+**yang paling sulit dijaga dari sebuah penjaga adalah klaimnya tentang
+cakupannya sendiri.**
+
+### Aturan baru: entri non-`hidup` WAJIB berkatatan
+
+Ditegakkan penjaga, ambang NOL. Catatan harus menyebut apa yang sudah ada dan
+apa yang belum, dengan buktinya — nama tabel, berkas rute, jalur halaman.
+
+Itu bukan formalitas: pertanyaannya tak bisa dijawab tanpa mengukur, dan
+mengukur itulah yang tak dilakukan pada 20 entri tersebut.
+
+Bukti bisa merah — tiga mutasi: catatan dihapus dari satu entri `sebagian`
+(MERAH), entri `rencana` diberi href halaman yang ada (MERAH), satu `key`
+dirusak namanya (MERAH pada cakupan).
+
+---
+
 ## 2026-08-12 (lanjutan) — TJS-P5: tiga cacat yang tak satu pun ditemukan mata saya
 
 Item ini minta custom field per tenant dengan satu syarat yang tajam:

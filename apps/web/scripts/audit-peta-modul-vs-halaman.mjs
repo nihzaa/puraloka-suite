@@ -97,7 +97,17 @@ for (const baris of barisEntri) {
 
 // Cakupan diverifikasi: tiap `key` di berkas HARUS terbaca. Kalau tidak,
 // penjaga ini punya titik buta dan angkanya tak bisa dipercaya.
-const jumlahKey = (isi.match(/\{ key: '/g) ?? []).length
+// Pembanding TIDAK BOLEH memakai pola yang sama dengan pembacanya.
+//
+// Versi sebelumnya membandingkan `{ key: '` dengan `{ key: '` — dua sisi yang
+// bergerak bersama. Mutasi yang mengubah `key:` jadi `keyX:` mengurangi
+// KEDUANYA, selisihnya tetap nol, dan penjaga melaporkan cakupan penuh
+// sambil diam-diam melewatkan entri itu.
+//
+// Jadi pembandingnya dihitung dari BENTUK BARIS ENTRI — baris berindentasi
+// yang dibuka `{` dan ditutup `},` — yang tak bergantung pada nama medannya.
+const jumlahBarisObjek = (isi.match(/^\s{4,}\{ [a-zA-Z]+: '[^\n]*\},$/gm) ?? []).length
+const jumlahKey = jumlahBarisObjek
 if (total !== jumlahKey) {
   console.error(`\n❌ Penjaga ini hanya membaca ${total} dari ${jumlahKey} entri.`)
   console.error('   Titik buta di parser berarti angka di bawah tak bisa dipercaya —')
@@ -115,6 +125,45 @@ if (total === 0) {
   process.exit(1)
 }
 
+let gagal = 0
+
+// ── Entri non-`hidup` WAJIB menjelaskan apa yang kurang ─────────────────────
+//
+// Diukur 2026-08-12: 20 dari 50 entri `sebagian` tak punya satu kata catatan.
+// Kata "Sebagian" terdengar seperti jawaban yang wajar untuk apa saja, jadi
+// ketiadaan penjelasan tak pernah terlihat sebagai cacat — padahal isinya
+// salah ke DUA arah:
+//
+//   cc-acl, iv-gudang, hr-karyawan   sebenarnya HIDUP penuh
+//   sk-wo, sk-opname, lp-serah,      sebenarnya BELUM DIMULAI
+//   sk-backcharge, hr-reimburse      (nol tabel, nol rute, nol halaman)
+//
+// Founder membaca layar ini untuk tahu sisa pekerjaannya. Entri "sebagian"
+// tanpa penjelasan memberi angka yang tak bisa dipakai merencanakan apa pun:
+// ia tak memberitahu apakah yang tersisa satu layar atau satu modul.
+//
+// Catatan WAJIB memaksa yang menandai `sebagian` untuk menyebutkan apa yang
+// sudah ada dan apa yang belum — dan itu tak bisa dijawab tanpa mengukur.
+const tanpaCatatan = []
+for (const baris of barisEntri) {
+  const key = baris.match(/key: '([^']+)'/)?.[1]
+  const status = baris.match(/status: '([a-z]+)'/)?.[1]
+  if (!key || !status || status === 'hidup') continue
+  if (!/catatan: '[^']/.test(baris)) tanpaCatatan.push({ key, status })
+}
+
+console.log(`  non-'hidup' tanpa catatan: ${tanpaCatatan.length}`)
+
+if (tanpaCatatan.length > 0) {
+  console.error(`\n❌ ${tanpaCatatan.length} entri non-'hidup' tanpa catatan:\n`)
+  for (const t of tanpaCatatan) console.error(`     ${t.key.padEnd(20)} status '${t.status}'`)
+  console.error('\n   Tulis APA yang sudah ada dan APA yang belum, dengan buktinya')
+  console.error('   (nama tabel, berkas rute, jalur halaman). "Sebagian" tanpa')
+  console.error('   penjelasan tak memberitahu apakah sisanya satu layar atau')
+  console.error('   satu modul — dan itu yang dibaca founder untuk merencanakan.\n')
+  gagal++
+}
+
 if (berbohong.length > 0) {
   console.error(`\n❌ ${berbohong.length} entri berstatus rencana/gerbang PADAHAL halamannya ADA:\n`)
   for (const b of berbohong) {
@@ -125,7 +174,19 @@ if (berbohong.length > 0) {
   console.error('   sudah bisa dipakai". Entri yang berbohong membuat founder')
   console.error('   salah menilai pekerjaannya sendiri — dan itu sudah terjadi')
   console.error('   pada 2026-08-12 (tiga dari empat kartu "Direncanakan").\n')
-  process.exit(1)
+  gagal++
 }
 
-console.log('\n✅ Nol entri rencana/gerbang yang halamannya ternyata sudah ada.\n')
+// Exit SESUDAH kedua pemeriksaan, bukan di dalam salah satunya.
+//
+// Versi sebelumnya `process.exit(1)` di dalam blok `berbohong`, dan saat
+// pemeriksaan "tanpa catatan" ditambahkan di ATASNYA, ia mencetak seluruh
+// keluhannya lalu jatuh ke baris "✅" dan keluar dengan kode 0.
+//
+// Ditemukan mutasi, bukan oleh mata: penjaganya MENCETAK bahwa ada
+// pelanggaran dan tetap melaporkan lulus. Penjaga yang bicara tapi tak
+// menghentikan CI adalah penjaga yang paling meyakinkan sekaligus paling
+// tak berguna.
+if (gagal > 0) process.exit(1)
+
+console.log('\n✅ Status jujur: nol entri rencana/gerbang berhalaman, nol tanpa penjelasan.\n')
