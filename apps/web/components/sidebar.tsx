@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { rutenyaAktifPenuh } from "@/lib/rute-aktif";
-import { tujuanGrup } from "@/lib/tujuan-grup";
 import { TitikKesiapan } from "@/components/titik-kesiapan";
 import {
   LayoutDashboard,
@@ -29,7 +28,6 @@ import {
   GitBranch,
   BellRing,
   CalendarDays,
-  Menu,
   Database,
   Gavel,
   FileSignature,
@@ -45,6 +43,8 @@ import {
   Smartphone,
   Dot,
   Bot,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import {
   getStoredUser, logout, api, MENU_CACHE_KEY, MENU_ETAG_KEY,
@@ -52,6 +52,7 @@ import {
 } from "@/lib/api";
 import { SidebarFokus } from "@/components/sidebar-fokus";
 import { LogoPuraloka } from "@/components/logo-puraloka";
+import { GrupCiut } from "@/components/grup-ciut";
 import { useSidebar } from "@/lib/sidebar-context";
 
 const roleLabel: Record<string, string> = {
@@ -216,33 +217,19 @@ function GrupCollapsible({
   const idPanel = `grup-${node.key}`;
 
   /*
-    SATU KLIK = BUKA HALAMAN + EXPAND.
+    ── `tujuanGrup()` TIDAK dipakai lagi di sini (2026-08-12)
 
-    Founder 2026-08-09: *"klik menu itu harusnya bisa sekaligus link halaman
-    dan expand, ngga dipisah"*. Sebelumnya baris ini murni toggle, sehingga
-    `/keuangan` — halaman yang sudah lama jadi — hanya bisa dicapai lewat dua
-    klik: buka grup, lalu klik anak "Ringkasan Keuangan".
+    Sampai hari ini, baris grup yang punya halaman ikhtisar dirender `<Link>`
+    ke tujuan yang DIPINJAM dari anaknya — memenuhi permintaan founder
+    2026-08-09 ("sekaligus link halaman dan expand"). Founder mencabutnya
+    2026-08-12 supaya semua grup seragam bisa ditutup; alasannya lengkap di
+    komentar `<button>` di bawah.
 
-    Tujuannya DIPINJAM dari anak, bukan href baru untuk induk. Alasan lengkap
-    di `lib/tujuan-grup.ts`; ringkasnya: memberi induk href sendiri melanggar
-    migrasi 232 R-1 ("satu route = tepat satu link") dan menghidupkan lagi
-    cacat "dua link aktif sekaligus" yang justru dibereskan migrasi itu.
-
-    `null` = grup ini memang tak punya halaman ringkasan (mis. Gudang, yang
-    semua anaknya halaman kerja). Barisnya tetap `<button>` toggle seperti
-    semula — tidak menebak, tidak mengirim orang ke halaman acak.
+    `lib/tujuan-grup.ts` SENGAJA tidak dihapus: logikanya (meminjam tujuan dari
+    anak alih-alih memberi induk href sendiri) tetap benar dan tetap dipakai
+    penjaga `audit-menu-berbagi-href`. Yang dicabut hanya pemakaiannya di
+    baris grup.
   */
-  /*
-    `anak`, BUKAN `node.children`.
-
-    `anak` sudah disaring izin oleh pemanggil (`visibleChildren`);
-    `node.children` belum. Memakai yang belum disaring berarti baris induk bisa
-    mengarahkan orang ke halaman yang tak boleh ia buka — gagal-terbuka, dan
-    jenis kebocoran yang tak terlihat sampai ada pemakai berperan terbatas
-    yang mencobanya.
-  */
-  const tujuan = tujuanGrup({ children: anak });
-
   const isiBaris = (
     <>
       <IkonGrup nama={node.icon} aktif={aktif} />
@@ -293,44 +280,46 @@ function GrupCollapsible({
 
   return (
     <div>
-      {tujuan ? (
-        /*
-          `<Link>`, bukan `<button onClick={router.push}>`: navigasi harus
-          tetap bekerja dengan klik-tengah, Ctrl+klik, dan "buka di tab baru".
-          Tombol ber-handler membuang ketiganya diam-diam.
+      {/*
+        SEMUA baris grup adalah `<button>` toggle — tak ada lagi percabangan
+        `<Link>`/`<button>`.
 
-          `onClick` di SINI hanya meng-expand — navigasinya urusan `<Link>`.
-          Keduanya berjalan pada klik yang sama, dan itulah yang diminta:
-          "sekaligus link halaman dan expand, ngga dipisah".
+        ── Apa yang berubah, dan apa yang HILANG karenanya
 
-          Sengaja hanya MEMBUKA, tak pernah menutup: kalau klik yang sama juga
-          bisa menutup, orang yang mengklik "Keuangan" saat grupnya sudah
-          terbuka akan pindah halaman DAN kehilangan daftar anaknya sekaligus.
-          Menutupnya tetap bisa lewat klik saat grup itu bukan grup aktif.
-        */
-        <Link
-          href={tujuan}
-          onClick={() => { if (!terbuka) onToggle(); }}
-          aria-expanded={terbuka}
-          aria-controls={idPanel}
-          style={gayaBaris}
-          onMouseEnter={masuk}
-          onMouseLeave={keluar}
-        >
-          {isiBaris}
-        </Link>
-      ) : (
-        <button
-          onClick={onToggle}
-          aria-expanded={terbuka}
-          aria-controls={idPanel}
-          style={gayaBaris}
-          onMouseEnter={masuk}
-          onMouseLeave={keluar}
-        >
-          {isiBaris}
-        </button>
-      )}
+        Sampai 2026-08-12, grup yang punya halaman ikhtisar dirender `<Link>`
+        dengan `onClick={() => { if (!terbuka) onToggle(); }}` — memenuhi
+        permintaan founder 2026-08-09 (*"klik menu itu harusnya bisa sekaligus
+        link halaman dan expand, ngga dipisah"*).
+
+        Konsekuensinya baru terlihat sekarang: `onClick` itu HANYA MEMBUKA.
+        Grup ber-ikhtisar karena itu tak punya cara menutup sama sekali,
+        sementara grup tanpa ikhtisar bisa. Diukur: **10 grup `<a>` vs 9 grup
+        `<button>`** — dua perilaku dalam satu daftar, dan founder
+        merasakannya: *"gabisa di collapse lagi ya grupnya? soalnya jadi beda"*.
+
+        Founder memilih menyeragamkan ke `<button>` (2026-08-12), dan itu
+        MEMBATALKAN permintaan 2026-08-09: `/keuangan` kembali dicapai lewat
+        anak pertamanya ("Ringkasan Keuangan"), bukan lewat baris grup.
+
+        Itu ditulis di sini terang-terangan supaya sesi berikutnya tak
+        "memperbaiki" ini kembali ke `<Link>` tanpa tahu keduanya pernah
+        diminta founder yang sama, pada waktu berbeda, dengan alasan berbeda.
+
+        Ganti-rugi supaya kehilangannya tak menyakitkan: baris grup yang punya
+        ikhtisar menampilkan anak pertamanya SEBAGAI ANAK PERTAMA yang jelas
+        ("Ringkasan Keuangan"), jadi tujuannya tetap satu klik sesudah grup
+        terbuka — dan grup aktif otomatis terbuka.
+      */}
+      <button
+        onClick={onToggle}
+        aria-expanded={terbuka}
+        aria-controls={idPanel}
+        style={gayaBaris}
+        onMouseEnter={masuk}
+        onMouseLeave={keluar}
+      >
+        {isiBaris}
+      </button>
       <div
         id={idPanel}
         style={{
@@ -688,6 +677,22 @@ function SidebarIsi() {
   const bottomMenu = menu.filter(m => m.section === "bottom");
   const pengaturanNode = bottomMenu.find(m => m.key === "pengaturan");
 
+  /**
+   * Bentuk tombol ikon saat sidebar diciutkan.
+   *
+   * Ukurannya 40×40 dengan margin 6px — sama persis dengan `navStyle`, supaya
+   * ritme vertikal tak berubah saat sidebar dibuka/ditutup. Warna latar &
+   * teksnya diisi `GrupCiut` menurut keadaan aktif; yang ditetapkan di sini
+   * hanya geometri.
+   */
+  const gayaIkonCiut: React.CSSProperties = {
+    display: "flex", alignItems: "center", justifyContent: "center",
+    width: 40, height: 40, margin: "2px 6px",
+    borderRadius: 8, border: "none", cursor: "pointer",
+    transition: "background 0.15s, color 0.15s",
+    flexShrink: 0,
+  };
+
   function navStyle(active: boolean): React.CSSProperties {
     return {
       display: "flex",
@@ -810,74 +815,133 @@ function SidebarIsi() {
         {/* Lambang perusahaan — menggantikan huruf "P" yang selama ini jadi
             penampung sementara. Aplikasi yang memakai inisial alih-alih
             logonya sendiri terbaca sebagai belum jadi. */}
-        {!collapsed && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, overflow: "hidden" }}>
-            <div style={{
-              width: 34, height: 34, borderRadius: 10,
-              background: "var(--grad-aksen)", display: "flex",
-              alignItems: "center", justifyContent: "center",
-              flexShrink: 0, boxShadow: "0 2px 8px var(--navy-glow)",
-              color: "var(--on-aksen)",
-            }}>
-              <LogoPuraloka size={17} title="" />
-            </div>
-            <div style={{ overflow: "hidden" }}>
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 13, color: "var(--text-primary)", lineHeight: 1, letterSpacing: "-0.3px", whiteSpace: "nowrap" }}>
-                Puraloka
-              </div>
-              <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2, letterSpacing: "0.05em" }}>Suite</div>
-            </div>
-          </div>
-        )}
+        {/*
+          ── Lambang: SATU blok untuk kedua keadaan
+          ══════════════════════════════════════════════════════════════════
 
-        {collapsed && (
+          Versi sebelumnya menulis dua blok terpisah (`!collapsed && …` dan
+          `collapsed && …`) dengan geometri yang disalin — dan salinan itu
+          pelan-pelan berbeda: yang ciut kehilangan `flexShrink`, yang terbuka
+          kehilangan nama aksesibel pada logonya.
+
+          Satu blok, dua isi. Lambangnya identik di kedua keadaan, jadi ia
+          jadi jangkar visual yang tak bergeser saat sidebar dibuka-tutup.
+        */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden", minWidth: 0 }}>
           <div style={{
-            width: 34, height: 34, borderRadius: 10,
+            width: 32, height: 32, borderRadius: 9,
             background: "var(--grad-aksen)", display: "flex",
             alignItems: "center", justifyContent: "center",
-            boxShadow: "0 2px 8px var(--navy-glow)",
+            flexShrink: 0, boxShadow: "0 2px 8px var(--navy-glow)",
             color: "var(--on-aksen)",
           }}>
-            {/* Saat ciut, lambang ini SATU-SATUNYA penanda aplikasi —
-                jadi di sini ia bukan hiasan dan wajib punya nama. */}
-            <LogoPuraloka size={17} />
+            {/* Saat ciut, lambang ini SATU-SATUNYA penanda aplikasi — jadi ia
+                bukan hiasan dan wajib punya nama. Saat terbuka, namanya sudah
+                tertulis di sebelahnya, jadi `title=""` mencegah pembaca layar
+                mengucapkannya dua kali. */}
+            <LogoPuraloka size={16} title={collapsed ? undefined : ""} />
           </div>
-        )}
 
-        {!collapsed && (
-          <button aria-label={collapsed ? "Buka sidebar" : "Tutup sidebar"}
+          {!collapsed && (
+            /*
+              SATU baris, bukan dua.
+
+              "Puraloka" 13px di atas "Suite" 10px membuat nama merek terbaca
+              sebagai dua hal, dan barisan keduanya lebih tinggi daripada
+              lambang di sebelahnya sehingga tak ada yang sejajar. Founder:
+              *"judul dan logo puraloka nya juga saya kurang sreg stylingnya"*.
+
+              Sekarang satu baris ber-baseline sama dengan lambang: nama tebal,
+              "Suite" mengikutinya sebagai kata yang lebih ringan — hierarki
+              lewat BOBOT dan warna, bukan lewat baris terpisah.
+            */
+            <div style={{
+              display: "flex", alignItems: "baseline", gap: 5,
+              overflow: "hidden", whiteSpace: "nowrap",
+            }}>
+              <span style={{
+                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 15,
+                color: "var(--text-primary)", letterSpacing: "-0.02em",
+              }}>
+                Puraloka
+              </span>
+              <span style={{
+                fontSize: 11, fontWeight: 500, color: "var(--text-muted)",
+                letterSpacing: "0.04em",
+              }}>
+                Suite
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/*
+          ── Tombol ciut/buka: SATU tombol, SATU tempat
+          ══════════════════════════════════════════════════════════════════
+
+          Tiga cacat yang diperbaiki sekaligus — founder: *"tombol collapse dan
+          expandnya saya kurang cocok posisinya dan bentuknya"*:
+
+          1. IKONNYA SALAH ARAH. Keduanya memakai `Menu` (☰) — ikon "buka
+             menu", yang tak menyatakan apa pun tentang arah. Sekarang
+             `PanelLeftClose`/`PanelLeftOpen`: bentuknya sendiri menunjukkan
+             panel menutup ke kiri atau membuka ke kanan.
+
+          2. POSISINYA BERPINDAH. Saat terbuka ia di kanan header; saat ciut ia
+             turun ke BARIS SENDIRI di bawah lambang. Tombol yang berpindah
+             tempat memaksa mata mencarinya setiap kali — dan tombol ini
+             dipakai belasan kali sehari. Kini selalu di baris header.
+
+          3. TERLALU KECIL. 28×28 dengan padding 6 di bawah ambang 32px yang
+             nyaman disentuh. Kini 30×30 dengan area klik penuh.
+
+          Saat ciut karena layar sempit, tombol ini SENGAJA disembunyikan:
+          `toggle()` memang tak berfungsi di lebar itu, dan tombol yang ditekan
+          lalu tak terjadi apa-apa terbaca sebagai aplikasi rusak.
+        */}
+        {!collapsed && !dipaksaCiut && (
+          <button
+            aria-label="Ciutkan sidebar"
             onClick={toggle}
-            title={collapsed ? "Buka sidebar" : "Tutup sidebar"}
+            title="Ciutkan sidebar"
             style={{
-              padding: 6, borderRadius: 6, background: "transparent", border: "none",
-              cursor: "pointer", color: "var(--text-muted)", flexShrink: 0,
-              display: "flex", alignItems: "center",
+              width: 30, height: 30, borderRadius: 8,
+              background: "transparent", border: "none", cursor: "pointer",
+              color: "var(--text-muted)", flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.15s, color 0.15s",
             }}
             onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
           >
-            <Menu size={16} />
+            <PanelLeftClose size={17} />
           </button>
         )}
       </div>
 
-      {/* Tombol expand saat collapsed */}
-      {/* Saat ciut karena layar sempit, tombol ini SENGAJA disembunyikan:
-          `toggle()` memang tak berfungsi di lebar itu, dan tombol yang ditekan
-          lalu tak terjadi apa-apa terbaca sebagai aplikasi rusak. */}
+      {/*
+        Saat CIUT, tombol buka berdiri sendiri tepat di bawah lambang — 64px
+        tak cukup untuk menaruh keduanya berdampingan. Bentuk & ukurannya
+        dibuat identik dengan tombol ikon grup di bawahnya (40×40, radius 8)
+        supaya ia terbaca sebagai bagian dari kolom yang sama, bukan sisipan.
+      */}
       {collapsed && !dipaksaCiut && (
-        <div style={{ padding: "8px 0 4px", display: "flex", justifyContent: "center", flexShrink: 0 }}>
-          <button aria-label="Buka sidebar"
+        <div style={{ padding: "6px 0 2px", display: "flex", justifyContent: "center", flexShrink: 0 }}>
+          <button
+            aria-label="Buka sidebar"
             onClick={toggle}
             title="Buka sidebar"
             style={{
-              padding: 6, borderRadius: 6, background: "transparent", border: "none",
-              cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center",
+              width: 40, height: 40, borderRadius: 8,
+              background: "transparent", border: "none", cursor: "pointer",
+              color: "var(--text-muted)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "background 0.15s, color 0.15s",
             }}
             onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
             onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
           >
-            <Menu size={16} />
+            <PanelLeftOpen size={17} />
           </button>
         </div>
       )}
@@ -919,13 +983,45 @@ function SidebarIsi() {
               );
             }
 
-            // Collapsed: children sebagai NavItem ikon langsung (tanpa dropdown).
+            /*
+              CIUT: satu ikon GRUP + flyout, bukan seluruh anaknya sebagai ikon.
+
+              Versi sebelumnya merender `visibleChildren` sebagai `NavItem`
+              ikon 16px berjajar. Diukur 2026-08-12: **128 dari 147 ikon adalah
+              `Dot`**, hanya 7 bentuk unik di seluruh sidebar — deretan titik
+              identik setinggi layar, nol informasi.
+
+              Itu bukan kelalaian: komentar di `ICONS` menjelaskan sub-menu
+              SENGAJA seragam, karena "202 ikon berbeda justru menghapus fungsi
+              ikon sebagai penanda". Alasan itu benar saat sidebar TERBUKA —
+              di sana labelnya yang bekerja. Ia runtuh saat diciutkan, karena
+              labelnya hilang dan tinggal penanda ritmenya.
+
+              Ikon grup (19, semuanya berbeda, dipilih bermakna sejak migrasi
+              153) memang dibuat untuk dibaca sendirian. Sub-menunya menyusul
+              lewat flyout — pola Linear/Notion/GitHub, dan satu-satunya cara
+              64px jadi berguna tanpa mengarang 122 ikon baru.
+            */
             return (
-              <div key={node.key}>
-                {visibleChildren.map(child => (
-                  <NavItem key={child.key} href={child.href ?? "#"} label={child.label} icon={iconFor(child.icon)} active={isActive(child.href ?? "")} collapsed={collapsed} onHover={onHover} offHover={offHover} navStyle={navStyle} />
-                ))}
-              </div>
+              <GrupCiut
+                key={node.key}
+                label={node.label}
+                aktif={grupAktif(node)}
+                ikon={<IkonGrup nama={node.icon} aktif={grupAktif(node)} />}
+                gayaIkon={gayaIkonCiut}
+                anak={visibleChildren.map((c) => ({
+                  key: c.key,
+                  label: c.label,
+                  href: c.href,
+                  aktif: isActive(c.href ?? ""),
+                  // `redup` sengaja TIDAK diisi: sesudah migrasi 232 tak ada
+                  // lagi href yang dipakai lebih dari satu link, dan
+                  // `belumAdaHalamanSendiri` di berkas ini sudah jadi stub
+                  // `() => false` dengan alasan tertulis. Memanggilnya di sini
+                  // hanya menghidupkan kembali kesan bahwa keadaan itu masih
+                  // mungkin.
+                }))}
+              />
             );
           }
 

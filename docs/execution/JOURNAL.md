@@ -15694,3 +15694,86 @@ memercayai satu angka turunan.
     vitest (web)   604 lulus / 46 berkas — 0 gagal
     pnpm build     nol error
     di PERAMBAN    0 dari 8 kartu mepet (sebelumnya 8)
+
+## 2026-08-12 (lanjutan 6) — Sidebar: grup seragam + ciut yang akhirnya berguna
+
+Founder mengirim empat keluhan sekaligus, dan satu pertanyaan desain nyata:
+*"grup yg punya dashboard gabisa di collapse lagi ya? soalnya jadi beda"*.
+
+### 1. Dua perilaku dalam satu daftar — dan founder yang sama penyebabnya
+
+Diukur: **10 grup dirender `<a>`, 9 dirender `<button>`.**
+
+Sebabnya permintaan founder 2026-08-09: *"klik menu itu harusnya bisa
+sekaligus link halaman dan expand, ngga dipisah"*. Grup yang punya halaman
+ikhtisar karena itu jadi `<Link>` dengan:
+
+    onClick={() => { if (!terbuka) onToggle(); }}
+
+**Hanya membuka, tak pernah menutup** — dan itu disengaja, supaya klik ke
+`/keuangan` tak menutup grup yang baru terbuka. Efek sampingnya baru terasa
+sekarang: 10 grup tak punya cara menutup sama sekali.
+
+Founder memilih menyeragamkan ke `<button>` murni (2026-08-12), dan itu
+**MEMBATALKAN permintaannya sendiri dari 2026-08-09** — `/keuangan` kembali
+dicapai lewat anak pertamanya.
+
+Saya sampaikan konsekuensi itu sekali sebelum mengerjakan, lalu kerjakan.
+Ditulis terang-terangan di komentar kodenya supaya sesi berikutnya tak
+"memperbaiki" ini kembali ke `<Link>` tanpa tahu keduanya pernah diminta
+founder yang sama.
+
+Hasil: **23 grup, semuanya `BUTTON`**, dan Keuangan bisa buka→tutup.
+
+### 2. Ciut 64px: 128 titik identik
+
+Diukur: **147 ikon, 128 di antaranya `Dot`, hanya 7 bentuk unik.** Sidebar
+ciut merender SELURUH ANAK sebagai ikon 16px berjajar — deretan titik setinggi
+layar, nol informasi. Founder: *"aneh icon iconnya"*.
+
+Sebabnya bukan kelalaian. `ICONS` menjelaskannya sendiri:
+
+> Sub-menu SENGAJA seragam: 202 ikon berbeda justru menghapus fungsi ikon
+> sebagai penanda — saat semuanya bergambar, tak ada yang menonjol.
+
+Alasan itu **benar untuk keadaan terbuka**, tempat LABEL yang bekerja dan ikon
+cuma penanda ritme. Ia runtuh saat diciutkan: labelnya hilang, tinggal penanda
+ritmenya.
+
+`components/grup-ciut.tsx` (baru): ciut menampilkan **ikon GRUP saja** (19,
+semuanya berbeda, dipilih bermakna sejak migrasi 153), sub-menu menyusul lewat
+flyout saat hover/fokus.
+
+    ikon        147 → 27
+    bentuk unik   7 → 24
+    titik Dot   128 → 0
+    flyout: muncul di x=69, lebar 220px, 11 item
+
+Flyout menunda menutup 120ms — tanpa itu, menggerakkan tetikus melintasi celah
+6px menutupnya di tengah jalan dan pengguna menyimpulkan menunya rusak. Esc
+menutup dan mengembalikan fokus ke pemicunya.
+
+### 3. Header: tiga cacat sekaligus
+
+    judul "Puraloka"   13px/400  → 15px/700, satu baris dengan "Suite"
+    tombol ciut        28×28 ☰   → 30×30 PanelLeftClose
+    tombol buka (ciut) 28×28     → 40×40 PanelLeftOpen, seragam dengan ikon grup
+
+Ikonnya yang paling salah: **keduanya memakai `Menu` (☰)** — ikon "buka menu"
+yang tak menyatakan arah apa pun. `PanelLeftClose`/`PanelLeftOpen` bentuknya
+sendiri menunjukkan panel menutup ke kiri atau membuka ke kanan.
+
+Dua blok lambang yang disalin (`!collapsed &&` dan `collapsed &&`) disatukan —
+salinannya sudah pelan-pelan berbeda: yang ciut kehilangan `flexShrink`, yang
+terbuka kehilangan nama aksesibel pada logonya.
+
+### Bukti
+
+    tsc (web)              0
+    vitest (web)           604 lulus / 46 berkas — 0 gagal
+    pnpm build             nol error
+    audit-sidebar-urutan   ✅ 0 / 0 / 0
+    a11y-ratchet           ✅ <button> tanpa nama 0/0
+    esc-ratchet            ✅ tidak bertambah
+    uji-token-css-ada      ✅ nol token hantu
+    di PERAMBAN            23 grup semuanya BUTTON; ciut 27 ikon / 24 unik
