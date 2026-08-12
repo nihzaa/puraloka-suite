@@ -16006,3 +16006,81 @@ Itu modul baru, jadi ia pindah ke Kelompok 3.
 Peta Modul: 200 → **202 bisa dipakai** · 26 → **24 sebagian**.
 
 `audit-asumsi-global-test` merah — sudah merah di HEAD sebelum ini.
+
+---
+
+## 2026-08-12 — Kelompok 2 selesai: dua revisi gambar yang sama-sama berlaku
+
+**Cabang:** `feat/sumbu-ui-roadmap`
+
+### Yang ditemukan saat mengukur `dk-register`
+
+`documents.version` memang lemah — bertipe TEKS ber-default `'1.0'`, nol
+constraint, nol baris. Tetapi riwayat revisi yang sebenarnya **sudah ada di
+jalur lain**: `register_gambar` menyimpan revisi bernomor, `digantikan_oleh`,
+dan tiga status. Itulah yang dipakai untuk gambar kerja — dokumen yang
+revisinya paling menentukan.
+
+Dan di situ ada cacat nyata: **`STR-101` punya DUA baris berstatus
+`berlaku`** (revisi 1 dan 2), dengan `digantikan_oleh` NOL dari 5 baris.
+
+Akibatnya di lapangan bukan sekadar data tak rapi. Orang yang membuka register
+melihat dua gambar sah untuk satu nomor dan harus menebak mana yang dipakai —
+menebak salah berarti mengerjakan gambar revisi lama, pekerjaan yang harus
+dibongkar.
+
+### Rutenya SUDAH benar; yang kurang basisnya
+
+`POST /kendali-dokumen/gambar` menandai revisi lama `digantikan` begitu revisi
+baru masuk, dan **mencatat kegagalannya alih-alih menelan**. Diperiksa ke
+`created_at`: kedua baris STR-101 lahir pada **detik yang sama** — dari seed,
+bukan lewat rute.
+
+Jadi yang ditambahkan bukan logika baru melainkan penjagaan basisnya: index
+parsial `satu berlaku per (proyek, nomor)`, dan trigger yang menuntut pengganti
+bernomor sama, sebidang proyek, berevisi lebih baru.
+
+### Dua koreksi arah pada migrasi saya sendiri
+
+**Trigger duplikat.** Versi pertama memeriksa "menggantikan diri sendiri" —
+constraint `gambar_bukan_pengganti_diri` sudah menegakkannya sejak tabelnya
+lahir. Dibuang; diperiksa di verifikasi sebagai jaminan yang DIPAKAI, bukan
+diduplikasi.
+
+**Pemeriksaan yang dilewati.** Versi pertama melewati uji "pengganti dari nomor
+lain" dengan NOTICE ketika proyek fixture kebetulan tak punya gambar lain.
+Diperbaiki dengan MEMBUAT fixture-nya — pemeriksaan yang dilewati karena data
+kebetulan tak ada adalah pemeriksaan yang tak pernah menjaga apa pun.
+
+### `md-template-dok` diukur dan PINDAH ke Kelompok 3
+
+Kontrak PDF di-generate `pdfkit`, dan tata letaknya **dipaku di kode**: kop,
+urutan pasal, tempat tanda tangan. Nol tabel template dokumen — tiga tabel
+bernama "template" yang muncul saat mencari adalah `wa_template`,
+`expense_category_templates`, dan `cbs_templates` (F2), tak satu pun template
+dokumen.
+
+Ia menuntut MESIN template tersendiri, jadi bukan Kelompok 2.
+
+### Kelompok 2 — tutup buku
+
+    md-karyawan      DIBANGUN   layar + rute + migrasi 340/341
+    md-gudang        DIBANGUN   layar + rute + migrasi 342
+    qc-checklist     DIBANGUN   komponen di halaman inspeksi
+    dk-register      DIPERBAIKI migrasi 343 (cacat nyata di register gambar)
+    crm-skenario     KOREKSI    catatannya salah — sudah dipakai penuh
+    sy-import        KOREKSI    catatannya salah arah
+    crm-boq          PINDAH     ke Kelompok 3 (butuh modul takeoff)
+    md-template-dok  PINDAH     ke Kelompok 3 (butuh mesin template)
+
+### Bukti
+
+    migrasi 343   ✅ 8 pemeriksaan, NOL dilewati
+    vitest        17 lulus (mutu-endpoint)
+    tsc api/web   0 / 0
+    penjaga API   66 dijalankan, 65 hijau
+    penjaga web   8 hijau
+
+Peta Modul: 195 → **202 bisa dipakai** · 31 → **24 sebagian** · 1 direncanakan.
+
+`audit-asumsi-global-test` merah — sudah merah di HEAD sebelum ini.
