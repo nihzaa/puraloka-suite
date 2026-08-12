@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, penggunaLain } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import changeOrderRoutes from '../change-orders.js'
 
@@ -29,6 +29,7 @@ let app: FastifyInstance
 let client: Client
 let adminAuth: string
 let adminUserId: string
+let pengajuId: string
 let projectId: string
 let coId: string
 let level2Id: string
@@ -114,10 +115,24 @@ beforeAll(async () => {
      RETURNING id`, [cl[0].id, adminUserId, BASE_CONTRACT])
   projectId = pr[0].id
 
+  // Pengajunya ORANG LAIN, bukan admin yang akan menyetujui.
+  //
+  // Sejak TJS-P4 (2026-08-12) ada gerbang SoD: pengaju tak boleh menyetujui
+  // pengajuannya sendiri. Fixture ini dulu memakai `adminUserId` untuk kedua
+  // peran, dan sesudah gerbang terpasang ketiga test di berkas ini balas 403.
+  //
+  // Diperbaiki di fixture, BUKAN dengan mengirim `alasan_override`: memakai
+  // override akan membuat test ini menempuh jalur istimewa, dan yang diuji
+  // berubah diam-diam dari "approval berjenjang bekerja" jadi "override
+  // bekerja". Yang ingin dibuktikan di sini tetap mekanika berjenjangnya.
+  const lain = await penggunaLain(client, adminUserId)
+  if (!lain) throw new Error('butuh minimal 2 pengguna aktif — fixture approval perlu pengaju ≠ penyetuju')
+  pengajuId = lain.userId
+
   const { rows: co } = await client.query(
     `INSERT INTO change_orders (project_id, co_number, title, status, total_amount_delta, created_by, submitted_by)
      VALUES ($1, 'CO-TEST-BERJENJANG', '[TEST] Kerja tambah', 'submitted', $2, $3, $3)
-     RETURNING id`, [projectId, DELTA, adminUserId])
+     RETURNING id`, [projectId, DELTA, pengajuId])
   coId = co[0].id
 
   // KONFIGURASI (bukan kode): jadikan rantai change_order 2 level.

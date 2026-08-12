@@ -5,7 +5,7 @@ import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { enforceKasbonLimit } from '../../utils/kasbon-limit.js'
-import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
+import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan, periksaGerbangSod } from '../../utils/approval.js'
 
 export default async function kasbonRoutes(app: FastifyInstance) {
 
@@ -344,6 +344,20 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       if (!limitCheck.allowed) {
         return reply.status(400).send({ error: limitCheck.reason })
       }
+    }
+
+    // TJS-P4 — pengaju tak boleh menyetujui kasbonnya sendiri.
+    //
+    // Kasbon adalah kasus yang paling telanjang dari seluruh sembilan: ia
+    // uang tunai yang keluar ke rekening orang yang mengajukannya. Sebelum
+    // hari ini, seorang mandor dengan izin approve bisa mengajukan kasbon
+    // lalu menyetujuinya sendiri dalam dua ketukan.
+    if (status === 'approved') {
+      const sod = await periksaGerbangSod(request, 'kasbon', id, {
+        alasanOverride: (request.body as { alasan_override?: string } | undefined)?.alasan_override,
+        level: decision.step?.level,
+      })
+      if (!sod.ok) return reply.status(403).send({ error: sod.pesan })
     }
 
     // Catat persetujuan level ini. Bila BUKAN langkah terakhir, kasbon TETAP 'pending'

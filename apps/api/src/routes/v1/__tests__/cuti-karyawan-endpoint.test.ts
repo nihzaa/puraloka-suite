@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, penggunaLain } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import cutiKaryawanRoutes from '../cuti-karyawan.js'
 
@@ -211,10 +211,28 @@ describe('POST /sdm/cuti/:id/putuskan', () => {
   let cutiId: string
 
   beforeAll(async () => {
+    // Cuti yang PENGAJUNYA bukan admin — admin yang akan memutuskannya.
+    //
+    // Sejak TJS-P4 (2026-08-12) gerbang SoD menolak pengaju yang menyetujui
+    // pengajuannya sendiri. Blok ini dulu mengambil cuti mana pun berstatus
+    // `diajukan`, dan yang tersedia justru yang diajukan lewat endpoint oleh
+    // admin sendiri (rute mengisi `diajukan_oleh` dari sesi) — hasilnya 403
+    // di empat test, yang terlihat seperti cacat otorisasi padahal fixture-nya
+    // memakai satu orang untuk dua peran.
+    //
+    // Pengajunya di-set eksplisit, bukan berharap ada baris yang cocok:
+    // memilih "yang kebetulan bukan admin" membuat test hijau/merah
+    // tergantung isi basis.
+    const { rows: adm } = await client.query(
+      `SELECT u.id FROM users u JOIN roles r ON r.id = u.role_id WHERE r.name = 'admin' LIMIT 1`)
+    const lain = await penggunaLain(client, adm[0].id)
+    if (!lain) throw new Error('butuh minimal 2 pengguna aktif — fixture approval perlu pengaju ≠ penyetuju')
+
     const { rows } = await client.query(
       `SELECT id FROM cuti_ambil WHERE pegawai_id = $1 AND status = 'diajukan' LIMIT 1`,
       [pegawaiId])
     cutiId = rows[0].id
+    await client.query(`UPDATE cuti_ambil SET diajukan_oleh = $1 WHERE id = $2`, [lain.userId, cutiId])
   })
 
   it('penolakan WAJIB beralasan', async () => {

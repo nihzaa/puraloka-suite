@@ -103,7 +103,11 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomNominal: 'total_amount',
     kolomJudul: 'description',
     kolomNomor: null,
-    kolomPengaju: null,
+    // `null` di sini SALAH sampai 2026-08-12: kolomnya ada
+    // (`project_expenses.submitted_by`), dan akibatnya inbox tak pernah
+    // menandai pengeluaran milik sendiri. Ditemukan saat membangun TJS-P4,
+    // ketika kesembilan kolom pengaju diukur langsung ke information_schema.
+    kolomPengaju: 'submitted_by',
     tenancy: 'C',
     jalurUi: '/kas',
   },
@@ -155,7 +159,9 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomNominal: null,
     kolomJudul: 'judul',
     kolomNomor: 'nomor',
-    kolomPengaju: null,
+    // Sama seperti `project_expense` di atas: `null` ini SALAH.
+    // `submittals.diajukan_oleh` ada sejak tabelnya dibuat.
+    kolomPengaju: 'diajukan_oleh',
     tenancy: 'C',
     jalurUi: '/kontrak/submittal',
   },

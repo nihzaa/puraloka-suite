@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, penggunaLain } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import lessonsLearnedRoutes from '../lessons-learned.js'
 
@@ -18,6 +18,7 @@ let client: Client
 let adminAuth: string
 let pmAuth: string
 let adminUserId: string
+let pengajuId: string
 let projectId: string
 let resourceId: string
 let costCodeId: string
@@ -33,7 +34,7 @@ async function newLessonWithProposal(
   const cc = ccOverride ?? costCodeId
   const { rows: l } = await client.query(
     `INSERT INTO lessons_learned_records (project_id, title, planned_amount, actual_amount, created_by)
-     VALUES ($1,'[TEST] Lesson',10000000,12000000,$2) RETURNING id`, [projectId, adminUserId])
+     VALUES ($1,'[TEST] Lesson',10000000,12000000,$2) RETURNING id`, [projectId, pengajuId])
   const lid = l[0].id
   await client.query(
     `INSERT INTO lesson_propagation_proposals (lesson_id, target_type, resource_id, cost_code_id, proposed_value)
@@ -106,6 +107,13 @@ beforeAll(async () => {
   pmAuth = (await authIdForRole(client, 'pm')) ?? ''
   const { rows: au } = await client.query(`SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1`)
   adminUserId = au[0].id
+  // Pengaju ORANG LAIN — gerbang SoD (TJS-P4, 2026-08-12) melarang pengaju
+  // menyetujui pengajuannya sendiri. Fixture ini dulu memakai satu orang
+  // untuk dua peran; diperbaiki di fixture, BUKAN dengan alasan_override
+  // (itu akan membuat test menempuh jalur istimewa dan yang diuji berubah).
+  const _lain = await penggunaLain(client, adminUserId)
+  if (!_lain) throw new Error('butuh minimal 2 pengguna aktif — fixture approval perlu pengaju ≠ penyetuju')
+  pengajuId = _lain.userId
 
   await purge()
   const { rows: cl } = await client.query(`SELECT id FROM clients LIMIT 1`)

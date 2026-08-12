@@ -102,6 +102,45 @@ export async function authIdForRole(client: Client, role: string): Promise<strin
 }
 
 /**
+ * Pengguna LAIN yang bukan `bukanUserId` — dipakai sebagai PENGAJU di fixture
+ * approval.
+ *
+ * ── Kenapa ini perlu, sejak 2026-08-12
+ *
+ * TJS-P4 memasang gerbang Segregation of Duties: pengaju tak boleh menyetujui
+ * pengajuannya sendiri. Fixture lama membuat entitas dengan `created_by =
+ * adminUserId` lalu approve sebagai admin yang sama, dan sesudah gerbang
+ * terpasang kelimanya balas 403.
+ *
+ * Test-test itu TIDAK salah maksudnya — komentar di
+ * `approval-chain-berjenjang.test.ts` menyatakan sendiri "yang diuji mekanika
+ * BERJENJANG-nya, bukan pemisahan orang". Yang salah cuma fixture-nya:
+ * memakai satu orang untuk dua peran yang di dunia nyata memang dua orang.
+ *
+ * Jadi helper ini, bukan `alasan_override` di tiap test. Memakai override
+ * akan membuat kelima test itu menempuh jalur ISTIMEWA — dan yang diuji
+ * berubah diam-diam dari "approval berjenjang bekerja" jadi "override
+ * bekerja", sementara jalur normalnya tak teruji sama sekali.
+ *
+ * Mengembalikan null bila basis hanya punya satu pengguna aktif; pemanggil
+ * WAJIB gagal keras, bukan diam-diam memakai orang yang sama lagi.
+ */
+export async function penggunaLain(
+  client: Client,
+  bukanUserId: string,
+): Promise<{ userId: string; authId: string | null } | null> {
+  const { rows } = await client.query(
+    `SELECT u.id, u.auth_id FROM public.users u
+      WHERE u.id <> $1 AND u.is_active = true
+      ORDER BY (u.auth_id IS NOT NULL) DESC
+      LIMIT 1`,
+    [bukanUserId],
+  )
+  if (!rows.length) return null
+  return { userId: rows[0].id, authId: rows[0].auth_id ?? null }
+}
+
+/**
  * Mandor ber-`auth_id` yang PUNYA minimal satu assignment aktif — dipakai test
  * ownership isolation (mandor tanpa assignment tidak membuktikan apa-apa).
  * Return { authId, userId, assignedProjectCount } atau null.

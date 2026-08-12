@@ -3,7 +3,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
 import { createNotification, createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
-import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
+import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan, periksaGerbangSod } from '../../utils/approval.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { computeMrAmount } from '../../lib/mr-amount.js'
 import { grValueAtPoPrices, validateInvoiceCeiling } from '../../lib/three-way-match.js'
@@ -743,6 +743,17 @@ export default async function procurementRoutes(app: FastifyInstance) {
         }
         return reply.status(403).send({ error: 'Akses ditolak' })
       }
+
+      // TJS-P4 — pengaju tak boleh menyetujui MR-nya sendiri. Gerbang ini
+      // TIDAK boleh disatukan ke `evaluateEntityApproval`: yang di atas
+      // menjawab "punya wewenang di level ini?", yang di sini menjawab
+      // "bolehkah orang INI atas dokumen INI?". Menggabungkannya membuat
+      // override SoD tak bisa dibedakan dari wewenang yang kurang.
+      const sod = await periksaGerbangSod(request, 'material_request', id, {
+        alasanOverride: (request.body as { alasan_override?: string } | undefined)?.alasan_override,
+        level: decision.step?.level,
+      })
+      if (!sod.ok) return reply.status(403).send({ error: sod.pesan })
 
       if (decision.step) {
         const rec = await recordApproval({

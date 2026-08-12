@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
-import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
+import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan, periksaGerbangSod } from '../../utils/approval.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { gerbangIdempotensi, catatIdempotensi } from '../../utils/idempotency.js'
@@ -697,6 +697,19 @@ export default async function cashRoutes(app: FastifyInstance) {
       }
     }
 
+    // TJS-P4 — pengaju tak boleh menyetujui pengeluarannya sendiri.
+    //
+    // Dipasang sesudah cek saldo mengikuti alasan blok di bawah: permintaan
+    // yang akan gagal karena saldo tak boleh lebih dulu menulis baris
+    // `sod_override` untuk persetujuan yang tak pernah terjadi.
+    if (expenseDecision) {
+      const sod = await periksaGerbangSod(request, 'project_expense', id, {
+        alasanOverride: (request.body as { alasan_override?: string } | undefined)?.alasan_override,
+        level: expenseDecision.step?.level,
+      })
+      if (!sod.ok) return reply.status(403).send({ error: sod.pesan })
+    }
+
     // Catat persetujuan SETELAH semua validasi (termasuk cek saldo) supaya
     // permintaan yang gagal tidak meninggalkan jejak level yang tak pernah terjadi.
     if (expenseDecision?.step) {
@@ -767,8 +780,17 @@ export default async function cashRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Tidak bisa hapus pengeluaran yang sudah disetujui' })
     }
 
-    const { error } = await request.db!.viaProject('project_expenses', expense.project_id).delete().eq('id', id)
+    // `.select('id')` supaya NOL BARIS terhapus tak menyamar jadi sukses.
+    // Tanpa itu, penghapusan yang tak menyentuh apa pun — id sudah lenyap,
+    // atau barisnya milik proyek lain sehingga tersaring `viaProject` —
+    // membalas `{ success: true }` dan pemanggilnya percaya.
+    const { data: terhapus, error } = await request.db!
+      .viaProject('project_expenses', expense.project_id)
+      .delete().eq('id', id).select('id')
     if (error) return reply.status(500).send({ error: error.message })
+    if (!terhapus || terhapus.length === 0) {
+      return reply.status(404).send({ error: 'Pengeluaran tidak ditemukan' })
+    }
     return reply.send({ success: true })
   })
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, penggunaLain } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import rencanaMutuRoutes from '../rencana-mutu.js'
 
@@ -74,8 +74,22 @@ beforeAll(async () => {
   const { rows: p } = await client.query(
     `SELECT id FROM projects WHERE company_id IS NOT NULL ORDER BY created_at LIMIT 1`)
   projectId = p[0].id
-  const { rows: u } = await client.query(`SELECT id FROM users LIMIT 1`)
-  userId = u[0].id
+  // PEMBUAT RMP harus orang lain dari yang menyetujuinya.
+  //
+  // Sejak TJS-P4 (2026-08-12) gerbang SoD menolak pengaju yang menyetujui
+  // pengajuannya sendiri, dan `SELECT id FROM users LIMIT 1` bisa saja
+  // memulangkan admin yang dipakai `actAs` — hasilnya 403 yang terlihat
+  // seperti cacat otorisasi, padahal fixture-nya yang memakai satu orang
+  // untuk dua peran.
+  //
+  // Diperbaiki di fixture, bukan lewat `alasan_override`: override akan
+  // membuat test menempuh jalur istimewa, sementara jalur normalnya —
+  // yang justru ingin dibuktikan di sini — tak teruji sama sekali.
+  const { rows: adm } = await client.query(
+    `SELECT u.id FROM users u JOIN roles r ON r.id = u.role_id WHERE r.name = 'admin' LIMIT 1`)
+  const lain = await penggunaLain(client, adm[0].id)
+  if (!lain) throw new Error('butuh minimal 2 pengguna aktif — fixture approval perlu pengaju ≠ penyetuju')
+  userId = lain.userId
 
   await purge()
 

@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
-  evaluateEntityApproval, recordApproval, idAlurPersetujuan,
+  evaluateEntityApproval, recordApproval, idAlurPersetujuan, periksaGerbangSod,
 } from '../../utils/approval.js'
 import {
   ringkasItp, cacatRencanaMutu, bolehDisetujui,
@@ -466,6 +466,12 @@ export default async function rencanaMutuRoutes(app: FastifyInstance) {
         return reply.status(403).send({ error: 'Akses ditolak' })
       }
 
+      // TJS-P4 — pengaju tak boleh menyetujui pengajuannya sendiri.
+      const sod = await periksaGerbangSod(request, 'rencana_mutu', id, {
+        alasanOverride: (request.body as { alasan_override?: string } | undefined)?.alasan_override,
+        level: decision.step?.level,
+      })
+      if (!sod.ok) return reply.status(403).send({ error: sod.pesan })
       if (decision.step) {
         const rec = await recordApproval({
           entityType: 'rencana_mutu', entityId: id, level: decision.step.level,

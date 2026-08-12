@@ -1,6 +1,7 @@
 import type { FastifyRequest } from 'fastify'
 import { supabase } from './supabase.js'
 import { evaluateApproval, type ApprovalDecision, type ApprovalStep } from '../lib/approval-engine.js'
+import { aturanSod, periksaSod, IZIN_OVERRIDE_SOD } from '../lib/sod.js'
 
 // Lapisan DB Approval Engine (ADR-007). Keputusan "berapa langkah & siapa boleh"
 // didelegasikan ke lib/approval-engine.ts (murni, ber-test). Di sini hanya:
@@ -160,6 +161,93 @@ export async function canParticipateInChain(
  */
 export function idAlurPersetujuan(entityId: string): string {
   return entityId
+}
+
+/**
+ * Gerbang Segregation of Duties — pengaju tak boleh menyetujui miliknya
+ * sendiri (TJS-P4).
+ *
+ * ── Kenapa di sini, dan kenapa bukan di dalam `recordApproval`
+ *
+ * `recordApproval` tak menerima `request`, jadi ia tak bisa membaca izin
+ * penggunanya. Menambahkan `request` ke sana berarti menyentuh 18 pemanggilan
+ * sekaligus, dan tiap satu jadi kesempatan salah.
+ *
+ * Jadi gerbangnya berdiri sendiri di depan — dan supaya "berdiri sendiri"
+ * tidak berarti "boleh dilupakan", ada penjaga CI `audit-sod-gerbang.mjs`
+ * yang menuntut tiap berkas rute yang memanggil `recordApproval` juga
+ * memanggil `periksaGerbangSod`. Aturannya deklaratif di `lib/sod.ts`;
+ * yang di sini hanya jembatan ke basis dan izin.
+ *
+ * ── Yang dikembalikan
+ *
+ * `{ ok: true }` berarti boleh lanjut. `{ ok: false, pesan }` wajib
+ * dikembalikan ke pemanggil sebagai 403 — bukan ditelan.
+ *
+ * Kalau override dipakai, barisnya SUDAH ditulis ke `sod_override` saat
+ * fungsi ini kembali. Ditulis LEBIH DULU dengan sengaja: kriteria TJS-P4
+ * berbunyi *"override MUNGKIN tapi TERCATAT"*, dan mencatat sesudah approval
+ * berarti approval yang pencatatannya gagal tetap terjadi — override tanpa
+ * jejak, persis yang hendak dicegah. Gagal mencatat = gagal override.
+ */
+export async function periksaGerbangSod(
+  request: FastifyRequest,
+  entityType: ApprovalEntityType,
+  entityId: string,
+  opsi?: { alasanOverride?: string | null; level?: number },
+): Promise<{ ok: true } | { ok: false; pesan: string }> {
+  const aturan = aturanSod(entityType)
+  if (!aturan) {
+    // Jenis tanpa aturan TIDAK diloloskan. `ATURAN_SOD` wajib memuat seluruh
+    // `ApprovalEntityType` (dijaga `audit-sod-lengkap.mjs`), jadi sampai di
+    // sini berarti penjaganya ditembus — dan menebak "mungkin aman" pada
+    // gerbang otorisasi adalah cara gerbang berhenti menjaga.
+    request.log.error({ entityType }, 'sod: jenis tak ada di ATURAN_SOD')
+    return { ok: false, pesan: 'Aturan pemisahan wewenang untuk jenis ini belum terdaftar.' }
+  }
+
+  const { data, error } = await supabase
+    .from(aturan.tabel)
+    .select(`${aturan.kolomPengaju}`)
+    .eq('id', entityId)
+    .maybeSingle()
+
+  if (error) {
+    // Gagal membaca pengaju TIDAK boleh berarti "berarti bukan pengajunya".
+    // Fail-closed (CLAUDE.md §5.3).
+    request.log.error({ err: error.message, entityType, entityId }, 'sod: baca pengaju gagal')
+    return { ok: false, pesan: 'Tidak bisa memastikan siapa pengaju dokumen ini. Coba lagi.' }
+  }
+
+  const pengajuId = (data as Record<string, unknown> | null)?.[aturan.kolomPengaju] as string | null | undefined
+  const perms = await loadUserPermissions(request)
+  const hasil = periksaSod({
+    pengajuId,
+    penyetujuId: request.currentUser!.id,
+    // `perms` null = konfigurasi tak terbaca → dianggap TIDAK punya izin
+    // override, bukan punya. Fail-closed lagi.
+    punyaIzinOverride: perms?.has(IZIN_OVERRIDE_SOD) ?? false,
+    alasanOverride: opsi?.alasanOverride,
+  })
+
+  if (!hasil.boleh) return { ok: false, pesan: hasil.sebab }
+  if (!hasil.overrideDipakai) return { ok: true }
+
+  const { error: errCatat } = await supabase.from('sod_override').insert({
+    company_id: request.companyId!,
+    entity_type: entityType,
+    entity_id: entityId,
+    level: opsi?.level ?? 0,
+    pengaju_id: hasil.pengajuId,
+    penyetuju_id: request.currentUser!.id,
+    alasan: (opsi?.alasanOverride ?? '').trim(),
+  })
+  if (errCatat) {
+    request.log.error({ err: errCatat.message, entityType, entityId }, 'sod: catat override gagal')
+    return { ok: false, pesan: 'Override tidak bisa dicatat, jadi persetujuan dibatalkan.' }
+  }
+
+  return { ok: true }
 }
 
 /** Catat persetujuan satu level (idempoten via UNIQUE(entity_type, entity_id, level)). */

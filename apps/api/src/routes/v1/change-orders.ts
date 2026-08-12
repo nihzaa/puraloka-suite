@@ -5,7 +5,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
-import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
+import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan , periksaGerbangSod } from '../../utils/approval.js'
 
 const CO_SELECT = `
   id,
@@ -631,6 +631,12 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
 
       // Catat persetujuan level ini. Bila BUKAN langkah terakhir, CO TETAP
       // 'submitted' — nilai kontrak baru berubah di langkah final.
+      // TJS-P4 — pengaju tak boleh menyetujui pengajuannya sendiri.
+      const sod = await periksaGerbangSod(request, 'change_order', id, {
+        alasanOverride: (request.body as { alasan_override?: string } | undefined)?.alasan_override,
+        level: decision.step?.level,
+      })
+      if (!sod.ok) return reply.status(403).send({ error: sod.pesan })
       if (decision.step) {
         const rec = await recordApproval({
           entityType: 'change_order', entityId: id, level: decision.step.level, approvedBy: user.id, companyId: request.companyId!,
@@ -728,10 +734,22 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
       // seluruh laporan, dan kegagalan senyap di sini berarti CO tercatat
       // disetujui sementara nilainya tak pernah berubah.
       const newContractValue = (project.contract_value ?? 0) + coFull.total_amount_delta
-      const { error: projErr } = await request.db!
+      // `.select('id')` supaya NOL BARIS terbarui tak menyamar jadi sukses.
+      // Ini yang paling mahal kalau lolos: change order tercatat disetujui,
+      // nilai kontrak proyek TIDAK berubah, dan selisihnya baru ketahuan saat
+      // penagihan — persis kegagalan senyap yang penjaga ini cari.
+      const { data: proyekTerbarui, error: projErr } = await request.db!
         .from('projects')
         .update({ contract_value: newContractValue })
         .eq('id', coFull.project_id)
+        .select('id')
+      if (!projErr && (!proyekTerbarui || proyekTerbarui.length === 0)) {
+        app.log.error({ coId: id, projectId: coFull.project_id },
+          'CO disetujui tetapi NOL baris projects terbarui — proyeknya tak terjangkau')
+        return reply.status(500).send({
+          error: 'Change order disetujui, tetapi nilai kontrak gagal diperbarui: proyek tidak ditemukan',
+        })
+      }
       if (projErr) {
         app.log.error({ err: projErr, coId: id, projectId: coFull.project_id },
           'CO disetujui tetapi contract_value gagal diperbarui')

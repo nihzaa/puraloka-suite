@@ -1918,12 +1918,46 @@ items:
       - "aturan DEKLARATIF, bukan if bertebaran"
       - "pembuat tak boleh approve miliknya sendiri (PR, PO, penerimaan barang)"
       - "override MUNGKIN tapi TERCATAT"
-    cara_verifikasi: "test per aturan + bukti override masuk audit log"
+    cara_verifikasi: >-
+      test per aturan + bukti override masuk audit log.
+      TERPENUHI: 23 test SoD hijau dalam tiga lapis —
+      lib/__tests__/sod.test.ts (11, aturannya),
+      __tests__/sod-gerbang.test.ts (9, basis menjaga bentuk barisnya),
+      __tests__/sod-rute.test.ts (3, HTTP masuk 403 keluar).
+      Lapis ketiga wajib: dua yang pertama HIJAU meski rute tak pernah
+      memanggil gerbangnya — persis cacat yang item ini perbaiki.
+      Mutasi: 3 di aturan (5/3/1 merah), 1 di rute (2 merah), 4 di penjaga.
+      Bukti override tercatat ada di sod_override, bukan audit_logs —
+      alasannya di header migrasi 318 (logAuditEvent fire-and-forget).
     catatan: >-
       Larangan tanpa jalan keluar akan dimatikan orang; larangan yang bisa
       di-override tapi tercatat bertahan.
+
+      SELESAI 2026-08-12. Yang ditemukan saat mengukur: `recordApproval` —
+      satu-satunya pintu approval (ADR-007) — menerima `approvedBy` dan TIDAK
+      PERNAH membandingkannya dengan pengaju. Sembilan jenis entitas, 18
+      pemanggilan, nol pengecekan. Seorang mandor dengan izin approve bisa
+      mengajukan kasbon lalu menyetujuinya sendiri dalam dua ketukan; uang
+      tunai, ke rekeningnya sendiri.
+
+      Yang ADA hanyalah penanda TAMPILAN: `approval-inbox.ts` mengirim
+      `saya_pengajunya: boolean` dan halamannya menampilkan lencana "pengajuan
+      Anda", dengan komentar "supaya ia tak membuka dokumennya hanya untuk
+      menemukan tombolnya tak ada". Tombol itu memang tak ada — RUTE-nya ada.
+
+      Dibangun: `lib/sod.ts` (registri 9 jenis + keputusan murni),
+      `periksaGerbangSod` di `utils/approval.ts`, migrasi 318 (`sod_override`
+      immutable, alasan wajib ber-CHECK btrim, RLS + 2 policy PERMISSIVE),
+      izin `approval:override_sod`, gerbang terpasang di 9 rute, dan UI
+      alasan-override di halaman Permintaan Material.
+
+      Cacat sampingan yang ikut ditemukan: dua entri `kolomPengaju: null` di
+      `inbox-approval.ts` SALAH — `project_expenses.submitted_by` dan
+      `submittals.diajukan_oleh` dua-duanya ada. Registri yang tak pernah
+      diperiksa ke basis membusuk tanpa suara; penjaga barunya kini
+      memeriksanya ke `information_schema`.
     bobot: M
-    status: todo
+    status: done
 
   - id: TJS-P5
     fase: 6

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, penggunaLain } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import estimateVersionRoutes from '../estimate-versions.js'
 
@@ -19,6 +19,7 @@ let client: Client
 let adminAuth: string
 let pmAuth: string
 let adminUserId: string
+let pengajuId: string
 let scenarioId: string
 let projectId: string
 let costCodeId: string
@@ -32,7 +33,7 @@ async function newVersionWithItem(): Promise<string> {
   const { rows: v } = await client.query(
     `INSERT INTO estimate_versions (scenario_id, version_number, total_amount, created_by)
      VALUES ($1, (SELECT COALESCE(MAX(version_number),0)+1 FROM estimate_versions WHERE scenario_id=$1), 5000000, $2)
-     RETURNING id`, [scenarioId, adminUserId])
+     RETURNING id`, [scenarioId, pengajuId])
   await client.query(
     `INSERT INTO estimate_items (estimate_version_id, cost_code_id, quantity, amount) VALUES ($1,$2,10,5000000)`,
     [v[0].id, costCodeId])
@@ -87,6 +88,13 @@ beforeAll(async () => {
   const { rows: au } = await client.query(
     `SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1`)
   adminUserId = au[0].id
+  // Pengaju ORANG LAIN — gerbang SoD (TJS-P4, 2026-08-12) melarang pengaju
+  // menyetujui pengajuannya sendiri. Fixture ini dulu memakai satu orang
+  // untuk dua peran; diperbaiki di fixture, BUKAN dengan alasan_override
+  // (itu akan membuat test menempuh jalur istimewa dan yang diuji berubah).
+  const _lain = await penggunaLain(client, adminUserId)
+  if (!_lain) throw new Error('butuh minimal 2 pengguna aktif — fixture approval perlu pengaju ≠ penyetuju')
+  pengajuId = _lain.userId
 
   await purge()
   const { rows: cl } = await client.query(`SELECT id FROM clients LIMIT 1`)

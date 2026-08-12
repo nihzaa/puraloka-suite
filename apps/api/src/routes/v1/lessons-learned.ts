@@ -3,7 +3,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
-  evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
+  evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan , periksaGerbangSod } from '../../utils/approval.js'
 
 // CECEP Milestone 4 — Lessons Learned WRITE-BACK, lewat engine approval ADR-007
 // (titik ke-3 dari `47` §3). Company Intelligence Loop DENGAN gerbang manusia:
@@ -85,6 +85,12 @@ export default async function lessonsLearnedRoutes(app: FastifyInstance) {
         return reply.status(403).send({ error: 'Akses ditolak' })
       }
 
+      // TJS-P4 — pengaju tak boleh menyetujui pengajuannya sendiri.
+      const sod = await periksaGerbangSod(request, 'lessons_learned', id, {
+        alasanOverride: (request.body as { alasan_override?: string } | undefined)?.alasan_override,
+        level: decision.step?.level,
+      })
+      if (!sod.ok) return reply.status(403).send({ error: sod.pesan })
       if (decision.step) {
         const rec = await recordApproval({
           entityType: 'lessons_learned', entityId: id, level: decision.step.level, approvedBy: user.id, companyId: request.companyId!,

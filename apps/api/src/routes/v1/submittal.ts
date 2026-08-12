@@ -4,7 +4,7 @@ import type { TenantDb } from '../../utils/tenant-db.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
-  evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan } from '../../utils/approval.js'
+  evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan , periksaGerbangSod } from '../../utils/approval.js'
 
 // Submittal Register — ROADMAP #24c.
 //
@@ -491,6 +491,12 @@ export default async function submittalRoutes(app: FastifyInstance) {
         return reply.status(403).send({ error: 'Akses ditolak' })
       }
 
+      // TJS-P4 — pengaju tak boleh menyetujui pengajuannya sendiri.
+      const sod = await periksaGerbangSod(request, 'submittal', id, {
+        alasanOverride: (request.body as { alasan_override?: string } | undefined)?.alasan_override,
+        level: decision.step?.level,
+      })
+      if (!sod.ok) return reply.status(403).send({ error: sod.pesan })
       if (decision.step) {
         const rec = await recordApproval({
           entityType: 'submittal', entityId: id, level: decision.step.level,
