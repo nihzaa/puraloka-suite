@@ -5,6 +5,109 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (otomasi & AI) — empat cacat yang semuanya "hijau" sebelum diukur
+
+Founder bertanya apakah n8n Puraloka sudah punya workflow seperti TJS, lalu
+meminta: kerjakan katalog automation Phase 2 (Opsi A), lanjut AI Gateway
+(Opsi B), dan siapkan WhatsApp multi-vendor sejak sekarang supaya migrasi ke
+jalur resmi "tinggal diubah dari UI".
+
+Dikerjakan di worktree terpisah (`.claude/worktrees/otomasi-ai-gateway`)
+karena **ada sesi lain menulis di checkout yang sama** — tiga commit muncul
+dan `peta-menu.ts` berubah di tengah saya menjalankan test. Itu pemicu
+berhenti §8a.1 nomor 1; founder memilih worktree.
+
+### Jawaban pertanyaan awal
+
+n8n Puraloka **kosong** — diukur langsung dari `~/.n8n-puraloka/.n8n/
+database.sqlite`: 0 workflow, 0 eksekusi, akun pemilik ada. Dan itu
+**bukan kelalaian**: keputusan L-3 memindahkan penjadwalan dari n8n ke
+dalam aplikasi, jadi UI n8n memang dirancang tetap kosong.
+
+Daftar workflow yang founder cari ada di `06-agentic-ai-and-automation-
+architecture.md` §5 — 140 automation, 10 level.
+
+### Koreksi angka: "13 Next" tak bisa direproduksi
+
+Dokumen itu menyatakan 13 automation ber-status `Next`. Menghitung barisnya
+sendiri: **8**. Tiga sisanya ber-asterisk `Next*` yang artinya "Next relatif
+terhadap fase AI" — masih tergerbang Phase 6. Saya sempat mengulangi angka
+13 ke founder sebelum menghitungnya.
+
+### L-3 sudah dibatalkan, dan dokumennya belum tahu
+
+`2026-08-09-lapisan-ai-dan-platform-design.md:884` menetapkan scheduler =
+`pg_cron`. Tapi migrasi **244** sudah menolaknya lebih dulu dengan alasan
+yang lebih kuat: pg_cron hanya bisa SQL, sementara logika notifikasi
+seluruhnya TypeScript, jadi ia menuntut `pg_net` sebagai ketergantungan
+kedua di jalur yang sulit di-debug.
+
+Yang dipakai: cron GitHub Actions tiap 15 menit → `POST /api/v1/jadwal/
+jalankan` → `KATALOG_TUGAS`. **Penjadwalnya sudah ada dan berjalan** —
+rencana saya membangunnya dari nol tidak perlu.
+
+⚠ `SCHEDULER_URL` + `SCHEDULER_SECRET` **belum disetel di GitHub Secrets**,
+jadi denyutnya dilewati tiap 15 menit dengan notice. Tugas founder.
+
+### Empat cacat, semuanya lolos test dan typecheck
+
+**1. `check-deadlines` #2 tidak pernah berjalan.** Saringannya
+`.in('status', ['active', 'in_progress'])` — enum `project_status` tak
+punya `in_progress`, Postgres menolak SELURUH query dengan 22P02. Galatnya
+dibuang (`const { data }` tanpa `error`), jadi endpoint tetap 200 dengan
+`ending_projects: 0`. Notifikasi "proyek mendekati tenggat" **tidak pernah
+terbit** sejak saringan itu ditulis. Ketahuan karena saya menyalin baris
+itu ke automation baru, di mana galatnya TIDAK dibuang.
+
+**2. N+1 pada dedup saya sendiri.** Menyalin `alreadySent()` apa adanya:
+satu SELECT per baris. 46 kasbon = **102 detik**, di endpoint yang dipanggil
+tiap 15 menit. Diganti satu query + Set: 17 detik. `check-deadlines` punya
+cacat sama, lolos karena barisnya kebetulan sedikit.
+
+**3. `AI_PROVIDER_API_KEY` tak ada di katalog kredensial.** Penyedia
+OpenAI-compatible selalu `kunci_tak_ada`; kotak `AI_CUSTOM_API_KEY` yang
+ADA tak pernah dibaca. Kembaran persis cacat `AI_PROVIDER_BASE_URL` yang
+sudah diperbaiki 2026-08-10 — komentarnya bahkan masih terpasang di
+`kredensial.ts:123-136`. Penjaganya hijau selama cacat hidup karena ia
+hanya mengenali literal di titik panggil, bukan kunci yang dioper sebagai
+data. **Penjaganya diperluas** (+ komentar dilucuti sebelum dipindai, karena
+bentuk barunya langsung merah oleh komentar perbaikan saya sendiri).
+
+**4. Pilihan penyedia WhatsApp tak pernah sampai ke pabrik adaptor.**
+`konfigurasiKanal()` memaku `penyedia: 'evolution'` sebagai literal —
+`AdaptorFonnte` yang ditulis lengkap dan muncul di UI **tak pernah bisa
+terpakai**. Nol gejala: mengirim tetap berhasil lewat Evolution. Ketahuan
+hanya kalau Evolution mati — yaitu saat penyedia kedua paling dibutuhkan.
+
+### Yang dibangun
+
+| Commit | Isi |
+|---|---|
+| `993ffc50` | 2.10 kasbon outstanding · 6.6 kasbon tukang · 3.11 progres belum lapor · migrasi 324 |
+| `2bce8d50` | 3.10 dependency breach (`lib/gantt-dependency.ts`, 17 test murni) + perbaikan cacat 1 |
+| `009e5ad8` | Cacat 3 + OpenAI resmi jadi penyedia + penjaga kredensial diperluas |
+| `3767757c` | Cacat 4 + adaptor **Meta Cloud API** (jalur resmi) ditulis sekarang, dipakai nanti |
+| `fe22dd57` | DELETE alur + toggle aktif + pintasan + hapus 3 kotak kredensial kembar |
+
+Bukti kumulatif: **vitest hijau di tiap tahap** (7 · 32 · 88 · 49 · 34),
+mutation test di tiga penjaga (dedup, penjaga kredensial, pilihan penyedia
+WA — semuanya terbukti bisa merah lalu pulih), `tsc --noEmit` bersih di
+`apps/api` dan `apps/web`, penjaga `kegagalan-senyap` **turun 186 → 185**
+karena cacat 1.
+
+### Utang yang dicatat, bukan ditambal diam-diam
+
+- **`notification_rules.event_type` UNIQUE GLOBAL** padahal `company_id`
+  NOT NULL. Tenant kedua tak bisa punya aturan sendiri. Cacat migrasi 101.
+  **Harus lunas SEBELUM tenant kedua dibuat.**
+- Nilai `EVOLUTION_*` yang terlanjur tersimpan di `app_credentials` tidak
+  ikut terhapus — butuh migrasi + konfirmasi. Hanya berhenti ditampilkan.
+- Pengiriman **template** WhatsApp (di luar jendela 24 jam Meta) belum ada.
+  Tabel `template_pesan_wa` sudah ada sejak migrasi 270.
+- Frontend masih punya salinan sendiri logika dependency Gantt; menyatukan
+  butuh `packages/shared` yang masih kosong.
+- 4 automation sisa dari 8: 5.1 invoice dari termin, 4.10 auto GR matching,
+  3.5 auto purchase request, 4.6 PO fast-track (butuh kolom `max_amount`).
 ## 2026-08-12 (lanjutan) — D3: penjaga yang buta pada bentuk ternary
 
 ### Yang dibangun

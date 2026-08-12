@@ -2080,3 +2080,75 @@ items:
       koneksi service-role. Item tersendiri kalau kelak dibutuhkan.
     bobot: M
     status: done
+
+  - id: AUT-P2
+    fase: 2
+    judul: "Katalog automation Phase 2 — 8 rule-based, bukan 13 (asterisk Next* butuh AI Gateway)"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "tiap automation punya endpoint + entri di KATALOG_TUGAS"
+      - "dedup harian terbukti: panggilan kedua di hari sama = 0 notifikasi"
+      - "aturan routing punya PENERIMA (aturan tanpa target = notifikasi hilang senyap)"
+      - "test dijalankan, ringkasannya ditempel"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/routes/v1/__tests__/otomasi-terjadwal.test.ts
+      src/routes/v1/__tests__/otomasi-dependency.test.ts
+      src/lib/__tests__/gantt-dependency.test.ts
+    catatan: >-
+      ── ANGKA DI DOKUMEN SALAH, DIKOREKSI 2026-08-12 ─────────────────────
+      `06-agentic-ai-and-automation-architecture.md:902` menyebut "13
+      automation Next". Menghitung barisnya: DELAPAN. Tiga sisanya (1.4, 1.5,
+      1.6) ber-asterisk `Next*` = tetap gerbang Phase 6. Koreksinya sudah
+      ditempel di dokumen itu, lengkap dengan cara menghitungnya.
+
+      ── SUDAH SELESAI (4 dari 8) ─────────────────────────────────────────
+      2.10 kasbon outstanding · 6.6 kasbon tukang · 3.11 progres belum lapor
+      · 3.10 dependency breach. Semuanya jadi entri `KATALOG_TUGAS`
+      (`routes/v1/jadwal.ts`), dipicu cron GitHub Actions tiap 15 menit.
+      Migrasi 324 menyediakan aturan routing-nya.
+
+      ── SISA (4) ─────────────────────────────────────────────────────────
+      5.1  invoice dari termin — KEDUA HALFNYA SUDAH ADA, tinggal disambung:
+           predikat `isTriggered` di notifications.ts:523 → generator di
+           termin-payment.ts:172. Idempotensi ganda sudah terjamin.
+      4.10 auto GR matching — matching + validasi + invoice hilir SUDAH ADA
+           (`lib/three-way-match.ts`). Yang kurang cuma auto-populate baris
+           GR dari PO.
+      3.5  auto purchase request — predikat ambang stok sudah ada
+           (`procurement.ts:1728-1730`), endpoint draft MR belum.
+      4.6  PO fast-track — TERBERAT: `approval_steps` punya `min_amount`
+           (LANTAI), yang dibutuhkan `max_amount` (PLAFON). Butuh migrasi +
+           cabang skip di `evaluateEntityApproval`.
+
+      ── PENJADWALNYA BELUM HIDUP DI PRODUKSI ─────────────────────────────
+      `SCHEDULER_URL` + `SCHEDULER_SECRET` belum disetel di GitHub Secrets,
+      jadi denyut 15 menit dilewati dengan notice. TUGAS FOUNDER — tanpa itu,
+      keempat automation di atas tak akan pernah berjalan sendiri.
+    bobot: M
+    status: wip
+
+  - id: AUT-DEBT-101
+    fase: 2
+    judul: "notification_rules.event_type UNIQUE GLOBAL padahal company_id NOT NULL"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "unique constraint jadi (company_id, event_type), bukan event_type saja"
+      - "seluruh ON CONFLICT yang memakainya ikut disesuaikan"
+      - "tenant kedua terbukti bisa punya aturan sendiri"
+    cara_verifikasi: >-
+      node scripts/db/introspect.mjs columns | grep notification_rules
+    catatan: >-
+      Ditemukan 2026-08-12 saat menulis migrasi 324. Kolom `company_id` NOT
+      NULL, tetapi `event_type` unik GLOBAL — jadi satu event_type hanya bisa
+      dimiliki SATU tenant. Selama basis masih satu perusahaan ini tak
+      bergejala; begitu tenant kedua masuk, ia tak bisa punya aturan sendiri
+      dan `resolveRecipients` akan membaca aturan milik tenant lain atau tak
+      menemukan apa pun.
+
+      Cacat milik migrasi 101 (lahir sebelum kolom company_id ada), BUKAN
+      migrasi 324. Tidak ditambal diam-diam karena memperbaikinya berarti
+      mengganti constraint yang dipakai `ON CONFLICT` di beberapa tempat.
+
+      ⚠ HARUS LUNAS SEBELUM TENANT KEDUA DIBUAT.
+    bobot: S
+    status: todo
