@@ -34,9 +34,22 @@
  *
  * ── Posisi TETAP DI BAWAH (arahan founder)
  *
- * `rail-isi.tsx` menaruh Asisten lalu Pengingat, dan Pengingat ber-`marginTop:
- * auto`. Kartu ini karena itu duduk tepat di atasnya, di dasar rail — dan
- * TIDAK boleh dipindahkan ke atas meski isinya bertambah panjang.
+ * Kartu ini duduk tepat di atas Pengingat, di dasar rail, dan TIDAK boleh
+ * dipindahkan ke atas meski isinya bertambah panjang.
+ *
+ * ⚠️ Bagian ini pernah menjelaskan mekanismenya SALAH: ia menulis bahwa
+ * Pengingat ber-`marginTop: auto` sudah cukup, "kartu ini karena itu duduk
+ * tepat di atasnya". Tidak. `marginTop: auto` pada Pengingat hanya memaku
+ * PENGINGAT; Asisten tetap mengalir bersama kartu konteks.
+ *
+ * Diukur 2026-08-12 (/mandor, layar 1200px): Asisten berakhir 692, Pengingat
+ * mulai 1130 — **438px celah kosong** di antaranya. Founder menunjukkannya
+ * lewat tangkapan layar.
+ *
+ * Yang membuatnya benar adalah `marginTop: auto` pada `<section>` DI BAWAH,
+ * bukan pada Pengingat. Penjelasan yang keliru soal mekanisme lebih berbahaya
+ * daripada tak ada penjelasan: ia membuat pembaca berikutnya yakin perilakunya
+ * sudah dijamin, dan tak memeriksanya.
  *
  * ── Warna
  *
@@ -191,6 +204,26 @@ export function RailAsisten() {
     <section
       aria-labelledby="rail-asisten-judul"
       style={{
+        // ── `marginTop: auto` ADA DI SINI, bukan hanya di Pengingat
+        //
+        // Kepala berkas ini sudah lama mengklaim kartu Asisten "duduk tepat di
+        // atas Pengingat, di dasar rail" — dan klaim itu SALAH. Yang dipaku ke
+        // bawah hanya `RailPengingat`; Asisten ikut mengalir bersama kartu
+        // konteks di atasnya.
+        //
+        // Diukur di peramban 2026-08-12 (halaman /mandor, layar 1200px):
+        //     Asisten   berakhir 692
+        //     Pengingat mulai   1130      ← celah kosong 438px
+        //
+        // Founder menunjukkannya lewat tangkapan layar. Dengan `auto` di sini,
+        // Asisten yang menyerap sisa ruang, jadi ia + Pengingat menempel jadi
+        // satu blok di dasar rail — berapa pun kartu konteks di atasnya.
+        //
+        // HANYA kartu ini yang boleh `auto`. Diuji: memberi `auto` pada
+        // KEDUANYA membuat flexbox MEMBAGI sisa ruang rata (210px + 210px),
+        // dan celahnya justru bertahan. `RailPengingat` karena itu sengaja
+        // TIDAK punya `marginTop` — catatannya ada di sana.
+        marginTop: "auto",
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--rad-besar)",

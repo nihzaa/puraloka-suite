@@ -75,9 +75,22 @@ export function RailPengingat({
         background: "var(--navy)",
         color: "var(--on-navy)",
         textDecoration: "none",
-        // Menempel di dasar rail seperti referensi. `marginTop: auto` bekerja
-        // karena rail adalah kolom flex — lihat `RailShell` di layout.
-        marginTop: "auto",
+        // ── TANPA `marginTop: auto` — sengaja, dan ini bukan kelalaian
+        //
+        // Kartu ini tetap menempel di dasar rail, tetapi yang memakunya
+        // `marginTop: auto` pada `RailAsisten` TEPAT DI ATASNYA. Keduanya jadi
+        // satu blok yang menempel bersama.
+        //
+        // Dua `auto` berturut-turut TIDAK membuat yang pertama menyerap
+        // segalanya — flexbox MEMBAGI sisa ruang RATA di antara keduanya.
+        // Diukur 2026-08-12 setelah keduanya diberi `auto`:
+        //
+        //     Asisten   mt=210.9px   berakhir  903
+        //     Pengingat mt=210.9px   mulai    1130   ← masih 227px celah
+        //
+        // Itu justru kesalahan yang saya tulis di komentar sendiri sebelum
+        // mengukurnya. Yang benar: HANYA SATU yang boleh `auto`, dan ia harus
+        // yang PALING ATAS dari pasangan yang ingin menempel.
         flexShrink: 0,
       }}
     >

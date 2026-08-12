@@ -15163,3 +15163,60 @@ href NOT NULL, bukan sekadar keberadaan barisnya.
 `audit-asumsi-global-test` merah — **diverifikasi lewat `git stash` sudah merah
 di HEAD**, dari `ai-config.test.ts` dan `belanja-aktual-endpoint.test.ts`.
 Bukan dari pekerjaan ini; masuk antrean tersendiri.
+
+## 2026-08-12 (lanjutan 3) — Kartu Asisten dipaku ke dasar rail
+
+Founder: *"untuk asisten web itu saya mau dia akan tetap dibawah terus (PALING
+BAWAH) tepat diatasnya pengingat itu"*.
+
+### Kode sudah MENGKLAIM perilaku itu, dan klaimnya salah
+
+Kepala `rail-asisten.tsx` menulis, di bawah judul "Posisi TETAP DI BAWAH
+(arahan founder)":
+
+> *`rail-isi.tsx` menaruh Asisten lalu Pengingat, dan Pengingat ber-`marginTop:
+> auto`. Kartu ini karena itu duduk tepat di atasnya, di dasar rail.*
+
+Tidak. `marginTop: auto` pada Pengingat hanya memaku PENGINGAT; Asisten tetap
+mengalir bersama kartu konteks di atasnya. Diukur di peramban (/mandor, 1200px):
+
+    Asisten   berakhir  692
+    Pengingat mulai    1130      ← 438px celah kosong
+
+Penjelasan yang keliru soal MEKANISME lebih berbahaya daripada tak ada
+penjelasan: ia membuat pembaca berikutnya yakin perilakunya sudah dijamin, dan
+tak memeriksanya. Founder yang menemukannya — lewat tangkapan layar.
+
+### Perbaikan pertama saya juga salah, dan pengukuran menangkapnya
+
+Saya tambahkan `marginTop: auto` pada Asisten, LALU membiarkan Pengingat tetap
+punya `auto` juga — dan menulis di komentar bahwa "dua `auto` berturut-turut
+tidak menumpuk: yang pertama menyerap seluruh sisa, yang kedua jadi nol."
+
+Diukur: **salah**. Flexbox MEMBAGI sisa ruang rata di antara keduanya.
+
+    Asisten   mt=210.9px  berakhir  903
+    Pengingat mt=210.9px  mulai    1130   ← masih 227px celah
+
+Membaik dari 438 ke 227, tapi tetap tidak menempel. Kalau saya berhenti di
+"sudah lebih baik", founder akan melihat celah yang sama, lebih kecil.
+
+Yang benar: **hanya SATU yang boleh `auto`, dan ia harus yang PALING ATAS dari
+pasangan yang ingin menempel.** `marginTop` dicabut dari Pengingat.
+
+### Hasil, diukur di empat halaman
+
+    /mandor     celah=16  pengingat_ke_dasar=12
+    /mutu       celah=16  pengingat_ke_dasar=12
+    /keuangan   celah=16  pengingat_ke_dasar=12
+    /dashboard  celah=16  pengingat_ke_dasar=12
+
+16px itu `--gap-bagian` — jarak normal antar-kartu, bukan celah. Konsisten
+berapa pun kartu konteks di atasnya.
+
+### Bukti
+
+    tsc (web)      0
+    vitest (web)   604 lulus / 46 berkas — 0 gagal
+    pnpm build     nol error
+    di PERAMBAN    4 halaman, celah 16px konsisten

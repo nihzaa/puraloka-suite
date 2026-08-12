@@ -49,8 +49,17 @@ export function RailIsi({
       {konteks}
 
       {/*
-        Dua ini SELALU ada. `RailPengingat` ber-`marginTop: auto` sehingga ia
-        menempel ke DASAR rail seperti referensi, berapa pun isi di atasnya.
+        Dua ini SELALU ada, dan KEDUANYA menempel ke dasar rail sebagai satu
+        blok — berapa pun kartu konteks di atasnya.
+
+        Yang memakunya `marginTop: auto` pada `RailAsisten` (kartu PERTAMA dari
+        pasangan ini), bukan pada Pengingat. Versi sebelumnya hanya memaku
+        Pengingat, dan Asisten ikut mengalir ke atas: diukur di /mandor pada
+        layar 1200px, ada 438px celah kosong di antara keduanya.
+
+        HANYA `RailAsisten` yang boleh `auto`. Diuji: memberi `auto` pada
+        KEDUANYA membuat flexbox MEMBAGI sisa ruang rata (210px + 210px) dan
+        celahnya bertahan 227px.
       */}
       <RailAsisten />
       <RailPengingat tanggalTenggat={tanggalTenggat} />
