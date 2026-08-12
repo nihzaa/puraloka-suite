@@ -94,8 +94,29 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
   {
     kunci: 'WA_INSTANCE',
     label: 'WhatsApp — nama instance',
-    keterangan: 'Nama instance yang sudah memindai QR, mis. puraloka-bot.',
+    keterangan: 'Nama instance yang sudah memindai QR (Evolution), atau Phone Number ID dari WhatsApp Manager (Meta resmi).',
     env: 'WA_INSTANCE',
+    grup: 'WhatsApp',
+  },
+  {
+    /*
+     * PEMILIH PENYEDIA — inilah yang membuat "tinggal ganti dari UI" benar.
+     *
+     * Sampai 2026-08-12 `konfigurasiKanal()` memaku `penyedia: 'evolution'`
+     * sebagai literal. Akibatnya `AdaptorFonnte` yang sudah ditulis lengkap
+     * DAN muncul sebagai pilihan di UI tak pernah bisa terpakai — apa pun
+     * yang dipilih orang, yang dikirim tetap lewat Evolution.
+     *
+     * Kunci ini yang dibaca `konfigurasiKanal()`. Kosong = 'evolution',
+     * supaya tenant yang sudah jalan tak berubah perilakunya.
+     *
+     * Bukan rahasia, tapi tinggal di sini karena ia bagian dari konfigurasi
+     * kanal yang sama — memisahkannya ke tabel lain berarti dua tempat yang
+     * harus sepakat, dan yang tak sepakat gagal senyap.
+     */
+    kunci: 'WA_PENYEDIA',
+    label: 'WhatsApp — penyedia',
+    keterangan: 'evolution (bawaan, gratis) · fonnte · meta-cloud (WhatsApp Business resmi). Kosong = evolution.',
     grup: 'WhatsApp',
   },
   {
