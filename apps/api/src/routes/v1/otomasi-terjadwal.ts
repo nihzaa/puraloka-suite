@@ -455,6 +455,135 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       checked: { proyek: (proyek ?? []).length, pelanggaran: totalPelanggaran },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/invoice-termin ──────────────────────────
+  //
+  // Automation 5.1 — termin yang sudah memenuhi syarat tagih diterbitkan
+  // invoice-nya, tanpa menunggu seseorang mencatat pembayaran.
+  //
+  // ── Yang BERUBAH dari sebelumnya, dan kenapa itu penting
+  //
+  // Sampai sekarang invoice termin hanya lahir sebagai EFEK SAMPING dari
+  // pencatatan pembayaran (`termin-payment.ts`). Urutannya terbalik dari
+  // kenyataan: klien membayar SETELAH menerima invoice, bukan sebaliknya.
+  // Akibatnya invoice diterbitkan mundur, bertanggal sama dengan pembayaran,
+  // dan tak pernah ada dokumen yang benar-benar dikirim untuk menagih.
+  //
+  // `check-deadlines` sudah memperingatkan "Termin Siap Ditagih" sejak lama —
+  // tapi peringatan itu berhenti di notifikasi. Yang ini menutup jaraknya.
+  //
+  // ── Kenapa TIDAK menyalin logika penerbitannya
+  //
+  // Ia dipakai bersama `termin-payment.ts` lewat `lib/invoice-termin.ts`.
+  // Dua tempat yang menomori invoice dengan cara berbeda pasti berselisih,
+  // dan selisihnya baru terlihat saat dua nomor bertabrakan — di dokumen
+  // yang sudah terkirim ke pelanggan.
+  //
+  // ── Kenapa notifikasi TETAP dikirim
+  //
+  // Invoice yang terbit diam-diam sama tak bergunanya dengan yang tak terbit:
+  // tak ada yang tahu ia harus dikirim ke klien. Tipe `invoice_created`
+  // dipakai, BUKAN `invoice_due` — yang kedua sudah dipakai `check-deadlines`
+  // untuk peringatan "siap ditagih", dan menyatukannya membuat dedup keduanya
+  // saling menelan.
+  app.get('/api/v1/otomasi/jalankan/invoice-termin', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { terbitkanInvoiceTermin, terminSiapTagih } =
+      await import('../../lib/invoice-termin.js')
+
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['invoice_created'])
+
+    // Termin yang belum ditagih, pada proyek yang masih berjalan.
+    const idProyek = await request.db!.projectIds()
+    const { data: termins, error } = await request.db!
+      .unsafe('termin_schedules', 'penjadwal lintas-proyek: disaring .in(project_id, projectIds())')
+      .select(`
+        id, termin_number, amount, trigger_type, trigger_pct, status, project_id,
+        project:projects!termin_schedules_project_id_fkey(id, name, progress_pct, status, tax_scheme)
+      `)
+      .in('project_id', idProyek)
+      .eq('status', 'pending')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    let terbit = 0
+    let dilewati = 0
+    let gagal = 0
+
+    for (const t of termins ?? []) {
+      const proj = t.project as unknown as {
+        id: string; name: string; progress_pct: number | null
+        status: string; tax_scheme: string | null
+      } | null
+      if (!proj) continue
+
+      // Proyek batal/selesai tak menagih apa pun lagi.
+      if (proj.status === 'cancelled' || proj.status === 'completed') continue
+
+      if (!terminSiapTagih(t.trigger_type as string | null, t.trigger_pct as number | null, proj.progress_pct)) {
+        continue
+      }
+      if (sudah('invoice_created', t.id as string)) continue
+
+      const hasil = await terbitkanInvoiceTermin(
+        request,
+        { id: t.id as string, amount: t.amount as number, project_id: proj.id },
+        { id: proj.id, tax_scheme: proj.tax_scheme },
+        today,
+        request.currentUser!.id,
+      )
+
+      if (!hasil.ok) {
+        // Satu termin gagal tak boleh menghentikan sisanya — tapi juga tak
+        // boleh lolos tanpa jejak. Uang yang tak tertagih adalah kegagalan
+        // paling mahal yang bisa terjadi diam-diam.
+        request.log.error(
+          { alasan: hasil.alasan, pesan: hasil.pesan, terminId: t.id },
+          'otomasi 5.1: gagal menerbitkan invoice termin',
+        )
+        gagal++
+        continue
+      }
+
+      // Sudah ada sebelumnya — bukan pekerjaan baru, dan bukan kegagalan.
+      if (!hasil.baru) { dilewati++; continue }
+
+      const penerima = await resolveRecipients('invoice_created', {
+        projectId: proj.id, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Invoice Termin Terbit',
+          message:    `Invoice ${hasil.nomor} (${rp(hasil.total)}) untuk termin ${t.termin_number} proyek "${proj.name}" sudah terbit — kirim ke klien`,
+          type:       'invoice_created',
+          priority:   'high',
+          project_id: proj.id,
+          action_url: `/keuangan`,
+          action_data: { record_id: t.id, invoice_id: hasil.invoiceId, nomor: hasil.nomor },
+        })
+      }
+      terbit++
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: terbit,
+      checked: {
+        termin_pending: (termins ?? []).length,
+        invoice_terbit: terbit,
+        sudah_ada: dilewati,
+        gagal,
+      },
+    })
+  })
 }
 
 /**

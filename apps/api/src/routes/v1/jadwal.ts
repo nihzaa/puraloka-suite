@@ -105,6 +105,11 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Mandor ber-penugasan aktif yang belum mengirim laporan progres hari ini.',
     jalur: '/api/v1/otomasi/jalankan/progres-belum-lapor',
   },
+  'invoice-termin': {
+    label: 'Invoice dari Termin',
+    keterangan: 'Termin yang sudah memenuhi syarat tagih diterbitkan invoice-nya.',
+    jalur: '/api/v1/otomasi/jalankan/invoice-termin',
+  },
   'dependency-breach': {
     label: 'Ambang Dependency Terlampaui',
     keterangan: 'Pekerjaan yang pendahulunya jauh di bawah ambang progres — hanya yang parah.',

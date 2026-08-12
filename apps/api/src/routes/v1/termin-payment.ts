@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { calculateTax } from '../../lib/tax-calculation.js'
+import { terbitkanInvoiceTermin } from '../../lib/invoice-termin.js'
 import { getTaxRate } from '../../utils/financial-config.js'
 import { computeAndPersistPenalty } from '../../utils/penalty.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
@@ -170,104 +171,39 @@ export default async function terminPaymentRoutes(app: FastifyInstance) {
       }
 
       // ── 3. Cek / buat invoice ───────────────────────────────────────────────
-      let invoiceId: string
+      //
+      // Logikanya TIDAK lagi tinggal di sini. Ia diangkat ke
+      // `lib/invoice-termin.ts` karena automation 5.1 menerbitkan invoice
+      // lewat jalur KEDUA (termin memenuhi syarat tagih, tanpa menunggu
+      // pembayaran). Dua tempat yang menomori invoice dengan cara berbeda
+      // pasti berselisih — dan selisihnya baru terlihat saat dua nomor
+      // bertabrakan, di dokumen yang sudah terkirim ke pelanggan.
+      //
+      // Yang dipertahankan utuh saat pindah: nomor dari counter
+      // transaksional (bukan COUNT(*)+1), prefix dari `companies.
+      // invoice_prefix` (bukan "PRL" yang dipaku), dan tarif pajak
+      // EFFECTIVE pada tanggal dokumen. Ketiganya cacat yang sudah pernah
+      // diperbaiki; memindahkan kode adalah cara termudah menghidupkannya
+      // kembali.
+      //
+      // ANCHOR DATE pajak tetap `paid_at` — sama persis dengan sebelumnya.
+      const hasilInvoice = await terbitkanInvoiceTermin(
+        request,
+        { id: terminId, amount: Number(termin.amount), project_id: projectId },
+        { id: projectId, tax_scheme: project.tax_scheme },
+        String(paid_at).slice(0, 10),
+        currentUser.id,
+      )
 
-      const { data: existingInvoice } = await request.db!
-        .viaProject('invoices', projectId)
-        .select('id, total_amount, amount_paid, amount_due, status')
-        .eq('termin_schedule_id', terminId)
-        .maybeSingle()
-
-      if (existingInvoice) {
-        invoiceId = existingInvoice.id
-      } else {
-        // ── Nomor invoice: counter transaksional, BUKAN COUNT(*) + 1 ────────
-        //
-        // Sampai 2026-08-12 baris ini berbunyi `count(*) + 1` dan formatnya
-        // dipaku `INV/PRL/YYYY/NNN` — dengan "PRL" (Puraloka) di dalam kode.
-        // Dua cacat, keduanya pada dokumen yang KELUAR KE KLIEN:
-        //
-        //   1. `COUNT(*)` menghitung baris yang ADA, bukan yang PERNAH ada.
-        //      Menghapus invoice terakhir membuat nomornya lahir kembali —
-        //      nomor kembar untuk dokumen yang sudah terkirim. Persis cacat
-        //      yang migrasi 135 tutup, di rute yang terlewat.
-        //
-        //   2. "PRL" dipaku, jadi tenant lain menerbitkan invoice bertuliskan
-        //      singkatan perusahaan orang lain, dan satu-satunya cara
-        //      mengubahnya adalah menyunting kode.
-        //
-        // Keduanya ditutup dengan memakai jalur yang SAMA dengan `finance.ts`:
-        // prefix dari `companies.invoice_prefix`, nomor dari counter. Dua
-        // tempat yang menomori invoice dengan dua cara berbeda pasti berselisih
-        // — dan selisihnya baru terlihat saat dua nomor bertabrakan.
-        const now = new Date()
-        const year = now.getFullYear()
-        const month = String(now.getMonth() + 1).padStart(2, '0')
-
-        const { data: companyRow } = await request.db!
-          .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
-          .select('invoice_prefix')
-          .eq('id', request.companyId!)
-          .maybeSingle()
-        const prefix = (companyRow as { invoice_prefix?: string } | null)?.invoice_prefix ?? 'INV'
-        const numberPrefix = `${prefix}/${year}/${month}/`
-
-        const { data: nomorUrut, error: nomorErr } = await supabase.rpc('next_document_number', {
-          p_company_id: request.companyId!,
-          p_doc_type:   'invoice',
-          p_period:     `${year}-${month}`,
-          p_prefix:     numberPrefix,
-        })
-        // Galat DIPERIKSA: nomor yang gagal diambil TIDAK boleh diperlakukan
-        // sebagai nol — `String(null).padStart` menghasilkan "null" dan invoice
-        // lahir bernomor `INV/2026/08/null`.
-        if (nomorErr) {
-          app.log.error({ err: nomorErr }, 'gagal mengambil nomor invoice termin')
-          return reply.status(500).send({ error: 'Gagal membuat nomor invoice' })
-        }
-        const seq = String(nomorUrut).padStart(3, '0')
-        const invoiceNumber = `${numberPrefix}${seq}`
-
-        // Hitung pajak — rumus di lib/tax-calculation.ts (struktur = kode ber-test [C3]).
-        // AKTA 3 (config-first, effective-dated): tarif dibaca EFFECTIVE pada tanggal
-        // dokumen (issued_date = paid_at). ANCHOR DATE = issued_date invoice (C2) —
-        // lihat DOMAIN.md § Anchor Date Pajak untuk asumsi PPN vs PPh final. atDate
-        // mudah diubah bila anchor per-skema perlu dibedakan.
-        const taxAnchorDate = String(paid_at).slice(0, 10) // 'YYYY-MM-DD' (WIB, dari form)
-        const taxRate = await getTaxRate(project.tax_scheme, taxAnchorDate)
-        const { baseAmount, taxAmount, totalAmount } = calculateTax(Number(termin.amount), project.tax_scheme, taxRate)
-
-        const dueDate = new Date(paid_at)
-        dueDate.setDate(dueDate.getDate() + 14)
-
-        const { data: newInvoice, error: invoiceErr } = await request.db!
-          .viaProject('invoices', projectId)
-          .insert({
-            project_id: projectId,
-            termin_schedule_id: terminId,
-            invoice_number: invoiceNumber,
-            invoice_type: 'termin_billing',
-            base_amount: baseAmount,
-            commission_amount: 0,
-            tax_amount: taxAmount,
-            total_amount: totalAmount,
-            amount_paid: 0,
-            amount_due: totalAmount,
-            issued_date: paid_at,
-            due_date: dueDate.toISOString().split('T')[0],
-            status: 'sent',
-            created_by: currentUser.id,
-          })
-          .select('id, total_amount, amount_paid, amount_due')
-          .single()
-
-        if (invoiceErr || !newInvoice) {
-          app.log.error({ invoiceErr }, 'Failed to create invoice')
-          return reply.status(500).send({ error: 'Gagal membuat invoice: ' + (invoiceErr?.message ?? 'unknown') })
-        }
-        invoiceId = newInvoice.id
+      if (!hasilInvoice.ok) {
+        app.log.error(
+          { alasan: hasilInvoice.alasan, pesan: hasilInvoice.pesan, terminId },
+          'gagal menerbitkan invoice termin',
+        )
+        return reply.status(500).send({ error: 'Gagal membuat invoice: ' + hasilInvoice.pesan })
       }
 
+      const invoiceId = hasilInvoice.invoiceId
       // ── 4. Insert payment. Saldo `cash_accounts` ditambah oleh trigger DB
       // `trg_update_cash_balance_on_payment` (migrasi 019, dipasang ulang di 162 —
       // fungsinya ada tapi trigger-nya hilang, sehingga Rp 627 juta pembayaran tak
