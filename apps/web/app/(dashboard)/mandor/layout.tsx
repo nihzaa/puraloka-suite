@@ -68,7 +68,12 @@ function KartuAngka({ label, nilai, sub, ikon, warna, tepi }: {
         }}>{label}</span>
       </div>
       <div style={{
-        fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700,
+        fontFamily: "var(--font-display)",
+        // `--teks-kpi` (28px), bukan 22px dipaku. Kartu ini muncul di SETIAP
+        // halaman cabangnya, jadi ia yang paling menentukan kesan kerapatan
+        // modul ini -- dan 22px membuatnya terbaca lebih ringan daripada
+        // kartu KPI di modul sebelah yang memakai `KartuKPI` (28px).
+        fontSize: "var(--teks-kpi)", fontWeight: 700,
         color: warna, lineHeight: 1.1, fontVariantNumeric: "tabular-nums",
       }}>{nilai}</div>
       {sub && <div style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.4 }}>{sub}</div>}

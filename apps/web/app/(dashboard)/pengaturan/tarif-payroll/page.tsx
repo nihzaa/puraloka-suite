@@ -33,9 +33,10 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Scale, TriangleAlert, ShieldCheck, Plus, Trash2 } from "lucide-react";
+import { Scale, TriangleAlert, ShieldCheck, Plus, Trash2 , Percent } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
+import { KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 
 type Jenis = "ptkp" | "ter_pph21" | "bpjs";
@@ -241,13 +242,21 @@ export default function TarifPayrollPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <p style={{ fontSize: 13, color: C.mid, margin: "0 0 18px", maxWidth: "72ch", lineHeight: 1.55 }}>
-        Tarif PTKP, PPh 21, dan BPJS disimpan sebagai <strong>data</strong>, bukan
-        ditulis di dalam program. Aturannya berubah tiap tahun, dan slip gaji yang
-        salah keluar dengan tampilan meyakinkan — penerimanya tak punya cara tahu.
-        Perubahan tarif <strong>ditambahkan</strong> sebagai periode baru, tidak
-        menimpa yang lama, supaya slip bulan lalu tetap bisa dihitung ulang.
-      </p>
+      <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
+        <KepalaHalaman
+          judul="Tarif Payroll"
+          ikon={<Percent size={20} aria-hidden="true" />}
+          keterangan={
+            <>
+              Tarif PTKP, PPh 21, dan BPJS disimpan sebagai <strong>data</strong>, bukan
+              ditulis di dalam program. Aturannya berubah tiap tahun, dan slip gaji yang
+              salah keluar dengan tampilan meyakinkan — penerimanya tak punya cara tahu.
+              Perubahan tarif <strong>ditambahkan</strong> sebagai periode baru, tidak
+              menimpa yang lama, supaya slip bulan lalu tetap bisa dihitung ulang.
+            </>
+          }
+        />
+      </div>
 
       {galat && (
         <div role="alert" style={{

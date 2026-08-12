@@ -34,12 +34,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  CalendarDays, TriangleAlert, Check, X, Plus, Ban, Info,
+  CalendarDays, TriangleAlert, Check, X, Plus, Ban, Info, CalendarOff,
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 
 type JenisCuti = "tahunan" | "sakit" | "melahirkan" | "penting" | "besar" | "tanpa_gaji";
@@ -427,12 +427,20 @@ export default function CutiPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <p style={{ fontSize: 13, color: C.mid, margin: "0 0 18px", maxWidth: "72ch", lineHeight: 1.55 }}>
-        Cuti dan izin karyawan. Saldo <strong>dihitung dari riwayatnya</strong>,
-        bukan disimpan sebagai angka — supaya selalu bisa ditelusuri ke barisnya.
-        Akhir pekan dan hari libur nasional <strong>tidak memotong jatah</strong>,
-        dan hanya cuti <em>tahunan</em> yang mengurangi jatah tahunan.
-      </p>
+      <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
+        <KepalaHalaman
+          judul="Cuti & Izin"
+          ikon={<CalendarOff size={20} aria-hidden="true" />}
+          keterangan={
+            <>
+              Cuti dan izin karyawan. Saldo <strong>dihitung dari riwayatnya</strong>,
+              bukan disimpan sebagai angka — supaya selalu bisa ditelusuri ke barisnya.
+              Akhir pekan dan hari libur nasional <strong>tidak memotong jatah</strong>,
+              dan hanya cuti <em>tahunan</em> yang mengurangi jatah tahunan.
+            </>
+          }
+        />
+      </div>
 
       {galat && (
         <div role="alert" style={{

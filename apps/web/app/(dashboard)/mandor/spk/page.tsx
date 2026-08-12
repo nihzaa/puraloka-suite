@@ -341,7 +341,7 @@ function KartuSpk({ spk: s, bolehKelola, bolehTtd, sibuk, onTerbitkan, onTtd, on
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <div style={{ fontSize: 20, fontWeight: 700, color: C.text, fontVariantNumeric: "tabular-nums" }}>
+          <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, color: C.text, fontVariantNumeric: "tabular-nums" }}>
             {rupiah(s.nilai_kontrak)}
           </div>
           {s.denda_per_hari !== null && (

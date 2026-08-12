@@ -273,14 +273,14 @@ export default function ArusKasPage() {
               <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
                 <ArrowDownLeft size={12} color={C.green} /> Total Masuk
               </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: C.green, fontFamily: "var(--font-display)" }}>{fmtCompact(arusData.totalIn)}</div>
+              <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 800, color: C.green, fontFamily: "var(--font-display)" }}>{fmtCompact(arusData.totalIn)}</div>
               <div style={{ fontSize: 11, color: C.green, marginTop: 2 }}>{arusData.byType.payment > 0 ? `Pembayaran ${fmtCompact(arusData.byType.payment)}` : "Tidak ada pembayaran"}</div>
             </div>
             <div style={{ flex: 1, minWidth: 140, padding: "12px 16px", borderRadius: 10, border: `1px solid ${C.redBorder}`, background: C.redBg }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em", display: "flex", alignItems: "center", gap: 4 }}>
                 <ArrowUpRight size={12} color={C.red} /> Total Keluar
               </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: C.red, fontFamily: "var(--font-display)" }}>{fmtCompact(arusData.totalOut)}</div>
+              <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 800, color: C.red, fontFamily: "var(--font-display)" }}>{fmtCompact(arusData.totalOut)}</div>
               <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>
                 Exp {fmtCompact(arusData.byType.expense)} · Upah {fmtCompact(arusData.byType.wage)} · Kasbon {fmtCompact(arusData.byType.kasbon)}
                 {((arusData.byType.progress_payment ?? 0) > 0 || (arusData.byType.settlement_borongan ?? 0) > 0) && (
@@ -290,13 +290,13 @@ export default function ArusKasPage() {
             </div>
             <div style={{ flex: 1, minWidth: 140, padding: "12px 16px", borderRadius: 10, border: `1px solid ${arusData.netFlow >= 0 ? C.greenBorder : C.redBorder}`, background: arusData.netFlow >= 0 ? C.greenBg : C.redBg }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Net Flow</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: arusData.netFlow >= 0 ? C.green : C.red, fontFamily: "var(--font-display)" }}>
+              <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 800, color: arusData.netFlow >= 0 ? C.green : C.red, fontFamily: "var(--font-display)" }}>
                 {arusData.netFlow >= 0 ? "+" : ""}{fmtCompact(arusData.netFlow)}
               </div>
             </div>
             <div style={{ flex: 1, minWidth: 140, padding: "12px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)" }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: C.muted, marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>Transaksi</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)" }}>{arusData.transactions.length}</div>
+              <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 800, color: C.text, fontFamily: "var(--font-display)" }}>{arusData.transactions.length}</div>
               <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>entri di periode ini</div>
             </div>
           </div>

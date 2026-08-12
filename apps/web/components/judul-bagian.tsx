@@ -108,7 +108,20 @@ function JudulBagianIsi({ cadangan, keterangan, aksi }: JudulBagianProps) {
     }}>
       <div>
         <h1 style={{
-          fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700,
+          fontFamily: "var(--font-display)",
+          // `--t-halaman` (26px), BUKAN 20px dipaku.
+          //
+          // Diukur di peramban 2026-08-12 menyapu seluruh rute dashboard:
+          // `<h1>` tersebar di lima ukuran, dua kelompok besar 26px (x67,
+          // lewat `KepalaHalaman`) dan 20px (x39, lewat komponen ini). Dua
+          // konvensi hidup berdampingan untuk elemen yang sama.
+          //
+          // Akibatnya terlihat saat BERPINDAH halaman, bukan saat menatap
+          // satu halaman -- dan itu sebabnya ia bertahan lama: tiap halaman
+          // terlihat wajar sendirian. Judul yang mengecil membuat halamannya
+          // terasa seperti sub-halaman dari yang barusan ditinggalkan.
+          fontSize: "var(--t-halaman)", fontWeight: 700,
+          letterSpacing: "-0.02em", lineHeight: 1.15,
           color: C.text, margin: 0,
         }}>
           {judul}
@@ -161,7 +174,20 @@ function JudulBagianRangka({ cadangan, keterangan, aksi }: JudulBagianProps) {
     }}>
       <div>
         <h1 style={{
-          fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700,
+          fontFamily: "var(--font-display)",
+          // `--t-halaman` (26px), BUKAN 20px dipaku.
+          //
+          // Diukur di peramban 2026-08-12 menyapu seluruh rute dashboard:
+          // `<h1>` tersebar di lima ukuran, dua kelompok besar 26px (x67,
+          // lewat `KepalaHalaman`) dan 20px (x39, lewat komponen ini). Dua
+          // konvensi hidup berdampingan untuk elemen yang sama.
+          //
+          // Akibatnya terlihat saat BERPINDAH halaman, bukan saat menatap
+          // satu halaman -- dan itu sebabnya ia bertahan lama: tiap halaman
+          // terlihat wajar sendirian. Judul yang mengecil membuat halamannya
+          // terasa seperti sub-halaman dari yang barusan ditinggalkan.
+          fontSize: "var(--t-halaman)", fontWeight: 700,
+          letterSpacing: "-0.02em", lineHeight: 1.15,
           color: C.text, margin: 0,
         }}>
           {cadangan}

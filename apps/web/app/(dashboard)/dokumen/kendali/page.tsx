@@ -38,11 +38,11 @@
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { FileStack, RefreshCw, TriangleAlert, Send, ListChecks, MailWarning } from "lucide-react";
+import { FileStack, RefreshCw, TriangleAlert, Send, ListChecks, MailWarning , FileText } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { TabBagian } from "@/components/tab-bagian";
 import { useTabUrl } from "@/lib/use-tab-url";
 
@@ -123,7 +123,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
         {label}
       </div>
       <div style={{
-        fontSize: 22, fontWeight: 700, marginTop: 4,
+        fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1,
         color: warna ?? C.text, fontVariantNumeric: "tabular-nums",
       }}>
         {nilai}
@@ -427,23 +427,20 @@ function IsiKendaliDokumen() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <div className="rise" style={{
-        marginBottom: "var(--gap-bagian)", display: "flex",
-        justifyContent: "space-between", alignItems: "flex-start",
-        gap: "var(--gap-bagian)", flexWrap: "wrap",
-      }}>
-        <div>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>
-            Kendali Dokumen
-          </h2>
-          <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
-            Gambar revisi berapa yang <strong>berlaku sekarang</strong>, siapa sudah
+      <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
+        <KepalaHalaman
+          judul="Kendali Dokumen"
+          ikon={<FileText size={20} aria-hidden="true" />}
+          keterangan={
+            <>
+              Gambar revisi berapa yang <strong>berlaku sekarang</strong>, siapa sudah
             menerimanya, dan butir rapat mana yang belum dikerjakan. Gambar yang
             statusnya masih hijau tapi sudah ada revisi lebih baru ditandai usang —
             itulah yang membuat pekerjaan dibongkar.
-          </p>
-        </div>
-        <button
+            </>
+          }
+          aksi={
+            <button
           type="button"
           onClick={muatUlang}
           disabled={memuat}
@@ -457,6 +454,8 @@ function IsiKendaliDokumen() {
           <RefreshCw size={14} aria-hidden="true" />
           Muat ulang
         </button>
+          }
+        />
       </div>
 
       {galat && (

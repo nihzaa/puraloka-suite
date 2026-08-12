@@ -176,7 +176,7 @@ function KpiCard({ label, value, sub, icon, accent, border }: { label: string; v
       </div>
       <div style={{ minWidth: 0 }}>
         <p style={{ fontSize: 11, color: C.muted, margin: "0 0 2px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>{label}</p>
-        <p style={{ fontSize: 20, fontWeight: 800, color: accent ?? C.text, margin: "0 0 1px", fontFamily: "var(--font-display)", lineHeight: 1.1 }}>{value}</p>
+        <p style={{ fontSize: "var(--teks-kpi)", fontWeight: 800, color: accent ?? C.text, margin: "0 0 1px", fontFamily: "var(--font-display)", lineHeight: 1.1 }}>{value}</p>
         {sub && <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>{sub}</p>}
       </div>
     </div>

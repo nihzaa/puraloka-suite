@@ -37,7 +37,7 @@ import { Wrench, RefreshCw, TriangleAlert, Clock, Gauge, BookOpen, Check } from 
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 
 type StatusPerawatan = "aman" | "segera" | "jatuh_tempo" | "belum_ada_acuan";
 
@@ -132,7 +132,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
         {label}
       </div>
       <div style={{
-        fontSize: 22, fontWeight: 700, marginTop: 4,
+        fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1,
         color: warna ?? C.text, fontVariantNumeric: "tabular-nums",
       }}>
         {nilai}
@@ -393,23 +393,20 @@ export default function OperasionalAlatPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <div className="rise" style={{
-        marginBottom: "var(--gap-bagian)", display: "flex",
-        justifyContent: "space-between", alignItems: "flex-start",
-        gap: "var(--gap-bagian)", flexWrap: "wrap",
-      }}>
-        <div>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>
-            Operasional Alat
-          </h2>
-          <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
-            Alat mana yang <strong>harus diservis minggu ini</strong>, dan berapa
+      <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
+        <KepalaHalaman
+          judul="Operasional Alat"
+          ikon={<Wrench size={20} aria-hidden="true" />}
+          keterangan={
+            <>
+              Alat mana yang <strong>harus diservis minggu ini</strong>, dan berapa
             biayanya per jam kerja. Jadwal kalender saja tak cukup — excavator yang
             bekerja 300 jam sebulan butuh ganti oli meski jadwal 180-harinya baru
             jalan dua minggu.
-          </p>
-        </div>
-        <button
+            </>
+          }
+          aksi={
+            <button
           type="button"
           onClick={muatUlang}
           disabled={memuat}
@@ -423,6 +420,8 @@ export default function OperasionalAlatPage() {
           <RefreshCw size={14} aria-hidden="true" />
           Muat ulang
         </button>
+          }
+        />
       </div>
 
       {galat && (

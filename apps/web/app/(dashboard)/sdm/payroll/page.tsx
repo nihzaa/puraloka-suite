@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
+import { KepalaHalaman } from "@/components/dasar";
 import { Kosong } from "@/components/ui-dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 
@@ -237,12 +238,20 @@ export default function PayrollPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <p style={{ fontSize: 13, color: C.mid, margin: "0 0 18px", maxWidth: "72ch", lineHeight: 1.55 }}>
-        Penggajian bulanan staf kantor. Slip <strong>menyimpan angkanya</strong>,
-        tidak dihitung ulang saat dibuka — slip yang sudah dibayarkan adalah
-        pernyataan tentang uang yang sudah berpindah, dan menghitungnya ulang
-        dengan tarif baru membuat angka di layar tak cocok dengan angka di rekening.
-      </p>
+      <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
+        <KepalaHalaman
+          judul="Payroll Staf"
+          ikon={<Wallet size={20} aria-hidden="true" />}
+          keterangan={
+            <>
+              Penggajian bulanan staf kantor. Slip <strong>menyimpan angkanya</strong>,
+              tidak dihitung ulang saat dibuka — slip yang sudah dibayarkan adalah
+              pernyataan tentang uang yang sudah berpindah, dan menghitungnya ulang
+              dengan tarif baru membuat angka di layar tak cocok dengan angka di rekening.
+            </>
+          }
+        />
+      </div>
 
       {galat && (
         <div role="alert" style={{

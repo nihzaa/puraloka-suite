@@ -44,12 +44,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  ClipboardList, ShieldAlert, ShieldCheck, Eye, TriangleAlert, Link2,
+  ClipboardList, ShieldAlert, ShieldCheck, Eye, TriangleAlert, Link2, ClipboardCheck,
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 
 type Klasifikasi = "major" | "minor" | "observasi";
@@ -402,12 +402,20 @@ export default function AuditMutuPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <p style={{ fontSize: 13, color: C.mid, margin: "0 0 18px", maxWidth: "72ch", lineHeight: 1.55 }}>
-        Pemeriksaan berkala apakah sistem mutu benar-benar dijalankan — bukan
-        apakah pekerjaannya kuat. <strong>Temuan <em>major</em> wajib melahirkan
-        NCR</strong>, karena audit yang menghasilkan dokumen tanpa akibat tak
-        mengubah apa pun di lapangan.
-      </p>
+      <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
+        <KepalaHalaman
+          judul="Audit Mutu"
+          ikon={<ClipboardCheck size={20} aria-hidden="true" />}
+          keterangan={
+            <>
+              Pemeriksaan berkala apakah sistem mutu benar-benar dijalankan — bukan
+              apakah pekerjaannya kuat. <strong>Temuan <em>major</em> wajib melahirkan
+              NCR</strong>, karena audit yang menghasilkan dokumen tanpa akibat tak
+              mengubah apa pun di lapangan.
+            </>
+          }
+        />
+      </div>
 
       {galat && (
         <div role="alert" style={{
@@ -605,7 +613,7 @@ export default function AuditMutuPage() {
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                 {/* Angka tenang — penekanan sudah dipakai verdict (§3d). */}
-                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: C.text,
+                <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
                   fontVariantNumeric: "tabular-nums" }}>{k.v}</div>
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.sub}</div>
               </div>

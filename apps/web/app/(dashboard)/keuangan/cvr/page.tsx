@@ -305,7 +305,7 @@ export default function CvrPage() {
                     )}
                     Pekerjaan merugi
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4,
+                  <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1,
                     color: hasil.jumlah_rugi > 0 ? "var(--danger)" : C.text }}>
                     {hasil.jumlah_rugi}
                   </div>
@@ -317,7 +317,7 @@ export default function CvrPage() {
                 <div style={{ ...GAYA_KARTU, padding: "12px 14px" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>Nilai terpasang</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: C.text }}>
+                  <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
                     {rp(hasil.total_nilai_terpasang)}
                   </div>
                   <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
@@ -328,7 +328,7 @@ export default function CvrPage() {
                 <div style={{ ...GAYA_KARTU, padding: "12px 14px" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>Biaya terpakai</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: C.text }}>
+                  <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
                     {rp(hasil.total_terpakai)}
                   </div>
                   <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
@@ -347,7 +347,7 @@ export default function CvrPage() {
                 <div style={{ ...GAYA_KARTU, padding: "12px 14px" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>Selisih</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4,
+                  <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1,
                     color: hasil.total_selisih < 0 ? "var(--danger)" : C.text }}>
                     {rp(hasil.total_selisih)}
                   </div>

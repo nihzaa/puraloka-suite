@@ -47,7 +47,7 @@ import {
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { TabBagian } from "@/components/tab-bagian";
 
@@ -392,12 +392,20 @@ export default function KompetensiPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <p style={{ fontSize: 13, color: C.mid, margin: "0 0 18px", maxWidth: "72ch", lineHeight: 1.55 }}>
-        Kompetensi, kinerja, dan asal-usul tiap orang. Yang paling menentukan:{" "}
-        <strong>sertifikat yang kedaluwarsa tak boleh dipakai memenuhi syarat
-        tender</strong> — melampirkannya adalah dokumen palsu di mata panitia,
-        dan yang menandatangani penawaran adalah direktur.
-      </p>
+      <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
+        <KepalaHalaman
+          judul="Sertifikasi & Kompetensi"
+          ikon={<Award size={20} aria-hidden="true" />}
+          keterangan={
+            <>
+              Kompetensi, kinerja, dan asal-usul tiap orang. Yang paling menentukan:{" "}
+              <strong>sertifikat yang kedaluwarsa tak boleh dipakai memenuhi syarat
+              tender</strong> — melampirkannya adalah dokumen palsu di mata panitia,
+              dan yang menandatangani penawaran adalah direktur.
+            </>
+          }
+        />
+      </div>
 
       {galat && (
         <div role="alert" style={{
@@ -513,7 +521,7 @@ export default function KompetensiPage() {
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                   <div style={{
-                    fontSize: 22, fontWeight: 700, marginTop: 4,
+                    fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1,
                     color: k.bahaya && s.kedaluwarsa > 0 ? "var(--danger)" : C.text,
                     fontVariantNumeric: "tabular-nums",
                   }}>{k.v}</div>
@@ -585,7 +593,7 @@ export default function KompetensiPage() {
                   <div key={k.l} style={{ ...kartu, padding: "12px 14px" }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                       textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
-                    <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: C.text,
+                    <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
                       fontVariantNumeric: "tabular-nums" }}>{k.v}</div>
                     <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.sub}</div>
                   </div>
@@ -656,7 +664,7 @@ export default function KompetensiPage() {
                 <div key={t} style={{ ...kartu, padding: "12px 14px" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>{TAHAP[t].label}</div>
-                  <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: C.text,
+                  <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
                     fontVariantNumeric: "tabular-nums" }}>
                     {lamaran.filter((l) => l.tahap === t).length}
                   </div>

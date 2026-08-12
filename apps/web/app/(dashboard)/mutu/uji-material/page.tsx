@@ -39,7 +39,7 @@ import { FlaskConical, TriangleAlert, Info } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 
 type Kesimpulan = "memenuhi" | "tidak_memenuhi" | "perlu_uji_ulang";
 
@@ -243,12 +243,20 @@ export default function UjiMaterialPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <p style={{ fontSize: 13, color: C.mid, margin: "0 0 18px", maxWidth: "72ch", lineHeight: 1.55 }}>
-        Bukti mutu dari laboratorium — dirujuk dalam sertifikat, klaim, dan
-        sengketa jauh setelah pekerjaannya selesai. Angka ditampilkan apa adanya;
-        <strong> kesimpulan tetap keputusan manusia</strong>, karena tak semua
-        uji dibaca dengan arah yang sama.
-      </p>
+      <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
+        <KepalaHalaman
+          judul="Hasil Uji Material"
+          ikon={<FlaskConical size={20} aria-hidden="true" />}
+          keterangan={
+            <>
+              Bukti mutu dari laboratorium — dirujuk dalam sertifikat, klaim, dan
+              sengketa jauh setelah pekerjaannya selesai. Angka ditampilkan apa adanya;
+              <strong> kesimpulan tetap keputusan manusia</strong>, karena tak semua
+              uji dibaca dengan arah yang sama.
+            </>
+          }
+        />
+      </div>
 
       {galat && (
         <div role="alert" style={{
@@ -298,7 +306,7 @@ export default function UjiMaterialPage() {
                 borderColor: hasil.tidak_memenuhi > 0 ? "var(--danger-border)" : C.border }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Tidak memenuhi</div>
-                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4,
+                <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1,
                   color: hasil.tidak_memenuhi > 0 ? "var(--danger)" : C.text }}>
                   {hasil.tidak_memenuhi}
                 </div>
@@ -310,7 +318,7 @@ export default function UjiMaterialPage() {
               <div style={{ ...kartu, padding: "12px 14px" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Perlu uji ulang</div>
-                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: C.text }}>
+                <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
                   {hasil.perlu_uji_ulang}
                 </div>
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>hasilnya belum bisa dipakai</div>
@@ -319,7 +327,7 @@ export default function UjiMaterialPage() {
               <div style={{ ...kartu, padding: "12px 14px" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Belum disimpulkan</div>
-                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: C.text }}>
+                <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
                   {hasil.belum_disimpulkan}
                 </div>
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
@@ -330,7 +338,7 @@ export default function UjiMaterialPage() {
               <div style={{ ...kartu, padding: "12px 14px" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Memenuhi</div>
-                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: "var(--success)" }}>
+                <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: "var(--success)" }}>
                   {hasil.memenuhi}
                 </div>
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>sesuai syarat mutu</div>

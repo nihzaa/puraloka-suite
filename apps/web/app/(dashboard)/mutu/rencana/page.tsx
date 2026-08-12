@@ -40,11 +40,11 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { ClipboardCheck, ShieldAlert, ShieldCheck, Eye, FileText, TriangleAlert } from "lucide-react";
+import { ClipboardCheck, ShieldAlert, ShieldCheck, Eye, FileText, TriangleAlert , ListChecks } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 
 type JenisTitik = "hold" | "witness" | "review";
@@ -430,11 +430,19 @@ export default function RencanaMutuPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <p style={{ fontSize: 13, color: C.mid, margin: "0 0 18px", maxWidth: "72ch", lineHeight: 1.55 }}>
-        Titik-titik pemeriksaan yang disepakati di awal proyek, beserta kriteria
-        penerimaannya. <strong>Titik <em>hold</em> menahan pekerjaan</strong> sampai
-        ia lolos — melewatinya berarti menutup pekerjaan yang belum boleh ditutup.
-      </p>
+      <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
+        <KepalaHalaman
+          judul="Rencana Mutu Proyek"
+          ikon={<ListChecks size={20} aria-hidden="true" />}
+          keterangan={
+            <>
+              Titik-titik pemeriksaan yang disepakati di awal proyek, beserta kriteria
+              penerimaannya. <strong>Titik <em>hold</em> menahan pekerjaan</strong> sampai
+              ia lolos — melewatinya berarti menutup pekerjaan yang belum boleh ditutup.
+            </>
+          }
+        />
+      </div>
 
       {galat && (
         <div role="alert" style={{
@@ -642,9 +650,7 @@ export default function RencanaMutuPage() {
               <div key={k.l} style={{ ...kartu, padding: "12px 14px" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
-                {/* Angka KPI tenang — penekanan sudah dipakai oleh verdict di
-                    atas (§3d: satu aksen per layar). */}
-                <div style={{ fontSize: 22, fontWeight: 700, marginTop: 4, color: C.text,
+                <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
                   fontVariantNumeric: "tabular-nums" }}>{k.v}</div>
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{k.sub}</div>
               </div>

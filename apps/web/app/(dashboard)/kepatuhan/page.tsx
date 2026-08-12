@@ -41,7 +41,7 @@ import { ShieldAlert, RefreshCw, TriangleAlert, HardHat, FileWarning, UserX } fr
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { TabBagian } from "@/components/tab-bagian";
 import { useTabUrl } from "@/lib/use-tab-url";
 
@@ -173,12 +173,19 @@ function Kpi({ label, nilai, keterangan, warna }: {
   label: string; nilai: string; keterangan?: string; warna?: string;
 }) {
   return (
-    <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 190px", minWidth: 175 }}>
+    // `flex` DIBUANG — pembungkusnya kini grid. Ukurannya disamakan dengan
+    // `KartuKPI` bersama (`components/ui-dasar.tsx`), yang dipakai /gudang,
+    // /procurement, /mutu, /lapangan, /otomasi, /aset: angka 28px, bukan 22px.
+    //
+    // Diukur 2026-08-12: halaman ber-`KartuKPI` seluruhnya 28px, halaman yang
+    // menyusun kartunya sendiri seluruhnya 22px. Dua sistem untuk satu jenis
+    // kartu, dan bedanya cukup besar untuk terlihat saat berpindah halaman.
+    <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
       <div style={{ fontSize: 11, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.04em" }}>
         {label}
       </div>
       <div style={{
-        fontSize: 22, fontWeight: 700, marginTop: 4,
+        fontSize: 28, fontWeight: 700, marginTop: 4, lineHeight: 1.1,
         color: warna ?? C.text, fontVariantNumeric: "tabular-nums",
       }}>
         {nilai}
@@ -218,7 +225,10 @@ function Peringatan({ ikon, judul, isi, nada }: {
 function KartuKesiapan({ p }: { p: Kesiapan }) {
   return (
     <div style={{
-      ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", flex: "1 1 300px", minWidth: 280,
+      // `flex: "1 1 300px"` DIBUANG: pembungkusnya kini grid, dan lebar kolom
+      // ditentukan di sana. Menyisakannya membuat dua sistem tata letak
+      // berebut menentukan lebar yang sama.
+      ...GAYA_KARTU, padding: "var(--pad-kartu-lega)",
       borderColor: p.bolehBekerja ? C.border : "var(--danger-border)",
       background: p.bolehBekerja ? "var(--surface)" : "var(--danger-bg)",
     }}>
@@ -522,36 +532,57 @@ function IsiKepatuhan() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <div className="rise" style={{
-        marginBottom: "var(--gap-bagian)", display: "flex",
-        justifyContent: "space-between", alignItems: "flex-start",
-        gap: "var(--gap-bagian)", flexWrap: "wrap",
-      }}>
-        <div>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>
-            Kepatuhan &amp; K3
-          </h2>
-          <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
-            <strong>Pihak ini boleh bekerja hari ini, atau tidak?</strong> Dijawab dari
-            tiga sudut sekaligus — kinerjanya, dokumennya, dan izin kerjanya. Subkon
-            berskor tinggi dengan asuransi mati tetap <strong>tidak boleh bekerja</strong>,
-            dan itu tak terlihat kalau ketiganya dibaca terpisah.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={muatUlang}
-          disabled={memuat}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6,
-            padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-            border: `1px solid ${C.border}`, background: "var(--surface)",
-            color: C.text, cursor: memuat ? "default" : "pointer", opacity: memuat ? 0.5 : 1,
-          }}
-        >
-          <RefreshCw size={14} aria-hidden="true" />
-          Muat ulang
-        </button>
+      {/*
+        Judul lewat `KepalaHalaman` bersama, bukan `<h2>` buatan sendiri.
+
+        Sebelum ini halaman ini merender `<h2 fontSize: 20>` sebagai judul
+        halaman dan TIDAK punya `<h1>` sama sekali. Diukur di peramban
+        2026-08-12 dengan menyapu seluruh rute dashboard: **13 halaman tanpa
+        `<h1>`**, dan `<h1>` yang ada tersebar di lima ukuran (26px ×67,
+        20px ×39, 24px ×5, 28px, 40px).
+
+        Dua akibatnya berbeda sifat dan dua-duanya nyata:
+
+        1. **A11y.** Pembaca layar menyusun peta dokumen dari urutan heading.
+           Halaman yang mulai dari `<h2>` membuat pemakainya tak punya jangkar
+           "ini halaman apa" — dan daftar heading-nya bolong di puncak
+           (WCAG 1.3.1).
+        2. **Visual.** 20px vs 26px terlihat saat berpindah halaman; judul
+           yang mengecil membuat halamannya terasa seperti sub-halaman.
+
+        `KepalaHalaman` memberi `<h1>` + `--t-halaman` + ubin ikon opsional,
+        dan aksinya duduk di kanan judul — susunan yang sudah ada di sini,
+        cuma disalin ulang dengan tangan.
+      */}
+      <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
+        <KepalaHalaman
+          judul="Kepatuhan & K3"
+          ikon={<ShieldAlert size={20} aria-hidden="true" />}
+          keterangan={
+            <>
+              <strong>Pihak ini boleh bekerja hari ini, atau tidak?</strong> Dijawab dari
+              tiga sudut sekaligus — kinerjanya, dokumennya, dan izin kerjanya. Subkon
+              berskor tinggi dengan asuransi mati tetap <strong>tidak boleh bekerja</strong>,
+              dan itu tak terlihat kalau ketiganya dibaca terpisah.
+            </>
+          }
+          aksi={
+            <button
+              type="button"
+              onClick={muatUlang}
+              disabled={memuat}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600,
+                border: `1px solid ${C.border}`, background: "var(--surface)",
+                color: C.text, cursor: memuat ? "default" : "pointer", opacity: memuat ? 0.5 : 1,
+              }}
+            >
+              <RefreshCw size={14} aria-hidden="true" />
+              Muat ulang
+            </button>
+          }
+        />
       </div>
 
       {galat && (
@@ -584,8 +615,15 @@ function IsiKepatuhan() {
       ) : (
         <>
           {/* Lapis 1 — keadaan */}
+          {/*
+            GRID kolom seragam, sama seperti `/gudang` & `/procurement` yang
+            memakai `KartuKPI` bersama. `flex` + `flexWrap` membuat kartu
+            terakhir tiap baris menyerap sisa ruang — sumber "terlalu longgar".
+          */}
           <div className="rise rise-2" style={{
-            display: "flex", gap: "var(--gap-grid)", flexWrap: "wrap", marginBottom: "var(--gap-bagian)",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))",
+            gap: "var(--gap-grid)", marginBottom: "var(--gap-bagian)",
           }}>
             <Kpi
               label="Tak boleh bekerja"
@@ -686,7 +724,26 @@ function IsiKepatuhan() {
                   — kinerja DAN dokumen, bukan salah satunya
                 </span>
               </div>
-              <div style={{ display: "flex", gap: "var(--gap-grid)", flexWrap: "wrap" }}>
+              {/*
+                GRID, bukan `flex` + `flexWrap`.
+
+                Versi sebelumnya memakai `display: flex` dengan kartu
+                ber-`flex: "1 1 300px"`. Akibatnya kartu terakhir di tiap baris
+                MENYERAP SISA RUANG: diukur di layar 1600px, satu kartu jadi
+                321px sementara isinya cuma dua baris teks — dan founder
+                menyebutnya "terlalu longgar".
+
+                `auto-fill` (bukan `auto-fit`) menahan lebar kolom tetap 280px
+                dan membiarkan sisa ruang KOSONG alih-alih dibagi ke kartu.
+                Bedanya justru itu: `auto-fit` meregangkan kolom yang ada,
+                `auto-fill` mempertahankan ukurannya.
+              */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: "var(--gap-grid)",
+                alignItems: "start",
+              }}>
                 {data.kesiapan.map((p) => (
                   <KartuKesiapan key={p.supplier_id ?? p.nama} p={p} />
                 ))}

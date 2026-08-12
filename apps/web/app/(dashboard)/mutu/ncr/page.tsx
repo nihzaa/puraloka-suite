@@ -316,7 +316,7 @@ function NcrInner() {
                 textTransform: "uppercase", color: C.muted, marginBottom: 6,
               }}>{k.l}</div>
               <div style={{
-                fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700,
+                fontFamily: "var(--font-display)", fontSize: "var(--teks-kpi)", fontWeight: 700,
                 color: k.w, lineHeight: 1.1, fontVariantNumeric: "tabular-nums",
               }}>{k.v}</div>
               <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{k.s}</div>

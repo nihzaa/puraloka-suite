@@ -566,7 +566,7 @@ function Kpi({ label, nilai, keterangan, warna }: {
         {label}
       </div>
       <div style={{
-        fontSize: 22, fontWeight: 700, marginTop: 4,
+        fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1,
         color: warna ?? "var(--text-primary)", fontVariantNumeric: "tabular-nums",
       }}>
         {nilai}

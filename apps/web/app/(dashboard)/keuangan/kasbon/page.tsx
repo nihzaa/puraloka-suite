@@ -434,7 +434,7 @@ export default function KasbonPage() {
                             </div>
                           </div>
                           <div style={{ textAlign: "right" }}>
-                            <div style={{ fontSize: 20, fontWeight: 800, color: C.text, fontFamily: "var(--font-display)" }}>{fmtCompact(m.total)}</div>
+                            <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 800, color: C.text, fontFamily: "var(--font-display)" }}>{fmtCompact(m.total)}</div>
                             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
                               {m.totalPending > 0 && <span style={{ fontSize: 10, color: C.yellow, fontWeight: 600, background: C.yellowBg, padding: "2px 6px", borderRadius: 6 }}>pending {fmtCompact(m.totalPending)}</span>}
                               {m.totalApproved > 0 && <span style={{ fontSize: 10, color: C.green, fontWeight: 600, background: C.greenBg, padding: "2px 6px", borderRadius: 6 }}>approved {fmtCompact(m.totalApproved)}</span>}
