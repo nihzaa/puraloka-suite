@@ -181,6 +181,46 @@ Yang ketujuh (`audit-mutu-endpoint`) **HIJAU** saat dijalankan sendiri di
 commit dasar maupun sesudahnya — gejala berbagi-basis antar-test paralel,
 bukan regresi.
 
+### Angka akhir suite penuh — dan nol kegagalan yang saya sebabkan
+
+Dijalankan sesudah semua perbaikan, dibaca dari reporter JSON (bukan exit
+code, yang dua kali berbohong di sesi ini dengan status 0 di atas kegagalan):
+
+```
+  Test Files  1259 total · 20 gagal
+  Tests       3913 total · 3889 lulus · 11 gagal · 13 dilewati
+```
+
+Sepuluh berkas merah, dan **tiap satunya diukur terhadap commit dasar**
+`36581478` dengan mengembalikan `apps/api/src`:
+
+| Berkas | Merah di commit dasar? |
+|---|---|
+| `t5a-policy-tenant` | ya |
+| `t5b-kill-switch` | ya |
+| `t7-exit-criteria-l2` | ya |
+| `rls-ownership-recursion` | ya |
+| `gl-api` | ya |
+| `submittal-aturan` | ya |
+| `ai-tool` | **ya** — diuji ulang khusus |
+| `f2-3-batch3-tenancy-turunan` | **ya** — diuji ulang khusus |
+| `k3-lapangan-endpoint` | hijau sendiri (78 lulus) |
+| `kompetensi-sdm-endpoint` | hijau sendiri |
+
+Delapan terbukti mendahului sesi ini. Dua terakhir merah HANYA di suite
+penuh dan hijau saat dijalankan sendiri — assertion `[200,200]` vs
+`[200,409]`, yaitu uji perlombaan yang saling mengganggu ketika 284 berkas
+berbagi satu basis. Gejala test paralel, bukan regresi.
+
+**Nol kegagalan yang saya sebabkan.** Automation baru: 17 lulus.
+
+`f2-3` layak dicatat tersendiri: ia merah karena tabel `opname_bersama_item`
+ADA di basis hidup tanpa migrasi apa pun di branch ini — dibuat sesi lain
+langsung ke basis. Kelas cacat yang sama dengan `sk-opname` yang saya
+perbaiki lewat migrasi 325: **basis berjalan lebih dulu daripada migrasinya**,
+dan penjaga/test membaca basis hidup sehingga merah untuk pekerjaan yang tak
+ada di kode mana pun.
+
 ### Satu temuan yang saya laporkan terlalu cepat
 
 Saya sempat menyampaikan ke founder bahwa grup **"AI & Otomasi" tidak punya

@@ -2194,6 +2194,30 @@ items:
       commit dasar maupun sesudahnya — gejala berbagi basis antar-test paralel,
       bukan regresi. Tidak dimasukkan ke item ini.
 
+      ── DIPERLUAS 2026-08-12 (suite penuh terakhir) ───────────────────
+      Suite penuh: 11 gagal / 3.889 lulus / 3.913 total. Selain keenam di
+      atas, DUA berkas lagi merah — keduanya juga TERBUKTI merah di commit
+      dasar 36581478 (diukur dengan mengembalikan apps/api/src):
+
+        ai-tool.test.ts       STATUS_PROYEK di kode (5 nilai: draft|active|
+                              on_hold|completed|cancelled) tak sama dengan
+                              yang diharapkan test (9 nilai)
+        f2-3-batch3-tenancy   tabel `opname_bersama_item` kategori C TANPA
+                              policy RESTRICTIVE ber-auth_company_id
+
+      `opname_bersama_item` ADA di basis hidup tetapi TIDAK ADA migrasinya
+      di branch ini — dibuat sesi lain langsung ke basis. Itu sebabnya test
+      tenancy merah untuk pekerjaan yang tak ada di kode mana pun. Kelas
+      cacat yang sama dengan `sk-opname` (migrasi 325): basis berjalan
+      lebih dulu daripada migrasinya.
+
+      DUA berkas lain (k3-lapangan-endpoint, kompetensi-sdm-endpoint) merah
+      HANYA di suite penuh dan HIJAU saat dijalankan sendiri (78 lulus).
+      Assertion-nya `[200,200]` vs `[200,409]` — uji perlombaan yang saling
+      mengganggu saat 284 berkas berbagi SATU basis. Bukan regresi; gejala
+      test paralel, sejalan peringatan `rls-harness.ts` soal tulisan yang
+      BERTAHAN di schema public.
+
       ⚠ Dicatat supaya tak terulang: sesi berikutnya yang menjalankan suite
       penuh akan melihat 6 berkas merah dan mengira dirinya merusak sesuatu.
     bobot: L
