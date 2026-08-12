@@ -104,3 +104,108 @@ describe('FAIL-CLOSED (ADR-007)', () => {
     expect(d.reason).toBe('no_steps')
   })
 })
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// PLAFON (max_amount) — fast-track, automation 4.6
+// ══════════════════════════════════════════════════════════════════════════
+//
+// `min_amount` adalah LANTAI: "berlaku DI ATAS X". Dengan itu saja, "PO kecil
+// cukup satu tanda tangan" mustahil dinyatakan — dan itulah yang dibutuhkan
+// fast-track. `max_amount` melengkapinya sebagai PLAFON.
+//
+// Bentuk yang dipakai:
+//
+//   level 1 · min NULL · max 5jt  · staf     → hanya PO <= 5jt
+//   level 2 · min NULL · max NULL · manajer  → selalu
+//
+// PO kecil melewati DUA langkah (yang satu murah), PO besar hanya level 2.
+// Yang kecil mendapat langkah TAMBAHAN, bukan pengurangan pengawasan.
+
+describe('PLAFON max_amount — fast-track 4.6', () => {
+  const rantaiFastTrack: ApprovalStep[] = [
+    { level: 1, required_permission: 'po:staf',    min_amount: null, max_amount: 5_000_000 },
+    { level: 2, required_permission: 'po:manajer', min_amount: null, max_amount: null },
+  ]
+
+  it('nilai DI BAWAH plafon: langkah berplafon ikut berlaku', () => {
+    const berlaku = applicableSteps(rantaiFastTrack, 3_000_000)
+    expect(berlaku.map(s => s.level)).toEqual([1, 2])
+  })
+
+  it('nilai TEPAT di plafon: masih berlaku (<=, bukan <)', () => {
+    // Batas yang paling gampang bergeser satu langkah. PO tepat 5 juta harus
+    // ikut jalur cepat — memakai `<` menahannya di jalur panjang tanpa alasan.
+    const berlaku = applicableSteps(rantaiFastTrack, 5_000_000)
+    expect(berlaku.map(s => s.level)).toEqual([1, 2])
+  })
+
+  it('nilai DI ATAS plafon: langkah berplafon DILEWATI', () => {
+    const berlaku = applicableSteps(rantaiFastTrack, 50_000_000)
+    expect(berlaku.map(s => s.level)).toEqual([2])
+  })
+
+  it('max_amount NULL = tanpa batas atas — perilaku LAMA tak berubah', () => {
+    // Seluruh rantai yang sudah ada berplafon NULL. Kalau ini merah, migrasi
+    // 336 mengubah perilaku rantai yang sudah berjalan.
+    const lama: ApprovalStep[] = [
+      { level: 1, required_permission: 'x', min_amount: null },
+      { level: 2, required_permission: 'y', min_amount: 10_000_000 },
+    ]
+    expect(applicableSteps(lama, 1).map(s => s.level)).toEqual([1])
+    expect(applicableSteps(lama, 50_000_000).map(s => s.level)).toEqual([1, 2])
+  })
+
+  it('LANTAI dan PLAFON berlaku bersamaan — rentang', () => {
+    // "Langkah ini hanya untuk PO antara 5jt dan 50jt".
+    const rentang: ApprovalStep[] = [
+      { level: 1, required_permission: 'x', min_amount: 5_000_000, max_amount: 50_000_000 },
+    ]
+    expect(applicableSteps(rentang, 1_000_000)).toHaveLength(0)   // di bawah
+    expect(applicableSteps(rentang, 20_000_000)).toHaveLength(1)  // di dalam
+    expect(applicableSteps(rentang, 90_000_000)).toHaveLength(0)  // di atas
+  })
+
+  it('amount NULL: langkah berplafon TIDAK berlaku (fail-closed)', () => {
+    // Sama seperti lantai: yang tak bisa dibuktikan memenuhi syarat tidak
+    // diberlakukan. Menganggapnya berlaku berarti entitas tanpa nilai
+    // melewati langkah yang seharusnya bersyarat.
+    const berlaku = applicableSteps(rantaiFastTrack, null)
+    expect(berlaku.map(s => s.level)).toEqual([2])
+  })
+
+  it('SELURUH langkah berplafon + nilai di atasnya → TOLAK, bukan loloskan', () => {
+    // Konfigurasi yang salah (semua langkah berplafon) membuat PO besar tak
+    // punya langkah berlaku. Fail-closed: TOLAK. Ini yang membuat plafon aman
+    // dipakai — ia tak pernah bisa diam-diam meloloskan.
+    const semuaBerplafon: ApprovalStep[] = [
+      { level: 1, required_permission: 'x', min_amount: null, max_amount: 1_000_000 },
+    ]
+    const d = evaluateApproval({
+      steps: semuaBerplafon, amount: 999_000_000,
+      approvedLevels: [], userPermissions: ['x'],
+    })
+    expect(d.allowed).toBe(false)
+    expect(d.reason).toBe('no_steps')
+  })
+
+  it('fast-track UTUH: PO kecil disetujui staf, PO besar TIDAK', () => {
+    const kecil = evaluateApproval({
+      steps: rantaiFastTrack, amount: 3_000_000,
+      approvedLevels: [], userPermissions: ['po:staf'],
+    })
+    expect(kecil.allowed).toBe(true)
+    expect(kecil.step?.level).toBe(1)
+    // Level 1 BUKAN langkah terakhir — masih ada level 2.
+    expect(kecil.isFinalStep).toBe(false)
+
+    const besar = evaluateApproval({
+      steps: rantaiFastTrack, amount: 50_000_000,
+      approvedLevels: [], userPermissions: ['po:staf'],
+    })
+    // Staf tak punya `po:manajer`, dan level 1 tak berlaku untuk nilai ini.
+    expect(besar.allowed).toBe(false)
+    expect(besar.reason).toBe('no_permission')
+    expect(besar.step?.level).toBe(2)
+  })
+})

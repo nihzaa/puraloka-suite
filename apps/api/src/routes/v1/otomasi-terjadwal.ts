@@ -714,6 +714,133 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       checked: { po_diperiksa: (baris ?? []).length, ...hitung, ambang_hari: ambangHari },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/stok-menipis ────────────────────────────
+  //
+  // Automation 3.5 — stok menyentuh ambang pesan-ulang.
+  //
+  // ══════════════════════════════════════════════════════════════════════
+  // KENAPA MEMPERINGATKAN, BUKAN MEMBUAT MR OTOMATIS
+  // ══════════════════════════════════════════════════════════════════════
+  //
+  // Katalog menulis "Draft MR otomatis saat stok menyentuh ambang", dan
+  // penjadwal MEMANG bisa memanggil `POST /material-requests`. Tidak
+  // dilakukan, karena tiga hal yang terukur:
+  //
+  // 1. MR menentukan BERAPA BANYAK yang dibeli. Ambang hanya mengatakan
+  //    "kurang", tak mengatakan "beli berapa". Menebaknya berarti membuat
+  //    dokumen pengadaan berisi angka yang tak seorang pun putuskan.
+  //
+  // 2. Ketergantungan yang katalog sebut sendiri — 3.4 Material Consumption
+  //    Prediction — bergerbang **Phase 6** dan butuh AI. Tanpa ia, "berapa
+  //    banyak" tak punya sumber selain tebakan.
+  //
+  // 3. MR draft yang lahir sendiri menumpuk. Yang menumpuk tak dibaca, dan
+  //    yang tak dibaca membuat MR sungguhan ikut terabaikan.
+  //
+  // Yang dikirim: peringatan yang MEMBAWA angkanya — material, sisa, ambang,
+  // dan kekurangannya — supaya manusia menekan "Buat MR" dengan angka yang
+  // sudah terhitung. Satu klik, bukan satu dokumen karangan.
+  //
+  // ══════════════════════════════════════════════════════════════════════
+  // ⚠ HARI INI AUTOMATION INI HAMPIR PASTI DIAM
+  // ══════════════════════════════════════════════════════════════════════
+  //
+  // Diukur 2026-08-12: dari 24 material, **1** punya `min_stock > 0`. Dari
+  // 12 baris `project_stocks`, **nol** di bawah ambang.
+  //
+  // Itu BUKAN alasan menunda automation-nya — kolomnya ada, UI pengisiannya
+  // ada (`procurement/material`), dan begitu founder mengisi ambang, ia
+  // langsung bekerja. Tapi dinyatakan di sini supaya tak ada yang menyimpulkan
+  // "sudah jalan" dari log yang selalu nol.
+  app.get('/api/v1/otomasi/jalankan/stok-menipis', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['stok_menipis'])
+
+    const idProyek = await request.db!.projectIds()
+    const { data: stok, error } = await request.db!
+      .unsafe('project_stocks', 'penjadwal lintas-proyek: disaring .in(project_id, projectIds())')
+      .select(`
+        id, qty_on_hand, project_id, material_id,
+        material:materials(id, name, unit, min_stock),
+        project:projects!project_stocks_project_id_fkey(id, name, status, is_deleted)
+      `)
+      .in('project_id', idProyek)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    let dibuat = 0
+    let menipis = 0
+    let tanpaAmbang = 0
+
+    for (const s of stok ?? []) {
+      const mat = s.material as unknown as
+        { id: string; name: string; unit: string | null; min_stock: number | null } | null
+      const proj = s.project as unknown as
+        { id: string; name: string; status: string; is_deleted: boolean } | null
+      if (!mat || !proj) continue
+
+      // Proyek selesai/batal tak perlu dipesankan apa pun lagi.
+      if (proj.is_deleted || proj.status === 'cancelled' || proj.status === 'completed') continue
+
+      const ambang = Number(mat.min_stock ?? 0)
+      // Ambang nol = belum ditentukan, BUKAN "boleh habis". Menganggapnya nol
+      // sebagai batas membuat tiap material berstok 0 diperingatkan selamanya.
+      if (ambang <= 0) { tanpaAmbang++; continue }
+
+      const sisa = Number(s.qty_on_hand ?? 0)
+      if (sisa >= ambang) continue
+      menipis++
+
+      // Kunci dedup per-baris stok: material yang sama di dua proyek adalah
+      // dua kekurangan berbeda, dan keduanya perlu diketahui.
+      if (sudah('stok_menipis', s.id as string)) continue
+
+      const kurang = ambang - sisa
+      const satuan = mat.unit ?? 'unit'
+
+      const penerima = await resolveRecipients('stok_menipis', {
+        projectId: proj.id, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Stok Menipis',
+          message:    `${mat.name} di proyek "${proj.name}" tersisa ${sisa} ${satuan}, di bawah ambang ${ambang} — kurang ${kurang} ${satuan}`,
+          // `urgent` saat stok benar-benar HABIS: pekerjaan berhenti, bukan
+          // sekadar menipis.
+          priority:   sisa <= 0 ? 'urgent' : 'high',
+          type:       'stok_menipis',
+          project_id: proj.id,
+          action_url: '/procurement/material-request',
+          // Angkanya ikut supaya UI bisa mengisi form MR tanpa menghitung
+          // ulang — inilah yang membuat "satu klik" mungkin.
+          action_data: {
+            record_id: s.id, material_id: mat.id, material: mat.name,
+            sisa, ambang, kurang, unit: satuan,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        stok_diperiksa: (stok ?? []).length,
+        menipis,
+        tanpa_ambang: tanpaAmbang,
+      },
+    })
+  })
 }
 
 /**

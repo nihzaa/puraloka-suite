@@ -65,6 +65,8 @@ export type NotificationType =
   // 4.10 — PO/GR tak cocok. Tipe sendiri karena penerimanya tim pengadaan,
   // bukan PM proyek, dan tindakannya memeriksa gudang bukan menata jadwal.
   | 'gr_tak_cocok'
+  // 3.5 — stok di bawah ambang pesan-ulang.
+  | 'stok_menipis'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

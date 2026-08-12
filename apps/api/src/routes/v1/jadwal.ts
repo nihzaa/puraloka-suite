@@ -110,6 +110,11 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Termin yang sudah memenuhi syarat tagih diterbitkan invoice-nya.',
     jalur: '/api/v1/otomasi/jalankan/invoice-termin',
   },
+  'stok-menipis': {
+    label: 'Stok Menipis',
+    keterangan: 'Material yang sisanya di bawah ambang pesan-ulang.',
+    jalur: '/api/v1/otomasi/jalankan/stok-menipis',
+  },
   'gr-matching': {
     label: 'Kecocokan PO & Penerimaan',
     keterangan: 'PO yang statusnya tak cocok dengan barang diterima, atau menggantung lewat tenggat.',

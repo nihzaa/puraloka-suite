@@ -85,14 +85,22 @@ async function loadSteps(
 ): Promise<{ steps: ApprovalStep[]; error?: string }> {
   const { data, error } = await supabase
     .from('approval_chains')
-    .select('id, is_active, approval_steps ( level, required_permission, min_amount, label )')
+    .select('id, is_active, approval_steps ( level, required_permission, min_amount, max_amount, label )')
     .eq('entity_type', entityType)
     .eq('company_id', companyId)
     .maybeSingle()
   if (error) return { steps: [], error: error.message }
   if (!data || data.is_active === false) return { steps: [] }
   const raw = (data.approval_steps ?? []) as unknown as ApprovalStep[]
-  return { steps: raw.map(s => ({ ...s, min_amount: s.min_amount === null ? null : Number(s.min_amount) })) }
+  return {
+    steps: raw.map(s => ({
+      ...s,
+      min_amount: s.min_amount === null ? null : Number(s.min_amount),
+      // Sama seperti min_amount: PostgREST memulangkan numeric sebagai
+      // STRING, dan perbandingan string dengan angka menyesatkan senyap.
+      max_amount: s.max_amount === null || s.max_amount === undefined ? null : Number(s.max_amount),
+    })),
+  }
 }
 
 /** Level yang SUDAH disetujui untuk entitas ini. */
@@ -371,7 +379,7 @@ export async function siapkanRantaiApproval(companyId: string): Promise<{
 
     const { data: langkah, error: eLangkah } = await supabase
       .from('approval_steps')
-      .select('level, required_permission, min_amount, label')
+      .select('level, required_permission, min_amount, max_amount, label')
       .eq('chain_id', asal.id)
       .order('level', { ascending: true })
 

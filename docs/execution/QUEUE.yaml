@@ -2125,19 +2125,25 @@ items:
            Migrasi 334 menyediakan aturan routing-nya (penerima =
            pemegang `procurement:po:manage`, bukan PM proyek).
 
-      ── SISA (2) ──────────────────────────────────────────────────────────
-      5.1  invoice dari termin — KEDUA HALFNYA SUDAH ADA, tinggal disambung:
-           predikat `isTriggered` di notifications.ts:523 → generator di
-           termin-payment.ts:172. Idempotensi ganda sudah terjamin.
-      4.10 auto GR matching — matching + validasi + invoice hilir SUDAH ADA
-           (`lib/three-way-match.ts`). Yang kurang cuma auto-populate baris
-           GR dari PO.
-      3.5  auto purchase request — predikat ambang stok sudah ada
-           (`procurement.ts:1728-1730`), endpoint draft MR belum.
-      4.6  PO fast-track — TERBERAT: `approval_steps` punya `min_amount`
-           (LANTAI), yang dibutuhkan `max_amount` (PLAFON). Butuh migrasi +
-           cabang skip di `evaluateEntityApproval`.
+      ── SELESAI TAHAP KETIGA 2026-08-12 — DELAPAN dari 8 ────────────────
+      3.5  stok menipis. Katalog menulis "draft MR otomatis"; yang dibangun
+           MEMPERINGATKAN dengan angkanya (sisa/ambang/kurang) supaya form
+           MR terisi satu klik. TIDAK membuat MR sendiri: ambang mengatakan
+           "kurang", tak mengatakan "beli berapa", dan 3.4 (prediksi
+           kebutuhan) bergerbang Phase 6. MR draft yang lahir sendiri
+           menumpuk, dan yang menumpuk tak dibaca.
+           ⚠ Hampir pasti DIAM hari ini: dari 24 material, 1 punya
+           min_stock > 0. Kolom + UI-nya ada; begitu founder mengisi ambang,
+           ia langsung bekerja. Migrasi 335.
+      4.6  PO fast-track. Butuh PLAFON, dan mesin approval hanya punya
+           LANTAI (min_amount). Migrasi 336 menambah max_amount + CHECK
+           "plafon >= lantai" (plafon di bawah lantai = langkah yang tak
+           pernah berlaku, dan itu tak bergejala).
+           applicableSteps kini menyaring keduanya. NULL = tanpa batas atas,
+           jadi seluruh rantai yang sudah berjalan TIDAK berubah — diverifikasi
+           migrasi (nol baris terisi) dan test (16 test lama tetap hijau).
 
+      SELURUH 8 automation Phase 2 SELESAI.
       ── PENJADWALNYA BELUM HIDUP DI PRODUKSI ─────────────────────────────
       `SCHEDULER_URL` + `SCHEDULER_SECRET` belum disetel di GitHub Secrets,
       jadi denyut 15 menit dilewati dengan notice. TUGAS FOUNDER — tanpa itu,
