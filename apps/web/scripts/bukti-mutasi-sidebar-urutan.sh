@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# BUKTI MUTASI — penjaga urutan sidebar (ambang NOL).
+#
+# Mutasinya di BASIS DATA, bukan di berkas — yang dijaga penjaga ini memang
+# keadaan data, bukan bentuk kode. Karena itu perubahannya dijalankan di dalam
+# TRANSAKSI yang selalu di-ROLLBACK: menyuntik bentrok lalu lupa memulihkannya
+# akan meninggalkan sidebar rusak untuk sesi berikutnya.
+#
+# Diuji dua arah:
+#   MENANGKAP    dua item diberi sort_order yang sama → MERAH
+#   TIDAK CEREWET  sort_order sama di grup BERBEDA tetap hijau (itu sah —
+#                  bentrok hanya berarti di dalam satu grup)
+set -uo pipefail
+cd "$(dirname "$0")/../../.."
+
+PENJAGA="node apps/web/scripts/audit-sidebar-urutan.mjs"
+D="$(mktemp -d)"
+trap 'rm -rf "$D"' EXIT
+
+gagal=0
+
+echo "── 0. keadaan awal harus HIJAU"
+if $PENJAGA >/dev/null 2>&1; then echo "   ✅ hijau"
+else echo "   ❌ sudah merah sebelum mutasi — uji ini tak bermakna"; exit 1; fi
+
+# Menjalankan penjaga DI DALAM transaksi yang sama dengan mutasinya: penjaga
+# memakai koneksinya sendiri, jadi ia tak akan melihat perubahan yang belum
+# di-commit. Karena itu logikanya diulang di SQL di sini, memakai kueri yang
+# sama persis dengan penjaganya.
+jalankan() { # $1 = SQL mutasi
+  node - "$1" <<'EOF'
+import { buatClient } from 'file:///E:/Project/puraloka-suite/scripts/db/_koneksi.mjs'
+const c = buatClient('DIRECT_URL'); await c.connect()
+try {
+  await c.query('BEGIN')
+  await c.query(process.argv[2])
+  const r = await c.query(`
+    SELECT count(*)::int n FROM (
+      SELECT i.parent_id, i.sort_order FROM menu_items i
+        JOIN menu_items g ON g.id = i.parent_id
+       WHERE i.is_active AND g.is_active
+       GROUP BY i.parent_id, i.sort_order HAVING count(*) > 1) t`)
+  console.log(r.rows[0].n > 0 ? 'merah' : 'hijau')
+} finally {
+  await c.query('ROLLBACK')   // SELALU — sidebar tak boleh ditinggalkan rusak
+  await c.end()
+}
+EOF
+}
+
+uji() { # $1 judul, $2 harapan, $3 SQL
+  hasil="$(jalankan "$3" | tail -1)"
+  if [ "$hasil" = "$2" ]; then echo "   ✅ $1 → $hasil"
+  else echo "   ❌ $1 → $hasil (harus $2)"; gagal=1; fi
+}
+
+echo
+echo "── MENANGKAP"
+uji "dua item, sort_order sama, grup sama" merah \
+  "UPDATE menu_items SET sort_order = (SELECT sort_order FROM menu_items WHERE key='ai-asisten-staf') WHERE key='ai-asisten-web'"
+
+echo
+echo "── TIDAK CEREWET"
+uji "sort_order sama di grup BERBEDA" hijau \
+  "UPDATE menu_items SET sort_order = (SELECT sort_order FROM menu_items WHERE key='ai-asisten-web') WHERE key='gudang-transfer'"
+uji "tanpa perubahan apa pun" hijau "SELECT 1"
+
+echo
+echo "── pulih: penjaga nyata harus tetap HIJAU sesudah rollback"
+if $PENJAGA >/dev/null 2>&1; then echo "   ✅ hijau"
+else echo "   ❌ MERAH — rollback gagal, sidebar ditinggalkan rusak"; gagal=1; fi
+
+echo
+if [ "$gagal" -eq 0 ]; then
+  echo "✅ BUKTI LENGKAP: merah untuk bentrok, hijau untuk yang sah."
+else
+  echo "❌ BUKTI GAGAL — penjaga belum layak dipasang di CI."
+fi
+exit "$gagal"

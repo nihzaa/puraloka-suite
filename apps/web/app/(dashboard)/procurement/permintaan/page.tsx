@@ -65,6 +65,11 @@ export default function PermintaanPage() {
   const [rejectNotes, setRejectNotes] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [detailMr, setDetailMr] = useState<MaterialRequest | null>(null);
+  /** Pesan penolakan dari server — SoD, saldo, konfigurasi rantai. */
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  /** MR yang sedang dimintakan alasan override SoD-nya. */
+  const [overrideId, setOverrideId] = useState<string | null>(null);
+  const [alasanOverride, setAlasanOverride] = useState("");
   // Keadaan cache dipisah dari datanya: layar perlu tahu data ini SEGAR atau
   // TERSIMPAN, dan sejak kapan. Tanpa itu, daftar dari simpanan terlihat
   // persis seperti daftar hari ini — dan yang membacanya mengambil keputusan.
@@ -129,10 +134,47 @@ export default function PermintaanPage() {
     setSubmitting(null); void load(statusFilter);
   };
 
-  const approve = async (id: string) => {
+  /**
+   * Setujui MR.
+   *
+   * ── Kenapa galatnya ditampilkan, padahal sebelumnya ditelan
+   *
+   * Versi sebelumnya: `.catch(() => null)` lalu muat ulang daftar. Permintaan
+   * yang ditolak server terlihat persis sama dengan yang berhasil — tombol
+   * berhenti berputar, daftar tak berubah, tak ada pesan apa pun.
+   *
+   * Itu tak terlalu terasa selama satu-satunya penolakan adalah "tak
+   * berwenang" (yang tombolnya memang sudah disembunyikan). Sejak gerbang SoD
+   * (TJS-P4) ada, penolakan jadi hal yang WAJAR dialami orang berwenang —
+   * "Anda tidak bisa menyetujui pengajuan Anda sendiri" — dan pesan itu
+   * satu-satunya petunjuk mengapa tak terjadi apa-apa.
+   *
+   * ── `alasan` = override SoD
+   *
+   * Dikirim hanya kalau diisi. Server menolak override tanpa alasan, jadi
+   * mengirim string kosong sama dengan tak mengirim apa pun.
+   */
+  const approve = async (id: string, alasanOverride?: string) => {
     setApprovingId(id);
-    await api.patch(`/api/v1/procurement/material-requests/${id}/approve`, { action: "approve" }).catch(() => null);
-    setApprovingId(null); void load(statusFilter);
+    setGalatAksi(null);
+    try {
+      await api.patch(`/api/v1/procurement/material-requests/${id}/approve`, {
+        action: "approve",
+        ...(alasanOverride?.trim() ? { alasan_override: alasanOverride.trim() } : {}),
+      });
+      setOverrideId(null);
+      setAlasanOverride("");
+    } catch (e) {
+      const pesan = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setGalatAksi(pesan ?? "Gagal menyetujui permintaan ini.");
+      // Penolakan karena SoD punya jalan keluarnya: minta alasan, lalu ulangi.
+      // Dibuka otomatis supaya pengguna tak perlu menebak apa yang harus
+      // dilakukan dari pesan galat saja.
+      if (pesan && /pengajuan Anda sendiri|alasan tertulis/i.test(pesan)) setOverrideId(id);
+    } finally {
+      setApprovingId(null);
+      void load(statusFilter);
+    }
   };
 
   const reject = async () => {
@@ -182,6 +224,23 @@ export default function PermintaanPage() {
         </select>
         <Btn onClick={() => setShowCreate(true)}><Plus size={14} aria-hidden="true" /> Buat Material Request</Btn>
       </div>
+
+      {/* Penolakan server ditampilkan, bukan ditelan. `role="alert"` supaya
+          pembaca layar mengumumkannya — penggunanya menekan tombol lalu
+          menunggu, dan tanpa pengumuman ia menunggu selamanya. */}
+      {galatAksi && (
+        <div
+          role="alert"
+          style={{
+            background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 8,
+            padding: "10px 12px", marginBottom: 12, fontSize: 13, color: C.danger,
+            display: "flex", alignItems: "flex-start", gap: 8,
+          }}
+        >
+          <X size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
+          <span style={{ lineHeight: 1.5 }}>{galatAksi}</span>
+        </div>
+      )}
 
       {loading ? <Memuat /> : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -306,6 +365,53 @@ export default function PermintaanPage() {
               <Btn variant="secondary" onClick={() => setRejectId(null)}>Batal</Btn>
               <Btn variant="danger" loading={approvingId === rejectId} onClick={() => void reject()}>
                 <X size={14} aria-hidden="true" /> Konfirmasi Tolak
+              </Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Override pemisahan wewenang (TJS-P4).
+          Muncul hanya kalau server MENOLAK dengan alasan SoD — bukan pilihan
+          yang ditawarkan di muka. Menawarkannya sebelum ditolak akan membuat
+          jalan pintas terlihat seperti alur biasa, dan yang tersisa dari
+          "pemisahan wewenang" cuma satu kotak isian tambahan. */}
+      {overrideId && (
+        <Modal title="Menyetujui pengajuan Anda sendiri" onClose={() => { setOverrideId(null); setAlasanOverride(""); }} width={480}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div
+              style={{
+                // `--warning-teks` (#9A3412), bukan `--warning` — 7,05:1 di
+                // atas `--warning-bg` versus 4,84:1. Dan bukan `C.mid`, yang
+                // di mode gelap berubah jadi terang sementara latar ini tidak.
+                background: "var(--warning-bg)",
+                border: "1px solid var(--warning-border)", borderRadius: 6,
+                padding: "10px 12px", fontSize: 13, color: "var(--warning-teks)", lineHeight: 1.55,
+              }}
+            >
+              Anda adalah pengaju permintaan ini. Biasanya orang lain yang
+              memutuskannya. Kalau tetap perlu Anda setujui sendiri, tuliskan
+              alasannya — <strong>alasan ini tercatat permanen dan tidak bisa
+              diubah atau dihapus.</strong>
+            </div>
+            <div>
+              <label htmlFor="alasan-override-mr" style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.mid, marginBottom: 4 }}>
+                Alasan (wajib)
+              </label>
+              <textarea
+                id="alasan-override-mr" value={alasanOverride} onChange={e => setAlasanOverride(e.target.value)} rows={3}
+                style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box", background: C.surface, color: C.text }}
+                placeholder="cth: Direktur sedang cuti, material dibutuhkan besok pagi"
+              />
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <Btn variant="secondary" onClick={() => { setOverrideId(null); setAlasanOverride(""); }}>Batal</Btn>
+              <Btn
+                loading={approvingId === overrideId}
+                disabled={alasanOverride.trim() === ""}
+                onClick={() => void approve(overrideId, alasanOverride)}
+              >
+                <Check size={14} aria-hidden="true" /> Setujui &amp; catat alasan
               </Btn>
             </div>
           </div>

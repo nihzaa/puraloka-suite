@@ -651,6 +651,25 @@ jobs:
       - name: Argumen viaProject cocok dengan kolom tenancy-nya
         run: node scripts/audit-viaproject-argumen.mjs
 
+      # TJS-P4 — Segregation of Duties. Diukur 2026-08-12: `recordApproval`
+      # (satu-satunya pintu approval, ADR-007) menerima `approvedBy` dan tak
+      # pernah membandingkannya dengan pengaju. Sembilan jenis, 18 pemanggilan,
+      # nol pengecekan — seorang mandor bisa mengajukan kasbon lalu
+      # menyetujuinya sendiri dalam dua ketukan.
+      #
+      # Yang ADA hanyalah lencana "pengajuan Anda" di inbox dan tombol yang
+      # disembunyikan. Tombol tersembunyi itu UX, bukan batas keamanan.
+      #
+      # Terbukti bisa merah lewat EMPAT mutasi: gerbang dicabut dari satu rute,
+      # satu jenis dihapus dari registri, kolom pengaju dikarang (dicek ke
+      # information_schema), dan nama `recordApproval` diubah sehingga satu
+      # berkas keluar dari pengawasan — yang terakhir ini sempat LOLOS pada
+      # versi pertama penjaga, dan itulah alasan ada LANTAI_PEMANGGIL.
+      - name: Gerbang SoD di tiap jalur persetujuan (TJS-P4)
+        run: node scripts/audit-sod-gerbang.mjs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       # Status sub-menu yang membusuk sementara kode maju. Terbukti terjadi
       # TUJUH kali (F5-1 §3a satu item, §3b enam item) tanpa satu pun penjaga
       # menabraknya — skrip ini sudah ada sejak lama tetapi tak pernah
@@ -1535,6 +1554,28 @@ jobs:
       # aneh" — dan tak ada penjelasan yang membuatnya tidak aneh.
       - name: Satu route satu link sidebar
         run: node apps/web/scripts/audit-menu-berbagi-href.mjs
+        working-directory: .
+        env:
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      # Urutan sidebar — `sort_order` tak boleh bentrok dalam satu grup.
+      # Ambang NOL.
+      #
+      # Diukur 2026-08-12 atas keluhan founder: 5 pasang item berbagi
+      # sort_order, DUA di antaranya dari migrasi 276 & 278 yang memakai
+      # `max(sort_order) + n` tanpa memeriksa angkanya sudah dipakai.
+      #
+      # Urutannya TIDAK acak — `routes/v1/menu.ts` sudah punya tie-break
+      # `key`. Cacatnya lebih halus: urutan tampil ditentukan ABJAD KUNCI,
+      # bukan niat siapa pun. Akibat nyatanya lima halaman asisten (satu
+      # rangkaian, migrasi 276) terpotong "Pemakaian & Biaya" dan "Kanal
+      # WhatsApp" yang nyempil di tengah — dan yang mencari "Asisten Staf"
+      # berhenti di sisipan itu lalu mengira daftarnya habis.
+      #
+      # Bukti mutasi 5/5: apps/web/scripts/bukti-mutasi-sidebar-urutan.sh
+      # (mutasinya di DB, dijalankan dalam transaksi yang selalu ROLLBACK).
+      - name: Urutan sidebar tak bentrok
+        run: node apps/web/scripts/audit-sidebar-urutan.mjs
         working-directory: .
         env:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}

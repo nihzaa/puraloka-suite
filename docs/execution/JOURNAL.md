@@ -5,6 +5,176 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — TJS-P4: lencana yang sopan, dan pintu yang tak pernah dikunci
+
+Item ini meminta tiga hal: *"aturan DEKLARATIF, bukan if bertebaran"*,
+*"pembuat tak boleh approve miliknya sendiri"*, *"override MUNGKIN tapi
+TERCATAT"*.
+
+Yang saya duga akan ditemukan: SoD belum ada, tinggal dibangun.
+Yang benar-benar ditemukan lebih buruk: **SoD sudah ada bentuknya, dan
+bentuknya tak menjaga apa pun.**
+
+`approval-inbox.ts` mengirim `saya_pengajunya: boolean`. Halamannya
+menampilkan lencana "pengajuan Anda". Komentarnya berbunyi:
+
+> Pengaju tak boleh menyetujui pengajuannya sendiri (SoD). Ditandai di sini
+> supaya ia tak membuka dokumennya hanya untuk menemukan tombolnya tak ada.
+
+Kalimat itu mengandaikan ada penolakan di hilir. Saya cari penolakannya.
+`recordApproval` — satu-satunya pintu persetujuan di repo ini (ADR-007,
+dijaga `audit-approval-satu-pintu.mjs`) — menerima `approvedBy` dan **tidak
+pernah membandingkannya dengan pengaju.** Sembilan jenis entitas, 18
+pemanggilan, nol pengecekan.
+
+Tombolnya memang disembunyikan. Rutenya tidak.
+
+Kasusnya paling telanjang di kasbon: uang tunai, ke rekening orang yang
+mengajukannya. Seorang mandor dengan izin approve bisa mengajukan lalu
+menyetujui sendiri dalam dua ketukan — tanpa satu pun galat, tanpa jejak
+apa pun yang membedakannya dari persetujuan biasa.
+
+### Yang dibangun
+
+`lib/sod.ts` — registri sembilan jenis + `periksaSod()` yang murni.
+Deklaratif karena kriterianya menuntut begitu, tapi juga karena menambal 18
+tempat berarti membangun cacatnya: yang ke-19 akan lupa.
+
+`periksaGerbangSod()` di `utils/approval.ts` — jembatan ke basis dan izin.
+Berdiri terpisah dari `recordApproval` karena fungsi itu tak menerima
+`request` (jadi tak bisa membaca izin), dan menambahkannya berarti menyentuh
+18 pemanggilan sekaligus.
+
+Migrasi 318 — `sod_override`: immutable lewat trigger, `alasan` wajib dengan
+`CHECK (btrim(alasan) <> '')`, RLS dengan dua policy PERMISSIVE.
+
+Barisnya ditulis **sebelum** approval berjalan. Kriterianya berbunyi
+"override MUNGKIN tapi TERCATAT"; mencatat sesudah berarti approval yang
+pencatatannya gagal tetap terjadi — override tanpa jejak, persis yang
+hendak dicegah. Gagal mencatat = gagal override.
+
+Bukan lewat `logAuditEvent`, yang fire-and-forget dengan alasan yang benar
+untuk jejak umum ("audit yang gagal tidak boleh menggagalkan aksi bisnis")
+dan salah untuk yang ini.
+
+### Kenapa override tetap diizinkan
+
+Puraloka nyata menjalankan proyek dengan 2-3 orang. Larangan mutlak berarti
+pada hari direktur satu-satunya cuti, pengadaan berhenti — dan yang terjadi
+berikutnya bukan kepatuhan, melainkan seseorang memakai akun orang lain.
+
+Yang dijaga bukan "tak pernah terjadi", melainkan "tak pernah tanpa jejak".
+
+Di UI, jalan keluarnya **tidak** ditawarkan di muka. Modal alasan hanya
+muncul sesudah server menolak. Menawarkannya sebelum ditolak membuat jalan
+pintas terlihat seperti alur biasa, dan yang tersisa dari "pemisahan
+wewenang" cuma satu kotak isian tambahan.
+
+### Cacat sampingan: registri yang membusuk tanpa suara
+
+Saat mengukur kolom pengaju kesembilan jenis ke `information_schema`, dua
+entri `inbox-approval.ts` ternyata **salah**: `kolomPengaju: null` untuk
+`project_expense` dan `submittal`, padahal `project_expenses.submitted_by`
+dan `submittals.diajukan_oleh` dua-duanya ada.
+
+Akibatnya inbox tak pernah menandai dua jenis itu sebagai milik sendiri —
+diam-diam, karena `null` adalah nilai yang sah.
+
+Registri ditulis sekali lalu tak pernah diperiksa lagi terhadap basis.
+Penjaga barunya sekarang memeriksanya.
+
+### Kesalahan saya sendiri, di sesi ini
+
+Empat asumsi yang saya tulis lebih dulu lalu ternyata salah saat diukur:
+
+    current_tenant_id()      fungsi yang saya karang; yang ada has_permission()
+    approval:view            izin yang tak ada; yang ada approval:chains:manage
+    permissions.sort_order    NOT NULL, saya kira punya default
+    kolomPengaju null ×2      disalin dari registri lain yang salah
+
+Ketiga yang pertama tertangkap sebelum jalan. Yang keempat tertangkap justru
+karena saya berhenti menyalin dan mulai mengukur.
+
+`has_permission('approval:view')` tidak akan error — ia hanya mengembalikan
+false, dan tabelnya tak terbaca siapa pun. Persis mode kegagalan T5A (30
+tabel mati total), dengan penyebab yang lebih halus.
+
+### Bukti
+
+Tiga lapis test, karena dua lapis pertama HIJAU meski rutenya tak pernah
+memanggil gerbangnya:
+
+    lib/__tests__/sod.test.ts          11 hijau   aturannya benar
+    __tests__/sod-gerbang.test.ts       9 hijau   basis menjaga bentuk barisnya
+    __tests__/sod-rute.test.ts          3 hijau   HTTP masuk, 403 keluar
+
+Lapis ketiga itu jawaban atas kesalahan yang saya ulangi berkali-kali sesi
+ini (G1e, G1f, G2e, G3, G5, TJS-P1): **menguji lapisan yang salah.**
+
+Mutasi — tiga di aturan (5/3/1 test merah), satu di rute (2 merah), empat di
+penjaga. Yang keempat di penjaga menemukan celah nyata: nama `recordApproval`
+diubah → hitungan turun 9 ke 8 dan penjaga **tetap hijau**. Berkas itu keluar
+dari pengawasan tanpa satu pun galat, karena "tak memanggil recordApproval"
+terlihat sama persis dengan "tak ada jalur approval di sini". Diperbaiki
+dengan `LANTAI_PEMANGGIL`, lalu merah.
+
+Migrasi 318 lulus dengan blok verifikasinya sendiri — termasuk bukti langsung
+di basis bahwa alasan kosong ditolak dan baris override tak bisa
+diubah/dihapus.
+
+### Penjaga itu sendiri hampir jadi hiasan, karena CRLF
+
+Sesudah semua mutasi lulus, saya jalankan seluruh penjaga sekali lagi. Yang
+baru saya buat MERAH — dengan pesan *"Blok ApprovalEntityType tak terbaca.
+Bentuknya berubah — penjaga ini menolak berjalan buta."*
+
+Bentuknya tidak berubah sama sekali. Berkasnya berakhiran **CRLF**, dan pola
+saya mencari `\n\n` untuk baris kosong pemisah. Yang ada di sana `\r\n\r\n`.
+
+Ia gagal HANYA setelah impor baru saya menggeser isinya — sebelumnya cocok
+karena kebetulan. Artinya penjaga ini bisa saja hijau sepanjang sisa umurnya
+tanpa pernah benar-benar membaca apa pun, kalau kebetulan itu bertahan.
+
+Yang menyelamatkannya adalah keputusan menolak-berjalan-buta: `exit 1` saat
+pola tak cocok, bukan "0 pelanggaran". Ini kedua kalinya hari ini keputusan
+yang sama membayar dirinya sendiri — yang pertama pada penjaga Peta Modul
+yang membaca 224 dari 226.
+
+Pelajarannya bukan "hati-hati CRLF". Pelajarannya: **penjaga yang punya cara
+melaporkan bahwa ia tak bisa membaca lebih berharga daripada penjaga yang
+lebih teliti.**
+
+### Utang ratchet yang saya wariskan sendiri
+
+`audit-tulis-tanpa-periksa` merah: 78 > ambang 76. Saya kira dari insert
+`sod_override` saya — ternyata **sudah merah di HEAD bersih**, diwariskan
+commit saya sendiri sesi ini yang menggeser dua baris tanpa menyesuaikan
+apa pun.
+
+Dua barisnya: `cash.ts` menghapus pengeluaran, dan `change-orders.ts`
+memperbarui `contract_value` proyek. Keduanya sudah memeriksa `error` dengan
+benar — yang kurang, pemeriksaan JUMLAH BARIS. Nol baris terhapus/terbarui
+membalas sukses.
+
+Yang kedua yang mahal: change order tercatat disetujui, nilai kontrak proyek
+tidak berubah, dan selisihnya baru ketahuan saat penagihan.
+
+Diperbaiki dengan `.select('id')` + periksa panjang — **bukan** dengan
+menaikkan ambang (itu G-5, butuh ratifikasi). Kembali 76, hijau.
+
+### Sisi UI
+
+Halaman Permintaan Material menelan galat: `.catch(() => null)` di tiga
+tempat. Permintaan yang ditolak server terlihat persis seperti yang berhasil
+— tombol berhenti berputar, daftar tak berubah, tak ada pesan apa pun.
+
+Itu tak terlalu terasa selama satu-satunya penolakan adalah "tak berwenang"
+(yang tombolnya sudah disembunyikan). Sejak gerbang SoD ada, penolakan jadi
+hal yang **wajar dialami orang berwenang** — dan pesannya satu-satunya
+petunjuk mengapa tak terjadi apa-apa.
+
+---
+
 ## 2026-08-12 (koreksi) — founder membaca Peta Modul, dan empat kartu berstatus belum-jalan ternyata sudah selesai
 
 Founder membuka `/peta-modul` dan bertanya: *"ini di peta modulnya masih banyak
@@ -13729,3 +13899,98 @@ masalahnya.
     a11y tanpa kredensial exit 2 (cakupan runtuh) ← dulu exit 0
     hex-ratchet          48/48, bukti mutasi 3/3
     15 penjaga web       semuanya OK
+
+## 2026-08-12 — Sidebar: 5 `sort_order` bentrok, dua buatan saya sendiri
+
+Founder: *"kayanya susunan dan penempatannya ada yg masih ga sesuai"*. Diukur,
+dan memang — **5 pasang item berbagi `sort_order` di grup yang sama**:
+
+    Administrasi       1613  Keamanan Akun | Recycle Bin
+    AI & Otomasi       1853  Asisten Pemilik | Pemakaian & Biaya
+    AI & Otomasi       1854  Asisten Staf | Kanal WhatsApp
+    Gudang & Material   704  Rencana Susut | Transfer Antar Proyek
+    Pelaporan & BI     1502  Susun Laporan | Peta Modul
+
+Dua di antaranya lahir dari migrasi 276 & 278 — **keduanya milik saya**,
+keduanya memakai `max(sort_order) + n` tanpa memeriksa angka itu sudah dipakai.
+
+### Dugaan pertama saya salah, dan cacatnya lebih halus
+
+Saya menduga: tanpa tie-break, Postgres bebas mengurutkan berbeda tiap query.
+Diperiksa ke `routes/v1/menu.ts` — ia SUDAH memakai
+`.order('section').order('sort_order').order('key')`. Urutannya deterministik.
+
+Cacat sebenarnya: urutan tampil ditentukan **abjad `key`**, bukan niat siapa
+pun. Hasilnya di AI & Otomasi:
+
+    Asisten — Lapisan AI
+    Asisten Pemilik
+    Pemakaian & Biaya      ← nyempil
+    Asisten Staf
+    Kanal WhatsApp         ← nyempil
+    Asisten Web
+    Wawasan Portofolio
+
+Kelima halaman asisten adalah SATU rangkaian yang sengaja dipecah kemarin
+(migrasi 276) supaya tiap kanal punya halamannya sendiri. Dua sisipan di
+tengahnya mematahkan rangkaian itu — dan yang mencari "Asisten Staf" berhenti
+di sisipan lalu mengira daftarnya sudah habis.
+
+Sesudah migrasi 319, diverifikasi DI PERAMBAN (bukan hanya di DB):
+
+    Penyedia AI → Asisten — Lapisan AI → Asisten Pemilik → Asisten Staf →
+    Asisten Web → Wawasan Portofolio → Pemakaian & Biaya → Kanal WhatsApp →
+    Alur Otomasi → Riwayat Asisten
+
+### Penomoran ulang JARAK 10, bukan +1
+
+Angka rapat adalah sebab langsung tabrakan ini: dengan +1, sisipan berikutnya
+tak punya ruang dan penulisnya terpaksa memakai angka yang sudah ada. Grup AI
+dinomori ulang 1810…1900.
+
+### Nomor migrasi saya sendiri bertabrakan
+
+Ditulis sebagai `279_sidebar_urutan_bentrok.sql`. `audit-penomoran-migrasi`
+langsung merah:
+
+    279 → 279_checklist_inspeksi_uji_material.sql DAN 279_sidebar_urutan_bentrok.sql
+
+Sebabnya saya membaca `ls | tail -4` di awal sesi dan menyimpulkan buku sampai
+278 — padahal berkas migrasi sudah sampai **318**. Penjaga menyebut
+konsekuensinya tepat: *"yang kedua DILEWATI SENYAP di setiap lingkungan
+baru — mekanisme yang sama dengan cacat P0 047 vs 167."*
+
+Diganti jadi **319**. Diperiksa juga 276/277/278: ketiganya tunggal, tak
+bertabrakan. `ledger-diff` atas 316 berkas: nol yang tidak konsisten.
+
+### Penjaga baru: `audit-sidebar-urutan` (ambang NOL)
+
+Tak ada `--naikkan` — menyisipkan menu baru selalu bisa memakai angka yang
+belum terpakai, jadi tak ada kasus sah untuk bentrok.
+
+Bukti mutasi 5/5 (`bukti-mutasi-sidebar-urutan.sh`). Mutasinya di BASIS DATA,
+bukan berkas — yang dijaga memang keadaan data. Karena itu dijalankan di dalam
+transaksi yang **selalu ROLLBACK**: menyuntik bentrok lalu lupa memulihkannya
+akan meninggalkan sidebar rusak untuk sesi berikutnya. Uji terakhirnya justru
+memeriksa itu — penjaga nyata harus tetap hijau sesudah rollback.
+
+Yang juga diuji: `sort_order` sama di grup BERBEDA tetap hijau. Bentrok hanya
+berarti di dalam satu grup, dan penjaga yang menolak itu akan dimatikan orang.
+
+### Yang DIPERIKSA dan ternyata bukan cacat
+
+    item tanpa href           0
+    grup tanpa anak aktif     1 → "Beranda", memang halaman tunggal
+    href tanpa halaman       11 → SEMUANYA kesiapan 'rencana', konsisten
+
+### Bukti
+
+    tsc (web)                 0
+    vitest (web)              604 lulus / 46 berkas — 0 gagal
+    migrasi 319               NOTICE: nol tabrakan; rangkaian asisten utuh
+    audit-sidebar-urutan      ✅ 0 bentrok (baru)
+    bukti-mutasi-sidebar      5/5
+    audit-menu-berbagi-href   ✅ nol href ganda
+    audit-peta-menu-vs-db     ✅ drift 0
+    audit-penomoran-migrasi   ✅ nol nomor ganda
+    urutan di PERAMBAN        lima asisten berurutan, terverifikasi
