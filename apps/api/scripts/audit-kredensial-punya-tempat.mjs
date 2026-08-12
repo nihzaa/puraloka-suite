@@ -70,18 +70,49 @@ for (const f of berkasTs(AKAR)) {
   const isi = readFileSync(f, 'utf8')
 
   /*
-   * Dua bentuk yang dipakai repo ini:
+   * TIGA bentuk yang dipakai repo ini:
    *
    *   ambilKredensial(request, 'KUNCI')      — langsung
    *   baca('KUNCI')                          — lewat fungsi yang disuntikkan
    *                                            (mis. `konfigurasiN8n`)
+   *   kunciKredensial: 'KUNCI'               — dioper sebagai DATA, dibaca
+   *                                            belakangan lewat variabel
    *
    * Bentuk kedua penting: `otomasi-n8n.ts` dan `wa-kirim.ts` memakainya, dan
    * penjaga yang hanya mencari bentuk pertama akan melewatkan justru berkas
    * yang melahirkan cacat ini.
+   *
+   * ── Bentuk KETIGA ditambahkan 2026-08-12, dan alasannya sebuah cacat hidup
+   *
+   * `ai-adaptor.ts:44` menyebut `AI_PROVIDER_API_KEY` sebagai nilai properti,
+   * dan `ai-jalankan.ts:233` membacanya lewat `metaP?.kunciKredensial` —
+   * tak pernah sebagai literal di titik panggil. Nama itu TIDAK ADA di
+   * katalog, jadi penyedia OpenAI-compatible selalu gagal `kunci_tak_ada`.
+   *
+   * Penjaga ini HIJAU sepanjang cacat itu hidup ("Kunci dibaca kode: 3"),
+   * karena ia hanya mengenali dua bentuk pertama. Persis kelemahan yang
+   * membuat kelas cacat ini bertahan: penjaga yang mengukur bentuk, bukan
+   * maksud, buta terhadap bentuk yang belum pernah dilihatnya.
    */
-  for (const m of isi.matchAll(/(?:ambilKredensial\([^,]+,|\bbaca\()\s*'([A-Z0-9_]+)'/g)) {
-    if (!dibaca.has(m[1])) dibaca.set(m[1], rel)
+  /*
+   * Komentar dilucuti dulu.
+   *
+   * Bentuk ketiga (`kunciKredensial: 'X'`) cukup umum untuk muncul di dalam
+   * komentar yang MENJELASKANNYA — dan penjaga yang membaca komentar akan
+   * merah karena kalimat, bukan karena kode. Penjaga yang merah tanpa sebab
+   * nyata dilatih untuk diabaikan, dan penjaga yang diabaikan sama nilainya
+   * dengan yang tak ada. (Terjadi seketika saat bentuk ini ditambahkan:
+   * komentar perbaikan di `ai-adaptor.ts` sendiri yang membuatnya merah.)
+   */
+  const kode = isi
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1')
+
+  for (const m of kode.matchAll(
+    /(?:ambilKredensial\([^,]+,|\bbaca\()\s*'([A-Z0-9_]+)'|kunciKredensial:\s*'([A-Z0-9_]+)'/g,
+  )) {
+    const kunci = m[1] ?? m[2]
+    if (kunci && !dibaca.has(kunci)) dibaca.set(kunci, rel)
   }
 }
 
