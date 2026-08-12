@@ -114,6 +114,7 @@ import penomoranRoutes from './routes/v1/penomoran.js'
 import templateWbsRoutes from './routes/v1/template-wbs.js'
 import klaimPerjalananRoutes from './routes/v1/klaim-perjalanan.js'
 import pegawaiRoutes from './routes/v1/pegawai.js'
+import gudangKelolaRoutes from './routes/v1/gudang-kelola.js'
 import approvalChainRoutes from './routes/v1/approval-chains.js'
 import notificationRuleRoutes from './routes/v1/notification-rules.js'
 import estimateVersionRoutes from './routes/v1/estimate-versions.js'
@@ -418,6 +419,7 @@ await app.register(penomoranRoutes)
 await app.register(templateWbsRoutes)
 await app.register(klaimPerjalananRoutes)
 await app.register(pegawaiRoutes)
+await app.register(gudangKelolaRoutes)
 await app.register(approvalChainRoutes)
 await app.register(notificationRuleRoutes)
 await app.register(estimateVersionRoutes)

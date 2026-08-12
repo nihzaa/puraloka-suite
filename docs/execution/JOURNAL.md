@@ -15864,3 +15864,65 @@ lagi, dan menghitungnya membuat angka mendesak tak pernah bisa turun ke nol.
     penjaga web   8 hijau
 
 `audit-asumsi-global-test` merah — sudah merah di HEAD sebelum ini.
+
+---
+
+## 2026-08-12 — Kelompok 2 (2/8): gudang sebagai entitas yang bisa dikelola
+
+**Cabang:** `feat/sumbu-ui-roadmap`
+
+### Nol migrasi schema — semuanya sudah ada
+
+`gudang` + `gudang_stok` lengkap: kode unik per company, qty tak negatif,
+satu baris per gudang×material, RLS **ber-FORCE**, izin `gudang:view`/
+`gudang:manage`.
+
+Yang hilang hanya jalan mengelolanya. Diukur: satu-satunya kode yang menyentuh
+tabel itu **hanya membaca** (`gudang-ikhtisar.ts`, `ai-tool.ts`). Jadi
+satu-satunya gudang yang ada masuk lewat seed, dan perusahaan bergudang dua tak
+bisa mencatat yang kedua.
+
+### Dua aturan yang ditegakkan rutenya
+
+**Gudang berisi tak bisa dinonaktifkan.** Stoknya tak hilang, tapi gudangnya
+berhenti jadi pilihan — dan barang yang tercatat di lokasi yang tak bisa
+dipilih adalah barang yang tak bisa dikeluarkan dari mana pun.
+
+**Menghapus gudang tak disediakan sama sekali.** `gudang_stok` ber-CASCADE:
+menghapus gudang memusnahkan seluruh catatan stoknya, dan itu dasar
+rekonsiliasi. Yang ada hanya menonaktifkan.
+
+### Verifikasi migrasi menangkap pengukuran saya yang salah
+
+Migrasi 342 versi pertama memakai `sort_order` 702. Query pengukuran saya
+menyaring `href LIKE '/gudang%'` — dan `procurement-stok` (href
+`/procurement/stok`) yang memakai 702 **tak ikut terlihat**.
+
+Verifikasinya menangkap: *"2 item AKTIF ber-sort_order 702"*. Dipindah ke 707.
+
+Pelajarannya berulang: mengukur dengan saringan yang lebih sempit daripada yang
+dijaga membuat pengukurannya berbohong dengan percaya diri.
+
+### Mutasi keempat lolos dua kali sebelum benar
+
+M4 menguji `Number(s.qty)` — konversi `numeric` yang datang sebagai STRING
+dari pg. Dua percobaan pertama lolos:
+
+1. Test hanya punya SATU baris stok, dan `0 + '12.5'` kebetulan tetap 12.5.
+2. Mutasinya di-cast sehingga TypeScript memaksanya kembali jadi angka.
+
+Diperbaiki dengan DUA baris stok (12.5 + 7.5 = 20; sebagai teks jadi
+`'012.57.5'`) dan mutasi yang benar-benar menggabungkan string. Merah.
+
+### Bukti
+
+    migrasi 342   ✅ verifikasinya menangkap bentrok sort_order
+    vitest        74 lulus / 4 berkas
+    mutasi        5 MERAH lalu pulih
+    tsc api/web   0 / 0
+    penjaga API   66 dijalankan, 65 hijau
+    penjaga web   8 hijau
+
+31 → **26 sebagian** (3 koreksi status + md-karyawan + md-gudang).
+
+`audit-asumsi-global-test` merah — sudah merah di HEAD sebelum ini.
