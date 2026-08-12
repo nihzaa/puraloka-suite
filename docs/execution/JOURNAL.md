@@ -5,6 +5,99 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — D3: penjaga yang buta pada bentuk ternary
+
+### Yang dibangun
+
+Pembayaran ke mandor punya DUA potongan: `deducted_kasbon` dan
+`retensi_amount`. Tak satu pun menampung biaya yang dikeluarkan KONTRAKTOR
+untuk pekerjaan yang seharusnya jadi tanggungan subkon.
+
+Dan yang lebih menentukan: `deducted_kasbon` **diketik manual** saat
+konfirmasi, tanpa daftar yang menjadi dasarnya. Angka potongan tanpa rincian
+di baliknya tak bisa dijelaskan ke mandor saat ia bertanya "kenapa dipotong
+sekian" — dan pertanyaan itu selalu datang.
+
+Migrasi 327 + `lib/back-charge.ts` + rute + panel di `/mandor/penagihan`.
+Tiap potongan kini punya uraian, kategori, bukti, dan penyetujunya sendiri.
+
+**Retensi tetap dihitung dari BRUTO**, bukan dari sisa setelah back-charge.
+Retensi adalah jaminan mutu atas NILAI PEKERJAAN, bukan atas uang yang
+kebetulan dibayarkan; menghitungnya dari sisa akan mengecilkannya persis saat
+jaminan itu paling dibutuhkan.
+
+Yang berstatus `disetujui` otomatis memotong, lalu ditandai `dipotong` —
+tanpa itu ia memotong LAGI di pembayaran berikutnya, dengan total yang tetap
+terlihat wajar di tiap pembayaran.
+
+### Empat percobaan mutasi yang lolos, dan sebabnya berbeda-beda
+
+Mutasi `.eq('status', 'diajukan')` tak bisa dibuat merah lewat test
+integrasi. Empat kali dicoba, empat sebab:
+
+    1  dua app.inject Promise.all      SoD menolak lebih dulu (403/403)
+    2  pengaju diubah ke orang lain    Fastify tetap memproses berurutan
+    3  status disetel lewat basis      periksaSetujuBackCharge menolak dulu
+    4  SQL langsung meniru WHERE-nya   tak menyentuh kode rute sama sekali
+
+Kesimpulannya jujur: **klausa itu adalah lapis KEDUA**, di bawah pemeriksaan
+aplikasi. Ia menjaga saat dua proses berjalan benar-benar bersamaan —
+keadaan yang `app.inject` tak bisa tirukan.
+
+Yang menjaganya bukan test integrasi, melainkan
+`audit-klaim-status-atomik.mjs` yang membaca kodenya langsung. Dan itu
+dinyatakan terus terang di komentar testnya, bukan disamarkan jadi hijau
+yang meyakinkan.
+
+### Lalu penjaganya sendiri ternyata buta
+
+`audit-klaim-status-atomik` melaporkan HIJAU untuk `back-charge.ts` bahkan
+saat klausanya dicabut. Sebabnya di `perakitanVar`: ia menghitung kurawal
+dari BARIS PEMBUKA saja.
+
+    const patch = membatalkan          ← tak punya `{`, jadi dalam = 0
+      ? { status: 'dibatalkan', … }    ← tak pernah terbaca
+      : { status: 'disetujui', … }     ← tak pernah terbaca
+
+Serapannya berhenti seketika, kedua cabang ternary luput, dan penjaga tak
+pernah melihat status keputusan apa pun di berkas itu.
+
+Ini **pengulangan cacat yang komentarnya sendiri catat** untuk `kasbons.ts`:
+"pola yang dikira aman justru yang paling luput". Diperbaiki: serapan
+mengikuti pernyataan sampai selesai, termasuk lanjutan `?`/`:`.
+
+### Dan perbaikan itu langsung menemukan pelanggaran lama
+
+Begitu penjaganya melihat, ia menemukan `mandor.ts:1457` — approve/tolak/
+tandai-lunas laporan upah **tanpa status lama di WHERE**. Dua persetujuan
+bersamaan sama-sama berhasil, dengan pembayaran yang ikut ganda.
+
+Entah sejak kapan, disembunyikan kebutaan yang baru diperbaiki hari ini.
+
+Diperbaiki dengan asal yang sah per tujuan: `approved`/`rejected` hanya dari
+`submitted`, `paid` hanya dari `approved`. Nol baris terbarui dibedakan jadi
+404 (tak ada) dan 409 (status sudah berubah) — dua sebab yang menuntut
+tindakan berbeda.
+
+### Bukti
+
+    lib/__tests__/back-charge.test.ts     19  aturan (murni)
+    __tests__/back-charge.test.ts         14  HTTP + basis
+                                          --
+                                          33  hijau
+
+Mutasi lib: 4 (3/2/3/1 merah). Mutasi rute: 3 merah + 1 yang dinyatakan
+hanya bisa dijaga penjaga. Mutasi PENJAGA: 2 merah (back-charge dan
+wage-reports), sesudah `perakitanVar` diperbaiki.
+
+Migrasi 327 lulus blok verifikasinya (5 kasus negatif). tsc api & web exit 0.
+Enam penjaga API + tujuh penjaga web hijau. 21 test wage-report lain tetap
+hijau sesudah perubahan atomik.
+
+Peta Modul: 189 -> **190** hidup.
+
+---
+
 ## 2026-08-12 (lanjutan) — D2: penolakan yang bisa diramalkan
 
 Gerbang opname (D1) sudah bekerja di server. Yang belum: layar penagihan

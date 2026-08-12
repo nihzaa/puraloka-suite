@@ -312,12 +312,39 @@ function perakitanVar(src, indeks, nama) {
   for (let i = 0; i < jendela.length; i++) {
     if (!jendela[i].includes(nama)) continue
     potong.push(jendela[i])
-    // Kalau baris ini membuka objek, serap sampai penutupnya.
-    let dalam = (jendela[i].match(/\{/g) || []).length - (jendela[i].match(/\}/g) || []).length
-    for (let j = i + 1; j < jendela.length && dalam > 0; j++) {
-      potong.push(jendela[j])
-      dalam += (jendela[j].match(/\{/g) || []).length
-      dalam -= (jendela[j].match(/\}/g) || []).length
+
+    // Serap sampai PERNYATAANNYA selesai, bukan sampai objek pertama tertutup.
+    //
+    // Versi sebelumnya menghitung kurawal dari baris pembuka saja. Pada
+    // bentuk TERNARY:
+    //
+    //     const patch = membatalkan
+    //       ? { status: 'dibatalkan', ... }
+    //       : { status: 'disetujui', ... }
+    //
+    // baris pembukanya TAK PUNYA `{` sama sekali, jadi `dalam` bernilai 0 dan
+    // serapannya berhenti seketika. Kedua cabangnya tak pernah terbaca, dan
+    // penjaga melaporkan HIJAU untuk berkas yang status keputusannya dirakit
+    // begitu — `back-charge.ts` (D3) ditemukan persis lewat uji mutasi yang
+    // TIGA KALI melaporkan lolos.
+    //
+    // Pengulangan cacat yang komentar di atas sudah catat untuk `kasbons.ts`:
+    // pola yang dikira aman justru yang paling luput.
+    let dalam = 0
+    let mulai = false
+    for (let j = i; j < jendela.length; j++) {
+      if (j > i) potong.push(jendela[j])
+      const buka = (jendela[j].match(/\{/g) || []).length
+      const tutup = (jendela[j].match(/\}/g) || []).length
+      if (buka > 0) mulai = true
+      dalam += buka - tutup
+      // Berhenti saat seluruh kurawal yang pernah dibuka sudah tertutup DAN
+      // baris berikutnya bukan lanjutan ternary (`?` / `:` di awalnya).
+      const lanjutan = /^\s*[?:]/.test(jendela[j + 1] ?? '')
+      if (mulai && dalam <= 0 && !lanjutan) break
+      // Batas keras: pernyataan yang tak pernah menutup (mis. jendela
+      // terpotong di atas) tak boleh menyerap sisa berkas.
+      if (j - i > 40) break
     }
   }
   return potong.join('\n')

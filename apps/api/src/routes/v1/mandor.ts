@@ -8,6 +8,7 @@ import { validateMime } from '../../utils/mime.js'
 import { proyekMilikTenant, scopeIdsTenant } from '../../utils/tenant-guard.js'
 import { hitungPotonganRetensi, validasiPencairanRetensi } from '../../lib/retensi-subkontrak.js'
 import { periksaGerbangOpname, pctOpname } from '../../lib/gerbang-opname.js'
+import { ringkasBackCharge, hitungNetoLengkap } from '../../lib/back-charge.js'
 
 const KASBON_PHOTO_BUCKET = 'kasbon-photos'
 const KASBON_PHOTO_ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
@@ -1451,15 +1452,49 @@ export default async function mandorRoutes(app: FastifyInstance) {
     // T4j: approve/reject/tandai-lunas laporan upah tenant lain = mengeluarkan
     // uang dari pembukuan mereka. Lookup cash_account di atas sudah ter-scope,
     // tapi BARIS LAPORANNYA belum — saringan dipasang di UPDATE-nya sendiri.
+    // ── KLAIM STATUS ATOMIK ─────────────────────────────────────────────────
+    //
+    // Status ASAL ikut di WHERE, bukan hanya id. Tanpa ini, dua persetujuan
+    // yang datang bersamaan sama-sama berhasil: keduanya membaca `submitted`
+    // sebelum salah satunya menulis, dan laporan upah tercatat disetujui dua
+    // kali — dengan pembayaran yang ikut ganda.
+    //
+    // Ditemukan 2026-08-12 oleh `audit-klaim-status-atomik` SESUDAH penjaganya
+    // sendiri diperbaiki: `perakitanVar` buta pada perakitan bentuk ternary,
+    // dan kebutaan itu menyembunyikan pelanggaran ini entah sejak kapan.
+    //
+    // Asal yang sah per tujuan:
+    //   approved/rejected  ← hanya dari `submitted` (belum diputuskan)
+    //   paid               ← hanya dari `approved`  (sudah disetujui)
+    const asalSah = status === 'paid' ? ['approved'] : ['submitted']
+
     const { data, error } = await supabase
       .from('weekly_wage_reports')
       .update(update)
       .eq('id', id)
+      .in('status', asalSah)
       .in('assignment_id', await request.db!.assignmentIds())
       .select()
       .maybeSingle()
     if (error) return reply.status(500).send({ error: error.message })
-    if (!data) return reply.status(404).send({ error: 'Laporan upah tidak ditemukan' })
+    if (!data) {
+      // NOL baris terbarui punya DUA sebab yang menuntut tindakan berbeda:
+      // laporannya memang tak ada, atau statusnya sudah berubah. Dibedakan
+      // supaya pemanggilnya tak mencari laporan yang sebenarnya ada.
+      const { data: adaBaris } = await supabase
+        .from('weekly_wage_reports')
+        .select('id, status')
+        .eq('id', id)
+        .in('assignment_id', await request.db!.assignmentIds())
+        .maybeSingle()
+      if (adaBaris) {
+        return reply.status(409).send({
+          error: `Laporan upah sudah berstatus ${(adaBaris as { status: string }).status}; `
+            + `hanya yang ${asalSah.join('/')} bisa diubah jadi ${status}.`,
+        })
+      }
+      return reply.status(404).send({ error: 'Laporan upah tidak ditemukan' })
+    }
     return reply.send({ report: data })
   })
 
@@ -1740,6 +1775,9 @@ export default async function mandorRoutes(app: FastifyInstance) {
     type ScopeRetensi = { retensi_pct?: number | null }
     const pembayaranExisting = existing as {
       gross_payment: number | string
+      // Sudah ikut di-select di atas; tipenya kurang, dan tsc menangkapnya
+      // saat back-charge (D3) mulai memakainya.
+      work_scope_id: string
       work_scopes?: ScopeRetensi | ScopeRetensi[] | null
     }
 
@@ -1749,10 +1787,36 @@ export default async function mandorRoutes(app: FastifyInstance) {
     const embedScope = pembayaranExisting.work_scopes
     const retensiPct = (Array.isArray(embedScope) ? embedScope[0] : embedScope)?.retensi_pct
 
-    const hitung = hitungPotonganRetensi({
+    // ── BACK-CHARGE (D3 · migrasi 327) ──────────────────────────────────────
+    //
+    // Biaya yang seharusnya ditanggung subkon — perbaikan cacat, material
+    // yang dibeli ulang, alat yang disewa untuk membereskan. Sebelum ini
+    // pembayaran hanya mengenal potongan kasbon dan retensi, dan
+    // `deducted_kasbon` sendiri diketik MANUAL tanpa daftar yang menjadi
+    // dasarnya.
+    //
+    // Yang dipotong: HANYA yang berstatus `disetujui`. `diajukan` belum
+    // disahkan siapa pun, dan `dipotong` sudah masuk pembayaran lain —
+    // menghitungnya lagi memotong dua kali untuk biaya yang sama, dengan
+    // total yang tetap terlihat wajar.
+    const { data: bcRows, error: errBc } = await request.db!
+      .unsafe('back_charge', 'kategori B; disaring company_id + work_scope_id di baris berikutnya')
+      .select('id, nomor, uraian, nilai, status')
+      .eq('company_id', request.companyId!)
+      .eq('work_scope_id', pembayaranExisting.work_scope_id)
+    if (errBc) {
+      // Fail-closed: gagal membaca back-charge TIDAK boleh berarti "berarti
+      // tak ada potongan". Itu membayar penuh untuk biaya yang seharusnya
+      // ditanggung subkon.
+      return reply.status(500).send({ error: 'Gagal memeriksa back-charge: ' + errBc.message })
+    }
+    const bc = ringkasBackCharge((bcRows ?? []) as never[])
+
+    const hitung = hitungNetoLengkap({
       bruto,
       retensiPct,
       potonganKasbon: deducted,
+      backCharge: bc.siapDipotong,
     })
     if (!hitung.ok) {
       // Termasuk kasus "potongan melebihi tagihan" — ditolak, bukan dipaksa
@@ -1807,6 +1871,47 @@ export default async function mandorRoutes(app: FastifyInstance) {
       .select()
       .single()
     if (error) return reply.status(500).send({ error: error.message })
+
+    // ── Tandai back-charge yang IKUT terpotong ───────────────────────────────
+    //
+    // Tanpa ini, baris yang sama akan memotong LAGI di pembayaran berikutnya:
+    // statusnya tetap `disetujui`, jadi `ringkasBackCharge` tetap
+    // menganggapnya siap. Biaya yang sama dipotong dua kali, dan totalnya
+    // tetap terlihat wajar di tiap pembayaran.
+    //
+    // Ditandai SESUDAH pembayaran tertulis, bukan sebelum: menandai lebih
+    // dulu berarti kegagalan di atas meninggalkan back-charge yang mengaku
+    // sudah dipotong dari pembayaran yang tak pernah ada.
+    if (body.status === 'approved' && bc.siapIds.length > 0) {
+      const { data: ditandai, error: errTandai } = await request.db!
+        .unsafe('back_charge', 'kategori B; disaring company_id di baris berikutnya')
+        .update({
+          status: 'dipotong',
+          progress_payment_id: id,
+          dipotong_pada: new Date().toISOString(),
+        })
+        .in('id', bc.siapIds)
+        .eq('company_id', request.companyId!)
+        // Status lama ikut di WHERE: dua konfirmasi bersamaan tak boleh
+        // sama-sama mengklaim back-charge yang sama.
+        .eq('status', 'disetujui')
+        .select('id')
+      if (errTandai) {
+        return reply.status(500).send({
+          error: `Pembayaran tersimpan, tetapi back-charge gagal ditandai: ${errTandai.message}. `
+            + 'Periksa sebelum konfirmasi berikutnya — potongan bisa terulang.',
+        })
+      }
+      if (!ditandai || ditandai.length !== bc.siapIds.length) {
+        // SEBAGIAN tertandai tak boleh menyamar jadi sukses: yang tak
+        // tertandai akan memotong lagi nanti.
+        return reply.status(500).send({
+          error: `Pembayaran tersimpan, tetapi hanya ${ditandai?.length ?? 0} dari `
+            + `${bc.siapIds.length} back-charge tertandai. Periksa sebelum konfirmasi berikutnya.`,
+        })
+      }
+    }
+
 
     try {
       const { data: scopeData } = await supabase

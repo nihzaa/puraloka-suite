@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Kosong } from "@/components/ui-dasar";
-import { Banknote, RefreshCw, Ruler, AlertTriangle, Check } from "lucide-react";
+import { Banknote, RefreshCw, Ruler, AlertTriangle, Check, Scissors } from "lucide-react";
 import { C } from "@/lib/warna-ui";
 import {
   type ProgressPayment, type CashAccount,
@@ -70,6 +70,26 @@ function PPCard({ p, isAction, onTinjau }: {
  * bisa tahu sebelum mencoba. Penolakan yang bisa DIRAMALKAN lebih baik
  * daripada penolakan yang menjelaskan diri.
  */
+interface BackCharge {
+  id: string;
+  nomor: string;
+  uraian: string;
+  kategori: string;
+  nilai: number | string;
+  status: string;
+  work_scope_id: string;
+  scope?: { id: string; scope_name: string } | null;
+  pengaju?: { id: string; name: string } | null;
+}
+
+interface RingkasBc {
+  siapDipotong: number;
+  siapIds: string[];
+  sudahDipotong: number;
+  menungguSetuju: number;
+  jumlahBaris: number;
+}
+
 interface Kesiapan {
   work_scope_id: string;
   scope_name: string;
@@ -88,6 +108,8 @@ interface Kesiapan {
 export default function PenagihanPage() {
   const [progressPayments, setProgressPayments] = useState<ProgressPayment[]>([]);
   const [kesiapan, setKesiapan] = useState<Kesiapan[]>([]);
+  const [backCharge, setBackCharge] = useState<BackCharge[]>([]);
+  const [ringkasBc, setRingkasBc] = useState<RingkasBc | null>(null);
   const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [ppConfirmModal, setPpConfirmModal] = useState<{ payment: ProgressPayment } | null>(null);
@@ -96,13 +118,17 @@ export default function PenagihanPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [ppRes, cashRes, siapRes] = await Promise.all([
+      const [ppRes, cashRes, siapRes, bcRes] = await Promise.all([
         api.get<{ payments: ProgressPayment[] }>("/api/v1/mandor/progress-payments").catch(() => ({ data: { payments: [] } })),
         api.get<{ accounts: CashAccount[] }>("/api/v1/cash/accounts").catch(() => ({ data: { accounts: [] } })),
         api.get<{ kesiapan: Kesiapan[] }>("/api/v1/opname/kesiapan").catch(() => ({ data: { kesiapan: [] } })),
+        api.get<{ back_charge: BackCharge[]; ringkasan: RingkasBc }>("/api/v1/back-charge")
+          .catch(() => ({ data: { back_charge: [], ringkasan: null } })),
       ]);
       setProgressPayments(ppRes.data.payments ?? []);
       setKesiapan(siapRes.data.kesiapan ?? []);
+      setBackCharge(bcRes.data.back_charge ?? []);
+      setRingkasBc(bcRes.data.ringkasan ?? null);
       setCashAccounts((cashRes.data.accounts ?? []).filter((a: CashAccount) => a.is_active));
     } catch { /* silent */ } finally { setLoading(false); }
   }, []);
@@ -129,6 +155,13 @@ export default function PenagihanPage() {
           diketik mandor. */}
       {!loading && kesiapan.some((k) => k.wajib_opname) && (
         <PanelKesiapan kesiapan={kesiapan.filter((k) => k.wajib_opname)} />
+      )}
+
+      {/* Back-charge yang SIAP memotong — di atas daftar pengajuan.
+          Yang menyetujui pembayaran perlu tahu berapa yang akan terpotong
+          SEBELUM menekan konfirmasi, bukan menemukannya di angka neto. */}
+      {!loading && ringkasBc && ringkasBc.jumlahBaris > 0 && (
+        <PanelBackCharge baris={backCharge} ringkas={ringkasBc} />
       )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -280,6 +313,94 @@ function PanelKesiapan({ kesiapan }: { kesiapan: Kesiapan[] }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+/**
+ * Back-charge yang akan memotong pembayaran (D3).
+ *
+ * ── Kenapa di layar ini, bukan halaman sendiri
+ *
+ * Back-charge tak berdiri sendiri — ia hanya berarti saat pembayaran
+ * dikonfirmasi. Yang menyetujui perlu tahu berapa yang akan terpotong SEBELUM
+ * menekan tombol, bukan menemukannya sebagai selisih di angka neto.
+ *
+ * ── Tiga keadaan, tiga arti
+ *
+ * `siapDipotong`    sudah disetujui, akan mengurangi pembayaran berikutnya
+ * `menungguSetuju`  diajukan tapi belum disahkan — TAK memotong apa pun
+ * `sudahDipotong`   sudah masuk pembayaran lain; ditampilkan supaya tak
+ *                   dikira hilang
+ */
+function PanelBackCharge({ baris, ringkas }: { baris: BackCharge[]; ringkas: RingkasBc }) {
+  const rupiah = (n: number) => "Rp " + Math.round(n).toLocaleString("id-ID");
+  // Yang siap memotong di atas — itu yang mengubah angka pembayaran.
+  const urut = [...baris].sort((a, b) => {
+    const skor = (x: BackCharge) =>
+      x.status === "disetujui" ? 0 : x.status === "diajukan" ? 1 : 2;
+    return skor(a) - skor(b) || a.nomor.localeCompare(b.nomor);
+  });
+
+  return (
+    <div style={{ ...card, overflow: "hidden" }}>
+      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <Scissors size={15} aria-hidden="true" />
+          Back-Charge — biaya yang ditanggung subkon
+        </h3>
+        <p style={{ fontSize: 12, color: C.mid, margin: "4px 0 0", lineHeight: 1.5, maxWidth: "74ch" }}>
+          Perbaikan cacat, material yang dibeli ulang, alat yang disewa untuk membereskan.
+          Yang <strong>sudah disetujui</strong> akan otomatis mengurangi pembayaran berikutnya;
+          yang masih menunggu tak memotong apa pun.
+        </p>
+      </div>
+
+      <div style={{ display: "flex", gap: 16, padding: "10px 16px", borderBottom: `1px solid ${C.border}`, flexWrap: "wrap", fontSize: 12 }}>
+        <span style={{ color: "var(--danger)" }}>
+          Siap memotong: <strong style={{ fontVariantNumeric: "tabular-nums" }}>{rupiah(ringkas.siapDipotong)}</strong>
+        </span>
+        <span style={{ color: "var(--warning-teks)" }}>
+          Menunggu persetujuan: <strong style={{ fontVariantNumeric: "tabular-nums" }}>{rupiah(ringkas.menungguSetuju)}</strong>
+        </span>
+        <span style={{ color: C.muted }}>
+          Sudah dipotong: <strong style={{ fontVariantNumeric: "tabular-nums" }}>{rupiah(ringkas.sudahDipotong)}</strong>
+        </span>
+      </div>
+
+      {urut.slice(0, 8).map((b, i, arr) => {
+        const warna = b.status === "disetujui" ? "var(--danger)"
+          : b.status === "diajukan" ? "var(--warning-teks)" : C.muted;
+        return (
+          <div key={b.id} style={{
+            display: "grid", gridTemplateColumns: "1fr 150px 130px", gap: 12,
+            padding: "10px 16px", alignItems: "center", fontSize: 13,
+            borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none",
+          }}>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: C.text }}>{b.uraian}</div>
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2 }}>
+                {b.nomor} · {b.kategori}
+                {b.scope?.scope_name && ` · ${b.scope.scope_name}`}
+                {b.pengaju?.name && ` · diajukan ${b.pengaju.name}`}
+              </div>
+            </div>
+            <div style={{ textAlign: "right", color: warna, fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+              {rupiah(Number(b.nilai) || 0)}
+            </div>
+            <div style={{ textAlign: "right", fontSize: 12, color: warna }}>
+              {b.status === "disetujui" ? "Akan dipotong"
+                : b.status === "diajukan" ? "Menunggu setuju"
+                  : b.status === "dipotong" ? "Sudah dipotong" : "Dibatalkan"}
+            </div>
+          </div>
+        );
+      })}
+      {urut.length > 8 && (
+        <div style={{ padding: "8px 16px", fontSize: 12, color: C.muted, borderTop: `1px solid ${C.border}` }}>
+          dan {urut.length - 8} lainnya
+        </div>
+      )}
     </div>
   );
 }
