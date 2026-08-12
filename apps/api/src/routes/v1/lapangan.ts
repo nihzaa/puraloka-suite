@@ -43,6 +43,7 @@
  */
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { susunLaporanHarian, ringkasRentang } from '../../lib/laporan-harian.js'
 
 /** Alasan wajib untuk `db.unsafe()` — dicatat, bisa ditinjau. */
 const ALASAN =
@@ -387,4 +388,78 @@ export default async function lapanganRoutes(app: FastifyInstance) {
         })),
     })
   })
+
+  // ── GET /api/v1/lapangan/laporan-harian ──────────────────────────────────
+  //
+  // B1. Diukur 2026-08-12: `progress_logs` berisi 271 baris, 98 di antaranya
+  // bermode `daily` dengan cuaca, jumlah pekerja, dan catatan kendala yang
+  // ditulis mandor lewat portal setiap hari.
+  //
+  // Yang tak ada: layar yang membacanya sebagai LAPORAN. Dashboard hanya
+  // menampilkan tanggal update terakhir, `/lapangan` menampilkan rerata.
+  // Catatan kendala yang ditulis mandor tak pernah terbaca siapa pun.
+  //
+  // ── Kenapa lintas proyek, bukan per proyek
+  //
+  // `GET /projects/:id/progress-logs` sudah ada dan mengembalikan satu
+  // proyek. Yang belum bisa dijawab: "apa yang terjadi di SELURUH proyek
+  // kemarin" — pertanyaan yang dibuka orang kantor tiap pagi.
+  app.get<{ Querystring: { dari?: string; sampai?: string; project_id?: string } }>(
+    '/api/v1/lapangan/laporan-harian',
+    { preHandler: [authenticate, requirePermission('projects:view')] },
+    async (request, reply) => {
+      const db = request.db!
+      const q = request.query
+
+      const idProyek = await db.projectIds()
+      if (idProyek.length === 0) {
+        return reply.send({ hari: [], ringkasan: ringkasRentang([]), proyek: [] })
+      }
+
+      // Rentang bawaan 90 hari.
+      //
+      // BUKAN 30: `progress_logs` di basis ini berhenti 16 Juni sementara
+      // hari ini Agustus — jendela 30 hari mengembalikan daftar KOSONG, dan
+      // layar kosong terbaca sebagai "sistem rusak", bukan "belum ada
+      // laporan bulan ini". Pelajaran yang sama sudah tertulis di
+      // `/lapangan/ringkasan` di atas.
+      const sampai = q.sampai ?? new Date().toISOString().slice(0, 10)
+      const dari = q.dari ?? new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10)
+
+      // Proyek disaring di dalam daftar yang boleh dilihat — bukan dipakai
+      // apa adanya dari query. Tanpa itu, `?project_id=` milik tenant lain
+      // akan lolos.
+      const proyekDipilih = q.project_id && idProyek.includes(q.project_id)
+        ? [q.project_id]
+        : idProyek
+
+      const [logs, proyek] = await Promise.all([
+        db.unsafe('progress_logs', ALASAN)
+          .select(`
+            id, project_id, mode, logged_at, pct_overall, weather, worker_count, notes,
+            reporter:users!progress_logs_reported_by_fkey ( id, name )
+          `)
+          .in('project_id', proyekDipilih)
+          .gte('logged_at', dari)
+          // `sampai` + 1 hari: `logged_at` bertipe timestamptz, dan
+          // `lte('2026-06-16')` memotong tepat di tengah malam sehingga
+          // seluruh laporan hari itu HILANG. Cacat yang tak menimbulkan
+          // galat — hanya satu hari yang lenyap dari laporan.
+          .lt('logged_at', new Date(Date.parse(sampai) + 86_400_000).toISOString().slice(0, 10))
+          .order('logged_at', { ascending: false }),
+        db.from('projects').select('id, name').in('id', proyekDipilih),
+      ])
+
+      if (logs.error) return reply.status(500).send({ error: logs.error.message })
+      if (proyek.error) return reply.status(500).send({ error: proyek.error.message })
+
+      const hari = susunLaporanHarian((logs.data ?? []) as never[])
+      return reply.send({
+        hari,
+        ringkasan: ringkasRentang(hari),
+        proyek: proyek.data ?? [],
+        rentang: { dari, sampai },
+      })
+    },
+  )
 }

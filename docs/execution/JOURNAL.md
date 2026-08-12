@@ -5,6 +5,79 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — B1: 96 catatan lapangan yang tak pernah dibaca siapa pun
+
+`progress_logs` berisi 271 baris; 98 di antaranya laporan harian dengan cuaca,
+jumlah pekerja, dan catatan kendala — ditulis mandor lewat portal setiap hari.
+
+Tak ada satu pun layar yang membacanya sebagai LAPORAN. Dashboard menampilkan
+tanggal update terakhir; `/lapangan` menampilkan rerata dan grafik. Kalimat
+seperti *"Plester fasad baru 50% selesai"* yang ditulis Pak Hendra dari
+lapangan tak pernah sampai ke siapa pun.
+
+### Menunya ternyata sudah ada
+
+`lap-harian` → `/lapangan/harian`, aktif di sidebar, `sort_order` 905. Halaman
+yang ditunjuknya tak pernah dibuat. Saya sempat menaruh halaman baru di
+`/lapangan/laporan-harian` sebelum mengukur — lalu memindahkannya ke jalur
+yang menunya sudah tunjuk. Nav yatim yang akhirnya terisi.
+
+### Yang menentukan bentuknya: mode `daily` vs `detail`
+
+`progress_logs` menampung DUA jenis catatan. 2026-06-16 punya 48 baris — hanya
+3 di antaranya laporan harian sesungguhnya; sisanya progres per-item RAB untuk
+kurva-S. Mencampurnya membuat satu hari terlihat punya 48 laporan.
+
+### Kiriman ganda yang melipatgandakan jumlah pekerja
+
+Saat memeriksa hasilnya di data nyata, 2026-06-16 menampilkan 54 pekerja. Saya
+periksa ke basis: TIGA baris identik — proyek, teks, cuaca, dan `worker_count`
+18 semuanya sama. Satu laporan terkirim tiga kali.
+
+Menjumlahkannya menghasilkan angka yang salah tiga kali lipat, tanpa satu pun
+galat. Sesudah dedup berdasarkan ISI (bukan id):
+
+    sebelum   totalLaporan 96 · rerataPekerja 41
+    sesudah   totalLaporan 52 · rerataPekerja 19
+
+Rerata sebelumnya melebih-lebihkan hampir dua kali lipat.
+
+Kiriman ganda DITAMPILKAN di kartu harinya, bukan disembunyikan: ia gejala
+alur pelaporan yang perlu dibereskan di hulu, dan yang membaca berhak tahu
+kenapa angkanya berbeda dari yang ia kira.
+
+### Mutasi yang LOLOS karena data dev terlalu seragam
+
+Endpoint memakai `.lt(sampai + 1 hari)`, bukan `.lte(sampai)` — `logged_at`
+timestamptz, dan `lte('2026-06-16')` memotong tepat tengah malam sehingga
+seluruh laporan hari itu hilang.
+
+Mutasi yang mengembalikannya jadi `.lte` **LOLOS**: seluruh `logged_at` di
+basis dev bernilai tepat 00:00:00, jadi pemotongannya kebetulan tak
+mengenai apa pun.
+
+Test diperbaiki dengan menyisipkan satu baris berjam 08:30 sementara, lalu
+menghapusnya di `finally`. Sesudah itu mutasi MERAH.
+
+Pelajarannya: **data uji yang terlalu rapi menyembunyikan cacat yang data
+nyata akan temukan.** Nilai yang seragam — semua tengah malam, semua nol —
+membuat seluruh kelas kesalahan tak terlihat.
+
+### Bukti
+
+    lib/__tests__/laporan-harian.test.ts    22  penyusunan (murni)
+    __tests__/laporan-harian.test.ts         8  HTTP + basis
+                                            --
+                                            30  hijau
+
+Mutasi: 4 di lib (2/1/1/4 merah), 2 di rute (1 lolos lalu MERAH sesudah test
+diperbaiki, 1 merah). tsc api & web exit 0. Enam penjaga API + tujuh penjaga
+web hijau.
+
+Peta Modul: 182 -> **185** hidup (`lp-dpr`, `lp-tenaga`, `lp-cuaca`).
+
+---
+
 ## 2026-08-12 (lanjutan) — A1-A3: satu sudah jadi, satu jalan buntu yang saya buat sendiri
 
 Founder mulai mengerjakan sisa pekerjaan dari Peta Modul. Saya susun urutannya,
