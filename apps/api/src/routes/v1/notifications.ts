@@ -558,12 +558,32 @@ export default async function notificationRoutes(app: FastifyInstance) {
     }
 
     // ── 2. Proyek mendekati/melewati tanggal selesai ─────────────────────────
-    const { data: endingProjects } = await request.db!
+    //
+    // ⚠ DIPERBAIKI 2026-08-12 — pemeriksaan ini TIDAK PERNAH BERJALAN.
+    //
+    // Saringannya berbunyi `.in('status', ['active', 'in_progress'])`, padahal
+    // enum `project_status` hanya punya: draft | active | on_hold | completed |
+    // cancelled. Nilai 'in_progress' TIDAK PERNAH ADA — Postgres menolak
+    // SELURUH query dengan 22P02 ("invalid input value for enum").
+    //
+    // Dan galatnya dibuang: hanya `{ data }` yang diambil, `error` tidak.
+    // Jadi `endingProjects` selalu `undefined`, putarannya nol iterasi, dan
+    // endpoint tetap membalas 200 dengan `ending_projects: 0` — terbaca
+    // sebagai "tak ada proyek yang mendekati tenggat", bukan sebagai rusak.
+    //
+    // Ketahuan karena saya menyalin baris ini ke automation baru, dan di sana
+    // galatnya TIDAK dibuang sehingga muncul sebagai 500 di test.
+    const { data: endingProjects, error: eEnding } = await request.db!
       .from('projects')
       .select('id, name, end_date, pm_id, progress_pct')
-      .in('status', ['active', 'in_progress'])
+      .eq('status', 'active')
       .eq('is_deleted', false)
       .lte('end_date', in7)   // selesai dalam 7 hari atau sudah lewat
+
+    if (eEnding) {
+      request.log.error({ err: eEnding }, 'gagal membaca proyek mendekati tenggat')
+      return reply.status(500).send({ error: eEnding.message })
+    }
 
     for (const p of endingProjects ?? []) {
       const daysLeft = Math.round((new Date(p.end_date).getTime() - now.getTime()) / 86_400_000)

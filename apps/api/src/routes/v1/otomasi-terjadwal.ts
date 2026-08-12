@@ -248,7 +248,10 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     const { data: proyek, error: eProyek } = await request.db!
       .from('projects')
       .select('id, name')
-      .in('status', ['active', 'in_progress'])
+      // Enum  HANYA punya: draft|active|on_hold|completed|
+      // cancelled. 'in_progress' TIDAK PERNAH ADA — Postgres menolak seluruh
+      // query dengan 22P02, jadi pemeriksaan ini gagal TOTAL tiap kali jalan.
+      .eq('status', 'active')
       .eq('is_deleted', false)
 
     if (eProyek) return reply.status(500).send({ error: eProyek.message })
@@ -322,6 +325,128 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     return reply.send({
       success: true, notifications_created: dibuat,
       checked: { proyek_aktif: idProyek.length, penugasan: (penugasan ?? []).length, belum_lapor: belum },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/dependency-breach ───────────────────────
+  //
+  // Automation 3.10 — pendahulu Gantt belum cukup progresnya.
+  //
+  // ── Aturannya tidak dikarang di sini
+  //
+  // Ia sudah hidup di `apps/web/components/gantt-section.tsx` dan sudah
+  // dibiasakan pengguna. Yang dilakukan di sini cuma memanggilnya dari
+  // server (`lib/gantt-dependency.ts`) supaya penjadwal bisa memakainya.
+  // Menulis ulang ambangnya di sini akan membuat layar dan notifikasi
+  // memberi angka berbeda untuk pekerjaan yang sama.
+  //
+  // ── Kenapa hanya `danger`, bukan semua peringatan
+  //
+  // Peringatan `warning` sudah terlihat di layar Gantt tiap kali dibuka.
+  // Mengirim semuanya sebagai notifikasi berarti mengulang apa yang sudah
+  // terlihat — dan pada proyek dengan 200 baris RAB, itu puluhan pesan
+  // sehari yang berujung notifikasi dimatikan. Yang dikirim hanya yang
+  // parah: progres di bawah SETENGAH ambang, atau tumpang tindih >14 hari.
+  app.get('/api/v1/otomasi/jalankan/dependency-breach', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { cariPelanggaranDependency, bacaAturanDependency } =
+      await import('../../lib/gantt-dependency.js')
+
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['gantt_dep_breach'])
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects')
+      .select('id, name')
+      // Enum  HANYA punya: draft|active|on_hold|completed|
+      // cancelled. 'in_progress' TIDAK PERNAH ADA — Postgres menolak seluruh
+      // query dengan 22P02, jadi pemeriksaan ini gagal TOTAL tiap kali jalan.
+      .eq('status', 'active')
+      .eq('is_deleted', false)
+
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+
+    let dibuat = 0
+    let totalPelanggaran = 0
+
+    for (const p of proyek ?? []) {
+      const { data: items, error: eItems } = await request.db!
+        .viaProject('rab_items', p.id)
+        .select('id, name, planned_start, planned_end, progress_pct, gantt_dep_rules')
+
+      // Satu proyek gagal tak boleh menghentikan sisanya — tapi juga tak
+      // boleh lolos tanpa jejak. Dicatat, lalu lanjut.
+      if (eItems) {
+        request.log.error({ err: eItems, projectId: p.id }, 'gagal membaca rab_items untuk dependency breach')
+        continue
+      }
+
+      // Progres NYATA dari progress log, sejajar dengan yang dipakai layar
+      // Gantt (`rab.ts:651` → `latest_pct`). Tanpa ini, pekerjaan yang sudah
+      // selesai di lapangan tetap diperingatkan karena `progress_pct`
+      // rencananya tak pernah diperbarui.
+      const { data: logs } = await request.db!
+        .viaProject('progress_logs', p.id)
+        .select('rab_item_id, logged_at, pct_completion')
+        .eq('mode', 'detail')
+        .not('rab_item_id', 'is', null)
+        .order('logged_at', { ascending: true })
+
+      const pctNyata = new Map<string, number | null>()
+      for (const l of logs ?? []) {
+        pctNyata.set(l.rab_item_id as string, l.pct_completion as number | null)
+      }
+
+      const tugas = (items ?? []).map(i => ({
+        id: i.id as string,
+        uraian: (i.name as string) ?? '—',
+        planned_start: i.planned_start as string | null,
+        planned_end: i.planned_end as string | null,
+        progress_pct: i.progress_pct as number | null,
+        actual_pct: pctNyata.get(i.id as string) ?? null,
+        dep_rules: bacaAturanDependency(i.gantt_dep_rules),
+      }))
+
+      const pelanggaran = cariPelanggaranDependency(tugas)
+      totalPelanggaran += pelanggaran.length
+
+      for (const w of pelanggaran) {
+        if (w.severity !== 'danger') continue
+
+        // Kunci dedup dirakit dari pasangan pendahulu→penerus: satu
+        // pelanggaran yang sama tak boleh dilaporkan dua kali sehari,
+        // tetapi pasangan berbeda tetap dilaporkan masing-masing.
+        const kunci = `dep_${w.fromId}_${w.toId}`
+        if (sudah('gantt_dep_breach', kunci)) continue
+
+        const penerima = await resolveRecipients('gantt_dep_breach', {
+          projectId: p.id, companyId: request.companyId!,
+        })
+
+        for (const uid of penerima) {
+          await createNotification({
+            company_id: request.companyId!,
+            user_id:    uid,
+            title:      'Ambang Dependency Terlampaui',
+            message:    `${w.message} — proyek "${p.name}"`,
+            type:       'gantt_dep_breach',
+            priority:   'high',
+            project_id: p.id,
+            action_url: `/proyek/${p.id}#sec-gantt`,
+            action_data: { record_id: kunci, from_id: w.fromId, to_id: w.toId },
+          })
+          dibuat++
+        }
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { proyek: (proyek ?? []).length, pelanggaran: totalPelanggaran },
     })
   })
 }
