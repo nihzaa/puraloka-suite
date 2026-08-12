@@ -235,7 +235,7 @@ describe('trigger lama masih menjaga', () => {
       [projectId, `${TANDA} rancangan yang dibuang`])
 
     // draft → boleh
-    await db.query('DELETE FROM lessons_learned_records WHERE id = $1', [baru.rows?.[0]?.id ?? baru[0].id])
+    await db.query('DELETE FROM lessons_learned_records WHERE id = $1', [baru[0].id])
 
     // sudah maju → ditolak
     await db.query(`UPDATE lessons_learned_records SET status = 'under_review' WHERE id = $1`, [lessonId])

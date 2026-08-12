@@ -196,4 +196,48 @@ describe('GET /projects/:id/cvr', () => {
     await get(`/api/v1/projects/${projectId}/cvr`)
     expect(await hitung()).toBe(sebelum)
   })
+
+  it('meneruskan rab_category_id — kekosongannya harus TERLIHAT', async () => {
+    // Diukur 2026-08-13: 0 dari 20 scope berkategori, dan itulah yang
+    // membatasi CVR ke upah borongan saja. Menyembunyikan kolomnya membuat
+    // batas cakupan terbaca sebagai sifat modul — padahal ia keadaan data
+    // yang bisa diperbaiki dalam beberapa klik.
+    const r = await get(`/api/v1/projects/${projectId}/cvr`)
+    expect(r.statusCode, r.body).toBe(200)
+
+    const baris = r.json().baris as Array<Record<string, unknown>>
+    if (baris.length === 0) throw new Error('proyek uji tak punya scope — fixture tak terbentuk')
+
+    for (const b of baris) {
+      expect(b, 'rab_category_id tak diteruskan ke UI').toHaveProperty('rab_category_id')
+    }
+
+    // Kuncinya ada saja TIDAK cukup: `lib/cvr.ts` mengisi `?? null`, jadi
+    // kunci tetap muncul meski rutenya lupa mengambil kolomnya — dan mutasi
+    // "kolom tak diambil rute" LOLOS karenanya sampai versi ini.
+    //
+    // Yang dibandingkan: nilai yang dikirim vs nilai di BASIS. Satu scope
+    // sengaja diberi kategori supaya perbandingannya bermakna; nilai awalnya
+    // dikembalikan sesudahnya.
+    const { rows: kat } = await client.query(
+      `SELECT id FROM rab_items WHERE project_id = $1 AND level = 'category' LIMIT 1`, [projectId])
+    if (!kat.length) throw new Error('proyek uji tak punya kategori RAB — fixture tak terbentuk')
+
+    const idScope = baris[0].scope_id as string
+    const { rows: awal } = await client.query(
+      'SELECT rab_category_id FROM work_scopes WHERE id = $1', [idScope])
+    try {
+      await client.query('UPDATE work_scopes SET rab_category_id = $1 WHERE id = $2',
+        [kat[0].id, idScope])
+
+      const r2 = await get(`/api/v1/projects/${projectId}/cvr`)
+      const b2 = (r2.json().baris as Array<Record<string, unknown>>)
+        .find((x) => x.scope_id === idScope)
+      expect(b2?.rab_category_id,
+        'nilai kategori tak sampai ke UI — rutenya tak mengambil kolomnya').toBe(kat[0].id)
+    } finally {
+      await client.query('UPDATE work_scopes SET rab_category_id = $1 WHERE id = $2',
+        [awal[0].rab_category_id, idScope])
+    }
+  })
 })

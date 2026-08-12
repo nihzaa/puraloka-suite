@@ -107,6 +107,65 @@ menghijaukan angka.
 
 ---
 
+## 2026-08-13 (lanjutan 4) — kolom yang memblokir CVR, dan FK yang tak menjaga apa yang saya kira
+
+### Kenapa `rab_category_id` terisi 0 dari 20
+
+Catatan `cc-cvr` menyebut cakupannya terbatas ke upah borongan karena
+`work_scopes.rab_category_id` kosong. Angkanya benar — tetapi sebabnya belum
+pernah diukur.
+
+Ternyata: kolom itu bisa diisi saat **membuat** scope (`POST`, mandor.ts:619),
+tetapi **tak ada di daftar kolom yang boleh di-PATCH**. Jadi dua puluh lingkup
+kerja yang telanjur ada tak punya satu pun jalan untuk diberi kategori.
+
+Taksonomi menandainya "data belum ada". Yang lebih tepat: datanya tak BISA
+diisi.
+
+### FK tidak menjaga apa yang saya kira
+
+Sesudah kolomnya bisa di-PATCH, test menangkap yang berikutnya: **kategori
+dari proyek LAIN tersimpan diam-diam.** FK ke `rab_items` hanya menjamin
+barisnya ADA, bukan bahwa ia milik proyek yang sama.
+
+Akibatnya biaya jatuh ke pekerjaan yang salah, dan laporan variansnya tetap
+terlihat wajar — tak ada galat, tak ada gejala, hanya angka keliru di tempat
+yang tak seorang pun periksa. Ditutup di rute, beserta pagar kedua: yang
+ditunjuk harus ber-`level = 'category'`, bukan baris pekerjaan di bawahnya.
+
+### Dua test saya yang LOLOS padahal seharusnya merah
+
+1. **Kategori lintas proyek.** Versi pertama menerima 200 asal nilainya tak
+   tersimpan — dan lolos sambil membiarkan nilainya tersimpan. Dipertegas ke
+   penolakan eksplisit dengan pesan yang bisa dibaca orang.
+
+2. **Penerusan kolom ke UI.** Versi pertama hanya menuntut kuncinya ADA. Tapi
+   `lib/cvr.ts` mengisi `?? null`, jadi kunci tetap muncul meski rutenya lupa
+   mengambil kolomnya — mutasi "kolom tak diambil rute" LOLOS. Dipertegas
+   dengan membandingkan nilai yang dikirim terhadap nilai di BASIS.
+
+Keduanya kelas yang sama: harapan yang terlalu longgar untuk menangkap
+mutasinya sendiri.
+
+### Bukti
+
+- `work-scope-kategori.test.ts` — 6 hijau terhadap Postgres nyata, 4 mutasi
+  merah (termasuk M1 yang mengembalikan perilaku lama persis)
+- `cvr-endpoint.test.ts` — 9 hijau (8 lama + 1 baru), 2 mutasi merah
+- `lib/cvr.ts` — 22 test lama tetap hijau sesudah kolom ditambahkan
+- Penjaga web: `kerapatan` & `tabel-mentah` diukur dengan mengganti berkas ke
+  versi HEAD — angkanya IDENTIK, jadi merahnya utang lama, bukan milik saya
+
+### Yang TIDAK dikerjakan
+
+Mengisi kategori untuk 20 scope itu sendiri. Kolomnya kini bisa dipasang dari
+baris CVR, tetapi memilih kategori mana untuk pekerjaan mana adalah keputusan
+yang menentukan ke mana biaya jatuh — bukan sesuatu yang boleh ditebak mesin.
+Pelajaran yang sama dengan `GET /cost-map/saran` yang sengaja mengusulkan
+tanpa menerapkan.
+
+---
+
 ## 2026-08-13 (lanjutan 3) — mesin belajar yang lengkap, tanpa satu pun pintu
 
 ### `qc-capa`: sisi preventifnya SUDAH ADA, hanya tak terjangkau

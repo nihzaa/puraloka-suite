@@ -406,7 +406,7 @@ export default async function costControlRoutes(app: FastifyInstance) {
         request.db!
           .unsafe('work_scopes',
             'disaring lewat idPenugasan yang sudah ber-scope tenant via viaProject(mandor_assignments)')
-          .select('id, scope_name, borongan_value, borongan_value_override, progress_pct_done')
+          .select('id, scope_name, borongan_value, borongan_value_override, progress_pct_done, rab_category_id')
           .in('assignment_id', idPenugasan),
         request.db!
           .unsafe('weekly_wage_reports',
@@ -438,6 +438,7 @@ export default async function costControlRoutes(app: FastifyInstance) {
         id: string; scope_name: string
         borongan_value: unknown; borongan_value_override: unknown
         progress_pct_done: unknown
+        rab_category_id: string | null
       }
       const baris: BarisScope[] = (scopeRes.data as Scope[]).map((sc) => {
         const pakai = perScope.get(sc.id) ?? { total: 0, n: 0 }
@@ -450,6 +451,7 @@ export default async function costControlRoutes(app: FastifyInstance) {
           progress_pct: sc.progress_pct_done as number | string | null,
           terpakai: pakai.total,
           jumlah_laporan: pakai.n,
+          rab_category_id: sc.rab_category_id,
         }
       })
 

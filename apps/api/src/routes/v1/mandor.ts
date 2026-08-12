@@ -637,6 +637,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
       borongan_value?: number
       start_date?: string
       end_date?: string
+      rab_category_id?: string | null
     }
 
     const allowed: Record<string, unknown> = {}
@@ -646,6 +647,65 @@ export default async function mandorRoutes(app: FastifyInstance) {
     if (body.borongan_value !== undefined) allowed.borongan_value = body.borongan_value
     if (body.start_date !== undefined) allowed.start_date = body.start_date
     if (body.end_date !== undefined) allowed.end_date = body.end_date
+
+    // ── `rab_category_id` — kolom yang MEMBLOKIR CVR ────────────────────────
+    //
+    // Diukur 2026-08-13: terisi 0 dari 20 work scope. Ia bisa diisi saat
+    // MEMBUAT scope (`POST`, baris 619) tetapi tak ada di daftar kolom yang
+    // boleh di-PATCH — jadi dua puluh lingkup kerja yang sudah telanjur ada
+    // tak punya satu pun jalan untuk diberi kategori.
+    //
+    // Akibatnya bukan kosmetik. `lib/cvr.ts` memakainya untuk memecah biaya
+    // per pekerjaan; tanpa itu, cakupan CVR terhenti di upah borongan saja —
+    // material dan faktur supplier tak bisa dihubungkan ke pekerjaan yang
+    // menghabiskannya. Taksonomi menandainya "data belum ada", dan yang lebih
+    // tepat: datanya tak bisa diisi.
+    //
+    // `null` DIBEDAKAN dari `undefined`: null berarti "lepaskan kategorinya"
+    // (keputusan sadar), undefined berarti "jangan sentuh". Menyamakan
+    // keduanya membuat kategori terhapus tiap kali nama scope disunting.
+    if (body.rab_category_id !== undefined) allowed.rab_category_id = body.rab_category_id
+
+    // Kategori WAJIB milik proyek yang sama dengan scope-nya.
+    //
+    // FK ke `rab_items` hanya menjamin barisnya ADA, bukan bahwa ia milik
+    // proyek ini — dan test membuktikan kategori proyek lain tersimpan
+    // diam-diam. Akibatnya biaya jatuh ke pekerjaan yang salah, sementara
+    // laporan variansnya tetap terlihat wajar: tak ada galat, tak ada gejala,
+    // hanya angka yang keliru di tempat yang tak seorang pun periksa.
+    if (body.rab_category_id) {
+      const { data: cocok, error: eCek } = await supabase
+        .from('work_scopes')
+        .select('id, assignment:mandor_assignments!inner ( project_id )')
+        .eq('id', id)
+        .maybeSingle()
+      if (eCek) return reply.status(500).send({ error: eCek.message })
+      if (!cocok) return reply.status(404).send({ error: 'Lingkup kerja tidak ditemukan' })
+
+      const idProyek = (cocok as { assignment?: { project_id?: string } }).assignment?.project_id
+
+      const { data: kategori, error: eKat } = await supabase
+        .from('rab_items')
+        .select('id, project_id, level')
+        .eq('id', body.rab_category_id)
+        .maybeSingle()
+      if (eKat) return reply.status(500).send({ error: eKat.message })
+
+      if (!kategori) {
+        return reply.status(404).send({ error: 'Kategori RAB tidak ditemukan' })
+      }
+      if ((kategori as { project_id: string }).project_id !== idProyek) {
+        return reply.status(422).send({
+          error: 'Kategori RAB itu milik proyek lain. Biaya lingkup kerja ini akan '
+            + 'jatuh ke pekerjaan yang salah, dan laporan variansnya tetap terlihat wajar.',
+        })
+      }
+      if ((kategori as { level: string }).level !== 'category') {
+        return reply.status(422).send({
+          error: 'Yang ditunjuk harus KATEGORI RAB, bukan baris pekerjaan di bawahnya.',
+        })
+      }
+    }
 
     const { data, error } = await supabase
       .from('work_scopes')

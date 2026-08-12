@@ -47,6 +47,16 @@ export interface BarisScope {
   terpakai: number | string | null
   /** Berapa laporan upah tercatat — membedakan "belum ada" dari "belum dicatat". */
   jumlah_laporan: number
+  /**
+   * Kategori RAB tempat biaya scope ini dikelompokkan.
+   *
+   * Diteruskan apa adanya, termasuk `null`. Nol dari 20 scope terisi pada
+   * 2026-08-13, dan justru KEKOSONGANNYA yang perlu terlihat: itulah yang
+   * membatasi CVR ke upah borongan saja. Menyembunyikannya membuat batas
+   * cakupan terbaca sebagai sifat modul, padahal ia keadaan data yang bisa
+   * diperbaiki dalam beberapa klik.
+   */
+  rab_category_id?: string | null
 }
 
 /**
@@ -69,6 +79,8 @@ export type KeadaanCvr =
 export interface HasilCvr {
   scope_id: string
   scope_name: string
+  /** Kategori RAB scope ini; `null` = biayanya belum bisa dipecah per pekerjaan. */
+  rab_category_id: string | null
   borongan: number
   progress_pct: number
   /** `borongan × progres` — bagian yang sudah jadi hak. */
@@ -116,6 +128,7 @@ export function hitungCvr(b: BarisScope): HasilCvr {
   const dasar = {
     scope_id: b.scope_id,
     scope_name: b.scope_name,
+    rab_category_id: b.rab_category_id ?? null,
     borongan,
     progress_pct: progres,
     terpakai,

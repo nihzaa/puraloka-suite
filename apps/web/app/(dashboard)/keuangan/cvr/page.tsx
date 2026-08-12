@@ -48,6 +48,8 @@ type Keadaan = "untung" | "rugi" | "impas" | "tanpa_biaya" | "belum_mulai" | "ta
 interface BarisCvr {
   scope_id: string;
   scope_name: string;
+  /** Kategori RAB scope ini; `null` = biayanya belum bisa dipecah per pekerjaan. */
+  rab_category_id: string | null;
   borongan: number;
   progress_pct: number;
   nilai_terpasang: number;
@@ -112,7 +114,21 @@ const ARTI: Record<Keadaan, { label: string; warna: string; bg: string; border: 
   },
 };
 
-const KOLOM: Array<Kolom<BarisCvr>> = [
+interface KategoriRab { id: string; name: string }
+
+/**
+ * Kolom CVR.
+ *
+ * Fungsi, bukan konstanta, sejak kolom Kategori ditambahkan: ia memerlukan
+ * daftar kategori dan penyimpannya. Tetap di LUAR komponen supaya definisinya
+ * tak dibangun ulang tiap render.
+ */
+function kolomCvr(
+  kategori: KategoriRab[],
+  simpanKategori: (scopeId: string, kategoriId: string) => void,
+  menyimpan: string | null,
+): Array<Kolom<BarisCvr>> {
+  return [
   {
     kunci: "scope", judul: "Pekerjaan", kepalaBaris: true,
     render: (b) => (
@@ -184,7 +200,40 @@ const KOLOM: Array<Kolom<BarisCvr>> = [
       );
     },
   },
-];
+  {
+    kunci: "kategori", judul: "Kategori RAB",
+    // ── Kenapa kolom ini ADA, dan bisa disunting di sini ──────────────────
+    //
+    // Diukur 2026-08-13: `work_scopes.rab_category_id` terisi 0 dari 20, dan
+    // kolomnya bahkan tak ada di daftar yang boleh di-PATCH — jadi dua puluh
+    // lingkup kerja tak punya satu pun jalan untuk diberi kategori.
+    //
+    // Itulah yang membatasi CVR ke upah borongan saja. Batas cakupan yang
+    // sudah dinyatakan di atas halaman ini BUKAN sifat modul; ia keadaan data
+    // yang bisa diperbaiki dari baris ini juga, tanpa berpindah layar.
+    render: (b) => {
+      const sedang = menyimpan === b.scope_id;
+      return (
+        <select
+          aria-label={`Kategori RAB untuk ${b.scope_name}`}
+          value={b.rab_category_id ?? ""}
+          disabled={sedang || kategori.length === 0}
+          onChange={(e) => e.target.value && simpanKategori(b.scope_id, e.target.value)}
+          style={{
+            padding: "4px 8px", borderRadius: 5, fontSize: 12, maxWidth: 200,
+            border: `1px solid ${b.rab_category_id ? C.border : "var(--warning-border)"}`,
+            background: b.rab_category_id ? "var(--surface)" : "var(--warning-bg)",
+            color: C.text, opacity: sedang ? 0.5 : 1,
+          }}
+        >
+          <option value="">{kategori.length === 0 ? "— tak ada kategori RAB —" : "— belum dipilih —"}</option>
+          {kategori.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+        </select>
+      );
+    },
+  },
+  ];
+}
 
 export default function CvrPage() {
   const [proyek, setProyek] = useState<Proyek[]>([]);
@@ -192,6 +241,10 @@ export default function CvrPage() {
   const [hasil, setHasil] = useState<HasilCvr | null>(null);
   const [memuat, setMemuat] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
+
+  // ── Kategori RAB: dimuat per proyek, disimpan per baris ─────────────────
+  const [kategori, setKategori] = useState<KategoriRab[]>([]);
+  const [menyimpan, setMenyimpan] = useState<string | null>(null);
 
   useEffect(() => {
     const ac = makeAbortController();
@@ -220,6 +273,44 @@ export default function CvrPage() {
   // Menunda satu microtask memindahkannya keluar dari fase render tanpa
   // menambah jeda yang terlihat.
   useEffect(() => { queueMicrotask(() => { void muat(projectId); }); }, [projectId, muat]);
+
+  useEffect(() => {
+    if (!projectId) { setKategori([]); return; }
+    let batal = false;
+    // Kunci balasannya `data`, bukan `items` — diperiksa ke `rab.ts:441`,
+    // bukan ditebak dari nama yang terdengar wajar.
+    api.get<{ data?: Array<{ id: string; name: string; level: string }> }>(
+      `/api/v1/projects/${projectId}/rab`)
+      .then((r) => {
+        if (batal) return;
+        setKategori((r.data.data ?? [])
+          .filter((i) => i.level === "category")
+          .map((i) => ({ id: i.id, name: i.name })));
+      })
+      .catch(() => { if (!batal) setKategori([]); });
+    return () => { batal = true; };
+  }, [projectId]);
+
+  /**
+   * Memasang kategori RAB pada sebuah scope.
+   *
+   * Sesudah tersimpan, seluruh CVR dimuat ulang — bukan hanya barisnya.
+   * Kategori mengubah cara biaya dikelompokkan, jadi angka baris LAIN pun
+   * bisa berubah; memperbarui satu baris saja akan menampilkan campuran dua
+   * keadaan yang tak pernah ada bersamaan.
+   */
+  const simpanKategori = useCallback(async (scopeId: string, kategoriId: string) => {
+    setMenyimpan(scopeId); setGalat(null);
+    try {
+      await api.patch(`/api/v1/mandor/work-scopes/${scopeId}`, { rab_category_id: kategoriId });
+      await muat(projectId);
+    } catch (e) {
+      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setGalat(m ?? "Gagal menyimpan kategori RAB");
+    } finally {
+      setMenyimpan(null);
+    }
+  }, [projectId, muat]);
 
   
   return (
@@ -394,7 +485,7 @@ export default function CvrPage() {
                   caption="Rekonsiliasi biaya per scope borongan: nilai borongan, nilai terpasang, biaya terpakai, dan selisihnya."
                   data={hasil.baris}
                   kunciBaris={(b) => b.scope_id}
-                  kolom={KOLOM}
+                  kolom={kolomCvr(kategori, simpanKategori, menyimpan)}
                 />
                 <p style={{ margin: 0, padding: "10px 14px", fontSize: 11.5, color: C.mid,
                   borderTop: `1px solid ${C.border}`, lineHeight: 1.55 }}>
