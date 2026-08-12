@@ -450,6 +450,20 @@ export default function RegisterKontrakPage() {
               <ScrollText size={15} aria-hidden="true" /> Catat addendum
             </button>
 
+            {/* Alasan tombol mati DINYATAKAN di layar, bukan hanya di `title`.
+                Tooltip tak terjangkau keyboard maupun sentuh — dan pengguna
+                yang tak tahu kenapa tombolnya abu-abu menyimpulkan aplikasinya
+                rusak. */}
+            {indukTersedia.length === 0 && (
+              <p style={{
+                fontSize: 11.5, color: C.muted, margin: 0, flexBasis: "100%",
+                lineHeight: 1.45, maxWidth: "62ch",
+              }}>
+                Addendum baru bisa dicatat setelah ada kontrak induk di proyek ini —
+                addendum mengubah sesuatu, jadi harus ada yang diubah.
+              </p>
+            )}
+
             <button type="button" onClick={() => setMuatUlangKe((n) => n + 1)}
               aria-label="Muat ulang register kontrak" style={{
                 display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",

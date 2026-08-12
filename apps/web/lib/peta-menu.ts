@@ -120,7 +120,7 @@ export const PETA_MENU: GrupMenu[] = [
   {
     key: 'g-kontrak', label: 'Kontrak', icon: 'FileSignature', urutan: 30,
     items: [
-      { key: 'kt-register', label: 'Register Kontrak', status: 'sebagian', href: '/proyek', guna: 'Daftar kontrak induk beserta nilai & jangka waktunya.', catatan: 'Data kontrak masih menempel di proyek; tabel kontrak tersendiri belum.' },
+      { key: 'kt-register', label: 'Register Kontrak', status: 'hidup', href: '/kontrak/register', guna: 'Kontrak induk & addendumnya, beserta selisih nilai dokumen terhadap angka yang dipakai menagih.', catatan: 'Tabel `kontrak` (migrasi 344). Halaman ini TIDAK menulis projects.contract_value — ia membandingkannya; keputusan menyamakan ada di tangan manusia.' },
       { key: 'kt-termin', label: 'Termin Pembayaran', status: 'hidup', href: '/keuangan/pembayaran', guna: 'Jadwal penagihan bertahap sesuai kontrak.' },
       { key: 'kt-retensi', label: 'Retensi', status: 'hidup', href: '/piutang', guna: 'Uang tahanan yang dilepas setelah masa pemeliharaan.' },
       { key: 'kt-co', label: 'Change Order', status: 'hidup', href: '/proyek', tabProyek: 'sec-co', guna: 'Pekerjaan tambah/kurang yang mengubah nilai kontrak.' },

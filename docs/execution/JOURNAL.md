@@ -5,6 +5,88 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-13 — kt-register: dua angka yang keduanya benar, dan menu yang membetulkan baris mati
+
+### Yang dibangun
+
+Register kontrak: `kontrak` + `kontrak_jenis` (induk/addendum), rute, halaman
+`/kontrak/register`. Peta Modul menandainya "sebagian"; yang lebih tepat,
+menunya menjanjikan register sementara tautannya membuka daftar proyek.
+
+**Keputusan pokok — halaman ini TIDAK menulis `projects.contract_value`.**
+Kolom itu dibaca 104 tempat: invoice, PPN, retensi, EVM, kurva S, IPC, termin.
+Dua penulis untuk satu kolom pasti berselisih, dan yang kalah adalah invoice
+yang terbit dengan angka salah tanpa satu pun galat. Yang disediakan
+PEMBANDING: selisih beserta kemungkinan sebabnya — termasuk change order
+disetujui yang belum diaddendumkan, penjelasan yang SAH. Manusia memutuskan.
+
+Addendum boleh bernilai NEGATIF; pengurangan lingkup nyata adanya. Yang
+ditolak justru nol — addendum nol tak mengubah apa pun.
+
+### Saya salah: migrasi 345 lulus verifikasinya sendiri sambil salah sasaran
+
+345 mengarahkan `kt-register` ke `/kontrak/register` dan verifikasinya hijau.
+Ia memeriksa `href`, `label`, `kesiapan` — dan tak satu pun memeriksa apakah
+barisnya TAMPIL. `kt-register` ber-`is_active = false`; seluruh keluarga
+`kt-*` (13 baris) adalah taksonomi lama yang sudah dipensiunkan, digantikan
+keluarga `kontrak-*`.
+
+Jadi saya membetulkan tautan pada baris yang tak pernah muncul di sidebar
+siapa pun. `audit-nav-yatim.mjs` benar saat tetap melaporkan halamannya yatim
+— saya sempat menduga penjaganya yang basi.
+
+Bentuk cacatnya sama dengan migrasi 326 yang lulus sambil meninggalkan `href`
+NULL, hanya bergeser satu kolom: **yang diperiksa bukan yang menentukan.**
+346 memperbaikinya dan memeriksa dari sisi PEMBACA — `is_active`, rentang
+sort_order, dan ketunggalan tautan aktif per rute (aturan 232).
+
+Lalu 346 sendiri lolos sekali lagi: register dan RFI sama-sama menempati 302,
+karena verifikasi memeriksa RENTANG tapi bukan KETUNGGALAN. Langkah 4
+menambalnya. Dua kali berturut-turut verifikasi saya memeriksa hal yang
+berdekatan dengan yang penting, bukan yang penting.
+
+### Koreksi atas catatan 345
+
+345 mencatat "tiga pasang label kembar di grup Kontrak". Diukur ulang: tiap
+pasang berisi satu baris hidup dan satu mati, jadi tak ada yang kembar di
+layar. Itu dua generasi taksonomi berdampingan di tabel, bukan cacat tampilan.
+
+### Bukti
+
+- `src/lib/__tests__/kontrak.test.ts` — 33 hijau, 8 mutasi merah lalu pulih
+- `src/routes/v1/__tests__/kontrak.test.ts` — 24 hijau terhadap Postgres nyata
+- 7 mutasi rute dibuktikan merah. **Dua LOLOS lebih dulu** dan testnya
+  diperbaiki, bukan mutasinya dibuang:
+  - klien-dari-body lolos karena test tak pernah MENGIRIM `client_id`;
+  - penyaring tenant PATCH lolos karena test `return` diam-diam saat fixture
+    tak ada — kelas cacat G1-M3. Fixturenya kini DIBUAT.
+- Mutasi lib M4 (numeric tak dikonversi) tak bisa merah di lapisan integrasi:
+  PostgREST mengirim `numeric` sebagai JSON number, bukan string seperti
+  driver pg. Dijaga test murni, dan itu dinyatakan — bukan diklaim tertutup.
+- Migrasi 344 (14 cek), 345, 346 — verifikasi 346 dibuktikan merah lewat 3
+  mutasi (baris mati, sort_order di luar rentang, href salah)
+- Penjaga API 9/9 hijau; penjaga menu 6/6 hijau sesudah 346
+- `tabel-mentah-ratchet` sempat naik 17→18 karena halaman saya menulis
+  `<table>` sendiri; diganti komponen `Tabel`, kembali ke lantai.
+  `kerapatan-ratchet` naik 21→24 karena saya menyalin angka dipaku dari
+  register asuransi — persis yang diperingatkan pesannya ("halaman ke-N+1
+  disalin dari yang ke-N"). Diganti token, kembali ke lantai.
+- Layar diperiksa sungguhan (`.layar/kt-*.png`): alur catat → draf →
+  berlakukan, dan pembanding berubah dari "selisih Rp 95.000.000" ke "cocok".
+
+### Merah yang BUKAN milik saya (diukur dengan menyembunyikan berkas saya)
+
+`isian-ratchet` (16 di atas lantai), `medan-hantu-ratchet` (3),
+`tata-letak-ratchet` — ketiganya sudah merah di HEAD tanpa berkas saya.
+
+### Utang yang dicatat, bukan diselundupkan
+
+Grup Kontrak masih memuat 13 baris `kt-*` nonaktif. Membersihkannya berarti
+memutuskan taksonomi mana yang menang — keputusan tentang menu yang tak
+diminta pekerjaan ini, dan bukan urusan satu sub-menu.
+
+---
+
 ## 2026-08-12 (lanjutan) — D3: penjaga yang buta pada bentuk ternary
 
 ### Yang dibangun
