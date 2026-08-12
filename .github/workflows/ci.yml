@@ -670,6 +670,26 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
+      # TJS-P5 — enum `cf_entitas` hanya boleh menyebut TABEL YANG ADA.
+      #
+      # Migrasi 321 versi pertama menulis 'vendors'; tabelnya bernama
+      # `suppliers`. Enum tidak memvalidasi apa pun ke katalog — bagi Postgres
+      # itu label sah. Akibatnya entitas yang tak pernah bisa dipakai, tanpa
+      # satu pun galat: tenant memilih "Vendor", membuat field, mengisinya,
+      # dan nilainya menggantung di `entitas_id` yang tak menunjuk baris mana
+      # pun.
+      #
+      # Yang menangkapnya kebetulan — saya mengukur nama tabel sebelum
+      # menjalankan migrasi. Ini penjaganya supaya tak bergantung kebetulan.
+      #
+      # Terbukti bisa merah lewat tiga mutasi: 'vendors' disuntik ke enum
+      # (cacat aslinya), tabel ber-id bigint disuntik, dan entitas tak
+      # terklasifikasi tenancy.
+      - name: Entitas custom field menunjuk tabel nyata (TJS-P5)
+        run: node scripts/audit-custom-field-entitas.mjs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       # Status sub-menu yang membusuk sementara kode maju. Terbukti terjadi
       # TUJUH kali (F5-1 §3a satu item, §3b enam item) tanpa satu pun penjaga
       # menabraknya — skrip ini sudah ada sejak lama tetapi tak pernah

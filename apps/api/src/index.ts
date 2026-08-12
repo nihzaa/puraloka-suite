@@ -105,6 +105,7 @@ import searchRoutes from './routes/v1/search.js'
 import unitsRoutes from './routes/v1/units.js'
 import workCategoriesRoutes from './routes/v1/work-categories.js'
 import kasbonPurposesRoutes from './routes/v1/kasbon-purposes.js'
+import customFieldRoutes from './routes/v1/custom-field.js'
 import approvalChainRoutes from './routes/v1/approval-chains.js'
 import notificationRuleRoutes from './routes/v1/notification-rules.js'
 import estimateVersionRoutes from './routes/v1/estimate-versions.js'
@@ -400,6 +401,7 @@ await app.register(searchRoutes)
 await app.register(unitsRoutes)
 await app.register(workCategoriesRoutes)
 await app.register(kasbonPurposesRoutes)
+await app.register(customFieldRoutes)
 await app.register(approvalChainRoutes)
 await app.register(notificationRuleRoutes)
 await app.register(estimateVersionRoutes)

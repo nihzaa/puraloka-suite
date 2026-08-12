@@ -1967,13 +1967,44 @@ items:
       - "definisi DAN nilai, keduanya company_id + RLS"
       - "daftar tipe TERTUTUP, hanya di entitas yang ditunjuk — ditegakkan di
          schema, bukan diserahkan ke niat baik"
-    cara_verifikasi: "test: tipe di luar daftar DITOLAK DB, bukan hanya UI"
+    cara_verifikasi: >-
+      test: tipe di luar daftar DITOLAK DB, bukan hanya UI.
+      TERPENUHI: 45 test dalam tiga lapis —
+      lib/__tests__/custom-field.test.ts (15, bentuk definisi),
+      __tests__/custom-field.test.ts (17, basis menegakkan; NOL app.inject),
+      __tests__/custom-field-rute.test.ts (13, HTTP).
+      Lapis kedua sengaja tanpa app.inject sama sekali: "bukan hanya UI"
+      berarti yang diuji harus SQL apa adanya, karena yang menulis ke basis
+      bukan cuma aplikasi (importer, skrip perbaikan data, psql).
+      Mutasi: 3 di lib (1/1/4 merah), 2 di basis (6/1 merah), 3 di rute
+      (masing-masing 1 merah), 3 di penjaga.
     catatan: >-
       Never Build List mencoret "EAV penuh". Custom field terbatas bukan EAV
       penuh — tapi batas itu harus ditegakkan mesin, karena jarak antara
       keduanya hanya sejauh satu permintaan pelanggan.
+
+      SELESAI 2026-08-12. Tiga batas, ketiganya di schema: enum `cf_entitas`
+      (5 nilai) + enum `cf_tipe` (6 nilai) + trigger batas 20 field per
+      (company, entitas). Batas KETIGA yang paling mudah dilupakan — dua yang
+      pertama membatasi BENTUK, tak satu pun membatasi VOLUME, dan 300 field
+      bertipe sah di entitas sah tetap EAV penuh dengan enum yang rapi.
+
+      Nilai divalidasi per tipe oleh trigger (uang WAJIB string — `jsonb`
+      number itu IEEE754, dan CLAUDE.md §5.4 menuntut nol float). Tiga izin
+      terpisah: view/manage/isi — yang mengisi nomor BPJS pegawai adalah staf
+      HRD, yang memutuskan ADA field bernama itu adalah admin.
+
+      Tiga cacat ditemukan verifikasi/test, bukan mata:
+      (1) `array_length('{}', 1)` = NULL bukan 0, jadi CHECK "pilihan wajib
+      punya opsi" menerima persis yang hendak ia tolak → `cardinality()`;
+      (2) enum menulis 'vendors', tabelnya `suppliers` — enum tak memvalidasi
+      ke katalog, jadi entitas itu tak pernah bisa dipakai tanpa satu pun
+      galat → penjaga `audit-custom-field-entitas.mjs`;
+      (3) izin DIBUAT tapi tak DIBERIKAN ke role mana pun — seluruh rute 403
+      untuk semua orang termasuk admin, sementara migrasi lulus dan penjaga
+      hijau. Ditemukan lapis test ketiga.
     bobot: M
-    status: todo
+    status: done
 
   - id: T5A-PERMISSIVE
     fase: 2

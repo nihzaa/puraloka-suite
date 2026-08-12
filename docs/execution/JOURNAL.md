@@ -5,6 +5,124 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — TJS-P5: tiga cacat yang tak satu pun ditemukan mata saya
+
+Item ini minta custom field per tenant dengan satu syarat yang tajam:
+
+> daftar tipe TERTUTUP, hanya di entitas yang ditunjuk — **ditegakkan di
+> schema, bukan diserahkan ke niat baik**
+
+Dan catatannya menjelaskan kenapa syarat itu segalanya:
+
+> Never Build List mencoret "EAV penuh". Custom field terbatas bukan EAV
+> penuh — tapi batas itu harus ditegakkan mesin, karena jarak antara keduanya
+> hanya sejauh satu permintaan pelanggan.
+
+Jarak itu memang sedekat itu. "Bisa tidak kami tambah satu kolom di proyek?"
+dijawab ya; enam bulan kemudian ada tenant dengan 40 field di 12 entitas, tak
+ada yang bisa membuat laporan lintas-tenant lagi, dan **tak ada satu pun
+keputusan yang salah di sepanjang jalan itu.**
+
+### Tiga batas, ketiganya di schema
+
+    enum cf_entitas    5 nilai   projects, suppliers, materials, pegawai, clients
+    enum cf_tipe       6 nilai   teks, angka, tanggal, boolean, pilihan, uang
+    trigger            20 field  per (company, entitas)
+
+Batas ketiga yang paling mudah dilupakan. Dua yang pertama membatasi
+**bentuk**; tak satu pun membatasi **volume**. Tenant bisa membuat 300 field
+bertipe sah di entitas sah — dan hasilnya EAV penuh dengan enum yang rapi.
+
+Yang mencegah penambahan entitas bukan disiplin, melainkan `ALTER TYPE`:
+harus lewat migrasi yang terbaca di review, bukan `INSERT` yang bisa
+dilakukan siapa pun berizin pengaturan.
+
+### Cacat 1 — CHECK yang menerima persis yang hendak ia tolak
+
+    CHECK (tipe <> 'pilihan' OR array_length(opsi, 1) >= 1)
+
+Terbaca benar. Tidak bekerja.
+
+`array_length('{}', 1)` memulangkan **NULL**, bukan 0. Dan `NULL >= 1`
+bernilai NULL — yang CHECK perlakukan sebagai LOLOS.
+
+Ditemukan blok verifikasi migrasi itu sendiri, bukan oleh mata. Inilah alasan
+tiap migrasi di repo ini menjalankan kasus negatifnya sendiri (pola 142).
+Perbaikannya `cardinality()`.
+
+### Cacat 2 — enum menyebut tabel yang tak ada
+
+Versi pertama menulis `'vendors'`. Tabelnya bernama `suppliers`.
+
+Enum **tidak memvalidasi apa pun ke katalog** — bagi Postgres itu label sah.
+Akibatnya: entitas yang tak pernah bisa dipakai, tanpa satu pun galat. Tenant
+memilih "Vendor" di layar, membuat field, mengisinya, dan nilainya menggantung
+di `entitas_id` yang tak menunjuk baris mana pun.
+
+Yang menangkapnya **kebetulan** — saya mengukur nama tabel sebelum menjalankan
+migrasi. Kalau tidak, ia lolos. Karena itu ada
+`audit-custom-field-entitas.mjs`, dan mutasi pertamanya justru menyuntikkan
+kembali cacat aslinya.
+
+### Cacat 3 — izin yang dibuat tapi tak diberikan ke siapa pun
+
+Migrasi berhenti di `INSERT INTO permissions`. Tak ada `role_permissions`.
+
+Hasilnya: seluruh rute custom field membalas **403 untuk semua orang,
+termasuk admin.** Migrasinya lulus. Penjaganya hijau. Dua lapis test pertama
+hijau. Fiturnya tak bisa dipakai siapa pun.
+
+Kelas cacat yang sama dengan T5A (RLS menyala tanpa policy): gerbang yang
+benar, dan nol orang di sisi dalamnya.
+
+Yang menemukannya lapis test KETIGA — HTTP. Itu persis alasan lapis ketiga
+ada, dan alasan yang sama saya tuliskan beberapa jam sebelumnya untuk TJS-P4.
+Kali ini ia membayar dirinya lagi, pada cacat dengan bentuk yang sama sekali
+berbeda.
+
+Verifikasi migrasi sekarang menolak izin yang tak sampai ke role mana pun.
+
+### Kenapa lapis kedua sengaja TANPA `app.inject`
+
+`cara_verifikasi` berbunyi *"DITOLAK DB, **bukan hanya UI**"*. Kalimat itu
+seluruh isinya: validasi di lapisan aplikasi membuktikan aplikasi menolak, ia
+tidak membuktikan basis menolak — dan yang menulis ke basis bukan cuma
+aplikasi. Ada importer, ada skrip perbaikan data, ada psql di tangan orang
+yang sedang buru-buru.
+
+Jadi `__tests__/custom-field.test.ts` tak memuat satu pun `app.inject`. Tiap
+test mengirim SQL apa adanya dan menuntut basis yang menolak.
+
+### Bukti
+
+    lib/__tests__/custom-field.test.ts        15  bentuk definisi (murni)
+    __tests__/custom-field.test.ts            17  basis menegakkan (SQL apa adanya)
+    __tests__/custom-field-rute.test.ts       13  HTTP, izin, kunci asing
+                                              ──
+                                              45  hijau
+
+Mutasi: 3 di lib (1/1/4 merah), 2 di basis (6/1 merah), 3 di rute (masing-
+masing 1 merah), 3 di penjaga (termasuk menyuntik ulang cacat `vendors`).
+
+Migrasi 321 & 322 lulus blok verifikasinya sendiri, dijalankan dua kali
+(idempoten). tsc api & web exit 0. Sebelas penjaga API + enam penjaga web
+hijau.
+
+### Yang tak dibangun, dan kenapa
+
+Tak ada tombol **Hapus** di layar pengaturan. Menghapus definisi ikut
+menghapus seluruh nilainya (`ON DELETE CASCADE`) — data yang diisi orang
+berbulan-bulan, hilang dari satu klik. Yang tersedia: menonaktifkan. Field
+nonaktif hilang dari formulir, nilainya tetap terbaca.
+
+Tipe/entitas/kunci juga tak bisa diubah sesudah dibuat. Mengubah tipe field
+yang sudah terisi membuat nilai lama tak cocok dengan definisinya — dan
+trigger validasi hanya berjalan saat MENULIS, jadi baris lama tetap tersimpan
+dalam bentuk yang tak mungkin lagi ditulis ulang. Yang menemukannya adalah
+laporan yang gagal, bulan depan.
+
+---
+
 ## 2026-08-12 (lanjutan) — TJS-P4: lencana yang sopan, dan pintu yang tak pernah dikunci
 
 > ⚠️ **Empat berkas TJS-P4 ter-commit di `45d6940f`**, commit milik pekerjaan
