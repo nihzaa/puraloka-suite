@@ -584,6 +584,136 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/gr-matching ─────────────────────────────
+  //
+  // Automation 4.10 — cocokkan Goods Receipt dengan PO.
+  //
+  // ── Yang SUDAH dijaga, dan karena itu TIDAK diulang di sini
+  //
+  // OVER-receipt sudah ditolak di dua tempat (`procurement.ts` saat GR dibuat
+  // DAN saat dikonfirmasi), dan UI sudah mengisi baris GR otomatis dari PO
+  // beserta sisa qty-nya. Menambah pemeriksaan keempat untuk hal yang sama
+  // hanya menghasilkan kebisingan.
+  //
+  // ── Yang TIDAK dijaga siapa pun: arah sebaliknya
+  //
+  // Tiga kelas ketidakcocokan yang lolos semua penjagaan itu, karena semuanya
+  // adalah KETIADAAN — dan yang tidak terjadi tak memicu apa pun:
+  //
+  //   STATUS BOHONG   PO ber-status `fully_received` padahal qty diterimanya
+  //                   belum lengkap. Diukur di basis dev: PO-2026-001
+  //                   tertulis "fully_received" dengan 0 dari 430 unit
+  //                   diterima. Status inilah yang dibaca laporan dan
+  //                   pembayaran supplier — bukan qty-nya.
+  //
+  //   MENGGANTUNG     PO diterima SEBAGIAN lalu dilupakan. Tak ada galat,
+  //                   tak ada tenggat yang lewat, hanya barang yang tak
+  //                   pernah datang dan uang muka yang sudah dibayar.
+  //
+  //   LEWAT TENGGAT   `expected_delivery_date` lewat, nol barang diterima.
+  //
+  // Ketiganya soal UANG: barang dibayar tapi tak diterima, atau dianggap
+  // diterima padahal tidak.
+  app.get('/api/v1/otomasi/jalankan/gr-matching', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    // Ambang hari untuk "menggantung" — sejak tenggat kirim terlewat.
+    const ambangHari = angka((request.query as any)?.hari, 7, 1, 365)
+    const now = new Date()
+    const today = now.toISOString().split('T')[0]
+    const batas = new Date(now.getTime() - ambangHari * HARI_MS).toISOString().split('T')[0]
+
+    const sudah = await pembuatDedup(request, today, ['gr_tak_cocok'])
+
+    const idProyek = await request.db!.projectIds()
+    const { data: baris, error } = await request.db!
+      .unsafe('purchase_orders', 'penjadwal lintas-proyek: disaring .in(project_id, projectIds())')
+      .select(`
+        id, po_number, status, expected_delivery_date, project_id,
+        project:projects!purchase_orders_project_id_fkey(id, name),
+        items:purchase_order_items(id, qty_ordered, qty_received)
+      `)
+      .in('project_id', idProyek)
+      .not('status', 'in', '("cancelled","draft")')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    let dibuat = 0
+    const hitung = { status_bohong: 0, menggantung: 0, lewat_tenggat: 0 }
+
+    for (const po of baris ?? []) {
+      const proj = po.project as unknown as { id: string; name: string } | null
+      if (!proj) continue
+
+      const items = (po.items ?? []) as Array<{ qty_ordered: number; qty_received: number | null }>
+      if (items.length === 0) continue
+
+      const pesan = items.reduce((s, i) => s + Number(i.qty_ordered ?? 0), 0)
+      const terima = items.reduce((s, i) => s + Number(i.qty_received ?? 0), 0)
+      if (pesan <= 0) continue
+
+      const lengkap = terima >= pesan
+      const tenggatLewat = Boolean(
+        po.expected_delivery_date && String(po.expected_delivery_date).slice(0, 10) < batas,
+      )
+
+      // Urutannya menentukan: satu PO menghasilkan SATU peringatan, dengan
+      // sebab yang paling serius. Mengirim tiga notifikasi untuk satu PO
+      // membuat orang berhenti membaca ketiganya.
+      let jenis: keyof typeof hitung | null = null
+      let judul = ''
+      let pesanTeks = ''
+
+      if (po.status === 'fully_received' && !lengkap) {
+        jenis = 'status_bohong'
+        judul = 'Status PO Tak Cocok dengan Barang'
+        pesanTeks = `PO ${po.po_number} bertanda "diterima penuh" tetapi baru ${terima} dari ${pesan} unit yang tercatat diterima — proyek "${proj.name}"`
+      } else if (!lengkap && terima > 0 && tenggatLewat) {
+        jenis = 'menggantung'
+        judul = 'PO Diterima Sebagian'
+        pesanTeks = `PO ${po.po_number} baru ${terima} dari ${pesan} unit, dan tenggat kirimnya sudah lewat — proyek "${proj.name}"`
+      } else if (terima === 0 && tenggatLewat) {
+        jenis = 'lewat_tenggat'
+        judul = 'PO Lewat Tenggat, Barang Belum Datang'
+        pesanTeks = `PO ${po.po_number} (${pesan} unit) melewati tenggat kirim dan belum ada barang diterima — proyek "${proj.name}"`
+      }
+
+      if (!jenis) continue
+      hitung[jenis]++
+
+      if (sudah('gr_tak_cocok', po.id as string)) continue
+
+      const penerima = await resolveRecipients('gr_tak_cocok', {
+        projectId: proj.id, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      judul,
+          message:    pesanTeks,
+          type:       'gr_tak_cocok',
+          // Status yang berbohong lebih gawat daripada barang terlambat:
+          // ia sudah masuk laporan dan bisa memicu pembayaran supplier.
+          priority:   jenis === 'status_bohong' ? 'urgent' : 'high',
+          project_id: proj.id,
+          action_url: '/procurement/penerimaan',
+          action_data: { record_id: po.id, jenis, pesan_unit: pesan, terima_unit: terima },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { po_diperiksa: (baris ?? []).length, ...hitung, ambang_hari: ambangHari },
+    })
+  })
 }
 
 /**

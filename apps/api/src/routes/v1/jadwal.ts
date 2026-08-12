@@ -110,6 +110,11 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Termin yang sudah memenuhi syarat tagih diterbitkan invoice-nya.',
     jalur: '/api/v1/otomasi/jalankan/invoice-termin',
   },
+  'gr-matching': {
+    label: 'Kecocokan PO & Penerimaan',
+    keterangan: 'PO yang statusnya tak cocok dengan barang diterima, atau menggantung lewat tenggat.',
+    jalur: '/api/v1/otomasi/jalankan/gr-matching',
+  },
   'dependency-breach': {
     label: 'Ambang Dependency Terlampaui',
     keterangan: 'Pekerjaan yang pendahulunya jauh di bawah ambang progres — hanya yang parah.',

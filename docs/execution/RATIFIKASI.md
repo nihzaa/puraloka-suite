@@ -6,6 +6,89 @@ bawah entrinya.
 
 ---
 
+# 📋 R-015 · TIGA TINDAKAN ANDA — dengan jawaban, bukan cuma daftar (2026-08-12)
+
+> **Ditanya founder:** *"apa yg harus saya ambil tindakan dari yg kata kamu
+> menunggu saya? dan untuk github secret katanya itu alamatnya harus https?"*
+
+Pertanyaan kedua itu tepat sasaran, dan jawabannya mengubah urutan
+prioritas. Saya ukur dulu sebelum menjawab.
+
+## 1. SCHEDULER_URL — Anda benar, dan ini BELUM BISA dikerjakan
+
+Ya, harus HTTPS dan harus bisa dijangkau dari internet publik. Runner
+GitHub Actions berjalan di mesin Microsoft, bukan di komputer Anda — ia
+tak bisa memanggil `localhost`.
+
+**Diukur 2026-08-12:**
+
+```
+apps/web/.env.local  →  NEXT_PUBLIC_API_URL=http://localhost:3007
+apps/api/            →  nol Dockerfile, nol vercel.json, nol Procfile
+.github/workflows/   →  nol workflow deploy
+```
+
+**Kesimpulannya: API ini belum ter-deploy ke mana pun.** Ia hanya hidup di
+komputer Anda. Jadi `SCHEDULER_URL` **tidak ada nilainya yang bisa diisi
+hari ini** — bukan karena Anda belum sempat, tetapi karena alamat yang
+hendak diisi belum lahir.
+
+Saya sebelumnya menulis ini sebagai "tugas founder yang tinggal disetel".
+**Itu keliru**, dan pertanyaan Anda yang menemukannya.
+
+### Yang sebenarnya dibutuhkan, berurutan
+
+| Langkah | Siapa | Catatan |
+|---|---|---|
+| Putuskan tempat hosting API | **Anda** | keputusan biaya + vendor |
+| Siapkan deploy-nya | saya | Dockerfile / config, satu kali |
+| Setel `SCHEDULER_URL` = `https://<alamat-api>/api/v1/jadwal/jalankan` | **Anda** | sesudah alamatnya ada |
+| Setel `SCHEDULER_SECRET` = nilai sama dengan `apps/api/.env` | **Anda** | rahasia, bukan URL |
+
+Pilihan hosting yang masuk akal untuk beban ini (API Fastify + Supabase
+terpisah): **Railway**, **Render**, atau **Fly.io** — ketiganya memberi
+HTTPS otomatis dan cukup di tier termurah. Vercel kurang cocok karena API
+ini server berumur panjang, bukan serverless function.
+
+**Sampai itu ada, kelima automation tetap bisa dijalankan MANUAL** dari
+halaman `/sistem` — tombolnya sengaja tidak dihapus. Yang hilang hanya
+otomatisnya, bukan fiturnya.
+
+## 2. Merge — satu perintah, dari checkout utama
+
+Pekerjaan otomasi/AI ada di branch `worktree-otomasi-ai-gateway`, sudah
+di-rebase bersih ke `feat/sumbu-ui-roadmap`. Saya **tidak bisa** menggabungkannya
+sendiri: branch itu di-checkout di `E:\Project\puraloka-suite`, dan sesi
+terisolasi dilarang menulis ke checkout bersama (penjagaan yang benar —
+ada sesi lain aktif di sana).
+
+```
+cd E:\Project\puraloka-suite
+git merge worktree-otomasi-ai-gateway
+```
+
+## 3. Harga — satu-satunya yang benar-benar hanya Anda yang tahu
+
+| Perkara | Yang diputuskan |
+|---|---|
+| **E9** 19 harga AHSP bentrok | dua sumber sah beda angka untuk pekerjaan sama |
+| **E10** 81 harga draft | mengaktifkannya = harga itu dipakai menawar |
+| **SITUS-2** materi jual | harga langganan + cerita proyek nyata |
+
+Ketiganya **memutuskan harga penawaran Anda**. Tak ada standar yang bisa
+saya rujuk untuk menjawabnya, dan menebaknya berarti mengarang angka yang
+dipakai menagih pelanggan.
+
+## Yang TIDAK lagi menunggu Anda
+
+R-013 sudah menjawab dari standar: penjurnalan PSAK 72, TanStack Query,
+bentuk langganan, grup/holding, `pg_dump`. **R-014** (migrasi otomasi belum
+tercatat di buku migrasi) saran saya tetap: biarkan CI mencatatnya lewat
+jalur resmi — migrasinya idempoten dan bernomor lebih kecil dari yang
+menyusul, jadi replay-nya benar.
+
+---
+
 # 📋 R-014 · Migrasi 331 SUDAH JALAN tapi BELUM tercatat di buku migrasi (2026-08-12)
 
 **Butuh keputusan Anda — ini Gerbang Keras G-2, dan saya tidak menyentuhnya.**

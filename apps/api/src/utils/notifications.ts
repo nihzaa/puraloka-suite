@@ -62,6 +62,9 @@ export type NotificationType =
   | 'worker_kasbon_reminder'
   | 'progress_belum_lapor'
   | 'gantt_dep_breach'
+  // 4.10 — PO/GR tak cocok. Tipe sendiri karena penerimanya tim pengadaan,
+  // bukan PM proyek, dan tindakannya memeriksa gudang bukan menata jadwal.
+  | 'gr_tak_cocok'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

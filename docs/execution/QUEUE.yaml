@@ -2107,7 +2107,25 @@ items:
       (`routes/v1/jadwal.ts`), dipicu cron GitHub Actions tiap 15 menit.
       Migrasi 331 menyediakan aturan routing-nya.
 
-      ── SISA (4) ─────────────────────────────────────────────────────────
+      ── SELESAI TAHAP KEDUA 2026-08-12 — 6 dari 8 ───────────────────
+      5.1  invoice dari termin — logika DIANGKAT ke `lib/invoice-termin.ts`,
+           dipakai bersama `termin-payment.ts`. Mutasi menemukan cacat
+           sungguhan: `invoices.termin_schedule_id` indeks BIASA, bukan
+           UNIK — dua panggilan bersamaan bisa menagih klien dua kali.
+           Ditutup migrasi 333 (verifikasi menuntut basis MENOLAK insert
+           kedua, bukan sekadar indeksnya ada).
+      4.10 kecocokan PO & penerimaan. Over-receipt SUDAH dijaga dua tempat
+           dan UI sudah auto-isi baris GR — jadi yang dibangun arah
+           SEBALIKNYA, yang tak dijaga siapa pun:
+             status_bohong  PO `fully_received` padahal qty belum lengkap
+                            (nyata di basis: PO-2026-001, 0 dari 430 unit)
+             menggantung    diterima sebagian lalu dilupakan
+             lewat_tenggat  tenggat lewat, nol barang datang
+           Satu PO = SATU peringatan (yang paling gawat), bukan tiga.
+           Migrasi 334 menyediakan aturan routing-nya (penerima =
+           pemegang `procurement:po:manage`, bukan PM proyek).
+
+      ── SISA (2) ──────────────────────────────────────────────────────────
       5.1  invoice dari termin — KEDUA HALFNYA SUDAH ADA, tinggal disambung:
            predikat `isTriggered` di notifications.ts:523 → generator di
            termin-payment.ts:172. Idempotensi ganda sudah terjamin.
