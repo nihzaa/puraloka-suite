@@ -5,6 +5,75 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — D2: penolakan yang bisa diramalkan
+
+Gerbang opname (D1) sudah bekerja di server. Yang belum: layar penagihan
+**tak menyebut opname sama sekali**.
+
+Pengguna menekan Ajukan, ditolak 422, lalu membaca pesan galat — padahal ia
+bisa tahu sebelum mencoba. Penolakan yang bisa DIRAMALKAN lebih baik daripada
+penolakan yang menjelaskan diri.
+
+### Yang sudah ada, dan yang benar-benar kurang
+
+Progress payment lengkap sejak lama: list, ajukan, tinjau, konfirmasi, plus
+halaman `/mandor/penagihan`. `contract_claims` juga ada — tapi itu klaim
+kontraktual ke KLIEN (EOT, biaya tambah), bukan tagihan subkon.
+
+Jadi D2 bukan membangun modul, melainkan menyambungkan dua yang sudah ada.
+
+`GET /opname/kesiapan` menjawab satu pertanyaan per lingkup kerja: *"berapa
+persen yang boleh ditagih hari ini, dan kenapa segitu"* — berapa terukur,
+berapa sudah ditagih, berapa SISA, beserta kalimat sebabnya.
+
+### Dua keputusan yang belum ada di mana pun
+
+**Yang DITOLAK tak menghabiskan hak.** Kalau pengajuan `rejected` ikut
+dihitung, penolakan admin justru MENGURANGI hak mandor — hukuman yang tak
+pernah dimaksudkan siapa pun, dan yang paling sulit dijelaskan saat mandor
+menanyakannya.
+
+**`pct_opname` null untuk sistem harian, bukan 100.** Menuliskan angka akan
+terbaca sebagai "opname memperbolehkan 100%", padahal opname tak berkata
+apa-apa tentang upah harian.
+
+### Dua mutasi LOLOS, dan sebabnya sama
+
+    M1  saringan `status <> 'rejected'` dihapus       LOLOS
+    M2  saringan `status = 'diverifikasi'` dihapus    LOLOS
+
+Test saya membandingkan hasil endpoint dengan query yang **meniru rumusnya**.
+Dua sisi yang bergerak bersama: hapus saringan di kode, pembandingnya ikut
+berubah, selisihnya tetap nol.
+
+Diperbaiki dengan menyisipkan data yang sengaja: pembayaran `rejected`
+berpersen 99 (lebih tinggi dari apa pun yang ada), dan opname `diajukan`
+berpersen 95. Keduanya harus TIDAK terlihat di hasil. Sesudah itu kedua
+mutasi MERAH.
+
+Ini pola yang sama dengan penjaga Peta Modul pagi tadi — yang membandingkan
+`{ key: '` dengan `{ key: '`. **Pembanding yang meniru kode tak menguji
+kode.**
+
+### Yang ditemukan data nyata
+
+    20 lingkup kerja · 17 wajib opname
+    "Pekerjaan Finishing"  ditagih 80%  ·  opname terverifikasi: NOL
+
+Pembayaran 80% yang dibuat sebelum gerbangnya ada. Sekarang terlihat di layar
+sebagai baris terhalang dengan sebabnya — bukan sebagai angka yang wajar.
+
+### Bukti
+
+    __tests__/opname-bersama.test.ts   20  hijau (13 D1 + 7 D2)
+
+Mutasi D2: 4 (2 lolos → test diperbaiki → MERAH, 2 langsung merah).
+tsc api & web exit 0. Lima penjaga API + enam penjaga web hijau.
+
+Peta Modul: 188 -> **189** hidup.
+
+---
+
 ## 2026-08-12 (lanjutan) — D1: gerbang yang dijanjikan schema selama dua tahun
 
 ### C2 lebih dulu: sudah selesai, catatan saya yang keliru

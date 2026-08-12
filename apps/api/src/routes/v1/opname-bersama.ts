@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
-import { pctOpname } from '../../lib/gerbang-opname.js'
+import { pctOpname, SISTEM_WAJIB_OPNAME } from '../../lib/gerbang-opname.js'
+import { scopeIdsTenant } from '../../utils/tenant-guard.js'
 
 /**
  * OPNAME BERSAMA (D1) — berita acara pengukuran yang mengunci pembayaran.
@@ -278,6 +279,119 @@ export default async function opnameBersamaRoutes(app: FastifyInstance) {
         severity: 'critical',
       })
       return reply.send({ opname: data[0] })
+    },
+  )
+
+  // ── GET /api/v1/opname/kesiapan ──────────────────────────────────────────
+  //
+  // D2. Gerbang opname (D1) sudah bekerja di server: pembayaran borongan dan
+  // progress_pct ditolak 422 tanpa berita acara terverifikasi.
+  //
+  // Yang belum: layar penagihan TIDAK MENYEBUT OPNAME SAMA SEKALI. Pengguna
+  // menekan Ajukan, ditolak, lalu membaca pesan galat — padahal ia bisa tahu
+  // sebelum mencoba. Penolakan yang bisa diramalkan lebih baik daripada
+  // penolakan yang menjelaskan diri.
+  //
+  // Endpoint ini menjawab satu pertanyaan per lingkup kerja: "berapa persen
+  // yang boleh ditagih hari ini, dan kenapa segitu".
+  app.get<{ Querystring: { work_scope_id?: string } }>(
+    '/api/v1/opname/kesiapan',
+    { preHandler: [authenticate, requirePermission('mandor:view')] },
+    async (request, reply) => {
+      const db = request.db!
+      const q = request.query
+
+      const idScope = await scopeIdsTenant(request)
+      if (idScope.length === 0) return reply.send({ kesiapan: [] })
+
+      const dipilih = q.work_scope_id && idScope.includes(q.work_scope_id)
+        ? [q.work_scope_id]
+        : idScope
+
+      const [scope, opname, bayar] = await Promise.all([
+        db.unsafe('work_scopes', 'disaring in(id, scopeIdsTenant) di baris berikutnya')
+          .select('id, scope_name, payment_system, borongan_value, borongan_value_override')
+          .in('id', dipilih),
+
+        db.unsafe('opname_bersama', ALASAN)
+          .select('id, work_scope_id, status, nomor, tanggal_opname, opname_bersama_item(pct_selesai, volume_rencana)')
+          .eq('company_id', request.companyId!)
+          .in('work_scope_id', dipilih),
+
+        // Yang SUDAH ditagih — supaya sisa haknya bisa dihitung, bukan hanya
+        // batas atasnya. Mandor yang sudah menagih 30% dari opname 40% punya
+        // sisa 10%, dan itu angka yang ia cari.
+        db.unsafe('progress_payments', 'kategori C; disaring in(work_scope_id, scopeIdsTenant) di baris berikutnya')
+          .select('work_scope_id, pct_completed, status')
+          .in('work_scope_id', dipilih),
+      ])
+
+      if (scope.error) return reply.status(500).send({ error: scope.error.message })
+      if (opname.error) return reply.status(500).send({ error: opname.error.message })
+      if (bayar.error) return reply.status(500).send({ error: bayar.error.message })
+
+      const opPerScope = new Map<string, Array<Record<string, unknown>>>()
+      for (const o of (opname.data ?? []) as Array<Record<string, unknown>>) {
+        const k = o.work_scope_id as string
+        opPerScope.set(k, [...(opPerScope.get(k) ?? []), o])
+      }
+
+      // Persen TERTINGGI yang sudah ditagih & tak ditolak. Yang ditolak tak
+      // menghabiskan hak — kalau dihitung, penolakan admin justru mengurangi
+      // hak mandor, dan itu hukuman yang tak pernah dimaksudkan siapa pun.
+      const ditagihPerScope = new Map<string, number>()
+      for (const b of (bayar.data ?? []) as Array<Record<string, unknown>>) {
+        if (b.status === 'rejected') continue
+        const k = b.work_scope_id as string
+        const p = Number(b.pct_completed) || 0
+        ditagihPerScope.set(k, Math.max(ditagihPerScope.get(k) ?? 0, p))
+      }
+
+      const kesiapan = ((scope.data ?? []) as Array<Record<string, unknown>>).map((sc) => {
+        const id = sc.id as string
+        const daftar = opPerScope.get(id) ?? []
+        const wajib = SISTEM_WAJIB_OPNAME.includes(sc.payment_system as never)
+
+        const terverifikasi = daftar.filter((o) => o.status === 'diverifikasi')
+        const pctOpnameTertinggi = terverifikasi.reduce((a, o) => {
+          const p = pctOpname((o.opname_bersama_item ?? []) as never[]).pct
+          return p !== null && p > a ? p : a
+        }, 0)
+
+        const sudahDitagih = ditagihPerScope.get(id) ?? 0
+        // `null` bila tak wajib opname: batasnya bukan opname, melainkan
+        // kesepakatan lain. Menuliskan 100 di sini akan terbaca sebagai
+        // "opname memperbolehkan 100%", padahal opname tak berkata apa-apa.
+        const batas = wajib ? pctOpnameTertinggi : null
+        const sisa = wajib ? Math.max(0, pctOpnameTertinggi - sudahDitagih) : null
+
+        return {
+          work_scope_id: id,
+          scope_name: sc.scope_name,
+          payment_system: sc.payment_system,
+          wajib_opname: wajib,
+          opname_terverifikasi: terverifikasi.length,
+          opname_menunggu: daftar.filter((o) => o.status === 'diajukan').length,
+          opname_disengketakan: daftar.filter((o) => o.status === 'disengketakan').length,
+          pct_opname: batas,
+          pct_sudah_ditagih: sudahDitagih,
+          pct_sisa: sisa,
+          // Kalimatnya, bukan angkanya, yang bisa ditindaklanjuti di layar.
+          sebab: !wajib
+            ? 'Sistem pembayaran ini tak menuntut opname.'
+            : terverifikasi.length === 0
+              ? daftar.some((o) => o.status === 'disengketakan')
+                ? 'Opname sedang disengketakan — selesaikan sengketanya lebih dulu.'
+                : daftar.some((o) => o.status === 'diajukan')
+                  ? 'Opname sudah diajukan, menunggu verifikasi pihak kedua.'
+                  : 'Belum ada berita acara opname. Ukur volume terpasang lebih dulu.'
+              : (sisa ?? 0) <= 0
+                ? `Seluruh ${pctOpnameTertinggi}% yang terukur sudah ditagih. Opname susulan diperlukan untuk kemajuan berikutnya.`
+                : `Boleh ditagih sampai ${pctOpnameTertinggi}% — sisa ${sisa}% dari yang sudah terukur.`,
+        }
+      })
+
+      return reply.send({ kesiapan })
     },
   )
 }

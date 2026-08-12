@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Kosong } from "@/components/ui-dasar";
-import { Banknote, RefreshCw } from "lucide-react";
+import { Banknote, RefreshCw, Ruler, AlertTriangle, Check } from "lucide-react";
 import { C } from "@/lib/warna-ui";
 import {
   type ProgressPayment, type CashAccount,
@@ -59,8 +59,35 @@ function PPCard({ p, isAction, onTinjau }: {
   );
 }
 
+/**
+ * Kesiapan opname per lingkup kerja (D2).
+ *
+ * Gerbang opname (D1) sudah bekerja di server: pembayaran borongan dan
+ * progress_pct ditolak 422 tanpa berita acara terverifikasi.
+ *
+ * Yang belum sampai 2026-08-12: layar ini TAK MENYEBUT OPNAME SAMA SEKALI.
+ * Pengguna menekan Ajukan, ditolak, lalu membaca pesan galat — padahal ia
+ * bisa tahu sebelum mencoba. Penolakan yang bisa DIRAMALKAN lebih baik
+ * daripada penolakan yang menjelaskan diri.
+ */
+interface Kesiapan {
+  work_scope_id: string;
+  scope_name: string;
+  payment_system: string;
+  wajib_opname: boolean;
+  opname_terverifikasi: number;
+  opname_menunggu: number;
+  opname_disengketakan: number;
+  /** `null` bila tak wajib opname — bukan 100. */
+  pct_opname: number | null;
+  pct_sudah_ditagih: number;
+  pct_sisa: number | null;
+  sebab: string;
+}
+
 export default function PenagihanPage() {
   const [progressPayments, setProgressPayments] = useState<ProgressPayment[]>([]);
+  const [kesiapan, setKesiapan] = useState<Kesiapan[]>([]);
   const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [ppConfirmModal, setPpConfirmModal] = useState<{ payment: ProgressPayment } | null>(null);
@@ -69,11 +96,13 @@ export default function PenagihanPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [ppRes, cashRes] = await Promise.all([
+      const [ppRes, cashRes, siapRes] = await Promise.all([
         api.get<{ payments: ProgressPayment[] }>("/api/v1/mandor/progress-payments").catch(() => ({ data: { payments: [] } })),
         api.get<{ accounts: CashAccount[] }>("/api/v1/cash/accounts").catch(() => ({ data: { accounts: [] } })),
+        api.get<{ kesiapan: Kesiapan[] }>("/api/v1/opname/kesiapan").catch(() => ({ data: { kesiapan: [] } })),
       ]);
       setProgressPayments(ppRes.data.payments ?? []);
+      setKesiapan(siapRes.data.kesiapan ?? []);
       setCashAccounts((cashRes.data.accounts ?? []).filter((a: CashAccount) => a.is_active));
     } catch { /* silent */ } finally { setLoading(false); }
   }, []);
@@ -94,6 +123,14 @@ export default function PenagihanPage() {
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
       display: "flex", flexDirection: "column", gap: 16,
     }}>
+      {/* Kesiapan opname DI ATAS daftar pengajuan.
+          Yang dicari pembacanya sebelum menyetujui apa pun adalah "boleh
+          berapa" — dan itu ditentukan berita acara, bukan oleh angka yang
+          diketik mandor. */}
+      {!loading && kesiapan.some((k) => k.wajib_opname) && (
+        <PanelKesiapan kesiapan={kesiapan.filter((k) => k.wajib_opname)} />
+      )}
+
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ fontSize: 12, color: C.muted }}>{progressPayments.length} pengajuan</span>
         <div style={{ flex: 1 }} />
@@ -164,6 +201,85 @@ export default function PenagihanPage() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * Berapa persen yang boleh ditagih per lingkup kerja, dan kenapa segitu.
+ *
+ * ── Kenapa yang TERHALANG di atas
+ *
+ * Daftar yang mengurut menurut nama membuat lingkup kerja bermasalah
+ * tersembunyi di tengah. Yang dicari pembacanya adalah "mana yang tak bisa
+ * ditagih dan kenapa" — itu pertanyaan yang membuatnya membuka layar ini.
+ */
+function PanelKesiapan({ kesiapan }: { kesiapan: Kesiapan[] }) {
+  // Terhalang dulu: sisa nol, atau belum ada opname terverifikasi.
+  const urut = [...kesiapan].sort((a, b) => {
+    const skor = (k: Kesiapan) =>
+      k.opname_disengketakan > 0 ? 0
+        : k.opname_terverifikasi === 0 ? 1
+          : (k.pct_sisa ?? 0) <= 0 ? 2 : 3;
+    return skor(a) - skor(b) || a.scope_name.localeCompare(b.scope_name);
+  });
+
+  return (
+    <div style={{ ...card, overflow: "hidden" }}>
+      <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: C.text, margin: 0, display: "flex", alignItems: "center", gap: 8 }}>
+          <Ruler size={15} aria-hidden="true" />
+          Batas Tagih menurut Opname
+        </h3>
+        <p style={{ fontSize: 12, color: C.mid, margin: "4px 0 0", lineHeight: 1.5, maxWidth: "72ch" }}>
+          Pembayaran borongan dan progres tak bisa melampaui volume yang sudah
+          diukur bersama. Angka di bawah dihitung dari berita acara yang
+          <strong> sudah diverifikasi</strong> — yang masih menunggu tak menaikkannya.
+        </p>
+      </div>
+
+      {urut.map((k, i, arr) => {
+        const terhalang = k.opname_terverifikasi === 0 || (k.pct_sisa ?? 0) <= 0;
+        const sengketa = k.opname_disengketakan > 0;
+        const warna = sengketa ? "var(--danger)" : terhalang ? "var(--warning-teks)" : "var(--success)";
+        return (
+          <div
+            key={k.work_scope_id}
+            style={{
+              display: "grid", gridTemplateColumns: "1fr 110px 110px 100px", gap: 12,
+              padding: "11px 16px", alignItems: "center", fontSize: 13,
+              borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none",
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ color: C.text, display: "flex", alignItems: "center", gap: 6 }}>
+                {sengketa
+                  ? <AlertTriangle size={13} aria-hidden="true" style={{ color: warna, flexShrink: 0 }} />
+                  : terhalang
+                    ? <AlertTriangle size={13} aria-hidden="true" style={{ color: warna, flexShrink: 0 }} />
+                    : <Check size={13} aria-hidden="true" style={{ color: warna, flexShrink: 0 }} />}
+                {k.scope_name}
+              </div>
+              {/* Kalimatnya, bukan angkanya, yang bisa ditindaklanjuti. */}
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 2, lineHeight: 1.45 }}>
+                {k.sebab}
+              </div>
+            </div>
+            <div style={{ textAlign: "right", color: C.mid, fontVariantNumeric: "tabular-nums" }}>
+              {k.pct_opname === null ? "—" : `${k.pct_opname}%`}
+              <div style={{ fontSize: 10.5, color: C.muted }}>terukur</div>
+            </div>
+            <div style={{ textAlign: "right", color: C.mid, fontVariantNumeric: "tabular-nums" }}>
+              {k.pct_sudah_ditagih}%
+              <div style={{ fontSize: 10.5, color: C.muted }}>ditagih</div>
+            </div>
+            <div style={{ textAlign: "right", fontVariantNumeric: "tabular-nums", color: warna, fontWeight: 700 }}>
+              {k.pct_sisa === null ? "—" : `${k.pct_sisa}%`}
+              <div style={{ fontSize: 10.5, color: C.muted, fontWeight: 400 }}>sisa</div>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

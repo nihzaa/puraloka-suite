@@ -238,6 +238,162 @@ describe('verifikasi oleh pihak kedua', () => {
   })
 })
 
+describe('kesiapan (D2) — memberitahu SEBELUM ditolak', () => {
+  it('menyebut berapa persen yang boleh ditagih, beserta sebabnya', async () => {
+    // Gerbang D1 sudah bekerja di server, tapi layar penagihan tak menyebut
+    // opname sama sekali: pengguna menekan Ajukan, ditolak 422, baru membaca
+    // sebabnya. Penolakan yang bisa DIRAMALKAN lebih baik daripada penolakan
+    // yang menjelaskan diri.
+    const r = await app.inject({
+      method: 'GET', url: `/api/v1/opname/kesiapan?work_scope_id=${scopeId}`,
+      headers: { authorization: 'Bearer t' },
+    })
+    expect(r.statusCode, r.body).toBe(200)
+    const k = r.json().kesiapan[0]
+    expect(k.work_scope_id).toBe(scopeId)
+    expect(k.wajib_opname).toBe(true)
+    expect(k.pct_opname).toBe(40)          // opname yang diverifikasi di atas
+    expect(typeof k.sebab).toBe('string')
+    expect(k.sebab.length).toBeGreaterThan(15)
+  })
+
+  it('menghitung SISA hak, bukan hanya batas atasnya', async () => {
+    // `pct_sudah_ditagih` dibandingkan dengan basis, BUKAN dipaku angka.
+    //
+    // Versi pertama test ini mengharapkan 30 — persen pembayaran yang dibuat
+    // test ini sendiri. Basis dev ternyata sudah memuat pembayaran 60% dan
+    // 80% dari seed lama, yang dibuat SEBELUM gerbang opname ada. Angka
+    // yang benar adalah yang tertinggi di antara semuanya.
+    //
+    // Sisa yang NOL pada keadaan itu bukan cacat: opname mengukur 40%,
+    // sementara 60% sudah terlanjur ditagih. Justru itu yang harus terlihat
+    // — dan sebabnya menyebutkan opname susulan diperlukan.
+    const { rows } = await db.query(
+      `SELECT COALESCE(max(pct_completed), 0)::numeric AS t FROM progress_payments
+        WHERE work_scope_id = $1 AND status <> 'rejected'`, [scopeId])
+
+    const r = await app.inject({
+      method: 'GET', url: `/api/v1/opname/kesiapan?work_scope_id=${scopeId}`,
+      headers: { authorization: 'Bearer t' },
+    })
+    const k = r.json().kesiapan[0]
+    expect(k.pct_sudah_ditagih).toBe(Number(rows[0].t))
+    // Sisa = batas − yang sudah ditagih, tak pernah negatif.
+    expect(k.pct_sisa).toBe(Math.max(0, k.pct_opname - k.pct_sudah_ditagih))
+    expect(k.pct_sisa).toBeGreaterThanOrEqual(0)
+  })
+
+  it('yang DITOLAK tak menghabiskan hak', async () => {
+    // Kalau pengajuan yang ditolak ikut dihitung, penolakan admin justru
+    // MENGURANGI hak mandor — hukuman yang tak pernah dimaksudkan siapa pun.
+    //
+    // Barisnya DISISIPKAN di sini dengan persen yang sengaja lebih tinggi
+    // dari apa pun yang ada, lalu dihapus di `finally`.
+    //
+    // Versi pertama test ini membandingkan hasil endpoint dengan query yang
+    // MENIRU rumusnya (`status <> 'rejected'`) — dua sisi yang bergerak
+    // bersama, jadi mutasi yang menghapus saringan itu LOLOS. Pembanding
+    // yang meniru kode tak menguji kode.
+    const { rows: p } = await db.query(
+      `SELECT requested_by FROM progress_payments WHERE work_scope_id = $1 LIMIT 1`, [scopeId])
+    // `earned_value` 1, bukan 0: CHECK `chk_progress_earned_value` menuntut > 0.
+    const { rows: ins } = await db.query(
+      `INSERT INTO progress_payments
+         (work_scope_id, pct_completed, earned_value, gross_payment, deducted_kasbon,
+          net_payment, status, requested_by)
+       VALUES ($1, 99, 1, 1, 0, 1, 'rejected', $2) RETURNING id`,
+      [scopeId, p[0]?.requested_by ?? null])
+    try {
+      const r = await app.inject({
+        method: 'GET', url: `/api/v1/opname/kesiapan?work_scope_id=${scopeId}`,
+        headers: { authorization: 'Bearer t' },
+      })
+      // 99 ditolak, jadi ia TIDAK boleh muncul sebagai yang sudah ditagih.
+      expect(r.json().kesiapan[0].pct_sudah_ditagih).toBeLessThan(99)
+    } finally {
+      await db.query('DELETE FROM progress_payments WHERE id = $1', [ins[0].id])
+    }
+  })
+
+  it('opname yang BELUM diverifikasi tak menaikkan batas', async () => {
+    // Sama seperti di atas: pembanding tak boleh meniru rumus kode. Opname
+    // baru berpersen tinggi disisipkan dalam status `diajukan`; batasnya
+    // harus TETAP.
+    const sebelum = await app.inject({
+      method: 'GET', url: `/api/v1/opname/kesiapan?work_scope_id=${scopeId}`,
+      headers: { authorization: 'Bearer t' },
+    })
+    const batasSebelum = sebelum.json().kesiapan[0].pct_opname
+
+    const r = await buatOpname({
+      work_scope_id: scopeId, tanggal_opname: '2026-08-02',
+      catatan: `${TANDA} belum diverifikasi`,
+      item: [{ uraian: 'Uji batas', satuan: 'm2', volume_rencana: 100, volume_terukur: 95, pct_selesai: 95 }],
+    })
+    expect(r.statusCode).toBe(201)
+    const idBaru = r.json().opname.id
+    dibuat.push(idBaru)
+
+    const sesudah = await app.inject({
+      method: 'GET', url: `/api/v1/opname/kesiapan?work_scope_id=${scopeId}`,
+      headers: { authorization: 'Bearer t' },
+    })
+    expect(sesudah.json().kesiapan[0].pct_opname).toBe(batasSebelum)
+    expect(sesudah.json().kesiapan[0].opname_menunggu).toBeGreaterThan(0)
+  })
+
+  it('sisa NOL disebut apa adanya, dengan jalan keluarnya', async () => {
+    const r = await app.inject({
+      method: 'GET', url: `/api/v1/opname/kesiapan?work_scope_id=${scopeId}`,
+      headers: { authorization: 'Bearer t' },
+    })
+    const k = r.json().kesiapan[0]
+    if (k.pct_sisa === 0) {
+      // Kalimatnya harus memberitahu apa yang perlu dilakukan, bukan sekadar
+      // "tak bisa menagih".
+      expect(k.sebab).toMatch(/opname susulan/i)
+    }
+  })
+
+  it('work_scope_id milik tenant lain tak melebarkan hasil', async () => {
+    const r = await app.inject({
+      method: 'GET', url: '/api/v1/opname/kesiapan?work_scope_id=00000000-0000-0000-0000-0000000000ff',
+      headers: { authorization: 'Bearer t' },
+    })
+    expect(r.statusCode).toBe(200)
+    const semua = await app.inject({
+      method: 'GET', url: '/api/v1/opname/kesiapan',
+      headers: { authorization: 'Bearer t' },
+    })
+    // Id asing diabaikan → hasilnya sama dengan tanpa saringan, bukan berisi
+    // data tenant itu.
+    expect(r.json().kesiapan.length).toBe(semua.json().kesiapan.length)
+  })
+
+  it('sistem harian dilaporkan TAK wajib, dengan pct_opname null', async () => {
+    // `null`, bukan 100: menuliskan angka di sini akan terbaca sebagai
+    // "opname memperbolehkan 100%", padahal opname tak berkata apa-apa
+    // tentang sistem harian.
+    const { rows } = await db.query(
+      `SELECT ws.id FROM work_scopes ws
+         JOIN mandor_assignments ma ON ma.id = ws.assignment_id
+         JOIN projects p ON p.id = ma.project_id
+        WHERE ws.payment_system = 'harian' AND p.company_id = $1 LIMIT 1`, [companyId])
+    if (!rows.length) {
+      console.warn('  ⏭  tak ada work_scope harian — dilewati')
+      return
+    }
+    const r = await app.inject({
+      method: 'GET', url: `/api/v1/opname/kesiapan?work_scope_id=${rows[0].id}`,
+      headers: { authorization: 'Bearer t' },
+    })
+    const k = r.json().kesiapan[0]
+    expect(k.wajib_opname).toBe(false)
+    expect(k.pct_opname).toBeNull()
+    expect(k.sebab).toMatch(/tak menuntut opname/i)
+  })
+})
+
 describe('gerbang sesudah opname terverifikasi', () => {
   it('pembayaran MELAMPAUI opname tetap ditolak', async () => {
     // Opname mencatat 40%; pembayaran 80% tak dibenarkan olehnya. Tanpa ini,
