@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import {
   susunTender,
+  periksaPenetapan,
+  periksaPenutupan,
   AMBANG_TERLALU_RENDAH_PCT,
+  MIN_ALASAN_BUKAN_TERMURAH,
+  MIN_ALASAN_UMUM,
   type BarisPenawaranSubkon,
 } from '../tender-subkon.js'
 
@@ -213,5 +217,204 @@ describe('susunTender — jalan lain di mana angkanya bisa menyesatkan', () => {
     expect(per('wajar').catatan).toBeNull()
     // Dan catatan tidak mengubah penilaian: yang rendah tetap ditandai rendah.
     expect(per('rendah').penilaian).toBe('terlalu_rendah')
+  })
+})
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PENETAPAN PEMENANG
+//
+// Sampai 2026-08-13 modul ini bisa membandingkan penawaran dengan baik lalu
+// berhenti tepat sebelum gunanya: memutuskan. Blok ini menguji aturan yang
+// menutup jarak itu.
+// ═════════════════════════════════════════════════════════════════════════════
+
+const pw = (o: Partial<BarisPenawaranSubkon> & { id: string }): BarisPenawaranSubkon => ({
+  worker_id: 'w-' + o.id, nilai_penawaran: 100_000_000, status: 'diajukan', ...o,
+})
+
+const TIGA: BarisPenawaranSubkon[] = [
+  pw({ id: 'murah', nilai_penawaran: 100_000_000 }),
+  pw({ id: 'tengah', nilai_penawaran: 120_000_000 }),
+  pw({ id: 'mahal', nilai_penawaran: 150_000_000 }),
+]
+
+const ALASAN_PANJANG = 'Satu-satunya yang pernah mengerjakan bore pile di tanah lunak Dago.'
+
+describe('penetapan pemenang', () => {
+  it('penawar termurah cukup dengan alasan pendek', () => {
+    const h = periksaPenetapan({
+      penawaran: TIGA, idPemenang: 'murah', statusTender: 'terkirim',
+      alasan: 'Termurah dan memenuhi syarat.',
+    })
+    expect(h.boleh).toBe(true)
+    if (h.boleh) expect(h.peringatan).toBeNull()
+  })
+
+  it('BUKAN termurah menuntut alasan lebih panjang, dan diberi peringatan', () => {
+    // Ambang yang lolos untuk termurah harus GAGAL untuk yang bukan termurah —
+    // kalau tidak, ambang keduanya sama saja dan pembedaannya cuma hiasan.
+    const pendek = 'x'.repeat(MIN_ALASAN_UMUM + 1)
+    expect(pendek.length).toBeLessThan(MIN_ALASAN_BUKAN_TERMURAH)
+
+    const gagal = periksaPenetapan({
+      penawaran: TIGA, idPemenang: 'mahal', statusTender: 'terkirim', alasan: pendek,
+    })
+    expect(gagal.boleh).toBe(false)
+    if (!gagal.boleh) {
+      expect(gagal.kode).toBe('alasan')
+      expect(gagal.sebab).toMatch(/bukan penawar termurah/i)
+    }
+
+    const lolos = periksaPenetapan({
+      penawaran: TIGA, idPemenang: 'mahal', statusTender: 'terkirim', alasan: ALASAN_PANJANG,
+    })
+    expect(lolos.boleh).toBe(true)
+    if (lolos.boleh) {
+      expect(lolos.peringatan).toMatch(/50\.000\.000/)
+      expect(lolos.peringatan).toMatch(/lebih mahal/i)
+    }
+  })
+
+  it('yang TIDAK MENAWAR tak bisa menang meski nilainya 0', () => {
+    // 0 adalah termurah secara aritmetika. Tanpa pagar ini, borongan jatuh ke
+    // mandor yang justru menyatakan tak sanggup.
+    const dgnAbsen = [...TIGA, pw({ id: 'absen', nilai_penawaran: 0, tidak_menawar: true })]
+    const h = periksaPenetapan({
+      penawaran: dgnAbsen, idPemenang: 'absen', statusTender: 'terkirim', alasan: ALASAN_PANJANG,
+    })
+    expect(h.boleh).toBe(false)
+    if (!h.boleh) expect(h.kode).toBe('tak_menawar')
+  })
+
+  it('yang tidak menawar juga tak dihitung sebagai pembanding termurah', () => {
+    // Kalau 0 ikut jadi "termurah", memenangkan penawar 100jt akan dianggap
+    // "bukan termurah" dan menuntut alasan panjang tanpa sebab.
+    const dgnAbsen = [...TIGA, pw({ id: 'absen', nilai_penawaran: 0, tidak_menawar: true })]
+    const h = periksaPenetapan({
+      penawaran: dgnAbsen, idPemenang: 'murah', statusTender: 'terkirim',
+      alasan: 'Termurah dan memenuhi syarat.',
+    })
+    expect(h.boleh).toBe(true)
+    if (h.boleh) expect(h.peringatan).toBeNull()
+  })
+
+  it('yang GUGUR tak bisa menang, dan tak jadi pembanding', () => {
+    const dgnGugur = [
+      pw({ id: 'gugur', nilai_penawaran: 50_000_000, status: 'gugur' }),
+      ...TIGA,
+    ]
+    const tolak = periksaPenetapan({
+      penawaran: dgnGugur, idPemenang: 'gugur', statusTender: 'terkirim', alasan: ALASAN_PANJANG,
+    })
+    expect(tolak.boleh).toBe(false)
+    if (!tolak.boleh) expect(tolak.kode).toBe('status')
+
+    // 'murah' tetap termurah di antara yang bersaing — gugur tak menariknya turun.
+    const terima = periksaPenetapan({
+      penawaran: dgnGugur, idPemenang: 'murah', statusTender: 'terkirim',
+      alasan: 'Termurah dan memenuhi syarat.',
+    })
+    expect(terima.boleh).toBe(true)
+  })
+
+  it('penawaran dari tender LAIN ditolak', () => {
+    const h = periksaPenetapan({
+      penawaran: TIGA, idPemenang: 'entah', statusTender: 'terkirim', alasan: ALASAN_PANJANG,
+    })
+    expect(h.boleh).toBe(false)
+    if (!h.boleh) expect(h.kode).toBe('tak_ada')
+  })
+
+  it('tender yang SUDAH selesai atau batal tak bisa ditetapkan ulang', () => {
+    for (const st of ['selesai', 'batal']) {
+      const h = periksaPenetapan({
+        penawaran: TIGA, idPemenang: 'murah', statusTender: st, alasan: ALASAN_PANJANG,
+      })
+      expect(h.boleh, st).toBe(false)
+      if (!h.boleh) expect(h.kode).toBe('sudah_putus')
+    }
+  })
+
+  it('nilai bertipe STRING (dari pg) dibandingkan sebagai angka', () => {
+    // '90000000' < '100000000' benar secara teks DAN angka, jadi tak
+    // membuktikan apa pun. '9000000' vs '100000000' membedakannya: sebagai
+    // teks '9…' > '1…', sebagai angka 9jt < 100jt.
+    const str = [
+      pw({ id: 'a', nilai_penawaran: '9000000' }),
+      pw({ id: 'b', nilai_penawaran: '100000000' }),
+    ]
+    const h = periksaPenetapan({
+      penawaran: str, idPemenang: 'a', statusTender: 'terkirim',
+      alasan: 'Termurah dan memenuhi syarat.',
+    })
+    expect(h.boleh, 'termurah dibandingkan sebagai teks').toBe(true)
+    if (h.boleh) expect(h.peringatan).toBeNull()
+  })
+
+  it('termurah tetap termurah walau penilaiannya "terlalu rendah"', () => {
+    // Cacat yang tertangkap dari LAYAR 2026-08-13, bukan dari test: UI menilai
+    // "bukan termurah" lewat label `penilaian === 'termurah'`. Pada tender
+    // nyata, penawar terendah justru berlabel `terlalu_rendah` (28,5% di bawah
+    // perkiraan) — jadi tak ada baris berlabel 'termurah' sama sekali, dan
+    // pemeriksaannya gagal senyap: dialog menuntut 10 karakter alih-alih 25.
+    //
+    // Aturan di sini membandingkan NILAI, bukan label. Test ini menguncinya.
+    const h = periksaPenetapan({
+      penawaran: TIGA, idPemenang: 'tengah', statusTender: 'terkirim',
+      alasan: 'x'.repeat(MIN_ALASAN_UMUM + 2),
+    })
+    expect(h.boleh, 'ambang bukan-termurah tak diberlakukan').toBe(false)
+    if (!h.boleh) expect(h.kode).toBe('alasan')
+  })
+
+  it('alasan berisi spasi saja diperlakukan kosong', () => {
+    const h = periksaPenetapan({
+      penawaran: TIGA, idPemenang: 'murah', statusTender: 'terkirim', alasan: '          ',
+    })
+    expect(h.boleh).toBe(false)
+    if (!h.boleh) expect(h.kode).toBe('alasan')
+  })
+})
+
+describe('penutupan tender', () => {
+  const menang = (id: string, d: BarisPenawaranSubkon[]) =>
+    d.map((p) => (p.id === id ? { ...p, status: 'menang' as const } : p))
+
+  it('tanpa pemenang ditolak', () => {
+    const h = periksaPenutupan({ penawaran: TIGA, statusTender: 'terkirim', alasan: ALASAN_PANJANG })
+    expect(h.boleh).toBe(false)
+    if (!h.boleh) expect(h.sebab).toMatch(/Belum ada pemenang/i)
+  })
+
+  it('dengan satu pemenang dan alasan, boleh ditutup', () => {
+    const h = periksaPenutupan({
+      penawaran: menang('murah', TIGA), statusTender: 'terkirim', alasan: ALASAN_PANJANG,
+    })
+    expect(h.boleh).toBe(true)
+  })
+
+  it('tanpa alasan ditolak meski pemenangnya ada', () => {
+    const h = periksaPenutupan({
+      penawaran: menang('murah', TIGA), statusTender: 'terkirim', alasan: '  ',
+    })
+    expect(h.boleh).toBe(false)
+    if (!h.boleh) expect(h.sebab).toMatch(/[Aa]lasan/)
+  })
+
+  it('DUA pemenang ditolak — jalur tulis yang melewati aplikasi', () => {
+    const dua = TIGA.map((p) =>
+      p.id === 'murah' || p.id === 'mahal' ? { ...p, status: 'menang' as const } : p)
+    const h = periksaPenutupan({ penawaran: dua, statusTender: 'terkirim', alasan: ALASAN_PANJANG })
+    expect(h.boleh).toBe(false)
+    if (!h.boleh) expect(h.sebab).toMatch(/2 pemenang/)
+  })
+
+  it('yang sudah selesai atau batal tak bisa ditutup lagi', () => {
+    for (const st of ['selesai', 'batal']) {
+      const h = periksaPenutupan({
+        penawaran: menang('murah', TIGA), statusTender: st, alasan: ALASAN_PANJANG,
+      })
+      expect(h.boleh, st).toBe(false)
+    }
   })
 })

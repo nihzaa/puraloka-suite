@@ -107,6 +107,98 @@ menghijaukan angka.
 
 ---
 
+## 2026-08-13 (lanjutan) — subkon: modul yang berhenti tepat sebelum gunanya
+
+### Yang ditemukan sebelum menulis kode
+
+Tiga entri Peta Modul (`sk-paket`, `sk-kontrak`, `md-subkon`) satu rumpun, jadi
+diukur sekaligus. Yang ditemukan mengoreksi ketiganya:
+
+- **`sk-paket` catatannya salah.** Ia menulis "paket subkontrak formal belum
+  ada — nol tabel `paket_subkon`" seolah itu kekurangan. Padahal `work_scopes`
+  + `work_scope_items` memikul perannya penuh, lengkap dengan `unit`, `volume`,
+  `unit_price`, `subtotal`, dan progres per item. Tabel terpisah justru akan
+  jadi daftar kedua untuk pekerjaan yang sama — persis yang ditolak migrasi 201.
+  Statusnya dinaikkan ke `hidup`.
+
+- **Celah sesungguhnya ada di tempat lain, dan lebih dalam:**
+  `penawaran_subkon.status = 'menang'` dibaca DUA halaman
+  (`mandor/spk/page.tsx:610` mencarinya untuk menerbitkan SPK) tetapi **tak
+  satu pun rute API menulisnya**. Status 'menang' pada data hari ini masuk
+  lewat seed.
+
+  Jadi modul ini bisa membandingkan penawaran dengan sangat baik — vs termurah,
+  vs perkiraan, penanda "terlalu rendah" — lalu berhenti tepat sebelum gunanya:
+  memutuskan. Keputusan diambil di luar sistem, dan yang tercatat cuma angka
+  tanpa hasil.
+
+### Saya nyaris menimpa 202 baris kerja orang lain
+
+`lib/tender-subkon.ts` SUDAH ADA (commit `e5241b5d`), dan lebih matang dari
+yang saya tulis — ia menandai penawaran yang terlalu rendah terhadap perkiraan,
+bukan cuma membandingkan antar-penawar. Saya menulisinya dengan `Write` sebelum
+memeriksa, lalu `git checkout` memulihkannya. Yang benar dilakukan sesudahnya:
+MENAMBAH fungsi di akhir berkas, bukan menulis ulang.
+
+Judul commit lama "backend penuh" tidak akurat — lib-nya lengkap, rutenya tidak.
+
+### Cacat yang hanya ketahuan dari LAYAR, bukan dari test
+
+Dialog penetapan menuntut alasan lebih panjang (25 vs 10 karakter) bila
+pemenangnya bukan termurah. UI menilainya lewat label `penilaian === 'termurah'`
+— dan pada tender nyata TND-2026-002 penawar terendah justru berlabel
+**`terlalu_rendah`** (−28,5% dari perkiraan, catatannya menyebut talang dan
+flashing tak dihitung).
+
+Akibatnya tak ada satu pun baris berlabel 'termurah', `bukanTermurah` jadi
+false, dialog menuntut 10 karakter, dan tombolnya AKTIF untuk alasan yang pasti
+ditolak server. Label itu memang menjawab pertanyaan lain ("apakah harganya
+wajar"), bukan "siapa paling murah".
+
+Diperbaiki dengan membandingkan NILAI, dan dikunci test baru di lib.
+**Tak satu pun dari 46 test menangkapnya** — yang menangkap adalah tangkapan
+layar.
+
+### Bukti
+
+- `lib` 32 hijau (18 lama + 14 baru), 8 mutasi merah lalu pulih
+- rute 16 hijau terhadap Postgres nyata, 5 mutasi merah
+- **Satu mutasi TAK TERBUKTI dan dinyatakan begitu:** melepas
+  `.in('project_id', idProyek)` tidak membuat test merah — RLS di basis menahan
+  barisnya lebih dulu, jadi `.unsafe()` pun tak melihatnya. Dua lapisan, yang
+  kedua bekerja; testnya menjaga HASIL, bukan penyaring di rutenya.
+- Migrasi 347 (3 mutasi merah): penawaran terkunci sesudah putusan, tender
+  wajib berpemenang + beralasan sebelum ditutup, FORCE RLS di dua tabel
+- **Langkah yang DIBUANG dari 347:** indeks satu-pemenang sudah ada sejak
+  migrasi 201:157 dengan bentuk identik. `IF NOT EXISTS` tak menolong — ia
+  memeriksa NAMA, bukan BENTUK, jadi akan lahir indeks unik kedua yang identik.
+  Verifikasinya kini memeriksa indeks berdasarkan bentuk.
+- `audit-tulis-tanpa-periksa` MERAH karena kode saya (76 → 78), dan benar: dua
+  `update` yang errornya diperiksa tapi jumlah barisnya tidak. Yang `eAlasan`
+  serius — pemenang tersimpan, alasannya tidak, dan endpoint melapor berhasil.
+- Alur penuh diuji di peramban: TND-2026-002 kini `selesai` dengan pemenang dan
+  alasan tercatat lewat aplikasi, bukan seed.
+
+### Merah yang BUKAN milik saya (diukur dengan mengganti berkas ke versi HEAD)
+
+`tabel-mentah`, `tata-letak`, `isian`, `medan-hantu` — keempatnya sudah merah
+di HEAD. `kerapatan-ratchet` naik 21→22 karena saya, lalu dikembalikan pakai token.
+
+### Yang TIDAK dikerjakan, dan kenapa
+
+- **Tender selesai tidak otomatis membuat `work_scopes`.** Work_scope menuntut
+  `assignment_id` (mandor sudah ditugaskan ke proyek), dan memenangkan tender
+  tak dengan sendirinya berarti penugasan itu ada. Menebaknya akan membuat
+  baris penugasan hantu.
+- **BOQ penawaran per-item** (`sk-kontrak` tetap `sebagian`). Penawaran masih
+  satu angka total, jadi penawar tak bisa dibandingkan per-item. Itu tabel baru
+  + perubahan bentuk penawaran — pekerjaan tersendiri, bukan tempelan.
+- **Identitas subkon terpecah tiga tabel tanpa FK**: `workers` yang menawar,
+  `users` (via mandor_assignments) yang mengerjakan, `suppliers` yang
+  dievaluasi. Dicatat di `md-subkon`, bukan diperbaiki diam-diam.
+
+---
+
 ## 2026-08-13 — kt-register: dua angka yang keduanya benar, dan menu yang membetulkan baris mati
 
 ### Yang dibangun

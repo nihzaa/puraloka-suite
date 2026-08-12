@@ -225,3 +225,166 @@ export function susunTender(
       pemenang?.nilai != null && termurah != null ? pemenang.nilai - termurah : 0,
   }
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// PENETAPAN PEMENANG — ditambahkan 2026-08-13
+// ════════════════════════════════════════════════════════════════════════════
+//
+// ── Kenapa menyusul, bukan sejak awal
+//
+// `susunTender` di atas sudah menghitung perbandingannya lengkap, termasuk
+// `pemenang_bukan_termurah`. Tapi diukur 2026-08-13: TAK SATU PUN rute
+// menulis `penawaran_subkon.status = 'menang'`. Dua halaman membacanya —
+// `mandor/spk/page.tsx:610` mencari pemenang untuk menerbitkan SPK, dan
+// `mandor/tender/page.tsx` menampilkan penandanya — sehingga keduanya
+// menunggu keadaan yang tak pernah bisa terjadi lewat aplikasi.
+//
+// Jadi modul ini bisa membandingkan penawaran dengan sangat baik, lalu
+// berhenti tepat sebelum gunanya: memutuskan. Keputusan diambil di luar
+// sistem, dan yang tercatat hanya angka-angka tanpa hasil.
+
+/** Batas bawah alasan saat pemenang BUKAN penawar termurah. */
+export const MIN_ALASAN_BUKAN_TERMURAH = 25
+
+/** Batas bawah alasan saat pemenang memang termurah. */
+export const MIN_ALASAN_UMUM = 10
+
+export type KodeTolakPenetapan =
+  | 'tak_ada' | 'tak_menawar' | 'sudah_putus' | 'alasan' | 'status'
+
+export type HasilPenetapan =
+  | { boleh: true; peringatan: string | null }
+  | { boleh: false; sebab: string; kode: KodeTolakPenetapan }
+
+/**
+ * Boleh-tidaknya sebuah penawaran ditetapkan sebagai pemenang.
+ *
+ * `peringatan` BUKAN penolakan. Memilih penawar yang lebih mahal adalah
+ * keputusan bisnis yang sah dan sering benar — TND-2026-001 di basis ini
+ * contohnya: pemenangnya Rp 12jt lebih mahal karena satu-satunya yang pernah
+ * mengerjakan bore pile di tanah lunak Dago dan sanggup 30 hari lebih cepat.
+ *
+ * Yang tak sah adalah melakukannya tanpa keterangan. Karena itu ambang
+ * panjang alasannya LEBIH TINGGI saat pemenangnya bukan termurah: bukan untuk
+ * mempersulit, melainkan karena "sesuai arahan" tak menjawab apa pun saat
+ * ditanya auditor enam bulan kemudian.
+ */
+export function periksaPenetapan(masukan: {
+  penawaran: readonly BarisPenawaranSubkon[]
+  idPemenang: string
+  statusTender: string
+  alasan?: string | null
+}): HasilPenetapan {
+  const { penawaran, idPemenang, statusTender } = masukan
+  const alasan = (masukan.alasan ?? '').trim()
+
+  if (statusTender === 'selesai') {
+    return {
+      boleh: false, kode: 'sudah_putus',
+      sebab: 'Tender ini sudah diputuskan. Untuk mengubah pemenangnya, batalkan tender '
+        + 'dan terbitkan yang baru — mengganti pemenang di belakang keputusan membuat '
+        + 'jejaknya tak bisa dipertanggungjawabkan.',
+    }
+  }
+  if (statusTender === 'batal') {
+    return {
+      boleh: false, kode: 'sudah_putus',
+      sebab: 'Tender ini dibatalkan — tak ada pemenang yang bisa ditetapkan.',
+    }
+  }
+
+  const calon = penawaran.find((p) => p.id === idPemenang)
+  if (!calon) {
+    return { boleh: false, kode: 'tak_ada', sebab: 'Penawaran itu bukan bagian dari tender ini.' }
+  }
+  if (calon.tidak_menawar === true) {
+    return {
+      boleh: false, kode: 'tak_menawar',
+      sebab: 'Penawar ini menyatakan TIDAK menawar — tak ada harga yang disepakati, '
+        + 'jadi tak ada yang bisa dimenangkan.',
+    }
+  }
+  if (calon.status === 'gugur') {
+    return {
+      boleh: false, kode: 'status',
+      sebab: 'Penawaran ini berstatus gugur. Pulihkan statusnya lebih dulu bila '
+        + 'penggugurannya keliru.',
+    }
+  }
+
+  // Pembanding dihitung ulang di sini, bukan diambil dari `susunTender`:
+  // fungsi ini harus sah dipanggil tanpa perkiraan nilai, dan yang menentukan
+  // "termurah" hanyalah penawaran yang benar-benar mengajukan harga.
+  // `tidak_menawar` tersimpan bernilai 0, dan 0 selalu menang sebagai termurah.
+  const bersaing = penawaran.filter((p) => p.tidak_menawar !== true && p.status !== 'gugur')
+  const termurah = bersaing.reduce<BarisPenawaranSubkon | null>((min, p) => {
+    const n = angka(p.nilai_penawaran)
+    return min === null || n < angka(min.nilai_penawaran) ? p : min
+  }, null)
+
+  const bukanTermurah = termurah !== null && termurah.id !== calon.id
+  const batas = bukanTermurah ? MIN_ALASAN_BUKAN_TERMURAH : MIN_ALASAN_UMUM
+
+  if (alasan.length < batas) {
+    return {
+      boleh: false, kode: 'alasan',
+      sebab: bukanTermurah
+        ? 'Pemenang bukan penawar termurah — alasannya wajib dijelaskan (minimal '
+          + `${MIN_ALASAN_BUKAN_TERMURAH} karakter). Inilah yang ditanyakan auditor lebih `
+          + 'dulu, dan paling mudah dijawab sekarang.'
+        : `Alasan pemilihan wajib diisi (minimal ${MIN_ALASAN_UMUM} karakter).`,
+    }
+  }
+
+  let peringatan: string | null = null
+  if (bukanTermurah && termurah) {
+    const selisih = angka(calon.nilai_penawaran) - angka(termurah.nilai_penawaran)
+    peringatan = `Pemenang Rp ${selisih.toLocaleString('id-ID')} lebih mahal daripada `
+      + 'penawar terendah. Alasannya tercatat dan ikut terbaca saat tender ini diaudit.'
+  }
+
+  return { boleh: true, peringatan }
+}
+
+/**
+ * Apakah tender boleh ditutup (status → 'selesai').
+ *
+ * Dipisah dari `periksaPenetapan` karena keduanya terjadi pada saat berbeda:
+ * pemenang ditetapkan, lalu tendernya ditutup. Menggabungkannya jadi satu
+ * tombol menghapus kesempatan meninjau ulang sebelum menutup — dan penutupan
+ * tak bisa dibatalkan.
+ */
+export function periksaPenutupan(masukan: {
+  penawaran: readonly BarisPenawaranSubkon[]
+  statusTender: string
+  alasan?: string | null
+}): { boleh: true } | { boleh: false; sebab: string } {
+  if (masukan.statusTender === 'selesai') {
+    return { boleh: false, sebab: 'Tender ini sudah ditutup.' }
+  }
+  if (masukan.statusTender === 'batal') {
+    return { boleh: false, sebab: 'Tender yang dibatalkan tak bisa ditutup sebagai selesai.' }
+  }
+
+  const pemenang = masukan.penawaran.filter((p) => p.status === 'menang')
+  if (pemenang.length === 0) {
+    return {
+      boleh: false,
+      sebab: 'Belum ada pemenang. Tetapkan pemenangnya lebih dulu — tender yang ditutup '
+        + 'tanpa pemenang tak menghasilkan apa pun yang bisa dikerjakan.',
+    }
+  }
+  if (pemenang.length > 1) {
+    // Basis melarangnya lewat indeks unik parsial (migrasi 201:157). Kalau
+    // sampai terbaca di sini, ada jalur tulis yang melewati aplikasi.
+    return {
+      boleh: false,
+      sebab: `Tender ini punya ${pemenang.length} pemenang. Sisakan satu sebelum menutupnya.`,
+    }
+  }
+  if (!(masukan.alasan ?? '').trim()) {
+    return { boleh: false, sebab: 'Alasan pemilihan wajib tercatat sebelum tender ditutup.' }
+  }
+
+  return { boleh: true }
+}

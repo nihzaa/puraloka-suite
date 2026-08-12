@@ -42,6 +42,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Gavel, RefreshCw, Trophy, TriangleAlert, MinusCircle } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
+import { DialogBersama } from "@/components/dialog-bersama";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
@@ -239,6 +240,104 @@ export default function TenderSubkonPage() {
 
   const muatUlang = useCallback(() => setMuatUlangKe((n) => n + 1), []);
 
+
+  // ── Penetapan pemenang ─────────────────────────────────────────────────
+  //
+  // Sampai 2026-08-13 halaman ini bisa membandingkan penawaran dengan sangat
+  // rinci — vs termurah, vs perkiraan, penanda "terlalu rendah" — lalu
+  // berhenti. Tak ada cara menunjuk pemenangnya, karena endpointnya memang
+  // tak ada. Kolomnya sudah dipajang, keadaannya tak pernah bisa terjadi.
+  const [calon, setCalon] = useState<Penawaran | null>(null);
+  const [alasan, setAlasan] = useState("");
+  const [mengirim, setMengirim] = useState(false);
+  const [sukses, setSukses] = useState("");
+
+  function bukaPenetapan(p: Penawaran) {
+    setCalon(p);
+    setAlasan("");
+    setGalat("");
+    setSukses("");
+  }
+
+  /**
+   * Ambang panjang alasan mengikuti API (`lib/tender-subkon.ts`).
+   *
+   * Disalin, bukan diimpor: `apps/web` tak bergantung pada `apps/api`, dan
+   * `packages/shared` kosong. Kalau angkanya berpisah, yang terjadi adalah
+   * tombol aktif lalu server menolak — jadi ambang di sini dibuat SAMA, dan
+   * server tetap jadi penentunya.
+   */
+  // Dibandingkan lewat NILAI, bukan lewat label `penilaian === "termurah"`.
+  //
+  // Cacat yang tertangkap dari layar (2026-08-13): pada TND-2026-002 penawar
+  // terendah justru berpenilaian "terlalu rendah" — 28,5% di bawah perkiraan,
+  // catatannya menyebut talang dan flashing tak dihitung. Karena tak ada satu
+  // pun baris berlabel "termurah", `bukanTermurah` jadi false, dialog menuntut
+  // 10 karakter alih-alih 25, dan tombolnya aktif untuk alasan yang PASTI
+  // ditolak server.
+  //
+  // Label itu memang menjawab pertanyaan lain ("apakah harganya wajar"), bukan
+  // "siapa yang paling murah". Yang tidak menawar dikeluarkan: nilainya
+  // tersimpan 0 dan akan selalu menang sebagai terendah.
+  const bukanTermurah = (() => {
+    if (!calon || !banding || calon.nilai === null) return false;
+    const terendah = banding.penawaran
+      .filter((x) => x.nilai !== null && x.status !== "gugur")
+      .reduce<number | null>((m, x) => (m === null || x.nilai! < m ? x.nilai! : m), null);
+    return terendah !== null && calon.nilai > terendah;
+  })();
+  const minAlasan = bukanTermurah ? 25 : 10;
+
+  const halangan = !calon
+    ? null
+    : alasan.trim().length < minAlasan
+      ? bukanTermurah
+        ? `Pemenang bukan penawar termurah — jelaskan alasannya (minimal ${minAlasan} karakter). `
+          + "Inilah yang ditanyakan auditor lebih dulu."
+        : `Alasan pemilihan wajib diisi (minimal ${minAlasan} karakter).`
+      : null;
+
+  async function tetapkan() {
+    if (!calon || !idEfektif || halangan) return;
+    setMengirim(true); setGalat(""); setSukses("");
+    try {
+      const r = await api.patch<{ peringatan: string | null; penawar_dikalahkan: number }>(
+        `/api/v1/tender-subkon/${idEfektif}/pemenang`,
+        { penawaran_id: calon.id, alasan: alasan.trim() },
+      );
+      const n = r.data.penawar_dikalahkan;
+      setSukses(
+        `${calon.worker_name} ditetapkan sebagai pemenang`
+        + (n > 0 ? ` — ${n} penawar lain ditandai kalah.` : ".")
+        + (r.data.peringatan ? ` ${r.data.peringatan}` : ""),
+      );
+      setCalon(null);
+      setDetailUntuk(null);
+      setMuatUlangKe((k) => k + 1);
+    } catch (e) {
+      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setGalat(m ?? "Gagal menetapkan pemenang");
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function tutupTender() {
+    if (!idEfektif) return;
+    setMengirim(true); setGalat(""); setSukses("");
+    try {
+      await api.patch(`/api/v1/tender-subkon/${idEfektif}/tutup`, {});
+      setSukses("Tender ditutup. Pemenang dan alasannya terkunci sebagai keputusan final.");
+      setDetailUntuk(null);
+      setMuatUlangKe((k) => k + 1);
+    } catch (e) {
+      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setGalat(m ?? "Gagal menutup tender");
+    } finally {
+      setMengirim(false);
+    }
+  }
+
   const kolom: Array<Kolom<Penawaran>> = useMemo(() => [
     {
       kunci: "mandor", judul: "Mandor", kepalaBaris: true,
@@ -296,7 +395,37 @@ export default function TenderSubkonPage() {
         ? <span style={{ color: C.mid, fontSize: 12 }}>{p.catatan}</span>
         : <span style={{ color: C.muted }}>—</span>,
     },
-  ], []);
+    {
+      kunci: "tindakan", judul: "Tindakan", rata: "kanan",
+      render: (p) => {
+        // Tender yang sudah ditutup tak menerima perubahan. Menampilkan
+        // tombolnya lalu menolak di server membuat orang mengira aplikasinya
+        // rusak — yang tak berlaku sebaiknya tak terlihat sebagai pilihan.
+        if (!tenderAktif || tenderAktif.status !== "terkirim") {
+          return <span style={{ color: C.muted, fontSize: 11.5 }}>—</span>;
+        }
+        if (p.menang) {
+          return <span style={{ color: "var(--success)", fontSize: 11.5, fontWeight: 600 }}>Pemenang</span>;
+        }
+        if (p.nilai === null) {
+          // Alasannya DINYATAKAN, bukan sekadar tombol yang hilang.
+          return <span style={{ color: C.muted, fontSize: 11.5 }}>tak menawar</span>;
+        }
+        if (p.status === "gugur") {
+          return <span style={{ color: C.muted, fontSize: 11.5 }}>gugur</span>;
+        }
+        return (
+          <button type="button" onClick={() => bukaPenetapan(p)} style={{
+            cursor: "pointer", padding: "4px 10px", borderRadius: 5, fontSize: 12,
+            border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text,
+            whiteSpace: "nowrap",
+          }}>
+            Tetapkan
+          </button>
+        );
+      },
+    },
+  ], [tenderAktif]);
 
   return (
     <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
@@ -318,6 +447,16 @@ export default function TenderSubkonPage() {
           color: "var(--danger)", fontSize: 13,
         }}>
           {galat}
+        </div>
+      )}
+
+      {sukses && (
+        <div role="status" style={{
+          ...kartu, padding: "10px 14px", marginBottom: 16,
+          borderColor: "var(--success-border)", background: "var(--success-bg)",
+          color: "var(--success)", fontSize: 13, lineHeight: 1.55,
+        }}>
+          {sukses}
         </div>
       )}
 
@@ -519,6 +658,29 @@ export default function TenderSubkonPage() {
                 </div>
               )}
 
+              {/* ── Menutup tender ─────────────────────────────────────
+                  Penetapan pemenang dan PENUTUPAN sengaja dua langkah. Kalau
+                  digabung, keputusan yang tak bisa dibatalkan diambil pada
+                  klik yang sama dengan yang memilih — tanpa jeda meninjau. */}
+              {tenderTampil.status === "terkirim" && bandingTampil.pemenang && (
+                <div className="rise rise-3" style={{
+                  ...kartu, padding: "12px 16px", marginBottom: "var(--gap-bagian)",
+                  display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap",
+                }}>
+                  <div style={{ fontSize: 12.5, color: C.mid, lineHeight: 1.5, flex: 1, minWidth: 260 }}>
+                    Pemenang sudah ditetapkan. <strong>Menutup tender</strong> mengunci
+                    keputusan ini — nilai dan waktu penawaran tak bisa diubah lagi
+                    sesudahnya, dan pemenangnya tak bisa diganti.
+                  </div>
+                  <button type="button" onClick={tutupTender} disabled={mengirim} style={{
+                    cursor: mengirim ? "not-allowed" : "pointer", opacity: mengirim ? 0.5 : 1,
+                    padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600,
+                    border: "1px solid var(--aksen)", background: "var(--aksen)", color: "#fff",
+                    whiteSpace: "nowrap",
+                  }}>{mengirim ? "Menutup…" : "Tutup tender"}</button>
+                </div>
+              )}
+
               {/* ── Lapis 3: detail ────────────────────────────────────── */}
               <div className="rise rise-4" style={{ ...kartu, padding: "4px 4px 0", overflow: "hidden" }}>
                 <Tabel<Penawaran>
@@ -540,6 +702,115 @@ export default function TenderSubkonPage() {
           )}
         </>
       )}
+
+      {/* ── Dialog penetapan pemenang ──────────────────────────────────── */}
+      <DialogBersama
+        terbuka={!!calon}
+        onTutup={() => setCalon(null)}
+        judul={calon ? `Tetapkan ${calon.worker_name} sebagai pemenang` : ""}
+        lebar={560}
+      >
+        {calon && (
+          <>
+            <div style={{
+              display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap",
+              marginBottom: 14, paddingBottom: 14, borderBottom: `1px solid ${C.border}`,
+            }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Nilai penawaran
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: C.text, marginTop: 3 }}>
+                  {rupiah(calon.nilai)}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  vs termurah
+                </div>
+                <div style={{
+                  fontSize: 17, fontWeight: 700, marginTop: 3,
+                  color: bukanTermurah ? "var(--warning)" : "var(--success)",
+                }}>
+                  {calon.selisih_termurah_pct === 0
+                    ? "termurah"
+                    : persenBertanda(calon.selisih_termurah_pct)}
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Waktu kerja
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 700, color: C.text, marginTop: 3 }}>
+                  {calon.waktu_kerja_hari === null ? "—" : `${calon.waktu_kerja_hari} hari`}
+                </div>
+              </div>
+            </div>
+
+            {bukanTermurah && (
+              <p style={{
+                fontSize: 12.5, lineHeight: 1.55, margin: "0 0 12px",
+                padding: "10px 12px", borderRadius: 6,
+                background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
+                color: "var(--on-warning-bg)",
+              }}>
+                Ini bukan penawar termurah. Sering ada alasan yang sah — rekam jejak,
+                kapasitas, waktu kerja — tapi alasan itu harus tertulis sekarang,
+                karena pertanyaannya baru datang saat sudah tak ada yang ingat.
+              </p>
+            )}
+
+            <label htmlFor="td-alasan" style={{
+              display: "block", fontSize: 11, fontWeight: 700, color: C.muted,
+              textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 4,
+            }}>
+              Alasan pemilihan
+            </label>
+            <textarea
+              id="td-alasan"
+              value={alasan}
+              onChange={(e) => setAlasan(e.target.value)}
+              rows={4}
+              aria-describedby="td-alasan-bantu"
+              placeholder={bukanTermurah
+                ? "mis. Satu-satunya yang pernah mengerjakan bore pile di tanah lunak Dago, dan sanggup 90 hari."
+                : "mis. Termurah dan memenuhi seluruh syarat teknis."}
+              style={{
+                width: "100%", padding: "8px 10px", borderRadius: 6,
+                border: `1px solid ${C.border}`, background: "var(--surface)",
+                color: C.text, fontSize: 13, fontFamily: "inherit", resize: "vertical",
+              }}
+            />
+            <p id="td-alasan-bantu" style={{ fontSize: 11, color: C.muted, margin: "5px 0 0", lineHeight: 1.45 }}>
+              Tercatat di tender dan ikut terbaca saat diaudit.
+              {" "}{alasan.trim().length}/{minAlasan} karakter minimum.
+            </p>
+
+            <div style={{
+              marginTop: "var(--gap-bagian)", paddingTop: 14,
+              borderTop: `1px solid ${C.border}`,
+              display: "flex", gap: 9, justifyContent: "flex-end",
+              alignItems: "center", flexWrap: "wrap",
+            }}>
+              {halangan && (
+                <span style={{ fontSize: 12, color: C.mid, marginRight: "auto", maxWidth: "40ch", lineHeight: 1.45 }}>
+                  {halangan}
+                </span>
+              )}
+              <button type="button" onClick={() => setCalon(null)} style={{
+                cursor: "pointer", padding: "8px 14px", borderRadius: 6, fontSize: 13,
+                border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text,
+              }}>Batal</button>
+              <button type="button" onClick={tetapkan} disabled={!!halangan || mengirim} style={{
+                cursor: halangan || mengirim ? "not-allowed" : "pointer",
+                opacity: halangan || mengirim ? 0.5 : 1,
+                padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600,
+                border: "1px solid var(--aksen)", background: "var(--aksen)", color: "#fff",
+              }}>{mengirim ? "Menyimpan…" : "Tetapkan pemenang"}</button>
+            </div>
+          </>
+        )}
+      </DialogBersama>
     </div>
   );
 }

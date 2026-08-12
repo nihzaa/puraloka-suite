@@ -1,7 +1,10 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
-import { susunTender, type BarisPenawaranSubkon } from '../../lib/tender-subkon.js'
+import {
+  susunTender, periksaPenetapan, periksaPenutupan, type BarisPenawaranSubkon,
+} from '../../lib/tender-subkon.js'
+import { logAuditEvent } from '../../utils/audit.js'
 
 /**
  * TENDER & AWARD SUBKONTRAKTOR (F5 PEMBEDA)
@@ -265,5 +268,209 @@ export default async function tenderSubkonRoutes(app: FastifyInstance) {
     }
 
     return reply.status(201).send({ penawaran: data })
+  })
+
+  // ── PATCH /api/v1/tender-subkon/:id/pemenang ─────────────────────────────
+  //
+  // Endpoint yang selama ini HILANG. Diukur 2026-08-13: `status = 'menang'`
+  // dibaca dua halaman (`mandor/spk/page.tsx:610` mencarinya untuk menerbitkan
+  // SPK) tetapi tak satu pun rute menulisnya. Modul ini bisa membandingkan
+  // penawaran dengan sangat baik, lalu berhenti tepat sebelum gunanya.
+  //
+  // Penetapan TIDAK menutup tendernya. Keduanya dipisah supaya masih ada
+  // kesempatan meninjau ulang sebelum penutupan — yang tak bisa dibatalkan.
+  app.patch('/api/v1/tender-subkon/:id/pemenang', {
+    preHandler: [authenticate, requirePermission('projects:contract')],
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const b = request.body as { penawaran_id?: string; alasan?: string }
+
+    if (!b.penawaran_id) {
+      return reply.status(400).send({ error: 'penawaran_id wajib diisi' })
+    }
+
+    const db = request.db!
+    const idProyek = await db.projectIds()
+    if (idProyek.length === 0) return reply.status(404).send({ error: 'Tender tidak ditemukan' })
+
+    const { data: tender, error: eT } = await db
+      .unsafe('tender_subkon', 'kepemilikan diverifikasi lewat projectIds() di baris berikutnya')
+      .select('id, status, nilai_perkiraan')
+      .eq('id', id)
+      .in('project_id', idProyek)
+      .maybeSingle()
+    if (eT) return reply.status(500).send({ error: eT.message })
+    if (!tender) return reply.status(404).send({ error: 'Tender tidak ditemukan' })
+
+    const { data: penawaran, error: eP } = await db
+      .viaProject('penawaran_subkon', id)
+      .select('id, worker_id, nilai_penawaran, waktu_kerja_hari, tidak_menawar, status')
+      .eq('tender_id', id)
+    if (eP) return reply.status(500).send({ error: eP.message })
+
+    const verdict = periksaPenetapan({
+      penawaran: (penawaran ?? []) as unknown as BarisPenawaranSubkon[],
+      idPemenang: b.penawaran_id,
+      statusTender: (tender as { status: string }).status,
+      alasan: b.alasan,
+    })
+    if (!verdict.boleh) {
+      // 404 hanya untuk yang benar-benar tak ada; sisanya 409 — permintaannya
+      // bisa dimengerti, keadaannya yang menolak.
+      return reply.status(verdict.kode === 'tak_ada' ? 404 : 409).send({ error: verdict.sebab })
+    }
+
+    // Yang KALAH ditandai lebih dulu, pemenang belakangan.
+    //
+    // Urutan ini bukan selera: basis memasang indeks unik parsial "satu
+    // pemenang per tender" (migrasi 201:157). Menulis pemenang baru sebelum
+    // pemenang lama diturunkan akan ditolak indeks itu — dan pesannya
+    // ("duplicate key") tak memberitahu siapa pun apa yang harus dilakukan.
+    const { data: diturunkan, error: eKalah } = await db
+      .viaProject('penawaran_subkon', id)
+      .update({ status: 'kalah', updated_at: new Date().toISOString() })
+      .eq('tender_id', id)
+      .neq('id', b.penawaran_id)
+      .in('status', ['diajukan', 'menang'])
+      // Yang menyatakan TIDAK MENAWAR tidak ikut diturunkan jadi 'kalah'.
+      //
+      // Kalah berarti bersaing lalu tidak terpilih. Mandor yang menjawab
+      // "saya tidak menawar" tak pernah masuk persaingan, dan menandainya
+      // kalah membuat rekam jejaknya berbohong: daftar "berapa kali kalah
+      // tender" akan menghitung undangan yang bahkan tak pernah ia jawab
+      // dengan harga.
+      .eq('tidak_menawar', false)
+      .select('id')
+    if (eKalah) return reply.status(500).send({ error: eKalah.message })
+    // NOL baris di sini SAH: tender berpenawar tunggal tak punya siapa pun
+    // untuk diturunkan. Yang tidak sah adalah tidak tahu — jumlahnya ikut di
+    // balasan supaya layar bisa menyatakan "2 penawar lain ditandai kalah"
+    // alih-alih membiarkan pengguna menebak apa yang barusan terjadi.
+    const jumlahKalah = (diturunkan ?? []).length
+
+    // `.in('status', …)` ikut di WHERE: penetapan yang berlomba dengan
+    // penetapan lain tak boleh menimpa hasil yang sudah berpindah status.
+    const { data: jadi, error: eMenang } = await db
+      .viaProject('penawaran_subkon', id)
+      .update({ status: 'menang', updated_at: new Date().toISOString() })
+      .eq('id', b.penawaran_id)
+      .eq('tender_id', id)
+      .in('status', ['diajukan', 'kalah'])
+      .select('id, worker_id, nilai_penawaran, status')
+      .maybeSingle()
+    if (eMenang) return reply.status(500).send({ error: eMenang.message })
+    if (!jadi) {
+      return reply.status(409).send({
+        error: 'Penawaran itu berubah dari tempat lain sebelum penetapan tersimpan. Muat ulang.',
+      })
+    }
+
+    const { data: alasanTersimpan, error: eAlasan } = await db
+      .unsafe('tender_subkon', 'id sudah diverifikasi milik tenant ini di atas')
+      .update({ alasan_pilih: (b.alasan ?? '').trim(), updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .in('project_id', idProyek)
+      .select('id')
+      .maybeSingle()
+    if (eAlasan) return reply.status(500).send({ error: eAlasan.message })
+    if (!alasanTersimpan) {
+      // NOL baris di sini TIDAK sah: pemenangnya sudah tercatat, tapi alasan
+      // yang menjelaskannya tidak. Itu justru keadaan yang paling berbahaya —
+      // keputusan tanpa keterangan, dan endpointnya melapor berhasil.
+      return reply.status(409).send({
+        error: 'Pemenang tersimpan tetapi alasannya gagal ditulis — tender berubah dari '
+          + 'tempat lain. Muat ulang dan periksa alasan pemilihannya.',
+      })
+    }
+
+    await logAuditEvent(request, {
+      action: 'update',
+      tableName: 'penawaran_subkon',
+      recordId: b.penawaran_id,
+      actorId: request.currentUser!.id,
+      newValues: { status: 'menang', tender_id: id, alasan_pilih: (b.alasan ?? '').trim() },
+      reason: (b.alasan ?? '').trim(),
+    })
+
+    return reply.send({
+      pemenang: jadi,
+      peringatan: verdict.peringatan,
+      penawar_dikalahkan: jumlahKalah,
+    })
+  })
+
+  // ── PATCH /api/v1/tender-subkon/:id/tutup ────────────────────────────────
+  //
+  // Menutup tender = menyatakan keputusannya final. Trigger 347 menuntut
+  // tepat satu pemenang DAN alasan terisi; diperiksa juga di sini supaya
+  // penolakannya berupa kalimat yang bisa ditindaklanjuti.
+  app.patch('/api/v1/tender-subkon/:id/tutup', {
+    preHandler: [authenticate, requirePermission('projects:contract')],
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string }
+
+    const db = request.db!
+    const idProyek = await db.projectIds()
+    if (idProyek.length === 0) return reply.status(404).send({ error: 'Tender tidak ditemukan' })
+
+    const { data: tender, error: eT } = await db
+      .unsafe('tender_subkon', 'kepemilikan diverifikasi lewat projectIds() di baris berikutnya')
+      .select('id, status, alasan_pilih')
+      .eq('id', id)
+      .in('project_id', idProyek)
+      .maybeSingle()
+    if (eT) return reply.status(500).send({ error: eT.message })
+    if (!tender) return reply.status(404).send({ error: 'Tender tidak ditemukan' })
+
+    const { data: penawaran, error: eP } = await db
+      .viaProject('penawaran_subkon', id)
+      .select('id, worker_id, nilai_penawaran, waktu_kerja_hari, tidak_menawar, status')
+      .eq('tender_id', id)
+    if (eP) return reply.status(500).send({ error: eP.message })
+
+    const t = tender as { status: string; alasan_pilih: string | null }
+    const verdict = periksaPenutupan({
+      penawaran: (penawaran ?? []) as unknown as BarisPenawaranSubkon[],
+      statusTender: t.status,
+      alasan: t.alasan_pilih,
+    })
+    if (!verdict.boleh) return reply.status(409).send({ error: verdict.sebab })
+
+    // Status lama ikut di WHERE — dua penutupan bersamaan tak boleh keduanya
+    // mengira berhasil.
+    const { data: jadi, error } = await db
+      .unsafe('tender_subkon', 'id sudah diverifikasi milik tenant ini di atas')
+      .update({ status: 'selesai', updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .in('project_id', idProyek)
+      .eq('status', t.status)
+      .select('id, nomor, status')
+      .maybeSingle()
+
+    if (error) {
+      // Trigger 347 menolak dengan kalimat yang sudah dirancang untuk dibaca
+      // manusia; diteruskan apa adanya alih-alih ditimpa "gagal menutup".
+      const pesan = (error as { message?: string }).message ?? ''
+      if (/pemenang|[Aa]lasan/.test(pesan)) {
+        return reply.status(409).send({ error: pesan })
+      }
+      return reply.status(500).send({ error: error.message })
+    }
+    if (!jadi) {
+      return reply.status(409).send({
+        error: 'Tender berubah dari tempat lain sebelum penutupan tersimpan. Muat ulang.',
+      })
+    }
+
+    await logAuditEvent(request, {
+      action: 'update',
+      tableName: 'tender_subkon',
+      recordId: id,
+      actorId: request.currentUser!.id,
+      oldValues: { status: t.status },
+      newValues: { status: 'selesai' },
+    })
+
+    return reply.send({ tender: jadi })
   })
 }
