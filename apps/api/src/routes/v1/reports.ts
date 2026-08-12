@@ -21,6 +21,9 @@ async function proyekBolehDibaca(
   return milikTenant.includes(projectId) ? [projectId] : null
 }
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
+import { hitungKpiEvm, statusIndeks, type ProyekUntukKpi } from '../../lib/kpi-perusahaan.js'
+import { computeAging } from '../../lib/ar-register.js'
+import { hitungBacklog, type BidRingkas } from '../../lib/bid-backlog.js'
 
 function fmt(n: number) {
   return 'Rp ' + n.toLocaleString('id-ID')
@@ -1156,4 +1159,191 @@ export default async function reportsRoutes(app: FastifyInstance) {
     if (!data) return reply.status(404).send({ error: 'Record tidak ditemukan' })
     return reply.send({ record: data })
   })
+
+  // ── GET /api/v1/reports/kpi-perusahaan ───────────────────────────────────
+  //
+  // C1. Diukur 2026-08-12: kelima angkanya SUDAH dihitung, masing-masing di
+  // lib-nya sendiri dan dipakai satu rute — CPI/SPI di `kurva-s.ts`, margin
+  // di `cost-control.ts`, umur piutang di `finance.ts`, backlog di `bids.ts`.
+  //
+  // Yang tak ada: satu tempat yang membacanya BERSAMAAN. Untuk menjawab
+  // "bagaimana keadaan perusahaan", seseorang harus membuka empat layar dan
+  // menjumlahkan sendiri di kepala.
+  //
+  // Endpoint ini MEMANGGIL lib yang sama, bukan menghitung ulang. Menyalin
+  // rumusnya akan membuat dua sumber kebenaran untuk angka yang sama, dan
+  // cepat atau lambat dashboard melaporkan CPI berbeda dari halaman proyek.
+  app.get(
+    '/api/v1/reports/kpi-perusahaan',
+    { preHandler: [authenticate, requirePermission('reports:view')] },
+    async (request, reply) => {
+      const db = request.db!
+      const hariIni = new Date().toISOString().slice(0, 10)
+
+      const [proyek, biaya, kasbon, bayarProgres, upah, invoice, bid] = await Promise.all([
+        db.from('projects')
+          .select('id, name, status, progress_pct, contract_value, start_date, end_date')
+          .neq('status', 'cancelled'),
+
+        // AC = pengeluaran proyek yang SUDAH DISETUJUI.
+        //
+        // Bukan seluruh baris: pengajuan yang masih `submitted` belum tentu
+        // jadi biaya, dan memasukkannya membuat CPI terlihat lebih buruk
+        // daripada kenyataannya — lalu membaik sendiri saat pengajuan ditolak.
+        //
+        // `unsafe` + saringan `project_id` eksplisit: `project_expenses`
+        // kategori C (mewarisi tenancy lewat proyek), dan `db.from()`
+        // MENOLAKNYA — gerbang tenancy menabrak percobaan pertama endpoint
+        // ini dengan pesan yang tepat. `viaProject` tak dipakai karena ia
+        // untuk SATU proyek; di sini seluruh proyek tenant sekaligus.
+        db.unsafe('project_expenses', 'kategori C; disaring in(project_id, projectIds) di baris berikutnya')
+          .select('project_id, total_amount')
+          .eq('status', 'approved')
+          .in('project_id', await db.projectIds()),
+
+        // AC TIDAK cukup dari `project_expenses` saja.
+        //
+        // Diukur 2026-08-12: tabel itu KOSONG (nol baris), sementara biaya
+        // nyata ada di kasbon (56), progress payment (5), dan upah harian.
+        // Memakai `project_expenses` sendirian membuat AC = 0 dan CPI SELALU
+        // null — angka yang terlihat "belum ada data" padahal datanya ada,
+        // hanya di tabel lain.
+        //
+        // Sumbernya disamakan dengan `kurva-s.ts` supaya CPI perusahaan dan
+        // CPI per proyek tak bercerita hal yang berbeda. Ketiganya menuju
+        // proyek lewat `work_scopes → mandor_assignments`.
+        db.from('kasbons')
+          .select('amount, work_scopes!inner(mandor_assignments!inner(project_id))')
+          .eq('status', 'approved'),
+
+        // Keduanya kategori C lewat `work_scope_id` — `db.from()` MENOLAKNYA,
+        // dan gerbang tenancy menabrak percobaan pertama endpoint ini dengan
+        // pesan yang tepat. `viaProject` tak dipakai karena ia untuk SATU
+        // proyek; di sini seluruh lingkup kerja tenant sekaligus.
+        db.unsafe('progress_payments', 'kategori C; disaring in(work_scope_id, workScopeIds) di baris berikutnya')
+          .select('net_payment, work_scopes!inner(mandor_assignments!inner(project_id))')
+          .in('work_scope_id', await db.workScopeIds()),
+
+        db.unsafe('daily_wage_logs', 'kategori C; disaring in(work_scope_id, workScopeIds) di baris berikutnya')
+          .select('total_amount, work_scopes!inner(mandor_assignments!inner(project_id))')
+          .in('work_scope_id', await db.workScopeIds()),
+
+        // `invoices` kategori C, sama seperti `project_expenses` di atas.
+        db.unsafe('invoices', 'kategori C; disaring in(project_id, projectIds) di baris berikutnya')
+          .select('id, status, amount_due, due_date')
+          .in('project_id', await db.projectIds()),
+
+        db.from('bids')
+          .select('id, status, bid_value, winner_value, submitted_at, decided_at, project_id'),
+      ])
+
+      // Diperiksa satu per satu dengan menyebut namanya, bukan lewat loop:
+      // query yang ditambahkan nanti dan lupa dimasukkan ke array akan gagal
+      // tanpa suara, dan `?? []` mengubahnya jadi "nol biaya" yang sah.
+      if (proyek.error) return reply.status(500).send({ error: proyek.error.message })
+      if (biaya.error) return reply.status(500).send({ error: biaya.error.message })
+      if (kasbon.error) return reply.status(500).send({ error: kasbon.error.message })
+      if (bayarProgres.error) return reply.status(500).send({ error: bayarProgres.error.message })
+      if (upah.error) return reply.status(500).send({ error: upah.error.message })
+      if (invoice.error) return reply.status(500).send({ error: invoice.error.message })
+      if (bid.error) return reply.status(500).send({ error: bid.error.message })
+
+      const acPerProyek = new Map<string, number>()
+      const tambahAc = (id: string | null | undefined, n: number) => {
+        if (!id || !Number.isFinite(n) || n === 0) return
+        acPerProyek.set(id, (acPerProyek.get(id) ?? 0) + n)
+      }
+      for (const b of (biaya.data ?? []) as Array<Record<string, unknown>>) {
+        tambahAc(b.project_id as string, Number(b.total_amount) || 0)
+      }
+      // Tiga sumber lain menuju proyek lewat relasi bersarang; id-nya dibaca
+      // dari bentuk yang dipulangkan PostgREST.
+      const idDariScope = (row: Record<string, unknown>): string | null => {
+        const ws = row.work_scopes as Record<string, unknown> | undefined
+        const ma = ws?.mandor_assignments as Record<string, unknown> | undefined
+        return (ma?.project_id as string) ?? null
+      }
+      for (const k of (kasbon.data ?? []) as Array<Record<string, unknown>>) {
+        tambahAc(idDariScope(k), Number(k.amount) || 0)
+      }
+      for (const p of (bayarProgres.data ?? []) as Array<Record<string, unknown>>) {
+        // `net_payment`, bukan gross: kasbon yang dipotong sudah masuk AC
+        // lewat jalurnya sendiri. Memakai gross menghitungnya dua kali.
+        tambahAc(idDariScope(p), Number(p.net_payment) || 0)
+      }
+      for (const w of (upah.data ?? []) as Array<Record<string, unknown>>) {
+        tambahAc(idDariScope(w), Number(w.total_amount) || 0)
+      }
+
+      const untukKpi: ProyekUntukKpi[] = ((proyek.data ?? []) as Array<Record<string, unknown>>)
+        .map((p) => ({
+          id: p.id as string,
+          name: (p.name as string) ?? '(tanpa nama)',
+          // BAC = nilai kontrak.
+          //
+          // `kurva-s.ts` memakai pagu RAP bila terkunci, lalu total RAB, baru
+          // nilai kontrak — tiga query berat per proyek. Untuk angka
+          // PERUSAHAAN itu tak sepadan, dan nilai kontrak adalah dasar yang
+          // sama untuk semua proyek. Konsekuensinya DISEBUTKAN di respons
+          // (`dasar_bac`) supaya tak ada yang mengira ini angka yang sama
+          // dengan kurva-S per proyek.
+          bac: Number(p.contract_value) || 0,
+          ac: acPerProyek.get(p.id as string) ?? 0,
+          progresPct: Number(p.progress_pct) || 0,
+          // Rencana progres LINEAR terhadap waktu.
+          //
+          // Baseline jadwal sesungguhnya ada di `baseline_jadwal_item` dan
+          // lebih tepat; ia dipakai halaman proyek. Di sini pendekatan linear
+          // dipakai supaya endpoint tetap satu query — dan `null` dipulangkan
+          // bila proyek tak punya tanggal, sehingga SPI-nya null, bukan
+          // ditebak.
+          rencanaPct: rencanaLinear(p.start_date as string | null, p.end_date as string | null, hariIni),
+        }))
+
+      const evm = hitungKpiEvm(untukKpi)
+      const aging = computeAging((invoice.data ?? []) as never[], hariIni)
+      // Argumen kedua `hitungBacklog` adalah id proyek yang SUDAH SELESAI,
+      // bukan tanggal. Tender yang menang tapi proyeknya tuntas bukan backlog
+      // lagi — memasukkannya membuat kapasitas terlihat penuh padahal sudah
+      // lowong, dan itu membuat perusahaan menolak kerja yang sanggup diambil.
+      const proyekSelesai = new Set(
+        ((proyek.data ?? []) as Array<Record<string, unknown>>)
+          .filter((p) => p.status === 'completed' || p.status === 'selesai')
+          .map((p) => p.id as string),
+      )
+      const backlog = hitungBacklog((bid.data ?? []) as BidRingkas[], proyekSelesai)
+
+      return reply.send({
+        tanggal: hariIni,
+        evm: {
+          ...evm,
+          statusCpi: statusIndeks(evm.cpi, 'cpi'),
+          statusSpi: statusIndeks(evm.spi, 'spi'),
+          // Disebutkan supaya angka ini tak dikira identik dengan kurva-S.
+          dasar_bac: 'contract_value',
+          dasar_pv: 'linear terhadap tanggal mulai & selesai',
+        },
+        piutang: aging,
+        backlog,
+      })
+    },
+  )
+}
+
+/**
+ * Persen rencana progres pada `hariIni`, linear terhadap durasi proyek.
+ *
+ * `null` bila tanggalnya tak lengkap atau durasinya nol — supaya SPI-nya
+ * null, bukan ditebak. Proyek tanpa tanggal tak punya jadwal untuk
+ * dibandingkan, dan menganggapnya tepat jadwal adalah kebohongan.
+ */
+function rencanaLinear(mulai: string | null, selesai: string | null, kini: string): number | null {
+  if (!mulai || !selesai) return null
+  const m = Date.parse(mulai)
+  const s = Date.parse(selesai)
+  const k = Date.parse(kini)
+  if (!Number.isFinite(m) || !Number.isFinite(s) || s <= m) return null
+  if (k <= m) return 0
+  if (k >= s) return 100
+  return Math.round(((k - m) / (s - m)) * 10_000) / 100
 }

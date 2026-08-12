@@ -5,6 +5,101 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-12 (lanjutan) — C1: lima angka yang sudah ada, dan AC yang nol karena salah tabel
+
+Catatan Peta Modul untuk `bi-kpi` berbunyi: *"CPI/SPI ADA, umur piutang ADA,
+margin ADA — yang belum satu layar yang menyatukan kelimanya"*. Diukur, dan
+memang tepat: kelimanya sudah dihitung di lib masing-masing dan dipakai satu
+rute.
+
+Jadi C1 bukan membangun perhitungan, melainkan MEMANGGIL yang ada. Menyalin
+rumusnya ke tempat baru akan membuat dua sumber kebenaran untuk angka yang
+sama — cepat atau lambat dashboard melaporkan CPI berbeda dari halaman proyek,
+tanpa satu pun galat.
+
+### Keputusan yang memang belum ada di mana pun: cara meringkas
+
+CPI/SPI perusahaan **DITIMBANG nilai kontrak**, bukan dirata-rata polos.
+
+Rata-rata polos memberi bobot sama pada proyek Rp 50 juta dan Rp 5 miliar.
+Satu proyek kecil bermasalah akan menenggelamkan angka perusahaan; sebaliknya,
+lima proyek kecil yang sehat bisa menyembunyikan satu proyek besar yang
+berdarah.
+
+Pembagi CPI dan SPI juga TERPISAH: sebuah proyek bisa punya CPI tanpa SPI
+(belum ada baseline jadwal), dan memakai satu pembagi membuat SPI perusahaan
+ikut turun tiap kali ada proyek tanpa baseline — padahal proyek itu tak
+berkata apa-apa tentang jadwal.
+
+### AC nol karena membaca tabel yang kosong
+
+Percobaan pertama memakai `project_expenses` sebagai sumber biaya aktual.
+Hasilnya CPI **null** — "belum ada biaya aktual yang tercatat".
+
+Diperiksa ke basis: `project_expenses` KOSONG, nol baris. Biaya nyata ada di
+kasbon (56 baris), progress payment (5), dan upah harian. Angka yang terlihat
+"belum ada data" padahal datanya ada, hanya di tabel lain.
+
+Sumbernya disamakan dengan `kurva-s.ts` — empat tabel, bukan satu. Sesudah
+itu:
+
+    CPI 1,74  baik    Biaya masih di dalam anggaran
+    SPI 0,52  buruk   Baru 52% dari yang seharusnya selesai saat ini
+    BAC Rp 4,88 M · AC Rp 541 jt · 16 proyek
+
+Gambaran yang masuk akal untuk perusahaan ini: hemat biaya, tertinggal jadwal.
+
+### Gerbang tenancy menabrak tiga kali, dan tiga-tiganya benar
+
+`project_expenses`, `invoices`, `progress_payments` + `daily_wage_logs` —
+semuanya kategori C, dan `db.from()` menolaknya dengan pesan yang menyebutkan
+persis apa yang harus dipakai.
+
+Tak satu pun perlu perdebatan: gerbangnya benar, kode saya yang salah. Ini
+penjaga yang bekerja seperti seharusnya — menolak SEBELUM ada baris tenant
+lain yang bocor, bukan sesudah.
+
+### Test yang salah, bukan endpoint yang salah
+
+Test konsistensi pertama membandingkan `proyekTotal` dengan
+`SELECT count(*) FROM projects WHERE status <> 'cancelled'` — dapat 16,
+sementara endpoint mengembalikan 15.
+
+Selisihnya satu proyek milik tenant LAIN. Yang salah query pembandingnya, dan
+kegagalan itu justru bukti isolasi tenant bekerja. Seluruh query pembanding
+kini menyertakan `company_id`.
+
+### Rancangan layar: angka + ARTINYA
+
+"CPI 0,87" tak berarti apa-apa bagi orang yang tak hafal EVM. Server
+mengirimkan kalimatnya (`statusIndeks`), dan layar menampilkannya sebagai
+bagian utama kartu — bukan tooltip.
+
+Ambangnya 0,95 dan 1,00, bukan 1,00 saja: CPI 0,99 secara harfiah "di atas
+anggaran", tetapi selisih 1% ada di dalam derau pengukuran (progres dilaporkan
+manusia dengan pembulatan 5%, biaya masuk terlambat beberapa hari).
+Menandainya merah membuat layar hampir selalu merah — dan layar yang selalu
+merah berhenti dibaca.
+
+Dasar perhitungan DISEBUTKAN di layar: angka di sini memakai nilai kontrak +
+rencana linear, sementara kurva-S per proyek memakai pagu RAP + baseline
+sesungguhnya. Keduanya sah dan hasilnya berbeda; menyembunyikan itu membuat
+orang mengira salah satunya rusak.
+
+### Bukti
+
+    lib/__tests__/kpi-perusahaan.test.ts    14  cara meringkas (murni)
+    __tests__/kpi-perusahaan.test.ts        10  HTTP + konsistensi ke basis
+                                            --
+                                            24  hijau
+
+Mutasi: 4 di lib (1/2/2/1 merah), 2 di rute (2/1 merah). tsc api & web exit 0.
+Enam penjaga API + tujuh penjaga web hijau.
+
+Peta Modul: 185 -> **186** hidup.
+
+---
+
 ## 2026-08-12 (lanjutan) — B1: 96 catatan lapangan yang tak pernah dibaca siapa pun
 
 `progress_logs` berisi 271 baris; 98 di antaranya laporan harian dengan cuaca,

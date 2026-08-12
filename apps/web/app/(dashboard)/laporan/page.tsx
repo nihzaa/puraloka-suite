@@ -2,6 +2,7 @@
 
 import React, { Suspense, useEffect, useReducer, useRef, useState } from "react";
 import { useTabUrl } from "@/lib/use-tab-url";
+import { KpiPerusahaan } from "@/components/kpi-perusahaan";
 import { TabBagian } from "@/components/tab-bagian";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
@@ -106,11 +107,11 @@ interface Photo { id: string; url: string; caption: string | null; taken_at: str
 interface Document { id: string; name: string; document_type: string; file_url: string; created_at: string; }
 interface KurvaSPoint { week_number: number; plan_pct: number; actual_pct: number; }
 
-type TabKey = "ringkasan" | "keuangan" | "cashflow" | "mandor" | "pengeluaran" | "progress" | "pajak" | "portofolio" | "wip";
+type TabKey = "kpi" | "ringkasan" | "keuangan" | "cashflow" | "mandor" | "pengeluaran" | "progress" | "pajak" | "portofolio" | "wip";
 
 // Nilai sah untuk `?tab=`. Diturunkan dari tipe di atas supaya keduanya tak
 // bisa berselisih diam-diam saat salah satu disunting.
-const TAB_SAH = ["ringkasan", "keuangan", "cashflow", "mandor", "pengeluaran",
+const TAB_SAH = ["kpi", "ringkasan", "keuangan", "cashflow", "mandor", "pengeluaran",
                  "progress", "pajak", "portofolio", "wip"] as const;
 
 interface TaxRecord {
@@ -383,6 +384,10 @@ function LaporanContent() {
 
   // Tabs visible per role
   const tabs: { key: TabKey; label: string; icon: React.ReactNode; requiresProject?: boolean; requireFinance?: boolean }[] = ([
+    // KPI Perusahaan PALING DEPAN — pertanyaan yang paling sering dibuka
+    // ("bagaimana keadaan kita") harus jadi yang pertama terlihat. Ia juga
+    // satu-satunya tab yang tak menuntut memilih proyek lebih dulu.
+    { key: "kpi"        as TabKey, label: "KPI Perusahaan",   icon: <Activity size={12} />,      requireFinance: true },
     { key: "ringkasan"   as TabKey, label: "Ringkasan Proyek", icon: <Layers size={12} />,       requiresProject: true },
     { key: "keuangan"   as TabKey, label: "Keuangan",          icon: <FileText size={12} />,      requireFinance: true },
     { key: "cashflow"   as TabKey, label: "Arus Kas",           icon: <BarChart3 size={12} />,     requireFinance: true },
@@ -506,6 +511,8 @@ function LaporanContent() {
         )}
 
         {/* ── Tab: Ringkasan Proyek ── */}
+        {tab === "kpi" && <KpiPerusahaan />}
+
         {!loading && tab === "ringkasan" && (
           <div style={{ padding: "var(--pad-kartu)" }}>
             {!projectId ? (
