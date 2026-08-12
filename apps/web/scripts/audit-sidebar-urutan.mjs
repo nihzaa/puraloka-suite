@@ -46,6 +46,7 @@ import { fileURLToPath } from 'node:url'
 const AKAR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 
 let baris
+let luar
 try {
   const koneksi = await import(
     'file://' + join(AKAR, 'scripts', 'db', '_koneksi.mjs').replace(/\\/g, '/'))
@@ -62,8 +63,37 @@ try {
      GROUP BY g.label, g.sort_order, i.sort_order
     HAVING count(*) > 1
      ORDER BY g.sort_order, i.sort_order`)
+
+  /**
+   * Anak WAJIB berada di `gso+1 .. gso+99`.
+   *
+   * Konvensi ini tak pernah ditulis di mana pun — ia diukur 2026-08-12 dan
+   * ternyata dipatuhi **16 dari 18 grup**. Dua yang menyimpang:
+   *
+   *     AI & Otomasi   gso  185 → anak 1810–1900
+   *     Keuangan       gso 1100 → "Tutup Buku" 1413
+   *
+   * Yang pertama SAYA penyebabnya (migrasi 319): jaraknya benar, basisnya
+   * salah — 1810 alih-alih 186, tanpa memeriksa konvensi yang sudah ada.
+   *
+   * Kenapa ini penting meski belum menggigit: urutan ANTAR-grup ditentukan
+   * `sort_order` grupnya, jadi anak di luar rentang tak terlihat salah hari
+   * ini. Ia menggigit saat grup berikutnya lahir di rentang yang sudah
+   * ditempati anak grup lain — dan tabrakan itu tak mengeluarkan galat, hanya
+   * urutan yang aneh yang sulit dilacak asalnya.
+   */
+  const l = await db.query(`
+    SELECT g.label AS grup, g.sort_order AS gso,
+           i.label AS item, i.sort_order AS iso
+      FROM menu_items g
+      JOIN menu_items i ON i.parent_id = g.id AND i.is_active
+     WHERE g.parent_id IS NULL AND g.is_active
+       AND (i.sort_order <= g.sort_order OR i.sort_order > g.sort_order + 99)
+     ORDER BY g.sort_order, i.sort_order`)
+
   await db.end()
   baris = r.rows
+  luar = l.rows
 } catch (e) {
   console.log('⚠️  DB tak terhubung — pemeriksaan DILEWATI, bukan dinyatakan lulus.')
   console.log(`   ${e.message.slice(0, 100)}`)
@@ -71,7 +101,8 @@ try {
 }
 
 console.log('\n══ Urutan sidebar ═════════════════════════════════════════════')
-console.log(`  sort_order bentrok : ${baris.length}`)
+console.log(`  sort_order bentrok    : ${baris.length}`)
+console.log(`  anak di luar rentang  : ${luar.length}`)
 
 if (baris.length) {
   console.log('')
@@ -97,5 +128,27 @@ if (baris.length) {
   process.exit(1)
 }
 
-console.log('\n  ✅ Nol sort_order bentrok.\n')
+if (luar.length) {
+  console.log('')
+  for (const r of luar) {
+    console.log(
+      `   ${String(r.grup).padEnd(22)} ${String(r.item).padEnd(26)} ${String(r.iso).padStart(5)}` +
+        `   (rentang sah: ${r.gso + 1}–${r.gso + 99})`,
+    )
+  }
+
+  console.error(`\n❌ MERAH: ${luar.length} anak di luar rentang gso+1..gso+99.`)
+  console.error('')
+  console.error('   Konvensi ini dipatuhi SELURUH grup — diukur, bukan diasumsikan.')
+  console.error('   Anak di luar rentang tak terlihat salah hari ini karena urutan')
+  console.error('   ANTAR-grup ditentukan sort_order GRUPNYA. Ia menggigit saat grup')
+  console.error('   berikutnya lahir di rentang yang sudah ditempati anak grup lain —')
+  console.error('   dan tabrakan itu tak mengeluarkan galat, hanya urutan aneh yang')
+  console.error('   sulit dilacak asalnya.')
+  console.error('')
+  console.error('   Perbaiki di migrasi maju bernomor. Contohnya migrasi 320.')
+  process.exit(1)
+}
+
+console.log('\n  ✅ Nol bentrok, semua anak di rentang grupnya.\n')
 process.exit(0)

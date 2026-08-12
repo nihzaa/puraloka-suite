@@ -7,6 +7,22 @@ Entri terbaru di ATAS.
 
 ## 2026-08-12 (lanjutan) — TJS-P4: lencana yang sopan, dan pintu yang tak pernah dikunci
 
+> ⚠️ **Empat berkas TJS-P4 ter-commit di `45d6940f`**, commit milik pekerjaan
+> LAIN (sidebar `sort_order`). Bukan kesalahan sesi itu: berkas-berkas saya
+> sudah ter-`git add` saat ia menjalankan `git commit -a`, jadi ikut tersapu.
+>
+> Yang tercampur: `db/migrations/318_sod_override.sql`, pendaftaran penjaga di
+> `.github/workflows/ci.yml`, modal alasan-override di
+> `procurement/permintaan/page.tsx`, dan entri jurnal ini sendiri. Isinya
+> diverifikasi UTUH di dalam commit itu — tak ada yang rusak atau hilang,
+> hanya salah tempat.
+>
+> Penyebabnya struktural, bukan kecerobohan satu pihak: **dua sesi menulis di
+> checkout yang sama.** CLAUDE.md §8a.1 menyebut ini alasan berhenti nomor
+> satu, dan saya memang berhenti — tetapi berhenti tak mencegah apa pun kalau
+> berkasnya sudah ter-stage. Yang mencegah adalah tidak meninggalkan berkas
+> ter-stage selama sesi lain hidup, atau bekerja di worktree terpisah.
+
 Item ini meminta tiga hal: *"aturan DEKLARATIF, bukan if bertebaran"*,
 *"pembuat tak boleh approve miliknya sendiri"*, *"override MUNGKIN tapi
 TERCATAT"*.
@@ -143,6 +159,51 @@ yang membaca 224 dari 226.
 Pelajarannya bukan "hati-hati CRLF". Pelajarannya: **penjaga yang punya cara
 melaporkan bahwa ia tak bisa membaca lebih berharga daripada penjaga yang
 lebih teliti.**
+
+### Gerbang itu memerahkan 19 test — dan itu bukti terkuat bahwa ia bekerja
+
+Suite penuh: 21 merah dari 3812. Dugaan pertama saya salah — saya kira
+`t5b-kill-switch` (yang memang rapuh karena 234 company fixture yatim di basis
+dev). Yang benar: **19 dari 21 ada di jalur approval**, tersebar di lima
+berkas yang tak satu pun saya sentuh kodenya.
+
+Pesannya seragam:
+
+    "Anda tidak bisa menyetujui pengajuan Anda sendiri."   403, expected 200
+
+Kelima fixture membuat entitas dengan `created_by = adminUserId` lalu approve
+sebagai admin yang sama. Gerbangnya bekerja persis sebagaimana mestinya di
+**lima jalur sekaligus** — change order, cuti, estimasi, lessons learned,
+rencana mutu — termasuk jalur yang tak pernah saya uji sendiri.
+
+Cakupan yang lebih luas daripada yang bisa saya buktikan lewat test buatan
+sendiri, dibuktikan oleh test yang sudah ada lebih dulu.
+
+### Godaan yang saya tolak: `alasan_override` di fixture
+
+Cara tercepat menghijaukan kelimanya adalah mengirim `alasan_override` di
+tiap test. Satu baris per berkas, selesai.
+
+Itu akan menghancurkan justru apa yang test-test itu jaga. Mereka akan
+menempuh jalur ISTIMEWA, dan yang diuji berubah diam-diam dari "approval
+berjenjang bekerja" jadi "override bekerja" — sementara jalur normalnya,
+yang dipakai setiap hari, tak teruji sama sekali.
+
+Diperbaiki di fixture: helper `penggunaLain()` di `rls-harness.ts`, lalu
+pengajunya dibuat orang berbeda. Komentar di
+`approval-chain-berjenjang.test.ts` bahkan sudah menyatakan sendiri *"yang
+diuji mekanika BERJENJANG-nya, bukan pemisahan orang"* — jadi memberinya dua
+orang mengembalikan test itu ke maksud aslinya, bukan mengakalinya.
+
+Helper-nya mengembalikan `null` bila basis cuma punya satu pengguna, dan
+pemanggil WAJIB gagal keras. Diam-diam memakai orang yang sama lagi akan
+mengembalikan persis cacat yang baru saja ditutup.
+
+Hasil: 19 merah → 0.
+
+Dua sisanya (`rls-ownership-recursion`, `audit-mutu-endpoint`) **sudah merah
+di HEAD bersih** — diverifikasi dengan menyingkirkan seluruh perubahan saya
+lalu menjalankannya ulang. Bukan dari TJS-P4.
 
 ### Utang ratchet yang saya wariskan sendiri
 
@@ -13994,3 +14055,107 @@ berarti di dalam satu grup, dan penjaga yang menolak itu akan dimatikan orang.
     audit-peta-menu-vs-db     ✅ drift 0
     audit-penomoran-migrasi   ✅ nol nomor ganda
     urutan di PERAMBAN        lima asisten berurutan, terverifikasi
+
+## 2026-08-12 (lanjutan) — Pengelompokan sidebar: konvensi yang tak pernah ditulis
+
+Founder minta pengelompokan sidebar ditinjau menyeluruh, lalu *"kerjakan
+semuanya"*.
+
+### Ukuran pertama saya SALAH, dan membuangnya lebih berguna
+
+Saya mulai dengan "href tidak cocok grupnya" dan mendapat **25 tanda**.
+Dibaca satu per satu: `Klien` → `/klien` di Master Data, `Audit Log` →
+`/audit` di Administrasi — keduanya BENAR. URL mengikuti sejarah kode, bukan
+makna menu.
+
+Ukuran itu dibuang. Kalau dipercaya, saya akan memindahkan belasan menu yang
+sudah berada di tempat yang tepat.
+
+### Konvensi yang ditemukan dengan mengukur, bukan membaca dokumen
+
+Tak ada dokumen yang menuliskannya. Diukur: **anak = `gso`+1 .. `gso`+99**,
+dipatuhi **16 dari 18 grup**.
+
+Dua yang menyimpang:
+
+    AI & Otomasi   gso  185 → anak 1810–1900   ← migrasi 319, MILIK SAYA
+    Keuangan       gso 1100 → "Tutup Buku" 1413
+
+Yang pertama saya penyebabnya, KEMARIN. Migrasi 319 memperbaiki tabrakan
+`sort_order` dengan menomori ulang jarak 10 — jaraknya benar, **basisnya
+salah**: 1810 alih-alih 186, tanpa memeriksa konvensi yang sudah dipatuhi
+seluruh repo.
+
+Efeknya belum menggigit karena urutan ANTAR-grup ditentukan `sort_order`
+grupnya. Ia menggigit saat grup berikutnya lahir di rentang 1800-an —
+dan tabrakan itu tak mengeluarkan galat, hanya urutan aneh yang sulit dilacak.
+
+### Label perusahaan: tiga nama untuk dua hal
+
+    Master Data    "Badan Usaha"        /pengaturan/perusahaan
+    Administrasi   "Profil Perusahaan"  /pengaturan
+    judul halaman  "Pengaturan"
+
+Diperiksa isinya — **BUKAN duplikasi**: yang pertama daftar PT/CV dalam grup
+usaha, yang kedua identitas perusahaan yang sedang aktif. Keduanya sah
+berdiri sendiri; yang membingungkan penamaannya.
+
+    → "Badan Usaha (PT/CV)"   dan   "Identitas & Invoice"
+
+Judul halamannya ikut diselaraskan. "Pengaturan" juga nama yang terlalu luas —
+ia GRUP, bukan halaman.
+
+### Dua kesalahan yang tertangkap SEBELUM dijalankan
+
+**1. Kunci yang ditebak.** Draf pertama memakai `keu-tutup-buku`; kunci
+sebenarnya `fn-tutup-buku`. `UPDATE ... WHERE key` yang salah menyentuh NOL
+baris — tanpa galat, tanpa tanda, dan migrasinya tetap "berhasil".
+Ditambahkan verifikasi eksplisit bahwa barisnya benar-benar berpindah.
+
+**2. `WHERE href` menyentuh baris MATI.** Diukur sebelum menulis: href
+`/pengaturan` dipakai TIGA baris dan `/pengaturan/perusahaan` dipakai DUA —
+sisanya `is_active = false` (`md-perusahaan`, `pengaturan-profil`, `sy-modul`),
+peninggalan susunan lama. Disaring `key`, bukan `href`.
+
+Label yang diubah diam-diam di baris tak aktif tak merusak apa pun hari ini,
+tetapi muncul kembali saat seseorang mengaktifkannya dan bertanya-tanya dari
+mana asalnya.
+
+### Penjaga diperluas + bukti mutasi 7/7
+
+`audit-sidebar-urutan` kini memeriksa DUA hal: bentrok `sort_order`, DAN anak
+di luar rentang `gso+1..gso+99`.
+
+Bukti mutasinya menangkap kesalahan saya sendiri: uji "sort_order sama di grup
+BERBEDA" gagal — tetapi penjaganya BENAR. Mutasinya menyalin angka AI (190) ke
+Gudang, dan 190 memang di luar 701–799. Yang salah mutasinya, bukan penjaganya.
+Diperbaiki jadi dua angka yang keduanya sah di grupnya masing-masing.
+
+    MENANGKAP     bentrok · di luar rentang · sama dengan gso
+    TIDAK CEREWET angka berdekatan lintas-grup · geser dalam rentang · no-op
+    PULIH         penjaga nyata tetap hijau sesudah ROLLBACK
+
+### Bukti
+
+    tsc (web)                0
+    vitest (web)             604 lulus / 46 berkas — 0 gagal
+    pnpm build               nol error
+    migrasi 320              18/18 grup patuh rentang, nol bentrok
+    audit-sidebar-urutan     ✅ 0 bentrok, 0 di luar rentang
+    bukti-mutasi-sidebar     7/7
+    audit-menu-berbagi-href  ✅ nol href ganda
+    audit-peta-menu-vs-db    ✅ drift 0
+    audit-penomoran-migrasi  ✅ nol nomor ganda
+    di PERAMBAN              judul "Identitas & Invoice"; label sidebar benar
+
+### Di luar kode: koneksi DB putus di tengah pengukuran
+
+`ETIMEDOUT 10.0.0.1:5432` — dan API founder di :3007 ikut 503.
+
+Bukan kode: **Cloudflare WARP** masih membajak resolusi DNS meski statusnya
+`Disconnected`. `nslookup` mengembalikan alamat AWS yang benar (54.179.210.0
+dll), tetapi resolver Windows mengembalikan `10.0.0.1`. `hosts` bersih, tak
+ada NRPT.
+
+`Clear-DnsClientCache` memulihkannya; API kembali 200. Dicatat karena gejalanya
+terlihat persis seperti kredensial DB yang salah, dan jam bisa habis di sana.

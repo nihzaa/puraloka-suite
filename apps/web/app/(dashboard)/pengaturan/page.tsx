@@ -178,7 +178,22 @@ function PengaturanContent() {
 
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <KepalaHalaman judul="Pengaturan" keterangan="Konfigurasi profil perusahaan, info pembayaran, dan format invoice" />
+        {/*
+          Judulnya "Identitas & Invoice", BUKAN "Pengaturan".
+
+          Sebelum migrasi 320 ada tiga nama untuk satu halaman: menu bilang
+          "Profil Perusahaan", judul bilang "Pengaturan", dan di grup lain ada
+          "Badan Usaha" yang terdengar seperti hal yang sama. Ketiganya
+          menyulitkan orang menebak mana yang ia cari SEBELUM mengklik.
+
+          "Pengaturan" juga nama yang terlalu luas — ia grup, bukan halaman.
+          Yang diatur di sini sempit dan bisa disebut: identitas perusahaan
+          aktif (nama, NPWP, alamat, logo) dan format penomoran invoice.
+        */}
+        <KepalaHalaman
+          judul="Identitas & Invoice"
+          keterangan="Identitas badan usaha yang sedang aktif, info pembayaran, dan format penomoran invoice."
+        />
         {!isAdmin && (
           <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12, color: C.mid }}>
             Hanya admin yang dapat mengubah pengaturan perusahaan.
