@@ -107,6 +107,82 @@ menghijaukan angka.
 
 ---
 
+## 2026-08-13 (lanjutan 5) — dokumen tanpa identitas penerbitnya
+
+### Entri terakhir Kelompok 3: `md-template-dok`
+
+Catatannya (diukur 2026-08-12) akurat: nol tabel template dokumen, tata letak
+kontrak dipaku di `contracts.ts`. Mesin template penuh — kop, klausul yang bisa
+disunting, penomoran — memang modul baru.
+
+Yang bisa ditutup sekarang, dan paling berdampak: **kop per tenant**.
+
+`companies` sudah menyimpan seluruh identitas yang dibutuhkan — `legal_name`,
+`address`, `city`, `phone`, `email`, `npwp`, `logo_url` — dan halaman
+Pengaturan mengisinya. Tetapi `contracts.ts` **tak menyentuh `companies` sama
+sekali**; PDF-nya langsung membuka dengan judul kontrak.
+
+Untuk aplikasi satu perusahaan itu cuma kurang rapi. Untuk SaaS multi-tenant —
+yang sedang dituju repo ini — setiap tenant menerbitkan kertas tanpa
+identitasnya, dan dua perusahaan berbeda menghasilkan dokumen yang tak bisa
+dibedakan.
+
+### Kop dibuat sebagai berkas TERSENDIRI, bukan ditempel
+
+SPK, berita acara, sertifikat IPC, dan surat penawaran menuntut kop yang sama.
+Kop yang disalin ke lima berkas akan berbeda-beda begitu satu disunting —
+persis kelas cacat yang sudah ditemukan di modul tabel (empat gaya untuk satu
+pertanyaan) dan judul halaman.
+
+### Test yang saya tulis dengan asumsi salah, DUA lapis
+
+Test memeriksa ISI PDF-nya, bukan status 200 — status 200 tetap keluar meski
+kopnya tak pernah digambar.
+
+Komentar pertamanya menulis "pdfkit tak mengompresi teks sederhana, jadi nama
+perusahaan bisa dicari langsung di buffer". Keliru di **dua** lapis:
+
+1. Stream halaman dikompresi FlateDecode — tak ada teks yang muncul apa adanya.
+2. Sesudah diurai, teksnya tersimpan sebagai HEKSADESIMAL di operator TJ:
+   `[<505420554a49> 30 <4b4f50>] TJ` adalah "PT UJI" + "KOP", dan angka di
+   antaranya kerning.
+
+Yang dibetulkan **cara memeriksanya**, bukan harapannya yang dilonggarkan.
+Penelusurannya juga dipindah dari regex ke `indexOf`: literal regex berisi
+escape baris rusak berulang kali saat berkas disunting lewat skrip, dan yang
+rusak diam-diam adalah alat ukurnya sendiri.
+
+### Yang sengaja TIDAK dikerjakan, dengan alasannya
+
+**Logo tidak diunduh saat mencetak.** `logo_url` menunjuk ke luar; mengambil
+gambar dari URL milik tenant saat mencetak berarti dua hal: dokumen gagal
+terbit ketika jaringan bermasalah, dan server ini bisa disuruh menembak alamat
+mana pun (SSRF) oleh siapa pun yang bisa menyunting Pengaturan. Jalurnya
+unggahan ke Storage sendiri — pekerjaan tersendiri, dinyatakan bukan dilupakan.
+
+**Identitas kosong tidak menghentikan pencetakan.** Tenant baru yang belum
+mengisi Pengaturan tetap harus bisa mencetak kontraknya; dokumen yang tak bisa
+terbit jauh lebih merugikan daripada dokumen berkop tipis. `kopLayakKirim()`
+menyediakan peringatannya untuk dipakai layar, bukan untuk memblokir.
+
+### Bukti
+
+- `lib/kop-dokumen.ts` — 14 hijau, 6 mutasi merah lalu pulih
+- `kontrak-pdf-kop.test.ts` — 3 hijau terhadap Postgres nyata, 3 mutasi merah
+  (termasuk M3: penyaring tenant dilepas → identitas perusahaan lain bocor)
+- Penjaga API 8/8 hijau
+
+### Kelompok 3 TUTUP BUKU
+
+Dua belas entri, lima commit, sembilan migrasi (344–350), dan satu pola yang
+berulang di hampir semuanya: **yang tertulis di Peta Modul lebih sering salah
+daripada pekerjaannya kurang.** Enam catatan terbukti keliru atau basi —
+`sk-paket`, `tg-tambah`, `crm-lead`, `md-cost-code`, `md-resource`,
+`md-price-book` — dan tiga di antaranya menandai "belum ada" untuk modul yang
+sudah lengkap.
+
+---
+
 ## 2026-08-13 (lanjutan 4) — kolom yang memblokir CVR, dan FK yang tak menjaga apa yang saya kira
 
 ### Kenapa `rab_category_id` terisi 0 dari 20

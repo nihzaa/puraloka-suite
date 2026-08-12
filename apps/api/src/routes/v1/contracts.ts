@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
+import { susunKop, type IdentitasTenant } from '../../lib/kop-dokumen.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { terbilang, terbilangHari } from '../../utils/terbilang.js'
 
@@ -281,6 +282,25 @@ export default async function contractRoutes(app: FastifyInstance) {
       const dateObj = new Date(contractDate + 'T12:00:00')
       const tglFooter = `${kota}, ${dateObj.getDate()} ${BULAN_PANJANG[dateObj.getMonth()]} ${dateObj.getFullYear()}`
 
+      // ── Identitas penerbit dokumen ────────────────────────────────────────
+      //
+      // Diukur 2026-08-13: berkas ini tak menyentuh `companies` sama sekali,
+      // dan PDF-nya langsung membuka dengan judul kontrak. Untuk aplikasi satu
+      // perusahaan itu cuma kurang rapi; untuk SaaS multi-tenant — yang sedang
+      // dituju repo ini — setiap tenant menerbitkan kertas tanpa identitasnya,
+      // dan dua perusahaan berbeda menghasilkan dokumen yang tak bisa dibedakan.
+      //
+      // Kegagalan memuatnya TIDAK menghentikan pencetakan: dokumen yang tak
+      // bisa terbit jauh lebih merugikan daripada dokumen berkop tipis.
+      // `susunKop(null)` menghasilkan kop kosong yang tetap aman digambar.
+      const { data: perusahaan } = await request.db!
+        .unsafe('companies', 'identitas penerbit dokumen; disaring ke companyId di baris berikutnya')
+        .select('name, legal_name, tagline, address, city, postal_code, phone, email, website, npwp, logo_url')
+        .eq('id', request.companyId!)
+        .maybeSingle()
+
+      const kop = susunKop(perusahaan as IdentitasTenant | null)
+
       // ── Build PDF ──────────────────────────────────────────────────────────
 
       const doc = new PDFDocument({ size: 'A4', margin: MARGIN, autoFirstPage: true })
@@ -288,6 +308,28 @@ export default async function contractRoutes(app: FastifyInstance) {
 
       const chunks: Buffer[] = []
       doc.on('data', (chunk: Buffer) => chunks.push(chunk))
+
+      // ── Kop perusahaan ────────────────────────────────────────────────────
+      //
+      // Logo SENGAJA tidak diunduh. `logo_url` menunjuk ke luar, dan mengunduh
+      // gambar dari URL milik tenant saat mencetak berarti: dokumen gagal
+      // terbit ketika jaringan bermasalah, dan server ini bisa disuruh
+      // menembak alamat mana pun (SSRF) oleh siapa pun yang bisa menyunting
+      // Pengaturan. Namanya dicetak; logonya menyusul lewat unggahan ke
+      // Storage sendiri — itu pekerjaan tersendiri, dinyatakan bukan dilupakan.
+      ctx.doc.font('Helvetica-Bold').fontSize(12)
+        .text(kop.nama.toUpperCase(), MARGIN, ctx.y, { width: CONTENT_W, align: 'center' })
+      ctx.y = ctx.doc.y + 2
+
+      for (const b of kop.baris) {
+        ctx.doc.font('Helvetica').fontSize(8.5)
+          .text(b, MARGIN, ctx.y, { width: CONTENT_W, align: 'center' })
+        ctx.y = ctx.doc.y + 1
+      }
+
+      ctx.y = ctx.doc.y + 6
+      ctx.doc.moveTo(MARGIN, ctx.y).lineTo(MARGIN + CONTENT_W, ctx.y).lineWidth(1.2).stroke()
+      ctx.y += 14
 
       // Header
       ctx.doc.font('Helvetica-Bold').fontSize(13)
