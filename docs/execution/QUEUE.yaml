@@ -2150,8 +2150,29 @@ items:
       mengganti constraint yang dipakai `ON CONFLICT` di beberapa tempat.
 
       ⚠ HARUS LUNAS SEBELUM TENANT KEDUA DIBUAT.
+
+      ── SELESAI 2026-08-12 — migrasi 332 ───────────────────────────
+      UNIQUE (event_type) → UNIQUE (company_id, event_type).
+
+      Dikerjakan sekarang, bukan ditunda, karena syarat pencabutannya murah:
+      basis masih satu perusahaan jadi tak ada baris yang perlu didamaikan.
+      Begitu tenant kedua dibuat, perbaikan yang sama menuntut migrasi data.
+
+      Verifikasi migrasi menuntut BUKTI PERILAKU, bukan bentuk: dua baris
+      ber-`event_type` sama dengan company berbeda disisipkan lalu dihapus.
+      Basis dev ternyata SUDAH punya tenant kedua, jadi terbukti langsung:
+      "332: dua tenant TERBUKTI bisa punya event_type yang sama".
+
+      Nama constraint lama sengaja TIDAK dipakai ulang, dan `ON CONFLICT
+      (event_type)` di migrasi 101 & 331 dibiarkan — keduanya bernomor LEBIH
+      KECIL, jadi saat replay mereka berjalan ketika constraint lama masih
+      berlaku. Migrasi BARU sesudah ini wajib memakai
+      `ON CONFLICT (company_id, event_type)`.
+
+      Bukti: migrasi 332 jalan + idempoten (jalan kedua hijau) ·
+      notification-rules 8 lulus · otomasi-terjadwal 7 · otomasi-dependency 4
     bobot: S
-    status: todo
+    status: done
 
   - id: TEST-MERAH-MAIN
     fase: 2
@@ -2175,7 +2196,9 @@ items:
       Yang merah beserta pesannya:
 
         t5a-policy-tenant        tabel ber-tenant tanpa policy tenant_isolation
-        t5b-kill-switch          auth_client_id() memulangkan baris klien
+        t5b-kill-switch          auth_client_id() memulangkan NULL, bukan baris
+                                 klien company lain — lihat catatan di bawah;
+                                 BUKAN kebocoran, fixture yang kurang
                                  company lain — kebocoran lintas-tenant
         t7-exit-criteria-l2      axis company belum di seluruh tabel ber-tenant
                                  (custom_field_def dkk)
@@ -2217,6 +2240,26 @@ items:
       mengganggu saat 284 berkas berbagi SATU basis. Bukan regresi; gejala
       test paralel, sejalan peringatan `rls-harness.ts` soal tulisan yang
       BERTAHAN di schema public.
+
+      ── t5b DIUKUR 2026-08-12: BUKAN kebocoran lintas-tenant ──────────
+      Pesan assertion-nya berbunyi "memulangkan baris klien dari company lain
+      — kebocoran lintas-tenant", dan itu MENYESATKAN. Yang sebenarnya
+      terjadi: fungsi memulangkan NULL, bukan baris tenant lain.
+
+      Definisi fungsinya SUDAH BENAR (diukur ke pg_proc):
+        auth_client_id()  = clients WHERE user_id=... AND company_id =
+                            auth_company_id()   ← saringan company ADA
+        auth_company_id() = COALESCE(app.company_id,
+                            company_members WHERE is_default AND is_active)
+
+      Test tak menyetel `app.company_id`, dan pengguna klien di basis dev
+      TIDAK punya baris `company_members` ber-`is_default` (diukur: false).
+      Jadi auth_company_id() → NULL → auth_client_id() → NULL.
+
+      Artinya: perlindungan tenant BEKERJA (fail-closed, nol baris terbaca).
+      Yang kurang adalah FIXTURE test-nya. Perbaikannya: test menyetel
+      `app.company_id` atau seed membuat baris default — bukan mengubah
+      fungsi, yang justru akan MELEMAHKAN saringannya.
 
       ⚠ Dicatat supaya tak terulang: sesi berikutnya yang menjalankan suite
       penuh akan melihat 6 berkas merah dan mengira dirinya merusak sesuatu.
