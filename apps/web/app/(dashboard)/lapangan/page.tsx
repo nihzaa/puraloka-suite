@@ -371,7 +371,7 @@ export default function LapanganRingkasanPage() {
                   {data.milestone.map((m, i) => (
                     <li key={m.id} style={{
                       display: "flex", alignItems: "flex-start", gap: 10,
-                      padding: "9px 0",
+                      padding: "9px var(--pad-kartu-lega)",
                       borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
                     }}>
                       <span style={{ flex: 1, minWidth: 0 }}>
@@ -455,7 +455,7 @@ export default function LapanganRingkasanPage() {
                 {data.tenaga_kerja.per_tipe.map((t, i) => (
                   <li key={t.nama} style={{
                     display: "flex", alignItems: "center", gap: 10,
-                    padding: "10px 0",
+                    padding: "10px var(--pad-kartu-lega)",
                     borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
                   }}>
                     <span style={{ flex: 1, fontSize: 13, color: C.text, textTransform: "capitalize" }}>
@@ -469,7 +469,7 @@ export default function LapanganRingkasanPage() {
                 ))}
                 <li style={{
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: "10px 0", borderTop: `1px solid ${C.border}`,
+                  padding: "10px var(--pad-kartu-lega)", borderTop: `1px solid ${C.border}`,
                 }}>
                   <span style={{ flex: 1, fontSize: 13, color: C.mid }}>Total aktif</span>
                   <span style={{
@@ -499,7 +499,7 @@ export default function LapanganRingkasanPage() {
                 <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                   {data.proyek.map((p, i) => (
                     <li key={p.id} style={{
-                      padding: "12px 0",
+                      padding: "12px var(--pad-kartu-lega)",
                       borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
                     }}>
                       <div style={{

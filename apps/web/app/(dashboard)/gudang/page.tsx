@@ -259,7 +259,7 @@ export default function GudangIkhtisarPage() {
                 <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                   {data.belum_ditarik.map((b, i) => (
                     <li key={b.proyek} style={{
-                      display: "flex", alignItems: "center", gap: 10, padding: "10px 0",
+                      display: "flex", alignItems: "center", gap: 10, padding: "10px var(--pad-kartu-lega)",
                       borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
                     }}>
                       <AlertTriangle size={15} aria-hidden="true"
@@ -316,7 +316,7 @@ export default function GudangIkhtisarPage() {
                   <ul style={{ listStyle: "none", margin: 0, padding: 0, flex: 1, minWidth: 130 }}>
                     {data.aset_per_kategori.map((k, i) => (
                       <li key={k.nama} style={{
-                        display: "flex", alignItems: "center", gap: 8, padding: "4px 0",
+                        display: "flex", alignItems: "center", gap: 8, padding: "4px var(--pad-kartu-lega)",
                       }}>
                         <span aria-hidden="true" style={{
                           width: 9, height: 9, borderRadius: 2, flexShrink: 0,
@@ -358,7 +358,7 @@ export default function GudangIkhtisarPage() {
                 <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                   {data.isi_gudang.map((a, i) => (
                     <li key={a.id} style={{
-                      display: "flex", alignItems: "center", gap: 10, padding: "10px 0",
+                      display: "flex", alignItems: "center", gap: 10, padding: "10px var(--pad-kartu-lega)",
                       borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
                     }}>
                       <span style={{ flex: 1, minWidth: 0 }}>
@@ -394,7 +394,7 @@ export default function GudangIkhtisarPage() {
                 <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
                   {data.pergerakan.map((m, i) => (
                     <li key={m.id} style={{
-                      display: "flex", alignItems: "center", gap: 10, padding: "10px 0",
+                      display: "flex", alignItems: "center", gap: 10, padding: "10px var(--pad-kartu-lega)",
                       borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
                     }}>
                       <span style={{ flex: 1, minWidth: 0 }}>

@@ -15640,3 +15640,57 @@ kesalahan isian (400) dilaporkan lebih dulu.
     penjaga web   8 hijau
 
 `audit-asumsi-global-test` merah — sudah merah di HEAD sebelum G1.
+
+## 2026-08-12 (lanjutan 5) — Mepet DI DALAM kartu, dan alat ukur yang tiga kali salah
+
+Founder: *"di halaman ini yg di dalam cardnya masih pada mepet"* (tangkapan
+layar `/gudang`).
+
+### Sebabnya: `<Panel padat>` dipakai untuk isi yang BUKAN tabel
+
+`ui-dasar.tsx` mendefinisikannya jelas:
+
+    /** `true` untuk isi yang mengatur paddingnya sendiri (mis. tabel). */
+    padat?: boolean
+
+Benar untuk tabel — `<td>` punya padding. Salah untuk daftar `<li>` yang cuma
+ber-`padding: "10px 0"`: vertikal ada, **horizontal nol**, dan Panel-nya juga
+nol. Tak ada satu pun yang memberi jarak samping.
+
+Diukur: **8 kartu** di 3 halaman (`/gudang`, `/lapangan`, `/keuangan`).
+
+Diperbaiki di BARIS, bukan di Panel — supaya garis pemisah antar-baris tetap
+membentang penuh ke tepi kartu. Itu justru alasan `padat` ada.
+
+### Alat ukur saya salah TIGA kali berturut-turut
+
+Ini bagian yang paling memakan waktu, dan seluruhnya kesalahan alat:
+
+**1.** Kartu dicari lewat `borderTopWidth: 1px` — dan `<li>` sendiri punya
+border-top sebagai garis pemisah. Alat menganggap baris itu kartunya sendiri.
+
+**2.** Diperbaiki jadi "border di KEEMPAT sisi". Masih melaporkan `kiri=1`.
+
+**3.** Sebab sebenarnya: `<li>` MELEBAR PENUH mengisi kartu, dan paddingnya ada
+DI DALAM — jadi `li.left - kartu.left` selalu 1 berapa pun paddingnya. Yang
+bergerak adalah TEKS di dalamnya.
+
+Sesudah alat mengukur teks, bukan kotak `<li>`:
+
+    sebelum   8 kartu kiri=1
+    sesudah   0 kartu mepet; seluruhnya kiri=17 (16px padding + 1px border)
+
+Padahal padding sudah terbukti berlaku sejak putaran pertama —
+`getComputedStyle(li).padding` = `10px 16px`. **Alat ukur yang salah
+melaporkan cacat yang sudah diperbaiki sebagai masih ada**, dan itu jenis
+kegagalan yang membuat orang menambal hal yang sudah benar.
+
+Yang menyelamatkan: memeriksa `padding` yang dirender secara terpisah, bukan
+memercayai satu angka turunan.
+
+### Bukti
+
+    tsc (web)      0
+    vitest (web)   604 lulus / 46 berkas — 0 gagal
+    pnpm build     nol error
+    di PERAMBAN    0 dari 8 kartu mepet (sebelumnya 8)

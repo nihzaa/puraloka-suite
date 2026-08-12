@@ -271,7 +271,7 @@ export function AnalitikKeuangan() {
               <ul style={{ listStyle: "none", margin: 0, padding: 0, flex: 1, minWidth: 140 }}>
                 {data.komposisi_kasbon.map((k, i) => (
                   <li key={k.kunci} style={{
-                    display: "flex", alignItems: "center", gap: 8, padding: "5px 0",
+                    display: "flex", alignItems: "center", gap: 8, padding: "5px var(--pad-kartu-lega)",
                   }}>
                     <span aria-hidden="true" style={{
                       width: 9, height: 9, borderRadius: 2, flexShrink: 0,
@@ -306,7 +306,7 @@ export function AnalitikKeuangan() {
           <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
             {data.per_proyek.slice(0, 7).map((p, i) => (
               <li key={p.id} style={{
-                padding: "10px 0",
+                padding: "10px var(--pad-kartu-lega)",
                 borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
               }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
@@ -371,7 +371,7 @@ export function AnalitikKeuangan() {
             <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
               {data.invoice_tertunggak.map((t, i) => (
                 <li key={t.id} style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "10px 0",
+                  display: "flex", alignItems: "center", gap: 10, padding: "10px var(--pad-kartu-lega)",
                   borderTop: i === 0 ? "none" : `1px solid ${C.border}`,
                 }}>
                   <span style={{ flex: 1, minWidth: 0 }}>
