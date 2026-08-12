@@ -234,7 +234,7 @@ export const PETA_MENU: GrupMenu[] = [
     ],
   },
   {
-    key: 'g-qaqc', label: 'Mutu (QA/QC)', icon: 'BadgeCheck', urutan: 100,
+    key: 'g-qaqc', label: 'Rencana & Uji Mutu', icon: 'BadgeCheck', urutan: 100,
     items: [
       { key: 'qc-rencana', label: 'Rencana Mutu Proyek', status: 'hidup', href: '/mutu/rencana', guna: 'Dokumen mutu yang disepakati di awal proyek.', catatan: '2026-08-11 (G1e) · migrasi 280 `rencana_mutu` + `lib/rencana-mutu.ts` (18 test, 13 mutasi MERAH) + 5 endpoint (20 test Postgres nyata) + `/mutu/rencana`. Persetujuan MENGIKAT: ditolak server bila ITP tak punya satu pun titik HOLD — dokumen yang tak menahan apa pun lulus semua constraint tanpa menjalankan fungsinya. Persetujuan ganda dijaga status lama di WHERE, dibuktikan lewat dua permintaan BERSAMAAN (test berurutan lolos palsu).' },
       { key: 'qc-itp', label: 'Inspection & Test Plan', status: 'hidup', href: '/mutu/rencana', guna: 'Titik-titik pemeriksaan wajib beserta kriterianya.', catatan: '2026-08-11 (G1e) · migrasi 280 `itp_titik` (enum `hold`/`witness`/`review`) + sambungan `inspection_requests.itp_titik_id`. HOLD menahan pekerjaan, WITNESS tidak — menyamakannya membuat pekerjaan lanjut melewati titik yang seharusnya menahannya, atau berhenti tanpa perlu. ITP KOSONG tidak dibaca "boleh lanjut" melainkan "belum menyatakan apa pun".' },

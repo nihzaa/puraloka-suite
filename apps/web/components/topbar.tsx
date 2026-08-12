@@ -41,7 +41,15 @@ const breadcrumbMap: Array<[string, string]> = [
   ["/aset",          "Alat & Aset"],
   ["/lapangan",      "Operasi Lapangan"],
   ["/kontrak",       "Kontrak"],
-  ["/mutu",          "Mutu (QA/QC)"],
+  // "Mutu & K3", bukan "Mutu (QA/QC)". Nama kedua itu milik GRUP SIDEBAR
+  // `g-qaqc` — yang sejak migrasi 323 bernama "Rencana & Uji Mutu" dan isinya
+  // rencana mutu, uji material, audit. Halaman `/mutu` sendiri adalah ikhtisar
+  // grup "Mutu & K3" (NCR, kepatuhan, insiden).
+  //
+  // Breadcrumb yang menyebut nama grup LAIN membuat orang mengira ia salah
+  // klik — dan tampak jelas di tangkapan layar founder: judul halaman
+  // "Mutu & K3", breadcrumb "Mutu (QA/QC)".
+  ["/mutu",          "Mutu & K3"],
   ["/tender",        "Tender"],
   ["/users",         "User"],
   ["/audit",         "Audit Trail"],

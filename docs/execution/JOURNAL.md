@@ -14277,3 +14277,107 @@ ada NRPT.
 
 `Clear-DnsClientCache` memulihkannya; API kembali 200. Dicatat karena gejalanya
 terlihat persis seperti kredensial DB yang salah, dan jam bisa habis di sana.
+
+## 2026-08-12 (lanjutan 2) — 18 item menggantung, dan penjaga saya buta padanya
+
+Founder mengirim tangkapan layar: *"kok ini masih ada yg diluar grup"* —
+"Rencana Mutu Proyek", "Hasil Uji Material", "Audit Mutu", "Plafon Asisten",
+"Penyedia Layanan" berdiri sendiri tanpa induk.
+
+### Kenapa SELURUH pengukuran saya buta
+
+Setiap kueri audit sidebar yang saya tulis menyaring `g.is_active` — termasuk
+penjaga `audit-sidebar-urutan` yang baru saya buat di migrasi 319/320. Item
+yang induknya MATI tak pernah masuk hitungan: bukan dilaporkan nol, melainkan
+**tak pernah ditanyakan**.
+
+Diukur sesudah founder menunjuknya: **18 item aktif di 5 grup akar mati.**
+
+    g-qaqc   "Mutu (QA/QC)"        3
+    g-hse    "K3 & Lingkungan"     3
+    g-hr     "SDM & Payroll"       7
+    g-risiko "Risiko & Kepatuhan"  3
+    g-sistem "Administrasi"        2
+
+Sidebar tetap merender anaknya karena penyaringnya per-BARIS, bukan per-POHON.
+Mereka muncul nyantol di bawah grup terakhir yang berdekatan `sort_order`.
+
+**Kedelapan belas halamannya ADA** — diperiksa satu per satu di
+`app/(dashboard)`. Ini 18 halaman jadi yang kehilangan jalan masuk.
+
+Pelajarannya bukan "saya kurang teliti": penyaring yang sama dipakai di kueri
+audit DAN di kode render, jadi keduanya sepakat melihat dunia yang sama — dan
+yang di luar dunia itu tak terlihat oleh keduanya. Founder yang melihatnya,
+karena ia melihat LAYAR, bukan kueri.
+
+### Keputusan founder: hidupkan kelima grupnya
+
+Alternatifnya (pindahkan ke grup aktif) akan membengkakkan "Mutu & K3" jadi 14
+item. Founder memilih tiap item kembali ke rumah aslinya.
+
+Dua tabrakan NAMA ikut diselesaikan — menghidupkan apa adanya akan menaruh
+"Administrasi" DUA KALI berdampingan, dan "Mutu & K3" bersebelahan dengan
+"Mutu (QA/QC)":
+
+    "Mutu (QA/QC)" → "Rencana & Uji Mutu"
+    "Administrasi" → "Layanan & Plafon AI"
+
+Tiga `gso` yang bentrok ditempatkan ulang supaya yang serumpun berdekatan:
+SDM & Payroll 850 (sesudah Mandor & Subkon), Rencana & Uji Mutu 1010,
+K3 & Lingkungan 1020, Risiko & Kepatuhan 1030, Layanan & Plafon AI 1620.
+
+### Dua nomor migrasi saya bertabrakan — DUA KALI
+
+Ditulis 321; `audit-penomoran-migrasi` merah — 321 milik `321_custom_field`.
+Kemarin hal yang sama terjadi pada 279.
+
+Kali ini saya berhenti menebak: `ls | grep -oE '^[0-9]+' | sort -n | tail -1`
+→ 322, jadi 323. Entri buku migrasi yang sudah terlanjur "321" dihapus dan
+ditulis ulang sebagai 323 — buku yang menyebut migrasi dengan nomor milik
+orang lain membuat CI mengira `321_custom_field` sudah jalan padahal belum.
+
+### Penjaga diperluas + bukti mutasi 9/9
+
+`audit-sidebar-urutan` kini memeriksa TIGA hal: bentrok, rentang, dan **item
+aktif yang induknya mati**.
+
+    MENANGKAP     bentrok · di luar rentang · sama dengan gso ·
+                  grup dimatikan tapi anaknya masih aktif
+    TIDAK CEREWET angka berdekatan lintas-grup · geser dalam rentang ·
+                  grup DAN anaknya sama-sama dimatikan · no-op
+    PULIH         penjaga nyata tetap hijau sesudah ROLLBACK
+
+Pesan merahnya menyebut dua jalan keluar dan MELARANG yang salah: *"jangan
+mematikan item yang halamannya ada hanya supaya penjaga ini hijau — itu
+menghapus jalan masuk ke halaman yang sudah jadi."*
+
+### Breadcrumb yang menyebut nama grup lain
+
+Tangkapan layar juga menunjukkan judul "Mutu & K3" tetapi breadcrumb
+"Mutu (QA/QC)". Nama kedua milik GRUP SIDEBAR `g-qaqc`, bukan halaman `/mutu`.
+Diperbaiki di `topbar.tsx` + testnya + `peta-menu.ts`.
+
+### Lantai nav dinaikkan 119 → 124, dengan alasan
+
+Kelima grup DAN ke-18 anaknya SUDAH terdaftar di `peta-menu.ts`. Yang
+bertambah hanya lima `g-*` yang kini aktif — dan grup memang tak pernah
+dihitung sebagai modul (catatan `_hanyaDb` di berkas lantainya sudah menyatakan
+itu sejak lama). Kasus identik dengan kenaikan `g-ai` 119 → 120 di migrasi 253.
+
+### Bukti
+
+    tsc (web)                0
+    vitest (web)             604 lulus / 46 berkas — 0 gagal
+    pnpm build               nol error
+    migrasi 323              nol yatim, nol bentrok, nol di luar rentang,
+                             nol nama grup kembar
+    audit-sidebar-urutan     ✅ 0 / 0 / 0
+    bukti-mutasi-sidebar     9/9
+    audit-peta-menu-vs-db    ✅ drift tidak bertambah
+    audit-menu-berbagi-href  ✅ nol href ganda
+    audit-penomoran-migrasi  ✅ nol nomor ganda
+    di PERAMBAN              lima grup muncul dengan anaknya; nol menggantung
+
+Tiga ratchet merah (`tata-letak`, `isian`, `format`) — **diverifikasi lewat
+`git stash` sudah merah di HEAD**, berasal dari commit `cd2728c7` (TJS-P4 SoD)
+dan `1f34e373` (TJS-P5 custom field), bukan dari pekerjaan ini.

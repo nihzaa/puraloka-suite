@@ -47,6 +47,7 @@ const AKAR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 
 let baris
 let luar
+let yatim
 try {
   const koneksi = await import(
     'file://' + join(AKAR, 'scripts', 'db', '_koneksi.mjs').replace(/\\/g, '/'))
@@ -91,9 +92,43 @@ try {
        AND (i.sort_order <= g.sort_order OR i.sort_order > g.sort_order + 99)
      ORDER BY g.sort_order, i.sort_order`)
 
+  /**
+   * Item AKTIF yang induknya MATI — cacat yang penjaga ini sempat buta padanya.
+   *
+   * ══════════════════════════════════════════════════════════════════════════
+   * KENAPA INI LOLOS DARI SELURUH PENGUKURAN SEBELUMNYA
+   * ══════════════════════════════════════════════════════════════════════════
+   *
+   * Kedua kueri di atas menyaring `g.is_active` — dan begitu pula setiap
+   * kueri audit sidebar yang saya tulis di migrasi 319 dan 320. Item yang
+   * induknya `is_active = false` karena itu tak pernah masuk hitungan sama
+   * sekali: bukan dilaporkan nol, melainkan **tak pernah ditanyakan**.
+   *
+   * Founder yang menemukannya, lewat tangkapan layar: lima menu berdiri
+   * sendiri tanpa induk. Diukur sesudah ditunjuk: **18 item aktif di 5 grup
+   * mati** (`g-qaqc`, `g-hse`, `g-hr`, `g-risiko`, `g-sistem`), dan kedelapan
+   * belas halamannya ADA — 18 halaman jadi yang kehilangan jalan masuk.
+   *
+   * Sidebar tetap merender anaknya karena penyaringnya per-BARIS, bukan
+   * per-POHON. Mereka muncul sebagai item lepas di bawah grup terakhir yang
+   * kebetulan berdekatan `sort_order`.
+   *
+   * Pelajarannya bukan "saya kurang teliti": penyaring yang sama dipakai di
+   * kueri audit DAN di kode render, jadi keduanya sepakat melihat dunia yang
+   * sama — dan yang di luar dunia itu tak terlihat oleh keduanya.
+   */
+  const y = await db.query(`
+    SELECT g.label AS grup, g.key AS gkey,
+           i.label AS item, i.href
+      FROM menu_items i
+      JOIN menu_items g ON g.id = i.parent_id
+     WHERE i.is_active AND NOT g.is_active
+     ORDER BY g.sort_order, i.sort_order`)
+
   await db.end()
   baris = r.rows
   luar = l.rows
+  yatim = y.rows
 } catch (e) {
   console.log('⚠️  DB tak terhubung — pemeriksaan DILEWATI, bukan dinyatakan lulus.')
   console.log(`   ${e.message.slice(0, 100)}`)
@@ -103,6 +138,7 @@ try {
 console.log('\n══ Urutan sidebar ═════════════════════════════════════════════')
 console.log(`  sort_order bentrok    : ${baris.length}`)
 console.log(`  anak di luar rentang  : ${luar.length}`)
+console.log(`  item induknya MATI    : ${yatim.length}`)
 
 if (baris.length) {
   console.log('')
@@ -150,5 +186,33 @@ if (luar.length) {
   process.exit(1)
 }
 
-console.log('\n  ✅ Nol bentrok, semua anak di rentang grupnya.\n')
+if (yatim.length) {
+  console.log('')
+  let g0 = null
+  for (const r of yatim) {
+    if (r.gkey !== g0) {
+      g0 = r.gkey
+      console.log(`   induk MATI: ${r.grup}  (${r.gkey})`)
+    }
+    console.log(`      ${String(r.item).padEnd(28)} ${r.href ?? ''}`)
+  }
+
+  console.error(`\n❌ MERAH: ${yatim.length} item AKTIF bergantung pada grup yang MATI.`)
+  console.error('')
+  console.error('   Sidebar tetap merender item ini karena penyaringnya per-BARIS,')
+  console.error('   bukan per-POHON — jadi mereka muncul MENGGANTUNG tanpa induk,')
+  console.error('   nyantol di bawah grup terakhir yang kebetulan berdekatan.')
+  console.error('')
+  console.error('   Dua jalan keluar, pilih menurut halamannya:')
+  console.error('     · halamannya ADA  → hidupkan grupnya, atau pindahkan item')
+  console.error('                          ke grup aktif (migrasi 321)')
+  console.error('     · halamannya TIDAK → matikan itemnya juga, jangan biarkan')
+  console.error('                          setengah hidup')
+  console.error('')
+  console.error('   JANGAN mematikan item yang halamannya ada hanya supaya penjaga')
+  console.error('   ini hijau — itu menghapus jalan masuk ke halaman yang sudah jadi.')
+  process.exit(1)
+}
+
+console.log('\n  ✅ Nol bentrok, nol di luar rentang, nol item yatim.\n')
 process.exit(0)

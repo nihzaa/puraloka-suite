@@ -45,9 +45,12 @@ try {
       (SELECT count(*)::int FROM menu_items g
          JOIN menu_items i ON i.parent_id = g.id AND i.is_active
         WHERE g.parent_id IS NULL AND g.is_active
-          AND (i.sort_order <= g.sort_order OR i.sort_order > g.sort_order + 99)) AS luar`)
-  const { bentrok, luar } = r.rows[0]
-  console.log(bentrok > 0 || luar > 0 ? 'merah' : 'hijau')
+          AND (i.sort_order <= g.sort_order OR i.sort_order > g.sort_order + 99)) AS luar,
+      (SELECT count(*)::int FROM menu_items i
+         JOIN menu_items g ON g.id = i.parent_id
+        WHERE i.is_active AND NOT g.is_active) AS yatim`)
+  const { bentrok, luar, yatim } = r.rows[0]
+  console.log(bentrok > 0 || luar > 0 || yatim > 0 ? 'merah' : 'hijau')
 } finally {
   await c.query('ROLLBACK')   // SELALU — sidebar tak boleh ditinggalkan rusak
   await c.end()
@@ -71,6 +74,12 @@ uji "anak DI LUAR rentang gso+1..gso+99" merah \
 uji "anak sama dengan sort_order GRUPNYA" merah \
   "UPDATE menu_items SET sort_order = (SELECT sort_order FROM menu_items WHERE key='g-ai') WHERE key='ai-riwayat'"
 
+# Cacat yang penjaga ini sempat BUTA padanya, dan yang founder temukan lewat
+# tangkapan layar: mematikan GRUP tanpa mematikan anaknya. Sidebar tetap
+# merender anaknya — menggantung tanpa induk.
+uji "grup dimatikan, anaknya masih aktif" merah \
+  "UPDATE menu_items SET is_active = false WHERE key='g-ai'"
+
 echo
 echo "── TIDAK CEREWET"
 # Angka yang sama di DUA grup berbeda tetap sah — bentrok hanya berarti di
@@ -87,6 +96,8 @@ uji "angka berdekatan di grup BERBEDA" hijau \
   "UPDATE menu_items SET sort_order = 799 WHERE key='gudang-transfer'; UPDATE menu_items SET sort_order = 199 WHERE key='ai-riwayat'"
 uji "geser dalam rentang yang sah" hijau \
   "UPDATE menu_items SET sort_order = 199 WHERE key='ai-riwayat'"
+uji "grup DAN anaknya sama-sama dimatikan" hijau \
+  "UPDATE menu_items SET is_active = false WHERE key='g-ai' OR parent_id=(SELECT id FROM menu_items WHERE key='g-ai')"
 uji "tanpa perubahan apa pun" hijau "SELECT 1"
 
 echo

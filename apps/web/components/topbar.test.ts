@@ -16,7 +16,7 @@ describe("breadcrumb — tak boleh berbohong soal di mana pemakai berada", () =>
 
   it("halaman tak terdaftar memakai nama rutenya sendiri", () => {
     expect(getPageTitle("/uji-gulir")).toBe("Uji Gulir");
-    expect(getPageTitle("/mutu/ncr")).toBe("Mutu (QA/QC)");
+    expect(getPageTitle("/mutu/ncr")).toBe("Mutu & K3");
   });
 });
 
