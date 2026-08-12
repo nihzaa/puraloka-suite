@@ -108,6 +108,7 @@ import kasbonPurposesRoutes from './routes/v1/kasbon-purposes.js'
 import customFieldRoutes from './routes/v1/custom-field.js'
 import opnameBersamaRoutes from './routes/v1/opname-bersama.js'
 import backChargeRoutes from './routes/v1/back-charge.js'
+import spkRoutes from './routes/v1/spk.js'
 import approvalChainRoutes from './routes/v1/approval-chains.js'
 import notificationRuleRoutes from './routes/v1/notification-rules.js'
 import estimateVersionRoutes from './routes/v1/estimate-versions.js'
@@ -406,6 +407,7 @@ await app.register(kasbonPurposesRoutes)
 await app.register(customFieldRoutes)
 await app.register(opnameBersamaRoutes)
 await app.register(backChargeRoutes)
+await app.register(spkRoutes)
 await app.register(approvalChainRoutes)
 await app.register(notificationRuleRoutes)
 await app.register(estimateVersionRoutes)

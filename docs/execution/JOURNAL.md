@@ -15051,3 +15051,115 @@ itu sejak lama). Kasus identik dengan kenaikan `g-ai` 119 → 120 di migrasi 253
 Tiga ratchet merah (`tata-letak`, `isian`, `format`) — **diverifikasi lewat
 `git stash` sudah merah di HEAD**, berasal dari commit `cd2728c7` (TJS-P4 SoD)
 dan `1f34e373` (TJS-P5 custom field), bukan dari pekerjaan ini.
+
+---
+
+## 2026-08-12 — E1 · Surat Perintah Kerja, dan tiga penjaga yang menangkap saya
+
+**Cabang:** `feat/sumbu-ui-roadmap`
+
+### Rantai yang putus, diukur sebelum dibangun
+
+    tender & penawaran   3 tender, 1 penawaran MENANG     ADA
+    ──────────────────────────────────────────────────────────
+    SPK                  perintah kerja resmi             TAK ADA
+    ──────────────────────────────────────────────────────────
+    lingkup kerja        20 scope + sistem pembayaran     ADA
+
+Nol dari tiga tender tersambung ke lingkup kerja yang dikerjakan. Dan
+`work_scopes` punya LIMA kolom kontrak sejak 2024 yang tak pernah terisi:
+20 dari 20 berstatus `unsigned`, termasuk lingkup bernilai Rp 280 juta.
+
+Sekarang SPK bertanda tangan mengisinya lewat trigger, dan status `unsigned`
+hanya kembali bila tak ada SPK bertanda tangan LAIN.
+
+### Yang ditegakkan basis, bukan hanya aplikasi
+
+`tanggal_selesai >= tanggal_mulai` · status `ditandatangani` menuntut KEDUA
+tanda tangan · nilai/lingkup/tanggal/denda terkunci sesudah ditandatangani.
+
+Denda dihitung saat baca dengan batas dari **nilai kontrak**, bukan dari denda
+kotor — kalau batasnya dihitung dari denda kotor, ia bergerak mengikuti
+keterlambatan dan "maksimum 5%" berhenti berarti apa-apa. Hari terlambat
+dipagari nol: denda negatif akan MENAMBAH pembayaran.
+
+### Tiga penjaga menangkap saya, dan ketiganya benar
+
+**1. `audit-approval-satu-pintu`** merah dengan dua pintu baru —
+`back-charge.ts` dan `opname-bersama.ts`, dari commit D1 dan D3. Keduanya
+lolos karena saya menjalankan tujuh penjaga API dan penjaga ini TIDAK termasuk.
+Bukan penjaganya yang buta; saya yang tak menjalankannya.
+
+Uji yang dipakai untuk memutuskan: apakah kolomnya membuka pintu UANG?
+Back-charge MEMOTONG pembayaran subkon; verifikasi opname MEMBUKA pintu
+pembayaran (sesudah D1, borongan/progress_pct ditolak tanpa berita acara
+terverifikasi — jadi tanda tangan verifikasi ITULAH yang mencairkan uang).
+Keduanya lulus, keduanya masuk engine lewat migrasi 330.
+
+Yang penting: `loadSteps` fail-closed. Menambah `ApprovalEntityType` **tanpa**
+migrasi rantainya tidak memperketat — ia MELUMPUHKAN kedua modul secara
+diam-diam, dan halaman pengaturannya tetap terlihat wajar.
+
+**2. `audit-sod-gerbang` & `audit-inbox-lengkap`** menyusul merah begitu jenis
+baru ditambahkan. Keduanya menuntut hal yang tak akan saya ingat sendiri:
+tiap jenis approval wajib punya aturan SoD, dan wajib muncul di inbox terpusat.
+Penjaga inbox bahkan memperingatkan eksplisit *"VERIFIKASI tiap kolom ke
+information_schema, jangan diingat"* — saya turuti, dan enum keduanya diukur
+ke `pg_enum`, bukan ditebak.
+
+**3. `audit-kolom-tak-tersambung`** naik 18 → 20: `tender_id` dan
+`penawaran_id` diterima API tapi halaman SPK saya tak punya cara mengisinya.
+Kolom yang selamanya NULL berarti pertanyaan "SPK ini dari tender mana" tak
+pernah terjawab — padahal menyambung rantai itulah alasan E1 ada.
+
+Memperbaikinya dengan dua kotak isian UUID akan menghijaukan penjaga tanpa
+menolong siapa pun. Jadi form-nya dibalik mengikuti lapangan: pilih TENDER,
+penawaran pemenangnya mengisi sendiri nilai + lingkup kerjanya.
+
+### Cacat yang ditemukan saat menutup penjaga ketiga
+
+`tender_id`/`penawaran_id` diterima **tanpa verifikasi tenant**. Karena
+keduanya hanya ditampilkan sebagai rujukan (tak dipakai menghitung), id milik
+tenant lain akan tersimpan tanpa satu pun galat. Jejak asal-usul yang menunjuk
+dokumen orang lain lebih buruk daripada tak ada jejak: ia terlihat seperti bukti.
+
+### Saya salah: mutasi pertama LOLOS
+
+Test "menolak tender milik tenant lain" versi pertama memakai UUID acak. Saat
+saya buang saringan `project_id` untuk membuktikan test bisa merah — **tetap
+hijau**. Sebabnya: id yang tak ada di tabel mana pun membuat `maybeSingle()`
+mengembalikan null dengan atau tanpa saringan. Testnya menguji "id tak ada",
+bukan "id milik orang lain".
+
+Diperbaiki dengan membuat tender NYATA di company lain di dalam test, lalu
+membersihkannya. Mutasi ulang: MERAH. Ini kali kedua dalam rangkaian ini
+mutasi menyelamatkan test yang tampak benar (yang pertama D2, data dev terlalu
+seragam).
+
+### Regresi yang ikut ketahuan: `sk-opname` ber-href NULL
+
+Migrasi 326 lulus verifikasinya sendiri, tapi kini `href`-nya null — nilainya
+hilang SESUDAH itu. Item aktif ber-href null tetap dirender sidebar sebagai
+tautan yang diam saat diklik: tak ada galat, tak ada 404, hanya menu yang
+terbaca "rusak". Dipulihkan di 329, dan verifikasinya sekarang menuntut
+href NOT NULL, bukan sekadar keberadaan barisnya.
+
+### Bukti
+
+    migrasi 328   ✅ 3 kasus negatif ditolak, cache tersinkron, kunci terbukti
+    migrasi 329   ✅ nol href null, satu rute satu tautan, nol bentrok urutan
+    migrasi 330   ✅ nol rantai tanpa langkah, nol permission hantu
+    vitest        83 lulus / 4 berkas (spk lib 27, spk rute 22, opname, back-charge)
+    mutasi spk    5 (lib) + 4 (rute) + 2 (tenant tender) — semua MERAH lalu pulih
+    tsc api       0
+    tsc web       0
+    penjaga API   66 dijalankan, 65 hijau
+    penjaga web   uji-token-css-ada · audit-modal-dialog · a11y-ratchet ·
+                  audit-nav-yatim · audit-peta-modul-vs-halaman ·
+                  audit-sidebar-urutan · audit-peta-menu-vs-db ·
+                  audit-menu-berbagi-href — semua ✅
+    kolom-tak-tersambung  20 → 18 (kembali ke lantai)
+
+`audit-asumsi-global-test` merah — **diverifikasi lewat `git stash` sudah merah
+di HEAD**, dari `ai-config.test.ts` dan `belanja-aktual-endpoint.test.ts`.
+Bukan dari pekerjaan ini; masuk antrean tersendiri.

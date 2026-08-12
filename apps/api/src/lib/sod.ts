@@ -72,6 +72,18 @@ export const ATURAN_SOD: readonly AturanSod[] = [
   { jenis: 'lessons_learned',  tabel: 'lessons_learned_records', kolomPengaju: 'created_by',   label: 'Lessons Learned' },
   { jenis: 'cuti_karyawan',    tabel: 'cuti_ambil',              kolomPengaju: 'diajukan_oleh', label: 'Cuti & Izin' },
   { jenis: 'rencana_mutu',     tabel: 'rencana_mutu',            kolomPengaju: 'dibuat_oleh',  label: 'Rencana Mutu' },
+  // D1/D3 (2026-08-12). Keduanya sudah menegakkan SoD-nya sendiri di rute —
+  // opname lewat CHECK basis `diverifikasi_oleh <> diukur_oleh`, back-charge
+  // lewat `periksaSetujuBackCharge` — jadi baris ini BUKAN pemeriksaan
+  // pertama, melainkan yang membuat override tercatat lewat satu pintu.
+  //
+  // Tanpanya `periksaGerbangSod` menolak jenis tak terdaftar (fail-closed)
+  // dan approval-nya mati total: bukan lolos, tetapi juga bukan bekerja.
+  //
+  // Kolom pengaju di opname adalah PENGUKUR, bukan pembuat baris — yang
+  // dilarang menyetujui adalah orang yang mengukur di lapangan.
+  { jenis: 'opname_bersama',   tabel: 'opname_bersama',          kolomPengaju: 'diukur_oleh',   label: 'Verifikasi Opname' },
+  { jenis: 'back_charge',      tabel: 'back_charge',             kolomPengaju: 'diajukan_oleh', label: 'Back-Charge' },
 ] as const
 
 export function aturanSod(jenis: string): AturanSod | undefined {

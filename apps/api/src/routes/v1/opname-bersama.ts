@@ -1,8 +1,12 @@
 import type { FastifyInstance } from 'fastify'
-import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { pctOpname, SISTEM_WAJIB_OPNAME } from '../../lib/gerbang-opname.js'
 import { scopeIdsTenant } from '../../utils/tenant-guard.js'
+import {
+  evaluateEntityApproval, recordApproval, idAlurPersetujuan, periksaGerbangSod,
+} from '../../utils/approval.js'
+import { IZIN_OVERRIDE_SOD } from '../../lib/sod.js'
 
 /**
  * OPNAME BERSAMA (D1) — berita acara pengukuran yang mengunci pembayaran.
@@ -210,7 +214,12 @@ export default async function opnameBersamaRoutes(app: FastifyInstance) {
   )
 
   // ── PATCH /api/v1/opname/:id/verifikasi ──────────────────────────────────
-  app.patch<{ Params: { id: string }; Body: { setujui?: boolean; alasan?: string } }>(
+  app.patch<{
+    Params: { id: string }
+    // `alasan_override` dipakai pemegang `approval:override_sod` — ia dicatat
+    // ke `sod_override` SEBELUM approval berlanjut, bukan sesudahnya.
+    Body: { setujui?: boolean; alasan?: string; alasan_override?: string }
+  }>(
     '/api/v1/opname/:id/verifikasi',
     { preHandler: [authenticate, requirePermission('opname:verifikasi')] },
     async (request, reply) => {
@@ -236,7 +245,17 @@ export default async function opnameBersamaRoutes(app: FastifyInstance) {
       //
       // Basis juga menolaknya lewat CHECK, tetapi galat Postgres tak bisa
       // ditindaklanjuti pengguna. Di sini alasannya dijelaskan.
-      if (o.diukur_oleh === request.currentUser!.id) {
+      //
+      // Pesan ini SENGAJA didahulukan atas `periksaGerbangSod`: keduanya
+      // memeriksa hal yang sama, tetapi yang di sini menjelaskan KENAPA opname
+      // menuntut dua pihak. Yang di bawah menangani pemegang izin override —
+      // dan mencatat pemakaiannya.
+      //
+      // Basis tetap menolak override untuk kasus INI (CHECK-nya tak mengenal
+      // izin), jadi cek keras dipertahankan bagi yang tak punya izin override,
+      // dan gerbang di bawah yang memutuskan sisanya.
+      const izinOverride = await hasPermission(request, IZIN_OVERRIDE_SOD)
+      if (o.diukur_oleh === request.currentUser!.id && !izinOverride) {
         return reply.status(403).send({
           error: 'Anda yang mengukur berita acara ini, jadi tak bisa memverifikasinya sendiri. '
             + 'Yang membuat opname bernilai adalah dua pihak menyaksikan angka yang sama.',
@@ -249,6 +268,74 @@ export default async function opnameBersamaRoutes(app: FastifyInstance) {
           error: 'Sengketa wajib beralasan — tanpa itu pembayaran berhenti tanpa ada yang tahu '
             + 'apa yang harus diperbaiki.',
         })
+      }
+
+      // ── Rantai persetujuan (migrasi 330) ─────────────────────────────────
+      //
+      // Verifikasi opname MEMBUKA pintu pembayaran: sesudah D1, pembayaran
+      // borongan/progress_pct ditolak tanpa berita acara terverifikasi. Jadi
+      // tanda tangan verifikasi INILAH yang mencairkan uang, bukan tombol
+      // bayarnya — dan sebagian tenant menuntutnya dua lapis (pengawas
+      // lapangan lalu QS).
+      //
+      // Menyengketakan TIDAK lewat sini: menghentikan pembayaran yang belum
+      // terjadi tak membebankan apa pun, dan mensyaratkan rantai untuk
+      // menyengketakan berarti ukuran yang salah tetap mengalir sementara
+      // menunggu penyetuju kedua.
+      if (!menolak) {
+        const decision = await evaluateEntityApproval(request, {
+          entityType: 'opname_bersama', entityId: id, amount: null,
+        })
+        if (decision.configError) {
+          request.log.error({ configError: decision.configError, id },
+            'evaluasi rantai approval opname gagal')
+          return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+        }
+        if (!decision.allowed) {
+          if (decision.reason === 'already_approved') {
+            return reply.status(409).send({ error: 'Berita acara ini sudah diverifikasi penuh' })
+          }
+          return reply.status(403).send({ error: 'Akses ditolak' })
+        }
+        // Pemegang izin override lewat sini, dan pemakaiannya TERCATAT di
+        // `sod_override` sebelum approval berlanjut (TJS-P4: "override
+        // mungkin tapi tercatat"). Tanpa panggilan ini, override atas opname
+        // terjadi tanpa jejak.
+        const sod = await periksaGerbangSod(request, 'opname_bersama', id, {
+          alasanOverride: b.alasan_override,
+          level: decision.step?.level,
+        })
+        if (!sod.ok) return reply.status(403).send({ error: sod.pesan })
+
+        if (decision.step) {
+          const rec = await recordApproval({
+            entityType: 'opname_bersama', entityId: id, level: decision.step.level,
+            approvedBy: request.currentUser!.id, companyId: request.companyId!,
+          })
+          if (!rec.ok) {
+            return reply.status(500).send({ error: 'Gagal mencatat verifikasi: ' + rec.error })
+          }
+
+          // Belum langkah terakhir: status TETAP `diajukan`, jadi gerbang
+          // pembayaran tetap tertutup. Menandainya diverifikasi di sini
+          // membuat separuh rantai membuka pintu uang penuh.
+          if (!decision.isFinalStep) {
+            const next = decision.applicable.find((x) => x.level > decision.step!.level)
+            void logAuditEvent(request, {
+              tableName: 'opname_bersama', recordId: id,
+              action: 'opname.approval.level',
+              actorId: request.currentUser!.id,
+              newValues: { level: decision.step.level, of: decision.applicable.length },
+              workflowId: idAlurPersetujuan(id),
+              severity: 'critical',
+            })
+            return reply.send({
+              ok: true, pending_next_level: true,
+              message: `Verifikasi level ${decision.step.level} tercatat. `
+                + `Menunggu level ${next?.level ?? '-'} sebelum pembayaran terbuka.`,
+            })
+          }
+        }
       }
 
       const patch = menolak

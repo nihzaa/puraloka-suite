@@ -112,6 +112,44 @@ export const SUMBER_INBOX: SumberInbox[] = [
     jalurUi: '/kas',
   },
   {
+    jenis: 'opname_bersama',
+    label: 'Verifikasi Opname',
+    tabel: 'opname_bersama',
+    // Enum `opname_status` = diajukan|diverifikasi|disengketakan (diukur ke
+    // pg_enum 2026-08-12, bukan diingat). Yang menunggu hanya `diajukan`;
+    // `disengketakan` sudah diputuskan — ia menunggu PERBAIKAN pengukur,
+    // bukan keputusan approver, dan menampilkannya di sini membuat inbox
+    // berisi pekerjaan yang bukan milik yang membukanya.
+    statusMenunggu: ['diajukan'],
+    // Tak ada kolom nominal: opname mengukur PERSEN, bukan rupiah. Persennya
+    // sendiri turunan dari itemnya (`pctOpname`) dan sengaja tak disimpan di
+    // induk — menyimpannya berarti dua angka yang bisa berselisih.
+    kolomNominal: null,
+    kolomJudul: 'catatan',
+    kolomNomor: 'nomor',
+    // Pengukur, bukan pembuat baris. SoD-nya justru inti modul ini: yang
+    // mengukur di lapangan tak boleh memverifikasi ukurannya sendiri, dan
+    // basis pun menolaknya lewat CHECK.
+    kolomPengaju: 'diukur_oleh',
+    tenancy: 'B',
+    jalurUi: '/mandor/opname',
+  },
+  {
+    jenis: 'back_charge',
+    label: 'Back-Charge',
+    tabel: 'back_charge',
+    // Enum `back_charge_status` = diajukan|disetujui|dipotong|dibatalkan.
+    // Hanya `diajukan` yang menunggu keputusan — `disetujui` menunggu
+    // pembayaran berikutnya (bukan orang), `dipotong` sudah selesai.
+    statusMenunggu: ['diajukan'],
+    kolomNominal: 'nilai',
+    kolomJudul: 'uraian',
+    kolomNomor: 'nomor',
+    kolomPengaju: 'diajukan_oleh',
+    tenancy: 'B',
+    jalurUi: '/mandor/back-charge',
+  },
+  {
     jenis: 'change_order',
     label: 'Change Order',
     tabel: 'change_orders',

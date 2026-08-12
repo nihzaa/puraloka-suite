@@ -39,6 +39,27 @@ export type ApprovalEntityType =
                         // Nominalnya `null`: RMP tak menyentuh uang, jadi
                         // ambang nilai tak berlaku. Yang berjenjang di sini
                         // adalah KEWENANGAN, bukan besaran.
+  | 'opname_bersama'    // D1 (2026-08-12) — verifikasi berita acara opname.
+                        // Masuk engine ini karena tanda tangan verifikasi
+                        // INILAH yang mencairkan uang: sesudah D1, pembayaran
+                        // borongan/progress_pct DITOLAK tanpa berita acara
+                        // terverifikasi. Tombol bayar hanya menjalankan apa
+                        // yang sudah diputuskan di sini.
+                        //
+                        // Nominalnya `null`: opname mengukur PERSEN pekerjaan,
+                        // bukan rupiah. Menyengketakan tak lewat engine —
+                        // menghentikan pembayaran yang belum terjadi tak
+                        // membebankan apa pun.
+  | 'back_charge'       // D3 (2026-08-12) — pembebanan biaya ke subkon.
+                        // Masuk engine ini karena ia MEMOTONG uang yang
+                        // diterima mandor, dan sebagian tenant memisahkan
+                        // yang mengusulkan (pelaksana) dari yang membebankan
+                        // (keuangan).
+                        //
+                        // Nominalnya nilai back-charge — satu-satunya jenis
+                        // sesudah kasbon/expense yang ambang rupiahnya
+                        // bermakna. Ambangnya sendiri tetap NULL di migrasi
+                        // 330: memilih angkanya adalah kebijakan tenant.
 
 /**
  * Ambil langkah rantai aktif untuk sebuah entitas — MILIK COMPANY INI.

@@ -2,6 +2,9 @@ import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { scopeIdsTenant } from '../../utils/tenant-guard.js'
+import {
+  evaluateEntityApproval, recordApproval, idAlurPersetujuan, periksaGerbangSod,
+} from '../../utils/approval.js'
 import { ringkasBackCharge, periksaSetujuBackCharge } from '../../lib/back-charge.js'
 
 /**
@@ -171,7 +174,12 @@ export default async function backChargeRoutes(app: FastifyInstance) {
   )
 
   // ── PATCH /api/v1/back-charge/:id/putuskan ───────────────────────────────
-  app.patch<{ Params: { id: string }; Body: { setujui?: boolean; alasan?: string } }>(
+  app.patch<{
+    Params: { id: string }
+    // `alasan_override` dipakai pemegang `approval:override_sod` — ia dicatat
+    // ke `sod_override` SEBELUM approval berlanjut, bukan sesudahnya.
+    Body: { setujui?: boolean; alasan?: string; alasan_override?: string }
+  }>(
     '/api/v1/back-charge/:id/putuskan',
     { preHandler: [authenticate, requirePermission('backcharge:setujui')] },
     async (request, reply) => {
@@ -205,6 +213,72 @@ export default async function backChargeRoutes(app: FastifyInstance) {
           error: 'Pembatalan wajib beralasan — tanpa itu tak ada yang tahu kenapa '
             + 'potongan yang sudah diajukan tiba-tiba hilang.',
         })
+      }
+
+      // ── Rantai persetujuan (migrasi 330) ─────────────────────────────────
+      //
+      // Back-charge MEMOTONG uang subkon. Sebagian tenant menuntut dua lapis
+      // — pelaksana yang mengusulkan, keuangan yang membebankan — dan menulis
+      // `disetujui_oleh` langsung membuat rantai dua langkah lolos dengan satu
+      // ketukan sementara halaman pengaturannya tetap menampilkan dua.
+      //
+      // Pembatalan TIDAK lewat sini: menarik kembali potongan yang belum
+      // berlaku bukan keputusan yang membebankan, dan mensyaratkan rantai
+      // untuk membatalkan berarti potongan salah bisa terkunci menunggu
+      // orang yang mungkin sedang tak ada.
+      if (!membatalkan) {
+        const decision = await evaluateEntityApproval(request, {
+          entityType: 'back_charge', entityId: id, amount: Number(r.nilai ?? 0),
+        })
+        if (decision.configError) {
+          request.log.error({ configError: decision.configError, id },
+            'evaluasi rantai approval back-charge gagal')
+          return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+        }
+        if (!decision.allowed) {
+          if (decision.reason === 'already_approved') {
+            return reply.status(409).send({ error: 'Back-charge ini sudah disetujui penuh' })
+          }
+          return reply.status(403).send({ error: 'Akses ditolak' })
+        }
+        // Pemegang izin override lewat sini, dan pemakaiannya TERCATAT
+        // sebelum approval berlanjut. `periksaSetujuBackCharge` di atas sudah
+        // menolak pengaju TANPA izin override; yang ini menangani yang punya.
+        const sod = await periksaGerbangSod(request, 'back_charge', id, {
+          alasanOverride: b.alasan_override,
+          level: decision.step?.level,
+        })
+        if (!sod.ok) return reply.status(403).send({ error: sod.pesan })
+
+        if (decision.step) {
+          const rec = await recordApproval({
+            entityType: 'back_charge', entityId: id, level: decision.step.level,
+            approvedBy: request.currentUser!.id, companyId: request.companyId!,
+          })
+          if (!rec.ok) {
+            return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
+          }
+
+          // Belum langkah terakhir: status TETAP `diajukan`. Menandainya
+          // disetujui di sini persis kesalahan yang penjaga cegah — separuh
+          // rantai, status penuh, dan potongan berlaku.
+          if (!decision.isFinalStep) {
+            const next = decision.applicable.find((x) => x.level > decision.step!.level)
+            void logAuditEvent(request, {
+              tableName: 'back_charge', recordId: id,
+              action: 'back_charge.approval.level',
+              actorId: request.currentUser!.id,
+              newValues: { level: decision.step.level, of: decision.applicable.length },
+              workflowId: idAlurPersetujuan(id),
+              severity: 'critical',
+            })
+            return reply.send({
+              ok: true, pending_next_level: true,
+              message: `Persetujuan level ${decision.step.level} tercatat. `
+                + `Menunggu level ${next?.level ?? '-'} sebelum potongan berlaku.`,
+            })
+          }
+        }
       }
 
       const patch = membatalkan
