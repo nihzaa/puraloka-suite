@@ -211,7 +211,7 @@ function StatusBadge({ s }: { s: string }) {
 }
 const th: React.CSSProperties = { textAlign: "left", padding: "8px 8px", fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: .4, borderBottom: `1px solid ${C.border}` };
 const td: React.CSSProperties = { padding: "8px 8px", fontSize: 13, color: C.text, borderBottom: `1px solid ${C.border}`, verticalAlign: "top" };
-const btnPrimary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.navy, color: C.onNavy, border: "none", borderRadius: 6, padding: "8px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+const btnPrimary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: "var(--grad-aksen)", color: C.onNavy, border: "none", borderRadius: 6, padding: "8px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" };
 const btnGhost: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, background: C.surface, color: C.text, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" };
 const lbl: React.CSSProperties = { display: "block", fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 5 };
 // Baris penutup lembar analisa: label rata kanan menempel ke angkanya, supaya
@@ -1760,7 +1760,7 @@ function AdopsiModal({ asal, onClose, onDone }: {
 
         <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
           <button type="submit" disabled={simpan} style={{
-            padding: "8px 16px", borderRadius: 10, border: "none", background: C.navy,
+            padding: "8px 16px", borderRadius: 10, border: "none", background: "var(--grad-aksen)",
             color: C.onNavy, fontSize: 13, fontWeight: 600,
             cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
           }}>
@@ -1953,7 +1953,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
 
         <div style={{ display: "flex", gap: 8, marginTop: 20 }}>
           <button type="submit" disabled={simpan} style={{
-            padding: "8px 16px", borderRadius: 10, border: "none", background: C.navy,
+            padding: "8px 16px", borderRadius: 10, border: "none", background: "var(--grad-aksen)",
             color: C.onNavy, fontSize: 13, fontWeight: 600,
             cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
           }}>
@@ -3021,7 +3021,7 @@ function FormOverride({ proyekId, onTutup, onSimpan }: {
               cursor: "pointer", fontFamily: "inherit" }}>Batal</button>
           <button onClick={() => void simpan()} disabled={menyimpan}
             style={{ minHeight: 40, padding: "0 15px", borderRadius: 6, fontSize: 13,
-              border: "none", background: C.navy, color: C.onNavy, fontWeight: 600,
+              border: "none", background: "var(--grad-aksen)", color: C.onNavy, fontWeight: 600,
               cursor: "pointer", fontFamily: "inherit", opacity: menyimpan ? 0.6 : 1 }}>
             {menyimpan ? "Menyimpan…" : "Simpan"}
           </button>
@@ -4046,7 +4046,8 @@ function IsiEstimasi() {
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       <div style={{ marginBottom: 4 }}>
-        <KepalaHalaman judul="Estimasi" keterangan="RAB dari analisa AHSP ber-edisi × price book — setiap rupiah bisa ditelusuri ke koefisien &amp; harga sumbernya." />
+        <KepalaHalaman judul="Estimasi" keterangan="RAB dari analisa AHSP ber-edisi × price book — setiap rupiah bisa ditelusuri ke koefisien &amp; harga sumbernya."         ikon={<Calculator size={19} />}
+      />
       </div>
       {/* Komponen BERSAMA — gaya tab tak lagi ditulis per halaman. */}
       <TabBagian

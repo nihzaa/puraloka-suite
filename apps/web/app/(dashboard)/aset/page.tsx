@@ -56,8 +56,7 @@
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Plus, Wallet, Wrench, MapPin, AlertTriangle, CalendarClock,
-  CircleSlash, Clock,
-} from "lucide-react";
+  CircleSlash, Clock, Boxes } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 
 import { C } from "@/lib/warna-ui";
@@ -244,13 +243,14 @@ function IsiAset() {
     }}>
       <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
         <div style={{ minWidth: 0 }}>
-          <KepalaHalaman judul="Aset &amp; Alat" keterangan="Alat milik perusahaan, lokasinya sekarang, nilai bukunya, dan biaya sewa yang berjalan." />
+          <KepalaHalaman judul="Aset &amp; Alat" keterangan="Alat milik perusahaan, lokasinya sekarang, nilai bukunya, dan biaya sewa yang berjalan."         ikon={<Boxes size={19} />}
+      />
         </div>
         <button
           onClick={() => setFormBuka((v) => !v)}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
-            borderRadius: 10, border: "none", background: C.navy, color: C.onNavy,
+            borderRadius: 10, border: "none", background: "var(--grad-aksen)", color: C.onNavy,
             fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0,
           }}
         >
@@ -825,7 +825,7 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
 
       <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
         <button type="submit" disabled={simpan} style={{
-          padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy,
+          padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)",
           color: C.onNavy, fontSize: 13, fontWeight: 600,
           cursor: simpan ? "wait" : "pointer", opacity: simpan ? 0.7 : 1,
         }}>

@@ -95,7 +95,7 @@ export default function PenugasanPage() {
         <button onClick={load} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mid }}>
           <RefreshCw size={14} /> Refresh
         </button>
-        <button onClick={() => setShowAddAssignment(true)} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
+        <button onClick={() => setShowAddAssignment(true)} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
             <Plus size={14} /> Assign Mandor
         </button>
       </div>

@@ -50,8 +50,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   AlertTriangle, Building2, CalendarClock, CheckCircle2, Clock,
-  LayoutGrid, List, Plus, RefreshCw, Search, TrendingDown, TrendingUp,
-} from "lucide-react";
+  LayoutGrid, List, Plus, RefreshCw, Search, TrendingDown, TrendingUp, FolderKanban } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
@@ -280,14 +279,15 @@ function ProyekRingkasan() {
         display: "flex", justifyContent: "space-between", alignItems: "flex-start",
         gap: 12, flexWrap: "wrap", marginBottom: 20,
       }}>
-        <KepalaHalaman judul="Proyek" keterangan="Keadaan seluruh portofolio, lalu daftarnya" />
+        <KepalaHalaman judul="Proyek" keterangan="Keadaan seluruh portofolio, lalu daftarnya"         ikon={<FolderKanban size={19} />}
+      />
         {bolehBuatProyek && (
           <button
             onClick={() => setShowModal(true)}
             style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "8px 16px", borderRadius: 6, border: "none",
-              background: C.navy, color: C.onNavy, fontSize: 13, fontWeight: 600,
+              background: "var(--grad-aksen)", color: C.onNavy, fontSize: 13, fontWeight: 600,
               cursor: "pointer", transition: "background 0.15s",
             }}
             onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
@@ -592,7 +592,7 @@ function ProyekRingkasan() {
               onClick={() => setShowModal(true)}
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
-                borderRadius: 6, border: "none", background: C.navy, color: C.onNavy,
+                borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: C.onNavy,
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
               }}
             >

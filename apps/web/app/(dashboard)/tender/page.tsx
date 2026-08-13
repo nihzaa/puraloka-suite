@@ -50,8 +50,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Plus, Trophy, XCircle, Clock, Wallet, AlertTriangle, Hourglass,
-} from "lucide-react";
+  Plus, Trophy, XCircle, Clock, Wallet, AlertTriangle, Hourglass, Gavel } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { KartuKPI, Panel } from "@/components/ui-dasar";
@@ -214,13 +213,14 @@ export default function TenderPage() {
     }}>
       <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
         <div style={{ minWidth: 0 }}>
-          <KepalaHalaman judul="Register Tender" keterangan="Tender yang diikuti, alasan menang/kalah, dan backlog yang sudah dimenangkan." />
+          <KepalaHalaman judul="Register Tender" keterangan="Tender yang diikuti, alasan menang/kalah, dan backlog yang sudah dimenangkan."         ikon={<Gavel size={19} />}
+      />
         </div>
         <button
           onClick={() => setFormBuka((v) => !v)}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px",
-            borderRadius: 10, border: "none", background: C.navy, color: C.onNavy,
+            borderRadius: 10, border: "none", background: "var(--grad-aksen)", color: C.onNavy,
             fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0,
           }}
         >

@@ -245,7 +245,8 @@ export default function PiutangPage() {
       {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
-          <KepalaHalaman judul="Register Piutang" /><div style={{ fontSize: 13, color: C.mid, marginTop: 3 }}>
+          <KepalaHalaman judul="Register Piutang"         ikon={<Receipt size={19} />}
+      /><div style={{ fontSize: 13, color: C.mid, marginTop: 3 }}>
             Umur tagihan, retensi tertahan, dan uang muka yang belum dipotong
             {aging && <> · per {fmtDate(aging.as_of)}</>}
           </div>

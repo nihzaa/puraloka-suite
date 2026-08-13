@@ -33,7 +33,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
-import { Bot, MessageSquare, ShieldAlert, Wallet } from "lucide-react";
+import { Bot, MessageSquare, ShieldAlert, Wallet, Workflow } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
@@ -240,6 +240,7 @@ function Konten() {
       <KepalaHalaman
         judul="AI & Otomasi"
         keterangan="Kesehatan sambungan, pemakaian, dan kanal — satu layar sebelum masuk ke pengaturannya."
+              ikon={<Workflow size={19} />}
       />
 
       {galat && (

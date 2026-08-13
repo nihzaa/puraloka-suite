@@ -441,7 +441,7 @@ export function RabSection({ projectId, userRole, hideHeader = false, onSerapanU
           <span style={{ fontSize: 11, color: C.mid }}>%</span>
           {isDirty && (
             <button onClick={onSave} disabled={isSaving}
-              style={{ padding: "2px 6px", fontSize: 11, fontWeight: 600, background: C.navy, color: C.onNavy, border: "none", borderRadius: 6, cursor: "pointer", opacity: isSaving ? 0.6 : 1 }}>
+              style={{ padding: "2px 6px", fontSize: 11, fontWeight: 600, background: "var(--grad-aksen)", color: C.onNavy, border: "none", borderRadius: 6, cursor: "pointer", opacity: isSaving ? 0.6 : 1 }}>
               {isSaving ? "..." : "Simpan"}
             </button>
           )}

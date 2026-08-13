@@ -743,7 +743,7 @@ export default function RfqPage() {
                       type="button" onClick={() => setFormPenawaran(true)}
                       style={{
                         marginLeft: "auto", padding: "7px 13px", borderRadius: 6,
-                        border: "none", background: C.navy, color: "var(--on-navy)",
+                        border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)",
                         fontSize: 12.5, fontWeight: 700, cursor: "pointer",
                         display: "flex", alignItems: "center", gap: 6, minHeight: 38,
                       }}
@@ -786,7 +786,7 @@ export default function RfqPage() {
                       onClick={() => setFormPenawaran(true)}
                       style={{
                         padding: "9px 16px", borderRadius: 6, fontSize: 13,
-                        fontWeight: 700, border: "none", background: C.navy,
+                        fontWeight: 700, border: "none", background: "var(--grad-aksen)",
                         color: "var(--on-navy)", cursor: "pointer",
                         display: "inline-flex", alignItems: "center", gap: 7,
                         minHeight: 40,

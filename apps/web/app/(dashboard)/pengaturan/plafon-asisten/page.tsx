@@ -154,6 +154,7 @@ export default function PlafonAsistenPage() {
       <KepalaHalaman
         judul="Plafon Persetujuan Asisten"
         keterangan="Sampai berapa tiap orang boleh menyetujui lewat asisten, tanpa membuka aplikasi."
+              ikon={<ShieldCheck size={19} />}
       />
 
       {/*

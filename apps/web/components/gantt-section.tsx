@@ -319,7 +319,7 @@ function EditDateModal({
             Batal
           </button>
           <button onClick={handleSave} disabled={loading}
-            style={{ padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
+            style={{ padding: "8px 16px", fontSize: 13, fontWeight: 600, borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
             {loading ? "Menyimpan..." : "Simpan"}
           </button>
         </div>

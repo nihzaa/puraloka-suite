@@ -356,7 +356,8 @@ export default function PelajaranPage() {
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
       <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
-        <KepalaHalaman judul="Pelajaran Proyek" />
+        <KepalaHalaman judul="Pelajaran Proyek"         ikon={<Sprout size={19} />}
+      />
         <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
           NCR memperbaiki cacat yang <strong>sudah</strong> terjadi. Halaman ini menjawab
           pertanyaan berikutnya: apa yang berubah supaya kesalahan sejenis tak lahir lagi
@@ -385,7 +386,7 @@ export default function PelajaranPage() {
         <button type="button" onClick={() => { setGalat(""); setDialogBuka(true); }} style={{
           display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
           padding: "9px 14px", borderRadius: 6, fontSize: 13, fontWeight: 600,
-          border: "1px solid var(--aksen)", background: "var(--aksen)", color: "#fff",
+          border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
         }}>
           <Plus size={15} aria-hidden="true" /> Catat pelajaran
         </button>
@@ -566,7 +567,7 @@ export default function PelajaranPage() {
             cursor: halangan || mengirim ? "not-allowed" : "pointer",
             opacity: halangan || mengirim ? 0.5 : 1,
             padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600,
-            border: "1px solid var(--aksen)", background: "var(--aksen)", color: "#fff",
+            border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
           }}>{mengirim ? "Menyimpan…" : "Simpan sebagai draf"}</button>
         </div>
       </DialogBersama>

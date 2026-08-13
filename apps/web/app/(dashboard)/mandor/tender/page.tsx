@@ -675,7 +675,7 @@ export default function TenderSubkonPage() {
                   <button type="button" onClick={tutupTender} disabled={mengirim} style={{
                     cursor: mengirim ? "not-allowed" : "pointer", opacity: mengirim ? 0.5 : 1,
                     padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600,
-                    border: "1px solid var(--aksen)", background: "var(--aksen)", color: "#fff",
+                    border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
                     whiteSpace: "nowrap",
                   }}>{mengirim ? "Menutup…" : "Tutup tender"}</button>
                 </div>
@@ -805,7 +805,7 @@ export default function TenderSubkonPage() {
                 cursor: halangan || mengirim ? "not-allowed" : "pointer",
                 opacity: halangan || mengirim ? 0.5 : 1,
                 padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600,
-                border: "1px solid var(--aksen)", background: "var(--aksen)", color: "#fff",
+                border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
               }}>{mengirim ? "Menyimpan…" : "Tetapkan pemenang"}</button>
             </div>
           </>

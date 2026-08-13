@@ -97,7 +97,7 @@ export default function KasLayout({ children }: { children: React.ReactNode }) {
             )}
             <button onClick={() => setBukaPengeluaran(true)} style={{
               display: "flex", alignItems: "center", gap: 6, padding: "8px 16px",
-              borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)",
+              borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)",
               fontSize: 13, fontWeight: 600, cursor: "pointer",
             }}
               onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}

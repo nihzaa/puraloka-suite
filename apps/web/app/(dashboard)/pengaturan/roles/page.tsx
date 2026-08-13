@@ -18,8 +18,7 @@ import {
   ChevronDown,
   ChevronRight,
   Users,
-  Lock,
-} from "lucide-react";
+  Lock, KeyRound } from "lucide-react";
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 
@@ -265,14 +264,15 @@ function RolesContent() {
 
       {/* Header */}
       <div style={{ marginBottom: 28, display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <KepalaHalaman judul="Role & Akses" keterangan="Kelola role pengguna dan permission akses ke setiap modul" />
+        <KepalaHalaman judul="Role & Akses" keterangan="Kelola role pengguna dan permission akses ke setiap modul"         ikon={<KeyRound size={19} />}
+      />
         {canManage && (
           <button
             onClick={() => setShowAddModal(true)}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "8px 16px", borderRadius: 10, border: "none",
-              background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer",
+              background: "var(--grad-aksen)", color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer",
             }}
           >
             <Plus size={15} /> Tambah Role

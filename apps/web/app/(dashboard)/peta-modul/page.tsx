@@ -40,8 +40,7 @@ import { useMemo, useState } from "react";
 import { KepalaHalaman } from "@/components/dasar";
 import Link from "next/link";
 import {
-  CircleCheck, CircleDashed, Clock, ExternalLink, Lock, Search,
-} from "lucide-react";
+  CircleCheck, CircleDashed, Clock, ExternalLink, Lock, Search, Map } from "lucide-react";
 import { PETA_MENU, rekapStatus, type StatusMenu } from "@/lib/peta-menu";
 import { C } from "@/lib/warna-ui";
 import { TabBagian } from "@/components/tab-bagian";
@@ -93,7 +92,8 @@ export default function PetaModulPage() {
     <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {/* LAPIS 1 — KEADAAN */}
       <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
-        <KepalaHalaman judul="Peta Modul" /><p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "70ch", lineHeight: 1.55 }}>
+        <KepalaHalaman judul="Peta Modul"         ikon={<Map size={19} />}
+      /><p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "70ch", lineHeight: 1.55 }}>
           Seluruh modul yang direncanakan produk ini beserta keadaannya hari ini.
           Sidebar hanya memuat yang <strong>bisa dipakai</strong>; sisanya ada di sini —
           supaya “belum ada” bisa dibaca sekali, bukan ditemukan satu per satu saat diklik.

@@ -266,6 +266,7 @@ export default function NotificationsPage() {
       <KepalaHalaman
         judul="Notifikasi"
         keterangan="Riwayat semua notifikasi sistem"
+        ikon={<Bell size={19} />}
         aksi={
           unreadCount > 0 ? (
             <button

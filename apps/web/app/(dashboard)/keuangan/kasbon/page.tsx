@@ -205,7 +205,7 @@ export default function KasbonPage() {
           <div style={{ flex: 1 }} />
           {canEdit && kasbonType === "mandor" && (
             <button onClick={() => setShowAddKasbon(true)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
               onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
               onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}>
               <Plus size={13} /> Tambah Kasbon

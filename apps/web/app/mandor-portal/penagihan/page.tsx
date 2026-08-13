@@ -257,7 +257,7 @@ export default function PenagihanProgressPage() {
                       <button onClick={() => openModal(scope)} style={{
                         display: "flex", alignItems: "center", gap: 4,
                         padding: "6px 12px", borderRadius: 6,
-                        border: "none", background: C.navy, color: "var(--surface)",
+                        border: "none", background: "var(--grad-aksen)", color: "var(--surface)",
                         fontSize: 12, fontWeight: 600, cursor: "pointer",
                       }}>
                         <Plus size={13} /> Ajukan Penagihan

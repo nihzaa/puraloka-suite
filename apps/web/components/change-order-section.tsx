@@ -221,7 +221,7 @@ function ItemForm({
           Batal
         </button>
         <button onClick={onSubmit} disabled={loading}
-          style={{ padding: "6px 16px", fontSize: 13, fontWeight: 600, borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
+          style={{ padding: "6px 16px", fontSize: 13, fontWeight: 600, borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
           {loading ? "Menyimpan..." : submitLabel}
         </button>
       </div>
@@ -592,7 +592,7 @@ function ChangeOrderCard({
                   <button
                     onClick={handleSubmit}
                     disabled={loadingAction === "submit" || (co.items?.length ?? 0) === 0}
-                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", fontSize: 12, fontWeight: 600, borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loadingAction ? "default" : "pointer", opacity: (co.items?.length ?? 0) === 0 ? 0.5 : 1 }}
+                    style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", fontSize: 12, fontWeight: 600, borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: loadingAction ? "default" : "pointer", opacity: (co.items?.length ?? 0) === 0 ? 0.5 : 1 }}
                   >
                     <Send size={13} /> {loadingAction === "submit" ? "Submitting..." : "Submit untuk Approval"}
                   </button>
@@ -739,7 +739,7 @@ function CreateCoModal({
             Batal
           </button>
           <button onClick={handleCreate} disabled={loading}
-            style={{ padding: "8px 20px", fontSize: 13, fontWeight: 600, borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
+            style={{ padding: "8px 20px", fontSize: 13, fontWeight: 600, borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: loading ? "default" : "pointer", opacity: loading ? 0.7 : 1 }}>
             {loading ? "Membuat..." : "Buat Change Order"}
           </button>
         </div>

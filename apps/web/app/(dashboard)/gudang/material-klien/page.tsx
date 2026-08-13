@@ -22,7 +22,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { PackageSearch, HandCoins, RefreshCw } from "lucide-react";
+import { PackageSearch, HandCoins, RefreshCw, PackageCheck } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
@@ -147,6 +147,7 @@ export default function MaterialKlienPage() {
       <KepalaHalaman
         judul="Material Milik Klien"
         keterangan="Material yang dipasok owner (free issue) masuk gudang dan terpakai seperti material lain — tapi bukan pembelian kita. Dicatat terpisah supaya ia tidak menggelembungkan angka susut, dan tidak membuat perusahaan tampak memborong melebihi RAB."
+              ikon={<PackageCheck size={19} />}
       />
 
       {galat && (

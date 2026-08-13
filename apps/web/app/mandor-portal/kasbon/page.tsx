@@ -150,7 +150,7 @@ export default function MandorKasbonPage() {
         <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>Kasbon</h1>
         <button
           onClick={() => setShowModal(true)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, background: C.navy, color: "var(--surface)", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, background: "var(--grad-aksen)", color: "var(--surface)", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
         >
           <Plus size={15} />
           Ajukan Kasbon
@@ -340,7 +340,7 @@ export default function MandorKasbonPage() {
                 <button type="button" onClick={() => setShowModal(false)} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>
                   Batal
                 </button>
-                <button type="submit" disabled={saving || !form.project_id} style={{ padding: "8px 20px", borderRadius: 6, background: C.navy, color: "var(--surface)", border: "none", cursor: (saving || !form.project_id) ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: (saving || !form.project_id) ? 0.7 : 1 }}>
+                <button type="submit" disabled={saving || !form.project_id} style={{ padding: "8px 20px", borderRadius: 6, background: "var(--grad-aksen)", color: "var(--surface)", border: "none", cursor: (saving || !form.project_id) ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: (saving || !form.project_id) ? 0.7 : 1 }}>
                   {saving ? "Mengajukan..." : "Ajukan Kasbon"}
                 </button>
               </div>

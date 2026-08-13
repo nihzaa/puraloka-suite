@@ -478,7 +478,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
 
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
+            <button type="submit" disabled={loading} style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: loading ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
               {loading ? "Mengajukan..." : "Ajukan Laporan"}
             </button>
           </div>
@@ -723,7 +723,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
             <div style={{ paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
               {!showPayForm ? (
                 <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                  <button onClick={() => setShowPayForm(true)} style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                  <button onClick={() => setShowPayForm(true)} style={{ padding: "8px 20px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
                     <Banknote size={14} /> Tandai Sudah Dibayar
                   </button>
                 </div>
@@ -760,7 +760,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
                   })()}
                   <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                     <button onClick={() => setShowPayForm(false)} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
-                    <button onClick={() => doApprove("paid")} disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
+                    <button onClick={() => doApprove("paid")} disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 6 }}>
                       <Banknote size={14} /> {loading ? "Menyimpan..." : "Konfirmasi Bayar"}
                     </button>
                   </div>
@@ -937,7 +937,7 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
 
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
+            <button type="submit" disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
               {loading ? "Menyimpan..." : "Simpan"}
             </button>
           </div>
@@ -1097,7 +1097,7 @@ export function AddKasbonModal({ assignments, onClose, onSuccess }: {
           {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 6, fontSize: 13, color: C.red }}>{error}</div>}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
+            <button type="submit" disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
               {loading ? "Menyimpan..." : "Catat Kasbon"}
             </button>
           </div>
@@ -1425,7 +1425,7 @@ export function AddAssignmentModal({ mandors, onClose, onSuccess }: {
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Menyimpan..." : "Assign Mandor"}
             </button>
           </div>
@@ -1537,7 +1537,7 @@ export function AddScopeModal({ assignmentId, onClose, onSuccess }: {
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Menyimpan..." : "Simpan Scope"}
             </button>
           </div>
@@ -1598,7 +1598,7 @@ export function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh,
             <button onClick={onRefresh} style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 12, color: C.mid, display: "flex", alignItems: "center", gap: 4 }}>
               <RefreshCw size={12} /> Refresh
             </button>
-            <button onClick={onAddItem} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+            <button onClick={onAddItem} style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
               <Plus size={12} /> Tambah Item
             </button>
             <button aria-label="Tutup" onClick={onClose} style={{ padding: 6, border: "none", background: "transparent", cursor: "pointer", color: C.mid }}><X size={18} /></button>
@@ -1854,7 +1854,7 @@ export function AddScopeItemModal({ scopeId, onClose, onSuccess }: {
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Menyimpan..." : "Simpan Item"}
             </button>
           </div>

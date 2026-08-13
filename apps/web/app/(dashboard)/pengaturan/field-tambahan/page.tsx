@@ -354,7 +354,7 @@ function KartuTambah({ katalog, entitas, adaKunci, onDone, onError }: {
         </button>
         <button
           onClick={() => void kirim()} disabled={simpan || kembar}
-          style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: C.navy, color: "var(--on-aksen)", fontSize: 13, fontWeight: 600, cursor: simpan || kembar ? "not-allowed" : "pointer", opacity: simpan || kembar ? 0.5 : 1 }}
+          style={{ padding: "8px 16px", borderRadius: 8, border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600, cursor: simpan || kembar ? "not-allowed" : "pointer", opacity: simpan || kembar ? 0.5 : 1 }}
         >
           {simpan ? "Menyimpan…" : "Simpan"}
         </button>

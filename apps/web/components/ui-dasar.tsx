@@ -202,15 +202,38 @@ export function KartuKPI({
         border: `1px solid ${sorot ? "transparent" : C.border}`,
         transition: "transform 150ms ease, box-shadow 150ms ease",
       }}
+      /*
+        Hover berlaku untuk SEMUA kartu KPI, bukan hanya yang bisa diklik.
+
+        ── Cacat yang ditemukan founder, 2026-08-14
+        *"setiap card KPI di hover, tetep diam"*.
+
+        Sebabnya `if (!onClick) return` di kedua handler ini: kartu tanpa
+        penangan klik tak pernah bergerak. Diukur — 61 pemakaian `<KartuKPI>`
+        di seluruh aplikasi, hanya **6** yang punya `onClick`. Jadi 55 kartu
+        memang mati saat disentuh, dan itu mayoritas mutlak.
+
+        ── Kenapa yang tak bisa diklik pun tetap bergerak
+
+        Angkat 2px BUKAN janji "aku bisa diklik" — untuk itu ada `cursor`,
+        yang tetap `default` di kartu non-interaktif. Yang disampaikannya:
+        *"kamu sedang di sini"*. Pada baris berisi 4-6 kartu KPI berdempet,
+        penanda posisi itu justru paling berguna saat kartunya TIDAK bisa
+        diklik, karena tak ada umpan balik lain yang menyusul.
+
+        Bayangan pulih ke `--naik-1`, BUKAN `none`. Versi lama mengembalikan
+        ke `none` — dan kartu yang sudah punya elevasi dasar jadi kehilangan
+        bayangannya begitu kursor lewat, lalu tak pernah mendapatkannya lagi
+        sampai halaman dimuat ulang. Cacat yang hanya terlihat sesudah
+        disentuh, jadi ia lolos dari pemeriksaan tangkapan layar.
+      */
       onMouseEnter={(e) => {
-        if (!onClick) return;
         e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "var(--shadow-md)";
+        e.currentTarget.style.boxShadow = "var(--naik-2)";
       }}
       onMouseLeave={(e) => {
-        if (!onClick) return;
         e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "none";
+        e.currentTarget.style.boxShadow = "var(--naik-1)";
       }}
     >
       {/*

@@ -210,7 +210,7 @@ export function DocumentSection({ projectId, userRole }: Props) {
             style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "8px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
-              background: C.navy, color: "var(--surface)", border: "none", cursor: "pointer",
+              background: "var(--grad-aksen)", color: "var(--surface)", border: "none", cursor: "pointer",
             }}
             onMouseEnter={e => { e.currentTarget.style.background = "var(--aksen-pekat)"; }}
             onMouseLeave={e => { e.currentTarget.style.background = C.navy; }}

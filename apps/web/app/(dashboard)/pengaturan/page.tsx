@@ -193,7 +193,8 @@ function PengaturanContent() {
         <KepalaHalaman
           judul="Identitas & Invoice"
           keterangan="Identitas badan usaha yang sedang aktif, info pembayaran, dan format penomoran invoice."
-        />
+                ikon={<Building2 size={19} />}
+      />
         {!isAdmin && (
           <div style={{ marginTop: 10, padding: "8px 12px", borderRadius: 6, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", fontSize: 12, color: C.mid }}>
             Hanya admin yang dapat mengubah pengaturan perusahaan.

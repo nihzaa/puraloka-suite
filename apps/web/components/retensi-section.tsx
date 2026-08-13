@@ -392,7 +392,7 @@ function FormPencairan({
         }}>Batal</button>
         <button type="submit" disabled={simpan} style={{
           minHeight: 40, padding: "0 16px", borderRadius: 8, border: "none",
-          background: C.navy, color: "var(--on-navy)", fontSize: 13, fontWeight: 600,
+          background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 600,
           cursor: simpan ? "progress" : "pointer", opacity: simpan ? 0.7 : 1,
         }}>{simpan ? "Mencairkan…" : "Cairkan"}</button>
       </div>

@@ -243,7 +243,7 @@ function IsiAkuntansi() {
               display: "flex", alignItems: "center", gap: 6,
               padding: "8px 16px", borderRadius: 10, cursor: "pointer",
               fontSize: 13, fontWeight: 600, fontFamily: "inherit",
-              border: "none", background: C.navy, color: C.onNavy,
+              border: "none", background: "var(--grad-aksen)", color: C.onNavy,
             }}
           >
             <Plus size={15} /> Jurnal Baru
@@ -850,7 +850,7 @@ function ModalJurnal({
               padding: "8px 20px", borderRadius: 10,
               cursor: !bisaSimpan || kirim ? "not-allowed" : "pointer",
               fontSize: 13, fontWeight: 700, fontFamily: "inherit",
-              border: "none", background: C.navy, color: C.onNavy,
+              border: "none", background: "var(--grad-aksen)", color: C.onNavy,
               opacity: !bisaSimpan || kirim ? 0.5 : 1,
             }}
           >

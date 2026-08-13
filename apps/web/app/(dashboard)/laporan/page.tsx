@@ -409,6 +409,7 @@ function LaporanContent() {
       <KepalaHalaman
         judul="Laporan"
         keterangan="Ringkasan, keuangan, arus kas, mandor, pengeluaran, dan dokumentasi progress proyek"
+              ikon={<BarChart3 size={19} />}
       />
 
       {/* Filter Bar */}
@@ -662,7 +663,7 @@ function LaporanContent() {
                           XLSX.writeFile(wb, `rekap-pajak-${dateFrom}-${dateTo}.xlsx`);
                         } catch { /* */ }
                       }}
-                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: C.navy, border: "none", color: C.onNavy, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                      style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, background: "var(--grad-aksen)", border: "none", color: C.onNavy, fontSize: 12, fontWeight: 600, cursor: "pointer" }}
                     >
                       <Download size={12} /> Export Excel
                     </button>

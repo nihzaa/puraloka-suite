@@ -263,7 +263,7 @@ export default function MandorDashboardPage() {
               activeScopes.length > 0 ? (
                 <Link
                   href="/mandor-portal/kasbon"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, background: C.navy, color: "var(--on-navy)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 600, textDecoration: "none" }}
                 >
                   Ajukan kasbon
                 </Link>

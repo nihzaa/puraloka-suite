@@ -55,8 +55,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  AlertTriangle, FileSignature, RefreshCw, ShieldAlert, ShieldCheck,
-} from "lucide-react";
+  AlertTriangle, FileSignature, RefreshCw, ShieldAlert, ShieldCheck, FileText } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
@@ -253,7 +252,8 @@ export default function KontrakRingkasanPage() {
         display: "flex", justifyContent: "space-between", alignItems: "flex-start",
         gap: 12, flexWrap: "wrap", marginBottom: 20,
       }}>
-        <KepalaHalaman judul="Kontrak" keterangan="Dokumen yang menjaga kontrak tetap sah — dan mana yang mau habis" />
+        <KepalaHalaman judul="Kontrak" keterangan="Dokumen yang menjaga kontrak tetap sah — dan mana yang mau habis"         ikon={<FileText size={19} />}
+      />
         <Tombol onClick={() => void muat()} ikon={<RefreshCw size={14} />}>
           Muat ulang
         </Tombol>

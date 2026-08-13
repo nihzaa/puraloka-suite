@@ -185,6 +185,7 @@ export default function TransferStokPage() {
       <KepalaHalaman
         judul="Transfer Stok Antar Proyek"
         keterangan="Material yang pindah proyek dicatat sebagai satu peristiwa dengan dua sisi. Tanpa ini, barang yang dikirim ke proyek sebelah terbaca sebagai susut yang tak bisa dijelaskan di proyek asalnya."
+              ikon={<ArrowLeftRight size={19} />}
       />
 
       {galat && (

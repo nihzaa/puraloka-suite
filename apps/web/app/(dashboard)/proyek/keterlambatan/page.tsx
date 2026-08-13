@@ -298,6 +298,7 @@ export default function KeterlambatanPage() {
       <KepalaHalaman
         judul="Analisa Keterlambatan"
         keterangan="Tenggat milestone diadu dengan tanggal selesai, dikurangi perpanjangan waktu (EOT) yang sudah disetujui. Keterlambatan yang sudah dimaafkan EOT bukan keterlambatan — dan menuduhnya bisa dibantah dengan satu lembar surat."
+              ikon={<Clock size={19} />}
       />
 
       {galat && (

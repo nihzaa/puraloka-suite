@@ -174,7 +174,8 @@ export default function LapanganRingkasanPage() {
         display: "flex", justifyContent: "space-between", alignItems: "flex-start",
         gap: 12, flexWrap: "wrap", marginBottom: 20,
       }}>
-        <KepalaHalaman judul="Lapangan" keterangan="Keadaan pekerjaan hari ini — progres, tenaga kerja, dan temuan mutu" />
+        <KepalaHalaman judul="Lapangan" keterangan="Keadaan pekerjaan hari ini — progres, tenaga kerja, dan temuan mutu"         ikon={<HardHat size={19} />}
+      />
         <Tombol onClick={() => void muat()} ikon={<RefreshCw size={14} />}>
           Muat ulang
         </Tombol>

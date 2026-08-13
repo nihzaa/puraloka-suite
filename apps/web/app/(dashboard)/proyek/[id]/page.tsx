@@ -1790,7 +1790,7 @@ function ProjectDetailContent() {
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 600,
-                    background: C.navy, color: "var(--surface)", border: "none", cursor: "pointer",
+                    background: "var(--grad-aksen)", color: "var(--surface)", border: "none", cursor: "pointer",
                   }}
                 >
                   <Printer size={13} /> Cetak / Simpan PDF

@@ -431,7 +431,7 @@ function KartuSpk({ spk: s, bolehKelola, bolehTtd, sibuk, onTerbitkan, onTtd, on
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                border: "none", background: C.navy, color: "var(--on-aksen)",
+                border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
                 cursor: sibuk || !lengkapTtd ? "not-allowed" : "pointer",
                 opacity: sibuk || !lengkapTtd ? 0.5 : 1,
               }}

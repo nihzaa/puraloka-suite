@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { Building2, Plus, Users, AlertTriangle, Check, X, ArrowRightLeft } from "lucide-react";
+import { Building2, Plus, Users, AlertTriangle, Check, X, ArrowRightLeft, Building } from "lucide-react";
 
 // ============================================================
 // T9 — KELOLA BADAN USAHA (L2 penuh dari UI).
@@ -137,7 +137,8 @@ export default function PerusahaanPage() {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 18 }}>
         <div>
           <KepalaHalaman judul="Badan Usaha" keterangan="PT/CV dalam grup usaha Anda. Setiap badan usaha punya proyek, keuangan,
-            dan penomoran dokumen yang terpisah penuh." />
+            dan penomoran dokumen yang terpisah penuh."         ikon={<Building size={19} />}
+      />
         </div>
         {!formTerbuka && (
           <button
@@ -145,7 +146,7 @@ export default function PerusahaanPage() {
             style={{
               display: "flex", alignItems: "center", gap: 6,
               padding: "8px 12px", borderRadius: 10, border: "none",
-              background: C.navy, color: C.onNavy, fontSize: 13, fontWeight: 600,
+              background: "var(--grad-aksen)", color: C.onNavy, fontSize: 13, fontWeight: 600,
               cursor: "pointer", flexShrink: 0,
             }}
           >
@@ -216,7 +217,7 @@ export default function PerusahaanPage() {
           <div style={{ display: "flex", gap: 8, marginTop: 18 }}>
             <button type="submit" disabled={menyimpan} style={{
               padding: "8px 16px", borderRadius: 10, border: "none",
-              background: C.navy, color: C.onNavy, fontSize: 13, fontWeight: 600,
+              background: "var(--grad-aksen)", color: C.onNavy, fontSize: 13, fontWeight: 600,
               cursor: menyimpan ? "wait" : "pointer", opacity: menyimpan ? 0.7 : 1,
             }}>
               {menyimpan ? "Membuat…" : "Buat badan usaha"}

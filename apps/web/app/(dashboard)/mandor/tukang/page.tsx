@@ -121,7 +121,7 @@ export default function DaftarTukangPage() {
           <RefreshCw size={13} /> Refresh
         </button>
         <button onClick={() => setShowWorkerForm({})}
-          style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
+          style={{ padding: "6px 12px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
           <Plus size={13} /> Tambah Pekerja
         </button>
       </div>
@@ -151,7 +151,7 @@ export default function DaftarTukangPage() {
                   }
                   aksi={
                     <button onClick={() => setShowWorkerForm({})}
-                      style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--on-navy)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", cursor: "pointer", fontSize: 13, fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
                       <Plus size={14} /> Tambah Pekerja
                     </button>
                   }

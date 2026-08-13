@@ -22,7 +22,7 @@
 
 import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Gavel, Plus, RefreshCw, TriangleAlert, UserPlus } from "lucide-react";
+import { CheckCircle2, Gavel, Plus, RefreshCw, TriangleAlert, UserPlus, AlertTriangle } from "lucide-react";
 import { api, hasPermission, makeAbortController } from "@/lib/api";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
@@ -245,7 +245,8 @@ function NcrInner() {
         gap: 16, marginBottom: 18, flexWrap: "wrap",
       }}>
         <div>
-          <KepalaHalaman judul="Register NCR" /><p style={{ fontSize: 13, color: C.mid, maxWidth: 640 }}>
+          <KepalaHalaman judul="Register NCR"         ikon={<AlertTriangle size={19} />}
+      /><p style={{ fontSize: 13, color: C.mid, maxWidth: 640 }}>
             Ketidaksesuaian terhadap spesifikasi, gambar, atau standar — beserta
             keputusan formal atasnya. Berbeda dari punch list: NCR menuntut
             <strong> disposisi</strong> dan <strong>akar masalah</strong> sebelum bisa ditutup.
@@ -392,7 +393,7 @@ function NcrInner() {
                   style={{
                     marginLeft: "auto", padding: "8px 14px", borderRadius: 6,
                     fontSize: 12, fontWeight: 700, minHeight: 40,
-                    border: "none", background: C.navy, color: "var(--on-navy)",
+                    border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)",
                     cursor: "pointer", whiteSpace: "nowrap",
                   }}
                 >

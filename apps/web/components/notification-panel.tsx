@@ -484,7 +484,7 @@ export function NotificationPanel({ unreadCount, onCountChange }: NotificationPa
             <span style={{
               fontSize: 11, fontWeight: 700,
               padding: "0px 6px", borderRadius: 9999,
-              background: C.navy, color: "var(--surface)",
+              background: "var(--grad-aksen)", color: "var(--surface)",
             }}>{unreadCount}</span>
           )}
         </div>

@@ -27,7 +27,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { PackageSearch, RefreshCw, AlertTriangle, Info } from "lucide-react";
+import { PackageSearch, RefreshCw, AlertTriangle, Info, Scale } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
@@ -317,6 +317,7 @@ export default function RekonsiliasiMaterialPage() {
       <KepalaHalaman
         judul="Rekonsiliasi Material"
         keterangan="Kebutuhan RAB diadu dengan yang dibeli, dipakai, dan tersisa di gudang. Selisihnya adalah material yang tak bisa dipertanggungjawabkan — dan tanpa layar ini, ia terlihat persis sama dengan material yang habis terpakai."
+              ikon={<Scale size={19} />}
       />
 
       {/* ── Pemilih proyek ─────────────────────────────────────────────── */}

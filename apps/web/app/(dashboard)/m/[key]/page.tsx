@@ -41,8 +41,7 @@ import { KepalaHalaman } from "@/components/dasar";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
-  ArrowRight, Clock, ExternalLink, Lock, Wrench, CircleDashed, FolderKanban,
-} from "lucide-react";
+  ArrowRight, Clock, ExternalLink, Lock, Wrench, CircleDashed, FolderKanban, Compass } from "lucide-react";
 import { PETA_MENU, cariItem, type StatusMenu } from "@/lib/peta-menu";
 import { api, makeAbortController } from "@/lib/api";
 
@@ -135,7 +134,8 @@ export default function HalamanMenu() {
         padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
         width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
       }}>
-        <KepalaHalaman judul="Menu tidak dikenal" />
+        <KepalaHalaman judul="Menu tidak dikenal"         ikon={<Compass size={19} />}
+      />
         {/* Keterangan tetap `<p>` sendiri, bukan prop `keterangan`: ia memuat
             kode menu di dalam `<code>`, dan prop hanya menerima teks. */}
         <p style={{ margin: "8px 0 0", fontSize: 13, color: C.mid, lineHeight: 1.6 }}>

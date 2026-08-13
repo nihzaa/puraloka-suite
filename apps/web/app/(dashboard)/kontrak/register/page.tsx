@@ -384,7 +384,8 @@ export default function RegisterKontrakPage() {
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
       <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
-        <KepalaHalaman judul="Register Kontrak" />
+        <KepalaHalaman judul="Register Kontrak"         ikon={<FileSignature size={19} />}
+      />
         <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
           Kontrak induk beserta seluruh addendumnya, dan <strong>selisihnya</strong> terhadap
           nilai yang dipakai sistem untuk menagih. Halaman ini mencatat apa yang
@@ -430,7 +431,7 @@ export default function RegisterKontrakPage() {
             <button type="button" onClick={() => bukaDialog("induk")} style={{
               display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
               padding: "9px 14px", borderRadius: 6, fontSize: 13, fontWeight: 600,
-              border: "1px solid var(--aksen)", background: "var(--aksen)", color: "#fff",
+              border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
             }}>
               <Plus size={15} aria-hidden="true" /> Catat kontrak
             </button>
@@ -664,7 +665,7 @@ export default function RegisterKontrakPage() {
             cursor: halangan || mengirim ? "not-allowed" : "pointer",
             opacity: halangan || mengirim ? 0.5 : 1,
             padding: "8px 16px", borderRadius: 6, fontSize: 13, fontWeight: 600,
-            border: "1px solid var(--aksen)", background: "var(--aksen)", color: "#fff",
+            border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
           }}>{mengirim ? "Menyimpan…" : "Simpan sebagai draf"}</button>
         </div>
       </DialogBersama>

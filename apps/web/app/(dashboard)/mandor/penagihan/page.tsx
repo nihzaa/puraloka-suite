@@ -49,7 +49,7 @@ function PPCard({ p, isAction, onTinjau }: {
           {isAction && (
             <button
               onClick={() => onTinjau(p)}
-              style={{ marginTop: 8, padding: "4px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              style={{ marginTop: 8, padding: "4px 12px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
               Tinjau
             </button>
           )}

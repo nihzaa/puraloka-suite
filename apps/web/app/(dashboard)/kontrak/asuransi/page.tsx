@@ -277,7 +277,8 @@ export default function AsuransiPage() {
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
       <div className="rise" style={{ marginBottom: 20 }}>
-        <KepalaHalaman judul="Register Asuransi" /><p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
+        <KepalaHalaman judul="Register Asuransi"         ikon={<ShieldCheck size={19} />}
+      /><p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "68ch", lineHeight: 1.55 }}>
           Bukti pertanggungan beserta <strong>celahnya</strong>. Yang menentukan
           saat klaim bukan “punya polis atau tidak”, melainkan apakah tanggal
           kejadiannya masuk masa berlaku — dan polis yang tak menutupi seluruh

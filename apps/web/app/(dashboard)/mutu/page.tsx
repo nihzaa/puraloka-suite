@@ -188,6 +188,7 @@ function Konten() {
       <KepalaHalaman
         judul="Mutu & K3"
         keterangan="Temuan yang belum beres dan dokumen yang habis berlaku — satu layar sebelum masuk ke rinciannya."
+              ikon={<ShieldCheck size={19} />}
       />
 
       {galat && (

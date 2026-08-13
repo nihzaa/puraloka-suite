@@ -457,7 +457,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                             title={rowOk ? undefined : "Total komponen harus 100% (atau semuanya 0 jika belum diisi)"}
                             style={{
                               padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 600,
-                              background: C.navy, color: "var(--surface)", border: "none",
+                              background: "var(--grad-aksen)", color: "var(--surface)", border: "none",
                               cursor: rowOk ? "pointer" : "not-allowed",
                               opacity: saving === `${idx}` || !rowOk ? 0.5 : 1,
                               display: "flex", alignItems: "center", gap: 2,

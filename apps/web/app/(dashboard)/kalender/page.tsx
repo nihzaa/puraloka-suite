@@ -6,8 +6,7 @@ import { api } from "@/lib/api";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import {
   ChevronLeft, ChevronRight, Calendar,
-  Target, Clock, TrendingUp, RefreshCw, FileText,
-} from "lucide-react";
+  Target, Clock, TrendingUp, RefreshCw, FileText, CalendarDays } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -177,7 +176,8 @@ export default function KalenderPage() {
           <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <Calendar size={20} color="#fff" />
           </div>
-          <KepalaHalaman judul="Kalender Proyek" keterangan="Milestone, termin, dan aktivitas proyek" />
+          <KepalaHalaman judul="Kalender Proyek" keterangan="Milestone, termin, dan aktivitas proyek"         ikon={<CalendarDays size={19} />}
+      />
         </div>
 
         {/* Month summary chips.

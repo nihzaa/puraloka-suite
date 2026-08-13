@@ -8,9 +8,7 @@ import { api, getStoredUser } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import {
   Users, Plus, Search, UserCheck, UserX, Edit2, X,
-  HardHat, Briefcase, ShieldCheck, User, Phone, Mail,
-  
-} from "lucide-react";
+  HardHat, Briefcase, ShieldCheck, User, Phone, Mail, UserCog } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
@@ -98,9 +96,10 @@ export default function UsersPage() {
       <KepalaHalaman
         judul="User Management"
         keterangan="Kelola akun pengguna aplikasi Puraloka Suite"
+        ikon={<UserCog size={19} />}
         aksi={
           isAdmin ? (
-            <button onClick={() => setShowAdd(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
+            <button onClick={() => setShowAdd(true)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
               <Plus size={14} /> Tambah User
             </button>
           ) : undefined
@@ -291,7 +290,7 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Mendaftarkan..." : "Buat Akun"}
             </button>
           </div>
@@ -367,7 +366,7 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
+            <button type="submit" disabled={loading} style={{ flex: 2, padding: "8px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: loading ? "wait" : "pointer", fontSize: 13, fontWeight: 600 }}>
               {loading ? "Menyimpan..." : "Simpan Perubahan"}
             </button>
           </div>

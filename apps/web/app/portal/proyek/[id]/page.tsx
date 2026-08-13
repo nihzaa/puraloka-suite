@@ -484,7 +484,7 @@ export default function PortalProyekDetailPage() {
             <span style={{ fontSize: 15, fontWeight: 700, color: C.navy }}>{project.progress_pct ?? 0}%</span>
           </div>
           <div style={{ height: 8, background: "var(--border)", borderRadius: 6, overflow: "hidden" }}>
-            <div style={{ height: "100%", borderRadius: 6, width: `${project.progress_pct ?? 0}%`, background: C.navy, transition: "width 0.5s ease" }} />
+            <div style={{ height: "100%", borderRadius: 6, width: `${project.progress_pct ?? 0}%`, background: "var(--grad-aksen)", transition: "width 0.5s ease" }} />
           </div>
         </div>
         <div style={{ marginTop: 14, padding: "12px 16px", background: C.navyLight, borderRadius: 10 }}>

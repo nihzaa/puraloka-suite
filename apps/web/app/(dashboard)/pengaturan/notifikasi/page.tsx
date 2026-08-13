@@ -96,7 +96,8 @@ function Content() {
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <BellRing size={22} color={C.navy} />
-        <KepalaHalaman judul="Aturan Notifikasi" /></div>
+        <KepalaHalaman judul="Aturan Notifikasi"         ikon={<BellRing size={19} />}
+      /></div>
       <p style={{ color: C.mid, fontSize: 13, margin: "0 0 20px" }}>
         Tentukan siapa yang dikabari untuk setiap jenis kejadian. Perubahan langsung berlaku — tidak perlu rilis ulang.
       </p>

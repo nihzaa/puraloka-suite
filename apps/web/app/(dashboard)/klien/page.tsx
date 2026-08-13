@@ -321,7 +321,8 @@ export default function KlienPage() {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
         <div>
-          <KepalaHalaman judul="Klien" />{/* Cacah klien pindah ke kartu KPI — mengulanginya di sini membuat
+          <KepalaHalaman judul="Klien"         ikon={<Users size={19} />}
+      />{/* Cacah klien pindah ke kartu KPI — mengulanginya di sini membuat
               angka yang sama tampil dua kali dalam satu layar. */}
           <p style={{ fontSize: 13, color: C.mid }}>
             Pemberi kerja, kelengkapan datanya, lalu daftarnya
@@ -329,7 +330,7 @@ export default function KlienPage() {
         </div>
         <button
           onClick={() => { setEditClient(null); setShowModal(true); }}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
         >
           <Plus size={15} /> Tambah Klien
         </button>
@@ -456,7 +457,7 @@ export default function KlienPage() {
                 aksi={
                   <button
                     onClick={() => { setEditClient(null); setShowModal(true); }}
-                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--on-navy)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+                    style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
                   >
                     <Plus size={14} /> Tambah Klien
                   </button>

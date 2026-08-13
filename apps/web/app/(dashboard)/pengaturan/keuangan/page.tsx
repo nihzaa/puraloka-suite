@@ -273,7 +273,7 @@ export default function KeuanganSettingsPage() {
                     </div>
                     {canEdit && (
                       <button onClick={() => openEdit(key)}
-                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10, background: C.navy, color: C.onNavy, border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
+                        style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10, background: "var(--grad-aksen)", color: C.onNavy, border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
                         <Plus size={14} /> Ubah tarif
                       </button>
                     )}
@@ -343,7 +343,7 @@ export default function KeuanganSettingsPage() {
           {canEdit && (
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 14 }}>
               <button onClick={saveProjectDefaults} disabled={savingDefaults}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: C.navy, color: C.onNavy, border: "none", fontSize: 13, fontWeight: 500, cursor: savingDefaults ? "default" : "pointer", opacity: savingDefaults ? 0.7 : 1 }}>
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: "var(--grad-aksen)", color: C.onNavy, border: "none", fontSize: 13, fontWeight: 500, cursor: savingDefaults ? "default" : "pointer", opacity: savingDefaults ? 0.7 : 1 }}>
                 <Check size={14} /> {savingDefaults ? "Menyimpan…" : "Simpan default"}
               </button>
             </div>
@@ -425,7 +425,7 @@ export default function KeuanganSettingsPage() {
             </div>
             {canEdit && (
               <button onClick={openPenaltyModal}
-                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10, background: C.navy, color: C.onNavy, border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer", flexShrink: 0 }}>
+                style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10, background: "var(--grad-aksen)", color: C.onNavy, border: "none", fontSize: 13, fontWeight: 500, cursor: "pointer", flexShrink: 0 }}>
                 <Plus size={14} /> Ubah aturan
               </button>
             )}
@@ -498,7 +498,7 @@ export default function KeuanganSettingsPage() {
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
                 <button onClick={() => setPModal(false)} style={{ padding: "8px 16px", borderRadius: 10, background: "transparent", border: `1px solid ${C.border}`, fontSize: 13, cursor: "pointer", color: C.mid }}>Batal</button>
                 <button onClick={savePenalty} disabled={savingPenalty}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: C.navy, color: C.onNavy, border: "none", fontSize: 13, fontWeight: 500, cursor: savingPenalty ? "default" : "pointer", opacity: savingPenalty ? 0.7 : 1 }}>
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: "var(--grad-aksen)", color: C.onNavy, border: "none", fontSize: 13, fontWeight: 500, cursor: savingPenalty ? "default" : "pointer", opacity: savingPenalty ? 0.7 : 1 }}>
                   <Check size={14} /> {savingPenalty ? "Menyimpan…" : "Simpan aturan"}
                 </button>
               </div>
@@ -544,7 +544,7 @@ export default function KeuanganSettingsPage() {
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
                 <button onClick={() => setEditKey(null)} style={{ padding: "8px 16px", borderRadius: 10, background: "transparent", border: `1px solid ${C.border}`, fontSize: 13, cursor: "pointer", color: C.mid }}>Batal</button>
                 <button onClick={save} disabled={saving}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: C.navy, color: C.onNavy, border: "none", fontSize: 13, fontWeight: 500, cursor: saving ? "default" : "pointer", opacity: saving ? 0.7 : 1 }}>
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, background: "var(--grad-aksen)", color: C.onNavy, border: "none", fontSize: 13, fontWeight: 500, cursor: saving ? "default" : "pointer", opacity: saving ? 0.7 : 1 }}>
                   <Check size={14} /> {saving ? "Menyimpan…" : "Simpan tarif"}
                 </button>
               </div>

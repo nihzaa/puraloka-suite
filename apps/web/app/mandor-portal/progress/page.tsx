@@ -299,7 +299,7 @@ export default function MandorProgressPage() {
         <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>Input Progress</h1>
         <button
           onClick={() => setShowModal(true)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, background: C.navy, color: "var(--surface)", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, background: "var(--grad-aksen)", color: "var(--surface)", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
         >
           <Plus size={15} />
           Input Progress
@@ -334,7 +334,7 @@ export default function MandorProgressPage() {
             <button
               onClick={retryFailedPhotos}
               disabled={saving}
-              style={{ padding: "8px 12px", borderRadius: 6, background: C.navy, color: "var(--surface)", border: "none", cursor: saving ? "default" : "pointer", fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}
+              style={{ padding: "8px 12px", borderRadius: 6, background: "var(--grad-aksen)", color: "var(--surface)", border: "none", cursor: saving ? "default" : "pointer", fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}
             >
               {saving ? "Mengupload…" : "Coba upload ulang"}
             </button>
@@ -490,7 +490,7 @@ export default function MandorProgressPage() {
                 <button type="button" onClick={() => setShowModal(false)} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>
                   Batal
                 </button>
-                <button type="submit" disabled={saving} style={{ padding: "8px 20px", borderRadius: 6, background: C.navy, color: "var(--surface)", border: "none", cursor: saving ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
+                <button type="submit" disabled={saving} style={{ padding: "8px 20px", borderRadius: 6, background: "var(--grad-aksen)", color: "var(--surface)", border: "none", cursor: saving ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
                   {saving ? "Menyimpan..." : "Simpan Progress"}
                 </button>
               </div>

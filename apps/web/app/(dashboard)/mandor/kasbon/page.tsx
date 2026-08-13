@@ -120,7 +120,7 @@ export default function KasbonTukangPage() {
         <button onClick={load} style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mid }}>
           <RefreshCw size={14} /> Refresh
         </button>
-        <button onClick={() => setShowAddKasbon(true)} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
+        <button onClick={() => setShowAddKasbon(true)} style={{ padding: "8px 12px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600 }}>
           <Plus size={14} /> Tambah Kasbon
         </button>
       </div>

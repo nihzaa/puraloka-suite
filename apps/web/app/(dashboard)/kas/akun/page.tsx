@@ -94,7 +94,7 @@ function AkunKasIsi() {
           aksi={bolehKelola ? (
             <button onClick={() => setBukaBuat(true)} style={{
               padding: "8px 16px", borderRadius: 6, border: "none",
-              background: C.navy, color: "var(--surface)", fontSize: 13, cursor: "pointer",
+              background: "var(--grad-aksen)", color: "var(--surface)", fontSize: 13, cursor: "pointer",
             }}>Buat Akun Kas</button>
           ) : undefined}
         />

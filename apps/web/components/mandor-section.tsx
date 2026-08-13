@@ -177,7 +177,7 @@ export function MandorSection({
         {canEdit && (
           <button
             onClick={() => setShowAssignModal(true)}
-            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
           >
             <Plus size={13} /> Assign Mandor
           </button>
@@ -478,7 +478,7 @@ function AssignMandorModal({ projectId, existingMandorIds, onClose, onSuccess }:
           {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 6, fontSize: 13, color: C.red }}>{error}</div>}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading || mandors.length === 0} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: (loading || mandors.length === 0) ? 0.7 : 1 }}>
+            <button type="submit" disabled={loading || mandors.length === 0} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: (loading || mandors.length === 0) ? 0.7 : 1 }}>
               {loading ? "Menyimpan..." : "Assign"}
             </button>
           </div>
@@ -654,7 +654,7 @@ function AddScopeModal({ assignment, projectId: projectIdProp, onClose, onSucces
 
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: C.navy, color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
+            <button type="submit" disabled={loading} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: loading ? 0.7 : 1 }}>
               {loading ? "Menyimpan..." : "Simpan Scope"}
             </button>
           </div>

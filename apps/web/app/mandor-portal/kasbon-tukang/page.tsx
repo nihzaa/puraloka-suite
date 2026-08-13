@@ -141,7 +141,7 @@ export default function KasbonTukangPage() {
         </div>
         <button onClick={() => setShowModal(true)} style={{
           display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10,
-          border: "none", background: C.navy, color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer",
+          border: "none", background: "var(--grad-aksen)", color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer",
         }}>
           <Plus size={15} /> Ajukan Kasbon
         </button>
