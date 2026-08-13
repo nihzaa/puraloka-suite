@@ -41,7 +41,7 @@ import { api } from "@/lib/api";
 import { ShieldCheck, Info } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
-import { KepalaHalaman } from "@/components/dasar";
+import { KepalaHalaman, Tabel } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 
 
@@ -178,116 +178,98 @@ export default function PlafonAsistenPage() {
             Belum ada anggota perusahaan.
           </div>
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: 14,
-                // Kolom "Plafon" berisi nominal rata-kanan. Tanpa angka
-                // selebar-sama, dua nilai sepanjang sama tak berbaris — dan
-                // membandingkan plafon antar orang jadi menuntut membaca
-                // digit satu per satu.
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              <thead>
-                <tr style={{ background: "var(--surface-2)" }}>
-                  {["Nama", "Peran", "Plafon", ""].map((h, i) => (
-                    <th
-                      key={h || i}
+          <Tabel
+            caption="Plafon persetujuan lewat asisten per anggota perusahaan."
+            data={baris}
+            kunciBaris={(b) => b.user_id}
+            kolom={[
+              {
+                kunci: "nama",
+                judul: "Nama",
+                // Nama adalah yang MEMILIKI baris ini. Tanpa `kepalaBaris`,
+                // pembaca layar membacakan nominal plafon tanpa menyebut
+                // plafon siapa — dan angka tanpa pemilik tak bisa dipakai
+                // untuk apa pun.
+                kepalaBaris: true,
+                render: (b) => (
+                  <>
+                    <div style={{ fontWeight: 500, color: C.text }}>{b.nama}</div>
+                    <div style={{ fontSize: 12, color: C.muted }}>{b.email}</div>
+                  </>
+                ),
+              },
+              {
+                kunci: "peran",
+                judul: "Peran",
+                render: (b) => (
+                  <span style={{ color: C.muted, whiteSpace: "nowrap" }}>{b.peran || "—"}</span>
+                ),
+              },
+              {
+                kunci: "plafon",
+                judul: "Plafon",
+                rata: "kanan",
+                render: (b) => {
+                  const nilaiDraf = draf[b.user_id];
+                  const berubah = nilaiDraf !== undefined;
+                  if (!bolehUbah) {
+                    return b.batas_idr === null ? (
+                      <span style={{ color: C.muted }}>belum diatur</span>
+                    ) : (
+                      <span style={{ fontWeight: 600, color: C.text }}>{rupiah(b.batas_idr)}</span>
+                    );
+                  }
+                  return (
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ color: C.muted, fontSize: 13 }}>Rp</span>
+                      <input
+                        className="isian-fokus"
+                        style={input}
+                        inputMode="numeric"
+                        aria-label={`Plafon untuk ${b.nama}`}
+                        placeholder={b.sudah_diatur ? "" : "belum diatur"}
+                        value={
+                          berubah
+                            ? nilaiDraf
+                            : b.batas_idr === null
+                              ? ""
+                              : b.batas_idr.toLocaleString("id-ID")
+                        }
+                        onChange={(e) => setDraf((d) => ({ ...d, [b.user_id]: e.target.value }))}
+                      />
+                    </span>
+                  );
+                },
+              },
+              {
+                kunci: "aksi",
+                judul: "",
+                render: (b) => {
+                  if (!bolehUbah || draf[b.user_id] === undefined) return null;
+                  return (
+                    <button
+                      onClick={() => simpan(b)}
+                      disabled={sedang === b.user_id}
                       style={{
-                        textAlign: i === 2 ? "right" : "left",
-                        padding: "10px 14px",
-                        fontSize: 12,
+                        padding: "7px 14px",
+                        borderRadius: 8,
+                        border: "none",
+                        background: C.aksen,
+                        color: "#fff",
+                        fontSize: 13,
                         fontWeight: 600,
-                        color: C.muted,
-                        borderBottom: "1px solid var(--border)",
+                        cursor: sedang === b.user_id ? "wait" : "pointer",
+                        fontFamily: "inherit",
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {baris.map((b) => {
-                  const nilaiDraf = draf[b.user_id];
-                  const berubah = nilaiDraf !== undefined;
-                  return (
-                    <tr key={b.user_id} style={{ borderBottom: "1px solid var(--border)" }}>
-                      {/*
-                        `th scope="row"`, bukan `td`: nama adalah yang MEMILIKI
-                        baris ini. Tanpanya pembaca layar membacakan nominal
-                        plafon tanpa menyebut plafon siapa — dan angka tanpa
-                        pemilik tak bisa dipakai untuk apa pun.
-                      */}
-                      <th
-                        scope="row"
-                        style={{ padding: "10px 14px", textAlign: "left", fontWeight: 400 }}
-                      >
-                        <div style={{ fontWeight: 500, color: C.text }}>{b.nama}</div>
-                        <div style={{ fontSize: 12, color: C.muted }}>{b.email}</div>
-                      </th>
-                      <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap" }}>
-                        {b.peran || "—"}
-                      </td>
-                      <td style={{ padding: "10px 14px", textAlign: "right" }}>
-                        {bolehUbah ? (
-                          <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                          <span style={{ color: C.muted, fontSize: 13 }}>Rp</span>
-                          <input
-                            style={input}
-                            inputMode="numeric"
-                            placeholder={b.sudah_diatur ? "" : "belum diatur"}
-                            value={
-                              berubah
-                                ? nilaiDraf
-                                : b.batas_idr === null
-                                  ? ""
-                                  : b.batas_idr.toLocaleString("id-ID")
-                            }
-                            onChange={(e) =>
-                              setDraf((d) => ({ ...d, [b.user_id]: e.target.value }))
-                            }
-                          />
-                          </span>
-                        ) : b.batas_idr === null ? (
-                          <span style={{ color: C.muted }}>belum diatur</span>
-                        ) : (
-                          <span style={{ fontWeight: 600, color: C.text }}>
-                            {rupiah(b.batas_idr)}
-                          </span>
-                        )}
-                      </td>
-                      <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                        {bolehUbah && berubah && (
-                          <button
-                            onClick={() => simpan(b)}
-                            disabled={sedang === b.user_id}
-                            style={{
-                              padding: "7px 14px",
-                              borderRadius: 8,
-                              border: "none",
-                              background: C.aksen,
-                              color: "#fff",
-                              fontSize: 13,
-                              fontWeight: 600,
-                              cursor: sedang === b.user_id ? "wait" : "pointer",
-                              fontFamily: "inherit",
-                            }}
-                          >
-                            {sedang === b.user_id ? "Menyimpan…" : "Simpan"}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
+                      {sedang === b.user_id ? "Menyimpan…" : "Simpan"}
+                    </button>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
+                },
+              },
+            ]}
+          />
         )}
       </div>
 

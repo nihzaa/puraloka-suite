@@ -189,6 +189,39 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
         else if (ch === '>' && kedalaman === 0) break
       }
       if (blok.includes('aria-label') || blok.includes('aria-labelledby')) continue
+      // Kontrol yang SENGAJA disembunyikan dari pohon aksesibilitas tak punya
+      // nama karena ia memang tak boleh punya — pembaca layar tak pernah
+      // menemuinya. Menuntut `aria-label` di sini bukan sekadar mubazir: ia
+      // menyuruh menamai sesuatu yang justru dirancang tak terlihat.
+      //
+      // Syaratnya DUA-DUANYA, bukan `aria-hidden` saja. `aria-hidden` pada
+      // kontrol yang MASIH bisa di-Tab adalah cacat aksesibilitas yang lebih
+      // buruk daripada tombol tanpa nama: fokus papan tik mendarat di kontrol
+      // yang pembaca layar bersikeras tidak ada, dan penggunanya kehilangan
+      // jejak sepenuhnya. Pasangan `aria-hidden` + `tabIndex={-1}` yang
+      // menyatakan "ini kenyamanan TETIKUS" — itu yang sah.
+      //
+      // Kasus nyatanya: backdrop lightbox di `components/progress-log-list.tsx`,
+      // yang jalan keluar papan tiknya sudah disediakan Esc dan tombol X.
+      // Menjadikannya perhentian Tab justru MEMPERPANJANG jalan ke tombol
+      // yang sebenarnya — memenuhi penjaga dengan cara yang membuat navigasi
+      // papan tik lebih buruk.
+      //
+      // ⚠️ Diperiksa ke `blokKode`, BUKAN `blok`. Komentar di dalam tag ikut
+      // terbaca, dan justru komentar yang MENJELASKAN pengecualian ini
+      // («`tabIndex={-1}` + `aria-hidden`: backdrop adalah kenyamanan
+      // TETIKUS») berisi kedua pola itu sebagai teks. Versi pertama lolos
+      // karena membacanya: menghapus `tabIndex={-1}` yang SUNGGUHAN tetap
+      // hijau, sebab penjelasannya masih menyebut namanya. Terbukti lewat
+      // uji mutasi — penjaga yang mengutip dokumentasinya sendiri sebagai
+      // bukti tak menjaga apa pun.
+      const blokKode = blok
+        .replace(/\/\*[\s\S]*?\*\//g, ' ')
+        .replace(/(^|\n)\s*\/\/[^\n]*/g, '$1')
+      if (
+        /aria-hidden(?![\w-])/.test(blokKode)
+        && /tabIndex\s*=\s*\{\s*-1\s*\}/.test(blokKode)
+      ) continue
       // `<label htmlFor="x">` + `<select id="x">` adalah cara BAKU memberi nama
       // — dan justru yang paling disarankan, karena labelnya juga TERLIHAT.
       // Tanpa pengecualian ini, kontrol yang sudah benar ikut dihitung sebagai

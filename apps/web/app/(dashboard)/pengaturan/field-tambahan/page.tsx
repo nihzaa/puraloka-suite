@@ -306,7 +306,7 @@ function KartuTambah({ katalog, entitas, adaKunci, onDone, onError }: {
           <label htmlFor="cf-label" style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.mid, marginBottom: 4 }}>
             Nama field
           </label>
-          <input
+          <input className="isian-fokus"
             id="cf-label" value={label} onChange={e => setLabel(e.target.value)}
             placeholder="cth: Kode Internal"
             style={GAYA_ISIAN}
@@ -332,7 +332,7 @@ function KartuTambah({ katalog, entitas, adaKunci, onDone, onError }: {
           <label htmlFor="cf-opsi" style={{ display: "block", fontSize: 12, fontWeight: 500, color: C.mid, marginBottom: 4 }}>
             Opsi — satu per baris
           </label>
-          <textarea
+          <textarea className="isian-fokus"
             id="cf-opsi" value={opsi} onChange={e => setOpsi(e.target.value)} rows={4}
             placeholder={"Utara\nSelatan\nTimur"}
             style={{ ...GAYA_ISIAN, resize: "vertical", fontFamily: "inherit" }}
@@ -341,7 +341,7 @@ function KartuTambah({ katalog, entitas, adaKunci, onDone, onError }: {
       )}
 
       <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.mid, cursor: "pointer" }}>
-        <input type="checkbox" checked={wajib} onChange={e => setWajib(e.target.checked)} />
+        <input className="isian-fokus" type="checkbox" checked={wajib} onChange={e => setWajib(e.target.checked)} />
         Wajib diisi
       </label>
 

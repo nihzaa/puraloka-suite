@@ -36,7 +36,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Scale, TriangleAlert, ShieldCheck, Plus, Trash2 , Percent } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { KepalaHalaman } from "@/components/dasar";
+import { KepalaHalaman, Tabel } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 
 type Jenis = "ptkp" | "ter_pph21" | "bpjs";
@@ -384,75 +384,77 @@ export default function TarifPayrollPage() {
                     nol. {j.kolom}
                   </p>
                 ) : (
-                  <div style={{ overflowX: "auto", marginTop: 10 }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-                      <caption style={{
-                        captionSide: "top", textAlign: "left", fontSize: 11,
-                        color: C.muted, paddingBottom: 6,
-                      }}>
-                        Baris tarif {j.label} yang berlaku sejak {tanggal(p.berlaku_sejak)}
-                      </caption>
-                      <thead>
-                        <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                          <th scope="col" style={{
-                            textAlign: "left", padding: "6px 8px", fontSize: 11, fontWeight: 700,
-                            color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em",
-                          }}>Kunci</th>
-                          {/* Hanya kolom yang RELEVAN untuk jenis ini — lihat
-                              `tampil`. Kolom yang selamanya "—" membuat
-                              pembacanya mengira ada data yang belum diisi. */}
-                          {j.tampil.map((k) => (
-                            <th key={k} scope="col" style={{
-                              textAlign: "right", padding: "6px 8px", fontSize: 11, fontWeight: 700,
-                              color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em",
-                            }}>{JUDUL_KOLOM[k]}</th>
-                          ))}
-                          <th scope="col" style={{
-                            textAlign: "left", padding: "6px 8px", fontSize: 11, fontWeight: 700,
-                            color: C.muted,
-                          }}><span className="sr-only">Aksi</span></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {p.baris.map((b) => (
-                          <tr key={b.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                            <td style={{ padding: "6px 8px", color: C.text }}>
+                  <div style={{ marginTop: 10 }}>
+                    {/* Judul tabel dinaikkan jadi teks biasa di atasnya,
+                        bukan `<caption>` yang terlihat. `<Tabel>` selalu
+                        menyembunyikan caption-nya (sr-only), dan keterangan
+                        "berlaku sejak" ini justru perlu DILIHAT — periode
+                        yang keliru dibaca adalah cara paling mudah salah
+                        menghitung gaji satu perusahaan. */}
+                    <p style={{ fontSize: 11, color: C.muted, paddingBottom: 6 }}>
+                      Baris tarif {j.label} yang berlaku sejak {tanggal(p.berlaku_sejak)}
+                    </p>
+                    <Tabel
+                      caption={`Baris tarif ${j.label} yang berlaku sejak ${tanggal(p.berlaku_sejak)}`}
+                      data={p.baris}
+                      kunciBaris={(b) => b.id}
+                      kolom={[
+                        {
+                          kunci: "kunci",
+                          judul: "Kunci",
+                          kepalaBaris: true,
+                          render: (b) => (
+                            <>
                               <strong>{b.kunci}</strong>
                               {b.label && <span style={{ color: C.muted }}> · {b.label}</span>}
-                            </td>
-                            {j.tampil.map((k) => (
-                              <td key={k} style={{
-                                padding: "6px 8px", textAlign: "right",
-                                color: k === "rentang" ? C.mid : C.text,
-                                fontVariantNumeric: "tabular-nums",
-                              }}>
-                                {k === "rentang"
-                                  ? (b.batas_bawah === null && b.batas_atas === null
-                                    ? "—"
-                                    : `${rp(b.batas_bawah)} – ${b.batas_atas === null ? "∞" : rp(b.batas_atas)}`)
-                                  : k === "nominal" ? rp(b.nilai_nominal)
-                                  : k === "persen" ? pct(b.nilai_persen)
-                                  : k === "perusahaan" ? pct(b.persen_perusahaan)
-                                  : pct(b.persen_karyawan)}
-                              </td>
-                            ))}
-                            <td style={{ padding: "6px 8px" }}>
-                              <button
-                                type="button"
-                                onClick={() => void hapusBaris(b.id)}
-                                aria-label={`Hapus baris ${b.kunci}`}
-                                style={{
-                                  display: "inline-flex", alignItems: "center",
-                                  padding: 5, borderRadius: 6,
-                                  border: `1px solid ${C.border}`, background: "var(--surface)",
-                                  color: "var(--danger)", cursor: "pointer",
-                                }}
-                              ><Trash2 size={13} aria-hidden="true" /></button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </>
+                          ),
+                        },
+                        // Hanya kolom yang RELEVAN untuk jenis ini — lihat
+                        // `tampil`. Kolom yang selamanya "—" membuat
+                        // pembacanya mengira ada data yang belum diisi.
+                        ...j.tampil.map((k) => ({
+                          kunci: k,
+                          judul: JUDUL_KOLOM[k],
+                          rata: "kanan" as const,
+                          render: (b: (typeof p.baris)[number]) => (
+                            <span style={{ color: k === "rentang" ? C.mid : C.text }}>
+                              {k === "rentang"
+                                ? b.batas_bawah === null && b.batas_atas === null
+                                  ? "—"
+                                  : `${rp(b.batas_bawah)} – ${b.batas_atas === null ? "∞" : rp(b.batas_atas)}`
+                                : k === "nominal" ? rp(b.nilai_nominal)
+                                : k === "persen" ? pct(b.nilai_persen)
+                                : k === "perusahaan" ? pct(b.persen_perusahaan)
+                                : pct(b.persen_karyawan)}
+                            </span>
+                          ),
+                        })),
+                        {
+                          kunci: "aksi",
+                          judul: "",
+                          // Lebar dipatok supaya kolom nominal di sebelahnya
+                          // benar-benar berakhir di kanan. Tanpa ini kolom aksi
+                          // memakan sisa lebar tabel, dan angka yang seharusnya
+                          // rata kanan berhenti di tengah — persis alasan
+                          // `rata: "kanan"` dipakai, dibatalkan oleh tetangganya.
+                          lebar: 44,
+                          render: (b) => (
+                            <button
+                              type="button"
+                              onClick={() => void hapusBaris(b.id)}
+                              aria-label={`Hapus baris ${b.kunci}`}
+                              style={{
+                                display: "inline-flex", alignItems: "center",
+                                padding: 5, borderRadius: 6,
+                                border: `1px solid ${C.border}`, background: "var(--surface)",
+                                color: "var(--danger)", cursor: "pointer",
+                              }}
+                            ><Trash2 size={13} aria-hidden="true" /></button>
+                          ),
+                        },
+                      ]}
+                    />
                   </div>
                 )}
               </div>

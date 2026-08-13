@@ -399,7 +399,7 @@ function FormTambahButir({ inspeksiId, urutanBerikut, onTutup, onSelesai }: {
       }}>
         Butir yang diperiksa <span style={{ color: "var(--danger)" }} aria-hidden="true">*</span>
       </label>
-      <textarea
+      <textarea className="isian-fokus"
         id="cl-butir" rows={2} value={butir} onChange={(e) => setButir(e.target.value)}
         placeholder="cth: Selimut beton kolom minimal 40 mm di seluruh sisi"
         style={{ ...GAYA_ISIAN, resize: "vertical", marginBottom: 14 }}
@@ -410,7 +410,7 @@ function FormTambahButir({ inspeksiId, urutanBerikut, onTutup, onSelesai }: {
       }}>
         Acuan
       </label>
-      <input
+      <input className="isian-fokus"
         id="cl-acuan" value={acuan} onChange={(e) => setAcuan(e.target.value)}
         placeholder="cth: SNI 2847:2019 pasal 20.6.1"
         style={GAYA_ISIAN}
@@ -486,7 +486,7 @@ function FormTidakLolos({ butir, onTutup, onKirim }: {
         Apa yang tak sesuai{" "}
         <span style={{ color: "var(--danger)" }} aria-hidden="true">*</span>
       </label>
-      <textarea
+      <textarea className="isian-fokus"
         id="cl-alasan" rows={4} value={alasan} onChange={(e) => setAlasan(e.target.value)}
         placeholder="cth: Selimut beton sisi timur terukur 25 mm, kurang 15 mm dari syarat"
         style={{ ...GAYA_ISIAN, resize: "vertical" }}

@@ -648,14 +648,14 @@ function FormAjukan({ onTutup, onSelesai }: {
       }}>
         <div>
           <Label htmlFor="kl-tujuan" wajib>Tujuan</Label>
-          <input
+          <input className="isian-fokus"
             id="kl-tujuan" value={isi.tujuan} onChange={(e) => ubah("tujuan", e.target.value)}
             placeholder="cth: Jakarta" style={GAYA_ISIAN}
           />
         </div>
         <div>
           <Label htmlFor="kl-berangkat" wajib>Berangkat</Label>
-          <input
+          <input className="isian-fokus"
             id="kl-berangkat" type="date" value={isi.tanggal_berangkat}
             onChange={(e) => ubah("tanggal_berangkat", e.target.value)}
             style={GAYA_ISIAN}
@@ -663,7 +663,7 @@ function FormAjukan({ onTutup, onSelesai }: {
         </div>
         <div>
           <Label htmlFor="kl-kembali" wajib>Kembali</Label>
-          <input
+          <input className="isian-fokus"
             id="kl-kembali" type="date" value={isi.tanggal_kembali}
             min={isi.tanggal_berangkat || undefined}
             onChange={(e) => ubah("tanggal_kembali", e.target.value)}
@@ -674,7 +674,7 @@ function FormAjukan({ onTutup, onSelesai }: {
 
       <div style={{ marginBottom: 14 }}>
         <Label htmlFor="kl-keperluan" wajib>Keperluan</Label>
-        <textarea
+        <textarea className="isian-fokus"
           id="kl-keperluan" rows={2} value={isi.keperluan}
           onChange={(e) => ubah("keperluan", e.target.value)}
           placeholder="cth: Rapat koordinasi dengan owner untuk pembahasan addendum"
@@ -734,7 +734,7 @@ function FormAjukan({ onTutup, onSelesai }: {
                   </div>
                   <div>
                     <Label htmlFor={`it-tgl-${i}`}>Tanggal</Label>
-                    <input
+                    <input className="isian-fokus"
                       id={`it-tgl-${i}`} type="date" value={x.tanggal}
                       min={isi.tanggal_berangkat || undefined}
                       max={isi.tanggal_kembali || undefined}
@@ -744,7 +744,7 @@ function FormAjukan({ onTutup, onSelesai }: {
                   </div>
                   <div>
                     <Label htmlFor={`it-nom-${i}`}>Nominal (Rp)</Label>
-                    <input
+                    <input className="isian-fokus"
                       id={`it-nom-${i}`} type="number" inputMode="numeric" min={1}
                       value={x.nominal}
                       onChange={(e) => ubahItem(i, "nominal", e.target.value)}
@@ -758,7 +758,7 @@ function FormAjukan({ onTutup, onSelesai }: {
                 }}>
                   <div>
                     <Label htmlFor={`it-ur-${i}`}>Uraian</Label>
-                    <input
+                    <input className="isian-fokus"
                       id={`it-ur-${i}`} value={x.uraian}
                       onChange={(e) => ubahItem(i, "uraian", e.target.value)}
                       placeholder="cth: Tiket kereta Bandung–Jakarta PP"
@@ -769,7 +769,7 @@ function FormAjukan({ onTutup, onSelesai }: {
                     <Label htmlFor={`it-bukti-${i}`}>
                       Bukti {perluBukti && <span style={{ color: "var(--danger)" }}>*</span>}
                     </Label>
-                    <input
+                    <input className="isian-fokus"
                       id={`it-bukti-${i}`} value={x.bukti_url}
                       onChange={(e) => ubahItem(i, "bukti_url", e.target.value)}
                       placeholder="tautan kuitansi"
@@ -823,7 +823,7 @@ function FormAjukan({ onTutup, onSelesai }: {
 
       <div>
         <Label htmlFor="kl-catatan">Catatan</Label>
-        <textarea
+        <textarea className="isian-fokus"
           id="kl-catatan" rows={2} value={isi.catatan}
           onChange={(e) => ubah("catatan", e.target.value)}
           placeholder="cth: Perjalanan atas permintaan owner, di luar rencana bulanan"
@@ -905,7 +905,7 @@ function FormTolak({ klaim, onTutup, onSelesai }: {
       )}
 
       <Label htmlFor="tolak-alasan" wajib>Alasan penolakan</Label>
-      <textarea
+      <textarea className="isian-fokus"
         id="tolak-alasan" rows={4} value={alasan} onChange={(e) => setAlasan(e.target.value)}
         placeholder="cth: Penginapan melebihi plafon kelas jabatan; ajukan ulang dengan tarif yang sesuai"
         style={{ ...GAYA_ISIAN, resize: "vertical" }}

@@ -52,7 +52,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { KepalaHalaman, Lencana, Tombol } from "@/components/dasar";
+import { KepalaHalaman, Lencana, Tabel, Tombol, type Kolom } from "@/components/dasar";
 import { Kosong, Panel, KartuKPI } from "@/components/ui-dasar";
 import { TabBagian } from "@/components/tab-bagian";
 import { BarisRail, KartuRail } from "@/components/shell/rail-kartu";
@@ -106,6 +106,60 @@ interface Jalan {
   selesai_pada: string | null;
   durasi_ms: number | null;
   pesan: string | null;
+}
+
+/**
+ * Kolom yang sama untuk KEDUA tabel jejak di halaman ini.
+ *
+ * Tabel "seluruh alur" (tab Log) dan tabel "50 jalan terakhir" (per alur di
+ * tab Katalog) menampilkan jalan yang sama; bedanya hanya kolom "Alur", yang
+ * tak ada gunanya di tabel satu-alur karena nilainya sama di setiap baris.
+ *
+ * Ditulis satu kali di sini, bukan disalin dua kali: sebelum ini keduanya
+ * memang salinan, dan salinan berarti satu perbaikan status/durasi harus
+ * diingat dua tempat.
+ */
+function kolomJejak<T extends Jalan>(): Array<Kolom<T>> {
+  return [
+    {
+      kunci: "waktu",
+      judul: "Waktu",
+      // Waktu mulai yang menamai baris ini: dua jalan alur yang sama hanya
+      // dibedakan oleh kapan ia berjalan.
+      kepalaBaris: true,
+      render: (j) => <span style={{ whiteSpace: "nowrap" }}>{sejak(j.dimulai_pada)}</span>,
+    },
+    {
+      kunci: "status",
+      judul: "Status",
+      render: (j) => (
+        <Lencana nada={j.status === "sukses" ? "sukses" : j.status === "gagal" ? "bahaya" : "info"}>
+          {j.status === "sukses" ? "Berhasil" : j.status === "gagal" ? "Gagal" : "Jalan"}
+        </Lencana>
+      ),
+    },
+    {
+      kunci: "pemicu",
+      judul: "Pemicu",
+      render: (j) => <span style={{ color: C.muted }}>{j.sumber}</span>,
+    },
+    {
+      kunci: "durasi",
+      judul: "Durasi",
+      render: (j) => (
+        <span style={{ color: C.muted, whiteSpace: "nowrap" }}>
+          {j.durasi_ms != null ? `${j.durasi_ms} ms` : "—"}
+        </span>
+      ),
+    },
+    {
+      kunci: "catatan",
+      judul: "Catatan",
+      render: (j) => (
+        <span style={{ color: C.muted, lineHeight: 1.5 }}>{j.pesan ?? "—"}</span>
+      ),
+    },
+  ];
 }
 
 /** "3 menit lalu" — waktu mutlak tak menjawab "masih jalan atau sudah basi?". */
@@ -538,86 +592,24 @@ export default function HalamanAlurOtomasi() {
               sebab="Alur yang terjadwal akan muncul di sini begitu waktunya tiba; yang manual begitu tombolnya ditekan."
             />
           ) : (
-            <div style={{ overflowX: "auto" }}>
-              <table
-                style={{
-                  width: "100%", borderCollapse: "collapse", fontSize: 12.5,
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                <caption
-                  style={{
-                    captionSide: "top", textAlign: "left", fontSize: 11,
-                    color: C.muted, padding: "8px var(--pad-kartu-lega)",
-                  }}
-                >
-                  Seluruh alur, terbaru dulu.
-                </caption>
-                <thead>
-                  <tr style={{ background: "var(--surface-2)" }}>
-                    {["Waktu", "Alur", "Status", "Pemicu", "Durasi", "Catatan"].map((h) => (
-                      <th
-                        key={h}
-                        scope="col"
-                        style={{
-                          textAlign: "left", padding: "7px var(--pad-kartu-lega)",
-                          fontSize: 11, fontWeight: 600, color: C.muted,
-                        }}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {logLintas.map((j) => (
-                    <tr key={j.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                      <th
-                        scope="row"
-                        style={{
-                          padding: "7px var(--pad-kartu-lega)", textAlign: "left",
-                          fontWeight: 400, color: C.muted, whiteSpace: "nowrap",
-                        }}
-                      >
-                        {sejak(j.dimulai_pada)}
-                      </th>
-                      <td style={{ padding: "7px var(--pad-kartu-lega)", color: C.text }}>
-                        {j.nama_alur}
-                      </td>
-                      <td style={{ padding: "7px var(--pad-kartu-lega)" }}>
-                        <Lencana
-                          nada={
-                            j.status === "sukses" ? "sukses"
-                              : j.status === "gagal" ? "bahaya" : "info"
-                          }
-                        >
-                          {j.status === "sukses" ? "Berhasil"
-                            : j.status === "gagal" ? "Gagal" : "Jalan"}
-                        </Lencana>
-                      </td>
-                      <td style={{ padding: "7px var(--pad-kartu-lega)", color: C.muted }}>
-                        {j.sumber}
-                      </td>
-                      <td
-                        style={{
-                          padding: "7px var(--pad-kartu-lega)", color: C.muted,
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {j.durasi_ms != null ? `${j.durasi_ms} ms` : "—"}
-                      </td>
-                      <td
-                        style={{
-                          padding: "7px var(--pad-kartu-lega)", color: C.muted,
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        {j.pesan ?? "—"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div>
+              <p style={{ fontSize: 11, color: C.muted, padding: "8px var(--pad-kartu-lega)" }}>
+                Seluruh alur, terbaru dulu.
+              </p>
+              <Tabel
+                caption="Seluruh jalan alur otomasi, terbaru dulu."
+                data={logLintas}
+                kunciBaris={(j) => j.id}
+                kolom={[
+                  kolomJejak<JalanLintas>()[0],
+                  {
+                    kunci: "alur",
+                    judul: "Alur",
+                    render: (j) => <span style={{ color: C.text }}>{j.nama_alur}</span>,
+                  },
+                  ...kolomJejak<JalanLintas>().slice(1),
+                ]}
+              />
             </div>
           )}
         </Panel>
@@ -883,71 +875,16 @@ export default function HalamanAlurOtomasi() {
                             Belum pernah dijalankan.
                           </p>
                         ) : (
-                          <div style={{ overflowX: "auto" }}>
-                            <table
-                              style={{
-                                width: "100%", borderCollapse: "collapse", fontSize: 12.5,
-                                fontVariantNumeric: "tabular-nums",
-                              }}
-                            >
-                              <caption
-                                style={{
-                                  captionSide: "top", textAlign: "left",
-                                  fontSize: 11, color: C.muted, paddingBottom: 5,
-                                }}
-                              >
-                                50 jalan terakhir — {a.nama}
-                              </caption>
-                              <thead>
-                                <tr style={{ background: "var(--surface-2)" }}>
-                                  {["Waktu", "Status", "Pemicu", "Durasi", "Catatan"].map((h) => (
-                                    <th
-                                      key={h}
-                                      scope="col"
-                                      style={{
-                                        textAlign: "left", padding: "6px 10px",
-                                        fontSize: 11, fontWeight: 600, color: C.muted,
-                                      }}
-                                    >
-                                      {h}
-                                    </th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {isi.map((j) => (
-                                  <tr key={j.id} style={{ borderTop: `1px solid ${C.border}` }}>
-                                    <th
-                                      scope="row"
-                                      style={{
-                                        padding: "6px 10px", textAlign: "left",
-                                        fontWeight: 400, color: C.text, whiteSpace: "nowrap",
-                                      }}
-                                    >
-                                      {sejak(j.dimulai_pada)}
-                                    </th>
-                                    <td style={{ padding: "6px 10px" }}>
-                                      <Lencana
-                                        nada={
-                                          j.status === "sukses" ? "sukses"
-                                            : j.status === "gagal" ? "bahaya" : "info"
-                                        }
-                                      >
-                                        {j.status === "sukses" ? "Berhasil"
-                                          : j.status === "gagal" ? "Gagal" : "Jalan"}
-                                      </Lencana>
-                                    </td>
-                                    <td style={{ padding: "6px 10px", color: C.muted }}>{j.sumber}</td>
-                                    <td style={{ padding: "6px 10px", color: C.muted, whiteSpace: "nowrap" }}>
-                                      {j.durasi_ms != null ? `${j.durasi_ms} ms` : "—"}
-                                    </td>
-                                    <td style={{ padding: "6px 10px", color: C.muted, lineHeight: 1.5 }}>
-                                      {j.pesan ?? "—"}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                          <div>
+                            <p style={{ fontSize: 11, color: C.muted, paddingBottom: 5 }}>
+                              50 jalan terakhir — {a.nama}
+                            </p>
+                            <Tabel
+                              caption={`50 jalan terakhir untuk alur ${a.nama}`}
+                              data={isi}
+                              kunciBaris={(j) => j.id}
+                              kolom={kolomJejak<Jalan>()}
+                            />
                           </div>
                         )}
                       </div>

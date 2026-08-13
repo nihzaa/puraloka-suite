@@ -69,10 +69,33 @@ const TOKEN_SAH = ['--w-form', '--w-page', '--w-luas']
  */
 const WADAH_BERSAMA = [
   { komponen: 'HalamanIkhtisar', berkas: 'components/shell/halaman-ikhtisar.tsx', token: '--w-luas' },
+  // `Halaman` dari `components/dasar.tsx` — 16 halaman memakainya, dan
+  // penjaga ini menuduh SELURUHNYA tak bertoken lebar (diukur 2026-08-13).
+  //
+  // Padahal ia menetapkan lebarnya sendiri (`dasar.tsx:66`), hanya lewat
+  // ekspresi ternary:
+  //
+  //     maxWidth: lebar === "luas" ? "var(--w-luas)" : "min(var(--w-luas), 980px)"
+  //
+  // Pemeriksaan lama mencari string persis `maxWidth: "var(--w-luas)"`, dan
+  // bentuk ternary itu tak pernah cocok. Kodenya benar; alat ukurnya yang
+  // terlalu sempit — dan penjaga yang merah karena hal yang benar akan
+  // dimatikan orang.
+  { komponen: 'Halaman', berkas: 'components/dasar.tsx', token: '--w-luas' },
 ].filter((w) => {
   const p = join(AKAR, w.berkas)
   if (!existsSync(p)) return false
-  return readFileSync(p, 'utf8').includes(`maxWidth: "var(${w.token})"`)
+  const isi = readFileSync(p, 'utf8')
+  // Diperiksa ke BERKASNYA, bukan dipercaya dari daftar ini — tanpa itu,
+  // menghapus `--w-luas` dari wadahnya membuat penjaga tetap hijau untuk
+  // semua halaman yang memakainya. Kebocoran senyap yang justru dilarang
+  // penjaga ini.
+  //
+  // Dua bentuk diterima: nilai langsung, dan di dalam ternary/`min()` —
+  // keduanya sama-sama menetapkan lebar, dan menuntut satu bentuk saja
+  // berarti menghukum penulisan yang wajar.
+  return isi.includes(`maxWidth: "var(${w.token})"`)
+    || new RegExp(`maxWidth:[^\\n]*var\\(${w.token}\\)`).test(isi)
 })
 
 /**

@@ -756,7 +756,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
 
       <div style={{ marginBottom: 14 }}>
         <Label htmlFor="spk-lingkup" wajib>Lingkup kerja</Label>
-        <textarea
+        <textarea className="isian-fokus"
           id="spk-lingkup" rows={2} value={isi.lingkup_kerja}
           onChange={(e) => ubahIsi("lingkup_kerja", e.target.value)}
           placeholder="cth: Pekerjaan struktur beton lantai 2 — kolom, balok, pelat"
@@ -770,7 +770,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
       }}>
         <div>
           <Label htmlFor="spk-nilai" wajib>Nilai kontrak (Rp)</Label>
-          <input
+          <input className="isian-fokus"
             id="spk-nilai" type="number" inputMode="numeric" min={1} value={isi.nilai_kontrak}
             onChange={(e) => ubahIsi("nilai_kontrak", e.target.value)}
             style={GAYA_ISIAN}
@@ -778,7 +778,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
         </div>
         <div>
           <Label htmlFor="spk-terbit" wajib>Tanggal terbit</Label>
-          <input
+          <input className="isian-fokus"
             id="spk-terbit" type="date" value={isi.tanggal_terbit}
             onChange={(e) => ubahIsi("tanggal_terbit", e.target.value)}
             style={GAYA_ISIAN}
@@ -786,7 +786,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
         </div>
         <div>
           <Label htmlFor="spk-mulai" wajib>Mulai kerja</Label>
-          <input
+          <input className="isian-fokus"
             id="spk-mulai" type="date" value={isi.tanggal_mulai}
             onChange={(e) => ubahIsi("tanggal_mulai", e.target.value)}
             style={GAYA_ISIAN}
@@ -794,7 +794,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
         </div>
         <div>
           <Label htmlFor="spk-selesai" wajib>Selesai kerja</Label>
-          <input
+          <input className="isian-fokus"
             id="spk-selesai" type="date" value={isi.tanggal_selesai}
             min={isi.tanggal_mulai || undefined}
             onChange={(e) => ubahIsi("tanggal_selesai", e.target.value)}
@@ -813,7 +813,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14 }}>
           <div>
             <Label htmlFor="spk-denda">Denda per hari (Rp)</Label>
-            <input
+            <input className="isian-fokus"
               id="spk-denda" type="number" inputMode="numeric" min={0} value={isi.denda_per_hari}
               onChange={(e) => ubahIsi("denda_per_hari", e.target.value)}
               style={GAYA_ISIAN}
@@ -821,7 +821,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
           </div>
           <div>
             <Label htmlFor="spk-maks">Batas maksimum (% nilai)</Label>
-            <input
+            <input className="isian-fokus"
               id="spk-maks" type="number" inputMode="decimal" min={0} max={100}
               value={isi.denda_maks_pct}
               onChange={(e) => ubahIsi("denda_maks_pct", e.target.value)}
@@ -842,7 +842,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
 
       <div>
         <Label htmlFor="spk-syarat">Syarat khusus</Label>
-        <textarea
+        <textarea className="isian-fokus"
           id="spk-syarat" rows={2} value={isi.syarat_khusus}
           onChange={(e) => ubahIsi("syarat_khusus", e.target.value)}
           placeholder="cth: Material disediakan kontraktor; pembayaran per progres 25%"

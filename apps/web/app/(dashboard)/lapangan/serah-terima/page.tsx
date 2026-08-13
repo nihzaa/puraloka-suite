@@ -719,7 +719,7 @@ function FormTerbitBa({ proyek, onTutup, onSelesai }: {
         </div>
         <div>
           <Label htmlFor="ba-tanggal" wajib>Tanggal</Label>
-          <input
+          <input className="isian-fokus"
             id="ba-tanggal" type="date" value={isi.tanggal}
             onChange={(e) => ubah("tanggal", e.target.value)}
             style={GAYA_ISIAN}
@@ -728,7 +728,7 @@ function FormTerbitBa({ proyek, onTutup, onSelesai }: {
         {isi.jenis === "pho" && (
           <div>
             <Label htmlFor="ba-masa">Masa pemeliharaan (hari)</Label>
-            <input
+            <input className="isian-fokus"
               id="ba-masa" type="number" inputMode="numeric" min={0}
               value={isi.masa_pemeliharaan_hari}
               onChange={(e) => ubah("masa_pemeliharaan_hari", e.target.value)}
@@ -740,7 +740,7 @@ function FormTerbitBa({ proyek, onTutup, onSelesai }: {
 
       <div style={{ marginBottom: 14 }}>
         <Label htmlFor="ba-lingkup" wajib>Lingkup yang diserahkan</Label>
-        <textarea
+        <textarea className="isian-fokus"
           id="ba-lingkup" rows={2} value={isi.lingkup_serah}
           onChange={(e) => ubah("lingkup_serah", e.target.value)}
           placeholder="cth: Seluruh pekerjaan struktur, arsitektur, dan MEP lantai 1–3"
@@ -753,7 +753,7 @@ function FormTerbitBa({ proyek, onTutup, onSelesai }: {
       {kesiapan && kesiapan.kesiapan.punchTerbuka > 0 && (
         <div style={{ marginBottom: 14 }}>
           <Label htmlFor="ba-cacat">Cacat yang disepakati diperbaiki</Label>
-          <textarea
+          <textarea className="isian-fokus"
             id="ba-cacat" rows={2} value={isi.catatan_cacat}
             onChange={(e) => ubah("catatan_cacat", e.target.value)}
             placeholder="cth: Retak rambut plafon ruang tamu dan bocor talang sisi timur, diperbaiki paling lambat 30 hari"
@@ -769,7 +769,7 @@ function FormTerbitBa({ proyek, onTutup, onSelesai }: {
 
       <div>
         <Label htmlFor="ba-catatan">Catatan</Label>
-        <textarea
+        <textarea className="isian-fokus"
           id="ba-catatan" rows={2} value={isi.catatan}
           onChange={(e) => ubah("catatan", e.target.value)}
           placeholder="cth: Dihadiri konsultan pengawas dan perwakilan pemilik"

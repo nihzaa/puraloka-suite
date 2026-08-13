@@ -517,7 +517,7 @@ function FormGudang({ mode, awal, anggota, onTutup, onSelesai }: {
       }}>
         <div>
           <Label htmlFor="gd-kode" wajib>Kode</Label>
-          <input
+          <input className="isian-fokus"
             id="gd-kode" value={isi.kode} onChange={(e) => ubah("kode", e.target.value)}
             placeholder="cth: GD-PUSAT"
             disabled={mode === "sunting"}
@@ -531,7 +531,7 @@ function FormGudang({ mode, awal, anggota, onTutup, onSelesai }: {
         </div>
         <div>
           <Label htmlFor="gd-nama" wajib>Nama</Label>
-          <input
+          <input className="isian-fokus"
             id="gd-nama" value={isi.nama} onChange={(e) => ubah("nama", e.target.value)}
             placeholder="cth: Gudang Pusat Cimahi" style={GAYA_ISIAN}
           />
@@ -540,7 +540,7 @@ function FormGudang({ mode, awal, anggota, onTutup, onSelesai }: {
 
       <div style={{ marginBottom: 14 }}>
         <Label htmlFor="gd-alamat">Alamat</Label>
-        <input
+        <input className="isian-fokus"
           id="gd-alamat" value={isi.alamat} onChange={(e) => ubah("alamat", e.target.value)}
           placeholder="cth: Jl. Raya Cimahi No. 45" style={GAYA_ISIAN}
         />
@@ -566,7 +566,7 @@ function FormGudang({ mode, awal, anggota, onTutup, onSelesai }: {
 
       <div>
         <Label htmlFor="gd-catatan">Catatan</Label>
-        <textarea
+        <textarea className="isian-fokus"
           id="gd-catatan" rows={2} value={isi.catatan}
           onChange={(e) => ubah("catatan", e.target.value)}
           placeholder="cth: Hanya untuk material curah; semen disimpan terpisah"

@@ -589,7 +589,7 @@ function FormBuat({ salinDari, onTutup, onSelesai }: {
 
       <div style={{ marginBottom: 14 }}>
         <Label htmlFor="tpl-kode" wajib>Kode</Label>
-        <input
+        <input className="isian-fokus"
           id="tpl-kode" value={kode} onChange={(e) => setKode(e.target.value)}
           placeholder="cth: RUMAH-2LT"
           style={GAYA_ISIAN}
@@ -602,7 +602,7 @@ function FormBuat({ salinDari, onTutup, onSelesai }: {
 
       <div style={{ marginBottom: 14 }}>
         <Label htmlFor="tpl-nama" wajib>Nama</Label>
-        <input
+        <input className="isian-fokus"
           id="tpl-nama" value={nama} onChange={(e) => setNama(e.target.value)}
           placeholder="cth: Rumah tinggal 2 lantai"
           style={GAYA_ISIAN}
@@ -611,7 +611,7 @@ function FormBuat({ salinDari, onTutup, onSelesai }: {
 
       <div>
         <Label htmlFor="tpl-ket">Keterangan</Label>
-        <textarea
+        <textarea className="isian-fokus"
           id="tpl-ket" rows={2} value={keterangan} onChange={(e) => setKeterangan(e.target.value)}
           placeholder="cth: Untuk rumah tinggal dengan struktur beton, tanpa basement"
           style={{ ...GAYA_ISIAN, resize: "vertical" }}

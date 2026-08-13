@@ -46,7 +46,7 @@ import { useIzin } from "@/lib/use-izin";
 import { Plug, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { KepalaHalaman, Lencana, Tombol } from "@/components/dasar";
+import { KepalaHalaman, Lencana, Tabel, Tombol } from "@/components/dasar";
 import { Kosong, Panel } from "@/components/ui-dasar";
 import { BarisRail, KartuRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
@@ -368,93 +368,86 @@ export default function PenyediaPage() {
             sebab="Tambahkan sambungan AI atau WhatsApp supaya asisten dan notifikasi bisa bekerja."
           />
         ) : (
-          <div style={{ overflowX: "auto" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: 14,
-                // Kolom "Diuji" berisi waktu; tanpa angka selebar-sama, digitnya
-                // bergeser antar baris dan mata kehilangan kolomnya.
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              <thead>
-                <tr style={{ background: "var(--surface-2)" }}>
-                  {["Nama", "Jenis", "Adaptor", "Kesehatan", "Diuji", ""].map((h, i) => (
-                    <th
-                      key={h || i}
-                      style={{
-                        textAlign: "left",
-                        padding: "10px 14px",
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: C.muted,
-                        borderBottom: "1px solid var(--border)",
-                        whiteSpace: "nowrap",
-                      }}
+          <Tabel
+            caption="Penyedia AI dan WhatsApp yang terdaftar beserta status kesehatannya."
+            data={daftar}
+            kunciBaris={(p) => p.id}
+            kolom={[
+              {
+                kunci: "nama",
+                judul: "Nama",
+                // Nama penyedia adalah yang MEMILIKI baris ini. Tanpa
+                // `kepalaBaris`, lencana kesehatan dibacakan tanpa menyebut
+                // penyedia mana yang sedang bermasalah.
+                kepalaBaris: true,
+                render: (p) => (
+                  <>
+                    <div style={{ fontWeight: 500, color: C.text }}>{p.nama}</div>
+                    {!p.aktif && <div style={{ fontSize: 12, color: C.muted }}>nonaktif</div>}
+                  </>
+                ),
+              },
+              {
+                kunci: "jenis",
+                judul: "Jenis",
+                render: (p) => (
+                  <span style={{ color: C.muted, whiteSpace: "nowrap" }}>
+                    {LABEL_JENIS[p.jenis] ?? p.jenis}
+                  </span>
+                ),
+              },
+              {
+                kunci: "adaptor",
+                judul: "Adaptor",
+                render: (p) => (
+                  <span style={{ color: C.muted, whiteSpace: "nowrap" }}>{p.adaptor}</span>
+                ),
+              },
+              {
+                kunci: "kesehatan",
+                judul: "Kesehatan",
+                render: (p) => (
+                  <>
+                    <Lencana nada={nadaKesehatan(p.kesehatan)}>
+                      {LABEL_KESEHATAN[p.kesehatan] ?? p.kesehatan}
+                    </Lencana>
+                    {p.kesehatan_pesan && (
+                      <div style={{ fontSize: 12, color: C.muted, marginTop: 3, maxWidth: 320 }}>
+                        {p.kesehatan_pesan}
+                      </div>
+                    )}
+                  </>
+                ),
+              },
+              {
+                kunci: "diuji",
+                judul: "Diuji",
+                render: (p) => (
+                  <span style={{ color: C.muted, whiteSpace: "nowrap", fontSize: 13 }}>
+                    {sejak(p.kesehatan_pada)}
+                    {p.kesehatan_ms != null && (
+                      <span style={{ fontSize: 12 }}> · {p.kesehatan_ms} ms</span>
+                    )}
+                  </span>
+                ),
+              },
+              {
+                kunci: "aksi",
+                judul: "",
+                render: (p) =>
+                  bolehKelola ? (
+                    <Tombol
+                      kecil
+                      onClick={() => uji(p)}
+                      disabled={menguji === p.id}
+                      ikon={<RefreshCw size={13} />}
                     >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {daftar.map((p) => (
-                  <tr key={p.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                    {/*
-                      `th scope="row"`: nama penyedia adalah yang MEMILIKI
-                      baris ini. Tanpanya lencana kesehatan dibacakan tanpa
-                      menyebut penyedia mana yang sedang bermasalah.
-                    */}
-                    <th
-                      scope="row"
-                      style={{ padding: "10px 14px", textAlign: "left", fontWeight: 400 }}
-                    >
-                      <div style={{ fontWeight: 500, color: C.text }}>{p.nama}</div>
-                      {!p.aktif && (
-                        <div style={{ fontSize: 12, color: C.muted }}>nonaktif</div>
-                      )}
-                    </th>
-                    <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap" }}>
-                      {LABEL_JENIS[p.jenis] ?? p.jenis}
-                    </td>
-                    <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap" }}>
-                      {p.adaptor}
-                    </td>
-                    <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                      <Lencana nada={nadaKesehatan(p.kesehatan)}>
-                        {LABEL_KESEHATAN[p.kesehatan] ?? p.kesehatan}
-                      </Lencana>
-                      {p.kesehatan_pesan && (
-                        <div style={{ fontSize: 12, color: C.muted, marginTop: 3, maxWidth: 320 }}>
-                          {p.kesehatan_pesan}
-                        </div>
-                      )}
-                    </td>
-                    <td style={{ padding: "10px 14px", color: C.muted, whiteSpace: "nowrap", fontSize: 13 }}>
-                      {sejak(p.kesehatan_pada)}
-                      {p.kesehatan_ms != null && (
-                        <span style={{ fontSize: 12 }}> · {p.kesehatan_ms} ms</span>
-                      )}
-                    </td>
-                    <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
-                      {bolehKelola && (
-                        <Tombol
-                          kecil
-                          onClick={() => uji(p)}
-                          disabled={menguji === p.id}
-                          ikon={<RefreshCw size={13} />}
-                        >
-                          {menguji === p.id ? "Menguji…" : "Uji"}
-                        </Tombol>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {menguji === p.id ? "Menguji…" : "Uji"}
+                    </Tombol>
+                  ) : null,
+              },
+            ]}
+          />
         )}
       </Panel>
 

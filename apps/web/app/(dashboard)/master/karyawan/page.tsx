@@ -623,21 +623,21 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
       }}>
         <div>
           <Label htmlFor="peg-nik">Nomor induk</Label>
-          <input
+          <input className="isian-fokus"
             id="peg-nik" value={isi.nomor_induk} onChange={(e) => ubah("nomor_induk", e.target.value)}
             placeholder="cth: P-001" maxLength={40} style={GAYA_ISIAN}
           />
         </div>
         <div>
           <Label htmlFor="peg-jabatan">Jabatan</Label>
-          <input
+          <input className="isian-fokus"
             id="peg-jabatan" value={isi.jabatan} onChange={(e) => ubah("jabatan", e.target.value)}
             placeholder="cth: Pelaksana Lapangan" style={GAYA_ISIAN}
           />
         </div>
         <div>
           <Label htmlFor="peg-dept">Departemen</Label>
-          <input
+          <input className="isian-fokus"
             id="peg-dept" value={isi.departemen} onChange={(e) => ubah("departemen", e.target.value)}
             placeholder="cth: Operasional" style={GAYA_ISIAN}
           />
@@ -650,7 +650,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
       }}>
         <div>
           <Label htmlFor="peg-masuk" kritis>Tanggal masuk</Label>
-          <input
+          <input className="isian-fokus"
             id="peg-masuk" type="date" value={isi.tanggal_masuk}
             onChange={(e) => ubah("tanggal_masuk", e.target.value)}
             style={GAYA_ISIAN}
@@ -658,7 +658,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
         </div>
         <div>
           <Label htmlFor="peg-keluar">Tanggal keluar</Label>
-          <input
+          <input className="isian-fokus"
             id="peg-keluar" type="date" value={isi.tanggal_keluar}
             min={isi.tanggal_masuk || undefined}
             onChange={(e) => ubah("tanggal_keluar", e.target.value)}
@@ -667,7 +667,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
         </div>
         <div>
           <Label htmlFor="peg-jam">Jam standar/hari</Label>
-          <input
+          <input className="isian-fokus"
             id="peg-jam" type="number" inputMode="numeric" min={1} max={24}
             value={isi.jam_standar} onChange={(e) => ubah("jam_standar", e.target.value)}
             style={GAYA_ISIAN}
@@ -714,14 +714,14 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
           </div>
           <div>
             <Label htmlFor="peg-npwp" kritis>NPWP</Label>
-            <input
+            <input className="isian-fokus"
               id="peg-npwp" value={isi.npwp} onChange={(e) => ubah("npwp", e.target.value)}
               placeholder="01.234.567.8-901.000" style={GAYA_ISIAN}
             />
           </div>
           <div>
             <Label htmlFor="peg-bpjstk">BPJS Ketenagakerjaan</Label>
-            <input
+            <input className="isian-fokus"
               id="peg-bpjstk" value={isi.nomor_bpjs_tk}
               onChange={(e) => ubah("nomor_bpjs_tk", e.target.value)}
               style={GAYA_ISIAN}
@@ -729,7 +729,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
           </div>
           <div>
             <Label htmlFor="peg-bpjskes">BPJS Kesehatan</Label>
-            <input
+            <input className="isian-fokus"
               id="peg-bpjskes" value={isi.nomor_bpjs_kes}
               onChange={(e) => ubah("nomor_bpjs_kes", e.target.value)}
               style={GAYA_ISIAN}
@@ -738,7 +738,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
           {bolehLihatGaji && (
             <div>
               <Label htmlFor="peg-gaji">Gaji pokok (Rp)</Label>
-              <input
+              <input className="isian-fokus"
                 id="peg-gaji" type="number" inputMode="numeric" min={0}
                 value={isi.gaji_pokok} onChange={(e) => ubah("gaji_pokok", e.target.value)}
                 style={GAYA_ISIAN}
@@ -755,7 +755,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
 
       <div>
         <Label htmlFor="peg-catatan">Catatan</Label>
-        <textarea
+        <textarea className="isian-fokus"
           id="peg-catatan" rows={2} value={isi.catatan}
           onChange={(e) => ubah("catatan", e.target.value)}
           placeholder="cth: Mutasi dari divisi estimasi per Maret 2026"

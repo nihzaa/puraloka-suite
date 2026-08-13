@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
-import { KepalaHalaman } from "@/components/dasar";
+import { KepalaHalaman, Tabel } from "@/components/dasar";
 import { Kosong } from "@/components/ui-dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 
@@ -547,61 +547,69 @@ export default function PayrollPage() {
 
                       {buka && (
                         <div style={{ padding: "0 16px 14px 42px" }}>
-                          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-                            <caption style={{
-                              captionSide: "top", textAlign: "left", fontSize: 11,
-                              color: C.muted, paddingBottom: 6,
-                            }}>
-                              Rincian slip {nama} — {namaBulan(p.bulan)}
-                            </caption>
-                            <thead>
-                              <tr style={{ borderBottom: `1px solid ${C.border}` }}>
-                                {["Komponen", "Dasar hitung", "Nominal"].map((h, i) => (
-                                  <th key={h} scope="col" style={{
-                                    textAlign: i === 2 ? "right" : "left",
-                                    padding: "6px 8px", fontSize: 11, fontWeight: 700,
-                                    color: C.muted, textTransform: "uppercase", letterSpacing: "0.05em",
-                                  }}>{h}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {s.komponen.map((k) => (
-                                <tr key={k.id} style={{ borderBottom: "1px solid var(--surface-hover)" }}>
-                                  <td style={{ padding: "6px 8px", color: C.text }}>
+                          <p style={{ fontSize: 11, color: C.muted, paddingBottom: 6 }}>
+                            Rincian slip {nama} — {namaBulan(p.bulan)}
+                          </p>
+                          <Tabel
+                            caption={`Rincian komponen slip gaji ${nama} untuk ${namaBulan(p.bulan)}`}
+                            data={s.komponen}
+                            kunciBaris={(k) => k.id}
+                            kolom={[
+                              {
+                                kunci: "komponen",
+                                judul: "Komponen",
+                                kepalaBaris: true,
+                                render: (k) => (
+                                  <>
                                     {k.label}
                                     {/* `informasi` = ditanggung perusahaan. Dinyatakan
                                         eksplisit supaya tak terbaca sebagai potongan. */}
                                     {k.jenis === "informasi" && (
                                       <span style={{ fontSize: 11, color: C.muted }}> · tidak mengurangi</span>
                                     )}
-                                  </td>
-                                  <td style={{ padding: "6px 8px", color: C.muted, fontSize: 11.5 }}>
+                                  </>
+                                ),
+                              },
+                              {
+                                kunci: "dasar",
+                                judul: "Dasar hitung",
+                                render: (k) => (
+                                  <span style={{ color: C.muted, fontSize: 11.5 }}>
                                     {k.dasar_hitung ?? "—"}
-                                  </td>
-                                  <td style={{
-                                    padding: "6px 8px", textAlign: "right",
-                                    fontVariantNumeric: "tabular-nums",
+                                  </span>
+                                ),
+                              },
+                              {
+                                kunci: "nominal",
+                                judul: "Nominal",
+                                rata: "kanan",
+                                render: (k) => (
+                                  <span style={{
                                     color: k.jenis === "potongan" ? "var(--danger)"
                                       : k.jenis === "informasi" ? C.muted : C.text,
                                   }}>
                                     {k.jenis === "potongan" ? "−" : ""}{rp(k.nominal)}
-                                  </td>
-                                </tr>
-                              ))}
-                              <tr>
-                                <td colSpan={2} style={{
-                                  padding: "8px 8px 0", textAlign: "right",
-                                  fontSize: 12, fontWeight: 700, color: C.text,
-                                }}>Diterima</td>
-                                <td style={{
-                                  padding: "8px 8px 0", textAlign: "right",
-                                  fontSize: 14, fontWeight: 700, color: C.text,
-                                  fontVariantNumeric: "tabular-nums",
-                                }}>{rp(s.gaji_bersih)}</td>
-                              </tr>
-                            </tbody>
-                          </table>
+                                  </span>
+                                ),
+                              },
+                            ]}
+                            // "Diterima" pindah ke `<tfoot>`. Sebelum ini ia
+                            // duduk di `<tbody>` dengan `colSpan` — dibacakan
+                            // pembaca layar seperti komponen gaji biasa,
+                            // padahal ia RINGKASAN dari komponen di atasnya.
+                            total={[
+                              { kunci: "label", isi: "Diterima", rata: "kanan", rentang: 2 },
+                              {
+                                kunci: "nilai",
+                                rata: "kanan",
+                                isi: (
+                                  <span style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                                    {rp(s.gaji_bersih)}
+                                  </span>
+                                ),
+                              },
+                            ]}
+                          />
 
                           {(!s.tarif_bpjs_id || !s.tarif_ter_id) && (
                             <p style={{

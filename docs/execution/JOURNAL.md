@@ -16977,3 +16977,93 @@ Ia menuntut MESIN template tersendiri, jadi bukan Kelompok 2.
 Peta Modul: 195 → **202 bisa dipakai** · 31 → **24 sebagian** · 1 direncanakan.
 
 `audit-asumsi-global-test` merah — sudah merah di HEAD sebelum ini.
+
+## 2026-08-13 — Utang penjaga visual: dan tiga penjaga yang ternyata buta
+
+Menutup utang tiga penjaga UI (`isian`, `tabel-mentah`, `tata-letak`). Dua
+di antaranya ternyata bukan utang kode — penjaganya yang salah lihat.
+
+### `tata-letak-ratchet` — 16 halaman dituduh tanpa alasan
+
+Penjaga melaporkan 16 halaman "tak memakai token lebar". Semuanya memakai
+`<Halaman>` dari `components/dasar.tsx`, yang menetapkan lebarnya sendiri di
+baris 66 — hanya lewat ternary:
+
+    maxWidth: lebar === "luas" ? "var(--w-luas)" : "min(var(--w-luas), 980px)"
+
+Daftar `WADAH_BERSAMA` mencari string persis `maxWidth: "var(--w-luas)"`, dan
+bentuk ternary tak pernah cocok. `HalamanIkhtisar` ada di daftar; `Halaman` —
+wadah yang justru paling banyak dipakai — tidak.
+
+Diperbaiki dengan menambahkan `Halaman` ke daftar, DAN melonggarkan
+pencocokannya ke dua bentuk. Verifikasi ke berkas wadahnya dipertahankan:
+tanpa itu, menghapus `--w-luas` dari `dasar.tsx` membuat penjaga tetap hijau
+untuk 16 halaman sekaligus.
+
+Uji mutasi: (1) wadahnya kehilangan token → MERAH, (2) satu halaman pakai
+lebar dipaku → MERAH. Keduanya pulih hijau.
+
+### `a11y-ratchet` — mengutip dokumentasinya sendiri sebagai bukti
+
+Merah untuk `components/progress-log-list.tsx:80` — dan merah juga di HEAD
+sebelum perubahan apa pun, jadi bukan bawaan sesi ini.
+
+Tombolnya backdrop lightbox: `aria-hidden` + `tabIndex={-1}`, dengan alasan
+tertulis (jalan keluar papan tik sudah lewat Esc dan tombol X). Kontrol yang
+sengaja disembunyikan dari pohon aksesibilitas TAK BOLEH punya nama — menuntut
+`aria-label` di situ menyuruh menamai sesuatu yang dirancang tak terlihat.
+
+Pengecualian ditambahkan dengan syarat GANDA. `aria-hidden` saja tidak cukup:
+`aria-hidden` pada kontrol yang masih bisa di-Tab lebih buruk daripada tombol
+tanpa nama — fokus mendarat di kontrol yang pembaca layar bersikeras tidak ada.
+
+Versi pertama pengecualian itu LOLOS uji mutasi yang seharusnya merah:
+menghapus `tabIndex={-1}` yang sungguhan tetap hijau, karena **komentar yang
+menjelaskan pengecualian itu** menyebut kedua pola sebagai teks. Penjaga
+membaca dokumentasinya sendiri sebagai bukti. Diperbaiki dengan membuang
+komentar dari blok sebelum diperiksa; sesudah itu kedua mutasi MERAH.
+
+### `tabel-mentah-ratchet` — utang nyata, 14 halaman → 7
+
+Ini yang benar-benar utang. Enam halaman dipindahkan ke `<Tabel>`:
+
+    plafon-asisten · penomoran · penyedia · tarif-payroll
+    approval-inbox · sdm/payroll · otomasi/alur (dua tabel)
+
+Tujuh halaman sisanya PUNYA alasan tertulis dan dibiarkan — termasuk
+`keuangan/profitabilitas`, yang totalnya dihitung dari baris yang sama dan
+sudah memenuhi keempat jaminan `<Tabel>` secara manual.
+
+Dua temuan sampingan:
+
+1. `sdm/payroll` adalah satu dari **enam halaman** yang komentar `dasar.tsx`
+   sebut menulis baris total dengan `colSpan` di `<tbody>`. Sekarang di
+   `<tfoot>` — terbukti di DOM nyata (`tfoot=1`).
+2. `otomasi/alur` punya dua tabel yang isinya salinan satu sama lain.
+   Disatukan jadi `kolomJejak<T>()`.
+
+### Yang hanya ketahuan dari gambar
+
+`tarif-payroll` awalnya kosong di layar — tiga jenis tarif belum ada isinya,
+jadi tabel yang dirombak TAK IKUT TERPOTRET sama sekali. Setelah data dummy
+diisi lewat API (PTKP PMK 101/2016, BPJS PP 84/2013 jo. Perpres 64/2020, TER
+PP 58/2023 kategori A), baru terlihat cacatnya: kolom aksi memakan sisa lebar
+tabel, sehingga nominal yang `rata: "kanan"` berhenti di tengah. Diperbaiki
+dengan `lebar: 44` pada kolom aksi.
+
+Tabel rincian slip di `sdm/payroll` bahkan tak muncul tanpa mengklik barisnya
+— `tangkap-layar.mjs` memotret halaman apa adanya. Dipotret lewat skrip
+sekali-pakai yang mengklik dulu.
+
+### Bukti
+
+    tsc web            0
+    vitest web         628 lulus / 48 berkas
+    next build         sukses
+    penjaga web        53 dijalankan, 53 hijau
+    mutasi tata-letak  2/2 MERAH lalu pulih
+    mutasi a11y        2/2 MERAH lalu pulih
+    tabel-mentah       14 halaman → 7 (tepat di lantai)
+
+Empat berkas untracked (`otomasi-terjadwal.ts`, migrasi 335/336, satu test)
+milik sesi lain — TIDAK ikut di-commit.

@@ -31,7 +31,7 @@ import { Hash, RefreshCw, Check, ChevronDown, ChevronRight, Lock } from "lucide-
 import { api, hasPermission, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
-import { KepalaHalaman } from "@/components/dasar";
+import { KepalaHalaman, Tabel } from "@/components/dasar";
 
 interface Periode {
   doc_type: string;
@@ -378,41 +378,30 @@ function KartuJenis({ jenis: j, bolehKelola, onSimpan, onGagal }: {
         </button>
 
         {buka && (
-          <div style={{ overflowX: "auto" }}>
-            <table style={{
-              width: "100%", borderCollapse: "collapse", fontSize: 12.5,
-              fontVariantNumeric: "tabular-nums",
-            }}>
-              <thead>
-                <tr style={{ background: "var(--surface-subtle)" }}>
-                  <th style={{ textAlign: "left", padding: "7px 14px", color: C.mid, fontWeight: 600 }}>
-                    Periode
-                  </th>
-                  <th style={{ textAlign: "left", padding: "7px 14px", color: C.mid, fontWeight: 600 }}>
-                    Awalan
-                  </th>
-                  <th style={{ textAlign: "right", padding: "7px 14px", color: C.mid, fontWeight: 600 }}>
-                    Nomor terakhir
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {j.periode.map((p) => (
-                  <tr key={p.period} style={{ borderTop: `1px solid ${C.border}` }}>
-                    <td style={{ padding: "7px 14px", color: C.text }}>
-                      {p.period === "-" ? "tanpa periode" : p.period}
-                    </td>
-                    <td style={{ padding: "7px 14px", color: C.mid }}>
-                      {p.prefix || "—"}
-                    </td>
-                    <td style={{ padding: "7px 14px", textAlign: "right", color: C.text }}>
-                      {String(p.last_number)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Tabel
+            caption={`Riwayat nomor terakhir per periode untuk ${j.label}.`}
+            data={j.periode}
+            kunciBaris={(p) => p.period}
+            kolom={[
+              {
+                kunci: "periode",
+                judul: "Periode",
+                kepalaBaris: true,
+                render: (p) => (p.period === "-" ? "tanpa periode" : p.period),
+              },
+              {
+                kunci: "awalan",
+                judul: "Awalan",
+                render: (p) => <span style={{ color: C.mid }}>{p.prefix || "—"}</span>,
+              },
+              {
+                kunci: "terakhir",
+                judul: "Nomor terakhir",
+                rata: "kanan",
+                render: (p) => String(p.last_number),
+              },
+            ]}
+          />
         )}
       </div>
     </div>

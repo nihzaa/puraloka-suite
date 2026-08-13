@@ -39,7 +39,7 @@ import { api } from "@/lib/api";
 import { Inbox, TriangleAlert, ArrowRight, UserRound } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
-import { KepalaHalaman } from "@/components/dasar";
+import { KepalaHalaman, Tabel } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 
 
@@ -215,116 +215,106 @@ function Konten() {
           </div>
 
           <div style={{ ...GAYA_KARTU, overflow: "hidden" }}>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: 13,
-                // Kolom nominal & tanggal sejajar antar baris; tanpa ini
-                // "Rp 111.111" lebih sempit daripada "Rp 888.888".
-                fontVariantNumeric: "tabular-nums",
-              }}
-            >
-              <caption className="sr-only">
-                Dokumen yang menunggu persetujuan, diurutkan dari yang paling lama tertahan
-              </caption>
-              <thead>
-                <tr style={{ background: "var(--surface-subtle)" }}>
-                  {["Jenis", "Dokumen", "Nominal", "Tertahan", ""].map((h, i) => (
-                    <th
-                      key={h || i}
-                      scope="col"
-                      style={{
-                        textAlign: i === 2 ? "right" : "left",
-                        padding: "var(--pad-baris)",
-                        // Disamakan dengan `<Tabel>` bersama: `--t-mikro`/700,
-                        // bukan 11.5px/600. Halaman ini adalah inbox terpusat —
-                        // ia menampilkan baris dari SEMUA modul, jadi tabel yang
-                        // gayanya sendiri di sini paling terasa asing.
-                        fontSize: "var(--t-mikro)", fontWeight: 700, color: C.muted,
-                        textTransform: "uppercase", letterSpacing: ".05em",
-                        borderBottom: "1px solid var(--border)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {baris.map((b) => {
-                  const t = lamaMenunggu(b.dibuat_pada);
-                  return (
-                    <tr key={`${b.jenis}-${b.id}`} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td style={{ padding: "var(--pad-baris)", whiteSpace: "nowrap", color: C.mid }}>
-                        {b.label}
-                      </td>
-                      <td style={{ padding: "var(--pad-baris)", color: C.text }}>
-                        {b.nomor && (
-                          <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 12, marginInlineEnd: 8 }}>
-                            {b.nomor}
-                          </span>
-                        )}
-                        {b.judul ?? <span style={{ color: C.muted }}>(tanpa judul)</span>}
-                        {b.level_selesai > 0 && (
-                          <span style={{ fontSize: 11.5, color: C.muted, marginInlineStart: 8 }}>
-                            · level {b.level_selesai} sudah setuju
-                          </span>
-                        )}
-                        {/* Pengaju tak boleh menyetujui pengajuannya sendiri
-                            (SoD). Ditandai di sini supaya ia tak membuka
-                            dokumennya hanya untuk menemukan tombolnya tak ada. */}
-                        {b.saya_pengajunya && (
-                          <span
-                            style={{
-                              display: "inline-flex", alignItems: "center", gap: 4,
-                              fontSize: 11, marginInlineStart: 8,
-                              padding: "var(--pad-lencana)", borderRadius: 999,
-                              color: C.mid, background: "var(--surface-subtle)",
-                              border: `1px solid ${C.border}`, whiteSpace: "nowrap",
-                            }}
-                          >
-                            <UserRound size={11} aria-hidden="true" />
-                            pengajuan Anda
-                          </span>
-                        )}
-                      </td>
-                      <td
+            <Tabel
+              caption="Dokumen yang menunggu persetujuan, diurutkan dari yang paling lama tertahan"
+              data={baris}
+              kunciBaris={(b) => `${b.jenis}-${b.id}`}
+              kolom={[
+                {
+                  kunci: "jenis",
+                  judul: "Jenis",
+                  render: (b) => (
+                    <span style={{ whiteSpace: "nowrap", color: C.mid }}>{b.label}</span>
+                  ),
+                },
+                {
+                  kunci: "dokumen",
+                  judul: "Dokumen",
+                  // Nomor + judul dokumen yang menamai baris ini, bukan
+                  // jenisnya: "Purchase Order" berlaku untuk puluhan baris,
+                  // "PO-2026-0031" hanya untuk satu.
+                  kepalaBaris: true,
+                  render: (b) => (
+                    <>
+                      {b.nomor && (
+                        <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: 12, marginInlineEnd: 8 }}>
+                          {b.nomor}
+                        </span>
+                      )}
+                      {b.judul ?? <span style={{ color: C.muted }}>(tanpa judul)</span>}
+                      {b.level_selesai > 0 && (
+                        <span style={{ fontSize: 11.5, color: C.muted, marginInlineStart: 8 }}>
+                          · level {b.level_selesai} sudah setuju
+                        </span>
+                      )}
+                      {/* Pengaju tak boleh menyetujui pengajuannya sendiri
+                          (SoD). Ditandai di sini supaya ia tak membuka
+                          dokumennya hanya untuk menemukan tombolnya tak ada. */}
+                      {b.saya_pengajunya && (
+                        <span
+                          style={{
+                            display: "inline-flex", alignItems: "center", gap: 4,
+                            fontSize: 11, marginInlineStart: 8,
+                            padding: "var(--pad-lencana)", borderRadius: 999,
+                            color: C.mid, background: "var(--surface-subtle)",
+                            border: `1px solid ${C.border}`, whiteSpace: "nowrap",
+                          }}
+                        >
+                          <UserRound size={11} aria-hidden="true" />
+                          pengajuan Anda
+                        </span>
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  kunci: "nominal",
+                  judul: "Nominal",
+                  rata: "kanan",
+                  render: (b) => (
+                    <span style={{ whiteSpace: "nowrap", color: C.text }}>
+                      {b.nominal != null ? rupiah(b.nominal) : <span style={{ color: C.muted }}>—</span>}
+                    </span>
+                  ),
+                },
+                {
+                  kunci: "tertahan",
+                  judul: "Tertahan",
+                  render: (b) => {
+                    const t = lamaMenunggu(b.dibuat_pada);
+                    return (
+                      <span
                         style={{
-                          padding: "var(--pad-baris)", textAlign: "right",
-                          whiteSpace: "nowrap", color: C.text,
-                          fontVariantNumeric: "tabular-nums",
-                        }}
-                      >
-                        {b.nominal != null ? rupiah(b.nominal) : <span style={{ color: C.muted }}>—</span>}
-                      </td>
-                      <td
-                        style={{
-                          padding: "var(--pad-baris)", whiteSpace: "nowrap",
+                          whiteSpace: "nowrap",
                           color: t.hari >= 7 ? "var(--danger)" : C.mid,
                           fontWeight: t.hari >= 7 ? 600 : 400,
                         }}
                       >
                         {t.teks}
-                      </td>
-                      <td style={{ padding: "var(--pad-baris)", textAlign: "right", whiteSpace: "nowrap" }}>
-                        <Link
-                          href={b.jalur_ui}
-                          style={{
-                            display: "inline-flex", alignItems: "center", gap: 4,
-                            color: C.aksen, textDecoration: "none", fontSize: 12.5,
-                          }}
-                        >
-                          Buka
-                          <ArrowRight size={13} aria-hidden="true" />
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      </span>
+                    );
+                  },
+                },
+                {
+                  kunci: "aksi",
+                  judul: "",
+                  rata: "kanan",
+                  render: (b) => (
+                    <Link
+                      href={b.jalur_ui}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        color: C.aksen, textDecoration: "none", fontSize: 12.5,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Buka
+                      <ArrowRight size={13} aria-hidden="true" />
+                    </Link>
+                  ),
+                },
+              ]}
+            />
           </div>
         </>
       )}
