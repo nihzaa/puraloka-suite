@@ -201,6 +201,34 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
       }
     }
 
+    // (b3) Setter DISIMPAN SEBAGAI NILAI di larik/objek konfigurasi, lalu
+    //      dipanggil lewat propertinya — `{ v: bBawah, s: setBBawah }` yang
+    //      di-`map` jadi `<input onChange={(e) => f.s(e.target.value)} />`.
+    //
+    //      Ditemukan 2026-08-13 di `pengaturan/tarif-payroll`: tiga medan
+    //      terpasang LENGKAP dengan label, input, dan onChange — dan penjaga
+    //      ini tetap menuduhnya hantu karena namanya tak pernah muncul
+    //      berdekatan dengan `onChange`.
+    //
+    //      Pola ini bukan kelalaian melainkan cara menghindari enam salinan
+    //      blok input yang identik. Alat yang tak mengenalinya menghukum kode
+    //      yang justru ditulis rapi — dan penjaga yang merah karena hal yang
+    //      benar akan dimatikan orang.
+    //
+    //      Syaratnya DUA, supaya tak jadi lubang: (1) setter muncul sebagai
+    //      NILAI properti (`s: setX` / `setter: setX`), dan (2) properti itu
+    //      benar-benar dipanggil dari sebuah penangan (`f.s(`, `x.setter(`).
+    if (!bisaDiisi) {
+      const mProp = new RegExp(`([A-Za-z_$][\\w$]*)\\s*:\\s*${setter}\\s*[,}]`).exec(lingkup)
+      if (mProp) {
+        const namaProp = mProp[1]
+        // Dipanggil lewat properti itu DARI penangan — bukan sekadar disimpan.
+        const rxPakai = new RegExp(
+          `on\\w+\\s*=\\s*\\{[^}]*\\b[A-Za-z_$][\\w$]*\\.${namaProp}\\s*\\(`)
+        if (rxPakai.test(lingkup)) bisaDiisi = true
+      }
+    }
+
     if (bisaDiisi) continue
 
     const nomor = kode.slice(0, m.index).split('\n').length
