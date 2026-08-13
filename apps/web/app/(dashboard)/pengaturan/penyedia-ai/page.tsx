@@ -599,9 +599,30 @@ export default function PenyediaAiPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(460px, 1fr))",
+              /*
+                DUA kolom, bukan `auto-fit`.
+
+                `auto-fit minmax(460px, 1fr)` memberi TIGA kolom di layar
+                lebar — dan asistennya ada EMPAT, jadi yang keempat turun
+                sendirian ke baris kedua dengan dua slot kosong di sampingnya.
+                Terlihat di tangkapan layar founder: barisan tak simetris yang
+                justru menarik mata ke ruang kosongnya.
+
+                Empat kartu setara paling tenang dibaca sebagai 2×2. Angkanya
+                tetap (`repeat(2, …)`) karena JUMLAH asistennya tetap empat —
+                membiarkan browser menebak kolom untuk himpunan yang jumlahnya
+                sudah diketahui hanya memindahkan keputusan ke lebar layar.
+              */
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
               gap: "var(--gap-grid)",
-              alignItems: "start",
+              /*
+                `stretch`, bukan `start`: kartu dalam satu baris jadi
+                setinggi baris itu. Dengan `start`, tinggi tiap kartu
+                mengikuti panjang keterangannya sendiri — dan di gambar
+                founder ketiganya berakhir di garis bawah yang berbeda-beda,
+                dengan tombol Simpan melayang di tiga ketinggian.
+              */
+              alignItems: "stretch",
             }}
           >
             {(muatan?.data ?? []).map((asli) => {
@@ -635,7 +656,30 @@ export default function PenyediaAiPage() {
                 : k.perkiraan_per_panggilan_idr;
 
               return (
-                <section key={k.asisten} style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
+                /*
+                  Kartu adalah KOLOM setinggi penuh.
+
+                  `alignItems: stretch` di grid membuat KOTAKNYA setinggi
+                  baris, tetapi isinya tetap menumpuk dari atas — jadi
+                  keterangan yang lebih pendek menyisakan lubang di bawah dan
+                  tombol Simpan berhenti di ketinggian yang berbeda-beda antar
+                  kartu (terlihat jelas di tangkapan layar founder).
+
+                  Dengan `flex column` + `height: 100%`, baris terakhir bisa
+                  didorong ke dasar lewat `marginTop: auto` — keempat tombol
+                  Simpan sejajar, dan mata punya garis dasar yang sama untuk
+                  membandingkan.
+                */
+                <section
+                  key={k.asisten}
+                  style={{
+                    ...GAYA_KARTU,
+                    padding: "var(--pad-kartu-lega)",
+                    height: "100%",
+                    display: "flex",
+                    flexDirection: "column",
+                  }}
+                >
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>
                     <h3 style={{ fontSize: 14, fontWeight: 600, color: C.text, margin: 0 }}>
                       {peran.nama}
@@ -666,7 +710,21 @@ export default function PenyediaAiPage() {
                     tenant, dan mengulanginya di tiap kartu membuat orang mengira
                     tiap asisten punya jatah sendiri.
                   */}
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>
+                  {/*
+                    Tiga isian SELALU satu baris di dalam kartu.
+
+                    `auto-fit minmax(240px)` membuat jumlah kolomnya bergantung
+                    lebar kartu — dan sesudah kartunya sendiri jadi 2 kolom,
+                    hasilnya berbeda-beda antar kartu: satu memuat tiga isian
+                    sebaris, satu lagi dua-lalu-satu. Empat kartu yang isinya
+                    identik jadi tampak punya bentuk berbeda-beda, dan mata
+                    kehilangan pasangan label↔isian antar kartu.
+
+                    `minmax(0, 1fr)` — bukan `auto` — supaya `<select>` yang
+                    isinya panjang tak memaksa kolomnya melebar melewati
+                    sepertiga kartu.
+                  */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 12 }}>
                     <div>
                       <label htmlFor={idPenyedia} style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
                         Penyedia
@@ -763,7 +821,16 @@ export default function PenyediaAiPage() {
 
                   </div>
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
+                  {/*
+                    `marginTop: auto` mendorong baris ini ke DASAR kartu.
+
+                    Inilah yang membuat keempat tombol Simpan sejajar meski
+                    keterangan tiap asisten berbeda panjangnya. Tanpa ini,
+                    `stretch` hanya meninggikan kotaknya dan menyisakan lubang
+                    di bawah isi — kartu jadi tinggi tanpa alasan yang
+                    terlihat.
+                  */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: "auto", paddingTop: 14 }}>
                     <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: C.mid, cursor: bolehKelola ? "pointer" : "default" }}>
                       <input
                         type="checkbox"
