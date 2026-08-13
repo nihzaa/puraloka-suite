@@ -5,6 +5,99 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-13 (lanjutan 10) — lima workflow n8n pertama, dan pintu yang tak pernah dibuka
+
+Founder meminta workflow n8n dibangun. Yang ditemukan sebelum bisa memulai:
+**tak ada satu pun jalan bagi n8n untuk membaca data Puraloka.**
+
+### Mekanismenya sudah lengkap — dan tak dipakai siapa pun
+
+`requireApiKey()`, tabel `api_key`, `api_key_pakai`, hash satu arah, trigger
+yang membuat pencabutan tak bisa dibatalkan. Semuanya matang.
+
+    grep -rl "requireApiKey" apps/api/src/routes/  → kosong
+    SELECT count(*) FROM api_key                   → 0
+
+Nol rute memakainya. Kunci bisa dibuat, dan tak ada pintu yang mau
+menerimanya. Persis pola yang berulang di repo ini: bagian yang sulit sudah
+selesai, sambungan terakhirnya tak pernah dipasang.
+
+### `otomasi-umpan.ts` — dan pembagian yang tegas
+
+Satu rute, `GET /api/v1/otomasi/umpan/:jenis`, lima jenis. READ-ONLY.
+
+Keputusan tinggal di Puraloka, pengiriman di n8n. Ambang eskalasi (H+7 ke
+manajer, H+14 ke direktur) ikut dikirim sebagai `tingkat` — kalau n8n yang
+menghitungnya, dua tempat memutuskan hal sama dan yang satu basi tanpa
+memberi tahu.
+
+### Tiga kali saya salah menebak bentuk basis
+
+1. **`company_id` pada `invoices`/`milestones`/`progress_logs`** — ketiganya
+   TAK PUNYA kolom itu. Tenancy-nya lewat `projects.company_id`. Kalau lolos,
+   umpannya jadi daftar kosong permanen: alur "berhasil" tiap hari tanpa
+   mengirim apa pun.
+2. **Tabel `ncrs`** — tak ada. Yang ada `ncr_items`, tenggatnya
+   `target_selesai`, statusnya terbuka/perbaikan/verifikasi/ditutup.
+3. **`milestones.progress`** — tak ada. Yang menyatakan selesai adalah
+   `status = 'completed'`.
+
+Ketiganya ketahuan karena diukur ke `information_schema` sebelum berkasnya
+didaftarkan, bukan karena test merah.
+
+### Test yang MELEWATI DIRINYA SENDIRI — cacat paling halus hari ini
+
+Test isolasi tenant versi pertama menuntut company lain yang sudah punya
+klien lewat JOIN. Dari 290 company lain, **tak satu pun punya**. Test-nya
+`return` diam-diam, dan mutasi (menghapus saringan tenant) tetap HIJAU.
+
+Test yang melewati dirinya sendiri lebih buruk daripada tak ada test: ia
+melaporkan aman tanpa pernah memeriksa. Ketahuan justru karena mutasinya tak
+merah — kalau saya percaya "12/12 hijau" dan berhenti, ia akan tercatat
+sebagai bukti isolasi yang tak pernah diuji.
+
+Diganti: menanam kasbon milik company lain (`kasbons` punya `company_id`
+langsung — satu tabel, bukan empat). Mutasi lalu benar-benar merah:
+
+    HIJAU 12/12 → MERAH ("kasbon tenant lain ikut terbawa") → HIJAU 12/12
+
+### Lima workflow, dibuat NONAKTIF dengan sengaja
+
+`scripts/n8n/bangun-alur.mjs` membuatnya lewat API n8n, idempoten (dicocokkan
+per nama — jalan dua kali tak menghasilkan jadwal ganda), lalu menulis
+`n8n_id` balik ke katalog supaya halaman `/otomasi/alur` berhenti berkata
+"BELUM TERSAMBUNG".
+
+Yang di-versi-kan adalah RESEPNYA, bukan isi workflow — beda dari TJS (43
+berkas JSON), dan alasannya sama dengan yang sudah tertulis di
+`lib/otomasi-n8n.ts`: dua sumber kebenaran, yang basi tak menyatakan dirinya
+basi.
+
+`active: false`, karena dua syarat belum terpenuhi: nomor WhatsApp Puraloka
+belum dipindai (`ownerJid: null`), dan nomor tujuan tiap peran belum
+ditetapkan founder. Workflow aktif yang mengirim ke nomor salah tak bisa
+ditarik kembali.
+
+### Yang perlu diketahui tentang "49 pesan WA sudah terkirim"
+
+Saya sempat melaporkan itu sebagai bukti WhatsApp bekerja. **Salah.**
+Ke-49-nya berstatus `gagal`, nomornya harfiah `"bukan-nomor"` — baris dari
+test suite, bukan pengiriman nyata. WhatsApp Puraloka **belum pernah**
+mengantarkan satu pesan pun.
+
+### Bukti
+
+    tsc --noEmit              EXIT 0
+    otomasi-umpan.test        12/12 hijau lawan Postgres nyata
+    mutasi saringan tenant    HIJAU → MERAH → HIJAU
+    eslint                    EXIT 0
+    7 penjaga arsitektural    HIJAU
+    5 umpan dipanggil nyata   invoice 3 · kasbon 3 · ncr 8 · milestone 12 · ringkasan 1
+    gerbang kunci             tanpa kunci 401 · karangan 401 · dicabut 401 · sah 200
+    idempotensi bangun-alur   dijalankan 2× → tetap 5 workflow, diperbarui bukan ditambah
+
+---
+
 ## 2026-08-13 (lanjutan 9) — 4.6 PO fast-track: kolom yang ada, mesin yang membacanya, dan nol jalan mengisinya
 
 ### Keadaan yang diukur

@@ -20,6 +20,7 @@ import aiSetujuiRoutes from './routes/v1/ai-setujui.js'
 import penyediaRoutes from './routes/v1/penyedia.js'
 import otomasiAlurRoutes from './routes/v1/otomasi-alur.js'
 import otomasiTerjadwalRoutes from './routes/v1/otomasi-terjadwal.js'
+import otomasiUmpanRoutes from './routes/v1/otomasi-umpan.js'
 import aiRiwayatRoutes from './routes/v1/ai-riwayat.js'
 import keamananRoutes from './routes/v1/keamanan.js'
 import mutuIkhtisarRoutes from './routes/v1/mutu-ikhtisar.js'
@@ -327,6 +328,7 @@ await app.register(aiSetujuiRoutes)
 await app.register(penyediaRoutes)
 await app.register(otomasiAlurRoutes)
 await app.register(otomasiTerjadwalRoutes)
+await app.register(otomasiUmpanRoutes)
 await app.register(aiRiwayatRoutes)
 await app.register(keamananRoutes)
 await app.register(mutuIkhtisarRoutes)
