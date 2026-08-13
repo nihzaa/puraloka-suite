@@ -202,7 +202,7 @@ export default function PermintaanPage() {
   ];
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       {/* Penanda cache DI ATAS saringan, bukan di bawah daftar.
           Yang membacanya harus tahu data ini tersimpan SEBELUM ia mulai
           membaca isinya — peringatan di bawah daftar sampai terlambat. */}

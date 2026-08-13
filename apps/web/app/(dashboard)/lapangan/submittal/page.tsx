@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/toast";
+import { KepalaHalaman } from "@/components/dasar";
 import {
   PackageCheck, Plus, Send, CheckCircle2, X, AlertTriangle,
   ChevronDown, Loader2, RotateCcw, Ban, Paperclip,
@@ -234,16 +235,14 @@ export default function SubmittalPage() {
 
   return (
     <div className="sb-halaman">
+      {/* `KepalaHalaman` — lihat catatan di `kontrak/rfi/page.tsx`:
+          ikon inline di dalam `<h1>` bukan ubin, dan judulnya 24px bukan 26px. */}
       <header className="sb-kepala">
-        <div>
-          <h1 className="sb-judul">
-            <PackageCheck size={22} aria-hidden />
-            Submittal
-          </h1>
-          <p className="sb-sub">
-            Material dan gambar kerja yang diajukan untuk disetujui sebelum dipakai.
-          </p>
-        </div>
+        <KepalaHalaman
+          judul="Submittal"
+          keterangan="Material dan gambar kerja yang diajukan untuk disetujui sebelum dipakai."
+          ikon={<PackageCheck size={19} />}
+        />
         <div className="sb-kepala-aksi">
           <label className="sb-pilih-bungkus">
             <select

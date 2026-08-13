@@ -177,7 +177,7 @@ export default function KlaimPerjalananPage() {
   }, [daftar]);
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div className="rise" style={{
         marginBottom: "var(--gap-bagian)", display: "flex",
         justifyContent: "space-between", alignItems: "flex-start",
@@ -196,7 +196,7 @@ export default function KlaimPerjalananPage() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                border: "none", background: "var(--aksen)", color: "var(--on-aksen)",
+                border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
                 cursor: "pointer",
               }}
             >
@@ -284,7 +284,7 @@ export default function KlaimPerjalananPage() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 16px", borderRadius: 8, border: "none",
-                background: "var(--aksen)", color: "var(--on-aksen)",
+                background: "var(--grad-aksen)", color: "var(--on-aksen)",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
               }}
             >
@@ -492,7 +492,7 @@ function KartuKlaim({ k, sibuk, bolehSetujui, bolehBayar, onSetujui, onTolak, on
               style={{
                 display: "inline-flex", alignItems: "center", gap: 5,
                 padding: "6px 14px", borderRadius: 7, border: "none",
-                background: "var(--aksen)", color: "var(--on-aksen)",
+                background: "var(--grad-aksen)", color: "var(--on-aksen)",
                 fontSize: 12.5, fontWeight: 600,
                 cursor: sibuk ? "not-allowed" : "pointer", opacity: sibuk ? 0.5 : 1,
               }}
@@ -622,7 +622,7 @@ function FormAjukan({ onTutup, onSelesai }: {
             type="button" onClick={() => void kirim()} disabled={sibuk || !lengkap}
             style={{
               padding: "8px 16px", borderRadius: 8, border: "none",
-              background: "var(--aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
+              background: "var(--grad-aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
               cursor: sibuk || !lengkap ? "not-allowed" : "pointer",
               opacity: sibuk || !lengkap ? 0.5 : 1,
             }}
@@ -965,7 +965,7 @@ function FormBayar({ klaim, akunKas, onTutup, onSelesai }: {
             type="button" onClick={() => void kirim()} disabled={sibuk || akun === ""}
             style={{
               padding: "8px 16px", borderRadius: 8, border: "none",
-              background: "var(--aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
+              background: "var(--grad-aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
               cursor: sibuk || akun === "" ? "not-allowed" : "pointer",
               opacity: sibuk || akun === "" ? 0.5 : 1,
             }}

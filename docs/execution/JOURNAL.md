@@ -5,6 +5,98 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 — tiga gejala ikon, satu penyebab: ubin judul digambar di banyak tempat
+
+Founder melaporkan enam hal dalam satu pesan. Tiga di antaranya terdengar
+seperti masalah terpisah:
+
+  "ada yg double icon"
+  "semua halaman di grup pengadaan/akuntansi/keuangan masih belum ada iconnya"
+  "semua halaman di grup mandor & subkon juga ini iconnya belum konsisten"
+
+Ketiganya **satu penyebab**, dan penyebab itu tak akan ketemu dengan
+memperbaiki halaman satu per satu.
+
+### Yang diukur
+
+51 halaman dashboard tak memakai `KepalaHalaman`. Tapi sebagian besar bukan
+karena lupa — mereka memang tak menggambar judul sendiri. Judulnya datang dari
+`layout.tsx` modulnya lewat **`JudulBagian`**, komponen judul KEDUA yang tak
+pernah punya ubin ikon. Empat modul terbesar (`procurement`, `keuangan`,
+`kas`, `mandor` — 34 halaman) berbagi nasib dari satu sumber.
+
+Sisanya dua pola lain:
+
+- **Ubin ganda** (`/kalender`, `/sistem`, `/pengaturan/notifikasi`): halaman
+  sudah menggambar ubin 42px sendiri, lalu sapuan ikon saya sebelumnya
+  menambahkan prop `ikon` — dan keduanya terlukis. **Ini cacat buatan saya
+  sendiri**, dari sapuan yang tak memeriksa apa yang sudah ada.
+- **Ikon inline** (`kontrak/rfi`, `lapangan/submittal`, `lapangan/inspeksi`,
+  `lapangan/punch-list`, `pengaturan/situs`): ikon 22px DI DALAM `<h1>`, bukan
+  ubin. Ikonnya ada; bentuknya yang beda. Judulnya pun 24px sementara yang
+  bersama 26px.
+
+Tak satu pun bergalat. Tiap halaman wajar saat ditatap sendirian, dan salahnya
+hanya terasa saat BERPINDAH — itulah kenapa ia bertahan lama dan kembali
+berulang kali.
+
+### Yang dikerjakan
+
+- Tabel ikon menu **pindah** dari `sidebar.tsx` ke `lib/ikon-menu.tsx`, dibaca
+  sidebar DAN `JudulBagian`. Menyalinnya akan menyimpang diam-diam: satu ikon
+  ditambahkan di satu salinan, sidebar menampilkan Truck sementara judul
+  menampilkan FolderKanban — cacat yang sedang diperbaiki, dibuat ulang dalam
+  bentuk yang lebih sulit dilihat.
+- `JudulBagian` menggambar ubin, ikonnya diambil dari **baris menu yang sama**
+  dengan judulnya (satu pencarian, bukan dua — dua pencarian bisa mendarat di
+  baris berbeda). Sub-menu ber-ikon `Dot` memakai ikon GRUP INDUKNYA: titik di
+  dalam ubin 40px tak mengabarkan apa pun.
+- Tiga ubin ganda dihapus, lima ikon inline diganti `KepalaHalaman`,
+  `/akuntansi` (judulnya mengikuti tab, jadi tak bisa pakai `JudulBagian`)
+  memakai `KepalaHalaman` dan melepas `fontSize: 28` — ukuran KETIGA.
+- **21 tombol** sisa dipindah ke gradien. `rab-section.tsx` sengaja dilewati:
+  itu segmen batang grafik, bukan tombol.
+- `Kosong` dibesarkan (28px/16px -> `--r6`/`--r5`, radius 10 -> 14, judul 13 ->
+  15px). Pada halaman tanpa data ia adalah SELURUH isi halaman, tapi
+  dirancang untuk keadaan kosong di dalam kartu. Itu "mepet banget" yang
+  founder tunjuk di `/sdm/klaim-perjalanan`.
+- `gudang/lokasi` memakai TIGA padding dalam satu kartu (kepala 16px token,
+  catatan 8px, aksi 9px). Diseragamkan; pola sama diperbaiki di
+  `master/karyawan` dan `master/wbs`.
+
+### Saya salah dua kali di sesi ini
+
+1. Sapuan ikon sebelumnya membuat ubin ganda karena tak memeriksa apa yang
+   sudah digambar halaman.
+2. Audit ikon pertama saya melaporkan "0 halaman tanpa ikon" — benar untuk
+   halaman ber-`KepalaHalaman`, dan **buta** terhadap 51 halaman yang tak
+   memakainya sama sekali. Angkanya hijau karena pertanyaannya salah.
+
+### Penjaga baru
+
+`uji-ubin-judul-seragam.mjs` (ambang NOL), dua aturan: kedua komponen judul
+sebentuk, dan nol halaman menggambar ubin sendiri di samping komponen
+bersama. **Bukti merah:** dua mutasi (ubin `JudulBagian` 40->42px; ubin ganda
+dikembalikan di `/kalender`) — keduanya MERAH, hijau lagi sesudah dipulihkan.
+
+### Bukti
+
+```
+tsc                        EXIT 0
+lint:ratchet               0 error, 298 warning — TURUN dari ambang
+                           (static-components 10->8, label-has-... 20->19)
+uji-ubin-judul-seragam     HIJAU (baru)
+uji-token-css-ada          HIJAU      uji-judul-halaman-ada   HIJAU
+uji-remah-lengkap          HIJAU      uji-tabel-seragam       HIJAU
+uji-lebar-responsif        HIJAU (5 resolusi x 3 halaman)
+audit-nav-yatim            HIJAU      audit-peta-menu-vs-db   HIJAU
+audit-sidebar-urutan       HIJAU
+a11y-runtime               129 halaman, 0 pelanggaran
+peramban                   19/19 rute: tepat satu ubin berisi ikon
+```
+
+---
+
 ## 2026-08-13 (lanjutan 2) — sebelas penjaga yang tak pernah dijalankan siapa pun
 
 Sesudah memastikan ketiga penjaga baru sesi ini terdaftar di CI, saya bertanya

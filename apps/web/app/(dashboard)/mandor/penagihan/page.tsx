@@ -146,7 +146,7 @@ export default function PenagihanPage() {
     // Menambahkannya lagi di sini membuat jaraknya ganda dan berbeda-beda
     // antar bagian, cacat yang sama yang sudah ditambal di modul Keuangan.
     <div style={{
-      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
+      width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto",
       display: "flex", flexDirection: "column", gap: 16,
     }}>
       {/* Kesiapan opname DI ATAS daftar pengajuan.

@@ -141,7 +141,7 @@ export default function GudangLokasiPage() {
   );
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div className="rise" style={{
         marginBottom: "var(--gap-bagian)", display: "flex",
         justifyContent: "space-between", alignItems: "flex-start",
@@ -160,7 +160,7 @@ export default function GudangLokasiPage() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                border: "none", background: "var(--aksen)", color: "var(--on-aksen)",
+                border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
                 cursor: "pointer",
               }}
             >
@@ -227,7 +227,7 @@ export default function GudangLokasiPage() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 16px", borderRadius: 8, border: "none",
-                background: "var(--aksen)", color: "var(--on-aksen)",
+                background: "var(--grad-aksen)", color: "var(--on-aksen)",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
               }}
             >
@@ -339,9 +339,18 @@ function KartuGudang({ g, sibuk, bolehKelola, onSunting, onUbahAktif }: {
         </div>
       </div>
 
+      {/* Baris di bawah kepala kartu memakai `--pad-kartu-lega` yang SAMA
+          dengan kepalanya.
+
+          Founder: "di halaman gudang & lokasi juga ini kok mepet banget".
+          Diukur: satu kartu memakai TIGA padding berbeda — kepala 16px
+          (token), catatan 8px/14px, baris aksi 9px/14px. Selisih vertikal
+          8px terhadap 16px membuat baris bawahnya terasa terjepit ke garis
+          pemisah, dan karena tiap baris tampak wajar sendiri-sendiri,
+          penyebabnya tak pernah menunjuk dirinya. */}
       {g.catatan && (
         <div style={{
-          padding: "8px 14px", borderTop: `1px solid ${C.border}`,
+          padding: "var(--pad-kartu-lega)", borderTop: `1px solid ${C.border}`,
           fontSize: 12.5, color: C.mid, lineHeight: 1.55,
         }}>
           {g.catatan}
@@ -350,7 +359,7 @@ function KartuGudang({ g, sibuk, bolehKelola, onSunting, onUbahAktif }: {
 
       {bolehKelola && (
         <div style={{
-          padding: "9px 14px", borderTop: `1px solid ${C.border}`,
+          padding: "var(--pad-kartu-lega)", borderTop: `1px solid ${C.border}`,
           display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center",
         }}>
           <button
@@ -491,7 +500,7 @@ function FormGudang({ mode, awal, anggota, onTutup, onSelesai }: {
             type="button" onClick={() => void kirim()} disabled={sibuk || !boleh}
             style={{
               padding: "8px 16px", borderRadius: 8, border: "none",
-              background: "var(--aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
+              background: "var(--grad-aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
               cursor: sibuk || !boleh ? "not-allowed" : "pointer",
               opacity: sibuk || !boleh ? 0.5 : 1,
             }}

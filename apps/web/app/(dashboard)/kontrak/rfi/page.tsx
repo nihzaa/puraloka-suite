@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/toast";
+import { KepalaHalaman } from "@/components/dasar";
 import {
   MessageSquareQuote, Plus, Send, CheckCircle2, X, AlertTriangle,
   ChevronDown, Loader2, FileText, Ban,
@@ -208,16 +209,18 @@ export default function RfiPage() {
 
   return (
     <div className="rf-halaman">
+      {/* `KepalaHalaman`, bukan `<h1>` + ikon inline buatan sendiri.
+          Founder: "ada juga yg iconya ga sama". Halaman ini memang punya ikon
+          — tapi DI DALAM baris judul, bukan sebagai ubin gradien seperti
+          halaman lain, dan judulnya 24px/600 sementara yang bersama 26px/700.
+          Ikonnya ada, bentuknya yang berbeda; itulah yang terbaca sebagai
+          "tidak sama". */}
       <header className="rf-kepala">
-        <div>
-          <h1 className="rf-judul">
-            <MessageSquareQuote size={22} aria-hidden />
-            Request for Information
-          </h1>
-          <p className="rf-sub">
-            Pertanyaan resmi ke konsultan atau pemberi kerja, beserta jawabannya.
-          </p>
-        </div>
+        <KepalaHalaman
+          judul="Request for Information"
+          keterangan="Pertanyaan resmi ke konsultan atau pemberi kerja, beserta jawabannya."
+          ikon={<MessageSquareQuote size={19} />}
+        />
         <div className="rf-kepala-aksi">
           <label className="rf-pilih-bungkus">
             <select

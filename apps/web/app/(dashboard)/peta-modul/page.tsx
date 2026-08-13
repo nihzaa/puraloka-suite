@@ -89,7 +89,7 @@ export default function PetaModulPage() {
   const tampil = grup.reduce((s, g) => s + g.items.length, 0);
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {/* LAPIS 1 — KEADAAN */}
       <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
         <KepalaHalaman judul="Peta Modul"         ikon={<Map size={19} />}

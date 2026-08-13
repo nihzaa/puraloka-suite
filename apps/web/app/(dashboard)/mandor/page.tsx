@@ -197,7 +197,7 @@ export default function MandorRingkasanPage() {
 
   if (loading) {
     return (
-      <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+      <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
         <div style={{ textAlign: "center", padding: 60, color: C.muted }}>Memuat data...</div>
       </div>
     );

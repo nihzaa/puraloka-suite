@@ -434,7 +434,7 @@ function IsiPengadaanLanjutan() {
     // Versi pertama menambahkan <h2> di sini, dan hasilnya DUA judul
     // bertumpuk: "Pengadaan & Persediaan" dari layout, lalu "Pengadaan
     // Lanjutan" dari sini. Ketahuan dari memotret halamannya.
-    <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       <div className="rise" style={{
         marginBottom: "var(--gap-bagian)", display: "flex",
         justifyContent: "space-between", alignItems: "flex-start",

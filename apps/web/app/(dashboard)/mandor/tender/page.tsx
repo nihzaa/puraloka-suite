@@ -416,7 +416,7 @@ export default function TenderSubkonPage() {
         }
         return (
           <button type="button" onClick={() => bukaPenetapan(p)} style={{
-            cursor: "pointer", padding: "4px 10px", borderRadius: 5, fontSize: 12,
+            cursor: "pointer", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", borderRadius: 5, fontSize: 12,
             border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text,
             whiteSpace: "nowrap",
           }}>

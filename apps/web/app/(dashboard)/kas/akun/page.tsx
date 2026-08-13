@@ -61,7 +61,7 @@ function AkunKasIsi() {
     // lebarnya pada layout akan lolos hari ini lalu terlepas diam-diam saat
     // seseorang menyalinnya ke tempat yang tak punya layout itu. Polanya
     // mengikuti sub-halaman keuangan.
-    <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginBottom: 16 }}>
         <p style={{ fontSize: 13, color: C.mid, margin: 0 }}>Semua akun kas yang aktif dalam sistem</p>
         <div style={{ display: "flex", gap: 8 }}>

@@ -441,25 +441,54 @@ export function Kosong({
   sebab: React.ReactNode;
   aksi?: React.ReactNode;
 }) {
+  /*
+    ── Kenapa ukurannya dinaikkan (2026-08-14)
+
+    Founder: "di klaim perjalanan ini isi kontennya kok mepet banget, emang
+    belum konsisten ya jarak nya?" — dan pada halaman yang BELUM punya data,
+    komponen inilah seluruh isi halamannya.
+
+    Nilai lamanya (`padding: 28px 16px`, `borderRadius: 10`, judul 13px,
+    sebab 12px) dirancang untuk keadaan kosong DI DALAM kartu — satu blok
+    kecil di antara isi lain. Dipakai sebagai isi utama halaman selebar
+    1460px, ia jadi kotak tipis melayang: teksnya lebih kecil daripada teks
+    tabel di halaman sebelah, radiusnya 10px sementara semua kartu 14px, dan
+    padding sisinya 16px sementara kartu lain 20-24px.
+
+    Perbedaan itu tak terlihat sendirian — persis pola yang berulang di
+    seluruh sapuan ini — dan langsung terasa saat berpindah dari halaman
+    berisi ke halaman kosong: seolah halamannya belum selesai dimuat.
+
+    Yang diubah hanya ukuran dan radius, BUKAN garis putus-putusnya. Garis
+    putus tetap dipakai dengan sengaja: ia membedakan "wadah yang menunggu
+    diisi" dari "kartu berisi data", dan itu satu-satunya penanda visual yang
+    membedakan keduanya sesudah ukurannya disamakan.
+  */
   return (
     <div style={{
-      padding: "28px 16px", textAlign: "center",
-      border: `1px dashed ${C.border}`, borderRadius: 10, background: C.subtle,
+      // `--r6` (24px) atas-bawah × 2 lewat padding blok, `--r5` (20px) sisi.
+      // Radius 14px disamakan dengan `GAYA_KARTU` — angka itu tak punya token
+      // sendiri di globals.css, jadi ditulis apa adanya seperti di `dasar.tsx`,
+      // bukan diarang jadi token baru yang cuma dipakai dua tempat.
+      padding: "var(--r6) var(--r5)", textAlign: "center",
+      border: `1px dashed ${C.border}`,
+      borderRadius: 14,
+      background: C.subtle,
     }}>
       {ikon && (
         <div aria-hidden="true" style={{
-          color: "var(--border)", marginBottom: 8,
+          color: "var(--border)", marginBottom: "var(--r3)",
           display: "flex", justifyContent: "center",
         }}>{ikon}</div>
       )}
-      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: C.text }}>
+      <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text, letterSpacing: "-0.01em" }}>
         {judul}
       </p>
       <p style={{
-        margin: "6px auto 0", fontSize: 12, color: C.mid,
-        maxWidth: "46ch", lineHeight: 1.55,
+        margin: "8px auto 0", fontSize: 13, color: C.mid,
+        maxWidth: "52ch", lineHeight: 1.6,
       }}>{sebab}</p>
-      {aksi && <div style={{ marginTop: 12 }}>{aksi}</div>}
+      {aksi && <div style={{ marginTop: "var(--r5)" }}>{aksi}</div>}
     </div>
   );
 }

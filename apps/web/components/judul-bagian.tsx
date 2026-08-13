@@ -33,11 +33,18 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { api, MENU_CACHE_KEY } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
+import { IkonMenu } from "@/lib/ikon-menu";
 
 interface NodeMenu {
   key: string;
   label: string;
   href: string | null;
+  /**
+   * Nama ikon di DB. Sudah dikirim `/api/v1/menu` sejak awal — komponen ini
+   * yang tak pernah membacanya, dan itulah kenapa 34 halaman di empat modul
+   * terbesar tampil tanpa ikon judul sementara sidebar-nya bergambar.
+   */
+  icon?: string;
   children?: NodeMenu[];
 }
 
@@ -66,6 +73,70 @@ function ratakan(n: NodeMenu[]): NodeMenu[] {
   return hasil;
 }
 
+/**
+ * Ikon yang pantas untuk sebuah node menu.
+ *
+ * Sub-menu ber-ikon `Dot` (seluruhnya, sejak migrasi 360) memakai ikon GRUP
+ * INDUKNYA — sebuah titik di dalam ubin gradien 40px tak mengabarkan apa pun,
+ * sementara lambang modulnya menjawab "saya masih di bagian mana?".
+ *
+ * Induk dicari lewat pohon menu, BUKAN dari segmen pertama URL: `/procurement/
+ * stok` ada di bawah Pengadaan sedangkan `/gudang/lokasi` di bawah Gudang, dan
+ * keduanya tak bisa dibedakan dari bentuk URL-nya.
+ */
+function ikonUntuk(akar: NodeMenu[], target: NodeMenu): string | null {
+  if (target.icon && target.icon !== "Dot") return target.icon;
+
+  const cari = (simpul: NodeMenu[], indukIkon: string | null): string | null => {
+    for (const n of simpul) {
+      if (n.key === target.key) return indukIkon;
+      if (n.children?.length) {
+        const k = cari(n.children, n.icon && n.icon !== "Dot" ? n.icon : indukIkon);
+        if (k) return k;
+      }
+    }
+    return null;
+  };
+
+  return cari(akar, null) ?? target.icon ?? null;
+}
+
+/**
+ * Ubin ikon judul — BENTUKNYA HARUS SAMA PERSIS dengan `KepalaHalaman`.
+ *
+ * Dua komponen judul hidup di repo ini (`KepalaHalaman` untuk halaman yang
+ * menggambar judulnya sendiri, komponen ini untuk halaman yang mewarisi judul
+ * dari layout modulnya). Kalau ubinnya berbeda walau sedikit — 42px lawan
+ * 40px, radius lain, gradien lain — perbedaannya tak terlihat saat menatap
+ * satu halaman, dan langsung terasa saat BERPINDAH: seolah pindah aplikasi.
+ * Itu persis cacat yang dilaporkan founder sebagai "iconnya belum konsisten".
+ *
+ * Nilai-nilainya disalin dari `dasar.tsx`; `uji-ubin-judul-seragam.mjs`
+ * memerahkan CI bila keduanya menyimpang.
+ *
+ * `aria-hidden`: judul di sebelahnya sudah menyebut halamannya, jadi ikon ini
+ * hanya menambah kebisingan bagi pembaca layar.
+ */
+function UbinIkon({ nama }: { nama: string | null }) {
+  if (!nama) return null;
+  return (
+    <span
+      data-ubin-ikon
+      aria-hidden="true"
+      style={{
+        display: "grid", placeItems: "center", flexShrink: 0,
+        width: 40, height: 40,
+        borderRadius: "var(--rad-sedang)",
+        background: "var(--grad-aksen)",
+        color: "var(--on-aksen)",
+        boxShadow: "var(--naik-1)",
+      }}
+    >
+      <IkonMenu nama={nama} size={19} />
+    </span>
+  );
+}
+
 function JudulBagianIsi({ cadangan, keterangan, aksi }: JudulBagianProps) {
   const pathname = usePathname();
   const params = useSearchParams();
@@ -89,16 +160,36 @@ function JudulBagianIsi({ cadangan, keterangan, aksi }: JudulBagianProps) {
     return () => { batal = true; };
   }, []);
 
-  const judul = useMemo(() => {
+  // Satu pencarian menghasilkan judul DAN ikon — keduanya dari baris menu yang
+  // sama. Kalau ikonnya dicari terpisah, kedua pencarian bisa mendarat di baris
+  // berbeda saat query berubah, dan halamannya menampilkan judul satu menu
+  // dengan ikon menu lain. Tak ada galat; hanya salah.
+  const { judul, ikon: NamaIkon } = useMemo(() => {
     const rata = ratakan(menu).filter((n) => n.href);
     const kueri = params?.toString();
     const penuh = kueri ? `${pathname}?${kueri}` : pathname;
 
     // Cocok PERSIS dulu (termasuk query — sub-menu tab dibedakan olehnya),
     // baru cocok tanpa query.
-    return rata.find((n) => n.href === penuh)?.label
-      ?? rata.find((n) => n.href === pathname)?.label
-      ?? cadangan;
+    const node = rata.find((n) => n.href === penuh)
+      ?? rata.find((n) => n.href === pathname);
+
+    return {
+      judul: node?.label ?? cadangan,
+      /*
+        SELURUH sub-menu ber-ikon `Dot` sejak migrasi 360 — seragam dengan
+        sengaja. Ubin gradien 40px berisi satu titik kecil adalah ubin kosong
+        yang mahal, jadi untuk `Dot` ikon INDUKNYA yang dipakai: pembaca
+        melihat lambang modul yang sedang ia buka ("ini masih di Pengadaan"),
+        bukan titik yang tak mengabarkan apa pun.
+
+        `ikonGrupUntuk` mencari induk di pohon menu, bukan menebak dari
+        segmen pertama URL — `/procurement/stok` ada di bawah grup Pengadaan
+        sementara `/gudang/lokasi` ada di bawah Gudang, dan URL tak
+        membedakan keduanya.
+      */
+      ikon: node ? ikonUntuk(menu, node) : null,
+    };
   }, [menu, pathname, params, cadangan]);
 
   return (
@@ -106,7 +197,9 @@ function JudulBagianIsi({ cadangan, keterangan, aksi }: JudulBagianProps) {
       display: "flex", justifyContent: "space-between", alignItems: "flex-start",
       gap: 12, flexWrap: "wrap", marginBottom: "var(--gap-bagian)",
     }}>
-      <div>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--r3)", minWidth: 0 }}>
+        <UbinIkon nama={NamaIkon} />
+      <div style={{ minWidth: 0 }}>
         <h1 style={{
           fontFamily: "var(--font-display)",
           // `--t-halaman` (26px), BUKAN 20px dipaku.
@@ -131,6 +224,7 @@ function JudulBagianIsi({ cadangan, keterangan, aksi }: JudulBagianProps) {
             {keterangan}
           </p>
         )}
+      </div>
       </div>
       {aksi && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{aksi}</div>}
     </div>
@@ -165,14 +259,27 @@ export function JudulBagian(props: JudulBagianProps) {
   );
 }
 
-/** Bentuk yang sama persis, memakai judul cadangan — nol pergeseran tata letak. */
+/**
+ * Bentuk yang sama persis, memakai judul cadangan — nol pergeseran tata letak.
+ *
+ * Ubinnya ikut dilukis sebagai KOTAK KOSONG ber-radius sama, bukan dihilangkan:
+ * ikonnya belum diketahui sebelum menu termuat, dan menunda seluruh ubin
+ * membuat judul melompat 52px ke kanan begitu menu tiba. Ruang yang dipesan
+ * lebih baik daripada ruang yang mendadak muncul (Core Web Vitals: CLS).
+ */
 function JudulBagianRangka({ cadangan, keterangan, aksi }: JudulBagianProps) {
   return (
     <div style={{
       display: "flex", justifyContent: "space-between", alignItems: "flex-start",
       gap: 12, flexWrap: "wrap", marginBottom: "var(--gap-bagian)",
     }}>
-      <div>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--r3)", minWidth: 0 }}>
+      <span aria-hidden="true" style={{
+        flexShrink: 0, width: 40, height: 40,
+        borderRadius: "var(--rad-sedang)", background: "var(--grad-aksen)",
+        opacity: 0.35, boxShadow: "var(--naik-1)",
+      }} />
+      <div style={{ minWidth: 0 }}>
         <h1 style={{
           fontFamily: "var(--font-display)",
           // `--t-halaman` (26px), BUKAN 20px dipaku.
@@ -197,6 +304,7 @@ function JudulBagianRangka({ cadangan, keterangan, aksi }: JudulBagianProps) {
             {keterangan}
           </p>
         )}
+      </div>
       </div>
       {aksi && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{aksi}</div>}
     </div>

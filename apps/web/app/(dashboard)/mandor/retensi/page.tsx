@@ -105,7 +105,7 @@ export default function RetensiPage() {
     // Padding disediakan `mandor/layout.tsx` — lihat catatan di sana.
     // Menambahkannya lagi di sini membuat jaraknya ganda.
     <div style={{
-      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
+      width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
       <div className="rise" style={{
         display: "flex", justifyContent: "space-between",

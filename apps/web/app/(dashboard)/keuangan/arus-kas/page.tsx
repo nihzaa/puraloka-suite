@@ -154,7 +154,7 @@ export default function ArusKasPage() {
     // Menambahkannya lagi di sini membuat jaraknya ganda dan berbeda-beda
     // antar bagian (diukur: 74px / 37px / 1px sebelum diseragamkan).
     <div style={{
-      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
+      width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-page)", margin: "0 auto",
     }}>
       {/* Pembungkus TANPA padding — sisa pola lama saat tiap bagian
           mengatur jaraknya sendiri. `keuangan/layout.tsx` kini yang

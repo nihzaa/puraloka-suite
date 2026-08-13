@@ -111,7 +111,7 @@ export default function HutangPage() {
   };
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       {/* Peringatan jatuh tempo — menghilang saat tak ada, seperti spanduk di
           halaman ringkasan. Peringatan yang selalu tampil berhenti dibaca. */}
       {(overdue.length > 0 || dueSoon.length > 0) && (

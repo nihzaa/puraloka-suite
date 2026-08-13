@@ -5,44 +5,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { rutenyaAktifPenuh } from "@/lib/rute-aktif";
 import { TitikKesiapan } from "@/components/titik-kesiapan";
+import { ikonMenu, IkonMenu } from "@/lib/ikon-menu";
 import {
-  LayoutDashboard,
-  FolderKanban,
-  Wallet,
-  PiggyBank,
-  Receipt,
-  HardHat,
-  BarChart3,
-  Settings,
   LogOut,
   ChevronDown,
-  Users,
-  Contact,
-  ShoppingCart,
-  Building2,
-  ShieldCheck,
-  Landmark,
-  Ruler,
-  Layers,
-  Coins,
-  GitBranch,
-  BellRing,
-  CalendarDays,
-  Database,
-  Gavel,
-  FileSignature,
-  CalendarRange,
-  Calculator,
-  Package,
-  ClipboardList,
-  BadgeCheck,
-  ShieldAlert,
-  Truck,
-  FolderOpen,
-  AlertTriangle,
-  Smartphone,
-  Dot,
-  Bot,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -66,34 +32,14 @@ const roleLabel: Record<string, string> = {
 // Nama icon (string di DB) → komponen lucide. ADDITIVE-FIRST: hanya sumber struktur
 // yang pindah ke DB; visibility TETAP di client via perms.has() match-ANY, styling
 // & interaksi (collapse/tooltip/dropdown) identik dengan versi hardcode sebelumnya.
-const ICONS: Record<string, React.ElementType> = {
-  LayoutDashboard, FolderKanban, Wallet, PiggyBank, Receipt, HardHat,
-  BarChart3, Settings, Users, Contact, ShoppingCart, Building2,
-  ShieldCheck, CalendarDays, Landmark, Ruler, Layers, Coins, GitBranch, BellRing,
-  // 19 ikon grup peta menu (migrasi 153) + `Dot` untuk seluruh sub-menu.
-  // Sub-menu SENGAJA seragam: 202 ikon berbeda justru menghapus fungsi ikon
-  // sebagai penanda — saat semuanya bergambar, tak ada yang menonjol.
-  Database, Gavel, FileSignature, CalendarRange, Calculator, Package,
-  ClipboardList, BadgeCheck, ShieldAlert, Truck, FolderOpen, AlertTriangle,
-  Smartphone, Dot,
-  // `Bot` untuk menu Asisten (migrasi 253). Tanpa entri di sini, `iconFor`
-  // jatuh ke `FolderKanban` — dan asisten AI tampil bergambar folder,
-  // penanda yang keliru dan tak menimbulkan galat apa pun.
-  Bot,
-};
-/**
- * Nama ikon (string dari DB) → komponen lucide.
- *
- * ⚠️ Mengembalikan REFERENSI dari tabel `ICONS`, tak pernah membuat komponen
- * baru. Bila fungsi ini sampai mengembalikan `() => <X/>` — bahkan sebagai
- * pembungkus kecil — React akan menganggapnya komponen berbeda tiap render,
- * meng-unmount lalu mount ulang seluruh ikon sidebar tiap kali menu berubah.
- * Gejalanya halus: ikon berkedip, dan pada daftar panjang terasa seperti lag.
- * Dijaga `react-hooks/static-components`.
- */
-function iconFor(name: string): React.ElementType {
-  return ICONS[name] ?? FolderKanban;
-}
+// Tabelnya PINDAH ke `lib/ikon-menu.tsx` — dibaca sidebar DAN `JudulBagian`.
+//
+// Sebelumnya tabel ini hidup di sini saja, dan judul halaman tak punya ikon
+// sama sekali. Menyalinnya ke sana akan menyimpang diam-diam begitu satu ikon
+// ditambahkan di satu salinan: sidebar menampilkan Truck, judul halaman
+// menampilkan FolderKanban, dan tak ada galat yang berbunyi. Alasan lengkap
+// ada di header berkas itu.
+const iconFor = ikonMenu;
 
 interface MenuNode {
   id: string;
@@ -132,13 +78,11 @@ interface MenuNode {
  * hanya prop-nya — itulah yang membuat React bisa mempertahankan node DOM.
  */
 function IkonGrup({ nama, aktif }: { nama: string; aktif: boolean }) {
-  const Ikon = ICONS[nama] ?? FolderKanban;
-  return <Ikon size={16} strokeWidth={aktif ? 2.5 : 1.75} style={{ flexShrink: 0 }} />;
+  return <IkonMenu nama={nama} size={16} strokeWidth={aktif ? 2.5 : 1.75} style={{ flexShrink: 0 }} />;
 }
 
 function IkonAnak({ nama, aktif }: { nama: string; aktif: boolean }) {
-  const Ikon = ICONS[nama] ?? FolderKanban;
-  return <Ikon size={14} strokeWidth={aktif ? 2.5 : 1.75} style={{ flexShrink: 0 }} />;
+  return <IkonMenu nama={nama} size={14} strokeWidth={aktif ? 2.5 : 1.75} style={{ flexShrink: 0 }} />;
 }
 
 /**

@@ -221,7 +221,7 @@ export default function LaporanPage() {
   ];
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {([["rekap", "Rekap Pembelian"], ["aging", "Aging Hutang"]] as const).map(([key, label]) => {
           const aktif = subTab === key;

@@ -1535,6 +1535,26 @@ jobs:
       - name: Tiap modul punya nama di breadcrumb
         run: node scripts/uji-remah-lengkap.mjs
 
+      # Ubin ikon judul hanya boleh digambar DUA komponen bersama, dan
+      # keduanya harus sebentuk. Founder 2026-08-14 menyebut tiga gejala yang
+      # tampak terpisah — "ada yg double icon", "grup pengadaan/akuntansi/
+      # keuangan belum ada iconnya", "grup mandor iconnya belum konsisten" —
+      # dan ketiganya satu penyebab: ubin digambar di lebih dari satu tempat.
+      #
+      # `JudulBagian` (34 halaman lewat layout empat modul) tak pernah
+      # menggambar ubin sama sekali; sebagian halaman menggambar ubin 42px
+      # sendiri lalu `KepalaHalaman` menambah yang kedua; sebagian lagi
+      # menaruh ikon inline di dalam <h1> tanpa ubin. Tak satu pun bergalat:
+      # tiap halaman wajar saat ditatap sendirian, dan salahnya hanya terasa
+      # saat berpindah halaman.
+      #
+      # Ambang NOL — keduanya bersih hari ini, dan pelanggaran baru selalu
+      # berarti cacat yang persis sama kembali. Bukti merah: dua mutasi
+      # (ubin JudulBagian 40→42 px; ubin ganda dikembalikan di /kalender),
+      # keduanya MERAH lalu HIJAU sesudah dipulihkan.
+      - name: Ubin ikon judul seragam
+        run: node scripts/uji-ubin-judul-seragam.mjs
+
       # `<Panel padat>` menyetel padding badan jadi NOL sementara kepalanya
       # tetap 16px. Baris daftar yang lebih sempit membuat isi terlihat
       # menepi — founder menunjuknya dengan satu kata, "mepet" (2026-08-10),

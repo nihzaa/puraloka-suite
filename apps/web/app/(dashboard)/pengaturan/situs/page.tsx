@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { KepalaHalaman } from "@/components/dasar";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
 import { Globe, Save, Check, X, AlertTriangle, Eye, EyeOff, RefreshCw } from "lucide-react";
@@ -201,10 +202,12 @@ function SitusContent() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
     }}>
+      {/* `KepalaHalaman` — lihat catatan di `kontrak/rfi/page.tsx`.
+          `<h1>` di sini bahkan tak menyebut `font-display`, jadi judulnya
+          memakai huruf badan teks sementara semua halaman lain memakai huruf
+          display. */}
       <header style={{ marginBottom: "var(--gap-bagian)" }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>
-          <Globe size={22} /> Situs Publik
-        </h1>
+        <KepalaHalaman judul="Situs Publik" ikon={<Globe size={19} />} />
         <p style={{ color: C.muted, marginTop: 6, fontSize: 13, maxWidth: "72ch" }}>
           Semua teks di halaman depan diedit dari sini. Perubahan langsung terbit —
           tidak perlu memasang ulang aplikasi.

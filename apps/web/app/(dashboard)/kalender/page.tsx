@@ -170,12 +170,13 @@ export default function KalenderPage() {
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
-      {/* Header */}
+      {/* Header — ubin ikon milik `KepalaHalaman`, bukan digambar di sini.
+          Halaman ini dulu menggambar ubin 42px sendiri; saat prop `ikon`
+          ditambahkan, keduanya terlukis dan founder melihat DUA ikon
+          berdampingan. Ubin buatan sendiri dihapus, bukan propnya —
+          yang bersama itulah yang seragam lintas halaman. */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <Calendar size={20} color="#fff" />
-          </div>
           <KepalaHalaman judul="Kalender Proyek" keterangan="Milestone, termin, dan aktivitas proyek"         ikon={<CalendarDays size={19} />}
       />
         </div>

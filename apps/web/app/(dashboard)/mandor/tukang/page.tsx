@@ -98,7 +98,7 @@ export default function DaftarTukangPage() {
       display: "flex", flexDirection: "column", gap: 12,
     }}>
       {/* Bilah saringan */}
-      <div style={{ ...card, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <div style={{ ...card, padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 180, border: `1px solid ${C.border}`, borderRadius: 6, padding: "6px 8px", background: "var(--surface)" }}>
           <Search size={13} color={C.muted} />
           <input aria-label="Cari nama pekerja" value={workerSearch} onChange={e => setWorkerSearch(e.target.value)} placeholder="Cari nama pekerja..." style={{ border: "none", outline: "none", fontSize: 13, width: "100%", color: C.text, background: "transparent" }} />

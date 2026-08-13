@@ -5,7 +5,7 @@ import { api } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { KepalaHalaman } from "@/components/dasar";
 import {
-  Settings2, Bell, Mail, RefreshCw, CheckCircle, AlertCircle,
+  Bell, Mail, RefreshCw, CheckCircle, AlertCircle,
   Clock, Wallet, Receipt, FolderKanban, Target, Server } from "lucide-react";
 
 interface DeadlineResult {
@@ -73,11 +73,8 @@ export default function SistemPage() {
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
-      {/* Header */}
+      {/* Header — satu ubin ikon, milik `KepalaHalaman` (lihat kalender/page.tsx). */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-        <div style={{ width: 42, height: 42, borderRadius: 10, background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))", display: "flex", alignItems: "center", justifyContent: "center" }}>
-          <Settings2 size={20} color="#fff" />
-        </div>
         <KepalaHalaman judul="Sistem" keterangan="Reminder, notifikasi, dan konfigurasi otomasi"         ikon={<Server size={19} />}
       />
       </div>

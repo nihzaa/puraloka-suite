@@ -81,7 +81,7 @@ export default function PenerimaanPage() {
         <select
           aria-label="Saring status penerimaan barang" value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: C.surface, color: C.text }}
+          style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: C.surface, color: C.text }}
         >
           <option value="">Semua Status</option>
           <option value="draft">Draft</option>

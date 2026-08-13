@@ -134,7 +134,7 @@ export default function PesananPage() {
         <select
           aria-label="Saring status Purchase Order" value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          style={{ padding: "8px 12px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: C.surface, color: C.text }}
+          style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, background: C.surface, color: C.text }}
         >
           <option value="">Semua Status</option>
           {STATUS_PO.map(s => <option key={s} value={s}>{STATUS_BADGE[s]?.label ?? s}</option>)}

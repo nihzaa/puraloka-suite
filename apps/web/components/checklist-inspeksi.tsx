@@ -374,7 +374,7 @@ function FormTambahButir({ inspeksiId, urutanBerikut, onTutup, onSelesai }: {
             disabled={sibuk || butir.trim() === ""}
             style={{
               padding: "8px 16px", borderRadius: 8, border: "none",
-              background: "var(--aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
+              background: "var(--grad-aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
               cursor: sibuk || butir.trim() === "" ? "not-allowed" : "pointer",
               opacity: sibuk || butir.trim() === "" ? 0.5 : 1,
             }}

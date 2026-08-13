@@ -146,7 +146,7 @@ export default function TemplateWbsPage() {
   }), [daftar]);
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div className="rise" style={{
         marginBottom: "var(--gap-bagian)", display: "flex",
         justifyContent: "space-between", alignItems: "flex-start",
@@ -165,7 +165,7 @@ export default function TemplateWbsPage() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-                border: "none", background: "var(--aksen)", color: "var(--on-aksen)",
+                border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
                 cursor: "pointer",
               }}
             >
@@ -231,7 +231,7 @@ export default function TemplateWbsPage() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 16px", borderRadius: 8, border: "none",
-                background: "var(--aksen)", color: "var(--on-aksen)",
+                background: "var(--grad-aksen)", color: "var(--on-aksen)",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
               }}
             >
@@ -420,7 +420,7 @@ function KartuTemplate({ t, sibuk, bolehKelola, bolehTerap, onSalin, onTerapkan,
       )}
 
       <div style={{
-        padding: "9px 14px", borderTop: `1px solid ${C.border}`,
+        padding: "var(--pad-kartu-lega)", borderTop: `1px solid ${C.border}`,
         display: "flex", gap: 8, flexWrap: "wrap",
       }}>
         {t.status === "active" && bolehTerap && (
@@ -567,7 +567,7 @@ function FormBuat({ salinDari, onTutup, onSelesai }: {
             type="button" onClick={() => void kirim()} disabled={sibuk || !boleh}
             style={{
               padding: "8px 16px", borderRadius: 8, border: "none",
-              background: "var(--aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
+              background: "var(--grad-aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
               cursor: sibuk || !boleh ? "not-allowed" : "pointer",
               opacity: sibuk || !boleh ? 0.5 : 1,
             }}
@@ -670,7 +670,7 @@ function FormTerapkan({ template, proyek, onTutup, onSelesai }: {
             type="button" onClick={() => void kirim()} disabled={sibuk || projectId === ""}
             style={{
               padding: "8px 16px", borderRadius: 8, border: "none",
-              background: "var(--aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
+              background: "var(--grad-aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
               cursor: sibuk || projectId === "" ? "not-allowed" : "pointer",
               opacity: sibuk || projectId === "" ? 0.5 : 1,
             }}

@@ -161,7 +161,7 @@ function ProcurementRingkasan() {
       {/* ── LAPIS 1 — KEADAAN ── */}
       {gagalKpi && (
         <div role="alert" style={{
-          padding: "12px 16px", borderRadius: 10, marginBottom: 18,
+          padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", borderRadius: 10, marginBottom: 18,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           display: "flex", alignItems: "center", gap: 8,
         }}>

@@ -156,7 +156,7 @@ export default function KaryawanPage() {
   }, [daftar, hariIni]);
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div className="rise" style={{
         marginBottom: "var(--gap-bagian)", display: "flex",
         justifyContent: "space-between", alignItems: "flex-start",
@@ -263,7 +263,7 @@ export default function KaryawanPage() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 16px", borderRadius: 8, border: "none",
-                background: "var(--aksen)", color: "var(--on-aksen)",
+                background: "var(--grad-aksen)", color: "var(--on-aksen)",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
               }}
             >
@@ -406,7 +406,7 @@ function KartuPegawai({ p, hariIni, bolehKelola, bolehLihatGaji, onSunting }: {
       {/* Yang kritis dibedakan dari yang sekadar kurang rapi. */}
       {kritis && (
         <div style={{
-          padding: "9px 14px", borderTop: `1px solid ${C.border}`,
+          padding: "var(--pad-kartu-lega)", borderTop: `1px solid ${C.border}`,
           background: "var(--warning-bg)", color: "var(--warning-teks)",
           fontSize: 12.5, lineHeight: 1.55,
           display: "flex", alignItems: "flex-start", gap: 7,
@@ -424,7 +424,7 @@ function KartuPegawai({ p, hariIni, bolehKelola, bolehLihatGaji, onSunting }: {
 
       {!kritis && p.kelengkapan.kurang.length > 0 && !keluar && (
         <div style={{
-          padding: "8px 14px", borderTop: `1px solid ${C.border}`,
+          padding: "var(--pad-kartu-lega)", borderTop: `1px solid ${C.border}`,
           color: C.muted, fontSize: 12, lineHeight: 1.5,
         }}>
           Belum diisi: {p.kelengkapan.kurang.join(", ")}.
@@ -433,7 +433,7 @@ function KartuPegawai({ p, hariIni, bolehKelola, bolehLihatGaji, onSunting }: {
 
       {p.kelengkapan.lengkap && !keluar && (
         <div style={{
-          padding: "8px 14px", borderTop: `1px solid ${C.border}`,
+          padding: "var(--pad-kartu-lega)", borderTop: `1px solid ${C.border}`,
           color: "var(--success)", fontSize: 12,
           display: "inline-flex", alignItems: "center", gap: 5,
         }}>
@@ -567,7 +567,7 @@ function FormPegawai({ mode, awal, calon, pilihan, bolehLihatGaji, onTutup, onSe
             type="button" onClick={() => void kirim()} disabled={sibuk || !boleh}
             style={{
               padding: "8px 16px", borderRadius: 8, border: "none",
-              background: "var(--aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
+              background: "var(--grad-aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
               cursor: sibuk || !boleh ? "not-allowed" : "pointer",
               opacity: sibuk || !boleh ? 0.5 : 1,
             }}

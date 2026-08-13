@@ -312,7 +312,7 @@ export default function ContingencyPage() {
     // ke `--w-luas`: penjaga `tata-letak-ratchet` memeriksa PER-HALAMAN, dan
     // halaman ini juga bisa dibuka lewat rute lain nanti. `--w-page` dipilih
     // karena isinya kartu + tabel ringkas, bukan tabel padat kolom.
-    <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div className="rise" style={{ marginBottom: 16 }}>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>
           Manajemen Contingency

@@ -147,7 +147,7 @@ function InvoicePageInner() {
     // Menambahkannya lagi di sini membuat jaraknya ganda dan berbeda-beda
     // antar bagian (diukur: 74px / 37px / 1px sebelum diseragamkan).
     <div style={{
-      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
+      width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
       {/* ── Saringan ── */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>

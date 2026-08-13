@@ -230,7 +230,7 @@ export default function KeuanganSettingsPage() {
     d ? new Date(d + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : "sekarang";
 
   return (
-    <div style={{ maxWidth: "var(--w-page)", margin: "0 auto", width: "100%", padding: "8px 4px 60px" }}>
+    <div style={{ maxWidth: "var(--w-page)", margin: "0 auto", width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
         <KepalaHalaman

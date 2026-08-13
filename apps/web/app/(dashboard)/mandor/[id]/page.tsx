@@ -146,7 +146,7 @@ export default function MandorProfilePage() {
       <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 28 }}>
         <button
           onClick={() => router.back()}
-          style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mid, flexShrink: 0, marginTop: 2 }}>
+          style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mid, flexShrink: 0, marginTop: 2 }}>
           <ArrowLeft size={14} /> Kembali
         </button>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>

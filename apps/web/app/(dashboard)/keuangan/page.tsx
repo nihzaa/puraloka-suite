@@ -170,7 +170,21 @@ function KeuanganContent() {
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
 
-    <div style={{ padding: 20 }}>
+    {/*
+      `padding: 0`, sebelumnya `20`.
+
+      Founder: *"isi konten yg dalam card besar ini terlalu longgar"*. Diukur
+      dari sumbernya — pembungkus ini BERSARANG di dalam pembungkus halaman
+      yang sudah memberi `--pad-x` (36px). Dua lapis padding menumpuk jadi
+      56px di kiri-kanan, sementara halaman lain 36px.
+
+      Yang terlihat: isi halaman ini menjorok lebih dalam daripada halaman
+      mana pun, dan tepi kirinya tak sejajar dengan judulnya sendiri.
+
+      Dibuang, bukan dikecilkan: satu wadah = satu padding. Kalau nanti butuh
+      jarak antar-bagian, itu tugas `gap`, bukan padding kedua.
+    */}
+    <div style={{ padding: 0 }}>
 
         {/* Period filter bar */}
         <div style={{ marginBottom: 20 }}>

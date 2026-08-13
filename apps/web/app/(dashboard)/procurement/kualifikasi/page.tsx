@@ -312,7 +312,7 @@ export default function KualifikasiVendorPage() {
   ], []);
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       <div className="rise" style={{ marginBottom: "var(--gap-bagian)" }}>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>
           Kualifikasi Vendor

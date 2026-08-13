@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { KepalaHalaman } from "@/components/dasar";
 import { bacaDenganCache, type HasilBaca } from "@/lib/cache-baca";
 import { PenandaCache } from "@/components/PenandaCache";
 import { api } from "@/lib/api";
@@ -253,14 +254,13 @@ export default function InspeksiPage() {
 
   return (
     <div className="in-halaman">
+      {/* `KepalaHalaman` — lihat catatan di `kontrak/rfi/page.tsx`. */}
       <header className="in-kepala">
-        <div>
-          <h1 className="in-judul">
-            <ClipboardList size={22} aria-hidden />
-            Permintaan inspeksi
-          </h1>
-          <p className="in-sub">Izin melanjutkan atau menutup pekerjaan.</p>
-        </div>
+        <KepalaHalaman
+          judul="Permintaan inspeksi"
+          keterangan="Izin melanjutkan atau menutup pekerjaan."
+          ikon={<ClipboardList size={19} />}
+        />
 
         <div className="in-kepala-aksi">
           <label className="in-pilih-bungkus">

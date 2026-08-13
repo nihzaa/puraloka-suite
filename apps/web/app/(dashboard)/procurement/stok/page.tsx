@@ -204,7 +204,7 @@ export default function StokPage() {
   return (
     <div style={{ width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       {lowStockItems.length > 0 && (
-        <div role="alert" style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, display: "flex", gap: 8, alignItems: "flex-start" }}>
+        <div role="alert" style={{ background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 10, padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", marginBottom: 16, display: "flex", gap: 8, alignItems: "flex-start" }}>
           <AlertTriangle size={16} color={C.danger} aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: C.danger }}>

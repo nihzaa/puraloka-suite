@@ -86,7 +86,7 @@ export default function PenugasanPage() {
       display: "flex", flexDirection: "column", gap: 12,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 8px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)" }}>
           <Search size={13} color={C.muted} />
           <input aria-label="Cari penugasan" value={search} onChange={e => setSearch(e.target.value)} placeholder="Cari mandor / proyek..." style={{ border: "none", outline: "none", fontSize: 13, width: 180, color: C.text, background: "transparent" }} />
         </div>

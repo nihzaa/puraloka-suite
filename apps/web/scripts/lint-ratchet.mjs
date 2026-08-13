@@ -78,7 +78,7 @@ const AMBANG = {
   // diikuti percabangan (`? :`), kontrolnya ada di dalam cabang. `htmlFor`
   // statis akan MATI di salah satu cabang — cacat yang sudah terbukti sekali
   // di `progress-log-modal`. Butuh penilaian per-kasus.
-  'jsx-a11y/label-has-associated-control': 20,  // 21 -> 20 (2026-08-13, label foto yatim -> <span id> + aria-labelledby)
+  'jsx-a11y/label-has-associated-control': 19,  // 21 -> 20 (2026-08-13, label foto yatim -> <span id> + aria-labelledby); 20 -> 19 (2026-08-14, satu label ikut hilang saat header buatan sendiri diganti KepalaHalaman)
   // 117 → 112 → 104 → 102 → 98 → 93 → 88 → 86 (2026-08-01/02): 5 foto di `progress-log-list` yang semula
   // `<img onClick>` — bisa diklik tetikus, TAK BISA dijangkau keyboard sama
   // sekali. Diganti `<button>`, bukan ditambal `role`+`tabIndex`+`onKeyDown`:

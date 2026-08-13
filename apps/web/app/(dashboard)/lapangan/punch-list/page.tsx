@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { KepalaHalaman } from "@/components/dasar";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/toast";
 import {
@@ -230,13 +231,12 @@ export default function PunchListPage() {
     <div className="pl-halaman">
       {/* ── Judul + pemilih proyek ───────────────────────────────────────── */}
       <header className="pl-kepala">
-        <div>
-          <h1 className="pl-judul">
-            <ClipboardCheck size={22} aria-hidden />
-            Punch list
-          </h1>
-          <p className="pl-sub">Cacat yang masih menghalangi serah terima.</p>
-        </div>
+        {/* `KepalaHalaman` — lihat catatan di `kontrak/rfi/page.tsx`. */}
+        <KepalaHalaman
+          judul="Punch list"
+          keterangan="Cacat yang masih menghalangi serah terima."
+          ikon={<ClipboardCheck size={19} />}
+        />
 
         <div className="pl-kepala-aksi">
           <label className="pl-pilih-bungkus">

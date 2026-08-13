@@ -160,7 +160,7 @@ export default function SpkPage() {
   const terlambat = daftar.filter((s) => (s.denda?.hariTerlambat ?? 0) > 0);
 
   return (
-    <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+    <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div className="rise" style={{
         marginBottom: "var(--gap-bagian)", display: "flex",
         justifyContent: "space-between", alignItems: "flex-start",
@@ -179,7 +179,7 @@ export default function SpkPage() {
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600,
-              border: "none", background: "var(--aksen)", color: "var(--on-aksen)",
+              border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
               cursor: "pointer",
             }}
           >
@@ -261,7 +261,7 @@ export default function SpkPage() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 16px", borderRadius: 8, border: "none",
-                background: "var(--aksen)", color: "var(--on-aksen)",
+                background: "var(--grad-aksen)", color: "var(--on-aksen)",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
               }}
             >
@@ -685,7 +685,7 @@ function FormTerbitSpk({ onTutup, onSelesai }: {
             type="button" onClick={() => void kirim()} disabled={sibuk || !bolehKirim}
             style={{
               padding: "8px 16px", borderRadius: 8, border: "none",
-              background: "var(--aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
+              background: "var(--grad-aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600,
               cursor: sibuk || !bolehKirim ? "not-allowed" : "pointer",
               opacity: sibuk || !bolehKirim ? 0.5 : 1,
             }}

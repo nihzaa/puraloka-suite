@@ -37,7 +37,7 @@ import {
 import { C } from "@/lib/warna-ui";
 import { BukuBesar } from "@/components/buku-besar";
 import { NeracaLabaRugi } from "@/components/neraca-laba-rugi";
-import { Tabel, type Kolom } from "@/components/dasar";
+import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { Kosong } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { formatRupiah } from "@/lib/format";
@@ -190,21 +190,26 @@ function IsiAkuntansi() {
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
-      {/* Header */}
+      {/* Header — `KepalaHalaman`, bukan `<h1>` buatan sendiri.
+          Judul mengikuti TAB AKTIF, tidak dipaku "Buku Besar": itu nama SATU
+          dari lima tab di halaman ini, dan memakainya sebagai judul seluruh
+          halaman menyembunyikan yang paling dicari — neraca dan laba-rugi,
+          "pertanyaan pertama tiap calon pelanggan" menurut triase F5-1.
+
+          Karena judulnya mengikuti tab dan bukan rute, halaman ini TIDAK bisa
+          memakai `JudulBagian` (yang membaca judul dari menu). Yang dipakai
+          `KepalaHalaman`, yang menerima judul dan ikon sebagai prop — dan
+          dengan itu ubin ikonnya sama persis dengan halaman lain.
+
+          `<h1>` sebelumnya memaku `fontSize: 28`, ukuran KETIGA di repo ini
+          setelah 26px dan 20px. Perbedaan 2px tak terlihat sendirian dan
+          terasa saat berpindah halaman — persis cacat yang sedang dibereskan. */}
       <div className="rise" style={{ marginBottom: 24 }}>
-        {/* Judul mengikuti TAB AKTIF, tidak dipaku "Buku Besar".
-            "Buku Besar" adalah nama salah satu dari lima tab di halaman ini,
-            dan memakainya sebagai judul seluruh halaman menyembunyikan yang
-            paling dicari: neraca dan laba-rugi — menurut triase F5-1 itu
-            "pertanyaan pertama tiap calon pelanggan". Orang yang membuka
-            laporan keuangan melihat judul "Buku Besar" dan menyangka salah
-            halaman. */}
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 700, color: C.text, margin: 0 }}>
-          {JUDUL_TAB[tab]}
-        </h1>
-        <p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0" }}>
-          {SUBJUDUL_TAB[tab]}
-        </p>
+        <KepalaHalaman
+          judul={JUDUL_TAB[tab]}
+          keterangan={SUBJUDUL_TAB[tab]}
+          ikon={<Landmark size={19} />}
+        />
       </div>
 
       {galat && (
