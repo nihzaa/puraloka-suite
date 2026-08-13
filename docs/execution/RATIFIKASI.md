@@ -37,7 +37,7 @@ sebenarnya menunggu saya mencarinya — persis kekeliruan yang saya akui di R-01
 | **SITUS-2** materi jual: harga, cerita proyek, screenshot | Harga adalah keputusan bisnis, bukan turunan standar. Cerita proyek adalah fakta tentang pekerjaan Anda. Mengarang keduanya = janji yang tak bisa ditepati. |
 | **SITUS-3** foto 2 kategori | Berkas aslinya tak ada di mana pun (nol kecocokan pHash dari 4 sumber). **Bisa diekstrak dari PDF compro hal. 17 & 19 kalau Anda izinkan** — kualitas turun tapi ada. |
 | **E9** 19 harga AHSP bentrok | Dua sumber sah memberi angka berbeda untuk pekerjaan yang sama. Memilih salah satunya = memutuskan harga penawaran Anda. |
-| **E10** 81 harga draft | Sama: mengaktifkannya berarti harga itu dipakai menawar pekerjaan nyata. |
+| ~~**E10** 81 harga draft~~ → **SATU keputusan** | Diukur 2026-08-13: 78 dari 81 harganya IDENTIK dengan yang sudah aktif (duplikat impor Excel), 2 belum punya harga aktif tapi keduanya beton yang sama (`Beton Site Mix - K.250` / `-K.250`, Rp 1.280.680), dan **1** benar-benar berbeda: `Plat Strip/tali ikat` draft Rp 15.000 vs aktif Rp 30.000 (−50%). Lihat `GET /cecep/price-book/draft-triase`. Yang menunggu Anda tinggal satu baris itu. |
 
 ## R-013.1 · F7-1 — keempat pertanyaan langganan, saya jawab
 

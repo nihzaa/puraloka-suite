@@ -179,6 +179,159 @@ export default async function priceBookRoutes(app: FastifyInstance) {
       })
       return reply.send({ ok: true, status: target })
     })
+
+  // ── GET /cecep/price-book/draft-triase ────────────────────────────────────
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA ENDPOINT INI ADA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // `RATIFIKASI.md` E10 mencatat "81 harga draft" sebagai perkara yang menunggu
+  // founder, dengan alasan: mengaktifkannya berarti harga itu dipakai menawar
+  // pekerjaan nyata.
+  //
+  // Alasannya benar. Angkanya yang menyesatkan.
+  //
+  // Diukur 2026-08-13 — dari 81 draft:
+  //
+  //     78  harganya IDENTIK dengan yang sudah aktif untuk resource yang sama
+  //      2  belum punya harga aktif, tapi keduanya beton yang sama
+  //         ("Beton Site Mix - K.250" / "-K.250"), harga sama persis
+  //      1  BENAR-BENAR berbeda — dan itu satu-satunya yang menuntut putusan
+  //
+  // Delapan puluh satu baris yang tampak seperti delapan puluh satu keputusan
+  // sebenarnya SATU. Yang membuatnya terasa berat bukan jumlah putusannya,
+  // melainkan tak adanya cara melihat mana yang perlu diputuskan.
+  //
+  // ── Kenapa ia MENGGOLONGKAN, bukan menerapkan
+  //
+  // Pola yang sama dengan `GET /cost-map/saran`: harga yang diaktifkan mesin
+  // diam-diam akan dipakai menawar pekerjaan, dan tebakan yang salah di sana
+  // tak pernah terlihat sampai penawarannya kalah — atau menang dengan margin
+  // negatif. Karena itu GET, permission `view`, nol tulisan.
+  app.get(
+    '/api/v1/cecep/price-book/draft-triase',
+    { preHandler: [authenticate, requirePermission('cecep:price:view')] },
+    async (request, reply) => {
+      const db = request.db!
+
+      const { data: draf, error: eDraf } = await db
+        .from('price_book_entries')
+        .select(`id, amount, effective_date, location, supplier, confidence_level,
+                 resource:resources(id, code, name, category, unit_code)`)
+        .eq('status', 'draft')
+        .limit(5000)
+      if (eDraf) return reply.status(500).send({ error: eDraf.message })
+
+      type BarisDraf = {
+        id: string
+        amount: number | string
+        effective_date: string | null
+        location: string | null
+        supplier: string | null
+        confidence_level: string | null
+        resource: {
+          id: string; code: string; name: string
+          category: string | null; unit_code: string | null
+        } | null
+      }
+      const daftar = (draf ?? []) as unknown as BarisDraf[]
+
+      if (daftar.length === 0) {
+        return reply.send({
+          total: 0, duplikat: [], baru: [], berbeda: [],
+          ringkas: { duplikat: 0, baru: 0, berbeda: 0 },
+        })
+      }
+
+      // Harga AKTIF untuk resource yang sama — pembanding yang menentukan
+      // golongannya. Diambil SEKALI untuk seluruh draft, bukan per baris:
+      // 81 permintaan berurutan menghabiskan waktu untuk jawaban yang sama.
+      const idResource = [...new Set(
+        daftar.map((d) => d.resource?.id).filter(Boolean),
+      )] as string[]
+
+      const { data: aktif, error: eAktif } = await db
+        .from('price_book_entries')
+        .select('resource_id, amount, effective_date')
+        .eq('status', 'active')
+        .in('resource_id', idResource)
+      if (eAktif) return reply.status(500).send({ error: eAktif.message })
+
+      // Bila satu resource punya beberapa harga aktif, yang TERBARU jadi
+      // pembanding — itu yang dipakai `price-resolver.ts` saat menghitung.
+      type BarisAktif = {
+        resource_id: string; amount: number | string; effective_date: string | null
+      }
+      const petaAktif = new Map<string, { amount: number; effective_date: string | null }>()
+      for (const a of (aktif ?? []) as unknown as BarisAktif[]) {
+        const ada = petaAktif.get(a.resource_id)
+        if (!ada || (a.effective_date ?? '') > (ada.effective_date ?? '')) {
+          petaAktif.set(a.resource_id, {
+            amount: Number(a.amount), effective_date: a.effective_date,
+          })
+        }
+      }
+
+      type Hasil = {
+        id: string
+        resource: BarisDraf['resource']
+        draft_amount: number
+        aktif_amount: number | null
+        selisih_pct: number | null
+        effective_date: string | null
+        location: string | null
+        supplier: string | null
+        confidence_level: string | null
+      }
+
+      const duplikat: Hasil[] = []   // sama persis dengan yang sudah aktif
+      const baru: Hasil[] = []       // resource-nya belum punya harga aktif
+      const berbeda: Hasil[] = []    // ADA aktifnya, dan nilainya BEDA
+
+      for (const d of daftar) {
+        const rid = d.resource?.id
+        const pembanding = rid ? petaAktif.get(rid) : undefined
+        const nilai = Number(d.amount)
+
+        const baris: Hasil = {
+          id: d.id,
+          resource: d.resource,
+          draft_amount: nilai,
+          // `null`, BUKAN nol: "tak ada pembanding" berbeda dari "pembandingnya
+          // nol", dan UI harus bisa membedakan keduanya.
+          aktif_amount: pembanding?.amount ?? null,
+          // Selisih dihitung di server supaya UI tak mengulang rumus, dan
+          // pembagi nol dijaga di satu tempat.
+          selisih_pct: pembanding && pembanding.amount > 0
+            ? Math.round(((nilai - pembanding.amount) / pembanding.amount) * 1000) / 10
+            : null,
+          effective_date: d.effective_date,
+          location: d.location,
+          supplier: d.supplier,
+          confidence_level: d.confidence_level,
+        }
+
+        if (!pembanding) baru.push(baris)
+        else if (pembanding.amount === nilai) duplikat.push(baris)
+        else berbeda.push(baris)
+      }
+
+      // `berbeda` diurut selisih TERBESAR lebih dulu: itu yang paling mungkin
+      // salah ketik, dan paling mahal kalau lolos.
+      berbeda.sort((a, b) =>
+        Math.abs(b.selisih_pct ?? 0) - Math.abs(a.selisih_pct ?? 0))
+
+      return reply.send({
+        total: daftar.length,
+        duplikat, baru, berbeda,
+        ringkas: {
+          duplikat: duplikat.length,
+          baru: baru.length,
+          berbeda: berbeda.length,
+        },
+      })
+    })
 }
 
 // ============================================================
