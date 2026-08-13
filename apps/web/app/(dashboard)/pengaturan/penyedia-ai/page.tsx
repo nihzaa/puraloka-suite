@@ -318,14 +318,32 @@ export default function PenyediaAiPage() {
   }
 
   return (
-    // `--w-form`, sama seperti halaman Kredensial: satu kolom kartu yang tiap
-    // barisnya memuat kalimat penjelas. Lebar penuh membuat kalimatnya
-    // memanjang melewati ~75 karakter dan melelahkan dibaca.
+    /*
+      `--w-page`, BUKAN `--w-form`.
+      ─────────────────────────────────────────────────────────────────────
+      Catatan lama di sini berkata halaman ini "satu kolom kartu yang tiap
+      barisnya memuat kalimat penjelas", jadi 900px menjaga panjang baris.
+      Itu benar untuk PROSA, dan halaman ini bukan prosa: tiap kartu asisten
+      adalah grid TIGA KOLOM (penyedia · model · batas token), dan di bawahnya
+      ada tabel pemakaian.
+
+      Diukur di layar 2560px sebelum diperbaiki:
+
+          tersedia 2340 · isi 900  →  1440px KOSONG (62%)
+
+      Persis gejala yang `ARAH-VISUAL-2026` §4a catat untuk `/proyek`
+      ("kanan kirinya ada jarak yg lumayan banyak") — perbaikannya sudah
+      ditetapkan di sana, hanya belum sampai ke halaman pengaturan.
+
+      Yang TETAP dijaga sempit adalah tempat yang memang prosa: `PanduanHalaman`
+      membatasi dirinya sendiri ke ~68ch, jadi melebarkan halaman tidak
+      memanjangkan satu pun kalimat melewati batas baca.
+    */
     <div
       style={{
         padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
         width: "100%",
-        maxWidth: "var(--w-form)",
+        maxWidth: "var(--w-page)",
         margin: "0 auto",
       }}
     >
@@ -563,8 +581,29 @@ export default function PenyediaAiPage() {
             )}
           </section>
 
-          {/* ── Satu kartu per asisten ── */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {/*
+            ── Satu kartu per asisten, BERDAMPINGAN ──
+
+            Sebelumnya `flexDirection: column` — empat kartu bertumpuk, dan di
+            layar 2560px hasilnya kolom 900px dengan 1440px kosong di
+            sampingnya. Empat kartu yang isinya SETARA (penyedia · model ·
+            token) justru paling mudah dibandingkan saat berjajar: mata
+            memindai satu baris "Model" melintasi keempatnya, alih-alih
+            menggulir dan mengingat.
+
+            `auto-fit` + `minmax`, bukan jumlah kolom yang dipaku: di layar
+            sempit ia turun sendiri jadi satu kolom tanpa media query. 460px
+            adalah lebar terkecil yang masih memuat grid tiga kolom di
+            dalamnya tanpa memaksa label membungkus.
+          */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(460px, 1fr))",
+              gap: "var(--gap-grid)",
+              alignItems: "start",
+            }}
+          >
             {(muatan?.data ?? []).map((asli) => {
               const k = gabung(asli);
               // HANYA model/token. Batas & mode punya tombolnya sendiri di

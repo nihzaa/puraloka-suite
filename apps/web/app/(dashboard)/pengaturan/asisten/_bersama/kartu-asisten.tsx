@@ -179,33 +179,70 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
 
       {pakaiTool ? (
         <>
-          <div style={{ marginBottom: 14, maxWidth: 200 }}>
+          {/*
+            Isian dan penjelasnya BERDAMPINGAN, bukan bertumpuk dalam kolom
+            200px.
+
+            Bentuk sebelumnya membungkus label, input, DAN kalimat penjelas
+            dalam satu kotak selebar 200px. Di halaman selebar `--w-page`,
+            hasilnya terlihat di tangkapan layar: kalimat tiga baris sempit
+            berdiri sendirian di kiri dengan pita kosong selebar layar di
+            sampingnya — dan pita itu membuat "Batas langkah" tampak terputus
+            dari "Data yang boleh dibaca" di bawahnya.
+
+            Yang memang perlu sempit hanya kotak angkanya. Penjelasnya
+            mengambil sisa ruang, dengan batas baca ~60ch supaya ia tak ikut
+            memanjang melewati kenyamanan mata.
+          */}
+          <div style={{ marginBottom: 14 }}>
             <label htmlFor="ronde" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
               Batas langkah
             </label>
-            <input
-              className="isian-fokus"
-              id="ronde"
-              aria-label={`Batas langkah untuk ${nama}`}
-              type="number"
-              min={1}
-              max={12}
-              value={k.maks_ronde}
-              disabled={!bolehKelola}
-              onChange={(e) => setDraf((d) => ({ ...d, maks_ronde: Number(e.target.value) }))}
-              style={GAYA_ISIAN}
-            />
-            <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
-              Berapa kali asisten boleh membaca data sebelum wajib menjawab. Tiap langkah
-              ditagih.
-            </p>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+              <input
+                className="isian-fokus"
+                id="ronde"
+                aria-label={`Batas langkah untuk ${nama}`}
+                type="number"
+                min={1}
+                max={12}
+                value={k.maks_ronde}
+                disabled={!bolehKelola}
+                onChange={(e) => setDraf((d) => ({ ...d, maks_ronde: Number(e.target.value) }))}
+                style={{ ...GAYA_ISIAN, width: 110, flexShrink: 0 }}
+              />
+              <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "60ch" }}>
+                Berapa kali asisten boleh membaca data sebelum wajib menjawab. Tiap langkah
+                ditagih.
+              </p>
+            </div>
           </div>
 
           <div>
             <p style={{ fontSize: 12, fontWeight: 550, color: C.mid, margin: "0 0 6px" }}>
               Data yang boleh dibaca
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {/*
+              Daftar 15 tool jadi DUA KOLOM di layar lebar.
+
+              Satu kolom di halaman selebar `--w-page` berarti 15 baris
+              menuntut gulir panjang sementara separuh layar kosong — dan
+              memutuskan tool mana yang dimatikan justru menuntut melihat
+              daftarnya sekaligus, bukan sepotong demi sepotong.
+
+              `auto-fit` + `minmax(340px, 1fr)`: turun sendiri jadi satu kolom
+              di layar sempit, tanpa media query. 340px adalah lebar terkecil
+              yang masih memuat nama tool + keterangannya tanpa membungkus
+              tiap dua kata.
+            */}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+                gap: "10px 24px",
+                alignItems: "start",
+              }}
+            >
               {(muatan?.tool_tersedia ?? []).map((tool) => {
                 const dicentang = semuaAktif || (aktif?.includes(tool.nama) ?? false);
                 return (

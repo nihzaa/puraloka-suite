@@ -95,7 +95,19 @@ export default function AsistenLayout({ children }: { children: React.ReactNode 
       style={{
         padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
         width: "100%",
-        maxWidth: "var(--w-form)",
+        /*
+          `--w-page`, bukan `--w-form`.
+
+          Diukur di layar 2560px: isi 900px di ruang 2340px — 1440px kosong.
+          Halaman ini memuat daftar 15 tool yang tiap barisnya punya nama,
+          keterangan, dan kunci teknis; dipaksa ke 900px ia jadi kolom
+          panjang yang menuntut gulir, padahal ruang di sampingnya menganggur.
+
+          Yang benar-benar prosa (`PanduanHalaman`, kalimat penjelas tiap
+          isian) membatasi lebar bacanya sendiri, jadi melebarkan wadah tak
+          memanjangkan satu pun baris melewati batas mata.
+        */
+        maxWidth: "var(--w-page)",
         margin: "0 auto",
       }}
     >

@@ -184,31 +184,39 @@ export default function LapisanAiPage() {
         <label htmlFor="retensi" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
           Simpan riwayat percakapan
         </label>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <input
-            className="isian-fokus"
-            id="retensi"
-            type="number"
-            min={1}
-            max={3650}
-            placeholder="Selamanya"
-            value={t.retensi_hari ?? ""}
-            disabled={!bolehKelola}
-            onChange={(e) =>
-              setDraf((d) => ({
-                ...d,
-                retensi_hari: e.target.value === "" ? null : Number(e.target.value),
-              }))
-            }
-            style={{ ...GAYA_ISIAN, width: 120 }}
-          />
-          <span style={{ fontSize: 13, color: C.mid }}>hari</span>
+        {/*
+          Isian dan penjelasnya berdampingan — sama alasannya dengan "Batas
+          langkah" di `kartu-asisten.tsx`: di halaman lebar, penjelas yang
+          berdiri sendiri di bawah kotak sempit meninggalkan pita kosong
+          selebar layar.
+        */}
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <input
+              className="isian-fokus"
+              id="retensi"
+              type="number"
+              min={1}
+              max={3650}
+              placeholder="Selamanya"
+              value={t.retensi_hari ?? ""}
+              disabled={!bolehKelola}
+              onChange={(e) =>
+                setDraf((d) => ({
+                  ...d,
+                  retensi_hari: e.target.value === "" ? null : Number(e.target.value),
+                }))
+              }
+              style={{ ...GAYA_ISIAN, width: 120 }}
+            />
+            <span style={{ fontSize: 13, color: C.mid }}>hari</span>
+          </div>
+          <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "62ch" }}>
+            Percakapan memuat kutipan data operasional. Menyimpannya tanpa batas berarti satu
+            kebocoran basis membuka riwayat bertahun-tahun. Kosongkan hanya bila Anda memang wajib
+            menyimpannya.
+          </p>
         </div>
-        <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
-          Percakapan memuat kutipan data operasional. Menyimpannya tanpa batas berarti satu
-          kebocoran basis membuka riwayat bertahun-tahun. Kosongkan hanya bila Anda memang wajib
-          menyimpannya.
-        </p>
       </div>
 
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 10, marginTop: 14 }}>
