@@ -46,6 +46,7 @@ import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
+import { PanduanHalaman } from "@/components/panduan-halaman";
 import type { PengaturanTenant } from "./_bersama/tipe";
 
 export default function LapisanAiPage() {
@@ -114,7 +115,27 @@ export default function LapisanAiPage() {
   }
 
   return (
-    <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
+    <>
+      <PanduanHalaman
+        untuk={
+          <>
+            Dua pengaturan di halaman ini berlaku untuk <strong>semua asisten</strong> sekaligus —
+            asisten pemilik, staf, web, dan wawasan portofolio. Perilaku masing-masing diatur di
+            tab sebelah.
+          </>
+        }
+        langkah={[
+          { teks: "Pastikan asisten dinyalakan di sini", selesai: t.ai_aktif },
+          {
+            teks: "Tentukan berapa lama riwayat percakapan disimpan",
+            selesai: t.retensi_hari != null,
+          },
+          { teks: "Atur perilaku tiap asisten di tab sebelah — prompt, batas langkah, dan data yang boleh dibaca" },
+        ]}
+        catatan="Mematikan saklar di sini tidak mencabut izin siapa pun dan tidak menyembunyikan halaman mana pun — asisten hanya berhenti menjawab."
+      />
+
+      <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
         <Power size={16} style={{ color: C.mid }} />
         <h2 style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: C.muted, margin: 0 }}>
@@ -214,6 +235,7 @@ export default function LapisanAiPage() {
           Simpan
         </button>
       </div>
-    </section>
+      </section>
+    </>
   );
 }

@@ -38,11 +38,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useIzin } from "@/lib/use-izin";
 import { api } from "@/lib/api";
-import { ShieldCheck, Info } from "lucide-react";
+// `Info` dilepas bersama kartu penjelas yang digantikan `PanduanHalaman` —
+// panduan tak memakai ikon, dan impor mati menaikkan lint-ratchet.
+import { ShieldCheck } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Tabel } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { PanduanHalaman } from "@/components/panduan-halaman";
 
 
 const input: React.CSSProperties = {
@@ -153,22 +156,38 @@ export default function PlafonAsistenPage() {
         keterangan="Sampai berapa tiap orang boleh menyetujui lewat asisten, tanpa membuka aplikasi."
       />
 
-      {/* Penjelasan yang menahan salah paham paling mahal di halaman ini. */}
-      <div style={{ ...GAYA_KARTU, padding: 14, display: "flex", gap: 10, alignItems: "flex-start" }}>
-        <Info size={16} style={{ color: C.muted, marginTop: 2, flexShrink: 0 }} />
-        <div style={{ fontSize: 13, color: C.muted, lineHeight: 1.65 }}>
-          <strong style={{ color: C.text }}>Plafon ini tidak menambah wewenang.</strong>{" "}
-          Ia hanya membatasi. Orang tetap harus berhak menyetujui dokumennya lewat
-          rantai persetujuan yang biasa — plafon menentukan sampai nominal berapa
-          persetujuan itu boleh dilakukan lewat asisten alih-alih lewat aplikasi.
-          <br />
-          <span style={{ display: "inline-block", marginTop: 6 }}>
-            Belum diatur berarti <strong style={{ color: C.text }}>tidak bisa sama sekali</strong>,
-            bukan tak terbatas. Dokumen yang nominalnya tidak diketahui juga selalu
-            ditolak — ia harus dibuka di aplikasi.
-          </span>
-        </div>
-      </div>
+      {/*
+        Penjelasan yang menahan salah paham paling mahal di halaman ini —
+        kini berbentuk panduan, bukan kartu.
+
+        Isinya tidak berubah (dua salah paham itu tetap yang paling mahal);
+        yang berubah: ia mendahului tabel sebagai PEMBUKA, bukan berdiri
+        sebagai kartu yang bobot visualnya setara dengan tabel yang harus
+        diisi. Ditambah urutan langkah — tabel 20 baris "belum diatur" tak
+        menyatakan apa pun tentang siapa yang sebaiknya diisi lebih dulu.
+      */}
+      <PanduanHalaman
+        untuk={
+          <>
+            <strong>Plafon ini tidak menambah wewenang, ia hanya membatasi.</strong> Orang tetap
+            harus berhak menyetujui lewat rantai persetujuan yang biasa — plafon menentukan sampai
+            nominal berapa persetujuan itu boleh dilakukan lewat asisten, alih-alih harus membuka
+            aplikasi.
+          </>
+        }
+        langkah={[
+          { teks: "Isi plafon hanya untuk orang yang memang sudah jadi penyetuju di rantai persetujuan" },
+          { teks: "Mulai dari nominal kecil — plafon bisa dinaikkan kapan saja setelah terbiasa" },
+          { teks: "Biarkan kosong untuk yang tak perlu menyetujui lewat WhatsApp" },
+        ]}
+        catatan={
+          <>
+            Belum diatur berarti <strong>tidak bisa sama sekali</strong>, bukan tak terbatas.
+            Dokumen yang nominalnya tidak diketahui juga selalu ditolak — ia harus dibuka di
+            aplikasi.
+          </>
+        }
+      />
 
       <div style={{ ...GAYA_KARTU, overflow: "hidden" }}>
         {memuat ? (

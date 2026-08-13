@@ -45,7 +45,31 @@ export interface HasilJalanTool {
 }
 
 export interface DefinisiToolAi {
+  /**
+   * Kunci teknis. Dikirim ke model, disimpan di `tool_aktif`, dipakai audit.
+   * JANGAN diubah — mengubahnya memutus konfigurasi tenant yang sudah ada.
+   */
   nama: string
+  /**
+   * Nama yang DIBACA MANUSIA di halaman pengaturan.
+   *
+   * ── Kenapa perlu, dan kenapa bukan sekadar kerapian
+   *
+   * Sampai 2026-08-13 halaman Asisten menampilkan `nama` mentah sebagai judul
+   * tiap baris: `daftar_proyek`, `ringkas_keuangan`, `menunggu_persetujuan`.
+   * Founder menilai halaman-halaman ini "asing dan menerka-nerka cara
+   * pakainya" — dan inilah salah satu sebab paling konkretnya.
+   *
+   * Kunci teknis di posisi judul menuntut pembacanya menerjemahkan snake_case
+   * sebelum bisa memutuskan. Untuk pengguna berliterasi digital rendah —
+   * yang CLAUDE.md sebut sebagai pengguna nyata repo ini — itu bukan
+   * ketidaknyamanan kecil, itu pintu yang tak bisa dibuka.
+   *
+   * Kuncinya tidak dibuang: ia tetap terlihat sebagai keterangan kecil,
+   * supaya orang yang membaca audit log atau dokumentasi API masih menemukan
+   * jembatannya.
+   */
+  label: string
   keterangan: string
   skema: Record<string, unknown>
   /** Permission yang WAJIB dimiliki. Fail-closed: tanpa ini, tool tak ada. */

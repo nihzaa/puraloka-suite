@@ -83,6 +83,7 @@ export const STATUS_PROYEK = ['draft', 'active', 'on_hold', 'completed', 'cancel
 
 const toolDaftarProyek: DefinisiToolAi = {
   nama: 'daftar_proyek',
+  label: 'Daftar proyek',
   keterangan:
     'Daftar proyek milik perusahaan beserta progres, status, dan tenggatnya. ' +
     'Pakai ini sebelum menjawab pertanyaan apa pun tentang proyek.',
@@ -152,6 +153,7 @@ const toolDaftarProyek: DefinisiToolAi = {
 
 const toolRingkasKeuangan: DefinisiToolAi = {
   nama: 'ringkas_keuangan',
+  label: 'Ringkasan keuangan',
   keterangan:
     'Ringkasan piutang: nilai invoice belum lunas dan berapa yang lewat tempo. ' +
     'Angkanya dihitung dari basis, bukan diperkirakan.',
@@ -202,6 +204,7 @@ const toolRingkasKeuangan: DefinisiToolAi = {
  */
 const toolMenungguPersetujuan: DefinisiToolAi = {
   nama: 'menunggu_persetujuan',
+  label: 'Permintaan menunggu persetujuan',
   keterangan:
     'Permintaan material (MR) yang sudah diajukan dan menunggu keputusan. ' +
     'HANYA MEMBACA — asisten tidak bisa menyetujui apa pun, dan tak ada tool untuk itu.',
@@ -256,6 +259,7 @@ const toolMenungguPersetujuan: DefinisiToolAi = {
  */
 const toolStokMaterial: DefinisiToolAi = {
   nama: 'stok_material',
+  label: 'Stok material di gudang',
   keterangan: 'Stok material di gudang. Pakai untuk pertanyaan ketersediaan bahan.',
   izin: 'gudang:view',
   skema: {
@@ -349,6 +353,7 @@ const toolStokMaterial: DefinisiToolAi = {
  */
 const toolCariDokumen: DefinisiToolAi = {
   nama: 'cari_dokumen',
+  label: 'Pencarian isi dokumen',
   keterangan:
     'Mencari ISI dokumen proyek (kontrak, SPK, berita acara, gambar kerja). ' +
     'Pakai untuk pertanyaan yang jawabannya ada di dalam dokumen, mis. ' +

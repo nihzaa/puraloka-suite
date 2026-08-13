@@ -44,6 +44,7 @@ import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
+import { PanduanHalaman } from "@/components/panduan-halaman";
 
 
 
@@ -350,6 +351,29 @@ export default function PenyediaAiPage() {
           ikon={<Bot size={19} />}
         />
       </div>
+
+      {/*
+        Halaman ini sebelumnya dibuka langsung dengan angka biaya bulan
+        berjalan lalu tiga kartu asisten berisi dropdown model. Yang hilang:
+        pernyataan bahwa halaman ini soal BIAYA & MESIN, sementara "cara
+        menjawab" ada di halaman Asisten. Tanpa itu, dua halaman terlihat
+        mengatur hal yang sama dengan kata yang berbeda.
+      */}
+      <PanduanHalaman
+        untuk={
+          <>
+            Halaman ini menentukan <strong>mesin dan biaya</strong>: model mana yang dipakai tiap
+            asisten, seberapa panjang jawabannya, dan berapa batas biaya per bulan. Gaya jawaban
+            dan data yang boleh dibaca diatur di halaman <strong>Asisten</strong>.
+          </>
+        }
+        langkah={[
+          { teks: "Pasang kunci API penyedia di halaman Kredensial — tanpa itu, asisten tak bisa menjawab sama sekali" },
+          { teks: "Pilih model per asisten: yang ringan untuk pertanyaan sederhana, yang kuat untuk penalaran" },
+          { teks: "Tetapkan batas biaya per bulan supaya pemakaian tak melewati yang Anda rencanakan" },
+        ]}
+        catatan="Batas biaya berlaku untuk seluruh asisten digabung. Saat batas tercapai, asisten berhenti menjawab sampai bulan berikutnya — tak ada tagihan yang lewat diam-diam."
+      />
 
       {!bolehKelola && (
         <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>

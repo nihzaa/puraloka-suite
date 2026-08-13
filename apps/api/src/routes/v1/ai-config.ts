@@ -157,6 +157,11 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
         // konfigurasi yang butuh curl bukan konfigurasi dari UI.
         tool_tersedia: KATALOG_TOOL.map((t) => ({
           nama: t.nama,
+          // `label` ikut dikirim supaya UI tak perlu menerjemahkan snake_case
+          // sendiri. Menaruh peta nama→label di web berarti tool baru di API
+          // muncul di layar sebagai kunci mentah sampai ada yang ingat
+          // memperbarui peta — dan yang lupa tak menghasilkan galat apa pun.
+          label: t.label,
           keterangan: t.keterangan,
           izin: t.izin,
         })),

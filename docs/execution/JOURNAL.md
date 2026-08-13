@@ -88,6 +88,94 @@ kredensial di CI, dan itu keputusan tersendiri.
 
 ---
 
+## 2026-08-13 (lanjutan 12) — "menerka-nerka": kunci mentah di posisi judul, dan halaman yang dibuka dengan kotak kosong
+
+Founder: *"di tiap halaman itu kayak asing dan menerka nerka cara pake nya,
+dan tulisan dan ui nya kurang berasa intuitif"*.
+
+Saya tak menebak sebabnya — saya memotret ketujuh halaman grup AI & Otomasi
+dengan sesi login sungguhan, lalu membacanya.
+
+### Dua sebab, dan keduanya terlihat di gambar
+
+**1. Kunci teknis berdiri di posisi JUDUL.** Halaman Asisten menampilkan
+`daftar_proyek`, `ringkas_keuangan`, `menunggu_persetujuan` sebagai judul tiap
+baris yang harus dicentang. Pembacanya wajib menerjemahkan snake_case sebelum
+bisa memutuskan. Untuk pengguna berliterasi digital rendah — yang CLAUDE.md
+§8a.3 sebut sebagai pengguna nyata repo ini — itu bukan ketidaknyamanan kecil,
+itu pintu yang tak bisa dibuka.
+
+**2. Halaman dibuka dengan kontrol, bukan orientasi.** "Instruksi tambahan"
+berupa textarea kosong. "Batas biaya per bulan" berupa input kosong. Tabel
+plafon berisi 20 baris "belum diatur".
+
+Tiap kontrol SUDAH punya kalimat penjelas — tetapi penjelas itu ada DI BAWAH
+kontrolnya dan menjawab *"kotak ini apa"*, bukan *"halaman ini untuk apa, dan
+saya mulai dari mana"*. Orang menyusun sendiri gambaran besarnya dari lima
+penjelasan terpisah.
+
+### Yang dibangun
+
+`components/panduan-halaman.tsx` — tiga pertanyaan dijawab sebelum kontrol
+pertama: untuk apa halaman ini, urutan langkahnya, dan batas yang mengejutkan
+kalau baru diketahui sesudah mengisi. Langkah yang sudah beres bercentang
+hijau, dihitung dari keadaan nyata (mis. "15 dari 15 data dicentang").
+
+Bentuknya prosa bergaris tepi, BUKAN kartu — `craft-floor` menolak kartu
+seukuran sama sebagai struktur halaman, dan halaman ini sudah penuh kartu.
+Panduan harus terbaca sebagai pembuka, bukan sebagai sesuatu yang setara
+dengan pengaturan yang harus diisi.
+
+`DefinisiToolAi.label` — 15 tool kini punya nama manusia ("Daftar proyek"),
+dan kuncinya turun jadi keterangan kecil. Labelnya datang dari API, bukan peta
+di web: peta di web berarti tool baru muncul sebagai kunci mentah sampai ada
+yang ingat memperbaruinya, dan yang lupa tak menghasilkan galat apa pun.
+
+### Dua cacat yang ditemukan ALAT, bukan mata saya
+
+1. **`audit-a11y-runtime` menolak `opacity: 0.75`** pada kunci teknis yang
+   saya turunkan — 6 node gagal kontras WCAG AA di tiga halaman. Yang salah
+   bukan ukurannya melainkan cara meredupkannya: `opacity` menurunkan kontras
+   terhadap latar tanpa memberi tahu siapa pun. Dibuang, bukan dikecilkan.
+   Sesudahnya: **0 pelanggaran**.
+
+2. **Tangkapan layar memperlihatkan panduan MENEMPEL ke judul** di halaman
+   Alur Otomasi — induknya tak memakai `grid gap`, jadi jarak atasnya nol dan
+   garis tepinya tak terlihat. Halaman lain kebetulan aman. Jarak atas kini
+   disetel di komponennya sendiri supaya ia tak bergantung pada kebetulan tata
+   letak induknya.
+
+Keduanya lolos dari pembacaan kode dan hanya muncul saat dijalankan. Itu
+alasan `webapp-testing` + audit runtime dipakai, bukan sekadar `tsc` hijau.
+
+### Satu test merah, dan BUKAN karena saya
+
+`ai-tool.test.ts` merah pada "STATUS_PROYEK sama persis dengan pg_enum".
+Sebabnya: basis dev punya **dua** tipe `project_status` — satu di `public`,
+satu di schema `test` — dan query test-nya tak menyaring schema. Dibuktikan
+dengan men-stash seluruh perubahan saya: **merah yang sama persis**. Utang
+lama, sejalan dengan TEST-MERAH-MAIN di QUEUE.
+
+### Bukti
+
+    tsc API + web            EXIT 0
+    eslint 6 berkas          0 error, 0 warning
+    audit-a11y-runtime       0 pelanggaran (dari 6)
+    a11y-ratchet             HIJAU
+    detektor impeccable      [] — nihil
+    7 penjaga visual         HIJAU
+    diperiksa di peramban    login nyata, 7 halaman, nol galat konsol
+
+### Yang BELUM dikerjakan, dan dinyatakan
+
+Halaman Biaya AI, Riwayat Asisten, dan Kanal WhatsApp belum diberi panduan.
+Sidebar grup ini juga masih 10 item sejajar tanpa pengelompokan — bagian dari
+keluhan "asing" yang belum tersentuh. Tercatat di `UI-AI-OTOMASI`, status
+**sebagian**, bukan selesai: kriteria terakhirnya penilaian founder dari
+layar, dan itu bukan milik saya untuk dinyatakan lulus.
+
+---
+
 ## 2026-08-13 (lanjutan 11) — Evolution dikelola dari UI Puraloka, dan halaman tambalan yang saya hapus sendiri
 
 Founder membuka `localhost:8081/manager` dan menerima ENOENT. Lalu tiga

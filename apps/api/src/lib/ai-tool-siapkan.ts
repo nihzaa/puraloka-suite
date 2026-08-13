@@ -153,6 +153,7 @@ export function persenSah(n: unknown): n is number {
  */
 export const toolSiapkanTulis: DefinisiToolAi = {
   nama: 'siapkan_tulis',
+  label: 'Menyiapkan catatan untuk dikonfirmasi',
   keterangan:
     'Menyiapkan pencatatan baru (catatan progres atau temuan punch list) untuk DIKONFIRMASI ' +
     'manusia. Tool ini TIDAK menyimpan apa pun — ia hanya menyusun dan memeriksa isinya. ' +

@@ -28,7 +28,18 @@
 
 /** Satu tool yang boleh dipakai asisten. */
 export interface ToolTersedia {
+  /** Kunci teknis (`daftar_proyek`). Dipakai menyimpan pilihan & membaca audit. */
   nama: string;
+  /**
+   * Nama yang dibaca manusia. Datang dari API (`DefinisiToolAi.label`), BUKAN
+   * dari peta di web — peta di sini berarti tool baru muncul sebagai kunci
+   * mentah sampai ada yang ingat memperbaruinya, dan yang lupa tak
+   * menghasilkan galat apa pun.
+   *
+   * Opsional supaya UI tetap tampil saat berbicara dengan API versi lama;
+   * cadangannya `nama`.
+   */
+  label?: string;
   keterangan: string;
   /** Izin yang tetap harus dipegang penanya — tool tak menembus otorisasi. */
   izin: string;

@@ -17,6 +17,7 @@ import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
+import { PanduanHalaman } from "@/components/panduan-halaman";
 import {
   PAKAI_TOOL,
   PERAN,
@@ -102,7 +103,50 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
   const aktif = k.tool_aktif;
   const semuaAktif = aktif === null;
 
+  const jmlTool = muatan?.tool_tersedia?.length ?? 0;
+  const jmlAktif = semuaAktif ? jmlTool : (aktif?.length ?? 0);
+
   return (
+    <>
+      {/*
+        Panduan mendahului kontrol.
+
+        Sebelumnya halaman ini dibuka langsung dengan textarea "Instruksi
+        tambahan" yang kosong — kontrol paling abstrak di seluruh halaman
+        berdiri paling depan, tanpa satu kalimat pun yang menyatakan apa yang
+        sedang diatur. Founder menyebutnya "menerka-nerka", dan itu tepat.
+      */}
+      <PanduanHalaman
+        untuk={
+          <>
+            Halaman ini mengatur <strong>cara {nama} menjawab</strong>: gaya bahasanya, seberapa
+            dalam ia boleh menggali data, dan data mana yang boleh ia baca.
+            {pakaiTool
+              ? " Modelnya sendiri (dan batas biayanya) diatur di halaman Penyedia AI."
+              : " Asisten ini tidak memakai tool — ia hanya mengolah angka yang sudah dihitung sistem."}
+          </>
+        }
+        langkah={
+          pakaiTool
+            ? [
+                { teks: "Tulis instruksi tambahan bila ada gaya jawaban yang Anda inginkan — boleh dikosongkan", selesai: Boolean(k.prompt_sistem) },
+                { teks: "Tentukan batas langkah: makin banyak, makin dalam galiannya, makin mahal tiap pertanyaan" },
+                {
+                  teks: `Centang data yang boleh dibaca — sekarang ${jmlAktif} dari ${jmlTool}`,
+                  selesai: jmlAktif > 0,
+                },
+              ]
+            : [
+                { teks: "Tulis instruksi tambahan bila ada gaya jawaban yang Anda inginkan — boleh dikosongkan", selesai: Boolean(k.prompt_sistem) },
+              ]
+        }
+        catatan={
+          pakaiTool
+            ? "Mencentang data di sini tidak memberi wewenang baru kepada siapa pun: penanya tetap hanya melihat yang memang boleh ia lihat. Yang tak dicentang tak akan dibaca asisten sama sekali."
+            : undefined
+        }
+      />
+
     <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)" }}>
       {/*
         Nama & keterangan asisten TIDAK diulang di sini — keduanya sudah jadi
@@ -192,11 +236,40 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
                       }}
                       style={{ marginTop: 3, cursor: bolehKelola ? "pointer" : "default" }}
                     />
+                    {/*
+                      LABEL manusia jadi judul, kunci teknis turun jadi
+                      keterangan kecil.
+
+                      Sebelumnya `tool.nama` mentah (`daftar_proyek`,
+                      `ringkas_keuangan`) yang berdiri di posisi judul —
+                      pembacanya harus menerjemahkan snake_case lebih dulu
+                      sebelum bisa memutuskan mencentang atau tidak. Untuk
+                      pengguna berliterasi digital rendah itu bukan
+                      ketidaknyamanan kecil, itu pintu yang tak bisa dibuka.
+
+                      Kuncinya TIDAK dibuang: yang membaca audit log atau
+                      dokumentasi API masih butuh jembatannya.
+                    */}
                     <span>
-                      <code style={{ fontSize: 11.5 }}>{tool.nama}</code>
-                      <span style={{ display: "block", fontSize: 11.5, color: C.muted, lineHeight: 1.5 }}>
+                      <span style={{ display: "block", fontSize: 13, fontWeight: 550, color: C.text }}>
+                        {tool.label ?? tool.nama}
+                      </span>
+                      <span style={{ display: "block", fontSize: 11.5, color: C.muted, lineHeight: 1.5, marginTop: 1 }}>
                         {tool.keterangan}
                       </span>
+                      {/*
+                        TANPA `opacity`. Versi pertama memakai `opacity: 0.75`
+                        di atas `--text-muted`, dan audit a11y runtime
+                        menolaknya: 6 node gagal kontras WCAG AA di tiga
+                        halaman asisten.
+
+                        Yang salah bukan ukurannya melainkan cara
+                        meredupkannya — `opacity` menurunkan kontras terhadap
+                        latar tanpa memberi tahu siapa pun. Kunci teknis boleh
+                        tampil lebih tenang dari judulnya, tetapi tetap harus
+                        terbaca oleh mata yang membutuhkannya.
+                      */}
+                      <code style={{ fontSize: 11, color: C.muted }}>{tool.nama}</code>
                     </span>
                   </label>
                 );
@@ -236,6 +309,7 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
         </button>
       </div>
     </section>
+    </>
   );
 }
 

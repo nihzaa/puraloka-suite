@@ -63,3 +63,6 @@ coverage/
 # dalamnya adalah data.
 .n8n/
 evolution-api/
+
+# Kredensial uji layar (Playwright) — TIDAK boleh ter-commit
+.env.uji-layar

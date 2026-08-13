@@ -55,6 +55,7 @@ import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Lencana, Tabel, Tombol, type Kolom } from "@/components/dasar";
 import { Kosong, Panel, KartuKPI } from "@/components/ui-dasar";
 import { TabBagian } from "@/components/tab-bagian";
+import { PanduanHalaman } from "@/components/panduan-halaman";
 import { BarisRail, KartuRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
 import { usePasangRail } from "@/lib/rail-context";
@@ -507,6 +508,29 @@ export default function HalamanAlurOtomasi() {
             </Tombol>
           ) : undefined
         }
+      />
+
+      {/*
+        "Alur" dan "workflow" adalah kata yang tak menjelaskan dirinya bagi
+        orang yang belum pernah memakai n8n — dan itu mayoritas pengguna repo
+        ini. Panduan menyebutkan CONTOH KONKRET supaya maksudnya tertangkap
+        tanpa perlu tahu apa itu n8n.
+      */}
+      <PanduanHalaman
+        untuk={
+          <>
+            Alur adalah pekerjaan yang <strong>berjalan sendiri pada waktunya</strong> — misalnya
+            tiap pagi memeriksa invoice yang lewat jatuh tempo, lalu mengirim daftarnya ke
+            WhatsApp penanggung jawab. Halaman ini memperlihatkan alur mana yang hidup, kapan
+            terakhir berjalan, dan apa hasilnya.
+          </>
+        }
+        langkah={[
+          { teks: "Pastikan sambungan ke mesin otomasi sudah hijau", selesai: n8nSiap },
+          { teks: "Daftarkan alur, atau pakai yang sudah ada di daftar bawah" },
+          { teks: "Jalankan sekali secara manual untuk memastikan hasilnya benar sebelum dibiarkan berjalan otomatis" },
+        ]}
+        catatan="Alur yang gagal tidak diam: kegagalannya tercatat di jejak, dan status kesehatannya dihitung ulang dari jejak itu — bukan dari penghitung yang bisa meleset."
       />
 
       {/*

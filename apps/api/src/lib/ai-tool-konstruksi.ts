@@ -81,6 +81,7 @@ function umurHari(tanggal: string | null): number | null {
 
 export const toolInvoiceBelumLunas: DefinisiToolAi = {
   nama: 'invoice_belum_lunas',
+  label: 'Invoice belum lunas',
   keterangan:
     'Invoice yang belum lunas beserta umur tunggakannya. Pakai untuk pertanyaan piutang, ' +
     'tagihan lewat tempo, dan uang yang seharusnya sudah masuk.',
@@ -137,6 +138,7 @@ export const toolInvoiceBelumLunas: DefinisiToolAi = {
 
 export const toolKasbon: DefinisiToolAi = {
   nama: 'kasbon',
+  label: 'Kasbon mandor',
   keterangan:
     'Kasbon mandor: menunggu persetujuan, disetujui, atau belum dipertanggungjawabkan. ' +
     'Pakai untuk pertanyaan uang muka kerja dan pertanggungjawaban mandor.',
@@ -188,6 +190,7 @@ export const toolKasbon: DefinisiToolAi = {
 
 export const toolMilestone: DefinisiToolAi = {
   nama: 'milestone',
+  label: 'Milestone proyek',
   keterangan:
     'Milestone proyek beserta tenggat dan keterlambatannya. Pakai untuk pertanyaan jadwal, ' +
     'tenggat, dan pekerjaan yang meleset dari janji ke klien.',
@@ -237,6 +240,7 @@ export const toolMilestone: DefinisiToolAi = {
 
 export const toolProgresLapangan: DefinisiToolAi = {
   nama: 'progres_lapangan',
+  label: 'Progres lapangan',
   keterangan:
     'Progres fisik terakhir dari lapangan. Pakai untuk pertanyaan "sudah berapa persen", ' +
     'kemajuan pekerjaan, dan kabar terbaru dari proyek.',
@@ -288,6 +292,7 @@ export const toolProgresLapangan: DefinisiToolAi = {
 
 export const toolPunchItem: DefinisiToolAi = {
   nama: 'punch_item',
+  label: 'Daftar perbaikan (punch list)',
   keterangan:
     'Punch list — temuan pekerjaan yang harus diperbaiki. Pakai untuk pertanyaan cacat mutu, ' +
     'perbaikan tertunda, dan kesiapan serah terima.',
@@ -343,6 +348,7 @@ export const toolPunchItem: DefinisiToolAi = {
 
 export const toolPurchaseOrder: DefinisiToolAi = {
   nama: 'purchase_order',
+  label: 'Purchase order',
   keterangan:
     'Purchase order ke pemasok beserta statusnya. Pakai untuk pertanyaan pembelian, ' +
     'pesanan material, dan komitmen ke vendor.',
@@ -395,6 +401,7 @@ export const toolPurchaseOrder: DefinisiToolAi = {
 
 export const toolChangeOrder: DefinisiToolAi = {
   nama: 'change_order',
+  label: 'Change order',
   keterangan:
     'Change order — perubahan lingkup yang mengubah nilai kontrak. Pakai untuk pertanyaan ' +
     'pekerjaan tambah-kurang dan perubahan nilai kontrak.',
@@ -447,6 +454,7 @@ export const toolChangeOrder: DefinisiToolAi = {
 
 export const toolPemasok: DefinisiToolAi = {
   nama: 'pemasok',
+  label: 'Pemasok',
   keterangan: 'Daftar pemasok/vendor terdaftar. Pakai untuk pertanyaan siapa vendornya.',
   izin: 'procurement:view',
   skema: { type: 'object', properties: {} },
@@ -484,6 +492,7 @@ export const toolPemasok: DefinisiToolAi = {
 
 export const toolKlien: DefinisiToolAi = {
   nama: 'klien',
+  label: 'Klien',
   keterangan: 'Daftar klien beserta kontaknya. Pakai untuk pertanyaan siapa pemilik proyek.',
   izin: 'clients:view',
   skema: { type: 'object', properties: {} },

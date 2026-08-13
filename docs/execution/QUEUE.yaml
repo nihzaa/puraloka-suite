@@ -1156,7 +1156,42 @@ items:
          tenant kedua masih terkunci sampai Tahap 4 & 5 (STATUS.md)"
     cara_verifikasi: "review konten vs kondisi produk yang terukur"
     bobot: M
-    status: todo
+    status: sebagian
+    catatan_kemajuan: >-
+      TAHAP 1 SELESAI 2026-08-13 — keterbacaan dasar. BELUM ditutup, karena
+      kriteria terakhirnya subjektif: penilaian ulang founder dari layar.
+
+      Yang dikerjakan:
+
+      (1) `components/panduan-halaman.tsx` — tiap halaman kini menjawab
+          "untuk apa halaman ini" dan "mulai dari mana" SEBELUM kontrol
+          pertama terlihat. Dipasang di: Lapisan AI, keempat halaman
+          asisten, Plafon Persetujuan, Penyedia AI, dan Alur Otomasi.
+
+      (2) `DefinisiToolAi.label` — 15 tool kini punya nama manusia.
+          Sebelumnya kunci mentah (`daftar_proyek`, `ringkas_keuangan`)
+          berdiri di posisi JUDUL tiap baris, dan pembacanya harus
+          menerjemahkan snake_case sebelum bisa memutuskan mencentang.
+          Labelnya datang dari API, BUKAN peta di web: peta di web berarti
+          tool baru muncul sebagai kunci mentah sampai ada yang ingat
+          memperbaruinya — dan yang lupa tak menghasilkan galat apa pun.
+
+      Dua cacat ditemukan alat, bukan mata, dan itu dicatat:
+
+      · `audit-a11y-runtime` menolak `opacity: 0.75` pada kunci teknis —
+        6 node gagal kontras WCAG AA di tiga halaman asisten. Diperbaiki
+        dengan membuang opacity, bukan mengecilkan hurufnya.
+      · Tangkapan layar memperlihatkan panduan menempel ke judul di
+        halaman Alur Otomasi (induknya tak memakai `grid gap`). Jarak
+        atas kini disetel di komponennya sendiri.
+
+      SISA untuk tahap berikutnya:
+
+      · Halaman Biaya AI, Riwayat Asisten, dan Kanal WhatsApp belum
+        diberi panduan.
+      · Sidebar grup ini masih 10 item sejajar tanpa pengelompokan
+        (diukur dari tangkapan layar). Ini bagian dari keluhan "asing"
+        yang belum tersentuh sama sekali.
 
   - id: SITUS-3
     fase: null
@@ -2288,4 +2323,48 @@ items:
       ⚠ Dicatat supaya tak terulang: sesi berikutnya yang menjalankan suite
       penuh akan melihat 6 berkas merah dan mengira dirinya merusak sesuatu.
     bobot: L
+    status: todo
+
+  - id: UI-AI-OTOMASI
+    fase: 5
+    judul: "Grup menu AI & Otomasi terasa asing — pengguna menerka cara memakainya"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "tiap halaman menyatakan APA yang bisa dilakukan di situ sebelum pengguna mengklik apa pun"
+      - "istilah teknis penyedia (instance, webhook, token, plafon) punya penjelasan dalam bahasa kerja"
+      - "urutan langkah terlihat: mana yang harus diisi dulu, mana yang menunggu"
+      - "penilaian ulang founder: tak lagi 'menerka-nerka'"
+    cara_verifikasi: >-
+      Founder membuka tiap halaman di grup AI & Otomasi tanpa penjelasan lisan,
+      lalu menyatakan sendiri apakah maksud tiap layar terbaca. Ini kriteria
+      SUBJEKTIF dan memang harus begitu — 'intuitif' tak bisa dibuktikan penjaga CI.
+    catatan: >-
+      Diminta founder 2026-08-13, DITUNDA atas persetujuannya supaya jalur
+      WhatsApp diselesaikan dulu. "jangan lupa" — dicatat di sini supaya tak
+      bergantung pada ingatan sesi.
+
+      ── Kata-kata founder, disalin apa adanya
+      "di tiap halaman itu kayak asing dan menerka nerka cara pake nya, dan
+      tulisan dan ui nya kurang berasa intuitif"
+
+      ── Cakupan (halaman di grup AI & Otomasi)
+      Kanal WhatsApp · Asisten (beserta sub-halaman) · Penyedia AI ·
+      Plafon Asisten · Biaya AI · Alur Otomasi · Riwayat Otomasi.
+
+      ── Yang SUDAH diukur 2026-08-13, supaya tak diulang
+      TJS memakai model yang BERBEDA untuk akses per-nomor: dua halaman
+      terpisah (`owner_ai_contacts` + `staff_ai_contacts`), tiap kontak
+      punya `toolTemplateId`, `toolOverrides`, `persona*`, `guardrail*`
+      sendiri. Puraloka SENGAJA tidak menirunya — nomor menempel ke
+      `user_id`, aksesnya = permission peran orang itu (ADR-004, satu
+      sumber kebenaran).
+
+      Jadi perombakan ini soal KETERBACAAN, bukan menambah konfigurasi
+      per-nomor seperti TJS. Menambahnya justru akan memperumit — dan di
+      titik itu TJS lebih rumit daripada kita, bukan sebaliknya.
+
+      ── Rujukan wajib sebelum menulis kode visual
+      docs/design/ARAH-VISUAL-2026.md · skill `impeccable` mode Operate
+      (wilayah ERP, bukan `design-taste-frontend`) · a11y WCAG 2.1 AA.
+    bobot: M
     status: todo
