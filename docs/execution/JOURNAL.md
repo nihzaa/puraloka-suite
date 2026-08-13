@@ -5,6 +5,89 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-13 (lanjutan 2) — sebelas penjaga yang tak pernah dijalankan siapa pun
+
+Sesudah memastikan ketiga penjaga baru sesi ini terdaftar di CI, saya bertanya
+sebaliknya: penjaga mana yang ADA di `scripts/` tapi TIDAK di `ci.yml`?
+
+Jawabannya sebelas. Dijalankan satu per satu: **1 hijau, 1 butuh kredensial,
+9 gagal keras** — dan kesembilan kegagalan itu bukan temuan, melainkan galat
+teknis yang membuat penjaganya tak bisa dipakai sama sekali.
+
+### Sebab: sepuluh skrip memaku `localhost:3000`
+
+```
+const BASIS = 'http://localhost:3000'    // sepuluh berkas
+```
+
+CLAUDE.md §7 sendiri memperingatkan port web BUKAN angka tetap, dan mencatat
+jebakan yang pernah memakan empat jam. Skrip-skrip ini gagal dengan cara yang
+sama samarnya: menunggu `#login-email` di server yang tak ada, lalu timeout.
+
+Diperbaiki jadi `process.env.LAYAR_BASIS ?? 'http://localhost:3000'`.
+Hasilnya langsung: `uji-nav-terjangkau` dan `uji-tab-dari-url` HIJAU, dua
+lainnya melaporkan temuan nyata alih-alih galat.
+
+### `uji-lebar-responsif`: 7 MERAH untuk tata letak yang benar
+
+Ia menghitung ruang tersedia sebagai `innerWidth - querySelector('aside')` —
+yang hanya menangkap sidebar KIRI. Rail KANAN 300px tak ikut dikurangi, jadi
+ia menuntut isi selebar 1146px di ruang yang sebenarnya 846px.
+
+Diukur di peramban, viewport 1446: main=926, rail kanan=300, sidebar=220 —
+926+300+220 = 1446, pas. **Yang salah alat ukurnya.** Diganti: ruang tersedia
+= lebar `<main>`, yang menjawab tanpa perlu tahu ada berapa rail.
+
+Sesudahnya: 5 resolusi x 3 halaman, SEMUA HIJAU.
+
+### `uji-baca-offline`: menuduh halaman yang datanya memang kosong
+
+Ia melaporkan `/procurement/permintaan` sebagai "data lama tampil tanpa
+peringatan". Diukur di peramban dengan teknik yang SAMA (memblokir
+`**/api/v1/**`, bukan seluruh jaringan): baris tabelnya NOL bahkan saat
+jaringan SEHAT — basis dev tak punya permintaan material sama sekali.
+
+Jadi cache menyimpan array kosong, dan pita benar TIDAK muncul: tak ada data
+lama untuk ditandai. Perilaku yang justru diinginkan, divonis merah.
+
+Ditambahkan pemeriksaan PRASYARAT: daftar harus berisi saat online, kalau
+tidak → **TAK TERUJI** (exit 3), bukan gagal dan bukan hijau. Keduanya bohong;
+hijau palsu lebih berbahaya karena menyatakan jalur offline sudah dijaga
+padahal tak pernah dijalankan sekali pun.
+
+**Percobaan pertama prasyarat itu salah juga**: memeriksa `tbody tr` saja,
+dan `/lapangan/inspeksi` — yang jalur offline-nya sudah benar — ikut tervonis
+TAK TERUJI. Diukur: ia merender 17 `<li>`, nol `<tr>`. Penjaga yang mengenali
+satu bentuk daftar saja akan memvonis halaman sehat tiap kali bentuknya beda.
+
+Bukti mutasi: `dariCache={asal.dariCache}` -> `{false}` di halaman inspeksi
+-> MERAH, dan ringkasannya menyebut keduanya sekaligus:
+"1 bukti GAGAL · 1 halaman TAK TERUJI".
+
+### Pola yang berulang enam kali dalam rangkaian sesi ini
+
+Alat ukurnya yang salah, bukan kode yang diukur:
+
+```
+1. Git Bash mengubah /rute jadi jalur Windows   -> 28 halaman "identik"
+2. penjaga judul menghitung nama di KOMENTAR    -> mutasi tak tertangkap
+3. `local nyata=X; [ $? ]` selalu 0             -> bukti mutasi menuduh yang sehat
+4. RemahHalaman baca sessionStorage             -> sidebar tulis ke localStorage
+5. sapuan verifikasi tunggu 2,6 detik           -> 3 halaman sehat "bermasalah"
+6. uji-lebar-responsif abaikan rail kanan       -> 7 MERAH untuk tata letak benar
+```
+
+Tak satu pun berbunyi sebagai galat. Yang menangkap semuanya: mengukur ulang
+di peramban ketika angkanya terasa terlalu rapi atau terlalu buruk.
+
+### Yang TIDAK dikerjakan
+
+Kesembilan penjaga itu belum didaftarkan ke CI — semuanya butuh peramban
+ber-login, dan CI tak punya sesi. Mendaftarkannya berarti membangun jalur
+kredensial di CI, dan itu keputusan tersendiri.
+
+---
+
 ## 2026-08-13 (lanjutan 11) — Evolution dikelola dari UI Puraloka, dan halaman tambalan yang saya hapus sendiri
 
 Founder membuka `localhost:8081/manager` dan menerima ENOENT. Lalu tiga

@@ -65,6 +65,8 @@ await hal.waitForURL((u) => !u.pathname.includes('/login'), { timeout: 25_000 })
   })
 
 let gagal = 0
+/** Halaman yang jalurnya tak bisa diuji karena datanya kosong — lihat blok PRASYARAT. */
+let takTeruji = 0
 
 for (const h of HALAMAN) {
   console.log(`\n── ${h.url} ─────────────────────────────────`)
@@ -72,6 +74,37 @@ for (const h of HALAMAN) {
   // ── 1. ONLINE: muat, biarkan cache terisi ────────────────────────────────
   await hal.goto(`${BASIS}${h.url}`, { waitUntil: 'networkidle', timeout: 30_000 })
   await hal.waitForTimeout(1500)
+
+  /*
+    PRASYARAT: halamannya harus BERISI saat online.
+
+    Halaman berdaftar kosong menyimpan array kosong ke cache, dan saat offline
+    ia benar TIDAK memasang pita — tak ada data lama untuk ditandai. Penjaga
+    yang tetap menuntut pita di sana melaporkan MERAH untuk perilaku yang
+    justru diinginkan.
+
+    Terjadi 2026-08-13: `/procurement/permintaan` dilaporkan "data lama tampil
+    tanpa peringatan", padahal diukur di peramban baris tabelnya NOL bahkan
+    saat jaringan SEHAT — basis dev tak punya permintaan material sama sekali.
+
+    Dilaporkan TAK TERUJI: bukan gagal, dan bukan hijau. Keduanya bohong, dan
+    hijau palsu lebih berbahaya — ia menyatakan jalur offline sudah dijaga
+    padahal tak pernah dijalankan sekali pun.
+  */
+  // `tbody tr` SAJA tidak cukup: percobaan pertama memakai itu, dan
+  // `/lapangan/inspeksi` — yang jalur offline-nya justru sudah benar —
+  // ikut tervonis TAK TERUJI. Diukur di peramban: ia merender 17 `<li>`,
+  // nol `<tr>`. Penjaga yang mengenali satu bentuk daftar saja akan
+  // memvonis halaman sehat setiap kali bentuknya berbeda.
+  const barisOnline = await hal.evaluate(() =>
+    document.querySelectorAll('tbody tr').length +
+    document.querySelectorAll('main li').length)
+  if (barisOnline === 0) {
+    console.log('  ⚠ TAK TERUJI: daftar KOSONG saat online — tak ada data untuk di-cache.')
+    console.log(`     Isi data uji untuk ${h.url}, lalu jalankan ulang.`)
+    takTeruji++
+    continue
+  }
 
   const adaPitaSaatOnline = await hal.locator('[role=status]')
     .filter({ hasText: 'Data tersimpan' }).count()
@@ -139,5 +172,30 @@ for (const h of HALAMAN) {
 }
 
 await peramban.close()
-console.log(`\n${gagal === 0 ? '✅ SEMUA BUKTI OFFLINE LULUS' : `❌ ${gagal} bukti GAGAL`}\n`)
-process.exit(gagal === 0 ? 0 : 1)
+
+/*
+  Halaman TAK TERUJI disebut TERPISAH, dan ikut menentukan kode keluar.
+
+  Penjaga yang melaporkan "SEMUA LULUS" sambil diam-diam melewati separuh
+  halamannya adalah kelas cacat yang sama dengan audit a11y yang melewati
+  tujuh rute dinamis lalu melaporkan "0 pelanggaran" (2026-08-13). Angka
+  hijau yang tak menyebut cakupannya bukan bukti apa-apa.
+
+  Exit 3 — bukan 0, bukan 1: ini bukan kegagalan jalur offline, tapi juga
+  bukan keberhasilan. Yang perlu diperbaiki adalah DATA UJI-nya, bukan kodenya.
+*/
+const sisipan = takTeruji > 0 ? `  ·  ${takTeruji} halaman TAK TERUJI (daftar kosong)` : ''
+
+if (gagal > 0) {
+  console.log(`\n❌ ${gagal} bukti GAGAL${sisipan}\n`)
+  process.exit(1)
+}
+
+if (takTeruji > 0) {
+  console.log(`\n⚠ Bukti yang JALAN semuanya lulus, tapi ${takTeruji} halaman TAK TERUJI`)
+  console.log('  (daftarnya kosong saat online — isi data ujinya lalu jalankan ulang)\n')
+  process.exit(3)
+}
+
+console.log('\n✅ SEMUA BUKTI OFFLINE LULUS\n')
+process.exit(0)

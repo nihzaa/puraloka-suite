@@ -25,7 +25,12 @@
  */
 import { chromium } from '@playwright/test'
 
-const BASIS = 'http://localhost:3000'
+// Port web BUKAN angka tetap — CLAUDE.md §7 mencatat jebakan yang sudah
+// memakan empat jam: web di :3007 sementara dokumen menulis :3001, dan tiap
+// lapisan menjawab benar untuk dirinya sendiri sehingga tak ada galat yang
+// menunjuk penyebabnya. Skrip yang memaku :3000 gagal dengan cara yang sama
+// samarnya: ia menunggu #login-email di server yang tak ada, lalu timeout.
+const BASIS = process.env.LAYAR_BASIS ?? 'http://localhost:3000'
 let gagal = 0
 const cek = (nama, ok, tambahan = '') => {
   console.log(`  ${ok ? '✅' : '❌'} ${nama}${tambahan ? ` — ${tambahan}` : ''}`)

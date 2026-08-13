@@ -38,7 +38,12 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { chromium } from '@playwright/test'
 
-const BASIS = 'http://localhost:3000'
+// Port web BUKAN angka tetap — CLAUDE.md §7 mencatat jebakan yang sudah
+// memakan empat jam: web di :3007 sementara dokumen menulis :3001, dan tiap
+// lapisan menjawab benar untuk dirinya sendiri sehingga tak ada galat yang
+// menunjuk penyebabnya. Skrip yang memaku :3000 gagal dengan cara yang sama
+// samarnya: ia menunggu #login-email di server yang tak ada, lalu timeout.
+const BASIS = process.env.LAYAR_BASIS ?? 'http://localhost:3000'
 
 // Resolusi nyata, bukan angka bulat karangan.
 const LAYAR = [
@@ -129,8 +134,25 @@ for (const L of LAYAR) {
     await hal.waitForTimeout(1000)
 
     const m = await hal.evaluate(() => {
-      const side = document.querySelector('aside')
-      const sw = side ? side.getBoundingClientRect().width : 0
+      /*
+        Ruang tersedia = lebar `<main>`, BUKAN `innerWidth - sidebar`.
+
+        Versi lama mengurangi `querySelector('aside')` — yang hanya menangkap
+        sidebar KIRI. Rail KANAN selebar 300px (pengingat, asisten, kalender)
+        tak ikut dikurangi, jadi penjaga ini menuntut isi selebar 1146px di
+        ruang yang sebenarnya cuma 846px.
+
+        Akibatnya tujuh pemeriksaan MERAH untuk tata letak yang benar. Diukur
+        di peramban 2026-08-13, viewport 1446: main=926, rail kanan=300,
+        sidebar=220 — 926+300+220 = 1446, pas. Yang salah alat ukurnya.
+
+        `<main>` menjawabnya tanpa perlu tahu ada berapa rail: apa pun yang
+        mengapitnya sudah keluar dari kotaknya.
+      */
+      const utama = document.querySelector('main')
+      const sw = utama
+        ? window.innerWidth - utama.getBoundingClientRect().width
+        : (document.querySelector('aside')?.getBoundingClientRect().width ?? 0)
       const kandidat = [...document.querySelectorAll('main *')].filter((e) => {
         const s = getComputedStyle(e)
         return s.maxWidth && s.maxWidth !== 'none' && e.getBoundingClientRect().width > 300
