@@ -80,9 +80,22 @@ const HALAMAN = [
  * perilaku CSS, dan sengaja tidak dikoreksi: `82vw` dipilih justru karena
  * hasilnya pas SESUDAH sidebar 220px + padding tepi terpotong.
  */
+/*
+ * SATU nilai, dua nama — mengikuti `--w-halaman` (globals.css, 2026-08-14).
+ *
+ * `page` dan `luas` sekarang alias dari token yang sama. Keduanya DIPERTAHANKAN
+ * sebagai kunci supaya daftar halaman di bawah tak perlu diubah, dan supaya
+ * kalau kelak keduanya dipisah lagi, tempatnya sudah ada.
+ *
+ * Kenapa disatukan: diukur di peramban, tak satu pun tabel BUTUH 2200px —
+ * yang terlebar (`laporan`, 6 kolom) lebar alaminya 463px dan hanya
+ * diregangkan mengikuti wadahnya. Jadi menyamakan lebar tidak menyempitkan
+ * satu kolom pun yang benar-benar dipakai.
+ */
+const LEBAR_SATU = { min: 1280, vw: 0.92, maks: 2200 }
 const TOKEN = {
-  page: { min: 1280, vw: 0.82, maks: 1800 },
-  luas: { min: 1500, vw: 0.92, maks: 2200 },
+  page: LEBAR_SATU,
+  luas: LEBAR_SATU,
 }
 
 function lebarSeharusnya(jenis, lebarLayar, tersedia) {

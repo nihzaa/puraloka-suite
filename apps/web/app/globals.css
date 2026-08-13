@@ -212,7 +212,54 @@
    *  Batasnya sekarang dipasang di tempat yang benar: `--w-baca` di bawah,
    *  dipakai pada paragraf dan kolom isian — bukan pada halamannya.
    */
-  --w-form:           min(clamp(1280px, 82vw, 1800px), 100%);
+  /**
+   * SATU LEBAR UNTUK SELURUH HALAMAN — ditetapkan 2026-08-14.
+   *
+   * ── Kenapa satu, padahal dulu sengaja tiga
+   *
+   * Founder, sesudah membuka banyak halaman berturut-turut: *"saya rasa ini
+   * semua nya itu belum konsisten semua styling desainnya… BUKA SEMUA HALAMAN
+   * DAN SAMAKAN JARAKNYA"*.
+   *
+   * Diukur di 2560px, 14 halaman — dan sebarannya memang tiga kelompok:
+   *
+   *     absensi/dashboard/keuangan/mandor   isi 2040-2560 · sisa   0px
+   *     estimasi/laporan                    isi 2200      · sisa 140px
+   *     proyek/kas/gudang/pengaturan/AI     isi 1800      · sisa 240-540px
+   *
+   * Tepi kiri halaman berpindah tiap ganti menu. Untuk SATU produk, itu
+   * cacat — bukan variasi yang disengaja.
+   *
+   * ── Kenapa tak ada yang dikorbankan
+   *
+   * Alasan lama `--w-luas` masuk akal: "halaman bertabel padat kolomnya
+   * banyak". Diukur langsung di peramban, itu TIDAK terbukti — lebar ALAMI
+   * tabel terlebar di aplikasi ini:
+   *
+   *     laporan       6 kolom · alami 463px · dipaksa 2102px
+   *     nota-kredit   4 kolom · alami 525px · dipaksa 1966px
+   *
+   * Tak satu pun tabel MEMBUTUHKAN 2200px; mereka hanya diregangkan sampai
+   * selebar wadahnya. Jadi menyatukan lebar tidak menyempitkan satu kolom pun
+   * yang benar-benar dipakai.
+   *
+   * ── Kenapa 2200, bukan 1800 atau layar penuh
+   *
+   * 1800 akan MEMBUANG ruang yang sudah dipakai halaman padat hari ini.
+   * Layar penuh menghapus tepi — di 4K satu baris jadi 3600px dan mata
+   * kehilangan pasangan kolom-kiri↔kolom-kanan (alasan yang sama sudah
+   * ditulis §4a saat langit-langit pertama kali dipasang).
+   *
+   * 2200 adalah yang tertinggi yang SUDAH terbukti terbaca di aplikasi ini.
+   *
+   * `92vw` menjaga tepi tetap terlihat di layar apa pun: di 1440 ia jadi
+   * 1324px, di 2560 jadi 2200px (langit-langit menggigit).
+   *
+   * Batas BACA tidak ikut hilang — ia pindah ke `--w-baca`, dipasang pada
+   * teksnya, bukan pada halamannya.
+   */
+  --w-halaman:        min(clamp(1280px, 92vw, 2200px), 100%);
+  --w-form:           var(--w-halaman);
 
   /** Batas BACA — dipasang pada teks, bukan pada halaman.
    *
@@ -225,7 +272,7 @@
   /** DEFAULT untuk halaman biasa: kartu, daftar, ringkasan campuran.
    *  1280 dipilih supaya di layar 1440 (paling umum di kantor) batasnya
    *  belum menggigit — halaman terasa lapang, bukan terjepit. */
-  --w-page:          min(clamp(1280px, 82vw, 1800px), 100%);
+  --w-page:          var(--w-halaman);
 
   /** Halaman bertabel padat (estimasi, procurement, piutang, laporan):
    *  kolomnya banyak dan memaksakan 1280 membuatnya berdesakan. Tetap
@@ -235,7 +282,7 @@
    *  pada layar 1920 — terlalu mepet, dan tepi yang nyaris tersentuh terbaca
    *  sebagai kelalaian, bukan keputusan. 1500 memberi 100px, cukup untuk
    *  terlihat sengaja berhenti, tanpa mengorbankan lebar kolom yang berarti. */
-  --w-luas:          min(clamp(1500px, 92vw, 2200px), 100%);
+  --w-luas:          var(--w-halaman);
 
   /** Padding tepi halaman — IKUT LEBAR LAYAR, bukan angka mati.
    *
