@@ -110,8 +110,27 @@ export function KepalaHalaman({ judul, keterangan, aksi, ikon }: {
               display: "grid", placeItems: "center", flexShrink: 0,
               width: 40, height: 40,
               borderRadius: "var(--rad-sedang)",
-              background: "var(--navy-light)",
-              color: "var(--navy)",
+              /*
+                Gradien aksen — SATU per layar, dan ini tempatnya.
+
+                Founder bertanya apakah `--grad-aksen` sebaiknya dipakai lebih
+                banyak tempat. Jawabannya: lebih SENGAJA, bukan lebih banyak.
+                Ia kini dipakai 26 tempat dan semuanya kecil-bermakna; disebar
+                ke semua kartu ia berhenti jadi penanda dan mulai jadi latar —
+                yang hilang bukan keindahannya, melainkan kemampuannya
+                MENUNJUK.
+
+                Ubin judul adalah kandidat terbaiknya: satu per halaman,
+                selalu di sudut kiri atas tempat mata mendarat pertama, dan
+                cukup kecil (40px) sehingga gradiennya terbaca sebagai bahan
+                — bukan sebagai bidang warna.
+
+                `--on-aksen`, bukan `#fff` dipaku: token ini berbalik jadi
+                gelap di mode gelap, tempat gradiennya menjadi terang.
+              */
+              background: "var(--grad-aksen)",
+              color: "var(--on-aksen)",
+              boxShadow: "var(--naik-1)",
             }}
           >
             {ikon}
@@ -122,7 +141,19 @@ export function KepalaHalaman({ judul, keterangan, aksi, ikon }: {
             fontFamily: "var(--font-display)",
             fontSize: "var(--t-halaman)",
             fontWeight: 700,
-            letterSpacing: "-0.02em",
+            /*
+              -0.03em, bukan -0.02em.
+              `Bricolage Grotesque` punya kontras tebal-tipis dan terminal
+              yang dipotong miring — karakter yang baru terbaca saat hurufnya
+              cukup rapat untuk dilihat sebagai SATU bentuk. Pada 26px,
+              -0.02em masih menyisakan celah yang membuatnya terbaca sebagai
+              deretan huruf biasa.
+
+              Berhenti di -0.03: -0.04em adalah lantai yang tak boleh
+              dilewati, dan pada huruf berkontras tinggi ia mulai membuat
+              batang huruf bersentuhan.
+            */
+            letterSpacing: "-0.03em",
             color: C.text,
             margin: 0,
             lineHeight: 1.15,
@@ -162,14 +193,30 @@ export function Kartu({ children, pad = "sedang", naik = 1, gaya }: {
     : "var(--r4)";
 
   return (
-    <div style={{
-      background: "var(--surface)",
-      border: `1px solid ${C.border}`,
-      borderRadius: "var(--rad-besar)",
-      boxShadow: naik === 0 ? "none" : `var(--naik-${naik})`,
-      padding,
-      ...gaya,
-    }}>{children}</div>
+    <div
+      /*
+        `permukaan-hidup` dipasang DI SINI, bukan di tiap halaman.
+
+        Diukur 2026-08-14: `clay-hover` — utilitas yang melakukan hal yang
+        sama — hanya terpakai di 2 berkas dari seluruh aplikasi. Menempelkan
+        kelas satu per satu ke 135 halaman tak akan pernah selesai, dan yang
+        terlewat tak menghasilkan gejala apa pun: kartunya tetap tampil,
+        hanya mati saat disentuh.
+
+        Di komponen bersama, satu baris ini menghidupkan setiap kartu yang
+        memakai `<Kartu>` sekaligus — dan halaman baru mendapatkannya tanpa
+        penulisnya perlu tahu kelas ini ada.
+      */
+      className="permukaan-hidup"
+      style={{
+        background: "var(--surface)",
+        border: `1px solid ${C.border}`,
+        borderRadius: "var(--rad-besar)",
+        boxShadow: naik === 0 ? "none" : `var(--naik-${naik})`,
+        padding,
+        ...gaya,
+      }}
+    >{children}</div>
   );
 }
 

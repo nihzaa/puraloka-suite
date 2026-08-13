@@ -864,6 +864,146 @@ body {
 .rise-5 { animation-delay: 0.25s; }
 .rise-6 { animation-delay: 0.3s; }
 
+/* ═══════════════════════════════════════════════════════════════════
+ * KARAKTER — gerak, kedalaman, dan tipografi
+ * ═══════════════════════════════════════════════════════════════════
+ *
+ * Founder 2026-08-14: *"kok kamu bikin designnya itu kaya biasa aja, kurang
+ * immersive"*, lalu: *"langsung aja buatkan, dan jangan merasa terbatasi"*.
+ *
+ * ── Yang DIUKUR lebih dulu, sebelum menambah apa pun
+ *
+ *     .rise (animasi masuk)   dipakai  58 dari 135 halaman
+ *     .clay-hover             dipakai   2 berkas
+ *     .clay-press             dipakai   1 berkas
+ *
+ * Jadi 77 halaman terbuka tanpa gerak sama sekali, dan hampir tak ada
+ * permukaan yang merespons sentuhan. ITU sebab rasa "biasa aja" — bukan
+ * paletnya. Menambah warna baru tak akan menyentuh satu pun dari angka ini.
+ *
+ * ── Kenapa TIDAK menambah warna
+ *
+ * `--grad-aksen` dipakai 26 tempat hari ini, semuanya kecil dan bermakna:
+ * garis 3px judul kartu, kartu Fokus saat ada yang lewat tenggat, tombol
+ * aksi utama. Justru karena jarang, kehadirannya berarti "ini yang penting".
+ *
+ * Menyebarkannya ke semua kartu akan membuatnya berhenti jadi penanda dan
+ * mulai jadi latar — yang hilang bukan keindahannya, melainkan kemampuannya
+ * MENUNJUK. Pelajaran yang sama sudah tercatat saat usul indigo ditolak:
+ * yang menentukan bukan warnanya, melainkan berapa persen permukaan yang
+ * ia kuasai.
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/*
+ * Satu kurva untuk seluruh aplikasi.
+ *
+ * `cubic-bezier(0.16, 1, 0.3, 1)` — ease-out eksponensial: cepat di awal,
+ * melambat panjang di akhir. Ia terasa "berhenti sendiri" alih-alih "dipaksa
+ * berhenti", dan itu yang membedakan gerak yang terasa fisik dari gerak yang
+ * terasa seperti animasi.
+ *
+ * Dipakai `rise` sejak awal; disalin ke token supaya sisa aplikasi memakai
+ * kurva yang sama. Ritme yang seragam adalah separuh dari rasa "satu produk".
+ */
+:root {
+  --gerak-kurva:  cubic-bezier(0.16, 1, 0.3, 1);
+  --gerak-cepat:  140ms;   /* umpan balik sentuh — harus terasa seketika */
+  --gerak-sedang: 220ms;   /* hover, perubahan keadaan */
+  --gerak-masuk:  500ms;   /* elemen yang baru muncul */
+}
+
+/*
+ * PERMUKAAN YANG HIDUP — dipasang di komponen bersama, bukan per halaman.
+ *
+ * `clay-hover` sudah ada tetapi hanya terpakai di 2 berkas: menempelkannya
+ * satu per satu ke 135 halaman tak akan pernah selesai, dan yang terlewat
+ * tak menghasilkan gejala apa pun. `.permukaan-hidup` dipasang di `<Kartu>`
+ * dan `<Tabel>` sehingga seluruh aplikasi mendapatkannya sekaligus.
+ *
+ * Angkatnya 2px, BUKAN 4-6px: kartu data yang melompat tinggi saat disentuh
+ * membuat mata kehilangan barisnya di tabel padat. Yang dicari umpan balik
+ * yang MENJAWAB, bukan yang menarik perhatian.
+ */
+.permukaan-hidup {
+  transition:
+    transform var(--gerak-sedang) var(--gerak-kurva),
+    box-shadow var(--gerak-sedang) var(--gerak-kurva),
+    border-color var(--gerak-sedang) ease;
+}
+.permukaan-hidup:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--naik-2);
+}
+
+/*
+ * Tekan = turun. Tanpa ini, tombol yang diklik tak memberi tahu bahwa
+ * kliknya diterima sampai datanya kembali — dan pada jaringan lambat itu
+ * berarti orang menekannya dua kali.
+ *
+ * 140ms: di bawah ~100ms terasa seperti kedipan, di atas ~200ms terasa
+ * lambat merespons.
+ */
+.tekan-hidup {
+  transition: transform var(--gerak-cepat) var(--gerak-kurva);
+}
+.tekan-hidup:active {
+  transform: scale(0.97);
+}
+
+/*
+ * MASUK BERURUTAN tanpa menempelkan kelas satu per satu.
+ *
+ * `.rise-anak > *` memberi tiap anak langsung penundaan menaik. Halaman
+ * yang membungkus isinya dengan ini mendapat gerak masuk berurutan tanpa
+ * penulisnya perlu menghitung `rise-1` … `rise-6` sendiri — dan tanpa
+ * batas enam yang selama ini memaksa halaman ke-7 dan seterusnya muncul
+ * bersamaan.
+ *
+ * Berhenti di anak ke-10: sesudah itu penundaannya lebih terasa sebagai
+ * penungguan daripada sebagai ritme.
+ */
+.rise-anak > * { animation: rise var(--gerak-masuk) var(--gerak-kurva) both; }
+.rise-anak > *:nth-child(1)  { animation-delay: 0.03s; }
+.rise-anak > *:nth-child(2)  { animation-delay: 0.06s; }
+.rise-anak > *:nth-child(3)  { animation-delay: 0.09s; }
+.rise-anak > *:nth-child(4)  { animation-delay: 0.12s; }
+.rise-anak > *:nth-child(5)  { animation-delay: 0.15s; }
+.rise-anak > *:nth-child(6)  { animation-delay: 0.18s; }
+.rise-anak > *:nth-child(7)  { animation-delay: 0.21s; }
+.rise-anak > *:nth-child(8)  { animation-delay: 0.24s; }
+.rise-anak > *:nth-child(9)  { animation-delay: 0.27s; }
+.rise-anak > *:nth-child(n+10) { animation-delay: 0.3s; }
+
+/*
+ * JUDUL HALAMAN — `Bricolage Grotesque` sudah terpasang sejak lama dan nyaris
+ * tak terpakai. Ia punya karakter (kontras tebal-tipis, terminal yang dipotong
+ * miring) yang hilang sama sekali pada ukuran kecil.
+ *
+ * `-0.03em`: di dalam batas -0.04em yang jadi lantai, dan pada 26px ia
+ * merapatkan huruf tepat cukup untuk membuat judul terbaca sebagai SATU
+ * bentuk, bukan deretan huruf.
+ */
+.judul-berkarakter {
+  font-family: var(--font-display), sans-serif;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /*
+   * Gerak DIHILANGKAN, keadaan TIDAK.
+   *
+   * Bayangan hover tetap berubah supaya "elemen ini bisa disentuh" tetap
+   * tersampaikan — yang dibuang hanya perpindahannya. Menghapus keduanya
+   * berarti pengguna yang memilih reduced-motion kehilangan informasi,
+   * bukan sekadar kehilangan animasi.
+   */
+  .permukaan-hidup, .permukaan-hidup:hover, .tekan-hidup:active {
+    transform: none !important;
+  }
+  .rise-anak > * { animation: none !important; }
+}
+
 @keyframes shimmer {
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }
