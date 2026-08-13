@@ -180,6 +180,7 @@ export default function PMMandorPage() {
                         layar ponsel — dan halaman PM-portal memang dibuka
                         dari HP. */}
                     <Tabel<WageItem>
+              berpermukaan
                       caption="Rincian upah per pekerja pada laporan ini: jumlah hari kerja, upah per hari, dan total yang diterima masing-masing."
                       data={r.wage_items as WageItem[]}
                       kunciBaris={(wi) => wi.id}

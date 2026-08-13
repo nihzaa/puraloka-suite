@@ -386,6 +386,7 @@ export default function PiutangPage() {
               demi kolom angka; di luar tabel kalimatnya membungkus
               sendiri tanpa melebarkan apa pun. */}
           <Tabel<RetentionRow>
+              berpermukaan
             caption="Retensi per proyek: yang ditahan, yang sudah dicairkan, dan sisanya. Estimasi cair dihitung dari tanggal selesai proyek ditambah hari retensi termin."
             data={retention ?? []}
             kunciBaris={r => r.project.id}
@@ -419,6 +420,7 @@ export default function PiutangPage() {
               ikut terhapus — di luar tabel tak ada `nowrap` yang perlu
               dilawan. */}
           <Tabel<DpRow>
+              berpermukaan
             caption="Uang muka per proyek: yang sudah dibayar klien dan berapa yang sudah dipotong dari invoice termin berikutnya."
             data={dp ?? []}
             kunciBaris={r => r.project.id}

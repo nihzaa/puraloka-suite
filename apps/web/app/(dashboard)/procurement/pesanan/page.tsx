@@ -243,7 +243,7 @@ export default function PesananPage() {
             <div>
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Daftar Item</div>
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-                <Tabel
+                <Tabel              berpermukaan
                   kolom={kolomItem}
                   data={detailPo.items ?? []}
                   kunciBaris={i => i.id}

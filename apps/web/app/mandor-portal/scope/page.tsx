@@ -309,6 +309,7 @@ function ScopeItemsDetail({ scopeId }: { scopeId: string }) {
   return (
     <div style={{ padding: "0 20px 16px", overflowX: "auto" }}>
       <Tabel<ItemPekerjaan>
+              berpermukaan
         caption="Rincian item pekerjaan pada lingkup ini: satuan, target volume, realisasi, dan persentase penyelesaian tiap item."
         kolom={kolomItem}
         data={items}

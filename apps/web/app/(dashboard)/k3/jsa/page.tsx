@@ -377,7 +377,7 @@ export default function JsaPage() {
             </JudulKartu>
 
             <Tabel
-              kolom={kolom}
+              berpermukaan              kolom={kolom}
               data={aktif?.langkah ?? []}
               kunciBaris={(x) => x.id}
               caption="Langkah pekerjaan beserta bahaya, pengendalian, dan risiko sesudah pengendalian"

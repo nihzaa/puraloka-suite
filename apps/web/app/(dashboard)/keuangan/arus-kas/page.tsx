@@ -336,6 +336,7 @@ export default function ArusKasPage() {
                 ada di kartu KPI di atas chart. */}
             <div style={{ borderRadius: 10, border: `1px solid ${C.border}`, background: "var(--surface)", overflow: "hidden" }}>
               <Tabel<ArusKasChartPoint>
+              berpermukaan
                 caption="Arus kas per periode: uang masuk, uang keluar, dan selisih bersihnya."
                 data={arusChart}
                 kunciBaris={row => row.label}

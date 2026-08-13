@@ -579,6 +579,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
                   rata kiri membuat digitnya tak pernah sejajar. */}
             <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
               <Tabel<WageItem>
+              berpermukaan
                 caption="Rincian upah per pekerja: jumlah hari, tarif harian, lembur, dan subtotal."
                 data={data.items}
                 kunciBaris={item => item.id}

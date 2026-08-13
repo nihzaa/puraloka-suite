@@ -335,7 +335,7 @@ export default function PermintaanPage() {
               <div style={{ fontWeight: 600, marginBottom: 10 }}>Daftar Material</div>
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
                 <Tabel
-                  kolom={kolomItem}
+              berpermukaan                  kolom={kolomItem}
                   data={detailMr.items ?? []}
                   kunciBaris={i => i.id}
                   caption="Item dalam Material Request ini: material, jumlah yang diminta, satuan, harga estimasi, dan catatan."

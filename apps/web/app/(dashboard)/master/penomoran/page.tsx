@@ -379,7 +379,7 @@ function KartuJenis({ jenis: j, bolehKelola, onSimpan, onGagal }: {
 
         {buka && (
           <Tabel
-            caption={`Riwayat nomor terakhir per periode untuk ${j.label}.`}
+              berpermukaan            caption={`Riwayat nomor terakhir per periode untuk ${j.label}.`}
             data={j.periode}
             kunciBaris={(p) => p.period}
             kolom={[

@@ -499,6 +499,7 @@ export default function KlienPage() {
              dibacakan pembaca layar sebagai kolom berisi data, padahal
              isinya tombol. Perilakunya sama persis dengan versi mentah. */
           <Tabel<Client>
+              berpermukaan
             caption="Daftar klien: nama, kontak, tipe, kelengkapan data, dan status kerja sama."
             data={filtered}
             kunciBaris={c => c.id}

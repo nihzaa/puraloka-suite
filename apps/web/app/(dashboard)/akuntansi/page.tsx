@@ -587,6 +587,7 @@ function TabNeraca({
             `minWidth: 620` dilepas: komponen sudah membungkus dengan
             overflow-x, jadi gulirnya tetap ada tanpa lebar mati. */}
         <Tabel<BarisNeraca>
+              berpermukaan
           caption="Neraca saldo per akun: nama akun, kode, debit, kredit, dan saldo akhir. Disusun dari jurnal yang sudah posted; jurnal draft tidak dihitung."
           data={baris}
           kunciBaris={b => b.account_id}

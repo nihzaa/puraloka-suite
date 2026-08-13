@@ -1216,6 +1216,7 @@ function ProjectDetailContent() {
                 sedangkan "Uang muka" langsung memberi tahu uang apa yang
                 sedang dibicarakan. Nomornya tetap ada sebagai kolom biasa. */}
             <Tabel<TerminSchedule>
+              berpermukaan
               caption="Termin pembayaran: nomor, label, nilai, persentase terhadap kontrak, syarat penagihan, dan status."
               data={termins}
               kunciBaris={t => t.id}
@@ -1515,6 +1516,7 @@ function ProjectDetailContent() {
               nominalnya. `(k as any)` di dua kolom pertama juga hilang —
               `allKasbons` memang sudah bertipe, castnya cuma warisan. */}
           <Tabel<(typeof allKasbons)[number]>
+              berpermukaan
             caption="Kasbon proyek ini: mandor, lingkup kerja, tujuan, jumlah, tanggal, dan status persetujuan."
             data={allKasbons.slice(0, 10)}
             kunciBaris={k => k.id}

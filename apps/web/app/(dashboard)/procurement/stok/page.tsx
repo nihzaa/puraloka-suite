@@ -249,7 +249,7 @@ export default function StokPage() {
 
       {loading ? <Memuat /> : (
         <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-          <Tabel
+          <Tabel              berpermukaan
             kolom={kolomStok}
             data={filtered}
             kunciBaris={s => s.id}
@@ -293,7 +293,7 @@ export default function StokPage() {
             />
           ) : loadingLog ? <Memuat teks="Memuat log..." /> : (
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-              <Tabel
+              <Tabel              berpermukaan
                 kolom={kolomMutasi}
                 data={movements}
                 kunciBaris={m => m.id}
@@ -562,7 +562,7 @@ function OpnameModal({ projects, onClose, onSuccess }: {
             <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginTop: 4 }}>Input Stok Fisik Aktual</div>
             {loadingItems ? <Memuat teks="Memuat daftar material..." /> : (
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-                <Tabel
+                <Tabel              berpermukaan
                   kolom={kolom}
                   data={items}
                   kunciBaris={i => i.material_id}

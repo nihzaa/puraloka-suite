@@ -550,7 +550,7 @@ export default function PayrollPage() {
                           <p style={{ fontSize: 11, color: C.muted, paddingBottom: 6 }}>
                             Rincian slip {nama} — {namaBulan(p.bulan)}
                           </p>
-                          <Tabel
+                          <Tabel              berpermukaan
                             caption={`Rincian komponen slip gaji ${nama} untuk ${namaBulan(p.bulan)}`}
                             data={s.komponen}
                             kunciBaris={(k) => k.id}

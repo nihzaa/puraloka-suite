@@ -246,7 +246,7 @@ export default function RecycleBinPage() {
             <Rangka tinggi={48} jumlah={3} />
           ) : (
             <Tabel
-              kolom={kolom}
+              berpermukaan              kolom={kolom}
               data={item}
               kunciBaris={(it) => it.id}
               caption="Data terhapus yang masih bisa dipulihkan"

@@ -716,6 +716,7 @@ function DashboardContent() {
               nomor invoice sebagai batas kiri — penandanya tetap di tepi
               kiri baris dan tetap terbaca. */}
           <Tabel<Invoice>
+              berpermukaan
             caption="Invoice yang menunggu pembayaran: nomor, proyek dan klien, sisa tagihan, dan jatuh tempo."
             data={data.outstanding_invoices.slice(0, 5)}
             kunciBaris={inv => inv.id}
@@ -810,6 +811,7 @@ function DashboardContent() {
               untuk SESEORANG, dan tombol Setuju/Tolak tak boleh dibacakan
               tanpa menyebut siapa. */}
           <Tabel<Kasbon>
+              berpermukaan
             caption="Kasbon menunggu persetujuan: mandor, proyek, tujuan, jumlah, tanggal pengajuan, dan aksi."
             data={data!.pending_kasbons.slice(0, 5)}
             kunciBaris={k => k.id}

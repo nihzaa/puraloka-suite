@@ -555,6 +555,7 @@ export default function RegisterKontrakPage() {
               ) : (
                 <div className="rise rise-4">
                   <Tabel<Baris>
+              berpermukaan
                     kolom={kolomKontrak(ubahStatus)}
                     data={daftarTersusun}
                     kunciBaris={(b) => b.k.id}

@@ -627,7 +627,7 @@ export default function AuditMutuPage() {
               sebab="Audit yang tak menemukan apa pun adalah hasil yang sah — dan auditnya sendiri yang menjadi bukti pemeriksaan dilakukan."
             />
           ) : (
-            <Tabel
+            <Tabel              berpermukaan
               kolom={buatKolom(bukaTaut)}
               data={detail.temuan}
               kunciBaris={(t) => t.id}

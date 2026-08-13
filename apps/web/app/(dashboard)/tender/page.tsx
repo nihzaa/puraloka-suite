@@ -371,6 +371,7 @@ export default function TenderPage() {
               (lihat catatan kepala berkas), dan itu runtuh begitu digit "1"
               lebih sempit daripada "8". */}
           <Tabel<Bid>
+              berpermukaan
             caption="Daftar tender: nama, pemberi kerja, nilai penawaran kami, nilai pemenang, selisih, tanggal diajukan, dan status."
             data={bids}
             kunciBaris={(b) => b.id}

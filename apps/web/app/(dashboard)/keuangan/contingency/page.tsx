@@ -487,6 +487,7 @@ export default function ContingencyPage() {
                       statusnya tetap ada di kolom terakhir, karena keduanya warna
                       dan warna saja tak terbaca (WCAG 1.4.1). */}
                   <Tabel<Pos>
+              berpermukaan
                     caption="Pos cadangan risiko: nama, proyek, nilai cadangan, jumlah terpakai, sisa, porsi terhadap nilai kontrak, dan statusnya."
                     data={hasil.pos}
                     kunciBaris={(p) => p.id}

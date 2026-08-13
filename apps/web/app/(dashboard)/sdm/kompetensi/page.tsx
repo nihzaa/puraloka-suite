@@ -550,7 +550,7 @@ export default function KompetensiPage() {
               />
             ) : (
               <Tabel
-                kolom={KOLOM_SERTIFIKAT}
+              berpermukaan                kolom={KOLOM_SERTIFIKAT}
                 data={s.baris}
                 kunciBaris={(x) => x.id}
                 caption={`Sertifikat ${detail.pegawai.orang?.name ?? ""} pada ${tanggal(detail.pada)}`}

@@ -364,6 +364,7 @@ export default function RiwayatHargaPage() {
                   `minWidth: 700` dilepas — gulir horizontal datang dari
                   pembungkus komponen. */}
               <Tabel<Material>
+              berpermukaan
                 caption="Material yang harganya bergerak: harga pembelian pertama, harga terakhir, arah dan besar perubahan, rentang waktu, serta apakah titiknya cukup untuk disebut tren."
                 data={bergerak}
                 kunciBaris={(m) => m.material_id}
@@ -408,6 +409,7 @@ export default function RiwayatHargaPage() {
 
                   `minWidth: 480` dilepas — pembungkus komponen yang menggulir. */}
               <Tabel<Material>
+              berpermukaan
                 caption="Material yang baru sekali dibeli: nama, harga, dan tanggal pembelian."
                 data={satuTitik}
                 kunciBaris={(m) => m.material_id}

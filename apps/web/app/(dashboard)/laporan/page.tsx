@@ -614,6 +614,7 @@ function LaporanContent() {
                         `Tabel` memilih garis tipis + sorot hover, karena pada tabel
                         padat belang menambah kebisingan tanpa menambah keterbacaan. */}
                     <Tabel<TaxData["summary_by_month"][number]>
+              berpermukaan
                       caption="Rekap pajak per periode: PPh final, PPN, total pajak, jumlah invoice, serta berapa yang sudah dan belum dilaporkan."
                       data={taxData.summary_by_month}
                       kunciBaris={m => m.period}
@@ -681,6 +682,7 @@ function LaporanContent() {
                       Keadaan kosong pindah ke prop `kosong`: sebagai <td colSpan>
                       di <tbody> ia dibacakan seolah nama sebuah baris data. */}
                   <Tabel<TaxRecord>
+              berpermukaan
                     caption="Rincian pajak per invoice: nomor invoice, periode, proyek, jenis pajak, DPP, tarif, nilai pajak, nomor e-Faktur, dan status."
                     data={taxData.records}
                     kunciBaris={r => r.id}
@@ -892,6 +894,7 @@ function TabRingkasan({ data, canViewFinance }: { data: ProjectSummaryData; canV
               `kepalaBaris` di No Invoice — nomor tagihanlah yang menamai barisnya,
               dan itu pula yang dicocokkan orang ke bukti setoran. */}
           <Tabel<Invoice>
+              berpermukaan
             caption="Ringkasan invoice: nomor, tipe, total tagihan, jumlah terbayar, sisa, dan status pembayaran."
             data={data.invoices}
             kunciBaris={inv => inv.id}
@@ -969,6 +972,7 @@ function TabKeuangan({ data }: { data: FinancialData }) {
           {/* Dipindahkan dari DataTable lokal ke <Tabel> bersama 2026-08-07 (UI-0-4).
               `kepalaBaris` di Proyek — nama proyek yang menamai barisnya. */}
           <Tabel<FinancialData["byProject"][number]>
+              berpermukaan
             caption="Piutang per proyek: invoice, total tagihan, terbayar, outstanding, dan persentase pelunasan."
             data={byProject}
             kunciBaris={p => p.id}
@@ -1002,6 +1006,7 @@ function TabKeuangan({ data }: { data: FinancialData }) {
             `kosong`: di dalam <tbody> pembaca layar membacakannya seolah itu nama
             sebuah baris data. */}
         <Tabel<Invoice>
+              berpermukaan
           caption="Daftar seluruh invoice: nomor, proyek, total, terbayar, sisa, jatuh tempo, dan status."
           data={invoices}
           kunciBaris={inv => inv.id}
@@ -1082,6 +1087,7 @@ function TabCashflow({ data }: { data: CashflowData }) {
                 sudah dihitung server di `summary`, tapi dulu hanya tampil sebagai
                 KPI di atas grafik dan tak pernah menutup kolomnya sendiri. */}
             <Tabel<CashflowData["byMonth"][number]>
+              berpermukaan
               caption="Arus kas per periode: uang masuk, uang keluar, dan selisih bersihnya."
               data={byMonth}
               kunciBaris={row => row.period}
@@ -1184,6 +1190,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
                             identitas. Total ditambahkan supaya kolom jumlah punya
                             penutup di <tfoot>, bukan hanya angka di kepala kartu. */}
                         <Tabel<WageReport>
+              berpermukaan
                           caption="Upah per minggu: jumlah yang diajukan dan status pembayarannya."
                           data={mr.wages}
                           kunciBaris={w => w.id}
@@ -1209,6 +1216,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
                             `kepalaBaris` di Keperluan — itu yang menamai kasbonnya
                             ("Gaji Tukang", "Uang Makan"); tanggal persetujuan tidak. */}
                         <Tabel<Kasbon>
+              berpermukaan
                           caption="Kasbon per keperluan: jumlah yang diajukan dan status persetujuannya."
                           data={mr.kasbons}
                           kunciBaris={k => k.id}
@@ -1335,6 +1343,7 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
               angkanya sudah ada di `summary`, dan kolom "Total" yang tak pernah
               dijumlahkan mengundang orang menjumlahkannya sendiri di kepala. */}
           <Tabel<ExpensesData["byProject"][number]>
+              berpermukaan
             caption="Pengeluaran per proyek: jumlah transaksi, total nilai, dan porsinya terhadap keseluruhan."
             data={byProject}
             kunciBaris={p => p.id}
@@ -1376,6 +1385,7 @@ function TabPengeluaran({ data }: { data: ExpensesData }) {
 
             Baris total ditambahkan lewat prop `total`. */}
         <Tabel<Expense>
+              berpermukaan
           caption="Rincian pengeluaran: deskripsi, tanggal, kategori, vendor, dan jumlah."
           data={expenses}
           kunciBaris={e => e.id}
@@ -1632,6 +1642,7 @@ function PortofolioTab() {
           Keadaan kosong pindah ke prop `kosong`, jadi `EmptyState` tak lagi perlu
           percabangan terpisah di sini. */}
       <Tabel<(typeof data)[number]>
+              berpermukaan
         caption="Serapan anggaran per proyek: dasar pagu, nilai pagu, serapan, persentase serapan, progres fisik, deviasi, dan sisa pagu."
         data={data}
         kunciBaris={d => d.projectId}
@@ -1770,6 +1781,7 @@ function WipTab() {
           lebar minimum yang dipaku justru memaksa scroll horizontal di layar
           sempit meski isinya muat. */}
       <Tabel<(typeof data)[number]>
+              berpermukaan
         caption="Pengakuan pendapatan per proyek: metode, persentase penyelesaian, nilai kontrak, pendapatan diakui, biaya, laba, CIE, dan BIE."
         data={data}
         kunciBaris={w => w.projectId}

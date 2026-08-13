@@ -298,6 +298,7 @@ export default function MaterialKlienPage() {
                 membungkus dengan overflow-x, jadi gulir horizontalnya tetap
                 ada tanpa memaksa lebar mati ke primitif bersama. */}
             <Tabel<Penerimaan>
+              berpermukaan
               caption="Riwayat penerimaan material milik klien: material, jumlah, tanggal, proyek penerima, pemasok dari owner, dan nomor surat jalan."
               data={penerimaan}
               kunciBaris={(p) => p.id}

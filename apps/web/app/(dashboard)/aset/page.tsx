@@ -506,6 +506,7 @@ function TabelAset({ baris }: { baris: Aset[] }) {
        komponen sudah memberi gulir horizontal tanpa memaksa lebar mati masuk
        ke primitif bersama. */
     <Tabel<Aset>
+              berpermukaan
       caption="Daftar aset: nama, kode, kategori, status, nilai perolehan, nilai buku, dan penyusutan."
       data={baris}
       kunciBaris={(a) => a.id}
@@ -611,6 +612,7 @@ function TabelSewa({ baris }: { baris: Sewa[] }) {
        `minWidth: 680` dilepas dengan alasan yang sama seperti tabel aset:
        gulir horizontal sudah datang dari pembungkus komponen. */
     <Tabel<Sewa>
+              berpermukaan
       caption="Penyewaan alat: nama alat, tarif, tanggal mulai dan selesai, status, serta biaya sampai kini."
       data={baris}
       kunciBaris={(r) => r.id}

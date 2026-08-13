@@ -450,6 +450,7 @@ export default function KeterlambatanPage() {
                 membungkus dengan overflow-x, jadi gulir horizontalnya tetap
                 ada tanpa memaksa lebar mati ke primitif bersama. */}
             <Tabel<Baris>
+              berpermukaan
               caption="Analisa keterlambatan milestone: tenggat, tanggal selesai, hari telat kotor, perpanjangan waktu yang disetujui, telat efektif sesudah EOT, estimasi paparan rupiah, dan statusnya."
               data={terlihat}
               kunciBaris={(b) => b.milestone_id}

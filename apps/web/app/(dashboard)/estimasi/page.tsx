@@ -356,6 +356,7 @@ function KomposerTab() {
               <tbody> ia dibacakan seolah nama sebuah baris data. */}
           <div style={{ marginTop: 12 }}>
             <Tabel<EstItem>
+              berpermukaan
               caption="Rekapitulasi RAB: uraian pekerjaan, kode, volume, satuan, dan jumlah biaya tiap pos."
               data={openVersion.items}
               kunciBaris={it => it.id}
@@ -580,6 +581,7 @@ function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => voi
                   sebagai nama baris, penjelasannya jadi melingkar. */}
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
                 <Tabel<NonNullable<typeof data>["komponen"][number]>
+              berpermukaan
                   caption="Rincian analisa harga satuan pos ini: kode resource, koefisien, harga satuan, subtotal, dan sumber harganya."
                   data={data.komponen}
                   kunciBaris={k => k.kode}
@@ -1728,6 +1730,7 @@ function AdopsiModal({ asal, onClose, onDone }: {
               `false` sebagai anak <tbody>; sebagai daftar `data` ia harus sudah
               bersih supaya `kunciBaris` tak pernah menerima baris tanpa resource. */}
           <Tabel<AsmComponent & { resource: NonNullable<AsmComponent["resource"]> }>
+              berpermukaan
             caption="Perbandingan koefisien sebelum dan sesudah penyesuaian, per uraian resource."
             data={komponen.filter((c): c is AsmComponent & { resource: NonNullable<AsmComponent["resource"]> } => Boolean(c.resource))}
             kunciBaris={c => c.resource.code}
@@ -1920,6 +1923,7 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
               `kepalaBaris` di Uraian, alasan sama dengan tabel adopsi di atas:
               nama bahan yang menamai baris, bukan angka koefisiennya. */}
           <Tabel<AsmComponent & { resource: NonNullable<AsmComponent["resource"]> }>
+              berpermukaan
             caption="Perbandingan harga satuan yang berlaku sekarang dengan yang akan diterapkan, per uraian."
             data={komponen.filter((c): c is AsmComponent & { resource: NonNullable<AsmComponent["resource"]> } => Boolean(c.resource))}
             kunciBaris={c => c.resource.code}
@@ -2130,6 +2134,7 @@ function RapTab() {
                 Pesan kosong pindah ke prop `kosong`: sebagai <td colSpan> di
                 <tbody> pembaca layar membacakannya seolah nama sebuah baris. */}
             <Tabel<RapMaterialLine>
+              berpermukaan
               caption="Penyesuaian kuantitas material: qty RAB, qty disesuaikan, satuan, harga supplier, dan pagu."
               data={detail.material}
               kunciBaris={m => m.id}
@@ -2189,6 +2194,7 @@ function RapTab() {
                 `kepalaBaris` di Uraian Pekerjaan: itu satu-satunya kolom yang
                 mengidentifikasi borongannya. Pesan kosong pindah ke prop `kosong`. */}
             <Tabel<RapLaborLine>
+              berpermukaan
               caption="Nilai borongan per uraian pekerjaan."
               data={detail.labor}
               kunciBaris={l => l.id}
@@ -2238,6 +2244,7 @@ function RapTab() {
                  orang saat membuka log ini. */
               <div style={{ borderTop: `1px solid ${C.border}` }}>
                 <Tabel<RapChangeLogEntry>
+              berpermukaan
                   caption="Riwayat perubahan: alasan, waktu, kolom yang diubah, nilai lama, dan nilai baru."
                   data={changeLog}
                   kunciBaris={l => l.id}
@@ -2763,6 +2770,7 @@ function OverrideProyek() {
            "Alasan" isinya kalimat panjang dan "Berlaku" tanggal — keduanya
            keterangan atas harga khusus itu, bukan identitasnya. */
         <Tabel<OverrideHarga>
+              berpermukaan
           caption="Harga khusus per resource: nilai, masa berlaku, dan alasan penetapannya."
           data={data}
           kunciBaris={o => o.id}
@@ -3076,6 +3084,7 @@ function PrioritasHarga({ onIsi }: { onIsi: (r: { code: string; name: string; un
               bukan abjad — lihat catatan di kepala komponen ini. `Tabel` tidak
               mengurutkan ulang, jadi urutan itu utuh. */}
           <Tabel<ResourceTanpaHarga>
+              berpermukaan
             caption="Pemakaian bahan dan upah: nama, kategori, dan jumlah yang dipakai."
             data={data}
             kunciBaris={r => r.resource_id}
@@ -3471,6 +3480,7 @@ function CashflowTab() {
               Rincian pencairan per periode — kolom kumulatif berakhir persis di baseline.
             </p>
             <Tabel<CashflowPeriod>
+              berpermukaan
               caption="Rincian pencairan kas per periode: nilai pencairan, kumulatif, dan persentasenya terhadap baseline."
               data={data.forecast}
               kunciBaris={p => String(p.period)}
@@ -3747,6 +3757,7 @@ function VariansTab() {
               Belanja nyata dikelompokkan per Cost Code — urut exposure terbesar.
             </p>
             <Tabel<VariansBaris>
+              berpermukaan
               caption="Belanja nyata per Cost Code: nilai aktual, pagu, sisa anggaran, dan jumlah kategori belanja di bawahnya."
               data={varians.data}
               kunciBaris={b => b.cost_code_id ?? "unmapped"}
@@ -3954,6 +3965,7 @@ function VariansTab() {
                 )}
 
                 <Tabel<CostMapBaris>
+              berpermukaan
                   caption="Pemetaan kategori belanja ke cost code."
                   data={peta.data}
                   kunciBaris={k => k.category_id}

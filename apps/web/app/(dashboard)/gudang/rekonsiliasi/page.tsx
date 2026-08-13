@@ -500,6 +500,7 @@ export default function RekonsiliasiMaterialPage() {
                 membungkus dengan overflow-x, jadi gulir horizontalnya tetap
                 ada tanpa memaksa lebar mati ke primitif bersama. */}
             <Tabel<Baris>
+              berpermukaan
               caption={`Rekonsiliasi material proyek ${proyekAktif?.name ?? "—"}: kebutuhan RAB, jumlah dibeli, dipakai, sisa gudang, yang pindah proyek, yang dipasok klien, selisih yang tak terjelaskan, dan status penilaiannya per material.`}
               data={terlihat}
               kunciBaris={(b) => b.material_id}

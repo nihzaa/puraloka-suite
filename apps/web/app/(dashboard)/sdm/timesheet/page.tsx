@@ -590,7 +590,7 @@ export default function TimesheetPage() {
               sebab="Isi jam kerja per hari beserta proyek yang dikerjakan — itulah yang membuat biaya overhead bisa dibebankan ke proyek yang benar."
             />
           ) : (
-            <Tabel
+            <Tabel              berpermukaan
               kolom={buatKolom(bukaIsi, putuskan)}
               data={r.baris}
               kunciBaris={(b) => b.id}

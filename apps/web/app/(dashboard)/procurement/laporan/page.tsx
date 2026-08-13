@@ -300,7 +300,7 @@ export default function LaporanPage() {
 
           {loading ? <Memuat /> : (
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-              <Tabel
+              <Tabel              berpermukaan
                 kolom={kolomPo}
                 data={purchases.purchase_orders}
                 kunciBaris={po => po.id}
@@ -337,7 +337,7 @@ export default function LaporanPage() {
 
           {loading ? <Memuat /> : (
             <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-              <Tabel
+              <Tabel              berpermukaan
                 kolom={kolomAging}
                 data={aging.invoices}
                 kunciBaris={i => i.id}

@@ -295,7 +295,7 @@ export default function BaselinePage() {
             Baseline #{aktif.nomor} — {aktif.nama}
           </JudulKartu>
           <Tabel
-            kolom={kolom}
+              berpermukaan            kolom={kolom}
             data={tampil}
             kunciBaris={(g) => g.rab_item_id}
             caption="Pergeseran jadwal tiap pekerjaan terhadap baseline yang berlaku"

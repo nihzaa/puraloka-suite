@@ -674,7 +674,7 @@ export default function RencanaMutuPage() {
             </div>
           )}
 
-          <Tabel
+          <Tabel              berpermukaan
             kolom={buatKolom(bukaPeriksa)}
             data={detail.titik}
             kunciBaris={(t) => t.id}

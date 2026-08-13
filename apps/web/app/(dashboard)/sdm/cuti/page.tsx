@@ -610,7 +610,7 @@ export default function CutiPage() {
               sebab="Pengajuan yang dibuat di sini menghitung hari kerjanya sendiri — akhir pekan dan hari libur nasional tak ikut memotong jatah."
             />
           ) : (
-            <Tabel
+            <Tabel              berpermukaan
               kolom={buatKolom(putuskan, batal)}
               data={detail.ambil}
               kunciBaris={(a) => a.id}

@@ -331,7 +331,7 @@ export default function JurnalkanPage() {
             Invoice
           </JudulKartu>
           <Tabel
-            kolom={kolom}
+              berpermukaan            kolom={kolom}
             data={tampil}
             kunciBaris={(i) => i.id}
             caption="Daftar invoice beserta status pembukuannya di buku besar"

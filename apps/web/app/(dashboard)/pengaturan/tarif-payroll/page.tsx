@@ -394,7 +394,7 @@ export default function TarifPayrollPage() {
                     <p style={{ fontSize: 11, color: C.muted, paddingBottom: 6 }}>
                       Baris tarif {j.label} yang berlaku sejak {tanggal(p.berlaku_sejak)}
                     </p>
-                    <Tabel
+                    <Tabel              berpermukaan
                       caption={`Baris tarif ${j.label} yang berlaku sejak ${tanggal(p.berlaku_sejak)}`}
                       data={p.baris}
                       kunciBaris={(b) => b.id}

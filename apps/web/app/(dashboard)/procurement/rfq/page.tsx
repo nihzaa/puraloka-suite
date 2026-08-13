@@ -860,6 +860,7 @@ export default function RfqPage() {
                         horizontal sudah datang dari pembungkus komponen, dan
                         lebar mati tak perlu masuk ke primitif bersama. */}
                     <Tabel<BarisTabulasi>
+              berpermukaan
                       caption={`Perbandingan penawaran vendor untuk RFQ ${rfqAktif?.nomor ?? "—"}: harga satuan tiap vendor per material, penanda vendor termurah, dan selisih terhadapnya.`}
                       data={tabulasi.baris}
                       kunciBaris={(b) => b.material_id}

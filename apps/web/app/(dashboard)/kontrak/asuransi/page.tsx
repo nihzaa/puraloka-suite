@@ -476,6 +476,7 @@ export default function AsuransiPage() {
                       `minWidth: 860` dilepas — gulir horizontal sudah datang
                       dari pembungkus komponen. */}
                   <Tabel<Polis>
+              berpermukaan
                     caption="Register polis asuransi: jenis, nomor, penerbit, masa berlaku, sisa hari, celah pertanggungan terhadap masa proyek, nilai pertanggungan, dan statusnya."
                     data={hasil.polis}
                     kunciBaris={(p) => p.id}

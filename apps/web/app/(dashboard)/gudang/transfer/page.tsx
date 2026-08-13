@@ -367,6 +367,7 @@ export default function TransferStokPage() {
                  membungkus dengan overflow-x, jadi gulir horizontalnya tetap
                  ada tanpa memaksa lebar mati ke primitif bersama. */
               <Tabel<Transfer>
+              berpermukaan
                 caption="Riwayat perpindahan material antar proyek: material, jumlah, tanggal, proyek asal, proyek tujuan, dan alasannya."
                 data={transfer}
                 kunciBaris={(t) => t.id}

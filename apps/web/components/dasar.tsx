@@ -360,7 +360,7 @@ export interface SelTotal {
  * mengujinya satu per satu. Sampai 2026-08-07 berkas ini tak punya test
  * sama sekali, padahal seluruh argumen UI-0-4 bersandar padanya.
  */
-export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris, total }: {
+export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris, total, berpermukaan }: {
   kolom: Array<Kolom<T>>;
   data: T[];
   kunciBaris: (baris: T) => string;
@@ -380,11 +380,56 @@ export function Tabel<T>({ kolom, data, kunciBaris, caption, kosong, tandaiBaris
    * (diukur 2026-08-07) — semuanya mewarisi cacat itu.
    */
   total?: SelTotal[];
+  /**
+   * Tabel menggambar permukaannya sendiri: tepi 1px + sudut 14px + latar.
+   *
+   * ── Sebabnya, diukur bukan dikira
+   *
+   * Founder 2026-08-14: *"liat ini tabel nya masa ga sama kaya table lain
+   * stylingnya"*. Diukur di peramban, dan gaya TABELNYA sendiri ternyata
+   * identik di tiap halaman — padding `9px 12px`, kepala `10px/700` uppercase,
+   * latar kepala sama persis. Yang berbeda WADAHNYA:
+   *
+   *     nota-kredit  tabel di dalam kartu  → ada tepi, sudut, latar
+   *     timesheet    tabel telanjang       → nol tepi, nol sudut
+   *
+   * Dihitung di seluruh aplikasi: 23 halaman membungkus `<Tabel>` dalam
+   * kartu, 19 halaman tidak. Bukan variasi yang disengaja — dua kebiasaan
+   * yang tumbuh berdampingan.
+   *
+   * ── Kenapa OPT-IN, bukan bawaan menyala
+   *
+   * Versi pertama menyalakannya secara bawaan lalu mematikan di 43 tempat
+   * yang sudah berkartu. Diukur sesudahnya: tiga halaman langsung
+   * bergaris GANDA (`approval-inbox`, `jadwal`, `kepatuhan`) — kartu di
+   * dalam kartu, dua garis 1px berdempet yang terbaca sebagai cacat render.
+   *
+   * Perubahan bawaan pada komponen yang dipakai 71 halaman menyentuh
+   * semuanya sekaligus, dan yang perlu diperiksa jadi 71 — bukan 19.
+   * Opt-in membalik bebannya: hanya halaman yang memang telanjang yang
+   * menyalakannya, dan tak satu pun halaman yang sudah benar bisa rusak.
+   */
+  berpermukaan?: boolean;
 }) {
   if (data.length === 0 && kosong) return <>{kosong}</>;
 
   return (
-    <div style={{ overflowX: "auto" }}>
+    <div
+      style={
+        berpermukaan
+          ? {
+              overflowX: "auto",
+              background: "var(--surface)",
+              border: "1px solid var(--border)",
+              // 14px — DIUKUR dari `GAYA_KARTU` (ui-dasar.tsx), bukan angka
+              // baru. Versi pertama menulis 12 dari ingatan; radius yang
+              // berbeda antar-permukaan sejenis adalah cara paling halus
+              // membuat satu produk terasa dirakit dari dua.
+              borderRadius: 14,
+            }
+          : { overflowX: "auto" }
+      }
+    >
       <table style={{
         width: "100%", borderCollapse: "collapse",
         fontSize: "var(--t-data)",

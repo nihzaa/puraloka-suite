@@ -106,6 +106,7 @@ export default function MandorLaporanPage() {
                        TIDAK diingat. Baris totalnya pindah ke <tfoot>: di
                        <tbody> ia terbaca sebagai data biasa. */
                     <Tabel<WageItem>
+              berpermukaan
                       caption="Rincian upah per pekerja untuk laporan minggu ini: hari kerja, upah harian, dan jumlah yang diterima masing-masing."
                       data={items}
                       kunciBaris={(i) => i.id}

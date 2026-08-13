@@ -987,7 +987,7 @@ export default function HalamanAlurOtomasi() {
                               50 jalan terakhir — {a.nama}
                             </p>
                             <Tabel
-                              caption={`50 jalan terakhir untuk alur ${a.nama}`}
+              berpermukaan                              caption={`50 jalan terakhir untuk alur ${a.nama}`}
                               data={isi}
                               kunciBaris={(j) => j.id}
                               kolom={kolomJejak<Jalan>()}
