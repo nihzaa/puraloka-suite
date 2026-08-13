@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 274 dokumen** — antrean 13 · acuan 201 · riwayat 60.
+**Total 275 dokumen** — antrean 13 · acuan 201 · riwayat 61.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -61,6 +61,12 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [09-VISION-GAP](audit/2026-08-02/09-VISION-GAP.md) | acuan |  | 09 — VISI & GAP ANALYSIS |
 | [10-SCORECARD-RISKS](audit/2026-08-02/10-SCORECARD-RISKS.md) | acuan |  | 10 — PENILAIAN & PRIORITAS |
 | [KOREKSI](audit/2026-08-02/KOREKSI.md) | acuan | ✓ | KOREKSI — Angka Audit yang Diverifikasi Ulang |
+
+### `docs/brainstorm`
+
+| Dokumen | Peran | RM | Isi |
+|---|---|:-:|---|
+| [2026-08-13-AHSP-RAB-RAP-KONDISI-VS-STANDAR](brainstorm/2026-08-13-AHSP-RAB-RAP-KONDISI-VS-STANDAR.md) | riwayat |  | AHSP · RAB · RAP — kondisi terukur vs cara perusahaan besar menanganinya |
 
 ### `docs/design`
 
