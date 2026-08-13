@@ -26,6 +26,51 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// ─── Company aktif: DIISI, bukan hanya dibaca ────────────────────────────────
+//
+// ══════════════════════════════════════════════════════════════════════════
+// Cacat yang ditutup di sini, diukur 2026-08-13
+// ══════════════════════════════════════════════════════════════════════════
+//
+// `puraloka_company_id` dibaca EMPAT berkas — `api.ts` (header x-company-id),
+// `data-cache.ts`, `antrean-offline.ts`, `antrean-foto.ts` — tetapi hanya
+// DITULIS satu tempat: `company-switcher.tsx`, saat pengguna BERGANTI
+// perusahaan.
+//
+// Artinya pengguna yang tak pernah berganti — mayoritas, dan SELURUH mandor,
+// karena switcher-nya memang tak dirender di portal mandor — tak pernah punya
+// kunci itu. Diukur di peramban nyata: nol kunci ber-"company" di localStorage
+// sesudah login.
+//
+// Akibatnya bukan header yang hilang (backend punya default yang benar),
+// melainkan ANTREAN OFFLINE yang tak terlihat: `antreanAktif()` menyaring
+// dengan company kosong, tak menemukan apa pun, dan lencana "menunggu sinyal"
+// tak pernah muncul. Mandor mengira kirimannya sudah sampai.
+//
+// Diisi di sini — bukan di switcher — karena inilah satu-satunya jalur yang
+// dilewati semua halaman, termasuk portal mandor.
+export function simpanCompanyAktif(id: string | null | undefined): void {
+  if (typeof window === "undefined" || !id) return;
+  try {
+    if (localStorage.getItem("puraloka_company_id") !== id) {
+      localStorage.setItem("puraloka_company_id", id);
+    }
+  } catch {
+    // Mode privat tertentu menolak menulis. Bukan alasan menjatuhkan
+    // permintaannya — header tetap terkirim tanpa nilai, dan backend memakai
+    // default penggunanya.
+  }
+}
+
+api.interceptors.response.use((res) => {
+  // Balasan `my/companies` membawa `active_company_id` yang sudah
+  // diverifikasi server terhadap keanggotaan pengguna — sumber yang lebih
+  // dipercaya daripada tebakan sisi klien.
+  const data = res.data as { active_company_id?: string } | undefined;
+  if (data?.active_company_id) simpanCompanyAktif(data.active_company_id);
+  return res;
+});
+
 // ─── Response interceptor: auto token refresh ────────────────────────────────
 
 let isRefreshing = false;

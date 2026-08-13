@@ -107,6 +107,79 @@ menghijaukan angka.
 
 ---
 
+## 2026-08-13 (lanjutan 6) — foto lapangan yang tak lagi hilang, dan dua cacat lama yang menghalanginya
+
+### `mb-offline`: yang tersisa memang foto, dan sebabnya sudah tertulis sendiri
+
+`antrean-offline.ts` menyelamatkan TEKS laporan lapangan, dan menulis batasnya
+di headernya sendiri: *"IndexedDB baru perlu bila kelak foto ikut diantre."*
+
+Diukur: `mandor-portal/progress/page.tsx` sudah menangani kegagalan foto dengan
+baik — laporan tetap tersimpan, ada tombol coba-ulang. Tetapi daftarnya hidup
+di `useState` (`page.tsx:52`); nol localStorage, nol IndexedDB.
+
+Mandor mengirim di lokasi tanpa sinyal, teksnya selamat, fotonya masuk daftar
+coba-ulang. Lalu ia menutup aplikasi — atau baterainya habis, atau ponselnya
+membunuh tab di latar, yang lumrah pada ponsel lama yang justru banyak dipakai
+di lapangan. Foto itu LENYAP, dan pemotretan ulang sudah tak mungkin: betonnya
+sudah tertutup, bekistingnya sudah dibuka.
+
+`lib/antrean-foto.ts` (IndexedDB) menutupnya. TERPISAH dari antrean teks, bukan
+karena rapi melainkan karena bentuk kegagalannya berbeda: teks kecil dan
+urutannya MENGIKAT, foto besar dan urutannya tidak. Menggabungkannya berarti
+satu foto 5 MB menahan seluruh laporan teks di belakangnya.
+
+### DUA cacat lama yang ketahuan justru karena menyambungkannya
+
+Keduanya lebih tua dan lebih luas daripada pekerjaan foto ini, dan keduanya
+membuat antrean yang SUDAH ADA tak terlihat:
+
+**1. `puraloka_company_id` dibaca empat berkas, ditulis satu.**
+`api.ts`, `data-cache.ts`, `antrean-offline.ts`, `antrean-foto.ts` membacanya —
+tetapi hanya `company-switcher.tsx` yang menulisnya, dan hanya saat pengguna
+BERGANTI perusahaan. Switcher itu tak dirender di portal mandor sama sekali.
+
+Diukur di peramban nyata: **nol kunci ber-"company" di localStorage** sesudah
+login. Akibatnya `antreanAktif()` menyaring dengan company kosong, tak
+menemukan apa pun, dan lencana "menunggu sinyal" tak pernah muncul — mandor
+mengira kirimannya sudah sampai. Ditutup di `api.ts` (interceptor menyimpan
+`active_company_id` yang memang sudah dikirim `settings.ts:60`, dan komentarnya
+di sana bahkan menulis "UI tak perlu menebak").
+
+**2. `StatusAntrean` hanya ada di portal mandor.**
+Dashboard tak punya satu pun penanda antrean. Staf kantor yang mengirim saat
+sinyal buruk tak pernah tahu kirimannya tertahan. Dipasang di layout dashboard
+— DI LUAR `<Topbar />`, karena topbar sedang digarap sesi lain dan menyisipkan
+ke berkas yang sedang berubah adalah cara paling mudah menimpa kerja orang.
+
+### Saya nyaris menimpa kerja sesi lain, dan cara mengukurnya yang salah
+
+Untuk membuktikan `lint-ratchet` merah bukan karena saya, saya memakai
+`git stash push`. Repo ini punya TIGA stash milik sesi lain, dan `stash pop`
+menarik yang teratas — bukan milik saya. Hasilnya konflik pada lima berkas
+yang tak pernah saya sentuh, termasuk `otomasi-terjadwal.ts` (885 baris) yang
+tak ada di HEAD.
+
+Dipulihkan seluruhnya: berkas orang lain dikembalikan ke HEAD, yang untracked
+dibiarkan di disk, dan ketiga stash tetap utuh. Nol kerja hilang.
+
+Cara yang benar dan dipakai sesudahnya: **pindahkan berkas sendiri ke luar,
+ambil versi HEAD lewat `git show`, ukur, lalu kembalikan.** Tak menyentuh
+indeks, tak menyentuh stash.
+
+### Bukti
+
+- `lib/antrean-foto.ts` — 21 test hijau, 8 mutasi merah lalu pulih
+- `uji-antrean-foto.mjs` — di peramban NYATA: antrean bertahan melewati muat
+  ulang, Blob utuh 63 KB, keterangan ikut bertahan. Dibuktikan bisa MERAH
+  lewat mutasi nama DB.
+- 53 test lib web hijau (antrean-foto + antrean-offline + cache-baca)
+- `lint-ratchet` diukur dengan mengganti berkas ke versi HEAD: angka
+  `set-state-in-effect` 73 dan `unused-vars` 6 IDENTIK dengan/tanpa saya —
+  utang lama, bukan milik saya
+
+---
+
 ## 2026-08-13 (lanjutan 5) — dokumen tanpa identitas penerbitnya
 
 ### Entri terakhir Kelompok 3: `md-template-dok`

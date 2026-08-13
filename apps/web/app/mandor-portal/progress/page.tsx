@@ -11,6 +11,7 @@ import { uploadProgressPhoto, attachProgressPhoto } from "@/lib/storage";
 import { Plus, Image, X, Check, Loader2, AlertCircle, Calendar, MapPin } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+import { antrekan as antrekanFoto, tautkanKeLog, companyAktif } from "@/lib/antrean-foto";
 
 function fmtDate(s: string | null) {
   if (!s) return "—";
@@ -175,17 +176,45 @@ export default function MandorProgressPage() {
           const msg = e instanceof Error ? e.message : "Gagal upload";
           setPhotos((prev) => prev.map((p) => p.id === ph.id ? { ...p, uploading: false, error: msg } : p));
           failedPhotos.push(ph);
+
+          // ── Foto yang gagal MASUK ANTREAN yang bertahan ─────────────────
+          //
+          // Sampai 2026-08-13 daftar coba-ulang hanya hidup di `useState`.
+          // Mandor menutup aplikasi — atau baterainya habis, atau ponselnya
+          // membunuh tab di latar, yang lumrah pada ponsel lama di lapangan —
+          // dan fotonya LENYAP. Yang tersisa laporan tanpa bukti visual, dan
+          // pemotretan ulang yang sudah tak mungkin: betonnya sudah tertutup.
+          //
+          // `logId` sengaja null di sini: lognya belum tentu terkirim. Ia
+          // ditautkan sesudah log berhasil (`tautkanKeLog` di bawah).
+          const antre = await antrekanFoto({
+            company: companyAktif(),
+            projectId,
+            logId: null,
+            file: ph.file,
+            keterangan: ph.caption,
+          });
+          if (!antre.ok) {
+            // Gagal MENGANTRE dikatakan apa adanya. Menyamarkannya membuat
+            // mandor menutup aplikasi mengira fotonya aman.
+            showToast(antre.sebab, false);
+          }
         }
       }
 
       // F4-3 — teks laporan lewat antrean offline.
       //
-      // ⚠️ FOTO TIDAK IKUT DIANTRE, dan itu keputusan sadar. Foto sudah
-      // terlanjur diunggah ke storage di atas — kalau storage gagal, `photos`
-      // yang gagal sudah masuk `failedPhotos` dan punya jalur coba-ulang
-      // sendiri. Yang belum tertangani sampai sekarang adalah kegagalan
-      // JARINGAN saat menyimpan teksnya, dan itulah yang ditutup di sini:
-      // sebelumnya mandor kehilangan seluruh catatan hariannya.
+      // FOTO kini ikut diantre — lewat antrean TERPISAH (`antrean-foto.ts`,
+      // IndexedDB), bukan antrean teks ini.
+      //
+      // Terpisah karena bentuk kegagalannya berbeda: teks kecil dan urutannya
+      // MENGIKAT (laporan minggu ke-2 tak boleh mendahului ke-1), foto besar
+      // dan urutannya tidak. Menggabungkannya berarti satu foto 5 MB menahan
+      // seluruh laporan teks di belakangnya.
+      //
+      // Catatan lama di sini menyatakan foto "punya jalur coba-ulang sendiri".
+      // Itu benar hanya selama halaman terbuka — diukur 2026-08-13, daftarnya
+      // hidup di `useState` dan lenyap begitu aplikasi ditutup.
       //
       // Antrean menyimpan URL foto yang SUDAH berhasil terunggah, jadi saat
       // sinyal kembali, laporan tetap membawa fotonya.
@@ -238,6 +267,12 @@ export default function MandorProgressPage() {
       const logId = created?.data?.id;
       setShowModal(false);
       setNotes(""); setWorkersCount(""); setScopeId("");
+
+      if (logId) {
+        // Foto yang tertahan di antrean menunggu inilah: tanpa logId mereka
+        // tak tahu harus menempel ke mana, dan tertahan selamanya.
+        await tautkanKeLog(companyAktif(), projectId, logId);
+      }
 
       if (failedPhotos.length > 0 && logId) {
         // Laporan AMAN tersimpan; foto yang gagal bisa dicoba ulang tanpa mengetik ulang.

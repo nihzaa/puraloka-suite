@@ -2,6 +2,7 @@
 
 import { Sidebar } from "@/components/sidebar";
 import { Topbar } from "@/components/topbar";
+import StatusAntrean from "@/components/StatusAntrean";
 import { ToastProvider } from "@/components/toast";
 import { SidebarProvider, useSidebar } from "@/lib/sidebar-context";
 import { PenyediaRail, useIsiRail } from "@/lib/rail-context";
@@ -63,6 +64,23 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         }}
       >
         <Topbar />
+
+        {/* ── Lencana antrean offline ──────────────────────────────────────
+            Sampai 2026-08-13 `StatusAntrean` HANYA dirender di portal mandor.
+            Dashboard tak punya satu pun penanda — jadi staf kantor yang
+            mengirim saat sinyal buruk tak pernah tahu kirimannya tertahan,
+            dan mengira sudah sampai.
+
+            Ditaruh DI LUAR `<Topbar />`, bukan di dalamnya: topbar sedang
+            digarap sesi lain, dan menyisipkan ke berkas yang sedang berubah
+            adalah cara paling mudah menimpa kerja orang. */}
+        <div style={{
+          display: "flex", justifyContent: "flex-end",
+          padding: "0 var(--pad-x)",
+        }}>
+          <StatusAntrean />
+        </div>
+
         {/*
           KONTEN + RAIL bersebelahan, dan RAIL DI LUAR `<main>`.
 

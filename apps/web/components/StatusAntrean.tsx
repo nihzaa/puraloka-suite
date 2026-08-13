@@ -39,6 +39,12 @@
 import { useEffect, useState, useCallback, useSyncExternalStore } from "react";
 import { CloudOff, RefreshCw } from "lucide-react";
 import { antreanAktif, berlangganan, sinkronkan } from "@/lib/antrean-offline";
+import {
+  antreanCompany as antreanFotoCompany, berlangganan as berlanggananFoto,
+  sinkronkan as sinkronkanFoto, companyAktif, type FotoAntre,
+} from "@/lib/antrean-foto";
+import { attachProgressPhoto } from "@/lib/storage";
+import { api } from "@/lib/api";
 
 /**
  * Snapshot dibaca sebagai ANGKA, bukan array.
@@ -62,14 +68,74 @@ export default function StatusAntrean() {
   // `lint:ratchet` menolaknya (`set-state-in-effect` 70 > ambang 69) — dengan
   // benar: pola itu merender dua kali tiap perubahan antrean. Hook ini memang
   // dirancang untuk sumber data di luar React seperti localStorage.
-  const jumlah = useSyncExternalStore(berlangganan, bacaJumlah, bacaJumlahServer);
+  const jumlahTeks = useSyncExternalStore(berlangganan, bacaJumlah, bacaJumlahServer);
   const [sedang, setSedang] = useState(false);
 
+  // ── Foto TIDAK lewat useSyncExternalStore ────────────────────────────────
+  //
+  // Hook itu menuntut pembaca SINKRON, sementara IndexedDB asinkron. Yang
+  // dipakai: berlangganan ke antrean foto, lalu menyimpan angkanya di state.
+  // Tanpa hitungan foto, lencana ini hilang saat yang tertahan hanya foto —
+  // dan mandor tak punya cara tahu masih ada yang belum terkirim.
+  const [jumlahFoto, setJumlahFoto] = useState(0);
+
+  // ── Pastikan company aktif DIKETAHUI ──────────────────────────────────────
+  //
+  // `puraloka_company_id` dibaca empat berkas tapi hanya ditulis oleh
+  // `company-switcher.tsx`, yang TAK dirender di portal mandor. Diukur di
+  // peramban nyata 2026-08-13: nol kunci ber-"company" di localStorage
+  // sesudah mandor login.
+  //
+  // Akibatnya justru menimpa komponen INI: antrean disaring dengan company
+  // kosong, tak menemukan apa pun, dan lencana "menunggu sinyal" tak pernah
+  // muncul — mandor mengira kirimannya sudah sampai.
+  //
+  // Dipanggil di sini, bukan di layout: komponen inilah yang membutuhkannya,
+  // dan ia hadir di kedua sisi aplikasi (dashboard & portal mandor).
+  useEffect(() => {
+    if (companyAktif()) return;
+    // Balasannya diserap interceptor `api.ts` yang menyimpan
+    // `active_company_id`. Gagal memuat bukan alasan menjatuhkan lencana —
+    // ia hanya tetap menghitung dengan company kosong, seperti sebelumnya.
+    void api.get("/api/v1/my/companies").catch(() => { /* diam */ });
+  }, []);
+
+  useEffect(() => {
+    let batal = false;
+    const hitung = () => {
+      void antreanFotoCompany(companyAktif()).then((a) => {
+        if (!batal) setJumlahFoto(a.length);
+      });
+    };
+    hitung();
+    const lepas = berlanggananFoto(hitung);
+    return () => { batal = true; lepas(); };
+  }, []);
+
+  const jumlah = jumlahTeks + jumlahFoto;
+
   const coba = useCallback(async () => {
-    if (antreanAktif().length === 0) return;
+    const adaTeks = antreanAktif().length > 0;
+    const company = companyAktif();
+    const adaFoto = (await antreanFotoCompany(company)).length > 0;
+    if (!adaTeks && !adaFoto) return;
+
     setSedang(true);
     try {
-      await sinkronkan();
+      // Teks lebih dulu: foto menempel pada log, dan log yang belum terkirim
+      // membuat fotonya tertahan menunggu `logId`. Urutan terbalik berarti
+      // seluruh foto dilewati, lalu baru bisa naik pada percobaan berikutnya.
+      if (adaTeks) await sinkronkan();
+      if (adaFoto) {
+        await sinkronkanFoto(company, async (f: FotoAntre) => {
+          if (!f.logId) return;
+          await attachProgressPhoto(
+            f.projectId, f.logId,
+            new File([f.blob], f.namaBerkas, { type: f.blob.type || "image/jpeg" }),
+            f.keterangan || undefined,
+          );
+        });
+      }
     } finally {
       setSedang(false);
     }
@@ -108,7 +174,13 @@ export default function StatusAntrean() {
       onClick={() => void coba()}
       disabled={sedang}
       aria-live="polite"
-      aria-label={`${jumlah} kiriman menunggu sinyal. Tekan untuk mencoba mengirim sekarang.`}
+      aria-label={
+        jumlahFoto > 0 && jumlahTeks > 0
+          ? `${jumlahTeks} kiriman dan ${jumlahFoto} foto menunggu sinyal. Tekan untuk mencoba mengirim sekarang.`
+          : jumlahFoto > 0
+            ? `${jumlahFoto} foto menunggu sinyal. Tekan untuk mencoba mengirim sekarang.`
+            : `${jumlahTeks} kiriman menunggu sinyal. Tekan untuk mencoba mengirim sekarang.`
+      }
       style={{
         display: "flex", alignItems: "center", gap: 6,
         padding: "6px 12px", borderRadius: 999,
@@ -121,7 +193,11 @@ export default function StatusAntrean() {
       {sedang
         ? <RefreshCw size={13} aria-hidden="true" />
         : <CloudOff size={13} aria-hidden="true" />}
-      {sedang ? "Mengirim…" : `${jumlah} menunggu sinyal`}
+      {sedang
+        ? "Mengirim…"
+        : jumlahFoto > 0 && jumlahTeks === 0
+          ? `${jumlahFoto} foto menunggu sinyal`
+          : `${jumlah} menunggu sinyal`}
     </button>
   );
 }
