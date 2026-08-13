@@ -89,7 +89,15 @@ menyusul, jadi replay-nya benar.
 
 ---
 
-# 📋 R-014 · Migrasi 331 SUDAH JALAN tapi BELUM tercatat di buku migrasi (2026-08-12)
+# 📋 R-014 · ✅ SELESAI — Migrasi 331 SUDAH JALAN tapi BELUM tercatat di buku migrasi (2026-08-12)
+
+> **Ditutup 2026-08-13 oleh R-016.** Founder mengizinkan penomoran ulang.
+> Berkasnya kini `351_otomasi_terjadwal_notifikasi.sql` dan **sudah tercatat**
+> di buku migrasi dev bersama tujuh saudaranya (352-358).
+>
+> Ternyata cakupannya lebih luas dari yang tertulis di bawah: bukan satu
+> migrasi yang tak tercatat, melainkan **delapan** — dan kedelapannya
+> bertabrakan nomor dengan milik sesi lain. Uraian lengkapnya di R-016.
 
 **Butuh keputusan Anda — ini Gerbang Keras G-2, dan saya tidak menyentuhnya.**
 
@@ -2213,10 +2221,68 @@ tertinggal. Itu memperbaiki CI — **bukan** memperbaiki cacat produksinya.
 
 ---
 
-## R-015 · G-2 · Delapan nomor migrasi dipakai DUA KALI (331-338)
+## R-016 · ✅ SELESAI — Delapan nomor migrasi dipakai DUA KALI (331-338)
+
+**Dibuka & ditutup 2026-08-13.** Founder mengizinkan penomoran ulang pada hari
+yang sama; dikerjakan di commit penomoran-ulang. **Menutup juga R-014**, yang
+adalah kasus yang sama untuk migrasi 331 saja.
+
+> **Nomor entri:** semula ditulis `R-015`, padahal nomor itu sudah dipakai
+> entri lain di dokumen ini. Diperbaiki jadi R-016 — dua entri bernomor sama
+> adalah cacat yang sama dengan yang dibahas entri ini.
+
+### Yang dikerjakan
+
+Delapan migrasi **automation** (yang datang belakangan lewat merge) dinomori
+ulang ke **351-358** dengan `git mv` (riwayat berkas utuh). Milik sesi lain —
+`serah_terima`, `penomoran_dokumen`, `template_wbs`, `klaim_perjalanan` dan
+menu-menunya — **tidak disentuh**, tetap 331-338.
+
+Kedelapan nomor baru ditulis ke `supabase_migrations.schema_migrations` dev
+sebagai sudah-jalan, karena artefak fisiknya memang sudah ada. Isi berkas
+**tidak berubah satu baris pun**.
+
+### Kenapa akhirnya TIDAK boleh "dibiarkan saja"
+
+Opsi "biarkan" yang sempat saya tawarkan **salah**, dan alasannya baru
+terlihat setelah membaca `apps/api/scripts/ci-project-setup.mjs:57`:
+
+```js
+const version = f.match(/^(\d+)_/)[1]   // "335" — nama dibuang
+if (rows.length) { alreadyThere++; continue }
+```
+
+`version` adalah **nomor saja**, dan itu PRIMARY KEY buku migrasi. Di CI yang
+dibangun bersih, dari tiap pasangan bernomor sama hanya yang pertama menurut
+`.sort()` yang jalan — **yang kedua dilewati diam-diam, selamanya.**
+
+Yang kalah bukan automation, melainkan **8 migrasi milik sesi lain**. Jadi
+tabrakan ini bukan soal kerapian penomoran; ia menghapus 8 migrasi orang lain
+dari CI tanpa satu pun galat.
+
+### Bukti sesudah perbaikan
+
+Disimulasikan dengan logika `ci-project-setup` yang sesungguhnya:
+
+    331-338 (milik sesi lain)   → AKAN DIJALANKAN   ← sebelumnya dilewati
+    351-358 (automation)        → dilewati, sudah tercatat
+
+Nomor ganda di seluruh `db/migrations/`: **nol** (`uniq -d` kosong).
+
+### Sisa yang TIDAK ditutup entri ini
+
+`ci-project-setup.mjs` masih memakai nomor sebagai identitas migrasi, jadi
+tabrakan nomor berikutnya akan menimbulkan kelas cacat yang sama. Memperbaiki
+itu menyentuh cara CI me-replay seluruh 349 migrasi — lebih dalam, dan bukan
+bagian dari izin yang diberikan hari ini. **Dicatat sebagai utang terbuka.**
+
+---
+
+## R-015 · G-2 · Delapan nomor migrasi dipakai DUA KALI (331-338) — *catatan asli, sebelum diizinkan*
 
 **Dibuka** 2026-08-13, saat memulihkan 19 commit automation yang tercecer
 (commit `1d48cebd`). **Tidak diputuskan sendiri** — G-2 (buku migrasi).
+**Sudah dijawab founder — lihat R-016 di atas.**
 
 ### Yang terukur
 

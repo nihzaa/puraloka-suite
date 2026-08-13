@@ -5,6 +5,75 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-13 (lanjutan 8) — nomor migrasi ganda yang menghapus 8 migrasi orang lain dari CI
+
+Founder bertanya: "emang perlu keputusan apa dari saya?" Pertanyaan itu
+memaksa saya mengukur lebih dalam, dan yang ketemu membalik rekomendasi saya
+sendiri.
+
+### Rekomendasi saya kemarin SALAH
+
+Saya menawarkan tiga opsi, dan menyebut "biarkan saja" sebagai yang termurah —
+seolah tabrakan nomor 331-338 cuma soal keterbacaan. Lalu saya membaca
+`apps/api/scripts/ci-project-setup.mjs:57`:
+
+    const version = f.match(/^(\d+)_/)[1]   // "335" — nama dibuang
+    if (rows.length) { alreadyThere++; continue }
+
+`version` adalah **nomor saja**, dan itu PRIMARY KEY buku migrasi. Di CI yang
+dibangun bersih tiap run, dari tiap pasangan bernomor sama hanya yang pertama
+menurut `.sort()` yang jalan. Yang kedua **dilewati diam-diam, selamanya**.
+
+Disimulasikan dengan logika aslinya: yang kalah bukan automation saya,
+melainkan **8 migrasi milik sesi lain** — `serah_terima`, `penomoran_dokumen`,
+`template_wbs`, `klaim_perjalanan`, dan menu-menunya.
+
+Jadi "biarkan saja" bukan opsi termurah. Ia menghapus 8 migrasi orang lain
+dari CI tanpa satu pun galat — persis kelas cacat yang baru saya tutup dengan
+penjaga `audit-tugas-punya-rute` beberapa jam sebelumnya.
+
+### Satu alat ukur saya juga salah
+
+Saya sempat melaporkan migrasi 331 "TIDAK ADA" artefaknya. Itu keliru: saya
+menebak ia membuat CHECK constraint, padahal komentarnya sendiri menulis
+`notifications.type` adalah TEXT **tanpa** CHECK, dan yang dibuatnya adalah
+baris `notification_rules`. Diukur ulang dengan benar: keenam aturannya ada,
+lengkap dengan target.
+
+Pelajarannya sama dengan tema repo ini: **alat ukur yang salah menghasilkan
+angka yang percaya diri dan tetap salah.** Untung ketahuan sebelum jadi dasar
+keputusan.
+
+### Yang dikerjakan sesudah diizinkan
+
+Delapan migrasi automation dinomori ulang ke **351-358** lewat `git mv`
+(riwayat utuh). Milik sesi lain tidak disentuh — tetap 331-338, dan justru
+merekalah yang tadinya dikorbankan.
+
+Kedelapan nomor baru ditulis ke `schema_migrations` dev sebagai sudah-jalan,
+karena artefaknya memang sudah ada. Isi berkas nol perubahan.
+
+### Bukti
+
+    nomor ganda tersisa           : NOL (`uniq -d` kosong)
+    simulasi ci-project-setup     : 331-338 AKAN DIJALANKAN (tadinya dilewati)
+                                    351-358 dilewati, sudah tercatat
+    ledger-diff                   : kedelapannya TERCATAT-KONSISTEN
+    artefak-hilang milik saya     : NOL dari 17 (17-nya utang lama, 002-301)
+    15 penjaga + indeks docs      : HIJAU
+    test automation               : 60/60 hijau
+
+### Utang yang TIDAK ditutup, dan dinyatakan
+
+`ci-project-setup.mjs` masih memakai nomor sebagai identitas migrasi. Tabrakan
+berikutnya akan menimbulkan cacat yang sama. Memperbaikinya menyentuh cara CI
+me-replay seluruh 349 migrasi — di luar izin hari ini, dicatat di R-016.
+
+R-014 ikut ditutup: ia kasus yang sama untuk migrasi 331 saja, dan ternyata
+cakupan sebenarnya delapan.
+
+---
+
 ## 2026-08-13 (lanjutan 7) — 19 commit yang hidup di cabang, dan basis yang lebih maju daripada kodenya
 
 Founder bertanya hal yang terdengar sederhana: mana workflow yang sudah
