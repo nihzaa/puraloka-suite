@@ -1,13 +1,14 @@
 {
-  "nilai": 307,
-  "_catatan": "307 dicapai NYATA 2026-08-08 (UIR-0B). Sebelum itu lantai 307 tertulis sementara kenyataannya 308 — penjaga merah sejak lantainya ditulis, bukan karena ada yang menambah.",
-  "_diukur": "2026-08-08",
+  "nilai": 181,
+  "_catatan": "181 sejak 2026-08-13: penjaga kini MELEWATI keadaan kosong/memuat (padding 40-80 pada 'Memuat…' / 'Belum ada…'), yang memang sengaja lapang dan salah kalau dipaksa memakai token kerapatan 12-16px. Turunnya 307→181 BUKAN perbaikan 126 tempat, melainkan koreksi alat ukur. Sebelumnya: 307 dicapai NYATA 2026-08-08 (UIR-0B).",
+  "_diukur": "2026-08-13",
   "_riwayat": [
     "422 → 422",
     "422 → 394 (otomatis)",
     "394 → 369 (otomatis)",
     "369 → 358 (otomatis)",
     "358 → 307 (otomatis)",
-    "307 dikonfirmasi nyata 2026-08-08 — document-section.tsx gap:16 → var(--gap-bagian)"
+    "307 dikonfirmasi nyata 2026-08-08 — document-section.tsx gap:16 → var(--gap-bagian)",
+    "307 → 181 (2026-08-13) — keadaan kosong/memuat dikecualikan, bukan diperbaiki"
   ]
 }

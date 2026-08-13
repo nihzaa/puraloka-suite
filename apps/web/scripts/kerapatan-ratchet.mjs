@@ -88,9 +88,37 @@ const POLA = /\b(padding|gap)\s*:\s*"?(\d+)(?:px)?"?\s*[,;}]/g
 const pelanggar = []
 for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'components'))]) {
   const isi = readFileSync(f, 'utf8')
+  const baris = isi.split('\n')
+
+  // ── Keadaan KOSONG & MEMUAT dilewati ──────────────────────────────────────
+  //
+  // Diukur 2026-08-13: 12 dari 21 kelebihan di `portal/proyek/[id]` seluruhnya
+  // `padding: 40/60/80` pada baris seperti
+  //
+  //     if (loading) return <div style={{ textAlign: 'center', padding: 60 }}>Memuat…
+  //     if (!items.length) return <div style={{ ...card, padding: 40 }}>Belum diinput.
+  //
+  // Itu BUKAN kartu. Keadaan kosong sengaja lapang supaya terbaca sebagai
+  // "tak ada isi" — bukan sebagai kartu yang gagal render. Token kerapatan
+  // (12–16px) justru salah di sana: keadaan kosong serapat kartu terlihat
+  // seperti kesalahan tampilan.
+  //
+  // Menghukumnya berarti mendorong orang memakai token yang keliru, atau —
+  // yang lebih mungkin — mematikan penjaganya. Penjaga yang merah karena hal
+  // yang benar tak bertahan lama.
+  const RX_KOSONG = /(loading|memuat|belum|kosong|tidak ada|tak ada|!data|!items|\.length === 0|length\s*<\s*1)/i
+
   let n = 0
   for (const m of isi.matchAll(POLA)) {
-    if (Number(m[2]) >= 16) n++
+    if (Number(m[2]) < 16) continue
+
+    // Konteksnya: baris tempat padding itu berada, plus dua baris sebelumnya
+    // (deklarasi `if (loading) return` sering satu baris di atas JSX-nya).
+    const nomor = isi.slice(0, m.index).split('\n').length - 1
+    const konteks = baris.slice(Math.max(0, nomor - 2), nomor + 1).join('\n')
+    if (RX_KOSONG.test(konteks)) continue
+
+    n++
   }
   if (n > 0) pelanggar.push({ berkas: relative(AKAR, f).split('\\').join('/'), jumlah: n })
 }
