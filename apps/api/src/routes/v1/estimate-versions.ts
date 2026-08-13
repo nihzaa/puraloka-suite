@@ -345,7 +345,7 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
 
       type ItemRow = {
         id: string; quantity: number; amount: number; sort_order: number
-        hsp_snapshot: { result?: { groupTotals?: Record<string, number> } } | null
+        hsp_snapshot: { hsp?: { groupTotals?: Record<string, number> } } | null
         cost_code: { code: string; name: string } | null
         assembly: { name: string; output_unit_code: string | null } | null
       }
@@ -378,7 +378,24 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         quantity: it.quantity,
         amount: it.amount,
         sort_order: it.sort_order,
-        group_totals: it.hsp_snapshot?.result?.groupTotals ?? null,
+        // ── `hsp`, BUKAN `result` ────────────────────────────────────────
+        //
+        // Diukur 2026-08-13: penulisnya (baris ~786 di berkas ini) menyimpan
+        // `hsp_snapshot: { hsp: { groupTotals, subtotalD, ... }, prices: [...] }`
+        // — kunci `result` tak pernah ada. Dibuktikan di basis: dari seluruh
+        // `estimate_items` ber-snapshot, yang punya kunci `hsp` = semuanya,
+        // yang punya `result` = NOL.
+        //
+        // Akibatnya `group_totals` selalu null, `komponenBiaya()` mengembalikan
+        // nol semua, dan `material_pct`/`upah_pct`/`alat_pct` di `rab_items`
+        // selalu 0 untuk SETIAP baris hasil "Terapkan ke RAB" — walaupun
+        // snapshotnya lengkap.
+        //
+        // Gagal senyap sempurna: constraint `rab_items_pct_sum` menerima total
+        // 0 (nol berarti "tak diketahui", bukan pelanggaran), jadi tak ada
+        // galat, tak ada test merah, dan tak ada gejala sampai ada yang
+        // bertanya kenapa kolom komponen biaya kosong terus.
+        group_totals: it.hsp_snapshot?.hsp?.groupTotals ?? null,
       })))
 
       if (jumlahLama > 0) {
