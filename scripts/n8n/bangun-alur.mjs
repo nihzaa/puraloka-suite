@@ -111,6 +111,58 @@ const RESEP = [
       `Kasbon diajukan : ${r.kasbon_diajukan}\n` +
       `Temuan mutu baru: ${r.temuan_mutu_baru}`,
   },
+
+  // ── Tiga resep berikut ditambahkan 2026-08-14 ────────────────────────────
+  //
+  // Ketiganya ADA di `otomasi_alur` sejak awal tetapi tak pernah punya
+  // `n8n_id` — tercatat di daftar, tak pernah terpasang. Yang menghalanginya
+  // bukan resepnya melainkan UMPANNYA: `otomasi-umpan.ts` hanya menyediakan
+  // lima jenis, dan alur tanpa umpan adalah workflow yang menunggu data yang
+  // tak pernah datang.
+  //
+  // Ketiga umpannya ditambahkan hari ini juga (`invoice-jatuh-tempo`,
+  // `milestone-mendekat`, `rekap-mingguan-proyek`), jadi resep-resep ini
+  // sekarang punya sumbernya.
+  //
+  // `cron` disalin dari baris DB-nya masing-masing, bukan dikarang ulang —
+  // jadwal yang berbeda antara DB dan n8n adalah dua kebenaran yang tak
+  // pernah menyatakan dirinya berbeda.
+  {
+    kode: 'tagih-invoice-jatuh-tempo',
+    nama: 'Puraloka — Invoice Mendekati Jatuh Tempo',
+    umpan: 'invoice-jatuh-tempo',
+    cron: '0 8 * * 1-6',
+    judul: 'INVOICE JATUH TEMPO PEKAN INI',
+    baris: (r) =>
+      `• ${r.nomor} — ${r.proyek ?? 'tanpa proyek'}\n` +
+      `  Rp ${new Intl.NumberFormat('id-ID').format(r.sisa || r.nominal)} · ` +
+      `jatuh tempo ${r.jatuh_tempo} (${r.sisa_hari} hari lagi)`,
+  },
+  {
+    kode: 'peringatan-milestone-mendekat',
+    nama: 'Puraloka — Milestone Mendekat',
+    umpan: 'milestone-mendekat',
+    cron: '10 7 * * *',
+    judul: 'MILESTONE JATUH TEMPO 3 HARI LAGI',
+    baris: (r) =>
+      `• ${r.judul} — ${r.proyek ?? 'tanpa proyek'}\n` +
+      `  target ${r.jatuh_tempo} (${r.sisa_hari} hari lagi) · status: ${r.status}`,
+  },
+  {
+    kode: 'laporan-mingguan-klien',
+    nama: 'Puraloka — Rekap Mingguan Proyek',
+    umpan: 'rekap-mingguan-proyek',
+    cron: '0 16 * * 6',
+    judul: 'REKAP PEKAN INI',
+    // ⚠ Tanpa nominal apa pun. Alur ini bernama "laporan mingguan KLIEN", dan
+    // laporan ke klien yang memuat angka internal (kasbon, upah mandor) adalah
+    // kebocoran yang tak bisa ditarik kembali. Umpannya pun sudah tak
+    // mengirim uang — dua lapis, karena satu lapis bisa lupa.
+    baris: (r) =>
+      `• ${r.proyek}\n` +
+      `  progres ${r.progres_pct}% · ${r.laporan_pekan_ini} laporan pekan ini` +
+      (r.target_selesai ? ` · target selesai ${r.target_selesai}` : ''),
+  },
 ]
 
 /**
@@ -141,6 +193,65 @@ return [{ json: { teks, jml: d.jml } }];
       type: 'n8n-nodes-base.scheduleTrigger',
       typeVersion: 1.2,
       position: [0, 0],
+    },
+    /*
+      PEMICU KEDUA: webhook, sejajar dengan jadwal.
+
+      ── Kenapa perlu, ditemukan 2026-08-14
+
+      n8n public API TIDAK punya endpoint eksekusi manual — `/execute` dan
+      `/run` sama-sama membalas 405. Yang tersedia hanya `/activate`.
+
+      Akibatnya `jalankanAlur()` di `lib/otomasi-n8n.ts` memanggil `/activate`
+      untuk alur berjadwal, lalu melaporkan `ok: true`. Itu benar secara
+      teknis (n8n menerima permintaannya) dan MENYESATKAN secara makna:
+      tombol "Jalankan sekarang" di halaman Alur Otomasi sebenarnya cuma
+      MENYALAKAN alurnya. Diukur: sesudah `ok:true`, riwayat eksekusi n8n
+      tetap NOL.
+
+      Dengan webhook sejajar, `jalankanAlur` mengambil cabang `jalur_webhook`
+      (yang memang sudah ada di kodenya) dan alurnya benar-benar berjalan.
+
+      ── Kenapa dua pemicu, bukan mengganti jadwal dengan webhook
+
+      Jadwal tetap yang menjalankannya tiap hari tanpa siapa pun menekan apa
+      pun — itu inti otomasi. Webhook hanya menambah jalan masuk kedua untuk
+      menguji dan memicu di luar jadwal. Menggantinya berarti alur yang hanya
+      jalan kalau ada yang mengklik, dan itu bukan otomasi lagi.
+
+      Keduanya menyambung ke simpul yang SAMA (lihat `SAMBUNG`), jadi tak ada
+      dua jalur logika yang bisa menyimpang.
+    */
+    {
+      parameters: {
+        httpMethod: 'POST',
+        path: resep.kode,
+        /*
+          `onReceived`, BUKAN `lastNode`.
+
+          Dengan `lastNode`, n8n membalas HTTP 500 ketika alur berhenti
+          sebelum simpul terakhir — dan alur ini MEMANG berhenti kalau
+          `jml === 0` (pesan "tidak ada apa-apa" tiap hari melatih orang
+          mengabaikan seluruh pesannya).
+
+          Diukur 2026-08-14: dua alur membalas 500 padahal riwayat
+          eksekusinya `success`. Tidak-ada-data terbaca sebagai gagal, dan
+          siapa pun yang memantau lewat kode HTTP akan mengejar kegagalan
+          yang tak pernah terjadi.
+
+          `onReceived` membalas 200 begitu pemicunya diterima; hasil
+          sebenarnya tetap terbaca di riwayat eksekusi n8n, tempat yang
+          memang untuk itu.
+        */
+        responseMode: 'onReceived',
+        options: {},
+      },
+      id: 'pemicu-manual',
+      name: 'Pemicu manual',
+      type: 'n8n-nodes-base.webhook',
+      typeVersion: 2,
+      position: [0, 180],
+      webhookId: resep.kode,
     },
     {
       parameters: {
@@ -185,6 +296,10 @@ return [{ json: { teks, jml: d.jml } }];
 
 const SAMBUNG = {
   Jadwal: { main: [[{ node: 'Ambil umpan', type: 'main', index: 0 }]] },
+  // Pemicu manual masuk ke simpul yang SAMA dengan jadwal — satu rantai
+  // logika, dua jalan masuk. Kalau ia punya cabang sendiri, yang diuji lewat
+  // tombol bukan lagi yang berjalan tiap pagi.
+  'Pemicu manual': { main: [[{ node: 'Ambil umpan', type: 'main', index: 0 }]] },
   'Ambil umpan': { main: [[{ node: 'Susun pesan', type: 'main', index: 0 }]] },
   'Susun pesan': { main: [[{ node: 'Kirim WhatsApp', type: 'main', index: 0 }]] },
 }
@@ -213,7 +328,36 @@ if (!companyId) throw new Error('tak ada company beranggota')
 const cfg = {
   n8nUrl: (process.env.N8N_URL || 'http://localhost:5680').replace(/\/$/, ''),
   n8nKey: process.env.N8N_KEY || '',
-  apiUrl: (process.env.PURALOKA_API_URL || 'http://localhost:3007').replace(/\/$/, ''),
+  /*
+    `127.0.0.1`, BUKAN `localhost` — dan ini bukan gaya penulisan.
+
+    ── Diukur 2026-08-14, sesudah alur pertama gagal
+
+    Alur berjalan, lalu simpul "Ambil umpan" membalas *"The service refused
+    the connection - perhaps it is offline"* — padahal API-nya hidup dan
+    `curl` dari shell yang sama membalas 200.
+
+    Sebabnya terlihat begitu interface-nya diperiksa:
+
+        API  0.0.0.0:3007          ← IPv4 saja
+        n8n  0.0.0.0:5680 + [::]   ← ikut IPv6
+
+    n8n me-resolve `localhost` ke `::1` lebih dulu, dan di sana port 3007
+    memang kosong. Dibuktikan langsung:
+
+        http://127.0.0.1:3007/... = 200
+        http://[::1]:3007/...     = 000 (gagal)
+
+    Galat "refused" tak menyebut IPv6 sama sekali, jadi tebakan pertama
+    selalu salah alamat: server dikira mati, port dikira salah, kredensial
+    dikira kedaluwarsa. Menulis alamat IPv4 secara eksplisit menutup seluruh
+    kelas kekeliruan itu.
+
+    `WA_URL` di bawah dibiarkan memakai default `localhost` karena Evolution
+    mendengarkan di keduanya — tapi kalau ia pernah gagal dengan pesan yang
+    sama, ini tempat pertama yang harus diperiksa.
+  */
+  apiUrl: (process.env.PURALOKA_API_URL || 'http://127.0.0.1:3007').replace(/\/$/, ''),
   apiKey: process.env.PURALOKA_API_KEY || '',
   waUrl: (process.env.WA_URL || 'http://localhost:8081').replace(/\/$/, ''),
   waApiKey: process.env.WA_KEY || '',
@@ -254,9 +398,13 @@ for (const resep of RESEP) {
   const n8nId = hasil?.id ?? idLama
   // Katalog Puraloka menunjuk balik ke n8n. Tanpa ini, halaman /otomasi/alur
   // tetap menampilkan "BELUM TERSAMBUNG" meski workflow-nya sudah ada.
+  // `jalur_webhook` ikut ditulis — tanpa ini `jalankanAlur()` jatuh ke cabang
+  // `/activate` yang hanya MENYALAKAN alur, lalu melaporkan ok:true tanpa satu
+  // pun eksekusi terjadi (diukur 2026-08-14: riwayat eksekusi n8n NOL sesudah
+  // "berhasil"). Nilainya = `resep.kode`, sama dengan `path` simpul webhook.
   await client.query(
-    `UPDATE otomasi_alur SET n8n_id=$1, diperbarui_pada=now() WHERE company_id=$2 AND kode=$3`,
-    [String(n8nId), companyId, resep.kode],
+    `UPDATE otomasi_alur SET n8n_id=$1, jalur_webhook=$4, diperbarui_pada=now() WHERE company_id=$2 AND kode=$3`,
+    [String(n8nId), companyId, resep.kode, resep.kode],
   )
   console.log(`  ${idLama ? 'diperbarui' : 'dibuat'}: ${resep.nama} → n8n_id=${n8nId}`)
 }

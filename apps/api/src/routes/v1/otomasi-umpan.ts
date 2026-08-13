@@ -72,11 +72,22 @@ import { supabase } from '../../utils/supabase.js'
 const BATAS = 50
 
 const JENIS_TERSEDIA = [
+  // ── Menagih/mengeskalasi SESUDAH lewat
   'invoice-terlambat',
   'persetujuan-tertahan',
   'ncr-belum-ditutup',
   'milestone-terlambat',
+  // ── Mengingatkan SEBELUM lewat (2026-08-14)
+  //
+  // Dipasangkan sengaja dengan yang di atas. Yang mendekat dan yang sudah
+  // lewat butuh nada berbeda dan penerima berbeda — menggabungkannya berarti
+  // pengingat sopan dan eskalasi keras dikirim sama kerasnya, dan yang
+  // pertama kali diabaikan orang adalah pengingat yang terlalu keras.
+  'invoice-jatuh-tempo',
+  'milestone-mendekat',
+  // ── Rekap
   'ringkasan-harian',
+  'rekap-mingguan-proyek',
 ] as const
 
 interface Umpan {
@@ -333,6 +344,137 @@ async function bangunUmpan(
           temuan_mutu_baru: ncrBaru,
         }],
       }
+    }
+
+    /**
+     * Invoice yang MENDEKATI jatuh tempo — untuk `tagih-invoice-jatuh-tempo`.
+     *
+     * Berbeda dari `invoice-terlambat` yang sudah ada, dan bedanya penting:
+     * yang ini menagih SEBELUM lewat, yang itu mengeskalasi SESUDAH lewat.
+     * Satu mencegah, satu menagih. Menggabungkannya berarti pengingat sopan
+     * dan eskalasi keras dikirim ke orang yang sama dengan nada yang sama.
+     *
+     * Jendela H-7 sampai H-0: lebih awal dari itu, pesannya diabaikan karena
+     * terasa belum mendesak; lebih lambat, tak ada waktu memproses pembayaran.
+     */
+    case 'invoice-jatuh-tempo': {
+      if (idProyek.length === 0) return kosong
+      const batas = new Date(kini.getTime() + 7 * 86_400_000)
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('id, invoice_number, due_date, total_amount, amount_due, status, project:projects(name)')
+        .in('project_id', idProyek)
+        // Yang sudah lunas/batal tak perlu ditagih. `amount_due > 0` saja tak
+        // cukup: invoice berstatus draft belum diterbitkan, jadi menagihnya
+        // berarti menagih sesuatu yang belum dikirim ke klien.
+        // Nilai enum DIUKUR (`enum_range(NULL::invoice_status)`), bukan
+        // ditebak: percobaan pertama menulis `partially_paid` dan Postgres
+        // menolaknya — enum sebenarnya `partial`. Tebakan yang salah di sini
+        // muncul sebagai 500 saat n8n memanggil, bukan saat kode ditulis.
+        .in('status', ['sent', 'partial', 'overdue'])
+        .gt('amount_due', 0)
+        .gte('due_date', iso(kini))
+        .lte('due_date', iso(batas))
+        .order('due_date', { ascending: true })
+        .limit(BATAS)
+      if (error) throw new Error(`umpan invoice-jatuh-tempo: ${error.message}`)
+
+      const baris = (data ?? []).map((v) => {
+        const r = v as Record<string, unknown>
+        return {
+          id: r.id,
+          nomor: r.invoice_number,
+          proyek: (r.project as { name?: string } | null)?.name ?? null,
+          jatuh_tempo: r.due_date,
+          // Negatif tak mungkin di sini (disaring `gte` di atas), tapi
+          // dihitung dengan cara yang sama seperti `invoice-terlambat`
+          // supaya dua umpan tak memakai dua definisi "umur".
+          sisa_hari: umurHari(iso(kini), new Date(r.due_date as string)),
+          nominal: r.total_amount,
+          sisa: r.amount_due,
+        }
+      })
+      return { jenis, jml: baris.length, baris }
+    }
+
+    /**
+     * Milestone yang MENDEKAT — untuk `peringatan-milestone-mendekat`.
+     *
+     * Pasangan pencegah dari `milestone-terlambat`. Jendela H-3: milestone
+     * konstruksi tak bisa diselamatkan dalam sehari, dan tiga hari adalah
+     * batas realistis untuk menambah tenaga atau menggeser urutan kerja.
+     */
+    case 'milestone-mendekat': {
+      if (idProyek.length === 0) return kosong
+      const batas = new Date(kini.getTime() + 3 * 86_400_000)
+      const { data, error } = await supabase
+        .from('milestones')
+        .select('id, title, target_date, status, project:projects(name)')
+        .in('project_id', idProyek)
+        .neq('status', 'completed')
+        .gte('target_date', iso(kini))
+        .lte('target_date', iso(batas))
+        .order('target_date', { ascending: true })
+        .limit(BATAS)
+      if (error) throw new Error(`umpan milestone-mendekat: ${error.message}`)
+
+      const baris = (data ?? []).map((v) => {
+        const r = v as Record<string, unknown>
+        return {
+          id: r.id,
+          judul: r.title,
+          proyek: (r.project as { name?: string } | null)?.name ?? null,
+          status: r.status,
+          jatuh_tempo: r.target_date,
+          sisa_hari: umurHari(iso(kini), new Date(r.target_date as string)),
+        }
+      })
+      return { jenis, jml: baris.length, baris }
+    }
+
+    /**
+     * Rekap mingguan per proyek — untuk `laporan-mingguan-klien`.
+     *
+     * SATU BARIS PER PROYEK, bukan per kejadian. Yang dikirim ke klien adalah
+     * "proyek Anda minggu ini begini", bukan daftar 50 log progres. Bentuknya
+     * mengikuti `ringkasan-harian` yang sudah terbukti dipakai.
+     *
+     * ⚠ Umpan ini TIDAK berisi angka uang. Laporan ke klien yang memuat
+     * nominal internal (kasbon, upah mandor) adalah kebocoran yang tak bisa
+     * ditarik kembali — dan klien tak pernah memintanya.
+     */
+    case 'rekap-mingguan-proyek': {
+      if (idProyek.length === 0) return kosong
+      const awalPekan = new Date(kini.getTime() - 7 * 86_400_000).toISOString()
+
+      const { data: proyek, error: eProyek } = await supabase
+        .from('projects')
+        .select('id, name, progress_pct, status, end_date')
+        .in('id', idProyek)
+        .eq('status', 'active')
+        .order('name')
+        .limit(BATAS)
+      if (eProyek) throw new Error(`umpan rekap-mingguan-proyek: ${eProyek.message}`)
+
+      const baris = []
+      for (const v of proyek ?? []) {
+        const r = v as Record<string, unknown>
+        const { count: nLog, error: eLog } = await supabase
+          .from('progress_logs')
+          .select('id', { count: 'exact', head: true })
+          .eq('project_id', r.id as string)
+          .gte('created_at', awalPekan)
+        if (eLog) throw new Error(`umpan rekap-mingguan-proyek (log): ${eLog.message}`)
+
+        baris.push({
+          id: r.id,
+          proyek: r.name,
+          progres_pct: r.progress_pct ?? 0,
+          laporan_pekan_ini: nLog ?? 0,
+          target_selesai: r.end_date,
+        })
+      }
+      return { jenis, jml: baris.length, baris }
     }
 
     /* c8 ignore next 2 — jenis sudah disaring di handler sebelum sampai sini. */

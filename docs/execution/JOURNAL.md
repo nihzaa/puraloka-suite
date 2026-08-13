@@ -5,6 +5,90 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan 2) — 8 alur otomasi hidup, dan tiga cacat yang hanya muncul saat dijalankan sungguhan
+
+Founder: *"ui ai & otomasi sudah selesai penuh? jadi bisa lanjut untuk bangun
+workflow/automationnya sekarang?"*
+
+### Pertanyaan pertama dijawab dengan mengukur, dan jawabannya mengoreksi QUEUE
+
+`UI-AI-OTOMASI` berstatus `todo`. Saya buka kedelapan halamannya satu per satu
+di peramban: **semuanya sudah dirombak** — keterangan tujuan, langkah bernomor
+1-2-3, istilah teknis dijelaskan dalam bahasa kerja, dan tiap halaman menunjuk
+tetangganya untuk hal yang bukan urusannya. Statusnya basi, bukan pekerjaannya
+yang kurang. Diperbaiki jadi `done` beserta catatan pengukurannya.
+
+### 8 alur terpasang (dari 5), dan yang menghalangi 3 sisanya
+
+Diukur: 14 alur di `otomasi_alur`, hanya **5 punya `n8n_id`**. Yang
+menghalangi 3 alur jadwal bukan resepnya melainkan UMPANNYA — `otomasi-umpan.ts`
+cuma menyediakan 5 jenis. Ditambahkan 3: `invoice-jatuh-tempo`,
+`milestone-mendekat`, `rekap-mingguan-proyek`.
+
+Dipasangkan sengaja dengan yang sudah ada: yang MENDEKAT dan yang SUDAH LEWAT
+butuh nada dan penerima berbeda. `rekap-mingguan-proyek` sengaja **tanpa
+nominal apa pun** — laporan ke klien yang memuat angka internal adalah
+kebocoran yang tak bisa ditarik kembali.
+
+Sisa 6 alur berpemicu webhook; jalur peristiwanya belum ada di aplikasi.
+
+### Tiga cacat yang TIDAK terlihat sampai alurnya benar-benar dijalankan
+
+1. **`otomasi:umpan:baca` tak pernah ada di katalog izin.** Ketahuan saat
+   membuat kunci API kedua — validatornya menolak. Kunci LAMA memegang izin itu
+   dan dipakai 11 kali, karena `requireApiKey` mencocokkan string di kolom
+   `api_key.izin`, bukan menoleh ke `permissions`. Jadi ia berfungsi hari ini
+   tapi tak bisa dibuat ulang saat kedaluwarsa. Migrasi 370 mendaftarkannya —
+   **tanpa memberikannya ke satu role pun**, karena ini izin MESIN.
+
+2. **n8n tak bisa menjangkau API lewat `localhost`.** Simpul "Ambil umpan"
+   membalas *"service refused the connection"* padahal `curl` dari shell yang
+   sama membalas 200. Sebabnya interface:
+
+       API  0.0.0.0:3007          <- IPv4 saja
+       n8n  0.0.0.0:5680 + [::]   <- ikut IPv6
+
+   n8n me-resolve `localhost` ke `::1`, dan di sana port 3007 kosong.
+   Dibuktikan: `127.0.0.1:3007` = 200, `[::1]:3007` = 000. Galatnya tak
+   menyebut IPv6 sama sekali, jadi tebakan pertama selalu salah alamat.
+
+3. **Tombol "Jalankan sekarang" tidak menjalankan apa pun.** n8n public API tak
+   punya endpoint eksekusi manual (`/execute` dan `/run` sama-sama 405), jadi
+   `jalankanAlur()` memanggil `/activate` lalu melapor `ok: true`. Benar secara
+   teknis, menyesatkan secara makna: sesudah `ok:true`, riwayat eksekusi n8n
+   **NOL**. Diperbaiki dengan memberi tiap alur pemicu webhook sejajar dengan
+   jadwalnya, dan menulis `jalur_webhook` ke basis.
+
+   Bonus dari itu: `responseMode: lastNode` membalas HTTP 500 saat alur
+   berhenti karena `jml === 0` — tidak-ada-data terbaca sebagai gagal. Diganti
+   `onReceived`.
+
+### Bukti
+
+```
+migrasi 370                tercatat di schema_migrations
+tsc (api)                  EXIT 0
+vitest otomasi-n8n +
+  otomasi-terjadwal        19/19 HIJAU
+umpan baru diuji lewat kunci API nyata:
+  invoice-jatuh-tempo      200 (jml=0, tak ada yg jatuh tempo pekan ini)
+  milestone-mendekat       200 (jml=0)
+  rekap-mingguan-proyek    200 (jml=11 proyek)
+n8n                        8 workflow Puraloka, SEMUA AKTIF
+eksekusi nyata             8 sukses / 8 alur
+                           (2 error awal = IPv6, sebelum diperbaiki)
+WhatsApp                   pesan BENAR-BENAR terkirim ke 6281311081813
+                           status PENDING dari Evolution, bukan simulasi
+```
+
+### Yang tersisa
+
+6 alur berpemicu webhook menunggu jalur peristiwa dari aplikasi — itu
+pekerjaan berikutnya, dan bentuknya sudah jelas: satu titik terbit peristiwa
+di API yang memanggil `/webhook/<kode>` saat hal yang ditunggu terjadi.
+
+---
+
 ## 2026-08-14 (lanjutan) — 5 role jadi 21, dan tiga cacat yang saya buat sendiri di jalan
 
 Founder: *"masa role di ERP konstruksi besar cuma segini? carikan role role apa

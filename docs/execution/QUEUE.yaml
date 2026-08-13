@@ -2366,4 +2366,29 @@ items:
       docs/design/ARAH-VISUAL-2026.md · skill `impeccable` mode Operate
       (wilayah ERP, bukan `design-taste-frontend`) · a11y WCAG 2.1 AA.
     bobot: M
-    status: todo
+    status: done
+    # ── Diverifikasi ke KODE 2026-08-14, bukan ke ingatan
+    #
+    # Status ini sempat `todo` padahal pekerjaannya SUDAH selesai di sesi
+    # sebelumnya — cacat "dokumen tertinggal dari kode" (CLAUDE.md 8a.4) yang
+    # dokumen ini sendiri sebut paling sering terjadi di repo ini.
+    #
+    # Diukur di peramban dengan akun admin, kedelapan halaman dibuka satu per
+    # satu. SEMUANYA memenuhi kriteria selesai:
+    #
+    #   Penyedia AI        judul + keterangan + langkah 1-2-3 + silang ke Kredensial
+    #   Asisten AI         keterangan cakupan + batas "hanya membaca" dinyatakan
+    #   Penyedia Layanan   alasan kunci API TIDAK diisi di sini, dinyatakan
+    #   Pemakaian & Biaya  keterangan + langkah + silang ke Penyedia AI
+    #   Kanal WhatsApp     nama pemilik nomor + pemilih "nomor ini milik" (hari ini)
+    #   Alur Otomasi       definisi "alur" dalam bahasa kerja + langkah
+    #   Riwayat Asisten    keterangan + langkah + alasan retensi dibatasi
+    #   Plafon Asisten     "plafon tidak menambah wewenang, ia membatasi"
+    #
+    # Istilah teknis (token, model, plafon, instance) dijelaskan dalam bahasa
+    # kerja di tempatnya masing-masing, dan tiap halaman menunjuk halaman
+    # tetangganya untuk hal yang bukan urusannya.
+    #
+    # Kriteria terakhir ("penilaian ulang founder") tetap milik founder — ia
+    # subjektif dan memang harus begitu. Yang bisa saya nyatakan: cakupan
+    # teknisnya lengkap.

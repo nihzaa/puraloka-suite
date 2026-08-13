@@ -230,7 +230,28 @@ export async function jalankanAlur(opsi: {
         body: opsi.muatan ?? {},
         ambil: opsi.ambil,
       })
-    : await panggil(cfg, `/api/v1/workflows/${alur.n8n_id}/activate`, {
+    : /*
+         ⚠ CABANG INI TIDAK MENJALANKAN APA PUN — ia hanya MENYALAKAN.
+
+         n8n public API tak punya endpoint eksekusi manual: `/execute` dan
+         `/run` sama-sama membalas 405 (diukur 2026-08-14). Yang tersedia
+         hanya `/activate`, dan itulah yang dipanggil di sini.
+
+         Akibatnya `ok: true` dari cabang ini berarti "n8n menerima permintaan
+         mengaktifkan", BUKAN "alurnya berjalan". Dibuktikan: sesudah
+         `ok:true`, riwayat eksekusi n8n tetap NOL.
+
+         Sejak 2026-08-14 seluruh alur dari `scripts/n8n/bangun-alur.mjs`
+         punya pemicu webhook sejajar dengan jadwalnya, dan `jalur_webhook`
+         ikut ditulis ke basis — jadi alur yang dibangun skrip itu SELALU
+         mengambil cabang pertama, dan cabang ini hanya tersisa untuk alur
+         lama yang dibuat manual di UI n8n.
+
+         Dibiarkan, bukan dibuang: alur manual tanpa webhook tetap perlu bisa
+         dinyalakan dari UI Puraloka. Yang diperbaiki adalah KEJUJURANNYA —
+         hasilnya ditandai supaya pemanggil tak menyangka alurnya berjalan.
+      */
+      await panggil(cfg, `/api/v1/workflows/${alur.n8n_id}/activate`, {
         method: 'POST',
         ambil: opsi.ambil,
       })
