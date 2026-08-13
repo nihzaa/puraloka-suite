@@ -5,6 +5,89 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-13 (lanjutan 11) — Evolution dikelola dari UI Puraloka, dan halaman tambalan yang saya hapus sendiri
+
+Founder membuka `localhost:8081/manager` dan menerima ENOENT. Lalu tiga
+pertanyaan yang semuanya tepat: *"emang halaman evolution kaya gini? terus
+biar bisa multi tenant halamannya kaya gituu?"*
+
+### Halaman yang saya serahkan sebelumnya memang salah
+
+`scripts/wa-qr.mjs` di `:8099` saya buat supaya QR bisa dipindai hari itu —
+tambalan, bukan desain. Ia hidup di luar Puraloka, tak kenal tenant, tak
+kenal permission, dan tak akan ada di server produksi. Saya menyerahkannya
+tanpa menyebut itu, dan founder yang menangkapnya. **Dihapus di commit ini.**
+
+### Memasang Manager Evolution pun bukan jawabannya
+
+Tiga alasan, dan ketiganya soal multi-tenant:
+
+1. Manager tak kenal tenant — satu layar memperlihatkan SELURUH instance di
+   server, termasuk milik perusahaan lain.
+2. Ia menuntut `apikey` Evolution dipegang yang membukanya. Kunci itu
+   berkuasa atas SEMUA instance.
+3. Peramban yang memanggil `:8081` langsung berarti `WA_API_KEY` dikirim ke
+   sisi klien — dan kunci yang sampai ke peramban sudah bocor.
+
+### Fondasi multi-tenant ternyata SUDAH benar
+
+Diukur, bukan diasumsikan:
+
+    app_credentials  UNIQUE (company_id, kunci)
+
+`WA_BASE_URL`/`WA_API_KEY`/`WA_INSTANCE` memang sudah per-tenant, dan
+`wa-kirim.ts` sengaja membaca kredensial per panggilan (bukan cache modul)
+dengan alasan yang sudah ditulis di sana. Yang belum ada cuma permukaannya.
+
+### Nama instance DITURUNKAN, dan itu invariant paling penting di sini
+
+`puraloka-<12 hex company_id>`. Nama yang diketik manusia bisa bentrok antar
+tenant di satu server Evolution — dan yang kalah **tak menerima galat**, ia
+hanya memakai instance milik tenant lain: pesan perusahaan A terkirim dari
+nomor perusahaan B, riwayat keduanya bercampur.
+
+Mutasi membuktikannya. Membuat rute menerima `instanceName` dari pemanggil:
+
+    HIJAU 8/8 → MERAH ('__uji_..._nama_karangan' ≠ 'puraloka-48befb54113d') → HIJAU 8/8
+
+### QR menuntut `manage`, bukan `view` — dan itu bukan kelebihan hati-hati
+
+Siapa pun yang memindai QR menjadi pengirim resmi kanal WhatsApp perusahaan.
+"Hanya menampilkan gambar" adalah bacaan yang salah tentang apa yang gambar
+itu berikan.
+
+Begitu pula `/qr` menolak meminta QR saat state sudah `open`:
+`/instance/connect` pada instance hidup bisa MEMUTUS sesi yang berjalan di
+sebagian versi Evolution. Membuka panel QR karena penasaran lalu memutus
+WhatsApp yang sedang dipakai adalah kerusakan yang tak bisa ditarik kembali.
+
+### Dua warning lint yang saya perbaiki, bukan saya diamkan
+
+Repo ini ber-lint-ratchet: warning tak boleh bertambah.
+
+1. `react-hooks/immutability` — versi pertama menulis `setTimeout` ke sebuah
+   ref dari dalam `useCallback`. Dipindah ke `useEffect`, tempat efek samping
+   memang boleh hidup, dengan pembersihan `return () => clearTimeout(...)`.
+2. `@next/next/no-img-element` — `<img>` diganti `next/image` ber-`unoptimized`
+   (sumbernya data-URI yang berganti tiap 20 detik; mengoptimalkannya sia-sia).
+
+### Bukti
+
+    API tsc + web tsc          EXIT 0
+    next build                 Compiled successfully, /pengaturan/whatsapp ada di manifest
+    wa-instance.test           8/8 hijau lawan Evolution NYATA
+    mutasi nama instance       HIJAU → MERAH → HIJAU
+    eslint                     0 error, 0 warning
+    8 penjaga arsitektural     HIJAU (termasuk audit-kredensial-tak-bocor)
+    5 penjaga visual           HIJAU
+    instance nyata dibuat      puraloka-48befb54113d (terlihat di fetchInstances)
+
+### Yang masih menunggu founder
+
+Memindai QR. Kini dari **Pengaturan → Kanal WhatsApp**, bukan halaman luar.
+
+---
+
 ## 2026-08-13 (lanjutan 10) — lima workflow n8n pertama, dan pintu yang tak pernah dibuka
 
 Founder meminta workflow n8n dibangun. Yang ditemukan sebelum bisa memulai:

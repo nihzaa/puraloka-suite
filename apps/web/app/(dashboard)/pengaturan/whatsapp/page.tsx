@@ -40,6 +40,7 @@ import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
+import KartuSambungan from "./_sambungan";
 
 
 
@@ -207,16 +208,31 @@ export default function WhatsAppPage() {
         >
           <ShieldAlert size={18} style={{ color: "var(--warning)", flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>
+            {/*
+              `WA_INSTANCE` sengaja TIDAK lagi disebut di sini.
+
+              Sebelumnya kalimat ini menyuruh mengetiknya sendiri di halaman
+              Kredensial — dan nama yang diketik manusia bisa bentrok dengan
+              milik tenant lain di server Evolution yang sama. Yang kalah tak
+              menerima galat; ia hanya memakai instance milik orang lain.
+
+              Sekarang namanya diturunkan dari `company_id` oleh kartu
+              Sambungan di bawah. Yang tersisa untuk diisi manual hanya alamat
+              server dan kuncinya.
+            */}
             <strong>Kanal belum terhubung.</strong> Nomor bisa didaftarkan, tetapi kode
-            verifikasi tak akan terkirim sampai <code>WA_BASE_URL</code>, <code>WA_API_KEY</code>,
-            dan <code>WA_INSTANCE</code> diisi di{" "}
+            verifikasi tak akan terkirim sampai <code>WA_BASE_URL</code> dan{" "}
+            <code>WA_API_KEY</code> diisi di{" "}
             <a href="/pengaturan/kredensial" style={{ color: C.aksen, textDecoration: "none", fontWeight: 600 }}>
               halaman Kredensial
             </a>
-            .
+            . Instance-nya dibuat dari kartu <strong>Sambungan</strong> di bawah.
           </div>
         </div>
       )}
+
+      {/* ── Sambungan: instance + QR, tanpa membuka Evolution sama sekali ── */}
+      <KartuSambungan bolehKelola={bolehKelola} onToast={setToast} />
 
       {!bolehKelola && (
         <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)", display: "flex", gap: 10 }}>
