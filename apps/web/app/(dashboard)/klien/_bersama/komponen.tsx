@@ -23,6 +23,7 @@
  */
 
 import { useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import {
@@ -71,11 +72,6 @@ export interface ClientDetail extends Client {
   };
 }
 
-function useMount() {
-  const [m, setM] = useState(false);
-  useEffect(() => setM(true), []);
-  return m;
-}
 
 function fmtCurrency(n: number) {
   if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, "")} M`;
@@ -112,7 +108,7 @@ export function ClientModal({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const mounted = useMount();
+  const mounted = useTerpasang();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -269,7 +265,7 @@ export function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
   useTutupEsc(onClose);
   const [detail, setDetail] = useState<ClientDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const mounted = useMount();
+  const mounted = useTerpasang();
 
   useEffect(() => {
     if (!clientId) return;

@@ -43,7 +43,8 @@
  * "progres" membuat orang mengira 40% berarti bangunannya sudah 40% berdiri.
  */
 
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { KepalaHalaman } from "@/components/dasar";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -73,8 +74,7 @@ type StatusFilter = "all" | "active" | "completed" | "on_hold" | "draft";
 type ViewMode = "grid" | "list";
 
 export default function ProyekPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <ProyekRingkasan />;
 }

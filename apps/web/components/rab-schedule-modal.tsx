@@ -396,7 +396,7 @@ export function RabScheduleModal({ projectId, projectStart, projectEnd, onClose 
                   {/* Baris data */}
                   {rows.length === 0 && (
                     <div style={{ textAlign: "center", padding: "32px 0", color: C.muted, fontSize: 13 }}>
-                      Belum ada jadwal. Klik "+ Tambah Minggu" untuk mulai.
+                      Belum ada jadwal. Klik “+ Tambah Minggu” untuk mulai.
                     </div>
                   )}
 
@@ -802,7 +802,7 @@ export function AbsorptionLogModal({ projectId, projectStart, projectEnd, onClos
 
                   {rows.length === 0 && (
                     <div style={{ textAlign: "center", padding: "32px 0", color: C.muted, fontSize: 13 }}>
-                      Belum ada data serapan. Klik "+ Update Minggu" untuk mulai.
+                      Belum ada data serapan. Klik “+ Update Minggu” untuk mulai.
                     </div>
                   )}
 

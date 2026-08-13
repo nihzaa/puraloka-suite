@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback, useReducer } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { X, Plus, Trash2, ChevronRight, ChevronLeft, Check } from "lucide-react";
@@ -107,8 +108,7 @@ const DEFAULT_FORM: ProjectFormData = {
 
 export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess }: ProjectModalProps) {
   useTutupEsc(onClose);
-  const [mounted, setMounted] = useReducer(() => true, false);
-  useEffect(setMounted, [setMounted]);
+  const mounted = useTerpasang();
 
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<ProjectFormData>(() => ({ ...DEFAULT_FORM, ...initialData }));

@@ -879,7 +879,7 @@ export default function KompetensiPage() {
               </select>
               <p style={{ fontSize: 11, color: C.muted, marginTop: 4, lineHeight: 1.5 }}>
                 Buat dulu data kepegawaiannya, lalu tautkan di sini — lamaran
-                "diterima" tanpa pegawai tak bisa ditelusuri: siapa yang masuk?
+                “diterima” tanpa pegawai tak bisa ditelusuri: siapa yang masuk?
               </p>
             </div>
           )}

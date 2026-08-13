@@ -28,7 +28,8 @@
  */
 
 import { usePathname } from "next/navigation";
-import { Bot, Globe, HardHat, LineChart, Power, ShieldCheck, UserCog } from "lucide-react";
+import { Globe, HardHat, LineChart, Power, ShieldCheck, UserCog } from "lucide-react";
+import { KETERANGAN } from "./_bersama/tipe";
 import { KepalaHalaman } from "@/components/dasar";
 import { NavBagian } from "@/components/nav-bagian";
 import { GAYA_KARTU } from "@/components/ui-dasar";
@@ -56,32 +57,31 @@ const BAGIAN = [
  * Ikonnya juga dibedakan dengan alasan yang sama: lima halaman berikon sama
  * terlihat seperti satu halaman yang gagal berpindah.
  */
-const KEPALA: Record<string, { judul: string; keterangan: string; ikon: React.ReactNode }> = {
+/**
+ * Keterangan TIDAK ditulis ulang di sini — ia diambil dari `KETERANGAN`.
+ *
+ * Peta ini sempat MENYALIN keempat kalimat itu kata per kata, dan salinannya
+ * sudah menyimpang: keterangan asisten staf kehilangan "dari asisten pemilik",
+ * dan wawasan kehilangan "Tidak memakai tool." Dua kalimat yang menjelaskan
+ * BATAS sebuah asisten, hilang di tempat yang justru dibaca orang saat
+ * mengatur batas itu.
+ *
+ * `KETERANGAN` di `_bersama/tipe.ts` menyatakan dirinya "dipakai sebagai
+ * keterangan halaman" — dan tak ada satu pun yang memakainya, sampai eslint
+ * melaporkannya sebagai impor mati. Yang mati bukan konstantanya; yang mati
+ * adalah jalur yang seharusnya memakainya.
+ */
+const KEPALA: Record<string, { judul: string; asisten?: string; keterangan?: string; ikon: React.ReactNode }> = {
   "/pengaturan/asisten": {
     judul: "Lapisan AI",
+    // Halaman indeks bukan asisten — keterangannya milik dirinya sendiri.
     keterangan: "Saklar AI dan lama simpan riwayat — berlaku untuk seluruh asisten.",
     ikon: <Power size={19} />,
   },
-  "/pengaturan/asisten/pemilik": {
-    judul: "Asisten Pemilik",
-    keterangan: "Menjawab pertanyaan lintas proyek lewat WhatsApp dan menyiapkan tindakan untuk disetujui.",
-    ikon: <UserCog size={19} />,
-  },
-  "/pengaturan/asisten/staf": {
-    judul: "Asisten Staf",
-    keterangan: "Asisten untuk orang lapangan dan kantor. Kanal WhatsApp sendiri, batas datanya lebih sempit.",
-    ikon: <HardHat size={19} />,
-  },
-  "/pengaturan/asisten/web": {
-    judul: "Asisten Web",
-    keterangan: "Asisten di dalam dashboard. Penanyanya siapa pun yang login — batasnya mengikuti izin orang itu.",
-    ikon: <Globe size={19} />,
-  },
-  "/pengaturan/asisten/wawasan": {
-    judul: "Wawasan Portofolio",
-    keterangan: "Menulis dua kalimat penilaian di beranda dari angka yang sudah dihitung sistem.",
-    ikon: <LineChart size={19} />,
-  },
+  "/pengaturan/asisten/pemilik": { judul: "Asisten Pemilik",     asisten: "owner",   ikon: <UserCog size={19} /> },
+  "/pengaturan/asisten/staf":    { judul: "Asisten Staf",        asisten: "staff",   ikon: <HardHat size={19} /> },
+  "/pengaturan/asisten/web":     { judul: "Asisten Web",         asisten: "web",     ikon: <Globe size={19} /> },
+  "/pengaturan/asisten/wawasan": { judul: "Wawasan Portofolio",  asisten: "insight", ikon: <LineChart size={19} /> },
 };
 
 export default function AsistenLayout({ children }: { children: React.ReactNode }) {
@@ -99,7 +99,11 @@ export default function AsistenLayout({ children }: { children: React.ReactNode 
         margin: "0 auto",
       }}
     >
-      <KepalaHalaman judul={kepala.judul} keterangan={kepala.keterangan} ikon={kepala.ikon} />
+      <KepalaHalaman
+        judul={kepala.judul}
+        keterangan={kepala.keterangan ?? (kepala.asisten ? KETERANGAN[kepala.asisten] : undefined)}
+        ikon={kepala.ikon}
+      />
 
       {/*
         Sifat READ-ONLY dinyatakan sekali, di sini — bukan diulang empat kali.

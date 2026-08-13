@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api, getStoredUser } from "@/lib/api";
@@ -34,11 +35,6 @@ interface UserRecord {
   created_at: string;
 }
 
-function useMount() {
-  const [m, setM] = useState(false);
-  useEffect(() => setM(true), []);
-  return m;
-}
 
 function roleInfo(role: RoleKey) {
   return ROLES.find(r => r.key === role) ?? ROLES[3];
@@ -222,7 +218,7 @@ export default function UsersPage() {
 // ─── Modal: Tambah User Baru ──────────────────────────────────────────────────
 function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   useTutupEsc(onClose);
-  const mounted = useMount();
+  const mounted = useTerpasang();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   const [name, setName] = useState("");
@@ -309,7 +305,7 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 // ─── Modal: Edit Data User ────────────────────────────────────────────────────
 function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose: () => void; onSuccess: () => void }) {
   useTutupEsc(onClose);
-  const mounted = useMount();
+  const mounted = useTerpasang();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
 
   const [name, setName] = useState(user.name);

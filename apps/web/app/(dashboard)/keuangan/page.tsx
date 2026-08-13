@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useReducer, useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import {
@@ -32,8 +33,7 @@ import {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function KeuanganPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <KeuanganContent />;
 }

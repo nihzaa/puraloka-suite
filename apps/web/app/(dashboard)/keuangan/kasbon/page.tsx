@@ -318,7 +318,7 @@ export default function KasbonPage() {
                               <Wallet size={10} /> {k.cash_account.name}
                             </div>
                           )}
-                          {k.notes && <div style={{ fontSize: 12, color: C.mid, marginTop: 4, fontStyle: "italic" }}>"{k.notes}"</div>}
+                          {k.notes && <div style={{ fontSize: 12, color: C.mid, marginTop: 4, fontStyle: "italic" }}>“{k.notes}”</div>}
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div style={{ fontSize: 17, fontWeight: 800, color: k.status === "pending" ? C.yellow : C.text, fontFamily: "var(--font-display)", marginBottom: 8 }}>
@@ -571,7 +571,7 @@ export default function KasbonPage() {
                               </div>
                             </div>
                           )}
-                          {wk.notes && <div style={{ fontSize: 12, color: C.mid, marginTop: 4, fontStyle: "italic" }}>"{wk.notes}"</div>}
+                          {wk.notes && <div style={{ fontSize: 12, color: C.mid, marginTop: 4, fontStyle: "italic" }}>“{wk.notes}”</div>}
                         </div>
                         <div style={{ textAlign: "right", flexShrink: 0 }}>
                           <div style={{ fontSize: 17, fontWeight: 800, color: wk.is_settled ? C.text : C.yellow, fontFamily: "var(--font-display)" }}>

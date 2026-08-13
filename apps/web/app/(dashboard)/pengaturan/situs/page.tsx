@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useReducer, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
 import { Globe, Save, Check, X, AlertTriangle, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { C } from "@/lib/warna-ui";
@@ -72,8 +73,7 @@ function hasPerm(key: string): boolean {
 }
 
 export default function SitusPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <SitusContent />;
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { useRouter } from "next/navigation";
 import { api, getStoredUser, makeAbortController } from "@/lib/api";
 import { KartuKPI, Kosong } from "@/components/ui-dasar";
@@ -260,8 +261,7 @@ const PERIOD_LABEL: Record<Period, string> = {
 // ─── Root: hydration guard ─────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <DashboardContent />;
 }

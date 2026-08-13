@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
 import { GitBranch, Plus, Trash2, Check, X, AlertTriangle, Info } from "lucide-react";
 
@@ -21,8 +22,7 @@ function hasPerm(key: string): boolean {
 }
 
 export default function ApprovalPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <Content />;
 }

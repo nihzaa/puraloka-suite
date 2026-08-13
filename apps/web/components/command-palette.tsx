@@ -206,7 +206,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
           {!showQuick && results.length === 0 && !loading && (
             <div style={{ padding: "24px 16px", textAlign: "center" }}>
               <Search size={24} style={{ color: "var(--text-muted)", marginBottom: 8 }} />
-              <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Tidak ada hasil untuk "{query}"</div>
+              <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Tidak ada hasil untuk “{query}”</div>
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Coba kata kunci lain</div>
             </div>
           )}

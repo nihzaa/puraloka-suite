@@ -96,7 +96,7 @@ export default function PetaModulPage() {
         <KepalaHalaman judul="Peta Modul" /><p style={{ fontSize: 13, color: C.mid, margin: "6px 0 0", maxWidth: "70ch", lineHeight: 1.55 }}>
           Seluruh modul yang direncanakan produk ini beserta keadaannya hari ini.
           Sidebar hanya memuat yang <strong>bisa dipakai</strong>; sisanya ada di sini —
-          supaya "belum ada" bisa dibaca sekali, bukan ditemukan satu per satu saat diklik.
+          supaya “belum ada” bisa dibaca sekali, bukan ditemukan satu per satu saat diklik.
         </p>
       </div>
 

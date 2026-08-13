@@ -16,7 +16,8 @@
  * menautkannya, tombol Kembali bekerja, dan tautannya bisa ditempel di chat.
  */
 
-import { Suspense, useCallback, useEffect, useReducer, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRightLeft, RefreshCw } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
@@ -32,8 +33,7 @@ import { type CashTransfer, fmtCompact, pesanGalat } from "../_bersama/tipe";
 const STATUS_SAH = ["pending", "confirmed", "cancelled"] as const;
 
 export default function TransferKasPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return (
     // `useSearchParams` menuntut batas Suspense saat halaman di-prerender.
@@ -70,7 +70,11 @@ function TransferIsi() {
 
   useEffect(() => {
     const ac = makeAbortController();
-    void muat(saring, ac.signal).catch(() => {});
+    // `queueMicrotask`: setState di baris pertama `muat()` jatuh di dalam
+    // fase render effect. Menundanya satu microtask memindahkannya keluar
+    // tanpa jeda yang terlihat — `ac.abort()` di cleanup tetap bekerja,
+    // karena pembatalan terjadi belakangan.
+    queueMicrotask(() => { void muat(saring, ac.signal).catch(() => {}); });
     return () => ac.abort();
   }, [saring, muat]);
 

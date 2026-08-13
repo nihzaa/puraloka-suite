@@ -34,7 +34,7 @@
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
-  ClipboardCheck, RefreshCw, Check, X, AlertTriangle, Ruler, Plus, Lock,
+  ClipboardCheck, RefreshCw, Check, X, AlertTriangle, Ruler, Lock,
 } from "lucide-react";
 import { api, hasPermission, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";

@@ -36,7 +36,8 @@
  * netral.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import {
   Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
@@ -89,8 +90,7 @@ const RENTANG = [
 ];
 
 export default function BiayaAiPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <Konten />;
 }

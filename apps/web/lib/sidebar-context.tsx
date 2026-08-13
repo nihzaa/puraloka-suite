@@ -33,12 +33,39 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   /** Layar sempit MEMAKSA ciut — pilihan manual user tak berlaku di sini. */
   const [dipaksaCiut, setDipaksaCiut] = useState(false);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("sidebar_collapsed");
-      if (saved === "1") setCollapsed(true);
-    } catch {}
-  }, []);
+  /*
+    ── Kenapa efek, dan BUKAN inisialisasi lazy `useState(() => …)`
+    ───────────────────────────────────────────────────────────────────────
+    Membaca `localStorage` langsung di inisialisasi memang menghapus render
+    kedua (`react-hooks/set-state-in-effect`) DAN kedipan sidebar. Saya
+    mencobanya, lalu mengukurnya di peramban:
+
+        lebar sesudah reload, tersimpan=ciut : 64  ← benar, tanpa kedip
+        galat hidrasi : "A tree hydrated but some attributes of the server
+                         rendered HTML didn't match the client properties."
+
+    HTML server tak punya `localStorage`, jadi ia selalu merender sidebar
+    LEBAR. Klien yang langsung membaca "ciut" menghasilkan pohon yang
+    berbeda, dan React menyatakan ketidakcocokan itu tak bisa ditambal.
+
+    Menukar satu render tambahan dengan hydration mismatch adalah pertukaran
+    yang salah: yang pertama pemborosan kecil, yang kedua berarti sebagian
+    atribut DOM ditinggalkan dalam keadaan tak terdefinisi.
+
+    Jalan keluar yang benar bukan di sini melainkan di `<html>` — skrip
+    penyetel kelas sebelum React jalan, seperti yang dilakukan `next-themes`
+    untuk mode gelap. Itu perubahan pada dokumen dasar, bukan pembersihan
+    lint, jadi ia TIDAK dikerjakan bersamaan dengan ini.
+
+    Peringatan lint ini SENGAJA DIBIARKAN BERBUNYI — tidak di-`eslint-disable`.
+
+    Komentar penonaktif akan menurunkan angka ratchet tanpa memperbaiki apa
+    pun: hutangnya tetap ada, hanya jadi tak terlihat, dan lantai yang turun
+    karenanya membuat penjaga berbohong tentang seberapa besar sisanya.
+    Melemahkan penjaga lewat pintu belakang persis yang dilarang G-5.
+
+    Lihat JOURNAL 2026-08-13.
+  */
 
   useEffect(() => {
     // `matchMedia`, bukan listener `resize`: ia hanya berbunyi saat ambangnya

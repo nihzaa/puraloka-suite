@@ -5,6 +5,124 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-13 — hutang lint: tujuh rule kembali hijau, dan lima salinan hook yang sama
+
+Founder: "yaa kalo gitu kamu kerjakan yg hutang itu" — merujuk hutang lint yang
+saya laporkan bukan milik saya (datang dari commit sesi lain).
+
+### Sebelum → sesudah
+
+```
+rule                                    ambang   sebelum   sesudah
+@typescript-eslint/no-unused-vars            1         6         0
+react/no-unescaped-entities                 18        22         0
+react-hooks/exhaustive-deps                 22        23        10
+react-hooks/set-state-in-effect             58        73        58
+jsx-a11y/click-events-have-key-events       59        63        57
+jsx-a11y/no-static-element-interactions     64        65        63
+jsx-a11y/label-has-associated-control       21        22        20
+jsx-a11y/no-noninteractive-element-inter.    6        10        <=6
+```
+
+Lantai enam rule DIKENCANGKAN sesudahnya — kalau tidak, hutang bisa merangkak
+naik lagi diam-diam ke ambang lama.
+
+### Temuan pokok: LIMA salinan hook "sudah terpasang?"
+
+Pertanyaan "apakah saya sudah di klien?" dijawab lima cara berbeda:
+
+```
+useReducer(() => true, false) + useEffect(mount, [mount])   33 berkas
+function useMounted() { ... useReducer ... }                 2 berkas
+function useMount()   { ... useState + useEffect ... }       2 berkas
+useState(false) + useEffect(() => setMounted(true), [])      theme-toggle
+```
+
+Semuanya memaksa render KEDUA pada tiap muat halaman, dan masing-masing memicu
+DUA peringatan sekaligus (`set-state-in-effect` + `exhaustive-deps` untuk
+dependensi `mount`). Itu sebabnya `exhaustive-deps` turun 23 -> 10 hanya dari
+satu penyatuan.
+
+`lib/use-terpasang.ts` menjawabnya lewat `useSyncExternalStore` — dua pembaca
+(server `false`, klien `true`), tanpa efek, tanpa render kedua.
+
+### Saya salah: inisialisasi lazy `localStorage` = hydration mismatch
+
+Untuk `sidebar-context` saya mengganti `useEffect` dengan `useState(() =>
+localStorage.getItem(...))`. Itu menghapus render kedua DAN kedipan sidebar.
+Diukur di peramban:
+
+```
+lebar sesudah reload, tersimpan=ciut : 64   <- benar, tanpa kedip
+galat hidrasi : "A tree hydrated but some attributes of the server rendered
+                 HTML didn't match the client properties."
+```
+
+HTML server tak punya `localStorage`, jadi ia selalu merender sidebar LEBAR.
+Dikembalikan. Jalan keluar yang benar ada di `<html>` (skrip penyetel kelas
+sebelum React jalan, seperti `next-themes`) — perubahan dokumen dasar, bukan
+pembersihan lint, jadi tak dikerjakan bersamaan.
+
+Tiga `setUser(u)` di layout portal dibiarkan dengan alasan yang sama, plus satu
+tambahan: efek itu GERBANG OTORISASI. `queueMicrotask` menundanya satu tick,
+dan pada layar otorisasi itu berarti isi halaman sempat terlihat oleh orang
+yang tak berhak. Angka lint tak sepadan dengan itu.
+
+### Saya nyaris melemahkan penjaga lewat pintu belakang
+
+Saya sempat menulis `// eslint-disable-next-line react-hooks/set-state-in-effect`
+di `sidebar-context`, lengkap dengan alasannya. Itu akan menurunkan angka
+ratchet TANPA memperbaiki apa pun — hutangnya tetap ada, hanya jadi tak
+terlihat, dan lantai yang turun karenanya membuat penjaga berbohong. Dicabut;
+peringatannya sengaja dibiarkan berbunyi (G-5).
+
+### Temuan sampingan: dua sumber untuk satu kalimat, satunya sudah membusuk
+
+`KETERANGAN` di `pengaturan/asisten/_bersama/tipe.ts` menyatakan dirinya
+"dipakai sebagai keterangan halaman" — dan tak seorang pun memakainya, sampai
+eslint melaporkannya sebagai impor mati. `KEPALA` di `layout.tsx` menyalin
+keempat kalimatnya kata per kata, dan salinannya sudah menyimpang:
+
+    KETERANGAN : "...batas datanya lebih sempit DARI ASISTEN PEMILIK."
+    KEPALA     : "...batas datanya lebih sempit."
+
+Potongan yang hilang justru menjelaskan BATAS asisten — di halaman yang dibaca
+orang saat mengatur batas itu. Disatukan.
+
+### Lightbox: backdrop jadi SAUDARA, bukan induk
+
+`<div onClick={tutup}>` yang membungkus gambar memaksa gambarnya memasang
+`onClick={e => e.stopPropagation()}` — handler yang tak melakukan apa pun
+kecuali menahan klik induknya, tapi tetap terhitung tiga pelanggaran a11y.
+
+Backdrop kini `<button>` penuh-layar di BELAKANG isi, ber-`tabIndex={-1}` +
+`aria-hidden` supaya tak menambah perhentian Tab (klik-latar adalah kenyamanan
+tetikus; papan tik sudah punya Esc dan tombol X). Empat tempat: dua lightbox,
+dua modal estimasi.
+
+Data dev tak punya foto, jadi jalur ini tak bisa diperiksa lewat UI —
+`components/progress-log-list.test.tsx` (3 test) yang menjaganya. Dibuktikan
+bisa merah: menghapus `tabIndex`/`aria-hidden` -> 2 test gagal.
+
+### Alat ukur salah lagi (kelima kalinya rangkaian sesi ini)
+
+Sapuan verifikasi pertama menunggu 2,6 detik lalu melaporkan `/dashboard`
+teks=0 dan tiga halaman "bermasalah". Diperiksa satu per satu: ketiganya
+SEHAT (6977 / 4902 / 2937 karakter), nol galat. Yang salah ambang waktunya.
+Diganti tunggu-sampai-berhenti-bertambah: 27/27 hijau.
+
+### Bukti
+
+```
+lint:ratchet   : HIJAU — 0 error, 299 warning, semua <= ambang
+vitest (web)   : 48 berkas, 628/628 hijau
+tsc            : 0 galat di kode nyata
+peramban       : 27 halaman, 0 galat hidrasi, 0 pageerror
+bukti mutasi   : progress-log-list M1 -> 2 test MERAH
+```
+
+---
+
 ## 2026-08-12/13 — konsistensi visual: tiga sumbu, dan alat ukur yang salah tiga kali
 
 Founder menunjuk satu halaman ("ini yg terlalu longgar" — /keuangan), lalu

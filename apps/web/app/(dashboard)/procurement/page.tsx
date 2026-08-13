@@ -55,7 +55,8 @@
  * penerimaan NYATA per item, dan `/purchase-orders` hanya mengirim janjinya.
  */
 
-import { useEffect, useMemo, useReducer, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
 import {
   AlertTriangle, Boxes, Building2, ClipboardList, Clock, FileText,
@@ -78,8 +79,7 @@ import { KerangkaKpi, fmt, fmtRingkas } from "./_bersama/ui";
 import type { KpiProcurement, PurchaseOrder, Supplier } from "./_bersama/tipe";
 
 export default function ProcurementPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <ProcurementRingkasan />;
 }

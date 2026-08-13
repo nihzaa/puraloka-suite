@@ -17,7 +17,8 @@
  * meninggalkan jejak di alamat.
  */
 
-import { Suspense, useCallback, useEffect, useReducer, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Building2, CheckCircle2, RefreshCw, ShoppingCart, TrendingDown,
@@ -35,8 +36,7 @@ import {
 const STATUS_SAH = ["submitted", "approved", "rejected", "draft"] as const;
 
 export default function PengeluaranKasPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return (
     <Suspense fallback={<RangkaBaris />}>
@@ -81,7 +81,11 @@ function PengeluaranIsi() {
 
   useEffect(() => {
     const ac = makeAbortController();
-    void muat(saring, ac.signal).catch(() => {});
+    // `queueMicrotask`: setState di baris pertama `muat()` jatuh di dalam
+    // fase render effect. Menundanya satu microtask memindahkannya keluar
+    // tanpa jeda yang terlihat — `ac.abort()` di cleanup tetap bekerja,
+    // karena pembatalan terjadi belakangan.
+    queueMicrotask(() => { void muat(saring, ac.signal).catch(() => {}); });
     return () => ac.abort();
   }, [saring, muat]);
 

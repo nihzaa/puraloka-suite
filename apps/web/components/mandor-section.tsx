@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
@@ -48,11 +49,7 @@ interface MandorUser {
   id: string; name: string; phone: string | null;
 }
 
-function useMounted() {
-  const [mounted, dispatch] = useReducer(() => true, false);
-  useEffect(() => { dispatch(); }, []);
-  return mounted;
-}
+const useMounted = useTerpasang;   // lihat lib/use-terpasang.ts
 
 // Compact dual progress bar: progress fisik (navy) + kasbon (orange)
 function ScopeBars({ scope }: { scope: WorkScope }) {
@@ -216,7 +213,7 @@ export function MandorSection({
         <div style={{ padding: "40px 24px", textAlign: "center", border: `2px dashed ${C.border}`, borderRadius: 10, color: C.muted }}>
           <HardHat size={32} color={C.border} style={{ marginBottom: 10 }} />
           <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 4 }}>Belum ada mandor di-assign</div>
-          {canEdit && <div style={{ fontSize: 12 }}>Klik "Assign Mandor" untuk menambahkan</div>}
+          {canEdit && <div style={{ fontSize: 12 }}>Klik “Assign Mandor” untuk menambahkan</div>}
         </div>
       )}
 

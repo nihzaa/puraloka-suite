@@ -30,7 +30,8 @@
  * yang membacanya sedang melihat kodenya.
  */
 
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { createPortal } from "react-dom";
 import {
   Plus, XCircle, Banknote, FileText, Clock, RefreshCw,
@@ -64,11 +65,15 @@ import { GAYA_ISIAN } from "@/components/isian";
  * modal pada lintasan pertama membuat HTML server dan klien berbeda, dan
  * React membuang seluruh pohonnya.
  */
-export function useMounted() {
-  const [mounted, dispatch] = useReducer(() => true, false);
-  useEffect(() => { dispatch(); }, []);
-  return mounted;
-}
+/**
+ * Alias tipis ke `useTerpasang` — dipakai belasan kali di berkas ini,
+ * jadi namanya dipertahankan supaya pemanggilnya tak perlu disentuh.
+ *
+ * Isinya kini `useSyncExternalStore`, bukan `useReducer` + efek: pola lama
+ * memaksa render kedua pada tiap modal yang dibuka, dan memicu dua
+ * peringatan lint sekaligus. Lihat lib/use-terpasang.ts.
+ */
+export const useMounted = useTerpasang;
 
 // ─── Modal: Buat Laporan Upah ─────────────────────────────────────────────────
 export function CreateWageReportModal({ onClose, onSuccess }: {
@@ -1624,7 +1629,7 @@ export function ScopeDetailModal({ data, loading: isLoading, onClose, onRefresh,
             <div style={{ textAlign: "center", padding: 40, color: C.muted }}>
               <FileText size={28} color={C.border} style={{ marginBottom: 10 }} />
               <div style={{ fontWeight: 600, marginBottom: 4 }}>Belum ada rincian item</div>
-              <div style={{ fontSize: 12 }}>Klik "Tambah Item" untuk menambah rincian pekerjaan</div>
+              <div style={{ fontSize: 12 }}>Klik “Tambah Item” untuk menambah rincian pekerjaan</div>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

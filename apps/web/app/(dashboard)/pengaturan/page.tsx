@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useReducer, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { Building2, CreditCard, Upload, Save, X, Check, AlertTriangle } from "lucide-react";
@@ -56,8 +57,7 @@ const DEFAULTS: CompanyProfile = {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function PengaturanPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <PengaturanContent />;
 }

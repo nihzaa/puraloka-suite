@@ -34,7 +34,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
-import { BookOpen, Plus, RefreshCw, Send, Sprout, TriangleAlert } from "lucide-react";
+import { Plus, RefreshCw, Send, Sprout, TriangleAlert } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
@@ -244,7 +244,11 @@ export default function PelajaranPage() {
 
   useEffect(() => {
     const ac = makeAbortController();
-    setMemuat(true);
+    // `queueMicrotask`: `setMemuat(true)` di sini jatuh SINKRON di dalam
+    // fase render effect dan memicu render kedua sebelum yang pertama
+    // selesai. Menundanya satu microtask memindahkannya keluar; cleanup
+    // `ac.abort()` tetap bekerja karena pembatalan terjadi belakangan.
+    queueMicrotask(() => setMemuat(true));
     api.get<{ lessons: Pelajaran[] }>("/api/v1/lessons-learned", { signal: ac.signal })
       .then((r) => { setDaftar(r.data.lessons ?? []); setGalat(""); })
       .catch((e) => {

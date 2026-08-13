@@ -9,7 +9,8 @@
  * menaruhnya di satu halaman berarti halaman lain harus menyalinnya.
  */
 
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { createPortal } from "react-dom";
 import { ArrowRightLeft, FileText, ShoppingCart, Wallet, X } from "lucide-react";
 import { api } from "@/lib/api";
@@ -102,8 +103,7 @@ function TombolForm({ loading, label, warna = C.navy }: { loading: boolean; labe
 
 /** Kunci gulir latar + tunda render sampai ter-mount (portal butuh document). */
 function useModalSiap() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
@@ -607,12 +607,25 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
             <input id="vendor-name" type="text" value={vendorName} onChange={e => setVendorName(e.target.value)} placeholder="Toko Bangunan Maju" style={gayaInput} />
           </div>
           <div>
-            <label style={gayaLabel}>Foto Nota</label>
+            {/*
+              `<span id>` + `aria-labelledby`, bukan `<label>` telanjang.
+
+              `<label>` menjanjikan "klik saya untuk fokus ke isiannya" —
+              janji yang tak bisa ditepati di sini: isian filenya
+              `display: none`, dan yang benar-benar diklik orang adalah
+              tombol di bawah. Pembaca layar mengumumkan label tanpa
+              kontrol sebagai teks yatim.
+
+              Pola `<span id>` sudah dipakai di berkas ini untuk "Tipe
+              Akun" (baris ~167) dengan alasan yang sama.
+            */}
+            <span id="foto-nota" style={gayaLabel}>Foto Nota</span>
             <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,application/pdf" style={{ display: "none" }} onChange={e => {
               const f = e.target.files?.[0] ?? null;
               if (f && f.size > 5 * 1024 * 1024) { alert("Ukuran file maksimal 5 MB"); e.target.value = ""; return; }
               setReceiptFile(f);
             }} />
+            <div role="group" aria-labelledby="foto-nota">
             {receiptFile ? (
               <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 6, background: C.greenBg, border: `1px solid ${C.greenBorder}` }}>
                 <FileText size={14} color={C.green} />
@@ -625,6 +638,7 @@ export function CreateExpenseModal({ accounts, onClose, onSuccess, onNeedAccount
                 Upload nota
               </button>
             )}
+            </div>
           </div>
         </div>
 

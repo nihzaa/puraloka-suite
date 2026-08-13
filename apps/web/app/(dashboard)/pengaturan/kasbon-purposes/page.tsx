@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useReducer, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
 import { Coins, Plus, Check, X, AlertTriangle, Save, EyeOff, Eye } from "lucide-react";
 import type { KasbonPurposeRow } from "@/lib/use-kasbon-purposes";
@@ -16,8 +17,7 @@ function hasPerm(key: string): boolean {
 }
 
 export default function KasbonPurposesPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <Content />;
 }

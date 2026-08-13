@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { createPortal } from "react-dom";
 import {
   Images, ChevronLeft, ChevronRight, X, Download,
@@ -256,8 +257,7 @@ function LightboxContent({
 }
 
 function Lightbox(props: Parameters<typeof LightboxContent>[0]) {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <LightboxContent {...props} />;
 }

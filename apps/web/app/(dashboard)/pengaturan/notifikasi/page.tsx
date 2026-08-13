@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { KepalaHalaman } from "@/components/dasar";
 import { api } from "@/lib/api";
 import { BellRing, Plus, Trash2, Info, ShieldCheck, UserCog, Users, HardHat } from "lucide-react";
@@ -28,8 +29,7 @@ function hasPerm(key: string): boolean {
 }
 
 export default function NotifikasiPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <Content />;
 }

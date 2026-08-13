@@ -30,7 +30,8 @@
  * bahaya bukan penonjolan melainkan peringatan.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
 import { Bot, MessageSquare, ShieldAlert, Wallet } from "lucide-react";
 import { api } from "@/lib/api";
@@ -116,8 +117,7 @@ const LABEL_KESEHATAN: Record<string, string> = {
 };
 
 export default function OtomasiPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <Konten />;
 }
@@ -142,8 +142,15 @@ function Konten() {
     }
   }, []);
 
+  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
+  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect
+  // memicu render kedua sebelum yang pertama selesai
+  // (react-hooks/set-state-in-effect). Menunda satu microtask
+  // memindahkannya keluar dari fase render tanpa jeda yang terlihat.
+  //
+  // Pola yang sama sudah dipakai 131 tempat di aplikasi ini.
   useEffect(() => {
-    muat();
+    queueMicrotask(() => { void muat(); });
   }, [muat]);
 
   const p = data?.penyedia;

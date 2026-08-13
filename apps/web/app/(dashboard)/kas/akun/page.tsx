@@ -10,7 +10,8 @@
  * negatif tak mungkin secara fisik.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { Plus, RefreshCw, Wallet } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
@@ -21,8 +22,7 @@ import { CreateAccountModal } from "../_bersama/modal";
 import { type CashAccount, ACCOUNT_TYPE_LABEL, fmtCompact } from "../_bersama/tipe";
 
 export default function AkunKasPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <AkunKasIsi />;
 }
@@ -46,7 +46,11 @@ function AkunKasIsi() {
 
   useEffect(() => {
     const ac = makeAbortController();
-    void muat(ac.signal).catch(() => {});
+    // `queueMicrotask`: setState di baris pertama `muat()` jatuh di dalam
+    // fase render effect. Menundanya satu microtask memindahkannya keluar
+    // tanpa jeda yang terlihat — `ac.abort()` di cleanup tetap bekerja,
+    // karena pembatalan terjadi belakangan.
+    queueMicrotask(() => { void muat(ac.signal).catch(() => {}); });
     return () => ac.abort();
   }, [muat]);
 

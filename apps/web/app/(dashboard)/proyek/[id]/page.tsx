@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
@@ -233,8 +234,7 @@ function InfoRow({ icon, label, value, valueColor }: {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function ProjectDetailPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <ProjectDetailContent />;
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import {
@@ -597,8 +598,7 @@ function UploadModalContent({
 }
 
 function UploadModal(props: UploadModalProps) {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return createPortal(<UploadModalContent {...props} />, document.body);
 }

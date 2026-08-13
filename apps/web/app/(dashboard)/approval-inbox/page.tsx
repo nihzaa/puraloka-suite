@@ -32,7 +32,8 @@
  * menonjol.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { Inbox, TriangleAlert, ArrowRight, UserRound } from "lucide-react";
@@ -76,8 +77,7 @@ function lamaMenunggu(iso: string | null): { teks: string; hari: number } {
 }
 
 export default function ApprovalInboxPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <Konten />;
 }

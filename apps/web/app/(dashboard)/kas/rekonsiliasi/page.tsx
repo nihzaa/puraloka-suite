@@ -125,7 +125,11 @@ export default function RekonsiliasiBankPage() {
 
   useEffect(() => {
     const ac = makeAbortController();
-    setMemuat(true);
+    // `queueMicrotask`: `setMemuat(true)` di sini jatuh SINKRON di dalam
+    // fase render effect dan memicu render kedua sebelum yang pertama
+    // selesai. Menundanya satu microtask memindahkannya keluar; cleanup
+    // `ac.abort()` tetap bekerja karena pembatalan terjadi belakangan.
+    queueMicrotask(() => setMemuat(true));
     api.get<{ koran: KoranRingkas[] }>("/api/v1/rekonsiliasi", { signal: ac.signal })
       .then(({ data }) => {
         const k = data.koran ?? [];

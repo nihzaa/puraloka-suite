@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { KepalaHalaman } from "@/components/dasar";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
@@ -74,8 +75,7 @@ const MODULE_LABELS: Record<string, string> = {
 // ─── Main page ─────────────────────────────────────────────────────────────────
 
 export default function RolesPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <RolesContent />;
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
@@ -534,8 +535,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
 // ─── Portal wrapper ───────────────────────────────────────────────────────────
 
 export function TerminPaymentModal(props: Props) {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return createPortal(<TerminPaymentModalContent {...props} />, document.body);
 }

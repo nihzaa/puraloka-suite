@@ -18,7 +18,6 @@ import { C } from "@/lib/warna-ui";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import {
-  KETERANGAN,
   PAKAI_TOOL,
   PERAN,
   type Konfigurasi,

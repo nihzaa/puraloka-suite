@@ -26,9 +26,10 @@
  * formulir, nilainya tetap terbaca.
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
-import { SlidersHorizontal, Plus, Check, X, AlertTriangle, EyeOff, Eye } from "lucide-react";
+import { SlidersHorizontal, Plus, Check, AlertTriangle, EyeOff, Eye } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
@@ -83,8 +84,7 @@ function hasPerm(key: string): boolean {
 }
 
 export default function FieldTambahanPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <Konten />;
 }

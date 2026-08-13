@@ -89,6 +89,15 @@ const eslintConfig = defineConfig([
     // atas: selama ia ikut dipindai, angka ratchet naik-turun mengikuti isi
     // sandbox alat, bukan mengikuti kode kita — sehingga tak berarti apa-apa.
     ".ds-sync/**",
+    // Alat ukur sekali-pakai (Playwright): potret topbar, hitung padding sel,
+    // sapu konsistensi antar-halaman. Di `.gitignore` — tak ter-track, tak
+    // ikut ter-build, tak pernah dijalankan pengguna.
+    //
+    // Kelas yang persis sama dengan dua baris di atas: selama ia dipindai,
+    // angka ratchet naik-turun mengikuti skrip ukur yang kebetulan tertinggal
+    // di mesin seseorang, bukan mengikuti kode aplikasi. Satu `_tanda` di
+    // skrip potret layar bukan hutang teknis yang perlu dijaga CI.
+    ".layar/**",
   ]),
 
   // ── Hutang lint yang diturunkan ke `warn` + dijaga RATCHET ────────────────

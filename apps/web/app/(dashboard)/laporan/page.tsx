@@ -1,6 +1,7 @@
 "use client";
 
-import React, { Suspense, useEffect, useReducer, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { useTabUrl } from "@/lib/use-tab-url";
 import { KpiPerusahaan } from "@/components/kpi-perusahaan";
 import { TabBagian } from "@/components/tab-bagian";
@@ -244,8 +245,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function LaporanPage() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   // `useTabUrl` memakai `useSearchParams`, yang memaksa render sisi klien —
   // Next menuntut batas Suspense untuk itu, kalau tidak `pnpm build` gagal
@@ -1513,13 +1513,30 @@ function TabProgress({ data }: { data: ProgressData }) {
         // `aria-hidden` juga TIDAK dipakai di sini. Versi pertama memasangnya
         // dan itu keliru: ia menyembunyikan seluruh ISI lightbox — tombol
         // tutup dan fotonya sekaligus — dari pembaca layar.
-        <div onClick={() => setLightboxUrl(null)}
-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, cursor: "zoom-out" }}>
+        <div
+          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
+          {/*
+            Backdrop jadi `<button>` SAUDARA di belakang isi, bukan `<div
+            onClick>` yang membungkusnya — alasan lengkapnya di
+            components/progress-log-list.tsx.
+
+            `tabIndex={-1}` + `aria-hidden` menjaga janji komentar di atas:
+            ia tetap tak menambah perhentian Tab. Yang berubah cuma bahwa
+            klik-untuk-tutup kini melekat pada elemen yang memang bisa
+            diklik, dan gambar tak perlu lagi menahan gelembung.
+          */}
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden
+            onClick={() => setLightboxUrl(null)}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", background: "transparent", border: "none", padding: 0, cursor: "zoom-out" }}
+          />
           <button aria-label="Tutup pratinjau" onClick={() => setLightboxUrl(null)}
-            style={{ position: "absolute", top: 20, right: 20, background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            style={{ position: "absolute", top: 20, right: 20, background: "rgba(255,255,255,0.15)", border: "none", borderRadius: "50%", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" , zIndex: 2 }}>
             <X size={18} color="var(--surface)" />
           </button>
-          <img src={lightboxUrl} alt="Foto lapangan ukuran penuh" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 6 }} onClick={e => e.stopPropagation()} />
+          <img src={lightboxUrl} alt="Foto lapangan ukuran penuh" style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", borderRadius: 6, position: "relative", zIndex: 1 }} />
         </div>
       )}
     </div>

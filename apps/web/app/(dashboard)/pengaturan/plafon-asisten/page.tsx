@@ -94,8 +94,15 @@ export default function PlafonAsistenPage() {
     }
   }, []);
 
+  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
+  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect
+  // memicu render kedua sebelum yang pertama selesai
+  // (react-hooks/set-state-in-effect). Menunda satu microtask
+  // memindahkannya keluar dari fase render tanpa jeda yang terlihat.
+  //
+  // Pola yang sama sudah dipakai 131 tempat di aplikasi ini.
   useEffect(() => {
-    muat();
+    queueMicrotask(() => { void muat(); });
   }, [muat]);
 
   async function simpan(b: Baris) {

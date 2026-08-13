@@ -54,20 +54,51 @@ const WEATHER_META: Record<string, { icon: React.ReactNode; label: string }> = {
 function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
   useTutupEsc(onClose);
   return (
+    /*
+      Backdrop = `<button>` PENUH LAYAR di belakang isi, bukan `<div onClick>`
+      yang membungkusnya.
+
+      Bentuk lama membuat tiga masalah sekaligus:
+        · `<div>` ber-onClick tak punya peran, tak bisa difokus, tak menjawab
+          Enter/Spasi — `jsx-a11y/no-static-element-interactions`;
+        · gambar di dalamnya harus memasang `onClick={e => e.stopPropagation()}`
+          hanya untuk MENAHAN klik backdrop — handler yang tak melakukan apa pun,
+          tapi tetap terhitung sebagai elemen non-interaktif yang diberi
+          interaksi;
+        · pembaca layar mengumumkan seluruh lightbox sebagai satu benda
+          yang bisa diklik.
+
+      Sebagai saudara (bukan induk), backdrop tak lagi menerima klik pada
+      gambar, jadi penahan gelembungnya tak diperlukan lagi.
+    */
     <div
       style={{
         position: "fixed", inset: 0, zIndex: 2000, background: "rgba(0,0,0,0.92)",
         display: "flex", alignItems: "center", justifyContent: "center",
       }}
-      onClick={onClose}
     >
+      <button
+        type="button"
+        // `tabIndex={-1}` + `aria-hidden`: backdrop adalah kenyamanan TETIKUS.
+        // Jalan keluar papan tik sudah ada (Esc lewat `useTutupEsc`, dan tombol
+        // X di pojok). Menjadikannya perhentian Tab justru MEMPERPANJANG jalan
+        // menuju tombol yang sebenarnya — memenuhi linter dengan cara yang
+        // membuat navigasi papan tik lebih buruk.
+        tabIndex={-1}
+        aria-hidden
+        onClick={onClose}
+        style={{
+          position: "absolute", inset: 0, width: "100%", height: "100%",
+          background: "transparent", border: "none", cursor: "default", padding: 0,
+        }}
+      />
       <button aria-label="Tutup daftar progres"
         onClick={onClose}
         style={{
           position: "absolute", top: 20, right: 20, width: 40, height: 40,
           borderRadius: "50%", border: "none", background: "rgba(255,255,255,0.15)",
           color: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center",
-          justifyContent: "center", zIndex: 1,
+          justifyContent: "center", zIndex: 2,
         }}
       >
         <X size={20} />
@@ -79,8 +110,8 @@ function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
         style={{
           maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain",
           borderRadius: 6, boxShadow: "var(--naik-1)",
+          position: "relative", zIndex: 1,
         }}
-        onClick={e => e.stopPropagation()}
       />
     </div>
   );

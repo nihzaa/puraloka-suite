@@ -78,7 +78,7 @@ const AMBANG = {
   // diikuti percabangan (`? :`), kontrolnya ada di dalam cabang. `htmlFor`
   // statis akan MATI di salah satu cabang — cacat yang sudah terbukti sekali
   // di `progress-log-modal`. Butuh penilaian per-kasus.
-  'jsx-a11y/label-has-associated-control': 21,  // 22 → 21 (2026-08-07, pemecahan halaman)
+  'jsx-a11y/label-has-associated-control': 20,  // 21 -> 20 (2026-08-13, label foto yatim -> <span id> + aria-labelledby)
   // 117 → 112 → 104 → 102 → 98 → 93 → 88 → 86 (2026-08-01/02): 5 foto di `progress-log-list` yang semula
   // `<img onClick>` — bisa diklik tetikus, TAK BISA dijangkau keyboard sama
   // sekali. Diganti `<button>`, bukan ditambal `role`+`tabIndex`+`onKeyDown`:
@@ -100,13 +100,13 @@ const AMBANG = {
   // Keduanya memberi hal yang sama pada pemakai keyboard: bisa difokus,
   // diaktifkan Enter/Spasi, dan dikenali pembaca layar. `e.preventDefault()`
   // pada Spasi wajib — tanpa itu halaman ikut menggulir saat tombol ditekan.
-  'jsx-a11y/click-events-have-key-events': 59,   // 61 -> 59 (2026-08-07, kartu procurement berhenti jadi tombol)   // 63 → 61 (2026-08-07)
+  'jsx-a11y/click-events-have-key-events': 57,  // 59 -> 57 (2026-08-13, backdrop lightbox jadi <button> saudara)
   // 115 → 108 → 106 (2026-08-01; `rab-section`, lalu kartu proyek jadi `<Link>`): baris kategori/sub-kategori yang
   // bisa dilipat, sel komponen biaya, dan area seret-jatuh. Dipakai helper
   // `lib/dapat-ditekan.ts` supaya `role`+`tabIndex`+Enter/Space selalu lengkap
   // — separuh implementasi (umumnya Enter ditangani, Space tidak) terasa rusak
   // sesekali, dan itu lebih membingungkan daripada rusak konsisten.
-  'jsx-a11y/no-static-element-interactions': 64,  // 66 -> 64 (2026-08-07, sumber yang sama)  // 68 → 66 (2026-08-07)  // 72 → 68 (2026-08-07)   // 74 -> 73 (2026-08-04, KPICard lama dihapus)   // 94 → 74, ikut turun bersama click-events
+  'jsx-a11y/no-static-element-interactions': 63,  // 64 -> 63 (2026-08-13, sumber yang sama)
   'jsx-a11y/no-noninteractive-element-interactions': 6,
 
   // ── Hutang lint lain ────────────────────────────────────────────────────
@@ -148,9 +148,9 @@ const AMBANG = {
   //   dihapus borongan. `height` di TodayLine bahkan menyembunyikan cacat:
   //   garis "hari ini" memakai top/bottom, jadi tinggi yang dihitung
   //   pemanggil akan menyimpang diam-diam begitu jumlah baris berubah.
-  '@typescript-eslint/no-unused-vars': 1,
-  'react-hooks/exhaustive-deps': 22,   // 24 → 22 (2026-08-07)
-  'react/no-unescaped-entities': 18,   // 28 → 18 (2026-08-07)
+  '@typescript-eslint/no-unused-vars': 0,   // 1 -> 0 (2026-08-13, .layar/ diabaikan + 4 ikon mati + KETERANGAN disatukan)
+  'react-hooks/exhaustive-deps': 10,   // 22 -> 10 (2026-08-13, 35 salinan hook 'sudah terpasang' disatukan ke useTerpasang)
+  'react/no-unescaped-entities': 0,   // 18 -> 0 (2026-08-13, kutip tipografis; contoh curl pakai &quot; supaya tetap bisa disalin)
   // 14 → 8 (2026-08-04): `Tab` di halaman mandor diangkat ke level modul.
   // Ia dulu dibuat DI DALAM render, jadi tiap pemakaiannya dihitung — 6
   // warning, dan naik jadi 7 begitu satu tab ditambahkan. Mengangkatnya

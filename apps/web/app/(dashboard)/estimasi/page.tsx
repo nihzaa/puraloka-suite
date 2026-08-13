@@ -1651,8 +1651,26 @@ function AdopsiModal({ asal, onClose, onDone }: {
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 70,
         display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
-      }} onClick={onClose}>
-      <form onClick={e => e.stopPropagation()} onSubmit={kirim} style={{
+      }}>
+      {/*
+        Backdrop = `<button>` SAUDARA, bukan `onClick` pada `<div role="dialog">`.
+
+        Bentuk lama menaruh `onClick={onClose}` pada wadah ber-`role="dialog"`,
+        dan formnya harus memasang `stopPropagation` hanya untuk menahan klik
+        itu — handler yang tak melakukan apa pun tapi tetap membuat `<form>`
+        terhitung sebagai elemen non-interaktif yang diberi interaksi.
+
+        `tabIndex={-1}` + `aria-hidden`: klik-latar-untuk-tutup adalah
+        kenyamanan tetikus. Papan tik sudah punya Esc (`onKeyDown` di atas),
+        dan menambah perhentian Tab untuk area kosong justru memperpanjang
+        jalan menuju isi dialognya.
+      */}
+      <button
+        type="button" tabIndex={-1} aria-hidden onClick={onClose}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", background: "transparent", border: "none", padding: 0, cursor: "default" }}
+      />
+      <form onSubmit={kirim} style={{
+        position: "relative", zIndex: 1,
         ...GAYA_KARTU, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: "var(--pad-kartu-lega)",
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
@@ -1808,8 +1826,26 @@ function EditAssemblyModal({ asal, onClose, onDone }: {
       style={{
         position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 70,
         display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
-      }} onClick={onClose}>
-      <form onClick={e => e.stopPropagation()} onSubmit={kirim} style={{
+      }}>
+      {/*
+        Backdrop = `<button>` SAUDARA, bukan `onClick` pada `<div role="dialog">`.
+
+        Bentuk lama menaruh `onClick={onClose}` pada wadah ber-`role="dialog"`,
+        dan formnya harus memasang `stopPropagation` hanya untuk menahan klik
+        itu — handler yang tak melakukan apa pun tapi tetap membuat `<form>`
+        terhitung sebagai elemen non-interaktif yang diberi interaksi.
+
+        `tabIndex={-1}` + `aria-hidden`: klik-latar-untuk-tutup adalah
+        kenyamanan tetikus. Papan tik sudah punya Esc (`onKeyDown` di atas),
+        dan menambah perhentian Tab untuk area kosong justru memperpanjang
+        jalan menuju isi dialognya.
+      */}
+      <button
+        type="button" tabIndex={-1} aria-hidden onClick={onClose}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", background: "transparent", border: "none", padding: 0, cursor: "default" }}
+      />
+      <form onSubmit={kirim} style={{
+        position: "relative", zIndex: 1,
         ...GAYA_KARTU, width: "100%", maxWidth: 660, maxHeight: "88vh", overflowY: "auto", padding: "var(--pad-kartu-lega)",
       }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>

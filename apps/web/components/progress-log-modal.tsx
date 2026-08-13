@@ -559,10 +559,18 @@ export function ProgressLogModal({
 
               {/* Foto Dokumentasi (both modes) */}
               <div>
-                <label style={fieldLabel}>Foto Dokumentasi</label>
+                {/*
+                  `<span id>`, bukan `<label>`: isian filenya `display: none`,
+                  jadi janji "klik label untuk fokus ke isian" tak bisa
+                  ditepati. Yang benar-benar diklik orang adalah dropzone di
+                  bawah — dan ia `role="button"`, jadi label ini disambungkan
+                  ke sana lewat `aria-labelledby`.
+                */}
+                <span id="foto-dokumentasi" style={fieldLabel}>Foto Dokumentasi</span>
                 {photos.length < 5 && (
                   <div
                     role="button"
+                    aria-labelledby="foto-dokumentasi"
                     tabIndex={0}
                     onKeyDown={e => {
                       if (e.key === "Enter" || e.key === " ") {

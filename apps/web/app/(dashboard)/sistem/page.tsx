@@ -192,13 +192,26 @@ export default function SistemPage() {
                 Jalankan endpoint berikut setiap pagi (misal 07:00) via cron atau GitHub Actions:
               </p>
               <div style={{ background: "var(--surface-subtle)", borderRadius: 6, padding: "8px 12px", fontFamily: "monospace", fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.9 }}>
+                {/*
+                  `&quot;`, BUKAN kutip tipografis “ ”.
+
+                  Blok ini disalin orang ke terminal. Kutip tipografis
+                  membuat `curl` menerima nama header yang salah, dan
+                  galatnya tak menyebut penyebabnya sama sekali — pemakainya
+                  akan mengira tokennya yang bermasalah.
+
+                  Delapan tempat lain di aplikasi ini memang diubah ke kutip
+                  tipografis untuk memenuhi `react/no-unescaped-entities`;
+                  yang ini tidak, karena teksnya bukan untuk dibaca melainkan
+                  untuk dijalankan.
+                */}
                 # Crontab — setiap hari jam 07:00<br />
                 0 7 * * * curl -s \<br />
-                &nbsp;&nbsp;-H "Authorization: Bearer $ADMIN_TOKEN" \<br />
+                &nbsp;&nbsp;-H &quot;Authorization: Bearer $ADMIN_TOKEN&quot; \<br />
                 &nbsp;&nbsp;$API_URL/api/v1/notifications/check-deadlines<br />
                 <br />
                 0 7 * * * curl -s \<br />
-                &nbsp;&nbsp;-H "Authorization: Bearer $ADMIN_TOKEN" \<br />
+                &nbsp;&nbsp;-H &quot;Authorization: Bearer $ADMIN_TOKEN&quot; \<br />
                 &nbsp;&nbsp;$API_URL/api/v1/notifications/check-milestones
               </div>
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>

@@ -14,7 +14,8 @@
  * mengirim payload berbeda ke endpoint yang sama.
  */
 
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { createPortal } from "react-dom";
 import {
   AlertTriangle, Banknote, 
@@ -138,8 +139,7 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }:
 
 export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   useTutupEsc(onClose);
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [projectId, setProjectId] = useState("");
@@ -815,8 +815,7 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
 
 export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   useTutupEsc(onClose);
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
 
   const [scopes, setScopes] = useState<MandorScope[]>([]);
   const [scopeId, setScopeId] = useState("");
@@ -1148,8 +1147,7 @@ export function SummaryRow({ label, value, valueColor }: { label: string; value:
 
 export function PayInvoiceModal({ invoice, onClose, onSuccess }: { invoice: Invoice; onClose: () => void; onSuccess: () => void }) {
   useTutupEsc(onClose);
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, []);
+  const mounted = useTerpasang();
 
   const [paidAt, setPaidAt] = useState(new Date().toISOString().split("T")[0]);
   const [amountPaid, setAmountPaid] = useState(String(Math.round(Number(invoice.amount_due))));

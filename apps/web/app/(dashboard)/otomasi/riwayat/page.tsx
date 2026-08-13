@@ -45,7 +45,8 @@
  * entitas asing (I-4, penanda paling awal upaya injeksi lewat dokumen).
  */
 
-import { useCallback, useEffect, useReducer, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { History, AlertTriangle, ShieldAlert } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
@@ -163,8 +164,7 @@ function penjelas(k: Keputusan): string | null {
 }
 
 export default function HalamanRiwayatAsisten() {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
   if (!mounted) return null;
   return <Konten />;
 }

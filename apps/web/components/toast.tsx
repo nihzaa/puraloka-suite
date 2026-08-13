@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, createContext, useContext, useCallback, useReducer } from "react";
+import { useEffect, useState, createContext, useContext, useCallback } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { createPortal } from "react-dom";
 import { CheckCircle2, XCircle, X } from "lucide-react";
 
@@ -29,8 +30,7 @@ export function useToast() {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
-  const [mounted, mount] = useReducer(() => true, false);
-  useEffect(mount, [mount]);
+  const mounted = useTerpasang();
 
   const [toasts, setToasts] = useState<Toast[]>([]);
 

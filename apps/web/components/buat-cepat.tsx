@@ -30,7 +30,8 @@
  * dialog, dan tak ada alasan menu berperilaku berbeda.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
 import {
   Plus, Building2, FileText, Wallet, Coins, ShoppingCart, Users,
@@ -42,19 +43,26 @@ const IKON = { Building2, FileText, Wallet, Coins, ShoppingCart, Users } as cons
 
 export function BuatCepat() {
   const [buka, setBuka] = useState(false);
-  const [aksi, setAksi] = useState<AksiBuat[]>([]);
   const bungkus = useRef<HTMLDivElement>(null);
 
   /*
-   * Permission dibaca di efek, bukan saat render.
+   * Permission dibaca SESUDAH terpasang, lewat `useMemo` bergerbang —
+   * bukan `useState` + `useEffect`.
    *
-   * `hasPermission()` membaca localStorage — tak ada di server. Memanggilnya
-   * langsung di badan komponen membuat hasil render server berbeda dari klien,
-   * dan React membuang seluruh pohonnya dengan galat hidrasi.
+   * Alasan aslinya tetap berlaku: `hasPermission()` membaca localStorage yang
+   * tak ada di server, jadi memanggilnya saat render server membuat hasilnya
+   * berbeda dari klien dan React membuang seluruh pohonnya.
+   *
+   * Yang berubah cuma CARA menunggunya. `useTerpasang` menjawab "sudah di
+   * klien?" lewat `useSyncExternalStore` — tanpa efek, tanpa render kedua.
+   * Sebelum terpasang daftarnya kosong (sama seperti keadaan awal `useState`
+   * dulu), jadi HTML server tetap identik dengan render pertama klien.
    */
-  useEffect(() => {
-    setAksi(saringAksi(hasPermission));
-  }, []);
+  const terpasang = useTerpasang();
+  const aksi = useMemo<AksiBuat[]>(
+    () => (terpasang ? saringAksi(hasPermission) : []),
+    [terpasang],
+  );
 
   useEffect(() => {
     if (!buka) return;

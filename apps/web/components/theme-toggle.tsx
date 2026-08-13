@@ -1,14 +1,15 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useTerpasang } from "@/lib/use-terpasang";
 import { Sun, Moon } from "lucide-react";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  // `useTerpasang`, bukan `useState`+`useEffect`: pola lama memaksa render
+  // KEDUA pada tiap muat halaman hanya untuk menjawab "sudah di klien?".
+  // Lihat lib/use-terpasang.ts.
+  const mounted = useTerpasang();
 
   if (!mounted) {
     return <div style={{ width: 38, height: 38 }} />;
