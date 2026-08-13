@@ -899,6 +899,30 @@ Risiko keseluruhan rendah-sedang — domain ini tidak menyentuh data finansial-k
 | 10 — Equipment & Asset | 8 | 0 | 0 | 4 | 4 |
 | **Total** | **140** | **0** | **13** | **65** | **62** |
 
+> ### ⚠ KOREKSI 2026-08-12 — dua angka di paragraf berikut tidak akurat
+>
+> **"13 automation `Next`" tak bisa direproduksi dari tabelnya sendiri.**
+> Menghitung baris yang berakhir tepat `Next`: **delapan** — 2.10, 3.5, 3.10,
+> 3.11, 4.6, 4.10, 5.1, 6.6. Tiga sisanya (1.4, 1.5, 1.6) ber-asterisk
+> `Next*`, yang menurut catatan dokumen ini sendiri berarti *"Next relatif
+> terhadap fase AI, tetap gerbang Phase 6"* — jadi mereka **tidak** termasuk
+> yang bisa dikerjakan tanpa AI Platform. 8 + 3 = 11, bukan 13.
+>
+> **Prasyarat yang disebut sudah sebagian usang.** "Tidak ada test suite"
+> tidak lagi benar (integration test terhadap Postgres nyata + 17 penjaga CI,
+> diukur 2026-08-12). "Permission Engine belum konsisten" sebagian besar
+> selesai lewat ADR-004. Yang masih benar: WhatsApp Business API resmi belum
+> dipakai — dan adaptornya kini **sudah ada** (`lib/wa-kirim.ts`,
+> `meta-cloud`), tinggal dipilih dari UI saat founder siap.
+>
+> **Status per 2026-08-12 — 4 dari 8 sudah dibangun:** 2.10, 3.10, 3.11, 6.6
+> hidup sebagai tugas terjadwal di `KATALOG_TUGAS` (`routes/v1/jadwal.ts`),
+> dipicu cron GitHub Actions tiap 15 menit. Sisa: 5.1, 4.10, 3.5, 4.6.
+>
+> Angka di dokumen membusuk — itu sebabnya CLAUDE.md menuntut cara mengukur,
+> bukan angkanya. Cara mengukur yang ini:
+> `grep -cE '^\| [0-9]+\.[0-9]+ \|.*\| Next \|$' <berkas ini>`
+
 **Observasi jujur dari distribusi ini:** **Nol automation berstatus `Now`** — konsisten dengan realita fondasi hari ini ([00 — Current State Assessment](00-vision-and-business-architecture.md#current-state-assessment): tidak ada test suite, Permission Engine belum konsisten, tidak ada WhatsApp Business API sama sekali). **13 automation `Next`** hampir seluruhnya adalah automation **rule-based tanpa AI** (3.5, 3.10, 3.11, 4.6, 4.10, 5.1, 6.6, dst.) — pola yang berulang di seluruh Section 5: nilai bisnis nyata bisa diraih lebih awal lewat [Dynamic Workflow Engine](01-application-and-data-architecture.md#dynamic-workflow--approval-engine) (Phase 2) **tanpa** menunggu AI Platform (Phase 6) sama sekali. Mayoritas mutlak (127 dari 140, ~91%) adalah `Later`/`Optional` — katalog ini secara jujur adalah **visi 5-10 tahun**, bukan backlog kuartal depan.
 
 ---

@@ -100,8 +100,29 @@ function nadaStatus(s: string): { warna: string; label: string } {
 
 const rupiah = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
-/** Sub-menu grup ini — sumbernya SATU tempat supaya tak menyimpang dari DB. */
+/**
+ * Sub-menu grup ini.
+ *
+ * ⚠ Komentar lama berbunyi "sumbernya SATU tempat supaya tak menyimpang dari
+ * DB" — dan itu tidak benar: daftar ini LITERAL, tak pernah membaca
+ * `menu_items`. Klaim yang salah lebih berbahaya daripada tak ada klaim,
+ * karena ia menghentikan orang berikutnya dari memeriksa.
+ *
+ * Buktinya ada di daftar itu sendiri: ia melewatkan `/otomasi/alur` dan
+ * `/otomasi/riwayat` — DUA halaman yang tinggal di direktori yang sama
+ * dengan berkas ini. Halaman ikhtisar yang tak menautkan sub-halamannya
+ * sendiri membuat keduanya hanya bisa dicapai lewat sidebar, dan orang yang
+ * masuk dari sini menyimpulkan keduanya tak ada.
+ *
+ * Ditulis apa adanya sebagai literal, dengan dua yang hilang ditambahkan.
+ * Menjadikannya benar-benar dari DB adalah pekerjaan tersendiri (butuh
+ * endpoint menu per-grup); yang tak boleh adalah mengaku sudah begitu.
+ */
 const PINTASAN = [
+  // Dua halaman di direktori ini sendiri — didahulukan karena inilah yang
+  // dicari orang saat membuka ikhtisar otomasi.
+  { href: "/otomasi/alur", label: "Alur Otomasi", guna: "Katalog alur, jalankan, jejak eksekusi" },
+  { href: "/otomasi/riwayat", label: "Riwayat Asisten", guna: "Percakapan & keputusan yang diambil AI" },
   { href: "/pengaturan/penyedia", label: "Penyedia Layanan", guna: "Sambungan AI & WhatsApp, uji koneksi" },
   { href: "/pengaturan/penyedia-ai", label: "Penyedia AI", guna: "Model per asisten & batas biaya" },
   { href: "/pengaturan/asisten", label: "Perilaku Asisten", guna: "Prompt, ronde, tool yang aktif" },

@@ -881,11 +881,44 @@ dari kelemahan yang terbaca di kode TJS sendiri.
 |---|---|---|---|
 | **L-1** | Single-tenant: config AI, custom field, cost log semuanya tanpa `company_id` | Semua tabel baru `company_id` + RLS sejak migrasi pertama | Menambah tenancy belakangan berarti menyentuh tiap tabel dua kali. Dan sampai itu dilakukan, tenant A membaca biaya AI tenant B |
 | **L-2** | Biaya AI hanya USD | USD **+ Rupiah + kurs saat catat** | Seluruh ERP ini Rupiah. Menyimpan kurs berarti biaya historis tak berubah saat kurs bergerak |
-| **L-3** | Scheduler lewat n8n eksternal | `pg_cron` di dalam Supabase | Satu ketergantungan eksternal lebih sedikit; jadwal ikut ter-backup bersama datanya |
+| **L-3** ⚠ | Scheduler lewat n8n eksternal | ~~`pg_cron` di dalam Supabase~~ → **DIBATALKAN, lihat catatan di bawah** | Satu ketergantungan eksternal lebih sedikit; jadwal ikut ter-backup bersama datanya |
 | **L-4** | `BackupPolicy` punya kolom jadwal bertahun-tahun **tanpa pembaca** | Penjaga CI: kolom jadwal wajib punya pembaca | Kelas cacat yang sama dengan `channel:'push'` Puraloka (§2). Keduanya "ada di layar, tidak di kenyataan" — dan itu bisa dijaga mesin |
 | **L-5** | Backup file lulus verifikasi gzip tapi **tak ada reader-nya** — jalur pemulihan belum ditulis | Kalau backup dibangun: uji **restore** end-to-end, bukan hanya backup | Ini kegagalan senyap yang lolos verifikasi hijau — persis yang `audit-kegagalan-senyap.mjs` dibangun untuk menangkap |
 
 | **L-6** | **Dua jalan ke model.** Agent loop TJS memanggil SDK Anthropic langsung; `lib/ai/*` adalah lapisan paralel untuk pemanggil lain | **Satu jalan.** Agent loop wajib lewat lapisan provider | Kalau tidak, konfigurasi-dari-UI hanya mengendalikan sebagian pemanggil — dan yang tak dikendalikannya justru yang paling boros |
+
+> ### ⚠ L-3 DIBATALKAN oleh migrasi 244 — dan migrasi 244 lebih dulu
+>
+> Ditemukan 2026-08-12 saat hendak membangun eksekutor jadwal untuk katalog
+> automation Phase 2. **`pg_cron` tidak dipakai, dan tidak akan dipakai.**
+> Alasannya ditulis lengkap di kepala `db/migrations/244_jadwal_tugas.sql`,
+> dan lebih kuat daripada alasan L-3:
+>
+> > *"`pg_cron` ada di Supabase dan sempat jadi rencana. Tapi ia hanya bisa
+> > menjalankan SQL, sementara seluruh logika notifikasi di repo ini adalah
+> > TypeScript. Memakainya menuntut `pg_net` (ekstensi kedua) untuk memanggil
+> > balik API — jadi dua ketergantungan baru, keduanya di jalur yang sulit
+> > di-debug saat gagal."*
+>
+> **Yang benar-benar berjalan** (diukur, bukan dibaca dari dokumen):
+>
+> | Lapis | Apa |
+> |---|---|
+> | Denyut | `.github/workflows/jadwal-tugas.yml` — cron tiap 15 menit |
+> | Jadwal | tabel `jadwal_tugas`, bisa diubah dari UI; server yang memutuskan mana jatuh tempo (`lib/jadwal.ts`) |
+> | Eksekusi | `POST /api/v1/jadwal/jalankan` → `KATALOG_TUGAS` → `server.inject` dengan **token akun layanan sungguhan** |
+>
+> Denyutnya 15 menit dan bukan sekali sehari justru supaya jam berapa pun
+> yang founder setel di UI tetap terpanggil.
+>
+> ⚠ **Penjadwalnya belum hidup di produksi:** `SCHEDULER_URL` dan
+> `SCHEDULER_SECRET` belum disetel di GitHub Secrets, jadi langkahnya
+> dilewati tiap 15 menit dengan notice (bukan gagal merah — sengaja, supaya
+> orang tak dilatih mengabaikan notifikasi CI).
+>
+> Pelajarannya sama dengan pembuka CLAUDE.md: **keputusan pun bisa basi.**
+> Dokumen ini bertanggal 2026-08-09, migrasi 244 lebih tua — jadi L-3 lahir
+> sudah usang, dan bertahan tiga hari sampai ada yang mengukurnya.
 | **L-7** | **Dua tabel harga yang tak sepakat** (C-7): biaya Opus tercatat 3× lebih rendah dari yang admin lihat | Satu sumber harga, dijaga penjaga CI | Angka biaya yang salah lebih buruk daripada tak ada angka — ia dipercaya |
 | **L-8** | **Nominal ditebak dari 4 nama field** (C-10); jenis dokumen baru dengan nama lain melewati batas nominal **diam-diam** | Nominal = field wajib bertipe pada kontrak preview | Kegagalan senyap pada gerbang uang. Kelas yang sama dengan L-4/L-5 |
 | **L-9** | Batas melekat pada **nomor WA**; jalur web tak punya kontak → tanpa batas (C-2) | Batas melekat pada **user** | Kanal bertambah seiring waktu (web, mobile, API). Batas yang melekat pada kanal akan bolong tiap kali kanal baru lahir |

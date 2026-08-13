@@ -82,6 +82,49 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Menghapus percakapan asisten yang melewati batas retensi tiap tenant.',
     jalur: '/api/v1/ai/retensi/bersihkan',
   },
+
+  // ── Otomasi terjadwal (katalog automation Phase 2, rule-based) ────────────
+  //
+  // Ketiganya rule-based — NOL ketergantungan AI. Gerbangnya Phase 2, dan
+  // Phase 2 sudah lewat, jadi tak ada yang menahannya selain belum ditulis.
+  //
+  // Dedup harian ada di endpoint-nya masing-masing (ledger = tabel
+  // `notifications`), jadi denyut 15 menit tak menghasilkan pesan berulang.
+  'kasbon-outstanding': {
+    label: 'Kasbon Belum Lunas',
+    keterangan: 'Kasbon yang sudah disetujui tapi belum dilunasi melewati ambang hari.',
+    jalur: '/api/v1/otomasi/jalankan/kasbon-outstanding',
+  },
+  'kasbon-tukang': {
+    label: 'Cicilan Kasbon Tukang',
+    keterangan: 'Kasbon tukang yang belum lunas dan perlu dipotong dari upah.',
+    jalur: '/api/v1/otomasi/jalankan/kasbon-tukang',
+  },
+  'progres-belum-lapor': {
+    label: 'Progres Belum Dilaporkan',
+    keterangan: 'Mandor ber-penugasan aktif yang belum mengirim laporan progres hari ini.',
+    jalur: '/api/v1/otomasi/jalankan/progres-belum-lapor',
+  },
+  'invoice-termin': {
+    label: 'Invoice dari Termin',
+    keterangan: 'Termin yang sudah memenuhi syarat tagih diterbitkan invoice-nya.',
+    jalur: '/api/v1/otomasi/jalankan/invoice-termin',
+  },
+  'stok-menipis': {
+    label: 'Stok Menipis',
+    keterangan: 'Material yang sisanya di bawah ambang pesan-ulang.',
+    jalur: '/api/v1/otomasi/jalankan/stok-menipis',
+  },
+  'gr-matching': {
+    label: 'Kecocokan PO & Penerimaan',
+    keterangan: 'PO yang statusnya tak cocok dengan barang diterima, atau menggantung lewat tenggat.',
+    jalur: '/api/v1/otomasi/jalankan/gr-matching',
+  },
+  'dependency-breach': {
+    label: 'Ambang Dependency Terlampaui',
+    keterangan: 'Pekerjaan yang pendahulunya jauh di bawah ambang progres — hanya yang parah.',
+    jalur: '/api/v1/otomasi/jalankan/dependency-breach',
+  },
 }
 
 interface BarisJadwal {

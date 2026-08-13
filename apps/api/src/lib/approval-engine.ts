@@ -10,7 +10,19 @@
 export interface ApprovalStep {
   level: number
   required_permission: string
+  /** LANTAI: langkah berlaku bila nilai >= ini. NULL = tanpa batas bawah. */
   min_amount: number | null
+  /**
+   * PLAFON: langkah berlaku bila nilai <= ini. NULL = tanpa batas atas.
+   *
+   * Ditambahkan untuk fast-track (automation 4.6): "PO di bawah Rp 5 juta
+   * cukup satu tanda tangan" mustahil dinyatakan dengan `min_amount` saja,
+   * karena ia hanya bisa berkata "berlaku DI ATAS X".
+   *
+   * Opsional pada tipe supaya seluruh pemanggil lama — yang tak menyebutnya
+   * sama sekali — tetap terkompilasi dan berperilaku persis sama.
+   */
+  max_amount?: number | null
   label?: string | null
 }
 
@@ -33,14 +45,47 @@ export interface ApprovalDecision {
 
 /**
  * Langkah yang BERLAKU untuk entitas bernilai `amount`.
- * `min_amount` null = selalu berlaku. Bila entitas tak punya nilai (amount null),
- * langkah bersyarat nominal TIDAK berlaku (tak bisa dibuktikan memenuhi syarat).
+ *
+ *   min_amount NULL → tanpa batas bawah
+ *   max_amount NULL → tanpa batas atas
+ *   amount     NULL → langkah bersyarat nominal TIDAK berlaku, karena tak bisa
+ *                     dibuktikan memenuhi syarat (fail-closed)
+ *
+ * ── Plafon dipakai untuk FAST-TRACK, dan arahnya penting
+ *
+ * "PO kecil cukup satu tanda tangan" dinyatakan dengan memberi PLAFON pada
+ * langkah pertama:
+ *
+ *   level 1 · min NULL · max 5jt · staf     → hanya untuk PO <= 5jt
+ *   level 2 · min NULL · max NULL · manajer → selalu berlaku
+ *
+ * PO 3 juta melewati keduanya; PO 50 juta melewati level 2 saja. Yang KECIL
+ * mendapat langkah TAMBAHAN yang murah, bukan pengurangan pengawasan — dan
+ * itu sebabnya plafon aman: ia tak pernah bisa MENGHAPUS langkah yang tak
+ * berplafon.
+ *
+ * ⚠ Langkah berplafon yang berdiri SENDIRIAN adalah lubang: PO di atas
+ * plafonnya tak punya langkah berlaku sama sekali → `no_steps` → fail-closed
+ * TOLAK. Itu perilaku yang benar (menolak, bukan meloloskan), tetapi berarti
+ * PO besar tak bisa disetujui siapa pun sampai konfigurasinya diperbaiki.
+ * Karena itu UI konfigurasi rantai WAJIB memperingatkan bila seluruh langkah
+ * berplafon — dicatat sebagai pekerjaan lanjutan, bukan diam-diam diabaikan.
  */
 export function applicableSteps(steps: ApprovalStep[], amount: number | null): ApprovalStep[] {
+  const adaNilai = amount !== null && amount !== undefined
+
   return steps
-    .filter(s => s.min_amount === null || s.min_amount === undefined
-      ? true
-      : amount !== null && amount !== undefined && amount >= s.min_amount)
+    .filter(s => {
+      const lantai = s.min_amount === null || s.min_amount === undefined
+        ? true
+        : adaNilai && (amount as number) >= s.min_amount
+
+      const plafon = s.max_amount === null || s.max_amount === undefined
+        ? true
+        : adaNilai && (amount as number) <= s.max_amount
+
+      return lantai && plafon
+    })
     .sort((a, b) => a.level - b.level)
 }
 

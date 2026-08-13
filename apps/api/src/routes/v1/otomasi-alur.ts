@@ -209,6 +209,84 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
     },
   )
 
+  // ── DELETE /api/v1/otomasi/alur/:id ──────────────────────────────────────
+  //
+  // ── Kenapa ini sebelumnya TIDAK ADA, dan kenapa itu masalah
+  //
+  // Alur bisa didaftarkan dan diubah, tak pernah dihapus. Kolom `aktif` ada
+  // dan API menerimanya, tapi modal-nya tak pernah menampilkan togglenya —
+  // jadi alur yang salah ketik, atau workflow n8n yang sudah dibuang,
+  // menetap selamanya di daftar. Satu-satunya jalan keluar: SQL langsung.
+  //
+  // Daftar yang tak bisa dibersihkan pelan-pelan berhenti dipercaya, dan
+  // daftar yang tak dipercaya berhenti dibaca.
+  //
+  // ── Kenapa MENGHAPUS, bukan cuma menonaktifkan
+  //
+  // Keduanya disediakan, karena keduanya menjawab hal berbeda:
+  //
+  //   nonaktif  alur SAH tapi sedang tak dipakai — riwayat jalannya masih
+  //             bernilai, dan suatu saat dinyalakan lagi
+  //   hapus     alur yang seharusnya tak pernah ada — salah ketik, percobaan,
+  //             sisa workflow yang sudah dibuang di n8n
+  //
+  // Memaksa yang kedua memakai yang pertama membuat daftar penuh bangkai
+  // ber-status "nonaktif" yang tak seorang pun berani sentuh karena tak
+  // yakin apakah masih terpakai.
+  //
+  // `otomasi_jalan` ikut terhapus lewat FK CASCADE (migrasi 272) — riwayat
+  // eksekusi milik alur yang tak ada tak bisa dibaca siapa pun, dan jejak
+  // penghapusannya sendiri tetap ada di audit log yang append-only.
+  app.delete<{ Params: { id: string } }>(
+    '/api/v1/otomasi/alur/:id',
+    { preHandler: [authenticate, requirePermission('otomasi:alur:kelola')] },
+    async (request, reply) => {
+      const { id } = request.params
+
+      // Dibaca DULU supaya audit log memuat apa yang hilang. Sesudah
+      // terhapus, `kode` dan `nama`-nya tak bisa diambil dari mana pun —
+      // dan jejak "sesuatu dihapus" tanpa menyebut apa nyaris tak berguna.
+      const { data: sebelum, error: eBaca } = await request.db!
+        .from('otomasi_alur')
+        .select('id, kode, nama, n8n_id, aktif')
+        .eq('id', id)
+        .maybeSingle()
+
+      if (eBaca) {
+        request.log.error({ err: eBaca }, 'otomasi/alur: gagal membaca sebelum hapus')
+        return reply.status(500).send({ error: 'Gagal membaca alur' })
+      }
+      if (!sebelum) return reply.status(404).send({ error: 'Alur tidak ditemukan' })
+
+      const { data, error } = await request.db!
+        .from('otomasi_alur')
+        .delete()
+        .eq('id', id)
+        .select('id')
+
+      if (error) {
+        request.log.error({ err: error }, 'otomasi/alur: gagal menghapus')
+        return reply.status(500).send({ error: 'Gagal menghapus alur' })
+      }
+      // Nol baris BUKAN keberhasilan — sama seperti jalur ubah di atas.
+      // Tanpa pemeriksaan ini, penghapusan yang ditolak RLS terbaca sebagai
+      // sukses, dan barisnya muncul lagi begitu halaman disegarkan.
+      if (!data || data.length === 0) {
+        return reply.status(404).send({ error: 'Alur tidak ditemukan' })
+      }
+
+      void logAuditEvent(request, {
+        tableName: 'otomasi_alur',
+        recordId: id,
+        action: 'otomasi.alur.hapus',
+        actorId: request.currentUser!.id,
+        oldValues: sebelum as Record<string, unknown>,
+        severity: 'warning',
+      })
+      return reply.send({ ok: true, id })
+    },
+  )
+
   // ── POST /api/v1/otomasi/alur/:id/jalankan ───────────────────────────────
   app.post<{ Params: { id: string }; Body: { muatan?: Record<string, unknown> } }>(
     '/api/v1/otomasi/alur/:id/jalankan',

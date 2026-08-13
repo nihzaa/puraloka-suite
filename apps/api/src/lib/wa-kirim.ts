@@ -52,6 +52,19 @@ export type AlasanGagalWa =
   | 'penyedia_menolak'
   | 'jaringan'
   | 'penyedia_tak_dikenal'
+  // ── Khusus Meta Cloud API (jalur resmi), ditambahkan 2026-08-12
+  //
+  // Dipisah dari `penyedia_menolak` karena TINDAKAN pemulihannya berbeda,
+  // dan itulah satu-satunya alasan sah memecah jenis galat:
+  //
+  //   di_luar_jendela_24jam  → pakai template terdaftar; kunci TIDAK salah
+  //   kunci_ditolak          → token kedaluwarsa/dicabut, perbarui di UI
+  //
+  // Menyatukan keduanya membuat orang mengganti kunci berulang kali untuk
+  // masalah yang sama sekali bukan soal kunci — dan Meta tak akan pernah
+  // menjelaskannya dengan kalimat yang lebih terang.
+  | 'di_luar_jendela_24jam'
+  | 'kunci_ditolak'
 
 /**
  * Normalisasi nomor ke bentuk yang disimpan basis: digit saja, kode negara di
@@ -118,13 +131,54 @@ export interface KonfigurasiWa {
 export async function konfigurasiKanal(
   ambil: (kunci: string) => Promise<string | null>,
 ): Promise<KonfigurasiWa | null> {
-  const [baseUrl, apiKey, instance] = await Promise.all([
+  const [baseUrl, apiKey, instance, penyediaTersimpan] = await Promise.all([
     ambil('WA_BASE_URL'),
     ambil('WA_API_KEY'),
     ambil('WA_INSTANCE'),
+    ambil('WA_PENYEDIA'),
   ])
-  if (!baseUrl?.trim() || !apiKey?.trim() || !instance?.trim()) return null
-  return { penyedia: 'evolution', baseUrl, apiKey, instance }
+
+  /*
+   * ── Penyedia DIBACA, bukan dipaku ke 'evolution'
+   *
+   * Sampai 2026-08-12 baris terakhir fungsi ini berbunyi
+   * `penyedia: 'evolution'` — literal. Akibatnya `AdaptorFonnte` yang sudah
+   * ditulis lengkap, dan `ADAPTOR_WA_DIKENAL` yang menampilkannya sebagai
+   * pilihan di UI, TIDAK PERNAH BISA TERPAKAI: apa pun yang dipilih orang,
+   * `buatAdaptorWa` selalu menerima 'evolution'.
+   *
+   * Itu membatalkan seluruh alasan registry ini ada. Komentar di
+   * `AdaptorFonnte` menyebut tujuannya: "penyedia kedua membuat pemulihannya
+   * sejauh mengganti pilihan di UI, bukan menunggu server pulih" — dan
+   * penggantian itu tak pernah sampai ke sini.
+   *
+   * Bawaannya tetap 'evolution' supaya tenant yang sudah jalan tidak berubah
+   * perilakunya. Yang berubah: pilihan yang tersimpan kini DIHORMATI.
+   */
+  const penyedia = penyediaTersimpan?.trim() || 'evolution'
+  const meta = ADAPTOR_WA_DIKENAL.find(a => a.kunci === penyedia)
+
+  // Penyedia tak dikenal = kanal belum siap. Jatuh diam-diam ke Evolution
+  // akan mengirim lewat jalur yang TIDAK dipilih siapa pun — dan tagihannya,
+  // atau nomor pengirimnya, datang dari tempat yang tak diduga.
+  if (!meta) return null
+
+  if (!apiKey?.trim()) return null
+
+  // Tiap penyedia menuntut field berbeda. Evolution butuh baseUrl+instance;
+  // Fonnte cukup token; Meta Cloud butuh instance (phone number ID) tanpa
+  // baseUrl. Syaratnya dibaca dari `butuh`, bukan ditulis ulang di sini —
+  // dua daftar yang harus sepakat cepat atau lambat tidak sepakat.
+  const perlu = meta.butuh as readonly string[]
+  if (perlu.includes('baseUrl') && !baseUrl?.trim()) return null
+  if (perlu.includes('instance') && !instance?.trim()) return null
+
+  return {
+    penyedia,
+    baseUrl: baseUrl ?? '',
+    apiKey,
+    instance: instance ?? '',
+  }
 }
 
 /**
@@ -187,6 +241,7 @@ class AdaptorEvolution implements AdaptorWa {
 export function buatAdaptorWa(cfg: KonfigurasiWa): AdaptorWa | null {
   if (cfg.penyedia === 'evolution') return new AdaptorEvolution(cfg)
   if (cfg.penyedia === 'fonnte') return new AdaptorFonnte(cfg)
+  if (cfg.penyedia === 'meta-cloud') return new AdaptorMetaCloud(cfg)
   return null
 }
 
@@ -204,6 +259,16 @@ export const ADAPTOR_WA_DIKENAL = [
     label: 'Fonnte',
     keterangan: 'Layanan berbayar Indonesia. Cukup token — tanpa instance.',
     butuh: [] as const,
+  },
+  {
+    kunci: 'meta-cloud',
+    label: 'WhatsApp Business resmi (Meta Cloud API)',
+    keterangan:
+      'Jalur resmi Meta. `instance` diisi Phone Number ID dari WhatsApp Manager, ' +
+      'kuncinya access token permanen. Alamat boleh dikosongkan — bawaannya ' +
+      'graph.facebook.com/v21.0. ⚠ Pesan bebas hanya boleh dalam 24 jam sejak ' +
+      'balasan terakhir pelanggan; di luar itu wajib template terdaftar.',
+    butuh: ['instance'] as const,
   },
 ] as const
 
@@ -268,6 +333,103 @@ class AdaptorFonnte implements AdaptorWa {
 
       const id = Array.isArray(badan?.id) ? badan.id[0] : badan?.id
       return { ok: true, pesanId: id ?? null, dilewati: false }
+    } catch (err) {
+      const e = err as { message?: string }
+      return { ok: false, alasan: 'jaringan', pesan: e?.message ?? String(err) }
+    } finally {
+      clearTimeout(jam)
+    }
+  }
+}
+
+/**
+ * Meta Cloud API — WhatsApp Business RESMI.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * DITULIS SEKARANG, DIPAKAI NANTI — DAN ITU DISENGAJA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Founder memutuskan (2026-08-12) memakai Evolution dulu, resmi belakangan,
+ * dengan syarat: *"saat migrasi ke yang resmi sudah siap sepenuhnya, dan
+ * tinggal diubah dari UI aja."*
+ *
+ * Kalau adaptornya baru ditulis saat migrasi tiba, "tinggal ganti dari UI"
+ * jadi bohong — yang sebenarnya terjadi adalah menulis kode baru di bawah
+ * tekanan pindah, tepat ketika WhatsApp sudah jadi jalur kerja sehari-hari.
+ * Ditulis sekarang, saat tak ada yang bergantung padanya.
+ *
+ * ── Tiga hal yang berbeda dari Evolution, dan tak bisa dikarang dari UI
+ *
+ * 1. ALAMAT berisi nomor. `graph.facebook.com/v21.0/<PHONE_NUMBER_ID>/messages`
+ *    — `instance` di sini adalah Phone Number ID dari Meta, bukan nama sesi.
+ * 2. MUATAN bersarang: `{ messaging_product, to, type, text: { body } }`.
+ *    Bukan `{ number, text }`.
+ * 3. JENDELA 24 JAM. Di luar itu, pesan bebas DITOLAK — hanya template
+ *    terdaftar yang boleh. Ini aturan Meta, bukan pilihan kita, dan ia
+ *    tak punya padanan di Evolution.
+ *
+ * Poin 3 sengaja TIDAK disembunyikan: penolakannya diterjemahkan jadi alasan
+ * `di_luar_jendela_24jam` supaya pemanggil bisa membedakannya dari "kunci
+ * salah". Menyamakannya dengan galat lain akan membuat orang mengganti kunci
+ * berulang kali untuk masalah yang bukan soal kunci.
+ */
+class AdaptorMetaCloud implements AdaptorWa {
+  readonly nama = 'meta-cloud'
+  constructor(private cfg: KonfigurasiWa) {}
+
+  async kirimTeks(nomor: string, teks: string): Promise<HasilKirim> {
+    const kendali = new AbortController()
+    const jam = setTimeout(() => kendali.abort(), 15_000)
+    try {
+      // Versi API ikut `baseUrl` bila diisi — Meta menaikkan versinya berkala,
+      // dan memaku v21.0 di kode berarti migrasi versi menuntut rilis baru.
+      const dasar = this.cfg.baseUrl?.trim().replace(/\/$/, '') || 'https://graph.facebook.com/v21.0'
+
+      const r = await fetch(`${dasar}/${this.cfg.instance}/messages`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: `Bearer ${this.cfg.apiKey}`,
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          recipient_type: 'individual',
+          to: nomor,
+          type: 'text',
+          text: { preview_url: false, body: teks },
+        }),
+        signal: kendali.signal,
+      })
+
+      const badan = (await r.json().catch(() => ({}))) as {
+        messages?: Array<{ id?: string }>
+        error?: { message?: string; code?: number; error_subcode?: number }
+      }
+
+      if (!r.ok || badan?.error) {
+        const kode = badan?.error?.code
+        const pesan = badan?.error?.message ?? `HTTP ${r.status}`
+
+        // 131047 = "Message failed to send because more than 24 hours have
+        // passed since the customer last replied". Dibedakan supaya UI bisa
+        // menyuruh memakai template, bukan menyuruh memeriksa kunci.
+        if (kode === 131047 || kode === 131026) {
+          return {
+            ok: false,
+            alasan: 'di_luar_jendela_24jam',
+            pesan: `Meta menolak: ${pesan}. Di luar jendela 24 jam — hanya template terdaftar yang boleh.`,
+          }
+        }
+
+        // 190 = token kedaluwarsa/dicabut. Juga bukan gangguan jaringan.
+        if (kode === 190) {
+          return { ok: false, alasan: 'kunci_ditolak', pesan: `Meta menolak token: ${pesan}` }
+        }
+
+        return { ok: false, alasan: 'penyedia_menolak', pesan: `Meta ${kode ?? r.status}: ${pesan}`.slice(0, 250) }
+      }
+
+      return { ok: true, pesanId: badan?.messages?.[0]?.id ?? null, dilewati: false }
     } catch (err) {
       const e = err as { message?: string }
       return { ok: false, alasan: 'jaringan', pesan: e?.message ?? String(err) }

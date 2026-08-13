@@ -45,6 +45,28 @@ export type NotificationType =
   | 'inspeksi_diminta'
   | 'inspeksi_lolos'
   | 'inspeksi_gagal'
+  // Otomasi terjadwal (migrasi 331). Tipe SENDIRI, bukan menumpang
+  // `kasbon_pending`, dan itu bukan soal kerapian:
+  //
+  // 1. Dedup harian di `otomasi-terjadwal.ts` menyaring `.eq('type', …)`.
+  //    Menulis notifikasi ber-`kasbon_pending` lalu mencari
+  //    `kasbon_outstanding` membuat dedup TAK PERNAH cocok — dan penjadwal
+  //    mengirim ulang tiap 15 menit. Cacat ini nyata: ia lolos review dan
+  //    baru ketahuan saat test dedup merah (141 notifikasi di panggilan kedua).
+  //
+  // 2. `kasbon_pending` sudah dipakai `check-deadlines` untuk kasbon yang
+  //    MENUNGGU PERSETUJUAN. Yang di sini sudah disetujui tapi uangnya belum
+  //    kembali — peristiwa berbeda, penerima berbeda, tindakan berbeda.
+  //    Menyatukannya membuat pengaturan notifikasi per-jenis mustahil.
+  | 'kasbon_outstanding'
+  | 'worker_kasbon_reminder'
+  | 'progress_belum_lapor'
+  | 'gantt_dep_breach'
+  // 4.10 — PO/GR tak cocok. Tipe sendiri karena penerimanya tim pengadaan,
+  // bukan PM proyek, dan tindakannya memeriksa gudang bukan menata jadwal.
+  | 'gr_tak_cocok'
+  // 3.5 — stok di bawah ambang pesan-ulang.
+  | 'stok_menipis'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

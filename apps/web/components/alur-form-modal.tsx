@@ -54,6 +54,7 @@ export interface AlurUntukForm {
   pemicu?: string;
   jadwal_cron?: string | null;
   kategori?: string;
+  aktif?: boolean;
 }
 
 interface WorkflowN8n {
@@ -117,6 +118,7 @@ export function AlurFormModal({
   const [webhook, setWebhook] = useState("");
   const [n8nId, setN8nId] = useState("");
   const [kategori, setKategori] = useState("umum");
+  const [aktif, setAktif] = useState(true);
 
   const [katalogN8n, setKatalogN8n] = useState<WorkflowN8n[] | null>(null);
   const [sedang, setSedang] = useState(false);
@@ -136,6 +138,8 @@ export function AlurFormModal({
     setWebhook(awal?.jalur_webhook ?? "");
     setN8nId(awal?.n8n_id ?? "");
     setKategori(awal?.kategori ?? "umum");
+    // Alur baru lahir AKTIF; yang diubah memakai nilainya sendiri.
+    setAktif(awal?.aktif ?? true);
     setGalat(null);
 
     api
@@ -163,6 +167,10 @@ export function AlurFormModal({
         jalur_webhook: pemicu === "webhook" ? webhook.trim() || undefined : undefined,
         n8n_id: n8nId.trim() || undefined,
         kategori,
+        // Hanya dikirim saat MENGUBAH. Alur baru selalu lahir aktif, dan
+        // mengirim `aktif` untuk pendaftaran akan menimpa bawaan basis
+        // dengan nilai yang belum pernah dilihat siapa pun di layar.
+        ...(ubah ? { aktif } : {}),
       });
       onSimpan();
       onTutup();
@@ -373,6 +381,50 @@ export function AlurFormModal({
             ))}
           </select>
         </div>
+
+        {/*
+          Saklar AKTIF — hanya saat mengubah.
+
+          API menerima `aktif` sejak awal (`otomasi-alur.ts`), tetapi tak ada
+          satu pun kendali di layar yang mengirimnya. Akibatnya alur yang
+          sudah tak dipakai TIDAK BISA dimatikan dari UI sama sekali — satu-
+          satunya jalan lewat SQL langsung.
+
+          Tidak ditampilkan saat mendaftar baru: alur yang lahir nonaktif
+          adalah pekerjaan yang langsung terlupakan, dan kotaknya cuma
+          menambah keputusan yang tak perlu diambil saat itu.
+        */}
+        {ubah && (
+          <div
+            style={{
+              display: "flex", alignItems: "flex-start", gap: 10,
+              padding: "10px 12px", borderRadius: 8,
+              border: `1px solid ${aktif ? C.border : C.danger}`,
+              background: aktif ? "var(--surface)" : "var(--surface-2, var(--surface))",
+            }}
+          >
+            <input
+              type="checkbox"
+              id="alur-aktif"
+              checked={aktif}
+              onChange={(e) => setAktif(e.target.checked)}
+              style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0, cursor: "pointer" }}
+            />
+            <div style={{ minWidth: 0 }}>
+              <label
+                htmlFor="alur-aktif"
+                style={{ ...label, marginBottom: 2, cursor: "pointer" }}
+              >
+                {aktif ? "Aktif" : "Nonaktif"}
+              </label>
+              <p style={{ ...bantu, margin: 0 }}>
+                {aktif
+                  ? "Alur ini ikut dijalankan dan statusnya dipantau."
+                  : "Alur ini TIDAK akan dijalankan. Riwayat jalannya tetap tersimpan."}
+              </p>
+            </div>
+          </div>
+        )}
 
         {galat && (
           <p role="alert" style={{ margin: 0, fontSize: 12.5, color: C.danger, lineHeight: 1.5 }}>

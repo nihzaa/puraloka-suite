@@ -898,6 +898,257 @@ diminta pekerjaan ini, dan bukan urusan satu sub-menu.
 
 ---
 
+## 2026-08-12 (otomasi & AI) — empat cacat yang semuanya "hijau" sebelum diukur
+
+Founder bertanya apakah n8n Puraloka sudah punya workflow seperti TJS, lalu
+meminta: kerjakan katalog automation Phase 2 (Opsi A), lanjut AI Gateway
+(Opsi B), dan siapkan WhatsApp multi-vendor sejak sekarang supaya migrasi ke
+jalur resmi "tinggal diubah dari UI".
+
+Dikerjakan di worktree terpisah (`.claude/worktrees/otomasi-ai-gateway`)
+karena **ada sesi lain menulis di checkout yang sama** — tiga commit muncul
+dan `peta-menu.ts` berubah di tengah saya menjalankan test. Itu pemicu
+berhenti §8a.1 nomor 1; founder memilih worktree.
+
+### Jawaban pertanyaan awal
+
+n8n Puraloka **kosong** — diukur langsung dari `~/.n8n-puraloka/.n8n/
+database.sqlite`: 0 workflow, 0 eksekusi, akun pemilik ada. Dan itu
+**bukan kelalaian**: keputusan L-3 memindahkan penjadwalan dari n8n ke
+dalam aplikasi, jadi UI n8n memang dirancang tetap kosong.
+
+Daftar workflow yang founder cari ada di `06-agentic-ai-and-automation-
+architecture.md` §5 — 140 automation, 10 level.
+
+### Koreksi angka: "13 Next" tak bisa direproduksi
+
+Dokumen itu menyatakan 13 automation ber-status `Next`. Menghitung barisnya
+sendiri: **8**. Tiga sisanya ber-asterisk `Next*` yang artinya "Next relatif
+terhadap fase AI" — masih tergerbang Phase 6. Saya sempat mengulangi angka
+13 ke founder sebelum menghitungnya.
+
+### L-3 sudah dibatalkan, dan dokumennya belum tahu
+
+`2026-08-09-lapisan-ai-dan-platform-design.md:884` menetapkan scheduler =
+`pg_cron`. Tapi migrasi **244** sudah menolaknya lebih dulu dengan alasan
+yang lebih kuat: pg_cron hanya bisa SQL, sementara logika notifikasi
+seluruhnya TypeScript, jadi ia menuntut `pg_net` sebagai ketergantungan
+kedua di jalur yang sulit di-debug.
+
+Yang dipakai: cron GitHub Actions tiap 15 menit → `POST /api/v1/jadwal/
+jalankan` → `KATALOG_TUGAS`. **Penjadwalnya sudah ada dan berjalan** —
+rencana saya membangunnya dari nol tidak perlu.
+
+⚠ `SCHEDULER_URL` + `SCHEDULER_SECRET` **belum disetel di GitHub Secrets**,
+jadi denyutnya dilewati tiap 15 menit dengan notice. Tugas founder.
+
+### Empat cacat, semuanya lolos test dan typecheck
+
+**1. `check-deadlines` #2 tidak pernah berjalan.** Saringannya
+`.in('status', ['active', 'in_progress'])` — enum `project_status` tak
+punya `in_progress`, Postgres menolak SELURUH query dengan 22P02. Galatnya
+dibuang (`const { data }` tanpa `error`), jadi endpoint tetap 200 dengan
+`ending_projects: 0`. Notifikasi "proyek mendekati tenggat" **tidak pernah
+terbit** sejak saringan itu ditulis. Ketahuan karena saya menyalin baris
+itu ke automation baru, di mana galatnya TIDAK dibuang.
+
+**2. N+1 pada dedup saya sendiri.** Menyalin `alreadySent()` apa adanya:
+satu SELECT per baris. 46 kasbon = **102 detik**, di endpoint yang dipanggil
+tiap 15 menit. Diganti satu query + Set: 17 detik. `check-deadlines` punya
+cacat sama, lolos karena barisnya kebetulan sedikit.
+
+**3. `AI_PROVIDER_API_KEY` tak ada di katalog kredensial.** Penyedia
+OpenAI-compatible selalu `kunci_tak_ada`; kotak `AI_CUSTOM_API_KEY` yang
+ADA tak pernah dibaca. Kembaran persis cacat `AI_PROVIDER_BASE_URL` yang
+sudah diperbaiki 2026-08-10 — komentarnya bahkan masih terpasang di
+`kredensial.ts:123-136`. Penjaganya hijau selama cacat hidup karena ia
+hanya mengenali literal di titik panggil, bukan kunci yang dioper sebagai
+data. **Penjaganya diperluas** (+ komentar dilucuti sebelum dipindai, karena
+bentuk barunya langsung merah oleh komentar perbaikan saya sendiri).
+
+**4. Pilihan penyedia WhatsApp tak pernah sampai ke pabrik adaptor.**
+`konfigurasiKanal()` memaku `penyedia: 'evolution'` sebagai literal —
+`AdaptorFonnte` yang ditulis lengkap dan muncul di UI **tak pernah bisa
+terpakai**. Nol gejala: mengirim tetap berhasil lewat Evolution. Ketahuan
+hanya kalau Evolution mati — yaitu saat penyedia kedua paling dibutuhkan.
+
+### Yang dibangun
+
+| Commit | Isi |
+|---|---|
+| `993ffc50` | 2.10 kasbon outstanding · 6.6 kasbon tukang · 3.11 progres belum lapor · migrasi 324 |
+| `2bce8d50` | 3.10 dependency breach (`lib/gantt-dependency.ts`, 17 test murni) + perbaikan cacat 1 |
+| `009e5ad8` | Cacat 3 + OpenAI resmi jadi penyedia + penjaga kredensial diperluas |
+| `3767757c` | Cacat 4 + adaptor **Meta Cloud API** (jalur resmi) ditulis sekarang, dipakai nanti |
+| `fe22dd57` | DELETE alur + toggle aktif + pintasan + hapus 3 kotak kredensial kembar |
+
+Bukti kumulatif: **vitest hijau di tiap tahap** (7 · 32 · 88 · 49 · 34),
+mutation test di tiga penjaga (dedup, penjaga kredensial, pilihan penyedia
+WA — semuanya terbukti bisa merah lalu pulih), `tsc --noEmit` bersih di
+`apps/api` dan `apps/web`, penjaga `kegagalan-senyap` **turun 186 → 185**
+karena cacat 1.
+
+### Suite penuh menemukan cacat KELIMA — milik saya, dan Gerbang Keras
+
+Menjalankan `npx vitest run` penuh (3.913 test, 11 menit): **10 gagal**.
+Semuanya satu berkas — `tenancy-ratchet.test.ts`:
+
+    Akses supabase mentah NAIK: 370 (ambang 366)
+
+Empat kenaikan itu **milik saya**: keempat endpoint automation memakai
+`supabase` mentah + `.in('project_id', …)`. Lolos seluruh test unit,
+lolos `audit-gerbang-tenancy` (yang mengukur GERBANG, bukan JUMLAH), dan
+lolos typecheck — tapi menabrak ratchet yang dijaga **G-5**.
+
+Yang penting: exit code perintahnya **0**. Kalau saya berhenti di exit
+code, saya akan melaporkan "suite hijau" kepada founder dengan 10 test
+merah di dalamnya. Ini persis alasan CHARTER §7 menuntut ringkasan
+run ditempel, bukan diklaim.
+
+Diperbaiki dengan memakai wrapper yang memang disediakan, bukan
+menaikkan ambang:
+
+    kasbons            kategori B → `request.db.from()` langsung
+                       (`.in('project_id')` bahkan tak perlu — ia punya
+                       `company_id` sendiri)
+    worker_kasbons     kategori C → `.unsafe(tabel, alasan)` +
+    mandor_assignments              `.in('project_id', await projectIds())`
+    progress_logs                   — pola LINTAS-PROYEK yang sudah
+                                      didokumentasikan di `tenant-db.ts:108`
+
+Ratchet kembali hijau di 366, 17 test automation tetap lulus.
+
+### Cacat KEENAM: satu byte yang tak kasat mata, dan lima diagnosis salah
+
+Test dedup 2.10 merah dan **saya gagal menemukannya lima kali berturut-turut.**
+Layak dicatat lengkap, karena kelas cacatnya akan berulang.
+
+Gejalanya: panggilan kedua tetap membuat 138 notifikasi. Sebabnya satu byte:
+
+    terkirim.add(`${n.type}<NUL>${rid}`)     ← ditulis: NUL (kode 0)
+    terkirim.has(`${type} ${recordId}`)      ← dicari: SPASI
+
+Panjang string **SAMA** (55 karakter). Di editor, `git diff`, `console.log`,
+dan seluruh keluaran test — keduanya terlihat **identik**. TypeScript
+menerima keduanya sebagai `string`. Lint diam. Test unit lolos saat barisnya
+masih sedikit.
+
+**Lima perbaikan yang saya buat berdasarkan hipotesis, semuanya salah:**
+paging PostgREST 1000-baris · `ORDER BY` untuk LIMIT/OFFSET · zona waktu
+`sent_at` · urutan antar-`it` · isolasi fixture. Tiap hipotesis masuk akal,
+tiap perbaikannya sah secara teknis, **tak satu pun menyentuh sebabnya.**
+
+Yang akhirnya menemukannya: berhenti menebak, lalu mencetak
+`JSON.stringify` **di titik perbandingan** — satu-satunya tempat yang
+memunculkan `<NUL>`. Pelajarannya keras dan sederhana: **saya memperbaiki
+sebelum membuktikan**, empat kali.
+
+Asalnya bukan diketik manusia. Skrip `node -e` yang saya pakai untuk menulis
+berkas memangsa spasi di dalam template literal jadi NUL. **Cacat yang lahir
+dari ALAT**, bukan kelalaian — dan itu justru membuatnya pasti berulang.
+
+Karena itu ia tidak cukup diperbaiki, ia dijaga: `audit-byte-kontrol.mjs`
+(ambang NOL, terpasang di CI). Pada jalan **pertamanya** ia langsung
+menemukan satu contoh LAMA di `extract-harga-analisa-cibuluh.mjs` — cacat
+yang sama, ditulis sesi lain, tak pernah terdeteksi. Ikut dibersihkan.
+
+Mutasi penjaga: HIJAU → NUL disuntik → **MERAH** → dipulihkan → HIJAU.
+
+Satu detail yang menegaskan betapa liciknya: saat menulis komentar CI yang
+MENJELASKAN cacat ini, tool edit saya **menyisipkan NUL sungguhan** ke
+`ci.yml`. Mendokumentasikannya pun mengulanginya.
+
+### Tujuh berkas merah lain: ENAM sudah merah sebelum saya mulai
+
+Diukur, bukan diasumsikan. Saya kembalikan `apps/api/src` + `scripts` ke
+commit dasar `36581478`, lalu menjalankan ketujuhnya:
+
+    di commit DASAR → 6 berkas MERAH (7 test gagal)
+
+Keenamnya menyangkut RLS/tenancy dan GL: `t5a-policy-tenant`,
+`t5b-kill-switch`, `t7-exit-criteria-l2`, `rls-ownership-recursion`,
+`gl-api`, `submittal-aturan`. Tak satu pun saya sentuh — dan `T5A-PERMISSIVE`
+di `QUEUE.yaml` memang sudah mencatat sebagiannya sebagai merah di main.
+
+Yang ketujuh (`audit-mutu-endpoint`) **HIJAU** saat dijalankan sendiri di
+commit dasar maupun sesudahnya — gejala berbagi-basis antar-test paralel,
+bukan regresi.
+
+### Angka akhir suite penuh — dan nol kegagalan yang saya sebabkan
+
+Dijalankan sesudah semua perbaikan, dibaca dari reporter JSON (bukan exit
+code, yang dua kali berbohong di sesi ini dengan status 0 di atas kegagalan):
+
+```
+  Test Files  1259 total · 20 gagal
+  Tests       3913 total · 3889 lulus · 11 gagal · 13 dilewati
+```
+
+Sepuluh berkas merah, dan **tiap satunya diukur terhadap commit dasar**
+`36581478` dengan mengembalikan `apps/api/src`:
+
+| Berkas | Merah di commit dasar? |
+|---|---|
+| `t5a-policy-tenant` | ya |
+| `t5b-kill-switch` | ya |
+| `t7-exit-criteria-l2` | ya |
+| `rls-ownership-recursion` | ya |
+| `gl-api` | ya |
+| `submittal-aturan` | ya |
+| `ai-tool` | **ya** — diuji ulang khusus |
+| `f2-3-batch3-tenancy-turunan` | **ya** — diuji ulang khusus |
+| `k3-lapangan-endpoint` | hijau sendiri (78 lulus) |
+| `kompetensi-sdm-endpoint` | hijau sendiri |
+
+Delapan terbukti mendahului sesi ini. Dua terakhir merah HANYA di suite
+penuh dan hijau saat dijalankan sendiri — assertion `[200,200]` vs
+`[200,409]`, yaitu uji perlombaan yang saling mengganggu ketika 284 berkas
+berbagi satu basis. Gejala test paralel, bukan regresi.
+
+**Nol kegagalan yang saya sebabkan.** Automation baru: 17 lulus.
+
+`f2-3` layak dicatat tersendiri: ia merah karena tabel `opname_bersama_item`
+ADA di basis hidup tanpa migrasi apa pun di branch ini — dibuat sesi lain
+langsung ke basis. Kelas cacat yang sama dengan `sk-opname` yang saya
+perbaiki lewat migrasi 325: **basis berjalan lebih dulu daripada migrasinya**,
+dan penjaga/test membaca basis hidup sehingga merah untuk pekerjaan yang tak
+ada di kode mana pun.
+
+### Satu temuan yang saya laporkan terlalu cepat
+
+Saya sempat menyampaikan ke founder bahwa grup **"AI & Otomasi" tidak punya
+grup menu sendiri** dan item-itemnya "menumpang di Administrasi". Itu benar
+untuk `apps/web/lib/peta-menu.ts` — dan **salah untuk kenyataan.**
+
+Diukur ke basis: `g-ai` "AI & Otomasi" **ADA**, `sort_order` 185, dengan
+sembilan anak (`ai-asisten`, `ai-biaya`, `ai-whatsapp`, `ai-alur`,
+`ai-riwayat`, dst.). Sidebar dirender dari `menu_items`, bukan dari
+`peta-menu.ts` — jadi di layar grupnya memang sudah berdiri sendiri.
+
+Yang nyata: `peta-menu.ts` tertinggal dari DB untuk **124 entri**, dan
+`g-ai` cuma salah satunya. Itu drift yang sudah diketahui dan sudah
+di-ratchet (`audit-peta-menu-vs-db.mjs` — "Drift tidak bertambah"), bukan
+cacat yang lahir hari ini. **Tidak dikerjakan**, karena menutup 124 entri
+adalah pekerjaan tersendiri dan menutup satu saja tak mengubah apa pun
+yang dilihat pengguna.
+
+Pelajarannya persis yang dikejar CLAUDE.md §8a.4: **ukur dulu ke kenyataan
+sebelum menyatakan sesuatu belum dikerjakan.** Saya membaca satu berkas TS
+dan menyimpulkan tentang UI yang sumbernya tabel lain.
+
+### Utang yang dicatat, bukan ditambal diam-diam
+
+- **`notification_rules.event_type` UNIQUE GLOBAL** padahal `company_id`
+  NOT NULL. Tenant kedua tak bisa punya aturan sendiri. Cacat migrasi 101.
+  **Harus lunas SEBELUM tenant kedua dibuat.**
+- Nilai `EVOLUTION_*` yang terlanjur tersimpan di `app_credentials` tidak
+  ikut terhapus — butuh migrasi + konfirmasi. Hanya berhenti ditampilkan.
+- Pengiriman **template** WhatsApp (di luar jendela 24 jam Meta) belum ada.
+  Tabel `template_pesan_wa` sudah ada sejak migrasi 270.
+- Frontend masih punya salinan sendiri logika dependency Gantt; menyatukan
+  butuh `packages/shared` yang masih kosong.
+- 4 automation sisa dari 8: 5.1 invoice dari termin, 4.10 auto GR matching,
+  3.5 auto purchase request, 4.6 PO fast-track (butuh kolom `max_amount`).
 ## 2026-08-12 (lanjutan) — D3: penjaga yang buta pada bentuk ternary
 
 ### Yang dibangun
@@ -1392,7 +1643,7 @@ tinggi daripada kenyataannya.
 
 Yang ditemukan saat mengukur bagan akun: `1511 Akumulasi Penyusutan` ada -
 **lawan kreditnya**. Akun BEBAN-nya tidak. Jurnal penyusutan tak mungkin
-disusun berpasangan sejak awal. Migrasi 324 menambah `5960`.
+disusun berpasangan sejak awal. Migrasi 331 menambah `5960`.
 
 ### Jalan buntu yang saya buat sendiri, lalu saya bersihkan
 
@@ -1463,7 +1714,7 @@ literal.
                                                20  hijau
 
 Mutasi: 4 di lib (1/2/1/1 merah), 3 di rute (1/2/1 merah).
-Migrasi 324 lulus blok verifikasinya. tsc api & web exit 0. Lima penjaga API +
+Migrasi 331 lulus blok verifikasinya. tsc api & web exit 0. Lima penjaga API +
 empat penjaga web hijau.
 
 Peta Modul: 179 -> **182** hidup.
