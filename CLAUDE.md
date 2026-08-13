@@ -286,6 +286,33 @@ Skill yang dipakai: `frontend-design`, `ui-ux-pro-max`, `design-system`,
 `ui-animation`, `a11y-audit` (WCAG 2.1 AA — **bukan opsional**, banyak
 pengguna berperangkat lama/literasi digital rendah).
 
+**Audit a11y runtime — MANUAL, tak dijalankan CI** (butuh sesi ber-login):
+
+```bash
+# Dari root repo. Web harus hidup lebih dulu; ukur portnya (§7).
+LAYAR_EMAIL=… LAYAR_SANDI=… LAYAR_BASIS=http://localhost:3000 \
+  node apps/web/scripts/jalankan-a11y-lengkap.mjs
+```
+
+Pakai **`jalankan-a11y-lengkap.mjs`**, bukan `audit-a11y-runtime.mjs`
+langsung. Yang kedua butuh empat env id contoh untuk rute `[id]`, dan tanpa
+itu ia MELEWATI tujuh rute — termasuk `/proyek/[id]`, halaman terkaya di
+aplikasi ini — sambil tetap melaporkan "0 pelanggaran".
+
+Mekanisme env-nya ada sejak 2026-08-07 dan tak pernah terpakai sekali pun:
+tak ada yang tahu id apa yang harus diisi. Pembungkusnya mengambil sendiri
+dari basis. **Angka "0 pelanggaran" tanpa menyebut berapa rute dinamis yang
+terlewat bukan bukti apa-apa.**
+
+Diukur 2026-08-13 (akun admin, id lengkap): **133 halaman, 0 pelanggaran** —
+naik dari 129, dan baris "rute dinamis TERLEWAT" hilang.
+
+⚠ **Tiga rute tetap tak teraudit** karena butuh peran lain, bukan karena
+skripnya: `/portal/proyek/[id]` (klien), `/pm-portal/proyek/[id]` (PM),
+`/verify/invoice/[id]` — ketiganya dialihkan ke `/dashboard` saat dibuka
+akun admin. Menutupnya butuh satu akun uji per peran; itu keputusan data
+uji, bukan perubahan kode.
+
 **Nilai sendiri hasilnya.** Kalau tampilannya kurang bagus menurut Anda,
 **revisi** — jangan serahkan hasil yang Anda sendiri tak puas. Tapi
 penilaian selera tak boleh melanggar `ARAH-VISUAL-2026.md`.

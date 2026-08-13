@@ -89,6 +89,28 @@ try {
  * Nilainya lewat env supaya tak ada UUID yang dipaku di berkas ini —
  * basis berbeda punya id berbeda, dan id yang basi membuat audit memindai
  * halaman 404 sambil tampak berhasil.
+ *
+ * ── CARA MENGAMBIL ID-nya (2026-08-13)
+ *
+ * Mekanisme env ini ada sejak 2026-08-07, dan ketujuh rute TETAP terlewat
+ * di setiap jalan sesudahnya — bukan karena rusak, tapi karena tak ada yang
+ * tahu id apa yang harus diisikan. Peringatan tanpa cara memenuhinya sama
+ * saja dengan tak ada peringatan.
+ *
+ *     node -e "import('./scripts/db/_koneksi.mjs').then(async m=>{
+ *       const c=m.buatClient(); await c.connect();
+ *       for (const [l,q] of [
+ *         ['PROYEK',  'select id from projects order by created_at desc limit 1'],
+ *         ['INVOICE', 'select id from invoices order by created_at desc limit 1'],
+ *         ['MANDOR',  'select mandor_id from mandor_assignments limit 1'],
+ *         ['MENU',    \"select key from menu_items where is_active and href is not null limit 1\"],
+ *       ]) { const r = await c.query(q); console.log(l+'='+Object.values(r.rows[0]??{})[0]); }
+ *       await c.end();
+ *     })"
+ *
+ * Catatan yang memakan waktu: TIDAK ADA tabel `mandors`. Mandor adalah
+ * pengguna berperan mandor; id yang dipakai `/mandor/[id]` diambil dari
+ * `mandor_assignments.mandor_id`.
  */
 const CONTOH_ID = {
   '/proyek/[id]': process.env.LAYAR_ID_PROYEK,

@@ -5,6 +5,74 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-13 (lanjutan) — audit a11y yang melewati halaman terpentingnya sendiri
+
+Sesudah melaporkan "129 halaman, 0 pelanggaran" DUA KALI, saya membaca lagi
+barisnya sendiri:
+
+```
+rute dinamis TERLEWAT : 7 — beri contoh id lewat env untuk memindainya
+   /proyek/[id]        <- halaman terkaya di aplikasi ini
+   /mandor/[id]  /m/[key]  /verify/invoice/[id]
+   /portal/proyek/[id]  /pm-portal/proyek/[id]  /proyek/[id]/baseline
+```
+
+Mekanisme env untuk mengisinya ADA sejak 2026-08-07, lengkap dengan komentar
+yang menjelaskan kenapa ia penting ("audit yang melewati halaman terpenting
+lalu melaporkan nol pelanggaran memberi rasa aman yang tidak dibayar
+pemeriksaan apa pun"). Dan selama enam hari ketujuh rute tetap terlewat di
+setiap jalan — bukan karena rusak, tapi karena tak ada yang tahu id apa yang
+harus diisikan.
+
+**Mekanisme yang benar tapi tak terpakai sama tak bergunanya dengan yang tak
+ada.** Peringatan tanpa cara memenuhinya bukan peringatan.
+
+### Yang dikerjakan
+
+`apps/web/scripts/jalankan-a11y-lengkap.mjs` — mengambil keempat id dari basis
+sendiri, lalu meneruskannya. Menjalankan audit lengkap tak lagi menuntut
+siapa pun mengingat empat nama env dan cara mendapatkan nilainya.
+
+Sengaja TIDAK digabung ke `audit-a11y-runtime.mjs`: berkas itu dijalankan
+terhadap sebuah URL yang belum tentu dilayani basis yang tersambung. Id dari
+basis salah menghasilkan 404 yang dipindai sambil tampak berhasil — persis
+kegagalan yang sudah diperingatkan komentarnya sendiri.
+
+### Hasil
+
+```
+sebelum : 129 halaman · 7 rute dinamis TERLEWAT · 0 pelanggaran
+sesudah : 133 halaman · baris TERLEWAT hilang  · 0 pelanggaran
+
+terverifikasi masuk: /proyek/01a1a40d-…  /mandor/a0000000-…  /m/ai-riwayat
+```
+
+### Batas yang TERSISA — disebutkan, bukan disembunyikan
+
+Tiga rute tetap tak teraudit, dan sebabnya bukan skrip:
+
+```
+/portal/proyek/[id]     -> /dashboard   (khusus klien)
+/pm-portal/proyek/[id]  -> /dashboard   (khusus PM)
+/verify/invoice/[id]    -> /dashboard
+```
+
+Diukur langsung di peramban dengan akun admin. Mereka DICOBA lalu dialihkan —
+hasilnya sama saja: tak teraudit. Menutupnya butuh satu akun uji per peran,
+dan itu keputusan data uji.
+
+Angka "133, 0 pelanggaran" karena itu TIDAK mencakup portal klien maupun PM.
+Dicatat di kepala skrip dan di CLAUDE.md, supaya tak dibaca sebagai cakupan
+penuh oleh sesi berikutnya — termasuk oleh saya.
+
+### Cacat kecil di skrip baru
+
+`import()` dengan jalur Windows mentah (`E:\...`) ditolak Node:
+ERR_UNSUPPORTED_ESM_URL_SCHEME, karena `E:` dikira nama protokol. Diperbaiki
+dengan `pathToFileURL`.
+
+---
+
 ## 2026-08-13 — hutang lint: tujuh rule kembali hijau, dan lima salinan hook yang sama
 
 Founder: "yaa kalo gitu kamu kerjakan yg hutang itu" — merujuk hutang lint yang
