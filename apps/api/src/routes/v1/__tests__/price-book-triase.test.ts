@@ -197,8 +197,20 @@ describe('penggolongan draft', () => {
 
     const j = (await get('/api/v1/cecep/price-book/draft-triase')).json()
     expect(j.berbeda.length).toBeGreaterThanOrEqual(2)
-    expect(Math.abs(j.berbeda[0].selisih_pct))
-      .toBeGreaterThanOrEqual(Math.abs(j.berbeda[1].selisih_pct))
+
+    // Yang BARU dibuat menyimpang +800% — jauh di atas +50% milik `resBeda`.
+    // Ia HARUS di posisi pertama, bukan sekadar "urutannya tidak menurun":
+    // versi pertama test ini memakai `>=` antar dua baris berdekatan, dan
+    // mutasi yang MEMBALIK urutan tetap lolos karenanya.
+    const teratas = j.berbeda[0]
+    expect(Math.abs(teratas.selisih_pct),
+      'yang paling menyimpang tak di urutan teratas').toBe(800)
+
+    // Dan seluruh daftar memang menurun.
+    for (let i = 1; i < j.berbeda.length; i++) {
+      expect(Math.abs(j.berbeda[i - 1].selisih_pct ?? 0))
+        .toBeGreaterThanOrEqual(Math.abs(j.berbeda[i].selisih_pct ?? 0))
+    }
   })
 })
 
@@ -219,5 +231,61 @@ describe('tidak menulis apa pun', () => {
     await get('/api/v1/cecep/price-book/draft-triase')
 
     expect(await hitung(), 'endpoint triase mengubah status draft').toBe(sebelum)
+  })
+})
+
+describe('harga USANG — yang menang atas harga baru', () => {
+  it('menandai harga berlokasi yang usang sebagai `menang_atas_umum`', async () => {
+    // Inti endpoint ini. Harga LOKAL yang tua MENANG atas harga umum yang
+    // baru (`price-resolver.ts:8-10` — lokasi persis menang, tanggal hanya
+    // tie-break). Jadi harga Bandung 2019 mengalahkan harga umum 2026, dan
+    // gejalanya penawaran yang terlalu murah — bukan galat.
+    const r = await get('/api/v1/cecep/price-book/usang?tahun=2020')
+    expect(r.statusCode, r.body).toBe(200)
+
+    const j = r.json()
+    expect(j.ambang_tahun).toBe(2020)
+    expect(Array.isArray(j.per_lokasi)).toBe(true)
+
+    const lokal = j.per_lokasi.filter((x: { lokasi: string }) => x.lokasi !== '(umum)')
+    for (const l of lokal) {
+      expect(l.menang_atas_umum,
+        `lokasi "${l.lokasi}" tak ditandai menang atas umum`).toBe(true)
+    }
+    const umum = j.per_lokasi.find((x: { lokasi: string }) => x.lokasi === '(umum)')
+    if (umum) expect(umum.menang_atas_umum).toBe(false)
+  })
+
+  it('ambang tahun benar-benar menyaring', async () => {
+    const luas = (await get('/api/v1/cecep/price-book/usang?tahun=2030')).json()
+    const sempit = (await get('/api/v1/cecep/price-book/usang?tahun=2000')).json()
+
+    expect(luas.total).toBeGreaterThanOrEqual(sempit.total)
+
+    // Ambang 2000 harus menyaring HABIS: nol harga di basis ini berlaku
+    // sebelum tahun 2000. Versi pertama test ini cuma membandingkan dua
+    // angka satu sama lain, jadi mutasi yang MENGHAPUS saringannya tetap
+    // lolos — keduanya jadi sama besar, dan `>=` menerima itu.
+    expect(sempit.total, 'saringan tahun tak berlaku').toBe(0)
+    expect(luas.total, 'ambang longgar seharusnya menemukan harga usang')
+      .toBeGreaterThan(0)
+  })
+
+  it('per_lokasi diurut jumlah TERBANYAK lebih dulu', async () => {
+    const j = (await get('/api/v1/cecep/price-book/usang?tahun=2030')).json()
+    for (let i = 1; i < j.per_lokasi.length; i++) {
+      expect(j.per_lokasi[i - 1].jumlah).toBeGreaterThanOrEqual(j.per_lokasi[i].jumlah)
+    }
+  })
+
+  it('TIDAK menulis apa pun', async () => {
+    const hitung = async () => {
+      const { rows } = await db.query(
+        `SELECT count(*)::int n FROM price_book_entries WHERE status = 'active'`)
+      return rows[0].n as number
+    }
+    const sebelum = await hitung()
+    await get('/api/v1/cecep/price-book/usang?tahun=2030')
+    expect(await hitung(), 'endpoint usang mengubah data').toBe(sebelum)
   })
 })

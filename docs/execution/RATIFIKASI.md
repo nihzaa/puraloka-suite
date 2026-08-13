@@ -36,7 +36,7 @@ sebenarnya menunggu saya mencarinya — persis kekeliruan yang saya akui di R-01
 |---|---|
 | **SITUS-2** materi jual: harga, cerita proyek, screenshot | Harga adalah keputusan bisnis, bukan turunan standar. Cerita proyek adalah fakta tentang pekerjaan Anda. Mengarang keduanya = janji yang tak bisa ditepati. |
 | **SITUS-3** foto 2 kategori | Berkas aslinya tak ada di mana pun (nol kecocokan pHash dari 4 sumber). **Bisa diekstrak dari PDF compro hal. 17 & 19 kalau Anda izinkan** — kualitas turun tapi ada. |
-| **E9** 19 harga AHSP bentrok | Dua sumber sah memberi angka berbeda untuk pekerjaan yang sama. Memilih salah satunya = memutuskan harga penawaran Anda. |
+| ~~**E9** 19 harga AHSP bentrok~~ → **BUKAN bentrok** | Diukur 2026-08-13: 86 harga aktif punya saudara bernilai beda, dan hampir seluruhnya pasangan **lokasi × tanggal** yang memang sah — `Mandor` Rp 176.000 (Kabupaten Bandung, 2019) vs Rp 200.000 (umum, 2026). `price-resolver.ts` sudah menanganinya: lokasi persis menang, lalu tanggal terbaru. **Tak ada yang perlu diputuskan.** Yang perlu diperhatikan justru lain — lihat E9-baru di bawah. |
 | ~~**E10** 81 harga draft~~ → **SATU keputusan** | Diukur 2026-08-13: 78 dari 81 harganya IDENTIK dengan yang sudah aktif (duplikat impor Excel), 2 belum punya harga aktif tapi keduanya beton yang sama (`Beton Site Mix - K.250` / `-K.250`, Rp 1.280.680), dan **1** benar-benar berbeda: `Plat Strip/tali ikat` draft Rp 15.000 vs aktif Rp 30.000 (−50%). Lihat `GET /cecep/price-book/draft-triase`. Yang menunggu Anda tinggal satu baris itu. |
 
 ## R-013.1 · F7-1 — keempat pertanyaan langganan, saya jawab
@@ -491,7 +491,53 @@ tadinya kosong. Dan kalau ada satu-dua yang keliru, memperbaikinya satu baris.
 
 Ini rasio hasil-per-usaha terbaik dari seluruh daftar.
 
-## 2. E9 — 19 harga bentrok ⏱️ butuh Anda melihat, tak bisa ditebak
+## 2. ~~E9 — 19 harga bentrok~~ → **SUDAH TERJAWAB, dan bukan bentrok**
+
+> Diukur ulang 2026-08-13. Catatan lama di bawah dipertahankan sebagai jejak,
+> tetapi **kesimpulannya keliru**.
+
+**Yang sebenarnya terjadi.** 86 harga aktif punya saudara bernilai berbeda.
+Hampir seluruhnya bukan dua sumber yang berselisih, melainkan **dua dimensi
+yang memang dirancang berdampingan**:
+
+| Lokasi | Berlaku | Mandor | Pekerja | Tukang batu |
+|---|---|---|---|---|
+| Kabupaten Bandung | **2019** | 176.000 | 110.000 | 154.000 |
+| (umum / nasional) | **2026** | 200.000 | 100.000 | 145.000 |
+
+`price-resolver.ts:8-10` sudah menanganinya: **lokasi persis menang atas
+umum**, `effective_date` hanya tie-break. Itu perilaku yang benar — harga
+Bandung memang harus menang untuk proyek di Bandung.
+
+Yang tadinya terlihat "bentrok 5×" (contoh `Kaso-Kaso 5/7` Rp 3jt vs 16jt)
+ternyata dua hal berbeda: sebagian ukuran yang berbeda (`Check Velve 1/2"` vs
+`12"` — normalisasi nama yang menghapus tanda `"` membuatnya tampak sama), dan
+sebagian pasangan lokasi/tanggal di atas.
+
+### E9-baru — yang PERLU diperhatikan, dan ini bukan keputusan Anda
+
+Sebaran harga aktif menurut tahun:
+
+| Tahun | Lokasi | Jumlah |
+|---|---|---|
+| **2019** | Kabupaten Bandung | **422** |
+| 2020 | umum | 151 |
+| 2026 | umum | 2.370 |
+
+**422 harga lokal bertanggal 2019** — tujuh tahun lalu — dan karena lokasi
+menang atas umum, estimasi untuk proyek Bandung akan memakainya alih-alih
+harga 2026.
+
+Belum menggigit hari ini: `estimate_items.price_location` terisi **0 dari
+seluruh baris**, jadi jalur lokasi belum pernah dipakai. Tapi ia akan menggigit
+begitu lokasi mulai diisi — dan gejalanya berupa penawaran yang terlalu murah,
+bukan galat.
+
+Itu pekerjaan (perbarui atau expire-kan harga 2019), bukan putusan founder.
+
+---
+
+## 2b. Catatan lama E9 — dipertahankan sebagai jejak
 
 **Rekomendasi: putuskan 3 yang paling menyebar dulu, sisanya menyusul.**
 
@@ -597,7 +643,7 @@ yang dibacanya belum lengkap.
 | 20 | Laporan antar-edisi AHSP | ⛔ DICORET Anda 2026-08-01 |
 | 14 | 468 akses supabase mentah | 🟡 celah nyata **tertutup**; sisa utang adopsi — turun lagi 373→366 hari ini |
 | 24 | Capability Tier-2 | 🟡 **4 dari 5**; sisanya HSE, sengaja di Gelombang 2 |
-| E9/E10/E12 | Harga & edisi AHSP | ❓ **MENUNGGU ANDA** — lihat di bawah |
+| ~~E9~~ / ~~E10~~ / E12 | Harga & edisi AHSP | E9 **bukan bentrok** (lokasi × tanggal, resolver sudah benar) · E10 → **satu** keputusan (`Plat Strip/tali ikat`) · E12 lihat di bawah |
 
 **Jadi yang benar-benar menahan tinggal E9/E10/E12** — dan ketiganya keputusan
 harga, bukan kode.

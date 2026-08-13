@@ -332,6 +332,97 @@ export default async function priceBookRoutes(app: FastifyInstance) {
         },
       })
     })
+
+  // ── GET /cecep/price-book/usang ───────────────────────────────────────────
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA ENDPOINT INI ADA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // `RATIFIKASI.md` E9 mencatat "19 harga AHSP bentrok" menunggu founder.
+  // Diukur ulang 2026-08-13, dan kesimpulannya keliru: 86 harga aktif memang
+  // punya saudara bernilai beda, tetapi hampir seluruhnya pasangan
+  // **lokasi × tanggal** yang memang dirancang berdampingan —
+  //
+  //     Mandor  Rp 176.000  (Kabupaten Bandung, 2019)
+  //     Mandor  Rp 200.000  (umum,               2026)
+  //
+  // `price-resolver.ts:8-10` sudah menanganinya: lokasi persis menang atas
+  // umum, `effective_date` hanya tie-break. Itu perilaku yang BENAR — harga
+  // Bandung memang harus menang untuk proyek di Bandung.
+  //
+  // ── Yang justru perlu dilihat
+  //
+  // Justru karena lokasi menang, harga lokal yang USANG akan mengalahkan harga
+  // umum yang baru. Diukur: **422 harga Kabupaten Bandung bertanggal 2019** —
+  // tujuh tahun lalu — berdampingan dengan 2.370 harga umum 2026.
+  //
+  // Belum menggigit hari ini (`estimate_items.price_location` terisi 0 dari
+  // seluruh baris, jadi jalur lokasi belum dipakai). Tapi ia akan menggigit
+  // begitu lokasi mulai diisi, dan gejalanya berupa penawaran yang terlalu
+  // murah — bukan galat.
+  //
+  // Endpoint ini menampakkannya SEBELUM itu terjadi. Ia tak mengubah apa pun:
+  // memperbarui harga adalah keputusan tentang angka yang dipakai menawar.
+  app.get<{ Querystring: { tahun?: string } }>(
+    '/api/v1/cecep/price-book/usang',
+    { preHandler: [authenticate, requirePermission('cecep:price:view')] },
+    async (request, reply) => {
+      // Ambang bawaan: harga yang berlaku sebelum tahun lalu. Bukan angka
+      // ajaib — harga bahan bangunan bergerak tiap tahun, dan harga dua tahun
+      // lalu sudah cukup meleset untuk mengubah menang-kalah tender.
+      const tahunAmbang = Number(request.query.tahun)
+        || new Date().getFullYear() - 1
+
+      const { data, error } = await request.db!
+        .from('price_book_entries')
+        .select(`id, amount, effective_date, location, confidence_level,
+                 resource:resources(id, code, name, category, unit_code)`)
+        .eq('status', 'active')
+        .lt('effective_date', `${tahunAmbang}-01-01`)
+        .order('effective_date', { ascending: true })
+        .limit(5000)
+      if (error) return reply.status(500).send({ error: error.message })
+
+      type Baris = {
+        id: string; amount: number | string
+        effective_date: string; location: string | null
+        confidence_level: string | null
+        resource: { id: string; code: string; name: string } | null
+      }
+      const daftar = (data ?? []) as unknown as Baris[]
+
+      // Dikelompokkan per LOKASI, bukan per resource: yang menentukan apakah
+      // harga usang terpakai adalah lokasinya — harga umum yang tua kalah oleh
+      // harga umum yang baru, sedangkan harga LOKAL yang tua justru menang
+      // atas harga umum yang baru.
+      const perLokasi = new Map<string, { jumlah: number; terlama: string }>()
+      for (const b of daftar) {
+        const k = b.location ?? '(umum)'
+        const ada = perLokasi.get(k)
+        if (!ada) perLokasi.set(k, { jumlah: 1, terlama: b.effective_date })
+        else {
+          ada.jumlah++
+          if (b.effective_date < ada.terlama) ada.terlama = b.effective_date
+        }
+      }
+
+      return reply.send({
+        ambang_tahun: tahunAmbang,
+        total: daftar.length,
+        per_lokasi: [...perLokasi.entries()]
+          .map(([lokasi, v]) => ({
+            lokasi,
+            jumlah: v.jumlah,
+            terlama: v.terlama,
+            // Harga BERLOKASI yang usang lebih berbahaya daripada harga umum
+            // yang usang: ia MENANG atas harga umum yang baru.
+            menang_atas_umum: lokasi !== '(umum)',
+          }))
+          .sort((a, b) => b.jumlah - a.jumlah),
+        data: daftar,
+      })
+    })
 }
 
 // ============================================================
