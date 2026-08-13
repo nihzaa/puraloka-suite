@@ -33,18 +33,54 @@ export default async function rolesRoutes(app: FastifyInstance) {
 
   // GET /api/v1/roles — list semua role + jumlah permissions + jumlah user
   app.get('/api/v1/roles', { preHandler: [authenticate] }, async (request, reply) => {
-    // T4i: lewat wrapper — `roles` kategori AB, jadi .from() menyaring
-    // "bawaan (NULL) ATAU milik company ini". Role custom tenant lain (label,
-    // deskripsi, jumlah pemakai) tak lagi ikut terdaftar.
+    // T4i: `roles` kategori AB, jadi `.from()` menyaring "bawaan (NULL) ATAU
+    // milik company ini". Aturan itu benar SEBELUM migrasi 365 memberi tiap
+    // tenant salinan katalognya sendiri — sesudahnya ia menghasilkan KEMBAR.
+    //
+    // Diukur di peramban 2026-08-14: 42 role terkirim, 21 nama dua kali.
+    // Bukan cuma berisik — dua baris bernama "admin" berarti admin harus
+    // menebak yang mana yang ia sunting, dan menyunting yang salah (template)
+    // mengubah cetakan untuk SELURUH tenant.
     const { data: roles, error } = await request.db!
       .from('roles')
       .select(`
-        id, name, label, description, is_builtin, portal, color, sort_order, created_at,
+        id, company_id, name, label, description, is_builtin, portal, color, sort_order, created_at,
         role_permissions(count)
       `)
       .order('sort_order')
 
     if (error) return reply.status(500).send({ error: error.message })
+
+    /*
+      SATU BARIS PER NAMA — salinan tenant menang atas template.
+
+      Dikerjakan DI SINI, bukan lewat view di basis. Migrasi 367/368 sempat
+      mencobanya sebagai view dan gagal dengan cara yang mahal: view menyaring
+      lewat `auth_company_id()` yang membaca `app.company_id`, sementara API
+      membaca lewat PostgREST ber-service_role yang tak pernah menyetel GUC
+      itu. Hasilnya `company_id: null` untuk semua baris, gerbang tenancy
+      menyaringnya habis, dan halaman ini KOSONG — sementara blok verifikasi
+      migrasi (yang menyetel `app.company_id` sendiri) melaporkan hijau.
+
+      Migrasi 369 membuang view itu dan mencatat pelajarannya. `request.companyId`
+      di sini eksplisit, tak bergantung pada GUC, dan diuji lewat jalur yang
+      benar-benar dipakai aplikasi.
+
+      Template TETAP disertakan bila tenant belum punya salinan namanya —
+      tenant baru yang belum di-provision tak boleh melihat daftar kosong.
+    */
+    const terpilih = new Map<string, (typeof roles)[number]>()
+    for (const r of roles ?? []) {
+      const kini = terpilih.get(r.name)
+      // Menang bila: belum ada, ATAU yang ada adalah template sedangkan ini
+      // milik tenant. Perbandingan ke `request.companyId`, bukan sekadar
+      // "company_id tidak null" — supaya baris milik tenant LAIN (kalau
+      // gerbang sampai bocor) tak pernah menang diam-diam.
+      const iniMilikTenant = r.company_id === request.companyId
+      const yangAdaTemplate = kini != null && kini.company_id === null
+      if (!kini || (iniMilikTenant && yangAdaTemplate)) terpilih.set(r.name, r)
+    }
+    const roleTunggal = [...terpilih.values()]
 
     // Enrich dengan user count per role.
     // 1B.4 CONTRACT: dihitung per `role_id`, BUKAN kolom `role` yang sudah di-drop
@@ -60,11 +96,15 @@ export default async function rolesRoutes(app: FastifyInstance) {
       if (u.role_id) countMap[u.role_id] = (countMap[u.role_id] ?? 0) + 1
     }
 
-    const enriched = (roles ?? []).map((r: any) => ({
+    // `roleTunggal`, bukan `roles` — daftar yang sudah dibuang kembarnya.
+    const enriched = roleTunggal.map((r: any) => ({
       ...r,
       permission_count: r.role_permissions?.[0]?.count ?? 0,
       user_count: countMap[r.id] ?? 0,
       role_permissions: undefined,
+      // Menandai baris yang masih cetakan — UI bisa membedakan "role tenant
+      // ini" dari "bawaan yang belum disalin" tanpa menebak dari company_id.
+      dari_template: r.company_id === null,
     }))
 
     return reply.send({ roles: enriched })

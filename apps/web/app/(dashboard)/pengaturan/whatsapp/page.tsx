@@ -31,7 +31,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useIzin } from "@/lib/use-izin";
-import { api } from "@/lib/api";
+import { api, getStoredUser } from "@/lib/api";
 import {
   AlertTriangle, CheckCircle2, Info, Loader2, MessageCircle, Plus, ShieldAlert,
 } from "lucide-react";
@@ -48,6 +48,15 @@ import { PanduanHalaman } from "@/components/panduan-halaman";
 interface Nomor {
   id: string;
   user_id: string;
+  /**
+   * Pemilik nomor — join dari `users` lewat `wa_nomor_pengguna_user_id_fkey`.
+   *
+   * Opsional karena PostgREST mengembalikan `null` bila barisnya tak ada
+   * (pengguna terhapus). Halaman WAJIB menyiapkan keadaan itu: baris nomor
+   * tanpa identitas apa pun terbaca sebagai galat tampilan, bukan sebagai
+   * fakta bahwa pemiliknya sudah tidak ada.
+   */
+  pemilik: { id: string; name: string; email: string } | null;
   nomor: string;
   terverifikasi_pada: string | null;
   aktif: boolean;
@@ -73,6 +82,13 @@ export default function WhatsAppPage() {
   const [muatan, setMuatan] = useState<Muatan | null>(null);
   const [memuat, setMemuat] = useState(true);
   const [nomorBaru, setNomorBaru] = useState("");
+  /**
+   * Siapa pemilik nomor yang sedang didaftarkan. Bawaannya diri sendiri —
+   * kasus terbanyak, dan tetap satu klik.
+   */
+  const [pemilikBaru, setPemilikBaru] = useState("");
+  const [pengguna, setPengguna] = useState<Array<{ id: string; name: string }>>([]);
+  const [akuId, setAkuId] = useState("");
   const [sedang, setSedang] = useState<string | null>(null);
   const [kode, setKode] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ tipe: "ok" | "err"; pesan: string } | null>(null);
@@ -93,12 +109,38 @@ export default function WhatsAppPage() {
   // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
   // Menunda satu microtask memindahkannya keluar dari fase render tanpa
   // menambah jeda yang terlihat.
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
+  //
+  // (Blok komentar ini sempat tersalin dua kali; yang kedua dibuang.)
   useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
+
+  /*
+    Daftar orang untuk pemilih "nomor ini milik".
+
+    Kegagalannya SENGAJA tak memunculkan galat merah: halaman ini tetap
+    berguna tanpa daftar orang (melihat nomor terdaftar, memverifikasi,
+    menonaktifkan). Yang hilang hanya kemampuan mendaftarkan untuk orang
+    lain, dan pemilihnya sendiri sudah menunjukkan kekosongan itu.
+
+    `/api/v1/users` sudah tersaring tenant di server (`idAnggotaCompany`),
+    jadi tak ada penyaringan tambahan di sini yang bisa menyimpang darinya.
+  */
+  useEffect(() => {
+    let batal = false;
+    const aku = getStoredUser();
+    if (aku?.id) { setAkuId(aku.id); setPemilikBaru((k) => k || aku.id); }
+    api.get<{ users: Array<{ id: string; name: string }> }>("/api/v1/users")
+      .then(({ data }) => {
+        if (batal) return;
+        const daftarOrang = data.users ?? [];
+        setPengguna(daftarOrang);
+        // Kalau akun sendiri tak ada di daftar (mis. bukan anggota company
+        // aktif), jatuh ke orang pertama supaya pemilihnya tak pernah
+        // mengirim string kosong sebagai `user_id`.
+        setPemilikBaru((k) => k || daftarOrang[0]?.id || "");
+      })
+      .catch(() => { /* lihat komentar di atas */ });
+    return () => { batal = true; };
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -117,8 +159,22 @@ export default function WhatsAppPage() {
     if (!n) return;
     setSedang("__daftar__");
     try {
-      await api.post("/api/v1/wa/nomor", { nomor: n });
-      setToast({ tipe: "ok", pesan: `Kode verifikasi dikirim ke ${n}. Berlaku 10 menit.` });
+      // `user_id` IKUT DIKIRIM. Tanpa ini, rute jatuh ke
+      // `request.currentUser.id` — dan setiap nomor menempel diam-diam ke
+      // orang yang sedang membuka halaman, berapa pun nama yang dipilih di
+      // pemilih. Cacat yang paling sunyi: layarnya bertanya, jawabannya
+      // dibuang di jalan.
+      await api.post("/api/v1/wa/nomor", { nomor: n, user_id: pemilikBaru || undefined });
+      const namaPemilik = pengguna.find((u) => u.id === pemilikBaru)?.name;
+      setToast({
+        tipe: "ok",
+        pesan: namaPemilik
+          // Menyebut NAMANYA, bukan cuma nomornya: yang perlu dipastikan orang
+          // sesudah menekan tombol adalah "menempel ke siapa", dan itu
+          // satu-satunya bagian yang tak bisa ia baca ulang dari isian.
+          ? `Kode verifikasi dikirim ke ${n} — untuk ${namaPemilik}. Berlaku 10 menit.`
+          : `Kode verifikasi dikirim ke ${n}. Berlaku 10 menit.`,
+      });
       setNomorBaru("");
       await muat();
     } catch (e) {
@@ -276,9 +332,45 @@ export default function WhatsAppPage() {
         <h2 style={{ fontSize: 12, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase", color: C.muted, margin: "0 0 10px" }}>
           Daftarkan nomor
         </h2>
-        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
-          <div style={{ flex: 1 }}>
-            <label htmlFor="nomor-baru" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>
+        {/*
+          DUA isian, bukan satu — "milik siapa" dan "nomor berapa".
+
+          Sebelum ini formnya hanya menerima nomor, dan `daftarkan()` mengirim
+          `{ nomor }` saja. Akibatnya setiap nomor menempel ke DIRI SENDIRI,
+          diam-diam — padahal API menerima `user_id` dan memang dirancang
+          supaya admin bisa mendaftarkan nomor untuk orang lain.
+
+          Itulah sebabnya pertanyaan founder ("nyambungin ke user gimana?")
+          tak punya jawaban: layarnya tak pernah menanyakan siapa, jadi tak
+          pernah bisa menampilkan siapa. Kemampuannya ada di server dan
+          hilang di jalan menuju layar.
+
+          Bawaannya diri sendiri — kasus terbanyak, dan tetap satu klik.
+        */}
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 200px", minWidth: 0 }}>
+            <label htmlFor="pemilik-baru" style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.mid, marginBottom: 4 }}>
+              Nomor ini milik
+            </label>
+            <select className="isian-fokus"
+              id="pemilik-baru"
+              value={pemilikBaru}
+              onChange={(e) => setPemilikBaru(e.target.value)}
+              disabled={!bolehKelola || sedang === "__daftar__"}
+              style={GAYA_ISIAN}
+            >
+              {pengguna.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.name}{u.id === akuId ? " (saya)" : ""}
+                </option>
+              ))}
+            </select>
+            <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "6px 0 0" }}>
+              Asisten menjawab memakai wewenang orang ini — bukan wewenang Anda.
+            </p>
+          </div>
+          <div style={{ flex: "1 1 220px", minWidth: 0 }}>
+            <label htmlFor="nomor-baru" style={{ display: "block", fontSize: 11.5, fontWeight: 600, color: C.mid, marginBottom: 4 }}>
               Nomor WhatsApp
             </label>
             <input className="isian-fokus"
@@ -301,10 +393,14 @@ export default function WhatsAppPage() {
             disabled={!bolehKelola || !nomorBaru.trim() || sedang === "__daftar__"}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
+              // Sejajar dengan ISIAN, bukan dengan labelnya: kedua kolom kini
+              // punya label di atas, dan tombol yang rata-atas akan berdiri
+              // sejajar tulisan "Nomor ini milik" alih-alih kotak isiannya.
+              marginTop: 21,
               padding: "var(--pad-tombol)", borderRadius: 7, fontSize: 13,
               fontWeight: 550, border: "1px solid transparent", whiteSpace: "nowrap",
-              background: bolehKelola && nomorBaru.trim() ? C.aksen : "var(--surface-subtle)",
-              color: bolehKelola && nomorBaru.trim() ? "#fff" : C.muted,
+              background: bolehKelola && nomorBaru.trim() ? "var(--grad-aksen)" : "var(--surface-subtle)",
+              color: bolehKelola && nomorBaru.trim() ? "var(--on-aksen)" : C.muted,
               cursor: bolehKelola && nomorBaru.trim() ? "pointer" : "not-allowed",
               fontFamily: "inherit",
             }}
@@ -362,14 +458,53 @@ export default function WhatsAppPage() {
                     `C.muted` sudah 4,83 : 1 — lolos AA tanpa mengarang nilai
                     baru, dan tetap terbaca jelas lebih redup dari yang aktif.
                   */}
-                  <span
-                    style={{
-                      fontSize: 14, fontWeight: 600,
-                      color: n.aktif ? C.text : C.muted,
-                      fontFamily: "var(--font-mono, monospace)",
-                    }}
-                  >
-                    {tampilNomor(n.nomor)}
+                  {/*
+                    NAMA PEMILIK di depan, nomornya di belakang sebagai
+                    keterangan.
+
+                    Founder bertanya 2026-08-14: "cara tau nomor itu nyambung
+                    ke user siapa gimana caranya?" — dan jawabannya, lewat
+                    layar ini, TIDAK BISA. `user_id` sudah dikirim API sejak
+                    awal dan dideklarasikan di `interface Nomor` di berkas ini,
+                    lalu tak pernah dirender sekali pun.
+
+                    Yang kurang bukan penjelasan, melainkan datanya. Menambah
+                    paragraf "nomor tersambung ke pengguna lewat verifikasi"
+                    tak akan menjawab pertanyaannya; menampilkan namanya
+                    menjawabnya tanpa satu kalimat pun.
+
+                    Urutannya sengaja dibalik dari versi lama. Endpoint ini
+                    boleh mendaftarkan nomor UNTUK ORANG LAIN (`user_id` di
+                    body POST), jadi pertanyaan pertama yang dibawa orang ke
+                    layar ini adalah "punya siapa", bukan "nomor berapa".
+                    Nomornya tetap ada — ia yang membedakan dua nomor milik
+                    orang yang sama.
+
+                    Kalau nama tak ada (pengguna terhapus, atau join gagal),
+                    nomornya NAIK jadi label utama alih-alih menyisakan baris
+                    tanpa identitas. Yang tak dikenal ditulis apa adanya
+                    sebagai "pengguna terhapus" — bukan dikosongkan, karena
+                    baris tanpa penjelasan terbaca sebagai galat tampilan.
+                  */}
+                  <span style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 14, fontWeight: 600,
+                        color: n.aktif ? C.text : C.muted,
+                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}
+                    >
+                      {n.pemilik?.name ?? "Pengguna terhapus"}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 12.5,
+                        color: C.muted,
+                        fontFamily: "var(--font-mono, monospace)",
+                      }}
+                    >
+                      {tampilNomor(n.nomor)}
+                    </span>
                   </span>
                   {/*
                     Lencana MENYATU dengan status aktif, bukan dua penanda

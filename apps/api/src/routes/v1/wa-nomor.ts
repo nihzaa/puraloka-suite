@@ -59,7 +59,28 @@ export default async function waNomorRoutes(app: FastifyInstance) {
         // `kode_verifikasi` TIDAK ikut. Kode yang bisa dibaca lewat API
         // membuat verifikasi kehilangan artinya — siapa pun yang bisa
         // membuka halaman ini bisa memverifikasi nomor siapa pun.
-        .select('id, user_id, nomor, terverifikasi_pada, aktif, percobaan_gagal, dibuat_pada')
+        //
+        // ── `pemilik` ikut sejak 2026-08-14
+        //
+        // Founder bertanya: "cara tau nomor itu nyambung ke user siapa gimana
+        // caranya?" Pertanyaannya tak punya jawaban di layar — `user_id` sudah
+        // dikirim sejak awal, tapi ia UUID, dan UUID tak memberi tahu siapa pun
+        // nomor itu milik siapa.
+        //
+        // Ini bukan soal penjelasan yang kurang; datanya yang tak lengkap.
+        // Endpoint ini boleh mendaftarkan nomor UNTUK ORANG LAIN (`user_id` di
+        // body POST), jadi daftar tanpa nama pemilik justru paling menyesatkan
+        // pada kasus yang paling perlu diperiksa: nomor yang didaftarkan
+        // seseorang atas nama orang lain.
+        //
+        // Nama FK ditulis eksplisit — `users(name)` telanjang AMBIGU bagi
+        // PostgREST bila sebuah tabel punya lebih dari satu jalur ke `users`
+        // (pelajaran `ai-setujui.ts`), dan ambiguitasnya muncul sebagai galat
+        // saat dijalankan, bukan saat dikompilasi.
+        .select(
+          'id, user_id, nomor, terverifikasi_pada, aktif, percobaan_gagal, dibuat_pada,' +
+          'pemilik:users!wa_nomor_pengguna_user_id_fkey(id, name, email)',
+        )
         .order('dibuat_pada', { ascending: false })
 
       if (error) {

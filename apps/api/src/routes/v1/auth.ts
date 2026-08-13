@@ -75,7 +75,23 @@ export default async function authRoutes(app: FastifyInstance) {
     // Ambil permissions + portal home secara paralel
     const [permsResult, roleResult] = await Promise.all([
       supabase.rpc('get_role_permissions', { role_name: user.role }),
-      supabase.from('roles').select('portal').eq('name', user.role).single(),
+      // `.maybeSingle()` + `.limit(1)`, BUKAN `.single()`.
+      //
+      // Sejak migrasi 363-365, `roles.name` tak lagi unik: tiap tenant punya
+      // salinan rolenya sendiri, dan template global tetap ada. `.single()`
+      // melempar begitu barisnya lebih dari satu — dan yang meledak adalah
+      // LOGIN, jalur yang paling tak boleh gagal.
+      //
+      // Hari ini kebetulan belum meledak (PostgREST toleran pada bentuk
+      // tertentu), tapi mengandalkan kebetulan itu berarti menunggu tenant
+      // kedua untuk mengunci semua orang keluar.
+      //
+      // Template didahulukan kalah: `order('company_id', nullsFirst:false)`
+      // menaruh baris ber-company_id di atas, sejalan dengan
+      // `get_role_permissions` (migrasi 366).
+      supabase.from('roles').select('portal').eq('name', user.role)
+        .order('company_id', { ascending: true, nullsFirst: false })
+        .limit(1).maybeSingle(),
     ])
     const permissions = (permsResult.data ?? []).map((r: { permission_key: string }) => r.permission_key)
     const homePortal = roleResult.data?.portal ?? 'dashboard'
@@ -266,7 +282,23 @@ export default async function authRoutes(app: FastifyInstance) {
     // Ambil permissions + portal home
     const [permsResult2, roleResult2] = await Promise.all([
       supabase.rpc('get_role_permissions', { role_name: user.role }),
-      supabase.from('roles').select('portal').eq('name', user.role).single(),
+      // `.maybeSingle()` + `.limit(1)`, BUKAN `.single()`.
+      //
+      // Sejak migrasi 363-365, `roles.name` tak lagi unik: tiap tenant punya
+      // salinan rolenya sendiri, dan template global tetap ada. `.single()`
+      // melempar begitu barisnya lebih dari satu — dan yang meledak adalah
+      // LOGIN, jalur yang paling tak boleh gagal.
+      //
+      // Hari ini kebetulan belum meledak (PostgREST toleran pada bentuk
+      // tertentu), tapi mengandalkan kebetulan itu berarti menunggu tenant
+      // kedua untuk mengunci semua orang keluar.
+      //
+      // Template didahulukan kalah: `order('company_id', nullsFirst:false)`
+      // menaruh baris ber-company_id di atas, sejalan dengan
+      // `get_role_permissions` (migrasi 366).
+      supabase.from('roles').select('portal').eq('name', user.role)
+        .order('company_id', { ascending: true, nullsFirst: false })
+        .limit(1).maybeSingle(),
     ])
     const permissions = (permsResult2.data ?? []).map((r: { permission_key: string }) => r.permission_key)
     const homePortal = roleResult2.data?.portal ?? 'dashboard'

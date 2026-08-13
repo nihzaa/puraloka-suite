@@ -5,6 +5,99 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan) — 5 role jadi 21, dan tiga cacat yang saya buat sendiri di jalan
+
+Founder: *"masa role di ERP konstruksi besar cuma segini? carikan role role apa
+aja yang pantas atau harus ada? lalu tambahkan ke db dan sesuaikan hak aksesnya"*
+
+Diukur lebih dulu: **5 role** terhadap **218 permission di 48 domain**. Founder
+benar — kosakata izinnya sudah kaya, rolenya yang tak pernah dibuat. Domain
+`k3:*` (11 izin) bahkan tak punya SATU PUN role yang memakainya, jadi satu-
+satunya cara memakai izin K3 adalah memberi orang itu `admin`.
+
+### Keputusan founder (AskUserQuestion)
+
+1. **Role per-tenant sejak awal** — bukan katalog global
+2. **SoD pisah tegas** — yang membuat ≠ menyetujui ≠ membayar
+3. Keempat peran lapangan dipisah: pelaksana, QA/QC, K3, logistik
+
+### Yang dikerjakan (migrasi 363-369)
+
+- **363** `roles.name` UNIQUE global → unik PER-COMPANY. Jebakan yang hampir
+  terlewat: `notification_rule_targets.role_name` adalah FK ke NAMA (16 baris
+  terisi) — membuang unique menjatuhkannya senyap. Diganti trigger yang justru
+  LEBIH ketat: aturan PT A tak lagi boleh menunjuk role milik PT B.
+- **364** 16 role baru + hak aksesnya, **nol izin baru**. SoD ternyata sudah
+  dirancang di level izin (`cash:expense:create` ≠ `:approve`), tinggal
+  disusun.
+- **365** salin ke tenant yang punya ANGGOTA — bukan ke 291 company (290-nya
+  sampah uji; menyalin ke semua = 6.111 baris sampah).
+- **366** `get_role_permissions` & `has_permission` jadi sadar-tenant.
+- **369** membatalkan view `roles_terpakai` buatan 367/368.
+
+### Tiga kali saya salah, dan yang ketiga paling berharga
+
+1. **Verifikasi tanpa menyebut skema.** Basis ini punya `test.roles`, dan
+   `pg_constraint` tanpa saringan skema melihat keduanya — migrasi melaporkan
+   "UNIQUE masih terpasang" padahal DROP-nya berhasil.
+2. **Penjaga SoD terlalu kasar.** Ia memerah untuk `direktur`/`pm` dan saya
+   hampir menyimpulkan "role lama melanggar SoD". Diukur lebih jauh: TIDAK.
+   `lib/sod.ts` sudah menegakkannya di RUNTIME — yang dilarang orang yang sama
+   pada satu dokumen, bukan role yang memegang kedua izin. Role lama dibiarkan.
+3. **View yang lulus verifikasinya sendiri.** 367/368 membuat
+   `roles_terpakai`, dan blok verifikasinya HIJAU: *"21 baris, 21 nama, nol
+   NULL, 21 lolos gerbang tenancy"*. Lewat jalur nyata:
+
+       GET /api/v1/roles  →  200 {"roles": []}
+
+   Sebabnya: view menyaring lewat `auth_company_id()` yang membaca
+   `app.company_id`; blok verifikasi menyetelnya sendiri, sedangkan API
+   membaca lewat PostgREST ber-service_role yang TIDAK PERNAH menyetelnya.
+   Saya membuat test yang lulus sendiri, lalu percaya padanya.
+
+   **Aturan yang saya catat:** kalau sebuah objek dipakai lewat PostgREST, ia
+   harus diuji lewat PostgREST — bukan lewat psql yang kebetulan punya lebih
+   banyak konteks. Penyaringannya pindah ke `roles.ts` yang memakai
+   `request.companyId` (eksplisit, tak bergantung GUC).
+
+### Cacat nyata yang ikut ketahuan
+
+Login mengembalikan permission **ganda** (`projects:view` dua kali) sesudah
+365 — `get_role_permissions` mencari by nama dan menemukan template +
+salinan. Hari ini isinya sama jadi tak ada yang rusak; besok, saat tenant
+menyunting rolenya, `has_permission` (dipakai ~100 RLS policy) akan
+mengembalikan GABUNGAN. Diperbaiki 366. Dua `.single()` di `auth.ts` juga
+bom waktu — akan meledak di LOGIN begitu tenant kedua ada.
+
+### Bukti
+
+```
+migrasi 363,364,365,366,367,368,369  semua tercatat di schema_migrations
+ledger-diff                          bersih
+tsc (api)                            EXIT 0
+audit-gerbang-tenancy                HIJAU
+audit-kredensial-tak-bocor           HIJAU
+audit-approval-satu-pintu            HIJAU
+audit-sod-gerbang                    HIJAU
+gen-tenant-map check                 SINKRON (257 tabel)
+vitest tenant-db + ai-isolasi-tenant 41/41 HIJAU
+vitest SUITE PENUH                   4582 lulus, 40 merah, 4 dilewati
+  ⚠ 40 merah BUKAN dari perubahan ini. Diukur dengan `git stash`:
+    ratchet "akses supabase mentah" = 376 (ambang 366) SEBELUM dan
+    SESUDAH perubahan saya, dan juga di HEAD bersih. Utang sesi lain;
+    ambangnya TIDAK saya naikkan (G-5).
+peramban /pengaturan/roles           21 role, NOL nama kembar
+login                                217 permission, 217 unik (dari ganda)
+```
+
+### Yang MENUNGGU founder
+
+26 anggota Puraloka Persada **tetap memakai role lamanya**. Migrasi hanya
+menambah pilihan — memindahkan orang ke role baru adalah keputusan Anda,
+bukan tebakan migrasi. Yang salah pindah kehilangan akses tanpa tahu sebabnya.
+
+---
+
 ## 2026-08-14 — tiga gejala ikon, satu penyebab: ubin judul digambar di banyak tempat
 
 Founder melaporkan enam hal dalam satu pesan. Tiga di antaranya terdengar
