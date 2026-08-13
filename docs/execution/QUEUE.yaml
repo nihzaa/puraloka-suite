@@ -1156,43 +1156,42 @@ items:
          tenant kedua masih terkunci sampai Tahap 4 & 5 (STATUS.md)"
     cara_verifikasi: "review konten vs kondisi produk yang terukur"
     bobot: M
-    status: sebagian
+    status: menunggu-penilaian-founder
     catatan_kemajuan: >-
-      TAHAP 1 SELESAI 2026-08-13 — keterbacaan dasar. BELUM ditutup, karena
-      kriteria terakhirnya subjektif: penilaian ulang founder dari layar.
+      TAHAP 1-3 SELESAI 2026-08-13. Tinggal satu kriteria, dan ia SUBJEKTIF:
+      penilaian founder dari layar. Bukan milik saya untuk dinyatakan lulus.
 
-      Yang dikerjakan:
+      TAHAP 1 — keterbacaan
+      · `components/panduan-halaman.tsx`: tiap halaman menjawab "untuk apa"
+        + "mulai dari mana" SEBELUM kontrol pertama. Terpasang di KEDELAPAN
+        halaman grup ini.
+      · `DefinisiToolAi.label`: 15 tool punya nama manusia. Kunci mentah
+        (`daftar_proyek`) turun jadi keterangan kecil.
 
-      (1) `components/panduan-halaman.tsx` — tiap halaman kini menjawab
-          "untuk apa halaman ini" dan "mulai dari mana" SEBELUM kontrol
-          pertama terlihat. Dipasang di: Lapisan AI, keempat halaman
-          asisten, Plafon Persetujuan, Penyedia AI, dan Alur Otomasi.
+      TAHAP 2 — ruang & lebar (keluhan "banyak ruang kosongnya")
+      · Diukur @2560: Penyedia AI & Asisten isi 900px di ruang 2340px —
+        1440px KOSONG. Sebabnya `--w-form` (batas PROSA) dipakai halaman
+        yang isinya GRID. Diganti `--w-page`. Sisa kosong → 540px.
+      · Kartu asisten 2×2 simetris (`repeat(2,…)` + `flex column` +
+        `marginTop:auto`) — bukan `auto-fit` yang memberi 3 kolom lalu
+        mengorbankan kartu keempat ke baris sendirian.
+      · Daftar 15 tool jadi 4 kolom @1920, turun sendiri jadi 1 kolom di
+        layar sempit.
 
-      (2) `DefinisiToolAi.label` — 15 tool kini punya nama manusia.
-          Sebelumnya kunci mentah (`daftar_proyek`, `ringkas_keuangan`)
-          berdiri di posisi JUDUL tiap baris, dan pembacanya harus
-          menerjemahkan snake_case sebelum bisa memutuskan mencentang.
-          Labelnya datang dari API, BUKAN peta di web: peta di web berarti
-          tool baru muncul sebagai kunci mentah sampai ada yang ingat
-          memperbaruinya — dan yang lupa tak menghasilkan galat apa pun.
+      TAHAP 3 — navigasi (keluhan "asing")
+      · Migrasi 359: LIMA item sidebar ternyata KEMBAR dengan tab di
+        halamannya sendiri — href identik, dibuktikan baris demi baris.
+        Empat dinonaktifkan (bukan dihapus), sub-menu 10 → 6.
+      · Label "Asisten — Lapisan AI" → "Asisten AI": istilah internal
+        ("lapisan") tak berarti apa pun bagi pembacanya.
 
-      Dua cacat ditemukan alat, bukan mata, dan itu dicatat:
+      Bukti akhir: a11y 0 pelanggaran · eslint 0/0 · 8 penjaga navigasi &
+      visual HIJAU · detektor impeccable nihil · uji-lebar-responsif hijau
+      5 resolusi · diperiksa di peramban @1280/@1366/@1920/@2560.
 
-      · `audit-a11y-runtime` menolak `opacity: 0.75` pada kunci teknis —
-        6 node gagal kontras WCAG AA di tiga halaman asisten. Diperbaiki
-        dengan membuang opacity, bukan mengecilkan hurufnya.
-      · Tangkapan layar memperlihatkan panduan menempel ke judul di
-        halaman Alur Otomasi (induknya tak memakai `grid gap`). Jarak
-        atas kini disetel di komponennya sendiri.
-
-      SISA untuk tahap berikutnya:
-
-      · Halaman Biaya AI, Riwayat Asisten, dan Kanal WhatsApp belum
-        diberi panduan.
-      · Sidebar grup ini masih 10 item sejajar tanpa pengelompokan
-        (diukur dari tangkapan layar). Ini bagian dari keluhan "asing"
-        yang belum tersentuh sama sekali.
-
+      `audit-peta-menu-vs-db` sempat MERAH karena saya mengubah label di DB
+      saja — penjaga menangkapnya, dan mutasi membuktikan ia memang bisa
+      merah (HIJAU → MERAH → HIJAU).
   - id: SITUS-3
     fase: null
     judul: "Foto Renovasi Rumah & Beton Pracetak — berkas asli belum ditemukan"

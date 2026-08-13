@@ -47,6 +47,7 @@ import { Coins, Info, Zap } from "lucide-react";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { PanduanHalaman } from "@/components/panduan-halaman";
 
 
 interface Kelompok {
@@ -142,6 +143,27 @@ function Konten() {
           ikon={<Coins size={19} />}
         />
       </div>
+
+      {/*
+        Halaman ini MEMBACA, bukan mengatur — dan itu perlu dinyatakan.
+        Tanpanya, orang yang membuka "Pemakaian & Biaya" mencari tombol untuk
+        menurunkan biayanya di sini, lalu menyimpulkan halamannya belum jadi.
+      */}
+      <PanduanHalaman
+        untuk={
+          <>
+            Halaman ini <strong>memperlihatkan</strong> ke mana biaya AI pergi — per hari, per
+            model, per asisten. Ia tidak mengubah apa pun: batas biaya dan pilihan model diatur
+            di halaman <strong>Penyedia AI</strong>.
+          </>
+        }
+        langkah={[
+          { teks: "Pilih rentang waktu yang ingin diperiksa" },
+          { teks: "Lihat asisten mana yang paling banyak menyerap biaya" },
+          { teks: "Kalau ada yang tak wajar, turunkan modelnya atau setel batas di halaman Penyedia AI" },
+        ]}
+        catatan="Angka di sini dihitung dari pemakaian yang benar-benar tercatat, bukan perkiraan. Biaya yang belum muncul berarti panggilannya memang belum terjadi."
+      />
 
       {/* ── Pemilih rentang ── */}
       <div style={{ display: "flex", gap: 6, marginBottom: "var(--gap-bagian)" }}>

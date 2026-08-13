@@ -52,6 +52,7 @@ import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Lencana } from "@/components/dasar";
 import { Kosong, Panel } from "@/components/ui-dasar";
+import { PanduanHalaman } from "@/components/panduan-halaman";
 import { BarisRail, KartuRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
 import { usePasangRail } from "@/lib/rail-context";
@@ -289,6 +290,27 @@ function Konten() {
         ikon={<History size={20} />}
         judul="Riwayat Asisten"
         keterangan="Apa yang dibicarakan, dan apa yang benar-benar terjadi."
+      />
+
+      {/*
+        "Riwayat" bisa terbaca sebagai arsip yang tak berguna. Panduan
+        menyebutkan KENAPA orang membukanya: memeriksa apa yang asisten
+        jawab, dan apa yang benar-benar ia baca untuk menjawabnya.
+      */}
+      <PanduanHalaman
+        untuk={
+          <>
+            Tiap percakapan dengan asisten tersimpan di sini, beserta{" "}
+            <strong>data apa yang ia baca</strong> untuk menjawab. Dipakai saat jawabannya terasa
+            janggal — Anda bisa melihat sendiri dari mana angkanya datang.
+          </>
+        }
+        langkah={[
+          { teks: "Pilih percakapan yang ingin diperiksa" },
+          { teks: "Baca langkah yang diambil asisten — tiap pembacaan data tercatat" },
+          { teks: "Bandingkan dengan data aslinya di modul terkait bila ada yang tak cocok" },
+        ]}
+        catatan="Lama simpan riwayat diatur di halaman Asisten AI. Percakapan memuat kutipan data operasional, jadi menyimpannya tanpa batas bukan pilihan yang netral."
       />
 
       {pesan && (

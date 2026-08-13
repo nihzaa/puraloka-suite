@@ -388,7 +388,11 @@ export const PETA_MENU: GrupMenu[] = [
       // Induknya kini hanya memuat saklar & retensi milik TENANT, jadi
       // labelnya diperjelas — "Perilaku Asisten" akan membuat orang membukanya
       // lalu bertanya ke mana instruksinya pergi.
-      { key: 'ai-asisten', label: 'Asisten — Lapisan AI', status: 'hidup', href: '/pengaturan/asisten', guna: 'Saklar AI dan lama simpan riwayat — berlaku untuk SELURUH asisten, bukan salah satunya.' },
+      // Label diselaraskan dengan migrasi 359. `audit-peta-menu-vs-db` merah
+      // saat hanya satu sisi diubah — dan itu benar: nama yang berbeda antara
+      // sidebar dan peta membuat halaman `/m/<key>` menyebut dirinya dengan
+      // nama yang tak pernah dilihat pengguna di navigasi.
+      { key: 'ai-asisten', label: 'Asisten AI', status: 'hidup', href: '/pengaturan/asisten', guna: 'Saklar AI dan lama simpan riwayat — berlaku untuk SELURUH asisten, bukan salah satunya. Perilaku tiap asisten diatur lewat tab di halaman ini.' },
       { key: 'ai-asisten-pemilik', label: 'Asisten Pemilik', status: 'hidup', href: '/pengaturan/asisten/pemilik', guna: 'Instruksi, batas langkah, dan data yang boleh dibaca asisten pemilik (kanal WhatsApp).' },
       { key: 'ai-asisten-staf', label: 'Asisten Staf', status: 'hidup', href: '/pengaturan/asisten/staf', guna: 'Asisten untuk orang lapangan dan kantor. Kanal WhatsApp sendiri, batas datanya lebih sempit.' },
       { key: 'ai-asisten-web', label: 'Asisten Web', status: 'hidup', href: '/pengaturan/asisten/web', guna: 'Asisten di dalam dashboard. Penanyanya siapa pun yang login — batasnya mengikuti izin orang itu.' },

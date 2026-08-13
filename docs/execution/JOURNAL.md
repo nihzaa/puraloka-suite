@@ -88,6 +88,88 @@ kredensial di CI, dan itu keputusan tersendiri.
 
 ---
 
+## 2026-08-13 (lanjutan 13) — lima item sidebar yang kembar dengan tab-nya sendiri
+
+Lanjutan UI-AI-OTOMASI. Founder menegur dua kali di sesi ini, dan keduanya
+tepat: *"banyak ruang kosongnya"* lalu *"dibikin 2x2 aja, yg simetris dongg,
+kamu ga pake skills design kamu?"*
+
+Teguran kedua yang paling berguna. Saya **memang** memuat `impeccable`, tetapi
+berhenti pada "tsc hijau + lebar terukur" tanpa MELIHAT hasilnya di lebar yang
+founder pakai. Craft floor menyebutnya sendiri: *"a check on the built result,
+not an intention"*.
+
+### Sebab "asing" yang terakhir: rute yang sama muncul DUA KALI
+
+Ketahuan begitu sidebar dipotret berdampingan dengan halamannya:
+
+```
+sidebar   Asisten — Lapisan AI  → /pengaturan/asisten
+          Asisten Pemilik       → /pengaturan/asisten/pemilik
+          Asisten Staf          → /pengaturan/asisten/staf
+          Asisten Web           → /pengaturan/asisten/web
+          Wawasan Portofolio    → /pengaturan/asisten/wawasan
+
+tab       Lapisan AI · Asisten pemilik · Asisten staf · Asisten web ·
+          Wawasan portofolio    ← href IDENTIK, kelimanya
+```
+
+Dibandingkan baris demi baris (`layout.tsx` BAGIAN[] vs `menu_items.href`),
+bukan dikira-kira. Navigasi yang sama di dua tempat pada satu layar adalah
+persis rasa "menerka-nerka": pengguna tak tahu keduanya sama, jadi ia mengira
+ada dua himpunan berbeda.
+
+### Yang dibuang: sidebar-nya, bukan tab-nya
+
+`ARAH-VISUAL-2026` §6a memberi ujinya. Keempat asisten memang entitas
+berbeda — itu sebabnya keduanya rute nyata. Tetapi mereka entitas SEJENIS yang
+diatur berurutan: yang menyetel asisten pemilik hampir selalu lanjut ke staf.
+Tab menjaga konteks itu; sidebar memaksa mata keluar-masuk halaman.
+
+Penentunya: hilangkan tab → lima halaman kehilangan penanda "saya di mana
+dalam himpunan ini". Hilangkan duplikat sidebar → tak ada yang hilang.
+
+Migrasi 359, `is_active = false` bukan DELETE (barisnya dipakai
+`company_menu_settings` + audit). Sub-menu **10 → 6**.
+
+### Penjaga menangkap kelalaian saya
+
+Saya mengubah label di DB dan LUPA `peta-menu.ts`. `audit-peta-menu-vs-db`
+merah: *"labelBeda naik 0 → 1"*. Diperbaiki, lalu dibuktikan penjaganya memang
+bisa merah lewat mutasi sepihak — **HIJAU → MERAH → HIJAU**.
+
+Tanpa penjaga itu, halaman `/m/<key>` akan menyebut dirinya dengan nama yang
+tak pernah dilihat pengguna di navigasi.
+
+### Tiga halaman terakhir
+
+Biaya AI, Riwayat Asisten, Kanal WhatsApp kini berpanduan. Yang paling
+menggigit di Kanal WhatsApp: **dua hal berbeda yang sering tertukar** —
+nomor PENGIRIM (satu, milik perusahaan) vs nomor PENERIMA (banyak, milik
+orang). Tanpa dinyatakan, daftar di bawah terbaca seperti "nomor-nomor yang
+mengirim pesan".
+
+Lebarnya juga diperbaiki ke `--w-page` — sama sebabnya dengan Penyedia AI.
+
+### Bukti
+
+    a11y runtime            0 pelanggaran
+    eslint 4 berkas         0 error, 0 warning
+    8 penjaga nav & visual  HIJAU
+    detektor impeccable     [] nihil
+    uji-lebar-responsif     5 resolusi HIJAU
+    peramban                @1280 @1366 @1920 @2560 — kelima halaman asisten
+                            tetap terjangkau (6 tautan tab per halaman)
+    tsc web                 EXIT 0
+
+### Status
+
+`UI-AI-OTOMASI` → **menunggu-penilaian-founder**. Kedelapan halaman grup ini
+sudah tersentuh; yang tersisa satu kriteria yang memang subjektif dan bukan
+milik saya untuk dinyatakan lulus.
+
+---
+
 ## 2026-08-13 (lanjutan 12) — "menerka-nerka": kunci mentah di posisi judul, dan halaman yang dibuka dengan kotak kosong
 
 Founder: *"di tiap halaman itu kayak asing dan menerka nerka cara pake nya,

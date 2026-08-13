@@ -41,6 +41,7 @@ import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import KartuSambungan from "./_sambungan";
+import { PanduanHalaman } from "@/components/panduan-halaman";
 
 
 
@@ -170,7 +171,11 @@ export default function WhatsAppPage() {
       style={{
         padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
         width: "100%",
-        maxWidth: "var(--w-form)",
+        // `--w-page`, sama alasannya dengan Penyedia AI & layout Asisten:
+        // halaman ini memuat kartu QR berdampingan dengan langkahnya, plus
+        // daftar nomor. Dikurung 900px, panel QR dan petunjuknya bertumpuk
+        // sementara separuh layar menganggur.
+        maxWidth: "var(--w-page)",
         margin: "0 auto",
       }}
     >
@@ -196,6 +201,28 @@ export default function WhatsAppPage() {
           ikon={<MessageCircle size={19} />}
         />
       </div>
+
+      {/*
+        Dua hal berbeda di halaman ini sering tertukar, dan panduan menyebut
+        bedanya lebih dulu: nomor PENGIRIM (satu, milik perusahaan) vs nomor
+        PENERIMA (banyak, milik orang). Tanpa itu, daftar di bawah terbaca
+        seperti "nomor-nomor yang mengirim pesan".
+      */}
+      <PanduanHalaman
+        untuk={
+          <>
+            Ada <strong>dua hal berbeda</strong> di sini. <strong>Sambungan</strong> adalah nomor
+            perusahaan yang MENGIRIM pesan — satu saja. <strong>Daftar nomor</strong> di bawahnya
+            adalah orang-orang yang boleh bertanya ke asisten dan menerima notifikasi.
+          </>
+        }
+        langkah={[
+          { teks: "Sambungkan nomor perusahaan dengan memindai QR", selesai: Boolean(muatan?.kanal_siap) },
+          { teks: "Daftarkan nomor tiap orang yang perlu memakai asisten" },
+          { teks: "Minta mereka memasukkan kode 6 digit — nomor yang belum diverifikasi tidak berfungsi" },
+        ]}
+        catatan="Asisten TIDAK akan membalas nomor yang tak terdaftar — ia diam sama sekali, tanpa memberi tahu penanyanya. Wewenang tiap orang mengikuti perannya di aplikasi, bukan diatur terpisah di sini."
+      />
 
       {/* ── Kesiapan kanal — dinyatakan SEBELUM orang mengetik ── */}
       {!memuat && muatan && !muatan.kanal_siap && (
