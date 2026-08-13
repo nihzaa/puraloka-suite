@@ -11,7 +11,7 @@ import { KepalaHalaman } from "@/components/dasar";
 const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)" };
 const input: React.CSSProperties = { width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
 
-interface Step { id: string; level: number; required_permission: string; min_amount: number | string | null; label: string | null }
+interface Step { id: string; level: number; required_permission: string; min_amount: number | string | null; max_amount: number | string | null; label: string | null }
 interface Chain { id: string; entity_type: string; label: string; is_active: boolean; approval_steps: Step[] }
 interface Permission { key: string; label?: string; module?: string }
 
@@ -61,11 +61,12 @@ function Content() {
       setToast({ type: "ok", msg: next ? "Rantai diaktifkan" : "Rantai dinonaktifkan" });
     } catch (e) { err(e, "Gagal mengubah rantai"); }
   }
-  async function addStep(entity: string, permission: string, minAmount: string) {
+  async function addStep(entity: string, permission: string, minAmount: string, maxAmount: string) {
     try {
       await api.post(`/api/v1/approval-chains/${entity}/steps`, {
         required_permission: permission,
         min_amount: minAmount.trim() === "" ? null : Number(minAmount.replace(/\D/g, "")),
+        max_amount: maxAmount.trim() === "" ? null : Number(maxAmount.replace(/\D/g, "")),
       });
       await load(); setToast({ type: "ok", msg: "Level ditambahkan" });
     } catch (e) { err(e, "Gagal menambah level"); }
@@ -101,7 +102,8 @@ function Content() {
         <div style={{ fontSize: 12, color: C.text, lineHeight: 1.6 }}>
           <b>Satu level = perilaku standar</b> (satu orang berwenang menyetujui, langsung selesai). Tambah level untuk membuat persetujuan berjenjang.
           <br />Siapa yang berhak ditentukan lewat <b>permission</b>, bukan nama role — atur role mana yang memegangnya di <b>Pengaturan → Role</b>. Jadi role baru (mis. Direktur) bisa dijadikan approver tanpa ubah kode.
-          <br /><b>Ambang nominal</b> membuat level hanya berlaku bila nilai transaksi ≥ angka itu (mis. level 2 hanya untuk di atas Rp 50.000.000).
+          <br /><b>Lantai</b> membuat level hanya berlaku bila nilai transaksi ≥ angka itu (mis. level 2 hanya untuk di atas Rp 50.000.000).
+          <br /><b>Plafon</b> kebalikannya — level hanya berlaku bila nilai ≤ angka itu. Inilah yang membuat <b>fast-track</b> mungkin: PO kecil cukup satu tanda tangan, PO besar melewati level itu dan naik ke jenjang berikutnya. Dikosongkan = tanpa batas atas.
         </div>
       </div>
 
@@ -129,13 +131,14 @@ function Content() {
 function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete }: {
   chain: Chain; perms: Permission[]; canManage: boolean;
   onToggle: (e: string, v: boolean) => void;
-  onAdd: (e: string, p: string, m: string) => void;
+  onAdd: (e: string, p: string, m: string, x: string) => void;
   onPatch: (id: string, b: Record<string, unknown>) => void;
   onDelete: (id: string) => void;
 }) {
   const [adding, setAdding] = useState(false);
   const [newPerm, setNewPerm] = useState("");
   const [newMin, setNewMin] = useState("");
+  const [newMax, setNewMax] = useState("");
   const steps = chain.approval_steps ?? [];
   const tiered = steps.length > 1;
 
@@ -169,25 +172,36 @@ function ChainCard({ chain, perms, canManage, onToggle, onAdd, onPatch, onDelete
 
         {canManage && (adding ? (
           <div style={{ marginTop: 12, padding: 12, borderRadius: 10, background: "var(--surface-subtle)", border: `1px dashed ${C.border}` }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 8 }}>
+            {/*
+              id di-scope ke `entity_type`. Sebelumnya "new-perm"/"new-min"
+              dipaku, dan halaman ini merender SATU form per rantai — jadi id
+              yang sama muncul berkali-kali di satu dokumen. `htmlFor` lalu
+              menunjuk field milik rantai lain: pembaca layar menyebut label
+              yang salah, dan mengklik label memindahkan fokus ke kartu lain.
+            */}
+            <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr", gap: 8 }}>
               <div>
-                <label htmlFor="new-perm" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Siapa yang berhak (permission)</label>
-                <select id="new-perm" aria-label="Permission yang berhak menyetujui langkah ini" value={newPerm} onChange={e => setNewPerm(e.target.value)} style={input}>
+                <label htmlFor={`new-perm-${chain.entity_type}`} style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Siapa yang berhak (permission)</label>
+                <select id={`new-perm-${chain.entity_type}`} aria-label="Permission yang berhak menyetujui langkah ini" value={newPerm} onChange={e => setNewPerm(e.target.value)} style={input}>
                   <option value="">— pilih permission —</option>
                   {perms.map(p => <option key={p.key} value={p.key}>{p.label ? `${p.label} (${p.key})` : p.key}</option>)}
                 </select>
               </div>
               <div>
-                <label htmlFor="new-min" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Ambang nominal (opsional)</label>
-                <input id="new-min" value={newMin} onChange={e => setNewMin(e.target.value)} placeholder="mis. 50000000" style={input} />
+                <label htmlFor={`new-min-${chain.entity_type}`} style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Lantai — berlaku bila ≥ (opsional)</label>
+                <input id={`new-min-${chain.entity_type}`} inputMode="numeric" value={newMin} onChange={e => setNewMin(e.target.value.replace(/[^0-9]/g, ""))} placeholder="mis. 50000000" style={input} />
+              </div>
+              <div>
+                <label htmlFor={`new-max-${chain.entity_type}`} style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Plafon — berlaku bila ≤ (opsional)</label>
+                <input id={`new-max-${chain.entity_type}`} inputMode="numeric" value={newMax} onChange={e => setNewMax(e.target.value.replace(/[^0-9]/g, ""))} placeholder="mis. 5000000" style={input} />
               </div>
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-              <button disabled={!newPerm} onClick={() => { onAdd(chain.entity_type, newPerm, newMin); setAdding(false); setNewPerm(""); setNewMin(""); }}
+              <button disabled={!newPerm} onClick={() => { onAdd(chain.entity_type, newPerm, newMin, newMax); setAdding(false); setNewPerm(""); setNewMin(""); setNewMax(""); }}
                 style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: newPerm ? C.navy : "var(--text-muted)", color: C.onNavy, fontSize: 13, fontWeight: 600, cursor: newPerm ? "pointer" : "not-allowed" }}>
                 Tambah level
               </button>
-              <button onClick={() => { setAdding(false); setNewPerm(""); setNewMin(""); }}
+              <button onClick={() => { setAdding(false); setNewPerm(""); setNewMin(""); setNewMax(""); }}
                 style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 13, cursor: "pointer" }}>Batal</button>
             </div>
           </div>
@@ -209,7 +223,14 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
   const [editing, setEditing] = useState(false);
   const [perm, setPerm] = useState(step.required_permission);
   const [min, setMin] = useState(step.min_amount === null ? "" : String(step.min_amount));
+  const [max, setMax] = useState(step.max_amount == null ? "" : String(step.max_amount));
   const minNum = step.min_amount === null ? null : Number(step.min_amount);
+  const maxNum = step.max_amount == null ? null : Number(step.max_amount);
+
+  // Plafon di bawah lantai = langkah yang tak pernah berlaku. Basis menolaknya
+  // (CHECK migrasi 356) dan API juga, tapi tombol Simpan dimatikan lebih dulu
+  // supaya orang tahu SEBELUM menekan — bukan lewat toast merah sesudahnya.
+  const rentangSalah = min.trim() !== "" && max.trim() !== "" && Number(max) < Number(min);
 
   return (
     <div style={{ position: "relative", paddingLeft: 34, paddingBottom: connector ? 14 : 0 }}>
@@ -217,17 +238,31 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
       {connector && <div style={{ position: "absolute", left: 11, top: 26, bottom: 0, width: 2, background: C.border }} />}
 
       {editing ? (
-        <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr auto", gap: 8, alignItems: "end" }}>
-          <select aria-label="Ubah permission langkah approval" value={perm} onChange={e => setPerm(e.target.value)} style={input}>
-            {perms.map(p => <option key={p.key} value={p.key}>{p.label ? `${p.label} (${p.key})` : p.key}</option>)}
-          </select>
-          <input value={min} onChange={e => setMin(e.target.value.replace(/[^0-9]/g, ""))} placeholder="ambang (kosong = selalu)" style={input} />
-          <div style={{ display: "flex", gap: 6 }}>
-            <button aria-label="Simpan" onClick={() => { onPatch(step.id, { required_permission: perm, min_amount: min.trim() === "" ? null : Number(min) }); setEditing(false); }}
-              title="Simpan" style={{ padding: 6, borderRadius: 6, border: "none", background: C.green, color: "#fff", cursor: "pointer" }}><Check size={14} /></button>
-            <button aria-label="Batal" onClick={() => { setEditing(false); setPerm(step.required_permission); setMin(step.min_amount === null ? "" : String(step.min_amount)); }}
-              title="Batal" style={{ padding: 6, borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, cursor: "pointer" }}><X size={14} /></button>
+        <div>
+          <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr 1fr auto", gap: 8, alignItems: "end" }}>
+            <select aria-label="Ubah permission langkah approval" value={perm} onChange={e => setPerm(e.target.value)} style={input}>
+              {perms.map(p => <option key={p.key} value={p.key}>{p.label ? `${p.label} (${p.key})` : p.key}</option>)}
+            </select>
+            <input aria-label="Lantai — langkah berlaku bila nilai lebih besar atau sama dengan ini" inputMode="numeric"
+              value={min} onChange={e => setMin(e.target.value.replace(/[^0-9]/g, ""))} placeholder="lantai (kosong = selalu)" style={input} />
+            <input aria-label="Plafon — langkah berlaku bila nilai lebih kecil atau sama dengan ini" inputMode="numeric"
+              value={max} onChange={e => setMax(e.target.value.replace(/[^0-9]/g, ""))} placeholder="plafon (kosong = tanpa batas)"
+              style={{ ...input, borderColor: rentangSalah ? C.red : C.border }} />
+            <div style={{ display: "flex", gap: 6 }}>
+              <button aria-label="Simpan" disabled={rentangSalah}
+                onClick={() => { onPatch(step.id, { required_permission: perm, min_amount: min.trim() === "" ? null : Number(min), max_amount: max.trim() === "" ? null : Number(max) }); setEditing(false); }}
+                title={rentangSalah ? "Plafon tidak boleh di bawah lantai" : "Simpan"}
+                style={{ padding: 6, borderRadius: 6, border: "none", background: rentangSalah ? "var(--text-muted)" : C.green, color: "#fff", cursor: rentangSalah ? "not-allowed" : "pointer" }}><Check size={14} /></button>
+              <button aria-label="Batal" onClick={() => { setEditing(false); setPerm(step.required_permission); setMin(step.min_amount === null ? "" : String(step.min_amount)); setMax(step.max_amount == null ? "" : String(step.max_amount)); }}
+                title="Batal" style={{ padding: 6, borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, cursor: "pointer" }}><X size={14} /></button>
+            </div>
           </div>
+          {rentangSalah && (
+            <div role="alert" style={{ marginTop: 6, fontSize: 11, color: C.red, display: "flex", alignItems: "center", gap: 5 }}>
+              <AlertTriangle size={12} style={{ flexShrink: 0 }} />
+              Plafon di bawah lantai — langkah ini tak akan pernah berlaku untuk nilai apa pun.
+            </div>
+          )}
         </div>
       ) : (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -237,8 +272,17 @@ function StepRow({ step, perms, canManage, isLast, connector, onPatch, onDelete 
             </div>
             <div style={{ fontSize: 11, color: C.muted }}>
               <code>{step.required_permission}</code>
-              {minNum !== null && <> · berlaku bila nilai ≥ <b>Rp {fmtRp(minNum)}</b></>}
-              {minNum === null && <> · selalu berlaku</>}
+              {/*
+                EMPAT kombinasi, dan keempatnya harus terbaca berbeda. Menulis
+                hanya lantai (bentuk lama) membuat langkah berplafon terlihat
+                "selalu berlaku" — padahal justru ia yang melewatkan nilai besar
+                ke level berikutnya. Itu bacaan yang persis terbalik dari
+                perilakunya.
+              */}
+              {minNum !== null && maxNum !== null && <> · berlaku bila <b>Rp {fmtRp(minNum)}</b> ≤ nilai ≤ <b>Rp {fmtRp(maxNum)}</b></>}
+              {minNum !== null && maxNum === null && <> · berlaku bila nilai ≥ <b>Rp {fmtRp(minNum)}</b></>}
+              {minNum === null && maxNum !== null && <> · berlaku bila nilai ≤ <b>Rp {fmtRp(maxNum)}</b> <span style={{ color: C.mid }}>(fast-track)</span></>}
+              {minNum === null && maxNum === null && <> · selalu berlaku</>}
             </div>
           </div>
           {canManage && (

@@ -152,3 +152,87 @@ describe('Siklus penuh: tambah level → ubah → hapus (bersih)', () => {
     expect((await testChain()).approval_steps.length).toBe(1)
   }, 60_000)
 })
+
+// ── PLAFON (`max_amount`) — automation 4.6 PO Approval Fast-Track ───────────
+//
+// Kolomnya lahir di migrasi 356, dan mesinnya (`applicableSteps`) sudah
+// membacanya sejak itu. Yang HILANG sampai sekarang: tak ada satu pun rute
+// yang bisa MENGISINYA — kolom ada, UI tak punya jalan ke sana.
+//
+// "Kolom DB sudah ada" bukan selesai (CHARTER §8). Test ini menjaga jalur
+// penuhnya: POST bisa menetapkan plafon, PATCH bisa mengubahnya, dan pasangan
+// lantai/plafon yang mustahil DITOLAK sebelum sampai ke basis.
+describe('Plafon (max_amount) — fast-track', () => {
+  it('POST bisa menetapkan plafon, dan GET memulangkannya', async () => {
+    actAs(adminAuth)
+    const add = await req('POST', `/api/v1/approval-chains/${TEST_ENTITY}/steps`, {
+      required_permission: 'settings:finance:manage', max_amount: 5_000_000,
+    })
+    expect(add.statusCode, add.body).toBe(201)
+    const step = JSON.parse(add.body).step
+    expect(Number(step.max_amount)).toBe(5_000_000)
+    expect(step.min_amount).toBeNull()
+
+    // Terbaca lagi dari GET — bukan cuma echo dari INSERT.
+    actAs(adminAuth)
+    const dariGet = (await testChain()).approval_steps.find(s => s.id === step.id) as unknown as { max_amount: string | number | null }
+    expect(Number(dariGet.max_amount)).toBe(5_000_000)
+
+    actAs(adminAuth)
+    expect((await req('DELETE', `/api/v1/approval-steps/${step.id}`)).statusCode).toBe(200)
+  }, 60_000)
+
+  it('plafon DI BAWAH lantai ditolak saat dibuat — langkah itu tak akan pernah berlaku', async () => {
+    actAs(adminAuth)
+    const r = await req('POST', `/api/v1/approval-chains/${TEST_ENTITY}/steps`, {
+      required_permission: 'settings:finance:manage', min_amount: 10_000_000, max_amount: 5_000_000,
+    })
+    expect(r.statusCode, r.body).toBe(400)
+    expect(JSON.parse(r.body).error).toMatch(/max_amount/)
+
+    // Yang ditolak TIDAK boleh menyisakan baris — rantai tetap 1 langkah.
+    actAs(adminAuth)
+    expect((await testChain()).approval_steps.length).toBe(1)
+  }, 30_000)
+
+  it('PATCH satu sisi divalidasi terhadap NILAI AKHIR, bukan hanya isi patch', async () => {
+    // Langkah ber-lantai 10jt. Mem-patch HANYA plafon jadi 5jt: kedua angka sah
+    // sendiri-sendiri, tapi hasil akhirnya langkah yang tak pernah berlaku.
+    // Tanpa membaca baris lama, cacat ini lolos ke basis.
+    actAs(adminAuth)
+    const add = await req('POST', `/api/v1/approval-chains/${TEST_ENTITY}/steps`, {
+      required_permission: 'settings:finance:manage', min_amount: 10_000_000,
+    })
+    expect(add.statusCode, add.body).toBe(201)
+    const step = JSON.parse(add.body).step
+
+    actAs(adminAuth)
+    const buruk = await req('PATCH', `/api/v1/approval-steps/${step.id}`, { max_amount: 5_000_000 })
+    expect(buruk.statusCode, buruk.body).toBe(400)
+
+    // Nilai lamanya UTUH — penolakan tak boleh menulis sebagian.
+    actAs(adminAuth)
+    const utuh = (await testChain()).approval_steps.find(s => s.id === step.id) as unknown as { min_amount: string | number | null; max_amount: string | number | null }
+    expect(Number(utuh.min_amount)).toBe(10_000_000)
+    expect(utuh.max_amount).toBeNull()
+
+    // Plafon DI ATAS lantai: sah.
+    actAs(adminAuth)
+    const baik = await req('PATCH', `/api/v1/approval-steps/${step.id}`, { max_amount: 20_000_000 })
+    expect(baik.statusCode, baik.body).toBe(200)
+    expect(Number(JSON.parse(baik.body).step.max_amount)).toBe(20_000_000)
+
+    actAs(adminAuth)
+    expect((await req('DELETE', `/api/v1/approval-steps/${step.id}`)).statusCode).toBe(200)
+    actAs(adminAuth)
+    expect((await testChain()).approval_steps.length).toBe(1)
+  }, 60_000)
+
+  it('plafon negatif ditolak', async () => {
+    actAs(adminAuth)
+    const r = await req('POST', `/api/v1/approval-chains/${TEST_ENTITY}/steps`, {
+      required_permission: 'settings:finance:manage', max_amount: -1,
+    })
+    expect(r.statusCode, r.body).toBe(400)
+  }, 30_000)
+})

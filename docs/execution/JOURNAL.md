@@ -5,6 +5,73 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-13 (lanjutan 9) — 4.6 PO fast-track: kolom yang ada, mesin yang membacanya, dan nol jalan mengisinya
+
+### Keadaan yang diukur
+
+`approval_steps.max_amount` lahir di migrasi 356 (dulu 336). Mesinnya sudah
+membacanya sejak hari itu — `applicableSteps` di `lib/approval-engine.ts:83-85`
+memperlakukan NULL sebagai "tanpa batas atas".
+
+Yang hilang: **nol rute yang bisa mengisinya.**
+
+    grep max_amount apps/api/src/routes/  → kosong
+    grep max_amount apps/web/             → kosong
+
+Jadi automation 4.6 (PO Approval Fast-Track) "selesai" hanya kalau yang
+dihitung adalah kolomnya. CHARTER §8 menyebut ini eksplisit: *"Kolom DB sudah
+ada bukan selesai. Config-first berarti ada halaman pengaturannya di UI."*
+
+### Yang dibangun
+
+POST + PATCH `approval-chains` kini menerima `max_amount`, dan halaman
+`Pengaturan → Rantai Approval` punya kolomnya — lantai dan plafon berdampingan.
+
+### Validasi pasangan: kenapa membaca baris lama itu WAJIB
+
+Plafon di bawah lantai = langkah yang tak pernah berlaku untuk nilai apa pun.
+Ia tak menghasilkan galat, hanya persetujuan yang diam-diam terlewat.
+
+Yang mudah terlewat: mem-patch **satu sisi saja**. Langkah ber-lantai 10jt
+di-patch plafon 5jt — kedua angka sah sendiri-sendiri, hasil akhirnya mustahil.
+Karena itu PATCH membaca nilai lamanya dulu dan memvalidasi **nilai akhir**,
+bukan isi patch.
+
+### Mutasi membuktikan dua hal sekaligus
+
+Melumpuhkan validasi pasangan di PATCH (`if (false)`):
+
+    HIJAU 12/12  →  MERAH 1 (test PATCH satu-sisi)  →  dipulihkan  →  HIJAU 12/12
+
+Pesan merahnya mengungkap lapis kedua yang tak saya rencanakan sebagai bukti:
+
+    violates check constraint "chk_approval_steps_plafon_wajar"
+    expected 500 to be 400
+
+Artinya CHECK basis (migrasi 356) memang menahannya juga — pertahanan berlapis
+bekerja. Tapi tanpa penjagaan di API, penggunanya menerima **500 dengan galat
+constraint mentah** alih-alih 400 yang menyebut angka mana yang salah. Itu
+alasan validasi di API bukan duplikasi: ia yang membuat kegagalannya bisa
+dibaca manusia.
+
+### Satu cacat lama ikut ketutup
+
+Form "tambah level" memaku `id="new-perm"` dan `id="new-min"`, sementara
+halaman merender **satu form per rantai**. Id yang sama muncul berkali-kali di
+satu dokumen, jadi `htmlFor` menunjuk field milik rantai lain — pembaca layar
+menyebut label yang salah, dan mengklik label memindahkan fokus ke kartu lain.
+Di-scope ke `entity_type`.
+
+### Bukti
+
+    API tsc + web tsc         EXIT 0
+    approval-chains.test      12/12 hijau (4 test plafon baru)
+    eslint (API + web)        EXIT 0, termasuk jsx-a11y
+    9 penjaga arsitektural    HIJAU
+    6 penjaga visual          HIJAU (token-css, judul, tabel, remah, modal, tab)
+
+---
+
 ## 2026-08-13 (lanjutan 8) — nomor migrasi ganda yang menghapus 8 migrasi orang lain dari CI
 
 Founder bertanya: "emang perlu keputusan apa dari saya?" Pertanyaan itu
