@@ -306,6 +306,16 @@ jobs:
       - name: Kolom jadwal punya pembaca (L-4)
         run: node scripts/audit-jadwal-punya-pembaca.mjs
 
+      # Satu lapis LEBIH JAUH dari L-4, dan celah di antara keduanya nyata.
+      # L-4 menjawab "adakah yang membaca kolom jadwal ini?" — jawabannya YA,
+      # `jadwal.ts` membacanya dengan benar. Yang bolong: jalur yang dibaca itu
+      # menunjuk rute yang TAK TERDAFTAR. Diukur 2026-08-13: 7 tugas automation
+      # `aktif = true` di basis, `jumlah_jalan = 0`, memanggil endpoint yang
+      # tidak ada karena berkasnya tak pernah di-register di `index.ts`.
+      # Penjadwal memanggil, dapat 404, dan 404 itu tak dibaca siapa pun.
+      - name: Tugas terjadwal punya rute terpasang
+        run: node scripts/audit-tugas-punya-rute.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan

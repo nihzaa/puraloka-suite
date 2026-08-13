@@ -5,6 +5,91 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-13 (lanjutan 7) — 19 commit yang hidup di cabang, dan basis yang lebih maju daripada kodenya
+
+Founder bertanya hal yang terdengar sederhana: mana workflow yang sudah
+dibangun, mana yang belum. Mengukurnya menemukan sesuatu yang lebih penting
+daripada jawabannya.
+
+### Yang terlihat, dan kenapa itu menyesatkan
+
+`otomasi-terjadwal.ts` — 885 baris, 7 automation — ada di disk sebagai berkas
+UNTRACKED. Tiga hal sekaligus: tak pernah di-register di `index.ts`, tak
+compile (8 galat `tsc`, dua modul `lib/` tak ada di disk), tak tracked.
+
+Kesimpulan yang mudah diambil: "pekerjaan setengah jadi, mari selesaikan."
+Itu SALAH, dan menyelesaikannya berarti menulis ulang kerja yang sudah ada.
+
+### Yang sebenarnya
+
+Kerja aslinya UTUH di `worktree-otomasi-ai-gateway` — **19 commit**, lengkap
+dengan test dan kedua modul yang "hilang". Yang di disk cuma salinan parsial,
+tertinggal dari `git stash pop` yang menarik stash milik sesi lain (entri
+2026-08-13 lanjutan 6).
+
+Diukur sebelum menyentuh apa pun:
+
+- salinan disk **identik** dengan versi cabang (hanya beda CRLF);
+- test `stok-menipis` versi disk justru versi **lama** — ia meminjam baris
+  master `project_stocks`, persis cacat yang versi cabang perbaiki dengan
+  membuat barisnya sendiri.
+
+Cabang mengungguli disk di setiap berkas. Jadi pemulihannya adalah **merge**,
+bukan menambal berkas.
+
+### Basis lebih maju daripada kode — bentuk kegagalan yang paling sulit dilihat
+
+`jadwal_tugas` SUDAH memuat 7 tugas automation, `aktif = true`,
+`jumlah_jalan = 0`, sejak 2026-08-12. Penjadwalnya memanggil endpoint yang
+tidak ada.
+
+Tak ada galat. Hanya nol yang tak pernah dipertanyakan — dan nol itu terlihat
+persis seperti "belum ada yang perlu dikerjakan".
+
+### Bukti 404 → 401
+
+Yang membuktikan endpoint benar-benar hidup bukan test, melainkan dua
+pengukuran berdampingan:
+
+```
+:3007 (proses lama, kode sebelum merge)   → 404 ketujuhnya
+:3011 (proses baru, kode sesudah merge)   → 401 ketujuhnya
+```
+
+Kontrolnya `otomasi/alur` di :3007 → **401**, bukan 404. Itu yang memastikan
+404 tadi berarti "rute tak terdaftar", bukan "server mati".
+
+### Saya nyaris mengulangi cacat yang sedang saya perbaiki
+
+Menulis entri ini lewat heredoc bash: backtick di dalamnya ditafsirkan shell,
+dan salah satu barisnya menjalankan **`git stash pop`** — persis perintah yang
+menyebabkan kekacauan yang sedang saya bereskan.
+
+Tak ada yang rusak, dan bukan karena saya hati-hati: `pop`-nya gagal sendiri
+("already exists, no checkout") karena berkasnya sudah ada. Ketiga stash utuh.
+
+Pelajarannya bukan "hati-hati dengan heredoc" melainkan **teks panjang berisi
+backtick jangan lewat shell sama sekali** — pakai alat tulis berkas. Sisa entri
+ini ditulis begitu.
+
+### Bukti lain
+
+- `tsc --noEmit`: EXIT 0 (sebelumnya 8 galat)
+- 60/60 test hijau lawan Postgres nyata (7 berkas)
+- 13 penjaga arsitektural HIJAU, termasuk `audit-jadwal-punya-pembaca`
+  (ambang NOL) — penjaga yang justru dibuat untuk kelas cacat ini, tetapi
+  tetap hijau karena ia memeriksa kolom jadwal, **bukan** pendaftaran rute.
+  Celah nyata: tak ada penjaga yang menuntut tiap `jadwal_tugas.tugas` punya
+  endpoint yang benar-benar terdaftar.
+
+### Yang TIDAK saya putuskan sendiri
+
+Delapan nomor migrasi (331-338) dipakai dua kali. Artefak fisiknya sudah ada
+di basis (`approval_steps.max_amount` terbukti), jadi menomori ulang bisa
+membuat CI me-replay migrasi yang sudah jalan. Itu G-2 → **R-015**.
+
+---
+
 ## 2026-08-13 (lanjutan) — audit a11y yang melewati halaman terpentingnya sendiri
 
 Sesudah melaporkan "129 halaman, 0 pelanggaran" DUA KALI, saya membaca lagi

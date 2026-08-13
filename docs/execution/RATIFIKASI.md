@@ -2210,3 +2210,73 @@ bekerja.
 Fixture `menu-etag.test.ts` kini membuat rantai + langkahnya sendiri, jadi
 ia sah menurut seluruh invariant dan tak menjatuhkan test lain meski
 tertinggal. Itu memperbaiki CI — **bukan** memperbaiki cacat produksinya.
+
+---
+
+## R-015 · G-2 · Delapan nomor migrasi dipakai DUA KALI (331-338)
+
+**Dibuka** 2026-08-13, saat memulihkan 19 commit automation yang tercecer
+(commit `1d48cebd`). **Tidak diputuskan sendiri** — G-2 (buku migrasi).
+
+### Yang terukur
+
+Merge `worktree-otomasi-ai-gateway` membawa 8 migrasi yang nomornya sudah
+dipakai berkas lain di `main`:
+
+| Nomor | Cabang automation | Sudah ada di HEAD |
+|---|---|---|
+| 331 | `331_otomasi_terjadwal_notifikasi.sql` | `331_serah_terima.sql` |
+| 332 | `332_notification_rules_unik_per_tenant.sql` | `332_menu_serah_terima.sql` |
+| 333 | `333_invoice_termin_unik.sql` | `333_penomoran_dokumen.sql` |
+| 334 | `334_aturan_gr_tak_cocok.sql` | `334_menu_penomoran_berizin.sql` |
+| 335 | `335_aturan_stok_menipis.sql` | `335_template_wbs.sql` |
+| 336 | `336_approval_steps_max_amount.sql` | `336_menu_template_wbs.sql` |
+| 337 | `337_jadwalkan_automation_phase2.sql` | `337_klaim_perjalanan.sql` |
+| 338 | `338_alur_yang_digantikan_automation.sql` | `338_menu_klaim_perjalanan.sql` |
+
+Dua sesi bekerja paralel dan keduanya mengambil nomor berikutnya yang
+terlihat kosong dari cabangnya masing-masing.
+
+### Kenapa TIDAK dinomori ulang sendiri
+
+Artefak fisiknya **sudah ada di basis** — bukan dugaan:
+
+```
+node scripts/db/introspect.mjs columns | grep approval_steps
+  approval_steps  max_amount  numeric  YES     ← migrasi 336 (automation)
+```
+
+`jadwal_tugas` juga sudah memuat 7 tugas automation (`aktif = true`),
+ditulis 2026-08-12 oleh migrasi 337 versi automation.
+
+Menomori ulang berkas yang **sudah dijalankan** membuat buku migrasi
+berbohong ke arah berlawanan: berkas dengan nomor baru terlihat belum
+pernah jalan, lalu CI me-replay-nya di lingkungan bersih. Untuk migrasi
+idempoten itu mungkin aman — untuk yang tidak, tidak. G-2 melarang
+menebak mana yang mana.
+
+### Konteks yang memperumit
+
+`migration-ledger` mencatat **versi tertinggi = 323**, sementara berkas
+sudah sampai 350 — buku migrasi memang sudah tertinggal jauh sebelum
+tabrakan ini, dan itu masalah terpisah (bandingkan R-014).
+
+### Pilihan yang perlu diputuskan founder
+
+1. **Biarkan** — nomor ganda diterima sebagai fakta sejarah; urutan replay
+   ditentukan nama lengkap berkas, bukan nomornya saja. Termurah, tapi
+   "nomor migrasi unik" berhenti jadi jaminan.
+2. **Nomori ulang yang automation ke 351-358** + catat pemetaannya di buku
+   migrasi supaya yang sudah jalan tak di-replay. Mengembalikan keunikan,
+   tapi menyentuh G-2 secara langsung.
+3. **Nomori ulang yang belum jalan saja** — perlu diukur satu per satu
+   artefak fisiknya lebih dulu (`ledger-diff.mjs`), baru diputuskan.
+
+Rekomendasi: **3**, karena ia satu-satunya yang tidak menebak. Ukur dulu
+delapan-delapannya, baru pilih 1 atau 2 per berkas.
+
+### Yang SUDAH aman (tidak menunggu ratifikasi)
+
+Kode-nya hijau apa adanya: `tsc` EXIT 0, 60/60 test lawan Postgres nyata,
+13 penjaga arsitektural hijau. Tabrakan nomor **tidak** memblokir jalannya
+7 automation — ia soal keterbacaan buku migrasi ke depan.

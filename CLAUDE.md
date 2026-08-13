@@ -164,6 +164,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-klaim-status-atomik.mjs` | approval/pembayaran ganda — status lama wajib ikut di WHERE |
 | `audit-kredensial-tak-bocor.mjs` | nilai kredensial tak pernah keluar server (ambang NOL) |
 | `audit-jadwal-punya-pembaca.mjs` | kolom jadwal wajib punya pembaca — L-4 (ambang NOL) |
+| `audit-tugas-punya-rute.mjs` | tugas terjadwal wajib menunjuk rute yang TERDAFTAR (ambang NOL) |
 | `uji-token-css-ada.mjs` | `var(--token)` yang dipakai wajib ada di globals.css (ambang NOL) |
 | `uji-judul-halaman-ada.mjs` | tiap halaman dashboard wajib punya `<h1>` (ambang NOL) |
 | `uji-tabel-seragam.mjs` | sel tabel memakai token padding, bukan angka dipaku (ratchet) |
