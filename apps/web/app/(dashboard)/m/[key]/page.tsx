@@ -133,7 +133,7 @@ export default function HalamanMenu() {
     return (
       <div style={{
         padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
-        width: "100%", maxWidth: "var(--w-form)", margin: "0 auto",
+        width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
       }}>
         <KepalaHalaman judul="Menu tidak dikenal" />
         {/* Keterangan tetap `<p>` sendiri, bukan prop `keterangan`: ia memuat

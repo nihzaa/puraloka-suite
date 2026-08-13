@@ -199,7 +199,7 @@ function SitusContent() {
     // berlaku di sini juga (penjaga `tata-letak-ratchet` + `kerapatan-ratchet`).
     <div style={{
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
-      width: "100%", maxWidth: "var(--w-form)", margin: "0 auto",
+      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
     }}>
       <header style={{ marginBottom: "var(--gap-bagian)" }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, display: "flex", alignItems: "center", gap: 10 }}>

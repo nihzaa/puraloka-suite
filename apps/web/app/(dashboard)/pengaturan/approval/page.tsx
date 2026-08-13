@@ -81,7 +81,7 @@ function Content() {
   }
 
   return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {toast && (
         <div style={{ position: "fixed", top: 20, right: 24, zIndex: 9999, maxWidth: 420, background: toast.type === "ok" ? C.greenBg : C.redBg, border: `1px solid ${toast.type === "ok" ? C.greenBorder : C.redBorder}`, borderRadius: 10, padding: "8px 16px", display: "flex", alignItems: "flex-start", gap: 8, boxShadow: "var(--naik-2)", fontSize: 13, color: toast.type === "ok" ? C.green : C.red }}>
           {toast.type === "ok" ? <Check size={14} style={{ flexShrink: 0, marginTop: 2 }} /> : <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 2 }} />}

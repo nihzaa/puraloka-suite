@@ -168,7 +168,7 @@ export default function JadwalPage() {
       style={{
         padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
         width: "100%",
-        maxWidth: "var(--w-form)",
+        maxWidth: "var(--w-page)",
         margin: "0 auto",
       }}
     >

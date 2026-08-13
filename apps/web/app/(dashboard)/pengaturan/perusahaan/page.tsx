@@ -133,7 +133,7 @@ export default function PerusahaanPage() {
   }
 
   return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 18 }}>
         <div>
           <KepalaHalaman judul="Badan Usaha" keterangan="PT/CV dalam grup usaha Anda. Setiap badan usaha punya proyek, keuangan,

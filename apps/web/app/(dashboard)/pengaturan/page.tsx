@@ -159,7 +159,7 @@ function PengaturanContent() {
     : "PP";
 
   return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {/* Toast */}
       {toast && (
         <div style={{
@@ -205,8 +205,38 @@ function PengaturanContent() {
         <div style={{ textAlign: "center", padding: 80, color: C.muted, fontSize: 13 }}>Memuat...</div>
       ) : (
         <form onSubmit={handleSave}>
+          {/*
+            DUA KOLOM, bukan dua kartu bertumpuk.
+
+            Founder: *"kalo yg memang isi halaman/kontennya sedikit, kalo bisa
+            jangan di lebarin aja, tambah aja isi kontennya… saya mau terlihat
+            padat, tapi punya whitespace yg cukup"*.
+
+            Halaman ini isinya TIDAK sedikit — dua kartu berisi 14 isian. Yang
+            salah cuma susunannya: bertumpuk dalam kolom 900px, jadi separuh
+            layar menganggur sementara halamannya sendiri menuntut gulir.
+
+            Berdampingan, keduanya muat dalam satu layar tanpa satu pun isian
+            dikecilkan. Itu "padat" yang benar: kepadatan datang dari ruang
+            yang terpakai, bukan dari jarak yang dipangkas.
+
+            `align-items: start` — DISENGAJA di sini, berbeda dari kartu
+            asisten yang di-`stretch`. Kedua kartu ini isinya tidak setara
+            (identitas 9 isian, pembayaran 5), jadi meregangkan yang pendek
+            hanya menghasilkan ruang kosong di dalam kartu — persis yang
+            sedang dihilangkan.
+          */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))",
+              gap: "var(--gap-grid)",
+              alignItems: "start",
+              marginBottom: "var(--gap-bagian)",
+            }}
+          >
           {/* ── Card 1: Identitas Perusahaan ── */}
-          <div style={{ ...GAYA_KARTU, marginBottom: 20 }}>
+          <div style={{ ...GAYA_KARTU }}>
             <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <Building2 size={16} color={C.navy} />
@@ -295,7 +325,7 @@ function PengaturanContent() {
           </div>
 
           {/* ── Card 2: Pembayaran & Invoice ── */}
-          <div style={{ ...GAYA_KARTU, marginBottom: 24 }}>
+          <div style={{ ...GAYA_KARTU }}>
             <div style={{ padding: "16px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--success-bg)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <CreditCard size={16} color={C.green} />
@@ -332,6 +362,8 @@ function PengaturanContent() {
               </div>
             </div>
           </div>
+
+          </div>{/* tutup grid dua kolom */}
 
           {/* Save button */}
           {isAdmin && (

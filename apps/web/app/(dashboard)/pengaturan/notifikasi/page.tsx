@@ -93,7 +93,7 @@ function Content() {
   if (loading) return <div style={{ padding: 24, color: C.mid }}>Memuat…</div>;
 
   return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-form)", margin: "0 auto" }}>
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
         <BellRing size={22} color={C.navy} />
         <KepalaHalaman judul="Aturan Notifikasi" /></div>
@@ -115,7 +115,28 @@ function Content() {
         </div>
       )}
 
-      <div style={{ display: "grid", gap: 12 }}>
+      {/*
+        Kartu aturan BERDAMPINGAN, bukan satu per baris selebar halaman.
+
+        Sesudah halaman ini ikut `--w-page`, satu kartu per baris menghasilkan
+        baris 1800px yang isinya cuma judul + dua lencana penerima — persis
+        "melebarkan tanpa menambah isi" yang founder tolak.
+
+        Tiap kartu isinya pendek dan setara, jadi berjajar ia justru lebih
+        mudah dibandingkan: seluruh aturan terlihat sekaligus, dan yang belum
+        punya penerima langsung menonjol tanpa menggulir.
+
+        `minmax(440px, 1fr)`: lebar terkecil yang masih memuat judul aturan +
+        satu lencana penerima tanpa membungkus.
+      */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(440px, 1fr))",
+          gap: "var(--gap-grid)",
+          alignItems: "start",
+        }}
+      >
         {rules.map(rule => (
           <RuleCard
             key={rule.id} rule={rule} roles={roles} perms={perms} canManage={canManage}

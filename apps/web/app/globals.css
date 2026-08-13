@@ -185,9 +185,42 @@
    * TIGA lebar, bukan satu, karena bentuk isinya memang berbeda:
    */
 
-  /** Formulir & bacaan satu kolom (pengaturan, profil). Batas ~75 karakter
-   *  per baris — di atas itu mata kehilangan awal baris berikutnya. */
-  --w-form:           min(900px, 100%);
+  /** Formulir & bacaan satu kolom (pengaturan, profil).
+   *
+   *  ── DIUBAH 2026-08-13: 900px → sama dengan `--w-page`
+   *
+   *  Founder, melihat dua halaman berdampingan: *"space kanan kirinya masih
+   *  belum sama, saya mau samakan semua halaman (SELURUHNYA SEKALIAN)"*.
+   *
+   *  Diukur di layar 2560px sebelum diperbaiki — dan sebarannya memang liar:
+   *
+   *      nota-kredit   tersedia 2040 · isi 2040 →    0px kosong
+   *      proyek        tersedia 2040 · isi 1800 →  240px
+   *      estimasi      tersedia 2340 · isi 2200 →  140px
+   *      pengaturan    tersedia 2340 · isi  900 → 1440px  ← paling menganga
+   *
+   *  Tepi kiri halaman berpindah-pindah saat berganti menu. Itu terbaca
+   *  sebagai aplikasi yang dirakit dari beberapa bagian, bukan satu produk.
+   *
+   *  ── Kenapa batas bacanya TIDAK ikut hilang
+   *
+   *  Alasan lama token ini benar: prosa selebar 1800px melelahkan dibaca.
+   *  Yang salah adalah TEMPAT batas itu dipasang — di WADAH halaman, bukan
+   *  di teksnya. Akibatnya kartu, tabel, dan grid dua kolom ikut terkurung
+   *  900px padahal tak satu pun dari mereka "baris bacaan".
+   *
+   *  Batasnya sekarang dipasang di tempat yang benar: `--w-baca` di bawah,
+   *  dipakai pada paragraf dan kolom isian — bukan pada halamannya.
+   */
+  --w-form:           min(clamp(1280px, 82vw, 1800px), 100%);
+
+  /** Batas BACA — dipasang pada teks, bukan pada halaman.
+   *
+   *  ~72 karakter: di atas itu mata kehilangan awal baris berikutnya saat
+   *  kembali ke kiri. Dipakai untuk paragraf penjelas dan kolom formulir
+   *  satu-lajur, sehingga halaman boleh selebar apa pun tanpa membuat satu
+   *  pun kalimat memanjang melewati kenyamanan mata. */
+  --w-baca:           min(72ch, 100%);
 
   /** DEFAULT untuk halaman biasa: kartu, daftar, ringkasan campuran.
    *  1280 dipilih supaya di layar 1440 (paling umum di kantor) batasnya
