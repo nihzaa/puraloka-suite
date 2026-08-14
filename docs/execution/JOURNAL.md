@@ -5,6 +5,86 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan 10) — penjaga anti-lockout MATI DIAM karena role kembar
+
+Suite: **4564 test lulus, NOL test merah** — tetapi 5 BERKAS gagal. Kegagalan
+di luar test, yaitu di `beforeAll`. Kalau hanya membaca baris "Tests", ini
+terlihat seperti hijau sempurna.
+
+### Cacat paling berbahaya sesi ini
+
+`anti-lockout-wiring` gagal di prasyaratnya:
+
+    'users:roles:manage' dipegang 0 role aktif, bukan 1
+
+Ditelusuri:
+
+    admin TEMPLATE : 1 izin   (hanya `ai:chat`)
+    admin salinan  : 217 izin
+    seluruh 25 pengguna aktif menunjuk baris TEMPLATE
+
+Jadi admin nyata memegang SATU izin. Aplikasinya tetap jalan karena
+`get_role_permissions` memilih salinan tenant saat konteks company ada —
+gejalanya hanya muncul di jalur yang membaca template.
+
+Dipulihkan (migrasi 378): 216 baris disalin BALIK dari salinan tenant ke
+template. Arahnya terbalik dari biasa, dan itu disengaja — yang utuh justru
+salinannya.
+
+### Dan penjaganya sendiri sudah mati sebelum itu
+
+Sesudah izin pulih, test masih merah:
+
+    WIRING PUTUS — endpoint membalas 200, bukan 409
+
+`fetchRoleStates()` menghitung pemegang izin per `role_id`. Sejak migrasi 365
+satu nama punya DUA baris, dan salinan tenant yang TAK BERPENGGUNA tetap
+terhitung sebagai "pemegang lain". Jadi saat izin kritikal dicabut dari baris
+yang benar-benar dipakai, penjaga menyimpulkan: masih ada pemegang lain.
+
+**Penjaga anti-lockout berhenti berfungsi karena role diduplikasi** — dan
+tak ada satu pun galat. Diperbaiki: role tanpa pengguna aktif tak lagi
+dihitung, karena ia tak pernah bisa menyelamatkan siapa pun dari lockout.
+
+### `ON CONFLICT (name)` yang tak lagi punya constraint
+
+    there is no unique or exclusion constraint matching the ON CONFLICT
+
+Migrasi 363 mengganti `UNIQUE (name)` dengan dua indeks PARSIAL. `ON CONFLICT
+(name)` tak lagi cocok, `beforeAll` melempar, dan seluruh isi berkas di-SKIP —
+terlihat "tak menguji apa-apa" alih-alih merah. Disebut lewat predikatnya:
+`ON CONFLICT (name) WHERE company_id IS NULL`.
+
+### Migrasi 378 sempat melaporkan sukses PALSU
+
+Ia menulis "pulih 217" sementara datanya tetap 1 izin. Dijalankan ulang,
+INSERT-nya benar-benar menyisipkan 216 baris — jadi SQL-nya benar,
+persistensinya yang gagal pada jalan pertama.
+
+Verifikasinya diperketat: kini memeriksa `users:roles:manage` **lewat
+namanya**, bukan hanya menghitung total. Hitungan bisa benar sementara izin
+yang paling penting justru yang hilang — dan itu persis yang terjadi.
+
+### Pelajaran
+
+Baris "Tests 4564 passed" bukan bukti hijau. Kegagalan `beforeAll` tak
+menambah satu pun test merah, tapi membuat seluruh berkas berhenti menguji.
+Yang harus dibaca: **Test Files**, bukan Tests.
+
+### Bukti
+
+```
+migrasi 378                tercatat · verifikasi diperketat LULUS
+admin template             1 → 217 izin, users:roles:manage ADA
+anti-lockout-wiring        gagal prasyarat → 6/6 HIJAU
+roles-replace-all          2 skipped → 2/2 HIJAU
+back-charge, opname,
+  situs                    HIJAU
+tsc                        EXIT 0
+```
+
+---
+
 ## 2026-08-14 (lanjutan 9) — 12 merah terakhir: dua cacat KODE nyata di antaranya
 
 Suite turun 37 → 12 merah. Kali ini dua di antaranya bukan fixture melainkan

@@ -7,7 +7,31 @@ import { findLockout, type RoleChange, type RoleState } from '../lib/role-guard.
 /**
  * Ambil state semua role: permission keys + jumlah user AKTIF (via role_id, FK 1B.4).
  */
-export async function fetchRoleStates(): Promise<RoleState[]> {
+export async function fetchRoleStates(roleIdSedangDiubah?: string): Promise<RoleState[]> {
+  /*
+    ── Baris role KEMBAR membuat penjaga ini MATI DIAM-DIAM
+       (ditemukan 2026-08-14, cacat dari migrasi 365)
+
+    Sejak role dimiliki per-tenant, satu nama punya DUA baris: template
+    (`company_id NULL`) dan salinan tenant. Keduanya memegang izin yang sama.
+
+    Penjaga ini menghitung pemegang per `role_id`. Jadi saat izin kritikal
+    dicabut dari baris yang BENAR-BENAR DIPAKAI (template — seluruh 25
+    pengguna menunjuk ke sana), salinan tenant yang tak berpengguna masih
+    "memegang" izin itu, dan penjaga menyimpulkan: bukan pemegang terakhir.
+
+    Akibatnya endpoint membalas 200 dan izinnya benar-benar tercabut —
+    lockout yang justru dirancang untuk dicegah. Ketahuan dari
+    `anti-lockout-wiring.test.ts`: "WIRING PUTUS — endpoint membalas 200,
+    bukan 409".
+
+    Perbaikannya: hanya baris yang BISA DIPAKAI yang dihitung. Role tanpa satu
+    pun pengguna aktif tak pernah bisa menyelamatkan siapa pun dari lockout —
+    memasukkannya ke hitungan berarti menghitung penyelamat yang tak ada.
+
+    Baris template tetap dibaca (ia bisa punya pengguna, dan hari ini justru
+    dialah yang punya) — yang disaring adalah yang KOSONG dari pengguna.
+  */
   const { data: roles, error: rErr } = await supabase
     .from('roles')
     .select('id, name, is_builtin')
@@ -41,13 +65,25 @@ export async function fetchRoleStates(): Promise<RoleState[]> {
     permsByRole.set(rid, arr)
   }
 
-  return (roles).map(r => ({
-    roleId: r.id as string,
-    name: r.name as string,
-    isBuiltin: r.is_builtin as boolean,
-    permissionKeys: permsByRole.get(r.id as string) ?? [],
-    activeUserCount: activeByRole.get(r.id as string) ?? 0,
-  }))
+  return (roles)
+    .map(r => ({
+      roleId: r.id as string,
+      name: r.name as string,
+      isBuiltin: r.is_builtin as boolean,
+      permissionKeys: permsByRole.get(r.id as string) ?? [],
+      activeUserCount: activeByRole.get(r.id as string) ?? 0,
+    }))
+    /*
+      Role TANPA pengguna aktif dibuang — lihat catatan panjang di atas.
+
+      `findLockout` mencari "adakah role LAIN yang masih memegang izin ini".
+      Role kosong menjawab "ada" tanpa pernah bisa dipakai siapa pun, dan
+      jawaban itulah yang mematikan penjaganya.
+
+      Yang sedang DIUBAH tetap ikut (`change.roleId`) — ia subjek perubahannya,
+      dan membuangnya membuat `findLockout` tak punya apa pun untuk diperiksa.
+    */
+    .filter(r => r.activeUserCount > 0 || r.roleId === roleIdSedangDiubah)
 }
 
 /**
@@ -58,7 +94,7 @@ export async function fetchRoleStates(): Promise<RoleState[]> {
 export async function assertNoCriticalLockout(change: RoleChange): Promise<string | null> {
   let roles: RoleState[]
   try {
-    roles = await fetchRoleStates()
+    roles = await fetchRoleStates(change.roleId)
   } catch {
     return 'Tidak bisa memverifikasi keamanan perubahan (gagal baca state role). Perubahan ditolak demi keselamatan.'
   }

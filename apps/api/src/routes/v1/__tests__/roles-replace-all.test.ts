@@ -56,10 +56,31 @@ beforeAll(async () => {
   // ⚠️ Dibuat lewat SQL langsung, bukan lewat API: yang diuji di sini adalah
   // PUT /permissions, dan menyiapkan fixture lewat endpoint lain membuat
   // kegagalan endpoint itu menyamar jadi kegagalan test ini.
+  /*
+    `ON CONFLICT (name)` TIDAK BISA dipakai lagi.
+
+    Migrasi 363 membuang `UNIQUE (name)` global — nama role kini unik
+    PER-COMPANY, dan penggantinya dua indeks PARSIAL:
+
+        roles_template_name_uniq  ON roles (name)              WHERE company_id IS NULL
+        roles_company_name_uniq   ON roles (company_id, name)  WHERE company_id IS NOT NULL
+
+    `ON CONFLICT (name)` menuntut constraint yang persis menutup `(name)` tanpa
+    syarat, dan itu sudah tak ada: Postgres membalas *"there is no unique or
+    exclusion constraint matching the ON CONFLICT specification"*. Test gagal di
+    `beforeAll`, seluruh isinya di-SKIP, dan berkasnya terlihat "tak menguji
+    apa-apa" alih-alih merah.
+
+    Role uji ini sengaja `company_id NULL` (ia menguji endpoint, bukan
+    tenancy), jadi indeks yang berlaku baginya `roles_template_name_uniq` —
+    disebut lewat predikatnya, bentuk yang diterima Postgres untuk indeks
+    parsial.
+  */
   const { rows } = await client.query(
     `INSERT INTO roles (name, label, description, is_builtin)
      VALUES ($1, 'Uji Replace-All', 'Role sementara milik test replace-all', false)
-     ON CONFLICT (name) DO UPDATE SET description = EXCLUDED.description
+     ON CONFLICT (name) WHERE company_id IS NULL
+       DO UPDATE SET description = EXCLUDED.description
      RETURNING id`,
     [NAMA_ROLE_UJI],
   )
