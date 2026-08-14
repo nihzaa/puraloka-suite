@@ -5,6 +5,72 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-15 (lanjutan 3) — jalur TULIS ingatan, dan tiga cacat yang hanya muncul saat dipakai
+
+Melengkapi Fase 2b. Jalur BACA sudah berdiri (lanjutan 2); ini jalur MENULIS —
+tanpanya tabel ingatan berdiri kosong selamanya.
+
+### Dua jalan masuk, keduanya diminta founder
+
+    1. asisten MENGUSULKAN → manusia menekan tombol   (pola token, ai-tulis)
+    2. halaman untuk MENGISI SENDIRI                   (rute CRUD)
+
+Yang pertama menahan prompt injection secara STRUKTURAL: kalimat di dalam
+dokumen bisa membujuk model mengusulkan apa pun, tetapi tak bisa menekan
+tombol. Yang kedua memastikan ingatannya benar-benar terisi — kolom yang
+hanya bisa diisi lewat percakapan bernasib sama dengan kolom retensi yang
+dulu tak pernah menghapus apa pun.
+
+### Tiga cacat yang MIGRASINYA SENDIRI HIJAU
+
+Ketiganya hanya muncul saat jalur tulisnya benar-benar dipanggil — dan
+ketiganya ditemukan test, bukan dengan membaca ulang.
+
+**1. `ON CONFLICT` tak bisa menunjuk indeks PARSIAL.** Migrasi 385 memakai dua
+indeks parsial (`WHERE user_id IS NOT NULL` / `IS NULL`) yang BENAR — merekalah
+yang menahan cacat NULL. Tapi Postgres menuntut klausa `WHERE`-nya ikut
+disebut untuk menyimpulkan indeks parsial, dan `onConflict` PostgREST hanya
+menerima daftar kolom. Hasilnya 500 pada TIAP penyimpanan.
+→ Migrasi 386: kolom turunan `pemilik` (`user_id`, atau UUID nol untuk lapis
+bersama) + indeks penuh. Kedua indeks parsial TIDAK di-drop — mereka lebih
+ketat, dan dua jaring untuk satu kesalahan mahal lebih baik dari satu.
+
+**2. `ai_token_tulis.project_id` NOT NULL.** Benar saat dibuat (269): seluruh
+entitas yang bisa dicatat asisten memang selalu menempel proyek. Ingatan
+mematahkannya secara sah — "rapat mingguan tiap Senin" tak menempel proyek
+mana pun, dan memaksanya memilih satu berarti mengarang keterikatan yang
+tak ada lalu menyaringnya salah saat dibaca.
+→ Migrasi 387 melonggarkannya. ⚠ Ini PELONGGARAN batasan, dicatat terang:
+`project_id` di sana bukan gerbang keamanan (yang menjaga token adalah
+kepemilikan + umur 15 menit + sekali-pakai, ketiganya tak tersentuh), dan
+rute `ai-tulis.ts` TETAP mewajibkannya untuk jenisnya sendiri.
+
+**3. Token bisa diklaim dua kali — ditemukan RATCHET, bukan test.**
+`audit-tulis-tanpa-periksa` naik 76→77: penandaan token memeriksa `error` tapi
+tidak memeriksa apakah ada baris yang benar-benar cocok. UPDATE yang tak
+mengenai satu baris pun mengembalikan `error: null` — token tetap bertanda
+"belum dipakai" dan bisa menimpa ingatan yang baru saja disetujui, tanpa satu
+pun galat. Diperbaiki dengan memeriksa hasil DAN menyertakan status lama di
+WHERE (`is('dipakai_pada', null)`), pola `audit-klaim-status-atomik`.
+
+Ratchet itu menahan saya dari melewatkan cacat nyata, bukan sekadar gaya.
+
+### Bukti
+
+    migrasi 386/387    sukses · idempoten · blok verifikasi membuktikan
+                       upsert & token-tanpa-proyek benar-benar jalan
+    tsc api            0
+    ai-ingatan (rute)  13 hijau
+    AI menyeluruh      110 hijau / 7 berkas
+    mutasi rute        usul-menulis-langsung → MERAH; token-berulang → MERAH
+    penjaga            12 dijalankan, 12 hijau
+
+Yang BELUM: halaman UI-nya. Rute lengkap dan berpagar, tetapi tanpa layar,
+ingatan hanya bisa diisi lewat percakapan — dan itu setengah dari yang
+founder minta.
+
+---
+
 ## 2026-08-15 (lanjutan 2) — asisten ingat, dan ingatannya berpagar dua
 
 Fase 2 dari rencana asisten. Dua bagian: **2a** membuat asisten mengingat
