@@ -33,6 +33,7 @@ import {
   fmt, fmtCompact, fmtDate, daysUntil,
 } from "./tipe";
 import { formatRupiah } from "@/lib/format";
+import { Saklar } from "@/components/saklar";
 export function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return <div style={{ height: h, width: w, borderRadius: 6, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
 }
@@ -700,10 +701,11 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
 
             {/* ── Retensi toggle ── */}
             <div style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: useRetensi ? "var(--warning-bg)" : "var(--surface-subtle)" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
-                <input type="checkbox" checked={useRetensi} onChange={e => setUseRetensi(e.target.checked)} style={{ width: 14, height: 14 }} />
-                <span style={{ fontWeight: 600, color: C.text }}>Terapkan Potongan Retensi</span>
-              </label>
+              <Saklar
+                nyala={useRetensi}
+                onUbah={setUseRetensi}
+                label="Terapkan Potongan Retensi"
+              />
               {useRetensi && (
                 <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <div>
@@ -728,16 +730,26 @@ export function CreateInvoiceModal({ onClose, onSuccess }: { onClose: () => void
             {/* ── Potongan Uang Muka (DP recoupment) — hanya termin progres ── */}
             {dpEligible && (
               <div style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: useDpDeduction ? C.blueBg : "var(--surface-subtle)" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13 }}>
-                  <input type="checkbox" checked={useDpDeduction} onChange={e => {
-                    setUseDpDeduction(e.target.checked);
-                    if (e.target.checked && !dpDeductionAmount && dpAvailable != null) {
-                      setDpDeductionAmount(String(Math.min(dpAvailable, Math.max(netAfterRet, 0))));
-                    }
-                  }} style={{ width: 14, height: 14 }} />
-                  <span style={{ fontWeight: 600, color: C.text }}>Potong Uang Muka (DP)</span>
-                  <span style={{ marginLeft: "auto", fontSize: 12, color: C.mid }}>Saldo DP: <b style={{ color: C.navy }}>{fmt(dpAvailable ?? 0)}</b></span>
-                </label>
+                {/* Saldo DP tetap BERDAMPINGAN dengan saklarnya, bukan
+                    dipindah ke bawah: yang memutuskan memotong DP butuh
+                    melihat sisanya pada saat memutuskan, bukan sesudahnya. */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Saklar
+                      nyala={useDpDeduction}
+                      onUbah={(v) => {
+                        setUseDpDeduction(v);
+                        if (v && !dpDeductionAmount && dpAvailable != null) {
+                          setDpDeductionAmount(String(Math.min(dpAvailable, Math.max(netAfterRet, 0))));
+                        }
+                      }}
+                      label="Potong Uang Muka (DP)"
+                    />
+                  </div>
+                  <span style={{ fontSize: 12, color: C.mid, flexShrink: 0 }}>
+                    Saldo DP: <b style={{ color: C.navy }}>{fmt(dpAvailable ?? 0)}</b>
+                  </span>
+                </div>
                 {useDpDeduction && (
                   <div style={{ marginTop: 10 }}>
                     <label htmlFor="dp-deduction-amount" style={labelStyle}>Nominal Potongan DP</label>
@@ -979,18 +991,20 @@ export function AddKasbonModal({ onClose, onSuccess }: { onClose: () => void; on
 
           {/* Mode: langsung setujui vs pending */}
           <div style={{ padding: "var(--pad-baris)", borderRadius: 10, background: autoApprove ? C.greenBg : C.yellowBg, border: `1px solid ${autoApprove ? C.greenBorder : C.yellowBorder}` }}>
-            <label htmlFor="auto-approve-invoice" style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
-              <input id="auto-approve-invoice" type="checkbox" checked={autoApprove} onChange={e => setAutoApprove(e.target.checked)}
-                style={{ width: 16, height: 16, marginTop: 1, flexShrink: 0 }} />
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>Setujui langsung</div>
-                <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>
-                  {autoApprove
-                    ? "Kasbon langsung disetujui dan saldo kas berkurang"
-                    : "Kasbon masuk sebagai pending, mandor atau admin bisa approve nanti"}
-                </div>
-              </div>
-            </label>
+            {/* Keterangannya BERUBAH mengikuti keadaan saklar — ia menyatakan
+                apa yang akan terjadi, bukan apa yang sedang disetel. Itu yang
+                membuat orang tak perlu menebak akibat sebelum menekan. */}
+            <Saklar
+              id="auto-approve-invoice"
+              nyala={autoApprove}
+              onUbah={setAutoApprove}
+              label="Setujui langsung"
+              ringkas={
+                autoApprove
+                  ? "Kasbon langsung disetujui dan saldo kas berkurang"
+                  : "Kasbon masuk sebagai pending, mandor atau admin bisa approve nanti"
+              }
+            />
 
             {/* Pilih kas sumber jika auto-approve */}
             {autoApprove && (

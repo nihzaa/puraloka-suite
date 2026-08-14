@@ -51,6 +51,7 @@ import { Kosong, Panel } from "@/components/ui-dasar";
 import { BarisRail, KartuRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
 import { usePasangRail } from "@/lib/rail-context";
+import { Saklar } from "@/components/saklar";
 
 interface Penyedia {
   id: string;
@@ -552,14 +553,11 @@ export default function PenyediaPage() {
               </span>
             </label>
 
-            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 13 }}>
-              <input
-                type="checkbox"
-                checked={draf.aktif}
-                onChange={(e) => setDraf({ ...draf, aktif: e.target.checked })}
-              />
-              <span style={{ color: C.text }}>Aktifkan</span>
-            </label>
+            <Saklar
+              nyala={draf.aktif}
+              onUbah={(v) => setDraf({ ...draf, aktif: v })}
+              label="Aktifkan"
+            />
 
             <div style={{ display: "flex", gap: 8 }}>
               <Tombol jenis="utama" onClick={kirimDraf} disabled={simpan}>

@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import {
+useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/toast";
 import { KepalaHalaman } from "@/components/dasar";
+import { Saklar } from "@/components/saklar";
 import {
   PackageCheck, Plus, Send, CheckCircle2, X, AlertTriangle,
   ChevronDown, Loader2, RotateCcw, Ban, Paperclip,
@@ -803,13 +805,11 @@ function FormSubmittal({
           </label>
 
           <div className="fs-baris">
-            <label className="fs-centang">
-              <input
-                type="checkbox" checked={memblokir}
-                onChange={(e) => setMemblokir(e.target.checked)}
-              />
-              <span>Pekerjaan berhenti sampai ini disetujui</span>
-            </label>
+            <Saklar
+              nyala={memblokir}
+              onUbah={setMemblokir}
+              label="Pekerjaan berhenti sampai ini disetujui"
+            />
             <span className="fs-bantu">
               Hanya centang kalau pemesanan atau pemasangan benar-benar
               menunggu. Yang dilebih-lebihkan membuat angka &ldquo;menahan

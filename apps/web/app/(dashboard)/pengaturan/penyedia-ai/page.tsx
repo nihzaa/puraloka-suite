@@ -45,6 +45,7 @@ import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { PanduanHalaman } from "@/components/panduan-halaman";
+import { Saklar } from "@/components/saklar";
 
 
 
@@ -835,16 +836,12 @@ export default function PenyediaAiPage() {
                     terlihat.
                   */}
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: "auto", paddingTop: 14 }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12.5, color: C.mid, cursor: bolehKelola ? "pointer" : "default" }}>
-                      <input
-                        type="checkbox"
-                        checked={k.aktif}
-                        disabled={!bolehKelola}
-                        onChange={(e) => ubah(k.asisten, { aktif: e.target.checked })}
-                        style={{ cursor: bolehKelola ? "pointer" : "default" }}
-                      />
-                      Asisten aktif
-                    </label>
+                    <Saklar
+                      nyala={k.aktif}
+                      nonaktif={!bolehKelola}
+                      onUbah={(v) => ubah(k.asisten, { aktif: v })}
+                      label="Asisten aktif"
+                    />
 
                     <div style={{ flex: 1 }} />
 

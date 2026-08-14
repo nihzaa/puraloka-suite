@@ -34,6 +34,7 @@ import { SlidersHorizontal, Plus, Check, AlertTriangle, EyeOff, Eye } from "luci
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_ISIAN } from "@/components/isian";
+import { Saklar } from "@/components/saklar";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -340,10 +341,7 @@ function KartuTambah({ katalog, entitas, adaKunci, onDone, onError }: {
         </div>
       )}
 
-      <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.mid, cursor: "pointer" }}>
-        <input className="isian-fokus" type="checkbox" checked={wajib} onChange={e => setWajib(e.target.checked)} />
-        Wajib diisi
-      </label>
+      <Saklar nyala={wajib} onUbah={setWajib} label="Wajib diisi" />
 
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
         <button

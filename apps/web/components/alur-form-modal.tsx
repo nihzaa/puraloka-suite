@@ -44,6 +44,7 @@ import { C } from "@/lib/warna-ui";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { Tombol } from "@/components/dasar";
 import { PilihanKartu } from "@/components/pilihan-kartu";
+import { Saklar } from "@/components/saklar";
 
 export interface AlurUntukForm {
   id?: string;
@@ -387,26 +388,19 @@ export function AlurFormModal({
               background: aktif ? "var(--surface)" : "var(--surface-2, var(--surface))",
             }}
           >
-            <input
-              type="checkbox"
+            {/* Label & keterangannya BERUBAH mengikuti keadaan — menyatakan
+                akibatnya, bukan namanya. */}
+            <Saklar
               id="alur-aktif"
-              checked={aktif}
-              onChange={(e) => setAktif(e.target.checked)}
-              style={{ marginTop: 2, width: 16, height: 16, flexShrink: 0, cursor: "pointer" }}
-            />
-            <div style={{ minWidth: 0 }}>
-              <label
-                htmlFor="alur-aktif"
-                style={{ ...label, marginBottom: 2, cursor: "pointer" }}
-              >
-                {aktif ? "Aktif" : "Nonaktif"}
-              </label>
-              <p style={{ ...bantu, margin: 0 }}>
-                {aktif
+              nyala={aktif}
+              onUbah={setAktif}
+              label={aktif ? "Aktif" : "Nonaktif"}
+              ringkas={
+                aktif
                   ? "Alur ini ikut dijalankan dan statusnya dipantau."
-                  : "Alur ini TIDAK akan dijalankan. Riwayat jalannya tetap tersimpan."}
-              </p>
-            </div>
+                  : "Alur ini TIDAK akan dijalankan. Riwayat jalannya tetap tersimpan."
+              }
+            />
           </div>
         )}
 

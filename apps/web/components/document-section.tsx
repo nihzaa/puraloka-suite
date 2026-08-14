@@ -34,6 +34,7 @@ interface Props {
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 import { C } from "@/lib/warna-ui";
+import { Saklar } from "@/components/saklar";
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   kontrak: "Kontrak",
@@ -522,11 +523,13 @@ function UploadModalContent({
 
           {/* Visibility */}
           <label htmlFor="upload-visible-klien" style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", padding: "8px 12px", borderRadius: 6, border: `1px solid ${uploadVisible ? C.greenBorder : "var(--border)"}`, background: uploadVisible ? C.greenBg : "var(--surface-subtle)" }}>
-            <input id="upload-visible-klien" type="checkbox" checked={uploadVisible} onChange={e => setUploadVisible(e.target.checked)} style={{ accentColor: C.green, width: 15, height: 15 }} />
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Tampilkan ke Klien</div>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Klien dapat melihat dokumen ini di portal mereka</div>
-            </div>
+            <Saklar
+              id="upload-visible-klien"
+              nyala={uploadVisible}
+              onUbah={setUploadVisible}
+              label="Tampilkan ke Klien"
+              ringkas="Klien dapat melihat dokumen ini di portal mereka"
+            />
           </label>
 
           {/* File picker */}

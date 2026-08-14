@@ -5,6 +5,79 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-15 (lanjutan 1) — 25 checkbox, dua bentuk, tiga yang sengaja dibiarkan
+
+Founder: *"untuk checkbox yg kaya gini juga ubah aja, jadinya bikin ga
+konsisten"* — menunjuk layar Asisten, tempat "Sifat asisten" sudah berupa kartu
+sementara "Data yang boleh dibaca" tepat di bawahnya masih checkbox telanjang.
+
+### Ternyata dua jenis, bukan satu
+
+Diukur: **25 checkbox di 21 berkas**. Tapi mereka bukan satu hal:
+
+     3  daftar pilihan   data-boleh-dibaca, dependensi Gantt, legend chart
+    22  saklar tunggal   "Terapkan Potongan Retensi", "Aktifkan jadwal ini"
+
+Menjadikan saklar tunggal sebuah kartu berarti kotak besar untuk satu ya/tidak
+di form yang sudah padat, sebagian di dalam modal sempit — seragam di mata,
+salah di tempatnya. Founder memilih **dua bentuk resmi**: kartu untuk memilih
+dari daftar, saklar untuk hidup/mati.
+
+### `role="switch"`, bukan checkbox yang dicat
+
+Bedanya di telinga, bukan di mata:
+
+    checkbox → "kotak centang, tercentang"   (…tercentang untuk apa?)
+    switch   → "sakelar, nyala"               (jelas: sesuatu sedang nyala)
+
+Input aslinya tetap ada dan tetap bisa di-Tab — `opacity: 0`, bukan
+`display:none`. Penandanya TIGA: posisi bulatan, warna jalur, teks. WCAG 1.4.1.
+
+### Tiga yang SENGAJA tetap mentah
+
+Bukan "belum sempat" — ketiganya RUSAK kalau diseragamkan:
+
+  · **legend arus-kas** — toggle seri berwarna, bukan daftar pengaturan
+  · **dependensi Gantt** — tiap baris MEKAR jadi input angka + teks saat
+    dicentang; kartu tak bisa memuat kontrol bersarang
+  · **RFQ "tidak menawar"** — sel tabel selebar satu kolom; saklar 34px
+    merusak tabelnya
+
+Ketiganya tercatat di `DIKECUALIKAN` penjaga, lengkap dengan alasannya.
+
+### Dua yang berubah jenis saat dibaca ulang
+
+`instruksi-lapangan` punya dua checkbox "Menambah biaya" / "Menambah waktu"
+yang saya kira dua saklar. Ternyata **daftar pilihan** — instruksi lapangan
+sering menambah biaya DAN waktu sekaligus. Jadi kartu ganda.
+
+`sdm/kompetensi` menyimpan `sBerjangka` tetapi menampilkan kebalikannya
+("Seumur hidup"). Pembalikannya ditaruh di komponen, bukan di state: yang
+dibaca orang di layar harus kalimat positif.
+
+### Catatan jujur
+
+Converter otomatis untuk 22 saklar **saya tulis lalu saya buang** — ia merusak
+4 berkas (impor masuk ke tengah `import {` multi-baris, JSX bersarang salah
+potong). Sisanya dikerjakan satu per satu dengan tsc tiap berkas. Lebih lambat,
+tapi tak ada yang rusak diam-diam.
+
+### Bukti
+
+    tsc web            0
+    eslint web         299 warning SEBELUM → 297 SESUDAH (turun 2, nol tambahan)
+    penjaga web        6 dijalankan, 6 hijau
+    mutasi R-3         checkbox mentah disuntik → MERAH → dipulihkan → HIJAU
+    checkbox mentah    25 → 3 (ketiganya tercatat beralasan)
+    radio mentah       0
+
+Penjaga `uji-pilihan-seragam.mjs` diperluas: R-3 menolak checkbox mentah baru.
+Awalnya penjaga ini HIJAU-KARENA-BUTA — blok R-3 gagal tersisip lewat skrip
+dan tak pernah benar-benar memeriksa checkbox. Ketahuan saat mutasi tak
+memerahkannya; diperbaiki, lalu dibuktikan merah.
+
+---
+
 ## 2026-08-15 — founder menemukan cacat pemodelan saya dalam satu kalimat
 
 Sesi kemarin (lanjutan 12) memberi asisten SATU `mode_bicara`:

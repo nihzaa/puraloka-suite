@@ -31,6 +31,8 @@
  * ── Yang diperiksa
  *
  *   R-1  nol `<input type="radio">` di luar `components/pilihan-kartu.tsx`
+ *   R-3  checkbox mentah tak boleh BERTAMBAH (ratchet) — tiga yang tersisa
+ *        memang tak bisa jadi kartu maupun saklar, alasannya di `DIKECUALIKAN`
  *   R-2  komponen bersamanya masih menyembunyikan input SECARA VISUAL saja
  *        (`opacity`, bukan `display:none`) — kalau tidak, kontrolnya hilang
  *        dari urutan Tab dan tak bisa dipakai keyboard sama sekali
@@ -55,6 +57,27 @@ const KOMPONEN = join('components', 'pilihan-kartu.tsx')
 
 /** Satu-satunya berkas yang boleh memuat `type="radio"`. */
 const PINTU = KOMPONEN
+const PINTU_SAKLAR = join('components', 'saklar.tsx')
+
+/**
+ * Checkbox yang SENGAJA tetap mentah, dengan alasannya.
+ *
+ * Ketiganya bukan "belum sempat" — ketiganya akan RUSAK kalau diseragamkan:
+ *
+ *   arus-kas       legend grafik: toggle seri berwarna, bukan daftar
+ *                  pengaturan. Jadi kartu = merusak grafiknya.
+ *   gantt-section  tiap baris MEKAR jadi input angka + teks saat dicentang;
+ *                  kartu tak bisa memuat kontrol bersarang.
+ *   rfq-penawaran  sel tabel selebar satu kolom; saklar 34px merusak tabelnya.
+ *
+ * Daftar ini sengaja bukan pola. Nama berkas ditulis penuh supaya penambahan
+ * berikutnya terlihat di diff dan harus dijelaskan.
+ */
+const DIKECUALIKAN = new Set([
+  'app/(dashboard)/keuangan/arus-kas/page.tsx',
+  'components/gantt-section.tsx',
+  'components/rfq-penawaran-modal.tsx',
+])
 
 function berkasTsx(dir, keluar = []) {
   for (const nama of readdirSync(dir)) {
@@ -77,6 +100,8 @@ for (const berkas of [
   const rel = relative(WEB, berkas).replace(/\\/g, '/')
   if (rel === PINTU.replace(/\\/g, '/')) continue
 
+  if (rel === PINTU_SAKLAR.replace(/\\/g, '/')) continue
+
   const isi = readFileSync(berkas, 'utf8')
   const baris = isi.split('\n')
   baris.forEach((b, i) => {
@@ -84,6 +109,13 @@ for (const berkas of [
       pelanggaran.push(
         `R-1 ${rel}:${i + 1} memakai <input type="radio"> sendiri — ` +
           `pakai <PilihanKartu> dari components/pilihan-kartu.tsx`,
+      )
+    }
+    if (/type=["']checkbox["']/.test(b) && !DIKECUALIKAN.has(rel)) {
+      pelanggaran.push(
+        `R-3 ${rel}:${i + 1} memakai <input type="checkbox"> sendiri — ` +
+          `pakai <PilihanKartu ganda> untuk memilih dari daftar, ` +
+          `atau <Saklar> untuk hidup/mati`,
       )
     }
   })
@@ -121,4 +153,7 @@ if (pelanggaran.length > 0) {
   process.exit(1)
 }
 
-console.log('✓ Kontrol pilihan seragam — seluruhnya lewat <PilihanKartu>, fokus keyboard utuh.')
+console.log(
+  '✓ Kontrol pilihan seragam — radio & checkbox lewat <PilihanKartu>/<Saklar>, ' +
+    `fokus keyboard utuh. ${DIKECUALIKAN.size} pengecualian tercatat beralasan.`,
+)

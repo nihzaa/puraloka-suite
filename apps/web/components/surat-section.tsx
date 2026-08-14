@@ -27,6 +27,7 @@ import {
   Mail, MailOpen, Plus, AlertTriangle, CornerDownRight, Clock,
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
+import { Saklar } from "@/components/saklar";
 
 const C = {
   navy: "var(--navy)", text: "var(--text-primary)", mid: "var(--text-secondary)",
@@ -459,12 +460,11 @@ function FormSurat({
         </Medan>
       </div>
 
-      <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-        <input type="checkbox" checked={butuhBalas}
-          onChange={(e) => setButuhBalas(e.target.checked)}
-          style={{ width: 16, height: 16, cursor: "pointer" }} />
-        <span style={{ fontSize: 13, color: C.text }}>Surat ini menuntut balasan</span>
-      </label>
+      <Saklar
+        nyala={butuhBalas}
+        onUbah={setButuhBalas}
+        label="Surat ini menuntut balasan"
+      />
 
       {/* Batas hanya muncul kalau memang menuntut balasan — medan yang selalu
           tampil mengundang pengisian yang tak bermakna, dan batas pada surat

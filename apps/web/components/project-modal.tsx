@@ -58,6 +58,7 @@ interface ProjectModalProps {
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
 import { C } from "@/lib/warna-ui";
+import { Saklar } from "@/components/saklar";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "8px 12px",
@@ -457,19 +458,21 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
 
               {/* Denda — override per proyek (syarat kontrak; default ikuti aturan global) */}
               <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px 12px", background: "var(--surface-subtle)" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                  <input type="checkbox" checked={form.penalty_override} onChange={e => set("penalty_override", e.target.checked)} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>Atur denda khusus proyek ini</span>
-                </label>
-                <p style={{ margin: "4px 0 0 24px", fontSize: 11, color: "var(--text-muted)" }}>
-                  {form.penalty_override ? "Nilai di bawah menimpa aturan denda global untuk proyek ini." : "Mengikuti aturan denda global (Konfigurasi Keuangan)."}
-                </p>
+                <Saklar
+                  nyala={form.penalty_override}
+                  onUbah={(v) => set("penalty_override", v)}
+                  label="Atur denda khusus proyek ini"
+                  ringkas={form.penalty_override
+                    ? "Nilai di bawah menimpa aturan denda global untuk proyek ini."
+                    : "Mengikuti aturan denda global (Konfigurasi Keuangan)."}
+                />
                 {form.penalty_override && (
                   <div style={{ marginLeft: 24, marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
-                    <label htmlFor="penalty-basis" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-primary)" }}>
-                      <input type="checkbox" checked={form.penalty_enabled} onChange={e => set("penalty_enabled", e.target.checked)} />
-                      Denda aktif untuk proyek ini
-                    </label>
+                    <Saklar
+                      nyala={form.penalty_enabled}
+                      onUbah={(v) => set("penalty_enabled", v)}
+                      label="Denda aktif untuk proyek ini"
+                    />
                     <Field label="Basis denda">
                       <select id="penalty-basis" aria-label="Basis perhitungan denda keterlambatan" style={inputStyle} value={form.penalty_basis} onChange={e => set("penalty_basis", e.target.value)}>
                         <option value="invoice_telat">Nilai invoice yang telat</option>

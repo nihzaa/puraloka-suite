@@ -51,6 +51,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Saklar } from "@/components/saklar";
 
 type Klasifikasi = "major" | "minor" | "observasi";
 type StatusAudit = "rencana" | "berjalan" | "selesai" | "dibatalkan";
@@ -627,7 +628,8 @@ export default function AuditMutuPage() {
               sebab="Audit yang tak menemukan apa pun adalah hasil yang sah — dan auditnya sendiri yang menjadi bukti pemeriksaan dilakukan."
             />
           ) : (
-            <Tabel              berpermukaan
+            <Tabel
+              berpermukaan
               kolom={buatKolom(bukaTaut)}
               data={detail.temuan}
               kunciBaris={(t) => t.id}
@@ -708,16 +710,11 @@ export default function AuditMutuPage() {
               </p>
             </div>
 
-            <label style={{
-              display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.text,
-              cursor: "pointer",
-            }}>
-              <input
-                type="checkbox" checked={fTutup}
-                onChange={(e) => setFTutup(e.target.checked)}
-              />
-              Tutup temuan ini (perbaikannya sudah diverifikasi)
-            </label>
+            <Saklar
+              nyala={fTutup}
+              onUbah={setFTutup}
+              label="Tutup temuan ini (perbaikannya sudah diverifikasi)"
+            />
 
             <div>
               <label htmlFor="am-catatan" style={{

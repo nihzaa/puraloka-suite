@@ -50,6 +50,7 @@ import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { TabBagian } from "@/components/tab-bagian";
+import { Saklar } from "@/components/saklar";
 
 type StatusSertifikat = "berlaku" | "akan_habis" | "kedaluwarsa";
 type TahapLamaran = "masuk" | "seleksi_berkas" | "wawancara" | "tawaran" | "diterima" | "ditolak";
@@ -763,14 +764,14 @@ export default function KompetensiPage() {
             </div>
           </div>
 
-          <label style={{
-            display: "flex", alignItems: "center", gap: 8, fontSize: 13,
-            color: C.text, cursor: "pointer",
-          }}>
-            <input type="checkbox" checked={!sBerjangka}
-              onChange={(e) => setSBerjangka(!e.target.checked)} />
-            Seumur hidup (ijazah, pelatihan tanpa masa berlaku)
-          </label>
+          {/* Saklar menyatakan "seumur hidup", sementara state menyimpan
+              kebalikannya (`sBerjangka`). Pembalikannya DI SINI, bukan di
+              state: yang dibaca orang di layar adalah kalimat positif. */}
+          <Saklar
+            nyala={!sBerjangka}
+            onUbah={(v) => setSBerjangka(!v)}
+            label="Seumur hidup (ijazah, pelatihan tanpa masa berlaku)"
+          />
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
             <div>

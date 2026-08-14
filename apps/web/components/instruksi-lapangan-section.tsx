@@ -29,6 +29,7 @@ import {
   Megaphone, Plus, AlertTriangle, ShieldCheck, ShieldAlert, Ban, Clock,
 } from "lucide-react";
 import { api, makeAbortController } from "@/lib/api";
+import { PilihanKartu } from "@/components/pilihan-kartu";
 
 const C = {
   navy: "var(--navy)", text: "var(--text-primary)", mid: "var(--text-secondary)",
@@ -505,20 +506,23 @@ function FormInstruksi({
         <legend style={{ fontSize: 11.5, fontWeight: 600, color: C.mid, padding: "0 4px" }}>
           Dampaknya
         </legend>
-        <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer" }}>
-            <input type="checkbox" checked={biaya}
-              onChange={(e) => setBiaya(e.target.checked)}
-              style={{ width: 16, height: 16, cursor: "pointer" }} />
-            <span style={{ fontSize: 13, color: C.text }}>Menambah biaya</span>
-          </label>
-          <label style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer" }}>
-            <input type="checkbox" checked={waktuDampak}
-              onChange={(e) => setWaktuDampak(e.target.checked)}
-              style={{ width: 16, height: 16, cursor: "pointer" }} />
-            <span style={{ fontSize: 13, color: C.text }}>Menambah waktu</span>
-          </label>
-        </div>
+        {/* DUA dampak yang bisa menyala bersamaan — instruksi lapangan sering
+            menambah biaya DAN waktu sekaligus. Jadi daftar pilihan (kartu
+            ganda), bukan dua saklar terpisah. */}
+        <PilihanKartu
+          nama="dampak-instruksi"
+          label=""
+          ganda
+          nilai={[...(biaya ? ["biaya"] : []), ...(waktuDampak ? ["waktu"] : [])]}
+          opsi={[
+            { nilai: "biaya", label: "Menambah biaya" },
+            { nilai: "waktu", label: "Menambah waktu" },
+          ]}
+          onUbah={(v) => {
+            if (v === "biaya") setBiaya(!biaya);
+            else setWaktuDampak(!waktuDampak);
+          }}
+        />
         {biaya && (
           <div style={{ marginTop: 10 }}>
             <Medan label="Estimasi biaya (Rp)">

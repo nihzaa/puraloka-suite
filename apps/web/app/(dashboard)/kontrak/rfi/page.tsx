@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import {
+useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/toast";
 import { KepalaHalaman } from "@/components/dasar";
+import { Saklar } from "@/components/saklar";
 import {
   MessageSquareQuote, Plus, Send, CheckCircle2, X, AlertTriangle,
   ChevronDown, Loader2, FileText, Ban,
@@ -793,13 +795,11 @@ function FormRfi({
           </label>
 
           <div className="fr-baris">
-            <label className="fr-centang">
-              <input
-                type="checkbox" checked={memblokir}
-                onChange={(e) => setMemblokir(e.target.checked)}
-              />
-              <span>Pekerjaan berhenti sampai ini dijawab</span>
-            </label>
+            <Saklar
+              nyala={memblokir}
+              onUbah={setMemblokir}
+              label="Pekerjaan berhenti sampai ini dijawab"
+            />
             <span className="fr-bantu">
               Hanya centang kalau benar-benar berhenti. Pertanyaan yang
               menghentikan pekerjaan dan lama dijawab bisa jadi dasar klaim

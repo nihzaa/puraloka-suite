@@ -59,6 +59,7 @@ import {
   Tombol, Lencana, Medan, gayaInput, type Kolom,
 } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { Saklar } from "@/components/saklar";
 
 type StatusMasa =
   | "belum_terbit" | "berlaku" | "akan_habis" | "kedaluwarsa" | "ditolak" | "dicabut";
@@ -564,11 +565,12 @@ function IsiIzin() {
         <Medan id="iz-halang" label="Menghalangi pekerjaan dimulai?"
           keterangan="Centang untuk izin yang tanpanya pekerjaan tak boleh berjalan (PBG). Jangan dicentang untuk yang akibatnya terbatas (izin reklame menunda papan nama, bukan pekerjaannya)."
           anak={
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: C.text }}>
-              <input id="iz-halang" type="checkbox" checked={fMenghalangi}
-                onChange={(e) => setFMenghalangi(e.target.checked)} />
-              Ya, tanpa izin ini pekerjaan tak boleh dimulai
-            </label>
+            <Saklar
+              id="iz-halang"
+              nyala={fMenghalangi}
+              onUbah={setFMenghalangi}
+              label="Ya, tanpa izin ini pekerjaan tak boleh dimulai"
+            />
           }
         />
       </DialogBersama>
