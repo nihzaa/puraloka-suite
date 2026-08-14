@@ -46,6 +46,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
 import { jalankanGiliranAi } from '../../lib/ai-jalankan.js'
+import { bacaRiwayat } from '../../lib/ai-riwayat-baca.js'
 import type { Asisten } from '../../lib/ai-config.js'
 
 /** Kunci giliran kedaluwarsa — proses yang mati tak mengunci selamanya. */
@@ -143,12 +144,27 @@ export default async function aiChatRoutes(app: FastifyInstance) {
       // pengaturannya) tak pernah dibaca sekali pun. Plafon biaya kini milik
       // tenant (migrasi 382), jadi memakai asistennya sendiri tidak lagi
       // berarti tenant punya dua kantong uang.
+      /*
+       * RIWAYAT — dibaca dari pesan yang SUDAH tersimpan.
+       *
+       * Sampai 2026-08-15 `riwayat` tak pernah diisi siapa pun, jadi asisten
+       * lupa pesan sebelumnya di percakapan yang SAMA — di jendela chat yang
+       * riwayatnya terpampang di layar pengguna. Penyimpanannya sudah ada dan
+       * sudah dibayar; yang hilang cuma pembacaannya.
+       *
+       * Dibaca SEBELUM pesan baru disimpan, jadi ia memuat konteks lama saja.
+       */
+      const riwayat = await bacaRiwayat(db, percakapanId.id, {
+        catatGalat: (p, err) => request.log.error({ err }, `ai/chat: ${p}`),
+      })
+
       const jalan = await jalankanGiliranAi({
         db,
         companyId,
         userId,
         izinPengguna,
         pesanUser,
+        riwayat,
         asisten: ASISTEN_WEB,
         ambilKunci: (nama) => ambilKredensial(request, nama),
         catatGalat: (p, err) => request.log.error({ err }, `ai/chat: ${p}`),

@@ -56,6 +56,8 @@ import { bangunSesiDariNomor, catatAksesDitolak } from '../../lib/wa-sesi.js'
 import { kirimWa, konfigurasiKanal } from '../../lib/wa-kirim.js'
 import { renderDariDb } from '../../lib/wa-template.js'
 import { jalankanGiliranAi, GAYA_WHATSAPP } from '../../lib/ai-jalankan.js'
+import { bacaRiwayat } from '../../lib/ai-riwayat-baca.js'
+import { ambilAtauBuatPercakapanWa, simpanPertukaranWa } from '../../lib/ai-percakapan-wa.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
 
 /**
@@ -231,6 +233,32 @@ export default async function waWebhookRoutes(app: FastifyInstance) {
        */
       const asistenWa = izin.has('settings:ai:manage') ? 'owner' : 'staff'
 
+      /*
+       * PERCAKAPAN & RIWAYAT — sampai 2026-08-15 kanal ini tak menyimpan
+       * apa pun, jadi tiap pesan dijawab sebagai giliran pertama yang
+       * berdiri sendiri.
+       *
+       * Justru di sinilah paling terasa: orang lapangan mengetik pendek dan
+       * bersambung ("berapa sisa semen?" → "yang di Cimahi"). Kalimat kedua
+       * tak berarti apa pun tanpa yang pertama.
+       *
+       * Gagal menyiapkan percakapan TIDAK menghentikan jawaban — yang hilang
+       * ingatannya, bukan asistennya.
+       */
+      const catatGalatWa = (p: string, err: unknown) =>
+        request.log.error({ err }, `wa/webhook: ${p}`)
+
+      const percakapan = await ambilAtauBuatPercakapanWa(
+        db,
+        companyId,
+        userId,
+        asistenWa,
+        { catatGalat: catatGalatWa },
+      )
+      const riwayat = percakapan.id
+        ? await bacaRiwayat(db, percakapan.id, { catatGalat: catatGalatWa })
+        : []
+
       // ── GERBANG 5 & 6: saklar mati, biaya, lalu model ────────────────────
       const jalan = await jalankanGiliranAi({
         db,
@@ -238,10 +266,11 @@ export default async function waWebhookRoutes(app: FastifyInstance) {
         userId,
         izinPengguna: izin,
         pesanUser: pesan.teks,
+        riwayat,
         gayaKanal: GAYA_WHATSAPP,
         asisten: asistenWa,
         ambilKunci,
-        catatGalat: (p, err) => request.log.error({ err }, `wa/webhook: ${p}`),
+        catatGalat: catatGalatWa,
       })
 
       if (!jalan.ok) {
@@ -305,6 +334,21 @@ export default async function waWebhookRoutes(app: FastifyInstance) {
         userId,
         kunciIdempotensi: `wa-jawab:${pesan.pesanId}`,
       })
+
+      // Disimpan SESUDAH terkirim: yang layak jadi ingatan adalah jawaban
+      // yang benar-benar sampai. Menyimpan lebih dulu berarti percakapan
+      // memuat kalimat yang tak pernah dibaca siapa pun saat pengirimannya
+      // gagal — dan giliran berikutnya membangun konteks di atas ucapan hantu.
+      if (percakapan.id) {
+        await simpanPertukaranWa(
+          db,
+          companyId,
+          percakapan.id,
+          pesan.teks,
+          jalan.hasil,
+          catatGalatWa,
+        )
+      }
 
       await tandaiDiproses(supabase, pesan.pesanId, companyId)
 
