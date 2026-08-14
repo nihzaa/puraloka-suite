@@ -5,6 +5,91 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan 8) — 37 test merah dibedah: lima sebab berbeda, nol yang sama
+
+Sesudah perbaikan RLS, suite penuh turun 76 → 37 merah. Kali ini output-nya
+cukup besar untuk menyebut nama berkas, jadi tiap kelompok dibedah sendiri —
+bukan diringkas jadi satu sebab.
+
+Ternyata **lima sebab berbeda**, dan tak satu pun sama dengan dugaan pertama.
+
+### 1. Fixture meminjam data seed (`penjurnalan-otomatis`, 10 merah)
+
+`duplicate key uq_invoices_termin_schedule`. Cleanup `afterAll` bekerja benar
+(nol invoice `[TEST-PJ]` tersisa) — yang bentrok pilihan fixture-nya: helper
+`buatInvoice()` memakai `terminId` yang SAMA tiap panggilan, padahal
+constraint melarang dua invoice per termin.
+
+Meminjam termin seed yang bebas tak cukup: proyek uji punya 4 termin dan
+hanya **1** yang belum ditagih. Perbaikannya — test MEMBUAT terminnya sendiri
+per invoice, jadi tak lagi bergantung pada berapa yang kebetulan bebas.
+
+Ikut ketahuan: akun `[TEST-PJ]9999` dibersihkan di baris TERAKHIR test-nya,
+jadi kalau `expect` di atasnya gagal, DELETE-nya tak pernah jalan. Pembersihan
+yang bergantung pada test yang LULUS bukan pembersihan — dipindah ke `purge()`.
+
+Diuji dua kali berturut-turut: 22/22, idempoten.
+
+### 2. Test bentrok dengan seed NYATA (`tarif-payroll`, 7 merah)
+
+Test memakai `berlaku_sejak: '2026-01-01'` untuk `bpjs` — dan seed PP 84/2013
+memakai tanggal yang sama. `UNIQUE (company_id, jenis, berlaku_sejak)`.
+
+Saya sempat salah baca: kolomnya `timestamptz`, dan tampilan `::date`
+menunjukkan `2025-12-31` karena zona waktu. Dipindah ke 2031. 15/15 hijau.
+
+### 3. Konsekuensi migrasi 365 (`punch-list`, 1 merah)
+
+`expected ['punch:view','punch:view']` — role `client` kini ada DUA baris
+(template + salinan tenant), jadi kueri tanpa `DISTINCT` menghitung dua kali.
+Bukan izinnya yang bertambah, barisnya. Ditambah `DISTINCT`.
+
+### 4. Item QUEUE yang sudah menunggu (`rls-ownership`, `t5b`, 3 merah)
+
+`auth_client_id()` NULL karena `auth_company_id()` NULL karena pengguna klien
+tak punya `company_members` ber-`is_default`.
+
+**QUEUE sudah mencatatnya persis**, lengkap dengan peringatan: *"sesi
+berikutnya yang menjalankan suite penuh akan melihat 6 berkas merah dan
+mengira dirinya merusak sesuatu."* Sesi itu saya, dan catatan itu menghemat
+satu jam penelusuran.
+
+Migrasi 376 menandai keanggotaan TUNGGAL sebagai default (26 baris). Yang
+majemuk sengaja dibiarkan — itu pilihan sadar di UI, bukan tebakan di SQL.
+
+### 5. Sampah uji + jebakan CRLF (`submittal`, 2 merah)
+
+Dua company `[UJI-*]` tertinggal AKTIF tanpa anggota, membuat penjaga "adakah
+company aktif tanpa rantai persetujuan?" menjawab "ada 2" selamanya. Migrasi
+377 menonaktifkannya — **dinonaktifkan, bukan dihapus** (§8a.5: dummy bukan
+izin untuk merusak). Syaratnya "tak punya anggota", bukan "namanya [UJI" —
+keanggotaan fakta, nama hanya kebiasaan.
+
+Sisanya: test mencocokkan teks kode dengan `
+` sementara berkasnya CRLF.
+Kode SUDAH BENAR, tapi pesannya menuduh "mekanisme approval keempat" —
+tuduhan salah alamat. Jebakan yang sama sudah tercatat di QUEUE (alat mutasi
+"lolos" karena mencari LF di berkas CRLF).
+
+⚠ Saya sempat merusak berkas test-nya saat memperbaiki: escaping `
+`
+termakan heredoc shell. Dipulihkan `git checkout`, lalu dikerjakan lewat
+helper `bacaSumber()` — satu tempat, bukan tiga.
+
+### Bukti
+
+```
+migrasi 376, 377            tercatat di schema_migrations
+penjurnalan-otomatis        10 merah → 22/22 HIJAU (2× berturut, idempoten)
+tarif-payroll               7 merah → 15/15 HIJAU
+punch-list                  1 merah → 12/12 HIJAU
+rls-ownership + t5b         3 merah → 14/14 HIJAU
+submittal-aturan            2 merah → 19/19 HIJAU
+tsc                         EXIT 0
+```
+
+---
+
 ## 2026-08-14 (lanjutan 7) — 21 lubang tenancy: sembilan bolong, dua tak berfungsi, sepuluh lambat
 
 Suite penuh dijalankan utuh (bukan subset), dan 21 berkas merah dibaca satu

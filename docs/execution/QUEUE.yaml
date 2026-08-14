@@ -2322,7 +2322,28 @@ items:
       ⚠ Dicatat supaya tak terulang: sesi berikutnya yang menjalankan suite
       penuh akan melihat 6 berkas merah dan mengira dirinya merusak sesuatu.
     bobot: L
-    status: todo
+    status: done
+    # ── SELESAI 2026-08-14 lewat migrasi 376
+    #
+    # Catatan di atas terbukti tepat: sesi berikutnya (2026-08-14) menjalankan
+    # suite penuh, melihat berkas merah, dan HAMPIR menyimpulkan dirinya
+    # merusak sesuatu. Peringatan ini yang mencegahnya — bukti bahwa dokumen
+    # yang menulis CARA MENGUKUR benar-benar bekerja.
+    #
+    # Dari dua jalan yang ditawarkan catatan ini, dipilih yang KEDUA (seed
+    # membuat baris default) — dan alasannya bukan kemudahan:
+    # `auth_company_id()` jatuh ke keanggotaan default justru untuk melayani
+    # permintaan yang TIDAK membawa konteks company, dan itu keadaan nyata di
+    # produksi. Pengguna yang cuma anggota SATU perusahaan tetapi tak punya
+    # baris default akan kehilangan seluruh aksesnya pada jalur itu.
+    # Menambal test-nya saja akan menyembunyikan gejala yang benar.
+    #
+    # Migrasi 376 menandai keanggotaan TUNGGAL sebagai default (26 baris).
+    # Yang majemuk sengaja dibiarkan — "mana yang default" untuk orang yang
+    # anggota beberapa perusahaan adalah pilihan sadar di UI, bukan tebakan
+    # di SQL.
+    #
+    # Bukti: rls-ownership-recursion + t5b-kill-switch 3 merah -> 14/14 HIJAU.
 
   - id: UI-AI-OTOMASI
     fase: 5

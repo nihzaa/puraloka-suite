@@ -32,8 +32,6 @@ let companyId: string
 let userId: string
 let projectId: string
 let akun: Record<string, string> = {}
-/** Termin wajib untuk invoice `termin_billing` (`chk_invoice_termin_billing`). */
-let terminId: string
 /** Peta akun asli (kalau founder sudah mengisinya) — dikembalikan di akhir. */
 let petaAsli: Array<{ jenis: string; account_id: string }> = []
 
@@ -78,6 +76,24 @@ async function purge() {
        (SELECT id FROM journal_entries WHERE ${POLA_UJI})`)
   await client.query(`DELETE FROM journal_entries WHERE ${POLA_UJI}`)
   await client.query(`DELETE FROM invoices WHERE invoice_number LIKE '[TEST-PJ]%'`)
+  // Termin uji dibuat `buatInvoice()` — dihapus SESUDAH invoicenya, karena
+  // `invoices.termin_schedule_id` menunjuk ke sini. Tanpa ini, tiap run
+  // meninggalkan termin yatim dan `MAX(termin_number)` merangkak naik.
+  await client.query(`DELETE FROM termin_schedules WHERE label LIKE '[TEST-PJ]%'`)
+
+  /*
+    Akun uji dibersihkan DI SINI, bukan di baris terakhir test-nya.
+
+    Test "akun TIDAK AKTIF ditolak" membuat akun `[TEST-PJ]9999` lalu
+    menghapusnya di baris paling akhir. Kalau salah satu `expect` di atasnya
+    gagal, baris DELETE itu TIDAK PERNAH dijalankan — dan run berikutnya mati
+    dengan `accounts_code_unik_per_company`, galat yang menunjuk constraint
+    basis alih-alih ke test yang bocor.
+
+    Diukur 2026-08-14: satu baris tertinggal persis begitu. Pembersihan yang
+    bergantung pada test yang LULUS bukan pembersihan.
+  */
+  await client.query(`DELETE FROM accounts WHERE code LIKE '[TEST-PJ]%'`)
 }
 
 beforeAll(async () => {
@@ -117,15 +133,8 @@ beforeAll(async () => {
     `SELECT code, id FROM accounts WHERE company_id = $1`, [companyId])
   akun = Object.fromEntries(a.map((r) => [r.code, r.id]))
 
-  // Invoice `termin_billing` WAJIB menunjuk termin — constraint
-  // `chk_invoice_termin_billing`, dan itu penjaga yang benar: tagihan termin
-  // tanpa terminnya tak bisa ditelusuri ke jadwal pembayaran mana pun.
-  // Ditemukan test ini pada percobaan pertama.
-  const { rows: t } = await client.query(
-    `SELECT id FROM termin_schedules WHERE project_id = $1 ORDER BY termin_number LIMIT 1`,
-    [projectId])
-  if (t.length === 0) throw new Error('proyek uji tak punya termin_schedules')
-  terminId = t[0].id
+  // (Termin uji tak lagi dipilih di sini — `buatInvoice()` membuat sendiri
+  // satu termin per invoice. Alasannya di helper itu.)
 
   // Simpan peta asli lalu KOSONGKAN — test pertama memeriksa keadaan
   // "belum ditetapkan", dan itu tak bisa diuji kalau petanya sudah terisi.
@@ -161,6 +170,38 @@ afterAll(async () => {
 
 async function buatInvoice(over: Record<string, number> = {}) {
   const n = `[TEST-PJ]${Math.floor(Math.random() * 1e9)}`
+
+  /*
+    Termin uji DIBUAT SENDIRI per invoice — tidak meminjam milik seed.
+
+    `uq_invoices_termin_schedule` melarang dua invoice pada satu termin, dan
+    itu benar: dua tagihan untuk termin yang sama adalah tagihan ganda.
+    Helper ini dipanggil berkali-kali, jadi ia butuh termin berbeda tiap kali.
+
+    Meminjam termin seed tak cukup — diukur 2026-08-14: proyek uji punya 4
+    termin dan hanya **1** yang belum ditagih. Sepuluh test merah dengan pesan
+    `duplicate key`, dan merahnya menyamar jadi cacat kode padahal cleanup
+    `afterAll` bekerja benar (nol invoice `[TEST-PJ]` tersisa).
+
+    Membuat sendiri juga membuat berkas ini tak lagi bergantung pada berapa
+    banyak termin yang kebetulan bebas di basis — sumber kerapuhan yang sama
+    persis dengan yang sudah diakui komentar di `beforeAll`.
+
+    Nomornya diambil dari MAX+1 supaya tak bentrok dengan termin seed, dan
+    dibersihkan `purge()` lewat `label` berprefiks.
+  */
+  const { rows: ts } = await client.query(
+    `INSERT INTO termin_schedules
+       (project_id, termin_number, label, amount, pct_of_contract, trigger_type)
+     VALUES (
+       $1,
+       (SELECT COALESCE(MAX(termin_number), 0) + 1 FROM termin_schedules WHERE project_id = $1),
+       '[TEST-PJ] termin uji', 1, 0.01, 'on_progress'
+     )
+     RETURNING id`,
+    [projectId])
+  const terminDipakai = ts[0].id as string
+
   const { rows } = await client.query(
     `INSERT INTO invoices
        (project_id, termin_schedule_id, invoice_number, invoice_type,
@@ -168,7 +209,7 @@ async function buatInvoice(over: Record<string, number> = {}) {
         dp_deduction_amount, total_amount, issued_date, due_date, status, created_by)
      VALUES ($1,$2,$3,'termin_billing',$4,$5,$6,$7,$8,$9,'2026-08-01','2026-09-01','draft',$10)
      RETURNING id, invoice_number`,
-    [projectId, terminId, n,
+    [projectId, terminDipakai, n,
      over.base ?? 100_000_000, over.komisi ?? 0, over.pajak ?? 2_000_000,
      over.retensi ?? 0, over.dp ?? 0,
      (over.base ?? 100_000_000) + (over.komisi ?? 0) + (over.pajak ?? 2_000_000),

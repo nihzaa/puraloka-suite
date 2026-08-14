@@ -69,7 +69,7 @@ afterAll(async () => {
 describe('POST /payroll/tarif — periode', () => {
   it('dasar_hukum WAJIB — tarif tanpa dasar tak bisa dipertanggungjawabkan', async () => {
     const r = await kirim('POST', '/api/v1/payroll/tarif', {
-      jenis: 'bpjs', berlaku_sejak: '2026-01-01',
+      jenis: 'bpjs', berlaku_sejak: '2031-01-01',
     })
     expect(r.statusCode).toBe(400)
     expect(r.json().error).toMatch(/dasar_hukum/i)
@@ -79,14 +79,14 @@ describe('POST /payroll/tarif — periode', () => {
 
   it('jenis di luar tiga nilai ditolak sebelum menyentuh basis', async () => {
     const r = await kirim('POST', '/api/v1/payroll/tarif', {
-      jenis: 'pph22', berlaku_sejak: '2026-01-01', dasar_hukum: '[TEST] x',
+      jenis: 'pph22', berlaku_sejak: '2031-01-01', dasar_hukum: '[TEST] x',
     })
     expect(r.statusCode).toBe(400)
   })
 
   it('periode baru tersimpan', async () => {
     const r = await kirim('POST', '/api/v1/payroll/tarif', {
-      jenis: 'bpjs', berlaku_sejak: '2026-01-01',
+      jenis: 'bpjs', berlaku_sejak: '2031-01-01',
       dasar_hukum: '[TEST] uji, bukan aturan nyata',
     })
     expect(r.statusCode).toBe(201)
@@ -95,7 +95,7 @@ describe('POST /payroll/tarif — periode', () => {
 
   it('periode GANDA ditolak dengan pesan yang bisa dibaca', async () => {
     const r = await kirim('POST', '/api/v1/payroll/tarif', {
-      jenis: 'bpjs', berlaku_sejak: '2026-01-01', dasar_hukum: '[TEST] dobel',
+      jenis: 'bpjs', berlaku_sejak: '2031-01-01', dasar_hukum: '[TEST] dobel',
     })
     expect(r.statusCode).toBe(409)
     expect(r.json().error).not.toMatch(/duplicate key/)

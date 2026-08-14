@@ -187,8 +187,23 @@ describe('Punch List — pemisahan pelaksana vs verifikator', () => {
   }, 60_000)
 
   it('client hanya boleh MELIHAT', async () => {
+    /*
+      `DISTINCT` — role `client` kini ada LEBIH DARI SATU baris.
+
+      Sejak migrasi 363-365 role dimiliki per-tenant: satu baris template
+      (`company_id NULL`) sebagai cetakan, dan satu salinan per tenant. Kueri
+      `WHERE r.name = 'client'` mengenai keduanya, jadi hasilnya
+      `['punch:view', 'punch:view']` — bukan karena izinnya bertambah,
+      melainkan karena barisnya bertambah.
+
+      Yang diuji di sini tetap sama dan tetap bermakna: KUNCI APA SAJA yang
+      dipegang `client` untuk punch — jawabannya harus tepat satu,
+      `punch:view`. Menghitung barisnya alih-alih kuncinya membuat test ini
+      merah setiap kali tenant baru di-provision, dan merah itu tak menunjuk
+      cacat apa pun.
+    */
     const q = await c.query(
-      `SELECT p.key FROM role_permissions rp
+      `SELECT DISTINCT p.key FROM role_permissions rp
          JOIN roles r ON r.id = rp.role_id
          JOIN permissions p ON p.id = rp.permission_id
         WHERE r.name = 'client' AND p.key LIKE 'punch:%'`)

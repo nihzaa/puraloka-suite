@@ -28,6 +28,19 @@ let userId: string
 
 const SUMBER = join(import.meta.dirname, '..', 'submittal.ts')
 
+/**
+ * Membaca sumber dengan akhir baris DINORMALKAN ke LF.
+ *
+ * Berkas di repo ini CRLF, sedangkan pola yang dicocokkan di bawah ditulis
+ * dengan `\n`. Tanpa normalisasi, `toContain` gagal untuk kode yang SUDAH
+ * BENAR — dan pesannya menuduh "mekanisme approval keempat", tuduhan yang
+ * salah alamat dan mahal ditelusuri.
+ *
+ * Jebakan yang sama sudah tercatat di QUEUE: alat mutasi sempat "lolos"
+ * karena mencari LF di berkas CRLF.
+ */
+const bacaSumber = () => readFileSync(SUMBER, 'utf8').split('\r\n').join('\n')
+
 beforeAll(async () => {
   c = await createRlsClient()
   await c.query('BEGIN')
@@ -92,7 +105,7 @@ describe('Submittal — revisi sebagai warga kelas satu', () => {
     // ⚠️ Pola `^SUB-(\d+)$` ber-anchor akhir TIDAK cocok dengan `SUB-004-R2`,
     // sehingga penomoran jatuh ke 'SUB-001' dan menabrak nomor yang sudah ada.
     // Diuji dari SUMBER karena inilah yang berjalan.
-    const src = readFileSync(SUMBER, 'utf8')
+    const src = bacaSumber()
     const m = /const cocok = (\/.+?\/)\.exec\(data\[0\]\.nomor\)/.exec(src)
     expect(m, 'pola penomoran tak ditemukan di sumber').toBeTruthy()
 
@@ -109,7 +122,7 @@ describe('Submittal — revisi sebagai warga kelas satu', () => {
   it('revisi hanya untuk yang ditolak atau disetujui-dengan-catatan', () => {
     // Merevisi yang sudah disetujui penuh berarti mengganti material yang
     // sudah dinyatakan boleh dipakai — itu pengajuan baru, bukan revisi.
-    const src = readFileSync(SUMBER, 'utf8')
+    const src = bacaSumber()
     const blok = src.slice(src.indexOf("'/api/v1/submittals/:id/revisi'")).slice(0, 1200)
     expect(blok).toContain("lama.status !== 'ditolak' && lama.status !== 'disetujui_catatan'")
   })
@@ -241,7 +254,7 @@ describe('Submittal — memakai Workflow Engine, bukan mekanisme keempat', () =>
   }, 60_000)
 
   it('keputusan lewat endpoint tersendiri yang memanggil rantai', () => {
-    const src = readFileSync(SUMBER, 'utf8')
+    const src = bacaSumber()
     expect(src, 'keputusan tak lewat evaluateEntityApproval — mekanisme approval keempat')
       .toContain("evaluateEntityApproval(request, {\n        entityType: 'submittal'")
     expect(src, 'gerbang kasar canParticipateInChain hilang — keberadaan id bocor lewat 403 vs 404')
