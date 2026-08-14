@@ -930,15 +930,169 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const valid = ['draft', 'sent', 'confirmed', 'cancelled']
     if (!valid.includes(status)) return reply.status(400).send({ error: `Status tidak valid. Pilih: ${valid.join(', ')}` })
 
+    /*
+      ── GERBANG APPROVAL DI `draft → sent` (dipasang 2026-08-14)
+
+      ══════════════════════════════════════════════════════════════════════
+      APA YANG SEBELUMNYA BOLONG
+      ══════════════════════════════════════════════════════════════════════
+
+      Diukur saat hendak membangun automation 4.6 (fast-track approval PO):
+
+          entitas dengan rantai approval : 12  (kasbon, MR, change order, …)
+          purchase_order                 : TIDAK ADA
+          gerbang PO                     : satu `procurement:po:manage`
+          PO terbesar di basis           : Rp 40.200.000
+
+      Siapa pun yang punya izin kelola PO bisa memindahkan PO nominal berapa
+      pun ke `sent` — **terkirim ke vendor** — tanpa satu pun persetujuan.
+      Bandingkan dengan kasbon: pengajuan Rp 1 juta pun lewat rantai.
+
+      Itu bukan celah automation yang kurang; 4.6 justru TAK BISA dibangun di
+      atasnya, karena fast-track berarti "yang kecil dipercepat" dan di sini
+      semuanya sudah cepat. Tak ada jalur lambat untuk dipercepat.
+
+      ══════════════════════════════════════════════════════════════════════
+      KENAPA DI `sent`, BUKAN DI SETIAP TRANSISI
+      ══════════════════════════════════════════════════════════════════════
+
+      `sent` adalah satu-satunya titik yang MENGIKAT KE LUAR: sesudahnya
+      vendor sudah menerima pesanan, dan membatalkannya bukan lagi urusan
+      basis data melainkan urusan hubungan dagang.
+
+      `confirmed` dan `cancelled` mencatat apa yang SUDAH terjadi di dunia
+      nyata — menahannya di belakang approval berarti basis menolak mencatat
+      kenyataan, dan itu membuat datanya berbohong. `draft` bahkan belum
+      keputusan apa pun.
+
+      ══════════════════════════════════════════════════════════════════════
+      KENAPA ANGKANYA TIDAK ADA DI SINI
+      ══════════════════════════════════════════════════════════════════════
+
+      Founder: *"kalo nanti aja dan bisa dikonfig lewat ui lagi gimana?"* —
+      dan itu lebih baik daripada usulan saya yang menaruh satu angka sebagai
+      gerbang penghenti pekerjaan.
+
+      Berapa level dan siapa yang menyetujui = `approval_chains` +
+      `approval_steps` (ADR-007), diatur lewat **Pengaturan → Approval**.
+      `min_amount`/`max_amount` sudah didukung mesinnya dan sudah bisa diisi
+      dari UI. Fast-track 4.6 lahir sendiri dari langkah ber-`max_amount` —
+      tak ada fitur yang perlu ditulis untuknya.
+
+      Seed migrasi 381 sengaja LONGGAR: satu langkah, tanpa batas nominal,
+      permission sama persis dengan gerbang lama (`procurement:po:manage`).
+      Jadi perilaku hari ini TIDAK berubah — yang berubah adalah adanya
+      tempat untuk mengetatkan tanpa menyentuh kode.
+
+      Pola ini menyalin `material-requests/:id/approve` di berkas yang sama
+      (2A-5), termasuk urutan gerbang kasar-sebelum-fetch supaya 403 tetap
+      mendahului 404.
+    */
+    if (status === 'sent') {
+      const coarse = await canParticipateInChain(request, 'purchase_order')
+      if (coarse.configError) {
+        app.log.error({ configError: coarse.configError }, 'baca rantai approval PO gagal')
+        return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+      }
+      if (!coarse.ok) return reply.status(403).send({ error: 'Akses ditolak' })
+    }
+
+    /*
+      PO di-fetch SESUDAH gerbang kasar di atas — urutan itu disengaja supaya
+      403 tetap mendahului 404, sama seperti jalur Material Request.
+
+      Nominalnya dibaca dari `total_amount` (diukur: nol PO ber-NULL), bukan
+      dihitung ulang dari item. Bedanya dengan MR yang memakai
+      `mrApprovalAmount()`: MR belum punya nominal tersimpan, PO sudah — dan
+      menghitung ulang berarti dua sumber kebenaran untuk satu angka.
+    */
+    type PoLama = { status: string; total_amount: number | null; po_number: string }
+    let poLama: PoLama | null = null
+    if (status === 'sent') {
+      const { data: po } = await request.db!
+        .unsafe('purchase_orders', 'disaring .in(project_id, ...) milik tenant ini')
+        .select('status, total_amount, po_number')
+        .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
+      if (!po) return reply.status(404).send({ error: 'PO tidak ditemukan' })
+      poLama = po as unknown as PoLama
+
+      const decision = await evaluateEntityApproval(request, {
+        entityType: 'purchase_order',
+        entityId: id,
+        amount: Number(poLama.total_amount ?? 0),
+      })
+
+      // Gagal baca konfigurasi TIDAK boleh menyamar jadi "tidak berhak"
+      // (Phase 1 §4E) — 500 dan 403 menuntun ke perbaikan yang berbeda.
+      if (decision.configError) {
+        app.log.error({ configError: decision.configError, id }, 'evaluasi rantai approval PO gagal')
+        return reply.status(500).send({ error: 'Gagal memeriksa konfigurasi approval' })
+      }
+      if (!decision.allowed) {
+        if (decision.reason === 'already_approved') {
+          return reply.status(409).send({ error: 'PO ini sudah disetujui penuh' })
+        }
+        return reply.status(403).send({ error: 'Akses ditolak' })
+      }
+
+      if (decision.step) {
+        const rec = await recordApproval({
+          entityType: 'purchase_order', entityId: id, level: decision.step.level,
+          approvedBy: request.currentUser!.id, companyId: request.companyId!,
+        })
+        if (!rec.ok) return reply.status(500).send({ error: 'Gagal mencatat persetujuan: ' + rec.error })
+
+        /*
+          Bukan langkah terakhir → PO TETAP `draft`, belum terkirim ke vendor.
+
+          Ini inti gerbangnya: tanpa cabang ini, persetujuan level 1 saja
+          sudah mengirim PO ke vendor, dan level 2 tak pernah punya apa pun
+          untuk ditahan.
+        */
+        if (!decision.isFinalStep) {
+          const next = decision.applicable.find(s => s.level > decision.step!.level)
+          void logAuditEvent(request, {
+            tableName: 'purchase_orders', recordId: id, action: 'purchase_order.approval.level',
+            workflowId: idAlurPersetujuan(id),
+            actorId: request.currentUser!.id,
+            newValues: { level: decision.step.level, of: decision.applicable.length },
+            severity: 'critical',
+          })
+          return reply.send({
+            success: true,
+            pending_next_level: true,
+            message: `Persetujuan level ${decision.step.level} tercatat. `
+              + `Menunggu persetujuan level ${next?.level ?? '-'} sebelum PO dikirim ke vendor.`,
+          })
+        }
+      }
+    }
+
     const updates: Record<string, unknown> = { status }
     if (status === 'sent') updates.sent_at = new Date().toISOString()
 
-    // T4i: PO kategori C via project_id. Saringan di UPDATE-nya sendiri —
-    // nol baris terubah kalau bukan milik tenant, jadi 404 bukan "berhasil".
-    const { data, error } = await request.db!.unsafe('purchase_orders', 'disaring .in(project_id, ...) milik tenant ini').update(updates)
+    /*
+      T4i: PO kategori C via project_id. Saringan di UPDATE-nya sendiri —
+      nol baris terubah kalau bukan milik tenant, jadi 404 bukan "berhasil".
+
+      `status` lama ikut di WHERE untuk transisi `→ sent` (klaim atomik).
+      Tanpanya, dua permintaan bersamaan sama-sama berhasil dan PO terkirim
+      dua kali ke vendor — kelas cacat yang dijaga
+      `audit-klaim-status-atomik.mjs`. Hanya untuk `sent`, karena transisi
+      lain mencatat kenyataan yang sudah terjadi dan tak boleh gagal hanya
+      karena lomba.
+    */
+    let q = request.db!.unsafe('purchase_orders', 'disaring .in(project_id, ...) milik tenant ini').update(updates)
       .eq('id', id).in('project_id', await request.db!.projectIds())
-      .select('id, po_number, status').maybeSingle()
+    if (status === 'sent' && poLama) q = q.eq('status', poLama.status)
+
+    const { data, error } = await q.select('id, po_number, status').maybeSingle()
     if (error) return reply.status(500).send({ error: error.message })
+    if (!data && status === 'sent') {
+      return reply.status(409).send({
+        error: 'Status PO ini baru saja berubah dari tempat lain. Muat ulang halamannya.',
+      })
+    }
     return { purchase_order: data }
   })
 

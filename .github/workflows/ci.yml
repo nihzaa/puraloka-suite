@@ -449,6 +449,37 @@ jobs:
       - name: Alur otomasi tercatat di otomasi_jalan
         run: node scripts/audit-alur-tercatat.mjs
 
+      # Jalur UI di inbox approval wajib menunjuk halaman yang benar-benar ada.
+      #
+      # Ditemukan 2026-08-14 saat menambahkan `purchase_order` ke inbox:
+      # tebakan pertama saya (`/procurement/purchase-order`) SALAH — yang benar
+      # `/procurement/pesanan`. Sekalian diukur dua belas entri lain, dan EMPAT
+      # di antaranya menunjuk halaman yang tidak ada.
+      #
+      # `audit-inbox-lengkap.mjs` menjaga hal berbeda (tiap jenis approval
+      # punya entri, kolomnya nyata di schema) dan tak pernah memeriksa
+      # `jalurUi`. Akibatnya: approver membuka inbox, melihat dokumen yang
+      # menunggu keputusannya, menekan tautannya — dan mendarat di 404. Tak ada
+      # galat, tak ada yang merah, dokumennya tertahan tanpa seorang pun tahu
+      # sebabnya. Persis kerusakan yang inbox berusaha cegah, lewat pintu yang
+      # tak ia jaga.
+      #
+      # AMBANG NOL. Lahir sebagai ratchet (lantai 4), lalu keempat jalur buntu
+      # diperbaiki di commit yang sama begitu terukur:
+      #   /procurement/material-request → /procurement/permintaan
+      #   /kontrak/submittal            → /lapangan/submittal
+      #   /lessons-learned              → /mutu/pelajaran
+      #   /kontrak/change-order         → /proyek  (SEBAGIAN — CO tak punya
+      #                                   halaman sendiri, ia seksi di /proyek/[id])
+      #
+      # Rute dinamis `[id]` diterima — `/mandor/back-charge` hidup lewat segmen
+      # dinamis, dan pengukuran manual saya sempat salah menghitungnya buntu.
+      #
+      # Bukti merah: jalur PO dikembalikan ke tebakan yang salah → exit 1 →
+      # dipulihkan → exit 0.
+      - name: Jalur UI inbox menunjuk halaman nyata
+        run: node scripts/audit-inbox-jalur-nyata.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan

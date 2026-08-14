@@ -196,7 +196,26 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomPengaju: 'created_by',
     kolomDibuat: 'created_at',
     tenancy: 'C',
-    jalurUi: '/kontrak/change-order',
+    /*
+      `/proyek`, bukan `/kontrak/change-order` — halaman itu TIDAK ADA
+      (diukur 2026-08-14; ia salah satu dari empat jalur inbox buntu).
+
+      Change order tak punya halaman sendiri: ia `ChangeOrderSection` di dalam
+      `/proyek/[id]`. Menunjuk daftar proyek berarti approver masih harus
+      mencari proyeknya sendiri — itu **bukan perbaikan penuh**, hanya lebih
+      baik daripada 404.
+
+      Tidak dipaksakan ke `/proyek/[id]` karena `jalur_ui` dipakai APA ADANYA
+      oleh web (`approval-inbox/page.tsx:304` — `href={b.jalur_ui}`); tak ada
+      penyisipan id di mana pun, dan seluruh entri lain pun menunjuk halaman
+      DAFTAR. Menulis `:id` di sini akan menghasilkan tautan harfiah
+      `/proyek/:id` — 404 dengan bentuk berbeda.
+
+      Perbaikan sesungguhnya: halaman change order sendiri, atau penyisipan
+      id di sisi web. Keduanya di luar lingkup penyambungan approval PO, dan
+      dicatat di JOURNAL 2026-08-14 supaya tak hilang.
+    */
+    jalurUi: '/proyek',
   },
   {
     jenis: 'material_request',
@@ -209,7 +228,45 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomPengaju: 'requested_by',
     kolomDibuat: 'created_at',
     tenancy: 'C',
-    jalurUi: '/procurement/material-request',
+    jalurUi: '/procurement/permintaan',
+  },
+  {
+    /*
+      2026-08-14 — PO masuk inbox sesudah `purchase_order` diberi rantai
+      approval (migrasi 381). Sebelum itu PO tak punya approval sama sekali:
+      satu `procurement:po:manage` bisa mengirim PO nominal berapa pun ke
+      vendor, sementara kasbon Rp 1 juta lewat rantai.
+
+      Entri ini TIDAK ditambahkan karena saya ingat harus menambahkannya —
+      `audit-inbox-lengkap.mjs` yang memerahkan CI begitu rantainya terpasang.
+      Penjaga itu bekerja persis seperti seharusnya.
+
+      `statusMenunggu: ['draft']` — PO yang menunggu keputusan adalah yang
+      BELUM dikirim. `sent` berarti sudah di tangan vendor; menampilkannya
+      sebagai "menunggu persetujuan" akan menyuruh approver memutuskan hal
+      yang sudah terjadi.
+
+      Seluruh kolom di bawah diverifikasi ke `information_schema` sebelum
+      ditulis, bukan diingat — persis yang diperingatkan pesan penjaga itu:
+      nama status di repo ini tidak seragam antar modul, dan tebakan yang
+      salah membuat jenis ini masuk daftar "dilewati" (terlihat, tetapi tetap
+      tak terbaca).
+
+      `kolomNominal: 'total_amount'` — satu-satunya jenis pengadaan yang
+      ambang rupiahnya bermakna di inbox. MR tak punya nominal tersimpan;
+      PO punya, dan itu angka yang menentukan berapa level approval-nya.
+    */
+    jenis: 'purchase_order',
+    label: 'Purchase Order',
+    tabel: 'purchase_orders',
+    statusMenunggu: ['draft'],
+    kolomNominal: 'total_amount',
+    kolomJudul: 'notes',
+    kolomNomor: 'po_number',
+    kolomPengaju: 'created_by',
+    kolomDibuat: 'created_at',
+    tenancy: 'C',
+    jalurUi: '/procurement/pesanan',
   },
   {
     jenis: 'estimate_version',
@@ -241,7 +298,7 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomPengaju: 'diajukan_oleh',
     kolomDibuat: 'created_at',
     tenancy: 'C',
-    jalurUi: '/kontrak/submittal',
+    jalurUi: '/lapangan/submittal',
   },
   {
     jenis: 'lessons_learned',
@@ -258,7 +315,7 @@ export const SUMBER_INBOX: SumberInbox[] = [
     kolomPengaju: 'created_by',
     kolomDibuat: 'created_at',
     tenancy: 'C',
-    jalurUi: '/lessons-learned',
+    jalurUi: '/mutu/pelajaran',
   },
   {
     jenis: 'cuti_karyawan',

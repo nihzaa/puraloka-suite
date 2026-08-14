@@ -6,10 +6,40 @@ bawah entrinya.
 
 ---
 
-# 💰 R-016 · PO bisa dikirim ke vendor TANPA persetujuan — berapa ambangnya? (2026-08-14)
+# 💰 R-016 · PO bisa dikirim ke vendor TANPA persetujuan — DIKERJAKAN, angkanya lewat UI (2026-08-14)
 
-> **Ini butuh keputusan Anda, dan hanya Anda.** Bukan pilihan teknis —
-> ini kebijakan perusahaan tentang uang.
+> **✅ TIDAK ADA yang perlu Anda putuskan sekarang.**
+>
+> Entri ini semula berbunyi "menunggu keputusan founder soal ambang
+> nominal". Founder menjawab: *"kan semuanya data dummy, apa yg harus saya
+> putuskan?"* dan *"kalo nanti aja dan bisa dikonfig lewat ui lagi
+> gimana?"*
+>
+> **Keduanya benar, dan yang kedua lebih baik dari usulan saya.**
+>
+> Saya menaruh satu angka sebagai gerbang yang menghentikan pekerjaan,
+> padahal repo ini sudah memegang prinsip config-first: hal seperti ini
+> disimpan sebagai data yang bisa diubah lewat UI, bukan angka di kode.
+> Diukur sesudah founder bertanya, dan ketiganya mendukung:
+>
+> | | |
+> |---|---|
+> | halaman `pengaturan/approval` | sudah ada, **sudah bisa mengatur `min_amount`/`max_amount`** |
+> | daftar entitas di UI | dibaca dari basis, **tak dipaku di kode** |
+> | mesin approval | sudah dipanggil di `procurement.ts` — tapi baru untuk Material Request |
+>
+> Jadi yang kurang cuma **penyambungan rute PO ke mesin yang sudah ada di
+> berkas yang sama** — bukan sistem approval baru, dan bukan angka.
+>
+> **Yang dikerjakan:** rute PO disambungkan, `purchase_order` didaftarkan
+> dengan satu langkah longgar sebagai nilai awal supaya mekanismenya hidup
+> dan bisa diuji. Angkanya Anda atur lewat UI kapan pun, sambil melihat
+> bentuknya di layar — bukan menjawab pertanyaan abstrak tentang angka yang
+> belum ada wujudnya.
+>
+> Temuannya sendiri tetap berlaku dan dicatat di bawah, karena yang bolong
+> bukan datanya melainkan **aturannya** — dan aturan ikut terbawa saat
+> aplikasi ini dipakai perusahaan sungguhan.
 
 ## Yang ditemukan
 
@@ -43,26 +73,33 @@ mesinnya (`utils/approval.ts`) benar-benar memakainya. Begitu
 `purchase_order` didaftarkan sebagai rantai approval, fast-track lahir
 sendiri dari batas nominal. Tak ada kode baru yang perlu ditulis.
 
-## Yang saya butuhkan dari Anda — satu angka
+## Cara Anda mengaturnya nanti — tak perlu menyentuh kode
 
-**Berapa nominal PO yang boleh dikirim ke vendor tanpa persetujuan
-berjenjang?**
-
-Contoh bentuk jawabannya (angka bebas Anda tentukan):
+Buka **Pengaturan → Approval**, pilih `purchase_order`, atur langkahnya:
 
 | Nominal PO | Siapa yang menyetujui |
 |---|---|
-| di bawah Rp ??? | langsung, tanpa approval (fast-track) |
-| Rp ??? – Rp ??? | satu tingkat (mis. PM) |
-| di atas Rp ??? | dua tingkat (mis. PM + Direktur) |
+| di bawah batas yang Anda isi | langsung, tanpa approval (fast-track) |
+| di atas itu | satu tingkat, mis. PM |
+| di atas itu lagi | dua tingkat, mis. PM + Direktur |
 
-Kalau Anda ingin saya usulkan angka lebih dulu, katakan — tetapi saya tak
-mau menebaknya sendiri lalu memasangnya diam-diam. Angka yang salah di sini
-berarti PO besar lolos tanpa dilihat siapa pun, atau PO kecil tertahan
-sampai pekerjaan lapangan berhenti.
+Angkanya bebas dan bisa diubah kapan saja — ia data konfigurasi per-tenant,
+bukan konstanta di kode. Nilai awal yang dipasang sengaja **longgar**: satu
+langkah tanpa batas nominal, supaya mekanismenya hidup dan terlihat di
+layar tanpa menghentikan pekerjaan lapangan siapa pun.
 
-**Sampai Anda memutuskan, tak ada yang saya ubah pada jalur PO.** Temuannya
-dicatat; perbaikannya menunggu.
+Kalau Anda ingin saya usulkan angka, katakan — tetapi menebaknya sendiri
+lalu memasangnya diam-diam bukan pilihan: angka yang salah berarti PO besar
+lolos tanpa dilihat siapa pun, atau PO kecil tertahan sampai pekerjaan
+berhenti. Menaruhnya di UI membuat kesalahan itu bisa diperbaiki dalam
+hitungan detik, bukan lewat rilis.
+
+## Yang mengubah automation 4.6
+
+`4.6 PO Approval Fast-Track` tak lagi perlu dibangun sebagai fitur. Begitu
+`purchase_order` punya rantai berbatas nominal, fast-track **lahir sendiri**
+dari langkah dengan `max_amount` — itu memang bentuk yang sudah didukung
+mesinnya sejak awal.
 
 ---
 

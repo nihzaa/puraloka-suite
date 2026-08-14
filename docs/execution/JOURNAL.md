@@ -105,6 +105,147 @@ Bukti mutasi, disadap di lapisan `fetch`:
     penjaga dilepas : http://127.0.0.1:5680/webhook/teruskan-kasbon-diajukan
     penjaga aktif   : NOL — tertahan
 
+### PO akhirnya punya approval — dan founder yang mengoreksi cara saya menanganinya
+
+Saya menaruh satu angka (ambang nominal PO) sebagai **gerbang yang
+menghentikan pekerjaan**, lalu menulisnya di RATIFIKASI sebagai "menunggu
+keputusan founder". Founder menjawab dua kali, dan keduanya benar:
+
+> *"kan semuanya data dummy, apa yg harus saya putuskan?"*
+> *"kalo nanti aja dan bisa dikonfig lewat ui lagi gimana?"*
+
+Yang pertama koreksi yang **sudah pernah founder berikan sebelumnya** dan saya
+ulangi lagi. Yang kedua lebih baik daripada usulan saya sendiri.
+
+Diukur sesudah ditanya, dan ketiganya mendukung rencana founder:
+
+    halaman `pengaturan/approval` : sudah ada, sudah bisa mengatur min/max
+    daftar entitas di UI          : dibaca dari basis, TAK dipaku di kode
+    mesin approval                : sudah dipanggil di procurement.ts —
+                                    tapi baru untuk Material Request
+
+Jadi yang kurang cuma **penyambungan rute PO ke mesin yang sudah ada di berkas
+yang sama** — bukan sistem baru, dan bukan angka. Repo ini sudah memegang
+prinsip config-first; saya yang lupa menerapkannya pada temuan saya sendiri.
+
+**Pelajarannya:** "butuh keputusan founder" bukan alasan berhenti kalau
+mekanismenya bisa dipasang dengan nilai longgar dan angkanya diisi lewat UI.
+Berhenti menunggu satu angka membuat cacat yang sudah terukur menganggur.
+
+#### Yang dikerjakan
+
+* `purchase_order` masuk `ApprovalEntityType` — dengan alasan tertulis, pola
+  sama seperti 12 entitas lain.
+* Rute `→ sent` menyambung ke engine: gerbang kasar, evaluasi berjenjang,
+  jejak `approval_progress`, dan penahanan di level non-final (PO TETAP
+  `draft` sampai level terakhir).
+* Klaim atomik `.eq('status', poLama.status)` — hanya untuk `sent`. Tanpanya
+  dua permintaan bersamaan sama-sama berhasil dan PO terkirim DUA KALI ke
+  vendor; itu bukan cacat data, itu dua pesanan.
+* Migrasi 381: rantai per company, satu langkah, ambang NULL, permission sama
+  persis dengan gerbang lama → **perilaku hari ini tidak berubah**. Verifikasi
+  migrasinya bahkan MENOLAK ambang dipaku, supaya tak ada yang menyelundupkan
+  kebijakan lewat kode.
+
+`4.6 PO Approval Fast-Track` dengan sendirinya tak perlu dibangun: fast-track
+= satu langkah ber-`max_amount`, dan mesinnya sudah mendukung sejak awal.
+
+Bukti mutasi: `recordApproval` dicabut → test merah dengan pesan *"nol jejak
+persetujuan — rutenya TIDAK memanggil engine approval"* → dipulihkan → 5/5
+hijau, dan `procurement.test.ts` lama tetap 6/6 (perilaku tak berubah).
+
+#### Penjaga inbox menangkap saya, dan saya menemukan lubang di sebelahnya
+
+`audit-inbox-lengkap.mjs` **langsung merah** begitu rantai PO terpasang:
+*"'purchase_order' — punya rantai approval, TAPI tak muncul di inbox"*. Entri
+inbox ditambahkan bukan karena saya ingat, melainkan karena penjaganya bekerja.
+
+Pesannya memperingatkan: *verifikasi tiap kolom ke `information_schema`, jangan
+diingat*. Saya ikuti — dan tebakan `jalurUi` saya (`/procurement/purchase-order`)
+tetap SALAH; yang benar `/procurement/pesanan`.
+
+Sekalian diukur dua belas entri lain: **empat menunjuk halaman yang tidak
+ada** — `/kontrak/change-order`, `/procurement/material-request`,
+`/kontrak/submittal`, `/lessons-learned`.
+
+Approver membuka inbox, melihat dokumen yang menunggu keputusannya, menekan
+tautannya, dan mendarat di 404. Tak ada galat, tak ada yang merah di CI, dan
+dokumennya tertahan tanpa seorang pun tahu sebabnya — persis kerusakan yang
+inbox berusaha cegah, lewat pintu yang tak ia jaga.
+
+Dibuat `audit-inbox-jalur-nyata.mjs` (ratchet, lantai 4). Pengukuran manual
+saya sempat menyebut LIMA — `/mandor/back-charge` ternyata hidup lewat rute
+dinamis, dan penjaganya lebih teliti daripada `existsSync` per folder yang
+saya pakai di terminal.
+
+Bukti merah: jalur PO dikembalikan ke tebakan salah → exit 1 → dipulihkan →
+exit 0.
+
+#### Dua suite penuh, dua merah berbeda, keduanya BUKAN regresi
+
+Suite sesudah gerbang PO: `1 failed | 325 passed (326)` — berkas test PO baru
+ikut terhitung dan LULUS, dan `procurement.test.ts` lama tetap hijau.
+
+Merahnya `cost-map-saran`, dengan **`Test timed out in 30000ms`** — bukan
+assertion salah melainkan koneksi yang tak kunjung dilayani. Terisolasi 5/5
+hijau, nol kaitan dengan perubahan saya, dan test-nya dari commit lama.
+
+Tapi run itu punya SATU berkas test lebih banyak — milik saya. Jadi saya tak
+menyimpulkan "beban" lalu lanjut; saya jalankan suite sekali lagi.
+
+Run kedua: `cost-map-saran` **hijau**, tetapi `wa-template-rute` merah dengan
+gejala berbeda (500, bukan timeout). Dua run, dua berkas berbeda, satu merah
+masing-masing, keduanya lulus terisolasi. Itu ciri beban — regresi akan
+memerahkan berkas yang SAMA berulang.
+
+**Dugaan pertama saya salah, dan `vitest.config.ts` yang mengoreksinya.**
+Saya mengira 157 berkas test berebut `max_connections=60`. Padahal
+`fileParallelism: false` sudah dipasang sejak Task 1.3.1 — berkas berjalan
+berurutan, jadi tak ada rebutan.
+
+Yang benar sudah tertulis lengkap di config itu, termasuk kalimat ini:
+
+> *"Gejalanya menipu: 'Test timed out' terlihat seperti test/kode yang salah,
+> padahal tidak ada yang salah. Sudah tiga kali membuat CI merah di sesi
+> T3/T4, masing-masing menghabiskan satu siklus ~9 menit untuk didiagnosis
+> ulang."*
+
+Diukur sendiri: **20 ms per round-trip** ke Supabase pooler lintas jaringan,
+127 ms untuk satu `count()`. Test dengan puluhan query berturut menembus 30
+detik begitu jaringan sedikit melambat.
+
+Jadi ini kali KEEMPAT gejala yang sama didiagnosis ulang — dan tiga catatan
+sebelumnya sudah ada di tempat yang benar. Yang kurang bukan catatannya
+melainkan saya membacanya lebih dulu.
+
+#### Keempat jalur buntu DIPERBAIKI — lantai 4 → 0
+
+Penjaga lahir sebagai ratchet supaya utang lama tak memerahkan CI. Tetapi
+begitu ada penjaganya, memperbaiki keempatnya ternyata cuma soal MENGUKUR
+nama halaman yang benar — semuanya sudah ada, cuma bernama Indonesia:
+
+    /procurement/material-request → /procurement/permintaan   (29 rujukan MR)
+    /kontrak/submittal            → /lapangan/submittal       (27 rujukan)
+    /lessons-learned              → /mutu/pelajaran           (5 rujukan)
+
+Ketiganya diverifikasi benar-benar MELAYANI jenis dokumennya, bukan sekadar
+halaman yang kebetulan ada.
+
+`change_order` beda: ia **tak punya halaman sendiri** — `ChangeOrderSection`
+di dalam `/proyek/[id]`. Diarahkan ke `/proyek`, dan itu **perbaikan sebagian**
+yang saya tulis apa adanya di katalog: approver masih harus mencari proyeknya
+sendiri. Tidak dipaksakan ke `/proyek/[id]` karena web memakai `jalur_ui` apa
+adanya (`href={b.jalur_ui}`, tanpa penyisipan id) — menulis `:id` di sana
+menghasilkan tautan harfiah `/proyek/:id`, yaitu 404 dengan bentuk berbeda.
+
+Lantainya turun 4 → 0, jadi sekarang **ambang nol**. Bukti merah diulang di
+ambang baru: satu jalur dikembalikan ke yang buntu → exit 1 → dipulihkan →
+exit 0.
+
+**Yang menarik dari urutannya:** empat tautan buntu itu sudah ada entah sejak
+kapan, tak seorang pun melihatnya, dan memperbaikinya memakan waktu beberapa
+menit. Yang mahal bukan perbaikannya — melainkan tak adanya yang mengukur.
+
 ### Dua workflow "sisa" — satu sudah ada, satu menyingkap celah yang lebih besar
 
 Founder bertanya "lanjut ke mana", dan jawaban saya adalah dua automation

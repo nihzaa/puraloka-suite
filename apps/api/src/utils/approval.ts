@@ -70,6 +70,34 @@ export type ApprovalEntityType =
                         // diajukan: yang menjadi kewajiban perusahaan adalah
                         // yang disepakati, dan ambang rantai harus dinilai
                         // dari angka itu.
+  | 'purchase_order'    // 2026-08-14 — pengiriman PO ke vendor.
+                        //
+                        // Masuk engine ini karena `draft → sent` adalah
+                        // satu-satunya transisi PO yang MENGIKAT KE LUAR:
+                        // sesudahnya vendor sudah menerima pesanan, dan
+                        // membatalkannya bukan lagi urusan basis data
+                        // melainkan urusan hubungan dagang.
+                        //
+                        // Sebelum ini PO sama sekali TIDAK punya approval —
+                        // satu `procurement:po:manage` bisa mengirim PO
+                        // nominal berapa pun (terbesar di basis dev:
+                        // Rp 40.200.000), sementara kasbon Rp 1 juta lewat
+                        // rantai. Ketimpangan itu ditemukan saat mengukur
+                        // prasyarat automation 4.6, bukan dari laporan galat:
+                        // jalur ini tak pernah gagal, ia cuma tak pernah
+                        // bertanya.
+                        //
+                        // Nominalnya `total_amount` — tersimpan di barisnya,
+                        // tak dihitung ulang dari item (beda dengan
+                        // `material_request` yang belum punya nominal
+                        // tersimpan). Dua sumber untuk satu angka adalah cara
+                        // paling sunyi membuat ambang approval meleset.
+                        //
+                        // Ambangnya sendiri NULL di seed (migrasi 381) —
+                        // memilih angkanya kebijakan tenant, diisi lewat
+                        // Pengaturan → Approval. Automation 4.6 (fast-track
+                        // PO kecil) lahir sendiri dari langkah ber-`max_amount`;
+                        // tak ada fitur terpisah yang perlu ditulis.
 
 /**
  * Ambil langkah rantai aktif untuk sebuah entitas — MILIK COMPANY INI.
