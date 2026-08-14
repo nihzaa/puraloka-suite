@@ -617,7 +617,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     // T4i: MR kategori C via project_id — tanpa saringan ini, tenant A men-submit
     // permintaan material tenant B (dan memicu notifikasi ke approver mereka).
     const idProyekMr = await request.db!.projectIds()
-    const { data: mr } = await supabase.from('material_requests')
+    const { data: mr } = await request.db!.unsafe('material_requests', 'disaring .in(project_id, ...) milik tenant ini')
       .select('id, status, mr_number, project_id, project:projects(name)')
       .eq('id', id).in('project_id', idProyekMr).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
@@ -675,7 +675,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
       })
     }
 
-    const { error } = await supabase.from('material_requests')
+    const { error } = await request.db!.unsafe('material_requests', 'disaring .in(project_id, ...) milik tenant ini')
       .update({ status: 'submitted' }).eq('id', id).in('project_id', idProyekMr)
     if (error) return reply.status(500).send({ error: error.message })
 
@@ -722,7 +722,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
     // T4i: saringan tenant dipasang di fetch INI — yang sudah berada SETELAH
     // gerbang 403 di atas, jadi urutan 403-sebelum-404 tetap terjaga.
-    const { data: mr } = await supabase.from('material_requests')
+    const { data: mr } = await request.db!.unsafe('material_requests', 'disaring .in(project_id, ...) milik tenant ini')
       .select('id, status, requested_by, mr_number')
       .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
@@ -935,7 +935,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
 
     // T4i: PO kategori C via project_id. Saringan di UPDATE-nya sendiri —
     // nol baris terubah kalau bukan milik tenant, jadi 404 bukan "berhasil".
-    const { data, error } = await supabase.from('purchase_orders').update(updates)
+    const { data, error } = await request.db!.unsafe('purchase_orders', 'disaring .in(project_id, ...) milik tenant ini').update(updates)
       .eq('id', id).in('project_id', await request.db!.projectIds())
       .select('id, po_number, status').maybeSingle()
     if (error) return reply.status(500).send({ error: error.message })
@@ -991,7 +991,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     // T4i: GR mewarisi project_id & supplier_id DARI PO. Tanpa saringan, tenant
     // A mencatat penerimaan barang atas PO tenant B — dan barisnya lahir
     // memakai project/supplier milik B.
-    const { data: po } = await supabase.from('purchase_orders')
+    const { data: po } = await request.db!.unsafe('purchase_orders', 'disaring .in(project_id, ...) milik tenant ini')
       .select('id, project_id, supplier_id, status')
       .eq('id', body.po_id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!po) return reply.status(404).send({ error: 'PO tidak ditemukan' })
@@ -1076,7 +1076,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     // T4i: konfirmasi GR memicu trigger penambahan STOK + auto-create
     // supplier_invoice. Tanpa saringan, tenant A menambah stok & hutang di
     // pembukuan tenant B.
-    const { data: gr } = await supabase.from('goods_receipts')
+    const { data: gr } = await request.db!.unsafe('goods_receipts', 'disaring .in(project_id, ...) milik tenant ini')
       .select('id, status, po_id, supplier_id')
       .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!gr) return reply.status(404).send({ error: 'GR tidak ditemukan' })
@@ -1591,7 +1591,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
     // T4i: MR kategori C — saringan di fetch; aksi di bawah memakai `id`
     // yang sudah terbukti milik tenant.
-    const { data: mr } = await supabase.from('material_requests').select('id, status, requested_by')
+    const { data: mr } = await request.db!.unsafe('material_requests', 'disaring .in(project_id, ...) milik tenant ini').select('id, status, requested_by')
       .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     if (mr.status !== 'draft') return reply.status(400).send({ error: 'Hanya MR draft yang bisa dihapus' })
@@ -1611,7 +1611,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const { id } = request.params as { id: string }
     // T4i: MR kategori C — saringan di fetch; aksi di bawah memakai `id`
     // yang sudah terbukti milik tenant.
-    const { data: mr } = await supabase.from('material_requests').select('id, status')
+    const { data: mr } = await request.db!.unsafe('material_requests', 'disaring .in(project_id, ...) milik tenant ini').select('id, status')
       .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     if (mr.status !== 'draft') return reply.status(400).send({ error: 'Hanya MR draft yang bisa ditambah item' })
@@ -1633,7 +1633,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const { id, itemId } = request.params as { id: string; itemId: string }
     // T4i: MR kategori C — saringan di fetch; aksi di bawah memakai `id`
     // yang sudah terbukti milik tenant.
-    const { data: mr } = await supabase.from('material_requests').select('id, status')
+    const { data: mr } = await request.db!.unsafe('material_requests', 'disaring .in(project_id, ...) milik tenant ini').select('id, status')
       .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!mr) return reply.status(404).send({ error: 'MR tidak ditemukan' })
     if (mr.status !== 'draft') return reply.status(400).send({ error: 'Hanya item MR draft yang bisa dihapus' })
@@ -1650,7 +1650,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
     const { notes } = (request.body ?? {}) as { notes?: string }
     // T4i: PO kategori C. Membatalkan PO tenant lain juga me-revert status MR
     // mereka — satu aksi, dua tabel tercemar.
-    const { data: po } = await supabase.from('purchase_orders').select('id, status, mr_id')
+    const { data: po } = await request.db!.unsafe('purchase_orders', 'disaring .in(project_id, ...) milik tenant ini').select('id, status, mr_id')
       .eq('id', id).in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!po) return reply.status(404).send({ error: 'PO tidak ditemukan' })
     if (['fully_received', 'cancelled'].includes(po.status)) return reply.status(400).send({ error: `PO dengan status ${po.status} tidak bisa dibatalkan` })
@@ -1708,12 +1708,12 @@ export default async function procurementRoutes(app: FastifyInstance) {
     // ini, dan peringatan stok mencampur seluruh perusahaan.
     const idProyekDash = await request.db!.projectIds()
     const [mrRes, poRes, invRes, stockRes] = await Promise.all([
-      supabase.from('material_requests').select('id, status')
+      request.db!.unsafe('material_requests', 'disaring .in(project_id, ...) milik tenant ini').select('id, status')
         .in('project_id', idProyekDash).in('status', ['draft', 'submitted']),
-      supabase.from('purchase_orders').select('id, status, total_amount, order_date')
+      request.db!.unsafe('purchase_orders', 'disaring .in(project_id, ...) milik tenant ini').select('id, status, total_amount, order_date')
         .in('project_id', idProyekDash).gte('order_date', startOfMonth),
       request.db!.from('supplier_invoices').select('id, due_date, amount_due, status').neq('status', 'paid'),
-      supabase.from('project_stocks').select('id, qty_on_hand, material:materials(min_stock)')
+      request.db!.unsafe('project_stocks', 'disaring .in(project_id, ...) milik tenant ini').select('id, qty_on_hand, material:materials(min_stock)')
         .in('project_id', idProyekDash).not('material', 'is', null),
     ])
 

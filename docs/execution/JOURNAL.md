@@ -5,6 +5,71 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan 4) — ratchet tenancy 380 → 343, dan satu lubang tenancy nyata
+
+Prioritas 2: ratchet `akses supabase mentah` yang membuat CI merah. Founder
+mencoret `SCHEDULER_URL` dari daftar — benar, ia tak berguna sebelum deploy.
+
+### Bukan utang saya, tapi tetap merah bagi siapa pun berikutnya
+
+Diukur `git stash`: **380 lawan ambang 366 di HEAD bersih**, sebelum sesi ini
+menyentuh apa pun. Utang sesi lain — dan CI tetap merah bagi orang berikutnya
+yang datang, jadi dikerjakan.
+
+### 37 akses dipindahkan, 41 SENGAJA dilewati
+
+Skrip konversi hanya menyentuh baris yang tenancy-nya **sudah terbukti** di 6
+baris sekitarnya: `.in('project_id', idProyek)`, `.in('assignment_id',
+assignmentIds())`, `.eq('company_id', …)`. Yang buktinya tak jelas dilewati
+dan dilaporkan, supaya keputusannya diambil manusia.
+
+Bukan kehati-hatian berlebihan: salah kategori di gerbang tenancy diam-diam
+mengembalikan data tenant lain, dan itu kelas cacat termahal di repo ini.
+Sapuan regex buta persis cara membuatnya.
+
+`tsc` menangkap dua kekeliruan sapuan (`request` vs `_request` di handler
+ber-parameter bergaris bawah) — dan itu memang gunanya.
+
+Hasil: **380 → 343**. Ambang DITURUNKAN 366 → 345, dua di atas kenyataan
+supaya satu konversi wajar tak langsung memerahkan CI orang lain. Tripwire
+R-011 (yang melarang ambang DINAIKKAN) tetap hijau — arahnya memang turun.
+
+### Lubang tenancy nyata yang ikut ketahuan
+
+`f2-3-batch3-tenancy-turunan` juga sudah merah sebelum sesi ini, dan isinya
+bukan soal gaya penulisan:
+
+    klaim_perjalanan_item · SELECT · has_permission('klaim:view')
+    opname_bersama_item   · SELECT · has_permission('mandor:view')
+
+Keduanya memeriksa **izin**, tak satu pun memeriksa **tenant**. RLS aktif,
+policy ada — jadi tak ada yang terlihat salah — tetapi orang berizin
+`klaim:view` di PT A dapat membaca klaim perjalanan PT B. Tabel kategori C tak
+punya `company_id` sendiri, jadi policy adalah SATU-SATUNYA yang menahan.
+
+Migrasi 371 menambah policy **RESTRICTIVE** (digabung AND, bukan OR seperti
+PERMISSIVE — menambah policy permissive kedua justru MELONGGARKAN). Policy
+izin yang lama sengaja dipertahankan dan diverifikasi masih ada: yang ditambah
+lapis tenant, bukan pengganti lapis izin.
+
+### Bukti
+
+```
+tsc (api)                       EXIT 0
+akses supabase mentah           380 → 343 (ambang diturunkan 366 → 345)
+tenancy-ratchet                 5/5 HIJAU (termasuk tripwire R-011)
+f2-3-batch3-tenancy-turunan     HIJAU (sebelumnya MERAH)
+migrasi 371                     tercatat di schema_migrations
+vitest finance+procurement+mandor+tenancy  49/50 → 50/50 HIJAU
+7 penjaga arsitektural          HIJAU
+```
+
+⚠ `no-explicit-any` 231 vs ambang 224 masih merah. Diukur identik sebelum dan
+sesudah lewat `git stash` — utang lama, tersebar di kode yang tak saya sentuh
+(mandor 66, reports 47, dashboard 26). Ambang TIDAK dinaikkan (G-5).
+
+---
+
 ## 2026-08-14 (lanjutan 3) — jalur peristiwa hidup: 13/14 alur, rantai penuh terbukti
 
 Prioritas 1 dari rencana kemarin: enam alur berpemicu webhook yang tak pernah

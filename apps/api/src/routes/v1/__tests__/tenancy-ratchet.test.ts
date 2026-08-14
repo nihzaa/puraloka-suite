@@ -151,7 +151,22 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
 //   2. Seluruh repo disapu mencari query mentah pada tabel kategori B yang
 //      bisa dialihkan ke `request.db` sebagai penebus: hasilnya NOL. Hutang
 //      kategori B sudah bersih; yang tersisa memang kategori C yang sah.
-const AMBANG_SUPABASE_MENTAH = 366
+// 366 → 345 (2026-08-14). DITURUNKAN, bukan dinaikkan — arah yang memang
+// dituntut ratchet, dan yang R-011 lindungi dari kebalikannya.
+//
+// Sebelum sesi ini angkanya 380 lawan ambang 366: ratchet MERAH, dan sudah
+// merah di HEAD bersih (dibuktikan `git stash`). Utang sesi lain, tapi CI
+// tetap merah bagi siapa pun yang datang berikutnya.
+//
+// 37 akses dipindahkan ke wrapper `request.db`. Yang dipindah HANYA yang
+// tenancy-nya sudah TERBUKTI di baris sekitarnya — `.in('project_id',
+// idProyek)`, `.in('assignment_id', assignmentIds())`, `.eq('company_id', …)`.
+// Sisanya sengaja dibiarkan: 41 tempat dilewati skrip konversi karena buktinya
+// tak jelas, dan menebak di gerbang tenancy adalah cara termahal untuk salah.
+//
+// Angka nyata sesudahnya: 343. Ambang disetel 345 — dua di atas kenyataan,
+// bukan pas, supaya satu konversi wajar tak langsung memerahkan CI orang lain.
+const AMBANG_SUPABASE_MENTAH = 345
 
 /**
  * TRIPWIRE R-011 — kenaikan BERIKUTNYA ditolak, dan penjaganya sendiri yang

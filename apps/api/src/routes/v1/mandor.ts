@@ -849,7 +849,12 @@ export default async function mandorRoutes(app: FastifyInstance) {
       // teknisnya gagal masuk dan kegagalannya dibuang, item tampil tanpa spek
       // — dan orang di lapangan mengerjakannya tanpa ukuran, mutu, atau
       // toleransi yang sudah disepakati.
-      const { error: specErr } = await supabase.from('work_scope_item_specs').insert(
+      // `work_scope_item_specs` kategori C lewat `item_id` (bukan project_id),
+      // jadi `viaProject` tak berlaku. `item.id` baru saja dibuat pada baris di
+      // atas lewat jalur yang sudah ber-gerbang, jadi ia pasti milik tenant ini.
+      const { error: specErr } = await request.db!
+        .unsafe('work_scope_item_specs', 'item_id baru dibuat di baris atas lewat jalur ber-gerbang')
+        .insert(
         body.specs.map((s, i) => ({ item_id: item.id, spec_key: s.spec_key, spec_value: s.spec_value, sort_order: s.sort_order ?? i }))
       )
       if (specErr) {
@@ -1012,7 +1017,14 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: 'Akses ditolak: item bukan milik Anda' })
     }
 
-    const { error } = await supabase.from('work_scope_items').delete().eq('id', id)
+    // `viaProject`, bukan `supabase` mentah. `work_scope_items` kategori C —
+    // tenancy-nya diwarisi lewat project, dan `ownership.project_id` sudah
+    // diresolusi di atas. Gerbang peran di atas memeriksa PEMILIK; ini
+    // memeriksa TENANT. Keduanya perlu: pm milik tenant lain yang kebetulan
+    // ber-id sama tak boleh lolos hanya karena perbandingan id-nya cocok.
+    const { error } = await request.db!
+      .viaProject('work_scope_items', ownership.project_id)
+      .delete().eq('id', id)
     if (error) return reply.status(500).send({ error: error.message })
     return reply.status(204).send()
   })
@@ -1107,8 +1119,14 @@ export default async function mandorRoutes(app: FastifyInstance) {
 
     const idProyekProfil = await request.db!.projectIds()
     const [mandorRes, assignmentsRes, kasbonsRes] = await Promise.all([
-      supabase.from('users').select('id, name, phone, email, role_id, roles:role_id ( name ), is_active').eq('id', mandor_id).single(),
-      supabase.from('mandor_assignments')
+      // `users` kategori D (identitas lintas-tenant). Keanggotaannya di company
+      // ini SUDAH diperiksa `anggotaMandor` di atas — tanpa itu, id mandor dari
+      // tenant lain akan mengembalikan namanya.
+      request.db!.unsafe('users', 'identitas mandor; keanggotaan company sudah diperiksa di atas')
+        .select('id, name, phone, email, role_id, roles:role_id ( name ), is_active').eq('id', mandor_id).single(),
+      // Sudah tersaring `.in('project_id', idProyekProfil)` di bawah — wrapper
+      // membuat saringan itu WAJIB, bukan sekadar kebetulan diingat.
+      request.db!.unsafe('mandor_assignments', 'disaring .in(project_id, idProyekProfil) di bawah')
         .select(`
           id, assigned_at,
           project:projects(id, name, location),
@@ -1117,7 +1135,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
         .eq('mandor_id', mandor_id)
         .in('project_id', idProyekProfil)   // T4j
         .eq('status', 'active'),
-      supabase.from('worker_kasbons')
+      request.db!.unsafe('worker_kasbons', 'disaring .in(project_id, idProyekProfil) di bawah')
         .select('id, amount, amount_settled, purpose, kasbon_date, worker:workers(id, name), project:projects(id, name)')
         .eq('mandor_id', mandor_id)
         .in('project_id', idProyekProfil)   // T4j
@@ -1134,19 +1152,21 @@ export default async function mandorRoutes(app: FastifyInstance) {
     // KPI + scope budget — semua paralel
     const [paidRes, workerRes, scopeWagesRes, reportsRes, registeredRes] = await Promise.all([
       assignmentIds.length > 0
-        ? supabase.from('weekly_wage_reports').select('net_amount').in('assignment_id', assignmentIds).in('status', ['approved', 'paid'])
+        ? request.db!.unsafe('weekly_wage_reports', 'disaring .in(assignment_id, assignmentIds) milik tenant ini')
+            .select('net_amount').in('assignment_id', assignmentIds).in('status', ['approved', 'paid'])
         : Promise.resolve({ data: [] }),
       assignmentIds.length > 0
-        ? supabase.from('wage_items')
+        ? request.db!.unsafe('wage_items', 'disaring lewat weekly_wage_reports.assignment_id milik tenant ini')
             .select('worker_name, report:weekly_wage_reports!inner(assignment_id, week_start)')
             .in('weekly_wage_reports.assignment_id', assignmentIds)
             .gte('weekly_wage_reports.week_start', new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0])
         : Promise.resolve({ data: [] }),
       scopeIds.length > 0
-        ? supabase.from('weekly_wage_reports').select('scope_id, net_amount').in('scope_id', scopeIds).in('status', ['approved', 'paid'])
+        ? request.db!.unsafe('weekly_wage_reports', 'disaring .in(scope_id, scopeIds) milik tenant ini')
+            .select('scope_id, net_amount').in('scope_id', scopeIds).in('status', ['approved', 'paid'])
         : Promise.resolve({ data: [] }),
       assignmentIds.length > 0
-        ? supabase.from('weekly_wage_reports')
+        ? request.db!.unsafe('weekly_wage_reports', 'disaring .in(assignment_id, assignmentIds) milik tenant ini')
             .select('id, week_start, week_end, status, net_amount, payment_method, paid_at, scope:work_scopes(id, scope_name), assignment:mandor_assignments(project:projects(id, name))')
             .in('assignment_id', assignmentIds)
             .order('week_start', { ascending: false })
@@ -1573,7 +1593,12 @@ export default async function mandorRoutes(app: FastifyInstance) {
       return reply.status(409).send({ error: 'Laporan yang sudah approved/paid tidak bisa dihapus' })
     }
 
-    const { error } = await supabase.from('weekly_wage_reports').delete().eq('id', id)
+    // Kepemilikan sudah dipastikan `existing` di atas (disaring
+    // `.in('assignment_id', assignmentIds())`), jadi id ini terbukti milik
+    // tenant ini. Wrapper dipakai supaya penjaga ratchet melihatnya juga.
+    const { error } = await request.db!
+      .unsafe('weekly_wage_reports', 'id sudah diverifikasi milik tenant lewat assignmentIds di atas')
+      .delete().eq('id', id)
     if (error) return reply.status(500).send({ error: error.message })
     return reply.status(204).send()
   })

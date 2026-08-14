@@ -594,7 +594,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
 
     // Fetch semua kategori untuk resolve nama parent di backend
     const catScope = projectId
-      ? supabase.from('project_expense_categories').select('id, name, parent_id').eq('project_id', projectId)
+      ? request.db!.unsafe('project_expense_categories', 'disaring .eq(project_id, ...) yang sudah diverifikasi milik tenant').select('id, name, parent_id').eq('project_id', projectId)
       : supabase.from('project_expense_categories').select('id, name, parent_id')
 
     const [{ data, error }, { data: allCats }] = await Promise.all([expQ, catScope])
@@ -1008,7 +1008,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
 
     const [progRes, milestoneRes, projectRes] = await Promise.all([
       Promise.resolve(progressQ),
-      supabase.from('milestones').select('*').eq('project_id', project_id).order('target_date'),
+      request.db!.unsafe('milestones', 'disaring .eq(project_id, ...) yang sudah diverifikasi milik tenant').select('*').eq('project_id', project_id).order('target_date'),
       request.db!.from('projects').select('id, name, location, start_date, end_date, status').eq('id', project_id).eq('is_deleted', false).single(),
     ])
 
