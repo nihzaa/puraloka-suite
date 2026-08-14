@@ -5,6 +5,74 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan 7) — 21 lubang tenancy: sembilan bolong, dua tak berfungsi, sepuluh lambat
+
+Suite penuh dijalankan utuh (bukan subset), dan 21 berkas merah dibaca satu
+per satu alih-alih diringkas jadi "utang lama". Tiga kelas cacat berbeda
+ketemu — semuanya RLS, semuanya tak bergejala.
+
+### 1. Sembilan tabel B: policy IZIN ada, policy TENANT tidak (373)
+
+    back_charge · custom_field_def · custom_field_nilai · klaim_perjalanan
+    kontrak · opname_bersama · serah_terima · sod_override
+    surat_perintah_kerja
+
+Kesembilannya `company_id NOT NULL`, RLS aktif, dua policy — jadi sekilas
+terjaga. Tetapi kedua policy memeriksa `has_permission(...)`, bukan tenant.
+Orang berizin `kontrak:view` di PT A dapat membaca kontrak PT B.
+
+Ironinya tajam: migrasi 371 (beberapa jam sebelumnya) sudah memasang penyaring
+tenant pada `klaim_perjalanan_item` — ANAKNYA — sementara `klaim_perjalanan`
+sendiri tetap terbuka. **Anak terjaga lewat induk yang tak terjaga.**
+
+### 2. Dua policy yang ADA tapi TIDAK MENAHAN (374)
+
+`cbs_templates` dan `cbs_nodes` sudah punya `tenant_isolation`, dan syaratnya
+BENAR untuk kategori AB. Yang salah sifatnya: **PERMISSIVE**.
+
+Policy permissive digabung **OR**. Jadi baris yang lolos `cbs_nodes_read`
+(izin saja) sudah cukup — syarat tenant tak pernah perlu dipenuhi.
+
+Ini yang paling sulit dilihat dari ketiganya: membaca `pg_policies` tak
+menunjukkan apa-apa kecuali kolom `permissive` diperhatikan.
+
+Yang diubah HANYA sifatnya. Cabang `company_id IS NULL` dipertahankan —
+membuangnya akan menyembunyikan seluruh template CBS bawaan dari setiap
+tenant, kerusakan fitur yang menyamar sebagai perbaikan keamanan.
+
+### 3. Sepuluh policy memanggil helper SEKALI PER BARIS (375)
+
+`has_permission('x')` telanjang dievaluasi tiap baris; dibungkus
+`(SELECT ...)` ia jadi InitPlan — sekali per kueri. Migrasi 132 mencatat
+angkanya: 5 ms dan 2 ms sesudah dibungkus.
+
+Kesepuluhnya lahir SESUDAH 132 membersihkan gelombang pertama.
+`rls-initplan.test.ts` sudah menjaganya dan memang MERAH — tapi merahnya
+tenggelam di antara 76 test merah lain.
+
+**Itu sendiri pelajaran:** penjaga yang merah bersama puluhan lain berhenti
+menjadi penjaga. Yang menahannya hari ini bukan penjaganya, melainkan
+keputusan membaca satu per satu apa yang merah.
+
+### Yang TIDAK dikerjakan, dan kenapa
+
+`tarif-payroll-endpoint` 7 merah: test-nya bentrok dengan data seed NYATA
+(PMK 101/2016, PP 84/2013, PP 58/2023) karena memakai `berlaku_sejak` yang
+sama. Cacat FIXTURE, bukan cacat kode produksi — dan memperbaikinya berarti
+menyunting test orang lain di luar lingkup. Dicatat, tidak ditambal.
+
+### Bukti
+
+```
+migrasi 373, 374, 375       tercatat di schema_migrations
+t5a-policy-tenant           2 merah → 7/7 HIJAU
+rls-initplan                MERAH → HIJAU
+t7-exit-criteria-l2         MERAH → HIJAU
+policy helper telanjang     10 → 0 (diukur langsung ke pg_policies)
+```
+
+---
+
 ## 2026-08-14 (lanjutan 6) — cacat SAYA yang menolak semua izin, ketahuan dari 9 test
 
 Sesudah kedua ratchet lint hijau, `recycle-bin-endpoint` masih 9 merah. Saya
