@@ -59,6 +59,22 @@ find apps/web/app -name 'page.tsx' | wc -l
 cd apps/api && npx vitest run          # tempel ringkasannya, jangan diklaim
 ```
 
+**Otomasi mana yang hidup** — jangan dibaca dari katalog, UKUR:
+
+```bash
+cd apps/api && node -r dotenv/config scripts/lapor-otomasi-hidup.mjs
+```
+
+Kolom `N/N/L/O` di `06-agentic-ai-and-automation-architecture.md` adalah
+**prioritas** (Now/Next/Later/Optional), **bukan status pengerjaan** — tujuh
+automation yang sudah hidup semuanya masih tertulis `Next` di sana. Salah baca
+ini memakan biaya dua kali pada 2026-08-14: sekali melapor angka yang salah ke
+founder, sekali nyaris membangun ulang automation 3.5 yang sudah ada.
+
+Skrip itu juga memisahkan dua hal yang mudah tertukar: **"aktif" bukan berarti
+"pernah jalan"**. Diukur 2026-08-14 — 11 alur aktif, 8 di antaranya nol
+eksekusi seumur hidup.
+
 **Aturan mengikat:** angka schema apa pun yang masuk dokumen HARUS berasal dari
 `scripts/db/introspect.mjs`. Skrip sekali-pakai dilarang jadi sumber angka —
 alasannya (dan kisah galat `ENOTFOUND base`) ada di header `scripts/db/_koneksi.mjs`.
@@ -165,6 +181,12 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-kredensial-tak-bocor.mjs` | nilai kredensial tak pernah keluar server (ambang NOL) |
 | `audit-jadwal-punya-pembaca.mjs` | kolom jadwal wajib punya pembaca — L-4 (ambang NOL) |
 | `audit-tugas-punya-rute.mjs` | tugas terjadwal wajib menunjuk rute yang TERDAFTAR (ambang NOL) |
+| `audit-baca-tak-terpotong.mjs` | baca tabel penuh tak boleh terpotong senyap di 1.000 baris PostgREST (ambang NOL, peringatan di 800) |
+| `audit-saluran-keluar-berpagar.mjs` | modul ber-`fetch` wajib berpagar `NODE_ENV==='test'` — test tak boleh mengirim WA/tagihan sungguhan (ambang NOL) |
+| `audit-alur-tercatat.mjs` | webhook n8n wajib lewat `jalankanAlur()` — eksekusi tak boleh luput dari `otomasi_jalan` (ambang NOL) |
+| `audit-notifikasi-tak-kembar.mjs` | dedup notifikasi harian wajib menahan — kembar HARI INI (ambang NOL) |
+| `audit-izin-tanpa-konteks.mjs` | fungsi izin tak boleh kosong saat `auth_company_id()` NULL (ambang NOL) |
+| `audit-peristiwa-punya-alur.mjs` | tiap peristiwa yang diterbitkan wajib punya alur n8n penerima (ambang NOL) |
 | `uji-token-css-ada.mjs` | `var(--token)` yang dipakai wajib ada di globals.css (ambang NOL) |
 | `uji-judul-halaman-ada.mjs` | tiap halaman dashboard wajib punya `<h1>` (ambang NOL) |
 | `uji-tabel-seragam.mjs` | sel tabel memakai token padding, bukan angka dipaku (ratchet) |

@@ -6,6 +6,66 @@ bawah entrinya.
 
 ---
 
+# 💰 R-016 · PO bisa dikirim ke vendor TANPA persetujuan — berapa ambangnya? (2026-08-14)
+
+> **Ini butuh keputusan Anda, dan hanya Anda.** Bukan pilihan teknis —
+> ini kebijakan perusahaan tentang uang.
+
+## Yang ditemukan
+
+Saya hendak membangun automation 4.6 (*fast-track approval PO kecil*), lalu
+mengukur dulu apa yang sudah ada. Yang ditemukan lebih besar daripada
+automation-nya:
+
+```
+entitas yang punya rantai approval : 12  (kasbon, MR, change order, cuti, …)
+purchase_order                     : TIDAK ADA
+gerbang PO hari ini                : satu permission `procurement:po:manage`
+PO terbesar di basis               : Rp 40.200.000
+```
+
+**Artinya:** siapa pun yang punya izin kelola PO bisa memindahkan PO nominal
+berapa pun langsung ke status `sent` — terkirim ke vendor — tanpa satu pun
+persetujuan, tanpa batas nominal, tanpa jejak approval.
+
+Bandingkan dengan kasbon: pengajuan Rp 1 juta pun lewat rantai persetujuan.
+PO Rp 40 juta tidak.
+
+## Kenapa 4.6 tak bisa dibangun di atas ini
+
+Fast-track berarti *"PO kecil lewat jalur cepat, PO besar lewat approval
+penuh"*. Tak ada jalur lambat untuk dipercepat — semuanya sudah cepat.
+
+## Kabar baiknya: ini konfigurasi, bukan fitur baru
+
+`approval_steps` **sudah punya** kolom `min_amount` dan `max_amount`, dan
+mesinnya (`utils/approval.ts`) benar-benar memakainya. Begitu
+`purchase_order` didaftarkan sebagai rantai approval, fast-track lahir
+sendiri dari batas nominal. Tak ada kode baru yang perlu ditulis.
+
+## Yang saya butuhkan dari Anda — satu angka
+
+**Berapa nominal PO yang boleh dikirim ke vendor tanpa persetujuan
+berjenjang?**
+
+Contoh bentuk jawabannya (angka bebas Anda tentukan):
+
+| Nominal PO | Siapa yang menyetujui |
+|---|---|
+| di bawah Rp ??? | langsung, tanpa approval (fast-track) |
+| Rp ??? – Rp ??? | satu tingkat (mis. PM) |
+| di atas Rp ??? | dua tingkat (mis. PM + Direktur) |
+
+Kalau Anda ingin saya usulkan angka lebih dulu, katakan — tetapi saya tak
+mau menebaknya sendiri lalu memasangnya diam-diam. Angka yang salah di sini
+berarti PO besar lolos tanpa dilihat siapa pun, atau PO kecil tertahan
+sampai pekerjaan lapangan berhenti.
+
+**Sampai Anda memutuskan, tak ada yang saya ubah pada jalur PO.** Temuannya
+dicatat; perbaikannya menunggu.
+
+---
+
 # 📋 R-015 · TIGA TINDAKAN ANDA — dengan jawaban, bukan cuma daftar (2026-08-12)
 
 > **Ditanya founder:** *"apa yg harus saya ambil tindakan dari yg kata kamu

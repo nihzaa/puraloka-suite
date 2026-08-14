@@ -63,6 +63,43 @@ beforeAll(async () => {
     'SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1', [u[0].id])
   companyId = co[0].company_id
 
+  /*
+    ── Residu smoke test DIBERSIHKAN LEBIH DULU (2026-08-14)
+
+    Berkas ini gagal di `beforeAll` pada suite penuh:
+
+        Error: tak ada proyek tanpa RAB untuk diuji
+
+    Diukur: company uji punya 16 proyek, **0 kosong** — tetapi **14 kosong**
+    kalau residu `'Uji pasca-apply'` diabaikan. Dua puluh delapan baris
+    `rab_items` (14 proyek × 2) menyumbat seluruh stok fixture.
+
+    Residu itu bukan milik berkas ini. Namanya diturunkan dari
+    `cost_codes.name` — cost code `CC-SMOKE-RETIRED`, dibuat 2026-07-25 dan
+    sudah `deprecated`. Itulah kenapa string `'Uji pasca-apply'` **nol
+    kemunculan di seluruh repo**: ia tak pernah ditulis sebagai literal.
+
+    Penulisnya belum teridentifikasi — delapan test yang menyentuh
+    `rab_items` sudah diuji satu per satu dan tak satu pun menambah baris
+    (28 → 28 pada kedelapan). Yang pasti terukur: barisnya berhenti tumbuh,
+    seluruhnya bercost-code smoke, nol dirujuk `progress_logs`, dan
+    menghapusnya mengembalikan tepat 14 proyek ke keadaan kosong.
+
+    ── Kenapa MEMBERSIHKAN, bukan melonggarkan syarat fixture
+
+    Pada `price-book-triase` (cacat sejenis hari ini) jawabannya justru
+    kebalikan: syaratnya yang dilonggarkan. Di sini itu SALAH — "proyek belum
+    ber-RAB" bukan sekadar bahan fixture, ia BAGIAN DARI YANG DIUJI. Test di
+    bawah menuntut penerapan KEDUA ditolak 422 justru karena proyeknya kini
+    sudah ber-RAB. Melonggarkan syarat akan membalik arti testnya sendiri.
+
+    Cacat yang sama bisa menuntut perbaikan yang berlawanan arah; yang
+    menentukan adalah apa yang sedang dijamin, bukan bentuk gejalanya.
+  */
+  await db.query(
+    `DELETE FROM rab_items
+      WHERE name = 'Uji pasca-apply' AND category_code = 'CC-SMOKE-RETIRED'`)
+
   // Fixture dipilih menurut SYARAT, bukan LIMIT 1 — pelajaran migrasi 328.
   const { rows: kosong } = await db.query(
     `SELECT p.id FROM projects p

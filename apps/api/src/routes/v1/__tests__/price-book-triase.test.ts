@@ -60,15 +60,57 @@ async function bersihkan() {
       WHERE supplier = $1 AND status = 'active'`, [TANDA])
 }
 
-/** Resource yang dipinjam — dipilih yang BELUM punya harga apa pun. */
+/**
+ * Resource yang dipinjam — yang tak punya harga `active` MAUPUN `draft`.
+ *
+ * ── Kenapa BUKAN "belum punya harga apa pun" (diperbaiki 2026-08-14)
+ *
+ * Versi sebelumnya menuntut resource yang perawan: `NOT EXISTS (… p.resource_id
+ * = r.id)`, tanpa memandang status. Syarat itu tak pernah bisa dipenuhi dua
+ * kali oleh resource yang sama, karena `bersihkan()` meninggalkan harga uji
+ * sebagai `expired` — dan trigger 104 melarang menghapusnya (hanya `draft`
+ * yang boleh dibuang; entry ter-verify mengemban attestation dan jejak harga
+ * historis).
+ *
+ * Jadi setiap run menelan tiga resource secara permanen. Diukur 2026-08-14:
+ * 79 baris `UJI-TRIASE` tertinggal, dan resource aktif tanpa harga tinggal
+ * **0 dari 2.830**. Test-nya berhenti dengan "fixture tak terbentuk" — bukan
+ * karena kodenya salah, melainkan karena ia menghabiskan bahan bakunya sendiri
+ * selama berhari-hari, tanpa satu pun galat sampai stoknya benar-benar nol.
+ *
+ * ── Kenapa pelonggaran ini SAHIH, bukan sekadar membuat merah jadi hijau
+ *
+ * Yang diuji endpoint ini adalah penggolongan draft terhadap harga AKTIF:
+ * `duplikat` (draft = aktif), `berbeda` (draft ≠ aktif), `baru` (tak ada
+ * aktif). Harga `expired` tak masuk hitungan mana pun — `price-resolver.ts`
+ * hanya membaca `active`, dan triase hanya membaca `draft`.
+ *
+ * Maka resource dengan sisa `expired` adalah papan tulis yang bersih untuk
+ * ketiga golongan itu. Yang WAJIB dijauhi hanya `active` (mengacaukan
+ * pembanding) dan `draft` (masuk ke daftar triase sebagai baris asing).
+ *
+ * Efek sampingnya: stok jadi berdaur ulang — resource yang dipinjam run
+ * sebelumnya memenuhi syarat lagi. Diukur sesudah perbaikan: 80 resource
+ * memenuhi, hampir seluruhnya justru yang dulu terpakai.
+ *
+ * Membersihkan residunya lewat migrasi sempat dicoba dan DITOLAK oleh trigger
+ * 104 — pagarnya benar dan tak dilemahkan demi kenyamanan test (Ember [C]).
+ */
 async function pinjamResource(lewati: string[]): Promise<string> {
   const { rows } = await db.query(
     `SELECT r.id FROM resources r
       WHERE r.status = 'active'
         AND NOT (r.id = ANY($1::uuid[]))
-        AND NOT EXISTS (SELECT 1 FROM price_book_entries p WHERE p.resource_id = r.id)
+        AND NOT EXISTS (
+          SELECT 1 FROM price_book_entries p
+           WHERE p.resource_id = r.id AND p.status IN ('active', 'draft'))
       LIMIT 1`, [lewati])
-  if (!rows.length) throw new Error('tak ada resource tanpa harga — fixture tak terbentuk')
+  if (!rows.length) {
+    throw new Error(
+      'tak ada resource tanpa harga active/draft — fixture tak terbentuk. ' +
+      'Kalau ini muncul, periksa apakah ada test lain yang meninggalkan draft.',
+    )
+  }
   return rows[0].id as string
 }
 

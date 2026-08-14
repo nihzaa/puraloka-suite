@@ -20,6 +20,34 @@ Setiap automation dan setiap kapabilitas AI di dokumen ini didefinisikan dengan:
 - **Risk classification** — seberapa besar blast radius jika automation ini salah?
 - **Klasifikasi Now/Next/Later/Optional** — sama seperti seluruh dokumen lain di repository ini.
 
+> ⚠ **Kolom `N/N/L/O` adalah PRIORITAS, bukan status pengerjaan.**
+>
+> Dokumen ini **tidak** mencatat automation mana yang sudah dibangun, dan tak
+> pernah dimaksudkan begitu. Tujuh automation yang sudah punya rute hidup —
+> 2.10, 3.5, 3.10, 3.11, 4.10, 5.1, 6.6 — semuanya masih tertulis `Next` di
+> kolom terakhir, karena `Next` menjawab *"seberapa mendesak"*, bukan
+> *"sudah jalan atau belum"*.
+>
+> Salah baca ini sudah memakan biaya nyata dua kali (2026-08-14): sekali saya
+> melapor ke founder dengan angka yang salah, sekali lagi saya nyaris
+> **membangun ulang automation 3.5** yang ternyata sudah ada lengkap dengan
+> alasan desainnya di `otomasi-terjadwal.ts`.
+>
+> **Untuk tahu apa yang benar-benar hidup, UKUR — jangan baca tabel ini:**
+>
+> ```bash
+> cd apps/api && node -r dotenv/config scripts/lapor-otomasi-hidup.mjs
+> ```
+>
+> Skrip itu membaca rute terjadwal, jembatan peristiwa, tabel `otomasi_alur`,
+> dan tabel `otomasi_jalan` sekaligus. Ia juga memisahkan dua hal yang mudah
+> tertukar: **"aktif" tidak sama dengan "pernah jalan"** — diukur 2026-08-14,
+> 11 alur aktif dan 8 di antaranya nol eksekusi seumur hidup.
+>
+> Alasan skrip alih-alih daftar di sini: aturan pembuka `CLAUDE.md` — kalau
+> sebuah fakta bisa basi, jangan tulis faktanya, tulis cara mengukurnya.
+> Daftar automation adalah contoh paling murni dari fakta yang membusuk.
+
 **Realita jujur yang harus dinyatakan di depan:** Karena fondasi hari ini belum punya test suite, Permission Engine belum konsisten ([00](00-vision-and-business-architecture.md#arsitektur-auth--otorisasi-bercampur-bukan-murni-satu-pola)), dan **tidak ada WhatsApp Business API sama sekali** (hanya `wa.me` deep-link manual di beberapa halaman — diverifikasi langsung dari kode), **mayoritas mutlak dari katalog ini akan jatuh ke `Later`/`Optional`** dengan gate eksplisit ke Phase 6 (AI Native Platform) atau lebih jauh. Ini bukan pesimisme — ini kejujuran yang membuat dokumen ini *berguna* sebagai backlog jangka panjang, bukan daftar keinginan yang mengaburkan urutan kerja nyata.
 
 ## Assumptions & Non-Goals

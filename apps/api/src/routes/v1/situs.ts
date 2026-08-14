@@ -269,6 +269,27 @@ export default async function situsRoutes(app: FastifyInstance) {
         return reply.send({ data: { direvalidasi: false, alasan: 'belum dikonfigurasi' } })
       }
 
+      /*
+        ── Pagar test, dan kenapa TIDAK cukup bersandar pada env (2026-08-14)
+
+        Saya sempat mendaftarkan berkas ini sebagai pengecualian di
+        `audit-saluran-keluar-berpagar.mjs`, dengan alasan "tanpa
+        SITUS_REVALIDATE_URL/SECRET ia pulang lebih dulu, dan kedua env itu tak
+        ada di lingkungan test".
+
+        Alasan itu SALAH. Diukur sesudahnya: keduanya terisi di `apps/api/.env`
+        (36 dan 17 karakter), jadi penjaga env di atas tidak menahan apa pun di
+        sini. Yang membuat aman hanyalah kebetulan — nol test memanggil rute
+        revalidate hari ini.
+
+        Kebetulan bukan pagar. Test pertama yang menyentuh rute ini akan
+        memicu revalidate SUNGGUHAN ke situs produksi, dan tak ada satu pun
+        gejala yang menunjuk ke sana.
+      */
+      if (process.env.NODE_ENV === 'test') {
+        return reply.send({ data: { direvalidasi: false, alasan: 'dilewati di lingkungan test' } })
+      }
+
       try {
         const r = await fetch(url, {
           method: 'POST',

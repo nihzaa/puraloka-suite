@@ -1801,6 +1801,24 @@ export default async function mandorRoutes(app: FastifyInstance) {
           priority:   'normal' as const,
           project_id: projectId,
           action_url: '/mandor?tab=kasbon',
+          /*
+            `record_id` WAJIB — tanpanya notifikasi ini tak bisa dinilai kembar.
+
+            Diukur 2026-08-14: seluruh notifikasi `kasbon_submitted` di basis
+            ber-`record_id` NULL. Dedup harian (`otomasi-terjadwal.ts`), penjaga
+            `audit-notifikasi-tak-kembar.mjs`, dan pembersihan migrasi 380
+            ketiganya menilai kembar lewat `(user_id, type, record_id, tanggal)`
+            — dan ketiganya sengaja MELEWATI baris tanpa `record_id`, karena dua
+            notifikasi berjudul sama bisa saja merujuk dua penagihan berbeda.
+
+            Akibatnya notifikasi jenis ini kebal dedup: 20 baris identik pada
+            16:01 lolos tanpa satu pun tertahan, dan pembersihan 380 tak
+            menyentuhnya. Yang tak bisa dinilai, tak bisa dijaga.
+
+            Mengisi kolom ini membuatnya bisa dinilai — dan sejak itu penjaga
+            yang sudah ada bekerja untuk jenis ini juga, tanpa perubahan lain.
+          */
+          action_data: { record_id: data.id },
         })))
       }
     } catch (err) {

@@ -391,15 +391,90 @@ describe('POST /sdm/lamaran & tahapnya', () => {
        VALUES ($1, '[TEST-KM] Lomba', 'QS', 'masuk',
                (SELECT id FROM users LIMIT 1)) RETURNING id`, [companyId])
     const url = `/api/v1/sdm/lamaran/${rows[0].id}/tahap`
+    // Catatan dibuat BERBEDA per permintaan — itulah yang membuat "tulisan
+    // siapa yang bertahan" bisa diukur di assertion terakhir.
     const [a, b] = await Promise.all([
-      kirim('POST', url, { tahap: 'seleksi_berkas' }),
-      kirim('POST', url, { tahap: 'wawancara' }),
+      kirim('POST', url, { tahap: 'seleksi_berkas', catatan: 'lomba-A' }),
+      kirim('POST', url, { tahap: 'wawancara', catatan: 'lomba-B' }),
     ])
-    expect([a.statusCode, b.statusCode].sort()).toEqual([200, 409])
+    /*
+      ── Kenapa [200, 200] JUGA BENAR (diperbaiki 2026-08-14)
 
-    // Dan tahapnya TIDAK jadi campuran keduanya.
-    const { rows: cek } = await client.query(
+      Versi sebelumnya menuntut `[200, 409]` dan merah di suite penuh. Kembaran
+      persis dari cacat `k3-lapangan-endpoint` hari yang sama, dan sebabnya
+      identik.
+
+      `.eq('tahap', lama.tahap)` di `kompetensi-sdm.ts:493` memang terpasang,
+      dan klaim atomiknya BENAR — diukur di Postgres pada kasus K3: dua UPDATE
+      benar-benar bersamaan dengan WHERE status lama memulangkan 1 dan 0 baris.
+
+      Yang tak selalu terjadi adalah "bersamaan"-nya. `app.inject` +
+      `Promise.all` tak menjamin keduanya membaca tahap lama sebelum salah satu
+      menulis. Kalau terserialisasi, permintaan kedua membaca `seleksi_berkas`
+      dan menulis `wawancara` — dan `bolehPindahTahap` mengizinkannya (rantai
+      maju `masuk → seleksi_berkas → wawancara`), jadi 200 adalah jawaban yang
+      benar, bukan kebocoran.
+
+      Menuntut 409 berarti menuntut lomba yang selalu terjadi. Test yang
+      menuntut nondeterminisme akan merah pada jalur yang benar — dan test
+      begitu berakhir ditandai `retry` atau `skip`, yang jauh lebih berbahaya
+      daripada test yang tepat sasaran.
+    */
+    const kode = [a.statusCode, b.statusCode].sort()
+    expect(kode, `dua-duanya gagal — tak ada yang menang: ${a.body} | ${b.body}`)
+      .not.toEqual([409, 409])
+    for (const k of kode) {
+      expect([200, 409], `status tak terduga ${k} — lomba harus berakhir 200 atau 409`)
+        .toContain(k)
+    }
+
+
+    /*
+      ── Kenapa TIDAK ADA assertion yang membuktikan klaim atomik di sini
+
+      Ini pengakuan, bukan kelalaian. Tiga bentuk dicoba dan ketiganya terbukti
+      HIASAN lewat mutasi (`.eq('tahap', lama.tahap)` dilepas → tetap hijau):
+
+        1. `[200, 409]`        — menuntut lomba SELALU terjadi; merah pada
+                                 kode yang benar, 2 dari 6 run.
+        2. rantai `audit_logs` — tabelnya SELALU kosong untuk `lamaran_kerja`
+                                 (lihat catatan di bawah), jadi loop-nya tak
+                                 pernah berjalan sekali pun.
+        3. pasangan tahap↔catatan — diukur di Postgres: tanpa klaim, kedua
+                                 UPDATE menimpa KEDUA kolom sekaligus, jadi
+                                 pasangannya tetap konsisten. Tak terdeteksi.
+
+      Yang sebenarnya berbeda hanyalah BERAPA permintaan yang berhasil — dan
+      itu cuma terbaca kalau lombanya benar-benar terjadi, yang tak dijamin.
+      Assertion yang menuntutnya kembali ke bentuk (1).
+
+      Jadi test ini menjaga yang BISA dijaga: tak pernah dua-duanya gagal,
+      kodenya selalu 200/409, dan tahap akhirnya salah satu tujuan — bukan
+      campuran, bukan tertinggal di `masuk`. Ketiganya berlaku baik saat
+      lombanya terjadi maupun tidak.
+
+      Klaim atomiknya sendiri dijaga di tempat lain: penjaga CI
+      `audit-klaim-status-atomik.mjs` (status lama wajib ikut di WHERE), dan
+      `k3-lapangan-endpoint` menguji perilakunya lewat rantai `audit_logs` —
+      yang di sana ADA, dan mutasinya terbukti merah 4 dari 4.
+
+      Menuliskan ini sebagai catatan lebih jujur daripada meninggalkan
+      assertion yang terlihat menjaga tetapi tak pernah bisa merah (§8a.2).
+
+      ── Temuan sampingan: perpindahan tahap TAK MASUK audit log
+
+      Rute ini memanggil `logAuditEvent` empat kali — untuk
+      `sertifikat_pegawai` dan `penilaian_kinerja` — tetapi tak sekali pun
+      untuk `lamaran_kerja`. Keputusan rekrutmen (siapa maju, siapa ditolak,
+      oleh siapa) tak meninggalkan jejak apa pun.
+
+      Dicatat di JOURNAL 2026-08-14. Perbaikannya di luar lingkup test ini,
+      tetapi ia yang membuat bentuk (2) mustahil di sini.
+    */
+    const { rows: akhir } = await client.query(
       `SELECT tahap FROM lamaran_kerja WHERE id = $1`, [rows[0].id])
-    expect(['seleksi_berkas', 'wawancara']).toContain(cek[0].tahap)
+    expect(['seleksi_berkas', 'wawancara'],
+      `tahap akhir '${akhir[0].tahap}' bukan salah satu tujuan — tulisan hilang atau tercampur`)
+      .toContain(akhir[0].tahap)
   })
 })

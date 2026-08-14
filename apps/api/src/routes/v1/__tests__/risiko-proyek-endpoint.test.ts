@@ -544,8 +544,69 @@ describe('sengketa', () => {
       kirim('PATCH', `/api/v1/sengketa/${id}/tahap`, { status: 'negosiasi' }),
       kirim('PATCH', `/api/v1/sengketa/${id}/tahap`, { status: 'mediasi' }),
     ])
+    /*
+      ── Kenapa [200, 200] JUGA BENAR (diperbaiki 2026-08-14)
+
+      Kembaran KETIGA dari cacat yang sama hari ini (`k3-lapangan-endpoint`,
+      `kompetensi-sdm-endpoint`), dan sebabnya identik di ketiganya.
+
+      `.eq('status', dari)` di `risiko-proyek.ts:1010` memang terpasang, dan
+      klaim atomiknya BENAR — diukur di Postgres pada kasus K3: dua UPDATE
+      benar-benar bersamaan dengan WHERE status lama memulangkan 1 dan 0 baris.
+
+      Yang tak selalu terjadi adalah "bersamaan"-nya. `app.inject` +
+      `Promise.all` tak menjamin keduanya membaca `dari` sebelum salah satu
+      menulis. Kalau terserialisasi, permintaan kedua membaca `negosiasi` dan
+      menulis `mediasi` — transisi maju yang sah, jadi 200 adalah jawaban yang
+      benar, bukan kebocoran.
+
+      Menuntut 409 berarti menuntut lomba yang selalu terjadi. Test yang
+      menuntut nondeterminisme akan merah pada jalur yang benar — dan test
+      begitu berakhir ditandai `retry` atau `skip`, yang jauh lebih berbahaya
+      daripada test yang tepat sasaran.
+    */
     const kode = [a.statusCode, c.statusCode].sort()
-    expect(kode).toEqual([200, 409])
+    expect(kode, `dua-duanya gagal — tak ada yang menang: ${a.body} | ${c.body}`)
+      .not.toEqual([409, 409])
+    for (const k of kode) {
+      expect([200, 409], `status tak terduga ${k} — lomba harus berakhir 200 atau 409`)
+        .toContain(k)
+    }
+
+    /*
+      Inilah yang benar-benar menangkap hilangnya klaim atomik.
+
+      Assertion di atas TIDAK cukup — terbukti pada K3 lewat mutasi: tanpa
+      `.eq(status, dari)` kedua UPDATE mengenai baris (rowCount 1 dan 1) dan
+      status akhirnya tetap salah satu tujuan. Tak ada yang bisa dibedakan dari
+      hasil akhirnya.
+
+      Yang berbeda adalah RANTAI JEJAKNYA. Tiap tulisan harus berangkat dari
+      status yang benar-benar berlaku saat itu:
+
+          dilaporkan → negosiasi
+          negosiasi  → mediasi            ← sambung, klaim menahan
+
+      Tanpa klaim, jejaknya bercabang — keduanya dari status yang sama.
+
+      Bentuk ini dipakai di sini karena `sengketa` MEMANG dicatat ke
+      `audit_logs` (risiko-proyek.ts:1029). Di `kompetensi-sdm` bentuk yang
+      sama mustahil — `lamaran_kerja` tak pernah dicatat sama sekali, dan
+      assertion yang membaca tabel kosong akan selalu lulus.
+    */
+    const { rows: jejak } = await client.query(
+      `SELECT old_values->>'status' dari, new_values->>'status' ke
+         FROM audit_logs
+        WHERE table_name = 'sengketa' AND record_id = $1 AND action = 'UPDATE'
+          AND new_values->>'status' IS DISTINCT FROM old_values->>'status'
+        ORDER BY created_at`,
+      [id])
+    for (let i = 1; i < jejak.length; i++) {
+      expect(jejak[i].dari,
+        `tulisan ke-${i + 1} berangkat dari '${jejak[i].dari}' padahal status saat itu `
+        + `'${jejak[i - 1].ke}' — klaim atomik \`.eq(status, dari)\` tak menahan`)
+        .toBe(jejak[i - 1].ke)
+    }
   })
 
   it('404 untuk sengketa yang tak ada', async () => {

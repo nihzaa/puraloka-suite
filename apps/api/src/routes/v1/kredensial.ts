@@ -334,6 +334,28 @@ async function probe(
   headers: Record<string, string>,
   nama: string,
 ): Promise<{ ok: boolean; pesan: string }> {
+  /*
+    ── Test tak boleh menembak layanan luar (2026-08-14)
+
+    `kredensial.test.ts` memanggil `POST /kredensial/:kunci/uji` tiga kali,
+    salah satunya dengan nilai `'palsu-tak-berlaku'`. Tanpa pagar ini, tiap
+    `vitest run` mengirim permintaan verifikasi sungguhan ke penyedia luar
+    untuk kunci yang memang sengaja salah.
+
+    Akibatnya lebih halus daripada WhatsApp yang terkirim — tak ada yang
+    menerima pesan — tetapi kelasnya sama: percobaan otentikasi gagal yang
+    berulang bisa kena rate-limit atau memicu peringatan keamanan di sisi
+    penyedia, dan tak satu pun test itu berniat menyentuh dunia luar.
+
+    Jawaban di jalur test dibuat NEGATIF (`ok: false`), bukan positif. Kalau
+    ia menjawab "valid", test yang keliru menganggap kunci palsu diterima akan
+    tetap hijau — penjaga yang berbohong ke arah menyenangkan lebih buruk
+    daripada tak ada penjaga.
+  */
+  if (process.env.NODE_ENV === 'test') {
+    return { ok: false, pesan: `Uji koneksi dilewati di lingkungan test (${nama}).` }
+  }
+
   const res = await fetch(url, { headers, signal: AbortSignal.timeout(BATAS_UJI_MS) })
   if (res.ok) return { ok: true, pesan: `Kunci ${nama} valid dan aktif.` }
   if (res.status === 401 || res.status === 403) {

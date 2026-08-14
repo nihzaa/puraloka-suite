@@ -87,9 +87,26 @@ beforeAll(async () => {
   // Role `admin` dipakai apa adanya — ia memang pemegang permission kritikal,
   // dan itulah kondisi yang membuat lockout relevan. Membuat role tiruan tak
   // akan memicu penjaga, jadi ujinya lulus tanpa menguji apa pun.
+  /*
+    Baris `admin` yang BENAR-BENAR DIPAKAI, bukan "yang pertama ditemukan".
+
+    Sejak migrasi 363-365 nama role tak lagi unik: ada baris template
+    (`company_id NULL`) dan salinan per-tenant. `WHERE name='admin'` tanpa
+    penentu mengembalikan keduanya, dan `rows[0]` bergantung pada urutan yang
+    tak dijamin Postgres.
+
+    Yang dipilih: baris yang punya PENGGUNA AKTIF — sebab itulah yang membuat
+    lockout relevan. Mencabut izin dari baris yang tak dipakai siapa pun tak
+    mengunci siapa pun, dan penjaganya memang tak seharusnya menahan.
+  */
   roleAdminId = wajibAda(
-    (await client.query(`SELECT id FROM roles WHERE name='admin'`)).rows[0]?.id,
-    "role 'admin'",
+    (await client.query(
+      `SELECT r.id FROM roles r
+        WHERE r.name = 'admin'
+        ORDER BY (SELECT count(*) FROM users u WHERE u.role_id = r.id AND u.is_active) DESC
+        LIMIT 1`,
+    )).rows[0]?.id,
+    "role 'admin' yang punya pengguna aktif",
   )
   permKritikalId = wajibAda(
     (await client.query(`SELECT id FROM permissions WHERE key=$1`, [KRITIKAL])).rows[0]?.id,
@@ -125,7 +142,45 @@ beforeAll(async () => {
 }, 120_000)
 
 afterEach(() => { vi.restoreAllMocks() })
-afterAll(async () => { await app?.close(); await client?.end() })
+
+afterAll(async () => {
+  /*
+    IZIN ROLE ADMIN DIPULIHKAN — dan ini bukan kerapian.
+
+    Test ini mengirim `PUT /roles/:id/permissions` dengan daftar berisi SATU
+    izin. Kalau penjaga menahan (409), tak ada yang berubah — itu jalur yang
+    diharapkan. Tetapi kalau penjaganya gagal, endpoint melakukan replace-all
+    dan **217 izin admin benar-benar berganti jadi 1**.
+
+    Itu persis yang terjadi 2026-08-14: `utils/role-guard.ts` menghitung
+    pemegang per `role_id`, dan sejak role disalin per-tenant, salinan yang
+    tak berpengguna terhitung sebagai "pemegang lain" — jadi penjaganya lolos.
+    Setiap kali suite penuh berjalan, izin admin terkuras lagi.
+
+    Gejalanya menyesatkan: berkas LAIN yang gagal ("prasyarat: dipegang 0 role
+    aktif"), dan test ini sendiri terlihat cuma "skipped".
+
+    Penjaga itu sudah diperbaiki (commit 224b373e). Pemulihan di sini adalah
+    lapis KEDUA: test yang menguji perusakan tak boleh bergantung pada
+    perbaikannya sendiri untuk tidak merusak. Kalau penjaganya rusak lagi,
+    test-nya merah — tetapi datanya tetap utuh.
+  */
+  if (client && roleAdminId) {
+    try {
+      await client.query(
+        `INSERT INTO role_permissions (role_id, permission_id)
+         SELECT $1, rp.permission_id
+           FROM roles salinan
+           JOIN role_permissions rp ON rp.role_id = salinan.id
+          WHERE salinan.name = 'admin' AND salinan.id <> $1
+         ON CONFLICT DO NOTHING`,
+        [roleAdminId],
+      )
+    } catch { /* pemulihan best-effort; kegagalannya tak boleh menutup app */ }
+  }
+  await app?.close()
+  await client?.end()
+})
 
 describe('F1-7 — wiring anti-lockout di endpoint (bukan hanya fungsinya)', () => {
   it('PUT permissions yang mencabut permission kritikal dari pemegang terakhir → 409', async () => {

@@ -1,0 +1,140 @@
+#!/usr/bin/env node
+// ============================================================================
+// OTOMASI MANA YANG BENAR-BENAR HIDUP — diukur, bukan ditulis
+//
+// ══════════════════════════════════════════════════════════════════════════
+// KENAPA SKRIP INI ADA
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Founder bertanya dua kali dalam dua sesi: "workflow mana yang sudah dan
+// mana yang belum?". Kedua kali saya menjawab dengan angka yang salah —
+// pertama "13 dari 14" (padahal katalognya 138 baris berprioritas), lalu
+// nyaris membangun ulang automation 3.5 yang ternyata SUDAH ada.
+//
+// Sebabnya bukan kecerobohan sekali: **tak ada satu pun dokumen di repo ini
+// yang mencatat otomasi mana yang hidup.** Diukur 2026-08-14 — `grep` untuk
+// `kasbon-outstanding`, `gr-matching`, `dependency-breach` di seluruh `docs/`
+// memulangkan NOL. Katalog `06-agentic-ai...md` punya kolom terakhir yang
+// mudah disalahbaca sebagai status; ia PRIORITAS ("Next"), dan enam automation
+// yang sudah jalan pun masih tertulis "Next" di sana.
+//
+// Jadi tiap jawaban tentang "sudah/belum" selama ini adalah pembacaan ulang
+// kode oleh siapa pun yang kebetulan ditanya — dan itu meleset dua kali dari
+// dua kali percobaan.
+//
+// ── Kenapa SKRIP, bukan dokumen berisi daftar
+//
+// Aturan pembuka CLAUDE.md: kalau sebuah fakta bisa basi, jangan tulis
+// faktanya — tulis cara mengukurnya. Daftar otomasi adalah contoh sempurna:
+// ia berubah tiap kali satu alur ditambahkan, dan daftar yang tak ikut
+// berubah persis yang membuat saya nyaris membangun ulang 3.5.
+//
+// Sumber kebenarannya KODE dan BASIS, bukan ingatan:
+//
+//   · tugas terjadwal  → rute `otomasi/jalankan/*` di `otomasi-terjadwal.ts`
+//   · alur peristiwa   → `PETA_PERISTIWA` di `utils/terbit-peristiwa.ts`
+//   · terdaftar        → tabel `otomasi_alur`
+//   · benar-benar jalan → tabel `otomasi_jalan`
+//
+// Kolom terakhir itu yang paling penting, dan yang paling sering dilewati:
+// "terdaftar dan aktif" TIDAK sama dengan "pernah jalan". Diukur 2026-08-14:
+// 11 alur aktif, 9 di antaranya nol eksekusi seumur hidup — termasuk yang
+// hari itu juga mengirim 28 WhatsApp sungguhan ke founder.
+//
+// Bukan penjaga CI: ia tak memerahkan apa pun, hanya melaporkan. Dijalankan
+// saat ada yang bertanya "sudah sampai mana otomasinya".
+// ============================================================================
+
+import { readFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createRequire } from 'node:module'
+
+const AKAR_API = join(dirname(fileURLToPath(import.meta.url)), '..')
+
+// ── 1. Yang ada di KODE ──────────────────────────────────────────────────
+const terjadwal = [...new Set(
+  readFileSync(join(AKAR_API, 'src/routes/v1/otomasi-terjadwal.ts'), 'utf8')
+    .match(/otomasi\/jalankan\/[a-z-]+/g) ?? [],
+)].map(s => s.replace('otomasi/jalankan/', '')).sort()
+
+const isiJembatan = readFileSync(join(AKAR_API, 'src/utils/terbit-peristiwa.ts'), 'utf8')
+const petaBlok = isiJembatan.slice(
+  isiJembatan.indexOf('PETA_PERISTIWA'),
+  isiJembatan.indexOf('}', isiJembatan.indexOf('PETA_PERISTIWA')),
+)
+const peristiwa = [...petaBlok.matchAll(/(\w+):\s*'([a-z-]+)'/g)]
+  .map(m => ({ jenis: m[1], kode: m[2] }))
+
+console.log(`\n── Tugas terjadwal (rute otomasi/jalankan/*): ${terjadwal.length}`)
+for (const t of terjadwal) console.log(`   · ${t}`)
+
+console.log(`\n── Alur peristiwa (jembatan notifikasi → n8n): ${peristiwa.length}`)
+for (const p of peristiwa) console.log(`   · ${p.jenis.padEnd(24)} → ${p.kode}`)
+
+// ── 2. Yang tercatat di BASIS ────────────────────────────────────────────
+const DB = process.env.DATABASE_URL || process.env.DIRECT_URL
+if (!DB) {
+  console.log('\n⏭  Bagian basis DILEWATI (tak ada DATABASE_URL).\n')
+  process.exit(0)
+}
+
+const requireDari = createRequire(join(AKAR_API, 'package.json'))
+let pg = null
+try { pg = requireDari('pg') } catch { /* dilaporkan di bawah */ }
+if (!pg) {
+  console.log('\n⏭  Bagian basis DILEWATI (pg tak ter-resolve).\n')
+  process.exit(0)
+}
+
+const c = new pg.Client({ connectionString: DB })
+await c.connect()
+
+const { rows } = await c.query(`
+  SELECT a.kode, a.pemicu, a.aktif,
+         count(j.id)::int                                   AS jalan,
+         count(j.id) FILTER (WHERE j.status = 'sukses')::int AS sukses,
+         count(j.id) FILTER (WHERE j.status = 'gagal')::int  AS gagal,
+         to_char(max(j.dimulai_pada) AT TIME ZONE 'Asia/Jakarta', 'MM-DD HH24:MI') AS terakhir
+    FROM otomasi_alur a
+    LEFT JOIN otomasi_jalan j ON j.alur_id = a.id
+   GROUP BY a.kode, a.pemicu, a.aktif
+   ORDER BY a.aktif DESC, jalan DESC, a.kode
+`)
+
+await c.end()
+
+console.log(`\n── Terdaftar di otomasi_alur: ${rows.length}\n`)
+console.log('   aktif kode                             pemicu    jalan sukses gagal terakhir')
+for (const r of rows) {
+  console.log(
+    `    ${r.aktif ? '✓' : '·'}   ${String(r.kode).padEnd(33)} ${String(r.pemicu).padEnd(9)} `
+    + `${String(r.jalan).padStart(5)} ${String(r.sukses).padStart(6)} ${String(r.gagal).padStart(5)}  ${r.terakhir ?? '—'}`,
+  )
+}
+
+const aktif = rows.filter(r => r.aktif)
+const aktifTanpaJalan = aktif.filter(r => r.jalan === 0)
+
+console.log(`\n── Ringkasan`)
+console.log(`   terdaftar          : ${rows.length}`)
+console.log(`   aktif              : ${aktif.length}`)
+console.log(`   aktif TAPI nol jalan: ${aktifTanpaJalan.length}`)
+
+if (aktifTanpaJalan.length > 0) {
+  console.log('')
+  console.log('   ⚠ "Aktif" TIDAK berarti "pernah jalan". Alur di bawah ini tercatat')
+  console.log('     aktif tetapi nol eksekusi seumur hidup:')
+  for (const r of aktifTanpaJalan) console.log(`       · ${r.kode}`)
+  console.log('')
+  console.log('     Sebagian wajar — alur berpemicu jadwal menunggu penjadwal luar')
+  console.log('     (SCHEDULER_URL, belum di-deploy), dan alur peristiwa menunggu')
+  console.log('     peristiwanya terjadi.')
+  console.log('')
+  console.log('     Yang TIDAK wajar: alur yang jelas-jelas menembak tetapi tetap nol.')
+  console.log('     Itu terjadi 2026-08-14 — `teruskan-kasbon-diajukan` mengirim 28')
+  console.log('     WhatsApp sungguhan sementara bukunya kosong, karena jembatannya')
+  console.log('     melewati `jalankanAlur()`. Dijaga `audit-alur-tercatat.mjs`.')
+}
+
+console.log('')

@@ -37,25 +37,74 @@ export async function fetchRoleStates(roleIdSedangDiubah?: string): Promise<Role
     .select('id, name, is_builtin')
   if (rErr || !roles) throw new Error(`role-guard: gagal baca roles: ${rErr?.message}`)
 
-  const { data: rp, error: rpErr } = await supabase
-    .from('role_permissions')
-    .select('role_id, permissions:permission_id ( key )')
-  if (rpErr) throw new Error(`role-guard: gagal baca role_permissions: ${rpErr.message}`)
+  /*
+    ── BATAS BARIS PostgREST MEMATIKAN PENJAGA INI (ditemukan 2026-08-14)
 
-  // Jumlah user aktif per role_id.
-  const { data: users, error: uErr } = await supabase
-    .from('users')
-    .select('role_id')
-    .eq('is_active', true)
-  if (uErr) throw new Error(`role-guard: gagal baca users: ${uErr.message}`)
+    Versi sebelumnya membaca SELURUH `role_permissions` tanpa paging. PostgREST
+    memulangkan maksimal 1.000 baris secara diam-diam — tanpa galat, tanpa
+    penanda terpotong. Tabelnya sudah 1.640 baris sejak katalog role konstruksi
+    (migrasi 364), jadi 640 baris terakhir TAK PERNAH TERBACA.
 
+    Akibatnya persis kebalikan dari yang dijaga: role yang sebenarnya memegang
+    izin kritikal terbaca `permissionKeys: []`, penjaga menyimpulkan "tak ada
+    yang kehilangan apa-apa", dan pencabutan diloloskan.
+
+    Gejalanya berselang-seling — merah, hijau, merah pada tiga run berturut
+    dengan keadaan basis yang IDENTIK. Yang bergeser bukan datanya melainkan
+    baris mana yang kebetulan masuk 1.000 pertama, dan urutan fisik itu berubah
+    setiap kali ada tulisan ke tabel. Cacat yang tampak seperti test flaky,
+    padahal penjaganya yang bocor.
+
+    Perbaikannya: ambil BERHALAMAN sampai habis, dan jangan pernah menganggap
+    satu panggilan sudah memulangkan semuanya.
+
+    Menaikkan `.limit()` ke angka besar ditolak sebagai perbaikan: itu hanya
+    memindahkan ambangnya, dan cacat yang sama akan kembali diam-diam saat
+    katalog role tumbuh lagi. Yang dihilangkan di sini adalah ASUMSI bahwa satu
+    permintaan memulangkan seluruh tabel — asumsi itulah yang tak berbunyi saat
+    salah.
+  */
+  const HALAMAN = 1000
+  const rp: { role_id: string; permissions: unknown }[] = []
+  for (let dari = 0; ; dari += HALAMAN) {
+    const { data, error: rpErr } = await supabase
+      .from('role_permissions')
+      .select('role_id, permissions:permission_id ( key )')
+      .order('role_id', { ascending: true })
+      .range(dari, dari + HALAMAN - 1)
+    if (rpErr) throw new Error(`role-guard: gagal baca role_permissions: ${rpErr.message}`)
+    if (!data || data.length === 0) break
+    rp.push(...(data as unknown as { role_id: string; permissions: unknown }[]))
+    if (data.length < HALAMAN) break
+  }
+
+  /*
+    Jumlah user aktif per `role_id` — juga berhalaman, dengan alasan yang sama.
+
+    Tabel `users` hari ini masih puluhan baris, jadi batas 1.000 belum
+    menggigit. Tapi ia akan menggigit persis seperti `role_permissions`
+    menggigit: tanpa galat, tanpa penanda, dan pada pemasangan yang paling
+    besar — pelanggan dengan pengguna terbanyak justru yang penjaganya bocor
+    lebih dulu.
+  */
   const activeByRole = new Map<string, number>()
-  for (const u of users ?? []) {
-    if (u.role_id) activeByRole.set(u.role_id as string, (activeByRole.get(u.role_id as string) ?? 0) + 1)
+  for (let dari = 0; ; dari += HALAMAN) {
+    const { data, error: uErr } = await supabase
+      .from('users')
+      .select('role_id')
+      .eq('is_active', true)
+      .order('id', { ascending: true })
+      .range(dari, dari + HALAMAN - 1)
+    if (uErr) throw new Error(`role-guard: gagal baca users: ${uErr.message}`)
+    if (!data || data.length === 0) break
+    for (const u of data) {
+      if (u.role_id) activeByRole.set(u.role_id as string, (activeByRole.get(u.role_id as string) ?? 0) + 1)
+    }
+    if (data.length < HALAMAN) break
   }
 
   const permsByRole = new Map<string, string[]>()
-  for (const row of rp ?? []) {
+  for (const row of rp) {
     const embed = row.permissions as { key: string } | { key: string }[] | null
     const key = (Array.isArray(embed) ? embed[0] : embed)?.key
     if (!key) continue

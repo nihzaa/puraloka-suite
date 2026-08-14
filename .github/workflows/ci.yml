@@ -352,6 +352,103 @@ jobs:
       - name: Fungsi izin tidak kosong tanpa konteks tenant
         run: node scripts/audit-izin-tanpa-konteks.mjs
 
+      # Dedup notifikasi harian wajib benar-benar MENAHAN.
+      #
+      # Founder bertanya 2026-08-14 "kenapa banyak banget?" — diukur: 14.568
+      # notifikasi, 5.598 belum dibaca di akun founder sendiri. Sebabnya dedup
+      # yang mati karena SATU BYTE: kunci ditulis dengan pemisah `NUL`, dicari
+      # dengan SPASI. Tak terlihat di editor mana pun.
+      #
+      # Sudah diperbaiki commit e8ba8d02, dan test dedupnya hijau. Tetapi test
+      # hanya membuktikan fungsinya benar untuk dua panggilan berturut — ia tak
+      # pernah bertanya "berapa kembar yang sudah terlanjur ada di basis". Dari
+      # 11 Agustus: 8.478 baris untuk 234 kombinasi unik, 36× lipat.
+      #
+      # Yang diukur: kembar HARI INI (ambang NOL). Residu lama dilaporkan tanpa
+      # memerahkan — penjaga yang merah selamanya berhenti dibaca, pelajaran
+      # `rls-initplan`. Bukti merah: satu notifikasi kembar disisipkan → MERAH,
+      # dihapus → HIJAU.
+      - name: Notifikasi tidak kembar (dedup harian menahan)
+        run: node scripts/audit-notifikasi-tak-kembar.mjs
+
+      # Pembacaan tabel penuh tak boleh terpotong diam-diam di 1.000 baris.
+      #
+      # PostgREST memulangkan maksimal 1.000 baris TANPA galat dan TANPA
+      # penanda: `data` terisi, `error` null, kode jalan terus dengan data
+      # yang tak lengkap.
+      #
+      # `utils/role-guard.ts` membaca seluruh `role_permissions` (1.640 baris
+      # sejak migrasi 364) untuk memutuskan apakah pencabutan izin akan
+      # mengunci sistem. 640 baris terakhir tak pernah terbaca, jadi role yang
+      # SEBENARNYA memegang izin kritikal terbaca kosong — dan penjaga
+      # anti-lockout MELOLOSKAN pencabutan yang ia dirancang cegah.
+      #
+      # Gejalanya menyamar sebagai test flaky: merah/hijau bergantian pada run
+      # berturut dengan keadaan basis identik (diukur 217/217 sebelum & sesudah
+      # tiap run). Yang bergeser hanya baris mana yang masuk 1.000 pertama.
+      #
+      # Yang diukur KENYATAAN, bukan teks: untuk tiap tabel yang dibaca utuh
+      # tanpa pembatas, berapa baris yang benar-benar ada. Ambang NOL di 1.000,
+      # peringatan di 800 — cacat yang tak berbunyi harus tertangkap SEBELUM
+      # garisnya terlewati. Bukti merah: paging di `role-guard` dilepas →
+      # MERAH (exit 1, menunjuk role-guard.ts:69) → dipulihkan → HIJAU (exit 0).
+      - name: Baca tabel penuh tidak terpotong di 1.000 baris
+        run: node scripts/audit-baca-tak-terpotong.mjs
+
+      # Saluran keluar wajib berpagar terhadap test.
+      #
+      # Founder mengirim tangkapan layar WhatsApp 2026-08-14: enam pesan
+      # "KASBON BARU DIAJUKAN" identik dalam dua menit. Bukan error alur —
+      # itu suite test. Enam berkas test memanggil endpoint pengajuan kasbon,
+      # tiap panggilan melewati `createNotifications()`, dan jembatan
+      # `terbit-peristiwa.ts` meneruskannya ke webhook n8n sungguhan yang
+      # mengirim WhatsApp sungguhan. Terukur: 15:21 (n=20), 16:01 (n=20),
+      # 16:17 (n=18) — jadwal `vitest run`, bukan jadwal manusia.
+      #
+      # `wa-kirim.ts` menyentuh dunia luar juga dan AMAN — tapi amannya lewat
+      # DISIPLIN (test menyetel `konfigurasi: null`). Itu bekerja selama
+      # penulisnya TAHU ia menyentuh saluran keluar. `terbit-peristiwa` bocor
+      # justru karena tak seorang pun tahu: enam berkas itu mengira sedang
+      # menguji retensi, opname, dan approval — tak satu pun menyebut WhatsApp.
+      #
+      # Disiplin melindungi yang sengaja. Yang tak sengaja butuh pagar.
+      #
+      # Ambang NOL. Pengecualian didaftarkan DI DALAM penjaga beserta
+      # alasannya, bukan lewat komentar penekan yang tersebar. Bukti merah:
+      # pagar `terbit-peristiwa` dilepas → exit 1 menunjuk berkasnya →
+      # dipulihkan → exit 0.
+      - name: Saluran keluar berpagar terhadap test
+        run: node scripts/audit-saluran-keluar-berpagar.mjs
+
+      # Alur otomasi wajib TERCATAT di `otomasi_jalan`.
+      #
+      # Diukur 2026-08-14: 11 alur tercatat "aktif", 9 di antaranya NOL
+      # eksekusi seumur hidup — termasuk `teruskan-kasbon-diajukan`, yang hari
+      # itu juga mengirim 28 WhatsApp sungguhan ke founder. Buku eksekusi
+      # bilang alurnya tak pernah jalan; kenyataannya founder menerima puluhan
+      # pesan.
+      #
+      # Sebabnya `utils/terbit-peristiwa.ts` menembak webhook dengan `fetch()`
+      # langsung, melewati `jalankanAlur()` — satu-satunya jalan yang mencatat
+      # mulai/selesai/status/durasi. Webhooknya berhasil, pesannya terkirim,
+      # dan bukunya diam.
+      #
+      # `otomasi_jalan` adalah satu-satunya tempat pertanyaan "otomasi ini
+      # benar-benar jalan tidak?" bisa dijawab tanpa menebak. Selama ia kosong,
+      # tiap jawaban tentang otomasi adalah tebakan yang terdengar seperti
+      # fakta.
+      #
+      # Yang diperiksa JALANNYA, bukan isi basis: alur yang belum pernah
+      # dipicu sah-sah saja kosong, dan memerahkan CI karenanya membuat
+      # penjaga berhenti dibaca (pelajaran `rls-initplan`).
+      #
+      # Ambang NOL. Bukti merah: `fetch` ke `/webhook/` disuntikkan dalam DUA
+      # bentuk (inline dan lewat variabel) → exit 1 keduanya → dipulihkan →
+      # exit 0. Dua versi penjaga ini sebelumnya terbukti HIASAN lewat mutasi
+      # yang sama.
+      - name: Alur otomasi tercatat di otomasi_jalan
+        run: node scripts/audit-alur-tercatat.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan

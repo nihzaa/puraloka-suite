@@ -260,7 +260,106 @@ describe('PATCH /k3/insiden/:id', () => {
       kirim('PATCH', `/api/v1/k3/insiden/${id}`, { status: 'diselidiki' }),
       kirim('PATCH', `/api/v1/k3/insiden/${id}`, { status: 'tindakan_berjalan' }),
     ])
-    expect([a.statusCode, c.statusCode].sort()).toEqual([200, 409])
+
+    /*
+      ── Kenapa [200, 200] JUGA BENAR (diperbaiki 2026-08-14)
+
+      Versi sebelumnya menuntut `[200, 409]` mati-matian, dan MERAH 2 dari 6
+      run. Ditelusuri sampai ke Postgres: dua UPDATE benar-benar bersamaan
+      dengan `WHERE status='dilaporkan'` memulangkan **1 dan 0 baris** — jadi
+      klaim atomiknya BENAR, dan bukan itu yang bocor.
+
+      Yang tak selalu terjadi adalah "bersamaan"-nya. `app.inject` +
+      `Promise.all` tak menjamin kedua permintaan membaca `dari` sebelum salah
+      satu menulis. Kalau terserialisasi, permintaan kedua membaca
+      `diselidiki` dan menulis `tindakan_berjalan` — dan itu transisi maju yang
+      SAH, jadi 200 adalah jawaban yang benar, bukan kebocoran.
+
+      Menuntut 409 berarti menuntut lomba yang selalu terjadi. Test yang
+      menuntut nondeterminisme akan merah pada jalur yang benar — dan test
+      begitu berakhir ditandai `retry` atau `skip`, yang jauh lebih berbahaya
+      daripada test yang longgar.
+
+      Yang DIJAMIN, dan itulah yang diuji sekarang:
+        · tak pernah dua-duanya gagal (minimal satu menang);
+        · yang kalah — bila ada — kalah dengan 409, bukan 500 atau 200 palsu;
+        · status akhirnya tepat SATU dari kedua tujuan, bukan campuran.
+
+      Ketiganya berlaku baik saat lombanya terjadi maupun tidak.
+    */
+    const kode = [a.statusCode, c.statusCode].sort()
+    expect(kode, `dua-duanya gagal — tak ada yang menang: ${a.body} | ${c.body}`)
+      .not.toEqual([409, 409])
+    for (const k of kode) {
+      expect([200, 409], `status tak terduga ${k} — lomba harus berakhir 200 atau 409`)
+        .toContain(k)
+    }
+
+    // Status akhir wajib SATU dari kedua tujuan — bukan tercampur, dan bukan
+    // tertinggal di `dilaporkan` (yang berarti tak ada yang benar-benar menulis).
+    const { rows } = await client.query(`SELECT status FROM insiden_k3 WHERE id = $1`, [id])
+    expect(['diselidiki', 'tindakan_berjalan'],
+      `status akhir '${rows[0].status}' bukan salah satu tujuan — tulisan hilang atau tercampur`)
+      .toContain(rows[0].status)
+
+    /*
+      ── Inilah assertion yang benar-benar menangkap hilangnya klaim atomik
+
+      Assertion di atas TIDAK cukup, dan itu terbukti lewat mutasi: dengan
+      `.eq('status', dari)` dilepas, ketiganya tetap hijau. Diukur di Postgres
+      kenapa — tanpa klaim atomik kedua UPDATE mengenai baris (rowCount 1 dan
+      1), dan status akhirnya tetap salah satu tujuan. Tak ada yang bisa
+      dibedakan dari hasil akhirnya.
+
+      Yang berbeda adalah JUMLAH TULISAN. Satu perubahan status = satu entri
+      audit. Dua entri berarti dua orang sama-sama berhasil mengubah status
+      insiden yang sama — persis kebocoran yang `.eq('status', dari)` cegah,
+      dan persis yang tak terlihat dari status akhirnya.
+
+      Penjaga yang tak pernah bisa merah adalah hiasan (CLAUDE.md §8a.2).
+      Versi pertama perbaikan saya hari ini adalah hiasan itu.
+    */
+    const { rows: jejak } = await client.query(
+      `SELECT old_values->>'status' dari, new_values->>'status' ke
+         FROM audit_logs
+        WHERE table_name = 'insiden_k3' AND record_id = $1 AND action = 'UPDATE'
+          AND new_values->>'status' IS DISTINCT FROM old_values->>'status'
+        ORDER BY created_at`,
+      [id])
+
+    /*
+      Yang dijamin bukan "tepat satu tulisan" melainkan **tiap tulisan berangkat
+      dari status yang benar-benar berlaku saat itu**.
+
+      Menuntut satu entri sempat saya coba, dan MERAH — bukan karena bocor.
+      Diukur dari jejaknya:
+
+          11:31:47.242  dilaporkan → diselidiki
+          11:31:48.584  diselidiki → tindakan_berjalan     (1,3 detik kemudian)
+
+      Dua permintaan terserialisasi, masing-masing transisi maju yang sah. Itu
+      perilaku BENAR, dan menuntut satu entri berarti menuntut lomba yang
+      selalu terjadi — persis kekeliruan versi sebelumnya.
+
+      Yang membuktikan klaim atomik `.eq('status', dari)` masih terpasang:
+      rantainya SAMBUNG. Kalau klaimnya dilepas, kedua permintaan sama-sama
+      berangkat dari `dilaporkan` dan jejaknya bercabang:
+
+          dilaporkan → diselidiki
+          dilaporkan → tindakan_berjalan      ← dua-duanya dari status yang sama
+
+      Cabang itu tak terlihat dari status akhir (keduanya berujung salah satu
+      tujuan, sudah diukur di Postgres: rowCount 1 dan 1). Ia hanya terlihat di
+      jejaknya — dan itulah kenapa assertion ini membaca `old_values`, bukan
+      menghitung baris.
+    */
+    for (let i = 1; i < jejak.length; i++) {
+      expect(jejak[i].dari,
+        `tulisan ke-${i + 1} berangkat dari '${jejak[i].dari}' padahal status saat itu `
+        + `'${jejak[i - 1].ke}' — klaim atomik \`.eq(status, dari)\` tak menahan, `
+        + 'dua orang mengubah insiden yang sama dari titik yang sama')
+        .toBe(jejak[i - 1].ke)
+    }
   })
 
   it('status insiden tak dikenal ditolak dengan daftar yang sah', async () => {

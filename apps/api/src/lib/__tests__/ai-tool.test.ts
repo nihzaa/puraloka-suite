@@ -215,10 +215,35 @@ describe('tool terhadap data NYATA', () => {
     //
     // Kalau enum di basis bertambah dan daftar ini tidak, tool akan MENOLAK
     // status yang sebenarnya sah. Test ini membuat ketertinggalan itu merah.
+    /*
+      ── `pg_namespace` WAJIB — tanpanya schema `test` membayangi (2026-08-14)
+
+      Query ini semula tak menyaring schema, dan MERAH di suite penuh sementara
+      HIJAU saat berkasnya dijalankan sendiri:
+
+          expected [ 'draft', 'active', 'on_hold', …(2) ]
+            to deeply equal [ 'draft', 'draft', 'active', …(7) ]
+
+      Sembilan nilai dengan `draft` ganda. Diukur dari dalam vitest:
+
+          public.project_status = 5 nilai
+          test.project_status   = 5 nilai      ← bayangan
+
+      `test-db.ts` membangun schema `test` paralel, dan tipe enumnya ikut
+      lahir di sana. Query tanpa kualifikasi schema mengambil KEDUANYA lalu
+      menggabungkannya, jadi jumlahnya berlipat dan urutannya kacau.
+
+      Terisolasi, schema `test` tak pernah dibangun — itulah kenapa
+      kegagalannya hanya muncul di suite penuh dan terlihat seperti test flaky.
+      Kelas cacat yang sama sudah tercatat di repo ini: `pg_constraint` tanpa
+      `n.nspname='public'` yang membuat migrasi melaporkan gagal padahal DROP-nya
+      berhasil.
+    */
     const { rows } = await db.query(`
       SELECT e.enumlabel FROM pg_enum e
       JOIN pg_type t ON t.oid = e.enumtypid
-      WHERE t.typname = 'project_status'
+      JOIN pg_namespace n ON n.oid = t.typnamespace
+      WHERE t.typname = 'project_status' AND n.nspname = 'public'
       ORDER BY e.enumsortorder
     `)
     expect([...STATUS_PROYEK]).toEqual(rows.map((r) => r.enumlabel))

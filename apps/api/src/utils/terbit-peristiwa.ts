@@ -49,6 +49,9 @@
  * operasional keluar dari server ke tempat yang aturan retensinya berbeda.
  */
 import { ambilKredensialTanpaRequest } from '../lib/kredensial.js'
+import { jalankanAlur, konfigurasiN8n } from '../lib/otomasi-n8n.js'
+import { createTenantDb } from './tenant-db.js'
+import { supabase } from './supabase.js'
 import type { NotificationParams } from './notifications.js'
 
 /**
@@ -70,8 +73,12 @@ const PETA_PERISTIWA: Record<string, string> = {
   stok_menipis: 'peringatan-stok-menipis',
 }
 
-/** Batas tunggu — n8n lambat tak boleh menahan respons rute. */
-const TIMEOUT_MS = 5_000
+/*
+  Batas tunggu TIDAK didefinisikan di sini lagi — `jalankanAlur()` sudah
+  memegangnya, bersama pencatatan durasi ke `otomasi_jalan`. Menyimpan angka
+  kedua di berkas ini berarti dua sumber kebenaran untuk satu perilaku, dan
+  yang tak dipakai akan membusuk diam-diam.
+*/
 
 /**
  * Menerbitkan satu peristiwa ke alur otomasi yang menunggunya.
@@ -90,59 +97,122 @@ export async function terbitkanPeristiwa(
   const kode = PETA_PERISTIWA[jenis]
   if (!kode) return // jenis ini memang tak punya alur — bukan galat
 
-  let basis: string | null = null
-  try {
-    basis = await ambilKredensialTanpaRequest(companyId, 'N8N_BASE_URL')
-  } catch (err) {
-    console.error('[otomasi] gagal membaca N8N_BASE_URL:', (err as Error).message)
-    return
-  }
-  if (!basis) return // otomasi belum dikonfigurasi tenant ini — diam, bukan galat
+  /*
+    ── TEST TIDAK BOLEH MENEMBAK SALURAN KELUAR (ditemukan 2026-08-14)
+
+    Founder mengirim tangkapan layar WhatsApp: enam pesan "KASBON BARU
+    DIAJUKAN" identik dalam dua menit, dan bertanya apakah ini error.
+
+    Bukan error alur — itu **suite test**. Enam berkas test memanggil endpoint
+    pengajuan kasbon (`mandor.ts:1794`), tiap panggilan melewati
+    `createNotifications()`, dan jembatan ini meneruskannya ke webhook n8n
+    sungguhan yang mengirim WhatsApp sungguhan.
+
+    Terukur di basis: pola berulang tiap ~20 menit dengan isi identik —
+    15:21 (n=20), 16:01 (n=20), 16:17 (n=18). Itu jadwal `vitest run`, bukan
+    jadwal manusia mengajukan penagihan.
+
+    Hari ini nomornya milik founder sendiri, jadi akibatnya cuma berisik. Tapi
+    saluran ini dirancang untuk nomor PELANGGAN: begitu satu tenant memasang
+    nomor aslinya, tiap CI run mengirimi mereka belasan pesan penagihan palsu.
+    Kerusakan yang tak bisa ditarik kembali — pesan terkirim tetap terkirim.
+
+    Yang dijaga di sini adalah BATAS antara sistem dan dunia luar. Perbedaan
+    dengan penjaga tenant di bawah (`N8N_BASE_URL` kosong → diam) penting:
+    yang itu soal konfigurasi belum ada, yang ini soal test tak boleh punya
+    jalan keluar sama sekali, bahkan saat konfigurasinya lengkap.
+
+    Diperiksa lewat NODE_ENV, bukan lewat penanda buatan sendiri: vitest
+    menyetelnya ke 'test' tanpa perlu diingat siapa pun, dan penjaga yang
+    bergantung pada seseorang mengingat sesuatu adalah penjaga yang akan
+    dilupakan.
+  */
+  if (process.env.NODE_ENV === 'test') return
 
   /*
-    `127.0.0.1`, bukan `localhost`, bila nilainya menyebut localhost.
+    ── LEWAT `jalankanAlur()`, BUKAN `fetch()` SENDIRI (diperbaiki 2026-08-14)
 
-    Diukur 2026-08-14: n8n mendengarkan IPv4+IPv6 sementara API hanya IPv4,
-    jadi `localhost` dari sisi n8n mendarat di `::1` yang kosong. Di sini
-    arahnya terbalik (API → n8n), tapi kelas kekeliruannya sama dan galatnya
-    sama-sama tak menyebut IPv6. Normalisasi menutupnya di kedua arah.
+    Versi pertama berkas ini — yang saya tulis sendiri sesi ini — menembak
+    webhook n8n langsung dengan `fetch()`. Jalan, dan salah.
+
+    Ketahuan saat mengukur `otomasi_jalan`, buku eksekusi otomasi:
+
+        11 alur "aktif", 9 di antaranya NOL eksekusi seumur hidup —
+        termasuk `teruskan-kasbon-diajukan`, yang hari ini mengirim
+        28 WhatsApp ke founder.
+
+    Buku itu bilang alurnya tak pernah jalan. Kenyataannya founder menerima
+    puluhan pesan. Yang salah bukan bukunya melainkan penulis yang melewatinya.
+
+    Akibatnya bukan sekadar angka meleset. `otomasi_jalan` adalah SATU-SATUNYA
+    tempat pertanyaan "otomasi ini benar-benar jalan tidak?" bisa dijawab
+    tanpa menebak — dan jawabannya selama ini "tidak pernah" untuk alur yang
+    justru paling sering menembak. Persis kelas cacat yang berulang hari ini:
+    sistem melakukan sesuatu ke dunia nyata tanpa ada yang mengukur akibatnya.
+
+    ── Kenapa saya sempat tak memakainya
+
+    `jalankanAlur()` menuntut `db: TenantDb`, dan berkas ini dipanggil dari
+    `createNotifications()` yang tak punya `request`. Saya berhenti di situ.
+
+    Padahal `createTenantDb(companyId)` hanya butuh companyId — yang sudah jadi
+    parameter pertama fungsi ini — dan presedennya sudah ada di
+    `wa-webhook.ts:175`, jalur tanpa request yang sama. Bukan halangan nyata;
+    saya cuma tak mencarinya.
+
+    `sumber: 'peristiwa'` pun sudah ada di tipe `jalankanAlur` sejak awal.
+    Jalur ini memang dirancang untuk dipakai begini.
   */
-  const url =
-    `${basis.replace(/\/$/, '').replace('//localhost', '//127.0.0.1')}` +
-    `/webhook/${kode}`
+  const { data: alurRow } = await supabase
+    .from('otomasi_alur')
+    .select('id, kode, nama, n8n_id, jalur_webhook, aktif')
+    .eq('company_id', companyId)
+    .eq('kode', kode)
+    .maybeSingle()
 
-  const kendali = new AbortController()
-  const jam = setTimeout(() => kendali.abort(), TIMEOUT_MS)
+  // Alur belum terdaftar untuk tenant ini — bukan galat, otomasinya memang
+  // belum dipasang. Dijaga `audit-peristiwa-punya-alur.mjs` untuk template.
+  if (!alurRow) return
+
+  // Alur dimatikan dari UI adalah keputusan pengguna, bukan kegagalan.
+  if (!(alurRow as { aktif?: boolean }).aktif) return
+
+  /*
+    `konfigurasiN8n` menerima FUNGSI PEMBACA, bukan request — jadi jalur tanpa
+    request cukup menyambungkan pembacanya sendiri. Bentuk itu memang dirancang
+    untuk ini; tak ada yang perlu ditambahkan di `otomasi-n8n.ts`.
+  */
+  let cfg = null
   try {
-    const r = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jenis,
-        kode,
-        judul: contoh.title,
-        pesan: contoh.message,
-        proyek_id: contoh.project_id ?? null,
-        penerima: jumlahPenerima,
-        pada: new Date().toISOString(),
-      }),
-      signal: kendali.signal,
-    })
-    if (!r.ok) {
-      // 404 berarti workflow-nya belum dipasang/diaktifkan di n8n — keadaan
-      // yang WAJAR selama alur belum dinyalakan, dan tak perlu berisik.
-      const tingkat = r.status === 404 ? 'info' : 'error'
-      if (tingkat === 'error') {
-        console.error(`[otomasi] webhook ${kode} membalas ${r.status}`)
-      }
-    }
+    cfg = await konfigurasiN8n((kunci) => ambilKredensialTanpaRequest(companyId, kunci))
   } catch (err) {
-    const e = err as Error
-    // Abort = n8n lambat, bukan salah kita. Tetap dicatat supaya "otomasi
-    // sering telat" punya jejak, bukan cuma firasat.
-    console.error(`[otomasi] webhook ${kode} gagal: ${e.name === 'AbortError' ? 'timeout' : e.message}`)
-  } finally {
-    clearTimeout(jam)
+    console.error('[otomasi] gagal membaca konfigurasi n8n:', (err as Error).message)
+    return
+  }
+  if (!cfg) return // otomasi belum dikonfigurasi tenant ini — diam, bukan galat
+
+  const hasil = await jalankanAlur({
+    db: createTenantDb(companyId),
+    companyId,
+    cfg,
+    alur: alurRow as never,
+    sumber: 'peristiwa',
+    oleh: null,
+    muatan: {
+      jenis,
+      kode,
+      judul: contoh.title,
+      pesan: contoh.message,
+      proyek_id: contoh.project_id ?? null,
+      penerima: jumlahPenerima,
+    },
+  })
+
+  // Kegagalan TIDAK ditelan — `jalankanAlur` sudah mencatatnya ke
+  // `otomasi_jalan`, tetapi log server tetap perlu supaya "otomasi sering
+  // gagal" punya jejak yang terbaca tanpa membuka basis.
+  if (!hasil.ok) {
+    console.error(`[otomasi] alur ${kode} gagal: ${hasil.alasan} — ${hasil.pesan}`)
   }
 }
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, wajibAda } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import auditMutuRoutes from '../audit-mutu.js'
 
@@ -55,14 +55,50 @@ beforeAll(async () => {
   client = await createRlsClient()
   adminAuth = await authIdForRole(client, 'admin')
 
+  /*
+    ── Proyek dipilih menurut SYARAT, bukan urutan (diperbaiki 2026-08-14)
+
+    Versi sebelumnya mengambil proyek PERTAMA menurut `created_at`, lalu
+    berharap proyek itu kebetulan punya `ncr_items`. Saat harapannya meleset,
+    `n[0].id` melempar:
+
+        TypeError: Cannot read properties of undefined (reading 'id')
+
+    Diukur: proyek pertama punya **0 NCR**, sementara 19 NCR tersebar di 7
+    proyek LAIN. Jadi bahannya ada berlimpah — fixture-nya saja yang mencari
+    di tempat yang salah.
+
+    Galatnya pun menyesatkan: `TypeError` di baris `ncrId = n[0].id` terbaca
+    seperti cacat kode, bukan seperti "fixture tak menemukan bahan". Seluruh
+    17 test di berkas ini dilewati tanpa satu pun pesan yang menyebut NCR.
+
+    Ini pola yang sudah tercatat di repo ini sebagai "pelajaran migrasi 328",
+    dan `template-wbs.test.ts` menuliskannya sebagai aturan: pilih fixture
+    menurut SYARAT, bukan `LIMIT 1` atas urutan yang kebetulan.
+
+    `wajibAda()` dipakai alih-alih melempar sendiri — helper itu sudah ada di
+    `rls-harness.ts`, dan pesannya menjelaskan bahwa yang gagal adalah
+    PRASYARAT, bukan kode yang diuji. Itu tepat yang hilang dari `TypeError`
+    tadi: ia tak menyebut tabel, syarat, maupun bahwa fixture-nya yang kosong.
+
+    Diukur sesudahnya: 225 dari 287 berkas test memakai pola `[0].x` yang
+    sama. Sebagian besar aman (mengambil baris yang dijamin ada), dan
+    seluruhnya lulus hari ini — jadi itu utang laten, dicatat di JOURNAL,
+    bukan ditambal 225 kali diam-diam.
+  */
   const { rows: p } = await client.query(
-    `SELECT id FROM projects WHERE company_id IS NOT NULL ORDER BY created_at LIMIT 1`)
-  projectId = p[0].id
+    `SELECT p.id FROM projects p
+      WHERE p.company_id IS NOT NULL
+        AND EXISTS (SELECT 1 FROM ncr_items n WHERE n.project_id = p.id)
+      ORDER BY p.created_at LIMIT 1`)
+  projectId = wajibAda(p[0]?.id, 'proyek yang punya ncr_items (bahan temuan audit mutu)')
+
   const { rows: u } = await client.query(`SELECT id FROM users LIMIT 1`)
-  userId = u[0].id
+  userId = wajibAda(u[0]?.id, 'pengguna mana pun')
+
   const { rows: n } = await client.query(
     `SELECT id FROM ncr_items WHERE project_id = $1 LIMIT 1`, [projectId])
-  ncrId = n[0].id
+  ncrId = wajibAda(n[0]?.id, `ncr_items untuk proyek ${projectId}`)
 
   await purge()
 

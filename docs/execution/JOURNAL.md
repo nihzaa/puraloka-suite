@@ -5,6 +5,654 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan 11) — "test flaky" itu ternyata penjaga yang BOCOR
+
+Sesi sebelumnya menutup cacat role kembar dan menambahkan pemulihan `afterAll`
+di `anti-lockout-wiring`. Sesudah itu tersisa satu gejala yang saya sebut
+"flaky": jalan sendirian HIJAU, jalan beruntun **3 merah | 3 hijau**.
+
+Godaannya besar untuk berhenti di situ — izinnya terbukti utuh 217 sebelum
+dan sesudah tiap run, jadi "datanya aman, test-nya saja yang rewel".
+
+Itu salah, dan salahnya berbahaya.
+
+### Yang diukur
+
+Tiga run berturut dengan keadaan basis **identik** (dicetak dari dalam
+`beforeAll`: target selalu `admin` TEMPLATE, `user=2`, `izin=217`), hasilnya
+merah–hijau–merah. Keadaan awal yang sama tak boleh memberi jawaban berbeda.
+
+Diagnostik di dalam test pertama menunjukkan yang sebenarnya:
+
+    DIAG2 role lolos filter = 4
+    (tak ada satu pun baris "pemegang" tercetak)
+
+Empat role terbaca, **nol** di antaranya memegang `users:roles:manage` —
+padahal basis jelas punya. `permissionKeys` kosong.
+
+### Sebabnya: batas 1.000 baris PostgREST
+
+    const { data: rp } = await supabase
+      .from('role_permissions')
+      .select('role_id, permissions:permission_id ( key )')
+
+`role_permissions` sudah **1.640 baris** sejak katalog role konstruksi
+(migrasi 364). PostgREST memulangkan 1.000. Tanpa galat, tanpa penanda
+terpotong: `data` terisi, `error` null, kode jalan terus.
+
+Jadi 640 baris terakhir tak pernah terbaca. Role yang sebenarnya memegang izin
+kritikal terbaca kosong, `findLockout` menyimpulkan "tak ada yang kehilangan
+apa-apa", dan **pencabutan yang seharusnya ditolak diloloskan** — persis
+lockout yang penjaga itu dirancang untuk mencegah.
+
+Yang berselang-seling bukan datanya melainkan baris mana yang kebetulan masuk
+1.000 pertama. Urutan fisik itu bergeser tiap ada tulisan ke tabel — dan suite
+menulis terus.
+
+### Saya salah menyebutnya flaky
+
+Test merah-hijau bergantian nyaris selalu dibaca sebagai cacat test. Di sini
+ia laporan jujur tentang penjaga produksi yang bocor. Kalau saya menandainya
+`retry` atau `skip`, cacatnya sampai produksi dengan test-nya hijau.
+
+Pelajarannya sejalur dengan `git stash` di sesi lalu: **pertanyaan yang benar
+bukan "apakah test-nya rewel" melainkan "keadaan apa yang berbeda di antara
+dua run yang seharusnya sama".** Kalau tak ada yang berbeda, yang bergeser ada
+di dalam kode.
+
+### Perbaikan
+
+`fetchRoleStates` mengambil **berhalaman** sampai habis — `role_permissions`
+dan `users` keduanya. Menaikkan `.limit()` ditolak sebagai perbaikan: itu
+memindahkan ambang, dan cacat yang sama kembali diam-diam saat katalog role
+tumbuh lagi. Yang dihapus adalah ASUMSI bahwa satu permintaan memulangkan
+seluruh tabel.
+
+Bukti mutasi: paging dilepas → `Tests 3 failed | 3 passed`; dipulihkan →
+`Tests 6 passed`. Delapan run berturut sesudahnya hijau.
+
+### Cacat ketiga: TEST MENGIRIM WHATSAPP SUNGGUHAN
+
+Founder mengirim tangkapan layar WhatsApp — enam pesan "KASBON BARU DIAJUKAN"
+identik dalam dua menit — dan bertanya: *"ini masih pada kirim wa kaya gini,
+masih error atau gimana?"*
+
+Bukan error alur. **Saya sendiri penyebabnya**, lewat suite yang saya jalankan
+berulang hari ini.
+
+Diukur ke basis, dan polanya menjawab sendiri:
+
+    15:21  n=20  Mandor mengajukan penagihan 10% senilai Rp 10.000.000
+    16:01  n=20  (isi identik)
+    16:17  n=18  (isi identik)
+
+Berulang tiap ~20 menit dengan isi persis sama — itu jadwal `vitest run`, bukan
+jadwal manusia mengajukan penagihan. Enam berkas test memanggil
+`POST /mandor/progress-payments`; tiap panggilan melewati
+`createNotifications()`, dan jembatan `terbit-peristiwa.ts` meneruskannya ke
+webhook n8n sungguhan yang mengirim WhatsApp sungguhan.
+
+Jembatan itu **tak punya satu pun pemeriksaan `NODE_ENV`** — saya menulisnya
+sesi ini juga, dan lupa memberinya batas ke dunia luar.
+
+Hari ini nomornya milik founder, jadi akibatnya cuma berisik. Tapi saluran ini
+dirancang untuk nomor PELANGGAN: begitu satu tenant memasang nomor aslinya,
+tiap CI run mengirimi mereka belasan pesan penagihan palsu — kerusakan yang tak
+bisa ditarik kembali.
+
+Bukti mutasi, disadap di lapisan `fetch`:
+
+    penjaga dilepas : http://127.0.0.1:5680/webhook/teruskan-kasbon-diajukan
+    penjaga aktif   : NOL — tertahan
+
+### Dua workflow "sisa" — satu sudah ada, satu menyingkap celah yang lebih besar
+
+Founder bertanya "lanjut ke mana", dan jawaban saya adalah dua automation
+terakhir berprioritas `Next`: 3.5 dan 4.6. Diukur sebelum dikerjakan, dan
+keduanya bukan seperti yang saya kira.
+
+**3.5 Auto Purchase Request — SUDAH ADA.** Saya nyaris membangunnya ulang.
+`otomasi-terjadwal.ts:720` menanganinya, lengkap dengan alasan desain yang
+tertulis: ia **memperingatkan dengan angka terhitung, bukan mengarang MR**.
+Alasannya kuat — MR menentukan BERAPA BANYAK dibeli, ambang hanya bilang
+"kurang", dan sumber "berapa banyak" (3.4) bergerbang Phase 6.
+
+Pengukuran pertama saya sendiri sempat salah: saya mencari kolom ambang di
+`gudang_stok` dan menyimpulkan "nol kolom ambang di seluruh schema". Kolomnya
+ada di `materials.min_stock` — saya mencari di tabel yang keliru, lalu nyaris
+menuliskan kesimpulan itu sebagai fakta.
+
+**4.6 PO Approval Fast-Track — tak bisa dibangun, dan alasannya serius.**
+
+Fast-track berarti "PO kecil lewat jalur cepat, PO besar lewat approval
+penuh". Diukur:
+
+    entitas dengan rantai approval : 12 (kasbon, MR, change order, …)
+    purchase_order                 : TIDAK ADA
+    gerbang PO hari ini            : satu permission `procurement:po:manage`
+    PO terbesar di basis           : Rp 40.200.000
+
+**PO nominal berapa pun bisa dikirim ke vendor tanpa satu pun persetujuan.**
+Tak ada jalur lambat untuk dipercepat — jadi 4.6 bukan fitur yang kurang,
+melainkan gejala dari approval yang tak pernah dipasang di jalur pengadaan.
+
+Kabar baiknya: `approval_steps` SUDAH punya `min_amount` dan `max_amount`, dan
+`utils/approval.ts:88` benar-benar memakainya. Begitu `purchase_order`
+didaftarkan sebagai rantai, fast-track lahir sendiri dari batas nominal —
+**konfigurasi, bukan fitur baru.**
+
+Menunggu founder: **berapa ambang nominal PO yang boleh lewat tanpa approval
+berjenjang?** Itu kebijakan perusahaan, bukan keputusan teknis.
+
+### Tak ada dokumen yang mencatat otomasi mana yang hidup — sekarang ada cara mengukurnya
+
+Founder bertanya "mana yang sudah dan mana yang belum" dua kali dalam dua
+sesi, dan **dua kali saya menjawab salah**: sekali "13 dari 14" (katalognya
+138 baris berprioritas), sekali nyaris membangun ulang 3.5.
+
+Sebabnya bukan kecerobohan berulang. Diukur: `grep` untuk `kasbon-outstanding`,
+`gr-matching`, `dependency-breach` di seluruh `docs/` memulangkan **NOL**. Tak
+ada satu pun dokumen yang mencatatnya.
+
+Yang memperburuk: kolom terakhir katalog bernama `N/N/L/O` —
+Now/Next/Later/Optional, **prioritas**, bukan status. Tujuh automation yang
+sudah hidup semuanya masih tertulis `Next` di sana. Kolomnya tidak cacat; saya
+yang salah membacanya, dua kali.
+
+Dibuat `scripts/lapor-otomasi-hidup.mjs` — bukan dokumen berisi daftar, karena
+daftar automation adalah contoh paling murni dari fakta yang membusuk (aturan
+pembuka CLAUDE.md). Ia membaca rute terjadwal, jembatan peristiwa,
+`otomasi_alur`, dan `otomasi_jalan` sekaligus.
+
+Yang paling penting, ia memisahkan dua hal yang tertukar sepanjang sesi ini:
+**"aktif" ≠ "pernah jalan"**. Diukur 2026-08-14: 14 terdaftar, 11 aktif,
+**8 di antaranya nol eksekusi seumur hidup**. Turun dari 9 — karena
+`teruskan-kasbon-diajukan` akhirnya tercatat (18:41) sesudah jembatannya
+diperbaiki lewat `jalankanAlur()`.
+
+Peringatan dipasang di katalog agar sesi berikutnya tak jatuh ke lubang yang
+sama, menunjuk ke skrip alih-alih mengulang angkanya.
+
+Pemetaan diverifikasi satu-satu sebelum ditulis — tujuh rute, tujuh nomor
+katalog: 2.10, 3.5, 3.10, 3.11, 4.10, 5.1, 6.6.
+
+### Cacat kesebelas: fixture yang mencari bahan di tempat yang salah
+
+Suite sesudah dua perbaikan terakhir: **Tests 4607 passed, NOL merah** —
+tetapi **Test Files 1 failed**. Kegagalan di `beforeAll` menyumbang nol test
+merah, jadi baris "Tests" terlihat sempurna. Pelajaran yang sudah tercatat dua
+kali di jurnal ini, dan tetap nyaris terlewat: **baca Test Files, bukan
+Tests.**
+
+`audit-mutu-endpoint` melempar:
+
+    TypeError: Cannot read properties of undefined (reading 'id')
+      ncrId = n[0].id
+
+Fixture mengambil proyek PERTAMA menurut `created_at`, lalu berharap proyek itu
+kebetulan punya `ncr_items`. Diukur:
+
+    proyek pertama : 0 NCR
+    total          : 19 NCR, tersebar di 7 proyek LAIN
+
+Bahannya berlimpah; fixture-nya saja yang mencari di tempat yang salah.
+
+Galatnya menyesatkan ke arah yang mahal: `TypeError` terbaca seperti cacat
+kode, bukan seperti "fixture tak menemukan bahan", dan seluruh 17 test
+dilewati tanpa satu pun pesan yang menyebut NCR.
+
+Ini pola yang SUDAH tertulis sebagai aturan di repo ini — "pelajaran migrasi
+328", dikutip di `template-wbs.test.ts`: pilih fixture menurut SYARAT, bukan
+`LIMIT 1` atas urutan yang kebetulan. Aturannya ada, penerapannya belum
+merata.
+
+Hari ini tiga fixture kena kelas yang sama: `price-book-triase` (stok habis),
+`template-wbs` (stok tersumbat residu), dan ini (mencari di tempat salah).
+Ketiganya diam-diam bergantung pada bentuk data yang tak dijamin siapa pun.
+
+Bukti: 3 run berturut **17/17 hijau**, dari sebelumnya 17 dilewati semua.
+
+#### Diukur, TIDAK dikerjakan: 225 dari 287 berkas test memakai pola yang sama
+
+Sesudah memperbaikinya saya menyapu seluruh suite untuk mencari kembaran:
+
+    berkas test memakai pola `[0].x`  : 225
+    berkas test total                 : 287
+
+Sebagian besar AMAN — mengambil `users`/`companies` yang dijamin ada. Yang
+rapuh hanya pengambilan bersyarat (`WHERE`/`EXISTS`) yang bisa memulangkan nol
+baris, dan itu pun **seluruhnya lulus di suite penuh hari ini**: kondisi
+datanya kebetulan memenuhi.
+
+Jadi ini utang laten, bukan kerusakan aktif — dan menambal 225 berkas satu per
+satu bukan jawabannya. Yang sepadan: membuat kegagalannya MENJELASKAN DIRI.
+`TypeError: Cannot read properties of undefined` tak menyebut tabel, syarat,
+maupun bahwa yang salah adalah fixture — dan itulah yang membuat cacat hari
+ini terbaca seperti cacat kode selama beberapa menit.
+
+Dicatat di sini alih-alih dikerjakan diam-diam, supaya angkanya bisa diukur
+ulang kapan saja dan keputusannya diambil sadar. Kalau kelak dikerjakan,
+bentuknya satu helper (`wajibAda(rows, 'apa yang dicari')` — sudah ada di
+`rls-harness.ts` dan dipakai `anti-lockout-wiring`), bukan 225 suntingan.
+
+### Cacat kesembilan & kesepuluh — dan keduanya lolos mutasi kali ini
+
+Suite konfirmasi: **323 dari 325 hijau** (`k3` dan `kompetensi-sdm` yang
+diperbaiki sebelumnya kini lulus di suite penuh). Dua merah tersisa:
+
+**`risiko-proyek` — kembaran KETIGA pola konkurensi hari ini.** Gejala
+identik: `[200, 200]` bukannya `[200, 409]`, klaim atomik terpasang
+(`risiko-proyek.ts:1010`), transisi `negosiasi → mediasi` sah saat
+terserialisasi.
+
+Bedanya dengan `kompetensi-sdm`: `sengketa` **memang dicatat** ke `audit_logs`
+(baris 1029), jadi bentuk rantai-jejak yang terbukti di K3 bisa dipakai.
+Bukti mutasi: klaim dilepas → **4 dari 4 MERAH**; dipulihkan → **4 dari 4
+HIJAU**.
+
+Tiga modul, satu kekeliruan yang sama — dan bentuk perbaikannya BERBEDA di
+`kompetensi-sdm` semata-mata karena audit lognya tak ada. Yang menentukan
+bukan gejalanya melainkan apa yang tersedia untuk diukur.
+
+**`ai-tool` — schema `test` MEMBAYANGI `public`.** Merah di suite penuh, hijau
+terisolasi:
+
+    expected [ 'draft', 'active', 'on_hold', …(2) ]
+      to deeply equal [ 'draft', 'draft', 'active', …(7) ]
+
+Sembilan nilai dengan `draft` ganda. Diukur dari dalam vitest:
+
+    public.project_status = 5 nilai
+    test.project_status   = 5 nilai      ← bayangan
+
+Query `pg_enum` tanpa `JOIN pg_namespace` mengambil KEDUANYA. `test-db.ts`
+membangun schema paralel hanya saat suite penuh berjalan — itulah kenapa
+terisolasi selalu hijau, dan kenapa ia terlihat seperti test flaky.
+
+Kelas cacat yang sudah tercatat di repo ini: `pg_constraint` tanpa
+`n.nspname='public'` yang membuat migrasi melaporkan gagal padahal DROP-nya
+berhasil. Kualifikasi schema bukan kerapian; tanpanya katalog sistem menjawab
+pertanyaan yang berbeda dari yang ditanyakan.
+
+Bukti mutasi: kualifikasi dilepas → **1 merah dari 44**; dipulihkan → **44
+hijau**.
+
+### Cacat ketujuh: buku eksekusi otomasi KOSONG untuk alur yang paling sering menembak
+
+Founder bertanya "selanjutnya apa?", dan saya usulkan mengukur saluran keluar
+yang sudah hidup. Pengukuran pertama langsung membantah klaim saya sendiri:
+
+    11 alur "aktif", 9 di antaranya NOL eksekusi seumur hidup —
+    termasuk `teruskan-kasbon-diajukan`, yang hari ini mengirim
+    28 WhatsApp ke founder.
+
+Buku bilang alurnya tak pernah jalan. Kenyataannya founder menerima puluhan
+pesan. Yang salah bukan bukunya melainkan **penulis yang melewatinya**:
+`utils/terbit-peristiwa.ts` — yang saya tulis sendiri sesi ini — menembak
+webhook n8n dengan `fetch()` langsung, tanpa menyentuh `otomasi_jalan`.
+
+`otomasi_jalan` adalah SATU-SATUNYA tempat pertanyaan "otomasi ini benar-benar
+jalan tidak?" bisa dijawab tanpa menebak. Selama ia kosong, tiap jawaban
+tentang otomasi adalah tebakan yang terdengar seperti fakta — dan halaman
+pemantauan menampilkan "belum pernah jalan" untuk alur yang paling sering
+menembak.
+
+#### Kenapa saya sempat tak memakai `jalankanAlur()`
+
+Ia menuntut `db: TenantDb`, dan berkas ini dipanggil dari
+`createNotifications()` yang tak punya `request`. Saya berhenti di situ.
+
+Padahal `createTenantDb(companyId)` hanya butuh companyId — sudah jadi
+parameter pertama fungsi itu — dan presedennya ada di `wa-webhook.ts:175`.
+`konfigurasiN8n` pun menerima FUNGSI PEMBACA, bukan request. `sumber:
+'peristiwa'` sudah ada di tipenya sejak awal. Jalur ini memang dirancang untuk
+dipakai begini; saya cuma tak mencarinya.
+
+Bukti terukur sesudah perbaikan:
+
+    otomasi_jalan: 4 → 5  · status=sukses sumber=peristiwa durasi=120ms
+    NODE_ENV=test → 5 → 5 · pagar test TETAP menahan
+
+### Penjaga `audit-alur-tercatat.mjs` — DUA versi pertamanya hiasan
+
+Versi 1: "menyebut /webhook/ DAN fetch, TAPI tak memanggil jalankanAlur".
+Hijau saat dimutasi — berkasnya TETAP memanggil `jalankanAlur` beberapa baris
+di bawah suntikan. **Kehadiran pintu yang benar tak membuktikan tak ada pintu
+belakang.**
+
+Versi 2: mencari `fetch(...)` yang argumennya memuat `/webhook/`. Menangkap
+bentuk inline, lolos untuk bentuk lewat variabel — yang justru lebih wajar
+ditulis orang.
+
+Versi 3 (benar): mencari pembangunan URL webhook di berkas yang bukan pintu
+resmi, ada fetch atau tidak. Bukti merah **dua bentuk**: inline → exit 1,
+lewat variabel → exit 1, dipulihkan → exit 0.
+
+Dua kali berturut penjaga ini terbukti hiasan, dan **keduanya ketahuan HANYA
+lewat mutasi** — tak satu pun lewat membaca ulang kodenya.
+
+### Cacat kedelapan: test konkurensi SDM — kembaran K3, dan TIGA perbaikan hiasan
+
+Suite penuh menemukan `kompetensi-sdm-endpoint` merah dengan gejala identik
+K3: `[200, 200]` bukannya `[200, 409]`. Klaim atomik `.eq('tahap', lama.tahap)`
+terpasang di `kompetensi-sdm.ts:493`, dan `masuk → seleksi_berkas → wawancara`
+adalah rantai maju yang sah — jadi 200 kedua benar saat terserialisasi.
+
+Tiga bentuk perbaikan dicoba, **ketiganya terbukti hiasan lewat mutasi**:
+
+    1. [200, 409]              menuntut lomba SELALU terjadi — merah 2 dari 6
+                               pada kode yang benar.
+    2. rantai audit_logs       tabelnya SELALU kosong untuk `lamaran_kerja`,
+                               jadi loop-nya tak pernah berjalan sekali pun.
+    3. pasangan tahap↔catatan  diukur di Postgres: tanpa klaim, kedua UPDATE
+                               menimpa KEDUA kolom sekaligus → pasangan tetap
+                               konsisten, tak terdeteksi.
+
+Yang sebenarnya berbeda hanya BERAPA permintaan yang berhasil — dan itu cuma
+terbaca kalau lombanya benar-benar terjadi, yang tak dijamin. Menuntutnya
+kembali ke bentuk (1).
+
+**Jadi test ini tidak diberi assertion klaim-atomik, dan alasannya ditulis
+sebagai catatan di dalamnya.** Itu lebih jujur daripada meninggalkan assertion
+yang terlihat menjaga tetapi tak pernah bisa merah (§8a.2). Klaimnya sendiri
+dijaga di tempat lain: `audit-klaim-status-atomik.mjs`, dan
+`k3-lapangan-endpoint` yang mutasinya terbukti merah 4 dari 4 — di sana
+`audit_logs` ADA.
+
+#### Temuan sampingan: perpindahan tahap lamaran TAK MASUK audit log
+
+`kompetensi-sdm.ts` memanggil `logAuditEvent` empat kali — untuk
+`sertifikat_pegawai` dan `penilaian_kinerja` — tak sekali pun untuk
+`lamaran_kerja`. **Keputusan rekrutmen (siapa maju, siapa ditolak, oleh siapa)
+tak meninggalkan jejak apa pun.**
+
+Ditemukan hanya karena assertion (2) tak pernah merah, dan saya memeriksa
+kenapa alih-alih menerimanya sebagai hijau. Belum diperbaiki — di luar lingkup
+sesi ini, tetapi bukan hal kecil untuk modul yang menyentuh nasib orang.
+
+#### Catatan pengukuran: API dev mencemari test konkurensi
+
+Merah 1 dari 6 sempat saya lihat sesudah perbaikan. Diukur: **9 koneksi idle**
+dari API dev di :3007 plus suite penuh yang masih berjalan. Sesudah suite
+selesai: **15 run berturut hijau, nol merah.**
+
+Yang perlu diingat sesi berikutnya: test konkurensi tak bisa dinilai saat ada
+proses lain memakai basis yang sama — angka merahnya nyata, tetapi sebabnya
+bukan kodenya.
+
+### Cacat keenam: test konkurensi K3 yang menuntut lomba SELALU terjadi
+
+`k3-lapangan-endpoint` merah di suite penuh, dan saya nyaris menyebutnya
+"konkurensi di bawah beban" lalu melanjutkan. Diukur dulu: **2 dari 6 run
+merah** — bukan sial, itu terlalu sering.
+
+    expected [ 200, 200 ] to deeply equal [ 200, 409 ]
+
+Dua penutupan bersamaan, keduanya berhasil. Terlihat persis seperti klaim
+status atomik yang bocor — kelas cacat yang punya penjaga CI sendiri.
+
+Ditelusuri sampai ke Postgres, dua UPDATE benar-benar bersamaan:
+
+    WHERE status='dilaporkan' → baris terpengaruh 1 dan 0  → ATOMIK BENAR
+
+Jadi bukan DB, dan bukan rutenya (`.eq('status', dari)` terpasang, 409 saat
+nol baris). Yang tak selalu terjadi adalah **"bersamaan"-nya**: `app.inject` +
+`Promise.all` tak menjamin keduanya membaca `dari` sebelum salah satu menulis.
+Terserialisasi, permintaan kedua membaca `diselidiki` dan menulis
+`tindakan_berjalan` — transisi maju yang SAH, jadi 200 benar.
+
+Test-nya yang menuntut nondeterminisme.
+
+#### Perbaikan pertama saya adalah HIASAN — dan mutasi yang membuktikannya
+
+Versi pertama saya melonggarkan ke "minimal satu menang, yang kalah 409, status
+akhir salah satu tujuan". Semuanya benar, dan semuanya **tak menangkap apa
+pun**: dengan `.eq('status', dari)` dilepas, tiga run tetap hijau.
+
+Diukur kenapa — tanpa klaim atomik, kedua UPDATE mengenai baris (rowCount 1 dan
+1) dan status akhir tetap salah satu tujuan. Tak ada yang bisa dibedakan dari
+hasil akhirnya.
+
+Percobaan kedua ("tepat satu entri audit") juga salah, dan merah pada kode yang
+benar. Jejaknya menunjukkan sebabnya:
+
+    11:31:47.242  dilaporkan → diselidiki
+    11:31:48.584  diselidiki → tindakan_berjalan     (1,3 detik kemudian)
+
+Dua tulisan sah, berurutan. Menuntut satu entri = menuntut lomba lagi.
+
+Yang akhirnya benar: **rantai jejaknya harus SAMBUNG.** Tiap tulisan berangkat
+dari status yang benar-benar berlaku saat itu. Tanpa klaim atomik ia bercabang —
+keduanya dari `dilaporkan` — dan cabang itu tak terlihat dari status akhir,
+hanya dari `old_values`.
+
+Bukti mutasi: klaim dilepas → **4 dari 4 MERAH**; dipulihkan → **5 dari 5
+HIJAU**, dan berkas penuh 50/50. Lebih tajam daripada versi aslinya yang merah
+2 dari 6 pada kode yang benar.
+
+**Pelajarannya:** "longgarkan sampai hijau" terasa seperti perbaikan dan
+menghasilkan penjaga hiasan (§8a.2). Yang membedakan keduanya cuma satu
+langkah — mutasi — dan langkah itulah yang paling mudah dilewati justru saat
+hasilnya sudah hijau.
+
+### Cacat kelima: `template-wbs` tersumbat residu yang namanya TAK ADA di repo
+
+Suite penuh: **Test Files 3 failed | 322 passed**, `Tests 2 failed | 4603 passed`.
+Dua merah (`k3-lapangan` konkurensi, `wa-nomor` timeout 20.138 ms) lulus
+terisolasi dan nol kaitan dengan berkas yang saya ubah. Yang ketiga nyata:
+
+    Error: tak ada proyek tanpa RAB untuk diuji
+
+Diukur: company uji punya 16 proyek, **0 kosong** — tetapi **14 kosong** kalau
+residu `'Uji pasca-apply'` diabaikan. 28 baris `rab_items` (14 proyek × 2)
+menyumbat seluruh stok fixture.
+
+**Yang memakan waktu paling lama: string itu nol kemunculan di seluruh repo.**
+Bukan di `apps/api`, bukan di web, bukan di SQL, bukan di empat worktree. Saya
+sempat menyimpulkan ada sesi lain yang menulis ke DB dev — dan berhenti, sesuai
+CLAUDE.md §8a.1 nomor 1. Founder menjawab: tak ada sesi lain.
+
+Diukur ulang sesudahnya: **28 baris, terbaru 16:44, 95 menit tanpa tambahan** —
+padahal intervalnya dulu ~25 menit. Ia berhenti tepat saat suite penuh terakhir
+selesai, jadi terikat pada run saya, bukan proses independen.
+
+Petunjuk yang membuka semuanya bukan namanya melainkan `category_code`:
+
+    CC-SMOKE-RETIRED | name: 'Uji pasca-apply' | deprecated | dibuat 2026-07-25
+
+Nama `rab_items` **diturunkan dari `cost_codes.name`**, bukan ditulis literal.
+Itulah kenapa grep tak pernah menemukannya. Tiga minggu residu dari cost code
+smoke yang sudah dipensiunkan.
+
+Delapan test yang menyentuh `rab_items` diuji satu per satu — kedelapan tak
+menambah baris (28 → 28). Penulis aslinya belum teridentifikasi, dan saya tak
+mengklaim sudah. Yang terukur pasti: barisnya berhenti tumbuh, seluruhnya
+bercost-code smoke, nol dirujuk `progress_logs`, dan menghapusnya mengembalikan
+tepat 14 proyek ke keadaan kosong.
+
+#### Cacat sejenis, perbaikan berlawanan arah — dan itu disengaja
+
+`price-book-triase` hari ini diperbaiki dengan **melonggarkan** syarat fixture.
+Di sini itu SALAH, dan hampir saya lakukan.
+
+"Proyek belum ber-RAB" bukan sekadar bahan fixture — ia **bagian dari yang
+diuji**: test di bawahnya menuntut penerapan KEDUA ditolak 422 justru karena
+proyeknya kini sudah ber-RAB. Melonggarkan syarat akan membalik arti testnya
+sendiri, dan hasilnya tetap hijau — jenis perbaikan yang paling berbahaya.
+
+Jadi di sini yang dibersihkan residunya, bukan dilonggarkan syaratnya.
+
+**Gejala yang sama tak berarti obat yang sama.** Yang menentukan adalah apa
+yang sedang dijamin test itu, bukan bentuk kegagalannya.
+
+Bukti: 3 run berturut **43/43 hijau** (sebelumnya 24 lulus + 19 dilewati karena
+`beforeAll` gagal), residu 28 → 0.
+
+### Penjaga baru — `audit-saluran-keluar-berpagar.mjs`
+
+Menambal `terbit-peristiwa.ts` saja tidak cukup: yang salah bukan satu berkas
+melainkan tak adanya batas antara test dan dunia luar.
+
+Diukur: tiga modul memanggil `fetch()` ke luar. `wa-kirim.ts` AMAN — tapi
+amannya lewat **disiplin**, test-nya menyetel `konfigurasi: null` dan menulis
+alasannya di tempat. Itu bekerja selama penulis test TAHU ia sedang menyentuh
+saluran keluar.
+
+`terbit-peristiwa` bocor justru karena tak seorang pun tahu. Enam berkas test
+itu mengira sedang menguji retensi, opname, dan approval — tak satu pun
+menyebut WhatsApp. Mereka menyentuhnya lewat corong `createNotifications()`.
+
+**Disiplin melindungi yang sengaja. Yang tak sengaja butuh pagar.**
+
+Penjaga ini memeriksa tiap modul ber-`fetch` punya pagar `NODE_ENV === 'test'`,
+atau terdaftar sebagai pengecualian **beserta alasannya di dalam penjaga
+sendiri** — bukan lewat komentar penekan yang tersebar, karena penekan tersebar
+membuat "berapa saluran keluar yang tak berpagar" jadi pertanyaan yang harus
+dijawab dengan grep, dan pertanyaan begitu berhenti ditanyakan.
+
+Saat dijalankan pertama kali ia menemukan **empat modul lagi**. Diperiksa satu
+per satu, dan hasilnya tidak seragam — itu gunanya memeriksa, bukan menambal
+semuanya:
+
+    kredensial.ts        → CACAT NYATA. `kredensial.test.ts` memanggil
+                           POST /kredensial/:kunci/uji tiga kali, salah satunya
+                           dengan nilai 'palsu-tak-berlaku'. Tiap run mengirim
+                           verifikasi sungguhan ke penyedia luar untuk kunci
+                           yang sengaja salah → diberi pagar.
+    ai-penyedia-openai   → sudah lebih baik dari pagar: test menyadap
+                           `globalThis.fetch`, jadi jalur HTTP-nya TETAP teruji
+                           sementara nol byte keluar. Pagar NODE_ENV justru
+                           akan membuat jalur itu tak teruji.
+    situs.ts             → DIBERI PAGAR, sesudah alasan pertama saya terbukti
+                           salah (lihat di bawah).
+    wa-instance.ts       → dikecualikan: `evo()` butuh kredensial Evolution
+                           tenant; tanpa itu rutenya membalas 422 dan tak
+                           pernah sampai ke fetch — dan test-nya MENERIMA 422
+                           sebagai hasil sah.
+
+Jawaban di jalur test `kredensial` dibuat NEGATIF (`ok: false`). Kalau ia
+menjawab "valid", test yang keliru menganggap kunci palsu diterima akan tetap
+hijau — penjaga yang berbohong ke arah menyenangkan lebih buruk daripada tak
+ada penjaga.
+
+Bukti merah: pagar `terbit-peristiwa` dilepas → exit **1** menunjuk berkasnya
+→ dipulihkan → exit **0**.
+
+#### Saya salah dua kali soal alasan pengecualian — dan keduanya lolos karena kebetulan
+
+Dua pengecualian pertama saya tulis dengan alasan yang TIDAK saya ukur:
+
+1. **`wa-instance.ts` — "nol berkas test menyebutnya".** Salah. Glob yang saya
+   pakai (`src/**/__tests__/*.ts` lewat shell) tak menjangkau kedalamannya.
+   `wa-instance.test.ts` ada dan memanggil endpointnya. Yang membuat aman bukan
+   ketiadaan test melainkan kredensial Evolution yang tak terpasang.
+
+2. **`situs.ts` — "kedua env itu tak ada di lingkungan test".** Juga salah.
+   Diukur: `SITUS_REVALIDATE_URL` (36 char) dan `SITUS_REVALIDATE_SECRET`
+   (17 char) KEDUANYA terisi di `apps/api/.env`. Penjaga env di rutenya tidak
+   menahan apa pun di sini. Yang membuat aman cuma kebetulan — nol test
+   memanggil rute revalidate hari ini.
+
+`situs.ts` sekarang diberi pagar sungguhan dan dikeluarkan dari daftar
+pengecualian.
+
+**Pelajarannya lebih tajam daripada cacat aslinya.** Saya sedang membangun
+penjaga TERHADAP asumsi yang tak diukur — lalu mengisi daftar pengecualiannya
+dengan asumsi yang tak saya ukur. Pengecualian adalah lubang yang sengaja
+dibuat di penjaga; alasannya harus diukur lebih ketat daripada kode biasa,
+bukan lebih longgar.
+
+Dan keduanya "benar" hasilnya: tak ada yang bocor hari ini. Itu justru yang
+berbahaya — pengecualian dengan alasan keliru tetap lolos selama keadaannya
+kebetulan mendukung, lalu runtuh diam-diam saat keadaan berubah. **Kebetulan
+bukan pagar.**
+
+### Cacat keempat, ketemu sambil mengukur yang ketiga: `record_id` selalu NULL
+
+Seluruh notifikasi `kasbon_submitted` di basis ber-`record_id` NULL.
+
+Itu membuatnya **kebal dedup**. Dedup harian, penjaga
+`audit-notifikasi-tak-kembar.mjs`, dan pembersihan migrasi 380 ketiganya
+menilai kembar lewat `(user_id, type, record_id, tanggal)` — dan ketiganya
+sengaja MELEWATI baris tanpa `record_id`, karena dua notifikasi berjudul sama
+bisa merujuk dua penagihan berbeda.
+
+Jadi 20 baris identik pada 16:01 lolos tanpa satu pun tertahan, dan
+pembersihan 380 tak menyentuhnya. **Yang tak bisa dinilai, tak bisa dijaga.**
+
+`mandor.ts` sekarang mengisi `action_data: { record_id: data.id }`. Terukur
+sesudahnya: 26 notifikasi baru, **26 ber-record_id** (sebelumnya 0), dan nol
+WhatsApp terkirim.
+
+### Cacat kedua: test yang MENGHABISKAN bahan bakunya sendiri
+
+Suite penuh sesudah perbaikan: **Test Files 2 failed | 323 passed**, sementara
+baris "Tests" hanya menunjukkan 1 merah. Lagi-lagi kegagalan di `beforeAll`
+menyumbang nol test merah — baca **Test Files**, bukan Tests.
+
+`price-book-triase` berhenti di fixture-nya:
+
+    Error: tak ada resource tanpa harga — fixture tak terbentuk
+
+Diukur:
+
+    price_book_entries bertanda UJI-TRIASE : 79 baris, SEMUANYA expired
+    resources active tanpa harga           : 0 dari 2.830
+
+`pinjamResource()` menuntut resource yang belum punya harga **apa pun**.
+`bersihkan()` meninggalkan harga uji sebagai `expired`, dan trigger 104
+melarang menghapusnya. Jadi tiap run menelan tiga resource secara permanen —
+setiap run benar, akumulasinya yang salah, dan tak ada galat sampai stoknya
+benar-benar nol setelah berhari-hari.
+
+**Arah pertama saya salah dan ditolak basis.** Saya menulis migrasi 381 untuk
+menghapus 79 residu itu, dengan asumsi trigger 104 hanya melarang menghapus
+`active`. Migrasinya gagal:
+
+    Price Book Entry berstatus expired tidak boleh dihapus — Estimate Item
+    mungkin merujuknya. (Hanya draft yang boleh dibuang.)
+
+Aturannya lebih ketat dari asumsi saya, dan alasannya benar: entry ter-verify
+mengemban attestation dan jejak harga historis. Melemahkannya demi kenyamanan
+test adalah Ember [C]. Migrasi 381 dibatalkan dan berkasnya dihapus.
+
+Perbaikan yang benar bukan membersihkan residu melainkan membuat fixture tak
+menuntut resource perawan: cukup yang tak punya harga `active` **maupun**
+`draft`. `expired` tak masuk hitungan golongan mana pun — resolver hanya
+membaca `active`, triase hanya `draft` — jadi resource bersisa `expired`
+adalah papan tulis bersih untuk ketiga golongan yang diuji.
+
+Efeknya stok jadi berdaur ulang. Bukti: 3 run berturut **11/11 hijau**, dan
+stok resource **tetap 80** (dulu berkurang 3 tiap run).
+
+### Penjaga baru — `audit-baca-tak-terpotong.mjs`
+
+Cacat ini tak berbunyi saat terjadi, jadi ia butuh penjaga, bukan kewaspadaan.
+
+Yang diukur **kenyataan, bukan teks**: untuk tiap tabel yang dibaca utuh tanpa
+pembatas, berapa baris yang benar-benar ada di basis. Ambang NOL di 1.000,
+peringatan di 800 — supaya tertangkap SEBELUM garisnya terlewati.
+
+Pemindai teks murni sengaja ditolak: `.from().select()` tanpa `.range()` ada
+di puluhan tempat yang memang tak akan pernah mendekati 1.000, dan penjaga
+yang meneriaki kode benar akan berhenti dibaca.
+
+Versi pertamanya salah dan tertangkap oleh pengukuran sendiri: ia melaporkan
+`notifications`, `price_book_entries`, `estimate_items`, `estimate_versions`
+sebagai pelanggaran. Keempatnya **positif palsu** — pembatasnya ada, tetapi di
+luar rantai titik-bersambung:
+
+    let q = ...from('notifications').select(...).eq(...).range(...)
+    if (is_read === 'true') q = q.eq('is_read', true)    ← DI LUAR rantai
+
+Query di repo ini dibangun bertahap lewat variabel. Jendela pemindaian
+diperlebar ke 25 baris, berhenti saat bertemu `.from(` berikutnya.
+
+Bukti merah: paging `role-guard` dilepas → exit **1**, menunjuk
+`src/utils/role-guard.ts:69` → dipulihkan → exit **0**.
+
+---
+
 ## 2026-08-14 (lanjutan 10) — penjaga anti-lockout MATI DIAM karena role kembar
 
 Suite: **4564 test lulus, NOL test merah** — tetapi 5 BERKAS gagal. Kegagalan
@@ -228,7 +876,8 @@ Kode SUDAH BENAR, tapi pesannya menuduh "mekanisme approval keempat" —
 tuduhan salah alamat. Jebakan yang sama sudah tercatat di QUEUE (alat mutasi
 "lolos" karena mencari LF di berkas CRLF).
 
-⚠ Saya sempat merusak berkas test-nya saat memperbaiki: escaping `
+⚠ Saya sempat merusak berkas test-nya saat memperbaiki: escaping `
+
 `
 termakan heredoc shell. Dipulihkan `git checkout`, lalu dikerjakan lewat
 helper `bacaSumber()` — satu tempat, bukan tiga.
