@@ -33,7 +33,7 @@ import {
   konfigurasiKanal as muatKonfigurasi,
   normalkanNomor,
 } from '../../lib/wa-kirim.js'
-import { renderDariDb, variabelDipakai } from '../../lib/wa-template.js'
+import { variabelDipakai } from '../../lib/wa-template.js'
 
 const UMUR_KODE_MS = 10 * 60_000
 const MAKS_PERCOBAAN = 5

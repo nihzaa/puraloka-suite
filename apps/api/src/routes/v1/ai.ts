@@ -36,7 +36,7 @@
  * dari DB dengan saringan tenant yang sama seperti `/dashboard/fokus`.
  */
 
-import type { FastifyInstance, FastifyRequest } from 'fastify'
+import type { FastifyInstance } from 'fastify'
 import { authenticate } from '../../plugins/auth.js'
 import {
   PROMPT_SISTEM,

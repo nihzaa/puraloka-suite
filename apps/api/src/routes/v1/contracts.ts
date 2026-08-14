@@ -124,7 +124,6 @@ function drawTable(
   colWidths: number[],
 ) {
   const rowH = 18
-  const tableW = colWidths.reduce((a, b) => a + b, 0)
   const pageBottom = ctx.doc.page.height - MARGIN
 
   // Header row

@@ -5,6 +5,64 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan 5) — kedua ratchet lint HIJAU, dan satu tipe yang mencegah NaN di laporan pajak
+
+Lanjutan Prioritas 2. Founder: *"belum bisa soalnya kan belum di deploy, lanjut
+kerjakan aja yg bisa dikerjakan"* — `SCHEDULER_URL` memang dicoret dengan benar.
+
+### `no-explicit-any` 231 → 223 dengan SATU tipe bernama
+
+Yang tersisa merah setelah ratchet tenancy. Dibedah dulu bentuknya, bukan
+langsung ditambal: 29 `(x: any) =>`, 28 `as any`, 10 `any[]`.
+
+Yang dikerjakan bukan menambal tujuh lambda satu per satu, melainkan memberi
+`tax_records` di `reports.ts` **satu tipe bernama** (`BarisPajak`). Delapan
+`any` hilang sekaligus, dan alasannya bukan sekadar menyenangkan lint:
+
+    r.tax_amont  ← salah ketik, diam-diam `undefined`
+    Number(undefined) → NaN
+    total pajak → NaN
+
+Di laporan pajak. Dengan `any`, kompilator diam; dengan tipe, ia berhenti.
+
+### `no-unused-vars` 23 → 8
+
+Tujuh impor mati dibuang (`FastifyRequest` yang tak dipakai di dua rute,
+`calculateTax`/`getTaxRate` di `termin-payment`, `renderDariDb` di `wa-nomor`,
+`requirePermission` di `recycle-bin`, `FastifyReply` di `reports`) dan enam
+variabel lokal mati dibereskan.
+
+### `set-state-in-effect` 59 → 58 (web)
+
+`judul-bagian.tsx` memanggil `setMenu` SINKRON di dalam effect — memicu render
+kedua sebelum yang pertama selesai. Diperbaiki `queueMicrotask`, pola yang
+sudah dipakai belasan halaman lain di repo ini.
+
+Kode lama, tapi berkasnya saya sentuh sesi ini, jadi dibereskan.
+
+### Ambang DIKENCANGKAN, bukan dinaikkan
+
+    no-explicit-any   224 → 223
+    no-unused-vars     10 → 8
+
+Arah yang memang dituntut ratchet. Ketiga angka diverifikasi identik sebelum
+perubahan lewat `git stash` — semuanya utang lama, bukan tambahan sesi ini.
+
+### Bukti
+
+```
+tsc (api)                  EXIT 0
+tsc (web)                  EXIT 0
+lint-ratchet API           HIJAU (0 error, 231 warning)
+lint-ratchet web           HIJAU (0 error, 298 warning)
+7 penjaga visual web       HIJAU (token-css, judul-halaman, remah-lengkap,
+                           tabel-seragam, ubin-judul, nav-yatim, peta-menu)
+peramban                   4/4 judul + ubin ikon benar sesudah perubahan
+                           effect di judul-bagian.tsx
+```
+
+---
+
 ## 2026-08-14 (lanjutan 4) — ratchet tenancy 380 → 343, dan satu lubang tenancy nyata
 
 Prioritas 2: ratchet `akses supabase mentah` yang membuat CI merah. Founder

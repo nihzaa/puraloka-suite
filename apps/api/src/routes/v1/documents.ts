@@ -103,7 +103,7 @@ export default async function documentRoutes(app: FastifyInstance) {
       if (!(await proyekMilikTenant(request, projectId))) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
-      const { title, doc_type, is_visible_to_client, file_base64, file_name, file_type } = request.body
+      const { title, doc_type, is_visible_to_client, file_base64, file_name } = request.body
 
       if (!title?.trim()) return reply.status(400).send({ error: 'Judul dokumen wajib diisi' })
       if (!file_base64) return reply.status(400).send({ error: 'File tidak ditemukan' })

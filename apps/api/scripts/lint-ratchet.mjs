@@ -33,11 +33,18 @@ import { ESLint } from 'eslint'
  */
 const AMBANG = {
   // 227 → 226 (ErrorMasuk di index.ts) → 225 (EmbedScope di mandor.ts), 2026-07-31.
-  '@typescript-eslint/no-explicit-any': 224,   // 225 -> 224: embed clients di search.ts diberi tipe (2026-08-02)
+  // 224 -> 223 (2026-08-14): `tax_records` di reports.ts diberi SATU tipe
+  // bernama (`BarisPajak`) alih-alih `any` di tujuh lambda. Bukan sekadar
+  // menyenangkan lint: `r.tax_amont` yang salah ketik diam-diam `undefined`,
+  // lalu `Number(undefined)` jadi NaN — di laporan pajak.
+  '@typescript-eslint/no-explicit-any': 223,
   // 16 → 10 (2026-08-02): tujuh impor `supabase` yatim, sisa dari migrasi
   // bertahap ke `request.db`. Enam sudah yatim sebelum hari ini; yang ketujuh
   // (`milestones`) baru menjadi yatim saat seluruh query-nya dialihkan.
-  '@typescript-eslint/no-unused-vars': 10,
+  // 10 -> 8 (2026-08-14): tujuh impor mati dibuang (FastifyRequest yang tak
+  // dipakai, calculateTax/getTaxRate di termin-payment, renderDariDb di
+  // wa-nomor) dan enam variabel lokal mati dibereskan.
+  '@typescript-eslint/no-unused-vars': 8,
 }
 
 /** Rule apa pun DI LUAR daftar di atas harus NOL — termasuk rule baru. */

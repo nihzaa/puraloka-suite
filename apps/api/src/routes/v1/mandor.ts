@@ -2216,7 +2216,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
   app.patch('/api/v1/mandor/worker-kasbons/:id/status', {
     preHandler: [authenticate, requirePermission('mandor:kasbon:approve')]
   }, async (request, reply) => {
-    const user = request.currentUser!
+    const _user = request.currentUser!
     const { id } = request.params as { id: string }
     const { status, notes, cash_account_id } = request.body as {
       status: 'approved' | 'rejected'

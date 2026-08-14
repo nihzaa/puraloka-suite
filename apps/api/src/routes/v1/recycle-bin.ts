@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify'
-import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
+import { authenticate, hasPermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import {
   REGISTRY, AMBANG_LAMA_HARI, cariEntri, umurHari, periksaPulih,

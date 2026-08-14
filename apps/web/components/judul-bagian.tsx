@@ -145,9 +145,18 @@ function JudulBagianIsi({ cadangan, keterangan, aksi }: JudulBagianProps) {
   useEffect(() => {
     // Cache dulu supaya judul tak berkedip saat pindah halaman; jaringan
     // menyusul dan memperbaruinya bila berubah.
+    //
+    // `queueMicrotask`, bukan `setMenu` langsung: setState SINKRON di dalam
+    // effect memicu render kedua sebelum yang pertama selesai
+    // (`react-hooks/set-state-in-effect`). Menunda satu microtask
+    // memindahkannya keluar dari fase render tanpa menambah jeda yang
+    // terlihat — pola yang sama sudah dipakai belasan halaman di repo ini.
     try {
       const c = localStorage.getItem(MENU_CACHE_KEY);
-      if (c) setMenu(JSON.parse(c) as NodeMenu[]);
+      if (c) {
+        const dariCache = JSON.parse(c) as NodeMenu[];
+        queueMicrotask(() => setMenu(dariCache));
+      }
     } catch { /* cache rusak bukan alasan halaman gagal */ }
 
     let batal = false;

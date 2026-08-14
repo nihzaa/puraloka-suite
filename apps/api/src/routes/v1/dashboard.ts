@@ -43,14 +43,12 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     const period: Period = VALID.includes(rawPeriod as Period) ? (rawPeriod as Period) : 'last_3_months'
 
     const today = new Date()
-    const todayStr = today.toISOString().split('T')[0]
 
     const periodStart = periodToStartDate(period, today)
 
     // recent activity: always last 7 days
     const sevenDaysAgo = new Date(today)
     sevenDaysAgo.setDate(today.getDate() - 7)
-    const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]
 
     const in14Days = new Date(today)
     in14Days.setDate(today.getDate() + 14)

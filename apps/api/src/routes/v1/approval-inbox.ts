@@ -30,7 +30,7 @@
  * (katalog di `lib/inbox-approval.ts`), lalu `approval_progress` dipakai untuk
  * tahu sudah sampai level berapa.
  */
-import type { FastifyInstance, FastifyRequest } from 'fastify'
+import type { FastifyInstance } from 'fastify'
 import { authenticate } from '../../plugins/auth.js'
 import { SUMBER_INBOX, type SumberInbox } from '../../lib/inbox-approval.js'
 import { canParticipateInChain } from '../../utils/approval.js'

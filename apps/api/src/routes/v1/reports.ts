@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
 import { supabase } from '../../utils/supabase.js'
-import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyRequest } from 'fastify'
 
 /**
  * T4d — resolusi daftar proyek yang BOLEH dibaca request ini.
@@ -100,7 +100,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     const { project_id } = q
     if (!project_id) return reply.status(400).send({ error: 'project_id wajib diisi' })
 
-    const user = request.currentUser!
+    const _user = request.currentUser!
     // F5 (AKTA 0): capability `finance:view:all` (org-wide finance), BUKAN role
     // literal `admin||pm`. Sengaja BUKAN `finance:view` (dimiliki mandor/client utk
     // data ter-scope) supaya scope tetap admin+pm — grantable ke direktur via UI.
@@ -1072,9 +1072,27 @@ export default async function reportsRoutes(app: FastifyInstance) {
 
     // Filter by project_id if provided
      
-    let records = (data ?? []) as any[]
+    /*
+      SATU tipe bernama, bukan `any` di tujuh lambda.
+
+      Bentuknya diturunkan dari `.select()` di atas — bukan ditebak. Menuliskan
+      `(r: any)` di tiap filter/reduce berarti tujuh tempat yang harus diingat
+      saat kolomnya berubah, dan tak satu pun akan berbunyi kalau salah nama:
+      `r.tax_amont` diam-diam `undefined`, lalu `Number(undefined)` jadi NaN,
+      lalu totalnya NaN — di laporan pajak.
+    */
+    interface BarisPajak {
+      tax_type?: string | null
+      tax_amount?: number | string | null
+      status?: string | null
+      period_month?: string | null
+      invoice?: { project?: { id?: string } | null } | null
+      [k: string]: unknown
+    }
+
+    let records = (data ?? []) as BarisPajak[]
     if (project_id) {
-      records = records.filter((r: any) => r.invoice?.project?.id === project_id)
+      records = records.filter((r) => r.invoice?.project?.id === project_id)
     }
 
     // Aggregasi per bulan
@@ -1091,10 +1109,10 @@ export default async function reportsRoutes(app: FastifyInstance) {
       if (r.status === 'reported') byMonth[m].reported++
     }
 
-    const totalPph    = records.filter((r: any) => r.tax_type === 'pph_final').reduce((s: number, r: any) => s + Number(r.tax_amount ?? 0), 0)
-    const totalPpn    = records.filter((r: any) => r.tax_type === 'ppn').reduce((s: number, r: any) => s + Number(r.tax_amount ?? 0), 0)
-    const totalPending  = records.filter((r: any) => r.status === 'pending').length
-    const totalReported = records.filter((r: any) => r.status === 'reported').length
+    const totalPph    = records.filter((r) => r.tax_type === 'pph_final').reduce((s, r) => s + Number(r.tax_amount ?? 0), 0)
+    const totalPpn    = records.filter((r) => r.tax_type === 'ppn').reduce((s, r) => s + Number(r.tax_amount ?? 0), 0)
+    const totalPending  = records.filter((r) => r.status === 'pending').length
+    const totalReported = records.filter((r) => r.status === 'reported').length
 
     return reply.send({
       records,

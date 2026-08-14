@@ -2023,7 +2023,7 @@ export default async function financeRoutes(app: FastifyInstance) {
   app.get('/api/v1/finance/profitability', {
     preHandler: [authenticate]
   }, async (request, reply) => {
-    const { date_from, date_to, project_id } = request.query as Record<string, string>
+    const { project_id } = request.query as Record<string, string>
 
     // Fetch all projects (or single if filtered)
     // T4g: lewat wrapper — projects ANCHOR, .from() menyaring company.
