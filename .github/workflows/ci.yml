@@ -1700,6 +1700,33 @@ jobs:
       - name: Sel tabel memakai token padding (ratchet)
         run: node scripts/uji-tabel-seragam.mjs
 
+      # Pola yang sama, kelima kalinya: 5 berkas memakai `<input type="radio">`
+      # dengan 5 bentuk kartu berbeda (radius 6/8/10, border 1/1.5px, tiga
+      # warna latar). Disatukan jadi `components/pilihan-kartu.tsx`.
+      #
+      # R-2 yang paling menggigit: founder minta lingkaran radionya dibuang,
+      # dan cara termudah melakukannya (`display:none`, atau `<div onClick>`)
+      # menghasilkan tampilan yang benar DAN kontrol yang hilang dari urutan
+      # Tab — cacat yang tak terlihat oleh siapa pun yang mengetes dengan
+      # tetikus. Input aslinya tetap ada, disembunyikan `opacity: 0`.
+      # Bukti merah: R-1 & R-2 disuntik satu per satu, keduanya MERAH.
+      - name: Kontrol pilihan seragam (ambang NOL)
+        run: node scripts/uji-pilihan-seragam.mjs
+
+      # Founder 2026-08-15: *"kenapa di sidebarnya kebaca gaada yang aktif,
+      # ini aneh"* — membuka /pengaturan/asisten/pemilik. Sebabnya bukan
+      # logika penyorotan: keempat sub-menu Asisten ber-`is_active = false`,
+      # dan `menu.ts` menyaring `is_active = true`. Yang tak pernah dikirim
+      # tak bisa disorot, dan tak ada satu pun galat yang menyebutkannya.
+      #
+      # RATCHET, bukan nol: 146 baris menunjuk halaman yang ADA sementara
+      # barisnya mati, dan sebagian memang sengaja disembunyikan (triase
+      # F5-1). Yang dijaga: angkanya tak boleh NAIK — halaman baru yang
+      # dibuat tanpa menyalakan barisnya merah di sini.
+      # Bukti merah: satu baris dimatikan → MERAH → dipulihkan → HIJAU.
+      - name: Baris menu vs halaman yang ada (ratchet)
+        run: node scripts/uji-menu-halaman-hidup.mjs
+
       # Tiap modul wajib punya nama di `breadcrumbMap`. Cadangan
       # `getPageTitle` menurunkan nama dari URL dan sengaja terlihat mentah
       # ("yang mentah menuntut diperbaiki, yang berbohong tidak") — tapi itu

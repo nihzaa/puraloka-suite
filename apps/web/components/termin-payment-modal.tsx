@@ -10,6 +10,7 @@ import { X, Upload, CheckCircle2, FileImage, Trash2, Banknote, Wallet } from "lu
 // ─── Design tokens ──────────────────────────────────────────────────────────
 
 import { C } from "@/lib/warna-ui";
+import { PilihanKartu } from "@/components/pilihan-kartu";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -292,54 +293,35 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
                     Memuat akun kas...
                   </div>
                 ) : (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                    {cashAccounts.map(a => (
-                      <label key={a.id} style={{
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        padding: "8px 12px", borderRadius: 6, cursor: "pointer",
-                        border: `1.5px solid ${cashAccountId === a.id ? C.navy : C.border}`,
-                        background: cashAccountId === a.id ? C.navyLight : "var(--surface)",
-                        transition: "all 0.15s",
-                      }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <input
-                            type="radio"
-                            name="cash_account"
-                            value={a.id}
-                            checked={cashAccountId === a.id}
-                            onChange={() => setCashAccountId(a.id)}
-                            style={{ accentColor: C.navy }}
-                          />
-                          <div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{a.name}</div>
-                            <div style={{ fontSize: 11, color: C.muted }}>{ACCOUNT_TYPE_LABEL[a.type] ?? a.type}</div>
-                          </div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: cashAccountId === a.id ? C.navy : C.mid }}>
+                  <PilihanKartu
+                    nama="cash_account"
+                    label=""
+                    kolom={1}
+                    nilai={cashAccountId}
+                    onUbah={setCashAccountId}
+                    opsi={[
+                      ...cashAccounts.map((a) => ({
+                        nilai: a.id,
+                        label: a.name,
+                        ringkas: ACCOUNT_TYPE_LABEL[a.type] ?? a.type,
+                        // Saldo tetap terlihat saat memilih. Memilih akun kas
+                        // tanpa melihat saldonya berarti memilih buta.
+                        kanan: (
+                          <span style={{ textAlign: "right", display: "block" }}>
                             {fmt(a.balance)}
-                          </div>
-                          <div style={{ fontSize: 10, color: C.muted }}>saldo saat ini</div>
-                        </div>
-                      </label>
-                    ))}
-                    <label style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "8px 12px", borderRadius: 6, cursor: "pointer",
-                      border: `1.5px solid ${cashAccountId === "" ? C.border : C.border}`,
-                      background: cashAccountId === "" ? "var(--surface-subtle)" : "var(--surface)",
-                    }}>
-                      <input
-                        type="radio"
-                        name="cash_account"
-                        value=""
-                        checked={cashAccountId === ""}
-                        onChange={() => setCashAccountId("")}
-                        style={{ accentColor: C.navy }}
-                      />
-                      <div style={{ fontSize: 13, color: C.muted }}>Tidak masuk ke kas manapun (catat saja)</div>
-                    </label>
-                  </div>
+                            <span style={{ display: "block", fontSize: 10, color: C.muted, fontWeight: 400 }}>
+                              saldo saat ini
+                            </span>
+                          </span>
+                        ),
+                      })),
+                      {
+                        nilai: "",
+                        label: "Tidak masuk ke kas manapun",
+                        ringkas: "Dicatat saja, tanpa menambah saldo",
+                      },
+                    ]}
+                  />
                 )}
               </div>
 

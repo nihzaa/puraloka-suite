@@ -54,6 +54,21 @@ export type ModeBatas = (typeof MODE_BATAS)[number]
 export const MODE_BICARA = ['pelapor', 'penasihat', 'teman'] as const
 export type ModeBicara = (typeof MODE_BICARA)[number]
 
+/**
+ * SIFAT bicara — himpunan, bukan pilihan tunggal (migrasi 383).
+ *
+ * Migrasi 382 memodelkannya sebagai satu `mode_bicara`, dan founder langsung
+ * menemukan cacatnya: *"kalo pilihannya juga saya mau bisa semua"*. Memang
+ * benar — "boleh menyarankan" dan "boleh mengobrol" tak pernah bertentangan.
+ * Yang memaksa memilih hanyalah bentuk penyimpanannya.
+ *
+ * `pelapor` tak ada di sini karena ia bukan sifat melainkan KETIADAAN sifat:
+ * asisten tanpa kemampuan tambahan memang hanya melapor. Himpunan kosong
+ * menyatakannya tanpa perlu nilai khusus.
+ */
+export const SIFAT_BICARA = ['menyarankan', 'mengobrol'] as const
+export type SifatBicara = (typeof SIFAT_BICARA)[number]
+
 export interface KonfigurasiAi {
   asisten: Asisten
   penyedia: string
@@ -76,7 +91,7 @@ export interface KonfigurasiAi {
    * Per-asisten (bukan per-tenant) justru itu intinya: asisten pemilik boleh
    * `teman` sementara asisten staf tetap `pelapor`, tanpa dua sistem izin.
    */
-  modeBicara: ModeBicara
+  sifatBicara: SifatBicara[]
   /** Batas ronde tool-calling. Dulu konstanta `MAKS_RONDE`. */
   maksRonde: number
   /**
@@ -106,9 +121,9 @@ export function konfigurasiBawaan(asisten: Asisten): KonfigurasiAi {
     batasBulananIdr: null,
     modeBatas: 'peringatkan',
     promptSistem: null,
-    // Bawaan = perilaku sebelum mode ada. Tenant yang tak memilih apa pun
-    // tidak boleh mendapati asistennya tiba-tiba berpendapat.
-    modeBicara: 'pelapor',
+    // Kosong = pelapor, yaitu perilaku sebelum sifat ada. Tenant yang tak
+    // memilih apa pun tidak boleh mendapati asistennya tiba-tiba berpendapat.
+    sifatBicara: [],
     maksRonde: 4,
     toolAktif: null,
   }
@@ -123,7 +138,7 @@ interface BarisConfig {
   batas_bulanan_idr: string | number | null
   mode_batas: string
   prompt_sistem?: string | null
-  mode_bicara?: string | null
+  sifat_bicara?: string[] | null
   maks_ronde?: number | null
   tool_aktif?: string[] | null
 }
@@ -151,12 +166,14 @@ export function bentukKonfigurasi(baris: BarisConfig, asisten: Asisten): Konfigu
       ? (baris.mode_batas as ModeBatas)
       : 'peringatkan',
     promptSistem: baris.prompt_sistem?.trim() || null,
-    // Nilai asing jatuh ke `pelapor`, mode paling ketat. Basis yang lebih baru
-    // daripada kode (mis. saat rollback) tak boleh membuat asisten diam-diam
-    // lebih longgar daripada yang dipahami kode yang sedang berjalan.
-    modeBicara: (MODE_BICARA as readonly string[]).includes(baris.mode_bicara ?? '')
-      ? (baris.mode_bicara as ModeBicara)
-      : bawaan.modeBicara,
+    // Sifat asing DIBUANG, bukan membuat seluruh himpunan gugur. Basis bisa
+    // lebih baru daripada kode saat rollback; membuang yang tak dikenal
+    // membuat asisten kehilangan satu kemampuan, sementara menggugurkan
+    // semuanya membuatnya kehilangan semua — dan yang kedua jauh lebih
+    // mengagetkan bagi yang memakainya.
+    sifatBicara: (baris.sifat_bicara ?? []).filter((x): x is SifatBicara =>
+      (SIFAT_BICARA as readonly string[]).includes(x),
+    ),
     maksRonde: baris.maks_ronde ?? bawaan.maksRonde,
     // `?? null` BUKAN `|| null`: array kosong itu falsy, dan `||` akan
     // mengubah "nol tool" jadi "semua tool" — kebalikan dari yang dipilih.
@@ -214,7 +231,7 @@ export async function periksaGerbangAi(
 ): Promise<KeputusanGerbang> {
   const { data, error } = await db
     .from('ai_provider_config')
-    .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, mode_bicara, maks_ronde, tool_aktif')
+    .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, sifat_bicara, maks_ronde, tool_aktif')
     .eq('asisten', asisten)
     .maybeSingle()
 

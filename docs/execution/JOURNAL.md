@@ -5,6 +5,123 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-15 — founder menemukan cacat pemodelan saya dalam satu kalimat
+
+Sesi kemarin (lanjutan 12) memberi asisten SATU `mode_bicara`:
+`pelapor`/`penasihat`/`teman`. Founder mencobanya, lalu:
+
+> *"kalo pilihannya juga saya mau bisa semua"*
+
+Itu bukan permintaan fitur. Itu menunjuk **cacat pemodelan** yang saya buat
+kemarin: saya memperlakukan ketiganya saling meniadakan, padahal dua di
+antaranya **tak pernah bertentangan**. Tak ada satu pun alasan asisten yang
+boleh menyarankan jadi tak boleh menyapa. Yang memaksa memilih bukan
+kenyataan — melainkan **satu kolom teks yang cuma muat satu nilai**.
+
+Saya salah. Perbaikannya migrasi 383: `mode_bicara` (satu) → `sifat_bicara`
+(himpunan). `pelapor` lenyap sebagai nilai, karena ia bukan sifat melainkan
+KETIADAAN sifat — himpunan kosong menyatakannya tanpa perlu nilai khusus.
+
+    sifat_bicara = '{}'                      → pelapor (bawaan, perilaku lama)
+    sifat_bicara = '{menyarankan}'           → penasihat
+    sifat_bicara = '{mengobrol}'             → teman
+    sifat_bicara = '{menyarankan,mengobrol}' → keduanya ← yang diminta
+
+Pemindahan nilai lama menyimpan satu jebakan: `teman` versi kemarin **sudah**
+mewajibkan penandaan opini, jadi ia sudah mengizinkan berpendapat. Memetakannya
+ke `{mengobrol}` saja akan diam-diam MENCABUT kemampuan yang sudah dimiliki
+tenant. Dipetakan ke `{menyarankan,mengobrol}`.
+
+### "Terapkan ke semua asisten"
+
+Founder juga minta jalan pintas menyeragamkan. Dua permintaan itu tampak
+bertentangan (watak sendiri-sendiri vs seragam), tapi bisa hidup bersama
+selama yang seragam adalah **tindakannya**, bukan penyimpanannya:
+`PUT /ai/config/sifat/semua` menulis nilai sama ke tiap baris, dan sesudahnya
+tiap baris tetap bisa disunting sendiri. Baris yang belum ada ikut dibuat —
+tanpa itu, tombol yang menjanjikan "semua" diam-diam melewatkan asisten yang
+berjalan dengan bawaan, yaitu justru yang paling mungkin belum punya baris.
+
+### Radio dibuang — dan lima bentuk kartu jadi satu
+
+> *"stylingnya saya gamau pake model radio button. kurang kekinian"*
+> *"sekalian konsistenkan di seluruh halaman dan panel kontrolnya"*
+
+Diukur: **5 berkas** memakai `<input type="radio">`, kelimanya SUDAH
+membungkusnya dalam kartu ber-border yang menyala — dengan **5 bentuk
+berbeda** (radius 6/8/10, border 1/1.5px, tiga warna latar). Pola yang sama
+untuk kelima kalinya di repo ini: 16 `inputStyle`, 27 varian `<h1>`, 8 bentuk
+kartu, 4 gaya tab. Tak satu pun salah saat ditulis.
+
+Disatukan jadi `components/pilihan-kartu.tsx` — kartu diklik, centang di
+pojok, tanpa lingkaran radio. Satu komponen melayani pilihan tunggal DAN
+ganda, karena tampilannya memang sama dan harus tetap sama.
+
+**Yang dibuang tampilannya, bukan mekanismenya.** `<input>` aslinya tetap ada
+dan tetap menerima fokus keyboard, disembunyikan `opacity: 0` — bukan
+`display:none` yang akan mengeluarkannya dari urutan Tab. Mengganti radio
+dengan `<div onClick>` adalah cara paling umum sebuah kontrol berhenti bisa
+dipakai keyboard, dan cacatnya **tak terlihat oleh siapa pun yang mengetes
+dengan tetikus**.
+
+Satu hal yang TIDAK diseragamkan: `termin-payment-modal` menampilkan saldo
+di kanan tiap akun kas. Menyeragamkan dengan menghapus kolom itu akan
+menyeragamkan tampilan sambil membuang informasi yang jadi alasan orang bisa
+memilih dengan benar. Ditambahkan slot `kanan` ke komponennya.
+
+### Sidebar "tidak ada yang aktif" — dan 146 baris menu yang mati
+
+Founder, sambil membuka `/pengaturan/asisten/pemilik`: *"kenapa di sidebarnya
+kebaca gaada yang aktif, ini aneh"*.
+
+Memang aneh, dan **sebabnya bukan logika penyorotan**. Keempat sub-menu Asisten
+ber-`is_active = false`, sementara `routes/v1/menu.ts:48` menyaring
+`is_active = true` — jadi baris itu tak pernah dikirim ke sidebar sama sekali.
+Yang tak dirender tak bisa disorot, dan sidebar yang bekerja benar akhirnya
+terlihat rusak.
+
+Halaman Asisten dipecah jadi empat pada 2026-08-11. Halamannya dibuat, rutenya
+jalan, barisnya didaftarkan — `is_active` tak pernah dinyalakan. Migrasi 384
+menyalakannya.
+
+**Yang lebih penting: ini kelas cacat, bukan satu kejadian.** Diukur:
+**146 baris menu menunjuk halaman yang benar-benar ADA sementara barisnya
+mati.** Kegagalannya senyap sempurna — halamannya bisa dibuka lewat URL, tak
+ada galat, dan satu-satunya gejala adalah sidebar yang "terasa aneh".
+
+Saya TIDAK menyalakan 146-nya. Sebagian memang sengaja disembunyikan (triase
+F5-1), dan menyalakan semuanya adalah perubahan besar pada navigasi yang tak
+diminta siapa pun — itu keputusan founder. Yang dipasang: penjaga ratchet
+`uji-menu-halaman-hidup.mjs`, angkanya tak boleh NAIK.
+
+⚠️ Hitungan pertama saya menyebut **64**. Itu salah — query-nya hanya memeriksa
+href dua segmen, jadi melewatkan seluruh sub-menu yang menunjuk halaman induk
+satu segmen (`/proyek`, `/mandor`). Dikoreksi ke 146 sebelum lantai dikunci.
+
+### Bukti
+
+    migrasi 383        sukses · idempoten · CHECK menolak sifat asing
+    gabungan 2 sifat   diterima basis & sampai ke prompt — diuji langsung
+    tsc api / web      0 / 0
+    ai-sifat-bicara    20 hijau (menguji SELURUH kombinasi, termasuk kosong & penuh)
+    ai-perilaku        19 · ai-chat 13 · ai-gerbang-biaya 6 → 58 hijau
+    mutasi pagar       P-2 & P-4 MERAH satu per satu → pulih HIJAU
+    mutasi pilihan     R-1 & R-2 MERAH satu per satu → pulih HIJAU
+    penjaga visual     token-css · judul · remah · tabel · pilihan → 5 hijau
+    eslint web         10 warning, SAMA dengan baseline (nol tambahan)
+    radio mentah       5 berkas → 0
+    migrasi 384        sukses · idempoten · 4 baris menu asisten menyala
+    mutasi menu        1 baris dimatikan → MERAH → dipulihkan → HIJAU
+    vitest api PENUH   327 berkas / 4.649 lulus / 1 gagal (risiko-proyek —
+                       TIDAK tersentuh perubahan ini; hijau saat dijalankan
+                       sendiri, merah hanya beruntun = kontensi data bersama)
+
+Penjaga baru `uji-pilihan-seragam.mjs` (ambang NOL, terdaftar di ci.yml).
+R-2 menolak `display:none` dan `<div onClick>` — penjaga yang hanya menghitung
+radio akan hijau-karena-buta persis saat kontrolnya berhenti bisa di-Tab.
+
+---
+
 ## 2026-08-14 (lanjutan 12) — asisten boleh berpendapat; dua asisten ternyata MATI
 
 Founder minta asisten "berperilaku selayaknya asisten manusia" — bisa memberi

@@ -31,7 +31,7 @@ import { logAuditEvent } from '../../utils/audit.js'
 import {
   ASISTEN,
   MODE_BATAS,
-  MODE_BICARA,
+  SIFAT_BICARA,
   awalBulan,
   bentukKonfigurasi,
   daftarModel,
@@ -40,7 +40,7 @@ import {
   perkiraanPerPanggilan,
   type Asisten,
   type ModeBatas,
-  type ModeBicara,
+  type SifatBicara,
 } from '../../lib/ai-config.js'
 import { kursUsdIdr } from '../../lib/ai-harga.js'
 import { PENYEDIA, penyediaDikenal } from '../../lib/ai-adaptor.js'
@@ -63,7 +63,7 @@ function keAngkaPlafon(n: string | number | null | undefined): number | null {
 
 interface BadanSimpan {
   prompt_sistem?: string | null
-  mode_bicara?: string
+  sifat_bicara?: string[] | null
   maks_ronde?: number
   tool_aktif?: string[] | null
   penyedia?: string
@@ -121,7 +121,7 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
 
       const { data, error } = await request.db!
         .from('ai_provider_config')
-        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, mode_bicara, maks_ronde, tool_aktif')
+        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, sifat_bicara, maks_ronde, tool_aktif')
 
       if (error) {
         request.log.error({ err: error }, 'ai-config: gagal membaca konfigurasi')
@@ -149,7 +149,7 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
           tersimpan: Boolean(baris),
           perkiraan_per_panggilan_idr: perkiraanPerPanggilan(k.model, k.maxToken),
           prompt_sistem: k.promptSistem,
-          mode_bicara: k.modeBicara,
+          sifat_bicara: k.sifatBicara,
           maks_ronde: k.maksRonde,
           tool_aktif: k.toolAktif,
         }
@@ -529,14 +529,29 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
         return reply.status(422).send({ error: 'maks_ronde harus bilangan bulat 1–12' })
       }
 
-      // Watak divalidasi SERVER. Nilai asing yang lolos ke basis akan ditolak
-      // CHECK migrasi 382 sebagai galat 500 yang tak menjelaskan apa-apa;
-      // ditolak di sini, penanya tahu persis pilihan yang sah.
-      const modeBicara = (badan.mode_bicara ?? bawaan.modeBicara) as ModeBicara
-      if (!(MODE_BICARA as readonly string[]).includes(modeBicara)) {
-        return reply.status(422).send({
-          error: `mode_bicara harus salah satu dari: ${MODE_BICARA.join(', ')}`,
-        })
+      /*
+       * Watak divalidasi SERVER, dan bentuknya HIMPUNAN (migrasi 383).
+       *
+       * Sifat asing yang lolos akan ditolak CHECK basis sebagai galat 500 yang
+       * tak menjelaskan apa-apa. Ditolak di sini, penanya tahu persis mana
+       * yang salah dan apa yang tersedia.
+       */
+      let sifatBicara: SifatBicara[] = bawaan.sifatBicara
+      if (badan.sifat_bicara !== undefined && badan.sifat_bicara !== null) {
+        if (!Array.isArray(badan.sifat_bicara)) {
+          return reply.status(422).send({ error: 'sifat_bicara harus berupa daftar' })
+        }
+        const asing = badan.sifat_bicara.filter(
+          (x) => !(SIFAT_BICARA as readonly string[]).includes(x),
+        )
+        if (asing.length > 0) {
+          return reply.status(422).send({
+            error: `Sifat tidak dikenal: ${asing.join(', ')}. Yang tersedia: ${SIFAT_BICARA.join(', ')}.`,
+          })
+        }
+        // Duplikat dibuang: `['menyarankan','menyarankan']` menghasilkan
+        // kalimat kembar di prompt, dan prompt kembar dibayar dua kali.
+        sifatBicara = [...new Set(badan.sifat_bicara)] as SifatBicara[]
       }
 
       const promptSistem = badan.prompt_sistem?.trim() || null
@@ -572,7 +587,7 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
       // tak terjawab kalau yang tercatat cuma nilai barunya.
       const { data: lama, error: galatLama } = await request.db!
         .from('ai_provider_config')
-        .select('penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, mode_bicara, maks_ronde, tool_aktif')
+        .select('penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, sifat_bicara, maks_ronde, tool_aktif')
         .eq('asisten', asisten)
         .maybeSingle()
 
@@ -594,14 +609,14 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
             batas_bulanan_idr: batas,
             mode_batas: modeBatas,
             prompt_sistem: promptSistem,
-            mode_bicara: modeBicara,
+            sifat_bicara: sifatBicara,
             maks_ronde: maksRonde,
             tool_aktif: toolAktif,
             diperbarui_oleh: request.currentUser!.id,
           },
           { onConflict: 'company_id,asisten' },
         )
-        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, mode_bicara, maks_ronde, tool_aktif, diperbarui_pada')
+        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, sifat_bicara, maks_ronde, tool_aktif, diperbarui_pada')
         .maybeSingle()
 
       if (error) {
@@ -620,6 +635,95 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
         newValues: data ?? null,
         // Batas biaya adalah rem satu-satunya terhadap tagihan pihak ketiga.
         // Yang mengubahnya harus terlihat tanpa harus dicari.
+        severity: 'critical',
+      })
+
+      return reply.send({ ok: true, data })
+    },
+  )
+
+  // ── PUT /api/v1/ai/config/sifat/semua ────────────────────────────────────
+  //
+  // Menyamakan watak SELURUH asisten sekaligus.
+  //
+  // Founder 2026-08-14 meminta dua hal yang tampak bertentangan: tiap asisten
+  // punya wataknya sendiri, TAPI ada jalan pintas untuk menyeragamkannya.
+  // Keduanya bisa hidup bersama selama yang seragam adalah TINDAKANNYA, bukan
+  // penyimpanannya — rute ini menulis nilai yang sama ke tiap baris, dan
+  // sesudahnya tiap baris tetap bisa disunting sendiri-sendiri.
+  //
+  // Kebalikannya (satu baris dipakai bersama) akan membuat "samakan" jadi
+  // tak bisa dibatalkan sebagian, dan itu bukan yang diminta.
+  //
+  // `insight` sengaja IKUT meski tak memakai tool: ia tetap menulis kalimat
+  // yang dibaca manusia di beranda, jadi wataknya tetap terasa.
+  app.put<{ Body: { sifat_bicara?: string[] | null } }>(
+    '/api/v1/ai/config/sifat/semua',
+    { preHandler: [authenticate, requirePermission('settings:ai:manage')] },
+    async (request, reply) => {
+      const badan = request.body ?? {}
+
+      if (!Array.isArray(badan.sifat_bicara)) {
+        return reply.status(422).send({ error: 'sifat_bicara harus berupa daftar' })
+      }
+      const asing = badan.sifat_bicara.filter(
+        (x) => !(SIFAT_BICARA as readonly string[]).includes(x),
+      )
+      if (asing.length > 0) {
+        return reply.status(422).send({
+          error: `Sifat tidak dikenal: ${asing.join(', ')}. Yang tersedia: ${SIFAT_BICARA.join(', ')}.`,
+        })
+      }
+      const sifat = [...new Set(badan.sifat_bicara)] as SifatBicara[]
+
+      const { data: lama, error: galatLama } = await request.db!
+        .from('ai_provider_config')
+        .select('asisten, sifat_bicara')
+
+      if (galatLama) {
+        request.log.error({ err: galatLama }, 'ai-config: gagal membaca sifat lama')
+        return reply.status(500).send({ error: 'Gagal membaca konfigurasi AI' })
+      }
+
+      /*
+       * Baris yang BELUM ada dibuat juga.
+       *
+       * Tanpa ini, "terapkan ke semua" hanya mengenai asisten yang kebetulan
+       * pernah disimpan — dan asisten yang berjalan dengan bawaan justru yang
+       * paling mungkin belum punya baris. Hasilnya: tombol yang menjanjikan
+       * "semua" diam-diam melewatkan sebagian, tanpa satu pun galat.
+       */
+      const baris = ASISTEN.map((asisten) => ({
+        company_id: request.companyId!,
+        asisten,
+        sifat_bicara: sifat,
+        diperbarui_oleh: request.currentUser!.id,
+      }))
+
+      const { data, error } = await request.db!
+        .from('ai_provider_config')
+        .upsert(baris, { onConflict: 'company_id,asisten' })
+        .select('asisten, sifat_bicara')
+
+      if (error) {
+        request.log.error({ err: error }, 'ai-config: gagal menyamakan sifat')
+        return reply.status(500).send({ error: 'Gagal menyimpan watak asisten' })
+      }
+
+      void logAuditEvent(request, {
+        tableName: 'ai_provider_config',
+        // Bukan UUID — sama alasannya dengan `ai.config.set` di atas, dan
+        // `record_key` (migrasi 249) yang membuatnya tak hilang senyap.
+        recordId: 'sifat:semua',
+        action: 'ai.config.sifat.semua',
+        actorId: request.currentUser!.id,
+        // Dibungkus objek: `logAuditEvent` menerima `Record`, dan array
+        // telanjang akan ditolak typecheck. Dibungkus dengan nama yang
+        // menjelaskan isinya, bukan sekadar `{ data }`.
+        oldValues: { per_asisten: lama ?? [] },
+        newValues: { per_asisten: data ?? [] },
+        // Menyentuh SELURUH asisten sekaligus. Yang melakukannya harus
+        // terlihat tanpa harus dicari.
         severity: 'critical',
       })
 

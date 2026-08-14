@@ -46,44 +46,40 @@ export interface ToolTersedia {
 }
 
 /**
- * Watak asisten — cerminan `MODE_BICARA` di API (migrasi 382).
+ * SIFAT asisten — cerminan `SIFAT_BICARA` di API (migrasi 383).
  *
- * Urutannya SENGAJA dari paling ketat ke paling longgar. Daftar pilihan yang
- * tersusun begitu bisa dibaca sebagai satu garis, dan orang yang ragu
- * cenderung berhenti di sebelah kiri — bawaan yang aman didapat gratis dari
- * tata letak, bukan dari peringatan.
+ * Bisa DIGABUNG, dan itulah inti perubahannya. Versi pertama memodelkannya
+ * sebagai satu mode yang saling meniadakan; founder langsung menemukan
+ * cacatnya: *"kalo pilihannya juga saya mau bisa semua"*.
+ *
+ * Tak ada entri "pelapor" di sini — pelapor adalah keadaan saat tak satu pun
+ * sifat dipilih, dan kartu untuk "tidak memilih apa-apa" hanya menambah
+ * pilihan yang artinya sama dengan mengosongkan dua lainnya.
  */
-export const MODE_BICARA = [
+export const SIFAT_BICARA = [
   {
-    nilai: "pelapor",
-    label: "Pelapor",
-    ringkas: "Hanya menjawab dari data",
+    nilai: "menyarankan",
+    label: "Boleh memberi saran",
+    ringkas: "Menyimpulkan & menyarankan",
     detail:
-      "Menjawab dengan angka dan sumbernya. Tidak menyimpulkan dan tidak menyarankan kecuali diminta.",
+      "Boleh menilai keadaan dan mengusulkan tindakan. Pendapatnya wajib ditandai — mis. “Menurut saya”.",
   },
   {
-    nilai: "penasihat",
-    label: "Penasihat",
-    ringkas: "Boleh menyarankan",
+    nilai: "mengobrol",
+    label: "Boleh mengobrol",
+    ringkas: "Menyapa & bicara santai",
     detail:
-      "Boleh menilai dan menyarankan tindakan, dengan pendapatnya ditandai jelas — mis. “Menurut saya”.",
-  },
-  {
-    nilai: "teman",
-    label: "Teman bicara",
-    ringkas: "Boleh mengobrol",
-    detail:
-      "Boleh menyapa dan mengobrol di luar urusan pekerjaan. Pertanyaan tentang data tetap dijawab dengan angka dan sumbernya.",
+      "Boleh menyapa dan bicara di luar urusan pekerjaan. Pertanyaan tentang data tetap dijawab dengan angka dan sumbernya.",
   },
 ] as const;
 
-export type ModeBicara = (typeof MODE_BICARA)[number]["nilai"];
+export type SifatBicara = (typeof SIFAT_BICARA)[number]["nilai"];
 
 export interface Konfigurasi {
   asisten: string;
   prompt_sistem: string | null;
-  /** Watak. Bawaan `pelapor` — perilaku sebelum mode ada. */
-  mode_bicara: ModeBicara;
+  /** Sifat yang menyala. Kosong = pelapor (hanya menjawab dari data). */
+  sifat_bicara: SifatBicara[];
   maks_ronde: number;
   /** `null` = seluruh tool yang berizin. Bukan "tak ada satu pun". */
   tool_aktif: string[] | null;

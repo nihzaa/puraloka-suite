@@ -28,6 +28,7 @@ import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { formatRupiah } from "@/lib/format";
+import { PilihanKartu } from "@/components/pilihan-kartu";
 
 interface Ncr {
   id: string; nomor: string; judul: string; deskripsi: string | null;
@@ -867,45 +868,23 @@ function ModalDisposisi({ ncr, onClose, onSukses }: {
             kontrol. `htmlFor` hanya bisa menunjuk satu elemen, jadi ia akan
             menempel ke radio pertama seolah tiga lainnya tak dinamai.
             Pola yang sama dipakai di /kas dan /estimasi. */}
-        <div>
-          <span id="ncr-keputusan-label" style={gayaLabel}>Keputusan</span>
-          <div role="group" aria-labelledby="ncr-keputusan-label"
-            style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {Object.entries(DISPOSISI).map(([k, d]) => (
-              // `htmlFor`/`id` eksplisit, bukan membungkus input di dalam
-              // `<label>`. Pembungkusan gagal dikenali begitu isinya `<span>`
-              // bersarang — dan yang hilang bukan cuma lint: pembaca layar
-              // membacakan radio tanpa nama.
-              //
-              // Efek sampingnya bagus untuk semua orang: seluruh kartu jadi
-              // bisa diketuk, bukan hanya lingkaran radio 13px. Itu yang
-              // dibutuhkan di HP, satu tangan, di lapangan.
-              <label key={k} htmlFor={`disposisi-${k}`} style={{
-                display: "flex", alignItems: "flex-start", gap: 8,
-                fontSize: 13, fontWeight: 600, color: C.text,
-                padding: "8px 12px", borderRadius: 10, cursor: "pointer",
-                border: `1px solid ${pilihan === k ? C.navy : C.border}`,
-                background: pilihan === k ? C.navyLight : "var(--surface)",
-              }}>
-                <input id={`disposisi-${k}`} type="radio" name="disposisi" value={k}
-                  checked={pilihan === k} onChange={() => setPilihan(k)}
-                  style={{ marginTop: 2 }} />
-                {/* Teks LANGSUNG di dalam `<label>`, tidak dibungkus `<span>`
-                    berlapis: `jsx-a11y` menuntut teks yang bisa dijangkau
-                    tanpa menembus pembungkus, dan pembaca layar mengikuti
-                    aturan yang sama. Keterangan di bawahnya dipisah `<span>`
-                    dan dikaitkan lewat `aria-describedby`. */}
-                <span style={{ minWidth: 0 }}>
-                  {d.label}
-                  <span id={`disposisi-${k}-ket`} style={{
-                    display: "block", fontSize: 11, color: C.muted,
-                    marginTop: 1, fontWeight: 400,
-                  }}>{d.ket}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
+        {/* Kartu bersama (`PilihanKartu`). Pelajaran a11y yang dulu
+            ditulis di sini — input ber-id eksplisit, teks yang bisa
+            dijangkau tanpa menembus pembungkus, seluruh kartu bisa diketuk —
+            semuanya pindah ke komponennya, jadi berlaku untuk SEMUA layar
+            yang memakainya, bukan hanya layar ini. */}
+        <PilihanKartu
+          nama="disposisi"
+          label="Keputusan"
+          opsi={Object.entries(DISPOSISI).map(([k, d]) => ({
+            nilai: k,
+            label: d.label,
+            ringkas: d.ket,
+          }))}
+          nilai={pilihan}
+          onUbah={setPilihan}
+          kolom={1}
+        />
 
         <div>
           <label htmlFor="disposisi-catatan" style={gayaLabel}>

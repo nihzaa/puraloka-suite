@@ -11,19 +11,21 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, Save } from "lucide-react";
+import { Copy, Loader2, Save } from "lucide-react";
 import { api } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { PanduanHalaman } from "@/components/panduan-halaman";
+import { PilihanKartu } from "@/components/pilihan-kartu";
 import {
-  MODE_BICARA,
   PAKAI_TOOL,
   PERAN,
+  SIFAT_BICARA,
   type Konfigurasi,
   type Muatan,
+  type SifatBicara,
 } from "./tipe";
 
 export function KartuAsisten({ asisten }: { asisten: string }) {
@@ -34,6 +36,7 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
   const [galat, setGalat] = useState<string | null>(null);
   const [draf, setDraf] = useState<Partial<Konfigurasi>>({});
   const [menyimpan, setMenyimpan] = useState(false);
+  const [menyamakan, setMenyamakan] = useState(false);
   const [toast, setToast] = useState<{ tipe: "ok" | "salah"; pesan: string } | null>(null);
 
   const ambil = useCallback(async () => {
@@ -69,7 +72,7 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
     try {
       await api.put(`/api/v1/ai/config/${asisten}`, {
         prompt_sistem: k.prompt_sistem,
-        mode_bicara: k.mode_bicara ?? "pelapor",
+        sifat_bicara: k.sifat_bicara ?? [],
         maks_ronde: k.maks_ronde,
         tool_aktif: k.tool_aktif,
       });
@@ -81,6 +84,35 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
       setToast({ tipe: "salah", pesan: p ?? "Gagal menyimpan" });
     } finally {
       setMenyimpan(false);
+    }
+  }
+
+  /**
+   * Menyamakan sifat SELURUH asisten dengan yang sedang tampil.
+   *
+   * Memakai nilai DRAF, bukan yang tersimpan: orang yang baru mengklik dua
+   * sifat lalu menekan "terapkan ke semua" jelas bermaksud menyebarkan yang
+   * baru ia pilih. Memakai nilai tersimpan akan menyebarkan yang LAMA —
+   * benar secara harfiah, dan mengejutkan bagi siapa pun yang memakainya.
+   */
+  async function terapkanKeSemua() {
+    if (!k) return;
+    setMenyamakan(true);
+    try {
+      await api.put("/api/v1/ai/config/sifat/semua", {
+        sifat_bicara: k.sifat_bicara ?? [],
+      });
+      setDraf((d) => {
+        const { sifat_bicara: _dibuang, ...sisa } = d;
+        return sisa;
+      });
+      await ambil();
+      setToast({ tipe: "ok", pesan: "Sifat diterapkan ke semua asisten" });
+    } catch (e) {
+      const p = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setToast({ tipe: "salah", pesan: p ?? "Gagal menyamakan sifat" });
+    } finally {
+      setMenyamakan(false);
     }
   }
 
@@ -158,79 +190,70 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
         membuat pembaca mengira ia salah lihat, bukan memperjelas.
       */}
       {/*
-        WATAK — pilihan pertama di halaman, sebelum instruksi tambahan.
+        SIFAT — pilihan pertama di halaman, sebelum instruksi tambahan.
 
         Urutannya bukan selera: "asisten ini boleh berpendapat atau tidak"
         mengubah arti kotak instruksi di bawahnya. Menaruhnya sesudah membuat
         orang menulis instruksi gaya lebih dulu, lalu menemukan saklar yang
         membuat tulisannya mubazir.
 
-        Radio, bukan dropdown. Ketiganya punya konsekuensi yang perlu dibaca
-        BERDAMPINGAN — dropdown menyembunyikan dua pilihan di balik klik, dan
-        yang tersembunyi tak akan dibandingkan.
+        `ganda` — keduanya bisa menyala BERSAMAAN. Versi pertama memodelkannya
+        saling meniadakan, dan founder langsung menemukan cacatnya: tak ada
+        alasan asisten yang boleh menyarankan jadi tak boleh menyapa.
       */}
-      <fieldset
-        style={{ border: "none", padding: 0, margin: "0 0 14px" }}
-        disabled={!bolehKelola}
-      >
-        <legend style={{ fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5, padding: 0 }}>
-          Cara asisten bicara
-        </legend>
-        <div style={{ display: "grid", gap: 6 }}>
-          {MODE_BICARA.map((m) => {
-            const terpilih = (k.mode_bicara ?? "pelapor") === m.nilai;
-            return (
-              <label
-                key={m.nilai}
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 10,
-                  padding: "10px 12px",
-                  borderRadius: 8,
-                  border: `1px solid ${terpilih ? C.navy : C.border}`,
-                  // Latar bertanda hanya pada yang terpilih. Warna pada
-                  // ketiganya membuat tak ada yang menonjol — dan yang
-                  // menonjol justru inti dari daftar pilihan.
-                  background: terpilih ? C.navyLight : "transparent",
-                  cursor: bolehKelola ? "pointer" : "default",
-                }}
-              >
-                <input
-                  type="radio"
-                  name="mode_bicara"
-                  value={m.nilai}
-                  checked={terpilih}
-                  disabled={!bolehKelola}
-                  onChange={() => setDraf((d) => ({ ...d, mode_bicara: m.nilai }))}
-                  // Label-nya BERSARANG dalam beberapa <span>, jadi
-                  // `label-has-associated-control` tak bisa membacanya — dan
-                  // pembaca layar juga akan mengeja ketiga baris sekaligus.
-                  // `aria-label` menyebut label + ringkasnya saja; rincian
-                  // panjangnya tetap terbaca sebagai teks biasa sesudahnya.
-                  aria-label={`${m.label} — ${m.ringkas}`}
-                  style={{ marginTop: 2, accentColor: C.navy, flexShrink: 0 }}
-                />
-                <span style={{ display: "block" }}>
-                  <span style={{ fontSize: 13, fontWeight: 550, color: C.text }}>
-                    {m.label}
-                  </span>
-                  <span style={{ fontSize: 11.5, color: C.mid, marginLeft: 6 }}>
-                    {m.ringkas}
-                  </span>
-                  <span style={{ display: "block", fontSize: 11.5, color: C.muted, lineHeight: 1.55, marginTop: 3 }}>
-                    {m.detail}
-                  </span>
-                </span>
-              </label>
-            );
-          })}
+      <PilihanKartu
+        nama="sifat_bicara"
+        label="Sifat asisten"
+        ganda
+        opsi={SIFAT_BICARA}
+        nilai={k.sifat_bicara ?? []}
+        nonaktif={!bolehKelola}
+        onUbah={(nilai) =>
+          setDraf((d) => {
+            const kini = new Set(d.sifat_bicara ?? k.sifat_bicara ?? []);
+            if (kini.has(nilai as SifatBicara)) kini.delete(nilai as SifatBicara);
+            else kini.add(nilai as SifatBicara);
+            // Urutan disamakan dengan katalog, bukan urutan klik: nilai yang
+            // sama dalam urutan berbeda akan terlihat sebagai perubahan dan
+            // menyalakan tombol Simpan tanpa ada yang benar-benar berubah.
+            return {
+              ...d,
+              sifat_bicara: SIFAT_BICARA.map((s) => s.nilai).filter((s) => kini.has(s)),
+            };
+          })
+        }
+        keterangan={
+          <>
+            Tak satu pun dipilih = asisten hanya menjawab dari data. Apa pun pilihannya, ia
+            tetap dilarang mengarang angka dan wajib menyebut sumber tiap angka yang
+            dipakainya — yang berubah hanya cara bicaranya.
+          </>
+        }
+      />
+
+      {bolehKelola ? (
+        <div style={{ margin: "-4px 0 14px" }}>
+          <button
+            type="button"
+            onClick={() => void terapkanKeSemua()}
+            disabled={menyamakan}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              background: "none", border: "none", padding: 0,
+              fontSize: 11.5, fontWeight: 550,
+              color: menyamakan ? C.muted : C.navy,
+              cursor: menyamakan ? "default" : "pointer",
+              textDecoration: "underline", textUnderlineOffset: 3,
+            }}
+          >
+            {menyamakan ? <Loader2 size={12} className="berputar" /> : <Copy size={12} />}
+            Terapkan sifat ini ke semua asisten
+          </button>
+          <span style={{ fontSize: 11.5, color: C.muted, marginLeft: 8 }}>
+            Menimpa sifat asisten lain — pengaturan lainnya tidak tersentuh.
+          </span>
         </div>
-        <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "60ch" }}>
-          Apa pun pilihannya, asisten tetap dilarang mengarang angka dan wajib menyebut
-          sumber tiap angka yang dipakainya. Yang berubah hanya cara bicaranya.
-        </p>
-      </fieldset>
+      ) : null}
 
       <div style={{ marginBottom: 14 }}>
         <label htmlFor="prompt" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>

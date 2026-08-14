@@ -43,6 +43,7 @@ import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { Tombol } from "@/components/dasar";
+import { PilihanKartu } from "@/components/pilihan-kartu";
 
 export interface AlurUntukForm {
   id?: string;
@@ -67,9 +68,9 @@ interface WorkflowN8n {
 const POLA_KODE = /^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$/;
 
 const PEMICU = [
-  { nilai: "jadwal", label: "Terjadwal", bantu: "Berjalan sendiri pada waktu tertentu." },
-  { nilai: "webhook", label: "Otomatis", bantu: "Dipicu peristiwa dari sistem ini." },
-  { nilai: "manual", label: "Manual", bantu: "Hanya jalan kalau tombolnya ditekan." },
+  { nilai: "jadwal", label: "Terjadwal", ringkas: "Berjalan sendiri pada waktu tertentu." },
+  { nilai: "webhook", label: "Otomatis", ringkas: "Dipicu peristiwa dari sistem ini." },
+  { nilai: "manual", label: "Manual", ringkas: "Hanya jalan kalau tombolnya ditekan." },
 ];
 
 const KATEGORI = ["umum", "keuangan", "proyek", "gudang", "mutu", "lapangan", "dokumen"];
@@ -261,33 +262,16 @@ export function AlurFormModal({
           />
         </div>
 
-        <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-          <legend style={{ ...label, padding: 0 }}>Pemicu</legend>
-          <div style={{ display: "grid", gap: 6 }}>
-            {PEMICU.map((p) => (
-              <label
-                key={p.nilai}
-                style={{
-                  display: "flex", gap: 8, alignItems: "flex-start",
-                  fontSize: 13, color: C.text, cursor: "pointer",
-                }}
-              >
-                <input
-                  type="radio"
-                  name="pemicu"
-                  value={p.nilai}
-                  checked={pemicu === p.nilai}
-                  onChange={() => setPemicu(p.nilai)}
-                  style={{ accentColor: C.aksen, marginTop: 2 }}
-                />
-                <span>
-                  {p.label}
-                  <span style={{ color: C.muted, fontSize: 11.5 }}> — {p.bantu}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-        </fieldset>
+        {/* Kartu bersama (`PilihanKartu`), bukan radio buatan sendiri.
+            Sebelum 2026-08-14 berkas ini punya bentuk radionya sendiri —
+            salah satu dari LIMA bentuk berbeda di repo ini. */}
+        <PilihanKartu
+          nama="pemicu"
+          label="Pemicu"
+          opsi={PEMICU}
+          nilai={pemicu}
+          onUbah={setPemicu}
+        />
 
         {/* Kotak yang hanya relevan untuk pemicu terpilih. Menampilkan
             semuanya sekaligus membuat orang mengisi kolom yang diabaikan

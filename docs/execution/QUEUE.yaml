@@ -2423,7 +2423,10 @@ items:
     judul: "Kepribadian asisten — mode bicara per-asisten, pagar fakta tetap"
     kriteria_selesai:
       - "SUDAH: PROMPT_DASAR dipecah — PAGAR_FAKTA (mutlak) vs GAYA_BICARA (pilihan)"
-      - "SUDAH: mode_bicara pelapor/penasihat/teman, bawaan pelapor (nol perubahan perilaku lama)"
+      - "SUDAH: sifat_bicara BISA DIGABUNG (migrasi 383) — menyarankan + mengobrol sekaligus"
+      - "SUDAH: tombol 'terapkan ke semua asisten' (PUT /ai/config/sifat/semua)"
+      - "SUDAH: radio dibuang — components/pilihan-kartu.tsx dipakai SELURUH 5 berkas yang dulu punya bentuk sendiri"
+      - "SUDAH: penjaga uji-pilihan-seragam.mjs (ambang NOL) dibuktikan MERAH 2/2 aturan"
       - "SUDAH: asisten `owner` & `web` DIHIDUPKAN — sebelumnya nol pemanggilan"
       - "SUDAH: WA memilih owner/staff lewat PERMISSION (settings:ai:manage), bukan literal peran (ADR-004)"
       - "SUDAH: plafon biaya pindah ke tenant — watak per-asisten, uang per-tenant"

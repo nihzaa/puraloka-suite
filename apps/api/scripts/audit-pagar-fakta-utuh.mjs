@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * PENJAGA: PAGAR FAKTA IKUT DI SETIAP MODE BICARA.
+ * PENJAGA: PAGAR FAKTA IKUT DI SETIAP KOMBINASI SIFAT BICARA.
  *
  * ══════════════════════════════════════════════════════════════════════════
  * CACAT YANG DICEGAH
@@ -23,9 +23,9 @@
  * ── Yang diperiksa
  *
  *   P-1  `PAGAR_FAKTA` ada dan memuat kalimat-kalimat yang menahan halusinasi
- *   P-2  tiap kunci `GAYA_BICARA` punya entri di `MODE_BICARA` dan sebaliknya
+ *   P-2  tiap kunci `SIFAT_GAYA` punya entri di `SIFAT_BICARA` dan sebaliknya
  *   P-3  `susunPromptSistem` menyambung `PAGAR_FAKTA` TANPA cabang kondisional
- *   P-4  tak ada mode yang boleh berpendapat tanpa menyuruh menandai opini
+ *   P-4  jalur yang memberi izin berpendapat SELALU melewati penanda opini
  *
  * P-3 yang paling penting dan paling halus: `PAGAR_FAKTA` yang disebut di
  * dalam ternary (`mode === 'x' ? '' : PAGAR_FAKTA`) tetap "menyebut" pagar,
@@ -60,8 +60,6 @@ const KALIMAT_WAJIB = [
   '<data>',
 ]
 
-/** Mode yang boleh berpendapat WAJIB menyuruh menandai opini. */
-const PENANDA_OPINI = 'Menurut saya'
 
 const pelanggaran = []
 
@@ -80,14 +78,14 @@ if (!mPagar) {
   }
 }
 
-// ── P-2: MODE_BICARA dan GAYA_BICARA sepakat ───────────────────────────────
-const mEnum = cfg.match(/export const MODE_BICARA = \[([\s\S]*?)\] as const/)
+// ── P-2: SIFAT_BICARA dan SIFAT_GAYA sepakat ───────────────────────────────
+const mEnum = cfg.match(/export const SIFAT_BICARA = \[([\s\S]*?)\] as const/)
 if (!mEnum) {
-  pelanggaran.push('P-2: `MODE_BICARA` tidak ditemukan di ai-config.ts')
+  pelanggaran.push('P-2: `SIFAT_BICARA` tidak ditemukan di ai-config.ts')
 }
-const mGaya = src.match(/export const GAYA_BICARA[^=]*= \{([\s\S]*?)\n\}/)
+const mGaya = src.match(/export const SIFAT_GAYA[^=]*= \{([\s\S]*?)\n\}/)
 if (!mGaya) {
-  pelanggaran.push('P-2: `GAYA_BICARA` tidak ditemukan di ai-jalankan.ts')
+  pelanggaran.push('P-2: `SIFAT_GAYA` tidak ditemukan di ai-jalankan.ts')
 }
 
 let modeEnum = []
@@ -99,12 +97,12 @@ if (mEnum && mGaya) {
 
   for (const m of modeEnum) {
     if (!modeGaya.includes(m)) {
-      pelanggaran.push(`P-2: mode '${m}' ada di MODE_BICARA tetapi tak punya GAYA_BICARA`)
+      pelanggaran.push(`P-2: sifat '${m}' ada di SIFAT_BICARA tetapi tak punya SIFAT_GAYA`)
     }
   }
   for (const m of modeGaya) {
     if (!modeEnum.includes(m)) {
-      pelanggaran.push(`P-2: gaya '${m}' ditulis tetapi tak terdaftar di MODE_BICARA`)
+      pelanggaran.push(`P-2: gaya '${m}' ditulis tetapi tak terdaftar di SIFAT_BICARA`)
     }
   }
 }
@@ -139,26 +137,38 @@ if (!mSusun) {
   }
 }
 
-// ── P-4: mode yang boleh berpendapat wajib menandai opini ──────────────────
-if (mGaya) {
-  const isi = mGaya[1]
-  // Potong per-mode supaya pemeriksaannya tak bocor ke mode tetangga.
-  const potong = []
-  const kunci = [...isi.matchAll(/^\s{2}([a-z_]+):/gm)]
-  for (let i = 0; i < kunci.length; i += 1) {
-    const mulai = kunci[i].index
-    const habis = i + 1 < kunci.length ? kunci[i + 1].index : isi.length
-    potong.push({ nama: kunci[i][1], teks: isi.slice(mulai, habis) })
+// ── P-4: begitu ada sifat, penanda opini WAJIB ikut ────────────────────────
+//
+// Sejak sifat bisa digabung (383), penanda opini tak lagi disalin ke tiap
+// sifat melainkan disambung sekali di `susunGaya`. Yang diperiksa berubah
+// mengikutinya: bukan "tiap mode memuat kalimatnya", melainkan "jalur yang
+// memberi izin berpendapat SELALU melewati penandanya".
+const mSusunGaya = src.match(/export function susunGaya\([\s\S]*?\n\}/)
+if (!mSusunGaya) {
+  pelanggaran.push('P-4: `susunGaya` tidak ditemukan')
+} else {
+  const badan = mSusunGaya[0]
+  if (!badan.includes('PENANDA_OPINI')) {
+    pelanggaran.push(
+      'P-4: `susunGaya` tak menyambung PENANDA_OPINI — saran yang tak bisa ' +
+        'dibedakan dari data akan dibaca sebagai data',
+    )
   }
-  for (const p of potong) {
-    const bolehBerpendapat = /BOLEH (menyimpulkan|mengobrol)/.test(p.teks)
-    if (bolehBerpendapat && !p.teks.includes(PENANDA_OPINI)) {
-      pelanggaran.push(
-        `P-4: mode '${p.nama}' boleh berpendapat tetapi tak menyuruh menandai opini ` +
-          `("${PENANDA_OPINI}") — saran yang tak bisa dibedakan dari data akan dibaca sebagai data`,
-      )
-    }
+  // Penanda harus disambung SESUDAH cabang himpunan-kosong keluar lebih dulu,
+  // yaitu di jalur yang benar-benar punya sifat. Kalau ia ikut di jalur kosong,
+  // asisten pelapor diberi tahu cara menandai opini yang tak boleh ia punya.
+  const iKosong = badan.indexOf('punya.size === 0')
+  const iPenanda = badan.indexOf('PENANDA_OPINI')
+  if (iKosong >= 0 && iPenanda >= 0 && iPenanda < iKosong) {
+    pelanggaran.push(
+      'P-4: PENANDA_OPINI disambung sebelum cabang himpunan-kosong — ' +
+        'asisten pelapor ikut diberi izin menandai pendapat',
+    )
   }
+}
+
+if (!src.includes('export const PENANDA_OPINI')) {
+  pelanggaran.push('P-4: `PENANDA_OPINI` tidak ditemukan di ai-jalankan.ts')
 }
 
 // ── Laporan ────────────────────────────────────────────────────────────────
@@ -170,6 +180,6 @@ if (pelanggaran.length > 0) {
 }
 
 console.log(
-  `✓ Pagar fakta utuh — ${modeEnum.length} mode bicara, ` +
+  `✓ Pagar fakta utuh — ${modeEnum.length} sifat bicara, ` +
     `${KALIMAT_WAJIB.length} kalimat penahan, disambung tanpa cabang.`,
 )

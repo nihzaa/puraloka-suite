@@ -32,7 +32,7 @@
  */
 
 import type { TenantDb } from '../utils/tenant-db.js'
-import { catatBiayaRonde, periksaGerbangAi, type Asisten, type ModeBicara } from './ai-config.js'
+import { catatBiayaRonde, periksaGerbangAi, SIFAT_BICARA, type Asisten, type SifatBicara } from './ai-config.js'
 import { buatAdaptor, metaPenyedia } from './ai-adaptor.js'
 import { entitasTakDikenal, jalankanLoop } from './ai-loop.js'
 import { KATALOG_TOOL, katalogUntuk } from './ai-tool.js'
@@ -92,49 +92,98 @@ export const PAGAR_FAKTA = [
 export const PROMPT_DASAR = PAGAR_FAKTA
 
 /**
- * GAYA BICARA — watak asisten, dipilih tenant per-asisten dari UI.
+ * Dasar cara menjawab — ikut apa pun sifatnya.
  *
- * Ketiganya HANYA mengatur cara bicara. Tak satu pun boleh menyentuh pagar di
- * atas, dan itulah alasan mode disimpan sebagai enum pendek alih-alih sebagai
- * teks bebas: teks bebas berarti tenant bisa menulis "abaikan aturan sumber",
- * dan tak ada yang akan menyadarinya sampai ada angka karangan yang dipercaya.
- *
- * `pelapor` adalah bawaan dan persis perilaku sebelum 2026-08-14 — menambah
- * kolom ini tidak mengubah satu tenant pun sampai ada yang sadar memilih lain.
+ * Dipisah supaya "ringkas dan berbahasa Indonesia" tak perlu ditulis ulang di
+ * tiap sifat, lalu pelan-pelan berbeda di antara mereka.
  */
-export const GAYA_BICARA: Record<ModeBicara, string> = {
-  pelapor: [
-    '',
-    'CARA MENJAWAB:',
-    '- Bahasa Indonesia, ringkas, langsung ke angkanya.',
-    '- Jawab dari data. Jangan menyimpulkan atau menyarankan tindakan kecuali',
-    '  diminta terus terang.',
-  ].join('\n'),
+export const GAYA_DASAR = [
+  '',
+  'CARA MENJAWAB:',
+  '- Bahasa Indonesia, ringkas, langsung ke angkanya.',
+].join('\n')
 
-  penasihat: [
-    '',
-    'CARA MENJAWAB:',
-    '- Bahasa Indonesia, ringkas, langsung ke angkanya.',
+/**
+ * SIFAT BICARA — bisa DIGABUNG, dan itulah inti migrasi 383.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA BUKAN SATU MODE (dan kenapa versi kemarin salah memodelkannya)
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Migrasi 382 memberi asisten SATU `mode_bicara` — `pelapor`/`penasihat`/
+ * `teman`. Founder mencobanya lalu berkata: *"kalo pilihannya juga saya mau
+ * bisa semua"*.
+ *
+ * Itu menunjuk cacat pemodelan, bukan sekadar selera. Dua dari tiga mode itu
+ * **tidak pernah bertentangan**: tak ada alasan asisten yang boleh menyarankan
+ * jadi tak boleh menyapa. Yang memaksa memilih hanyalah bentuk penyimpanannya
+ * — satu kolom teks yang cuma muat satu nilai.
+ *
+ * Sekarang tiap sifat berdiri sendiri dan disambung berurutan. Yang tak
+ * dipilih tak menambah kalimat apa pun; himpunan kosong kembali persis ke
+ * perilaku pelapor.
+ *
+ * Tetap enum pendek, bukan teks bebas — alasannya tak berubah: teks bebas
+ * berarti tenant bisa menulis "abaikan aturan sumber", dan tak ada yang akan
+ * menyadarinya sampai ada angka karangan yang telanjur dipercaya.
+ */
+export const SIFAT_GAYA: Record<SifatBicara, string> = {
+  menyarankan: [
     '- Anda BOLEH menyimpulkan, menilai, dan menyarankan tindakan.',
-    '- WAJIB memisahkan dengan jelas mana DATA dan mana PENDAPAT Anda. Awali',
-    '  bagian pendapat dengan "Menurut saya" atau "Saran saya".',
     '- Pendapat tetap tunduk aturan angka di atas: menyarankan boleh,',
     '  mengarang angka untuk mendukung saran tidak.',
     '- Kalau saran Anda menyangkut uang, jadwal, atau orang, sebutkan apa yang',
     '  belum Anda ketahui sebelum saran itu dipakai.',
   ].join('\n'),
 
-  teman: [
-    '',
-    'CARA MENJAWAB:',
-    '- Bahasa Indonesia yang hangat dan wajar, seperti rekan kerja yang akrab.',
+  mengobrol: [
     '- Anda BOLEH mengobrol di luar urusan pekerjaan, menyapa, dan bertanya',
     '  kabar. Tak semua pesan harus dijawab dengan angka.',
+    '- Bahasanya boleh hangat dan wajar, seperti rekan kerja yang akrab.',
     '- Saat pertanyaannya memang tentang data, tetap jawab dengan angka dan',
     '  sumbernya — keakraban bukan alasan menjawab asal.',
-    '- WAJIB memisahkan mana DATA dan mana PENDAPAT. Awali bagian pendapat',
-    '  dengan "Menurut saya" atau "Saran saya".',
   ].join('\n'),
+}
+
+/**
+ * Kalimat yang WAJIB ikut begitu asisten boleh berpendapat.
+ *
+ * Disimpan terpisah, bukan disalin ke dalam tiap sifat: saran yang tak bisa
+ * dibedakan dari data adalah cara paling halus sebuah opini berubah jadi "kata
+ * sistem", dan aturan sepenting itu tak boleh punya dua salinan yang bisa
+ * menyimpang.
+ */
+export const PENANDA_OPINI = [
+  '- WAJIB memisahkan dengan jelas mana DATA dan mana PENDAPAT Anda. Awali',
+  '  bagian pendapat dengan "Menurut saya" atau "Saran saya".',
+].join('\n')
+
+/**
+ * Menyusun bagian gaya dari himpunan sifat.
+ *
+ * Himpunan kosong tetap menghasilkan larangan yang EKSPLISIT, bukan sekadar
+ * ketiadaan izin — model yang tak diberi instruksi apa pun cenderung
+ * berpendapat sendiri.
+ */
+export function susunGaya(sifat: readonly SifatBicara[]): string {
+  const punya = new Set(sifat)
+  if (punya.size === 0) {
+    return [
+      GAYA_DASAR,
+      '- Jawab dari data. Jangan menyimpulkan atau menyarankan tindakan kecuali',
+      '  diminta terus terang.',
+    ].join('\n')
+  }
+
+  const bagian = [GAYA_DASAR]
+  // Urutan mengikuti `SIFAT_BICARA`, BUKAN urutan pilihan pengguna: prompt
+  // yang berubah susunannya tiap kali disimpan membatalkan cache prompt
+  // penyedia — dan cache yang batal ditagih.
+  for (const s of SIFAT_BICARA) {
+    if (punya.has(s)) bagian.push(SIFAT_GAYA[s])
+  }
+  bagian.push(PENANDA_OPINI)
+  return bagian.join('\n')
 }
 
 /**
@@ -161,7 +210,7 @@ export const GAYA_WHATSAPP = [
  * Urutannya mengikat dan diperiksa `audit-pagar-fakta-utuh.mjs`:
  *
  *   1. PAGAR_FAKTA      selalu, di semua cabang, paling atas
- *   2. GAYA_BICARA[mode] watak — pilihan tenant, hanya mengatur cara bicara
+ *   2. susunGaya(sifat)   watak — pilihan tenant, hanya mengatur cara bicara
  *   3. gayaKanal         bentuk keluaran (WhatsApp ringkas, dsb)
  *   4. tambahan tenant   PALING BAWAH, tak pernah menggantikan
  *
@@ -175,12 +224,11 @@ export const GAYA_WHATSAPP = [
 export function susunPromptSistem(
   tambahan: string | null,
   gayaKanal = '',
-  mode: ModeBicara = 'pelapor',
+  sifat: readonly SifatBicara[] = [],
 ): string {
-  // Mode tak dikenal jatuh ke `pelapor`, BUKAN ke tanpa-gaya. Nilai asing bisa
-  // masuk dari basis yang lebih baru daripada kode saat rollback, dan yang
-  // paling aman saat ragu adalah mode yang paling ketat.
-  const gaya = GAYA_BICARA[mode] ?? GAYA_BICARA.pelapor
+  // Himpunan kosong = pelapor, yang paling ketat. Sifat asing sudah disaring
+  // `bentukKonfigurasi`, jadi yang sampai ke sini pasti dikenal.
+  const gaya = susunGaya(sifat)
   const dasar = PAGAR_FAKTA + gaya + gayaKanal
   if (!tambahan?.trim()) return dasar
   return [
@@ -365,7 +413,7 @@ export async function jalankanGiliranAi(opsi: OpsiJalan): Promise<HasilJalan> {
     sistem: susunPromptSistem(
       gerbang.konfigurasi.promptSistem,
       opsi.gayaKanal ?? '',
-      gerbang.konfigurasi.modeBicara,
+      gerbang.konfigurasi.sifatBicara,
     ),
     maksRonde: gerbang.konfigurasi.maksRonde,
     // Teks pengguna masuk sebagai pesan `user`, TIDAK disambung ke prompt

@@ -183,7 +183,7 @@ describe('kode BENAR-BENAR memakainya — bukan kolom hiasan', () => {
   })
 
   it('rute chat menyambung promptSistem tenant', () => {
-    // Pemanggilannya jadi multi-baris sejak `mode_bicara` ikut (migrasi 382),
+    // Pemanggilannya jadi multi-baris sejak `sifat_bicara` ikut (migrasi 382/383),
     // jadi yang dicocokkan argumennya — bukan satu baris utuh.
     expect(chat).toMatch(/susunPromptSistem\(\s*gerbang\.konfigurasi\.promptSistem/)
   })
@@ -200,11 +200,11 @@ describe('kode BENAR-BENAR memakainya — bukan kolom hiasan', () => {
     expect(chat).toMatch(/function susunPromptSistem[\s\S]*?PAGAR_FAKTA \+ gaya \+ gayaKanal[\s\S]*?\n    dasar,/)
   })
 
-  it('mode bicara ikut disambungkan ke prompt', () => {
+  it('sifat bicara ikut disambungkan ke prompt', () => {
     // Kolom yang tersimpan tapi tak pernah dibaca adalah bentuk kebohongan
     // yang paling meyakinkan — halamannya bekerja, tombolnya hijau, dan tak
     // ada yang berubah.
-    expect(chat).toContain('gerbang.konfigurasi.modeBicara')
+    expect(chat).toContain('gerbang.konfigurasi.sifatBicara')
   })
 
   it('toolAktif menyaring katalog', () => {

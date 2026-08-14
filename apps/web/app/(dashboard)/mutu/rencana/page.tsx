@@ -46,6 +46,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { PilihanKartu } from "@/components/pilihan-kartu";
 
 type JenisTitik = "hold" | "witness" | "review";
 type StatusRmp = "draf" | "diajukan" | "disetujui" | "kedaluwarsa";
@@ -674,7 +675,8 @@ export default function RencanaMutuPage() {
             </div>
           )}
 
-          <Tabel              berpermukaan
+          <Tabel
+              berpermukaan
             kolom={buatKolom(bukaPeriksa)}
             data={detail.titik}
             kunciBaris={(t) => t.id}
@@ -739,33 +741,16 @@ export default function RencanaMutuPage() {
               </div>
             )}
 
-            <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-              <legend style={{
-                fontSize: 11, fontWeight: 700, color: C.muted, padding: 0,
-                marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em",
-              }}>Hasil pemeriksaan</legend>
-              <div style={{ display: "flex", gap: 8 }}>
-                {([
-                  { v: "lolos" as const, l: "Lolos" },
-                  { v: "tidak" as const, l: "Tidak lolos" },
-                ]).map((o) => (
-                  <label key={o.v} style={{
-                    display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
-                    padding: "8px 12px", borderRadius: 6, fontSize: 13,
-                    border: `1px solid ${fLolos === o.v ? "var(--aksen)" : C.border}`,
-                    background: fLolos === o.v ? "var(--surface-2)" : "var(--surface)",
-                    color: C.text,
-                  }}>
-                    <input
-                      type="radio" name="hasil-titik" value={o.v}
-                      checked={fLolos === o.v}
-                      onChange={() => setFLolos(o.v)}
-                    />
-                    {o.l}
-                  </label>
-                ))}
-              </div>
-            </fieldset>
+            <PilihanKartu
+              nama="hasil-titik"
+              label="Hasil pemeriksaan"
+              opsi={[
+                { nilai: "lolos", label: "Lolos" },
+                { nilai: "tidak", label: "Tidak lolos" },
+              ]}
+              nilai={fLolos}
+              onUbah={(v) => setFLolos(v as "lolos" | "tidak")}
+            />
 
             <div>
               <label htmlFor="itp-catatan" style={{
