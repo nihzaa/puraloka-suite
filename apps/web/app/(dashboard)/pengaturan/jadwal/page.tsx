@@ -38,6 +38,7 @@ import { CalendarClock, Info, CheckCircle2, XCircle, CircleDashed, TriangleAlert
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { Saklar } from "@/components/saklar";
 
 
 const kontrol: React.CSSProperties = {
@@ -430,20 +431,12 @@ export default function JadwalPage() {
                     style={{ ...kontrol, width: 110 }}
                   />
 
-                  <label
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      fontSize: 12.5, color: C.text, cursor: bolehKelola ? "pointer" : "default",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      disabled={!bolehKelola}
-                      checked={aktif}
-                      onChange={(e) => ubah(t.tugas, { aktif: e.target.checked })}
-                    />
-                    Aktif
-                  </label>
+                  <Saklar
+                    nyala={aktif}
+                    nonaktif={!bolehKelola}
+                    onUbah={(v) => ubah(t.tugas, { aktif: v })}
+                    label="Aktif"
+                  />
 
                   {berubah && bolehKelola && (
                     <button

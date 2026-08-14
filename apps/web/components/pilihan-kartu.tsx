@@ -68,7 +68,7 @@ export interface OpsiKartu {
   /** Satu kalimat pembeda. Opsional, tetapi hampir selalu layak diisi. */
   ringkas?: string;
   /** Penjelasan panjang, muncul di bawah. */
-  detail?: string;
+  detail?: ReactNode;
   /** Ikon opsional di kiri judul. */
   ikon?: ReactNode;
   /**
@@ -100,6 +100,7 @@ export function PilihanKartu({
   keterangan,
   nonaktif = false,
   kolom,
+  minLebar = 220,
 }: {
   opsi: readonly OpsiKartu[];
   /** `string` saat tunggal, `string[]` saat ganda. */
@@ -111,8 +112,15 @@ export function PilihanKartu({
   label: string;
   keterangan?: ReactNode;
   nonaktif?: boolean;
-  /** Jumlah kolom. Bawaan: menyesuaikan lebar, minimal 220px per kartu. */
+  /** Jumlah kolom. Bawaan: menyesuaikan lebar, minimal `minLebar` per kartu. */
   kolom?: number;
+  /**
+   * Lebar minimum tiap kartu sebelum grid turun jadi satu kolom.
+   *
+   * Bawaan 220px. Dinaikkan saat isinya panjang — daftar tool asisten memakai
+   * 340px karena di bawah itu nama + keterangannya membungkus tiap dua kata.
+   */
+  minLebar?: number;
 }) {
   const terpilihSet = new Set(
     typeof nilai === "string" ? (nilai ? [nilai] : []) : nilai,
@@ -143,7 +151,7 @@ export function PilihanKartu({
           // di bawah itu `ringkas` mulai terpotong dua baris.
           gridTemplateColumns: kolom
             ? `repeat(${kolom}, minmax(0, 1fr))`
-            : "repeat(auto-fit, minmax(220px, 1fr))",
+            : `repeat(auto-fit, minmax(${minLebar}px, 1fr))`,
           gap: 8,
         }}
       >

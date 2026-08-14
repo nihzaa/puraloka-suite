@@ -42,6 +42,7 @@ import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import KartuSambungan from "./_sambungan";
 import { PanduanHalaman } from "@/components/panduan-halaman";
+import { Saklar } from "@/components/saklar";
 
 
 
@@ -787,21 +788,12 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
                 </code>
                 <span style={{ flex: 1 }} />
                 {bolehUbah && (
-                  <label
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 6,
-                      fontSize: 11.5, color: C.muted, cursor: sibuk ? "wait" : "pointer",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={t.aktif}
-                      disabled={sibuk}
-                      onChange={(e) => simpan(t, { aktif: e.target.checked })}
-                      style={{ accentColor: C.aksen, cursor: "inherit" }}
-                    />
-                    Aktif
-                  </label>
+                  <Saklar
+                    nyala={t.aktif}
+                    nonaktif={sibuk}
+                    onUbah={(v) => simpan(t, { aktif: v })}
+                    label="Aktif"
+                  />
                 )}
               </div>
 

@@ -335,83 +335,57 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
               yang masih memuat nama tool + keterangannya tanpa membungkus
               tiap dua kata.
             */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
-                gap: "10px 24px",
-                alignItems: "start",
-              }}
-            >
-              {(muatan?.tool_tersedia ?? []).map((tool) => {
-                const dicentang = semuaAktif || (aktif?.includes(tool.nama) ?? false);
-                return (
-                  <label
-                    key={tool.nama}
-                    style={{
-                      display: "flex", alignItems: "flex-start", gap: 8,
-                      fontSize: 12.5, color: C.text, lineHeight: 1.55,
-                      cursor: bolehKelola ? "pointer" : "default",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={dicentang}
-                      disabled={!bolehKelola}
-                      onChange={(e) => {
-                        // Dari NULL, pencentangan pertama harus MEMBEKUKAN
-                        // keadaan "semua" jadi daftar nyata — kalau tidak,
-                        // mematikan satu tool terbaca sebagai mematikan
-                        // semuanya.
-                        const dasar = semuaAktif
-                          ? (muatan?.tool_tersedia ?? []).map((x) => x.nama)
-                          : [...(aktif ?? [])];
-                        const baru = e.target.checked
-                          ? [...new Set([...dasar, tool.nama])]
-                          : dasar.filter((n) => n !== tool.nama);
-                        setDraf((d) => ({ ...d, tool_aktif: baru }));
-                      }}
-                      style={{ marginTop: 3, cursor: bolehKelola ? "pointer" : "default" }}
-                    />
+            {/*
+              Kartu bersama — sama bentuknya dengan "Sifat asisten" di atas.
+
+              Sebelum 2026-08-15 blok ini checkbox telanjang sementara Sifat
+              sudah berupa kartu: DUA bentuk berbeda untuk pekerjaan yang sama
+              (memilih dari daftar) di SATU layar. Founder menyebutnya "bikin
+              ga konsisten", dan itu tepat.
+
+              `minLebar` 340 dipertahankan dari versi checkbox: di bawah itu
+              nama tool + keterangannya mulai membungkus tiap dua kata.
+            */}
+            <PilihanKartu
+              nama="tool_aktif"
+              label=""
+              ganda
+              minLebar={340}
+              nonaktif={!bolehKelola}
+              nilai={(muatan?.tool_tersedia ?? [])
+                .filter((t) => semuaAktif || (aktif?.includes(t.nama) ?? false))
+                .map((t) => t.nama)}
+              opsi={(muatan?.tool_tersedia ?? []).map((tool) => ({
+                nilai: tool.nama,
+                label: tool.label ?? tool.nama,
+                detail: (
+                  <>
+                    {tool.keterangan}
                     {/*
-                      LABEL manusia jadi judul, kunci teknis turun jadi
-                      keterangan kecil.
-
-                      Sebelumnya `tool.nama` mentah (`daftar_proyek`,
-                      `ringkas_keuangan`) yang berdiri di posisi judul —
-                      pembacanya harus menerjemahkan snake_case lebih dulu
-                      sebelum bisa memutuskan mencentang atau tidak. Untuk
-                      pengguna berliterasi digital rendah itu bukan
-                      ketidaknyamanan kecil, itu pintu yang tak bisa dibuka.
-
-                      Kuncinya TIDAK dibuang: yang membaca audit log atau
-                      dokumentasi API masih butuh jembatannya.
+                      Kunci teknis TIDAK dibuang — yang membaca audit log atau
+                      dokumentasi API masih butuh jembatannya. TANPA `opacity`:
+                      audit a11y runtime menolak versi ber-`opacity: 0.75`
+                      (6 node gagal kontras WCAG AA di tiga halaman asisten).
                     */}
-                    <span>
-                      <span style={{ display: "block", fontSize: 13, fontWeight: 550, color: C.text }}>
-                        {tool.label ?? tool.nama}
-                      </span>
-                      <span style={{ display: "block", fontSize: 11.5, color: C.muted, lineHeight: 1.5, marginTop: 1 }}>
-                        {tool.keterangan}
-                      </span>
-                      {/*
-                        TANPA `opacity`. Versi pertama memakai `opacity: 0.75`
-                        di atas `--text-muted`, dan audit a11y runtime
-                        menolaknya: 6 node gagal kontras WCAG AA di tiga
-                        halaman asisten.
-
-                        Yang salah bukan ukurannya melainkan cara
-                        meredupkannya — `opacity` menurunkan kontras terhadap
-                        latar tanpa memberi tahu siapa pun. Kunci teknis boleh
-                        tampil lebih tenang dari judulnya, tetapi tetap harus
-                        terbaca oleh mata yang membutuhkannya.
-                      */}
-                      <code style={{ fontSize: 11, color: C.muted }}>{tool.nama}</code>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
+                    <code style={{ display: "block", fontSize: 11, color: C.muted, marginTop: 3 }}>
+                      {tool.nama}
+                    </code>
+                  </>
+                ),
+              }))}
+              onUbah={(nama) => {
+                // Dari NULL, pencentangan pertama harus MEMBEKUKAN keadaan
+                // "semua" jadi daftar nyata — kalau tidak, mematikan satu tool
+                // terbaca sebagai mematikan semuanya.
+                const dasar = semuaAktif
+                  ? (muatan?.tool_tersedia ?? []).map((x) => x.nama)
+                  : [...(aktif ?? [])];
+                const baru = dasar.includes(nama)
+                  ? dasar.filter((n) => n !== nama)
+                  : [...new Set([...dasar, nama])];
+                setDraf((d) => ({ ...d, tool_aktif: baru }));
+              }}
+            />
             <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "8px 0 0" }}>
               Mematikan semuanya membuat asisten tetap menjawab, tetapi tanpa membaca data apa
               pun. Pengguna juga tetap butuh izinnya masing-masing — mencentang di sini tidak

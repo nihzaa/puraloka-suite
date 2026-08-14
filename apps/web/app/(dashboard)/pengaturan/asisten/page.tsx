@@ -48,6 +48,7 @@ import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { PanduanHalaman } from "@/components/panduan-halaman";
 import type { PengaturanTenant } from "./_bersama/tipe";
+import { Saklar } from "@/components/saklar";
 
 export default function LapisanAiPage() {
   const bolehKelola = useIzin("settings:ai:manage");
@@ -143,22 +144,16 @@ export default function LapisanAiPage() {
         </h2>
       </div>
 
-      <label style={{ display: "flex", alignItems: "flex-start", gap: 8, fontSize: 13, color: C.text, cursor: bolehKelola ? "pointer" : "default" }}>
-        <input
-          type="checkbox"
-          checked={t.ai_aktif}
-          disabled={!bolehKelola}
-          onChange={(e) => setDraf((d) => ({ ...d, ai_aktif: e.target.checked }))}
-          style={{ marginTop: 3, cursor: bolehKelola ? "pointer" : "default" }}
-        />
-        <span>
-          Asisten AI aktif untuk perusahaan ini
-          <span style={{ display: "block", fontSize: 11.5, color: C.muted, lineHeight: 1.55, marginTop: 2 }}>
-            Mematikannya menghentikan seluruh panggilan AI tanpa menyentuh modul lain — tak ada
-            permission yang dicabut, tak ada halaman yang hilang.
-          </span>
-        </span>
-      </label>
+      {/* Saklar bersama — hidup/mati, bukan daftar pilihan. Dua bentuk resmi
+          sejak 2026-08-15: kartu untuk memilih dari daftar, saklar untuk
+          hidup/mati. */}
+      <Saklar
+        nyala={t.ai_aktif}
+        nonaktif={!bolehKelola}
+        onUbah={(v) => setDraf((d) => ({ ...d, ai_aktif: v }))}
+        label="Asisten AI aktif untuk perusahaan ini"
+        ringkas="Mematikannya menghentikan seluruh panggilan AI tanpa menyentuh modul lain — tak ada permission yang dicabut, tak ada halaman yang hilang."
+      />
 
       {t.ai_aktif === false && (
         <div
