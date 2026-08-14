@@ -86,7 +86,20 @@ export default async function notificationRuleRoutes(app: FastifyInstance) {
       if (error) {
         const code = (error as { code?: string }).code
         // FK roles(name) / permissions(key) → nilai tak dikenal
-        if (code === '23503') {
+        //
+        // `P0001` (raise_exception) ikut ditangani sejak 2026-08-14. Migrasi
+        // 363 membuat `roles.name` unik PER-COMPANY, dan FK ke `roles(name)`
+        // TIDAK BISA dipertahankan karena namanya tak lagi unik sendirian.
+        // Penggantinya trigger `cek_target_role_setenant` — yang justru LEBIH
+        // ketat (aturan PT A tak boleh menunjuk peran milik PT B), tetapi
+        // melempar `P0001`, bukan `23503`.
+        //
+        // Tanpa baris ini, peran yang tak dikenal membalas **500** alih-alih
+        // 400: pengguna melihat "kesalahan server" untuk kesalahan
+        // pengetikannya sendiri, dan tak ada petunjuk apa yang salah.
+        // Ketahuan dari `notification-rules.test.ts` — cacat yang saya buat
+        // sendiri di migrasi 363.
+        if (code === '23503' || code === 'P0001') {
           return reply.status(400).send({ error: `Role atau permission '${role_name ?? permission_key}' tidak dikenal` })
         }
         if (code === '23505') return reply.status(409).send({ error: 'Penerima ini sudah ada di aturan tersebut' })

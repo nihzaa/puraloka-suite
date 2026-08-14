@@ -283,8 +283,27 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
           // biasa, penghematan itu tak akan pernah terlihat — dan yang tak
           // terlihat tak akan dioptimalkan (alasan migrasi 250 memisahkannya).
           cache_baca: totalCache,
+          /*
+            Dibulatkan ke SATU DESIMAL, bukan ke bilangan bulat.
+
+            Diukur 2026-08-14 pada data nyata: cache 2.400 token dari 963.083
+            total = 0,249%. `Math.round(...)` mengembalikannya sebagai **0** —
+            dan nol berarti "tak ada penghematan sama sekali", padahal
+            penghematannya ada dan tercatat (`cache_baca` di baris atas
+            menunjukkan 2.400).
+
+            Itu persis kebalikan dari alasan migrasi 250 memisahkan token
+            cache: supaya penghematannya TERLIHAT. Membulatkannya habis
+            mengembalikan keadaan yang hendak diperbaiki, hanya lewat jalan
+            lain — bukan disembunyikan di penjumlahan, melainkan di
+            pembulatan.
+
+            Satu desimal cukup: pemakaian AI yang baru mulai memakai cache
+            wajar berada di bawah 1%, dan pertumbuhannya justru yang ingin
+            dipantau.
+          */
           rasio_cache: totalMasuk + totalCache > 0
-            ? Math.round((totalCache / (totalMasuk + totalCache)) * 100)
+            ? Math.round((totalCache / (totalMasuk + totalCache)) * 1000) / 10
             : 0,
         },
         harian: [...perHari.entries()].map(([tanggal, v]) => ({

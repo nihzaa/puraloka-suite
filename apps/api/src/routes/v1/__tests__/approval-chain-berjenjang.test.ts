@@ -130,8 +130,24 @@ beforeAll(async () => {
   pengajuId = lain.userId
 
   const { rows: co } = await client.query(
-    `INSERT INTO change_orders (project_id, co_number, title, status, total_amount_delta, created_by, submitted_by)
-     VALUES ($1, 'CO-TEST-BERJENJANG', '[TEST] Kerja tambah', 'submitted', $2, $3, $3)
+    /*
+      `billing_mode` WAJIB diisi — aturan yang lahir SESUDAH test ini ditulis.
+
+      `lib/penagihan-co.ts` menolak persetujuan CO tanpa cara tagih, dengan
+      alasan yang tepat: "CO yang disetujui tanpa cara tagih akan diputuskan
+      belakangan oleh siapa pun yang menerbitkan tagihan, dan di situlah
+      tagihan ganda lahir."
+
+      Fixture ini masih memakai bentuk lama, jadi test gagal 422 di langkah
+      persetujuan final — dan pesannya menuduh mekanika berjenjang, padahal
+      yang kurang satu kolom di fixture-nya.
+
+      `include_termin` dipilih karena paling netral: ia tak menuntut invoice
+      terpisah maupun perhitungan akhir, jadi tak menambah prasyarat baru bagi
+      test yang menguji PENAHAPAN, bukan penagihan.
+    */
+    `INSERT INTO change_orders (project_id, co_number, title, status, total_amount_delta, billing_mode, created_by, submitted_by)
+     VALUES ($1, 'CO-TEST-BERJENJANG', '[TEST] Kerja tambah', 'submitted', $2, 'include_termin', $3, $3)
      RETURNING id`, [projectId, DELTA, pengajuId])
   coId = co[0].id
 

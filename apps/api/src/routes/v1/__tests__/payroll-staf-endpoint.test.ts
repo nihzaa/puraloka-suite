@@ -61,6 +61,73 @@ async function purge() {
   await client.query(`DELETE FROM pegawai WHERE nomor_induk LIKE '[TEST-PR]%'`)
 }
 
+/**
+ * Menyembunyikan tarif SEED selama test berjalan, lalu memulihkannya.
+ *
+ * ── Kenapa perlu, diukur 2026-08-14
+ *
+ * Komentar di kepala berkas ini menyatakan: *"Basis harus kembali ke NOL
+ * tarif — keadaan yang benar menurut R-011."* Itu benar SAAT test ditulis.
+ * Sesudahnya basis diisi tarif nyata:
+ *
+ *     ptkp       2026-01-01  PMK 101/PMK.010/2016
+ *     ter_pph21  2026-01-01  PP 58/2023 TER kategori A
+ *     bpjs       2026-01-01  PP 84/2013 jo. Perpres 64/2020
+ *
+ * Periode uji memakai bulan `9026-*` — sengaja jauh supaya tak bentrok. Tapi
+ * tarif berlaku SEJAK tanggalnya dan tak pernah kedaluwarsa, jadi tarif 2026
+ * berlaku juga untuk 9026. Blok "tarif belum ditetapkan" jadi menguji keadaan
+ * yang tak pernah terjadi: slip-nya PUNYA potongan (200.000), dan test
+ * membaca itu sebagai cacat kode.
+ *
+ * Menghapus seed jelas salah — ia data nyata. Yang dilakukan: `berlaku_sejak`
+ * digeser sementara ke SESUDAH periode uji (9027), sehingga tarif itu belum
+ * berlaku bagi bulan `9026-*`, lalu dikembalikan di `afterAll`.
+ *
+ * ⚠ `company_id` TIDAK dipakai sebagai sarana penyembunyi — kolomnya NOT NULL
+ * (diperiksa ke `information_schema` sebelum menulis ini). Menggesernya ke
+ * NULL akan gagal saat dijalankan, bukan saat ditulis.
+ *
+ * Pola simpan-pulihkan yang sama sudah dipakai `gajiAsli` di berkas ini.
+ */
+let tarifSeedDigeser: Array<{ id: string; sejak: string }> = []
+
+async function geserTarifSeed() {
+  /*
+    ⚠ Nilai asli dibaca sebagai TEKS (`::text`), bukan sebagai `Date`.
+
+    Percobaan pertama memakai `(r.berlaku_sejak as Date).toISOString()` dan
+    MERUSAK data nyata: `2026-01-01` kembali sebagai `2025-12-30`. Kolomnya
+    `timestamptz`, driver mengembalikan `Date` dalam zona lokal, dan
+    `toISOString()` menggesernya ke UTC — dua kali bolak-balik, dua kali
+    bergeser.
+
+    Ditemukan karena nilai seed diperiksa SESUDAH test, bukan karena test-nya
+    merah. Pemulihan yang tak diverifikasi bukan pemulihan.
+  */
+  const { rows } = await client.query(
+    `SELECT id, berlaku_sejak::text AS sejak FROM tarif_payroll_periode
+      WHERE company_id = $1 AND dasar_hukum NOT LIKE '[TEST-PR]%'`, [companyId])
+  tarifSeedDigeser = rows.map((r) => ({
+    id: r.id as string,
+    sejak: r.sejak as string,
+  }))
+  if (tarifSeedDigeser.length === 0) return
+  await client.query(
+    `UPDATE tarif_payroll_periode SET berlaku_sejak = '9027-01-01'
+      WHERE id = ANY($1::uuid[])`,
+    [tarifSeedDigeser.map((t) => t.id)])
+}
+
+async function pulihkanTarifSeed() {
+  for (const t of tarifSeedDigeser) {
+    await client.query(
+      `UPDATE tarif_payroll_periode SET berlaku_sejak = $2 WHERE id = $1`,
+      [t.id, t.sejak])
+  }
+  tarifSeedDigeser = []
+}
+
 beforeAll(async () => {
   client = await createRlsClient()
   adminAuth = await authIdForRole(client, 'admin')
@@ -70,6 +137,7 @@ beforeAll(async () => {
   companyId = p[0].company_id
 
   await purge()
+  await geserTarifSeed()
 
   const { rows: u } = await client.query(
     `SELECT u.id FROM users u
@@ -94,6 +162,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await purge()
+  await pulihkanTarifSeed()
   // Pastikan basis kembali ke NOL tarif — keadaan yang benar menurut R-011.
   const { rows } = await client.query(`SELECT count(*)::int n FROM tarif_payroll_baris`)
   if (rows[0].n > 0) {

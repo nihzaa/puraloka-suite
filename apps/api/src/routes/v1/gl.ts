@@ -373,7 +373,20 @@ export default async function glRoutes(app: FastifyInstance) {
           // Selisih HARUS nol kalau seluruh jurnal posted seimbang. Ditampilkan
           // apa adanya alih-alih diasumsikan: kalau suatu hari tak nol, itu
           // tanda invarian database bocor dan harus terlihat, bukan disamarkan.
-          selisih: totalDebit - totalCredit,
+          //
+          // ── Dibulatkan ke SEN, dan itu bukan menyamarkan
+          //
+          // Nominal disimpan `numeric(18,2)` di basis (CLAUDE.md §5.4), tetapi
+          // begitu sampai di JavaScript ia jadi `number` — float biner, yang
+          // tak bisa mewakili sebagian pecahan desimal dengan tepat.
+          // Menjumlahkan ratusan baris lalu menguranginya menghasilkan sisa
+          // seperti `-1.19e-7`: bukan ketidakseimbangan pembukuan, melainkan
+          // galat presisi float murni. Diukur 2026-08-14 lewat `gl-api.test.ts`.
+          //
+          // Membulatkan ke dua desimal mengembalikannya ke satuan yang
+          // sebenarnya dipakai basis. Ketidakseimbangan NYATA sekecil satu sen
+          // tetap terlihat — yang hilang hanya angka yang tak pernah ada.
+          selisih: Math.round((totalDebit - totalCredit) * 100) / 100,
           jumlah_baris: baris.length,
         },
       }
@@ -425,7 +438,17 @@ export default async function glRoutes(app: FastifyInstance) {
 
       const td = rows.reduce((s, r) => s + r.debit, 0)
       const tc = rows.reduce((s, r) => s + r.credit, 0)
-      return { data: rows, meta: { total_debit: td, total_credit: tc, selisih: td - tc } }
+      // Dibulatkan ke sen — alasan lengkap di endpoint buku besar di atas:
+      // `numeric(18,2)` di basis jadi float biner di JavaScript, dan
+      // menjumlahkan banyak baris meninggalkan sisa yang bukan pembukuan.
+      return {
+        data: rows,
+        meta: {
+          total_debit: td,
+          total_credit: tc,
+          selisih: Math.round((td - tc) * 100) / 100,
+        },
+      }
     },
   )
 

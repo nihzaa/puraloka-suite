@@ -5,6 +5,83 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan 9) — 12 merah terakhir: dua cacat KODE nyata di antaranya
+
+Suite turun 37 → 12 merah. Kali ini dua di antaranya bukan fixture melainkan
+**cacat kode yang terlihat pengguna**.
+
+### Cacat kode 1 — trial balance "tak seimbang" karena float (gl-api)
+
+    selisih: -1.1920928955078125e-7
+
+Bukan pembukuan yang bocor: `numeric(18,2)` dari basis jadi `number` float
+biner di JavaScript, dan menjumlahkan ratusan baris meninggalkan sisa. Komentar
+di kodenya sendiri menulis *"kalau suatu hari tak nol, itu tanda invarian
+database bocor dan harus terlihat"* — dan yang bocor justru presisi float,
+bukan basisnya. Dibulatkan ke sen di dua endpoint.
+
+### Cacat kode 2 — penghematan cache AI ditampilkan NOL (ai-biaya)
+
+    cache_baca: 2400        ← ada
+    rasio_cache: 0          ← "tak ada penghematan"
+
+2.400 dari 963.083 = 0,249%, dan `Math.round` menjadikannya 0. Migrasi 250
+memisahkan token cache JUSTRU supaya penghematannya terlihat — membulatkannya
+habis mengembalikan keadaan yang hendak diperbaiki, lewat jalan lain.
+Diperbaiki ke satu desimal.
+
+### Cacat saya sendiri — 500 alih-alih 400 (notification-rules)
+
+Migrasi 363 mengganti FK `roles(name)` dengan trigger (karena nama tak lagi
+unik sendirian). Trigger melempar `P0001`, bukan `23503` — dan rute hanya
+menerjemahkan yang kedua. Akibatnya salah ketik nama peran membalas **500
+"kesalahan server"** alih-alih 400 dengan sebabnya.
+
+### Fixture yang tertinggal dari aturan bisnis (approval-chain)
+
+`lib/penagihan-co.ts` menolak persetujuan CO tanpa `billing_mode`, dengan
+alasan yang tepat: CO tanpa cara tagih "akan diputuskan belakangan oleh siapa
+pun yang menerbitkan tagihan, dan di situlah tagihan ganda lahir." Fixture-nya
+masih bentuk lama, jadi gagal 422 — dan pesannya menuduh mekanika berjenjang.
+
+### Test bentrok seed, lagi (payroll-staf, 7 merah)
+
+Komentar di kepala berkasnya: *"Basis harus kembali ke NOL tarif."* Benar saat
+ditulis; sesudahnya basis diisi tarif nyata (PMK 101/2016, PP 58/2023, PP
+84/2013) berlaku sejak 2026-01-01. Periode uji `9026-*` sengaja jauh — tapi
+tarif berlaku SEJAK tanggalnya dan tak pernah kedaluwarsa, jadi tarif 2026
+berlaku juga untuk 9026.
+
+Diperbaiki dengan menggeser `berlaku_sejak` seed ke 9027 selama test, lalu
+dipulihkan.
+
+**Dan saya merusaknya sekali di tengah jalan.** Percobaan pertama memulihkan
+lewat `(r.berlaku_sejak as Date).toISOString()`, dan seed kembali sebagai
+`2025-12-30` — kolomnya `timestamptz`, driver memberi `Date` zona lokal,
+`toISOString()` menggesernya ke UTC. Ketahuan karena saya memeriksa nilai seed
+SESUDAH test, bukan karena test-nya merah.
+
+**Pemulihan yang tak diverifikasi bukan pemulihan.** Diperbaiki dengan membaca
+`::text`, dan datanya dikembalikan ke 2026-01-01.
+
+Percobaan pertama juga hampir memakai `company_id = NULL` sebagai penyembunyi —
+kolomnya NOT NULL, diperiksa ke `information_schema` sebelum menulis. Kalau
+tidak, ia gagal saat dijalankan, bukan saat ditulis.
+
+### Bukti
+
+```
+gl-api                 1 merah → 16/16 HIJAU
+ai-biaya               1 merah → 13/13 HIJAU
+notification-rules     1 merah →  8/8  HIJAU
+approval-chain         2 merah →  4/4  HIJAU
+payroll-staf           7 merah → 18/18 HIJAU (seed utuh sesudahnya)
+payroll-staf + tarif   33/33 HIJAU bersama
+tsc                    EXIT 0
+```
+
+---
+
 ## 2026-08-14 (lanjutan 8) — 37 test merah dibedah: lima sebab berbeda, nol yang sama
 
 Sesudah perbaikan RLS, suite penuh turun 76 → 37 merah. Kali ini output-nya
