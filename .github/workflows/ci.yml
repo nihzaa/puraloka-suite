@@ -556,6 +556,20 @@ jobs:
       - name: Pagar fakta utuh di semua mode bicara
         run: node scripts/audit-pagar-fakta-utuh.mjs
 
+      # Ingatan asisten (migrasi 385) bocor lewat PROMPT, bukan lewat tool —
+      # jadi tak satu pun gerbang izin yang sudah ada melihatnya. Gejalanya
+      # NOL: tak ada 403, tak ada galat, tak ada baris log. Yang terjadi hanya
+      # asisten yang suatu hari menyebut angka margin kepada mandor, dan tak
+      # seorang pun bisa menunjuk izin mana yang jebol — karena tak ada.
+      #
+      # Penjaganya sendiri sempat HIJAU-KARENA-BUTA DUA KALI saat dibuat:
+      # pertama karena dicocokkan ke seluruh berkas (kata yang sama ada di
+      # komentar), lalu karena `'</ingatan>'` memuat `<ingatan>` sebagai
+      # substring. Keduanya ketahuan hanya lewat mutasi uji, bukan lewat
+      # membaca ulang.
+      - name: Ingatan asisten tak bocor (ambang NOL)
+        run: node scripts/audit-ingatan-tak-bocor.mjs
+
       # T-1. AMBANG NOL, berbeda dari `audit-gerbang-tenancy` yang memakai
       # ratchet — dan bedanya disengaja: untuk utang lama "tak boleh bertambah"
       # masuk akal, untuk jalur AI tidak. SATU tool yang bocor sudah cukup

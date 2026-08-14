@@ -5,6 +5,99 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-15 (lanjutan 2) — asisten ingat, dan ingatannya berpagar dua
+
+Fase 2 dari rencana asisten. Dua bagian: **2a** membuat asisten mengingat
+percakapan yang sedang berjalan, **2b** membuatnya mengingat lintas percakapan.
+
+### 2a — kolom yang ditulis tapi tak pernah dibaca
+
+`OpsiJalan.riwayat` ADA, sudah tersambung ke pesan yang dikirim ke model, dan
+**nol pemanggil mengisinya**. Asisten lupa kalimat barusan — bukan lupa
+antar-percakapan, tapi lupa pada giliran berikutnya, di jendela chat yang
+riwayatnya terpampang di layar pengguna.
+
+WhatsApp lebih parah: `wa-webhook.ts` tak menyentuh `ai_percakapan` maupun
+`ai_pesan` sama sekali. Tiap pesan dijawab sebagai giliran pertama yang
+berdiri sendiri — di kanal tempat orang mengetik pendek dan bersambung
+("berapa sisa semen?" → "yang di Cimahi").
+
+**Cacat saya yang ditemukan test, bukan oleh membaca ulang.** Versi pertama
+mengukur "percakapan masih hangat" dari `ai_percakapan.diperbarui_pada`.
+Kolom itu tak bisa dipakai: trigger `trg_ai_percakapan_sentuh` memaksanya
+`now()` pada tiap UPDATE tanpa syarat, jadi stempelnya hanya bisa MAJU —
+percakapan WhatsApp takkan pernah dingin. Diganti `ai_pesan.dibuat_pada`,
+yang tak punya trigger dan menyatakan yang sebenarnya ditanyakan.
+
+### 2b — ingatan bocor lewat PROMPT, bukan lewat tool
+
+Ini yang membuat Fase 2b berbeda dari fitur biasa. Seluruh gerbang izin di
+repo ini menjaga jalur tool — `katalogUntuk(izin)`, ACL ganda di
+`jalankanTool`, RLS per tabel. **Tak satu pun melihat kalimat yang sudah
+terlanjur disisipkan ke prompt sistem.**
+
+Kalau penyaringannya salah, gejalanya NOL: tak ada 403, tak ada galat, tak ada
+baris log. Yang terjadi hanya asisten yang suatu hari menyebut angka margin
+kepada mandor — dan tak seorang pun bisa menunjuk izin mana yang jebol,
+karena tak ada izin yang jebol.
+
+**Dua penanda, digabung** (keputusan founder sesudah melihat contohnya):
+
+    ingatan                      izin       proyek   yang melihat
+    ──────────────────────────────────────────────────────────────────
+    "margin Cimahi tipis"        finance    Cimahi   org keuangan DI Cimahi
+    "klien minta lapor Jumat"    —          Cimahi   semua org Cimahi
+    "rapat mingguan Senin"       —          —        semua orang
+    "gaji tukang naik Juli"      finance    —        org keuangan lintas proyek
+
+Masing-masing sendirian meninggalkan lubang: **izin saja** membuat catatan
+proyek lain muncul di percakapan yang tak berhubungan (mengganggu, tak bocor);
+**proyek saja** membiarkan mandor Cimahi kebagian catatan margin, karena ia
+memang punya akses proyek itu (ini bocor).
+
+Dua lapis (`pribadi`/`bersama`) ditegakkan CHECK basis, bukan aplikasi:
+`(lapis='pribadi') = (user_id IS NOT NULL)` — kesetaraan, jadi kedua arahnya
+tertutup sekaligus.
+
+⚠ Indeks uniknya DUA, bukan satu. `UNIQUE (company_id, user_id, kunci)` tak
+menahan duplikat pada lapis bersama sama sekali: `user_id` NULL di sana, dan
+NULL tak pernah sama dengan NULL. Batasan yang terlihat ada dan tak pernah
+bekerja.
+
+### Penjaganya sendiri HIJAU-KARENA-BUTA — dua kali
+
+`audit-ingatan-tak-bocor.mjs` aturan I-5 (blok prompt wajib menyangkal
+wewenangnya) lulus padahal tak memeriksa apa pun:
+
+1. dicocokkan ke SELURUH berkas → kata `<ingatan>` juga ada di komentar kepala,
+   jadi menghapusnya dari prompt tak memerahkan apa pun;
+2. diperbaiki jadi mencocokkan badan fungsi → masih hijau, karena
+   `'</ingatan>'` **memuat** `<ingatan>` sebagai substring.
+
+Keduanya ketahuan HANYA karena mutasi ujinya tak memerahkan apa pun. Kalau
+saya berhenti di "penjaganya hijau", ia akan terdaftar di CI selamanya sambil
+tak menjaga apa-apa. Sekarang dicocokkan sebagai baris utuh.
+
+### Bukti
+
+    migrasi 385        sukses · idempoten · RLS aktif · izin ter-assign
+    CHECK dua lapis    4 bentuk salah DITOLAK, 2 yang sah diterima
+    indeks unik        kunci kembar lapis bersama DITOLAK
+    tenant-map         di-regenerate — ai_ingatan kategori B (258 tabel)
+    tsc api            0
+    ai-riwayat-memori  13 hijau · ai-ingatan-bocor 13 hijau
+    mutasi memori      2/2 MERAH → pulih HIJAU
+    mutasi kebocoran   3/3 penyaring (lapis, izin, proyek) MERAH → pulih HIJAU
+    mutasi penjaga     I-2, I-4, I-6 MERAH; I-5 3/3 sesudah diperbaiki
+    penjaga AI         pagar-fakta · tool-read-only · gerbang-biaya ·
+                       satu-jalan-ke-model · kegagalan-senyap → 5 hijau
+
+Yang BELUM dikerjakan di Fase 2b, disebut supaya tak terbaca selesai:
+rute usul-ingatan berpola token konfirmasi, rute CRUD manual, dan halaman
+UI-nya. Pustaka + pagar + penjagalnya sudah berdiri; jalur menulisnya belum.
+
+---
+
 ## 2026-08-15 (lanjutan 1) — 25 checkbox, dua bentuk, tiga yang sengaja dibiarkan
 
 Founder: *"untuk checkbox yg kaya gini juga ubah aja, jadinya bikin ga

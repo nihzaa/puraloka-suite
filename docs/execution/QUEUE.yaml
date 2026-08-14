@@ -2449,10 +2449,20 @@ items:
       - "wa-webhook menyimpan percakapan (kini tak menyimpan apa pun)"
       - "tabel ai_ingatan: lapis bersama/pribadi, CHECK menegakkan pribadi WAJIB berpemilik"
       - "ingatan bersama ber-izin_minimum — mandor tak pernah melihat ingatan bermargin"
-      - "penjaga audit-ingatan-tak-bocor.mjs (ambang NOL) dibuktikan bisa merah"
-    cara_verifikasi: "test isolasi pola ai-isolasi-tenant: ingatan A tak muncul di prompt B"
+      - "SUDAH: penjaga audit-ingatan-tak-bocor.mjs (ambang NOL) dibuktikan bisa merah"
+      - "SUDAH: penanda PROYEK ikut, digabung dengan izin (keputusan founder 2026-08-15)"
+      - "BELUM: rute usul-ingatan (token konfirmasi) + CRUD manual + halaman UI"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/ai-riwayat-memori.test.ts
+      src/lib/__tests__/ai-ingatan-bocor.test.ts (13+13 hijau) ·
+      node apps/api/scripts/audit-ingatan-tak-bocor.mjs (exit 0)
     bobot: L
-    status: todo
+    status: sebagian
+    catatan_kemajuan: >-
+      Jalur MEMBACA lengkap dan berpagar; jalur MENULIS belum ada, jadi
+      tabelnya masih kosong sampai rute usul + halaman UI dikerjakan.
+      Founder memilih: asisten mengusulkan lalu manusia menekan tombol, DAN
+      ada halaman untuk mengisi sendiri — dua-duanya, bukan salah satu.
 
   - id: ASISTEN-3
     fase: null

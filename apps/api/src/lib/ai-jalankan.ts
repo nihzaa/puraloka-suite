@@ -36,6 +36,7 @@ import { catatBiayaRonde, periksaGerbangAi, SIFAT_BICARA, type Asisten, type Sif
 import { buatAdaptor, metaPenyedia } from './ai-adaptor.js'
 import { entitasTakDikenal, jalankanLoop } from './ai-loop.js'
 import { KATALOG_TOOL, katalogUntuk } from './ai-tool.js'
+import { bacaIngatan, susunBlokIngatan } from './ai-ingatan.js'
 import type { HasilLoop } from './ai-loop.js'
 
 /**
@@ -225,11 +226,15 @@ export function susunPromptSistem(
   tambahan: string | null,
   gayaKanal = '',
   sifat: readonly SifatBicara[] = [],
+  blokIngatan = '',
 ): string {
   // Himpunan kosong = pelapor, yang paling ketat. Sifat asing sudah disaring
   // `bentukKonfigurasi`, jadi yang sampai ke sini pasti dikenal.
   const gaya = susunGaya(sifat)
-  const dasar = PAGAR_FAKTA + gaya + gayaKanal
+  // Ingatan disambung SESUDAH pagar dan gaya, SEBELUM tambahan tenant. Ia
+  // catatan, bukan aturan — dan `susunBlokIngatan` sudah membungkusnya
+  // `<ingatan>` dengan penyangkalan wewenang, sama seperti blok `<data>`.
+  const dasar = PAGAR_FAKTA + gaya + gayaKanal + blokIngatan
   if (!tambahan?.trim()) return dasar
   return [
     dasar,
@@ -292,6 +297,14 @@ export interface OpsiJalan {
   riwayat?: Array<{ peran: 'user' | 'assistant'; isi: string }>
   /** Ditambahkan ke prompt dasar — gaya kanal, bukan pelonggaran batas. */
   gayaKanal?: string
+  /**
+   * Proyek yang sedang dibicarakan, kalau diketahui.
+   *
+   * Menentukan ingatan ber-proyek mana yang ikut. `null`/tak diisi berarti
+   * hanya ingatan lintas-proyek yang dibawa — pertanyaan umum tak boleh
+   * terkubur di bawah catatan belasan proyek yang tak ditanyakan.
+   */
+  projectId?: string | null
   /**
    * Asisten untuk gerbang biaya & pencatatan. Bawaan `staff`.
    *
@@ -400,6 +413,25 @@ export async function jalankanGiliranAi(opsi: OpsiJalan): Promise<HasilJalan> {
         )
   const katalog = katalogUntuk(izin)
 
+  /*
+   * INGATAN — dibaca dengan izin penanya, bukan izin tenant.
+   *
+   * Disaring di sini (bukan di RLS) karena `izin_minimum` menuntut irisan
+   * dengan permission efektif yang sudah diresolusi request — sesuatu yang
+   * RLS tak punya: ia hanya tahu company dan role.
+   *
+   * Dibaca SESUDAH gerbang biaya: ia satu query, tetapi query untuk
+   * percakapan yang mungkin ditolak sebelum sempat memanggil model adalah
+   * pekerjaan yang tak pernah terpakai.
+   */
+  const ingatan = await bacaIngatan(db, {
+    izinPengguna: izin,
+    userId,
+    projectId: opsi.projectId ?? null,
+    catatGalat,
+  })
+  const blokIngatan = susunBlokIngatan(ingatan)
+
   // ── BERBAYAR mulai di sini ───────────────────────────────────────────────
   const riwayat = (opsi.riwayat ?? []).map((r) => ({
     peran: r.peran === 'assistant' ? ('assistant' as const) : ('user' as const),
@@ -414,6 +446,7 @@ export async function jalankanGiliranAi(opsi: OpsiJalan): Promise<HasilJalan> {
       gerbang.konfigurasi.promptSistem,
       opsi.gayaKanal ?? '',
       gerbang.konfigurasi.sifatBicara,
+      blokIngatan,
     ),
     maksRonde: gerbang.konfigurasi.maksRonde,
     // Teks pengguna masuk sebagai pesan `user`, TIDAK disambung ke prompt
