@@ -5,6 +5,86 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan 6) — cacat SAYA yang menolak semua izin, ketahuan dari 9 test
+
+Sesudah kedua ratchet lint hijau, `recycle-bin-endpoint` masih 9 merah. Saya
+cek dulu apakah dari perubahan saya — `git stash` bilang merah juga di HEAD
+bersih, jadi hampir saya tinggalkan sebagai "utang lama".
+
+**Itu keliru.** Merah di HEAD bersih memang benar, tapi HEAD sudah memuat
+migrasi 366 buatan saya beberapa jam sebelumnya. Utang lama menurut git,
+cacat saya menurut kenyataan.
+
+### Sebabnya: `NULL = NULL` bukan TRUE
+
+Migrasi 366 membuat `get_role_permissions` sadar-tenant:
+
+    AND (r.company_id = auth_company_id() OR r.company_id IS NULL)
+
+Benar saat konteks tenant terisi. Tetapi `plugins/auth.ts` memanggilnya lewat
+`supabase.rpc()` dengan **service_role** — dan di sana `auth_company_id()`
+NULL, jadi cabang pertama gugur dan hanya template yang lolos.
+
+Diukur:
+
+    SELECT count(*) FROM get_role_permissions('admin');   →  1
+
+Satu izin. Bukan 217. Seluruh `requirePermission` menolak dengan 403.
+
+### Yang membuatnya berbahaya: LOGIN TETAP BENAR
+
+API menyetel `app.company_id` per-request, jadi jalur normal tetap 217 izin —
+dan saya sudah memverifikasi itu saat commit 366, lalu menyimpulkan aman.
+Yang rusak hanya jalur TANPA konteks, dan ia tak melempar apa pun; ia
+mengembalikan daftar kosong.
+
+Gejalanya muncul sebagai "403 untuk admin" — sepuluh langkah dari sebabnya,
+dan di berkas yang tak ada hubungannya dengan role.
+
+Ketahuan cuma karena sembilan test `recycle-bin` KEBETULAN memanggil jalur
+itu. Tanpa test itu, cacatnya sampai produksi.
+
+### Migrasi 372
+
+`COALESCE` semantik: saat `auth_company_id()` NULL, terima baris mana pun
+bernama itu; saat terisi, tetap utamakan salinan tenant. Perbaikan 366 (izin
+ganda) TIDAK hilang — diverifikasi 217 baris, 217 unik.
+
+`has_permission` punya bentuk dan cacat yang sama, ikut diperbaiki. Ia dipakai
+~100 RLS policy.
+
+### Penjaga baru
+
+`audit-izin-tanpa-konteks.mjs` (ambang NOL) menjalankan fungsinya TANPA
+konteks apa pun, lalu menuntut jawabannya masuk akal — bukan memeriksa teks
+SQL-nya, karena bentuk boleh berubah dan jawaban tidak. Ikut memeriksa nama
+peran hantu tetap kosong, supaya "jatuh ke mana pun" tak berubah jadi
+"kembalikan apa saja".
+
+**Bukti merah:** cacat 366 dikembalikan ke basis, izin admin turun 217 → 1,
+penjaga MERAH; dipulihkan dari berkas migrasi 372, HIJAU.
+
+### Pelajaran
+
+`git stash` menjawab "apakah perubahan SAYA HARI INI yang merusak" — bukan
+"apakah ini cacat saya". Untuk cacat yang lahir di commit sebelumnya pada
+sesi yang sama, jawabannya menyesatkan dengan percaya diri.
+
+Yang seharusnya saya tanyakan: *apa yang berubah sejak test ini terakhir
+hijau?* — dan migrasi 366 ada di daftar itu.
+
+### Bukti
+
+```
+migrasi 372                 tercatat di schema_migrations
+get_role_permissions('admin') tanpa konteks: 1 → 217 (217 unik)
+recycle-bin-endpoint        9 merah → 29/29 HIJAU
+login                       217 izin, 217 unik (tetap benar)
+audit-izin-tanpa-konteks    HIJAU + bukti merah lewat mutasi nyata
+```
+
+---
+
 ## 2026-08-14 (lanjutan 5) — kedua ratchet lint HIJAU, dan satu tipe yang mencegah NaN di laporan pajak
 
 Lanjutan Prioritas 2. Founder: *"belum bisa soalnya kan belum di deploy, lanjut

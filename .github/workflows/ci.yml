@@ -333,6 +333,25 @@ jobs:
       - name: Peristiwa otomasi menunjuk alur yang ada
         run: node scripts/audit-peristiwa-punya-alur.mjs
 
+      # Fungsi izin tak boleh RUNTUH saat konteks tenant tak ada.
+      #
+      # Migrasi 366 membuat `get_role_permissions` sadar-tenant, dan
+      # penyaringnya benar saat `auth_company_id()` terisi — lalu runtuh diam
+      # saat tidak: `NULL = NULL` bukan TRUE, jadi hanya baris template lolos.
+      # `plugins/auth.ts` memanggilnya lewat service_role TANPA konteks, dan
+      # diukur 2026-08-14 ia mengembalikan 1 izin, bukan 217. Seluruh
+      # `requirePermission` menolak dengan 403.
+      #
+      # Login TIDAK ikut rusak (API menyetel app.company_id per-request), dan
+      # itu yang membuatnya berbahaya: jalur normal benar, jalur tanpa konteks
+      # diam. Gejalanya muncul sepuluh langkah dari sebabnya.
+      #
+      # Menguji JAWABAN fungsinya, bukan teks SQL-nya — bentuk boleh berubah.
+      # Ambang NOL. Bukti merah: cacat 366 dikembalikan (izin 217 → 1),
+      # penjaga MERAH, lalu HIJAU sesudah 372 dipulihkan.
+      - name: Fungsi izin tidak kosong tanpa konteks tenant
+        run: node scripts/audit-izin-tanpa-konteks.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan
