@@ -45,9 +45,45 @@ export interface ToolTersedia {
   izin: string;
 }
 
+/**
+ * Watak asisten — cerminan `MODE_BICARA` di API (migrasi 382).
+ *
+ * Urutannya SENGAJA dari paling ketat ke paling longgar. Daftar pilihan yang
+ * tersusun begitu bisa dibaca sebagai satu garis, dan orang yang ragu
+ * cenderung berhenti di sebelah kiri — bawaan yang aman didapat gratis dari
+ * tata letak, bukan dari peringatan.
+ */
+export const MODE_BICARA = [
+  {
+    nilai: "pelapor",
+    label: "Pelapor",
+    ringkas: "Hanya menjawab dari data",
+    detail:
+      "Menjawab dengan angka dan sumbernya. Tidak menyimpulkan dan tidak menyarankan kecuali diminta.",
+  },
+  {
+    nilai: "penasihat",
+    label: "Penasihat",
+    ringkas: "Boleh menyarankan",
+    detail:
+      "Boleh menilai dan menyarankan tindakan, dengan pendapatnya ditandai jelas — mis. “Menurut saya”.",
+  },
+  {
+    nilai: "teman",
+    label: "Teman bicara",
+    ringkas: "Boleh mengobrol",
+    detail:
+      "Boleh menyapa dan mengobrol di luar urusan pekerjaan. Pertanyaan tentang data tetap dijawab dengan angka dan sumbernya.",
+  },
+] as const;
+
+export type ModeBicara = (typeof MODE_BICARA)[number]["nilai"];
+
 export interface Konfigurasi {
   asisten: string;
   prompt_sistem: string | null;
+  /** Watak. Bawaan `pelapor` — perilaku sebelum mode ada. */
+  mode_bicara: ModeBicara;
   maks_ronde: number;
   /** `null` = seluruh tool yang berizin. Bukan "tak ada satu pun". */
   tool_aktif: string[] | null;

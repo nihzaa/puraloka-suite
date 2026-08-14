@@ -294,18 +294,22 @@ export default function PenyediaAiPage() {
   async function simpanBatas() {
     setSedangSimpan("__batas__");
     try {
-      for (const asli of muatan?.data ?? []) {
-        const nilai = { ...asli, ...draf[asli.asisten] };
-        await api.put(`/api/v1/ai/config/${asli.asisten}`, {
-          penyedia: nilai.penyedia,
-          model: nilai.model,
-          max_token: Number(nilai.max_token),
-          aktif: nilai.aktif,
-          batas_bulanan_idr: nilai.batas_bulanan_idr,
-          mode_batas: nilai.mode_batas,
-        });
-      }
-      setToast({ tipe: "ok", pesan: "Batas biaya tersimpan untuk seluruh asisten" });
+      // SATU permintaan, bukan empat. Sampai migrasi 382 plafon disimpan di
+      // tiap baris asisten, jadi "satu batas" hanya benar selama keempat
+      // tulisan berhasil — gagal di tengah meninggalkan tenant dengan dua
+      // plafon berbeda dan tak ada yang tahu berhenti di mana.
+      //
+      // Sekarang plafonnya memang satu baris milik tenant, dan bentuk
+      // penyimpanannya akhirnya sama dengan yang selama ini dijanjikan layar.
+      // Hanya mengirim yang memang diubah halaman ini. `ai_aktif` dan
+      // `retensi_hari` milik halaman Lapisan AI; menyertakannya dari sini
+      // berarti menyimpan batas biaya diam-diam menimpa saklar yang tak
+      // pernah disentuh siapa pun di layar ini.
+      await api.put("/api/v1/ai/pengaturan", {
+        batas_bulanan_idr: batasGlobal,
+        mode_batas: modeGlobal,
+      });
+      setToast({ tipe: "ok", pesan: "Batas biaya tersimpan" });
       await muat();
     } catch (e) {
       const pesan =

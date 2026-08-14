@@ -60,12 +60,13 @@ beforeAll(async () => {
 
   await db.query(
     `INSERT INTO ai_pengaturan_tenant (company_id, ai_aktif) VALUES ($1, true)
-     ON CONFLICT (company_id) DO UPDATE SET ai_aktif = true`,
+     ON CONFLICT (company_id) DO UPDATE SET ai_aktif = true, batas_bulanan_idr = NULL,
+       mode_batas = 'peringatkan'`,
     [companyId],
   )
   await db.query(
     `INSERT INTO ai_provider_config (company_id, asisten, penyedia, model, max_token)
-     VALUES ($1, 'staff', 'anthropic', 'claude-haiku-4-5', 1024)
+     VALUES ($1, 'web', 'anthropic', 'claude-haiku-4-5', 1024)
      ON CONFLICT (company_id, asisten) DO UPDATE SET aktif = true, batas_bulanan_idr = NULL`,
     [companyId],
   )
@@ -76,10 +77,11 @@ beforeAll(async () => {
 }, 90_000)
 
 afterAll(async () => {
-  await db.query(`DELETE FROM ai_percakapan WHERE company_id = $1 AND asisten = 'staff'`, [companyId])
+  await db.query(`DELETE FROM ai_percakapan WHERE company_id = $1 AND asisten = 'web'`, [companyId])
   await db.query(`DELETE FROM ai_biaya_token WHERE company_id = $1 AND model = 'uji-chat'`, [companyId])
   await db.query(
-    `UPDATE ai_pengaturan_tenant SET ai_aktif = true WHERE company_id = $1`, [companyId])
+    `UPDATE ai_pengaturan_tenant SET ai_aktif = true, batas_bulanan_idr = NULL,
+       mode_batas = 'peringatkan' WHERE company_id = $1`, [companyId])
   await db.query(
     `UPDATE ai_provider_config SET aktif = true, batas_bulanan_idr = NULL, penyedia = 'anthropic'
      WHERE company_id = $1`,
@@ -92,7 +94,9 @@ afterAll(async () => {
 beforeEach(async () => {
   vi.restoreAllMocks()
   actAs(adminAuth)
-  await db.query(`UPDATE ai_pengaturan_tenant SET ai_aktif = true WHERE company_id = $1`, [companyId])
+  await db.query(
+    `UPDATE ai_pengaturan_tenant SET ai_aktif = true, batas_bulanan_idr = NULL,
+       mode_batas = 'peringatkan' WHERE company_id = $1`, [companyId])
   await db.query(
     `UPDATE ai_provider_config SET aktif = true, batas_bulanan_idr = NULL, penyedia = 'anthropic'
      WHERE company_id = $1`,
@@ -156,8 +160,8 @@ describe('gerbang biaya — juga sebelum berbayar', () => {
       [companyId],
     )
     await db.query(
-      `UPDATE ai_provider_config SET batas_bulanan_idr = 1000, mode_batas = 'blokir'
-       WHERE company_id = $1 AND asisten = 'staff'`,
+      `UPDATE ai_pengaturan_tenant SET batas_bulanan_idr = 1000, mode_batas = 'blokir'
+       WHERE company_id = $1`,
       [companyId],
     )
 
@@ -171,7 +175,7 @@ describe('gerbang biaya — juga sebelum berbayar', () => {
 
   it('asisten dinonaktifkan → 402 alasan nonaktif', async () => {
     await db.query(
-      `UPDATE ai_provider_config SET aktif = false WHERE company_id = $1 AND asisten = 'staff'`,
+      `UPDATE ai_provider_config SET aktif = false WHERE company_id = $1 AND asisten = 'web'`,
       [companyId],
     )
     const r = await kirim({ pesan: 'berapa proyek?' })
@@ -196,7 +200,7 @@ describe('penyedia tak dikenal — gerbang gratis terakhir', () => {
   it('penyedia salah ketik → 503 yang menyebut apa yang tersedia', async () => {
     await db.query(
       `UPDATE ai_provider_config SET penyedia = 'anthropc'
-       WHERE company_id = $1 AND asisten = 'staff'`,
+       WHERE company_id = $1 AND asisten = 'web'`,
       [companyId],
     )
     const r = await kirim({ pesan: 'berapa proyek?' })
@@ -210,7 +214,7 @@ describe('penyedia tak dikenal — gerbang gratis terakhir', () => {
   it('penyedia salah ketik → NOL biaya, NOL percakapan terkunci', async () => {
     await db.query(
       `UPDATE ai_provider_config SET penyedia = 'anthropc'
-       WHERE company_id = $1 AND asisten = 'staff'`,
+       WHERE company_id = $1 AND asisten = 'web'`,
       [companyId],
     )
     const sebelum = await jumlahBiaya()
@@ -283,8 +287,8 @@ describe('urutan gerbang', () => {
     // admin memperbaiki sebab yang benar.
     await db.query(`UPDATE ai_pengaturan_tenant SET ai_aktif = false WHERE company_id = $1`, [companyId])
     await db.query(
-      `UPDATE ai_provider_config SET batas_bulanan_idr = 0, mode_batas = 'blokir'
-       WHERE company_id = $1 AND asisten = 'staff'`,
+      `UPDATE ai_pengaturan_tenant SET batas_bulanan_idr = 0, mode_batas = 'blokir'
+       WHERE company_id = $1`,
       [companyId],
     )
     const r = await kirim({ pesan: 'x' })

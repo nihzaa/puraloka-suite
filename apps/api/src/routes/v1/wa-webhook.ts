@@ -214,6 +214,23 @@ export default async function waWebhookRoutes(app: FastifyInstance) {
         return reply.send({ ok: true, tindakan: 'tanpa_izin' })
       }
 
+      /*
+       * ASISTEN MANA — `owner` atau `staff`.
+       *
+       * Dibedakan lewat PERMISSION, bukan literal peran (ADR-004): peran itu
+       * data konfigurasi per-tenant, dan `'admin'`/`'pm'` yang dipaku di kode
+       * akan salah begitu sebuah tenant menamai perannya "direktur".
+       *
+       * `settings:ai:manage` dipilih karena artinya persis yang dibutuhkan:
+       * orang yang boleh MENGATUR asisten adalah orang yang percakapannya
+       * pantas memakai watak pemilik. Yang tak memegangnya tetap di `staff`.
+       *
+       * Keduanya kini punya prompt & mode bicara sendiri, tetapi plafon
+       * biayanya SATU dan milik tenant (migrasi 382) — jadi memisah asisten
+       * tidak membuka kembali lubang "belanja 2× dengan pindah kanal".
+       */
+      const asistenWa = izin.has('settings:ai:manage') ? 'owner' : 'staff'
+
       // ── GERBANG 5 & 6: saklar mati, biaya, lalu model ────────────────────
       const jalan = await jalankanGiliranAi({
         db,
@@ -222,6 +239,7 @@ export default async function waWebhookRoutes(app: FastifyInstance) {
         izinPengguna: izin,
         pesanUser: pesan.teks,
         gayaKanal: GAYA_WHATSAPP,
+        asisten: asistenWa,
         ambilKunci,
         catatGalat: (p, err) => request.log.error({ err }, `wa/webhook: ${p}`),
       })

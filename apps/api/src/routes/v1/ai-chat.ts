@@ -46,9 +46,21 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
 import { jalankanGiliranAi } from '../../lib/ai-jalankan.js'
+import type { Asisten } from '../../lib/ai-config.js'
 
 /** Kunci giliran kedaluwarsa — proses yang mati tak mengunci selamanya. */
 const GILIRAN_KEDALUWARSA_MS = 2 * 60_000
+
+/**
+ * Asisten kanal ini — SATU konstanta, dipakai dua tempat.
+ *
+ * Nilainya masuk ke `ai_percakapan.asisten` (baris percakapan) DAN ke gerbang
+ * biaya (baris `ai_biaya_token`). Kalau keduanya ditulis terpisah, satu bisa
+ * diubah tanpa yang lain — dan hasilnya percakapan yang tercatat sebagai satu
+ * asisten tetapi ditagih atas nama asisten lain. Tak ada galat, dan yang
+ * membacanya nanti tak punya cara tahu mana yang benar.
+ */
+const ASISTEN_WEB: Asisten = 'web'
 
 interface BadanChat {
   pesan?: string
@@ -125,12 +137,19 @@ export default async function aiChatRoutes(app: FastifyInstance) {
       const izinPengguna: ReadonlySet<string> = request._permissionCache ?? new Set<string>()
 
       // ── GERBANG 1–3 lalu BERBAYAR — inti yang sama dengan kanal WhatsApp.
+      //
+      // `asisten: 'web'` — sampai 2026-08-14 kanal ini diam-diam memakai
+      // ember `staff`, sehingga baris config `web` (lengkap dengan halaman
+      // pengaturannya) tak pernah dibaca sekali pun. Plafon biaya kini milik
+      // tenant (migrasi 382), jadi memakai asistennya sendiri tidak lagi
+      // berarti tenant punya dua kantong uang.
       const jalan = await jalankanGiliranAi({
         db,
         companyId,
         userId,
         izinPengguna,
         pesanUser,
+        asisten: ASISTEN_WEB,
         ambilKunci: (nama) => ambilKredensial(request, nama),
         catatGalat: (p, err) => request.log.error({ err }, `ai/chat: ${p}`),
       })
@@ -249,7 +268,7 @@ async function ambilAtauBuatPercakapan(
     .insert({
       company_id: companyId,
       user_id: userId,
-      asisten: 'staff',
+      asisten: ASISTEN_WEB,
       kanal: 'web',
       giliran_terkunci_pada: sekarang,
     })

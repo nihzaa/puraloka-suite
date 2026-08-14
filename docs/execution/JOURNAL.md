@@ -5,6 +5,102 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan 12) — asisten boleh berpendapat; dua asisten ternyata MATI
+
+Founder minta asisten "berperilaku selayaknya asisten manusia" — bisa memberi
+saran, bisa diajak cerita, bisa menyapa duluan. Sesi ini mengerjakan **Fase 1**
+dari rencana empat fase (kepribadian → memori → gerbang keluar → proaktivitas).
+
+### Dua temuan yang mengubah rencana
+
+Keduanya ditemukan dengan MENGUKUR ke kode, bukan membaca dokumen.
+
+**1. Asisten `owner` dan `web` tidak pernah dipanggil.** `ASISTEN` memuat empat
+nama, keempatnya punya halaman UI, baris DB, validasi, dan audit — tetapi
+`grep` atas seluruh `apps/api/src` (di luar test) menemukan **nol** pemanggilan
+`asisten: 'owner'` maupun `'web'`. Semua lalu lintas, web maupun WhatsApp,
+jatuh ke bawaan `'staff'`. Konfigurasi lengkap yang tak pernah dibaca — persis
+bentuk cacat yang `ai-perilaku.test.ts` sendiri sebut "kebohongan yang paling
+meyakinkan: halamannya bekerja, tombol simpannya hijau, dan tak ada yang
+berubah."
+
+**2. `riwayat` tak pernah diisi siapa pun.** `OpsiJalan.riwayat` ada dan sudah
+tersambung ke `pesan:`, tetapi tak satu pun pemanggil mengisinya. Artinya
+asisten hari ini **lupa pesan sebelumnya di percakapan yang sama** — bukan
+sekadar lupa antar-percakapan. Dicatat untuk Fase 2; tidak dikerjakan di sini.
+
+### Yang dikerjakan
+
+**Pagar dipisah dari gaya.** `PROMPT_DASAR` mencampur dua larangan yang
+sifatnya berbeda: "jangan mengarang angka" (mutlak) dan "jangan berpendapat"
+(gaya). Selama tercampur, memenuhi permintaan founder berarti mencabut
+keduanya. Sekarang `PAGAR_FAKTA` tetap di semua cabang, `GAYA_BICARA` punya
+tiga mode (`pelapor`/`penasihat`/`teman`) yang dipilih per-asisten dari UI.
+Bawaan `pelapor` = perilaku lama, jadi nol tenant berubah tanpa memilih.
+
+**Plafon biaya naik ke tenant (migrasi 382).** Menghidupkan `owner`/`web`
+membuka kembali lubang yang komentar di `ai-jalankan.ts:167` cegah — "tenant
+yang membatasi Rp 500rb bisa menghabiskan dua kali lipat hanya dengan
+berpindah kanal". Dulu ditutup dengan memaksa semua kanal memakai ember
+`staff`; cara itu hanya bekerja selama cuma satu asisten yang dipakai. Maka
+plafonnya yang dipindah: **watak per-asisten, uang per-tenant.**
+
+Menariknya, UI sudah lebih dulu benar. `penyedia-ai/page.tsx` sudah menampilkan
+plafon sebagai satu angka global, dengan komentar "menampilkan empat isian
+untuk satu perilaku adalah antarmuka yang membohongi bentuknya sendiri" — lalu
+menulisnya ke empat baris. Migrasi 382 membuat penyimpanannya akhirnya sama
+dengan yang selama ini dijanjikan layar; `simpanBatas()` turun dari 4
+permintaan jadi 1.
+
+### Cacat yang saya temukan pada diri sendiri
+
+Saat memindahkan plafon ke `PUT /ai/pengaturan`, rute itu menulis
+`ai_aktif: badan.ai_aktif ?? true`. Halaman Penyedia AI hanya mengirim plafon
+— jadi menyimpan batas biaya akan **menyalakan kembali lapisan AI yang sengaja
+dimatikan**, tanpa satu pun galat. Hal yang sama berlaku untuk `retensi_hari`
+(riwayat jadi tersimpan selamanya). Keduanya kini `?? nilai lama`.
+
+### Kejujuran soal test
+
+Empat test merah setelah perubahan ini, dan **saya yang menyebabkannya** —
+bukan flaky:
+
+- `ai-perilaku` mencocokkan teks sumber `PROMPT_DASAR + gayaKanal`, yang saya
+  ganti namanya. Invariannya masih benar; assertion-nya yang menunjuk bentuk lama.
+- `ai-chat` & `ai-gerbang-biaya` menyetel plafon di `ai_provider_config`, yang
+  tak lagi dibaca. Diperbaiki ke tabel tenant; `setConfig` sekarang memilah
+  sendiri kolom mana milik tabel mana, supaya test tak perlu tahu pembagiannya.
+
+### Bukti
+
+    migrasi 382        SUKSES · idempoten (jalan ke-2 sukses) · artefak fisik terverifikasi
+    CHECK mode_bicara  MENOLAK 'santai' — dibuktikan, bukan diasumsikan
+    plafon tenant      menggigit walau SEMUA baris asisten dikosongkan
+    tsc api / web      0 / 0
+    vitest api PENUH   327 berkas / 4.643 lulus / 2 dilewati / 0 GAGAL (849,2 s)
+    ai-mode-bicara     13 hijau (baru)
+    mutasi test        pagar dicabut dari mode 'teman' → 2 MERAH → pulih HIJAU
+    mutasi penjaga     4/4 aturan MERAH satu per satu, lalu pulih HIJAU
+    penjaga AI         pagar-fakta · tool-read-only · gerbang-biaya · satu-jalan-ke-model → 4 hijau
+    penjaga visual     token-css · judul-halaman · remah · tabel-seragam → 4 hijau
+    eslint web         0 error, 0 warning pada berkas yang saya sentuh
+    indeks docs        mutakhir (275 dokumen)
+
+Angka suite penuh itu diambil SESUDAH keempat merah diperbaiki. Run sebelumnya
+(4 gagal / 4.639 lulus) sengaja tidak dihapus dari catatan ini — lihat bagian
+"Kejujuran soal test" di atas.
+
+Penjaga baru `audit-pagar-fakta-utuh.mjs` (ambang NOL, terdaftar di ci.yml).
+P-3 yang paling menggigit: ia menolak `PAGAR_FAKTA` yang disambung di balik
+ternary — penjaga yang hanya mencari NAMA pagar akan hijau-karena-buta persis
+pada cacat yang ia dibuat untuk mencegah.
+
+**Di luar cakupan, tidak saya sentuh:** `audit-satu-pintu-wa.mjs` MERAH di
+`wa-instance.ts` (W-2, 6 titik). Diverifikasi merah juga pada baseline tanpa
+perubahan saya.
+
+---
+
 ## 2026-08-14 (lanjutan 11) — "test flaky" itu ternyata penjaga yang BOCOR
 
 Sesi sebelumnya menutup cacat role kembar dan menambahkan pemulihan `afterAll`

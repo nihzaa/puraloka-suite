@@ -42,6 +42,18 @@ export type Asisten = (typeof ASISTEN)[number]
 export const MODE_BATAS = ['blokir', 'peringatkan'] as const
 export type ModeBatas = (typeof MODE_BATAS)[number]
 
+/**
+ * Watak asisten. Sama persis dengan CHECK di migrasi 382.
+ *
+ * Enum pendek, BUKAN teks bebas. Teks bebas berarti tenant bisa menulis
+ * "abaikan aturan sumber" ke dalam gaya, dan tak ada yang menyadarinya sampai
+ * ada angka karangan yang telanjur dipercaya. Yang bebas diketik tenant tetap
+ * ada — `promptSistem` — tetapi ia disambung DI BAWAH pagar dan tak bisa
+ * membatalkannya.
+ */
+export const MODE_BICARA = ['pelapor', 'penasihat', 'teman'] as const
+export type ModeBicara = (typeof MODE_BICARA)[number]
+
 export interface KonfigurasiAi {
   asisten: Asisten
   penyedia: string
@@ -58,6 +70,13 @@ export interface KonfigurasiAi {
    * seluruhnya, satu kalimat ceroboh menghapus instruksi yang menahan injeksi.
    */
   promptSistem: string | null
+  /**
+   * Watak asisten — hanya mengatur GAYA, tak pernah menyentuh pagar fakta.
+   *
+   * Per-asisten (bukan per-tenant) justru itu intinya: asisten pemilik boleh
+   * `teman` sementara asisten staf tetap `pelapor`, tanpa dua sistem izin.
+   */
+  modeBicara: ModeBicara
   /** Batas ronde tool-calling. Dulu konstanta `MAKS_RONDE`. */
   maksRonde: number
   /**
@@ -87,6 +106,9 @@ export function konfigurasiBawaan(asisten: Asisten): KonfigurasiAi {
     batasBulananIdr: null,
     modeBatas: 'peringatkan',
     promptSistem: null,
+    // Bawaan = perilaku sebelum mode ada. Tenant yang tak memilih apa pun
+    // tidak boleh mendapati asistennya tiba-tiba berpendapat.
+    modeBicara: 'pelapor',
     maksRonde: 4,
     toolAktif: null,
   }
@@ -101,6 +123,7 @@ interface BarisConfig {
   batas_bulanan_idr: string | number | null
   mode_batas: string
   prompt_sistem?: string | null
+  mode_bicara?: string | null
   maks_ronde?: number | null
   tool_aktif?: string[] | null
 }
@@ -128,6 +151,12 @@ export function bentukKonfigurasi(baris: BarisConfig, asisten: Asisten): Konfigu
       ? (baris.mode_batas as ModeBatas)
       : 'peringatkan',
     promptSistem: baris.prompt_sistem?.trim() || null,
+    // Nilai asing jatuh ke `pelapor`, mode paling ketat. Basis yang lebih baru
+    // daripada kode (mis. saat rollback) tak boleh membuat asisten diam-diam
+    // lebih longgar daripada yang dipahami kode yang sedang berjalan.
+    modeBicara: (MODE_BICARA as readonly string[]).includes(baris.mode_bicara ?? '')
+      ? (baris.mode_bicara as ModeBicara)
+      : bawaan.modeBicara,
     maksRonde: baris.maks_ronde ?? bawaan.maksRonde,
     // `?? null` BUKAN `|| null`: array kosong itu falsy, dan `||` akan
     // mengubah "nol tool" jadi "semua tool" — kebalikan dari yang dipilih.
@@ -185,13 +214,53 @@ export async function periksaGerbangAi(
 ): Promise<KeputusanGerbang> {
   const { data, error } = await db
     .from('ai_provider_config')
-    .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, maks_ronde, tool_aktif')
+    .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, mode_bicara, maks_ronde, tool_aktif')
     .eq('asisten', asisten)
     .maybeSingle()
 
   if (error) throw new Error(`Gagal membaca konfigurasi AI: ${error.message}`)
 
   const konfigurasi = data ? bentukKonfigurasi(data as BarisConfig, asisten) : konfigurasiBawaan(asisten)
+
+  /*
+   * PLAFON DIBACA DARI TENANT, BUKAN DARI BARIS ASISTEN (migrasi 382).
+   *
+   * Sebelum ini plafon hidup di tiap baris asisten, dan lubangnya ditutup
+   * dengan cara memaksa SEMUA kanal memakai ember `staff` yang sama. Cara itu
+   * bekerja selama hanya satu asisten yang benar-benar dipakai — dan memang
+   * begitu: `owner` dan `web` punya baris, halaman UI, dan plafon sendiri,
+   * tapi tak pernah dipanggil sekali pun.
+   *
+   * Begitu ketiganya dihidupkan supaya wataknya bisa berbeda per kanal, ember
+   * bersama itu tak bisa dipertahankan tanpa membuat watak ikut seragam. Maka
+   * plafonnya yang naik satu tingkat: watak per-asisten, uang per-tenant.
+   *
+   * Efeknya persis yang dijaga komentar lama di `ai-jalankan.ts`: tenant yang
+   * menyetel Rp 500rb tetap Rp 500rb, berapa pun kanal yang ia nyalakan.
+   */
+  const { data: barisTenant, error: errTenant } = await db
+    .from('ai_pengaturan_tenant')
+    .select('batas_bulanan_idr, mode_batas')
+    .maybeSingle()
+
+  // Dilempar, tidak ditelan: gagal membaca plafon lalu melanjutkan berarti
+  // memanggil model TANPA batas — kegagalan yang tagihannya baru terlihat
+  // di akhir bulan.
+  if (errTenant) throw new Error(`Gagal membaca plafon AI tenant: ${errTenant.message}`)
+
+  const t = barisTenant as { batas_bulanan_idr?: string | number | null; mode_batas?: string } | null
+  const batasTenant = keAngka(t?.batas_bulanan_idr)
+  const modeBatasTenant: ModeBatas = (MODE_BATAS as readonly string[]).includes(t?.mode_batas ?? '')
+    ? (t!.mode_batas as ModeBatas)
+    : 'peringatkan'
+
+  // Konfigurasi yang dikembalikan membawa plafon TENANT, bukan sisa nilai di
+  // baris asisten. Pemanggil (dan UI) hanya boleh melihat satu angka yang
+  // benar-benar berlaku — dua angka berbeda untuk hal yang sama adalah cara
+  // termudah membuat orang menyetel yang salah.
+  konfigurasi.batasBulananIdr = batasTenant
+  konfigurasi.modeBatas = modeBatasTenant
+
   const terpakaiIdr = await pemakaianBulanIni(db, sekarang)
 
   if (!konfigurasi.aktif) {

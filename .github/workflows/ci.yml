@@ -544,6 +544,18 @@ jobs:
       - name: Tool AI read-only & sadar tenant
         run: node scripts/audit-tool-ai-read-only.mjs
 
+      # Pasangan I-1 di sisi PROMPT. Sejak migrasi 382 watak asisten bisa
+      # dipilih tenant (pelapor/penasihat/teman), dan pelonggaran itu diminta
+      # founder. Yang TIDAK boleh ikut longgar adalah pagar faktanya —
+      # "jangan mengarang angka", "sebutkan sumber", aturan blok <data>.
+      #
+      # Keduanya dulu satu konstanta, jadi melonggarkan gaya berarti mencabut
+      # pagar. Sekarang terpisah, dan penjaga ini memastikan pemisahannya tak
+      # bocor kembali: mode baru yang lupa berpagar, atau pagar yang disambung
+      # di balik ternary, keduanya merah di sini.
+      - name: Pagar fakta utuh di semua mode bicara
+        run: node scripts/audit-pagar-fakta-utuh.mjs
+
       # T-1. AMBANG NOL, berbeda dari `audit-gerbang-tenancy` yang memakai
       # ratchet — dan bedanya disengaja: untuk utang lama "tak boleh bertambah"
       # masuk akal, untuk jalur AI tidak. SATU tool yang bocor sudah cukup

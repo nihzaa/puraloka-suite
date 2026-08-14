@@ -31,6 +31,7 @@ import { logAuditEvent } from '../../utils/audit.js'
 import {
   ASISTEN,
   MODE_BATAS,
+  MODE_BICARA,
   awalBulan,
   bentukKonfigurasi,
   daftarModel,
@@ -39,6 +40,7 @@ import {
   perkiraanPerPanggilan,
   type Asisten,
   type ModeBatas,
+  type ModeBicara,
 } from '../../lib/ai-config.js'
 import { kursUsdIdr } from '../../lib/ai-harga.js'
 import { PENYEDIA, penyediaDikenal } from '../../lib/ai-adaptor.js'
@@ -46,8 +48,22 @@ import { KATALOG_TOOL } from '../../lib/ai-tool.js'
 
 const MAKS_TOKEN_TERTINGGI = 64_000
 
+/**
+ * `numeric` datang sebagai STRING lewat PostgREST.
+ *
+ * Mengirimkannya apa adanya ke UI membuat `batas_bulanan_idr` kadang string
+ * kadang angka, dan perbandingan `terpakai >= batas` di sisi web diam-diam
+ * membandingkan teks — "9" > "10" bernilai benar.
+ */
+function keAngkaPlafon(n: string | number | null | undefined): number | null {
+  if (n === null || n === undefined) return null
+  const v = typeof n === 'number' ? n : Number(n)
+  return Number.isFinite(v) ? v : null
+}
+
 interface BadanSimpan {
   prompt_sistem?: string | null
+  mode_bicara?: string
   maks_ronde?: number
   tool_aktif?: string[] | null
   penyedia?: string
@@ -105,7 +121,7 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
 
       const { data, error } = await request.db!
         .from('ai_provider_config')
-        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, maks_ronde, tool_aktif')
+        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, mode_bicara, maks_ronde, tool_aktif')
 
       if (error) {
         request.log.error({ err: error }, 'ai-config: gagal membaca konfigurasi')
@@ -133,6 +149,7 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
           tersimpan: Boolean(baris),
           perkiraan_per_panggilan_idr: perkiraanPerPanggilan(k.model, k.maxToken),
           prompt_sistem: k.promptSistem,
+          mode_bicara: k.modeBicara,
           maks_ronde: k.maksRonde,
           tool_aktif: k.toolAktif,
         }
@@ -328,7 +345,7 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const { data, error } = await request.db!
         .from('ai_pengaturan_tenant')
-        .select('ai_aktif, retensi_hari')
+        .select('ai_aktif, retensi_hari, batas_bulanan_idr, mode_batas')
         .maybeSingle()
 
       if (error) {
@@ -342,12 +359,24 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
       return reply.send({
         ai_aktif: (data as { ai_aktif?: boolean } | null)?.ai_aktif ?? true,
         retensi_hari: (data as { retensi_hari?: number | null } | null)?.retensi_hari ?? 30,
+        // Plafon SELURUH kanal — pindah ke sini dari baris per-asisten oleh
+        // migrasi 382. Satu angka, karena uangnya memang satu.
+        batas_bulanan_idr:
+          keAngkaPlafon((data as { batas_bulanan_idr?: string | number | null } | null)?.batas_bulanan_idr),
+        mode_batas: (data as { mode_batas?: string } | null)?.mode_batas ?? 'peringatkan',
       })
     },
   )
 
   // ── PUT /api/v1/ai/pengaturan ────────────────────────────────────────────
-  app.put<{ Body: { ai_aktif?: boolean; retensi_hari?: number | null } }>(
+  app.put<{
+    Body: {
+      ai_aktif?: boolean
+      retensi_hari?: number | null
+      batas_bulanan_idr?: number | null
+      mode_batas?: string
+    }
+  }>(
     '/api/v1/ai/pengaturan',
     { preHandler: [authenticate, requirePermission('settings:ai:manage')] },
     async (request, reply) => {
@@ -361,23 +390,67 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
         }
       }
 
+      const modeBatasTenant = (badan.mode_batas ?? 'peringatkan') as ModeBatas
+      if (!(MODE_BATAS as readonly string[]).includes(modeBatasTenant)) {
+        return reply.status(422).send({ error: `mode_batas harus 'blokir' atau 'peringatkan'` })
+      }
+
       const { data: lama } = await request.db!
         .from('ai_pengaturan_tenant')
-        .select('ai_aktif, retensi_hari')
+        .select('ai_aktif, retensi_hari, batas_bulanan_idr, mode_batas')
         .maybeSingle()
+
+      /*
+       * PLAFON: `undefined` berarti "jangan ubah", `null` berarti "hapus batas".
+       *
+       * Bedanya penting justru di rute ini. Upsert di bawah menulis SELURUH
+       * baris, jadi pemanggil yang hanya menekan saklar `ai_aktif` akan
+       * menghapus plafon tenant tanpa pernah menyebutnya — rem tagihan hilang
+       * karena seseorang mematikan lalu menyalakan asisten.
+       */
+      const plafonLama = keAngkaPlafon(
+        (lama as { batas_bulanan_idr?: string | number | null } | null)?.batas_bulanan_idr,
+      )
+      let plafon: number | null = plafonLama
+      if (badan.batas_bulanan_idr !== undefined) {
+        if (badan.batas_bulanan_idr === null) {
+          plafon = null
+        } else {
+          const v = Number(badan.batas_bulanan_idr)
+          if (!Number.isFinite(v) || v < 0) {
+            return reply.status(422).send({ error: 'batas_bulanan_idr tidak boleh negatif' })
+          }
+          plafon = v
+        }
+      }
 
       const { data, error } = await request.db!
         .from('ai_pengaturan_tenant')
         .upsert(
           {
             company_id: request.companyId!,
-            ai_aktif: badan.ai_aktif ?? true,
-            retensi_hari: retensi,
+            // `?? nilai lama`, BUKAN `?? true`. Halaman Penyedia AI menyimpan
+            // batas biaya tanpa menyentuh saklar; dengan `?? true` penyimpanan
+            // itu diam-diam MENYALAKAN kembali lapisan AI yang sengaja
+            // dimatikan — dan tak ada satu pun galat yang menyebutkannya.
+            ai_aktif:
+              badan.ai_aktif ?? ((lama as { ai_aktif?: boolean } | null)?.ai_aktif ?? true),
+            // Sama alasannya: `undefined` berarti "jangan ubah", bukan
+            // "hapus retensi". Tanpa ini, menyimpan batas biaya membuat
+            // riwayat percakapan disimpan selamanya.
+            retensi_hari:
+              badan.retensi_hari === undefined
+                ? ((lama as { retensi_hari?: number | null } | null)?.retensi_hari ?? 30)
+                : retensi,
+            batas_bulanan_idr: plafon,
+            mode_batas: badan.mode_batas === undefined
+              ? ((lama as { mode_batas?: string } | null)?.mode_batas ?? 'peringatkan')
+              : modeBatasTenant,
             diperbarui_oleh: request.currentUser!.id,
           },
           { onConflict: 'company_id' },
         )
-        .select('ai_aktif, retensi_hari')
+        .select('ai_aktif, retensi_hari, batas_bulanan_idr, mode_batas')
         .maybeSingle()
 
       if (error) {
@@ -456,6 +529,16 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
         return reply.status(422).send({ error: 'maks_ronde harus bilangan bulat 1–12' })
       }
 
+      // Watak divalidasi SERVER. Nilai asing yang lolos ke basis akan ditolak
+      // CHECK migrasi 382 sebagai galat 500 yang tak menjelaskan apa-apa;
+      // ditolak di sini, penanya tahu persis pilihan yang sah.
+      const modeBicara = (badan.mode_bicara ?? bawaan.modeBicara) as ModeBicara
+      if (!(MODE_BICARA as readonly string[]).includes(modeBicara)) {
+        return reply.status(422).send({
+          error: `mode_bicara harus salah satu dari: ${MODE_BICARA.join(', ')}`,
+        })
+      }
+
       const promptSistem = badan.prompt_sistem?.trim() || null
       if (promptSistem && promptSistem.length > 8000) {
         // Prompt dikirim ULANG tiap ronde — 8.000 karakter dikali 4 ronde
@@ -489,7 +572,7 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
       // tak terjawab kalau yang tercatat cuma nilai barunya.
       const { data: lama, error: galatLama } = await request.db!
         .from('ai_provider_config')
-        .select('penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, maks_ronde, tool_aktif')
+        .select('penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, mode_bicara, maks_ronde, tool_aktif')
         .eq('asisten', asisten)
         .maybeSingle()
 
@@ -511,13 +594,14 @@ export default async function aiConfigRoutes(app: FastifyInstance) {
             batas_bulanan_idr: batas,
             mode_batas: modeBatas,
             prompt_sistem: promptSistem,
+            mode_bicara: modeBicara,
             maks_ronde: maksRonde,
             tool_aktif: toolAktif,
             diperbarui_oleh: request.currentUser!.id,
           },
           { onConflict: 'company_id,asisten' },
         )
-        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, maks_ronde, tool_aktif, diperbarui_pada')
+        .select('asisten, penyedia, model, max_token, aktif, batas_bulanan_idr, mode_batas, prompt_sistem, mode_bicara, maks_ronde, tool_aktif, diperbarui_pada')
         .maybeSingle()
 
       if (error) {

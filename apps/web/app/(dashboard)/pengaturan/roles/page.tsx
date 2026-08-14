@@ -69,6 +69,12 @@ const MODULE_LABELS: Record<string, string> = {
   notifications: "Notifikasi",
   milestones: "Milestone",
   documents: "Dokumen",
+  // `ai:chat`, `ai:tulis`, `ai:setujui`, `ai:history:view` sudah ada di basis
+  // sejak migrasi 252/260/269, tetapi modulnya tak pernah punya nama di sini —
+  // jadi seluruh izin asisten tampil di layar sebagai judul "ai" mentah.
+  // Peta ini memang harus disunting tangan tiap ada modul baru; yang lupa tak
+  // menghasilkan galat, hanya judul yang terlihat setengah jadi.
+  ai: "Asisten AI",
 };
 
 // ─── Main page ─────────────────────────────────────────────────────────────────

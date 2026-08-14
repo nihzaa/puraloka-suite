@@ -183,17 +183,28 @@ describe('kode BENAR-BENAR memakainya — bukan kolom hiasan', () => {
   })
 
   it('rute chat menyambung promptSistem tenant', () => {
-    expect(chat).toContain('susunPromptSistem(gerbang.konfigurasi.promptSistem')
+    // Pemanggilannya jadi multi-baris sejak `mode_bicara` ikut (migrasi 382),
+    // jadi yang dicocokkan argumennya — bukan satu baris utuh.
+    expect(chat).toMatch(/susunPromptSistem\(\s*gerbang\.konfigurasi\.promptSistem/)
   })
 
   it('prompt tenant DISAMBUNG, tidak menggantikan prompt dasar', () => {
     // Kalau tenant bisa mengganti seluruh prompt, satu kalimat ceroboh
     // menghapus instruksi yang menahan injeksi — dan tak ada gejala sampai
     // seseorang mencobanya.
-    // `dasar` = PROMPT_DASAR + gaya kanal, dan ia muncul SEBELUM tambahan
-    // tenant di array yang di-join. Urutan itulah yang menjamin instruksi
-    // tenant tak bisa mendahului batas yang ditulis pengembang.
-    expect(chat).toMatch(/function susunPromptSistem[\s\S]*?PROMPT_DASAR \+ gayaKanal[\s\S]*?\n    dasar,/)
+    //
+    // `dasar` = PAGAR_FAKTA + gaya bicara + gaya kanal (dulu `PROMPT_DASAR +
+    // gayaKanal`; dipecah 2026-08-14 supaya watak bisa berubah tanpa ikut
+    // mencabut pagar). Ia tetap muncul SEBELUM tambahan tenant di array yang
+    // di-join, dan urutan itulah yang dijaga di sini.
+    expect(chat).toMatch(/function susunPromptSistem[\s\S]*?PAGAR_FAKTA \+ gaya \+ gayaKanal[\s\S]*?\n    dasar,/)
+  })
+
+  it('mode bicara ikut disambungkan ke prompt', () => {
+    // Kolom yang tersimpan tapi tak pernah dibaca adalah bentuk kebohongan
+    // yang paling meyakinkan — halamannya bekerja, tombolnya hijau, dan tak
+    // ada yang berubah.
+    expect(chat).toContain('gerbang.konfigurasi.modeBicara')
   })
 
   it('toolAktif menyaring katalog', () => {

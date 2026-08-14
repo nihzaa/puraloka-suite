@@ -39,12 +39,46 @@ const actAs = (a: string) =>
 const insight = () =>
   app.inject({ method: 'GET', url: '/api/v1/ai/insight', headers: { authorization: 'Bearer t' } })
 
+/**
+ * Menyetel konfigurasi — DUA tabel sejak migrasi 382.
+ *
+ * Plafon biaya (`batas_bulanan_idr`, `mode_batas`) pindah ke
+ * `ai_pengaturan_tenant` karena uangnya milik tenant, bukan milik kanal;
+ * sisanya (`aktif`, `penyedia`, `model`) tetap per-asisten.
+ *
+ * Pemisahannya disembunyikan di dalam helper supaya tiap test tetap menulis
+ * satu panggilan. Yang diuji test-test ini adalah URUTAN GERBANG, bukan tabel
+ * mana yang menyimpan apa — memaksa tiap kasus tahu pembagiannya akan membuat
+ * mereka merah tiap kali penyimpanannya dipindah lagi.
+ */
+const KOLOM_TENANT = new Set(['batas_bulanan_idr', 'mode_batas'])
+
 async function setConfig(kolom: Record<string, unknown>) {
-  const set = Object.keys(kolom).map((k, i) => `${k} = $${i + 2}`).join(', ')
-  await db.query(
-    `UPDATE ai_provider_config SET ${set} WHERE company_id = $1 AND asisten = 'insight'`,
-    [companyId, ...Object.values(kolom)],
-  )
+  const perAsisten = Object.entries(kolom).filter(([k]) => !KOLOM_TENANT.has(k))
+  const perTenant = Object.entries(kolom).filter(([k]) => KOLOM_TENANT.has(k))
+
+  if (perAsisten.length > 0) {
+    const set = perAsisten.map(([k], i) => `${k} = $${i + 2}`).join(', ')
+    await db.query(
+      `UPDATE ai_provider_config SET ${set} WHERE company_id = $1 AND asisten = 'insight'`,
+      [companyId, ...perAsisten.map(([, v]) => v)],
+    )
+  }
+
+  if (perTenant.length > 0) {
+    const set = perTenant.map(([k], i) => `${k} = $${i + 2}`).join(', ')
+    // Baris tenant belum tentu ada — dibuat kalau perlu, supaya test tak
+    // bergantung pada urutan berkas lain yang kebetulan membuatnya lebih dulu.
+    await db.query(
+      `INSERT INTO ai_pengaturan_tenant (company_id) VALUES ($1)
+       ON CONFLICT (company_id) DO NOTHING`,
+      [companyId],
+    )
+    await db.query(
+      `UPDATE ai_pengaturan_tenant SET ${set} WHERE company_id = $1`,
+      [companyId, ...perTenant.map(([, v]) => v)],
+    )
+  }
 }
 
 beforeAll(async () => {

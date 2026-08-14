@@ -19,6 +19,7 @@ import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { PanduanHalaman } from "@/components/panduan-halaman";
 import {
+  MODE_BICARA,
   PAKAI_TOOL,
   PERAN,
   type Konfigurasi,
@@ -68,6 +69,7 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
     try {
       await api.put(`/api/v1/ai/config/${asisten}`, {
         prompt_sistem: k.prompt_sistem,
+        mode_bicara: k.mode_bicara ?? "pelapor",
         maks_ronde: k.maks_ronde,
         tool_aktif: k.tool_aktif,
       });
@@ -155,6 +157,81 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
         sama persis muncul dua kali berjarak 40px. Pengulangan sedekat itu
         membuat pembaca mengira ia salah lihat, bukan memperjelas.
       */}
+      {/*
+        WATAK — pilihan pertama di halaman, sebelum instruksi tambahan.
+
+        Urutannya bukan selera: "asisten ini boleh berpendapat atau tidak"
+        mengubah arti kotak instruksi di bawahnya. Menaruhnya sesudah membuat
+        orang menulis instruksi gaya lebih dulu, lalu menemukan saklar yang
+        membuat tulisannya mubazir.
+
+        Radio, bukan dropdown. Ketiganya punya konsekuensi yang perlu dibaca
+        BERDAMPINGAN — dropdown menyembunyikan dua pilihan di balik klik, dan
+        yang tersembunyi tak akan dibandingkan.
+      */}
+      <fieldset
+        style={{ border: "none", padding: 0, margin: "0 0 14px" }}
+        disabled={!bolehKelola}
+      >
+        <legend style={{ fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5, padding: 0 }}>
+          Cara asisten bicara
+        </legend>
+        <div style={{ display: "grid", gap: 6 }}>
+          {MODE_BICARA.map((m) => {
+            const terpilih = (k.mode_bicara ?? "pelapor") === m.nilai;
+            return (
+              <label
+                key={m.nilai}
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 10,
+                  padding: "10px 12px",
+                  borderRadius: 8,
+                  border: `1px solid ${terpilih ? C.navy : C.border}`,
+                  // Latar bertanda hanya pada yang terpilih. Warna pada
+                  // ketiganya membuat tak ada yang menonjol — dan yang
+                  // menonjol justru inti dari daftar pilihan.
+                  background: terpilih ? C.navyLight : "transparent",
+                  cursor: bolehKelola ? "pointer" : "default",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="mode_bicara"
+                  value={m.nilai}
+                  checked={terpilih}
+                  disabled={!bolehKelola}
+                  onChange={() => setDraf((d) => ({ ...d, mode_bicara: m.nilai }))}
+                  // Label-nya BERSARANG dalam beberapa <span>, jadi
+                  // `label-has-associated-control` tak bisa membacanya — dan
+                  // pembaca layar juga akan mengeja ketiga baris sekaligus.
+                  // `aria-label` menyebut label + ringkasnya saja; rincian
+                  // panjangnya tetap terbaca sebagai teks biasa sesudahnya.
+                  aria-label={`${m.label} — ${m.ringkas}`}
+                  style={{ marginTop: 2, accentColor: C.navy, flexShrink: 0 }}
+                />
+                <span style={{ display: "block" }}>
+                  <span style={{ fontSize: 13, fontWeight: 550, color: C.text }}>
+                    {m.label}
+                  </span>
+                  <span style={{ fontSize: 11.5, color: C.mid, marginLeft: 6 }}>
+                    {m.ringkas}
+                  </span>
+                  <span style={{ display: "block", fontSize: 11.5, color: C.muted, lineHeight: 1.55, marginTop: 3 }}>
+                    {m.detail}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        <p style={{ fontSize: 11.5, color: C.muted, lineHeight: 1.55, margin: "8px 0 0", maxWidth: "60ch" }}>
+          Apa pun pilihannya, asisten tetap dilarang mengarang angka dan wajib menyebut
+          sumber tiap angka yang dipakainya. Yang berubah hanya cara bicaranya.
+        </p>
+      </fieldset>
+
       <div style={{ marginBottom: 14 }}>
         <label htmlFor="prompt" style={{ display: "block", fontSize: 12, fontWeight: 550, color: C.mid, marginBottom: 5 }}>
           Instruksi tambahan
