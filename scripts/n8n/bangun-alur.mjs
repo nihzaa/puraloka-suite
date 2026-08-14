@@ -294,6 +294,120 @@ return [{ json: { teks, jml: d.jml } }];
   ]
 }
 
+/**
+ * ── ALUR BERPEMICU PERISTIWA (webhook), bukan jadwal ────────────────────────
+ *
+ * Bentuknya lebih pendek dari alur jadwal: TIGA simpul, bukan empat. Tak ada
+ * "Ambil umpan" karena datanya sudah datang bersama pemicunya — `createNotifications()`
+ * mengirim jenis, judul, pesan, dan id proyek lewat `utils/terbit-peristiwa.ts`.
+ *
+ * Kenapa tak mengambil umpan juga: peristiwa ini terjadi SEKALI dan spesifik
+ * ("kasbon nomor sekian diajukan"), sementara umpan menjawab pertanyaan
+ * berulang ("kasbon apa saja yang tertahan"). Memanggil umpan di sini berarti
+ * mengirim daftar lengkap tiap kali satu hal terjadi.
+ *
+ * `kode` = `path` webhook = `otomasi_alur.kode`, dan nilainya HARUS sama
+ * dengan yang ada di `PETA_PERISTIWA` (`utils/terbit-peristiwa.ts`). Dijaga
+ * `audit-peristiwa-punya-alur.mjs`.
+ */
+const RESEP_PERISTIWA = [
+  {
+    kode: 'teruskan-kasbon-diajukan',
+    nama: 'Puraloka — Kasbon Diajukan',
+    judul: 'KASBON BARU DIAJUKAN',
+  },
+  {
+    kode: 'teruskan-laporan-upah',
+    nama: 'Puraloka — Laporan Upah Diajukan',
+    judul: 'LAPORAN UPAH DIAJUKAN',
+  },
+  {
+    kode: 'konfirmasi-invoice-dibayar',
+    nama: 'Puraloka — Invoice Dibayar',
+    judul: 'PEMBAYARAN DITERIMA',
+  },
+  {
+    kode: 'lapor-status-proyek-berubah',
+    nama: 'Puraloka — Status Proyek Berubah',
+    judul: 'STATUS PROYEK BERUBAH',
+  },
+  {
+    kode: 'peringatan-stok-menipis',
+    nama: 'Puraloka — Stok Menipis',
+    judul: 'STOK MATERIAL MENIPIS',
+  },
+]
+
+/**
+ * Simpul alur peristiwa: Webhook → Susun pesan → Kirim WA.
+ *
+ * Pesannya memakai judul & pesan yang SUDAH disusun aplikasi, bukan disusun
+ * ulang di sini. Alasannya sama dengan kenapa umpan tak dipanggil: aplikasi
+ * yang tahu konteksnya, dan menyusunnya dua kali berarti dua kalimat berbeda
+ * untuk kejadian yang sama — satu di lonceng notifikasi, satu di WhatsApp.
+ */
+function simpulPeristiwa(resep, cfg) {
+  const kodeSusun = `
+const d = $input.first().json;
+const isi = d.body || d;
+if (!isi || !isi.pesan) { return []; }
+const teks = '*${resep.judul}*\\n\\n' + isi.pesan +
+  (isi.judul ? '\\n\\n_' + isi.judul + '_' : '') +
+  '\\n\\n_Puraloka Suite · ${resep.kode}_';
+return [{ json: { teks } }];
+`.trim()
+
+  return [
+    {
+      parameters: {
+        httpMethod: 'POST',
+        path: resep.kode,
+        // `onReceived`: aplikasi yang memanggil ini TIDAK menunggu hasilnya
+        // (fire-and-forget), jadi membalas cepat lebih benar daripada
+        // membalas lengkap. Lihat catatan yang sama di alur jadwal.
+        responseMode: 'onReceived',
+        options: {},
+      },
+      id: 'pemicu',
+      name: 'Peristiwa',
+      type: 'n8n-nodes-base.webhook',
+      typeVersion: 2,
+      position: [0, 0],
+      webhookId: resep.kode,
+    },
+    {
+      parameters: { jsCode: kodeSusun },
+      id: 'susun',
+      name: 'Susun pesan',
+      type: 'n8n-nodes-base.code',
+      typeVersion: 2,
+      position: [220, 0],
+    },
+    {
+      parameters: {
+        method: 'POST',
+        url: `${cfg.waUrl}/message/sendText/${cfg.waInstance}`,
+        sendHeaders: true,
+        headerParameters: { parameters: [{ name: 'apikey', value: cfg.waApiKey }] },
+        sendBody: true,
+        specifyBody: 'json',
+        jsonBody: `={{ JSON.stringify({ number: "${cfg.nomorTujuan}", text: $json.teks }) }}`,
+        options: { timeout: 30000 },
+      },
+      id: 'kirim',
+      name: 'Kirim WhatsApp',
+      type: 'n8n-nodes-base.httpRequest',
+      typeVersion: 4.2,
+      position: [440, 0],
+    },
+  ]
+}
+
+const SAMBUNG_PERISTIWA = {
+  Peristiwa: { main: [[{ node: 'Susun pesan', type: 'main', index: 0 }]] },
+  'Susun pesan': { main: [[{ node: 'Kirim WhatsApp', type: 'main', index: 0 }]] },
+}
+
 const SAMBUNG = {
   Jadwal: { main: [[{ node: 'Ambil umpan', type: 'main', index: 0 }]] },
   // Pemicu manual masuk ke simpul yang SAMA dengan jadwal — satu rantai
@@ -375,18 +489,31 @@ for (const k of ['n8nKey', 'apiKey', 'waApiKey', 'nomorTujuan']) {
 const adaSekarang = await n8nApi(cfg, '/api/v1/workflows?limit=250')
 const peta = new Map((adaSekarang.data ?? []).map((w) => [w.name, w.id]))
 
-console.log(`n8n: ${peta.size} workflow terpasang · resep: ${RESEP.length}`)
+// Dua keluarga resep, satu daftar kerja. `jenis` menentukan bentuk simpulnya —
+// alur jadwal punya "Ambil umpan", alur peristiwa tidak (datanya ikut pemicu).
+const SEMUA = [
+  ...RESEP.map((r) => ({ ...r, jenis: 'jadwal' })),
+  ...RESEP_PERISTIWA.map((r) => ({ ...r, jenis: 'peristiwa' })),
+]
+
+console.log(
+  `n8n: ${peta.size} workflow terpasang · resep: ${SEMUA.length} ` +
+  `(${RESEP.length} jadwal + ${RESEP_PERISTIWA.length} peristiwa)`,
+)
 if (HANYA_DAFTAR) {
-  for (const r of RESEP) console.log(`  ${peta.has(r.nama) ? '[ada]' : '[baru]'} ${r.nama}`)
+  for (const r of SEMUA) {
+    console.log(`  ${peta.has(r.nama) ? '[ada] ' : '[baru]'} ${r.jenis.padEnd(9)} ${r.nama}`)
+  }
   await client.end()
   process.exit(0)
 }
 
-for (const resep of RESEP) {
+for (const resep of SEMUA) {
+  const peristiwa = resep.jenis === 'peristiwa'
   const badan = {
     name: resep.nama,
-    nodes: simpul(resep, cfg),
-    connections: SAMBUNG,
+    nodes: peristiwa ? simpulPeristiwa(resep, cfg) : simpul(resep, cfg),
+    connections: peristiwa ? SAMBUNG_PERISTIWA : SAMBUNG,
     settings: { executionOrder: 'v1' },
   }
 

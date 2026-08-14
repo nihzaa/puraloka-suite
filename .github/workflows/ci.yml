@@ -316,6 +316,23 @@ jobs:
       - name: Tugas terjadwal punya rute terpasang
         run: node scripts/audit-tugas-punya-rute.mjs
 
+      # Sepupu L-4 untuk arah sebaliknya: bukan "kolom punya pembaca" melainkan
+      # "peristiwa punya alur". `utils/terbit-peristiwa.ts` memetakan jenis
+      # notifikasi ke kode alur otomasi, dan kode itu jadi `path` webhook n8n.
+      #
+      # Kalau kodenya salah ketik atau alurnya hilang, panggilannya membalas
+      # 404 — dan `terbitkanPeristiwa` SENGAJA diam pada 404, karena itu
+      # keadaan wajar selama alur belum dinyalakan. Jadi salah ketik terlihat
+      # persis sama dengan "belum dinyalakan", dan satu-satunya gejalanya
+      # adalah WhatsApp yang tak pernah datang.
+      #
+      # Memeriksa empat hal: kode punya resep di `bangun-alur.mjs`, kodenya sah
+      # sebagai path URL, dan (bila ada DATABASE_URL) barisnya ada di
+      # `otomasi_alur`. Ambang NOL. Bukti merah: dua mutasi (salah ketik kode;
+      # kode berspasi), keduanya MERAH lalu HIJAU sesudah dipulihkan.
+      - name: Peristiwa otomasi menunjuk alur yang ada
+        run: node scripts/audit-peristiwa-punya-alur.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan

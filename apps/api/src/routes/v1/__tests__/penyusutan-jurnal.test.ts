@@ -40,7 +40,7 @@ let adminAuth: string
 let companyId: string
 let periodeUji: string | null = null
 let idBarisUji: string[] = []
-let jurnalDibuat: string[] = []
+const jurnalDibuat: string[] = []
 
 const actAs = (a: string) =>
   vi.spyOn(supabaseAuth.auth, 'getUser')

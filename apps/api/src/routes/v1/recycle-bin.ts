@@ -69,7 +69,7 @@ export default async function recycleBinRoutes(app: FastifyInstance) {
       // ⚠ Daftar "yang terhapus" adalah tempat paling sepi untuk kebocoran
       // tenant — jarang dibuka, jadi jarang diperiksa. Penyaringannya
       // karena itu TIDAK boleh berbeda dari daftar biasa.
-      let q = e.tenancy === 'company'
+      const q = e.tenancy === 'company'
         ? request.db!.from(e.tabel)
         : request.db!.unsafe(e.tabel, 'disaring ke proyek milik tenant lewat projectIds()')
 

@@ -5,6 +5,95 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-14 (lanjutan 3) — jalur peristiwa hidup: 13/14 alur, rantai penuh terbukti
+
+Prioritas 1 dari rencana kemarin: enam alur berpemicu webhook yang tak pernah
+terpasang karena tak ada yang memanggil webhooknya.
+
+### Yang diukur lebih dulu, dan mengubah rencananya
+
+Dugaan awal saya: jalur peristiwa harus dibangun dari nol. Diukur: **tidak.**
+Kedua puluh `notification_rules` sudah aktif, dan keenam alur itu sendiri
+menuliskan sumbernya di keterangan ("Sumber: notification_rules
+kasbon_submitted"). Yang kurang cuma JEMBATANNYA.
+
+### Satu titik, bukan enam
+
+Godaan yang lebih cepat: sisipkan `fetch(webhook)` di sebelah tiap
+`createNotifications(...)`. Enam tempat, selesai sore ini — dan jenis
+notifikasi ke-7 akan lupa memanggilnya. Pola itu sudah dua kali menggigit repo
+ini (`sendWebPush()` nol pemanggil berbulan-bulan; `kolomPengaju` SoD yang
+salah karena ditulis sekali lalu tak diperiksa).
+
+`createNotifications()` sudah jadi corong tunggal seluruh peristiwa, jadi
+`utils/terbit-peristiwa.ts` dipanggil dari SANA. Alur webhook berikutnya cukup
+menambah baris di `PETA_PERISTIWA` — nol rute yang perlu disunting.
+
+Dikelompokkan per (company, jenis), bukan per penerima: satu kasbon diajukan
+adalah SATU peristiwa sekalipun lima orang dikabari. Tanpa itu, satu kasbon
+memicu lima pesan WhatsApp yang sama.
+
+### `ambilKredensialTanpaRequest` — dan kenapa TANPA jatuhan env
+
+`ambilKredensial()` menuntut `FastifyRequest`; `createNotifications` tak pernah
+punya. Ditambahkan varian ber-`companyId` eksplisit di berkas yang sama (K-4:
+`bukaNilai` hanya boleh dipanggil dari sana).
+
+Sengaja TIDAK punya jatuhan `.env` seperti saudaranya: otomasi yang diam karena
+belum dikonfigurasi jauh lebih baik daripada otomasi yang diam-diam mengirim
+lewat n8n milik tenant lain. Diam bisa diperiksa; salah kirim tak bisa ditarik.
+
+### Alur peristiwa: TIGA simpul, bukan empat
+
+Tanpa "Ambil umpan" — datanya sudah ikut pemicu. Peristiwa terjadi SEKALI dan
+spesifik ("kasbon nomor sekian diajukan"); umpan menjawab pertanyaan berulang
+("kasbon apa saja yang tertahan"). Memanggil umpan di sini berarti mengirim
+daftar lengkap tiap kali satu hal terjadi.
+
+### Penjaga baru
+
+`audit-peristiwa-punya-alur.mjs` (ambang NOL). `terbitkanPeristiwa` sengaja
+DIAM pada 404 — itu keadaan wajar selama alur belum dinyalakan — jadi kode yang
+salah ketik terlihat PERSIS SAMA dengan "belum dinyalakan", dan satu-satunya
+gejalanya adalah WhatsApp yang tak pernah datang.
+
+Memeriksa: kode punya resep di `bangun-alur.mjs` · kodenya sah sebagai path URL
+· barisnya ada di `otomasi_alur` (bila DATABASE_URL ada).
+
+**Bukti merah:** dua mutasi — salah ketik kode, dan kode berspasi — keduanya
+MERAH lalu HIJAU sesudah dipulihkan.
+
+### Bukti
+
+```
+alur terpasang             13/14 (sisa: cadangkan-dokumen-final, butuh
+                           penyimpanan luar yang belum ada)
+tsc (api)                  EXIT 0
+lint prefer-const          2 -> 0 (dibereskan, walau bukan dari perubahan ini)
+audit-peristiwa-punya-alur HIJAU (baru)
+audit-gerbang-tenancy      HIJAU    audit-kredensial-tak-bocor  HIJAU
+audit-tugas-punya-rute     HIJAU    audit-jadwal-punya-pembaca  HIJAU
+audit-sod-gerbang          HIJAU    gen-tenant-map              SINKRON
+vitest notifications       8/8 HIJAU
+
+eksekusi n8n nyata:
+  5 alur peristiwa dipicu langsung   5/5 sukses
+  RANTAI PENUH lewat aplikasi        laporan upah dibuat 201 di 05:51,
+                                     exec 24 n8n SUKSES di 05:51:08 —
+                                     tanpa saya memicu manual
+```
+
+⚠ Dua kegagalan awal yang BUKAN cacat kode: n8n dan Evolution mati di tengah
+sesi. Alurnya benar, penerimanya yang tak hidup — dan galat "service refused"
+terlihat sama persis untuk keduanya.
+
+### Yang tersisa
+
+`no-explicit-any` 231 vs ambang 224 — utang sesi lain (diukur identik sebelum
+dan sesudah perubahan ini lewat `git stash`). Ambang TIDAK dinaikkan (G-5).
+
+---
+
 ## 2026-08-14 (lanjutan 2) — 8 alur otomasi hidup, dan tiga cacat yang hanya muncul saat dijalankan sungguhan
 
 Founder: *"ui ai & otomasi sudah selesai penuh? jadi bisa lanjut untuk bangun

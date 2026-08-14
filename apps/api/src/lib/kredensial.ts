@@ -41,6 +41,10 @@
  */
 import type { FastifyRequest } from 'fastify'
 import { bukaNilai } from './kredensial-sandi.js'
+// `supabase` mentah DIPAKAI SENGAJA di `ambilKredensialTanpaRequest`:
+// pemanggilnya tak punya `request.db`, jadi saringan tenant ditulis eksplisit
+// (`.eq('company_id', ...)`) di kuerinya sendiri. Lihat catatan fungsi itu.
+import { supabase } from '../utils/supabase.js'
 
 const TTL_MS = 60_000
 
@@ -352,6 +356,56 @@ export async function ambilKredensial(
 
 /** Dari mana nilai yang berlaku berasal — untuk ditampilkan di UI. */
 export type SumberKredensial = 'tenant' | 'env' | 'tidak-ada'
+
+/**
+ * Kredensial untuk pemanggil yang TIDAK punya `request`.
+ *
+ * `ambilKredensial()` menuntut `FastifyRequest` — ia memakai `request.db`
+ * (sadar tenant) dan `request.log`. Itu benar untuk rute, dan mustahil untuk
+ * `createNotifications()`, yang dipanggil dari belasan tempat dan tak pernah
+ * membawa request.
+ *
+ * ⚠ Karena tak lewat `request.db`, `companyId` WAJIB diberikan pemanggil dan
+ * dipakai sebagai saringan eksplisit. Tanpa itu satu tenant bisa membaca
+ * kredensial tenant lain — persis kebocoran yang dijaga seluruh lapisan
+ * tenancy repo ini.
+ *
+ * ── Kenapa TIDAK ada jatuhan `.env` di sini
+ *
+ * `ambilKredensial()` punya jatuhan env sebagai jaring pengaman
+ * satu-instalasi. Fungsi ini sengaja TIDAK: satu-satunya pemakainya adalah
+ * penerbit peristiwa otomasi, dan otomasi yang diam karena belum dikonfigurasi
+ * jauh lebih baik daripada otomasi yang diam-diam mengirim lewat n8n milik
+ * tenant lain. Diam bisa diperiksa; salah kirim tak bisa ditarik.
+ */
+export async function ambilKredensialTanpaRequest(
+  companyId: string,
+  kunci: string,
+): Promise<string | null> {
+  if (!companyId) return null
+
+  const ck = kunciCache(companyId, kunci)
+  const tersimpan = cache.get(ck)
+  if (tersimpan && tersimpan.kedaluwarsa > Date.now()) return tersimpan.nilai
+
+  const { data, error } = await supabase
+    .from('app_credentials')
+    .select('nilai_enc')
+    .eq('company_id', companyId)
+    .eq('kunci', kunci)
+    .maybeSingle()
+
+  if (error) {
+    // Dilempar, bukan dikembalikan null: "gagal baca" dan "belum disetel"
+    // adalah dua keadaan berbeda, dan menyamakannya membuat gangguan basis
+    // terbaca sebagai konfigurasi yang belum diisi.
+    throw new Error(`Gagal membaca kredensial '${kunci}': ${error.message}`)
+  }
+
+  const nilai = data?.nilai_enc ? bukaNilai(data.nilai_enc as string) : null
+  cache.set(ck, { nilai, kedaluwarsa: Date.now() + TTL_MS })
+  return nilai
+}
 
 export function sumberKredensial(adaBarisTenant: boolean, kunci: string): SumberKredensial {
   if (adaBarisTenant) return 'tenant'

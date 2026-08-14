@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { terbitkanPeristiwa } from './terbit-peristiwa.js'
 import { sendWebPushToUsers } from './webpush.js'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -177,6 +178,36 @@ export async function createNotifications(list: NotificationParams[]): Promise<v
     else perPesan.set(kunci, { p, ids: [p.user_id] })
   }
   for (const { p, ids } of perPesan.values()) void kirimPush(ids, p)
+
+  /*
+    ── Terbitkan ke otomasi (2026-08-14)
+
+    Enam alur berpemicu webhook di `otomasi_alur` tak pernah terpasang karena
+    tak ada yang memanggil webhooknya. Peristiwanya sendiri sudah ada — semua
+    lewat fungsi INI.
+
+    Dipanggil SESUDAH `insert` berhasil (fungsi ini sudah `return` lebih dulu
+    kalau simpan gagal): mengabarkan peristiwa yang tak tercatat di mana pun
+    akan membuat n8n mengirim WhatsApp untuk sesuatu yang tak pernah terjadi.
+
+    `void`, seperti `kirimPush` di atasnya — otomasi tak boleh menahan atau
+    menjatuhkan tindakan yang sudah sah. Errornya dicatat di dalam, tidak
+    ditelan.
+
+    Satu terbitan per (company, jenis), bukan per penerima: satu kasbon
+    diajukan adalah SATU peristiwa, sekalipun lima orang dikabari. Tanpa
+    pengelompokan ini, satu kasbon memicu lima pesan WhatsApp yang sama.
+  */
+  const perPeristiwa = new Map<string, { p: NotificationParams; n: number }>()
+  for (const p of list) {
+    const kunci = `${p.company_id} ${p.type}`
+    const ada = perPeristiwa.get(kunci)
+    if (ada) ada.n += 1
+    else perPeristiwa.set(kunci, { p, n: 1 })
+  }
+  for (const { p, n } of perPeristiwa.values()) {
+    void terbitkanPeristiwa(p.company_id, p.type, p, n)
+  }
 }
 
 /**
