@@ -424,12 +424,290 @@ const toolCariDokumen: DefinisiToolAi = {
   },
 }
 
+/**
+ * 1.8 — "Kasbon Budi sudah berapa?"
+ *
+ * Pertanyaan yang paling sering ditanyakan lewat WhatsApp, dan yang paling
+ * merepotkan dijawab: penanya harus membuka aplikasi, mencari orangnya, lalu
+ * menjumlahkan sendiri kasbon yang belum lunas.
+ *
+ * ── Kenapa ini tool BACA, bukan otomasi terjadwal
+ *
+ * Otomasi terjadwal mengirim tanpa diminta; ini menjawab saat ditanya. Kasbon
+ * seseorang bukan hal yang perlu diberitahukan tiap pagi — ia perlu diketahui
+ * pada saat orang bertanya, biasanya sebelum menyetujui kasbon berikutnya.
+ *
+ * `otomasi 2.10` sudah menegur kasbon yang MENGGANTUNG; ini melengkapinya
+ * dari sisi lain.
+ */
+const toolStatusKasbon: DefinisiToolAi = {
+  nama: 'status_kasbon',
+  label: 'Status kasbon per orang',
+  keterangan:
+    'Kasbon seseorang: berapa yang belum lunas, berapa yang menunggu '
+    + 'persetujuan. Pakai untuk pertanyaan seperti "kasbon Budi sudah berapa".',
+  izin: 'mandor:kasbon:approve',
+  skema: {
+    type: 'object',
+    properties: {
+      nama: { type: 'string', description: 'Sebagian nama orang yang dicari.' },
+    },
+  },
+  async jalan({ db }, argumen) {
+    const cari = String((argumen as { nama?: string })?.nama ?? '').trim()
+
+    /*
+      `kasbons` kategori B — `.from()` sudah menyaringnya ke tenant.
+
+      Nama pemohon di-JOIN dari `users`; `kasbons` hanya menyimpan
+      `requested_by`. Pelajaran yang sama dengan `pegawai` di otomasi 6.9 —
+      tabel yang menyimpan id orang jarang menyimpan namanya juga.
+    */
+    const { data, error } = await db
+      .from('kasbons')
+      .select(`
+        id, amount, purpose, status, kasbon_date, settled_at,
+        pemohon:users!kasbons_requested_by_fkey(name),
+        proyek:projects!kasbons_project_id_fkey(name)
+      `)
+      .order('kasbon_date', { ascending: false })
+
+    if (error) {
+      return { isi: `Gagal membaca kasbon: ${error.message}`, isError: true, entitas: [] }
+    }
+
+    type Baris = {
+      id: string; amount: number | string; purpose: string; status: string
+      kasbon_date: string | null; settled_at: string | null
+      pemohon?: Array<{ name?: string }> | { name?: string } | null
+      proyek?: Array<{ name?: string }> | { name?: string } | null
+    }
+
+    const ratakan = (v: Baris['pemohon']) =>
+      (Array.isArray(v) ? v[0]?.name : v?.name) ?? null
+
+    const semua = ((data ?? []) as unknown as Baris[]).map((k) => ({
+      ...k,
+      nama_pemohon: ratakan(k.pemohon) ?? '(tanpa nama)',
+      nama_proyek: ratakan(k.proyek) ?? '(tanpa proyek)',
+    }))
+
+    const cocok = cari
+      ? semua.filter((k) => k.nama_pemohon.toLowerCase().includes(cari.toLowerCase()))
+      : semua
+
+    if (cocok.length === 0) {
+      return {
+        isi: bungkusData('kasbons',
+          cari ? `Tak ada kasbon atas nama yang mengandung "${cari}".`
+               : 'Belum ada kasbon tercatat.'),
+        isError: false, entitas: [],
+      }
+    }
+
+    /*
+      Dikelompokkan per ORANG, bukan didaftar satu per satu.
+
+      Yang bertanya "kasbon Budi sudah berapa" menginginkan satu angka, bukan
+      dua belas baris untuk dijumlahkan sendiri. Rinciannya tetap disertakan
+      di bawah, tetapi jumlahnya lebih dulu.
+    */
+    const perOrang = new Map<string, {
+      belum_lunas: number; menunggu: number; jumlah_baris: number
+      proyek: Set<string>
+    }>()
+
+    for (const k of cocok) {
+      const g = perOrang.get(k.nama_pemohon) ?? {
+        belum_lunas: 0, menunggu: 0, jumlah_baris: 0, proyek: new Set<string>(),
+      }
+      const n = Number(k.amount ?? 0)
+      g.jumlah_baris++
+      g.proyek.add(k.nama_proyek)
+      // `settled_at` NULL pada kasbon `approved` = belum dilunasi. Itu
+      // definisi yang sama dengan otomasi 2.10, bukan tafsir baru.
+      if (k.status === 'approved' && !k.settled_at) g.belum_lunas += n
+      if (k.status === 'pending') g.menunggu += n
+      perOrang.set(k.nama_pemohon, g)
+    }
+
+    const baris = [...perOrang.entries()]
+      .sort((a, b) => b[1].belum_lunas - a[1].belum_lunas)
+      .slice(0, 10)
+      .map(([nama, g]) =>
+        `${nama}: belum lunas ${rupiah(g.belum_lunas)}`
+        + (g.menunggu > 0 ? `, menunggu persetujuan ${rupiah(g.menunggu)}` : '')
+        + ` (${g.jumlah_baris} kasbon, proyek: ${[...g.proyek].slice(0, 3).join(', ')})`)
+
+    return {
+      isi: bungkusData('kasbons', baris.join('\n')),
+      isError: false,
+      /*
+        NAMA orangnya, bukan id barisnya — `entitas` dipakai I-4 untuk
+        menandai jawaban yang menyebut sesuatu di luar yang benar-benar
+        dibaca, dan yang disebut model dalam jawabannya adalah nama, bukan
+        uuid.
+      */
+      entitas: [...perOrang.keys()],
+    }
+  },
+}
+
+/**
+ * 6.7 + 6.11 — "Tukang aktif mandor siapa berapa?" dan "mandor mana yang
+ * masih longgar minggu depan?"
+ *
+ * Dua pertanyaan yang di lapangan selalu ditanyakan bersama, dan dijawab satu
+ * tool: siapa memegang berapa tukang, dan di lingkup kerja mana.
+ *
+ * ── Kenapa BUKAN "kapasitas" sungguhan
+ *
+ * Katalog menamai 6.11 *Team Capacity Query* — "berapa mandor available
+ * minggu depan". Kata "available" menuntut jadwal ketersediaan yang tak ada
+ * di basis ini: `mandor_assignments` mencatat penugasan, bukan kesediaan.
+ *
+ * Jadi yang dijawab pertanyaan yang datanya SUNGGUH ada — berapa lingkup dan
+ * berapa tukang yang sedang dipegang tiap mandor. Itu cukup untuk memutuskan
+ * siapa yang bisa ditambahi pekerjaan, dan tak mengklaim lebih dari yang
+ * diketahuinya.
+ */
+const toolBebanMandor: DefinisiToolAi = {
+  nama: 'beban_mandor',
+  label: 'Beban kerja mandor',
+  keterangan:
+    'Berapa lingkup kerja dan berapa tukang aktif yang dipegang tiap mandor. '
+    + 'Pakai untuk pertanyaan seperti "mandor mana yang masih longgar" atau '
+    + '"tukang aktif Pak Slamet berapa".',
+  izin: 'mandor:view',
+  skema: {
+    type: 'object',
+    properties: {
+      nama: { type: 'string', description: 'Sebagian nama mandor yang dicari.' },
+    },
+  },
+  async jalan({ db }, argumen) {
+    const cari = String((argumen as { nama?: string })?.nama ?? '').trim()
+
+    /*
+      `mandor_assignments` kategori C lewat `project_id`, jadi daftar
+      lintas-proyek butuh id proyek lebih dulu. `db.projectIds()` sudah sadar
+      tenant — pola yang sama dengan `polis-berakhir`.
+    */
+    const idProyek = await db.projectIds()
+    if (idProyek.length === 0) {
+      return {
+        isi: bungkusData('mandor_assignments', 'Belum ada proyek terdaftar.'),
+        isError: false, entitas: [],
+      }
+    }
+
+    const { data: tugas, error: eTugas } = await db
+      .unsafe('mandor_assignments',
+        'daftar lintas-proyek; viaProject butuh satu project sebagai konteks')
+      .select(`
+        id, mandor_id, project_id,
+        mandor:users!mandor_assignments_mandor_id_fkey(name),
+        proyek:projects!mandor_assignments_project_id_fkey(name)
+      `)
+      .in('project_id', idProyek)
+
+    if (eTugas) {
+      return { isi: `Gagal membaca penugasan: ${eTugas.message}`, isError: true, entitas: [] }
+    }
+
+    type T = {
+      id: string; mandor_id: string | null
+      mandor?: Array<{ name?: string }> | { name?: string } | null
+      proyek?: Array<{ name?: string }> | { name?: string } | null
+    }
+    const ratakan = (v: T['mandor']) => (Array.isArray(v) ? v[0]?.name : v?.name) ?? null
+
+    const daftar = ((tugas ?? []) as unknown as T[]).map((t) => ({
+      ...t,
+      nama_mandor: ratakan(t.mandor) ?? '(tanpa nama)',
+      nama_proyek: ratakan(t.proyek) ?? '(tanpa proyek)',
+    }))
+
+    const cocok = cari
+      ? daftar.filter((t) => t.nama_mandor.toLowerCase().includes(cari.toLowerCase()))
+      : daftar
+
+    if (cocok.length === 0) {
+      return {
+        isi: bungkusData('mandor_assignments',
+          cari ? `Tak ada mandor bernama mengandung "${cari}".` : 'Belum ada penugasan mandor.'),
+        isError: false, entitas: [],
+      }
+    }
+
+    // Tukang aktif per mandor — `workers` kategori B, sudah tersaring tenant.
+    const idMandor = [...new Set(cocok.map((t) => t.mandor_id).filter(Boolean))] as string[]
+    const { data: pekerja, error: ePekerja } = await db
+      .from('workers')
+      .select('id, mandor_id')
+      .eq('is_active', true)
+      .in('mandor_id', idMandor)
+
+    if (ePekerja) {
+      return { isi: `Gagal membaca tukang: ${ePekerja.message}`, isError: true, entitas: [] }
+    }
+
+    const tukangPerMandor = new Map<string, number>()
+    for (const w of pekerja ?? []) {
+      const m = w.mandor_id as string
+      tukangPerMandor.set(m, (tukangPerMandor.get(m) ?? 0) + 1)
+    }
+
+    const perMandor = new Map<string, {
+      id: string | null; lingkup: number; proyek: Set<string>
+    }>()
+    for (const t of cocok) {
+      const g = perMandor.get(t.nama_mandor) ?? {
+        id: t.mandor_id, lingkup: 0, proyek: new Set<string>(),
+      }
+      g.lingkup++
+      g.proyek.add(t.nama_proyek)
+      perMandor.set(t.nama_mandor, g)
+    }
+
+    const baris = [...perMandor.entries()]
+      .map(([nama, g]) => ({
+        nama, g, tukang: g.id ? (tukangPerMandor.get(g.id) ?? 0) : 0,
+      }))
+      // Yang paling ringan lebih dulu — itu yang dicari saat menambah
+      // pekerjaan, dan pertanyaan aslinya "siapa yang masih longgar".
+      .sort((a, b) => a.tukang - b.tukang)
+      .slice(0, 15)
+      .map(({ nama, g, tukang }) =>
+        `${nama}: ${tukang} tukang aktif, ${g.lingkup} penugasan `
+        + `(${[...g.proyek].slice(0, 3).join(', ')})`)
+
+    return {
+      isi: bungkusData('mandor_assignments',
+        baris.join('\n')
+        + '\n\nCatatan: ini BEBAN yang sedang dipegang, bukan jadwal kesediaan — '
+        + 'sistem ini tak mencatat kapan seorang mandor menyatakan diri kosong.'),
+      isError: false,
+      // Nama mandornya — alasan yang sama dengan tool kasbon di atas.
+      entitas: [...perMandor.keys()],
+    }
+  },
+}
+
 export const KATALOG_TOOL: DefinisiToolAi[] = [
   toolDaftarProyek,
   toolRingkasKeuangan,
   toolMenungguPersetujuan,
   toolStokMaterial,
   toolCariDokumen,
+  /*
+    Tiga pertanyaan lapangan yang paling sering ditanyakan lewat WhatsApp dan
+    paling merepotkan dijawab manual — katalog 1.8, 6.7, dan 6.11.
+
+    Ketiganya BACA saja. I-1 utuh: tak satu pun tool di katalog ini menulis.
+  */
+  toolStatusKasbon,
+  toolBebanMandor,
   // Perluasan S5 — lihat `ai-tool-konstruksi.ts` untuk alasan 9, bukan 33.
   ...TOOL_KONSTRUKSI,
   // S6 — tool PENYIAPAN. Ia tak menulis apa pun; tulisannya terjadi lewat
