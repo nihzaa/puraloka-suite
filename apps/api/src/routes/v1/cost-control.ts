@@ -130,6 +130,37 @@ export default async function costControlRoutes(app: FastifyInstance) {
           .in('project_id', ids).eq('status', 'approved'),
       ])
 
+      /*
+        Ketiga hasil DIPERIKSA, dan itu bukan formalitas.
+
+        Bentuk pertama hanya membaca `.data` dari ketiganya dan tak pernah
+        menyentuh `.error`. Query yang gagal memulangkan `data: null`, dan
+        `?? []` di `jumlahkan()` mengubahnya jadi peta kosong — yang artinya
+        RAB nol, pagu nol, serapan nol.
+
+        Akibatnya bukan galat melainkan LAPORAN YANG SALAH: tiap proyek muncul
+        dengan `serapanPct` 0% dan `dasarPembanding: 'tak_ada'`, dan layar
+        Portofolio Biaya menampilkannya seperti perusahaan yang belum
+        membelanjakan apa pun. Tak ada satu pun tanda bahwa datanya gagal
+        dibaca.
+
+        Ditemukan saat meriset otomasi 2.9 yang hendak memakai endpoint ini
+        sebagai sumbernya — bukan oleh siapa pun yang membuka layarnya.
+
+        DILEMPAR sebagai 500, bukan diteruskan dengan nol: laporan biaya yang
+        mati ketahuan, laporan biaya yang bohong dipakai mengambil keputusan.
+      */
+      for (const [nama, res] of [
+        ['RAB', rabRes], ['pagu RAP', rapRes], ['pengeluaran', expRes],
+      ] as const) {
+        if (res.error) {
+          request.log.error({ err: res.error, bagian: nama }, 'cost-analytics: gagal membaca')
+          return reply.status(500).send({
+            error: `Gagal membaca ${nama} — angka portofolio tak bisa dipercaya.`,
+          })
+        }
+      }
+
       const jumlahkan = <T,>(rows: T[] | null, key: keyof T, val: (r: T) => number) => {
         const m = new Map<string, number>()
         for (const r of rows ?? []) {
