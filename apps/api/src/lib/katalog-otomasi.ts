@@ -94,7 +94,18 @@ export interface EntriKatalog {
    * menebak akan diam-diam berhenti memeriksa begitu ada pemicu jenis baru.
    */
   kunci_bukan_rute?: true
-  /** Nomor di katalog `06-agentic-ai-*.md`, untuk yang menelusuri ke sana. */
+  /**
+   * Nomor di katalog `06-agentic-ai-*.md`, untuk yang menelusuri ke sana.
+   *
+   * BOLEH lebih dari satu, dipisah koma — dan itu bukan kelonggaran melainkan
+   * kenyataan yang sudah terjadi: `polis-berakhir` menjawab 5.7 DAN 9.2,
+   * karena keduanya lahir dari satu panggilan `hitungRegisterAsuransi()`.
+   *
+   * Sebelum ini nomor keduanya hanya disebut di `catatan`, dan silang otomatis
+   * di `lapor-otomasi-hidup.mjs` tak melihatnya — 9.2 terus terhitung "belum
+   * dikerjakan" padahal rutenya hidup. Persis kelas kesalahan yang skrip itu
+   * dibuat untuk mencegah.
+   */
   nomor?: string
   /** Nama yang dibaca orang. Bukan nama teknis. */
   nama: string
@@ -387,7 +398,8 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
 
   {
     kunci: 'polis-berakhir',
-    nomor: '5.7',
+    // DUA nomor: satu rute menjawab keduanya. Lihat komentar `nomor` di atas.
+    nomor: '5.7, 9.2',
     nama: 'Asuransi berakhir atau belum ada',
     pemicu: 'jadwal',
     penjelasan:

@@ -180,8 +180,18 @@ console.log('')
   }
 
   if (md && ts) {
+    /*
+      Satu entri boleh menutup BEBERAPA nomor katalog, dipisah koma —
+      `polis-berakhir` menjawab 5.7 dan 9.2 sekaligus.
+
+      Bentuk pertama pola ini hanya menerima satu nomor (`[\d.]+`), jadi 9.2
+      terus terhitung "belum dikerjakan" padahal rutenya hidup. Skrip yang
+      dibuat untuk menangkap katalog basi, basi dengan caranya sendiri.
+    */
     const nomorHidup = new Set(
-      [...ts.matchAll(/nomor:\s*'([\d.]+)'/g)].map((m) => m[1]),
+      [...ts.matchAll(/nomor:\s*'([\d.,\s]+)'/g)]
+        .flatMap((m) => m[1].split(',').map((x) => x.trim()))
+        .filter(Boolean),
     )
 
     const menunggu = []
