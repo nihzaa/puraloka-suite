@@ -57,6 +57,7 @@ import { TOOL_KONSTRUKSI } from './ai-tool-konstruksi.js'
 import { TOOL_SIAPKAN } from './ai-tool-siapkan.js'
 import { TOOL_SETUJUI } from './ai-tool-setujui.js'
 import { toolIngatPercakapan } from './ai-tool-ingat.js'
+import { toolHargaSatuan } from './ai-tool-harga.js'
 
 
 
@@ -833,6 +834,8 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     butuh — cara manusia mengingat.
   */
   toolIngatPercakapan,
+  /* Buku harga (2026-08-16) — 2.943 harga aktif yang tak pernah terjangkau. */
+  toolHargaSatuan,
 ]
 
 /**
