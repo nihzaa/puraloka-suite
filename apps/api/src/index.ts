@@ -26,6 +26,7 @@ import aiRiwayatRoutes from './routes/v1/ai-riwayat.js'
 import keamananRoutes from './routes/v1/keamanan.js'
 import mutuIkhtisarRoutes from './routes/v1/mutu-ikhtisar.js'
 import aiTulisRoutes from './routes/v1/ai-tulis.js'
+import aiGrafikRoutes from './routes/v1/ai-grafik.js'
 import aiIngatanRoutes from './routes/v1/ai-ingatan.js'
 import preferensiPesanRoutes from './routes/v1/preferensi-pesan.js'
 import sapaProaktifRoutes from './routes/v1/sapa-proaktif.js'
@@ -338,6 +339,7 @@ await app.register(aiRiwayatRoutes)
 await app.register(keamananRoutes)
 await app.register(mutuIkhtisarRoutes)
 await app.register(aiTulisRoutes)
+await app.register(aiGrafikRoutes)
 await app.register(aiIngatanRoutes)
 await app.register(preferensiPesanRoutes)
 await app.register(sapaProaktifRoutes)

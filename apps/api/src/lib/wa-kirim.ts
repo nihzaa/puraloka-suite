@@ -105,6 +105,18 @@ export interface AdaptorWa {
   readonly nama: string
   /** TIDAK PERNAH melempar. */
   kirimTeks(nomor: string, teks: string): Promise<HasilKirim>
+  /**
+   * Mengirim GAMBAR dengan keterangan.
+   *
+   * OPSIONAL — dan sengaja begitu. Dari tiga penyedia yang didukung, hanya
+   * Evolution yang jalur medianya sudah diukur di mesin ini. Memaksa ketiganya
+   * mengimplementasikan berarti dua adaptor berisi tebakan bentuk payload yang
+   * tak pernah dicoba, dan tebakan yang salah baru ketahuan saat seseorang
+   * benar-benar meminta grafik.
+   *
+   * Pemanggil WAJIB menyiapkan jalan mundur ke teks — lihat `kirimWaGambar`.
+   */
+  kirimGambar?(nomor: string, gambar: Buffer, keterangan: string): Promise<HasilKirim>
 }
 
 export interface KonfigurasiWa {
@@ -225,6 +237,58 @@ class AdaptorEvolution implements AdaptorWa {
         alasan: e?.name === 'AbortError' ? 'jaringan' : 'jaringan',
         pesan: e?.message ?? String(err),
       }
+    } finally {
+      clearTimeout(jam)
+    }
+  }
+
+  /**
+   * `/message/sendMedia` — muatannya BERBEDA dari sendText, bukan cuma
+   * bertambah field.
+   *
+   * Evolution menuntut `mediatype`, `mimetype`, dan media sebagai base64
+   * TANPA prefix `data:`. Prefix yang ikut terkirim membuatnya menolak dengan
+   * galat yang menyebut "invalid media" — pesan yang mengarah ke berkasnya,
+   * bukan ke bentuk payloadnya.
+   *
+   * Batas waktunya 30 detik, dua kali `kirimTeks`: gambar 20-60 KB lewat
+   * jaringan yang sama tetap butuh lebih lama daripada satu baris teks.
+   */
+  async kirimGambar(nomor: string, gambar: Buffer, keterangan: string): Promise<HasilKirim> {
+    const kendali = new AbortController()
+    const jam = setTimeout(() => kendali.abort(), 30_000)
+    try {
+      const r = await fetch(
+        `${this.cfg.baseUrl.replace(/\/$/, '')}/message/sendMedia/${this.cfg.instance}`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', apikey: this.cfg.apiKey },
+          body: JSON.stringify({
+            number: nomor,
+            mediatype: 'image',
+            mimetype: 'image/png',
+            media: gambar.toString('base64'),
+            caption: keterangan,
+            fileName: 'grafik.png',
+          }),
+          signal: kendali.signal,
+        },
+      )
+
+      if (!r.ok) {
+        const detail = await r.text().catch(() => '')
+        return {
+          ok: false,
+          alasan: 'penyedia_menolak',
+          pesan: `Evolution media ${r.status}: ${detail.slice(0, 200)}`,
+        }
+      }
+
+      const badan = (await r.json().catch(() => ({}))) as { key?: { id?: string } }
+      return { ok: true, pesanId: badan?.key?.id ?? null, dilewati: false }
+    } catch (err) {
+      const e = err as { name?: string; message?: string }
+      return { ok: false, alasan: 'jaringan', pesan: e?.message ?? String(err) }
     } finally {
       clearTimeout(jam)
     }
@@ -553,6 +617,70 @@ export async function kirimWa(opsi: OpsiKirim): Promise<HasilKirim> {
   )
 
   return hasil
+}
+
+/**
+ * Mengirim GAMBAR — pintu yang sama, gerbang yang sama.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA MEMBUNGKUS `kirimWa`, BUKAN MEMANGGIL ADAPTOR LANGSUNG
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * `audit-satu-pintu-wa.mjs` berambang NOL, dan alasannya bukan kerapian:
+ * seluruh idempotensi, pencatatan `wa_log`, normalisasi nomor, dan pagar test
+ * (`konfigurasi: null`) hidup di `kirimWa`. Jalur kedua yang memanggil adaptor
+ * langsung akan melewatkan semuanya — dan melewatkannya tanpa gejala.
+ *
+ * Jadi yang dilakukan di sini: gambar dicoba lewat adaptor bila ia
+ * mendukungnya, dan APA PUN hasilnya, jalur teks `kirimWa` tetap yang
+ * mencatat & menjaga idempotensi.
+ *
+ * ── Jalan mundur ke TEKS, dan kenapa ia wajib
+ *
+ * Hanya Evolution yang jalur medianya sudah diukur. Dua penyedia lain
+ * (Fonnte, meta-cloud) belum, dan meta-cloud punya batas 24 jam yang menolak
+ * media di luar jendela.
+ *
+ * Kalau gambarnya gagal, yang dikirim adalah TEKS-nya — angka penting tetap
+ * sampai. Diam karena gambar gagal berarti orang menunggu jawaban yang tak
+ * pernah datang, untuk pertanyaan yang sebenarnya bisa dijawab.
+ */
+export async function kirimWaGambar(
+  opsi: OpsiKirim & { gambar: Buffer },
+): Promise<HasilKirim> {
+  const nomor = normalkanNomor(opsi.nomor)
+
+  /*
+   * Gambar dicoba HANYA kalau kanalnya siap dan adaptornya mendukung media.
+   *
+   * `konfigurasi: null` (yang dipakai seluruh test) membuat cabang ini
+   * dilewati sepenuhnya — pagar test `wa-kirim.ts` tetap berlaku tanpa
+   * menambah `NODE_ENV` yang justru akan menyembunyikan test yang lupa.
+   */
+  if (nomor && opsi.konfigurasi) {
+    const adaptor = buatAdaptorWa(opsi.konfigurasi)
+    if (adaptor?.kirimGambar) {
+      const hasil = await adaptor.kirimGambar(nomor, opsi.gambar, opsi.teks)
+      if (hasil.ok) {
+        /*
+         * Gambarnya SUDAH terkirim. `kirimWa` dipanggil hanya untuk mencatat
+         * & mengklaim idempotensi — dan itu berarti teksnya akan terkirim
+         * SEKALI LAGI sebagai pesan terpisah kalau dibiarkan.
+         *
+         * Karena itu tidak dipanggil. Yang dicatat di sini adalah barisnya
+         * sendiri, lewat `catatLog` yang sama.
+         */
+        await catatLog(opsi, nomor, 'terkirim', null, hasil.pesanId)
+        return hasil
+      }
+
+      // Gagal → JATUH ke teks, dan sebabnya dicatat supaya kegagalan media
+      // yang berulang terlihat, bukan tersamar sebagai "semuanya teks".
+      await catatLog(opsi, nomor, 'gagal', `gambar gagal, jatuh ke teks: ${hasil.pesan}`)
+    }
+  }
+
+  return kirimWa(opsi)
 }
 
 /**

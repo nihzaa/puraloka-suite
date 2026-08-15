@@ -536,8 +536,79 @@ export const toolKlien: DefinisiToolAi = {
   },
 }
 
+/**
+ * MEMINTA GRAFIK — tool yang tak menggambar apa pun.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA TOOL INI HANYA MEMILIH PROYEK
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Perenderan terjadi DI LUAR katalog tool, sama seperti penulisan (I-1). Yang
+ * dikembalikan tool ini cuma id proyek yang sudah diresolusi dan diverifikasi
+ * milik tenant — pemanggilnya (`wa-webhook.ts` / `ai-chat.ts`) yang memutuskan
+ * mengirim gambar.
+ *
+ * Alasannya sama dengan `siapkan_tulis`: tool berjalan di dalam loop model,
+ * dan apa pun yang ia hasilkan masuk kembali ke prompt. Mengembalikan PNG
+ * base64 ke dalam percakapan berarti membakar puluhan ribu token untuk gambar
+ * yang tak bisa "dibaca" model — dan biayanya ditanggung tiap ronde
+ * berikutnya, karena riwayat dikirim ulang.
+ *
+ * ── Ambiguitas DINYATAKAN, bukan ditebak
+ *
+ * Grafik proyek yang salah lebih berbahaya daripada tak ada grafik: ia
+ * terlihat resmi, dan yang membacanya tak punya alasan curiga.
+ */
+export const toolGrafik: DefinisiToolAi = {
+  nama: 'grafik_kurva_s',
+  label: 'Grafik kurva S',
+  keterangan:
+    'Menyiapkan GRAFIK kurva S (rencana vs realisasi) satu proyek. Pakai untuk permintaan ' +
+    'grafik, kurva, chart, atau "kirim gambarnya". Tool ini tidak menggambar — sistem yang ' +
+    'mengirim gambarnya setelah Anda menyebut proyeknya. Jangan mengarang angka dari grafik; ' +
+    'sebutkan saja bahwa grafiknya menyusul.',
+  izin: 'projects:view',
+  skema: { type: 'object', properties: { ...argProyek }, required: ['proyek'] },
+  async jalan({ db }, argumen) {
+    const { ids, nama } = await idProyek(db, argumen.proyek)
+
+    if (ids.length === 0) {
+      return {
+        isi: bungkusData('grafik', `Tak ada proyek yang cocok dengan '${String(argumen.proyek ?? '')}'.`),
+        isError: true,
+        entitas: [],
+      }
+    }
+    if (ids.length > 1) {
+      const daftar = ids.slice(0, 8).map((i) => nama.get(i) ?? i)
+      return {
+        isi: bungkusData(
+          'grafik',
+          `Ada ${ids.length} proyek yang cocok: ${daftar.join(', ')}. Minta pengguna menyebut yang mana.`,
+        ),
+        isError: false,
+        entitas: daftar,
+      }
+    }
+
+    const namaProyek = nama.get(ids[0]) ?? ids[0]
+    return {
+      isi: bungkusData(
+        'grafik',
+        `SIAP: grafik kurva S untuk "${namaProyek}" akan dikirim sistem sebagai gambar.\n` +
+          `PROYEK_ID=${ids[0]}\n` +
+          'Sampaikan singkat bahwa grafiknya menyusul. JANGAN menyebut angka apa pun dari ' +
+          'grafik ini — Anda belum melihatnya.',
+      ),
+      isError: false,
+      entitas: [namaProyek],
+    }
+  },
+}
+
 /** Semua tool konstruksi — dirakit di `ai-tool.ts`. */
 export const TOOL_KONSTRUKSI: DefinisiToolAi[] = [
+  toolGrafik,
   toolInvoiceBelumLunas,
   toolKasbon,
   toolMilestone,

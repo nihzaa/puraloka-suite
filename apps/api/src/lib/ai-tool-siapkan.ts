@@ -365,6 +365,68 @@ export const ENTITAS_TULIS: EntitasTulis[] = [
       },
     ],
   },
+  {
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      PEMBAYARAN MASUK — satu-satunya entitas yang MENYENTUH UANG SUNGGUHAN
+      ══════════════════════════════════════════════════════════════════════
+
+      Founder 2026-08-16: "assisten bisa menyimpan semua data (seperti jika
+      pembayaran masuk)". Diukur lebih dulu, dan hasilnya mengubah rancangan:
+
+        payments  → TAK PUNYA kolom `status`
+        trigger   → `fn_update_cash_balance_on_payment` AFTER INSERT
+                    menambah `cash_accounts.balance` SEKETIKA
+
+      Semua entitas lain di daftar ini lahir `pending`/`draft` dan menunggu
+      approval. Pembayaran tidak: begitu barisnya masuk, uangnya dianggap
+      diterima, dan saldo kas berubah tanpa satu pun persetujuan.
+
+      Salah dengar "lima juta" jadi "lima puluh juta" lewat WhatsApp karenanya
+      bukan kesalahan yang bisa diperbaiki dengan menolak approval — tak ada
+      approval untuk ditolak.
+
+      ── Yang membuatnya tetap boleh ada: `cash_account_id` DIBIARKAN NULL
+
+      Triggernya dibaca, bukan ditebak (`pg_proc.prosrc`):
+
+          IF NEW.cash_account_id IS NOT NULL THEN
+            UPDATE cash_accounts SET balance = balance + NEW.amount_paid …
+
+      Tanpa `cash_account_id`, pembayaran TERCATAT tetapi saldo TIDAK
+      bergerak. Rekonsiliasi ke rekening tetap dilakukan orang keuangan lewat
+      halaman Pembayaran — pekerjaan yang memang miliknya, dan yang menuntut
+      melihat mutasi bank yang asisten tak punya.
+
+      Jadi asisten mencatat KLAIM pembayaran ("Pak Budi bilang sudah
+      transfer"), bukan memutuskan bahwa uangnya ada. Pembedaan itu yang
+      membuat fitur ini aman, dan ia ditegakkan di `lib/tulis-klaim.ts` —
+      bukan diserahkan ke niat baik pemanggil.
+
+      ── Kenapa `invoice` bukan `proyek`
+
+      `payments` mewarisi tenancy lewat `invoice_id`, bukan `project_id`
+      (`tenant-map.generated.ts:176`). Menyebut proyek saja tak cukup: satu
+      proyek punya banyak invoice, dan menebak yang mana berarti melunasi
+      tagihan yang salah.
+    */
+    jenis: 'pembayaran_masuk',
+    label: 'Pembayaran masuk dari klien',
+    tabel: 'payments',
+    tenancy: 'C',
+    aksi: ['buat'],
+    // DIUKUR ke tabel `permissions` — bukan dikarang. `finance:invoice:pay`
+    // adalah izin yang sama dengan yang menjaga halaman pembayaran termin.
+    izin: 'finance:invoice:pay',
+    field: [
+      { nama: 'invoice', wajib: true, keterangan: 'Nomor invoice — mis. "INV-2026-014". Sebagian nomor boleh.' },
+      { nama: 'jumlah', wajib: true, keterangan: 'Nominal rupiah yang diterima, angka saja.' },
+      { nama: 'metode', wajib: false, keterangan: 'transfer_bank | cash | qris | cek | giro. Kosong = transfer_bank.' },
+      { nama: 'bank', wajib: false, keterangan: 'Nama bank pengirim.' },
+      { nama: 'referensi', wajib: false, keterangan: 'Nomor referensi/bukti transfer.' },
+      { nama: 'catatan', wajib: false, keterangan: 'Keterangan tambahan.' },
+    ],
+  },
 ]
 
 export function entitasTulis(jenis: string): EntitasTulis | undefined {
@@ -423,8 +485,35 @@ export const toolSiapkanTulis: DefinisiToolAi = {
         enum: ['ringan', 'sedang', 'berat', 'kritis'],
         description: 'Untuk temuan punch.',
       },
+      jumlah: { type: 'number', description: 'Nominal rupiah — kasbon, pengeluaran, pembayaran.' },
+      keperluan: { type: 'string', description: 'Untuk kasbon/pengeluaran: untuk apa.' },
+      kebutuhan: { type: 'string', description: 'Untuk permintaan material: apa dan berapa.' },
+      // ── Pembayaran masuk ─────────────────────────────────────────────────
+      invoice: {
+        type: 'string',
+        description:
+          'Untuk pembayaran_masuk: NOMOR INVOICE yang dibayar (mis. "INV-2026-014"). '
+          + 'Wajib — pembayaran menempel pada invoice, bukan pada proyek.',
+      },
+      metode: {
+        type: 'string',
+        // Nilai enum `payment_method` sesungguhnya (diukur ke pg_enum).
+        enum: ['transfer_bank', 'cash', 'qris', 'cek', 'giro'],
+        description: 'Untuk pembayaran_masuk. Kosong = transfer_bank.',
+      },
+      bank: { type: 'string', description: 'Untuk pembayaran_masuk: bank pengirim.' },
+      referensi: { type: 'string', description: 'Untuk pembayaran_masuk: nomor bukti transfer.' },
     },
-    required: ['jenis', 'proyek'],
+    /*
+      `proyek` TIDAK lagi wajib di skema — `pembayaran_masuk` memakai `invoice`.
+
+      Kewajibannya dipindah ke pemeriksaan per-jenis di `jalan()` dan di kedua
+      jalur penerbitan token, yang memang sudah menolak proyek kosong. Menahannya
+      di sini akan membuat model mengarang nama proyek hanya supaya panggilannya
+      diterima — persis kelas halusinasi yang paling mahal, karena hasilnya
+      terlihat sah.
+    */
+    required: ['jenis'],
   },
   async jalan({ db }: KonteksTool, argumen) {
     const jenis = typeof argumen.jenis === 'string' ? argumen.jenis.trim() : ''
@@ -436,6 +525,105 @@ export const toolSiapkanTulis: DefinisiToolAi = {
           `Yang tersedia: ${ENTITAS_TULIS.map((e) => e.jenis).join(', ')}.`,
         isError: true,
         entitas: [],
+      }
+    }
+
+    /*
+      PEMBAYARAN MASUK — menempel pada INVOICE, jadi ia tak lewat resolusi
+      proyek di bawah sama sekali.
+
+      Yang dikembalikan tetap RINGKASAN, bukan konfirmasi tersimpan: tokennya
+      diterbitkan di luar tool (I-1 — tak satu pun tool menulis, termasuk baris
+      token).
+    */
+    if (jenis === 'pembayaran_masuk') {
+      const noInvoice = typeof argumen.invoice === 'string' ? argumen.invoice.trim() : ''
+      if (!noInvoice) {
+        return {
+          isi: 'Sebutkan NOMOR INVOICE yang dibayar. Pembayaran menempel pada invoice, '
+            + 'bukan pada proyek — satu proyek bisa punya banyak tagihan.',
+          isError: true,
+          entitas: [],
+        }
+      }
+
+      const jml = Number(argumen.jumlah)
+      if (!Number.isFinite(jml) || jml <= 0) {
+        return {
+          isi: 'Nominal pembayaran harus angka rupiah lebih dari 0. Minta pengguna menyebutkannya.',
+          isError: true,
+          entitas: [],
+        }
+      }
+
+      /*
+        Invoice DIVERIFIKASI ada, milik tenant ini, dan BELUM lunas — sebelum
+        ringkasannya disampaikan.
+
+        Tanpa ini, asisten akan berkata "siap, saya siapkan pembayaran
+        INV-999" untuk invoice yang tak pernah ada, lalu penerbitan tokennya
+        gagal beberapa detik kemudian dengan kalimat yang bertentangan.
+      */
+      const { data: inv, error: errInv } = await db
+        .from('invoices')
+        .select('invoice_number, amount_due')
+        .neq('status', 'paid')
+        .order('issued_date', { ascending: false })
+        .limit(200)
+
+      if (errInv) {
+        return { isi: `Gagal membaca invoice: ${errInv.message}`, isError: true, entitas: [] }
+      }
+
+      const daftar = (inv ?? []) as unknown as Array<{
+        invoice_number: string
+        amount_due: string | number
+      }>
+      const cocokInv = daftar.filter((i) =>
+        (i.invoice_number ?? '').toLowerCase().includes(noInvoice.toLowerCase()),
+      )
+
+      if (cocokInv.length === 0) {
+        return {
+          isi: `Tak ada invoice BELUM LUNAS yang cocok dengan '${noInvoice}'.`,
+          isError: true,
+          entitas: [],
+        }
+      }
+      if (cocokInv.length > 1) {
+        return {
+          isi: bungkusData(
+            'siapkan_tulis',
+            `Ada ${cocokInv.length} invoice yang cocok: `
+              + `${cocokInv.map((i) => i.invoice_number).join(', ')}. Minta pengguna menyebut yang mana.`,
+          ),
+          isError: false,
+          entitas: cocokInv.map((i) => i.invoice_number),
+        }
+      }
+
+      const satu = cocokInv[0]
+      const sisaTagih = Number(satu.amount_due)
+
+      if (Number.isFinite(sisaTagih) && jml > sisaTagih) {
+        return {
+          isi: `Sisa tagihan ${satu.invoice_number} tinggal Rp ${sisaTagih.toLocaleString('id-ID')}, `
+            + `sedangkan yang disebut Rp ${jml.toLocaleString('id-ID')}. Minta pengguna memastikan dulu.`,
+          isError: true,
+          entitas: [satu.invoice_number],
+        }
+      }
+
+      return {
+        isi: bungkusData(
+          'siapkan_tulis',
+          `Pembayaran masuk ${satu.invoice_number}: Rp ${jml.toLocaleString('id-ID')} `
+            + `(sisa tagihan Rp ${Number.isFinite(sisaTagih) ? sisaTagih.toLocaleString('id-ID') : '?'}).\n\n`
+            + 'BELUM TERSIMPAN — tunggu konfirmasi manusia. Sampaikan juga bahwa pencatatan ini '
+            + 'TIDAK menggerakkan saldo kas; rekonsiliasi ke rekening tetap dilakukan bagian keuangan.',
+        ),
+        isError: false,
+        entitas: [satu.invoice_number],
       }
     }
 

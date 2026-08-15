@@ -152,6 +152,11 @@ describe('tool terhadap data NYATA', () => {
     izin = new Set([
       'projects:view', 'finance:view', 'procurement:view', 'gudang:view',
       'documents:manage', 'cash:view', 'clients:view', 'mandor:view',
+      // `status_kasbon` (tool approval kasbon) memakai izin yang BUKAN
+      // `*:view`, dan daftar ini tertinggal saat tool itu lahir. Ditemukan
+      // 2026-08-16 lewat pesan "18 ≠ 19" yang — persis seperti komentar di
+      // atas memperingatkan — terbaca seolah KATALOG yang salah.
+      'mandor:kasbon:approve',
     ])
   })
 

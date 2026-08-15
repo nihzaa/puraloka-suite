@@ -28,7 +28,7 @@
  * dan yang memberikan izin itu tak pernah bermaksud begitu.
  */
 
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { randomBytes } from 'node:crypto'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
@@ -114,6 +114,121 @@ interface BadanSiapkan {
   /** Permintaan material (MR) lewat percakapan. */
   kebutuhan?: string
   dibutuhkan_tanggal?: string
+  /** Pembayaran masuk — diresolusi lewat invoice, bukan proyek. */
+  invoice?: string
+  metode?: string
+  bank?: string
+  referensi?: string
+}
+
+/**
+ * Batas nominal pembayaran yang boleh dicatat lewat percakapan.
+ *
+ * Bukan batas pembayaran — invoice bernilai berapa pun tetap boleh dibayar
+ * lewat halaman Pembayaran. Ini batas KEPERCAYAAN pada percakapan, dan nilainya
+ * sama persis dengan jalur WhatsApp.
+ */
+const BATAS_PEMBAYARAN_SIAP = 100_000_000
+
+/**
+ * Validasi pembayaran masuk — dipakai jalur WEB.
+ *
+ * Aturannya SAMA PERSIS dengan `terbitkanPembayaran` di
+ * `lib/tulis-konfirmasi-wa.ts` (batas nominal, metode sah, invoice belum
+ * lunas, tolak lebih bayar). Dua kanal yang menegakkan aturan uang berbeda
+ * berarti yang longgar jadi pintu masuk, dan yang longgar tak akan pernah
+ * diperiksa siapa pun.
+ */
+async function siapkanPembayaran(
+  db: NonNullable<FastifyRequest['db']>,
+  b: BadanSiapkan,
+): Promise<
+  | { ok: true; muatan: Record<string, unknown>; ringkasan: string; projectId: string }
+  | { ok: false; kode: number; pesan: string }
+> {
+  const cari = (b.invoice ?? '').trim()
+  if (!cari) return { ok: false, kode: 422, pesan: 'invoice wajib diisi' }
+
+  const jumlah = Number(b.jumlah)
+  if (!Number.isFinite(jumlah) || jumlah <= 0) {
+    return { ok: false, kode: 422, pesan: 'jumlah harus angka rupiah lebih dari 0' }
+  }
+  if (jumlah > BATAS_PEMBAYARAN_SIAP) {
+    return {
+      ok: false,
+      kode: 422,
+      pesan: `Pembayaran di atas Rp ${BATAS_PEMBAYARAN_SIAP.toLocaleString('id-ID')} `
+        + 'dicatat lewat halaman Pembayaran, bukan lewat percakapan.',
+    }
+  }
+
+  // Nilai enum `payment_method` — DIUKUR dari pg_enum, bukan ditebak.
+  const METODE = ['transfer_bank', 'cash', 'qris', 'cek', 'giro']
+  const metode = (b.metode ?? '').trim()
+  if (metode && !METODE.includes(metode)) {
+    return { ok: false, kode: 422, pesan: `metode harus salah satu: ${METODE.join(', ')}` }
+  }
+
+  const { data, error } = await db
+    .from('invoices')
+    .select('id, invoice_number, amount_due, project_id')
+    .neq('status', 'paid')
+    .order('issued_date', { ascending: false })
+    .limit(200)
+
+  if (error) return { ok: false, kode: 500, pesan: 'Gagal memeriksa invoice' }
+
+  const semua = (data ?? []) as unknown as Array<{
+    id: string
+    invoice_number: string
+    amount_due: string | number
+    project_id: string
+  }>
+  const cocok = semua.filter((i) =>
+    (i.invoice_number ?? '').toLowerCase().includes(cari.toLowerCase()),
+  )
+
+  if (cocok.length === 0) {
+    return { ok: false, kode: 404, pesan: `Tak ada invoice belum lunas yang cocok dengan '${cari}'.` }
+  }
+  if (cocok.length > 1) {
+    return {
+      ok: false,
+      kode: 409,
+      pesan: `Ada ${cocok.length} invoice yang cocok: ${cocok.map((i) => i.invoice_number).join(', ')}.`,
+    }
+  }
+
+  const inv = cocok[0]
+  const sisa = Number(inv.amount_due)
+
+  // Lebih bayar DITOLAK — `amount_due` negatif merusak laporan piutang tanpa
+  // satu pun galat, dan yang membacanya menyimpulkan ada kredit yang tak nyata.
+  if (Number.isFinite(sisa) && jumlah > sisa) {
+    return {
+      ok: false,
+      kode: 422,
+      pesan: `Sisa tagihan ${inv.invoice_number} tinggal Rp ${sisa.toLocaleString('id-ID')} — `
+        + `nominal Rp ${jumlah.toLocaleString('id-ID')} melebihi itu.`,
+    }
+  }
+
+  return {
+    ok: true,
+    projectId: inv.project_id,
+    muatan: {
+      invoice_id: inv.id,
+      jumlah,
+      metode: metode || 'transfer_bank',
+      bank: (b.bank ?? '').trim() || null,
+      referensi: (b.referensi ?? '').trim() || null,
+      catatan: (b.catatan ?? '').trim() || null,
+    },
+    ringkasan:
+      `Pembayaran masuk ${inv.invoice_number}: Rp ${jumlah.toLocaleString('id-ID')}`
+      + ` (sisa tagihan Rp ${Number.isFinite(sisa) ? sisa.toLocaleString('id-ID') : '?'})`
+      + ' — dicatat TANPA menggerakkan saldo kas; rekonsiliasi bank tetap manual.',
+  }
 }
 
 export default async function aiTulisRoutes(app: FastifyInstance) {
@@ -152,6 +267,49 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
       }
 
       const projectId = (b.project_id ?? '').trim()
+      /*
+       * PEMBAYARAN MASUK — diresolusi lewat INVOICE, jadi ia mendahului
+       * pemeriksaan `project_id` di bawah.
+       *
+       * `payments` mewarisi tenancy lewat `invoice_id`, bukan `project_id`
+       * (`tenant-map.generated.ts:176`). Menuntut proyek lebih dulu akan
+       * menolak permintaan yang sah, dan menebak invoice dari proyek berarti
+       * melunasi tagihan yang salah — satu proyek punya banyak invoice.
+       */
+      if (jenis === 'pembayaran_masuk') {
+        const hasil = await siapkanPembayaran(request.db!, b)
+        if (!hasil.ok) return reply.status(hasil.kode).send({ error: hasil.pesan })
+
+        const tokenBayar = randomBytes(32).toString('base64url')
+        const { error: errBayar } = await request.db!
+          .from('ai_token_tulis')
+          .insert({
+            company_id: request.companyId!,
+            token: tokenBayar,
+            user_id: request.currentUser!.id,
+            jenis,
+            aksi: 'buat',
+            project_id: hasil.projectId,
+            muatan: hasil.muatan,
+            ringkasan: hasil.ringkasan,
+            kanal: b.kanal === 'wa' || b.kanal === 'ai_whatsapp' ? 'ai_whatsapp' : 'web',
+            kedaluwarsa: new Date(Date.now() + UMUR_TOKEN_MS).toISOString(),
+          })
+          .select('id')
+
+        if (errBayar) {
+          request.log.error({ err: errBayar }, 'ai/tulis: gagal menerbitkan token pembayaran')
+          return reply.status(500).send({ error: 'Gagal menyiapkan catatan' })
+        }
+
+        return reply.send({
+          token: tokenBayar,
+          ringkasan: hasil.ringkasan,
+          kedaluwarsa: new Date(Date.now() + UMUR_TOKEN_MS).toISOString(),
+          jenis,
+        })
+      }
+
       if (!projectId) {
         return reply.status(422).send({ error: 'project_id wajib diisi' })
       }

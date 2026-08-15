@@ -42,6 +42,15 @@ export const JENIS_USUL = [
   'kasbon',
   'pengeluaran',
   'permintaan_material',
+  /*
+    Pembayaran masuk (2026-08-16) — satu-satunya yang diresolusi lewat INVOICE,
+    bukan proyek, dan satu-satunya yang menyentuh uang sungguhan.
+
+    Aman karena `cash_account_id` dibiarkan NULL: pembayaran tercatat, saldo kas
+    TIDAK bergerak. Alasan lengkapnya di `lib/tulis-klaim.ts` (cabang
+    `pembayaran_masuk`) dan `lib/ai-tool-siapkan.ts`.
+  */
+  'pembayaran_masuk',
 ] as const
 
 export type JenisUsul = (typeof JENIS_USUL)[number]

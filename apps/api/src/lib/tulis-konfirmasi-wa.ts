@@ -165,6 +165,18 @@ export async function terbitkanTokenWa(
   if (!meta) return { ok: false, pesan: `Jenis '${usul.jenis}' tak bisa dicatat lewat asisten.` }
 
   const a = usul.argumen
+
+  /*
+   * Pembayaran diresolusi lewat INVOICE, bukan proyek — jalur terpisah.
+   *
+   * `payments` mewarisi tenancy lewat `invoice_id`, dan satu proyek punya
+   * banyak invoice. Menebak "invoice proyek itu" berarti melunasi tagihan yang
+   * salah, dan salahnya baru terlihat saat klien menagih yang sudah ia bayar.
+   */
+  if (usul.jenis === 'pembayaran_masuk') {
+    return terbitkanPembayaran(db, companyId, userId, a, catatGalat)
+  }
+
   const cari = typeof a.proyek === 'string' ? a.proyek.trim().toLowerCase() : ''
   if (!cari) return { ok: false, pesan: 'Sebutkan proyeknya dulu, ya.' }
 
@@ -283,6 +295,152 @@ export async function terbitkanTokenWa(
   }
 
   return { ok: true, ringkasan, jenis: usul.jenis }
+}
+
+/** Metode pembayaran — nilai enum `payment_method` yang DIUKUR, bukan ditebak. */
+const METODE_SAH = ['transfer_bank', 'cash', 'qris', 'cek', 'giro']
+
+/**
+ * Batas nominal pembayaran yang boleh dicatat lewat percakapan.
+ *
+ * Bukan batas pembayaran — invoice bernilai berapa pun tetap boleh dibayar
+ * lewat halaman Pembayaran. Ini batas KEPERCAYAAN pada kanal: salah dengar
+ * nominal adalah kekeliruan termudah lewat WhatsApp, dan asisten tak bisa
+ * membedakan "lima puluh juta" dari "lima juta" yang salah ketik nol.
+ */
+const BATAS_PEMBAYARAN = 100_000_000
+
+/**
+ * Menerbitkan token pembayaran — jalur INVOICE, bukan proyek.
+ *
+ * Dipisah dari `terbitkanTokenWa` karena resolusinya berbeda secara mendasar:
+ * yang dicari nomor invoice, dan yang disimpan `invoice_id` (penunjuk tenancy
+ * tabel `payments`).
+ */
+async function terbitkanPembayaran(
+  db: TenantDb,
+  companyId: string,
+  userId: string,
+  a: Record<string, unknown>,
+  catatGalat: (pesan: string, err: unknown) => void,
+): Promise<HasilTerbit> {
+  const cari = typeof a.invoice === 'string' ? a.invoice.trim() : ''
+  if (!cari) return { ok: false, pesan: 'Invoice mana yang dibayar, ya? Sebutkan nomornya.' }
+
+  const jumlah = Number(a.jumlah)
+  if (!Number.isFinite(jumlah) || jumlah <= 0) {
+    return { ok: false, pesan: 'Nominal yang diterima berapa, ya?' }
+  }
+  if (jumlah > BATAS_PEMBAYARAN) {
+    return {
+      ok: false,
+      pesan: `Pembayaran di atas Rp ${BATAS_PEMBAYARAN.toLocaleString('id-ID')} dicatat lewat halaman Pembayaran, bukan lewat chat.`,
+    }
+  }
+
+  const metode = typeof a.metode === 'string' ? a.metode.trim() : ''
+  if (metode && !METODE_SAH.includes(metode)) {
+    return { ok: false, pesan: `Metode harus salah satu: ${METODE_SAH.join(', ')}.` }
+  }
+
+  /*
+   * Invoice dicari lewat `db` milik tenant — invoice tenant lain tak pernah
+   * terbaca, jadi nomor yang ditebak asal tak bisa menembus batas perusahaan.
+   *
+   * Yang sudah LUNAS dikeluarkan: mencatat pembayaran kedua atas invoice yang
+   * selesai adalah kekeliruan yang sunyi — `amount_due` jadi negatif dan tak
+   * ada yang berteriak.
+   */
+  const { data, error } = await db
+    .from('invoices')
+    .select('id, invoice_number, total_amount, amount_paid, amount_due, status, project_id')
+    .neq('status', 'paid')
+    .order('issued_date', { ascending: false })
+    .limit(200)
+
+  if (error) {
+    catatGalat('tulis-konfirmasi: gagal membaca invoice', error)
+    return { ok: false, pesan: 'Gagal memeriksa invoice. Coba lagi sebentar lagi.' }
+  }
+
+  const semua = (data ?? []) as unknown as Array<{
+    id: string
+    invoice_number: string
+    amount_due: string | number
+    project_id: string
+  }>
+
+  const kunci = cari.toLowerCase()
+  const cocok = semua.filter((i) => (i.invoice_number ?? '').toLowerCase().includes(kunci))
+
+  if (cocok.length === 0) {
+    return { ok: false, pesan: `Tak ada invoice belum lunas yang cocok dengan '${cari}'.` }
+  }
+  if (cocok.length > 1) {
+    return {
+      ok: false,
+      pesan: `Ada ${cocok.length} invoice yang cocok: ${cocok.map((i) => i.invoice_number).join(', ')}. Sebut yang mana, ya.`,
+    }
+  }
+
+  const inv = cocok[0]
+  const sisa = Number(inv.amount_due)
+
+  /*
+   * LEBIH BAYAR ditolak, bukan disimpan lalu dikoreksi.
+   *
+   * `amount_due` negatif membuat laporan piutang salah tanpa satu pun galat,
+   * dan yang membacanya menyimpulkan klien punya kredit yang tak pernah ada.
+   * Toleransi tak diberikan: kalau memang lebih, itu keputusan keuangan yang
+   * pantas dibuat sambil melihat rekeningnya.
+   */
+  if (Number.isFinite(sisa) && jumlah > sisa) {
+    return {
+      ok: false,
+      pesan: `Sisa tagihan ${inv.invoice_number} tinggal Rp ${sisa.toLocaleString('id-ID')}. `
+        + `Nominal Rp ${jumlah.toLocaleString('id-ID')} melebihi itu — dicek dulu, ya.`,
+    }
+  }
+
+  const muatan: Record<string, unknown> = {
+    invoice_id: inv.id,
+    jumlah,
+    metode: metode || 'transfer_bank',
+    bank: typeof a.bank === 'string' && a.bank.trim() ? a.bank.trim() : null,
+    referensi: typeof a.referensi === 'string' && a.referensi.trim() ? a.referensi.trim() : null,
+    catatan: typeof a.catatan === 'string' && a.catatan.trim() ? a.catatan.trim() : null,
+  }
+
+  const ringkasan =
+    `Pembayaran masuk ${inv.invoice_number}: Rp ${jumlah.toLocaleString('id-ID')}`
+    + ` (sisa tagihan Rp ${Number.isFinite(sisa) ? sisa.toLocaleString('id-ID') : '?'})`
+    + ' — dicatat TANPA menggerakkan saldo kas; rekonsiliasi bank tetap manual.'
+
+  const { error: errSimpan } = await db
+    .from('ai_token_tulis')
+    .insert({
+      company_id: companyId,
+      token: randomBytes(32).toString('base64url'),
+      user_id: userId,
+      jenis: 'pembayaran_masuk',
+      aksi: 'buat',
+      // Proyeknya IKUT meski tenancy `payments` lewat invoice: kolomnya ada di
+      // tabel token, dan mengosongkannya membuat jejak "pembayaran proyek mana"
+      // hilang justru di entitas yang paling sering ditanyakan ulang.
+      project_id: inv.project_id,
+      muatan,
+      ringkasan,
+      kanal: 'ai_whatsapp',
+      kedaluwarsa: new Date(Date.now() + UMUR_TOKEN_MS).toISOString(),
+    })
+    .select('id')
+
+  if (errSimpan) {
+    catatGalat('tulis-konfirmasi: gagal menerbitkan token pembayaran', errSimpan)
+    return { ok: false, pesan: 'Gagal menyiapkan catatan. Coba lagi sebentar lagi.' }
+  }
+
+  return { ok: true, ringkasan, jenis: 'pembayaran_masuk' }
 }
 
 /** Token yang menunggu konfirmasi kalimat. */

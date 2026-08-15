@@ -2746,6 +2746,44 @@ items:
       lapis: jendela 3 menit, hanya token tunggal yang boleh diklaim, dan
       frasa yang dicocokkan UTUH — bukan `includes()`.
 
+  - id: ASISTEN-7
+    fase: null
+    judul: "Pembayaran masuk + grafik — asisten menyentuh uang, dan mengirim gambar"
+    blokir_oleh: [ASISTEN-6]
+    kriteria_selesai:
+      - "SUDAH: `pembayaran_masuk` masuk ENTITAS_TULIS, diresolusi lewat INVOICE bukan proyek"
+      - "SUDAH: saldo kas TIDAK bergerak — `cash_account_id` dipaku NULL, dibuktikan test"
+      - "SUDAH: muatan yang MENYELUNDUPKAN cash_account_id tetap ditolak"
+      - "SUDAH: invoice disinkronkan compare-and-set (amount_paid lama di WHERE)"
+      - "SUDAH: lebih bayar ditolak sebelum token terbit, di KEDUA kanal"
+      - "SUDAH: grafik kurva S sebagai PNG — rute web + jalur WhatsApp"
+      - "SUDAH: lubang data memutus garis, tak pernah disambung"
+      - "SUDAH: penjaga trigger-uang DIPERLUAS (bukan dilemahkan), dibuktikan masih merah"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/tulis-pembayaran.test.ts
+      src/lib/__tests__/grafik-svg.test.ts src/routes/v1/__tests__/ai-tulis.test.ts
+      (6+8+34 hijau)
+    bobot: L
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16. Dua pengukuran membatalkan rancangan, satu penjaga
+      lama merah lebih dulu.
+      (1) `payments` TAK PUNYA kolom status — approval mustahil menahannya, dan
+      triggernya menambah saldo kas AFTER INSERT. Yang menahan: `cash_account_id`
+      dibiarkan NULL (dibaca dari pg_proc, bukan ditebak). Asisten mencatat KLAIM
+      pembayaran, bukan memutuskan uangnya ada.
+      (2) Penjaga `ai-tulis.test.ts` merah karena hanya mengenal syarat
+      `status='approved'`. TIDAK dikecualikan — diperluas ke bentuk kedua
+      (`cash_account_id IS NOT NULL`), lalu dibuktikan MASIH merah lewat trigger
+      uang tanpa syarat yang sengaja dipasang.
+      (3) Mutasi `cash_account_id` dari muatan LOLOS semua test — fixture tak
+      pernah memuat kolomnya. Test bermuatan beracun dibuat; sekarang merah.
+      (4) Grafik: `inject` dengan `request.headers.authorization` TAK PERNAH bisa
+      hidup di webhook (header selalu kosong → 401). Diganti render langsung dari
+      db tenant. Grafik WA sengaja lebih sederhana daripada halaman proyek dan
+      MENYATAKANNYA — menyalin 450 baris EVM berarti dua sumber angka.
+      SVG tangan + sharp, bukan Chromium: satu render tak pantas memakan 300 MB.
+
   - id: OPS-1
     fase: null
     judul: "Penjadwal — DIAGNOSIS SAYA SALAH; sudah diperbaiki sesi lain (ae5fd94f)"

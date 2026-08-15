@@ -425,14 +425,48 @@ describe('daftar putih — yang tak terdaftar tak punya jalan', () => {
 
       /*
         Ia menggerakkan uang DAN bisa menyala saat INSERT. Boleh, asal cabang
-        INSERT-nya bersyarat status yang hanya bisa dicapai lewat approval —
-        dan rute tulis tak pernah mengisi `status`.
+        INSERT-nya BERSYARAT sesuatu yang jalur asisten tak pernah penuhi.
+
+        ── DUA bentuk syarat, bukan satu (diperluas 2026-08-16)
+
+        Sampai hari ini hanya satu bentuk yang dikenal: `status='approved'`,
+        yang menahan `project_expenses` dan `kasbons` — keduanya lahir
+        `pending`/`draft`.
+
+        `payments` menuntut bentuk kedua, dan bukan karena longgar. Tabel itu
+        TAK PUNYA kolom `status` sama sekali (diukur ke information_schema),
+        jadi syarat approval mustahil ada di sana. Yang menahannya:
+
+            IF NEW.cash_account_id IS NOT NULL THEN
+              UPDATE cash_accounts SET balance = balance + NEW.amount_paid …
+
+        Jalur asisten memaku `cash_account_id: null` (`lib/tulis-klaim.ts`),
+        jadi cabang itu tak pernah tercapai — pembayaran TERCATAT, saldo TIDAK
+        bergerak, dan rekonsiliasi tetap pekerjaan orang keuangan.
+
+        ── Kenapa ini BUKAN pelemahan penjaga
+
+        Yang dijaga dari awal bukan kata "approved", melainkan pertanyaan:
+        *apakah cabang INSERT-nya masih bersyarat sesuatu yang kalimat tak bisa
+        penuhi?* Menambahkan bentuk kedua menjawab pertanyaan yang sama untuk
+        tabel yang bentuknya berbeda.
+
+        Yang tetap merah kalau dilanggar:
+          · seseorang membuang syarat `status='approved'` dari fungsi lama
+          · seseorang membuat trigger uang yang INSERT-nya TANPA syarat
+          · seseorang mengisi `cash_account_id` dari kalimat — dijaga
+            `tulis-pembayaran.test.ts`, termasuk muatan yang menyelundupkannya
       */
+      const BERSYARAT_APPROVAL = /TG_OP\s*=\s*'INSERT'[\s\S]{0,200}?status\s*=\s*'approved'/i
+      const BERSYARAT_REKENING =
+        /TG_OP\s*=\s*'INSERT'[\s\S]{0,200}?cash_account_id\s+IS\s+NOT\s+NULL/i
+
       expect(
-        src,
-        `${t.tabel}.${t.tgname} memindahkan uang saat INSERT TANPA syarat `
-          + "status='approved' — entitas ini tak lagi aman ditulis lewat percakapan",
-      ).toMatch(/TG_OP\s*=\s*'INSERT'[\s\S]{0,200}?status\s*=\s*'approved'/i)
+        BERSYARAT_APPROVAL.test(src) || BERSYARAT_REKENING.test(src),
+        `${t.tabel}.${t.tgname} memindahkan uang saat INSERT TANPA syarat apa pun `
+          + "(bukan status='approved', bukan cash_account_id IS NOT NULL) — "
+          + 'entitas ini tak aman ditulis lewat percakapan',
+      ).toBe(true)
     }
   }, 60_000)
 

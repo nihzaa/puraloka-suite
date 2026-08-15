@@ -53,7 +53,7 @@ import { supabase } from '../../utils/supabase.js'
 import { createTenantDb } from '../../utils/tenant-db.js'
 import { klaimPesanMasuk, tandaiDiproses, uraiPesanMasuk } from '../../lib/wa-masuk.js'
 import { bangunSesiDariNomor, catatAksesDitolak } from '../../lib/wa-sesi.js'
-import { kirimWa, konfigurasiKanal } from '../../lib/wa-kirim.js'
+import { kirimWa, kirimWaGambar, konfigurasiKanal } from '../../lib/wa-kirim.js'
 import { renderDariDb } from '../../lib/wa-template.js'
 import { jalankanGiliranAi, GAYA_WHATSAPP } from '../../lib/ai-jalankan.js'
 import { bacaRiwayat } from '../../lib/ai-riwayat-baca.js'
@@ -68,6 +68,8 @@ import {
   terbitkanTokenWa,
 } from '../../lib/tulis-konfirmasi-wa.js'
 import { usulDariBlok } from '../../lib/usul-tulis.js'
+import { grafikDariBlok } from '../../lib/usul-grafik.js'
+import { renderKurvaSPng } from '../../lib/grafik-kurva-s.js'
 
 /**
  * Perbandingan rahasia yang tak bocor lewat waktu.
@@ -437,15 +439,74 @@ export default async function waWebhookRoutes(app: FastifyInstance) {
           : `${jalan.hasil.teks}\n\n(${terbit.pesan})`
       }
 
-      await kirimWa({
-        db,
-        companyId,
-        nomor,
-        teks: teksJawab,
-        konfigurasi: cfg,
-        userId,
-        kunciIdempotensi: `wa-jawab:${pesan.pesanId}`,
-      })
+      /*
+       * ── GRAFIK ───────────────────────────────────────────────────────────
+       *
+       * Id proyeknya datang dari HASIL tool (`PROYEK_ID=…`), bukan dari
+       * argumen model — id itu sudah diresolusi & diverifikasi milik tenant
+       * di dalam tool. Lihat kepala `lib/usul-grafik.ts`.
+       *
+       * Perendaran lewat `server.inject` ke rute grafik, meneruskan token
+       * pemanggil apa adanya: izin `projects:view` dan saringan tenant rute
+       * itu berlaku persis sama. Tak ada akun layanan di jalur ini.
+       */
+      /*
+       * ── GRAFIK: dirender LANGSUNG, tanpa `server.inject` ─────────────────
+       *
+       * Rancangan pertama saya memanggil rute grafik lewat `inject` sambil
+       * meneruskan `request.headers.authorization`. Itu SALAH, dan salahnya
+       * senyap: webhook bukan pengguna yang login — header itu selalu kosong,
+       * jadi rutenya membalas 401 dan cabang gambarnya tak pernah hidup.
+       * Kodenya akan terlihat lengkap sambil tak pernah mengirim satu gambar
+       * pun.
+       *
+       * Memberi webhook token akun layanan juga ditolak, alasan yang sama
+       * dengan jalur tulis: grafik akan dirender dengan kewenangan yang jauh
+       * lebih besar daripada penanyanya, dan proyek yang ia tak berhak lihat
+       * ikut tergambar.
+       *
+       * Yang dipakai: render dari `db` MILIK TENANT ini, dengan id proyek yang
+       * SUDAH diverifikasi di dalam tool (`PROYEK_ID=` hanya terbit setelah
+       * `idProyek()` mencocokkannya lewat `db` penanya). Izinnya pun sudah
+       * ditegakkan — tool `grafik_kurva_s` ber-`izin: 'projects:view'`, dan
+       * katalog disaring per-pengguna sebelum model bisa memanggilnya.
+       */
+      const idGrafik = grafikDariBlok(jalan.hasil.blok)
+      let gambar: Buffer | null = null
+
+      if (idGrafik) {
+        try {
+          gambar = await renderKurvaSPng(db, idGrafik)
+        } catch (err) {
+          // Gagal TIDAK membatalkan balasan — teksnya tetap terkirim. Diam
+          // karena gambar gagal berarti orang menunggu jawaban yang tak
+          // pernah datang, untuk pertanyaan yang sebenarnya bisa dijawab.
+          catatGalatWa(`grafik ${idGrafik} gagal dirender`, err)
+        }
+      }
+
+      if (gambar) {
+        await kirimWaGambar({
+          db,
+          companyId,
+          nomor,
+          teks: teksJawab,
+          gambar,
+          konfigurasi: cfg,
+          userId,
+          kunciIdempotensi: `wa-jawab:${pesan.pesanId}`,
+        })
+      } else {
+        await kirimWa({
+          db,
+          companyId,
+          nomor,
+          teks: teksJawab,
+          konfigurasi: cfg,
+          userId,
+          kunciIdempotensi: `wa-jawab:${pesan.pesanId}`,
+        })
+      }
 
       // Disimpan SESUDAH terkirim: yang layak jadi ingatan adalah jawaban
       // yang benar-benar sampai. Menyimpan lebih dulu berarti percakapan

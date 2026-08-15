@@ -197,10 +197,30 @@ export async function klaimTokenTulis(opsi: OpsiKlaim): Promise<HasilKlaim> {
 
   const baris = await bentukBaris(db, t, userId)
 
+  /*
+   * Argumen kedua `viaProject` BUKAN selalu id proyek.
+   *
+   * Ia adalah nilai kolom penunjuk tenancy tabel itu, dan untuk `payments`
+   * penunjuknya `invoice_id` (`tenant-map.generated.ts:176`), bukan
+   * `project_id`. Mengoper id proyek ke sana menyusun
+   * `.eq('invoice_id', <uuid proyek>)` — perbandingan dua jenis id berbeda
+   * yang di `.insert()` diabaikan diam-diam, tetapi menjadi NOL BARIS begitu
+   * seseorang menyalin polanya ke `.select()`.
+   *
+   * Itu sudah terjadi dua kali di repo ini (rap.ts 2026-07-30; cost-control.ts
+   * 2026-08-08 — Rp 243 juta upah hilang dari laporan), dan
+   * `audit-viaproject-argumen.mjs` kini menjaganya.
+   *
+   * `muatan.invoice_id` diisi saat penyiapan, sesudah invoicenya diresolusi
+   * dan dipastikan milik tenant ini.
+   */
+  const penunjuk =
+    t.jenis === 'pembayaran_masuk' ? String(t.muatan.invoice_id ?? '') : t.project_id
+
   const sasaran =
     meta.tenancy === 'B'
       ? db.from(meta.tabel as TabelKategoriBDiizinkan)
-      : db.viaProject(meta.tabel as TabelViaProject, t.project_id)
+      : db.viaProject(meta.tabel as TabelViaProject, penunjuk)
 
   const { data: hasil, error: errTulis } = await sasaran.insert(baris).select('id')
 
@@ -222,6 +242,70 @@ export async function klaimTokenTulis(opsi: OpsiKlaim): Promise<HasilKlaim> {
   }
 
   const idBaru = (hasil as Array<{ id: string }> | null)?.[0]?.id ?? null
+
+  /*
+   * ── SINKRONISASI INVOICE — manual, karena TAK ADA trigger yang melakukannya
+   *
+   * Saya sempat mengira `amount_paid` diurus basis. Test membuktikan SALAH:
+   * sesudah pembayaran tersimpan, `amount_paid` tetap nol. Yang mengurusnya
+   * adalah rute UI (`termin-payment.ts`), dengan tangan.
+   *
+   * Tanpa langkah ini, pembayaran tercatat tetapi invoicenya selamanya tampak
+   * belum dibayar — klien ditagih dua kali, dan laporan piutang memuat uang
+   * yang sudah masuk. Persis kegagalan senyap yang paling mahal: barisnya ADA,
+   * jadi tak seorang pun curiga.
+   *
+   * ── Klaim ATOMIK: `amount_paid` LAMA ikut di WHERE
+   *
+   * Dua pembayaran yang tiba bersamaan sama-sama membaca nilai lama, dan yang
+   * kedua MENIMPA yang pertama — satu pembayaran hilang dari invoice meski
+   * barisnya tetap ada. Pola compare-and-set ini disalin dari
+   * `termin-payment.ts` (TJS-A0), bukan dikarang ulang.
+   */
+  if (t.jenis === 'pembayaran_masuk' && idBaru) {
+    const idInvoice = String(t.muatan.invoice_id ?? '')
+    const nominal = Number(t.muatan.jumlah)
+
+    const { data: inv } = await db
+      .viaProject('invoices', t.project_id)
+      .select('id, total_amount, amount_paid')
+      .eq('id', idInvoice)
+      .maybeSingle()
+
+    const baris = inv as { total_amount: string; amount_paid: string } | null
+    if (baris) {
+      const dibayarBaru = Number((Number(baris.amount_paid) + nominal).toFixed(2))
+      const sisaBaru = Number((Number(baris.total_amount) - dibayarBaru).toFixed(2))
+
+      const { data: terupdate, error: errInv } = await db
+        .viaProject('invoices', t.project_id)
+        .update({
+          amount_paid: dibayarBaru,
+          amount_due: Math.max(0, sisaBaru),
+          status: sisaBaru <= 0 ? 'paid' : 'partial',
+          paid_date: sisaBaru <= 0 ? new Date().toISOString().slice(0, 10) : null,
+        })
+        .eq('id', idInvoice)
+        .eq('amount_paid', baris.amount_paid)
+        .select('id')
+
+      /*
+       * Gagal DICATAT, tulisannya TIDAK dibatalkan.
+       *
+       * Pembayarannya sudah tersimpan; menghapusnya karena sinkronisasi kalah
+       * balapan berarti membuang bukti uang masuk. Yang benar: biarkan
+       * barisnya, teriakkan selisihnya — halaman Pembayaran menampilkan
+       * keduanya dan orang keuangan bisa mencocokkan.
+       */
+      if (errInv || !terupdate || (terupdate as unknown[]).length === 0) {
+        catatGalat(
+          'tulis-klaim: pembayaran tersimpan TAPI invoice tak tersinkron — '
+            + `invoice ${idInvoice} perlu dicocokkan manual`,
+          errInv ?? new Error('compare-and-set kalah balapan'),
+        )
+      }
+    }
+  }
 
   // Jejak dari NIAT ke HASIL. Best-effort: barisnya SUDAH tersimpan, dan
   // membatalkannya karena tautan gagal jauh lebih berisiko daripada
@@ -311,6 +395,45 @@ async function bentukBaris(
       // `mr_number` diisi `trg_generate_mr_number`; `status` dibiarkan bawaan
       // supaya MR ini masuk antrean approval yang sama dengan halaman biasa.
       return { ...dasar, ...t.muatan, requested_by: userId }
+
+    case 'pembayaran_masuk':
+      /*
+       * `cash_account_id` SENGAJA TIDAK DIISI — dan ini gerbang uangnya.
+       *
+       * `fn_update_cash_balance_on_payment` (AFTER INSERT, dibaca dari
+       * `pg_proc.prosrc`) hanya bergerak bila kolom ini terisi:
+       *
+       *     IF NEW.cash_account_id IS NOT NULL THEN
+       *       UPDATE cash_accounts SET balance = balance + NEW.amount_paid …
+       *
+       * Dibiarkan NULL, pembayaran TERCATAT tetapi saldo TIDAK bergerak.
+       *
+       * Bedanya menentukan. `payments` tak punya kolom `status`, jadi tak ada
+       * approval yang bisa menahan angka yang salah — tak seperti kasbon atau
+       * pengeluaran yang lahir `pending`. Yang menahan di sini hanyalah
+       * kenyataan bahwa saldo belum tersentuh sampai orang keuangan
+       * mencocokkannya ke mutasi bank lewat halaman Pembayaran.
+       *
+       * Jadi yang dicatat asisten adalah KLAIM ("Pak Budi bilang sudah
+       * transfer"), bukan putusan bahwa uangnya ada. Mengisi kolom ini dari
+       * kalimat WhatsApp berarti membiarkan salah dengar menggerakkan saldo,
+       * dan salah dengar nominal adalah kekeliruan termudah di kanal itu.
+       *
+       * `muatan` sudah disaring saat penyiapan; `cash_account_id` ditulis
+       * eksplisit di SINI supaya muatan yang entah bagaimana membawanya tak
+       * bisa menyelinap lewat spread di atas.
+       */
+      return {
+        invoice_id: t.muatan.invoice_id,
+        amount_paid: t.muatan.jumlah,
+        payment_method: t.muatan.metode ?? 'transfer_bank',
+        paid_at: new Date().toISOString().slice(0, 10),
+        ref_number: t.muatan.referensi ?? null,
+        bank_name: t.muatan.bank ?? null,
+        notes: t.muatan.catatan ?? null,
+        cash_account_id: null,
+        recorded_by: userId,
+      }
 
     case 'kasbon':
       /*

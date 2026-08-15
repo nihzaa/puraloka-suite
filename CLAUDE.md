@@ -199,6 +199,17 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-alur-tercatat.mjs` | webhook n8n wajib lewat `jalankanAlur()` — eksekusi tak boleh luput dari `otomasi_jalan` (ambang NOL) |
 | `audit-inbox-jalur-nyata.mjs` | `jalurUi` inbox approval wajib menunjuk halaman yang ada (ambang NOL) |
 | `audit-konfirmasi-wa-tak-longgar.mjs` | "ya" dari WhatsApp dicocokkan UTUH, bukan `includes()`; jendela < umur token; token disaring per-user (ambang NOL) |
+
+**Uang lewat percakapan — dijaga test, bukan penjaga skrip.** `payments` adalah
+satu-satunya entitas tulis yang **tak punya kolom `status`**, jadi tak ada
+approval yang bisa menahan angka salah dengar. Yang menahannya:
+`cash_account_id` **dipaku NULL** di `lib/tulis-klaim.ts` — trigger
+`fn_update_cash_balance_on_payment` hanya bergerak bila kolom itu terisi.
+Dijaga `src/lib/__tests__/tulis-pembayaran.test.ts` (termasuk muatan yang
+sengaja menyelundupkan kolomnya) dan oleh penjaga trigger-uang di
+`src/routes/v1/__tests__/ai-tulis.test.ts`. **Jangan "melengkapi" kolom itu
+supaya saldo otomatis ter-update** — itu membuat satu kalimat WhatsApp yang
+salah dengar memindahkan uang.
 | `audit-kredensial-lintas-tenant.mjs` | kunci tenant lain hanya lewat warisan induk berpagar; jatuhan `.env` hanya grup AI (ambang NOL) |
 | `audit-keanggotaan-punya-default.mjs` | pengguna aktif wajib punya keanggotaan default — tanpa itu RLS menyaring habis (ambang NOL) |
 | `audit-izin-benar-ada.mjs` | kunci `requirePermission` wajib ada di tabel `permissions` — kunci hantu menolak SEMUA orang tanpa gejala (ambang NOL) |

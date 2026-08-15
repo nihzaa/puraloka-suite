@@ -5,6 +5,102 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (lanjutan 8) — uang masuk & grafik: dua penjaga yang MERAH lebih dulu
+
+Founder: *"assisten bisa menyimpan semua data (seperti jika pembayaran masuk)"*
+dan *"bahkan mengirimkan grafik. POKOKNYA SEPERTI ASSISTANT YG SEHARUSNYA."*
+
+Dua-duanya dibangun. Yang paling patut dicatat: **dua kali pengukuran
+membatalkan rancangan saya**, dan sekali **penjaga lama merah** — semuanya
+sebelum sempat jadi cacat.
+
+### 1. `payments` tak punya `status` — dan itu mengubah segalanya
+
+Semua entitas tulis lain lahir `pending`/`draft` lalu menunggu approval.
+Diukur ke `information_schema`: **`payments` tak punya kolom `status` sama
+sekali.** Ditambah trigger `fn_update_cash_balance_on_payment` yang **AFTER
+INSERT langsung menambah `cash_accounts.balance`**.
+
+Artinya tak ada approval yang bisa menahan angka salah dengar. "Lima juta"
+yang terdengar "lima puluh juta" akan **memindahkan saldo kas seketika**.
+
+Yang membuatnya tetap boleh ada — dibaca dari `pg_proc.prosrc`, bukan ditebak:
+
+    IF NEW.cash_account_id IS NOT NULL THEN
+      UPDATE cash_accounts SET balance = balance + NEW.amount_paid …
+
+`cash_account_id` **dibiarkan NULL** → pembayaran TERCATAT, saldo TIDAK
+bergerak. Asisten mencatat **klaim** ("Pak Budi bilang sudah transfer"), bukan
+memutuskan uangnya ada. Rekonsiliasi tetap pekerjaan orang keuangan.
+
+### 2. Penjaga lama MERAH — dan saya tidak melemahkannya
+
+`ai-tulis.test.ts` melarang entitas daftar putih punya trigger INSERT
+penggerak uang, kecuali cabangnya bersyarat `status='approved'`.
+
+`payments` merah. Godaannya: kecualikan tabelnya. **Ditolak** — berkas itu
+sendiri memuat catatan panjang tentang persis godaan ini saat kasbon merah.
+
+Yang dijaga sejak awal bukan kata "approved", melainkan: *apakah cabang
+INSERT-nya masih bersyarat sesuatu yang kalimat tak bisa penuhi?* Untuk tabel
+tanpa kolom status, jawabannya `cash_account_id IS NOT NULL`. Penjaganya
+**diperluas ke bentuk kedua**, lalu **dibuktikan masih merah**: saya pasang
+trigger uang tanpa syarat di `payments` → MERAH → dicabut → HIJAU.
+
+### 3. Mutasi yang LOLOS — dan test yang lahir karenanya
+
+Saya menyuntik `cash_account_id: t.muatan.cash_account_id ?? null` — persis
+"kelengkapan" yang wajar ditambahkan orang berikutnya. **Seluruh test tetap
+hijau**, karena tak satu pun fixture memuat kolom itu.
+
+Penjagaan saya ternyata cuma menguji bahwa kode saya sendiri tak mengisinya,
+bukan bahwa muatan **tak bisa** mengisinya. Test baru dibuat dengan muatan
+beracun yang sengaja membawa rekening kas sungguhan; sekarang mutasi itu merah.
+
+### 4. Grafik — dan `inject` yang tak pernah bisa hidup
+
+Rancangan pertama: webhook memanggil rute grafik lewat `server.inject` sambil
+meneruskan `request.headers.authorization`. **Di webhook header itu SELALU
+KOSONG** — rutenya akan 401 dan cabang gambarnya tak pernah menyala. Kode yang
+terlihat lengkap sambil tak pernah mengirim satu gambar pun; pola yang sama
+dengan tombol konfirmasi yang tak pernah ada.
+
+Akun layanan ditolak (alasan sama dengan jalur tulis: kewenangan penanya).
+Yang dipakai: render dari `db` milik tenant, dengan id proyek yang **sudah
+diverifikasi di dalam tool**.
+
+**Grafiknya sengaja lebih sederhana daripada halaman proyek** — progres
+terlapor, bukan EVM penuh — dan subjudulnya menyatakan itu apa adanya.
+Menyalin 450 baris EVM ke sini berarti dua sumber angka untuk satu kurva, dan
+yang kedua pasti menyimpang.
+
+SVG dirakit tangan lalu `sharp` → PNG. Puppeteer ditolak: satu Chromium
+(~300 MB, 1-2 detik) per gambar, di jalur permintaan, untuk grafik yang muat
+dalam 200 baris.
+
+**Lubang data tetap lubang** — titik `null` memutus garis, tak pernah
+disambung. Grafik yang memuluskan minggu tak terlapor adalah kebohongan yang
+paling sulit dibantah, karena terlihat rapi.
+
+### Bukti
+
+    tsc api                 0 galat
+    grafik-svg              8 hijau
+    tulis-pembayaran        6 hijau (Postgres NYATA)
+    ai-tulis (rute)        34 hijau
+    tulis-klaim             6 · tulis-konfirmasi-wa 7 · usul-tulis 6
+    mutasi                  trigger uang tanpa syarat → MERAH → pulih
+                            cash_account_id dari muatan → MERAH → pulih
+    penjaga                 10 hijau (audit-tool-ai-read-only tetap NOL)
+    render nyata            PNG 30.848 bytes dari proyek sungguhan, dilihat
+
+⚠ `audit-viaproject-argumen` MERAH (2 pelanggaran: `mandor.ts`,
+`otomasi-terjadwal.ts`) — **bukan dari kerja ini**, dibuktikan `git stash`:
+merah juga tanpa perubahan saya. Panggilan `payments` saya sendiri LOLOS —
+`viaProject('payments', invoice_id)`, bukan `project_id`.
+
+---
+
 ## 2026-08-16 (lanjutan 7) — "ya" dari WhatsApp, dan rantai yang putus di dua tempat
 
 Asisten kini bisa menyimpan catatan dari WhatsApp: ia mengusulkan, orangnya
