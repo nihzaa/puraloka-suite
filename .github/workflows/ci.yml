@@ -449,6 +449,20 @@ jobs:
       - name: Alur otomasi tercatat di otomasi_jalan
         run: node scripts/audit-alur-tercatat.mjs
 
+      # Katalog otomasi wajib menjelaskan otomasi yang BENAR-BENAR ADA — dua
+      # arah: rute tanpa penjelasan, DAN penjelasan tanpa rute.
+      #
+      # Repo ini sudah punya satu katalog otomasi yang membusuk
+      # (`06-agentic-ai-*.md`: tujuh otomasi hidup masih tertulis `Next`), dan
+      # salah membacanya memakan biaya dua kali dalam satu hari.
+      #
+      # Ambang NOL. Bukti merah, tiga mutasi terpisah: entri `gr-matching`
+      # dihapus → exit 1; penjelasan dipendekkan jadi "Cek stok." → exit 1;
+      # penjelasan diisi istilah teknis (SELECT/webhook) → exit 1. Ketiganya
+      # dipulihkan → exit 0.
+      - name: Katalog otomasi cocok dengan kode
+        run: node scripts/audit-katalog-otomasi-nyata.mjs
+
       # Jalur UI di inbox approval wajib menunjuk halaman yang benar-benar ada.
       #
       # Ditemukan 2026-08-14 saat menambahkan `purchase_order` ke inbox:

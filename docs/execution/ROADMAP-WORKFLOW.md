@@ -179,3 +179,66 @@ perubahan yang tak pernah terjadi.
 `otomasi-terjadwal.test.ts`. Penjaga di berkas itu mencocokkan daftarnya
 dengan kode sumber, jadi rute yang lupa diuji memerahkan CI — ia sudah
 menangkap 2.6 begitu rutenya lahir.
+
+---
+
+## 5. Katalog di UI — dan cacat yang ditemukannya
+
+Founder, 2026-08-15: *"saya juga mau ada katalog otomasi nya di ui yaa seperti
+project TJS, beserta semua penjelasan dan flow kerja otomasi tersebut"*.
+
+| Bagian | Tempat |
+|---|---|
+| Sumber penjelasan | `apps/api/src/lib/katalog-otomasi.ts` |
+| Rute penggabung | `GET /api/v1/otomasi/katalog` |
+| Halaman katalog | `/otomasi/katalog` |
+| Halaman ambang | `/pengaturan/otomasi` |
+| Penjaga | `audit-katalog-otomasi-nyata.mjs` (ambang NOL) |
+
+### 5a. Katalog ini tidak menyimpan status — sengaja
+
+Pembagiannya tegas, dan itulah yang membedakannya dari
+`06-agentic-ai-*.md` yang membusuk:
+
+```
+ditulis di berkas   → penjelasan, pemicu, langkah kerja, penempatan
+diukur saat dibaca  → terpasang/tidak, aktif, kapan terakhir jalan
+```
+
+Yang bisa basi tidak ditulis. Yang ditulis tidak bisa basi.
+
+Penjaganya mencocokkan entri dengan rute yang benar-benar terdaftar, **dua
+arah** — rute tanpa penjelasan, DAN penjelasan tanpa rute. Arah kedua lebih
+mudah terlewat dan sama merusaknya: katalog yang menjelaskan otomasi yang
+sudah dihapus membuat orang menunggu pesan yang tak akan datang.
+
+Penjaganya juga menolak penjelasan yang memakai istilah teknis
+(`SELECT`, `webhook`, `query`). Bukan soal selera — pembacanya mandor.
+
+### 5b. Ambang tak punya halaman pengaturan, dan tak ada yang merah
+
+Ketahuan saat halaman Katalog hendak menautkan tombol "ubah" untuk lima
+ambang. Tautannya tak punya tujuan: ambangnya tersimpan sejak migrasi 396,
+sudah dibaca rute otomasi, dan **tak ada satu pun tempat di UI untuk
+mengubahnya**.
+
+CLAUDE.md §8 menyebut pola ini persis: *"Kolom DB sudah ada" bukan selesai.
+Config-first berarti ada halaman pengaturannya di UI.* Migrasi 396 berhenti
+setengah jalan tanpa satu pun penjaga menandainya.
+
+Yang perlu diingat untuk berikutnya: **penjaga yang ada memeriksa apakah
+kolomnya benar, bukan apakah kolomnya bisa disentuh manusia.**
+
+### 5c. Dua utang lain yang ikut terlihat
+
+Keduanya bukan dari pekerjaan ini, dan keduanya sudah ditutup:
+
+| Utang | Akibatnya | Sejak |
+|---|---|---|
+| `ai-ingatan` ada di `menu_items` tetapi tak di `peta-menu.ts` | `/m/ai-ingatan` menampilkan "Menu tidak dikenal" | commit `247b4607` |
+| `_dibuang` tak terpakai di `kartu-asisten.tsx` | ratchet `no-unused-vars` (ambang NOL) merah | sebelum sesi ini |
+
+Yang pertama sempat terbaca sebagai kenaikan ratchet 124 → 125 akibat
+pekerjaan hari ini. Bukan. Memeriksanya lebih dulu mencegah lantai dinaikkan
+untuk menutupi utang orang lain.
+

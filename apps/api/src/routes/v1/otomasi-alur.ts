@@ -29,6 +29,8 @@ import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
+import { KATALOG_OTOMASI } from '../../lib/katalog-otomasi.js'
+import { AMBANG_OTOMASI } from '../../lib/ambang-otomasi.js'
 import {
   konfigurasiN8n,
   daftarWorkflowN8n,
@@ -530,6 +532,114 @@ export default async function otomasiAlurRoutes(app: FastifyInstance) {
           kode_alur: nama.get(b.alur_id)?.kode ?? null,
         })),
       })
+    },
+  )
+
+  // ── GET /api/v1/otomasi/katalog ──────────────────────────────────────────
+  //
+  // Penjelasan tiap otomasi + status yang DIUKUR, bukan yang dicatat.
+  //
+  // Founder 2026-08-15 meminta "katalog otomasi di UI beserta semua penjelasan
+  // dan flow kerja otomasi tersebut". Halaman Ikhtisar menjawab "sehat atau
+  // tidak", Riwayat menjawab "kapan terakhir jalan"; tak satu pun menjawab
+  // "sebenarnya ini mengerjakan apa".
+  //
+  // ── Kenapa status TIDAK ikut disimpan di katalog
+  //
+  // Repo ini sudah punya satu katalog otomasi yang membusuk justru karena
+  // menyimpan status (`06-agentic-ai-*.md`: tujuh otomasi hidup masih tertulis
+  // `Next`). Jadi pembagiannya tegas:
+  //
+  //   dari berkas katalog  → penjelasan, pemicu, langkah kerja, penempatan
+  //   dari basis SAAT INI  → terpasang/tidak, aktif, kapan terakhir jalan
+  //
+  // Yang bisa basi diukur tiap permintaan; yang ditulis tak bisa basi.
+  app.get(
+    '/api/v1/otomasi/katalog',
+    { preHandler: [authenticate, requirePermission('otomasi:alur:lihat')] },
+    async (request, reply) => {
+      /*
+        Alur dibaca SEKALI lalu dipetakan, bukan satu query per entri.
+
+        Tujuh belas entri berarti tujuh belas perjalanan bolak-balik, dan
+        halaman katalog adalah halaman yang orang buka justru saat curiga ada
+        yang lambat.
+      */
+      const { data: alur, error } = await request.db!
+        .from('otomasi_alur')
+        .select('kode, nama, aktif, kesehatan, jalan_terakhir, sukses_terakhir, gagal_terakhir, pesan_gagal')
+
+      if (error) {
+        request.log.error({ err: error }, 'otomasi/katalog: gagal membaca status alur')
+        return reply.status(500).send({ error: 'Gagal membaca status otomasi' })
+      }
+
+      const petaAlur = new Map(
+        (alur ?? []).map((a) => [(a as { kode: string }).kode, a]),
+      )
+
+      /*
+        Ambang dibaca dari pengaturan tenant, dengan bawaan sebagai cadangan.
+
+        Menampilkan bawaan kepada tenant yang sudah mengubahnya lebih buruk
+        daripada tidak menampilkan apa-apa: orang membaca "7 hari", menunggu
+        pesan di hari ketujuh, dan pesannya datang di hari ketiga.
+      */
+      const { data: setelan } = await request.db!
+        .from('company_settings')
+        .select('key, value')
+        .in('key', Object.keys(AMBANG_OTOMASI))
+
+      const petaAmbang = new Map(
+        (setelan ?? []).map((r) => {
+          const s = r as { key: string; value: unknown }
+          return [s.key, s.value]
+        }),
+      )
+
+      const data = KATALOG_OTOMASI.map((e) => {
+        const a = petaAlur.get(e.kunci) as {
+          nama?: string
+          aktif?: boolean
+          kesehatan?: string
+          jalan_terakhir?: string | null
+          sukses_terakhir?: string | null
+          gagal_terakhir?: string | null
+          pesan_gagal?: string | null
+        } | undefined
+
+        const metaAmbang = e.ambang ? AMBANG_OTOMASI[e.ambang as keyof typeof AMBANG_OTOMASI] : null
+
+        return {
+          ...e,
+          /*
+            `terpasang` memisahkan dua keadaan yang mudah tertukar dan
+            berakibat berbeda:
+
+              belum terpasang → alurnya memang belum dibuat di n8n
+              terpasang, mati → sengaja dimatikan orang
+
+            UI yang menyamakan keduanya membuat orang mencari tombol nyalakan
+            untuk sesuatu yang belum ada.
+          */
+          terpasang: Boolean(a),
+          aktif: a?.aktif ?? false,
+          kesehatan: a?.kesehatan ?? null,
+          jalan_terakhir: a?.jalan_terakhir ?? null,
+          sukses_terakhir: a?.sukses_terakhir ?? null,
+          gagal_terakhir: a?.gagal_terakhir ?? null,
+          pesan_gagal: a?.pesan_gagal ?? null,
+          ambang_nilai: e.ambang
+            ? Number(petaAmbang.get(e.ambang) ?? metaAmbang?.bawaan ?? 0)
+            : null,
+          ambang_label: metaAmbang?.label ?? null,
+          ambang_bawaan: metaAmbang?.bawaan ?? null,
+          /* Apakah nilainya sudah disetel tenant, atau masih bawaan. */
+          ambang_disetel: e.ambang ? petaAmbang.has(e.ambang) : false,
+        }
+      })
+
+      return reply.send({ data })
     },
   )
 }

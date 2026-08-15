@@ -2511,3 +2511,61 @@ items:
       jendela 08:00-18:00, harian termasuk sapaan. Tiga nomor lain nonaktif
       dan tak ikut tersapa. Matikan: UPDATE jadwal_tugas SET aktif=false
       WHERE tugas='sapa-proaktif'; atau lewat Pengaturan → Jadwal Tugas.
+
+  - id: ASISTEN-5
+    fase: null
+    judul: "Kasbon lewat percakapan — kategori B pertama di daftar putih tulis"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "kasbons masuk ENTITAS_TULIS TANPA melonggarkan tipe jadi `extends 'B'`"
+      - "jalur tulis memilih from()/viaProject() dari penunjuk tenancy, bukan dari nama tabel"
+      - "test membuktikan kasbon lahir `pending` DAN saldo kas tak bergerak"
+      - "penjaga bentuk trigger: nol entitas daftar putih boleh punya trigger INSERT penggerak uang tanpa syarat status='approved'"
+    cara_verifikasi: "cd apps/api && npx vitest run src/routes/v1/__tests__/ai-tulis.test.ts"
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-15. Kategori B diukur lebih dulu: 110 tabel, termasuk
+      accounts/app_credentials/api_key/ai_token_tulis — jadi yang diperluas
+      daftar pengecualiannya (TabelKategoriBDiizinkan, satu nama), bukan
+      aturannya. Izin `mandor:kasbon:create` DIUKUR ke tabel permissions;
+      tebakan pertama `kasbon:create` tak ada dan ditangkap
+      audit-izin-benar-ada.
+      Test lama yang melarang `kasbon` diganti penjaga SIFAT, bukan dihapus —
+      dan penjaga baru itu langsung menemukan cacat lain:
+      trg_expense_petty_cash_balance menyala AFTER INSERT dan memindahkan
+      saldo kas kecil. Jalur asisten aman hanya karena ai-tulis.ts memaku
+      expense_source='main_cash'; ditutup dari dua sisi (syarat di basis +
+      syarat di rute). 34/34 test hijau, dua mutasi terbukti merah lalu pulih.
+
+  - id: ASISTEN-6
+    fase: null
+    judul: "Katalog otomasi di UI — penjelasan & alur kerja tiap otomasi"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "katalog TIDAK menyimpan status — hidup/mati diukur saat halaman dibuka"
+      - "tiap entri menyebut di mana tiap langkah berjalan (sistem atau n8n)"
+      - "penjelasan bebas istilah teknis — pembacanya mandor"
+      - "penjaga mencocokkan entri dengan rute terdaftar DUA ARAH, ambang NOL"
+      - "ambang otomasi punya halaman pengaturan yang benar-benar bisa dipakai"
+    cara_verifikasi: >-
+      cd apps/api && node scripts/audit-katalog-otomasi-nyata.mjs
+      && cd ../web && node scripts/audit-peta-menu-vs-db.mjs
+      && node scripts/uji-token-css-ada.mjs && npx next build
+    bobot: L
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-15 atas permintaan founder. Sumber penjelasan
+      lib/katalog-otomasi.ts (17 entri: 12 rute terjadwal + 5 percakapan),
+      rute GET /api/v1/otomasi/katalog menggabungkannya dengan status terukur,
+      halaman /otomasi/katalog + /pengaturan/otomasi, migrasi 397 mendaftarkan
+      keduanya di menu.
+      TEMUAN yang lahir dari pekerjaan ini: lima ambang otomasi tersimpan
+      sejak migrasi 396 dan sudah dibaca rute, tetapi TAK ADA halaman untuk
+      mengubahnya — CLAUDE.md §8 ("kolom DB ada bukan berarti selesai") dan
+      tak satu pun penjaga menandainya. Penjaga yang ada memeriksa apakah
+      kolomnya BENAR, bukan apakah bisa DISENTUH manusia.
+      Dua utang orang lain ikut ditutup: ai-ingatan hilang dari peta-menu.ts
+      (commit 247b4607 — /m/ai-ingatan menampilkan "Menu tidak dikenal"), dan
+      `_dibuang` tak terpakai di kartu-asisten.tsx yang memerahkan ratchet
+      no-unused-vars berambang NOL. Ratchet peta-menu TETAP di lantai 124.

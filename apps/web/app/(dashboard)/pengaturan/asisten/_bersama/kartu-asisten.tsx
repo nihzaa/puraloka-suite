@@ -102,8 +102,18 @@ export function KartuAsisten({ asisten }: { asisten: string }) {
       await api.put("/api/v1/ai/config/sifat/semua", {
         sifat_bicara: k.sifat_bicara ?? [],
       });
+      /*
+        Kunci dibuang lewat `delete` pada salinan, bukan lewat destructuring
+        ber-variabel-buangan.
+
+        Bentuk `const { sifat_bicara: _dibuang, ...sisa } = d` menyisakan
+        variabel yang tak pernah dibaca, dan `@typescript-eslint/no-unused-vars`
+        berambang NOL di repo ini — jadi ia memerahkan CI terlepas dari
+        awalan garis bawahnya.
+      */
       setDraf((d) => {
-        const { sifat_bicara: _dibuang, ...sisa } = d;
+        const sisa = { ...d };
+        delete sisa.sifat_bicara;
         return sisa;
       });
       await ambil();

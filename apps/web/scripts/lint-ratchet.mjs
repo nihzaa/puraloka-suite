@@ -78,7 +78,7 @@ const AMBANG = {
   // diikuti percabangan (`? :`), kontrolnya ada di dalam cabang. `htmlFor`
   // statis akan MATI di salah satu cabang — cacat yang sudah terbukti sekali
   // di `progress-log-modal`. Butuh penilaian per-kasus.
-  'jsx-a11y/label-has-associated-control': 19,  // 21 -> 20 (2026-08-13, label foto yatim -> <span id> + aria-labelledby); 20 -> 19 (2026-08-14, satu label ikut hilang saat header buatan sendiri diganti KepalaHalaman)
+  'jsx-a11y/label-has-associated-control': 16,  // 21 -> 20 (2026-08-13, label foto yatim -> <span id> + aria-labelledby); 20 -> 19 (2026-08-14, satu label ikut hilang saat header buatan sendiri diganti KepalaHalaman); 19 -> 16 (2026-08-15, halaman Ambang Otomasi memakai <label htmlFor> berpasangan sejak awal — TURUN karena kode baru benar, bukan karena ada yang dilonggarkan)
   // 117 → 112 → 104 → 102 → 98 → 93 → 88 → 86 (2026-08-01/02): 5 foto di `progress-log-list` yang semula
   // `<img onClick>` — bisa diklik tetikus, TAK BISA dijangkau keyboard sama
   // sekali. Diganti `<button>`, bukan ditambal `role`+`tabIndex`+`onKeyDown`:
@@ -110,7 +110,8 @@ const AMBANG = {
   'jsx-a11y/no-noninteractive-element-interactions': 6,
 
   // ── Hutang lint lain ────────────────────────────────────────────────────
-  '@typescript-eslint/no-explicit-any': 59, // 194 → 191 (2026-08-01) → 180 (2026-08-07) // 100 -> 99 (2026-08-07) // 99 -> 59 (2026-08-07, mandor-portal bertipe)
+  '@typescript-eslint/no-explicit-any': 59, // 194 → 191 (2026-08-01) → 180 (2026-08-07)
+ // 100 -> 99 (2026-08-07) // 99 -> 59 (2026-08-07, mandor-portal bertipe)
   // 71 → 70 (HargaTab) → 69 (2026-08-01, klien) → 68.
   //
   // 2026-08-07: ditemukan HEAD sudah 71 — utang naik 3 tanpa CI menangkapnya,

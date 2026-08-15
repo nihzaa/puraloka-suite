@@ -5,6 +5,124 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-15 (lanjutan 8) — kasbon lewat WA, katalog otomasi di UI, dan tiga utang yang ikut terlihat
+
+Dua permintaan founder diselesaikan. Yang lebih berharga: **tiga cacat yang
+tak satu pun penjaga tandai**, semuanya ketahuan karena membangun sesuatu di
+atasnya.
+
+### 1. Kasbon lewat percakapan — dan larangan yang salah menjaga
+
+`kasbons` kategori B; daftar putih tulis-lewat-percakapan hanya menerima
+kategori C. Godaannya: melonggarkan tipe jadi `extends 'B'`.
+
+Diukur dulu. Kategori B berisi **110 tabel** — termasuk `accounts`,
+`app_credentials`, `api_key`, `ai_token_tulis`. Satu baris yang terlihat wajar
+akan membuat keempatnya bisa masuk daftar putih, dan `app_credentials` yang
+bisa ditulis asisten berarti injeksi lewat dokumen bisa menanam kunci API
+tenant lain.
+
+Jadi yang diperluas **daftar pengecualiannya**, bukan aturannya:
+`TabelKategoriBDiizinkan` berisi satu nama, plus penunjuk `tenancy` per entri
+yang memilih `.from()` atau `.viaProject()`.
+
+**Test lama melarang `kasbon`, dan ia merah.** Godaannya lagi: hapus satu kata.
+Yang salah bukan kata itu melainkan apa yang test kira ia jaga — ia menyamakan
+dokumen yang MENGIKAT saat dibuat (invoice, change order, izin kerja) dengan
+PERMINTAAN yang lahir `pending`. Diganti dengan penjaga sifatnya: nol entitas
+daftar putih boleh punya trigger INSERT penggerak uang tanpa syarat
+`status='approved'`.
+
+**Dan penjaga baru itu langsung menemukan sesuatu — bukan pada kasbon:**
+
+```
+project_expenses.trg_expense_petty_cash_balance
+AFTER INSERT OR UPDATE OF status
+```
+
+Cabang INSERT-nya memindahkan saldo kas kecil saat itu juga. Jalur asisten
+aman hari ini karena `ai-tulis.ts` memaku `expense_source: 'main_cash'` —
+tetapi keamanannya bersandar pada satu kata di rute, bukan pada bentuk
+trigger. Ganti `main_cash` jadi `petty_cash` dan uang bergerak dari kalimat
+tanpa satu pun test merah. Ditutup dari dua sisi.
+
+**Saya salah dua kali di jalan, keduanya karena menebak alih-alih mengukur:**
+
+| Tebakan | Kenyataan | Yang menangkap |
+|---|---|---|
+| izin `kasbon:create` | `mandor:kasbon:create` | `audit-izin-benar-ada` |
+| tabel `cash_balances.balance` | `cash_accounts.balance` | test merah |
+
+Yang pertama kedua kalinya hari ini saya mengarang kunci izin. Kunci hantu
+menolak SEMUA orang dengan 403 yang terbaca seperti "Anda tak punya izin",
+bukan seperti "kuncinya salah ketik".
+
+### 2. Katalog otomasi di UI
+
+Founder: *"katalog otomasi nya di ui yaa, beserta semua penjelasan dan flow
+kerja otomasi tersebut"*.
+
+Yang membedakannya dari `06-agentic-ai-*.md` yang membusuk: **ia tak menyimpan
+status sama sekali.**
+
+```
+ditulis di berkas   → penjelasan, pemicu, langkah kerja, penempatan
+diukur saat dibaca  → terpasang/tidak, aktif, kapan terakhir jalan
+```
+
+Penjaganya mencocokkan entri dengan rute yang benar-benar terdaftar, **dua
+arah**, dan menolak penjelasan yang memakai istilah teknis — pembacanya
+mandor, bukan engineer.
+
+### 3. Ambang otomasi tak punya halaman pengaturan, dan tak ada yang merah
+
+Ketahuan saat halaman Katalog hendak menautkan tombol "ubah". Tautannya tak
+punya tujuan: lima ambang tersimpan sejak migrasi 396, sudah dibaca rute
+otomasi, dan **tak ada satu pun tempat di UI untuk mengubahnya**.
+
+CLAUDE.md §8 menyebutnya persis: *"Kolom DB sudah ada" bukan selesai.*
+Migrasi 396 berhenti setengah jalan tanpa satu pun penjaga menandainya —
+karena penjaga yang ada memeriksa apakah kolomnya BENAR, bukan apakah kolomnya
+BISA DISENTUH manusia.
+
+### 4. Dua utang orang lain yang ikut terlihat
+
+| Utang | Akibatnya | Sejak |
+|---|---|---|
+| `ai-ingatan` di `menu_items` tapi tak di `peta-menu.ts` | `/m/ai-ingatan` → "Menu tidak dikenal" | `247b4607` |
+| `_dibuang` tak terpakai di `kartu-asisten.tsx` | ratchet `no-unused-vars` (ambang NOL) merah | sebelum sesi ini |
+
+Yang pertama sempat terbaca sebagai kenaikan ratchet 124 → 125 akibat kerja
+hari ini. **Bukan.** Memeriksanya lebih dulu mencegah saya menaikkan lantai
+untuk menutupi utang orang lain.
+
+### Satu ratchet TURUN
+
+`jsx-a11y/label-has-associated-control` 19 → 16 — halaman Ambang Otomasi
+memakai `<label htmlFor>` berpasangan sejak awal. Turun karena kode baru
+benar, bukan karena ada yang dilonggarkan.
+
+### Bukti
+
+    ai-tulis.test.ts        34/34 hijau
+    tsc api + web           0
+    next build              sukses (/otomasi/katalog, /pengaturan/otomasi)
+    lint api                0 error, 231 warning
+    lint web                0 error, 295 warning
+    migrasi 397             blok verifikasi lulus (2 menu, gerbang izin benar)
+    penjaga web             5 dijalankan, 5 hijau
+    penjaga api             8 dijalankan, 8 hijau
+    peta-menu ratchet       124 (tetap di lantai, tidak dinaikkan)
+
+    mutasi penjaga baru — semua wajib merah, semua terbukti:
+      main_cash → petty_cash                    MERAH → pulih HIJAU
+      buang syarat approved dari cabang INSERT  MERAH → pulih HIJAU
+      hapus entri katalog `gr-matching`         MERAH → pulih HIJAU
+      penjelasan dipendekkan jadi "Cek stok."   MERAH → pulih HIJAU
+      penjelasan diisi istilah teknis           MERAH → pulih HIJAU
+
+---
+
 ## 2026-08-15 (lanjutan 7) — sapaan DINYALAKAN, dan dua cacat yang menahannya
 
 Founder memberi nomornya (`6281311081813`) dan memilih: jendela **08:00–18:00**,
