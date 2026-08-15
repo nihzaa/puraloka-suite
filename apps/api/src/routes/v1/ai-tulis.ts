@@ -33,8 +33,25 @@ import { randomBytes } from 'node:crypto'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { ENTITAS_TULIS, entitasTulis, persenSah } from '../../lib/ai-tool-siapkan.js'
-import type { TabelKategoriBDiizinkan } from '../../lib/ai-tool-siapkan.js'
-import type { TabelViaProject } from '../../utils/tenant-db.js'
+import { klaimTokenTulis, type SebabGagal } from '../../lib/tulis-klaim.js'
+
+/**
+ * Sebab kegagalan → kode HTTP.
+ *
+ * Peta, bukan rantai `if`: pustaka klaim dipakai dua kanal, dan sebab baru
+ * yang lupa dipetakan di sini akan gagal COMPILE (`Record` lengkap) — bukan
+ * diam-diam terkirim sebagai 500 yang tak menjelaskan apa pun.
+ */
+const KODE_SEBAB: Record<SebabGagal, number> = {
+  gangguan: 503,
+  tak_dikenal: 410,
+  bukan_pemilik: 403,
+  sudah_dipakai: 409,
+  kedaluwarsa: 410,
+  tanpa_izin: 403,
+  jenis_asing: 500,
+  gagal_simpan: 500,
+}
 
 /** Umur token. Sama dengan token setujui — satu kebiasaan, bukan dua. */
 const UMUR_TOKEN_MS = 15 * 60_000
@@ -455,307 +472,73 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
       const token = (request.body?.token ?? '').trim()
       if (!token) return reply.status(422).send({ error: 'token wajib diisi' })
 
-      const { data: lihat, error: errLihat } = await request.db!
-        .from('ai_token_tulis')
-        .select('id, user_id, jenis, aksi, project_id, muatan, ringkasan, kedaluwarsa, dipakai_pada')
-        .eq('token', token)
-        .maybeSingle()
-
-      if (errLihat) {
-        // Gangguan basis TIDAK boleh menyamar jadi "token tak dikenal" — kalau
-        // dibiarkan, jejak audit terisi orang yang tak melakukan kesalahan.
-        request.log.error({ err: errLihat }, 'ai/tulis: gagal membaca token')
-        return reply.status(503).send({ error: 'Gagal memeriksa token. Coba lagi.' })
-      }
-      if (!lihat) return reply.status(410).send({ error: 'Token tidak dikenal.' })
-
-      const t = lihat as {
-        id: string
-        user_id: string
-        jenis: string
-        aksi: string
-        project_id: string
-        muatan: Record<string, unknown>
-        ringkasan: string
-        kedaluwarsa: string
-        dipakai_pada: string | null
-      }
-
-      if (t.user_id !== request.currentUser!.id) {
-        void logAuditEvent(request, {
-          tableName: 'ai_token_tulis',
-          recordId: request.currentUser!.id,
-          action: 'ai.tulis.ditolak',
-          actorId: request.currentUser!.id,
-          newValues: { alasan: 'bukan_pemilik_token' },
-          severity: 'critical',
-        })
-        return reply.status(403).send({ error: 'Token ini bukan milik Anda.' })
-      }
-      if (t.dipakai_pada) return reply.status(409).send({ error: 'Token sudah dipakai.' })
-      if (new Date(t.kedaluwarsa).getTime() < Date.now()) {
-        return reply.status(410).send({ error: 'Token sudah kedaluwarsa.' })
-      }
-
       /*
-       * Klaim ATOMIK sebelum menulis apa pun.
+       * Logikanya hidup di `lib/tulis-klaim.ts` sejak 2026-08-16, bukan di sini.
        *
-       * `dipakai_pada IS NULL` ikut di WHERE — basis yang menengahi. Dengan
-       * baca-lalu-tulis, dua klik bersamaan sama-sama melihat "belum dipakai"
-       * dan DUA baris tercipta; pengguna melihat catatan gandanya dan tak
-       * tahu mana yang benar.
-       */
-      const { data: diklaim, error: errKlaim } = await request.db!
-        .from('ai_token_tulis')
-        .update({ dipakai_pada: new Date().toISOString() })
-        .eq('id', t.id)
-        .is('dipakai_pada', null)
-        .select('id')
-
-      if (errKlaim) {
-        request.log.error({ err: errKlaim }, 'ai/tulis: gagal mengklaim token')
-        return reply.status(503).send({ error: 'Gagal mengklaim token' })
-      }
-      if (!diklaim || (diklaim as unknown[]).length === 0) {
-        return reply.status(409).send({ error: 'Token sudah dipakai.' })
-      }
-
-      const meta = entitasTulis(t.jenis)
-      if (!meta) {
-        return reply.status(500).send({ error: `Jenis '${t.jenis}' tak dikenal lagi.` })
-      }
-
-      // ── Tulisan sesungguhnya ─────────────────────────────────────────────
-      //
-      // `viaProject`: kedua tabel kategori C, dan wrapper menolak `.from()`
-      // untuk keduanya di titik pemanggilan.
-      const dasar = { project_id: t.project_id }
-
-      /*
-       * `punch_items.nomor` WAJIB dan UNIK per proyek — diukur dari
-       * information_schema dan `uq_punch_items_project_nomor`, bukan ditebak.
-       * Formatnya `PL-YYMM-NNN`, mengikuti baris yang sudah ada.
+       * Sebabnya WhatsApp: di sana tak ada `request` milik siapa pun, jadi
+       * ~230 baris ini tak bisa dipanggil. Menyalinnya ke webhook akan membuat
+       * dua jalur tulis yang harus diperbaiki dua kali — dan yang kedua akan
+       * terlupakan, seperti tombol konfirmasi yang tak pernah dibuat.
        *
-       * Nomor dihitung dari yang TERTINGGI di proyek itu, bukan dari jumlah
-       * baris: baris yang pernah dihapus akan membuat hitungan menabrak nomor
-       * yang masih terpakai, dan galatnya muncul sebagai "gagal menyimpan"
-       * yang tak menyebut sebabnya.
+       * Yang TETAP di sini: `requirePermission` di `preHandler`, audit, dan
+       * penerjemahan sebab → kode HTTP. Yang pindah: klaim atomik & penulisan.
        */
-      let nomorBaru: string | null = null
-      if (t.jenis === 'temuan_punch') {
-        const { data: adaNomor } = await request.db!
-          .viaProject('punch_items', t.project_id)
-          .select('nomor')
-          .eq('project_id', t.project_id)
-          .order('nomor', { ascending: false })
-          .limit(1)
+      const hasilKlaim = await klaimTokenTulis({
+        db: request.db!,
+        userId: request.currentUser!.id,
+        // Rute sudah lolos `requirePermission('ai:tulis')` di `preHandler`;
+        // set ini menyatakannya kembali untuk gerbang di dalam pustaka.
+        izin: new Set(['ai:tulis']),
+        token,
+        catatGalat: (pesan, err) => request.log.error({ err }, pesan),
+      })
 
-        const kini = new Date()
-        const yymm = `${String(kini.getFullYear()).slice(2)}${String(kini.getMonth() + 1).padStart(2, '0')}`
-        const terakhir = (adaNomor as Array<{ nomor: string }> | null)?.[0]?.nomor ?? ''
-        const urut = Number(terakhir.split('-').pop()) || 0
-        nomorBaru = `PL-${yymm}-${String(urut + 1).padStart(3, '0')}`
-      }
-      // `Record<string, unknown>`: bentuk barisnya BERBEDA per jenis, dan
-      // menyatukannya jadi satu tipe akan menuntut union yang harus diperbarui
-      // tiap entitas baru — persis jenis pekerjaan yang pasti terlupakan.
-      /*
-        Cabang EKSPLISIT per jenis, bukan ternary dua arah.
-
-        Bentuk sebelumnya (`catatan_progres ? … : …`) memperlakukan segala
-        yang bukan catatan progres sebagai temuan punch. Itu benar selama
-        hanya ada dua jenis — dan diam-diam salah begitu jenis ketiga
-        ditambahkan: kasbon akan disimpan dengan `nomor` dan `status:
-        'terbuka'` milik punch, lalu Postgres menolaknya dengan galat yang
-        muncul SESUDAH token habis.
-
-        Sekarang jenis yang tak dikenali gagal keras di `default`, sejalan
-        dengan cabang `else` di jalur penyiapan.
-      */
-      let baris: Record<string, unknown>
-      switch (t.jenis) {
-        case 'catatan_progres':
-          baris = {
-            ...dasar,
-            ...t.muatan,
-            reported_by: request.currentUser!.id,
-            logged_at: new Date().toISOString(),
-          }
-          break
-        case 'temuan_punch':
-          baris = {
-            ...dasar,
-            ...t.muatan,
-            nomor: nomorBaru,
-            status: 'terbuka',
-            ditemukan_oleh: request.currentUser!.id,
-          }
-          break
-        case 'pengeluaran':
-          /*
-            `status` SENGAJA tidak diisi — bawaan kolomnya `draft`, dan itu
-            yang benar: pengeluaran yang lahir dari percakapan tetap lewat
-            rantai approval `project_expense` yang sama dengan pengajuan lewat
-            halaman biasa.
-
-            Menuliskannya `approved` di sini akan membuat AI mengeluarkan uang
-            tanpa satu pun persetujuan — persis kelas cacat yang gerbang PO
-            kemarin tutup.
-
-            `qty` juga tidak diisi (bawaan 1, diukur ke information_schema):
-            "semen 20 sak" adalah keterangan, bukan rincian qty×harga. Memaksa
-            model membaginya berarti mengarang angka satuan yang tak seorang
-            pun sebutkan.
-          */
-          baris = {
-            ...dasar,
-            ...t.muatan,
-            /*
-              `expense_source` DIISI eksplisit, tidak dibiarkan bawaan.
-
-              Bawaan kolomnya `petty_cash`, dan constraint
-              `chk_petty_cash_source` menuntut `petty_cash_id` terisi untuk
-              nilai itu. Membiarkannya bawaan membuat penulisan GAGAL dengan
-              galat constraint yang muncul sesudah token habis — persis pola
-              yang komentar severity punch di atas peringatkan, dan yang
-              tertangkap test ini sebelum sampai ke pengguna.
-
-              `main_cash` dipilih karena ia satu-satunya sumber yang tak
-              menuntut penunjuk kas tertentu. Kalau pengeluarannya sungguh
-              dari kas kecil, orang mengoreksinya di halaman Pengeluaran —
-              sama seperti ia mengoreksi kategori yang salah tebak.
-            */
-            expense_source: 'main_cash',
-            submitted_by: request.currentUser!.id,
-          }
-          break
-        case 'permintaan_material':
-          /*
-            `mr_number` SENGAJA tidak diisi — `trg_generate_mr_number`
-            mengisinya (diukur ke `pg_trigger`). Menghitungnya sendiri dari
-            jumlah baris akan menabrak nomor yang masih terpakai begitu ada
-            MR yang pernah dihapus, dan galatnya muncul sebagai "gagal
-            menyimpan" yang tak menyebut sebabnya.
-
-            `status` juga tidak diisi: bawaannya membuat MR ini masuk antrean
-            approval yang sama dengan pengajuan lewat halaman biasa. MR yang
-            lahir dari percakapan tak boleh melewati satu pun gerbang.
-          */
-          baris = {
-            ...dasar,
-            ...t.muatan,
-            requested_by: request.currentUser!.id,
-          }
-          break
-        case 'kasbon':
-          /*
-            `status` SENGAJA tidak diisi — bawaannya `pending` (diukur ke
-            `information_schema`, bukan diingat). Itu bukan kebetulan yang
-            beruntung, itu justru alasan kasbon boleh ditulis lewat percakapan:
-            ia LAHIR di antrean approval.
-
-            Menuliskan `status` di sini — sekalipun nilainya `'pending'` juga —
-            berarti membuat jalur kedua yang menentukan status kasbon. Yang
-            kedua akan menyimpang saat bawaannya berubah, dan menyimpangnya tak
-            terbaca sampai ada kasbon yang lolos tanpa disetujui.
-
-            `company_id` juga tidak diisi: `trg_kasbons_isi_company`
-            mengisinya, dan `.from()` di bawah juga menyisipkannya.
-          */
-          baris = {
-            project_id: t.project_id,
-            amount: t.muatan.jumlah,
-            purpose: t.muatan.keperluan,
-            fund_source: t.muatan.sumber_dana ?? 'owner_advance',
-            requested_by: request.currentUser!.id,
-          }
-          break
-        default:
-          request.log.error({ jenis: t.jenis }, 'ai/tulis: jenis tak dikenali saat menulis')
-          return reply.status(500).send({
-            error: `Jenis '${t.jenis}' belum punya bentuk baris — penyiapannya lolos tetapi penulisannya tidak.`,
+      if (!hasilKlaim.ok) {
+        if (hasilKlaim.sebab === 'bukan_pemilik') {
+          void logAuditEvent(request, {
+            tableName: 'ai_token_tulis',
+            recordId: request.currentUser!.id,
+            action: 'ai.tulis.ditolak',
+            actorId: request.currentUser!.id,
+            newValues: { alasan: 'bukan_pemilik_token' },
+            severity: 'critical',
           })
-      }
-
-      /*
-        Jalur tenancy DIPILIH dari `meta.tenancy`, bukan ditebak dari nama
-        tabel.
-
-        Sampai 2026-08-15 semua entitas kategori C, jadi satu `viaProject()`
-        cukup. `kasbons` kategori B — `company_id` miliknya sendiri, bukan
-        diwarisi proyek — dan memaksakannya lewat `viaProject()` akan menyaring
-        pakai kolom yang tak dipakai tabel itu.
-
-        Pemisahan ini tetap tak melonggarkan apa pun: `meta.tabel` bertipe
-        `TabelViaProject | TabelKategoriBDiizinkan`, dan yang kedua daftar
-        tangan berisi satu nama. Tabel yang tak terdaftar tetap gagal COMPILE,
-        bukan gagal saat dijalankan.
-      */
-      const sasaran =
-        meta.tenancy === 'B'
-          ? request.db!.from(meta.tabel as TabelKategoriBDiizinkan)
-          : request.db!.viaProject(meta.tabel as TabelViaProject, t.project_id)
-
-      const { data: hasil, error: errTulis } = await sasaran.insert(baris).select('id')
-
-      if (errTulis) {
-        /*
-         * Token SUDAH habis meski tulisannya gagal, dan itu disengaja.
-         *
-         * Mengembalikannya berarti token bisa dicoba berulang kali — pintu
-         * untuk mencoba-coba sampai satu percobaan lolos. Pengguna cukup
-         * meminta asisten menyiapkan lagi; ongkosnya satu pesan.
-         */
-        request.log.error({ err: errTulis, jenis: t.jenis }, 'ai/tulis: gagal menyimpan')
-        void logAuditEvent(request, {
-          tableName: meta.tabel,
-          recordId: t.project_id,
-          action: 'ai.tulis.gagal',
-          actorId: request.currentUser!.id,
-          newValues: { jenis: t.jenis, galat: errTulis.message },
-          severity: 'critical',
-        })
-        return reply.status(500).send({ error: `Gagal menyimpan: ${errTulis.message}` })
-      }
-
-      const idBaru = (hasil as Array<{ id: string }>)?.[0]?.id ?? null
-
-      // Jejak dari NIAT ke HASIL: tanpa `hasil_id`, tak ada cara menghubungkan
-      // baris yang tercipta dengan token yang membuatnya.
-      //
-      // best-effort: barisnya SUDAH tersimpan. Nol baris di sini hanya berarti
-      // tokennya lenyap di antara klaim dan penautan — jejaknya putus, tetapi
-      // membatalkan tulisan yang sudah ada jauh lebih berisiko. Dicatat di
-      // bawah supaya putusnya terlihat.
-      const { error: errJejak } = await request.db!
-        .from('ai_token_tulis')
-        .update({ hasil_id: idBaru })
-        .eq('id', t.id)
-        .select('id')
-
-      // Gagal menautkan jejak TIDAK membatalkan tulisannya — barisnya sudah
-      // ada, dan membatalkan sesuatu yang sudah tersimpan lebih berisiko
-      // daripada kehilangan tautannya. Tapi ia juga tak boleh hilang:
-      // "siapa yang mencatat ini lewat asisten?" jadi tak terjawab.
-      if (errJejak) {
-        request.log.error(
-          { err: errJejak, token: t.id, hasil: idBaru },
-          'ai/tulis: hasil_id gagal ditautkan — jejak niat→hasil terputus',
-        )
+        }
+        if (hasilKlaim.sebab === 'gagal_simpan') {
+          void logAuditEvent(request, {
+            tableName: 'ai_token_tulis',
+            recordId: request.currentUser!.id,
+            action: 'ai.tulis.gagal',
+            actorId: request.currentUser!.id,
+            newValues: { jenis: hasilKlaim.jenis, galat: hasilKlaim.pesan },
+            severity: 'critical',
+          })
+        }
+        return reply.status(KODE_SEBAB[hasilKlaim.sebab]).send({ error: hasilKlaim.pesan })
       }
 
       void logAuditEvent(request, {
-        tableName: meta.tabel,
-        recordId: idBaru ?? t.project_id,
+        tableName: hasilKlaim.tabel,
+        recordId: hasilKlaim.id ?? hasilKlaim.projectId,
         action: 'ai.tulis.berhasil',
         actorId: request.currentUser!.id,
         // Muatan ikut: yang tersimpan lewat asisten harus bisa ditelusuri
         // sampai ke isinya, bukan hanya ke fakta bahwa ia terjadi.
-        newValues: { jenis: t.jenis, ringkasan: t.ringkasan, muatan: t.muatan },
+        newValues: {
+          jenis: hasilKlaim.jenis,
+          ringkasan: hasilKlaim.ringkasan,
+          muatan: hasilKlaim.muatan,
+        },
         severity: 'critical',
       })
 
-      return reply.send({ ok: true, id: idBaru, jenis: t.jenis, ringkasan: t.ringkasan })
+      return reply.send({
+        ok: true,
+        id: hasilKlaim.id,
+        jenis: hasilKlaim.jenis,
+        ringkasan: hasilKlaim.ringkasan,
+      })
     },
   )
 }
+

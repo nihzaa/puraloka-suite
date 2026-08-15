@@ -535,6 +535,21 @@ jobs:
       - name: Jalur UI inbox menunjuk halaman nyata
         run: node scripts/audit-inbox-jalur-nyata.mjs
 
+      # Konfirmasi tulis lewat WhatsApp tak boleh melonggar.
+      #
+      # Di WhatsApp, kata "ya" adalah satu-satunya yang memisahkan usulan dari
+      # kasbon yang benar-benar tercatat atas nama seseorang. Cara paling wajar
+      # menuliskannya juga yang paling berbahaya: `teks.includes('ya')` akan
+      # menyetujui "yang penting jangan dulu" — kalimat yang artinya menolak.
+      # Tak ada galat, tak ada gejala; yang mengetiknya baru tahu saat approver
+      # bertanya.
+      #
+      # Bukti merah (2026-08-16): `includes` disuntikkan → exit 1; jendela
+      # dinaikkan 20 menit → exit 1; saringan `user_id` dihapus → exit 1;
+      # batal jadi `.delete()` → exit 1. Dipulihkan → exit 0.
+      - name: Konfirmasi WhatsApp tetap ketat
+        run: node scripts/audit-konfirmasi-wa-tak-longgar.mjs
+
       # Kredensial tak boleh dipakai tenant yang bukan pemiliknya.
       #
       # Founder 2026-08-14: "harus disiapkan kalo nanti banyak perusahaan".

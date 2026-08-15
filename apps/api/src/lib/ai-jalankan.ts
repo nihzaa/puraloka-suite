@@ -203,6 +203,22 @@ export const GAYA_WHATSAPP = [
   '  markdown selain daftar bertanda "-".',
   '- Kalau jawabannya panjang, berikan angka terpentingnya lalu sebutkan',
   '  halaman aplikasi tempat rinciannya bisa dilihat.',
+  /*
+   * Cara konfirmasi BERBEDA di kanal ini, dan salah menyebutkannya membuat
+   * fiturnya mati.
+   *
+   * `siapkan_tulis` menyuruh "tekan tombol konfirmasi di aplikasi" — benar di
+   * web, mustahil di WhatsApp. Sampai 2026-08-16 kalimat itu terkirim apa
+   * adanya ke orang lapangan, yang lalu mencari tombol yang memang tak ada
+   * sambil tokennya mati diam-diam.
+   */
+  '- Untuk menyimpan catatan: SETELAH memakai `siapkan_tulis`, sebutkan',
+  '  ringkasannya lalu minta pengguna membalas "ya" untuk menyimpan atau',
+  '  "batal" untuk membatalkan. JANGAN menyuruhnya menekan tombol atau',
+  '  membuka aplikasi — di WhatsApp tak ada tombol.',
+  '- Balasan "ya" hanya berlaku beberapa menit. Kalau lewat, siapkan ulang.',
+  '- JANGAN pernah mengatakan sesuatu SUDAH tersimpan sebelum pengguna',
+  '  membalas "ya" dan sistem menjawab "Tersimpan".',
 ].join('\n')
 
 /**

@@ -198,6 +198,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-saluran-keluar-berpagar.mjs` | modul ber-`fetch` wajib berpagar `NODE_ENV==='test'` — test tak boleh mengirim WA/tagihan sungguhan (ambang NOL) |
 | `audit-alur-tercatat.mjs` | webhook n8n wajib lewat `jalankanAlur()` — eksekusi tak boleh luput dari `otomasi_jalan` (ambang NOL) |
 | `audit-inbox-jalur-nyata.mjs` | `jalurUi` inbox approval wajib menunjuk halaman yang ada (ambang NOL) |
+| `audit-konfirmasi-wa-tak-longgar.mjs` | "ya" dari WhatsApp dicocokkan UTUH, bukan `includes()`; jendela < umur token; token disaring per-user (ambang NOL) |
 | `audit-kredensial-lintas-tenant.mjs` | kunci tenant lain hanya lewat warisan induk berpagar; jatuhan `.env` hanya grup AI (ambang NOL) |
 | `audit-keanggotaan-punya-default.mjs` | pengguna aktif wajib punya keanggotaan default — tanpa itu RLS menyaring habis (ambang NOL) |
 | `audit-izin-benar-ada.mjs` | kunci `requirePermission` wajib ada di tabel `permissions` — kunci hantu menolak SEMUA orang tanpa gejala (ambang NOL) |

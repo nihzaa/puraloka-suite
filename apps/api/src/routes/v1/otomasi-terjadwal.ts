@@ -2610,6 +2610,502 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/serapan-anggaran ────────────────────────
+  //
+  // Automation 2.9 — Budget vs Actual.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // SAYA SEMPAT MEMBATALKAN INI. PEMBATALANNYA SALAH.
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Alasan pembatalan (2026-08-16): `project_expenses` NOL baris, sementara
+  // Rp 545 juta ada di `kasbons` — jadi otomasi akan melaporkan 0% untuk
+  // proyek yang sebenarnya 45%.
+  //
+  // Diukur ulang sesudah founder bertanya "emang gabisa banget dibangun?":
+  //
+  //     trg_kasbon_approved_create_expense
+  //       AFTER UPDATE ... IF NEW.status='approved' AND OLD.status<>'approved'
+  //       → INSERT INTO project_expenses
+  //
+  // Kasbon yang disetujui MEMANG membuat baris pengeluaran. `project_expenses`
+  // kosong karena data seed **disisipkan langsung** berstatus `approved`,
+  // sehingga trigger `AFTER UPDATE` tak pernah menyala.
+  //
+  // Jadi yang saya temukan bukan cacat rancangan melainkan **artefak seed**.
+  // Di produksi `analisaProyek` membaca sumber yang benar, dan otomasi ini
+  // bekerja sebagaimana mestinya.
+  //
+  // Pelajarannya: "tabel sumbernya kosong" bukan alasan yang cukup. Yang harus
+  // ditanyakan adalah KENAPA kosong — dan jawabannya di sini membalikkan
+  // kesimpulan.
+  //
+  // ── Memanggil rutenya, bukan merakit ulang
+  //
+  // Pola 3.18: `server.inject` ke `/api/v1/cost-analytics/portfolio`, sehingga
+  // angka di notifikasi dijamin sama dengan angka di layar Portofolio Biaya.
+  // Merakit ulang BAC/serapan di sini berarti dua sumber untuk satu angka.
+  app.get('/api/v1/otomasi/jalankan/serapan-anggaran', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { persen?: string }
+    const ambangPersen = await ambilAmbang(request, 'otomasi.serapan_anggaran.persen', q.persen)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['serapan_anggaran'])
+
+    const res = await request.server.inject({
+      method: 'GET',
+      url: '/api/v1/cost-analytics/portfolio',
+      headers: {
+        authorization: request.headers.authorization ?? '',
+        'x-company-id': (request.headers['x-company-id'] as string) ?? '',
+      },
+    })
+
+    if (res.statusCode !== 200) {
+      /*
+        Endpoint portofolio kini MELEMPAR saat salah satu querynya gagal
+        (diperbaiki hari ini juga). Otomasi mewarisi kejujuran itu: lebih baik
+        mati daripada mengirim "semua proyek 0%" yang lahir dari kegagalan.
+      */
+      request.log.error({ status: res.statusCode }, 'serapan-anggaran: portofolio tak terhitung')
+      return reply.status(500).send({
+        error: `Portofolio biaya tak bisa dihitung (${res.statusCode}).`,
+      })
+    }
+
+    /*
+      TANPA `?? []`, dan itu disengaja.
+
+      Status 200 sudah diperiksa di atas, jadi sampai di sini responsnya sah.
+      Menulis `?? []` di sini tetap ditandai `audit-kegagalan-senyap` — dan
+      penandaan itu BENAR sebagai aturan umum: pola itulah yang membuat
+      gangguan basis terbaca sebagai "nol baris" di puluhan tempat lain.
+
+      Bentuk yang menggantikannya memeriksa BENTUKNYA: respons 200 yang tak
+      membawa larik `data` berarti endpoint portofolio berubah kontrak, dan itu
+      layak berhenti keras — bukan diteruskan sebagai "nol proyek", yang akan
+      terbaca persis seperti perusahaan tanpa proyek.
+
+      Pola yang sama dipakai `ai-tulis.ts` untuk alasan yang sama.
+    */
+    const badan = res.json() as {
+      data?: Array<{
+        projectId: string; nama: string; status: string
+        pagu: number; serapan: number
+        serapanPct: number | null; dasarPembanding: string
+      }>
+    }
+
+    if (!Array.isArray(badan.data)) {
+      request.log.error({ badan }, 'serapan-anggaran: portofolio tak membawa larik data')
+      return reply.status(500).send({
+        error: 'Portofolio biaya membalas bentuk yang tak dikenali.',
+      })
+    }
+    const daftar = badan.data
+
+    let dibuat = 0
+    let diperiksa = 0
+    let takTerhitung = 0
+
+    for (const p of daftar) {
+      /*
+        Hanya proyek AKTIF. Yang `completed` tak lagi bisa diperbaiki, dan yang
+        `draft` belum punya rencana untuk dilampaui.
+      */
+      if (p.status !== 'active') continue
+
+      /*
+        `serapanPct === null` berarti pagunya nol — proyek tanpa RAP, RAB,
+        maupun nilai kontrak. Itu KETIADAAN DATA, bukan pemborosan, dan
+        menegur orang karenanya membuat mereka berhenti mempercayai pesannya.
+
+        Pustakanya sengaja memulangkan `null` alih-alih 0 untuk membedakan
+        keduanya — pembedaan itu akan sia-sia kalau otomasi menyamakannya lagi.
+      */
+      if (p.serapanPct === null || !Number.isFinite(p.serapanPct)) {
+        takTerhitung++
+        continue
+      }
+
+      diperiksa++
+      if (p.serapanPct < ambangPersen) continue
+      if (sudah('serapan_anggaran', p.projectId)) continue
+
+      const penerima = await resolveRecipients('serapan_anggaran', {
+        projectId: p.projectId, companyId: request.companyId!,
+      })
+
+      /*
+        `dasarPembanding` WAJIB ikut di pesannya.
+
+        RAB adalah harga JUAL, bukan biaya. Persentase terhadapnya terlihat
+        lebih kecil daripada kenyataan, dan pustakanya sendiri memperingatkan
+        itu. Angka tanpa dasarnya mengundang keputusan yang lebih percaya diri
+        daripada datanya.
+      */
+      const labelDasar = p.dasarPembanding === 'rap_locked'
+        ? 'pagu RAP terkunci'
+        : p.dasarPembanding === 'rab'
+          ? 'nilai RAB (harga jual — serapan sesungguhnya lebih tinggi)'
+          : 'nilai kontrak'
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      p.serapanPct >= 100 ? 'Anggaran Proyek Terlampaui' : 'Serapan Anggaran Tinggi',
+          message:
+            `Proyek "${p.nama}": serapan ${p.serapanPct.toFixed(1)}% `
+            + `(${rp(p.serapan)} dari ${rp(p.pagu)}), dihitung terhadap ${labelDasar}.`,
+          type:       'serapan_anggaran',
+          priority:   p.serapanPct >= 100 ? 'urgent' : 'high',
+          project_id: p.projectId,
+          action_url: `/proyek/${p.projectId}#sec-rab`,
+          action_data: {
+            record_id: p.projectId,
+            serapan_pct: p.serapanPct,
+            dasar: p.dasarPembanding,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_di_portofolio: daftar.length,
+        diperiksa,
+        // Dilaporkan EKSPLISIT: "0 notifikasi" tak boleh terbaca sebagai
+        // "semua hemat" saat sebenarnya pagunya tak diketahui.
+        tanpa_pagu: takTerhitung,
+        ambang_persen: ambangPersen,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/absensi-berhenti ────────────────────────
+  //
+  // Automation 6.3 — dan BUKAN "validasi absensi" seperti namanya di katalog.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // TIGA DIMENSI DIMINTA; DUA TAK BISA, SATU BISA DAN BERGUNA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Katalog meminta: tak absen berhari-hari · absen tanpa penugasan · jam kerja
+  // tak masuk akal. Diukur satu per satu:
+  //
+  //   "jam kerja tak masuk akal"  MUSTAHIL. `absensi_harian` tak punya jam
+  //                               masuk/keluar sama sekali — hanya
+  //                               `porsi_hari`, dan CHECK sudah mengunci 0–1
+  //                               serta lembur 0–16. Pelanggaran: NOL, dan
+  //                               akan selalu nol. Detektor yang tak mungkin
+  //                               berbunyi memberi rasa aman palsu.
+  //
+  //   "absen tanpa penugasan"     85% baris (1.088 dari 1.279) di luar rentang
+  //                               scope-nya. Itu bentuk seed, bukan
+  //                               pelanggaran — mengirimkannya berarti 1.088
+  //                               peringatan tentang data uji.
+  //
+  //   "tak absen berhari-hari"    BISA, tetapi bukan sebagai tuduhan kepada
+  //                               PEKERJA. Diukur: 60 dari 60 pekerja aktif
+  //                               berjarak ≥7 hari, karena seed berhenti di
+  //                               2026-08-08. Yang sesungguhnya terjadi bukan
+  //                               "semua orang mangkir" melainkan "tak ada
+  //                               yang mencatat".
+  //
+  // Jadi yang dibangun peringatan OPERASIONAL, satu pesan per scope:
+  // **mandor berhenti mencatat absensi**. Itu keadaan yang benar-benar terjadi
+  // di lapangan, punya penerima yang jelas, dan tindakannya tunggal — tanyakan
+  // ke mandornya.
+  //
+  // Satu pesan per scope, bukan per pekerja: enam puluh pesan tentang satu
+  // sebab yang sama adalah kebisingan, bukan enam puluh kabar.
+  app.get('/api/v1/otomasi/jalankan/absensi-berhenti', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.absensi_berhenti.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['absensi_berhenti'])
+
+    const { data: proyek, error: eProy } = await request.db!
+      .from('projects')
+      .select('id, name')
+      .eq('status', 'active')
+
+    if (eProy) return reply.status(500).send({ error: eProy.message })
+
+    let dibuat = 0
+    let scopeDiperiksa = 0
+    let scopeBerhenti = 0
+
+    for (const p of proyek ?? []) {
+      const pid = p.id as string
+
+      /*
+        RANTAINYA TIGA LAPIS, dan bentuk pertama saya melewatkannya:
+
+            absensi_harian.scope_id → work_scopes.assignment_id
+                                    → mandor_assignments.project_id
+
+        `work_scopes` kategori C lewat **`assignment_id`**, bukan `project_id`.
+        Saya sempat menulis `viaProject('work_scopes', pid)` — mengoper id
+        PROYEK ke tempat yang menunggu id PENUGASAN. Hasilnya nol baris, rute
+        balas 200, nol notifikasi, dan tak ada satu pun galat.
+
+        Terukur saat dijalankan sungguhan: 17 lingkup aktif memenuhi syarat,
+        otomasinya mengirim NOL. Typecheck tak bisa menangkapnya karena
+        keduanya `string`; hanya menjalankannya yang bisa.
+
+        Pola yang benar sama dengan `temuan_k3` di `k3-kepatuhan`: ambil induk
+        yang SEHARUSNYA lewat `viaProject()`, lalu turunannya lewat `unsafe`
+        yang disaring ke id hasil query pertama.
+      */
+      const { data: tugas, error: eTugas } = await request.db!
+        .viaProject('mandor_assignments', pid)
+        .select('id')
+
+      if (eTugas) {
+        request.log.warn({ err: eTugas, projectId: pid }, 'absensi-berhenti: penugasan tak terbaca')
+        continue
+      }
+
+      const idTugas = (tugas ?? []).map((t) => t.id as string)
+      if (idTugas.length === 0) continue
+
+      const { data: scope, error: eScope } = await request.db!
+        .unsafe('work_scopes',
+          'disaring ke id penugasan yang barisnya sudah lewat RLS pada query di atas')
+        .select('id, scope_name')
+        .in('assignment_id', idTugas)
+        .eq('status', 'active')
+
+      if (eScope) {
+        request.log.warn({ err: eScope, projectId: pid }, 'absensi-berhenti: scope tak terbaca')
+        continue
+      }
+
+      const idScope = (scope ?? []).map((s) => s.id as string)
+      if (idScope.length === 0) continue
+
+      const namaScope = new Map(
+        (scope ?? []).map((s) => [s.id as string, s.scope_name as string]),
+      )
+
+      /*
+        `absensi_harian` kategori C lewat `scope_id`. Disaring ke id scope yang
+        barisnya sudah lewat RLS pada query di atas — alasan yang sama dengan
+        `temuan_k3` di `k3-kepatuhan`.
+      */
+      const { data: absen, error: eAbsen } = await request.db!
+        .unsafe('absensi_harian',
+          'disaring ke id scope yang barisnya sudah lewat RLS pada query di atas')
+        .select('scope_id, tanggal')
+        .in('scope_id', idScope)
+
+      if (eAbsen) {
+        request.log.warn({ err: eAbsen, projectId: pid }, 'absensi-berhenti: absensi tak terbaca')
+        continue
+      }
+
+      // Tanggal TERAKHIR per scope — dihitung di memori, bukan lewat satu
+      // query per scope yang akan jadi N+1 begitu proyeknya bertambah.
+      const terakhir = new Map<string, string>()
+      for (const a of absen ?? []) {
+        const sid = a.scope_id as string
+        const tgl = String(a.tanggal).slice(0, 10)
+        const lama = terakhir.get(sid)
+        if (!lama || tgl > lama) terakhir.set(sid, tgl)
+      }
+
+      const penerima = await resolveRecipients('absensi_berhenti', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      for (const sid of idScope) {
+        scopeDiperiksa++
+        const tgl = terakhir.get(sid)
+
+        /*
+          Scope yang BELUM PERNAH dicatat sekalipun dilewati, bukan ditegur.
+
+          Ia bisa saja baru dibuat hari ini. Membedakan "belum mulai" dari
+          "berhenti" butuh tanggal mulai scope-nya, dan menuduh yang pertama
+          sebagai yang kedua adalah tuduhan atas pekerjaan yang belum jalan.
+        */
+        if (!tgl) continue
+
+        const jarak = Math.round(
+          (Date.parse(today + 'T00:00:00Z') - Date.parse(tgl + 'T00:00:00Z')) / 86_400_000,
+        )
+        if (jarak < ambangHari) continue
+
+        scopeBerhenti++
+        if (sudah('absensi_berhenti', sid)) continue
+
+        for (const uid of penerima) {
+          await createNotification({
+            company_id: request.companyId!,
+            user_id:    uid,
+            title:      'Absensi Berhenti Dicatat',
+            message:
+              `Proyek "${p.name}", lingkup "${namaScope.get(sid) ?? sid}": `
+              + `absensi terakhir ${jarak} hari lalu (${tgl}). `
+              + 'Tanyakan ke mandornya — tanpa absensi, upah tak bisa dihitung.',
+            type:       'absensi_berhenti',
+            priority:   jarak >= ambangHari * 2 ? 'urgent' : 'high',
+            project_id: pid,
+            action_url: '/mandor/absensi',
+            action_data: { record_id: sid, hari_sejak: jarak, terakhir: tgl },
+          })
+          dibuat++
+        }
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        scope_aktif: scopeDiperiksa,
+        scope_berhenti: scopeBerhenti,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/subkon-tak-layak ────────────────────────
+  //
+  // Automation 3.6 — dan BUKAN "scoring" maupun deteksi penurunan.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA BUKAN TREN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Deteksi penurunan butuh ≥2 periode per pihak. Diukur:
+  //
+  //     evaluasi_subkon  : 1 dari 4 pihak punya ≥2 periode
+  //     evaluasi_vendor  : 0 dari 4 supplier
+  //
+  // Dan satu-satunya yang punya tren justru NAIK (mutu 60 → 90).
+  //
+  // Tetapi itu bukan alasan utamanya, karena periode akan terisi sendiri
+  // seiring waktu. Yang TIDAK akan sembuh sendiri: **identitas pihaknya tak
+  // stabil.** Tiga dari lima baris ber-`supplier_id` NULL, dikenali hanya lewat
+  // teks bebas `pihak_nama`. Mengelompokkan tren dengan string bebas berarti
+  // satu salah ketik menciptakan subjek baru — dan trennya patah tanpa gejala.
+  //
+  // ── Yang dibangun: STATUS, bukan tren
+  //
+  // `nilaiEvaluasiSubkon()` sudah memulangkan `bolehDipakai` beserta
+  // alasannya: daftar hitam, ada kecelakaan, atau ≥3 pelanggaran K3. Itu
+  // keadaan satu baris — tak butuh periode kedua, tak butuh identitas stabil,
+  // dan terukur ADA: 2 dari 5 baris memenuhi hari ini.
+  //
+  // Dan ia lebih mendesak daripada tren: subkon yang tak boleh dipakai tetapi
+  // masih diundang adalah risiko yang berjalan hari ini, bukan kecenderungan.
+  app.get('/api/v1/otomasi/jalankan/subkon-tak-layak', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiEvaluasiSubkon } = await import('../../lib/kepatuhan-k3.js')
+    type EvaluasiSubkon = import('../../lib/kepatuhan-k3.js').EvaluasiSubkon
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['subkon_tak_layak'])
+
+    // Kategori B — `.from()` sudah menyaringnya ke tenant.
+    const { data: evaluasi, error } = await request.db!
+      .from('evaluasi_subkon')
+      .select(`id, supplier_id, pihak_nama, periode, skor_mutu, skor_waktu,
+               skor_k3, skor_kepatuhan, skor_kerjasama, jumlah_kecelakaan,
+               jumlah_pelanggaran_k3, masuk_daftar_hitam`)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    /*
+      Hanya evaluasi TERBARU per pihak yang dinilai.
+
+      Tanpa ini, subkon yang tahun lalu masuk daftar hitam lalu diperbaiki
+      tetap ditegur berdasar baris lamanya — dan pesan yang menuduh atas
+      keadaan yang sudah berubah adalah cara tercepat membuat orang berhenti
+      membacanya.
+
+      Kuncinya `supplier_id` kalau ada, `pihak_nama` kalau tidak. Itu memang
+      rapuh (3 dari 5 baris tanpa supplier_id), tetapi di sini rapuhnya hanya
+      berarti dua baris pihak yang sama dinilai terpisah — bukan tren yang
+      patah diam-diam.
+    */
+    const terbaru = new Map<string, Record<string, unknown>>()
+    for (const e of evaluasi ?? []) {
+      const kunci = (e.supplier_id as string | null) ?? `nama:${e.pihak_nama ?? '?'}`
+      const lama = terbaru.get(kunci)
+      if (!lama || String(e.periode) > String(lama.periode)) terbaru.set(kunci, e)
+    }
+
+    const penerima = await resolveRecipients('subkon_tak_layak', {
+      projectId: null, companyId: request.companyId!,
+    })
+
+    let dibuat = 0
+    let diperiksa = 0
+    let takLayak = 0
+
+    for (const e of terbaru.values()) {
+      diperiksa++
+      const hasil = nilaiEvaluasiSubkon(e as unknown as EvaluasiSubkon)
+      if (hasil.bolehDipakai) continue
+
+      takLayak++
+      const id = e.id as string
+      if (sudah('subkon_tak_layak', id)) continue
+
+      const nama = (e.pihak_nama as string | null) ?? 'Subkontraktor'
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Subkontraktor Tak Layak Dipakai',
+          message:
+            `${nama} tak boleh dipakai berdasar evaluasi ${String(e.periode).slice(0, 10)}: `
+            + `${hasil.alasanTakBolehDipakai.join('; ')}.`,
+          type:       'subkon_tak_layak',
+          priority:   'urgent',
+          /*
+            TANPA `project_id` — evaluasi melekat pada PIHAK. Dan `record_id`
+            memakai id evaluasinya, bukan `supplier_id`: tiga dari lima baris
+            tak punya `supplier_id`, jadi dedup berbasis supplier akan
+            menyatukan pihak yang tak berhubungan.
+          */
+          action_url: '/kepatuhan?bagian=evaluasi',
+          action_data: {
+            record_id: id,
+            skor: hasil.skor,
+            alasan: hasil.alasanTakBolehDipakai,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { pihak_dinilai: diperiksa, tak_layak: takLayak },
+    })
+  })
 }
 
 /**

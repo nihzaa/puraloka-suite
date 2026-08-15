@@ -2703,27 +2703,48 @@ items:
       nol di situ bukan ketegasan melainkan penjaga yang TAK MUNGKIN HIJAU, dan
       penjaga semacam itu akan dimatikan orang. Diubah jadi ratchet 8.
 
-  - id: ASISTEN-5
+  # ⚠ ID ini sempat KEMBAR dengan "Kasbon lewat percakapan" (baris ~2515,
+  # status done). Yang ini dinomori ulang jadi ASISTEN-6; yang lama dibiarkan
+  # supaya tautan di JOURNAL tidak putus.
+  - id: ASISTEN-6
     fase: null
     judul: "Konfirmasi tulis lewat WhatsApp — balasan 'ya' mengklaim token"
     blokir_oleh: [ASISTEN-4]
     kriteria_selesai:
       - "SUDAH: tombol konfirmasi di chat WEB (usul_tulis + kartu Simpan/Batal)"
-      - "BELUM: token yang menunggu disimpan per NOMOR, bukan cuma per user"
-      - "BELUM: balasan 'ya'/'betul'/'1' menafsirkan klaim token yang benar"
-      - "BELUM: token yang sudah lewat 15 menit tak boleh diklaim balasan telat"
+      - "SUDAH: balasan 'ya'/'oke'/'sip' mengklaim token; 'batal' membatalkannya"
+      - "SUDAH: jendela kalimat 3 menit — jauh lebih pendek dari umur token 15 menit"
+      - "SUDAH: DUA usulan hidup → 'ya' ditolak sebagai ambigu, tak menebak"
+      - "SUDAH: kalimat yang MEMUAT 'ya' ('yang penting jangan dulu') bukan konfirmasi"
+      - "SUDAH: penjaga CI ambang NOL + 4 mutasi terbukti merah"
     cara_verifikasi: >-
-      cd apps/api && npx vitest run src/lib/__tests__/usul-tulis.test.ts
-      src/routes/v1/__tests__/ai-tulis.test.ts (6+34 hijau)
+      cd apps/api && npx vitest run src/lib/__tests__/tulis-klaim.test.ts
+      src/lib/__tests__/tulis-konfirmasi-wa.test.ts (6+7 hijau) ·
+      node apps/api/scripts/audit-konfirmasi-wa-tak-longgar.mjs
     bobot: M
-    status: sebagian
+    status: done
     catatan_kemajuan: >-
-      Diukur 2026-08-16: asisten SUDAH bisa menyiapkan 5 jenis catatan dan
-      keempat asisten menawarkannya, tetapi NOL pemanggilan /api/v1/ai/tulis
-      di seluruh apps/web — tombolnya tak pernah ada. Web sudah tersambung
-      sekarang. WhatsApp belum: tokennya dirancang untuk KLIK, dan di WA tak
-      ada layar. Balasan telat yang mengklaim token salah adalah risiko
-      utamanya.
+      SELESAI 2026-08-16. Tiga rancangan ditimbang, dua DITOLAK dan alasannya
+      ditulis di kepala lib/tulis-klaim.ts. `server.inject` (pola ai-setujui)
+      gagal karena WhatsApp tak punya sesi untuk diteruskan. AKUN LAYANAN
+      ditolak lebih keras: penjadwal bertindak atas nama tak seorang pun,
+      sementara kasbon dari WhatsApp bertindak atas nama ORANG — memakai akun
+      layanan membuat requested_by menunjuk robot dan seluruh permission orang
+      itu lenyap. Menerbitkan JWT atas nama orang lain juga akan membuat siapa
+      pun yang menguasai sebuah nomor memperoleh sesi penuh korbannya.
+      Yang dipakai: ~230 baris logika klaim DIPINDAH dari handler rute ke
+      lib/tulis-klaim.ts, dan kedua kanal memanggil fungsi yang SAMA — jadi
+      tak ada jalur WhatsApp yang bisa menyimpang diam-diam dari jalur web.
+      Ditemukan saat mengukur: tool `siapkan_tulis` TIDAK menerbitkan token
+      (I-1: nol tool menulis), jadi di WhatsApp tak pernah ada apa pun untuk
+      dikonfirmasi. Webhook kini menerbitkannya sendiri sesudah model
+      mengusulkan, dengan validasi & batas nominal yang sama persis dengan
+      rute web — supaya WhatsApp tak jadi pintu yang lebih longgar.
+      GAYA_WHATSAPP juga diperbaiki: ia menyuruh "tekan tombol konfirmasi di
+      aplikasi", tombol yang di WhatsApp memang tak akan pernah ada.
+      Risiko utamanya (balasan telat mengklaim token yang salah) ditutup TIGA
+      lapis: jendela 3 menit, hanya token tunggal yang boleh diklaim, dan
+      frasa yang dicocokkan UTUH — bukan `includes()`.
 
   - id: OPS-1
     fase: null
@@ -2791,3 +2812,71 @@ items:
       Temuan sampingan: cost-control.ts:120 memakai Promise.all atas tiga
       query TANPA memeriksa error satu pun — endpoint portofolio bisa gagal
       senyap. Layak diperbaiki terlepas dari keputusan di atas.
+
+  - id: ASISTEN-13
+    fase: null
+    judul: "9.1 dokumen kepatuhan & izin proyek — dan tiga kandidat yang riset batalkan"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "memanggil nilaiKepatuhan() dan nilaiIzin(), tidak menyalin rumusnya"
+      - "dokumen tanpa masa berlaku (NPWP, BPJS) TIDAK ditegur"
+      - "hijauTapiMati terbawa ke action_data dan disebut di pesannya"
+      - "batas bawah menahan yang lewat terlalu lama"
+      - "izin_kerja & dokumen_prakualifikasi sengaja DIKELUARKAN"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/routes/v1/__tests__/otomasi-kepatuhan.test.ts
+      · lalu: node scripts/penjadwal-lokal.mjs --sekali --paksa kepatuhan-dokumen
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16. Satu-satunya dari EMPAT kandidat yang layak; tiga
+      lainnya dibatalkan riset (lihat ROADMAP-WORKFLOW §11).
+      Lingkup dipersempit: izin_kerja dikeluarkan (4 dari 4 kedaluwarsa, data
+      seed) dan dokumen_prakualifikasi dikeluarkan (7 dari 11 tanpa tanggal).
+      Sinyal terkuat hijauTapiMati — asuransi CAR lewat 106 hari sambil
+      bercentang terverifikasi; pesannya menyebut centang itu eksplisit.
+      Batas bawah terbukti: izin lewat 283 hari dilewati, PBG 46 hari tertangkap.
+      CHECK kepatuhan_verifikasi_lengkap sempat menolak test saya —
+      terverifikasi=true menuntut diverifikasi_oleh + diverifikasi_pada.
+
+  - id: TUNDA-3.6
+    fase: null
+    judul: "3.6 Subcontractor Scoring — ditunda, syarat masuk terukur"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "≥3 subkon punya ≥3 periode evaluasi dengan supplier_id NOT NULL"
+    cara_verifikasi: "SELECT supplier_id, count(DISTINCT periode) FROM evaluasi_subkon WHERE supplier_id IS NOT NULL GROUP BY 1 HAVING count(DISTINCT periode) >= 3"
+    bobot: S
+    status: ditunda
+    catatan_kemajuan: >-
+      Diukur 2026-08-16: evaluasi_subkon 1 dari 4 pihak punya ≥2 periode;
+      evaluasi_vendor NOL dari 4. Satu-satunya yang punya tren justru NAIK
+      (PT Baja Perkasa mutu 60 → 90). Otomasi "kinerja turun" akan mengirim
+      nol notifikasi selamanya.
+      Dua cacat struktural: 3 dari 5 baris ber-supplier_id NULL (identitas via
+      teks bebas pihak_nama — satu salah ketik = subjek baru), dan dinilai_oleh
+      NULL di seluruh baris.
+      KOREKSI asumsi saya: penilaian_kinerja BUKAN untuk subkon — FK-nya
+      pegawai_id, itu penilaian PEGAWAI.
+
+  - id: TUNDA-6.3
+    fase: null
+    judul: "6.3 Attendance Validation — ditunda, syarat masuk terukur"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "absensi bergerak dalam 3 hari terakhir"
+      - "<20% pekerja aktif yang jaraknya melampaui ambang"
+    cara_verifikasi: "SELECT max(tanggal) FROM absensi_harian; lalu sebaran hari-sejak-absensi per pekerja aktif"
+    bobot: S
+    status: ditunda
+    catatan_kemajuan: >-
+      Diukur 2026-08-16: absensi_harian 1.279 baris tapi BEKU di 2026-08-08
+      (7 hari lalu). 60 dari 60 pekerja aktif (100%) tak absen ≥7 hari —
+      otomasi akan mengirim 60 notifikasi hari pertama, melaporkan "basis dev
+      berhenti diisi" bukan "pekerja mangkir".
+      Ketiga dimensi mati: jam tak masuk akal MUSTAHIL (tak ada jam
+      masuk/keluar, CHECK sudah mengunci, 0 pelanggaran); absen tanpa
+      penugasan 85% baris (kebisingan seed); timesheet 7 baris 1 pegawai.
+      Yang paling patut dicatat: satu-satunya detektor yang sunyi justru sunyi
+      karena CHECK constraint menutup jalannya — otomasi yang tak mungkin
+      berbunyi memberi rasa aman palsu.

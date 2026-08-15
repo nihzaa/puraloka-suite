@@ -449,13 +449,35 @@ describe('daftar putih — yang tak terdaftar tak punya jalan', () => {
       kalau ada baris yang benar-benar memakai `petty_cash`, dan pada saat itu
       uangnya sudah berpindah.
     */
-    const { readFile } = await import('node:fs/promises')
-    const src = await readFile(new URL('../ai-tulis.ts', import.meta.url), 'utf8')
+    /*
+      Berkasnya PINDAH 2026-08-16, dan test ini ikut pindah bersamanya.
 
-    expect(src, "ai-tulis.ts tak lagi memaku expense_source — cek trigger petty cash")
+      Logika klaim (~230 baris) dipindah dari handler rute ke
+      `lib/tulis-klaim.ts` supaya WhatsApp bisa memanggilnya tanpa `request`.
+      Test ini sempat merah karena masih membaca `ai-tulis.ts` — dan merahnya
+      BENAR: kalau ia dibiarkan menunjuk berkas lama, ia akan hijau selamanya
+      tanpa memeriksa apa pun, persis kelas penjaga-buta yang sudah empat kali
+      terjadi di repo ini.
+
+      Kedua jalur penerbitan diperiksa sekaligus: rute web dan penerbit
+      WhatsApp. Yang kedua ada supaya WhatsApp tak jadi pintu yang lebih
+      longgar daripada web.
+    */
+    const { readFile } = await import('node:fs/promises')
+    const klaim = await readFile(new URL('../../../lib/tulis-klaim.ts', import.meta.url), 'utf8')
+
+    expect(klaim, 'tulis-klaim.ts tak lagi memaku expense_source — cek trigger petty cash')
       .toMatch(/expense_source:\s*'main_cash'/)
-    expect(src, 'ai-tulis.ts menyebut petty_cash — saldo bisa bergerak saat INSERT')
+    expect(klaim, 'tulis-klaim.ts menyebut petty_cash — saldo bisa bergerak saat INSERT')
       .not.toMatch(/expense_source:\s*'petty_cash'/)
+
+    // Penerbit token WhatsApp: batas nominalnya wajib SAMA dengan rute web.
+    const wa = await readFile(
+      new URL('../../../lib/tulis-konfirmasi-wa.ts', import.meta.url),
+      'utf8',
+    )
+    expect(wa, 'penerbit WA menyebut petty_cash — saldo bisa bergerak lewat kalimat')
+      .not.toMatch(/petty_cash/)
   })
 
   it('NOL aksi hapus di seluruh daftar putih', () => {

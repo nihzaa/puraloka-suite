@@ -530,6 +530,81 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'datanya belum terisi tanggal secara sistematis.',
   },
 
+  {
+    kunci: 'serapan-anggaran',
+    nomor: '2.9',
+    nama: 'Serapan anggaran tinggi',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Memberi tahu ketika belanja proyek mendekati atau melampaui pagunya. '
+      + 'Angkanya diambil dari perhitungan yang sama dengan layar Portofolio '
+      + 'Biaya, jadi tak mungkin berselisih.',
+    penerima: 'Manajer proyek dan bagian keuangan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Meminta perhitungan portofolio biaya — perhitungan yang sama dengan yang dilihat di layar.' },
+      { di: 'sistem', teks: 'Melewati proyek yang belum punya pagu sama sekali.' },
+      { di: 'sistem', teks: 'Membandingkan serapannya dengan batas persen yang disetel.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.serapan_anggaran.persen',
+    catatan:
+      'Pesannya SELALU menyebut angka itu dihitung terhadap apa. Kalau dasarnya '
+      + 'nilai RAB, serapan sesungguhnya lebih tinggi daripada yang tertulis — '
+      + 'RAB adalah harga jual, bukan biaya. Proyek tanpa pagu dilewati: itu '
+      + 'ketiadaan data, bukan penghematan.',
+  },
+  {
+    kunci: 'absensi-berhenti',
+    nomor: '6.3',
+    nama: 'Absensi berhenti dicatat',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Memberi tahu ketika sebuah lingkup kerja berhenti dicatat absensinya '
+      + 'beberapa hari. Tanpa absensi, upah tak bisa dihitung — dan yang tak '
+      + 'tercatat biasanya baru ketahuan saat penggajian.',
+    penerima: 'Yang mengurus mandor dan manajer proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengambil lingkup kerja yang masih berjalan di tiap proyek aktif.' },
+      { di: 'sistem', teks: 'Mencari tanggal absensi terakhir tiap lingkup.' },
+      { di: 'sistem', teks: 'Menandai yang jaraknya melewati batas hari.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.absensi_berhenti.hari',
+    catatan:
+      'Ini peringatan OPERASIONAL, bukan tuduhan kepada pekerja — satu pesan '
+      + 'per lingkup kerja, bukan per orang. Katalog aslinya meminta juga '
+      + '"jam kerja tak masuk akal", tetapi sistem ini tak mencatat jam masuk '
+      + 'dan keluar sama sekali; yang ada hanya porsi hari, dan batasnya sudah '
+      + 'dijaga basis. Lingkup yang belum pernah dicatat sekalipun dilewati — '
+      + 'ia bisa saja baru dibuat.',
+  },
+  {
+    kunci: 'subkon-tak-layak',
+    nomor: '3.6',
+    nama: 'Subkontraktor tak layak dipakai',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai subkontraktor yang menurut evaluasi terakhirnya tak boleh '
+      + 'dipakai — masuk daftar hitam, pernah ada kecelakaan, atau pelanggaran '
+      + 'keselamatan berulang.',
+    penerima: 'Bagian pengadaan dan kepatuhan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengambil evaluasi TERBARU tiap subkontraktor.' },
+      { di: 'sistem', teks: 'Menilainya — penilaian yang sama dengan layar Kepatuhan.' },
+      ...LANGKAH_KIRIM,
+    ],
+    catatan:
+      'Katalog aslinya meminta "skor kinerja menurun". Itu butuh dua periode '
+      + 'penilaian untuk dibandingkan, dan hampir tak ada subkontraktor yang '
+      + 'punya dua. Yang lebih mendesak justru keadaan hari ini: subkon yang '
+      + 'tak boleh dipakai tetapi masih diundang adalah risiko yang berjalan, '
+      + 'bukan kecenderungan. Hanya evaluasi TERBARU yang dinilai — yang sudah '
+      + 'diperbaiki tak ditegur berdasar catatan lamanya.',
+  },
+
   // ── Lewat percakapan WhatsApp ───────────────────────────────────────────
   {
     kunci: 'catatan_progres',

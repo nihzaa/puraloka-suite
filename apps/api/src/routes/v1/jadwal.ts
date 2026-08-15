@@ -211,6 +211,21 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'serapan-anggaran': {
+    label: 'Serapan Anggaran Tinggi',
+    keterangan: 'Belanja proyek mendekati atau melampaui pagunya.',
+    jalur: '/api/v1/otomasi/jalankan/serapan-anggaran',
+  },
+  'absensi-berhenti': {
+    label: 'Absensi Berhenti Dicatat',
+    keterangan: 'Lingkup kerja yang absensinya berhenti dicatat beberapa hari.',
+    jalur: '/api/v1/otomasi/jalankan/absensi-berhenti',
+  },
+  'subkon-tak-layak': {
+    label: 'Subkontraktor Tak Layak',
+    keterangan: 'Subkon yang menurut evaluasi terakhir tak boleh dipakai.',
+    jalur: '/api/v1/otomasi/jalankan/subkon-tak-layak',
+  },
   'kepatuhan-dokumen': {
     label: 'Dokumen Kepatuhan & Izin Habis',
     keterangan: 'Dokumen legalitas pihak dan izin proyek yang mendekati atau melewati masa berlaku.',

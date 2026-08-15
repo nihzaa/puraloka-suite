@@ -179,6 +179,32 @@ export const AMBANG_OTOMASI = {
     max: 730,
     label: 'Dokumen/izin yang lewat lebih lama dari ini berhenti ditegur',
   },
+  /*
+    Serapan anggaran. Bawaan 90% — bukan 100%.
+
+    Peringatan yang baru berbunyi saat anggaran SUDAH terlampaui datang pada
+    saat tak ada lagi yang bisa dilakukan. Sembilan puluh persen menyisakan
+    ruang untuk memutuskan.
+  */
+  'otomasi.serapan_anggaran.persen': {
+    bawaan: 90,
+    min: 50,
+    max: 200,
+    label: 'Serapan anggaran (%) yang mulai diperingatkan',
+  },
+  /*
+    Absensi berhenti dicatat. Bawaan 3 hari.
+
+    Bukan tuduhan kepada pekerja melainkan peringatan operasional kepada yang
+    mengurus mandor: tanpa absensi, upah tak bisa dihitung. Tiga hari cukup
+    melewati satu hari libur tanpa berbunyi palsu.
+  */
+  'otomasi.absensi_berhenti.hari': {
+    bawaan: 3,
+    min: 1,
+    max: 30,
+    label: 'Hari tanpa catatan absensi sebelum lingkup kerja ditegur',
+  },
   'otomasi.evm_spi.minimum': {
     bawaan: 0.9,
     min: 0.1,

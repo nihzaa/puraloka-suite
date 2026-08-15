@@ -115,6 +115,13 @@ export type NotificationType =
   // izin PROYEK menghentikan pekerjaan kalau `menghalangi_mulai`.
   | 'kepatuhan_dokumen'
   | 'izin_proyek_habis'
+  // 2.9 — serapan anggaran proyek melampaui ambang.
+  | 'serapan_anggaran'
+  // 6.3 — lingkup kerja yang absensinya berhenti dicatat. Peringatan
+  // OPERASIONAL kepada pengurus mandor, bukan tuduhan kepada pekerja.
+  | 'absensi_berhenti'
+  // 3.6 — subkontraktor yang menurut evaluasi terakhir tak boleh dipakai.
+  | 'subkon_tak_layak'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

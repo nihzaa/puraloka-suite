@@ -60,6 +60,14 @@ import { bacaRiwayat } from '../../lib/ai-riwayat-baca.js'
 import { ambilAtauBuatPercakapanWa, simpanPertukaranWa } from '../../lib/ai-percakapan-wa.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
 import { izinDariPeran } from '../../lib/izin-peran.js'
+import { klaimTokenTulis } from '../../lib/tulis-klaim.js'
+import {
+  niatKonfirmasi,
+  tokenMenunggu,
+  batalkanToken,
+  terbitkanTokenWa,
+} from '../../lib/tulis-konfirmasi-wa.js'
+import { usulDariBlok } from '../../lib/usul-tulis.js'
 
 /**
  * Perbandingan rahasia yang tak bocor lewat waktu.
@@ -249,6 +257,82 @@ export default async function waWebhookRoutes(app: FastifyInstance) {
       const catatGalatWa = (p: string, err: unknown) =>
         request.log.error({ err }, `wa/webhook: ${p}`)
 
+      /*
+       * ── KONFIRMASI TULIS — dijawab SEBELUM model dipanggil ───────────────
+       *
+       * Urutannya menentukan, dan bukan demi hemat biaya (walau itu efek
+       * sampingnya). Kalau "ya" diteruskan ke model lebih dulu, model akan
+       * menjawabnya sebagai obrolan — "baik, sudah saya catat" — padahal tak
+       * ada yang tercatat. Kalimat itu terdengar seperti keberhasilan dan
+       * itulah yang membuatnya berbahaya: orangnya berhenti memeriksa.
+       *
+       * Sampai 2026-08-16 kanal ini tak punya cara mengkonfirmasi sama sekali.
+       * Asisten menyuruh "tekan tombol di aplikasi" — tombol yang di WhatsApp
+       * memang tak akan pernah ada — lalu tokennya mati 15 menit kemudian.
+       */
+      const niat = niatKonfirmasi(pesan.teks)
+      if (niat !== 'bukan') {
+        const menunggu = await tokenMenunggu(db, userId, catatGalatWa)
+
+        // Ambigu: DUA usulan hidup. "ya" tak menunjuk salah satunya, dan
+        // menebak "yang terbaru" akan menyimpan hal yang tak ia maksud.
+        if (menunggu.ambigu) {
+          await kirimWa({
+            db, companyId, nomor, konfigurasi: cfg, userId,
+            teks: 'Ada lebih dari satu catatan yang menunggu konfirmasi. '
+              + 'Sebutkan yang mana, ya — mis. "simpan kasbonnya".',
+            kunciIdempotensi: `wa-konfirmasi-ambigu:${pesan.pesanId}`,
+          })
+          await tandaiDiproses(supabase, pesan.pesanId, companyId)
+          return reply.send({ ok: true, tindakan: 'konfirmasi_ambigu' })
+        }
+
+        if (menunggu.token) {
+          const teksBalasan = await (async () => {
+            if (niat === 'batal') {
+              const jadi = await batalkanToken(db, menunggu.token!.token, catatGalatWa)
+              return jadi
+                ? 'Baik, dibatalkan. Tidak ada yang saya simpan.'
+                : 'Sepertinya sudah tidak bisa dibatalkan — mungkin sudah tersimpan atau kedaluwarsa.'
+            }
+
+            const hasil = await klaimTokenTulis({
+              db,
+              userId,
+              // Izin orang INI, dibaca dari perannya — bukan diasumsikan.
+              // Yang punya `ai:chat` belum tentu punya `ai:tulis`, dan
+              // memakai asisten tak boleh diam-diam berarti boleh menyimpan.
+              izin,
+              token: menunggu.token!.token,
+              catatGalat: catatGalatWa,
+            })
+
+            if (hasil.ok) return `Tersimpan ✅\n${hasil.ringkasan}`
+            if (hasil.sebab === 'tanpa_izin') {
+              return 'Peran Anda belum boleh menyimpan lewat asisten. Hubungi admin perusahaan.'
+            }
+            return `Belum tersimpan — ${hasil.pesan}`
+          })()
+
+          await kirimWa({
+            db, companyId, nomor, konfigurasi: cfg, userId,
+            teks: teksBalasan,
+            kunciIdempotensi: `wa-konfirmasi:${pesan.pesanId}`,
+          })
+          await tandaiDiproses(supabase, pesan.pesanId, companyId)
+          return reply.send({ ok: true, tindakan: niat === 'batal' ? 'dibatalkan' : 'disimpan' })
+        }
+
+        /*
+         * Tak ada yang menunggu — "ya" JATUH ke model seperti biasa.
+         *
+         * Sengaja tidak dibalas "tidak ada yang perlu dikonfirmasi": kata
+         * "ok"/"siap" jauh lebih sering jadi penutup obrolan biasa daripada
+         * konfirmasi, dan menjawabnya dengan kalimat sistem membuat asisten
+         * terdengar seperti mesin tiket.
+         */
+      }
+
       const percakapan = await ambilAtauBuatPercakapanWa(
         db,
         companyId,
@@ -326,11 +410,38 @@ export default async function waWebhookRoutes(app: FastifyInstance) {
        * terhapus), lapisan kedua ini masih menahan balasan kedua. Dua jaring
        * untuk satu kesalahan yang mahal.
        */
+      /*
+       * ── USULAN TULIS → TOKEN ─────────────────────────────────────────────
+       *
+       * Model memanggil `siapkan_tulis`, yang sengaja TIDAK menulis apa pun —
+       * termasuk tidak menerbitkan token (I-1: nol tool yang menulis). Di web,
+       * tokennya diterbitkan saat orang menekan tombol. Di sini tak ada
+       * tombol, jadi tokennya diterbitkan sekarang dan dikunci oleh kalimat
+       * "ya" berikutnya.
+       *
+       * Yang membuat ini tetap tunduk I-1: token bukan tulisan. Ia tak
+       * mengubah satu baris pun di modul mana pun, dan mati sendiri kalau tak
+       * dikonfirmasi. Injeksi lewat dokumen bisa membuat model mengusulkan;
+       * ia tak bisa membuat orangnya mengetik "ya".
+       *
+       * Hanya untuk yang berizin `ai:tulis` — usulan dari orang tanpa izin
+       * tak pernah jadi token, jadi tak ada yang bisa dikonfirmasi.
+       */
+      let teksJawab = jalan.hasil.teks
+      const usul = izin.has('ai:tulis') ? usulDariBlok(jalan.hasil.blok) : []
+
+      if (usul.length > 0) {
+        const terbit = await terbitkanTokenWa(db, companyId, userId, usul[0], catatGalatWa)
+        teksJawab = terbit.ok
+          ? `${terbit.ringkasan}\n\nBalas *ya* untuk menyimpan, atau *batal*.`
+          : `${jalan.hasil.teks}\n\n(${terbit.pesan})`
+      }
+
       await kirimWa({
         db,
         companyId,
         nomor,
-        teks: jalan.hasil.teks,
+        teks: teksJawab,
         konfigurasi: cfg,
         userId,
         kunciIdempotensi: `wa-jawab:${pesan.pesanId}`,

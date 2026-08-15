@@ -5,6 +5,151 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (lanjutan 7) — "ya" dari WhatsApp, dan rantai yang putus di dua tempat
+
+Asisten kini bisa menyimpan catatan dari WhatsApp: ia mengusulkan, orangnya
+membalas **"ya"**, barisnya tercatat atas nama orang itu. Yang menahan salah
+catat ada di bawah — tapi lebih dulu, apa yang saya temukan saat mengukur.
+
+### Rantainya putus di DUA tempat, bukan satu
+
+Saya mengira tinggal menafsirkan kata "ya". Ternyata di WhatsApp **tak pernah
+ada apa pun untuk dikonfirmasi**:
+
+    tool `siapkan_tulis`  → TIDAK menerbitkan token (I-1: nol tool menulis)
+    rute `/siapkan-tulis` → menerbitkan token, tapi hanya dipanggil UI web
+
+Jadi di WhatsApp model mengusulkan, lalu tak ada token yang lahir. Menafsirkan
+"ya" dengan benar pun tak akan menyimpan apa-apa.
+
+Dan putus yang kedua, di kalimatnya sendiri — `GAYA_WHATSAPP` menyuruh:
+
+> "sampaikan bahwa ia perlu menekan **tombol konfirmasi di aplikasi**"
+
+Tombol yang di WhatsApp memang tak akan pernah ada. Ini pola yang **kelima
+kali** di sesi ini: setengah rantai yang bekerja sempurna, setengah lagi yang
+tak pernah tersambung, dan nol galat di antaranya.
+
+### Akun layanan DITOLAK — dan ini keputusan terpentingnya
+
+Cara termudah: pakai akun layanan penjadwal, seperti `sapa-proaktif`. Saya
+menolaknya, dan alasannya bukan kerapian.
+
+**Penjadwal bertindak atas nama tak seorang pun**, jadi identitas layanan
+memang jujur. **Kasbon dari WhatsApp bertindak atas nama ORANG TERTENTU.**
+Menuliskannya lewat akun layanan berarti `requested_by` menunjuk robot — dan
+yang ikut lenyap bukan cuma jejaknya, melainkan batas approval, plafon, dan
+seluruh permission orang itu, digantikan permission akun layanan yang jauh
+lebih besar.
+
+Menerbitkan JWT atas nama orang lain juga ditolak: itu membuat siapa pun yang
+menguasai sebuah nomor WhatsApp memperoleh sesi penuh korbannya.
+
+Yang dipakai: **~230 baris logika klaim dipindah** dari handler rute ke
+`lib/tulis-klaim.ts`, dan kedua kanal memanggil fungsi yang **sama**. Tak ada
+"jalur WhatsApp" yang bisa menyimpang diam-diam dari jalur web — karena tak
+ada jalur WhatsApp yang terpisah.
+
+### Yang menahan salah catat: tiga lapis, semuanya mengurangi kenyamanan
+
+Bahaya sesungguhnya bukan mengenali "ya". Bahayanya **"ya" untuk apa**:
+
+    asisten : "Kasbon Rp 5jt untuk beli solar — konfirmasi?"
+    (orangnya pergi rapat, tak menjawab)
+    ...12 menit kemudian...
+    orang   : "ya"      ← menjawab hal LAIN
+
+1. **Jendela 3 menit**, bukan 15 seperti token web. Tombol boleh hidup lama
+   karena ia menempel pada usulan yang terlihat; kalimat tak menempel apa pun.
+2. **Hanya token tunggal.** Dua usulan hidup → "ya" ditolak sebagai ambigu.
+   Menebak "yang terbaru" terasa masuk akal dan justru berbahaya: yang terbaru
+   belum tentu yang ia baca terakhir.
+3. **Frasa dicocokkan UTUH**, bukan `includes()`. `"yang penting jangan dulu"`
+   memuat "ya" — dan artinya kebalikannya. `"ya jangan"` menang penolakannya.
+
+### Bukti
+
+    tsc api                 0 galat
+    tulis-konfirmasi-wa     7 hijau
+    tulis-klaim             6 hijau (Postgres NYATA, bukan mock)
+    mutasi test             `.is('dipakai_pada', null)` dihapus → MERAH → pulih
+    penjaga baru            4 mutasi → MERAH → pulih → HIJAU
+    audit-tool-ai-read-only HIJAU — I-1 tetap utuh, tak ada tool yang menulis
+
+Klaim atomik diuji **bersamaan** (`Promise.all`), bukan berurutan — berurutan
+akan hijau bahkan tanpa penjagaannya. Di WhatsApp dobel-klaim bukan skenario
+teoretis: orang yang merasa pesannya belum terkirim mengetik "ya" dua kali,
+dan penyedia webhook sendiri mencoba ulang saat balasan lambat.
+
+⚠ `audit-satu-pintu-wa` MERAH (9 pelanggaran di `wa-instance.ts`) — **bukan
+dari kerja ini**. Dibuktikan dengan `git stash`: merah juga tanpa perubahan
+saya. Berkas itu milik sesi lain yang sedang berjalan; tak saya sentuh.
+
+---
+
+## 2026-08-16 (lanjutan 7) — saya salah membatalkan; ketiganya dibangun
+
+Founder: *"kenapa dibatalin? emang gabisa banget dibangun?"*
+
+Pertanyaannya benar. Pembatalan saya terlalu absolut, dan untuk 2.9 alasannya
+SALAH SAMA SEKALI.
+
+### 2.9 — alasan pembatalan saya keliru
+
+`trg_kasbon_approved_create_expense` adalah `AFTER UPDATE` dengan syarat
+`OLD.status <> 'approved'`. Data seed disisipkan LANGSUNG berstatus approved,
+jadi trigger tak pernah menyala — itu sebabnya `project_expenses` kosong.
+
+Di produksi kasbon yang disetujui MEMANG membuat pengeluaran. Artefak seed,
+bukan cacat rancangan.
+
+Dibuktikan: sisipkan satu pengeluaran nyata di test → otomasi berbunyi 95%.
+
+**Pelajaran: "tabel sumbernya kosong" bukan alasan yang cukup. Yang harus
+ditanyakan KENAPA kosong.**
+
+### 6.3 — separuh benar, dan separuh yang salah itu yang berguna
+
+Sebagai tuduhan per-PEKERJA memang tak berguna. Sebagai peringatan operasional
+per-LINGKUP ia tepat: 17 lingkup, tindakan tunggal (tanyakan mandornya).
+
+### 3.6 — alasannya bertahan, bentuknya diganti
+
+Tren tetap tak bisa (identitas via teks bebas). Tapi `bolehDipakai` adalah
+keadaan satu baris — 2 dari 5 memenuhi, dan lebih mendesak daripada tren.
+
+### Cacat yang HANYA ketahuan saat dijalankan
+
+`work_scopes` kategori C lewat `assignment_id`, bukan `project_id`. Saya
+mengoper id proyek ke tempat yang menunggu id penugasan → nol baris, 200, nol
+notifikasi, tanpa galat. 17 lingkup memenuhi syarat, otomasi mengirim nol.
+
+Typecheck tak bisa menangkapnya; keduanya `string`.
+
+### Mutasi yang lolos, kedua kalinya sesi ini
+
+`pihak_dinilai <= jumlah baris` terlalu longgar — 5 ≤ 5 tetap lolos meski
+pengelompokan rusak. Diperkuat jadi kesamaan dengan jumlah pihak berbeda.
+
+### Bukti
+
+    otomasi-tiga + kepatuhan   10/10 hijau
+    ujung-ke-ujung lewat penjadwal SUNGGUHAN:
+      subkon_tak_layak   26 notif / 2 pihak
+      absensi_berhenti  221 notif / 17 lingkup
+      serapan_anggaran    0 di dev — DIBUKTIKAN berbunyi di test dgn data nyata
+    migrasi 405               lulus verifikasi
+    penjaga                   12 dijalankan, 12 hijau
+    ratchet kegagalan-senyap  187 → 186 (cacat saya sendiri, diperbaiki)
+    build + lint              sukses · api 0/231 · web 0/295
+
+    mutasi (ketiganya wajib merah):
+      rantai tenancy dipatahkan   MERAH → pulih HIJAU
+      dasar pembanding dibuang    MERAH → pulih HIJAU
+      pengelompokan terbaru rusak LOLOS → assertion diperkuat → MERAH → HIJAU
+
+---
+
 ## 2026-08-16 (lanjutan 6) — riset membatalkan TIGA dari empat, dan itu hasilnya
 
 Empat kandidat Phase 3 diriset paralel. Tiga dibatalkan, satu dibangun.

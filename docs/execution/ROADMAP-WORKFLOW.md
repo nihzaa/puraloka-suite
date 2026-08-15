@@ -800,3 +800,98 @@ Izin yang lewat **283 hari** benar-benar dilewati (ambang 120), sementara PBG
 yang habis 46 hari lagi tertangkap. Tanpa batas itu, izin yang jelas
 ditinggalkan akan ditagih tiap minggu selamanya.
 
+---
+
+## 13. KOREKSI — ketiga yang saya batalkan ternyata bisa dibangun
+
+Founder, 2026-08-16: *"kenapa dibatalin? emang gabisa banget dibangun?"*
+
+Pertanyaan itu benar, dan §11 di atas **terlalu absolut**. Ketiganya dibangun
+hari itu juga. Yang saya temukan bukan kemustahilan teknis melainkan data dev
+yang tak mewakili — dan untuk satu di antaranya, alasannya salah sama sekali.
+
+### 13a. 2.9 — alasan pembatalannya SALAH
+
+Saya menulis: `project_expenses` nol baris sementara Rp 545 juta ada di
+`kasbons`, jadi otomasi melaporkan 0% untuk proyek yang 45%.
+
+Diukur ulang:
+
+```
+trg_kasbon_approved_create_expense
+  AFTER UPDATE ... IF NEW.status='approved' AND OLD.status<>'approved'
+  → INSERT INTO project_expenses
+```
+
+**Kasbon yang disetujui MEMANG membuat baris pengeluaran.** Tabelnya kosong
+karena data seed disisipkan LANGSUNG berstatus `approved`, sehingga trigger
+`AFTER UPDATE` tak pernah menyala. Artefak seed, bukan cacat rancangan.
+
+Dibuktikan di test: sisipkan satu pengeluaran nyata → otomasi berbunyi dengan
+serapan 95%. Diam karena tak ada belanja ≠ diam karena rusak, dan satu-satunya
+cara membedakannya adalah mencobanya.
+
+> **Pelajaran:** "tabel sumbernya kosong" bukan alasan yang cukup. Yang harus
+> ditanyakan adalah KENAPA kosong.
+
+### 13b. 6.3 — separuh benar, dan separuh yang salah itu yang berguna
+
+Sebagai tuduhan kepada PEKERJA memang tak berguna: 60 dari 60 berjarak ≥7 hari
+karena seed beku.
+
+Tetapi sebagai peringatan operasional per **LINGKUP KERJA** ia tepat, dan
+terbukti: 17 lingkup, pesan yang bisa langsung ditindaklanjuti —
+
+```
+Proyek "Pembangunan Rumah Bu Sari — Dago", lingkup "Struktur Lantai 1":
+absensi terakhir 7 hari lalu (2026-08-08). Tanyakan ke mandornya —
+tanpa absensi, upah tak bisa dihitung.
+```
+
+Dua dimensi lain memang tak bisa, dan itu tetap berlaku: "jam kerja tak masuk
+akal" mustahil (tak ada jam masuk/keluar, CHECK sudah mengunci), "absen tanpa
+penugasan" 85% baris.
+
+### 13c. 3.6 — alasannya bertahan, bentuknya yang diganti
+
+Tren tetap tak bisa: identitas pihak lewat teks bebas takkan sembuh sendiri.
+
+Tetapi `bolehDipakai` adalah keadaan SATU baris — tak butuh periode kedua, tak
+butuh identitas stabil. Terukur 2 dari 5 memenuhi, dan otomasinya berbunyi:
+
+```
+CV Karya Mandiri tak boleh dipakai berdasar evaluasi 2026-07-18:
+1 kecelakaan kerja.
+```
+
+Dan ia **lebih mendesak** daripada tren: subkon yang tak boleh dipakai tetapi
+masih diundang adalah risiko yang berjalan hari ini.
+
+### 13d. Satu cacat yang HANYA ketahuan saat dijalankan
+
+`work_scopes` kategori C lewat **`assignment_id`**, bukan `project_id`. Bentuk
+pertama 6.3 menulis `viaProject('work_scopes', pid)` — mengoper id PROYEK ke
+tempat yang menunggu id PENUGASAN.
+
+Hasilnya nol baris, rute balas 200, nol notifikasi, **tanpa satu pun galat**.
+Terukur 17 lingkup memenuhi syarat; otomasinya mengirim nol.
+
+Typecheck tak bisa menangkapnya — keduanya `string`. Hanya menjalankannya
+sungguhan yang bisa.
+
+Rantai sesungguhnya tiga lapis:
+
+```
+absensi_harian.scope_id → work_scopes.assignment_id
+                        → mandor_assignments.project_id
+```
+
+### 13e. Dan satu mutasi yang LOLOS
+
+Assertion `pihak_dinilai <= jumlah baris` terlalu longgar: mengubah kunci
+pengelompokan supaya tiap baris jadi kelompoknya sendiri tetap lolos (5 ≤ 5).
+Diperkuat jadi kesamaan dengan jumlah pihak berbeda yang dihitung terpisah.
+
+Kedua kalinya dalam sesi ini mutasi menemukan test yang terlihat menyeluruh
+tetapi lulus karena kebetulan.
+

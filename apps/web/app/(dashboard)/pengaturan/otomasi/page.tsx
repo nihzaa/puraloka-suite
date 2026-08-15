@@ -123,6 +123,31 @@ const AMBANG: ReadonlyArray<{
     langkah: 1_000_000,
   },
   {
+    kunci: "otomasi.serapan_anggaran.persen",
+    judul: "Serapan anggaran proyek",
+    akibat:
+      "Peringatan dikirim ketika belanja proyek mencapai persentase ini dari "
+      + "pagunya. Setel di bawah 100 — peringatan yang baru berbunyi saat "
+      + "anggaran sudah terlampaui datang ketika tak ada lagi yang bisa "
+      + "dilakukan.",
+    satuan: "persen",
+    min: 50,
+    maks: 200,
+    langkah: 5,
+  },
+  {
+    kunci: "otomasi.absensi_berhenti.hari",
+    judul: "Absensi berhenti dicatat",
+    akibat:
+      "Peringatan dikirim bila sebuah lingkup kerja tak dicatat absensinya "
+      + "sekian hari. Tanpa absensi, upah tak bisa dihitung — dan itu biasanya "
+      + "baru ketahuan saat penggajian.",
+    satuan: "hari",
+    min: 1,
+    maks: 30,
+    langkah: 1,
+  },
+  {
     kunci: "otomasi.kepatuhan_dokumen.hari",
     judul: "Dokumen kepatuhan & izin habis",
     akibat:
