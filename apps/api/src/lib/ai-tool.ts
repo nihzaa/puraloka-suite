@@ -58,6 +58,7 @@ import { TOOL_SIAPKAN } from './ai-tool-siapkan.js'
 import { TOOL_SETUJUI } from './ai-tool-setujui.js'
 import { toolIngatPercakapan } from './ai-tool-ingat.js'
 import { toolHargaSatuan } from './ai-tool-harga.js'
+import { toolPerhatian } from './ai-tool-perhatian.js'
 
 
 
@@ -836,6 +837,12 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
   toolIngatPercakapan,
   /* Buku harga (2026-08-16) — 2.943 harga aktif yang tak pernah terjangkau. */
   toolHargaSatuan,
+  /*
+    "Apa yang perlu saya urus hari ini?" (2026-08-16) — pekerjaan asisten
+    manusia yang paling sering. Diukur: 8.049 notifikasi belum dibaca, 1.509
+    urgent. Inbox yang tak pernah kosong berhenti dibaca.
+  */
+  toolPerhatian,
 ]
 
 /**
