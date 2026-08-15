@@ -463,6 +463,28 @@ jobs:
       - name: Katalog otomasi cocok dengan kode
         run: node scripts/audit-katalog-otomasi-nyata.mjs
 
+      # Migrasi yang menyemai baris per-tenant wajib menyaring tenant yang
+      # dipakai — `is_active` atau keanggotaan.
+      #
+      # Empat migrasi menulis 9.164 baris untuk 597 tenant sisa test yang sudah
+      # nonaktif (diukur 2026-08-16), dan TIGA cacat potong-senyap lahir
+      # darinya: notification_rules 1.736 baris, pembacaan penjadwal 4.794, dan
+      # 2.018 tugas gagal 403 tiap denyut.
+      #
+      # RATCHET di 8 — kedelapan lantai migrasi LAMA yang sudah jalan; §5.5
+      # melarang mengeditnya. Bukti merah: migrasi ke-9 tanpa saringan
+      # disuntikkan → exit 1 → dibuang → exit 0.
+      - name: Migrasi per-tenant menyaring tenant aktif
+        run: node scripts/audit-migrasi-pertenant-aktif.mjs
+
+      # Test yang membuat perusahaan wajib membersihkannya.
+      #
+      # 597 tenant sisa test menumpuk di `companies` karena 23 berkas test tak
+      # pernah menghapus buatannya. RATCHET di 23 — tak boleh naik. Bukti
+      # merah: berkas ke-24 disuntikkan → exit 1 → dibuang → exit 0.
+      - name: Test membersihkan tenant buatannya
+        run: node scripts/audit-test-bersihkan-company.mjs
+
       # Jalur UI di inbox approval wajib menunjuk halaman yang benar-benar ada.
       #
       # Ditemukan 2026-08-14 saat menambahkan `purchase_order` ke inbox:

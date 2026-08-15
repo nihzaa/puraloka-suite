@@ -44,6 +44,7 @@ SELECT c.id, 'evm_kinerja_menurun', 'Kinerja Proyek Menurun',
        'Proyek yang indeks jadwal (SPI) atau indeks biayanya (CPI) turun di bawah ambang',
        true
   FROM companies c
+ WHERE c.is_active
 ON CONFLICT (company_id, event_type) DO UPDATE
   SET label = EXCLUDED.label,
       description = EXCLUDED.description,
@@ -102,6 +103,7 @@ SELECT c.id, v.key, v.value::jsonb, 'number', 'otomasi', v.keterangan
     ('otomasi.evm_cpi.minimum', '0.90',
      'Batas bawah indeks biaya (CPI). Di bawah ini proyek ditandai boros.')
   ) AS v(key, value, keterangan)
+ WHERE c.is_active
 ON CONFLICT (company_id, key) DO NOTHING;
 
 -- ── Verifikasi (pola migrasi 142) ───────────────────────────────────────────
@@ -117,7 +119,11 @@ DECLARE
   n_ambang     INT;
   contoh       TEXT;
 BEGIN
-  SELECT count(*) INTO n_perusahaan FROM companies;
+  -- Perusahaan AKTIF saja — migrasi ini hanya menulis untuk mereka.
+  -- Bentuk pertama menghitung SELURUH baris `companies` dan menulis untuk
+  -- seluruhnya juga; 597 di antaranya tenant sisa test yang sudah nonaktif.
+  -- Lihat migrasi 402.
+  SELECT count(*) INTO n_perusahaan FROM companies WHERE is_active;
 
   SELECT count(*) INTO n_aturan FROM notification_rules
    WHERE event_type = 'evm_kinerja_menurun' AND is_active;

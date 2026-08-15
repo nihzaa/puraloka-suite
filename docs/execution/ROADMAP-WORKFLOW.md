@@ -342,10 +342,7 @@ Akibat yang sudah terasa: tiap migrasi per-tenant menulis ratusan baris untuk
 tenant hantu — migrasi 398 memasang 1.142 baris ambang dan 1.142 target
 notifikasi. Belum berbahaya, tetapi tumbuh tiap run.
 
-**Tidak dibersihkan tanpa konfirmasi** (CHARTER §8a.5: menghapus data yang sudah
-ada butuh persetujuan, "dummy" bukan izin merusak). Yang perlu diputuskan:
-apakah harness test membersihkan tenant buatannya di `afterAll`, dan apakah
-570 baris yang ada sekarang dihapus.
+**DITANGANI 2026-08-16 — dan bukan dengan menghapusnya.** Lihat §10.
 
 ---
 
@@ -587,4 +584,65 @@ dilewati, hasil[]}`.
 
 Pelapor yang berbohong lebih buruk daripada tak ada pelapor — tanpa `curl`
 mentah ke endpoint-nya, kedua cacat di §9c tak akan pernah terlihat.
+
+---
+
+## 10. Tenant hantu: yang benar bukan menghapusnya
+
+Ditutup 2026-08-16 sesudah founder menjawab *"saya ikut yg terbaik"*.
+
+### 10a. Menghapus DITOLAK basis — dan itu benar
+
+```
+Company "[UJI-S4] Tenant Lain" tidak boleh dihapus. Nonaktifkan
+(is_active=false) atau jalankan prosedur off-boarding tenant. Penghapusan
+tenant = kehilangan data lintas puluhan tabel dan tidak dapat di-rollback.
+```
+
+130 tabel ber-FK ke `companies`, 86 di antaranya CASCADE. Pengaman itu
+disengaja dan tidak dilewati.
+
+### 10b. Dan ternyata tak perlu — mereka SUDAH nonaktif
+
+Diukur: ke-597 tenant sisa test semuanya `is_active = false`.
+
+**Yang salah bukan keberadaan mereka melainkan migrasi yang tak menyaringnya.**
+Empat migrasi (396, 398, 399, 400) memakai `FROM companies` tanpa syarat:
+
+| Tabel | Baris untuk tenant NONAKTIF |
+|---|---|
+| `notification_rules` | 2.291 |
+| `notification_rule_targets` | 4.582 |
+| `company_settings` | 2.291 |
+| **total** | **9.164** |
+
+Sesudah migrasi 402 + penyaringan `is_active` di ketiganya:
+
+```
+notification_rules        1.736 → 27
+company_settings otomasi.*  ...  → 9
+jadwal_tugas              4.794 → 18
+```
+
+Migrasi 396/398/399/400 idempoten — menyalakan kembali sebuah tenant lalu
+menjalankan ulang migrasinya memulihkannya utuh. Tak ada yang hilang.
+
+### 10c. Dua penjaga baru
+
+| Penjaga | Menjaga | Ambang |
+|---|---|---|
+| `audit-migrasi-pertenant-aktif` | migrasi per-tenant menyaring `is_active`/keanggotaan | ratchet 8 |
+| `audit-test-bersihkan-company` | test yang membuat perusahaan wajib menghapusnya | ratchet 23 |
+
+Yang pertama semula berambang NOL dan langsung merah pada delapan migrasi
+lama. Kedelapannya sudah jalan, dan §5.5 melarang mengeditnya — jadi ambang
+nol di sini bukan ketegasan melainkan **penjaga yang tak mungkin hijau**, dan
+penjaga yang tak mungkin hijau akan dimatikan orang pertama yang CI-nya merah
+karenanya.
+
+Yang kedua: 23 dari 29 berkas test membuat perusahaan tanpa menghapusnya. Itu
+sumber ke-597 baris, dan satu kali menjalankan suite penuh menambah ~27.
+
+Keduanya terbukti merah lewat mutasi (migrasi ke-9 tanpa saringan; berkas test
+ke-24), lalu pulih hijau.
 

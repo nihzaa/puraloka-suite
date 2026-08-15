@@ -2676,3 +2676,29 @@ items:
       702ms, pesan berisi data nyata. Denyut kedua: 18 dilewati.
       n8n TETAP arah akhir produksi; penjadwal-lokal.mjs membuat jalurnya bisa
       diuji hari ini.
+
+  - id: ASISTEN-11
+    fase: null
+    judul: "Tenant hantu — 9.164 baris konfigurasi untuk tenant nonaktif"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "migrasi per-tenant menyaring is_active atau keanggotaan"
+      - "baris konfigurasi untuk tenant nonaktif dibersihkan"
+      - "penjaga mencegah migrasi baru mengulanginya"
+      - "penjaga mencegah test menambah tenant tanpa membersihkannya"
+    cara_verifikasi: >-
+      cd apps/api && node scripts/audit-migrasi-pertenant-aktif.mjs
+      && node scripts/audit-test-bersihkan-company.mjs
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16. Menghapus tenant DITOLAK basis dengan pesannya
+      sendiri (130 tabel ber-FK, 86 CASCADE) — pengaman disengaja, tidak
+      dilewati. Dan tak perlu: ke-597 SUDAH is_active=false. Yang salah empat
+      migrasi yang memakai FROM companies tanpa syarat.
+      notification_rules 1.736 -> 27 · jadwal_tugas 4.794 -> 18 ·
+      company_settings otomasi.* -> 9. Idempoten, tak ada yang hilang.
+      PELAJARAN: penjaga audit-migrasi-pertenant-aktif semula berambang NOL dan
+      langsung merah pada 8 migrasi LAMA yang tak boleh diedit (§5.5). Ambang
+      nol di situ bukan ketegasan melainkan penjaga yang TAK MUNGKIN HIJAU, dan
+      penjaga semacam itu akan dimatikan orang. Diubah jadi ratchet 8.

@@ -5,6 +5,70 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (lanjutan 4) — tenant hantu: yang benar bukan menghapusnya
+
+Founder menjawab *"saya ikut yg terbaik"*. Saya kira yang terbaik menghapus
+597 tenant sisa test. Basis menolak, dan penolakannya benar.
+
+    Company "[UJI-S4] Tenant Lain" tidak boleh dihapus. Nonaktifkan
+    (is_active=false) atau jalankan prosedur off-boarding tenant.
+
+130 tabel ber-FK ke `companies`, 86 CASCADE. Pengaman disengaja, tidak
+dilewati.
+
+**Dan ternyata tak perlu.** Diukur: ke-597 SUDAH `is_active = false`. Yang
+salah bukan keberadaan mereka melainkan empat migrasi saya yang memakai
+`FROM companies` tanpa syarat — 9.164 baris konfigurasi untuk tenant nonaktif.
+
+Sesudah migrasi 402 + penyaringan:
+
+    notification_rules        1.736 → 27
+    company_settings otomasi.*  ... → 9
+    jadwal_tugas              4.794 → 18
+
+Idempoten: menyalakan kembali sebuah tenant lalu menjalankan ulang migrasinya
+memulihkannya utuh. Tak ada yang hilang.
+
+### Penjaga yang tak mungkin hijau
+
+`audit-migrasi-pertenant-aktif` semula berambang NOL, dan langsung merah pada
+delapan migrasi LAMA. Kedelapannya sudah jalan, §5.5 melarang mengeditnya.
+
+Ambang nol di sini bukan ketegasan melainkan penjaga yang tak mungkin hijau —
+dan penjaga semacam itu akan dimatikan orang pertama yang CI-nya merah
+karenanya. Diubah jadi ratchet 8.
+
+Pelajaran yang tak terpikirkan sebelumnya: **penjaga bisa salah bukan karena
+terlalu longgar, tetapi karena terlalu ketat untuk kenyataan yang tak bisa
+diubah.**
+
+### Angka yang founder tanyakan
+
+    katalog total   140
+    sudah hidup      17  (+ 3 lagi yang katalognya basi → efektif ~20)
+    belum           123  → 64 Optional · 55 Later · 4 Next
+
+Dari 4 "Next" tersisa: 1.4 sudah ada (`ai-chat.ts`), 1.5/1.6 sudah ada dalam
+bentuk `sapa-proaktif`, 4.6 sudah ✅ di roadmap. **Nol yang benar-benar
+tertinggal di prioritas mendesak.**
+
+Dan 11 dari 12 item Phase 3 sudah punya tabelnya — termasuk
+`dokumen_kepatuhan` yang saya sebut "benar-benar belum ada" kemarin.
+
+### Bukti
+
+    migrasi 402 + 398/399/400/401   kelimanya lulus verifikasi
+    test                            37/37 (5 berkas otomasi + jadwal)
+    penjaga                         10 dijalankan, 9 hijau
+                                    (skema-dipaku merah di HEAD juga —
+                                     migrasi 363/366/371/372)
+    mutasi                          migrasi ke-9 tanpa saringan → MERAH
+                                    berkas test ke-24            → MERAH
+                                    keduanya pulih HIJAU
+    lint                            0 error, 231 warning
+
+---
+
 ## 2026-08-16 (lanjutan 3) — "menunggu deploy" ternyata tak pernah benar
 
 Founder: *"emang harus banget deploy dulu? ga bisa coba diakalin dulu?"*

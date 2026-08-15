@@ -55,6 +55,7 @@ SELECT c.id, v.jenis, v.label, v.keterangan, true
     ('proyek_tanpa_asuransi', 'Proyek Tanpa Asuransi',
      'Proyek berjalan yang belum punya satu polis pun tercatat')
   ) AS v(jenis, label, keterangan)
+ WHERE c.is_active
 ON CONFLICT (company_id, event_type) DO UPDATE
   SET label = EXCLUDED.label,
       description = EXCLUDED.description,
@@ -86,6 +87,7 @@ INSERT INTO company_settings (company_id, key, value, value_type, category, desc
 SELECT c.id, 'otomasi.polis_berakhir.hari', '30'::jsonb, 'number', 'otomasi',
        'Hari sebelum polis asuransi berakhir mulai diperingatkan.'
   FROM companies c
+ WHERE c.is_active
 ON CONFLICT (company_id, key) DO NOTHING;
 
 -- ── Verifikasi (pola migrasi 142) ───────────────────────────────────────────
@@ -97,7 +99,11 @@ DECLARE
   n_ambang     INT;
   tipe         TEXT;
 BEGIN
-  SELECT count(*) INTO n_perusahaan FROM companies;
+  -- Perusahaan AKTIF saja — migrasi ini hanya menulis untuk mereka.
+  -- Bentuk pertama menghitung SELURUH baris `companies` dan menulis untuk
+  -- seluruhnya juga; 597 di antaranya tenant sisa test yang sudah nonaktif.
+  -- Lihat migrasi 402.
+  SELECT count(*) INTO n_perusahaan FROM companies WHERE is_active;
 
   SELECT count(*) INTO n_aturan FROM notification_rules
    WHERE event_type IN ('polis_segera_berakhir', 'proyek_tanpa_asuransi')

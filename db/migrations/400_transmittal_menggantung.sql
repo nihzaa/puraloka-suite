@@ -46,6 +46,7 @@ SELECT c.id, 'transmittal_menggantung', 'Transmittal Belum Dikonfirmasi',
        'Transmittal yang sudah dikirim tetapi belum dikonfirmasi diterima',
        true
   FROM companies c
+ WHERE c.is_active
 ON CONFLICT (company_id, event_type) DO UPDATE
   SET label = EXCLUDED.label,
       description = EXCLUDED.description,
@@ -67,6 +68,7 @@ INSERT INTO company_settings (company_id, key, value, value_type, category, desc
 SELECT c.id, 'otomasi.transmittal_menggantung.hari', '7'::jsonb, 'number', 'otomasi',
        'Hari transmittal terkirim tanpa konfirmasi sebelum ditegur.'
   FROM companies c
+ WHERE c.is_active
 ON CONFLICT (company_id, key) DO NOTHING;
 
 -- ── Verifikasi (pola migrasi 142) ───────────────────────────────────────────
@@ -78,7 +80,11 @@ DECLARE
   n_ambang     INT;
   tipe         TEXT;
 BEGIN
-  SELECT count(*) INTO n_perusahaan FROM companies;
+  -- Perusahaan AKTIF saja — migrasi ini hanya menulis untuk mereka.
+  -- Bentuk pertama menghitung SELURUH baris `companies` dan menulis untuk
+  -- seluruhnya juga; 597 di antaranya tenant sisa test yang sudah nonaktif.
+  -- Lihat migrasi 402.
+  SELECT count(*) INTO n_perusahaan FROM companies WHERE is_active;
 
   SELECT count(*) INTO n_aturan FROM notification_rules
    WHERE event_type = 'transmittal_menggantung' AND is_active;
