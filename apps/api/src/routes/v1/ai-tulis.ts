@@ -70,6 +70,9 @@ interface BadanSiapkan {
   jumlah?: number
   keperluan?: string
   kategori?: string
+  /** Permintaan material (MR) lewat percakapan. */
+  kebutuhan?: string
+  dibutuhkan_tanggal?: string
 }
 
 export default async function aiTulisRoutes(app: FastifyInstance) {
@@ -279,6 +282,61 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
           total_amount: jumlah,
         }
         ringkasan = `Pengeluaran ${namaProyek}: Rp ${jumlah.toLocaleString('id-ID')} — ${keperluan} (${cocok.name})`
+      } else if (jenis === 'permintaan_material') {
+        /*
+          Permintaan material — MR, bukan PO.
+
+          Tak ada nominal di sini, dan itu disengaja: yang di lapangan tahu
+          APA yang kurang, bukan harga mana yang sedang berlaku. Harganya
+          ditentukan tim pengadaan saat MR jadi PO.
+
+          Jadi validasinya lebih ringan daripada `pengeluaran` — yang perlu
+          dijaga cuma satu: kalimatnya cukup untuk diputuskan orang lain.
+        */
+        /*
+          Minimal 10 karakter, bukan 5.
+
+          Test menangkap batas yang terlalu longgar: "semen" tepat 5 karakter
+          dan LOLOS — padahal itu justru contoh kalimat yang tak bisa
+          diputuskan. Tim pengadaan butuh tahu berapa banyak dan untuk apa;
+          "semen" saja memaksa mereka menelepon balik, dan MR yang harus
+          ditanyakan ulang lebih lambat daripada tak dibuat lewat WhatsApp
+          sama sekali.
+
+          Sepuluh cukup untuk "50 sak semen" tanpa menuntut kalimat panjang.
+        */
+        const kebutuhan = (b.kebutuhan ?? '').trim()
+        if (kebutuhan.length < 10) {
+          return reply.status(422).send({
+            error: 'Sebutkan jumlah dan keperluannya — mis. "50 sak semen untuk cor lantai 2". '
+              + 'Tim pengadaan memutuskan dari kalimat ini.',
+          })
+        }
+
+        /*
+          Tanggal diperiksa BENTUKNYA, bukan cuma keberadaannya.
+
+          `new Date('besok')` menghasilkan `Invalid Date`, dan menuliskannya ke
+          kolom `date` gagal saat token diklaim — jauh dari sini. Model bisa
+          saja meneruskan kata seperti itu apa adanya dari kalimat pengguna.
+        */
+        let dibutuhkan: string | null = null
+        const rawTgl = (b.dibutuhkan_tanggal ?? '').trim()
+        if (rawTgl) {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(rawTgl) || Number.isNaN(Date.parse(rawTgl))) {
+            return reply.status(422).send({
+              error: 'dibutuhkan_tanggal harus format YYYY-MM-DD',
+            })
+          }
+          dibutuhkan = rawTgl
+        }
+
+        muatan = {
+          notes: kebutuhan,
+          ...(dibutuhkan ? { needed_date: dibutuhkan } : {}),
+        }
+        ringkasan = `Permintaan material ${namaProyek}: ${kebutuhan}`
+          + (dibutuhkan ? ` (dibutuhkan ${dibutuhkan})` : '')
       } else {
         // Tak terjangkau — `entitasTulis` sudah menyaring. Ditulis eksplisit
         // supaya jenis baru yang lupa ditangani gagal KERAS di sini, bukan
@@ -497,6 +555,24 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
             */
             expense_source: 'main_cash',
             submitted_by: request.currentUser!.id,
+          }
+          break
+        case 'permintaan_material':
+          /*
+            `mr_number` SENGAJA tidak diisi — `trg_generate_mr_number`
+            mengisinya (diukur ke `pg_trigger`). Menghitungnya sendiri dari
+            jumlah baris akan menabrak nomor yang masih terpakai begitu ada
+            MR yang pernah dihapus, dan galatnya muncul sebagai "gagal
+            menyimpan" yang tak menyebut sebabnya.
+
+            `status` juga tidak diisi: bawaannya membuat MR ini masuk antrean
+            approval yang sama dengan pengajuan lewat halaman biasa. MR yang
+            lahir dari percakapan tak boleh melewati satu pun gerbang.
+          */
+          baris = {
+            ...dasar,
+            ...t.muatan,
+            requested_by: request.currentUser!.id,
           }
           break
         default:

@@ -204,6 +204,44 @@ export const ENTITAS_TULIS: EntitasTulis[] = [
       { nama: 'kategori', wajib: false, keterangan: 'Nama kategori (sebagian nama boleh). Kosong = dicocokkan dari keperluan.' },
     ],
   },
+  {
+    /*
+      ── Permintaan material lewat percakapan (2026-08-15)
+
+      Founder: *"mau po material dan lain lain"*.
+
+      Yang dibuat MR (`material_requests`), BUKAN PO langsung — dan itu bukan
+      penyederhanaan melainkan urutan yang benar:
+
+        MR  "saya butuh 50 sak semen di proyek A"    ← yang tahu orang lapangan
+        PO  "beli dari supplier X, harga Y, kirim Z" ← yang tahu tim pengadaan
+
+      Orang di lapangan tahu apa yang kurang; ia tak tahu supplier mana yang
+      stoknya ada atau harga mana yang sedang berlaku. Meminta asisten membuat
+      PO dari kalimat berarti menebak `supplier_id` dan `total_amount` —
+      dokumen pengadaan berisi angka yang tak seorang pun putuskan.
+
+      MR-nya lalu mengalir ke jalur pengadaan yang sudah ada: approval, RFQ,
+      PO. Automation 4.10 (`gr-matching`) dan gerbang approval PO yang dibangun
+      kemarin tetap berlaku penuh.
+
+      `mr_number` TIDAK diisi di sini — `trg_generate_mr_number` mengisinya
+      (diukur ke `pg_trigger`). Menghitungnya sendiri akan menabrak nomor yang
+      masih terpakai, dan galatnya muncul sebagai "gagal menyimpan" yang tak
+      menyebut sebabnya.
+    */
+    jenis: 'permintaan_material',
+    label: 'Permintaan material (MR)',
+    tabel: 'material_requests',
+    aksi: ['buat'],
+    // Sama dengan gerbang rute MR sungguhan di `procurement.ts`.
+    izin: 'procurement:mr:manage',
+    field: [
+      { nama: 'proyek', wajib: true, keterangan: 'Nama proyek (sebagian nama boleh).' },
+      { nama: 'kebutuhan', wajib: true, keterangan: 'Apa yang dibutuhkan — mis. "50 sak semen untuk cor lantai 2".' },
+      { nama: 'dibutuhkan_tanggal', wajib: false, keterangan: 'Kapan dibutuhkan (YYYY-MM-DD). Kosong = tak ditentukan.' },
+    ],
+  },
 ]
 
 export function entitasTulis(jenis: string): EntitasTulis | undefined {

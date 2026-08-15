@@ -81,6 +81,7 @@ afterAll(async () => {
   await db.query(`DELETE FROM punch_items WHERE judul LIKE $1`, [`${TANDA}%`])
   await db.query(`DELETE FROM progress_logs WHERE notes LIKE $1`, [`${TANDA}%`])
   await db.query(`DELETE FROM project_expenses WHERE description LIKE $1`, [`${TANDA}%`])
+  await db.query(`DELETE FROM material_requests WHERE notes LIKE $1`, [`${TANDA}%`])
   await db.query(`DELETE FROM ai_token_tulis WHERE company_id = $1`, [companyId])
   await app.close()
   await db.end()
@@ -511,5 +512,100 @@ describe('Automation 1.1 — pencatatan pengeluaran lewat percakapan', () => {
     })
     expect(r.statusCode, r.body).toBe(422)
     expect(r.json().error).toMatch(/kategori/i)
+  }, 60_000)
+})
+
+describe('Permintaan material (MR) lewat percakapan', () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KENAPA MR, BUKAN PO
+    ══════════════════════════════════════════════════════════════════════════
+
+    Founder: *"mau po material dan lain lain"*. Yang dibuat MR, dan itu bukan
+    penyederhanaan melainkan urutan yang benar:
+
+      MR  "saya butuh 50 sak semen di proyek A"     ← yang tahu orang lapangan
+      PO  "beli dari supplier X, harga Y, kirim Z"  ← yang tahu tim pengadaan
+
+    Meminta asisten membuat PO dari kalimat berarti menebak `supplier_id` dan
+    `total_amount` — dokumen pengadaan berisi angka yang tak seorang pun
+    putuskan. MR-nya mengalir ke jalur yang sudah ada: approval → RFQ → PO,
+    dengan gerbang approval PO yang dibangun kemarin tetap berlaku penuh.
+  */
+
+  it('alur penuh: siapkan → tulis → MR tercipta dengan nomor otomatis', async () => {
+    const s = await siapkan({
+      jenis: 'permintaan_material',
+      project_id: projectId,
+      kebutuhan: `${TANDA} 50 sak semen untuk cor lantai 2`,
+      dibutuhkan_tanggal: '2026-09-01',
+    })
+    expect(s.statusCode, s.body).toBe(200)
+
+    const t = await tulis(s.json().token as string)
+    expect(t.statusCode, t.body).toBe(200)
+
+    const { rows } = await db.query(
+      `SELECT mr_number, notes, needed_date, status, requested_by
+         FROM material_requests WHERE notes LIKE $1`,
+      [`${TANDA}%`])
+
+    expect(rows).toHaveLength(1)
+
+    /*
+      Nomor MR terisi TRIGGER, bukan oleh rute.
+
+      Kalau ini kosong, artinya `trg_generate_mr_number` tak berjalan — dan
+      MR tanpa nomor tak bisa dirujuk di dokumen pengadaan mana pun.
+    */
+    expect(rows[0].mr_number, 'mr_number kosong — trigger penomor tak berjalan')
+      .toBeTruthy()
+
+    /*
+      Dibandingkan sebagai TANGGAL, bukan sebagai teks.
+
+      Driver `pg` memulangkan kolom `date` sebagai objek `Date`, jadi
+      `String(...)` menghasilkan "Tue Sep 01 2026 00:00:00 GMT+0700" — bukan
+      "2026-09-01". Assertion pertama saya membandingkan teks dan merah untuk
+      data yang sebenarnya benar.
+
+      `toISOString()` juga salah di sini: ia menggeser ke UTC, dan tanggal
+      lokal 1 September pukul 00:00 WIB menjadi 31 Agustus 17:00Z. Cacat yang
+      sama pernah merusak data seed di repo ini (`berlaku_sejak` 2026-01-01 →
+      2025-12-30).
+    */
+    const tgl = rows[0].needed_date as Date
+    expect(
+      `${tgl.getFullYear()}-${String(tgl.getMonth() + 1).padStart(2, '0')}-${String(tgl.getDate()).padStart(2, '0')}`,
+    ).toBe('2026-09-01')
+
+    // Status awal BUKAN approved: MR dari percakapan tetap lewat antrean yang
+    // sama dengan pengajuan lewat halaman biasa.
+    expect(rows[0].status).not.toBe('approved')
+  }, 60_000)
+
+  it('kebutuhan terlalu pendek DITOLAK — pengadaan memutuskan dari kalimat ini', async () => {
+    const r = await siapkan({
+      jenis: 'permintaan_material',
+      project_id: projectId,
+      kebutuhan: 'semen',
+    })
+    expect(r.statusCode, r.body).toBe(422)
+  }, 60_000)
+
+  it('tanggal berbentuk kata DITOLAK saat menyiapkan, bukan saat menulis', async () => {
+    /*
+      `new Date('besok')` menghasilkan `Invalid Date`, dan menuliskannya ke
+      kolom `date` gagal SESUDAH token habis. Model bisa saja meneruskan kata
+      seperti itu apa adanya dari kalimat pengguna.
+    */
+    const r = await siapkan({
+      jenis: 'permintaan_material',
+      project_id: projectId,
+      kebutuhan: `${TANDA} pasir 3 kubik`,
+      dibutuhkan_tanggal: 'besok',
+    })
+    expect(r.statusCode, r.body).toBe(422)
+    expect(r.json().error).toMatch(/YYYY-MM-DD/i)
   }, 60_000)
 })
