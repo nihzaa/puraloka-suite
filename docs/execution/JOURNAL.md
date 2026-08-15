@@ -5,6 +5,75 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-15 (lanjutan 4) — halaman ingatan, dan saya salah TIGA KALI soal "kerja sesi lain"
+
+### Yang saya laporkan salah
+
+Sesi ini saya menghentikan pekerjaan dan meminta izin founder untuk tiga
+berkas yang saya sebut "milik sesi lain". Founder bertanya: *"emang isinya itu
+punya sesi lain?"* — dan jawabannya **bukan**.
+
+    335_aturan_stok_menipis.sql       salinan usang; IDENTIK dengan 355 di HEAD
+    336_approval_steps_max_amount.sql salinan usang; IDENTIK dengan 356 di HEAD
+    otomasi-stok-menipis.test.ts      SUDAH di HEAD; beda cuma CRLF vs LF
+
+Ketiganya sisa commit `77f640b1` yang menomori ulang 331-338 → 351-358 (karena
+penomoran lama membuat CI melewatinya). Berkas lamanya lupa dihapus, dan sudah
+muncul di `git status` **sejak awal sesi**, sebelum saya menyentuh apa pun.
+
+Tiga kesalahan, berlapis:
+
+1. menyimpulkan "milik sesi lain" tanpa memeriksa apakah isinya sudah ter-commit;
+2. menghentikan pekerjaan untuk sesuatu yang tak perlu diputuskan siapa pun;
+3. menempelkan satu fakta yang BENAR (stash pop memang mengembalikan berkas
+   asing — itu nyata, dan konflik `notifications.ts` memang dari situ) ke
+   berkas yang sebenarnya sudah lama ada di sana.
+
+Yang membuatnya mahal: §8a.1 memang menyuruh berhenti kalau ada sesi lain
+menulis — jadi kesalahan saya bukan berhenti, melainkan **tidak mengukur
+sebelum menyimpulkan**. Aturan yang benar dipakai atas dasar yang salah.
+
+### Schema `test` tertinggal — penyebab `approval-satu-pintu` merah
+
+13 tabel sisa test run sesi lain. Testnya sengaja memakai basis dev dan
+menanyakan `information_schema` TANPA menyaring schema, jadi ia melihat
+`approved_by` dua kali dan menyimpulkan kolomnya kembar. Di `public` saja
+kolomnya benar.
+
+Dibersihkan lewat `src/test-utils/drop-test-schema.ts` — skrip yang memang
+sudah ada untuk ini, lengkap dengan penjaga yang menolak `public`. Sesudahnya
+`approval-satu-pintu` **6/6 hijau**.
+
+### Halaman Ingatan Asisten
+
+Melengkapi Fase 2b. Rutenya sudah ada sejak `633d35f8`; tanpa layar, ingatan
+hanya bisa diisi lewat percakapan — setengah dari yang founder minta.
+
+Yang menentukan bentuknya: **daftar mendahului formulir**. Pertanyaan yang
+dibawa orang ke halaman ini bukan "apa yang bisa diingat" melainkan *"asisten
+tahu apa tentang perusahaan saya, dan bagaimana saya menghapusnya?"* — dan
+ingatan disisipkan ke prompt tiap kali asisten menjawab, jadi tanpa halaman
+ini satu-satunya cara mengetahuinya adalah bertanya kepada asistennya sendiri.
+Jawaban itu tak bisa diperiksa.
+
+Dua penanda (izin & proyek) DITAMPILKAN sebagai lencana, tidak disembunyikan
+di balik "lanjutan": keduanya menentukan siapa yang melihat catatan itu, dan
+itu satu-satunya hal yang benar-benar berbahaya kalau salah.
+
+Migrasi 388 mendaftarkan menunya dengan `is_active = true` DITULIS EKSPLISIT
+dan diverifikasi — pelajaran migrasi 384, yang baru terjadi empat hari lalu.
+
+### Bukti
+
+    migrasi 388     sukses · idempoten · menu aktif & href terverifikasi
+    schema test     di-drop; approval-satu-pintu 6/6 hijau (sebelumnya merah)
+    tsc api / web   0 / 0
+    eslint halaman  0 error 0 warning
+    penjaga web     6 dijalankan, 6 hijau
+    ai-ingatan      26 hijau (rute 13 + kebocoran 13)
+
+---
+
 ## 2026-08-15 (lanjutan 3) — jalur TULIS ingatan, dan tiga cacat yang hanya muncul saat dipakai
 
 Melengkapi Fase 2b. Jalur BACA sudah berdiri (lanjutan 2); ini jalur MENULIS —
