@@ -21,7 +21,21 @@
  */
 
 import type { FastifyInstance } from 'fastify'
-import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
+/*
+  `requirePermission` TIDAK diimpor, dan itu disengaja.
+
+  Kedua rute di bawah memakai `hasPermission` DI DALAM handler, bukan
+  `requirePermission` di `preHandler` — karena izinnya bersyarat: membaca
+  preferensi SENDIRI tak butuh izin apa pun, membaca milik orang lain butuh
+  `notifikasi:preferensi:kelola`. Gerbang di `preHandler` tak bisa membedakan
+  keduanya; ia akan menolak orang yang sekadar membuka preferensinya sendiri.
+
+  Impornya sempat tertinggal dan menaikkan ratchet `no-unused-vars` (8 → 9).
+  Dibuang, bukan diberi awalan `_`: impor yang tak dipakai adalah tanda niat
+  yang tak selesai, dan menyamarkannya membuat pembaca berikutnya mengira
+  gerbangnya ada.
+*/
+import { authenticate, hasPermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { PREFERENSI_BAWAAN, bentukPreferensi, menitDariJam } from '../../lib/gerbang-kirim.js'
 

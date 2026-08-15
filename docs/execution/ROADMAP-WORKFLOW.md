@@ -81,11 +81,11 @@ prasyaratnya sudah ada di kode, dan tak satu pun membutuhkan AI.
 
 | # | Automation | Sistem | n8n | Aturan notifikasi | Catatan |
 |---|---|---|---|---|---|
-| 2.6 | Invoice Overdue Escalation | ⬜ `invoice-terlambat` | ⬜ jadwal | ✅ `invoice_overdue` sudah ada | membaca `amount_due`, bukan `status` |
-| 2.11 | Cash Position Alert | ⬜ `saldo-menipis` | ⬜ jadwal | ✅ migrasi 395 | ambang lewat query, bukan kolom |
-| 3.7 | Milestone Risk Flagging | ⬜ `milestone-berisiko` | ⬜ jadwal | ✅ `milestone_approaching` | `completed_at`, bukan `status` |
-| 2.2 | Vendor Payment Reminder | ⬜ `hutang-supplier` | ⬜ jadwal | ✅ migrasi 395 | ditegur SEBELUM jatuh tempo |
-| 4.9 | Material Price Trend | ⬜ `harga-material-naik` | ⬜ jadwal | ✅ migrasi 395 | kenaikan yang SUDAH terjadi, bukan prediksi |
+| 2.6 | Invoice Overdue Escalation | ✅ `invoice-terlambat` | ⬜ jadwal | ✅ `invoice_overdue` | membaca `amount_due`, bukan `status` |
+| 2.11 | Cash Position Alert | ✅ `saldo-menipis` | ⬜ jadwal | ✅ migrasi 395 | ambang dari `company_settings` |
+| 3.7 | Milestone Risk Flagging | ✅ `milestone-berisiko` | ⬜ jadwal | ✅ `milestone_approaching` | `completed_at`, bukan `status` |
+| 2.2 | Vendor Payment Reminder | ✅ `hutang-supplier` | ⬜ jadwal | ✅ migrasi 395 | ditegur SEBELUM jatuh tempo |
+| 4.9 | Material Price Trend | ✅ `harga-material-naik` | ⬜ jadwal | ✅ migrasi 395 | kenaikan yang SUDAH terjadi, bukan prediksi |
 | 3.18 | Earned Value Trend Alert | ⛔ **ditunda** | — | — | lihat §3 |
 
 ### Belum — butuh modul yang belum dibangun

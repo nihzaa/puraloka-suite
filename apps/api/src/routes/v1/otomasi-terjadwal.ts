@@ -1037,6 +1037,316 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       checked: { rekening_diperiksa: (rekening ?? []).length, menipis, ambang },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/milestone-berisiko ──────────────────────
+  //
+  // Automation 3.7 — milestone yang mendekati tenggat tetapi belum selesai.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // `completed_at IS NULL`, BUKAN `status <> 'completed'`
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Alasan yang sama dengan `invoice-terlambat`: `status` harus DIUBAH
+  // seseorang. Dua arah kesalahannya sama-sama nyata —
+  //
+  //   status tertinggal    milestone yang sudah selesai di lapangan tetapi
+  //                        belum diperbarui akan ditegur terus, dan tegurannya
+  //                        yang salah membuat orang berhenti membaca.
+  //
+  //   status mendahului    milestone yang ditandai `completed` padahal belum
+  //                        selesai TAK AKAN PERNAH ditegur — dan itu justru
+  //                        yang paling perlu terlihat.
+  //
+  // `completed_at` adalah fakta: ia terisi saat pekerjaan benar-benar
+  // dinyatakan selesai. Keduanya diperiksa — status untuk melewati yang jelas
+  // selesai, `completed_at` sebagai kebenarannya.
+  app.get('/api/v1/otomasi/jalankan/milestone-berisiko', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const hari = await ambilAmbang(request, 'otomasi.milestone_berisiko.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const batas = new Date(Date.now() + hari * 86_400_000).toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['milestone_approaching'])
+
+    const idProyek = await request.db!.projectIds()
+    const { data: ms, error } = await request.db!
+      .unsafe('milestones', 'penjadwal lintas-proyek: disaring .in(project_id, projectIds())')
+      .select(`
+        id, title, target_date, status, completed_at, project_id,
+        project:projects!milestones_project_id_fkey(id, name)
+      `)
+      .in('project_id', idProyek)
+      .is('completed_at', null)
+      .neq('status', 'completed')
+      .lte('target_date', batas)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    let dibuat = 0
+    for (const m of ms ?? []) {
+      // Embed PostgREST memulangkan ARRAY meski relasinya satu-ke-satu.
+      const embed = (m as { project?: unknown }).project
+      const proyek = (Array.isArray(embed) ? embed[0] : embed) as
+        { id: string; name: string } | null | undefined
+      if (!proyek) continue
+      if (sudah('milestone_approaching', m.id as string)) continue
+
+      const sisaHari = Math.ceil(
+        (new Date(m.target_date as string).getTime() - Date.now()) / 86_400_000,
+      )
+      const telat = sisaHari < 0
+
+      const penerima = await resolveRecipients('milestone_approaching', {
+        projectId: proyek.id,
+        companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: telat ? 'Milestone Terlewat' : 'Milestone Mendekati Tenggat',
+          message: telat
+            ? `${m.title} (${proyek.name}) terlewat ${Math.abs(sisaHari)} hari`
+            : `${m.title} (${proyek.name}) jatuh tempo ${sisaHari} hari lagi`,
+          type: 'milestone_approaching' as const,
+          priority: telat ? ('high' as const) : ('normal' as const),
+          project_id: proyek.id,
+          action_url: `/proyek/${proyek.id}`,
+          action_data: { record_id: m.id },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { milestone_diperiksa: (ms ?? []).length, ambang_hari: hari },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/hutang-supplier ─────────────────────────
+  //
+  // Automation 2.2 — tagihan supplier yang mendekati/melewati jatuh tempo.
+  //
+  // Kembaran `invoice-terlambat`, tetapi arah uangnya TERBALIK: yang itu uang
+  // yang belum kita terima, yang ini uang yang belum kita bayar.
+  //
+  // Bedanya menentukan kapan ditegur. Invoice masuk ditegur SESUDAH lewat
+  // tempo — kita yang menagih, dan menagih sebelum jatuh tempo tak sopan.
+  // Hutang supplier ditegur SEBELUM: telat membayar merusak hubungan dagang,
+  // dan tak ada yang bisa dilakukan sesudahnya kecuali meminta maaf.
+  app.get('/api/v1/otomasi/jalankan/hutang-supplier', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const hari = await ambilAmbang(request, 'otomasi.hutang_supplier.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const batas = new Date(Date.now() + hari * 86_400_000).toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['hutang_supplier_jatuh_tempo'])
+
+    // `supplier_invoices` punya `company_id` (kategori B) — `.from()` cukup.
+    const { data: tagihan, error } = await request.db!
+      .from('supplier_invoices')
+      .select(`
+        id, invoice_number, due_date, amount_due, status, project_id,
+        supplier:suppliers!supplier_invoices_supplier_id_fkey(id, name)
+      `)
+      .gt('amount_due', 0)
+      .lte('due_date', batas)
+      .not('status', 'in', '("paid","cancelled")')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    let dibuat = 0
+    for (const t of tagihan ?? []) {
+      if (sudah('hutang_supplier_jatuh_tempo', t.id as string)) continue
+
+      const embed = (t as { supplier?: unknown }).supplier
+      const pemasok = (Array.isArray(embed) ? embed[0] : embed) as
+        { name: string } | null | undefined
+
+      const sisaHari = Math.ceil(
+        (new Date(t.due_date as string).getTime() - Date.now()) / 86_400_000,
+      )
+      const telat = sisaHari < 0
+      const nilai = Number(t.amount_due ?? 0)
+
+      /*
+        `projectId` disertakan HANYA bila tagihannya terikat proyek.
+
+        Sebagian tagihan supplier memang tak punya proyek (pembelian kantor,
+        alat bersama). Memaksakan `projectId: null` ke `resolveRecipients`
+        membuat penyaringnya mencari proyek bernama `null` dan memulangkan nol
+        penerima — tagihan itu tak akan pernah dikabari.
+      */
+      const penerima = await resolveRecipients('hutang_supplier_jatuh_tempo', {
+        companyId: request.companyId!,
+        ...(t.project_id ? { projectId: t.project_id as string } : {}),
+      })
+
+      for (const uid of penerima) {
+        createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: telat ? 'Hutang Supplier Terlambat' : 'Hutang Supplier Jatuh Tempo',
+          message: `${t.invoice_number}${pemasok?.name ? ` — ${pemasok.name}` : ''}: `
+            + `Rp ${nilai.toLocaleString('id-ID')} `
+            + (telat ? `telat ${Math.abs(sisaHari)} hari` : `jatuh tempo ${sisaHari} hari lagi`),
+          type: 'hutang_supplier_jatuh_tempo' as const,
+          priority: telat ? ('high' as const) : ('normal' as const),
+          ...(t.project_id ? { project_id: t.project_id as string } : {}),
+          action_url: '/procurement/hutang',
+          action_data: { record_id: t.id },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { tagihan_diperiksa: (tagihan ?? []).length, ambang_hari: hari },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/harga-material-naik ─────────────────────
+  //
+  // Automation 4.9 — harga aktif sebuah material naik signifikan.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // INI BUKAN PREDIKSI, DAN TIDAK MENGAKU BEGITU
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Katalog menandai 4.9 `Predictive`, dan versi penuhnya memang butuh model.
+  // Yang dibangun di sini bagian rule-based-nya: kenaikan yang SUDAH TERJADI
+  // dan melampaui ambang. Menyebutnya prediksi akan mengklaim lebih dari yang
+  // ia lakukan — dan orang akan mengira sistem memperingatkan kenaikan yang
+  // BELUM terjadi.
+  //
+  // `price_book_entries` menyimpan riwayat: tiap perubahan harga jadi baris
+  // baru, yang lama jadi `expired`. Jadi "naik" bisa diukur tanpa menyimpan
+  // apa pun tambahan — bandingkan harga `active` dengan harga `expired`
+  // TERAKHIR untuk resource yang sama.
+  app.get('/api/v1/otomasi/jalankan/harga-material-naik', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { persen?: string }
+    const ambangPersen = await ambilAmbang(request, 'otomasi.harga_material.persen', q.persen)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['harga_material_naik'])
+
+    /*
+      Dibaca BERHALAMAN — `price_book_entries` sudah 3.103 baris (diukur), dan
+      PostgREST memulangkan maksimal 1.000 tanpa galat maupun penanda.
+
+      Pelajaran `audit-baca-tak-terpotong` (dan cacat anti-lockout yang
+      melahirkannya): tanpa paging, 2.103 baris terakhir tak pernah terbaca,
+      dan automation ini diam untuk material yang kebetulan di luar 1.000
+      pertama — tanpa satu pun gejala.
+    */
+    const HALAMAN = 1000
+    const semua: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error } = await request.db!
+        .from('price_book_entries')
+        .select(`
+          id, amount, status, effective_date, resource_id,
+          resource:resources!price_book_entries_resource_id_fkey(id, code, name)
+        `)
+        .in('status', ['active', 'expired'])
+        .order('resource_id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!data || data.length === 0) break
+      semua.push(...(data as Array<Record<string, unknown>>))
+      if (data.length < HALAMAN) break
+    }
+
+    // Kelompokkan per resource: harga aktif, dan harga expired TERBARU.
+    const perResource = new Map<string, {
+      aktif?: Record<string, unknown>
+      lama?: Record<string, unknown>
+    }>()
+    for (const e of semua) {
+      const rid = e.resource_id as string
+      if (!rid) continue
+      const slot = perResource.get(rid) ?? {}
+      if (e.status === 'active') {
+        slot.aktif = e
+      } else {
+        const tglBaru = String(e.effective_date ?? '')
+        const tglLama = String(slot.lama?.effective_date ?? '')
+        if (!slot.lama || tglBaru > tglLama) slot.lama = e
+      }
+      perResource.set(rid, slot)
+    }
+
+    let dibuat = 0
+    let naik = 0
+
+    for (const [rid, slot] of perResource) {
+      if (!slot.aktif || !slot.lama) continue
+      const baru = Number(slot.aktif.amount ?? 0)
+      const lama = Number(slot.lama.amount ?? 0)
+      // Pembagi nol dijaga: harga lama 0 membuat persentase jadi Infinity, dan
+      // Infinity selalu melampaui ambang mana pun.
+      if (lama <= 0 || baru <= lama) continue
+
+      const persen = ((baru - lama) / lama) * 100
+      if (persen < ambangPersen) continue
+      naik++
+      if (sudah('harga_material_naik', rid)) continue
+
+      const embed = (slot.aktif as { resource?: unknown }).resource
+      const res = (Array.isArray(embed) ? embed[0] : embed) as
+        { code: string; name: string } | null | undefined
+
+      const penerima = await resolveRecipients('harga_material_naik', {
+        companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: 'Harga Material Naik',
+          message: `${res?.name ?? res?.code ?? 'Material'} naik ${persen.toFixed(1)}% — `
+            + `Rp ${lama.toLocaleString('id-ID')} → Rp ${baru.toLocaleString('id-ID')}`,
+          type: 'harga_material_naik' as const,
+          priority: persen >= 25 ? ('high' as const) : ('normal' as const),
+          action_url: '/procurement/material',
+          // `record_id` = resource, BUKAN baris harga: yang penting "material
+          // ini sudah dikabari hari ini", bukan "baris harga ini".
+          action_data: { record_id: rid },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        resource_diperiksa: perResource.size,
+        naik,
+        ambang_persen: ambangPersen,
+        baris_harga_dibaca: semua.length,
+      },
+    })
+  })
 }
 
 /**

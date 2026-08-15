@@ -332,6 +332,11 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     // Automation 2.11 (2026-08-15). Sama seperti 2.6: ditambahkan karena
     // penjaga daftar MERAH, bukan karena saya ingat.
     'saldo-menipis',
+    // Automation 3.7 · 2.2 · 4.9 (2026-08-15) — ditambahkan bersamaan dengan
+    // rutenya kali ini, bukan menunggu penjaga daftar merah lebih dulu.
+    'milestone-berisiko',
+    'hutang-supplier',
+    'harga-material-naik',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {
