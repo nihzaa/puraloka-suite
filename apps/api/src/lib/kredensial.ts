@@ -370,13 +370,42 @@ export type SumberKredensial = 'tenant' | 'env' | 'tidak-ada'
  * kredensial tenant lain — persis kebocoran yang dijaga seluruh lapisan
  * tenancy repo ini.
  *
- * ── Kenapa TIDAK ada jatuhan `.env` di sini
+ * ── Jatuhan `.env` SELEKTIF — hanya grup AI (diperbaiki 2026-08-14)
  *
- * `ambilKredensial()` punya jatuhan env sebagai jaring pengaman
- * satu-instalasi. Fungsi ini sengaja TIDAK: satu-satunya pemakainya adalah
- * penerbit peristiwa otomasi, dan otomasi yang diam karena belum dikonfigurasi
- * jauh lebih baik daripada otomasi yang diam-diam mengirim lewat n8n milik
- * tenant lain. Diam bisa diperiksa; salah kirim tak bisa ditarik.
+ * Versi sebelumnya sengaja TIDAK punya jatuhan sama sekali, dengan alasan:
+ * "satu-satunya pemakainya adalah penerbit peristiwa otomasi, dan otomasi
+ * yang diam jauh lebih baik daripada otomasi yang diam-diam mengirim lewat
+ * n8n milik tenant lain."
+ *
+ * Alasan itu BENAR, dan tetap berlaku untuk WA/n8n. Yang tidak benar lagi
+ * adalah premisnya: pemakainya sudah dua, bukan satu. `sapa-proaktif.ts`
+ * ikut memakainya — untuk KUNCI AI.
+ *
+ * Akibatnya terukur: founder memasang `ANTHROPIC_API_KEY` di `apps/api/.env`
+ * (108 karakter, terbaca), tetapi `ambilKredensialTanpaRequest` memulangkan
+ * `null` — jadi asisten proaktif MATI tanpa satu pun gejala. Kuncinya ada,
+ * kodenya siap, dan tak ada yang menghubungkan keduanya.
+ *
+ * ── Kenapa AI boleh jatuh ke env, WA/n8n tidak
+ *
+ * Bedanya bukan soal kerahasiaan melainkan **apa yang tak bisa ditarik**:
+ *
+ *   WA/n8n  salah kunci = pesan terkirim lewat NOMOR TENANT LAIN.
+ *           Pelanggan tenant B menerima pesan dari nomor tenant A, dan
+ *           riwayat dua perusahaan bercampur. Tak bisa dibatalkan.
+ *
+ *   AI      salah kunci = tagihan jatuh ke pemilik kunci env. Itu kerugian
+ *           uang yang terlihat di dasbor biaya dan bisa dihentikan — bukan
+ *           kebocoran data antar-tenant, dan tak ada pihak ketiga yang
+ *           terlanjur menerima apa pun.
+ *
+ * Pembedanya `grup === 'AI'` di `KATALOG_KREDENSIAL` — bukan daftar nama
+ * kunci yang ditulis ulang di sini. Daftar kedua akan berselisih dengan
+ * katalognya begitu penyedia AI baru ditambahkan.
+ *
+ * `KREDENSIAL_TANPA_JATUHAN_ENV=1` tetap mematikannya, sama seperti jalur
+ * ber-request: operator instalasi multi-tenant yang menanggung tagihan
+ * banyak perusahaan berhak menutup jaring ini seluruhnya.
  */
 export async function ambilKredensialTanpaRequest(
   companyId: string,
@@ -402,7 +431,23 @@ export async function ambilKredensialTanpaRequest(
     throw new Error(`Gagal membaca kredensial '${kunci}': ${error.message}`)
   }
 
-  const nilai = data?.nilai_enc ? bukaNilai(data.nilai_enc as string) : null
+  let nilai = data?.nilai_enc ? bukaNilai(data.nilai_enc as string) : null
+
+  /*
+    Jatuhan env — HANYA grup AI, dan hanya bila tenant belum mengisinya
+    sendiri. Alasan lengkapnya di komentar fungsi ini.
+
+    Urutannya penting: baris tenant SELALU menang. Jatuhan cuma berlaku saat
+    tenant belum punya kuncinya sendiri, jadi memasang kunci di UI langsung
+    menggantikan env tanpa perlu apa pun dimatikan.
+  */
+  if (!nilai && process.env.KREDENSIAL_TANPA_JATUHAN_ENV !== '1') {
+    const meta = metaKredensial(kunci)
+    if (meta?.grup === 'AI' && meta.env) {
+      nilai = process.env[meta.env]?.trim() || null
+    }
+  }
+
   cache.set(ck, { nilai, kedaluwarsa: Date.now() + TTL_MS })
   return nilai
 }

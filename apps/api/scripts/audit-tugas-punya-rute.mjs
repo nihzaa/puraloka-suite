@@ -100,9 +100,20 @@ for (const f of berkasRute(join(SRC, 'routes'))) {
   }
 }
 
+/**
+ * Jalur tugas boleh membawa query string; yang dicocokkan JALUR-nya saja.
+ *
+ * `sapa-proaktif` memakai `?sapaan=1` untuk menyalakan sapaan tanpa temuan —
+ * parameter itu milik TUGAS, bukan rute, jadi rutenya tetap satu.
+ * Membandingkan berikut query akan membuat tugas ber-parameter selalu
+ * dilaporkan "menunjuk rute mati", dan yang memperbaikinya akan mencari
+ * rute yang sebenarnya ada.
+ */
+const tanpaKueri = (j) => j.split('?')[0]
+
 const pelanggaran = []
 for (const t of tugas) {
-  const berkas = daftarRute.get(t.jalur)
+  const berkas = daftarRute.get(tanpaKueri(t.jalur))
   if (!berkas) {
     pelanggaran.push(`${t.kode}\n    jalur '${t.jalur}' tak cocok dengan satu pun pendaftaran rute`)
     continue

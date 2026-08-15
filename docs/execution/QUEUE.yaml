@@ -2500,12 +2500,14 @@ items:
       - "menulis baris notifications supaya dedup harian & audit-notifikasi-tak-kembar ikut menjaga"
     cara_verifikasi: "test: waktu acak dalam jendela · klaim atomik menahan dobel · gerbang ASISTEN-3 dihormati"
     bobot: L
-    status: sebagian
+    status: done
     catatan_kemajuan: >-
       JALURNYA LENGKAP & BERPAGAR: migrasi 391 (jendela_menit +
       sasaran_berikut + kanal proaktif), lib/jadwal-acak (diundi SEKALI per
       periode, bukan tiap tick), rute POST /api/v1/asisten/sapa-proaktif yang
       melewati bolehKirim SEBELUM memanggil model, isi dari asisten (bukan
       template), dan "tanpa temuan = tidak mengirim".
-      BELUM: tugas `sapa-proaktif` belum di-seed ke jadwal_tugas tenant mana
-      pun — menyalakan pengiriman ke nomor sungguhan keputusan founder.
+      DINYALAKAN 2026-08-15 (migrasi 392): tenant nomor founder saja,
+      jendela 08:00-18:00, harian termasuk sapaan. Tiga nomor lain nonaktif
+      dan tak ikut tersapa. Matikan: UPDATE jadwal_tugas SET aktif=false
+      WHERE tugas='sapa-proaktif'; atau lewat Pengaturan → Jadwal Tugas.

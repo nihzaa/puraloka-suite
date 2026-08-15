@@ -34,6 +34,7 @@
  */
 
 import type { FastifyInstance, FastifyRequest } from 'fastify'
+import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createTenantDb } from '../../utils/tenant-db.js'
 import { supabase } from '../../utils/supabase.js'
 import { kirimWa, konfigurasiKanal } from '../../lib/wa-kirim.js'
@@ -42,14 +43,6 @@ import { jalankanGiliranAi, GAYA_WHATSAPP } from '../../lib/ai-jalankan.js'
 import { bolehKirim, AWALAN_TIPE_PROAKTIF, type Kepentingan } from '../../lib/gerbang-kirim.js'
 import { bacaRiwayat } from '../../lib/ai-riwayat-baca.js'
 import { izinDariPeran } from '../../lib/izin-peran.js'
-
-/** Perbandingan rahasia yang tak bocor lewat waktu. */
-function samaAman(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let beda = 0
-  for (let i = 0; i < a.length; i++) beda |= a.charCodeAt(i) ^ b.charCodeAt(i)
-  return beda === 0
-}
 
 interface Sasaran {
   userId: string
@@ -94,40 +87,33 @@ const PENANDA_KOSONG = 'TIDAK ADA TEMUAN'
 
 export default async function sapaProaktifRoutes(app: FastifyInstance) {
   /*
-   * Jalurnya ditulis LANGSUNG sesudah `app.post(`, tanpa parameter tipe di
-   * antaranya.
+   * GET, bukan POST — dan itu KONTRAK PENJADWAL, bukan selera.
    *
-   * Bukan gaya: `audit-tugas-punya-rute.mjs` mencocokkan
-   * `app.post('<jalur>'` secara harfiah, dan bentuk `app.post<{...}>(` membuat
-   * rutenya TAK TERLIHAT penjaga — tugas terjadwal lalu dianggap menunjuk
-   * rute mati. Ketahuan saat penjaganya merah, bukan saat rutenya gagal.
+   * `jalankanTugas()` di `jadwal.ts` memanggil tiap tugas lewat
+   * `server.inject({ method: 'GET', url: meta.jalur })` dengan token AKUN
+   * LAYANAN, bukan `SCHEDULER_SECRET`. Rancangan pertama berkas ini memakai
+   * POST + rahasia penjadwal, dan akibatnya: tugasnya terdaftar, terlihat
+   * aktif di UI, dan TAK PERNAH menghasilkan apa pun — penjadwal memanggil
+   * GET, rutenya cuma menerima POST.
    *
-   * Badan permintaan tetap bertipe, lewat `as` di bawah.
+   * Ketahuan sebelum dinyalakan, saat membaca cara penjadwal benar-benar
+   * memanggil. Tak ada galat yang akan menunjukkannya: `inject` GET ke rute
+   * yang cuma POST membalas 404, dan 404 itu tenggelam di antara tugas lain
+   * yang sehat.
+   *
+   * Gerbangnya jadi `authenticate` + `requirePermission` — sama persis dengan
+   * `cek-tenggat` dan `bersih-percakapan-ai`. Penjadwal tunduk pada permission
+   * dan batas tenant yang sama dengan manusia; kalau akun layanannya
+   * kehilangan hak, tugasnya gagal 403 yang terbaca.
+   *
+   * Jalurnya ditulis LANGSUNG sesudah `app.get(` tanpa parameter tipe:
+   * `audit-tugas-punya-rute.mjs` mencocokkannya secara harfiah.
    */
-  app.post('/api/v1/asisten/sapa-proaktif',
-    async (request, reply) => {
-      const badan = (request.body ?? {}) as {
-        company_id?: string
-        kepentingan?: string
-        sapaan?: boolean
-      }
-      // ── GERBANG 1: rahasia penjadwal ─────────────────────────────────────
-      //
-      // Sama dengan `POST /api/v1/jadwal/jalankan`: tanpa ini, siapa pun yang
-      // tahu URL-nya bisa memicu pengiriman ke seluruh nomor terdaftar.
-      const rahasia = process.env.SCHEDULER_SECRET?.trim() || null
-      if (!rahasia) {
-        request.log.error('sapa-proaktif: SCHEDULER_SECRET belum diisi — ditolak')
-        return reply.status(503).send({ error: 'Penjadwal belum dikonfigurasi' })
-      }
-      const dikirim = (request.headers['x-scheduler-secret'] as string | undefined) ?? ''
-      if (!samaAman(dikirim, rahasia)) {
-        request.log.warn({ ip: request.ip }, 'sapa-proaktif: rahasia salah')
-        return reply.status(401).send({ error: 'Tidak sah' })
-      }
-
+  app.get('/api/v1/asisten/sapa-proaktif', {
+    preHandler: [authenticate, requirePermission('ai:chat')],
+  }, async (request, reply) => {
       /*
-       * ── GERBANG 2: PAGAR TEST ────────────────────────────────────────────
+       * ── PAGAR TEST ───────────────────────────────────────────────────────
        *
        * Ditegakkan `audit-saluran-keluar-berpagar.mjs` (ambang NOL), dan
        * alasannya bukan teori: 2026-08-14 test suite mengirim 28 WhatsApp
@@ -140,11 +126,27 @@ export default async function sapaProaktifRoutes(app: FastifyInstance) {
         return reply.send({ ok: true, dilewati: 'pagar-test', hasil: [] })
       }
 
-      const kepentingan: Kepentingan =
-        badan.kepentingan === 'mendesak' ? 'mendesak' : 'biasa'
-      const sapaan = badan.sapaan === true
+      /*
+       * Tenant dari SESI, bukan dari parameter.
+       *
+       * `x-company-id` sudah diresolusi `authenticate` jadi `request.companyId`
+       * — memakai query parameter di sini berarti satu tenant bisa memicu
+       * sapaan ke nomor tenant lain.
+       */
+      const companyId = request.companyId!
 
-      const sasaran = await ambilSasaran(request, badan.company_id)
+      /*
+       * Sapaan tanpa temuan: dinyalakan lewat query, bawaan MATI.
+       *
+       * Bawaan mati karena jalur ini dipanggil penjadwal tiap hari — dan
+       * asisten yang selalu mengirim sesuatu, walau tak ada apa-apa,
+       * mengajari orang mengabaikannya.
+       */
+      const q = (request.query ?? {}) as { sapaan?: string; kepentingan?: string }
+      const kepentingan: Kepentingan = q.kepentingan === 'mendesak' ? 'mendesak' : 'biasa'
+      const sapaan = q.sapaan === '1' || q.sapaan === 'true'
+
+      const sasaran = await ambilSasaran(request, companyId)
       const hasil: HasilSapa[] = []
 
       for (const s of sasaran) {
@@ -170,7 +172,7 @@ export default async function sapaProaktifRoutes(app: FastifyInstance) {
  */
 async function ambilSasaran(
   request: FastifyRequest,
-  companyId?: string,
+  companyId: string,
 ): Promise<Sasaran[]> {
   let q = supabase
     .from('wa_nomor_pengguna')
@@ -178,7 +180,9 @@ async function ambilSasaran(
     .eq('aktif', true)
     .not('terverifikasi_pada', 'is', null)
 
-  if (companyId) q = q.eq('company_id', companyId)
+  // WAJIB bertenant — bukan opsional. Tanpa ini satu tick akan menyapa
+  // seluruh nomor di SEMUA tenant sekaligus.
+  q = q.eq('company_id', companyId)
 
   const { data, error } = await q
 

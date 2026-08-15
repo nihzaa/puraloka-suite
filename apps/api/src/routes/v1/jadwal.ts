@@ -98,7 +98,20 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
   'sapa-proaktif': {
     label: 'Sapaan Asisten',
     keterangan: 'Asisten menyapa duluan pada jam yang berbeda tiap hari, kalau ada yang perlu disebut.',
-    jalur: '/api/v1/asisten/sapa-proaktif',
+    /*
+     * `?sapaan=1` — founder memilih "harian, TERMASUK sapaan tanpa temuan"
+     * (2026-08-15). Tanpanya asisten hanya bersuara saat ada temuan, dan
+     * pada data yang bersih ia diam berhari-hari — sulit dinilai apakah
+     * jadwalnya bekerja atau tidak.
+     *
+     * Query string ditaruh di sini, bukan di penjadwal: `jalankanTugas`
+     * memakai `meta.jalur` APA ADANYA, jadi tiap tugas memegang parameternya
+     * sendiri tanpa penjadwal perlu tahu apa pun tentangnya.
+     *
+     * ⚠ `audit-tugas-punya-rute` mencocokkan jalur ini dengan pendaftaran
+     * rute secara harfiah — pemisahan query-nya ditangani penjaga itu.
+     */
+    jalur: '/api/v1/asisten/sapa-proaktif?sapaan=1',
   },
 
   // ── Otomasi terjadwal (katalog automation Phase 2, rule-based) ────────────

@@ -5,6 +5,67 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-15 (lanjutan 7) — sapaan DINYALAKAN, dan dua cacat yang menahannya
+
+Founder memberi nomornya (`6281311081813`) dan memilih: jendela **08:00–18:00**,
+harian, **termasuk sapaan tanpa temuan**.
+
+### Dua cacat yang ketahuan SEBELUM dinyalakan
+
+**1. Rutenya POST, penjadwalnya memanggil GET.**
+
+`jalankanTugas()` memanggil tiap tugas lewat
+`server.inject({ method: 'GET', url: meta.jalur })` dengan token AKUN LAYANAN
+— bukan `SCHEDULER_SECRET`. Rancangan pertama saya memakai POST + rahasia
+penjadwal, jadi tugasnya akan **terdaftar, terlihat aktif di UI, dan tak
+pernah menghasilkan apa pun**. Tak ada galat yang menunjukkannya: `inject` GET
+ke rute yang cuma POST membalas 404, dan 404 itu tenggelam di antara tugas
+lain yang sehat.
+
+Ketahuan karena membaca cara penjadwal BENAR-BENAR memanggil, bukan
+mengasumsikan dari nama fungsinya. Gerbangnya diganti `authenticate` +
+`requirePermission('ai:chat')` — sama dengan `cek-tenggat`, dan akun
+layanannya sudah diverifikasi memegang izin itu (`admin`).
+
+**2. `ambilSasaran` menerima `companyId` OPSIONAL.**
+
+Kalau tak diisi, satu tick akan menyapa seluruh nomor di SEMUA tenant. Kini
+wajib, dan diambil dari `request.companyId` (hasil resolusi `authenticate`),
+bukan dari parameter yang bisa dikirim pemanggil.
+
+### Penjaga dipertajam, bukan dilemahkan
+
+`?sapaan=1` ditaruh di `KATALOG_TUGAS` — penjadwal memakai `meta.jalur` apa
+adanya, jadi tiap tugas memegang parameternya sendiri. Tapi
+`audit-tugas-punya-rute` mencocokkan string penuh, jadi ia melaporkan "rute
+mati" untuk rute yang sebenarnya ada.
+
+Penjaganya diajari memisah query dari jalur — dan tetap dibuktikan bisa merah:
+jalur palsu (`/api/v1/asisten/tak-pernah-ada?sapaan=1`) tetap terdeteksi.
+
+### Bukti bahwa jamnya benar-benar acak
+
+Simulasi konfigurasi NYATA (08:00 + jendela 600 menit), sepuluh undian:
+
+    14:09  15:01  08:52  16:42  14:18  12:41  09:19  11:17  12:41  10:55
+
+Sembilan jam berbeda dari sepuluh, seluruhnya di dalam 08:00–18:00.
+
+### Apa yang menahannya kalau salah
+
+    preferensi_pesan  jam tenang 21:00-07:00, maks 3/hari, tombol berhenti
+    bolehKirim()      lima pemeriksaan fail-closed
+    idempotensi       kunci proaktif:<jenis>:<user>:<tanggal>
+    aktif = false     satu UPDATE menghentikannya tanpa deploy
+
+Hanya SATU tenant yang dinyalakan — tenant nomor founder. Tiga nomor lain di
+basis nonaktif dan tak ikut tersapa. Migrasi 392 menolak berjalan kalau
+nomornya tak terdaftar/aktif/terverifikasi, dan menolak jendela yang melewati
+tengah malam (yang akan jatuh di jam tenang lalu ditahan gerbang — "jalan"
+tiap hari tanpa satu pun pesan sampai).
+
+---
+
 ## 2026-08-15 (lanjutan 6) — asisten menyapa duluan, pada jam yang berbeda tiap hari
 
 Fase 4 — fase terakhir rencana asisten. Sampai hari ini `jalankanGiliranAi`
