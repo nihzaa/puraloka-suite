@@ -257,6 +257,26 @@ export function lupakanKredensial(companyId: string, kunci: string): void {
 }
 
 /**
+ * Lupakan SELURUH kredensial satu company.
+ *
+ * Dibutuhkan sejak warisan grup (migrasi 393): mengubah
+ * `warisi_kredensial_induk` mengubah nilai yang berlaku untuk **semua** kunci
+ * sekaligus, bukan satu kunci tertentu. Tanpa ini, saklar yang baru dimatikan
+ * tetap memulangkan kunci induk sampai TTL habis — pemilik grup melihat
+ * setelannya "tersimpan" sementara tagihannya masih berjalan.
+ *
+ * Menyapu seluruh cache (bukan hanya prefiks company ini) ditolak: cache
+ * dipakai bersama semua tenant, dan mengosongkannya karena satu tenant
+ * mengubah setelan membuat seluruh instalasi membaca ulang basis serentak.
+ */
+export function lupakanKredensialCompany(companyId: string): void {
+  const awalan = `${companyId}::`
+  for (const k of cache.keys()) {
+    if (k.startsWith(awalan)) cache.delete(k)
+  }
+}
+
+/**
  * Ambil nilai kredensial yang BERLAKU untuk tenant ini.
  *
  * Mengembalikan `null` bila tak ada di mana pun — pemanggil yang memutuskan
@@ -299,6 +319,70 @@ export async function ambilKredensial(
     // Satu-satunya pemanggilan `bukaNilai` di luar berkas sandi (penjaga K-4).
     nilai = bukaNilai(data.nilai_enc as string)
   } else {
+    /*
+     * ── WARISAN GRUP — sebelum jatuhan `.env` (2026-08-14) ──────────────
+     *
+     * Founder: *"bisa di aktifkan jika ditanggung grup bisa juga anak grup
+     * pake api sendiri"*. Jadi pewarisan punya saklar per anak
+     * (`companies.warisi_kredensial_induk`, migrasi 393), bukan otomatis.
+     *
+     * Urutannya menentukan artinya:
+     *
+     *   1. kunci tenant sendiri   → sudah ditangani di cabang `if` di atas,
+     *                               dan ia SELALU menang. Anak yang mengisi
+     *                               kuncinya sendiri berhenti memakai kunci
+     *                               induk tanpa saklar apa pun diubah.
+     *   2. kunci INDUK            → di sini. Tagihan jatuh ke induk, dan itu
+     *                               memang yang diminta untuk satu grup.
+     *   3. jatuhan `.env`         → di bawah. Jaring satu-instalasi.
+     *
+     * ── Kenapa warisan HARUS di atas `.env`, bukan di bawahnya
+     *
+     * Keduanya sama-sama "kunci milik orang lain", tetapi bedanya tegas:
+     * induk adalah pemilik yang SENGAJA menanggung anaknya, sementara `.env`
+     * server dipakai bersama SEMUA tenant — termasuk perusahaan yang tak
+     * punya hubungan apa pun dengan pemilik kuncinya.
+     *
+     * Hari ini keduanya kebetulan menunjuk kunci yang sama (founder), jadi
+     * urutan ini belum terasa. Ia akan terasa persis saat tenant kedua yang
+     * bukan anak grup masuk — dan saat itu terlambat memperbaikinya.
+     *
+     * ── Kenapa dibaca lewat `supabase`, bukan `request.db`
+     *
+     * `request.db` sadar-tenant: ia menyaring ke company yang sedang login,
+     * jadi ia TIDAK BISA melihat baris milik induk — itulah gunanya. Membaca
+     * warisan menuntut melihat melewati batas itu, dan karena itu ia dipagari
+     * ketat: hanya `parent_company_id` milik tenant ini yang boleh dilihat,
+     * hanya bila saklarnya menyala, dan hanya untuk kunci yang sama.
+     */
+    const { data: induk } = await supabase
+      .from('companies')
+      .select('parent_company_id, warisi_kredensial_induk')
+      .eq('id', companyId)
+      .maybeSingle()
+
+    const indukId = (induk as { parent_company_id?: string | null } | null)?.parent_company_id
+    const bolehWarisi = (induk as { warisi_kredensial_induk?: boolean } | null)?.warisi_kredensial_induk
+
+    if (indukId && bolehWarisi) {
+      const { data: barisInduk } = await supabase
+        .from('app_credentials')
+        .select('nilai_enc')
+        .eq('company_id', indukId)
+        .eq('kunci', kunci)
+        .maybeSingle()
+
+      if (barisInduk?.nilai_enc) {
+        nilai = bukaNilai(barisInduk.nilai_enc as string)
+        request.log.info(
+          { kunci, companyId, indukId },
+          'kredensial diwarisi dari induk grup — tagihan/pengiriman atas nama induk',
+        )
+      }
+    }
+  }
+
+  if (nilai === null) {
     const meta = metaKredensial(kunci)
     const dariEnv = meta?.env ? (process.env[meta.env]?.trim() || null) : null
 
@@ -324,7 +408,42 @@ export async function ambilKredensial(
      * ("server ini melayani banyak perusahaan"), bukan pengaturan yang
      * boleh diubah salah satu tenant untuk dirinya sendiri.
      */
-    if (dariEnv && process.env.KREDENSIAL_TANPA_JATUHAN_ENV === '1') {
+    /*
+     * ── PAGAR GRUP: jatuhan env HANYA untuk kunci AI (2026-08-14) ────────
+     *
+     * Komentar di atas sudah menyebut bahayanya sejak 2026-08-10 — *"tenant B
+     * yang belum mengisi WA_* mengirim WhatsApp lewat NOMOR TENANT A"* —
+     * tetapi kodenya tak pernah memagarinya. Peringatan yang tertulis dan tak
+     * ditegakkan hanya menunda kejutannya.
+     *
+     * Ketahuan lewat `audit-kredensial-lintas-tenant.mjs`, yang dibuat saat
+     * founder meminta: *"harus disiapkan kalo nanti banyak perusahaan"*.
+     *
+     * Bedanya tegas, dan itu yang menentukan pagarnya:
+     *
+     *   AI       salah kunci = tagihan jatuh ke pemilik env. Terlihat di
+     *            dasbor biaya, bisa dihentikan, tak ada pihak ketiga yang
+     *            terlanjur menerima apa pun.
+     *
+     *   WA/Email salah kunci = pesan TERKIRIM lewat identitas tenant lain.
+     *            Pelanggan tenant B menerima pesan dari nomor tenant A, dan
+     *            riwayat dua perusahaan bercampur. Tak bisa ditarik.
+     *
+     * `KREDENSIAL_TANPA_JATUHAN_ENV=1` tetap ada dan tetap mematikan
+     * SEMUANYA termasuk AI — ia keputusan operator. Pagar ini lebih sempit
+     * dan tak perlu diingat siapa pun.
+     */
+    const grupBolehJatuh = meta?.grup === 'AI'
+
+    if (dariEnv && !grupBolehJatuh) {
+      request.log.warn(
+        { kunci, companyId, grup: meta?.grup },
+        'kredensial ada di env server tetapi TIDAK dipakai — hanya kunci AI yang '
+          + 'boleh jatuh ke env. Kunci pengiriman (WhatsApp/Email) wajib milik '
+          + 'tenant sendiri, supaya tak ada pesan terkirim atas nama tenant lain.',
+      )
+      nilai = null
+    } else if (dariEnv && process.env.KREDENSIAL_TANPA_JATUHAN_ENV === '1') {
       request.log.warn(
         { kunci, companyId },
         'kredensial jatuh ke env server tetapi jatuhan DIMATIKAN — tenant ini ' +
@@ -434,12 +553,45 @@ export async function ambilKredensialTanpaRequest(
   let nilai = data?.nilai_enc ? bukaNilai(data.nilai_enc as string) : null
 
   /*
-    Jatuhan env — HANYA grup AI, dan hanya bila tenant belum mengisinya
-    sendiri. Alasan lengkapnya di komentar fungsi ini.
+    Warisan grup — urutan dan alasannya SAMA PERSIS dengan jalur ber-request
+    (`ambilKredensial`). Ditulis dua kali karena kedua fungsi memang dua jalur
+    berbeda, tetapi keduanya harus menjawab pertanyaan yang sama: "kunci siapa
+    yang berlaku untuk tenant ini?".
 
-    Urutannya penting: baris tenant SELALU menang. Jatuhan cuma berlaku saat
-    tenant belum punya kuncinya sendiri, jadi memasang kunci di UI langsung
-    menggantikan env tanpa perlu apa pun dimatikan.
+    Kalau hanya salah satu yang mewarisi, asisten proaktif (jalur ini) dan
+    asisten interaktif (jalur ber-request) akan memakai kunci BERBEDA untuk
+    tenant yang sama — dan tagihannya jatuh ke dua pihak berbeda tanpa ada
+    yang memutuskan begitu.
+  */
+  if (!nilai) {
+    const { data: induk } = await supabase
+      .from('companies')
+      .select('parent_company_id, warisi_kredensial_induk')
+      .eq('id', companyId)
+      .maybeSingle()
+
+    const indukId = (induk as { parent_company_id?: string | null } | null)?.parent_company_id
+    const bolehWarisi = (induk as { warisi_kredensial_induk?: boolean } | null)?.warisi_kredensial_induk
+
+    if (indukId && bolehWarisi) {
+      const { data: barisInduk } = await supabase
+        .from('app_credentials')
+        .select('nilai_enc')
+        .eq('company_id', indukId)
+        .eq('kunci', kunci)
+        .maybeSingle()
+      if (barisInduk?.nilai_enc) nilai = bukaNilai(barisInduk.nilai_enc as string)
+    }
+  }
+
+  /*
+    Jatuhan env — HANYA grup AI, dan hanya bila tenant belum mengisinya
+    sendiri MAUPUN mewarisi dari induk. Alasan lengkapnya di komentar fungsi
+    ini.
+
+    Urutannya penting: baris tenant SELALU menang, lalu induk, baru env.
+    Memasang kunci di UI langsung menggantikan keduanya tanpa perlu apa pun
+    dimatikan.
   */
   if (!nilai && process.env.KREDENSIAL_TANPA_JATUHAN_ENV !== '1') {
     const meta = metaKredensial(kunci)

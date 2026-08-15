@@ -480,6 +480,37 @@ jobs:
       - name: Jalur UI inbox menunjuk halaman nyata
         run: node scripts/audit-inbox-jalur-nyata.mjs
 
+      # Kredensial tak boleh dipakai tenant yang bukan pemiliknya.
+      #
+      # Founder 2026-08-14: "harus disiapkan kalo nanti banyak perusahaan".
+      # Hari ini basis punya SATU perusahaan nyata, jadi tiap kekeliruan
+      # isolasi kredensial "kebetulan benar" — kunci `.env` milik founder
+      # memang dipakai perusahaan founder. Cacatnya baru terlihat saat
+      # perusahaan kedua masuk, dan saat itu ia sudah terlanjur mengirim atau
+      # menagih atas nama orang lain.
+      #
+      # Tiga jalan yang SAH: kunci sendiri (selalu menang) · warisan dari
+      # induk langsung bila saklarnya menyala (migrasi 393) · jatuhan `.env`
+      # HANYA untuk grup AI.
+      #
+      # Bedanya tegas: kunci AI salah = tagihan ke pemilik env, terlihat di
+      # dasbor dan bisa dihentikan. Kunci WhatsApp/Email salah = pesan
+      # TERKIRIM lewat identitas tenant lain — tak bisa ditarik.
+      #
+      # Penjaga ini menemukan cacat nyata saat dibuat: komentar di
+      # `kredensial.ts` sudah memperingatkan bahaya WA sejak 2026-08-10,
+      # tetapi kodenya tak pernah memagarinya. Peringatan yang tertulis dan
+      # tak ditegakkan hanya menunda kejutannya.
+      #
+      # Ambang NOL, membaca KODE bukan isi basis: satu perusahaan tak bisa
+      # membuktikan apa pun tentang perilaku saat ada sepuluh. Bukti merah:
+      # ketiga aturan (K-1 pagar grup AI, K-2 induk langsung, K-3 saklar
+      # warisan) dimutasi satu per satu → exit 1 semuanya → dipulihkan →
+      # exit 0. Dua versi pertama penjaga ini terbukti HIASAN lewat mutasi
+      # yang sama: ia sempat membaca komentar, bukan kode.
+      - name: Kredensial tidak bocor lintas tenant
+        run: node scripts/audit-kredensial-lintas-tenant.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan

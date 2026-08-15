@@ -850,6 +850,119 @@ Bukti mutasi, disadap di lapisan `fetch`:
     penjaga dilepas : http://127.0.0.1:5680/webhook/teruskan-kasbon-diajukan
     penjaga aktif   : NOL — tertahan
 
+### Kredensial per-tenant: yang diminta founder SUDAH ADA, yang kurang warisan grup
+
+Founder: *"biar api key nya bisa terpisah untuk masing-masing tenant gimana?
+dan yg ada sekarang api key nya untuk puraloka saja dan perusahaan dibawah
+grup nya"* — lalu, saat ditawari pilihan: *"bisa di aktifkan jika ditanggung
+grup bisa juga anak grup pake api sendiri"*.
+
+Diukur sebelum membangun apa pun, dan sebagian besar sudah ada:
+
+    app_credentials UNIQUE(company_id, kunci)  → sudah per-tenant sejak awal
+    UI Pengaturan → Kredensial                 → sudah ada
+    companies.parent_company_id                → sudah ada
+    kredensial mewarisi dari induk             → TIDAK ADA
+
+Jadi "kunci terpisah per tenant" bukan fitur yang perlu dibangun. Yang kurang:
+anak perusahaan tak melihat kunci induknya.
+
+#### Kunci AI founder terpasang tapi TAK TERBACA — asisten proaktif mati senyap
+
+Ditemukan saat mengukur: `ANTHROPIC_API_KEY` ada di `apps/api/.env` (108
+karakter, terbaca), tetapi `ambilKredensialTanpaRequest` memulangkan `null`.
+
+Fungsi itu sengaja tak punya jatuhan `.env`, dengan alasan tertulis: *"satu-
+satunya pemakainya adalah penerbit peristiwa otomasi"*. Alasannya benar untuk
+n8n/WA; premisnya yang sudah basi — `sapa-proaktif.ts` ikut memakainya, untuk
+kunci AI.
+
+Akibatnya asisten proaktif MATI tanpa satu pun gejala. Kuncinya ada, kodenya
+siap, dan tak ada yang menghubungkan keduanya.
+
+Diperbaiki dengan jatuhan **selektif**: hanya `grup === 'AI'`. Pembedanya
+bukan kerahasiaan melainkan apa yang tak bisa ditarik —
+
+    AI       salah kunci = tagihan ke pemilik env. Terlihat di dasbor,
+             bisa dihentikan, tak ada pihak ketiga yang menerima apa pun.
+    WA/n8n   salah kunci = pesan TERKIRIM lewat nomor tenant lain.
+             Riwayat dua perusahaan bercampur. Tak bisa dibatalkan.
+
+Bukti mutasi: pembeda grup dicabut → `WA_API_KEY` BOCOR ke env untuk tenant
+tanpa kunci sendiri; dipulihkan → tertahan.
+
+#### Warisan grup — dengan saklar, karena founder memintanya begitu
+
+Migrasi 393: `companies.warisi_kredensial_induk`, default TRUE (keadaan grup
+founder hari ini). Urutan pencarian jadi:
+
+    1. kunci tenant sendiri    → SELALU menang
+    2. kunci induk langsung    → bila saklarnya menyala
+    3. jatuhan `.env`          → hanya grup AI
+
+Langkah 1 di atas segalanya — itulah yang membuat "anak grup pake api sendiri"
+bekerja tanpa konfigurasi apa pun: anak yang mengisi kuncinya langsung berhenti
+memakai kunci induk.
+
+Ditulis di KEDUA jalur kredensial (ber-request dan tanpa-request). Kalau hanya
+salah satu, asisten interaktif dan asisten proaktif memakai kunci BERBEDA untuk
+tenant yang sama, dan tagihannya jatuh ke dua pihak tanpa ada yang memutuskan.
+
+Rute `PATCH /companies/:id/pengaturan` ditambahkan — kolom tanpa cara
+mengubahnya bukan config-first (CHARTER §7). Bergerbang `requireGroupOwner`:
+menentukan siapa menanggung tagihan seluruh anak adalah keputusan pemilik grup.
+Cache dilupakan per-company (`lupakanKredensialCompany`), karena saklar
+mengubah nilai SEMUA kunci sekaligus.
+
+Terbukti dengan anak perusahaan sungguhan, bukan klaim:
+
+    [1] induk punya kunci, anak kosong    → anak baca KUNCI INDUK ✓
+    [2] anak punya kunci sendiri          → anak baca KUNCINYA SENDIRI ✓
+    [3] saklar OFF, anak kosong           → tak mewarisi ✓
+
+### Penjaga `audit-kredensial-lintas-tenant.mjs` — TIGA versi, dua di antaranya hiasan
+
+Founder: *"harus disiapkan kalo nanti banyak perusahaan"*. Hari ini basis punya
+SATU perusahaan nyata, jadi tiap kekeliruan isolasi kredensial "kebetulan
+benar" — kunci `.env` founder memang dipakai perusahaan founder.
+
+Penjaga ini langsung menemukan cacat nyata: **komentar di `kredensial.ts` sudah
+memperingatkan bahaya WA sejak 2026-08-10** — *"tenant B yang belum mengisi
+WA_* mengirim WhatsApp lewat NOMOR TENANT A"* — tetapi kodenya tak pernah
+memagarinya. Peringatan yang tertulis dan tak ditegakkan hanya menunda
+kejutannya.
+
+Dua versi pertama penjaganya sendiri terbukti hiasan lewat mutasi:
+
+    v1  jendela 1200 karakter → K-3 selalu hijau, karena ia menangkap kata
+        `warisi_kredensial_induk` dari KOMENTAR penjelas, bukan dari
+        pemeriksaan yang berjalan. Penjaga yang membaca komentar bukan penjaga.
+    v2  jendela disempitkan ke 300 → masih hijau: variabel `bolehWarisi` tetap
+        dideklarasikan dengan nama kolom itu di dalamnya, jadi string-nya ada
+        sementara syarat `if`-nya sudah dicabut.
+    v3  memeriksa pola CABANG (`if` yang menyertakan induk DAN saklar) → benar.
+
+Bukti merah akhir: ketiga aturan dimutasi satu per satu → **K-1 exit 1, K-2
+exit 1, K-3 exit 1** → dipulihkan → exit 0.
+
+### Sesi lain menulis di checkout yang sama — dan kali ini terbukti
+
+Saat suite penuh berjalan, `git log` menunjukkan HEAD `b5acf39d` (19:25) yang
+bukan buatan saya, di atas commit saya `ac4d9cda`. Empat commit terakhir
+bertema asisten proaktif — wilayah yang BERSINGGUNGAN dengan perubahan
+kredensial saya.
+
+Saya berhenti dan lapor (§8a.1 nomor 1). Founder: *"sesi lainnya sudah
+berhenti"*.
+
+Diperiksa sesudahnya: commit saya utuh (terbukti leluhur branch), dan **kelima
+penjaga CI saya masih terdaftar di `ci.yml`** meski sesi lain juga
+menyuntingnya. Tak ada yang tertimpa.
+
+Catatan untuk sesi berikutnya: `git log --oneline` yang tak menampilkan commit
+Anda BUKAN bukti ia hilang. `git merge-base --is-ancestor` yang menjawabnya —
+saya sempat salah menyimpulkan sebelum mengukur dengan perintah yang tepat.
+
 ### PO akhirnya punya approval — dan founder yang mengoreksi cara saya menanganinya
 
 Saya menaruh satu angka (ambang nominal PO) sebagai **gerbang yang

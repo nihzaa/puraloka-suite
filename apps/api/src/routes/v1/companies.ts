@@ -3,6 +3,7 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { siapkanRantaiApproval } from '../../utils/approval.js'
+import { lupakanKredensialCompany } from '../../lib/kredensial.js'
 
 // ============================================================
 // T9 — KELOLA BADAN USAHA (L2 penuh dari UI).
@@ -336,6 +337,75 @@ export default async function companiesRoutes(app: FastifyInstance) {
     })
 
     return reply.send({ ok: true })
+  })
+
+  /*
+    ── PATCH /api/v1/companies/:id/pengaturan ────────────────────────────────
+
+    Saklar warisan kredensial grup (migrasi 393).
+
+    Founder: *"bisa di aktifkan jika ditanggung grup bisa juga anak grup pake
+    api sendiri"*. Kolomnya sudah ada, tetapi tanpa rute ini ia hanya bisa
+    diubah lewat SQL — dan "kolom DB sudah ada" bukan selesai (CHARTER §7):
+    config-first berarti ada halaman pengaturannya.
+
+    Gerbangnya `requireGroupOwner`: menentukan siapa menanggung tagihan AI
+    seluruh anak perusahaan adalah keputusan pemilik grup, bukan admin salah
+    satu anak. Admin anak yang ingin lepas dari tanggungan induk cukup mengisi
+    kuncinya sendiri — kunci tenant SELALU menang atas warisan, tanpa perlu
+    menyentuh saklar ini.
+
+    Perusahaan INDUK (`parent_company_id` NULL) ditolak: tak ada yang bisa
+    diwarisi, dan membiarkannya diubah menciptakan setelan yang tak berarti
+    apa-apa tetapi terlihat bermakna di layar.
+  */
+  app.patch('/api/v1/companies/:id/pengaturan', { preHandler: [authenticate] }, async (request, reply) => {
+    if (!(await requireGroupOwner(request, reply))) return
+    const { id } = request.params as { id: string }
+    const body = request.body as { warisi_kredensial_induk?: boolean }
+
+    if (!(await grupMilikSaya(request, id))) {
+      return reply.status(403).send({ error: 'Badan usaha tersebut bukan bagian dari grup Anda' })
+    }
+
+    if (typeof body.warisi_kredensial_induk !== 'boolean') {
+      return reply.status(400).send({ error: '`warisi_kredensial_induk` harus true/false' })
+    }
+
+    const { data: co } = await request.db!
+      .unsafe('companies', 'kategori D; T9 memang lintas company — baca induk badan usaha ini')
+      .select('id, parent_company_id').eq('id', id).maybeSingle()
+    if (!co) return reply.status(404).send({ error: 'Badan usaha tidak ditemukan' })
+
+    if (!(co as { parent_company_id?: string | null }).parent_company_id) {
+      return reply.status(400).send({
+        error: 'Badan usaha induk tidak mewarisi dari mana pun — setelan ini hanya untuk anak grup',
+      })
+    }
+
+    const { error } = await request.db!
+      .unsafe('companies', 'kategori D; T9 memang lintas company — ubah saklar warisan kredensial')
+      .update({ warisi_kredensial_induk: body.warisi_kredensial_induk, updated_by: request.currentUser!.id })
+      .eq('id', id)
+    if (error) return reply.status(500).send({ error: 'Gagal memperbarui pengaturan badan usaha' })
+
+    /*
+      Cache kredensial DILUPAKAN — tanpa ini, saklar yang baru dimatikan tetap
+      memulangkan kunci induk sampai TTL habis, dan pemilik grup melihat
+      setelannya "tersimpan" sementara tagihannya masih berjalan.
+    */
+    lupakanKredensialCompany(id)
+
+    await logAuditEvent(request, {
+      tableName: 'companies',
+      recordId: id,
+      action: 'update',
+      actorId: request.currentUser!.id,
+      newValues: { warisi_kredensial_induk: body.warisi_kredensial_induk },
+      severity: 'critical',
+    })
+
+    return reply.send({ ok: true, warisi_kredensial_induk: body.warisi_kredensial_induk })
   })
 
   // ── PATCH /api/v1/my/companies/:id/default ────────────────────────────────
