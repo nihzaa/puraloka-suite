@@ -355,6 +355,21 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     // Automation 5.11 (2026-08-16). Modul Transmittal juga ditandai roadmap
     // "belum dibangun" dan juga sudah ada — tabel, rute, dan layar lengkap.
     'transmittal-menggantung',
+    /*
+      Automation 6.9 · 9.8 · 9.1 · 2.9 · 6.3 · 3.6 (2026-08-16) — enam rute
+      yang lahir di empat commit beruntun dan TAK SATU PUN masuk daftar ini.
+
+      Persis kebocoran yang penjaga di bawah diciptakan untuk menahan, dan ia
+      memang MERAH — tetapi merahnya ikut ter-commit, jadi selama beberapa jam
+      `main` memuat test yang gagal. Penjaga yang merah lalu dibiarkan merah
+      tak berbeda dari penjaga yang mati.
+    */
+    'sertifikat-berakhir',
+    'k3-kepatuhan',
+    'kepatuhan-dokumen',
+    'serapan-anggaran',
+    'absensi-berhenti',
+    'subkon-tak-layak',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {
@@ -396,8 +411,20 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
       join(dirname(fileURLToPath(import.meta.url)), '..', 'otomasi-terjadwal.ts'),
       'utf8',
     )
+    /*
+      `[a-z0-9-]+`, BUKAN `[a-z-]+`.
+
+      Versi lama berhenti di angka pertama: rute `k3-kepatuhan` terbaca `k`,
+      lalu dibandingkan dengan daftar dan tak pernah cocok. Penjaga ini
+      karenanya MERAH SELAMANYA begitu ada tugas bernama angka — dan merahnya
+      menuduh daftar yang sebenarnya benar.
+
+      Bentuk kegagalan yang paling mahal: bukan penjaga yang diam, melainkan
+      penjaga yang berteriak ke arah yang salah. Yang membacanya akan
+      memperbaiki daftarnya berulang kali tanpa pernah hijau.
+    */
     const diKode = [...new Set(
-      [...sumber.matchAll(/otomasi\/jalankan\/([a-z-]+)/g)].map((m) => m[1]),
+      [...sumber.matchAll(/otomasi\/jalankan\/([a-z0-9-]+)/g)].map((m) => m[1]),
     )].sort()
 
     expect([...TUGAS].sort(),
