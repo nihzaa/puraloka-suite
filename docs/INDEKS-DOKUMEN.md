@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 276 dokumen** — antrean 13 · acuan 201 · riwayat 62.
+**Total 277 dokumen** — antrean 13 · acuan 202 · riwayat 62.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -91,6 +91,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [LEDGER-DIFF](execution/LEDGER-DIFF.md) | acuan |  | LEDGER-DIFF — Buku Migrasi vs Artefak Fisik |
 | [RANCANGAN-SIDEBAR-DISIPLIN](execution/RANCANGAN-SIDEBAR-DISIPLIN.md) | acuan |  | Rancangan sidebar disiplin — satu route, satu link |
 | [RATIFIKASI](execution/RATIFIKASI.md) | riwayat | ✓ | RATIFIKASI — Satu-satunya Berkas yang Perlu Dibaca Founder |
+| [RENCANA-113-OTOMASI](execution/RENCANA-113-OTOMASI.md) | acuan |  | RENCANA 113 OTOMASI SISA — dan kenapa "belum bisa" itu keliru |
 | [RENCANA-PERBAIKAN-SIDEBAR](execution/RENCANA-PERBAIKAN-SIDEBAR.md) | riwayat |  | Rencana perbaikan navigasi — sidebar, tab-bagian, dan route |
 | [ROADMAP-WORKFLOW](execution/ROADMAP-WORKFLOW.md) | riwayat |  | ROADMAP WORKFLOW — checklist, dan di mana tiap bagian dipasang |
 | [TUGAS-FOUNDER-WHATSAPP-AI](execution/TUGAS-FOUNDER-WHATSAPP-AI.md) | acuan |  | Tugas yang HARUS dikerjakan founder sendiri — WhatsApp & AI |
