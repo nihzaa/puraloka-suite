@@ -37,6 +37,26 @@ import { ENTITAS_TULIS, entitasTulis, persenSah } from '../../lib/ai-tool-siapka
 /** Umur token. Sama dengan token setujui — satu kebiasaan, bukan dua. */
 const UMUR_TOKEN_MS = 15 * 60_000
 
+/**
+ * Batas atas pengeluaran yang boleh DISIAPKAN lewat percakapan (automation 1.1).
+ *
+ * Bukan batas pengeluaran — itu urusan rantai approval, dan diatur per tenant
+ * lewat `approval_steps.min_amount`. Ini batas JALUR: di atasnya, pengajuan
+ * lewat halaman Pengeluaran yang menampilkan angkanya besar-besar sebelum
+ * disimpan.
+ *
+ * Alasannya satu, dan bukan kehati-hatian berlebihan: salah ketik nol adalah
+ * kekeliruan paling mudah terjadi lewat percakapan. "Lima juta" jadi 50 juta
+ * hanya butuh satu ketukan berlebih, dan asisten tak punya cara membedakannya
+ * dari maksud sungguhan.
+ *
+ * Dipaku di kode, BUKAN dijadikan pengaturan — dan itu disengaja. Ia bukan
+ * kebijakan bisnis (berapa pengeluaran yang boleh diajukan) melainkan batas
+ * kepercayaan pada satu KANAL. Menaruhnya di UI mengundang orang menaikkannya
+ * sampai tak berarti, dan yang dipertaruhkan bukan kenyamanan mereka sendiri.
+ */
+const BATAS_PENGELUARAN_SIAP = 10_000_000
+
 interface BadanSiapkan {
   jenis?: string
   project_id?: string
@@ -46,6 +66,10 @@ interface BadanSiapkan {
   lokasi?: string
   severity?: string
   kanal?: string
+  /** Automation 1.1 — pengeluaran proyek lewat percakapan. */
+  jumlah?: number
+  keperluan?: string
+  kategori?: string
 }
 
 export default async function aiTulisRoutes(app: FastifyInstance) {
@@ -145,6 +169,103 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
         ringkasan = `Temuan punch ${namaProyek}: ${judul}${
           b.lokasi?.trim() ? ` (${b.lokasi.trim()})` : ''
         }`
+      } else if (jenis === 'pengeluaran') {
+        /*
+          Automation 1.1 — pencatatan keuangan lewat percakapan.
+
+          Ini satu-satunya jenis penyiapan yang MENGELUARKAN UANG, jadi
+          validasinya paling ketat di berkas ini. Tiga hal yang tak boleh
+          lolos, dan semuanya diukur bukan ditebak:
+
+            nominal    harus angka positif dan berhingga. `Number('')` = 0 dan
+                       `Number('abc')` = NaN — keduanya lolos `typeof number`
+                       kalau diperiksa sembarangan, dan menghasilkan
+                       pengeluaran Rp 0 atau baris yang gagal saat token
+                       diklaim.
+
+            keperluan  jadi `description` — kolom yang approver baca untuk
+                       memutuskan. "semen" tak cukup; panjang minimum memaksa
+                       kalimat yang bisa dinilai.
+
+            kategori   dicocokkan dari NAMA ke `project_expense_categories`
+                       yang benar-benar ada, dan id-nya diselesaikan DI SINI.
+                       Menundanya sampai token diklaim membuat "kategori tak
+                       ditemukan" muncul sesudah token habis — pelajaran dari
+                       severity punch di atas.
+        */
+        const jumlah = Number(b.jumlah)
+        if (!Number.isFinite(jumlah) || jumlah <= 0) {
+          return reply.status(422).send({ error: 'jumlah harus angka rupiah lebih dari 0' })
+        }
+        if (jumlah > BATAS_PENGELUARAN_SIAP) {
+          /*
+            Pagar atas, dan bukan kehati-hatian berlebihan.
+
+            Salah ketik nol adalah kekeliruan paling mudah terjadi lewat
+            percakapan — "lima juta" jadi 50000000 hanya butuh satu ketukan
+            berlebih, dan asisten tak punya cara membedakannya dari maksud
+            sungguhan. Di atas ambang ini, orang mengajukannya lewat halaman
+            kasbon yang menampilkan angkanya besar-besar sebelum disimpan.
+          */
+          return reply.status(422).send({
+            error: `Pengeluaran di atas Rp ${BATAS_PENGELUARAN_SIAP.toLocaleString('id-ID')} `
+              + 'diajukan lewat halaman Pengeluaran, bukan lewat percakapan.',
+          })
+        }
+
+        const keperluan = (b.keperluan ?? '').trim()
+        if (keperluan.length < 5) {
+          return reply.status(422).send({
+            error: 'keperluan minimal 5 karakter — approver memutuskan dari kalimat ini',
+          })
+        }
+
+        /*
+          Kategori dicocokkan dari NAMA — dan id-nya diselesaikan DI SINI,
+          bukan saat token diklaim.
+
+          Bedanya menentukan: kalau kategorinya baru dicari saat menulis,
+          kegagalan "kategori tak ditemukan" muncul SESUDAH token habis, dan
+          pengguna kehilangan penyiapannya untuk kesalahan yang sebenarnya bisa
+          diberitahukan sejak awal. Pelajaran yang sama dengan severity punch
+          di atas.
+
+          Pencocokannya `ilike` sebagian — sama seperti nama proyek, karena
+          orang menyebut "beton" bukan "Beton & Semen".
+        */
+        const petunjukKategori = (b.kategori ?? '').trim() || keperluan
+        const { data: kategoriCocok } = await request.db!
+          .viaProject('project_expense_categories', projectId)
+          .select('id, name')
+          .limit(50)
+
+        const daftar = (kategoriCocok ?? []) as Array<{ id: string; name: string }>
+        if (daftar.length === 0) {
+          return reply.status(422).send({
+            error: 'Proyek ini belum punya kategori pengeluaran — isi dulu di halaman Pengeluaran.',
+          })
+        }
+
+        const kunciCari = petunjukKategori.toLowerCase()
+        const cocok =
+          daftar.find((k) => kunciCari.includes(k.name.toLowerCase()))
+          ?? daftar.find((k) =>
+            k.name.toLowerCase().split(/[^a-z]+/).some((kata) => kata.length > 3 && kunciCari.includes(kata)))
+
+        if (!cocok) {
+          return reply.status(422).send({
+            error: `Kategori tak dikenali dari "${petunjukKategori}". `
+              + `Sebutkan salah satu: ${daftar.slice(0, 6).map((k) => k.name).join(', ')}`,
+          })
+        }
+
+        muatan = {
+          category_id: cocok.id,
+          description: keperluan,
+          unit_price: jumlah,
+          total_amount: jumlah,
+        }
+        ringkasan = `Pengeluaran ${namaProyek}: Rp ${jumlah.toLocaleString('id-ID')} — ${keperluan} (${cocok.name})`
       } else {
         // Tak terjangkau — `entitasTulis` sudah menyaring. Ditulis eksplisit
         // supaya jenis baru yang lupa ditangani gagal KERAS di sini, bukan
@@ -295,21 +416,82 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
       // `Record<string, unknown>`: bentuk barisnya BERBEDA per jenis, dan
       // menyatukannya jadi satu tipe akan menuntut union yang harus diperbarui
       // tiap entitas baru — persis jenis pekerjaan yang pasti terlupakan.
-      const baris: Record<string, unknown> =
-        t.jenis === 'catatan_progres'
-          ? {
-              ...dasar,
-              ...t.muatan,
-              reported_by: request.currentUser!.id,
-              logged_at: new Date().toISOString(),
-            }
-          : {
-              ...dasar,
-              ...t.muatan,
-              nomor: nomorBaru,
-              status: 'terbuka',
-              ditemukan_oleh: request.currentUser!.id,
-            }
+      /*
+        Cabang EKSPLISIT per jenis, bukan ternary dua arah.
+
+        Bentuk sebelumnya (`catatan_progres ? … : …`) memperlakukan segala
+        yang bukan catatan progres sebagai temuan punch. Itu benar selama
+        hanya ada dua jenis — dan diam-diam salah begitu jenis ketiga
+        ditambahkan: kasbon akan disimpan dengan `nomor` dan `status:
+        'terbuka'` milik punch, lalu Postgres menolaknya dengan galat yang
+        muncul SESUDAH token habis.
+
+        Sekarang jenis yang tak dikenali gagal keras di `default`, sejalan
+        dengan cabang `else` di jalur penyiapan.
+      */
+      let baris: Record<string, unknown>
+      switch (t.jenis) {
+        case 'catatan_progres':
+          baris = {
+            ...dasar,
+            ...t.muatan,
+            reported_by: request.currentUser!.id,
+            logged_at: new Date().toISOString(),
+          }
+          break
+        case 'temuan_punch':
+          baris = {
+            ...dasar,
+            ...t.muatan,
+            nomor: nomorBaru,
+            status: 'terbuka',
+            ditemukan_oleh: request.currentUser!.id,
+          }
+          break
+        case 'pengeluaran':
+          /*
+            `status` SENGAJA tidak diisi — bawaan kolomnya `draft`, dan itu
+            yang benar: pengeluaran yang lahir dari percakapan tetap lewat
+            rantai approval `project_expense` yang sama dengan pengajuan lewat
+            halaman biasa.
+
+            Menuliskannya `approved` di sini akan membuat AI mengeluarkan uang
+            tanpa satu pun persetujuan — persis kelas cacat yang gerbang PO
+            kemarin tutup.
+
+            `qty` juga tidak diisi (bawaan 1, diukur ke information_schema):
+            "semen 20 sak" adalah keterangan, bukan rincian qty×harga. Memaksa
+            model membaginya berarti mengarang angka satuan yang tak seorang
+            pun sebutkan.
+          */
+          baris = {
+            ...dasar,
+            ...t.muatan,
+            /*
+              `expense_source` DIISI eksplisit, tidak dibiarkan bawaan.
+
+              Bawaan kolomnya `petty_cash`, dan constraint
+              `chk_petty_cash_source` menuntut `petty_cash_id` terisi untuk
+              nilai itu. Membiarkannya bawaan membuat penulisan GAGAL dengan
+              galat constraint yang muncul sesudah token habis — persis pola
+              yang komentar severity punch di atas peringatkan, dan yang
+              tertangkap test ini sebelum sampai ke pengguna.
+
+              `main_cash` dipilih karena ia satu-satunya sumber yang tak
+              menuntut penunjuk kas tertentu. Kalau pengeluarannya sungguh
+              dari kas kecil, orang mengoreksinya di halaman Pengeluaran —
+              sama seperti ia mengoreksi kategori yang salah tebak.
+            */
+            expense_source: 'main_cash',
+            submitted_by: request.currentUser!.id,
+          }
+          break
+        default:
+          request.log.error({ jenis: t.jenis }, 'ai/tulis: jenis tak dikenali saat menulis')
+          return reply.status(500).send({
+            error: `Jenis '${t.jenis}' belum punya bentuk baris — penyiapannya lolos tetapi penulisannya tidak.`,
+          })
+      }
 
       const { data: hasil, error: errTulis } = await request.db!
         .viaProject(meta.tabel, t.project_id)

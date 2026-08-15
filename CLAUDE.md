@@ -200,6 +200,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-inbox-jalur-nyata.mjs` | `jalurUi` inbox approval wajib menunjuk halaman yang ada (ambang NOL) |
 | `audit-kredensial-lintas-tenant.mjs` | kunci tenant lain hanya lewat warisan induk berpagar; jatuhan `.env` hanya grup AI (ambang NOL) |
 | `audit-keanggotaan-punya-default.mjs` | pengguna aktif wajib punya keanggotaan default — tanpa itu RLS menyaring habis (ambang NOL) |
+| `audit-izin-benar-ada.mjs` | kunci `requirePermission` wajib ada di tabel `permissions` — kunci hantu menolak SEMUA orang tanpa gejala (ambang NOL) |
 | `audit-notifikasi-tak-kembar.mjs` | dedup notifikasi harian wajib menahan — kembar HARI INI (ambang NOL) |
 | `audit-izin-tanpa-konteks.mjs` | fungsi izin tak boleh kosong saat `auth_company_id()` NULL (ambang NOL) |
 | `audit-peristiwa-punya-alur.mjs` | tiap peristiwa yang diterbitkan wajib punya alur n8n penerima (ambang NOL) |

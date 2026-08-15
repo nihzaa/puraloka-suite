@@ -850,6 +850,125 @@ Bukti mutasi, disadap di lapisan `fetch`:
     penjaga dilepas : http://127.0.0.1:5680/webhook/teruskan-kasbon-diajukan
     penjaga aktif   : NOL — tertahan
 
+### Automation 1.1 dibangun — dan koreksi founder yang mengubah arah saya
+
+Founder: *"maksuddnya model ai? kan api key claude nya udh terpasang"*.
+
+Koreksi itu tepat, dan menunjukkan saya kurang jelas. Saat saya bilang "butuh
+model AI", maksud saya jenis otomasinya berbeda — bukan modelnya belum ada.
+Modelnya ADA: kunci terpasang, `claude-haiku-4-5` tersetel.
+
+Lalu saya ukur prasyarat sungguhannya, dan itu **membantah jawaban saya
+sebelumnya**:
+
+    1.1   Financial Recording via WhatsApp   → "Kategori expense existing"
+    1.12  Multi-turn Clarification           → "Session context"
+    1.3   Voice Note Accounting              → STT (memang belum)
+    1.10  Photo-to-Record                    → OCR (memang belum)
+
+Prasyarat 1.1 **sudah lengkap**: WhatsApp masuk sampai ke asisten
+(`wa-webhook.ts` memanggil `jalankanGiliranAi`), sesi dan ingatan ada, kategori
+expense ada 10 di basis. Yang kurang cuma satu: asisten tak punya cara
+menyiapkan pencatatan uang.
+
+Jadi "bergerbang Phase 6" untuk 1.1 tidak benar. Saya salah membaca kolom
+`Type` (Agentic) sebagai gerbang, padahal gerbangnya di kolom lain.
+
+#### Pagar tipe menangkap saya — di waktu yang tepat
+
+Tebakan pertama: kasbon (paling sedikit kolom wajibnya). Tipe menolaknya:
+
+    Type '"kasbons"' is not assignable to type 'TabelViaProject'
+
+`kasbons` kategori **B**; berkas itu sengaja membatasi ke kategori C, dengan
+komentar yang menjelaskan kenapa — tipe longgar membuat `accounts` atau `users`
+bisa masuk daftar putih dan gagal baru saat dijalankan.
+
+Melonggarkannya untuk meloloskan kasbon berarti membongkar pagar itu untuk
+semua orang sesudahnya. Jadi saya pindah ke `project_expenses` (kategori C),
+yang justru yang katalog sebut.
+
+#### Tiga pagar uang, dan test yang menangkap dua kesalahan saya
+
+`BATAS_PENGELUARAN_SIAP` Rp 10 juta — bukan batas pengeluaran (itu urusan
+rantai approval) melainkan batas KANAL. Salah ketik nol adalah kekeliruan
+paling mudah lewat percakapan, dan asisten tak bisa membedakannya dari maksud
+sungguhan.
+
+Kategori diselesaikan saat MENYIAPKAN, bukan saat menulis — menundanya membuat
+"kategori tak ditemukan" muncul sesudah token habis.
+
+Test menangkap dua sisa yang tak terlihat dari membaca kode:
+
+    kasbon_date         kolom milik tabel lain, tertinggal saat berganti entitas
+    chk_petty_cash_source  `expense_source` bawaannya `petty_cash`, dan
+                        constraint menuntut `petty_cash_id` — gagal SESUDAH
+                        token habis kalau tak diisi eksplisit
+
+**I-1 tetap utuh**: `audit-tool-ai-read-only` hijau. Tool tetap tak menulis;
+tulisannya lewat token yang hanya bisa diklaim klik manusia.
+
+24/24 test hijau, termasuk empat pagar uang.
+
+### Saya mengarang kunci izin, dan tak ada yang menahannya
+
+`izin: 'expenses:create'` untuk entitas pengeluaran — kunci yang **tidak ada**
+di tabel `permissions`. Yang benar `cash:expense:create`.
+
+Ketahuannya KEBETULAN: saya sedang mengukur hal lain dan iseng memeriksa
+kuncinya ke basis. Tak ada test merah, tak ada typecheck yang menahan, tak ada
+penjaga yang menyebutnya — dan 24 test automation 1.1 semuanya hijau dengan
+kunci hantu itu terpasang.
+
+#### Kenapa kunci hantu tak pernah berbunyi
+
+`requirePermission('yang-tak-ada')` tidak melempar. Ia memeriksa apakah
+pengguna MEMILIKI kunci itu — dan karena tak seorang pun memilikinya,
+jawabannya selalu tidak.
+
+Jadi fiturnya menolak semua orang, selamanya, dengan 403 yang terbaca seperti
+*"Anda tak punya izin"* alih-alih *"kuncinya salah ketik"*. Orang akan
+memeriksa peran, menambah permission ke role, memeriksa ulang RBAC — dan tak
+satu pun menolong.
+
+Test-nya sendiri tak menangkapnya karena ia memakai admin yang di-mock; gerbang
+izin tak pernah benar-benar dievaluasi.
+
+#### Yang diukur sesudahnya
+
+    kunci dipakai di kode : 180
+    ada di basis          : 222
+    HANTU                 : 0
+
+Repo ini sudah bersih — karangan saya satu-satunya, dan tak sempat masuk.
+Jadi `audit-izin-benar-ada.mjs` bukan memperbaiki utang; ia mengunci keadaan
+yang sudah benar supaya karangan berikutnya merah dalam hitungan menit.
+
+Hanya LITERAL yang diperiksa. `requirePermission(variabel)` sengaja dilewati —
+nilainya baru diketahui saat berjalan, dan menebaknya menghasilkan positif
+palsu yang membuat penjaga berhenti dibaca.
+
+Bukti merah: izin karangan dikembalikan → exit 1 menunjuk kuncinya →
+dipulihkan → exit 0.
+
+### Sumber `is_default` hilang KETEMU — dan dugaan saya salah
+
+Saya menduga ada test yang MENCABUT `is_default`, lalu memasang trigger pelacak
+dan menjalankan suite penuh. Hasilnya: **nol pencabutan tercatat**.
+
+Yang terjadi bukan pencabutan melainkan **penciptaan baris baru tanpa penanda**.
+`wa-sesi.test.ts` menghapus keanggotaan (menguji "orang yang keluar tak bisa
+lagi bertanya lewat WhatsApp") lalu memulihkannya — tetapi memulihkannya tanpa
+`is_default`, dan kolomnya bawaan `false`.
+
+Jadi test itu mengembalikan keanggotaannya tetapi tidak mengembalikan
+keadaannya. Akibatnya muncul di berkas LAIN dengan pesan "kebocoran
+lintas-tenant", sepuluh langkah dari sebabnya.
+
+**Dugaan yang salah pun berguna** — asal diukur, bukan dipercaya. Kalau saya
+hanya membaca kode mencari `UPDATE ... is_default = false`, saya tak akan
+pernah menemukannya.
+
 ### Semua workflow diuji TANPA saldo — cakupan naik dari 2 ke 7 tugas
 
 Founder: *"bangun aja dulu semua workflow nya dan pastikan pake cara uji yg

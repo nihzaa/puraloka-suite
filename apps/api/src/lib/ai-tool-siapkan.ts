@@ -125,6 +125,85 @@ export const ENTITAS_TULIS: EntitasTulis[] = [
       { nama: 'severity', wajib: false, keterangan: 'ringan | sedang | berat | kritis.' },
     ],
   },
+  {
+    /*
+      ── Automation 1.1 — pencatatan keuangan lewat percakapan (2026-08-15)
+
+      Katalog menyebutnya *"Financial Recording via WhatsApp: catat transaksi
+      (kasbon, expense) lewat teks/voice tanpa buka app"*, dan menandainya
+      Agentic — jadi ia terbaca seperti menunggu kemampuan AI yang belum ada.
+
+      Diukur, dan prasyaratnya justru SUDAH LENGKAP: pesan WhatsApp masuk
+      sampai ke asisten (`wa-webhook.ts` memanggil `jalankanGiliranAi`), sesi
+      dan ingatan ada, dan kunci model terpasang. Yang kurang cuma satu hal —
+      asisten tak punya cara menyiapkan pencatatan uang.
+
+      ── Kenapa `project_expenses`, dan kenapa BUKAN kasbon
+
+      Tebakan pertama saya kasbon — nominal, keperluan, sumber dana; paling
+      sedikit kolom wajibnya. Tipe yang menolaknya:
+
+          Type '"kasbons"' is not assignable to type 'TabelViaProject'
+
+      `kasbons` kategori **B** (punya `company_id` langsung), sementara tipe di
+      berkas ini SENGAJA dibatasi ke kategori C. Komentarnya menjelaskan
+      kenapa: tipe yang lebih longgar membuat `accounts` atau `users` bisa
+      masuk daftar putih dan gagal baru saat dijalankan.
+
+      Jadi pagar itu menangkap saya, dan menangkapnya di waktu yang tepat —
+      saat compile, bukan saat seseorang mencoba menyiapkan tulisan ke tabel
+      yang salah. Melonggarkan tipenya untuk meloloskan kasbon berarti
+      membongkar pagar itu untuk semua orang sesudahnya.
+
+      `project_expenses` kategori C, dan justru itu yang katalog sebut
+      (*"catat transaksi (kasbon, expense)"*).
+
+      Kolom wajibnya lebih banyak, tetapi diukur ke `information_schema` —
+      sebagian besar punya DEFAULT: `expense_source`, `expense_date`, `qty`,
+      `status`, `billed_amount`. Yang benar-benar harus diisi cuma lima, dan
+      semuanya bisa dikatakan orang dalam satu kalimat.
+
+      `category_id` dicocokkan dari NAMA, sama seperti proyek — sepuluh
+      kategori di basis bernama jelas ("Beton & Semen", "Listrik & MEP"), jadi
+      asisten memilih dari yang ada, bukan mengarang.
+
+      ── I-1 TETAP UTUH
+
+      Tool ini TIDAK menulis. Ia menyiapkan dan menerbitkan token;
+      pengeluarannya lahir saat manusia menekan tombol di `POST /ai/tulis`.
+      Itu penting justru di sini: ini satu-satunya jenis penyiapan yang
+      menyentuh UANG, dan satu-satunya pertahanan terhadap injeksi lewat
+      dokumen adalah bahwa model tak bisa menekan tombol.
+
+      Status awalnya `draft` (bawaan kolom), jadi ia tetap lewat rantai
+      approval `project_expense` yang sudah ada — penyiapan lewat AI tak
+      melewati satu pun gerbang yang berlaku untuk pengajuan biasa.
+    */
+    jenis: 'pengeluaran',
+    label: 'Pengeluaran proyek',
+    tabel: 'project_expenses',
+    aksi: ['buat'],
+    /*
+      `cash:expense:create`, bukan `projects:view`: menyiapkan pengeluaran uang
+      menuntut izin yang sama dengan mengajukannya lewat halaman biasa.
+
+      Nilainya DIUKUR ke tabel `permissions`, bukan dikarang. Tebakan pertama
+      saya `expenses:create` — tak ada di basis, dan akibatnya bukan galat
+      melainkan DIAM: `requirePermission` untuk kunci yang tak pernah dimiliki
+      siapa pun menolak semua orang, dan penyiapan pengeluaran akan gagal 403
+      selamanya tanpa satu pun petunjuk bahwa kuncinyalah yang salah.
+
+      Keluarga yang benar `cash:expense:*` — sama dengan yang menjaga rute
+      pengeluaran sungguhan di `cash.ts`.
+    */
+    izin: 'cash:expense:create',
+    field: [
+      { nama: 'proyek', wajib: true, keterangan: 'Nama proyek (sebagian nama boleh).' },
+      { nama: 'jumlah', wajib: true, keterangan: 'Nominal rupiah, angka saja.' },
+      { nama: 'keperluan', wajib: true, keterangan: 'Untuk apa — mis. "semen 20 sak untuk lantai 2".' },
+      { nama: 'kategori', wajib: false, keterangan: 'Nama kategori (sebagian nama boleh). Kosong = dicocokkan dari keperluan.' },
+    ],
+  },
 ]
 
 export function entitasTulis(jenis: string): EntitasTulis | undefined {

@@ -80,6 +80,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await db.query(`DELETE FROM punch_items WHERE judul LIKE $1`, [`${TANDA}%`])
   await db.query(`DELETE FROM progress_logs WHERE notes LIKE $1`, [`${TANDA}%`])
+  await db.query(`DELETE FROM project_expenses WHERE description LIKE $1`, [`${TANDA}%`])
   await db.query(`DELETE FROM ai_token_tulis WHERE company_id = $1`, [companyId])
   await app.close()
   await db.end()
@@ -392,4 +393,123 @@ describe('jejak — dari niat ke hasil', () => {
     expect(rows[0].hasil_id).toBeTruthy()
     expect(rows[0].dipakai_pada).toBeTruthy()
   })
+})
+
+describe('Automation 1.1 — pencatatan pengeluaran lewat percakapan', () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KENAPA JENIS INI PALING KETAT DIUJI
+    ══════════════════════════════════════════════════════════════════════════
+
+    Dua jenis lain mencatat pekerjaan (progres, temuan). Yang ini mencatat
+    UANG — dan lahir dari kalimat, bukan formulir.
+
+    Tiga pagar yang diuji di bawah semuanya menutup cara berbeda uang bisa
+    salah tercatat, dan tak satu pun akan berbunyi kalau jebol:
+
+      NOMINAL     `Number('')` = 0 dan `Number('abc')` = NaN. Keduanya lolos
+                  pemeriksaan yang ceroboh, dan menghasilkan pengeluaran Rp 0
+                  yang terlihat sah di daftar.
+
+      BATAS       salah ketik nol adalah kekeliruan paling mudah lewat
+                  percakapan. Tanpa pagar, "lima juta" yang jadi 50 juta
+                  masuk pembukuan dengan tenang.
+
+      KATEGORI    id-nya diselesaikan saat MENYIAPKAN, bukan saat menulis.
+                  Kalau ditunda, "kategori tak ditemukan" muncul sesudah token
+                  habis — dan pengguna kehilangan penyiapannya untuk kesalahan
+                  yang bisa diberitahukan sejak awal.
+  */
+
+  it('alur penuh: siapkan → tulis → pengeluaran tercipta dengan kategori yang cocok', async () => {
+    const s = await siapkan({
+      jenis: 'pengeluaran',
+      project_id: projectId,
+      jumlah: 1_500_000,
+      keperluan: `${TANDA} semen 20 sak untuk lantai 2`,
+      kategori: 'Beton',
+    })
+    expect(s.statusCode, s.body).toBe(200)
+
+    const t = await tulis(s.json().token as string)
+    expect(t.statusCode, t.body).toBe(200)
+
+    const { rows } = await db.query(
+      `SELECT pe.description, pe.total_amount, pe.unit_price, pe.status, c.name AS kategori
+         FROM project_expenses pe
+         JOIN project_expense_categories c ON c.id = pe.category_id
+        WHERE pe.description LIKE $1`,
+      [`${TANDA}%`])
+
+    expect(rows).toHaveLength(1)
+    expect(Number(rows[0].total_amount)).toBe(1_500_000)
+    expect(String(rows[0].kategori).toLowerCase()).toContain('beton')
+
+    /*
+      Status awalnya BUKAN 'approved'.
+
+      Ini pagar yang paling mahal kalau jebol: pengeluaran yang lahir dari
+      percakapan tetap harus lewat rantai approval yang sama dengan pengajuan
+      lewat halaman biasa. Menuliskannya `approved` di rute berarti AI
+      mengeluarkan uang tanpa satu pun persetujuan.
+    */
+    expect(rows[0].status).not.toBe('approved')
+  }, 60_000)
+
+  it('nominal NOL dan bukan-angka DITOLAK — bukan tersimpan sebagai Rp 0', async () => {
+    for (const jumlah of [0, -5000, Number.NaN, 'abc' as unknown as number]) {
+      const r = await siapkan({
+        jenis: 'pengeluaran',
+        project_id: projectId,
+        jumlah,
+        keperluan: `${TANDA} percobaan nominal tak sah`,
+      })
+      expect(r.statusCode, `jumlah ${String(jumlah)} lolos: ${r.body}`).toBe(422)
+    }
+
+    const { rows } = await db.query(
+      `SELECT count(*)::int n FROM project_expenses WHERE description LIKE $1`,
+      [`${TANDA} percobaan%`])
+    expect(rows[0].n, 'ada baris tercipta dari nominal tak sah').toBe(0)
+  }, 60_000)
+
+  it('di atas batas jalur DITOLAK — salah ketik nol tak masuk pembukuan', async () => {
+    const r = await siapkan({
+      jenis: 'pengeluaran',
+      project_id: projectId,
+      jumlah: 50_000_000,
+      keperluan: `${TANDA} lima juta yang jadi lima puluh juta`,
+    })
+    expect(r.statusCode, r.body).toBe(422)
+    expect(r.json().error).toMatch(/halaman Pengeluaran/i)
+  }, 60_000)
+
+  it('keperluan terlalu pendek DITOLAK — approver memutuskan dari kalimat ini', async () => {
+    const r = await siapkan({
+      jenis: 'pengeluaran',
+      project_id: projectId,
+      jumlah: 250_000,
+      keperluan: 'cat',
+    })
+    expect(r.statusCode, r.body).toBe(422)
+  }, 60_000)
+
+  it('kategori tak dikenali DITOLAK SEKARANG, bukan saat token diklaim', async () => {
+    /*
+      Yang diuji: kegagalannya muncul di TAHAP PENYIAPAN.
+
+      Kalau id kategori baru dicari saat menulis, permintaan ini akan 200 di
+      sini dan gagal belakangan — sesudah token habis. Pengguna kehilangan
+      penyiapannya untuk kesalahan yang sudah bisa diketahui sejak awal.
+    */
+    const r = await siapkan({
+      jenis: 'pengeluaran',
+      project_id: projectId,
+      jumlah: 300_000,
+      keperluan: `${TANDA} pembelian barang tanpa padanan kategori`,
+      kategori: 'zzz-kategori-yang-tak-ada',
+    })
+    expect(r.statusCode, r.body).toBe(422)
+    expect(r.json().error).toMatch(/kategori/i)
+  }, 60_000)
 })

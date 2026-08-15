@@ -149,8 +149,31 @@ describe('PENCABUTAN AKSES langsung berlaku — perbedaan dari TJS', () => {
     expect(h.ok).toBe(false)
     if (!h.ok) expect(h.alasan).toBe('bukan_anggota')
 
+    /*
+      ── `is_default` IKUT DIPULIHKAN (diperbaiki 2026-08-15)
+
+      Versi sebelumnya menyisipkan tanpa `is_default`, dan kolomnya bawaan
+      `false`. Jadi test ini memulihkan keanggotaannya tetapi TIDAK memulihkan
+      keadaan semula — pengguna itu keluar dari sini tanpa company default.
+
+      Akibatnya jauh dari sini dan tak menyebut wa-sesi sama sekali:
+      `auth_company_id()` jatuh ke keanggotaan default, dan tanpa satu pun ia
+      NULL — lalu `tenant_isolation` RESTRICTIVE (migrasi 373) menyaring HABIS.
+      Berkas test LAIN merah dengan pesan "kebocoran lintas-tenant", sepuluh
+      langkah dari sebabnya.
+
+      Ketahuannya bukan dari membaca kode: dugaan pertama saya adalah ada test
+      yang MENCABUT `is_default`, dan trigger pelacak yang saya pasang mencatat
+      NOL pencabutan. Yang terjadi justru penciptaan baris baru tanpa penanda —
+      kelas kejadian yang tak terlihat kalau hanya mencari `UPDATE`.
+
+      Dijaga `audit-keanggotaan-punya-default.mjs` (ambang NOL), jadi kalau
+      pola ini kembali ia merah dalam hitungan menit, bukan setelah ada yang
+      kebetulan menjalankan test yang tepat.
+    */
     await db.query(
-      `INSERT INTO company_members (company_id, user_id, role_id) VALUES ($1, $2, $3)`,
+      `INSERT INTO company_members (company_id, user_id, role_id, is_default, is_active)
+       VALUES ($1, $2, $3, true, true)`,
       [companyId, userId, roleId],
     )
   })

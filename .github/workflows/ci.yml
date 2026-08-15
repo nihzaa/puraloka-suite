@@ -537,6 +537,31 @@ jobs:
       - name: Pengguna aktif punya keanggotaan default
         run: node scripts/audit-keanggotaan-punya-default.mjs
 
+      # Kunci izin yang dipakai kode wajib benar-benar ada di `permissions`.
+      #
+      # Saat membangun automation 1.1 (2026-08-15) saya menulis
+      # `izin: 'expenses:create'` — kunci yang TIDAK ADA. Yang benar
+      # `cash:expense:create`. Ketahuannya kebetulan, saat mengukur hal lain.
+      #
+      # Kenapa kunci hantu tak pernah berbunyi: `requirePermission` untuk kunci
+      # yang tak ada TIDAK melempar. Ia memeriksa kepemilikan, dan tak seorang
+      # pun memiliki kunci hantu — jadi fiturnya menolak SEMUA ORANG dengan 403
+      # yang terbaca seperti "Anda tak punya izin", bukan seperti "kuncinya
+      # salah ketik". Orang akan memeriksa peran, menambah permission ke role,
+      # memeriksa RBAC — dan tak satu pun menolong.
+      #
+      # Ambang NOL, dan itu bukan ambisi: diukur 180 kunci dipakai di kode, NOL
+      # hantu. Penjaga ini mengunci keadaan yang sudah bersih.
+      #
+      # Hanya LITERAL yang diperiksa; `requirePermission(variabel)` dilewati —
+      # nilainya baru diketahui saat berjalan, dan menebaknya menghasilkan
+      # positif palsu yang membuat penjaga berhenti dibaca.
+      #
+      # Bukti merah: izin karangan dikembalikan → exit 1 menunjuk kuncinya →
+      # dipulihkan → exit 0.
+      - name: Kunci izin benar-benar ada di basis
+        run: node scripts/audit-izin-benar-ada.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan
