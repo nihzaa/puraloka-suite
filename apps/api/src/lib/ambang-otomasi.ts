@@ -220,6 +220,37 @@ export const AMBANG_OTOMASI = {
     label: 'Hari sesudah proyek selesai sebelum retensi tertahan ditegur',
   },
   /*
+    Insiden K3 belum ditutup. Bawaan 7 hari — ambang DASAR, bukan tunggal.
+
+    Rutenya mengalikannya dengan pengali per jenis yang DIPAKU di kode:
+    fatal ×0 (hari itu juga) · kecelakaan berat ×0,2 · pencemaran ×0,5 ·
+    kecelakaan ringan ×1 · kerusakan properti ×1,5 · nyaris celaka ×2.
+
+    Yang boleh disetel tenant hanya seberapa cepat mereka menuntut penutupan.
+    Perbandingan ANTAR jenis tidak boleh ikut disetel — membuat kecelakaan
+    berat bisa dikonfigurasi lebih longgar daripada nyaris-celaka adalah
+    pilihan yang tak boleh tersedia di UI mana pun.
+  */
+  'otomasi.insiden_k3.hari': {
+    bawaan: 7,
+    min: 1,
+    max: 90,
+    label: 'Hari dasar sebelum insiden K3 yang belum ditutup ditegur',
+  },
+  /*
+    Audit mutu lewat jadwal. Bawaan 3 hari sesudah tanggal rencana.
+
+    Pendek, karena audit yang lewat menahan pekerjaan lain: temuan yang belum
+    dikeluarkan berarti pekerjaan berikutnya berjalan di atas mutu yang belum
+    diperiksa.
+  */
+  'otomasi.audit_mutu.hari': {
+    bawaan: 3,
+    min: 1,
+    max: 90,
+    label: 'Hari sesudah tanggal rencana sebelum audit mutu ditegur',
+  },
+  /*
     Harga satuan RAB menyimpang antar proyek. Bawaan 1,3× (selisih 30%).
 
     DESIMAL, dan itu penting: `jepit()` hanya membulatkan bila min DAN max

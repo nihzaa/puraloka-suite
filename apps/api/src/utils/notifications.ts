@@ -139,6 +139,12 @@ export type NotificationType =
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'
   | 'kontrak_klien_berakhir'
+  | 'insiden_k3_menggantung'
+  | 'insiden_k3_tanpa_tindakan'
+  | 'stok_di_bawah_minimum'
+  | 'material_tanpa_batas_minimum'
+  | 'audit_mutu_lewat_jadwal'
+  | 'rencana_mutu_belum_disetujui'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

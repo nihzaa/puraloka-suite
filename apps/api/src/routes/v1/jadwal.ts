@@ -211,6 +211,21 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'insiden-k3-belum-ditutup': {
+    label: 'Insiden K3 Belum Ditutup',
+    keterangan: 'Insiden yang menggantung, dengan tenggang berskala menurut beratnya.',
+    jalur: '/api/v1/otomasi/jalankan/insiden-k3-belum-ditutup',
+  },
+  'stok-di-bawah-minimum': {
+    label: 'Stok Material Menipis',
+    keterangan: 'Stok di bawah batas minimum, plus material yang belum punya batas.',
+    jalur: '/api/v1/otomasi/jalankan/stok-di-bawah-minimum',
+  },
+  'audit-mutu-lewat-jadwal': {
+    label: 'Audit Mutu Lewat Jadwal',
+    keterangan: 'Audit mutu yang lewat tanggal rencana, dan rencana mutu belum sah.',
+    jalur: '/api/v1/otomasi/jalankan/audit-mutu-lewat-jadwal',
+  },
   'rab-harga-menyimpang': {
     label: 'Harga Satuan RAB Menyimpang',
     keterangan: 'Pekerjaan sama dihargai berbeda jauh antar proyek.',

@@ -21859,3 +21859,78 @@ mutasi blok verifikasi 409         4/4 MERAH lalu pulih
 13 penjaga arsitektural            exit=0
 lint:ratchet                       0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 (3) — Gelombang 1: K3 3.15 · stok 4.5 · mutu 3.14
+
+33 rute terjadwal, 42 nomor katalog (dari 30/39).
+
+### Temuan paling tajam datang dari data yang sudah ada
+
+```
+INS-04  kecelakaan_berat  status `diselidiki`  18 hari  tindakan_korektif NULL
+```
+
+Kecelakaan berat, korban Dedi Kurniawan, area bongkar muat, sudah 18 hari
+"diselidiki" — **tanpa satu pun tindakan korektif tercatat.** Itu bukan sekadar
+berkas yang belum ditutup: penyebabnya masih di lokasi, dan orang masih bekerja
+di sana. Dikirim sebagai temuan TERSENDIRI berprioritas tertinggi, karena
+tindakannya berbeda dari "tutup berkas".
+
+### Satu ambang untuk enam jenis insiden adalah KESALAHAN
+
+Enam jenis terdaftar, dari `fatal` sampai `nyaris_celaka`. Ambang tunggal
+memaksa memilih: longgar → kecelakaan berat menganggur berminggu-minggu;
+ketat → tiap nyaris-celaka berbunyi tiap hari sampai orang mematikan
+notifikasinya, **dan yang mati ikut membungkam yang berat.**
+
+Ambangnya berskala: dasar × pengali per jenis (fatal ×0 · berat ×0,2 ·
+pencemaran ×0,5 · ringan ×1 · properti ×1,5 · nyaris ×2). **Pengalinya dipaku
+di kode dan sengaja tak bisa disetel** — membuat kecelakaan berat bisa
+dikonfigurasi lebih longgar daripada nyaris-celaka adalah pilihan yang tak
+boleh tersedia di UI mana pun.
+
+Terbukti di basis: INS-05 (nyaris celaka, 12 hari) benar-benar TIDAK berbunyi,
+karena tenggangnya 14.
+
+### 4.5 — yang penting bukan stoknya
+
+Dari 24 material aktif, **hanya SATU** yang punya batas minimum. Otomasi yang
+cuma membaca batas melaporkan 23 sisanya aman selamanya — bukan karena stoknya
+cukup, melainkan karena tak ada yang pernah menuliskan berapa yang disebut
+cukup. Diam pada kasus itu terlihat persis seperti keberhasilan.
+
+Stok dijumlahkan dari **dua** tempat (proyek + gudang). Membaca proyek saja
+membuat material yang menumpuk di gudang terlihat habis lalu dipesan lagi —
+kesalahan yang memindahkan uang sungguhan.
+
+### Satu mutasi LOLOS, dan ia menunjuk test saya
+
+`tanpa-batas-diam` — mematikan blok notifikasinya membiarkan angka di `checked`
+tetap benar, dan test yang hanya membaca angka itu lulus. **Ringkasan yang
+dihitung tetapi tak pernah dikirim cuma membuat lognya terlihat sehat.** Test
+diperkuat: notifikasinya harus ada, dan pesannya harus menyebut jumlahnya.
+
+### Empat constraint schema yang saya langgar di fixture, dan semuanya benar
+
+- `insiden_ditutup_berkorektif` — insiden `ditutup` wajib punya stempel
+  penutupan DAN tindakan korektif ≥10 karakter. Insiden yang ditutup dengan
+  tindakan "ok" adalah insiden yang tak pernah ditangani.
+- `audit_mutu_selesai_berjejak` — audit `selesai` wajib punya tanggal selesai
+  dan auditornya.
+- enum `jenis_insiden`/`status_insiden` (bukan `insiden_jenis`), dan
+  `audit_mutu_status` bernilai `rencana` (bukan `direncanakan`).
+- `audit_mutu.auditor` uuid, bukan nama bebas.
+
+Keempatnya ditebak dulu dan salah; diukur lalu benar.
+
+### Bukti
+
+```
+otomasi-k3-stok-mutu.test.ts      7 passed
+mutasi rute                       7/7 MERAH lalu pulih (1 diperbaiki dulu)
+mutasi blok verifikasi 410        4/4 MERAH lalu pulih
+14 penjaga arsitektural           exit=0
+lint:ratchet                      0 error, 231 warning
+```

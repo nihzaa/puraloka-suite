@@ -1104,6 +1104,83 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'peluang yang lebih kecil, melainkan lebih matang. Jangan tertukar '
       + 'dengan `kontrak-payung-habis` — yang itu kontrak PEMASOK.',
   },
+  {
+    kunci: 'insiden-k3-belum-ditutup',
+    nomor: '3.15',
+    nama: 'Insiden K3 belum ditutup',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menegur insiden keselamatan kerja yang belum ditutup, dengan tenggang '
+      + 'yang berbeda menurut beratnya. Kecelakaan berat berbunyi jauh lebih '
+      + 'cepat daripada nyaris-celaka.',
+    penerima: 'Petugas K3',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca insiden yang statusnya belum ditutup.' },
+      { di: 'sistem', teks: 'Menghitung tenggang menurut jenis insidennya.' },
+      { di: 'sistem', teks: 'Memisahkan insiden berat yang belum punya tindakan korektif.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.insiden_k3.hari',
+    catatan:
+      'Ambang tunggal untuk semua jenis adalah KESALAHAN, bukan '
+      + 'penyederhanaan: dipasang longgar, kecelakaan berat menganggur '
+      + 'berminggu-minggu; dipasang ketat, tiap nyaris-celaka berbunyi tiap '
+      + 'hari sampai orang mematikan notifikasinya — dan yang mati ikut '
+      + 'membungkam yang berat. Perbandingan antar jenis DIPAKU di kode dan '
+      + 'sengaja tak bisa disetel. Temuan kedua terpisah: insiden berat tanpa '
+      + 'satu pun tindakan korektif berarti penyebabnya masih di lokasi.',
+  },
+  {
+    kunci: 'stok-di-bawah-minimum',
+    nomor: '4.5',
+    nama: 'Stok material di bawah batas minimum',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Memberitahu material yang stoknya sudah di bawah batas minimum, dan '
+      + 'material yang belum punya batas sama sekali.',
+    penerima: 'Bagian gudang',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Menjumlahkan stok di lokasi proyek dan di gudang.' },
+      { di: 'sistem', teks: 'Membandingkan dengan batas minimum tiap material.' },
+      { di: 'sistem', teks: 'Mendata material yang belum punya batas minimum.' },
+      ...LANGKAH_KIRIM,
+    ],
+    catatan:
+      'Yang paling penting di sini BUKAN stoknya: dari 24 material aktif, '
+      + 'hanya SATU yang punya batas minimum. Otomasi yang cuma membaca batas '
+      + 'akan melaporkan 23 sisanya aman selamanya — bukan karena stoknya '
+      + 'cukup, melainkan karena tak ada yang pernah menuliskan berapa yang '
+      + 'disebut cukup. Stok dijumlahkan dari dua tempat: membaca proyek saja '
+      + 'membuat material yang menumpuk di gudang terlihat habis lalu dipesan '
+      + 'lagi.',
+  },
+  {
+    kunci: 'audit-mutu-lewat-jadwal',
+    nomor: '3.14',
+    nama: 'Audit mutu lewat jadwal',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Mengingatkan audit mutu yang sudah lewat tanggal rencananya, dan '
+      + 'rencana mutu yang belum disahkan.',
+    penerima: 'Penanggung jawab mutu',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca audit mutu yang belum selesai.' },
+      { di: 'sistem', teks: 'Menghitung berapa hari lewat dari tanggal rencana.' },
+      { di: 'sistem', teks: 'Memeriksa rencana mutu yang masih menunggu pengesahan.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.audit_mutu.hari',
+    catatan:
+      'Pesannya membedakan audit yang BELUM DIMULAI dari yang sudah berjalan '
+      + 'tetapi belum selesai — tindakannya berbeda: yang satu butuh orang '
+      + 'menetapkan tanggal, yang satu butuh orang menyelesaikan temuannya. '
+      + 'Rencana mutu yang masih diajukan ikut ditegur karena selama belum '
+      + 'sah, temuan audit di bawahnya berpijak pada dokumen yang belum '
+      + 'berlaku.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */

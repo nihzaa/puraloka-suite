@@ -4901,6 +4901,539 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/insiden-k3-belum-ditutup ────────────────
+  //
+  // Automation 3.15 — Site Safety Incident Triage.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // SATU AMBANG UNTUK SEMUA JENIS INSIDEN ADALAH KESALAHAN, BUKAN PENYEDERHANAAN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Enam jenis insiden terdaftar di basis ini, dan jaraknya sangat jauh:
+  //
+  //     fatal                   nyawa hilang
+  //     kecelakaan_berat        orang dirawat
+  //     pencemaran_lingkungan   ada pihak luar yang dirugikan
+  //     kecelakaan_ringan       luka yang bisa diobati di lokasi
+  //     kerusakan_properti      alat atau bangunan rusak
+  //     nyaris_celaka           tak ada korban, tetapi hampir
+  //
+  // Ambang tunggal memaksa memilih: kalau dipasang longgar, kecelakaan berat
+  // menganggur berminggu-minggu tanpa berbunyi; kalau ketat, tiap nyaris-celaka
+  // berbunyi tiap hari sampai orang mematikan notifikasinya — dan yang mati
+  // ikut membungkam yang berat.
+  //
+  // Maka ambangnya BERSKALA: ambang dasar dikali pengali per jenis. Satu angka
+  // yang bisa disetel tenant, enam perilaku yang tetap masuk akal terhadapnya.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // TEMUAN KEDUA YANG LEBIH TAJAM DARIPADA "BELUM DITUTUP"
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Terukur di basis dev:
+  //
+  //     INS-04  kecelakaan_berat  status `diselidiki`  18 hari
+  //             tindakan_korektif  NULL
+  //
+  // Insiden berat yang sudah 18 hari diselidiki TANPA satu pun tindakan
+  // korektif tercatat bukan sekadar "belum ditutup" — ia berarti tak ada yang
+  // berubah di lapangan sesudahnya, dan penyebabnya masih di sana.
+  //
+  // Itu dikirim sebagai temuan TERSENDIRI dengan prioritas tertinggi, karena
+  // tindakannya berbeda: yang satu menutup berkas, yang satu mencegah kejadian
+  // kedua.
+  app.get('/api/v1/otomasi/jalankan/insiden-k3-belum-ditutup', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const ambangDasar = await ambilAmbang(request, 'otomasi.insiden_k3.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['insiden_k3_menggantung', 'insiden_k3_tanpa_tindakan'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { terbuka: 0, menggantung: 0, ambang_hari: ambangDasar },
+      })
+    }
+
+    // `insiden_k3` kategori C lewat `project_id`.
+    const { data: insiden, error } = await request.db!
+      .unsafe('insiden_k3', 'kategori C lewat project_id; disaring ke projectIds() milik tenant')
+      .select(`id, project_id, nomor, jenis, status, tanggal,
+               tindakan_korektif, korban_nama, lokasi`)
+      .in('project_id', idProyek)
+      .neq('status', 'ditutup')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects').select('id, name')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    /*
+      Pengali ambang per jenis, dan nilainya DIPAKU bukan disetel.
+
+      Yang boleh disetel tenant adalah ambang DASAR — seberapa cepat mereka
+      menuntut penutupan. Perbandingan ANTAR jenis tidak boleh ikut disetel:
+      membuat kecelakaan berat bisa dikonfigurasi lebih longgar daripada
+      nyaris-celaka adalah pilihan yang tak boleh tersedia di UI mana pun.
+
+      Pengali < 1 berarti lebih cepat berbunyi daripada ambang dasar.
+    */
+    const PENGALI: Record<string, number> = {
+      fatal: 0,                     // berbunyi HARI ITU JUGA, tanpa tenggang
+      kecelakaan_berat: 0.2,
+      pencemaran_lingkungan: 0.5,
+      kecelakaan_ringan: 1,
+      kerusakan_properti: 1.5,
+      nyaris_celaka: 2,
+    }
+    const BERAT = new Set(['fatal', 'kecelakaan_berat', 'pencemaran_lingkungan'])
+
+    let menggantung = 0
+    let tanpaTindakan = 0
+    let dibuat = 0
+
+    for (const i of insiden ?? []) {
+      const jenis = String(i.jenis ?? '')
+      const tgl = String(i.tanggal ?? '').slice(0, 10)
+      if (!tgl) continue
+
+      const umur = Math.round(
+        (Date.parse(today + 'T00:00:00Z') - Date.parse(tgl + 'T00:00:00Z')) / 86_400_000)
+
+      // Jenis yang tak dikenali diperlakukan seperti ambang dasar, BUKAN
+      // dilewati. Jenis baru yang ditambahkan kelak tak boleh diam-diam
+      // menghilang dari pengawasan.
+      const ambang = Math.round(ambangDasar * (PENGALI[jenis] ?? 1))
+      const pid = i.project_id as string
+      const punyaTindakan = String(i.tindakan_korektif ?? '').trim().length > 0
+
+      /*
+        Temuan TERSENDIRI: insiden berat tanpa satu pun tindakan korektif.
+
+        Tindakannya berbeda dari "belum ditutup" — yang satu menutup berkas,
+        yang satu mencegah kejadian kedua. Terukur INS-04: kecelakaan berat,
+        18 hari `diselidiki`, `tindakan_korektif` NULL.
+      */
+      if (BERAT.has(jenis) && !punyaTindakan && umur >= ambang) {
+        tanpaTindakan++
+        if (!sudah('insiden_k3_tanpa_tindakan', i.id as string)) {
+          const penerima = await resolveRecipients('insiden_k3_tanpa_tindakan', {
+            projectId: pid, companyId: request.companyId!,
+          })
+          for (const uid of penerima) {
+            await createNotification({
+              company_id: request.companyId!,
+              user_id:    uid,
+              title:      'Insiden Berat Tanpa Tindakan Korektif',
+              message:
+                `${i.nomor} (${jenis.replace(/_/g, ' ')}) di `
+                + `${namaProyek.get(pid)} sudah ${umur} hari berstatus `
+                + `"${String(i.status ?? '').replace(/_/g, ' ')}" dan belum ada `
+                + 'satu pun tindakan korektif tercatat. Selama itu belum ada, '
+                + 'penyebabnya masih di lokasi.'
+                + (i.lokasi ? ` Lokasi: ${i.lokasi}.` : ''),
+              type:       'insiden_k3_tanpa_tindakan',
+              priority:   'urgent',
+              project_id: pid,
+              action_url: '/k3',
+              action_data: {
+                record_id: i.id as string,
+                nomor: i.nomor, jenis, umur_hari: umur, status: i.status,
+              },
+            })
+            dibuat++
+          }
+        }
+        // Sengaja TIDAK `continue`: insiden yang sama juga menggantung, dan
+        // dua orang berbeda mungkin yang menanganinya.
+      }
+
+      if (umur < ambang) continue
+      menggantung++
+
+      if (sudah('insiden_k3_menggantung', i.id as string)) continue
+
+      const penerima = await resolveRecipients('insiden_k3_menggantung', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Insiden K3 Belum Ditutup',
+          message:
+            `${i.nomor} — ${jenis.replace(/_/g, ' ')} di ${namaProyek.get(pid)}, `
+            + `${umur} hari sejak kejadian, masih berstatus `
+            + `"${String(i.status ?? '').replace(/_/g, ' ')}".`
+            + (i.korban_nama ? ` Korban: ${i.korban_nama}.` : '')
+            + (punyaTindakan ? '' : ' Belum ada tindakan korektif tercatat.'),
+          type:       'insiden_k3_menggantung',
+          priority:   BERAT.has(jenis) ? 'urgent' : 'high',
+          project_id: pid,
+          action_url: '/k3',
+          action_data: {
+            record_id: i.id as string,
+            nomor: i.nomor, jenis, umur_hari: umur,
+            ambang_jenis_ini: ambang,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        terbuka: (insiden ?? []).length,
+        menggantung,
+        berat_tanpa_tindakan: tanpaTindakan,
+        ambang_hari: ambangDasar,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/stok-di-bawah-minimum ───────────────────
+  //
+  // Automation 4.5 — Auto Reorder Point.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // YANG PALING PENTING DI SINI BUKAN STOKNYA — MELAINKAN BERAPA YANG TAK
+  // PUNYA BATAS SAMA SEKALI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Terukur: dari 24 material, hanya SATU yang punya `min_stock` > 0. Dua
+  // puluh tiga sisanya tak punya batas minimum sama sekali.
+  //
+  // Otomasi yang hanya membaca `min_stock` akan melaporkan 23 material itu
+  // AMAN selamanya — bukan karena stoknya cukup, melainkan karena tak ada yang
+  // pernah menuliskan berapa yang disebut cukup. Diam pada kasus itu terlihat
+  // persis seperti keberhasilan, dan itu kegagalan yang paling mahal.
+  //
+  // Maka temuan keduanya justru yang utama hari ini: material tanpa batas
+  // minimum, dikirim sebagai satu ringkasan.
+  //
+  // ── Stok dijumlahkan dari DUA tempat
+  //
+  // `project_stocks` (di lokasi proyek) DAN `gudang_stok` (di gudang). Membaca
+  // salah satunya saja membuat material yang menumpuk di gudang terlihat habis
+  // di proyek — lalu dipesan lagi.
+  app.get('/api/v1/otomasi/jalankan/stok-di-bawah-minimum', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['stok_di_bawah_minimum', 'material_tanpa_batas_minimum'])
+
+    /*
+      `materials` kategori AB — master data bersama, jadi `.from()` menyaringnya
+      sesuai aturannya sendiri. Yang TIDAK bersama adalah stoknya.
+    */
+    const { data: material, error } = await request.db!
+      .from('materials')
+      .select('id, code, name, unit, min_stock, is_active')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const idProyek = await request.db!.projectIds()
+
+    const { data: stokProyek, error: eSP } = idProyek.length
+      ? await request.db!
+          .unsafe('project_stocks', 'kategori C lewat project_id; disaring ke projectIds()')
+          .select('material_id, qty_on_hand')
+          .in('project_id', idProyek)
+      : { data: [], error: null }
+    if (eSP) return reply.status(500).send({ error: eSP.message })
+
+    // `gudang` kategori B; `gudang_stok` kategori C lewat `gudang_id`.
+    const { data: gudang, error: eG } = await request.db!
+      .from('gudang').select('id')
+    if (eG) return reply.status(500).send({ error: eG.message })
+
+    const idGudang = (gudang ?? []).map((g) => g.id as string)
+    const { data: stokGudang, error: eSG } = idGudang.length
+      ? await request.db!
+          .unsafe('gudang_stok', 'kategori C lewat gudang_id; disaring ke gudang milik tenant')
+          .select('material_id, qty')
+          .in('gudang_id', idGudang)
+      : { data: [], error: null }
+    if (eSG) return reply.status(500).send({ error: eSG.message })
+
+    const total = new Map<string, number>()
+    for (const s of stokProyek ?? []) {
+      const id = s.material_id as string
+      total.set(id, (total.get(id) ?? 0) + Number(s.qty_on_hand ?? 0))
+    }
+    for (const s of stokGudang ?? []) {
+      const id = s.material_id as string
+      total.set(id, (total.get(id) ?? 0) + Number(s.qty ?? 0))
+    }
+
+    const aktif = (material ?? []).filter((m) => m.is_active !== false)
+    const berbatas = aktif.filter((m) => Number(m.min_stock ?? 0) > 0)
+    const tanpaBatas = aktif.filter((m) => Number(m.min_stock ?? 0) <= 0)
+
+    let menipis = 0
+    let dibuat = 0
+
+    for (const m of berbatas) {
+      const id = m.id as string
+      const ada = total.get(id) ?? 0
+      const min = Number(m.min_stock ?? 0)
+      if (ada >= min) continue
+      menipis++
+
+      if (sudah('stok_di_bawah_minimum', id)) continue
+
+      const penerima = await resolveRecipients('stok_di_bawah_minimum', {
+        projectId: null, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Stok Material di Bawah Batas Minimum',
+          message:
+            `${String(m.name ?? '—').trim()}`
+            + (m.code ? ` (${m.code})` : '')
+            + ` tersisa ${ada} ${m.unit ?? ''} dari batas minimum ${min} `
+            + `${m.unit ?? ''}. Dihitung dari stok di proyek DAN di gudang, `
+            + 'jadi angka ini sudah termasuk yang menumpuk di gudang.',
+          type:       'stok_di_bawah_minimum',
+          priority:   ada <= 0 ? 'urgent' : 'high',
+          project_id: undefined,
+          action_url: '/gudang',
+          action_data: {
+            record_id: id,
+            tersisa: ada, minimum: min, satuan: m.unit ?? null,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    /*
+      Material TANPA batas minimum — satu ringkasan, bukan satu per material.
+
+      Ini bukan peringatan stok; ini peringatan bahwa pengawasannya belum
+      dinyalakan. Mengirimnya per material membuat 23 notifikasi untuk satu
+      pekerjaan tunggal: duduk sekali dan mengisi batasnya.
+    */
+    if (tanpaBatas.length > 0 && !sudah('material_tanpa_batas_minimum', today)) {
+      const penerima = await resolveRecipients('material_tanpa_batas_minimum', {
+        projectId: null, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Material Belum Punya Batas Minimum',
+          message:
+            `${tanpaBatas.length} dari ${aktif.length} material aktif belum `
+            + 'punya batas stok minimum: '
+            + `${tanpaBatas.slice(0, 4).map((m) => String(m.name ?? '').trim()).join(', ')}`
+            + `${tanpaBatas.length > 4 ? ', dan lainnya' : ''}. `
+            + 'Selama batasnya kosong, material ini akan terus terlihat aman '
+            + 'di laporan — bukan karena stoknya cukup, melainkan karena tak '
+            + 'ada yang pernah menuliskan berapa yang disebut cukup.',
+          type:       'material_tanpa_batas_minimum',
+          priority:   'normal',
+          project_id: undefined,
+          action_url: '/procurement/material',
+          action_data: {
+            record_id: today,
+            tanpa_batas: tanpaBatas.length,
+            material_aktif: aktif.length,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        material_aktif: aktif.length,
+        berbatas: berbatas.length,
+        menipis,
+        // Dilaporkan EKSPLISIT: inilah material yang TAK BISA dinilai sama
+        // sekali. Tanpa angka ini, "1 menipis" terbaca sebagai "23 aman".
+        tanpa_batas_minimum: tanpaBatas.length,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/audit-mutu-lewat-jadwal ─────────────────
+  //
+  // Automation 3.14 — Quality Checklist / Audit Reminder.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // AUDIT MUTU YANG LEWAT JADWAL BERBEDA DARI AUDIT YANG BELUM SELESAI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Terukur: AM-2608-02 berstatus `berjalan` dengan `tanggal_rencana` 6 hari
+  // lalu. Auditnya SUDAH dimulai — yang lewat jadwal adalah penyelesaiannya.
+  //
+  // Membedakannya penting karena tindakannya berbeda: audit yang belum
+  // dijadwalkan butuh orang menetapkan tanggal; audit yang berjalan terlalu
+  // lama butuh orang menyelesaikan temuannya.
+  //
+  // ── Rencana mutu yang belum disetujui ikut diperiksa
+  //
+  // `rencana_mutu` berstatus `diajukan` berarti dokumennya sudah disusun
+  // tetapi belum ada yang menyetujuinya — dan selama itu, seluruh audit di
+  // bawahnya berpijak pada rencana yang belum sah.
+  app.get('/api/v1/otomasi/jalankan/audit-mutu-lewat-jadwal', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.audit_mutu.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['audit_mutu_lewat_jadwal', 'rencana_mutu_belum_disetujui'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { audit_terbuka: 0, lewat_jadwal: 0, ambang_hari: ambangHari },
+      })
+    }
+
+    const { data: audit, error } = await request.db!
+      .unsafe('audit_mutu', 'kategori C lewat project_id; disaring ke projectIds()')
+      .select('id, project_id, nomor, judul, status, tanggal_rencana, tanggal_selesai')
+      .in('project_id', idProyek)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const { data: rmp, error: eRmp } = await request.db!
+      .unsafe('rencana_mutu', 'kategori C lewat project_id; disaring ke projectIds()')
+      .select('id, project_id, nomor, judul, status')
+      .in('project_id', idProyek)
+
+    if (eRmp) return reply.status(500).send({ error: eRmp.message })
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects').select('id, name')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    let terbuka = 0
+    let lewat = 0
+    let dibuat = 0
+
+    for (const a of audit ?? []) {
+      // `selesai` dan `dibatalkan` sudah tak menunggu siapa pun.
+      const st = String(a.status ?? '')
+      if (st === 'selesai' || st === 'dibatalkan') continue
+      terbuka++
+
+      const rencana = String(a.tanggal_rencana ?? '').slice(0, 10)
+      if (!rencana) continue
+      const telat = Math.round(
+        (Date.parse(today + 'T00:00:00Z') - Date.parse(rencana + 'T00:00:00Z')) / 86_400_000)
+      if (telat < ambangHari) continue
+      lewat++
+
+      if (sudah('audit_mutu_lewat_jadwal', a.id as string)) continue
+
+      const pid = a.project_id as string
+      const penerima = await resolveRecipients('audit_mutu_lewat_jadwal', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Audit Mutu Lewat Jadwal',
+          message:
+            `${a.nomor} "${a.judul}" di ${namaProyek.get(pid)} direncanakan `
+            + `${rencana} dan sudah lewat ${telat} hari, masih berstatus `
+            + `"${st.replace(/_/g, ' ')}". `
+            + (st === 'berjalan'
+              ? 'Auditnya sudah dimulai — yang tertunda penyelesaiannya.'
+              : 'Auditnya belum dimulai sama sekali.'),
+          type:       'audit_mutu_lewat_jadwal',
+          priority:   telat >= ambangHari * 3 ? 'high' : 'normal',
+          project_id: pid,
+          action_url: '/mutu',
+          action_data: {
+            record_id: a.id as string,
+            nomor: a.nomor, telat_hari: telat, status: st,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    /*
+      Rencana mutu yang belum disetujui.
+
+      Selama ia `diajukan`, seluruh audit di bawahnya berpijak pada rencana
+      yang belum sah — dan temuan audit yang mengacu ke dokumen belum-sah sulit
+      dipertahankan kalau kelak dipersoalkan.
+    */
+    const belumSah = (rmp ?? []).filter((r) =>
+      String(r.status ?? '') === 'diajukan' || String(r.status ?? '') === 'draft')
+
+    let dibuatRmp = 0
+    for (const r of belumSah) {
+      if (sudah('rencana_mutu_belum_disetujui', r.id as string)) continue
+      const pid = r.project_id as string
+      const penerima = await resolveRecipients('rencana_mutu_belum_disetujui', {
+        projectId: pid, companyId: request.companyId!,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Rencana Mutu Belum Disetujui',
+          message:
+            `${r.nomor} "${r.judul}" di ${namaProyek.get(pid)} masih berstatus `
+            + `"${String(r.status ?? '')}". Selama belum disahkan, temuan audit `
+            + 'yang mengacu padanya berpijak pada dokumen yang belum berlaku.',
+          type:       'rencana_mutu_belum_disetujui',
+          priority:   'normal',
+          project_id: pid,
+          action_url: '/mutu',
+          action_data: { record_id: r.id as string, nomor: r.nomor, status: r.status },
+        })
+        dibuatRmp++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat + dibuatRmp,
+      checked: {
+        audit_terbuka: terbuka,
+        lewat_jadwal: lewat,
+        rencana_mutu_belum_sah: belumSah.length,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
 }
 
 /**
