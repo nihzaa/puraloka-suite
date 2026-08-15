@@ -50,8 +50,17 @@ saringan, dan keputusan "siapa yang perlu tahu" seluruhnya di sistem.
   jadwal di n8n. Tanpa yang kedua, rutenya benar tetapi tak pernah dipanggil.
 * Otomasi **berpemicu peristiwa** butuh jembatan `terbit-peristiwa.ts`
   (sistem) + workflow webhook di n8n.
-* Yang **belum di-deploy** (`SCHEDULER_URL` kosong) berarti bagian n8n-nya
-  menunggu — bukan berarti bagian sistemnya belum ada.
+* ⚠ **Baris ini SALAH dan sudah dikoreksi (2026-08-16).** Aslinya berbunyi:
+  *"yang belum di-deploy (`SCHEDULER_URL` kosong) berarti bagian n8n-nya
+  menunggu"*.
+
+  Diukur: `SCHEDULER_URL` **tidak dipakai satu baris kode pun** di repo ini —
+  ia hanya muncul sebagai kalimat di skrip laporan. Penjadwalnya justru ada di
+  dalam API (`POST /api/v1/jadwal/jalankan` + tabel `jadwal_tugas`), memakai
+  `SCHEDULER_SECRET` yang sudah terisi, dan menjalankan tiap tugas lewat
+  `server.inject` — tak butuh jaringan, tak butuh n8n, tak butuh deploy.
+
+  Lihat §9.
 
 ---
 
@@ -482,4 +491,100 @@ apa yang diuji, dan yang memperbaikinya akan tergoda menambal urutannya.
 Sekalian diperkuat: sekarang ia menuntut KEDUA maksud terwakili. Tanpa itu,
 test lulus bahkan bila hanya `untuk_informasi` yang menghasilkan notifikasi —
 dan perbandingan prioritasnya tak menguji apa pun.
+
+---
+
+## 9. "Menunggu deploy" ternyata tak pernah benar
+
+Founder, 2026-08-16: *"emang harus banget deploy dulu? ga bisa coba diakalin
+dulu?"*
+
+Bisa. Dan pertanyaannya membongkar klaim yang saya tulis sendiri dua hari
+berturut-turut tanpa pernah mengukurnya.
+
+### 9a. Yang sesungguhnya menahan
+
+```bash
+grep -rn "SCHEDULER_URL" apps/api/src apps/api/scripts
+# → SATU hasil, dan itu KALIMAT di dalam skrip laporan saya sendiri
+```
+
+Nol baris kode memakainya. Yang benar-benar ada:
+
+| Bagian | Keadaan sebelum hari ini |
+|---|---|
+| `POST /api/v1/jadwal/jalankan` | ✅ ada, lengkap dengan klaim atomik |
+| `SCHEDULER_SECRET` di `.env` | ✅ terisi |
+| 8 otomasi terdaftar di `KATALOG` | ❌ **tidak** |
+| baris `jadwal_tugas` untuk 8 itu | ❌ **tidak** |
+| sesuatu yang memanggil denyutnya | ❌ **tidak ada sama sekali** |
+
+Komentar di endpoint berbunyi *"Dipanggil cron."* Tak ada cron. Delapan belas
+tugas terjadwal, lima belas nol eksekusi seumur hidup.
+
+**Pelajarannya melampaui kasus ini: bukan hanya angka yang membusuk, ALASAN pun
+membusuk.** "Menunggu deploy" terdengar seperti kesimpulan teknis. Ia tebakan,
+dan ia menahan delapan otomasi selama dua hari tanpa satu pun gejala.
+
+### 9b. Bukti ujung-ke-ujung, tanpa deploy
+
+```
+SEBELUM → notif: 0 | jumlah_jalan: 0 | status: belum pernah
+
+  node scripts/penjadwal-lokal.mjs --sekali --paksa transmittal-menggantung
+         ✓ transmittal-menggantung   (+ 7 otomasi lain, semuanya sukses)
+
+SESUDAH → notif: 5 | jumlah_jalan: 1 | status: sukses | durasi: 702ms
+  contoh: "Transmittal TR-2026-002 'Revisi 2 gambar pondasi — MOHON
+           KONFIRMASI' ke Ir. Bambang S. (PT …)"
+
+Denyut kedua → 18 dilewati (klaim atomik menahan pengulangan)
+```
+
+n8n **tetap** arah akhirnya untuk produksi. `scripts/penjadwal-lokal.mjs`
+bukan penggantinya melainkan yang membuat jalurnya bisa diuji hari ini.
+
+### 9c. Dua cacat yang terbuka karenanya
+
+**1. Migrasi 401 bentuk pertama menjadwalkan untuk SELURUH perusahaan.**
+
+571 perusahaan × 8 tugas = 4.794 baris. Diukur: **hanya 1 dari 571 punya
+anggota**; 570 sisanya tenant sampah test (§6c). Denyut pertama:
+
+```
+diperiksa 1000 · sukses 0 · gagal 71 · dilewati 929
+galat: "Anda bukan anggota perusahaan tersebut" (403)
+```
+
+2.018 baris berakhir `gagal`. Sepuluh tugas LAMA di tabel itu semuanya
+ter-scope ke satu perusahaan — bentuk yang sudah ada di tabel adalah tempat
+paling murah untuk memeriksanya, dan saya tak memeriksanya.
+
+Diperbaiki dengan syarat "punya anggota", bukan "kode = puraloka-persada":
+yang kedua memaku satu tenant dan membuat tenant sungguhan berikutnya
+diam-diam tak terjadwal.
+
+**2. Pembacaan penjadwal terpotong senyap di 1.000 baris.**
+
+`diperiksa: 1000` dari 4.794 — `.select('*')` tanpa `.range()`. Selama tabel
+berisi sepuluh baris ia benar; ia berhenti benar pada baris ke-1.001, dan cara
+berhentinya sunyi: tugas ke-1.001 dan seterusnya tak pernah dijalankan
+sementara respons tetap `ok: true`.
+
+Penyebab angkanya sudah hilang (scope migrasi diperbaiki), tetapi
+pemotongannya belum — dan ia akan kembali pada tenant ke-56 (56 × 18 > 1.000).
+Diperbaiki dengan paging.
+
+### 9d. Dan pelapornya sendiri berbohong
+
+`scripts/penjadwal-lokal.mjs` versi pertama membaca `badan.dijalankan ??
+badan.jalan` — dua nama field yang tak satu pun ada. Tiap denyut melaporkan
+"tak ada tugas jatuh tempo", **termasuk denyut yang menjalankan tugas dan gagal
+71 kali.**
+
+Bentuk sesungguhnya diukur dari respons: `{ok, waktu, diperiksa, sukses, gagal,
+dilewati, hasil[]}`.
+
+Pelapor yang berbohong lebih buruk daripada tak ada pelapor — tanpa `curl`
+mentah ke endpoint-nya, kedua cacat di §9c tak akan pernah terlihat.
 

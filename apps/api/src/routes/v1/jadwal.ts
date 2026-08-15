@@ -156,6 +156,66 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Pekerjaan yang pendahulunya jauh di bawah ambang progres — hanya yang parah.',
     jalur: '/api/v1/otomasi/jalankan/dependency-breach',
   },
+
+  // ── Otomasi Phase 3-5 & modul yang ternyata sudah ada (2026-08-16) ────────
+  //
+  // Delapan rute ini SUDAH ADA sejak 2026-08-15/16 dan tak pernah terdaftar di
+  // sini — jadi mereka tak pernah dijalankan penjadwal sekali pun.
+  //
+  // Saya sempat menyebut sebabnya "menunggu deploy / SCHEDULER_URL". Diukur
+  // hari ini: `SCHEDULER_URL` tidak dipakai satu baris kode pun di repo ini —
+  // ia hanya muncul sebagai KALIMAT di skrip laporan buatan saya sendiri.
+  //
+  // Yang sesungguhnya menahan cuma dua hal, keduanya bisa dikerjakan lokal:
+  //
+  //   1. tugasnya belum terdaftar di sini   → diperbaiki blok ini
+  //   2. tak ada yang memanggil denyutnya   → `scripts/jalankan-penjadwal.cmd`
+  //
+  // Pelajaran yang sama dengan pembuka CLAUDE.md, dalam bentuk lain: bukan
+  // hanya angka yang membusuk, ALASAN pun membusuk. "Menunggu deploy" terdengar
+  // seperti kesimpulan teknis, padahal ia tebakan yang tak pernah diukur, dan
+  // ia menahan delapan otomasi selama dua hari tanpa satu pun gejala.
+
+  'invoice-terlambat': {
+    label: 'Tagihan Lewat Jatuh Tempo',
+    keterangan: 'Tagihan ke klien yang lewat jatuh tempo dan masih ada sisa belum dibayar.',
+    jalur: '/api/v1/otomasi/jalankan/invoice-terlambat',
+  },
+  'saldo-menipis': {
+    label: 'Saldo Kas Menipis',
+    keterangan: 'Total saldo kas turun di bawah batas aman yang disetel.',
+    jalur: '/api/v1/otomasi/jalankan/saldo-menipis',
+  },
+  'milestone-berisiko': {
+    label: 'Milestone Terancam Meleset',
+    keterangan: 'Milestone yang tenggatnya mendekat sementara pekerjaannya belum selesai.',
+    jalur: '/api/v1/otomasi/jalankan/milestone-berisiko',
+  },
+  'hutang-supplier': {
+    label: 'Pembayaran Supplier Mendekat',
+    keterangan: 'Tagihan supplier yang mendekati jatuh tempo — ditegur SEBELUM lewat.',
+    jalur: '/api/v1/otomasi/jalankan/hutang-supplier',
+  },
+  'harga-material-naik': {
+    label: 'Harga Material Naik',
+    keterangan: 'Kenaikan harga material yang melampaui batas persen dibanding sebelumnya.',
+    jalur: '/api/v1/otomasi/jalankan/harga-material-naik',
+  },
+  'evm-kinerja': {
+    label: 'Kinerja Proyek Menurun',
+    keterangan: 'Proyek yang indeks jadwal atau indeks biayanya turun di bawah ambang.',
+    jalur: '/api/v1/otomasi/jalankan/evm-kinerja',
+  },
+  'polis-berakhir': {
+    label: 'Asuransi Berakhir / Belum Ada',
+    keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
+    jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
+  },
+  'transmittal-menggantung': {
+    label: 'Transmittal Belum Dikonfirmasi',
+    keterangan: 'Transmittal yang sudah dikirim tetapi belum dikonfirmasi diterima.',
+    jalur: '/api/v1/otomasi/jalankan/transmittal-menggantung',
+  },
 }
 
 interface BarisJadwal {
@@ -229,16 +289,42 @@ export default async function jadwalRoutes(app: FastifyInstance) {
 
       const now = new Date()
 
-      const { data, error } = await (await jadwalLintasTenant())
-        .select('*')
-        .eq('aktif', true)
+      /*
+        BERHALAMAN — dan ini bukan kehati-hatian berlebihan.
 
-      if (error) {
-        request.log.error({ err: error }, 'gagal membaca jadwal tugas')
-        return reply.status(500).send({ error: 'Gagal membaca jadwal' })
+        PostgREST memotong di 1.000 baris TANPA galat dan TANPA penanda.
+        Selama tabel ini berisi sepuluh baris, `.select('*')` benar; ia berhenti
+        benar pada baris ke-1.001, dan cara berhentinya sunyi: tugas ke-1.001
+        dan seterusnya TAK PERNAH DIJALANKAN, sementara respons penjadwal tetap
+        `ok: true`.
+
+        Terlihat 2026-08-16 saat migrasi 401 sempat menjadwalkan untuk seluruh
+        perusahaan: `diperiksa: 1000` dari 4.794 baris yang ada. Penyebab
+        angkanya sudah diperbaiki (scope migrasi), tetapi pemotongannya bukan —
+        dan ia akan kembali diam-diam pada tenant ke-56 (56 × 18 > 1.000).
+
+        Pola sama dengan `utils/role-guard.ts` dan `notification-rules.ts`.
+        `.limit()` yang dinaikkan BUKAN perbaikan: ia memindahkan ambangnya.
+      */
+      const HALAMAN = 1000
+      const data: BarisJadwal[] = []
+      for (let dari = 0; ; dari += HALAMAN) {
+        const { data: halaman, error } = await (await jadwalLintasTenant())
+          .select('*')
+          .eq('aktif', true)
+          .order('id', { ascending: true })
+          .range(dari, dari + HALAMAN - 1)
+
+        if (error) {
+          request.log.error({ err: error }, 'gagal membaca jadwal tugas')
+          return reply.status(500).send({ error: 'Gagal membaca jadwal' })
+        }
+        if (!halaman || halaman.length === 0) break
+        data.push(...(halaman as unknown as BarisJadwal[]))
+        if (halaman.length < HALAMAN) break
       }
 
-      const semua = (data ?? []) as BarisJadwal[]
+      const semua = data
       const paksa = request.body?.paksa
       const hasil: Array<{ tugas: string; company_id: string; status: string; alasan?: string }> = []
 

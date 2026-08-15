@@ -2644,3 +2644,35 @@ items:
       Juga: test prioritas ternyata bergantung pada sisa test sebelumnya,
       diperbaiki dengan membuat datanya sendiri.
       Kunci izin salah untuk KEEMPAT kalinya (dokumen:kendali → documents:manage).
+
+  - id: ASISTEN-10
+    fase: null
+    judul: "Penjadwal benar-benar berdetak — 8 otomasi yang tak pernah dipanggil"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "8 otomasi terdaftar di KATALOG jadwal.ts dan di jadwal_tugas"
+      - "ada yang MEMANGGIL POST /api/v1/jadwal/jalankan secara berkala"
+      - "hanya perusahaan BERANGGOTA yang dijadwalkan"
+      - "pembacaan jadwal berhalaman — tak terpotong di 1000"
+      - "rantai penuh terbukti: penjadwal -> rute -> notifikasi tercipta"
+    cara_verifikasi: >-
+      node scripts/penjadwal-lokal.mjs --sekali --paksa transmittal-menggantung
+      (butuh API hidup; ukur portnya dari NEXT_PUBLIC_API_URL)
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16 atas pertanyaan founder "emang harus banget deploy
+      dulu?". TIDAK. `SCHEDULER_URL` yang saya sebut sebagai penghalang selama
+      dua hari ternyata TAK DIPAKAI SATU BARIS KODE PUN — hanya kalimat di
+      skrip laporan saya sendiri.
+      Yang hilang: 8 otomasi tak terdaftar, dan tak ada yang memanggil denyut.
+      Komentar endpoint berbunyi "Dipanggil cron"; tak ada cron.
+      TIGA CACAT terbuka karenanya: (1) migrasi 401 bentuk pertama menjadwalkan
+      untuk 571 perusahaan padahal hanya 1 beranggota — 2.018 baris gagal 403;
+      (2) pembacaan penjadwal terpotong senyap di 1.000 dari 4.794 baris;
+      (3) skrip pelapor saya membaca nama field yang tak ada, jadi melaporkan
+      "tak ada tugas" untuk denyut yang gagal 71 kali.
+      Bukti ujung-ke-ujung: notif 0 -> 5, jumlah_jalan 0 -> 1, status sukses,
+      702ms, pesan berisi data nyata. Denyut kedua: 18 dilewati.
+      n8n TETAP arah akhir produksi; penjadwal-lokal.mjs membuat jalurnya bisa
+      diuji hari ini.

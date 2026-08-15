@@ -5,6 +5,79 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (lanjutan 3) — "menunggu deploy" ternyata tak pernah benar
+
+Founder: *"emang harus banget deploy dulu? ga bisa coba diakalin dulu?"*
+
+Bisa. Dan pertanyaannya membongkar klaim yang saya tulis sendiri dua hari
+berturut-turut tanpa pernah mengukurnya.
+
+    grep -rn "SCHEDULER_URL" apps/api/src apps/api/scripts
+    → SATU hasil, dan itu KALIMAT di skrip laporan buatan saya sendiri
+
+Nol baris kode memakainya. Penjadwalnya justru ada di dalam API sejak lama —
+`POST /api/v1/jadwal/jalankan` + tabel `jadwal_tugas`, `SCHEDULER_SECRET`
+sudah terisi, menjalankan tiap tugas lewat `server.inject`. Tak butuh
+jaringan, tak butuh n8n, tak butuh deploy.
+
+Yang benar-benar hilang cuma dua: delapan otomasi tak terdaftar di KATALOG,
+dan **tak ada satu pun yang memanggil denyutnya**. Komentar endpoint-nya
+berbunyi "Dipanggil cron." Tak ada cron.
+
+**Bukan hanya angka yang membusuk — ALASAN pun membusuk.** "Menunggu deploy"
+terdengar seperti kesimpulan teknis. Ia tebakan, dan ia menahan delapan
+otomasi selama dua hari tanpa satu pun gejala.
+
+### Bukti ujung-ke-ujung, tanpa deploy
+
+    SEBELUM → notif 0 · jumlah_jalan 0 · status belum pernah
+    SESUDAH → notif 5 · jumlah_jalan 1 · status sukses · 702ms
+    denyut kedua → 18 dilewati (klaim atomik menahan)
+
+Kedelapan otomasi baru jalan sukses. Pesannya berisi data nyata:
+"Transmittal TR-2026-002 'Revisi 2 gambar pondasi — MOHON KONFIRMASI'".
+
+### Tiga cacat yang terbuka karenanya
+
+**1. Migrasi 401 saya menjadwalkan untuk SELURUH 571 perusahaan.** Hanya 1
+yang punya anggota; 570 tenant sampah test. Denyut pertama: 71 gagal dengan
+403 "Anda bukan anggota perusahaan tersebut", 2.018 baris berstatus gagal.
+
+Sepuluh tugas LAMA semuanya ter-scope ke satu perusahaan itu — bentuk yang
+sudah ada di tabel adalah tempat paling murah untuk memeriksanya, dan saya
+tak memeriksanya.
+
+**2. Pembacaan penjadwal terpotong senyap di 1.000.** `diperiksa: 1000` dari
+4.794 baris. `.select('*')` tanpa `.range()` — benar selama tabelnya kecil,
+berhenti benar pada baris ke-1.001, dan berhentinya sunyi. Akan kembali pada
+tenant ke-56 (56 × 18 > 1.000). Diperbaiki dengan paging.
+
+**3. Pelapor saya sendiri berbohong.** `penjadwal-lokal.mjs` versi pertama
+membaca `badan.dijalankan ?? badan.jalan` — dua nama yang tak satu pun ada.
+Tiap denyut melaporkan "tak ada tugas jatuh tempo", termasuk denyut yang
+menjalankan tugas dan gagal 71 kali.
+
+Tanpa `curl` mentah ke endpoint-nya, kedua cacat di atas tak akan terlihat.
+
+### Jebakan §7 yang terkonfirmasi lagi
+
+`NEXT_PUBLIC_API_URL` menunjuk :3007. Yang hidup :3001, menjalankan **kode
+lama** (404 untuk rute baru). Jadi web bicara ke port kosong sementara
+instance lain melayani kode basi — persis empat jam yang CLAUDE.md catat.
+API dijalankan di 3007 untuk pembuktian ini.
+
+### Bukti
+
+    jadwal_tugas            4.794 → 18 baris (1 perusahaan beranggota)
+    penjadwal lokal         rantai penuh terbukti, 8/8 otomasi sukses
+    denyut kedua            18 dilewati — klaim atomik menahan
+    test                    23/23 (jadwal + otomasi-terjadwal)
+    tsc                     0 · lint api 0/231
+    penjaga                 8 dijalankan, 8 hijau
+    migrasi 401             blok verifikasi lulus + penjaga tugas-yatim baru
+
+---
+
 ## 2026-08-16 (lanjutan 2) — 5.11, dan mutasi yang LOLOS
 
 Modul Transmittal juga ditandai roadmap "belum dibangun". Juga salah: tabel
