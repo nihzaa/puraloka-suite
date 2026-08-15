@@ -155,6 +155,30 @@ export const AMBANG_OTOMASI = {
     max: 730,
     label: 'Sertifikat yang lewat lebih lama dari ini berhenti ditegur',
   },
+  /*
+    60 hari — SAMA dengan `AMBANG_SEGERA_HABIS` di `lib/kepatuhan-k3.ts`,
+    yang juga dipakai `nilaiIzin()` sebagai bawaan.
+
+    Kalau berbeda, layar Kepatuhan menandai dokumen "segera habis" pada hari
+    yang berbeda dari hari notifikasinya dikirim.
+  */
+  'otomasi.kepatuhan_dokumen.hari': {
+    bawaan: 60,
+    min: 1,
+    max: 365,
+    label: 'Hari sebelum dokumen kepatuhan/izin habis mulai diperingatkan',
+  },
+  /*
+    Batas BAWAH. Diukur: satu dokumen sudah lewat 106 hari dan satu izin
+    proyek lewat 283 hari. Dedup harian menahan kembar DALAM satu hari, bukan
+    lintas hari — tanpa batas ini keduanya ditagih tiap minggu selamanya.
+  */
+  'otomasi.kepatuhan_lewat.maks_hari': {
+    bawaan: 120,
+    min: 7,
+    max: 730,
+    label: 'Dokumen/izin yang lewat lebih lama dari ini berhenti ditegur',
+  },
   'otomasi.evm_spi.minimum': {
     bawaan: 0.9,
     min: 0.1,

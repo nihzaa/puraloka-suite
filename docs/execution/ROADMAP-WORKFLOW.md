@@ -646,3 +646,157 @@ sumber ke-597 baris, dan satu kali menjalankan suite penuh menambah ~27.
 Keduanya terbukti merah lewat mutasi (migrasi ke-9 tanpa saringan; berkas test
 ke-24), lalu pulih hijau.
 
+---
+
+## 11. Dua otomasi yang riset BATALKAN — dan kenapa itu hasil, bukan kegagalan
+
+Riset paralel 2026-08-16 membatalkan dua rencana. Keduanya akan lulus test,
+lulus penjaga, dan **mengirim nol notifikasi selamanya** — persis kegagalan
+`stok-menipis` yang sudah tercatat: diam berbulan-bulan sambil melaporkan
+sehat.
+
+### 11a. 2.9 Budget vs Actual — sumber realisasinya kosong
+
+| Yang dipakai `analisaProyek` | Baris |
+|---|---|
+| `project_expenses` (status `approved`) | **0** |
+| `kasbons` (approved + settled) — TAK DILIHAT | **Rp 545 jt di 11 proyek** |
+
+Satu proyek terukur 45% dari nilai kontraknya, dan otomasi akan melaporkannya
+0%.
+
+Ditambah dua hal yang membuat ambang persen apa pun tak tercapai: RAB sebagian
+proyek **3,7× nilai kontrak** (Rp 3,63 M vs Rp 970 jt), dan `rap_budget` belum
+pernah dikunci sehingga pagunya jatuh ke RAB — yang harga JUAL, bukan biaya.
+
+**Menunggu keputusan founder** (`RATIFIKASI-2.9`): apakah `analisaProyek` ikut
+menghitung kasbons? Itu mengubah angka di layar Portofolio Biaya juga.
+
+### 11b. 3.6 Subcontractor Scoring — tak ada periode kedua untuk dibandingkan
+
+Deteksi penurunan butuh ≥2 periode per pihak. Terukur:
+
+```
+evaluasi_subkon : 1 dari 4 pihak punya ≥2 periode
+evaluasi_vendor : 0 dari 4 supplier punya ≥2 periode
+```
+
+Dan satu-satunya yang punya tren **naik** — PT Baja Perkasa dari mutu 60 ke 90.
+
+Dua cacat struktural membuatnya lebih buruk daripada sekadar tipis:
+
+* **Identitas subkon tidak stabil.** 3 dari 5 baris ber-`supplier_id NULL`,
+  dikenali hanya lewat teks bebas `pihak_nama`. Mengelompokkan tren dengan
+  string bebas berarti satu salah ketik = subjek baru.
+* **`dinilai_oleh` NULL di seluruh baris**, jadi penerima notifikasinya pun
+  harus ditebak.
+
+> ⚠ Dan satu asumsi saya yang salah: `penilaian_kinerja` **bukan** untuk
+> subkontraktor — FK-nya `pegawai_id`, itu penilaian PEGAWAI. Saya
+> memasukkannya ke daftar kandidat 3.6 tanpa memeriksa FK-nya.
+
+**Syarat masuk yang terukur untuk membukanya kembali:** ≥3 subkon punya ≥3
+periode dengan `supplier_id NOT NULL`.
+
+### 11bb. 6.3 Attendance Validation — datanya BEKU dan SERAGAM
+
+Bukan kosong seperti 2.9, dan justru itu yang membuatnya lebih menipu.
+
+```
+absensi_harian  1.279 baris, 60 pekerja, rentang 2026-07-10 … 2026-08-08
+current_date    2026-08-15  → berhenti 7 hari lalu
+```
+
+Sebaran "hari sejak absensi terakhir" per pekerja aktif:
+
+| hari | pekerja |
+|---|---|
+| 7 | 49 |
+| 8 | 11 |
+
+**60 dari 60 (100%)** tak absen ≥7 hari. Otomasi "tak absen berhari-hari"
+mengirim 60 notifikasi hari pertama dan bertambah tiap hari — yang dilaporkan
+bukan pekerja mangkir melainkan *"basis dev berhenti diisi"*.
+
+Ketiga dimensi yang diminta, satu per satu:
+
+| Dimensi | Kenyataan terukur |
+|---|---|
+| jam kerja tak masuk akal | **mustahil** — tak ada jam masuk/keluar, hanya `porsi_hari`; CHECK sudah mengunci 0–1 dan lembur 0–16. Pelanggaran: **0**. Detektornya akan SELALU melapor sehat |
+| absen tanpa penugasan | **85%** baris (1.088 dari 1.279) di luar rentang scope-nya — kebisingan seed |
+| timesheet staf | 7 baris, 1 pegawai dari 5 |
+
+> Yang paling patut dicatat: satu-satunya detektor yang SUNYI justru sunyi
+> karena CHECK constraint sudah menutup jalannya. Otomasi yang tak mungkin
+> berbunyi adalah otomasi yang memberi rasa aman palsu.
+
+**Syarat masuk terukur:** absensi bergerak dalam 3 hari terakhir, dan <20%
+pekerja aktif yang jaraknya melampaui ambang.
+
+### 11c. Yang menggantikannya — dan datanya ADA hari ini
+
+Riset yang sama menemukan pengganti yang lebih kuat, dengan bukti nyata:
+
+| Temuan | Angka |
+|---|---|
+| SIUJK sudah mati **137 hari**, tetapi `terverifikasi = true` | 1 |
+| SBU habis dalam 34 hari | 1 |
+| `dokumen_kepatuhan` kedaluwarsa / habis ≤60 hari | 1 + 1 |
+| Subkon `bolehDipakai = false` (daftar hitam / kecelakaan) | 2 dari 5 |
+
+Dan logikanya **sudah ada dan teruji**: `nilaiPrakualifikasi()` memulangkan
+`peringatan: 'dokumen_kedaluwarsa' | 'dokumen_segera_habis'` dan
+`bolehDiundang`; `nilaiKepatuhan()` + `AMBANG_SEGERA_HABIS = 60`;
+`nilaiEvaluasiSubkon()` + `BOBOT_SUBKON` + `AMBANG_LEMAH_SUBKON = 60`.
+
+Yang hilang bukan kode melainkan penjadwalnya.
+
+> **Pelajaran yang berlaku melampaui dua kasus ini:** riset yang membatalkan
+> rencana lebih berharga daripada riset yang membenarkannya. Dua otomasi yang
+> tak dibangun hari ini adalah dua otomasi yang tak perlu dicabut enam bulan
+> lagi sesudah tak seorang pun mempercayainya.
+
+---
+
+## 12. 9.1 — satu-satunya dari empat kandidat yang layak
+
+Empat kandidat diriset paralel 2026-08-16. **Tiga dibatalkan** (§11), satu
+dibangun.
+
+### 12a. Lingkupnya sengaja dipersempit — dua tabel dikeluarkan
+
+Enam tabel di repo ini punya `berlaku_sampai`. Hanya dua yang masuk:
+
+| Tabel | Putusan | Alasan terukur |
+|---|---|---|
+| `dokumen_kepatuhan` | ✅ masuk | 9 baris — 1 lewat, 1 ≤60 hari, 1 belum verifikasi |
+| `izin_proyek` | ✅ masuk | 5 baris — 1 lewat 283 hari ber-`menghalangi_mulai` |
+| `izin_kerja` | ❌ keluar | **4 dari 4** sudah kedaluwarsa — data seed, bukan sinyal |
+| `dokumen_prakualifikasi` | ❌ keluar | **7 dari 11** tanpa tanggal berlaku |
+| `sertifikat_pegawai` | ❌ keluar | sudah dipegang 6.9 |
+| `polis_asuransi` | ❌ keluar | sudah dipegang 5.7/9.2 |
+
+Dua yang pertama akan mengirim peringatan usang; dua terakhir akan mengirim
+pesan kedua untuk kejadian yang sama.
+
+### 12b. Sinyal terkuatnya: `hijauTapiMati`
+
+Dokumen yang masih bercentang **terverifikasi** padahal tanggalnya sudah lewat.
+Terukur ada satu nyata:
+
+```
+Asuransi CAR milik PT Baja Perkasa sudah kedaluwarsa 106 hari lalu.
+Dokumen ini masih bercentang terverifikasi — itu sebabnya tak ada yang
+menyadarinya.
+```
+
+Orang yang melihat centang hijau berhenti memeriksanya. Itu yang membuat
+keadaan ini lebih berbahaya daripada dokumen yang jelas-jelas merah — dan
+pustakanya sudah menghitungnya; otomasi tinggal membawanya ke permukaan.
+
+### 12c. Batas bawah yang terbukti perlu
+
+Izin yang lewat **283 hari** benar-benar dilewati (ambang 120), sementara PBG
+yang habis 46 hari lagi tertangkap. Tanpa batas itu, izin yang jelas
+ditinggalkan akan ditagih tiap minggu selamanya.
+

@@ -2357,6 +2357,259 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/kepatuhan-dokumen ───────────────────────
+  //
+  // Automation 9.1 — Regulatory Compliance.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // LINGKUPNYA SENGAJA DIPERSEMPIT — DUA TABEL DIKELUARKAN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Enam tabel di repo ini punya kolom `berlaku_sampai`. Hanya DUA yang masuk
+  // otomasi ini, dan yang dikeluarkan punya alasan terukur:
+  //
+  //   MASUK  `dokumen_kepatuhan`  9 baris  → 1 lewat, 1 ≤60 hari, 1 belum verif
+  //   MASUK  `izin_proyek`        5 baris  → 1 lewat 283 hari, `menghalangi_mulai`
+  //
+  //   KELUAR `izin_kerja`         4 baris, dan KEEMPATNYA sudah kedaluwarsa
+  //          (WP-2026-001..004, berakhir 6–9 Agustus). Itu data seed basi,
+  //          bukan sinyal — memasukkannya berarti mengirim empat peringatan
+  //          usang tiap hari. Ia sudah punya layarnya sendiri, dan
+  //          `disetujuiTapiLewat` sudah tampil di sana.
+  //
+  //   KELUAR `dokumen_prakualifikasi` — 7 dari 11 baris ber-`berlaku_sampai`
+  //          NULL. Tabelnya belum terisi tanggal secara sistematis; sinyalnya
+  //          belum ada, dan otomasi yang membaca tabel setengah-terisi
+  //          menghasilkan peringatan yang menuduh secara acak.
+  //
+  //   KELUAR `sertifikat_pegawai` dan `polis_asuransi` — sudah dipegang 6.9
+  //          dan 5.7/9.2. Dua otomasi atas satu tabel berarti dua pesan untuk
+  //          satu kejadian.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // DUA JENIS PESAN, KARENA TINDAKANNYA BERBEDA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  //   kepatuhan_dokumen  → dokumen PIHAK (supplier/subkon) diperpanjang
+  //   izin_proyek_habis  → izin PROYEK; pekerjaannya berhenti kalau
+  //                        `menghalangi_mulai`
+  //
+  // Dedup harian bekerja per (jenis, record) — satu jenis untuk keduanya
+  // membuat salah satunya tertahan keliru di hari yang sama. Pelajaran 9.2.
+  app.get('/api/v1/otomasi/jalankan/kepatuhan-dokumen', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiKepatuhan, labelJenis } = await import('../../lib/kepatuhan-k3.js')
+    const { nilaiIzin } = await import('../../lib/risiko-proyek.js')
+    type DokumenKepatuhan = import('../../lib/kepatuhan-k3.js').DokumenKepatuhan
+    type IzinProyek = import('../../lib/risiko-proyek.js').IzinProyek
+
+    const q = request.query as { hari?: string; lewat?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.kepatuhan_dokumen.hari', q.hari)
+    const batasLewat = await ambilAmbang(request, 'otomasi.kepatuhan_lewat.maks_hari', q.lewat)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['kepatuhan_dokumen', 'izin_proyek_habis'])
+
+    let dibuat = 0
+    let dilewatiTerlaluLama = 0
+
+    // ── (a) Dokumen kepatuhan pihak ────────────────────────────────────────
+    //
+    // Kategori B — `.from()` sudah menyaringnya ke tenant.
+    const { data: dok, error: eDok } = await request.db!
+      .from('dokumen_kepatuhan')
+      .select(`id, jenis, nomor, pihak_nama, supplier_id, berlaku_dari,
+               berlaku_sampai, terverifikasi, nilai_pertanggungan`)
+
+    if (eDok) return reply.status(500).send({ error: eDok.message })
+
+    /*
+      `nilaiKepatuhan` dipanggil SEKALI atas seluruh daftar, bukan per baris —
+      itu bentuk yang dipakai layar Kepatuhan, dan ia menghitung agregat
+      (`hijauTapiMati`, `belumDiverifikasi`) yang tak bisa disimpulkan dari satu
+      baris.
+    */
+    const ringkas = nilaiKepatuhan((dok ?? []) as unknown as DokumenKepatuhan[], today)
+
+    const penerimaDok = await resolveRecipients('kepatuhan_dokumen', {
+      projectId: null, companyId: request.companyId!,
+    })
+
+    for (const d of ringkas.dokumen) {
+      /*
+        Hanya DUA status yang ditegur.
+
+        `tanpa_masa` TIDAK — 2 dari 9 dokumen (`npwp`, `bpjs_ketenagakerjaan`)
+        memang tak punya masa berlaku, dan menagihnya sebagai "kedaluwarsa"
+        adalah bug yang menuduh dokumen yang benar.
+
+        `belum_diverifikasi` juga tidak: itu pekerjaan administrasi internal,
+        bukan kepatuhan yang habis, dan mencampurnya membuat pesan kepatuhan
+        terasa seperti daftar tugas.
+      */
+      if (d.status !== 'kedaluwarsa' && d.status !== 'segera_habis') continue
+
+      /*
+        Batas bawah — terukur perlunya.
+
+        Satu dokumen sudah lewat 106 hari, dan dedup harian menahan kembar
+        DALAM satu hari, bukan lintas hari. Tanpa batas ini ia ditagih tiap
+        minggu selamanya, dan yang ditagih terus berhenti dibaca.
+      */
+      if (d.sisaHari !== null && d.sisaHari < -batasLewat) {
+        dilewatiTerlaluLama++
+        continue
+      }
+
+      if (sudah('kepatuhan_dokumen', d.id)) continue
+
+      const pihak = d.pihak_nama || 'pihak tak bernama'
+      const lewat = d.status === 'kedaluwarsa'
+
+      /*
+        `hijauTapiMati` disebut EKSPLISIT dalam pesannya, dan itu sinyal
+        terkuat di seluruh himpunan ini: dokumen yang ditandai TERVERIFIKASI
+        tetapi tanggalnya sudah lewat. Terukur ada satu — asuransi CAR yang
+        lewat 106 hari sambil bercentang hijau.
+
+        Orang yang melihat centang hijau berhenti memeriksanya. Itu sebabnya
+        keadaan ini lebih berbahaya daripada dokumen yang jelas-jelas merah.
+      */
+      const catatanHijau = d.hijauTapiMati
+        ? ' Dokumen ini masih bercentang terverifikasi — itu sebabnya tak ada yang menyadarinya.'
+        : ''
+
+      for (const uid of penerimaDok) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      lewat ? 'Dokumen Kepatuhan Kedaluwarsa' : 'Dokumen Kepatuhan Segera Habis',
+          message:
+            `${labelJenis(d.jenis)} milik ${pihak} `
+            + (lewat
+              ? `sudah kedaluwarsa ${Math.abs(d.sisaHari ?? 0)} hari lalu.`
+              : `berakhir dalam ${d.sisaHari} hari.`)
+            + catatanHijau,
+          type:       'kepatuhan_dokumen',
+          priority:   lewat ? 'urgent' : 'high',
+          /*
+            TANPA `project_id` — dokumen kepatuhan melekat pada PIHAK, bukan
+            proyek. Dan `record_id` memakai id dokumennya, bukan `supplier_id`:
+            diukur, `supplier_id` NULL pada SELURUH sembilan baris, jadi
+            dedup berbasis supplier akan menyatukan dokumen yang tak
+            berhubungan.
+          */
+          action_url: '/kepatuhan?bagian=dokumen',
+          action_data: {
+            record_id: d.id,
+            sisa_hari: d.sisaHari,
+            status: d.status,
+            hijau_tapi_mati: d.hijauTapiMati,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    // ── (b) Izin proyek ────────────────────────────────────────────────────
+    const { data: proyek, error: eProy } = await request.db!
+      .from('projects')
+      .select('id, name, end_date')
+      .eq('status', 'active')
+
+    if (eProy) return reply.status(500).send({ error: eProy.message })
+
+    let izinDiperiksa = 0
+    for (const p of proyek ?? []) {
+      const pid = p.id as string
+
+      const { data: izin, error: eIzin } = await request.db!
+        .viaProject('izin_proyek', pid)
+        .select('id, jenis, nomor, status, berlaku_dari, berlaku_sampai, menghalangi_mulai')
+
+      if (eIzin) {
+        request.log.warn({ err: eIzin, projectId: pid }, 'kepatuhan: izin proyek tak terbaca')
+        continue
+      }
+
+      const penerimaIzin = await resolveRecipients('izin_proyek_habis', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      for (const row of izin ?? []) {
+        const dinilai = nilaiIzin(
+          row as unknown as IzinProyek,
+          today,
+          (p.end_date as string | null) ?? null,
+          ambangHari,
+        )
+        izinDiperiksa++
+
+        if (dinilai.masa !== 'kedaluwarsa' && dinilai.masa !== 'akan_habis') continue
+
+        if (dinilai.sisa_hari !== null && dinilai.sisa_hari < -batasLewat) {
+          dilewatiTerlaluLama++
+          continue
+        }
+
+        if (sudah('izin_proyek_habis', dinilai.id)) continue
+
+        const lewat = dinilai.masa === 'kedaluwarsa'
+
+        for (const uid of penerimaIzin) {
+          await createNotification({
+            company_id: request.companyId!,
+            user_id:    uid,
+            title:      dinilai.memblokir
+              ? 'Izin Proyek Habis — Pekerjaan Terhalang'
+              : 'Izin Proyek Segera Habis',
+            message:
+              `Proyek "${p.name}": izin ${dinilai.jenis} `
+              + (lewat
+                ? `sudah kedaluwarsa ${Math.abs(dinilai.sisa_hari ?? 0)} hari lalu.`
+                : `berakhir dalam ${dinilai.sisa_hari} hari.`)
+              // `memblokir` dibawa apa adanya dari pustaka, bukan disimpulkan
+              // di sini: ia menggabungkan `menghalangi_mulai` dengan keadaan
+              // masa berlakunya, dan menyalin aturannya berarti dua sumber.
+              + (dinilai.memblokir
+                ? ' Pekerjaan tak boleh berjalan tanpa izin ini.'
+                : ''),
+            type:       'izin_proyek_habis',
+            priority:   dinilai.memblokir ? 'urgent' : 'high',
+            project_id: pid,
+            action_url: '/risiko/izin',
+            action_data: {
+              record_id: dinilai.id,
+              sisa_hari: dinilai.sisa_hari,
+              masa: dinilai.masa,
+              memblokir: dinilai.memblokir,
+            },
+          })
+          dibuat++
+        }
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        dokumen: ringkas.total,
+        dokumen_kedaluwarsa: ringkas.kedaluwarsa,
+        dokumen_segera_habis: ringkas.segeraHabis,
+        // Dilaporkan meski tak ditegur: angka ini yang membuat "0 notifikasi"
+        // bisa dibedakan dari "semua dokumen sehat".
+        dokumen_belum_diverifikasi: ringkas.belumDiverifikasi,
+        dokumen_hijau_tapi_mati: ringkas.hijauTapiMati,
+        izin_diperiksa: izinDiperiksa,
+        dilewati_terlalu_lama: dilewatiTerlaluLama,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
 }
 
 /**

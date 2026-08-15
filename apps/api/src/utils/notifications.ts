@@ -111,6 +111,10 @@ export type NotificationType =
   | 'k3_temuan_berat_menggantung'
   | 'k3_temuan_berulang'
   | 'k3_induksi_kedaluwarsa'
+  // 9.1 — DUA jenis, karena tindakannya berbeda: dokumen PIHAK diperpanjang,
+  // izin PROYEK menghentikan pekerjaan kalau `menghalangi_mulai`.
+  | 'kepatuhan_dokumen'
+  | 'izin_proyek_habis'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

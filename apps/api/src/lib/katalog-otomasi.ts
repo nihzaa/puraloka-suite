@@ -501,6 +501,35 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'bukan kepatuhan buruk.',
   },
 
+  {
+    kunci: 'kepatuhan-dokumen',
+    nomor: '9.1',
+    nama: 'Dokumen kepatuhan & izin habis',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai dokumen legalitas pihak ketiga dan izin proyek yang mendekati '
+      + 'atau sudah melewati masa berlakunya. Izin yang mati membuat pekerjaan '
+      + 'tak boleh berjalan, dan itu biasanya baru ketahuan saat ada yang '
+      + 'memeriksa ke lokasi.',
+    penerima: 'Bagian legal/kepatuhan dan pengurus perizinan proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca dokumen kepatuhan seluruh pihak yang tercatat.' },
+      { di: 'sistem', teks: 'Menilai masa berlakunya — perhitungan yang sama dengan layar Kepatuhan.' },
+      { di: 'sistem', teks: 'Memeriksa izin tiap proyek yang sedang berjalan.' },
+      { di: 'sistem', teks: 'Melewati yang sudah lewat terlalu lama supaya tak menagih selamanya.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.kepatuhan_dokumen.hari',
+    catatan:
+      'Menyebut khusus dokumen yang masih bercentang "terverifikasi" padahal '
+      + 'tanggalnya sudah lewat — itu keadaan paling berbahaya, karena centang '
+      + 'hijau membuat orang berhenti memeriksanya. Dokumen yang memang tanpa '
+      + 'masa berlaku (NPWP, BPJS) TIDAK ditegur. Izin kerja harian dan dokumen '
+      + 'prakualifikasi sengaja tak termasuk — keduanya punya layar sendiri dan '
+      + 'datanya belum terisi tanggal secara sistematis.',
+  },
+
   // ── Lewat percakapan WhatsApp ───────────────────────────────────────────
   {
     kunci: 'catatan_progres',

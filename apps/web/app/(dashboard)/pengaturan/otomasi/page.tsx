@@ -123,6 +123,30 @@ const AMBANG: ReadonlyArray<{
     langkah: 1_000_000,
   },
   {
+    kunci: "otomasi.kepatuhan_dokumen.hari",
+    judul: "Dokumen kepatuhan & izin habis",
+    akibat:
+      "Peringatan dikirim sekian hari sebelum dokumen legalitas pihak ketiga "
+      + "atau izin proyek habis masa berlakunya. Izin yang mati membuat "
+      + "pekerjaan tak boleh berjalan.",
+    satuan: "hari",
+    min: 1,
+    maks: 365,
+    langkah: 1,
+  },
+  {
+    kunci: "otomasi.kepatuhan_lewat.maks_hari",
+    judul: "Berhenti menagih dokumen lama",
+    akibat:
+      "Dokumen atau izin yang sudah lewat lebih lama dari ini berhenti "
+      + "ditegur. Tanpa batas ini, izin yang ditinggalkan bertahun-tahun akan "
+      + "ditagih tiap minggu selamanya.",
+    satuan: "hari",
+    min: 7,
+    maks: 730,
+    langkah: 7,
+  },
+  {
     kunci: "otomasi.sertifikat_berakhir.hari",
     judul: "Sertifikat pegawai berakhir",
     akibat:

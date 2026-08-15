@@ -5,6 +5,66 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (lanjutan 6) — riset membatalkan TIGA dari empat, dan itu hasilnya
+
+Empat kandidat Phase 3 diriset paralel. Tiga dibatalkan, satu dibangun.
+
+    2.9 Budget vs Actual  BATAL  project_expenses 0 baris; Rp 545 jt di kasbons
+    3.6 Subkon Scoring    BATAL  0-1 pihak punya ≥2 periode; identitas via teks bebas
+    6.3 Attendance        BATAL  100% pekerja ≥7 hari tak absen (seed beku 08-08)
+    9.1 Compliance        BANGUN 28 baris di 4 tabel, 3 sudah lewat tanggal
+
+### Yang paling patut dicatat dari yang dibatalkan
+
+**6.3**: satu-satunya detektor yang SUNYI ("jam kerja tak masuk akal") sunyi
+karena CHECK constraint sudah menutup jalannya — nol pelanggaran, selamanya.
+Otomasi yang tak mungkin berbunyi memberi rasa aman palsu.
+
+**3.6**: `penilaian_kinerja` yang saya masukkan ke daftar kandidat ternyata
+untuk PEGAWAI, bukan subkon — FK-nya `pegawai_id`. Saya tak memeriksa FK-nya.
+Dan satu-satunya subkon yang punya dua periode justru **naik** dari mutu 60 ke
+90; otomasi "kinerja turun" akan mengirim nol notifikasi selamanya.
+
+### 9.1 — lingkup dipersempit, dua tabel dikeluarkan
+
+`izin_kerja` (4 dari 4 kedaluwarsa — seed) dan `dokumen_prakualifikasi` (7 dari
+11 tanpa tanggal) sengaja tak masuk. Yang pertama mengirim peringatan usang
+tiap hari, yang kedua menuduh secara acak.
+
+Sinyal terkuatnya `hijauTapiMati`: asuransi CAR lewat 106 hari sambil bercentang
+terverifikasi. Pesannya menyebutnya eksplisit — centang hijau itu justru yang
+membuat tak ada yang menyadarinya.
+
+Batas bawah terbukti bekerja: izin yang lewat 283 hari dilewati, PBG 46 hari
+tertangkap.
+
+### Satu CHECK yang riset sebut dan saya lewat
+
+`kepatuhan_verifikasi_lengkap` — `terverifikasi=true` menuntut
+`diverifikasi_oleh` + `diverifikasi_pada`. Test saya ditolak basis. Dan tak bisa
+disiasati `false`: presedensi `nilaiKepatuhan` menaruh `belum_diverifikasi`
+sebelum `segera_habis`, jadi dokumen 30-hari tak terverifikasi tak akan pernah
+berstatus yang diuji.
+
+### Bukti
+
+    otomasi-kepatuhan       5/5 hijau
+    ujung-ke-ujung          lewat penjadwal SUNGGUHAN:
+                              "Asuransi CAR milik PT Baja Perkasa sudah
+                               kedaluwarsa 106 hari lalu. Dokumen ini masih
+                               bercentang terverifikasi…"
+                              "izin PBG berakhir dalam 46 hari"
+    migrasi 404             lulus verifikasi (2 aturan, 4 target, 2 ambang, jadwal)
+    penjaga                 10 dijalankan, 10 hijau
+    build + lint            sukses · api 0/231 · web 0/295
+
+    mutasi (ketiganya wajib merah, ketiganya terbukti):
+      saringan status dilonggarkan   MERAH → pulih HIJAU
+      batas bawah dibuang            MERAH → pulih HIJAU
+      hijauTapiMati dipaku false     MERAH → pulih HIJAU
+
+---
+
 ## 2026-08-16 (lanjutan 5) — 6.9 + 9.8, dan riset paralel yang membatalkan satu rencana
 
 Founder meminta kerja paralel. Ketiga otomasi menyentuh berkas yang SAMA, jadi

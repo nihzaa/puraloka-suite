@@ -211,6 +211,11 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'kepatuhan-dokumen': {
+    label: 'Dokumen Kepatuhan & Izin Habis',
+    keterangan: 'Dokumen legalitas pihak dan izin proyek yang mendekati atau melewati masa berlaku.',
+    jalur: '/api/v1/otomasi/jalankan/kepatuhan-dokumen',
+  },
   'sertifikat-berakhir': {
     label: 'Sertifikat Pegawai Berakhir',
     keterangan: 'Sertifikat keahlian pegawai yang mendekati atau melewati masa berlaku.',
