@@ -220,6 +220,22 @@ export const AMBANG_OTOMASI = {
     label: 'Hari sesudah proyek selesai sebelum retensi tertahan ditegur',
   },
   /*
+    Margin bocor. Bawaan 85% dari RAB.
+
+    Persen, bukan selisih rupiah: proyek Rp 100 juta dan proyek Rp 10 miliar
+    tak bisa dinilai dengan angka mutlak yang sama.
+
+    Di bawah 100 dengan sengaja — peringatan yang baru datang saat anggaran
+    sudah habis tak bisa ditindaklanjuti siapa pun. Yang bisa ditindaklanjuti
+    adalah 15% terakhir.
+  */
+  'otomasi.margin_bocor.persen': {
+    bawaan: 85,
+    min: 50,
+    max: 200,
+    label: 'Persen serapan RAB oleh biaya nyata yang mulai diperingatkan',
+  },
+  /*
     Pengeluaran kembar. Bawaan jarak 3 hari.
 
     PENDEK, dan itu yang memisahkannya dari 2.14. Sewa bulanan dari vendor

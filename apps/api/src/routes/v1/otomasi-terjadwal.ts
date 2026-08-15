@@ -6166,6 +6166,278 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/margin-bocor ────────────────────────────
+  //
+  // Automation 2.5 — Margin Leakage Detection.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // TEMUAN TERBESARNYA BUKAN KEBOCORAN — MELAINKAN PROYEK YANG MARGINNYA
+  // TIDAK BISA DINILAI SAMA SEKALI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Diukur dari 16 proyek:
+  //
+  //     13   tak punya satu pun baris RAB
+  //      2   RAB MELAMPAUI nilai kontraknya
+  //      1   biaya nyata melampaui RAB
+  //
+  // Proyek tanpa RAB bukan proyek yang marginnya aman — ia proyek yang
+  // marginnya tak diketahui siapa pun. Otomasi yang hanya membandingkan
+  // biaya dengan RAB akan melaporkan ketiga belasnya sehat selamanya, dan
+  // laporan itu terlihat persis seperti kabar baik.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // RAB > NILAI KONTRAK: SALAH SATUNYA PASTI KELIRU
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  //     Pembangunan Rumah Bu Sari — Dago    kontrak Rp 1,07 M · RAB Rp 3,74 M
+  //     Renovasi Rumah Pak Andi — Buah Batu kontrak Rp  285 jt · RAB Rp 1,30 M
+  //
+  // Rencana biaya yang lebih besar daripada uang yang akan diterima berarti
+  // proyeknya direncanakan RUGI sebelum sekop pertama turun. Itu jarang
+  // benar-benar terjadi; yang jauh lebih lazim salah satu angkanya keliru —
+  // RAB tersalin dari proyek lain, atau nilai kontrak belum diperbarui
+  // sesudah addendum.
+  //
+  // Pesannya menyatakan keduanya sebagai kemungkinan, tidak menuduh satu.
+  // Otomasi yang menebak mana yang salah akan menyuruh orang memperbaiki
+  // angka yang benar.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // HANYA BARIS `item` YANG DIJUMLAHKAN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // `rab_items` berjenjang: `category` · `subcategory` · `item`. Menjumlahkan
+  // seluruhnya menghitung ganda — induk memuat jumlah anaknya. Hasilnya RAB
+  // terlihat dua sampai tiga kali lipat, dan tiap proyek jadi "rugi".
+  app.get('/api/v1/otomasi/jalankan/margin-bocor', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { persen?: string }
+    const ambangPersen = await ambilAmbang(request, 'otomasi.margin_bocor.persen', q.persen)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['margin_rab_lampaui_kontrak', 'margin_biaya_lampaui_rab', 'proyek_tanpa_rab'])
+
+    const { data: proyek, error } = await request.db!
+      .from('projects')
+      .select('id, name, status, contract_value')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const idProyek = (proyek ?? []).map((p) => p.id as string)
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { proyek: 0, ambang_persen: ambangPersen },
+      })
+    }
+
+    /*
+      RAB dijumlahkan dari baris berjenjang `item` SAJA — lihat komentar di
+      atas. Dibaca berhalaman: RAB adalah tabel terbesar per proyek di sistem
+      ini, dan pemotongan senyap di 1.000 baris membuat totalnya lebih kecil
+      daripada kenyataan. Akibatnya proyek yang biayanya melampaui RAB justru
+      terlihat aman.
+    */
+    const HALAMAN = 1000
+    const rabPer = new Map<string, number>()
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error: eRab } = await request.db!
+        .unsafe('rab_items', 'kategori C lewat project_id; disaring ke proyek ter-scope di atas')
+        .select('project_id, total_price, level')
+        .in('project_id', idProyek)
+        .eq('level', 'item')
+        .order('id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (eRab) return reply.status(500).send({ error: eRab.message })
+      if (!data || data.length === 0) break
+      for (const r of data) {
+        const pid = r.project_id as string
+        rabPer.set(pid, (rabPer.get(pid) ?? 0) + Number(r.total_price ?? 0))
+      }
+      if (data.length < HALAMAN) break
+    }
+
+    const biayaPer = new Map<string, number>()
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error: eBiaya } = await request.db!
+        .unsafe('project_expenses', 'kategori C lewat project_id; disaring ke proyek ter-scope')
+        .select('project_id, total_amount, status')
+        .in('project_id', idProyek)
+        .eq('status', 'approved')
+        .order('id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (eBiaya) return reply.status(500).send({ error: eBiaya.message })
+      if (!data || data.length === 0) break
+      for (const b of data) {
+        const pid = b.project_id as string
+        biayaPer.set(pid, (biayaPer.get(pid) ?? 0) + Number(b.total_amount ?? 0))
+      }
+      if (data.length < HALAMAN) break
+    }
+
+    let rabLampau = 0
+    let biayaLampau = 0
+    const tanpaRab: Array<{ nama: string; kontrak: number }> = []
+    let dibuat = 0
+
+    for (const p of proyek ?? []) {
+      const pid = p.id as string
+      const st = String(p.status ?? '')
+      // `draft` belum punya keputusan apa pun untuk dipertanyakan.
+      if (st === 'draft' || st === 'cancelled') continue
+
+      const kontrak = Number(p.contract_value ?? 0)
+      const rab = rabPer.get(pid) ?? 0
+      const biaya = biayaPer.get(pid) ?? 0
+
+      /*
+        Proyek TANPA RAB. Dikumpulkan jadi satu ringkasan, bukan satu pesan
+        per proyek: pekerjaannya tunggal — duduk sekali dan menyusun RAB —
+        dan tiga belas notifikasi untuk satu pekerjaan hanya jadi kebisingan.
+      */
+      if (rab <= 0) {
+        if (kontrak > 0) tanpaRab.push({ nama: String(p.name ?? '—'), kontrak })
+        continue
+      }
+
+      // ── Temuan 1: rencana biaya melampaui uang yang akan diterima
+      if (kontrak > 0 && rab > kontrak) {
+        rabLampau++
+        if (!sudah('margin_rab_lampaui_kontrak', pid)) {
+          const penerima = await resolveRecipients('margin_rab_lampaui_kontrak', {
+            projectId: pid, companyId: request.companyId!,
+          })
+          const lipat = Math.round((rab / kontrak) * 10) / 10
+          for (const uid of penerima) {
+            await createNotification({
+              company_id: request.companyId!,
+              user_id:    uid,
+              title:      'Rencana Biaya Melampaui Nilai Kontrak',
+              message:
+                `"${p.name}" bernilai kontrak ${rp(kontrak)} tetapi RAB-nya `
+                + `${rp(rab)} — ${lipat}× lipat. Rencana biaya yang lebih besar `
+                + 'daripada uang yang akan diterima berarti proyeknya '
+                + 'direncanakan rugi. Yang jauh lebih lazim salah satu angkanya '
+                + 'keliru: RAB tersalin dari proyek lain, atau nilai kontrak '
+                + 'belum diperbarui sesudah addendum.',
+              type:       'margin_rab_lampaui_kontrak',
+              priority:   'high',
+              project_id: pid,
+              action_url: `/proyek/${pid}`,
+              action_data: {
+                record_id: pid, kontrak, rab, lipat,
+              },
+            })
+            dibuat++
+          }
+        }
+      }
+
+      /*
+        ── Temuan 2: biaya nyata mendekati atau melampaui RAB
+
+        Ambangnya persen dari RAB, bukan selisih rupiah — proyek Rp 100 juta
+        dan proyek Rp 10 miliar tak bisa dinilai dengan angka mutlak yang sama.
+      */
+      const serap = rab > 0 ? (biaya / rab) * 100 : 0
+      if (serap >= ambangPersen) {
+        biayaLampau++
+        if (!sudah('margin_biaya_lampaui_rab', pid)) {
+          const penerima = await resolveRecipients('margin_biaya_lampaui_rab', {
+            projectId: pid, companyId: request.companyId!,
+          })
+          const lewat = biaya > rab
+          for (const uid of penerima) {
+            await createNotification({
+              company_id: request.companyId!,
+              user_id:    uid,
+              title:      lewat ? 'Biaya Nyata Sudah Melampaui RAB'
+                                : 'Biaya Nyata Mendekati Batas RAB',
+              message:
+                `"${p.name}": biaya yang sudah disetujui ${rp(biaya)} dari RAB `
+                + `${rp(rab)} (${Math.round(serap)}%).`
+                + (lewat
+                  ? ` Kelebihannya ${rp(biaya - rab)} — setiap rupiah di atas `
+                    + 'ini memakan margin, bukan anggaran.'
+                  : ' Sisa anggarannya ' + rp(rab - biaya) + '.'),
+              type:       'margin_biaya_lampaui_rab',
+              priority:   lewat ? 'urgent' : 'high',
+              project_id: pid,
+              action_url: `/proyek/${pid}`,
+              action_data: {
+                record_id: pid, rab, biaya,
+                serapan_persen: Math.round(serap),
+              },
+            })
+            dibuat++
+          }
+        }
+      }
+    }
+
+    /*
+      ── Temuan 3: proyek bernilai kontrak TANPA RAB
+
+      Inilah temuan terbesar hari ini, dan ia bukan kebocoran melainkan
+      ketiadaan alat ukur. Proyek tanpa RAB bukan proyek yang marginnya aman —
+      ia proyek yang marginnya tak diketahui siapa pun.
+    */
+    if (tanpaRab.length > 0 && !sudah('proyek_tanpa_rab', today)) {
+      const penerima = await resolveRecipients('proyek_tanpa_rab', {
+        projectId: null, companyId: request.companyId!,
+      })
+      const nilai = tanpaRab.reduce((t, x) => t + x.kontrak, 0)
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Proyek Berjalan Tanpa RAB',
+          message:
+            `${tanpaRab.length} proyek bernilai total ${rp(nilai)} belum punya `
+            + 'satu pun baris RAB: '
+            + `${tanpaRab.slice(0, 3).map((x) => `"${x.nama}"`).join(', ')}`
+            + `${tanpaRab.length > 3 ? ', dan lainnya' : ''}. `
+            + 'Tanpa RAB, tak ada yang bisa mengatakan apakah proyek ini untung '
+            + 'atau rugi — dan ia akan terus terlihat sehat di laporan mana pun '
+            + 'karena tak ada angka pembandingnya.',
+          type:       'proyek_tanpa_rab',
+          priority:   'high',
+          project_id: undefined,
+          action_url: '/estimasi',
+          action_data: {
+            record_id: today,
+            proyek: tanpaRab.length,
+            nilai_kontrak_total: nilai,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_diperiksa: (proyek ?? []).length,
+        rab_lampaui_kontrak: rabLampau,
+        biaya_mendekati_rab: biayaLampau,
+        // Dilaporkan EKSPLISIT dan sengaja diletakkan di sini: tanpa angka
+        // ini, "2 temuan" terbaca seolah 14 proyek lain sudah diperiksa dan
+        // sehat. Tiga belas di antaranya tak pernah bisa diperiksa.
+        tanpa_rab: tanpaRab.length,
+        ambang_persen: ambangPersen,
+      },
+    })
+  })
 }
 
 /**

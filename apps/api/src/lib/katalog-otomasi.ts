@@ -1282,6 +1282,35 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'Dihitung dari BULAN BERBEDA, bukan jumlah baris: enam nota di bulan '
       + 'yang sama bukan biaya berulang, itu enam belanja.',
   },
+  {
+    kunci: 'margin-bocor',
+    nomor: '2.5',
+    nama: 'Margin bocor',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Memeriksa tiga hal yang memakan keuntungan proyek: rencana biaya yang '
+      + 'lebih besar daripada nilai kontrak, biaya nyata yang mendekati atau '
+      + 'melampaui RAB, dan proyek yang belum punya RAB sama sekali.',
+    penerima: 'Bagian keuangan & manajer proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Menjumlahkan RAB tiap proyek dari baris rinciannya saja.' },
+      { di: 'sistem', teks: 'Menjumlahkan biaya yang sudah disetujui.' },
+      { di: 'sistem', teks: 'Membandingkan RAB dengan nilai kontrak, dan biaya dengan RAB.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.margin_bocor.persen',
+    catatan:
+      'Temuan terbesarnya BUKAN kebocoran melainkan ketiadaan alat ukur: 13 '
+      + 'dari 16 proyek tak punya satu pun baris RAB. Proyek tanpa RAB bukan '
+      + 'proyek yang marginnya aman — ia proyek yang marginnya tak diketahui '
+      + 'siapa pun, dan ia akan terus terlihat sehat karena tak ada angka '
+      + 'pembandingnya. RAB dijumlahkan dari baris rincian SAJA; menjumlahkan '
+      + 'seluruh jenjang menghitung ganda dan membuat tiap proyek terlihat '
+      + 'rugi. Saat RAB melampaui kontrak, pesannya menyatakan KEDUANYA '
+      + 'sebagai kemungkinan keliru — otomasi yang menebak mana yang salah '
+      + 'akan menyuruh orang memperbaiki angka yang benar.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */

@@ -22079,3 +22079,68 @@ mutasi blok verifikasi 412        4/4 MERAH lalu pulih
 lint:ratchet                      0 error, 231 warning
 saldo kas sebelum/sesudah semai   Rp 222.475.000 → Rp 222.475.000
 ```
+
+---
+
+## 2026-08-16 (6) — Gelombang 1: margin bocor 2.5
+
+38 rute terjadwal, 46 nomor katalog (dari 37/45).
+
+### Temuan terbesarnya bukan kebocoran — melainkan ketiadaan alat ukur
+
+Diukur dari 16 proyek:
+
+```
+13   tak punya satu pun baris RAB   ← 12 di antaranya bernilai kontrak,
+                                       total Rp 3.933.000.000
+ 2   RAB MELAMPAUI nilai kontrak
+ 1   biaya nyata melampaui RAB
+```
+
+Proyek tanpa RAB bukan proyek yang marginnya aman — ia proyek yang marginnya
+**tak diketahui siapa pun.** Otomasi yang hanya membandingkan biaya dengan RAB
+akan melaporkan ketiga belasnya sehat selamanya, dan laporan itu terlihat
+persis seperti kabar baik.
+
+### RAB > kontrak: pesannya sengaja tak menuduh satu angka
+
+```
+Rumah Bu Sari — Dago      kontrak Rp 1,07 M · RAB Rp 3,74 M  = 3,5×
+Rumah Pak Andi — Buah Batu kontrak Rp 285 jt · RAB Rp 1,30 M  = 4,6×
+```
+
+Rencana biaya lebih besar daripada uang yang akan diterima berarti proyeknya
+direncanakan rugi. Itu jarang benar-benar terjadi; yang lebih lazim salah satu
+angkanya keliru. **Otomasi yang menebak mana yang salah akan menyuruh orang
+memperbaiki angka yang benar** — jadi pesannya menyatakan keduanya.
+
+### Satu keputusan yang menentukan apakah laporannya bisa dipakai sama sekali
+
+`rab_items` berjenjang: `category` → `subcategory` → `item`, dan induk memuat
+jumlah anaknya. Menjumlahkan seluruh jenjang menghitung ganda — RAB terlihat
+dua sampai tiga kali lipat, dan **tiap proyek jadi "rugi"**.
+
+Dijumlahkan dari baris `item` saja. Test-nya memasang jenjang lengkap dengan
+nilai kontrak yang berada DI ANTARA jumlah yang benar dan jumlah yang ganda,
+jadi kesalahan penjumlahan langsung terlihat sebagai teguran palsu.
+
+### Dua mutasi LOLOS, dan keduanya berulang dari kesalahan alat ukur yang sama
+
+- `ambang-diabaikan` — jangkar `ambang_persen: ambangPersen` muncul **3×** di
+  berkas rute; mutasinya mendarat di rute lain. Ini kedua kalinya hari ini.
+- Test ambangnya sendiri lemah: ia memeriksa angka yang DILAPORKAN, bukan
+  penyaringannya. Diperkuat, lalu gagal saat dipulihkan — karena ia
+  mengandalkan proyek seed yang kebetulan berada di pita serapan tertentu, dan
+  **tak ada satu pun di pita 50–200%**. Test yang lulus atau gagal karena isi
+  seed tak menguji kodenya. Kondisinya sekarang dibuat sendiri (serapan tepat
+  100%), dan mutasinya merah.
+
+### Bukti
+
+```
+otomasi-margin.test.ts            4 passed
+mutasi rute                       4/4 MERAH lalu pulih (1 diulang, 1 test diperbaiki)
+mutasi blok verifikasi 413        3/3 MERAH lalu pulih
+13 penjaga arsitektural           exit=0
+lint:ratchet                      0 error, 231 warning
+```

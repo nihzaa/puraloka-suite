@@ -34,7 +34,7 @@ cd apps/api && node -r dotenv/config scripts/lapor-otomasi-hidup.mjs
 
 Baris yang dicari: `Tugas terjadwal` dan `otomasi terjelaskan di katalog kode`.
 
-Diukur 2026-08-16: **37 rute terjadwal · 45 nomor katalog terjelaskan.**
+Diukur 2026-08-16: **38 rute terjadwal · 46 nomor katalog terjelaskan.**
 Terakhir ditambahkan: 10.7 perawatan & sertifikasi alat, 10.8 penyusutan belum
 ditutup, 3.9 mandor bentrok dua proyek, dan `kontrak-payung-habis` (sengaja
 TANPA nomor — 7.10 adalah kontrak klien, bukan pemasok).
@@ -56,7 +56,7 @@ paling sulit ditemukan.
 | ~~**2.7** Duplicate Transaction~~ | ~~`project_expenses` 0 baris~~ | ✅ **SELESAI** — penghalangnya dibuka dengan menyemai |
 | ~~**2.14** Recurring Expense~~ | ~~`project_expenses` 0 baris~~ | ✅ **SELESAI** — idem |
 | **9.9** Audit Readiness | `documents` **0 baris** | Gelombang 2 |
-| **2.5** Margin Leakage | butuh biaya aktual; sumbernya `project_expenses` yang kosong | Gelombang 2 |
+| ~~**2.5** Margin Leakage~~ | ~~butuh biaya aktual~~ | ✅ **SELESAI** — penghalangnya dibuka dengan menyemai |
 
 Keenamnya tetap di Gelombang 1 secara KEMAMPUAN — tabelnya ada, kodenya bisa
 ditulis hari ini. Yang belum ada isinya.

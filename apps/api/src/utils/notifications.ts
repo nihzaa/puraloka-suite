@@ -152,6 +152,9 @@ export type NotificationType =
   | 'risiko_tinggi_tanpa_tenggat'
   | 'biaya_kembar'
   | 'biaya_berulang'
+  | 'margin_rab_lampaui_kontrak'
+  | 'margin_biaya_lampaui_rab'
+  | 'proyek_tanpa_rab'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'
