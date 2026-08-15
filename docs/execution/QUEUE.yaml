@@ -2702,3 +2702,45 @@ items:
       langsung merah pada 8 migrasi LAMA yang tak boleh diedit (§5.5). Ambang
       nol di situ bukan ketegasan melainkan penjaga yang TAK MUNGKIN HIJAU, dan
       penjaga semacam itu akan dimatikan orang. Diubah jadi ratchet 8.
+
+  - id: ASISTEN-5
+    fase: null
+    judul: "Konfirmasi tulis lewat WhatsApp — balasan 'ya' mengklaim token"
+    blokir_oleh: [ASISTEN-4]
+    kriteria_selesai:
+      - "SUDAH: tombol konfirmasi di chat WEB (usul_tulis + kartu Simpan/Batal)"
+      - "BELUM: token yang menunggu disimpan per NOMOR, bukan cuma per user"
+      - "BELUM: balasan 'ya'/'betul'/'1' menafsirkan klaim token yang benar"
+      - "BELUM: token yang sudah lewat 15 menit tak boleh diklaim balasan telat"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/usul-tulis.test.ts
+      src/routes/v1/__tests__/ai-tulis.test.ts (6+34 hijau)
+    bobot: M
+    status: sebagian
+    catatan_kemajuan: >-
+      Diukur 2026-08-16: asisten SUDAH bisa menyiapkan 5 jenis catatan dan
+      keempat asisten menawarkannya, tetapi NOL pemanggilan /api/v1/ai/tulis
+      di seluruh apps/web — tombolnya tak pernah ada. Web sudah tersambung
+      sekarang. WhatsApp belum: tokennya dirancang untuk KLIK, dan di WA tak
+      ada layar. Balasan telat yang mengklaim token salah adalah risiko
+      utamanya.
+
+  - id: OPS-1
+    fase: null
+    judul: "Penjadwal belum pernah jalan — SCHEDULER_URL kosong & workflow tak di main"
+    kriteria_selesai:
+      - "jadwal-tugas.yml ADA di branch default (kini hanya di feat/sumbu-ui-roadmap)"
+      - "SCHEDULER_URL disetel di Settings -> Secrets -> Actions"
+      - "gh run list --workflow=jadwal-tugas.yml menunjukkan run yang benar-benar jalan"
+      - "jadwal_tugas.jumlah_jalan > 0 untuk sapa-proaktif"
+    cara_verifikasi: >-
+      gh secret list | grep SCHEDULER_URL · gh run list --workflow=jadwal-tugas.yml ·
+      node scripts/db/introspect.mjs (jumlah_jalan sapa-proaktif)
+    bobot: S
+    status: menunggu-founder
+    catatan_kemajuan: >-
+      DI LUAR KODE. Diukur 2026-08-16: SCHEDULER_SECRET ada, SCHEDULER_URL
+      TIDAK ada, dan jadwal-tugas.yml belum di `main` (370 commit belum
+      di-merge). GitHub Actions hanya menjalankan `schedule:` dari default
+      branch — itu sebabnya lima otomasi lain juga nol eksekusi sejak lama.
+      Seluruh fitur proaktif diam sampai ini beres.

@@ -58,7 +58,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Bot, Maximize2, Minimize2, Send, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Bot, Check, Maximize2, Minimize2, Send, Sparkles, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 
@@ -69,12 +69,26 @@ interface Sumber {
   ada_galat_tool: boolean;
 }
 
+/**
+ * Usulan pencatatan yang MENUNGGU konfirmasi manusia.
+ *
+ * Sampai 2026-08-16 asisten bisa menyiapkan catatan lewat `siapkan_tulis`,
+ * dan `grep` atas seluruh apps/web menemukan NOL pemanggilan
+ * `/api/v1/ai/tulis`. Ia berkata "tekan tombol konfirmasi" untuk tombol yang
+ * tak pernah ada, lalu tokennya kedaluwarsa 15 menit kemudian.
+ */
+interface UsulTulis {
+  jenis: string;
+  argumen: Record<string, unknown>;
+}
+
 interface Balasan {
   percakapan_id: string;
   jawaban: string;
   ronde: number;
   sumber: Sumber;
   peringatan: string | null;
+  usul_tulis?: UsulTulis[];
 }
 
 interface Pesan {
@@ -82,7 +96,19 @@ interface Pesan {
   teks: string;
   sumber?: Sumber;
   peringatan?: string | null;
+  usul?: UsulTulis[];
+  /** Sudah dikonfirmasi/ditolak — kartunya berhenti menawarkan tombol. */
+  usulSelesai?: "tersimpan" | "dibatalkan";
 }
+
+/** Nama jenis dalam bahasa yang dipakai orang, bukan nama kolom. */
+const LABEL_JENIS: Record<string, string> = {
+  catatan_progres: "Catatan progres",
+  temuan_punch: "Temuan punch list",
+  kasbon: "Kasbon",
+  pengeluaran: "Pengeluaran",
+  permintaan_material: "Permintaan material",
+};
 
 type Ukuran = "ringkas" | "obrolan" | "lebar";
 
@@ -152,6 +178,53 @@ export function RailAsisten() {
    * tertinggal justru penyebab Esc terasa berperilaku aneh di halaman lain.
    */
 
+  /**
+   * Konfirmasi usulan pencatatan — DUA langkah, dan itu inti pengamanannya.
+   *
+   *   1. `POST /ai/siapkan-tulis`  menerbitkan token, tak menulis apa pun
+   *   2. `POST /ai/tulis`          memakai token, MENULIS satu baris
+   *
+   * Keduanya dipicu klik ini. Injeksi lewat dokumen bisa membuat model
+   * mengusulkan apa pun; ia tak bisa menekan tombol, dan token yang tak
+   * diklaim kedaluwarsa 15 menit kemudian tanpa mengubah apa pun.
+   *
+   * Kenapa dua panggilan, bukan satu: rutenya memang dirancang begitu
+   * (migrasi 269), dan menggabungkannya di sini berarti membangun jalur tulis
+   * KEDUA yang tak melewati gerbang token — persis yang `audit-tool-ai-read-only`
+   * ada untuk mencegah.
+   */
+  const konfirmasiTulis = useCallback(
+    async (indeks: number, usul: UsulTulis, setuju: boolean) => {
+      if (!setuju) {
+        setPesan((p) =>
+          p.map((m, i) => (i === indeks ? { ...m, usulSelesai: "dibatalkan" as const } : m)),
+        );
+        return;
+      }
+
+      try {
+        const siap = await api.post<{ token: string }>("/api/v1/ai/siapkan-tulis", {
+          jenis: usul.jenis,
+          ...usul.argumen,
+        });
+        await api.post("/api/v1/ai/tulis", { token: siap.data.token });
+
+        setPesan((p) =>
+          p.map((m, i) => (i === indeks ? { ...m, usulSelesai: "tersimpan" as const } : m)),
+        );
+      } catch (e) {
+        // Kegagalan DITAMPILKAN di gelembungnya sendiri, bukan ditelan:
+        // orang yang menekan Simpan lalu tak melihat apa-apa akan menekannya
+        // lagi, dan token kedua menulis baris kedua.
+        const pesanGalat =
+          (e as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+          "Gagal menyimpan catatan.";
+        setPesan((p) => [...p, { peran: "assistant", teks: pesanGalat }]);
+      }
+    },
+    [],
+  );
+
   const kirim = useCallback(
     async (teks: string) => {
       const isi = teks.trim();
@@ -176,6 +249,7 @@ export function RailAsisten() {
             teks: r.data.jawaban,
             sumber: r.data.sumber,
             peringatan: r.data.peringatan,
+            usul: r.data.usul_tulis ?? [],
           },
         ]);
       } catch (e) {
@@ -357,7 +431,7 @@ export function RailAsisten() {
             )}
 
             {pesan.map((p, i) => (
-              <Gelembung key={i} pesan={p} lebar={lebar} />
+              <Gelembung key={i} pesan={p} lebar={lebar} indeks={i} onKonfirmasi={konfirmasiTulis} />
             ))}
 
             {menunggu && (
@@ -487,7 +561,17 @@ const sembunyi: React.CSSProperties = {
   overflow: "hidden", clip: "rect(0 0 0 0)",
 };
 
-function Gelembung({ pesan, lebar }: { pesan: Pesan; lebar: boolean }) {
+function Gelembung({
+  pesan,
+  lebar,
+  indeks,
+  onKonfirmasi,
+}: {
+  pesan: Pesan;
+  lebar: boolean;
+  indeks: number;
+  onKonfirmasi?: (indeks: number, usul: UsulTulis, setuju: boolean) => void;
+}) {
   const [bukaSumber, setBukaSumber] = useState(false);
   const dariUser = pesan.peran === "user";
 
@@ -510,6 +594,78 @@ function Gelembung({ pesan, lebar }: { pesan: Pesan; lebar: boolean }) {
       >
         {dariUser ? pesan.teks : <TeksJawaban teks={pesan.teks} />}
       </div>
+
+      {/*
+        KARTU KONFIRMASI TULIS.
+
+        Ditaruh tepat di bawah jawabannya, bukan sebagai toast atau dialog:
+        yang dikonfirmasi adalah ISI kalimat di atasnya, dan memindahkannya ke
+        lapisan lain memaksa orang mengingat angka sambil membaca tombol.
+
+        Tombolnya SATU-SATUNYA jalan pencatatan lewat asisten. Injeksi lewat
+        dokumen bisa membuat model mengusulkan apa pun; ia tak bisa menekan
+        tombol ini.
+      */}
+      {!dariUser && (pesan.usul?.length ?? 0) > 0 && onKonfirmasi && (
+        <div
+          style={{
+            marginTop: 6, maxWidth: lebar ? "82%" : "94%",
+            padding: "10px 12px", borderRadius: "var(--rad-sedang)",
+            border: `1px solid ${pesan.usulSelesai === "tersimpan" ? "var(--success)" : C.navy}`,
+            background: pesan.usulSelesai === "tersimpan"
+              ? "var(--success-bg)"
+              : pesan.usulSelesai === "dibatalkan"
+                ? "var(--surface-subtle)"
+                : C.navyLight,
+          }}
+        >
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: C.text, marginBottom: 2 }}>
+            {LABEL_JENIS[pesan.usul![0].jenis] ?? pesan.usul![0].jenis}
+          </div>
+
+          {pesan.usulSelesai === "tersimpan" ? (
+            <div style={{ fontSize: 11.5, color: "var(--success)" }}>
+              Tersimpan. Asisten tidak bisa mengubahnya lagi.
+            </div>
+          ) : pesan.usulSelesai === "dibatalkan" ? (
+            <div style={{ fontSize: 11.5, color: C.muted }}>
+              Dibatalkan — tidak ada yang tersimpan.
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.55, marginBottom: 8 }}>
+                Belum tersimpan. Periksa isinya di jawaban di atas, lalu
+                konfirmasi kalau sudah benar.
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => onKonfirmasi(indeks, pesan.usul![0], true)}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "6px 12px", borderRadius: "var(--rad-sedang)",
+                    border: "none", background: C.navy, color: C.onNavy,
+                    fontSize: 11.5, fontWeight: 600, cursor: "pointer",
+                  }}
+                >
+                  <Check size={12} /> Simpan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onKonfirmasi(indeks, pesan.usul![0], false)}
+                  style={{
+                    padding: "6px 12px", borderRadius: "var(--rad-sedang)",
+                    border: `1px solid ${C.border}`, background: "var(--surface)",
+                    color: C.mid, fontSize: 11.5, cursor: "pointer",
+                  }}
+                >
+                  Batal
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* I-4: peringatan MENEMPEL pada jawabannya, bukan toast yang hilang.
           Pembaca yang menyalin angkanya harus melihatnya di layar yang sama. */}

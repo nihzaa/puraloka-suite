@@ -235,6 +235,20 @@ grep NEXT_PUBLIC_API_URL apps/web/.env.local
 # rutenya ada, tapi web bicara ke instance LAIN di 3007 yang menjalankan
 # kode lama.
 #
+# TERULANG 2026-08-16 dengan nilai yang sama persis. Sekarang DIJAGA:
+#
+#   cd apps/api && node scripts/audit-port-api-cocok.mjs
+#
+# Penjaga itu menolak dua keadaan: port yang berbeda, DAN `PORT` yang tak
+# ditulis eksplisit di .env (nilainya lalu datang dari bawaan kode — tempat
+# yang tak dilihat siapa pun saat membandingkan dua berkas env).
+#
+# ⚠ Dan satu peringatan tentang ALAT UKURNYA. `grep -E "^PORT" apps/api/.env`
+# pernah memulangkan NOL pada berkas yang jelas-jelas memuat barisnya —
+# karena .env itu berakhiran CR SAJA, sehingga grep melihatnya sebagai satu
+# baris raksasa dan jangkar `^` tak pernah cocok. Nol hasil bukan bukti
+# ketiadaan. Pakai penjaganya, bukan grep.
+#
 # Tiap lapisan menjawab benar untuk dirinya sendiri, jadi tak ada satu pun
 # galat yang menunjuk penyebabnya. Sebelum menyimpulkan "route tak
 # terdaftar", pastikan dulu Anda memeriksa API yang BENAR-BENAR dipakai:

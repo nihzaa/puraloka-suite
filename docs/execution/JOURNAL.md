@@ -485,6 +485,80 @@ benar, bukan karena ada yang dilonggarkan.
 
 ---
 
+## 2026-08-16 — tombol konfirmasi yang tak pernah ada, dan penjadwal yang tak pernah jalan
+
+Founder bertanya: *"apakah sekarang assistant sudah terasa seperti manusia dan
+bisa membantu administrasi? misal untuk menginput data dari wa via assistant?"*
+
+Dua pertanyaan, dua jawaban berbeda — dan mengukurnya menemukan dua rantai
+yang putus.
+
+### A. Penjadwal: DUA sebab, keduanya di luar kode
+
+`jumlah_jalan: 0` pada tugas sapaan yang kemarin dinyalakan. Diukur:
+
+    SCHEDULER_SECRET   ADA di GitHub secrets
+    SCHEDULER_URL      TIDAK ADA
+    jadwal-tugas.yml   TIDAK ADA di branch `main` (370 commit belum di-merge)
+
+GitHub Actions hanya menjalankan `schedule:` dari DEFAULT branch. Jadi
+workflow-nya tak pernah dipicu sekali pun — dan itu penjelasan lengkap kenapa
+lima otomasi lain juga tercatat aktif dengan nol eksekusi sejak lama.
+
+Bukan cacat kode; tak ada yang bisa saya perbaiki dari sini. Butuh merge ke
+`main` + menyetel `SCHEDULER_URL` di Settings → Secrets → Actions.
+
+### B. Jalur tulis: lengkap, kecuali tombolnya
+
+Asisten SUDAH bisa menyiapkan lima jenis catatan — `catatan_progres`,
+`temuan_punch`, `kasbon`, `pengeluaran`, `permintaan_material`. Tool
+`siapkan_tulis` terdaftar di katalog keempat asisten (`tool_aktif = NULL` =
+semua tool berizin), rute `siapkan-tulis` menerbitkan token, rute `tulis`
+menyimpannya.
+
+**`grep` atas seluruh `apps/web`: NOL pemanggilan `/api/v1/ai/tulis`.**
+
+Jadi asisten berkata *"tekan tombol konfirmasi di aplikasi"* — untuk tombol
+yang tak ada di mana pun. Tokennya kedaluwarsa 15 menit kemudian tanpa
+mengubah apa pun, dan pengguna menunggu sesuatu yang tak akan pernah muncul.
+
+Pola yang PERSIS SAMA dengan tiga temuan sesi ini: `riwayat` yang tak pernah
+diisi, empat sub-menu yang tak pernah dinyalakan, dua asisten yang tak pernah
+dipanggil. Setengah rantai bekerja sempurna, setengah lagi tak tersambung,
+dan tak satu pun menghasilkan galat.
+
+Yang dikerjakan: `usul-tulis.ts` membaca usulan dari blok tool yang SUDAH
+tersimpan (C-5) — tanpa menyentuh bentuk `HasilTool`, yang akan memaksa
+seluruh tool lain ikut berubah demi satu tool. Chat API mengembalikannya
+sebagai `usul_tulis`, dan gelembung jawaban menampilkan kartu konfirmasi
+dengan tombol Simpan/Batal.
+
+Tombolnya memicu DUA panggilan (`siapkan-tulis` → token → `tulis`), bukan
+satu: menggabungkannya berarti membangun jalur tulis KEDUA yang tak melewati
+gerbang token — persis yang `audit-tool-ai-read-only` ada untuk mencegah.
+
+### C. WhatsApp: masih belum bisa mengonfirmasi
+
+Ini yang belum selesai, dan disebut supaya tak terbaca sebagai selesai.
+Tokennya dirancang untuk KLIK di layar; di WhatsApp tak ada layar. Balasan
+"ya" atau "betul" belum bisa mengklaim token, dan membuatnya bisa menuntut:
+menyimpan token yang menunggu per nomor, menafsirkan balasan sebagai klaim,
+dan memastikan "ya" yang datang 20 menit kemudian tak mengklaim token yang
+salah.
+
+Itu pekerjaan tersendiri, bukan tambahan kecil.
+
+### Bukti
+
+    tsc api / web    0 / 0
+    usul-tulis       6 hijau (baru)
+    ai-tulis (rute)  34 hijau
+    mutasi test      jenis-asing 2 MERAH · ambil-pertama 1 MERAH → pulih
+    eslint web       4 warning SEBELUM → 4 SESUDAH (nol tambahan)
+    penjaga          7 dijalankan, 7 hijau
+
+---
+
 ## 2026-08-15 (lanjutan 7) — sapaan DINYALAKAN, dan dua cacat yang menahannya
 
 Founder memberi nomornya (`6281311081813`) dan memilih: jendela **08:00–18:00**,

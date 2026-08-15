@@ -47,6 +47,7 @@ import { logAuditEvent } from '../../utils/audit.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
 import { jalankanGiliranAi } from '../../lib/ai-jalankan.js'
 import { bacaRiwayat } from '../../lib/ai-riwayat-baca.js'
+import { usulDariBlok } from '../../lib/usul-tulis.js'
 import type { Asisten } from '../../lib/ai-config.js'
 
 /** Kunci giliran kedaluwarsa — proses yang mati tak mengunci selamanya. */
@@ -267,6 +268,19 @@ export default async function aiChatRoutes(app: FastifyInstance) {
         peringatan: asing.length > 0
           ? `Jawaban menyebut ${asing.join(', ')} yang tidak berasal dari data yang dibaca. Periksa sebelum dipercaya.`
           : null,
+        /*
+         * USULAN TULIS yang menunggu konfirmasi manusia.
+         *
+         * Sampai 2026-08-16 asisten bisa menyiapkan catatan lewat
+         * `siapkan_tulis` — dan `grep` atas seluruh apps/web menemukan NOL
+         * pemanggilan `/api/v1/ai/tulis`. Jadi ia berkata "tekan tombol
+         * konfirmasi" untuk tombol yang tak ada di mana pun, lalu tokennya
+         * kedaluwarsa 15 menit kemudian.
+         *
+         * Array kosong adalah keadaan NORMAL — sebagian besar giliran cuma
+         * bertanya. UI menampilkan tombol hanya kalau ada isinya.
+         */
+        usul_tulis: usulDariBlok(hasil.blok),
       })
     },
   )

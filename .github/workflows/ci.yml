@@ -485,6 +485,25 @@ jobs:
       - name: Test membersihkan tenant buatannya
         run: node scripts/audit-test-bersihkan-company.mjs
 
+      # Port yang dilayani API wajib sama dengan yang dituju web.
+      #
+      # Empat jam habis pada 2026-08-10 mengejar "Not Found": API di 3001 sehat
+      # dan rutenya ada, tetapi web bicara ke 3007 yang menjalankan kode lama.
+      # TERULANG 2026-08-16 dengan nilai yang sama persis.
+      #
+      # Tak ada satu pun galat yang menunjuk ketidakcocokannya — tiap lapisan
+      # menjawab benar untuk dirinya sendiri. Karena itu ia butuh penjaga,
+      # bukan komentar di dokumen (dan komentar itu pun sempat basi).
+      #
+      # Ambang NOL. Di CI hanya `.env.example` yang diperiksa (yang nyata tak
+      # ikut ter-commit) — dan itu justru yang penting: contoh yang tak
+      # konsisten menyebarkan jebakannya ke mesin berikutnya.
+      #
+      # Bukti merah: port web diubah → exit 1; PORT dihapus dari .env sehingga
+      # kembali implisit → exit 1. Keduanya dipulihkan → exit 0.
+      - name: Port API cocok dengan tujuan web
+        run: node scripts/audit-port-api-cocok.mjs
+
       # Jalur UI di inbox approval wajib menunjuk halaman yang benar-benar ada.
       #
       # Ditemukan 2026-08-14 saat menambahkan `purchase_order` ke inbox:
