@@ -801,6 +801,41 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'kejadian, dan alarm yang selalu berbunyi berhenti didengar.',
   },
 
+  {
+    /*
+      TANPA `nomor`, dan itu disengaja.
+
+      Kandidat terdekat di katalog 7.10 *Contract Renewal Reminder*, tetapi
+      bunyinya "peluang repeat business dari klien existing" — itu kontrak
+      KLIEN. Yang ini kontrak PEMASOK (`kontrak_payung.supplier_id`).
+
+      Menempelkan 7.10 padanya akan membuat katalog mengklaim sesuatu yang tak
+      dikerjakan, dan yang mencari pengingat repeat-business menemukan otomasi
+      pengadaan. Kosong lebih jujur daripada salah.
+    */
+    kunci: 'kontrak-payung-habis',
+    nama: 'Kontrak payung segera habis',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Mengingatkan kontrak payung dengan pemasok yang mendekati akhir masa '
+      + 'berlakunya. Sesudah tanggal itu, pemesanan di bawahnya berhenti bisa '
+      + 'dibuat — dan biasanya baru ketahuan saat ada yang mencoba memesan.',
+    penerima: 'Bagian pengadaan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca kontrak payung yang masih berstatus aktif.' },
+      { di: 'sistem', teks: 'Menghitung sisa hari masa berlakunya.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.kontrak_payung.hari',
+    catatan:
+      'Ambangnya lebih panjang daripada dokumen lain (45 hari) karena '
+      + 'memperbarui kontrak payung menuntut negosiasi ulang dengan pemasok, '
+      + 'bukan sekadar memperpanjang berkas. Hanya yang berstatus aktif yang '
+      + 'ditegur — yang draft belum berlaku, yang habis atau dibatalkan sudah '
+      + 'selesai urusannya.',
+  },
+
   // ── Lewat percakapan WhatsApp ───────────────────────────────────────────
   {
     kunci: 'catatan_progres',

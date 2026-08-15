@@ -211,6 +211,11 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'kontrak-payung-habis': {
+    label: 'Kontrak Payung Segera Habis',
+    keterangan: 'Kontrak payung pemasok yang mendekati akhir masa berlaku.',
+    jalur: '/api/v1/otomasi/jalankan/kontrak-payung-habis',
+  },
   'retensi-tertahan': {
     label: 'Retensi Tertahan',
     keterangan: 'Uang retensi yang tertahan pada proyek yang sudah lewat tanggal selesai.',

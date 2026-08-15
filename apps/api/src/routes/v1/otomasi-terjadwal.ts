@@ -3541,6 +3541,119 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/kontrak-payung-habis ────────────────────
+  //
+  // Kontrak payung (blanket order) yang mendekati akhir masa berlakunya.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // TANPA NOMOR KATALOG, DAN ITU DISENGAJA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Kandidat terdekat di katalog adalah 7.10 *Contract Renewal Reminder*,
+  // tetapi bunyinya: *"Ingatkan peluang repeat business dari klien existing"*
+  // — itu kontrak KLIEN, sisi penjualan.
+  //
+  // Yang dibangun di sini kontrak SUPPLIER: `kontrak_payung` punya
+  // `supplier_id`, bukan `client_id`. Menempelkan nomor 7.10 padanya akan
+  // membuat katalog mengklaim sesuatu yang tak dikerjakan, dan orang yang
+  // mencari pengingat repeat-business menemukan otomasi pengadaan.
+  //
+  // Nomor katalog bersifat opsional di `EntitasKatalog` justru untuk keadaan
+  // seperti ini: kebutuhan nyata yang tak punya padanan di daftar. Lebih baik
+  // kosong daripada salah.
+  //
+  // ── Kenapa ini pantas ada
+  //
+  // Kontrak payung yang habis berarti pemesanan di bawahnya berhenti bisa
+  // dibuat — dan itu ketahuan saat seseorang mencoba memesan, bukan sebelumnya.
+  // Terukur: BO-2026-003 habis dalam 12 hari.
+  app.get('/api/v1/otomasi/jalankan/kontrak-payung-habis', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.kontrak_payung.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['kontrak_payung_habis'])
+
+    /*
+      `kontrak_payung` kategori B — `.from()` menyaringnya ke tenant.
+
+      Hanya yang berstatus `aktif`. Nilai lain dari CHECK-nya (`draft`,
+      `habis`, `kedaluwarsa`, `dibatalkan`) memang tak perlu ditegur: yang
+      pertama belum berlaku, tiga sisanya sudah selesai urusannya.
+    */
+    const { data, error } = await request.db!
+      .from('kontrak_payung')
+      .select(`
+        id, nomor, judul, berlaku_sampai, pagu_nilai, status,
+        pemasok:suppliers!kontrak_payung_supplier_id_fkey(name)
+      `)
+      .eq('status', 'aktif')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    let dibuat = 0
+    let mendekat = 0
+
+    for (const k of data ?? []) {
+      const sampai = String(k.berlaku_sampai ?? '').slice(0, 10)
+      if (!sampai) continue
+
+      const sisa = Math.round(
+        (Date.parse(sampai + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 86_400_000,
+      )
+      if (sisa > ambangHari) continue
+
+      mendekat++
+      if (sudah('kontrak_payung_habis', k.id as string)) continue
+
+      const penerima = await resolveRecipients('kontrak_payung_habis', {
+        projectId: null, companyId: request.companyId!,
+      })
+
+      // Join PostgREST memulangkan ARRAY — pelajaran yang sama dengan
+      // `transmittal-menggantung` dan `sertifikat-berakhir`.
+      const arr = k.pemasok as unknown as Array<{ name?: string }> | { name?: string } | null
+      const pemasok = (Array.isArray(arr) ? arr[0]?.name : arr?.name) ?? 'pemasok'
+
+      const lewat = sisa < 0
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      lewat ? 'Kontrak Payung Sudah Habis' : 'Kontrak Payung Segera Habis',
+          message:
+            `${k.nomor} "${k.judul}" dengan ${pemasok} `
+            + (lewat
+              ? `sudah habis ${Math.abs(sisa)} hari lalu.`
+              : `berakhir dalam ${sisa} hari.`)
+            + ' Pemesanan di bawahnya berhenti bisa dibuat sesudah tanggal itu.',
+          type:       'kontrak_payung_habis',
+          priority:   lewat ? 'urgent' : 'high',
+          // TANPA `project_id` — kontrak payung melekat pada PEMASOK dan
+          // dipakai lintas proyek.
+          action_url: '/procurement/lanjutan',
+          action_data: { record_id: k.id, sisa_hari: sisa, pagu: k.pagu_nilai ?? null },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        kontrak_aktif: (data ?? []).length,
+        mendekati_habis: mendekat,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
 }
 
 /**

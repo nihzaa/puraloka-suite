@@ -243,6 +243,17 @@ export const AMBANG_OTOMASI = {
     max: 500,
     label: 'Jumlah penghapusan sepihak sebelum ditandai',
   },
+  /*
+    Kontrak payung. Bawaan 45 hari — lebih panjang daripada dokumen lain
+    karena memperbaruinya menuntut negosiasi ulang dengan pemasok, bukan
+    sekadar memperpanjang berkas.
+  */
+  'otomasi.kontrak_payung.hari': {
+    bawaan: 45,
+    min: 1,
+    max: 180,
+    label: 'Hari sebelum kontrak payung habis mulai diperingatkan',
+  },
   'otomasi.evm_spi.minimum': {
     bawaan: 0.9,
     min: 0.1,
