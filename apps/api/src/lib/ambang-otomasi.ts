@@ -220,6 +220,33 @@ export const AMBANG_OTOMASI = {
     label: 'Hari sesudah proyek selesai sebelum retensi tertahan ditegur',
   },
   /*
+    Pengeluaran kembar. Bawaan jarak 3 hari.
+
+    PENDEK, dan itu yang memisahkannya dari 2.14. Sewa bulanan dari vendor
+    yang sama dengan nominal yang sama juga "vendor + nominal identik
+    berulang" — yang membedakannya cuma jarak hari. Nota yang diinput ulang
+    datang dalam hitungan jam sampai hari; biaya tetap datang tiap 30 hari.
+  */
+  'otomasi.biaya_kembar.hari': {
+    bawaan: 3,
+    min: 0,
+    max: 30,
+    label: 'Jarak hari maksimum dua pengeluaran disebut kembar',
+  },
+  /*
+    Pengeluaran berulang. Bawaan 3 bulan BERBEDA.
+
+    Bulan berbeda, bukan jumlah baris: enam nota di bulan yang sama bukan
+    biaya berulang, itu enam belanja. Yang menandakan langganan adalah
+    kehadirannya di bulan demi bulan.
+  */
+  'otomasi.biaya_berulang.bulan': {
+    bawaan: 3,
+    min: 2,
+    max: 24,
+    label: 'Jumlah bulan berbeda sebelum pengeluaran disebut berulang',
+  },
+  /*
     Izin proyek mendekati akhir. Bawaan 60 hari.
 
     Panjang, karena mengurus perpanjangan PBG atau izin lingkungan menuntut

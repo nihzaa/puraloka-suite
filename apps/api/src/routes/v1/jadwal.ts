@@ -211,6 +211,16 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'biaya-kembar': {
+    label: 'Pengeluaran Kembar',
+    keterangan: 'Dua biaya dengan vendor & nominal sama berselang beberapa hari.',
+    jalur: '/api/v1/otomasi/jalankan/biaya-kembar',
+  },
+  'biaya-berulang': {
+    label: 'Pengeluaran Berulang Tiap Bulan',
+    keterangan: 'Biaya tetap yang dicatat satu-satu, lengkap dengan perkiraan setahunnya.',
+    jalur: '/api/v1/otomasi/jalankan/biaya-berulang',
+  },
   'izin-kedaluwarsa': {
     label: 'Izin Kedaluwarsa',
     keterangan: 'Izin proyek & izin kerja yang habis, plus izin penghalang yang belum terbit.',

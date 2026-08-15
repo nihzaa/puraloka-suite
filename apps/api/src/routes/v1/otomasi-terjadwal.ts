@@ -5838,6 +5838,334 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/biaya-kembar ────────────────────────────
+  //
+  // Automation 2.7 — Duplicate Transaction Detection.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // YANG DICOCOKKAN VENDOR + NOMINAL + KEDEKATAN TANGGAL — BUKAN URAIANNYA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Pencatatan ganda hampir tak pernah menghasilkan dua kalimat yang sama
+  // persis. Nota yang sama diinput ulang karena yang pertama dikira gagal
+  // tersimpan, dan orang kedua mengetiknya dengan kata-katanya sendiri:
+  //
+  //     "Besi beton D13 20 batang"
+  //     "BESI BETON D13 20 BATANG"
+  //     "Beton readymix K-250 8 m3"
+  //     "Beton readymix K250 8m3"
+  //
+  // Mencocokkan uraian akan melewatkan keempatnya. Yang tak berubah saat
+  // diketik ulang: siapa vendornya, berapa nominalnya, dan kapan kira-kira.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // JENDELANYA PENDEK, DAN ITU YANG MEMBEDAKANNYA DARI 2.14
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Sewa direksi keet Rp 3.500.000 dari vendor yang sama, tiap bulan, adalah
+  // vendor + nominal yang identik berulang kali — dan ia BUKAN pencatatan
+  // ganda. Yang membedakannya cuma jarak hari.
+  //
+  // Jendela tiga hari memisahkan keduanya dengan bersih: nota yang diinput
+  // ulang datang dalam hitungan jam sampai hari; biaya tetap bulanan datang
+  // tiap tiga puluh hari. Otomasi 2.14 yang mengurus yang kedua.
+  app.get('/api/v1/otomasi/jalankan/biaya-kembar', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.biaya_kembar.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['biaya_kembar'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { biaya_diperiksa: 0, pasangan_kembar: 0, ambang_hari: ambangHari },
+      })
+    }
+
+    /*
+      `project_expenses` kategori C lewat `project_id`.
+
+      Dibaca BERHALAMAN: biaya proyek adalah tabel yang paling cepat tumbuh di
+      sistem ini, dan pemotongan senyap PostgREST di 1.000 baris akan membuat
+      pasangan kembar kehilangan sisi pembandingnya — persis pasangan terbaru
+      yang paling mungkin masih bisa dibatalkan.
+    */
+    const HALAMAN = 1000
+    const biaya: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error } = await request.db!
+        .unsafe('project_expenses', 'kategori C lewat project_id; disaring ke projectIds()')
+        .select(`id, project_id, description, expense_date, total_amount,
+                 vendor_name, status, category_id`)
+        .in('project_id', idProyek)
+        .neq('status', 'rejected')
+        .order('expense_date', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!data || data.length === 0) break
+      biaya.push(...(data as Array<Record<string, unknown>>))
+      if (data.length < HALAMAN) break
+    }
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects').select('id, name')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    /*
+      Dikelompokkan lebih dulu per (proyek, vendor, nominal), bukan
+      dibandingkan semua-lawan-semua.
+
+      Perbandingan berpasangan penuh berbiaya kuadrat; pada 10.000 baris itu
+      50 juta perbandingan tiap kali penjadwal berdenyut. Pengelompokan
+      membuatnya sebanding jumlah baris, dan hasilnya sama persis — dua baris
+      yang vendor atau nominalnya berbeda tak akan pernah jadi pasangan.
+    */
+    const kelompok = new Map<string, Array<Record<string, unknown>>>()
+    for (const b of biaya) {
+      const vendor = String(b.vendor_name ?? '').trim().toLowerCase()
+      // Tanpa nama vendor, kesamaan nominal saja bukan bukti apa-apa —
+      // dua belanja Rp 500.000 di hari yang sama itu biasa.
+      if (!vendor) continue
+      const nominal = Number(b.total_amount ?? 0)
+      if (nominal <= 0) continue
+      const kunci = `${b.project_id}|${vendor}|${nominal}`
+      const arr = kelompok.get(kunci) ?? []
+      arr.push(b)
+      kelompok.set(kunci, arr)
+    }
+
+    const hariAntara = (a: string, b: string) =>
+      Math.abs(Math.round(
+        (Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000))
+
+    let pasangan = 0
+    let dibuat = 0
+    let nilaiKembar = 0
+
+    for (const [, anggota] of kelompok) {
+      if (anggota.length < 2) continue
+      for (let i = 0; i < anggota.length; i++) {
+        for (let k = i + 1; k < anggota.length; k++) {
+          const a = anggota[i]
+          const b = anggota[k]
+          const ta = String(a.expense_date ?? '').slice(0, 10)
+          const tb = String(b.expense_date ?? '').slice(0, 10)
+          if (!ta || !tb) continue
+          const jarak = hariAntara(ta, tb)
+          if (jarak > ambangHari) continue
+
+          pasangan++
+          const nominal = Number(a.total_amount ?? 0)
+          nilaiKembar += nominal
+
+          // Kunci diurutkan supaya A–B dan B–A tak jadi dua notifikasi.
+          const kunci = [a.id as string, b.id as string].sort().join('_')
+          if (sudah('biaya_kembar', kunci)) continue
+
+          const pid = a.project_id as string
+          const penerima = await resolveRecipients('biaya_kembar', {
+            projectId: pid, companyId: request.companyId!,
+          })
+
+          for (const uid of penerima) {
+            await createNotification({
+              company_id: request.companyId!,
+              user_id:    uid,
+              title:      'Dua Pengeluaran Kembar',
+              message:
+                `Di ${namaProyek.get(pid)}: "${a.description}" (${ta}) dan `
+                + `"${b.description}" (${tb}) sama-sama ${rp(nominal)} dari `
+                + `${a.vendor_name}`
+                + (jarak === 0 ? ' pada hari yang sama.' : `, berselang ${jarak} hari.`)
+                + ' Uraiannya berbeda tetapi vendor dan nominalnya sama persis — '
+                + 'periksa apakah satu nota tercatat dua kali.',
+              type:       'biaya_kembar',
+              // Yang sudah disetujui lebih mendesak: uangnya sudah diakui
+              // sebagai biaya, dan membatalkannya menuntut jurnal koreksi.
+              priority:   (a.status === 'approved' && b.status === 'approved')
+                ? 'high' : 'normal',
+              project_id: pid,
+              action_url: '/kas/pengeluaran',
+              action_data: {
+                record_id: kunci,
+                nominal, jarak_hari: jarak,
+                vendor: a.vendor_name,
+                id_a: a.id, id_b: b.id,
+              },
+            })
+            dibuat++
+          }
+        }
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        biaya_diperiksa: biaya.length,
+        pasangan_kembar: pasangan,
+        nilai_kembar: nilaiKembar,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/biaya-berulang ──────────────────────────
+  //
+  // Automation 2.14 — Recurring Expense Detection.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // YANG DIBERITAHUKAN BUKAN "ADA BIAYA BERULANG" — ITU SUDAH JELAS
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Sewa direksi keet Rp 3.500.000 sebulan tak mengejutkan siapa pun. Yang
+  // mengejutkan angka setahunnya: Rp 42 juta, dan ia dicatat sebagai belanja
+  // proyek satu-satu tiap bulan — tak pernah muncul sebagai satu keputusan
+  // yang pernah disetujui seseorang.
+  //
+  // Maka pesannya menyebut TOTAL yang sudah keluar dan PERKIRAAN SETAHUN.
+  // Dua angka itu yang membuat orang berhenti dan bertanya "kita masih butuh
+  // ini?", dan keduanya tak ada di layar mana pun secara berdampingan.
+  //
+  // Terukur di basis: 2 pola × 2 proyek, masing-masing 6 bulan berturut-turut —
+  // sewa direksi keet Rp 21 juta dan langganan internet Rp 5,1 juta.
+  //
+  // ── BULAN BERBEDA, bukan jumlah baris
+  //
+  // Enam nota di bulan yang sama bukan biaya berulang, itu enam belanja.
+  // Yang menandakan langganan adalah kehadirannya di bulan demi bulan.
+  app.get('/api/v1/otomasi/jalankan/biaya-berulang', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { bulan?: string }
+    const ambangBulan = await ambilAmbang(request, 'otomasi.biaya_berulang.bulan', q.bulan)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['biaya_berulang'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { biaya_diperiksa: 0, pola_berulang: 0, ambang_bulan: ambangBulan },
+      })
+    }
+
+    const HALAMAN = 1000
+    const biaya: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error } = await request.db!
+        .unsafe('project_expenses', 'kategori C lewat project_id; disaring ke projectIds()')
+        .select('id, project_id, description, expense_date, total_amount, vendor_name, status')
+        .in('project_id', idProyek)
+        .neq('status', 'rejected')
+        .order('expense_date', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!data || data.length === 0) break
+      biaya.push(...(data as Array<Record<string, unknown>>))
+      if (data.length < HALAMAN) break
+    }
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects').select('id, name')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    type Pola = {
+      pid: string; vendor: string; nominal: number
+      bulan: Set<string>; total: number; contoh: string; terakhir: string
+    }
+    const pola = new Map<string, Pola>()
+
+    for (const b of biaya) {
+      const vendor = String(b.vendor_name ?? '').trim()
+      if (!vendor) continue
+      const nominal = Number(b.total_amount ?? 0)
+      if (nominal <= 0) continue
+      const tgl = String(b.expense_date ?? '').slice(0, 10)
+      if (!tgl) continue
+
+      const kunci = `${b.project_id}|${vendor.toLowerCase()}|${nominal}`
+      const p = pola.get(kunci) ?? {
+        pid: b.project_id as string, vendor, nominal,
+        bulan: new Set<string>(), total: 0,
+        contoh: String(b.description ?? '—'), terakhir: tgl,
+      }
+      p.bulan.add(tgl.slice(0, 7))
+      p.total += nominal
+      if (tgl > p.terakhir) p.terakhir = tgl
+      pola.set(kunci, p)
+    }
+
+    let berulang = 0
+    let dibuat = 0
+
+    for (const [kunci, p] of pola) {
+      if (p.bulan.size < ambangBulan) continue
+      berulang++
+
+      if (sudah('biaya_berulang', kunci)) continue
+
+      const penerima = await resolveRecipients('biaya_berulang', {
+        projectId: p.pid, companyId: request.companyId!,
+      })
+
+      // Perkiraan setahun dari nominal bulanannya, BUKAN dari total yang sudah
+      // keluar — yang kedua menjawab "sudah habis berapa", yang pertama
+      // menjawab "kalau diteruskan, habis berapa". Pertanyaan kedua yang
+      // membuat orang memutuskan.
+      const setahun = p.nominal * 12
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Pengeluaran Berulang Tiap Bulan',
+          message:
+            `"${p.contoh}" dari ${p.vendor} tercatat ${rp(p.nominal)} di `
+            + `${p.bulan.size} bulan berbeda pada ${namaProyek.get(p.pid)} — `
+            + `sudah ${rp(p.total)} seluruhnya, dan ${rp(setahun)} setahun bila `
+            + 'diteruskan. Biaya seperti ini dicatat satu-satu tiap bulan, jadi '
+            + 'ia tak pernah muncul sebagai satu keputusan yang pernah disetujui.',
+          type:       'biaya_berulang',
+          priority:   'normal',
+          project_id: p.pid,
+          action_url: '/kas/pengeluaran',
+          action_data: {
+            record_id: kunci,
+            vendor: p.vendor, nominal_bulanan: p.nominal,
+            bulan: p.bulan.size, total: p.total, perkiraan_setahun: setahun,
+            terakhir: p.terakhir,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        biaya_diperiksa: biaya.length,
+        pola_berulang: berulang,
+        ambang_bulan: ambangBulan,
+      },
+    })
+  })
 }
 
 /**

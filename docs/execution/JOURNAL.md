@@ -22001,3 +22001,81 @@ mutasi blok verifikasi 411        4/4 MERAH lalu pulih
 13 penjaga arsitektural           exit=0
 lint:ratchet                      0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 (5) — Gelombang 1: biaya kembar 2.7 · biaya berulang 2.14
+
+37 rute terjadwal, 45 nomor katalog (dari 35/43).
+
+### Penghalangnya dibuka, bukan ditunggu
+
+`project_expenses` NOL BARIS, dan itu menahan empat otomasi sendirian. Tabel
+kosong tak punya pola, dan pola yang tak ada tak bisa dideteksi.
+
+`scripts/db/_seed-biaya-proyek.mjs` menyemai riwayat enam bulan — 88 baris,
+bertanda `ref_type = 'seed-riwayat'`, dan penyemainya **memeriksa hasilnya
+sendiri** sebelum selesai: pola yang ditanam harus bisa ditemukan lagi, dan
+kalau tidak, ia melempar.
+
+**Yang sengaja TIDAK dilakukan:** tak ada baris bersumber `petty_cash` atau
+`main_cash`. Dua trigger (`fn_update_petty_cash_on_expense`,
+`fn_update_main_cash_on_expense`) mengurangi `cash_accounts.balance` saat baris
+`approved` masuk dengan kolom kasnya terisi. Data dummy tak boleh memindahkan
+saldo yang dilihat orang di layar — disiplin yang sama dengan `cash_account_id`
+yang dipaku NULL di `lib/tulis-klaim.ts`.
+
+Diukur sebelum dan sesudah: **Rp 222.475.000, tidak bergeser.** Ada satu test
+khusus yang menjaganya secara PERILAKU, bukan niat.
+
+### Dua otomasi yang membaca pola sama dan menyimpulkan hal berlawanan
+
+Keduanya mencari "vendor sama, nominal sama, berulang". Bedanya hanya jarak:
+
+```
+2.7   ≤3 hari    → satu nota tercatat dua kali
+2.14  ~30 hari   → biaya tetap bulanan
+```
+
+Itu membuat mereka jadi kasus uji terbaik satu sama lain: tiap kesalahan pada
+salah satunya langsung muncul sebagai temuan palsu di yang lain. **Test paling
+penting di berkas ini justru yang negatif** — biaya bulanan tak boleh tertuduh
+nota ganda, nota ganda tak boleh terhitung langganan. Keduanya merah saat
+dimutasi.
+
+Blok verifikasi migrasi 412 ikut menjaga batas itu: jendela kembar ≥28 hari
+**ditolak di tingkat migrasi**, karena di situlah 2.7 berhenti berarti.
+
+### Yang ditemukan hari ini
+
+```
+biaya_kembar     "Besi beton D13 20 batang" / "BESI BETON D13 20 BATANG"
+                 Rp 2.150.000, UD Besi Kuat Mandiri, berselang 1 hari
+                 "Beton readymix K-250 8 m3" / "K250 8m3"
+                 Rp 7.400.000, hari yang sama
+
+biaya_berulang   Sewa direksi keet Rp 3.500.000/bulan
+                 → Rp 21 jt sudah keluar, Rp 42 JT SETAHUN bila diteruskan
+```
+
+Angka setahun itu yang jadi isi pesannya. Rp 3,5 juta sebulan tak mengejutkan
+siapa pun; Rp 42 juta setahun mengejutkan — dan karena dicatat satu-satu tiap
+bulan, ia tak pernah muncul sebagai satu keputusan yang pernah disetujui.
+
+### Yang dicocokkan bukan uraiannya
+
+Pencatatan ganda hampir tak pernah menghasilkan dua kalimat yang sama persis;
+orang kedua mengetik ulang dengan kata-katanya sendiri. Mencocokkan teks akan
+melewatkan keempat contoh di atas. Yang tak berubah saat diketik ulang: siapa
+vendornya, berapa nominalnya, kapan kira-kira.
+
+### Bukti
+
+```
+otomasi-biaya-pola.test.ts        9 passed
+mutasi rute                       6/6 MERAH lalu pulih
+mutasi blok verifikasi 412        4/4 MERAH lalu pulih
+13 penjaga arsitektural           exit=0
+lint:ratchet                      0 error, 231 warning
+saldo kas sebelum/sesudah semai   Rp 222.475.000 → Rp 222.475.000
+```

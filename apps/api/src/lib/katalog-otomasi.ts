@@ -1232,6 +1232,56 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'pernah muncul di daftar lewat-tenggat mana pun, jadi risiko paling '
       + 'besar justru jadi yang paling mungkin terlupakan.',
   },
+  {
+    kunci: 'biaya-kembar',
+    nomor: '2.7',
+    nama: 'Dua pengeluaran kembar',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menemukan satu nota yang tercatat dua kali: vendor dan nominalnya sama '
+      + 'persis, tanggalnya berdekatan, tetapi uraiannya diketik berbeda.',
+    penerima: 'Bagian keuangan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengelompokkan biaya per proyek, vendor, dan nominal.' },
+      { di: 'sistem', teks: 'Mencari pasangan yang tanggalnya berdekatan.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.biaya_kembar.hari',
+    catatan:
+      'Yang dicocokkan vendor + nominal + kedekatan tanggal, BUKAN uraiannya. '
+      + 'Pencatatan ganda hampir tak pernah menghasilkan dua kalimat yang sama '
+      + 'persis — orang kedua mengetik ulang dengan kata-katanya sendiri, dan '
+      + 'mencocokkan teks akan melewatkan semuanya. Jendelanya sengaja pendek: '
+      + 'sewa bulanan dari vendor yang sama juga punya nominal identik '
+      + 'berulang, dan yang membedakannya cuma jarak hari.',
+  },
+  {
+    kunci: 'biaya-berulang',
+    nomor: '2.14',
+    nama: 'Pengeluaran berulang tiap bulan',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menemukan biaya yang muncul bulan demi bulan dengan nominal sama — '
+      + 'sewa, langganan, retribusi — lalu menyebut berapa totalnya sejauh ini '
+      + 'dan berapa setahun bila diteruskan.',
+    penerima: 'Bagian keuangan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengelompokkan biaya per proyek, vendor, dan nominal.' },
+      { di: 'sistem', teks: 'Menghitung di berapa BULAN BERBEDA ia muncul.' },
+      { di: 'sistem', teks: 'Menghitung total sejauh ini dan perkiraan setahun.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.biaya_berulang.bulan',
+    catatan:
+      'Yang diberitahukan bukan "ada biaya berulang" — itu sudah jelas. Yang '
+      + 'mengejutkan angka setahunnya: sewa Rp 3,5 juta sebulan adalah Rp 42 '
+      + 'juta setahun, dan karena dicatat satu-satu tiap bulan, ia tak pernah '
+      + 'muncul sebagai satu keputusan yang pernah disetujui seseorang. '
+      + 'Dihitung dari BULAN BERBEDA, bukan jumlah baris: enam nota di bulan '
+      + 'yang sama bukan biaya berulang, itu enam belanja.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */

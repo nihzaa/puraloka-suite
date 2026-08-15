@@ -150,6 +150,8 @@ export type NotificationType =
   | 'izin_kerja_kedaluwarsa'
   | 'risiko_lewat_tinjau'
   | 'risiko_tinggi_tanpa_tenggat'
+  | 'biaya_kembar'
+  | 'biaya_berulang'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'
