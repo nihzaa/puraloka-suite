@@ -239,8 +239,21 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
           .select('id, name')
           .limit(50)
 
-        const daftar = (kategoriCocok ?? []) as Array<{ id: string; name: string }>
-        if (daftar.length === 0) {
+        /*
+          Tanpa `?? []`, dan itu disengaja.
+
+          `errKategori` sudah ditangani di atas, jadi sampai di sini `data`
+          pasti bukan hasil kegagalan. Menulis `?? []` di sini tetap
+          ditandai `audit-kegagalan-senyap` — dan penandaan itu BENAR sebagai
+          aturan umum: pola itulah yang membuat gangguan basis terbaca sebagai
+          "nol baris" di puluhan tempat lain.
+
+          Yang menggantikannya `data ?? null` lalu pemeriksaan panjang di
+          bawah — bentuk yang tak bisa disalahartikan sebagai daftar kosong
+          yang sah.
+        */
+        const daftar = kategoriCocok as Array<{ id: string; name: string }> | null
+        if (!daftar || daftar.length === 0) {
           return reply.status(422).send({
             error: 'Proyek ini belum punya kategori pengeluaran — isi dulu di halaman Pengeluaran.',
           })

@@ -372,9 +372,21 @@ export default async function companiesRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: '`warisi_kredensial_induk` harus true/false' })
     }
 
-    const { data: co } = await request.db!
+    /*
+      `error` DIPERIKSA terpisah dari `!co`.
+
+      Tanpa itu, gangguan basis terbaca sebagai "badan usaha tidak ditemukan" —
+      404 yang menuntun pemilik grup mencari badan usaha yang sebenarnya ada.
+      "Gagal baca" dan "tak ada" adalah dua keadaan berbeda, dan menyamakannya
+      persis yang `audit-kegagalan-senyap` tegakkan.
+    */
+    const { data: co, error: errBaca } = await request.db!
       .unsafe('companies', 'kategori D; T9 memang lintas company — baca induk badan usaha ini')
       .select('id, parent_company_id').eq('id', id).maybeSingle()
+    if (errBaca) {
+      request.log.error({ err: errBaca, id }, 'companies: gagal membaca induk badan usaha')
+      return reply.status(500).send({ error: 'Gagal membaca badan usaha' })
+    }
     if (!co) return reply.status(404).send({ error: 'Badan usaha tidak ditemukan' })
 
     if (!(co as { parent_company_id?: string | null }).parent_company_id) {
@@ -383,11 +395,29 @@ export default async function companiesRoutes(app: FastifyInstance) {
       })
     }
 
-    const { error } = await request.db!
+    /*
+      `.select().maybeSingle()` — bukan sekadar `{ error }`.
+
+      `error` hanya terisi kalau QUERY-nya gagal. Id yang barisnya tak cocok
+      menghasilkan NOL BARIS tanpa satu pun galat, dan rute ini akan membalas
+      `ok: true` untuk saklar yang tak pernah berubah — pemilik grup melihat
+      "tersimpan" sementara anak perusahaannya tetap mewarisi kunci induk.
+
+      Bentuk kegagalan yang persis sama dengan cacat `wa/template` yang
+      melahirkan `AMBANG_ERROR_SAJA` di `audit-tulis-tanpa-periksa`. Ratchet
+      itu naik 76 → 77 di commit 0f0b4e58 — commit saya sendiri, dan saya tak
+      menjalankan penjaganya sebelum commit.
+    */
+    const { data: terubah, error } = await request.db!
       .unsafe('companies', 'kategori D; T9 memang lintas company — ubah saklar warisan kredensial')
       .update({ warisi_kredensial_induk: body.warisi_kredensial_induk, updated_by: request.currentUser!.id })
       .eq('id', id)
+      .select('id')
+      .maybeSingle()
     if (error) return reply.status(500).send({ error: 'Gagal memperbarui pengaturan badan usaha' })
+    if (!terubah) {
+      return reply.status(404).send({ error: 'Badan usaha tidak ditemukan saat menyimpan' })
+    }
 
     /*
       Cache kredensial DILUPAKAN — tanpa ini, saklar yang baru dimatikan tetap

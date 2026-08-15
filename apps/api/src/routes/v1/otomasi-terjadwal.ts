@@ -841,6 +841,106 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/invoice-terlambat ───────────────────────
+  //
+  // Automation 2.6 — invoice yang lewat jatuh tempo dan belum lunas.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // MEMBACA `amount_due`, BUKAN `status = 'overdue'`
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Enum `invoice_status` punya `overdue`, dan menggodanya sederhana: saring
+  // status itu. Ditolak, karena status harus DIUBAH seseorang — dan kalau tak
+  // ada yang mengubahnya, invoice yang benar-benar telat tetap tertulis `sent`
+  // dan automation ini diam untuk persis kasus yang ia cari.
+  //
+  // Yang dibaca: tanggal jatuh tempo sudah lewat DAN masih ada sisa tagihan.
+  // Keduanya fakta yang tak menunggu siapa pun memperbaruinya.
+  //
+  // `amount_due > 0` juga menangkap `partial` — invoice yang dibayar sebagian
+  // dan sisanya menggantung. Menyaring `status='sent'` saja melewatkannya, dan
+  // justru itu yang paling sering terlupakan.
+  app.get('/api/v1/otomasi/jalankan/invoice-terlambat', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    // Hari keterlambatan sebelum ditegur. Dibatasi supaya `?hari=9999` tak
+    // membuat automation diam selamanya tanpa ada yang sadar.
+    const hari = angka(q.hari, 1, 0, 90)
+
+    const today = new Date().toISOString().split('T')[0]
+    const batas = new Date(Date.now() - hari * 86_400_000).toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['invoice_overdue'])
+
+    // T4i — isi notifikasi memuat nominal tagihan, jadi datanya disaring di
+    // SUMBERNYA. Pola sama dengan `invoice-termin`: `viaProject()` menuntut
+    // satu project_id, sementara automation ini memang lintas-proyek.
+    const idProyek = await request.db!.projectIds()
+    const { data: invoices, error } = await request.db!
+      .unsafe('invoices', 'penjadwal lintas-proyek: disaring .in(project_id, projectIds())')
+      .select(`
+        id, invoice_number, total_amount, amount_due, due_date, status, project_id,
+        project:projects!invoices_project_id_fkey(id, name, pm_id)
+      `)
+      .in('project_id', idProyek)
+      .lt('due_date', batas)
+      .gt('amount_due', 0)
+      .not('status', 'in', '("paid","cancelled","draft")')
+
+    // Query yang gagal TIDAK boleh terbaca sebagai "tak ada yang telat".
+    if (error) return reply.status(500).send({ error: error.message })
+
+    let dibuat = 0
+    for (const inv of invoices ?? []) {
+      /*
+        Embed PostgREST memulangkan ARRAY meski relasinya satu-ke-satu.
+        Memperlakukannya sebagai objek menghasilkan `undefined` di dalam pesan
+        notifikasi — dan itu tak melempar apa pun.
+      */
+      const embed = (inv as { project?: unknown }).project
+      const proyek = (Array.isArray(embed) ? embed[0] : embed) as
+        { id: string; name: string } | null | undefined
+      if (!proyek) continue
+      if (sudah('invoice_overdue', inv.id as string)) continue
+
+      const telat = Math.floor(
+        (Date.now() - new Date(inv.due_date as string).getTime()) / 86_400_000,
+      )
+      const sisa = Number(inv.amount_due ?? 0)
+
+      const penerima = await resolveRecipients('invoice_overdue', {
+        projectId: proyek.id,
+        companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: 'Invoice Lewat Jatuh Tempo',
+          message: `${inv.invoice_number} (${proyek.name}) telat ${telat} hari — `
+            + `sisa Rp ${sisa.toLocaleString('id-ID')}`,
+          type: 'invoice_overdue' as const,
+          priority: telat > 30 ? ('high' as const) : ('normal' as const),
+          project_id: proyek.id,
+          action_url: '/keuangan/invoice',
+          // `record_id` WAJIB — tanpanya dedup harian tak bisa menilai kembar,
+          // dan tegurannya berulang tiap denyut penjadwal.
+          action_data: { record_id: inv.id },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { invoice_terlambat: (invoices ?? []).length, ambang_hari: hari },
+    })
+  })
 }
 
 /**

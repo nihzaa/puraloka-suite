@@ -326,6 +326,9 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     'gr-matching',
     'invoice-termin',
     'stok-menipis',
+    // Automation 2.6 (2026-08-15). Ditambahkan karena penjaga daftar di bawah
+    // MERAH begitu rutenya lahir — bukan karena saya ingat menambahkannya.
+    'invoice-terlambat',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {
