@@ -52,8 +52,9 @@ import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { timingSafeEqual } from 'node:crypto'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
-import { harusJalan, jadwalLintasTenant, type Jadwal, type JenisJadwal } from '../../lib/jadwal.js'
+import { awalPeriode, harusJalan, jadwalLintasTenant, type Jadwal, type JenisJadwal } from '../../lib/jadwal.js'
 import { tokenAkunLayanan } from '../../lib/akun-layanan.js'
+import { sudahWaktunya } from '../../lib/jadwal-acak.js'
 
 /**
  * Katalog tugas yang dikenal.
@@ -81,6 +82,23 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     label: 'Bersihkan Riwayat AI',
     keterangan: 'Menghapus percakapan asisten yang melewati batas retensi tiap tenant.',
     jalur: '/api/v1/ai/retensi/bersihkan',
+  },
+
+  /*
+   * Sapaan proaktif — SATU-SATUNYA tugas yang memakai jendela acak.
+   *
+   * Founder menolak jam kaku ("emang ga tepat seperti yang dijadwalkan"), jadi
+   * `jam` di sini berarti AWAL JENDELA dan `jendela_menit` lebarnya. Waktu
+   * sasarannya diundi sekali per periode dan disimpan di `sasaran_berikut`.
+   *
+   * Rutenya sendiri memegang gerbang keluar (jam tenang, opt-out, kuota) —
+   * jadi jadwal yang jatuh di jam tenang tetap ditahan, bukan dikirim karena
+   * "kan sudah waktunya".
+   */
+  'sapa-proaktif': {
+    label: 'Sapaan Asisten',
+    keterangan: 'Asisten menyapa duluan pada jam yang berbeda tiap hari, kalau ada yang perlu disebut.',
+    jalur: '/api/v1/asisten/sapa-proaktif',
   },
 
   // ── Otomasi terjadwal (katalog automation Phase 2, rule-based) ────────────
@@ -141,6 +159,10 @@ interface BarisJadwal {
   terakhir_galat: string | null
   terakhir_durasi_ms: number | null
   jumlah_jalan: number
+  /** Lebar jendela acak (migrasi 391). 0 = jalan tepat pada `jam`. */
+  jendela_menit?: number | null
+  /** Waktu acak terpilih untuk periode berjalan. */
+  sasaran_berikut?: string | null
 }
 
 /** Bandingkan rahasia tanpa membocorkan panjangnya lewat waktu. */
@@ -232,6 +254,81 @@ export default async function jadwalRoutes(app: FastifyInstance) {
             status: 'dilewati', alasan: keputusan.alasan,
           })
           continue
+        }
+
+        /*
+         * ── JENDELA ACAK (migrasi 391) ─────────────────────────────────────
+         *
+         * Dipasang SESUDAH `harusJalan()` dan SEBELUM klaim atomik — dua lapis
+         * yang menjawab pertanyaan berbeda:
+         *
+         *   harusJalan()  periode mana yang berlaku, dan belum dijalankan
+         *   di sini       di dalam periode itu, apakah menit acaknya sudah lewat
+         *
+         * Menyatukannya akan membuat undian ikut menentukan "periode mana",
+         * dan tugas yang sasarannya jatuh sesudah tick terakhir hari itu akan
+         * terlewat diam-diam.
+         *
+         * `jendela_menit = 0` (bawaan) melewati blok ini sepenuhnya — seluruh
+         * tugas lama tak berubah perilakunya sama sekali.
+         */
+        const jendela = Number(baris.jendela_menit ?? 0)
+        if (jendela > 0 && paksa !== baris.tugas) {
+          const awal = awalPeriode(jadwal, now)
+          const tersimpan = baris.sasaran_berikut ? new Date(baris.sasaran_berikut) : null
+
+          // Sasaran dari periode SEBELUMNYA tak berlaku lagi — kalau dipakai,
+          // ia sudah lewat dan tugasnya jalan pada tick pertama periode baru,
+          // yaitu kembali jadi jadwal kaku.
+          const masihPeriodeIni =
+            tersimpan !== null && tersimpan.getTime() >= awal.getTime()
+
+          const keputusanSasaran = sudahWaktunya(
+            masihPeriodeIni ? tersimpan : null,
+            now,
+            { awal, jendelaMenit: jendela },
+          )
+
+          if (!masihPeriodeIni) {
+            // Sasaran baru DISIMPAN, bukan diundi ulang tiap tick: mengundi
+            // per tick membuat peluangnya menumpuk, dan tugas berjendela lebar
+            // hampir selalu tertembak di tick-tick pertama — selalu pagi.
+            const { data: tersimpanSasaran, error: errSasaran } = await (
+              await jadwalLintasTenant()
+            )
+              .update({ sasaran_berikut: keputusanSasaran.sasaran.toISOString() })
+              .eq('id', baris.id)
+              .select('id')
+              .maybeSingle()
+
+            /*
+             * HASILNYA diperiksa, bukan cuma `error`.
+             *
+             * UPDATE yang tak mengenai satu baris pun mengembalikan
+             * `error: null` dengan `data: null`. Sasaran yang gagal tersimpan
+             * akan diundi ULANG pada tick berikutnya — dan mengundi tiap tick
+             * persis cacat yang jendela acak ini ada untuk mencegah: peluang
+             * menumpuk, tugasnya hampir selalu tertembak di tick-tick awal,
+             * dan sapaannya kembali selalu pagi.
+             *
+             * Tak menghentikan tugasnya (sasarannya toh sudah lewat), tetapi
+             * tak boleh senyap.
+             */
+            if (errSasaran || !tersimpanSasaran) {
+              request.log.error(
+                { err: errSasaran, tugas: baris.tugas, tersimpan: Boolean(tersimpanSasaran) },
+                'gagal menyimpan sasaran acak — akan diundi ulang tick berikutnya',
+              )
+            }
+          }
+
+          if (!keputusanSasaran.jalan) {
+            hasil.push({
+              tugas: baris.tugas, company_id: baris.company_id,
+              status: 'dilewati', alasan: keputusanSasaran.alasan,
+            })
+            continue
+          }
         }
 
         // ── Klaim atomik: `terakhir_jalan` LAMA ikut di WHERE.

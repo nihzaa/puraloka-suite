@@ -59,6 +59,7 @@ import { jalankanGiliranAi, GAYA_WHATSAPP } from '../../lib/ai-jalankan.js'
 import { bacaRiwayat } from '../../lib/ai-riwayat-baca.js'
 import { ambilAtauBuatPercakapanWa, simpanPertukaranWa } from '../../lib/ai-percakapan-wa.js'
 import { ambilKredensial } from '../../lib/kredensial.js'
+import { izinDariPeran } from '../../lib/izin-peran.js'
 
 /**
  * Perbandingan rahasia yang tak bocor lewat waktu.
@@ -354,32 +355,5 @@ export default async function waWebhookRoutes(app: FastifyInstance) {
 
       return reply.send({ ok: true, tindakan: 'dijawab', ronde: jalan.hasil.ronde })
     },
-  )
-}
-
-/**
- * Permission efektif dari NAMA PERAN.
- *
- * Memakai RPC yang sama dengan jalur web (`get_role_permissions`) — bukan
- * tabel yang dibaca sendiri. Dua cara membaca izin akan berbeda pada akhirnya,
- * dan perbedaan izin antar-kanal berarti seseorang bisa lewat WhatsApp
- * melakukan hal yang di web ditolak.
- */
-async function izinDariPeran(
-  db: typeof supabase,
-  peran: string,
-): Promise<ReadonlySet<string>> {
-  // Nama parameternya `role_name` — sama persis dengan `plugins/auth.ts:197`.
-  // Nama yang salah tidak melempar; PostgREST menjawab "fungsi tak ditemukan",
-  // dan itu jatuh ke set kosong yang terbaca seperti "orang ini tak punya izin".
-  const { data, error } = await db.rpc('get_role_permissions', { role_name: peran })
-  if (error || !Array.isArray(data)) {
-    // Fail-closed: gagal membaca izin berarti NOL izin, bukan semua izin.
-    return new Set<string>()
-  }
-  return new Set(
-    (data as Array<{ permission_key?: string }>)
-      .map((d) => d.permission_key ?? '')
-      .filter(Boolean),
   )
 }

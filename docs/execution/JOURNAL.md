@@ -5,6 +5,90 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-15 (lanjutan 6) — asisten menyapa duluan, pada jam yang berbeda tiap hari
+
+Fase 4 — fase terakhir rencana asisten. Sampai hari ini `jalankanGiliranAi`
+hanya dipanggil DUA tempat, dan keduanya dipicu pesan masuk. Tak ada satu pun
+jalur di mana asisten memulai.
+
+### Penjadwalnya TIDAK diganti — hanya waktu sasarannya
+
+Founder menolak jam kaku (*"emang ga tepat seperti yang dijadwalkan"*), tapi
+mengganti `jadwal_tugas` berarti membuang tiga hal yang sudah terbukti:
+`harusJalan()`, klaim ATOMIK, dan heartbeat 15 menit yang sudah berjalan.
+
+Jadi yang berubah cuma sasarannya:
+
+    jam              tetap — sekarang berarti AWAL JENDELA
+    jendela_menit    lebar rentang acaknya (mis. 600 = 10 jam)
+    sasaran_berikut  waktu acak yang diundi SEKALI per periode
+
+`jendela_menit = 0` (bawaan) melewati blok ini sepenuhnya — seluruh tugas lama
+tak berubah perilakunya sama sekali.
+
+**Kenapa diundi sekali, bukan tiap tick.** Mengundi ulang tiap 15 menit
+terdengar lebih sederhana dan SALAH: peluangnya menumpuk. Tugas berjendela 10
+jam (40 tick) dengan peluang 1/40 per tick hampir pasti tertembak dalam
+beberapa tick pertama — hasilnya justru SELALU PAGI, yaitu kembali jadi jadwal
+kaku dengan langkah tambahan. Tetap "acak" secara harfiah, dan tetap salah.
+
+### Yang dikirim BUKAN template
+
+Rutenya bertanya ke asisten ("periksa keadaan hari ini…"), lalu mengirim
+JAWABANNYA. Kalimatnya berbeda tiap hari dan menyebut angka yang benar-benar
+ia baca.
+
+Dan kalau tak ada temuan, **tak ada yang dikirim**. Asisten yang mengirim
+"tidak ada masalah hari ini" tiap pagi mengajari orang mengabaikannya, dan
+pengabaian itu menular ke pesan yang benar-benar penting. Rondenya tetap
+ditagih — yang dihemat perhatian orang, bukan token.
+
+### Tiga cacat yang ditemukan penjaga & test, bukan oleh saya membaca ulang
+
+**1. `NaN` menghasilkan `Invalid Date`.** `Math.min`/`Math.max` MENERUSKAN NaN,
+jadi sumber acak yang rusak menghasilkan sasaran yang tersimpan sebagai null —
+lalu diundi ulang tiap tick selamanya, tanpa satu pun galat. Test kasus
+`Number.NaN` gagal sementara -1 dan 5 lolos.
+
+**2. Rutenya TAK TERLIHAT penjaga.** `audit-tugas-punya-rute` mencocokkan
+`app.post('<jalur>'` secara harfiah, dan bentuk `app.post<{...}>(` membuatnya
+tak cocok — tugas terjadwal dianggap menunjuk rute mati. Bentuk rutenya
+disesuaikan, bukan penjaganya dilemahkan.
+
+**3. RATCHET menangkap `update` yang hasilnya tak diperiksa.**
+`audit-tulis-tanpa-periksa` naik 76→77: penyimpanan `sasaran_berikut` hanya
+mengambil `{ error }`. UPDATE yang tak mengenai satu baris pun mengembalikan
+`error: null` — sasaran gagal tersimpan lalu diundi ULANG tiap tick, yaitu
+PERSIS cacat yang jendela acak ini ada untuk mencegah.
+
+Ratchet itu menahan saya dari melewatkan cacat yang membatalkan seluruh fitur.
+
+### Satu test saya sendiri tak berguna
+
+Kasus "jendela 0" memakai `acak: () => 0.99`, dan mutasi membuktikannya
+kosong: dengan jendela 0, `0.99 * 0` tetap 0, jadi cabang penjaganya tak
+pernah diuji. Diganti sumber acak yang MELEMPAR — membuktikan ia tak dipanggil.
+
+### Bukti
+
+    migrasi 391      sukses · idempoten · kanal proaktif DITERIMA saat diuji
+    tsc api          0
+    jadwal-acak      11 hijau
+    mutasi test      jendela-0 MERAH · batas atas 2 MERAH · NaN 1 MERAH
+    penjaga          tugas-punya-rute, proaktif-lewat-gerbang,
+                     saluran-keluar-berpagar, tulis-tanpa-periksa → hijau
+
+`audit-satu-pintu-wa` MERAH di `wa-instance.ts` — pre-existing sejak awal
+sesi, bukan dari perubahan ini.
+
+### Yang BELUM
+
+Tugas `sapa-proaktif` belum di-seed ke `jadwal_tugas` tenant mana pun, jadi
+belum ada satu pun sapaan yang benar-benar terkirim. Itu disengaja: menyalakan
+pengiriman ke nomor sungguhan adalah keputusan founder, bukan keputusan saya.
+
+---
+
 ## 2026-08-15 (lanjutan 5) — gerbang keluar: yang menahan telepon berbunyi pukul tiga pagi
 
 Fase 3. PRASYARAT proaktivitas, bukan pelengkap yang bisa menyusul.

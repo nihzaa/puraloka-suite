@@ -2500,9 +2500,12 @@ items:
       - "menulis baris notifications supaya dedup harian & audit-notifikasi-tak-kembar ikut menjaga"
     cara_verifikasi: "test: waktu acak dalam jendela · klaim atomik menahan dobel · gerbang ASISTEN-3 dihormati"
     bobot: L
-    status: blocked
+    status: sebagian
     catatan_kemajuan: >-
-      Penjadwal yang ada hanya harian/mingguan/bulanan + HH:MM — persis jam kaku
-      yang founder tolak. Rencananya menumpang harusJalan() yang sudah teruji
-      (klaim atomik), hanya waktu SASARANNYA yang diacak per periode. Heartbeat
-      GitHub Actions 15 menit membatasi resolusi waktu, apa pun yang dibangun.
+      JALURNYA LENGKAP & BERPAGAR: migrasi 391 (jendela_menit +
+      sasaran_berikut + kanal proaktif), lib/jadwal-acak (diundi SEKALI per
+      periode, bukan tiap tick), rute POST /api/v1/asisten/sapa-proaktif yang
+      melewati bolehKirim SEBELUM memanggil model, isi dari asisten (bukan
+      template), dan "tanpa temuan = tidak mengirim".
+      BELUM: tugas `sapa-proaktif` belum di-seed ke jadwal_tugas tenant mana
+      pun — menyalakan pengiriman ke nomor sungguhan keputusan founder.
