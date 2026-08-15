@@ -606,9 +606,278 @@ export const toolGrafik: DefinisiToolAi = {
   },
 }
 
+/**
+ * RAB — pertanyaan paling sering di konstruksi, dan asisten BUTA terhadapnya.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA HANYA RINGKASAN, BUKAN SELURUH ITEM
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Diukur 2026-08-16: `rab_items` berisi 377 baris untuk tenant ini saja, dan
+ * satu proyek besar sendirian bisa punya ratusan. Mengirim semuanya melampaui
+ * jendela konteks — dan yang gagal bukan tool ini, melainkan panggilan
+ * BERIKUTNYA, dengan galat yang tak menyebut sebabnya.
+ *
+ * Maka bawaannya level `category` (belasan baris, bukan ratusan). Item detail
+ * hanya keluar bila penanya menyebut kategorinya — persis cara orang membaca
+ * RAB di kertas: pekerjaan besar dulu, rincian belakangan.
+ *
+ * ── `weight_pct` ikut, dan itu yang paling sering ditanya
+ *
+ * "Pekerjaan mana yang paling besar?" dijawab bobot, bukan nominal — karena
+ * bobot itulah yang dipakai menghitung progres tertimbang di kurva S.
+ */
+export const toolRab: DefinisiToolAi = {
+  nama: 'rab',
+  label: 'RAB / anggaran proyek',
+  keterangan:
+    'Rincian anggaran (RAB) satu proyek: kategori pekerjaan, nilai, dan bobot. Pakai untuk ' +
+    'pertanyaan "berapa anggaran", "pekerjaan apa saja", "yang paling besar apa", atau saat ' +
+    'pengguna menyebut RAB/anggaran/estimasi. Kosongkan `kategori` untuk ringkasan per ' +
+    'kategori; isi untuk melihat item di dalamnya.',
+  izin: 'projects:view',
+  skema: {
+    type: 'object',
+    properties: {
+      ...argProyek,
+      kategori: {
+        type: 'string',
+        description:
+          'Nama/kode kategori untuk melihat ITEM di dalamnya (mis. "PERSIAPAN" atau "I"). ' +
+          'Kosongkan untuk ringkasan per kategori.',
+      },
+    },
+    required: ['proyek'],
+  },
+  async jalan({ db }, argumen) {
+    const { ids, nama } = await idProyek(db, argumen.proyek)
+    if (ids.length === 0) {
+      return { isi: bungkusData('rab', 'Tak ada proyek yang cocok.'), isError: true, entitas: [] }
+    }
+    if (ids.length > 1) {
+      // RAB proyek yang salah adalah jawaban yang terlihat benar. Ambiguitas
+      // DINYATAKAN, bukan ditebak.
+      const daftar = ids.slice(0, 8).map((i) => nama.get(i) ?? i)
+      return {
+        isi: bungkusData('rab', `Ada ${ids.length} proyek cocok: ${daftar.join(', ')}. Minta pengguna menyebut yang mana.`),
+        isError: false,
+        entitas: daftar,
+      }
+    }
+
+    const cariKategori = typeof argumen.kategori === 'string' ? argumen.kategori.trim() : ''
+
+    const { data, error } = await db
+      .viaProject('rab_items', ids[0])
+      // `id` IKUT: tanpa itu `parent_id` tak bisa ditelusuri, dan hierarkinya
+      // terpaksa ditebak dari urutan — tebakan yang salah tanpa gejala.
+      .select('id, level, category_code, name, unit, qty, unit_price, total_price, weight_pct, progress_pct, parent_id, sort_order')
+      .eq('project_id', ids[0])
+      .order('sort_order', { ascending: true })
+      .limit(1000)
+
+    if (error) return { isi: `Gagal membaca RAB: ${error.message}`, isError: true, entitas: [] }
+
+    type B = {
+      id: string; level: string; category_code: string | null; name: string; unit: string | null
+      qty: unknown; unit_price: unknown; total_price: unknown; weight_pct: unknown
+      progress_pct: unknown; parent_id: string | null; sort_order: number
+    }
+    const semua = (data ?? []) as unknown as B[]
+    const idBaris = new Map(semua.map((r) => [r, r.id]))
+    if (semua.length === 0) {
+      return { isi: bungkusData('rab', `RAB ${nama.get(ids[0])} belum disusun.`), isError: false, entitas: [] }
+    }
+
+    const total = semua
+      .filter((r) => r.level === 'category')
+      .reduce((s, r) => s + (Number(r.total_price) || 0), 0)
+
+    // ── Tanpa kategori: ringkasan tingkat atas ────────────────────────────
+    if (!cariKategori) {
+      const kategori = semua.filter((r) => r.level === 'category')
+      const { data: tampil, dipotong } = potong(kategori)
+      return {
+        isi: bungkusData(
+          'rab',
+          `RAB ${nama.get(ids[0])} — total ${rupiah(total)}, ${semua.length} baris ` +
+            `(${kategori.length} kategori).\n` +
+            tampil
+              .map((r) =>
+                `${r.category_code ?? '-'}. ${r.name}: ${rupiah(angka(r.total_price))}` +
+                  ` · bobot ${angka(r.weight_pct)}%` +
+                  ` · progres ${angka(r.progress_pct)}%`,
+              )
+              .join('\n') +
+            '\n\nSebut nama kategorinya untuk melihat item di dalamnya.',
+          dipotong,
+        ),
+        isError: false,
+        entitas: [nama.get(ids[0]) ?? ''],
+      }
+    }
+
+    // ── Dengan kategori: item di dalamnya ─────────────────────────────────
+    const kunci = cariKategori.toLowerCase()
+    const indukCocok = semua.filter(
+      (r) =>
+        r.level !== 'item' &&
+        ((r.name ?? '').toLowerCase().includes(kunci) ||
+          (r.category_code ?? '').toLowerCase() === kunci),
+    )
+
+    if (indukCocok.length === 0) {
+      const adaApa = semua
+        .filter((r) => r.level === 'category')
+        .map((r) => r.name)
+        .slice(0, 15)
+      return {
+        isi: bungkusData(
+          'rab',
+          `Tak ada kategori '${cariKategori}'. Yang ada: ${adaApa.join(', ')}.`,
+        ),
+        isError: true,
+        entitas: [],
+      }
+    }
+
+    /*
+     * Item ditelusuri lewat `parent_id` — hierarki NYATA, bukan ditebak.
+     *
+     * RAB punya tiga tingkat (category → subcategory → item), jadi anak
+     * langsung tak cukup: item biasanya menggantung di subkategori. Percobaan
+     * pertama saya mengambil SEMUA baris `level='item'` di proyek itu — yang
+     * berarti pertanyaan "item di kategori Persiapan" dijawab dengan item
+     * SELURUH proyek, dan jawabannya terlihat sah.
+     *
+     * `sort_order` tak dipakai untuk menebak kepemilikan: urutan bisa berubah
+     * tanpa mengubah struktur.
+     */
+    const namaInduk = indukCocok[0].name
+    const idIndukLangsung = new Set(indukCocok.map((r) => idBaris.get(r)!))
+
+    // Turun satu tingkat: subkategori milik kategori yang cocok.
+    for (const r of semua) {
+      if (r.level === 'subcategory' && r.parent_id && idIndukLangsung.has(r.parent_id)) {
+        idIndukLangsung.add(idBaris.get(r)!)
+      }
+    }
+
+    const anak = semua.filter(
+      (r) => r.level === 'item' && r.parent_id && idIndukLangsung.has(r.parent_id),
+    )
+
+    if (anak.length === 0) {
+      return {
+        isi: bungkusData('rab', `Kategori "${namaInduk}" belum punya item rinci.`),
+        isError: false,
+        entitas: [nama.get(ids[0]) ?? ''],
+      }
+    }
+
+    const { data: tampil, dipotong } = potong(anak)
+    return {
+      isi: bungkusData(
+        'rab',
+        `Item RAB ${nama.get(ids[0])} — kategori "${namaInduk}":\n` +
+          tampil
+            .map(
+              (r) =>
+                `${r.name}: ${angka(r.qty)} ${r.unit ?? ''} × ${rupiah(angka(r.unit_price))}` +
+                ` = ${rupiah(angka(r.total_price))}`,
+            )
+            .join('\n'),
+        dipotong,
+      ),
+      isError: false,
+      entitas: [nama.get(ids[0]) ?? ''],
+    }
+  },
+}
+
+/**
+ * TERMIN — jadwal tagihan, pertanyaan uang yang paling sering kedua.
+ *
+ * Melengkapi `invoice_belum_lunas`, yang hanya melihat tagihan yang SUDAH
+ * terbit. Termin menjawab pertanyaan yang datang lebih dulu: "kapan bisa
+ * menagih lagi, dan berapa?"
+ *
+ * Tanpa ini asisten hanya bisa bicara tentang uang yang sudah ditagih —
+ * setengah gambaran, dan setengah yang salah untuk perencanaan kas.
+ */
+export const toolTermin: DefinisiToolAi = {
+  nama: 'termin',
+  label: 'Jadwal termin',
+  keterangan:
+    'Jadwal termin/tagihan satu proyek: nomor termin, nilai, target tanggal, dan statusnya ' +
+    '(pending/billed/paid). Pakai untuk pertanyaan "kapan bisa menagih", "termin berikutnya ' +
+    'berapa", "sudah tertagih berapa", atau perencanaan arus kas.',
+  izin: 'finance:view',
+  skema: { type: 'object', properties: { ...argProyek } },
+  async jalan({ db }, argumen) {
+    const { ids, nama } = await idProyek(db, argumen.proyek)
+    if (ids.length === 0) {
+      return { isi: bungkusData('termin', 'Tak ada proyek yang cocok.'), isError: false, entitas: [] }
+    }
+
+    const { data, error } = await db
+      .unsafe('termin_schedules', 'tool AI: termin lintas proyek milik tenant, disaring project_id')
+      .select('project_id, termin_number, label, amount, pct_of_contract, target_date, status')
+      .in('project_id', ids)
+      .order('target_date', { ascending: true })
+      .limit(300)
+
+    if (error) return { isi: `Gagal membaca termin: ${error.message}`, isError: true, entitas: [] }
+
+    type B = {
+      project_id: string; termin_number: number; label: string | null
+      amount: unknown; pct_of_contract: unknown; target_date: string | null; status: string
+    }
+    const baris = (data ?? []) as unknown as B[]
+    if (baris.length === 0) {
+      return { isi: bungkusData('termin', 'Belum ada jadwal termin.'), isError: false, entitas: [] }
+    }
+
+    /*
+     * Dikelompokkan per STATUS, bukan diurut mentah.
+     *
+     * Yang ditanya orang hampir selalu "apa yang BELUM ditagih" — dan daftar
+     * bercampur memaksa model menyaring sendiri, yang berarti ia bisa salah
+     * menyaring tanpa ketahuan.
+     */
+    const belum = baris.filter((b) => b.status === 'pending')
+    const tertagih = baris.filter((b) => b.status !== 'pending')
+    const jml = (xs: B[]) => xs.reduce((s, b) => s + (Number(b.amount) || 0), 0)
+
+    const garis = (b: B) =>
+      `${nama.get(b.project_id) ?? '-'} · termin ${b.termin_number}` +
+      (b.label ? ` (${b.label})` : '') +
+      `: ${rupiah(angka(b.amount))}` +
+      (b.pct_of_contract ? ` · ${angka(b.pct_of_contract)}% kontrak` : '') +
+      (b.target_date ? ` · target ${String(b.target_date).slice(0, 10)}` : '') +
+      ` · ${b.status}`
+
+    const { data: tampil, dipotong } = potong([...belum, ...tertagih])
+
+    return {
+      isi: bungkusData(
+        'termin',
+        `${baris.length} termin — BELUM ditagih ${belum.length} (${rupiah(jml(belum))}), ` +
+          `sudah ${tertagih.length} (${rupiah(jml(tertagih))}).\n` +
+          tampil.map(garis).join('\n'),
+        dipotong,
+      ),
+      isError: false,
+      entitas: [...new Set(baris.map((b) => nama.get(b.project_id) ?? ''))].filter(Boolean),
+    }
+  },
+}
+
 /** Semua tool konstruksi — dirakit di `ai-tool.ts`. */
 export const TOOL_KONSTRUKSI: DefinisiToolAi[] = [
   toolGrafik,
+  toolRab,
+  toolTermin,
   toolInvoiceBelumLunas,
   toolKasbon,
   toolMilestone,
