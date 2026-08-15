@@ -694,6 +694,109 @@ const toolBebanMandor: DefinisiToolAi = {
   },
 }
 
+/**
+ * 1.7 — "Berapa saldo kas sekarang?"
+ *
+ * ── Kenapa `ringkas_keuangan` TIDAK menjawabnya
+ *
+ * Tool itu soal PIUTANG — invoice yang belum dibayar klien. Saldo kas hal
+ * yang berbeda arah: uang yang sudah ada di tangan.
+ *
+ * Keduanya sering tertukar dalam percakapan ("keuangan kita gimana?"), dan
+ * menjawab pertanyaan saldo dengan angka piutang adalah kekeliruan yang tak
+ * terlihat salah — angkanya sama-sama rupiah, sama-sama besar.
+ *
+ * ── Dipecah per JENIS akun, bukan satu angka
+ *
+ * `cash_accounts.type` punya tiga nilai (diukur ke basis): `main`,
+ * `collector`, `petty_cash`. Menjumlahkan ketiganya jadi satu angka
+ * menyembunyikan hal yang justru ingin diketahui — kas kecil yang menipis di
+ * lapangan tak terlihat kalau kas besar sedang penuh.
+ */
+const toolSaldoKas: DefinisiToolAi = {
+  nama: 'saldo_kas',
+  label: 'Saldo kas',
+  keterangan:
+    'Saldo tiap rekening kas: kas besar, kas penampung, dan kas kecil. Pakai '
+    + 'untuk pertanyaan seperti "berapa saldo kas sekarang" atau "kas kecil '
+    + 'proyek X sisa berapa". BUKAN piutang — untuk itu pakai ringkas_keuangan.',
+  izin: 'cash:view',
+  skema: {
+    type: 'object',
+    properties: {
+      cari: { type: 'string', description: 'Sebagian nama rekening atau proyek.' },
+    },
+  },
+  async jalan({ db }, argumen) {
+    const cari = String((argumen as { cari?: string })?.cari ?? '').trim()
+
+    // `cash_accounts` kategori B — `.from()` sudah menyaringnya ke tenant.
+    const { data, error } = await db
+      .from('cash_accounts')
+      .select(`
+        id, name, type, balance, is_active,
+        proyek:projects!cash_accounts_project_id_fkey(name)
+      `)
+      .eq('is_active', true)
+      .order('type', { ascending: true })
+
+    if (error) {
+      return { isi: `Gagal membaca saldo kas: ${error.message}`, isError: true, entitas: [] }
+    }
+
+    type Akun = {
+      id: string; name: string; type: string; balance: number | string
+      proyek?: Array<{ name?: string }> | { name?: string } | null
+    }
+    const namaProyek = (v: Akun['proyek']) =>
+      (Array.isArray(v) ? v[0]?.name : v?.name) ?? null
+
+    const akun = ((data ?? []) as unknown as Akun[]).map((a) => ({
+      ...a, nama_proyek: namaProyek(a.proyek),
+    }))
+
+    const cocok = cari
+      ? akun.filter((a) =>
+          a.name.toLowerCase().includes(cari.toLowerCase())
+          || (a.nama_proyek ?? '').toLowerCase().includes(cari.toLowerCase()))
+      : akun
+
+    if (cocok.length === 0) {
+      return {
+        isi: bungkusData('cash_accounts',
+          cari ? `Tak ada rekening kas yang cocok dengan "${cari}".`
+               : 'Belum ada rekening kas aktif.'),
+        isError: false, entitas: [],
+      }
+    }
+
+    /*
+      Label jenis ditulis Indonesia. Nilai enumnya Inggris (`main`,
+      `collector`, `petty_cash`) — dan yang membaca jawabannya bukan engineer.
+      Jenis yang tak dikenal ditampilkan apa adanya, bukan dipaksa jadi
+      "lainnya": nilai enum baru yang muncul diam-diam lebih baik terlihat.
+    */
+    const LABEL: Record<string, string> = {
+      main: 'Kas besar', collector: 'Kas penampung', petty_cash: 'Kas kecil',
+    }
+
+    const baris = cocok.map((a) =>
+      `${LABEL[a.type] ?? a.type} — ${a.name}`
+      + (a.nama_proyek ? ` (${a.nama_proyek})` : '')
+      + `: ${rupiah(Number(a.balance ?? 0))}`)
+
+    const total = cocok.reduce((s, a) => s + Number(a.balance ?? 0), 0)
+
+    return {
+      isi: bungkusData('cash_accounts',
+        `${baris.join('\n')}\n\nTotal ${cocok.length} rekening: ${rupiah(total)}`),
+      isError: false,
+      // Nama rekeningnya — itu yang model sebut dalam jawabannya (I-4).
+      entitas: cocok.map((a) => a.name),
+    }
+  },
+}
+
 export const KATALOG_TOOL: DefinisiToolAi[] = [
   toolDaftarProyek,
   toolRingkasKeuangan,
@@ -706,6 +809,7 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
 
     Ketiganya BACA saja. I-1 utuh: tak satu pun tool di katalog ini menulis.
   */
+  toolSaldoKas,
   toolStatusKasbon,
   toolBebanMandor,
   // Perluasan S5 — lihat `ai-tool-konstruksi.ts` untuk alasan 9, bukan 33.

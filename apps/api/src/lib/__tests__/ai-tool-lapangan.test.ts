@@ -1,5 +1,5 @@
 /**
- * Dua tool baca lapangan — katalog 1.8, 6.7, dan 6.11.
+ * Tiga tool baca lapangan — katalog 1.7, 1.8, 6.7, dan 6.11.
  *
  * ══════════════════════════════════════════════════════════════════════════
  * KENAPA TOOL, BUKAN OTOMASI TERJADWAL
@@ -21,7 +21,7 @@
  * Bukan "toolnya jalan" — itu terlalu murah. Yang diuji tiga hal yang punya
  * cara gagal sunyi:
  *
- *   1. I-1 tetap utuh: keduanya BACA, nol baris tercipta saat dipanggil.
+ *   1. I-1 tetap utuh: ketiganya BACA, nol baris tercipta saat dipanggil.
  *   2. `entitas` berisi NAMA yang benar-benar dibaca. Ia dipakai I-4 untuk
  *      menandai jawaban yang menyebut sesuatu di luar itu; kalau ia kosong
  *      atau berisi uuid, pertahanan itu diam-diam mati.
@@ -43,7 +43,7 @@ function konteks() {
     db: createTenantDb(companyId),
     companyId,
     userId: '',
-    izin: new Set(['mandor:kasbon:approve', 'mandor:view']),
+    izin: new Set(['mandor:kasbon:approve', 'mandor:view', 'cash:view']),
   }
 }
 
@@ -188,7 +188,48 @@ describe('beban_mandor (6.7 + 6.11)', () => {
   }, 120_000)
 })
 
-describe('I-1 — keduanya BACA saja', () => {
+describe('saldo_kas (1.7)', () => {
+  it('menjumlahkan saldo rekening AKTIF, dan memisahkan per jenis', async () => {
+    /*
+      `ringkas_keuangan` yang sudah ada bicara PIUTANG — invoice belum dibayar
+      klien. Saldo kas hal yang berbeda arah: uang yang sudah di tangan.
+
+      Keduanya sering tertukar dalam percakapan ("keuangan kita gimana?"), dan
+      menjawab pertanyaan saldo dengan angka piutang adalah kekeliruan yang tak
+      terlihat salah — sama-sama rupiah, sama-sama besar.
+    */
+    const r = await tool('saldo_kas').jalan(konteks() as never, {})
+    expect(r.isError, r.isi).toBe(false)
+
+    const { rows } = await db.query(
+      `SELECT coalesce(sum(balance), 0)::numeric AS total, count(*)::int n
+         FROM cash_accounts WHERE company_id = $1 AND is_active = true`,
+      [companyId])
+    const totalBasis = Number(rows[0].total)
+
+    expect(rows[0].n, 'basis tak punya rekening kas aktif').toBeGreaterThan(0)
+
+    const dariTeks = Number(
+      (String(r.isi).match(/Total \d+ rekening: Rp ([\d.]+)/) ?? [])[1]?.replace(/\./g, '') ?? '-1')
+    expect(dariTeks,
+      'total di jawaban tak cocok dengan basis — saringan is_active tak bekerja')
+      .toBe(totalBasis)
+  }, 120_000)
+
+  it('memakai label Indonesia, bukan nilai enum mentah', async () => {
+    /*
+      Nilai enumnya `main`, `collector`, `petty_cash` — dan yang membaca
+      jawabannya bukan engineer. "petty_cash: Rp 5.000.000" tak berarti apa-apa
+      bagi orang yang menanyakan kas kecil.
+    */
+    const r = await tool('saldo_kas').jalan(konteks() as never, {})
+    const isi = String(r.isi)
+    expect(isi, 'nilai enum mentah bocor ke jawaban').not.toMatch(/petty_cash|collector/)
+    expect(isi).toMatch(/Kas besar|Kas kecil|Kas penampung/)
+  }, 120_000)
+})
+
+describe('I-1 — ketiganya BACA saja', () => {
   it('nol baris tercipta saat dipanggil', async () => {
     /*
       Penjaga `audit-tool-ai-read-only` memeriksa BENTUK kode; ini memeriksa
@@ -207,6 +248,7 @@ describe('I-1 — keduanya BACA saja', () => {
     const sebelum = await hitung()
     await tool('status_kasbon').jalan(konteks() as never, {})
     await tool('beban_mandor').jalan(konteks() as never, {})
+    await tool('saldo_kas').jalan(konteks() as never, {})
     expect(await hitung(), 'tool BACA menciptakan baris — I-1 bocor').toBe(sebelum)
   }, 120_000)
 })

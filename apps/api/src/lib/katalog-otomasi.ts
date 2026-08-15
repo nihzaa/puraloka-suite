@@ -693,6 +693,59 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'membangunnya ulang; hal itu nyaris terjadi pada otomasi stok menipis.',
   },
 
+  {
+    /*
+      Tiga tool BACA asisten — 1.7, 1.8, 6.7, 6.11 dijawab dua entri di sini.
+
+      Didaftarkan bukan untuk dijadwalkan (ia menjawab saat ditanya, bukan
+      mengirim tanpa diminta) melainkan supaya katalog UI menjelaskan seluruh
+      jalur otomatis yang ada, dan supaya silang ke katalog dokumen berhenti
+      menghitungnya sebagai utang.
+    */
+    kunci: 'tanya-uang',
+    kunci_bukan_rute: true,
+    nomor: '1.7, 1.8',
+    nama: 'Tanya saldo & kasbon lewat WhatsApp',
+    pemicu: 'percakapan',
+    penjelasan:
+      'Menanyakan saldo tiap rekening kas, atau kasbon seseorang sudah berapa '
+      + 'yang belum lunas — dijawab langsung tanpa membuka aplikasi.',
+    penerima: 'Yang bertanya',
+    alur: [
+      { di: 'n8n', teks: 'Pertanyaan masuk lewat WhatsApp.' },
+      { di: 'sistem', teks: 'Asisten memilih alat baca yang sesuai izin penanya.' },
+      { di: 'sistem', teks: 'Angkanya dihitung dari basis saat itu juga, bukan dari ingatan.' },
+      { di: 'n8n', teks: 'Jawabannya dikirim balik.' },
+    ],
+    catatan:
+      'Saldo kas dipisah per jenis rekening — kas besar, penampung, dan kas '
+      + 'kecil. Menjumlahkan ketiganya menyembunyikan kas kecil yang menipis '
+      + 'di lapangan. Kasbon memakai definisi "belum lunas" yang SAMA dengan '
+      + 'otomasi Kasbon Belum Dilunasi, supaya dua angka tak pernah berselisih.',
+  },
+  {
+    kunci: 'tanya-mandor',
+    kunci_bukan_rute: true,
+    nomor: '6.7, 6.11',
+    nama: 'Tanya beban mandor lewat WhatsApp',
+    pemicu: 'percakapan',
+    penjelasan:
+      'Menanyakan berapa tukang aktif dan berapa penugasan yang sedang '
+      + 'dipegang tiap mandor — dipakai saat memutuskan siapa yang bisa '
+      + 'ditambahi pekerjaan.',
+    penerima: 'Yang bertanya',
+    alur: [
+      { di: 'n8n', teks: 'Pertanyaan masuk lewat WhatsApp.' },
+      { di: 'sistem', teks: 'Menghitung tukang aktif dan penugasan per mandor.' },
+      { di: 'n8n', teks: 'Jawabannya dikirim balik, yang paling ringan lebih dulu.' },
+    ],
+    catatan:
+      'Jawabannya menyebut batasnya sendiri: ini BEBAN yang sedang dipegang, '
+      + 'bukan jadwal kesediaan. Sistem ini tak mencatat kapan seorang mandor '
+      + 'menyatakan diri kosong, dan tool yang tak menyatakan itu akan '
+      + 'dipercaya lebih daripada pantas.',
+  },
+
   // ── Lewat percakapan WhatsApp ───────────────────────────────────────────
   {
     kunci: 'catatan_progres',
