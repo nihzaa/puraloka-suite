@@ -211,6 +211,21 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'rab-harga-menyimpang': {
+    label: 'Harga Satuan RAB Menyimpang',
+    keterangan: 'Pekerjaan sama dihargai berbeda jauh antar proyek.',
+    jalur: '/api/v1/otomasi/jalankan/rab-harga-menyimpang',
+  },
+  'upah-menyimpang': {
+    label: 'Laporan Upah Menyimpang',
+    keterangan: 'Upah mingguan jauh dari kebiasaan lingkup kerjanya sendiri.',
+    jalur: '/api/v1/otomasi/jalankan/upah-menyimpang',
+  },
+  'kontrak-klien-berakhir': {
+    label: 'Kontrak Klien Mendekati Akhir',
+    keterangan: 'Peluang pekerjaan berikutnya selagi klien masih sering dihubungi.',
+    jalur: '/api/v1/otomasi/jalankan/kontrak-klien-berakhir',
+  },
   'penyusutan-belum-ditutup': {
     label: 'Penyusutan Alat Belum Ditutup',
     keterangan: 'Buku penyusutan bulan lalu yang belum dihitung atau belum dijurnalkan.',

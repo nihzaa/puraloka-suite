@@ -136,6 +136,9 @@ export type NotificationType =
   | 'perawatan_alat_jatuh_tempo'
   | 'alat_tanpa_jadwal_perawatan'
   | 'konflik_mandor'
+  | 'rab_harga_menyimpang'
+  | 'upah_menyimpang'
+  | 'kontrak_klien_berakhir'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

@@ -4365,6 +4365,542 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/rab-harga-menyimpang ────────────────────
+  //
+  // Automation 3.12 — RAB Component Anomaly Detection.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // ANGKA PALING MENCOLOK DI BASIS INI JUSTRU YANG SALAH
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Diukur lebih dulu, seluruh item yang namanya sama di lebih dari satu
+  // proyek, diurutkan menurut rasio harga tertinggi:
+  //
+  //     Air Kerja              ls    Rp    800.000 → Rp 10.000.000   12,50×
+  //     Listrik kerja          ls    Rp  1.200.000 → Rp 12.000.000   10,00×
+  //     Kebersihan lokasi      ls    Rp  2.000.000 → Rp  5.000.000    2,50×
+  //     Pengecatan Interior    m²    Rp     30.000 → Rp     46.000    1,53×
+  //     Sumur Bor              m     Rp    350.000 → Rp    500.000    1,43×
+  //     Pasang bouwplank       m'    Rp     72.290 → Rp    100.000    1,38×
+  //
+  // Tiga teratas satuannya `ls` — LUMP SUM. Harganya memang menskala dengan
+  // besar proyek: air kerja Rp 800 ribu untuk renovasi dapur dan Rp 10 juta
+  // untuk gedung bukan penyimpangan, itu aritmetika.
+  //
+  // Kalau `ls` ikut dibandingkan, tiga temuan paling nyaring adalah tiga
+  // temuan yang paling salah — dan orang yang memeriksanya sekali lalu
+  // menemukan ketiganya wajar akan berhenti memeriksa yang keempat.
+  //
+  // Maka `ls` DIKELUARKAN, dan itu dinyatakan di sini karena ia membuang
+  // angka terbesar dengan sengaja.
+  //
+  // Sisanya bersatuan ukur — m², m, m', kg — dan satu meter persegi cat
+  // tembok interior adalah satu meter persegi cat tembok interior di proyek
+  // mana pun. Terukur 3 temuan hari ini.
+  //
+  // ── Yang dibandingkan HARGA SATUAN, bukan total
+  //
+  // Total berbeda karena volumenya berbeda; itu bukan kabar. Yang jadi
+  // pertanyaan kenapa satu meter persegi dihargai berbeda.
+  app.get('/api/v1/otomasi/jalankan/rab-harga-menyimpang', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { rasio?: string }
+    const ambangRasio = await ambilAmbang(request, 'otomasi.rab_anomali.rasio', q.rasio)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['rab_harga_menyimpang'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { item_dibandingkan: 0, menyimpang: 0, ambang_rasio: ambangRasio },
+      })
+    }
+
+    /*
+      `rab_items` kategori C lewat `project_id`.
+
+      Dibaca BERHALAMAN: 377 baris hari ini masih di bawah batas potong senyap
+      PostgREST di 1.000, tetapi RAB tumbuh per proyek — dan pemotongan itu
+      akan membuat perbandingan lintas-proyek kehilangan sisi pembandingnya
+      tanpa satu pun galat. Yang hilang justru anomali di proyek terakhir.
+    */
+    const HALAMAN = 1000
+    const item: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error } = await request.db!
+        .unsafe('rab_items', 'kategori C lewat project_id; disaring ke projectIds() milik tenant')
+        .select('id, project_id, name, unit, unit_price, qty')
+        .in('project_id', idProyek)
+        .gt('unit_price', 0)
+        .order('id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!data || data.length === 0) break
+      item.push(...(data as Array<Record<string, unknown>>))
+      if (data.length < HALAMAN) break
+    }
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects')
+      .select('id, name')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    /*
+      Satuan yang TIDAK dibandingkan.
+
+      `ls` lump sum · `unit`/`unit` borongan per-titik · kosong. Ketiganya
+      tidak menyatakan ukuran, jadi dua angkanya tak sebanding walau namanya
+      sama.
+    */
+    const SATUAN_TAK_SEBANDING = new Set(['ls', 'lot', 'paket', 'set', ''])
+
+    type Kelompok = { nama: string; satuan: string; baris: Array<{ p: string; h: number }> }
+    const kelompok = new Map<string, Kelompok>()
+    for (const r of item) {
+      const satuan = String(r.unit ?? '').trim().toLowerCase()
+      if (SATUAN_TAK_SEBANDING.has(satuan)) continue
+      const nama = String(r.name ?? '').trim()
+      if (!nama) continue
+      const kunci = `${nama.toLowerCase()}|${satuan}`
+      const k = kelompok.get(kunci) ?? { nama, satuan, baris: [] }
+      k.baris.push({ p: r.project_id as string, h: Number(r.unit_price ?? 0) })
+      kelompok.set(kunci, k)
+    }
+
+    let dibandingkan = 0
+    let menyimpang = 0
+    let dibuat = 0
+
+    for (const [kunci, k] of kelompok) {
+      // Butuh sedikitnya DUA proyek berbeda — dua baris di proyek yang sama
+      // adalah dua item RAB, bukan dua harga untuk pekerjaan yang sama.
+      const perProyek = new Map<string, number>()
+      for (const b of k.baris) {
+        const ada = perProyek.get(b.p)
+        // Harga TERTINGGI per proyek dipakai: kalau satu proyek punya dua
+        // baris bernama sama, yang mahal yang jadi pertanyaan.
+        perProyek.set(b.p, ada == null ? b.h : Math.max(ada, b.h))
+      }
+      if (perProyek.size < 2) continue
+      dibandingkan++
+
+      const nilai = [...perProyek.entries()]
+      const min = nilai.reduce((a, b) => (b[1] < a[1] ? b : a))
+      const max = nilai.reduce((a, b) => (b[1] > a[1] ? b : a))
+      if (min[1] <= 0) continue
+
+      const rasio = Math.round((max[1] / min[1]) * 100) / 100
+      if (rasio < ambangRasio) continue
+      menyimpang++
+
+      if (sudah('rab_harga_menyimpang', kunci)) continue
+
+      const penerima = await resolveRecipients('rab_harga_menyimpang', {
+        projectId: max[0], companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Harga Satuan Berbeda Jauh Antar Proyek',
+          message:
+            `"${k.nama}" (per ${k.satuan}) dihargai ${rp(min[1])} di `
+            + `${namaProyek.get(min[0])} tetapi ${rp(max[1])} di `
+            + `${namaProyek.get(max[0])} — ${rasio}× lipat. `
+            + 'Satu di antaranya kemungkinan salah, dan yang kemahalan '
+            + 'memakan margin sementara yang kemurahan dibayar sendiri.',
+          type:       'rab_harga_menyimpang',
+          priority:   rasio >= ambangRasio * 2 ? 'high' : 'normal',
+          project_id: max[0],
+          action_url: `/proyek/${max[0]}`,
+          action_data: {
+            record_id: kunci,
+            item: k.nama, satuan: k.satuan, rasio,
+            termurah: min[1], termahal: max[1],
+            proyek_termurah: min[0], proyek_termahal: max[0],
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        item_dibandingkan: dibandingkan,
+        menyimpang,
+        // Dilaporkan EKSPLISIT: berapa item yang sengaja TIDAK dibandingkan
+        // karena satuannya tak menyatakan ukuran. Tanpa angka ini, "3 temuan"
+        // terbaca seolah seluruh RAB sudah diperiksa.
+        satuan_tak_sebanding_dilewati:
+          item.filter((r) => SATUAN_TAK_SEBANDING.has(
+            String(r.unit ?? '').trim().toLowerCase())).length,
+        ambang_rasio: ambangRasio,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/upah-menyimpang ─────────────────────────
+  //
+  // Automation 6.4 — Wage Report Anomaly Check.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // PEMBANDINGNYA RIWAYAT LINGKUP ITU SENDIRI, BUKAN RATA-RATA SEMUA ORANG
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Sebaran upah mingguan terukur sangat lebar: rata-rata Rp 5,67 juta dengan
+  // simpangan baku Rp 3,82 juta. Membandingkan satu laporan dengan rata-rata
+  // SELURUH perusahaan berarti menandai hampir semua hal — pekerjaan struktur
+  // dengan 12 tukang memang berlipat dibanding finishing dengan 3.
+  //
+  // Maka pembandingnya lingkup kerja ITU SENDIRI: berapa yang biasanya
+  // dibayarkan minggu-minggu sebelumnya untuk pekerjaan yang sama, oleh mandor
+  // yang sama.
+  //
+  // ── MEDIAN, bukan rata-rata
+  //
+  // Satu minggu lembur besar akan menarik rata-rata naik dan membuat minggu
+  // berikutnya yang normal terlihat "kekecilan". Median tak bergerak oleh satu
+  // pencilan — dan pencilan adalah justru yang sedang dicari.
+  //
+  // ── Yang TAK BISA DINILAI dilaporkan, bukan dilewati diam-diam
+  //
+  // Terukur: dari laporan berstatus `submitted`, ada yang riwayat lingkupnya
+  // NOL. Laporan itu tak bisa dibandingkan dengan apa pun — dan diam
+  // terhadapnya membuat "0 anomali" terbaca sebagai "semuanya wajar".
+  app.get('/api/v1/otomasi/jalankan/upah-menyimpang', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { rasio?: string; riwayat?: string }
+    const ambangRasio = await ambilAmbang(request, 'otomasi.upah_anomali.rasio', q.rasio)
+    const minRiwayat = await ambilAmbang(request, 'otomasi.upah_anomali.riwayat', q.riwayat)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['upah_menyimpang'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { menunggu_persetujuan: 0, menyimpang: 0, ambang_rasio: ambangRasio },
+      })
+    }
+
+    const { data: tugas, error: eTugas } = await request.db!
+      .unsafe('mandor_assignments',
+        'kategori C lewat project_id; disaring ke projectIds() milik tenant')
+      .select('id, project_id, mandor_id')
+      .in('project_id', idProyek)
+
+    if (eTugas) return reply.status(500).send({ error: eTugas.message })
+    const idTugas = (tugas ?? []).map((t) => t.id as string)
+    if (idTugas.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { menunggu_persetujuan: 0, menyimpang: 0, ambang_rasio: ambangRasio },
+      })
+    }
+
+    /*
+      `weekly_wage_reports` kategori C lewat `assignment_id` — tabel berhop
+      jauh, jadi `.viaProject()` tak berlaku. Disaring ke id penugasan yang
+      sudah lewat scope tenant di atas.
+    */
+    const { data: laporan, error } = await request.db!
+      .unsafe('weekly_wage_reports',
+        'kategori C berhop-jauh lewat assignment_id; disaring ke penugasan ter-scope di atas')
+      .select('id, assignment_id, scope_id, week_start, week_end, status, net_amount')
+      .in('assignment_id', idTugas)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    // Riwayat = laporan yang SUDAH dibayar untuk lingkup yang sama.
+    const riwayat = new Map<string, number[]>()
+    for (const l of laporan ?? []) {
+      if (l.status !== 'paid') continue
+      const sid = (l.scope_id as string | null) ?? ''
+      if (!sid) continue
+      const arr = riwayat.get(sid) ?? []
+      arr.push(Number(l.net_amount ?? 0))
+      riwayat.set(sid, arr)
+    }
+
+    const median = (a: number[]) => {
+      const s = [...a].sort((x, y) => x - y)
+      const t = Math.floor(s.length / 2)
+      return s.length % 2 ? s[t] : (s[t - 1] + s[t]) / 2
+    }
+
+    const proyekTugas = new Map((tugas ?? []).map((t) => [t.id as string, t.project_id as string]))
+
+    let menunggu = 0
+    let takBisaDinilai = 0
+    let menyimpang = 0
+    let dibuat = 0
+
+    for (const l of laporan ?? []) {
+      if (l.status !== 'submitted') continue
+      menunggu++
+
+      const sid = (l.scope_id as string | null) ?? ''
+      const r = riwayat.get(sid) ?? []
+      if (r.length < minRiwayat) { takBisaDinilai++; continue }
+
+      const acuan = median(r)
+      if (acuan <= 0) { takBisaDinilai++; continue }
+
+      const nilai = Number(l.net_amount ?? 0)
+
+      /*
+        Dibandingkan MENTAH, dibulatkan hanya untuk ditampilkan.
+
+        Membulatkan lebih dulu menggeser ambangnya sampai 0,005 — dan pada
+        basis ini selisih itu nyata: satu laporan berasio 0,66667 (Rp 2,8 jt
+        lawan median Rp 4,2 jt) membulat jadi 0,67 dan lolos dari ambang
+        1/1,5 = 0,66667. Ambang yang bergerak tergantung pembulatan bukan
+        ambang.
+      */
+      const rasioMentah = nilai / acuan
+      const rasio = Math.round(rasioMentah * 100) / 100
+      // Menyimpang ke ATAS maupun ke BAWAH. Upah yang tiba-tiba separuh
+      // biasanya berarti pekerjaan berhenti — kabar yang sama pentingnya
+      // dengan upah yang tiba-tiba dobel.
+      if (rasioMentah < ambangRasio && rasioMentah > 1 / ambangRasio) continue
+      menyimpang++
+
+      if (sudah('upah_menyimpang', l.id as string)) continue
+
+      const pid = proyekTugas.get(l.assignment_id as string) ?? null
+      const penerima = await resolveRecipients('upah_menyimpang', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      const arah = rasioMentah > 1 ? 'lebih besar' : 'lebih kecil'
+      const lipat = rasioMentah > 1 ? rasio : Math.round((1 / rasioMentah) * 100) / 100
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Laporan Upah Menyimpang dari Kebiasaannya',
+          message:
+            `Laporan upah minggu ${String(l.week_start ?? '').slice(0, 10)} `
+            + `sebesar ${rp(nilai)} — ${lipat}× ${arah} daripada biasanya `
+            + `untuk pekerjaan yang sama (${rp(acuan)}, dari ${r.length} minggu `
+            + 'sebelumnya). Periksa dulu sebelum menyetujui.',
+          type:       'upah_menyimpang',
+          // Ke ATAS lebih mendesak: uangnya keluar. Ke bawah pun perlu
+          // diperiksa, tetapi ia tak memindahkan apa pun.
+          priority:   rasioMentah > 1 ? 'high' : 'normal',
+          project_id: pid ?? undefined,
+          action_url: '/mandor/upah',
+          action_data: {
+            record_id: l.id as string,
+            nilai, acuan, rasio, minggu_riwayat: r.length,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        menunggu_persetujuan: menunggu,
+        menyimpang,
+        // Dilaporkan EKSPLISIT: laporan yang riwayatnya terlalu tipis untuk
+        // dinilai. Tanpa angka ini, "0 anomali" terbaca sebagai "semuanya
+        // wajar" padahal sebagiannya belum pernah dibandingkan dengan apa pun.
+        tak_bisa_dinilai: takBisaDinilai,
+        ambang_rasio: ambangRasio,
+        min_riwayat: minRiwayat,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/kontrak-klien-berakhir ──────────────────
+  //
+  // Automation 7.10 — Contract Renewal Reminder.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // NOMOR INI PERNAH SENGAJA TIDAK DIKLAIM — SEKARANG DIKERJAKAN SUNGGUHAN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Otomasi `kontrak-payung-habis` dibangun TANPA nomor katalog, dan alasannya
+  // ditulis di sana: 7.10 berbunyi *"peluang repeat business dari klien
+  // existing"* — kontrak KLIEN, sementara kontrak payung adalah kontrak
+  // PEMASOK. Arah uangnya berlawanan.
+  //
+  // Inilah 7.10 yang sebenarnya, dan test di
+  // `otomasi-kontrak-payung.test.ts` yang menjaga pemisahan itu TETAP berlaku.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // INI PEKERJAAN PENJUALAN, BUKAN PERINGATAN OPERASIONAL
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Bedanya nyata dan menentukan bentuk pesannya. Proyek yang mendekati selesai
+  // bukan masalah — ia peluang: kliennya sedang paling puas, paling sering
+  // bertemu, dan paling mudah dihubungi. Sesudah serah terima, hubungan itu
+  // mendingin dalam hitungan minggu.
+  //
+  // Maka pesannya menyebut nilai kontrak dan berapa proyek yang pernah
+  // dikerjakan untuk klien itu — dua hal yang menentukan apakah percakapan
+  // berikutnya layak dimulai, dan keduanya tak ada di layar mana pun secara
+  // berdampingan.
+  //
+  // Terukur 14 proyek berakhir dalam rentang ±180 hari.
+  app.get('/api/v1/otomasi/jalankan/kontrak-klien-berakhir', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.kontrak_klien.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['kontrak_klien_berakhir'])
+
+    // `projects` ANCHOR, `clients` kategori B — keduanya `.from()`.
+    const { data: proyek, error } = await request.db!
+      .from('projects')
+      .select('id, name, status, end_date, contract_value, client_id')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const { data: klien, error: eKlien } = await request.db!
+      .from('clients')
+      .select('id, company_name, contact_person, phone')
+
+    if (eKlien) return reply.status(500).send({ error: eKlien.message })
+    /*
+      NAMA klien: `company_name` ATAU `contact_person`.
+
+      Terukur: seluruh 10 klien berjenis `perorangan`, dan `company_name`
+      NULL di kesepuluhnya. Memakainya langsung menghasilkan kalimat
+      "klien null" — yang terkirim sungguhan ke basis sebelum ini diperbaiki.
+
+      Perusahaan konstruksi kecil bekerja untuk orang, bukan hanya badan
+      usaha; kolom nama badan yang kosong adalah keadaan NORMAL di sini,
+      bukan data rusak.
+    */
+    const namaKlien = new Map((klien ?? []).map((k) => [k.id as string, k]))
+    const sebutKlien = (k?: { company_name?: unknown; contact_person?: unknown } | null) => {
+      const badan = String(k?.company_name ?? '').trim()
+      const orang = String(k?.contact_person ?? '').trim()
+      return badan || orang || ''
+    }
+
+    // Berapa proyek yang pernah dikerjakan untuk tiap klien — dihitung dari
+    // seluruh proyek yang sudah lewat saringan tenant di atas.
+    const proyekPerKlien = new Map<string, number>()
+    for (const p of proyek ?? []) {
+      const cid = p.client_id as string | null
+      if (!cid) continue
+      proyekPerKlien.set(cid, (proyekPerKlien.get(cid) ?? 0) + 1)
+    }
+
+    let mendekat = 0
+    let dibuat = 0
+
+    for (const p of proyek ?? []) {
+      /*
+        `draft` DILEWATI: proyek yang belum berjalan tak punya klien yang
+        sedang puas, dan menawarkan pekerjaan berikutnya sebelum yang pertama
+        dimulai adalah percakapan yang salah waktu.
+      */
+      if (p.status === 'draft') continue
+
+      const akhir = p.end_date as string | null
+      if (!akhir) continue
+      const sisa = Math.round(
+        (Date.parse(String(akhir).slice(0, 10) + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z'))
+        / 86_400_000,
+      )
+
+      /*
+        Jendela DUA ARAH, dan sisi lampaunya disengaja.
+
+        Proyek yang tanggal selesainya baru lewat justru saat terbaik menyapa:
+        pekerjaannya masih segar, kliennya masih sering dihubungi. Membatasinya
+        pada masa depan saja akan melewatkan seluruh proyek yang sudah rampung
+        bulan lalu — dan itu bukan peluang yang lebih kecil, melainkan lebih
+        matang.
+      */
+      if (sisa > ambangHari || sisa < -ambangHari) continue
+      mendekat++
+
+      if (sudah('kontrak_klien_berakhir', p.id as string)) continue
+
+      const cid = p.client_id as string | null
+      const k = cid ? namaKlien.get(cid) : null
+
+      const penerima = await resolveRecipients('kontrak_klien_berakhir', {
+        projectId: p.id as string, companyId: request.companyId!,
+      })
+
+      const riwayat = cid ? (proyekPerKlien.get(cid) ?? 1) : 1
+      const kapan = sisa > 0 ? `berakhir ${sisa} hari lagi`
+        : sisa === 0 ? 'berakhir HARI INI'
+        : `sudah berakhir ${Math.abs(sisa)} hari lalu`
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Kontrak Klien Mendekati Akhir',
+          message:
+            `"${p.name}" ${kapan}`
+            + (sebutKlien(k) ? ` — klien ${sebutKlien(k)}` : '')
+            + `, nilai kontrak ${rp(Number(p.contract_value ?? 0))}. `
+            + (riwayat > 1
+              ? `Sudah ${riwayat} proyek dikerjakan untuk klien ini. `
+              : 'Ini proyek pertama untuk klien ini. ')
+            + 'Saat paling mudah menawarkan pekerjaan berikutnya adalah '
+            + 'sekarang, selagi mereka masih sering dihubungi.'
+            + (k?.contact_person && String(k.contact_person) !== sebutKlien(k)
+              ? ` Kontak: ${k.contact_person}` : '')
+            + (k?.phone ? ` Telepon ${k.phone}.` : '.'),
+          type:       'kontrak_klien_berakhir',
+          // Peluang penjualan, bukan kegentingan operasional. `normal` sengaja
+          // dipilih supaya ia tak menyaingi peringatan yang menahan uang atau
+          // menghentikan pekerjaan.
+          priority:   'normal',
+          project_id: p.id as string,
+          action_url: cid ? `/klien/${cid}` : `/proyek/${p.id}`,
+          action_data: {
+            record_id: p.id as string,
+            sisa_hari: sisa,
+            nilai_kontrak: Number(p.contract_value ?? 0),
+            proyek_untuk_klien_ini: riwayat,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_diperiksa: (proyek ?? []).length,
+        mendekati_akhir: mendekat,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
 }
 
 /**

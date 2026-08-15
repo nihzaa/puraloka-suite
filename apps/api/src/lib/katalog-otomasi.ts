@@ -1027,6 +1027,83 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'akan memicu nol selamanya. Tanggalnya dibaca dari lingkup kerja, '
       + 'karena penugasan mandor hanya menyimpan tanggal mulai tanpa akhir.',
   },
+  {
+    kunci: 'rab-harga-menyimpang',
+    nomor: '3.12',
+    nama: 'Harga satuan RAB menyimpang antar proyek',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menemukan pekerjaan yang sama dihargai jauh berbeda di dua proyek. '
+      + 'Satu di antaranya kemungkinan salah: yang kemahalan memakan margin, '
+      + 'yang kemurahan dibayar sendiri.',
+    penerima: 'Bagian estimasi',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengumpulkan item RAB dari seluruh proyek.' },
+      { di: 'sistem', teks: 'Mengelompokkan yang namanya dan satuannya sama.' },
+      { di: 'sistem', teks: 'Membandingkan harga satuan termurah dengan termahal.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.rab_anomali.rasio',
+    catatan:
+      'Item bersatuan borongan (ls, paket, set) SENGAJA tidak dibandingkan — '
+      + 'harganya memang menskala dengan besar proyek. Justru angka paling '
+      + 'mencolok di basis ini semuanya bersatuan ls: "Air Kerja" Rp 800 ribu '
+      + 'lawan Rp 10 juta, dan itu aritmetika, bukan penyimpangan. Kalau '
+      + 'diikutkan, tiga temuan paling nyaring adalah tiga yang paling salah.',
+  },
+  {
+    kunci: 'upah-menyimpang',
+    nomor: '6.4',
+    nama: 'Laporan upah menyimpang dari kebiasaannya',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Memeriksa laporan upah mingguan yang menunggu persetujuan, dan menandai '
+      + 'yang jauh berbeda dari biasanya untuk pekerjaan yang sama. Diperiksa '
+      + 'sebelum disetujui, bukan sesudah dibayar.',
+    penerima: 'Yang berwenang menyetujui upah',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca laporan upah yang masih menunggu persetujuan.' },
+      { di: 'sistem', teks: 'Mengambil riwayat upah lingkup kerja yang sama.' },
+      { di: 'sistem', teks: 'Membandingkan dengan nilai tengah riwayat itu.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.upah_anomali.rasio',
+    catatan:
+      'Pembandingnya riwayat lingkup ITU SENDIRI, bukan rata-rata perusahaan: '
+      + 'sebaran upah terukur sangat lebar, dan membandingkan dengan rata-rata '
+      + 'semua orang akan menandai hampir semua hal. Dipakai nilai tengah, '
+      + 'bukan rata-rata — satu minggu lembur besar akan menarik rata-rata '
+      + 'naik dan membuat minggu normal berikutnya terlihat kekecilan. '
+      + 'Berlaku dua arah: upah yang tiba-tiba separuh biasanya berarti '
+      + 'pekerjaan berhenti.',
+  },
+  {
+    kunci: 'kontrak-klien-berakhir',
+    nomor: '7.10',
+    nama: 'Kontrak klien mendekati akhir',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Mengingatkan proyek yang mendekati atau baru saja selesai, supaya '
+      + 'pekerjaan berikutnya ditawarkan selagi kliennya masih sering '
+      + 'dihubungi. Sesudah serah terima, hubungan itu mendingin cepat.',
+    penerima: 'Yang mengurus hubungan klien',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca tanggal selesai seluruh proyek.' },
+      { di: 'sistem', teks: 'Menghitung berapa proyek yang pernah dikerjakan untuk tiap klien.' },
+      { di: 'sistem', teks: 'Menyusun pesan berisi nilai kontrak dan kontak kliennya.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.kontrak_klien.hari',
+    catatan:
+      'Ini pekerjaan PENJUALAN, bukan peringatan operasional — prioritasnya '
+      + 'sengaja biasa supaya tak menyaingi peringatan yang menahan uang. '
+      + 'Jendelanya dua arah: proyek yang baru selesai bulan lalu bukan '
+      + 'peluang yang lebih kecil, melainkan lebih matang. Jangan tertukar '
+      + 'dengan `kontrak-payung-habis` — yang itu kontrak PEMASOK.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */

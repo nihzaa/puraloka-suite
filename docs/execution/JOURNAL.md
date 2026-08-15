@@ -21785,3 +21785,77 @@ tanpa gejala. Test sekarang memeriksa `periode_ditagih` LANGSUNG.
 - **10.7 perawatan DAN sertifikasi, satu otomasi.** Tak ada kolom kedaluwarsa
   sertifikat di `assets`; sertifikasi tersimpan sebagai jadwal berulang di
   `jadwal_perawatan`. Bentuk datanya yang menyatakan, bukan katalognya.
+
+---
+
+## 2026-08-16 (2) — Gelombang 1: RAB 3.12 · upah 6.4 · kontrak klien 7.10
+
+30 rute terjadwal, 39 nomor katalog (dari 27/36).
+
+### Satu keputusan yang membuang angka terbesar dengan sengaja
+
+3.12 mencari pekerjaan yang sama dihargai berbeda antar proyek. Diurutkan
+menurut rasio tertinggi, tiga teratas di basis ini:
+
+```
+Air Kerja       ls   Rp   800.000 → Rp 10.000.000   12,50×
+Listrik kerja   ls   Rp 1.200.000 → Rp 12.000.000   10,00×
+Kebersihan      ls   Rp 2.000.000 → Rp  5.000.000    2,50×
+```
+
+Ketiganya `ls` — **lump sum**, dan harganya memang menskala dengan besar
+proyek. Air kerja Rp 800 ribu untuk renovasi dapur dan Rp 10 juta untuk gedung
+bukan penyimpangan, itu aritmetika.
+
+**Angka paling mencolok di basis ini justru yang paling salah.** Kalau `ls`
+diikutkan, orang yang memeriksa tiga teratas lalu menemukan semuanya wajar
+berhenti memeriksa yang keempat. Rutenya mengeluarkan `ls`/`paket`/`set`/`lot`,
+dan melaporkan berapa yang dilewati supaya "3 temuan" tak terbaca seolah
+seluruh RAB sudah diperiksa.
+
+Sisanya bersatuan ukur, dan ketiganya nyata: Pengecatan Interior m² 1,53× ·
+Sumur Bor m 1,43× · Pasang bouwplank m' 1,38×.
+
+### Dua cacat saya, keduanya ditemukan dengan menjalankan
+
+**1. "klien null" terkirim sungguhan.**
+
+> `"Renovasi Dapur & KM Pak Hendra" sudah berakhir 46 hari lalu — klien null,`
+> `nilai kontrak Rp 890.000.000.`
+
+Seluruh 10 klien berjenis `perorangan`, `company_name` NULL di kesepuluhnya.
+Perusahaan konstruksi kecil bekerja untuk ORANG; kolom nama badan yang kosong
+adalah keadaan NORMAL di sini, bukan data rusak.
+
+**2. Rasio dibulatkan SEBELUM dibandingkan dengan ambang.** Satu laporan upah
+Rp 2.800.000 dengan median Rp 4.200.000 berasio tepat 0,666666… — persis
+1/1,5. Dibulatkan lebih dulu ia jadi 0,67, dan 0,67 > 0,66667, jadi ia **lolos
+dari ambangnya sendiri**. Ambang yang bergerak tergantung pembulatan bukan
+ambang. Sesudah diperbaiki, laporan itu ditegur di basis dev.
+
+### Dua mutasi LOLOS, dan keduanya menunjuk test saya
+
+- `proyek-sama-ikut` — mutasinya tak mengubah perilaku; saya salah memilih
+  mutasi, bukan test yang lemah. Diganti dengan yang benar-benar mengizinkan
+  perbandingan dalam satu proyek → merah.
+- `klien-tanpa-cadangan` — test menjaga **gejala** (kata "null" tak muncul),
+  bukan **syarat** (pesan menyebut kliennya). Test diperkuat, lalu mutasi
+  diganti dengan reproduksi cacat aslinya → merah.
+
+### 4.4 sengaja TIDAK dibangun sebagai rute
+
+*Supplier Lead Time Prediction*. Diukur: seluruh 8 penerimaan barang datang
+pada atau sebelum tanggal janji (rata **−0,6 hari**, maksimum 0). Rute
+terjadwalnya akan memicu **nol selamanya**, lalu dilaporkan "otomasi lead time
+sudah ada". Bentuk yang benar untuknya tool baca — dijawab saat ditanya, bukan
+dikirim tiap pagi. Dicatat untuk putaran berikutnya.
+
+### Bukti
+
+```
+otomasi-rab-upah-klien.test.ts     9 passed
+mutasi rute                        7/7 MERAH lalu pulih (2 diperbaiki dulu)
+mutasi blok verifikasi 409         4/4 MERAH lalu pulih
+13 penjaga arsitektural            exit=0
+lint:ratchet                       0 error, 231 warning
+```

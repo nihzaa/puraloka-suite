@@ -220,6 +220,56 @@ export const AMBANG_OTOMASI = {
     label: 'Hari sesudah proyek selesai sebelum retensi tertahan ditegur',
   },
   /*
+    Harga satuan RAB menyimpang antar proyek. Bawaan 1,3× (selisih 30%).
+
+    DESIMAL, dan itu penting: `jepit()` hanya membulatkan bila min DAN max
+    keduanya bilangan bulat. Min 1.05 menjaga nilai pecahan tetap utuh —
+    cacat yang sudah terjadi sekali, ketika ambang 0,75 diam-diam jadi 0.
+  */
+  'otomasi.rab_anomali.rasio': {
+    bawaan: 1.3,
+    min: 1.05,
+    max: 5,
+    label: 'Selisih harga satuan antar proyek yang mulai dipertanyakan (×)',
+  },
+  /*
+    Laporan upah menyimpang. Bawaan 1,5× dari median lingkupnya sendiri.
+
+    Berlaku DUA ARAH: 1,5× ke atas dan 1/1,5 ke bawah. Upah yang tiba-tiba
+    separuh biasanya berarti pekerjaan berhenti — kabar yang sama pentingnya
+    dengan upah yang tiba-tiba dobel.
+  */
+  'otomasi.upah_anomali.rasio': {
+    bawaan: 1.5,
+    min: 1.1,
+    max: 5,
+    label: 'Selisih upah mingguan dari kebiasaannya yang mulai diperiksa (×)',
+  },
+  /*
+    Minggu riwayat minimum sebelum sebuah lingkup bisa dinilai. Bawaan 3.
+
+    Satu minggu pembanding bukan kebiasaan, itu satu titik. Yang riwayatnya
+    di bawah ini DILAPORKAN sebagai tak-bisa-dinilai, bukan dilewati diam.
+  */
+  'otomasi.upah_anomali.riwayat': {
+    bawaan: 3,
+    min: 1,
+    max: 26,
+    label: 'Minggu riwayat minimum sebelum upah bisa dibandingkan',
+  },
+  /*
+    Kontrak klien mendekati akhir. Bawaan 60 hari, DUA ARAH.
+
+    Sisi lampaunya disengaja: proyek yang baru selesai bulan lalu bukan
+    peluang yang lebih kecil, melainkan lebih matang.
+  */
+  'otomasi.kontrak_klien.hari': {
+    bawaan: 60,
+    min: 7,
+    max: 365,
+    label: 'Jendela hari sebelum/sesudah proyek berakhir untuk menyapa klien',
+  },
+  /*
     Buku penyusutan belum ditutup. Bawaan tanggal 5.
 
     Yang diukur BUKAN "sudah tanggal berapa" melainkan "bulan lalu sudah

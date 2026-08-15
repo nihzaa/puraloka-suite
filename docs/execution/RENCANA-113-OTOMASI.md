@@ -34,13 +34,32 @@ cd apps/api && node -r dotenv/config scripts/lapor-otomasi-hidup.mjs
 
 Baris yang dicari: `Tugas terjadwal` dan `otomasi terjelaskan di katalog kode`.
 
-Diukur 2026-08-16: **27 rute terjadwal · 36 nomor katalog terjelaskan.**
+Diukur 2026-08-16: **30 rute terjadwal · 39 nomor katalog terjelaskan.**
 Terakhir ditambahkan: 10.7 perawatan & sertifikasi alat, 10.8 penyusutan belum
 ditutup, 3.9 mandor bentrok dua proyek, dan `kontrak-payung-habis` (sengaja
 TANPA nomor — 7.10 adalah kontrak klien, bukan pemasok).
 
 Angka di tabel gelombang di atas adalah RENCANA per 2026-08-15 dan tidak
 diperbarui tiap otomasi selesai. Yang mutakhir hanya keluaran skrip.
+
+### 1-0b. Yang DIPINDAHKAN keluar dari Gelombang 1 sesudah diukur
+
+Bukan karena sulit — karena **datanya menyatakan otomasinya tak punya apa pun
+untuk dikatakan.** Membangunnya tetap menghasilkan rute yang memicu nol
+selamanya, lalu dilaporkan sebagai "sudah ada". Itu bentuk kebohongan yang
+paling sulit ditemukan.
+
+| Nomor | Yang diukur | Ke mana |
+|---|---|---|
+| **4.4** Supplier Lead Time | 8 penerimaan, seluruhnya datang pada/sebelum tanggal janji (rata −0,6 hari, maks 0) | jadi **tool baca**, bukan rute terjadwal |
+| **4.8** Stock Opname Discrepancy | `opname_bersama` **0 baris** | Gelombang 2 (butuh data) |
+| **2.7** Duplicate Transaction | `project_expenses` **0 baris** | Gelombang 2 |
+| **2.14** Recurring Expense | `project_expenses` **0 baris** | Gelombang 2 |
+| **9.9** Audit Readiness | `documents` **0 baris** | Gelombang 2 |
+| **2.5** Margin Leakage | butuh biaya aktual; sumbernya `project_expenses` yang kosong | Gelombang 2 |
+
+Keenamnya tetap di Gelombang 1 secara KEMAMPUAN — tabelnya ada, kodenya bisa
+ditulis hari ini. Yang belum ada isinya.
 
 ### 1a. Kenapa saya sempat salah
 
