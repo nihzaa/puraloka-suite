@@ -2727,20 +2727,17 @@ items:
 
   - id: OPS-1
     fase: null
-    judul: "Penjadwal belum pernah jalan — SCHEDULER_URL kosong & workflow tak di main"
+    judul: "Penjadwal — DIAGNOSIS SAYA SALAH; sudah diperbaiki sesi lain (ae5fd94f)"
     kriteria_selesai:
-      - "jadwal-tugas.yml ADA di branch default (kini hanya di feat/sumbu-ui-roadmap)"
-      - "SCHEDULER_URL disetel di Settings -> Secrets -> Actions"
-      - "gh run list --workflow=jadwal-tugas.yml menunjukkan run yang benar-benar jalan"
-      - "jadwal_tugas.jumlah_jalan > 0 untuk sapa-proaktif"
+      - "SUDAH: penjadwal berdetak dari dalam API, tanpa deploy & tanpa SCHEDULER_URL"
+      - "SUDAH: sapa-proaktif jumlah_jalan=1, terakhir_status=sukses"
     cara_verifikasi: >-
-      gh secret list | grep SCHEDULER_URL · gh run list --workflow=jadwal-tugas.yml ·
-      node scripts/db/introspect.mjs (jumlah_jalan sapa-proaktif)
+      node scripts/db/introspect.mjs · atau query jadwal_tugas.jumlah_jalan
     bobot: S
-    status: menunggu-founder
+    status: done
     catatan_kemajuan: >-
-      DI LUAR KODE. Diukur 2026-08-16: SCHEDULER_SECRET ada, SCHEDULER_URL
-      TIDAK ada, dan jadwal-tugas.yml belum di `main` (370 commit belum
-      di-merge). GitHub Actions hanya menjalankan `schedule:` dari default
-      branch — itu sebabnya lima otomasi lain juga nol eksekusi sejak lama.
-      Seluruh fitur proaktif diam sampai ini beres.
+      Saya melaporkan "SCHEDULER_URL kosong + workflow belum di main, di luar
+      kode". SALAH. `grep -rn SCHEDULER_URL apps/api/src` menemukan NOL baris
+      kode memakainya — satu-satunya hasil adalah kalimat di skrip laporan
+      buatan sesi ini sendiri. Penjadwalnya sudah ada di dalam API lewat
+      server.inject. Tebakan saya menahan delapan otomasi selama dua hari.

@@ -493,20 +493,36 @@ bisa membantu administrasi? misal untuk menginput data dari wa via assistant?"*
 Dua pertanyaan, dua jawaban berbeda — dan mengukurnya menemukan dua rantai
 yang putus.
 
-### A. Penjadwal: DUA sebab, keduanya di luar kode
+### A. Penjadwal — DIAGNOSIS SAYA SALAH, dan sesi lain membuktikannya
 
-`jumlah_jalan: 0` pada tugas sapaan yang kemarin dinyalakan. Diukur:
+Saya melaporkan dua sebab: `SCHEDULER_URL` kosong, dan `jadwal-tugas.yml`
+belum di `main`. Saya menyebutnya "di luar kode, tak ada yang bisa saya
+perbaiki".
 
-    SCHEDULER_SECRET   ADA di GitHub secrets
-    SCHEDULER_URL      TIDAK ADA
-    jadwal-tugas.yml   TIDAK ADA di branch `main` (370 commit belum di-merge)
+**Itu tebakan yang terdengar seperti kesimpulan teknis.** Sesi lain
+(`ae5fd94f`) menjalankan satu perintah yang tak pernah saya jalankan:
 
-GitHub Actions hanya menjalankan `schedule:` dari DEFAULT branch. Jadi
-workflow-nya tak pernah dipicu sekali pun — dan itu penjelasan lengkap kenapa
-lima otomasi lain juga tercatat aktif dengan nol eksekusi sejak lama.
+    grep -rn "SCHEDULER_URL" apps/api/src apps/api/scripts
+    → nol baris KODE memakainya; satu-satunya hasil adalah KALIMAT di skrip
+      laporan buatan sesi ini sendiri
 
-Bukan cacat kode; tak ada yang bisa saya perbaiki dari sini. Butuh merge ke
-`main` + menyetel `SCHEDULER_URL` di Settings → Secrets → Actions.
+Penjadwalnya sudah ada DI DALAM API — `POST /api/v1/jadwal/jalankan` + tabel
+`jadwal_tugas`, `SCHEDULER_SECRET` sudah terisi, tiap tugas dijalankan lewat
+`server.inject`. Tak butuh jaringan, tak butuh deploy, tak butuh merge.
+
+Yang benar-benar hilang cuma: tak ada satu pun yang memanggil denyutnya.
+
+Diukur sesudah perbaikan mereka: **`sapa-proaktif` jumlah_jalan = 1, status
+sukses.** Sapaan proaktif SUDAH benar-benar berjalan.
+
+Pelajaran untuk saya, dan ini yang ketiga kalinya dalam dua hari: **saya
+menyimpulkan tanpa mengukur, lalu melaporkan kesimpulan itu sebagai fakta.**
+Sebelumnya soal "berkas milik sesi lain" (salah tiga kali). Bedanya di sini,
+tebakan saya menahan pekerjaan yang sebenarnya bisa jalan.
+
+Aturan yang saya langgar ada di CLAUDE.md §8: *"Ragu antara dua kesimpulan?
+UKUR, jangan pilih yang lebih nyaman."* "Menunggu deploy" adalah yang lebih
+nyaman — ia memindahkan tanggung jawab keluar.
 
 ### B. Jalur tulis: lengkap, kecuali tombolnya
 
