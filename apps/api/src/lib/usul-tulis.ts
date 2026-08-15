@@ -51,6 +51,9 @@ export const JENIS_USUL = [
     `pembayaran_masuk`) dan `lib/ai-tool-siapkan.ts`.
   */
   'pembayaran_masuk',
+  /* Absensi harian (2026-08-16) — tenancy lewat scope_id, dan SATU-SATUNYA
+     yang anti-gandanya dijaga KODE, bukan basis (nol unique constraint). */
+  'absensi',
 ] as const
 
 export type JenisUsul = (typeof JENIS_USUL)[number]

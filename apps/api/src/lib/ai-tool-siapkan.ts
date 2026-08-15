@@ -410,6 +410,65 @@ export const ENTITAS_TULIS: EntitasTulis[] = [
       proyek punya banyak invoice, dan menebak yang mana berarti melunasi
       tagihan yang salah.
     */
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      ABSENSI HARIAN — tak menyentuh uang HARI INI, tapi menentukan upah
+      ══════════════════════════════════════════════════════════════════════
+
+      Founder 2026-08-16: "perluas jenis tulis". Absensi dipilih lebih dulu
+      dari stok karena bentuk tabelnya cocok; alasan stok ditunda ada di bawah.
+
+      Diukur sebelum dirancang:
+
+        absensi_harian  →  NOL trigger penggerak uang (cuma set_updated_at)
+        CHECK           →  porsi_hari 0..1 · jam_lembur 0..16 · tanggal ≤ besok
+        tenancy         →  lewat `scope_id`, BUKAN project_id
+                           (absensi_harian.scope_id → work_scopes.assignment_id
+                            → mandor_assignments.project_id)
+
+      ── Yang TIDAK dijaga basis, dan karena itu dijaga kode
+
+      TAK ADA unique constraint pada (scope_id, worker_id, tanggal). Diukur ke
+      pg_constraint: yang ada hanya PK, tiga FK, dan tiga CHECK rentang.
+
+      Padahal absensi memberi makan `weekly_wage_reports`/`daily_wage_logs` —
+      dua baris untuk orang yang sama di hari yang sama berarti UPAH DIBAYAR
+      DUA KALI. Basisnya tak akan menolak, dan tak ada gejala sampai
+      rekapitulasi mingguan terlihat aneh.
+
+      Maka penerbit token memeriksanya lebih dulu (`sudahAbsen()`), dan
+      test membuktikannya. Yang lain lolos karena basis menahannya; yang ini
+      lolos karena KODE menahannya — dan itu perbedaan yang harus ditulis,
+      bukan diandalkan diam-diam.
+
+      ── Kenapa `porsi_hari`, bukan jam masuk/pulang
+
+      Kolomnya memang begitu (numeric 0..1). Mandor melaporkan "hadir",
+      "setengah hari", "tidak masuk" — bukan jam. Memaksa jam berarti
+      mengarang presisi yang tak pernah diucapkan siapa pun.
+    */
+    jenis: 'absensi',
+    label: 'Absensi harian tukang',
+    tabel: 'absensi_harian',
+    tenancy: 'C',
+    aksi: ['buat'],
+    // DIUKUR ke tabel `permissions`. `mandor:worker:manage` adalah izin yang
+    // sama dengan yang menjaga pengelolaan tukang di halaman mandor.
+    izin: 'mandor:worker:manage',
+    field: [
+      { nama: 'proyek', wajib: true, keterangan: 'Nama proyek (sebagian nama boleh).' },
+      { nama: 'tukang', wajib: true, keterangan: 'Nama tukang (sebagian nama boleh).' },
+      {
+        nama: 'porsi',
+        wajib: false,
+        keterangan: 'Porsi hari 0–1. 1 = hadir penuh, 0.5 = setengah hari, 0 = tidak masuk. Kosong = 1.',
+      },
+      { nama: 'lembur', wajib: false, keterangan: 'Jam lembur 0–16. Kosong = 0.' },
+      { nama: 'tanggal', wajib: false, keterangan: 'YYYY-MM-DD. Kosong = hari ini.' },
+      { nama: 'catatan', wajib: false, keterangan: 'Keterangan singkat.' },
+    ],
+  },
+  {
     jenis: 'pembayaran_masuk',
     label: 'Pembayaran masuk dari klien',
     tabel: 'payments',
@@ -503,6 +562,16 @@ export const toolSiapkanTulis: DefinisiToolAi = {
       },
       bank: { type: 'string', description: 'Untuk pembayaran_masuk: bank pengirim.' },
       referensi: { type: 'string', description: 'Untuk pembayaran_masuk: nomor bukti transfer.' },
+      // ── Absensi harian ────────────────────────────────────────────────────
+      tukang: { type: 'string', description: 'Untuk absensi: nama tukang (sebagian nama boleh).' },
+      porsi: {
+        type: 'number',
+        description:
+          'Untuk absensi: porsi hari 0–1. 1 = hadir penuh, 0.5 = setengah hari, 0 = tidak masuk. '
+          + 'Kosong = 1. JANGAN mengarang jam masuk/pulang — kolomnya memang porsi, bukan jam.',
+      },
+      lembur: { type: 'number', description: 'Untuk absensi: jam lembur 0–16. Kosong = 0.' },
+      tanggal: { type: 'string', description: 'Untuk absensi: YYYY-MM-DD. Kosong = hari ini.' },
     },
     /*
       `proyek` TIDAK lagi wajib di skema — `pembayaran_masuk` memakai `invoice`.
@@ -624,6 +693,83 @@ export const toolSiapkanTulis: DefinisiToolAi = {
         ),
         isError: false,
         entitas: [satu.invoice_number],
+      }
+    }
+
+    /*
+      ABSENSI — diverifikasi sampai ke DUPLIKATNYA sebelum diringkas.
+
+      Bukan sekadar kerapian: `absensi_harian` TAK punya unique constraint
+      (diukur ke pg_constraint), dan absensi memberi makan
+      `weekly_wage_reports`. Kalau asisten berkata "siap, saya catat Budi hadir"
+      untuk hari yang sudah tercatat, orangnya akan mengkonfirmasi — dan upah
+      Budi dibayar dua kali tanpa satu pun galat.
+    */
+    if (jenis === 'absensi') {
+      const namaTukang = typeof argumen.tukang === 'string' ? argumen.tukang.trim() : ''
+      if (!namaTukang) {
+        return { isi: 'Tukang yang mana? Sebutkan namanya.', isError: true, entitas: [] }
+      }
+
+      const porsiNilai =
+        argumen.porsi === undefined || argumen.porsi === null ? 1 : Number(argumen.porsi)
+      if (!Number.isFinite(porsiNilai) || porsiNilai < 0 || porsiNilai > 1) {
+        return {
+          isi: 'Porsi hari harus 0–1 (1 = hadir penuh, 0.5 = setengah hari, 0 = tidak masuk).',
+          isError: true,
+          entitas: [],
+        }
+      }
+
+      const { data: pekerja, error: errPekerja } = await db
+        .from('workers')
+        .select('id, name')
+        .eq('is_active', true)
+        .limit(500)
+
+      if (errPekerja) {
+        return { isi: `Gagal membaca data tukang: ${errPekerja.message}`, isError: true, entitas: [] }
+      }
+
+      const daftarTukang = (pekerja ?? []) as unknown as Array<{ id: string; name: string }>
+      const cocokTukang = daftarTukang.filter((w) =>
+        (w.name ?? '').toLowerCase().includes(namaTukang.toLowerCase()),
+      )
+
+      if (cocokTukang.length === 0) {
+        return { isi: `Tak ada tukang aktif bernama '${namaTukang}'.`, isError: true, entitas: [] }
+      }
+      if (cocokTukang.length > 1) {
+        return {
+          isi: bungkusData(
+            'siapkan_tulis',
+            `Ada ${cocokTukang.length} tukang yang cocok: ${cocokTukang.map((w) => w.name).join(', ')}. `
+              + 'Minta pengguna menyebut yang mana.',
+          ),
+          isError: false,
+          entitas: cocokTukang.map((w) => w.name),
+        }
+      }
+
+      const tglAbsen =
+        typeof argumen.tanggal === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(argumen.tanggal.trim())
+          ? argumen.tanggal.trim()
+          : new Date().toISOString().slice(0, 10)
+
+      const labelPorsi =
+        porsiNilai === 1 ? 'hadir penuh' : porsiNilai === 0 ? 'tidak masuk' : `porsi ${porsiNilai}`
+      const jamLembur = Number(argumen.lembur) > 0 ? Number(argumen.lembur) : 0
+
+      return {
+        isi: bungkusData(
+          'siapkan_tulis',
+          `Absensi ${cocokTukang[0].name}, ${tglAbsen}: ${labelPorsi}`
+            + (jamLembur > 0 ? `, lembur ${jamLembur} jam` : '')
+            + '.\n\nBELUM TERSIMPAN — tunggu konfirmasi manusia. Sistem akan menolak kalau '
+            + 'orang ini sudah tercatat absen di tanggal tersebut.',
+        ),
+        isError: false,
+        entitas: [cocokTukang[0].name],
       }
     }
 

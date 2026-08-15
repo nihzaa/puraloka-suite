@@ -214,8 +214,13 @@ export async function klaimTokenTulis(opsi: OpsiKlaim): Promise<HasilKlaim> {
    * `muatan.invoice_id` diisi saat penyiapan, sesudah invoicenya diresolusi
    * dan dipastikan milik tenant ini.
    */
-  const penunjuk =
-    t.jenis === 'pembayaran_masuk' ? String(t.muatan.invoice_id ?? '') : t.project_id
+  const PENUNJUK_KHUSUS: Record<string, string> = {
+    // payments  → invoice_id      (tenant-map.generated.ts:176)
+    pembayaran_masuk: String(t.muatan.invoice_id ?? ''),
+    // absensi_harian → scope_id   (→ work_scopes → mandor_assignments)
+    absensi: String(t.muatan.scope_id ?? ''),
+  }
+  const penunjuk = PENUNJUK_KHUSUS[t.jenis] ?? t.project_id
 
   const sasaran =
     meta.tenancy === 'B'
@@ -395,6 +400,28 @@ async function bentukBaris(
       // `mr_number` diisi `trg_generate_mr_number`; `status` dibiarkan bawaan
       // supaya MR ini masuk antrean approval yang sama dengan halaman biasa.
       return { ...dasar, ...t.muatan, requested_by: userId }
+
+    case 'absensi':
+      /*
+       * `scope_id`, BUKAN `project_id` — dan itu bukan detail.
+       *
+       * `absensi_harian` mewarisi tenancy lewat `scope_id` (work_scopes →
+       * mandor_assignments → projects). Kolom `project_id` tak ada di tabel
+       * ini sama sekali, jadi menyebar `dasar` ke sini akan menulis kolom yang
+       * tak pernah ada dan gagal SESUDAH token habis.
+       *
+       * `scope_id` diresolusi & diverifikasi saat penyiapan; yang sampai sini
+       * sudah terbukti milik tenant penanya.
+       */
+      return {
+        scope_id: t.muatan.scope_id,
+        worker_id: t.muatan.worker_id,
+        tanggal: t.muatan.tanggal,
+        porsi_hari: t.muatan.porsi,
+        jam_lembur: t.muatan.lembur,
+        keterangan: t.muatan.catatan ?? null,
+        dicatat_oleh: userId,
+      }
 
     case 'pembayaran_masuk':
       /*

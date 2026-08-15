@@ -34,6 +34,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { ENTITAS_TULIS, entitasTulis, persenSah } from '../../lib/ai-tool-siapkan.js'
 import { klaimTokenTulis, type SebabGagal } from '../../lib/tulis-klaim.js'
+import { terbitkanTokenWa } from '../../lib/tulis-konfirmasi-wa.js'
 
 /**
  * Sebab kegagalan → kode HTTP.
@@ -276,6 +277,31 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
        * menolak permintaan yang sah, dan menebak invoice dari proyek berarti
        * melunasi tagihan yang salah — satu proyek punya banyak invoice.
        */
+      /*
+       * ABSENSI — memakai penerbit yang SAMA dengan WhatsApp.
+       *
+       * Aturan anti-gandanya hidup di `terbitkanAbsensi` (basis tak punya
+       * unique constraint), dan menulis ulang di sini berarti dua tempat yang
+       * harus sama-sama benar. Yang berbeda diam-diam adalah salinan.
+       *
+       * `companyId` & `userId` diambil dari sesi, bukan dari badan permintaan.
+       */
+      if (jenis === 'absensi') {
+        const hasil = await terbitkanTokenWa(
+          request.db!,
+          request.companyId!,
+          request.currentUser!.id,
+          { jenis: 'absensi', argumen: b as unknown as Record<string, unknown> },
+          (pesan: string, err: unknown) => request.log.error({ err }, pesan),
+          // 'web' EKSPLISIT: token bertanda `ai_whatsapp` bisa diklaim kalimat
+          // "ya" dari nomor orang itu — konfirmasi untuk sesuatu yang ia
+          // siapkan di layar, tanpa pernah membacanya di WhatsApp.
+          'web',
+        )
+        if (!hasil.ok) return reply.status(422).send({ error: hasil.pesan })
+        return reply.send({ ringkasan: hasil.ringkasan, jenis, kanal_token: 'ai_whatsapp' })
+      }
+
       if (jenis === 'pembayaran_masuk') {
         const hasil = await siapkanPembayaran(request.db!, b)
         if (!hasil.ok) return reply.status(hasil.kode).send({ error: hasil.pesan })
