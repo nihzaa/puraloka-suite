@@ -5,6 +5,92 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-15 (lanjutan 5) — gerbang keluar: yang menahan telepon berbunyi pukul tiga pagi
+
+Fase 3. PRASYARAT proaktivitas, bukan pelengkap yang bisa menyusul.
+
+### Kenapa ini harus lebih dulu
+
+Diukur ulang sebelum menulis satu baris pun:
+
+    jam tenang        NIHIL di seluruh repo
+    opt-out           NIHIL
+    batas frekuensi   NIHIL
+    throttle kirimWa  NIHIL
+
+Penyedia bawaan (Evolution) juga tak punya batas jendela 24 jam seperti
+WhatsApp Business resmi. Artinya begitu Fase 4 menyala, tak ada satu pun
+lapisan yang mencegah penjadwal mengirim pukul 03:00, berulang, ke orang yang
+tak pernah diminta persetujuannya.
+
+Repo ini SUDAH pernah kena bentuknya: satu alur mengirim 28 WhatsApp sungguhan
+sementara bukunya kosong. Yang menghentikannya bukan penjaga, melainkan
+seseorang yang kebetulan memperhatikan.
+
+### Yang dibangun
+
+`bolehKirim()` — satu pintu keputusan, lima pemeriksaan, semuanya fail-closed:
+
+    1. berhenti      menahan SEGALANYA, termasuk mendesak
+    2. sapaan mati   menahan sapaan tanpa temuan
+    3. jam tenang    ditembus `mendesak`
+    4. hari libur    ditembus `mendesak` (memakai tabel 212, hormati tetap_bekerja)
+    5. kuota harian  ditembus `mendesak`
+
+Balasan atas pertanyaan SENGAJA tidak lewat gerbang: orang yang mengetik
+pukul 23:00 memang sedang menunggu jawaban, dan menahannya berarti memutus
+percakapan yang ia sendiri mulai. Pembedanya bukan isi pesan melainkan SIAPA
+YANG MEMULAI.
+
+### Dua jebakan yang nyaris lolos
+
+**Jam tenang melewati tengah malam.** Rumus naif (`>= mulai && < selesai`)
+menghasilkan rentang KOSONG untuk 21:00-07:00 — bawaannya sendiri. Jam tenang
+takkan pernah berlaku, hijau di tiap test yang cuma memeriksa siang hari, dan
+gagal persis pada malam yang jadi alasan fitur ini ada. Mutasi ujinya
+memerahkan 3 kasus.
+
+**`channel` ternyata ENUM, bukan teks bebas.** Saya sempat menandai pesan
+proaktif dengan `channel: 'proaktif'`; pemeriksaan pertama saya cuma mencari
+CHECK constraint dan melewatkan `notification_channel` (push|whatsapp|email).
+Dipindah ke awalan `type` — yang memang sudah dipakai dedup harian, jadi
+penghitungnya ikut satu sumber angka.
+
+### Penjaganya HIJAU-KARENA-BUTA lagi, dua kali
+
+`audit-proaktif-lewat-gerbang` G-1:
+
+1. mencabut pemanggilan `didalamJamTenang(...)` dari `bolehKirim` tak
+   memerahkan apa pun — fungsinya masih DIDEFINISIKAN di berkas yang sama,
+   dan regex seluruh berkas tetap menemukannya;
+2. diperbaiki ke badan fungsi, tapi `maksPerHari` masih hijau karena pesan
+   galat di bawahnya juga menyebut nama itu.
+
+Pola yang PERSIS SAMA sudah menggigit dua kali di `audit-ingatan-tak-bocor`
+kemarin. Sekarang yang dicocokkan KEPUTUSANNYA (`const sisa = ... - dipakai`,
+`sisa <= 0`), bukan sebutan namanya.
+
+Saya juga menemukan satu klaim tak berdasar dalam test saya sendiri: daftar
+"yang dibuktikan" menyebut fail-closed, padahal tak ada testnya. Ketahuan
+karena mutasi M3 tak memerahkan apa pun. Ditambahkan (`db` palsu yang selalu
+gagal), lalu dibuktikan merah.
+
+### Bukti
+
+    migrasi 389/390  sukses · idempoten · batasan DITOLAK saat diuji
+                     (jam 25:00 ditolak, kuota 300 ditolak, bawaan protektif)
+    tenant-map       di-regenerate: preferensi_pesan kategori B (259 tabel)
+    tsc api / web    0 / 0
+    eslint halaman   0 error 0 warning
+    gerbang-kirim    21 hijau
+    mutasi test      3/3 MERAH (jam tenang 3 kasus, opt-out 1, fail-closed 2)
+    mutasi penjaga   G-1 (3 pemeriksaan), G-2, G-3, G-4 → semua MERAH lalu pulih
+    penjaga          11 dijalankan, 11 hijau
+
+Fase 4 (proaktivitas) sekarang boleh dibangun — gerbangnya berdiri.
+
+---
+
 ## 2026-08-15 (lanjutan 4) — halaman ingatan, dan saya salah TIGA KALI soal "kerja sesi lain"
 
 ### Yang saya laporkan salah

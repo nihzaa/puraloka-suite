@@ -27,6 +27,7 @@ import keamananRoutes from './routes/v1/keamanan.js'
 import mutuIkhtisarRoutes from './routes/v1/mutu-ikhtisar.js'
 import aiTulisRoutes from './routes/v1/ai-tulis.js'
 import aiIngatanRoutes from './routes/v1/ai-ingatan.js'
+import preferensiPesanRoutes from './routes/v1/preferensi-pesan.js'
 import kasbonRoutes from './routes/v1/kasbons.js'
 import clientRoutes from './routes/v1/clients.js'
 import userRoutes from './routes/v1/users.js'
@@ -337,6 +338,7 @@ await app.register(keamananRoutes)
 await app.register(mutuIkhtisarRoutes)
 await app.register(aiTulisRoutes)
 await app.register(aiIngatanRoutes)
+await app.register(preferensiPesanRoutes)
 await app.register(kasbonRoutes)
 await app.register(clientRoutes)
 await app.register(userRoutes)

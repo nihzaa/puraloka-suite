@@ -2476,14 +2476,17 @@ items:
       - "definisi 'mendesak' diatur dari UI, tidak dipaku"
       - "hari libur (tabel hari_libur) dihormati"
       - "penjaga audit-proaktif-lewat-gerbang.mjs (ambang NOL) dibuktikan bisa merah"
-    cara_verifikasi: "test: jam tenang menahan · mendesak menembus · maks_per_hari menahan ke-N+1"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/gerbang-kirim.test.ts
+      (21 hijau) · node apps/api/scripts/audit-proaktif-lewat-gerbang.mjs (exit 0)
     bobot: M
-    status: todo
+    status: done
     catatan_kemajuan: >-
-      Diukur 2026-08-14: repo ini NOL jam tenang, NOL opt-out, NOL rate limit
-      outbound. Penyedia WA default (Evolution) juga tak punya batas jendela 24
-      jam. Tanpa fase ini, ASISTEN-4 adalah mesin spam — dan repo ini sudah
-      pernah mengirim 28 WhatsApp sungguhan tanpa tercatat.
+      SELESAI. Lima pemeriksaan fail-closed (berhenti, sapaan, jam tenang,
+      hari libur, kuota); `mendesak` menembus semuanya KECUALI opt-out.
+      Balasan sengaja tak lewat gerbang — pembedanya siapa yang memulai,
+      bukan isi pesan. Halaman /pengaturan/preferensi-pesan tanpa
+      required_permissions: opt-out yang butuh izin bukan opt-out.
 
   - id: ASISTEN-4
     fase: null

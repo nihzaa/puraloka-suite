@@ -570,6 +570,18 @@ jobs:
       - name: Ingatan asisten tak bocor (ambang NOL)
         run: node scripts/audit-ingatan-tak-bocor.mjs
 
+      # PRASYARAT proaktivitas. Repo ini NOL jam tenang, NOL opt-out, NOL
+      # batas frekuensi sampai migrasi 389 — dan `kirimWa` tak punya throttle
+      # sama sekali. Penyedia bawaan (Evolution) juga tak punya batas jendela
+      # 24 jam seperti WhatsApp Business resmi.
+      #
+      # Menambah satu `kirimWa` di penjadwal adalah lima baris yang tampak
+      # wajar. Yang terjadi sesudahnya: pesan pukul 03:00, berulang, ke orang
+      # yang tak pernah diminta persetujuannya — nol galat, nol test merah.
+      # Repo ini sudah pernah mengirim 28 WhatsApp sungguhan seperti itu.
+      - name: Pesan proaktif lewat gerbang (ambang NOL)
+        run: node scripts/audit-proaktif-lewat-gerbang.mjs
+
       # T-1. AMBANG NOL, berbeda dari `audit-gerbang-tenancy` yang memakai
       # ratchet — dan bedanya disengaja: untuk utang lama "tak boleh bertambah"
       # masuk akal, untuk jalur AI tidak. SATU tool yang bocor sudah cukup
