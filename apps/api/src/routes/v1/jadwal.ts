@@ -211,6 +211,16 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'izin-kedaluwarsa': {
+    label: 'Izin Kedaluwarsa',
+    keterangan: 'Izin proyek & izin kerja yang habis, plus izin penghalang yang belum terbit.',
+    jalur: '/api/v1/otomasi/jalankan/izin-kedaluwarsa',
+  },
+  'risiko-lewat-tinjau': {
+    label: 'Risiko Lewat Tenggat Tinjau',
+    keterangan: 'Risiko yang berhenti ditinjau, dengan tenggang menurut skornya.',
+    jalur: '/api/v1/otomasi/jalankan/risiko-lewat-tinjau',
+  },
   'insiden-k3-belum-ditutup': {
     label: 'Insiden K3 Belum Ditutup',
     keterangan: 'Insiden yang menggantung, dengan tenggang berskala menurut beratnya.',

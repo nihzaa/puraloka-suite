@@ -1181,6 +1181,57 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'sah, temuan audit di bawahnya berpijak pada dokumen yang belum '
       + 'berlaku.',
   },
+  {
+    kunci: 'izin-kedaluwarsa',
+    nomor: '9.1',
+    nama: 'Izin proyek & izin kerja kedaluwarsa',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Memeriksa izin dari pemerintah (PBG, izin lingkungan, pemanfaatan '
+      + 'ruang) dan izin kerja internal yang mendekati atau melewati masa '
+      + 'berlakunya, serta izin yang seharusnya terbit sebelum pekerjaan '
+      + 'dimulai tetapi belum ada.',
+    penerima: 'Bagian perizinan & K3',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca izin proyek yang sudah terbit dan masa berlakunya.' },
+      { di: 'sistem', teks: 'Memeriksa izin penghalang yang belum terbit di proyek berjalan.' },
+      { di: 'sistem', teks: 'Memeriksa izin kerja disetujui yang masa berlakunya habis.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.izin.hari',
+    catatan:
+      'Izin yang BELUM PERNAH terbit lebih genting daripada izin yang habis '
+      + 'masa berlakunya — yang kedua pernah sah, yang pertama tidak pernah. '
+      + 'Izin terbit yang tanggal akhirnya kosong dihitung dan DILAPORKAN '
+      + 'terpisah: mungkin berlaku selamanya, mungkin tanggalnya belum diisi, '
+      + 'dan keduanya terlihat sama di basis.',
+  },
+  {
+    kunci: 'risiko-lewat-tinjau',
+    nomor: '9.4',
+    nama: 'Risiko lewat tenggat tinjau',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menegur risiko proyek yang berhenti ditinjau ulang, dengan tenggang '
+      + 'yang lebih pendek untuk risiko berskor tinggi.',
+    penerima: 'Pemilik risiko & manajer proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca risiko yang masih aktif beserta skornya.' },
+      { di: 'sistem', teks: 'Menghitung tenggang menurut skor tiap risiko.' },
+      { di: 'sistem', teks: 'Memisahkan risiko tinggi yang belum punya tenggat tinjau.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.risiko_tinjau.hari',
+    catatan:
+      'Yang ditegur bukan risikonya melainkan PENINJAUANNYA yang berhenti — '
+      + 'daftar risiko yang tak pernah ditinjau berubah jadi dokumen '
+      + 'kepatuhan yang tak seorang pun membacanya. Risiko tinggi yang belum '
+      + 'punya tenggat tinjau ditegur terpisah: tanpa jadwal, ia tak akan '
+      + 'pernah muncul di daftar lewat-tenggat mana pun, jadi risiko paling '
+      + 'besar justru jadi yang paling mungkin terlupakan.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */

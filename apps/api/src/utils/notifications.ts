@@ -145,6 +145,11 @@ export type NotificationType =
   | 'material_tanpa_batas_minimum'
   | 'audit_mutu_lewat_jadwal'
   | 'rencana_mutu_belum_disetujui'
+  | 'izin_proyek_kedaluwarsa'
+  | 'izin_penghalang_belum_terbit'
+  | 'izin_kerja_kedaluwarsa'
+  | 'risiko_lewat_tinjau'
+  | 'risiko_tinggi_tanpa_tenggat'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

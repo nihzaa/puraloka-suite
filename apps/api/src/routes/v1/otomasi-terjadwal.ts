@@ -5434,6 +5434,410 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/izin-kedaluwarsa ────────────────────────
+  //
+  // Automation 9.1 — Regulatory Compliance Checklist.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // DUA JENIS IZIN YANG BERBEDA AKIBATNYA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  //   `izin_proyek`  izin dari pemerintah — PBG, UKL-UPL, Izin Pemanfaatan
+  //                  Ruang. Kedaluwarsa berarti bangunannya berdiri tanpa
+  //                  dasar hukum, dan yang menanggung pemiliknya.
+  //
+  //   `izin_kerja`   izin kerja internal (permit to work) — bekerja di
+  //                  ketinggian, panas, ruang terbatas. Kedaluwarsa berarti
+  //                  orang masih bekerja di bawah izin yang sudah habis.
+  //
+  // Terukur di basis dev:
+  //
+  //     Izin Pemanfaatan Ruang  650/IPR/2024/0098  status `terbit`
+  //                             berlaku sampai 2025-11-05 — SUDAH LEWAT
+  //     PBG 503/PBG/2025/0417   berakhir 46 hari lagi
+  //     2 izin kerja `disetujui` yang masa berlakunya sudah habis
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // IZIN YANG BELUM DIURUS SAMA SEKALI IKUT DIPERIKSA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // `izin_proyek.menghalangi_mulai` menandai izin yang tanpanya pekerjaan tak
+  // boleh dimulai. Izin semacam itu yang masih berstatus `rencana` atau
+  // `diajukan` sementara proyeknya sudah berjalan adalah keadaan yang jauh
+  // lebih genting daripada izin yang habis masa berlakunya — yang kedua pernah
+  // sah, yang pertama tidak pernah.
+  app.get('/api/v1/otomasi/jalankan/izin-kedaluwarsa', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.izin.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['izin_proyek_kedaluwarsa', 'izin_penghalang_belum_terbit', 'izin_kerja_kedaluwarsa'])
+
+    const idProyek = await request.db!.projectIds()
+
+    const { data: izinProyek, error } = idProyek.length
+      ? await request.db!
+          .unsafe('izin_proyek', 'kategori C lewat project_id; disaring ke projectIds()')
+          .select('id, project_id, jenis, nomor, status, berlaku_sampai, menghalangi_mulai')
+          .in('project_id', idProyek)
+      : { data: [], error: null }
+    if (error) return reply.status(500).send({ error: error.message })
+
+    // `izin_kerja` kategori B — `.from()` menyaringnya langsung.
+    const { data: izinKerja, error: eKerja } = await request.db!
+      .from('izin_kerja')
+      .select('id, project_id, nomor, jenis, status, berlaku_sampai, lokasi')
+
+    if (eKerja) return reply.status(500).send({ error: eKerja.message })
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects').select('id, name, status')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+    const berjalan = new Set((proyek ?? [])
+      .filter((p) => p.status === 'active' || p.status === 'on_hold')
+      .map((p) => p.id as string))
+
+    const sisaHari = (sampai: unknown) => {
+      const t = String(sampai ?? '').slice(0, 10)
+      if (!t) return null
+      return Math.round(
+        (Date.parse(t + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 86_400_000)
+    }
+
+    let lewatProyek = 0
+    let penghalang = 0
+    let lewatKerja = 0
+    let tanpaMasaBerlaku = 0
+    let dibuat = 0
+
+    for (const z of izinProyek ?? []) {
+      const pid = z.project_id as string
+      const st = String(z.status ?? '')
+
+      /*
+        Izin PENGHALANG yang belum terbit, sementara proyeknya sudah berjalan.
+
+        Lebih genting daripada izin yang habis masa berlakunya: yang kedua
+        pernah sah, yang pertama tidak pernah. Dan `menghalangi_mulai`
+        menyatakan sendiri bahwa pekerjaan seharusnya belum dimulai.
+      */
+      if (z.menghalangi_mulai === true && st !== 'terbit' && berjalan.has(pid)) {
+        penghalang++
+        if (!sudah('izin_penghalang_belum_terbit', z.id as string)) {
+          const penerima = await resolveRecipients('izin_penghalang_belum_terbit', {
+            projectId: pid, companyId: request.companyId!,
+          })
+          for (const uid of penerima) {
+            await createNotification({
+              company_id: request.companyId!,
+              user_id:    uid,
+              title:      'Izin Penghalang Belum Terbit — Proyek Sudah Berjalan',
+              message:
+                `${z.jenis} untuk ${namaProyek.get(pid)} masih berstatus `
+                + `"${st}", padahal izin ini ditandai menghalangi dimulainya `
+                + 'pekerjaan dan proyeknya sudah berjalan.',
+              type:       'izin_penghalang_belum_terbit',
+              priority:   'urgent',
+              project_id: pid,
+              action_url: '/risiko/izin',
+              action_data: { record_id: z.id as string, jenis: z.jenis, status: st },
+            })
+            dibuat++
+          }
+        }
+        continue
+      }
+
+      // Hanya izin yang sudah TERBIT yang punya masa berlaku untuk habis.
+      if (st !== 'terbit') continue
+
+      const sisa = sisaHari(z.berlaku_sampai)
+      /*
+        `berlaku_sampai` KOSONG dihitung dan dilaporkan, bukan dilewati diam.
+
+        Izin tanpa tanggal akhir mungkin memang berlaku selamanya — atau
+        mungkin tanggalnya belum diisi. Keduanya terlihat sama di basis, dan
+        otomasi ini tak boleh memilih tafsir yang lebih nyaman.
+      */
+      if (sisa == null) { tanpaMasaBerlaku++; continue }
+      if (sisa > ambangHari) continue
+      lewatProyek++
+
+      if (sudah('izin_proyek_kedaluwarsa', z.id as string)) continue
+
+      const penerima = await resolveRecipients('izin_proyek_kedaluwarsa', {
+        projectId: pid, companyId: request.companyId!,
+      })
+      const kapan = sisa < 0 ? `SUDAH LEWAT ${Math.abs(sisa)} hari`
+        : sisa === 0 ? 'berakhir HARI INI' : `berakhir ${sisa} hari lagi`
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      sisa < 0 ? 'Izin Proyek Sudah Kedaluwarsa'
+                               : 'Izin Proyek Mendekati Akhir Masa Berlaku',
+          message:
+            `${z.jenis} (${z.nomor}) untuk ${namaProyek.get(pid)} ${kapan}.`
+            + (sisa < 0
+              ? ' Selama belum diperbarui, pekerjaan di lokasi berjalan tanpa'
+                + ' dasar izin yang sah.'
+              : ' Pengurusan perpanjangan biasanya makan waktu berminggu-minggu.'),
+          type:       'izin_proyek_kedaluwarsa',
+          priority:   sisa < 0 ? 'urgent' : 'high',
+          project_id: pid,
+          action_url: '/risiko/izin',
+          action_data: {
+            record_id: z.id as string, jenis: z.jenis, nomor: z.nomor, sisa_hari: sisa,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    for (const k of izinKerja ?? []) {
+      /*
+        Hanya izin kerja yang DISETUJUI yang berbahaya saat kedaluwarsa —
+        itulah yang dipakai orang untuk bekerja. Yang `diajukan` atau `ditolak`
+        tak pernah memberi hak masuk kepada siapa pun.
+      */
+      if (String(k.status ?? '') !== 'disetujui') continue
+      const sisa = sisaHari(k.berlaku_sampai)
+      if (sisa == null || sisa >= 0) continue
+      lewatKerja++
+
+      if (sudah('izin_kerja_kedaluwarsa', k.id as string)) continue
+
+      const pid = (k.project_id as string | null) ?? null
+      const penerima = await resolveRecipients('izin_kerja_kedaluwarsa', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Izin Kerja Sudah Habis Masa Berlakunya',
+          message:
+            `Izin kerja ${k.nomor} (${k.jenis}) masih berstatus disetujui `
+            + `tetapi masa berlakunya habis ${Math.abs(sisa)} hari lalu`
+            + (k.lokasi ? ` — lokasi ${k.lokasi}` : '')
+            + '. Kalau pekerjaannya masih berjalan, ia berjalan tanpa izin; '
+            + 'kalau sudah selesai, izinnya perlu ditutup.',
+          type:       'izin_kerja_kedaluwarsa',
+          priority:   'high',
+          project_id: pid ?? undefined,
+          action_url: '/k3',
+          action_data: {
+            record_id: k.id as string, nomor: k.nomor, lewat_hari: Math.abs(sisa),
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        izin_proyek: (izinProyek ?? []).length,
+        mendekat_atau_lewat: lewatProyek,
+        penghalang_belum_terbit: penghalang,
+        izin_kerja_lewat: lewatKerja,
+        // Dilaporkan EKSPLISIT: izin terbit yang tanggal akhirnya kosong.
+        // Mungkin berlaku selamanya, mungkin tanggalnya belum diisi — dan
+        // keduanya terlihat sama.
+        izin_tanpa_masa_berlaku: tanpaMasaBerlaku,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/risiko-lewat-tinjau ─────────────────────
+  //
+  // Automation 9.4 — Risk Register Review.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // YANG DITEGUR BUKAN RISIKONYA — MELAINKAN PENINJAUANNYA YANG BERHENTI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Daftar risiko yang tak pernah ditinjau ulang berubah jadi dokumen
+  // kepatuhan: ada, lengkap, dan tak seorang pun membacanya. Yang membuatnya
+  // hidup adalah tenggat tinjau — dan tenggat yang lewat tanpa berbunyi
+  // membuat seluruh daftar itu diam-diam kedaluwarsa.
+  //
+  // Terukur: RSK-01 "Keterlambatan pasokan baja tulangan", skor 16 (dampak 4 ×
+  // kemungkinan 4), tenggat tinjau lewat 10 hari.
+  //
+  // ── Tenggangnya BERSKALA menurut skor, seperti insiden K3
+  //
+  // Risiko berskor 16 yang telat ditinjau seminggu berbeda jauh dari risiko
+  // berskor 2 yang telat sebulan. Ambang tunggal memaksa memilih satu di
+  // antara dua kesalahan.
+  //
+  // Skornya `dampak × kemungkinan`, jadi 1–25. Pembaginya dipaku: risiko
+  // berskor tinggi mendapat tenggang lebih pendek, dan perbandingan itu tak
+  // boleh bisa disetel terbalik dari UI.
+  app.get('/api/v1/otomasi/jalankan/risiko-lewat-tinjau', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string; skor?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.risiko_tinjau.hari', q.hari)
+    const ambangSkor = await ambilAmbang(request, 'otomasi.risiko_tinjau.skor', q.skor)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['risiko_lewat_tinjau', 'risiko_tinggi_tanpa_tenggat'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { risiko_aktif: 0, lewat_tinjau: 0, ambang_hari: ambangHari },
+      })
+    }
+
+    const { data: risiko, error } = await request.db!
+      .unsafe('risiko_proyek', 'kategori C lewat project_id; disaring ke projectIds()')
+      .select('id, project_id, kode, judul, kategori, skor, strategi, status, tenggat_tinjau')
+      .in('project_id', idProyek)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects').select('id, name')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    let aktif = 0
+    let lewat = 0
+    let tanpaTenggat = 0
+    let dibuat = 0
+
+    for (const r of risiko ?? []) {
+      const st = String(r.status ?? '')
+      /*
+        `tertutup`, DIUKUR dari enum `status_risiko` — bukan ditebak.
+
+        Versi pertama menyaring `ditutup`/`selesai`/`batal`, dan tak satu pun
+        dari ketiganya ada di enum ini (`terjadi` · `terpantau` · `tertutup`).
+        Saringannya tak pernah cocok dengan apa pun, jadi risiko yang sudah
+        ditutup tetap ditegur selamanya — tanpa satu pun galat, karena
+        membandingkan teks dengan teks selalu sah.
+
+        `terjadi` SENGAJA tetap diawasi: risiko yang sudah terjadi justru
+        paling butuh ditinjau, bukan paling boleh dilupakan.
+      */
+      if (st === 'tertutup') continue
+      aktif++
+
+      const skor = Number(r.skor ?? 0)
+      const pid = r.project_id as string
+
+      /*
+        Risiko berskor tinggi TANPA tenggat tinjau sama sekali.
+
+        Ini bukan risiko yang terlambat ditinjau — ini risiko yang tak pernah
+        dijadwalkan untuk ditinjau. Diam terhadapnya membuat risiko paling
+        besar justru yang paling mungkin terlupakan, karena ia tak akan pernah
+        muncul di daftar "lewat tenggat" mana pun.
+      */
+      if (!r.tenggat_tinjau) {
+        if (skor < ambangSkor) continue
+        tanpaTenggat++
+        if (sudah('risiko_tinggi_tanpa_tenggat', r.id as string)) continue
+
+        const penerima = await resolveRecipients('risiko_tinggi_tanpa_tenggat', {
+          projectId: pid, companyId: request.companyId!,
+        })
+        for (const uid of penerima) {
+          await createNotification({
+            company_id: request.companyId!,
+            user_id:    uid,
+            title:      'Risiko Tinggi Belum Dijadwalkan Ditinjau',
+            message:
+              `${r.kode} "${r.judul}" di ${namaProyek.get(pid)} berskor ${skor} `
+              + 'tetapi belum punya tenggat tinjau. Selama tak dijadwalkan, ia '
+              + 'tak akan pernah muncul di daftar yang lewat tenggat — risiko '
+              + 'paling besar justru jadi yang paling mungkin terlupakan.',
+            type:       'risiko_tinggi_tanpa_tenggat',
+            priority:   'high',
+            project_id: pid,
+            action_url: '/risiko',
+            action_data: { record_id: r.id as string, kode: r.kode, skor },
+          })
+          dibuat++
+        }
+        continue
+      }
+
+      const tenggat = String(r.tenggat_tinjau).slice(0, 10)
+      const telat = Math.round(
+        (Date.parse(today + 'T00:00:00Z') - Date.parse(tenggat + 'T00:00:00Z')) / 86_400_000)
+
+      /*
+        Tenggang BERSKALA: makin tinggi skornya, makin pendek tenggangnya.
+
+        Skor 1–25. Pembagi 5 dipilih supaya skor 25 hampir tak punya tenggang
+        dan skor 1 mendapat tenggang penuh. Perbandingannya dipaku di kode —
+        membuat risiko berskor 25 bisa disetel lebih longgar daripada skor 1
+        adalah pilihan yang tak boleh tersedia.
+      */
+      const tenggangnya = Math.max(0, Math.round(ambangHari * (1 - Math.min(skor, 25) / 26)))
+      if (telat < tenggangnya) continue
+      lewat++
+
+      if (sudah('risiko_lewat_tinjau', r.id as string)) continue
+
+      const penerima = await resolveRecipients('risiko_lewat_tinjau', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Risiko Lewat Tenggat Tinjau',
+          message:
+            `${r.kode} "${r.judul}" (${r.kategori}, skor ${skor}) di `
+            + `${namaProyek.get(pid)} seharusnya ditinjau ${tenggat} — sudah `
+            + `lewat ${telat} hari. Strategi tercatat: ${r.strategi ?? '—'}. `
+            + 'Daftar risiko yang berhenti ditinjau berubah jadi dokumen '
+            + 'kepatuhan yang tak seorang pun membacanya.',
+          type:       'risiko_lewat_tinjau',
+          priority:   skor >= ambangSkor ? 'high' : 'normal',
+          project_id: pid,
+          action_url: '/risiko',
+          action_data: {
+            record_id: r.id as string, kode: r.kode, skor,
+            telat_hari: telat, tenggang_skor_ini: tenggangnya,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        risiko_aktif: aktif,
+        lewat_tinjau: lewat,
+        tinggi_tanpa_tenggat: tanpaTenggat,
+        ambang_hari: ambangHari,
+        ambang_skor: ambangSkor,
+      },
+    })
+  })
 }
 
 /**

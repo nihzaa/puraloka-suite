@@ -21934,3 +21934,70 @@ mutasi blok verifikasi 410        4/4 MERAH lalu pulih
 14 penjaga arsitektural           exit=0
 lint:ratchet                      0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 (4) — Gelombang 1: izin 9.1 · risiko 9.4
+
+35 rute terjadwal, 43 nomor katalog (dari 33/42).
+
+### Temuan kepatuhan yang sudah ada sebelum kode ini
+
+```
+650/IPR/2024/0098  "Izin Pemanfaatan Ruang"  status `terbit`
+                   berlaku sampai 2025-11-05  —  LEWAT 283 HARI
+```
+
+Proyek Rumah Bu Sari — Dago berjalan tanpa dasar izin pemanfaatan ruang yang
+sah, dan tak ada satu pun layar yang memberitahu. Plus 2 izin kerja
+(`ketinggian` dan `pekerjaan_panas`) masih berstatus **disetujui** padahal
+masa berlakunya habis 8 dan 9 hari lalu — orang bisa masih bekerja di bawahnya.
+
+### Saya salah: nilai enum yang saya tebak tak satu pun ada
+
+Versi pertama 9.4 menyaring risiko tertutup dengan
+`status === 'ditutup' || 'selesai' || 'batal'`. Enum `status_risiko` berisi
+**`terjadi` · `terpantau` · `tertutup`** — tak satu pun cocok.
+
+Saringan yang tak pernah cocok **tak menghasilkan galat**: membandingkan teks
+dengan teks selalu sah. Yang terjadi cuma risiko tertutup ditegur selamanya,
+dan daftar itu tak akan pernah bisa dikosongkan.
+
+Sekalian dinyatakan: `terjadi` SENGAJA tetap diawasi. Risiko yang sudah terjadi
+justru paling butuh ditinjau — dampaknya sedang berjalan dan strateginya jelas
+belum bekerja. Menyamakannya dengan "selesai" adalah kesalahan yang paling
+mudah dibuat.
+
+### Satu mutasi LOLOS karena mutasinya salah sasaran
+
+`izin-ambang-mati` memakai jangkar `if (sisa > ambangHari) continue` — string
+yang sama muncul LEBIH DULU di rute kontrak-payung, jadi `replace(…, 1)`
+mengenai rute lain. Mutasi yang tak menyentuh kode yang diuji tentu saja lolos,
+dan itu **bukan** bukti test-nya lemah. Diulang dengan jangkar tiga baris yang
+unik → merah.
+
+Pelajarannya melekat pada alat ukurnya, bukan pada kodenya: **mutasi berjangkar
+string pendek bisa mendarat di tempat lain tanpa gejala.**
+
+### Tujuh constraint schema yang saya langgar di fixture — semuanya benar
+
+`risiko_proyek.skor` kolom TURUNAN (`dampak × kemungkinan`, tak bisa diisi) ·
+`risiko_tertutup_beralasan` (alasan ≥10 karakter) · `risiko_terjadi_bertanggal` ·
+`izin_proyek_terbit_bernomor` · `izin_keputusan_lengkap` ·
+`izin_setuju_ada_pengendalian` (pengendalian risiko ≥10 karakter) ·
+`izin_tolak_beralasan`.
+
+Skor yang bisa diisi sendiri memungkinkan risiko berdampak 5 dan berkemungkinan
+5 dicatat berskor 1, dan tak ada yang bisa menemukannya. Izin ketinggian yang
+disetujui tanpa menyebut apa pengamannya bukan izin, itu formulir. Basisnya
+menolak keduanya, dan itu benar.
+
+### Bukti
+
+```
+otomasi-izin-risiko.test.ts       8 passed
+mutasi rute                       8/8 MERAH lalu pulih (1 diulang, salah jangkar)
+mutasi blok verifikasi 411        4/4 MERAH lalu pulih
+13 penjaga arsitektural           exit=0
+lint:ratchet                      0 error, 231 warning
+```

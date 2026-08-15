@@ -220,6 +220,44 @@ export const AMBANG_OTOMASI = {
     label: 'Hari sesudah proyek selesai sebelum retensi tertahan ditegur',
   },
   /*
+    Izin proyek mendekati akhir. Bawaan 60 hari.
+
+    Panjang, karena mengurus perpanjangan PBG atau izin lingkungan menuntut
+    berkas, biaya, dan antrean di dinas — bukan sekadar memperbarui tanggal.
+  */
+  'otomasi.izin.hari': {
+    bawaan: 60,
+    min: 1,
+    max: 365,
+    label: 'Hari sebelum izin proyek habis mulai diperingatkan',
+  },
+  /*
+    Risiko lewat tenggat tinjau. Bawaan 14 hari — tenggang PENUH untuk skor
+    terendah, dan menyusut sebanding skornya (rumusnya di rute).
+
+    Risiko berskor 16 yang telat ditinjau seminggu berbeda jauh dari risiko
+    berskor 2 yang telat sebulan. Ambang tunggal memaksa memilih satu di
+    antara dua kesalahan.
+  */
+  'otomasi.risiko_tinjau.hari': {
+    bawaan: 14,
+    min: 0,
+    max: 180,
+    label: 'Tenggang hari sesudah tenggat tinjau risiko (menyusut menurut skor)',
+  },
+  /*
+    Skor risiko yang disebut "tinggi". Bawaan 12 dari maksimum 25.
+
+    Dipakai dua kali: menentukan prioritas notifikasi, dan menentukan risiko
+    mana yang ditegur karena belum PUNYA tenggat tinjau sama sekali.
+  */
+  'otomasi.risiko_tinjau.skor': {
+    bawaan: 12,
+    min: 1,
+    max: 25,
+    label: 'Skor risiko yang dianggap tinggi (dampak × kemungkinan, 1–25)',
+  },
+  /*
     Insiden K3 belum ditutup. Bawaan 7 hari — ambang DASAR, bukan tunggal.
 
     Rutenya mengalikannya dengan pengali per jenis yang DIPAKU di kode:
