@@ -5,6 +5,92 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (lanjutan 5) — 6.9 + 9.8, dan riset paralel yang membatalkan satu rencana
+
+Founder meminta kerja paralel. Ketiga otomasi menyentuh berkas yang SAMA, jadi
+yang diparalelkan **pengukurannya**, bukan penulisannya — tiga agen riset
+read-only, lalu ditulis berurutan dengan hasilnya di tangan.
+
+### Riset ketiga membatalkan 2.9
+
+`project_expenses` = **0 baris**, dan itulah satu-satunya sumber realisasi yang
+dipakai `analisaProyek`. Uang yang benar-benar keluar ada di `kasbons` — **Rp
+545 juta di 11 proyek**. Otomasi 2.9 apa adanya akan melaporkan 0% untuk proyek
+yang sebenarnya 45%.
+
+Persis kegagalan `stok-menipis`: diam berbulan-bulan sambil melaporkan sehat.
+Ditunda; sumber realisasinya keputusan bisnis, bukan teknis.
+
+### 9.8 — katalog minta "score", yang dibangun bukan itu
+
+Tiga alasan terukur menolak skor: `inspeksi_k3` tak punya kolom frekuensi sama
+sekali, `persen_berlaku` sengaja `null` saat nol pekerja (skor memaksanya jadi
+angka), dan tujuh temuan membuat skor bergerak belasan persen per satu
+penutupan.
+
+Yang dikirim tiga peringatan terpisah — dan terpisahnya bukan kerapian: dedup
+harian bekerja per (jenis, record).
+
+### Enam kali menebak, satu di antaranya lolos ke runtime
+
+`pegawai.nama` tak ada — namanya di `users` lewat `user_id`. Otomasi balas 500
+pada jalan pertama lewat penjadwal. Nama kolom PostgREST hanyalah string, jadi
+typecheck tak bisa menangkapnya; hanya menjalankannya sungguhan yang bisa.
+
+### Satu klaim saya yang lebih besar dari yang bisa diuji
+
+Saya menulis bahwa otomasi menjaga sertifikat `berjangka=true` tanpa tanggal.
+Test mencoba menyisipkan barisnya dan **basis menolak**:
+
+    CHECK (NOT berjangka OR berlaku_sampai IS NOT NULL)
+
+Cabang itu tak bisa dicapai. Pustakanya tetap benar mempertahankannya; otomasi
+ini tak lagi mengklaim menjaganya.
+
+### Dan dua cacat yang penjaga temukan di kode saya sendiri
+
+1. **Tiga query tanpa cek `error`** — induksi yang gagal terbaca akan membuat
+   SELURUH pekerja terhitung "belum diinduksi", menuduh proyek yang patuh.
+   `audit-kegagalan-senyap` menangkapnya.
+2. **Invarian ember bocor** — `diperiksa++` di tengah, sebelum tiga query yang
+   bisa `continue`. Proyek yang gagal terhitung di dua ember sekaligus. Test
+   hanya menangkapnya saat kegagalan benar-benar terjadi, jadi ia bisa hijau
+   berbulan-bulan. Dipindah ke akhir supaya benar secara STRUKTUR.
+
+### Sesi lain, dan satu kesalahan saya
+
+Commit port (`13e551e9`) memakai `git add -A` dan menyapu tiga berkas sesi
+lain (`usul-tulis.test.ts`, `ai-chat.ts`, `rail-asisten.tsx`). Pekerjaannya
+aman — tersimpan utuh, tak ada yang hilang — tetapi pesan commit saya tak
+menyebutnya.
+
+Sejak commit ini: **tak ada lagi `git add -A`**, setiap path disebut eksplisit.
+Terbukti perlu — sesi itu sedang membongkar `ai-tulis.ts` (−288 baris) dan
+typecheck-nya merah di tengah jalan.
+
+### Bukti
+
+    otomasi-sertifikat-k3   7/7 hijau
+    ujung-ke-ujung          lewat penjadwal SUNGGUHAN, bukan hanya test:
+                              "Ahli K3 Umum atas nama Bapak Hendra Susanto
+                               berakhir dalam 51 hari"
+                              "2 temuan berat masih terbuka, 2 lewat tenggat"
+                              "2 kategori temuan berulang (apd, housekeeping)"
+                              "2 induksi kedaluwarsa, 6 pekerja belum diinduksi"
+    dedup                   156 → 156 pada jalan kedua
+    penerima                13 × 10 proyek = 130, nol kembar
+    migrasi 403             lulus verifikasi (4 aturan, 8 target, ambang, jadwal)
+    penjaga                 12 dijalankan, 12 hijau
+    ratchet kegagalan-senyap 186 (tetap di lantai)
+    build + lint            sukses · api 0/231 · web 0/295
+
+    mutasi (ketiganya wajib merah, ketiganya terbukti):
+      ijazah ikut ditegur (abaikan berjangka)  MERAH → pulih HIJAU
+      batas bawah dibuang                      MERAH → pulih HIJAU
+      ketiga jenis K3 disamakan                MERAH → pulih HIJAU
+
+---
+
 ## 2026-08-16 (lanjutan 4) — tenant hantu: yang benar bukan menghapusnya
 
 Founder menjawab *"saya ikut yg terbaik"*. Saya kira yang terbaik menghapus

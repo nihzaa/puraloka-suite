@@ -1870,6 +1870,493 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/sertifikat-berakhir ─────────────────────
+  //
+  // Automation 6.9 — HR Document Reminder.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // MEMANGGIL `nilaiSertifikat()`, TIDAK MENGHITUNG SENDIRI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Pelajaran 3.18, dan di sini taruhannya lebih halus daripada sekadar dua
+  // angka yang berselisih: `berlaku_sampai` yang NULL punya DUA arti berbeda
+  // akibat, dan yang membedakannya kolom `berjangka`.
+  //
+  //   berjangka = false                     → berlaku selamanya (ijazah)
+  //   berjangka = true, berlaku_sampai NULL  → KEDALUWARSA menurut pustaka —
+  //                                            tetapi keadaan itu DITOLAK basis,
+  //                                            lihat catatan di bawah
+  //
+  // Diukur: 3 dari 8 baris ber-`berlaku_sampai` NULL, ketiganya `berjangka =
+  // false` (dua ijazah S1, satu pelatihan). Otomasi yang memperlakukan NULL
+  // sebagai "sudah lewat" akan menegur orang soal ijazahnya.
+  //
+  // `lib/kompetensi-sdm.ts` sudah memutuskan ini dan mengunci keputusannya di
+  // 33 test. Menyalin logikanya berarti membuat cabang kedua yang akan
+  // menyimpang.
+  //
+  // ⚠ Satu cabang pustaka itu TAK BISA DICAPAI lewat basis ini:
+  //
+  //     CHECK (NOT berjangka OR berlaku_sampai IS NOT NULL)
+  //     -- sertifikat_berjangka_bertanggal
+  //
+  // `berjangka = true` tanpa tanggal ditolak sejak insert. Pustakanya tetap
+  // benar mempertahankan cabang itu — ia fungsi murni yang bisa dipanggil dari
+  // mana saja — tetapi otomasi ini tak mengklaim menjaganya. Ketahuan saat test
+  // mencoba menyisipkan barisnya dan basis menolak.
+  //
+  // ── Batas BAWAH, dan kenapa ia ada
+  //
+  // Diukur: satu sertifikat kedaluwarsa sejak 2025-05-31 — **empat belas
+  // bulan**. Dedup harian menahan pesan kembar DALAM satu hari, bukan lintas
+  // hari, jadi tanpa batas bawah otomasi ini menegur dokumen yang sama tiap
+  // pagi selamanya. Yang ditegur tiap hari berhenti dibaca.
+  app.get('/api/v1/otomasi/jalankan/sertifikat-berakhir', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiSertifikat } = await import('../../lib/kompetensi-sdm.js')
+    type Sertifikat = import('../../lib/kompetensi-sdm.js').Sertifikat
+
+    const q = request.query as { hari?: string; lewat?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.sertifikat_berakhir.hari', q.hari)
+    const batasLewat = await ambilAmbang(request, 'otomasi.sertifikat_lewat.maks_hari', q.lewat)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['sertifikat_berakhir'])
+
+    /*
+      `pegawai` kategori B — `.from()` sudah menyaringnya ke tenant.
+
+      Namanya DI-JOIN dari `users`, bukan dibaca dari `pegawai`: tabel itu
+      TIDAK punya kolom nama sama sekali (diukur — `nomor_induk`, `jabatan`,
+      `departemen`, gaji, BPJS, tak ada `nama`).
+
+      Bentuk pertama saya menulis `.select('id, nama')` dan otomasinya balas
+      500 "column pegawai.nama does not exist" pada jalan pertama lewat
+      penjadwal. Keenam kalinya dalam sesi ini saya menebak nama kolom;
+      typecheck tak bisa menangkapnya karena nama kolom PostgREST hanyalah
+      string.
+
+      `nomor_induk` disertakan sebagai cadangan — kelima pegawai punya
+      `user_id` hari ini, tetapi kolomnya nullable dan pegawai tanpa akun
+      adalah keadaan yang wajar.
+    */
+    const { data: pegawai, error: ePeg } = await request.db!
+      .from('pegawai')
+      .select('id, nomor_induk, user_id, akun:users!pegawai_user_id_fkey(name)')
+
+    if (ePeg) return reply.status(500).send({ error: ePeg.message })
+
+    const idPegawai = (pegawai ?? []).map((p) => p.id as string)
+    if (idPegawai.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { pegawai: 0, sertifikat: 0, ambang_hari: ambangHari },
+      })
+    }
+
+    /*
+      `unsafe` dengan alasan yang SAMA PERSIS dengan `polis-berakhir`.
+
+      `sertifikat_pegawai` kategori C lewat `pegawai_id` — dan `viaProject()`
+      menuntut SATU induk sebagai konteks, sementara otomasi harian menyapu
+      seluruh pegawai. Penyaringnya `idPegawai` di atas, yang barisnya sudah
+      lewat RLS.
+
+      Alasannya disalin apa adanya, bukan ditulis ulang dengan kata sendiri:
+      alasan `unsafe` yang berbeda-beda untuk hal yang sama membuat audit
+      berikutnya harus menilai keduanya terpisah.
+    */
+    const { data: sertifikat, error: eSer } = await request.db!
+      .unsafe('sertifikat_pegawai',
+        'daftar lintas-pegawai; viaProject butuh satu pegawai sebagai konteks')
+      .select(`id, pegawai_id, jenis, nama, nomor, penerbit, klasifikasi,
+               kualifikasi, tanggal_terbit, berlaku_sampai, berjangka`)
+      .in('pegawai_id', idPegawai)
+
+    if (eSer) return reply.status(500).send({ error: eSer.message })
+
+    /*
+      Join PostgREST memulangkan ARRAY, bukan objek — pelajaran yang sama
+      dengan `transmittal-menggantung`. Tanpa perataan ini, namanya jadi
+      `undefined` dan pesannya berbunyi "atas nama Pegawai" untuk semua orang.
+    */
+    const namaPegawai = new Map(
+      (pegawai ?? []).map((p) => {
+        const akun = p.akun as unknown as Array<{ name?: string }> | { name?: string } | null
+        const nama = Array.isArray(akun) ? akun[0]?.name : akun?.name
+        return [p.id as string, nama || (p.nomor_induk as string) || 'Pegawai']
+      }),
+    )
+
+    let dibuat = 0
+    let perluTindakan = 0
+    let dilewatiTerlaluLama = 0
+
+    for (const row of sertifikat ?? []) {
+      const s = row as unknown as Sertifikat & { pegawai_id: string }
+      const dinilai = nilaiSertifikat(s, today, ambangHari)
+
+      if (dinilai.status === 'berlaku') continue
+
+      /*
+        Yang kedaluwarsa TERLALU lama dilewati — dan dihitung, tidak ditelan.
+
+        `sisa_hari` null pada `berjangka = true` berarti tanggalnya memang tak
+        diisi; itu justru yang paling perlu diberitahukan, jadi ia TIDAK masuk
+        saringan ini.
+      */
+      if (dinilai.sisa_hari !== null && dinilai.sisa_hari < -batasLewat) {
+        dilewatiTerlaluLama++
+        continue
+      }
+
+      if (sudah('sertifikat_berakhir', s.id)) continue
+      perluTindakan++
+
+      const penerima = await resolveRecipients('sertifikat_berakhir', {
+        projectId: null, companyId: request.companyId!,
+      })
+
+      const orang = namaPegawai.get(s.pegawai_id) ?? 'Pegawai'
+      const lewat = dinilai.status === 'kedaluwarsa'
+      const kapan = dinilai.sisa_hari === null
+        ? 'tanpa tanggal berlaku yang tercatat'
+        : lewat
+          ? `kedaluwarsa ${Math.abs(dinilai.sisa_hari)} hari lalu`
+          : `berakhir dalam ${dinilai.sisa_hari} hari`
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      lewat ? 'Sertifikat Pegawai Kedaluwarsa' : 'Sertifikat Pegawai Segera Berakhir',
+          message:    `${s.nama} atas nama ${orang} ${kapan}.`,
+          type:       'sertifikat_berakhir',
+          priority:   lewat ? 'urgent' : 'high',
+          /*
+            TANPA `project_id`, dan itu disengaja — sertifikat melekat pada
+            ORANG, bukan proyek.
+
+            Tipenya `string | undefined`, jadi `null` ditolak COMPILE. Bukan
+            formalitas: kolomnya nullable di basis, tetapi memaksakan sebuah
+            proyek di sini akan membuat notifikasinya tersaring keluar dari
+            inbox orang yang justru mengurusnya, dan `resolveRecipients` di
+            atas sudah dipanggil dengan `projectId: null` supaya targetnya
+            berbasis izin lintas-proyek.
+          */
+          action_url: '/sdm/kompetensi',
+          action_data: { record_id: s.id, sisa_hari: dinilai.sisa_hari, status: dinilai.status },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        pegawai: idPegawai.length,
+        sertifikat: (sertifikat ?? []).length,
+        perlu_tindakan: perluTindakan,
+        // Dilaporkan EKSPLISIT: tanpa angka ini, "0 notifikasi" tak bisa
+        // dibedakan dari "semua sertifikat sehat".
+        dilewati_terlalu_lama: dilewatiTerlaluLama,
+        ambang_hari: ambangHari,
+        batas_lewat_hari: batasLewat,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/k3-kepatuhan ────────────────────────────
+  //
+  // Automation 9.8 — HSE Compliance.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KATALOG MEMINTA "SCORE". YANG DIBANGUN BUKAN ITU.
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Katalog menamainya *HSE Compliance Score*. Ditolak, dengan tiga alasan
+  // yang diukur — bukan selera:
+  //
+  //   1. `inspeksi_k3` TAK PUNYA kolom rencana/frekuensi apa pun. Komponen
+  //      "inspeksi terlewat" dalam sebuah skor akan berdasar ambang karangan.
+  //   2. `statusInduksi().persen_berlaku` sengaja `null` bila nol pekerja
+  //      aktif (`k3-lapangan.ts`). Skor gabungan memaksa `null` jadi angka —
+  //      persis kesalahan yang pustaka itu dibangun untuk mencegah.
+  //   3. Datanya 7 temuan · 3 inspeksi · 25 induksi. Skor tunggal dari tujuh
+  //      baris bergerak belasan persen per satu penutupan: bising, dan bising
+  //      yang terlihat presisi lebih menyesatkan daripada tak ada angka.
+  //
+  // Yang dikirim: TIGA jenis peringatan yang masing-masing bisa
+  // ditindaklanjuti, dan masing-masing punya `type` sendiri — bukan karena
+  // rapi, melainkan karena dedup harian bekerja per (jenis, record). Satu
+  // jenis untuk ketiganya membuat dua di antaranya tertahan keliru pada hari
+  // yang sama. Pelajaran 9.2, diterapkan sebelum cacatnya terjadi.
+  app.get('/api/v1/otomasi/jalankan/k3-kepatuhan', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { rekapTemuan, statusInduksi } = await import('../../lib/k3-lapangan.js')
+    type TemuanK3 = import('../../lib/k3-lapangan.js').TemuanK3
+    type Induksi = import('../../lib/k3-lapangan.js').Induksi
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, [
+      'k3_temuan_berat_menggantung', 'k3_temuan_berulang', 'k3_induksi_kedaluwarsa',
+    ])
+
+    const { data: proyek, error } = await request.db!
+      .from('projects')
+      .select('id, name')
+      .eq('status', 'active')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    let dibuat = 0
+    let diperiksa = 0
+    let takTerhitung = 0
+
+    for (const p of proyek ?? []) {
+      const pid = p.id as string
+
+      // ── Temuan: inspeksi dulu, baru temuannya ───────────────────────────
+      //
+      // `temuan_k3` kategori C lewat `inspeksi_id` — ia TAK PUNYA
+      // `project_id`. Pola ini disalin dari `k3-lapangan.ts` yang sudah
+      // memakainya, termasuk alasan `unsafe`-nya.
+      const { data: inspeksi, error: eIns } = await request.db!
+        .viaProject('inspeksi_k3', pid)
+        .select('id, tanggal')
+
+      if (eIns) {
+        takTerhitung++
+        request.log.warn({ err: eIns, projectId: pid }, 'k3-kepatuhan: inspeksi tak terbaca')
+        continue
+      }
+
+      const petaTanggal = new Map(
+        (inspeksi ?? []).map((x) => [x.id as string, x.tanggal as string]),
+      )
+      const idInspeksi = [...petaTanggal.keys()]
+
+      let temuan: TemuanK3[] = []
+      if (idInspeksi.length > 0) {
+        const { data: t, error: eT } = await request.db!
+          .unsafe('temuan_k3',
+            'disaring ke id inspeksi yang barisnya sudah lewat RLS pada query di atas')
+          .select('id, inspeksi_id, uraian, kategori, tingkat, status, tenggat')
+          .in('inspeksi_id', idInspeksi)
+
+        if (eT) {
+          takTerhitung++
+          request.log.warn({ err: eT, projectId: pid }, 'k3-kepatuhan: temuan tak terbaca')
+          continue
+        }
+
+        /*
+          `tanggal_inspeksi` BUKAN kolom `temuan_k3` — ia di-join dari
+          `inspeksi_k3.tanggal`, dan `rekapTemuan` memakainya untuk mengurutkan
+          pengulangan. Merakitnya di sini, bukan menambah kolom ke basis.
+        */
+        temuan = (t ?? []).map((x) => ({
+          ...(x as unknown as TemuanK3),
+          tanggal_inspeksi: petaTanggal.get(x.inspeksi_id as string) ?? today,
+        }))
+      }
+
+      const rekap = rekapTemuan(temuan, today)
+
+      const penerima = await resolveRecipients('k3_temuan_berat_menggantung', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      // ── A. Temuan BERAT yang lewat tenggat ──────────────────────────────
+      //
+      // Yang paling kuat dari ketiganya: `tingkat` dijamin 1–3 oleh CHECK,
+      // `tenggat` terisi, dan `penanggung_id` menunjuk orangnya. Yang berat
+      // dan lewat tenggat adalah keadaan yang tak bisa dibaca sebagai apa pun
+      // selain "harus ditangani hari ini".
+      if (rekap.berat_terbuka > 0 && rekap.lewat_tenggat > 0
+          && !sudah('k3_temuan_berat_menggantung', pid)) {
+        for (const uid of penerima) {
+          await createNotification({
+            company_id: request.companyId!,
+            user_id:    uid,
+            title:      'Temuan K3 Berat Belum Ditutup',
+            message:
+              `Proyek "${p.name}": ${rekap.berat_terbuka} temuan berat masih terbuka, `
+              + `${rekap.lewat_tenggat} sudah lewat tenggat.`,
+            type:       'k3_temuan_berat_menggantung',
+            priority:   'urgent',
+            project_id: pid,
+            action_url: '/k3',
+            action_data: {
+              record_id: pid,
+              berat_terbuka: rekap.berat_terbuka,
+              lewat_tenggat: rekap.lewat_tenggat,
+            },
+          })
+          dibuat++
+        }
+      }
+
+      // ── B. Temuan BERULANG ──────────────────────────────────────────────
+      //
+      // Yang tak bisa dilihat orang dari layar mana pun: kategori yang sama
+      // muncul lagi sesudah ditutup berarti perbaikannya tak menyentuh
+      // sebabnya. Pustakanya sudah menghitungnya.
+      if (rekap.berulang.length > 0 && !sudah('k3_temuan_berulang', pid)) {
+        const daftar = rekap.berulang.map((b) => b.kategori).slice(0, 3).join(', ')
+        for (const uid of penerima) {
+          await createNotification({
+            company_id: request.companyId!,
+            user_id:    uid,
+            title:      'Temuan K3 Berulang',
+            message:
+              `Proyek "${p.name}": ${rekap.berulang.length} kategori temuan berulang `
+              + `(${daftar}). Perbaikan sebelumnya tampaknya tak menyentuh sebabnya.`,
+            type:       'k3_temuan_berulang',
+            priority:   'high',
+            project_id: pid,
+            action_url: '/k3',
+            action_data: { record_id: pid, kategori: rekap.berulang.map((b) => b.kategori) },
+          })
+          dibuat++
+        }
+      }
+
+      // ── C. Induksi kedaluwarsa ──────────────────────────────────────────
+      //
+      // Rantai pekerja aktif DISALIN dari `k3-lapangan.ts`, bukan dikarang:
+      // `mandor_assignments.mandor_id` → `workers.mandor_id` + `is_active`.
+      // Versi pertama rute itu mengambil SELURUH pekerja perusahaan dan
+      // menampilkan "3 dari 60 · 5%" untuk proyek yang punya 30 — angka yang
+      // menuduh proyek baik-baik saja.
+      /*
+        Ketiga query di bawah MEMERIKSA `error`, dan itu bukan formalitas.
+
+        Bentuk pertama saya membiarkan ketiganya tanpa pemeriksaan, dan
+        `audit-kegagalan-senyap` menangkapnya. Akibat kalau lolos:
+
+          penugasan gagal  → nol mandor  → nol pekerja → `persen_berlaku` null
+                             → proyeknya DILEWATI, terbaca sebagai "belum ada
+                               pekerja terdaftar"
+          pekerja gagal    → sama
+          induksi gagal    → nol induksi → SELURUH pekerja terhitung "belum
+                               diinduksi" → peringatan yang menuduh proyek
+                               yang sebenarnya patuh
+
+        Dua arah kegagalan yang berlawanan, keduanya sunyi, dan keduanya
+        merusak kepercayaan pada pesannya.
+
+        Proyeknya dilewati dan DIHITUNG, bukan menggagalkan seluruh jalan:
+        satu proyek bermasalah tak boleh menghentikan pemeriksaan sembilan
+        lainnya.
+      */
+      const { data: tugas, error: eTugas } = await request.db!
+        .viaProject('mandor_assignments', pid)
+        .select('mandor_id')
+
+      if (eTugas) {
+        takTerhitung++
+        request.log.warn({ err: eTugas, projectId: pid }, 'k3-kepatuhan: penugasan tak terbaca')
+        continue
+      }
+
+      const idMandor = [...new Set(
+        (tugas ?? []).map((t) => t.mandor_id as string | null).filter(Boolean))] as string[]
+
+      let idPekerja: string[] = []
+      if (idMandor.length > 0) {
+        const { data: w, error: eW } = await request.db!
+          .from('workers')
+          .select('id')
+          .eq('is_active', true)
+          .in('mandor_id', idMandor)
+
+        if (eW) {
+          takTerhitung++
+          request.log.warn({ err: eW, projectId: pid }, 'k3-kepatuhan: pekerja tak terbaca')
+          continue
+        }
+        idPekerja = (w ?? []).map((x) => x.id as string)
+      }
+
+      const { data: induksi, error: eInd } = await request.db!
+        .viaProject('induksi_k3', pid)
+        .select('id, worker_id, peserta_nama, tanggal, berlaku_sampai')
+
+      if (eInd) {
+        takTerhitung++
+        request.log.warn({ err: eInd, projectId: pid }, 'k3-kepatuhan: induksi tak terbaca')
+        continue
+      }
+
+      const st = statusInduksi((induksi ?? []) as unknown as Induksi[], idPekerja, today)
+
+      /*
+        `persen_berlaku === null` berarti NOL pekerja aktif — bukan kepatuhan
+        buruk melainkan ketiadaan data. Pustaka sengaja memulangkan `null`
+        alih-alih 0 untuk membedakannya, dan menegur berdasarkan itu akan
+        menuduh proyek yang belum punya pekerja terdaftar.
+      */
+      if (st.persen_berlaku !== null && (st.kedaluwarsa > 0 || st.belum > 0)
+          && !sudah('k3_induksi_kedaluwarsa', pid)) {
+        for (const uid of penerima) {
+          await createNotification({
+            company_id: request.companyId!,
+            user_id:    uid,
+            title:      'Induksi K3 Belum Lengkap',
+            message:
+              `Proyek "${p.name}": ${st.kedaluwarsa} induksi kedaluwarsa dan `
+              + `${st.belum} pekerja belum diinduksi, dari ${st.total_pekerja} pekerja aktif `
+              + `(${st.persen_berlaku}% masih berlaku).`,
+            type:       'k3_induksi_kedaluwarsa',
+            priority:   st.belum > 0 ? 'urgent' : 'high',
+            project_id: pid,
+            action_url: '/k3',
+            action_data: {
+              record_id: pid,
+              kedaluwarsa: st.kedaluwarsa,
+              belum: st.belum,
+              persen_berlaku: st.persen_berlaku,
+            },
+          })
+          dibuat++
+        }
+      }
+
+      /*
+        DIHITUNG DI SINI, bukan di tengah — dan itu hasil koreksi.
+
+        Bentuk pertama menaikkan `diperiksa` tepat sesudah rekap temuan, jauh
+        SEBELUM tiga query induksi. Kalau salah satunya gagal, proyeknya
+        terhitung di DUA ember sekaligus (`diperiksa` dan `tak_terhitung`), dan
+        penjumlahannya melampaui jumlah proyek aktif.
+
+        Test "tiap proyek aktif masuk tepat satu ember" hanya menangkapnya saat
+        kegagalan benar-benar terjadi — jadi ia bisa hijau berbulan-bulan
+        sambil cacatnya menunggu. Menaruh penghitungnya di akhir membuat
+        invariannya benar secara struktur, bukan secara kebetulan.
+      */
+      diperiksa++
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_aktif: (proyek ?? []).length,
+        diperiksa,
+        // Dilaporkan EKSPLISIT: "0 notifikasi" tak boleh terbaca sebagai
+        // "semua patuh" saat sebenarnya datanya tak terbaca.
+        tak_terhitung: takTerhitung,
+      },
+    })
+  })
 }
 
 /**

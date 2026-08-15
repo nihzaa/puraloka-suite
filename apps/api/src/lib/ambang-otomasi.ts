@@ -123,6 +123,38 @@ export const AMBANG_OTOMASI = {
     max: 90,
     label: 'Hari transmittal terkirim tanpa konfirmasi sebelum ditegur',
   },
+  /*
+    Bawaan 60 hari — SAMA dengan bawaan `nilaiSertifikat()` di
+    `lib/kompetensi-sdm.ts`, dan itu disengaja.
+
+    Kalau keduanya berbeda, layar Kompetensi SDM menandai sertifikat "akan
+    habis" pada hari yang berbeda dari hari notifikasinya dikirim, dan yang
+    membuka layar sesudah menerima pesan menemukan status yang tak cocok.
+  */
+  'otomasi.sertifikat_berakhir.hari': {
+    bawaan: 60,
+    min: 1,
+    max: 365,
+    label: 'Hari sebelum sertifikat pegawai berakhir mulai diperingatkan',
+  },
+  /*
+    Batas BAWAH — berapa lama sebuah sertifikat yang sudah lewat masih
+    ditegur.
+
+    Diukur: satu sertifikat kedaluwarsa sejak 2025-05-31, empat belas bulan.
+    Dedup harian menahan kembar DALAM satu hari, bukan lintas hari — tanpa
+    batas ini otomasinya menegur dokumen yang sama tiap pagi selamanya, dan
+    yang ditegur tiap hari berhenti dibaca.
+
+    90 hari: cukup lama untuk perpanjangan yang tertunda, cukup pendek untuk
+    berhenti menagih yang memang sudah ditinggalkan.
+  */
+  'otomasi.sertifikat_lewat.maks_hari': {
+    bawaan: 90,
+    min: 7,
+    max: 730,
+    label: 'Sertifikat yang lewat lebih lama dari ini berhenti ditegur',
+  },
   'otomasi.evm_spi.minimum': {
     bawaan: 0.9,
     min: 0.1,

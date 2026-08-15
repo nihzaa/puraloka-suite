@@ -123,6 +123,31 @@ const AMBANG: ReadonlyArray<{
     langkah: 1_000_000,
   },
   {
+    kunci: "otomasi.sertifikat_berakhir.hari",
+    judul: "Sertifikat pegawai berakhir",
+    akibat:
+      "Peringatan dikirim sekian hari sebelum sertifikat keahlian pegawai "
+      + "habis masa berlakunya. Setel sesuai lama pengurusan perpanjangan — "
+      + "sertifikat yang mati membuat orangnya tak boleh mengerjakan pekerjaan "
+      + "tertentu.",
+    satuan: "hari",
+    min: 1,
+    maks: 365,
+    langkah: 1,
+  },
+  {
+    kunci: "otomasi.sertifikat_lewat.maks_hari",
+    judul: "Berhenti menagih sertifikat lama",
+    akibat:
+      "Sertifikat yang sudah lewat lebih lama dari ini berhenti ditegur. "
+      + "Tanpa batas ini, dokumen yang memang sudah ditinggalkan akan ditagih "
+      + "tiap minggu selamanya — dan yang ditagih terus berhenti dibaca.",
+    satuan: "hari",
+    min: 7,
+    maks: 730,
+    langkah: 7,
+  },
+  {
     kunci: "otomasi.transmittal_menggantung.hari",
     judul: "Transmittal belum dikonfirmasi",
     akibat:

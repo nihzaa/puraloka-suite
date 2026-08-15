@@ -98,6 +98,19 @@ export type NotificationType =
   // pekerjaan berjalan dengan gambar lama, dan selisihnya baru terlihat di
   // lapangan.
   | 'transmittal_menggantung'
+  // 6.9 — sertifikat pegawai mendekati/melewati masa berlaku.
+  | 'sertifikat_berakhir'
+  /*
+    9.8 — TIGA jenis, bukan satu "skor K3".
+
+    Bukan soal kerapian: dedup harian bekerja per (jenis, record). Satu jenis
+    untuk ketiganya membuat dua di antaranya tertahan keliru pada hari yang
+    sama, padahal tindakannya berbeda — menutup temuan, menyelidiki
+    pengulangannya, dan menginduksi pekerja adalah tiga pekerjaan.
+  */
+  | 'k3_temuan_berat_menggantung'
+  | 'k3_temuan_berulang'
+  | 'k3_induksi_kedaluwarsa'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

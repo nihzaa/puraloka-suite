@@ -211,6 +211,16 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'sertifikat-berakhir': {
+    label: 'Sertifikat Pegawai Berakhir',
+    keterangan: 'Sertifikat keahlian pegawai yang mendekati atau melewati masa berlaku.',
+    jalur: '/api/v1/otomasi/jalankan/sertifikat-berakhir',
+  },
+  'k3-kepatuhan': {
+    label: 'Kepatuhan K3 Proyek',
+    keterangan: 'Temuan berat lewat tenggat, temuan berulang, dan induksi pekerja yang kedaluwarsa.',
+    jalur: '/api/v1/otomasi/jalankan/k3-kepatuhan',
+  },
   'transmittal-menggantung': {
     label: 'Transmittal Belum Dikonfirmasi',
     keterangan: 'Transmittal yang sudah dikirim tetapi belum dikonfirmasi diterima.',

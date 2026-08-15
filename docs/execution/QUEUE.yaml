@@ -2741,3 +2741,53 @@ items:
       kode memakainya — satu-satunya hasil adalah kalimat di skrip laporan
       buatan sesi ini sendiri. Penjadwalnya sudah ada di dalam API lewat
       server.inject. Tebakan saya menahan delapan otomasi selama dua hari.
+
+  - id: ASISTEN-12
+    fase: null
+    judul: "6.9 sertifikat pegawai + 9.8 kepatuhan K3"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "keduanya MEMANGGIL pustaka murni, tidak menyalin rumusnya"
+      - "ijazah (tak berjangka) TIDAK ditegur meski berlaku_sampai NULL"
+      - "sertifikat yang lewat terlalu lama berhenti ditegur"
+      - "9.8 mengirim TIGA jenis terpisah, bukan satu skor"
+      - "terbukti ujung-ke-ujung lewat penjadwal sungguhan"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/routes/v1/__tests__/otomasi-sertifikat-k3.test.ts
+      · lalu: node scripts/penjadwal-lokal.mjs --sekali --paksa k3-kepatuhan
+    bobot: L
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16. Riset diparalelkan (3 agen read-only), penulisan
+      berurutan karena ketiganya menyentuh berkas yang sama.
+      9.8 TIDAK mengirim "skor": inspeksi_k3 tak punya kolom frekuensi,
+      persen_berlaku sengaja null saat nol pekerja, dan tujuh temuan membuat
+      skor bergerak belasan persen per penutupan.
+      CACAT yang ditemukan penjaga di kode saya: tiga query tanpa cek error
+      (induksi gagal → seluruh pekerja terhitung belum diinduksi), dan invarian
+      ember bocor (diperiksa++ di tengah, sebelum cabang yang bisa continue).
+      Satu klaim saya dibatalkan basis: berjangka=true tanpa tanggal ditolak
+      CHECK, jadi cabang itu tak bisa dicapai.
+      2.9 DITUNDA — project_expenses 0 baris sementara Rp 545 jt ada di kasbons.
+
+  - id: RATIFIKASI-2.9
+    fase: null
+    judul: "2.9 Budget vs Actual — sumber realisasi mana yang benar?"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "founder memutuskan apakah kasbons ikut dihitung sebagai realisasi"
+    cara_verifikasi: "keputusan tercatat di RATIFIKASI.md"
+    bobot: S
+    status: menunggu-founder
+    catatan_kemajuan: >-
+      Diukur 2026-08-16: project_expenses 0 baris; analisaProyek memakainya
+      sebagai satu-satunya sumber serapan. Uang yang benar-benar keluar ada di
+      kasbons — Rp 545 juta di 11 proyek (mis. satu proyek 45% dari kontrak).
+      Otomasi 2.9 apa adanya akan melaporkan 0% untuk proyek yang sebenarnya
+      45% — persis kegagalan stok-menipis.
+      Yang perlu diputuskan: apakah analisaProyek ikut menghitung kasbons?
+      Itu mengubah angka di layar Portofolio Biaya juga, jadi keputusan bisnis
+      bukan teknis.
+      Temuan sampingan: cost-control.ts:120 memakai Promise.all atas tiga
+      query TANPA memeriksa error satu pun — endpoint portofolio bisa gagal
+      senyap. Layak diperbaiki terlepas dari keputusan di atas.

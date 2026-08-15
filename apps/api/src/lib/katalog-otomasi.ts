@@ -449,6 +449,58 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'siapa, dan untuk maksud apa hanya diketahui orang yang mengirimnya.',
   },
 
+  {
+    kunci: 'sertifikat-berakhir',
+    nomor: '6.9',
+    nama: 'Sertifikat pegawai berakhir',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Mengingatkan sertifikat keahlian pegawai yang mendekati atau sudah '
+      + 'melewati masa berlakunya. Sertifikat yang mati membuat orangnya tak '
+      + 'boleh mengerjakan pekerjaan tertentu, dan itu baru ketahuan saat '
+      + 'diperiksa.',
+    penerima: 'Bagian SDM',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca seluruh sertifikat pegawai perusahaan.' },
+      { di: 'sistem', teks: 'Menilai masa berlakunya — perhitungan yang sama dengan layar Kompetensi SDM.' },
+      { di: 'sistem', teks: 'Melewati yang sudah lewat terlalu lama supaya tak menagih tiap hari selamanya.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.sertifikat_berakhir.hari',
+    catatan:
+      'Ijazah dan sertifikat seumur hidup TIDAK ikut ditegur — keduanya '
+      + 'ditandai tidak berjangka, dan membedakannya penting: tanpa itu orang '
+      + 'akan ditegur soal ijazahnya. Sebaliknya, sertifikat yang ditandai '
+      + 'berjangka tetapi tanggalnya kosong justru dianggap perlu tindakan — '
+      + 'data yang tak lengkap tak boleh lolos sebagai sah.',
+  },
+  {
+    kunci: 'k3-kepatuhan',
+    nomor: '9.8',
+    nama: 'Kepatuhan K3 proyek',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai tiga hal berbeda di keselamatan kerja: temuan berat yang lewat '
+      + 'tenggat belum ditutup, jenis temuan yang berulang, dan pekerja yang '
+      + 'induksinya kedaluwarsa atau belum pernah diinduksi.',
+    penerima: 'Petugas K3 dan manajer proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca inspeksi K3 tiap proyek yang sedang berjalan, lalu temuannya.' },
+      { di: 'sistem', teks: 'Merekap temuan — perhitungan yang sama dengan layar K3.' },
+      { di: 'sistem', teks: 'Mencocokkan induksi dengan daftar pekerja aktif proyek itu.' },
+      ...LANGKAH_KIRIM,
+    ],
+    catatan:
+      'TIDAK mengirim "skor kepatuhan". Skor tunggal dari tujuh temuan bergerak '
+      + 'belasan persen tiap satu penutupan, dan angka bising yang terlihat '
+      + 'presisi lebih menyesatkan daripada tak ada angka. Yang dikirim tiga '
+      + 'peringatan terpisah yang masing-masing bisa ditindaklanjuti. Proyek '
+      + 'yang belum punya pekerja terdaftar dilewati — itu ketiadaan data, '
+      + 'bukan kepatuhan buruk.',
+  },
+
   // ── Lewat percakapan WhatsApp ───────────────────────────────────────────
   {
     kunci: 'catatan_progres',
