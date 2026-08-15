@@ -138,3 +138,81 @@ if (aktifTanpaJalan.length > 0) {
 }
 
 console.log('')
+
+/*
+  ── Silang ke katalog dokumen: apa yang dokumen masih sebut "menunggu"
+
+  Bagian ini menjawab pertanyaan yang sudah dua kali salah dijawab, dan yang
+  tak bisa dijawab dengan membaca dokumen mana pun — karena dokumennya justru
+  yang sedang diperiksa.
+
+  Kolom `N/N/L/O` di `06-agentic-ai-*.md` adalah PRIORITAS, bukan status. Itu
+  sudah tertulis di sana sebagai peringatan. Tapi peringatan itu **sendiri
+  memuat angka** ("tujuh automation yang sudah hidup"), dan angka itu basi
+  dalam sehari: diukur 2026-08-15 jumlahnya empat belas.
+
+  Jadi angkanya dipindahkan ke sini — tempat ia dihitung ulang tiap kali
+  dijalankan, bukan tempat ia perlu diingat orang untuk diperbarui.
+
+  Ini BUKAN penjaga CI dan sengaja tidak dijadikan penjaga: dokumen katalog
+  memang tak dimaksudkan mencatat status, jadi "tidak cocok" adalah keadaan
+  normalnya, bukan pelanggaran. Yang dilaporkan hanya seberapa jauh selisihnya,
+  supaya yang membaca tabel itu tahu ia sedang membaca prioritas.
+*/
+{
+  const AKAR_REPO = join(AKAR_API, '..', '..')
+  const BERKAS_KATALOG_MD = join(
+    AKAR_REPO,
+    'docs/superpowers/specs/2026-07-18-enterprise-architecture',
+    '06-agentic-ai-and-automation-architecture.md',
+  )
+  const BERKAS_KATALOG_TS = join(AKAR_API, 'src/lib/katalog-otomasi.ts')
+
+  let md = null
+  let ts = null
+  try {
+    md = readFileSync(BERKAS_KATALOG_MD, 'utf8')
+    ts = readFileSync(BERKAS_KATALOG_TS, 'utf8')
+  } catch {
+    // Berkasnya dipindah/dihapus — dilaporkan, tidak dilempar. Skrip ini
+    // pelapor, dan pelapor yang jatuh tak melaporkan apa pun.
+    console.log('   (katalog dokumen atau katalog kode tak terbaca — silang dilewati)')
+  }
+
+  if (md && ts) {
+    const nomorHidup = new Set(
+      [...ts.matchAll(/nomor:\s*'([\d.]+)'/g)].map((m) => m[1]),
+    )
+
+    const menunggu = []
+    for (const baris of md.split(/\r?\n/)) {
+      if (!/^\|\s*\d+\.\d+\s*\|/.test(baris)) continue
+      const sel = baris.split('|').map((x) => x.trim())
+      const nomor = sel[1]
+      if (!nomorHidup.has(nomor)) continue
+      const fase = sel.find((x) => /^Phase \d/.test(x)) ?? '?'
+      const prio = sel.filter(Boolean).pop() ?? '?'
+      menunggu.push({ nomor, nama: sel[2] ?? '', fase, prio })
+    }
+
+    console.log('── Silang ke katalog dokumen ────────────────────────────────')
+    console.log(`   otomasi terjelaskan di katalog kode : ${nomorHidup.size}`)
+    console.log(`   di antaranya masih tertulis menunggu: ${menunggu.length}`)
+
+    if (menunggu.length > 0) {
+      console.log('')
+      console.log('   Nomor di bawah SUDAH punya rute hidup, tetapi tabel di')
+      console.log('   `06-agentic-ai-*.md` masih menyebut fase/prioritas menunggu.')
+      console.log('   Itu WAJAR — kolom itu prioritas, bukan status. Yang tidak wajar')
+      console.log('   adalah membaca tabel itu untuk menjawab "sudah dikerjakan belum".')
+      console.log('')
+      for (const m of menunggu) {
+        console.log(
+          `       ${m.nomor.padEnd(6)} ${m.nama.slice(0, 40).padEnd(42)} `
+          + `${m.fase.padEnd(9)} ${m.prio}`,
+        )
+      }
+    }
+    console.log('')
+  }
+}

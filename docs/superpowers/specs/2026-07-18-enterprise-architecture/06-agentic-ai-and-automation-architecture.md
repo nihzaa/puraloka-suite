@@ -23,10 +23,25 @@ Setiap automation dan setiap kapabilitas AI di dokumen ini didefinisikan dengan:
 > ⚠ **Kolom `N/N/L/O` adalah PRIORITAS, bukan status pengerjaan.**
 >
 > Dokumen ini **tidak** mencatat automation mana yang sudah dibangun, dan tak
-> pernah dimaksudkan begitu. Tujuh automation yang sudah punya rute hidup —
-> 2.10, 3.5, 3.10, 3.11, 4.10, 5.1, 6.6 — semuanya masih tertulis `Next` di
-> kolom terakhir, karena `Next` menjawab *"seberapa mendesak"*, bukan
-> *"sudah jalan atau belum"*.
+> pernah dimaksudkan begitu. Automation yang sudah punya rute hidup tetap
+> tertulis `Next` atau `Later` di kolom terakhir, karena kolom itu menjawab
+> *"seberapa mendesak"*, bukan *"sudah jalan atau belum"*.
+>
+> ⚠ **Peringatan ini sendiri pernah basi, dan itu pelajarannya.**
+>
+> Versi 2026-08-14 menyebut angka: *"tujuh automation yang sudah hidup —
+> 2.10, 3.5, 3.10, 3.11, 4.10, 5.1, 6.6"*. Diukur ulang sehari kemudian:
+> jumlahnya sudah berlipat, dan sebagian yang bertambah justru tertulis
+> `Phase 5`/`Phase 6` dengan prioritas `Later` — kelas yang paling mudah
+> dibaca sebagai "belum boleh dikerjakan".
+>
+> Angka penggantinya sengaja **tidak** ditulis di sini. Ia dihitung ulang tiap
+> kali `lapor-otomasi-hidup.mjs` dijalankan, lengkap dengan daftar nomor mana
+> saja yang tabel ini masih sebut menunggu.
+>
+> Peringatan yang menyebut angka membusuk sama cepatnya dengan tabel yang ia
+> peringatkan. Jadi yang ditulis di sini bukan angkanya melainkan cara
+> mengukurnya — aturan yang sama dengan pembuka `CLAUDE.md`.
 >
 > Salah baca ini sudah memakan biaya nyata dua kali (2026-08-14): sekali saya
 > melapor ke founder dengan angka yang salah, sekali lagi saya nyaris
@@ -38,6 +53,15 @@ Setiap automation dan setiap kapabilitas AI di dokumen ini didefinisikan dengan:
 > ```bash
 > cd apps/api && node -r dotenv/config scripts/lapor-otomasi-hidup.mjs
 > ```
+>
+> Sejak 2026-08-15 ada juga **katalog di UI** (`/otomasi/katalog`) yang
+> menjelaskan tiap otomasi dalam bahasa non-teknis beserta langkah kerjanya
+> dan di mana tiap langkah dipasang (sistem atau n8n). Sumbernya
+> `apps/api/src/lib/katalog-otomasi.ts`, dan ia **tak menyimpan status sama
+> sekali** — hidup/mati diukur saat halaman dibuka. Penjaga
+> `audit-katalog-otomasi-nyata.mjs` mencocokkan entrinya dengan rute yang
+> benar-benar terdaftar, dua arah, supaya ia tak mengulangi nasib tabel di
+> bawah ini.
 >
 > Skrip itu membaca rute terjadwal, jembatan peristiwa, tabel `otomasi_alur`,
 > dan tabel `otomasi_jalan` sekaligus. Ia juga memisahkan dua hal yang mudah

@@ -363,7 +363,22 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
   {
     kunci: 'catatan_progres',
     kunci_bukan_rute: true,
-    nomor: '1.2',
+    /*
+      TANPA `nomor`, dan itu hasil koreksi.
+
+      Saya sempat memberinya `1.2`. Salah: 1.2 di `06-agentic-ai-*.md` adalah
+      *Incoming Transfer Detection* — deteksi transfer bank masuk, yang butuh
+      integrasi bank dan memang belum ada. Ketahuan saat silang otomatis di
+      `lapor-otomasi-hidup.mjs` melaporkannya sebagai "sudah hidup".
+
+      Seluruh baris 1.x di katalog itu keuangan atau tanya-jawab; tak ada satu
+      pun yang berisi pelaporan progres lapangan. Jadi entri ini memang tak
+      punya padanan di sana.
+
+      Nomor yang salah lebih buruk daripada nomor yang kosong: ia membuat
+      seseorang membuka baris katalog yang keliru, membaca prasyarat yang tak
+      berlaku, lalu menyimpulkan sesuatu yang tak ada hubungannya.
+    */
     nama: 'Lapor progres lewat WhatsApp',
     pemicu: 'percakapan',
     penjelasan:
