@@ -511,6 +511,32 @@ jobs:
       - name: Kredensial tidak bocor lintas tenant
         run: node scripts/audit-kredensial-lintas-tenant.mjs
 
+      # Tiap pengguna aktif wajib punya keanggotaan default.
+      #
+      # Cacat yang SAMA dibersihkan DUA KALI dalam satu hari: migrasi 379
+      # (3 pengguna, verifikasi lulus nol tersisa) lalu migrasi 394 (13 lagi).
+      # Keduanya membersihkan gejala tanpa menutup sumbernya — celah di
+      # `PATCH /my/companies/:id/default`, yang menurunkan SEMUA default lebih
+      # dulu lalu menaikkan yang dipilih. Kegagalan penurunan sudah diperiksa;
+      # kegagalan KENAIKAN tidak, dan di situ pengguna tertinggal nol default.
+      # Urutannya sudah dibalik di commit yang sama.
+      #
+      # Kenapa nol default melumpuhkan: `auth_company_id()` jatuh ke
+      # keanggotaan default. Tanpa satu pun ia NULL, lalu `tenant_isolation`
+      # RESTRICTIVE (migrasi 373) menyaring HABIS — pengguna melihat NOL data
+      # tanpa galat, layar merah, maupun baris log.
+      #
+      # Sekali ini menjatuhkan `t5b-kill-switch` dengan pesan yang menunjuk ke
+      # arah SALAH: "kebocoran lintas-tenant". Sepuluh langkah dari sebabnya.
+      #
+      # Ambang NOL untuk keanggotaan TUNGGAL (tak ada yang perlu ditebak).
+      # Yang berkeanggotaan ganda dilaporkan tanpa memerahkan — memilih company
+      # mana yang terbuka saat login adalah preferensi pemiliknya.
+      #
+      # Bukti merah: satu `is_default` dicabut → exit 1 → dipulihkan → exit 0.
+      - name: Pengguna aktif punya keanggotaan default
+        run: node scripts/audit-keanggotaan-punya-default.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan

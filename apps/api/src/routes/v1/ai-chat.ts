@@ -186,6 +186,44 @@ export default async function aiChatRoutes(app: FastifyInstance) {
           return reply.status(status).send({ error: jalan.pesan, alasan: jalan.alasan })
         }
         request.log.warn({ alasan: jalan.alasan, pesan: jalan.pesan }, 'ai/chat: loop gagal')
+
+        /*
+          ── Dua kegagalan yang TIDAK boleh berbunyi "coba lagi" (2026-08-14)
+
+          Diukur saat founder bertanya "api ai nya udh ada?": kuncinya sah dan
+          terbaca, tetapi API menjawab
+
+              400  "Your credit balance is too low to access the Anthropic API"
+
+          Dengan pesan generik di bawah, pengguna membaca "Asisten sedang tidak
+          bisa dihubungi. Coba lagi sebentar lagi." — lalu mencoba lagi. Dan
+          lagi. Padahal mencoba lagi TAK AKAN menolong sampai saldo diisi atau
+          kunci diperbaiki.
+
+          Pesan yang menyuruh menunggu untuk masalah yang tak akan hilang
+          sendiri lebih buruk daripada pesan galat mentah: ia memindahkan
+          waktu orang ke tempat yang salah, dan menyembunyikan tindakan yang
+          sebenarnya dibutuhkan.
+
+          402 dipilih untuk kuota habis — sama seperti `batas_terlampaui` di
+          gerbang biaya di atas, karena bagi pemakainya keduanya berarti hal
+          yang sama: ada yang harus dibayar/diisi sebelum bisa lanjut.
+        */
+        if (jalan.alasan === 'kuota_habis') {
+          return reply.status(402).send({
+            error: 'Kredit penyedia AI habis. Isi saldo di penyedia (mis. console.anthropic.com), '
+              + 'atau isi kunci milik perusahaan ini sendiri di Pengaturan → Kredensial.',
+            alasan: jalan.alasan,
+          })
+        }
+        if (jalan.alasan === 'kunci_ditolak' || jalan.alasan === 'kunci_tak_ada') {
+          return reply.status(402).send({
+            error: 'Kunci AI belum diisi atau ditolak penyedia. '
+              + 'Periksa di Pengaturan → Kredensial.',
+            alasan: jalan.alasan,
+          })
+        }
+
         return reply.status(503).send({
           error: 'Asisten sedang tidak bisa dihubungi. Coba lagi sebentar lagi.',
           alasan: jalan.alasan,

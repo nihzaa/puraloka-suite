@@ -850,6 +850,153 @@ Bukti mutasi, disadap di lapisan `fetch`:
     penjaga dilepas : http://127.0.0.1:5680/webhook/teruskan-kasbon-diajukan
     penjaga aktif   : NOL — tertahan
 
+### Semua workflow diuji TANPA saldo — cakupan naik dari 2 ke 7 tugas
+
+Founder: *"bangun aja dulu semua workflow nya dan pastikan pake cara uji yg
+lain yg tanpa harus pake saldo"*.
+
+Pengukuran pertama menjawab kekhawatirannya: **tak satu pun dari 14 alur
+otomasi membutuhkan AI.** Semuanya aturan `if-then` — eskalasi, pengingat,
+meneruskan notifikasi. Yang butuh saldo hanya asisten chat dan sapa-proaktif,
+dan keduanya BUKAN bagian katalog otomasi.
+
+Diukur juga apa yang sudah tercakup, dan hasilnya menjelaskan kenapa ini layak
+dikerjakan:
+
+    otomasi-terjadwal.test.ts  menguji 2.10 dan 6.6 dengan fixture sungguhan
+    lima rute sisanya           TAK PUNYA TEST SAMA SEKALI
+
+`progres-belum-lapor`, `dependency-breach`, `gr-matching`, `invoice-termin`,
+`stok-menipis` — semuanya dipanggil penjadwal tanpa penonton, dan tak ada yang
+membuktikan rutenya bahkan bisa dipanggil.
+
+#### Yang diuji, dan yang SENGAJA tidak
+
+Header berkas itu sudah menjelaskan kenapa fixture penuh dihindari: merakitnya
+menulis data yang BERTAHAN di `public`. Alasan itu tetap dihormati.
+
+Yang dijangkau: rutenya TERDAFTAR, bergerbang izin, dan selesai tanpa melempar.
+Itu kelas cacat nyata yang tak tertangkap test logika — `teruskan-kasbon-diajukan`
+mengirim 28 WhatsApp sungguhan sementara bukunya kosong, dan seluruh test unit
+hijau sepanjang itu terjadi.
+
+Yang TIDAK diklaim: hasilnya benar. Rute yang memulangkan nol karena memang tak
+ada yang perlu dikerjakan tetap lulus — menuntut bukan-nol akan membuat test
+merah pada sistem yang sehat, lalu ditandai `skip` oleh orang berikutnya.
+
+**7 test → 15 test, semuanya hijau.**
+
+#### Penjaga terhadap test itu sendiri
+
+Daftar tugasnya ditulis tangan, jadi rute baru yang lupa dimasukkan akan
+membocorkan cakupan DIAM-DIAM — test tetap hijau sambil menguji enam dari
+delapan. Daftarnya kini dicocokkan dengan KODE SUMBERNYA.
+
+Bukti merah: satu tugas dihapus dari daftar → merah, dengan pesan yang menyebut
+persis apa yang tertinggal.
+
+Ditambah `scripts/uji-otomasi-terjadwal.mjs` untuk memicu ketujuhnya lewat rute
+sungguhan. Dua tebakan saya di sana salah dan dikoreksi oleh pengukuran:
+`/auth/login` memulangkan token lewat **cookie HttpOnly**, bukan badan balasan
+(badan hanya memuat `expires_at`); dan API hidup di **:3001** sementara
+`apps/web/.env.local` menunjuk 3007 — jebakan yang sudah tercatat di CLAUDE.md §7
+dan tetap memakan waktu.
+
+### "API AI-nya udah ada?" — kuncinya ada, saldonya habis, dan sistem salah membacanya
+
+Founder: *"jadi bisa lanjut kan api ai nya sekarang udh adaa?"*
+
+Kunci terbaca oleh jalur otomasi (108 karakter) — perbaikan kemarin bekerja.
+Tetapi saya tak berhenti di situ dan memanggil API-nya sungguhan:
+
+    400  "Your credit balance is too low to access the Anthropic API"
+
+Kuncinya SAH — kunci salah menjawab 401. Yang habis saldonya. Jadi jawaban
+jujurnya: belum bisa lanjut, dan sebabnya di luar kode.
+
+#### Yang terbongkar karena mengujinya, bukan mengasumsikannya
+
+`alasanDariGalat()` memetakan 401/403 → `kunci_ditolak`, 429 → `kuota_habis`.
+Saldo habis memulangkan **400**, dan 400 jatuh ke baris terakhir: `'jaringan'`.
+
+`jaringan` ada di `ALASAN_BOLEH_ULANG`.
+
+Artinya sistem MENGULANG panggilan yang tak mungkin berhasil sampai saldo
+diisi. Untuk asisten proaktif — berjalan terjadwal, tanpa ada yang menonton —
+pengulangan sia-sia itu tak terlihat siapa pun.
+
+Dipetakan ke `kuota_habis`. Ia tetap `bolehUlang` (saldo bisa diisi kapan saja
+dan panggilan berikutnya berhasil), tetapi alasannya kini JUJUR di log alih-alih
+menyamar sebagai gangguan jaringan yang menuntun orang memeriksa koneksi.
+
+Dicocokkan lewat ISI PESAN, bukan status saja: 400 juga dipakai untuk
+permintaan salah bentuk, dan menyamakan keduanya membuat bug muatan terbaca
+sebagai masalah tagihan — orang mengisi saldo untuk cacat kode.
+
+Diverifikasi dengan galat SUNGGUHAN dari SDK Anthropic (`e.status === 400`),
+bukan objek karangan. Bukti mutasi: cabangnya dicabut → 1 merah; dipulihkan →
+35 hijau.
+
+**Pelajarannya:** "kunci sudah terpasang" dan "AI bisa dipakai" adalah dua
+pernyataan berbeda, dan hanya satu di antaranya yang bisa dijawab tanpa
+memanggil API-nya. Kalau saya menjawab founder dari pembacaan kredensial saja,
+jawabannya "ya, sudah bisa" — dan asisten akan gagal diam-diam sambil mengulang
+selamanya.
+
+### Cacat yang sama dibersihkan DUA KALI sehari — dan sumbernya baru ditutup malam ini
+
+`t5b-kill-switch` merah **3 dari 3** terisolasi. Bukan beban, dan pesannya
+menunjuk ke arah yang mahal:
+
+    auth_client_id() memulangkan baris klien dari company lain —
+    kebocoran lintas-tenant: expected null to be 'b0000000-…'
+
+Terbaca seperti kebocoran isolasi tenant. Bukan. `auth_client_id()` NULL karena
+`auth_company_id()` NULL, dan itu NULL karena si pengguna **tak punya
+keanggotaan `is_default`**. Sepuluh langkah dari sebabnya.
+
+Diukur: **13 pengguna aktif tanpa default**, semuanya berkeanggotaan TUNGGAL —
+jadi bukan kasus rumit.
+
+#### Migrasi 379 memperbaiki hal yang SAMA pagi ini, dan verifikasinya lulus
+
+Nol tersisa saat itu. Tiga belas lagi malam ini.
+
+Karena 379 membersihkan GEJALA tanpa menutup sumbernya:
+`PATCH /my/companies/:id/default` menurunkan SEMUA default lebih dulu, baru
+menaikkan yang dipilih. Kegagalan penurunan sudah diperiksa dengan teliti —
+kegagalan KENAIKAN tidak. Di situ pengguna tertinggal nol default.
+
+Urutannya dibalik: **naikkan dulu, baru turunkan sisanya**.
+
+    kenaikan gagal   → tak ada yang berubah, default lama tetap berlaku
+    penurunan gagal  → dua default sementara; keduanya company yang SAH bagi
+                       pengguna itu, jadi ia melihat data — bukan layar kosong
+
+**Dua default adalah gangguan; nol default adalah kelumpuhan senyap.** Membalik
+urutan menghapus kelas kerusakannya, bukan sekadar memperkecil peluangnya.
+
+Penurunan yang gagal kini dicatat ke log tetapi TIDAK membalas 500 — yang
+dipilih pengguna sudah tersimpan, dan "gagal" untuk perubahan yang berhasil
+membuat orang menekannya lagi.
+
+#### Penjaga `audit-keanggotaan-punya-default.mjs`
+
+Dua kali membersihkan gejala sudah cukup jadi bukti bahwa ini butuh penjaga,
+bukan kewaspadaan.
+
+Ambang NOL untuk keanggotaan tunggal — di situ tak ada yang perlu ditebak.
+Yang berkeanggotaan GANDA dilaporkan tanpa memerahkan: memilih company mana
+yang terbuka saat login adalah preferensi pemiliknya, dan sistem yang
+menebaknya membuka perusahaan yang salah tanpa pernah diminta.
+
+Migrasi 394 pun sengaja tak menyentuh yang ganda, dan verifikasinya hanya
+menuntut nol untuk yang tunggal — menuntut nol untuk sesuatu yang tak
+dikerjakan membuat verifikasi berbohong ke arah yang menyenangkan.
+
+Bukti: satu `is_default` dicabut → exit 1 → dipulihkan → exit 0.
+`t5b-kill-switch` **9/9 hijau tiga kali** sesudahnya, dari merah 3 dari 3.
+
 ### Kredensial per-tenant: yang diminta founder SUDAH ADA, yang kurang warisan grup
 
 Founder: *"biar api key nya bisa terpisah untuk masing-masing tenant gimana?

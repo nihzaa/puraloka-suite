@@ -51,6 +51,35 @@ describe('pemetaan galat — SERAGAM lintas penyedia', () => {
     expect(alasanDariGalat({ status: 403 }).alasan).toBe('kunci_ditolak')
   })
 
+  it('400 "credit balance too low" → kuota_habis, BUKAN jaringan', () => {
+    /*
+      Diukur langsung ke API 2026-08-14, saat founder bertanya "api ai nya udh
+      ada?". Kuncinya SAH (kunci salah menjawab 401) — yang habis saldonya:
+
+          400  "Your credit balance is too low to access the Anthropic API"
+
+      Tanpa cabangnya, 400 jatuh ke `jaringan` — dan `jaringan` ada di
+      ALASAN_BOLEH_ULANG. Sistem mengulang panggilan yang TAK MUNGKIN berhasil
+      sampai saldo diisi, dan untuk asisten proaktif (berjalan terjadwal, tanpa
+      ada yang menonton) pengulangan sia-sia itu tak terlihat siapa pun.
+
+      Diverifikasi dengan galat SUNGGUHAN dari SDK Anthropic, bukan objek
+      karangan: `e.status === 400` dan klasifikasinya `kuota_habis`.
+    */
+    expect(alasanDariGalat({
+      status: 400,
+      message: 'Your credit balance is too low to access the Anthropic API',
+    }).alasan).toBe('kuota_habis')
+  })
+
+  it('400 yang BUKAN soal saldo tetap jaringan — bug muatan bukan masalah tagihan', () => {
+    // Dicocokkan lewat isi pesan, bukan status saja: 400 juga dipakai untuk
+    // permintaan salah bentuk. Menyamakannya membuat bug muatan terbaca
+    // sebagai "kredit habis", dan orang mengisi saldo untuk cacat kode.
+    expect(alasanDariGalat({ status: 400, message: 'messages: field required' }).alasan)
+      .toBe('jaringan')
+  })
+
   it('AbortError → timeout', () => {
     expect(alasanDariGalat({ name: 'AbortError' }).alasan).toBe('timeout')
   })

@@ -262,6 +262,24 @@ async function sapaSatu(
   })
 
   if (!jalan.ok) {
+    /*
+      ── Kegagalan AI DICATAT, tidak cuma dikembalikan (2026-08-14)
+
+      Sebelumnya alasannya hanya jadi nilai balik. Untuk rute yang dipanggil
+      MANUSIA itu cukup — ia melihat jawabannya di layar. Alur ini dipanggil
+      PENJADWAL: tak ada yang menonton hasilnya, dan nilai balik yang tak
+      dibaca siapa pun sama saja dengan diam.
+
+      Terukur hari ini: kunci AI founder sah dan terbaca, tetapi API menjawab
+      `400 credit balance too low`. Tanpa baris ini, asisten proaktif gagal
+      setiap hari tanpa meninggalkan satu pun jejak — dan pertanyaan "kenapa
+      asisten tak pernah menyapa?" tak punya tempat untuk dijawab.
+
+      `catatGalat` dipakai apa adanya (sudah jadi parameter fungsi ini), bukan
+      mekanisme baru: jalur pencatatannya sudah ada, yang kurang cuma
+      pemanggilannya.
+    */
+    catatGalat(`giliran AI gagal (${jalan.alasan})`, new Error(jalan.pesan ?? jalan.alasan))
     return { userId: s.userId, status: 'gagal', alasan: jalan.alasan }
   }
 

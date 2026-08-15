@@ -253,6 +253,37 @@ export function alasanDariGalat(err: unknown): { alasan: AlasanGagal; pesan: str
   if (e?.name === 'AbortError' || e?.code === 'ETIMEDOUT') return { alasan: 'timeout', pesan }
   if (e?.status === 401 || e?.status === 403) return { alasan: 'kunci_ditolak', pesan }
   if (e?.status === 429) return { alasan: 'kuota_habis', pesan }
+
+  /*
+    ── SALDO HABIS memulangkan 400, bukan 402 maupun 429 (2026-08-14)
+
+    Diukur langsung ke API saat founder bertanya "api ai nya udh ada?":
+
+        400  "Your credit balance is too low to access the Anthropic API"
+
+    Kuncinya SAH — kunci salah menjawab 401. Yang habis saldonya.
+
+    Tanpa cabang ini, 400 jatuh ke `'jaringan'` di baris terakhir fungsi ini,
+    dan `jaringan` ada di `ALASAN_BOLEH_ULANG`. Akibatnya sistem MENGULANG
+    panggilan yang tak mungkin berhasil sampai saldo diisi — tiap ronde
+    membakar waktu, tiap pengulangan gagal dengan alasan yang sama.
+
+    Lebih buruk lagi untuk asisten proaktif: ia berjalan terjadwal tanpa ada
+    yang menonton, jadi pengulangan sia-sia itu tak terlihat siapa pun.
+
+    Dipetakan ke `kuota_habis` — yang artinya memang persis ini bagi pemakai:
+    "kredit penyedia tak cukup". Ia tetap `bolehUlang` (saldo bisa diisi kapan
+    saja dan panggilan berikutnya berhasil), tetapi alasannya kini JUJUR di
+    log dan di layar, bukan menyamar sebagai gangguan jaringan yang menuntun
+    orang memeriksa koneksi.
+
+    Dicocokkan lewat ISI PESAN, bukan status saja: 400 juga dipakai untuk
+    permintaan yang benar-benar salah bentuk, dan menyamakan keduanya membuat
+    bug muatan terbaca sebagai masalah tagihan.
+  */
+  if (e?.status === 400 && /credit balance|insufficient.*credit|billing/i.test(pesan)) {
+    return { alasan: 'kuota_habis', pesan }
+  }
   if (e?.status === 404) return { alasan: 'model_tak_dikenal', pesan }
   // 5xx dan galat jaringan sama-sama pantas diulang, dan membedakannya di sini
   // tak mengubah tindakan pemanggil.

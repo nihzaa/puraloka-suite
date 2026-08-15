@@ -59,6 +59,19 @@ find apps/web/app -name 'page.tsx' | wc -l
 cd apps/api && npx vitest run          # tempel ringkasannya, jangan diklaim
 ```
 
+**Menguji otomasi TANPA saldo AI.** Ketujuh tugas terjadwal **tak butuh AI sama
+sekali** — semuanya aturan `if-then`. Yang butuh saldo hanya asisten chat dan
+sapa-proaktif, dan keduanya BUKAN bagian katalog otomasi.
+
+```bash
+# 1. Lewat test — tak butuh API hidup, tak butuh kredensial
+cd apps/api && npx vitest run otomasi-terjadwal
+
+# 2. Lewat rute sungguhan — butuh API hidup + akun. UKUR portnya (§7).
+UJI_EMAIL=… UJI_SANDI=… UJI_BASIS=http://127.0.0.1:3001 \
+  node apps/api/scripts/uji-otomasi-terjadwal.mjs
+```
+
 **Otomasi mana yang hidup** — jangan dibaca dari katalog, UKUR:
 
 ```bash
@@ -186,6 +199,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-alur-tercatat.mjs` | webhook n8n wajib lewat `jalankanAlur()` — eksekusi tak boleh luput dari `otomasi_jalan` (ambang NOL) |
 | `audit-inbox-jalur-nyata.mjs` | `jalurUi` inbox approval wajib menunjuk halaman yang ada (ambang NOL) |
 | `audit-kredensial-lintas-tenant.mjs` | kunci tenant lain hanya lewat warisan induk berpagar; jatuhan `.env` hanya grup AI (ambang NOL) |
+| `audit-keanggotaan-punya-default.mjs` | pengguna aktif wajib punya keanggotaan default — tanpa itu RLS menyaring habis (ambang NOL) |
 | `audit-notifikasi-tak-kembar.mjs` | dedup notifikasi harian wajib menahan — kembar HARI INI (ambang NOL) |
 | `audit-izin-tanpa-konteks.mjs` | fungsi izin tak boleh kosong saat `auth_company_id()` NULL (ambang NOL) |
 | `audit-peristiwa-punya-alur.mjs` | tiap peristiwa yang diterbitkan wajib punya alur n8n penerima (ambang NOL) |

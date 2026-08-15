@@ -424,26 +424,69 @@ export default async function companiesRoutes(app: FastifyInstance) {
       return reply.status(403).send({ error: 'Anda bukan anggota badan usaha tersebut' })
     }
 
-    // Turunkan dulu SEMUA, baru naikkan yang dipilih: dua default sekaligus
-    // membuat auth_company_id() memulangkan salah satunya secara sembarang.
-    //
-    // Hasilnya DIPERIKSA: kalau penurunan gagal dan kegagalannya dibuang,
-    // kenaikan di bawah tetap jalan — dan berakhir dengan dua default
-    // sekaligus, persis yang komentar di atas peringatkan.
-    const { error: errTurun } = await request.db!
-      .unsafe('company_members', 'kategori D; T9 memang lintas company — turunkan default lama milik user ini')
-      .update({ is_default: false }).eq('user_id', uid)
-    if (errTurun) {
-      return reply.status(500).send({
-        error: 'Gagal menurunkan badan usaha default lama: ' + errTurun.message,
-      })
-    }
+    /*
+      ── NAIKKAN DULU, BARU TURUNKAN YANG LAIN (dibalik 2026-08-14)
+
+      Urutan sebelumnya: turunkan SEMUA → naikkan yang dipilih. Alasannya
+      benar (dua default sekaligus membuat `auth_company_id()` memulangkan
+      salah satunya secara sembarang), dan kegagalan penurunan pun sudah
+      diperiksa.
+
+      Yang tak tertutup: kegagalan KENAIKAN. Penurunan sudah terlanjur
+      tersimpan, jadi pengguna tertinggal dengan NOL default — dan itu jauh
+      lebih merusak daripada dua default.
+
+      `auth_company_id()` jatuh ke keanggotaan default. Tanpa satu pun,
+      ia NULL — lalu `tenant_isolation` RESTRICTIVE (migrasi 373) menyaring
+      HABIS, dan pengguna melihat NOL data tanpa satu pun galat. Gejalanya
+      identik dengan kebocoran dari sisi berlawanan, dan keduanya sama-sama
+      diam.
+
+      Terukur 2026-08-14: **13 pengguna aktif tanpa keanggotaan default**,
+      semuanya berkeanggotaan TUNGGAL — jadi bukan kasus rumit, melainkan
+      sisa dari jendela ini. Salah satunya membuat `t5b-kill-switch` merah
+      (`auth_client_id()` memulangkan NULL), dan merahnya terbaca seperti
+      kebocoran lintas-tenant — sepuluh langkah dari sebabnya.
+
+      Dibalik: naikkan yang dipilih lebih dulu, baru turunkan sisanya.
+
+        · kenaikan gagal  → tak ada yang berubah, default lama tetap berlaku
+        · penurunan gagal → dua default sementara; `auth_company_id()` memang
+                            sembarang di antara keduanya, tetapi keduanya
+                            company yang SAH bagi pengguna ini. Ia melihat
+                            data, bukan layar kosong.
+
+      Dua default adalah gangguan; nol default adalah kelumpuhan senyap.
+      Transaksi sungguhan lebih baik lagi, tetapi `request.db` tak
+      menyediakannya — dan urutan yang benar sudah menghapus kelas
+      kerusakannya, bukan sekadar memperkecil peluangnya.
+    */
     const { error } = await request.db!
       .unsafe('company_members', 'kategori D; T9 memang lintas company — set badan usaha utama milik user ini')
       .update({ is_default: true })
       .eq('user_id', uid).eq('company_id', id)
-
     if (error) return reply.status(500).send({ error: 'Gagal menyimpan badan usaha utama' })
+
+    const { error: errTurun } = await request.db!
+      .unsafe('company_members', 'kategori D; T9 memang lintas company — turunkan default lama milik user ini')
+      .update({ is_default: false })
+      .eq('user_id', uid).neq('company_id', id)
+    if (errTurun) {
+      /*
+        TIDAK 500: yang dipilih pengguna SUDAH jadi default, jadi permintaannya
+        terpenuhi. Membalas 500 di sini membuat UI menampilkan "gagal" untuk
+        perubahan yang sebenarnya berhasil, dan pengguna menekannya lagi —
+        mengulang keadaan yang sama.
+
+        Tetapi TIDAK ditelan diam-diam: dua default membuat `auth_company_id()`
+        sembarang, dan itu harus punya jejak.
+      */
+      request.log.error(
+        { err: errTurun, uid, companyId: id },
+        'default baru tersimpan tetapi default lama gagal diturunkan — dua default sekaligus',
+      )
+    }
+
     return reply.send({ ok: true })
   })
 }

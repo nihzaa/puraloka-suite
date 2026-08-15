@@ -281,3 +281,98 @@ describe('rentang hari untuk kolom TIMESTAMPTZ', () => {
     expect(kemarin >= hariIni + 'T00:00:00').toBe(false)
   })
 })
+
+describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KENAPA TEST INI ADA
+    ══════════════════════════════════════════════════════════════════════════
+
+    Founder: *"bangun aja dulu semua workflow nya dan pastikan pake cara uji yg
+    lain yg tanpa harus pake saldo"*.
+
+    Diukur lebih dulu, dan hasilnya melegakan: **tak satu pun dari 14 alur
+    otomasi membutuhkan AI.** Semuanya aturan `if-then`. Yang butuh saldo hanya
+    asisten chat dan sapa-proaktif — keduanya BUKAN bagian katalog otomasi.
+    Jadi seluruhnya bisa diuji hari ini juga dengan saldo nol.
+
+    Diukur juga apa yang SUDAH tercakup: berkas ini menguji 2.10 dan 6.6
+    dengan fixture sungguhan. **Lima rute sisanya tak punya test sama sekali** —
+    `progres-belum-lapor`, `dependency-breach`, `gr-matching`, `invoice-termin`,
+    `stok-menipis`.
+
+    ── Yang diuji di sini, dan yang SENGAJA TIDAK
+
+    Header berkas ini sudah menjelaskan kenapa fixture penuh dihindari:
+    merakitnya menulis data yang BERTAHAN di basis `public`. Alasan itu tetap
+    berlaku, dan test ini tidak melanggarnya.
+
+    Yang dijangkau: rutenya TERDAFTAR, bergerbang izin dengan benar, dan
+    menyelesaikan pekerjaannya tanpa melempar. Itu kelas cacat yang nyata dan
+    tak tertangkap test logika — `teruskan-kasbon-diajukan` mengirim 28
+    WhatsApp sungguhan sementara buku eksekusinya kosong, dan seluruh test unit
+    hijau sepanjang itu terjadi.
+
+    Yang TIDAK diklaim: bahwa hasilnya benar. Rute yang memulangkan nol karena
+    memang tak ada yang perlu dikerjakan hari ini tetap lulus di sini — dan itu
+    disengaja. Menuntut bukan-nol akan membuat test merah pada sistem yang
+    sehat, lalu ditandai `skip` oleh orang berikutnya.
+  */
+  const TUGAS = [
+    'kasbon-outstanding',
+    'kasbon-tukang',
+    'progres-belum-lapor',
+    'dependency-breach',
+    'gr-matching',
+    'invoice-termin',
+    'stok-menipis',
+  ] as const
+
+  it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {
+    const r = await panggil(tugas)
+
+    /*
+      404 di sini berarti rutenya TAK TERDAFTAR — cacat yang tak akan pernah
+      terlihat dari test logika, dan yang gejalanya di produksi cuma "otomasi
+      itu tak pernah jalan".
+
+      500 berarti pekerjaannya sendiri melempar. Untuk rute yang dipanggil
+      penjadwal tanpa penonton, itu kegagalan senyap sempurna.
+    */
+    expect(r.statusCode, `${tugas} membalas ${r.statusCode}. Body: ${r.body.slice(0, 200)}`)
+      .toBe(200)
+
+    // Balasannya wajib JSON yang bisa dibaca mesin — penjadwal memutuskan dari
+    // isinya, bukan dari teks bebas.
+    expect(() => JSON.parse(r.body), `${tugas} membalas non-JSON: ${r.body.slice(0, 120)}`)
+      .not.toThrow()
+  }, 60_000)
+
+  it('SEMUA tugas terjadwal di kode ikut diuji — daftar tak boleh tertinggal', async () => {
+    /*
+      Penjaga terhadap test ini sendiri.
+
+      Daftar `TUGAS` di atas ditulis tangan. Begitu ada rute baru ditambahkan
+      ke `otomasi-terjadwal.ts` dan lupa dimasukkan ke sini, cakupannya bocor
+      DIAM-DIAM — dan test ini akan tetap hijau sambil menguji enam dari
+      delapan.
+
+      Jadi daftarnya dicocokkan dengan KODE SUMBERNYA, bukan dipercaya.
+    */
+    const { readFileSync } = await import('node:fs')
+    const { join, dirname } = await import('node:path')
+    const { fileURLToPath } = await import('node:url')
+
+    const sumber = readFileSync(
+      join(dirname(fileURLToPath(import.meta.url)), '..', 'otomasi-terjadwal.ts'),
+      'utf8',
+    )
+    const diKode = [...new Set(
+      [...sumber.matchAll(/otomasi\/jalankan\/([a-z-]+)/g)].map((m) => m[1]),
+    )].sort()
+
+    expect([...TUGAS].sort(),
+      `daftar TUGAS tertinggal dari kode. Di kode: ${diKode.join(', ')}`)
+      .toEqual(diKode)
+  }, 30_000)
+})
