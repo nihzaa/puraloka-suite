@@ -86,7 +86,7 @@ prasyaratnya sudah ada di kode, dan tak satu pun membutuhkan AI.
 | 3.7 | Milestone Risk Flagging | ✅ `milestone-berisiko` | ⬜ jadwal | ✅ `milestone_approaching` | `completed_at`, bukan `status` |
 | 2.2 | Vendor Payment Reminder | ✅ `hutang-supplier` | ⬜ jadwal | ✅ migrasi 395 | ditegur SEBELUM jatuh tempo |
 | 4.9 | Material Price Trend | ✅ `harga-material-naik` | ⬜ jadwal | ✅ migrasi 395 | kenaikan yang SUDAH terjadi, bukan prediksi |
-| 3.18 | Earned Value Trend Alert | ⛔ **ditunda** | — | — | lihat §3 |
+| 3.18 | Earned Value Trend Alert | ✅ `evm-kinerja` | ⬜ jadwal | ✅ migrasi 398 | MEMANGGIL rute kurva-S, tak menyalin rumusnya — §3 |
 
 ### Belum — butuh modul yang belum dibangun
 
@@ -131,15 +131,39 @@ Katalog menulis *"Draft MR otomatis"*. Ditolak, dengan tiga alasan terukur
 Yang dikirim: peringatan yang MEMBAWA angkanya, supaya manusia menekan "Buat
 MR" dengan angka yang sudah terhitung.
 
-### 3.18 ditunda — EVM tak disimpan
+### 3.18 — ditunda, lalu diselesaikan lewat jalan lain (2026-08-16)
 
-Diukur: tak ada tabel ber-`spi`/`cpi`. EVM dihitung di dalam handler
-`kurva-s.ts`, dan merakit ulang BAC/AC/EV/PV di otomasi butuh ~25 baris
-salinan.
+Alasan penundaannya tetap benar dan masih tertulis di bawah. Yang berubah cuma
+jalan keluarnya.
 
-Dua sumber untuk satu angka adalah cara paling sunyi membuat laporan dan
-notifikasi berselisih. Yang benar: ekstrak perhitungannya jadi fungsi yang
-bisa dipanggil keduanya — pekerjaan tersendiri, bukan sisipan di otomasi.
+**Alasan penundaan (2026-08-15).** Tak ada tabel ber-`spi`/`cpi`. EVM dihitung
+di dalam handler `kurva-s.ts`, dan merakit ulang BAC/AC/EV/PV di otomasi butuh
+~25 baris salinan. Dua sumber untuk satu angka adalah cara paling sunyi membuat
+laporan dan notifikasi berselisih.
+
+**Yang saya kira jalan keluarnya:** ekstrak perhitungannya jadi fungsi yang
+bisa dipanggil keduanya.
+
+**Yang ternyata benar.** Rumusnya SUDAH fungsi murni — `lib/evm-calculation.ts`
+sejak Task 1.2.2. Yang mahal bukan rumusnya melainkan MENENTUKAN MASUKANNYA:
+
+| Masukan | Kenapa tak bisa disalin |
+|---|---|
+| BAC | berjenjang: pagu RAP terkunci → nilai RAB → nilai kontrak |
+| PV | dari kurva rencana mingguan, yang sumbernya sendiri berjenjang |
+| AC | serapan dana manual, bukan aktual kas |
+
+Jadi otomasinya **memanggil rute kurva-S** lewat `server.inject` — pola yang
+sudah ada dan sudah beralasan di `lib/ai-setujui.ts` dan `routes/v1/jadwal.ts`.
+Header asli pemanggil ikut, jadi `authenticate` dan saringan tenant berlaku
+persis sama.
+
+Klaimnya jadi satu kalimat yang bisa salah, dan diuji sebagai itu: **SPI di
+notifikasi sama persis dengan SPI di layar Kurva-S** (`otomasi-evm.test.ts`,
+dibandingkan dengan `toBe`, bukan `toBeCloseTo`).
+
+**Ongkosnya nyata** — satu permintaan per proyek aktif, dan kurva-S bukan rute
+ringan. Karena itu dibatasi proyek berstatus `active`.
 
 ### 4.9 bukan prediksi
 
@@ -241,4 +265,58 @@ Keduanya bukan dari pekerjaan ini, dan keduanya sudah ditutup:
 Yang pertama sempat terbaca sebagai kenaikan ratchet 124 → 125 akibat
 pekerjaan hari ini. Bukan. Memeriksanya lebih dulu mencegah lantai dinaikkan
 untuk menutupi utang orang lain.
+
+---
+
+## 6. Dua cacat yang ditemukan saat membangun 3.18
+
+Keduanya sudah ada di `main` sebelum pekerjaan ini, dan keduanya tak punya
+gejala sendiri.
+
+### 6a. `pembuatDedup` tak memeriksa kegagalan baca — dipakai 12 otomasi
+
+```
+const { data } = await request.db!.from('notifications')...
+                                   ^ tanpa `error`
+```
+
+Query yang gagal memulangkan `data: null`, dan `?? []` mengubahnya jadi himpunan
+kosong — artinya **tak ada satu pun yang dianggap sudah terkirim**. Kedua belas
+otomasi lalu mengirim ulang semuanya, tanpa satu pun galat. Dari luar ia
+terlihat persis seperti hari dengan banyak temuan baru.
+
+Kerusakan yang sama pernah terjadi lewat jalan lain (pemisah `NUL` di 2.10) dan
+butuh penjaga tersendiri untuk ditemukan.
+
+Sekarang **dilempar**, bukan dikembalikan kosong: otomasi yang mati lebih baik
+daripada otomasi yang membanjiri semua orang dengan pesan kembar. Yang mati
+ketahuan; yang membanjiri membuat orang mematikan notifikasinya.
+
+### 6b. `Math.trunc` pada seluruh ambang
+
+`jepit()` memotong SEMUA nilai. Itu benar selama seluruh ambang bilangan bulat
+— dan memang begitu sampai ambang EVM lahir sebagai desimal.
+
+`Math.trunc(0.75)` = **0**, lalu dijepit naik ke `min` = 0.1. Ambang 0.75 diam-
+diam jadi 0.1, dan otomasinya praktis berhenti menegur siapa pun. Nol
+notifikasi terlihat persis seperti "semua proyek sehat".
+
+Ditemukan test, bukan pembacaan kode. Saya justru menulis komentar yang
+menyatakan *"`ambilAmbang` tak membulatkan (diperiksa, bukan diasumsikan)"* —
+dan pemeriksaan itu keliru.
+
+### 6c. Catatan terpisah: 570 tenant sampah di basis dev
+
+Diukur 2026-08-16: `companies` berisi **571 baris, 570 di antaranya sisa test**
+(`[UJI-S8] Tenant Lain`, `uji-rute-…`). Test membuat tenant per-run dan tak
+menghapusnya.
+
+Akibat yang sudah terasa: tiap migrasi per-tenant menulis ratusan baris untuk
+tenant hantu — migrasi 398 memasang 1.142 baris ambang dan 1.142 target
+notifikasi. Belum berbahaya, tetapi tumbuh tiap run.
+
+**Tidak dibersihkan tanpa konfirmasi** (CHARTER §8a.5: menghapus data yang sudah
+ada butuh persetujuan, "dummy" bukan izin merusak). Yang perlu diputuskan:
+apakah harness test membersihkan tenant buatannya di `afterAll`, dan apakah
+570 baris yang ada sekarang dihapus.
 

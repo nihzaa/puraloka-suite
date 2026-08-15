@@ -396,12 +396,24 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       // Gantt (`rab.ts:651` → `latest_pct`). Tanpa ini, pekerjaan yang sudah
       // selesai di lapangan tetap diperingatkan karena `progress_pct`
       // rencananya tak pernah diperbarui.
-      const { data: logs } = await request.db!
+      // Kegagalan di sini membuat `pctNyata` kosong, dan pekerjaan yang sudah
+      // selesai di lapangan ikut diperingatkan — tepat yang komentar di atas
+      // hendak cegah. Dicatat lalu proyek ini DILEWATI, bukan diperingatkan
+      // dengan data yang tak lengkap.
+      const { data: logs, error: errLogs } = await request.db!
         .viaProject('progress_logs', p.id)
         .select('rab_item_id, logged_at, pct_completion')
         .eq('mode', 'detail')
         .not('rab_item_id', 'is', null)
         .order('logged_at', { ascending: true })
+
+      if (errLogs) {
+        request.log.warn(
+          { err: errLogs, projectId: p.id },
+          'dependency-breach: progres nyata tak terbaca, proyek dilewati',
+        )
+        continue
+      }
 
       const pctNyata = new Map<string, number | null>()
       for (const l of logs ?? []) {
@@ -1347,6 +1359,199 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/evm-kinerja ─────────────────────────────
+  //
+  // Automation 3.18 — Earned Value Trend Alert.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA INI MEMANGGIL RUTE LAIN, BUKAN MENGHITUNG SENDIRI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // 3.18 ditunda pada 2026-08-15 dengan alasan yang tercatat: EVM tak disimpan
+  // di tabel mana pun, dan merakit ulang BAC/AC/EV/PV di sini butuh ~25 baris
+  // salinan dari `kurva-s.ts`.
+  //
+  // Alasan itu masih berlaku — yang berubah cuma jalan keluarnya. Perakitan
+  // EVM bukan sekadar rumus (`calculateEVM` sudah fungsi murni sejak Task
+  // 1.2.2); yang mahal adalah MENENTUKAN MASUKANNYA:
+  //
+  //   BAC   berjenjang: pagu RAP terkunci → nilai RAB → nilai kontrak
+  //   PV    dari kurva rencana mingguan, yang sumbernya sendiri berjenjang
+  //         (jadwal RAB → Gantt → kurva lonceng generik)
+  //   AC    serapan dana manual, bukan aktual kas
+  //
+  // Menyalin ketiganya berarti dua sumber untuk satu angka. Dan angka yang
+  // punya dua sumber akan berselisih — bukan mungkin, melainkan pada
+  // perubahan pertama yang hanya diterapkan di salah satunya. Yang membaca
+  // notifikasi "SPI 0.7" lalu membuka layar Kurva-S dan melihat 0.85 tak
+  // punya cara tahu mana yang benar.
+  //
+  // Jadi otomasi ini MEMANGGIL rute kurva-S lewat `server.inject` — pola yang
+  // sudah ada dan sudah beralasan di `lib/ai-setujui.ts` dan
+  // `routes/v1/jadwal.ts`. Header asli pemanggil ikut, jadi `authenticate` dan
+  // saringan tenant berlaku persis sama; tak ada jalan pintas yang dibuat
+  // untuk otomasi.
+  //
+  // Ongkosnya nyata: satu permintaan per proyek aktif, dan kurva-S bukan rute
+  // ringan. Karena itu ia dibatasi proyek berstatus `active` saja — proyek
+  // `draft` belum punya rencana untuk dibandingkan, dan `completed` tak lagi
+  // bisa diperbaiki.
+  app.get('/api/v1/otomasi/jalankan/evm-kinerja', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { spi?: string; cpi?: string }
+    const minSpi = await ambilAmbang(request, 'otomasi.evm_spi.minimum', q.spi)
+    const minCpi = await ambilAmbang(request, 'otomasi.evm_cpi.minimum', q.cpi)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['evm_kinerja_menurun'])
+
+    const { data: proyek, error } = await request.db!
+      .from('projects')
+      .select('id, name, pm_id')
+      .eq('status', 'active')
+
+    // Query yang gagal TIDAK boleh terbaca sebagai "tak ada proyek aktif".
+    if (error) return reply.status(500).send({ error: error.message })
+
+    let dibuat = 0
+    let diperiksa = 0
+    let takTerhitung = 0
+    let sudahDikirimHariIni = 0
+
+    for (const p of proyek ?? []) {
+      /*
+        Ember KETIGA, dan ia harus dihitung.
+
+        Test pertama saya mengandaikan tiap proyek aktif berakhir di salah satu
+        dari dua ember (terhitung / tak terhitung), lalu merah — karena proyek
+        yang sudah dikirimi hari ini keluar dari perulangan SEBELUM masuk
+        keduanya.
+
+        Testnya benar menuntut penjumlahan yang utuh; rutenya yang kurang satu
+        angka. Tanpa ini, "0 notifikasi" pada panggilan kedua tak bisa
+        dibedakan dari "0 proyek bermasalah" — dan itu persis pertanyaan yang
+        orang bawa saat memeriksa kenapa pesannya tak datang.
+      */
+      if (sudah('evm_kinerja_menurun', p.id)) {
+        sudahDikirimHariIni++
+        continue
+      }
+
+      const res = await request.server.inject({
+        method: 'GET',
+        url: `/api/v1/projects/${p.id}/kurva-s`,
+        headers: {
+          // Header ASLI pemanggil — bukan header layanan yang melewati apa pun.
+          authorization: request.headers.authorization ?? '',
+          'x-company-id': (request.headers['x-company-id'] as string) ?? '',
+        },
+      })
+
+      /*
+        Proyek yang kurva-S-nya gagal DILEWATI, tidak menggagalkan seluruh
+        jalannya — dan DIHITUNG, tidak ditelan.
+
+        Satu proyek tanpa tanggal mulai membuat kurva-S balas 500; kalau itu
+        menghentikan otomasi, sepuluh proyek lain yang benar-benar bermasalah
+        tak pernah diperiksa. Tapi melewatinya tanpa mencatat berarti
+        "0 proyek bermasalah" bisa berarti "semua sehat" ATAU "semuanya gagal
+        dihitung", dan keduanya terlihat sama persis di respons.
+      */
+      if (res.statusCode !== 200) {
+        takTerhitung++
+        request.log.warn(
+          { projectId: p.id, status: res.statusCode },
+          'evm-kinerja: kurva-s tak bisa dihitung, proyek dilewati',
+        )
+        continue
+      }
+
+      let spi = NaN
+      let cpi = NaN
+      let cakupan = 0
+      try {
+        const badan = res.json() as {
+          meta?: { evm?: Record<string, number>; cakupanJadwalPct?: number }
+        }
+        spi = Number(badan.meta?.evm?.spi ?? NaN)
+        cpi = Number(badan.meta?.evm?.cpi ?? NaN)
+        cakupan = Number(badan.meta?.cakupanJadwalPct ?? 0)
+      } catch {
+        takTerhitung++
+        continue
+      }
+
+      /*
+        SPI/CPI nol atau bukan angka berarti BAC nol — proyek tanpa RAP, RAB,
+        maupun nilai kontrak. Itu bukan kinerja buruk, itu KETIADAAN DATA, dan
+        menegur orang karenanya membuat mereka berhenti mempercayai pesannya.
+      */
+      if (!Number.isFinite(spi) || !Number.isFinite(cpi) || (spi === 0 && cpi === 0)) {
+        takTerhitung++
+        continue
+      }
+
+      diperiksa++
+
+      const spiBuruk = spi < minSpi
+      const cpiBuruk = cpi < minCpi
+      if (!spiBuruk && !cpiBuruk) continue
+
+      /*
+        Pesannya menyebut CAKUPAN JADWAL, dan itu bukan hiasan.
+
+        `kurva-s.ts` memperingatkan sendiri: PV dari Gantt hanya sekuat cakupan
+        item yang punya tanggal rencana. Lima belas dari 296 item berjadwal
+        menghasilkan SPI yang terlihat sama meyakinkannya dengan SPI dari
+        jadwal penuh. Angka yang dikirim tanpa cakupannya mengundang keputusan
+        yang lebih percaya diri daripada datanya.
+      */
+      const bagian: string[] = []
+      if (spiBuruk) bagian.push(`jadwal SPI ${spi.toFixed(2)} (batas ${minSpi})`)
+      if (cpiBuruk) bagian.push(`biaya CPI ${cpi.toFixed(2)} (batas ${minCpi})`)
+
+      const penerima = await resolveRecipients('evm_kinerja_menurun', {
+        projectId: p.id, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Kinerja Proyek Menurun',
+          message:
+            `Proyek "${p.name}": ${bagian.join(' dan ')}. `
+            + `Cakupan jadwal ${cakupan.toFixed(0)}% dari nilai pekerjaan.`,
+          type:       'evm_kinerja_menurun',
+          // Keduanya buruk = mendesak. Satu saja masih bisa ditangani dalam
+          // ritme kerja biasa.
+          priority:   spiBuruk && cpiBuruk ? 'urgent' : 'high',
+          project_id: p.id,
+          action_url: `/proyek/${p.id}`,
+          action_data: { record_id: p.id, spi, cpi, cakupan_jadwal_pct: cakupan },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_aktif: (proyek ?? []).length,
+        evm_terhitung: diperiksa,
+        // Dilaporkan EKSPLISIT: tanpa angka ini, "0 bermasalah" tak bisa
+        // dibedakan dari "semua gagal dihitung".
+        evm_tak_terhitung: takTerhitung,
+        sudah_dikirim_hari_ini: sudahDikirimHariIni,
+        ambang_spi: minSpi, ambang_cpi: minCpi,
+      },
+    })
+  })
 }
 
 /**
@@ -1372,11 +1577,35 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
  * `Set.has` di memori.
  */
 async function pembuatDedup(request: FastifyRequest, today: string, tipe: string[]) {
-  const { data } = await request.db!
+  const { data, error } = await request.db!
     .from('notifications')
     .select('type, action_data')
     .in('type', tipe)
     .gte('sent_at', today + 'T00:00:00')
+
+  /*
+    Kegagalan baca di SINI adalah yang paling berbahaya di seluruh berkas, dan
+    ia sempat tak diperiksa sama sekali.
+
+    Query yang gagal memulangkan `data: null`, dan `?? []` di bawah mengubahnya
+    jadi himpunan kosong — yang artinya **tak ada satu pun yang dianggap sudah
+    terkirim**. Seluruh dua belas otomasi lalu mengirim ulang semuanya, dan
+    tak ada satu pun galat: dari luar ia terlihat persis seperti hari dengan
+    banyak temuan baru.
+
+    Kerusakan yang sama pernah terjadi lewat jalan lain (pemisah `NUL` di 2.10)
+    dan butuh penjaga sendiri untuk ditemukan. Yang ini ditangkap
+    `audit-kegagalan-senyap` — angka 187 yang saya kira regresi saya ternyata
+    sudah ada di HEAD.
+
+    DILEMPAR, bukan dikembalikan kosong: otomasi yang mati lebih baik daripada
+    otomasi yang membanjiri semua orang dengan pesan kembar. Yang mati
+    ketahuan; yang membanjiri membuat orang mematikan notifikasinya.
+  */
+  if (error) {
+    request.log.error({ err: error, tipe }, 'dedup: gagal membaca notifikasi hari ini')
+    throw new Error(`Dedup harian tak bisa dibaca: ${error.message}`)
+  }
 
   const terkirim = new Set<string>()
   for (const n of data ?? []) {

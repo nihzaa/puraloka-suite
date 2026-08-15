@@ -5,6 +5,83 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 — 3.18 selesai lewat jalan lain, dan dua cacat senyap yang lebih penting
+
+Automation 3.18 saya tunda kemarin dengan alasan yang tercatat. Alasannya
+benar; jalan keluar yang saya bayangkan tidak.
+
+### Yang saya kira perlu vs yang ternyata benar
+
+Saya menulis: *"ekstrak perhitungannya jadi fungsi yang bisa dipanggil
+keduanya"*. Diukur hari ini: **rumusnya SUDAH fungsi murni** —
+`lib/evm-calculation.ts` sejak Task 1.2.2.
+
+Yang mahal bukan rumusnya melainkan menentukan MASUKANNYA — BAC berjenjang
+(pagu RAP → RAB → kontrak), PV dari kurva rencana mingguan yang sumbernya
+sendiri berjenjang, AC dari serapan manual. Ketiganya butuh seluruh handler.
+
+Jadi otomasinya **memanggil rute kurva-S** lewat `server.inject`, pola yang
+sudah ada di `ai-setujui.ts` dan `jadwal.ts`. Klaimnya jadi satu kalimat yang
+bisa salah, dan diuji sebagai itu: SPI di notifikasi sama persis dengan SPI di
+layar. Dibandingkan `toBe`, bukan `toBeCloseTo` — mutasi yang membulatkan ke
+dua desimal saja sudah merah.
+
+### Dua cacat yang sudah ada di main, keduanya tanpa gejala
+
+**1. `pembuatDedup` tak memeriksa kegagalan baca.** Dipakai 12 otomasi. Query
+gagal → `data: null` → `?? []` → himpunan kosong → **tak ada yang dianggap
+sudah terkirim** → semua dikirim ulang. Tanpa satu pun galat; dari luar
+terlihat seperti hari dengan banyak temuan baru.
+
+Sekarang dilempar, bukan dikembalikan kosong. Otomasi yang mati ketahuan;
+otomasi yang membanjiri membuat orang mematikan notifikasinya.
+
+Saya sempat mengira 187 itu regresi saya. `git stash` membuktikan sebaliknya —
+sudah 187 di HEAD. Memeriksanya dulu mencegah saya menaikkan ambang.
+
+**2. `Math.trunc` pada seluruh ambang.** Benar selama semua ambang bulat, dan
+memang begitu sampai ambang EVM lahir desimal. `Math.trunc(0.75)` = 0, dijepit
+naik ke min 0.1 — ambang 0.75 diam-diam jadi 0.1, otomasinya praktis berhenti
+menegur siapa pun, dan nol notifikasi terlihat seperti "semua proyek sehat".
+
+**Saya salah menulis komentar yang menyatakan ini sudah diperiksa.** Kalimatnya:
+*"`ambilAmbang` tak membulatkan (diperiksa, bukan diasumsikan)"*. Pemeriksaan
+itu tak pernah benar-benar saya lakukan; test yang menemukannya.
+
+### Dan satu kesalahan yang berulang untuk ketiga kalinya
+
+`projects:manage` tak ada di tabel `permissions` — yang benar `projects:edit`.
+Ketiga kalinya dalam dua sesi saya mengarang kunci izin. Di migrasi, FK yang
+menahannya; di rute, `audit-izin-benar-ada`.
+
+Pola yang sama terjadi di migrasi 398 satu lapis lebih dalam: komentar saya
+sendiri memperingatkan bahwa aturan notifikasi tanpa baris berarti "sukses
+tanpa memberi tahu siapa pun" — lalu saya membuat aturannya TANPA TARGET, yang
+gejalanya identik. Test yang menangkap.
+
+### Temuan yang TIDAK saya kerjakan
+
+`companies` berisi 571 baris, **570 sisa test** yang tak pernah dibersihkan.
+Migrasi 398 karenanya menulis 1.142 baris ambang untuk tenant hantu. Dicatat di
+`ROADMAP-WORKFLOW.md` §6c, tidak dihapus — CHARTER §8a.5.
+
+### Bukti
+
+    otomasi-evm             4/4 hijau
+    otomasi (3 berkas)      29/29 hijau
+    tsc api + web           0
+    next build              sukses
+    lint                    api 0/231 · web 0/295
+    migrasi 398             blok verifikasi lulus (aturan, target, ambang, tipe)
+    ratchet kegagalan-senyap 187 → 186 (TURUN, tepat di lantai)
+
+    mutasi (semua wajib merah, semua terbukti):
+      SPI dibulatkan 2 desimal sebelum dikirim  MERAH → pulih HIJAU
+      Math.trunc dikembalikan universal         MERAH → pulih HIJAU
+      dedup dilewati                            MERAH → pulih HIJAU
+
+---
+
 ## 2026-08-15 (lanjutan 8) — kasbon lewat WA, katalog otomasi di UI, dan tiga utang yang ikut terlihat
 
 Dua permintaan founder diselesaikan. Yang lebih berharga: **tiga cacat yang

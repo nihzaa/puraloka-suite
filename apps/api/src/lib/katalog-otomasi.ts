@@ -359,6 +359,32 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'kerjakan.',
   },
 
+  {
+    kunci: 'evm-kinerja',
+    nomor: '3.18',
+    nama: 'Kinerja proyek menurun',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai proyek yang jadwalnya tertinggal atau biayanya membengkak '
+      + 'dibanding nilai pekerjaan yang sudah diselesaikan. Keduanya dihitung '
+      + 'dari angka yang sama dengan layar Kurva-S, jadi tak mungkin berselisih.',
+    penerima: 'Manajer proyek dan direksi',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengambil daftar proyek yang sedang berjalan.' },
+      { di: 'sistem', teks: 'Meminta perhitungan Kurva-S tiap proyek — perhitungan yang sama dengan yang dilihat di layar.' },
+      { di: 'sistem', teks: 'Membandingkan indeks jadwal dan indeks biayanya dengan batas yang disetel.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.evm_spi.minimum',
+    catatan:
+      'Pesannya selalu menyebut berapa persen pekerjaan yang punya tanggal '
+      + 'rencana. Proyek yang baru sebagian dijadwalkan menghasilkan angka yang '
+      + 'terlihat sama meyakinkannya dengan proyek berjadwal penuh, padahal '
+      + 'dasarnya jauh lebih tipis. Proyek yang belum punya anggaran sama '
+      + 'sekali dilewati — itu ketiadaan data, bukan kinerja buruk.',
+  },
+
   // ── Lewat percakapan WhatsApp ───────────────────────────────────────────
   {
     kunci: 'catatan_progres',

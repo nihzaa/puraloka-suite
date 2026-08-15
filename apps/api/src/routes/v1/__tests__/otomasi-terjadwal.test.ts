@@ -337,6 +337,14 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     'milestone-berisiko',
     'hutang-supplier',
     'harga-material-naik',
+    /*
+      Automation 3.18 (2026-08-16) — satu-satunya yang MEMANGGIL RUTE LAIN
+      (`/projects/:id/kurva-s` lewat `server.inject`) alih-alih menghitung
+      sendiri. Test cakupan ini karenanya menguji lebih banyak daripada yang
+      terlihat: kalau kurva-S berubah bentuk responsnya, otomasi ini yang
+      pertama merah, bukan pengguna yang pertama menerima "SPI NaN".
+    */
+    'evm-kinerja',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

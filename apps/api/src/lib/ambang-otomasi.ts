@@ -83,13 +83,62 @@ export const AMBANG_OTOMASI = {
     max: 100,
     label: 'Kenaikan harga material yang dianggap signifikan (%)',
   },
+  /*
+    Dua ambang EVM, dan DESIMAL — satu-satunya di daftar ini.
+
+    Dan pemotongan di `jepit()` HARUS mengikuti bentuknya — lihat komentar di
+    sana. Saya sempat menulis di sini bahwa "`ambilAmbang` tak membulatkan
+    (diperiksa)"; itu SALAH. `Math.trunc(0.75)` menghasilkan 0, lalu dijepit
+    naik ke `min` — ambang 0.75 diam-diam jadi 0.1, dan otomasinya praktis
+    berhenti menegur siapa pun tanpa satu pun galat. Test `otomasi-evm`
+    menangkapnya; pembacaan kode saya tidak.
+
+    Bawaan 0.90, bukan 1.00. SPI persis 1.00 hampir tak pernah terjadi pada
+    proyek nyata; ambang di 1.00 berarti notifikasi yang selalu menyala, dan
+    yang selalu menyala berhenti dibaca.
+  */
+  'otomasi.evm_spi.minimum': {
+    bawaan: 0.9,
+    min: 0.1,
+    max: 1,
+    label: 'Batas bawah indeks jadwal (SPI) — di bawah ini proyek tertinggal',
+  },
+  'otomasi.evm_cpi.minimum': {
+    bawaan: 0.9,
+    min: 0.1,
+    max: 1,
+    label: 'Batas bawah indeks biaya (CPI) — di bawah ini proyek boros',
+  },
 } as const
 
 export type KunciAmbang = keyof typeof AMBANG_OTOMASI
 
-/** Batasi ke rentang waras — angka di luar itu dipangkas, bukan ditolak. */
+/**
+ * Batasi ke rentang waras — angka di luar itu dipangkas, bukan ditolak.
+ *
+ * ── Kenapa `Math.trunc` HANYA untuk ambang bilangan bulat
+ *
+ * Bentuk pertama fungsi ini memotong SEMUA nilai dengan `Math.trunc`. Itu
+ * benar selama seluruh ambang bilangan bulat (hari, rupiah, persen), dan
+ * memang begitu sampai 2026-08-16.
+ *
+ * Kedua ambang EVM desimal (SPI/CPI, bawaan 0.9), dan `Math.trunc(0.75)`
+ * menghasilkan **0** — lalu dijepit naik ke `min`. Jadi bukan sekadar
+ * kehilangan ketelitian: ambang 0.75 diam-diam berubah jadi 0.1, dan otomasi
+ * yang seharusnya menegur proyek di bawah 0.75 praktis tak pernah menegur
+ * siapa pun. Nol notifikasi terlihat persis seperti "semua proyek sehat".
+ *
+ * Ditemukan test, bukan pembacaan kode — saya menulis komentar di
+ * `AMBANG_OTOMASI` yang menyatakan "ambilAmbang tak membulatkan (diperiksa)",
+ * dan pemeriksaan itu keliru.
+ *
+ * Sekarang pemotongan mengikuti BENTUK AMBANGNYA: bulat kalau bawaan dan
+ * batasnya bulat, apa adanya kalau ada yang desimal. Ambang hari yang diberi
+ * "7.9" tetap jadi 7 seperti sebelumnya.
+ */
 function jepit(n: number, min: number, max: number): number {
-  return Math.min(Math.max(Math.trunc(n), min), max)
+  const bulat = Number.isInteger(min) && Number.isInteger(max)
+  return Math.min(Math.max(bulat ? Math.trunc(n) : n, min), max)
 }
 
 /**

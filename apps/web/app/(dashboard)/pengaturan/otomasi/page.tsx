@@ -123,6 +123,33 @@ const AMBANG: ReadonlyArray<{
     langkah: 1_000_000,
   },
   {
+    kunci: "otomasi.evm_spi.minimum",
+    judul: "Kinerja jadwal proyek (SPI)",
+    akibat:
+      "Proyek ditandai tertinggal bila indeks jadwalnya turun di bawah angka "
+      + "ini. 1,0 berarti tepat rencana; 0,9 berarti tertinggal sekitar "
+      + "sepersepuluh dari yang dijadwalkan. Menyetelnya ke 1,0 membuat hampir "
+      + "semua proyek memicu pesan setiap hari.",
+    satuan: "indeks",
+    min: 0.1,
+    maks: 1,
+    // Desimal — satu-satunya bersama CPI. Langkah 0,05 supaya tombol naik/turun
+    // bergerak dalam ukuran yang berarti, bukan 0,000001.
+    langkah: 0.05,
+  },
+  {
+    kunci: "otomasi.evm_cpi.minimum",
+    judul: "Kinerja biaya proyek (CPI)",
+    akibat:
+      "Proyek ditandai boros bila indeks biayanya turun di bawah angka ini. "
+      + "1,0 berarti biaya sepadan dengan pekerjaan yang selesai; di bawahnya "
+      + "berarti pengeluaran melebihi nilai yang sudah diperoleh.",
+    satuan: "indeks",
+    min: 0.1,
+    maks: 1,
+    langkah: 0.05,
+  },
+  {
     kunci: "otomasi.harga_material.persen",
     judul: "Harga material naik",
     akibat:
@@ -138,6 +165,17 @@ const AMBANG: ReadonlyArray<{
 function formatSatuan(n: number, satuan: string): string {
   if (satuan === "rupiah") return `Rp ${n.toLocaleString("id-ID")}`;
   if (satuan === "persen") return `${n}%`;
+  /*
+    Indeks ditulis dengan koma desimal Indonesia dan DUA angka di belakangnya —
+    "0,90", bukan "0.9".
+
+    Bukan sekadar gaya penulisan: pembacanya orang yang sama yang membaca
+    nominal rupiah di halaman ini, dan titik dalam angka Indonesia berarti
+    pemisah ribuan. "0.9" bisa terbaca sebagai sembilan.
+  */
+  if (satuan === "indeks") return n.toLocaleString("id-ID", {
+    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  });
   return `${n} ${satuan}`;
 }
 

@@ -79,6 +79,13 @@ export type NotificationType =
   | 'hutang_supplier_jatuh_tempo'
   // 4.9 — harga aktif sebuah material naik signifikan dibanding sebelumnya.
   | 'harga_material_naik'
+  // 3.18 — indeks jadwal (SPI) atau indeks biaya (CPI) proyek turun di bawah
+  // ambang. SATU jenis untuk keduanya, bukan dua: yang menerima pesan ini
+  // membuka proyek yang sama dan melihat kedua angka bersamaan, dan dua jenis
+  // terpisah akan mengirim dua pesan untuk satu proyek yang sama di hari yang
+  // sama — dedup harian bekerja per (jenis, record), jadi ia tak akan
+  // menahannya.
+  | 'evm_kinerja_menurun'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'
