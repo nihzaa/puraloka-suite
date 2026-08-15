@@ -48,6 +48,7 @@ import { ambilKredensial } from '../../lib/kredensial.js'
 import { jalankanGiliranAi } from '../../lib/ai-jalankan.js'
 import { bacaRiwayat } from '../../lib/ai-riwayat-baca.js'
 import { usulDariBlok } from '../../lib/usul-tulis.js'
+import { setujuiDariBlok } from '../../lib/usul-setujui.js'
 import type { Asisten } from '../../lib/ai-config.js'
 
 /** Kunci giliran kedaluwarsa — proses yang mati tak mengunci selamanya. */
@@ -281,6 +282,10 @@ export default async function aiChatRoutes(app: FastifyInstance) {
          * bertanya. UI menampilkan tombol hanya kalau ada isinya.
          */
         usul_tulis: usulDariBlok(hasil.blok),
+        // Usulan PERSETUJUAN — `jenis` + `entity_id` yang sudah diresolusi di
+        // dalam tool. UI meneruskannya ke `/ai/preview-setujui`, tak pernah
+        // meresolusi nomor urut untuk kedua kalinya.
+        usul_setujui: setujuiDariBlok(hasil.blok),
       })
     },
   )

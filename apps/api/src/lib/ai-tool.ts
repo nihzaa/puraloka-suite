@@ -55,6 +55,8 @@ import { cariPotongan } from './rag-cari.js'
 import { saringanUntuk } from './rag-acl.js'
 import { TOOL_KONSTRUKSI } from './ai-tool-konstruksi.js'
 import { TOOL_SIAPKAN } from './ai-tool-siapkan.js'
+import { TOOL_SETUJUI } from './ai-tool-setujui.js'
+import { toolIngatPercakapan } from './ai-tool-ingat.js'
 
 
 
@@ -818,6 +820,19 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
   // rute `/api/v1/ai/tulis` yang menuntut token DAN klik manusia. I-1 tetap
   // utuh: tak ada tombol tulis di katalog ini.
   ...TOOL_SIAPKAN,
+  /*
+    Persetujuan (2026-08-16) — jalur yang SUDAH lengkap tapi tak pernah
+    tersambung: tiga rute + pemetaan lima jenis approval, nol pemanggil.
+    I-1 tetap utuh; kedua tool ini MEMBACA, tokennya lahir dari klik manusia.
+  */
+  ...TOOL_SETUJUI,
+  /*
+    Ingatan lintas-percakapan (2026-08-16). Sengaja TOOL, bukan riwayat yang
+    dimuat ke tiap prompt: riwayat dikirim ulang tiap ronde, jadi biayanya
+    naik KUADRATIK dan jendela konteksnya habis. Asisten mencarinya saat
+    butuh — cara manusia mengingat.
+  */
+  toolIngatPercakapan,
 ]
 
 /**

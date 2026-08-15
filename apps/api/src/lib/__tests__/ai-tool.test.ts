@@ -157,6 +157,12 @@ describe('tool terhadap data NYATA', () => {
       // 2026-08-16 lewat pesan "18 ≠ 19" yang — persis seperti komentar di
       // atas memperingatkan — terbaca seolah KATALOG yang salah.
       'mandor:kasbon:approve',
+      // Tool persetujuan (2026-08-16) — izinnya SENGAJA terpisah dari
+      // `ai:chat`: memberi seseorang akses asisten tak boleh diam-diam
+      // memberinya jalan menyetujui uang.
+      'ai:setujui',
+      // Ingatan lintas percakapan.
+      'ai:chat',
     ])
   })
 

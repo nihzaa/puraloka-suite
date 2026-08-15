@@ -82,6 +82,18 @@ interface UsulTulis {
   argumen: Record<string, unknown>;
 }
 
+/**
+ * Usulan PERSETUJUAN — `jenis` + `entity_id` yang SUDAH diresolusi backend.
+ *
+ * Nomor urut yang diketik model sengaja TIDAK sampai ke sini: meresolusinya
+ * dua kali (sekali di tool, sekali di UI) berarti daftarnya bisa berubah di
+ * antaranya, dan orang menyetujui dokumen yang bukan ia baca.
+ */
+interface UsulSetujui {
+  jenis: string;
+  entityId: string;
+}
+
 interface Balasan {
   percakapan_id: string;
   jawaban: string;
@@ -89,6 +101,7 @@ interface Balasan {
   sumber: Sumber;
   peringatan: string | null;
   usul_tulis?: UsulTulis[];
+  usul_setujui?: UsulSetujui | null;
 }
 
 interface Pesan {
@@ -99,6 +112,9 @@ interface Pesan {
   usul?: UsulTulis[];
   /** Sudah dikonfirmasi/ditolak — kartunya berhenti menawarkan tombol. */
   usulSelesai?: "tersimpan" | "dibatalkan";
+  setujui?: UsulSetujui | null;
+  /** Sudah diputuskan — kartunya berhenti menawarkan tombol. */
+  setujuiSelesai?: "disetujui" | "dibatalkan";
 }
 
 /** Nama jenis dalam bahasa yang dipakai orang, bukan nama kolom. */
@@ -121,6 +137,19 @@ const LABEL_JENIS: Record<string, string> = {
   permintaan_material: "Permintaan material",
   pembayaran_masuk: "Pembayaran masuk",
   absensi: "Absensi harian",
+};
+
+/*
+  Label jenis PERSETUJUAN — cermin `JENIS_DIDUKUNG` di `lib/ai-setujui.ts`.
+  Jenis tanpa label tetap tampil dengan kunci mentahnya, dan itu terbaca
+  setengah jadi tepat di layar keputusan uang.
+*/
+const LABEL_SETUJUI: Record<string, string> = {
+  kasbon: "Kasbon",
+  project_expense: "Pengeluaran proyek",
+  change_order: "Change order",
+  estimate_version: "Versi estimasi",
+  lessons_learned: "Lessons learned",
 };
 
 type Ukuran = "ringkas" | "obrolan" | "lebar";
@@ -238,6 +267,51 @@ export function RailAsisten() {
     [],
   );
 
+  /**
+   * Menyetujui lewat DUA panggilan — persis seperti jalur tulis.
+   *
+   *   1. `POST /ai/preview-setujui`  menghitung dampaknya, menerbitkan token
+   *   2. `POST /ai/setujui`          memakai token, MENYETUJUI
+   *
+   * Dipisah supaya token lahir dari KLIK, bukan dari kalimat model. Injeksi
+   * lewat dokumen bisa membuat model memanggil `siapkan_setujui`; ia tak bisa
+   * membuat manusia menekan tombol.
+   *
+   * Yang diteruskan `entityId` dari backend — bukan nomor urut. Lihat catatan
+   * di `UsulSetujui`.
+   */
+  const konfirmasiSetujui = useCallback(
+    async (indeks: number, usul: UsulSetujui, setuju: boolean) => {
+      if (!setuju) {
+        setPesan((p) =>
+          p.map((m, i) => (i === indeks ? { ...m, setujuiSelesai: "dibatalkan" as const } : m)),
+        );
+        return;
+      }
+
+      try {
+        const siap = await api.post<{ token: string }>("/api/v1/ai/preview-setujui", {
+          jenis: usul.jenis,
+          entity_id: usul.entityId,
+        });
+        await api.post("/api/v1/ai/setujui", { token: siap.data.token });
+
+        setPesan((p) =>
+          p.map((m, i) => (i === indeks ? { ...m, setujuiSelesai: "disetujui" as const } : m)),
+        );
+      } catch (e) {
+        // Kegagalan DITAMPILKAN, bukan ditelan: orang yang menekan Setujui lalu
+        // tak melihat apa-apa akan menekannya lagi — dan approval ganda pada
+        // rantai bertingkat menaikkan level tanpa ada yang bermaksud.
+        const pesanGalat =
+          (e as { response?: { data?: { error?: string } } })?.response?.data?.error ??
+          "Gagal menyetujui.";
+        setPesan((p) => [...p, { peran: "assistant", teks: pesanGalat }]);
+      }
+    },
+    [],
+  );
+
   const kirim = useCallback(
     async (teks: string) => {
       const isi = teks.trim();
@@ -263,6 +337,7 @@ export function RailAsisten() {
             sumber: r.data.sumber,
             peringatan: r.data.peringatan,
             usul: r.data.usul_tulis ?? [],
+            setujui: r.data.usul_setujui ?? null,
           },
         ]);
       } catch (e) {
@@ -444,7 +519,14 @@ export function RailAsisten() {
             )}
 
             {pesan.map((p, i) => (
-              <Gelembung key={i} pesan={p} lebar={lebar} indeks={i} onKonfirmasi={konfirmasiTulis} />
+              <Gelembung
+                key={i}
+                pesan={p}
+                lebar={lebar}
+                indeks={i}
+                onKonfirmasi={konfirmasiTulis}
+                onSetujui={konfirmasiSetujui}
+              />
             ))}
 
             {menunggu && (
@@ -579,11 +661,13 @@ function Gelembung({
   lebar,
   indeks,
   onKonfirmasi,
+  onSetujui,
 }: {
   pesan: Pesan;
   lebar: boolean;
   indeks: number;
   onKonfirmasi?: (indeks: number, usul: UsulTulis, setuju: boolean) => void;
+  onSetujui?: (indeks: number, usul: UsulSetujui, setuju: boolean) => void;
 }) {
   const [bukaSumber, setBukaSumber] = useState(false);
   const dariUser = pesan.peran === "user";
@@ -666,6 +750,80 @@ function Gelembung({
                 <button
                   type="button"
                   onClick={() => onKonfirmasi(indeks, pesan.usul![0], false)}
+                  style={{
+                    padding: "6px 12px", borderRadius: "var(--rad-sedang)",
+                    border: `1px solid ${C.border}`, background: "var(--surface)",
+                    color: C.mid, fontSize: 11.5, cursor: "pointer",
+                  }}
+                >
+                  Batal
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/*
+        KARTU PERSETUJUAN.
+
+        Sengaja dibedakan dari kartu tulis lewat WARNA PERINGATAN, bukan navy:
+        menyimpan catatan bisa dikoreksi, menyetujui menggerakkan rantai
+        approval yang menyentuh uang dan tak selalu bisa dibatalkan.
+
+        Tombolnya SATU-SATUNYA jalan persetujuan lewat asisten. Model bisa
+        menyiapkan; ia tak bisa menekan.
+      */}
+      {!dariUser && pesan.setujui && onSetujui && (
+        <div
+          style={{
+            marginTop: 6, maxWidth: lebar ? "82%" : "94%",
+            padding: "10px 12px", borderRadius: "var(--rad-sedang)",
+            border: `1px solid ${
+              pesan.setujuiSelesai === "disetujui" ? "var(--success)" : "var(--warning)"
+            }`,
+            background:
+              pesan.setujuiSelesai === "disetujui"
+                ? "var(--success-bg)"
+                : pesan.setujuiSelesai === "dibatalkan"
+                  ? "var(--surface-subtle)"
+                  : "var(--warning-bg)",
+          }}
+        >
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: C.text, marginBottom: 2 }}>
+            Persetujuan — {LABEL_SETUJUI[pesan.setujui.jenis] ?? pesan.setujui.jenis}
+          </div>
+
+          {pesan.setujuiSelesai === "disetujui" ? (
+            <div style={{ fontSize: 11.5, color: "var(--success)" }}>
+              Disetujui. Rantai approval berjalan seperti dari halaman biasa.
+            </div>
+          ) : pesan.setujuiSelesai === "dibatalkan" ? (
+            <div style={{ fontSize: 11.5, color: C.muted }}>
+              Dibatalkan — tidak ada yang disetujui.
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 11.5, color: C.mid, lineHeight: 1.55, marginBottom: 8 }}>
+                Belum disetujui. Periksa rinciannya di jawaban di atas — persetujuan
+                menggerakkan rantai approval dan tak selalu bisa dibatalkan.
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => onSetujui(indeks, pesan.setujui!, true)}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "6px 12px", borderRadius: "var(--rad-sedang)",
+                    border: "none", background: C.navy, color: C.onNavy,
+                    fontSize: 11.5, fontWeight: 600, cursor: "pointer",
+                  }}
+                >
+                  <Check size={12} /> Setujui
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSetujui(indeks, pesan.setujui!, false)}
                   style={{
                     padding: "6px 12px", borderRadius: "var(--rad-sedang)",
                     border: `1px solid ${C.border}`, background: "var(--surface)",
