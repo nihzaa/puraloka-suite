@@ -33,6 +33,8 @@ import { randomBytes } from 'node:crypto'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { ENTITAS_TULIS, entitasTulis, persenSah } from '../../lib/ai-tool-siapkan.js'
+import type { TabelKategoriBDiizinkan } from '../../lib/ai-tool-siapkan.js'
+import type { TabelViaProject } from '../../utils/tenant-db.js'
 
 /** Umur token. Sama dengan token setujui — satu kebiasaan, bukan dua. */
 const UMUR_TOKEN_MS = 15 * 60_000
@@ -57,8 +59,30 @@ const UMUR_TOKEN_MS = 15 * 60_000
  */
 const BATAS_PENGELUARAN_SIAP = 10_000_000
 
+/**
+ * Batas atas kasbon yang boleh DISIAPKAN lewat percakapan.
+ *
+ * Lebih tinggi daripada `BATAS_PENGELUARAN_SIAP`, dan itu bukan
+ * kelonggaran — perbedaannya punya sebab yang bisa diperiksa:
+ *
+ *   · pengeluaran mencatat uang yang SUDAH keluar; salah ketiknya baru
+ *     ketahuan saat rekonsiliasi
+ *   · kasbon MEMINTA uang yang belum keluar, dan permintaannya melewati
+ *     rantai approval yang menampilkan nominalnya kepada manusia
+ *
+ * Jadi yang dijaga di sini bukan "jangan sampai uangnya lepas" — approval yang
+ * menjaga itu. Yang dijaga: kasbon dengan nol berlebih tak sampai ke meja
+ * approver dan membuang waktu orang membaca angka yang tak masuk akal.
+ *
+ * Dipaku, bukan pengaturan — alasannya sama dengan konstanta di atas: ini
+ * batas kepercayaan pada satu KANAL, bukan kebijakan bisnis.
+ */
+const BATAS_KASBON_SIAP = 50_000_000
+
 interface BadanSiapkan {
   jenis?: string
+  /** kasbon */
+  sumber_dana?: string
   project_id?: string
   persen?: number
   catatan?: string
@@ -337,6 +361,54 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
         }
         ringkasan = `Permintaan material ${namaProyek}: ${kebutuhan}`
           + (dibutuhkan ? ` (dibutuhkan ${dibutuhkan})` : '')
+      } else if (jenis === 'kasbon') {
+        /*
+          Kasbon — satu-satunya jenis kategori B di daftar ini.
+
+          Yang menuntut penjagaan lebih daripada `permintaan_material`: ada
+          nominal, dan nominal yang salah membuang waktu approver. Yang TIDAK
+          perlu dijaga di sini: apakah kasbonnya pantas — itu keputusan
+          approver, bukan keputusan validator.
+        */
+        const jumlah = Number(b.jumlah)
+        if (!Number.isFinite(jumlah) || jumlah <= 0) {
+          return reply.status(422).send({ error: 'jumlah harus angka rupiah lebih dari 0' })
+        }
+        if (jumlah > BATAS_KASBON_SIAP) {
+          return reply.status(422).send({
+            error: `Kasbon di atas Rp ${BATAS_KASBON_SIAP.toLocaleString('id-ID')} `
+              + 'diajukan lewat halaman Kasbon, bukan lewat percakapan.',
+          })
+        }
+
+        const keperluan = (b.keperluan ?? '').trim()
+        if (keperluan.length < 5) {
+          return reply.status(422).send({
+            error: 'keperluan minimal 5 karakter — approver memutuskan dari kalimat ini',
+          })
+        }
+
+        /*
+          Sumber dana diperiksa terhadap daftar NILAI ENUM, bukan diteruskan
+          apa adanya.
+
+          `kasbon_fund_source` punya dua nilai (diukur ke `pg_enum`).
+          Meneruskan nilai lain membuat penulisan gagal dengan galat enum yang
+          muncul SESUDAH token habis — pola kegagalan yang sudah dua kali
+          diperbaiki di berkas ini, dan yang tak perlu diulang untuk ketiga
+          kalinya.
+        */
+        const SUMBER_SAH = ['owner_advance', 'client_fund'] as const
+        const sumberRaw = (b.sumber_dana ?? '').trim()
+        if (sumberRaw && !SUMBER_SAH.includes(sumberRaw as (typeof SUMBER_SAH)[number])) {
+          return reply.status(422).send({
+            error: `sumber_dana harus salah satu: ${SUMBER_SAH.join(', ')}`,
+          })
+        }
+        const sumber = sumberRaw || 'owner_advance'
+
+        muatan = { jumlah, keperluan, sumber_dana: sumber }
+        ringkasan = `Kasbon ${namaProyek}: Rp ${jumlah.toLocaleString('id-ID')} — ${keperluan}`
       } else {
         // Tak terjangkau — `entitasTulis` sudah menyaring. Ditulis eksplisit
         // supaya jenis baru yang lupa ditangani gagal KERAS di sini, bukan
@@ -575,6 +647,29 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
             requested_by: request.currentUser!.id,
           }
           break
+        case 'kasbon':
+          /*
+            `status` SENGAJA tidak diisi — bawaannya `pending` (diukur ke
+            `information_schema`, bukan diingat). Itu bukan kebetulan yang
+            beruntung, itu justru alasan kasbon boleh ditulis lewat percakapan:
+            ia LAHIR di antrean approval.
+
+            Menuliskan `status` di sini — sekalipun nilainya `'pending'` juga —
+            berarti membuat jalur kedua yang menentukan status kasbon. Yang
+            kedua akan menyimpang saat bawaannya berubah, dan menyimpangnya tak
+            terbaca sampai ada kasbon yang lolos tanpa disetujui.
+
+            `company_id` juga tidak diisi: `trg_kasbons_isi_company`
+            mengisinya, dan `.from()` di bawah juga menyisipkannya.
+          */
+          baris = {
+            project_id: t.project_id,
+            amount: t.muatan.jumlah,
+            purpose: t.muatan.keperluan,
+            fund_source: t.muatan.sumber_dana ?? 'owner_advance',
+            requested_by: request.currentUser!.id,
+          }
+          break
         default:
           request.log.error({ jenis: t.jenis }, 'ai/tulis: jenis tak dikenali saat menulis')
           return reply.status(500).send({
@@ -582,10 +677,26 @@ export default async function aiTulisRoutes(app: FastifyInstance) {
           })
       }
 
-      const { data: hasil, error: errTulis } = await request.db!
-        .viaProject(meta.tabel, t.project_id)
-        .insert(baris)
-        .select('id')
+      /*
+        Jalur tenancy DIPILIH dari `meta.tenancy`, bukan ditebak dari nama
+        tabel.
+
+        Sampai 2026-08-15 semua entitas kategori C, jadi satu `viaProject()`
+        cukup. `kasbons` kategori B — `company_id` miliknya sendiri, bukan
+        diwarisi proyek — dan memaksakannya lewat `viaProject()` akan menyaring
+        pakai kolom yang tak dipakai tabel itu.
+
+        Pemisahan ini tetap tak melonggarkan apa pun: `meta.tabel` bertipe
+        `TabelViaProject | TabelKategoriBDiizinkan`, dan yang kedua daftar
+        tangan berisi satu nama. Tabel yang tak terdaftar tetap gagal COMPILE,
+        bukan gagal saat dijalankan.
+      */
+      const sasaran =
+        meta.tenancy === 'B'
+          ? request.db!.from(meta.tabel as TabelKategoriBDiizinkan)
+          : request.db!.viaProject(meta.tabel as TabelViaProject, t.project_id)
+
+      const { data: hasil, error: errTulis } = await sasaran.insert(baris).select('id')
 
       if (errTulis) {
         /*

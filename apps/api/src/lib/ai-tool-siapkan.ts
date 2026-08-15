@@ -59,6 +59,7 @@ import { bungkusData } from './ai-tool-dasar.js'
 // longgar membuat `accounts` atau `users` bisa masuk daftar putih dan gagal
 // baru saat dijalankan — di sini ia gagal COMPILE.
 import type { TabelViaProject } from '../utils/tenant-db.js'
+import type { TabelTerklasifikasi } from '../utils/tenant-map.generated.js'
 
 /**
  * Entitas yang boleh DISIAPKAN tulisannya.
@@ -82,16 +83,73 @@ import type { TabelViaProject } from '../utils/tenant-db.js'
  * dan menambahkannya lewat WhatsApp saat berdiri di lokasi adalah persis
  * kegunaan yang founder minta.
  *
- * Yang SENGAJA TIDAK masuk, dan alasannya: `kasbons` (uang), `invoices`
- * (uang + hukum), `change_orders` (mengubah nilai kontrak), `ncr_items`
- * (jadi dasar klaim ke subkon), `izin_kerja` (gerbang keselamatan — izin
- * yang terbit karena salah paham bisa membuat orang bekerja di tempat
- * berbahaya).
+ * Yang SENGAJA TIDAK masuk, dan alasannya: `invoices` (uang + hukum),
+ * `change_orders` (mengubah nilai kontrak), `ncr_items` (jadi dasar klaim ke
+ * subkon, dan tak punya trigger penomor — nomornya harus dibuat manual dan
+ * itu rentan tabrakan), `izin_kerja` (gerbang keselamatan — izin yang terbit
+ * karena salah paham bisa membuat orang bekerja di tempat berbahaya).
+ *
+ * ── `kasbons` DULU tidak masuk, sekarang masuk (2026-08-15)
+ *
+ * Baris di atas semula menyebut `kasbons` sebagai yang dikecualikan karena
+ * "uang". Founder memintanya secara eksplisit, dan alasan pengecualiannya
+ * ternyata tak bertahan saat diperiksa:
+ *
+ *   · kasbon LAHIR berstatus `pending` dan tetap lewat rantai approval yang
+ *     sama dengan pengajuan lewat halaman — asisten tak melewati satu pun
+ *     gerbang, ia cuma mengisi formulirnya
+ *   · yang benar-benar menggerakkan uang adalah PERSETUJUANNYA, dan itu tetap
+ *     butuh manusia menekan tombol di inbox approval
+ *   · `project_expenses` sudah masuk lebih dulu dengan alasan yang sama, dan
+ *     ia pun menyentuh uang
+ *
+ * Yang tetap dijaga: batas nominal per kanal (`BATAS_KASBON_SIAP` di
+ * `ai-tulis.ts`), karena salah ketik nol lewat percakapan tetap kekeliruan
+ * termudah yang bisa terjadi.
  */
+/**
+ * Tabel kategori B yang BOLEH ditulis lewat asisten — daftar putih EKSPLISIT.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA DAFTAR TANGAN, BUKAN `kategori extends 'B'`
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Founder meminta pengajuan kasbon lewat WhatsApp. `kasbons` kategori B
+ * (punya `company_id` sendiri), sementara `TabelViaProject` sengaja hanya
+ * menerima kategori C — dan pagar itu BENAR, terbukti saat diukur:
+ *
+ *     kategori B berisi 110 tabel, termasuk
+ *     `accounts` · `app_credentials` · `api_key` · `ai_token_tulis`
+ *
+ * Melonggarkan tipe jadi `extends 'B'` akan membuat keempatnya bisa masuk
+ * daftar putih lewat satu baris yang terlihat wajar — dan `app_credentials`
+ * yang bisa ditulis asisten berarti injeksi lewat dokumen bisa menanam kunci
+ * API tenant lain.
+ *
+ * Jadi yang diperluas bukan ATURANNYA melainkan daftar pengecualiannya, satu
+ * nama pada satu waktu, dengan alasan tertulis. Menambah nama ke sini adalah
+ * keputusan sadar; melonggarkan tipe adalah kecelakaan yang menunggu.
+ *
+ * Tetap `TabelTerklasifikasi`, bukan `string`: salah ketik nama tabel tetap
+ * gagal COMPILE.
+ */
+export type TabelKategoriBDiizinkan = Extract<TabelTerklasifikasi, 'kasbons'>
+
 export interface EntitasTulis {
   jenis: string
   label: string
-  tabel: TabelViaProject
+  tabel: TabelViaProject | TabelKategoriBDiizinkan
+  /**
+   * Jalur tenancy tabelnya — menentukan cara menulisnya.
+   *
+   *   'C'  lewat `viaProject()`, WAJIB menyebut project_id
+   *   'B'  lewat `from()`, `company_id` disisipkan wrapper
+   *
+   * Ditulis eksplisit alih-alih diturunkan dari peta: rute penulisannya harus
+   * memilih jalur SEBELUM tahu nama tabelnya, dan menebak salah satunya
+   * berarti menulis ke tempat yang tak tersaring tenant.
+   */
+  tenancy: 'B' | 'C'
   /** Hanya `buat` dan `ubah`. Tak ada `hapus`, di mana pun. */
   aksi: ReadonlyArray<'buat' | 'ubah'>
   izin: string
@@ -104,6 +162,7 @@ export const ENTITAS_TULIS: EntitasTulis[] = [
     jenis: 'catatan_progres',
     label: 'Catatan progres lapangan',
     tabel: 'progress_logs',
+    tenancy: 'C',
     aksi: ['buat'],
     izin: 'projects:view',
     field: [
@@ -116,6 +175,7 @@ export const ENTITAS_TULIS: EntitasTulis[] = [
     jenis: 'temuan_punch',
     label: 'Temuan punch list',
     tabel: 'punch_items',
+    tenancy: 'C',
     aksi: ['buat'],
     izin: 'projects:view',
     field: [
@@ -182,6 +242,7 @@ export const ENTITAS_TULIS: EntitasTulis[] = [
     jenis: 'pengeluaran',
     label: 'Pengeluaran proyek',
     tabel: 'project_expenses',
+    tenancy: 'C',
     aksi: ['buat'],
     /*
       `cash:expense:create`, bukan `projects:view`: menyiapkan pengeluaran uang
@@ -233,6 +294,7 @@ export const ENTITAS_TULIS: EntitasTulis[] = [
     jenis: 'permintaan_material',
     label: 'Permintaan material (MR)',
     tabel: 'material_requests',
+    tenancy: 'C',
     aksi: ['buat'],
     // Sama dengan gerbang rute MR sungguhan di `procurement.ts`.
     izin: 'procurement:mr:manage',
@@ -240,6 +302,67 @@ export const ENTITAS_TULIS: EntitasTulis[] = [
       { nama: 'proyek', wajib: true, keterangan: 'Nama proyek (sebagian nama boleh).' },
       { nama: 'kebutuhan', wajib: true, keterangan: 'Apa yang dibutuhkan — mis. "50 sak semen untuk cor lantai 2".' },
       { nama: 'dibutuhkan_tanggal', wajib: false, keterangan: 'Kapan dibutuhkan (YYYY-MM-DD). Kosong = tak ditentukan.' },
+    ],
+  },
+  {
+    /*
+      ── Pengajuan kasbon lewat percakapan (2026-08-15)
+
+      Founder memintanya eksplisit. Satu-satunya entri kategori B di daftar
+      ini, dan satu-satunya yang menuntut perluasan tipe — lihat
+      `TabelKategoriBDiizinkan` di atas untuk kenapa perluasannya berupa daftar
+      nama, bukan pelonggaran aturan.
+
+      ── Kenapa ini AMAN meski menyentuh uang
+
+      Diukur ke `pg_trigger`, bukan diasumsikan:
+
+          trg_kasbon_approved_create_expense
+          trg_update_cash_on_kasbon_approved
+
+      Keduanya berjalan saat kasbon DISETUJUI, bukan saat dibuat. Jadi kasbon
+      yang lahir dari percakapan tak menggerakkan satu rupiah pun — ia masuk
+      antrean `pending` dan menunggu manusia menekan tombol di inbox approval,
+      persis seperti pengajuan lewat halaman.
+
+      Asisten mengisi formulirnya; ia tidak melewati satu pun gerbang.
+
+      `company_id` juga tak diisi di sini — `trg_kasbons_isi_company`
+      mengisinya. Menuliskannya sendiri berarti dua sumber untuk satu nilai
+      tenancy, dan yang satu pasti akan menyimpang.
+
+      ── Yang tetap dijaga
+
+      Batas nominal per KANAL (`BATAS_KASBON_SIAP`, `ai-tulis.ts`). Bukan batas
+      kasbon — itu urusan rantai approval per tenant. Ini batas kepercayaan
+      pada percakapan: salah ketik nol adalah kekeliruan termudah lewat
+      WhatsApp, dan asisten tak bisa membedakannya dari maksud sungguhan.
+    */
+    jenis: 'kasbon',
+    label: 'Pengajuan kasbon',
+    tabel: 'kasbons',
+    tenancy: 'B',
+    aksi: ['buat'],
+    /*
+      `mandor:kasbon:create` — DIUKUR ke tabel `permissions`, bukan dikarang.
+
+      Tebakan pertama saya `kasbon:create`; tak ada di basis. Kedua kalinya
+      hari ini saya mengarang kunci izin, dan kedua kalinya
+      `audit-izin-benar-ada` yang menangkapnya sebelum sempat masuk — kunci
+      hantu menolak SEMUA orang dengan 403 yang terbaca seperti "Anda tak
+      punya izin", bukan seperti "kuncinya salah ketik".
+    */
+    izin: 'mandor:kasbon:create',
+    field: [
+      { nama: 'proyek', wajib: true, keterangan: 'Nama proyek (sebagian nama boleh).' },
+      { nama: 'jumlah', wajib: true, keterangan: 'Nominal rupiah, angka saja.' },
+      { nama: 'keperluan', wajib: true, keterangan: 'Untuk apa — mis. "gaji tukang minggu ini".' },
+      {
+        nama: 'sumber_dana',
+        wajib: false,
+        // Nilai DIUKUR dari `pg_enum` (`kasbon_fund_source`), bukan diingat.
+        keterangan: 'owner_advance (talangan pemilik) | client_fund (dana klien). Kosong = owner_advance.',
+      },
     ],
   },
 ]

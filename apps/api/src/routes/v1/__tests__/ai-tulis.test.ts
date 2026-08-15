@@ -82,6 +82,7 @@ afterAll(async () => {
   await db.query(`DELETE FROM progress_logs WHERE notes LIKE $1`, [`${TANDA}%`])
   await db.query(`DELETE FROM project_expenses WHERE description LIKE $1`, [`${TANDA}%`])
   await db.query(`DELETE FROM material_requests WHERE notes LIKE $1`, [`${TANDA}%`])
+  await db.query(`DELETE FROM kasbons WHERE purpose LIKE $1`, [`${TANDA}%`])
   await db.query(`DELETE FROM ai_token_tulis WHERE company_id = $1`, [companyId])
   await app.close()
   await db.end()
@@ -322,12 +323,139 @@ describe('daftar putih — yang tak terdaftar tak punya jalan', () => {
   })
 
   it('entitas berisiko TIDAK ada di daftar putih', () => {
-    // Kalau salah satu ini muncul, seseorang melonggarkan daftar putih —
-    // dan itu keputusan yang harus terlihat di diff, bukan lolos diam-diam.
+    /*
+      Kalau salah satu ini muncul, seseorang melonggarkan daftar putih — dan
+      itu keputusan yang harus terlihat di diff, bukan lolos diam-diam.
+
+      ── `kasbon` DIKELUARKAN dari daftar ini 2026-08-15, dan itu bukan
+         pelemahan test
+
+      Test ini semula juga melarang `kasbon`. Ia merah begitu founder meminta
+      pengajuan kasbon lewat WhatsApp, dan godaannya jelas: hapus satu kata,
+      hijau lagi.
+
+      Yang salah bukan kata itu melainkan APA yang test ini kira ia jaga.
+      Daftarnya menyamakan dua hal yang berbeda:
+
+        · `invoice`, `change_order` — dokumen yang MENGIKAT saat dibuat
+        · `izin_kerja` — gerbang keselamatan yang berlaku saat terbit
+        · `ncr` — dasar klaim, dan tak punya trigger penomor
+        · `kasbon` — PERMINTAAN yang lahir `pending` dan tak mengikat apa pun
+
+      Keempat yang pertama punya akibat pada saat penciptaan. Kasbon tidak:
+      akibatnya menempel pada PERSETUJUAN, dan persetujuan tetap menuntut
+      manusia menekan tombol.
+
+      Jadi yang dijaga sekarang bukan nama, melainkan sifatnya — lihat test
+      berikutnya, yang melarang entitas ber-trigger uang saat INSERT masuk
+      daftar putih. Itu menangkap `invoice` juga kalau kelak ada yang
+      menambahkannya, tanpa perlu seseorang mengingat menuliskan namanya di
+      sini.
+    */
     const jenis = ENTITAS_TULIS.map((e) => e.jenis)
-    for (const bahaya of ['kasbon', 'invoice', 'change_order', 'izin_kerja', 'ncr']) {
+    for (const bahaya of ['invoice', 'change_order', 'izin_kerja', 'ncr']) {
       expect(jenis, `entitas berisiko '${bahaya}' masuk daftar putih`).not.toContain(bahaya)
     }
+  })
+
+  it('NOL entitas daftar putih yang punya trigger INSERT penggerak uang', async () => {
+    /*
+      Pengganti yang sesungguhnya untuk larangan-berdasar-nama di atas.
+
+      Daftar nama melindungi dari kesalahan yang sudah terpikirkan. Ini
+      melindungi dari yang belum: entitas APA PUN yang ditambahkan kelak
+      diperiksa BENTUKNYA — kalau menyentuhnya menggerakkan uang pada saat
+      baris lahir, ia tak boleh bisa lahir dari kalimat.
+
+      Trigger diperiksa terhadap basis yang sesungguhnya, bukan terhadap daftar
+      di kode — supaya migrasi yang mengubah `AFTER UPDATE` jadi
+      `AFTER INSERT OR UPDATE` memerahkan test ini, bukan lolos karena tak ada
+      yang ingat memperbarui daftarnya.
+    */
+    const tabel = ENTITAS_TULIS.map((e) => e.tabel)
+
+    const { rows } = await db.query(
+      `SELECT c.relname AS tabel, t.tgname, pg_get_triggerdef(t.oid) AS def
+         FROM pg_trigger t
+         JOIN pg_class c ON c.oid = t.tgrelid
+        WHERE NOT t.tgisinternal AND c.relname = ANY($1::text[])`,
+      [tabel])
+
+    /*
+      ── Kenapa yang diperiksa ISI FUNGSINYA, bukan namanya
+
+      Versi pertama test ini mencocokkan nama trigger dengan /cash|balance|…/
+      dan langsung merah — pada entitas LAMA, bukan pada kasbon:
+
+          project_expenses.trg_expense_petty_cash_balance
+          AFTER INSERT OR UPDATE OF status
+
+      Fungsinya (`fn_update_petty_cash_on_expense`, dibaca dari `pg_proc`)
+      memang memindahkan saldo saat INSERT — tetapi hanya di bawah SYARAT:
+
+          TG_OP = 'INSERT' AND NEW.status = 'approved'
+                          AND NEW.expense_source = 'petty_cash'
+
+      Jalur asisten tak memenuhi syarat itu: ia memaku `expense_source` ke
+      `main_cash` dan tak pernah mengisi `status`. Jadi merahnya bukan cacat
+      yang sedang terjadi.
+
+      Tapi mengubah test jadi hijau dengan mengecualikan `project_expenses`
+      akan melewatkan hal yang sesungguhnya penting: keamanannya bersandar pada
+      DUA BARIS di rute, bukan pada bentuk trigger. Ganti `main_cash` jadi
+      `petty_cash` di `ai-tulis.ts` — satu kata, terlihat seperti perbaikan —
+      dan uang bergerak dari kalimat tanpa satu pun test merah.
+
+      Jadi yang dijaga bukan "adakah trigger uang", melainkan "apakah
+      SYARATNYA masih yang kami andalkan". Kalau seseorang membuang syarat
+      `status = 'approved'` dari fungsinya, test ini merah — dan itulah satu-
+      satunya perubahan yang benar-benar membahayakan.
+    */
+    const MENGGERAKKAN_UANG = /UPDATE\s+cash_accounts|UPDATE\s+cash_transfers/i
+
+    for (const t of rows) {
+      if (!/\bINSERT\b/.test(t.def as string)) continue
+
+      const { rows: fn } = await db.query(
+        `SELECT p.prosrc FROM pg_proc p
+           JOIN pg_trigger tg ON tg.tgfoid = p.oid
+          WHERE tg.tgname = $1`, [t.tgname])
+      const src = (fn[0]?.prosrc ?? '') as string
+      if (!MENGGERAKKAN_UANG.test(src)) continue
+
+      /*
+        Ia menggerakkan uang DAN bisa menyala saat INSERT. Boleh, asal cabang
+        INSERT-nya bersyarat status yang hanya bisa dicapai lewat approval —
+        dan rute tulis tak pernah mengisi `status`.
+      */
+      expect(
+        src,
+        `${t.tabel}.${t.tgname} memindahkan uang saat INSERT TANPA syarat `
+          + "status='approved' — entitas ini tak lagi aman ditulis lewat percakapan",
+      ).toMatch(/TG_OP\s*=\s*'INSERT'[\s\S]{0,200}?status\s*=\s*'approved'/i)
+    }
+  }, 60_000)
+
+  it("jalur pengeluaran TIDAK memakai petty_cash — syarat yang menahan trigger saldo", async () => {
+    /*
+      Sisi lain dari test di atas, dan pasangannya yang tak boleh dipisah.
+
+      Test itu menjaga syarat di BASIS (`status='approved'`); ini menjaga
+      syarat di RUTE (`expense_source='main_cash'`). Keamanan jalur pengeluaran
+      butuh keduanya: melonggarkan salah satunya cukup untuk membuat kalimat
+      WhatsApp memindahkan saldo kas kecil.
+
+      Dibaca dari berkas sumber, bukan dari perilaku — perilakunya baru berbeda
+      kalau ada baris yang benar-benar memakai `petty_cash`, dan pada saat itu
+      uangnya sudah berpindah.
+    */
+    const { readFile } = await import('node:fs/promises')
+    const src = await readFile(new URL('../ai-tulis.ts', import.meta.url), 'utf8')
+
+    expect(src, "ai-tulis.ts tak lagi memaku expense_source — cek trigger petty cash")
+      .toMatch(/expense_source:\s*'main_cash'/)
+    expect(src, 'ai-tulis.ts menyebut petty_cash — saldo bisa bergerak saat INSERT')
+      .not.toMatch(/expense_source:\s*'petty_cash'/)
   })
 
   it('NOL aksi hapus di seluruh daftar putih', () => {
@@ -607,5 +735,154 @@ describe('Permintaan material (MR) lewat percakapan', () => {
     })
     expect(r.statusCode, r.body).toBe(422)
     expect(r.json().error).toMatch(/YYYY-MM-DD/i)
+  }, 60_000)
+})
+
+describe('Kasbon lewat percakapan — kategori B, dan uang yang TIDAK bergerak', () => {
+  /*
+    Founder meminta pengajuan kasbon lewat WhatsApp (2026-08-15).
+
+    Yang diuji di sini bukan "apakah barisnya tersimpan" — itu bagian termudah
+    dan paling tak penting. Yang diuji: KLAIM yang membuat kasbon boleh masuk
+    daftar putih sama sekali.
+
+    Klaimnya berbunyi: kasbon dari percakapan tak menggerakkan satu rupiah pun,
+    karena yang menggerakkan uang adalah PERSETUJUANNYA. Kalau klaim itu salah,
+    seluruh alasan memasukkan `kasbons` runtuh — dan runtuhnya tak akan terbaca
+    dari kode, hanya dari saldo yang berubah.
+
+    Jadi test pertama memeriksa `cash_balances` SEBELUM dan SESUDAH.
+  */
+
+  it('alur penuh: kasbon tercipta PENDING dan saldo kas tak bergerak', async () => {
+    const { rows: saldoSebelum } = await db.query(
+      `SELECT COALESCE(SUM(balance), 0) AS total FROM cash_accounts WHERE company_id = $1`,
+      [companyId])
+
+    const s = await siapkan({
+      jenis: 'kasbon',
+      project_id: projectId,
+      jumlah: 2_500_000,
+      keperluan: `${TANDA} gaji tukang minggu ini`,
+    })
+    expect(s.statusCode, s.body).toBe(200)
+
+    const t = await tulis(s.json().token as string)
+    expect(t.statusCode, t.body).toBe(200)
+
+    const { rows } = await db.query(
+      `SELECT amount, purpose, status, fund_source, project_id, company_id, requested_by
+         FROM kasbons WHERE purpose LIKE $1`,
+      [`${TANDA}%`])
+
+    expect(rows).toHaveLength(1)
+
+    /*
+      `pending` — inti dari seluruh pembenaran.
+
+      Bukan "bukan approved" seperti test MR di atas, melainkan nilai PERSIS.
+      Kasbon berstatus apa pun selain `pending` berarti ia melewati antrean,
+      dan status yang lolos diam-diam adalah cara paling sunyi uang berpindah
+      tanpa ada yang memutuskan.
+    */
+    expect(rows[0].status).toBe('pending')
+
+    // `company_id` diisi TRIGGER (`trg_kasbons_isi_company`), bukan oleh rute.
+    // Kosong di sini berarti barisnya tak tersaring tenant mana pun.
+    expect(rows[0].company_id).toBe(companyId)
+
+    expect(Number(rows[0].amount)).toBe(2_500_000)
+    expect(rows[0].fund_source).toBe('owner_advance')
+    expect(rows[0].project_id).toBe(projectId)
+
+    /*
+      Saldo TIDAK bergerak.
+
+      `trg_kasbon_approved_create_expense` dan `trg_update_cash_on_kasbon_approved`
+      keduanya berjalan saat DISETUJUI. Kalau salah satunya ternyata menyala
+      saat INSERT, angka di bawah berbeda — dan itulah satu-satunya bukti yang
+      berarti bahwa daftar putih ini aman.
+    */
+    const { rows: saldoSesudah } = await db.query(
+      `SELECT COALESCE(SUM(balance), 0) AS total FROM cash_accounts WHERE company_id = $1`,
+      [companyId])
+    expect(Number(saldoSesudah[0].total)).toBe(Number(saldoSebelum[0].total))
+  }, 60_000)
+
+  it('kedua trigger uang bertipe AFTER UPDATE — insert TAK BISA memicunya', async () => {
+    /*
+      Test saldo di atas membuktikan uang tak bergerak SEKALI, untuk satu
+      baris. Ini membuktikan kenapa ia tak akan bergerak untuk baris mana pun.
+
+      Bedanya menentukan. Saldo yang tak berubah bisa saja kebetulan — misalnya
+      trigger menyala tetapi menemukan akun kas yang cocok nol. Bentuk
+      trigger-nya tidak bisa kebetulan: `AFTER UPDATE` tak punya jalan untuk
+      dipicu `INSERT`.
+
+      Dan kalau seseorang kelak mengubah salah satunya jadi `INSERT OR UPDATE`
+      — perubahan yang tampak tak berbahaya di migrasi — test ini merah SEBELUM
+      ada kasbon percakapan yang menggerakkan uang tanpa disetujui. Test saldo
+      saja tak akan menangkapnya sampai kejadian.
+    */
+    const { rows } = await db.query(
+      `SELECT tgname, pg_get_triggerdef(oid) AS def
+         FROM pg_trigger
+        WHERE tgrelid = 'kasbons'::regclass AND NOT tgisinternal
+          AND tgname IN ('trg_kasbon_approved_create_expense',
+                         'trg_update_cash_on_kasbon_approved')
+        ORDER BY tgname`)
+
+    expect(rows, 'trigger uang kasbon hilang — asumsi daftar putih tak berlaku lagi')
+      .toHaveLength(2)
+
+    for (const t of rows) {
+      expect(t.def, `${t.tgname} bukan AFTER UPDATE murni`).toMatch(/AFTER UPDATE/)
+      expect(t.def, `${t.tgname} ikut menyala saat INSERT`).not.toMatch(/INSERT/)
+    }
+  }, 60_000)
+
+  it('nominal di atas batas kanal DITOLAK saat menyiapkan', async () => {
+    /*
+      Salah ketik nol adalah kekeliruan termudah lewat percakapan. Di atas
+      ambang, orang mengajukannya lewat halaman yang menampilkan angkanya
+      besar-besar.
+    */
+    const r = await siapkan({
+      jenis: 'kasbon',
+      project_id: projectId,
+      jumlah: 500_000_000,
+      keperluan: `${TANDA} borongan`,
+    })
+    expect(r.statusCode, r.body).toBe(422)
+    expect(r.json().error).toMatch(/halaman Kasbon/i)
+  }, 60_000)
+
+  it('sumber_dana di luar enum DITOLAK saat menyiapkan, bukan saat menulis', async () => {
+    /*
+      Kalau ini lolos, galat enum muncul SESUDAH token habis — dan penggunanya
+      kehilangan penyiapan untuk kesalahan yang bisa diberitahukan sejak awal.
+      Pola kegagalan yang sudah dua kali diperbaiki di rute ini.
+    */
+    const r = await siapkan({
+      jenis: 'kasbon',
+      project_id: projectId,
+      jumlah: 1_000_000,
+      keperluan: `${TANDA} operasional`,
+      sumber_dana: 'dana_pribadi',
+    })
+    expect(r.statusCode, r.body).toBe(422)
+    expect(r.json().error).toMatch(/owner_advance/)
+  }, 60_000)
+
+  it('jumlah nol atau negatif DITOLAK', async () => {
+    for (const jumlah of [0, -50_000]) {
+      const r = await siapkan({
+        jenis: 'kasbon',
+        project_id: projectId,
+        jumlah,
+        keperluan: `${TANDA} percobaan`,
+      })
+      expect(r.statusCode, `jumlah ${jumlah} lolos`).toBe(422)
+    }
   }, 60_000)
 })
