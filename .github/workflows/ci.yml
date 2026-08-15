@@ -550,6 +550,22 @@ jobs:
       - name: Konfirmasi WhatsApp tetap ketat
         run: node scripts/audit-konfirmasi-wa-tak-longgar.mjs
 
+      # Tiap jenis tulis wajib punya label di kartu konfirmasi web.
+      #
+      # `ENTITAS_TULIS` (backend) dan `LABEL_JENIS` (UI) adalah dua daftar yang
+      # harus sama, ditulis di dua berkas. Diukur 2026-08-16: dua jenis terbaru
+      # hidup di backend — tervalidasi, tertest, terjaga — sementara UI masih
+      # berisi lima jenis lama, jadi kartunya berjudul `pembayaran_masuk`:
+      # kunci mentah, di layar tempat orang memutuskan menyimpan UANG.
+      #
+      # Pola KELIMA yang sama dalam sepekan (tombol konfirmasi tak pernah ada,
+      # riwayat tak pernah diisi, sub-menu tak pernah dinyalakan, asisten
+      # owner/web tak pernah dipanggil). Yang ini ditangkap penjaga.
+      #
+      # Bukti merah (2026-08-16): satu label dihapus → exit 1 → pulih → exit 0.
+      - name: Jenis tulis punya label UI
+        run: node scripts/audit-jenis-tulis-punya-label.mjs
+
       # Kredensial tak boleh dipakai tenant yang bukan pemiliknya.
       #
       # Founder 2026-08-14: "harus disiapkan kalo nanti banyak perusahaan".

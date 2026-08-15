@@ -102,12 +102,25 @@ interface Pesan {
 }
 
 /** Nama jenis dalam bahasa yang dipakai orang, bukan nama kolom. */
+/*
+  Label kartu konfirmasi — WAJIB memuat SEMUA jenis di `ENTITAS_TULIS`.
+
+  Jenis yang tak terdaftar di sini tetap tampil, tapi dengan kunci mentahnya
+  (`pembayaran_masuk`) — dan itu justru yang berbahaya: kartunya terlihat
+  setengah jadi tepat di layar tempat orang memutuskan menyimpan uang.
+
+  Dua jenis terbaru sempat tertinggal beberapa jam sesudah backend-nya hidup.
+  Pola yang sama dengan tombol konfirmasi yang tak pernah ada: setengah rantai
+  bekerja, setengah lagi tidak, dan nol galat di antaranya.
+*/
 const LABEL_JENIS: Record<string, string> = {
   catatan_progres: "Catatan progres",
   temuan_punch: "Temuan punch list",
   kasbon: "Kasbon",
   pengeluaran: "Pengeluaran",
   permintaan_material: "Permintaan material",
+  pembayaran_masuk: "Pembayaran masuk",
+  absensi: "Absensi harian",
 };
 
 type Ukuran = "ringkas" | "obrolan" | "lebar";
