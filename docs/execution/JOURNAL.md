@@ -21710,3 +21710,78 @@ sekali-pakai yang mengklik dulu.
 
 Empat berkas untracked (`otomasi-terjadwal.ts`, migrasi 335/336, satu test)
 milik sesi lain — TIDAK ikut di-commit.
+
+---
+
+## 2026-08-16 — Gelombang 1: aset (10.7, 10.8) + konflik mandor (3.9)
+
+Tiga otomasi. 27 rute terjadwal, 36 nomor katalog terjelaskan (dari 33).
+
+### Yang memicu HARI INI — diukur, bukan diperkirakan
+
+| | terukur |
+|---|---|
+| `penyusutan_belum_dihitung` | 14 dari 18 aset, periode 2026-07 |
+| `penyusutan_belum_dijurnal` | 8 baris = **Rp 110.544.643 tak pernah sampai ke neraca** |
+| `perawatan_alat_jatuh_tempo` | DTR-002 lewat 13 hari · EXC-001 lewat 18 jam operasi |
+| sertifikasi | EXC-001 SILO Depnaker 7 hari lagi |
+| `alat_tanpa_jadwal_perawatan` | 12 dari 16 alat milik sendiri |
+| `konflik_mandor` | 21 pasangan lingkup, 5 mandor |
+
+Temuan yang paling mahal: **Rp 110,5 juta beban penyusutan sudah dihitung dan
+terlihat di halaman Aset, tetapi `journal_entry_id IS NULL` — tak pernah masuk
+neraca.** Laporan TERLIHAT benar. Tak ada satu pun galat yang menunjuk ke sana.
+
+### Saya salah tiga kali, dan semuanya ditemukan dengan MENJALANKAN
+
+**1. Pesan menyebut angka yang bukan pemicunya.** Terkirim ke basis nyata:
+
+> `[URGENT] Perawatan Alat Jatuh Tempo — Excavator 20 Ton "Ganti oli mesin &
+> filter" 154 hari lagi.`
+
+Yang memicu meter jam yang sudah lewat 18 jam, dan itu benar. Tapi pembacanya
+melihat "154 hari lagi" berlabel URGENT dan menyimpulkan sistemnya rusak — lalu
+berhenti mempercayai SELURUH peringatan perawatan, termasuk yang benar.
+`hitungJatuhTempo()` sudah menyatakan pemicunya; saya tak memakainya.
+
+**2. Blok verifikasi migrasi yang tak bisa gagal.** Dua cacat sekaligus:
+`WHERE tugas = tugas` — variabel loop membayangi nama kolom, jadi PL/pgSQL
+membacanya kolom = kolom, selalu benar. Dan "tiap jenis punya sedikitnya satu
+target" yang LOLOS saat mutasi membuang satu dari dua target `konflik_mandor`.
+Yang hilang bukan angka melainkan ORANG: seluruh pemegang `mandor:assign`
+berhenti menerima peringatan, tanpa gejala. Sekarang diperiksa BERPASANGAN.
+
+**3. Uji end-to-end yang menguji kode lama.** `pkill -f "tsx src/index.ts"` tak
+cocok di Windows; instance lama tetap memegang portnya, `npx tsx` yang baru
+gagal `EADDRINUSE`, dan health check menjawab dari instance LAMA. Saya sempat
+melaporkan cacat #1 "belum terperbaiki" padahal perbaikannya belum pernah
+dijalankan. Bunuh lewat PID dari `netstat`, bukan `pkill`.
+
+### Bukti
+
+```
+otomasi-aset.test.ts               6 passed
+otomasi-konflik-mandor.test.ts     4 passed
+mutasi rute                       10/10 MERAH lalu pulih
+mutasi blok verifikasi migrasi     4/4 MERAH lalu pulih
+13 penjaga arsitektural            exit=0
+lint:ratchet                       0 error, 231 warning
+```
+
+Mutasi `periode-berjalan` **LOLOS** pada putaran pertama: menggeser periode
+yang dihitung bebannya tetap membuat jumlahnya turun satu, karena baris yang
+dicari masih dicocokkan ke bulan lalu. Dua periode berbeda hidup di satu rute
+tanpa gejala. Test sekarang memeriksa `periode_ditagih` LANGSUNG.
+
+### Keputusan yang dinyatakan, bukan disembunyikan
+
+- **10.8 tidak menghitung dan tidak menjurnalkan sendiri.** Penyusutan masuk
+  buku besar; baris yang muncul tanpa seorang pun menekan tombol adalah baris
+  yang tak seorang pun bertanggung jawab atasnya. Ia MEMBACA dan MENAGIH.
+- **3.9 mandor saja, alat dikeluarkan.** Empat pengukuran konflik alat semuanya
+  nol baris, dan sebabnya struktural: alokasi alat adalah `current_project_id` —
+  SATU pointer, tak bisa menunjuk dua proyek. Membangunnya akan menghasilkan
+  rute yang memicu nol selamanya lalu dilaporkan "sudah ada".
+- **10.7 perawatan DAN sertifikasi, satu otomasi.** Tak ada kolom kedaluwarsa
+  sertifikat di `assets`; sertifikasi tersimpan sebagai jadwal berulang di
+  `jadwal_perawatan`. Bentuk datanya yang menyatakan, bukan katalognya.

@@ -3654,6 +3654,717 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/penyusutan-belum-ditutup ────────────────
+  //
+  // Automation 10.8 — Asset Depreciation Schedule.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // TIDAK MENGHITUNG DIAM-DIAM — MENAGIH ORANG YANG BERWENANG MENUTUP BUKU
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Godaan terbesar di otomasi ini adalah membuatnya MENULIS: hitung sendiri
+  // bebannya, sisipkan barisnya, jurnalkan. Itu ditolak.
+  //
+  // Penyusutan masuk buku besar. Baris yang muncul tanpa seorang pun menekan
+  // tombol adalah baris yang tak seorang pun merasa bertanggung jawab atasnya,
+  // dan pada saat auditor bertanya "siapa yang memutuskan ini", jawabannya
+  // "sistem" — jawaban yang tak diterima di mana pun.
+  //
+  // Maka ia MEMBACA dan MENAGIH. Tombolnya tetap ditekan manusia.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // DUA KEKURANGAN YANG BERBEDA, DAN KENAPA KEDUANYA DIKIRIM TERPISAH
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Diukur 2026-08-16:
+  //
+  //   belum DIHITUNG   14 dari 18 aset dalam masa manfaat tak punya baris
+  //                    `penyusutan_alat` untuk periode 2026-07
+  //
+  //   belum DIJURNAL   8 baris (2026-05 dan 2026-06) sudah dihitung tetapi
+  //                    `journal_entry_id IS NULL` — Rp 110.544.642,86 tak
+  //                    pernah sampai ke neraca
+  //
+  // Keduanya terlihat mirip di layar dan berbeda total dalam tindakan: yang
+  // pertama membuka halaman Aset dan menekan "hitung periode", yang kedua
+  // menekan "jurnalkan". Menggabungkannya jadi satu pesan membuat penerimanya
+  // menebak mana yang dimaksud.
+  //
+  // Yang KEDUA lebih berbahaya dan itu tercermin di prioritasnya: beban yang
+  // sudah dihitung tetapi tak terjurnal membuat laporan laba-rugi TERLIHAT
+  // benar — angkanya ada di halaman Aset — sementara neraca tak pernah
+  // menerimanya. Tak ada satu pun galat yang menunjuk ke sana.
+  //
+  // ── Periode yang ditagih adalah bulan LALU, bukan bulan berjalan
+  //
+  // Menagih penutupan bulan yang belum selesai adalah menagih sesuatu yang
+  // memang belum bisa dikerjakan. Ambangnya (`tanggal`) menahan lebih jauh:
+  // penutupan buku butuh beberapa hari kerja, dan menegur pada tanggal 1
+  // hanya melatih orang mengabaikan notifikasi.
+  app.get('/api/v1/otomasi/jalankan/penyusutan-belum-ditutup', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { bebanPeriode } = await import('../../lib/aset.js')
+
+    const q = request.query as { tanggal?: string }
+    const ambangTanggal = await ambilAmbang(request, 'otomasi.penyusutan_tutup.tanggal', q.tanggal)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['penyusutan_belum_dihitung', 'penyusutan_belum_dijurnal'])
+
+    // Periode yang ditagih = bulan sebelum bulan berjalan.
+    const [thIni, blIni] = today.split('-').map(Number)
+    const thLalu = blIni === 1 ? thIni - 1 : thIni
+    const blLalu = blIni === 1 ? 12 : blIni - 1
+    const periodeLalu = `${thLalu}-${String(blLalu).padStart(2, '0')}`
+    const tanggalKini = Number(today.slice(8, 10))
+
+    /*
+      `assets` dan `penyusutan_alat` keduanya kategori B — `.from()` menyaring
+      langsung lewat `company_id`.
+    */
+    const { data: aset, error } = await request.db!
+      .from('assets')
+      .select(`id, asset_code, name, purchase_date, purchase_price, residual_value,
+               useful_life_months, depreciation_method, status`)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const { data: susut, error: eSusut } = await request.db!
+      .from('penyusutan_alat')
+      .select('id, asset_id, periode, nilai, journal_entry_id')
+
+    if (eSusut) return reply.status(500).send({ error: eSusut.message })
+
+    /*
+      Aset yang SEHARUSNYA punya baris periode itu ditentukan oleh
+      `bebanPeriode()` — pustaka yang sama yang dipakai halaman Aset menghitung.
+
+      Menuliskan ulang syaratnya di sini ("umur belum habis") akan membuat dua
+      definisi masa manfaat hidup berdampingan, dan pada hari keduanya
+      berselisih, notifikasi ini menagih baris yang halaman Aset sendiri tak
+      mau membuatnya.
+    */
+    const punyaBaris = new Set(
+      (susut ?? [])
+        .filter((s) => String(s.periode ?? '').slice(0, 7) === periodeLalu)
+        .map((s) => s.asset_id as string),
+    )
+
+    const belumHitung: Array<{ kode: string; nama: string; beban: number }> = []
+    for (const a of aset ?? []) {
+      if (a.status === 'dijual') continue
+      const umur = Number(a.useful_life_months ?? 0)
+      const harga = Number(a.purchase_price ?? 0)
+      if (!a.purchase_date || umur <= 0 || harga <= 0) continue
+
+      const beban = bebanPeriode({
+        hargaPerolehan: harga,
+        nilaiResidu:    Number(a.residual_value ?? 0),
+        umurBulan:      umur,
+        metode:         (a.depreciation_method as 'garis_lurus' | 'saldo_menurun')
+                        ?? 'garis_lurus',
+        tanggalPerolehan: String(a.purchase_date),
+      }, thLalu, blLalu)
+
+      // Nol beban berarti periode itu DI LUAR masa manfaat — bukan kelalaian.
+      if (beban <= 0) continue
+      if (punyaBaris.has(a.id as string)) continue
+
+      belumHitung.push({
+        kode: String(a.asset_code ?? '—'),
+        nama: String(a.name ?? '—'),
+        beban,
+      })
+    }
+
+    const belumJurnal = (susut ?? []).filter((s) => !s.journal_entry_id)
+    const nilaiBelumJurnal = belumJurnal.reduce((t, s) => t + Number(s.nilai ?? 0), 0)
+    const periodeBelumJurnal = [...new Set(
+      belumJurnal.map((s) => String(s.periode ?? '').slice(0, 7)),
+    )].sort()
+
+    let dibuat = 0
+
+    // ── Temuan 1: buku periode lalu belum ditutup
+    if (belumHitung.length > 0 && tanggalKini >= ambangTanggal
+        && !sudah('penyusutan_belum_dihitung', periodeLalu)) {
+      const totalBeban = belumHitung.reduce((t, b) => t + b.beban, 0)
+      const penerima = await resolveRecipients('penyusutan_belum_dihitung', {
+        projectId: null, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      `Penyusutan ${periodeLalu} Belum Dihitung`,
+          message:
+            `${belumHitung.length} alat belum punya catatan penyusutan untuk `
+            + `${periodeLalu}, kira-kira ${rp(totalBeban)}. `
+            + `Contohnya ${belumHitung.slice(0, 3).map((b) => b.kode).join(', ')}`
+            + `${belumHitung.length > 3 ? ', dan lainnya' : ''}. `
+            + 'Selama belum dihitung, biaya alat terlihat lebih kecil daripada '
+            + 'yang sebenarnya.',
+          type:       'penyusutan_belum_dihitung',
+          priority:   'high',
+          project_id: undefined,
+          action_url: '/aset',
+          action_data: {
+            record_id: periodeLalu,
+            periode: periodeLalu,
+            aset: belumHitung.length,
+            perkiraan_beban: totalBeban,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    // ── Temuan 2: sudah dihitung, belum sampai ke buku besar
+    if (belumJurnal.length > 0 && !sudah('penyusutan_belum_dijurnal', 'tertunda')) {
+      const penerima = await resolveRecipients('penyusutan_belum_dijurnal', {
+        projectId: null, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Penyusutan Sudah Dihitung Tapi Belum Masuk Buku Besar',
+          message:
+            `${belumJurnal.length} catatan penyusutan senilai ${rp(nilaiBelumJurnal)} `
+            + `(periode ${periodeBelumJurnal.join(', ')}) belum dijurnalkan. `
+            + 'Angkanya sudah terlihat di halaman Aset tetapi belum masuk neraca — '
+            + 'jadi laporan keuangan menampilkan nilai alat yang lebih tinggi '
+            + 'daripada yang sebenarnya.',
+          type:       'penyusutan_belum_dijurnal',
+          // Lebih mendesak daripada temuan pertama: yang ini membuat laporan
+          // TERLIHAT benar sambil salah, dan tak ada galat yang menunjuknya.
+          priority:   'urgent',
+          project_id: undefined,
+          action_url: '/aset',
+          action_data: {
+            record_id: 'tertunda',
+            baris: belumJurnal.length,
+            nilai: nilaiBelumJurnal,
+            periode: periodeBelumJurnal,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        periode_ditagih: periodeLalu,
+        aset_belum_dihitung: belumHitung.length,
+        baris_belum_dijurnal: belumJurnal.length,
+        nilai_belum_dijurnal: nilaiBelumJurnal,
+        // Dilaporkan EKSPLISIT supaya "0 notifikasi" pada tanggal 3 tak
+        // terbaca sebagai "bukunya sudah beres".
+        tanggal_hari_ini: tanggalKini,
+        ambang_tanggal: ambangTanggal,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/perawatan-alat ──────────────────────────
+  //
+  // Automation 10.7 — Equipment Maintenance & Certification.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // NAMANYA "PERAWATAN & SERTIFIKASI", BUKAN "SERTIFIKASI" SAJA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Katalog menyebutnya *Equipment Certification Expiry*, dan membacanya
+  // harfiah menuntun ke kolom `assets.sertifikat_berakhir` yang TIDAK ADA —
+  // tak ada satu pun kolom kedaluwarsa sertifikat di seluruh tabel `assets`.
+  //
+  // Yang ada, dan ISINYA nyata: `jadwal_perawatan`. Sertifikasi tersimpan di
+  // sana sebagai jadwal berulang — terukur satu baris bernama
+  // "Sertifikasi SILO Depnaker", `setiap_hari` 365.
+  //
+  // Jadi bentuk datanya menyatakan sendiri: sertifikasi ADALAH perawatan
+  // berkala di sistem ini. Membangunnya sebagai dua otomasi terpisah akan
+  // membaca tabel yang sama dua kali untuk mengirim dua pesan yang sama.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // JAM ATAU HARI — YANG LEBIH DULU TERCAPAI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // `hitungJatuhTempo()` sudah memutuskan itu, dan ia dipakai apa adanya.
+  // Excavator yang menganggur sebulan tak butuh ganti oli; yang bekerja 300
+  // jam butuh — meski kalendernya baru setengah jalan.
+  //
+  // Meter terkini diturunkan dari `pemakaian_alat.jam_selesai` TERTINGGI,
+  // bukan yang terbaru menurut tanggal — persis seperti halaman
+  // `/aset/operasional`. Entri mundur (salah ketik, koreksi) tak boleh membuat
+  // alat terlihat "belum waktunya diservis".
+  //
+  // ── Temuan kedua: alat yang tak punya jadwal sama sekali
+  //
+  // Terukur 12 dari 16 alat milik sendiri yang siap pakai tak punya satu pun
+  // jadwal perawatan aktif. Otomasi yang hanya membaca jadwal akan melaporkan
+  // alat-alat itu SEHAT selamanya — bukan karena terawat, melainkan karena tak
+  // ada yang pernah menuliskan kapan ia harus dirawat.
+  //
+  // Diam pada kasus itu adalah kegagalan yang paling mahal: ia terlihat persis
+  // seperti keberhasilan.
+  app.get('/api/v1/otomasi/jalankan/perawatan-alat', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { hitungJatuhTempo } = await import('../../lib/alat-operasional.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.perawatan_alat.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['perawatan_alat_jatuh_tempo', 'alat_tanpa_jadwal_perawatan'])
+
+    // `assets`, `jadwal_perawatan`, `pemakaian_alat` — ketiganya kategori B.
+    const { data: aset, error } = await request.db!
+      .from('assets')
+      .select('id, asset_code, name, status, ownership, current_project_id')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const { data: jadwal, error: eJadwal } = await request.db!
+      .from('jadwal_perawatan')
+      .select(`id, asset_id, nama, jenis, setiap_jam, setiap_hari, jam_terakhir,
+               tanggal_terakhir, aktif`)
+      .eq('aktif', true)
+
+    if (eJadwal) return reply.status(500).send({ error: eJadwal.message })
+
+    const { data: pakai, error: ePakai } = await request.db!
+      .from('pemakaian_alat')
+      .select('asset_id, jam_selesai')
+
+    if (ePakai) return reply.status(500).send({ error: ePakai.message })
+
+    // Meter terkini per aset = pembacaan TERTINGGI.
+    const meter = new Map<string, number>()
+    for (const p of pakai ?? []) {
+      const s = p.jam_selesai == null ? null : Number(p.jam_selesai)
+      if (s == null || !Number.isFinite(s)) continue
+      const id = p.asset_id as string
+      meter.set(id, Math.max(meter.get(id) ?? s, s))
+    }
+
+    const namaAset = new Map<string, { kode: string; nama: string; proyek: string | null }>()
+    for (const a of aset ?? []) {
+      namaAset.set(a.id as string, {
+        kode: String(a.asset_code ?? '—'),
+        nama: String(a.name ?? '—'),
+        proyek: (a.current_project_id as string | null) ?? null,
+      })
+    }
+
+    let dibuat = 0
+    let lewat = 0
+    let segera = 0
+
+    for (const j of jadwal ?? []) {
+      const idAset = j.asset_id as string
+      const hasil = hitungJatuhTempo(
+        j as never, meter.get(idAset) ?? null, today,
+      )
+
+      /*
+        `belum_ada_acuan` sengaja DILEWATI tanpa notifikasi sendiri.
+
+        Jadwal yang tak punya `tanggal_terakhir` maupun pembacaan jam bukan
+        alat yang terlambat dirawat — ia jadwal yang belum pernah dipakai.
+        Menegurnya tiap hari tak menghasilkan tindakan, hanya kebisingan.
+      */
+      if (hasil.status === 'belum_ada_acuan') continue
+
+      /*
+        ANGKA YANG DILAPORKAN HARUS ANGKA YANG MEMICU.
+
+        Versi pertama memeriksa jam DAN hari lalu selalu menulis sisa HARI di
+        pesannya. Hasilnya terbaca di basis nyata:
+
+          [URGENT] Perawatan Alat Jatuh Tempo
+          Excavator 20 Ton — "Ganti oli mesin & filter" 154 hari lagi.
+
+        Yang memicu adalah meter jam yang sudah melewati 1.250, dan itu benar.
+        Tetapi orang yang membacanya melihat "154 hari lagi" berlabel URGENT
+        dan menyimpulkan sistemnya rusak — lalu berhenti mempercayai seluruh
+        peringatan perawatan, termasuk yang benar.
+
+        `hitungJatuhTempo()` sudah memutuskan mana yang lebih dulu tercapai dan
+        menyatakannya di `pemicu`. Itu yang dipakai, bukan ditebak ulang.
+      */
+      const sisaHari = hasil.sisaHari
+      const sisaJam = hasil.sisaJam
+      const pakaiJam = hasil.pemicu === 'jam'
+      const sisa = pakaiJam ? sisaJam : sisaHari
+      if (sisa == null) continue
+
+      /*
+        Jam TAK punya padanan "N hari sebelum".
+
+        Ambang hari bisa dibaca sebagai kalender; ambang jam tidak — 14 jam
+        operasi bisa habis dalam dua hari atau dua bulan tergantung alatnya.
+        Jadi untuk jalur jam ambangnya nol: yang sudah melewati jam servisnya
+        sudah terlambat, titik.
+      */
+      if (!(pakaiJam ? sisa <= 0 : sisa <= ambangHari)) continue
+
+      const terlambat = sisa < 0
+      if (terlambat) lewat++
+      else segera++
+
+      if (sudah('perawatan_alat_jatuh_tempo', j.id as string)) continue
+
+      const a = namaAset.get(idAset)
+      const penerima = await resolveRecipients('perawatan_alat_jatuh_tempo', {
+        projectId: a?.proyek ?? null, companyId: request.companyId!,
+      })
+
+      /*
+        Sertifikasi diberi kalimatnya sendiri.
+
+        "Servis terlambat 14 hari" berarti alatnya makin aus. "Sertifikat
+        kedaluwarsa 14 hari" berarti alatnya ILEGAL dipakai, dan yang
+        menanggung akibatnya bukan bengkel melainkan proyek. Menyamakan
+        keduanya membuat yang kedua terbaca seperti urusan pemeliharaan biasa.
+      */
+      const sertifikat = /sertifikas|sertifikat|kalibrasi|izin|silo|depnaker/i
+        .test(String(j.nama ?? ''))
+
+      const satuan = pakaiJam ? 'jam operasi' : 'hari'
+      const kapan = sisa < 0 ? `lewat ${Math.abs(sisa)} ${satuan}`
+        : sisa === 0 ? (pakaiJam ? 'jatuh tempo pada jam operasi SEKARANG'
+                                 : 'jatuh tempo HARI INI')
+        : `${sisa} ${satuan} lagi`
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      sertifikat ? 'Sertifikasi Alat Perlu Diperpanjang'
+                                 : 'Perawatan Alat Jatuh Tempo',
+          message:
+            `${a?.nama ?? 'Alat'} (${a?.kode ?? '—'}) — "${j.nama}" ${kapan}.`
+            + (sertifikat
+              ? ' Sesudah tanggal itu alatnya tidak boleh dioperasikan sampai'
+                + ' sertifikatnya diperbarui.'
+              : ''),
+          type:       'perawatan_alat_jatuh_tempo',
+          priority:   terlambat ? 'urgent' : sertifikat ? 'high' : 'normal',
+          project_id: a?.proyek ?? undefined,
+          action_url: '/aset/operasional',
+          action_data: {
+            record_id: j.id as string,
+            asset_id: idAset,
+            sisa_hari: sisaHari,
+            sisa_jam: sisaJam,
+            pemicu: hasil.pemicu,
+            sertifikasi: sertifikat,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    /*
+      Alat siap pakai TANPA satu pun jadwal aktif.
+
+      Hanya `ownership = 'milik'`: alat sewaan dirawat pemiliknya, dan menagih
+      jadwal perawatan untuk alat orang lain adalah menagih pekerjaan yang
+      bukan milik penerimanya.
+    */
+    const punyaJadwal = new Set((jadwal ?? []).map((j) => j.asset_id as string))
+    const tanpaJadwal = (aset ?? []).filter((a) =>
+      a.ownership === 'milik'
+      && (a.status === 'dipakai' || a.status === 'tersedia')
+      && !punyaJadwal.has(a.id as string))
+
+    if (tanpaJadwal.length > 0 && !sudah('alat_tanpa_jadwal_perawatan', today)) {
+      const penerima = await resolveRecipients('alat_tanpa_jadwal_perawatan', {
+        projectId: null, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Alat Belum Punya Jadwal Perawatan',
+          message:
+            `${tanpaJadwal.length} alat milik sendiri yang siap pakai belum punya `
+            + 'satu pun jadwal perawatan: '
+            + `${tanpaJadwal.slice(0, 4).map((a) => a.asset_code).join(', ')}`
+            + `${tanpaJadwal.length > 4 ? ', dan lainnya' : ''}. `
+            + 'Selama jadwalnya kosong, alat-alat ini akan terus terlihat sehat '
+            + 'di laporan — bukan karena terawat, melainkan karena tak ada yang '
+            + 'pernah menuliskan kapan ia harus dirawat.',
+          type:       'alat_tanpa_jadwal_perawatan',
+          priority:   'normal',
+          project_id: undefined,
+          action_url: '/aset/operasional',
+          action_data: {
+            record_id: today,
+            alat: tanpaJadwal.length,
+            kode: tanpaJadwal.slice(0, 10).map((a) => a.asset_code),
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        jadwal_aktif: (jadwal ?? []).length,
+        lewat_tempo: lewat,
+        segera: segera,
+        // Dilaporkan EKSPLISIT: inilah alat yang TAK BISA dinilai sama sekali,
+        // dan tanpa angka ini "0 lewat tempo" terbaca sebagai kabar baik.
+        alat_tanpa_jadwal: tanpaJadwal.length,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/konflik-mandor ──────────────────────────
+  //
+  // Automation 3.9 — Resource Conflict Detection.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // MANDOR SAJA. ALAT SENGAJA DIKELUARKAN, DAN ITU DIUKUR
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Katalog menyebut "resource" — orang DAN alat. Sisi alat dibuang setelah
+  // empat pengukuran, seluruhnya nol baris:
+  //
+  //   pemakaian sama-hari lintas proyek untuk aset sama    0
+  //   rentang pemakaian per aset+proyek yang tumpang       0
+  //   aset dipakai di lebih dari satu proyek (kapan pun)   0
+  //   aset keluar ke lebih dari satu proyek tujuan         0
+  //
+  // Sebabnya struktural, bukan kebetulan: alokasi alat disimpan sebagai
+  // `assets.current_project_id` — SATU pointer. Sebuah alat tak bisa menunjuk
+  // dua proyek sekaligus, jadi "dialokasikan ganda" mustahil dinyatakan.
+  // `asset_rentals` punya rentang tanggal yang bisa tumpang tindih, dan ia nol
+  // baris.
+  //
+  // Membangunnya tetap akan menghasilkan rute yang memicu nol selamanya, lalu
+  // dilaporkan sebagai "otomasi konflik sudah ada".
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // RENTANGNYA DARI `work_scopes`, BUKAN `mandor_assignments`
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // `mandor_assignments` hanya punya `assigned_at` — satu tanggal mulai, tanpa
+  // akhir. Tumpang tindih tak bisa dihitung dari sana. Yang punya rentang
+  // adalah `work_scopes.start_date`/`end_date`, dan keduanya terisi 20 dari 20.
+  //
+  // ── Kenapa BUKAN `CURRENT_DATE BETWEEN start AND end`
+  //
+  // Itu cara paling naif dan ia menyusutkan hasil jadi SATU mandor. Lebih
+  // penting: peringatan yang baru datang saat bentroknya sudah terjadi tak
+  // menolong siapa pun — mandornya sudah berada di dua tempat.
+  //
+  // Yang dipakai: tumpang tindihnya BELUM SELESAI (`akhir >= hari ini`). Itu
+  // menangkap bentrok yang masih bisa dihindari dengan menggeser jadwal.
+  //
+  //   Terukur 2026-08-16: 21 pasangan (5 mandor) tanpa saringan status,
+  //   15 pasangan bila kedua sisi harus aktif.
+  app.get('/api/v1/otomasi/jalankan/konflik-mandor', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.konflik_mandor.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['konflik_mandor'])
+
+    /*
+      `projects` ANCHOR → `mandor_assignments` (C lewat `project_id`) →
+      `work_scopes` (C lewat `assignment_id`).
+
+      `work_scopes` TIDAK punya `project_id`, jadi `.viaProject()` tak berlaku
+      padanya — rantainya harus ditempuh lewat penugasan. Beberapa rute lama di
+      `mandor.ts` memakai `supabase` mentah untuk tabel ini; itu bukan pola
+      yang ditiru di sini.
+    */
+    const { data: proyek, error } = await request.db!
+      .from('projects')
+      .select('id, name')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const idProyek = (proyek ?? []).map((p) => p.id as string)
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { pasangan_bentrok: 0, mandor_bentrok: 0, ambang_hari: ambangHari },
+      })
+    }
+
+    const { data: tugas, error: eTugas } = await request.db!
+      .unsafe('mandor_assignments',
+        'kategori C lewat project_id; disaring ke id proyek dari query ter-scope tenant di atas')
+      .select('id, project_id, mandor_id, status')
+      .in('project_id', idProyek)
+      .eq('status', 'active')
+
+    if (eTugas) return reply.status(500).send({ error: eTugas.message })
+
+    const idTugas = (tugas ?? []).map((t) => t.id as string)
+    if (idTugas.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { pasangan_bentrok: 0, mandor_bentrok: 0, ambang_hari: ambangHari },
+      })
+    }
+
+    const { data: lingkup, error: eLingkup } = await request.db!
+      .unsafe('work_scopes',
+        'kategori C berhop-jauh lewat assignment_id; disaring ke id penugasan ter-scope tenant di atas')
+      .select('id, assignment_id, scope_name, start_date, end_date, status')
+      .in('assignment_id', idTugas)
+      .eq('status', 'active')
+
+    if (eLingkup) return reply.status(500).send({ error: eLingkup.message })
+
+    /*
+      `users` kategori D — identitas lintas-tenant. Namanya diambil TERBATAS
+      pada mandor yang penugasannya sudah lewat saringan di atas, jadi tak ada
+      nama dari tenant lain yang bisa masuk ke isi notifikasi.
+    */
+    const idMandor = [...new Set((tugas ?? []).map((t) => t.mandor_id as string))]
+    const { data: orang, error: eOrang } = await request.db!
+      .unsafe('users', 'kategori D identitas; dibatasi ke mandor dari penugasan ter-scope di atas')
+      .select('id, name')
+      .in('id', idMandor)
+
+    if (eOrang) return reply.status(500).send({ error: eOrang.message })
+    const namaMandor = new Map((orang ?? []).map((u) => [u.id as string, String(u.name ?? '—')]))
+
+    // Lingkup + proyek + mandornya, siap dibandingkan berpasangan.
+    const tugasKe = new Map((tugas ?? []).map((t) => [t.id as string, t]))
+    type Baris = {
+      id: string; mandor: string; proyek: string; nama: string
+      mulai: string; akhir: string
+    }
+    const baris: Baris[] = []
+    for (const w of lingkup ?? []) {
+      const t = tugasKe.get(w.assignment_id as string)
+      if (!t) continue
+      const mulai = String(w.start_date ?? '').slice(0, 10)
+      const akhir = String(w.end_date ?? '').slice(0, 10)
+      // Tanpa rentang, tumpang tindih tak bisa dinyatakan — dilewati, bukan
+      // ditebak dengan tanggal penugasan.
+      if (!mulai || !akhir) continue
+      baris.push({
+        id: w.id as string,
+        mandor: t.mandor_id as string,
+        proyek: t.project_id as string,
+        nama: String(w.scope_name ?? '—'),
+        mulai, akhir,
+      })
+    }
+
+    const hariAntara = (a: string, b: string) =>
+      Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000)
+
+    let dibuat = 0
+    let pasangan = 0
+    const mandorBentrok = new Set<string>()
+
+    for (let i = 0; i < baris.length; i++) {
+      for (let k = i + 1; k < baris.length; k++) {
+        const a = baris[i]
+        const b = baris[k]
+        if (a.mandor !== b.mandor) continue
+        // Dua lingkup di proyek yang SAMA bukan bentrok — itu memang satu
+        // penugasan yang dipecah beberapa pekerjaan.
+        if (a.proyek === b.proyek) continue
+
+        const mulaiTumpang = a.mulai > b.mulai ? a.mulai : b.mulai
+        const akhirTumpang = a.akhir < b.akhir ? a.akhir : b.akhir
+        if (mulaiTumpang > akhirTumpang) continue
+
+        const lama = hariAntara(mulaiTumpang, akhirTumpang) + 1
+        // Serah-terima beberapa hari antar proyek itu normal di lapangan.
+        if (lama < ambangHari) continue
+        // Yang tumpang tindihnya sudah lewat tak bisa diperbaiki lagi.
+        if (akhirTumpang < today) continue
+
+        pasangan++
+        mandorBentrok.add(a.mandor)
+
+        // Kunci pasangan diurutkan supaya A–B dan B–A tak jadi dua notifikasi.
+        const kunci = [a.id, b.id].sort().join('_')
+        if (sudah('konflik_mandor', kunci)) continue
+
+        const penerima = await resolveRecipients('konflik_mandor', {
+          projectId: a.proyek, companyId: request.companyId!,
+        })
+
+        const belumMulai = mulaiTumpang > today
+
+        for (const uid of penerima) {
+          await createNotification({
+            company_id: request.companyId!,
+            user_id:    uid,
+            title:      'Mandor Dipegang Dua Proyek Sekaligus',
+            message:
+              `${namaMandor.get(a.mandor) ?? 'Mandor'} memegang `
+              + `"${a.nama}" di ${namaProyek.get(a.proyek)} dan `
+              + `"${b.nama}" di ${namaProyek.get(b.proyek)} `
+              + `yang bertabrakan ${lama} hari `
+              + `(${mulaiTumpang} s.d. ${akhirTumpang}). `
+              + (belumMulai
+                ? 'Tabrakannya belum mulai — jadwalnya masih bisa digeser.'
+                : 'Tabrakannya sudah berjalan.'),
+            type:       'konflik_mandor',
+            // Yang belum mulai masih bisa dihindari; yang sudah berjalan
+            // menuntut keputusan hari ini juga.
+            priority:   belumMulai ? 'normal' : 'high',
+            project_id: a.proyek,
+            action_url: '/mandor/penugasan',
+            action_data: {
+              record_id: kunci,
+              mandor_id: a.mandor,
+              proyek: [a.proyek, b.proyek],
+              hari_tumpang: lama,
+              mulai_tumpang: mulaiTumpang,
+              akhir_tumpang: akhirTumpang,
+            },
+          })
+          dibuat++
+        }
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        lingkup_aktif: baris.length,
+        pasangan_bentrok: pasangan,
+        mandor_bentrok: mandorBentrok.size,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
 }
 
 /**

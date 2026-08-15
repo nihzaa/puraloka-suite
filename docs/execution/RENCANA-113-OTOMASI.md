@@ -26,6 +26,22 @@ menahannya:
 **99 dari 113 bisa dikerjakan tanpa menunggu apa pun.** Hanya 14 yang benar-
 benar menunggu sesuatu di luar.
 
+### 1-0. Kemajuan Gelombang 1 — UKUR, jangan percaya angka di sini
+
+```bash
+cd apps/api && node -r dotenv/config scripts/lapor-otomasi-hidup.mjs
+```
+
+Baris yang dicari: `Tugas terjadwal` dan `otomasi terjelaskan di katalog kode`.
+
+Diukur 2026-08-16: **27 rute terjadwal · 36 nomor katalog terjelaskan.**
+Terakhir ditambahkan: 10.7 perawatan & sertifikasi alat, 10.8 penyusutan belum
+ditutup, 3.9 mandor bentrok dua proyek, dan `kontrak-payung-habis` (sengaja
+TANPA nomor — 7.10 adalah kontrak klien, bukan pemasok).
+
+Angka di tabel gelombang di atas adalah RENCANA per 2026-08-15 dan tidak
+diperbarui tiap otomasi selesai. Yang mutakhir hanya keluaran skrip.
+
 ### 1a. Kenapa saya sempat salah
 
 Empat kali dalam satu sesi saya menyimpulkan "tak bisa dibangun", dan tiap

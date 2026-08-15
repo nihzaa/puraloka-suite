@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js'
+﻿import { supabase } from './supabase.js'
 import { terbitkanPeristiwa } from './terbit-peristiwa.js'
 import { sendWebPushToUsers } from './webpush.js'
 
@@ -128,6 +128,14 @@ export type NotificationType =
   // pada nomornya disengaja: 5.12 ASLI ("akses dokumen sensitif") mustahil
   // hari ini — `documents` dan `document_access_logs` sama-sama nol baris.
   | 'audit_aksi_berisiko'
+  // Kontrak payung (blanket order) yang mendekati akhir masa berlaku.
+  // TANPA nomor katalog — lihat komentar rutenya.
+  | 'kontrak_payung_habis'
+  | 'penyusutan_belum_dihitung'
+  | 'penyusutan_belum_dijurnal'
+  | 'perawatan_alat_jatuh_tempo'
+  | 'alat_tanpa_jadwal_perawatan'
+  | 'konflik_mandor'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

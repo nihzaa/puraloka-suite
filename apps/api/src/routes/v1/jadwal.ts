@@ -211,6 +211,21 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'penyusutan-belum-ditutup': {
+    label: 'Penyusutan Alat Belum Ditutup',
+    keterangan: 'Buku penyusutan bulan lalu yang belum dihitung atau belum dijurnalkan.',
+    jalur: '/api/v1/otomasi/jalankan/penyusutan-belum-ditutup',
+  },
+  'perawatan-alat': {
+    label: 'Perawatan & Sertifikasi Alat',
+    keterangan: 'Servis berkala dan sertifikat alat yang jatuh tempo, plus alat tanpa jadwal.',
+    jalur: '/api/v1/otomasi/jalankan/perawatan-alat',
+  },
+  'konflik-mandor': {
+    label: 'Mandor Bentrok Dua Proyek',
+    keterangan: 'Lingkup kerja mandor yang sama bertabrakan di proyek berbeda.',
+    jalur: '/api/v1/otomasi/jalankan/konflik-mandor',
+  },
   'kontrak-payung-habis': {
     label: 'Kontrak Payung Segera Habis',
     keterangan: 'Kontrak payung pemasok yang mendekati akhir masa berlaku.',

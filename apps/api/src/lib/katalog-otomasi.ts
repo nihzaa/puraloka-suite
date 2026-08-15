@@ -950,6 +950,83 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       'Ada batas nominal untuk jalur ini — bukan batas kasbon, melainkan batas '
       + 'kepercayaan pada percakapan. Di atasnya, diajukan lewat halaman Kasbon.',
   },
+  {
+    kunci: 'penyusutan-belum-ditutup',
+    nomor: '10.8',
+    nama: 'Buku penyusutan alat belum ditutup',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Alat berkurang nilainya tiap bulan, dan pengurangan itu adalah biaya '
+      + 'proyek. Selama belum dicatat, alat terlihat lebih berharga daripada '
+      + 'yang sebenarnya dan biaya terlihat lebih kecil. Otomasi ini menagih '
+      + 'dua hal yang berbeda: yang belum dihitung, dan yang sudah dihitung '
+      + 'tetapi belum masuk buku besar.',
+    penerima: 'Bagian keuangan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Memeriksa alat mana yang masih dalam masa manfaat.' },
+      { di: 'sistem', teks: 'Membandingkan dengan catatan penyusutan bulan lalu.' },
+      { di: 'sistem', teks: 'Memisahkan yang belum dihitung dari yang belum dijurnalkan.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.penyusutan_tutup.tanggal',
+    catatan:
+      'Otomasi ini TIDAK menghitung dan TIDAK menjurnalkan sendiri. Penyusutan '
+      + 'masuk buku besar, dan baris yang muncul tanpa seorang pun menekan '
+      + 'tombol adalah baris yang tak seorang pun merasa bertanggung jawab '
+      + 'atasnya. Yang ditagih bulan LALU, bukan bulan berjalan — menagih buku '
+      + 'yang belum bisa ditutup hanya melatih orang mengabaikan notifikasi.',
+  },
+  {
+    kunci: 'perawatan-alat',
+    nomor: '10.7',
+    nama: 'Perawatan & sertifikasi alat jatuh tempo',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Mengingatkan servis berkala dan perpanjangan sertifikat alat berat '
+      + 'sebelum tanggalnya lewat. Sertifikat yang kedaluwarsa membuat alatnya '
+      + 'tidak boleh dioperasikan sama sekali — bukan sekadar kurang terawat.',
+    penerima: 'Bagian peralatan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca jadwal perawatan yang masih aktif.' },
+      { di: 'sistem', teks: 'Mengambil pembacaan jam operasi tertinggi tiap alat.' },
+      { di: 'sistem', teks: 'Menghitung mana yang lebih dulu tercapai: jam atau tanggal.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.perawatan_alat.hari',
+    catatan:
+      'Katalog aslinya menyebut sertifikasi saja, tetapi di sistem ini '
+      + 'sertifikasi TERSIMPAN sebagai jadwal perawatan berulang — jadi '
+      + 'keduanya satu otomasi, bukan dua. Ia juga melaporkan alat yang belum '
+      + 'punya jadwal sama sekali: tanpa itu, alat yang tak pernah dijadwalkan '
+      + 'akan terlihat sehat selamanya.',
+  },
+  {
+    kunci: 'konflik-mandor',
+    nomor: '3.9',
+    nama: 'Mandor dipegang dua proyek sekaligus',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menemukan mandor yang jadwal pekerjaannya di dua proyek berbeda saling '
+      + 'bertabrakan. Diberitahukan selagi tabrakannya belum mulai, supaya '
+      + 'jadwalnya masih bisa digeser.',
+    penerima: 'Manajer proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca lingkup kerja aktif beserta tanggal mulai dan selesainya.' },
+      { di: 'sistem', teks: 'Membandingkan tiap pasang lingkup milik mandor yang sama.' },
+      { di: 'sistem', teks: 'Menghitung berapa hari keduanya bertabrakan.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.konflik_mandor.hari',
+    catatan:
+      'Hanya MANDOR, bukan alat. Alokasi alat disimpan sebagai satu penunjuk '
+      + 'proyek pada tiap alat, jadi sebuah alat tak bisa menunjuk dua proyek '
+      + 'sekaligus — "dialokasikan ganda" mustahil dinyatakan, dan otomasinya '
+      + 'akan memicu nol selamanya. Tanggalnya dibaca dari lingkup kerja, '
+      + 'karena penugasan mandor hanya menyimpan tanggal mulai tanpa akhir.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */

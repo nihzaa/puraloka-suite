@@ -220,6 +220,54 @@ export const AMBANG_OTOMASI = {
     label: 'Hari sesudah proyek selesai sebelum retensi tertahan ditegur',
   },
   /*
+    Buku penyusutan belum ditutup. Bawaan tanggal 5.
+
+    Yang diukur BUKAN "sudah tanggal berapa" melainkan "bulan lalu sudah
+    lewat berapa lama tanpa ditutup". Menegur pada tanggal 1 adalah menegur
+    orang yang memang belum sempat — penutupan buku butuh beberapa hari kerja.
+
+    Diukur 2026-08-16: 14 dari 18 aset dalam masa manfaat belum punya baris
+    penyusutan untuk periode 2026-07.
+  */
+  'otomasi.penyusutan_tutup.tanggal': {
+    bawaan: 5,
+    min: 1,
+    max: 28,
+    label: 'Tanggal berapa buku penyusutan bulan lalu mulai ditagih',
+  },
+  /*
+    Perawatan & sertifikasi alat. Bawaan 14 hari sebelum jatuh tempo.
+
+    Bukan hari-H: mendatangkan mekanik dan mengurus perpanjangan sertifikat
+    Depnaker butuh antrean. Sertifikat yang kedaluwarsa membuat alatnya
+    ILEGAL dipakai, bukan sekadar kurang terawat — dan itu risiko yang
+    ditanggung proyek, bukan bengkel.
+  */
+  'otomasi.perawatan_alat.hari': {
+    bawaan: 14,
+    min: 1,
+    max: 90,
+    label: 'Hari sebelum jatuh tempo perawatan/sertifikasi alat diperingatkan',
+  },
+  /*
+    Mandor dipegang dua proyek sekaligus. Bawaan tumpang tindih 14 hari.
+
+    Serah-terima beberapa hari antar proyek itu NORMAL di lapangan — mandor
+    menuntaskan pekerjaan terakhir sambil memulai yang baru. Yang tak normal
+    adalah tumpang tindih berbulan-bulan.
+
+    Diukur 2026-08-16: seluruh 21 pasangan yang tumpang tindih berdurasi
+    minimal 32 hari, jadi ambang 14 tak menyaring apa pun HARI INI. Ia ada
+    untuk data yang akan datang, dan itu dinyatakan supaya tak seorang pun
+    menyimpulkan ambangnya sudah teruji menyaring.
+  */
+  'otomasi.konflik_mandor.hari': {
+    bawaan: 14,
+    min: 1,
+    max: 180,
+    label: 'Hari tumpang tindih minimum sebelum mandor dianggap bentrok',
+  },
+  /*
     Ringkasan aksi berisiko harian. Ambang ledakan aksi per pengguna per jam.
 
     Bawaan 300 — diukur dari sebaran nyata: 188 bucket (pengguna×jam) dalam 7
