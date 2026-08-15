@@ -122,6 +122,12 @@ export type NotificationType =
   | 'absensi_berhenti'
   // 3.6 — subkontraktor yang menurut evaluasi terakhir tak boleh dipakai.
   | 'subkon_tak_layak'
+  // 2.3 — uang retensi tertahan pada pekerjaan yang sudah lewat waktunya.
+  | 'retensi_tertahan'
+  // 5.12' — ringkasan aksi berisiko harian dari jejak audit. Tanda kutip
+  // pada nomornya disengaja: 5.12 ASLI ("akses dokumen sensitif") mustahil
+  // hari ini — `documents` dan `document_access_logs` sama-sama nol baris.
+  | 'audit_aksi_berisiko'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

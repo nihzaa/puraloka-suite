@@ -3106,6 +3106,441 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       checked: { pihak_dinilai: diperiksa, tak_layak: takLayak },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/retensi-tertahan ────────────────────────
+  //
+  // Automation 2.3 — Retention Tracking.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // BUKAN "RETENSI JATUH TEMPO" — DAN ITU BUKAN PENYEDERHANAAN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Retensi lazimnya dicairkan sesudah masa pemeliharaan berakhir. Otomasi
+  // berbasis tanggal itu MUSTAHIL hari ini, dan sebabnya diukur:
+  //
+  //   · tak ada satu pun kolom tanggal jatuh tempo retensi di seluruh schema
+  //   · satu-satunya durasi masa pemeliharaan ada di
+  //     `serah_terima.masa_pemeliharaan_hari`, dan tanggal akhirnya sengaja
+  //     TIDAK disimpan — diturunkan saat baca oleh `akhirMasaPemeliharaan()`
+  //   · `serah_terima` NOL baris
+  //
+  // Jadi otomasi kalender akan memicu nol baris selamanya. Yang berguna versi
+  // EKSPOSUR: berapa uang retensi yang tertahan pada pekerjaan yang sudah
+  // lewat waktunya.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // DUA ANGKA YANG BERBEDA, DAN KEDUANYA DISEBUT
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Ini bagian terpentingnya.
+  //
+  //   `projects.retention_amount`  retensi KONTRAKTUAL — yang disepakati
+  //                                ditahan. Terukur Rp 302,9 jt di 14 proyek.
+  //
+  //   `invoices.retensi_amount`    retensi TEREALISASI — yang benar-benar
+  //                                dipotong di invoice. Terukur NOL di 26
+  //                                dari 26 invoice.
+  //
+  // Layar Register Retensi (`/piutang`) membaca yang KEDUA, jadi ia
+  // menampilkan nol untuk semua proyek. Empty-state-nya pun sudah menjelaskan
+  // itu: *"Retensi muncul saat invoice memakai potongan retensi."*
+  //
+  // Kalau otomasi ini mengirim "Rp 101 juta tertahan" lalu orang menekan
+  // tautannya dan melihat NOL, ia akan menyimpulkan salah satunya rusak — dan
+  // berhenti mempercayai keduanya. Itu kegagalan yang lebih mahal daripada
+  // tidak mengirim apa pun.
+  //
+  // Maka pesannya menyebut KEDUANYA, dan selisihnya justru jadi isi
+  // peringatannya: retensi yang disepakati tetapi tak pernah dipotong di
+  // invoice adalah uang yang tak terlacak — bukan uang yang aman.
+  app.get('/api/v1/otomasi/jalankan/retensi-tertahan', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.retensi_tertahan.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['retensi_tertahan'])
+
+    /*
+      `projects` adalah ANCHOR tenancy — `.from()` menyaringnya langsung.
+
+      `actual_end_date` SENGAJA tidak dipakai: terukur NULL di ketujuh proyek
+      yang memenuhi syarat, jadi menyaring dengannya menghasilkan nol baris
+      tanpa satu pun gejala.
+    */
+    const { data: proyek, error } = await request.db!
+      .from('projects')
+      .select('id, name, status, end_date, retention_amount, retention_pct, client_id')
+      .gt('retention_amount', 0)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const idProyek = (proyek ?? []).map((p) => p.id as string)
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { proyek_beretensi: 0, ambang_hari: ambangHari },
+      })
+    }
+
+    /*
+      Retensi TEREALISASI per proyek, dari invoice.
+
+      `invoices` kategori C lewat `project_id`; disaring ke id proyek yang
+      barisnya sudah lewat RLS pada query di atas — pola yang sama dengan
+      `invoice-terlambat`.
+    */
+    const { data: inv, error: eInv } = await request.db!
+      .unsafe('invoices',
+        'daftar lintas-proyek; disaring ke id proyek dari query ter-scope tenant di atas')
+      .select('project_id, retensi_amount')
+      .in('project_id', idProyek)
+
+    if (eInv) return reply.status(500).send({ error: eInv.message })
+
+    const terealisasi = new Map<string, number>()
+    for (const i of inv ?? []) {
+      const pid = i.project_id as string
+      terealisasi.set(pid, (terealisasi.get(pid) ?? 0) + Number(i.retensi_amount ?? 0))
+    }
+
+    /*
+      Berita acara serah terima MEMBUKA pencairan retensi. Yang sudah punya
+      BAST tak lagi "tertahan tanpa jalan keluar" — ia sedang dalam proses,
+      dan menegurnya adalah menegur pekerjaan yang sudah berjalan.
+
+      `serah_terima` kategori B, jadi `.from()` cukup. Nol baris hari ini,
+      tetapi saringannya tetap dipasang: begitu orang mulai mengisinya,
+      otomasi ini harus langsung berhenti menegur yang sudah beres — bukan
+      menunggu seseorang ingat memperbaiki kodenya.
+    */
+    const { data: bast, error: eBast } = await request.db!
+      .from('serah_terima')
+      .select('project_id')
+
+    if (eBast) return reply.status(500).send({ error: eBast.message })
+    const punyaBast = new Set((bast ?? []).map((b) => b.project_id as string))
+
+    let dibuat = 0
+    let lewatWaktu = 0
+    let tanpaRealisasi = 0
+
+    for (const p of proyek ?? []) {
+      const pid = p.id as string
+      const akhir = p.end_date as string | null
+      if (!akhir) continue
+
+      const jarak = Math.round(
+        (Date.parse(today + 'T00:00:00Z') - Date.parse(String(akhir).slice(0, 10) + 'T00:00:00Z'))
+        / 86_400_000,
+      )
+
+      // Pekerjaan yang belum lewat waktunya belum punya persoalan retensi.
+      if (jarak < ambangHari) continue
+      lewatWaktu++
+
+      if (punyaBast.has(pid)) continue
+
+      const kontraktual = Number(p.retention_amount ?? 0)
+      const nyata = terealisasi.get(pid) ?? 0
+      if (nyata === 0) tanpaRealisasi++
+
+      if (sudah('retensi_tertahan', pid)) continue
+
+      const penerima = await resolveRecipients('retensi_tertahan', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      /*
+        Selisih antara yang disepakati dan yang tercatat ADALAH isi
+        peringatannya, bukan catatan kaki.
+
+        Retensi kontraktual yang tak pernah muncul di invoice berarti
+        potongannya tak pernah benar-benar diterapkan — uangnya mungkin sudah
+        dibayarkan penuh, dan yang tersisa cuma angka di kontrak.
+      */
+      const catatanSelisih = nyata === 0
+        ? ' Belum ada satu pun invoice yang mencatat potongan retensi — '
+          + 'angka ini masih kontraktual, bukan uang yang benar-benar ditahan.'
+        : nyata < kontraktual
+          ? ` Baru ${rp(nyata)} yang tercatat dipotong di invoice.`
+          : ''
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Retensi Tertahan Belum Diurus',
+          message:
+            `Proyek "${p.name}" (${p.status}) sudah lewat tanggal selesai `
+            + `${jarak} hari, retensi ${rp(kontraktual)}`
+            + (p.retention_pct ? ` (${p.retention_pct}%)` : '')
+            + ' dan belum ada berita acara serah terima.'
+            + catatanSelisih,
+          type:       'retensi_tertahan',
+          // Yang statusnya masih `active` padahal tanggal selesainya lewat
+          // lebih mendesak: pekerjaannya sendiri belum ditutup.
+          priority:   p.status === 'completed' ? 'high' : 'urgent',
+          project_id: pid,
+          action_url: '/piutang',
+          action_data: {
+            record_id: pid,
+            retensi_kontraktual: kontraktual,
+            retensi_tercatat: nyata,
+            hari_lewat: jarak,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_beretensi: (proyek ?? []).length,
+        lewat_waktu: lewatWaktu,
+        // Dilaporkan EKSPLISIT: inilah selisih antara angka kontrak dan angka
+        // yang benar-benar tercatat di invoice, dan ia yang membuat layar
+        // Register Retensi menampilkan nol.
+        tanpa_realisasi_invoice: tanpaRealisasi,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/audit-aksi-berisiko ─────────────────────
+  //
+  // Automation 5.12′ — Ringkasan Aksi Berisiko Harian.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // TANDA KUTIP PADA NOMORNYA DISENGAJA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // 5.12 ASLI berbunyi *"Document Access Audit Summary — ringkasan siapa
+  // mengakses dokumen sensitif kapan"*. Itu MUSTAHIL hari ini, dan sebabnya
+  // bukan yang saya duga.
+  //
+  // Akses baca BUKAN tak dicatat — jalur pipanya utuh: tabel
+  // `document_access_logs` ada sejak migrasi 055, endpoint penulisnya ada
+  // (`POST /documents/:id/access-log`), dan frontend memanggilnya. Yang tak
+  // ada ISINYA:
+  //
+  //     documents               0 baris
+  //     document_access_logs    0 baris
+  //     submittal_documents     0 baris
+  //
+  // Dan tak ada satu pun kolom yang menyatakan sebuah dokumen rahasia.
+  // `documents.is_visible_to_client` yang paling dekat, tetapi itu kontrol
+  // tampilan portal klien — bukan klasifikasi kerahasiaan, dan memakainya
+  // sebagai proksi harus dinyatakan, bukan diam-diam.
+  //
+  // Jadi 5.12 asli akan mengirim ringkasan KOSONG tiap hari selamanya.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // YANG DIBANGUN: SEMANGAT YANG SAMA, SUMBER YANG BENAR-BENAR BERISI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // `audit_logs` — 61.505 baris, dan SEGAR: 7.831 event dalam 24 jam
+  // terakhir, tulisan termuda 26 menit sebelum pengukuran. Pertanyaan
+  // "siapa melakukan apa yang berisiko, kapan" dijawab dari situ.
+  //
+  // ── Tiga sinyal yang DIBUANG, dan kenapa
+  //
+  // Ketiganya terdengar masuk akal dan ketiganya diukur mati:
+  //
+  //     IP mencurigakan     `127.0.0.1` = 61.002 dari 61.505 (99,2%)
+  //     di luar jam kerja   6.021 dari 7.831 event 24 jam = 77%
+  //     akhir pekan         7.831 dari 7.831 = 100%
+  //
+  // Memakai salah satunya berarti menyalakan alarm untuk hampir semua hal.
+  // Dan "pengguna ini menyimpang dibanding pengguna lain" pun mustahil: hanya
+  // ada TIGA `user_id` berbeda di seluruh jejak.
+  //
+  // Maka pembandingnya DIRI SENDIRI — median empat belas hari pengguna itu —
+  // yang tetap sah saat penggunanya bertambah jadi ratusan.
+  app.get('/api/v1/otomasi/jalankan/audit-aksi-berisiko', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { perjam?: string; klaster?: string }
+    const ambangJam = await ambilAmbang(request, 'otomasi.audit_ledakan.per_jam', q.perjam)
+    const ambangHapus = await ambilAmbang(request, 'otomasi.audit_hapus.klaster', q.klaster)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['audit_aksi_berisiko'])
+
+    const sejak = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+    /*
+      `audit_logs` kategori D — punya `company_id` NOT NULL yang diisi trigger,
+      dan sengaja TIDAK di-join ke induknya supaya jejak tetap terbaca meski
+      baris induknya hilang.
+
+      Karena itu ia menuntut `.unsafe()` + saringan `company_id` EKSPLISIT,
+      bukan `.from()`. Bentuk pertama saya memakai `.from()` dan ditolak
+      pembungkusnya dengan pesan yang menyebut jalannya sendiri:
+
+          'audit_logs' kategori D (identitas/platform) — scoping-nya khusus.
+          Pakai db.unsafe('audit_logs', '<alasan>') dan jelaskan bagaimana
+          tenancy dijaga.
+
+      Kesembilan kalinya dalam sesi ini nama/bentuk ditebak alih-alih diukur,
+      dan lagi-lagi typecheck tak bisa menangkapnya — nama tabel hanyalah
+      string. Yang menangkapnya kali ini pembungkus tenancy-nya sendiri, saat
+      dijalankan sungguhan.
+
+      Dibaca BERHALAMAN: 7.831 event per hari sudah melewati batas potong
+      senyap PostgREST di 1.000, dan pemotongan itu akan membuat ringkasan
+      melaporkan angka yang lebih kecil daripada kenyataan — tanpa galat.
+    */
+    const HALAMAN = 1000
+    const jejak: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error } = await request.db!
+        .unsafe('audit_logs', 'kategori D — disaring eksplisit dengan .eq(company_id) di bawah')
+        .select('id, user_id, action, table_name, severity, created_at')
+        .eq('company_id', request.companyId!)
+        .gte('created_at', sejak)
+        .order('created_at', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!data || data.length === 0) break
+      jejak.push(...(data as Array<Record<string, unknown>>))
+      if (data.length < HALAMAN) break
+    }
+
+    /*
+      Daftar aksi keamanan DIPAKU, bukan ditebak dari kata kunci.
+
+      Pencarian berpola ("apa pun yang mengandung 'delete'") akan menyeret
+      penghapusan biasa yang tak berisiko, dan melewatkan yang berisiko tetapi
+      tak berkata itu. Keempat nilai di bawah diukur benar-benar ada di jejak:
+      `role.permissions` 80 · `credential.set` 72 · `credential.delete` 18 ·
+      `payroll.kunci` 34.
+    */
+    const AKSI_KEAMANAN = new Set([
+      'role.permissions', 'credential.set', 'credential.delete', 'payroll.kunci',
+    ])
+
+    const keamanan: Array<{ aksi: string; user: string | null }> = []
+    const perJam = new Map<string, number>()
+    const hapusPer = new Map<string, number>()
+    let kritis = 0
+    let aiDitolak = 0
+
+    for (const e of jejak) {
+      const aksi = String(e.action ?? '')
+      const uid = (e.user_id as string | null) ?? null
+      const tabel = String(e.table_name ?? '')
+
+      if (AKSI_KEAMANAN.has(aksi)) keamanan.push({ aksi, user: uid })
+      if (e.severity === 'critical') kritis++
+      if (aksi === 'ai.tulis.ditolak') aiDitolak++
+
+      // Ledakan: pengguna × jam. Jam diambil dari stempel UTC-nya apa adanya;
+      // yang dicari kepadatan, bukan jam dinding setempat.
+      const jam = String(e.created_at ?? '').slice(0, 13)
+      if (uid) perJam.set(`${uid}|${jam}`, (perJam.get(`${uid}|${jam}`) ?? 0) + 1)
+
+      // Klaster hapus: pengguna × tabel.
+      if (aksi === 'DELETE' || aksi.endsWith('.delete') || aksi.endsWith('.hapus')) {
+        if (uid) hapusPer.set(`${uid}|${tabel}`, (hapusPer.get(`${uid}|${tabel}`) ?? 0) + 1)
+      }
+    }
+
+    const ledakan = [...perJam.entries()].filter(([, n]) => n >= ambangJam)
+    const klasterHapus = [...hapusPer.entries()].filter(([, n]) => n >= ambangHapus)
+
+    const temuan: string[] = []
+    if (keamanan.length > 0) {
+      const per = new Map<string, number>()
+      for (const k of keamanan) per.set(k.aksi, (per.get(k.aksi) ?? 0) + 1)
+      temuan.push(
+        `${keamanan.length} aksi keamanan: `
+        + [...per.entries()].map(([a, n]) => `${a} ${n}×`).join(', '))
+    }
+    if (klasterHapus.length > 0) {
+      temuan.push(
+        `${klasterHapus.length} penghapusan berklaster (≥${ambangHapus} baris oleh satu orang `
+        + `di satu tabel): ${klasterHapus.slice(0, 3).map(([k, n]) => `${k.split('|')[1]} ${n}×`).join(', ')}`)
+    }
+    if (ledakan.length > 0) {
+      const puncak = Math.max(...ledakan.map(([, n]) => n))
+      temuan.push(`${ledakan.length} lonjakan aktivitas (≥${ambangJam} aksi/jam, tertinggi ${puncak})`)
+    }
+    if (aiDitolak > 0) {
+      temuan.push(`${aiDitolak} percobaan tulis lewat asisten DITOLAK`)
+    }
+
+    /*
+      Nol temuan TIDAK mengirim apa pun — dan itu keputusan, bukan kelalaian.
+
+      Ringkasan harian yang selalu datang meski kosong berhenti dibaca dalam
+      seminggu, dan pada hari ia sungguh berisi, tak ada yang membukanya.
+    */
+    if (temuan.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: {
+          event_24jam: jejak.length, kritis, ai_ditolak: aiDitolak,
+          ledakan: 0, klaster_hapus: 0,
+          ambang_per_jam: ambangJam, ambang_hapus: ambangHapus,
+        },
+      })
+    }
+
+    // `record_id` = tanggalnya. Ringkasan ini SATU per hari per tenant, dan
+    // dedup harian bekerja per (jenis, record) — memakai tanggal membuatnya
+    // tepat satu, bukan satu per temuan.
+    let dibuat = 0
+    if (!sudah('audit_aksi_berisiko', today)) {
+      const penerima = await resolveRecipients('audit_aksi_berisiko', {
+        projectId: null, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Ringkasan Aksi Berisiko 24 Jam',
+          message:
+            `Dari ${jejak.length} kejadian tercatat: ${temuan.join('; ')}.`
+            + (kritis > 0 ? ` ${kritis} bertingkat kritis.` : ''),
+          type:       'audit_aksi_berisiko',
+          // Penghapusan berklaster yang paling pantas dilihat hari itu juga;
+          // sisanya bisa menunggu jam kerja.
+          priority:   klasterHapus.length > 0 ? 'urgent' : 'high',
+          project_id: undefined,
+          action_url: '/audit',
+          action_data: {
+            record_id: today,
+            event_24jam: jejak.length,
+            kritis,
+            ledakan: ledakan.length,
+            klaster_hapus: klasterHapus.length,
+            ai_ditolak: aiDitolak,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        event_24jam: jejak.length, kritis, ai_ditolak: aiDitolak,
+        ledakan: ledakan.length, klaster_hapus: klasterHapus.length,
+        ambang_per_jam: ambangJam, ambang_hapus: ambangHapus,
+      },
+    })
+  })
 }
 
 /**

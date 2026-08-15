@@ -211,6 +211,16 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'retensi-tertahan': {
+    label: 'Retensi Tertahan',
+    keterangan: 'Uang retensi yang tertahan pada proyek yang sudah lewat tanggal selesai.',
+    jalur: '/api/v1/otomasi/jalankan/retensi-tertahan',
+  },
+  'audit-aksi-berisiko': {
+    label: 'Ringkasan Aksi Berisiko',
+    keterangan: 'Perubahan izin, penghapusan berklaster, dan lonjakan aktivitas 24 jam.',
+    jalur: '/api/v1/otomasi/jalankan/audit-aksi-berisiko',
+  },
   'serapan-anggaran': {
     label: 'Serapan Anggaran Tinggi',
     keterangan: 'Belanja proyek mendekati atau melampaui pagunya.',

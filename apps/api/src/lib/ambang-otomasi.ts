@@ -205,6 +205,44 @@ export const AMBANG_OTOMASI = {
     max: 30,
     label: 'Hari tanpa catatan absensi sebelum lingkup kerja ditegur',
   },
+  /*
+    Retensi tertahan. Bawaan 30 hari sesudah tanggal selesai proyek.
+
+    Bukan tanggal jatuh tempo retensi — itu MUSTAHIL diukur: tak ada satu pun
+    kolomnya di schema, dan satu-satunya durasi masa pemeliharaan ada di
+    `serah_terima` yang nol baris. Yang diukur EKSPOSUR: berapa lama uang
+    retensi tertahan sesudah pekerjaannya lewat waktu.
+  */
+  'otomasi.retensi_tertahan.hari': {
+    bawaan: 30,
+    min: 0,
+    max: 365,
+    label: 'Hari sesudah proyek selesai sebelum retensi tertahan ditegur',
+  },
+  /*
+    Ringkasan aksi berisiko harian. Ambang ledakan aksi per pengguna per jam.
+
+    Bawaan 300 — diukur dari sebaran nyata: 188 bucket (pengguna×jam) dalam 7
+    hari, 67 di atas 100, 24 di atas 500, puncak 2.151. Ambang 100 memicu
+    belasan tiap hari; 300 menyisakan yang benar-benar menonjol.
+  */
+  'otomasi.audit_ledakan.per_jam': {
+    bawaan: 300,
+    min: 20,
+    max: 5000,
+    label: 'Aksi per pengguna per jam yang dianggap ledakan',
+  },
+  /*
+    Klaster penghapusan: berapa baris dihapus satu pengguna pada satu tabel
+    dalam sehari sebelum ditandai. Bawaan 20 — terukur 2 pasangan memicu hari
+    ini, sementara ambang 10 memicu 8.
+  */
+  'otomasi.audit_hapus.klaster': {
+    bawaan: 20,
+    min: 3,
+    max: 500,
+    label: 'Jumlah penghapusan sepihak sebelum ditandai',
+  },
   'otomasi.evm_spi.minimum': {
     bawaan: 0.9,
     min: 0.1,

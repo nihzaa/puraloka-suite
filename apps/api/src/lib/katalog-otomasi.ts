@@ -746,6 +746,61 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'dipercaya lebih daripada pantas.',
   },
 
+  {
+    kunci: 'retensi-tertahan',
+    nomor: '2.3',
+    nama: 'Retensi tertahan belum diurus',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai uang retensi yang masih tertahan pada proyek yang sudah lewat '
+      + 'tanggal selesainya dan belum punya berita acara serah terima. Retensi '
+      + 'yang tak diurus adalah uang perusahaan yang mengendap di pihak lain.',
+    penerima: 'Bagian keuangan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mencari proyek yang punya nilai retensi dan sudah lewat tanggal selesai.' },
+      { di: 'sistem', teks: 'Menghitung berapa yang benar-benar sudah dipotong di invoice.' },
+      { di: 'sistem', teks: 'Melewati yang sudah punya berita acara serah terima.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.retensi_tertahan.hari',
+    catatan:
+      'Pesannya menyebut DUA angka: retensi yang disepakati di kontrak, dan '
+      + 'yang benar-benar tercatat dipotong di invoice. Selisihnya justru inti '
+      + 'peringatannya — retensi yang tak pernah muncul di invoice berarti '
+      + 'potongannya tak pernah diterapkan, dan uangnya mungkin sudah '
+      + 'dibayarkan penuh. Ini BUKAN peringatan jatuh tempo: sistem ini belum '
+      + 'menyimpan tanggal berakhirnya masa pemeliharaan.',
+  },
+  {
+    kunci: 'audit-aksi-berisiko',
+    nomor: '5.12',
+    nama: 'Ringkasan aksi berisiko harian',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Satu ringkasan sehari tentang hal-hal yang pantas dilihat di jejak '
+      + 'kegiatan: perubahan izin dan kredensial, penghapusan banyak baris '
+      + 'sekaligus, lonjakan aktivitas tak wajar, dan percobaan tulis lewat '
+      + 'asisten yang ditolak.',
+    penerima: 'Yang berwenang melihat jejak audit',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca seluruh jejak kegiatan 24 jam terakhir.' },
+      { di: 'sistem', teks: 'Menandai aksi keamanan, penghapusan berklaster, dan lonjakan aktivitas.' },
+      { di: 'sistem', teks: 'Kalau tak ada satu pun temuan, TIDAK mengirim apa pun.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.audit_ledakan.per_jam',
+    catatan:
+      'Katalog aslinya meminta "ringkasan akses dokumen sensitif". Itu belum '
+      + 'bisa: belum ada satu pun dokumen tersimpan, dan tak ada penanda yang '
+      + 'menyatakan sebuah dokumen rahasia. Yang dibangun semangat yang sama '
+      + 'dari sumber yang benar-benar berisi. Tiga sinyal sengaja TIDAK '
+      + 'dipakai meski terdengar masuk akal — alamat jaringan, jam kerja, dan '
+      + 'akhir pekan — karena diukur ketiganya menyala untuk hampir semua '
+      + 'kejadian, dan alarm yang selalu berbunyi berhenti didengar.',
+  },
+
   // ── Lewat percakapan WhatsApp ───────────────────────────────────────────
   {
     kunci: 'catatan_progres',
