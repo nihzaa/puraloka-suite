@@ -5,6 +5,79 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (lanjutan) — 5.7 + 9.2, dan modul yang saya bilang belum ada
+
+Kemarin saya menulis di `ROADMAP-WORKFLOW.md` bahwa empat modul "nol halaman,
+nol rute (diukur 2026-08-15)". Diukur ulang hari ini — **tiga dari empat sudah
+punya tabelnya**, dua di antaranya punya rute lengkap:
+
+| Modul | Yang ternyata ada |
+|---|---|
+| Insurance | `polis_asuransi` · `/api/v1/asuransi` · `/kontrak/asuransi` · `lib/register-asuransi.ts` |
+| Transmittal | `transmittal` (3 baris) · `/api/v1/kendali-dokumen/transmittal` |
+| Quality Checklist | `inspeksi_checklist` (5 baris) |
+
+**Kenapa saya salah.** Saya mencari berkas ber-kata `insurance`, `compliance`,
+`transmittal` — bahasa Inggris, di repo yang menamai berkasnya bahasa Indonesia
+(`asuransi.ts`, `register-asuransi.ts`). Nol hasil terbaca sebagai "belum ada",
+padahal artinya "saya mencari kata yang salah".
+
+Ironisnya dokumen yang saya cemari itu dokumen yang §1-nya berbunyi *"kalau
+sebuah fakta bisa basi, jangan tulis faktanya — tulis cara mengukurnya"*. Saya
+menulis fakta, dan faktanya salah sejak hari ia ditulis.
+
+### Yang dibangun
+
+Satu rute untuk dua automation. `hitungRegisterAsuransi()` sudah fungsi murni
+dan sudah menghitung status kedaluwarsa DAN celah pertanggungan — otomasinya
+memanggil itu, tak menyalin apa pun. Pelajaran 3.18 diterapkan sebelum cacatnya
+sempat terjadi.
+
+Notifikasinya tetap dua jenis: polis berakhir diperpanjang, proyek tanpa polis
+diasuransikan. Dedup harian bekerja per (jenis, record) — satu jenis untuk
+keduanya membuat salah satu tertahan keliru.
+
+### Cacat yang lahir dari pekerjaan ini
+
+Migrasi 398 + 399 mendorong `notification_rules` ke 1.736 baris, melewati batas
+potong senyap PostgREST. Halaman Aturan Notifikasi menampilkan 1.000 dari 1.736
+sambil terlihat menampilkan semuanya. Ditemukan `audit-baca-tak-terpotong`,
+bukan oleh siapa pun yang membukanya.
+
+Diperbaiki dengan paging, bukan dengan menaikkan `.limit()`.
+
+### "Test flaky" yang bukan flaky — dan dua tebakan saya yang salah
+
+Test dedup merah dengan selisih tepat 5, lalu hijau pada run berikutnya.
+
+| Tebakan | Kenapa salah |
+|---|---|
+| berkas berjalan paralel | `fileParallelism: false` |
+| dedup gagal menahan | diukur langsung: 80 → 80, nol notifikasi |
+
+Penyebabnya **suite penuh yang saya sendiri jalankan di latar**, memakai basis
+yang sama. Dihentikan → lima test lulus tiga run berturut-turut.
+
+Kalau saya menerima "flaky" sebagai jawaban, test ini akan ditandai `retry` dan
+penyebabnya tak pernah ketahuan.
+
+### Bukti
+
+    otomasi-asuransi        5/5 hijau, 3 run berturut-turut tanpa gangguan
+    otomasi (3 berkas)      31/31 hijau
+    tsc api + web           0
+    next build              sukses
+    lint                    api 0/231 · web 0/295
+    migrasi 399             blok verifikasi lulus — aturan, target, ambang, tipe
+    penjaga                 10 dijalankan; audit-baca-tak-terpotong MERAH lalu
+                            diperbaiki → 61 pembacaan penuh, semuanya < 1000
+
+    mutasi (semua wajib merah, semua terbukti):
+      ambang tak dioper ke pustaka register   MERAH → pulih HIJAU
+      jenis notifikasi 9.2 disamakan dgn 5.7  MERAH → pulih HIJAU
+
+---
+
 ## 2026-08-16 — 3.18 selesai lewat jalan lain, dan dua cacat senyap yang lebih penting
 
 Automation 3.18 saya tunda kemarin dengan alasan yang tercatat. Alasannya

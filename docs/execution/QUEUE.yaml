@@ -2593,3 +2593,29 @@ items:
       (1) pembuatDedup tak cek error — 12 otomasi bisa mengirim ulang semuanya
       tanpa gejala; (2) Math.trunc pada seluruh ambang membuat ambang desimal
       0.75 diam-diam jadi 0.1. Ratchet kegagalan-senyap TURUN 187 → 186.
+
+  - id: ASISTEN-8
+    fase: null
+    judul: "5.7 + 9.2 — polis asuransi berakhir & proyek tanpa pertanggungan"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "otomasi memanggil hitungRegisterAsuransi(), tidak menyalin logikanya"
+      - "ambang yang disetel tenant BENAR-BENAR dioper ke pustaka (diuji)"
+      - "dua jenis notifikasi terpisah — dedup per (jenis, record)"
+      - "bawaan ambang sama dengan AMBANG_SEGERA_HARI pustaka"
+    cara_verifikasi: "cd apps/api && npx vitest run src/routes/v1/__tests__/otomasi-asuransi.test.ts"
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16. Roadmap menyebut modul Insurance & Surety "nol
+      halaman, nol rute" — SALAH: tabel polis_asuransi, rute /api/v1/asuransi,
+      layar /kontrak/asuransi, dan lib/register-asuransi.ts (fungsi murni yang
+      sudah menghitung kedaluwarsa + celah) semuanya sudah ada. Pengukuran
+      pertama mencari kata "insurance" di repo berbahasa Indonesia.
+      Satu rute menjawab dua automation karena keduanya lahir dari satu
+      panggilan pustaka. CACAT yang lahir dari pekerjaan ini: migrasi 398+399
+      mendorong notification_rules ke 1.736 baris, melewati batas potong senyap
+      PostgREST — halaman Aturan Notifikasi menampilkan 1.000 dari 1.736.
+      Diperbaiki dengan paging.
+      Dicatat juga di ROADMAP §7b: "test flaky" yang ternyata kontaminasi dari
+      suite penuh yang berjalan di latar terhadap basis yang sama.

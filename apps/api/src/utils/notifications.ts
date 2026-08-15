@@ -86,6 +86,13 @@ export type NotificationType =
   // sama — dedup harian bekerja per (jenis, record), jadi ia tak akan
   // menahannya.
   | 'evm_kinerja_menurun'
+  // 5.7 — polis asuransi mendekati akhir masa berlaku atau sudah lewat.
+  | 'polis_segera_berakhir'
+  // 9.2 — proyek berjalan tanpa satu polis pun. TERPISAH dari yang di atas:
+  // "polis berakhir" diperpanjang, "tak ada polis" diasuransikan — tindakan
+  // yang berbeda, dan menyamakan jenisnya membuat dedup harian menahan salah
+  // satunya secara keliru.
+  | 'proyek_tanpa_asuransi'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

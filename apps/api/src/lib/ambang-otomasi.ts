@@ -97,6 +97,21 @@ export const AMBANG_OTOMASI = {
     proyek nyata; ambang di 1.00 berarti notifikasi yang selalu menyala, dan
     yang selalu menyala berhenti dibaca.
   */
+  /*
+    Bawaan 30 hari — sama dengan `AMBANG_SEGERA_HARI` di
+    `lib/register-asuransi.ts`, dan itu disengaja.
+
+    Kalau keduanya berbeda, layar Register Asuransi menandai polis "segera
+    berakhir" pada hari yang berbeda dari hari notifikasinya dikirim — dan
+    yang membuka layar sesudah menerima pesan menemukan status yang tak cocok
+    dengan pesannya.
+  */
+  'otomasi.polis_berakhir.hari': {
+    bawaan: 30,
+    min: 1,
+    max: 180,
+    label: 'Hari sebelum polis asuransi berakhir mulai diperingatkan',
+  },
   'otomasi.evm_spi.minimum': {
     bawaan: 0.9,
     min: 0.1,

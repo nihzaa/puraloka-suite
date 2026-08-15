@@ -123,6 +123,18 @@ const AMBANG: ReadonlyArray<{
     langkah: 1_000_000,
   },
   {
+    kunci: "otomasi.polis_berakhir.hari",
+    judul: "Asuransi mendekati berakhir",
+    akibat:
+      "Peringatan dikirim sekian hari sebelum polis asuransi berakhir. Setel "
+      + "sesuai lama pengurusan perpanjangan di perusahaan Anda — peringatan "
+      + "yang datang setelah polis lewat tak lagi bisa dipakai untuk apa pun.",
+    satuan: "hari",
+    min: 1,
+    maks: 180,
+    langkah: 1,
+  },
+  {
     kunci: "otomasi.evm_spi.minimum",
     judul: "Kinerja jadwal proyek (SPI)",
     akibat:

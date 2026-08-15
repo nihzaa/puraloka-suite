@@ -18,10 +18,38 @@ export default async function notificationRuleRoutes(app: FastifyInstance) {
 
   // ── GET /api/v1/notification-rules ─────────────────────────────────────────
   app.get('/api/v1/notification-rules', { preHandler: [authenticate] }, async (request, reply) => {
-    const { data, error } = await request.db!
-      .from('notification_rules').select(RULE_SELECT).order('event_type')
-    if (error) return reply.status(500).send({ error: error.message })
-    return reply.send({ rules: data ?? [] })
+    /*
+      BERHALAMAN — dan ini bukan kehati-hatian berlebihan.
+
+      PostgREST memotong di 1.000 baris TANPA galat dan TANPA penanda: `data`
+      terisi, `error` null, dan kode berjalan terus dengan daftar yang tak
+      lengkap. Halaman Aturan Notifikasi lalu menampilkan sebagian aturan
+      sambil terlihat menampilkan semuanya.
+
+      Terlampaui pada 2026-08-16 — migrasi 398 dan 399 menambah aturan untuk
+      tiap perusahaan, dan tabelnya melewati 1.736 baris. Ditemukan
+      `audit-baca-tak-terpotong`, bukan oleh siapa pun yang membuka halamannya.
+
+      `.limit()` yang dinaikkan BUKAN perbaikan — ia memindahkan ambangnya, dan
+      cacat yang sama kembali diam-diam saat tabelnya tumbuh lagi. Pola di
+      bawah sama dengan `utils/role-guard.ts` (fetchRoleStates).
+    */
+    const HALAMAN = 1000
+    const rules: unknown[] = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error } = await request.db!
+        .from('notification_rules')
+        .select(RULE_SELECT)
+        .order('event_type')
+        .range(dari, dari + HALAMAN - 1)
+
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!data || data.length === 0) break
+      rules.push(...data)
+      if (data.length < HALAMAN) break
+    }
+
+    return reply.send({ rules })
   })
 
   // ── PATCH /api/v1/notification-rules/:eventType — aktif/nonaktif ───────────

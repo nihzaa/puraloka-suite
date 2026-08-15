@@ -345,6 +345,13 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
       pertama merah, bukan pengguna yang pertama menerima "SPI NaN".
     */
     'evm-kinerja',
+    /*
+      Automation 5.7 + 9.2 (2026-08-16). Roadmap menyebut modul asuransi "nol
+      halaman, nol rute" — diukur ulang, SALAH pada ketiganya: tabel, rute,
+      layar, dan fungsi murni penghitung kedaluwarsa semuanya sudah ada.
+      Pengukuran pertama mencari kata "insurance" di repo berbahasa Indonesia.
+    */
+    'polis-berakhir',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

@@ -93,12 +93,30 @@ prasyaratnya sudah ada di kode, dan tak satu pun membutuhkan AI.
 Empat modul ini **nol halaman, nol rute** (diukur 2026-08-15). Otomasi tak
 bisa mengingatkan sesuatu yang tak punya tempat penyimpanan.
 
-| Modul | Otomasi yang menunggunya |
-|---|---|
-| Transmittal | 5.11 Transmittal Auto-Log |
-| Compliance | 9.1 Regulatory Compliance Checklist |
-| Quality Checklist | 3.14 Quality Checklist Auto-Reminder |
-| Insurance & Surety | 5.7 Expired Document Alert · 9.2 Insurance Coverage Gap |
+| Modul | Otomasi yang menunggunya | Diukur ulang 2026-08-16 |
+|---|---|---|
+| Transmittal | 5.11 Transmittal Auto-Log | ⚠ **tabel + rute SUDAH ADA** — `transmittal`, `transmittal_item`, `/api/v1/kendali-dokumen/transmittal` |
+| Compliance | 9.1 Regulatory Compliance Checklist | benar-benar belum ada |
+| Quality Checklist | 3.14 Quality Checklist Auto-Reminder | ⚠ tabel `inspeksi_checklist` ADA (5 baris) |
+| Insurance & Surety | ~~5.7 · 9.2~~ | ✅ **SELESAI** — lihat §7 |
+
+> ⚠ **Tabel di atas SALAH saat ditulis, dan begitulah cara ia salah.**
+>
+> Baris aslinya menyatakan keempat modul "nol halaman, nol rute (diukur
+> 2026-08-15)". Diukur ulang sehari kemudian: **tiga dari empat sudah punya
+> tabelnya**, dan dua di antaranya punya rute lengkap.
+>
+> Pengukuran pertama saya mencari berkas ber-kata `insurance`, `compliance`,
+> `transmittal` — bahasa Inggris, di repo yang menamai berkasnya bahasa
+> Indonesia (`asuransi.ts`, `register-asuransi.ts`). Nol hasil terbaca sebagai
+> "belum ada", padahal artinya "saya mencari kata yang salah".
+>
+> Cara mengukurnya dengan benar — ke SCHEMA, bukan ke nama berkas:
+>
+> ```bash
+> node scripts/db/introspect.mjs tables | grep -iE 'transmittal|polis|checklist'
+> grep -rn "'/api/v1/" apps/api/src/routes/v1/<berkas>.ts
+> ```
 
 > ⚠ Katalog menandai `3.16 RFI Auto-Routing` sebagai butuh "modul baru".
 > **Itu sudah basi** — RFI sudah punya halaman dan rute (diukur). Label di
@@ -319,4 +337,61 @@ notifikasi. Belum berbahaya, tetapi tumbuh tiap run.
 ada butuh persetujuan, "dummy" bukan izin merusak). Yang perlu diputuskan:
 apakah harness test membersihkan tenant buatannya di `afterAll`, dan apakah
 570 baris yang ada sekarang dihapus.
+
+---
+
+## 7. 5.7 + 9.2 — selesai, dan modul yang ternyata sudah ada
+
+Roadmap menyebut Insurance & Surety "nol halaman, nol rute". Diukur ulang
+2026-08-16, salah pada semuanya:
+
+| Yang dicari | Yang ternyata ada |
+|---|---|
+| tabel | `polis_asuransi` |
+| rute | `/api/v1/asuransi` (GET + POST) |
+| layar | `/kontrak/asuransi` |
+| perhitungan | `lib/register-asuransi.ts` — **fungsi murni**, sudah menghitung status kedaluwarsa DAN celah pertanggungan |
+
+Yang hilang cuma pengirimnya. Satu rute (`polis-berakhir`) menjawab kedua
+automation karena keduanya lahir dari satu panggilan
+`hitungRegisterAsuransi()` — memisahkannya berarti dua rute yang membaca tabel
+yang sama dan menghitung hal yang sama dua kali.
+
+**Notifikasinya tetap dua jenis.** `polis_segera_berakhir` diperpanjang,
+`proyek_tanpa_asuransi` diasuransikan — tindakan berbeda. Dan dedup harian
+bekerja per (jenis, record): satu jenis untuk keduanya membuat proyek yang
+sudah dikirimi peringatan polis tak lagi bisa dikirimi peringatan "tak punya
+polis" di hari yang sama, padahal keduanya benar.
+
+### 7a. Satu cacat yang lahir dari pekerjaan ini
+
+Migrasi 398 + 399 menambah aturan notifikasi per perusahaan, dan tabelnya
+melewati **1.736 baris** — di atas batas potong senyap PostgREST.
+`GET /api/v1/notification-rules` lalu menampilkan 1.000 dari 1.736 aturan
+sambil terlihat menampilkan semuanya.
+
+Ditemukan `audit-baca-tak-terpotong`, bukan oleh siapa pun yang membuka
+halamannya. Diperbaiki dengan paging (`.range`), bukan dengan menaikkan
+`.limit()` — menaikkan limit memindahkan ambangnya, dan cacat yang sama kembali
+diam-diam saat tabelnya tumbuh lagi.
+
+Akar sesungguhnya tetap §6c: 570 tenant sampah. Paging tetap benar terlepas
+dari itu.
+
+### 7b. "Test flaky" yang bukan flaky
+
+Test dedup 5.7 merah dengan selisih tepat 5, lalu hijau pada run berikutnya.
+Dua tebakan berturut-turut salah:
+
+| Tebakan | Kenapa salah |
+|---|---|
+| berkas berjalan paralel | `vitest.config.ts` menyetel `fileParallelism: false` |
+| dedup gagal menahan | diukur langsung: 80 → 80, panggilan kedua nol notifikasi |
+
+Penyebabnya: **suite penuh sedang berjalan di latar terhadap basis yang sama.**
+Sesudah dihentikan, lima test lulus tiga run berturut-turut.
+
+Pelajarannya bukan tentang dedup: angka yang berubah-ubah bukan bukti kode
+goyah, dan "flaky" adalah kesimpulan yang harus diukur — bukan label yang
+dipakai untuk berhenti mencari.
 

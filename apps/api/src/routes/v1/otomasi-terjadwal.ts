@@ -1552,6 +1552,185 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/polis-berakhir ──────────────────────────
+  //
+  // Automation 5.7 (Expired Document Alert) + 9.2 (Insurance Coverage Gap).
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // ROADMAP MENYEBUT KEDUANYA "BUTUH MODUL YANG BELUM DIBANGUN" — ITU SALAH
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // `ROADMAP-WORKFLOW.md` §2 menulis modul Insurance & Surety "nol halaman,
+  // nol rute (diukur 2026-08-15)". Diukur ulang 2026-08-16: tabel
+  // `polis_asuransi` ada, rute `/api/v1/asuransi` ada, dan
+  // `lib/register-asuransi.ts` SUDAH menghitung status kedaluwarsa DAN celah
+  // pertanggungan sebagai fungsi murni.
+  //
+  // Pengukuran pertama saya hanya mencari nama berkas ber-kata "insurance" —
+  // bahasa Inggris, di repo yang menamai berkasnya bahasa Indonesia. Pelajaran
+  // yang sama dengan §1 dokumen itu: yang bisa basi jangan ditulis, dan yang
+  // ditulis harus dari pengukuran yang benar-benar mengukur.
+  //
+  // ── Satu rute untuk dua automation, dan itu disengaja
+  //
+  // 5.7 menanyakan "polis mana yang segera berakhir", 9.2 menanyakan "proyek
+  // mana yang tak tertanggung". Keduanya dijawab satu panggilan
+  // `hitungRegisterAsuransi()` — memisahkannya berarti dua rute yang membaca
+  // tabel yang sama dan menghitung hal yang sama dua kali.
+  //
+  // Notifikasinya tetap DUA JENIS, karena penerima dan tindakannya berbeda:
+  // polis yang berakhir diperpanjang, proyek tanpa polis diasuransikan.
+  app.get('/api/v1/otomasi/jalankan/polis-berakhir', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { hitungRegisterAsuransi } = await import('../../lib/register-asuransi.js')
+    type BarisPolis = import('../../lib/register-asuransi.js').BarisPolis
+    type BarisProyek = import('../../lib/register-asuransi.js').BarisProyek
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.polis_berakhir.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, [
+      'polis_segera_berakhir', 'proyek_tanpa_asuransi',
+    ])
+
+    const db = request.db!
+    const idProyek = await db.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { proyek: 0, polis: 0, ambang_hari: ambangHari },
+      })
+    }
+
+    /*
+      `unsafe` dengan alasan yang SAMA PERSIS dengan rute `/api/v1/asuransi`:
+      ini daftar lintas-proyek, dan `viaProject` menuntut satu proyek sebagai
+      konteks. Penyaringannya lewat `projectIds()` di atas — yang sudah sadar
+      tenant.
+
+      Alasannya disalin apa adanya, bukan ditulis ulang dengan kata sendiri:
+      alasan `unsafe` yang berbeda-beda untuk hal yang sama membuat audit
+      berikutnya harus menilai keduanya terpisah.
+    */
+    const { data: proyek, error: e1 } = await db
+      .unsafe('projects', 'daftar lintas-proyek; viaProject butuh satu project sebagai konteks')
+      .select('id, name, start_date, end_date')
+      .in('id', idProyek)
+
+    if (e1) return reply.status(500).send({ error: e1.message })
+
+    const { data: polis, error: e2 } = await db
+      .unsafe('polis_asuransi', 'daftar lintas-proyek; disaring dengan projectIds')
+      .select(`id, project_id, jenis, jenis_lain, nomor_polis, penerbit,
+               nilai_pertanggungan, premi, periode_mulai, periode_selesai,
+               tertanggung, status`)
+      .in('project_id', idProyek)
+
+    if (e2) return reply.status(500).send({ error: e2.message })
+
+    const daftarProyek: BarisProyek[] = ((proyek ?? []) as Array<{
+      id: string; name: string; start_date: string | null; end_date: string | null
+    }>).map((p) => ({
+      project_id: p.id, project_name: p.name,
+      start_date: p.start_date, end_date: p.end_date,
+    }))
+
+    /*
+      Fungsi yang SAMA dengan yang dipakai layar Register Asuransi — pelajaran
+      3.18, diterapkan sebelum cacatnya sempat terjadi.
+
+      Ambangnya dioper, bukan dipaku: bawaan pustaka 30 hari, tetapi tenant
+      yang preminya diurus tiga bulan di muka butuh peringatan lebih awal.
+    */
+    const reg = hitungRegisterAsuransi(
+      (polis ?? []) as BarisPolis[], daftarProyek, today, ambangHari,
+    )
+
+    let dibuat = 0
+
+    // ── 5.7 — polis yang segera berakhir atau sudah lewat ──────────────────
+    for (const p of reg.polis) {
+      if (p.status !== 'segera_berakhir' && p.status !== 'kadaluarsa') continue
+      if (sudah('polis_segera_berakhir', p.id)) continue
+
+      const penerima = await resolveRecipients('polis_segera_berakhir', {
+        projectId: p.project_id, companyId: request.companyId!,
+      })
+
+      const lewat = p.sisa_hari < 0
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      lewat ? 'Polis Asuransi Kadaluarsa' : 'Polis Asuransi Segera Berakhir',
+          message:
+            `${p.jenis_label} ${p.nomor_polis} (${p.penerbit}) untuk proyek `
+            + `"${p.project_name}" `
+            + (lewat
+              ? `sudah kadaluarsa ${Math.abs(p.sisa_hari)} hari lalu.`
+              : `berakhir dalam ${p.sisa_hari} hari.`),
+          type:       'polis_segera_berakhir',
+          // Yang sudah lewat mendesak: proyek berjalan TANPA pertanggungan
+          // hari ini, bukan nanti.
+          priority:   lewat ? 'urgent' : 'high',
+          project_id: p.project_id,
+          action_url: '/kontrak/asuransi',
+          action_data: { record_id: p.id, sisa_hari: p.sisa_hari, jenis: p.jenis },
+        })
+        dibuat++
+      }
+    }
+
+    // ── 9.2 — proyek yang tak punya satu polis pun ─────────────────────────
+    //
+    // Jenis notifikasi TERPISAH, bukan digabung ke atas. "Polis berakhir" dan
+    // "tak ada polis sama sekali" menuntut tindakan berbeda, dan menyamakan
+    // jenisnya membuat dedup harian menahan salah satu secara keliru.
+    for (const pr of reg.proyek_tanpa_polis) {
+      if (sudah('proyek_tanpa_asuransi', pr.project_id)) continue
+
+      const penerima = await resolveRecipients('proyek_tanpa_asuransi', {
+        projectId: pr.project_id, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Proyek Tanpa Asuransi',
+          message:
+            `Proyek "${pr.project_name}" belum punya polis asuransi yang tercatat. `
+            + 'Pekerjaan yang berjalan tanpa pertanggungan menanggung sendiri '
+            + 'seluruh risikonya.',
+          type:       'proyek_tanpa_asuransi',
+          priority:   'high',
+          project_id: pr.project_id,
+          action_url: '/kontrak/asuransi',
+          action_data: { record_id: pr.project_id },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek: daftarProyek.length,
+        polis: reg.polis.length,
+        segera_berakhir: reg.jumlah_segera_berakhir,
+        kadaluarsa: reg.jumlah_kadaluarsa,
+        // Dilaporkan supaya "nol polis kadaluarsa" tak terbaca sebagai
+        // "semuanya aman" — pustaka registernya sendiri memperingatkan ini.
+        proyek_tanpa_polis: reg.proyek_tanpa_polis.length,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
 }
 
 /**

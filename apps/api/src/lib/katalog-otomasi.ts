@@ -385,6 +385,33 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'sekali dilewati — itu ketiadaan data, bukan kinerja buruk.',
   },
 
+  {
+    kunci: 'polis-berakhir',
+    nomor: '5.7',
+    nama: 'Asuransi berakhir atau belum ada',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Memperingatkan polis asuransi yang mendekati akhir masa berlaku atau '
+      + 'sudah lewat, dan menandai proyek yang belum punya polis sama sekali. '
+      + 'Pekerjaan yang berjalan tanpa pertanggungan menanggung sendiri seluruh '
+      + 'risikonya.',
+    penerima: 'Yang mengurus kontrak dan yang memantau risiko',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca seluruh polis proyek yang sedang berjalan.' },
+      { di: 'sistem', teks: 'Menghitung sisa masa berlakunya — perhitungan yang sama dengan layar Register Asuransi.' },
+      { di: 'sistem', teks: 'Mendaftar proyek yang tak punya satu polis pun.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.polis_berakhir.hari',
+    catatan:
+      'Mengirim dua macam pesan yang berbeda tindakannya: polis yang berakhir '
+      + 'diperpanjang, proyek tanpa polis diasuransikan. Menyamakan keduanya '
+      + 'akan membuat salah satu tertahan karena yang lain sudah dikirim hari '
+      + 'itu. Otomasi ini juga menjawab dua nomor katalog sekaligus — 5.7 dan '
+      + '9.2 — karena keduanya lahir dari perhitungan yang sama.',
+  },
+
   // ── Lewat percakapan WhatsApp ───────────────────────────────────────────
   {
     kunci: 'catatan_progres',
