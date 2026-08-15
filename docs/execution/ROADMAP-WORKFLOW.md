@@ -95,7 +95,7 @@ bisa mengingatkan sesuatu yang tak punya tempat penyimpanan.
 
 | Modul | Otomasi yang menunggunya | Diukur ulang 2026-08-16 |
 |---|---|---|
-| Transmittal | 5.11 Transmittal Auto-Log | ⚠ **tabel + rute SUDAH ADA** — `transmittal`, `transmittal_item`, `/api/v1/kendali-dokumen/transmittal` |
+| Transmittal | ~~5.11~~ | ✅ **SELESAI** — tabel, rute, dan layar semuanya sudah ada; lihat §8 |
 | Compliance | 9.1 Regulatory Compliance Checklist | benar-benar belum ada |
 | Quality Checklist | 3.14 Quality Checklist Auto-Reminder | ⚠ tabel `inspeksi_checklist` ADA (5 baris) |
 | Insurance & Surety | ~~5.7 · 9.2~~ | ✅ **SELESAI** — lihat §7 |
@@ -394,4 +394,92 @@ Sesudah dihentikan, lima test lulus tiga run berturut-turut.
 Pelajarannya bukan tentang dedup: angka yang berubah-ubah bukan bukti kode
 goyah, dan "flaky" adalah kesimpulan yang harus diukur — bukan label yang
 dipakai untuk berhenti mencari.
+
+---
+
+## 8. 5.11 — dan kenapa ia BUKAN "auto-log"
+
+Katalog menamainya *Transmittal Auto-Log*, yang menyiratkan otomasi mencatat
+transmittal sendiri. **Ditolak**, dengan alasan yang sama persis dengan 3.5
+(draft MR otomatis):
+
+Transmittal menyatakan dokumen **apa** dikirim ke **siapa** untuk **maksud
+apa**. Tak satu pun bisa disimpulkan dari perubahan dokumen — otomasi hanya
+tahu sebuah berkas berubah, bukan bahwa seseorang bermaksud mengirimkannya.
+Dan catatan yang lahir sendiri menumpuk; yang menumpuk tak dibaca.
+
+Yang dibangun bagian yang benar-benar hilang: **transmittal terkirim yang tak
+pernah dikonfirmasi diterima.** Itulah kegagalan mahal pada kendali dokumen —
+gambar revisi terakhir yang tak sampai tidak menimbulkan galat apa pun, dan
+pekerjaan berjalan dengan gambar lama sampai selisihnya terlihat di lapangan.
+
+Statusnya diukur dari `pg_constraint`, bukan ditebak:
+
+```sql
+status IN ('draft', 'dikirim', 'diterima', 'ditolak')
+status <> 'diterima' OR diterima_pada IS NOT NULL
+```
+
+Baris kedua yang membuat `dikirim` + `diterima_pada IS NULL` tak ambigu: basis
+sendiri menjamin `diterima` selalu punya tanggalnya.
+
+### 8a. Kunci izin yang salah — untuk keempat kalinya
+
+Tebakan saya `dokumen:kendali`. Tabel `permissions` tak punya **satu pun**
+kunci ber-kata "dokumen"; yang benar `documents:manage`.
+
+Dan arahnya terbalik dari kesalahan §7: di sana saya menebak nama berkas
+bahasa Inggris untuk repo berbahasa Indonesia, di sini saya menebak kunci
+bahasa Indonesia untuk kunci yang ternyata bahasa Inggris.
+
+Pelajarannya bukan tentang bahasa melainkan tentang menebak. Cara mengukur
+yang benar, dan yang seharusnya dipakai sejak awal:
+
+```bash
+grep -n "requirePermission(" apps/api/src/routes/v1/<berkas>.ts
+```
+
+Empat kali dalam dua sesi, dan tiap kali penjaga berbeda yang menahannya:
+FK basis (2×), `audit-izin-benar-ada` (1×), dan FK lagi (1×). Tak satu pun
+tertangkap oleh pembacaan kode.
+### 8b. Mutasi yang LOLOS — dan lubang yang ia buka
+
+Mutasi pertama pada 5.11 **tidak** memerahkan test: membuang
+`.eq('status','dikirim')` dari rute, semua test tetap hijau.
+
+Sebabnya ketiga kasus uji tersaring oleh hal LAIN, bukan oleh status:
+
+| Kasus | Yang sebenarnya menyaringnya |
+|---|---|
+| `draft` | tak punya `dikirim_pada` → tersaring `.lt(dikirim_pada, …)` |
+| `diterima` | punya `diterima_pada` → tersaring `.is(diterima_pada, null)` |
+
+Jadi testnya lulus karena kebetulan, dan saringan status bisa dibuang tanpa
+ada yang tahu.
+
+Ditutup dengan kasus `ditolak` — satu-satunya status yang **punya**
+`dikirim_pada` lama **dan** `diterima_pada` kosong, jadi ia lolos kedua
+saringan lain. Hanya `.eq('status','dikirim')` yang menahannya.
+
+Dan ia bukan kasus karangan: transmittal yang ditolak sudah selesai urusannya.
+Menagih konfirmasi terima untuk dokumen yang ditolak adalah pesan yang tak bisa
+ditindaklanjuti siapa pun.
+
+> **Ini alasan mutasi wajib dijalankan.** Test itu terlihat menyeluruh — empat
+> kasus, tiap kasus beda satu variabel. Membacanya ulang tak akan menunjukkan
+> lubangnya; hanya menjalankan mutasinya yang bisa.
+
+### 8c. Test yang bergantung pada urutan
+
+Test prioritas 5.11 membaca notifikasi sisa test sebelumnya, dan merah begitu
+test `ditolak` disisipkan di antaranya — `bersihkan()` di test baru itu
+menghapus yang diandalkan.
+
+Diperbaiki dengan membuat datanya sendiri, bukan dengan mengubah urutan. Test
+yang bergantung pada urutan merah untuk alasan yang tak ada hubungannya dengan
+apa yang diuji, dan yang memperbaikinya akan tergoda menambal urutannya.
+
+Sekalian diperkuat: sekarang ia menuntut KEDUA maksud terwakili. Tanpa itu,
+test lulus bahkan bila hanya `untuk_informasi` yang menghasilkan notifikasi —
+dan perbandingan prioritasnya tak menguji apa pun.
 

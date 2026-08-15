@@ -5,6 +5,81 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (lanjutan 2) — 5.11, dan mutasi yang LOLOS
+
+Modul Transmittal juga ditandai roadmap "belum dibangun". Juga salah: tabel
+`transmittal` + `transmittal_item`, rute `/api/v1/kendali-dokumen/transmittal`
+lengkap dengan aksi kirim dan terima, layar `/dokumen/kendali`.
+
+Dua dari empat modul yang saya bilang belum ada, ternyata ada. Kemarin saya
+mencari kata Inggris di repo berbahasa Indonesia.
+
+### Yang dibangun BUKAN "auto-log"
+
+Katalog menamainya *Transmittal Auto-Log*. Ditolak dengan alasan yang sama
+dengan 3.5: transmittal menyatakan dokumen APA ke SIAPA untuk maksud apa, dan
+tak satu pun bisa disimpulkan dari perubahan dokumen.
+
+Yang dibangun bagian yang hilang: transmittal terkirim yang tak pernah
+dikonfirmasi diterima. Gambar revisi terakhir yang tak sampai tak menimbulkan
+galat apa pun — pekerjaan berjalan dengan gambar lama.
+
+### Mutasi pertama LOLOS, dan itu temuan yang paling berharga hari ini
+
+Membuang `.eq('status','dikirim')` dari rute: **semua test tetap hijau.**
+
+Ketiga kasus uji ternyata tersaring oleh hal lain — `draft` tak punya
+`dikirim_pada`, `diterima` punya `diterima_pada`. Testnya lulus karena
+kebetulan.
+
+Ditutup dengan kasus `ditolak`: satu-satunya status yang punya `dikirim_pada`
+lama DAN `diterima_pada` kosong, jadi ia lolos kedua saringan lain.
+
+Test itu terlihat menyeluruh — empat kasus, tiap kasus beda satu variabel.
+Membacanya ulang tak akan menunjukkan lubangnya. **Hanya menjalankan
+mutasinya.**
+
+### Dan satu test rapuh yang saya buat sendiri
+
+Test prioritas membaca notifikasi sisa test sebelumnya, dan merah begitu test
+`ditolak` disisipkan. Diperbaiki dengan membuat datanya sendiri, bukan dengan
+mengubah urutan — test yang bergantung urutan merah untuk alasan yang tak ada
+hubungannya dengan apa yang diuji.
+
+### Kunci izin salah untuk KEEMPAT kalinya
+
+`dokumen:kendali` tak ada; yang benar `documents:manage`. Arahnya terbalik dari
+kesalahan sebelumnya: kali ini saya menebak bahasa Indonesia untuk kunci yang
+ternyata Inggris.
+
+Empat kali dalam dua sesi, tiap kali penjaga berbeda yang menahan: FK basis
+(2×), `audit-izin-benar-ada` (1×), FK lagi (1×). Tak satu pun tertangkap
+pembacaan kode. Cara mengukurnya satu baris:
+
+    grep -n "requirePermission(" apps/api/src/routes/v1/<berkas>.ts
+
+### Bukti
+
+    otomasi-transmittal     5/5 hijau, 2 run berturut-turut
+    otomasi-transmittal
+      + otomasi-terjadwal   27/27 hijau
+    suite penuh (sebelum
+      5.11 ditambahkan)     333/334 berkas, 4761 lulus — satu merah adalah
+                            penjaga daftar TUGAS yang BENAR: rute baru belum
+                            terdaftar saat suite itu berjalan
+    tsc api + web           0
+    next build              sukses
+    lint                    api 0/231 · web 0/295
+    migrasi 400             blok verifikasi lulus
+    penjaga                 10 dijalankan, 10 hijau
+
+    mutasi (ketiganya wajib merah):
+      saringan status dibuang    LOLOS → test diperkuat → MERAH → pulih HIJAU
+      saringan waktu dibuang     MERAH → pulih HIJAU
+      prioritas disamakan        MERAH → pulih HIJAU
+
+---
+
 ## 2026-08-16 (lanjutan) — 5.7 + 9.2, dan modul yang saya bilang belum ada
 
 Kemarin saya menulis di `ROADMAP-WORKFLOW.md` bahwa empat modul "nol halaman,

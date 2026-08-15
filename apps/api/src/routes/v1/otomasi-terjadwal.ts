@@ -1731,6 +1731,145 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/transmittal-menggantung ─────────────────
+  //
+  // Automation 5.11 — Transmittal Auto-Log.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KATALOG MENYEBUTNYA "AUTO-LOG". YANG DIBANGUN BUKAN ITU.
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // "Auto-log" menyiratkan otomasi yang MENCATAT transmittal sendiri. Ditolak,
+  // dengan alasan yang sama dengan 3.5 (draft MR otomatis):
+  //
+  //   Transmittal menyatakan dokumen APA yang dikirim ke SIAPA untuk maksud
+  //   apa. Tak satu pun dari ketiganya bisa disimpulkan otomasi — ia hanya
+  //   tahu bahwa sebuah dokumen berubah, bukan bahwa seseorang bermaksud
+  //   mengirimkannya.
+  //
+  // Dan catatan yang lahir sendiri menumpuk; yang menumpuk tak dibaca.
+  //
+  // Yang dibangun bagian yang benar-benar hilang: **transmittal yang sudah
+  // dikirim tetapi tak pernah dikonfirmasi diterima.**
+  //
+  // Itulah kegagalan yang mahal pada kendali dokumen. Gambar revisi terakhir
+  // yang tak pernah sampai tak memunculkan galat apa pun — pekerjaan berjalan
+  // dengan gambar lama, dan selisihnya baru terlihat di lapangan. Status
+  // `dikirim` yang menggantung adalah satu-satunya jejak yang tersisa, dan tak
+  // ada yang memeriksanya.
+  //
+  // ── Status diukur, bukan ditebak
+  //
+  // `pg_constraint` menyatakan sendiri bentuknya:
+  //
+  //     status IN ('draft', 'dikirim', 'diterima', 'ditolak')
+  //     status <> 'diterima' OR diterima_pada IS NOT NULL
+  //
+  // Jadi `dikirim` + `diterima_pada IS NULL` adalah keadaan yang tak ambigu:
+  // basis sendiri menjamin `diterima` selalu punya tanggalnya.
+  app.get('/api/v1/otomasi/jalankan/transmittal-menggantung', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.transmittal_menggantung.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['transmittal_menggantung'])
+    const batas = new Date(Date.now() - ambangHari * HARI_MS).toISOString()
+
+    /*
+      `transmittal` kategori B (punya `company_id` sendiri — diukur ke
+      `tenant-map.generated.ts`), jadi `.from()` sudah menyaringnya.
+
+      Yang TIDAK dilakukan: `.in('project_id', …)` dengan daftar proyek. Itu
+      pola yang menaikkan ratchet tenancy pada 2.10 dan sama sekali tak perlu
+      di sini.
+    */
+    const { data: gantung, error } = await request.db!
+      .from('transmittal')
+      .select(`
+        id, nomor, perihal, tujuan_nama, tujuan_organisasi, maksud,
+        dikirim_pada, project_id,
+        proyek:projects!transmittal_project_id_fkey(id, name)
+      `)
+      .eq('status', 'dikirim')
+      .is('diterima_pada', null)
+      .lt('dikirim_pada', batas)
+
+    // Query yang gagal TIDAK boleh terbaca sebagai "tak ada yang menggantung".
+    if (error) return reply.status(500).send({ error: error.message })
+
+    let dibuat = 0
+    for (const t of gantung ?? []) {
+      if (sudah('transmittal_menggantung', t.id)) continue
+
+      /*
+        Join PostgREST memulangkan ARRAY, bukan objek — tipe menangkapnya
+        sebelum ia jadi `undefined.name` saat dijalankan.
+
+        Rute lain di berkas ini memakai `as any` untuk hal yang sama; di sini
+        dibentuk eksplisit supaya bentuk sesungguhnya terbaca dari kode.
+      */
+      const projArr = t.proyek as unknown as Array<{ id: string; name: string }> | null
+      const proj = Array.isArray(projArr) ? (projArr[0] ?? null) : projArr
+      const hari = Math.round(
+        (Date.now() - new Date(t.dikirim_pada as string).getTime()) / HARI_MS,
+      )
+
+      const penerima = await resolveRecipients('transmittal_menggantung', {
+        projectId: proj?.id ?? (t.project_id as string),
+        companyId: request.companyId!,
+      })
+
+      /*
+        Tujuan disebut dengan organisasinya bila ada.
+
+        "Belum dikonfirmasi Pak Budi" menuntut penerimanya mengingat Budi yang
+        mana; "Belum dikonfirmasi Pak Budi (PT Konsultan X)" tidak. Nama tanpa
+        organisasi adalah bentuk paling umum pesan yang harus ditanyakan
+        ulang, dan pesan yang harus ditanyakan ulang lebih lambat daripada tak
+        dikirim.
+      */
+      const tujuan = t.tujuan_organisasi
+        ? `${t.tujuan_nama} (${t.tujuan_organisasi})`
+        : String(t.tujuan_nama)
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Transmittal Belum Dikonfirmasi',
+          message:
+            `Transmittal ${t.nomor} "${t.perihal}" ke ${tujuan} sudah ${hari} `
+            + 'hari terkirim dan belum dikonfirmasi diterima.'
+            // Maksud `untuk_persetujuan` menahan pekerjaan; yang lain tidak.
+            + (t.maksud === 'untuk_persetujuan'
+              ? ' Dokumen ini menunggu persetujuan.'
+              : ''),
+          type:       'transmittal_menggantung',
+          // Yang menunggu persetujuan mendesak: ada pekerjaan yang tertahan
+          // di ujung sana, bukan sekadar catatan yang belum lengkap.
+          priority:   t.maksud === 'untuk_persetujuan' ? 'urgent' : 'high',
+          project_id: proj?.id ?? (t.project_id as string),
+          action_url: '/dokumen/kendali',
+          action_data: { record_id: t.id, hari_menggantung: hari, maksud: t.maksud },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        transmittal_menggantung: (gantung ?? []).length,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
 }
 
 /**

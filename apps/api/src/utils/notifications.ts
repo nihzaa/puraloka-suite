@@ -93,6 +93,11 @@ export type NotificationType =
   // yang berbeda, dan menyamakan jenisnya membuat dedup harian menahan salah
   // satunya secara keliru.
   | 'proyek_tanpa_asuransi'
+  // 5.11 — transmittal sudah terkirim tetapi tak pernah dikonfirmasi diterima.
+  // Gambar revisi terakhir yang tak sampai tak memunculkan galat apa pun;
+  // pekerjaan berjalan dengan gambar lama, dan selisihnya baru terlihat di
+  // lapangan.
+  | 'transmittal_menggantung'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

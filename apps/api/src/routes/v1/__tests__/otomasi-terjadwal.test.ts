@@ -352,6 +352,9 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
       Pengukuran pertama mencari kata "insurance" di repo berbahasa Indonesia.
     */
     'polis-berakhir',
+    // Automation 5.11 (2026-08-16). Modul Transmittal juga ditandai roadmap
+    // "belum dibangun" dan juga sudah ada — tabel, rute, dan layar lengkap.
+    'transmittal-menggantung',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

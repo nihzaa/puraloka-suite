@@ -2619,3 +2619,28 @@ items:
       Diperbaiki dengan paging.
       Dicatat juga di ROADMAP §7b: "test flaky" yang ternyata kontaminasi dari
       suite penuh yang berjalan di latar terhadap basis yang sama.
+
+  - id: ASISTEN-9
+    fase: null
+    judul: "5.11 — transmittal terkirim yang tak pernah dikonfirmasi diterima"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "TIDAK membuat transmittal otomatis — katalog menamainya auto-log, ditolak"
+      - "hanya status `dikirim` lewat batas hari yang ditegur"
+      - "yang menunggu persetujuan ditandai lebih mendesak"
+      - "mutasi saringan status WAJIB merah (bentuk pertama test lolos)"
+    cara_verifikasi: "cd apps/api && npx vitest run src/routes/v1/__tests__/otomasi-transmittal.test.ts"
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16. Modul Transmittal juga ditandai roadmap "belum
+      dibangun" dan juga sudah ada — tabel, rute, layar lengkap.
+      TEMUAN TERPENTING: mutasi pertama LOLOS. Membuang .eq('status','dikirim')
+      tidak memerahkan satu test pun, karena ketiga kasus uji tersaring oleh
+      hal lain (draft tak punya dikirim_pada, diterima punya diterima_pada).
+      Ditutup dengan kasus `ditolak` — satu-satunya status yang lolos kedua
+      saringan lain. Test itu terlihat menyeluruh; hanya mutasi yang bisa
+      menunjukkan lubangnya.
+      Juga: test prioritas ternyata bergantung pada sisa test sebelumnya,
+      diperbaiki dengan membuat datanya sendiri.
+      Kunci izin salah untuk KEEMPAT kalinya (dokumen:kendali → documents:manage).

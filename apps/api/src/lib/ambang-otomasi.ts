@@ -112,6 +112,17 @@ export const AMBANG_OTOMASI = {
     max: 180,
     label: 'Hari sebelum polis asuransi berakhir mulai diperingatkan',
   },
+  /*
+    Bawaan 7 hari. Bukan angka bulat yang dipilih asal: konfirmasi terima
+    dokumen konstruksi lazimnya seminggu, dan menegur lebih cepat dari itu
+    membuat pesannya terbaca sebagai desakan alih-alih pengingat.
+  */
+  'otomasi.transmittal_menggantung.hari': {
+    bawaan: 7,
+    min: 1,
+    max: 90,
+    label: 'Hari transmittal terkirim tanpa konfirmasi sebelum ditegur',
+  },
   'otomasi.evm_spi.minimum': {
     bawaan: 0.9,
     min: 0.1,

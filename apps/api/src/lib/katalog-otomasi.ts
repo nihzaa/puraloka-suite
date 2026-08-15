@@ -412,6 +412,31 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + '9.2 — karena keduanya lahir dari perhitungan yang sama.',
   },
 
+  {
+    kunci: 'transmittal-menggantung',
+    nomor: '5.11',
+    nama: 'Transmittal belum dikonfirmasi',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menagih transmittal yang sudah dikirim tetapi belum dikonfirmasi '
+      + 'diterima. Gambar revisi terakhir yang tak sampai tak menimbulkan tanda '
+      + 'apa pun — pekerjaan berjalan dengan gambar lama, dan selisihnya baru '
+      + 'terlihat di lapangan.',
+    penerima: 'Yang mengelola dokumen dan pemimpin proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mencari transmittal berstatus terkirim yang belum ada konfirmasi terimanya.' },
+      { di: 'sistem', teks: 'Menyisihkan yang masih dalam batas hari yang wajar.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.transmittal_menggantung.hari',
+    catatan:
+      'Yang menunggu persetujuan ditandai lebih mendesak — ada pekerjaan yang '
+      + 'tertahan di ujung sana, bukan sekadar catatan yang belum lengkap. '
+      + 'Otomasi ini TIDAK membuat transmittal sendiri: apa yang dikirim, ke '
+      + 'siapa, dan untuk maksud apa hanya diketahui orang yang mengirimnya.',
+  },
+
   // ── Lewat percakapan WhatsApp ───────────────────────────────────────────
   {
     kunci: 'catatan_progres',

@@ -123,6 +123,18 @@ const AMBANG: ReadonlyArray<{
     langkah: 1_000_000,
   },
   {
+    kunci: "otomasi.transmittal_menggantung.hari",
+    judul: "Transmittal belum dikonfirmasi",
+    akibat:
+      "Pengingat dikirim bila transmittal sudah terkirim sekian hari tanpa "
+      + "konfirmasi diterima. Terlalu cepat membuat pesannya terbaca sebagai "
+      + "desakan sebelum penerimanya sempat membalas.",
+    satuan: "hari",
+    min: 1,
+    maks: 90,
+    langkah: 1,
+  },
+  {
     kunci: "otomasi.polis_berakhir.hari",
     judul: "Asuransi mendekati berakhir",
     akibat:
