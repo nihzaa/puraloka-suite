@@ -895,3 +895,60 @@ Diperkuat jadi kesamaan dengan jumlah pihak berbeda yang dihitung terpisah.
 Kedua kalinya dalam sesi ini mutasi menemukan test yang terlihat menyeluruh
 tetapi lulus karena kebetulan.
 
+---
+
+## 14. Sudah tuntas belum? — diukur 2026-08-16
+
+Founder bertanya: *"apakah semua workflow yg sudah direncanakan itu sudah
+tuntas semua?"*
+
+```
+KATALOG   140
+HIDUP      27
+BELUM     113   →  63 Optional · 50 Later · NOL Now/Next
+```
+
+**Semua yang berprioritas Now/Next tuntas.** Tak ada satu pun yang tersisa di
+dua kelas prioritas teratas.
+
+### 14a. Empat yang "belum" ternyata sudah — dan katalog saya yang salah
+
+Sampai hari ini, silang otomatis melaporkan empat item berprioritas `Next`
+belum dikerjakan. Diperiksa satu per satu, keempatnya sudah ada:
+
+| # | Kenyataan |
+|---|---|
+| 1.4 Ask Anything | `routes/v1/ai-chat.ts` — asisten chat itu sendiri |
+| 1.5 Daily Briefing | `sapa-proaktif`, terjadwal harian 08:00, aktif |
+| 1.6 EOD Summary | sama — satu jalur menjawab keduanya |
+| 4.6 PO Fast-Track | lahir dari `approval_steps.max_amount`, bukan fitur terpisah |
+
+Ketiganya kini terdaftar di `katalog-otomasi.ts` dengan `kunci_bukan_rute`,
+sehingga pengukurannya jujur.
+
+> Ini kelas kesalahan yang sama dengan yang dikejar seluruh berkas ini: bukan
+> pekerjaan yang kurang, melainkan **catatan yang tertinggal dari kenyataan.**
+> Empat item terhitung utang selama berhari-hari padahal jalurnya hidup.
+
+### 14b. Sisa 113 — apa isinya
+
+| Tipe | Jumlah | Artinya |
+|---|---|---|
+| Reactive | 48 | menunggu modul/peristiwa yang belum ada |
+| Predictive | 32 | menuntut model AI untuk memperkirakan, bukan aturan if-then |
+| Agentic | 30 | menuntut asisten mengambil keputusan sendiri |
+
+Sisanya bergerbang Phase 6+ di roadmap induk. Tak satu pun berprioritas
+mendesak, dan **62 di antaranya (Predictive + Agentic) memang bukan otomasi
+aturan** — ia kelas pekerjaan yang berbeda.
+
+### 14c. Cara memeriksanya sendiri
+
+```bash
+cd apps/api && node -r dotenv/config scripts/lapor-otomasi-hidup.mjs
+```
+
+Angka di atas sengaja **tidak** ditulis sebagai fakta di dokumen mana pun
+selain di sini, bertanggal. Skrip itu menghitungnya ulang tiap dijalankan —
+lihat §1 dan pengalaman peringatan yang membusuk di §9.
+

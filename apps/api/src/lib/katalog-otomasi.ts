@@ -605,6 +605,94 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'diperbaiki tak ditegur berdasar catatan lamanya.',
   },
 
+  {
+    /*
+      `sapa-proaktif` BUKAN rute `otomasi/jalankan/*` — ia rute asisten
+      (`/api/v1/asisten/sapa-proaktif`), tetapi terjadwal di `jadwal_tugas`
+      persis seperti otomasi lain (harian 08:00, aktif).
+
+      Didaftarkan di sini supaya silang ke katalog dokumen jujur: 1.5 dan 1.6
+      selama ini terhitung "belum dikerjakan" padahal jalurnya hidup sejak
+      2026-08-15. Itu kelas kesalahan yang sama dengan yang dikejar seluruh
+      berkas ini.
+    */
+    kunci: 'sapa-proaktif',
+    kunci_bukan_rute: true,
+    nomor: '1.5, 1.6',
+    nama: 'Sapaan harian asisten',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Asisten menyapa duluan pada jam yang berbeda tiap hari, membawa hal-hal '
+      + 'yang perlu diketahui hari itu. Kalau tak ada yang perlu disebut, ia '
+      + 'tetap menyapa ringan — supaya jelas jalurnya hidup.',
+    penerima: 'Nomor WhatsApp yang terdaftar dan mengizinkan sapaan',
+    alur: [
+      { di: 'sistem', teks: 'Jam sapaan diundi sekali per hari di dalam jendela yang disetel.' },
+      { di: 'sistem', teks: 'Melewati gerbang jam tenang, kuota harian, dan tombol berhenti.' },
+      { di: 'sistem', teks: 'Asisten menyusun isinya sendiri dari data hari itu.' },
+      { di: 'n8n', teks: 'Mengirimkannya lewat WhatsApp.' },
+    ],
+    catatan:
+      'Ini satu-satunya otomasi yang memakai AI untuk menyusun isinya — sisanya '
+      + 'aturan if-then murni. Jam sapaannya berbeda tiap hari supaya tak '
+      + 'terbaca seperti mesin. Bisa dimatikan di Pengaturan → Jadwal Tugas.',
+  },
+  {
+    /*
+      1.4 "Ask Anything About Company" — asisten chat itu sendiri
+      (`routes/v1/ai-chat.ts`), bukan otomasi terjadwal.
+
+      Didaftarkan bukan untuk dijadwalkan melainkan supaya katalog UI
+      menjelaskan seluruh jalur otomatis yang ada, dan supaya silang ke katalog
+      dokumen berhenti menghitungnya sebagai utang.
+    */
+    kunci: 'asisten-tanya',
+    kunci_bukan_rute: true,
+    nomor: '1.4',
+    nama: 'Tanya apa saja ke asisten',
+    pemicu: 'percakapan',
+    penjelasan:
+      'Bertanya bebas tentang data perusahaan lewat WhatsApp atau layar '
+      + 'asisten, dan hanya data yang boleh dilihat penanyanya yang terbaca.',
+    penerima: 'Yang bertanya',
+    alur: [
+      { di: 'n8n', teks: 'Pesan WhatsApp masuk dan diteruskan ke sistem.' },
+      { di: 'sistem', teks: 'Asisten memilih alat baca yang sesuai izin penanya.' },
+      { di: 'sistem', teks: 'Menjawab dari data yang benar-benar terbaca, bukan dari ingatan.' },
+      { di: 'n8n', teks: 'Jawabannya dikirim balik.' },
+    ],
+    catatan:
+      'Asisten TIDAK PERNAH menyimpan apa pun dari percakapan biasa. Yang '
+      + 'menulis hanya jalur berkonfirmasi — lihat otomasi bertanda "Lewat '
+      + 'WhatsApp" di bawah.',
+  },
+  {
+    /*
+      4.6 — bukan fitur terpisah. Ia lahir dari `approval_steps.max_amount`
+      yang sudah ada: PO di bawah plafon melewati langkah yang lebih sedikit.
+
+      Didaftarkan supaya tak ada yang membangunnya ulang. Itu sudah nyaris
+      terjadi pada automation 3.5 (2026-08-14).
+    */
+    kunci: 'po-fast-track',
+    kunci_bukan_rute: true,
+    nomor: '4.6',
+    nama: 'Persetujuan PO jalur cepat',
+    pemicu: 'peristiwa',
+    penjelasan:
+      'Pesanan pembelian bernilai kecil melewati langkah persetujuan yang lebih '
+      + 'sedikit daripada yang besar, sesuai plafon yang disetel tiap tenant.',
+    penerima: 'Mengurangi beban approver, bukan mengirim pesan',
+    alur: [
+      { di: 'sistem', teks: 'Saat PO diajukan, rantai persetujuannya dirakit dari plafon nominal.' },
+      { di: 'sistem', teks: 'Langkah yang plafonnya di atas nilai PO dilewati.' },
+    ],
+    catatan:
+      'BUKAN otomasi terjadwal dan bukan fitur tersendiri — ia perilaku rantai '
+      + 'approval yang sudah ada. Didaftarkan di sini supaya tak ada yang '
+      + 'membangunnya ulang; hal itu nyaris terjadi pada otomasi stok menipis.',
+  },
+
   // ── Lewat percakapan WhatsApp ───────────────────────────────────────────
   {
     kunci: 'catatan_progres',
