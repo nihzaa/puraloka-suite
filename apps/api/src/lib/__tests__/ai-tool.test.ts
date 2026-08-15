@@ -161,8 +161,12 @@ describe('tool terhadap data NYATA', () => {
       // `ai:chat`: memberi seseorang akses asisten tak boleh diam-diam
       // memberinya jalan menyetujui uang.
       'ai:setujui',
-      // Ingatan lintas percakapan.
+      // Ingatan lintas percakapan + triase inbox.
       'ai:chat',
+      // Jejak audit (2026-08-16) — izinnya SENGAJA `audit:view`, bukan
+      // `ai:chat`: yang boleh memakai asisten tak otomatis boleh membaca
+      // siapa mengubah apa.
+      'audit:view',
     ])
   })
 

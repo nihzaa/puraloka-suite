@@ -59,6 +59,8 @@ import { TOOL_SETUJUI } from './ai-tool-setujui.js'
 import { toolIngatPercakapan } from './ai-tool-ingat.js'
 import { toolHargaSatuan } from './ai-tool-harga.js'
 import { toolPerhatian } from './ai-tool-perhatian.js'
+import { toolHitungPekerjaan } from './ai-tool-hitung.js'
+import { toolJejakPerubahan } from './ai-tool-jejak.js'
 
 
 
@@ -843,6 +845,13 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     urgent. Inbox yang tak pernah kosong berhenti dibaca.
   */
   toolPerhatian,
+  /* "Kalau nambah 20 m2 berapa?" — AHSP 3.043 × komponen 17.873 × harga. */
+  toolHitungPekerjaan,
+  /*
+    "Siapa yang mengubah ini?" — 62.013 jejak. Izinnya `audit:view`, BUKAN
+    `ai:chat`, dan nilai lama/baru sengaja TIDAK dikirim ke prompt.
+  */
+  toolJejakPerubahan,
 ]
 
 /**

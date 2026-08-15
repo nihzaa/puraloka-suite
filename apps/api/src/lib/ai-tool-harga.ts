@@ -85,11 +85,24 @@ export const toolHargaSatuan: DefinisiToolAi = {
      * penjaga itu DILEWATI di mesin tanpa DATABASE_URL, jadi ia tak menolong
      * saat ditulis.
      *
-     * `.ilike()` dipakai di sini, dan aman: `cari` sudah disaring panjang
-     * minimum, dan karakter wildcard PostgREST (`%`, `*`) dilucuti di bawah —
-     * jadi teks yang model karang tak bisa menyusun pola sendiri.
+     * ── Karakter yang DIBUANG vs yang DIGANTI ────────────────────────────
+     *
+     * `%` dan `*` dibuang: keduanya wildcard, dan pola yang datang dari
+     * kalimat model tak boleh menyusun pencariannya sendiri.
+     *
+     * `,` DIGANTI `_` (wildcard satu-huruf SQL), bukan dibuang. PostgREST
+     * memperlakukan koma sebagai pemisah filter, jadi meneruskannya membuat
+     * query salah urai — tetapi MENGHAPUSNYA juga salah: nama di basis ini
+     * banyak yang memuat desimal ("Beton Sc 3,8 Mpa"), dan pencarian nama
+     * lengkapnya lalu mengembalikan NOL.
+     *
+     * Kurung `( )` DIBIARKAN — ia bagian sah dari nama
+     * ("Septictank ( Biotec  Kap : 2  m³ )") dan tak punya arti khusus.
+     *
+     * Ketiganya diuji langsung ke basis sebelum ditulis di sini; tiga tebakan
+     * berturut-turut adalah alasan yang cukup untuk berhenti menebak.
      */
-    const aman = cari.replace(/[%*,()]/g, ' ').trim()
+    const aman = cari.replace(/[%*]/g, ' ').replace(/,/g, '_').trim()
     if (aman.length < 2) {
       return { isi: 'Nama yang dicari tak bisa dipakai. Sebutkan nama barangnya.', isError: true, entitas: [] }
     }
