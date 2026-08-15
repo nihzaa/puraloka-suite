@@ -40,6 +40,7 @@
  */
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { ambilAmbang } from '../../lib/ambang-otomasi.js'
 
 /** Rupiah tanpa desimal — dipakai di seluruh pesan agar bentuknya seragam. */
 const rp = (n: number) =>
@@ -868,9 +869,14 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
 
     const q = request.query as { hari?: string }
-    // Hari keterlambatan sebelum ditegur. Dibatasi supaya `?hari=9999` tak
-    // membuat automation diam selamanya tanpa ada yang sadar.
-    const hari = angka(q.hari, 1, 0, 90)
+    /*
+      Ambang dari PENGATURAN TENANT, bukan angka di kode.
+
+      Founder: *"kalo bisa workflownya itu kalo bisa jangan di hardcode
+      langsung yaa"*. Urutannya query → `company_settings` → bawaan; alasan
+      tiap lapisnya di `lib/ambang-otomasi.ts`.
+    */
+    const hari = await ambilAmbang(request, 'otomasi.invoice_terlambat.hari', q.hari)
 
     const today = new Date().toISOString().split('T')[0]
     const batas = new Date(Date.now() - hari * 86_400_000).toISOString().split('T')[0]
@@ -939,6 +945,96 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     return reply.send({
       success: true, notifications_created: dibuat,
       checked: { invoice_terlambat: (invoices ?? []).length, ambang_hari: hari },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/saldo-menipis ───────────────────────────
+  //
+  // Automation 2.11 — rekening kas yang saldonya turun di bawah ambang aman.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // AMBANGNYA PENGATURAN TENANT, BUKAN KOLOM DAN BUKAN ANGKA DI KODE
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Dua bentuk yang ditolak, masing-masing karena alasan terukur:
+  //
+  //   kolom di `cash_accounts`   tak ada (diukur), dan menambahkannya berarti
+  //                              tiap tenant WAJIB mengisinya lebih dulu.
+  //                              `stok-menipis` membuktikan akibatnya: dari 24
+  //                              material, SATU punya `min_stock` terisi, dan
+  //                              automation-nya diam berbulan-bulan sambil
+  //                              melaporkan sehat.
+  //
+  //   angka di kode              "saldo berapa yang bikin khawatir" berbeda
+  //                              antara kontraktor rumah tinggal dan
+  //                              infrastruktur. Memilihkannya berarti memutuskan
+  //                              soal uang perusahaan orang lain.
+  //
+  // Yang dipakai: `company_settings` — mekanisme yang SUDAH ada dan sudah
+  // dipakai lima pengaturan lain, lengkap dengan halaman pengaturannya.
+  // Bawaannya tetap ada sebagai jaring, jadi tenant yang belum mengisi tetap
+  // mendapat otomasi yang bekerja. Lihat `lib/ambang-otomasi.ts`.
+  app.get('/api/v1/otomasi/jalankan/saldo-menipis', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { ambang?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.saldo_menipis.rupiah', q.ambang)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['saldo_menipis'])
+
+    // `cash_accounts` kategori B — `.from()` sudah menyaring `company_id`.
+    const { data: rekening, error } = await request.db!
+      .from('cash_accounts')
+      .select('id, name, balance, is_active')
+      .eq('is_active', true)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    let dibuat = 0
+    let menipis = 0
+
+    for (const r of rekening ?? []) {
+      const saldo = Number(r.balance ?? 0)
+      if (saldo >= ambang) continue
+      menipis++
+      if (sudah('saldo_menipis', r.id as string)) continue
+
+      /*
+        TANPA `projectId` — rekening kas milik COMPANY, bukan proyek.
+
+        Memaksakan project_id di sini membuat notifikasi kas ikut tersaring
+        per-proyek, dan rekening yang tak terikat proyek mana pun (kas induk,
+        kas kantor) tak akan pernah mengabari siapa pun.
+      */
+      const penerima = await resolveRecipients('saldo_menipis', {
+        companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: 'Saldo Kas Menipis',
+          message: `${r.name}: sisa Rp ${saldo.toLocaleString('id-ID')} `
+            + `(di bawah Rp ${ambang.toLocaleString('id-ID')})`,
+          type: 'saldo_menipis' as const,
+          // Saldo nol atau minus bukan "menipis" lagi — pembayaran berikutnya
+          // akan gagal, dan itu perlu dilihat hari ini.
+          priority: saldo <= 0 ? ('high' as const) : ('normal' as const),
+          action_url: '/kas',
+          action_data: { record_id: r.id },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { rekening_diperiksa: (rekening ?? []).length, menipis, ambang },
     })
   })
 }

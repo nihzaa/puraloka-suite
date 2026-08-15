@@ -68,6 +68,17 @@ export type NotificationType =
   | 'gr_tak_cocok'
   // 3.5 — stok di bawah ambang pesan-ulang.
   | 'stok_menipis'
+  // 2.11 — saldo rekening kas di bawah ambang aman. Tipe sendiri karena
+  // penerimanya pemegang `cash:manage` lintas proyek, dan rekening kas
+  // memang tak terikat proyek mana pun.
+  | 'saldo_menipis'
+  // 2.2 — tagihan supplier mendekati/melewati jatuh tempo. Dibedakan dari
+  // `invoice_overdue`: arah uangnya TERBALIK (yang ini kita yang bayar), dan
+  // terlambat membayar merusak hubungan dagang — tak ada yang bisa dilakukan
+  // sesudahnya kecuali meminta maaf.
+  | 'hutang_supplier_jatuh_tempo'
+  // 4.9 — harga aktif sebuah material naik signifikan dibanding sebelumnya.
+  | 'harga_material_naik'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'
