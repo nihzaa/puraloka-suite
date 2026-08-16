@@ -29,9 +29,10 @@
  * memang perlu dibedakan sekilas.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIzin } from "@/lib/use-izin";
 import { api, getStoredUser } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import {
   AlertTriangle, CheckCircle2, Info, Loader2, MessageCircle, Plus, ShieldAlert,
 } from "lucide-react";
@@ -80,8 +81,13 @@ function tampilNomor(n: string): string {
 export default function WhatsAppPage() {
   const bolehKelola = useIzin("settings:wa:manage");
 
-  const [muatan, setMuatan] = useState<Muatan | null>(null);
-  const [memuat, setMemuat] = useState(true);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    `useData` menggantikan useCallback+useEffect+queueMicrotask.
+  */
+  const { data: muatan, memuat, galat: galatMuat, muatUlang } = useData<Muatan>("/api/v1/wa/nomor");
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
   const [nomorBaru, setNomorBaru] = useState("");
   /**
    * Siapa pemilik nomor yang sedang didaftarkan. Bawaannya diri sendiri —
@@ -93,26 +99,6 @@ export default function WhatsAppPage() {
   const [sedang, setSedang] = useState<string | null>(null);
   const [kode, setKode] = useState<Record<string, string>>({});
   const [toast, setToast] = useState<{ tipe: "ok" | "err"; pesan: string } | null>(null);
-
-  const muat = useCallback(async () => {
-    try {
-      const r = await api.get<Muatan>("/api/v1/wa/nomor");
-      setMuatan(r.data);
-    } catch {
-      setToast({ tipe: "err", pesan: "Gagal memuat daftar nomor" });
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
-
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  //
-  // (Blok komentar ini sempat tersalin dua kali; yang kedua dibuang.)
-  useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
 
   /*
     Daftar orang untuk pemilih "nomor ini milik".
@@ -417,6 +403,16 @@ export default function WhatsAppPage() {
         <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
           Memuat…
         </div>
+      ) : galatMuat ? (
+        <div role="alert" style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", display: "flex", gap: 10 }}>
+          <AlertTriangle size={18} style={{ color: "var(--danger)", flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.65 }}>
+            Gagal memuat daftar nomor.{" "}
+            <button type="button" onClick={() => void muat()} style={{ color: C.aksen, background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+              Coba lagi.
+            </button>
+          </div>
+        </div>
       ) : daftar.length === 0 ? (
         <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", display: "flex", gap: 10 }}>
           <Info size={18} style={{ color: C.mid, flexShrink: 0, marginTop: 1 }} />
@@ -675,42 +671,40 @@ const contohNilai = (v: string) => CONTOH[v] ?? `[${v}]`;
  * Menyisipkan lewat klik menghapus seluruh kelas kesalahan itu.
  */
 function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
-  const [daftar, setDaftar] = useState<Template[]>([]);
-  const [memuat, setMemuat] = useState(true);
   const [draf, setDraf] = useState<Record<string, string>>({});
   const [sedang, setSedang] = useState<string | null>(null);
   const [pesan, setPesan] = useState<{ tipe: "ok" | "err"; teks: string } | null>(null);
   const acuan = useRef<Record<string, HTMLTextAreaElement | null>>({});
 
-  const muat = useCallback(async () => {
-    try {
-      const r = await api.get<{ data: Template[] }>("/api/v1/wa/template");
-      /*
-       * Urutan DITETAPKAN di sini, bukan mengikuti `kode` dari API.
-       *
-       * Alfabetis menaruh `asisten_gagal` di atas dan `verifikasi_nomor` —
-       * satu-satunya yang dilihat pelanggan yang sedang menunggu — di paling
-       * bawah. Urutan yang tak berarti apa-apa tetap mengajarkan sesuatu ke
-       * pembacanya, dan yang diajarkannya di sini keliru.
-       */
-      const urut = ["verifikasi_nomor", "asisten_tanpa_izin", "asisten_gagal"];
-      const peringkat = (k: string) => {
-        const i = urut.indexOf(k);
-        return i === -1 ? urut.length : i;
-      };
-      setDaftar(
-        [...(r.data.data ?? [])].sort(
-          (a, b) => peringkat(a.kode) - peringkat(b.kode) || a.kode.localeCompare(b.kode),
-        ),
-      );
-    } catch {
-      setPesan({ tipe: "err", teks: "Gagal memuat template" });
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
+    `useData` menggantikan useCallback+useEffect+queueMicrotask. Urutan tetap
+    DITETAPKAN di sini lewat `useMemo`, bukan mengikuti `kode` dari API —
+    lihat alasannya di bawah.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } = useData<{ data: Template[] }>("/api/v1/wa/template");
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  const daftar = useMemo(() => {
+    /*
+     * Urutan DITETAPKAN di sini, bukan mengikuti `kode` dari API.
+     *
+     * Alfabetis menaruh `asisten_gagal` di atas dan `verifikasi_nomor` —
+     * satu-satunya yang dilihat pelanggan yang sedang menunggu — di paling
+     * bawah. Urutan yang tak berarti apa-apa tetap mengajarkan sesuatu ke
+     * pembacanya, dan yang diajarkannya di sini keliru.
+     */
+    const urut = ["verifikasi_nomor", "asisten_tanpa_izin", "asisten_gagal"];
+    const peringkat = (k: string) => {
+      const i = urut.indexOf(k);
+      return i === -1 ? urut.length : i;
+    };
+    return [...(data?.data ?? [])].sort(
+      (a, b) => peringkat(a.kode) - peringkat(b.kode) || a.kode.localeCompare(b.kode),
+    );
+  }, [data]);
+
 
   async function simpan(t: Template, ubahan: { isi?: string; aktif?: boolean }) {
     setSedang(t.id);
@@ -749,6 +743,23 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
   }
 
   if (memuat) return null;
+
+  // Galat MUAT dan galat AKSI (simpan template) sengaja terpisah — satu
+  // state untuk keduanya membuat gagal menyimpan menghapus pesan gagal
+  // memuat, dan daftar kosong (galat) tak bisa dibedakan dari daftar yang
+  // memang belum berisi template.
+  if (galatMuat) {
+    return (
+      <section style={{ ...GAYA_KARTU, padding: 16, marginTop: 16 }}>
+        <p role="alert" style={{ fontSize: 13, color: "var(--danger)", margin: 0 }}>
+          Gagal memuat template.{" "}
+          <button type="button" onClick={() => void muat()} style={{ color: "inherit", background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+            Coba lagi.
+          </button>
+        </p>
+      </section>
+    );
+  }
 
   return (
     <section style={{ ...GAYA_KARTU, padding: 16, marginTop: 16 }}>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { Landmark, Plus, Check, X, CalendarClock, AlertTriangle, Info } from "lucide-react";
 
@@ -54,8 +55,6 @@ function todayWIB(): string {
 }
 
 export default function KeuanganSettingsPage() {
-  const [rows, setRows] = useState<ConfigRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
   const [editKey, setEditKey] = useState<string | null>(null);
   const [pct, setPct] = useState("");
@@ -89,18 +88,49 @@ export default function KeuanganSettingsPage() {
   useTutupEsc(pModal && !savingPenalty ? () => setPModal(false) : null);
   useTutupEsc(editKey && !saving ? () => setEditKey(null) : null);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Empat endpoint independen → empat `useData`, menggantikan `useEffect` +
+    empat panggilan `api.get` manual. Tiga di antaranya (kasbon-limit,
+    project-defaults, penalty) mengisi DRAF yang disunting lokal — nilainya
+    dituang lewat `useEffect` begitu data datang, sama seperti perilaku lama.
+    Kegagalannya sengaja tak menampilkan galat (perilaku lama: `.catch(() =>
+    {})`) — form tetap terisi nilai bawaan `useState`.
+  */
+  const { data: dataConfig, memuat: loading, galat: galatMuat, muatUlang: muatUlangConfig } =
+    useData<{ config: ConfigRow[] }>("/api/v1/settings/finance");
+  // `useMemo`, bukan `?? []` telanjang: `rows` masuk dependensi `useMemo`
+  // `byKey` di bawah, dan referensi array baru tiap render menembus
+  // `exhaustive-deps` (empat agent sebelumnya kena ini — lihat brief F4-2).
+  const rows = useMemo(() => dataConfig?.config ?? [], [dataConfig]);
+
+  const { data: dataKasbonLimit } = useData<{ enabled: boolean }>("/api/v1/settings/kasbon-limit");
   useEffect(() => {
+    if (!dataKasbonLimit) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setKasbonLimitOn(dataKasbonLimit.enabled);
+  }, [dataKasbonLimit]);
+
+  const { data: dataDefaults } = useData<{ dp_default_pct: number; maintenance_days: number }>("/api/v1/settings/project-defaults");
+  useEffect(() => {
+    if (!dataDefaults) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDpPct(String(dataDefaults.dp_default_pct));
+    setMaintDays(String(dataDefaults.maintenance_days));
+  }, [dataDefaults]);
+
+  const { data: dataPenaltyEffective, muatUlang: muatUlangPenalty } =
+    useData<{ effective: PenaltyTerms }>("/api/v1/settings/penalty");
+  useEffect(() => {
+    if (!dataPenaltyEffective) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPenalty(dataPenaltyEffective.effective);
+  }, [dataPenaltyEffective]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCanEdit(hasFinancePerm());
-    load();
-    api.get<{ enabled: boolean }>("/api/v1/settings/kasbon-limit")
-      .then(({ data }) => setKasbonLimitOn(data.enabled))
-      .catch(() => {});
-    api.get<{ dp_default_pct: number; maintenance_days: number }>("/api/v1/settings/project-defaults")
-      .then(({ data }) => { setDpPct(String(data.dp_default_pct)); setMaintDays(String(data.maintenance_days)); })
-      .catch(() => {});
-    api.get<{ effective: PenaltyTerms }>("/api/v1/settings/penalty")
-      .then(({ data }) => setPenalty(data.effective))
-      .catch(() => {});
   }, []);
 
   function openPenaltyModal() {
@@ -136,8 +166,7 @@ export default function KeuanganSettingsPage() {
       }
       setToast({ type: "ok", msg: `Aturan denda diperbarui, berlaku ${pFrom}` });
       setPModal(false);
-      const { data } = await api.get<{ effective: PenaltyTerms }>("/api/v1/settings/penalty");
-      setPenalty(data.effective);
+      await muatUlangPenalty();
       await load();
     } catch (e) {
       const msg = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
@@ -172,13 +201,7 @@ export default function KeuanganSettingsPage() {
   }
 
   async function load() {
-    setLoading(true);
-    try {
-      const { data } = await api.get<{ config: ConfigRow[] }>("/api/v1/settings/finance");
-      setRows(data.config ?? []);
-    } catch {
-      setToast({ type: "err", msg: "Gagal memuat konfigurasi keuangan" });
-    } finally { setLoading(false); }
+    await muatUlangConfig();
   }
 
   const byKey = useMemo(() => {
@@ -251,6 +274,16 @@ export default function KeuanganSettingsPage() {
 
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 13 }}>Memuat…</div>
+      ) : galatMuat ? (
+        // Galat MUAT dipisah dari `toast` (dipakai untuk galat AKSI simpan
+        // tarif/default/denda) — satu state untuk keduanya membuat gagal
+        // menyimpan menghapus pesan gagal memuat.
+        <div role="alert" style={{ ...card, padding: 40, textAlign: "center", color: C.red, fontSize: 13 }}>
+          Gagal memuat konfigurasi keuangan.{" "}
+          <button onClick={() => void load()} style={{ color: C.navy, background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+            Coba lagi.
+          </button>
+        </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-grid)", marginTop: 20 }}>
           {FINANCE_KEYS.map(({ key, label, hint, format }) => {

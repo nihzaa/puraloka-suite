@@ -40,10 +40,11 @@
  * hilang. Halaman ini menyebutkan jalan pulih yang SEBENARNYA.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import QRCode from "qrcode";
 import { KeyRound, Loader2, Monitor, ShieldCheck, ShieldOff, History } from "lucide-react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU, Kosong } from "@/components/ui-dasar";
@@ -97,10 +98,6 @@ function ringkasPerangkat(ua: string | null): string {
 }
 
 export default function KeamananPage() {
-  const [status, setStatus] = useState<Status | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
-
   // Alur pendaftaran: idle → qr (memindai) → selesai
   const [tahap, setTahap] = useState<"idle" | "qr">("idle");
   const [faktorId, setFaktorId] = useState("");
@@ -110,23 +107,16 @@ export default function KeamananPage() {
   const [sedang, setSedang] = useState(false);
   const [pesan, setPesan] = useState<{ tipe: "ok" | "salah"; teks: string } | null>(null);
 
-  const ambil = useCallback(async () => {
-    setMemuat(true);
-    setGalat(null);
-    try {
-      const r = await api.get<Status>("/api/v1/keamanan/status");
-      setStatus(r.data);
-    } catch {
-      setGalat("Status keamanan tidak bisa dimuat.");
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan panggilan langsung: `ambil()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  useEffect(() => { queueMicrotask(() => { void ambil(); }); }, [ambil]);
+    `useData` menggantikan useCallback+useEffect+queueMicrotask. `galat`
+    (galat MUAT) tetap terpisah dari `pesan` (galat AKSI MFA) — pemisahan itu
+    sudah ada di versi lama, dipertahankan di sini.
+  */
+  const { data: status, memuat, galat: galatMuat, muatUlang } = useData<Status>("/api/v1/keamanan/status");
+  const ambil = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+  const galat = galatMuat ? "Status keamanan tidak bisa dimuat." : null;
 
   async function mulaiDaftar() {
     setSedang(true);

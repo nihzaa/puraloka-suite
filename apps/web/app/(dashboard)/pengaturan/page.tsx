@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { Building2, CreditCard, Upload, Save, X, Check, AlertTriangle } from "lucide-react";
 
@@ -67,7 +68,6 @@ function PengaturanContent() {
   const isAdmin = useIzin("settings:manage");
 
   const [profile, setProfile] = useState<CompanyProfile>(DEFAULTS);
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
@@ -76,33 +76,34 @@ function PengaturanContent() {
   const [logoUploading, setLogoUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    `useData` mengambil respons mentah; normalisasi (null → "", merge DEFAULTS)
+    tetap terjadi di `useEffect` terpisah karena `profile` adalah DRAF yang
+    disunting lokal lewat `setField` — bukan sekadar cerminan data server.
+    Kegagalan muat dibiarkan diam sesuai perilaku lama: form tetap terisi
+    DEFAULTS, dan halaman ini tak punya `galatMuat` yang butuh ditampilkan.
+  */
+  const { data, memuat: loading } = useData<{ company: CompanyProfile }>("/api/v1/settings/company");
+
   useEffect(() => {
-    loadProfile();
-  }, []);
+    if (!data) return;
+    const raw = data.company as unknown as Record<string, unknown>;
+    const normalized = Object.fromEntries(
+      Object.entries(raw).map(([k, v]) => [k, v === null ? "" : v])
+    ) as unknown as CompanyProfile;
+    const merged = { ...DEFAULTS, ...normalized, logo_url: raw.logo_url as string | null };
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProfile(merged);
+    if (merged.logo_url) setLogoPreview(merged.logo_url);
+  }, [data]);
 
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(t);
   }, [toast]);
-
-  async function loadProfile() {
-    setLoading(true);
-    try {
-      const { data } = await api.get<{ company: CompanyProfile }>("/api/v1/settings/company");
-      const raw = data.company as unknown as Record<string, unknown>;
-      const normalized = Object.fromEntries(
-        Object.entries(raw).map(([k, v]) => [k, v === null ? "" : v])
-      ) as unknown as CompanyProfile;
-      const merged = { ...DEFAULTS, ...normalized, logo_url: raw.logo_url as string | null };
-      setProfile(merged);
-      if (merged.logo_url) setLogoPreview(merged.logo_url);
-    } catch {
-      // Silently fail, keep defaults
-    } finally {
-      setLoading(false);
-    }
-  }
 
   function setField(key: keyof CompanyProfile, value: string) {
     setProfile(p => ({ ...p, [key]: value }));

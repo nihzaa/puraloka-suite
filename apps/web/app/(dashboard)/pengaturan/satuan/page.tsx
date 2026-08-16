@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Ruler, Plus, Check, X, AlertTriangle, Save, EyeOff, Eye } from "lucide-react";
 import type { UnitRow } from "@/lib/use-units";
 
@@ -38,26 +39,17 @@ export default function SatuanPage() {
 
 function SatuanContent() {
   const canManage = hasPerm("units:manage");
-  const [units, setUnits] = useState<UnitRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  // loading diinisialisasi true (lihat useState) → tak perlu setLoading(true) sinkron
-  // di dalam effect (menghindari cascading render). Refetch tidak mem-flash spinner.
-  const load = useCallback(async () => {
-    try {
-      const { data } = await api.get<{ units: UnitRow[] }>("/api/v1/units", { params: { all: true } });
-      setUnits(data.units ?? []);
-    } catch {
-      setToast({ type: "error", msg: "Gagal memuat satuan" });
-    } finally { setLoading(false); }
-  }, []);
-  // `queueMicrotask`, bukan panggilan langsung: `load()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    `useData` menggantikan useCallback+useEffect+queueMicrotask. Data
+    diturunkan dari jawaban, bukan disalin ke state sendiri.
+  */
+  const { data, memuat: loading, galat: galatMuat, muatUlang } = useData<{ units: UnitRow[] }>("/api/v1/units?all=true");
+  const load = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+  const units = data?.units ?? [];
 
   useEffect(() => {
     if (!toast) return;
@@ -104,6 +96,16 @@ function SatuanContent() {
 
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 13 }}>Memuat...</div>
+      ) : galatMuat ? (
+        // Galat MUAT dipisah dari `toast` (dipakai untuk galat AKSI menyimpan
+        // baris) — satu state untuk keduanya membuat gagal menyimpan
+        // menghapus pesan gagal memuat.
+        <div role="alert" style={{ ...card, padding: 40, textAlign: "center", color: C.red, fontSize: 13 }}>
+          Gagal memuat daftar satuan.{" "}
+          <button onClick={() => void load()} style={{ color: C.navy, background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+            Coba lagi.
+          </button>
+        </div>
       ) : (
         <div style={{ ...card, overflow: "hidden" }}>
           {/* Table header */}
