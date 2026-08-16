@@ -24296,3 +24296,79 @@ orang lain adalah persis yang dilarang §8a.1 nomor satu — dan jurnal
 `audit-migrasi-skema-dipaku` MERAH — 7 migrasi (363-371) memaku `public.`.
 Diperiksa: seluruhnya jauh mendahului sesi ini, dan §5.5 melarang menyunting
 migrasi lama. Bukan regresi dari pekerjaan ini.
+
+---
+
+## 2026-08-16 (lanjutan 5) — F4-2 hampir tuntas: 78 → 25
+
+Putaran ketiga paralel, empat agent. **53 halaman dipindah, 8 dilewati** dengan
+alasan. Sepanjang hari ini: **164 halaman, 139 kini lewat lapis cache.**
+
+### Sisa 25 — dan 17 di antaranya SENGAJA
+
+`docs/execution/F4-2-HALAMAN-DILEWATI.md` kini memuat enam kategori. Dua baru
+dari putaran ini:
+
+- **Kumulatif** (`notifications`, `otomasi/alur`, `otomasi/riwayat`) —
+  bertentangan dengan kontrak `useData` yang menyimpan SATU potret per URL.
+  Bukan rumit; **tak cocok**.
+- **Tak ada yang perlu dipindah** (`login`, `auth/callback`, `app/page.tsx`) —
+  diperiksa, nol GET.
+
+Sisa nyata yang bisa dikerjakan: **8 halaman**, ditambah 6 wilayah sesi asisten.
+
+### Cacat galat-muat-vs-aksi: 45 halaman
+
+Modul **pengaturan menyumbang 14 di 11 halaman** — sepertiga sendirian. Masuk
+akal: hampir tiap halamannya punya aksi tulis.
+
+Penjaga `uji-galat-muat-terpisah` kini melindungi **71 halaman**.
+
+### Temuan yang lebih penting daripada halamannya
+
+**Arahan `eslint-disable` yang MATI.** Tiga berkas `risiko/` menaruh
+`// eslint-disable-next-line react-hooks/set-state-in-effect` di atas
+`useEffect(() => {` alih-alih tepat di atas `setState` DI DALAMNYA.
+
+Arahannya jadi inert — linter menandainya "unused eslint-disable" sementara
+pelanggaran aslinya tetap menyala. **Penekanan yang tak menekan apa pun**, dan
+hitungannya justru bertambah.
+
+Kelas yang sama dengan komentar-dibaca-sebagai-kode yang muncul **empat kali**
+hari ini: penanda di tempat salah terlihat benar sampai ada yang mengukurnya.
+
+Diukur sesudah perbaikan: **0 arahan eslint mati** di seluruh `apps/web`.
+
+### `Date.now()` di badan render — kemunculan kedua
+
+`kontrak/page.tsx`, setelah `proyek/page.tsx`. Muncul begitu data jadi turunan
+`useData` alih-alih state lokal: pemindahan menggeser batas heuristik linter dan
+menyingkap `Date.now()` yang sudah lama ada di sana.
+
+### Kredensial diperiksa, bukan diasumsikan
+
+Halaman `pengaturan/kredensial` menyentuh rahasia. Diperiksa: endpoint-nya hanya
+memulangkan `empat_akhir` — nilai sesungguhnya tak pernah sampai ke peramban.
+`audit-kredensial-tak-bocor.mjs` (ambang NOL) exit=0.
+
+### Empat ratchet turun, semuanya dikencangkan
+
+```
+halaman-tanpa-cache               78 → 25
+react-hooks/set-state-in-effect   44 → 39
+react-hooks/exhaustive-deps       10 →  6
+react-hooks/immutability           2 →  1
+```
+
+### Bukti
+
+```
+vitest apps/web             630 passed (48 berkas)
+tsc web                     bersih
+lint:ratchet web            0 error, 269 warning
+audit-halaman-pakai-cache   25 dari 164 (lantai 25)
+uji-galat-muat-terpisah     71 halaman, nol berbagi state
+uji-rute-id-tak-basi        invarian lapisan utuh
+audit-kredensial-tak-bocor  exit=0
+8 penjaga visual            exit=0
+```

@@ -8,7 +8,7 @@
 > **benar** — bukan hutang, bukan kelalaian.
 >
 > Diperbarui 2026-08-16 sesudah putaran agent keenam: dua kategori baru (5 dan
-> 6), total 15 halaman.
+> 6), total 17 halaman.
 >
 > Tanpa dokumen ini, angka penjaga yang tak pernah mencapai nol akan terbaca
 > sebagai pekerjaan yang belum selesai, dan seseorang akan memindahkannya.
@@ -99,6 +99,8 @@ alih-alih memakai cache sebagaimana dirancang.
 | Halaman | Bentuk |
 |---|---|
 | `notifications` | "Muat Lebih Banyak" MENAMBAH hasil ke state; layar menampilkan gabungan beberapa permintaan |
+| `otomasi/alur` | log eksekusi dimuat malas PER BARIS (buka-saat-diklik) ke `Record<string, Jalan[]>` |
+| `otomasi/riwayat` | pesan percakapan dimuat malas per baris, pola yang sama |
 
 Ini alasan yang berbeda kelasnya dari empat di atas, dan ditemukan belakangan
 (agent batch keenam).
@@ -108,6 +110,10 @@ Yang lain rumit tapi *mungkin*. Yang ini **bertentangan dengan kontraknya**:
 banyak potret ditumpuk jadi satu tampilan — memaksakannya berarti menyimpan
 akumulasi itu di luar cache, sehingga cache-nya tak lagi menjadi sumber
 kebenaran.
+
+Dua halaman `otomasi/` adalah kerabat dekatnya: bukan menambah ke satu daftar,
+melainkan BANYAK GET ditumpuk jadi satu peta yang dikunci id baris. Sama-sama
+menuntut lebih dari satu potret hidup bersamaan.
 
 Bedakan dari halaman ber-halaman BIASA (`?page=2` mengganti isi layar): itu
 cocok, karena tiap halaman punya URL sendiri dan satu potret cukup.
@@ -158,5 +164,5 @@ cd apps/api && node scripts/audit-halaman-pakai-cache.mjs
 grep -rl "bacaDenganCache\|antrean-offline\|antrean-foto" apps/web/app --include=page.tsx
 ```
 
-Kalau angka penjaga mendekati **15** dan tak turun lagi, itu bukan pekerjaan
+Kalau angka penjaga mendekati **17** dan tak turun lagi, itu bukan pekerjaan
 yang mandek — itu daftar ini.

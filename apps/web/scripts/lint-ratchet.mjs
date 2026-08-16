@@ -126,7 +126,9 @@ const AMBANG = {
   // 50 → 44 (2026-08-16, agent proyek+sdm: delapan halaman lagi)
   // 44 → 43 (2026-08-16, agent tersebar)
   // 43 → 41 (2026-08-16, agent pengaturan: 18 halaman)
-  'react-hooks/set-state-in-effect': 41,
+  // 41 → 39 (2026-08-16, agent kas+kontrak+risiko: tiga arahan eslint yang
+  //          SALAH TEMPAT diperbaiki — arahannya mati, pelanggarannya menyala)
+  'react-hooks/set-state-in-effect': 39,
   // turun 71 → 67 (.ds-sync diabaikan) → 15 (2026-08-01).
   //
   // Sebagian besar adalah 50 impor ikon/helper yatim yang menumpuk saat
