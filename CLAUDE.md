@@ -78,6 +78,43 @@ UJI_EMAIL=… UJI_SANDI=… UJI_BASIS=http://127.0.0.1:3001 \
 cd apps/api && node -r dotenv/config scripts/lapor-otomasi-hidup.mjs
 ```
 
+**Asisten — jangan percaya "sudah bisa", UKUR.** Tiga hal yang mudah tertukar:
+
+```bash
+# 1. Apakah 40 tool BENAR-BENAR jalan? Memanggil tool sungguhan, bukan mock.
+#    Idempoten (semua bertanda [SEED-PAKAI], dibersihkan di awal tiap jalan).
+cd apps/api && npx tsx scripts/seed-pemakaian-asisten.mjs
+
+# 2. Tool mana yang benar-benar DIPAKAI orang — dan mana yang menganggur.
+#    MENOLAK melapor kalau belum ada percakapan bertool: 40 baris "0 panggilan"
+#    terbaca seperti temuan, padahal cuma berarti asistennya belum dipakai.
+cd apps/api && npx tsx scripts/lapor-tool-terpakai.mjs
+
+# 3. Berapa mahal katalognya (skema dikirim ULANG tiap ronde).
+cd apps/api && node scripts/audit-katalog-tool-tak-membengkak.mjs
+```
+
+⚠ **Yang (1) BUKTIKAN dan yang tidak.** Ia membuktikan *"kalau model memanggil
+tool X, tool X bekerja"*. Ia TIDAK membuktikan *"model memilih tool yang tepat"* —
+itu hanya ketahuan dari percakapan sungguhan lewat chat web/WhatsApp, dan
+karena itu (2) menolak melapor sampai percakapan itu ada.
+
+⚠ **Kurasi `tool_aktif` hidup di BASIS, dan test bisa menghapusnya.**
+`ai-perilaku.test.ts` menyetel `tool_aktif = NULL` di setup-nya — kurasi yang
+dipasang lewat `UPDATE` sekali jalan hilang begitu test itu berjalan. Ukur:
+
+```sql
+-- lewat psql/Supabase SQL editor. NULL = semua tool (belum dikurasi).
+SELECT asisten, mode_bicara, sifat_bicara,
+       coalesce(array_length(tool_aktif, 1), 0) AS jml_tool
+  FROM ai_provider_config ORDER BY asisten;
+```
+
+Keadaan yang dimaksudkan 2026-08-16: `owner`/`web` semua tool + sifat
+`[menyarankan, mengobrol]`; `staff`/`insight` dikurasi (15/14 tool) + sifat
+`[menyarankan]` saja. Kalau `jml_tool` jadi 0 untuk keempatnya, kurasinya
+terhapus — pasang ulang, dan kalau perlu permanen tempatnya seed/migrasi.
+
 Kolom `N/N/L/O` di `06-agentic-ai-and-automation-architecture.md` adalah
 **prioritas** (Now/Next/Later/Optional), **bukan status pengerjaan** — tujuh
 automation yang sudah hidup semuanya masih tertulis `Next` di sana. Salah baca
@@ -199,6 +236,8 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-alur-tercatat.mjs` | webhook n8n wajib lewat `jalankanAlur()` — eksekusi tak boleh luput dari `otomasi_jalan` (ambang NOL) |
 | `audit-inbox-jalur-nyata.mjs` | `jalurUi` inbox approval wajib menunjuk halaman yang ada (ambang NOL) |
 | `audit-konfirmasi-wa-tak-longgar.mjs` | "ya" dari WhatsApp dicocokkan UTUH, bukan `includes()`; jendela < umur token; token disaring per-user (ambang NOL) |
+| `audit-jenis-tulis-punya-label.mjs` | tiap jenis tulis & persetujuan wajib punya label UI — kunci mentah muncul di layar keputusan uang (ambang NOL) |
+| `audit-katalog-tool-tak-membengkak.mjs` | skema tool asisten dikirim ULANG tiap ronde; katalog yang membengkak menaikkan tagihan tiap tenant tanpa gejala (ratchet) |
 
 **Uang lewat percakapan — dijaga test, bukan penjaga skrip.** `payments` adalah
 satu-satunya entitas tulis yang **tak punya kolom `status`**, jadi tak ada

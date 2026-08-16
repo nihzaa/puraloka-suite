@@ -27,6 +27,29 @@ const SRC = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 let db: Client
 let companyId: string
 
+/**
+ * Konfigurasi SEBELUM test — dipulihkan apa adanya di `afterAll`.
+ *
+ * ── Kenapa bukan sekadar disetel NULL
+ *
+ * Versi sebelumnya mengembalikan `tool_aktif = NULL` untuk seluruh asisten.
+ * Itu bukan "membersihkan jejak test" melainkan MENGHAPUS KONFIGURASI NYATA:
+ * kurasi tool per-asisten (staff 15, insight 14 — dipasang 2026-08-16 untuk
+ * menghemat ~2.700 token per ronde) lenyap tiap kali berkas test ini jalan.
+ *
+ * Terjadi DUA KALI dalam satu sesi, dan keduanya baru ketahuan saat diukur
+ * ulang — tak ada galat, tak ada test merah. Yang hilang cuma penghematannya.
+ *
+ * Sekarang: dibaca dulu, dipulihkan persis. Test tetap bebas mengubah apa pun
+ * di tengah jalan.
+ */
+let konfigSebelum: Array<{
+  asisten: string
+  prompt_sistem: string | null
+  maks_ronde: number
+  tool_aktif: string[] | null
+}> = []
+
 beforeAll(async () => {
   db = await createRlsClient()
   const { rows } = await db.query(`
@@ -34,14 +57,25 @@ beforeAll(async () => {
     WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
   `)
   companyId = rows[0].id
+
+  const { rows: cfg } = await db.query(
+    `SELECT asisten, prompt_sistem, maks_ronde, tool_aktif
+       FROM ai_provider_config WHERE company_id = $1`,
+    [companyId],
+  )
+  konfigSebelum = cfg
 }, 60_000)
 
 afterAll(async () => {
-  await db.query(
-    `UPDATE ai_provider_config SET prompt_sistem = NULL, maks_ronde = 4, tool_aktif = NULL
-     WHERE company_id = $1`,
-    [companyId],
-  )
+  // Dipulihkan PER ASISTEN dengan nilai aslinya — bukan diseragamkan NULL.
+  for (const k of konfigSebelum) {
+    await db.query(
+      `UPDATE ai_provider_config
+          SET prompt_sistem = $2, maks_ronde = $3, tool_aktif = $4::text[]
+        WHERE company_id = $1 AND asisten = $5`,
+      [companyId, k.prompt_sistem, k.maks_ronde, k.tool_aktif, k.asisten],
+    )
+  }
   await db.end()
 })
 

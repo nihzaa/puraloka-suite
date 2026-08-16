@@ -82,6 +82,71 @@ itu dijawab.
 
 ---
 
+## 2026-08-16 (sesi ASISTEN, 11) — test yang MENGHAPUS konfigurasi nyata
+
+Penutup sesi. Tiga hal yang tertinggal, dan satu di antaranya cacat sungguhan.
+
+### Test menghapus kurasi tool — DUA KALI, tanpa gejala
+
+`ai-perilaku.test.ts` mengembalikan `tool_aktif = NULL` untuk seluruh asisten
+di `afterAll`. Itu bukan "membersihkan jejak test" melainkan MENGHAPUS
+KONFIGURASI NYATA: kurasi per-asisten (staff 15, insight 14 — dipasang untuk
+menghemat ~2.700 token/ronde) lenyap tiap kali berkas itu jalan.
+
+Terjadi dua kali dalam satu sesi. Keduanya baru ketahuan saat saya mengukur
+ulang — tak ada galat, tak ada test merah. Yang hilang cuma penghematannya,
+diam-diam.
+
+Diperbaiki: konfigurasi DIBACA di `beforeAll`, DIPULIHKAN per-asisten dengan
+nilai aslinya. Test tetap bebas mengubah apa pun di tengah jalan.
+
+Dibuktikan: kurasi dipasang → test dijalankan → `staff 15, insight 14` masih
+utuh. Sebelumnya keduanya jadi `SEMUA`.
+
+### Dua penjaga baru tak terdaftar di CLAUDE.md
+
+`audit-jenis-tulis-punya-label` dan `audit-katalog-tool-tak-membengkak` sudah
+di CI tetapi tak ada di tabel penjaga CLAUDE.md — tabel yang dibaca sesi
+berikutnya untuk tahu penjaga apa saja yang ada. Ditambahkan.
+
+### Cara mengukur asisten masuk CLAUDE.md §1
+
+Tiga perintah, plus dua peringatan yang tak boleh hilang:
+
+    seed-pemakaian-asisten.mjs   → 40 tool BENAR-BENAR jalan?
+    lapor-tool-terpakai.mjs      → mana yang dipakai, mana menganggur
+    audit-katalog-tool-...mjs    → berapa mahal katalognya
+
+⚠ Yang seed BUKTIKAN: "kalau model memanggil tool X, X bekerja". BUKAN "model
+memilih tool yang tepat" — itu hanya dari percakapan sungguhan.
+
+⚠ Kurasi hidup di BASIS. Sesudah perbaikan di atas ia tak lagi terhapus test,
+tetapi kalau kelak harus permanen, tempatnya seed/migrasi bukan `UPDATE`.
+
+### Keadaan akhir sesi ASISTEN
+
+    katalog tool     40  (dari 31 di awal sesi ini)
+    sifat            owner/web [menyarankan, mengobrol] · staff/insight [menyarankan]
+    kurasi           staff 15 · insight 14 · owner/web semua
+    penjaga baru     3 (label, konfirmasi WA, katalog membengkak)
+    skrip ukur       2 (seed pemakaian, lapor terpakai)
+
+### Bukti
+
+    tsc (berkas saya)                 0 galat
+    ai-perilaku 19 · ai-tool-kurasi 6 · ai-tool 18
+    audit-katalog-tool-tak-membengkak exit 0
+    audit-jenis-tulis-punya-label     exit 0
+    audit-konfirmasi-wa-tak-longgar   exit 0
+    audit-pagar-fakta-utuh            exit 0
+    audit-tool-ai-read-only           exit 0
+    audit-izin-benar-ada              exit 0
+    audit-kegagalan-senyap            exit 0
+    audit-catch-senyap                exit 0
+    kurasi bertahan                   staff 15, insight 14 SESUDAH test jalan
+
+---
+
 ## 2026-08-16 (sesi ASISTEN, 10) — laporan tool terpakai, dan yang MENOLAK melapor
 
 Nomor 3 dari rencana ("ukur tool mana yang tak pernah dipanggil"). Dibangun,
