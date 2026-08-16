@@ -166,6 +166,8 @@ export type NotificationType =
   | 'biaya_pencilan'
   | 'proyeksi_selesai_meleset'
   | 'progres_mandek'
+  | 'po_luar_kontrak'
+  | 'kuota_payung_menipis'
   | 'pengingat_asisten'
   | 'titipan_asisten'
   | 'general'

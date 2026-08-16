@@ -1564,6 +1564,35 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'yang menegur MANDOR: ini bicara ke manajer proyek tentang akibatnya '
       + 'pada tanggal selesai.',
   },
+  {
+    kunci: 'po-luar-kontrak',
+    nomor: '4.13',
+    nama: 'Pesanan di luar kontrak payung',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menemukan pesanan ke pemasok yang punya kontrak payung aktif tetapi '
+      + 'tak menyebut kontraknya, dan item kontrak yang kuotanya hampir atau '
+      + 'sudah habis.',
+    penerima: 'Bagian pengadaan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca kontrak payung yang masih aktif beserta pemasoknya.' },
+      { di: 'sistem', teks: 'Mencari pesanan ke pemasok itu yang tak menunjuk kontrak mana pun.' },
+      { di: 'sistem', teks: 'Membandingkan kuota tiap item kontrak dengan yang sudah terpakai.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.kuota_payung.persen',
+    catatan:
+      'Pesanan tanpa kontrak berarti salah satu dari dua hal, dan keduanya '
+      + 'perlu diketahui: dibeli di harga lain sehingga negosiasinya terbuang, '
+      + 'atau dibeli di harga kontrak tetapi tak tercatat sehingga kuotanya tak '
+      + 'berkurang dan pemasok bisa menagih dua kali atas jatah yang sama. '
+      + 'Kontrak yang masa berlakunya sudah lewat pada TANGGAL PESANAN tak '
+      + 'dituntut dipakai — membandingkannya dengan hari ini akan menuduh '
+      + 'pesanan lama yang saat itu memang tak berkontrak. Kuota dikirim '
+      + 'terpisah karena tindakannya berbeda: satu mengoreksi pesanan yang '
+      + 'sudah dibuat, satu menegosiasikan tambahan kuota.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */

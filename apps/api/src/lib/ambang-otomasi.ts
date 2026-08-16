@@ -361,6 +361,26 @@ export const AMBANG_OTOMASI = {
     langkah: 1,
   },
   /*
+    Kuota kontrak payung menipis. Bawaan 80%.
+
+    Bukan 100: menambah kuota menuntut negosiasi ulang dengan pemasok, bukan
+    sekadar memesan lagi. Yang tahu di 80% masih sempat bicara; yang tahu di
+    100% sudah terlanjur memesan di luar harga kontrak.
+  */
+  'otomasi.kuota_payung.persen': {
+    bawaan: 80,
+    min: 50,
+    max: 100,
+    label: 'Persen kuota kontrak payung terpakai sebelum diperingatkan',
+    judul: 'Kuota kontrak payung menipis',
+    akibat:
+      'Berapa persen kuota terpakai sebelum diperingatkan. Kuota yang habis '
+      + 'berarti pesanan berikutnya tak lagi tercakup harga kontrak, dan itu '
+      + 'biasanya baru ketahuan saat tagihan datang dengan harga lain.',
+    satuan: '%',
+    langkah: 5,
+  },
+  /*
     Proyeksi selesai meleset. Bawaan 7 hari dari tanggal kontrak.
 
     Kecil, karena proyeksi yang meleset seminggu masih bisa dikejar dengan

@@ -7367,6 +7367,273 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     })
   })
 
+  // ── GET /api/v1/otomasi/jalankan/po-luar-kontrak ─────────────────────────
+  //
+  // Automation 4.13 — Contract Compliance Check (Supplier).
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // MEMBELI DI LUAR KONTRAK YANG SUDAH DINEGOSIASI SENDIRI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Kontrak payung ada supaya harga terkunci untuk satu periode. Pesanan ke
+  // pemasok yang punya kontrak aktif TETAPI tak menyebut kontraknya berarti
+  // salah satu dari dua hal, dan keduanya perlu diketahui:
+  //
+  //   · dibeli di harga lain — negosiasinya terbuang
+  //   · dibeli di harga kontrak tetapi tak tercatat — kuotanya tak berkurang,
+  //     dan pemasok bisa menagih dua kali atas jatah yang sama
+  //
+  // Terukur: 4 pesanan ke pemasok berkontrak aktif, `kontrak_payung_id` NULL
+  // di keempatnya.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KUOTA HABIS ADALAH TEMUAN TERPISAH, DAN LEBIH MENDESAK
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  //     Besi beton ulir D16   100 / 100 ton    HABIS
+  //     Besi beton ulir D13    60 /  60 ton    HABIS
+  //     Semen PCC 40 kg     11.040 / 12.000    92%
+  //
+  // Kuota yang habis berarti pesanan BERIKUTNYA tak lagi tercakup harga
+  // kontrak — dan itu ketahuan saat pemasok mengirim tagihan dengan harga
+  // berbeda, bukan sebelumnya.
+  //
+  // Dikirim terpisah karena tindakannya berbeda: yang satu mengoreksi pesanan
+  // yang sudah dibuat, yang satu menegosiasikan tambahan kuota.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // 4.3 (FRAUD DETECTION) DIUKUR DAN TAK DIBANGUN — ALASANNYA DICATAT
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Pola penipuan pengadaan yang lazim semuanya diukur NOL di basis ini:
+  // pesanan dipecah untuk menghindari ambang persetujuan (tak ada ambang yang
+  // disetel sama sekali), dan pesanan ganda ke vendor sama pada hari sama (nol
+  // pasangan).
+  //
+  // Membangunnya tetap menghasilkan rute yang memicu nol selamanya, lalu
+  // dilaporkan "deteksi fraud sudah ada" — dan itu lebih berbahaya daripada
+  // tak punya sama sekali, karena ia memberi rasa aman yang tak berdasar.
+  app.get('/api/v1/otomasi/jalankan/po-luar-kontrak', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { kuota?: string }
+    const ambangKuota = await ambilAmbang(request, 'otomasi.kuota_payung.persen', q.kuota)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['po_luar_kontrak', 'kuota_payung_menipis'])
+
+    // `kontrak_payung` kategori B.
+    const { data: payung, error } = await request.db!
+      .from('kontrak_payung')
+      .select('id, nomor, judul, supplier_id, status, berlaku_sampai, pagu_nilai')
+      .eq('status', 'aktif')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    if ((payung ?? []).length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { kontrak_aktif: 0, po_luar_kontrak: 0, kuota_menipis: 0 },
+      })
+    }
+
+    const idPayung = (payung ?? []).map((k) => k.id as string)
+    const pemasokBerkontrak = new Map<string, Array<Record<string, unknown>>>()
+    for (const k of payung ?? []) {
+      const sid = k.supplier_id as string
+      const arr = pemasokBerkontrak.get(sid) ?? []
+      arr.push(k)
+      pemasokBerkontrak.set(sid, arr)
+    }
+
+    const idProyek = await request.db!.projectIds()
+    const { data: po, error: ePo } = idProyek.length
+      ? await request.db!
+          .unsafe('purchase_orders', 'kategori C lewat project_id; disaring ke projectIds()')
+          .select('id, po_number, project_id, supplier_id, status, order_date, kontrak_payung_id')
+          .in('project_id', idProyek)
+          .neq('status', 'cancelled')
+      : { data: [], error: null }
+    if (ePo) return reply.status(500).send({ error: ePo.message })
+
+    const { data: pemasok, error: ePem } = await request.db!
+      .from('suppliers').select('id, name')
+    if (ePem) return reply.status(500).send({ error: ePem.message })
+    const namaPemasok = new Map((pemasok ?? []).map((s) => [s.id as string, String(s.name ?? '—')]))
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects').select('id, name')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    let luarKontrak = 0
+    let dibuat = 0
+
+    for (const p of po ?? []) {
+      // Sudah menyebut kontraknya — tak ada yang perlu ditanyakan.
+      if (p.kontrak_payung_id) continue
+
+      const kontrak = pemasokBerkontrak.get(p.supplier_id as string)
+      // Pemasok tanpa kontrak aktif memang dibeli lepas; itu normal.
+      if (!kontrak || kontrak.length === 0) continue
+
+      /*
+        Kontrak yang masa berlakunya sudah lewat pada TANGGAL PESANAN tak
+        bisa dituntut dipakai. Membandingkannya dengan hari ini akan menuduh
+        pesanan lama yang saat itu memang tak punya kontrak.
+      */
+      const tglPo = String(p.order_date ?? '').slice(0, 10)
+      const berlaku = kontrak.filter((k) => {
+        const sampai = String(k.berlaku_sampai ?? '').slice(0, 10)
+        return !sampai || !tglPo || sampai >= tglPo
+      })
+      if (berlaku.length === 0) continue
+
+      luarKontrak++
+      if (sudah('po_luar_kontrak', p.id as string)) continue
+
+      const pid = p.project_id as string
+      const penerima = await resolveRecipients('po_luar_kontrak', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Pesanan ke Pemasok Berkontrak Tanpa Menyebut Kontraknya',
+          message:
+            `${p.po_number} ke ${namaPemasok.get(p.supplier_id as string)} `
+            + `di ${namaProyek.get(pid)} tidak menunjuk kontrak payung mana pun, `
+            + `padahal pemasok itu punya ${berlaku.length} kontrak aktif `
+            + `(${berlaku.map((k) => k.nomor).join(', ')}). `
+            + 'Kalau dibeli di harga lain, negosiasinya terbuang; kalau dibeli '
+            + 'di harga kontrak tetapi tak tercatat, kuotanya tak berkurang dan '
+            + 'pemasok bisa menagih dua kali atas jatah yang sama.',
+          type:       'po_luar_kontrak',
+          priority:   'high',
+          project_id: pid,
+          action_url: '/procurement/lanjutan',
+          action_data: {
+            record_id: p.id as string,
+            po: p.po_number,
+            kontrak_tersedia: berlaku.map((k) => k.nomor),
+          },
+        })
+        dibuat++
+      }
+    }
+
+    /*
+      ── Temuan kedua: kuota kontrak menipis atau habis
+
+      Pesanan BERIKUTNYA tak lagi tercakup harga kontrak, dan itu ketahuan
+      saat pemasok mengirim tagihan dengan harga berbeda — bukan sebelumnya.
+    */
+    /*
+      `kontrak_payung_item` kategori B — `.from()` menyaringnya langsung lewat
+      `company_id`. Versi pertama memakai `.unsafe()` dengan alasan "kategori C
+      lewat kontrak_id", dan alasan itu KELIRU: tabelnya memang punya
+      `company_id` sendiri.
+
+      Alasan `.unsafe()` yang salah lebih buruk daripada tak ada: ia lolos
+      penjaga tenancy dan meninggalkan pembenaran tertulis yang membuat
+      pembaca berikutnya percaya keputusannya sudah diperiksa.
+
+      Saringan `.in('kontrak_id', …)` tetap dipasang — bukan untuk tenancy,
+      melainkan supaya hanya item milik kontrak AKTIF yang ikut terhitung.
+    */
+    const { data: item, error: eItem } = await request.db!
+      .from('kontrak_payung_item')
+      .select('id, kontrak_id, uraian, satuan, harga_satuan, kuota, terpakai')
+      .in('kontrak_id', idPayung)
+
+    if (eItem) return reply.status(500).send({ error: eItem.message })
+
+    const nomorKontrak = new Map((payung ?? []).map((k) => [k.id as string, k]))
+    /*
+      TAK ADA cabang "item tanpa kuota", dan itu keputusan yang diukur.
+
+      Versi pertama memasang penghitung `item_tanpa_kuota` sebagai pengaman —
+      pola yang benar di tempat lain di berkas ini. Di sini ia KODE MATI:
+
+          kuota  NOT NULL
+          CHECK (kuota > 0)              payung_item_kuota_positif
+          CHECK (terpakai <= kuota)      payung_item_tak_lebih_kuota
+
+      Schema-nya menjamin tiap item punya kuota positif dan pemakaian tak
+      pernah melampauinya. Penghitung itu akan melaporkan NOL selamanya.
+
+      Medan `checked` yang selalu nol lebih buruk daripada tak ada: ia
+      terlihat seperti pemeriksaan yang berjalan dan lulus, padahal tak pernah
+      memeriksa apa pun. Kalau kelak constraint-nya dilonggarkan, yang harus
+      berubah kode ini — bukan diam-diam mengandalkan pengaman yang tak
+      pernah teruji.
+    */
+    let kuotaMenipis = 0
+
+    for (const it of item ?? []) {
+      const kuota = Number(it.kuota ?? 0)
+      const pakai = Number(it.terpakai ?? 0)
+      const persen = (pakai / kuota) * 100
+      if (persen < ambangKuota) continue
+      kuotaMenipis++
+
+      if (sudah('kuota_payung_menipis', it.id as string)) continue
+
+      const k = nomorKontrak.get(it.kontrak_id as string)
+      const penerima = await resolveRecipients('kuota_payung_menipis', {
+        projectId: null, companyId: request.companyId!,
+      })
+
+      const habis = pakai >= kuota
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      habis ? 'Kuota Kontrak Payung HABIS' : 'Kuota Kontrak Payung Menipis',
+          message:
+            `"${it.uraian}" pada ${k?.nomor ?? 'kontrak payung'}: `
+            + `${pakai} dari ${kuota} ${it.satuan ?? ''} terpakai `
+            + `(${Math.round(persen)}%). `
+            + (habis
+              ? 'Pesanan berikutnya TIDAK lagi tercakup harga kontrak — dan itu '
+                + 'biasanya baru ketahuan saat tagihan datang dengan harga lain.'
+              : `Harga kontraknya ${rp(Number(it.harga_satuan ?? 0))} per `
+                + `${it.satuan ?? 'satuan'}; menambah kuota menuntut negosiasi, `
+                + 'bukan sekadar memesan lagi.'),
+          type:       'kuota_payung_menipis',
+          priority:   habis ? 'urgent' : 'high',
+          project_id: undefined,
+          action_url: '/procurement/lanjutan',
+          action_data: {
+            record_id: it.id as string,
+            kontrak: k?.nomor ?? null,
+            uraian: it.uraian, kuota, terpakai: pakai,
+            persen: Math.round(persen),
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        kontrak_aktif: (payung ?? []).length,
+        po_diperiksa: (po ?? []).length,
+        po_luar_kontrak: luarKontrak,
+        kuota_menipis: kuotaMenipis,
+        item_kontrak: (item ?? []).length,
+        ambang_persen: ambangKuota,
+      },
+    })
+  })
+
   // ── GET /api/v1/otomasi/jalankan/invoice-ringkasan-melenceng ─────────────
   //
   // TANPA nomor katalog — dan itu diperiksa, bukan diasumsikan.

@@ -22597,3 +22597,62 @@ mutasi blok verifikasi 420        2/2 MERAH lalu pulih
 15 penjaga arsitektural           exit=0
 lint:ratchet                      0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 (14) - pesanan di luar kontrak payung 4.13
+
+47 rute terjadwal, 54 nomor katalog.
+
+### Yang ditemukan
+
+```
+4 pesanan ke pemasok berkontrak AKTIF, kontrak_payung_id NULL di keempatnya
+Besi beton ulir D16   100/100 ton    HABIS
+Besi beton ulir D13    60/60  ton    HABIS
+Semen PCC 40 kg    11.040/12.000     92%
+```
+
+Pesanan tanpa kontrak berarti salah satu dari dua hal, dan **keduanya** perlu
+diketahui: dibeli di harga lain sehingga negosiasinya terbuang, atau dibeli di
+harga kontrak tetapi tak tercatat sehingga kuotanya tak berkurang dan pemasok
+bisa menagih dua kali atas jatah yang sama.
+
+### 4.3 diukur, lalu tidak dibangun
+
+Pola penipuan pengadaan yang lazim semuanya **nol**: pesanan dipecah untuk
+menghindari ambang persetujuan (tak ada ambang yang disetel sama sekali), dan
+pesanan ganda ke vendor sama pada hari sama (nol pasangan).
+
+Membangunnya menghasilkan rute yang memicu nol selamanya lalu dilaporkan
+"deteksi fraud sudah ada" — **lebih berbahaya daripada tak punya**, karena
+memberi rasa aman yang tak berdasar.
+
+### Dua koreksi atas kode saya sendiri
+
+**1. Alasan `.unsafe()` yang keliru.** Saya menulis
+`.unsafe('kontrak_payung_item', 'kategori C lewat kontrak_id')`. Tabelnya
+kategori **B** — punya `company_id` sendiri.
+
+Alasan `.unsafe()` yang salah lebih buruk daripada tak ada: ia lolos penjaga
+tenancy DAN meninggalkan pembenaran tertulis yang membuat pembaca berikutnya
+percaya keputusannya sudah diperiksa.
+
+**2. Penghitung yang kode mati.** `item_tanpa_kuota` melaporkan nol selamanya
+— schema-nya menjamin `kuota NOT NULL`, `CHECK (kuota > 0)`, dan
+`CHECK (terpakai <= kuota)`.
+
+Medan `checked` yang selalu nol terlihat seperti pemeriksaan yang berjalan dan
+lulus, padahal tak pernah memeriksa apa pun. Diganti test yang menjaga
+**andalannya**: kalau constraint-nya dilonggarkan, ia merah di sini — bukan
+diam-diam membuat rute membagi dengan nol di produksi.
+
+### Bukti
+
+```
+otomasi-po-luar-kontrak.test.ts   7 passed
+mutasi rute                       4/4 MERAH lalu pulih
+mutasi blok verifikasi 421        2/2 MERAH lalu pulih
+15 penjaga arsitektural           exit=0
+lint:ratchet                      0 error, 231 warning
+```
