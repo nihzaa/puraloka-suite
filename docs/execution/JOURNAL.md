@@ -22418,3 +22418,70 @@ mutasi penjaga                 2/2 MERAH lalu pulih
 lint:ratchet                   0 error, 231 warning
 tsc api + tsc web              0 error
 ```
+
+---
+
+## 2026-08-16 (11) - 4.8 stok melenceng, dan coretan saya yang salah
+
+44 rute terjadwal, 51 nomor katalog.
+
+### Founder menantang dua pencoretan saya. Keduanya salah.
+
+Saya menyarankan **tidak membangun** 2.12 dan 4.8. Founder menolak dan
+menanyakan alasannya. Diukur ulang, dan alasan saya cacat pada bentuk yang
+sama untuk keduanya: **saya berhenti di tabel pertama yang tak cocok,
+alih-alih bertanya "lalu di mana datanya?"**
+
+| Yang saya bilang | Kenyataannya |
+|---|---|
+| 2.12: "23 dari 23 pembayaran bermetode sama" | yang saya periksa **satu kolom di satu tabel**. Judulnya menyebut "metode/**waktu** bayar" - waktunya tak pernah diukur. 4 dari 23 dibayar lewat jatuh tempo, rata-rata 6 hari. Dan ada `supplier_payments` + `supplier_payment_allocations` yang tak pernah saya lihat |
+| 4.8: "`opname_bersama` itu volume kerja, bukan stok gudang" | benar - tapi opname stok ADA, di `stock_movements.movement_type='adjustment'`, dan catatannya menyebut dirinya sendiri: "Opname mingguan - koreksi 2 m2 pecah saat handling" |
+
+Ini kedua kalinya dalam satu sesi founder menantang pencoretan saya dan
+ternyata benar. Pola saya: **mengukur satu tempat, tak menemukan, lalu
+menyimpulkan tak ada.** Sama persis dengan dua kesalahan penomoran katalog
+yang saya temukan beberapa jam sebelumnya.
+
+### Yang ditemukan begitu diukur benar
+
+```
+8 dari 12 baris project_stocks TIDAK cocok dengan buku gerakannya
+   Besi 10mm    tercatat  85   buku 315   selisih 230
+   Besi 12mm    tercatat   5   buku  10
+   Bata Merah   tercatat  12   buku   0
+```
+
+**Kejadian ketiga hari ini dari bentuk yang sama:**
+
+| | ringkasan bilang | buku bilang |
+|---|---|---|
+| penyusutan (408) | dihitung Rp 110,5 jt | `journal_entry_id` NULL |
+| invoice (416) | Rp 19,2 jt diterima | nol baris `payments` |
+| stok (ini) | 85 batang | 315 batang |
+
+Ketiganya lolos dari tiap pemeriksaan satu-tabel, karena tiap tabel konsisten
+dengan **dirinya sendiri**.
+
+### Satu keputusan yang menentukan apakah laporannya bisa dipakai
+
+Arah tiap jenis gerakan **dipaku**: `goods_receipt` menambah, `usage`
+mengurangi, `adjustment` mengikuti selisih `qty_after` dan `qty_before` -
+bukan tanda `qty`, yang bisa positif maupun negatif tergantung siapa mencatat.
+
+Menjumlahkan `qty` mentah membuat pemakaian ikut menambah stok, dan **tiap
+baris jadi melenceng**. Mutasi itu merahkan 4 dari 5 test.
+
+### Bukti
+
+```
+otomasi-stok-melenceng.test.ts    5 passed
+mutasi rute                       4/4 MERAH lalu pulih
+mutasi blok verifikasi 418        3/3 MERAH lalu pulih
+15 penjaga arsitektural           exit=0
+lint:ratchet                      0 error, 231 warning
+```
+
+**2.12 belum dibangun** - bukan karena tak bisa, melainkan karena bentuknya
+masih perlu diputuskan: `supplier_payments` hanya 2 baris, terlalu tipis untuk
+pemicu terjadwal. Sinyal waktu-bayar yang nyata ada di sisi PENERIMAAN, dan
+itu sudah ditutup `invoice-terlambat`. Dicatat di GALIAN-92.

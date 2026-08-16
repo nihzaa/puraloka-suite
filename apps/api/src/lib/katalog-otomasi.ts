@@ -1472,6 +1472,38 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'melainkan ketidaksepakatan, dan yang dibutuhkan orang ketiga yang '
       + 'memutuskan sejak hari sengketanya dicatat.',
   },
+  {
+    kunci: 'stok-melenceng',
+    nomor: '4.8',
+    nama: 'Stok tercatat melenceng dari buku gerakannya',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Membandingkan angka stok yang tersimpan dengan jumlah seluruh '
+      + 'penerimaan, pemakaian, dan penyesuaian opname untuk material itu — '
+      + 'lalu menegur yang tak cocok. Ikut menandai material yang tiap opname '
+      + 'selalu berkurang dan tak pernah bertambah.',
+    penerima: 'Bagian gudang & pengadaan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Menjumlahkan gerakan stok per material per proyek.' },
+      { di: 'sistem', teks: 'Membandingkannya dengan angka stok yang tersimpan.' },
+      { di: 'sistem', teks: 'Memeriksa apakah penyesuaian opname selalu ke arah turun.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.stok_melenceng.satuan',
+    catatan:
+      'Nomor ini sempat DICORET, dan coretannya salah. Alasan pencoretannya: '
+      + '`opname_bersama` mengukur volume pekerjaan, bukan stok gudang — benar, '
+      + 'tetapi berhenti di tabel pertama yang tak cocok tanpa menanyakan di '
+      + 'mana opname stok sebenarnya dicatat. Jawabannya '
+      + '`stock_movements.movement_type = adjustment`, dan catatannya menyebut '
+      + 'dirinya sendiri: "Opname mingguan — koreksi 2 m2 pecah saat handling". '
+      + 'Temuan terbesarnya justru bukan penyesuaiannya melainkan 8 dari 12 '
+      + 'baris stok yang tak cocok dengan bukunya sendiri — kejadian ketiga '
+      + 'dari bentuk yang sama, sesudah penyusutan dan invoice. Arah tiap '
+      + 'jenis gerakan DIPAKU: menjumlahkan `qty` mentah membuat pemakaian '
+      + 'ikut menambah stok dan tiap baris jadi melenceng.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */

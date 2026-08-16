@@ -6670,6 +6670,260 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     })
   })
 
+  // ── GET /api/v1/otomasi/jalankan/stok-melenceng ──────────────────────────
+  //
+  // Automation 4.8 — Stock Opname Discrepancy Analysis.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // NOMOR INI SEMPAT SAYA CORET, DAN CORETANNYA SALAH
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Saya menyimpulkan 4.8 tak bisa dibangun karena `opname_bersama` mengukur
+  // VOLUME PEKERJAAN, bukan stok gudang. Bagian itu benar — tetapi
+  // kesimpulannya berhenti di tabel pertama yang tak cocok, tanpa menanyakan
+  // pertanyaan berikutnya: *lalu di mana opname stok dicatat?*
+  //
+  // Jawabannya `stock_movements.movement_type = 'adjustment'`. Terukur tiga
+  // baris, dan catatannya menyebut dirinya sendiri:
+  //
+  //     "Opname mingguan — koreksi 2 m² pecah saat handling"
+  //
+  // Bentuk kesalahan yang sama sudah terjadi dua kali hari ini pada penomoran
+  // katalog: mencari di satu tempat, tak menemukan, lalu menyimpulkan tak ada.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // TEMUAN TERBESARNYA BUKAN PENYESUAIANNYA — MELAINKAN BUKU YANG TAK COCOK
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Diukur: 8 dari 12 baris `project_stocks` TIDAK cocok dengan jumlah
+  // gerakannya sendiri.
+  //
+  //     Besi Beton Ø12mm SNI   sistem 5    buku gerakan 240
+  //     Semen Portland 50kg    sistem 5    buku gerakan 152
+  //
+  // Ini kejadian KETIGA hari ini dari bentuk yang sama: kolom ringkasan yang
+  // terlihat benar di satu layar, dan tak cocok dengan buku di belakangnya.
+  // Dua sebelumnya penyusutan (dihitung, tak terjurnal) dan invoice
+  // (diakui masuk, tanpa bukti penerimaan).
+  //
+  // Yang membuatnya berbahaya di gudang: `qty_on_hand` yang dipakai memutuskan
+  // "perlu pesan lagi atau tidak". Kalau ia lebih kecil daripada kenyataan,
+  // material dipesan padahal menumpuk; kalau lebih besar, pekerjaan berhenti
+  // menunggu barang yang dikira ada.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // ARAH GERAKAN DIHITUNG PER JENIS, BUKAN DIJUMLAH MENTAH
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  //     goods_receipt   menambah   → +qty
+  //     usage           mengurangi → −qty
+  //     adjustment      arahnya di `qty_after - qty_before`, bukan di `qty`
+  //
+  // Menjumlahkan `qty` apa adanya membuat pemakaian ikut menambah stok, dan
+  // tiap baris jadi "melenceng" — laporan yang tak bisa dipakai.
+  app.get('/api/v1/otomasi/jalankan/stok-melenceng', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { satuan?: string }
+    const ambangSatuan = await ambilAmbang(request, 'otomasi.stok_melenceng.satuan', q.satuan)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['stok_melenceng', 'stok_susut_berulang'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { stok_diperiksa: 0, melenceng: 0, ambang_satuan: ambangSatuan },
+      })
+    }
+
+    const { data: stok, error } = await request.db!
+      .unsafe('project_stocks', 'kategori C lewat project_id; disaring ke projectIds()')
+      .select('id, project_id, material_id, qty_on_hand')
+      .in('project_id', idProyek)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    /*
+      Gerakan dibaca BERHALAMAN. Ia tumbuh tiap penerimaan dan tiap pemakaian —
+      tabel paling ramai di gudang — dan pemotongan senyap membuat jumlahnya
+      lebih kecil daripada kenyataan. Akibatnya stok yang sehat dilaporkan
+      melenceng, dan itu jenis kesalahan yang paling cepat membuat orang
+      berhenti membaca peringatan.
+    */
+    const HALAMAN = 1000
+    const gerakan: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error: eGerak } = await request.db!
+        .unsafe('stock_movements', 'kategori C lewat project_id; disaring ke projectIds()')
+        .select('id, project_id, material_id, movement_type, qty, qty_before, qty_after, notes, created_at')
+        .in('project_id', idProyek)
+        .order('id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (eGerak) return reply.status(500).send({ error: eGerak.message })
+      if (!data || data.length === 0) break
+      gerakan.push(...(data as Array<Record<string, unknown>>))
+      if (data.length < HALAMAN) break
+    }
+
+    const { data: material, error: eMat } = await request.db!
+      .from('materials').select('id, name, unit')
+    if (eMat) return reply.status(500).send({ error: eMat.message })
+    const namaMaterial = new Map((material ?? []).map((m) => [m.id as string, m]))
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects').select('id, name')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    /*
+      Arah tiap jenis gerakan DIPAKU, bukan ditebak dari tanda `qty`.
+
+      `adjustment` menyimpan arahnya di selisih `qty_after - qty_before`;
+      `qty`-nya sendiri bisa negatif maupun positif tergantung siapa yang
+      mencatat. Menebaknya dari tanda membuat koreksi turun terbaca sebagai
+      penambahan pada sebagian baris.
+    */
+    const arah = (g: Record<string, unknown>): number => {
+      const jenis = String(g.movement_type ?? '')
+      if (jenis === 'goods_receipt') return Number(g.qty ?? 0)
+      if (jenis === 'usage') return -Number(g.qty ?? 0)
+      return Number(g.qty_after ?? 0) - Number(g.qty_before ?? 0)
+    }
+
+    const buku = new Map<string, number>()
+    const penyesuaian = new Map<string, Array<Record<string, unknown>>>()
+    for (const g of gerakan) {
+      const kunci = `${g.project_id}|${g.material_id}`
+      buku.set(kunci, (buku.get(kunci) ?? 0) + arah(g))
+      if (String(g.movement_type ?? '') === 'adjustment') {
+        const arr = penyesuaian.get(kunci) ?? []
+        arr.push(g)
+        penyesuaian.set(kunci, arr)
+      }
+    }
+
+    let melenceng = 0
+    let dibuat = 0
+
+    for (const s of stok ?? []) {
+      const pid = s.project_id as string
+      const mid = s.material_id as string
+      const kunci = `${pid}|${mid}`
+      const sistem = Number(s.qty_on_hand ?? 0)
+      const dariBuku = buku.get(kunci) ?? 0
+      const selisih = Math.abs(sistem - dariBuku)
+
+      if (selisih < ambangSatuan) continue
+      melenceng++
+
+      if (sudah('stok_melenceng', s.id as string)) continue
+
+      const m = namaMaterial.get(mid)
+      const penerima = await resolveRecipients('stok_melenceng', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      const lebihKecil = sistem < dariBuku
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Stok Tercatat Tak Cocok dengan Buku Gerakannya',
+          message:
+            `${m?.name ?? 'Material'} di ${namaProyek.get(pid)}: tercatat `
+            + `${sistem} ${m?.unit ?? ''}, tetapi jumlah seluruh penerimaan, `
+            + `pemakaian, dan penyesuaiannya ${dariBuku} ${m?.unit ?? ''} — `
+            + `selisih ${selisih}. `
+            + (lebihKecil
+              ? 'Angka yang tercatat LEBIH KECIL: material bisa dipesan lagi '
+                + 'padahal sebenarnya menumpuk.'
+              : 'Angka yang tercatat LEBIH BESAR: pekerjaan bisa berhenti '
+                + 'menunggu barang yang dikira ada.'),
+          type:       'stok_melenceng',
+          priority:   'high',
+          project_id: pid,
+          action_url: '/procurement/stok',
+          action_data: {
+            record_id: s.id as string,
+            material: m?.name ?? null,
+            sistem, buku: dariBuku, selisih,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    /*
+      ── Temuan kedua: penyesuaian opname yang selalu MENGURANGI
+
+      Satu koreksi turun itu biasa — barang pecah, tumpah, salah hitung. Yang
+      layak ditanyakan pola: material yang tiap opname selalu berkurang dan
+      tak pernah bertambah. Kesalahan hitung menyimpang ke dua arah;
+      kebocoran hanya ke satu.
+
+      Terukur: tiga penyesuaian, semuanya −2, semuanya "pecah saat handling".
+    */
+    let susutBerulang = 0
+    for (const [kunci, daftar] of penyesuaian) {
+      if (daftar.length < 2) continue
+      const semuaTurun = daftar.every((g) => arah(g) < 0)
+      if (!semuaTurun) continue
+      susutBerulang++
+
+      const [pid, mid] = kunci.split('|')
+      if (sudah('stok_susut_berulang', kunci)) continue
+
+      const total = daftar.reduce((t, g) => t + Math.abs(arah(g)), 0)
+      const m = namaMaterial.get(mid)
+      const penerima = await resolveRecipients('stok_susut_berulang', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Penyesuaian Stok Selalu Berkurang',
+          message:
+            `${m?.name ?? 'Material'} di ${namaProyek.get(pid)} sudah `
+            + `${daftar.length} kali disesuaikan turun, total ${total} `
+            + `${m?.unit ?? ''} — dan tak sekali pun naik. `
+            + 'Kesalahan hitung menyimpang ke dua arah; yang hanya turun '
+            + 'biasanya berarti barangnya benar-benar berkurang. '
+            + `Catatan terakhir: "${String(daftar[daftar.length - 1].notes ?? '—')}".`,
+          type:       'stok_susut_berulang',
+          priority:   'normal',
+          project_id: pid,
+          action_url: '/procurement/stok',
+          action_data: {
+            record_id: kunci,
+            material: m?.name ?? null,
+            kali: daftar.length, total_turun: total,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        stok_diperiksa: (stok ?? []).length,
+        melenceng,
+        susut_berulang: susutBerulang,
+        penyesuaian_opname: [...penyesuaian.values()].reduce((t, a) => t + a.length, 0),
+        ambang_satuan: ambangSatuan,
+      },
+    })
+  })
+
   // ── GET /api/v1/otomasi/jalankan/invoice-ringkasan-melenceng ─────────────
   //
   // TANPA nomor katalog — dan itu diperiksa, bukan diasumsikan.

@@ -161,6 +161,8 @@ export type NotificationType =
   | 'kesiapan_audit'
   | 'opname_menggantung'
   | 'opname_disengketakan'
+  | 'stok_melenceng'
+  | 'stok_susut_berulang'
   | 'pengingat_asisten'
   | 'titipan_asisten'
   | 'general'

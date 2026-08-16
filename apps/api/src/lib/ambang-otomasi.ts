@@ -361,6 +361,28 @@ export const AMBANG_OTOMASI = {
     langkah: 1,
   },
   /*
+    Stok tercatat melenceng dari buku gerakannya. Bawaan selisih 1 satuan.
+
+    Hampir NOL, sama alasannya dengan ambang selisih invoice: ini bukan batas
+    kewajaran melainkan pengaman pembulatan. Stok yang tak cocok dengan buku
+    gerakannya berarti salah satunya salah, dan besar-kecilnya selisih tak
+    mengubah fakta itu.
+  */
+  'otomasi.stok_melenceng.satuan': {
+    bawaan: 1,
+    min: 1,
+    max: 1000,
+    label: 'Selisih satuan minimum antara stok tercatat dan buku gerakan',
+    judul: 'Stok tercatat lawan buku gerakan',
+    akibat:
+      'Selisih sekecil ini pun ditegur. Angka stok dipakai memutuskan '
+      + '"perlu pesan lagi atau tidak": kalau lebih kecil daripada '
+      + 'kenyataan, material dipesan padahal menumpuk; kalau lebih besar, '
+      + 'pekerjaan berhenti menunggu barang yang dikira ada.',
+    satuan: 'satuan',
+    langkah: 1,
+  },
+  /*
     Material dibeli dari beberapa pemasok. Bawaan selisih 5%.
 
     Rendah dengan sengaja: selisih 5% pada material curah adalah uang yang

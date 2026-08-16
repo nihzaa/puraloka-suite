@@ -90,13 +90,26 @@ terhalang"). Yang berubah bukan basisnya melainkan cara mengukurnya.
 | 9.7 | Data Privacy Compliance Check | `audit_logs` 62.013 · `users` 26 |
 | 10.2 | Predictive Maintenance | `pemakaian_alat` 30 · jadwal 5 · biaya 24 |
 
-**Dua yang perlu keputusan sebelum dibangun:**
+### Dua pencoretan saya, dan keduanya SALAH
 
-- **2.12** — 23 dari 23 pembayaran bermetode sama. Tak ada yang bisa
-  dioptimasi; rutenya akan memicu nol. Sama kasusnya dengan 4.4.
-- **4.8** — `opname_bersama` mengukur **volume pekerjaan**, bukan stok gudang.
-  Otomasinya sudah dibangun tanpa nomor (`opname-menggantung`). Menempelkan
-  4.8 padanya akan mengklaim modul gudang yang tak dikerjakan.
+Saya sempat menyarankan 2.12 dan 4.8 **tidak dibangun**. Founder menolak dan
+menanyakan alasannya; diukur ulang, alasan saya cacat pada bentuk yang sama:
+**berhenti di tabel pertama yang tak cocok, alih-alih bertanya "lalu di mana
+datanya?"**
+
+| Yang saya bilang | Kenyataannya |
+|---|---|
+| **2.12** "semua pembayaran bermetode sama" | yang diperiksa **satu kolom di satu tabel**. Judulnya menyebut "metode/**waktu** bayar" - waktunya tak diukur. 4 dari 23 lewat jatuh tempo, rata-rata 6 hari. `supplier_payments` (2 baris) dan `supplier_payment_allocations` tak pernah dilihat |
+| **4.8** "`opname_bersama` itu volume kerja" | benar - tetapi opname stok ADA di `stock_movements.movement_type='adjustment'`, dan catatannya menyebut dirinya sendiri |
+
+**4.8 SUDAH DIBANGUN** (`stok-melenceng`, migrasi 418). Terukur 8 dari 12
+baris stok tak cocok dengan buku gerakannya - Besi 10mm tercatat 85, buku 315.
+
+**2.12 belum**, dan alasannya BUKAN "tak bisa": `supplier_payments` cuma 2
+baris, terlalu tipis untuk pemicu terjadwal. Sinyal waktu-bayar yang nyata ada
+di sisi PENERIMAAN, dan itu sudah ditutup `invoice-terlambat` (2.2). Bentuk
+yang jujur untuknya kemungkinan TOOL, bukan rute - perlu diputuskan, bukan
+dicoret.
 
 ---
 
