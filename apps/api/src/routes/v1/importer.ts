@@ -7,6 +7,7 @@ import {
   usulkanPemetaan, validasi, BATAS_BARIS,
   type SkemaImpor,
 } from '../../lib/importer.js'
+import { terminPemasok } from '../../lib/importer-nilai.js'
 
 /**
  * IMPORTER GENERIK (TJS-P3) — unggah → petakan → pratinjau → commit.
@@ -47,16 +48,87 @@ const SKEMA: SkemaImpor[] = [
       { kunci: 'is_active', label: 'Aktif', jenis: 'bool', wajib: false, alias: ['status aktif'] },
     ],
   },
+  {
+    kunci: 'supplier',
+    label: 'Pemasok',
+    keterangan: 'Daftar pemasok beserta kontak, kota, dan termin pembayarannya.',
+    kolom: [
+      { kunci: 'code', label: 'Kode', jenis: 'teks', wajib: false, alias: ['kode supplier', 'kode pemasok', 'kode vendor'] },
+      { kunci: 'name', label: 'Nama', jenis: 'teks', wajib: true, alias: ['nama supplier', 'nama pemasok', 'nama vendor', 'nama perusahaan'] },
+      { kunci: 'contact_person', label: 'Nama Kontak', jenis: 'teks', wajib: false, alias: ['kontak', 'pic', 'narahubung', 'contact'] },
+      { kunci: 'phone', label: 'Telepon', jenis: 'teks', wajib: false, alias: ['no telp', 'nomor telepon', 'hp', 'whatsapp'] },
+      { kunci: 'email', label: 'Email', jenis: 'teks', wajib: false, alias: ['surel', 'e mail'] },
+      { kunci: 'address', label: 'Alamat', jenis: 'teks', wajib: false, alias: ['alamat lengkap'] },
+      { kunci: 'city', label: 'Kota', jenis: 'teks', wajib: false, alias: ['kabupaten', 'kota kabupaten'] },
+      // `payment_terms` adalah DAFTAR TERTUTUP di basis
+      // (`suppliers_payment_terms_check`: cod · prepaid · net_7 · net_14 ·
+      // net_30 · open_account), bukan angka hari dan bukan teks bebas.
+      //
+      // Diukur 2026-08-16 — dan skema versi pertama saya menuliskannya
+      // sebagai angka hari, yang membuat SELURUH berkas ditolak basis.
+      // Berkas orang menuliskannya "NET 30", "30 hari", "tunai"; yang
+      // memetakannya ke nilai sah adalah `TERMIN_PEMASOK` di
+      // `lib/importer-nilai.ts`, bukan importir yang menebak.
+      { kunci: 'payment_terms', label: 'Termin Bayar', jenis: 'teks', wajib: false, alias: ['termin', 'tempo', 'payment terms', 'cara bayar'] },
+      { kunci: 'credit_limit', label: 'Plafon Kredit', jenis: 'angka', wajib: false, alias: ['limit kredit', 'plafon'] },
+      { kunci: 'notes', label: 'Catatan', jenis: 'teks', wajib: false, alias: ['keterangan'] },
+      { kunci: 'is_active', label: 'Aktif', jenis: 'bool', wajib: false, alias: ['status aktif'] },
+    ],
+  },
+  {
+    kunci: 'cost_code',
+    label: 'Cost Code',
+    keterangan: 'Struktur kode biaya untuk mengelompokkan anggaran & realisasi.',
+    kolom: [
+      { kunci: 'code', label: 'Kode', jenis: 'teks', wajib: true, alias: ['kode biaya', 'kode cost code', 'cost code'] },
+      { kunci: 'name', label: 'Nama', jenis: 'teks', wajib: true, alias: ['nama biaya', 'uraian', 'deskripsi'] },
+      { kunci: 'description', label: 'Keterangan', jenis: 'teks', wajib: false, alias: ['penjelasan', 'catatan'] },
+      { kunci: 'category', label: 'Kategori', jenis: 'teks', wajib: false, alias: ['kelompok', 'golongan'] },
+    ],
+  },
 ]
 
 const cariSkema = (k: string) => SKEMA.find((s) => s.kunci === k) ?? null
 
+/**
+ * Menormalkan nilai berdaftar-tertutup SESUDAH `validasi()`.
+ *
+ * `lib/importer.ts` hanya tahu teks/angka/tanggal/bool — tak ada jenis "salah
+ * satu dari daftar". Kolom yang dijaga CHECK di basis diterjemahkan di sini.
+ *
+ * ⚠ Dipanggil di PRATINJAU **dan** COMMIT, dengan fungsi yang sama. Kalau
+ * hanya commit yang menormalkan, pratinjau memperlihatkan "NET 30" lalu yang
+ * tersimpan `net_30` — layar berbohong tentang apa yang akan masuk. Kalau
+ * hanya pratinjau, commit-nya ditolak basis padahal layar bilang aman.
+ */
+function normalkanBerdaftar(
+  kunciSkema: string,
+  baris: Array<Record<string, unknown>>,
+): Array<Record<string, unknown>> {
+  if (kunciSkema !== 'supplier') return baris
+  return baris.map((b) => (
+    'payment_terms' in b ? { ...b, payment_terms: terminPemasok(b.payment_terms) } : b
+  ))
+}
+
 /** Nama tabel per skema — dari KODE, tak pernah dari masukan pengguna. */
-const TABEL: Record<string, string> = { material: 'materials' }
+const TABEL: Record<string, string> = {
+  material: 'materials',
+  supplier: 'suppliers',
+  cost_code: 'cost_codes',
+}
 
 /** Izin per skema. Impor massal menulis ratusan baris sekaligus — ia lebih
- *  dekat ke mengelola daripada membuat satu per satu. */
-const IZIN: Record<string, string> = { material: 'gudang:manage' }
+ *  dekat ke mengelola daripada membuat satu per satu.
+ *
+ *  Sengaja BUKAN satu izin untuk semua: yang boleh mengimpor material tak
+ *  otomatis boleh mengimpor pemasok — daftar pemasok menentukan ke mana uang
+ *  perusahaan keluar. */
+const IZIN: Record<string, string> = {
+  material: 'gudang:manage',
+  supplier: 'procurement:supplier:manage',
+  cost_code: 'cecep:cost_code:manage',
+}
 
 interface BodiBaca { skema?: string; berkas_base64?: string }
 
@@ -170,8 +242,9 @@ export default async function importerRoutes(app: FastifyInstance) {
         galat: h.galat,
         jumlah_siap: h.galat.length === 0 && h.wajibHilang.length === 0 ? h.siap.length : 0,
         // Contoh hasil parsing — pengguna melihat apa yang AKAN masuk, bukan
-        // hanya diberi tahu bahwa tak ada galat.
-        contoh: h.siap.slice(0, 5),
+        // hanya diberi tahu bahwa tak ada galat. Dinormalkan dengan fungsi
+        // yang SAMA dengan commit, supaya yang terlihat = yang tersimpan.
+        contoh: normalkanBerdaftar(s.kunci, h.siap.slice(0, 5)),
         bisa_commit: h.galat.length === 0 && h.wajibHilang.length === 0,
       })
     },
@@ -231,7 +304,7 @@ export default async function importerRoutes(app: FastifyInstance) {
       const { data, error } = await supabase.rpc('impor_commit', {
         p_tabel: tabel,
         p_company_id: companyId,
-        p_baris: h.siap,
+        p_baris: normalkanBerdaftar(s.kunci, h.siap),
       })
 
       if (error) {

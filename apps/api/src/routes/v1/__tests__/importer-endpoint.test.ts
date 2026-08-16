@@ -40,6 +40,15 @@ const post = (url: string, payload: Record<string, unknown>) =>
 
 async function purge() {
   await client.query(`DELETE FROM materials WHERE code LIKE '[TEST-IM]%'`)
+  await client.query(`DELETE FROM suppliers WHERE code LIKE '[TEST-IM]%'`)
+  // `cost_codes` TIDAK bisa di-DELETE — trigger `fn_cost_codes_no_delete`
+  // (migrasi 102) menolaknya karena riwayat lintas domain merujuknya.
+  // Baris uji dinetralkan jadi `deprecated`, cara yang sama dipakai blok
+  // verifikasi migrasi 427.
+  await client.query(
+    `UPDATE cost_codes SET status='deprecated', deprecated_at=now()
+      WHERE code LIKE '[TEST-IM]%' AND status <> 'deprecated'`,
+  )
 }
 
 async function hitungMaterial(): Promise<number> {
@@ -337,5 +346,101 @@ describe('POST /impor/commit — ALL-OR-NOTHING', () => {
     })
     expect(r.statusCode).toBe(400)
     expect(await hitungMaterial()).toBe(sebelum)
+  })
+})
+
+/**
+ * SKEMA BARU (427) — pemasok & cost code.
+ *
+ * Yang dijaga di sini bukan "skemanya terdaftar", melainkan bahwa dua hal
+ * yang menggagalkan impor SEBELUM ini benar-benar tertutup:
+ *
+ *   1. `payment_terms` daftar tertutup, bukan angka hari — asumsi keliru yang
+ *      membuat percobaan pertama migrasi 427 ditolak basis;
+ *   2. `code` unik GLOBAL — tenant kedua ditolak kode tenant pertama, dan
+ *      penolakannya membocorkan keberadaan data orang lain.
+ */
+describe('skema pemasok & cost code (427)', () => {
+  const PETA_SUP = { Kode: 'code', Nama: 'name', Termin: 'payment_terms' }
+
+  it('keduanya terdaftar di /impor/skema', async () => {
+    const r = await get('/api/v1/impor/skema')
+    const kunci = r.json().skema.map((s: { kunci: string }) => s.kunci)
+    expect(kunci).toContain('supplier')
+    expect(kunci).toContain('cost_code')
+  })
+
+  it('pemasok masuk, dan termin bahasa manusia jadi nilai basis', async () => {
+    await purge()
+    const r = await post('/api/v1/impor/commit', {
+      skema: 'supplier', pemetaan: PETA_SUP,
+      baris: [{ Kode: '[TEST-IM]S1', Nama: 'Pemasok Uji', Termin: '30 hari' }],
+    })
+    expect(r.statusCode).toBe(200)
+    expect(r.json().masuk).toBe(1)
+
+    const { rows } = await client.query(
+      `SELECT payment_terms, company_id FROM suppliers WHERE code='[TEST-IM]S1'`,
+    )
+    // "30 hari" dari Excel → `net_30` di basis. Tanpa penerjemahan ini,
+    // CHECK menolaknya dan SELURUH berkas gagal.
+    expect(rows[0].payment_terms).toBe('net_30')
+    expect(rows[0].company_id).toBeTruthy()
+  })
+
+  it('termin yang tak dikenali jadi NULL — tidak ditebak, tidak menggagalkan berkas', async () => {
+    await purge()
+    const r = await post('/api/v1/impor/commit', {
+      skema: 'supplier', pemetaan: PETA_SUP,
+      baris: [
+        { Kode: '[TEST-IM]S2', Nama: 'Pemasok A', Termin: 'net 30' },
+        { Kode: '[TEST-IM]S3', Nama: 'Pemasok B', Termin: 'sesuai kesepakatan' },
+      ],
+    })
+    // Yang penting: baris kedua TIDAK menggagalkan yang pertama.
+    expect(r.statusCode).toBe(200)
+    expect(r.json().masuk).toBe(2)
+
+    const { rows } = await client.query(
+      `SELECT code, payment_terms FROM suppliers WHERE code LIKE '[TEST-IM]S%' ORDER BY code`,
+    )
+    expect(rows.find((x) => x.code === '[TEST-IM]S2')?.payment_terms).toBe('net_30')
+    expect(rows.find((x) => x.code === '[TEST-IM]S3')?.payment_terms).toBeNull()
+  })
+
+  it('pratinjau memperlihatkan nilai yang BENAR-BENAR akan tersimpan', async () => {
+    // Kalau pratinjau menampilkan "30 hari" sementara yang masuk `net_30`,
+    // layar berbohong tentang apa yang akan terjadi.
+    const r = await post('/api/v1/impor/pratinjau', {
+      skema: 'supplier', pemetaan: PETA_SUP,
+      baris: [{ Kode: '[TEST-IM]S9', Nama: 'Pemasok', Termin: '30 hari' }],
+    })
+    expect(r.statusCode).toBe(200)
+    expect(r.json().contoh[0].payment_terms).toBe('net_30')
+  })
+
+  it('cost code impor lahir DRAFT, bukan langsung aktif', async () => {
+    await purge()
+    const r = await post('/api/v1/impor/commit', {
+      skema: 'cost_code',
+      pemetaan: { Kode: 'code', Nama: 'name' },
+      baris: [{ Kode: '[TEST-IM]C1', Nama: 'Pekerjaan uji' }],
+    })
+    expect(r.statusCode).toBe(200)
+
+    const { rows } = await client.query(
+      `SELECT status FROM cost_codes WHERE code='[TEST-IM]C1'`,
+    )
+    // Kode biaya yang lahir AKTIF melewati satu-satunya tahap di mana orang
+    // memeriksa apakah kodenya benar.
+    expect(rows[0].status).toBe('draft')
+    await purge()
+  })
+
+  it('template pemasok menandai kolom wajib', async () => {
+    const r = await get('/api/v1/impor/supplier/template')
+    expect(r.statusCode).toBe(200)
+    expect(r.payload.charCodeAt(0)).toBe(0xFEFF)
+    expect(r.payload).toContain('Nama*')
   })
 })
