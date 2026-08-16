@@ -2443,3 +2443,53 @@ delapan-delapannya, baru pilih 1 atau 2 per berkas.
 Kode-nya hijau apa adanya: `tsc` EXIT 0, 60/60 test lawan Postgres nyata,
 13 penjaga arsitektural hijau. Tabrakan nomor **tidak** memblokir jalannya
 7 automation — ia soal keterbacaan buku migrasi ke depan.
+
+---
+
+## 7.11 Survei Kepuasan Klien via WhatsApp — MENUNGGU KEPUTUSAN ANDA
+
+**Diukur 2026-08-16. Bukan terhalang teknis.**
+
+Ini satu-satunya automation tersisa dari daftar kandidat yang saya **tahan**,
+dan alasannya bukan datanya kurang:
+
+```
+klien dengan nomor telepon    10 dari 10
+milestone selesai             20
+```
+
+Datanya cukup. Yang menahannya tiga hal, dan ketiganya keputusan Anda:
+
+### 1. Ini mengirim pesan ke KLIEN, bukan ke tim
+
+Seluruh 50 otomasi yang sudah ada mengirim ke orang dalam. Yang ini mengirim ke
+pelanggan Anda. Pesan yang salah nada, salah waktu, atau terkirim dua kali
+adalah kerugian hubungan bisnis — bukan sekadar notifikasi yang diabaikan.
+Itu wewenang Anda, bukan keputusan teknis saya.
+
+### 2. Tak ada tempat menyimpan jawabannya
+
+Tak ada satu pun tabel survei/kepuasan di basis (dicari `%survei%`,
+`%kepuasan%`, `%satisfaction%`, `%feedback%` — nol). Membangun pengirimnya
+lebih dulu menghasilkan survei yang **tak bisa dijawab**: klien membalas, dan
+balasannya jatuh ke tempat yang tak ada. Lebih buruk daripada tidak bertanya
+sama sekali.
+
+### 3. Bentuk pemicunya sendiri sudah menghasilkan spam
+
+Diukur langsung: **tiga milestone Bu Sari selesai pada tanggal yang sama.**
+Pemicu "tiap milestone selesai" mengirimnya **tiga survei dalam satu hari** —
+persis pola yang baru saja saya bersihkan dari sistem internal.
+
+Kalau dibangun, pemicunya harus per-PROYEK atau per-bulan, bukan per-milestone.
+
+### Yang saya butuhkan dari Anda
+
+| Pertanyaan | Pilihan |
+|---|---|
+| Kirim survei ke klien sama sekali? | ya / tidak / nanti |
+| Kalau ya, kapan | tiap proyek selesai · tiap bulan · manual saja |
+| Jawabannya masuk ke mana | tabel baru + halaman · balasan WA dibaca manusia |
+
+Tanpa jawaban ini saya tidak membangunnya. Menebaknya berarti mengirim pesan
+atas nama perusahaan Anda ke pelanggan Anda berdasarkan tebakan saya.
