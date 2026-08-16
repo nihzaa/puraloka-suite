@@ -513,4 +513,110 @@ export default async function kendaliDokumenRoutes(app: FastifyInstance) {
 
     return reply.status(201).send({ tandaTangan: data })
   })
+
+  // ── POST /api/v1/kendali-dokumen/tanda-tangan/verifikasi ───────────────────
+  //
+  // Menghitung ulang sidik isi yang diberikan, lalu MEMBANDINGKANNYA dengan
+  // yang tersimpan saat dokumen ditandatangani.
+  //
+  // ── Kenapa ini bukan tambahan, melainkan yang membuat sidiknya berarti
+  //
+  // `tanda_tangan_elektronik` menyimpan SHA-256 isi dokumen justru supaya
+  // bisa dibuktikan dokumennya tak berubah sesudah ditandatangani. Diukur
+  // 2026-08-16: tak ada satu pun jalan membandingkannya — sidiknya disimpan,
+  // dibaca dashboard sebagai keberadaan belaka, dan tak pernah diadu dengan
+  // apa pun.
+  //
+  // Sidik yang tak pernah bisa dibandingkan tidak membuktikan apa-apa. Ia
+  // justru lebih buruk daripada tidak ada: orang melihat "ditandatangani
+  // elektronik" dan menyimpulkan keasliannya sudah terjamin, padahal tak ada
+  // mekanisme yang pernah memeriksanya.
+  //
+  // ── Kenapa isi dikirim, bukan diambil server dari objeknya
+  //
+  // Menandatangani `notulen`, `transmittal`, `berita_acara`, dan `kontrak`
+  // berarti empat cara berbeda menyusun teks yang ditandatangani. Server yang
+  // menyusun ulang sendiri harus MENIRU PERSIS cara pemanggil menyusunnya
+  // dulu — dan begitu salah satunya berubah, seluruh tanda tangan lama
+  // mendadak "tidak sah" tanpa satu pun dokumen benar-benar diubah.
+  //
+  // Yang menandatangani menyusun isinya; yang memverifikasi menyusunnya
+  // dengan cara yang sama. Ketidakcocokan berarti salah satu dari dua hal —
+  // dokumennya berubah, ATAU cara menyusunnya berubah — dan keduanya memang
+  // harus diperiksa manusia, bukan disimpulkan diam-diam oleh server.
+  // Izin `documents:manage`, bukan `documents:view` — diukur 2026-08-16,
+  // `documents:view` TIDAK ADA di tabel `permissions`. Kunci hantu menolak
+  // SEMUA orang tanpa gejala apa pun (dijaga `audit-izin-benar-ada.mjs`,
+  // ambang NOL), jadi verifikasi akan selalu 403 dan terbaca sebagai
+  // "fiturnya rusak".
+  app.post('/api/v1/kendali-dokumen/tanda-tangan/verifikasi', {
+    preHandler: [authenticate, requirePermission('documents:manage')],
+  }, async (request, reply) => {
+    const b = request.body as {
+      jenis_objek?: string
+      objek_id?: string
+      isi?: string
+    }
+
+    if (!b.jenis_objek || !b.objek_id || typeof b.isi !== 'string') {
+      return reply.status(400).send({
+        error: 'jenis_objek, objek_id, dan isi wajib diisi',
+      })
+    }
+
+    const sidikSekarang = createHash('sha256').update(b.isi, 'utf8').digest('hex')
+
+    const db = request.db!
+    const { data, error } = await db
+      .unsafe('tanda_tangan_elektronik', 'kategori B; disaring ke company sesi di bawah')
+      .select('id, penanda_tangan, peran_penanda, sidik_isi, ditandatangani_pada, alasan')
+      .eq('company_id', request.companyId!)
+      .eq('jenis_objek', b.jenis_objek)
+      .eq('objek_id', b.objek_id)
+      .order('ditandatangani_pada', { ascending: true })
+
+    if (error) {
+      request.log.error({ err: error }, 'gagal membaca tanda tangan untuk verifikasi')
+      return reply.status(500).send({ error: 'Gagal membaca tanda tangan' })
+    }
+
+    const ttd = (data ?? []) as Array<{
+      id: string; penanda_tangan: string; peran_penanda: string | null
+      sidik_isi: string; ditandatangani_pada: string; alasan: string | null
+    }>
+
+    if (ttd.length === 0) {
+      // BUKAN "tidak sah". Dokumen yang belum pernah ditandatangani berbeda
+      // dari dokumen yang tanda tangannya tak cocok, dan menyamakan keduanya
+      // membuat yang kedua — satu-satunya yang benar-benar gawat — tenggelam.
+      return reply.send({
+        keadaan: 'belum_ditandatangani',
+        sidik_sekarang: sidikSekarang,
+        tanda_tangan: [],
+        pesan: 'Dokumen ini belum pernah ditandatangani secara elektronik.',
+      })
+    }
+
+    const rinci = ttd.map((t) => ({
+      id: t.id,
+      penanda_tangan: t.penanda_tangan,
+      peran_penanda: t.peran_penanda,
+      ditandatangani_pada: t.ditandatangani_pada,
+      alasan: t.alasan,
+      cocok: t.sidik_isi === sidikSekarang,
+    }))
+
+    const semuaCocok = rinci.every((r) => r.cocok)
+
+    return reply.send({
+      keadaan: semuaCocok ? 'utuh' : 'berubah',
+      sidik_sekarang: sidikSekarang,
+      tanda_tangan: rinci,
+      pesan: semuaCocok
+        ? 'Isi dokumen sama persis dengan yang ditandatangani.'
+        : 'Isi dokumen BERBEDA dari yang ditandatangani. Entah dokumennya '
+          + 'diubah sesudah ditandatangani, atau cara menyusun isinya berubah — '
+          + 'keduanya harus diperiksa sebelum dokumen ini dipakai sebagai bukti.',
+    })
+  })
 }
