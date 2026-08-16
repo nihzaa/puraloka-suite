@@ -23122,3 +23122,82 @@ dipulihkan                            HIJAU
 14 penjaga arsitektural               exit=0
 gen-indeks-docs --check               278 dokumen, mutakhir
 ```
+
+---
+
+## 2026-08-16 (lanjutan 2) — sebelas kandidat rute dihabiskan
+
+Notifikasi lama dikosongkan atas izin founder: **8.621 dihapus**, tak ada FK
+yang menunjuk ke `notifications`. Lalu sebelas kandidat rute tersisa diukur
+satu per satu **ke data**, bukan dikerjakan berurutan dari daftar.
+
+### Tiga dibangun
+
+| | Yang ditangkap |
+|---|---|
+| **10.2** perawatan diprediksi | Truk mixer 6,7 jam/hari, sisa 190 jam — jatuh tempo 28 hari lagi dan 10.7 DIAM. Plus kalibrasi crane Rp 12 jt yang **tak akan pernah bisa jatuh tempo** karena jam-meternya tak pernah dicatat |
+| **2.12** kebiasaan bayar klien | Dua klien rata-rata telat 31 dan 33 hari, Rp 707 jt gabungan — tak pernah terlihat 2.6 sebagai POLA |
+| **1.14** ringkasan berkala | SATU pengirim, bukan tiga |
+
+### Lima dicoret dengan angka
+
+```
+2.16 kategorisasi kas kecil   0 dari 88 pengeluaran tanpa kategori
+6.8  checklist onboarding     0 pengguna tanpa keanggotaan/peran
+3.4  prediksi material        tabel pemeta RAB→material NOL baris
+9.7  data privacy             audit_logs data pribadi: hanya workers INSERT 24;
+                              tak ada pencatatan AKSES sama sekali
+4.3  fraud pengadaan          2 pasang PO; yang berjarak 3 hari Rp 1,3 jt +
+                              Rp 30,7 jt — bukan pola pecah-hindari-approval,
+                              dan nol ambang approval disetel
+```
+
+### Dua ditolak sebagai bentuk, bukan kekurangan data
+
+**8.11** briefing pagi + rangkuman sore = 14 pesan/minggu — kebalikan arah dari
+jeda melandai yang baru dipasang. **8.12** anomali mingguan adalah himpunan
+bagian 1.14: anomali sudah jadi notifikasi. Keduanya dicatat di katalog sebagai
+**DILIPUT**, bukan "belum dikerjakan", supaya sesi berikutnya tak membangunnya
+dan menyangka menutup celah.
+
+### Satu ditahan untuk founder
+
+**7.11** survei klien. Bukan terhalang teknis (10 dari 10 klien punya nomor).
+Tiga alasan di `RATIFIKASI.md`, yang ketiga terukur langsung: tiga milestone
+Bu Sari selesai pada tanggal yang sama, jadi "tiap milestone selesai" mengirim
+**tiga survei sehari ke satu orang**.
+
+### Saya salah — tiga kali, dan satu bentuk yang berulang
+
+1. **Pencoretan 2.12 mengukur kolom yang salah.** "Semua pembayaran metodenya
+   sama" — judulnya berbunyi metode/**WAKTU**. Bentuk yang sama dengan dua
+   pencoretan keliru sebelumnya: berhenti di pengukuran pertama yang tak cocok
+   alih-alih bertanya "lalu di mana datanya?".
+2. **Satu sisipan menduplikasi 4.000 baris** — anchor cocok di tempat lebih
+   awal, 68 rute bukan 49. Ketahuan dari `wc -l`, dipulihkan lewat
+   `git show HEAD:… > berkas` (bukan `git checkout`).
+3. **Gerbang tenancy menangkap saya saat BERJALAN.** `invoices` kategori C;
+   tanpa saringan proyek, kebiasaan bayar klien tenant lain akan masuk ke
+   kotak tenant ini.
+
+Dan untuk **ketiga kalinya** dalam satu sesi, sebuah pemeriksaan saya membaca
+komentarnya sendiri sebagai kode.
+
+### Ratchet tenancy dikencangkan 6 → 4
+
+Penjaganya melapor turun sendiri. ⚠ Mutasi "lepas gerbang" TIDAK merah di
+penjaga skrip itu — ia menghitung `supabase` mentah, bukan `request.db.from()`
+pada tabel kategori C. Yang menangkapnya gerbang RUNTIME. Mencatat dua
+mekanisme terpisah lebih jujur daripada mengklaim satu menutup keduanya.
+
+### Bukti
+
+```
+ringkasan-mingguan · kebiasaan-bayar · alat-laju-pakai · otomasi-terjadwal
+                              85 passed
+mutasi fungsi murni           14 mutasi, semuanya MERAH lalu pulih HIJAU
+mutasi verifikasi migrasi     422 (4) · 423 (5) · 424 (4) — semuanya MERAH
+14 penjaga arsitektural       exit=0
+50 rute otomasi · katalog 51 nomor, 51 berbeda
+lint:ratchet                  0 error, 231 warning
+```
