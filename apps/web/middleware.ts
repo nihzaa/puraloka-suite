@@ -94,7 +94,17 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // Kalau kelak staf perlu mengisi timesheet-nya sendiri, yang dibuka adalah
   // rute terpisah (mis. `/sdm/saya`) dengan endpoint yang menyaring ke
   // pegawai yang sedang masuk — bukan membuka `/sdm` seluruhnya.
-  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/risiko", "/k3", "/m", "/peta-modul"],
+  // `/master` = master data lintas proyek (katalog AHSP, price book, WBS,
+  // karyawan, penomoran). TIDAK ADA di daftar ini sampai 2026-08-16 — akibatnya
+  // `/master/wbs` dan `/master/karyawan` yang sudah lama ada pun DIALIHKAN
+  // DIAM-DIAM ke /dashboard, tanpa satu pun galat. Kelas cacat yang sama persis
+  // pernah menahan `/estimasi` (lihat taksonomi: "UI /estimasi kini hidup —
+  // sebelumnya tak terjangkau middleware.ts").
+  //
+  // Ditahan di admin, tidak dibuka untuk PM: mengubah price book menggeser
+  // SELURUH HSP di semua proyek sekaligus, termasuk penawaran yang belum
+  // terkunci. Itu kewenangan yang lebih luas daripada mengerjakan satu proyek.
+  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/master", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/risiko", "/k3", "/m", "/peta-modul"],
 };
 
 /**

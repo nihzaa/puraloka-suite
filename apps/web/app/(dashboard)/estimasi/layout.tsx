@@ -45,14 +45,21 @@ import { usePathname } from "next/navigation";
 import { JudulBagian } from "@/components/judul-bagian";
 import { C } from "@/lib/warna-ui";
 
-const BAGIAN = [
+interface Bagian {
+  href: string;
+  label: string;
+  /** Cocok PERSIS, bukan awalan — hanya untuk "/estimasi" sendiri. */
+  tepat?: boolean;
+}
+
+const BAGIAN: Bagian[] = [
   { href: "/estimasi", label: "Ikhtisar", tepat: true },
   { href: "/estimasi/rab", label: "Susun RAB" },
   { href: "/estimasi/rap", label: "Anggaran Pelaksanaan" },
   { href: "/estimasi/kas", label: "Proyeksi Kas" },
   { href: "/estimasi/varians", label: "Varians Biaya" },
   { href: "/estimasi/markup", label: "Markup & PPN" },
-] as const;
+];
 
 export default function EstimasiLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname();

@@ -17,20 +17,60 @@
  * punya RAB, mana yang masih draft, mana yang sudah terkunci.
  */
 
+import { Suspense, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
-import { FileText, Layers, Lock, Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import { LayarKosong } from "./_bersama/layar-kosong";
-import { rpRingkas, type ProyekRingkas } from "./_bersama/tipe";
+import { type ProyekRingkas } from "./_bersama/tipe";
 
 interface JawabProyek {
   projects?: ProyekRingkas[];
 }
 
+/**
+ * Tautan lama `?tab=…` DIALIHKAN, bukan dibiarkan mati.
+ *
+ * Ada 9 rujukan `/estimasi?tab=…` di `peta-menu.ts`, dan tautan seperti itu
+ * juga sudah beredar di luar kode — dibagikan lewat chat, disimpan sebagai
+ * bookmark. Membiarkannya mendarat di ikhtisar tanpa penjelasan persis
+ * kegagalan yang sedang diperbaiki modul ini: pengguna sampai di layar yang
+ * bukan tujuannya, tanpa tahu kenapa.
+ */
+const ALIH: Record<string, string> = {
+  komposer: "/estimasi/rab",
+  rap: "/estimasi/rap",
+  cashflow: "/estimasi/kas",
+  varians: "/estimasi/varians",
+  katalog: "/master/ahsp",
+  harga: "/master/harga",
+};
+
 export default function EstimasiIkhtisarPage() {
+  return (
+    <Suspense fallback={null}>
+      <IsiIkhtisar />
+    </Suspense>
+  );
+}
+
+function IsiIkhtisar() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const tabLama = params.get("tab");
+
+  useEffect(() => {
+    const tujuan = tabLama ? ALIH[tabLama] : undefined;
+    if (tujuan) router.replace(tujuan);
+  }, [tabLama, router]);
+
   const { data, memuat, galat } = useData<JawabProyek>("/api/v1/projects");
   const proyek = data?.projects ?? [];
+
+  // Sedang dialihkan — jangan berkedip menampilkan ikhtisar dulu.
+  if (tabLama && ALIH[tabLama]) return null;
 
   if (memuat) {
     return (
