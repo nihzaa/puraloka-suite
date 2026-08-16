@@ -29,7 +29,31 @@
 --   1 proyek  polis KADALUARSA, tak diperpanjang    <- celah, terlihat
 --   1 proyek  polis berakhir dalam < 30 hari        <- celah, akan datang
 --   1 proyek  hanya TPL, TANPA CAR                  <- celah paling halus
---   2 proyek  TAK PUNYA polis sama sekali           <- celah paling jelas
+--   sisanya   TAK PUNYA polis sama sekali           <- celah paling jelas
+--
+-- ⚠ KOREKSI 2026-08-16, beberapa jam sesudah migrasi ini ditulis.
+--
+-- Baris terakhir semula berbunyi angka mati ("2 proyek", lalu "3 proyek" di
+-- pesan commit-nya). Keduanya benar SAAT DIUKUR — 11 proyek aktif — dan SALAH
+-- satu jam kemudian: sesi lain menambah tiga proyek infrastruktur besar, lalu
+-- satu lagi.
+--
+-- Diukur ulang: 15 proyek aktif, ENAM tanpa polis, senilai Rp 13,72 miliar.
+--
+-- Yang keliru bukan pengukurannya, melainkan MENULISKANNYA sebagai angka mati
+-- di dokumen yang tak ikut berubah. Persis racun konteks yang dilarang
+-- CLAUDE.md di kalimat pembukanya: "kalau sebuah fakta bisa basi, jangan tulis
+-- faktanya — tulis cara mengukurnya."
+--
+-- Cara mengukurnya:
+--
+--   SELECT COUNT(*), SUM(contract_value) FROM projects p
+--    WHERE p.is_deleted = false AND p.status = 'active'
+--      AND NOT EXISTS (SELECT 1 FROM polis_asuransi a WHERE a.project_id = p.id);
+--
+-- Blok verifikasi di bawah sejak awal memakai perbandingan RELATIF
+-- (`n_tanpa < 1`), bukan angka mati — jadi ia tetap benar meski proyeknya
+-- bertambah. Yang basi cuma komentarnya.
 --
 -- Baris ketiga itu yang paling berharga untuk menguji 9.2. Proyek dengan TPL
 -- saja TERLIHAT terasuransi di daftar mana pun yang cuma menghitung jumlah
