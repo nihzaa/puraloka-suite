@@ -125,7 +125,8 @@ const AMBANG = {
   //          memanggil setState dari dalam efek — `useData` yang menanganinya)
   // 50 → 44 (2026-08-16, agent proyek+sdm: delapan halaman lagi)
   // 44 → 43 (2026-08-16, agent tersebar)
-  'react-hooks/set-state-in-effect': 43,
+  // 43 → 41 (2026-08-16, agent pengaturan: 18 halaman)
+  'react-hooks/set-state-in-effect': 41,
   // turun 71 → 67 (.ds-sync diabaikan) → 15 (2026-08-01).
   //
   // Sebagian besar adalah 50 impor ikon/helper yatim yang menumpuk saat
@@ -169,7 +170,9 @@ const AMBANG = {
   '@next/next/no-img-element': 11,
   // 4 → 2 (2026-08-16, halaman pindah ke `useData`: data diturunkan dari
   //        jawaban, bukan disalin ke state lalu dimutasi di tempat)
-  'react-hooks/immutability': 2,
+  // 2 → 1 (2026-08-16, situs/ berhenti menyisipkan respons PATCH ke array
+  //       state secara manual — kini `muatUlang()`)
+  'react-hooks/immutability': 1,
   'react-hooks/purity': 2,
   'react-hooks/rules-of-hooks': 1,
   // NOL sejak 2026-08-01: satu-satunya pelanggaran adalah ternary-sebagai-statement
