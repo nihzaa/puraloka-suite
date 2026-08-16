@@ -20,9 +20,10 @@
  * kedua cukup berhenti menarik.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { PiggyBank, AlertTriangle, TrendingDown, ShieldCheck, Plus, RefreshCw } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
@@ -230,12 +231,7 @@ function kolomDenganAksi(onTarik: (p: Pos) => void): Array<Kolom<Pos>> {
 }
 
 export default function ContingencyPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  const [hasil, setHasil] = useState<Hasil | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [sukses, setSukses] = useState<string | null>(null);
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
   const [mengirim, setMengirim] = useState(false);
 
   const [fProyek, setFProyek] = useState("");
@@ -246,26 +242,31 @@ export default function ContingencyPage() {
   /** Pos yang sedang ditarik. `null` = modal tertutup. */
   const [posTarik, setPosTarik] = useState<Pos | null>(null);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); })
-      .finally(() => setMemuat(false));
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<Hasil>("/api/v1/contingency", { signal: ac.signal })
-      .then((r) => setHasil(r.data))
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-        setGalat(m ?? "Gagal memuat data contingency");
-      });
-    return () => ac.abort();
-  }, [muatUlangKe]);
+    Dua permintaan lama (daftar proyek, hasil contingency) jadi dua `useData`
+    independen — keduanya tak saling bergantung, sama seperti versi lama yang
+    memuatnya lewat dua efek terpisah.
+  */
+  const { data: dataProyek, memuat, galat: galatMuatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
+
+  const { data: hasil, galat: galatMuatHasil, muatUlang: muatUlangHasil } =
+    useData<Hasil>("/api/v1/contingency");
+
+  const muat = useCallback(async () => { await muatUlangHasil(); }, [muatUlangHasil]);
+
+  /*
+    Galat MUAT dan galat AKSI (kirim/tarik) sengaja dipisah — satu state
+    untuk keduanya membuat gagal mengirim menghapus pesan gagal memuat.
+    Ditemukan berpola di halaman lain F4-2.
+  */
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi ?? (
+    (galatMuatProyek || galatMuatHasil) ? "Gagal memuat data contingency" : null
+  );
 
   const halangan = useMemo(() => {
     if (!fProyek) return "Pilih proyek lebih dulu.";
@@ -276,7 +277,7 @@ export default function ContingencyPage() {
 
   async function kirim() {
     if (halangan) return;
-    setMengirim(true); setGalat(null); setSukses(null);
+    setMengirim(true); setGalatAksi(null); setSukses(null);
     try {
       await api.post("/api/v1/contingency", {
         project_id: fProyek, nama: fNama.trim(), nilai: Number(fNilai),
@@ -284,10 +285,10 @@ export default function ContingencyPage() {
       });
       setSukses(`Pos "${fNama.trim()}" tercatat. Sisanya dihitung otomatis dari tiap penarikan.`);
       setFNama(""); setFNilai(""); setFDasar("");
-      setMuatUlangKe((n) => n + 1);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal mencatat pos cadangan");
+      setGalatAksi(m ?? "Gagal mencatat pos cadangan");
     } finally {
       setMengirim(false);
     }
@@ -393,7 +394,7 @@ export default function ContingencyPage() {
                 {mengirim ? "Mencatat…" : "Tetapkan cadangan"}
               </button>
               {halangan && <span role="status" style={{ fontSize: 12, color: C.mid }}>{halangan}</span>}
-              <button type="button" onClick={() => setMuatUlangKe((n) => n + 1)}
+              <button type="button" onClick={() => void muat()}
                 style={{
                   marginLeft: "auto", padding: "8px 12px", borderRadius: 6,
                   border: `1px solid ${C.border}`, background: "var(--surface)",
@@ -521,7 +522,7 @@ export default function ContingencyPage() {
         onTutup={() => setPosTarik(null)}
         onBerhasil={() => {
           setSukses("Penarikan tercatat. Sisa pos dihitung ulang dari seluruh penarikan.");
-          setMuatUlangKe((n) => n + 1);
+          void muat();
         }}
       />
     </div>

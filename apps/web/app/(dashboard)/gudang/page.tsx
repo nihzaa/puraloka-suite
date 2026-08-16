@@ -34,7 +34,7 @@
  * hilang, dan tak ada satu pun layar yang selama ini menunjukkannya.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
 } from "recharts";
@@ -42,7 +42,7 @@ import {
   AlertTriangle, ArrowLeftRight, Boxes, PackageOpen,
   RefreshCw, Warehouse, Wrench,
 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Galat, KepalaHalaman, Lencana, Rangka, Tombol } from "@/components/dasar";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
@@ -64,31 +64,16 @@ const WARNA_KATEGORI = [
 ] as const;
 
 export default function GudangIkhtisarPage() {
-  const [data, setData] = useState<IkhtisarGudang | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
-  const abortRef = useRef<AbortController | null>(null);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    void muat();
-    return () => abortRef.current?.abort();
-  }, []);
-
-  async function muat() {
-    abortRef.current?.abort();
-    abortRef.current = makeAbortController();
-    const signal = abortRef.current.signal;
-    setMemuat(true);
-    setGalat("");
-    try {
-      const r = await api.get<IkhtisarGudang>("/api/v1/gudang/ikhtisar", { signal });
-      setData(r.data);
-    } catch (e: unknown) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      setGalat("Gagal memuat ikhtisar gudang. Pastikan API server berjalan.");
-    }
-    setMemuat(false);
-  }
+    `useData` menggantikan `abortRef` + useState trio. Halaman ini murni baca
+    — tak ada aksi tulis — jadi satu `galatMuat` sudah cukup, tak perlu
+    dipisah dari galat aksi.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } = useData<IkhtisarGudang>("/api/v1/gudang/ikhtisar");
+  const galat = galatMuat ? "Gagal memuat ikhtisar gudang. Pastikan API server berjalan." : "";
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   const kpi = data?.kpi;
 

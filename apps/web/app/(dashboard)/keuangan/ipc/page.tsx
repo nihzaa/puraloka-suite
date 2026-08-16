@@ -34,9 +34,9 @@
  * 7 mutasi tertangkap. Halaman ini menampilkannya, bukan menghitung ulang.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { FileCheck2, RefreshCw, TriangleAlert, Lock } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
@@ -166,26 +166,22 @@ function Kpi({ label, nilai, keterangan, warna }: {
 }
 
 export default function SertifikatIpcPage() {
-  const [daftar, setDaftar] = useState<Sertifikat[]>([]);
   const [terpilih, setTerpilih] = useState("");
-  const [galat, setGalat] = useState("");
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
-  // Pemuatan dilacak lewat putaran yang datanya sudah tiba, bukan bendera
-  // boolean yang dinyalakan di badan efek — bendera memaksa setState sinkron
-  // dan memicu render bertingkat.
-  const [putaranTiba, setPutaranTiba] = useState(-1);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ sertifikat: Sertifikat[] }>("/api/v1/sertifikat-ipc", { signal: ac.signal })
-      .then((r) => { setDaftar(r.data.sertifikat ?? []); setGalat(""); })
-      .catch((e) => { if (!ac.signal.aborted) setGalat(e?.response?.data?.error ?? "Gagal memuat sertifikat IPC"); })
-      .finally(() => { if (!ac.signal.aborted) setPutaranTiba(muatUlangKe); });
-    return () => ac.abort();
-  }, [muatUlangKe]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const memuat = putaranTiba !== muatUlangKe;
-  const muatUlang = useCallback(() => setMuatUlangKe((n) => n + 1), []);
+    `useData` menggantikan pola "putaran yang datanya sudah tiba" — `memuat`
+    kini datang langsung dari hook, tanpa perlu melacak sendiri apakah
+    putaran terbaru sudah selesai.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<{ sertifikat: Sertifikat[] }>("/api/v1/sertifikat-ipc");
+  // `useMemo` menstabilkan rujukan array: `awal`/`aktif`/`perluTindakan` di
+  // bawah bergantung pada `daftar`, dan ekspresi langsung `data?.x ?? []`
+  // melahirkan array baru tiap render (react-hooks/exhaustive-deps).
+  const daftar = useMemo(() => data?.sertifikat ?? [], [data]);
+  const galat = galatMuat ? "Gagal memuat sertifikat IPC" : "";
 
   // Pilihan awal jatuh ke sertifikat yang paling PERLU TINDAKAN, bukan yang
   // paling baru.

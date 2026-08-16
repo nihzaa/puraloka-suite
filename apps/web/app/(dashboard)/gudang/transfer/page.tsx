@@ -20,9 +20,10 @@
  * gudang sudah terlanjur mengetik seluruh formulir untuk ditolak.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ArrowLeftRight, ArrowRight, PackageSearch, RefreshCw } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData, invalidasi } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
@@ -60,19 +61,8 @@ const tanggalTerbaca = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
 export default function TransferStokPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  const [transfer, setTransfer] = useState<Transfer[]>([]);
-  // Stok DISIMPAN BERSAMA proyek asalnya. Tanpa itu, mengosongkannya butuh
-  // `setStok([])` sinkron di badan efek (react-hooks/set-state-in-effect) —
-  // dan yang lebih buruk: ada satu render di mana stok proyek LAMA masih
-  // terpampang sebagai pilihan untuk proyek BARU. Orang gudang bisa memilih
-  // material yang tak ada di proyek yang sedang ia buka.
-  const [stokSumber, setStokSumber] = useState<{ proyekId: string; baris: Stok[] }>({ proyekId: "", baris: [] });
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [sukses, setSukses] = useState<string | null>(null);
   const [mengirim, setMengirim] = useState(false);
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
 
   const [asal, setAsal] = useState("");
   const [tujuan, setTujuan] = useState("");
@@ -80,43 +70,37 @@ export default function TransferStokPage() {
   const [qty, setQty] = useState("");
   const [alasan, setAlasan] = useState("");
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); })
-      .finally(() => setMemuat(false));
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ transfers: Transfer[] }>("/api/v1/transfer-stok", { signal: ac.signal })
-      .then((r) => setTransfer(r.data.transfers ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat riwayat transfer"); });
-    return () => ac.abort();
-  }, [muatUlangKe]);
+    Tiga permintaan lama jadi tiga `useData`. Stok proyek asal memakai URL
+    DINAMIS bergantung `asal` — `useData` memakai URL sebagai kunci cache,
+    jadi ganti proyek lalu kembali tak perlu mengambil ulang selama masih
+    segar, DAN stok proyek lama otomatis tak terpakai lagi begitu `asal`
+    berganti (kunci cache-nya beda, bukan state yang harus dikosongkan
+    manual seperti sebelumnya).
+  */
+  const { data: dataProyek, memuat, galat: galatMuatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
 
-  // Stok proyek asal — dimuat begitu asalnya dipilih, supaya jumlah yang
-  // tersedia terlihat SEBELUM orang mengetik, bukan sesudah ditolak.
-  useEffect(() => {
-    if (!asal) return;
-    const ac = makeAbortController();
-    api.get<{ stocks: Stok[] }>(`/api/v1/procurement/stocks?project_id=${asal}`, { signal: ac.signal })
-      .then((r) => setStokSumber({ proyekId: asal, baris: r.data.stocks ?? [] }))
-      .catch((e) => {
-        if (e?.name !== "CanceledError") setStokSumber({ proyekId: asal, baris: [] });
-      });
-    return () => ac.abort();
-  }, [asal]);
+  const { data: dataTransfer, galat: galatMuatTransfer, muatUlang: muatUlangTransfer } =
+    useData<{ transfers: Transfer[] }>("/api/v1/transfer-stok");
+  const transfer = dataTransfer?.transfers ?? [];
 
-  // Hanya dipakai kalau ia memang milik proyek yang sedang dipilih —
-  // diturunkan saat render, jadi ganti proyek langsung mengosongkannya.
-  // `useMemo` supaya rujukannya stabil: array literal baru tiap render membuat
-  // `useMemo` di bawahnya ikut menghitung ulang setiap kali.
-  const stok = useMemo(
-    () => (stokSumber.proyekId === asal ? stokSumber.baris : []),
-    [stokSumber, asal],
+  const { data: dataStok, muatUlang: muatUlangStok } = useData<{ stocks: Stok[] }>(
+    asal ? `/api/v1/procurement/stocks?project_id=${asal}` : null,
+  );
+  const stok = useMemo(() => dataStok?.stocks ?? [], [dataStok]);
+
+  /*
+    Galat MUAT dan galat AKSI (kirim transfer) sengaja dipisah — satu state
+    untuk keduanya membuat gagal mengirim menghapus pesan gagal memuat.
+    Ditemukan berpola di halaman lain F4-2.
+  */
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi ?? (
+    (galatMuatProyek || galatMuatTransfer) ? "Gagal memuat data transfer" : null
   );
 
   const stokTerpilih = useMemo(
@@ -142,7 +126,7 @@ export default function TransferStokPage() {
   async function kirim() {
     if (halangan) return;
     setMengirim(true);
-    setGalat(null);
+    setGalatAksi(null);
     setSukses(null);
     try {
       await api.post("/api/v1/transfer-stok", {
@@ -152,13 +136,16 @@ export default function TransferStokPage() {
       const nm = stokTerpilih?.material?.name ?? "Material";
       setSukses(`${nm} ${angka(jumlah)} dipindahkan. Kartu stok kedua proyek sudah diperbarui.`);
       setQty(""); setAlasan("");
-      setMuatUlangKe((n) => n + 1);
-      // Muat ulang stok asal supaya angka tersedianya ikut turun.
-      const r = await api.get<{ stocks: Stok[] }>(`/api/v1/procurement/stocks?project_id=${asal}`);
-      setStokSumber({ proyekId: asal, baris: r.data.stocks ?? [] });
+      await muatUlangTransfer();
+      // Muat ulang stok asal supaya angka tersedianya ikut turun. Juga
+      // menghapus cache stok proyek TUJUAN kalau pernah dibuka sebagai asal
+      // sebelumnya — invalidasi berawalan menjangkau semua kunci company
+      // untuk endpoint ini, bukan cuma proyek yang sedang aktif.
+      invalidasi("/api/v1/procurement/stocks");
+      await muatUlangStok();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memindahkan stok");
+      setGalatAksi(m ?? "Gagal memindahkan stok");
     } finally {
       setMengirim(false);
     }
@@ -332,7 +319,7 @@ export default function TransferStokPage() {
                 Riwayat perpindahan
               </h2>
               <button
-                type="button" onClick={() => setMuatUlangKe((n) => n + 1)}
+                type="button" onClick={() => void muatUlangTransfer()}
                 style={{
                   padding: "5px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
                   background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer",

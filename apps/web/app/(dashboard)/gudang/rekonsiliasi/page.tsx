@@ -26,9 +26,9 @@
  * terbaca sama sekali oleh pembaca layar (WCAG 1.4.1).
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { PackageSearch, RefreshCw, AlertTriangle, Info, Scale } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
@@ -251,51 +251,43 @@ const KOLOM: Array<Kolom<Baris>> = [
 ];
 
 export default function RekonsiliasiMaterialPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
   const [proyekId, setProyekId] = useState("");
-  const [hasil, setHasil] = useState<Hasil | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<{ proyekId: string; pesan: string } | null>(null);
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
   const [saringStatus, setSaringStatus] = useState<Status | "semua">("semua");
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat({ proyekId: "", pesan: "Gagal memuat daftar proyek" }); })
-      .finally(() => setMemuat(false));
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Dua permintaan lama (daftar proyek, lalu rekonsiliasi PER PROYEK) diganti
+    dua `useData`. Yang kedua memakai URL DINAMIS — itu justru menguntungkan:
+    `useData` memakai URL sebagai kunci cache, jadi berpindah proyek lalu
+    kembali tak mengambil ulang selama masih segar.
+
+    `muatUlangKe` dibuang: `muatUlang()` melakukan hal yang sama, dan dengan
+    `paksa: true` — melewati cache, bukan sekadar memicu efek yang mungkin
+    memulangkan salinan lama.
+  */
+  const { data: dataProyek, memuat, galat: galatMuat } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
 
   // Proyek pertama dipilih sendiri — DITURUNKAN saat render, bukan lewat
   // efek+setState yang membuat halaman berkedip dari kosong ke isinya.
   const proyekEfektif = proyekId || proyek[0]?.id || "";
   const proyekAktif = proyek.find((p) => p.id === proyekEfektif) ?? null;
 
-  useEffect(() => {
-    if (!proyekEfektif) return;
-    const ac = makeAbortController();
-    api.get<Hasil>(`/api/v1/projects/${proyekEfektif}/rekonsiliasi-material`, { signal: ac.signal })
-      .then((r) => setHasil(r.data))
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-        // Galat dicatat BERSAMA proyek asalnya, bukan dibersihkan lewat
-        // `setGalat(null)` sinkron di badan efek. Yang sinkron memicu render
-        // beruntun (react-hooks/set-state-in-effect), dan yang lebih penting:
-        // ia menyisakan celah satu render di mana pesan galat proyek LAMA
-        // masih terpampang di atas angka proyek BARU.
-        setGalat({ proyekId: proyekEfektif, pesan: m ?? "Gagal memuat rekonsiliasi" });
-        setHasil(null);
-      });
-    return () => ac.abort();
-  }, [proyekEfektif, muatUlangKe]);
+  const { data: hasil, galat: galatHasil, muatUlang: muatUlangHasil } = useData<Hasil>(
+    proyekEfektif ? `/api/v1/projects/${proyekEfektif}/rekonsiliasi-material` : null,
+  );
 
-  // Galat hanya ditampilkan kalau ia memang milik proyek yang sedang dibuka.
-  // Diturunkan saat render — begitu proyeknya berganti, pesannya hilang sendiri
-  // tanpa perlu ada yang membersihkannya.
-  const galatTampil = galat && galat.proyekId === proyekEfektif ? galat.pesan : null;
+  const muat = useCallback(async () => { await muatUlangHasil(); }, [muatUlangHasil]);
+
+  // Galat hanya ditampilkan kalau ia memang milik proyek yang sedang dibuka:
+  // `useData` mengunci kunci cache ke URL (yang memuat `proyekEfektif`), jadi
+  // galat lama otomatis tak lagi relevan begitu proyeknya berganti — kunci
+  // barunya belum pernah gagal.
+  const galatTampil = !proyekEfektif
+    ? (galatMuat ? "Gagal memuat daftar proyek" : null)
+    : (galatHasil ? "Gagal memuat rekonsiliasi" : null);
 
   const terlihat = useMemo(
     () => (hasil?.baris ?? []).filter((b) => saringStatus === "semua" || b.status === saringStatus),
@@ -341,7 +333,7 @@ export default function RekonsiliasiMaterialPage() {
         </div>
 
         <button
-          onClick={() => setMuatUlangKe((n) => n + 1)}
+          onClick={() => void muat()}
           style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
         >
           <RefreshCw size={13} aria-hidden="true" /> Muat ulang

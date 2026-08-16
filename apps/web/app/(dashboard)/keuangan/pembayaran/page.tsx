@@ -12,10 +12,10 @@
  * dikirim ke pemilik, dan sebagai tab ia tak punya tautan.
  */
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowDownLeft, RefreshCw, Wallet, X } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Kosong } from "@/components/ui-dasar";
 import { C } from "@/lib/warna-ui";
 import { Skeleton } from "../_bersama/komponen";
@@ -32,41 +32,27 @@ function PembayaranInner() {
   const params = useSearchParams();
   const bulan = params.get("bulan") ?? "";
 
-  const [data, setData] = useState<Payment[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [gagal, setGagal] = useState<string | null>(null);
-
   const setBulan = useCallback((v: string) => {
     const p = new URLSearchParams(params.toString());
     if (v) p.set("bulan", v); else p.delete("bulan");
     router.replace(`/keuangan/pembayaran${p.size ? `?${p}` : ""}`, { scroll: false });
   }, [params, router]);
 
-  const muat = useCallback((signal?: AbortSignal) => {
-    setMemuat(true);
-    // Awalan `finance/` WAJIB — sama seperti di /keuangan/invoice. Tanpa itu
-    // hasilnya 404 yang hanya terlihat di konsol, sementara halamannya tampil
-    // rapi dengan "Belum ada pembayaran". Dijaga `uji-endpoint-ada.mjs`.
-    return api.get<{ payments: Payment[] }>("/api/v1/finance/payments", {
-      params: bulan ? { limit: "100", month: bulan } : { limit: "100" }, signal,
-    })
-      .then((r) => { setData(r.data.payments); setGagal(null); })
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        setData([]);
-        setGagal(e?.response?.data?.error ?? "Gagal memuat riwayat pembayaran.");
-      })
-      .finally(() => setMemuat(false));
-  }, [bulan]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask` — lihat catatan yang sama di /keuangan/invoice:
-  // `muat()` menyetel state di baris pertamanya, dan setState sinkron di
-  // dalam effect memicu render kedua sebelum yang pertama selesai.
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    URL-nya DINAMIS mengikuti `bulan` — `useData` memakai URL sebagai kunci
+    cache, jadi ganti bulan lalu kembali tak mengambil ulang selama masih
+    segar. Awalan `finance/` WAJIB — sama seperti di /keuangan/invoice. Tanpa
+    itu hasilnya 404 yang hanya terlihat di konsol; dijaga `uji-endpoint-ada.mjs`.
+  */
+  const jalur = bulan
+    ? `/api/v1/finance/payments?limit=100&month=${encodeURIComponent(bulan)}`
+    : "/api/v1/finance/payments?limit=100";
+  const { data: hasil, memuat, galat: galatMuat, muatUlang } = useData<{ payments: Payment[] }>(jalur);
+  const data = hasil?.payments ?? [];
+  const gagal = galatMuat ? "Gagal memuat riwayat pembayaran." : null;
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   const total = data.reduce((s, p) => s + Number(p.amount_paid), 0);
 
@@ -97,7 +83,7 @@ function PembayaranInner() {
             <X size={12} aria-hidden="true" /> Reset
           </button>
         )}
-        <button onClick={() => muat()} style={{
+        <button onClick={() => void muat()} style={{
           display: "flex", alignItems: "center", gap: 4, padding: "6px 12px",
           border: `1px solid ${C.border}`, borderRadius: 6,
           background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer",
@@ -121,7 +107,7 @@ function PembayaranInner() {
           color: C.onDangerBg, fontSize: 13,
         }}>
           {gagal}{" "}
-          <button onClick={() => muat()} style={{
+          <button onClick={() => void muat()} style={{
             marginLeft: 6, padding: "2px 8px", borderRadius: 6,
             border: `1px solid ${C.redBorder}`, background: "transparent",
             color: C.onDangerBg, fontSize: 12, fontWeight: 600, cursor: "pointer",
