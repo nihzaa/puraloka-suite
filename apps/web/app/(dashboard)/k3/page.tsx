@@ -38,13 +38,14 @@
  * terlihat paling buruk, dan orang berhenti mempercayai angkanya.
  */
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ShieldCheck, TriangleAlert, Repeat, Plus, GraduationCap, HardHat,
   Leaf, ClipboardCheck, CircleCheck,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, KartuAngka, BarisAngka,
@@ -160,11 +161,7 @@ export default function K3Page() {
 function IsiK3() {
   const params = useSearchParams();
   const dariUrl = params.get("proyek") ?? "";
-  const [proyekList, setProyekList] = useState<Proyek[]>([]);
   const [proyekId, setProyekId] = useState("");
-  const [data, setData] = useState<Muatan | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
   const [tab, setTab] = useState<"inspeksi" | "induksi" | "apd" | "lingkungan">("inspeksi");
 
   const [tambahInsp, setTambahInsp] = useState(false);
@@ -181,34 +178,38 @@ function IsiK3() {
 
   const [menyimpan, setMenyimpan] = useState(false);
   const [galatModal, setGalatModal] = useState<string | null>(null);
+  // Galat AKSI untuk tutup-temuan (tak punya dialog sendiri) — dipisah dari
+  // galat MUAT supaya gagal menutup temuan tak menghapus pesan gagal memuat.
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Dua `useData`: proyek (independen) + K3 (BERGANTUNG `proyekId`) — muat
+    berantai dua tingkat.
+  */
+  const { data: dataProyek, galat: galatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyekList = useMemo(() => dataProyek?.projects ?? [], [dataProyek]);
+
+  // set-state di badan efek ditandai sadar, bukan dibungkam: `proyekList`
+  // datang dari `useData`, dan efek ini hanya menetapkan pilihan AWAL sekali
+  // saat daftarnya tiba — bukan render berantai sinkron.
   useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => {
-        const d = r.data.projects ?? [];
-        setProyekList(d);
-        setProyekId((s) =>
-          s || (dariUrl && d.some((p) => p.id === dariUrl) ? dariUrl : "") || d[0]?.id || "");
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); });
-    return () => ac.abort();
-  }, [dariUrl]);
+    if (proyekList.length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProyekId((s) =>
+      s || (dariUrl && proyekList.some((p) => p.id === dariUrl) ? dariUrl : "") || proyekList[0]?.id || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proyekList]);
 
-  const muat = useCallback(async (id: string) => {
-    if (!id) { void Promise.resolve().then(() => setData(null)); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Muatan>(`/api/v1/proyek/${id}/k3`);
-      setData(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat data K3");
-      setData(null);
-    } finally { setMemuat(false); }
-  }, []);
+  const jalurK3 = proyekId ? `/api/v1/proyek/${proyekId}/k3` : null;
+  const { data, memuat, galat: galatK3, muatUlang } = useData<Muatan>(jalurK3);
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
-  useEffect(() => { queueMicrotask(() => { void muat(proyekId); }); }, [proyekId, muat]);
+  const galat = galatAksi ?? (galatProyek
+    ? "Gagal memuat daftar proyek"
+    : (proyekId && galatK3 ? "Gagal memuat data K3" : null));
 
   const simpanInspeksi = useCallback(async () => {
     if (!proyekId) return;
@@ -220,7 +221,7 @@ function IsiK3() {
         ringkasan: iRingkasan.trim() || null,
       });
       setTambahInsp(false); setIArea(""); setIRingkasan(""); setITanggal("");
-      await muat(proyekId);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal mencatat inspeksi");
@@ -240,22 +241,23 @@ function IsiK3() {
       });
       setTemuanUntuk(null);
       setTUraian(""); setTKategori(""); setTTindakan(""); setTTenggat("");
-      await muat(proyekId);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menambah temuan");
     } finally { setMenyimpan(false); }
-  }, [temuanUntuk, tUraian, tKategori, tTingkat, tTindakan, tTenggat, proyekId, muat]);
+  }, [temuanUntuk, tUraian, tKategori, tTingkat, tTindakan, tTenggat, muat]);
 
   const tutupTemuan = useCallback(async (t: Temuan) => {
+    setGalatAksi(null);
     try {
       await api.patch(`/api/v1/k3/temuan/${t.id}`, { status: "ditutup" });
-      await muat(proyekId);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menutup temuan");
+      setGalatAksi(m ?? "Gagal menutup temuan");
     }
-  }, [proyekId, muat]);
+  }, [muat]);
 
   const kolomTemuan: Array<Kolom<Temuan>> = [
     {
@@ -488,7 +490,7 @@ function IsiK3() {
         }
       />
 
-      {galat && <Galat pesan={galat} onCobaLagi={() => void muat(proyekId)} />}
+      {galat && <Galat pesan={galat} onCobaLagi={() => void muat()} />}
 
       <Kartu pad="sedang">
         <label htmlFor="k3-pilih-proyek" style={{

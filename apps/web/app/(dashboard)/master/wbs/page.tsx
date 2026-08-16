@@ -29,7 +29,8 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import {
   Network, RefreshCw, Plus, Copy, Check, Play, Archive, Layers, Users,
 } from "lucide-react";
-import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
@@ -66,13 +67,8 @@ const langganan = (cb: () => void) => {
 };
 
 export default function TemplateWbsPage() {
-  const [daftar, setDaftar] = useState<Template[]>([]);
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
   const [pesan, setPesan] = useState<{ jenis: "ok" | "galat"; teks: string } | null>(null);
   const [sibuk, setSibuk] = useState<string | null>(null);
-  const [putaran, setPutaran] = useState(0);
   const [formBuat, setFormBuat] = useState<{ salinDari: Template | null } | null>(null);
   const [formTerap, setFormTerap] = useState<Template | null>(null);
 
@@ -81,34 +77,36 @@ export default function TemplateWbsPage() {
   const bolehTerap = useSyncExternalStore(
     langganan, () => hasPermission("projects:edit"), () => false);
 
-  const muat = useCallback((signal: AbortSignal) => {
-    setMemuat(true);
-    setGalat("");
-    return Promise.all([
-      api.get<{ template: Template[] }>("/api/v1/template-wbs", { signal }),
-      api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal }).catch(() => null),
-    ])
-      .then(([r, p]) => {
-        setDaftar(r.data.template ?? []);
-        // Daftar proyek hanya untuk dialog terapkan. Gagal memuatnya TIDAK
-        // melumpuhkan halaman — yang utama di sini membaca template.
-        if (p) setProyek(p.data.projects ?? []);
-      })
-      .catch((e) => {
-        if ((e as { code?: string })?.code === "ERR_CANCELED") return;
-        setGalat(
-          (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-            ?? "Gagal memuat template WBS.",
-        );
-      })
-      .finally(() => setMemuat(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat, putaran]);
+    Dua `useData` menggantikan `Promise.all` + AbortController + putaran.
+    Daftar proyek TETAP "gagal tak melumpuhkan": `useData` keduanya berdiri
+    sendiri, dan galat proyek sengaja tak diperiksa — sama seperti versi
+    lama yang menelannya lewat `.catch(() => null)`.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<{ template: Template[] }>("/api/v1/template-wbs");
+  const { data: dataProyek, muatUlang: muatUlangProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+
+  // `useMemo` (bukan turunan biasa): `daftar` masuk dependensi `useMemo`
+  // `kelompok` di bawah, dan `[] !== []` tiap render membuatnya berjalan
+  // ulang tanpa henti.
+  const daftar = useMemo(() => data?.template ?? [], [data]);
+  const proyek = dataProyek?.projects ?? [];
+
+  const muat = useCallback(async () => {
+    await Promise.all([muatUlang(), muatUlangProyek()]);
+  }, [muatUlang, muatUlangProyek]);
+
+  /*
+    Galat MUAT dan galat AKSI (ubah status/simpan template) sengaja dipisah —
+    `pesan` sudah menjalankan peran galat AKSI, jadi galat muat ditambahkan
+    sebagai lapis terpisah supaya gagal mengubah status tidak menghapus pesan
+    gagal memuat.
+  */
+  const galat = galatMuat ? "Gagal memuat template WBS." : "";
 
   useEffect(() => {
     if (!pesan) return;
@@ -127,7 +125,7 @@ export default function TemplateWbsPage() {
           ? `${t.code} v${t.version_number} aktif — strukturnya kini terkunci, dan bisa diterapkan ke proyek baru.`
           : `${t.code} v${t.version_number} ditandai digantikan.`,
       });
-      setPutaran((x) => x + 1);
+      void muat();
     } catch (e) {
       setPesan({
         jenis: "galat",
@@ -174,7 +172,7 @@ export default function TemplateWbsPage() {
           )}
           <button
             type="button"
-            onClick={() => setPutaran((x) => x + 1)}
+            onClick={() => void muat()}
             disabled={memuat}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
@@ -301,7 +299,7 @@ export default function TemplateWbsPage() {
           onSelesai={(teks) => {
             setFormBuat(null);
             setPesan({ jenis: "ok", teks });
-            setPutaran((x) => x + 1);
+            void muat();
           }}
         />
       )}
@@ -314,7 +312,7 @@ export default function TemplateWbsPage() {
           onSelesai={(teks) => {
             setFormTerap(null);
             setPesan({ jenis: "ok", teks });
-            setPutaran((x) => x + 1);
+            void muat();
           }}
         />
       )}

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, getStoredUser } from "@/lib/api";
+import { getStoredUser } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { MapPin, Calendar, ChevronRight, TrendingUp, AlertCircle } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -38,15 +38,18 @@ function fmtDate(s: string | null) {
 }
 
 export default function PortalHomePage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
   const user = getStoredUser();
 
-  useEffect(() => {
-    api.get("/api/v1/projects").then((res) => {
-      setProjects(res.data?.projects ?? []);
-    }).finally(() => setLoading(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    `useData` menggantikan useEffect+useState. Halaman ini dibuka KLIEN
+    (bukan orang dalam) — proyek yang dikembalikan sudah disaring server per
+    `request.db`, jadi tak ada saringan identitas tambahan yang perlu
+    ditambahkan di sini.
+  */
+  const { data, memuat: loading } = useData<{ projects: Project[] }>("/api/v1/projects");
+  const projects = data?.projects ?? [];
 
   const activeCount = projects.filter((p) => p.status === "active").length;
   const completedCount = projects.filter((p) => p.status === "completed").length;

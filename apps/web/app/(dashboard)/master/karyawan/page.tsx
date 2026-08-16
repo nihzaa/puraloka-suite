@@ -28,7 +28,8 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import {
   IdCard, RefreshCw, Plus, Pencil, AlertTriangle, UserMinus, Check,
 } from "lucide-react";
-import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
@@ -84,57 +85,49 @@ const langganan = (cb: () => void) => {
 };
 
 export default function KaryawanPage() {
-  const [daftar, setDaftar] = useState<Pegawai[]>([]);
-  const [ringkasan, setRingkasan] = useState<Ringkasan | null>(null);
-  const [pilihan, setPilihan] = useState<{ status_ptkp: string[]; kategori_ter: string[] }>({
-    status_ptkp: [], kategori_ter: [],
-  });
-  const [bolehLihatGaji, setBolehLihatGaji] = useState(false);
-  const [calon, setCalon] = useState<Calon[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
   const [pesan, setPesan] = useState<{ jenis: "ok" | "galat"; teks: string } | null>(null);
-  const [putaran, setPutaran] = useState(0);
   const [form, setForm] = useState<{ mode: "baru" } | { mode: "sunting"; p: Pegawai } | null>(null);
 
   const bolehKelola = useSyncExternalStore(
     langganan, () => hasPermission("sdm:pegawai:manage"), () => false);
 
-  const muat = useCallback((signal: AbortSignal) => {
-    setMemuat(true);
-    setGalat("");
-    return Promise.all([
-      api.get<{
-        pegawai: Pegawai[]; ringkasan: Ringkasan;
-        pilihan: { status_ptkp: string[]; kategori_ter: string[] };
-        boleh_lihat_gaji: boolean;
-      }>("/api/v1/sdm/pegawai/kelola", { signal }),
-      api.get<{ calon: Calon[] }>("/api/v1/sdm/pegawai/calon", { signal }).catch(() => null),
-    ])
-      .then(([r, c]) => {
-        setDaftar(r.data.pegawai ?? []);
-        setRingkasan(r.data.ringkasan ?? null);
-        setPilihan(r.data.pilihan ?? { status_ptkp: [], kategori_ter: [] });
-        setBolehLihatGaji(r.data.boleh_lihat_gaji);
-        // Daftar calon hanya untuk dialog tambah. Gagal memuatnya TIDAK
-        // melumpuhkan halaman — yang utama di sini membaca data pegawai.
-        if (c) setCalon(c.data.calon ?? []);
-      })
-      .catch((e) => {
-        if ((e as { code?: string })?.code === "ERR_CANCELED") return;
-        setGalat(
-          (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-            ?? "Gagal memuat data kepegawaian.",
-        );
-      })
-      .finally(() => setMemuat(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat, putaran]);
+    Dua `useData` menggantikan `Promise.all` + AbortController + putaran.
+    Daftar calon TETAP "gagal tak melumpuhkan" — `useData` kedua dibiarkan
+    berdiri sendiri; kegagalannya (`galatCalon`) sengaja tak diperiksa di
+    bawah, persis seperti versi lama yang menelan galatnya lewat `.catch(() =>
+    null)`.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } = useData<{
+    pegawai: Pegawai[]; ringkasan: Ringkasan;
+    pilihan: { status_ptkp: string[]; kategori_ter: string[] };
+    boleh_lihat_gaji: boolean;
+  }>("/api/v1/sdm/pegawai/kelola");
+  const { data: dataCalon, muatUlang: muatUlangCalon } =
+    useData<{ calon: Calon[] }>("/api/v1/sdm/pegawai/calon");
+
+  // `useMemo` (bukan turunan biasa): `daftar` masuk dependensi `useMemo`
+  // `urut` di bawah, dan `[] !== []` tiap render membuatnya berjalan ulang
+  // tanpa henti.
+  const daftar = useMemo(() => data?.pegawai ?? [], [data]);
+  const ringkasan = data?.ringkasan ?? null;
+  const pilihan = data?.pilihan ?? { status_ptkp: [], kategori_ter: [] };
+  const bolehLihatGaji = data?.boleh_lihat_gaji ?? false;
+  const calon = dataCalon?.calon ?? [];
+
+  const muat = useCallback(async () => {
+    await Promise.all([muatUlang(), muatUlangCalon()]);
+  }, [muatUlang, muatUlangCalon]);
+
+  /*
+    Galat MUAT dan galat AKSI (simpan pegawai) sengaja dipisah — `pesan`
+    sudah menjalankan peran galat AKSI (lihat `onSelesai`/galat form di
+    bawah), jadi galat muat ditambahkan sebagai lapis terpisah supaya gagal
+    menyimpan tidak menghapus pesan gagal memuat.
+  */
+  const galat = galatMuat ? "Gagal memuat data kepegawaian." : "";
 
   useEffect(() => {
     if (!pesan) return;
@@ -188,7 +181,7 @@ export default function KaryawanPage() {
           )}
           <button
             type="button"
-            onClick={() => setPutaran((x) => x + 1)}
+            onClick={() => void muat()}
             disabled={memuat}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
@@ -297,7 +290,7 @@ export default function KaryawanPage() {
           onSelesai={(teks) => {
             setForm(null);
             setPesan({ jenis: "ok", teks });
-            setPutaran((x) => x + 1);
+            void muat();
           }}
         />
       )}
