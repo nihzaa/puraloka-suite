@@ -3091,6 +3091,37 @@ items:
       Mutasi: proyek selesai ikut "kontrak berjalan" → MERAH; "diterima" pakai
       total_amount → MERAH. Keduanya pulih.
 
+  - id: ASISTEN-20
+    fase: null
+    judul: "3.20 beban mandor lintas proyek — dan 1.9 yang ternyata sudah ada"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: hanya penugasan `active` yang dihitung (Pak Budi 5 total → 4 aktif)"
+      - "SUDAH: ambang sorot dari RATA-RATA perusahaan, bukan angka tetap"
+      - "SUDAH: relasi users DINAMAI (dua FK ke users bikin `users!inner` ambigu)"
+      - "SUDAH: menyatakan keahlian & lokasi tak terbaca dari angka"
+      - "SUDAH: 1.9 DIVERIFIKASI sudah dijawab `progres_lapangan` — tak dibangun ulang"
+      - "SUDAH: mutasi terbukti merah (2 test)"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/ai-tool-beban-mandor.test.ts
+      (7 hijau)
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16 (sesi ASISTEN). Katalog tool 38 → 39.
+      1.9 TIDAK dibangun: dijalankan dulu lewat `progres_lapangan` dengan
+      pertanyaan katalognya apa adanya, dan ia menjawab ("Rumah Bu Sari — Dago:
+      40% per 2026-06-01"). Tool kedua berarti dua sumber untuk satu jawaban.
+      3.20: saringan `active` menentukan seluruh jawabannya — menghitung
+      `completed` membuat mandor lama terlihat paling sibuk padahal ia paling
+      longgar. Pak Budi 5 penugasan total, 4 aktif.
+      Ambang "jauh di atas rata-rata" diturunkan dari rata-rata perusahaan itu
+      sendiri: perusahaan 3 mandor dan 30 mandor punya "sibuk" berbeda.
+      Sisa kelompok Operasional yang TIDAK dibangun beserta sebabnya: 3.13
+      (2 change order, keduanya sudah diputuskan — tak ada yang disimulasikan),
+      5.2/5.5/7.4 (generator DOKUMEN, bukan tool baca), 5.8 (sudah tercakup
+      2.17+8.9), 8.10 (butuh pola beban pemilik lintas waktu).
+
   - id: ASISTEN-SISA
     fase: null
     judul: "Sisa kelompok Pemilik/eksekutif — 5 nomor, syarat masuk berbeda-beda"

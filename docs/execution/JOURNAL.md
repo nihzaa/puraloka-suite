@@ -5,6 +5,74 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi ASISTEN, 7) — 3.20 beban mandor; 1.9 TERNYATA SUDAH ADA
+
+Katalog tool asisten: 38 → 39. Masuk kelompok "Operasional proyek".
+
+### 1.9 tidak dibangun — SUDAH dijawab tool yang ada
+
+Sebelum menulis kode, saya jalankan `progres_lapangan` dengan pertanyaan 1.9
+apa adanya ("Progress proyek X berapa persen?"):
+
+    Pembangunan Rumah Bu Sari — Dago: 40% per 2026-06-01
+    — Dinding bata lantai 1 80% selesai
+
+Membangun tool kedua berarti dua sumber untuk satu jawaban, dan yang kedua
+akan menyimpang. Nomor 1.9 dicatat sebagai sudah tercakup, bukan dikerjakan
+ulang demi mencentang daftar.
+
+### 3.20 — satu saringan yang menentukan seluruh jawabannya
+
+`mandor_assignments.status` bernilai `active` atau `completed` (diukur, bukan
+ditebak). Menghitung keduanya membuat mandor lama yang sudah MENYELESAIKAN
+banyak proyek terlihat paling sibuk — padahal ia justru paling longgar
+sekarang.
+
+Terbukti pada data ini: Pak Budi 5 penugasan total, **4 yang aktif**.
+
+    6 mandor aktif (total 15, rata-rata 2.5 per orang):
+    · Pak Budi Santoso: 4 penugasan di 4 proyek  ⚠ jauh di atas rata-rata
+    · Pak Slamet      : 3
+    · empat lainnya   : 2 masing-masing
+
+Satu orang memegang 60% lebih banyak daripada rata-rata, dan itu tak terlihat
+di halaman mana pun karena tiap halaman menampilkan satu proyek.
+
+### Ambang dari RATA-RATA, bukan angka tetap
+
+Perusahaan dengan 3 mandor dan 30 mandor punya "sibuk" yang berbeda. Angka
+tetap akan menyorot semua orang di satu perusahaan dan tak seorang pun di
+perusahaan lain.
+
+### Nomor lain di kelompok ini yang TIDAK dibangun, dan sebabnya
+
+    3.13 simulasi dampak CO   2 change order, KEDUANYA sudah diputuskan —
+                              tak ada yang bisa disimulasikan
+    5.2 BAST · 5.5 kontrak    generator DOKUMEN, bukan tool baca
+    7.4 proposal              sama — di luar batas sesi ini
+    5.8 kompilasi laporan     sudah tercakup 2.17+8.9 (ikhtisar)
+    8.10 advisor delegasi     butuh pola beban pemilik lintas waktu
+
+### Bukti
+
+    tsc (berkas saya)      0 galat
+    ai-tool-beban-mandor   7 hijau (Postgres NYATA)
+    ikhtisar 7 · serapan 7 · ai-tool 18
+    lint:ratchet           API 0/231 · web 0/295
+    audit-izin-benar-ada       exit 0
+    audit-kredensial-tak-bocor exit 0
+    audit-kegagalan-senyap     exit 0
+    audit-catch-senyap         exit 0
+    audit-tool-ai-read-only    exit 0  (ambang NOL, tetap utuh)
+    audit-baca-tak-terpotong   exit 0
+    audit-gerbang-tenancy      exit 0
+    nomor katalog kembar       NOL (67 nomor)
+    mutasi                 `completed` ikut dihitung → MERAH (2 test) → pulih
+
+Jumlah penugasan diverifikasi ulang lewat SQL terpisah.
+
+---
+
 ## 2026-08-16 (sesi ASISTEN, 6) — 2.17 + 8.9 ikhtisar perusahaan
 
 Katalog tool asisten: 37 → 38. Kelompok "Pemilik/eksekutif" 8 dari 13.

@@ -69,6 +69,7 @@ import { toolAlokasiKas } from './ai-tool-alokasi-kas.js'
 import { toolSimulasiKas } from './ai-tool-simulasi-kas.js'
 import { toolSerapanBiaya } from './ai-tool-serapan-biaya.js'
 import { toolIkhtisar } from './ai-tool-ikhtisar.js'
+import { toolBebanMandorLintas } from './ai-tool-beban-mandor.js'
 
 
 
@@ -906,6 +907,12 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     tempat menghitung angka yang sama, dan yang kedua akan menyimpang.
   */
   toolIkhtisar,
+  /*
+    Katalog 3.20 (realokasi mandor lintas proyek). Hanya penugasan AKTIF yang
+    dihitung: `completed` membuat mandor lama terlihat paling sibuk padahal ia
+    justru paling longgar, dan penugasan baru jatuh ke orang yang salah.
+  */
+  toolBebanMandorLintas,
 ]
 
 /**

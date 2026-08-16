@@ -967,6 +967,41 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'akan terlihat bagus dan salah.',
   },
   {
+    /*
+      3.20 Cross-Project Resource Optimization.
+
+      Hanya penugasan AKTIF yang dihitung. Menghitung `completed` membuat
+      mandor lama yang sudah menyelesaikan banyak proyek terlihat paling sibuk
+      — padahal ia justru paling longgar sekarang, dan penugasan baru jatuh ke
+      orang yang salah.
+
+      Terukur pada data ini: Pak Budi 5 penugasan total, 4 yang aktif.
+    */
+    kunci: 'tanya-beban-mandor-lintas',
+    kunci_bukan_rute: true,
+    nomor: '3.20',
+    nama: 'Tanya mandor mana yang kelebihan muatan',
+    pemicu: 'percakapan',
+    penjelasan:
+      'Membandingkan beban tiap mandor lintas proyek — berapa penugasan aktif '
+      + 'dan berapa proyek yang dipegangnya — supaya penugasan baru tak jatuh '
+      + 'ke orang yang sudah paling penuh.',
+    penerima: 'Yang bertanya',
+    alur: [
+      { di: 'n8n', teks: 'Pertanyaan masuk lewat WhatsApp.' },
+      { di: 'sistem', teks: 'Asisten memilih alat baca yang sesuai izin penanya.' },
+      { di: 'sistem', teks: 'Penugasan aktif dijumlah per mandor, dibandingkan rata-rata.' },
+      { di: 'n8n', teks: 'Jawabannya dikirim balik.' },
+    ],
+    catatan:
+      'Ambang "jauh di atas rata-rata" diturunkan dari RATA-RATA perusahaan '
+      + 'itu sendiri, bukan angka tetap: perusahaan dengan 3 mandor dan 30 '
+      + 'mandor punya "sibuk" yang berbeda. Keahlian, jarak lokasi, dan '
+      + 'hubungan dengan klien TIDAK terbaca dari angka — mandor dengan 2 '
+      + 'penugasan bisa saja sedang menangani pekerjaan tersulit. Yang '
+      + 'disajikan beban, bukan pilihan orang.',
+  },
+  {
     kunci: 'tanya-mandor',
     kunci_bukan_rute: true,
     nomor: '6.7, 6.11',
