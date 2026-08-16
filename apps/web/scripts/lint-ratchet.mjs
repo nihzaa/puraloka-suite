@@ -161,7 +161,9 @@ const AMBANG = {
   // menghapus ketujuhnya sekaligus, bukan hanya yang baru.
   'react-hooks/static-components': 8,
   '@next/next/no-img-element': 11,
-  'react-hooks/immutability': 4,
+  // 4 → 2 (2026-08-16, halaman pindah ke `useData`: data diturunkan dari
+  //        jawaban, bukan disalin ke state lalu dimutasi di tempat)
+  'react-hooks/immutability': 2,
   'react-hooks/purity': 2,
   'react-hooks/rules-of-hooks': 1,
   // NOL sejak 2026-08-01: satu-satunya pelanggaran adalah ternary-sebagai-statement
