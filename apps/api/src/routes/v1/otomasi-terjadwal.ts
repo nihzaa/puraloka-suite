@@ -6924,6 +6924,215 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     })
   })
 
+  // ── GET /api/v1/otomasi/jalankan/biaya-pencilan ──────────────────────────
+  //
+  // Automation 2.13 — Financial Anomaly Alert.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // SATU SINYAL YANG DIUKUR LALU DITOLAK
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Kandidat pertama terlihat menjanjikan: `gl.entry_voided` 424 kali lawan
+  // `gl.entry_created` 3.387 — pembatalan jurnal massal terdengar persis
+  // seperti anomali keuangan.
+  //
+  // Diukur lebih jauh: 424 pembatalan itu tersebar di **101 jam berbeda**,
+  // oleh satu pengguna, sementara `journal_entries` yang tersisa cuma 19.
+  // Itu bukan pembatalan mencurigakan melainkan aktivitas pengembangan yang
+  // berulang — dan otomasi yang menandainya akan berbunyi tiap hari sampai
+  // orang mematikannya.
+  //
+  // Sinyal yang terdengar paling nyaring sering yang paling harus diukur dua
+  // kali. Ini kedua kalinya di berkas ini: 5.12′ menolak "di luar jam kerja"
+  // karena 77% jejak memenuhinya.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // YANG DIPAKAI: PENCILAN TERHADAP KEBIASAAN PROYEK ITU SENDIRI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Membandingkan satu pengeluaran dengan rata-rata SELURUH perusahaan tak
+  // memisahkan apa pun: proyek gudang Rp 380 juta dan renovasi dapur Rp 90
+  // juta memang berbelanja pada skala berbeda.
+  //
+  // Pembandingnya proyek itu sendiri, dan ukurannya simpangan baku:
+  //
+  //     Keramik 60x60 40 dus   Rp 6.880.000   z = 2,53   (rata Rp 2.867.500)
+  //
+  // Pola yang sama dengan 6.4 (upah menyimpang), dan alasan yang sama.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // YANG SUDAH DITANGKAP 2.7 SENGAJA DIKELUARKAN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Nota yang tercatat dua kali sering ikut jadi pencilan — nominalnya sama,
+  // jadi dua-duanya menonjol. Membiarkannya berarti satu baris yang sama
+  // ditegur dua otomasi dengan dua penjelasan berbeda, dan penerimanya
+  // menyimpulkan salah satunya salah.
+  //
+  // `biaya-kembar` sudah menanganinya dengan penjelasan yang tepat.
+  app.get('/api/v1/otomasi/jalankan/biaya-pencilan', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { sigma?: string; minimum?: string }
+    const ambangSigma = await ambilAmbang(request, 'otomasi.biaya_pencilan.sigma', q.sigma)
+    const minRiwayat = await ambilAmbang(request, 'otomasi.biaya_pencilan.minimum', q.minimum)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['biaya_pencilan'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { biaya_diperiksa: 0, pencilan: 0, ambang_sigma: ambangSigma },
+      })
+    }
+
+    const HALAMAN = 1000
+    const biaya: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error } = await request.db!
+        .unsafe('project_expenses', 'kategori C lewat project_id; disaring ke projectIds()')
+        .select('id, project_id, description, expense_date, total_amount, vendor_name, status')
+        .in('project_id', idProyek)
+        .eq('status', 'approved')
+        .order('id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!data || data.length === 0) break
+      biaya.push(...(data as Array<Record<string, unknown>>))
+      if (data.length < HALAMAN) break
+    }
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects').select('id, name')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    // Kelompokkan per proyek; sebaran dihitung dari proyek itu sendiri.
+    const perProyek = new Map<string, Array<Record<string, unknown>>>()
+    for (const b of biaya) {
+      const pid = b.project_id as string
+      const arr = perProyek.get(pid) ?? []
+      arr.push(b)
+      perProyek.set(pid, arr)
+    }
+
+    /*
+      Pasangan KEMBAR dikeluarkan lebih dulu — bukan disaring belakangan.
+
+      Nota yang tercatat dua kali membuat nominalnya muncul dua kali, dan itu
+      MENGGESER rata-rata serta simpangan baku proyeknya. Membuangnya sesudah
+      menghitung sebaran berarti sebarannya sudah tercemar oleh baris yang
+      seharusnya tak dihitung.
+    */
+    const kembar = new Set<string>()
+    for (const [, daftar] of perProyek) {
+      for (let i = 0; i < daftar.length; i++) {
+        for (let k = i + 1; k < daftar.length; k++) {
+          const a = daftar[i]
+          const b = daftar[k]
+          if (Number(a.total_amount) !== Number(b.total_amount)) continue
+          const va = String(a.vendor_name ?? '').trim().toLowerCase()
+          const vb = String(b.vendor_name ?? '').trim().toLowerCase()
+          if (!va || va !== vb) continue
+          const ta = Date.parse(String(a.expense_date ?? '').slice(0, 10))
+          const tb = Date.parse(String(b.expense_date ?? '').slice(0, 10))
+          if (Math.abs(ta - tb) > 3 * 86_400_000) continue
+          kembar.add(a.id as string)
+          kembar.add(b.id as string)
+        }
+      }
+    }
+
+    let diperiksa = 0
+    let pencilan = 0
+    let takBisaDinilai = 0
+    let dibuat = 0
+
+    for (const [pid, semua] of perProyek) {
+      const daftar = semua.filter((b) => !kembar.has(b.id as string))
+
+      /*
+        Sebaran butuh cukup titik. Dengan tiga pengeluaran, satu belanja besar
+        MEMBUAT simpangan bakunya sendiri — dan lalu tampak wajar terhadap
+        sebaran yang ia bentuk. Yang riwayatnya tipis DILAPORKAN, bukan
+        dilewati diam.
+      */
+      if (daftar.length < minRiwayat) { takBisaDinilai += daftar.length; continue }
+      diperiksa += daftar.length
+
+      const nilai = daftar.map((b) => Number(b.total_amount ?? 0))
+      const rata = nilai.reduce((a, b) => a + b, 0) / nilai.length
+      const varian = nilai.reduce((t, v) => t + (v - rata) ** 2, 0) / (nilai.length - 1)
+      const sd = Math.sqrt(varian)
+      if (!(sd > 0)) continue
+
+      for (const b of daftar) {
+        const n = Number(b.total_amount ?? 0)
+        const z = (n - rata) / sd
+        // Hanya ke ATAS. Pengeluaran yang jauh lebih kecil daripada biasanya
+        // bukan kejanggalan keuangan — itu belanja kecil, dan menegurnya
+        // membuat daftar penuh hal yang tak perlu ditindaklanjuti.
+        if (z < ambangSigma) continue
+        pencilan++
+
+        if (sudah('biaya_pencilan', b.id as string)) continue
+
+        const penerima = await resolveRecipients('biaya_pencilan', {
+          projectId: pid, companyId: request.companyId!,
+        })
+
+        for (const uid of penerima) {
+          await createNotification({
+            company_id: request.companyId!,
+            user_id:    uid,
+            title:      'Pengeluaran Jauh di Atas Kebiasaan Proyeknya',
+            message:
+              `"${b.description}" ${rp(n)} di ${namaProyek.get(pid)}`
+              + (b.vendor_name ? ` dari ${b.vendor_name}` : '')
+              + ` — biasanya proyek ini berbelanja sekitar ${rp(Math.round(rata))} `
+              + `per catatan, dari ${daftar.length} pengeluaran. `
+              + 'Bukan berarti salah: belanja besar memang ada. Yang layak '
+              + 'diperiksa apakah ia sudah masuk anggaran, atau baru muncul '
+              + 'setelahnya.',
+            type:       'biaya_pencilan',
+            priority:   z >= ambangSigma * 1.5 ? 'high' : 'normal',
+            project_id: pid,
+            action_url: '/kas/pengeluaran',
+            action_data: {
+              record_id: b.id as string,
+              nominal: n,
+              rata_proyek: Math.round(rata),
+              simpangan: Math.round(z * 100) / 100,
+              dari_catatan: daftar.length,
+            },
+          })
+          dibuat++
+        }
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        biaya_diperiksa: diperiksa,
+        pencilan,
+        // Dilaporkan EKSPLISIT — dua angka yang mudah tertukar dengan "aman":
+        // pasangan kembar yang sengaja diserahkan ke 2.7, dan proyek yang
+        // riwayatnya terlalu tipis untuk punya sebaran.
+        dikeluarkan_karena_kembar: kembar.size,
+        tak_bisa_dinilai: takBisaDinilai,
+        ambang_sigma: ambangSigma,
+        minimum_riwayat: minRiwayat,
+      },
+    })
+  })
+
   // ── GET /api/v1/otomasi/jalankan/invoice-ringkasan-melenceng ─────────────
   //
   // TANPA nomor katalog — dan itu diperiksa, bukan diasumsikan.

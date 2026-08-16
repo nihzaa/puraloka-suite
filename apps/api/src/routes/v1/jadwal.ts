@@ -211,6 +211,11 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'biaya-pencilan': {
+    label: 'Pengeluaran Pencilan',
+    keterangan: 'Belanja jauh di atas kebiasaan proyeknya sendiri.',
+    jalur: '/api/v1/otomasi/jalankan/biaya-pencilan',
+  },
   'stok-melenceng': {
     label: 'Stok Melenceng dari Buku Gerakan',
     keterangan: 'Stok tercatat tak cocok dengan penerimaan/pemakaian/penyesuaiannya.',

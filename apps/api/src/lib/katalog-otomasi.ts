@@ -1504,6 +1504,36 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'jenis gerakan DIPAKU: menjumlahkan `qty` mentah membuat pemakaian '
       + 'ikut menambah stok dan tiap baris jadi melenceng.',
   },
+  {
+    kunci: 'biaya-pencilan',
+    nomor: '2.13',
+    nama: 'Pengeluaran jauh di atas kebiasaan proyeknya',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai belanja yang nominalnya jauh menyimpang dari kebiasaan proyek '
+      + 'itu sendiri. Bukan berarti salah — yang layak diperiksa apakah ia '
+      + 'sudah masuk anggaran, atau baru muncul sesudahnya.',
+    penerima: 'Bagian keuangan & manajer proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengelompokkan pengeluaran yang sudah disetujui per proyek.' },
+      { di: 'sistem', teks: 'Mengeluarkan pasangan kembar SEBELUM menghitung sebaran.' },
+      { di: 'sistem', teks: 'Menghitung sebaran tiap proyek dan mencari yang menyimpang jauh.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.biaya_pencilan.sigma',
+    catatan:
+      'Satu sinyal diukur lalu DITOLAK: `gl.entry_voided` 424 kali lawan 3.387 '
+      + 'pembuatan terdengar seperti pembatalan jurnal massal, tetapi tersebar '
+      + 'di 101 jam berbeda oleh satu pengguna — itu aktivitas pengembangan, '
+      + 'dan menandainya akan berbunyi tiap hari sampai dimatikan. Sinyal yang '
+      + 'paling nyaring sering yang paling harus diukur dua kali. Pasangan '
+      + 'kembar dikeluarkan SEBELUM sebaran dihitung, bukan disaring '
+      + 'belakangan: nota ganda menggeser rata-rata dan simpangan bakunya, '
+      + 'jadi membuangnya belakangan berarti sebarannya sudah tercemar. Hanya '
+      + 'menyimpang KE ATAS yang ditandai — belanja yang jauh lebih kecil '
+      + 'bukan kejanggalan keuangan.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */

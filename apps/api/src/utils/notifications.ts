@@ -163,6 +163,7 @@ export type NotificationType =
   | 'opname_disengketakan'
   | 'stok_melenceng'
   | 'stok_susut_berulang'
+  | 'biaya_pencilan'
   | 'pengingat_asisten'
   | 'titipan_asisten'
   | 'general'

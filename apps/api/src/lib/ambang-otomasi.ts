@@ -361,6 +361,47 @@ export const AMBANG_OTOMASI = {
     langkah: 1,
   },
   /*
+    Pengeluaran pencilan. Bawaan 2 simpangan baku dari kebiasaan proyeknya.
+
+    Pembandingnya proyek ITU SENDIRI, bukan rata-rata perusahaan: proyek
+    gudang Rp 380 juta dan renovasi dapur Rp 90 juta memang berbelanja pada
+    skala berbeda, dan membandingkannya menandai hampir semua hal.
+  */
+  'otomasi.biaya_pencilan.sigma': {
+    bawaan: 2,
+    min: 1,
+    max: 6,
+    label: 'Simpangan baku dari kebiasaan proyek sebelum pengeluaran ditandai',
+    judul: 'Pengeluaran jauh di atas kebiasaan',
+    akibat:
+      'Seberapa jauh sebuah pengeluaran harus menyimpang dari kebiasaan '
+      + 'proyeknya sendiri sebelum ditandai. Angka kecil menandai banyak '
+      + 'belanja yang sebenarnya wajar; angka besar hanya menangkap yang '
+      + 'sangat mencolok, dan yang sedang-sedang lolos.',
+    satuan: 'simpangan baku',
+    langkah: 0.5,
+  },
+  /*
+    Riwayat minimum sebelum sebuah proyek punya sebaran yang bisa dipakai.
+
+    Dengan tiga pengeluaran, satu belanja besar MEMBUAT simpangan bakunya
+    sendiri lalu tampak wajar terhadap sebaran yang ia bentuk.
+  */
+  'otomasi.biaya_pencilan.minimum': {
+    bawaan: 8,
+    min: 3,
+    max: 100,
+    label: 'Jumlah pengeluaran minimum sebelum sebaran proyek bisa dipakai',
+    judul: 'Riwayat minimum untuk menilai pengeluaran',
+    akibat:
+      'Berapa catatan pengeluaran yang harus ada sebelum sebuah proyek bisa '
+      + 'dinilai. Terlalu rendah, satu belanja besar membentuk sebarannya '
+      + 'sendiri lalu tampak wajar. Proyek yang riwayatnya kurang dilaporkan '
+      + 'sebagai tak-bisa-dinilai, bukan didiamkan.',
+    satuan: 'catatan',
+    langkah: 1,
+  },
+  /*
     Stok tercatat melenceng dari buku gerakannya. Bawaan selisih 1 satuan.
 
     Hampir NOL, sama alasannya dengan ambang selisih invoice: ini bukan batas

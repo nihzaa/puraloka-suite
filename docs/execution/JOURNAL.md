@@ -22485,3 +22485,63 @@ lint:ratchet                      0 error, 231 warning
 masih perlu diputuskan: `supplier_payments` hanya 2 baris, terlalu tipis untuk
 pemicu terjadwal. Sinyal waktu-bayar yang nyata ada di sisi PENERIMAAN, dan
 itu sudah ditutup `invoice-terlambat`. Dicatat di GALIAN-92.
+
+---
+
+## 2026-08-16 (12) - pengeluaran pencilan 2.13
+
+45 rute terjadwal, 52 nomor katalog.
+
+### Satu sinyal yang terdengar paling nyaring, dan ditolak
+
+Kandidat pertama: `gl.entry_voided` **424 kali** lawan `gl.entry_created`
+3.387. Pembatalan jurnal massal terdengar persis seperti anomali keuangan.
+
+Diukur lebih jauh: tersebar di **101 jam berbeda**, oleh satu pengguna,
+sementara `journal_entries` yang tersisa cuma 19. Itu aktivitas pengembangan
+yang berulang - dan otomasi yang menandainya akan berbunyi tiap hari sampai
+orang mematikannya.
+
+Kedua kalinya di repo ini: 5.12' menolak "di luar jam kerja" karena 77% jejak
+memenuhinya. **Sinyal yang terdengar paling nyaring sering yang paling harus
+diukur dua kali.**
+
+### Yang dipakai
+
+```
+Keramik 60x60 40 dus   Rp 6.880.000   z = 2,53   (rata proyek Rp 2.867.500)
+```
+
+Pembandingnya proyek itu sendiri - rata-rata seluruh perusahaan tak memisahkan
+apa pun. Pasangan kembar dikeluarkan **sebelum** sebaran dihitung, karena nota
+ganda menggeser rata-rata dan simpangan bakunya sendiri.
+
+### Dua mutasi LOLOS, keduanya celah nyata di test saya
+
+- `dua-arah` - mengganti `z < ambang` dengan `Math.abs(z)` tak membuat satu
+  pun test merah, karena **tak ada satu pun pencilan ke bawah untuk diuji**.
+  Test yang hanya punya kasus satu arah tak bisa membedakan saringan satu arah
+  dari dua arah.
+- `riwayat-tipis-diam` - test membaca angka `tak_bisa_dinilai` GLOBAL, dan
+  proyek lain di basis juga punya riwayat tipis. Diganti: diuji lewat
+  ambangnya sendiri.
+
+### Dan satu fixture saya yang cacat
+
+Test riwayat-tipis memakai tiga baris Rp 1.000.000 **persis** dari vendor yang
+sama dalam tiga hari. Otomasinya BENAR mengenalinya sebagai pasangan kembar
+lalu membuangnya - dan test gagal menunjuk kodenya, padahal yang salah
+fixture-nya.
+
+**Data uji yang tak sengaja memicu penyaring lain membuat kegagalan menunjuk
+tempat yang keliru.**
+
+### Bukti
+
+```
+otomasi-biaya-pencilan.test.ts    6 passed
+mutasi rute                       5/5 MERAH lalu pulih (2 diperbaiki dulu)
+mutasi blok verifikasi 419        2/2 MERAH lalu pulih
+15 penjaga arsitektural           exit=0
+lint:ratchet                      0 error, 231 warning
+```
