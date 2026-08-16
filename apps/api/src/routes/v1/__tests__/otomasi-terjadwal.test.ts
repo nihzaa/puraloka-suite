@@ -543,6 +543,10 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     // dibangun' karena tabel petanya nol baris - tabelnya ADA, isinya yang
     // belum. Migrasi 425 mengisinya atas izin founder.
     'material-kurang',
+    // 10.6 Maintenance Cost Trend (2026-08-16). Nomor ini ada di 47 baris
+    // rencana yang BELUM PERNAH digali sama sekali — galian sebelumnya cuma
+    // menilai 92 dari 140.
+    'alat-tak-sehat',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

@@ -140,8 +140,25 @@ describe('kurasi tool_aktif', () => {
   })
 })
 
+/*
+  Dulu `require('node:fs')` di dalam fungsi, dengan `eslint-disable` untuk
+  `no-var-requires`.
+
+  Dua hal salah di sana, dan keduanya baru terlihat saat ratchet lint merah:
+
+    · arahannya menyebut `no-var-requires`, sedangkan aturan yang menyala
+      `no-require-imports` — jadi arahannya INERT ("unused eslint-disable")
+      SEKALIGUS pelanggarannya tetap berbunyi. Penekanan yang tak menekan apa
+      pun, dan hitungannya justru bertambah DUA.
+    · `require` tak diperlukan sama sekali: berkas ini sudah modul ESM, jadi
+      impor statis biasa bekerja.
+
+  Kelas cacat yang sama ditemukan hari ini juga di tiga berkas `risiko/`:
+  penanda eslint di tempat/nama yang salah terlihat benar sampai ada yang
+  mengukurnya.
+*/
+import { readFileSync } from 'node:fs'
+
 function readFileSyncSafe(url: URL): string {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { readFileSync } = require('node:fs') as typeof import('node:fs')
   return readFileSync(url, 'utf8')
 }

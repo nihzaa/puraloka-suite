@@ -151,6 +151,9 @@ export type NotificationType =
   // 3.4 Material Consumption. Kekurangan terhadap RENCANA pada progres
   // sekarang - terlihat berminggu-minggu sebelum stok fisik menipis.
   | 'material_kurang'
+  // 10.6 Maintenance Cost Trend. Alat yang mulai lebih sering RUSAK
+  // daripada dirawat - tindakannya mengganti/menyewa, bukan menjadwalkan.
+  | 'alat_tak_sehat'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'

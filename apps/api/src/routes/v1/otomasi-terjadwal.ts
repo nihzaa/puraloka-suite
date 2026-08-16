@@ -9114,6 +9114,178 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/alat-tak-sehat ──────────────────────────
+  //
+  // Automation 10.6 — Maintenance Cost Trend Analysis.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // BUKAN DUPLIKAT 10.7 MAUPUN 10.2 — PERTANYAANNYA BEDA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  //   10.7 `perawatan-alat`        alat mana yang JATUH TEMPO servis
+  //   10.2 `perawatan-diprediksi`  alat mana yang AKAN jatuh tempo
+  //   ini  `alat-tak-sehat`        alat mana yang mulai lebih sering RUSAK
+  //                                daripada dirawat
+  //
+  // Dua yang pertama menjadwalkan bengkel. Yang ini memutuskan apakah alatnya
+  // masih layak dipertahankan, atau lebih murah disewa.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // DUA TANDA, DAN YANG KEDUA JAUH LEBIH TAJAM
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Diukur 2026-08-16 pada basis nyata:
+  //
+  //   DTR-002 Dump Truck   Rp 19,85 jt / Rp 780 jt = 2,54%   4 dari 6 TAK TERJADWAL
+  //   TRK-004 Truk Mixer   Rp  6,70 jt / Rp 950 jt = 0,71%   0 dari 2
+  //   EXC-001 Excavator    Rp  6,43 jt / Rp 1,85 M = 0,35%   1 dari 3
+  //
+  // Angka rupiahnya sudah membedakan. Tetapi yang benar-benar menceritakan
+  // keadaannya adalah kolom terakhir: uraian keenam servis Dump Truck berbunyi
+  // *turun mesin sebagian, ganti kopling set, perbaikan rem angin, ganti gardan
+  // belakang*. Itu bukan alat yang mahal dirawat — itu alat yang RUSAK BERUNTUN.
+  //
+  // Rasio biaya bisa tinggi karena SATU servis besar yang wajar (overhaul
+  // terjadwal). Porsi tak terjadwal tak bisa: tiap satu berarti alat berhenti
+  // bekerja di tengah pekerjaan.
+  //
+  // Karena itu keduanya diperiksa TERPISAH, dan yang kedua LEBIH DULU.
+  app.get('/api/v1/otomasi/jalankan/alat-tak-sehat', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiKesehatanPerawatan } = await import('../../lib/kesehatan-perawatan.js')
+
+    const q = request.query as { persen?: string; porsi?: string; min?: string }
+    const ambangPersen = await ambilAmbang(request, 'otomasi.alat_tak_sehat.persen', q.persen)
+    const ambangPorsiPersen = await ambilAmbang(request, 'otomasi.alat_tak_sehat.porsi', q.porsi)
+    const minServis = await ambilAmbang(request, 'otomasi.alat_tak_sehat.min_servis', q.min)
+    const ambangPorsi = ambangPorsiPersen / 100
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['alat_tak_sehat'])
+
+    // `assets` dan `riwayat_perawatan` KEDUANYA kategori B — master data
+    // ber-`company_id`, jadi `.from()` sudah menyaringnya. Tak perlu
+    // `.unsafe()`, dan memakainya di sini justru melemahkan gerbangnya.
+    const { data: aset, error: eAset } = await request.db!
+      .from('assets')
+      .select('id, asset_code, name, purchase_price, status, current_project_id')
+    if (eAset) return reply.status(500).send({ error: eAset.message })
+
+    /*
+      BERHALAMAN — wajib. `riwayat_perawatan` tumbuh tiap servis dan melewati
+      1.000 baris pada perusahaan yang benar-benar memakai alatnya bertahun.
+      PostgREST memotongnya TANPA galat, dan yang terpotong membuat alat paling
+      bermasalah justru terlihat paling sehat: riwayatnya hilang, jadi
+      hitungannya nol. Dijaga `audit-baca-tak-terpotong` (ambang NOL).
+    */
+    const HALAMAN = 1000
+    const riwayat: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('riwayat_perawatan')
+        .select('asset_id, biaya, tak_terjadwal, tanggal')
+        .order('asset_id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      riwayat.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const perAset = new Map<string, Array<{ biaya: number; takTerjadwal: boolean }>>()
+    for (const s of riwayat) {
+      const id = s.asset_id as string
+      if (!id) continue
+      const biaya = Number(s.biaya)
+      if (!Number.isFinite(biaya)) continue
+      const daftar = perAset.get(id) ?? []
+      daftar.push({ biaya, takTerjadwal: s.tak_terjadwal === true })
+      perAset.set(id, daftar)
+    }
+
+    let dibuat = 0
+    let ditandai = 0
+    let diperiksa = 0
+
+    for (const a of aset ?? []) {
+      const id = a.id as string
+      const daftar = perAset.get(id)
+      if (!daftar || daftar.length === 0) continue      // belum pernah diservis
+      diperiksa++
+
+      const h = nilaiKesehatanPerawatan(
+        daftar,
+        a.purchase_price == null ? null : Number(a.purchase_price),
+        minServis, ambangPersen, ambangPorsi,
+      )
+      if (!h.perlu) continue
+      ditandai++
+      if (sudah('alat_tak_sehat', id)) continue
+
+      const label = `${String(a.name ?? 'Alat')} (${String(a.asset_code ?? '—')})`
+      const rupiah = h.totalBiaya.toLocaleString('id-ID')
+
+      /*
+        Pesannya menyebut SEBAB yang memicu, bukan menggabung keduanya.
+
+        Cacat yang sama pernah terjadi di `perawatan-alat`: ia memeriksa jam DAN
+        hari lalu selalu menulis sisa HARI, menghasilkan "[URGENT] 154 hari lagi"
+        untuk sesuatu yang dipicu meter jam. Yang membacanya menyimpulkan
+        sistemnya rusak, lalu berhenti mempercayai seluruh peringatan.
+      */
+      const pesan = h.sebab === 'sering_rusak'
+        ? `${label} — ${h.takTerjadwal} dari ${h.servis} servis TAK TERJADWAL `
+          + `(${Math.round(h.porsiRusak * 100)}%). Tiap kerusakan berarti alat `
+          + `berhenti bekerja di tengah pekerjaan. Total perawatan Rp ${rupiah}.`
+        : `${label} — biaya perawatan kumulatif Rp ${rupiah}, `
+          + `${h.persenHarga}% dari harga beli, dari ${h.servis} servis. `
+          + 'Pertimbangkan mengganti atau menyewa.'
+
+      const penerima = await resolveRecipients('alat_tak_sehat', {
+        companyId: request.companyId!,
+        projectId: (a.current_project_id as string | null) ?? undefined,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: h.sebab === 'sering_rusak'
+            ? 'Alat sering rusak di luar jadwal'
+            : 'Biaya perawatan alat menanjak',
+          message: pesan,
+          type: 'alat_tak_sehat',
+          priority: h.sebab === 'sering_rusak' ? 'high' : 'normal',
+          project_id: (a.current_project_id as string | null) ?? undefined,
+          action_url: '/aset',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: {
+            record_id: id,
+            asset_id: id,
+            sebab: h.sebab,
+            porsi_rusak: h.porsiRusak,
+            persen_harga: h.persenHarga,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: {
+        aset_punya_riwayat: diperiksa,
+        ditandai,
+        ambang_persen: ambangPersen,
+        ambang_porsi_persen: ambangPorsiPersen,
+        min_servis: minServis,
+      },
+    })
+  })
 }
 
 /**
