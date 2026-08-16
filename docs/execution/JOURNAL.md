@@ -5,6 +5,74 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi ASISTEN, 8) — SIFAT ASISTEN DINYALAKAN + 6.5 tukang cocok
+
+### Founder menyerahkan keputusan watak ke saya, dan ini yang dipilih
+
+Diukur lebih dulu — keempat asisten masih `pelapor` dengan NOL sifat, artinya
+prompt aktifnya berbunyi *"jangan menyimpulkan atau menyarankan kecuali
+diminta terus terang"*. Itu sebabnya ia terasa seperti mesin laporan.
+
+    asisten   sebelum              sesudah
+    owner     [] pelapor      →    [menyarankan, mengobrol] penasihat
+    web       [] pelapor      →    [menyarankan, mengobrol] penasihat
+    staff     [] pelapor      →    [menyarankan]            penasihat
+    insight   [] pelapor      →    [menyarankan]            penasihat
+
+**Alasan `staff` & `insight` TIDAK dapat `mengobrol`:** mandor bertanya di
+tengah kerja, dan basa-basi di WhatsApp lapangan menunda jawaban yang ia
+butuhkan. `insight` menghasilkan ringkasan untuk dibaca cepat — keakraban di
+sana jadi kebisingan.
+
+**Yang TIDAK berubah, dan itu yang paling penting:** `audit-pagar-fakta-utuh`
+tetap exit 0, dan `ai-perilaku.test.ts` 19 hijau. Larangan mengarang angka
+utuh di ketiga mode — diverifikasi langsung ke prompt yang tersusun, bukan
+diasumsikan.
+
+### 6.5 — dan sepertiga tukang yang keahliannya belum tercatat
+
+Diukur: 60 tukang, 41 punya `skills`, **19 tidak**.
+
+    kayu: 12 · batu: 11 · plester: 11 · besi 6 · cor 6 · listrik 6 · pipa 6
+
+Yang 19 itu DISEBUT jumlahnya di tiap jawaban. Daftar yang diam-diam
+mengabaikan mereka membuat pembacanya menyimpulkan "cuma segini yang bisa" —
+padahal yang benar "cuma segini yang TERCATAT bisa". Yang pertama menutup
+pilihan; yang kedua mengundang melengkapi data.
+
+### Mutasi keempat yang tak punya bahan — dan tetap dinyatakan
+
+    M1 yang tanpa skill disembunyikan → MERAH
+    M2 saringan is_active dicabut     → HIJAU
+
+M2 lolos karena 60 tukang, NOL nonaktif. Diperiksa di sumber, kelemahannya
+ditulis di test-nya. Keempat kalinya pola ini muncul di sesi ASISTEN.
+
+### Bukti
+
+    tsc (berkas saya)      0 galat
+    ai-tool-tukang-cocok   7 hijau (Postgres NYATA)
+    ai-perilaku            19 hijau  ← pagar fakta utuh sesudah sifat menyala
+    beban-mandor 7 · ai-tool 18
+    audit-pagar-fakta-utuh     exit 0
+    audit-izin-benar-ada       exit 0
+    audit-kredensial-tak-bocor exit 0
+    audit-kegagalan-senyap     exit 0
+    audit-catch-senyap         exit 0
+    audit-tool-ai-read-only    exit 0
+    audit-baca-tak-terpotong   exit 0
+    audit-gerbang-tenancy      exit 0
+    nomor katalog kembar       NOL (68 nomor)
+
+### Kelompok Pengadaan DIUKUR, tidak dibangun
+
+    purchase_orders 8 · goods_receipts 8 · rfq 3 · suppliers 5 · MR 9
+
+Terlalu tipis. Tool di atas 3 RFQ hampir selalu menjawab "tidak ada data" —
+pelajaran 8.4. Syarat masuknya dicatat, bukan dipaksakan.
+
+---
+
 ## 2026-08-16 (sesi ASISTEN, 7) — 3.20 beban mandor; 1.9 TERNYATA SUDAH ADA
 
 Katalog tool asisten: 38 → 39. Masuk kelompok "Operasional proyek".

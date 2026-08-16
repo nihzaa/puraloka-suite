@@ -70,6 +70,7 @@ import { toolSimulasiKas } from './ai-tool-simulasi-kas.js'
 import { toolSerapanBiaya } from './ai-tool-serapan-biaya.js'
 import { toolIkhtisar } from './ai-tool-ikhtisar.js'
 import { toolBebanMandorLintas } from './ai-tool-beban-mandor.js'
+import { toolTukangCocok } from './ai-tool-tukang-cocok.js'
 
 
 
@@ -913,6 +914,13 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     justru paling longgar, dan penugasan baru jatuh ke orang yang salah.
   */
   toolBebanMandorLintas,
+  /*
+    Katalog 6.5 (worker skill matching). 41 dari 60 tukang punya skill
+    tercatat — yang 19 tanpa skill DISEBUT, bukan dihilangkan: daftar yang
+    diam-diam mengabaikan mereka membuat pembacanya menyimpulkan "cuma segini
+    yang bisa" padahal yang benar "cuma segini yang TERCATAT bisa".
+  */
+  toolTukangCocok,
 ]
 
 /**

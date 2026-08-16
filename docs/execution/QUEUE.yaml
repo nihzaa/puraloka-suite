@@ -3122,6 +3122,35 @@ items:
       5.2/5.5/7.4 (generator DOKUMEN, bukan tool baca), 5.8 (sudah tercakup
       2.17+8.9), 8.10 (butuh pola beban pemilik lintas waktu).
 
+  - id: ASISTEN-21
+    fase: null
+    judul: "Sifat asisten DINYALAKAN + 6.5 tukang menurut keahlian"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: owner & web dapat [menyarankan, mengobrol]; staff & insight [menyarankan]"
+      - "SUDAH: pagar fakta terbukti UTUH sesudahnya (audit exit 0, ai-perilaku 19 hijau)"
+      - "SUDAH: 6.5 menyebut jumlah tukang yang keahliannya BELUM tercatat"
+      - "SUDAH: hanya tukang aktif; nonaktif tak jadi kandidat"
+      - "SUDAH: 2 mutasi terbukti merah"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/ai-tool-tukang-cocok.test.ts
+      src/lib/__tests__/ai-perilaku.test.ts (7+19 hijau) ·
+      node scripts/audit-pagar-fakta-utuh.mjs
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16 (sesi ASISTEN). Katalog tool 39 → 40.
+      Founder menyerahkan keputusan watak: owner & web dapat menyarankan +
+      mengobrol, staff & insight hanya menyarankan. Alasan staff/insight tak
+      dapat mengobrol — mandor bertanya di tengah kerja dan basa-basi menunda
+      jawaban; insight untuk dibaca cepat, keakraban jadi kebisingan.
+      Yang TIDAK berubah dan diverifikasi: pagar fakta utuh di ketiga mode.
+      6.5: 60 tukang, 41 punya skills, 19 TIDAK — dan yang 19 itu disebut
+      jumlahnya di tiap jawaban. Tanpa itu daftarnya terbaca "seluruh yang
+      bisa" padahal "seluruh yang tercatat bisa".
+      Kelompok Pengadaan DIUKUR dan TIDAK dibangun: 8 PO, 3 RFQ, 5 supplier —
+      terlalu tipis, tool di atasnya hampir selalu menjawab "tidak ada data".
+
   - id: ASISTEN-SISA
     fase: null
     judul: "Sisa kelompok Pemilik/eksekutif — 5 nomor, syarat masuk berbeda-beda"

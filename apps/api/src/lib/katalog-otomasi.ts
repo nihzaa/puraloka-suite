@@ -1002,6 +1002,38 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'disajikan beban, bukan pilihan orang.',
   },
   {
+    /*
+      6.5 Worker Skill Matching.
+
+      Diukur 2026-08-16: 60 tukang, 41 punya `skills`, 19 TIDAK. Yang 19 itu
+      DISEBUT jumlahnya di tiap jawaban — daftar yang diam-diam mengabaikan
+      mereka membuat pembacanya menyimpulkan "cuma segini yang bisa", padahal
+      yang benar "cuma segini yang TERCATAT bisa".
+    */
+    kunci: 'tanya-tukang-cocok',
+    kunci_bukan_rute: true,
+    nomor: '6.5',
+    nama: 'Tanya tukang yang cocok untuk suatu pekerjaan',
+    pemicu: 'percakapan',
+    penjelasan:
+      'Mencari tukang aktif menurut keahliannya — mis. "yang bisa plester '
+      + 'siapa", "tukang kayu ada berapa" — lengkap dengan nomor teleponnya.',
+    penerima: 'Yang bertanya',
+    alur: [
+      { di: 'n8n', teks: 'Pertanyaan masuk lewat WhatsApp.' },
+      { di: 'sistem', teks: 'Asisten memilih alat baca yang sesuai izin penanya.' },
+      { di: 'sistem', teks: 'Keahlian dicocokkan ke daftar tukang aktif, sebagian nama boleh.' },
+      { di: 'n8n', teks: 'Jawabannya dikirim balik.' },
+    ],
+    catatan:
+      'Jumlah tukang yang keahliannya BELUM tercatat selalu disebut — tanpa '
+      + 'itu, daftarnya terbaca sebagai "seluruh yang bisa" padahal ia '
+      + '"seluruh yang tercatat bisa". Hanya tukang AKTIF yang muncul: yang '
+      + 'sudah berhenti tetap punya baris dan keahliannya masih tersimpan, '
+      + 'dan menyebutnya membuat mandor menelepon orang yang sudah lama tak '
+      + 'bekerja di sini.',
+  },
+  {
     kunci: 'tanya-mandor',
     kunci_bukan_rute: true,
     nomor: '6.7, 6.11',
