@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 278 dokumen** — antrean 13 · acuan 202 · riwayat 63.
+**Total 279 dokumen** — antrean 13 · acuan 203 · riwayat 63.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -90,6 +90,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [GOLDEN-FILE-INVESTIGASI](execution/GOLDEN-FILE-INVESTIGASI.md) | acuan | ✓ | Investigasi Golden File — Angka Jangkar (C-5 / R-005) |
 | [JOURNAL](execution/JOURNAL.md) | riwayat | ✓ | JOURNAL — Catatan Sesi |
 | [LEDGER-DIFF](execution/LEDGER-DIFF.md) | acuan |  | LEDGER-DIFF — Buku Migrasi vs Artefak Fisik |
+| [PROMPT-SESI-ASISTEN](execution/PROMPT-SESI-ASISTEN.md) | acuan |  | Prompt untuk sesi ASISTEN — salin seluruh blok di bawah |
 | [RANCANGAN-SIDEBAR-DISIPLIN](execution/RANCANGAN-SIDEBAR-DISIPLIN.md) | acuan |  | Rancangan sidebar disiplin — satu route, satu link |
 | [RATIFIKASI](execution/RATIFIKASI.md) | riwayat | ✓ | RATIFIKASI — Satu-satunya Berkas yang Perlu Dibaca Founder |
 | [RENCANA-113-OTOMASI](execution/RENCANA-113-OTOMASI.md) | acuan |  | RENCANA 113 OTOMASI SISA — dan kenapa "belum bisa" itu keliru |
