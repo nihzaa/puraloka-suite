@@ -73,6 +73,7 @@ import { toolBebanMandorLintas } from './ai-tool-beban-mandor.js'
 import { toolTukangCocok } from './ai-tool-tukang-cocok.js'
 import { ringkasPerformaMandor } from './ai-tool-performa-mandor.js'
 import { ringkasUtilisasiAlat } from './ai-tool-utilisasi-alat.js'
+import { analisisInvestasiAlat } from './ai-tool-investasi-alat.js'
 
 
 
@@ -939,6 +940,91 @@ const toolUtilisasiAlat: DefinisiToolAi = {
   },
 }
 
+/**
+ * 8.5 — kelayakan investasi alat (milik vs sewa).
+ *
+ * Tanpa argumen: pertanyaannya selalu "alat mana yang salah posisi", bukan
+ * "bagaimana alat X". Meminta model menyebut nama alat mengundangnya
+ * mengarang nama yang tak ada, lalu tool menjawab kosong dan model
+ * menyimpulkan alatnya memang tak terpakai.
+ */
+const toolInvestasiAlat: DefinisiToolAi = {
+  nama: 'investasi_alat',
+  label: 'Kelayakan investasi alat',
+  keterangan:
+    'Membandingkan biaya MEMILIKI alat (penyusutan + operasional tercatat) '
+    + 'dengan biaya MENYEWA untuk lama pemakaian yang sama, plus alat yang '
+    + 'belum dimiliki tapi berulang disewa. Pakai untuk "alat mana yang '
+    + 'sebaiknya disewa saja", "ada alat nganggur tidak", atau "layak tidak '
+    + 'beli tower crane".',
+  izin: 'assets:view',
+  skema: { type: 'object', properties: {} },
+  async jalan({ db }) {
+    const h = await analisisInvestasiAlat(db)
+    if ('galat' in h) return { isi: h.galat, isError: true, entitas: [] }
+
+    if (h.alat.length === 0 && h.kandidatBeli.length === 0) {
+      return {
+        isi: bungkusData('investasi_alat', h.catatan ?? 'Tidak ada data.'),
+        isError: false,
+        entitas: [],
+      }
+    }
+
+    const baris: string[] = []
+
+    /*
+      Yang punya verdict SUNGGUHAN dirinci; `data-belum-cukup` cukup dihitung.
+      Diukur 2026-08-16: 11 dari 15 alat milik belum punya catatan apa pun —
+      merincinya satu per satu menghasilkan sebelas baris "belum tercatat"
+      yang menenggelamkan empat baris yang benar-benar berisi temuan.
+    */
+    const dinilai = h.alat.filter((a) => a.verdict !== 'data-belum-cukup')
+    const belum = h.alat.filter((a) => a.verdict === 'data-belum-cukup')
+
+    if (dinilai.length > 0) {
+      baris.push('ALAT YANG DIMILIKI:')
+      for (const a of dinilai) {
+        baris.push(
+          `- ${a.alat} [${a.verdict}] — beli ${rupiah(a.hargaBeli)}; `
+          + `biaya memiliki ${rupiah(a.biayaMemiliki)}; dipakai ${a.hariPakai} hari `
+          + `/ ${angka(a.jamPakai)} jam; `
+          + (a.biayaMenyewa === null
+            ? 'tarif sewa pembanding belum ada'
+            : `bila disewa ≈ ${rupiah(a.biayaMenyewa)}`),
+        )
+        baris.push(`  ${a.alasan}`)
+      }
+    }
+
+    if (belum.length > 0) {
+      baris.push(
+        '',
+        `${belum.length} alat lain belum punya catatan pemakaian/biaya sama `
+        + `sekali, jadi belum bisa dinilai: ${belum.map((a) => a.alat).join(', ')}.`,
+      )
+    }
+
+    if (h.kandidatBeli.length > 0) {
+      baris.push('', 'BELUM DIMILIKI (kandidat beli):')
+      for (const k of h.kandidatBeli) {
+        baris.push(`- ${k.nama} — ${k.jumlahSewa}× sewa, total ${rupiah(k.totalSewa)}`)
+      }
+    }
+
+    baris.push(
+      '',
+      'Semua angka HISTORIS dari catatan yang ada — bukan proyeksi.',
+    )
+
+    return {
+      isi: bungkusData('investasi_alat', baris.join('\n')),
+      isError: false,
+      entitas: [...h.alat.map((a) => a.alat), ...h.kandidatBeli.map((k) => k.nama)],
+    }
+  },
+}
+
 export const KATALOG_TOOL: DefinisiToolAi[] = [
   toolDaftarProyek,
   toolRingkasKeuangan,
@@ -1059,6 +1145,13 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     persis kebalikan dari yang ditanyakan.
   */
   toolUtilisasiAlat,
+  /*
+    Katalog 8.5 (kelayakan investasi alat). Yang dibandingkan biaya per
+    PERIODE YANG SAMA — penyusutan + operasional vs tarif sewa × lama pakai.
+    Membandingkan HARGA BELI dengan sewa selalu memenangkan sewa, dan selalu
+    salah: harga beli tersebar sepanjang umur ekonomis.
+  */
+  toolInvestasiAlat,
 ]
 
 /**
