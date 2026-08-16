@@ -5,6 +5,54 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi ASISTEN, 4) — 8.1 simulasi kas
+
+Katalog tool asisten: 35 → 36. Kelompok "Pemilik/eksekutif" 5 dari 13.
+
+### Satu-satunya tool yang angkanya BUKAN dari basis
+
+Tool lain membaca angka dari tabel. Yang ini menerimanya dari KALIMAT lewat
+model — dan model bisa salah dengar "lima puluh juta" untuk "lima juta".
+
+Angka yang salah di sini menghasilkan kesimpulan "aman" untuk keputusan yang
+sebenarnya menguras kas. Tak ada galat, tak ada gejala; yang keliru cuma
+keputusannya, berminggu kemudian.
+
+Tiga penahan, semuanya sengaja:
+
+  · nominal DISEBUT KEMBALI di jawaban — yang menahan bukan validasi
+    melainkan mata pengguna yang melihat angkanya tertulis
+  · di atas satu triliun DITOLAK, bukan dihitung: menghitungnya membuat salah
+    ketik nol terlihat seperti hasil yang sah
+  · saldo dibaca dari sumber yang SAMA dengan 2.4, supaya dua tool tak pernah
+    menyebut angka berbeda untuk hal yang sama
+
+### Yang lewat tempo IKUT dihitung
+
+Kewajiban yang sudah lewat tempo paling mengikat — ia seharusnya sudah
+dibayar. Membuangnya membuat sisa kas terlihat lebih longgar daripada
+kenyataannya, arah kesalahan yang paling berbahaya di sini.
+
+### Bukti
+
+    tsc (berkas saya)      0 galat
+    ai-tool-simulasi-kas   8 hijau (Postgres NYATA)
+    alokasi-kas 6 · banding-proyek 9 · arus-kas 9 · ai-tool 18
+    audit-izin-benar-ada       exit 0
+    audit-kredensial-tak-bocor exit 0
+    audit-kegagalan-senyap     exit 0
+    audit-catch-senyap         exit 0
+    audit-tool-ai-read-only    exit 0  (ambang NOL, tetap utuh)
+    audit-baca-tak-terpotong   exit 0
+    audit-gerbang-tenancy      exit 0
+    nomor katalog kembar       NOL (62 nomor)
+    mutasi                 gerbang kewarasan dicabut → MERAH
+                           yang lewat tempo dibuang → MERAH → pulih
+
+Saldo & sisa diverifikasi ulang lewat SQL terpisah.
+
+---
+
 ## 2026-08-16 (sesi ASISTEN, 3) — 2.15 alokasi kas ke proyek
 
 Katalog tool asisten: 34 → 35. Kelompok "Pemilik/eksekutif" kini 4 dari 13.

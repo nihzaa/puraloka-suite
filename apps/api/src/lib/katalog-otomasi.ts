@@ -854,6 +854,40 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'didaftar supaya yang benar-benar minta tak tenggelam.',
   },
   {
+    /*
+      8.1 Cashflow Simulation — memakai 2.4 sebagai basis, persis seperti
+      katalog menyebutkan.
+
+      SATU-SATUNYA tool yang nominalnya datang dari KALIMAT, bukan dari basis.
+      Model bisa salah dengar "lima puluh juta" untuk "lima juta", dan angka
+      yang salah menghasilkan kesimpulan "aman" untuk keputusan yang justru
+      menguras kas.
+    */
+    kunci: 'tanya-simulasi-kas',
+    kunci_bukan_rute: true,
+    nomor: '8.1',
+    nama: 'Tanya dampak kalau mengeluarkan sejumlah uang',
+    pemicu: 'percakapan',
+    penjelasan:
+      'Menghitung dampak satu pengeluaran hipotetis: sisa saldo sesudahnya, '
+      + 'dan apakah kewajiban 30 hari ke depan masih tertutup.',
+    penerima: 'Yang bertanya',
+    alur: [
+      { di: 'n8n', teks: 'Pertanyaan masuk lewat WhatsApp.' },
+      { di: 'sistem', teks: 'Asisten memilih alat baca yang sesuai izin penanya.' },
+      { di: 'sistem', teks: 'Saldo dikurangi nominal, lalu disandingkan tagihan yang jatuh tempo.' },
+      { di: 'n8n', teks: 'Jawabannya dikirim balik.' },
+    ],
+    catatan:
+      'Nominal yang disimulasikan DISEBUT KEMBALI di jawaban — itulah yang '
+      + 'membuat salah dengar ketahuan sebelum diputuskan. Nominal di atas satu '
+      + 'triliun DITOLAK, bukan dihitung: menghitungnya membuat salah ketik nol '
+      + 'terlihat seperti hasil yang sah. Tagihan yang sudah lewat tempo IKUT '
+      + 'dihitung — membuangnya membuat sisa kas terlihat lebih longgar '
+      + 'daripada kenyataannya. Tak ada yang tersimpan; ini perhitungan, bukan '
+      + 'pembayaran.',
+  },
+  {
     kunci: 'tanya-mandor',
     kunci_bukan_rute: true,
     nomor: '6.7, 6.11',

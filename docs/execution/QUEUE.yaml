@@ -2997,6 +2997,35 @@ items:
       `approved` menaikkan angkanya jadi Rp 263.505.000 — uang yang sudah
       disetujui dan tak lagi menunggu keputusan.
 
+  - id: ASISTEN-17
+    fase: null
+    judul: "8.1 simulasi kas — nominal dari kalimat, karena itu disebut kembali"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: nominal DISEBUT KEMBALI di jawaban (salah dengar ketahuan sebelum diputuskan)"
+      - "SUDAH: nominal tak masuk akal DITOLAK, bukan dihitung serius"
+      - "SUDAH: saldo dibaca dari sumber yang SAMA dengan 2.4"
+      - "SUDAH: kewajiban lewat tempo IKUT dihitung"
+      - "SUDAH: menyatakan tidak menyimpan apa pun"
+      - "SUDAH: 2 mutasi terbukti merah"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/ai-tool-simulasi-kas.test.ts
+      (8 hijau)
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16 (sesi ASISTEN). Katalog tool 35 → 36; kelompok
+      Pemilik/eksekutif 5 dari 13.
+      SATU-SATUNYA tool yang nominalnya datang dari KALIMAT, bukan dari basis.
+      Model bisa salah dengar "lima puluh juta" untuk "lima juta", dan angka
+      yang salah menghasilkan kesimpulan "aman" untuk keputusan yang justru
+      menguras kas — tanpa galat, tanpa gejala.
+      Yang menahan bukan validasi melainkan nominal yang DISEBUT KEMBALI di
+      jawaban; mata pengguna yang melihatnya tertulis. Di atas satu triliun
+      ditolak: menghitungnya membuat salah ketik nol terlihat seperti hasil sah.
+      Mutasi: gerbang kewarasan dicabut → MERAH; tagihan lewat tempo dibuang →
+      MERAH. Keduanya pulih.
+
   - id: TUNDA-3.6
     fase: null
     judul: "3.6 Subcontractor Scoring — ditunda, syarat masuk terukur"

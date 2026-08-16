@@ -66,6 +66,7 @@ import { toolTitipPesan } from './ai-tool-titip-pesan.js'
 import { TOOL_ARUS_KAS } from './ai-tool-arus-kas.js'
 import { toolBandingProyek } from './ai-tool-banding-proyek.js'
 import { toolAlokasiKas } from './ai-tool-alokasi-kas.js'
+import { toolSimulasiKas } from './ai-tool-simulasi-kas.js'
 
 
 
@@ -884,6 +885,12 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     keputusan pemilik biasanya "proyek mana yang jalan terus".
   */
   toolAlokasiKas,
+  /*
+    Katalog 8.1 (simulasi kas). SATU-SATUNYA tool yang nominalnya datang dari
+    KALIMAT, bukan dari basis — karena itu ia divalidasi dan disebut kembali
+    di jawaban, supaya salah dengar ketahuan sebelum diputuskan.
+  */
+  toolSimulasiKas,
 ]
 
 /**
