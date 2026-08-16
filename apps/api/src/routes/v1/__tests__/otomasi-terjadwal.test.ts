@@ -365,6 +365,15 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
       tak berbeda dari penjaga yang mati.
     */
     'sertifikat-berakhir',
+    /*
+      `kirim-pengingat` (2026-08-16) — pasangan tool `titip_pengingat`.
+
+      Ditambahkan BERSAMAAN dengan rutenya, bukan menunggu penjaga daftar
+      merah lebih dulu. Tanpa rute ini, janji yang dititipkan pengguna
+      tersimpan rapi dan tak pernah dibacakan kembali — pola setengah-rantai
+      yang sudah enam kali terjadi di repo ini.
+    */
+    'kirim-pengingat',
     'k3-kepatuhan',
     'kepatuhan-dokumen',
     'serapan-anggaran',

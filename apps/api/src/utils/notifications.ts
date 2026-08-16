@@ -155,6 +155,9 @@ export type NotificationType =
   | 'margin_rab_lampaui_kontrak'
   | 'margin_biaya_lampaui_rab'
   | 'proyek_tanpa_rab'
+  | 'pemasok_terpencar'
+  | 'pengingat_asisten'
+  | 'titipan_asisten'
   | 'general'
 
 export type NotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

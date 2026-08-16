@@ -6438,6 +6438,325 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/pemasok-terpencar ───────────────────────
+  //
+  // Automation 4.11 — Vendor Consolidation Advisor.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // ANGKA YANG DILAPORKAN ADALAH BATAS ATAS, DAN ITU DINYATAKAN DI PESANNYA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Selisih harga tertinggi dikali seluruh volume yang dipesan menghasilkan
+  // angka yang RAPI dan MENGGODA:
+  //
+  //     Besi Beton Ø12mm SNI   2 pemasok   Rp 100.000 → Rp 120.000
+  //                            160 batang  selisih × qty = Rp 3.200.000
+  //
+  // Tetapi itu penghematan yang hanya terjadi kalau SELURUH pesanan bisa
+  // dialihkan ke harga terendah, dan itu jarang benar. Harga berbeda karena
+  // alasan yang tak terlihat di tabel: tempo pembayaran, ongkos kirim, siapa
+  // yang bisa mengantar hari itu juga, dan siapa yang mau menalangi saat kas
+  // sedang seret.
+  //
+  // Otomasi yang menyodorkan Rp 3,2 juta sebagai "penghematan" akan membuat
+  // orang mengejar angka yang tak pernah ada, lalu berhenti percaya saat
+  // ternyata tak tercapai. Maka pesannya menyebutnya SELISIH, menyatakan
+  // sendiri bahwa itu batas atas, dan menyebut alasan-alasan sah yang mungkin
+  // menjelaskannya.
+  //
+  // Yang benar-benar berguna dari otomasi ini bukan angkanya melainkan
+  // PERTANYAANNYA: kenapa material yang sama dibeli dengan dua harga?
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // DIBACA DARI PESANAN PEMBELIAN, BUKAN DARI CATATAN BIAYA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // `project_expenses.vendor_name` teks bebas yang diketik orang — "UD Besi
+  // Kuat Mandiri" dan "UD. Besi Kuat" akan terbaca sebagai dua pemasok
+  // berbeda, dan tiap salah ketik jadi temuan palsu.
+  //
+  // `purchase_orders.supplier_id` menunjuk baris pemasok yang sungguhan, dan
+  // `purchase_order_items.material_id` menunjuk material yang sungguhan. Dua
+  // penunjuk itu yang membuat perbandingannya bisa dipercaya.
+  app.get('/api/v1/otomasi/jalankan/pemasok-terpencar', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { persen?: string }
+    const ambangPersen = await ambilAmbang(request, 'otomasi.pemasok_terpencar.persen', q.persen)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['pemasok_terpencar'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { material_dibandingkan: 0, terpencar: 0, ambang_persen: ambangPersen },
+      })
+    }
+
+    /*
+      `purchase_orders` kategori C lewat `project_id`.
+
+      `cancelled` DIBUANG: pesanan yang dibatalkan tak pernah jadi harga yang
+      benar-benar dibayar, dan memasukkannya membuat selisih terhitung dari
+      angka yang tak pernah terjadi.
+    */
+    const { data: po, error } = await request.db!
+      .unsafe('purchase_orders', 'kategori C lewat project_id; disaring ke projectIds()')
+      .select('id, project_id, supplier_id, status, order_date')
+      .in('project_id', idProyek)
+      .neq('status', 'cancelled')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const idPo = (po ?? []).map((p) => p.id as string)
+    if (idPo.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { material_dibandingkan: 0, terpencar: 0, ambang_persen: ambangPersen },
+      })
+    }
+
+    const pemasokPo = new Map((po ?? []).map((p) => [p.id as string, p.supplier_id as string]))
+
+    const HALAMAN = 1000
+    const item: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error: eItem } = await request.db!
+        .unsafe('purchase_order_items',
+          'kategori C berhop-jauh lewat po_id; disaring ke pesanan ter-scope tenant di atas')
+        .select('id, po_id, material_id, qty_ordered, unit, unit_price')
+        .in('po_id', idPo)
+        .gt('unit_price', 0)
+        .order('id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (eItem) return reply.status(500).send({ error: eItem.message })
+      if (!data || data.length === 0) break
+      item.push(...(data as Array<Record<string, unknown>>))
+      if (data.length < HALAMAN) break
+    }
+
+    // `materials` kategori AB — master bersama; `suppliers` kategori B.
+    const { data: material, error: eMat } = await request.db!
+      .from('materials').select('id, name, unit')
+    if (eMat) return reply.status(500).send({ error: eMat.message })
+    const namaMaterial = new Map((material ?? []).map((m) => [m.id as string, m]))
+
+    const { data: pemasok, error: ePem } = await request.db!
+      .from('suppliers').select('id, name')
+    if (ePem) return reply.status(500).send({ error: ePem.message })
+    const namaPemasok = new Map((pemasok ?? []).map((s) => [s.id as string, String(s.name ?? '—')]))
+
+    type Harga = { pemasok: string; harga: number; qty: number }
+    const perMaterial = new Map<string, Harga[]>()
+    for (const it of item) {
+      const mid = it.material_id as string | null
+      if (!mid) continue
+      const sid = pemasokPo.get(it.po_id as string)
+      if (!sid) continue
+      const arr = perMaterial.get(mid) ?? []
+      arr.push({
+        pemasok: sid,
+        harga: Number(it.unit_price ?? 0),
+        qty: Number(it.qty_ordered ?? 0),
+      })
+      perMaterial.set(mid, arr)
+    }
+
+    let dibandingkan = 0
+    let terpencar = 0
+    let selisihTotal = 0
+    let dibuat = 0
+
+    for (const [mid, baris] of perMaterial) {
+      const pemasokBeda = new Set(baris.map((b) => b.pemasok))
+      // Satu pemasok saja bukan "terpencar" — tak ada yang bisa dikonsolidasi.
+      if (pemasokBeda.size < 2) continue
+      dibandingkan++
+
+      /*
+        Harga per PEMASOK diambil RATA-RATA tertimbang volumenya, bukan harga
+        satu baris.
+
+        Pemasok yang sekali memberi harga promosi lalu seterusnya normal tak
+        boleh terlihat sebagai "yang termurah" hanya karena satu baris murah.
+        Yang jadi pembanding harga yang benar-benar dibayar sepanjang periode.
+      */
+      const perPemasok = new Map<string, { nilai: number; qty: number }>()
+      for (const b of baris) {
+        const p = perPemasok.get(b.pemasok) ?? { nilai: 0, qty: 0 }
+        p.nilai += b.harga * b.qty
+        p.qty += b.qty
+        perPemasok.set(b.pemasok, p)
+      }
+
+      const rata = [...perPemasok.entries()]
+        .filter(([, v]) => v.qty > 0)
+        .map(([sid, v]) => ({ sid, harga: v.nilai / v.qty }))
+      if (rata.length < 2) continue
+
+      const murah = rata.reduce((a, b) => (b.harga < a.harga ? b : a))
+      const mahal = rata.reduce((a, b) => (b.harga > a.harga ? b : a))
+      if (murah.harga <= 0) continue
+
+      const bedaPersen = ((mahal.harga - murah.harga) / murah.harga) * 100
+      if (bedaPersen < ambangPersen) continue
+      terpencar++
+
+      const qtyTotal = baris.reduce((t, b) => t + b.qty, 0)
+      // BATAS ATAS, bukan penghematan. Lihat komentar kepala rute.
+      const selisih = (mahal.harga - murah.harga) * qtyTotal
+      selisihTotal += selisih
+
+      if (sudah('pemasok_terpencar', mid)) continue
+
+      const m = namaMaterial.get(mid)
+      const penerima = await resolveRecipients('pemasok_terpencar', {
+        projectId: null, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Material Sama Dibeli dari Beberapa Pemasok',
+          message:
+            `${m?.name ?? 'Material'} dipesan dari ${pemasokBeda.size} pemasok `
+            + `dengan harga rata-rata berbeda ${Math.round(bedaPersen)}%: `
+            + `${namaPemasok.get(murah.sid)} ${rp(Math.round(murah.harga))} `
+            + `lawan ${namaPemasok.get(mahal.sid)} ${rp(Math.round(mahal.harga))} `
+            + `per ${m?.unit ?? 'satuan'}. `
+            + `Atas ${qtyTotal} ${m?.unit ?? 'satuan'} yang sudah dipesan, `
+            + `selisihnya ${rp(Math.round(selisih))} — itu BATAS ATAS, bukan `
+            + 'penghematan yang pasti didapat: harga bisa berbeda karena tempo '
+            + 'pembayaran, ongkos kirim, atau siapa yang sanggup mengantar '
+            + 'lebih cepat. Yang layak ditanyakan: kenapa dua harga?',
+          type:       'pemasok_terpencar',
+          priority:   'normal',
+          project_id: undefined,
+          action_url: '/procurement/material',
+          action_data: {
+            record_id: mid,
+            material: m?.name ?? null,
+            pemasok: pemasokBeda.size,
+            harga_terendah: Math.round(murah.harga),
+            harga_tertinggi: Math.round(mahal.harga),
+            beda_persen: Math.round(bedaPersen),
+            qty_total: qtyTotal,
+            selisih_batas_atas: Math.round(selisih),
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        material_dibandingkan: dibandingkan,
+        terpencar,
+        // Dinamai `selisih`, BUKAN `potensi_hemat`. Nama kolom ikut terbaca
+        // orang, dan "potensi hemat" adalah janji yang tak bisa ditepati
+        // otomasi ini.
+        selisih_batas_atas_total: Math.round(selisihTotal),
+        ambang_persen: ambangPersen,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/kirim-pengingat ──────────────────────────
+  //
+  // Pasangan `titip_pengingat`. Tanpa rute ini, janji yang dititipkan pengguna
+  // tersimpan rapi dan TAK PERNAH dibacakan kembali — pola setengah-rantai yang
+  // sudah enam kali terjadi di repo ini (tombol konfirmasi tak pernah dibuat,
+  // riwayat tak pernah diisi, sub-menu tak pernah dinyalakan, asisten
+  // owner/web tak pernah dipanggil, label UI tertinggal, seluruh jalur
+  // approval). Catatan yang tak pernah dibacakan ulang sama saja dengan tak
+  // dicatat.
+  //
+  // ── Kenapa TIDAK lewat dedup harian
+  //
+  // `pembuatDedup()` menahan notifikasi kembar per (type, record_id, hari).
+  // Di sini yang menahan lebih kuat: `dikirim_pada` ditulis SETELAH terkirim,
+  // dan baris yang sudah terisi tak pernah terambil lagi. Menambah dedup di
+  // atasnya hanya menyembunyikan kalau penandaan itu gagal.
+  app.get('/api/v1/otomasi/jalankan/kirim-pengingat', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+
+    /*
+     * Yang jatuh tempo DAN belum terkirim DAN belum dibatalkan.
+     *
+     * `jatuh_pada <= now()` — bukan "hari ini": pengingat yang terlewat
+     * (server mati, tugas tertunda) tetap harus sampai, terlambat lebih baik
+     * daripada hilang. Indeks parsial di migrasi 414 melayani query ini.
+     */
+    const { data, error } = await request.db!
+      .from('pengingat_asisten')
+      .select('id, user_id, isi, jatuh_pada, project_id')
+      .is('dikirim_pada', null)
+      .is('dibatalkan_pada', null)
+      .lte('jatuh_pada', new Date().toISOString())
+      .order('jatuh_pada', { ascending: true })
+      .limit(200)
+
+    if (error) {
+      request.log.error({ err: error }, 'kirim-pengingat: gagal membaca')
+      return reply.status(500).send({ error: 'Gagal membaca pengingat' })
+    }
+
+    const jatuh = (data ?? []) as unknown as Array<{
+      id: string; user_id: string; isi: string; jatuh_pada: string; project_id: string | null
+    }>
+
+    let dikirim = 0
+    for (const p of jatuh) {
+      /*
+       * DITANDAI DULU, baru dikirim — dan `dikirim_pada IS NULL` ikut di WHERE.
+       *
+       * Urutan sebaliknya membuat dua putaran yang tumpang-tindih sama-sama
+       * melihat "belum terkirim" lalu sama-sama mengirim. Pengingat ganda
+       * bukan bencana, tetapi ia mengajari orang mengabaikan pengingat — dan
+       * itu menghapus seluruh gunanya.
+       *
+       * Konsekuensi yang diterima sadar: kalau pengirimannya gagal SESUDAH
+       * penandaan, pengingatnya hilang. Itu dicatat di log, dan lebih ringan
+       * daripada pengingat yang berbunyi berkali-kali.
+       */
+      const { data: diklaim, error: errKlaim } = await request.db!
+        .from('pengingat_asisten')
+        .update({ dikirim_pada: new Date().toISOString() })
+        .eq('id', p.id)
+        .is('dikirim_pada', null)
+        .select('id')
+
+      if (errKlaim || !Array.isArray(diklaim) || diklaim.length === 0) continue
+
+      await createNotification({
+        company_id: request.companyId!,
+        user_id: p.user_id,
+        title: 'Pengingat Anda',
+        message: p.isi,
+        type: 'pengingat_asisten',
+        priority: 'normal',
+        ...(p.project_id ? { project_id: p.project_id } : {}),
+      })
+      dikirim++
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dikirim,
+      checked: { jatuh_tempo: jatuh.length },
+    })
+  })
 }
 
 /**

@@ -61,6 +61,8 @@ import { toolHargaSatuan } from './ai-tool-harga.js'
 import { toolPerhatian } from './ai-tool-perhatian.js'
 import { toolHitungPekerjaan } from './ai-tool-hitung.js'
 import { toolJejakPerubahan } from './ai-tool-jejak.js'
+import { TOOL_PENGINGAT } from './ai-tool-pengingat.js'
+import { toolTitipPesan } from './ai-tool-titip-pesan.js'
 
 
 
@@ -852,6 +854,13 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     `ai:chat`, dan nilai lama/baru sengaja TIDAK dikirim ke prompt.
   */
   toolJejakPerubahan,
+  /*
+    Pengingat & titipan (2026-08-16) — dua kemampuan asisten manusia yang
+    terakhir. `titip_pesan` satu-satunya tool yang menyentuh ORANG LAIN, dan
+    izinnya sengaja terpisah dari `ai:chat`.
+  */
+  ...TOOL_PENGINGAT,
+  toolTitipPesan,
 ]
 
 /**
