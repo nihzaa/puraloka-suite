@@ -215,6 +215,7 @@ salah dengar memindahkan uang.
 | `audit-izin-benar-ada.mjs` | kunci `requirePermission` wajib ada di tabel `permissions` — kunci hantu menolak SEMUA orang tanpa gejala (ambang NOL) |
 | `audit-jenis-notifikasi-punya-aturan.mjs` | kunci `resolveRecipients` wajib punya aturan, dan aturan wajib punya penerima — keduanya membuat notifikasi hilang tanpa jejak (ambang NOL) |
 | `audit-halaman-pakai-cache.mjs` | halaman yang mengambil data wajib lewat `useData()` — lapis cache dibangun 2026-08-04 lalu tak dipakai satu halaman pun (ratchet) |
+| `uji-galat-muat-terpisah.mjs` | galat MUAT dan galat AKSI tak boleh berbagi satu state — gagal simpan menghapus pesan gagal muat, ditemukan di 11 halaman (ambang NOL) |
 | `audit-notifikasi-tak-kembar.mjs` | dedup notifikasi harian wajib menahan — kembar HARI INI (ambang NOL) |
 | `audit-izin-tanpa-konteks.mjs` | fungsi izin tak boleh kosong saat `auth_company_id()` NULL (ambang NOL) |
 | `audit-peristiwa-punya-alur.mjs` | tiap peristiwa yang diterbitkan wajib punya alur n8n penerima (ambang NOL) |

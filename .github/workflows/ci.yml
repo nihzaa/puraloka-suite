@@ -749,6 +749,31 @@ jobs:
       - name: Halaman mengambil data lewat lapis cache (ratchet)
         run: node scripts/audit-halaman-pakai-cache.mjs
 
+      # Galat MUAT dan galat AKSI tak boleh berbagi satu state.
+      #
+      # Cacat yang sama muncul di SEBELAS halaman selama pemindahan ke lapis
+      # cache (F4-2). Satu state `galat` dipakai untuk gagal-memuat DAN
+      # gagal-menyimpan: pengguna yang jaringannya putus melihat "Gagal
+      # memuat", menekan Simpan, dan baris pertama simpan MENGHAPUS pesan itu.
+      # Ia lalu menyimpulkan datanya sudah termuat — padahal tidak.
+      #
+      # Tak ada galat, tak ada test merah, layarnya terlihat masuk akal.
+      # Sebelas kali bukan kebetulan: itu cara halaman di repo ini ditulis.
+      #
+      # Ambang NOL, terukur sesudah sebelas perbaikan.
+      #
+      # ⚠ Penjaga ini sendiri sempat BUTA: bentuk pertamanya memindai dari
+      # `export default function` ke bawah, dan melewatkan pola `PageInner()`
+      # yang menaruh seluruh isi komponen DI ATAS pembungkusnya. Ia melaporkan
+      # "nol pelanggar" untuk berkas yang tak pernah dilihat isinya, dan itu
+      # ketahuan HANYA karena mutasinya dijalankan.
+      #
+      # Bukti merah: `setGalatAksi` dikembalikan jadi `setGalat` di halaman
+      # yang sudah pindah → exit 1; `setGalat` milik komponen pembantu di
+      # berkas yang sama → TETAP hijau (benar diabaikan); dipulihkan → exit 0.
+      - name: Galat muat terpisah dari galat aksi
+        run: cd ../web && node scripts/uji-galat-muat-terpisah.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan
