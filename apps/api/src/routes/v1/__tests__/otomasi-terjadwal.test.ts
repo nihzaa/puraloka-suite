@@ -535,6 +535,10 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     // "semua pembayaran memakai metode sama" - kolom yang salah; yang
     // dijanjikan judulnya WAKTU, dan 4 dari 23 telat, terparah 98 hari.
     'kebiasaan-bayar',
+    // 1.14 Weekly Digest (2026-08-16). SATU ringkasan, bukan tiga: 8.11
+    // (briefing pagi + sore = 14 pesan/minggu) dan 8.12 (anomali, himpunan
+    // bagian) sengaja tidak dibangun. Alasannya di rutenya.
+    'ringkasan-mingguan',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

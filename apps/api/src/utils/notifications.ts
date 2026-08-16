@@ -145,6 +145,9 @@ export type NotificationType =
   // 2.12 Payment Timing. POLA lintas-invoice per klien, bukan satu tagihan
   // telat - tindakannya menaikkan uang muka, bukan menagih.
   | 'kebiasaan_bayar_klien'
+  // 1.14 Weekly Digest. SATU pengirim ringkasan, bukan tiga - 8.11 dan 8.12
+  // sengaja tidak dibangun; alasannya di rute `ringkasan-mingguan`.
+  | 'ringkasan_mingguan'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'

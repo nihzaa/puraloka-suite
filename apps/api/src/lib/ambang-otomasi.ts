@@ -804,6 +804,46 @@ export const AMBANG_OTOMASI = {
     timing)", dan waktunya punya sebaran yang jelas — 4 dari 23 telat,
     terparah 98 hari.
   */
+  /*
+    1.14 Weekly Digest. SATU ringkasan, bukan tiga — 8.11 (briefing pagi +
+    rangkuman sore = 14 pesan/minggu) dan 8.12 (anomali, himpunan bagian dari
+    ini) sengaja tidak dibangun. Alasannya di rute `ringkasan-mingguan`.
+  */
+  'otomasi.ringkasan_mingguan.hari': {
+    bawaan: 7,
+    min: 3,
+    max: 31,
+    label: 'Panjang jendela yang diringkas',
+    judul: 'Ringkasan berkala',
+    akibat:
+      'Berapa hari ke belakang yang dirangkum dalam satu pesan. Makin panjang '
+      + 'makin jarang pesannya, tetapi makin lama sebuah masalah baru terangkum.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  /*
+    Berapa JENIS berbeda minimum sebelum ringkasan dikirim.
+
+    Minggu sepi sengaja tidak menghasilkan pesan. "Tidak ada apa-apa minggu
+    ini" yang datang tiap Senin adalah pesan yang selalu benar dan tak pernah
+    berguna — ia melatih orang mengabaikan pengirimnya sebelum minggu yang
+    ramai tiba.
+  */
+  'otomasi.ringkasan_mingguan.min_jenis': {
+    bawaan: 2,
+    min: 1,
+    max: 10,
+    label: 'Jenis peringatan berbeda minimum sebelum ringkasan dikirim',
+    judul: 'Ringkasan berkala',
+    akibat:
+      'Minggu dengan lebih sedikit jenis peringatan dari angka ini dilewati '
+      + 'tanpa pesan sama sekali. Menaikkannya membuat ringkasan hanya datang '
+      + 'saat benar-benar ada yang perlu dilihat.',
+    satuan: 'jenis',
+    langkah: 1,
+  },
+
   'otomasi.kebiasaan_bayar.hari': {
     bawaan: 14,
     min: 3,

@@ -1113,6 +1113,31 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'yang belum bisa ditutup hanya melatih orang mengabaikan notifikasi.',
   },
   {
+    kunci: 'ringkasan-mingguan',
+    nomor: '1.14',
+    nama: 'Ringkasan berkala',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Satu pesan merangkum seluruh peringatan dalam jendela terakhir, supaya '
+      + 'tak perlu membuka kotak masuk untuk tahu apa yang terjadi. '
+      + 'MELIPUT 8.11 (briefing pagi + rangkuman sore) dan 8.12 (ringkasan '
+      + 'anomali mingguan) — keduanya sengaja TIDAK dibangun terpisah: 8.11 '
+      + 'berarti dua pesan sehari, dan 8.12 himpunan bagian dari ini karena '
+      + 'anomali sudah menjadi notifikasi. Membangunnya terpisah membuat satu '
+      + 'kejadian dilaporkan dua kali dalam minggu yang sama. '
+      + 'Minggu tanpa apa-apa sengaja tidak menghasilkan pesan sama sekali.',
+    penerima: 'Pemilik & eksekutif',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca notifikasi dalam jendela yang disetel.' },
+      { di: 'sistem', teks: 'Membuang ringkasan sebelumnya supaya tak merangkum dirinya.' },
+      { di: 'sistem', teks: 'Mengelompokkan per jenis, mendahulukan yang belum dibaca.' },
+      { di: 'sistem', teks: 'Melewati minggu yang jenis peringatannya terlalu sedikit.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.ringkasan_mingguan.hari',
+  },
+  {
     kunci: 'kebiasaan-bayar',
     nomor: '2.12',
     nama: 'Klien cenderung telat membayar',

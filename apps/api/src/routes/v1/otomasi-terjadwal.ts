@@ -8721,6 +8721,162 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/ringkasan-mingguan ──────────────────────
+  //
+  // Automation 1.14 — Weekly Digest.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // SATU RINGKASAN, BUKAN TIGA — DAN ITU KEPUTUSAN, BUKAN KEMALASAN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Rencana memuat tiga automation ringkasan: 1.14 Weekly Digest, 8.11 Morning
+  // Briefing + Evening Wrap, 8.12 Anomaly Digest (weekly). Yang dibangun SATU.
+  //
+  // Founder menyatakan tak mau banyak pesan, dan pengukuran 2026-08-16
+  // membenarkannya dengan angka: 9.009 notifikasi, 3 dibaca. Menambah tiga
+  // pengirim baru ke sistem yang baru saja dibersihkan adalah cara tercepat
+  // mengulang cacat yang baru diperbaiki.
+  //
+  //   8.11 berarti DUA pesan sehari — empat belas seminggu. Itu kebalikan arah
+  //        dari jeda melandai yang baru dipasang di berkas ini.
+  //   8.12 adalah himpunan bagian: anomali sudah menjadi notifikasi, jadi ia
+  //        sudah terhitung di sini. Membangunnya terpisah berarti satu
+  //        kejadian dilaporkan dua kali dalam minggu yang sama.
+  //
+  // Keduanya dicatat di katalog sebagai DILIPUT oleh rute ini, bukan sebagai
+  // "belum dikerjakan" — supaya sesi berikutnya tak membangunnya dan menyangka
+  // sedang menutup celah.
+  app.get('/api/v1/otomasi/jalankan/ringkasan-mingguan', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { susunRingkasan } = await import('../../lib/ringkasan-mingguan.js')
+
+    const q = request.query as { hari?: string; min?: string }
+    const jendelaHari = await ambilAmbang(request, 'otomasi.ringkasan_mingguan.hari', q.hari)
+    const minJenis = await ambilAmbang(request, 'otomasi.ringkasan_mingguan.min_jenis', q.min)
+
+    const JENIS_SENDIRI = 'ringkasan_mingguan'
+
+    const sejak = new Date()
+    sejak.setUTCDate(sejak.getUTCDate() - jendelaHari)
+
+    /*
+      BERHALAMAN — wajib, dan di sinilah paling penting.
+
+      `notifications` adalah tabel paling ramai di basis ini: 9.009 baris dalam
+      17 hari sebelum dibersihkan. Satu jendela tujuh hari sudah melewati 1.000
+      baris, dan PostgREST memotongnya TANPA galat.
+
+      Terpotong berarti ringkasannya melaporkan angka yang terlalu kecil —
+      dan angka yang terlalu kecil pada RINGKASAN adalah kebohongan yang paling
+      sulit ketahuan: tak ada yang membandingkannya dengan apa pun.
+      Dijaga `audit-baca-tak-terpotong` (ambang NOL).
+    */
+    const HALAMAN = 1000
+    const baris: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('notifications')
+        .select('type, priority, read_at, sent_at')
+        .gte('sent_at', sejak.toISOString())
+        .order('sent_at', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      baris.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const h = susunRingkasan(
+      baris.map((b) => ({
+        type: String(b.type ?? ''),
+        priority: b.priority as string | null,
+        sudahDibaca: b.read_at != null,
+      })),
+      JENIS_SENDIRI,
+      minJenis,
+    )
+
+    if (!h.layakKirim) {
+      return reply.send({
+        success: true,
+        notifications_created: 0,
+        checked: { dibaca: baris.length, jenis: h.perJenis.length, alasan: 'minggu sepi' },
+      })
+    }
+
+    /*
+      Dedup memakai KUNCI TETAP, bukan id catatan.
+
+      Ringkasan ini tak menunjuk satu catatan pun — ia merangkum banyak. Tanpa
+      `record_id` ia kebal dedup DAN tak terlihat `audit-notifikasi-tak-kembar`
+      (yang sengaja melewati baris ber-record_id NULL), jadi tiap denyut
+      penjadwal akan mengirim ulang seluruh ringkasan.
+
+      Kunci tetap per-perusahaan membuat jeda melandai berlaku padanya seperti
+      pada yang lain: terkirim, lalu tertahan sampai jedanya lewat.
+    */
+    const kunci = `ringkasan-${request.companyId}`
+    const sudah = await pembuatDedup(request, new Date().toISOString().split('T')[0],
+      [JENIS_SENDIRI])
+    if (sudah(JENIS_SENDIRI, kunci)) {
+      return reply.send({
+        success: true,
+        notifications_created: 0,
+        checked: { dibaca: baris.length, jenis: h.perJenis.length, alasan: 'sudah dikirim' },
+      })
+    }
+
+    // Lima jenis teratas saja. Ringkasan yang memuat dua puluh baris bukan
+    // ringkasan — ia salinan kotak masuk dengan langkah tambahan.
+    const puncak = h.perJenis.slice(0, 5)
+      .map((p) => `${p.type.replace(/_/g, ' ')} ${p.jumlah}${p.belumDibaca > 0 ? ` (${p.belumDibaca} belum dibaca)` : ''}`)
+      .join(' · ')
+
+    const penerima = await resolveRecipients(JENIS_SENDIRI, {
+      companyId: request.companyId!,
+    })
+
+    let dibuat = 0
+    for (const uid of penerima) {
+      await createNotification({
+        company_id: request.companyId!,
+        user_id: uid,
+        title: `Ringkasan ${jendelaHari} hari terakhir`,
+        message:
+          `${h.total} peringatan dari ${h.perJenis.length} jenis`
+          + `${h.mendesak > 0 ? `, ${h.mendesak} mendesak` : ''}`
+          + `, ${h.belumDibaca} belum dibaca. Terbanyak: ${puncak}.`,
+        type: JENIS_SENDIRI,
+        priority: h.mendesak > 0 ? 'high' : 'normal',
+        action_url: '/notifications',
+        // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+        action_data: {
+          record_id: kunci,
+          total: h.total,
+          mendesak: h.mendesak,
+          belum_dibaca: h.belumDibaca,
+        },
+      })
+      dibuat++
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: {
+        dibaca: baris.length,
+        total_diringkas: h.total,
+        jenis: h.perJenis.length,
+        mendesak: h.mendesak,
+        jendela_hari: jendelaHari,
+        min_jenis: minJenis,
+      },
+    })
+  })
 }
 
 /**
