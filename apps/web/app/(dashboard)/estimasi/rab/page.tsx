@@ -616,8 +616,19 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, sibuk }: {
                       {it.assembly?.output_unit_code ?? it.unit ?? ""}
                     </span>
                   </td>
+                  {/*
+                    HSP DITURUNKAN (amount ÷ quantity), tidak dibaca dari medan.
+
+                    `estimate_items` tak punya kolom `unit_price` — diukur
+                    2026-08-16 lewat `introspect.mjs columns`. Versi pertama
+                    saya membacanya begitu saja dan kolom HSP berbunyi "—" di
+                    SETIAP baris, padahal modal penjelasan di layar yang sama
+                    menyebut Rp 90.800. Dua angka dari satu item yang saling
+                    bertentangan lebih merusak kepercayaan daripada kolom yang
+                    memang kosong.
+                  */}
                   <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-                    {angka(it.unit_price)}
+                    {angka(hsp(it))}
                   </td>
                   <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
                     {angka(it.amount)}
@@ -770,4 +781,20 @@ function pesanGalat(e: unknown): string | undefined {
  */
 function punyaAnalisa(it: ItemVersi): boolean {
   return Boolean(it.assembly_id ?? it.assembly?.id ?? it.assembly?.code);
+}
+
+/**
+ * Harga satuan pekerjaan = jumlah ÷ volume.
+ *
+ * Bukan medan tersimpan: `estimate_items` menyimpan `amount` dan `quantity`,
+ * tidak `unit_price`. Untuk item lump-sum (volume 1) hasilnya sama dengan
+ * jumlahnya, jadi kolomnya dikosongkan supaya tak terbaca sebagai "harga
+ * satuan" yang sebenarnya tak pernah dihitung.
+ */
+function hsp(it: ItemVersi): number | null {
+  if (!punyaAnalisa(it)) return null;
+  const q = Number(it.quantity);
+  const a = Number(it.amount);
+  if (!Number.isFinite(q) || !Number.isFinite(a) || q === 0) return null;
+  return a / q;
 }

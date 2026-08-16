@@ -93,7 +93,34 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       // (lewat estimate_version_id), jadi kepemilikannya diperiksa di sana.
       const { data: item } = await request.db!
         .unsafe('estimate_items', 'kategori C lewat estimate_version_id; dicek versiMilikTenant di bawah')
-        .select('id, description, unit, quantity, price_date, hsp_snapshot, estimate_version_id')
+        /*
+          ── KOLOM `description` DAN `unit` TIDAK PERNAH ADA. Diukur 2026-08-16.
+
+          Baris ini dulu berbunyi:
+
+              .select('id, description, unit, quantity, price_date, …')
+
+          `estimate_items` tak punya keduanya (`introspect.mjs columns`):
+
+              id · estimate_version_id · cost_code_id · assembly_id ·
+              cbs_node_id · wbs_node_id · quantity · amount · sort_order ·
+              notes · created_at · price_date · price_location ·
+              hsp_snapshot · provenance_captured
+
+          Akibatnya SELECT gagal, `item` undefined, dan penjaganya di bawah
+          menyimpulkan "Item tidak ditemukan" — 404 untuk SETIAP item, termasuk
+          item yang jelas-jelas ada. Di layar terbaca "Gagal memuat penjelasan".
+
+          Yang membuatnya bertahan: 404-nya terlihat MASUK AKAL (ada cabang
+          yang memang memulangkan 404 untuk item milik tenant lain), dan tak
+          ada satu pun test menyentuh rute ini. Fitur "kenapa angkanya segini?"
+          — janji inti modul ini — tak pernah sekali pun berhasil.
+
+          Nama & satuan diambil dari analisanya (`assemblies`), tempat data itu
+          sebenarnya tinggal; item lump-sum memakai `notes`.
+        */
+        .select(`id, quantity, price_date, hsp_snapshot, estimate_version_id, notes,
+                 assembly:assemblies(name, output_unit_code)`)
         .eq('id', itemId)
         .maybeSingle()
 
@@ -101,9 +128,13 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Item tidak ditemukan' })
       }
 
+      const asm = (item as { assembly?: { name?: string; output_unit_code?: string } | null }).assembly
+      const nama = asm?.name ?? (item.notes as string | null) ?? '(tanpa nama)'
+      const satuan = asm?.output_unit_code ?? null
+
       const hasil = jelaskanItem(item.hsp_snapshot as HspSnapshot | null, {
-        namaItem: item.description ?? '(tanpa nama)',
-        satuan: item.unit ?? null,
+        namaItem: nama,
+        satuan,
         volume: item.quantity == null ? null : Number(item.quantity),
         priceDate: item.price_date ?? null,
       })
@@ -111,8 +142,8 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       return reply.send({
         data: {
           itemId: item.id,
-          nama: item.description,
-          satuan: item.unit,
+          nama,
+          satuan,
           volume: item.quantity == null ? null : Number(item.quantity),
           ...hasil,
         },
