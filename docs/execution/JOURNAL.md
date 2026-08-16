@@ -5,6 +5,83 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi CECEP, 11) — audit UI `/estimasi`: backendnya kaya, UI-nya satu halaman
+
+Founder minta rombak UI/UX + alur kerja CECEP ("masih kurang intuitif"), plus
+menambah modul dari workbook Auto Structure Pro. Sesi ini: **audit dulu, belum
+menulis kode UI apa pun** — arahannya arsitektural, jadi spec dulu.
+
+### Yang diukur (login nyata, akun admin, bukan baca kode)
+
+Enam tab `/estimasi` dipotret lewat Playwright, lalu tiap tab dipilihkan proyek
+sungguhan dan diukur ulang:
+
+    tab           tabel  baris   catatan
+    komposer        0      0     isinya PANDUAN "cara pakai", bukan alat kerja
+    katalog         0      0     3.043 analisa (daftar datar, tanpa grup)
+    harga           1     30     3.212 harga — satu-satunya tab yang matang
+    material/RAP    0      0     HALAMAN PUTIH, tanpa empty state
+    cashflow        0      0     kosong
+    varians         0      0     kosong
+
+Setelah memilih proyek nyata pun, keempat tab kosong itu TETAP 0 tabel.
+
+### Akar penyebabnya — bukan bug render
+
+    projects/{id}/scenarios  ->  200 {"data":[]}   ← rantai putus di sini
+    projects/{id}/rap        ->  200 {"data":[]}
+
+Nol skenario di SELURUH 17 proyek. Tanpa skenario tak ada versi, tanpa versi tak
+ada item — jadi RAP/Kas/Varians kosong secara struktural. Kegagalan UX-nya:
+halaman tak pernah mengatakan itu. Layar putih, tanpa petunjuk.
+
+### Ketimpangan yang menjelaskan rasa "tidak intuitif"
+
+    backend CECEP : 47 endpoint · 9 modul · 22 permission · 3.043 AHSP · 3.212 harga
+    frontend CECEP: 1 halaman, 4.070 baris
+
+Pembanding di repo yang sama: procurement **13 halaman**, keuangan **9**,
+gudang **6**. Modul paling kompleks justru punya halaman paling sedikit.
+
+### Saya salah menaruh curiga di awal
+
+Dugaan pertama saya: datanya belum di-seed. Salah — `/cecep/assemblies`,
+`/price-book`, `/editions`, `/steel-profiles` semua 200 berisi. Yang kosong
+justru lapisan yang dibuat pengguna (skenario), dan itu beda diagnosis: bukan
+"seed kurang", tapi "tak ada jalan masuk di UI".
+
+### Dokumen yang dikoreksi (§8a.4)
+
+`PETA-PRIORITAS-ERP.md` menyatakan di DUA tempat bahwa langkah 6 (take-off
+material/BBS) & 7 (RAP/Pagu) **"BELUM DIMULAI — 0 tabel di migration manapun"**.
+Diukur: **salah/basi.**
+
+    langkah 6 -> db/migrations/122_cecep_material_takeoff.sql  (material_pack, steel_profiles)
+    langkah 7 -> db/migrations/138_cecep_rap_pagu.sql          (rap_budget, rap_material_line,
+                                                                rap_labor_line, rap_change_log)
+
+Semua hidup di DB ber-RLS (`introspect.mjs tables`), endpoint-nya 200. Kedua
+baris sudah dicoret + dikoreksi dengan cara mengukurnya. Persis pola yang
+diperingatkan pembuka `CLAUDE.md`: angka di dokumen membusuk, dan kali ini
+membuat prioritas tertulis menunjuk arah yang salah (DB/API, padahal sisa
+pekerjaannya UI).
+
+### Temuan sampingan untuk Auto Structure Pro
+
+Jembatannya sudah separuh ada — `/estimate-versions/:id/rebar-takeoff`,
+`/material-takeoff`, `/items/:itemId/rebar` hidup, dan `/cecep/steel-profiles`
+datanya berasal dari workbook proyek. Founder memilih opsi **1c** (analisa SNI
+penuh + gambar kerja); dikerjakan SETELAH CECEP, atas permintaannya sendiri.
+
+### Belum dikerjakan (sengaja)
+
+Belum ada kode UI ditulis. Menunggu keputusan founder soal Skenario/Versi:
+(A) tetap rigor tapi disembunyikan di balik satu tombol "Buat RAB baru", atau
+(B) wizard bertahap yang menampilkan keduanya apa adanya. Spec ditulis setelah
+itu dijawab.
+
+---
+
 ## 2026-08-16 (sesi ASISTEN, 10) — laporan tool terpakai, dan yang MENOLAK melapor
 
 Nomor 3 dari rencana ("ukur tool mana yang tak pernah dipanggil"). Dibangun,
