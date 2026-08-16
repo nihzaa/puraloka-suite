@@ -34,6 +34,7 @@ import type { Client } from 'pg'
 import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import otomasiTerjadwalRoutes from '../otomasi-terjadwal.js'
+import costControlRoutes from '../cost-control.js'
 
 // Hanya heksadesimal — huruf di luar a-f bukan digit hex dan Postgres
 // menolaknya sebagai uuid tak sah.
@@ -96,6 +97,17 @@ beforeAll(async () => {
 
   app = Fastify()
   await app.register(otomasiTerjadwalRoutes)
+  /*
+    `cost-control` WAJIB ikut terdaftar. `serapan-anggaran` adalah satu-satunya
+    tugas yang memanggil rute LAIN lewat `server.inject`; tanpa pendaftaran ini
+    panggilannya 404, otomasinya membalas 500, dan testnya merah karena
+    HARNESS-nya kurang lengkap — bukan karena kodenya salah.
+
+    Merahnya justru benar: rute itu memang sengaja mati saat portofolio tak
+    terhitung, daripada mengirim "semua proyek 0%" yang lahir dari kegagalan.
+    Yang salah cuma tempat mengujinya.
+  */
+  await app.register(costControlRoutes)
   await app.ready()
 }, 90_000)
 
@@ -257,6 +269,102 @@ describe('dedup — syarat mutlak untuk denyut 15 menit', () => {
   }, 120_000)
 })
 
+describe('jeda MELANDAI — pertahanan terhadap 9.009 pesan tak terbaca', () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    APA YANG DIUKUR, DAN KENAPA TEST INI LAHIR
+
+    Dedup harian menahan kembar DI HARI YANG SAMA. Selama berbulan-bulan itu
+    terlihat benar, dan akibatnya tak terlihat: masalah yang belum diperbaiki
+    menagih ulang TIAP HARI, selamanya.
+
+    Diukur 2026-08-16 terhadap basis nyata:
+
+        9.009 notifikasi · 3 dibaca · 3.474 masuk ke kotak pemilik sendiri
+        satu `gr_tak_cocok` menagih orang yang sama 5 hari berturut-turut
+
+    100% tak dibaca bukan kebetulan. Itu yang terjadi pada alarm yang berbunyi
+    tiap hari untuk hal yang sama: orang berhenti melihatnya, lalu berhenti
+    melihat notifikasi SAMA SEKALI — termasuk yang penting.
+
+    Test ini menjaga jadwal barunya: kirim, lalu +3 hari, +7 hari, +14 hari.
+
+    ⚠ Ia MERAH pada kode lama. Itu memang tujuannya: pada dedup harian,
+    notifikasi kemarin membiarkan tagihan hari ini lewat, dan blok kedua di
+    bawah akan memulangkan angka > 0.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  /*
+    Geser RELATIF terhadap waktu tiap baris, bukan dipaku ke `now() - N`.
+
+    Bentuk pertama memakai `now() - N` dan runtuh sendiri: ia menyamakan
+    SELURUH riwayat ke satu instan, sehingga "berapa hari berbeda" selalu 1
+    dan jedanya tak pernah terlihat melandai. Testnya lalu hijau untuk alasan
+    yang salah — atau merah untuk alasan yang salah, seperti yang terjadi.
+
+    Geser relatif mempertahankan jarak antar-kiriman, yang justru itulah yang
+    diuji.
+  */
+  const mundurkan = (hari: number) =>
+    db.query(
+      `UPDATE notifications
+          SET sent_at    = sent_at    - ($1 || ' days')::interval,
+              created_at = created_at - ($1 || ' days')::interval
+        WHERE type = 'kasbon_outstanding'`,
+      [String(hari)],
+    )
+
+  it('menahan tagihan ulang sampai jedanya lewat, lalu melepasnya', async () => {
+    await db.query(`DELETE FROM kasbons WHERE notes = $1`, [PENANDA])
+    await db.query(`DELETE FROM notifications WHERE type = 'kasbon_outstanding'`)
+
+    // ── Putaran 1: belum ada riwayat sama sekali → harus mengirim.
+    const pertama = await panggil('kasbon-outstanding', '?hari=30')
+    expect(pertama.statusCode).toBe(200)
+    const dibuat = pertama.json().notifications_created
+    expect(dibuat).toBeGreaterThan(0)
+
+    // ── Sehari kemudian: HARI berbeda, tapi jeda pertama 3 hari → TAHAN.
+    //    Inilah baris yang merah pada dedup harian.
+    await mundurkan(1)
+    expect((await panggil('kasbon-outstanding', '?hari=30')).json()
+      .notifications_created).toBe(0)
+
+    // ── Dua hari total: masih di dalam jeda 3 hari → TAHAN.
+    await mundurkan(1)
+    expect((await panggil('kasbon-outstanding', '?hari=30')).json()
+      .notifications_created).toBe(0)
+
+    // ── Empat hari total: jeda pertama LEWAT → menagih lagi. Sinyalnya tak
+    //    hilang, yang hilang cuma pengulangan hariannya.
+    await mundurkan(2)
+    expect((await panggil('kasbon-outstanding', '?hari=30')).json()
+      .notifications_created).toBeGreaterThan(0)
+
+    /*
+      ── Dan jedanya MELANDAI, bukan tetap 3 hari.
+
+      Sesudah putaran di atas tiap catatan punya DUA kiriman, jadi jeda
+      berikutnya 7 hari. Memundurkan 4 hari lagi harus TETAP tertahan —
+      kalau jedanya tidak melandai, angka ini > 0 dan test merah.
+
+      Ini bagian yang paling mudah salah tulis: `JEDA_HARI[kali]` alih-alih
+      `JEDA_HARI[kali - 1]` membuat jeda melompati satu tingkat tanpa gejala
+      apa pun selain "kok masih agak sering".
+    */
+    await mundurkan(4)
+    expect((await panggil('kasbon-outstanding', '?hari=30')).json()
+      .notifications_created).toBe(0)
+
+    // Delapan hari sesudah kiriman kedua → jeda 7 hari lewat, menagih lagi.
+    await mundurkan(8)
+    expect((await panggil('kasbon-outstanding', '?hari=30')).json()
+      .notifications_created).toBeGreaterThan(0)
+
+    await db.query(`DELETE FROM notifications WHERE type = 'kasbon_outstanding'`)
+  }, 180_000)
+})
+
 describe('rentang hari untuk kolom TIMESTAMPTZ', () => {
   it('batas hari dihitung sebagai rentang, bukan kesamaan', () => {
     // `progress_logs.logged_at` TIMESTAMPTZ. Membandingkannya dengan
@@ -379,6 +487,44 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     'serapan-anggaran',
     'absensi-berhenti',
     'subkon-tak-layak',
+    /*
+      Dua puluh lima tugas berikutnya (2026-08-16) ditambahkan SEKALIGUS, dan
+      itu sendiri sebuah kegagalan yang layak dicatat: daftar ini tertinggal
+      22 dari 47 sebelum penjaganya merah.
+
+      Artinya selama dua puluh lima rute lahir, tak satu pun pernah dipanggil
+      oleh test cakupan. Rute yang melempar saat dijalankan akan lolos CI
+      dengan mulus — persis jenis cacat yang test ini ada untuk menahannya.
+
+      Pelajarannya bukan "lebih rajin ingat", melainkan: penjaga daftar inilah
+      yang bekerja. Ia menahan kebohongan "47 otomasi terbangun" ketika yang
+      terbukti bisa dipanggil baru 22.
+    */
+    'retensi-tertahan',
+    'audit-aksi-berisiko',
+    'kontrak-payung-habis',
+    'penyusutan-belum-ditutup',
+    'perawatan-alat',
+    'konflik-mandor',
+    'rab-harga-menyimpang',
+    'upah-menyimpang',
+    'kontrak-klien-berakhir',
+    'insiden-k3-belum-ditutup',
+    'stok-di-bawah-minimum',
+    'audit-mutu-lewat-jadwal',
+    'izin-kedaluwarsa',
+    'risiko-lewat-tinjau',
+    'biaya-kembar',
+    'biaya-berulang',
+    'margin-bocor',
+    'pemasok-terpencar',
+    'stok-melenceng',
+    'biaya-pencilan',
+    'proyeksi-selesai',
+    'po-luar-kontrak',
+    'invoice-ringkasan-melenceng',
+    'kesiapan-audit',
+    'opname-menggantung',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

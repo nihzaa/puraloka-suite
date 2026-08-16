@@ -8253,7 +8253,34 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
 }
 
 /**
- * Dedup harian — satu notifikasi per (type, record_id, hari).
+ * Jeda MELANDAI — satu notifikasi per (type, record_id), makin jarang.
+ *
+ * ── Kenapa bukan dedup harian lagi
+ *
+ * Bentuk sebelumnya menahan kembar **per hari**. Terdengar benar, dan selama
+ * berbulan-bulan tak ada yang menyadari akibatnya: masalah yang belum
+ * diperbaiki menagih ulang **tiap hari, selamanya**.
+ *
+ * Diukur 2026-08-16 terhadap basis nyata:
+ *
+ *   9.009 notifikasi · 3 dibaca · 3.474 masuk ke kotak pemilik sendiri
+ *   satu `gr_tak_cocok` menagih orang yang sama 5 hari berturut-turut
+ *   untuk penerimaan barang yang sama
+ *
+ * 100% tak dibaca bukan kebetulan — itu yang terjadi pada alarm yang berbunyi
+ * tiap hari untuk hal yang sama. Orang berhenti melihatnya, lalu berhenti
+ * melihat notifikasi SAMA SEKALI, termasuk yang penting. Otomasi yang
+ * membanjiri lebih buruk daripada otomasi yang tak ada: yang tak ada tak
+ * merusak kepercayaan pada yang lain.
+ *
+ * Jadwal barunya: tagih hari ini, lalu **+3 hari, +7 hari, lalu tiap 14 hari**.
+ * Sinyalnya tak hilang satu pun — yang hilang cuma pengulangannya. Masalah yang
+ * bertahan sebulan menghasilkan 5 notifikasi, bukan 30.
+ *
+ * Nilainya sengaja TIDAK bisa disetel dari UI. Ini bukan ambang bisnis
+ * ("berapa hari invoice dianggap telat") melainkan sifat alat itu sendiri;
+ * menjadikannya bisa disetel mengundang orang mengembalikannya ke "tiap hari"
+ * ketika sedang panik, dan cacat ini lahir kembali.
  *
  * ── Kenapa SATU query di muka, bukan satu query per catatan
  *
@@ -8274,12 +8301,45 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
  * dikirim hari ini untuk tipe tersebut, lalu pemeriksaan berikutnya cuma
  * `Set.has` di memori.
  */
+/**
+ * Jarak minimum ke tagihan berikutnya, menurut sudah berapa kali dikirim.
+ *
+ * Indeks = jumlah yang SUDAH terkirim. Kiriman ke-1 tak punya jarak (baru).
+ * Sesudah daftar habis, jarak terakhir berlaku seterusnya.
+ */
+const JEDA_HARI = [3, 7, 14] as const
+
+/** Berapa hari ke belakang riwayat dibaca. Harus > jeda terpanjang. */
+const JENDELA_HARI = 45
+
 async function pembuatDedup(request: FastifyRequest, today: string, tipe: string[]) {
-  const { data, error } = await request.db!
-    .from('notifications')
-    .select('type, action_data')
-    .in('type', tipe)
-    .gte('sent_at', today + 'T00:00:00')
+  const sejak = new Date(today + 'T00:00:00Z')
+  sejak.setUTCDate(sejak.getUTCDate() - JENDELA_HARI)
+
+  /*
+    BERHALAMAN — wajib. Jendela 45 hari untuk satu tipe ramai sudah melewati
+    1.000 baris, dan PostgREST memotongnya TANPA galat. Terpotong di sini
+    berarti riwayat terlihat kosong, jeda melandai tak pernah berlaku, dan
+    banjirnya kembali persis seperti semula — tanpa satu pun gejala.
+    Dijaga `audit-baca-tak-terpotong` (ambang NOL).
+  */
+  const HALAMAN = 1000
+  const data: Array<Record<string, unknown>> = []
+  let error: { message: string } | null = null
+  for (let dari = 0; ; dari += HALAMAN) {
+    const r = await request.db!
+      .from('notifications')
+      .select('type, action_data, sent_at')
+      .in('type', tipe)
+      .gte('sent_at', sejak.toISOString())
+      .order('sent_at', { ascending: true })
+      .range(dari, dari + HALAMAN - 1)
+
+    if (r.error) { error = r.error; break }
+    if (!r.data || r.data.length === 0) break
+    data.push(...(r.data as Array<Record<string, unknown>>))
+    if (r.data.length < HALAMAN) break
+  }
 
   /*
     Kegagalan baca di SINI adalah yang paling berbahaya di seluruh berkas, dan
@@ -8305,14 +8365,49 @@ async function pembuatDedup(request: FastifyRequest, today: string, tipe: string
     throw new Error(`Dedup harian tak bisa dibaca: ${error.message}`)
   }
 
-  const terkirim = new Set<string>()
-  for (const n of data ?? []) {
+  /*
+    Per (type, record_id): berapa kali DITAGIH, dan kapan yang TERAKHIR.
+
+    ⚠ "Berapa kali ditagih" BUKAN "berapa baris notifikasi". Satu tagihan yang
+    ditujukan ke tiga orang menulis tiga baris; menghitung baris membuat
+    tagihan PERTAMA langsung dianggap yang ketiga, dan jedanya melompat dari
+    3 hari ke 14 hari seketika.
+
+    Cacat ini tak punya gejala apa pun dari luar — notifikasinya tetap
+    terkirim, cuma jauh lebih jarang daripada yang dirancang, dan makin jarang
+    makin banyak penerimanya. Ia ketahuan hanya karena test menuntut angka
+    yang tepat pada hari ke-4.
+
+    Yang dihitung: HARI BERBEDA. Satu hari = satu tagihan, seberapa pun banyak
+    orang yang menerimanya.
+  */
+  const riwayat = new Map<string, { hari: Set<string>; terakhir: number }>()
+  for (const n of data) {
     const rid = (n.action_data as { record_id?: unknown } | null)?.record_id
-    if (typeof rid === 'string') terkirim.add(`${n.type} ${rid}`)
+    if (typeof rid !== 'string') continue
+    const mentah = String(n.sent_at ?? '')
+    const waktu = Date.parse(mentah)
+    if (Number.isNaN(waktu)) continue
+    const k = `${n.type} ${rid}`
+    const p = riwayat.get(k)
+    if (p) { p.hari.add(mentah.slice(0, 10)); if (waktu > p.terakhir) p.terakhir = waktu }
+    else riwayat.set(k, { hari: new Set([mentah.slice(0, 10)]), terakhir: waktu })
   }
+
+  const sekarang = Date.parse(today + 'T00:00:00Z')
+  const HARI = 86_400_000
 
   // Sinkron: pemanggilnya tetap `await`-able tanpa menyentuh basis lagi.
   return function sudahDikirim(type: string, recordId: string): boolean {
-    return terkirim.has(`${type} ${recordId}`)
+    const p = riwayat.get(`${type} ${recordId}`)
+    if (!p) return false                       // belum pernah — kirim
+
+    /*
+      `hari.size` selalu ≥ 1 di sini, jadi indeksnya `size - 1`. Melewati ujung
+      daftar memakai jeda TERAKHIR selamanya — bukan berhenti menagih. Masalah
+      yang bertahan setahun tetap terdengar, cuma dua minggu sekali.
+    */
+    const jeda = JEDA_HARI[Math.min(p.hari.size - 1, JEDA_HARI.length - 1)]
+    return sekarang - p.terakhir < jeda * HARI  // belum waktunya — tahan
   }
 }
