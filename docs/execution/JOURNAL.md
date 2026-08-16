@@ -5,6 +5,80 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi ASISTEN, 9) — 40 tool DIPANGGIL, tiga angka nol bergerak
+
+Founder: *"bikin data dummy dulu aja, isinya semua masih data dummy"*. Benar —
+dan itu membuka jalan yang tadinya saya tutup sendiri.
+
+### Tapi INSERT langsung TIDAK dipakai
+
+Menyisipkan baris ke `ai_token_tulis`/`pengingat_asisten` tak membuktikan apa
+pun: barisnya ada, dan pertanyaan "apakah toolnya bekerja" tetap tak terjawab.
+Yang dibuat justru ilusi pemakaian.
+
+`scripts/seed-pemakaian-asisten.mjs` memanggil tool YANG SEBENARNYA lewat
+`KATALOG_TOOL` + `jalankanTool()`. Datanya jadi BYPRODUK eksekusi nyata.
+
+### Bukti pertama bahwa katalog benar-benar jalan
+
+    40 tool dipanggil
+      38 menjawab dengan data
+       2 menolak (KEDUANYA perilaku yang benar)
+       0 GAGAL · 0 melempar
+
+Dua penolakan itu: `cari_dokumen` tanpa kata kunci, dan `titip_pesan` ke nama
+yang sengaja dikarang. Keduanya memang harus menolak.
+
+### Tiga angka yang sejak dibangun NOL, kini bergerak
+
+    ai_token_tulis    0 dari 0 terpakai  →  1 diterbitkan, 1 DIKLAIM
+    ai_ingatan        0 baris            →  2, terbaca lewat bacaIngatan()
+    pengingat_asisten 0 baris            →  1, lewat titip_pengingat
+
+Jalur tulis dipanggil lewat `terbitkanTokenWa` + `klaimTokenTulis` — fungsi
+yang SAMA dengan WhatsApp dan tombol web. Ia benar-benar membuat baris
+`progress_logs`, bukan cuma token.
+
+Ingatan disisipkan langsung (rutenya menuntut sesi login) tetapi DIBACA
+kembali lewat `bacaIngatan()` + `susunBlokIngatan()` — jadi yang dibuktikan
+bukan "barisnya ada" melainkan "penyaringan lapis/izin/proyek meloloskannya ke
+prompt".
+
+### Idempoten, dan tak menaruh sampah di modul ERP
+
+Semua baris bertanda `[SEED-PAKAI]` dan dibersihkan di AWAL tiap jalan —
+termasuk `progress_logs` yang lahir dari jalur tulis. Tanpa itu, menjalankan
+dua kali menaruh dua catatan progres palsu di proyek sungguhan, dan angka
+progres proyek itu jadi bohong.
+
+Diuji: jalan kedua melaporkan `bersih: 1 pengingat, 1 token, 1 catatan progres`
+lalu berakhir dengan hitungan yang sama.
+
+`catatan_progres` dipilih sengaja — satu-satunya jenis tulis yang tak
+menyentuh uang dan tak masuk antrean approval siapa pun. Kasbon dan
+pengeluaran TIDAK: seed tak boleh menaruh permintaan palsu di meja orang.
+
+### Yang TIDAK dilakukan
+
+Tak memanggil model AI. Ronde percakapan sungguhan butuh saldo, dan yang diuji
+di sini lapisan TOOL-nya — bukan kemampuan model memilih tool. `ai_pesan`
+karena itu tetap 21; percakapan nyata tetap harus dicoba manusia.
+
+### Bukti
+
+    tsc (berkas saya)                 0 galat
+    seed-pemakaian                    40/40 tool jalan, 0 gagal
+    ai-tool-kurasi 6 · ai-perilaku 19 · ai-tool 18
+    audit-katalog-tool-tak-membengkak exit 0
+    audit-tool-ai-read-only           exit 0
+    audit-pagar-fakta-utuh            exit 0
+    audit-izin-benar-ada              exit 0
+    audit-kegagalan-senyap            exit 0
+    audit-catch-senyap                exit 0
+    idempoten                         dijalankan 3×, hitungan akhir tetap
+
+---
+
 ## 2026-08-16 (sesi ASISTEN, 8) — SIFAT ASISTEN DINYALAKAN + 6.5 tukang cocok
 
 ### Founder menyerahkan keputusan watak ke saya, dan ini yang dipilih
