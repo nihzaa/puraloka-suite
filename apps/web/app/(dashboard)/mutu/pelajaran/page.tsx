@@ -35,7 +35,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Plus, RefreshCw, Send, Sprout, TriangleAlert } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
@@ -201,12 +202,7 @@ function kolomPelajaran(
 }
 
 export default function PelajaranPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  const [daftar, setDaftar] = useState<Pelajaran[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
   const [sukses, setSukses] = useState("");
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
 
   const [dialogBuka, setDialogBuka] = useState(false);
   const [mengirim, setMengirim] = useState(false);
@@ -234,31 +230,33 @@ export default function PelajaranPage() {
   const [fNilaiUsulan, setFNilaiUsulan] = useState("");
   const [galatResource, setGalatResource] = useState("");
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); });
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    // `queueMicrotask`: `setMemuat(true)` di sini jatuh SINKRON di dalam
-    // fase render effect dan memicu render kedua sebelum yang pertama
-    // selesai. Menundanya satu microtask memindahkannya keluar; cleanup
-    // `ac.abort()` tetap bekerja karena pembatalan terjadi belakangan.
-    queueMicrotask(() => setMemuat(true));
-    api.get<{ lessons: Pelajaran[] }>("/api/v1/lessons-learned", { signal: ac.signal })
-      .then((r) => { setDaftar(r.data.lessons ?? []); setGalat(""); })
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-        setGalat(m ?? "Gagal memuat daftar pelajaran");
-      })
-      .finally(() => { if (!ac.signal.aborted) setMemuat(false); });
-    return () => ac.abort();
-  }, [muatUlangKe]);
+    Dua `useData`: proyek dan daftar pelajaran. `muatUlangKe` (penghitung
+    yang dinaikkan untuk memicu efek muat ulang) digantikan `muatUlang()`
+    langsung — dengan `paksa: true`, jadi menyimpan pelajaran baru langsung
+    terlihat sesudah `setMuatUlangKe` lama diganti.
+  */
+  const { data: dataProyek, galat: galatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
+
+  const { data: dataDaftar, memuat, galat: galatDaftar, muatUlang } =
+    useData<{ lessons: Pelajaran[] }>("/api/v1/lessons-learned");
+  // `useMemo`, bukan `?? []` biasa: turunan array yang masuk dependensi
+  // `useMemo` lain (`ringkas` di bawah) butuh referensi stabil, kalau tidak
+  // ratchet exhaustive-deps merah setiap render.
+  const daftar = useMemo(() => dataDaftar?.lessons ?? [], [dataDaftar]);
+
+  // Galat MUAT vs galat AKSI (mengirim/mengajukan) dipisah — satu state
+  // untuk keduanya membuat gagal mengirim menghapus pesan gagal memuat.
+  const [galatAksi, setGalatAksi] = useState("");
+  const galat = galatAksi || (galatProyek
+    ? "Gagal memuat daftar proyek"
+    : galatDaftar
+      ? "Gagal memuat daftar pelajaran"
+      : "");
 
   useEffect(() => {
     if (!dialogBuka) return;
@@ -311,7 +309,7 @@ export default function PelajaranPage() {
 
   async function kirim() {
     if (halangan) return;
-    setMengirim(true); setGalat(""); setSukses("");
+    setMengirim(true); setGalatAksi(""); setSukses("");
     try {
       await api.post("/api/v1/lessons-learned", {
         project_id: fProyek,
@@ -329,24 +327,24 @@ export default function PelajaranPage() {
       });
       setSukses("Pelajaran tersimpan sebagai draf beserta usulan perubahan harganya.");
       setDialogBuka(false);
-      setMuatUlangKe((n) => n + 1);
+      void muatUlang();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menyimpan pelajaran");
+      setGalatAksi(m ?? "Gagal menyimpan pelajaran");
     } finally {
       setMengirim(false);
     }
   }
 
   async function ajukan(p: Pelajaran) {
-    setGalat(""); setSukses("");
+    setGalatAksi(""); setSukses("");
     try {
       await api.patch(`/api/v1/lessons-learned/${p.id}/submit`, {});
       setSukses(`"${p.title}" diajukan untuk disetujui.`);
-      setMuatUlangKe((n) => n + 1);
+      void muatUlang();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal mengajukan pelajaran");
+      setGalatAksi(m ?? "Gagal mengajukan pelajaran");
     }
   }
 
@@ -383,7 +381,7 @@ export default function PelajaranPage() {
         ...GAYA_KARTU, padding: "var(--pad-kartu)", marginBottom: "var(--gap-bagian)",
         display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap",
       }}>
-        <button type="button" onClick={() => { setGalat(""); setDialogBuka(true); }} style={{
+        <button type="button" onClick={() => { setGalatAksi(""); setDialogBuka(true); }} style={{
           display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
           padding: "9px 14px", borderRadius: 6, fontSize: 13, fontWeight: 600,
           border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)",
@@ -391,7 +389,7 @@ export default function PelajaranPage() {
           <Plus size={15} aria-hidden="true" /> Catat pelajaran
         </button>
 
-        <button type="button" onClick={() => setMuatUlangKe((n) => n + 1)}
+        <button type="button" onClick={() => void muatUlang()}
           aria-label="Muat ulang daftar pelajaran" style={{
             display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
             padding: "9px 12px", borderRadius: 6, fontSize: 13,

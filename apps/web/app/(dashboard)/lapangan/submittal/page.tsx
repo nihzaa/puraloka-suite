@@ -3,6 +3,7 @@
 import {
 useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useToast } from "@/components/toast";
 import { KepalaHalaman } from "@/components/dasar";
 import { Saklar } from "@/components/saklar";
@@ -90,63 +91,52 @@ const tanggal = (d: string | null) =>
 
 export default function SubmittalPage() {
   const { showToast } = useToast();
-  const [proyek, setProyek] = useState<Array<{ id: string; name: string }>>([]);
   const [proyekId, setProyekId] = useState<string>("");
-  const [items, setItems] = useState<Submittal[]>([]);
-  const [meta, setMeta] = useState<MetaSubmittal | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [formTerbuka, bukaForm] = useState(false);
   const [sedangUbah, setSedangUbah] = useState<string | null>(null);
-  const batalRef = useRef<AbortController | null>(null);
+
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Sama dengan halaman tetangga `punch-list`: dua `useData` — proyek
+    (prasyarat) lalu pengajuan proyek terpilih. Pemilihan proyek pertama
+    dipindah ke efek tersendiri, bergantung `data` saja.
+  */
+  const { data: dataProyek, memuat: memuatProyek, galat: galatProyek } =
+    useData<{ projects: Array<{ id: string; name: string }> }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
 
   useEffect(() => {
-    let batal = false;
-    api.get("/api/v1/projects")
-      .then((r) => {
-        if (batal) return;
-        const daftar = (r.data?.projects ?? []) as Array<{ id: string; name: string }>;
-        setProyek(daftar);
-        setProyekId((kini) => kini || daftar[0]?.id || "");
-        if (daftar.length === 0) setMemuat(false);
-      })
-      .catch(() => {
-        if (!batal) { setGalat("Daftar proyek tidak bisa dimuat."); setMemuat(false); }
-      });
-    return () => { batal = true; };
-  }, []);
-
-  const muat = useCallback(async (pid: string) => {
-    if (!pid) return;
-    batalRef.current?.abort();
-    const ac = new AbortController();
-    batalRef.current = ac;
-    setMemuat(true);
-    setGalat(null);
-    try {
-      const r = await api.get(`/api/v1/projects/${pid}/submittals`, { signal: ac.signal });
-      setItems(r.data?.data ?? []);
-      setMeta(r.data?.meta ?? null);
-    } catch (e) {
-      if ((e as { name?: string }).name === "CanceledError") return;
-      setGalat("Daftar pengajuan tidak bisa dimuat. Periksa koneksi lalu muat ulang.");
-    } finally {
-      if (!ac.signal.aborted) setMemuat(false);
+    if (proyek.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProyekId((kini) => kini || proyek[0].id);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataProyek]);
 
-  useEffect(() => {
-    if (!proyekId) return;
-    let batal = false;
-    void Promise.resolve().then(() => { if (!batal) void muat(proyekId); });
-    return () => { batal = true; };
-  }, [proyekId, muat]);
+  const jalurSubmittal = proyekId ? `/api/v1/projects/${proyekId}/submittals` : null;
+  const { data: dataSubmittal, memuat: memuatSubmittal, galat: galatSubmittal, muatUlang } =
+    useData<{ data: Submittal[]; meta: MetaSubmittal | null }>(jalurSubmittal);
+  // `useMemo`, bukan `?? []` biasa: turunan array yang masuk dependensi
+  // `useMemo` lain (`berkelompok` di bawah) butuh referensi stabil, kalau
+  // tidak ratchet exhaustive-deps merah setiap render.
+  const items = useMemo(() => dataSubmittal?.data ?? [], [dataSubmittal]);
+  const meta = dataSubmittal?.meta ?? null;
+
+  const memuat = memuatProyek || (proyekId !== "" && memuatSubmittal);
+  const galat = galatProyek
+    ? "Daftar proyek tidak bisa dimuat."
+    : galatSubmittal
+      ? "Daftar pengajuan tidak bisa dimuat. Periksa koneksi lalu muat ulang."
+      : null;
+
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   const ajukan = async (it: Submittal) => {
     setSedangUbah(it.id);
     try {
       await api.patch(`/api/v1/submittals/${it.id}/status`, { status: "diajukan" });
-      void muat(proyekId);
+      void muat();
       showToast("success", `${it.nomor} dicatat diajukan.`);
     } catch (e) {
       const p = (e as { response?: { data?: { error?: string } } }).response?.data?.error;
@@ -174,7 +164,7 @@ export default function SubmittalPage() {
         ...(catatan ? { catatan } : {}),
         ...(dari.trim() ? { diputuskan_oleh: dari.trim() } : {}),
       });
-      void muat(proyekId);
+      void muat();
       // Rantai approval bisa berjenjang. Kalau belum langkah terakhir,
       // statusnya BELUM berubah — dan mengatakan "disetujui" saat sebenarnya
       // masih menunggu level berikutnya adalah kebohongan yang membuat orang
@@ -203,7 +193,7 @@ export default function SubmittalPage() {
       const r = await api.post(`/api/v1/submittals/${it.id}/revisi`, {
         ...(usul.trim() ? { spesifikasi: usul.trim() } : {}),
       });
-      void muat(proyekId);
+      void muat();
       showToast("success", `Revisi ${r.data?.data?.nomor ?? ""} dibuat.`);
     } catch (e) {
       const p = (e as { response?: { data?: { error?: string } } }).response?.data?.error;
@@ -313,7 +303,7 @@ export default function SubmittalPage() {
         <div className="sb-galat" role="alert">
           <AlertTriangle size={18} aria-hidden />
           <span>{galat}</span>
-          <button className="sb-tombol-halus" onClick={() => void muat(proyekId)}>Muat ulang</button>
+          <button className="sb-tombol-halus" onClick={() => void muat()}>Muat ulang</button>
         </div>
       ) : memuat ? (
         <div className="sb-memuat" aria-live="polite">
@@ -476,7 +466,7 @@ export default function SubmittalPage() {
         <FormSubmittal
           proyekId={proyekId}
           onTutup={() => bukaForm(false)}
-          onSimpan={() => { bukaForm(false); void muat(proyekId); }}
+          onSimpan={() => { bukaForm(false); void muat(); }}
         />
       )}
 

@@ -42,7 +42,6 @@
  * peramban di halaman yang dibuka setiap hari.
  */
 
-import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -52,7 +51,8 @@ import {
   AlertTriangle, CalendarClock, CheckCircle2, ClipboardCheck,
   HardHat, RefreshCw, TrendingUp, Users,
 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useCallback } from "react";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Galat, Lencana, Rangka, Tombol, KepalaHalaman } from "@/components/dasar";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
@@ -64,39 +64,16 @@ import {
 } from "@/lib/ringkas-lapangan";
 
 export default function LapanganRingkasanPage() {
-  const [data, setData] = useState<RingkasanLapangan | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
-
   /*
-    Pembatal di ref + `muat` sebagai fungsi biasa — mengikuti versi sebelumnya
-    persis. Bukan gaya: `useCallback` yang dirujuk dari daftar dependensi
-    `useEffect` membuat `react-hooks/set-state-in-effect` membaca setState di
-    dalamnya sebagai setState di badan efek, dan halaman ini tak boleh
-    menambah warning baru ke lint-ratchet.
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    `useData` menggantikan ref-AbortController + fungsi `muat()` biasa.
+    Halaman ini murni baca — tak ada aksi tulis, jadi tak ada galat aksi
+    terpisah dari galat muat.
   */
-  const abortRef = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    void muat();
-    return () => abortRef.current?.abort();
-  }, []);
-
-  async function muat() {
-    abortRef.current?.abort();
-    abortRef.current = makeAbortController();
-    const signal = abortRef.current.signal;
-    setMemuat(true);
-    setGalat("");
-    try {
-      const r = await api.get<RingkasanLapangan>("/api/v1/lapangan/ringkasan", { signal });
-      setData(r.data);
-    } catch (e: unknown) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      setGalat("Gagal memuat ikhtisar lapangan. Pastikan API server berjalan.");
-    }
-    setMemuat(false);
-  }
+  const { data, memuat, galat: galatMuat, muatUlang } = useData<RingkasanLapangan>("/api/v1/lapangan/ringkasan");
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+  const galat = galatMuat ? "Gagal memuat ikhtisar lapangan. Pastikan API server berjalan." : "";
 
   const kpi = data?.kpi;
 

@@ -31,11 +31,10 @@
  * harus menang.
  */
 
-import { useCallback, useEffect, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
 import { AlertTriangle, ClipboardCheck, FileWarning, HardHat, ShieldCheck } from "lucide-react";
-import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { KartuKPI, Panel } from "@/components/ui-dasar";
@@ -95,32 +94,14 @@ export default function MutuPage() {
 }
 
 function Konten() {
-  const [data, setData] = useState<Ikhtisar | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const muat = useCallback(async () => {
-    try {
-      const r = await api.get<Ikhtisar>("/api/v1/mutu/ikhtisar");
-      setData(r.data);
-      setGalat(null);
-    } catch {
-      setGalat("Ikhtisar tak bisa dimuat — angka di bawah mungkin tidak mutakhir.");
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
-
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect
-  // memicu render kedua sebelum yang pertama selesai
-  // (react-hooks/set-state-in-effect). Menunda satu microtask
-  // memindahkannya keluar dari fase render tanpa jeda yang terlihat.
-  //
-  // Pola yang sama sudah dipakai 131 tempat di aplikasi ini.
-  useEffect(() => {
-    queueMicrotask(() => { void muat(); });
-  }, [muat]);
+    `useData` menggantikan useCallback+useEffect+queueMicrotask. Halaman ini
+    murni baca — tak ada aksi tulis, jadi tak ada galat aksi terpisah.
+  */
+  const { data, memuat, galat: galatMuat } = useData<Ikhtisar>("/api/v1/mutu/ikhtisar");
+  const galat = galatMuat ? "Ikhtisar tak bisa dimuat — angka di bawah mungkin tidak mutakhir." : null;
 
   const d = data;
   const adaKedaluwarsa = (d?.dokumen.kedaluwarsa ?? 0) > 0;

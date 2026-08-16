@@ -34,9 +34,9 @@
  * siapa yang benar.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { FlaskConical, TriangleAlert, Info } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
@@ -200,34 +200,26 @@ const KOLOM: Array<Kolom<BarisUji>> = [
 ];
 
 export default function UjiMaterialPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
   const [projectId, setProjectId] = useState("");
-  const [hasil, setHasil] = useState<HasilUji | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); });
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const muat = useCallback(async (pid: string) => {
-    if (!pid) { setHasil(null); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<HasilUji>(`/api/v1/projects/${pid}/uji-material`);
-      setHasil(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat hasil uji material");
-      setHasil(null);
-    } finally { setMemuat(false); }
-  }, []);
+    Dua `useData`: proyek (prasyarat), lalu hasil uji proyek terpilih — URL
+    kedua `null` sampai proyek dipilih.
+  */
+  const { data: dataProyek, galat: galatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
 
-  useEffect(() => { void muat(projectId); }, [projectId, muat]);
+  const jalurHasil = projectId ? `/api/v1/projects/${projectId}/uji-material` : null;
+  const { data: hasil, memuat, galat: galatHasil } = useData<HasilUji>(jalurHasil);
+
+  const galat = galatProyek
+    ? "Gagal memuat daftar proyek"
+    : galatHasil
+      ? "Gagal memuat hasil uji material"
+      : null;
 
   const kartu: React.CSSProperties = {
     background: "var(--surface)", border: `1px solid ${C.border}`,

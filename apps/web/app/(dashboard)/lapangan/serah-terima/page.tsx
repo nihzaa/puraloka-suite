@@ -32,6 +32,7 @@ import {
   ClipboardCheck, RefreshCw, PenLine, Check, X, CalendarClock, Plus, ShieldCheck,
 } from "lucide-react";
 import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
@@ -95,46 +96,41 @@ function sisaHari(akhir: string | null): number | null {
 }
 
 export default function SerahTerimaPage() {
-  const [daftar, setDaftar] = useState<BeritaAcara[]>([]);
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
   const [pesan, setPesan] = useState<{ jenis: "ok" | "galat"; teks: string } | null>(null);
   const [sibuk, setSibuk] = useState<string | null>(null);
-  const [putaran, setPutaran] = useState(0);
   const [formTerbuka, setFormTerbuka] = useState(false);
 
   const bolehKelola = useSyncExternalStore(
     langganan, () => hasPermission("serah_terima:kelola"), () => false);
 
-  const muat = useCallback((signal: AbortSignal) => {
-    setMemuat(true);
-    setGalat("");
-    return Promise.all([
-      api.get<{ serah_terima: BeritaAcara[] }>("/api/v1/serah-terima", { signal }),
-      api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal }).catch(() => null),
-    ])
-      .then(([r, p]) => {
-        setDaftar(r.data.serah_terima ?? []);
-        // Daftar proyek hanya untuk form. Gagal memuatnya TIDAK melumpuhkan
-        // halaman — yang utama di sini adalah membaca berita acara.
-        if (p) setProyek(p.data.projects ?? []);
-      })
-      .catch((e) => {
-        if ((e as { code?: string })?.code === "ERR_CANCELED") return;
-        setGalat(
-          (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-            ?? "Gagal memuat berita acara serah terima.",
-        );
-      })
-      .finally(() => setMemuat(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat, putaran]);
+    Dua `useData` menggantikan `Promise.all` + `putaran` (penghitung yang
+    dinaikkan untuk memicu efek muat ulang). `muatUlang()` melakukan hal yang
+    sama secara langsung.
+
+    Daftar proyek hanya untuk form — gagal memuatnya TIDAK melumpuhkan
+    halaman, jadi galatnya sengaja tak ikut menggagalkan `galat` utama
+    (perilaku `.catch(() => null)` versi sebelumnya dipertahankan lewat
+    `galatProyek` yang tak pernah ditampilkan sebagai galat blocking).
+  */
+  const { data: dataBa, memuat: memuatBa, galat: galatMuatBa, muatUlang: muatUlangBa } =
+    useData<{ serah_terima: BeritaAcara[] }>("/api/v1/serah-terima");
+  const { data: dataProyek, muatUlang: muatUlangProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+
+  // `useMemo`, bukan `?? []` biasa: turunan array yang masuk dependensi
+  // `useMemo` lain (`urut`/`segeraBerakhir` di bawah) butuh referensi
+  // stabil, kalau tidak ratchet exhaustive-deps merah setiap render.
+  const daftar = useMemo(() => dataBa?.serah_terima ?? [], [dataBa]);
+  const proyek = dataProyek?.projects ?? [];
+  const memuat = memuatBa;
+  const galat = galatMuatBa ? "Gagal memuat berita acara serah terima." : "";
+
+  const muat = useCallback(async () => {
+    await Promise.all([muatUlangBa(), muatUlangProyek()]);
+  }, [muatUlangBa, muatUlangProyek]);
 
   useEffect(() => {
     if (!pesan) return;
@@ -150,7 +146,7 @@ export default function SerahTerimaPage() {
       // Pesan server dipakai kalau ada — ia yang tahu apa yang terbuka
       // sesudahnya ("sebagian retensi kini boleh cair").
       setPesan({ jenis: "ok", teks: r.data.pesan ?? sukses });
-      setPutaran((x) => x + 1);
+      void muatUlangBa();
     } catch (e) {
       setPesan({
         jenis: "galat",
@@ -206,7 +202,7 @@ export default function SerahTerimaPage() {
           )}
           <button
             type="button"
-            onClick={() => setPutaran((x) => x + 1)}
+            onClick={() => void muat()}
             disabled={memuat}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
@@ -313,7 +309,7 @@ export default function SerahTerimaPage() {
           onSelesai={(teks) => {
             setFormTerbuka(false);
             setPesan({ jenis: "ok", teks });
-            setPutaran((x) => x + 1);
+            void muatUlangBa();
           }}
         />
       )}
