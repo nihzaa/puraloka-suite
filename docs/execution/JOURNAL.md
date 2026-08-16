@@ -109,12 +109,33 @@ Setelah memilih proyek nyata pun, keempat tab kosong itu TETAP 0 tabel.
 
 ### Akar penyebabnya — bukan bug render
 
-    projects/{id}/scenarios  ->  200 {"data":[]}   ← rantai putus di sini
+    projects/{id}/scenarios  ->  200 {"data":[]}
     projects/{id}/rap        ->  200 {"data":[]}
 
-Nol skenario di SELURUH 17 proyek. Tanpa skenario tak ada versi, tanpa versi tak
-ada item — jadi RAP/Kas/Varians kosong secara struktural. Kegagalan UX-nya:
-halaman tak pernah mengatakan itu. Layar putih, tanpa petunjuk.
+### ⚠ SAYA SALAH — koreksi di sesi yang sama
+
+Kalimat pertama saya: *"nol skenario di SELURUH 17 proyek"*. **Itu salah.** Saya
+menguji **3 proyek pertama** di dropdown, ketiganya kebetulan kosong, lalu saya
+menggeneralisasinya jadi "seluruh 17". Dihitung langsung ke basis:
+
+    scenarios          208 baris   (3 milik company Nizar)
+    estimate_versions  2.221       (5 milik company Nizar)
+    estimate_items     2.417
+    rap_budget             1       ← ini yang benar-benar nyaris kosong
+    projects              17       (16 milik company Nizar)
+
+Catatan `peta-menu.ts` ("208 skenario di 206 proyek", 2026-08-12) BENAR; ukuran
+saya yang salah. Kelas cacat yang sama yang dikeluhkan dokumen ini berkali-kali:
+**nol hasil dari sampel kecil bukan bukti ketiadaan** — sama persis dengan
+jebakan `grep -E "^PORT"` di CLAUDE.md §7.
+
+**Yang TIDAK berubah** dari diagnosis: empat tab tetap merender 0 tabel, Material
+& RAP tetap halaman putih tanpa empty state, berkas tetap 4.070 baris.
+
+**Yang berubah justru memperkuatnya:** skenario & versi TERPAKAI (208 / 2.221
+baris) tetapi UI tak menampilkan apa pun dari keduanya. Jadi ini murni kegagalan
+lapis tampilan — bukan "data belum ada". Yang memang belum terpakai: `rap_budget`
+(1 baris).
 
 ### Ketimpangan yang menjelaskan rasa "tidak intuitif"
 
