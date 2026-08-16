@@ -72,7 +72,25 @@ function berkasTs(dir, out = []) {
   cenderung dimatikan saat kompilernya berubah. Kalau bentuk berkasnya kelak
   berubah sampai tak satu pun blok terbaca, penjaga ini MERAH — bukan diam.
 */
-const POLA = /createNotifications?\(\s*\[?\s*\{[\s\S]*?\n\s*\}\s*\]?\s*\)/g
+/*
+  DUA bentuk pemanggilan, dan yang kedua ditemukan lewat kegagalan.
+
+  Versi pertama hanya cocok dengan objek literal langsung:
+
+      createNotifications([{ … }])
+
+  Bentuk yang jauh lebih lazim di repo ini justru terlewat:
+
+      createNotifications(adminIds.map(uid => ({ … })))
+
+  Akibatnya `finance.ts`, `change-orders.ts`, dan `kasbons.ts` — tiga sumber
+  banjir terbesar — TAK PERNAH TERHITUNG. Lantainya tampak stabil di 15
+  sementara tiga pelanggar terbesar duduk di luar jangkauannya.
+
+  Penjaga yang polanya lebih sempit daripada kodenya memberi rasa aman yang
+  persis sebanding dengan yang tak diperiksanya.
+*/
+const POLA = /createNotifications?\([\s\S]{0,160}?\{[\s\S]*?\n\s*\}[\s\S]{0,60}?\)/g
 
 const pelanggar = []
 let total = 0

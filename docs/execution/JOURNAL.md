@@ -22720,3 +22720,62 @@ audit-notifikasi-tak-kembar     exit=0
 kasbons.test.ts                 4 passed
 lint:ratchet                    0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 (16) - tiga sumber banjir, dan penjaga saya buta separuh
+
+Founder menyetujui untuk **tidak** membangun tiga otomasi ringkasan
+(8.11/8.12/1.14) dan mengecilkan tumpukannya alih-alih menambahnya:
+*"saya juga gamau terlalu banyak spam."*
+
+### Banjirnya hidup, bukan warisan
+
+Diukur 24 jam terakhir:
+
+```
+kasbon_approved         136 notifikasi   136 tanpa record_id
+invoice_created         166              134 tanpa
+change_order_approved    87               87 tanpa
+```
+
+Ketiganya memakai kunci bernama sendiri (`kasbon_id`, `invoice_id`,
+`change_order_id`) alih-alih `record_id` — kebal dedup **dan** tak terlihat
+`audit-notifikasi-tak-kembar`. Diperbaiki di tiga berkas, empat tempat.
+
+### Penjaga saya sendiri buta terhadap separuh kodenya
+
+Lantai **15** yang saya tetapkan satu commit lalu **tidak pernah mengukur**
+tiga sumber banjir terbesar itu. Polanya hanya cocok dengan objek literal
+langsung, sementara bentuk yang jauh lebih lazim di repo ini justru terlewat:
+
+```
+createNotifications([{ … }])                      ← terhitung
+createNotifications(adminIds.map(uid => ({ … })))  ← TIDAK
+```
+
+Sesudah diperlebar: **100 blok terbaca, bukan 85. Pelanggarnya 27, bukan 15.**
+
+Penjaga yang polanya lebih sempit daripada kodenya memberi rasa aman yang
+persis sebanding dengan yang tak diperiksanya — dan ini **kedua kalinya**
+penjaga yang sama cacat dalam satu jam: mutasi pertamanya lolos karena ia
+membaca komentar sebagai kode.
+
+### Lantai ditetapkan pada angka sebenarnya: 25
+
+Bukan 15. Angka lama bukan pencapaian melainkan pengukuran yang terlalu
+sempit, dan menurunkannya seolah ada kemajuan akan menyembunyikan 12
+pelanggar yang baru terlihat.
+
+Sisa 25 tersebar di `ncr.ts`, `punch-list.ts`, `milestones.ts`, `projects.ts`,
+`procurement.ts`, `inspeksi.ts`, dan tiga tempat lain di `mandor.ts` — utang
+yang sekarang **terlihat** dan tak bisa bertambah.
+
+### Bukti
+
+```
+audit-notifikasi-punya-record   75 dari 100 pemanggil membawa record_id
+mutasi penjaga                  MERAH lalu pulih
+10 penjaga arsitektural         exit=0
+lint:ratchet                    0 error, 231 warning
+```

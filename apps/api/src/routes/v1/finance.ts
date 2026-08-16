@@ -841,7 +841,23 @@ export default async function financeRoutes(app: FastifyInstance) {
           project_id:  body.project_id,
           action_url:  '/keuangan?tab=invoice',
           action_type: 'view_invoice',
-          action_data: { invoice_id: invoice.id, invoice_number: invoice.invoice_number },
+          /*
+            `record_id` WAJIB — dan kunci lamanya DIPERTAHANKAN.
+
+            Sebelum ini kolom ini hanya berisi kunci bernama sendiri, jadi
+            `record_id`-nya NULL. Akibatnya jenis ini kebal dedup DAN tak
+            terlihat `audit-notifikasi-tak-kembar`, yang sengaja melewati
+            baris ber-record_id NULL.
+
+            Cacat yang sama sudah ditemukan dan diperbaiki tiga kali di repo
+            ini: `mandor.ts` 2026-08-14, `kasbons.ts` dan berkas ini
+            2026-08-16. Sekarang dijaga `audit-notifikasi-punya-record.mjs`.
+
+            Kunci lamanya tetap ditulis: ia kontrak dengan halaman notifikasi,
+            dan menghapusnya perubahan terpisah yang menuntut pemeriksaan
+            sendiri.
+          */
+          action_data: { record_id: invoice.id, invoice_id: invoice.id, invoice_number: invoice.invoice_number },
         })))
       } catch (err) {
         // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.

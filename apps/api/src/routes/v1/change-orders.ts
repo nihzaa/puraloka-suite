@@ -552,7 +552,23 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             project_id:  co.project_id,
             action_url:  `/proyek/${co.project_id}?tab=change-order`,
             action_type: 'view_change_order',
-            action_data: { change_order_id: id },
+            /*
+              `record_id` WAJIB — dan kunci lamanya DIPERTAHANKAN.
+
+              Sebelum ini kolom ini hanya berisi kunci bernama sendiri, jadi
+              `record_id`-nya NULL. Akibatnya jenis ini kebal dedup DAN tak
+              terlihat `audit-notifikasi-tak-kembar`, yang sengaja melewati
+              baris ber-record_id NULL.
+
+              Cacat yang sama sudah ditemukan dan diperbaiki tiga kali di repo
+              ini: `mandor.ts` 2026-08-14, `kasbons.ts` dan berkas ini
+              2026-08-16. Sekarang dijaga `audit-notifikasi-punya-record.mjs`.
+
+              Kunci lamanya tetap ditulis: ia kontrak dengan halaman notifikasi,
+              dan menghapusnya perubahan terpisah yang menuntut pemeriksaan
+              sendiri.
+            */
+            action_data: { record_id: id, change_order_id: id },
           })))
         } catch (err) {
           // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
@@ -823,7 +839,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             project_id:  coFull.project_id,
             action_url:  `/proyek/${coFull.project_id}?tab=change-order`,
             action_type: 'view_change_order',
-            action_data: { change_order_id: id },
+            action_data: { record_id: id, change_order_id: id },
           })))
         } catch (err) {
           // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
@@ -920,7 +936,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             project_id:  coInfo.project_id,
             action_url:  `/proyek/${coInfo.project_id}?tab=change-order`,
             action_type: 'view_change_order',
-            action_data: { change_order_id: id },
+            action_data: { record_id: id, change_order_id: id },
           }])
         } catch (err) {
           // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
