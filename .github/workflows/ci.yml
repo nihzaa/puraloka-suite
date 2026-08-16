@@ -610,6 +610,21 @@ jobs:
       - name: Jenis tulis punya label UI
         run: node scripts/audit-jenis-tulis-punya-label.mjs
 
+      # Katalog tool asisten tak boleh membengkak diam-diam.
+      #
+      # Skema tool dikirim ULANG tiap ronde. Diukur 2026-08-16: 40 tool =
+      # ~4.500 token, sementara rata-rata satu ronde nyata cuma ~2.230 token
+      # masuk — katalognya lebih mahal daripada percakapannya sendiri.
+      #
+      # Tool ke-41 menaikkan tagihan tiap tenant selamanya, tanpa satu pun
+      # galat dan tanpa test merah. Ratchet, bukan larangan: katalog memang
+      # tumbuh, yang ditahan pertumbuhan yang tak disadari.
+      #
+      # Bukti merah (2026-08-16): ambang diturunkan → exit 1; berkas dihapus
+      # dari daftar → exit 1 (daftar basi terdeteksi). Dipulihkan → exit 0.
+      - name: Katalog tool asisten tak membengkak
+        run: node scripts/audit-katalog-tool-tak-membengkak.mjs
+
       # Kredensial tak boleh dipakai tenant yang bukan pemiliknya.
       #
       # Founder 2026-08-14: "harus disiapkan kalo nanti banyak perusahaan".

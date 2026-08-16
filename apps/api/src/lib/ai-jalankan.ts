@@ -427,7 +427,29 @@ export async function jalankanGiliranAi(opsi: OpsiJalan): Promise<HasilJalan> {
             KATALOG_TOOL.some((t) => t.izin === p && pilihan.includes(t.nama)),
           ),
         )
-  const katalog = katalogUntuk(izin)
+
+  /*
+   * ── Disaring DUA kali, dan yang kedua baru ditambahkan 2026-08-16 ────────
+   *
+   * Penyaringan di atas mempersempit IZIN, bukan tool. Akibatnya tool yang
+   * TIDAK dipilih tetap ikut terkirim asal ia berbagi izin dengan tool yang
+   * dipilih — dan sebagian besar tool berbagi izin.
+   *
+   * Diukur pada kurasi `staff` (15 tool dipilih): yang benar-benar terkirim
+   * 22. Tujuh penumpang gelap — `saldo_kas`, `grafik_kurva_s`, `rab`,
+   * `change_order`, `hitung_pekerjaan`, `banding_proyek`,
+   * `beban_mandor_lintas` — semuanya lolos lewat `projects:view`/`cash:view`.
+   *
+   * Jadi halaman pengaturan menjanjikan penghematan yang tak pernah terjadi,
+   * tanpa satu pun galat: kotak yang tak dicentang tetap terkirim.
+   *
+   * Saringan kedua ini menutupnya. Ia TIDAK melonggarkan apa pun — urutannya
+   * tetap izin dulu, jadi pilihan tenant masih tak bisa MENAMBAH tool yang
+   * izinnya tak dimiliki.
+   */
+  const katalog = katalogUntuk(izin).filter(
+    (t) => pilihan === null || pilihan.includes(t.nama),
+  )
 
   /*
    * INGATAN — dibaca dengan izin penanya, bukan izin tenant.
