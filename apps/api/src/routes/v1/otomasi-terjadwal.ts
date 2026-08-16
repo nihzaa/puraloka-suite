@@ -8877,6 +8877,243 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/material-kurang ─────────────────────────
+  //
+  // Automation 3.4 — Material Consumption Prediction.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // PENCORETAN SAYA YANG KEEMPAT, DAN SALAH DENGAN BENTUK YANG SAMA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Automation ini sempat dicoret: "tabel pemeta RAB→material NOL baris, tak
+  // bisa dibangun". Tabelnya memang kosong — tetapi ADA, dan bentuknya tepat.
+  // Yang benar bukan "tak bisa dibangun" melainkan "petanya belum diisi".
+  //
+  // Bentuk kesalahan yang sama dengan tiga pencoretan keliru sebelumnya:
+  // berhenti di pengukuran pertama yang tak cocok alih-alih bertanya "lalu apa
+  // yang kurang, dan bisakah diadakan?". Founder yang menjawabnya: "buat aja
+  // datanya". Migrasi 425 mengisi petanya — 11 baris di 2 proyek.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // BUKAN DUPLIKAT `stok-menipis` (4.5)
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // 4.5 menjawab "stok tinggal berapa" dan melihat GUDANG. Rute ini menjawab
+  // pertanyaan lain: "proyek sudah 40% jalan, materialnya baru datang 25% dari
+  // rencana — cukup sampai selesai?"
+  //
+  // Bedanya WAKTU. Stok menipis baru terlihat saat barangnya hampir habis;
+  // kekurangan terhadap RENCANA terlihat berminggu-minggu sebelumnya — dan itu
+  // justru rentang yang dibutuhkan untuk memesan.
+  app.get('/api/v1/otomasi/jalankan/material-kurang', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiKebutuhan } = await import('../../lib/kebutuhan-material.js')
+
+    const q = request.query as { bantalan?: string; min?: string }
+    const bantalanPersen = await ambilAmbang(request, 'otomasi.material_kurang.bantalan', q.bantalan)
+    const minProgres = await ambilAmbang(request, 'otomasi.material_kurang.min_progres', q.min)
+    const bantalan = bantalanPersen / 100
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['material_kurang'])
+
+    const HALAMAN = 1000
+
+    /*
+      `projects` ANCHOR — dibaca lebih dulu, dan id-nya menyaring sisanya.
+      `project_rab_materials`, `project_stocks`, `progress_logs` semuanya
+      kategori C lewat `project_id`; membacanya langsung ditolak gerbang
+      tenancy saat berjalan (pelajaran dari 2.12, yang tertangkap begitu).
+    */
+    const proyek: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('projects').select('id, name, status, is_deleted')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      proyek.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const aktif = proyek.filter((p) => p.is_deleted !== true && p.status === 'active')
+    const idAktif = aktif.map((p) => p.id as string)
+    if (idAktif.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+    const namaProyek = new Map(aktif.map((p) => [p.id as string, String(p.name ?? 'Proyek')]))
+
+    /*
+      Tiga baca ditulis TERPISAH, bukan lewat satu helper bertipe union.
+
+      Helper itu ditulis lebih dulu dan DITOLAK typecheck untuk kedua kalinya
+      di berkas ini: tipe kembalian `.select()` bergantung pada nama tabelnya,
+      dan meratakannya lewat parameter union menghilangkan pengetikan yang
+      justru menahan salah ketik nama kolom.
+
+      Kali pertama (rute 2.12) alasannya sudah ditulis; menuliskannya lagi di
+      sini bukan pengulangan melainkan penanda bahwa jalan pintasnya memang
+      menggoda dan memang tak bisa.
+    */
+    const ALASAN = 'disaring .in(project_id, ...) proyek aktif milik tenant ini'
+
+    const peta: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .unsafe('project_rab_materials', ALASAN)
+        .select('project_id, material_id, rab_quantity, received_quantity')
+        .in('project_id', idAktif)
+        .order('project_id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      peta.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const stok: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .unsafe('project_stocks', ALASAN)
+        .select('project_id, material_id, qty_on_hand')
+        .in('project_id', idAktif)
+        .order('project_id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      stok.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const progres: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .unsafe('progress_logs', ALASAN)
+        .select('project_id, pct_overall, logged_at')
+        .in('project_id', idAktif)
+        .order('project_id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      progres.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const { data: bahan, error: eBahan } = await request.db!
+      .from('materials').select('id, code, name, unit')
+    if (eBahan) return reply.status(500).send({ error: eBahan.message })
+    const namaBahan = new Map<string, { nama: string; satuan: string }>()
+    for (const m of bahan ?? []) {
+      namaBahan.set(m.id as string, {
+        nama: String(m.name ?? 'Material'), satuan: String(m.unit ?? ''),
+      })
+    }
+
+    /*
+      Progres TERBARU per proyek, bukan rata-rata dan bukan yang pertama.
+
+      Rata-rata membuat proyek yang baru melonjak terlihat masih di awal, dan
+      kebutuhan materialnya dilaporkan lebih kecil daripada kenyataan — arah
+      salah yang paling berbahaya, karena ia MENYEMBUNYIKAN kekurangan.
+    */
+    const pctProyek = new Map<string, { pct: number; waktu: number }>()
+    for (const g of progres) {
+      const id = g.project_id as string
+      const pct = Number(g.pct_overall)
+      const waktu = Date.parse(String(g.logged_at ?? ''))
+      if (!Number.isFinite(pct) || Number.isNaN(waktu)) continue
+      const p = pctProyek.get(id)
+      if (!p || waktu > p.waktu) pctProyek.set(id, { pct, waktu })
+    }
+
+    const stokProyek = new Map<string, number>()
+    for (const s of stok) {
+      const k = `${s.project_id}::${s.material_id}`
+      stokProyek.set(k, (stokProyek.get(k) ?? 0) + (Number(s.qty_on_hand) || 0))
+    }
+
+    let dibuat = 0
+    let kurang = 0
+    let diperiksa = 0
+    let dilewatiProgres = 0
+
+    for (const b of peta) {
+      const idProyek = b.project_id as string
+      const p = pctProyek.get(idProyek)
+
+      /*
+        Proyek tanpa laporan progres DILEWATI, bukan dianggap 0%.
+
+        Dianggap 0% berarti kebutuhannya nol dan ia SELALU "cukup" — proyek
+        yang justru paling tak terpantau menjadi yang paling sunyi. Dilewati
+        dan dihitung terpisah supaya ketiadaannya terlihat di jawaban rute.
+      */
+      if (!p) { dilewatiProgres++; continue }
+
+      const pct = p.pct / 100
+      if (pct * 100 < minProgres) { dilewatiProgres++; continue }
+
+      diperiksa++
+      const h = nilaiKebutuhan({
+        rencana: Number(b.rab_quantity),
+        diterima: Number(b.received_quantity) || 0,
+        ditangan: stokProyek.get(`${idProyek}::${b.material_id}`) ?? 0,
+      }, pct, bantalan)
+
+      if (!h.kurang) continue
+      kurang++
+
+      const kunci = `${idProyek}::${b.material_id}`
+      if (sudah('material_kurang', kunci)) continue
+
+      const m = namaBahan.get(b.material_id as string)
+      const penerima = await resolveRecipients('material_kurang', {
+        companyId: request.companyId!,
+        projectId: idProyek,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: 'Material kurang terhadap progres',
+          message:
+            `${namaProyek.get(idProyek) ?? 'Proyek'} — ${m?.nama ?? 'Material'}: `
+            + `rencana ${h.rencana.toLocaleString('id-ID')} ${m?.satuan ?? ''}, `
+            + `tersedia ${(h.diterima + h.ditangan).toLocaleString('id-ID')} `
+            + `(${Math.round(h.porsiTersedia * 100)}%) pada progres `
+            + `${Math.round(p.pct)}%. Kurang sekitar `
+            + `${Math.abs(h.selisih).toLocaleString('id-ID')} ${m?.satuan ?? ''}.`,
+          type: 'material_kurang',
+          priority: h.porsiTersedia < 0.5 ? 'high' : 'normal',
+          project_id: idProyek,
+          action_url: '/gudang/stok',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: {
+            record_id: kunci,
+            project_id: idProyek,
+            material_id: b.material_id,
+            porsi_tersedia: h.porsiTersedia,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: {
+        proyek_aktif: idAktif.length,
+        baris_peta: peta.length,
+        diperiksa,
+        kurang,
+        dilewati_progres: dilewatiProgres,
+        bantalan_persen: bantalanPersen,
+        min_progres: minProgres,
+      },
+    })
+  })
 }
 
 /**

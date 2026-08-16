@@ -809,6 +809,46 @@ export const AMBANG_OTOMASI = {
     rangkuman sore = 14 pesan/minggu) dan 8.12 (anomali, himpunan bagian dari
     ini) sengaja tidak dibangun. Alasannya di rute `ringkasan-mingguan`.
   */
+  /*
+    3.4 Material Consumption Prediction. Sempat dicoret "tak bisa dibangun"
+    karena tabel petanya nol baris — tabelnya ADA, isinya yang belum. Migrasi
+    425 mengisinya atas izin founder.
+  */
+  'otomasi.material_kurang.bantalan': {
+    bawaan: 10,
+    min: 0,
+    max: 50,
+    label: 'Cadangan di atas kebutuhan sebelum disebut kurang',
+    judul: 'Material kurang terhadap progres',
+    akibat:
+      'Berapa persen di atas kebutuhan yang harus tersedia supaya sebuah '
+      + 'material dianggap aman. Nol berarti peringatan datang tepat saat pas — '
+      + 'terlambat, karena memesan material butuh waktu kirim.',
+    satuan: 'persen',
+    langkah: 5,
+  },
+
+  /*
+    Progres minimum sebelum proyek diperiksa.
+
+    Proyek yang baru mulai wajar belum punya materialnya. Memeriksanya
+    menghasilkan peringatan yang benar secara aritmetika dan tak berguna —
+    tak ada kontraktor yang menimbun seluruh material di hari pertama.
+  */
+  'otomasi.material_kurang.min_progres': {
+    bawaan: 10,
+    min: 0,
+    max: 90,
+    label: 'Progres minimum sebelum kebutuhan material diperiksa',
+    judul: 'Material kurang terhadap progres',
+    akibat:
+      'Proyek dengan progres di bawah angka ini dilewati. Menaikkannya '
+      + 'menahan peringatan pada proyek yang baru mulai; menurunkannya '
+      + 'memberi peringatan lebih dini tetapi lebih sering keliru.',
+    satuan: 'persen',
+    langkah: 5,
+  },
+
   'otomasi.ringkasan_mingguan.hari': {
     bawaan: 7,
     min: 3,

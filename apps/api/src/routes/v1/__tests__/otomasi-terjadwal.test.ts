@@ -539,6 +539,10 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     // (briefing pagi + sore = 14 pesan/minggu) dan 8.12 (anomali, himpunan
     // bagian) sengaja tidak dibangun. Alasannya di rutenya.
     'ringkasan-mingguan',
+    // 3.4 Material Consumption (2026-08-16). Sempat DICORET 'tak bisa
+    // dibangun' karena tabel petanya nol baris - tabelnya ADA, isinya yang
+    // belum. Migrasi 425 mengisinya atas izin founder.
+    'material-kurang',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

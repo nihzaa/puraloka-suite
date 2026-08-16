@@ -1147,6 +1147,32 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'yang belum bisa ditutup hanya melatih orang mengabaikan notifikasi.',
   },
   {
+    kunci: 'material-kurang',
+    nomor: '3.4',
+    nama: 'Material kurang terhadap progres',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Membandingkan material yang sudah tersedia dengan yang SEHARUSNYA sudah '
+      + 'tersedia pada progres proyek saat ini — bukan dengan kebutuhan total, '
+      + 'karena tak ada kontraktor yang menimbun seluruh material di hari '
+      + 'pertama. Berbeda dari peringatan stok menipis: yang itu melihat gudang '
+      + 'dan baru bersuara saat barangnya hampir habis, yang ini melihat '
+      + 'rencana dan bersuara berminggu-minggu lebih awal — rentang yang justru '
+      + 'dibutuhkan untuk memesan. Proyek yang belum pernah melaporkan progres '
+      + 'DILEWATI, bukan dianggap nol persen; dianggap nol membuat proyek yang '
+      + 'paling tak terpantau menjadi yang paling sunyi.',
+    penerima: 'Pengadaan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca peta kebutuhan material per proyek dari RAB.' },
+      { di: 'sistem', teks: 'Mengambil progres TERBARU tiap proyek aktif.' },
+      { di: 'sistem', teks: 'Menjumlahkan yang sudah diterima dengan stok di tangan.' },
+      { di: 'sistem', teks: 'Membandingkan dengan kebutuhan pada progres sekarang + cadangan.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.material_kurang.bantalan',
+  },
+  {
     kunci: 'ringkasan-mingguan',
     nomor: '1.14',
     nama: 'Ringkasan berkala',

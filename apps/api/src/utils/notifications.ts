@@ -148,6 +148,9 @@ export type NotificationType =
   // 1.14 Weekly Digest. SATU pengirim ringkasan, bukan tiga - 8.11 dan 8.12
   // sengaja tidak dibangun; alasannya di rute `ringkasan-mingguan`.
   | 'ringkasan_mingguan'
+  // 3.4 Material Consumption. Kekurangan terhadap RENCANA pada progres
+  // sekarang - terlihat berminggu-minggu sebelum stok fisik menipis.
+  | 'material_kurang'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'
