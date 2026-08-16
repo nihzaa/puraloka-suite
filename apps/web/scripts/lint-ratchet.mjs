@@ -118,7 +118,10 @@ const AMBANG = {
   // artinya penjaga ini pernah dilewati. Ketiganya diperbaiki di modul
   // `mandor/`, dan dua di antaranya menutup bug nyata (daftar tukang tak
   // direset saat ganti mandor; profil mandor lama tampil di bawah id baru).
-  'react-hooks/set-state-in-effect': 58,  // 68 → 58 (2026-08-07, saringan dioper lewat parameter)
+  // 68 → 58 (2026-08-07, saringan dioper lewat parameter)
+  // 58 → 57 (2026-08-16, halaman pindah ke `useData`: pemuatan tak lagi
+  //          memanggil setState dari dalam efek, hook-nya yang menanganinya)
+  'react-hooks/set-state-in-effect': 57,
   // turun 71 → 67 (.ds-sync diabaikan) → 15 (2026-08-01).
   //
   // Sebagian besar adalah 50 impor ikon/helper yatim yang menumpuk saat

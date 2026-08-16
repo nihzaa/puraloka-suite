@@ -23527,3 +23527,74 @@ mutasi verifikasi migrasi     422 (4) · 423 (5) · 424 (4) — semuanya MERAH
 50 rute otomasi · katalog 51 nomor, 51 berbeda
 lint:ratchet                  0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 (lanjutan 3) — dua agent paralel, dan cacat yang mereka ungkap
+
+Founder bertanya kenapa tak dikerjakan paralel. Dijalankan: dua agent di
+worktree terpisah, modul yang tak bersinggungan. Hasil **145 → 118 halaman**
+tersisa (27 halaman dipindah dalam satu putaran).
+
+### Percobaan pertama GAGAL, dan gagalnya berguna
+
+Worktree otomatis bercabang dari commit lama yang **kehilangan 9 dari 16 berkas
+target**. Agent keuangan+gudang mendeteksinya, **menolak menebak isi berkas**,
+**menolak rebase sendiri**, dan berhenti dengan working tree bersih.
+
+Itu persis syarat berhenti CHARTER §8a.1 nomor satu. Kalau ia nekat, sembilan
+halaman ditulis ulang dari tebakan lalu di-merge menimpa yang asli.
+
+Agent procurement kena masalah yang sama dan memperbaikinya sendiri dengan
+membuat branch dari `feat/sumbu-ui-roadmap`. Jadi **basis worktree otomatis
+memang salah secara sistematis** — bukan kebetulan. Worktree kedua dibuat
+manual dari tip branch dan diverifikasi isinya sebelum agent dikirim ulang.
+
+### Temuan terbesarnya bukan pemindahannya
+
+Cacat **"galat muat vs galat aksi"** kini ditemukan di **11 halaman** lintas
+tiga batch: peta-akun, markup, lalu delapan sekaligus di gudang/keuangan.
+
+Satu state `galat` dipakai bersama untuk gagal-memuat DAN gagal-menyimpan.
+Gagal menyimpan **menghapus** pesan gagal memuat — pengguna yang jaringannya
+putus lalu menekan Simpan melihat pesan simpan saja dan mengira datanya sudah
+termuat.
+
+Sebelas kali bukan kebetulan berulang. Itu **cara halaman di repo ini ditulis**,
+dan pemindahan ke lapis cache kebetulan menjadi alat yang menemukannya.
+
+### Tiga halaman dilewati, ketiga alasannya tepat
+
+| | Alasan |
+|---|---|
+| `procurement/permintaan` | memakai `bacaDenganCache` (IndexedDB, F4-3) — mekanisme yang SENGAJA terpisah. Memindahkannya **mencabut jaminan baca-offline untuk mandor di lapangan** |
+| `procurement/rfq` | muat berantai >2 tingkat, penghitung muat-ulang bersama lintas dua efek |
+| `keuangan/arus-kas` | saringan ber-debounce 300ms menggabung enam state jadi satu URL dinamis + dua endpoint + muat kategori berantai |
+
+Yang pertama itu penilaian bagus: agent bisa saja memindahkannya dan seluruh
+test tetap hijau, sementara mandor tanpa sinyal kehilangan datanya.
+
+### Halaman uang
+
+Penjagaan `{memuat ? <Rangka/> : ...}` dipertahankan apa adanya di invoice,
+pembayaran, profitabilitas, ipc, contingency, cvr, kasbon. Tak ada yang
+merender `0` atau kosong saat sedang memuat.
+
+### Ratchet lint TURUN sendiri, dan dikencangkan
+
+`react-hooks/set-state-in-effect` 58 → 57: pemuatan lewat `useData` tak lagi
+memanggil setState dari dalam efek — hook-nya yang menanganinya. Ratchet yang
+tak dikencangkan berhenti menjaga.
+
+### Verifikasi ULANG, bukan laporan agent diterima mentah
+
+```
+tsc web                     bersih
+lint:ratchet web            0 error, 294 warning
+data-cache.test.ts          10 passed
+audit-halaman-pakai-cache   118 dari 164 (lantai 118)
+7 penjaga visual            exit=0
+```
+
+Isi salah satu halaman uang tiap agent dibaca manual — bukan cuma dicek
+kompilasinya.
