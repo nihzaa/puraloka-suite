@@ -37,6 +37,7 @@ import { buatAdaptor, metaPenyedia } from './ai-adaptor.js'
 import { entitasTakDikenal, jalankanLoop } from './ai-loop.js'
 import { KATALOG_TOOL, katalogUntuk } from './ai-tool.js'
 import { bacaIngatan, susunBlokIngatan } from './ai-ingatan.js'
+import { susunKonteksPenanya } from './ai-konteks-penanya.js'
 import type { HasilLoop } from './ai-loop.js'
 
 /**
@@ -243,14 +244,32 @@ export function susunPromptSistem(
   gayaKanal = '',
   sifat: readonly SifatBicara[] = [],
   blokIngatan = '',
+  /*
+   * Konteks penanya — siapa dia, dan hari ini tanggal berapa.
+   *
+   * Opsional supaya pemanggil lama tak putus, tetapi ketiadaannya BUKAN
+   * keadaan yang benar: tanpa ini "kasbon minggu ini" tak bisa dijawab (model
+   * tak punya jam) dan asisten menyapa pemiliknya dengan "Anda" datar.
+   */
+  blokPenanya = '',
 ): string {
   // Himpunan kosong = pelapor, yang paling ketat. Sifat asing sudah disaring
   // `bentukKonfigurasi`, jadi yang sampai ke sini pasti dikenal.
   const gaya = susunGaya(sifat)
-  // Ingatan disambung SESUDAH pagar dan gaya, SEBELUM tambahan tenant. Ia
-  // catatan, bukan aturan — dan `susunBlokIngatan` sudah membungkusnya
-  // `<ingatan>` dengan penyangkalan wewenang, sama seperti blok `<data>`.
-  const dasar = PAGAR_FAKTA + gaya + gayaKanal + blokIngatan
+  /*
+   * Urutannya mengikat:
+   *
+   *   1. PAGAR_FAKTA    larangan mutlak, selalu paling atas
+   *   2. gaya           watak — hanya mengatur cara bicara
+   *   3. gayaKanal      bentuk keluaran
+   *   4. blokPenanya    KONTEKS, bukan wewenang — lihat kepala berkasnya
+   *   5. blokIngatan    catatan, sudah dibungkus penyangkalan wewenang
+   *
+   * Konteks penanya ditaruh SESUDAH pagar dengan sengaja: nama dan peran
+   * datang dari basis, tetapi menaruhnya sebelum pagar akan membuat kalimat
+   * "Peran: direktur" terbaca sejajar dengan larangan mengarang angka.
+   */
+  const dasar = PAGAR_FAKTA + gaya + gayaKanal + blokPenanya + blokIngatan
   if (!tambahan?.trim()) return dasar
   return [
     dasar,
@@ -469,6 +488,55 @@ export async function jalankanGiliranAi(opsi: OpsiJalan): Promise<HasilJalan> {
     catatGalat,
   })
   const blokIngatan = susunBlokIngatan(ingatan)
+
+  /*
+   * ── SIAPA YANG BICARA — dibaca di sini, bukan diminta dari pemanggil ─────
+   *
+   * Bisa saja `nama`/`peran` jadi parameter `OpsiJalan`, dan tiga pemanggil
+   * (chat web, webhook WA, sapa-proaktif) mengisinya sendiri. Ditolak: yang
+   * lupa mengisinya tak menghasilkan galat, cuma asisten yang kembali
+   * menyapa "Anda" datar — dan tak ada yang menyadarinya.
+   *
+   * Dibaca dari basis membuat ketiganya mendapatkannya tanpa berbuat apa pun.
+   *
+   * `users` kategori D (lintas-tenant: satu orang bisa anggota beberapa PT),
+   * jadi `unsafe()` dengan saringan `id = userId` — ia hanya membaca baris
+   * penanya sendiri.
+   *
+   * Gagal membaca TIDAK menghentikan percakapan: yang hilang sapaan dan
+   * konteks tanggal, bukan kemampuan menjawab.
+   */
+  let blokPenanya = ''
+  try {
+    const { data: aku } = await db
+      .unsafe(
+        'users',
+        'inti AI: identitas PENANYA sendiri untuk konteks prompt — disaring id = userId',
+      )
+      .select('name, roles(name)')
+      .eq('id', userId)
+      .maybeSingle()
+
+    const { data: co } = await db
+      .unsafe(
+        'companies',
+        'inti AI: nama perusahaan penanya sendiri — disaring id = companyId, ' +
+          'yaitu tenant yang gerbangnya sudah lolos di atas. Tak ada baris ' +
+          'perusahaan lain yang bisa terbaca lewat jalur ini.',
+      )
+      .select('name')
+      .eq('id', companyId)
+      .maybeSingle()
+
+    const u = aku as { name?: string; roles?: { name?: string } | null } | null
+    blokPenanya = susunKonteksPenanya({
+      nama: u?.name ?? null,
+      peran: u?.roles?.name ?? null,
+      perusahaan: (co as { name?: string } | null)?.name ?? null,
+    })
+  } catch (err) {
+    catatGalat('ai: gagal membaca identitas penanya untuk konteks prompt', err)
+  }
 
   // ── BERBAYAR mulai di sini ───────────────────────────────────────────────
   const riwayat = (opsi.riwayat ?? []).map((r) => ({
