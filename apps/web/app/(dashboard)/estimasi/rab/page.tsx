@@ -37,11 +37,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Upload, Lock, FileSpreadsheet, Layers } from "lucide-react";
+import { Plus, Upload, Lock, FileSpreadsheet, Layers, HelpCircle } from "lucide-react";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { LayarKosong } from "../_bersama/layar-kosong";
+import { AddItemModal } from "../_bersama/modal-item";
+import { JelaskanModal } from "../_bersama/modal-jelaskan";
 import {
   angka,
   rp,
@@ -62,16 +64,36 @@ interface SkenarioLengkap {
   purpose?: string | null;
   versions: VersiRingkas[];
 }
+/**
+ * Satu item RAB.
+ *
+ * `assembly` dan `cost_code` datang BERSARANG dari PostgREST
+ * (`assembly:assemblies(...)` di `estimate-versions.ts:296`), bukan sebagai
+ * medan datar. Percobaan pertama saya menebak `assembly_name`/`assembly_code`
+ * datar — lolos typecheck karena semuanya opsional, lalu merender "—" di
+ * kolom Kode dan Uraian untuk SETIAP baris.
+ *
+ * Kelas cacat yang sama dengan `rollup` di bawah: tipe serba-opsional
+ * membuat nama medan yang salah tak pernah jadi galat, cuma diam-diam
+ * undefined. Dua-duanya baru ketahuan dari LAYAR, bukan dari compiler.
+ */
 interface ItemVersi {
   id: string;
   description?: string | null;
-  assembly_name?: string | null;
-  assembly_code?: string | null;
-  code?: string | null;
-  unit_code?: string | null;
+  unit?: string | null;
   quantity: number;
   unit_price?: number | null;
   amount?: number | null;
+  assembly_id?: string | null;
+  assembly?: {
+    id?: string;
+    code?: string | null;
+    name?: string | null;
+    output_unit_code?: string | null;
+    source?: string | null;
+  } | null;
+  cost_code?: { code?: string | null; name?: string | null } | null;
+  notes?: string | null;
 }
 interface DetailVersi {
   id: string;
@@ -80,11 +102,23 @@ interface DetailVersi {
   edition?: string | null;
   items?: ItemVersi[];
 }
+/**
+ * Bentuk jawaban `GET /estimate-versions/:id/rollup`.
+ *
+ * Nama medannya diambil dari `computeRabRollup()` di `lib/ahsp-engine.ts`,
+ * BUKAN dikira-kira. Percobaan pertama saya menebak `subtotal`/`total`, dan
+ * hasilnya lolos typecheck (semuanya opsional) lalu merender "—" di layar:
+ * item Rp 2.500.000 masuk, PPN terhitung, tetapi Subtotal dan Total RAB
+ * kosong. Tipe opsional membuat medan yang salah nama tak pernah jadi galat —
+ * ia cuma diam-diam undefined.
+ */
 interface Rollup {
-  subtotal?: number;
-  total?: number;
+  /** Jumlah seluruh item SEBELUM PPN. */
+  totalBiaya?: number;
   ppn?: number;
-  buk?: number;
+  /** totalBiaya + ppn. */
+  grandTotal?: number;
+  groups?: { name: string; subtotal: number }[];
 }
 
 export default function SusunRabPage() {
@@ -101,6 +135,10 @@ export default function SusunRabPage() {
   const [sibuk, setSibuk] = useState(false);
   const [galat, setGalat] = useState("");
   const [memuat, setMemuat] = useState(false);
+  /** Modal tambah item — dibuka dari tombol di kepala tabel & empty state. */
+  const [bukaTambah, setBukaTambah] = useState(false);
+  /** Item yang sedang ditanya "kenapa angkanya segini?". */
+  const [jelaskanId, setJelaskanId] = useState<string | null>(null);
 
   const muatSkenario = useCallback(async (pid: string) => {
     if (!pid) { setSkenario([]); return; }
@@ -258,10 +296,28 @@ export default function SusunRabPage() {
               versi={versiDibuka}
               rollup={rollup}
               onKunci={() => kunci(versiDibuka.id)}
+              onTambah={() => setBukaTambah(true)}
+              onJelaskan={setJelaskanId}
               sibuk={sibuk}
             />
           )}
         </div>
+      )}
+
+      {bukaTambah && versiDibuka && (
+        <AddItemModal
+          version={versiDibuka as never}
+          onClose={() => setBukaTambah(false)}
+          onDone={async () => {
+            setBukaTambah(false);
+            await bukaVersi(versiDibuka.id);
+            await muatSkenario(proyekId);
+          }}
+        />
+      )}
+
+      {jelaskanId && (
+        <JelaskanModal itemId={jelaskanId} onClose={() => setJelaskanId(null)} />
       )}
     </>
   );
@@ -462,8 +518,10 @@ function DaftarPilihan({ skenario, versiAktif, onBuka, onRevisi, onPilihanLain, 
 }
 
 // ── Tabel item + ringkasan ────────────────────────────────────────────────
-function TabelItem({ versi, rollup, onKunci, sibuk }: {
-  versi: DetailVersi; rollup: Rollup | null; onKunci: () => void; sibuk: boolean;
+function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, sibuk }: {
+  versi: DetailVersi; rollup: Rollup | null;
+  onKunci: () => void; onTambah: () => void;
+  onJelaskan: (id: string) => void; sibuk: boolean;
 }) {
   const items = versi.items ?? [];
   const terkunci = versi.status !== "draft";
@@ -474,8 +532,12 @@ function TabelItem({ versi, rollup, onKunci, sibuk }: {
         ikon={<Layers size={21} />}
         judul="RAB ini belum berisi pekerjaan"
         apa="RAB tersusun dari item pekerjaan — tiap item memakai satu analisa AHSP dan volumenya."
-        kenapa="Belum ada satu pun item di sini."
-        aksi={{ label: "Buka katalog AHSP", href: "/master/ahsp" }}
+        kenapa={terkunci
+          ? "RAB ini sudah terkunci, jadi itemnya tak bisa ditambah lagi. Pakai “Revisi” untuk membuat versi baru."
+          : "Belum ada satu pun item di sini."}
+        aksi={terkunci
+          ? { label: "Lihat katalog AHSP", href: "/master/ahsp" }
+          : { label: "Tambah pekerjaan pertama", onKlik: onTambah }}
       />
     );
   }
@@ -490,6 +552,36 @@ function TabelItem({ versi, rollup, onKunci, sibuk }: {
         border: `1px solid ${C.border}`, borderRadius: "var(--radius-md)",
         background: C.surface, overflow: "hidden",
       }}>
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+          gap: 10, flexWrap: "wrap",
+          padding: "10px 12px", borderBottom: `1px solid ${C.border}`,
+          background: C.subtle,
+        }}>
+          <h2 style={{
+            fontSize: 11, fontWeight: 700, letterSpacing: ".06em",
+            textTransform: "uppercase", color: C.muted,
+          }}>
+            {items.length} item pekerjaan
+          </h2>
+          {!terkunci && (
+            <button
+              type="button"
+              onClick={onTambah}
+              disabled={sibuk}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "var(--pad-tombol-kcl)", borderRadius: "var(--radius-dense)",
+                background: C.aksen, color: C.onAksen, border: `1px solid ${C.aksen}`,
+                fontSize: "var(--teks-label)", fontWeight: 600,
+                fontFamily: "inherit", cursor: "pointer",
+              }}
+            >
+              <Plus size={13} aria-hidden="true" /> Tambah pekerjaan
+            </button>
+          )}
+        </div>
+
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--teks-tabel)" }}>
             <thead>
@@ -499,19 +591,29 @@ function TabelItem({ versi, rollup, onKunci, sibuk }: {
                 <th style={{ ...th, textAlign: "right" }}>Volume</th>
                 <th style={{ ...th, textAlign: "right" }}>HSP</th>
                 <th style={{ ...th, textAlign: "right" }}>Jumlah</th>
+                <th style={{ ...th, width: 1 }}><span className="sr-only">Penjelasan</span></th>
               </tr>
             </thead>
             <tbody>
               {items.map((it) => (
                 <tr key={it.id}>
                   <td style={{ ...td, color: C.aksen, fontWeight: 600, whiteSpace: "nowrap" }}>
-                    {it.assembly_code ?? it.code ?? "—"}
+                    {it.assembly?.code ?? it.cost_code?.code ?? "—"}
                   </td>
-                  <td style={td}>{it.assembly_name ?? it.description ?? "—"}</td>
+                  <td style={td}>
+                    {it.assembly?.name ?? it.description ?? it.cost_code?.name ?? "—"}
+                    {/* Item lump-sum tak punya analisa — dinyatakan, bukan
+                        dibiarkan tampak seperti baris yang datanya hilang. */}
+                    {!punyaAnalisa(it) && (
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                        harga langsung{it.notes ? ` · ${it.notes}` : ""}
+                      </div>
+                    )}
+                  </td>
                   <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                     {angka(it.quantity, 2)}
                     <span style={{ fontSize: 11, color: C.muted, marginLeft: 4 }}>
-                      {it.unit_code ?? ""}
+                      {it.assembly?.output_unit_code ?? it.unit ?? ""}
                     </span>
                   </td>
                   <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
@@ -519,6 +621,43 @@ function TabelItem({ versi, rollup, onKunci, sibuk }: {
                   </td>
                   <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
                     {angka(it.amount)}
+                  </td>
+                  {/*
+                    "Kenapa angkanya segini?" — janji inti modul ini, ditaruh
+                    DI SEBELAH angkanya. Versi lama menaruhnya jauh dari baris
+                    yang dijelaskan, jadi orang yang curiga pada satu angka
+                    harus mencari dulu cara bertanya.
+
+                    TIDAK ditampilkan untuk item harga-langsung (lump-sum).
+                    Diukur 2026-08-16: menekannya di baris lump-sum memulangkan
+                    404 dan modalnya berbunyi "Gagal memuat penjelasan" — dan
+                    itu MENYESATKAN. Tak ada yang gagal: item lump-sum memang
+                    tak punya rantai koefisien×harga untuk dijelaskan, karena
+                    angkanya diketik langsung. Menawarkan tombol yang pasti
+                    gagal lebih buruk daripada tak menawarkannya.
+                  */}
+                  <td style={{ ...td, textAlign: "right" }}>
+                    {punyaAnalisa(it) ? (
+                      <button
+                        type="button"
+                        onClick={() => onJelaskan(it.id)}
+                        title="Kenapa angkanya segini?"
+                        aria-label={`Kenapa angka ${it.assembly?.name ?? it.description ?? "item ini"} segini?`}
+                        style={{
+                          background: "none", border: "none", cursor: "pointer",
+                          color: C.muted, padding: 2, display: "inline-flex",
+                        }}
+                      >
+                        <HelpCircle size={14} aria-hidden="true" />
+                      </button>
+                    ) : (
+                      <span
+                        title="Harga langsung — tak ada analisa untuk ditelusuri"
+                        style={{ fontSize: 10, color: C.muted, whiteSpace: "nowrap" }}
+                      >
+                        langsung
+                      </span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -536,7 +675,7 @@ function TabelItem({ versi, rollup, onKunci, sibuk }: {
           textTransform: "uppercase", color: C.muted, marginBottom: 11,
         }}>Ringkasan</h2>
 
-        <BarisJumlah label="Subtotal" nilai={rollup?.subtotal} />
+        <BarisJumlah label="Biaya pekerjaan" nilai={rollup?.totalBiaya} />
         <BarisJumlah label="PPN" nilai={rollup?.ppn} />
         <div style={{ height: 1, background: C.border, margin: "9px 0" }} />
         <div style={{ fontSize: "var(--teks-label)", color: C.mid, marginBottom: 2 }}>
@@ -546,8 +685,9 @@ function TabelItem({ versi, rollup, onKunci, sibuk }: {
           fontFamily: "var(--font-display), sans-serif",
           fontSize: "var(--teks-kpi)", fontWeight: 700, color: C.aksen,
           fontVariantNumeric: "tabular-nums", lineHeight: 1.1,
+          letterSpacing: "-.02em",
         }}>
-          {rp(rollup?.total)}
+          {rp(rollup?.grandTotal)}
         </div>
         <p style={{ fontSize: 11, color: C.muted, marginTop: 5, lineHeight: 1.5 }}>
           {items.length} item
@@ -618,4 +758,16 @@ const tombolTipis: React.CSSProperties = {
 
 function pesanGalat(e: unknown): string | undefined {
   return (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+}
+
+/**
+ * Item ini punya analisa AHSP di belakangnya?
+ *
+ * Item lump-sum (lift, pompa, septictank — §2.3 AHSP-EDITION-BUILDER-DESIGN)
+ * sengaja TIDAK punya: harganya diketik langsung tanpa koefisien. Membedakan
+ * keduanya menentukan apakah "kenapa angkanya segini?" bisa dijawab sama
+ * sekali.
+ */
+function punyaAnalisa(it: ItemVersi): boolean {
+  return Boolean(it.assembly_id ?? it.assembly?.id ?? it.assembly?.code);
 }
