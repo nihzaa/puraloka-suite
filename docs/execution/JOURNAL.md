@@ -5,6 +5,76 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi ASISTEN, 10) — laporan tool terpakai, dan yang MENOLAK melapor
+
+Nomor 3 dari rencana ("ukur tool mana yang tak pernah dipanggil"). Dibangun,
+lalu ia menolak melapor — dan penolakan itu justru hasilnya.
+
+### Yang ditemukan saat mengukur
+
+    ai_pesan            21 baris, SEMUANYA peran 'user'
+    pesan asisten        0
+    blok ber-panggilanTool  0
+    ai_biaya_token ronde >1  180
+
+180 ronde yang MEMAKAI TOOL pernah terjadi dan dibayar — tetapi nol pesan
+asisten tersimpan. Ke-21 baris `user` itu pun ternyata `"uji retensi"`,
+fixture test, bukan percakapan sungguhan.
+
+Kode penyimpanannya sendiri BENAR (diperiksa `ai-chat.ts:400` — user &
+assistant disisipkan satu batch). Yang tak ada memang datanya.
+
+### Karena itu laporannya MENOLAK melapor
+
+Bedanya paling mudah tertukar, dan paling mahal salah baca:
+
+    katalog 40 tool, 0 percakapan bertool     → laporan TAK BERARTI
+    katalog 40 tool, 500 percakapan, 12 nol   → 12 itu memang menganggur
+
+Keduanya terlihat sama persis kalau hanya mengurutkan "tool dengan 0
+panggilan". Skrip ini berhenti dengan penjelasan, alih-alih menyajikan 40 nol
+yang terbaca seperti temuan.
+
+### Dibuktikan bisa melapor — dengan blok berbentuk NYATA
+
+Disisipkan satu pesan asisten berblok persis seperti yang ditulis
+`ai-loop.ts`, lalu:
+
+    1 pesan asisten memakai tool · 3 panggilan total
+    TERPAKAI:  2  66.7%  daftar_proyek
+               1  33.3%  saldo_kas
+    NOL PANGGILAN (38 dari 40): …
+
+Baris ujinya dihapus sesudahnya; laporannya kembali menolak.
+
+Tanpa langkah ini, "menolak melapor" tak bisa dibedakan dari "rusak dan
+kebetulan diam".
+
+### Kenapa dibaca dari `ai_pesan.blok`, bukan tabel baru
+
+`ai-loop.ts` sudah menyimpan `panggilanTool` di tiap blok ronde — untuk alasan
+lain (C-5: supaya ronde berikutnya sah di mata Anthropic), dan kebetulan ia
+juga catatan pemakaian yang lengkap. Nol tabel baru, nol penulisan tambahan di
+jalur panas.
+
+Diurai di APLIKASI, bukan lewat operator JSONB: bentuk bloknya milik
+`ai-loop.ts` dan bisa berubah, dan query JSONB yang bentuknya tertinggal akan
+memulangkan NOL tanpa galat — persis kelas kegagalan yang membuat laporan ini
+berbohong.
+
+### Bukti
+
+    tsc (berkas saya)                 0 galat
+    lapor-tool-terpakai               menolak (benar) · melapor saat ada data
+    ai-tool-kurasi 6 · ai-perilaku 19
+    audit-katalog-tool-tak-membengkak exit 0
+    audit-tool-ai-read-only           exit 0
+    audit-pagar-fakta-utuh            exit 0
+    audit-kegagalan-senyap            exit 0
+    audit-catch-senyap                exit 0
+
+---
+
 ## 2026-08-16 (sesi ASISTEN, 9) — 40 tool DIPANGGIL, tiga angka nol bergerak
 
 Founder: *"bikin data dummy dulu aja, isinya semua masih data dummy"*. Benar —
