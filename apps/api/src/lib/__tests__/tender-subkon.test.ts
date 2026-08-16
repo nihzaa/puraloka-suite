@@ -3,10 +3,12 @@ import {
   susunTender,
   periksaPenetapan,
   periksaPenutupan,
+  susunTabulasiItem,
   AMBANG_TERLALU_RENDAH_PCT,
   MIN_ALASAN_BUKAN_TERMURAH,
   MIN_ALASAN_UMUM,
   type BarisPenawaranSubkon,
+  type BarisItemPenawaran,
 } from '../tender-subkon.js'
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -416,5 +418,158 @@ describe('penutupan tender', () => {
       })
       expect(h.boleh, st).toBe(false)
     }
+  })
+})
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PERBANDINGAN PER-ITEM (migrasi 437)
+//
+// Yang dijawab di sini dan tak bisa dijawab oleh `susunTender`:
+//
+//   "Agung Rp 12jt lebih murah — di POS MANA?"
+//
+// Selisih total yang sama bisa berarti penawar yang efisien merata, ATAU
+// penawar yang MELEWATKAN satu pos. Yang kedua kembali sebagai klaim tambah,
+// dan ia terbaca identik dengan yang pertama selama yang dibandingkan cuma
+// totalnya.
+// ═════════════════════════════════════════════════════════════════════════════
+
+const IT = (
+  penawaran_id: string,
+  kode_item: string | null,
+  uraian: string,
+  harga_satuan: number | string,
+  volume: number | string = 10,
+): BarisItemPenawaran => ({ penawaran_id, kode_item, uraian, harga_satuan, volume })
+
+describe('susunTabulasiItem — dasar', () => {
+  it('termurah per ITEM ditandai, bukan termurah per total', () => {
+    // Penawar B lebih mahal totalnya, tapi lebih murah di A.2. Itulah yang
+    // hilang saat hanya total yang dibandingkan.
+    const h = susunTabulasiItem([
+      IT('a', 'A.1', 'Galian', 100_000),
+      IT('a', 'A.2', 'Urugan', 900_000),
+      IT('b', 'A.1', 'Galian', 120_000),
+      IT('b', 'A.2', 'Urugan', 500_000),
+    ], { a: 'Agung', b: 'Budi' })
+
+    const galian = h.baris.find((x) => x.kode_item === 'A.1')!
+    const urugan = h.baris.find((x) => x.kode_item === 'A.2')!
+    expect(galian.sel.find((s) => s.penawaran_id === 'a')!.termurah).toBe(true)
+    expect(urugan.sel.find((s) => s.penawaran_id === 'b')!.termurah).toBe(true)
+    expect(h.jumlah_item_tak_lengkap).toBe(0)
+  })
+
+  it('item disatukan lewat KODE, meski uraiannya ditulis berbeda', () => {
+    const h = susunTabulasiItem([
+      IT('a', 'A.1', 'Galian tanah biasa', 100_000),
+      IT('b', 'A.1', 'Pekerjaan galian', 120_000),
+    ])
+    expect(h.baris).toHaveLength(1)
+    expect(h.baris[0].sel).toHaveLength(2)
+  })
+
+  it('tanpa kode, uraian jadi penyatunya — beda kapital tetap satu baris', () => {
+    const h = susunTabulasiItem([
+      IT('a', null, 'Galian Tanah', 100_000),
+      IT('b', null, 'galian tanah', 120_000),
+    ])
+    expect(h.baris).toHaveLength(1)
+  })
+
+  it('NUMERIC string dibandingkan sebagai ANGKA, bukan teks', () => {
+    // "100000" > "99000" benar sebagai angka, SALAH sebagai teks.
+    const h = susunTabulasiItem([
+      IT('a', 'A.1', 'Galian', '100000'),
+      IT('b', 'A.1', 'Galian', '99000'),
+    ])
+    expect(h.baris[0].harga_termurah).toBe(99_000)
+    expect(h.baris[0].sel.find((s) => s.penawaran_id === 'b')!.termurah).toBe(true)
+  })
+})
+
+describe('susunTabulasiItem — pos yang TIDAK dihitung seorang penawar', () => {
+  it('penawar yang tak mengisi item muncul sebagai sel KOSONG, bukan Rp 0', () => {
+    // Nol adalah angka terkecil. Dipasang di kolom yang sedang dibandingkan
+    // besarannya, ia menang sebagai termurah — dan pos yang TIDAK DIHITUNG
+    // terbaca sebagai pos yang paling murah.
+    const h = susunTabulasiItem([
+      IT('a', 'A.1', 'Galian', 100_000),
+      IT('a', 'A.2', 'Urugan', 500_000),
+      IT('b', 'A.1', 'Galian', 120_000),
+      // 'b' tidak mengisi A.2 sama sekali.
+    ])
+    const urugan = h.baris.find((x) => x.kode_item === 'A.2')!
+    const selB = urugan.sel.find((s) => s.penawaran_id === 'b')!
+    expect(selB.harga_satuan).toBeNull()
+    expect(selB.subtotal).toBeNull()
+    expect(selB.termurah).toBe(false)
+    expect(urugan.harga_termurah).toBe(500_000)
+  })
+
+  it('item yang tak lengkap DITANDAI dan diangkat ke paling atas', () => {
+    const h = susunTabulasiItem([
+      IT('a', 'A.1', 'Galian', 100_000),
+      IT('b', 'A.1', 'Galian', 101_000),
+      IT('a', 'A.2', 'Urugan', 500_000),
+    ])
+    expect(h.jumlah_item_tak_lengkap).toBe(1)
+    // Yang tak lengkap di atas meski rentangnya tak paling lebar — pos yang
+    // tak dihitung lebih penting daripada pos yang harganya beda 1%.
+    expect(h.baris[0].kode_item).toBe('A.2')
+    expect(h.baris[0].tak_lengkap).toBe(true)
+  })
+
+  it('ringkasan penawar menghitung berapa item yang TIDAK ia isi', () => {
+    const h = susunTabulasiItem([
+      IT('a', 'A.1', 'Galian', 100_000),
+      IT('a', 'A.2', 'Urugan', 500_000),
+      IT('b', 'A.1', 'Galian', 90_000),
+    ], { a: 'Agung', b: 'Budi' })
+
+    const budi = h.penawar.find((p) => p.penawaran_id === 'b')!
+    expect(budi.jumlah_item).toBe(1)
+    expect(budi.jumlah_tak_diisi).toBe(1)
+    // Budi menang di satu-satunya pos yang ia isi — tapi ia melewatkan satu.
+    expect(budi.jumlah_termurah).toBe(1)
+  })
+})
+
+describe('susunTabulasiItem — nilai batas', () => {
+  it('rentang null bila hanya SATU penawar mengisi item', () => {
+    const h = susunTabulasiItem([IT('a', 'A.1', 'Galian', 100_000)])
+    expect(h.baris[0].rentang_pct).toBeNull()
+  })
+
+  it('harga termurah NOL tak menghasilkan Infinity', () => {
+    // Harga 0 sah (pekerjaan yang sudah termasuk pos lain), tapi
+    // persentasenya tak terdefinisi.
+    const h = susunTabulasiItem([
+      IT('a', 'A.1', 'Galian', 0),
+      IT('b', 'A.1', 'Galian', 100_000),
+    ])
+    expect(h.baris[0].rentang_pct).toBeNull()
+    for (const s of h.baris[0].sel) expect(s.selisih_pct).toBeNull()
+  })
+
+  it('subtotal dari basis dipakai apa adanya bila dikirim', () => {
+    // Kolom GENERATED. Menghitung ulang di sini hanya menciptakan kesempatan
+    // kedua untuk membulatkannya berbeda.
+    const h = susunTabulasiItem([
+      { penawaran_id: 'a', kode_item: 'A.1', uraian: 'Galian', volume: 3, harga_satuan: 100, subtotal: 999 },
+    ])
+    expect(h.baris[0].sel[0].subtotal).toBe(999)
+  })
+
+  it('subtotal dihitung hanya bila basis tak mengirimkannya', () => {
+    const h = susunTabulasiItem([IT('a', 'A.1', 'Galian', 100, 3)])
+    expect(h.baris[0].sel[0].subtotal).toBe(300)
+  })
+
+  it('daftar kosong menghasilkan tabulasi kosong, bukan lempar', () => {
+    const h = susunTabulasiItem([])
+    expect(h.baris).toHaveLength(0)
+    expect(h.penawar).toHaveLength(0)
+    expect(h.total_termurah_gabungan).toBe(0)
   })
 })

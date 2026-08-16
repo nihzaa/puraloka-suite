@@ -346,6 +346,268 @@ export function periksaPenetapan(masukan: {
   return { boleh: true, peringatan }
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// PERBANDINGAN PER-ITEM — ditambahkan 2026-08-16 (migrasi 437)
+// ════════════════════════════════════════════════════════════════════════════
+//
+// ── Pertanyaan yang tak bisa dijawab sebelum ini
+//
+// `susunTender` di atas membandingkan SATU angka per penawar, karena sampai
+// migrasi 437 memang hanya itu yang tersimpan (`nilai_penawaran`, 201:106).
+// Ia bisa menjawab "siapa paling murah", tapi tak pernah:
+//
+//     "Agung Rp 12jt lebih murah — di POS MANA?"
+//
+// Selisih yang sama bisa berarti dua hal yang berlawanan: penawar yang
+// efisien merata, atau penawar yang melewatkan satu pos. Yang kedua kembali
+// sebagai klaim tambah, dan ia terbaca IDENTIK dengan yang pertama selama
+// yang dibandingkan cuma totalnya.
+//
+// ── Kenapa dipisah dari `susunTender`, bukan digabung
+//
+// Rincian item OPSIONAL (lihat kepala migrasi 437). Tender yang penawarannya
+// hanya total tetap sah selamanya, dan `susunTender` harus tetap menjawab
+// penuh untuk mereka. Menggabungkan keduanya membuat fungsi yang separuh
+// jalannya mati untuk 8 penawaran yang sudah ada di basis.
+
+export interface BarisItemPenawaran {
+  penawaran_id: string
+  kode_item?: string | null
+  uraian: string
+  satuan?: string | null
+  volume: number | string
+  harga_satuan: number | string
+  subtotal?: number | string | null
+}
+
+export interface SelItemPenawar {
+  penawaran_id: string
+  worker_name: string
+  /** null bila penawar ini tak punya baris untuk item tersebut. */
+  harga_satuan: number | null
+  subtotal: number | null
+  /** Harga satuan ini paling murah di antara yang MENGISI item ini. */
+  termurah: boolean
+  /** Selisih terhadap termurah, persen. null bila tak mengisi/tak terdefinisi. */
+  selisih_pct: number | null
+}
+
+export interface BarisTabulasiItem {
+  /** Penyatu antar penawar. `uraian` dipakai bila kode tak ada. */
+  kunci: string
+  kode_item: string | null
+  uraian: string
+  satuan: string | null
+  /** Volume rujukan — yang TERBESAR di antara penawar. Lihat catatan di bawah. */
+  volume: number
+  sel: SelItemPenawar[]
+  harga_termurah: number | null
+  /** Rentang antar penawar yang mengisi, persen terhadap termurah. */
+  rentang_pct: number | null
+  /**
+   * Tak semua penawar mengisi item ini.
+   *
+   * Inilah temuan yang paling mahal dan paling mudah terlewat: penawar yang
+   * totalnya termurah karena satu pos TIDAK IA HITUNG. Ditandai supaya
+   * "termurah" tak pernah terbaca tanpa syaratnya.
+   */
+  tak_lengkap: boolean
+}
+
+export interface RingkasanItemPenawar {
+  penawaran_id: string
+  worker_name: string
+  jumlah_item: number
+  /** Berapa item yang harga satuannya paling murah. */
+  jumlah_termurah: number
+  /** Berapa item yang TIDAK ia isi padahal penawar lain mengisinya. */
+  jumlah_tak_diisi: number
+  total_item: number
+}
+
+export interface HasilTabulasiItem {
+  baris: BarisTabulasiItem[]
+  penawar: RingkasanItemPenawar[]
+  /** Jumlah item yang tak semua penawar mengisinya. */
+  jumlah_item_tak_lengkap: number
+  /**
+   * Total bila tiap item diambil dari penawar termurahnya masing-masing.
+   *
+   * BUKAN target yang bisa dibeli — pekerjaan ini diborongkan ke SATU mandor.
+   * Gunanya sebagai batas bawah teoretis: seberapa jauh pemenang dari
+   * gabungan harga terbaik yang benar-benar ditawarkan orang.
+   */
+  total_termurah_gabungan: number
+}
+
+/**
+ * Susun perbandingan per-item antar penawar sebuah tender.
+ *
+ * INVARIANT yang diuji:
+ *  - item disatukan lewat `kode_item`; yang tanpa kode lewat uraian
+ *  - penawar yang TIDAK mengisi sebuah item muncul sebagai sel kosong,
+ *    bukan sebagai Rp 0 yang menang sebagai termurah
+ *  - string NUMERIC dibandingkan sebagai ANGKA, bukan teks
+ *  - item yang tak diisi semua penawar DITANDAI (`tak_lengkap`)
+ *  - `subtotal` dipakai apa adanya bila dikirim (kolom generated basis),
+ *    dihitung hanya bila tak ada
+ */
+export function susunTabulasiItem(
+  item: readonly BarisItemPenawaran[],
+  namaPenawar: Readonly<Record<string, string>> = {},
+): HasilTabulasiItem {
+  type Akum = {
+    kunci: string
+    kode_item: string | null
+    uraian: string
+    satuan: string | null
+    volume: number
+    sel: Map<string, SelItemPenawar>
+  }
+
+  const perItem = new Map<string, Akum>()
+  const semuaPenawar = new Set<string>()
+
+  for (const it of item) {
+    semuaPenawar.add(it.penawaran_id)
+
+    // Kode lebih dulu — itulah yang sama antar penawar. Uraian jadi cadangan
+    // untuk baris tambahan yang tak ada di BOQ tender; dinormalkan supaya
+    // "Galian Tanah" dan "galian tanah " tak jadi dua baris terpisah yang
+    // masing-masing terlihat "hanya ditawar satu orang".
+    const kunci = it.kode_item?.trim()
+      ? `k:${it.kode_item.trim().toLowerCase()}`
+      : `u:${it.uraian.trim().toLowerCase()}`
+
+    let m = perItem.get(kunci)
+    if (!m) {
+      m = {
+        kunci,
+        kode_item: it.kode_item?.trim() || null,
+        uraian: it.uraian,
+        satuan: it.satuan ?? null,
+        volume: angka(it.volume),
+        sel: new Map(),
+      }
+      perItem.set(kunci, m)
+    }
+    if (it.satuan) m.satuan = it.satuan
+    // Volume rujukan = yang TERBESAR. Volume diminta sama untuk semua penawar
+    // dalam satu tender; kalau berbeda, mengambil yang terbesar membuat salah
+    // ketik pada satu penawar tak mengecilkan gambaran seluruh pos.
+    m.volume = Math.max(m.volume, angka(it.volume))
+
+    const harga = angka(it.harga_satuan)
+    m.sel.set(it.penawaran_id, {
+      penawaran_id: it.penawaran_id,
+      worker_name: namaPenawar[it.penawaran_id] ?? it.penawaran_id,
+      harga_satuan: harga,
+      // Subtotal basis dipakai apa adanya kalau ada — ia kolom GENERATED,
+      // jadi menghitung ulang di sini hanya menciptakan kesempatan kedua
+      // untuk membulatkannya berbeda.
+      subtotal: it.subtotal != null && it.subtotal !== ''
+        ? angka(it.subtotal)
+        : harga * angka(it.volume),
+      termurah: false,
+      selisih_pct: null,
+    })
+  }
+
+  const daftarPenawar = [...semuaPenawar]
+
+  const baris: BarisTabulasiItem[] = [...perItem.values()].map((m) => {
+    // Penawar yang tak mengirim baris untuk item ini tetap muncul sebagai sel
+    // KOSONG. Kalau barisnya sekadar hilang, tabelnya berlubang dan pembaca
+    // tak bisa membedakan "tidak menghitung pos ini" dari "murah di pos ini" —
+    // padahal yang pertama adalah risiko klaim tambah.
+    for (const pid of daftarPenawar) {
+      if (!m.sel.has(pid)) {
+        m.sel.set(pid, {
+          penawaran_id: pid,
+          worker_name: namaPenawar[pid] ?? pid,
+          harga_satuan: null,
+          subtotal: null,
+          termurah: false,
+          selisih_pct: null,
+        })
+      }
+    }
+
+    const sel = daftarPenawar.map((pid) => m.sel.get(pid)!)
+    const mengisi = sel.filter((s) => s.harga_satuan != null)
+
+    const harga_termurah = mengisi.length > 0
+      ? Math.min(...mengisi.map((s) => s.harga_satuan!))
+      : null
+
+    if (harga_termurah != null) {
+      for (const s of mengisi) {
+        s.termurah = s.harga_satuan === harga_termurah
+        // Pembagian hanya bila termurah > 0. Harga 0 sah (pekerjaan yang
+        // sudah termasuk pos lain), tapi persentasenya tak terdefinisi dan
+        // Infinity akan mengalir ke layar sebagai teks aneh.
+        s.selisih_pct = harga_termurah > 0
+          ? ((s.harga_satuan! - harga_termurah) / harga_termurah) * 100
+          : null
+      }
+    }
+
+    const termahal = mengisi.length > 0
+      ? Math.max(...mengisi.map((s) => s.harga_satuan!))
+      : null
+
+    return {
+      kunci: m.kunci,
+      kode_item: m.kode_item,
+      uraian: m.uraian,
+      satuan: m.satuan,
+      volume: m.volume,
+      sel,
+      harga_termurah,
+      rentang_pct:
+        mengisi.length >= 2 && harga_termurah != null && harga_termurah > 0 && termahal != null
+          ? ((termahal - harga_termurah) / harga_termurah) * 100
+          : null,
+      tak_lengkap: mengisi.length < daftarPenawar.length,
+    }
+  })
+
+  // Yang selisihnya paling lebar lebih dulu — di situ uang paling banyak bisa
+  // salah arah. Item yang TAK LENGKAP diangkat ke paling atas: pos yang tak
+  // dihitung seorang penawar lebih penting daripada pos yang harganya beda
+  // 5%, dan ia tak punya `rentang_pct` besar yang akan mengangkatnya sendiri.
+  baris.sort((a, b) => {
+    if (a.tak_lengkap !== b.tak_lengkap) return a.tak_lengkap ? -1 : 1
+    return (b.rentang_pct ?? -1) - (a.rentang_pct ?? -1)
+      || a.uraian.localeCompare(b.uraian, 'id')
+  })
+
+  const penawar: RingkasanItemPenawar[] = daftarPenawar.map((pid) => {
+    const selPenawar = baris.map((b) => b.sel.find((s) => s.penawaran_id === pid)!)
+    const diisi = selPenawar.filter((s) => s.harga_satuan != null)
+    return {
+      penawaran_id: pid,
+      worker_name: namaPenawar[pid] ?? pid,
+      jumlah_item: diisi.length,
+      jumlah_termurah: selPenawar.filter((s) => s.termurah).length,
+      jumlah_tak_diisi: selPenawar.length - diisi.length,
+      total_item: diisi.reduce((s, x) => s + (x.subtotal ?? 0), 0),
+    }
+  })
+
+  penawar.sort((a, b) =>
+    b.jumlah_termurah - a.jumlah_termurah
+    || a.worker_name.localeCompare(b.worker_name, 'id'))
+
+  return {
+    baris,
+    penawar,
+    jumlah_item_tak_lengkap: baris.filter((b) => b.tak_lengkap).length,
+    total_termurah_gabungan: baris.reduce(
+      (s, b) => s + (b.harga_termurah == null ? 0 : b.harga_termurah * b.volume), 0),
+  }
+}
+
 /**
  * Apakah tender boleh ditutup (status → 'selesai').
  *
