@@ -218,6 +218,99 @@ identik. Berasal dari basis bersama/branch lain, bukan regresi di sini.
 
 ---
 
+## 2026-08-16 (sesi asisten, lanjutan) — "tertahan karena data" ternyata salah untuk 3 dari 5 nomor
+
+Founder: *"kalo gaada data, tambahkan aja data dummy dulu"* dan *"saya mau
+kerjakan sampai tuntas sampai ai asisten ini sampai titik maksimalnya"*.
+
+### Yang saya laporkan salah, sesi sebelumnya
+
+Saya menulis lima nomor "tertahan karena datanya belum ada". Diukur ulang:
+**hanya satu yang benar-benar begitu.**
+
+| Nomor | Yang saya bilang | Kenyataannya |
+|---|---|---|
+| 8.5 | data kurang | ✅ benar — `asset_rentals` nol baris |
+| 1.15 | data kurang | data kurang **+ butuh keputusan founder** (multi-PT) |
+| 8.2 | data kurang | **bukan tool sama sekali** — datanya lengkap |
+| 8.7 | data kurang | **bukan tool sama sekali** — idem |
+| 2.18 | data kurang | ✅ benar — tak ada tabel fasilitas kredit |
+
+Dan sebelum itu, saya juga salah membaca `docs/superpowers/plans/` sebagai
+daftar pekerjaan tersisa: **Fase 2a/2b/3/4 sudah selesai semua**, 69 test hijau,
+`sapa-proaktif` bahkan sudah pernah jalan sukses. Rencana lama dibaca sebagai
+kenyataan sekarang — persis racun konteks yang jadi alasan pembuka `CLAUDE.md`.
+
+### Yang dikerjakan
+
+**8.5 investasi alat.** Disemai `asset_rentals` (7 baris). Tarif DITURUNKAN
+dari harga beli aset yang sudah ada — kalau dikarang lepas, verdict "lebih
+untung sewa" ditentukan angka yang saya ketik, bukan keadaan. Percobaan
+pertama salah: harian = bulanan ÷ 22 → Excavator Rp 2,94 juta/hari, di atas
+pasar. Harian dan bulanan diturunkan terpisah.
+
+Temuan: **Mobile Crane Rp 2,4 M, NOL jam pakai, menanggung Rp 56,75 juta
+penyusutan.** Versi pertama tool menandai 11 alat kecil "modal-mati" padahal
+biayanya Rp 0 — sebelas peringatan palsu menenggelamkan satu temuan Rp 2,4 M.
+Peringatan yang terlalu sering berbunyi berhenti dibaca.
+
+**1.15 portofolio grup.** Infrastruktur T9 ternyata SUDAH lengkap — tak ada
+migrasi baru. Batasnya **keanggotaan, bukan silsilah**: membaca
+`parent_company_id` lalu menampilkan semua anak akan membocorkan angka antar-PT
+kepada staf yang cuma bekerja di salah satunya.
+
+Seeder saya sempat `DELETE FROM companies`. **Basis menolak, dan penolakan itu
+benar** — off-boarding tenant bukan penghapusan baris. Diubah jadi pakai ulang.
+
+**8.2 + 8.7 penalaran berlapis.** Bukan tool. Yang kurang: nol kalimat di
+prompt yang membolehkan model memanggil beberapa tool lalu menyintesis.
+
+⚠ **Batas ronde adalah batas berpikir, dan ia diam.** Loop menyisihkan ronde
+terakhir tanpa tool, jadi `maks_ronde = 4` berarti **tiga** pembacaan. Naik ke 6.
+
+⚠ **Pengandaian adalah satu-satunya lubang di `PAGAR_FAKTA`.** Angka andaian
+wajib berlabel, dipisah dari data tercatat, dan tak boleh dikarang sendiri.
+
+### Lima test lama merah — cacat di TEST, bukan di kode produk
+
+`ai-perilaku`, `ai-setujui`, `ai-sifat-bicara` memilih tenant uji dengan
+`LIMIT 1` **tanpa `ORDER BY`**. Begitu dua PT anak lahir, keduanya terpilih
+lebih dulu: satu belum punya `ai_provider_config` (UPDATE tak mengenai baris
+apa pun — test *"basis MENOLAK nilai berbahaya"* **lulus tanpa menguji apa
+pun**), satunya cuma beranggota satu orang.
+
+`ai-tool-lapangan` menghitung `notifications` dalam penjaga I-1. Diukur: **62
+notifikasi baru dalam 30 menit tanpa satu pun tool AI dipanggil.** Test yang
+merah karena sebab di luar yang diuji melatih pembacanya mengabaikan kegagalan.
+
+### Bukti
+
+- `npx vitest run src/lib/__tests__/ai-` → **36 berkas · 425 test hijau**
+- mutasi (9×, semuanya MERAH lalu pulih HIJAU) — termasuk **kebocoran lintas
+  tenant** (saringan keanggotaan dicabut → merah)
+- penjaga exit 0: pagar-fakta-utuh · tool-ai-read-only ·
+  katalog-tak-membengkak (4.903/5.200, 44 tool) · izin-benar-ada ·
+  gerbang-biaya-ai · kegagalan-senyap · catch-senyap · baca-tak-terpotong ·
+  kredensial-lintas-tenant · keanggotaan-punya-default
+- kedua seeder idempoten (jalan kedua tak menggandakan)
+
+### Dua hal yang TIDAK terbukti — dinyatakan, bukan disembunyikan
+
+1. **Test rute AI merah, dan bukan karena kerja ini.** Diuji langsung ke API:
+   `HTTP 400 — "Your credit balance is too low to access the Anthropic API."`
+   Dibandingkan di worktree lain yang tak memuat kode ini: di sana **7 merah**,
+   di sini **5**. Pulih sendiri begitu saldo diisi.
+
+2. **Penalaran berlapis terbukti JALURNYA, bukan PENILAIANNYA.** Adaptor
+   test adalah skrip — ia memanggil tool yang saya tentukan, bukan yang model
+   pilih. Apakah asisten memilih tool yang tepat hanya ketahuan dari percakapan
+   sungguhan. Ditulis di kepala berkas test supaya hijau-nya tak salah dibaca.
+
+3. Satu mutasi (`is_deleted` di portofolio grup) **tidak menggigit** — grup uji
+   punya 22 proyek, nol terhapus. Dinyatakan di dalam test.
+
+---
+
 ## 2026-08-16 (sesi asisten) — asisten tak tahu lawan bicaranya; dan dua nama kolom yang berbohong
 
 Dua pekerjaan, satu benang merah: **nama boleh menyesatkan, data tidak.**
