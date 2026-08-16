@@ -24218,3 +24218,81 @@ melainkan disiplin mengukur sebelum menulis — dan itu datang dari brief yang
 menyuruh "verifikasi ulang di HEAD", bukan dari worktree-nya.
 
 Empat worktree kosong dihapus, branch-nya dibuang. Tersisa `pm/crm-boq`.
+
+---
+
+## 2026-08-16 (lanjutan 6) — buku migrasi direkonsiliasi: 52 baris, G-2 dilaksanakan
+
+Founder menyetujui perbaikan dua temuan G-2. Dikerjakan yang PERTAMA;
+yang kedua BERHENTI di syarat berhenti §8a.1 nomor satu.
+
+### Lubangnya jauh lebih besar daripada yang dilaporkan agent
+
+Agent melaporkan 4 migrasi tak tercatat (407-410). Diukur sendiri:
+
+```
+buku migrasi >= 395 : 395, 396, 427, 431
+```
+
+Buku melompat **396 → 427**. Artinya 30 berkas (397-426) di branch ini tak
+tercatat, bukan 4. Laporan agent benar tapi sempit — ia hanya memeriksa yang
+menyangkut tugasnya.
+
+Alat kanonik memberi angka sebenarnya: **52 migrasi terbukti jalan tapi tak
+tercatat**, dari 424 berkas.
+
+### Kenapa `--tulis` dipakai, padahal R-004 pernah menariknya
+
+`rekonsiliasi-schema-migrations.mjs` TIDAK menyisipkan semua yang hilang. Ia
+memverifikasi tiap migrasi ke `pg_class`/`pg_proc` lebih dulu: objek yang
+dijanjikan harus BENAR-BENAR ADA. Yang tak terbukti dilaporkan terpisah dan
+tak disentuh.
+
+Terbukti bekerja: **3 berkas ditolak** (175, 176, 424) karena objeknya tak
+lengkap. Mencatatnya sebagai "sudah" akan membuatnya tak pernah dijalankan —
+persis kelas cacat 043-047, tapi dibuat sengaja.
+
+```
+sebelum : 276 tercatat · 52 terbukti-tak-tercatat · 3 tak lengkap
+sesudah : 328 tercatat ·  0 terbukti-tak-tercatat · 3 tak lengkap
+```
+
+Buku dicadangkan lebih dulu (276 baris) ke
+`.worktrees/cadangan-buku-migrasi-2026-08-16.json`.
+
+### Temuan kedua LEBIH LUAS: bukan satu tabrakan, LIMA
+
+Agent melaporkan nomor 410 bentrok. Diukur, yang bentrok 406-410 SEMUANYA:
+
+| # | branch ini | `feat/kematangan-modul` |
+|---|---|---|
+| 406 | retensi_dan_audit_berisiko | impor_pemasok_dan_pekerja |
+| 407 | kontrak_payung_habis | dokumen_penawaran |
+| 408 | aset_dan_konflik_mandor | menu_dokumen_penawaran |
+| 409 | rab_upah_kontrak_klien | sidebar_bentrok_ai_penyedia |
+| 410 | k3_stok_mutu | dokumen_revisi |
+
+Kelimanya di branch ini kini TERCATAT sebagai sudah jalan. Jadi berkas di
+branch seberang yang harus dinomori ulang — slot bebas: 428, 429, 430,
+432-435.
+
+### BERHENTI di sini, dan alasannya terukur
+
+Penomoran ulang harus dilakukan di worktree `kematangan-modul`. Diperiksa:
+
+```
+HEAD   c53ebdd9
+status  M apps/web/app/(dashboard)/audit/page.tsx
+        M apps/web/app/(dashboard)/estimasi/page.tsx
+        ... (masih ada suntingan belum di-commit)
+```
+
+Sesi di sana MASIH HIDUP. Mengganti nama berkas migrasi di tengah suntingan
+orang lain adalah persis yang dilarang §8a.1 nomor satu — dan jurnal
+2026-08-06 mencatat kerusakan seperti itu terjadi 3×.
+
+### Penjaga
+
+`audit-migrasi-skema-dipaku` MERAH — 7 migrasi (363-371) memaku `public.`.
+Diperiksa: seluruhnya jauh mendahului sesi ini, dan §5.5 melarang menyunting
+migrasi lama. Bukan regresi dari pekerjaan ini.
