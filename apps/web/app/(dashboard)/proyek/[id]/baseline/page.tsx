@@ -26,10 +26,11 @@
  * yang berwarna hanya angka mundur — dan itu memang yang dicari saat rapat.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { CalendarClock, TriangleAlert, Info, Plus } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { formatTanggal } from "@/lib/format";
 import { C } from "@/lib/warna-ui";
 import {
@@ -79,13 +80,6 @@ export default function BaselinePage() {
   const params = useParams<{ id: string }>();
   const proyekId = params?.id ?? "";
 
-  const [daftar, setDaftar] = useState<Baseline[]>([]);
-  const [aktif, setAktif] = useState<Baseline | null>(null);
-  const [geser, setGeser] = useState<Geser[]>([]);
-  const [ringkas, setRingkas] = useState<Ringkas | null>(null);
-  const [alasanKosong, setAlasanKosong] = useState<string | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
   const [saring, setSaring] = useState<Saring>("mundur");
 
@@ -93,35 +87,50 @@ export default function BaselinePage() {
   const [alasan, setAlasan] = useState("");
   const [dokumen, setDokumen] = useState("");
 
-  const muat = useCallback(async (signal?: AbortSignal) => {
-    if (!proyekId) return;
-    setMemuat(true); setGalat(null);
-    try {
-      const [d, p] = await Promise.all([
-        api.get<{ baseline: Baseline[] }>(`/api/v1/proyek/${proyekId}/baseline`, { signal }),
-        api.get<{ baseline: Baseline | null; pergeseran: Geser[]; ringkas: Ringkas | null; alasan?: string }>(
-          `/api/v1/proyek/${proyekId}/baseline/pergeseran`, { signal }),
-      ]);
-      setDaftar(d.data.baseline ?? []);
-      setAktif(p.data.baseline);
-      setGeser(p.data.pergeseran ?? []);
-      setRingkas(p.data.ringkas);
-      setAlasanKosong(p.data.alasan ?? null);
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat baseline");
-    } finally { setMemuat(false); }
-  }, [proyekId]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    Dua `useData`, keduanya berkunci `proyekId` lewat `useParams()` — `null`
+    menahan pemuatan sampai id-nya ada, dan tiap proyek dapat kunci cache
+    sendiri (berpindah proyek lalu kembali tak mengambil ulang).
+
+    Endpoint kedua (`/baseline/pergeseran`) dulu didestrukturisasi ke EMPAT
+    `useState` terpisah (`aktif`, `geser`, `ringkas`, `alasanKosong`) dari
+    SATU respons — sekarang dibaca langsung dari objek `pergeseran`, sumber
+    tunggal alih-alih empat state yang harus disetel bersamaan.
+  */
+  const jalurDaftar = proyekId ? `/api/v1/proyek/${proyekId}/baseline` : null;
+  const { data: dataDaftar, memuat: memuatDaftar, galat: galatDaftar, muatUlang: muatUlangDaftar } =
+    useData<{ baseline: Baseline[] }>(jalurDaftar);
+  const daftar = dataDaftar?.baseline ?? [];
+
+  const jalurPergeseran = proyekId ? `/api/v1/proyek/${proyekId}/baseline/pergeseran` : null;
+  const { data: pergeseran, memuat: memuatPergeseran, galat: galatMuat, muatUlang: muatUlangPergeseran } =
+    useData<{ baseline: Baseline | null; pergeseran: Geser[]; ringkas: Ringkas | null; alasan?: string }>(
+      jalurPergeseran,
+    );
+  const aktif = pergeseran?.baseline ?? null;
+  const geser = useMemo(() => pergeseran?.pergeseran ?? [], [pergeseran]);
+  const ringkas = pergeseran?.ringkas ?? null;
+  const alasanKosong = pergeseran?.alasan ?? null;
+
+  // Versi lama memuat KEDUA endpoint lewat satu `Promise.all` — `memuat`
+  // dipertahankan sebagai gabungan keduanya, bukan hanya salah satu, supaya
+  // "Riwayat baseline" tak sempat menganggap daftar kosong padahal baru
+  // pergeseran yang sudah datang.
+  const memuat = memuatDaftar || memuatPergeseran;
+
+  const muat = useCallback(async () => {
+    await Promise.all([muatUlangDaftar(), muatUlangPergeseran()]);
+  }, [muatUlangDaftar, muatUlangPergeseran]);
+
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi
+    ?? (galatDaftar ? "Gagal memuat baseline" : null)
+    ?? (galatMuat ? "Gagal memuat baseline" : null);
 
   const tetapkan = useCallback(async () => {
-    setMenyimpan(true); setGalat(null);
+    setMenyimpan(true); setGalatAksi(null);
     try {
       await api.post(`/api/v1/proyek/${proyekId}/baseline`, {
         nama: nama.trim(),
@@ -132,7 +141,7 @@ export default function BaselinePage() {
       await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menetapkan baseline");
+      setGalatAksi(m ?? "Gagal menetapkan baseline");
     } finally { setMenyimpan(false); }
   }, [proyekId, nama, alasan, dokumen, muat]);
 

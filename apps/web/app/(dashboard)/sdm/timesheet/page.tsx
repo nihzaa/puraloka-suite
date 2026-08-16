@@ -36,7 +36,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   CalendarClock, TriangleAlert, Send, Check, X, Plus, Building2, Clock,
 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
@@ -265,13 +266,8 @@ const buatKolom = (
 ];
 
 export default function TimesheetPage() {
-  const [pegawai, setPegawai] = useState<Pegawai[]>([]);
   const [pegawaiId, setPegawaiId] = useState("");
   const [bulan, setBulan] = useState(() => new Date().toISOString().slice(0, 7));
-  const [detail, setDetail] = useState<Detail | null>(null);
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
 
   const [isiHari, setIsiHari] = useState<Baris | "baru" | null>(null);
   const [fTanggal, setFTanggal] = useState("");
@@ -286,35 +282,40 @@ export default function TimesheetPage() {
   const [menyimpan, setMenyimpan] = useState(false);
   const [galatModal, setGalatModal] = useState<string | null>(null);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Tiga sumber, tiga `useData`: daftar pegawai dan daftar proyek independen
+    (dedup lintas halaman SDM lain yang memuat pegawai yang sama), dan detail
+    timesheet berkunci `pegawaiId`+`bulan` — pindah pegawai/bulan lalu kembali
+    tak mengambil ulang selama masih segar.
+  */
+  const { data: dataPegawai, galat: galatPegawai } =
+    useData<{ pegawai: Pegawai[] }>("/api/v1/sdm/pegawai");
+  const { data: dataProyek } = useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const pegawai = dataPegawai?.pegawai ?? [];
+  const proyek = dataProyek?.projects ?? [];
+
+  // Pilih pegawai pertama begitu daftarnya datang — sekali, bukan tiap render.
+  // Pilih pegawai pertama SEKALI begitu daftarnya datang, bukan efek samping
+  // berulang: dependensi hanya `dataPegawai`, dan `s || …` menahan diri
+  // begitu pengguna sudah memilih.
   useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ pegawai: Pegawai[] }>("/api/v1/sdm/pegawai", { signal: ac.signal })
-      .then((r) => {
-        const d = r.data.pegawai ?? [];
-        setPegawai(d);
-        setPegawaiId((s) => s || d[0]?.id || "");
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar pegawai"); });
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch(() => { /* proyek hanya untuk pilihan — tak menghalangi */ });
-    return () => ac.abort();
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (pegawai.length > 0) setPegawaiId((s) => s || pegawai[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataPegawai]);
 
-  const muat = useCallback(async (id: string, bln: string) => {
-    if (!id) { setDetail(null); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Detail>(`/api/v1/sdm/pegawai/${id}/timesheet?bulan=${bln}`);
-      setDetail(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat timesheet");
-      setDetail(null);
-    } finally { setMemuat(false); }
-  }, []);
+  const jalurDetail = pegawaiId
+    ? `/api/v1/sdm/pegawai/${pegawaiId}/timesheet?bulan=${bulan}`
+    : null;
+  const { data: detail, memuat, galat: galatMuat, muatUlang } = useData<Detail>(jalurDetail);
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
-  useEffect(() => { void muat(pegawaiId, bulan); }, [pegawaiId, bulan, muat]);
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi
+    ?? (galatPegawai ? "Gagal memuat daftar pegawai" : null)
+    ?? (galatMuat ? "Gagal memuat timesheet" : null);
 
   const bukaIsi = useCallback((b: Baris | "baru") => {
     setIsiHari(b);
@@ -342,36 +343,36 @@ export default function TimesheetPage() {
         kegiatan: fKegiatan.trim() || null,
       });
       setIsiHari(null);
-      await muat(pegawaiId, bulan);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menyimpan timesheet");
     } finally { setMenyimpan(false); }
-  }, [pegawaiId, fTanggal, fJam, fLembur, fProyek, fKegiatan, muat, bulan]);
+  }, [pegawaiId, fTanggal, fJam, fLembur, fProyek, fKegiatan, muat]);
 
   const ajukan = useCallback(async () => {
     if (!pegawaiId) return;
-    setMenyimpan(true); setGalat(null);
+    setMenyimpan(true); setGalatAksi(null);
     try {
       await api.post(`/api/v1/sdm/pegawai/${pegawaiId}/timesheet/ajukan?bulan=${bulan}`, {});
-      await muat(pegawaiId, bulan);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal mengajukan timesheet");
+      setGalatAksi(m ?? "Gagal mengajukan timesheet");
     } finally { setMenyimpan(false); }
   }, [pegawaiId, bulan, muat]);
 
   const putuskan = useCallback(async (b: Baris, setujui: boolean) => {
     if (!setujui) { setTolakBaris(b); setFAlasan(""); setGalatModal(null); return; }
-    setGalat(null);
+    setGalatAksi(null);
     try {
       await api.post(`/api/v1/sdm/timesheet/${b.id}/putuskan`, { setujui: true });
-      await muat(pegawaiId, bulan);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menyetujui timesheet");
+      setGalatAksi(m ?? "Gagal menyetujui timesheet");
     }
-  }, [pegawaiId, bulan, muat]);
+  }, [muat]);
 
   const simpanTolak = useCallback(async () => {
     if (!tolakBaris) return;
@@ -385,12 +386,12 @@ export default function TimesheetPage() {
         setujui: false, alasan: fAlasan.trim(),
       });
       setTolakBaris(null);
-      await muat(pegawaiId, bulan);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menolak timesheet");
     } finally { setMenyimpan(false); }
-  }, [tolakBaris, fAlasan, pegawaiId, bulan, muat]);
+  }, [tolakBaris, fAlasan, muat]);
 
   const kartu: React.CSSProperties = {
     background: "var(--surface)", border: `1px solid ${C.border}`,

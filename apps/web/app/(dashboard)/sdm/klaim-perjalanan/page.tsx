@@ -23,11 +23,12 @@
  *    bagian mana yang tak diganti.
  */
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   Plane, RefreshCw, Plus, Check, X, Wallet, Clock, Trash2,
 } from "lucide-react";
-import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
@@ -94,14 +95,8 @@ const langganan = (cb: () => void) => {
 };
 
 export default function KlaimPerjalananPage() {
-  const [daftar, setDaftar] = useState<Klaim[]>([]);
-  const [ringkasan, setRingkasan] = useState<Ringkasan | null>(null);
-  const [akunKas, setAkunKas] = useState<AkunKas[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
   const [pesan, setPesan] = useState<{ jenis: "ok" | "galat"; teks: string } | null>(null);
   const [sibuk, setSibuk] = useState<string | null>(null);
-  const [putaran, setPutaran] = useState(0);
   const [formBuka, setFormBuka] = useState(false);
   const [formTolak, setFormTolak] = useState<Klaim | null>(null);
   const [formBayar, setFormBayar] = useState<Klaim | null>(null);
@@ -110,35 +105,29 @@ export default function KlaimPerjalananPage() {
   const bolehSetujui = useSyncExternalStore(langganan, () => hasPermission("klaim:setujui"), () => false);
   const bolehBayar = useSyncExternalStore(langganan, () => hasPermission("klaim:bayar"), () => false);
 
-  const muat = useCallback((signal: AbortSignal) => {
-    setMemuat(true);
-    setGalat("");
-    return Promise.all([
-      api.get<{ klaim: Klaim[]; ringkasan: Ringkasan }>("/api/v1/klaim-perjalanan", { signal }),
-      api.get<{ accounts: AkunKas[] }>("/api/v1/cash/accounts", { signal }).catch(() => null),
-    ])
-      .then(([r, k]) => {
-        setDaftar(r.data.klaim ?? []);
-        setRingkasan(r.data.ringkasan ?? null);
-        // Akun kas hanya untuk dialog bayar. Gagal memuatnya TIDAK melumpuhkan
-        // halaman — yang utama di sini membaca klaim.
-        if (k) setAkunKas(k.data.accounts ?? []);
-      })
-      .catch((e) => {
-        if ((e as { code?: string })?.code === "ERR_CANCELED") return;
-        setGalat(
-          (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-            ?? "Gagal memuat klaim perjalanan.",
-        );
-      })
-      .finally(() => setMemuat(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat, putaran]);
+    `putaran` (penghitung manual untuk memicu efek) DIBUANG — `muatUlang()`
+    dari `useData` melakukan hal yang sama langsung, dengan `paksa: true`.
+
+    Akun kas TETAP diminta terpisah dan TIDAK menggagalkan halaman: dulu
+    `.catch(() => null)` di dalam `Promise.all` menahan galatnya supaya
+    klaim (yang utama) tetap tampil. `useData` kedua memberi perilaku yang
+    sama secara alami — galatnya berdiri sendiri, tak pernah menutupi galat
+    memuat klaim.
+  */
+  const { data: dataKlaim, memuat, galat: galatMuat, muatUlang } =
+    useData<{ klaim: Klaim[]; ringkasan: Ringkasan }>("/api/v1/klaim-perjalanan");
+  const { data: dataAkun } = useData<{ accounts: AkunKas[] }>("/api/v1/cash/accounts");
+  // `useMemo`: `daftar` masuk dependensi `useMemo` (`urut`) di bawah — tanpa
+  // ini tiap render membuat array baru dan menembus ratchet `exhaustive-deps`.
+  const daftar = useMemo(() => dataKlaim?.klaim ?? [], [dataKlaim]);
+  const ringkasan = dataKlaim?.ringkasan ?? null;
+  const akunKas = dataAkun?.accounts ?? [];
+  const muat = muatUlang;
+
+  const galat = galatMuat ? "Gagal memuat klaim perjalanan." : "";
 
   useEffect(() => {
     if (!pesan) return;
@@ -155,7 +144,7 @@ export default function KlaimPerjalananPage() {
       const r = await api.patch<{ pesan?: string }>(
         `/api/v1/klaim-perjalanan/${k.id}/putuskan`, { setujui: true });
       setPesan({ jenis: "ok", teks: r.data.pesan ?? `${k.nomor} disetujui.` });
-      setPutaran((x) => x + 1);
+      void muat();
     } catch (e) {
       setPesan({
         jenis: "galat",
@@ -205,7 +194,7 @@ export default function KlaimPerjalananPage() {
           )}
           <button
             type="button"
-            onClick={() => setPutaran((x) => x + 1)}
+            onClick={() => void muat()}
             disabled={memuat}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
@@ -315,7 +304,7 @@ export default function KlaimPerjalananPage() {
           onSelesai={(teks) => {
             setFormBuka(false);
             setPesan({ jenis: "ok", teks });
-            setPutaran((x) => x + 1);
+            void muat();
           }}
         />
       )}
@@ -327,7 +316,7 @@ export default function KlaimPerjalananPage() {
           onSelesai={(teks) => {
             setFormTolak(null);
             setPesan({ jenis: "ok", teks });
-            setPutaran((x) => x + 1);
+            void muat();
           }}
         />
       )}
@@ -340,7 +329,7 @@ export default function KlaimPerjalananPage() {
           onSelesai={(teks) => {
             setFormBayar(null);
             setPesan({ jenis: "ok", teks });
-            setPutaran((x) => x + 1);
+            void muat();
           }}
         />
       )}

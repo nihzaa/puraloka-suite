@@ -36,7 +36,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   CalendarDays, TriangleAlert, Check, X, Plus, Ban, Info, CalendarOff,
 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
@@ -285,12 +286,8 @@ const buatKolom = (
 ];
 
 export default function CutiPage() {
-  const [pegawai, setPegawai] = useState<Pegawai[]>([]);
   const [pegawaiId, setPegawaiId] = useState("");
   const [tahun, setTahun] = useState(() => new Date().getFullYear());
-  const [detail, setDetail] = useState<Detail | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
 
   const [ajukan, setAjukan] = useState(false);
   const [fJenis, setFJenis] = useState<JenisCuti>("tahunan");
@@ -309,32 +306,34 @@ export default function CutiPage() {
   const [galatModal, setGalatModal] = useState<string | null>(null);
   const [penghalang, setPenghalang] = useState<Array<{ kode: string; pesan: string }>>([]);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Dua sumber: pegawai (dedup lintas halaman SDM lain) dan detail cuti
+    berkunci `pegawaiId`+`tahun` — ganti tahun lalu kembali tak mengambil
+    ulang selama masih segar.
+  */
+  const { data: dataPegawai, galat: galatPegawai } =
+    useData<{ pegawai: Pegawai[] }>("/api/v1/sdm/pegawai");
+  const pegawai = dataPegawai?.pegawai ?? [];
+
+  // Pilih pegawai pertama SEKALI begitu daftarnya datang, bukan efek samping
+  // berulang: dependensi hanya `dataPegawai`, dan `s || …` menahan diri
+  // begitu pengguna sudah memilih.
   useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ pegawai: Pegawai[] }>("/api/v1/sdm/pegawai", { signal: ac.signal })
-      .then((r) => {
-        const d = r.data.pegawai ?? [];
-        setPegawai(d);
-        setPegawaiId((s) => s || d[0]?.id || "");
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar pegawai"); });
-    return () => ac.abort();
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (pegawai.length > 0) setPegawaiId((s) => s || pegawai[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataPegawai]);
 
-  const muat = useCallback(async (id: string, th: number) => {
-    if (!id) { setDetail(null); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Detail>(`/api/v1/sdm/pegawai/${id}/cuti?tahun=${th}`);
-      setDetail(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat data cuti");
-      setDetail(null);
-    } finally { setMemuat(false); }
-  }, []);
+  const jalurDetail = pegawaiId ? `/api/v1/sdm/pegawai/${pegawaiId}/cuti?tahun=${tahun}` : null;
+  const { data: detail, memuat, galat: galatMuat, muatUlang } = useData<Detail>(jalurDetail);
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
-  useEffect(() => { void muat(pegawaiId, tahun); }, [pegawaiId, tahun, muat]);
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi
+    ?? (galatPegawai ? "Gagal memuat daftar pegawai" : null)
+    ?? (galatMuat ? "Gagal memuat data cuti" : null);
 
   const simpanAjukan = useCallback(async () => {
     if (!pegawaiId) return;
@@ -347,25 +346,25 @@ export default function CutiPage() {
       });
       setAjukan(false);
       setFMulai(""); setFSelesai(""); setFAlasan("");
-      await muat(pegawaiId, tahun);
+      await muat();
     } catch (e) {
       const d = (e as { response?: { data?: { error?: string; penghalang?: Array<{ kode: string; pesan: string }> } } })?.response?.data;
       setPenghalang(d?.penghalang ?? []);
       setGalatModal(d?.penghalang?.length ? null : (d?.error ?? "Gagal mengajukan cuti"));
     } finally { setMenyimpan(false); }
-  }, [pegawaiId, fJenis, fMulai, fSelesai, fAlasan, muat, tahun]);
+  }, [pegawaiId, fJenis, fMulai, fSelesai, fAlasan, muat]);
 
   const putuskan = useCallback(async (a: Ambil, setujui: boolean) => {
     if (!setujui) { setTolakBaris(a); setFTolak(""); setGalatModal(null); return; }
-    setGalat(null);
+    setGalatAksi(null);
     try {
       await api.post(`/api/v1/sdm/cuti/${a.id}/putuskan`, { setujui: true });
-      await muat(pegawaiId, tahun);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menyetujui cuti");
+      setGalatAksi(m ?? "Gagal menyetujui cuti");
     }
-  }, [pegawaiId, tahun, muat]);
+  }, [muat]);
 
   const simpanTolak = useCallback(async () => {
     if (!tolakBaris) return;
@@ -379,23 +378,23 @@ export default function CutiPage() {
         setujui: false, alasan: fTolak.trim(),
       });
       setTolakBaris(null);
-      await muat(pegawaiId, tahun);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menolak cuti");
     } finally { setMenyimpan(false); }
-  }, [tolakBaris, fTolak, pegawaiId, tahun, muat]);
+  }, [tolakBaris, fTolak, muat]);
 
   const batal = useCallback(async (a: Ambil) => {
-    setGalat(null);
+    setGalatAksi(null);
     try {
       await api.post(`/api/v1/sdm/cuti/${a.id}/batal`, {});
-      await muat(pegawaiId, tahun);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal membatalkan cuti");
+      setGalatAksi(m ?? "Gagal membatalkan cuti");
     }
-  }, [pegawaiId, tahun, muat]);
+  }, [muat]);
 
   const simpanHak = useCallback(async () => {
     if (!pegawaiId) return;
@@ -407,7 +406,7 @@ export default function CutiPage() {
         tahun, jumlah_hari: hJumlah, alasan: hAlasan.trim(),
       });
       setBeriHak(false); setHJumlah(""); setHAlasan("");
-      await muat(pegawaiId, tahun);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menambah hak cuti");
