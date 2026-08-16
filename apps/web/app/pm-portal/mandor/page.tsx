@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { CheckCircle, XCircle, Clock, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -33,9 +34,6 @@ const REPORT_STATUS: Record<string, { label: string; color: string; bg: string }
 };
 
 export default function PMMandorPage() {
-  const [summary, setSummary] = useState<any[]>([]);
-  const [reports, setReports] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -45,24 +43,28 @@ export default function PMMandorPage() {
     setTimeout(() => setToast(null), 3500);
   }
 
-  function loadData() {
-    return Promise.all([
-      api.get("/api/v1/mandor/summary"),
-      api.get("/api/v1/mandor/wage-reports"),
-    ]).then(([sRes, rRes]) => {
-      setSummary(sRes.data?.summary ?? []);
-      setReports(rRes.data?.reports ?? []);
-    }).finally(() => setLoading(false));
-  }
+  // ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16 — tak ada
+  // mekanisme offline di portal PM.
+  const { data: dataSummary, memuat: memuatSummary, galat: galatSummary, muatUlang: muatUlangSummary } =
+    useData<{ summary: any[] }>("/api/v1/mandor/summary");
+  const { data: dataReports, memuat: memuatReports, galat: galatReports, muatUlang: muatUlangReports } =
+    useData<{ reports: any[] }>("/api/v1/mandor/wage-reports");
 
-  useEffect(() => { loadData(); }, []);
+  const loading = memuatSummary || memuatReports;
+  const galatMuat = galatSummary ?? galatReports;
+  const summary = dataSummary?.summary ?? [];
+  const reports = dataReports?.reports ?? [];
+
+  const loadData = useCallback(async () => {
+    await Promise.all([muatUlangSummary(), muatUlangReports()]);
+  }, [muatUlangSummary, muatUlangReports]);
 
   async function handleWageAction(id: string, action: "approved" | "rejected") {
     setActioningId(id);
     try {
       await api.patch(`/api/v1/mandor/wage-reports/${id}/status`, { status: action });
       showToast(action === "approved" ? "Laporan disetujui" : "Laporan ditolak");
-      loadData();
+      await loadData();
     } catch (err: any) {
       showToast(err?.response?.data?.error ?? "Gagal", false);
     } finally {
@@ -75,6 +77,12 @@ export default function PMMandorPage() {
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 20px" }}>Mandor & Laporan Upah</h1>
+
+      {!loading && galatMuat && (
+        <div role="alert" style={{ background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: C.red }}>
+          Gagal memuat data mandor/laporan upah. Coba muat ulang halaman.
+        </div>
+      )}
 
       {/* Mandor summary */}
       {!loading && summary.length > 0 && (

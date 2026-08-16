@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { Wallet, FileText, TrendingUp, CheckCircle } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -39,84 +39,92 @@ const FILTER_OPTIONS = [
 ] as const;
 
 export default function RiwayatPembayaranPage() {
-  const [items, setItems] = useState<PaymentItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "upah" | "progress" | "settlement">("all");
 
-  useEffect(() => { loadData(); }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function loadData() {
-    setLoading(true);
-    try {
-      const [wRes, pRes, bRes] = await Promise.all([
-        api.get("/api/v1/mandor/wage-reports"),
-        api.get("/api/v1/mandor/progress-payments"),
-        api.get("/api/v1/mandor/borongan-settlements").catch(() => ({ data: { settlements: [] } })),
-      ]);
+    Tiga GET diganti `useData`. `borongan-settlements` semula punya
+    `.catch(() => ({ data: { settlements: [] } }))` — endpoint yang belum
+    tentu tersedia tak boleh menggagalkan seluruh halaman. `useData` tak
+    mendukung catch per-request, jadi galatnya diambil TAPI SENGAJA tak
+    dimasukkan ke `galatMuat` gabungan (lihat di bawah) — perilakunya sama:
+    upah dan progress tetap tampil meski settlement gagal dimuat.
 
-      const combined: PaymentItem[] = [];
+    TIDAK ada cache offline di jalur BACA halaman ini.
+  */
+  const { data: dataWage, memuat: memuatWage, galat: galatWage } =
+    useData<{ reports: any[] }>("/api/v1/mandor/wage-reports");
+  const { data: dataProgress, memuat: memuatProgress, galat: galatProgress } =
+    useData<{ payments: any[] }>("/api/v1/mandor/progress-payments");
+  const { data: dataSettle, memuat: memuatSettle } =
+    useData<{ settlements: any[] }>("/api/v1/mandor/borongan-settlements");
 
-      // Laporan upah yang sudah dibayar
-      const reports: any[] = wRes.data?.reports ?? [];
-      for (const r of reports) {
-        if (r.status === "paid" || r.status === "approved") {
-          combined.push({
-            id: `upah_${r.id}`,
-            type: "upah",
-            amount: r.net_amount ?? 0,
-            date: r.paid_at ?? r.week_end,
-            label: `Minggu ${fmtDate(r.week_start)} – ${fmtDate(r.week_end)}`,
-            scopeName: r.scope?.scope_name ?? "—",
-            projectName: r.project?.name ?? "—",
-            status: r.status,
-          });
-        }
-      }
+  const loading = memuatWage || memuatProgress || memuatSettle;
+  // Settlement SENGAJA dikecualikan — lihat catatan di atas.
+  const galatMuat = galatWage ?? galatProgress;
 
-      // Progress payments yang sudah disetujui
-      const progressPayments: any[] = pRes.data?.payments ?? [];
-      for (const p of progressPayments) {
-        if (p.status === "approved") {
-          combined.push({
-            id: `progress_${p.id}`,
-            type: "progress",
-            amount: p.gross_payment ?? 0,
-            date: p.updated_at ?? p.created_at,
-            label: `Progress ${p.pct_done}%`,
-            scopeName: p.work_scope?.scope_name ?? "—",
-            projectName: p.project?.name ?? p.work_scope?.project?.name ?? "—",
-            status: p.status,
-          });
-        }
-      }
+  const items = useMemo(() => {
+    const combined: PaymentItem[] = [];
 
-      // Settlement borongan
-      const settlements: any[] = bRes.data?.settlements ?? [];
-      for (const s of settlements) {
+    // Laporan upah yang sudah dibayar
+    const reports: any[] = dataWage?.reports ?? [];
+    for (const r of reports) {
+      if (r.status === "paid" || r.status === "approved") {
         combined.push({
-          id: `settlement_${s.id}`,
-          type: "settlement",
-          amount: s.net_payment ?? 0,
-          date: s.created_at,
-          label: "Settlement Borongan",
-          scopeName: s.work_scope?.scope_name ?? "—",
-          projectName: s.work_scope?.project?.name ?? "—",
-          status: "settled",
+          id: `upah_${r.id}`,
+          type: "upah",
+          amount: r.net_amount ?? 0,
+          date: r.paid_at ?? r.week_end,
+          label: `Minggu ${fmtDate(r.week_start)} – ${fmtDate(r.week_end)}`,
+          scopeName: r.scope?.scope_name ?? "—",
+          projectName: r.project?.name ?? "—",
+          status: r.status,
         });
       }
-
-      // Urutkan terbaru dulu
-      combined.sort((a, b) => {
-        const da = a.date ? new Date(a.date).getTime() : 0;
-        const db = b.date ? new Date(b.date).getTime() : 0;
-        return db - da;
-      });
-
-      setItems(combined);
-    } finally {
-      setLoading(false);
     }
-  }
+
+    // Progress payments yang sudah disetujui
+    const progressPayments: any[] = dataProgress?.payments ?? [];
+    for (const p of progressPayments) {
+      if (p.status === "approved") {
+        combined.push({
+          id: `progress_${p.id}`,
+          type: "progress",
+          amount: p.gross_payment ?? 0,
+          date: p.updated_at ?? p.created_at,
+          label: `Progress ${p.pct_done}%`,
+          scopeName: p.work_scope?.scope_name ?? "—",
+          projectName: p.project?.name ?? p.work_scope?.project?.name ?? "—",
+          status: p.status,
+        });
+      }
+    }
+
+    // Settlement borongan
+    const settlements: any[] = dataSettle?.settlements ?? [];
+    for (const s of settlements) {
+      combined.push({
+        id: `settlement_${s.id}`,
+        type: "settlement",
+        amount: s.net_payment ?? 0,
+        date: s.created_at,
+        label: "Settlement Borongan",
+        scopeName: s.work_scope?.scope_name ?? "—",
+        projectName: s.work_scope?.project?.name ?? "—",
+        status: "settled",
+      });
+    }
+
+    // Urutkan terbaru dulu
+    combined.sort((a, b) => {
+      const da = a.date ? new Date(a.date).getTime() : 0;
+      const db = b.date ? new Date(b.date).getTime() : 0;
+      return db - da;
+    });
+
+    return combined;
+  }, [dataWage, dataProgress, dataSettle]);
 
   const filtered = filter === "all" ? items : items.filter((i) => i.type === filter);
   const totalReceived = filtered.reduce((s, i) => s + i.amount, 0);
@@ -137,6 +145,12 @@ export default function RiwayatPembayaranPage() {
         <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>Riwayat Pembayaran</h1>
         <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>Semua pembayaran yang telah diterima</p>
       </div>
+
+      {!loading && galatMuat && (
+        <div role="alert" style={{ background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: C.red }}>
+          Gagal memuat sebagian riwayat pembayaran. Coba muat ulang halaman.
+        </div>
+      )}
 
       {/* Summary card */}
       {!loading && items.length > 0 && (

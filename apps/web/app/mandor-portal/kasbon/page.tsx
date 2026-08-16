@@ -1,13 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
-import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
+import { type Kasbon } from "../_bersama/tipe";
 import { Plus, Clock, CheckCircle, XCircle, AlertCircle, X } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
+
+/** `Kasbon` bersama tak punya `approver` — hanya dipakai di halaman ini. */
+interface KasbonDenganApprover extends Kasbon {
+  approver?: { name: string } | null;
+}
+
+/** Bentuk `/api/v1/mandor/scopes` — beda dari `LingkupKerja` (my-scopes). */
+interface ScopeApi {
+  id: string;
+  scope_name: string;
+  assignment?: { project?: { id: string; name: string } | null } | null;
+}
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -41,10 +54,6 @@ interface ProjectOption { id: string; name: string; }
 interface ScopeOption { id: string; scope_name: string; project_id: string; }
 
 export default function MandorKasbonPage() {
-  const [kasbons, setKasbons] = useState<any[]>([]);
-  const [projects, setProjects] = useState<ProjectOption[]>([]);
-  const [scopes, setScopes] = useState<ScopeOption[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   // Modal di portal ini tak punya prop `onClose` — ia dikendalikan state
   // lokal — sehingga penjaga `modal-esc-ratchet` tak menjangkaunya, dan
@@ -71,32 +80,47 @@ export default function MandorKasbonPage() {
     setTimeout(() => setToast(null), 3500);
   }
 
-  function loadData() {
-    return Promise.all([
-      api.get("/api/v1/kasbons"),
-      api.get("/api/v1/mandor/scopes"),
-    ]).then(([kRes, sRes]) => {
-      setKasbons(kRes.data?.kasbons ?? []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-      // Build unique project list from scopes
-      const scopeList: any[] = sRes.data?.scopes ?? [];
-      setScopes(scopeList.map((s: any) => ({
-        id: s.id,
-        scope_name: s.scope_name,
-        project_id: s.assignment?.project?.id ?? "",
-      })));
-      const projectMap = new Map<string, ProjectOption>();
-      for (const s of scopeList) {
-        const p = s.assignment?.project;
-        if (p?.id && !projectMap.has(p.id)) {
-          projectMap.set(p.id, { id: p.id, name: p.name });
-        }
+    Dua GET diam-diam (kasbon + scopes) diganti `useData`. TIDAK ada cache
+    offline di jalur BACA halaman ini — `kirimLapangan` di bawah HANYA
+    membungkus jalur TULIS (pengajuan kasbon), dan tidak disentuh.
+  */
+  const { data: dataKasbon, memuat: memuatKasbon, galat: galatMuatKasbon, muatUlang: muatUlangKasbon } =
+    useData<{ kasbons: KasbonDenganApprover[] }>("/api/v1/kasbons");
+  const { data: dataScopes, memuat: memuatScopes, galat: galatMuatScopes, muatUlang: muatUlangScopes } =
+    useData<{ scopes: ScopeApi[] }>("/api/v1/mandor/scopes");
+
+  const loading = memuatKasbon || memuatScopes;
+  const galatMuat = galatMuatKasbon ?? galatMuatScopes;
+
+  // Diturunkan, bukan disalin.
+  const kasbons = dataKasbon?.kasbons ?? [];
+  // `scopeList` sendiri dibungkus `useMemo`: turunan array yang masuk sebagai
+  // dependensi `useMemo`/`useCallback` lain butuh referensi stabil, kalau
+  // tidak setiap render membuat array baru dan menembus ratchet
+  // `exhaustive-deps` (lihat catatan F4-2 jebakan #3 di CLAUDE.md).
+  const scopeList: ScopeApi[] = useMemo(() => dataScopes?.scopes ?? [], [dataScopes]);
+  const scopes: ScopeOption[] = useMemo(() => scopeList.map((s) => ({
+    id: s.id,
+    scope_name: s.scope_name,
+    project_id: s.assignment?.project?.id ?? "",
+  })), [scopeList]);
+  const projects: ProjectOption[] = useMemo(() => {
+    const projectMap = new Map<string, ProjectOption>();
+    for (const s of scopeList) {
+      const p = s.assignment?.project;
+      if (p?.id && !projectMap.has(p.id)) {
+        projectMap.set(p.id, { id: p.id, name: p.name });
       }
-      setProjects(Array.from(projectMap.values()));
-    }).finally(() => setLoading(false));
-  }
+    }
+    return Array.from(projectMap.values());
+  }, [scopeList]);
 
-  useEffect(() => { loadData(); }, []);
+  const loadData = useCallback(async () => {
+    await Promise.all([muatUlangKasbon(), muatUlangScopes()]);
+  }, [muatUlangKasbon, muatUlangScopes]);
 
   // Scopes filtered by selected project
   const filteredScopes = form.project_id
@@ -133,7 +157,7 @@ export default function MandorKasbonPage() {
       if (!hasil.aman) return;
       setShowModal(false);
       setForm(initForm);
-      if (hasil.terkirim) loadData();
+      if (hasil.terkirim) void loadData();
     } catch (err: any) {
       showToast(err?.response?.data?.error ?? "Gagal mengajukan kasbon", false);
     } finally {
@@ -178,7 +202,13 @@ export default function MandorKasbonPage() {
       {/* List */}
       {loading && <div style={{ textAlign: "center", padding: 60, color: C.mid }}>Memuat kasbon...</div>}
 
-      {!loading && filtered.length === 0 && (
+      {!loading && galatMuat && (
+        <div role="alert" style={{ background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: C.red }}>
+          Gagal memuat kasbon. Coba muat ulang halaman.
+        </div>
+      )}
+
+      {!loading && !galatMuat && filtered.length === 0 && (
         <div style={{ background: C.surface, borderRadius: 10, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}>
           <AlertCircle size={32} color={C.muted} style={{ marginBottom: 8 }} />
           <div style={{ fontSize: 13, color: C.mid }}>Belum ada kasbon</div>
@@ -187,7 +217,7 @@ export default function MandorKasbonPage() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {filtered.map((k) => {
-          const meta = STATUS_META[k.status] ?? STATUS_META.pending;
+          const meta = STATUS_META[k.status ?? ""] ?? STATUS_META.pending;
           const scopeName = k.work_scopes?.scope_name;
           const projectName = k.project?.name;
           const context = scopeName ? `${scopeName}${projectName ? ` · ${projectName}` : ""}` : (projectName ?? "Umum");
@@ -199,14 +229,14 @@ export default function MandorKasbonPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmt(k.amount)}</span>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmt(Number(k.amount))}</span>
                     <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg }}>
                       {meta.icon}
                       {meta.label}
                     </span>
                   </div>
                   <div style={{ fontSize: 12, color: C.mid }}>
-                    {context} · {fmtDate(k.kasbon_date)}
+                    {context} · {fmtDate(k.kasbon_date ?? null)}
                   </div>
                   {k.notes && (
                     <div style={{ fontSize: 12, color: C.mid, marginTop: 4, fontStyle: "italic" }}>{k.notes}</div>

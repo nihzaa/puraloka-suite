@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { Users, Plus, Phone, Edit2, ToggleLeft, ToggleRight } from "lucide-react";
 
@@ -20,8 +21,6 @@ interface Worker {
 }
 
 export default function DaftarTukangPage() {
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   // Modal di portal ini tak punya prop `onClose` — ia dikendalikan state
   // lokal — sehingga penjaga `modal-esc-ratchet` tak menjangkaunya, dan
@@ -35,17 +34,21 @@ export default function DaftarTukangPage() {
 
   const [form, setForm] = useState({ name: "", tipe: "", phone: "", notes: "", skills: "" });
 
-  useEffect(() => { loadWorkers(); }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function loadWorkers() {
-    setLoading(true);
-    try {
-      const res = await api.get("/api/v1/mandor/workers");
-      setWorkers(res.data?.workers ?? []);
-    } finally {
-      setLoading(false);
-    }
-  }
+    TIDAK ada cache offline di jalur BACA halaman ini — `kirimLapangan` di
+    `handleSubmit` hanya membungkus jalur TULIS (tambah/ubah tukang).
+
+    `toggleActive` semula melakukan update optimistik lokal (`setWorkers`
+    manual). Dengan `useData`, state tak lagi dipegang halaman — diganti
+    `muatUlang()` sesudah PATCH berhasil, yang berarti daftar menunggu
+    konfirmasi server sebelum toggle terlihat. Nonaktifkan/aktifkan tukang
+    bukan aksi yang butuh terasa instan seperti checklist.
+  */
+  const { data, memuat: loading, galat: galatMuat, muatUlang } =
+    useData<{ workers: Worker[] }>("/api/v1/mandor/workers");
+  const workers = data?.workers ?? [];
 
   function openAdd() {
     setEditWorker(null);
@@ -81,7 +84,7 @@ export default function DaftarTukangPage() {
       setToast({ msg: hasil.pesan, ok: hasil.aman });
       if (!hasil.aman) return;
       setShowModal(false);
-      if (hasil.terkirim) await loadWorkers();
+      if (hasil.terkirim) await muatUlang();
     } catch (err: any) {
       setToast({ msg: err.response?.data?.error ?? "Gagal menyimpan", ok: false });
     } finally {
@@ -92,7 +95,7 @@ export default function DaftarTukangPage() {
   async function toggleActive(w: Worker) {
     try {
       await api.patch(`/api/v1/mandor/workers/${w.id}`, { is_active: !w.is_active });
-      setWorkers((list) => list.map((item) => item.id === w.id ? { ...item, is_active: !w.is_active } : item));
+      await muatUlang();
       setToast({ msg: `${w.name} ${w.is_active ? "dinonaktifkan" : "diaktifkan"}`, ok: true });
     } catch {
       setToast({ msg: "Gagal mengubah status", ok: false });
@@ -165,7 +168,12 @@ export default function DaftarTukangPage() {
       </div>
 
       {loading && <div style={{ textAlign: "center", padding: 40, color: C.mid }}>Memuat...</div>}
-      {!loading && filtered.length === 0 && (
+      {!loading && galatMuat && (
+        <div role="alert" style={{ background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: C.red }}>
+          Gagal memuat daftar tukang. Coba muat ulang halaman.
+        </div>
+      )}
+      {!loading && !galatMuat && filtered.length === 0 && (
         <div style={{ background: C.surface, borderRadius: 10, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
           <Users size={28} color={C.muted} style={{ marginBottom: 8 }} />
           <div style={{ fontSize: 13, color: C.mid }}>Tidak ada tukang</div>

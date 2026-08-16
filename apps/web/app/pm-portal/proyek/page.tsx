@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { MapPin, Calendar, ChevronRight, TrendingUp, AlertCircle } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -24,15 +24,12 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
 };
 
 export default function PMProyekPage() {
-  const [projects, setProjects] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => {
-    api.get("/api/v1/projects").then((res) => {
-      setProjects(res.data?.projects ?? []);
-    }).finally(() => setLoading(false));
-  }, []);
+  // ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16 — tak ada
+  // mekanisme offline di portal PM.
+  const { data, memuat: loading, galat: galatMuat } = useData<{ projects: any[] }>("/api/v1/projects");
+  const projects = data?.projects ?? [];
 
   const filtered = filter === "all" ? projects : projects.filter((p) => p.status === filter);
 
@@ -55,7 +52,13 @@ export default function PMProyekPage() {
 
       {loading && <div style={{ textAlign: "center", padding: 60, color: C.mid }}>Memuat proyek...</div>}
 
-      {!loading && filtered.length === 0 && (
+      {!loading && galatMuat && (
+        <div role="alert" style={{ background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: C.red }}>
+          Gagal memuat proyek. Coba muat ulang halaman.
+        </div>
+      )}
+
+      {!loading && !galatMuat && filtered.length === 0 && (
         <div style={{ background: C.surface, borderRadius: 10, padding: 48, border: `1px solid ${C.border}`, textAlign: "center" }}>
           <AlertCircle size={32} color={C.muted} style={{ marginBottom: 8 }} />
           <div style={{ fontSize: 13, color: C.mid }}>Belum ada proyek</div>

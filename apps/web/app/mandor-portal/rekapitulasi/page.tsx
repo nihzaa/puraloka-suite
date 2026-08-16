@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { TrendingUp, Wallet, CheckCircle, AlertCircle, MinusCircle, BarChart2 } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -34,22 +33,10 @@ interface SummaryCard {
 }
 
 export default function RekapitulasiPage() {
-  const [data, setData] = useState<Rekap | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => { load(); }, []);
-
-  async function load() {
-    setLoading(true);
-    try {
-      const res = await api.get("/api/v1/mandor/rekapitulasi");
-      setData(res.data);
-    } catch {
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }
+  // ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16 — halaman ini
+  // hanya baca, tak ada tulis lapangan, jadi tak ada cache offline yang
+  // perlu dipertahankan.
+  const { data, memuat: loading, galat: galatMuat } = useData<Rekap>("/api/v1/mandor/rekapitulasi");
 
   const summaryCards: SummaryCard[] = data
     ? [
@@ -110,9 +97,11 @@ export default function RekapitulasiPage() {
       {!loading && !data && (
         <div style={{ ...card, padding: 60, textAlign: "center" }}>
           <BarChart2 size={36} color={C.muted} style={{ marginBottom: 12 }} />
-          <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Data tidak tersedia</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>
+            {galatMuat ? "Gagal memuat data" : "Data tidak tersedia"}
+          </div>
           <div style={{ fontSize: 13, color: C.mid, marginTop: 4 }}>
-            Belum ada data keuangan untuk ditampilkan
+            {galatMuat ? "Coba muat ulang halaman." : "Belum ada data keuangan untuk ditampilkan"}
           </div>
         </div>
       )}

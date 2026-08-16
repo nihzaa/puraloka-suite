@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { type LaporanUpah, pesanGalat } from "../_bersama/tipe";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { ClipboardList, Plus, Trash2, CheckCircle, Clock, XCircle } from "lucide-react";
@@ -46,10 +46,6 @@ interface WageRow {
 
 export default function LaporanUpahPage() {
   const [tab, setTab] = useState<"riwayat" | "buat">("riwayat");
-  const [reports, setReports] = useState<LaporanUpah[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
@@ -60,22 +56,37 @@ export default function LaporanUpahPage() {
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<WageRow[]>([{ worker_name: "", days_worked: 0, daily_rate: 0, overtime_hours: 0, overtime_rate: 0 }]);
 
-  useEffect(() => {
-    Promise.all([
-      api.get<{ reports: LaporanUpah[] }>("/api/v1/mandor/wage-reports"),
-      api.get<{ assignments: Assignment[] }>("/api/v1/mandor/assignments"),
-      api.get<{ workers: Worker[] }>("/api/v1/mandor/workers"),
-    ]).then(([rRes, aRes, wRes]) => {
-      const rpts = rRes.data?.reports ?? [];
-      // Filter hanya scope harian
-      setReports(rpts.filter((r) => r.scope?.payment_system === "harian"));
-      const asgns = (aRes.data?.assignments ?? []).filter((a) =>
-        (a.work_scopes ?? []).some((s) => s.payment_system === "harian")
-      );
-      setAssignments(asgns);
-      setWorkers(wRes.data?.workers ?? []);
-    }).finally(() => setLoading(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Tiga GET diganti `useData`. Filter "hanya scope harian" dipindah ke
+    turunan `useMemo` di bawah — sebelumnya dilakukan sekali saat data
+    datang, sekarang dihitung ulang dari data mentah tiap render (murah,
+    dan tetap benar setelah `muatUlang`).
+
+    TIDAK ada cache offline di jalur BACA — `kirimLapangan` di bawah hanya
+    membungkus jalur TULIS (kirim laporan upah), tidak disentuh.
+  */
+  const { data: dataReports, memuat: memuatReports, galat: galatMuatReports, muatUlang: muatUlangReports } =
+    useData<{ reports: LaporanUpah[] }>("/api/v1/mandor/wage-reports");
+  const { data: dataAssign, memuat: memuatAssign, galat: galatMuatAssign } =
+    useData<{ assignments: Assignment[] }>("/api/v1/mandor/assignments");
+  const { data: dataWorkers, memuat: memuatWorkers, galat: galatMuatWorkers } =
+    useData<{ workers: Worker[] }>("/api/v1/mandor/workers");
+
+  const loading = memuatReports || memuatAssign || memuatWorkers;
+  const galatMuat = galatMuatReports ?? galatMuatAssign ?? galatMuatWorkers;
+
+  const reports = useMemo(
+    () => (dataReports?.reports ?? []).filter((r) => r.scope?.payment_system === "harian"),
+    [dataReports],
+  );
+  const assignments = useMemo(
+    () => (dataAssign?.assignments ?? []).filter((a) =>
+      (a.work_scopes ?? []).some((s) => s.payment_system === "harian")),
+    [dataAssign],
+  );
+  const workers = dataWorkers?.workers ?? [];
 
   const scopesForAssignment = assignments
     .find((a) => a.id === selectedAssignment)
@@ -121,10 +132,7 @@ export default function LaporanUpahPage() {
       // Baris tukang TIDAK dikosongkan bila kirimannya tak aman.
       if (!hasil.aman) return;
       setTab("riwayat");
-      if (hasil.terkirim) {
-        const res = await api.get("/api/v1/mandor/wage-reports");
-        setReports((res.data?.reports ?? []).filter((r: LaporanUpah) => r.scope?.payment_system === "harian"));
-      }
+      if (hasil.terkirim) await muatUlangReports();
       // Reset form
       setSelectedAssignment(""); setSelectedScope(""); setWeekStart(""); setNotes("");
       setRows([{ worker_name: "", days_worked: 0, daily_rate: 0, overtime_hours: 0, overtime_rate: 0 }]);
@@ -192,7 +200,12 @@ export default function LaporanUpahPage() {
       {tab === "riwayat" && (
         <div>
           {loading && <div style={{ textAlign: "center", padding: 40, color: C.mid }}>Memuat...</div>}
-          {!loading && reports.length === 0 && (
+          {!loading && galatMuat && (
+            <div role="alert" style={{ background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: C.red }}>
+              Gagal memuat laporan upah. Coba muat ulang halaman.
+            </div>
+          )}
+          {!loading && !galatMuat && reports.length === 0 && (
             <div style={{ background: C.surface, borderRadius: 10, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
               <ClipboardList size={28} color={C.muted} style={{ marginBottom: 8 }} />
               <div style={{ fontSize: 13, color: C.mid }}>Belum ada laporan upah</div>
