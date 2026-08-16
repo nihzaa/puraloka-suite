@@ -841,21 +841,26 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
     kunci: 'catatan_progres',
     kunci_bukan_rute: true,
     /*
-      TANPA `nomor`, dan itu hasil koreksi.
+      `3.1`, dan itu koreksi KEDUA atas entri ini.
 
-      Saya sempat memberinya `1.2`. Salah: 1.2 di `06-agentic-ai-*.md` adalah
-      *Incoming Transfer Detection* — deteksi transfer bank masuk, yang butuh
-      integrasi bank dan memang belum ada. Ketahuan saat silang otomatis di
-      `lapor-otomasi-hidup.mjs` melaporkannya sebagai "sudah hidup".
+      Koreksi pertama membuang `1.2` — benar: 1.2 adalah *Incoming Transfer
+      Detection*, deteksi transfer bank yang butuh integrasi dan memang belum
+      ada. Tetapi kesimpulannya berhenti terlalu cepat:
 
-      Seluruh baris 1.x di katalog itu keuangan atau tanya-jawab; tak ada satu
-      pun yang berisi pelaporan progres lapangan. Jadi entri ini memang tak
-      punya padanan di sana.
+          "Seluruh baris 1.x di katalog itu keuangan atau tanya-jawab; tak ada
+           satu pun yang berisi pelaporan progres lapangan. Jadi entri ini
+           memang tak punya padanan di sana."
 
-      Nomor yang salah lebih buruk daripada nomor yang kosong: ia membuat
-      seseorang membuka baris katalog yang keliru, membaca prasyarat yang tak
-      berlaku, lalu menyimpulkan sesuatu yang tak ada hubungannya.
+      Yang diperiksa hanya 1.x. Padahal 3.1 berbunyi persis:
+      *"Daily Progress Collection (via WhatsApp) — mandor lapor progress lewat
+      chat, bukan buka app"*. Itu entri ini, kalimat demi kalimat.
+
+      Pelajarannya bukan "hati-hati memberi nomor" melainkan: mencari padanan
+      di SATU keluarga nomor lalu menyimpulkan tak ada padanan sama sekali
+      adalah pencarian yang berhenti di tempat yang nyaman. Katalognya punya
+      sepuluh keluarga.
     */
+    nomor: '3.1',
     nama: 'Lapor progres lewat WhatsApp',
     pemicu: 'percakapan',
     penjelasan:
@@ -1342,6 +1347,22 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
   },
   {
     kunci: 'kirim-pengingat',
+    /*
+      `1.11`, dan itu koreksi atas klaim SAYA SENDIRI.
+
+      Saat menulis entri ini saya menyatakan: *"Tanpa nomor katalog: ini
+      kemampuan asisten, bukan salah satu dari 140 otomasi bernomor."*
+
+      Salah. 1.11 berbunyi *"Reminder Setting via Chat — 'Ingatkan saya bayar
+      pajak tanggal 10'"* — itu tepat pasangan `titip_pengingat` dan rute ini.
+
+      Saya membuat kesalahan yang sama dengan entri `catatan_progres`:
+      menyatakan "tak ada padanannya" tanpa menelusuri seluruh katalog. Dua
+      kali dalam satu berkas, oleh dua orang berbeda, dengan bentuk yang sama
+      persis — itu bukan kelalaian melainkan tanda bahwa penelusurannya perlu
+      dibantu alat, bukan kehati-hatian.
+    */
+    nomor: '1.11',
     nama: 'Membacakan kembali pengingat yang dititipkan',
     pemicu: 'jadwal',
     penjelasan:
@@ -1366,9 +1387,7 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'ikut di WHERE, supaya dua putaran yang tumpang tindih tak sama-sama '
       + 'mengirim. Konsekuensi yang diterima sadar: bila pengiriman gagal '
       + 'SESUDAH penandaan, pengingatnya hilang — dicatat di log, dan lebih '
-      + 'ringan daripada pengingat yang berbunyi berkali-kali. Tanpa nomor '
-      + 'katalog: ini kemampuan asisten, bukan salah satu dari 140 otomasi '
-      + 'bernomor.',
+      + 'ringan daripada pengingat yang berbunyi berkali-kali.',
   },
   {
     kunci: 'invoice-ringkasan-melenceng',
