@@ -92,10 +92,41 @@ export async function asUser<T>(
  */
 export async function authIdForRole(client: Client, role: string): Promise<string | null> {
   // Sub-Fase 1B.4 CONTRACT: role via FK (roles.name), kolom enum di-drop.
+  //
+  // ── Kenapa keanggotaan WAJIB, ditemukan 2026-08-16
+  //
+  // Versi sebelumnya hanya menuntut peran + aktif. Itu cukup selama tiap
+  // pengguna beperan admin punya company — dan berhenti cukup begitu sebuah
+  // test isolasi meninggalkan pengguna admin ber-NOL `company_members`
+  // (`isolasi-…@ujicoba.test`, tertinggal dari agent lain).
+  //
+  // Akibatnya bukan galat yang menunjuk sebabnya. Harness memilih pengguna
+  // yatim itu, lalu baris berikutnya di TIAP berkas test —
+  //
+  //     SELECT company_id FROM company_members WHERE user_id = $1
+  //
+  // — memulangkan NOL baris, dan `beforeAll` mati dengan
+  // "Cannot read properties of undefined (reading 'company_id')". Diukur:
+  // 16 test `tender-subkon` DILEWATI seluruhnya, di berkas yang tak seorang
+  // pun menyentuhnya.
+  //
+  // Yang diperbaiki di sini HARNESS-nya, bukan datanya. Menghapus barisnya
+  // memang membuat hijau hari ini, tapi pengguna yatim berikutnya akan
+  // mematikan seluruh suite dengan cara yang sama — dan basis ini dipakai
+  // bersama beberapa worktree yang saling tak tahu.
+  //
+  // `ORDER BY created_at` membuat pilihannya STABIL: pengguna seed yang lama
+  // menang atas pengguna uji yang baru lahir, jadi hasil test tak berubah-ubah
+  // menurut siapa yang kebetulan membuat akun terakhir.
   const { rows } = await client.query(
     `SELECT u.auth_id FROM public.users u
-     JOIN public.roles r ON r.id = u.role_id
-     WHERE r.name = $1 AND u.auth_id IS NOT NULL AND u.is_active = true LIMIT 1`,
+       JOIN public.roles r ON r.id = u.role_id
+      WHERE r.name = $1
+        AND u.auth_id IS NOT NULL
+        AND u.is_active = true
+        AND EXISTS (SELECT 1 FROM public.company_members m WHERE m.user_id = u.id)
+      ORDER BY u.created_at
+      LIMIT 1`,
     [role]
   )
   return rows[0]?.auth_id ?? null
@@ -200,4 +231,78 @@ export function wajibAda<T>(nilai: T | null | undefined, apa: string): T {
     )
   }
   return nilai
+}
+
+/**
+ * Company AKTIF untuk sebuah pengguna uji — yang benar-benar BERISI data.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA BUKAN `LIMIT 1` BEGITU SAJA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Pola yang tersebar di 19 berkas test (diukur 2026-08-16):
+ *
+ *     SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1
+ *
+ * `LIMIT 1` TANPA `ORDER BY` menyerahkan pilihannya ke Postgres. Selama
+ * pengguna uji hanya punya satu company, itu tak pernah terlihat salah.
+ *
+ * Ia berhenti benar begitu akun uji jadi anggota BEBERAPA company — dan itu
+ * yang terjadi: akun founder punya 3 keanggotaan, sementara SELURUH 60
+ * `workers` ada di satu company saja. Harness memilih company yang kosong,
+ * lalu `siapkanTender` mati dengan "butuh tiga worker di company ini" —
+ * pesan yang menuduh SEED, padahal seed-nya baik-baik saja dan yang salah
+ * pilihan company-nya.
+ *
+ * Kegagalan seperti ini paling mahal justru karena terbaca masuk akal.
+ *
+ * ── Kenapa "yang berisi", bukan sekadar berurutan
+ *
+ * Mengurutkan `company_members.created_at` membuat pilihannya STABIL tapi
+ * belum tentu BERGUNA — company pertama bisa saja yang kosong. Yang dicari
+ * test adalah company yang punya bahan untuk fixture-nya.
+ *
+ * `tabelBerisi` menyebut tabel apa yang harus ada isinya. Kalau tak satu pun
+ * company memenuhinya, yang dikembalikan tetap keanggotaan pertama (urut
+ * stabil) supaya pesan galat test tetap menunjuk prasyarat yang kurang —
+ * bukan berubah jadi "tak punya company", yang menyesatkan ke arah lain.
+ */
+export async function companyBerisi(
+  client: Client,
+  authId: string,
+  tabelBerisi: string[] = [],
+): Promise<string> {
+  const { rows: u } = await client.query(
+    'SELECT id FROM public.users WHERE auth_id = $1', [authId],
+  )
+  if (!u.length) throw new Error(`Pengguna dengan auth_id ${authId} tak ada`)
+
+  const { rows: anggota } = await client.query(
+    `SELECT company_id FROM public.company_members
+      WHERE user_id = $1 ORDER BY created_at, company_id`,
+    [u[0].id],
+  )
+  if (!anggota.length) {
+    throw new Error(
+      `Pengguna ${authId} tak punya keanggotaan company sama sekali.\n` +
+      `  RLS akan menyaring HABIS seluruh query-nya, jadi test apa pun di\n` +
+      `  atasnya tak menguji apa-apa. Periksa seed / pengguna uji yatim.`,
+    )
+  }
+
+  for (const co of anggota.map((r) => r.company_id as string)) {
+    let cocok = true
+    for (const t of tabelBerisi) {
+      // Nama tabel dari KODE test, bukan dari masukan pengguna — tapi tetap
+      // disaring supaya tak pernah jadi jalan masuk SQL injection.
+      if (!/^[a-z_][a-z0-9_]*$/.test(t)) throw new Error(`Nama tabel tak wajar: ${t}`)
+      const { rows } = await client.query(
+        `SELECT 1 FROM public.${t} WHERE company_id = $1 LIMIT 1`, [co],
+      )
+      if (!rows.length) { cocok = false; break }
+    }
+    if (cocok) return co
+  }
+
+  return anggota[0].company_id as string
 }
