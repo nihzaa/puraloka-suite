@@ -32,11 +32,12 @@
  *    sah saat lingkupnya bertambah.
  */
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   FileSignature, RefreshCw, PenLine, Check, X, Clock, Lock, Plus,
 } from "lucide-react";
 import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
@@ -89,37 +90,24 @@ const langganan = (cb: () => void) => {
 };
 
 export default function SpkPage() {
-  const [daftar, setDaftar] = useState<Spk[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
   const [pesan, setPesan] = useState<{ jenis: "ok" | "galat"; teks: string } | null>(null);
   const [sibuk, setSibuk] = useState<string | null>(null);
-  const [putaran, setPutaran] = useState(0);
   const [formTerbuka, setFormTerbuka] = useState(false);
 
   const bolehKelola = useSyncExternalStore(langganan, () => hasPermission("spk:kelola"), () => false);
   const bolehTtd = useSyncExternalStore(langganan, () => hasPermission("spk:tandatangan"), () => false);
 
-  const muat = useCallback((signal: AbortSignal) => {
-    setMemuat(true);
-    setGalat("");
-    return api.get<{ spk: Spk[] }>("/api/v1/spk", { signal })
-      .then((r) => setDaftar(r.data.spk ?? []))
-      .catch((e) => {
-        if ((e as { code?: string })?.code === "ERR_CANCELED") return;
-        setGalat(
-          (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-            ?? "Gagal memuat surat perintah kerja.",
-        );
-      })
-      .finally(() => setMemuat(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat, putaran]);
+    `useData` menggantikan useCallback+useEffect+AbortController+`putaran`.
+    `pesan` (galat AKSI kirim/verifikasi) tetap terpisah dari galat MUAT
+    (jebakan #1) — keduanya sudah berbeda nama variabel di sini.
+  */
+  const { data: dataSpk, memuat, galat: galatMuat, muatUlang } =
+    useData<{ spk: Spk[] }>("/api/v1/spk");
+  const daftar = useMemo(() => dataSpk?.spk ?? [], [dataSpk]);
+  const galat = galatMuat ? "Gagal memuat surat perintah kerja." : "";
 
   useEffect(() => {
     if (!pesan) return;
@@ -133,7 +121,7 @@ export default function SpkPage() {
     try {
       await api.patch(`/api/v1/spk/${id}/status`, body);
       setPesan({ jenis: "ok", teks: sukses });
-      setPutaran((x) => x + 1);
+      void muatUlang();
     } catch (e) {
       // Pesan server ditampilkan apa adanya — ia sudah ditulis untuk manusia
       // ("SPK bertanda tangan satu pihak adalah pemberitahuan, bukan
@@ -188,7 +176,7 @@ export default function SpkPage() {
         )}
         <button
           type="button"
-          onClick={() => setPutaran((x) => x + 1)}
+          onClick={() => void muatUlang()}
           disabled={memuat}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
@@ -296,7 +284,7 @@ export default function SpkPage() {
           onSelesai={(teks) => {
             setFormTerbuka(false);
             setPesan({ jenis: "ok", teks });
-            setPutaran((x) => x + 1);
+            void muatUlang();
           }}
         />
       )}

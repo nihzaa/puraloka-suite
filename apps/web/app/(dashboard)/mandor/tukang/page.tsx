@@ -16,8 +16,9 @@
  * yang menjaga keempatnya (UI-0-4). Kolom, urutan, dan aksinya sama.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Tabel, Kosong } from "@/components/dasar";
 import { Plus, RefreshCw, Users, Search } from "lucide-react";
 import { C } from "@/lib/warna-ui";
@@ -36,8 +37,6 @@ function tautanWa(phone: string) {
 }
 
 export default function DaftarTukangPage() {
-  const [workers, setWorkers] = useState<Worker[]>([]);
-  const [loading, setLoading] = useState(true);
   const [workerSearch, setWorkerSearch] = useState("");
   const [workerFilterTipe, setWorkerFilterTipe] = useState("");
   const [workerFilterStatus, setWorkerFilterStatus] = useState("aktif");
@@ -57,18 +56,17 @@ export default function DaftarTukangPage() {
   // dibatalkan.
   useTutupEsc(deleteWorkerConfirm && !deletingWorkerId ? () => setDeleteWorkerConfirm(null) : null);
 
-  const loadWorkers = useCallback(() => {
-    setLoading(true);
-    api.get<{ workers: Worker[] }>("/api/v1/mandor/workers")
-      .then(r => setWorkers(r.data.workers))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan panggilan langsung: memanggil `setLoading(true)`
-  // di badan efek memicu render berantai (`react-hooks/set-state-in-effect`).
-  // Pola yang sama dipakai `mandor/retensi` dan sudah lolos ratchet lint.
-  useEffect(() => { queueMicrotask(() => { void loadWorkers(); }); }, [loadWorkers]);
+    `useData` menggantikan useCallback+useEffect+queueMicrotask. `loadWorkers`
+    dipertahankan sebagai nama supaya pemanggilnya di bawah (create/edit/hapus
+    modal) tak perlu diganti — sekarang tinggal pembungkus tipis atas
+    `muatUlang()`.
+  */
+  const { data, memuat: loading, muatUlang } = useData<{ workers: Worker[] }>("/api/v1/mandor/workers");
+  const loadWorkers = () => { void muatUlang(); };
+  const workers = data?.workers ?? [];
 
   async function handleDeleteWorker(worker: Worker) {
     setDeletingWorkerId(worker.id);

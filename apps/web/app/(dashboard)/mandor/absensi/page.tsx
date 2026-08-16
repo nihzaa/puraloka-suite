@@ -25,7 +25,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, RefreshCw, Save, Users, CheckCheck } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
@@ -72,23 +73,43 @@ function tanggalPanjang(iso: string) {
 }
 
 export default function AbsensiPage() {
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [workers, setWorkers] = useState<Worker[]>([]);
   const [scopeId, setScopeId] = useState("");
   const [tanggal, setTanggal] = useState(hariIni());
   const [absen, setAbsen] = useState<Record<string, { porsi: number; lembur: number }>>({});
   const [tersimpan, setTersimpan] = useState<Record<string, { porsi: number; lembur: number }>>({});
-  const [memuat, setMemuat] = useState(true);
   const [menyimpan, setMenyimpan] = useState(false);
   const [pesan, setPesan] = useState<{ teks: string; ok: boolean } | null>(null);
-  /** Dinaikkan tombol "Muat ulang" — satu-satunya jalur pemuatan tetap efek. */
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
 
   // `useIzin`, BUKAN `hasPermission`: yang kedua membaca localStorage saat
   // render, dan localStorage tak ada di server — nilainya SELALU false di sana
   // dan true di klien. React membuang hasil SSR lalu merender ulang seluruh
   // halaman (penjaga `uji-izin-hydration`).
   const bolehIsi = useIzin("mandor:wage:create");
+
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Dua `useData` menggantikan dua efek manual. Yang PERTAMA (penugasan +
+    daftar pekerja) independen; yang KEDUA (absensi tanggal terpilih)
+    bergantung `scopeEfektif` — nilai yang DITURUNKAN dari hasil `useData`
+    pertama, bukan dari fetch lain, jadi ini bukan "muat berantai" sungguhan:
+    URL kedua dibentuk dari state lokal (scope+tanggal terpilih pengguna),
+    persis pola `lapangan/harian`.
+  */
+  const { data: dataAsg, memuat: memuatAsg, galat: galatAsg } =
+    useData<{ assignments: Assignment[] }>("/api/v1/mandor/assignments");
+  const { data: dataWk, memuat: memuatWk, galat: galatWk } =
+    useData<{ workers: Worker[] }>("/api/v1/mandor/workers");
+  const memuat = memuatAsg || memuatWk;
+  // GALAT MUAT terpisah dari `pesan` (galat AKSI simpan) — jebakan #1 F4-2:
+  // satu state untuk keduanya membuat gagal-simpan menghapus pesan
+  // gagal-memuat, dan pengguna mengira datanya sudah termuat.
+  const galatMuat = galatAsg || galatWk ? "Gagal memuat data penugasan/pekerja." : null;
+  const assignments = useMemo(() => dataAsg?.assignments ?? [], [dataAsg]);
+  const workers = useMemo(
+    () => (dataWk?.workers ?? []).filter((x) => x.is_active !== false),
+    [dataWk],
+  );
 
   const semuaScope = useMemo(
     () => assignments.flatMap((a) =>
@@ -107,56 +128,26 @@ export default function AbsensiPage() {
   const scopeEfektif = scopeId || semuaScope[0]?.id || "";
   const scopeAktif = semuaScope.find((s) => s.id === scopeEfektif) ?? null;
 
-  // ── Muat penugasan + daftar pekerja ────────────────────────────────────
-  useEffect(() => {
-    const ac = makeAbortController();
-    Promise.all([
-      api.get<{ assignments: Assignment[] }>("/api/v1/mandor/assignments", { signal: ac.signal }),
-      api.get<{ workers: Worker[] }>("/api/v1/mandor/workers", { signal: ac.signal })
-        .catch(() => ({ data: { workers: [] } })),
-    ])
-      .then(([a, w]) => {
-        setAssignments(a.data.assignments ?? []);
-        setWorkers((w.data.workers ?? []).filter((x) => x.is_active !== false));
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setPesan({ teks: "Gagal memuat data", ok: false }); })
-      .finally(() => setMemuat(false));
-    return () => ac.abort();
-  }, []);
-
   // ── Muat absensi tanggal terpilih ──────────────────────────────────────
-  //
-  // Logikanya ADA DI DALAM efek, bukan di "useCallback" yang dipanggil efek.
-  // Bentuk kedua membuat "react-hooks/set-state-in-effect" melaporkan render
-  // berantai yang tak ada: aturan itu tak bisa melacak ke dalam callback, jadi
-  // ia menganggap setState-nya sinkron padahal semuanya terjadi sesudah await.
-  //
-  // Tombol "Muat ulang" menaikkan PENGHITUNG, bukan memanggil pemuat langsung.
-  // Dua jalur pemuatan yang harus tetap sama adalah dua jalur yang suatu hari
-  // berbeda — dan yang satu akan lupa membatalkan permintaan lamanya.
+  const jalurAbsensi = scopeEfektif && tanggal
+    ? `/api/v1/absensi?scope_id=${encodeURIComponent(scopeEfektif)}&dari=${tanggal}&sampai=${tanggal}`
+    : null;
+  const { data: dataAbsensi, muatUlang: muatUlangAbsensi } =
+    useData<{ absensi: BarisAbsen[] }>(jalurAbsensi);
+
+  // EFEK SAMPING saat data absensi datang: menyalin ke state edit lokal
+  // (`absen`/`tersimpan`). Ini SENGAJA efek tersendiri (jebakan #6) —
+  // `absen` sendiri TAK masuk dependensi supaya perubahan yang sedang
+  // diketik pengguna tak ditimpa jawaban lama yang datang belakangan.
   useEffect(() => {
-    if (!scopeEfektif || !tanggal) return;
-    const ac = makeAbortController();
-    api
-      .get<{ absensi: BarisAbsen[] }>("/api/v1/absensi", {
-        params: { scope_id: scopeEfektif, dari: tanggal, sampai: tanggal },
-        signal: ac.signal,
-      })
-      .then((r) => {
-        const peta: Record<string, { porsi: number; lembur: number }> = {};
-        for (const b of r.data.absensi ?? []) {
-          peta[b.worker_id] = { porsi: Number(b.porsi_hari), lembur: Number(b.jam_lembur) };
-        }
-        setAbsen(peta);
-        setTersimpan(peta);
-      })
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        setAbsen({});
-        setTersimpan({});
-      });
-    return () => ac.abort();
-  }, [scopeEfektif, tanggal, muatUlangKe]);
+    const peta: Record<string, { porsi: number; lembur: number }> = {};
+    for (const b of dataAbsensi?.absensi ?? []) {
+      peta[b.worker_id] = { porsi: Number(b.porsi_hari), lembur: Number(b.jam_lembur) };
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAbsen(peta);
+    setTersimpan(peta);
+  }, [dataAbsensi]);
 
   // Yang berubah sejak terakhir dimuat — dasar tombol simpan dan peringatan
   // "belum tersimpan".
@@ -278,7 +269,7 @@ export default function AbsensiPage() {
         </div>
 
         <button
-          onClick={() => setMuatUlangKe((n) => n + 1)}
+          onClick={() => void muatUlangAbsensi()}
           aria-label="Muat ulang absensi"
           style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}
         >
@@ -316,6 +307,15 @@ export default function AbsensiPage() {
               <div style={{ fontSize: 11, color: C.mid, marginTop: 2 }}>{k.sub}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {galatMuat && (
+        <div role="alert" style={{
+          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          border: `1px solid ${C.redBorder}`, background: C.redBg, color: C.red,
+        }}>
+          {galatMuat}
         </div>
       )}
 

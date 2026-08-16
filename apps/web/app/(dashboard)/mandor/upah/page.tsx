@@ -12,10 +12,11 @@
  * sebaris, dan peringatan pagar 500 dari server.
  */
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Paginasi } from "@/components/paginasi";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import * as XLSX from "xlsx";
@@ -35,17 +36,6 @@ function LaporanUpahInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [reports, setReports] = useState<WageReport[]>([]);
-  /**
-   * Jumlah laporan SESUNGGUHNYA di server, bukan yang terunduh.
-   *
-   * Dipakai untuk memberi tahu kalau pagar 500 memotong: tanpa ini, filter
-   * dan Export Excel bekerja atas data separuh sambil terlihat lengkap —
-   * pemakainya menyimpan berkas yang ia kira utuh.
-   */
-  const [totalReports, setTotalReports] = useState(0);
-  const [mandorList, setMandorList] = useState<MandorUser[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   /** Halaman daftar laporan (paginasi di klien — lihat catatan di dekat Paginasi). */
   const [halamanLaporan, setHalamanLaporan] = useState(1);
@@ -69,23 +59,23 @@ function LaporanUpahInner() {
   const [inlineLoading, setInlineLoading] = useState(false);
   useTutupEsc(inlineAction ? () => setInlineAction(null) : null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [rptRes, mandorRes] = await Promise.all([
-        api.get<{ reports: WageReport[]; total: number }>("/api/v1/mandor/wage-reports"),
-        api.get<{ mandors: MandorUser[] }>("/api/v1/mandor/list").catch(() => ({ data: { mandors: [] } })),
-      ]);
-      setReports(rptRes.data.reports);
-      setTotalReports(rptRes.data.total ?? rptRes.data.reports.length);
-      setMandorList(mandorRes.data.mandors ?? []);
-    } catch { /* silent */ } finally { setLoading(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan panggilan langsung: memanggil `setLoading(true)`
-  // di badan efek memicu render berantai (`react-hooks/set-state-in-effect`).
-  // Pola yang sama dipakai `mandor/retensi` dan sudah lolos ratchet lint.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+    Dua `useData` menggantikan satu `Promise.all` + `useState` ganda.
+    `totalReports` (jumlah SESUNGGUHNYA di server, penanda pagar 500) tetap
+    diturunkan dari jawaban yang sama — bukan state terpisah yang bisa basi.
+  */
+  const { data: dataRpt, memuat: memuatRpt, muatUlang: muatUlangRpt } =
+    useData<{ reports: WageReport[]; total: number }>("/api/v1/mandor/wage-reports");
+  const { data: dataMandor, memuat: memuatMandor, muatUlang: muatUlangMandor } =
+    useData<{ mandors: MandorUser[] }>("/api/v1/mandor/list");
+
+  const loading = memuatRpt || memuatMandor;
+  const load = async () => { await Promise.all([muatUlangRpt(), muatUlangMandor()]); };
+  const reports = dataRpt?.reports ?? [];
+  const totalReports = dataRpt?.total ?? reports.length;
+  const mandorList = dataMandor?.mandors ?? [];
 
   function updateFilter(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());

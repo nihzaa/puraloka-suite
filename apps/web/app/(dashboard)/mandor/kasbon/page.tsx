@@ -12,8 +12,9 @@
  * saringan mandor/status, catat cicilan, dan lightbox foto nota.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Kosong } from "@/components/ui-dasar";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { Plus, RefreshCw, Banknote, User, Search, X, Camera } from "lucide-react";
@@ -30,9 +31,6 @@ const LABEL_TUJUAN: Record<string, string> = {
 };
 
 export default function KasbonTukangPage() {
-  const [kasbons, setKasbons] = useState<WorkerKasbon[]>([]);
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterMandorId, setFilterMandorId] = useState("");
   const [filterStatus, setFilterStatus] = useState("aktif");
@@ -49,22 +47,22 @@ export default function KasbonTukangPage() {
   const [cicilanError, setCicilanError] = useState("");
   useTutupEsc(cicilanModal ? () => setCicilanModal(null) : null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [kbRes, asgRes] = await Promise.all([
-        api.get<{ kasbons: WorkerKasbon[] }>("/api/v1/mandor/worker-kasbons"),
-        api.get<{ assignments: Assignment[] }>("/api/v1/mandor/assignments"),
-      ]);
-      setKasbons(kbRes.data.kasbons);
-      setAssignments(asgRes.data.assignments);
-    } catch { /* silent */ } finally { setLoading(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan panggilan langsung: memanggil `setLoading(true)`
-  // di badan efek memicu render berantai (`react-hooks/set-state-in-effect`).
-  // Pola yang sama dipakai `mandor/retensi` dan sudah lolos ratchet lint.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+    Dua `useData` menggantikan satu `Promise.all` + `useState` ganda. Kasbon
+    ini menyentuh UANG TUKANG — penjagaan `loading ? ... : ...` di bawah
+    dipertahankan persis: `kasbons`/`assignments` DITURUNKAN dari `data?...`,
+    tak pernah dirender sebelum `loading` selesai.
+  */
+  const { data: dataKb, memuat: memuatKb, muatUlang: muatUlangKb } =
+    useData<{ kasbons: WorkerKasbon[] }>("/api/v1/mandor/worker-kasbons");
+  const { data: dataAsg, memuat: memuatAsg, muatUlang: muatUlangAsg } =
+    useData<{ assignments: Assignment[] }>("/api/v1/mandor/assignments");
+  const loading = memuatKb || memuatAsg;
+  const load = async () => { await Promise.all([muatUlangKb(), muatUlangAsg()]); };
+  const kasbons = dataKb?.kasbons ?? [];
+  const assignments = dataAsg?.assignments ?? [];
 
   const filteredKasbons = kasbons.filter(k => {
     if (search && !k.worker?.name?.toLowerCase().includes(search.toLowerCase()) && !k.project?.name?.toLowerCase().includes(search.toLowerCase())) return false;
