@@ -138,7 +138,19 @@ describe('form — batas balas hanya muncul bila menuntut balasan', () => {
       'menuntut jawaban, dan itu menghasilkan peringatan palsu',
     ).toBeNull()
 
-    await userEvent.click(screen.getByRole('checkbox'))
+    /*
+      `role="switch"`, BUKAN `checkbox`.
+
+      Kontrolnya diubah dari checkbox jadi `<Saklar>` di commit ecbb4fb7
+      (22 saklar + 1 daftar dikonversi), dan test ini tertinggal — ia masih
+      mencari peran lama, jadi MERAH sejak saat itu.
+
+      Yang benar komponennya: `saklar.tsx` sengaja memakai `role="switch"`
+      karena pembaca layar mengumumkannya berbeda dari checkbox — "aktif/
+      nonaktif", bukan "tercentang". Mengembalikannya ke checkbox demi
+      menghijaukan test berarti merusak aksesibilitas yang benar.
+    */
+    await userEvent.click(screen.getByRole('switch'))
     expect(screen.getByLabelText(/batas balas/i)).toBeTruthy()
   })
 

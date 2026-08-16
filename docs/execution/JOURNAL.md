@@ -23819,3 +23819,85 @@ audit-halaman-pakai-cache   118 dari 164 (lantai 118)
 
 Isi salah satu halaman uang tiap agent dibaca manual — bukan cuma dicek
 kompilasinya.
+
+---
+
+## 2026-08-16 (lanjutan 4) — empat agent paralel: 118 → 86
+
+Putaran kedua paralel, empat agent di worktree yang dibuat MANUAL dari tip
+branch dan diverifikasi isinya lebih dulu (pelajaran dari putaran pertama:
+worktree otomatis bercabang dari commit yang kehilangan berkas target).
+
+**42 halaman dipindah, 6 dilewati dengan alasan.** Sisa 86 dari 164.
+
+### Enam yang dilewati — dan kenapa itu hasil yang baik
+
+| | Alasan |
+|---|---|
+| `mandor/tender` | muat berantai TIGA tingkat + mekanisme penjaga-basi yang sudah teruji |
+| `mandor-portal/progress` | jalur tulis `antrean-foto` (IndexedDB) terikat ke muat berantai |
+| `mandor-portal/scope` | rantai `.catch()` cadangan yang tak bisa diungkapkan `useData` |
+| `mandor-portal/penagihan` | pola rantai `.catch()` yang sama |
+| `lapangan/inspeksi` | `bacaDenganCache` — baca-offline mandor |
+| `keuangan/arus-kas` | saringan ber-debounce 300ms, enam state jadi satu URL |
+
+Saya minta eksplisit ke agent portal: kalau keempatbelas halaman dipindah tanpa
+satu pun catatan, saya curiga pemeriksaan offline-nya tidak dilakukan. Ia
+melewati tiga, dan membaca `kirim-lapangan.ts` lebih dulu untuk memastikan itu
+antrean TULIS (jadi tak menghalangi pemindahan sisi BACA). Pembedaan yang tepat.
+
+### Temuan terbesar: `useData` membocorkan identitas di rute [id]
+
+`useData` TIDAK mengosongkan `data` lama saat URL berganti — ia menaikkan
+`memuat` lalu MENIMPA `data` sesudah jawaban baru tiba.
+
+Untuk halaman ber-saringan itu tak berbahaya. Untuk rute `[id]` itu kebocoran:
+pindah dari `/mandor/A` ke `/mandor/B` menampilkan profil A di bawah URL B.
+
+Kode LAMA di `mandor/[id]` punya pelacakan `dimuat !== id` yang justru ada untuk
+mencegah ini; pemindahan polos menghapusnya. **Tak ada test yang merah** — test
+tak pernah berpindah dari satu id ke id lain.
+
+Enam rute `[id]` lain belum dipindah, dan tiga sedang dikerjakan agent saat itu.
+Penjaganya dipasang **sebelum** mereka selesai.
+
+### Dua penjaga baru, keduanya lahir dari temuan berulang
+
+- **`uji-galat-muat-terpisah`** — cacat yang muncul di **14 halaman** lintas
+  lima batch. Penjaganya sendiri sempat BUTA: memindai dari `export default`
+  ke bawah, melewatkan pola `PageInner()` yang menaruh isi komponen di ATASNYA.
+  Ketahuan hanya karena mutasinya dijalankan.
+- **`uji-rute-id-tak-basi`** — kebocoran identitas di atas.
+
+### Satu test merah yang bukan dari sini
+
+`surat-section.test.tsx` mencari `role="checkbox"`; commit `ecbb4fb7` mengubah
+kontrolnya jadi `<Saklar>` ber-`role="switch"` tanpa memperbarui testnya. Merah
+sejak saat itu.
+
+Yang benar KOMPONENNYA — `saklar.tsx` sengaja memakai `role="switch"` karena
+pembaca layar mengumumkannya berbeda ("aktif/nonaktif", bukan "tercentang").
+Testnya yang diperbarui, bukan komponennya dikembalikan.
+
+### Tiga ratchet turun sendiri, ketiganya dikencangkan
+
+```
+halaman-tanpa-cache          118 → 86
+react-hooks/set-state-in-effect  57 → 50
+react-hooks/immutability          4 → 2
+```
+
+`immutability` turun karena data kini DITURUNKAN dari jawaban, bukan disalin ke
+state lalu dimutasi di tempat.
+
+### Bukti
+
+```
+tsc web                     bersih
+lint:ratchet web            0 error, 285 warning
+vitest apps/web             628 passed (48 berkas) — termasuk yang tadinya merah
+audit-halaman-pakai-cache   86 dari 164 (lantai 86)
+uji-galat-muat-terpisah     37 halaman ber-useData, nol berbagi state
+uji-rute-id-tak-basi        semua rute dinamis mencocokkan identitas
+8 penjaga visual            exit=0
+```
