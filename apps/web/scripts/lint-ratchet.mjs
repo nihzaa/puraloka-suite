@@ -124,7 +124,8 @@ const AMBANG = {
   // 57 → 50 (2026-08-16, empat agent paralel: tujuh halaman lagi berhenti
   //          memanggil setState dari dalam efek — `useData` yang menanganinya)
   // 50 → 44 (2026-08-16, agent proyek+sdm: delapan halaman lagi)
-  'react-hooks/set-state-in-effect': 44,
+  // 44 → 43 (2026-08-16, agent tersebar)
+  'react-hooks/set-state-in-effect': 43,
   // turun 71 → 67 (.ds-sync diabaikan) → 15 (2026-08-01).
   //
   // Sebagian besar adalah 50 impor ikon/helper yatim yang menumpuk saat
@@ -156,7 +157,9 @@ const AMBANG = {
   //   garis "hari ini" memakai top/bottom, jadi tinggi yang dihitung
   //   pemanggil akan menyimpang diam-diam begitu jumlah baris berubah.
   '@typescript-eslint/no-unused-vars': 0,   // 1 -> 0 (2026-08-13, .layar/ diabaikan + 4 ikon mati + KETERANGAN disatukan)
-  'react-hooks/exhaustive-deps': 10,   // 22 -> 10 (2026-08-13, 35 salinan hook 'sudah terpasang' disatukan ke useTerpasang)
+  // 10 → 6 (2026-08-16, turunan array dibungkus useMemo saat halaman pindah
+  //        ke `useData` — dependensi jadi stabil, bukan referensi baru tiap render)
+  'react-hooks/exhaustive-deps': 6,   // 22 -> 10 (2026-08-13, 35 salinan hook 'sudah terpasang' disatukan ke useTerpasang)
   'react/no-unescaped-entities': 0,   // 18 -> 0 (2026-08-13, kutip tipografis; contoh curl pakai &quot; supaya tetap bisa disalin)
   // 14 → 8 (2026-08-04): `Tab` di halaman mandor diangkat ke level modul.
   // Ia dulu dibuat DI DALAM render, jadi tiap pemakaiannya dihitung — 6

@@ -4,8 +4,11 @@
 > hal yang memang tak boleh diperbaiki.**
 >
 > Penjaga `audit-halaman-pakai-cache.mjs` menghitung halaman yang belum memakai
-> `useData()`. Sembilan halaman di bawah akan selamanya terhitung di sana, dan
-> itu **benar** — bukan hutang, bukan kelalaian.
+> `useData()`. Halaman di bawah akan selamanya terhitung di sana, dan itu
+> **benar** — bukan hutang, bukan kelalaian.
+>
+> Diperbarui 2026-08-16 sesudah putaran agent keenam: dua kategori baru (5 dan
+> 6), total 15 halaman.
 >
 > Tanpa dokumen ini, angka penjaga yang tak pernah mencapai nol akan terbaca
 > sebagai pekerjaan yang belum selesai, dan seseorang akan memindahkannya.
@@ -16,7 +19,7 @@
 
 Komentar di dalam berkas hanya terbaca oleh yang **sudah membuka** berkas itu.
 Yang berbahaya justru yang membaca **angka penjaga** dan memutuskan dari sana:
-"masih 9 halaman, ayo habiskan."
+"masih sekian halaman, ayo habiskan."
 
 Repo ini sudah punya kejadian persis begitu — peringatan basi di `STATUS.md`
 menghentikan pekerjaan yang boleh jalan selama sembilan hari (CLAUDE.md §5.5).
@@ -91,6 +94,41 @@ alih-alih memakai cache sebagaimana dirancang.
 
 ---
 
+## 5. Halaman-per-halaman KUMULATIF — bertentangan dengan kontrak cache
+
+| Halaman | Bentuk |
+|---|---|
+| `notifications` | "Muat Lebih Banyak" MENAMBAH hasil ke state; layar menampilkan gabungan beberapa permintaan |
+
+Ini alasan yang berbeda kelasnya dari empat di atas, dan ditemukan belakangan
+(agent batch keenam).
+
+Yang lain rumit tapi *mungkin*. Yang ini **bertentangan dengan kontraknya**:
+`useData` menyimpan SATU potret per URL. Halaman kumulatif justru menuntut
+banyak potret ditumpuk jadi satu tampilan — memaksakannya berarti menyimpan
+akumulasi itu di luar cache, sehingga cache-nya tak lagi menjadi sumber
+kebenaran.
+
+Bedakan dari halaman ber-halaman BIASA (`?page=2` mengganti isi layar): itu
+cocok, karena tiap halaman punya URL sendiri dan satu potret cukup.
+
+---
+
+## 6. Tak ada yang perlu dipindah
+
+| Halaman | Kenapa |
+|---|---|
+| `login` | tak mengambil data sama sekali |
+| `auth/callback` | satu POST saat pertukaran OAuth — bukan GET |
+| `app/page.tsx` | hanya membaca localStorage lalu mengalihkan |
+
+Ketiganya berjalan SEBELUM pengguna terautentikasi. Diperiksa lebih dulu, bukan
+diasumsikan: tak satu pun punya GET untuk di-cache.
+
+Dicatat supaya tak ada yang memeriksanya ulang dari nol.
+
+---
+
 ## Syarat pencabutan — kapan halaman di sini boleh dipindah
 
 Daftar ini bukan larangan abadi. Tiap alasan punya syarat pencabutannya:
@@ -101,6 +139,8 @@ Daftar ini bukan larangan abadi. Tiap alasan punya syarat pencabutannya:
 | Rantai `.catch()` | `useData` menerima URL cadangan, atau endpointnya digabung di server jadi satu |
 | Berantai >2 tingkat | koordinasinya disederhanakan lebih dulu sebagai perubahan TERSENDIRI, bukan sambil memindahkan |
 | Debounce | debounce dipindah ke pembentukan URL (bukan ke pemuatan), sehingga `useData` cukup menerima URL yang sudah stabil |
+| Kumulatif | `useData` menerima mode akumulasi, ATAU halamannya diubah ke halaman-per-halaman biasa (tiap halaman satu URL) — yang kedua perubahan UX, jadi keputusan founder |
+| Tak ada GET | halamannya mulai mengambil data — periksa ulang, jangan asumsikan tetap kosong |
 
 **Aturan yang sama dengan CLAUDE.md §5.5:** kalau sebuah larangan punya syarat
 pencabutan, tulis cara mengukur syaratnya — jangan tinggalkan larangan telanjang
@@ -111,12 +151,12 @@ yang lalu membusuk.
 ## Cara memeriksa daftar ini masih benar
 
 ```bash
-# Halaman yang belum pakai useData (termasuk sembilan di atas)
+# Halaman yang belum pakai useData (termasuk yang di atas)
 cd apps/api && node scripts/audit-halaman-pakai-cache.mjs
 
 # Mana yang memakai jalur offline — penanda kategori 1
 grep -rl "bacaDenganCache\|antrean-offline\|antrean-foto" apps/web/app --include=page.tsx
 ```
 
-Kalau angka penjaga mendekati **9** dan tak turun lagi, itu bukan pekerjaan yang
-mandek — itu daftar ini.
+Kalau angka penjaga mendekati **15** dan tak turun lagi, itu bukan pekerjaan
+yang mandek — itu daftar ini.
