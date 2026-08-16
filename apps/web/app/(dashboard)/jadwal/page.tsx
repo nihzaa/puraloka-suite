@@ -41,10 +41,10 @@
  * KEADAAN (4 KPI) → POLA (histogram + peringatan) → DETAIL (tabel).
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CalendarDays, RefreshCw, TriangleAlert, Users, GitBranch , CalendarRange } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
@@ -236,7 +236,17 @@ export default function JadwalPage() {
 function IsiJadwal() {
   const router = useRouter();
   const params = useSearchParams();
-  const [proyekList, setProyekList] = useState<Proyek[]>([]);
+
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Dua tingkat: daftar proyek dulu, lalu jadwal CPM proyek terpilih. Tetap
+    dua panggilan `useData` — bukan muat berantai >2 tingkat, jadi masih
+    aman dipindahkan (lihat `useData(kondisi ? url : null)` di bawah).
+  */
+  const { data: dataProyek, galat: galatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyekList = dataProyek?.projects ?? [];
 
   // Proyek dibawa di URL, bukan hanya di state.
   //
@@ -263,21 +273,6 @@ function IsiJadwal() {
     q.set("bagian", bg);
     router.replace(`/jadwal?${q.toString()}`, { scroll: false });
   };
-  const [jadwal, setJadwal] = useState<Jadwal | null>(null);
-  const [galat, setGalat] = useState("");
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
-  // Pemuatan dilacak lewat putaran yang datanya sudah tiba, bukan bendera
-  // boolean yang dinyalakan di badan efek — bendera memicu render bertingkat.
-  const [putaranTiba, setPutaranTiba] = useState(-1);
-
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyekList(r.data.projects ?? []))
-      .catch((e) => { if (!ac.signal.aborted) setGalat(e?.response?.data?.error ?? "Gagal memuat daftar proyek"); });
-    return () => ac.abort();
-  }, []);
-
   // Pilihan EFEKTIF: dari URL kalau ada dan sah, kalau tidak proyek pertama.
   //
   // Sempat saya coba memilih proyek "yang sedang berjalan" sebagai default,
@@ -290,27 +285,13 @@ function IsiJadwal() {
     (dariUrl && proyekList.some((p) => p.id === dariUrl) ? dariUrl : "") ||
     proyekList[0]?.id || "";
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    // Tanpa proyek terpilih tak ada yang perlu diambil — tapi pemuatannya
-    // TETAP harus dinyatakan selesai, kalau tidak layar menggantung di
-    // "Menghitung jalur kritis…" selamanya. Lewat `Promise.resolve()`, bukan
-    // setState langsung di badan efek (yang memicu render bertingkat).
-    if (!dipilih) {
-      Promise.resolve().then(() => {
-        if (!ac.signal.aborted) setPutaranTiba(muatUlangKe);
-      });
-      return () => ac.abort();
-    }
-    api.get<Jadwal>(`/api/v1/jadwal-cpm/${dipilih}`, { signal: ac.signal })
-      .then((r) => { setJadwal(r.data); setGalat(""); })
-      .catch((e) => { if (!ac.signal.aborted) setGalat(e?.response?.data?.error ?? "Gagal memuat jadwal proyek"); })
-      .finally(() => { if (!ac.signal.aborted) setPutaranTiba(muatUlangKe); });
-    return () => ac.abort();
-  }, [dipilih, muatUlangKe]);
+  const { data: jadwal, memuat, galat: galatJadwal, muatUlang: muatUlangJadwal } =
+    useData<Jadwal>(dipilih ? `/api/v1/jadwal-cpm/${dipilih}` : null);
 
-  const memuat = putaranTiba !== muatUlangKe;
-  const muatUlang = useCallback(() => setMuatUlangKe((n) => n + 1), []);
+  const galat = galatProyek
+    ? "Gagal memuat daftar proyek"
+    : galatJadwal ? "Gagal memuat jadwal proyek" : "";
+  const muatUlang = useCallback(() => { void muatUlangJadwal(); }, [muatUlangJadwal]);
 
   const ringkas = useMemo(() => {
     if (!jadwal) return null;

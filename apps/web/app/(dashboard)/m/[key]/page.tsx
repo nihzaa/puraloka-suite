@@ -36,14 +36,14 @@
  * "COMING SOON". Yang mengisi ruang adalah INFORMASI.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { KepalaHalaman } from "@/components/dasar";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowRight, Clock, ExternalLink, Lock, Wrench, CircleDashed, FolderKanban, Compass } from "lucide-react";
 import { PETA_MENU, cariItem, type StatusMenu } from "@/lib/peta-menu";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 
 import { C } from "@/lib/warna-ui";
 
@@ -92,41 +92,26 @@ export default function HalamanMenu() {
   const params = useParams<{ key: string }>();
   const item = cariItem(params.key);
 
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  // Keadaan awal `true`, bukan di-set di dalam effect. Set-state sinkron di
-  // dalam effect memicu render tambahan sebelum data sempat datang
-  // (`react-hooks/set-state-in-effect`) — pola yang sama sudah diperbaiki di
-  // halaman aset & rantai kontrak.
-  const [memuatProyek, setMemuatProyek] = useState(true);
-
   // Menu yang menunjuk TAB di dalam proyek butuh daftar proyek untuk dipilih.
   // Pola Primavera/Odoo: menu = tempat kerja; "Kurva S" tanpa memilih proyek
   // dulu tak berarti apa-apa.
   const butuhProyek = Boolean(item?.tabProyek);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    `useData` menggantikan useState+useEffect+makeAbortController. Galat
+    TIDAK ditelan diam-diam — dulu `console.error`, sekarang tetap terjadi
+    lewat efek terpisah di bawah supaya perilakunya tak berubah, karena
+    daftar proyek memang opsional bagi halaman ini (tak ada UI galat).
+  */
+  const { data, memuat: memuatProyek, galat: galatProyek } =
+    useData<{ total: number; projects: Proyek[] }>(butuhProyek ? "/api/v1/projects" : null);
+  const proyek = (data?.projects ?? []).slice(0, 12);
+
   useEffect(() => {
-    if (!butuhProyek) { setMemuatProyek(false); return; }
-    const ac = makeAbortController();
-    // `GET /api/v1/projects` menjawab `{ total, projects }` — BUKAN `{ data }`.
-    //
-    // Versi pertama membaca `data.data`, yang selamanya `undefined`, lalu
-    // `?? []` mengubahnya jadi daftar kosong yang terlihat sah. Halaman
-    // menampilkan "Belum ada proyek. Buat proyek dulu." pada basis berisi 15
-    // proyek — dan karena itu kalimat yang masuk akal, tak seorang pun curiga.
-    //
-    // Bentuknya diukur dari respons yang sesungguhnya lewat peramban, bukan
-    // dibaca dari tipe: tipe generiknya justru yang mengarang bentuk itu.
-    api.get<{ total: number; projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then(({ data }) => setProyek((data.projects ?? []).slice(0, 12)))
-      // Galat TIDAK ditelan diam-diam. Daftar proyek memang opsional bagi
-      // halaman ini, tapi kegagalan yang tak pernah terlihat adalah persis
-      // yang membuat cacat di atas bertahan.
-      .catch((e) => {
-        if (!ac.signal.aborted) console.error("gagal memuat daftar proyek", e);
-      })
-      .finally(() => setMemuatProyek(false));
-    return () => ac.abort();
-  }, [butuhProyek]);
+    if (galatProyek) console.error("gagal memuat daftar proyek", galatProyek);
+  }, [galatProyek]);
 
   if (!item) {
     return (

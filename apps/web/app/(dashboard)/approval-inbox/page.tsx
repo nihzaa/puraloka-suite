@@ -32,10 +32,9 @@
  * menonjol.
  */
 
-import { useCallback, useEffect, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Inbox, TriangleAlert, ArrowRight, UserRound } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -83,27 +82,15 @@ export default function ApprovalInboxPage() {
 }
 
 function Konten() {
-  const [resp, setResp] = useState<Respons | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const muat = useCallback(async () => {
-    try {
-      const r = await api.get<Respons>("/api/v1/approval/inbox");
-      setResp(r.data);
-    } catch {
-      setGalat("Gagal memuat antrean persetujuan");
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
-
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
+    `useData` menggantikan useCallback+useEffect+queueMicrotask. Galat muat
+    di sini dulu satu-satunya galat halaman (tak ada aksi tulis), jadi
+    `galatMuat` dipakai langsung — tak ada `galatAksi` yang menganggur.
+  */
+  const { data: resp, memuat, galat: galatMuat } = useData<Respons>("/api/v1/approval/inbox");
+  const galat = galatMuat ? "Gagal memuat antrean persetujuan" : null;
 
   const baris = resp?.data ?? [];
   const terlama = baris.length > 0 ? lamaMenunggu(baris[0].dibuat_pada).hari : 0;

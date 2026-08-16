@@ -30,7 +30,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Trash2, Info, Undo2, TriangleAlert } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { formatTanggalJam } from "@/lib/format";
 import { C } from "@/lib/warna-ui";
 import {
@@ -49,76 +50,59 @@ interface Item {
 }
 
 export default function RecycleBinPage() {
-  const [jenis, setJenis] = useState<Jenis[]>([]);
-  const [ambangLama, setAmbangLama] = useState(30);
   const [aktif, setAktif] = useState<string>("");
-  const [item, setItem] = useState<Item[]>([]);
-  const [bisaPulih, setBisaPulih] = useState(false);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
   const [kabar, setKabar] = useState<string | null>(null);
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
   const [kerja, setKerja] = useState<string | null>(null);
 
-  const muatJenis = useCallback(async (signal?: AbortSignal) => {
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<{ jenis: Jenis[]; ambang_lama_hari: number }>(
-        "/api/v1/recycle-bin", { signal });
-      setJenis(r.data.jenis ?? []);
-      setAmbangLama(r.data.ambang_lama_hari);
-      // Jenis pertama dibuka otomatis: daftar dengan satu pilihan yang harus
-      // diklik dulu adalah langkah tambahan tanpa guna.
-      if (r.data.jenis?.length && !aktif) setAktif(r.data.jenis[0].kunci);
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat recycle bin");
-    } finally { setMemuat(false); }
-  }, [aktif]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const muatIsi = useCallback(async (kunci: string, signal?: AbortSignal) => {
-    if (!kunci) return;
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<{ item: Item[]; bisa_pulihkan: boolean }>(
-        `/api/v1/recycle-bin/${kunci}`, { signal });
-      setItem(r.data.item ?? []);
-      setBisaPulih(r.data.bisa_pulihkan);
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat isi recycle bin");
-      setItem([]);
-    } finally { setMemuat(false); }
-  }, []);
+    Dua tingkat: daftar jenis dulu, lalu isi jenis aktif — pola
+    `useData(kondisi ? url : null)`, sama seperti `jadwal`. Galat MUAT
+    (kedua tingkat) dan galat AKSI (`pulihkan`) dipisah: satu state untuk
+    keduanya membuat "gagal memulihkan" menghapus pesan "gagal memuat".
+  */
+  const { data: dataJenis, memuat: memuatJenis, galat: galatJenis } =
+    useData<{ jenis: Jenis[]; ambang_lama_hari: number }>("/api/v1/recycle-bin");
+  const jenis = dataJenis?.jenis ?? [];
+  const ambangLama = dataJenis?.ambang_lama_hari ?? 30;
 
+  const { data: dataIsi, memuat: memuatIsi, galat: galatIsi, muatUlang: muatUlangIsi } =
+    useData<{ item: Item[]; bisa_pulihkan: boolean }>(aktif ? `/api/v1/recycle-bin/${aktif}` : null);
+  const item = dataIsi?.item ?? [];
+  const bisaPulih = dataIsi?.bisa_pulihkan ?? false;
+
+  const memuat = memuatJenis || memuatIsi;
+  const galat = galatAksi ?? (galatJenis
+    ? "Gagal memuat recycle bin"
+    : galatIsi ? "Gagal memuat isi recycle bin" : null);
+
+  // Jenis pertama dibuka otomatis: daftar dengan satu pilihan yang harus
+  // diklik dulu adalah langkah tambahan tanpa guna. Dipindah ke efek
+  // tersendiri bergantung `data` saja, bukan dilakukan di badan render.
   useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muatJenis(ac.signal); });
-    return () => ac.abort();
-    // `muatJenis` sengaja tak masuk deps: ia bergantung `aktif`, dan
-    // memasukkannya membuat daftar jenis dimuat ulang tiap kali tab berganti.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (jenis.length > 0 && !aktif) setAktif(jenis[0].kunci);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dataJenis]);
 
-  useEffect(() => {
-    if (!aktif) return;
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muatIsi(aktif, ac.signal); });
-    return () => ac.abort();
-  }, [aktif, muatIsi]);
+  const muatIsi = useCallback(async (kunci: string) => {
+    if (kunci === aktif) { await muatUlangIsi(); return; }
+    setAktif(kunci);
+  }, [aktif, muatUlangIsi]);
 
   const pulihkan = useCallback(async (it: Item) => {
-    setKerja(it.id); setGalat(null); setKabar(null);
+    setKerja(it.id); setGalatAksi(null); setKabar(null);
     try {
       await api.post(`/api/v1/recycle-bin/${aktif}/${it.id}/pulihkan`, {});
       setKabar(`"${it.nama ?? it.id}" dipulihkan.`);
-      await muatIsi(aktif);
+      await muatUlangIsi();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memulihkan");
+      setGalatAksi(m ?? "Gagal memulihkan");
     } finally { setKerja(null); }
-  }, [aktif, muatIsi]);
+  }, [aktif, muatUlangIsi]);
 
   const kolom: Array<Kolom<Item>> = [
     {

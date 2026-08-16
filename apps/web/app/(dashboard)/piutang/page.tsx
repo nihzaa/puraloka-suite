@@ -5,8 +5,8 @@
 // dan mana yang harus dikejar sekarang. Signature: "Spektrum Umur Piutang" —
 // bar proporsional per bucket dengan ramp urgensi, klik segmen = filter tabel.
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { api } from "@/lib/api";
+import React, { useCallback, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import {
   RefreshCw, Landmark, HandCoins, AlertTriangle, Receipt, ShieldAlert,
 } from "lucide-react";
@@ -84,32 +84,32 @@ const INVOICE_TYPE_LABEL: Record<string, string> = {
 };
 
 export default function PiutangPage() {
-  const [aging, setAging] = useState<AgingData | null>(null);
-  const [retention, setRetention] = useState<RetentionRow[] | null>(null);
-  const [dp, setDp] = useState<DpRow[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [forbidden, setForbidden] = useState(false);
   const [bucketFilter, setBucketFilter] = useState<BucketKey | null>(null);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Tiga endpoint independen — pola `procurement/hutang`. `forbidden` (403)
+    diperiksa dari objek `Error` yang dikembalikan `useData`: `api.get`
+    (axios) melempar `AxiosError` dengan `.response.status`, dan bentuk itu
+    tetap utuh saat lewat `ambilData` karena `useData` meneruskan galat asli,
+    bukan membungkusnya.
+  */
+  const { data: aging, memuat: memuatAging, galat: galatAging, muatUlang: muatUlangAging } =
+    useData<AgingData>("/api/v1/finance/ar-aging");
+  const { data: dataRetention, memuat: memuatRetention, muatUlang: muatUlangRetention } =
+    useData<{ rows: RetentionRow[] }>("/api/v1/finance/retention-register");
+  const { data: dataDp, memuat: memuatDp, muatUlang: muatUlangDp } =
+    useData<{ rows: DpRow[] }>("/api/v1/finance/dp-register");
+
+  const retention = dataRetention?.rows ?? null;
+  const dp = dataDp?.rows ?? null;
+  const loading = memuatAging || memuatRetention || memuatDp;
+  const forbidden = (galatAging as unknown as { response?: { status?: number } } | null)?.response?.status === 403;
+
   const load = useCallback(() => {
-    setLoading(true);
-    Promise.all([
-      api.get<AgingData>("/api/v1/finance/ar-aging"),
-      api.get<{ rows: RetentionRow[] }>("/api/v1/finance/retention-register"),
-      api.get<{ rows: DpRow[] }>("/api/v1/finance/dp-register"),
-    ])
-      .then(([a, r, d]) => { setAging(a.data); setRetention(r.data.rows); setDp(d.data.rows); })
-      .catch((err: unknown) => {
-        if ((err as { response?: { status?: number } })?.response?.status === 403) setForbidden(true);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-  // `queueMicrotask`, bukan panggilan langsung: `load()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+    void Promise.all([muatUlangAging(), muatUlangRetention(), muatUlangDp()]);
+  }, [muatUlangAging, muatUlangRetention, muatUlangDp]);
 
   const overdueTotal = useMemo(() => {
     if (!aging) return 0;

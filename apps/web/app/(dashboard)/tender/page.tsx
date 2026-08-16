@@ -48,10 +48,11 @@
  * halaman ini.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Plus, Trophy, XCircle, Clock, Wallet, AlertTriangle, Hourglass, Gavel } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { KartuKPI, Panel } from "@/components/ui-dasar";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
@@ -117,10 +118,6 @@ const selisihPersen = (b: Bid): number | null =>
     : null;
 
 export default function TenderPage() {
-  const [bids, setBids] = useState<Bid[]>([]);
-  const [meta, setMeta] = useState<Meta | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [saring, setSaring] = useState<string>("");
   const [formBuka, setFormBuka] = useState(false);
 
@@ -137,47 +134,38 @@ export default function TenderPage() {
    * Karena itu lapis 1 & 2 memakai deret ini, dan lapis 3 memakai `bids`.
    * Keduanya endpoint yang SAMA — tak ada rute baru, hanya satu permintaan
    * tambahan tanpa parameter status.
+   *
+   * ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+   *
+   * Dua `useData` terpisah: satu dengan URL dinamis mengikuti `saring`
+   * (lapis 3), satu TANPA parameter status (lapis 1 & 2) — persis pola
+   * `keuangan/invoice` untuk URL dinamis. `meta` diambil dari respons
+   * PENUH, bukan yang tersaring — alasannya sama seperti sebelumnya.
    */
-  const [bidsAju, setBidsAju] = useState<Bid[]>([]);
+  const jalurBids = saring ? `/api/v1/bids?status=${saring}` : "/api/v1/bids";
+  const { data: dataBids, memuat: memuatBids, galat: galatBids, muatUlang: muatUlangBids } =
+    useData<{ data: Bid[]; meta: Meta }>(jalurBids);
+  const { data: dataPenuh, memuat: memuatPenuh, galat: galatPenuh, muatUlang: muatUlangPenuh } =
+    useData<{ data: Bid[]; meta: Meta }>("/api/v1/bids");
+
+  // `useMemo`: `bidsAju` masuk dependensi dua `useMemo` lain di bawah, dan
+  // array literal baru tiap render membuat keduanya hitung ulang terus.
+  const bids = useMemo(() => dataBids?.data ?? [], [dataBids]);
+  const bidsAju = useMemo(() => dataPenuh?.data ?? [], [dataPenuh]);
+  const meta = dataPenuh?.meta ?? null;
+  const memuat = memuatBids || memuatPenuh;
+  const galat = (galatBids || galatPenuh) ? "Gagal memuat register tender" : null;
 
   // Tanggal acuan dibekukan saat halaman dipasang — lihat catatan yang sama
   // di `/proyek` dan `/aset`.
   const [hariIni] = useState(() => hariIniWIB());
 
-  const muat = useCallback((signal?: AbortSignal) => {
-    const url = saring ? `/api/v1/bids?status=${saring}` : "/api/v1/bids";
-    return Promise.all([
-      api.get<{ data: Bid[]; meta: Meta }>(url, { signal }),
-      // TANPA parameter status — lihat catatan `bidsAju` di atas.
-      api.get<{ data: Bid[]; meta: Meta }>("/api/v1/bids", { signal }),
-    ])
-      .then(([daftar, penuh]) => {
-        setBids(daftar.data.data ?? []);
-        setBidsAju(penuh.data.data ?? []);
-        // `meta` diambil dari respons PENUH, bukan yang tersaring.
-        //
-        // `hitungBacklog` di API menghitung dari baris yang dipulangkan query
-        // itu saja. Saat pengguna memilih "Menang", respons tersaring hanya
-        // memuat tender menang — dan `meta`-nya melaporkan win rate 100% dan
-        // pipeline Rp 0. Angka itu tak salah hitung; ia menjawab pertanyaan
-        // yang berbeda dari yang dibaca orang di kartu KPI.
-        setMeta(penuh.data.meta);
-        setGalat(null);
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat register tender"); })
-      .finally(() => setMemuat(false));
-  }, [saring]);
+  const muat = () => { void Promise.all([muatUlangBids(), muatUlangPenuh()]); };
 
   // ── LAPIS 1 & 2 ───────────────────────────────────────────────────────────
   const ringkas = useMemo(() => ringkasTender(bidsAju, hariIni), [bidsAju, hariIni]);
   const menggantung = useMemo(
     () => penawaranMenggantung(bidsAju, hariIni), [bidsAju, hariIni]);
-
-  useEffect(() => {
-    const ac = makeAbortController();
-    muat(ac.signal);
-    return () => ac.abort();
-  }, [muat]);
 
   /*
     RAIL KONTEKSTUAL — catatan lengkapnya di `app/(dashboard)/proyek/page.tsx`.
@@ -338,7 +326,7 @@ export default function TenderPage() {
       {/* ── LAPIS 3 — DETAIL ── */}
       <div style={{ marginBottom: 14 }}>
         <label htmlFor="saring-status" style={{ fontSize: 12, color: C.mid, marginRight: 8 }}>Status</label>
-        <select id="saring-status" value={saring} onChange={(e) => { setMemuat(true); setSaring(e.target.value); }}
+        <select id="saring-status" value={saring} onChange={(e) => { setSaring(e.target.value); }}
           style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: C.surface, color: C.text, fontSize: 13 }}>
           <option value="">Semua</option>
           {(Object.keys(STATUS_LABEL) as Status[]).map((s) => (

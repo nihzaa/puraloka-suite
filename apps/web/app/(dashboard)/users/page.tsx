@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
 import { api, getStoredUser } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import {
   Users, Plus, Search, UserCheck, UserX, Edit2, X,
@@ -39,8 +40,6 @@ function roleInfo(role: RoleKey) {
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<UserRecord[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<RoleKey | "all">("all");
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
@@ -49,25 +48,23 @@ export default function UsersPage() {
 
   useEffect(() => { setCurrentUser(getStoredUser()); }, []);
 
-  async function load() {
-    setLoading(true);
-    try {
-      const r = await api.get<{ users: UserRecord[] }>("/api/v1/users?all=true");
-      setUsers(r.data.users);
-    } finally { setLoading(false); }
-  }
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan panggilan langsung: `load()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, []);
+    `useData` menggantikan useState+useEffect+queueMicrotask. Mutasi lokal
+    optimistik pada `toggleActive` diganti `load()` (muatUlang): `useData`
+    tak mengekspos setter mentah, dan `toggleActive` di sini SUDAH menunggu
+    hasil server sebelum mengubah tampilan (bukan optimistik murni) — jadi
+    menggantinya dengan refetch tak mengubah perilaku yang terlihat.
+  */
+  const { data, memuat: loading, muatUlang } = useData<{ users: UserRecord[] }>("/api/v1/users?all=true");
+  const users = data?.users ?? [];
+  const load = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   async function toggleActive(user: UserRecord) {
     try {
       await api.patch(`/api/v1/users/${user.id}/toggle-active`, {});
-      setUsers(prev => prev.map(u => u.id === user.id ? { ...u, is_active: !u.is_active } : u));
+      await load();
     } catch (err: unknown) {
       // Kegagalan ini SEBELUMNYA ditelan, sementara baris di atas tetap
       // membalik tampilan lokal. Akibatnya daftar menunjukkan user
