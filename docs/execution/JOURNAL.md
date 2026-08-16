@@ -23966,3 +23966,87 @@ uji-galat-muat-terpisah     37 halaman ber-useData, nol berbagi state
 uji-rute-id-tak-basi        semua rute dinamis mencocokkan identitas
 8 penjaga visual            exit=0
 ```
+
+---
+
+## 2026-08-16 (lanjutan 4) — Peta Modul: 17 entri non-`hidup` ditriase, 3 ditutup
+
+Founder membuka Peta Modul dan meminta seluruhnya dituntaskan. Diukur lebih
+dulu, bukan dikerjakan dari katalog: 231 entri, 214 `hidup`, 15 `sebagian`,
+2 `rencana`.
+
+Dua agent pengukur membaca kode nyata untuk 12 entri. Hasilnya **membatalkan
+empat asumsi** yang kalau diikuti akan menghasilkan pekerjaan sia-sia:
+
+| Asumsi dari katalog | Kenyataan di kode |
+|---|---|
+| `bi-terjadwal` butuh transport surel | Resend + 6 sender SUDAH ADA; yang kurang wiring |
+| `md-template-dok` butuh jalur unggah logo | `settings.ts:544` sudah punya, lengkap validasi magic-byte |
+| `dk-esign` kurang e-meterai saja | Endpointnya **tak punya UI sama sekali** |
+| `mb-notif` belum terverifikasi | Web push LENGKAP; yang absen push NATIF mobile |
+
+### Yang ditutup
+
+**1. `sy-import` — 1 skema jadi 3.** Pemasok + cost code. Halaman sudah
+generik, jadi nol perubahan di web.
+
+Dua cacat ikut ketahuan saat mengukur: `suppliers.code` dan `cost_codes.code`
+unik **GLOBAL** — tenant B ditolak kode tenant A, dan penolakannya
+membocorkan keberadaan data orang lain. Kelas yang sama persis dengan yang
+ditutup 333. Kini unik parsial per `(company_id, code)`.
+
+**Saya salah soal `payment_terms`**: ditulis sebagai angka hari, ternyata
+daftar tertutup. Blok verifikasi migrasi menangkapnya SEBELUM buku ditulis.
+
+**2. `md-template-dok` — logo tercetak.** Tanpa membuka SSRF: `logo_url` tak
+pernah di-`fetch`; kuncinya DITURUNKAN dari `companyId` lalu diunduh lewat
+SDK Storage. Test menemukan dua lubang di fungsi saya sendiri sebelum rilis
+(`includes()` meloloskan `../../`, lalu `endsWith` menolak `.jpeg` yang sah).
+
+**3. `tg-tambah` — tagihan CO tersendiri bisa diterbitkan.**
+
+### Saya salah, dan ini yang paling mahal
+
+Saya menulis migrasi 428 sebelum mengukur. **Migrasi 348 sudah membangun
+seluruh lapis basisnya** — kolom, FK, enum, unik, trigger. Punya saya bahkan
+lebih buruk: uniknya tak mengecualikan invoice `cancelled`, jadi CO yang
+tagihannya dibatalkan terkunci selamanya.
+
+428 dibatalkan: index di-DROP, berkas dihapus, catatan dicabut dari buku
+migrasi. Skema kembali persis seperti yang 348 buat.
+
+Itu persis kesalahan yang dilarang pembuka CLAUDE.md — percaya catatan alih-
+alih mengukur. Yang benar-benar hilang cuma lapis aplikasi:
+`rekapPenagihanCo()` diekspor tanpa satu pun pemanggil.
+
+### Dua agent paralel MATI di batas sesi
+
+Keduanya berhenti sebelum menyentuh berkas. Diperiksa: `git status` bersih
+dari jejak mereka, tak ada pekerjaan setengah jadi yang perlu dipulihkan.
+Sisanya dikerjakan sendiri.
+
+### Terblokir nyata (bukan kelalaian)
+
+`hse-rk3k` sengaja (G4, menunggu tender pemerintah) · `fn-efaktur` butuh
+spesifikasi impor DJP · `sy-api` butuh kredensial pihak ketiga dari founder ·
+e-meterai Peruri butuh kontrak komersial.
+
+### Bukan kekurangan — status yang perlu dipertajam
+
+`md-subkon`/`kt-subkon` identitas terpecah 3 tabel = keputusan desain
+terdokumentasi (201:14-23) · `mb-progres` fungsional LENGKAP · `cc-cvr`
+batasnya disengaja dan dijamin 20 test.
+
+### Bukti
+
+```
+vitest importer            71 passed (24 endpoint, Postgres NYATA)
+vitest kop-dokumen         22 passed (8 khusus kunciLogo)
+vitest kontrak-pdf-kop      6 passed (Storage NYATA, ISI PDF diperiksa)
+vitest tagihan-co          10 passed (fixture CO dibuat sendiri)
+5 mutasi                   semuanya MERAH lalu pulih HIJAU
+tsc api + web              bersih
+uji-token-css-ada          exit=0 (2 token hantu ditangkap)
+audit-peta-modul           exit=0, 231 entri
+migrasi 427                blok verifikasi LULUS, lintas-tenant terbukti
+```
