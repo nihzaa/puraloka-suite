@@ -127,7 +127,49 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
   const rel = relative(AKAR, f).replace(/\\/g, '/')
   const baris = readFileSync(f, 'utf8').split('\n')
 
+  /*
+    KOMENTAR BLOK MULTI-BARIS — ditambahkan 2026-08-16.
+
+    Pemeriksaan per-baris di bawah sudah mengenali komentar SATU BARIS, dan itu
+    menutup sebagian besar kasus. Yang lolos: blok komentar JSX yang pembukanya
+    berada di baris LAIN.
+
+    Contoh nyata yang membuat penjaga ini MERAH tanpa ada cacat:
+
+        buka-blok-JSX
+          `minmax(0, 1fr)` — bukan `auto` — supaya `<select>` yang
+          isinya panjang tak memaksa kolomnya melebar…
+        tutup-blok-JSX
+
+    (penandanya sengaja ditulis sebagai kata: menuliskan penutup blok yang
+    sebenarnya di sini akan menutup komentar INI di tengah jalan — yang persis
+    terjadi pada percobaan pertama, dan membuat berkas ini gagal di-parse.)
+
+    Baris berisi `<select>` itu diawali backtick, bukan penanda komentar, jadi
+    ia lolos semua saringan dan dilaporkan sebagai kontrol tanpa nama.
+    `pengaturan/penyedia-ai/page.tsx:728` merah karenanya — padahal ketiga
+    `<select>` SUNGGUHAN di berkas itu semuanya sudah ber-`aria-label`.
+
+    "Memperbaikinya" di halaman berarti merusak dokumentasi yang benar demi
+    menghijaukan penjaga. Komentar di bawah sudah memperingatkan kerusakan itu
+    untuk kasus satu baris; ia tetap terjadi lewat pintu multi-baris.
+  */
+  let dalamBlok = false
+
   for (let i = 0; i < baris.length; i++) {
+    const _t = baris[i]
+    if (dalamBlok) {
+      // Baris penutup dianggap komentar seluruhnya. `<select>` yang berada
+      // SESUDAH `*/` pada baris yang sama praktis tak ada di repo ini, dan
+      // menganggapnya kode mengembalikan positif palsu yang sama.
+      if (_t.includes('*/')) dalamBlok = false
+      continue
+    }
+    // Pembuka tanpa penutup di baris yang sama → blok berlanjut ke baris
+    // berikutnya. `lastIndexOf` dipakai supaya `/* a */ /* b` tetap terbaca
+    // sebagai blok yang masih terbuka.
+    const _buka = Math.max(_t.lastIndexOf('{/*'), _t.lastIndexOf('/*'))
+    if (_buka >= 0 && _t.indexOf('*/', _buka) === -1) dalamBlok = true
     for (const tag of ['select', 'button']) {
       if (!baris[i].includes(`<${tag}`)) continue
       // KOMENTAR bukan kode. Berkas di repo ini menjelaskan dirinya panjang
