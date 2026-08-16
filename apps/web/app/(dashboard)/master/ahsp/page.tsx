@@ -432,7 +432,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
           <CircleOff size={14} color={C.yellow} style={{ flexShrink: 0, marginTop: 1 }} />
           <span style={{ fontSize: 12, color: C.text, lineHeight: 1.5 }}>
             {d.missing_prices.length} bahan/upah belum punya harga, jadi HSP di bawah
-            <strong> belum lengkap</strong>. Isi harganya di tab Harga:{" "}
+            <strong> belum lengkap</strong>. Isi harganya di Price Book:{" "}
             <span style={{ color: C.mid }}>{d.missing_prices.slice(0, 4).join(", ")}
               {d.missing_prices.length > 4 && ` +${d.missing_prices.length - 4} lagi`}</span>
           </span>
@@ -448,7 +448,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
              menyisipkan baris kelompok. Meratakannya jadi daftar datar akan
              MENGHAPUS pengelompokan A/B/C — dan itu bukan hiasan, itu bentuk
              lembar AHSP yang orangnya memang cari (lihat catatan di kepala
-             tab Katalog).
+             halaman Katalog AHSP ini).
 
           2. <tfoot> BERTINGKAT TIGA BARIS: D. Jumlah → BUK → HSP, dengan garis
              ganda (`3px double`) sebelum baris terakhir. Prop `total` milik
@@ -555,7 +555,7 @@ function RincianAnalisa({ d }: { d: HspLive }) {
       <p style={{ fontSize: 11, color: C.muted, margin: "10px 0 0", lineHeight: 1.5 }}>
         Harga per {new Date(d.input.price_date).toLocaleDateString("id-ID",
           { day: "numeric", month: "long", year: "numeric" })}.
-        Mengubah harga di tab Harga langsung mengubah angka di sini.
+        Mengubah harga di Price Book langsung mengubah angka di sini.
       </p>
     </div>
   );

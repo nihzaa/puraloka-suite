@@ -37,13 +37,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Upload, Lock, FileSpreadsheet, Layers, HelpCircle } from "lucide-react";
+import { Plus, Upload, Lock, FileSpreadsheet, Layers, HelpCircle, ArrowRightLeft } from "lucide-react";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { LayarKosong } from "../_bersama/layar-kosong";
 import { AddItemModal } from "../_bersama/modal-item";
 import { JelaskanModal } from "../_bersama/modal-jelaskan";
+import { TerapkanKeRabModal } from "../_bersama/modal-terapkan";
 import {
   angka,
   rp,
@@ -139,6 +140,8 @@ export default function SusunRabPage() {
   const [bukaTambah, setBukaTambah] = useState(false);
   /** Item yang sedang ditanya "kenapa angkanya segini?". */
   const [jelaskanId, setJelaskanId] = useState<string | null>(null);
+  /** Versi yang sedang diterapkan ke RAB proyek (rab_items). */
+  const [terapkan, setTerapkan] = useState<DetailVersi | null>(null);
 
   const muatSkenario = useCallback(async (pid: string) => {
     if (!pid) { setSkenario([]); return; }
@@ -298,6 +301,7 @@ export default function SusunRabPage() {
               onKunci={() => kunci(versiDibuka.id)}
               onTambah={() => setBukaTambah(true)}
               onJelaskan={setJelaskanId}
+              onTerapkan={() => setTerapkan(versiDibuka)}
               sibuk={sibuk}
             />
           )}
@@ -318,6 +322,13 @@ export default function SusunRabPage() {
 
       {jelaskanId && (
         <JelaskanModal itemId={jelaskanId} onClose={() => setJelaskanId(null)} />
+      )}
+
+      {terapkan && (
+        <TerapkanKeRabModal
+          version={terapkan as never}
+          onClose={() => setTerapkan(null)}
+        />
       )}
     </>
   );
@@ -518,10 +529,10 @@ function DaftarPilihan({ skenario, versiAktif, onBuka, onRevisi, onPilihanLain, 
 }
 
 // ── Tabel item + ringkasan ────────────────────────────────────────────────
-function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, sibuk }: {
+function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, sibuk }: {
   versi: DetailVersi; rollup: Rollup | null;
   onKunci: () => void; onTambah: () => void;
-  onJelaskan: (id: string) => void; sibuk: boolean;
+  onJelaskan: (id: string) => void; onTerapkan: () => void; sibuk: boolean;
 }) {
   const items = versi.items ?? [];
   const terkunci = versi.status !== "draft";
@@ -756,6 +767,42 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, sibuk }: {
                 textAlign: "center", lineHeight: 1.5,
               }}>
                 Setelah dikunci, angka tak bisa berubah diam-diam
+              </p>
+            </>
+          )}
+
+          {/*
+            "Pakai sebagai RAB proyek" hanya muncul SETELAH terkunci.
+
+            Menerapkan RAB yang masih draft berarti Kurva S, EVM, dan progress
+            fisik mulai memakai angka yang masih bisa berubah — dan ketiganya
+            membaca `rab_items`, bukan estimasi. Menawarkannya lebih awal
+            mengundang basis pengukuran yang bergeser diam-diam.
+          */}
+          {terkunci && (
+            <>
+              <div style={{ height: 1, background: C.border, margin: "14px 0 12px" }} />
+              <button
+                type="button"
+                onClick={onTerapkan}
+                disabled={sibuk}
+                style={{
+                  width: "100%", justifyContent: "center",
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "var(--pad-tombol)", borderRadius: "var(--radius-dense)",
+                  background: C.surface, color: C.aksen,
+                  border: `1px solid ${C.aksen}`,
+                  fontSize: "var(--teks-label)", fontWeight: 600,
+                  fontFamily: "inherit", cursor: sibuk ? "wait" : "pointer",
+                }}
+              >
+                <ArrowRightLeft size={13} aria-hidden="true" /> Pakai sebagai RAB proyek
+              </button>
+              <p style={{
+                fontSize: 11, color: C.muted, marginTop: 7,
+                textAlign: "center", lineHeight: 1.5,
+              }}>
+                Kurva S, EVM &amp; progress fisik akan memakai angka ini
               </p>
             </>
           )}

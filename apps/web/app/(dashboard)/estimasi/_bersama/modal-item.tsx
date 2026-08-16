@@ -350,7 +350,7 @@ export function AddItemModal({ version, onClose, onDone }:
           <p style={{ color: C.red, fontSize: 12, margin: 0 }}>{err}</p>
           {missing.length > 0 && (
             <p style={{ color: C.red, fontSize: 12, margin: "4px 0 0" }}>
-              Harga belum ada di Price Book untuk: <b>{missing.join(", ")}</b> — isi lewat tab Harga.
+              Harga belum ada di Price Book untuk: <b>{missing.join(", ")}</b> — isi lewat Master Data → Price Book.
             </p>
           )}
         </div>

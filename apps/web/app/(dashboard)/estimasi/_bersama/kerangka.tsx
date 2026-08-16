@@ -72,6 +72,36 @@ export const btnPrimary: React.CSSProperties = {
   fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit",
 };
 
+/**
+ * Pil status mentah dari basis (`draft`, `locked`, `active`, …).
+ *
+ * Sengaja menampilkan istilah aslinya: di layar RAP ia berdampingan dengan
+ * data teknis lain, dan menerjemahkannya di sini akan membuat status yang
+ * dibaca operator berbeda dari status yang tersimpan — persis kebingungan
+ * yang mahal saat menelusuri kenapa sebuah pagu tak bisa diubah.
+ */
+export function StatusBadge({ s }: { s: string }) {
+  const peta: Record<string, [string, string]> = {
+    draft: [C.mid, C.bg],
+    under_review: [C.yellow, C.yellowBg],
+    approved: [C.green, C.greenBg],
+    frozen: [C.navy, C.bg],
+    superseded: [C.muted, C.bg],
+    verified: [C.yellow, C.yellowBg],
+    active: [C.green, C.greenBg],
+    expired: [C.muted, C.bg],
+    locked: [C.navy, C.bg],
+  };
+  const [fg, bg] = peta[s] ?? [C.mid, C.bg];
+  return (
+    <span style={{
+      fontSize: 11, fontWeight: 700, color: fg, background: bg,
+      border: `1px solid ${C.border}`, borderRadius: "var(--radius-pill)",
+      padding: "var(--pad-lencana)",
+    }}>{s}</span>
+  );
+}
+
 export const btnGhost: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", gap: 6,
   background: C.surface, color: C.text, border: `1px solid ${C.border}`,
