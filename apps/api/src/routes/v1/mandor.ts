@@ -1454,7 +1454,7 @@ export default async function mandorRoutes(app: FastifyInstance) {
           project_id:  assignInfo.project_id,
           action_url:  '/mandor?tab=laporan',
           action_type: 'approve_wage_report',
-          action_data: { report_id: report.id },
+          action_data: { record_id: report.id, report_id: report.id },
         })))
       }
     } catch (err) {

@@ -211,7 +211,7 @@ export default async function kasbonRoutes(app: FastifyInstance) {
           project_id:  resolvedProjectId!,
           action_url:  '/mandor?tab=kasbon',
           action_type: 'approve_kasbon',
-          action_data: { kasbon_id: data!.id, amount: Number(body.amount) },
+          action_data: { record_id: data!.id, kasbon_id: data!.id, amount: Number(body.amount) },
         })))
       } catch (err) {
         // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.

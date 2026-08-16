@@ -238,6 +238,8 @@ export default async function inspeksiRoutes(app: FastifyInstance) {
                   priority: 'high' as const,
                   project_id: projectId,
                   action_url: `/lapangan/inspeksi?item=${data.id}`,
+                  // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+                  action_data: { record_id: data.id },
                 })))
                 diberitahu = daftar.length
               }
@@ -414,6 +416,8 @@ export default async function inspeksiRoutes(app: FastifyInstance) {
             ? `${lama.judul} — boleh dilanjutkan`
             : (body.hasil_catatan?.trim() ?? lama.judul),
           type: baru === 'lolos' ? 'inspeksi_lolos' : 'inspeksi_gagal',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: id },
           priority: baru === 'lolos' ? 'normal' : 'high',
           project_id: lama.project_id,
           action_url: `/lapangan/inspeksi?item=${id}`,

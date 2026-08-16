@@ -270,7 +270,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
           priority:   'normal',
           action_url:  '/mandor?tab=kasbon',
           action_type: 'view_kasbon',
-          action_data: { kasbon_id: kasbonId },
+          action_data: { record_id: kasbonId, kasbon_id: kasbonId },
         })
       }
     }
@@ -410,7 +410,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
           project_id: ms.project_id,
           action_url: `/proyek/${ms.project_id}`,
           action_type: 'view_milestone',
-          action_data: { milestone_id: ms.id },
+          action_data: { record_id: ms.id, milestone_id: ms.id },
         })
         created++
       }
@@ -442,7 +442,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
           project_id: ms.project_id,
           action_url: `/proyek/${ms.project_id}`,
           action_type: 'view_milestone',
-          action_data: { milestone_id: ms.id },
+          action_data: { record_id: ms.id, milestone_id: ms.id },
         })
         created++
       }

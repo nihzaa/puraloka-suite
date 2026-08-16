@@ -327,7 +327,7 @@ export default async function projectRoutes(app: FastifyInstance) {
         project_id:  project.id,
         action_url:  `/proyek/${project.id}`,
         action_type: 'view_project',
-        action_data: { project_id: project.id },
+        action_data: { record_id: project.id, project_id: project.id },
       })
     }
 
@@ -435,7 +435,7 @@ export default async function projectRoutes(app: FastifyInstance) {
           project_id:  id,
           action_url:  `/proyek/${id}`,
           action_type: 'view_project',
-          action_data: { project_id: id, new_status: status },
+          action_data: { record_id: id, project_id: id, new_status: status },
         })))
       } catch (err) {
         // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.

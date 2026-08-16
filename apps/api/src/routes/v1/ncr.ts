@@ -331,6 +331,9 @@ export default async function ncrRoutes(app: FastifyInstance) {
           project_id: projectId,
           priority: b.severity === 'kritis' ? 'urgent'
             : b.severity === 'major' ? 'high' : 'normal',
+          // `record_id` WAJIB: tanpanya notifikasi kebal dedup DAN tak terlihat
+          // `audit-notifikasi-tak-kembar`, yang sengaja melewati baris NULL.
+          action_data: { record_id: data.id },
         }])
       }
 
@@ -479,6 +482,8 @@ export default async function ncrRoutes(app: FastifyInstance) {
           company_id: request.companyId!,
           user_id: userId,
           type: 'ncr_disposisi',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: id },
           title: `${lama.nomor}: disposisi ${disposisi}`,
           message: catatan ?? 'Keputusan atas ketidaksesuaian sudah ditetapkan.',
           project_id: lama.project_id as string,
@@ -600,6 +605,8 @@ export default async function ncrRoutes(app: FastifyInstance) {
           company_id: request.companyId!,
           user_id: userId,
           type: 'ncr_status',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: id },
           title: `${lama.nomor}: ${status}`,
           message: catatan ?? `Status ketidaksesuaian berubah jadi ${status}.`,
           project_id: lama.project_id as string,

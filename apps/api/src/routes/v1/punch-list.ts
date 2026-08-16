@@ -219,6 +219,8 @@ export default async function punchListRoutes(app: FastifyInstance) {
                 : data.severity === 'berat' ? 'high' : 'normal',
               project_id: projectId,
               action_url: `/lapangan/punch-list?item=${data.id}`,
+              // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+              action_data: { record_id: data.id },
             }])
           }
 
@@ -392,6 +394,8 @@ export default async function punchListRoutes(app: FastifyInstance) {
             ? `Alasan: ${perubahan.alasan_penolakan as string}`
             : `${lama.judul} — perbaikan diverifikasi`,
           type: baru === 'ditutup' ? 'punch_closed' : 'punch_rejected',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: id },
           priority: 'normal',
           project_id: lama.project_id,
           action_url: `/lapangan/punch-list?item=${id}`,

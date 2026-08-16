@@ -1390,7 +1390,7 @@ export default async function financeRoutes(app: FastifyInstance) {
         project_id:  invoice.project_id,
         action_url:  '/keuangan?tab=invoice',
         action_type: 'view_invoice',
-        action_data: { invoice_id: id, amount_paid: amountPaid },
+        action_data: { record_id: id, invoice_id: id, amount_paid: amountPaid },
       })))
     } catch (err) {
       // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.

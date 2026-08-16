@@ -688,6 +688,8 @@ export default async function procurementRoutes(app: FastifyInstance) {
         message: `${(mr.project as any)?.name ?? 'Proyek'}: MR ${mr.mr_number} menunggu persetujuan`,
         type: 'general' as const, priority: 'normal' as const,
         action_url: `/procurement/requests/${id}`,
+        // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+        action_data: { record_id: id },
       })))
     } catch (err) {
       // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.

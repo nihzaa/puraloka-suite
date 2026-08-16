@@ -95,7 +95,20 @@ const POLA = /createNotifications?\([\s\S]{0,160}?\{[\s\S]*?\n\s*\}[\s\S]{0,60}?
 const pelanggar = []
 let total = 0
 
+/*
+  Berkas helper-nya sendiri DIKECUALIKAN.
+
+  `utils/notifications.ts` MENDEFINISIKAN `createNotification` dan
+  `createNotifications`; polanya cocok dengan badan fungsinya, bukan dengan
+  pemanggilan. Dua "pelanggar" di sana adalah definisi yang memang tak punya
+  `record_id` — ia diteruskan dari pemanggilnya.
+
+  Mengecualikannya BUKAN melonggarkan penjaga: yang diperiksa tetap tiap
+  pemanggil. Yang dibuang cuma dua baris yang tak pernah bisa diperbaiki
+  karena memang bukan cacat.
+*/
 for (const f of berkasTs(SUMBER)) {
+  if (f.replace(/\\/g, '/').endsWith('src/utils/notifications.ts')) continue
   const isi = readFileSync(f, 'utf8')
   for (const m of isi.match(POLA) ?? []) {
     total++

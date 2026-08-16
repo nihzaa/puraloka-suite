@@ -182,7 +182,7 @@ export default async function milestoneRoutes(app: FastifyInstance) {
             project_id:  request.params.projectId,
             action_url:  `/proyek/${request.params.projectId}`,
             action_type: 'view_milestone',
-            action_data: { milestone_id: milestoneId },
+            action_data: { record_id: milestoneId, milestone_id: milestoneId },
           })))
         } catch (err) {
           // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
