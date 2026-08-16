@@ -5,6 +5,131 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi crm-boq) — volume yang akhirnya bisa ditanyai "dari mana?"
+
+Melanjutkan pekerjaan yang terhenti di tengah: commit `df074a96` sudah memuat
+migrasi `431_takeoff_dimensional.sql` dan DDL-nya **sudah terpasang** di basis
+bersama. Diverifikasi lebih dulu (`introspect.mjs columns | grep takeoff`) —
+`takeoff_dimensi` hidup dengan bentuk yang benar, jadi **tidak ada migrasi baru
+dibuat** dan 431 tidak dijalankan ulang. Sisanya yang dikerjakan: rute, UI, test.
+
+### Cacat yang ditutup
+
+`estimate_items.quantity` masuk sebagai ANGKA JADI. Satu-satunya pemeriksaannya
+`if (typeof b.quantity !== 'number' || b.quantity <= 0)`, lalu dikalikan HSP jadi
+rupiah. **84,5 m³ yang benar dan 84,5 m³ yang salah ketik dari 8,45 masuk lewat
+pintu yang sama, dan sesudah masuk keduanya terlihat identik.** Take-off geometri
+sudah ada sejak migrasi 122 — tapi hanya untuk besi & baja profil. Beton, galian,
+urugan, pasangan: nol jalur input geometri.
+
+### KEPUTUSAN: take-off MENGUSULKAN, manusia MENERAPKAN
+
+Ini keputusan desain utamanya, dan ia sengaja tidak diambil demi kenyamanan.
+Godaannya jelas: begitu p × l × t × n × faktor menghasilkan angka, tulis saja ke
+`quantity`. **Tidak** — karena rantainya, diukur di kode:
+
+    quantity → computeRabLineTotal → amount → total_amount
+             → rantai approval → nilai kontrak, termin, progres yang ditagihkan
+
+Menimpa otomatis berarti seseorang membetulkan satu angka panjang di layar
+take-off dan nilai kontrak yang sudah disepakati ikut bergeser — tanpa galat,
+tanpa persetujuan, tanpa jejak. Dan **progres lapangan yang sudah dicatat
+terhadap volume lama tak bisa dibuat ulang.**
+
+Karena itu penerapan adalah rute tersendiri (`POST …/terapkan`): versi wajib
+`draft`, hanya jalan saat tombol ditekan, dan meninggalkan `volume_diterapkan` +
+`diterapkan_pada` + `diterapkan_oleh`. Yang membuat pilihan ini tak menyusahkan:
+**selisih take-off vs RAB tetap ditampilkan**, tidak disamarkan. Take-off yang
+sudah direvisi tapi belum diterapkan adalah keadaan yang terlihat, bukan
+tersembunyi — dan itu justru sinyal yang hilang kalau keduanya disamakan diam-diam.
+
+### Yang dibangun
+
+| Lapis | Berkas |
+|---|---|
+| Kalkulasi murni | `lib/takeoff-dimensi.ts` — 4 metode, nol I/O, `GalatTakeoff` dibedakan supaya route balas 400 bukan 500 |
+| Rute | `estimate-versions.ts` — GET · POST · POST `/terapkan` (pola ditiru dari rebar :573-625) |
+| UI | tab **Take-off Volume** di `/estimasi?tab=takeoff` |
+
+UI-nya menampilkan **rantai perhitungannya** (p × l × t × jumlah × faktor), bukan
+cuma hasilnya — itu seluruh gunanya. Rumus datang jadi dari server; dua tempat
+yang menyusun rumus yang sama pasti menyimpang, dan yang menyimpang diam-diam
+adalah yang dibaca orang.
+
+Izin memakai kunci yang SUDAH ADA (`cecep:takeoff:view`/`:manage`) — tak ada
+kunci baru dibuat.
+
+### Dua penjaga yang memerah, dan keduanya menemukan cacat NYATA
+
+Bukan gangguan administratif — keduanya menunjuk bug yang sungguh ada:
+
+1. **`audit-kegagalan-senyap` 186 → 189.** Pembacaan ulang item untuk menghitung
+   total tak memeriksa `error`; kalau ia gagal, `?? []` mengubah kegagalan jadi
+   nol baris yang sah dan **`total_amount` ditimpa 0** — estimasi puluhan juta
+   mendadak bertotal nol tanpa gejala.
+2. **`audit-tulis-tanpa-periksa` 76 → 78.** `update` jejak penerapan hanya
+   memeriksa `error`. `error` cuma terisi bila query gagal; `.eq()` yang tak
+   cocok memulangkan **nol baris tanpa galat** — `quantity` sudah bergerak tapi
+   jejak "diterapkan siapa, kapan" tak pernah tertulis.
+
+Keduanya diperbaiki, **nol ambang dinaikkan**. Keduanya kembali ke angka lantai.
+
+⚠️ Catatan alat: `audit-kegagalan-senyap` melacak **nama variabel per berkas**.
+Selama masih ada satu `const { data: items }` tanpa `error` di berkas yang sama,
+pemakaian nama itu di tempat lain ikut tertandai meski error-nya sudah diperiksa.
+Karena itu variabel baru dinamai `itemTakeoff`/`sumTerapan`, bukan nama umum.
+Dan teks di dalam **komentar pun ikut dihitung** — satu contoh kode di komentar
+sempat menaikkan angkanya jadi 187.
+
+### Bukti
+
+    vitest lib/takeoff-dimensi          24 lulus  (golden, tanpa basis)
+    vitest routes/takeoff-dimensi       13 lulus  (Postgres NYATA)
+    vitest routes/estimate*             58 lulus  (nol regresi)
+    tsc api / web                       0 / 0
+    audit-peta-modul-vs-halaman         exit 0
+    uji-token-css-ada                   exit 0
+    uji-judul-halaman-ada               exit 0
+    uji-remah-lengkap · tabel-seragam   exit 0
+    uji-galat-muat-terpisah             exit 0
+    audit-tulis-tanpa-periksa           exit 0  (77→76, kembali ke lantai)
+    audit-kegagalan-senyap              exit 0  (189→186, kembali ke lantai)
+    audit-izin-benar-ada                exit 0  (184 kunci, nol hantu)
+
+### Mutasi (suntik via Node — python tak ada di mesin ini)
+
+Ketiganya **diassert tersuntik di disk** sebelum test dijalankan; mutasi yang
+tak tersuntik menghasilkan "hijau" palsu, dan itu pernah terjadi di repo ini.
+
+| # | Mutasi | Hasil |
+|---|---|---|
+| 1 | insert take-off menimpa `quantity` diam-diam | **MERAH** 6 test |
+| 2 | dimensi hilang diperlakukan `1` (lib murni) | **MERAH** 4 test |
+| 3 | gerbang satuan-campur dimatikan (`if (false)`) | **MERAH** 1 test (200 ≠ 422) |
+
+Ketiganya pulih HIJAU sesudah dipulihkan.
+
+⚠️ Jebakan alat yang memakan waktu: berkas repo ini **ber-CRLF**, sementara pola
+multi-baris dari shell datang ber-LF — `includes()` gagal pada berkas yang
+jelas-jelas memuat barisnya. Kelas yang sama dengan kisah `grep -E "^PORT"` di
+`CLAUDE.md` §7: **nol hasil bukan bukti ketiadaan.** Penyuntik dinormalkan ke LF
+dulu, lalu memasang CRLF kembali saat menulis.
+
+### Saya salah sekali
+
+`ON CONFLICT (code)` di fixture test saya asumsikan cocok. Diukur: satu-satunya
+indeks unik yang memuat `code` adalah `cost_codes_code_per_company (company_id,
+code) WHERE code IS NOT NULL` — **parsial dan dua kolom**, jadi spesifikasi
+`(code)` tak pernah cocok. Diganti pola cari-lalu-pakai-ulang. Pelajaran yang
+sama dengan blok verifikasi 431 sendiri: **ukur constraint tabel target, jangan
+menyimpulkan dari kebiasaan tabel lain.**
+
+### Status
+
+`crm-boq` **`sebagian` → `hidup`** di `peta-menu.ts`, href ke `?tab=takeoff`.
+
+---
+
 ## 2026-08-16 (sesi asisten) — asisten tak tahu lawan bicaranya; dan dua nama kolom yang berbohong
 
 Dua pekerjaan, satu benang merah: **nama boleh menyesatkan, data tidak.**

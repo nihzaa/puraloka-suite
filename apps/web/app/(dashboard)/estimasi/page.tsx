@@ -24,7 +24,7 @@ import {
   Layers, Send, Trash2, CheckCircle2, BadgeCheck, PlayCircle, CircleOff, Pencil,
   HelpCircle,
   Lock, ClipboardList, Package, HardHat, History, TrendingUp, Info,
-  Scale, AlertTriangle,
+  Scale, AlertTriangle, Ruler,
 } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -4005,9 +4005,462 @@ function VariansTab() {
   );
 }
 
+// ══ TAKE-OFF DIMENSIONAL (431) ════════════════════════════════════════════════
+//
+// Layar ini punya SATU tugas yang tak dimiliki tab lain: memperlihatkan
+// PERHITUNGANNYA, bukan hasilnya.
+//
+// Sebelum ini, `estimate_items.quantity` masuk sebagai angka jadi — 84,5 m³ yang
+// benar dan 84,5 m³ yang salah ketik dari 8,45 terlihat identik begitu tersimpan.
+// Karena itu kolom "Perhitungan" di sini menampilkan rantai p × l × t × jumlah ×
+// faktor apa adanya, dan bukan sekadar hiasan: itulah satu-satunya cara orang
+// bisa memeriksa dari mana volumenya datang tanpa membuka gambar lagi.
+//
+// Rumusnya datang JADI dari server (`hitungBarisTakeoff().rumus`) — sengaja tidak
+// disusun ulang di sini. Dua tempat yang menyusun rumus yang sama pasti
+// menyimpang cepat atau lambat, dan yang menyimpang diam-diam adalah yang
+// dibaca orang.
+
+type MetodeUi = "volume" | "luas" | "dinding" | "panjang";
+type DimensiUi = "panjang" | "lebar" | "tinggi";
+
+// `dimensi` diketik LEBAR (`DimensiUi[]`), bukan dibiarkan disempitkan `as const`
+// jadi tuple literal per entri — kalau disempitkan, `dimensi.includes("lebar")`
+// pada entri `panjang` ditolak compiler sebagai perbandingan mustahil, padahal
+// justru itu pertanyaan yang ingin dijawab kode ini.
+const METODE_UI: ReadonlyArray<{
+  nilai: MetodeUi; label: string; dimensi: DimensiUi[]; satuan: string;
+}> = [
+  { nilai: "volume", label: "Volume (p × l × t)", dimensi: ["panjang", "lebar", "tinggi"], satuan: "m³" },
+  { nilai: "luas", label: "Luas (p × l)", dimensi: ["panjang", "lebar"], satuan: "m²" },
+  { nilai: "dinding", label: "Dinding (p × t)", dimensi: ["panjang", "tinggi"], satuan: "m²" },
+  { nilai: "panjang", label: "Panjang (p)", dimensi: ["panjang"], satuan: "m" },
+];
+
+interface BarisTakeoff {
+  id: string; uraian: string; metode: MetodeUi;
+  panjang_m: number | null; lebar_m: number | null; tinggi_m: number | null;
+  jumlah: number; faktor: number; hasil_volume: number;
+  volume_diterapkan: number | null; diterapkan_pada: string | null;
+  catatan: string | null; satuan: string | null;
+}
+interface ItemTakeoff {
+  estimate_item_id: string; nama: string | null; satuan_item: string | null;
+  quantity_rab: number;
+  baris: BarisTakeoff[];
+  rekap: { totalVolume: number; jumlahBaris: number; satuan: string | null };
+  banding: { quantityRab: number; totalTakeoff: number; selisih: number; sinkron: boolean } | null;
+}
+
+function TakeoffTab() {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState("");
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [versionId, setVersionId] = useState("");
+  const [versionStatus, setVersionStatus] = useState("");
+  const [items, setItems] = useState<ItemTakeoff[]>([]);
+  const [tambahUntuk, setTambahUntuk] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  // Galat MUAT dan galat AKSI dipisah: satu state bersama membuat gagal simpan
+  // menghapus pesan gagal muat, cacat yang pernah ditemukan di 11 halaman.
+  const [errMuat, setErrMuat] = useState("");
+  const [errAksi, setErrAksi] = useState("");
+
+  useEffect(() => {
+    api.get<{ projects: Project[] }>("/api/v1/projects")
+      .then(r => setProjects(r.data.projects ?? []))
+      .catch(() => setErrMuat("Gagal memuat daftar proyek."));
+  }, []);
+
+  useEffect(() => {
+    if (!projectId) { setScenarios([]); setVersionId(""); return; }
+    api.get<{ data: Scenario[] }>(`/api/v1/projects/${projectId}/scenarios`)
+      .then(r => setScenarios(r.data.data ?? []))
+      .catch(() => setErrMuat("Gagal memuat skenario proyek ini."));
+    setVersionId("");
+  }, [projectId]);
+
+  const muat = useCallback(async (vid: string) => {
+    if (!vid) { setItems([]); return; }
+    setErrMuat("");
+    try {
+      const r = await api.get<{ items: ItemTakeoff[] }>(`/api/v1/estimate-versions/${vid}/takeoff-dimensi`);
+      setItems(r.data.items ?? []);
+    } catch {
+      setErrMuat("Gagal memuat take-off versi ini.");
+      setItems([]);
+    }
+  }, []);
+  useEffect(() => { void muat(versionId); }, [versionId, muat]);
+
+  const semuaVersi = scenarios.flatMap(sc =>
+    sc.versions.map(v => ({ ...v, skenario: sc.name })));
+  const draft = versionStatus === "draft";
+
+  const terapkan = async (itemId: string) => {
+    setBusy(true); setErrAksi("");
+    try {
+      await api.post(`/api/v1/estimate-versions/${versionId}/items/${itemId}/takeoff-dimensi/terapkan`, {});
+      await muat(versionId);
+    } catch (e) {
+      setErrAksi((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Gagal menerapkan volume.");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
+        <select className="isian-fokus" aria-label="Proyek" value={projectId}
+          onChange={e => setProjectId(e.target.value)} style={{ ...GAYA_ISIAN, width: 260 }}>
+          <option value="">— Pilih proyek —</option>
+          {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        {projectId && (
+          <select className="isian-fokus" aria-label="Versi estimasi" value={versionId}
+            onChange={e => {
+              setVersionId(e.target.value);
+              setVersionStatus(semuaVersi.find(v => v.id === e.target.value)?.status ?? "");
+            }}
+            style={{ ...GAYA_ISIAN, width: 300 }}>
+            <option value="">— Pilih versi estimasi —</option>
+            {semuaVersi.map(v => (
+              <option key={v.id} value={v.id}>{v.skenario} — v{v.version_number} ({v.status})</option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {errMuat && (
+        <div role="alert" style={{ background: C.redBg, color: C.onDangerBg, border: `1px solid ${C.redBorder}`,
+          borderRadius: 6, padding: "8px 12px", fontSize: 12, marginBottom: 10 }}>{errMuat}</div>
+      )}
+      {errAksi && (
+        <div role="alert" style={{ background: C.redBg, color: C.onDangerBg, border: `1px solid ${C.redBorder}`,
+          borderRadius: 6, padding: "8px 12px", fontSize: 12, marginBottom: 10 }}>{errAksi}</div>
+      )}
+
+      {!versionId && (
+        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)" }}>
+          <p style={{ fontSize: 13, color: C.text, margin: "0 0 8px", fontWeight: 600 }}>
+            Dari mana volume RAB itu datang?
+          </p>
+          <p style={{ fontSize: 12.5, color: C.mid, margin: 0, lineHeight: 1.65, maxWidth: 720 }}>
+            Take-off dimensional menyimpan <b>ukuran yang melahirkan volume</b> —
+            panjang, lebar, tinggi, jumlah bagian, dan faktor koreksi lapangan —
+            bukan hanya hasil akhirnya. Tanpa itu, volume yang benar dan volume
+            yang salah ketik terlihat sama persis begitu tersimpan, dan
+            pertanyaan &quot;kenapa volumenya segini?&quot; hanya bisa dijawab
+            dengan menghitung ulang dari gambar.
+          </p>
+          <p style={{ fontSize: 12.5, color: C.mid, margin: "10px 0 0", lineHeight: 1.65, maxWidth: 720 }}>
+            Hasil take-off <b>tidak langsung menimpa</b> volume RAB. Ia diusulkan;
+            Anda yang menerapkannya lewat tombol — karena volume mengalir ke
+            harga, kontrak, dan progres lapangan yang tak bisa dibuat ulang.
+          </p>
+          <p style={{ fontSize: 12.5, color: C.muted, margin: "10px 0 0" }}>
+            Pilih proyek dan versi estimasi untuk mulai.
+          </p>
+        </div>
+      )}
+
+      {versionId && !draft && (
+        <div style={{ background: C.blueBg, color: C.onInfoBg, border: `1px solid ${C.blueBorder}`,
+          borderRadius: 6, padding: "8px 12px", fontSize: 12, marginBottom: 12,
+          display: "flex", gap: 8, alignItems: "center" }}>
+          <Lock size={14} aria-hidden="true" />
+          <span>Versi ini berstatus <b>{versionStatus}</b> — take-off bisa dibaca, tapi tak bisa diubah atau diterapkan. Angkanya sudah dipakai orang lain untuk memutuskan sesuatu.</span>
+        </div>
+      )}
+
+      {versionId && items.length === 0 && !errMuat && (
+        <p style={{ fontSize: 13, color: C.muted }}>Versi ini belum punya item RAB — tambah item dulu di tab Komposer.</p>
+      )}
+
+      <div style={{ display: "grid", gap: 12 }}>
+        {items.map(it => {
+          const sinkron = it.banding?.sinkron ?? null;
+          return (
+            <div key={it.estimate_item_id} style={{ ...GAYA_KARTU, padding: "var(--pad-kartu)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <strong style={{ fontSize: 13, color: C.text }}>{it.nama ?? "(item tanpa nama)"}</strong>
+                  <div style={{ fontSize: 12, color: C.mid, marginTop: 3 }}>
+                    Volume dipakai RAB:{" "}
+                    <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: 600, color: C.text }}>
+                      {formatKuantitas(it.quantity_rab)}
+                    </span>{" "}
+                    {it.satuan_item ?? ""}
+                  </div>
+                </div>
+                {draft && (
+                  <button style={btnGhost} onClick={() => setTambahUntuk(it.estimate_item_id)}>
+                    <Plus size={14} aria-hidden="true" /> Baris take-off
+                  </button>
+                )}
+              </div>
+
+              {it.baris.length === 0 ? (
+                <p style={{ fontSize: 12.5, color: C.muted, margin: "10px 0 0" }}>
+                  Belum ada take-off — volume {formatKuantitas(it.quantity_rab)} masuk sebagai angka jadi, tanpa jejak perhitungan.
+                </p>
+              ) : (
+                <>
+                  <div style={{ marginTop: 10 }}>
+                    {/* Kolom "Perhitungan" adalah alasan layar ini ada — ia yang
+                        membuat volume bisa diperiksa, bukan cuma dipercaya. */}
+                    <Tabel<BarisTakeoff>
+                      caption={`Rincian take-off ${it.nama ?? "item"}: uraian, metode, perhitungan p × l × t × jumlah × faktor, dan hasil volumenya.`}
+                      data={it.baris}
+                      kunciBaris={b => b.id}
+                      kolom={[
+                        { kunci: "uraian", judul: "Bagian yang dihitung", kepalaBaris: true, render: b => b.uraian },
+                        { kunci: "metode", judul: "Metode", render: b => (
+                          <span style={{ fontSize: 11.5, color: C.mid }}>
+                            {METODE_UI.find(m => m.nilai === b.metode)?.label ?? b.metode}
+                          </span>
+                        ) },
+                        { kunci: "hitung", judul: "Perhitungan", render: b => (
+                          <span style={{ fontFamily: "monospace", fontSize: 11.5, color: C.text, fontVariantNumeric: "tabular-nums" }}>
+                            {rumusBaris(b)}
+                          </span>
+                        ) },
+                        { kunci: "hasil", judul: "Hasil", rata: "kanan", render: b => (
+                          <span style={{ fontWeight: 600 }}>
+                            {formatKuantitas(b.hasil_volume)} {b.satuan ?? ""}
+                          </span>
+                        ) },
+                      ]}
+                      total={[
+                        { kunci: "label", isi: "TOTAL TAKE-OFF", rentang: 3 },
+                        { kunci: "hasil", rata: "kanan", isi: (
+                          <span style={{ color: C.navy }}>
+                            {formatKuantitas(it.rekap.totalVolume)} {it.rekap.satuan ?? ""}
+                          </span>
+                        ) },
+                      ]}
+                    />
+                  </div>
+
+                  {it.rekap.satuan === null && (
+                    <div role="alert" style={{ marginTop: 10, background: C.yellowBg, color: C.onWarningBg,
+                      border: `1px solid ${C.yellowBorder}`, borderRadius: 6, padding: "8px 12px", fontSize: 12,
+                      display: "flex", gap: 8, alignItems: "flex-start" }}>
+                      <AlertTriangle size={14} aria-hidden="true" style={{ marginTop: 1, flexShrink: 0 }} />
+                      <span>Baris take-off item ini <b>bercampur satuan</b> (m³/m²/m). Totalnya tak bermakna dan tak bisa diterapkan — pisahkan jadi item berbeda.</span>
+                    </div>
+                  )}
+
+                  {/* Selisih take-off vs RAB adalah SINYAL, bukan galat. Ia
+                      justru yang hilang kalau take-off menimpa quantity
+                      otomatis — jadi ia ditampilkan, bukan disamarkan. */}
+                  {sinkron === false && it.rekap.satuan !== null && (
+                    <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center",
+                      flexWrap: "wrap", background: C.subtle, border: `1px solid ${C.border}`,
+                      borderRadius: 6, padding: "8px 12px" }}>
+                      <Info size={14} aria-hidden="true" style={{ color: C.mid, flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: C.text }}>
+                        Take-off menghasilkan{" "}
+                        <b style={{ fontVariantNumeric: "tabular-nums" }}>
+                          {formatKuantitas(it.rekap.totalVolume)} {it.rekap.satuan}
+                        </b>, sedangkan RAB memakai{" "}
+                        <b style={{ fontVariantNumeric: "tabular-nums" }}>{formatKuantitas(it.quantity_rab)}</b>
+                        {" "}— selisih{" "}
+                        <b style={{ fontVariantNumeric: "tabular-nums" }}>
+                          {formatKuantitas(Math.abs(it.banding!.selisih))}
+                        </b>.
+                      </span>
+                      {draft && (
+                        <button style={btnPrimary} disabled={busy}
+                          onClick={() => void terapkan(it.estimate_item_id)}>
+                          <CheckCircle2 size={14} aria-hidden="true" /> Terapkan ke RAB
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {sinkron === true && (
+                    <p style={{ marginTop: 10, fontSize: 12, color: C.mid, display: "flex", gap: 6, alignItems: "center" }}>
+                      <BadgeCheck size={14} aria-hidden="true" style={{ color: C.green }} />
+                      Volume RAB sama dengan hasil take-off.
+                      {it.baris[0]?.diterapkan_pada && (
+                        <span style={{ color: C.muted }}>
+                          Diterapkan {formatTanggalJam(it.baris[0].diterapkan_pada)}.
+                        </span>
+                      )}
+                    </p>
+                  )}
+                </>
+              )}
+
+              {tambahUntuk === it.estimate_item_id && (
+                <FormBarisTakeoff
+                  versionId={versionId}
+                  itemId={it.estimate_item_id}
+                  onTutup={() => setTambahUntuk(null)}
+                  onSimpan={async () => { setTambahUntuk(null); await muat(versionId); }}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Rumus satu baris, disusun dari dimensi yang BENAR-BENAR dipakai metodenya.
+ *
+ * Sengaja tidak menampilkan dimensi yang NULL: menulis "10 × — × 0,5" membuat
+ * orang mengira ada nilai yang hilang, padahal metodenya memang tak memakainya.
+ */
+function rumusBaris(b: BarisTakeoff): string {
+  const angka = (n: number) => formatKuantitas(n);
+  const dipakai = METODE_UI.find(m => m.nilai === b.metode)?.dimensi ?? ["panjang"];
+  const nilai: string[] = [];
+  if (dipakai.includes("panjang") && b.panjang_m !== null) nilai.push(angka(b.panjang_m));
+  if (dipakai.includes("lebar") && b.lebar_m !== null) nilai.push(angka(b.lebar_m));
+  if (dipakai.includes("tinggi") && b.tinggi_m !== null) nilai.push(angka(b.tinggi_m));
+  return `${nilai.join(" × ")} × ${angka(b.jumlah)} × ${angka(b.faktor)}`;
+}
+
+/**
+ * Form satu baris take-off.
+ *
+ * Kolom dimensi mengikuti METODE yang dipilih — bukan menampilkan ketiganya
+ * lalu mengabaikan yang tak terpakai. Server MENOLAK dimensi yang tak dipakai
+ * metodenya (400), jadi menampilkannya di sini hanya akan membuat orang mengisi
+ * kolom yang membuat simpanannya gagal.
+ */
+function FormBarisTakeoff({ versionId, itemId, onTutup, onSimpan }: {
+  versionId: string; itemId: string; onTutup: () => void; onSimpan: () => void | Promise<void>;
+}) {
+  const [uraian, setUraian] = useState("");
+  const [metode, setMetode] = useState<MetodeUi>("volume");
+  const [panjang, setPanjang] = useState("");
+  const [lebar, setLebar] = useState("");
+  const [tinggi, setTinggi] = useState("");
+  const [jumlah, setJumlah] = useState("1");
+  const [faktor, setFaktor] = useState("1");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  useTutupEsc(onTutup);
+
+  const def = METODE_UI.find(m => m.nilai === metode)!;
+  const num = (s: string) => (s.trim() === "" ? null : Number(s.replace(",", ".")));
+
+  // Pratinjau dihitung di layar HANYA sebagai umpan balik ketik. Angka yang
+  // disimpan tetap yang dihitung SERVER — dua tempat yang menghitung sendiri
+  // akan menyimpang, dan yang dipercaya orang adalah yang terlihat.
+  const pratinjau = (() => {
+    const d = [num(panjang), def.dimensi.includes("lebar") ? num(lebar) : 1,
+      def.dimensi.includes("tinggi") ? num(tinggi) : 1];
+    const j = num(jumlah) ?? 1, f = num(faktor) ?? 1;
+    if (d.some(x => x === null || !Number.isFinite(x) || x <= 0) || j <= 0 || f <= 0) return null;
+    return (d[0]! * d[1]! * d[2]!) * j * f;
+  })();
+
+  const simpan = async () => {
+    setBusy(true); setErr("");
+    try {
+      await api.post(`/api/v1/estimate-versions/${versionId}/items/${itemId}/takeoff-dimensi`, {
+        uraian,
+        metode,
+        panjang_m: num(panjang),
+        // Dimensi yang tak dipakai metode ini dikirim NULL, bukan 0 atau 1 —
+        // server menolak yang terisi, dan itu memang yang diinginkan.
+        lebar_m: def.dimensi.includes("lebar") ? num(lebar) : null,
+        tinggi_m: def.dimensi.includes("tinggi") ? num(tinggi) : null,
+        jumlah: num(jumlah) ?? 1,
+        faktor: num(faktor) ?? 1,
+      });
+      await onSimpan();
+    } catch (e) {
+      setErr((e as { response?: { data?: { error?: string } } }).response?.data?.error ?? "Gagal menyimpan baris take-off.");
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+        <div style={{ minWidth: 210 }}>
+          <label style={lbl} htmlFor={`ur-${itemId}`}>Bagian yang dihitung</label>
+          <input id={`ur-${itemId}`} className="isian-fokus" value={uraian}
+            onChange={e => setUraian(e.target.value)} placeholder="Pondasi P1 as A-3"
+            style={{ ...GAYA_ISIAN, width: 210 }} />
+        </div>
+        <div>
+          <label style={lbl} htmlFor={`mt-${itemId}`}>Metode</label>
+          <select id={`mt-${itemId}`} className="isian-fokus" value={metode}
+            onChange={e => setMetode(e.target.value as MetodeUi)} style={{ ...GAYA_ISIAN, width: 190 }}>
+            {METODE_UI.map(m => <option key={m.nilai} value={m.nilai}>{m.label}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={lbl} htmlFor={`pj-${itemId}`}>Panjang (m)</label>
+          <input id={`pj-${itemId}`} className="isian-fokus" inputMode="decimal" value={panjang}
+            onChange={e => setPanjang(e.target.value)} style={{ ...GAYA_ISIAN, width: 100 }} />
+        </div>
+        {def.dimensi.includes("lebar") && (
+          <div>
+            <label style={lbl} htmlFor={`lb-${itemId}`}>Lebar (m)</label>
+            <input id={`lb-${itemId}`} className="isian-fokus" inputMode="decimal" value={lebar}
+              onChange={e => setLebar(e.target.value)} style={{ ...GAYA_ISIAN, width: 100 }} />
+          </div>
+        )}
+        {def.dimensi.includes("tinggi") && (
+          <div>
+            <label style={lbl} htmlFor={`tg-${itemId}`}>Tinggi (m)</label>
+            <input id={`tg-${itemId}`} className="isian-fokus" inputMode="decimal" value={tinggi}
+              onChange={e => setTinggi(e.target.value)} style={{ ...GAYA_ISIAN, width: 100 }} />
+          </div>
+        )}
+        <div>
+          <label style={lbl} htmlFor={`jm-${itemId}`}>Jumlah</label>
+          <input id={`jm-${itemId}`} className="isian-fokus" inputMode="decimal" value={jumlah}
+            onChange={e => setJumlah(e.target.value)} style={{ ...GAYA_ISIAN, width: 80 }} />
+        </div>
+        <div>
+          <label style={lbl} htmlFor={`fk-${itemId}`}>Faktor</label>
+          <input id={`fk-${itemId}`} className="isian-fokus" inputMode="decimal" value={faktor}
+            onChange={e => setFaktor(e.target.value)} style={{ ...GAYA_ISIAN, width: 80 }} />
+        </div>
+      </div>
+
+      <p style={{ fontSize: 11.5, color: C.muted, margin: "8px 0 0", maxWidth: 640, lineHeight: 1.6 }}>
+        <b>Faktor</b> menampung koreksi lapangan — gembur galian (1,2–1,3),
+        susut urugan, tebal siar pasangan. Ia disimpan per baris supaya angka
+        RAB lama tetap bisa direproduksi meski kebiasaan perusahaan berubah.
+        Isi <b>1</b> bila tanpa koreksi.
+      </p>
+
+      {pratinjau !== null && (
+        <p style={{ fontSize: 12.5, color: C.text, margin: "10px 0 0", fontVariantNumeric: "tabular-nums" }}>
+          Perhitungan: <span style={{ fontFamily: "monospace" }}>
+            {[panjang, def.dimensi.includes("lebar") ? lebar : null,
+              def.dimensi.includes("tinggi") ? tinggi : null, jumlah, faktor]
+              .filter(Boolean).join(" × ")}
+          </span>{" "}= <b>{formatKuantitas(pratinjau)} {def.satuan}</b>
+        </p>
+      )}
+
+      {err && (
+        <div role="alert" style={{ marginTop: 10, background: C.redBg, color: C.onDangerBg,
+          border: `1px solid ${C.redBorder}`, borderRadius: 6, padding: "8px 12px", fontSize: 12 }}>{err}</div>
+      )}
+
+      <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+        <button style={btnPrimary} disabled={busy} onClick={() => void simpan()}>Simpan baris</button>
+        <button style={btnGhost} disabled={busy} onClick={onTutup}>Batal</button>
+      </div>
+    </div>
+  );
+}
+
 // ══ PAGE ══════════════════════════════════════════════════════════════════════
 const TABS = [
   { key: "komposer", label: "Komposer", icon: Calculator },
+  { key: "takeoff", label: "Take-off Volume", icon: Ruler },
   { key: "katalog", label: "Katalog AHSP", icon: BookOpen },
   { key: "harga", label: "Harga", icon: Coins },
   { key: "rap", label: "Material & RAP", icon: ClipboardList },
@@ -4060,6 +4513,7 @@ function IsiEstimasi() {
         })}
       />
       {tab === "komposer" && <KomposerTab />}
+      {tab === "takeoff" && <TakeoffTab />}
       {tab === "katalog" && <KatalogTab />}
       {tab === "harga" && <HargaTab />}
       {tab === "rap" && <RapTab />}

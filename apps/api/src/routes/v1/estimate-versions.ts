@@ -15,6 +15,10 @@ import {
   computeMaterialAggregation, computeRebarBar, summarizeRebarByDiameter,
   type TakeoffLineInput, type RebarTakeoffLine,
 } from '../../lib/rab-compute.js'
+import {
+  hitungBarisTakeoff, rekapTakeoff, bandingkanTerapan, GalatTakeoff,
+  SATUAN_HASIL, type MetodeTakeoff,
+} from '../../lib/takeoff-dimensi.js'
 import { resolvePrices, type PriceBookEntryRow, type ProjectPriceOverrideRow } from '../../lib/price-resolver.js'
 import { getTaxRate } from '../../utils/financial-config.js'
 
@@ -625,6 +629,313 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         newValues: { item: item.id, type: line.rebarType, d: line.diameterMm, kg: line.totalWeightKg },
       })
       return reply.status(201).send({ id: row.id, ...line })
+    })
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // TAKE-OFF DIMENSIONAL (431) — dari mana volume itu datang
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Melengkapi `rebar_takeoff` (besi) & `steel_profiles` (baja profil) dari 122,
+  // yang keduanya hanya menangani geometri BESI. Beton, galian, urugan, dan
+  // pasangan — pekerjaan yang volumenya justru paling sering salah — sebelumnya
+  // tak punya jalur input geometri sama sekali: `quantity` masuk sebagai angka
+  // jadi lewat satu-satunya pemeriksaan `typeof b.quantity !== 'number'`, lalu
+  // dikalikan HSP menjadi rupiah.
+  //
+  // Memakai kunci izin yang SUDAH ADA (`cecep:takeoff:view`/`:manage`) — sengaja
+  // tak membuat kunci baru: kunci yang tak ada di tabel `permissions` menolak
+  // SEMUA orang tanpa gejala (penjaga `audit-izin-benar-ada`), dan take-off
+  // dimensional adalah pekerjaan yang sama dengan take-off besi.
+
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/estimate-versions/:id/takeoff-dimensi',
+    { preHandler: [authenticate, requirePermission('cecep:takeoff:view')] },
+    async (request, reply) => {
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id').eq('id', request.params.id)
+        .in('scenario_id', await skenarioIdsTenant(request)).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+
+      // Dinamai `itemTakeoff`, bukan nama umum `items`. `audit-kegagalan-senyap`
+      // melacak NAMA variabel per berkas: selama masih ada destructuring nama
+      // itu tanpa `error` di berkas ini (empat tersisa, warisan), setiap
+      // pemakaian nama tersebut dengan penjaga-nullish ikut tertandai —
+      // termasuk yang error-nya sudah diperiksa seperti di sini. Nama
+      // tersendiri membuat pemeriksaan ini terbaca apa adanya oleh penjaga,
+      // tanpa menaikkan ambang siapa pun.
+      const { data: itemTakeoff, error: itErr } = await supabase
+        .from('estimate_items')
+        .select('id, quantity, assembly:assemblies(name, output_unit_code), cost_code:cost_codes(name)')
+        .eq('estimate_version_id', request.params.id)
+      if (itErr) return reply.status(500).send({ error: itErr.message })
+      const itemIds = (itemTakeoff ?? []).map(i => i.id)
+      if (itemIds.length === 0) return reply.send({ estimate_version_id: v.id, items: [] })
+
+      const { data: rows, error } = await supabase
+        .from('takeoff_dimensi')
+        .select(`id, estimate_item_id, uraian, metode, panjang_m, lebar_m, tinggi_m,
+                 jumlah, faktor, hasil_volume, volume_diterapkan, diterapkan_pada, catatan`)
+        .in('estimate_item_id', itemIds)
+        .order('created_at')
+      if (error) return reply.status(500).send({ error: error.message })
+
+      type Rel = { name?: string; output_unit_code?: string } | { name?: string; output_unit_code?: string }[] | null
+      const satu = (r: Rel) => (Array.isArray(r) ? r[0] : r) ?? null
+
+      // Dikelompokkan PER ITEM, bukan daftar datar: pertanyaan yang dijawab layar
+      // ini selalu "volume item INI dari mana", tak pernah "seluruh baris
+      // take-off versi ini". Mengelompokkan di sini menghemat pengelompokan yang
+      // sama di UI — dan dua tempat yang mengelompokkan sendiri-sendiri akan
+      // menyimpang begitu salah satunya diubah.
+      const perItem = new Map<string, typeof rows>()
+      for (const r of rows ?? []) {
+        const arr = perItem.get(r.estimate_item_id) ?? []
+        arr.push(r)
+        perItem.set(r.estimate_item_id, arr)
+      }
+
+      const hasil = (itemTakeoff ?? []).map(it => {
+        const baris = perItem.get(it.id) ?? []
+        const rekap = rekapTakeoff(baris.map(b => ({
+          hasilVolume: Number(b.hasil_volume), metode: b.metode as MetodeTakeoff,
+        })))
+        return {
+          estimate_item_id: it.id,
+          nama: satu(it.assembly as Rel)?.name ?? satu(it.cost_code as Rel)?.name ?? null,
+          satuan_item: satu(it.assembly as Rel)?.output_unit_code ?? null,
+          quantity_rab: Number(it.quantity),
+          baris: baris.map(b => ({
+            ...b,
+            panjang_m: b.panjang_m === null ? null : Number(b.panjang_m),
+            lebar_m: b.lebar_m === null ? null : Number(b.lebar_m),
+            tinggi_m: b.tinggi_m === null ? null : Number(b.tinggi_m),
+            jumlah: Number(b.jumlah), faktor: Number(b.faktor),
+            hasil_volume: Number(b.hasil_volume),
+            volume_diterapkan: b.volume_diterapkan === null ? null : Number(b.volume_diterapkan),
+            satuan: SATUAN_HASIL[b.metode as MetodeTakeoff] ?? null,
+          })),
+          rekap,
+          // Selisih take-off vs RAB adalah SINYAL — lihat `bandingkanTerapan`.
+          // Ia sengaja dihitung di server supaya seluruh pembaca (layar, ekspor,
+          // kelak notifikasi) memakai ambang toleransi yang sama.
+          banding: baris.length === 0 ? null : bandingkanTerapan(Number(it.quantity), rekap.totalVolume),
+        }
+      })
+      return reply.send({ estimate_version_id: v.id, items: hasil })
+    })
+
+  app.post<{ Params: { id: string; itemId: string }
+             Body: { uraian?: string; metode?: MetodeTakeoff
+                     panjang_m?: number | null; lebar_m?: number | null; tinggi_m?: number | null
+                     jumlah?: number | null; faktor?: number | null; catatan?: string } }>(
+    '/api/v1/estimate-versions/:id/items/:itemId/takeoff-dimensi',
+    { preHandler: [authenticate, requirePermission('cecep:takeoff:manage')] },
+    async (request, reply) => {
+      const b = request.body ?? {}
+
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id, status').eq('id', request.params.id)
+        .in('scenario_id', await skenarioIdsTenant(request)).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+      if (v.status !== 'draft') {
+        return reply.status(409).send({ error: 'Take-off hanya bisa diubah saat Estimate Version draft' })
+      }
+      const { data: item } = await supabase
+        .from('estimate_items').select('id').eq('id', request.params.itemId)
+        .eq('estimate_version_id', request.params.id).maybeSingle()
+      if (!item) return reply.status(404).send({ error: 'Item tidak ditemukan di versi ini' })
+
+      // Hitung lewat lib PURE ber-golden-test — nol aritmetika ad-hoc di route,
+      // pola yang sama dengan `computeRebarBar` di atas. `GalatTakeoff` dibedakan
+      // dari galat lain supaya masukan cacat memulangkan 400 (salah pengguna),
+      // bukan 500 (salah server) — dua hal yang menuntut tindakan berbeda.
+      let line
+      try {
+        line = hitungBarisTakeoff({
+          uraian: b.uraian ?? '', metode: b.metode as MetodeTakeoff,
+          panjangM: b.panjang_m, lebarM: b.lebar_m, tinggiM: b.tinggi_m,
+          jumlah: b.jumlah, faktor: b.faktor,
+        })
+      } catch (e) {
+        if (e instanceof GalatTakeoff) return reply.status(400).send({ error: e.message })
+        throw e
+      }
+
+      const { data: row, error } = await supabase
+        .from('takeoff_dimensi')
+        .insert({
+          estimate_item_id: item.id, uraian: line.uraian, metode: line.metode,
+          panjang_m: line.panjangM, lebar_m: line.lebarM, tinggi_m: line.tinggiM,
+          jumlah: line.jumlah, faktor: line.faktor, hasil_volume: line.hasilVolume,
+          catatan: b.catatan ?? null, created_by: request.currentUser!.id,
+        })
+        .select('id').single()
+      if (error) return reply.status(500).send({ error: error.message })
+
+      void logAuditEvent(request, {
+        tableName: 'takeoff_dimensi', recordId: row.id, action: 'cecep.takeoff_dimensi_added',
+        actorId: request.currentUser!.id,
+        newValues: { item: item.id, uraian: line.uraian, metode: line.metode, hasil: line.hasilVolume },
+      })
+      return reply.status(201).send({ id: row.id, ...line })
+    })
+
+  // ── POST /terapkan — take-off MENGUSULKAN, manusia MENERAPKAN ───────────────
+  //
+  // KEPUTUSAN DESAIN, dibuat sadar (sama dengan header migrasi 431):
+  // hasil take-off TIDAK menimpa `estimate_items.quantity` otomatis.
+  //
+  // Godaannya jelas — begitu p × l × t × n × faktor menghasilkan angka, tulis
+  // saja supaya orang tak perlu menyalin. Alasan menolaknya ada pada RANTAI
+  // yang diikuti `quantity`, diukur di berkas ini sendiri:
+  //
+  //     estimate_items.quantity
+  //       → computeRabLineTotal(quantity, hspRounded)
+  //       → estimate_items.amount
+  //       → estimate_versions.total_amount
+  //       → rantai approval estimate_versions
+  //       → nilai kontrak, termin, dan progres yang ditagihkan
+  //
+  // Menimpa otomatis berarti: seseorang membetulkan satu angka panjang di layar
+  // take-off, dan nilai kontrak yang sudah disepakati ikut bergeser tanpa ada
+  // yang memutuskan apa pun. Tak ada galat, tak ada persetujuan, tak ada jejak —
+  // hanya total yang berbeda dari kemarin. Dan progres lapangan yang sudah
+  // dicatat terhadap volume lama TIDAK BISA dibuat ulang.
+  //
+  // Karena itu penerapan adalah rute TERSENDIRI yang: (a) menuntut versi masih
+  // `draft`, (b) hanya jalan saat manusia menekan tombol, (c) meninggalkan
+  // `volume_diterapkan` + `diterapkan_pada` + `diterapkan_oleh` sebagai jejak.
+  //
+  // Yang membuat pilihan ini tak menyusahkan: selisih antara `hasil_volume` dan
+  // `volume_diterapkan` TETAP TERLIHAT di GET di atas. Take-off yang sudah
+  // direvisi tapi belum diterapkan bukan keadaan tersembunyi — ia keadaan yang
+  // ditampilkan, dan itu justru yang hilang kalau keduanya disamakan diam-diam.
+  app.post<{ Params: { id: string; itemId: string } }>(
+    '/api/v1/estimate-versions/:id/items/:itemId/takeoff-dimensi/terapkan',
+    { preHandler: [authenticate, requirePermission('cecep:takeoff:manage')] },
+    async (request, reply) => {
+      const { id, itemId } = request.params
+      const { data: v } = await supabase
+        .from('estimate_versions').select('id, status').eq('id', id)
+        .in('scenario_id', await skenarioIdsTenant(request)).maybeSingle()
+      if (!v) return reply.status(404).send({ error: 'Estimate Version tidak ditemukan' })
+      if (v.status !== 'draft') {
+        // Justru inti keputusannya: versi yang sudah diajukan/disetujui adalah
+        // angka yang sudah dipakai orang lain untuk memutuskan sesuatu.
+        return reply.status(409).send({
+          error: 'Volume hanya bisa diterapkan saat Estimate Version draft — versi ini sudah ' + v.status,
+        })
+      }
+
+      const { data: item } = await supabase
+        .from('estimate_items').select('id, quantity, amount, assembly_id')
+        .eq('id', itemId).eq('estimate_version_id', id).maybeSingle()
+      if (!item) return reply.status(404).send({ error: 'Item tidak ditemukan di versi ini' })
+
+      const { data: rows, error: rowErr } = await supabase
+        .from('takeoff_dimensi').select('id, metode, hasil_volume').eq('estimate_item_id', itemId)
+      if (rowErr) return reply.status(500).send({ error: rowErr.message })
+      if ((rows ?? []).length === 0) {
+        return reply.status(422).send({ error: 'Belum ada baris take-off untuk item ini' })
+      }
+
+      const rekap = rekapTakeoff((rows ?? []).map(r => ({
+        hasilVolume: Number(r.hasil_volume), metode: r.metode as MetodeTakeoff,
+      })))
+      if (rekap.satuan === null) {
+        // Menjumlahkan m³ dengan m' menghasilkan angka yang tetap terlihat
+        // seperti angka. Menolak di sini, bukan di UI: UI bisa dilewati.
+        return reply.status(422).send({
+          error: 'Baris take-off item ini bercampur satuan (m³/m²/m) — tak bisa dijumlahkan jadi satu volume',
+        })
+      }
+      if (rekap.totalVolume <= 0) {
+        return reply.status(422).send({ error: 'Total take-off harus > 0' })
+      }
+
+      // `amount` WAJIB ikut dihitung ulang. Memperbarui `quantity` saja
+      // meninggalkan `amount` pada volume lama — dan itu adalah baris RAB yang
+      // volumenya tak lagi cocok dengan rupiahnya, cacat yang tak menimbulkan
+      // galat apa pun dan hanya ketahuan saat totalnya dipertanyakan.
+      const hspLama = Number(item.quantity) > 0 ? Number(item.amount) / Number(item.quantity) : 0
+      const amountBaru = computeRabLineTotal(rekap.totalVolume, hspLama)
+
+      const { data: upd, error: updErr } = await supabase
+        .from('estimate_items')
+        .update({ quantity: rekap.totalVolume, amount: amountBaru })
+        .eq('id', itemId).eq('estimate_version_id', id)
+        .select('id').maybeSingle()
+      if (updErr) return reply.status(500).send({ error: updErr.message })
+      if (!upd) return reply.status(500).send({ error: 'Gagal menerapkan volume ke item' })
+
+      // Jejak penerapan: bertiga atau tidak sama sekali (CHECK 431). Ini yang
+      // membuat "volume RAB ini berasal dari take-off yang mana, diterapkan
+      // siapa, kapan" bisa dijawab tanpa menebak.
+      // `.select('id')` — dan hasilnya DIPERIKSA, bukan hanya `error`-nya.
+      // `error` cuma terisi bila query-nya gagal; `.eq()` yang tak cocok dengan
+      // satu baris pun memulangkan NOL BARIS tanpa galat apa pun. Di sini
+      // akibatnya khas: `quantity` sudah bergerak ke volume baru, tapi jejak
+      // "diterapkan oleh siapa, kapan" tak pernah tertulis — persis pertanyaan
+      // yang ditanyakan orang saat angka RAB dipersoalkan, dan satu-satunya
+      // saat ketiadaannya ketahuan.
+      const saatIni = new Date().toISOString()
+      const { data: jejak, error: jejakErr } = await supabase
+        .from('takeoff_dimensi')
+        .update({
+          volume_diterapkan: rekap.totalVolume, diterapkan_pada: saatIni,
+          diterapkan_oleh: request.currentUser!.id,
+        })
+        .eq('estimate_item_id', itemId)
+        .select('id')
+      if (jejakErr) return reply.status(500).send({ error: jejakErr.message })
+      if (!jejak || jejak.length === 0) {
+        return reply.status(500).send({ error: 'Volume diterapkan tetapi jejak penerapan gagal ditulis' })
+      }
+
+      // `error` DIPERIKSA, dan itu bukan formalitas penjaga: kalau pembacaan
+      // ini gagal, `?? []` mengubah kegagalan jadi nol baris yang terlihat sah,
+      // dan `total_amount` versi ini ditimpa 0 — estimasi yang isinya puluhan
+      // juta mendadak bertotal nol, tanpa galat dan tanpa gejala.
+      // Dinamai `sumTerapan` dengan alasan yang sama seperti `itemTakeoff` di
+      // GET: nama `sums` sudah "tercemar" tiga pemakaian tanpa `error` di
+      // berkas ini, dan penjaga melacak nama.
+      const { data: sumTerapan, error: sumErr } = await supabase
+        .from('estimate_items').select('amount').eq('estimate_version_id', id)
+      if (sumErr) {
+        return reply.status(500).send({ error: 'Gagal membaca ulang item untuk total: ' + sumErr.message })
+      }
+      const total = (sumTerapan ?? []).reduce((s, r) => s + Number(r.amount), 0)
+      // Sama seperti jejak di atas: baris tersentuh IKUT diperiksa, bukan hanya
+      // `error`. Kalau update ini menyentuh nol baris, `estimate_items` sudah
+      // memakai volume baru sementara `total_amount` versi masih angka lama —
+      // dan rekapitulasi yang tak lagi sama dengan jumlah barisnya adalah cacat
+      // yang hanya ketahuan saat totalnya dipertanyakan orang lain.
+      const { data: verUpd, error: totErr } = await supabase.from('estimate_versions')
+        .update({ total_amount: total, updated_by: request.currentUser!.id })
+        .eq('id', id).select('id').maybeSingle()
+      if (totErr) {
+        return reply.status(500).send({ error: 'Gagal memperbarui total estimasi: ' + totErr.message })
+      }
+      if (!verUpd) {
+        return reply.status(500).send({ error: 'Total estimasi gagal diperbarui — nol baris tersentuh' })
+      }
+
+      // `severity: 'critical'` — ini satu-satunya jalur di mana take-off
+      // menggerakkan angka yang mengalir ke nilai kontrak. Nilai lama IKUT
+      // dicatat: tanpa `oldValues`, jejaknya hanya bisa menjawab "jadi berapa",
+      // bukan "berubah dari berapa" — dan yang kedua itu yang ditanyakan.
+      void logAuditEvent(request, {
+        tableName: 'estimate_items', recordId: itemId, action: 'cecep.takeoff_diterapkan',
+        actorId: request.currentUser!.id, severity: 'critical',
+        oldValues: { quantity: Number(item.quantity), amount: Number(item.amount) },
+        newValues: { quantity: rekap.totalVolume, amount: amountBaru, baris: rekap.jumlahBaris },
+      })
+      return reply.send({
+        estimate_item_id: itemId,
+        quantity_lama: Number(item.quantity), quantity_baru: rekap.totalVolume,
+        amount_baru: amountBaru, satuan: rekap.satuan,
+        baris_diterapkan: rekap.jumlahBaris, version_total: total,
+      })
     })
 
   // ── POST /items — tambah item dari ASSEMBLY atau LUMP-SUM (M3+misi d) ───────
