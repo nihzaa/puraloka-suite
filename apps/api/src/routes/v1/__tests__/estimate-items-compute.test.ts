@@ -25,6 +25,8 @@ const post = (url: string, payload: unknown) =>
   app.inject({ method: 'POST', url, payload: payload as never, headers: { authorization: 'Bearer t' } })
 const del = (url: string) =>
   app.inject({ method: 'DELETE', url, headers: { authorization: 'Bearer t' } })
+const get = (url: string) =>
+  app.inject({ method: 'GET', url, headers: { authorization: 'Bearer t' } })
 
 // Verbatim 3.6.1.1 + harga ilustrasi SE (fixture price book, BUKAN harga nyata).
 const KOEF: Record<string, [category: string, unit: string, koef: number, harga: number]> = {
@@ -194,6 +196,55 @@ describe('POST /estimate-versions/:id/items — GOLDEN dari assembly × price bo
     await client.query(`SET session_replication_role='replica'`)
     await client.query(`UPDATE estimate_versions SET status='draft' WHERE id=$1`, [versionId])
     await client.query(`SET session_replication_role='origin'`)
+  })
+})
+
+/**
+ * GET /estimate-items/:itemId/explain
+ *
+ * ── Kenapa test ini ada (2026-08-16)
+ *
+ * Rute ini memulangkan 404 untuk SETIAP item — termasuk item yang jelas-jelas
+ * ada — selama entah berapa lama. Sebabnya `.select()` menyebut dua kolom yang
+ * TIDAK PERNAH ADA di `estimate_items`: `description` dan `unit`. SELECT gagal,
+ * `item` jadi undefined, lalu penjaga di bawahnya menyimpulkan "Item tidak
+ * ditemukan".
+ *
+ * Yang membuatnya bertahan: 404-nya MASUK AKAL — ada cabang sah yang memang
+ * memulangkan 404 untuk item milik tenant lain — dan NOL test menyentuh rute
+ * ini. Kegagalannya menyamar jadi perilaku normal, dan fitur yang jadi janji
+ * inti modul ("setiap rupiah bisa ditelusuri") tak pernah sekali pun berhasil.
+ *
+ * Test ini mengunci yang paling penting: item yang ADA harus 200, bukan 404.
+ */
+describe('GET /estimate-items/:itemId/explain — telusur angka', () => {
+  it('item yang ada → 200 + rantai langkah, BUKAN 404', async () => {
+    actAs(adminAuth)
+    const tambah = await post(`/api/v1/estimate-versions/${versionId}/items`,
+      { ...BODY, assembly_id: assemblyId })
+    expect(tambah.statusCode).toBe(201)
+    const itemId = tambah.json().item?.id ?? tambah.json().id
+
+    const res = await get(`/api/v1/estimate-items/${itemId}/explain`)
+    // Regresi utama: kolom hantu membuat ini 404.
+    expect(res.statusCode).toBe(200)
+
+    const d = res.json().data
+    expect(d.itemId).toBe(itemId)
+    // Nama datang dari assemblies, bukan dari kolom `description` yang tak ada.
+    expect(d.nama).toBeTruthy()
+    expect(d.nama).not.toBe('(tanpa nama)')
+    expect(Number(d.volume)).toBe(10)
+    // Rantai penjelasannya berisi — bukan cangkang kosong.
+    expect(Array.isArray(d.langkah)).toBe(true)
+    expect(d.langkah.length).toBeGreaterThan(0)
+  })
+
+  it('item tak dikenal → 404 (cabang sah, tetap harus jalan)', async () => {
+    actAs(adminAuth)
+    const res = await get(
+      '/api/v1/estimate-items/00000000-0000-0000-0000-0000000000ff/explain')
+    expect(res.statusCode).toBe(404)
   })
 })
 
