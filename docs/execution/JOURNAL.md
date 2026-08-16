@@ -24131,3 +24131,69 @@ uji-token-css-ada          exit=0 (2 token hantu ditangkap)
 audit-peta-modul           exit=0, 231 entri
 migrasi 427                blok verifikasi LULUS, lintas-tenant terbukti
 ```
+
+---
+
+## 2026-08-16 (lanjutan 5) — lima agent paralel, empat menemukan pekerjaannya SUDAH ADA
+
+Founder minta lima sisa Peta Modul dikerjakan paralel. Dibuat lima worktree
+dari tip yang sama (`6e9038cf`), `.env` disalin, nomor migrasi dipisah 429-433.
+
+**Empat dari lima berhenti sendiri karena mengukur lebih dulu.** Bukan gagal —
+justru sebaliknya.
+
+### Yang mereka temukan
+
+Branch **`feat/kematangan-modul`** (worktree lain, sesi lain) sudah
+mengerjakan hampir seluruhnya:
+
+| Commit | Isi |
+|---|---|
+| `8262759a` | dokumen penawaran + PDF (`crm-proposal`) — 16 berkas, 3.076 baris |
+| `55f496e6` | revisi dokumen (`dk-register`) |
+| `5a144acc` | laporan terjadwal TERKIRIM (`bi-terjadwal`) |
+| `93809b0b` | tagihan pekerjaan tambah (`tg-tambah`) — **yang juga saya bangun sendiri hari ini** |
+
+Agent `crm-proposal` dan `dk-register` menolak menulis kode dan melaporkan
+alasannya dengan bukti file:line. Keduanya benar.
+
+### Dua temuan yang lebih penting daripada fiturnya
+
+**1. Migrasi hantu — DDL hidup, buku kosong.** Diukur:
+
+```
+tabel fisik ADA      : penawaran, penawaran_item, documents.revisi,
+                       documents.menggantikan_id
+buku migrasi >= 400  : 427, 431  ← 407/408/409/410 TIDAK ADA
+```
+
+Artefaknya sudah terpasang di basis bersama tanpa tercatat. Itu persis kelas
+cacat yang `apply-migrasi.mjs` dibuat untuk mencegahnya (20 migrasi hantu,
+2026-07-31): CI memutuskan apa yang di-replay dari buku itu, jadi lingkungan
+bersih akan menjalankan ulang 407-410 termasuk penulisan policy RLS.
+
+**Gerbang Keras G-2 — tidak disentuh, menunggu founder.**
+
+**2. Nomor migrasi bertabrakan.** `410_dokumen_revisi.sql` (kematangan-modul)
+vs `410_k3_stok_mutu.sql` (sudah di branch ini, sudah tercatat, artefaknya
+terverifikasi). Dua berkas berbeda, satu nomor. Begitu di-merge, salah satu
+dilewati senyap selamanya.
+
+### Yang saya rusak sendiri, dan sudah dirapikan
+
+Agent `crm-boq` sempat MENERAPKAN migrasi 431 ke basis bersama sebelum saya
+hentikan — jadi `takeoff_dimensi` hidup dan tercatat, tapi tanpa rute/UI/test.
+Berkasnya di-commit ke `pm/crm-boq` (`dea8c3b4`) supaya tidak yatim: DDL yang
+hidup tanpa berkas yang bisa ditemukan adalah cacat yang sama dengan di atas.
+
+`crm-boq` TIDAK duplikat — `feat/kematangan-modul` meninggalkannya `sebagian`.
+Ia satu-satunya dari lima yang masih pekerjaan nyata.
+
+### Pelajaran
+
+Paralel di worktree terpisah TIDAK melindungi dari tabrakan, karena
+**basisnya tetap satu**. Yang menyelamatkan bukan isolasi filesystem,
+melainkan disiplin mengukur sebelum menulis — dan itu datang dari brief yang
+menyuruh "verifikasi ulang di HEAD", bukan dari worktree-nya.
+
+Empat worktree kosong dihapus, branch-nya dibuang. Tersisa `pm/crm-boq`.
