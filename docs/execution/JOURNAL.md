@@ -5,6 +5,70 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi ASISTEN, 6) — 2.17 + 8.9 ikhtisar perusahaan
+
+Katalog tool asisten: 37 → 38. Kelompok "Pemilik/eksekutif" 8 dari 13.
+
+### SATU tool untuk DUA nomor, dan itu disengaja
+
+2.17 "Financial Report Auto-Generation" dan 8.9 "Board/Investor Report"
+meminta hal yang sama dari sudut berbeda: ringkasan keadaan perusahaan.
+Bedanya cuma siapa yang membaca.
+
+Dua tool berarti dua tempat menghitung angka yang sama — dan yang kedua akan
+menyimpang. Bank yang menerima Rp 6,06 miliar dari satu laporan dan Rp 5,9
+miliar dari laporan lain berhenti memercayai keduanya.
+
+### Tiga angka yang sering tertukar — di sini DIPISAH
+
+    Kontrak berjalan : Rp 6.060.000.000   ← yang DIJANJIKAN
+    Sudah ditagih    : Rp 2.092.560.000   ← yang sudah jadi invoice
+    Sudah diterima   : Rp 1.992.165.000   ← yang benar-benar masuk
+
+Selisihnya Rp 4 miliar, dan ketiganya sering disebut "omzet" bergantian.
+Untuk laporan yang dibawa ke bank, tertukar bukan kesalahpahaman kecil — ia
+menyesatkan keputusan kredit. Keluarannya menyebut ketiganya dengan nama
+masing-masing, plus larangan eksplisit meringkasnya jadi "omzet".
+
+### Margin, laba, dan ROI SENGAJA tidak dihitung
+
+Ketiganya menuntut biaya per proyek yang lengkap — diukur di 8.4, hanya 4 dari
+13 proyek punya pengeluaran tercatat. Angka laba dari data seperempat lengkap
+akan terlihat bagus DAN salah, dan untuk laporan ke pihak luar itu bukan
+sekadar memalukan.
+
+### Bukti
+
+    tsc (berkas saya)      0 galat
+    ai-tool-ikhtisar       7 hijau (Postgres NYATA)
+    serapan 7 · simulasi 8 · alokasi 6 · banding 9 · arus-kas 9 · ai-tool 18
+    audit-izin-benar-ada       exit 0
+    audit-kredensial-tak-bocor exit 0
+    audit-kegagalan-senyap     exit 0
+    audit-catch-senyap         exit 0
+    audit-tool-ai-read-only    exit 0  (ambang NOL, tetap utuh)
+    audit-baca-tak-terpotong   exit 0
+    audit-gerbang-tenancy      exit 0
+    nomor katalog kembar       NOL (66 nomor)
+    mutasi                 proyek selesai ikut "kontrak berjalan" → MERAH
+                           "diterima" pakai total_amount → MERAH → pulih
+
+Ketiga angka diverifikasi ulang lewat SQL terpisah.
+
+### Ringkasan sesi ASISTEN sejauh ini
+
+Enam commit, tujuh tool, semuanya kelompok Pemilik/eksekutif:
+
+    2.4 proyeksi arus kas · 8.3 prioritas bayar · 8.8 banding proyek
+    2.15 alokasi kas · 8.1 simulasi kas · 8.4 serapan biaya
+    2.17+8.9 ikhtisar
+
+Sisa kelompok ini: 1.15 (lintas-company — butuh grup usaha, tenant ini satu
+PT), 2.18 (advisor kredit), 8.2 (what-if proyek baru), 8.5 (analisis
+investasi), 8.7 (Q&A strategis multi-langkah).
+
+---
+
 ## 2026-08-16 (sesi ASISTEN, 5) — 8.4: pengukuran MEMBATALKAN bentuk yang diminta
 
 Katalog tool asisten: 36 → 37. Kelompok "Pemilik/eksekutif" 6 dari 13.

@@ -929,6 +929,44 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'jadi jalur utama uang keluar.',
   },
   {
+    /*
+      2.17 + 8.9 — SATU tool untuk DUA nomor, dan itu disengaja.
+
+      2.17 "Financial Report Auto-Generation" dan 8.9 "Board/Investor Report"
+      meminta hal yang sama dari sudut berbeda: ringkasan keadaan perusahaan.
+      Bedanya cuma siapa yang membaca.
+
+      Dua tool berarti dua tempat menghitung angka yang sama — dan yang kedua
+      akan menyimpang. Bank yang menerima Rp 6,06 miliar dari satu laporan dan
+      Rp 5,9 miliar dari laporan lain berhenti memercayai keduanya.
+    */
+    kunci: 'tanya-ikhtisar',
+    kunci_bukan_rute: true,
+    nomor: '2.17, 8.9',
+    nama: 'Tanya ikhtisar perusahaan',
+    pemicu: 'percakapan',
+    penjelasan:
+      'Ringkasan keadaan perusahaan: proyek per status, nilai kontrak '
+      + 'berjalan, yang sudah ditagih, yang sudah diterima, piutang, saldo kas, '
+      + 'dan hutang supplier.',
+    penerima: 'Yang bertanya',
+    alur: [
+      { di: 'n8n', teks: 'Pertanyaan masuk lewat WhatsApp.' },
+      { di: 'sistem', teks: 'Asisten memilih alat baca yang sesuai izin penanya.' },
+      { di: 'sistem', teks: 'Angka dijumlah dari proyek, invoice, rekening kas, dan tagihan supplier.' },
+      { di: 'n8n', teks: 'Jawabannya dikirim balik.' },
+    ],
+    catatan:
+      'Tiga angka nilai DIPISAH namanya — "kontrak berjalan" yang dijanjikan, '
+      + '"ditagih" yang sudah jadi invoice, "diterima" yang benar-benar masuk. '
+      + 'Ketiganya sering disebut "omzet" bergantian padahal selisihnya '
+      + 'miliaran, dan untuk laporan yang dibawa ke bank tertukar bukan '
+      + 'kesalahpahaman kecil. Margin, laba, dan ROI TIDAK dihitung: keduanya '
+      + 'menuntut biaya per proyek yang lengkap, dan hanya sebagian proyek '
+      + 'punya pengeluaran tercatat — angka laba dari data separuh lengkap '
+      + 'akan terlihat bagus dan salah.',
+  },
+  {
     kunci: 'tanya-mandor',
     kunci_bukan_rute: true,
     nomor: '6.7, 6.11',

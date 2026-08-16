@@ -68,6 +68,7 @@ import { toolBandingProyek } from './ai-tool-banding-proyek.js'
 import { toolAlokasiKas } from './ai-tool-alokasi-kas.js'
 import { toolSimulasiKas } from './ai-tool-simulasi-kas.js'
 import { toolSerapanBiaya } from './ai-tool-serapan-biaya.js'
+import { toolIkhtisar } from './ai-tool-ikhtisar.js'
 
 
 
@@ -899,6 +900,12 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     serapan biaya nyata terhadap progres.
   */
   toolSerapanBiaya,
+  /*
+    Katalog 2.17 + 8.9 — SATU tool untuk dua nomor. Keduanya meminta ringkasan
+    keadaan perusahaan; bedanya cuma siapa yang membaca. Dua tool berarti dua
+    tempat menghitung angka yang sama, dan yang kedua akan menyimpang.
+  */
+  toolIkhtisar,
 ]
 
 /**

@@ -3060,6 +3060,59 @@ items:
       Mutasi M2 (cabang kontrak-nol dicabut) sempat hijau: 13 proyek, nol
       berkontrak kosong. Diperiksa di sumber, kelemahannya ditulis di test.
 
+  - id: ASISTEN-19
+    fase: null
+    judul: "2.17 + 8.9 ikhtisar perusahaan — satu tool, dua nomor"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: SATU tool untuk dua nomor — dua tempat hitung akan menyimpang"
+      - "SUDAH: tiga angka nilai DIPISAH namanya, plus larangan menyebutnya 'omzet'"
+      - "SUDAH: 'kontrak berjalan' hanya active+on_hold, bukan seluruh proyek"
+      - "SUDAH: margin/laba/ROI TIDAK dihitung, alasannya dinyatakan"
+      - "SUDAH: tiap angka diverifikasi ulang lewat SQL terpisah"
+      - "SUDAH: 2 mutasi terbukti merah"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/ai-tool-ikhtisar.test.ts
+      (7 hijau)
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16 (sesi ASISTEN). Katalog tool 37 → 38; kelompok
+      Pemilik/eksekutif 8 dari 13.
+      2.17 dan 8.9 meminta hal yang sama dari sudut berbeda — dibuat SATU tool.
+      Dua tool berarti dua tempat menghitung angka yang sama, dan bank yang
+      menerima dua angka berbeda berhenti memercayai keduanya.
+      Tiga angka nilai dipisah: kontrak berjalan Rp 6.060.000.000 (dijanjikan),
+      ditagih Rp 2.092.560.000 (sudah jadi invoice), diterima Rp 1.992.165.000
+      (benar-benar masuk). Selisihnya Rp 4 miliar dan ketiganya sering disebut
+      "omzet" bergantian.
+      Margin/laba/ROI sengaja TIDAK dihitung: menuntut biaya per proyek yang
+      lengkap, dan hanya 4 dari 13 proyek punya pengeluaran tercatat.
+      Mutasi: proyek selesai ikut "kontrak berjalan" → MERAH; "diterima" pakai
+      total_amount → MERAH. Keduanya pulih.
+
+  - id: ASISTEN-SISA
+    fase: null
+    judul: "Sisa kelompok Pemilik/eksekutif — 5 nomor, syarat masuk berbeda-beda"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "1.15 lintas-company: butuh tenant punya >1 PT (sekarang satu)"
+      - "2.18 advisor kredit: butuh proyeksi kas >90 hari + riwayat pinjaman"
+      - "8.2 what-if proyek baru: butuh RAB tepercaya (lihat 8.4 — RAB > kontrak)"
+      - "8.5 analisis investasi alat: butuh riwayat biaya & utilisasi alat"
+      - "8.7 Q&A strategis: butuh tool lain matang dulu, ia merangkai mereka"
+    cara_verifikasi: >-
+      Ukur syaratnya sebelum membangun, seperti 8.4 yang bentuknya diubah
+      sesudah RAB terbukti melebihi nilai kontrak.
+    bobot: L
+    status: pending
+    catatan_kemajuan: >-
+      DICATAT 2026-08-16 supaya syarat masuknya tak hilang. Tujuh nomor
+      kelompok ini sudah selesai; lima sisanya masing-masing menunggu data
+      yang belum ada — bukan menunggu waktu. Membangunnya sekarang menghasilkan
+      alat yang selalu menjawab "tidak ada data" atau, lebih buruk, angka yang
+      salah dengan percaya diri (pelajaran 8.4).
+
   - id: TUNDA-3.6
     fase: null
     judul: "3.6 Subcontractor Scoring — ditunda, syarat masuk terukur"
