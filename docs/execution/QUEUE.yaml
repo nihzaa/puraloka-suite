@@ -3026,6 +3026,40 @@ items:
       Mutasi: gerbang kewarasan dicabut → MERAH; tagihan lewat tempo dibuang →
       MERAH. Keduanya pulih.
 
+  - id: ASISTEN-18
+    fase: null
+    judul: "8.4 serapan biaya vs progres — bentuk diubah karena RAB tak sanggup"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: RAB TIDAK dipakai — 2 dari 13 proyek punya, dan keduanya RAB > kontrak"
+      - "SUDAH: larangan RAB punya SYARAT PENCABUTAN yang diukur ulang ke basis"
+      - "SUDAH: uang keluar = pengeluaran approved + kasbon approved/settled"
+      - "SUDAH: kontrak nol DIPISAH — pembagiannya menghasilkan Infinity"
+      - "SUDAH: MINUS besar dinyatakan BUKAN kabar baik"
+      - "SUDAH: 2 mutasi terbukti merah"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/ai-tool-serapan-biaya.test.ts
+      (7 hijau)
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16 (sesi ASISTEN). Katalog tool 36 → 37; kelompok
+      Pemilik/eksekutif 6 dari 13.
+      Katalog meminta "Profitability Simulation (skenario RAB)". Pengukuran
+      MEMBATALKAN bentuk itu: dari 13 proyek berjalan hanya 2 punya RAB, dan
+      pada KEDUANYA RAB melebihi nilai kontrak (Rumah Bu Sari: kontrak
+      Rp 1.095 jt, RAB Rp 3.630 jt). Margin dari RAB akan melaporkan rugi
+      Rp 2,5 miliar untuk proyek yang tidak rugi, dan "margin 100%" untuk 11
+      proyek tanpa RAB — salah di kedua arah.
+      Yang dibangun: serapan biaya nyata terhadap progres, memakai tiga kolom
+      yang terisi untuk seluruh 13 proyek. Sinyal terkuat: Renovasi Pak Andi
+      +22 (keluar Rp 211.360.000 = 74% kontrak, progres 52%).
+      Larangan RAB diberi SYARAT PENCABUTAN yang diukur ulang ke basis —
+      pelajaran CLAUDE.md §5.5 ("peringatan pun bisa basi"). Kalau kelak RAB
+      wajar, test itu merah dan artinya "tinjau ulang", bukan cacat.
+      Mutasi M2 (cabang kontrak-nol dicabut) sempat hijau: 13 proyek, nol
+      berkontrak kosong. Diperiksa di sumber, kelemahannya ditulis di test.
+
   - id: TUNDA-3.6
     fase: null
     judul: "3.6 Subcontractor Scoring — ditunda, syarat masuk terukur"

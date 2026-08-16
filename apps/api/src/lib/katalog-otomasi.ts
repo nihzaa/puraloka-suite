@@ -888,6 +888,47 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'pembayaran.',
   },
   {
+    /*
+      8.4 — BENTUKNYA DIUBAH sesudah pengukuran, dan alasannya ditulis di sini
+      supaya tak dikira kelalaian.
+
+      Katalog menyebut "Profitability Simulation (skenario RAB)". Diukur
+      2026-08-16: dari 13 proyek berjalan hanya 2 punya RAB, dan pada KEDUANYA
+      RAB melebihi nilai kontrak (Rumah Bu Sari: kontrak Rp 1.095 jt, RAB
+      Rp 3.630 jt).
+
+      Tool yang menghitung margin dari RAB akan melaporkan rugi Rp 2,5 miliar
+      untuk proyek yang tidak rugi — dan untuk 11 proyek tanpa RAB ia
+      melaporkan "margin 100%". Salah di kedua arah, disajikan penuh keyakinan.
+
+      Yang dibangun: serapan biaya NYATA terhadap progres, memakai tiga kolom
+      yang terisi untuk seluruh 13 proyek.
+    */
+    kunci: 'tanya-serapan-biaya',
+    kunci_bukan_rute: true,
+    nomor: '8.4',
+    nama: 'Tanya proyek mana yang biayanya mendahului pekerjaan',
+    pemicu: 'percakapan',
+    penjelasan:
+      'Membandingkan uang yang sudah benar-benar keluar (pengeluaran disetujui '
+      + '+ kasbon disetujui/lunas) dengan progres pekerjaan, per proyek.',
+    penerima: 'Yang bertanya',
+    alur: [
+      { di: 'n8n', teks: 'Pertanyaan masuk lewat WhatsApp.' },
+      { di: 'sistem', teks: 'Asisten memilih alat baca yang sesuai izin penanya.' },
+      { di: 'sistem', teks: 'Persen serapan biaya dikurangi persen progres, per proyek.' },
+      { di: 'n8n', teks: 'Jawabannya dikirim balik.' },
+    ],
+    catatan:
+      'RAB TIDAK dipakai — diukur 2026-08-16, hanya 2 dari 13 proyek punya RAB '
+      + 'dan pada keduanya RAB melebihi nilai kontrak, jadi margin yang '
+      + 'dihitung darinya salah besar. MINUS besar dinyatakan BUKAN kabar '
+      + 'baik: serapan 13% pada progres 85% hampir selalu berarti biayanya '
+      + 'belum masuk pembukuan, dan memujinya membuat orang berhenti mencari '
+      + 'yang belum tercatat. Kasbon ikut dihitung — di lapangan ia sering '
+      + 'jadi jalur utama uang keluar.',
+  },
+  {
     kunci: 'tanya-mandor',
     kunci_bukan_rute: true,
     nomor: '6.7, 6.11',

@@ -67,6 +67,7 @@ import { TOOL_ARUS_KAS } from './ai-tool-arus-kas.js'
 import { toolBandingProyek } from './ai-tool-banding-proyek.js'
 import { toolAlokasiKas } from './ai-tool-alokasi-kas.js'
 import { toolSimulasiKas } from './ai-tool-simulasi-kas.js'
+import { toolSerapanBiaya } from './ai-tool-serapan-biaya.js'
 
 
 
@@ -891,6 +892,13 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     di jawaban, supaya salah dengar ketahuan sebelum diputuskan.
   */
   toolSimulasiKas,
+  /*
+    Katalog 8.4, DIUBAH BENTUKNYA sesudah pengukuran: bukan simulasi margin
+    dari RAB (2 dari 13 proyek punya RAB, dan pada keduanya RAB MELEBIHI nilai
+    kontrak — margin yang dihitung darinya akan salah besar), melainkan
+    serapan biaya nyata terhadap progres.
+  */
+  toolSerapanBiaya,
 ]
 
 /**

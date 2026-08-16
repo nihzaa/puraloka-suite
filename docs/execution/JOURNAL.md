@@ -5,6 +5,84 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi ASISTEN, 5) — 8.4: pengukuran MEMBATALKAN bentuk yang diminta
+
+Katalog tool asisten: 36 → 37. Kelompok "Pemilik/eksekutif" 6 dari 13.
+
+### Katalog minta simulasi margin dari RAB. Datanya tak sanggup.
+
+Diukur sebelum menulis satu baris pun:
+
+    proyek berjalan       13
+    punya RAB              2
+    RAB > nilai kontrak    2   ← KEDUANYA
+
+Rumah Bu Sari: kontrak Rp 1.095 juta, RAB Rp 3.630 juta.
+
+Tool yang menghitung margin dari RAB akan melaporkan **rugi Rp 2,5 miliar**
+untuk proyek yang tidak rugi — dan untuk 11 proyek tanpa RAB ia melaporkan
+"margin 100%". Salah di KEDUA arah, disajikan penuh keyakinan, di layar yang
+dipakai memutuskan.
+
+Membangunnya apa adanya berarti membuat alat yang berbohong untuk 13 dari 13
+proyek. Bentuknya diubah, bukan dipaksakan.
+
+### Yang dibangun: serapan biaya NYATA terhadap progres
+
+Tiga kolom yang terisi untuk seluruh 13 proyek: `contract_value`,
+`progress_pct`, dan uang yang benar-benar keluar (pengeluaran disetujui +
+kasbon disetujui/lunas).
+
+    +22  Renovasi Pak Andi : keluar Rp 211.360.000 (74% kontrak), progres 52% ⚠
+    -72  Renovasi Dapur    : keluar 13% kontrak, progres 85%
+
+MINUS besar dinyatakan **BUKAN kabar baik**: serapan 13% pada progres 85%
+hampir selalu berarti biayanya belum masuk pembukuan, dan memujinya membuat
+orang berhenti mencari yang belum tercatat.
+
+### Larangan RAB diberi SYARAT PENCABUTAN yang diukur
+
+CLAUDE.md §5.5 mencatat pola "peringatan pun bisa basi" — larangan GL yang
+bertahan sesudah penyebabnya diperbaiki, lalu menyesatkan sesi berikutnya.
+
+Maka test di sini tak cuma melarang `rab_items`; ia MENGUKUR ULANG syaratnya
+ke basis. Kalau kelak RAB tak lagi melebihi kontrak, test itu MERAH — dan
+merahnya berarti "tinjau ulang bentuk toolnya", bukan cacat.
+
+### Mutasi kedua tak punya bahan — dan itu dinyatakan (ketiga kalinya)
+
+    M1 kasbon tak ikut dihitung   → MERAH
+    M2 cabang kontrak-nol dicabut → HIJAU
+
+M2 lolos karena 13 proyek berjalan, NOL berkontrak kosong. Assertion
+`not.toMatch(/Infinity/)` pun tak menolong: tanpa baris berkontrak nol,
+`Infinity` memang tak akan pernah muncul.
+
+Cabangnya lalu diperiksa DI SUMBER, dan kelemahannya ditulis di test-nya.
+Sesudah itu M2 MERAH.
+
+Ketiga kalinya dalam sesi ini data tak sanggup membuktikan perilaku —
+`perlu_perhatian`, `banding_proyek`, dan sekarang ini.
+
+### Bukti
+
+    tsc (berkas saya)      0 galat
+    ai-tool-serapan-biaya  7 hijau (Postgres NYATA)
+    simulasi 8 · alokasi 6 · banding 9 · arus-kas 9 · ai-tool 18
+    lint:ratchet           API 0/231 · web 0/295
+    audit-izin-benar-ada       exit 0
+    audit-kredensial-tak-bocor exit 0
+    audit-kegagalan-senyap     exit 0
+    audit-catch-senyap         exit 0
+    audit-tool-ai-read-only    exit 0  (ambang NOL, tetap utuh)
+    audit-baca-tak-terpotong   exit 0
+    audit-gerbang-tenancy      exit 0
+    nomor katalog kembar       NOL (64 nomor)
+
+Uang keluar diverifikasi ulang lewat SQL terpisah.
+
+---
+
 ## 2026-08-16 (sesi ASISTEN, 4) — 8.1 simulasi kas
 
 Katalog tool asisten: 35 → 36. Kelompok "Pemilik/eksekutif" 5 dari 13.
