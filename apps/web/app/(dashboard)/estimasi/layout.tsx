@@ -50,6 +50,8 @@ interface Bagian {
   label: string;
   /** Cocok PERSIS, bukan awalan — hanya untuk "/estimasi" sendiri. */
   tepat?: boolean;
+  /** Halaman di luar modul ini: ditandai supaya tak pernah tampak "aktif". */
+  luar?: boolean;
 }
 
 const BAGIAN: Bagian[] = [
@@ -58,7 +60,20 @@ const BAGIAN: Bagian[] = [
   { href: "/estimasi/rap", label: "Anggaran Pelaksanaan" },
   { href: "/estimasi/kas", label: "Proyeksi Kas" },
   { href: "/estimasi/varians", label: "Varians Biaya" },
-  { href: "/estimasi/markup", label: "Markup & PPN" },
+  /*
+    Markup TIDAK dijadikan rute bersarang `/estimasi/markup`.
+
+    Sempat dicoba sebagai re-export, dan hasilnya terlihat di tangkapan layar:
+    DUA `<h1>` di satu halaman ("Estimasi & RAB" dari layout, "Markup & Margin"
+    dari halamannya) plus padding ganda karena halaman itu membawa `<Halaman>`
+    sendiri. Penjaga `uji-judul-halaman-ada` tetap hijau — ia memastikan judul
+    ADA, bukan memastikan judulnya tunggal. Hijaunya penjaga bukan bukti
+    benarnya hierarki.
+
+    Yang dipindahkan cukup JALAN MASUKNYA: orang yang sedang menyusun RAB
+    menemukannya dari sini, tanpa halaman itu harus digandakan atau dibedah.
+  */
+  { href: "/pengaturan/markup", label: "Markup & PPN", luar: true },
 ];
 
 export default function EstimasiLayout({ children }: { children: React.ReactNode }) {
@@ -95,7 +110,7 @@ export default function EstimasiLayout({ children }: { children: React.ReactNode
         }}
       >
         {BAGIAN.map((b) => {
-          const aktif = b.tepat ? path === b.href : path.startsWith(b.href);
+          const aktif = b.luar ? false : b.tepat ? path === b.href : path.startsWith(b.href);
           return (
             <Link
               key={b.href}

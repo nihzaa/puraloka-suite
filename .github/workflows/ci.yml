@@ -2032,6 +2032,27 @@ jobs:
       - name: Tiap halaman dashboard punya judul <h1>
         run: node scripts/uji-judul-halaman-ada.mjs
 
+      # Layar kosong wajib punya JALAN KELUAR, bukan sekadar tak error.
+      #
+      # 2026-08-16: tab "Material & RAP" di /estimasi merender HALAMAN PUTIH —
+      # satu dropdown lalu ruang kosong, dan memilih proyek tak mengubahnya.
+      # Kosongnya JUJUR (`rap_budget` cuma 1 baris), tetapi tak seorang pun
+      # bisa tahu bahwa RAP dibentuk dari versi estimasi terkunci. Layar itu
+      # terbaca sebagai "fitur belum jadi". Nol galat, nol log, nol test merah
+      # — kelas cacat yang selalu lolos karena tak punya gejala.
+      #
+      # RATCHET (lantai 126): 100+ halaman lama menulis kekosongannya lepas,
+      # dan memperbaiki semuanya bukan pekerjaan satu commit. Yang dijaga:
+      # tidak bertambah. Turunkan dengan --turunkan setelah memperbaiki.
+      #
+      # Bukti merah (mutasi sengaja, 2026-08-16): halaman yang menyatakan
+      # "Belum ada data" tanpa <LayarKosong> → 126→127, exit 1; dihapus →
+      # exit 0. Uji itu JUGA menemukan cacat di penjaganya sendiri: versi
+      # pertama bisa dipuaskan oleh kata "LayarKosong" yang cuma muncul di
+      # KOMENTAR. Sekarang komentar dilucuti sebelum diperiksa.
+      - name: Layar kosong menjelaskan diri & punya jalan keluar
+        run: node scripts/uji-layar-kosong-menjelaskan.mjs
+
       # Sel tabel tak boleh memaku padding. 61 halaman memakai <Tabel>
       # bersama; tabel `<table>` mentah mengarang gayanya sendiri — diukur
       # tiga tabel, tiga gaya berbeda, semuanya beda dari yang bersama.
