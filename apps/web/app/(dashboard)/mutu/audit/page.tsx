@@ -46,7 +46,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ClipboardList, ShieldAlert, ShieldCheck, Eye, TriangleAlert, Link2, ClipboardCheck,
 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
@@ -279,14 +280,8 @@ const buatKolom = (onTaut: (t: Temuan) => void): Array<Kolom<Temuan>> => [
 ];
 
 export default function AuditMutuPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
   const [projectId, setProjectId] = useState("");
-  const [daftar, setDaftar] = useState<AuditMutu[]>([]);
   const [auditId, setAuditId] = useState("");
-  const [detail, setDetail] = useState<Detail | null>(null);
-  const [ncrList, setNcrList] = useState<Ncr[]>([]);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
 
   const [temuanAktif, setTemuanAktif] = useState<Temuan | null>(null);
   const [fNcr, setFNcr] = useState("");
@@ -296,61 +291,60 @@ export default function AuditMutuPage() {
   const [galatModal, setGalatModal] = useState<string | null>(null);
   const [menyelesaikan, setMenyelesaikan] = useState(false);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); });
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    if (!projectId) { setDaftar([]); setAuditId(""); setDetail(null); return; }
-    let batal = false;
-    setGalat(null);
-    api.get<{ audit: AuditMutu[] }>(`/api/v1/projects/${projectId}/audit-mutu`)
-      .then((r) => {
-        if (batal) return;
-        const d = r.data.audit ?? [];
-        setDaftar(d);
-        setAuditId(d[0]?.id ?? "");
-      })
-      .catch(() => { if (!batal) setGalat("Gagal memuat daftar audit"); });
-    return () => { batal = true; };
-  }, [projectId]);
+    Empat `useData`: proyek (prasyarat), daftar audit per proyek, daftar NCR
+    per proyek (untuk menautkan temuan), dan detail audit terpilih. URL kedua
+    hingga keempat DINAMIS mengikuti `projectId`/`auditId` — `null` sampai
+    prasyaratnya terpilih.
+  */
+  const { data: dataProyek, galat: galatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
 
-  // Daftar NCR proyek — dipakai menautkan temuan major.
-  //
-  // Tanpa jalan ini, `temuan_audit.ncr_id` selamanya NULL, audit tak pernah
-  // bisa diselesaikan, dan modulnya jadi ritual yang menghasilkan dokumen
-  // tanpa akibat (`audit-kolom-tak-tersambung`).
+  const jalurDaftar = projectId ? `/api/v1/projects/${projectId}/audit-mutu` : null;
+  const { data: dataDaftar, memuat: memuatDaftar, galat: galatDaftar } =
+    useData<{ audit: AuditMutu[] }>(jalurDaftar);
+  const daftar = dataDaftar?.audit ?? [];
+
+  // Audit pertama dipilih otomatis begitu daftar proyek berganti — efek
+  // tersendiri, bergantung `dataDaftar` saja, bukan state pilihan pengguna.
   useEffect(() => {
-    if (!projectId) { setNcrList([]); return; }
-    let batal = false;
-    api.get<{ data: Ncr[] }>(`/api/v1/projects/${projectId}/ncr`)
-      .then((r) => { if (!batal) setNcrList(r.data.data ?? []); })
-      .catch(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAuditId(dataDaftar?.audit?.[0]?.id ?? "");
+  }, [dataDaftar]);
+
+  const jalurNcr = projectId ? `/api/v1/projects/${projectId}/ncr` : null;
+  const { data: dataNcr, galat: galatNcr } = useData<{ data: Ncr[] }>(jalurNcr);
+  const ncrList = dataNcr?.data ?? [];
+
+  const jalurDetail = auditId ? `/api/v1/audit-mutu/${auditId}` : null;
+  const { data: detail, memuat: memuatDetail, galat: galatDetail, muatUlang: muatUlangDetail } =
+    useData<Detail>(jalurDetail);
+  // Daftar audit dan detail dimuat berurutan (daftar → pilih auditId →
+  // detail) — gabungkan status muatnya supaya keadaan "memuat daftar, detail
+  // belum diminta" tak terbaca sebagai "sudah selesai memuat".
+  const memuat = memuatDaftar || memuatDetail;
+
+  // Galat MUAT vs galat AKSI (menyelesaikan audit) dipisah — satu state
+  // untuk keduanya membuat gagal menyelesaikan menghapus pesan gagal memuat.
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi ?? (
+    galatProyek
+      ? "Gagal memuat daftar proyek"
+      : galatDaftar
+        ? "Gagal memuat daftar audit"
         // Tak menghalangi pencatatan, tapi tak boleh ditelan diam-diam:
         // daftar kosong karena galat akan terbaca "belum ada NCR".
-        if (!batal) setGalat("Daftar NCR gagal dimuat — penautan temuan tak tersedia");
-      });
-    return () => { batal = true; };
-  }, [projectId]);
+        : galatNcr
+          ? "Daftar NCR gagal dimuat — penautan temuan tak tersedia"
+          : galatDetail
+            ? "Gagal memuat audit"
+            : null
+  );
 
-  const muat = useCallback(async (id: string) => {
-    if (!id) { setDetail(null); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Detail>(`/api/v1/audit-mutu/${id}`);
-      setDetail(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat audit");
-      setDetail(null);
-    } finally { setMemuat(false); }
-  }, []);
-
-  useEffect(() => { void muat(auditId); }, [auditId, muat]);
+  const muat = useCallback(async () => { await muatUlangDetail(); }, [muatUlangDetail]);
 
   const bukaTaut = useCallback((t: Temuan) => {
     setTemuanAktif(t);
@@ -370,22 +364,22 @@ export default function AuditMutuPage() {
         catatan_penutupan: fCatatan.trim() || null,
       });
       setTemuanAktif(null);
-      await muat(auditId);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menyimpan tindak lanjut");
     } finally { setMenyimpan(false); }
-  }, [temuanAktif, fNcr, fTutup, fCatatan, muat, auditId]);
+  }, [temuanAktif, fNcr, fTutup, fCatatan, muat]);
 
   const selesaikan = useCallback(async () => {
     if (!auditId) return;
-    setMenyelesaikan(true); setGalat(null);
+    setMenyelesaikan(true); setGalatAksi(null);
     try {
       await api.post(`/api/v1/audit-mutu/${auditId}/selesaikan`, {});
-      await muat(auditId);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menyelesaikan audit");
+      setGalatAksi(m ?? "Gagal menyelesaikan audit");
     } finally { setMenyelesaikan(false); }
   }, [auditId, muat]);
 

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { KepalaHalaman } from "@/components/dasar";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useToast } from "@/components/toast";
 import {
   ClipboardCheck, Plus, MapPin, CheckCircle2, X, RotateCcw,
@@ -101,65 +102,50 @@ const tanggal = (d: string | null) =>
 
 export default function PunchListPage() {
   const { showToast } = useToast();
-  const [proyek, setProyek] = useState<Array<{ id: string; name: string }>>([]);
   const [proyekId, setProyekId] = useState<string>("");
-  const [items, setItems] = useState<PunchItem[]>([]);
-  const [meta, setMeta] = useState<MetaPunch | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [formTerbuka, bukaForm] = useState(false);
   const [sedangUbah, setSedangUbah] = useState<string | null>(null);
-  const batalRef = useRef<AbortController | null>(null);
 
-  // ── Muat daftar proyek ────────────────────────────────────────────────────
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Dua `useData`: daftar proyek (prasyarat), lalu temuan proyek terpilih —
+    URL kedua bergantung `proyekId`, jadi `null` sampai proyek terpilih. Efek
+    pemilihan proyek pertama otomatis dipindah ke efek tersendiri di bawah,
+    karena `useData` sendiri tak boleh dicampur setState pilihan pengguna.
+  */
+  const { data: dataProyek, memuat: memuatProyek, galat: galatProyek } =
+    useData<{ projects: Array<{ id: string; name: string }> }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
+
+  // Pilih proyek pertama begitu daftar proyek datang, tanpa menimpa pilihan
+  // pengguna yang sudah ada. `set-state-in-effect` sadar: ini efek samping
+  // saat MUAT, bergantung `data` saja — bukan state pilihan.
   useEffect(() => {
-    let batal = false;
-    api.get("/api/v1/projects")
-      .then((r) => {
-        if (batal) return;
-        const daftar = (r.data?.projects ?? []) as Array<{ id: string; name: string }>;
-        setProyek(daftar);
-        setProyekId((kini) => kini || daftar[0]?.id || "");
-        if (daftar.length === 0) setMemuat(false);
-      })
-      .catch(() => {
-        if (!batal) { setGalat("Daftar proyek tidak bisa dimuat."); setMemuat(false); }
-      });
-    return () => { batal = true; };
-  }, []);
-
-  // ── Muat temuan ───────────────────────────────────────────────────────────
-  const muat = useCallback(async (pid: string) => {
-    if (!pid) return;
-    batalRef.current?.abort();
-    const ac = new AbortController();
-    batalRef.current = ac;
-    setMemuat(true);
-    setGalat(null);
-    try {
-      const r = await api.get(`/api/v1/projects/${pid}/punch-items`, { signal: ac.signal });
-      setItems(r.data?.data ?? []);
-      setMeta(r.data?.meta ?? null);
-    } catch (e) {
-      if ((e as { name?: string }).name === "CanceledError") return;
-      // Katakan APA yang gagal dan apa yang bisa dilakukan — bukan "terjadi
-      // kesalahan", yang tak memberi jalan keluar apa pun.
-      setGalat("Daftar temuan tidak bisa dimuat. Periksa koneksi lalu muat ulang.");
-    } finally {
-      if (!ac.signal.aborted) setMemuat(false);
+    if (proyek.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setProyekId((kini) => kini || proyek[0].id);
     }
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataProyek]);
 
-  // `setMemuat(true)` di dalam `muat()` dipanggil ASINKRON (microtask), bukan
-  // sinkron di badan efek. Bedanya bukan gaya: setState sinkron dalam efek
-  // memicu render berantai — dan pada halaman yang dibuka di HP lapangan,
-  // render tambahan tiap ganti proyek terasa sebagai jeda.
-  useEffect(() => {
-    if (!proyekId) return;
-    let batal = false;
-    void Promise.resolve().then(() => { if (!batal) void muat(proyekId); });
-    return () => { batal = true; };
-  }, [proyekId, muat]);
+  const jalurTemuan = proyekId ? `/api/v1/projects/${proyekId}/punch-items` : null;
+  const { data: dataTemuan, memuat: memuatTemuan, galat: galatTemuan, muatUlang } =
+    useData<{ data: PunchItem[]; meta: MetaPunch | null }>(jalurTemuan);
+  // `useMemo`, bukan `?? []` biasa: turunan array yang masuk dependensi
+  // `useMemo` lain (perStatus di bawah) butuh referensi stabil, kalau tidak
+  // ratchet exhaustive-deps merah setiap render.
+  const items = useMemo(() => dataTemuan?.data ?? [], [dataTemuan]);
+  const meta = dataTemuan?.meta ?? null;
+
+  const memuat = memuatProyek || (proyekId !== "" && memuatTemuan);
+  const galat = galatProyek
+    ? "Daftar proyek tidak bisa dimuat."
+    : galatTemuan
+      ? "Daftar temuan tidak bisa dimuat. Periksa koneksi lalu muat ulang."
+      : null;
+
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   // ── Ubah status ───────────────────────────────────────────────────────────
   const ubahStatus = async (item: PunchItem, baru: PunchItem["status"]) => {
@@ -180,12 +166,14 @@ export default function PunchListPage() {
 
     setSedangUbah(item.id);
     try {
-      const r = await api.patch(`/api/v1/punch-items/${item.id}/status`, {
+      await api.patch(`/api/v1/punch-items/${item.id}/status`, {
         status: baru,
         ...(alasan ? { alasan_penolakan: alasan } : {}),
       });
-      setItems((kini) => kini.map((x) => (x.id === item.id ? r.data.data : x)));
-      void muat(proyekId);                     // rekap ikut berubah
+      // Muat ulang lewat cache (`paksa: true`) — bukan patch lokal: rekap
+      // (meta) ikut berubah, dan derivasi dari `data` tetap satu sumber
+      // kebenaran.
+      void muat();
       showToast("success", `${item.nomor} → ${STATUS_LABEL[baru].toLowerCase()}`);
     } catch (e) {
       const pesan = (e as { response?: { data?: { error?: string } } })
@@ -339,7 +327,7 @@ export default function PunchListPage() {
         <div className="pl-galat" role="alert">
           <AlertTriangle size={18} aria-hidden />
           <span>{galat}</span>
-          <button className="pl-tombol-halus" onClick={() => void muat(proyekId)}>
+          <button className="pl-tombol-halus" onClick={() => void muat()}>
             Muat ulang
           </button>
         </div>
@@ -446,7 +434,7 @@ export default function PunchListPage() {
         <FormTemuan
           proyekId={proyekId}
           onTutup={() => bukaForm(false)}
-          onSimpan={() => { bukaForm(false); void muat(proyekId); }}
+          onSimpan={() => { bukaForm(false); void muat(); }}
         />
       )}
 

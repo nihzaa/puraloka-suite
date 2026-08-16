@@ -41,7 +41,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ClipboardCheck, ShieldAlert, ShieldCheck, Eye, FileText, TriangleAlert , ListChecks } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
@@ -290,85 +291,80 @@ const buatKolom = (onPeriksa: (t: TitikItp) => void): Array<Kolom<TitikItp>> => 
 ];
 
 export default function RencanaMutuPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
   const [projectId, setProjectId] = useState("");
-  const [daftar, setDaftar] = useState<Rencana[]>([]);
   const [rmpId, setRmpId] = useState("");
-  const [detail, setDetail] = useState<Detail | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
 
   // ── Modal pemeriksaan titik ──────────────────────────────────────────────
   const [titikDiperiksa, setTitikDiperiksa] = useState<TitikItp | null>(null);
-  const [inspeksi, setInspeksi] = useState<Inspeksi[]>([]);
   const [fLolos, setFLolos] = useState<"lolos" | "tidak" | "">("");
   const [fCatatan, setFCatatan] = useState("");
   const [fInspeksi, setFInspeksi] = useState("");
   const [menyimpan, setMenyimpan] = useState(false);
   const [galatModal, setGalatModal] = useState<string | null>(null);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Empat `useData`: proyek (prasyarat), daftar RMP per proyek, daftar
+    inspeksi per proyek (untuk menautkan titik ITP), dan detail RMP terpilih.
+    URL kedua hingga keempat DINAMIS mengikuti `projectId`/`rmpId`.
+  */
+  const { data: dataProyek, galat: galatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
+
+  const jalurDaftar = projectId ? `/api/v1/projects/${projectId}/rencana-mutu` : null;
+  const { data: dataDaftar, memuat: memuatDaftar, galat: galatDaftar } =
+    useData<{ rencana: Rencana[] }>(jalurDaftar);
+  const daftar = dataDaftar?.rencana ?? [];
+
+  // Revisi terbaru dipilih otomatis — itu yang berlaku hari ini, dan
+  // memaksa satu klik lagi untuk hal yang selalu sama adalah gesekan tanpa
+  // guna. Efek tersendiri, bergantung `dataDaftar` saja.
   useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); });
-    return () => ac.abort();
-  }, []);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRmpId(dataDaftar?.rencana?.[0]?.id ?? "");
+  }, [dataDaftar]);
 
-  // Daftar RMP proyek terpilih.
-  useEffect(() => {
-    if (!projectId) { setDaftar([]); setRmpId(""); setDetail(null); return; }
-    let batal = false;
-    setGalat(null);
-    api.get<{ rencana: Rencana[] }>(`/api/v1/projects/${projectId}/rencana-mutu`)
-      .then((r) => {
-        if (batal) return;
-        const d = r.data.rencana ?? [];
-        setDaftar(d);
-        // Revisi terbaru dipilih otomatis — itu yang berlaku hari ini, dan
-        // memaksa satu klik lagi untuk hal yang selalu sama adalah gesekan
-        // tanpa guna.
-        setRmpId(d[0]?.id ?? "");
-      })
-      .catch(() => { if (!batal) setGalat("Gagal memuat daftar rencana mutu"); });
-    return () => { batal = true; };
-  }, [projectId]);
+  const jalurDetail = rmpId ? `/api/v1/rencana-mutu/${rmpId}` : null;
+  const { data: detail, memuat: memuatDetail, galat: galatDetail, muatUlang: muatUlangDetail } =
+    useData<Detail>(jalurDetail);
+  const memuat = memuatDaftar || memuatDetail;
 
-  const muat = useCallback(async (id: string) => {
-    if (!id) { setDetail(null); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Detail>(`/api/v1/rencana-mutu/${id}`);
-      setDetail(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat rencana mutu");
-      setDetail(null);
-    } finally { setMemuat(false); }
-  }, []);
-
-  useEffect(() => { void muat(rmpId); }, [rmpId, muat]);
+  const muat = useCallback(async () => { await muatUlangDetail(); }, [muatUlangDetail]);
 
   // Daftar inspeksi proyek — dipakai menautkan titik ITP ke inspeksi yang
   // menjawabnya. Tanpa jalan ini, `itp_titik_id` selamanya NULL dan rencana
   // tak pernah bertemu pelaksanaan (`audit-kolom-tak-tersambung`).
-  useEffect(() => {
-    if (!projectId) { setInspeksi([]); return; }
-    let batal = false;
-    // Kuncinya `data`, BUKAN `inspections`. Tebakan pertama saya salah, dan
-    // akibatnya dropdown kosong tanpa satu pun galat — 24 inspeksi ada di
-    // basis, endpoint mengembalikannya, dan layar menampilkan "tidak
-    // ditautkan" saja. Ketahuan dari LAYAR, bukan dari tsc (keduanya
-    // bertipe objek) maupun dari test.
-    api.get<{ data: Inspeksi[] }>(`/api/v1/projects/${projectId}/inspections`)
-      .then((r) => { if (!batal) setInspeksi(r.data.data ?? []); })
-      // Gagal memuat daftar inspeksi TIDAK menghalangi pencatatan hasil —
-      // penautan bersifat tambahan. Tapi ia tak boleh ditelan diam-diam:
-      // kalau daftarnya kosong karena galat, pengguna akan mengira memang
-      // belum ada inspeksi.
-      .catch(() => { if (!batal) setGalat("Daftar inspeksi gagal dimuat — hasil tetap bisa dicatat, tapi penautan inspeksi tak tersedia"); });
-    return () => { batal = true; };
-  }, [projectId]);
+  //
+  // Kuncinya `data`, BUKAN `inspections`. Tebakan pertama saya salah, dan
+  // akibatnya dropdown kosong tanpa satu pun galat — 24 inspeksi ada di
+  // basis, endpoint mengembalikannya, dan layar menampilkan "tidak
+  // ditautkan" saja. Ketahuan dari LAYAR, bukan dari tsc (keduanya bertipe
+  // objek) maupun dari test.
+  const jalurInspeksi = projectId ? `/api/v1/projects/${projectId}/inspections` : null;
+  const { data: dataInspeksi, galat: galatInspeksi } =
+    useData<{ data: Inspeksi[] }>(jalurInspeksi);
+  const inspeksi = dataInspeksi?.data ?? [];
+
+  // Galat MUAT vs galat AKSI (mengajukan RMP) dipisah — satu state untuk
+  // keduanya membuat gagal mengajukan menghapus pesan gagal memuat.
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi ?? (
+    galatProyek
+      ? "Gagal memuat daftar proyek"
+      : galatDaftar
+        ? "Gagal memuat daftar rencana mutu"
+        : galatDetail
+          ? "Gagal memuat rencana mutu"
+          // Gagal memuat daftar inspeksi TIDAK menghalangi pencatatan hasil —
+          // penautan bersifat tambahan. Tapi ia tak boleh ditelan diam-diam:
+          // kalau daftarnya kosong karena galat, pengguna akan mengira
+          // memang belum ada inspeksi.
+          : galatInspeksi
+            ? "Daftar inspeksi gagal dimuat — hasil tetap bisa dicatat, tapi penautan inspeksi tak tersedia"
+            : null
+  );
 
   const bukaPeriksa = useCallback((t: TitikItp) => {
     setTitikDiperiksa(t);
@@ -396,24 +392,24 @@ export default function RencanaMutuPage() {
         ...(fInspeksi ? { inspection_id: fInspeksi } : {}),
       });
       setTitikDiperiksa(null);
-      await muat(rmpId);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menyimpan hasil pemeriksaan");
     } finally { setMenyimpan(false); }
-  }, [titikDiperiksa, fLolos, fCatatan, fInspeksi, muat, rmpId]);
+  }, [titikDiperiksa, fLolos, fCatatan, fInspeksi, muat]);
 
   const [mengajukan, setMengajukan] = useState(false);
 
   const ajukan = useCallback(async () => {
     if (!rmpId) return;
-    setMengajukan(true); setGalat(null);
+    setMengajukan(true); setGalatAksi(null);
     try {
       await api.post(`/api/v1/rencana-mutu/${rmpId}/ajukan`);
-      await muat(rmpId);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal mengajukan rencana mutu");
+      setGalatAksi(m ?? "Gagal mengajukan rencana mutu");
     } finally { setMengajukan(false); }
   }, [rmpId, muat]);
 

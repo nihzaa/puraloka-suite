@@ -20,10 +20,11 @@
  * 3. Register penuh.
  */
 
-import { Suspense, useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { Suspense, useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, Gavel, Plus, RefreshCw, TriangleAlert, UserPlus, AlertTriangle } from "lucide-react";
-import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
@@ -143,13 +144,7 @@ function NcrInner() {
   const params = useSearchParams();
   const proyekId = params.get("proyek") ?? "";
 
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  const [data, setData] = useState<Ncr[]>([]);
-  const [meta, setMeta] = useState<Meta | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
   const [buatBaru, setBuatBaru] = useState(false);
-  const [kandidat, setKandidat] = useState<KandidatResponse | null>(null);
   /**
    * Kandidat yang sedang dicatat jadi NCR.
    *
@@ -172,7 +167,6 @@ function NcrInner() {
    * karena tak ada yang bisa mengisi kolomnya.
    */
   const [tindaki, setTindaki] = useState<Ncr | null>(null);
-  const [pengguna, setPengguna] = useState<Array<{ id: string; name: string }>>([]);
 
   const bolehKelola = useSyncExternalStore(
     () => () => {}, () => hasPermission("ncr:manage"), () => false,
@@ -181,58 +175,43 @@ function NcrInner() {
     () => () => {}, () => hasPermission("ncr:disposisi"), () => false,
   );
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Empat `useData`: pengguna (dropdown penugasan, gagal tak menggagalkan
+    halaman), proyek (dengan efek redirect terpisah), kandidat (pelengkap,
+    per proyekId), dan register NCR (per proyekId). Kandidat dan register
+    tetap dimuat BERSAMA — keduanya bergantung `proyekId` yang sama.
+  */
+  const { data: dataPengguna } =
+    useData<{ users: Array<{ id: string; name: string }> }>("/api/v1/users");
+  const pengguna = dataPengguna?.users ?? [];
+
+  const { data: dataProyek } = useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
+
+  // Pilih proyek pertama kalau URL belum menyebutkan — halaman yang terbuka
+  // kosong dengan dropdown yang belum dipilih terbaca sebagai "belum ada
+  // data", padahal cuma belum memilih. Efek tersendiri, bergantung `data`.
   useEffect(() => {
-    const ac = makeAbortController();
-    // Daftar pengguna untuk dropdown penugasan. Gagal memuatnya TIDAK
-    // menggagalkan halaman — register NCR tetap terbaca, hanya penugasannya
-    // yang tak bisa dilakukan.
-    api.get<{ users: Array<{ id: string; name: string }> }>("/api/v1/users", { signal: ac.signal })
-      .then((r) => setPengguna(r.data.users ?? []))
-      .catch(() => {});
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => {
-        setProyek(r.data.projects);
-        // Pilih proyek pertama kalau URL belum menyebutkan — halaman yang
-        // terbuka kosong dengan dropdown yang belum dipilih terbaca sebagai
-        // "belum ada data", padahal cuma belum memilih.
-        if (!proyekId && r.data.projects.length) {
-          router.replace(`/mutu/ncr?proyek=${r.data.projects[0].id}`, { scroll: false });
-        }
-      })
-      .catch(() => {});
-    return () => ac.abort();
-  }, [proyekId, router]);
+    if (!proyekId && dataProyek && dataProyek.projects.length) {
+      router.replace(`/mutu/ncr?proyek=${dataProyek.projects[0].id}`, { scroll: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataProyek, proyekId]);
 
-  const muat = useCallback((signal?: AbortSignal) => {
-    if (!proyekId) return Promise.resolve();
-    setMemuat(true);
-    // Kandidat dimuat BERSAMA register, bukan lewat tombol terpisah: yang
-    // perlu menindaklanjuti temuan sedang melihat layar ini sekarang, dan
-    // tombol tambahan hanya menambah satu langkah sebelum ia tahu bantuannya
-    // ada. Pola yang sama dengan panel saran cost-map.
-    void api.get<KandidatResponse>(`/api/v1/projects/${proyekId}/ncr/kandidat`, { signal })
-      .then((r) => setKandidat(r.data))
-      // Kandidat adalah PELENGKAP. Kalau gagal, register NCR tetap jalan —
-      // menggagalkan seluruh halaman karena usulannya tak termuat jauh lebih
-      // merugikan daripada usulan yang absen.
-      .catch((e) => { if (e?.name !== "CanceledError") setKandidat(null); });
+  const jalurKandidat = proyekId ? `/api/v1/projects/${proyekId}/ncr/kandidat` : null;
+  const { data: kandidat, muatUlang: muatUlangKandidat } =
+    useData<KandidatResponse>(jalurKandidat);
 
-    return api.get<{ data: Ncr[]; meta: Meta }>(
-      `/api/v1/projects/${proyekId}/ncr`, { signal })
-      .then((r) => { setData(r.data.data); setMeta(r.data.meta); setGalat(null); })
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        setData([]); setMeta(null);
-        setGalat(e?.response?.data?.error ?? "Gagal memuat register NCR.");
-      })
-      .finally(() => setMemuat(false));
-  }, [proyekId]);
+  const jalurRegister = proyekId ? `/api/v1/projects/${proyekId}/ncr` : null;
+  const { data: dataRegister, memuat, galat: galatMuat, muatUlang: muatUlangRegister } =
+    useData<{ data: Ncr[]; meta: Meta }>(jalurRegister);
+  const data = dataRegister?.data ?? [];
+  const meta = dataRegister?.meta ?? null;
+  const galat = galatMuat ? "Gagal memuat register NCR." : null;
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+  const muat = () => Promise.all([muatUlangKandidat(), muatUlangRegister()]);
 
   const menungguDisposisi = data.filter((n) => n.status === "terbuka");
 
