@@ -58,30 +58,64 @@ export const AMBANG_OTOMASI = {
     min: 0,
     max: 90,
     label: 'Hari keterlambatan invoice sebelum ditegur',
+    judul: 'Tagihan lewat jatuh tempo',
+    akibat:
+      'Pesan dikirim setelah tagihan lewat jatuh tempo sekian hari. '
+      + 'Angka kecil berarti tahu lebih cepat, tapi juga lebih sering '
+      + 'menegur klien yang cuma telat sehari.',
+    satuan: 'hari',
+    langkah: 1,
   },
   'otomasi.saldo_menipis.rupiah': {
     bawaan: 5_000_000,
     min: 0,
     max: 1_000_000_000,
     label: 'Saldo kas minimum sebelum diperingatkan',
+    judul: 'Saldo kas menipis',
+    akibat:
+      'Peringatan datang saat kas turun di bawah angka ini. Terlalu '
+      + 'tinggi, ia berbunyi tiap minggu; terlalu rendah, Anda tahu saat '
+      + 'sudah tak sempat memindahkan dana.',
+    satuan: 'Rp',
+    langkah: 500000,
   },
   'otomasi.milestone_berisiko.hari': {
     bawaan: 7,
     min: 1,
     max: 60,
     label: 'Hari sebelum tenggat milestone mulai ditegur',
+    judul: 'Milestone mendekati tenggat',
+    akibat:
+      'Berapa hari sebelum tenggat milestone mulai diingatkan. Terlalu '
+      + 'pendek, tak ada waktu mengejar; terlalu panjang, peringatannya '
+      + 'sudah terlupa saat harinya tiba.',
+    satuan: 'hari',
+    langkah: 1,
   },
   'otomasi.hutang_supplier.hari': {
     bawaan: 7,
     min: 0,
     max: 60,
     label: 'Hari sebelum jatuh tempo hutang supplier ditegur',
+    judul: 'Hutang pemasok jatuh tempo',
+    akibat:
+      'Berapa hari sebelum jatuh tempo bagian keuangan diingatkan. Ini '
+      + 'menentukan apakah pemasok ditelepon lebih dulu, atau menelepon '
+      + 'lebih dulu.',
+    satuan: 'hari',
+    langkah: 1,
   },
   'otomasi.harga_material.persen': {
     bawaan: 10,
     min: 1,
     max: 100,
     label: 'Kenaikan harga material yang dianggap signifikan (%)',
+    judul: 'Kenaikan harga material',
+    akibat:
+      'Kenaikan sebesar ini dianggap layak diperiksa. Terlalu kecil, '
+      + 'tiap fluktuasi wajar ikut berbunyi dan orang berhenti membaca.',
+    satuan: '%',
+    langkah: 1,
   },
   /*
     Dua ambang EVM, dan DESIMAL — satu-satunya di daftar ini.
@@ -111,6 +145,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 180,
     label: 'Hari sebelum polis asuransi berakhir mulai diperingatkan',
+    judul: 'Polis asuransi berakhir',
+    akibat:
+      'Berapa hari sebelum polis habis mulai diingatkan. Perpanjangan '
+      + 'asuransi butuh survei dan penawaran; angka kecil berarti sempat '
+      + 'terjadi jeda tanpa pertanggungan.',
+    satuan: 'hari',
+    langkah: 5,
   },
   /*
     Bawaan 7 hari. Bukan angka bulat yang dipilih asal: konfirmasi terima
@@ -122,6 +163,12 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 90,
     label: 'Hari transmittal terkirim tanpa konfirmasi sebelum ditegur',
+    judul: 'Transmittal tanpa konfirmasi',
+    akibat:
+      'Berapa lama dokumen terkirim boleh menggantung tanpa konfirmasi '
+      + 'penerima sebelum ditegur.',
+    satuan: 'hari',
+    langkah: 1,
   },
   /*
     Bawaan 60 hari — SAMA dengan bawaan `nilaiSertifikat()` di
@@ -136,6 +183,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 365,
     label: 'Hari sebelum sertifikat pegawai berakhir mulai diperingatkan',
+    judul: 'Sertifikat pegawai berakhir',
+    akibat:
+      'Berapa hari sebelum sertifikat habis mulai diingatkan. '
+      + 'Sertifikat K3 yang mati membuat orangnya tak boleh bekerja di '
+      + 'area tertentu.',
+    satuan: 'hari',
+    langkah: 5,
   },
   /*
     Batas BAWAH — berapa lama sebuah sertifikat yang sudah lewat masih
@@ -154,6 +208,14 @@ export const AMBANG_OTOMASI = {
     min: 7,
     max: 730,
     label: 'Sertifikat yang lewat lebih lama dari ini berhenti ditegur',
+    judul: 'Batas berhenti menegur sertifikat',
+    akibat:
+      'Sertifikat yang sudah lewat lebih lama dari ini berhenti '
+      + 'ditegur. Tanpa batas ini, daftar terisi sertifikat lama yang '
+      + 'orangnya mungkin sudah tak bekerja di sini, dan daftar yang tak '
+      + 'pernah bisa dikosongkan berhenti dibuka.',
+    satuan: 'hari',
+    langkah: 10,
   },
   /*
     60 hari — SAMA dengan `AMBANG_SEGERA_HABIS` di `lib/kepatuhan-k3.ts`,
@@ -167,6 +229,12 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 365,
     label: 'Hari sebelum dokumen kepatuhan/izin habis mulai diperingatkan',
+    judul: 'Dokumen kepatuhan habis',
+    akibat:
+      'Berapa hari sebelum dokumen atau izin mitra habis mulai '
+      + 'diingatkan.',
+    satuan: 'hari',
+    langkah: 5,
   },
   /*
     Batas BAWAH. Diukur: satu dokumen sudah lewat 106 hari dan satu izin
@@ -178,6 +246,13 @@ export const AMBANG_OTOMASI = {
     min: 7,
     max: 730,
     label: 'Dokumen/izin yang lewat lebih lama dari ini berhenti ditegur',
+    judul: 'Batas berhenti menegur dokumen',
+    akibat:
+      'Dokumen yang lewat lebih lama dari ini berhenti ditegur, dengan '
+      + 'alasan yang sama seperti sertifikat: daftar yang tak pernah '
+      + 'kosong berhenti dibaca.',
+    satuan: 'hari',
+    langkah: 10,
   },
   /*
     Serapan anggaran. Bawaan 90% — bukan 100%.
@@ -191,6 +266,12 @@ export const AMBANG_OTOMASI = {
     min: 50,
     max: 200,
     label: 'Serapan anggaran (%) yang mulai diperingatkan',
+    judul: 'Serapan anggaran proyek',
+    akibat:
+      'Peringatan datang saat serapan menyentuh persen ini. Di atas 100 '
+      + 'berarti Anda baru tahu setelah anggarannya habis.',
+    satuan: '%',
+    langkah: 5,
   },
   /*
     Absensi berhenti dicatat. Bawaan 3 hari.
@@ -204,6 +285,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 30,
     label: 'Hari tanpa catatan absensi sebelum lingkup kerja ditegur',
+    judul: 'Absensi berhenti dicatat',
+    akibat:
+      'Berapa hari tanpa catatan absensi sebelum ditegur. Tanpa '
+      + 'absensi, upah tak bisa dihitung; ini peringatan operasional, '
+      + 'bukan tuduhan kepada pekerja.',
+    satuan: 'hari',
+    langkah: 1,
   },
   /*
     Retensi tertahan. Bawaan 30 hari sesudah tanggal selesai proyek.
@@ -218,6 +306,12 @@ export const AMBANG_OTOMASI = {
     min: 0,
     max: 365,
     label: 'Hari sesudah proyek selesai sebelum retensi tertahan ditegur',
+    judul: 'Retensi tertahan',
+    akibat:
+      'Berapa hari sesudah proyek lewat tanggal selesai sebelum retensi '
+      + 'yang tertahan ditagihkan perhatiannya.',
+    satuan: 'hari',
+    langkah: 5,
   },
   /*
     Opname bersama belum diverifikasi. Bawaan 7 hari.
@@ -235,6 +329,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 60,
     label: 'Hari sebelum opname yang belum diverifikasi ditegur',
+    judul: 'Opname belum diverifikasi',
+    akibat:
+      'Berapa hari opname bersama boleh menggantung. Yang tertahan di '
+      + 'sini upah orang yang sudah bekerja; angka besar berarti mandor '
+      + 'menunggu lebih lama sebelum ada yang tahu.',
+    satuan: 'hari',
+    langkah: 1,
   },
   /*
     Ringkasan invoice melenceng dari buku pembayaran. Bawaan Rp 1.
@@ -251,6 +352,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 1_000_000,
     label: 'Selisih rupiah minimum antara ringkasan invoice dan buku pembayaran',
+    judul: 'Selisih invoice dengan buku pembayaran',
+    akibat:
+      'Selisih sekecil ini pun ditegur. Ini bukan batas kewajaran '
+      + 'melainkan pengaman pembulatan; dilonggarkan, uang yang diakui '
+      + 'masuk tanpa bukti akan lolos diam-diam.',
+    satuan: 'Rp',
+    langkah: 1,
   },
   /*
     Material dibeli dari beberapa pemasok. Bawaan selisih 5%.
@@ -264,6 +372,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 100,
     label: 'Selisih harga antar pemasok (%) yang mulai dipertanyakan',
+    judul: 'Selisih harga antar pemasok',
+    akibat:
+      'Selisih harga sebesar ini mulai dipertanyakan. Rendah dengan '
+      + 'sengaja: pertanyaannya murah ditanyakan, yang mahal justru tak '
+      + 'pernah menanyakannya.',
+    satuan: '%',
+    langkah: 1,
   },
   /*
     Margin bocor. Bawaan 85% dari RAB.
@@ -280,6 +395,13 @@ export const AMBANG_OTOMASI = {
     min: 50,
     max: 200,
     label: 'Persen serapan RAB oleh biaya nyata yang mulai diperingatkan',
+    judul: 'Biaya nyata menyentuh RAB',
+    akibat:
+      'Peringatan datang saat biaya menyentuh persen ini dari RAB. Di '
+      + 'atas 100 berarti peringatannya baru datang setelah anggaran '
+      + 'habis, dan tak ada lagi yang bisa dilakukan.',
+    satuan: '%',
+    langkah: 5,
   },
   /*
     Pengeluaran kembar. Bawaan jarak 3 hari.
@@ -294,6 +416,13 @@ export const AMBANG_OTOMASI = {
     min: 0,
     max: 30,
     label: 'Jarak hari maksimum dua pengeluaran disebut kembar',
+    judul: 'Jarak dua pengeluaran kembar',
+    akibat:
+      'Dua biaya dengan pemasok dan nominal sama dalam jarak ini '
+      + 'dianggap kemungkinan nota ganda. Dilebarkan sampai sebulan, '
+      + 'seluruh sewa dan langganan bulanan ikut tertuduh.',
+    satuan: 'hari',
+    langkah: 1,
   },
   /*
     Pengeluaran berulang. Bawaan 3 bulan BERBEDA.
@@ -307,6 +436,12 @@ export const AMBANG_OTOMASI = {
     min: 2,
     max: 24,
     label: 'Jumlah bulan berbeda sebelum pengeluaran disebut berulang',
+    judul: 'Bulan sebelum disebut berulang',
+    akibat:
+      'Berapa bulan berbeda sebuah biaya harus muncul sebelum disebut '
+      + 'langganan. Dua bulan bisa kebetulan; tiga sudah pola.',
+    satuan: 'bulan',
+    langkah: 1,
   },
   /*
     Izin proyek mendekati akhir. Bawaan 60 hari.
@@ -319,6 +454,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 365,
     label: 'Hari sebelum izin proyek habis mulai diperingatkan',
+    judul: 'Izin proyek habis',
+    akibat:
+      'Berapa hari sebelum izin pemerintah habis mulai diingatkan. '
+      + 'Mengurus perpanjangan PBG atau izin lingkungan menuntut berkas, '
+      + 'biaya, dan antrean di dinas.',
+    satuan: 'hari',
+    langkah: 5,
   },
   /*
     Risiko lewat tenggat tinjau. Bawaan 14 hari — tenggang PENUH untuk skor
@@ -333,6 +475,13 @@ export const AMBANG_OTOMASI = {
     min: 0,
     max: 180,
     label: 'Tenggang hari sesudah tenggat tinjau risiko (menyusut menurut skor)',
+    judul: 'Tenggang tinjau risiko',
+    akibat:
+      'Tenggang untuk risiko berskor paling rendah. Risiko berskor '
+      + 'tinggi mendapat tenggang jauh lebih pendek secara otomatis, dan '
+      + 'perbandingannya tak bisa disetel terbalik.',
+    satuan: 'hari',
+    langkah: 1,
   },
   /*
     Skor risiko yang disebut "tinggi". Bawaan 12 dari maksimum 25.
@@ -345,6 +494,14 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 25,
     label: 'Skor risiko yang dianggap tinggi (dampak × kemungkinan, 1–25)',
+    judul: 'Skor yang disebut risiko tinggi',
+    akibat:
+      'Skor (dampak dikali kemungkinan, 1 sampai 25) yang dianggap '
+      + 'tinggi. Dipakai dua kali: menentukan prioritas pesan, dan '
+      + 'menentukan risiko mana yang ditegur karena belum punya tenggat '
+      + 'tinjau sama sekali.',
+    satuan: 'skor',
+    langkah: 1,
   },
   /*
     Insiden K3 belum ditutup. Bawaan 7 hari — ambang DASAR, bukan tunggal.
@@ -363,6 +520,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 90,
     label: 'Hari dasar sebelum insiden K3 yang belum ditutup ditegur',
+    judul: 'Tenggang penutupan insiden K3',
+    akibat:
+      'Tenggang DASAR. Tiap jenis insiden mengalikannya sendiri: '
+      + 'kecelakaan berat berbunyi jauh lebih cepat, nyaris-celaka jauh '
+      + 'lebih lambat. Perbandingan antar jenis sengaja tak bisa disetel.',
+    satuan: 'hari',
+    langkah: 1,
   },
   /*
     Audit mutu lewat jadwal. Bawaan 3 hari sesudah tanggal rencana.
@@ -376,6 +540,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 90,
     label: 'Hari sesudah tanggal rencana sebelum audit mutu ditegur',
+    judul: 'Audit mutu lewat jadwal',
+    akibat:
+      'Berapa hari sesudah tanggal rencana sebelum audit mutu ditegur. '
+      + 'Audit yang lewat menahan pekerjaan lain: mutu berikutnya '
+      + 'berjalan di atas yang belum diperiksa.',
+    satuan: 'hari',
+    langkah: 1,
   },
   /*
     Harga satuan RAB menyimpang antar proyek. Bawaan 1,3× (selisih 30%).
@@ -389,6 +560,14 @@ export const AMBANG_OTOMASI = {
     min: 1.05,
     max: 5,
     label: 'Selisih harga satuan antar proyek yang mulai dipertanyakan (×)',
+    judul: 'Selisih harga satuan antar proyek',
+    akibat:
+      'Berapa kali lipat selisih harga satuan yang mulai dipertanyakan. '
+      + 'Nilai 1,3 berarti selisih 30 persen. Item borongan tak pernah '
+      + 'dibandingkan, karena harganya memang menskala dengan besar '
+      + 'proyek.',
+    satuan: 'kali lipat',
+    langkah: 0.05,
   },
   /*
     Laporan upah menyimpang. Bawaan 1,5× dari median lingkupnya sendiri.
@@ -402,6 +581,13 @@ export const AMBANG_OTOMASI = {
     min: 1.1,
     max: 5,
     label: 'Selisih upah mingguan dari kebiasaannya yang mulai diperiksa (×)',
+    judul: 'Selisih upah dari kebiasaannya',
+    akibat:
+      'Berapa kali lipat upah mingguan boleh berbeda dari kebiasaan '
+      + 'lingkup kerja itu sendiri. Berlaku dua arah: upah yang tiba-tiba '
+      + 'separuh biasanya berarti pekerjaan berhenti.',
+    satuan: 'kali lipat',
+    langkah: 0.1,
   },
   /*
     Minggu riwayat minimum sebelum sebuah lingkup bisa dinilai. Bawaan 3.
@@ -414,6 +600,14 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 26,
     label: 'Minggu riwayat minimum sebelum upah bisa dibandingkan',
+    judul: 'Riwayat minimum untuk menilai upah',
+    akibat:
+      'Berapa minggu riwayat yang harus ada sebelum sebuah lingkup bisa '
+      + 'dinilai. Satu minggu pembanding bukan kebiasaan, itu satu titik. '
+      + 'Yang riwayatnya kurang dilaporkan sebagai tak-bisa-dinilai, '
+      + 'bukan didiamkan.',
+    satuan: 'minggu',
+    langkah: 1,
   },
   /*
     Kontrak klien mendekati akhir. Bawaan 60 hari, DUA ARAH.
@@ -426,6 +620,14 @@ export const AMBANG_OTOMASI = {
     min: 7,
     max: 365,
     label: 'Jendela hari sebelum/sesudah proyek berakhir untuk menyapa klien',
+    judul: 'Jendela menyapa klien',
+    akibat:
+      'Berapa hari sebelum DAN sesudah proyek berakhir klien layak '
+      + 'disapa untuk pekerjaan berikutnya. Sisi sesudahnya disengaja: '
+      + 'proyek yang baru selesai bukan peluang yang lebih kecil, '
+      + 'melainkan lebih matang.',
+    satuan: 'hari',
+    langkah: 5,
   },
   /*
     Buku penyusutan belum ditutup. Bawaan tanggal 5.
@@ -442,6 +644,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 28,
     label: 'Tanggal berapa buku penyusutan bulan lalu mulai ditagih',
+    judul: 'Tanggal menagih tutup buku penyusutan',
+    akibat:
+      'Tanggal berapa tiap bulan buku penyusutan bulan lalu mulai '
+      + 'ditagih. Menagih pada tanggal 1 adalah menagih orang yang memang '
+      + 'belum sempat.',
+    satuan: 'tanggal',
+    langkah: 1,
   },
   /*
     Perawatan & sertifikasi alat. Bawaan 14 hari sebelum jatuh tempo.
@@ -456,6 +665,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 90,
     label: 'Hari sebelum jatuh tempo perawatan/sertifikasi alat diperingatkan',
+    judul: 'Perawatan dan sertifikasi alat',
+    akibat:
+      'Berapa hari sebelum jatuh tempo servis atau sertifikat alat '
+      + 'diingatkan. Mendatangkan mekanik dan mengurus sertifikat '
+      + 'Depnaker butuh antrean.',
+    satuan: 'hari',
+    langkah: 1,
   },
   /*
     Mandor dipegang dua proyek sekaligus. Bawaan tumpang tindih 14 hari.
@@ -474,6 +690,13 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 180,
     label: 'Hari tumpang tindih minimum sebelum mandor dianggap bentrok',
+    judul: 'Tumpang tindih mandor',
+    akibat:
+      'Berapa hari tumpang tindih sebelum mandor disebut bentrok. '
+      + 'Serah-terima beberapa hari antar proyek itu normal di lapangan; '
+      + 'yang tak normal berbulan-bulan.',
+    satuan: 'hari',
+    langkah: 1,
   },
   /*
     Ringkasan aksi berisiko harian. Ambang ledakan aksi per pengguna per jam.
@@ -487,6 +710,12 @@ export const AMBANG_OTOMASI = {
     min: 20,
     max: 5000,
     label: 'Aksi per pengguna per jam yang dianggap ledakan',
+    judul: 'Ledakan aktivitas per jam',
+    akibat:
+      'Berapa aksi dalam satu jam oleh satu orang yang dianggap tak '
+      + 'wajar. Terlalu rendah, impor data biasa ikut berbunyi.',
+    satuan: 'aksi per jam',
+    langkah: 25,
   },
   /*
     Klaster penghapusan: berapa baris dihapus satu pengguna pada satu tabel
@@ -498,6 +727,14 @@ export const AMBANG_OTOMASI = {
     min: 3,
     max: 500,
     label: 'Jumlah penghapusan sepihak sebelum ditandai',
+    judul: 'Penghapusan berklaster',
+    akibat:
+      'Berapa penghapusan oleh satu orang di satu tabel sebelum '
+      + 'ditandai. Pembersihan data yang sah bisa menyentuh puluhan '
+      + 'baris; angka ini memisahkannya dari penghapusan yang perlu '
+      + 'ditanyakan.',
+    satuan: 'baris',
+    langkah: 5,
   },
   /*
     Kontrak payung. Bawaan 45 hari — lebih panjang daripada dokumen lain
@@ -509,18 +746,37 @@ export const AMBANG_OTOMASI = {
     min: 1,
     max: 180,
     label: 'Hari sebelum kontrak payung habis mulai diperingatkan',
+    judul: 'Kontrak payung pemasok habis',
+    akibat:
+      'Berapa hari sebelum kontrak payung habis mulai diingatkan. Lebih '
+      + 'panjang daripada dokumen lain karena memperbaruinya menuntut '
+      + 'negosiasi ulang, bukan sekadar memperpanjang berkas.',
+    satuan: 'hari',
+    langkah: 5,
   },
   'otomasi.evm_spi.minimum': {
     bawaan: 0.9,
     min: 0.1,
     max: 1,
     label: 'Batas bawah indeks jadwal (SPI) — di bawah ini proyek tertinggal',
+    judul: 'Batas bawah indeks jadwal (SPI)',
+    akibat:
+      'Di bawah angka ini proyek dianggap tertinggal dari jadwal. Nilai '
+      + '1,0 berarti tepat sesuai rencana.',
+    satuan: 'indeks',
+    langkah: 0.05,
   },
   'otomasi.evm_cpi.minimum': {
     bawaan: 0.9,
     min: 0.1,
     max: 1,
     label: 'Batas bawah indeks biaya (CPI) — di bawah ini proyek boros',
+    judul: 'Batas bawah indeks biaya (CPI)',
+    akibat:
+      'Di bawah angka ini proyek dianggap boros terhadap anggarannya. '
+      + 'Nilai 1,0 berarti tepat sesuai rencana.',
+    satuan: 'indeks',
+    langkah: 0.05,
   },
 } as const
 

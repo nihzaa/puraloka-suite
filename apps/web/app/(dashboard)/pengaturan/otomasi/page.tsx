@@ -54,10 +54,6 @@ import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Galat, Rangka, Kartu, Tombol, gayaInput } from "@/components/dasar";
 
-interface Setelan {
-  key: string;
-  value: unknown;
-}
 
 /**
  * Penjelasan tiap ambang — dalam bahasa akibat, bukan bahasa kolom.
@@ -66,199 +62,42 @@ interface Setelan {
  * catatan untuk engineer, dan menampilkannya apa adanya kepada pengguna adalah
  * cara paling mudah membuat halaman pengaturan terasa seperti layar debug.
  */
-const AMBANG: ReadonlyArray<{
+/**
+ * Bentuk satu ambang, apa adanya dari API.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * DULU DAFTARNYA DITULIS DI SINI, DAN ITULAH CACATNYA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Halaman ini pernah memelihara array `AMBANG` sendiri: kunci, judul, akibat,
+ * satuan, batas, dan langkah — semuanya disalin tangan dari
+ * `lib/ambang-otomasi.ts`.
+ *
+ * Diukur 2026-08-16: 37 ambang di kode, 15 di halaman ini. DUA PULUH DUA tak
+ * bisa disetel dari UI mana pun. Nilainya ada di basis, rutenya membacanya,
+ * dan satu-satunya cara mengubahnya SQL langsung — persis yang dilarang
+ * CHARTER §8 ("config-first berarti ada halaman pengaturannya di UI").
+ *
+ * Penyebabnya bukan kelalaian satu orang melainkan BENTUKNYA: dua daftar yang
+ * harus dijaga sejalan pasti melenceng. Sekarang halaman ini tak punya daftar
+ * sendiri; ia menampilkan apa pun yang dikirim
+ * `GET /api/v1/settings/ambang-otomasi`, dan ambang baru muncul tanpa
+ * menyentuh berkas ini.
+ */
+interface Ambang {
   kunci: string;
   judul: string;
+  /** Bahasa AKIBAT: apa yang berubah bagi orang kalau angkanya digeser. */
   akibat: string;
   satuan: string;
-  min: number;
-  maks: number;
-  /** Kelipatan yang wajar untuk tombol naik/turun. */
   langkah: number;
-}> = [
-  {
-    kunci: "otomasi.invoice_terlambat.hari",
-    judul: "Tagihan lewat jatuh tempo",
-    akibat:
-      "Pesan dikirim setelah tagihan lewat jatuh tempo sekian hari. Angka kecil "
-      + "berarti tahu lebih cepat, tapi juga lebih sering menegur klien yang "
-      + "cuma telat sehari.",
-    satuan: "hari",
-    min: 0,
-    maks: 90,
-    langkah: 1,
-  },
-  {
-    kunci: "otomasi.hutang_supplier.hari",
-    judul: "Pembayaran supplier mendekat",
-    akibat:
-      "Pengingat dikirim sekian hari SEBELUM tagihan supplier jatuh tempo. "
-      + "Angka besar memberi waktu menyiapkan dana; angka kecil membuat "
-      + "pengingatnya datang saat sudah tak sempat.",
-    satuan: "hari",
-    min: 0,
-    maks: 60,
-    langkah: 1,
-  },
-  {
-    kunci: "otomasi.milestone_berisiko.hari",
-    judul: "Milestone terancam meleset",
-    akibat:
-      "Milestone ditandai berisiko bila tenggatnya tinggal sekian hari dan "
-      + "pekerjaannya belum selesai.",
-    satuan: "hari",
-    min: 1,
-    maks: 60,
-    langkah: 1,
-  },
-  {
-    kunci: "otomasi.saldo_menipis.rupiah",
-    judul: "Saldo kas menipis",
-    akibat:
-      "Peringatan dikirim ketika total saldo kas turun di bawah angka ini. "
-      + "Setel di sekitar kebutuhan operasional satu minggu.",
-    satuan: "rupiah",
-    min: 0,
-    maks: 1_000_000_000,
-    langkah: 1_000_000,
-  },
-  {
-    kunci: "otomasi.serapan_anggaran.persen",
-    judul: "Serapan anggaran proyek",
-    akibat:
-      "Peringatan dikirim ketika belanja proyek mencapai persentase ini dari "
-      + "pagunya. Setel di bawah 100 — peringatan yang baru berbunyi saat "
-      + "anggaran sudah terlampaui datang ketika tak ada lagi yang bisa "
-      + "dilakukan.",
-    satuan: "persen",
-    min: 50,
-    maks: 200,
-    langkah: 5,
-  },
-  {
-    kunci: "otomasi.absensi_berhenti.hari",
-    judul: "Absensi berhenti dicatat",
-    akibat:
-      "Peringatan dikirim bila sebuah lingkup kerja tak dicatat absensinya "
-      + "sekian hari. Tanpa absensi, upah tak bisa dihitung — dan itu biasanya "
-      + "baru ketahuan saat penggajian.",
-    satuan: "hari",
-    min: 1,
-    maks: 30,
-    langkah: 1,
-  },
-  {
-    kunci: "otomasi.kepatuhan_dokumen.hari",
-    judul: "Dokumen kepatuhan & izin habis",
-    akibat:
-      "Peringatan dikirim sekian hari sebelum dokumen legalitas pihak ketiga "
-      + "atau izin proyek habis masa berlakunya. Izin yang mati membuat "
-      + "pekerjaan tak boleh berjalan.",
-    satuan: "hari",
-    min: 1,
-    maks: 365,
-    langkah: 1,
-  },
-  {
-    kunci: "otomasi.kepatuhan_lewat.maks_hari",
-    judul: "Berhenti menagih dokumen lama",
-    akibat:
-      "Dokumen atau izin yang sudah lewat lebih lama dari ini berhenti "
-      + "ditegur. Tanpa batas ini, izin yang ditinggalkan bertahun-tahun akan "
-      + "ditagih tiap minggu selamanya.",
-    satuan: "hari",
-    min: 7,
-    maks: 730,
-    langkah: 7,
-  },
-  {
-    kunci: "otomasi.sertifikat_berakhir.hari",
-    judul: "Sertifikat pegawai berakhir",
-    akibat:
-      "Peringatan dikirim sekian hari sebelum sertifikat keahlian pegawai "
-      + "habis masa berlakunya. Setel sesuai lama pengurusan perpanjangan — "
-      + "sertifikat yang mati membuat orangnya tak boleh mengerjakan pekerjaan "
-      + "tertentu.",
-    satuan: "hari",
-    min: 1,
-    maks: 365,
-    langkah: 1,
-  },
-  {
-    kunci: "otomasi.sertifikat_lewat.maks_hari",
-    judul: "Berhenti menagih sertifikat lama",
-    akibat:
-      "Sertifikat yang sudah lewat lebih lama dari ini berhenti ditegur. "
-      + "Tanpa batas ini, dokumen yang memang sudah ditinggalkan akan ditagih "
-      + "tiap minggu selamanya — dan yang ditagih terus berhenti dibaca.",
-    satuan: "hari",
-    min: 7,
-    maks: 730,
-    langkah: 7,
-  },
-  {
-    kunci: "otomasi.transmittal_menggantung.hari",
-    judul: "Transmittal belum dikonfirmasi",
-    akibat:
-      "Pengingat dikirim bila transmittal sudah terkirim sekian hari tanpa "
-      + "konfirmasi diterima. Terlalu cepat membuat pesannya terbaca sebagai "
-      + "desakan sebelum penerimanya sempat membalas.",
-    satuan: "hari",
-    min: 1,
-    maks: 90,
-    langkah: 1,
-  },
-  {
-    kunci: "otomasi.polis_berakhir.hari",
-    judul: "Asuransi mendekati berakhir",
-    akibat:
-      "Peringatan dikirim sekian hari sebelum polis asuransi berakhir. Setel "
-      + "sesuai lama pengurusan perpanjangan di perusahaan Anda — peringatan "
-      + "yang datang setelah polis lewat tak lagi bisa dipakai untuk apa pun.",
-    satuan: "hari",
-    min: 1,
-    maks: 180,
-    langkah: 1,
-  },
-  {
-    kunci: "otomasi.evm_spi.minimum",
-    judul: "Kinerja jadwal proyek (SPI)",
-    akibat:
-      "Proyek ditandai tertinggal bila indeks jadwalnya turun di bawah angka "
-      + "ini. 1,0 berarti tepat rencana; 0,9 berarti tertinggal sekitar "
-      + "sepersepuluh dari yang dijadwalkan. Menyetelnya ke 1,0 membuat hampir "
-      + "semua proyek memicu pesan setiap hari.",
-    satuan: "indeks",
-    min: 0.1,
-    maks: 1,
-    // Desimal — satu-satunya bersama CPI. Langkah 0,05 supaya tombol naik/turun
-    // bergerak dalam ukuran yang berarti, bukan 0,000001.
-    langkah: 0.05,
-  },
-  {
-    kunci: "otomasi.evm_cpi.minimum",
-    judul: "Kinerja biaya proyek (CPI)",
-    akibat:
-      "Proyek ditandai boros bila indeks biayanya turun di bawah angka ini. "
-      + "1,0 berarti biaya sepadan dengan pekerjaan yang selesai; di bawahnya "
-      + "berarti pengeluaran melebihi nilai yang sudah diperoleh.",
-    satuan: "indeks",
-    min: 0.1,
-    maks: 1,
-    langkah: 0.05,
-  },
-  {
-    kunci: "otomasi.harga_material.persen",
-    judul: "Harga material naik",
-    akibat:
-      "Kenaikan harga material diberitahukan bila melampaui persentase ini "
-      + "dibanding harga sebelumnya.",
-    satuan: "persen",
-    min: 1,
-    maks: 100,
-    langkah: 1,
-  },
-];
+  min: number;
+  max: number;
+  bawaan: number;
+  nilai: number;
+  /** Sudah disetel tenant, atau masih bawaan. */
+  disetel: boolean;
+}
 
 function formatSatuan(n: number, satuan: string): string {
   if (satuan === "rupiah") return `Rp ${n.toLocaleString("id-ID")}`;
@@ -278,6 +117,7 @@ function formatSatuan(n: number, satuan: string): string {
 }
 
 export default function PengaturanOtomasiPage() {
+  const [ambang, setAmbang] = useState<Ambang[]>([]);
   const [awal, setAwal] = useState<Record<string, number> | null>(null);
   const [nilai, setNilai] = useState<Record<string, number>>({});
   const [galat, setGalat] = useState<string | null>(null);
@@ -289,13 +129,13 @@ export default function PengaturanOtomasiPage() {
   const muat = useCallback(async () => {
     try {
       setGalat(null);
-      const r = await api.get<{ config: Setelan[] }>(
-        "/api/v1/settings/config?category=otomasi",
+      const r = await api.get<{ ambang: Ambang[] }>(
+        "/api/v1/settings/ambang-otomasi",
       );
+      const daftar = r.data.ambang ?? [];
       const peta: Record<string, number> = {};
-      for (const s of r.data.config ?? []) {
-        if (s.key.startsWith("otomasi.")) peta[s.key] = Number(s.value);
-      }
+      for (const a of daftar) peta[a.kunci] = a.nilai;
+      setAmbang(daftar);
       setAwal(peta);
       setNilai(peta);
     } catch (e) {
@@ -322,11 +162,11 @@ export default function PengaturanOtomasiPage() {
 
   const takSah = useMemo(
     () =>
-      AMBANG.filter((a) => {
+      ambang.filter((a) => {
         const v = nilai[a.kunci];
-        return v !== undefined && (!Number.isFinite(v) || v < a.min || v > a.maks);
+        return v !== undefined && (!Number.isFinite(v) || v < a.min || v > a.max);
       }).map((a) => a.kunci),
-    [nilai],
+    [nilai, ambang],
   );
 
   const simpan = async () => {
@@ -384,7 +224,7 @@ export default function PengaturanOtomasiPage() {
           )}
 
           <div style={{ display: "grid", gap: "var(--r3)" }}>
-            {AMBANG.map((a) => {
+            {ambang.map((a) => {
               const v = nilai[a.kunci];
               const belumAda = v === undefined;
               const salah = takSah.includes(a.kunci);
@@ -422,7 +262,7 @@ export default function PengaturanOtomasiPage() {
                         inputMode="numeric"
                         value={belumAda ? "" : v}
                         min={a.min}
-                        max={a.maks}
+                        max={a.max}
                         step={a.langkah}
                         disabled={belumAda}
                         aria-describedby={`${idMedan}-bantu`}
@@ -446,8 +286,8 @@ export default function PengaturanOtomasiPage() {
                         {belumAda
                           ? "Belum tersedia untuk perusahaan ini."
                           : salah
-                            ? `Harus antara ${formatSatuan(a.min, a.satuan)} dan ${formatSatuan(a.maks, a.satuan)}.`
-                            : `Sekarang ${formatSatuan(v, a.satuan)} · rentang ${formatSatuan(a.min, a.satuan)}–${formatSatuan(a.maks, a.satuan)}`}
+                            ? `Harus antara ${formatSatuan(a.min, a.satuan)} dan ${formatSatuan(a.max, a.satuan)}.`
+                            : `Sekarang ${formatSatuan(v, a.satuan)} · rentang ${formatSatuan(a.min, a.satuan)}–${formatSatuan(a.max, a.satuan)}`}
                       </p>
                     </div>
                   </div>

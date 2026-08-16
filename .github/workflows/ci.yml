@@ -463,6 +463,24 @@ jobs:
       - name: Katalog otomasi cocok dengan kode
         run: node scripts/audit-katalog-otomasi-nyata.mjs
 
+      # Tiap ambang otomasi WAJIB bisa disetel dari halaman Pengaturan.
+      #
+      # Diukur 2026-08-16: 37 ambang di kode, 15 di halaman — DUA PULUH DUA
+      # tak bisa disetel siapa pun. Nilainya ada di basis, rutenya
+      # membacanya, dan satu-satunya cara mengubahnya SQL langsung. Persis
+      # yang dilarang CHARTER §8 ("config-first berarti ada halaman
+      # pengaturannya di UI").
+      #
+      # Penyebabnya bentuk, bukan kelalaian: halaman memelihara daftarnya
+      # sendiri, dan dua daftar yang harus sejalan pasti melenceng — tanpa
+      # gejala, karena halaman tetap tampil rapi, hanya lebih pendek.
+      #
+      # Ambang NOL. Bukti merah, dua mutasi terpisah: `akibat` dihapus dari
+      # satu entri → exit 1; halaman memaku satu kunci `otomasi.…` → exit 1.
+      # Keduanya dipulihkan → exit 0.
+      - name: Ambang otomasi bisa disetel dari UI
+        run: node scripts/audit-ambang-bisa-disetel.mjs
+
       # Migrasi yang menyemai baris per-tenant wajib menyaring tenant yang
       # dipakai — `is_active` atau keanggotaan.
       #

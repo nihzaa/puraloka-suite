@@ -8,6 +8,7 @@ import { todayWIB } from '../../lib/financial-config.js'
 import { getGlobalPenaltyTerms } from '../../utils/penalty.js'
 import { PENALTY_BASES } from '../../lib/penalty.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { AMBANG_OTOMASI } from '../../lib/ambang-otomasi.js'
 
 const ALLOWED_IMAGES = ['image/jpeg', 'image/png', 'image/webp']
 
@@ -229,6 +230,75 @@ export default async function settingsRoutes(app: FastifyInstance) {
     const { data, error } = await query
     if (error) return reply.status(500).send({ error: error.message })
     return reply.send({ config: data ?? [] })
+  })
+
+  // ── GET /api/v1/settings/ambang-otomasi ───────────────────────────────────────
+  //
+  // Daftar ambang otomasi LENGKAP — metadata dari kode, nilai dari basis.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA RUTE INI ADA, DAN APA YANG IA PERBAIKI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Halaman `/pengaturan/otomasi` sebelumnya memelihara daftar ambangnya
+  // SENDIRI — array yang ditulis tangan di frontend. Tiap ambang baru harus
+  // ditambahkan di dua tempat, dan yang lupa ditambahkan jadi tak bisa disetel
+  // siapa pun.
+  //
+  // Diukur 2026-08-16: 37 ambang di kode, 15 di halaman. DUA PULUH DUA tak
+  // bisa disetel dari UI mana pun — nilainya ada di basis, rutenya membacanya,
+  // dan satu-satunya cara mengubahnya adalah SQL langsung. Itu persis yang
+  // dilarang CHARTER §8: "kolom DB sudah ada bukan selesai; config-first
+  // berarti ada halaman pengaturannya di UI".
+  //
+  // Rute ini membuat halaman berhenti punya daftar sendiri. Menambah ambang
+  // baru di `AMBANG_OTOMASI` cukup — ia langsung muncul, dan tak ada lagi
+  // tempat kedua yang bisa tertinggal.
+  //
+  // Penjaga `audit-ambang-bisa-disetel.mjs` menahan kemunduran: kalau ada yang
+  // membuat halaman kembali memakai daftar sendiri, CI merah.
+  //
+  // ── Izin: sama dengan `config` — semua yang login boleh MEMBACA
+  //
+  // Ambang menentukan kapan orang menerima pesan; yang menerimanya berhak tahu
+  // kenapa. Yang dibatasi MENGUBAHNYA, dan itu tetap lewat `PUT config`.
+  app.get('/api/v1/settings/ambang-otomasi', {
+    preHandler: [authenticate],
+  }, async (request, reply) => {
+    const { data, error } = await request.db!
+      .from('company_settings')
+      .select('key, value')
+      .in('key', Object.keys(AMBANG_OTOMASI))
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const tersimpan = new Map(
+      (data ?? []).map((r) => {
+        const s = r as { key: string; value: unknown }
+        return [s.key, Number(s.value)]
+      }),
+    )
+
+    const ambang = Object.entries(AMBANG_OTOMASI).map(([kunci, m]) => ({
+      kunci,
+      judul: m.judul,
+      akibat: m.akibat,
+      satuan: m.satuan,
+      langkah: m.langkah,
+      min: m.min,
+      max: m.max,
+      bawaan: m.bawaan,
+      /*
+        `nilai` selalu terisi — bawaan dipakai bila tenant belum menyetel.
+        `disetel` memisahkan keduanya, karena UI perlu bisa mengatakan "ini
+        masih bawaan" tanpa menampilkan kotak kosong yang terbaca seperti
+        pengaturan yang hilang.
+      */
+      nilai: tersimpan.get(kunci) ?? m.bawaan,
+      disetel: tersimpan.has(kunci),
+    }))
+
+    return reply.send({ ambang })
   })
 
   // ── PUT /api/v1/settings/config ───────────────────────────────────────────────

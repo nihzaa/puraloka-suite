@@ -22353,3 +22353,68 @@ mutasi blok verifikasi 417        4/4 MERAH lalu pulih
 lint:ratchet                      0 error, 231 warning
 saldo kas sebelum/sesudah semai   Rp 222.475.000 → Rp 222.475.000
 ```
+
+---
+
+## 2026-08-16 (10) — 22 ambang yang tak bisa disetel siapa pun
+
+Bukan otomasi baru. Ini **memperbaiki lubang yang sebagian besar saya buat
+sendiri sesi ini.**
+
+### Diukur
+
+```
+ambang di kode (AMBANG_OTOMASI)          37
+ambang di halaman /pengaturan/otomasi    15
+TAK BISA DISETEL DARI UI MANA PUN        22   ← 20 di antaranya buatan saya
+```
+
+Nilainya ada di basis, rutenya membacanya, dan satu-satunya cara mengubahnya
+**SQL langsung.** Persis yang dilarang CHARTER §8: *"Kolom DB sudah ada BUKAN
+selesai. Config-first berarti ada halaman pengaturannya di UI."*
+
+### Penyebabnya BENTUK, bukan kelalaian
+
+Halaman itu memelihara **daftarnya sendiri** — array yang ditulis tangan di
+frontend berisi kunci, judul, penjelasan, satuan, batas, langkah. Tiap ambang
+baru harus ditambahkan di dua tempat.
+
+Dua daftar yang harus dijaga sejalan **pasti** melenceng, dan melencengnya tak
+bergejala: halaman tetap tampil rapi, hanya lebih pendek. Menambal 22 entri
+akan memperbaiki hari ini dan mengulang bulan depan.
+
+### Yang dikerjakan
+
+1. **Metadata pindah ke sumbernya.** Ketiga-puluh-tujuh entri `AMBANG_OTOMASI`
+   sekarang membawa `judul`, `akibat`, `satuan`, `langkah`. `akibat` ditulis
+   dalam **bahasa akibat** — apa yang berubah bagi orang kalau angkanya
+   digeser — doktrin yang diambil dari halaman itu sendiri.
+2. **`GET /api/v1/settings/ambang-otomasi`** menyajikan metadata + nilai
+   tersimpan + bawaan + penanda `disetel`.
+3. **Halaman berhenti punya daftar sendiri.** Ia menampilkan apa pun yang
+   dikirim API; ambang baru muncul tanpa menyentuh berkas frontend.
+4. **Penjaga `audit-ambang-bisa-disetel.mjs`** (ambang NOL) menahan
+   kemunduran dari dua arah: entri tanpa metadata → merah; halaman yang mulai
+   memaku kunci `otomasi.…` → merah.
+
+### Kenapa penjaganya memeriksa DUA hal
+
+Memeriksa kelengkapan metadata saja tak cukup: seseorang bisa melengkapinya
+dan tetap membuat halaman memakai daftar sendiri. Memeriksa halaman saja juga
+tak cukup: entri tanpa `akibat` akan tampil sebagai kartu kosong — hadir,
+tetapi tak bisa dimengerti siapa pun.
+
+Penjaganya sengaja **membolehkan** kunci `otomasi.…` disebut di komentar.
+Penjaga yang melarang itu memaksa orang menghapus penjelasan terbaiknya.
+
+### Bukti
+
+```
+audit-ambang-bisa-disetel      37 ambang lengkap, halaman tak memaku satu pun
+mutasi penjaga                 2/2 MERAH lalu pulih
+  · `akibat` dihapus satu entri  → exit 1
+  · halaman memaku satu kunci    → exit 1
+15 penjaga arsitektural        exit=0
+lint:ratchet                   0 error, 231 warning
+tsc api + tsc web              0 error
+```
