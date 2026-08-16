@@ -5,6 +5,58 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi ASISTEN, 3) — 2.15 alokasi kas ke proyek
+
+Katalog tool asisten: 34 → 35. Kelompok "Pemilik/eksekutif" kini 4 dari 13.
+
+### Berbeda dari 8.3, dan bedanya menentukan
+
+8.3 mengurutkan tagihan SUPPLIER. 2.15 melihat permintaan dana per PROYEK —
+karena keputusan pemilik biasanya "proyek mana yang jalan terus", bukan
+"faktur mana yang dibayar".
+
+Diukur sebelum ditulis: kasbon `pending` 3 · Rp 5.000.000; pengeluaran
+`submitted` 5 · Rp 22.090.000. Keduanya sudah diajukan manusia — permintaan
+nyata, bukan perkiraan.
+
+### Namanya "Advisor", dan di situlah godaannya
+
+Meringkas tiga angka jadi satu skor lalu mengurutkannya. DITOLAK: skor tunggal
+menyembunyikan pertukarannya — proyek yang paling tertinggal jadwalnya belum
+tentu yang paling mendesak dananya, dan piutang besar bisa jadi alasan
+mendanai ATAU alasan menahan.
+
+Keluarannya menunjukkan ketegangan itu apa adanya:
+
+    Gudang Pak Hendra: minta Rp 5.280.000 · piutang Rp 77.700.000 · -30 jadwal
+
+Minta dana kecil sambil menahan piutang 15× lipatnya. Satu skor akan mengubur
+fakta itu.
+
+### Bukti
+
+    tsc (berkas saya)      0 galat
+    ai-tool-alokasi-kas    6 hijau (Postgres NYATA)
+    banding-proyek 9 · arus-kas 9 · ai-tool 18
+    lint:ratchet           API 0/231 · web 0/295
+    audit-izin-benar-ada       exit 0
+    audit-kredensial-tak-bocor exit 0
+    audit-kegagalan-senyap     exit 0
+    audit-catch-senyap         exit 0
+    audit-tool-ai-read-only    exit 0  (ambang NOL, tetap utuh)
+    audit-baca-tak-terpotong   exit 0
+    audit-gerbang-tenancy      exit 0
+    nomor katalog kembar       NOL (60 nomor)
+    mutasi                 pengeluaran 'approved' ikut → MERAH → pulih
+
+Mutasi itu membuktikan definisi "menunggu" benar-benar dijaga: memasukkan
+`approved` menaikkan angkanya jadi Rp 263.505.000 — sepuluh kali lipat, dari
+uang yang sudah disetujui dan tak lagi menunggu keputusan.
+
+Total permintaan diverifikasi ulang lewat SQL terpisah.
+
+---
+
 ## 2026-08-16 (sesi ASISTEN, 2) — 8.8 bandingkan proyek
 
 Katalog tool asisten: 33 → 34.

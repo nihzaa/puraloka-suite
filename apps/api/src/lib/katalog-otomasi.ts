@@ -819,6 +819,41 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'mengubur proyek berjalan yang benar-benar perlu didatangi.',
   },
   {
+    /*
+      2.15 Multi-Project Cash Allocation Advisor.
+
+      Berbeda dari 8.3 yang mengurutkan tagihan SUPPLIER: yang ini melihat
+      permintaan dana per PROYEK, karena keputusan pemilik biasanya "proyek
+      mana yang jalan terus", bukan "faktur mana yang dibayar".
+
+      Namanya "Advisor" dan di situlah godaannya: meringkas jadi satu skor.
+      Ditolak — skor tunggal menyembunyikan pertukarannya.
+    */
+    kunci: 'tanya-alokasi-kas',
+    kunci_bukan_rute: true,
+    nomor: '2.15',
+    nama: 'Tanya proyek mana yang didahulukan dananya',
+    pemicu: 'percakapan',
+    penjelasan:
+      'Menunjukkan permintaan dana yang menunggu di tiap proyek — kasbon '
+      + 'belum disetujui dan pengeluaran belum disetujui — dibandingkan saldo '
+      + 'kas, lengkap dengan piutang dan deviasi jadwal proyek itu.',
+    penerima: 'Yang bertanya',
+    alur: [
+      { di: 'n8n', teks: 'Pertanyaan masuk lewat WhatsApp.' },
+      { di: 'sistem', teks: 'Asisten memilih alat baca yang sesuai izin penanya.' },
+      { di: 'sistem', teks: 'Permintaan dana dijumlah per proyek, disandingkan piutang & jadwalnya.' },
+      { di: 'n8n', teks: 'Jawabannya dikirim balik.' },
+    ],
+    catatan:
+      'Ketiga angka (permintaan, piutang, deviasi jadwal) sengaja TIDAK '
+      + 'diringkas jadi satu skor: proyek yang paling tertinggal jadwalnya '
+      + 'belum tentu yang paling mendesak dananya, dan piutang besar bisa jadi '
+      + 'alasan mendanai ATAU alasan menahan. Yang disajikan bahan untuk '
+      + 'memutuskan, bukan putusannya. Proyek tanpa permintaan tidak ikut '
+      + 'didaftar supaya yang benar-benar minta tak tenggelam.',
+  },
+  {
     kunci: 'tanya-mandor',
     kunci_bukan_rute: true,
     nomor: '6.7, 6.11',
@@ -1076,6 +1111,32 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'tombol adalah baris yang tak seorang pun merasa bertanggung jawab '
       + 'atasnya. Yang ditagih bulan LALU, bukan bulan berjalan — menagih buku '
       + 'yang belum bisa ditutup hanya melatih orang mengabaikan notifikasi.',
+  },
+  {
+    kunci: 'kebiasaan-bayar',
+    nomor: '2.12',
+    nama: 'Klien cenderung telat membayar',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai klien yang POLANYA telat membayar, bukan satu tagihan yang '
+      + 'kebetulan lewat jatuh tempo. Tindakannya juga berbeda: menaikkan uang '
+      + 'muka atau memperpendek termin untuk proyek berikutnya, bukan menagih. '
+      + 'Diukur pada data nyata: dua klien rata-rata telat 31 dan 33 hari '
+      + 'dengan nilai gabungan di atas Rp 700 juta, dan keduanya tak pernah '
+      + 'terlihat sebagai pola — hanya sebagai beberapa invoice terlambat yang '
+      + 'tersebar di beberapa bulan. Klien yang sesekali membayar sangat awal '
+      + 'sehingga rata-ratanya terlihat bagus tetap tertangkap lewat porsi '
+      + 'invoice telat, yang diperiksa terpisah.',
+    penerima: 'Yang menerbitkan invoice',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca invoice ber-jatuh-tempo dan pembayarannya.' },
+      { di: 'sistem', teks: 'Menghitung selisih hari bayar vs jatuh tempo per klien.' },
+      { di: 'sistem', teks: 'Menilai rata-rata DAN porsi invoice telat secara terpisah.' },
+      { di: 'sistem', teks: 'Melewati klien yang invoice lunasnya masih terlalu sedikit.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.kebiasaan_bayar.hari',
   },
   {
     kunci: 'perawatan-diprediksi',

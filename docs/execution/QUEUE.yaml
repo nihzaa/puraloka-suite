@@ -2968,6 +2968,35 @@ items:
       Satu galat SQL di test: EXTRACT(EPOCH FROM (end_date - start_date))
       ditolak — selisih dua kolom `date` menghasilkan INTEGER, bukan interval.
 
+  - id: ASISTEN-16
+    fase: null
+    judul: "2.15 alokasi kas ke proyek — bahan untuk memutuskan, bukan skor"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: permintaan = kasbon `pending` + pengeluaran `submitted` (keduanya diajukan manusia)"
+      - "SUDAH: TIDAK diringkas jadi satu skor — permintaan/piutang/deviasi tetap terpisah"
+      - "SUDAH: proyek tanpa permintaan tak ikut didaftar"
+      - "SUDAH: deviasi tak terukur DISEBUT, bukan diganti 0"
+      - "SUDAH: total diverifikasi ulang lewat SQL terpisah"
+      - "SUDAH: mutasi terbukti merah (pengeluaran approved ikut → Rp 263 jt)"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/ai-tool-alokasi-kas.test.ts
+      (6 hijau)
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16 (sesi ASISTEN). Katalog tool 34 → 35.
+      Berbeda dari 8.3 yang mengurutkan tagihan SUPPLIER: yang ini melihat
+      permintaan dana per PROYEK, karena keputusan pemilik biasanya "proyek
+      mana yang jalan terus".
+      Namanya "Advisor" di katalog, dan godaannya meringkas jadi satu skor —
+      ditolak: skor tunggal menyembunyikan pertukarannya. Keluarannya
+      menunjukkan ketegangan itu apa adanya, mis. Gudang Pak Hendra minta
+      Rp 5.280.000 sambil menahan piutang Rp 77.700.000.
+      Mutasi membuktikan definisi "menunggu" dijaga: memasukkan pengeluaran
+      `approved` menaikkan angkanya jadi Rp 263.505.000 — uang yang sudah
+      disetujui dan tak lagi menunggu keputusan.
+
   - id: TUNDA-3.6
     fase: null
     judul: "3.6 Subcontractor Scoring — ditunda, syarat masuk terukur"

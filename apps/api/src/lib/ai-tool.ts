@@ -65,6 +65,7 @@ import { TOOL_PENGINGAT } from './ai-tool-pengingat.js'
 import { toolTitipPesan } from './ai-tool-titip-pesan.js'
 import { TOOL_ARUS_KAS } from './ai-tool-arus-kas.js'
 import { toolBandingProyek } from './ai-tool-banding-proyek.js'
+import { toolAlokasiKas } from './ai-tool-alokasi-kas.js'
 
 
 
@@ -877,6 +878,12 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     "terburuk".
   */
   toolBandingProyek,
+  /*
+    Katalog 2.15 (alokasi kas ke proyek). Berbeda dari 8.3 yang mengurutkan
+    tagihan SUPPLIER: yang ini melihat permintaan dana per PROYEK, karena
+    keputusan pemilik biasanya "proyek mana yang jalan terus".
+  */
+  toolAlokasiKas,
 ]
 
 /**
