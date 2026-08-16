@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { KepalaHalaman } from "@/components/dasar";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { BellRing, Plus, Trash2, Info, ShieldCheck, UserCog, Users, HardHat } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -36,31 +37,24 @@ export default function NotifikasiPage() {
 
 function Content() {
   const canManage = hasPerm("notifications:rules:manage");
-  const [rules, setRules] = useState<Rule[]>([]);
-  const [perms, setPerms] = useState<Permission[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [r, p, ro] = await Promise.all([
-        api.get<{ rules: Rule[] }>("/api/v1/notification-rules"),
-        api.get<{ permissions: Permission[] }>("/api/v1/permissions").catch(() => ({ data: { permissions: [] } })),
-        api.get<{ roles: Role[] }>("/api/v1/roles").catch(() => ({ data: { roles: [] } })),
-      ]);
-      setRules(r.data.rules ?? []);
-      setPerms(p.data.permissions ?? []);
-      setRoles(ro.data.roles ?? []);
-    } catch { setToast({ type: "err", msg: "Gagal memuat aturan notifikasi" }); }
-    finally { setLoading(false); }
-  }, []);
-  // `queueMicrotask`, bukan panggilan langsung: `load()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Tiga endpoint independen → tiga `useData`, menggantikan `Promise.all`
+    manual. Kegagalan `permissions`/`roles` sengaja tak menjatuhkan seluruh
+    halaman (perilaku lama: `.catch(() => ({ data: { … : [] } }))`).
+  */
+  const { data: dataRules, memuat: loading, galat: galatRules, muatUlang: muatUlangRules } =
+    useData<{ rules: Rule[] }>("/api/v1/notification-rules");
+  const { data: dataPerms } = useData<{ permissions: Permission[] }>("/api/v1/permissions");
+  const { data: dataRoles } = useData<{ roles: Role[] }>("/api/v1/roles");
+  const load = async () => { await muatUlangRules(); };
+  const rules = dataRules?.rules ?? [];
+  const perms = dataPerms?.permissions ?? [];
+  const roles = dataRoles?.roles ?? [];
+
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 5000); return () => clearTimeout(t); }, [toast]);
 
   const err = (e: unknown, fallback: string) =>
@@ -91,6 +85,22 @@ function Content() {
   };
 
   if (loading) return <div style={{ padding: 24, color: C.mid }}>Memuat…</div>;
+
+  // Galat MUAT dipisah dari `toast` (dipakai untuk galat AKSI ubah aturan) —
+  // satu state untuk keduanya membuat gagal menyimpan menghapus pesan gagal
+  // memuat.
+  if (galatRules) {
+    return (
+      <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+        <div role="alert" style={{ ...GAYA_KARTU, padding: "12px 12px", display: "flex", gap: 8, color: C.red }}>
+          Gagal memuat aturan notifikasi.{" "}
+          <button onClick={() => void load()} style={{ color: C.navy, background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+            Coba lagi.
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>

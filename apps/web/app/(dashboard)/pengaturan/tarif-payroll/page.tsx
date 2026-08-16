@@ -32,9 +32,10 @@
  * Yang menonjol HANYA spanduk kesiapan. Tabel dan kartu tenang.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Scale, TriangleAlert, ShieldCheck, Plus, Trash2 , Percent } from "lucide-react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Tabel } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
@@ -144,10 +145,6 @@ const tanggal = (iso: string) => {
 };
 
 export default function TarifPayrollPage() {
-  const [data, setData] = useState<Data | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
-
   const [buatPeriode, setBuatPeriode] = useState(false);
   const [fJenis, setFJenis] = useState<Jenis>("bpjs");
   const [fSejak, setFSejak] = useState("");
@@ -166,18 +163,21 @@ export default function TarifPayrollPage() {
   const [menyimpan, setMenyimpan] = useState(false);
   const [galatModal, setGalatModal] = useState<string | null>(null);
 
-  const muat = useCallback(async () => {
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Data>("/api/v1/payroll/tarif");
-      setData(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat tarif payroll");
-    } finally { setMemuat(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => { void muat(); }, [muat]);
+    `useData` menggantikan useCallback+useEffect. Pesan galat server (dari
+    body respons) tak lagi tersedia lewat `useData` (ia hanya memaparkan
+    `Error`), jadi pesan bawaan yang dipakai — perilaku yang sama dengan
+    halaman lain yang sudah dipindah lebih dulu.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } = useData<Data>("/api/v1/payroll/tarif");
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+  const galat = galatMuat ? "Gagal memuat tarif payroll" : null;
+  // Galat AKSI (hapus baris) terpisah dari `galat` (galat MUAT) di atas —
+  // satu state untuk keduanya membuat gagal menghapus menutupi pesan gagal
+  // memuat, dan sebaliknya.
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
 
   const simpanPeriode = useCallback(async () => {
     if (!fSejak) { setGalatModal("Tanggal berlaku wajib diisi"); return; }
@@ -217,13 +217,13 @@ export default function TarifPayrollPage() {
   }, [tambahKe, bKunci, bLabel, bBawah, bAtas, bNominal, bPersen, bPerusahaan, bKaryawan, muat]);
 
   const hapusBaris = useCallback(async (id: string) => {
-    setGalat(null);
+    setGalatAksi(null);
     try {
       await api.delete(`/api/v1/payroll/tarif/baris/${id}`);
       await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menghapus baris tarif");
+      setGalatAksi(m ?? "Gagal menghapus baris tarif");
     }
   }, [muat]);
 
@@ -264,6 +264,14 @@ export default function TarifPayrollPage() {
           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)",
         }}>{galat}</div>
+      )}
+
+      {galatAksi && (
+        <div role="alert" style={{
+          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+          color: "var(--danger)",
+        }}>{galatAksi}</div>
       )}
 
       {/* ── SPANDUK KESIAPAN — satu-satunya yang menonjol ───────────────── */}

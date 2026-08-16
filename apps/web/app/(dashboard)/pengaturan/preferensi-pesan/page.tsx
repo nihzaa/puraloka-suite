@@ -29,6 +29,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { BellOff, Loader2 } from "lucide-react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
@@ -52,28 +53,18 @@ interface Muatan {
 }
 
 export default function PreferensiPesanPage() {
-  const [muatan, setMuatan] = useState<Muatan | null>(null);
   const [draf, setDraf] = useState<Partial<Preferensi>>({});
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
   const [toast, setToast] = useState<{ tipe: "ok" | "salah"; pesan: string } | null>(null);
 
-  const ambil = useCallback(async () => {
-    setMemuat(true);
-    setGalat(null);
-    try {
-      const r = await api.get<Muatan>("/api/v1/preferensi-pesan");
-      setMuatan(r.data);
-    } catch {
-      setGalat("Preferensi tidak bisa dimuat.");
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask` — pola yang sama dengan 131 tempat lain di aplikasi ini.
-  useEffect(() => { queueMicrotask(() => { void ambil(); }); }, [ambil]);
+    `useData` menggantikan useCallback+useEffect+queueMicrotask.
+  */
+  const { data: muatan, memuat, galat: galatMuat, muatUlang } = useData<Muatan>("/api/v1/preferensi-pesan");
+  const ambil = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+  const galat = galatMuat ? "Preferensi tidak bisa dimuat." : null;
 
   useEffect(() => {
     if (!toast) return;

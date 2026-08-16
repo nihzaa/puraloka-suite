@@ -26,9 +26,10 @@
  * formulir, nilainya tetap terbaca.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { SlidersHorizontal, Plus, Check, AlertTriangle, EyeOff, Eye } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -92,31 +93,24 @@ export default function FieldTambahanPage() {
 
 function Konten() {
   const bolehKelola = hasPerm("settings:customfield:manage");
-  const [katalog, setKatalog] = useState<Katalog | null>(null);
-  const [rows, setRows] = useState<Definisi[]>([]);
   const [entitas, setEntitas] = useState("projects");
-  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [k, d] = await Promise.all([
-        api.get<Katalog>("/api/v1/custom-field/katalog"),
-        api.get<{ definisi: Definisi[] }>("/api/v1/custom-field/def", { params: { all: true } }),
-      ]);
-      setKatalog(k.data);
-      setRows(d.data.definisi ?? []);
-    } catch {
-      setToast({ type: "error", msg: "Gagal memuat daftar field tambahan" });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan panggilan langsung: `load()` menyetel state di
-  // baris pertamanya, dan setState SINKRON di dalam effect memicu render
-  // kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+    Dua endpoint independen (katalog, definisi) → dua `useData` terpisah,
+    menggantikan `Promise.all` manual. `loading` gabungan keduanya supaya
+    halaman tak berkedip menampilkan tabel kosong sebelum katalog datang.
+  */
+  const { data: katalog, memuat: memuatKatalog, galat: galatKatalog } = useData<Katalog>("/api/v1/custom-field/katalog");
+  const { data: dataDef, memuat: memuatDef, galat: galatDef, muatUlang: muatUlangDef } =
+    useData<{ definisi: Definisi[] }>("/api/v1/custom-field/def?all=true");
+  const loading = memuatKatalog || memuatDef;
+  const galatMuat = galatKatalog || galatDef;
+  const load = async () => { await muatUlangDef(); };
+  const rows = dataDef?.definisi ?? [];
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 3500);
@@ -215,6 +209,16 @@ function Konten() {
 
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 13 }}>Memuat…</div>
+      ) : galatMuat ? (
+        // Galat MUAT dipisah dari `toast` (dipakai untuk galat AKSI simpan
+        // field) — satu state untuk keduanya membuat gagal menyimpan
+        // menghapus pesan gagal memuat.
+        <div role="alert" style={{ ...card, padding: 40, textAlign: "center", color: C.red, fontSize: 13 }}>
+          Gagal memuat daftar field tambahan.{" "}
+          <button onClick={() => void load()} style={{ color: C.navy, background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+            Coba lagi.
+          </button>
+        </div>
       ) : (
         <div style={{ ...card, overflow: "hidden" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 160px 110px 90px", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>

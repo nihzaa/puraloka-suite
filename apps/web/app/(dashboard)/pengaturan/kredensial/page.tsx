@@ -35,6 +35,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useIzin } from "@/lib/use-izin";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import {
   KeyRound, Trash2, Info, CheckCircle2, XCircle, Loader2, ExternalLink, ShieldAlert,
 } from "lucide-react";
@@ -91,31 +92,22 @@ const SUMBER_META: Record<Sumber, { teks: string; warna: string; latar: string }
 export default function KredensialPage() {
   const bolehKelola = useIzin("settings:credentials:manage");
 
-  const [daftar, setDaftar] = useState<Kredensial[]>([]);
-  const [enkripsiSiap, setEnkripsiSiap] = useState(true);
-  const [memuat, setMemuat] = useState(true);
   const [draf, setDraf] = useState<Record<string, string>>({});
   const [uji, setUji] = useState<Record<string, HasilUji>>({});
   const [sedangSimpan, setSedangSimpan] = useState<string | null>(null);
   const [toast, setToast] = useState<{ tipe: "ok" | "err"; pesan: string } | null>(null);
 
-  const muat = useCallback(async () => {
-    try {
-      const r = await api.get<{ data: Kredensial[]; enkripsi_siap: boolean }>(
-        "/api/v1/kredensial",
-      );
-      setDaftar(r.data.data ?? []);
-      setEnkripsiSiap(r.data.enkripsi_siap !== false);
-    } catch {
-      setToast({ tipe: "err", pesan: "Gagal memuat daftar kredensial" });
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    muat();
-  }, [muat]);
+    `useData` menggantikan useCallback+useEffect. Aman dipindah: nilai
+    kredensial TAK PERNAH ada dalam respons (hanya `empat_akhir`), jadi tak
+    ada nilai rahasia yang masuk cache di lapis ini.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } = useData<{ data: Kredensial[]; enkripsi_siap: boolean }>("/api/v1/kredensial");
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+  const daftar = data?.data ?? [];
+  const enkripsiSiap = data ? data.enkripsi_siap !== false : true;
 
   useEffect(() => {
     if (!toast) return;
@@ -246,6 +238,16 @@ export default function KredensialPage() {
       {memuat ? (
         <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
           Memuat…
+        </div>
+      ) : galatMuat ? (
+        // Galat MUAT dipisah dari `toast` (dipakai untuk galat AKSI
+        // simpan/hapus/uji) — satu state untuk keduanya membuat gagal
+        // menyimpan menghapus pesan gagal memuat.
+        <div role="alert" style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", color: "var(--danger)", fontSize: 13 }}>
+          Gagal memuat daftar kredensial.{" "}
+          <button onClick={() => void muat()} style={{ color: "inherit", background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+            Coba lagi.
+          </button>
         </div>
       ) : (
         grup.map((namaGrup) => (

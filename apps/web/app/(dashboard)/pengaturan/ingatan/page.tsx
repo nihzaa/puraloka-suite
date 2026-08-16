@@ -38,6 +38,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Brain, Loader2, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
@@ -76,11 +77,6 @@ interface Proyek {
 export default function IngatanPage() {
   const bolehLihat = useIzin("ai:ingatan:lihat");
 
-  const [muatan, setMuatan] = useState<Muatan | null>(null);
-  const [izinKatalog, setIzinKatalog] = useState<IzinKatalog[]>([]);
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
   const [menghapus, setMenghapus] = useState<string | null>(null);
   const [toast, setToast] = useState<{ tipe: "ok" | "salah"; pesan: string } | null>(null);
@@ -92,38 +88,25 @@ export default function IngatanPage() {
   const [izinMin, setIzinMin] = useState("");
   const [projectId, setProjectId] = useState("");
 
-  const ambil = useCallback(async () => {
-    setMemuat(true);
-    setGalat(null);
-    try {
-      const r = await api.get<Muatan>("/api/v1/ai/ingatan");
-      setMuatan(r.data);
-    } catch {
-      // Kegagalan muat DITAMPILKAN, bukan jadi halaman kosong: daftar kosong
-      // tak bisa dibedakan dari "asisten belum mengingat apa pun", dan orang
-      // akan menyimpulkan ingatannya memang belum jalan.
-      setGalat("Daftar ingatan tidak bisa dimuat.");
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan panggilan langsung — pola yang sama dengan 131
-  // tempat lain di aplikasi ini (react-hooks/set-state-in-effect).
-  useEffect(() => { queueMicrotask(() => { void ambil(); }); }, [ambil]);
+    `useData` menggantikan `ambil()` + dua fetch sekunder yang lama.
+    Kegagalan MUAT tetap ditampilkan lewat `galat` (bukan dihapus diam-diam) —
+    daftar kosong tak bisa dibedakan dari "asisten belum mengingat apa pun".
+  */
+  const { data: muatan, memuat, galat: galatMuat, muatUlang } = useData<Muatan>("/api/v1/ai/ingatan");
+  const ambil = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+  const galat = galatMuat ? "Daftar ingatan tidak bisa dimuat." : null;
 
-  useEffect(() => {
-    // Katalog izin & proyek datang dari SERVER, tak dipaku di sini: daftar
-    // yang disalin ke web akan basi diam-diam begitu katalognya bertambah.
-    void api
-      .get<{ data: IzinKatalog[] }>("/api/v1/ai/ingatan/izin-tersedia")
-      .then((r) => setIzinKatalog(r.data.data ?? []))
-      .catch(() => setIzinKatalog([]));
-    void api
-      .get<{ data?: Proyek[]; projects?: Proyek[] }>("/api/v1/projects")
-      .then((r) => setProyek(r.data.data ?? r.data.projects ?? []))
-      .catch(() => setProyek([]));
-  }, []);
+  // Katalog izin & proyek datang dari SERVER, tak dipaku di sini: daftar yang
+  // disalin ke web akan basi diam-diam begitu katalognya bertambah.
+  // Kegagalannya SENGAJA tak memunculkan galat merah — lihat catatan lama:
+  // halaman ini tetap berguna tanpa keduanya (default `?? []` di bawah).
+  const { data: dataIzinKatalog } = useData<{ data: IzinKatalog[] }>("/api/v1/ai/ingatan/izin-tersedia");
+  const izinKatalog = dataIzinKatalog?.data ?? [];
+  const { data: dataProyek } = useData<{ data?: Proyek[]; projects?: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.data ?? dataProyek?.projects ?? [];
 
   useEffect(() => {
     if (!toast) return;

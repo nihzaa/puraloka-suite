@@ -30,9 +30,10 @@
  * aksen, itu makna.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useIzin } from "@/lib/use-izin";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { CalendarClock, Info, CheckCircle2, XCircle, CircleDashed, TriangleAlert } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -110,33 +111,30 @@ function waktuRelatif(iso: string | null): string {
 export default function JadwalPage() {
   const bolehKelola = useIzin("settings:schedule:manage");
 
-  const [daftar, setDaftar] = useState<Tugas[]>([]);
-  const [siap, setSiap] = useState(true);
-  const [memuat, setMemuat] = useState(true);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    `useData` menggantikan useCallback+useEffect+queueMicrotask. `draf`
+    (perubahan belum tersimpan per tugas) dikosongkan lewat `useEffect`
+    terpisah begitu `data` yang baru datang — sama seperti perilaku lama
+    `setDraf({})` di dalam `muat()`.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } = useData<{ data: Tugas[]; penjadwal_siap: boolean }>("/api/v1/jadwal");
+  const muat = async () => { await muatUlang(); };
+  const daftar = data?.data ?? [];
+  const siap = data ? data.penjadwal_siap !== false : true;
+
   const [draf, setDraf] = useState<Record<string, Partial<Tugas>>>({});
   const [menyimpan, setMenyimpan] = useState<string | null>(null);
   const [bukaUbah, setBukaUbah] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<{ tipe: "ok" | "err"; pesan: string } | null>(null);
 
-  const muat = useCallback(async () => {
-    try {
-      const r = await api.get<{ data: Tugas[]; penjadwal_siap: boolean }>("/api/v1/jadwal");
-      setDaftar(r.data.data ?? []);
-      setSiap(r.data.penjadwal_siap !== false);
-      setDraf({});
-    } catch {
-      setToast({ tipe: "err", pesan: "Gagal memuat jadwal tugas" });
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+  useEffect(() => {
+    if (!data) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDraf({});
+  }, [data]);
 
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 5000);
@@ -266,6 +264,19 @@ export default function JadwalPage() {
       {memuat ? (
         <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
           Memuat…
+        </div>
+      ) : galatMuat ? (
+        // Galat MUAT dipisah dari `toast` (galat AKSI menyimpan jadwal) —
+        // satu state untuk keduanya membuat gagal menyimpan menghapus pesan
+        // gagal memuat, dan daftar kosong tak bisa dibedakan dari galat.
+        <div role="alert" style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", display: "flex", gap: 10, borderColor: "var(--danger)", background: "var(--danger-bg)" }}>
+          <TriangleAlert size={18} style={{ color: "var(--danger)", flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6 }}>
+            Gagal memuat jadwal tugas.{" "}
+            <button type="button" onClick={() => void muat()} style={{ color: C.aksen, background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+              Coba lagi.
+            </button>
+          </div>
         </div>
       ) : daftar.length === 0 ? (
         <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>

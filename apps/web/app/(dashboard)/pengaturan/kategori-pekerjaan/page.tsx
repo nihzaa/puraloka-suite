@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Layers, Plus, Check, X, AlertTriangle, Save, EyeOff, Eye } from "lucide-react";
 import type { WorkCategoryRow } from "@/lib/use-work-categories";
 
@@ -26,23 +27,17 @@ export default function KategoriPage() {
 
 function KategoriContent() {
   const canManage = hasPerm("work_categories:manage");
-  const [rows, setRows] = useState<WorkCategoryRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const { data } = await api.get<{ categories: WorkCategoryRow[] }>("/api/v1/work-categories", { params: { all: true } });
-      setRows(data.categories ?? []);
-    } catch { setToast({ type: "error", msg: "Gagal memuat kategori" }); }
-    finally { setLoading(false); }
-  }, []);
-  // `queueMicrotask`, bukan panggilan langsung: `load()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    `useData` menggantikan useCallback+useEffect+queueMicrotask.
+  */
+  const { data, memuat: loading, galat: galatMuat, muatUlang } = useData<{ categories: WorkCategoryRow[] }>("/api/v1/work-categories?all=true");
+  const load = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+  const rows = data?.categories ?? [];
+
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 3500); return () => clearTimeout(t); }, [toast]);
 
   return (
@@ -70,6 +65,16 @@ function KategoriContent() {
 
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 13 }}>Memuat...</div>
+      ) : galatMuat ? (
+        // Galat MUAT dipisah dari `toast` (dipakai untuk galat AKSI menyimpan
+        // baris) — satu state untuk keduanya membuat gagal menyimpan
+        // menghapus pesan gagal memuat.
+        <div role="alert" style={{ ...card, padding: 40, textAlign: "center", color: C.red, fontSize: 13 }}>
+          Gagal memuat daftar kategori.{" "}
+          <button onClick={() => void load()} style={{ color: C.navy, background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+            Coba lagi.
+          </button>
+        </div>
       ) : (
         <div style={{ ...card, overflow: "hidden" }}>
           <div style={{ display: "grid", gridTemplateColumns: "160px 1fr 70px 90px", gap: 12, padding: "12px 20px", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em" }}>
