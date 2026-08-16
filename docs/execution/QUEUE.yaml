@@ -2937,6 +2937,37 @@ items:
       Temuan nyata dari keluarannya: Rp 100.395.000 piutang 70 hari lewat
       tempo, satu tagihan supplier 96 hari lewat.
 
+  - id: ASISTEN-15
+    fase: null
+    judul: "8.8 bandingkan proyek — deviasi jadwal, bukan progres mentah"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: diurut DEVIASI (progres − porsi waktu), bukan progress_pct mentah"
+      - "SUDAH: proyek tanpa tanggal DISEBUT terpisah, tak dianggap tepat jadwal"
+      - "SUDAH: proyek selesai dikecualikan bawaan — tak mengubur yang berjalan"
+      - "SUDAH: porsiWaktu dijepit 0–100 (belum mulai ≠ minus, lewat tenggat ≠ 150)"
+      - "SUDAH: deviasi diverifikasi ulang lewat SQL terpisah"
+      - "SUDAH: 2 mutasi terbukti merah"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/ai-tool-banding-proyek.test.ts
+      (9 hijau)
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16 (sesi ASISTEN). Katalog tool 33 → 34.
+      Perbandingan berbasis BIAYA ditolak sesudah diukur: dari 17 proyek hanya
+      3 punya RAB dan 4 punya pengeluaran — ia cuma mencakup seperempat
+      portofolio, dan yang tak tercakup terbaca "baik-baik saja". Deviasi
+      jadwal bisa dihitung untuk semuanya (17/17 punya tanggal + progress_pct).
+      Temuan nyata: Ruko Pak Eko −70 (progres 30%, waktu 100%), dan Rumah Bu
+      Sari — Dago −67 (progres 0%, waktu 67%) yang bernilai Rp 1.095 juta.
+      Mutasi M2 (proyek tanpa tanggal diberi deviasi 0) sempat HIJAU karena
+      tenant ini punya 13 proyek berjalan dan NOL tanpa tanggal — datanya tak
+      bisa membedakan. Cabang pemisahnya lalu diperiksa DI SUMBER, dan
+      kelemahannya ditulis di test-nya; sesudah itu M2 merah.
+      Satu galat SQL di test: EXTRACT(EPOCH FROM (end_date - start_date))
+      ditolak — selisih dua kolom `date` menghasilkan INTEGER, bukan interval.
+
   - id: TUNDA-3.6
     fase: null
     judul: "3.6 Subcontractor Scoring — ditunda, syarat masuk terukur"

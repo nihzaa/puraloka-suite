@@ -64,6 +64,7 @@ import { toolJejakPerubahan } from './ai-tool-jejak.js'
 import { TOOL_PENGINGAT } from './ai-tool-pengingat.js'
 import { toolTitipPesan } from './ai-tool-titip-pesan.js'
 import { TOOL_ARUS_KAS } from './ai-tool-arus-kas.js'
+import { toolBandingProyek } from './ai-tool-banding-proyek.js'
 
 
 
@@ -869,6 +870,13 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     penjumlahan terjadwal — bukan ramalan.
   */
   ...TOOL_ARUS_KAS,
+  /*
+    Katalog 8.8 (benchmark internal). Membandingkan progres terhadap WAKTU,
+    bukan mengurutkan progres mentah: proyek yang baru mulai memang kecil
+    progresnya, dan mengurutkannya menempatkan proyek sehat di urutan
+    "terburuk".
+  */
+  toolBandingProyek,
 ]
 
 /**

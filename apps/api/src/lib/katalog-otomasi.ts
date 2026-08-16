@@ -784,6 +784,41 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'memutuskan — hubungan dagang tak terbaca dari tanggal.',
   },
   {
+    /*
+      8.8 Competitive Benchmark (INTERNAL — antar proyek sendiri, bukan vs
+      kompetitor).
+
+      Yang dibandingkan progres terhadap WAKTU, bukan progres mentah: proyek
+      yang baru mulai memang kecil progresnya, dan mengurutkan progres
+      menempatkan proyek SEHAT di urutan "paling buruk".
+
+      Perbandingan berbasis BIAYA ditolak sesudah diukur: dari 17 proyek hanya
+      3 punya RAB dan 4 punya pengeluaran, jadi ia cuma mencakup seperempat
+      portofolio — dan yang tak tercakup terbaca "baik-baik saja".
+    */
+    kunci: 'tanya-banding-proyek',
+    kunci_bukan_rute: true,
+    nomor: '8.8',
+    nama: 'Tanya proyek mana yang paling tertinggal',
+    pemicu: 'percakapan',
+    penjelasan:
+      'Membandingkan semua proyek berjalan: progres fisik terhadap porsi waktu '
+      + 'yang sudah lewat, lalu mengurutkan yang paling tertinggal dari jadwal.',
+    penerima: 'Yang bertanya',
+    alur: [
+      { di: 'n8n', teks: 'Pertanyaan masuk lewat WhatsApp.' },
+      { di: 'sistem', teks: 'Asisten memilih alat baca yang sesuai izin penanya.' },
+      { di: 'sistem', teks: 'Tiap proyek dihitung: progres dikurangi porsi waktu terpakai.' },
+      { di: 'n8n', teks: 'Jawabannya dikirim balik.' },
+    ],
+    catatan:
+      'Proyek yang tanggal mulai/selesainya belum lengkap DISEBUT TERPISAH, '
+      + 'tidak dianggap tepat jadwal — menganggapnya nol membuat proyek yang '
+      + 'datanya belum ada tampil sebagai yang paling sehat. Proyek selesai '
+      + 'dikecualikan secara bawaan: ia hampir selalu berdeviasi buruk dan '
+      + 'mengubur proyek berjalan yang benar-benar perlu didatangi.',
+  },
+  {
     kunci: 'tanya-mandor',
     kunci_bukan_rute: true,
     nomor: '6.7, 6.11',

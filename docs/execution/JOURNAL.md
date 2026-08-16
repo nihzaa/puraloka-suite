@@ -5,6 +5,81 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi ASISTEN, 2) — 8.8 bandingkan proyek
+
+Katalog tool asisten: 33 → 34.
+
+### Yang dibandingkan: progres terhadap WAKTU, bukan progres mentah
+
+Halaman proyek menjawab "proyek INI bagaimana". Yang tak terjawab: "dari 17
+proyek, mana yang paling perlu saya datangi minggu ini".
+
+Mengurutkan `progress_pct` mentah TIDAK menjawabnya — proyek yang baru mulai
+memang kecil progresnya, dan mengurutkannya menempatkan proyek SEHAT di urutan
+"paling buruk". Yang dipakai: **deviasi jadwal** = progres − porsi waktu yang
+sudah lewat.
+
+### Perbandingan berbasis BIAYA ditolak sesudah diukur
+
+    17 proyek punya contract_value + progress_pct + tanggal
+     3 punya RAB
+     4 punya pengeluaran
+
+Perbandingan biaya hanya akan mencakup **seperempat portofolio**, dan yang tak
+tercakup terbaca "baik-baik saja". Deviasi jadwal bisa dihitung untuk semuanya.
+
+### Temuan nyata dari keluarannya
+
+    -70  Ruko Pak Eko — progres 30%, waktu 100%  (Rp 420 jt, DITAHAN)
+    -67  Rumah Bu Sari — Dago: progres 0%, waktu 67%  (Rp 1.095 jt)
+
+Proyek terbesar di portofolio, dua pertiga waktunya habis, nol progres.
+
+### Proyek tanpa tanggal DISEBUT terpisah
+
+Deviasi 0 akan menempatkannya di tengah daftar sebagai proyek paling sehat —
+kebalikan dari yang perlu diperhatikan. Pola sama dengan `nominalEntitas()`
+dan komponen tanpa harga: data hilang MENAMBAH pengawasan.
+
+### Dua mutasi, satu tak punya bahan — dan itu dinyatakan
+
+    M1 urut progres mentah          → MERAH (2 test)
+    M2 tanpa tanggal → deviasi 0    → HIJAU
+
+M2 lolos karena tenant ini punya **13 proyek berjalan, NOL tanpa tanggal** —
+datanya tak bisa membedakan. Membiarkan test yang lolos karena kebetulan tak
+ada bahannya lebih buruk daripada tak punya test. Cabang pemisahnya karena itu
+diperiksa DI SUMBER, dan kelemahannya ditulis di test-nya. Sesudah itu M2
+MERAH.
+
+Ini kedua kalinya dalam sesi ini data tak sanggup membuktikan perilaku — sama
+dengan `perlu_perhatian` kemarin.
+
+### Satu galat SQL di test, bukan di kode
+
+`EXTRACT(EPOCH FROM (end_date - start_date))` ditolak Postgres: selisih dua
+kolom `date` menghasilkan INTEGER (hari), bukan interval. Diperbaiki memakai
+selisih harinya langsung.
+
+### Bukti
+
+    tsc (berkas saya)      0 galat
+    ai-tool-banding-proyek 9 hijau (Postgres NYATA)
+    ai-tool-arus-kas       9 · ai-tool 18
+    audit-izin-benar-ada       exit 0
+    audit-kredensial-tak-bocor exit 0
+    audit-kegagalan-senyap     exit 0
+    audit-catch-senyap         exit 0
+    audit-tool-ai-read-only    exit 0  (ambang NOL, tetap utuh)
+    audit-baca-tak-terpotong   exit 0
+    audit-gerbang-tenancy      exit 0
+    nomor katalog kembar       NOL (58 nomor)
+
+Deviasi diverifikasi ulang lewat SQL terpisah — bukan dibandingkan dengan
+dirinya sendiri.
+
+---
+
 ## 2026-08-16 (sesi ASISTEN, 1) — arus kas 2.4 + prioritas bayar 8.3
 
 Sesi terpisah untuk TOOL BACA asisten; sesi lain melanjutkan rute otomasi
