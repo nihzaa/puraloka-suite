@@ -25,7 +25,7 @@
  *
  *     "+ Buat pilihan lain"    → skenario baru   (mis. spek standar vs premium)
  *     "Revisi"                 → versi baru      (v1 tetap utuh sebagai bukti)
- *     "Kunci & kirim ke klien" → versi submitted (angka berhenti bisa berubah)
+ *     "Kunci RAB ini"          → under_review (angka berhenti bisa berubah)
  *
  * ── Yang TIDAK berubah
  *
@@ -37,7 +37,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Plus, Upload, Lock, FileSpreadsheet, Layers, HelpCircle, ArrowRightLeft } from "lucide-react";
+import { Plus, Upload, Lock, FileSpreadsheet, Layers, HelpCircle, ArrowRightLeft, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
@@ -143,6 +143,40 @@ export default function SusunRabPage() {
   /** Versi yang sedang diterapkan ke RAB proyek (rab_items). */
   const [terapkan, setTerapkan] = useState<DetailVersi | null>(null);
 
+  /**
+   * Buang satu item dari RAB.
+   *
+   * ── Kenapa HAPUS, bukan ubah-volume-di-tempat
+   *
+   * Mockup menjanjikan volume bisa disunting langsung di tabel. Diukur ke
+   * API: `estimate-versions.ts` punya POST dan DELETE untuk item, tetapi
+   * TIDAK punya PATCH — tak ada jalan mengubah kuantitas item yang sudah
+   * tersimpan. Volume bukan angka yang berdiri sendiri: mengubahnya berarti
+   * menghitung ulang HSP × qty berikut snapshot harga dan pembulatannya.
+   *
+   * Membuat endpoint itu = menyentuh rantai hitung, dan itu di luar rombak
+   * tampilan. Yang dikerjakan sekarang: jalur yang MEMANG ada dan belum
+   * pernah terpasang di UI — buang lalu tambah ulang. Janji sunting-di-tempat
+   * TIDAK ditampilkan sebagai kolom yang tampak bisa diklik tapi diam.
+   */
+  const hapusItem = async (item: ItemVersi) => {
+    if (!versiDibuka) return;
+    const nama = item.assembly?.name ?? item.description ?? "item ini";
+    if (!window.confirm(
+      `Buang "${nama}" dari RAB?\n\n` +
+      "Untuk mengubah volumenya, buang lalu tambahkan lagi dengan volume baru — " +
+      "angkanya dihitung ulang dari koefisien & harga yang berlaku.",
+    )) return;
+    setSibuk(true); setGalat("");
+    try {
+      await api.delete(`/api/v1/estimate-versions/${versiDibuka.id}/items/${item.id}`);
+      await bukaVersi(versiDibuka.id);
+      await muatSkenario(proyekId);
+    } catch (e) {
+      setGalat(pesanGalat(e) ?? "Gagal membuang item");
+    } finally { setSibuk(false); }
+  };
+
   const muatSkenario = useCallback(async (pid: string) => {
     if (!pid) { setSkenario([]); return; }
     setMemuat(true);
@@ -236,7 +270,21 @@ export default function SusunRabPage() {
     )) return;
     setSibuk(true); setGalat("");
     try {
-      await api.post(`/api/v1/estimate-versions/${versiId}/submit`, {});
+      /*
+        PATCH, bukan POST.
+
+        Percobaan pertama saya memakai POST dan mendapat 404 — rutenya
+        terdaftar sebagai `app.patch`. Yang membuatnya sulit terlihat:
+        layar TIDAK menampilkan apa pun. `pesanGalat()` membaca
+        `response.data.error`, sementara 404 dari Fastify memulangkan
+        `{message, error:"Not Found", statusCode}` — dan "Not Found" itu
+        tertimpa pesan cadangan yang tak pernah muncul karena `setGalat`
+        dipanggil dengan string kosong dari cabang lain.
+
+        Gejalanya: tombol ditekan, tak terjadi apa-apa, tak ada keluhan.
+        Persis kelas cacat yang modul ini ada untuk memberantas.
+      */
+      await api.patch(`/api/v1/estimate-versions/${versiId}/submit`, {});
       await muatSkenario(proyekId);
       await bukaVersi(versiId);
     } catch (e) {
@@ -302,6 +350,7 @@ export default function SusunRabPage() {
               onTambah={() => setBukaTambah(true)}
               onJelaskan={setJelaskanId}
               onTerapkan={() => setTerapkan(versiDibuka)}
+              onHapus={hapusItem}
               sibuk={sibuk}
             />
           )}
@@ -529,10 +578,11 @@ function DaftarPilihan({ skenario, versiAktif, onBuka, onRevisi, onPilihanLain, 
 }
 
 // ── Tabel item + ringkasan ────────────────────────────────────────────────
-function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, sibuk }: {
+function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, onHapus, sibuk }: {
   versi: DetailVersi; rollup: Rollup | null;
   onKunci: () => void; onTambah: () => void;
-  onJelaskan: (id: string) => void; onTerapkan: () => void; sibuk: boolean;
+  onJelaskan: (id: string) => void; onTerapkan: () => void;
+  onHapus: (it: ItemVersi) => void; sibuk: boolean;
 }) {
   const items = versi.items ?? [];
   const terkunci = versi.status !== "draft";
@@ -683,6 +733,27 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, s
                         langsung
                       </span>
                     )}
+
+                    {/* Buang item — hanya saat masih draft (API menolak 409
+                        sesudah terkunci, dan tombol yang pasti ditolak lebih
+                        buruk daripada tombol yang tak ada). */}
+                    {!terkunci && (
+                      <button
+                        type="button"
+                        onClick={() => onHapus(it)}
+                        disabled={sibuk}
+                        title="Buang item ini"
+                        aria-label={`Buang ${it.assembly?.name ?? it.description ?? "item ini"} dari RAB`}
+                        style={{
+                          background: "none", border: "none",
+                          cursor: sibuk ? "wait" : "pointer",
+                          color: C.muted, padding: 2, marginLeft: 6,
+                          display: "inline-flex", verticalAlign: "middle",
+                        }}
+                      >
+                        <Trash2 size={13} aria-hidden="true" />
+                      </button>
+                    )}
                   </td>
                 </tr>
                 );
@@ -760,7 +831,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, s
                   fontFamily: "inherit", cursor: sibuk ? "wait" : "pointer",
                 }}
               >
-                <Lock size={13} aria-hidden="true" /> Kunci &amp; kirim ke klien
+                <Lock size={13} aria-hidden="true" /> Kunci RAB ini
               </button>
               <p style={{
                 fontSize: 11, color: C.muted, marginTop: 7,
@@ -880,8 +951,41 @@ const tombolTipis: React.CSSProperties = {
   fontWeight: 600, fontFamily: "inherit", cursor: "pointer",
 };
 
+/**
+ * Pesan galat yang TIDAK PERNAH DIAM.
+ *
+ * ── Kenapa tidak cukup `response.data.error`
+ *
+ * Bentuk pertama fungsi ini hanya membaca `response.data.error`. Itu benar
+ * untuk galat yang DIBUAT rute ini sendiri, tetapi 404 dari Fastify berbentuk
+ * `{ message, error: "Not Found", statusCode: 404 }` — dan galat jaringan
+ * (server mati, CORS) tak punya `response` sama sekali.
+ *
+ * Akibatnya, saat `POST /submit` memulangkan 404 karena rutenya ternyata
+ * `PATCH`, layar tidak menampilkan APA PUN: tombol ditekan, tak terjadi
+ * apa-apa, tak ada keluhan. Bug itu baru ketahuan dari log jaringan, bukan
+ * dari memakai aplikasinya.
+ *
+ * Sekarang ia selalu memulangkan sesuatu yang bisa dibaca manusia, dan
+ * menyebut status HTTP-nya supaya cacat rute tak lagi menyamar jadi
+ * "tidak terjadi apa-apa".
+ */
 function pesanGalat(e: unknown): string | undefined {
-  return (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
+  const r = (e as {
+    response?: { status?: number; data?: { error?: string; message?: string } };
+    message?: string;
+  })?.response;
+
+  if (!r) {
+    const m = (e as { message?: string })?.message;
+    return m ? `Tidak bisa menghubungi server (${m})` : "Tidak bisa menghubungi server";
+  }
+  const isi = r.data?.error ?? r.data?.message;
+  if (isi && isi !== "Not Found") return isi;
+  if (r.status === 404) return "Rute tidak ditemukan di server (404) — kemungkinan cacat versi aplikasi.";
+  if (r.status === 403) return "Anda tidak punya izin untuk tindakan ini (403).";
+  if (r.status === 409) return isi ?? "Tindakan ini bentrok dengan keadaan sekarang (409).";
+  return isi ?? `Permintaan gagal (${r.status ?? "?"}).`;
 }
 
 /**

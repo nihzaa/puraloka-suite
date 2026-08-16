@@ -31,7 +31,24 @@ export interface Skenario {
   created_at?: string;
 }
 
-export type StatusVersi = "draft" | "submitted" | "approved" | "rejected";
+/**
+ * Status versi estimasi — nilainya diambil dari alur nyata di
+ * `estimate-versions.ts:26`, BUKAN ditebak:
+ *
+ *     draft --submit--> under_review --approve--> approved --> frozen/superseded
+ *                       under_review --reject--> draft
+ *
+ * Percobaan pertama saya menulis `"submitted" | "rejected"` — dua nilai yang
+ * TIDAK PERNAH ADA di basis. Karena `LABEL_STATUS` diketik `Record<StatusVersi,
+ * string>`, status `under_review` yang sungguhan jatuh ke `undefined` dan
+ * layar menampilkan kekosongan, bukan keadaan.
+ */
+export type StatusVersi =
+  | "draft"
+  | "under_review"
+  | "approved"
+  | "frozen"
+  | "superseded";
 
 export interface VersiEstimasi {
   id: string;
@@ -105,11 +122,17 @@ export const angka = (n: number | null | undefined, desimal = 0): string => {
 
 // ── Label status versi ────────────────────────────────────────────────────
 //
-// Bahasa lapangan, bukan istilah basis data (spec §4b). "submitted" tak
-// berarti apa pun bagi estimator; "terkunci — sudah dikirim" berarti.
+// Bahasa lapangan, bukan istilah basis data (spec §4b): "under_review" tak
+// berarti apa pun bagi estimator; "terkunci — menunggu persetujuan" berarti.
+//
+// Yang TIDAK boleh dilakukan di sini: menyebut `under_review` sebagai "sudah
+// dikirim ke klien". Mengunci RAB memang menghentikan perubahan angka, tetapi
+// pengirimannya keputusan terpisah — label yang mendahului kenyataan membuat
+// orang mengira klien sudah menerima sesuatu yang belum pernah dikirim.
 export const LABEL_STATUS: Record<StatusVersi, string> = {
   draft: "Masih disusun",
-  submitted: "Terkunci — sudah dikirim",
+  under_review: "Terkunci — menunggu persetujuan",
   approved: "Disetujui",
-  rejected: "Ditolak",
+  frozen: "Dibekukan",
+  superseded: "Digantikan versi lain",
 };
