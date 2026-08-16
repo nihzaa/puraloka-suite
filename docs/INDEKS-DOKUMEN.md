@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 279 dokumen** — antrean 13 · acuan 203 · riwayat 63.
+**Total 280 dokumen** — antrean 13 · acuan 204 · riwayat 63.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -85,6 +85,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [CI-BUKTI](execution/CI-BUKTI.md) | acuan | ✓ | CI-BUKTI — Setiap Penjaga Terbukti Bisa MERAH |
 | [CI-PROFIL](execution/CI-PROFIL.md) | acuan | ✓ | CI-PROFIL — Durasi Nyata, Diukur Bukan Diperkirakan |
 | [COVERAGE-BASELINE](execution/COVERAGE-BASELINE.md) | acuan |  | Coverage Baseline — Angka Sesungguhnya (C-6) |
+| [F4-2-HALAMAN-DILEWATI](execution/F4-2-HALAMAN-DILEWATI.md) | acuan |  | F4-2 — Halaman yang SENGAJA tidak dipindah ke lapis cache |
 | [F5-1-TRIASE-SUBMENU](execution/F5-1-TRIASE-SUBMENU.md) | riwayat | ✓ | F5-1 — Triase sub-menu: INTI / PEMBEDA / TUNDA |
 | [GALIAN-92-OTOMASI](execution/GALIAN-92-OTOMASI.md) | riwayat |  | Galian 92 Otomasi Tersisa — diukur, bukan dibaca |
 | [GOLDEN-FILE-INVESTIGASI](execution/GOLDEN-FILE-INVESTIGASI.md) | acuan | ✓ | Investigasi Golden File — Angka Jangkar (C-5 / R-005) |
