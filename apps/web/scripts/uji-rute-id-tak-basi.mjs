@@ -1,123 +1,105 @@
 #!/usr/bin/env node
 // ============================================================================
-// HALAMAN RUTE [id] YANG MEMAKAI `useData` WAJIB MENCOCOKKAN IDENTITASNYA
+// `useData` WAJIB MENGIKAT DATA KE URL ASALNYA
 //
 // ══════════════════════════════════════════════════════════════════════════
 // KENAPA PENJAGA INI ADA
 // ══════════════════════════════════════════════════════════════════════════
 //
-// `useData` TIDAK mengosongkan `data` lama saat URL-nya berganti. Ia menaikkan
-// `memuat`, lalu MENIMPA `data` sesudah jawaban baru tiba. Di antara keduanya,
-// `data` masih berisi jawaban untuk URL SEBELUMNYA.
+// Bentuk pertama `useData` menyimpan `data` sebagai state LEPAS dan tidak
+// mengosongkannya saat `url` berganti: ia menaikkan `memuat`, lalu menimpa
+// `data` sesudah jawaban baru tiba. Di antara keduanya, `data` masih berisi
+// jawaban untuk URL SEBELUMNYA.
 //
-// Untuk halaman ber-saringan itu tak berbahaya: sekejap melihat hasil filter
-// lama bukan kerusakan.
+// Untuk halaman ber-saringan itu tak berbahaya — sekejap melihat hasil filter
+// lama bukan kerusakan, dan justru menghindari kedip.
 //
-// Untuk halaman rute `[id]` itu KEBOCORAN IDENTITAS:
+// Untuk halaman rute [id] itu KEBOCORAN IDENTITAS:
 //
-//     /mandor/A  →  /mandor/B
-//     layar menampilkan profil A di bawah URL B, sampai jawaban B tiba
+//     /mandor/A  ->  /mandor/B
+//     layar menampilkan profil A di bawah URL B sampai jawaban B tiba
 //
-// Data orang lain, di halaman orang lain, tanpa satu pun galat. Pada
+// Data orang lain, di halaman orang lain, tanpa satu pun galat. Di
 // `/portal/proyek/[id]` (dibuka KLIEN) dan `/verify/invoice/[id]`, itu bukan
-// sekadar tampilan keliru — itu memperlihatkan data pihak lain.
+// tampilan keliru — itu memperlihatkan data pihak lain.
 //
-// ── Ditemukan 2026-08-16 saat memindahkan `mandor/[id]`
+// ── Ditemukan 2026-08-16, dua kali
 //
-// Kode LAMA di berkas itu punya pelacakan `dimuat !== id` yang justru ada untuk
-// mencegah ini. Pemindahan polos ke `useData` menghapusnya dan membuka kembali
-// cacat yang sudah pernah diperbaiki — tanpa test yang merah, karena test tak
-// pernah berpindah dari satu id ke id lain.
+// Pertama saat memindahkan `mandor/[id]`: kode LAMA-nya punya pelacakan
+// `dimuat !== id` yang justru ada untuk mencegah ini, dan pemindahan polos ke
+// `useData` menghapusnya. Tak ada test yang merah — test tak pernah berpindah
+// dari satu id ke id lain.
 //
-// Enam rute `[id]` lain belum dipindah saat penjaga ini ditulis. Penjaga ini
-// menunggu mereka.
+// Lalu terulang di `proyek/[id]/baseline` — dan DI SANA responsnya bahkan tak
+// memuat id proyeknya, jadi pemanggil tak punya apa pun untuk dicocokkan.
 //
-// ── Yang dijaga
+// ── KENAPA PENJAGA INI MEMERIKSA LAPISAN, BUKAN TIAP HALAMAN
 //
-// Halaman di rute `[…]` yang memakai `useData` WAJIB memuat pencocokan
-// identitas: sebuah perbandingan antara sesuatu di `data` dan parameter rute.
-//
-// Yang diterima sebagai bukti pencocokan (salah satu cukup):
-//   · `=== id`  /  `!== id`   — membandingkan langsung ke param rute
-//   · `=== <param>` dengan nama param apa pun yang diambil dari `useParams`
-//
-// ── Kenapa BUKAN "wajib pakai pola X"
-//
-// Bentuk pencocokannya berbeda-beda: sebagian membandingkan `data.mandor.id`,
-// sebagian `data.project.id`, sebagian membungkusnya di `useMemo`. Menuntut
-// satu bentuk persis akan menolak perbaikan yang benar, dan penjaga seperti itu
+// Bentuk pertama penjaga ini menuntut TIAP halaman rute [id] mencocokkan
+// identitasnya sendiri (`data.mandor.id === id`). Kasus kedua menolaknya
+// sendiri: `baseline` tak bisa memenuhinya karena datanya memang tak membawa
+// id — jadi penjaganya menuntut hal yang mustahil, dan penjaga semacam itu
 // dimatikan orang alih-alih diperbaiki.
 //
-// Yang dituntut cuma: identitasnya DIPERIKSA di suatu tempat.
+// Lebih dari itu: menuntut tiap halaman berjaga sendiri berarti mengulang
+// pertahanan yang sama di puluhan tempat, dan SATU yang lupa cukup untuk
+// memperlihatkan data pihak lain.
+//
+// Jadi perbaikannya dipindah ke `useData`: `data` disimpan bersama url asalnya
+// dan hanya dikembalikan bila keduanya cocok. Harganya satu kedip rangka saat
+// berpindah id — jauh lebih murah daripada kebocoran.
+//
+// Penjaga ini mengunci invarian itu. Diuji juga di `lib/data-cache.test.ts`
+// ("data terikat ke URL-nya"); penjaga ini lapis kedua — test bisa dihapus,
+// invariannya tidak boleh.
 //
 // Ambang NOL.
 // ============================================================================
 
-import { readFileSync, globSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const AKAR = join(dirname(fileURLToPath(import.meta.url)), '..')
-const APP = join(AKAR, 'app')
+const SUMBER = join(AKAR, 'lib', 'data-cache.ts')
 
-const pelanggar = []
-let diperiksa = 0
+// Komentar dilucuti sebelum diperiksa — EMPAT kali dalam satu sesi sebuah
+// pemeriksaan di repo ini membaca komentarnya sendiri sebagai kode, dan sekali
+// mutasinya LOLOS karenanya.
+const kode = readFileSync(SUMBER, 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^\s*\/\/.*$/gm, '')
 
-for (const rel of globSync('**/page.tsx', { cwd: APP })) {
-  const jalur = rel.split(String.fromCharCode(92)).join('/')
+const gagal = []
 
-  // Hanya rute dinamis: ada segmen `[…]` di jalurnya.
-  if (!/\[[^\]]+\]/.test(jalur)) continue
-
-  const isi = readFileSync(join(APP, rel), 'utf8')
-  if (!/\buseData\s*[<(]/.test(isi)) continue     // belum pindah, bukan urusan
-  diperiksa++
-
-  // Komentar dilucuti — empat kali dalam satu sesi sebuah pemeriksaan di repo
-  // ini membaca komentarnya sendiri sebagai kode, dan sekali mutasinya LOLOS
-  // karenanya.
-  const kode = isi
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '')
-
-  // Nama parameter rute yang dipakai halaman ini, mis. `const { id } = useParams()`.
-  const nama = new Set(['id'])
-  for (const m of kode.matchAll(/const\s*\{\s*([\w\s,]+)\s*\}\s*=\s*useParams/g)) {
-    for (const n of m[1].split(',')) { const t = n.trim(); if (t) nama.add(t) }
-  }
-
-  const cocok = [...nama].some((n) =>
-    new RegExp(`[=!]==\\s*${n}\\b`).test(kode) || new RegExp(`\\b${n}\\s*[=!]==`).test(kode),
-  )
-
-  if (!cocok) {
-    const baris = (kode.slice(0, kode.search(/\buseData\s*[<(]/)).match(/\n/g) ?? []).length + 1
-    pelanggar.push(`${jalur}:${baris}`)
-  }
+// 1. `data` WAJIB disimpan bersama url asalnya, bukan sebagai state lepas.
+if (!/useState<\{\s*url:\s*string;\s*nilai:\s*T\s*\}\s*\|\s*null>/.test(kode)) {
+  gagal.push('`data` tidak lagi disimpan bersama url asalnya ({ url, nilai })')
 }
 
-if (pelanggar.length > 0) {
-  console.error('\n❌ Halaman rute [id] ber-`useData` tanpa pencocokan identitas:\n')
-  for (const p of pelanggar) console.error(`   ✗ ${p}`)
-  console.error(`
-  \`useData\` TIDAK mengosongkan \`data\` lama saat URL-nya berganti — ia
-  menaikkan \`memuat\` lalu MENIMPA \`data\` sesudah jawaban baru tiba.
+// 2. Dan WAJIB dibandingkan sebelum dikembalikan.
+if (!/entri\s*&&\s*entri\.url\s*===\s*url/.test(kode)) {
+  gagal.push('`entri.url === url` hilang, data URL lama bisa lolos ke URL baru')
+}
 
-  Di rute [id], itu berarti: pindah dari /x/A ke /x/B menampilkan data A di
-  bawah URL B sampai jawaban B tiba. Data orang lain, di halaman orang lain,
-  tanpa satu pun galat. Di portal klien dan halaman verifikasi, itu
+if (gagal.length > 0) {
+  console.error('\nIkatan data-URL di `lib/data-cache.ts` RUSAK:\n')
+  for (const g of gagal) console.error(`   x ${g}`)
+  console.error(`
+  Tanpa ikatan itu, \`useData\` mengembalikan jawaban URL SEBELUMNYA selama
+  jawaban baru belum tiba. Untuk halaman ber-saringan itu tak berbahaya; untuk
+  rute [id] itu KEBOCORAN IDENTITAS: /x/A ke /x/B menampilkan data A di bawah
+  URL B.
+
+  Di \`/portal/proyek/[id]\` (dibuka KLIEN) dan \`/verify/invoice/[id]\`, itu
   memperlihatkan data pihak lain.
 
-  Perbaikan — cocokkan identitasnya, jangan hanya andalkan \`memuat\`:
+  Bentuknya yang benar:
 
-     const { data: mentah, memuat: sedangMuat } = useData<T>(\`/api/v1/x/\${id}\`)
-     const data = mentah && mentah.x.id === id ? mentah : null
-     const memuat = sedangMuat || (!!mentah && mentah.x.id !== id)
+     const [entri, setEntri] = useState<{ url: string; nilai: T } | null>(null)
+     const data = entri && entri.url === url ? entri.nilai : null
 `)
   process.exit(1)
 }
 
-console.log(
-  `✅ rute [id] tak basi: ${diperiksa} halaman rute dinamis ber-\`useData\` ` +
-  'diperiksa, semuanya mencocokkan identitas',
-)
+console.log('OK rute [id] tak basi: `useData` mengikat data ke URL asalnya')

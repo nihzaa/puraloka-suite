@@ -184,3 +184,75 @@ describe("ISOLASI COMPANY — yang paling penting", () => {
       "cache company lain tak terbuang").toBe(1);
   });
 });
+
+// ══════════════════════════════════════════════════════════════════════════
+// KEBOCORAN IDENTITAS SAAT URL BERGANTI — kelas kelima, ditemukan 2026-08-16
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Bentuk pertama `useData` menyimpan `data` sebagai state LEPAS dan tidak
+// mengosongkannya saat `url` berganti: ia menaikkan `memuat`, lalu menimpa
+// `data` sesudah jawaban baru tiba. Di antara keduanya, `data` masih berisi
+// jawaban untuk URL SEBELUMNYA.
+//
+// Untuk halaman ber-saringan itu tak berbahaya. Untuk rute `[id]` itu berarti
+// `/mandor/A` → `/mandor/B` menampilkan profil A di bawah URL B.
+//
+// Ditemukan saat memindahkan `mandor/[id]` (kode lamanya punya pelacakan
+// `dimuat !== id` justru untuk mencegah ini), lalu TERULANG di
+// `proyek/[id]/baseline` — yang responsnya bahkan tak memuat id proyeknya,
+// jadi pemanggil tak punya apa pun untuk dicocokkan.
+//
+// Diuji di lapisan `useData`, bukan di halaman: memperbaikinya di tiap halaman
+// berarti mengulang pertahanan yang sama di puluhan tempat, dan satu yang lupa
+// cukup untuk memperlihatkan data pihak lain.
+describe("useData — data terikat ke URL-nya", () => {
+  it("data untuk URL LAMA tidak dikembalikan di bawah URL BARU", async () => {
+    const { renderHook, waitFor } = await import("@testing-library/react");
+    const { useData } = await import("./data-cache");
+
+    balasan = { "/api/v1/mandor/A": { nama: "Andi" },
+                "/api/v1/mandor/B": { nama: "Budi" } };
+
+    const { result, rerender } = renderHook(
+      ({ u }: { u: string }) => useData<{ nama: string }>(u),
+      { initialProps: { u: "/api/v1/mandor/A" } },
+    );
+    await waitFor(() => expect(result.current.data?.nama).toBe("Andi"));
+
+    /*
+      Jawaban B sengaja DITUNDA supaya jendela bahayanya benar-benar terbuka.
+      Tanpa tunda, jawaban baru tiba di tick yang sama dan cacatnya tak
+      pernah terlihat — test yang hijau untuk alasan yang salah.
+    */
+    tundaMs = 50;
+    rerender({ u: "/api/v1/mandor/B" });
+
+    // INI baris yang merah pada bentuk lama: `data` masih berisi Andi.
+    expect(result.current.data,
+      "data URL lama bocor ke URL baru").toBeNull();
+
+    await waitFor(() => expect(result.current.data?.nama).toBe("Budi"));
+    tundaMs = 0;
+  });
+
+  it("kembali ke URL yang sudah di-cache tetap langsung terisi", async () => {
+    const { renderHook, waitFor } = await import("@testing-library/react");
+    const { useData } = await import("./data-cache");
+
+    balasan = { "/api/v1/x/1": { n: 1 }, "/api/v1/x/2": { n: 2 } };
+
+    const { result, rerender } = renderHook(
+      ({ u }: { u: string }) => useData<{ n: number }>(u),
+      { initialProps: { u: "/api/v1/x/1" } },
+    );
+    await waitFor(() => expect(result.current.data?.n).toBe(1));
+    rerender({ u: "/api/v1/x/2" });
+    await waitFor(() => expect(result.current.data?.n).toBe(2));
+
+    // Balik ke 1: masih segar di cache, jadi terisi tanpa permintaan baru.
+    panggilan.length = 0;
+    rerender({ u: "/api/v1/x/1" });
+    await waitFor(() => expect(result.current.data?.n).toBe(1));
+    expect(panggilan.length, "cache tak terpakai saat kembali").toBe(0);
+  });
+});

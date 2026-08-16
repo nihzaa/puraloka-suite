@@ -123,7 +123,8 @@ const AMBANG = {
   //          memanggil setState dari dalam efek, hook-nya yang menanganinya)
   // 57 → 50 (2026-08-16, empat agent paralel: tujuh halaman lagi berhenti
   //          memanggil setState dari dalam efek — `useData` yang menanganinya)
-  'react-hooks/set-state-in-effect': 50,
+  // 50 → 44 (2026-08-16, agent proyek+sdm: delapan halaman lagi)
+  'react-hooks/set-state-in-effect': 44,
   // turun 71 → 67 (.ds-sync diabaikan) → 15 (2026-08-01).
   //
   // Sebagian besar adalah 50 impor ikon/helper yatim yang menumpuk saat
