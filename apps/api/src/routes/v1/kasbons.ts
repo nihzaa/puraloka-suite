@@ -465,7 +465,32 @@ export default async function kasbonRoutes(app: FastifyInstance) {
           project_id:  projectId,
           action_url:  '/mandor?tab=kasbon',
           action_type: 'view_kasbon',
-          action_data: { kasbon_id: id },
+          /*
+            `record_id` WAJIB — dan `kasbon_id` DIPERTAHANKAN.
+
+            Sebelum ini kolom ini hanya berisi `kasbon_id`, dan akibatnya
+            terukur 2026-08-16: 968 notifikasi `kasbon_approved` dengan hanya
+            DUA pasangan (penerima, record) unik — rasio 484 kali.
+
+            Dedup harian dan penjaga `audit-notifikasi-tak-kembar` sama-sama
+            menilai kembar lewat `(user_id, type, record_id, tanggal)`, dan
+            keduanya SENGAJA melewati baris ber-`record_id` NULL — karena dua
+            notifikasi berjudul sama bisa merujuk dua kasbon berbeda.
+
+            Jadi jenis ini kebal dedup DAN tak terlihat penjaganya: penjaga
+            yang dibangun untuk menangkap kembar justru buta terhadap baris
+            yang paling kembar. Yang tak bisa dinilai, tak bisa dijaga.
+
+            `kasbon_id` tetap ditulis: ia kontrak dengan pembacanya, dan
+            menghapusnya adalah perubahan terpisah yang menuntut pemeriksaan
+            sendiri. Menambah `record_id` tak memecahkan apa pun.
+
+            Pelajaran yang sama sudah dicatat di `mandor.ts` pada 2026-08-14
+            untuk `kasbon_submitted`. Terulang di berkas lain, dan itu tanda
+            catatan saja tak cukup — sekarang dijaga
+            `audit-notifikasi-punya-record.mjs`.
+          */
+          action_data: { record_id: id, kasbon_id: id },
         }])
       }
     } catch (err) {

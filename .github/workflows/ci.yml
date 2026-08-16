@@ -481,6 +481,32 @@ jobs:
       - name: Ambang otomasi bisa disetel dari UI
         run: node scripts/audit-ambang-bisa-disetel.mjs
 
+      # Tiap notifikasi wajib membawa `action_data.record_id`.
+      #
+      # `audit-notifikasi-tak-kembar` menilai kembar lewat
+      # (user_id, type, record_id, tanggal) dan SENGAJA melewati baris
+      # ber-record_id NULL — pengecualian yang benar, tetapi akibatnya
+      # notifikasi tanpa record_id kebal dedup DAN tak terlihat penjaganya.
+      #
+      # Terukur 2026-08-16: `kasbon_approved` 968 notifikasi dengan hanya DUA
+      # pasangan unik — rasio 484x. Penyebabnya `kasbons.ts` menulis
+      # `kasbon_id`, bukan `record_id`.
+      #
+      # Pelajaran yang sama sudah dicatat panjang lebar di `mandor.ts` pada
+      # 2026-08-14, lalu terulang di berkas lain dua hari kemudian. Catatan
+      # saja tak cukup.
+      #
+      # RATCHET, bukan ambang nol: sebagian notifikasi memang tak menunjuk
+      # catatan apa pun (sapaan, ringkasan), dan memaksanya mengarang
+      # record_id menghasilkan nilai palsu yang membuat dedup menahan hal yang
+      # seharusnya lewat.
+      #
+      # Bukti merah: `record_id` dibuang dari `kasbons.ts` → exit 1; dipulihkan
+      # → exit 0. Mutasi pertama LOLOS karena penjaganya membaca komentar
+      # sebagai kode — komentar sekarang dibuang sebelum diperiksa.
+      - name: Notifikasi membawa record_id (ratchet)
+        run: node scripts/audit-notifikasi-punya-record.mjs
+
       # Migrasi yang menyemai baris per-tenant wajib menyaring tenant yang
       # dipakai — `is_active` atau keanggotaan.
       #

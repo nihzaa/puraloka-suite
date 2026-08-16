@@ -22656,3 +22656,67 @@ mutasi blok verifikasi 421        2/2 MERAH lalu pulih
 15 penjaga arsitektural           exit=0
 lint:ratchet                      0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 (15) - record_id hilang: 968 notifikasi, 2 pasangan unik
+
+Bukan otomasi baru. Ini cacat yang menjelaskan tumpukan 9.009 notifikasi.
+
+### Diukur
+
+```
+notifikasi total          9.009
+pernah dibaca                 5
+pernah ditindaklanjuti        0
+per pengguna per minggu     304
+
+kasbon_approved   968 notifikasi  ->  2 pasangan (user, record) unik = 484x
+kasbon_submitted  2.299 baris ber-record_id NULL (warisan sebelum 2026-08-14)
+```
+
+### Penjaga yang ada buta terhadap kasus yang paling butuh dijaga
+
+`audit-notifikasi-tak-kembar` menilai kembar lewat
+`(user_id, type, record_id, tanggal)`, dan baris terakhirnya
+`WHERE action_data->>'record_id' IS NOT NULL`.
+
+Pengecualian itu **benar** — dua notifikasi berjudul sama bisa merujuk dua
+catatan berbeda. Tetapi akibatnya notifikasi tanpa `record_id` **kebal dedup
+DAN tak terlihat penjaganya**. Penjaga yang dibangun untuk menangkap kembar
+justru buta terhadap baris yang paling kembar.
+
+Penyebabnya `kasbons.ts`: `action_data: { kasbon_id: id }` — nama kolom yang
+berbeda, jadi `record_id`-nya NULL.
+
+### Catatan saja tak cukup
+
+Pelajaran yang **persis sama** sudah ditulis panjang lebar di `mandor.ts` pada
+2026-08-14, lengkap dengan angka dan alasannya. Ia terulang di berkas lain
+**dua hari kemudian**.
+
+Itulah kenapa penjaganya ada: `audit-notifikasi-punya-record.mjs`, ratchet
+(bukan ambang nol — sebagian notifikasi memang tak menunjuk catatan apa pun,
+dan memaksanya mengarang `record_id` menghasilkan nilai palsu yang membuat
+dedup menahan hal yang seharusnya lewat).
+
+### Mutasi pertama LOLOS, dan penyebabnya cacat di penjaga saya sendiri
+
+Membuang `record_id` dari `kasbons.ts` tetap membuat penjaganya hijau:
+penjelasan panjang yang saya tulis di atas pemanggilan itu menyebut
+`record_id` belasan kali, dan **regexnya membaca komentar sebagai kode**.
+
+Penjaga yang bisa dipuaskan dengan *menulis tentang* sesuatu alih-alih
+melakukannya adalah penjaga yang mendorong dokumentasi menggantikan perbaikan
+— kebalikan dari yang diinginkan repo ini. Komentar sekarang dibuang sebelum
+diperiksa.
+
+### Bukti
+
+```
+audit-notifikasi-punya-record   70 dari 85 pemanggil membawa record_id
+mutasi penjaga                  MERAH lalu pulih (diperbaiki dulu)
+audit-notifikasi-tak-kembar     exit=0
+kasbons.test.ts                 4 passed
+lint:ratchet                    0 error, 231 warning
+```
