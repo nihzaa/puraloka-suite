@@ -503,7 +503,33 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
 
   {
     kunci: 'kepatuhan-dokumen',
-    nomor: '9.1',
+    /*
+      SENGAJA TANPA NOMOR - dikoreksi 2026-08-16.
+
+      Entri ini sempat menulis `nomor: '9.1'`, dan `izin-kedaluwarsa` juga.
+      Nomor kembar bukan sekadar tak rapi: penghitungan kemajuan memakai
+      himpunan nomor, jadi dua otomasi yang berbeda tercatat sebagai satu.
+      Diukur, "47 nomor tertulis" ternyata hanya 46 nomor berbeda.
+
+      9.1 diberikan ke `izin-kedaluwarsa`. Rencana menulis 9.1 sebagai
+      "Lacak kepatuhan izin/sertifikasi proyek (IMB, K3, dsb)" - dan
+      `izin-kedaluwarsa` memang memeriksa PBG (pengganti IMB), izin
+      lingkungan, pemanfaatan ruang, serta izin kerja K3.
+
+      Yang diperiksa entri INI berbeda sama sekali: `dokumen_kepatuhan`
+      ber-`supplier_id`, berisi SIUJK, SBU, NPWP, BPJS Ketenagakerjaan,
+      SMK3, asuransi CAR/TPL - dokumen legalitas PIHAK KETIGA, bukan izin
+      proyek.
+
+      Ditelusuri ke seluruh 140 baris rencana: tak ada yang cocok. 4.13
+      "Contract Compliance Check (Supplier)" paling dekat, tapi sudah
+      dipegang `po-luar-kontrak` yang memeriksa PO di luar kontrak payung -
+      kepatuhan KONTRAK, bukan kedaluwarsa DOKUMEN.
+
+      Jadi ia otomasi yang rencana tak pernah bayangkan. Membiarkannya tanpa
+      nomor lebih jujur daripada menempelkannya ke nomor yang mirip: nomor
+      yang salah membuat baris rencana terlihat selesai padahal isinya lain.
+    */
     nama: 'Dokumen kepatuhan & izin habis',
     pemicu: 'jadwal',
     penjelasan:
