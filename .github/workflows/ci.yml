@@ -774,6 +774,29 @@ jobs:
       - name: Galat muat terpisah dari galat aksi
         run: cd ../web && node scripts/uji-galat-muat-terpisah.mjs
 
+      # Halaman rute [id] ber-`useData` wajib mencocokkan identitasnya.
+      #
+      # `useData` TIDAK mengosongkan `data` lama saat URL berganti — ia
+      # menaikkan `memuat` lalu MENIMPA `data` sesudah jawaban baru tiba.
+      # Untuk halaman ber-saringan itu tak berbahaya. Untuk rute [id] itu
+      # KEBOCORAN IDENTITAS: pindah dari /x/A ke /x/B menampilkan data A di
+      # bawah URL B sampai jawaban B tiba.
+      #
+      # Di `/portal/proyek/[id]` (dibuka KLIEN) dan `/verify/invoice/[id]`,
+      # itu bukan tampilan keliru — itu memperlihatkan data pihak lain.
+      #
+      # Ditemukan 2026-08-16 saat memindahkan `mandor/[id]`: kode LAMA punya
+      # pelacakan `dimuat !== id` yang justru ada untuk mencegah ini, dan
+      # pemindahan polos menghapusnya. Tak ada test yang merah — test tak
+      # pernah berpindah dari satu id ke id lain.
+      #
+      # Enam rute [id] lain belum dipindah saat penjaga ini ditulis.
+      #
+      # Bukti merah: pencocokan identitas dibuang → exit 1; pencocokan hanya
+      # ditulis di KOMENTAR → tetap exit 1; dipulihkan → exit 0.
+      - name: Rute [id] tak menampilkan data basi
+        run: cd ../web && node scripts/uji-rute-id-tak-basi.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan
