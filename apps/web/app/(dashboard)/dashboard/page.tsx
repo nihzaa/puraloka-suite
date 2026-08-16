@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { useRouter } from "next/navigation";
-import { api, getStoredUser, makeAbortController } from "@/lib/api";
+import { api, getStoredUser } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { KartuKPI, Kosong } from "@/components/ui-dasar";
 import {
   AreaChart, Area, PieChart, Pie, Cell,
@@ -271,57 +272,35 @@ export default function DashboardPage() {
 function DashboardContent() {
   const router = useRouter();
   const user = getStoredUser();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [period, setPeriod] = useState<Period>("last_3_months");
   const [kasbonBusy, setKasbonBusy] = useState<string | null>(null);
-  const [deret, setDeret] = useState<JawabanDeret | null>(null);
-
-  useEffect(() => { fetchData(period); }, [period]);
 
   /*
-   * Deret DIPISAH dari muatan utama, dan itu disengaja.
-   *
-   * Sparkline adalah pelengkap: kalau `/deret` gagal, kartu KPI harus tetap
-   * tampil dengan angkanya — hanya tanpa garis. Menggabungkannya ke
-   * `fetchData` membuat satu kegagalan kecil menjatuhkan SELURUH dashboard.
-   *
-   * Ia juga tak bergantung `period`: deretnya selalu 8 bulan terakhir, karena
-   * yang ditanyakan sparkline adalah "arahnya ke mana", bukan "berapa pada
-   * rentang yang sedang dipilih".
-   */
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<JawabanDeret>("/api/v1/dashboard/deret", { signal: ac.signal })
-      .then((r) => setDeret(r.data))
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        // Sengaja tidak menampilkan galat: kartu tanpa sparkline sudah
-        // menyampaikan keadaannya sendiri, dan pesan merah untuk hiasan yang
-        // hilang justru mengalihkan perhatian dari angka yang penting.
-        setDeret(null);
-      });
-    return () => ac.abort();
-  }, []);
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function fetchData(p: Period) {
-    setLoading(true); setError("");
-    try {
-      const { data: res } = await api.get<DashboardData>(`/api/v1/dashboard?period=${p}`);
-      setData(res);
-    } catch {
-      setError("Gagal memuat data. Pastikan API server berjalan.");
-    } finally {
-      setLoading(false);
-    }
-  }
+    Dua `useData` independen, persis alasan pemisahan aslinya: sparkline
+    (`deret`) adalah pelengkap, dan kegagalannya TAK BOLEH menjatuhkan
+    seluruh dashboard. URL utama dinamis mengikuti `period`, jadi berpindah
+    filter lalu kembali tak mengambil ulang selama masih segar.
+  */
+  const { data, memuat: loading, galat: galatUtama, muatUlang: muatUlangUtama } =
+    useData<DashboardData>(`/api/v1/dashboard?period=${period}`);
+  const error = galatUtama ? "Gagal memuat data. Pastikan API server berjalan." : "";
+
+  // Sengaja tidak menampilkan galat: kartu tanpa sparkline sudah menyampaikan
+  // keadaannya sendiri, dan pesan merah untuk hiasan yang hilang justru
+  // mengalihkan perhatian dari angka yang penting. `galat` dari `useData`
+  // karena itu tak dibaca sama sekali di sini — perilakunya identik dengan
+  // `.catch(() => setDeret(null))` yang lama.
+  const { data: deret } = useData<JawabanDeret>("/api/v1/dashboard/deret");
+
+  const fetchData = useCallback(async () => { await muatUlangUtama(); }, [muatUlangUtama]);
 
   async function handleKasbon(id: string, status: "approved" | "rejected") {
     setKasbonBusy(id);
     try {
       await api.patch(`/api/v1/kasbons/${id}/status`, { status });
-      await fetchData(period);
+      await muatUlangUtama();
     } finally { setKasbonBusy(null); }
   }
 
@@ -1443,7 +1422,7 @@ function DashboardContent() {
       {error && (
         <div style={{ background: C.redBg, border: `1px solid var(--danger-border)`, borderRadius: 10, padding: "8px 16px", color: C.red, fontSize: 12, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
           {error}
-          <button onClick={() => fetchData(period)} style={{ color: C.navy, background: "none", border: "none", cursor: "pointer", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 500 }}>
+          <button onClick={() => fetchData()} style={{ color: C.navy, background: "none", border: "none", cursor: "pointer", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 500 }}>
             <RefreshCw size={11} /> Coba lagi
           </button>
         </div>

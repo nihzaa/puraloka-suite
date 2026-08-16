@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Suspense } from "react";
 import { useTabUrl } from "@/lib/use-tab-url";
 import { TabBagian } from "@/components/tab-bagian";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import {
   BookOpen, Plus, X, Check, Ban, Loader2, AlertTriangle,
@@ -121,58 +122,54 @@ function IsiAkuntansi() {
   // "Buku Besar" dan "Jurnal Umum" bisa menunjuk tab yang mereka janjikan,
   // alih-alih sama-sama mendarat di tab pertama.
   const [tab, setTab] = useTabUrl<TabAkuntansi>(TAB_SAH, "jurnal");
-  const [akun, setAkun] = useState<Akun[]>([]);
-  const [jurnal, setJurnal] = useState<Jurnal[]>([]);
-  const [neraca, setNeraca] = useState<BarisNeraca[]>([]);
-  const [neracaMeta, setNeracaMeta] = useState<{ total_debit: number; total_credit: number; selisih: number } | null>(null);
-  const [muat, setMuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [bukaModal, setBukaModal] = useState(false);
 
   const bolehKelola = useIzin("gl:manage");
   const bolehPosting = useIzin("gl:post");
   const bolehBatal = useIzin("gl:void");
 
-  const ambil = useCallback(async () => {
-    const ac = makeAbortController();
-    setMuat(true);
-    setGalat(null);
-    try {
-      const [a, j, n] = await Promise.all([
-        api.get<{ data: Akun[] }>("/api/v1/gl/accounts", { signal: ac.signal }),
-        api.get<{ data: Jurnal[] }>("/api/v1/gl/journal-entries", { signal: ac.signal }),
-        api.get<{ data: BarisNeraca[]; meta: typeof neracaMeta }>("/api/v1/gl/trial-balance", { signal: ac.signal }),
-      ]);
-      setAkun(a.data.data ?? []);
-      setJurnal(j.data.data ?? []);
-      setNeraca(n.data.data ?? []);
-      setNeracaMeta(n.data.meta ?? null);
-    } catch (e) {
-      // Kegagalan muat DITAMPILKAN, bukan jadi halaman kosong: daftar kosong
-      // tak bisa dibedakan dari "belum ada jurnal" — dan itu membuat orang
-      // menyimpulkan datanya hilang.
-      const pesan = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      if (!ac.signal.aborted) setGalat(pesan ?? "Gagal memuat data buku besar.");
-    } finally {
-      setMuat(false);
-    }
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan `void ambil()` langsung: `ambil()` memanggil
-  // `setMuat(true)` di baris pertamanya, dan setState SINKRON di dalam effect
-  // memicu render kedua sebelum yang pertama selesai (`react-hooks/
-  // set-state-in-effect`). Menunda satu microtask memindahkannya keluar dari
-  // fase render tanpa menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void ambil(); }); }, [ambil]);
+    Tiga endpoint independen (akun, jurnal, neraca saldo) — pola
+    `procurement/hutang`: `memuatA || memuatB || memuatC` dan
+    `Promise.all([muatUlangA(), muatUlangB(), muatUlangC()])`.
+  */
+  const { data: dataAkun, memuat: memuatAkun, galat: galatAkun, muatUlang: muatUlangAkun } =
+    useData<{ data: Akun[] }>("/api/v1/gl/accounts");
+  const { data: dataJurnal, memuat: memuatJurnal, galat: galatJurnal, muatUlang: muatUlangJurnal } =
+    useData<{ data: Jurnal[] }>("/api/v1/gl/journal-entries");
+  const { data: dataNeraca, memuat: memuatNeraca, galat: galatNeraca, muatUlang: muatUlangNeraca } =
+    useData<{ data: BarisNeraca[]; meta: { total_debit: number; total_credit: number; selisih: number } | null }>(
+      "/api/v1/gl/trial-balance",
+    );
+
+  const akun = dataAkun?.data ?? [];
+  const jurnal = dataJurnal?.data ?? [];
+  const neraca = dataNeraca?.data ?? [];
+  const neracaMeta = dataNeraca?.meta ?? null;
+
+  const muat = memuatAkun || memuatJurnal || memuatNeraca;
+  /*
+    GALAT MUAT vs GALAT AKSI dipisah — satu state untuk keduanya membuat
+    posting/batalkan yang gagal MENGHAPUS pesan gagal-memuat, dan pengguna
+    mengira datanya sudah termuat.
+  */
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi ?? ((galatAkun || galatJurnal || galatNeraca) ? "Gagal memuat data buku besar." : null);
+
+  const ambil = useCallback(async () => {
+    await Promise.all([muatUlangAkun(), muatUlangJurnal(), muatUlangNeraca()]);
+  }, [muatUlangAkun, muatUlangJurnal, muatUlangNeraca]);
 
   const posting = async (id: string) => {
     try {
       await api.patch(`/api/v1/gl/journal-entries/${id}/post`);
+      setGalatAksi(null);
       await ambil();
     } catch (e) {
       const pesan = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(pesan ?? "Gagal memposting jurnal.");
+      setGalatAksi(pesan ?? "Gagal memposting jurnal.");
     }
   };
 
@@ -181,10 +178,11 @@ function IsiAkuntansi() {
     if (!alasan?.trim()) return;
     try {
       await api.patch(`/api/v1/gl/journal-entries/${id}/void`, { alasan: alasan.trim() });
+      setGalatAksi(null);
       await ambil();
     } catch (e) {
       const pesan = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(pesan ?? "Gagal membatalkan jurnal.");
+      setGalatAksi(pesan ?? "Gagal membatalkan jurnal.");
     }
   };
 

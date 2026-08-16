@@ -37,9 +37,9 @@
  * KEADAAN (4 KPI) → POLA (peringatan) → DETAIL (tabel).
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo } from "react";
 import { FileStack, RefreshCw, TriangleAlert, Send, ListChecks, MailWarning , FileText } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
@@ -176,24 +176,18 @@ function IsiKendaliDokumen() {
   // Modul yang terbuka hidup di URL, supaya menu sidebar bisa menunjuknya:
   // "Notulen Rapat" -> ?bagian=notulen, bukan mendarat di puncak halaman.
   const [bagian, setBagian] = useTabUrl<Bagian>(BAGIAN, "gambar", "bagian");
-  const [data, setData] = useState<Data | null>(null);
-  const [galat, setGalat] = useState("");
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
-  // Pemuatan dilacak lewat putaran yang datanya sudah tiba, bukan bendera
-  // boolean yang dinyalakan di badan efek — bendera memicu render bertingkat.
-  const [putaranTiba, setPutaranTiba] = useState(-1);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<Data>("/api/v1/kendali-dokumen", { signal: ac.signal })
-      .then((r) => { setData(r.data); setGalat(""); })
-      .catch((e) => { if (!ac.signal.aborted) setGalat(e?.response?.data?.error ?? "Gagal memuat kendali dokumen"); })
-      .finally(() => { if (!ac.signal.aborted) setPutaranTiba(muatUlangKe); });
-    return () => ac.abort();
-  }, [muatUlangKe]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const memuat = putaranTiba !== muatUlangKe;
-  const muatUlang = useCallback(() => setMuatUlangKe((n) => n + 1), []);
+    `useData` menggantikan useState+useEffect+makeAbortController+putaranTiba.
+    Galat muat di sini dulu satu-satunya galat halaman (tak ada aksi tulis),
+    jadi `galatMuat` dipakai langsung.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang: muatUlangData } =
+    useData<Data>("/api/v1/kendali-dokumen");
+  const galat = galatMuat ? "Gagal memuat kendali dokumen" : "";
+  const muatUlang = useCallback(() => { void muatUlangData(); }, [muatUlangData]);
 
   const kolomGambar: Array<Kolom<Gambar>> = useMemo(() => [
     {

@@ -36,9 +36,9 @@
  * KEADAAN (4 KPI) → POLA (peringatan + kesiapan pihak) → DETAIL (tabel).
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo } from "react";
 import { ShieldAlert, RefreshCw, TriangleAlert, HardHat, FileWarning, UserX } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
@@ -287,28 +287,24 @@ export default function KepatuhanPage() {
 
 function IsiKepatuhan() {
   const [bagian, setBagian] = useTabUrl<Bagian>(BAGIAN, "kesiapan", "bagian");
-  const [data, setData] = useState<DataKepatuhan | null>(null);
-  const [izin, setIzin] = useState<DataIzin | null>(null);
-  const [galat, setGalat] = useState("");
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
-  // Pemuatan dilacak lewat putaran yang datanya sudah tiba, bukan bendera
-  // boolean yang dinyalakan di badan efek — bendera memicu render bertingkat.
-  const [putaranTiba, setPutaranTiba] = useState(-1);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    Promise.all([
-      api.get<DataKepatuhan>("/api/v1/kepatuhan", { signal: ac.signal }),
-      api.get<DataIzin>("/api/v1/kepatuhan/izin-kerja", { signal: ac.signal }),
-    ])
-      .then(([k, z]) => { setData(k.data); setIzin(z.data); setGalat(""); })
-      .catch((e) => { if (!ac.signal.aborted) setGalat(e?.response?.data?.error ?? "Gagal memuat data kepatuhan"); })
-      .finally(() => { if (!ac.signal.aborted) setPutaranTiba(muatUlangKe); });
-    return () => ac.abort();
-  }, [muatUlangKe]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const memuat = putaranTiba !== muatUlangKe;
-  const muatUlang = useCallback(() => setMuatUlangKe((n) => n + 1), []);
+    Dua endpoint independen, digabung dengan pola `memuatA || memuatB` dan
+    `Promise.all([muatUlangA(), muatUlangB()])` sesuai contoh
+    `procurement/hutang`.
+  */
+  const { data, memuat: memuatData, galat: galatData, muatUlang: muatUlangData } =
+    useData<DataKepatuhan>("/api/v1/kepatuhan");
+  const { data: izin, memuat: memuatIzin, galat: galatIzin, muatUlang: muatUlangIzin } =
+    useData<DataIzin>("/api/v1/kepatuhan/izin-kerja");
+
+  const memuat = memuatData || memuatIzin;
+  const galat = (galatData || galatIzin) ? "Gagal memuat data kepatuhan" : "";
+  const muatUlang = useCallback(() => {
+    void Promise.all([muatUlangData(), muatUlangIzin()]);
+  }, [muatUlangData, muatUlangIzin]);
 
   const takBolehBekerja = useMemo(
     () => (data?.kesiapan ?? []).filter((p) => !p.bolehBekerja).length, [data]);

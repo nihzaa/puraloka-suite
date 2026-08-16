@@ -47,9 +47,10 @@
  * ketahuan pada saat yang paling buruk, yaitu saat invoicenya harus keluar.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { useRouter } from "next/navigation";
 import {
@@ -71,8 +72,6 @@ import { ClientModal, DetailPanel, waLink, type Client } from "./_bersama/kompon
 
 export default function KlienPage() {
   const router = useRouter();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<"all" | "perorangan" | "perusahaan">("all");
   const [showModal, setShowModal] = useState(false);
@@ -88,35 +87,37 @@ export default function KlienPage() {
    */
   const [hanyaTakLengkap, setHanyaTakLengkap] = useState(false);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function load() {
-    setLoading(true);
-    try {
-      const r = await api.get<{ clients: Client[] }>("/api/v1/clients?all=true");
-      setClients(r.data.clients);
-    } finally { setLoading(false); }
-  }
-  // `queueMicrotask`, bukan panggilan langsung: `load()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, []);
+    `useData` menggantikan useState+useEffect+queueMicrotask. Mutasi lokal
+    optimistik (`toggleActive`, `onSaved`) diganti `muatUlang()`: `useData`
+    tak mengekspos setter mentah untuk cache-nya, dan menulis ke cache dari
+    luar `ambilData`/`invalidasi` akan membuatnya tak sinkron dengan
+    komponen lain yang memakai URL yang sama.
+  */
+  const { data, memuat: loading, muatUlang } = useData<{ clients: Client[] }>("/api/v1/clients?all=true");
+  // `useMemo`, bukan `data?.clients ?? []` telanjang: turunan array yang
+  // masuk dependensi `useMemo`/`useCallback` lain (di bawah) butuh identitas
+  // stabil — array literal baru tiap render membuat efek itu berjalan ulang
+  // terus-menerus.
+  const clients = useMemo(() => data?.clients ?? [], [data]);
+  const load = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   async function toggleActive(client: Client) {
     setTogglingId(client.id);
     try {
       await api.patch(`/api/v1/clients/${client.id}/toggle-active`, {});
-      setClients(prev => prev.map(c => c.id === client.id ? { ...c, is_active: !c.is_active } : c));
+      await load();
     } finally { setTogglingId(null); }
   }
 
-  function onSaved(c: Client) {
-    setClients(prev => {
-      const idx = prev.findIndex(x => x.id === c.id);
-      if (idx >= 0) { const next = [...prev]; next[idx] = c; return next; }
-      return [c, ...prev];
-    });
+  // Sengaja tanpa parameter: pemanggil (`ClientModal`) mengirim klien yang
+  // baru disimpan, tapi di sini datanya diambil ulang lewat `load()` —
+  // tipe fungsi `(c: Client) => void` tetap cocok karena JS/TS mengizinkan
+  // implementasi menerima LEBIH SEDIKIT parameter daripada tipenya.
+  async function onSaved() {
+    await load();
   }
 
   // Ringkasan dihitung dari SELURUH klien, bukan dari `filtered`. Angka KPI

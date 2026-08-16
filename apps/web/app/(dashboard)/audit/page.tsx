@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { api } from "@/lib/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { useToast } from "@/components/toast";
 import { Paginasi } from "@/components/paginasi";
@@ -132,10 +132,6 @@ export default function AuditPage() {
   // Hook HARUS dipanggil sebelum early-return mana pun.
   const bolehLihat = useIzin("audit:view");
 
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [meta, setMeta] = useState<Meta>({ total: 0, page: 1, limit: 50, pages: 1 });
-  const [auditMeta, setAuditMeta] = useState<AuditMeta>({ tables: [], actions: [] });
-  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   // Filters
@@ -146,41 +142,45 @@ export default function AuditPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const fetchMeta = useCallback(async () => {
-    try {
-      const { data } = await api.get<AuditMeta>("/api/v1/audit/meta");
-      setAuditMeta(data);
-    } catch { /* non-fatal */ }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const fetchLogs = useCallback(async (p = page) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", String(p));
-      params.set("limit", "50");
-      if (filterTable)  params.set("table_name", filterTable);
-      if (filterAction) params.set("action", filterAction);
-      if (filterFrom)   params.set("from", filterFrom);
-      if (filterTo)     params.set("to", filterTo);
-      const { data } = await api.get<{ logs: AuditLog[]; meta: Meta }>(`/api/v1/audit?${params}`);
-      setLogs(data.logs);
-      setMeta(data.meta);
-    } catch {
-      showToast("error", "Gagal memuat audit log");
-    } finally {
-      setLoading(false);
-    }
-  }, [filterTable, filterAction, filterFrom, filterTo, page]);
+    URL-nya dinamis mengikuti page + keempat saringan — itulah yang dipakai
+    `useData` sebagai kunci cache, jadi kembali ke halaman/saringan yang sama
+    tak perlu ambil ulang selama masih segar.
 
-  // `queueMicrotask`, bukan panggilan langsung: `fetchMeta()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void fetchMeta(); }); }, []);
-  useEffect(() => { setPage(1); fetchLogs(1); }, [filterTable, filterAction, filterFrom, filterTo]);
-  useEffect(() => { queueMicrotask(() => { void fetchLogs(page); }); }, [page]);
+    `fetchMeta` dulu menelan galatnya (komentar "non-fatal" di kode lama) —
+    dipertahankan: daftar tabel/aksi untuk dropdown saringan memang tak
+    fatal bila gagal.
+  */
+  const jalurLogs = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", "50");
+    if (filterTable)  params.set("table_name", filterTable);
+    if (filterAction) params.set("action", filterAction);
+    if (filterFrom)   params.set("from", filterFrom);
+    if (filterTo)     params.set("to", filterTo);
+    return `/api/v1/audit?${params}`;
+  }, [page, filterTable, filterAction, filterFrom, filterTo]);
+
+  const { data: dataLogs, memuat: loading, galat: galatLogs, muatUlang: muatUlangLogs } =
+    useData<{ logs: AuditLog[]; meta: Meta }>(jalurLogs);
+  const { data: dataMeta } = useData<AuditMeta>("/api/v1/audit/meta");
+
+  const logs = dataLogs?.logs ?? [];
+  const meta = dataLogs?.meta ?? { total: 0, page: 1, limit: 50, pages: 1 };
+  const auditMeta = dataMeta ?? { tables: [], actions: [] };
+
+  const fetchLogs = useCallback((p = page) => { setPage(p); void muatUlangLogs(); }, [page, muatUlangLogs]);
+
+  // Halaman kembali ke 1 begitu salah satu saringan berganti — daftar hasil
+  // saringan baru tak pernah bermakna dimulai dari halaman lama.
+  useEffect(() => { setPage(1); }, [filterTable, filterAction, filterFrom, filterTo]);
+
+  // Galat muat ditampilkan via toast, seperti perilaku sebelumnya — bukan
+  // state galat terpisah, supaya perilaku tak berubah dari versi lama.
+  useEffect(() => { if (galatLogs) showToast("error", "Gagal memuat audit log"); }, [galatLogs, showToast]);
 
   // Kedua sisi di-lowercase. Sebelumnya hanya KATA KUNCI yang diturunkan
   // sementara nilainya tidak — kebetulan lolos untuk `table_name`/`action`
