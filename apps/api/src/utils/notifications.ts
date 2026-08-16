@@ -142,6 +142,9 @@ export type NotificationType =
   // jatuh tempo, dan kerusakannya tak punya gejala apa pun.
   | 'perawatan_diprediksi'
   | 'alat_jam_tanpa_meter'
+  // 2.12 Payment Timing. POLA lintas-invoice per klien, bukan satu tagihan
+  // telat - tindakannya menaikkan uang muka, bukan menagih.
+  | 'kebiasaan_bayar_klien'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'

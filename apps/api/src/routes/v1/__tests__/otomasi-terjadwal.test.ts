@@ -531,6 +531,10 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
       dari 25 rute yang sempat lahir tanpa pernah sekali pun dipanggil test.
     */
     'perawatan-diprediksi',
+    // 2.12 Payment Timing (2026-08-16). Sempat DICORET dengan alasan
+    // "semua pembayaran memakai metode sama" - kolom yang salah; yang
+    // dijanjikan judulnya WAKTU, dan 4 dari 23 telat, terparah 98 hari.
+    'kebiasaan-bayar',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

@@ -8486,6 +8486,241 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/kebiasaan-bayar ─────────────────────────
+  //
+  // Automation 2.12 — Payment Timing Optimization.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // PENILAIAN PERTAMA SAYA SALAH, DAN SALAHNYA LAYAK DICATAT
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Automation ini sempat dicoret dengan alasan "23 dari 23 pembayaran memakai
+  // metode yang sama, nol sinyal". Itu mengukur kolom yang salah: judul
+  // rencananya berbunyi "metode/WAKTU bayar optimal (cash flow timing)", dan
+  // waktunya punya sebaran yang jelas.
+  //
+  // Diukur ulang 2026-08-16:
+  //
+  //   4 dari 23 pembayaran TELAT, terparah 98 hari
+  //   satu invoice dibayar 30 hari LEBIH AWAL senilai Rp 252.480.000
+  //
+  //   Ratna Sari      2 invoice   rata +33 hari   terparah  67   Rp 364,6 jt
+  //   Eko Prasetyo    3 invoice   rata +31 hari   terparah  98   Rp 342,7 jt
+  //   Melati Indah    3 invoice   rata  −2 hari   tepat waktu
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA INI BUKAN DUPLIKAT `invoice-terlambat` (2.6)
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // 2.6 menjawab "invoice mana yang lewat jatuh tempo" — satu tagihan, dan
+  // tindakannya menagih. Rute ini menjawab "klien mana yang SELALU telat", dan
+  // tindakannya lain sama sekali: menaikkan uang muka, memperpendek termin,
+  // atau menolak proyek berikutnya.
+  //
+  // Dua nama teratas di atas tak pernah terlihat oleh 2.6 sebagai POLA — hanya
+  // sebagai beberapa invoice terlambat yang tersebar di beberapa bulan.
+  app.get('/api/v1/otomasi/jalankan/kebiasaan-bayar', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiKebiasaanBayar } = await import('../../lib/kebiasaan-bayar.js')
+
+    const q = request.query as { hari?: string; porsi?: string; min?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.kebiasaan_bayar.hari', q.hari)
+    const ambangPorsiPersen = await ambilAmbang(request, 'otomasi.kebiasaan_bayar.porsi', q.porsi)
+    const minInvoice = await ambilAmbang(request, 'otomasi.kebiasaan_bayar.min_invoice', q.min)
+    const ambangPorsi = ambangPorsiPersen / 100
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['kebiasaan_bayar_klien'])
+
+    /*
+      BERHALAMAN — wajib untuk ketiganya. `payments` dan `invoices` tumbuh
+      seumur perusahaan, dan PostgREST memotong di 1.000 baris TANPA galat.
+      Terpotong di sini berarti riwayat sebagian klien hilang, rata-ratanya
+      dihitung dari sisa yang kebetulan terbaca, dan angkanya SALAH tanpa satu
+      pun gejala. Dijaga `audit-baca-tak-terpotong` (ambang NOL).
+    */
+    const HALAMAN = 1000
+
+    /*
+      Tiga baca berhalaman ditulis TERPISAH, bukan lewat satu helper generik
+      bernama `ambil-semua(tabel, kolom)`.
+
+      Helper itu ditulis lebih dulu dan DITOLAK typecheck: nama tabel di
+      `request.db.from()` bertipe union seluruh tabel yang ada, dan menerimanya
+      sebagai `string` mematikan pengecekan itu. Yang hilang bukan kerapian
+      melainkan penjagaan - salah ketik nama tabel berubah dari galat kompilasi
+      menjadi galat runtime pada tugas terjadwal yang tak seorang pun
+      menontonnya.
+    */
+    /*
+      URUTAN BACANYA DITENTUKAN TENANCY, BUKAN KENYAMANAN.
+
+      `projects` ANCHOR, `clients` B — keduanya boleh dibaca langsung.
+      `invoices` dan `payments` kategori C: keduanya mewarisi tenant lewat
+      proyek (`invoices.project_id`, lalu `payments.invoice_id` → invoices).
+
+      Bentuk pertama membaca `invoices` langsung dan DITOLAK gerbang tenancy
+      saat berjalan — bukan saat kompilasi, dan bukan oleh saya. Penjaga itu
+      benar: tanpa saringan proyek, query itu memulangkan invoice milik
+      SELURUH tenant, dan kebiasaan bayar klien perusahaan lain akan dikirim
+      ke kotak masuk perusahaan ini.
+
+      Jadi proyek dibaca DULU, id-nya dipakai menyaring, dan `.unsafe()`
+      dipakai dengan alasan yang menyebut saringan itu — bukan sebagai jalan
+      pintas melewati gerbangnya.
+    */
+    const proyek: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('projects').select('id, client_id, name')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      proyek.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+    const idProyek = proyek.map((p) => p.id as string)
+
+    const invoices: Array<Record<string, unknown>> = []
+    if (idProyek.length > 0) {
+      for (let dari = 0; ; dari += HALAMAN) {
+        const r = await request.db!
+          .unsafe('invoices', 'disaring .in(project_id, ...) milik tenant ini')
+          .select('id, project_id, due_date')
+          .in('project_id', idProyek)
+          .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+        if (r.error) return reply.status(500).send({ error: r.error.message })
+        if (!r.data || r.data.length === 0) break
+        invoices.push(...(r.data as Array<Record<string, unknown>>))
+        if (r.data.length < HALAMAN) break
+      }
+    }
+    const idInvoice = invoices.map((i) => i.id as string)
+
+    const bayar: Array<Record<string, unknown>> = []
+    if (idInvoice.length > 0) {
+      for (let dari = 0; ; dari += HALAMAN) {
+        const r = await request.db!
+          .unsafe('payments', 'disaring .in(invoice_id, ...) milik proyek tenant ini')
+          .select('invoice_id, paid_at, amount_paid')
+          .in('invoice_id', idInvoice)
+          .order('invoice_id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+        if (r.error) return reply.status(500).send({ error: r.error.message })
+        if (!r.data || r.data.length === 0) break
+        bayar.push(...(r.data as Array<Record<string, unknown>>))
+        if (r.data.length < HALAMAN) break
+      }
+    }
+
+    const { data: klien, error: eKlien } = await request.db!
+      .from('clients').select('id, company_name, contact_person')
+    if (eKlien) return reply.status(500).send({ error: eKlien.message })
+
+    const proyekKlien = new Map<string, string>()
+    for (const p of proyek) {
+      const cid = p.client_id as string | null
+      if (cid) proyekKlien.set(p.id as string, cid)
+    }
+
+    const invoiceKlien = new Map<string, { klien: string; jatuh: string }>()
+    for (const i of invoices) {
+      const jatuh = i.due_date as string | null
+      if (!jatuh) continue                       // tanpa jatuh tempo, tak ada selisih
+      const cid = proyekKlien.get(i.project_id as string)
+      if (!cid) continue
+      invoiceKlien.set(i.id as string, { klien: cid, jatuh })
+    }
+
+    /** client_id → riwayat selisih hari. */
+    const riwayat = new Map<string, Array<{ selisihHari: number; nominal: number }>>()
+    const HARI = 86_400_000
+    for (const b of bayar) {
+      const inv = invoiceKlien.get(b.invoice_id as string)
+      if (!inv) continue
+      const dibayar = Date.parse(String(b.paid_at ?? '').slice(0, 10))
+      const jatuh = Date.parse(String(inv.jatuh).slice(0, 10))
+      if (Number.isNaN(dibayar) || Number.isNaN(jatuh)) continue
+      const daftar = riwayat.get(inv.klien) ?? []
+      daftar.push({
+        selisihHari: Math.round((dibayar - jatuh) / HARI),
+        nominal: Number(b.amount_paid ?? 0),
+      })
+      riwayat.set(inv.klien, daftar)
+    }
+
+    /*
+      Nama klien: `company_name` bisa NULL — sepuluh klien di basis ini
+      berjenis perorangan dan kolomnya kosong pada SEMUANYA. Versi sebelumnya
+      di rute lain mengirim pesan berbunyi "klien null" ke kotak masuk sungguhan
+      sebelum cacat itu terlihat.
+    */
+    const namaKlien = new Map<string, string>()
+    for (const k of klien ?? []) {
+      const nama = (k.company_name as string | null)?.trim()
+        || (k.contact_person as string | null)?.trim()
+        || 'Klien tanpa nama'
+      namaKlien.set(k.id as string, nama)
+    }
+
+    let dibuat = 0
+    let dilaporkan = 0
+    let diperiksa = 0
+
+    for (const [idKlien, daftar] of riwayat) {
+      diperiksa++
+      const h = nilaiKebiasaanBayar(daftar, minInvoice, ambangHari, ambangPorsi)
+      if (!h.layakLapor) continue
+      dilaporkan++
+      if (sudah('kebiasaan_bayar_klien', idKlien)) continue
+
+      const nama = namaKlien.get(idKlien) ?? 'Klien tanpa nama'
+      const alasan = h.sebab === 'sering_telat'
+        ? `${h.jumlahTelat} dari ${h.invoice} invoice dibayar lewat jatuh tempo`
+        : `rata-rata ${h.rataSelisih} hari lewat jatuh tempo`
+
+      const penerima = await resolveRecipients('kebiasaan_bayar_klien', {
+        companyId: request.companyId!,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: 'Klien cenderung telat membayar',
+          message:
+            `${nama} — ${alasan} (${h.invoice} invoice, terparah ${h.palingTelat} `
+            + `hari, total Rp ${h.nilaiTotal.toLocaleString('id-ID')}). Pertimbangkan `
+            + 'uang muka lebih besar atau termin lebih pendek untuk proyek berikutnya.',
+          type: 'kebiasaan_bayar_klien',
+          priority: h.palingTelat >= 60 ? 'high' : 'normal',
+          action_url: '/keuangan/invoice',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: {
+            record_id: idKlien,
+            client_id: idKlien,
+            rata_selisih: h.rataSelisih,
+            paling_telat: h.palingTelat,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: {
+        klien_punya_riwayat: diperiksa,
+        klien_dilaporkan: dilaporkan,
+        ambang_hari: ambangHari,
+        ambang_porsi_persen: ambangPorsiPersen,
+        min_invoice: minInvoice,
+      },
+    })
+  })
 }
 
 /**

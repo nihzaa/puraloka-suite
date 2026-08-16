@@ -794,6 +794,72 @@ export const AMBANG_OTOMASI = {
     besar, karena inilah satu-satunya peringatan dini yang jalur jam punya —
     tanpa laju, jalur jam baru bersuara sesudah terlambat.
   */
+  /*
+    2.12 Payment Method / Timing Optimization — dibaca ulang sebagai WAKTU,
+    bukan metode.
+
+    Penilaian pertama saya mencoret automation ini karena "23 dari 23
+    pembayaran memakai metode yang sama, nol sinyal". Itu mengukur kolom yang
+    salah: judul rencananya berbunyi "metode/WAKTU bayar optimal (cash flow
+    timing)", dan waktunya punya sebaran yang jelas — 4 dari 23 telat,
+    terparah 98 hari.
+  */
+  'otomasi.kebiasaan_bayar.hari': {
+    bawaan: 14,
+    min: 3,
+    max: 120,
+    label: 'Rata-rata keterlambatan bayar klien sebelum diperingatkan',
+    judul: 'Kebiasaan bayar klien',
+    akibat:
+      'Rata-rata berapa hari sebuah klien telat membayar sebelum polanya '
+      + 'dilaporkan. Ini bukan tagihan satuan — ini kebiasaan yang menentukan '
+      + 'apakah uang muka perlu dinaikkan atau termin diperpendek untuk '
+      + 'proyek berikutnya.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  /*
+    Jalur KEDUA, dan justru yang paling penting.
+
+    Rata-rata bisa disembunyikan oleh pembayaran lebih awal: satu invoice
+    telat 98 hari plus satu invoice 90 hari lebih awal menghasilkan rata-rata
+    +4 dan terlihat sehat. Porsi invoice telat diperiksa TERPISAH supaya klien
+    seperti itu tetap muncul.
+  */
+  'otomasi.kebiasaan_bayar.porsi': {
+    bawaan: 50,
+    min: 10,
+    max: 100,
+    label: 'Persen invoice telat sebelum klien disebut sering telat',
+    judul: 'Kebiasaan bayar klien',
+    akibat:
+      'Berapa persen invoice yang telat sudah cukup untuk menyebut seorang '
+      + 'klien sering telat, terlepas dari rata-ratanya. Menahan klien yang '
+      + 'sesekali membayar sangat awal sehingga rata-ratanya terlihat bagus '
+      + 'padahal separuh tagihannya macet berbulan-bulan.',
+    satuan: 'persen',
+    langkah: 5,
+  },
+
+  /*
+    Berapa invoice minimum sebelum polanya dipercaya. Menuduh klien "selalu
+    telat" dari SATU invoice merusak hubungan bisnis atas dasar yang tak ada.
+  */
+  'otomasi.kebiasaan_bayar.min_invoice': {
+    bawaan: 2,
+    min: 2,
+    max: 20,
+    label: 'Invoice lunas minimum sebelum kebiasaan klien disimpulkan',
+    judul: 'Kebiasaan bayar klien',
+    akibat:
+      'Klien dengan invoice lebih sedikit dari angka ini dilewati, bukan '
+      + 'ditebak. Makin besar makin yakin, tetapi klien baru butuh lebih lama '
+      + 'sebelum polanya terlihat.',
+    satuan: 'invoice',
+    langkah: 1,
+  },
+
   'otomasi.perawatan_prediksi.hari': {
     bawaan: 21,
     min: 3,

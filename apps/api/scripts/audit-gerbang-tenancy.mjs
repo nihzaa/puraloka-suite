@@ -185,7 +185,11 @@ for (const f of readdirSync(RUTE).filter((x) => x.endsWith('.ts'))) {
  * Angka ini hasil UKUR sesudah celah nyata ditutup (182 → 192 → 195 bergerbang),
  * bukan target yang dipilih supaya hijau.
  */
-const AMBANG_TANPA_GERBANG = 6
+// Dikencangkan 6 -> 4 pada 2026-08-16. Bukan karena ada yang diperbaiki:
+// penjaganya melapor turun sendiri, dan ratchet yang tak dikencangkan berhenti
+// menjaga - ia mengizinkan dua rute tanpa gerbang lahir kembali tanpa satu pun
+// suara. Angka hari ini adalah lantai hari ini.
+const AMBANG_TANPA_GERBANG = 4
 
 console.log(`Gerbang yang DITEMUKAN otomatis (${gerbang.size}): ${[...gerbang].sort().join(', ')}`)
 console.log(`\nRute ber-supabase-mentah: ${bergerbang + temuan.length} · bergerbang ${bergerbang} · TANPA gerbang ${temuan.length}`)
