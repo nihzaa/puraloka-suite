@@ -111,6 +111,84 @@ export function susunKop(t: IdentitasTenant | null | undefined): Kop {
   return { nama, baris, logoUrl: isi(c.logo_url), yangHilang }
 }
 
+/** Bucket Storage tempat logo tenant disimpan (`settings.ts` yang menulisnya). */
+export const BUCKET_LOGO = 'company-assets'
+
+/**
+ * Menurunkan KUNCI STORAGE logo dari `logo_url` — dan menolak yang bukan
+ * milik tenant ini.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA KUNCI, BUKAN URL-NYA LANGSUNG
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * `contracts.ts` sengaja tidak pernah mengunduh logo, dengan dua alasan yang
+ * ditulis di sana dan keduanya masih berlaku:
+ *
+ *   1. **SSRF.** `logo_url` adalah teks yang bisa disunting siapa pun yang
+ *      punya `settings:manage`. Mengambilnya dengan `fetch()` saat mencetak
+ *      berarti server ini bisa disuruh menembak alamat mana pun — termasuk
+ *      alamat internal yang tak terjangkau dari luar.
+ *   2. **Dokumen gagal terbit saat jaringan bermasalah.**
+ *
+ * Yang membatalkan KEDUANYA bukan "fetch dengan hati-hati", melainkan tidak
+ * memakai URL itu sama sekali sebagai alamat. `settings.ts` menulis berkasnya
+ * ke jalur yang BENTUKNYA sudah pasti:
+ *
+ *     {companyId}/logo/company-logo.{ext}
+ *
+ * Jadi kuncinya bisa DITURUNKAN, lalu diunduh lewat klien Storage (SDK, bukan
+ * HTTP sembarang alamat). URL-nya hanya dipakai untuk mengetahui ekstensinya.
+ *
+ * ── Kenapa tetap memeriksa segmen tenant
+ *
+ * Kalau `logo_url` diisi tangan dengan jalur milik tenant LAIN, menurunkan
+ * kunci apa adanya akan mencetak logo perusahaan orang di kontrak kita.
+ * Karena itu kunci hasil turunan WAJIB berawalan `companyId` pemanggil —
+ * bukan yang tertulis di URL.
+ *
+ * Mengembalikan `null` bila tak bisa diturunkan dengan yakin. `null` berarti
+ * "cetak tanpa logo", bukan "gagal mencetak".
+ */
+export function kunciLogo(logoUrl: string | null, companyId: string): string | null {
+  if (!isi(logoUrl) || !isi(companyId)) return null
+
+  // Buang cache-buster `?t=...` yang ditambahkan `settings.ts`.
+  const tanpaKueri = logoUrl!.split('?')[0]
+
+  // Ekstensi diambil dari URL — hanya daftar yang memang bisa diunggah
+  // (`ALLOWED_IMAGES`). Apa pun di luar itu ditolak, jadi teks aneh di
+  // `logo_url` tak pernah menjadi jalur berkas.
+  const m = /\.(png|jpg|jpeg|webp)$/i.exec(tanpaKueri)
+  if (!m) return null
+
+  // Ekstensi apa adanya dipakai untuk MEMERIKSA URL; yang dinormalkan
+  // (jpeg→jpg) dipakai untuk MEMBANGUN kunci — persis seperti `settings.ts`
+  // menuliskannya saat unggah.
+  const extAsli = m[1].toLowerCase()
+  const ext = extAsli.replace('jpeg', 'jpg')
+
+  // Jalur DIBANGUN dari companyId pemanggil, bukan disalin dari URL.
+  const kunci = `${companyId}/logo/company-logo.${ext}`
+  const jalurDiUrl = `${companyId}/logo/company-logo.${extAsli}`
+
+  // URL-nya harus BERAKHIR dengan jalur baku tenant ini.
+  //
+  // `includes()` saja tidak cukup, dan test membuktikannya: URL
+  // `…/{companyId}/logo/../../rahasia.png` memuat segmen tenant DAN berakhiran
+  // `.png`, sehingga lolos dua pemeriksaan di atas. Kuncinya memang tetap
+  // dibangun ulang (jadi tak ada path traversal yang sampai ke Storage), tapi
+  // hasilnya jadi bohong dengan cara lain: `logo_url` menunjuk ke suatu tempat,
+  // yang tercetak logo baku — dan tak ada yang memberi tahu bahwa keduanya
+  // berbeda.
+  //
+  // Menolak lebih jujur: tak ada logo yang tercetak, dan `logo_url` yang
+  // memang aneh tetap aneh sampai diperbaiki di Pengaturan.
+  if (!tanpaKueri.endsWith(jalurDiUrl)) return null
+
+  return kunci
+}
+
 /**
  * Apakah kop ini layak dicetak di dokumen yang DIKIRIM KE LUAR?
  *

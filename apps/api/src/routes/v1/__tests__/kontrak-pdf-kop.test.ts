@@ -184,3 +184,93 @@ describe('kop perusahaan di PDF kontrak', () => {
       .not.toContain(rows[0].legal_name)
   })
 })
+
+/**
+ * LOGO tercetak — dan tidak pernah menggagalkan pencetakan.
+ *
+ * Logo diambil lewat KUNCI Storage yang diturunkan dari companyId, bukan
+ * dengan mem-fetch `logo_url`. `kunciLogo()` sudah dikunci 8 test murni; yang
+ * HANYA bisa dijawab di sini: gambarnya benar-benar masuk ke PDF, dan
+ * `logo_url` yang rusak/menunjuk ke luar tidak menghentikan kontrak terbit.
+ */
+describe('logo di PDF kontrak', () => {
+  // PNG 1×1 piksel yang SAH — dipakai supaya pdfkit benar-benar menggambar,
+  // bukan sekadar menerima buffer. Bytes-nya tetap, jadi test tak bergantung
+  // pada berkas di disk.
+  const PNG_1PX = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+    'base64',
+  )
+
+  let logoAwal: string | null = null
+  let kunci = ''
+  let terunggah = false
+
+  beforeAll(async () => {
+    const { rows } = await db.query('SELECT logo_url FROM companies WHERE id = $1', [companyId])
+    logoAwal = rows[0]?.logo_url ?? null
+
+    kunci = `${companyId}/logo/company-logo.png`
+    const { supabase } = await import('../../../utils/supabase.js')
+    const { error } = await supabase.storage
+      .from('company-assets')
+      .upload(kunci, PNG_1PX, { contentType: 'image/png', upsert: true })
+    terunggah = !error
+
+    if (terunggah) {
+      const { data } = supabase.storage.from('company-assets').getPublicUrl(kunci)
+      await db.query('UPDATE companies SET logo_url = $1 WHERE id = $2',
+        [`${data.publicUrl}?t=1755300000000`, companyId])
+    }
+  }, 60_000)
+
+  afterAll(async () => {
+    await db.query('UPDATE companies SET logo_url = $1 WHERE id = $2', [logoAwal, companyId])
+    if (terunggah) {
+      const { supabase } = await import('../../../utils/supabase.js')
+      await supabase.storage.from('company-assets').remove([kunci])
+    }
+  })
+
+  it('gambar benar-benar tertanam di PDF, bukan hanya status 200', async () => {
+    if (!terunggah) {
+      // Storage tak terjangkau di lingkungan ini — dilewati, BUKAN dihijaukan
+      // dengan harapan yang dilonggarkan.
+      console.warn('⚠ Storage tak terjangkau — uji logo dilewati')
+      return
+    }
+    const r = await get(`/api/v1/projects/${projectId}/contracts/generate`)
+    expect(r.statusCode, r.body.slice(0, 200)).toBe(200)
+
+    // pdfkit menuliskan gambar sebagai XObject bertipe /Image. Tanpa logo,
+    // penanda ini tak pernah muncul — itulah yang membedakannya dari
+    // "PDF terbit" biasa.
+    const mentah = r.rawPayload.toString('latin1')
+    expect(mentah, 'tak ada XObject gambar — logo tak tergambar meski PDF terbit')
+      .toContain('/Subtype /Image')
+  })
+
+  it('logo_url menunjuk TENANT LAIN tidak mencetak logo, dan kontrak tetap terbit', async () => {
+    // Kalau ini lolos, logo perusahaan orang tercetak di kontrak kita.
+    const { rows } = await db.query('SELECT id FROM companies WHERE id <> $1 LIMIT 1', [companyId])
+    if (!rows.length) return
+
+    const asing = `https://x/storage/v1/object/public/company-assets/${rows[0].id}/logo/company-logo.png`
+    await db.query('UPDATE companies SET logo_url = $1 WHERE id = $2', [asing, companyId])
+
+    const r = await get(`/api/v1/projects/${projectId}/contracts/generate`)
+    expect(r.statusCode, 'kontrak gagal terbit gara-gara logo — itu lebih merugikan').toBe(200)
+    expect(r.rawPayload.toString('latin1')).not.toContain('/Subtype /Image')
+  })
+
+  it('logo_url berupa alamat luar (SSRF) tidak menghentikan pencetakan', async () => {
+    // Alamat metadata cloud — muatan SSRF paling lazim. Yang dijaga: server
+    // tak menembaknya, DAN kontraknya tetap keluar.
+    await db.query('UPDATE companies SET logo_url = $1 WHERE id = $2',
+      ['http://169.254.169.254/latest/meta-data/iam/security-credentials/', companyId])
+
+    const r = await get(`/api/v1/projects/${projectId}/contracts/generate`)
+    expect(r.statusCode, r.body.slice(0, 200)).toBe(200)
+    expect(r.rawPayload.length).toBeGreaterThan(1000)
+  })
+})

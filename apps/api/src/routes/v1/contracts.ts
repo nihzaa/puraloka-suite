@@ -1,7 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
-import { susunKop, type IdentitasTenant } from '../../lib/kop-dokumen.js'
+import { susunKop, kunciLogo, BUCKET_LOGO, type IdentitasTenant } from '../../lib/kop-dokumen.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+// Storage bukan query tabel, jadi pembungkus sadar-tenant tak berlaku.
+// Isolasinya dijaga `kunciLogo()`: kunci DIBANGUN dari `request.companyId`,
+// dan URL yang tak memuat segmen tenant itu ditolak.
+import { supabase } from '../../utils/supabase.js'
 import { terbilang, terbilangHari } from '../../utils/terbilang.js'
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
@@ -310,12 +314,54 @@ export default async function contractRoutes(app: FastifyInstance) {
 
       // ── Kop perusahaan ────────────────────────────────────────────────────
       //
-      // Logo SENGAJA tidak diunduh. `logo_url` menunjuk ke luar, dan mengunduh
-      // gambar dari URL milik tenant saat mencetak berarti: dokumen gagal
-      // terbit ketika jaringan bermasalah, dan server ini bisa disuruh
-      // menembak alamat mana pun (SSRF) oleh siapa pun yang bisa menyunting
-      // Pengaturan. Namanya dicetak; logonya menyusul lewat unggahan ke
-      // Storage sendiri — itu pekerjaan tersendiri, dinyatakan bukan dilupakan.
+      // Logo diambil lewat KUNCI STORAGE yang diturunkan dari companyId, BUKAN
+      // dengan mem-fetch `logo_url`. Bedanya bukan gaya:
+      //
+      //   • `logo_url` teks yang bisa disunting pemegang `settings:manage`.
+      //     Mem-fetch-nya membuat server ini bisa disuruh menembak alamat mana
+      //     pun (SSRF) — termasuk alamat internal.
+      //   • Unduhan lewat SDK Storage hanya bisa menyentuh bucket sendiri.
+      //
+      // `kunciLogo()` menolak URL yang tak berisi segmen tenant ini, jadi
+      // `logo_url` yang diisi tangan dengan jalur tenant LAIN tak pernah
+      // mencetak logo perusahaan orang di kontrak kita.
+      //
+      // Kegagalan apa pun di sini TIDAK menghentikan pencetakan — dokumen yang
+      // tak bisa terbit jauh lebih merugikan daripada dokumen tanpa logo.
+      let logoBuf: Buffer | null = null
+      const kunci = kunciLogo(kop.logoUrl, request.companyId!)
+      if (kunci) {
+        try {
+          const { data: blob, error: errLogo } = await supabase.storage
+            .from(BUCKET_LOGO).download(kunci)
+          if (errLogo) {
+            // Dicatat, tidak ditelan: logo yang diam-diam tak pernah tercetak
+            // membuat orang mengunggah ulang berkali-kali tanpa tahu sebabnya.
+            request.log.warn({ err: errLogo, kunci }, 'logo tak terunduh, kontrak dicetak tanpa logo')
+          } else if (blob) {
+            logoBuf = Buffer.from(await blob.arrayBuffer())
+          }
+        } catch (e) {
+          request.log.warn({ err: e, kunci }, 'logo gagal dibaca, kontrak tetap dicetak')
+        }
+      }
+
+      if (logoBuf) {
+        // Tinggi dipaku, lebar mengikuti rasio — logo tenant datang dalam
+        // bentuk apa pun, dan memaksa lebarnya membuat logo tinggi-kurus
+        // melebar sampai menutupi nama perusahaan.
+        const H = 38
+        try {
+          ctx.doc.image(logoBuf, MARGIN, ctx.y, { fit: [CONTENT_W, H], align: 'center' })
+          ctx.y += H + 6
+        } catch (e) {
+          // pdfkit menolak berkas gambar yang rusak. Sudah divalidasi
+          // magic-byte saat unggah, tapi berkas di Storage bisa rusak
+          // belakangan — dan itu tak boleh menggagalkan kontrak.
+          request.log.warn({ err: e }, 'logo tak bisa digambar, kontrak tetap dicetak')
+        }
+      }
+
       ctx.doc.font('Helvetica-Bold').fontSize(12)
         .text(kop.nama.toUpperCase(), MARGIN, ctx.y, { width: CONTENT_W, align: 'center' })
       ctx.y = ctx.doc.y + 2

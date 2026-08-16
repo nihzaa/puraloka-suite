@@ -169,7 +169,41 @@ export interface HasilData<T> {
  * setelah komponen lepas.
  */
 export function useData<T>(url: string | null, opsi: OpsiData = {}): HasilData<T> {
-  const [data, setData] = useState<T | null>(null);
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    `data` DIIKAT KE URL-NYA — bukan disimpan lepas
+    ══════════════════════════════════════════════════════════════════════════
+
+    Bentuk pertama menyimpan `data` sebagai state lepas dan TIDAK
+    mengosongkannya saat `url` berganti: ia menaikkan `memuat`, lalu menimpa
+    `data` sesudah jawaban baru tiba. Di antara keduanya, `data` masih berisi
+    jawaban untuk URL SEBELUMNYA.
+
+    Untuk halaman ber-saringan itu tak berbahaya — sekejap melihat hasil filter
+    lama bukan kerusakan, dan justru menghindari kedip.
+
+    Untuk halaman rute `[id]` itu KEBOCORAN IDENTITAS:
+
+        /mandor/A  →  /mandor/B
+        layar menampilkan profil A di bawah URL B sampai jawaban B tiba
+
+    Ditemukan 2026-08-16 saat memindahkan `mandor/[id]`, yang kode LAMA-nya
+    punya pelacakan `dimuat !== id` justru untuk mencegah ini. Lalu terulang di
+    `proyek/[id]/baseline` — dan di sana responsnya bahkan TAK MEMUAT id
+    proyeknya, jadi pemanggil tak punya apa pun untuk dicocokkan.
+
+    Itu yang memutuskan: masalahnya bukan pada pemanggil, melainkan di sini.
+    Menuntut tiap halaman mencocokkan identitas sendiri berarti mengulang
+    pertahanan yang sama di puluhan tempat, dan satu yang lupa cukup untuk
+    memperlihatkan data pihak lain — di `/portal/proyek/[id]` yang dibuka
+    KLIEN, dan di `/verify/invoice/[id]`.
+
+    Sekarang `data` disimpan BERSAMA url asalnya, dan hanya dikembalikan bila
+    keduanya cocok. Harganya satu kedip rangka saat berpindah id; itu jauh
+    lebih murah daripada memperlihatkan data orang lain.
+  */
+  const [entri, setEntri] = useState<{ url: string; nilai: T } | null>(null);
+  const data = entri && entri.url === url ? entri.nilai : null;
   const [memuat, setMemuat] = useState(url !== null);
   const [galat, setGalat] = useState<Error | null>(null);
   const hidup = useRef(true);
@@ -179,7 +213,7 @@ export function useData<T>(url: string | null, opsi: OpsiData = {}): HasilData<T
     setMemuat(true);
     try {
       const hasil = await ambilData<T>(url, { ...opsi, paksa });
-      if (hidup.current) { setData(hasil); setGalat(null); }
+      if (hidup.current) { setEntri({ url, nilai: hasil }); setGalat(null); }
     } catch (e) {
       if (hidup.current) setGalat(e as Error);
     } finally {
