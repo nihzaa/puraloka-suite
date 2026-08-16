@@ -34,10 +34,11 @@
  * apa pun.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { BookUp, TriangleAlert, ExternalLink, Info } from "lucide-react";
 import Link from "next/link";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import { C } from "@/lib/warna-ui";
 import {
@@ -77,33 +78,36 @@ const LABEL: Record<string, string> = {
 type Saring = "semua" | "belum" | "terhalang" | "sudah";
 
 export default function JurnalkanPage() {
-  const [data, setData] = useState<Muatan | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
   const [kerja, setKerja] = useState<string | null>(null);
   const [kabar, setKabar] = useState<string | null>(null);
   const [saring, setSaring] = useState<Saring>("belum");
 
-  const muat = useCallback(async (signal?: AbortSignal) => {
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Muatan>("/api/v1/gl/jurnalkan/invoice", { signal });
-      setData(r.data);
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat daftar invoice");
-    } finally { setMemuat(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    `useData` menggantikan useCallback+useEffect+AbortController. Yang didapat:
+    dedup permintaan, cache lintas navigasi, dan langganan invalidasi — halaman
+    ini menyegarkan diri saat data yang dipakainya dibuang di tempat lain.
+
+    `makeAbortController` tak lagi perlu: `useData` sudah menjaga agar jawaban
+    yang datang sesudah komponen mati tidak menyentuh state.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<Muatan>("/api/v1/gl/jurnalkan/invoice");
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  /*
+    Galat MUAT dan galat AKSI dipisah lalu digabung saat dipakai.
+    Satu state untuk keduanya punya cacat halus yang sudah ditemukan
+    DUA KALI di batch sebelumnya: gagal menyimpan MENGHAPUS pesan gagal
+    memuat, dan pengguna mengira datanya sudah termuat.
+  */
+  const galat = galatAksi ?? (galatMuat ? "Gagal memuat daftar invoice" : null);
+
 
   const jurnalkan = useCallback(async (inv: BarisInvoice) => {
-    setKerja(inv.id); setGalat(null); setKabar(null);
+    setKerja(inv.id); setGalatAksi(null); setKabar(null);
     try {
       const r = await api.post<{ jurnal: { entry_number: string } }>(
         `/api/v1/gl/jurnalkan/invoice/${inv.id}`, {});
@@ -113,7 +117,7 @@ export default function JurnalkanPage() {
       await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menjurnalkan invoice");
+      setGalatAksi(m ?? "Gagal menjurnalkan invoice");
     } finally { setKerja(null); }
   }, [muat]);
 

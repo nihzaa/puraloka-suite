@@ -27,9 +27,10 @@
  * pun.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { KeyRound, TriangleAlert, Info, Copy, Check, Ban } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { formatTanggal } from "@/lib/format";
 import { C } from "@/lib/warna-ui";
 import {
@@ -53,9 +54,7 @@ interface Kunci {
 }
 
 export default function ApiKeyPage() {
-  const [daftar, setDaftar] = useState<Kunci[]>([]);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
   const [tersalin, setTersalin] = useState(false);
 
@@ -66,26 +65,34 @@ export default function ApiKeyPage() {
   const [keperluan, setKeperluan] = useState("");
   const [hari, setHari] = useState("90");
 
-  const muat = useCallback(async (signal?: AbortSignal) => {
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<{ kunci: Kunci[] }>("/api/v1/api-key", { signal });
-      setDaftar(r.data.kunci ?? []);
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat kunci API");
-    } finally { setMemuat(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    `useData` menggantikan useCallback+useEffect+AbortController. Yang didapat:
+    dedup permintaan, cache lintas navigasi, dan langganan invalidasi — halaman
+    ini menyegarkan diri saat data yang dipakainya dibuang di tempat lain.
+
+    `makeAbortController` tak lagi perlu: `useData` sudah menjaga agar jawaban
+    yang datang sesudah komponen mati tidak menyentuh state.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<{ kunci: Kunci[] }>("/api/v1/api-key");
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  /*
+    Galat MUAT dan galat AKSI dipisah lalu digabung saat dipakai.
+    Satu state untuk keduanya punya cacat halus yang sudah ditemukan
+    DUA KALI di batch sebelumnya: gagal menyimpan MENGHAPUS pesan gagal
+    memuat, dan pengguna mengira datanya sudah termuat.
+  */
+  const galat = galatAksi ?? (galatMuat ? "Gagal memuat daftar kunci" : null);
+
+  // Diturunkan, bukan disalin.
+  const daftar = data?.kunci ?? [];
+
 
   const buat = useCallback(async () => {
-    setMenyimpan(true); setGalat(null); setTersalin(false);
+    setMenyimpan(true); setGalatAksi(null); setTersalin(false);
     try {
       const r = await api.post<{ nilai: string; kunci: Kunci }>("/api/v1/api-key", {
         nama: nama.trim(),
@@ -101,7 +108,7 @@ export default function ApiKeyPage() {
       await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal membuat kunci");
+      setGalatAksi(m ?? "Gagal membuat kunci");
     } finally { setMenyimpan(false); }
   }, [nama, keperluan, hari, muat]);
 
@@ -110,13 +117,13 @@ export default function ApiKeyPage() {
       `Cabut kunci "${k.nama}"?\n\nSebutkan alasannya — ini yang dicari saat `
       + `seseorang bertanya "kenapa integrasi kami mati?".`);
     if (alasan === null) return;
-    setGalat(null);
+    setGalatAksi(null);
     try {
       await api.post(`/api/v1/api-key/${k.id}/cabut`, { alasan });
       await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal mencabut kunci");
+      setGalatAksi(m ?? "Gagal mencabut kunci");
     }
   }, [muat]);
 

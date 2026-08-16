@@ -28,9 +28,10 @@
  * kolom dan saringan adalah pekerjaan, bukan peringatan.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Table2, TriangleAlert, Info, Play, Plus, X, Download } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import { C } from "@/lib/warna-ui";
 import {
@@ -98,9 +99,7 @@ interface Hasil {
 }
 
 export default function SusunLaporanPage() {
-  const [muatan, setMuatan] = useState<Muatan | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
   const [berjalan, setBerjalan] = useState(false);
 
   const [sumberKunci, setSumberKunci] = useState("");
@@ -111,23 +110,32 @@ export default function SusunLaporanPage() {
   const [batas, setBatas] = useState("500");
   const [hasil, setHasil] = useState<Hasil | null>(null);
 
-  const muat = useCallback(async (signal?: AbortSignal) => {
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Muatan>("/api/v1/laporan/sumber", { signal });
-      setMuatan(r.data);
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat daftar sumber");
-    } finally { setMemuat(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    `useData` menggantikan useCallback+useEffect+AbortController. Yang didapat:
+    dedup permintaan, cache lintas navigasi, dan langganan invalidasi — halaman
+    ini menyegarkan diri saat data yang dipakainya dibuang di tempat lain.
+
+    `makeAbortController` tak lagi perlu: `useData` sudah menjaga agar jawaban
+    yang datang sesudah komponen mati tidak menyentuh state.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<Muatan>("/api/v1/laporan/sumber");
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  /*
+    Galat MUAT dan galat AKSI dipisah lalu digabung saat dipakai.
+    Satu state untuk keduanya punya cacat halus yang sudah ditemukan
+    DUA KALI di batch sebelumnya: gagal menyimpan MENGHAPUS pesan gagal
+    memuat, dan pengguna mengira datanya sudah termuat.
+  */
+  const galat = galatAksi ?? (galatMuat ? "Gagal memuat daftar sumber" : null);
+
+  // Diturunkan dari jawaban, bukan disalin ke state sendiri: satu sumber
+  // kebenaran, dan tak ada jendela di mana keduanya berbeda.
+  const muatan = data;
+
 
   const sumber = useMemo(
     () => muatan?.sumber.find((s) => s.kunci === sumberKunci) ?? null,
@@ -146,7 +154,7 @@ export default function SusunLaporanPage() {
 
   const jalankan = useCallback(async () => {
     if (!sumber) return;
-    setBerjalan(true); setGalat(null);
+    setBerjalan(true); setGalatAksi(null);
     try {
       const r = await api.post<Hasil>("/api/v1/laporan/susun", {
         sumber: sumber.kunci,
@@ -158,7 +166,7 @@ export default function SusunLaporanPage() {
       setHasil(r.data);
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menjalankan laporan");
+      setGalatAksi(m ?? "Gagal menjalankan laporan");
       // Hasil lama DIBUANG saat gagal. Membiarkannya membuat orang membaca
       // angka lama sebagai jawaban atas susunan baru.
       setHasil(null);

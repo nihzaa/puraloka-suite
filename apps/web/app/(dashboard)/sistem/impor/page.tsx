@@ -37,7 +37,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Upload, Info, TriangleAlert, Check, Download, ArrowRight, RotateCcw,
 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, Tabel, Rangka, Galat,
@@ -72,12 +73,9 @@ async function bacaSemuaBaris(buf: ArrayBuffer): Promise<Array<Record<string, un
 }
 
 export default function ImporPage() {
-  const [skema, setSkema] = useState<Skema[]>([]);
-  const [batasBaris, setBatasBaris] = useState(5000);
   const [pilihSkema, setPilihSkema] = useState("");
   const [tahap, setTahap] = useState<Tahap>(1);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
   const [kerja, setKerja] = useState(false);
 
   const [namaBerkas, setNamaBerkas] = useState("");
@@ -91,38 +89,50 @@ export default function ImporPage() {
   const [bisaCommit, setBisaCommit] = useState(false);
   const [masuk, setMasuk] = useState(0);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Halaman ini DILEWATI skrip pemindah karena `api.get` URL-nya di baris
+    terpisah, dan karena pemuatannya punya EFEK SAMPING: bila hanya ada satu
+    skema, skema itu langsung dipilih.
+
+    Efek samping itu tak bisa ikut ke dalam `useData` — ia menulis state lain.
+    Dipindah ke efek tersendiri yang bergantung pada `data`, jadi ia berjalan
+    sekali tiap jawaban baru datang, bukan tiap render.
+  */
+  const { data, memuat, galat: galatMuat } =
+    useData<{ skema: Skema[]; batas_baris: number }>("/api/v1/impor/skema");
+  // Tak ada tombol muat-ulang di halaman ini: alurnya sekali jalan dari
+  // unggah sampai commit, dan daftar skema tak berubah di tengahnya.
+
+  const galat = galatAksi ?? (galatMuat ? "Gagal memuat daftar skema" : null);
+
+  // Diturunkan, bukan disalin.
+  const skema = data?.skema ?? [];
+  const batasBaris = data?.batas_baris ?? 5000;
+
   const aktif = skema.find((s) => s.kunci === pilihSkema) ?? null;
 
-  const muat = useCallback(async (signal?: AbortSignal) => {
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<{ skema: Skema[]; batas_baris: number }>(
-        "/api/v1/impor/skema", { signal });
-      setSkema(r.data.skema ?? []);
-      setBatasBaris(r.data.batas_baris);
-      if (r.data.skema?.length === 1) setPilihSkema(r.data.skema[0].kunci);
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat daftar skema");
-    } finally { setMemuat(false); }
-  }, []);
-
   useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    // Satu skema = tak ada yang perlu dipilih. Dijalankan hanya saat jawaban
+    // berubah; `pilihSkema` sengaja TIDAK jadi dependensi supaya pilihan
+    // pengguna tak ditimpa ulang.
+    if (data?.skema?.length === 1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPilihSkema(data.skema[0].kunci);
+    }
+  }, [data]);
+
 
   /** Kembali ke awal — dipakai tombol "Mulai lagi" dan saat ganti skema. */
   const ulangi = useCallback(() => {
     setTahap(1); setNamaBerkas(""); setBaris([]); setUsulan([]);
     setPemetaan({}); setGalatBaris([]); setWajibHilang([]);
-    setContohHasil([]); setBisaCommit(false); setMasuk(0); setGalat(null);
+    setContohHasil([]); setBisaCommit(false); setMasuk(0); setGalatAksi(null);
   }, []);
 
   const unggah = useCallback(async (f: File) => {
-    setKerja(true); setGalat(null);
+    setKerja(true); setGalatAksi(null);
     try {
       const buf = await f.arrayBuffer();
       // Base64 lewat chunk: `String.fromCharCode(...besar)` melampaui batas
@@ -158,12 +168,12 @@ export default function ImporPage() {
       setTahap(2);
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal membaca berkas");
+      setGalatAksi(m ?? "Gagal membaca berkas");
     } finally { setKerja(false); }
   }, [pilihSkema]);
 
   const pratinjau = useCallback(async () => {
-    setKerja(true); setGalat(null);
+    setKerja(true); setGalatAksi(null);
     try {
       const r = await api.post<{
         wajib_hilang: string[]; galat: GalatBaris[];
@@ -176,12 +186,12 @@ export default function ImporPage() {
       setTahap(3);
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memvalidasi");
+      setGalatAksi(m ?? "Gagal memvalidasi");
     } finally { setKerja(false); }
   }, [pilihSkema, baris, pemetaan]);
 
   const commit = useCallback(async () => {
-    setKerja(true); setGalat(null);
+    setKerja(true); setGalatAksi(null);
     try {
       const r = await api.post<{ masuk: number }>(
         "/api/v1/impor/commit", { skema: pilihSkema, baris, pemetaan });
@@ -189,7 +199,7 @@ export default function ImporPage() {
       setTahap(4);
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Impor gagal — tidak ada baris yang masuk");
+      setGalatAksi(m ?? "Impor gagal — tidak ada baris yang masuk");
     } finally { setKerja(false); }
   }, [pilihSkema, baris, pemetaan]);
 
