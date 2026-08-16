@@ -42,6 +42,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Tabel } from "@/components/dasar";
 import { Kosong } from "@/components/ui-dasar";
@@ -126,12 +127,8 @@ const namaBulan = (iso: string) => {
 };
 
 export default function PayrollPage() {
-  const [daftar, setDaftar] = useState<Periode[]>([]);
   const [periodeId, setPeriodeId] = useState("");
-  const [detail, setDetail] = useState<Detail | null>(null);
   const [bermasalah, setBermasalah] = useState<Bermasalah[]>([]);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
   const [bekerja, setBekerja] = useState(false);
 
   const [buatBaru, setBuatBaru] = useState(false);
@@ -140,33 +137,48 @@ export default function PayrollPage() {
 
   const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
 
-  const muatDaftar = useCallback(async () => {
-    try {
-      const r = await api.get<{ periode: Periode[] }>("/api/v1/payroll/periode");
-      const d = r.data.periode ?? [];
-      setDaftar(d);
-      setPeriodeId((s) => s || d[0]?.id || "");
-    } catch {
-      setGalat("Gagal memuat daftar periode payroll");
-    }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => { void muatDaftar(); }, [muatDaftar]);
+    GAJI — pagar `{memuat ? <Rangka/> : ...}` DIPERTAHANKAN persis: cabang
+    render di bawah tetap memeriksa `memuat` dari `useData` SEBELUM membaca
+    `detail`, jadi tak ada jendela di mana slip Rp 0 dari `detail` yang
+    null/basi sempat tampil.
 
-  const muat = useCallback(async (id: string) => {
-    if (!id) { setDetail(null); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Detail>(`/api/v1/payroll/periode/${id}`);
-      setDetail(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat periode payroll");
-      setDetail(null);
-    } finally { setMemuat(false); }
-  }, []);
+    Dua sumber: daftar periode, dan detail berkunci `periodeId` — pindah
+    periode lalu kembali tak mengambil ulang selama masih segar.
+  */
+  const { data: dataDaftar, galat: galatDaftar, muatUlang: muatUlangDaftar } =
+    useData<{ periode: Periode[] }>("/api/v1/payroll/periode");
+  const daftar = dataDaftar?.periode ?? [];
+  const muatDaftar = useCallback(async () => { await muatUlangDaftar(); }, [muatUlangDaftar]);
 
-  useEffect(() => { void muat(periodeId); setBermasalah([]); }, [periodeId, muat]);
+  // Pilih periode pertama SEKALI begitu daftarnya datang, bukan efek samping
+  // berulang: dependensi hanya `dataDaftar`, dan `s || …` menahan diri
+  // begitu pengguna sudah memilih.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (daftar.length > 0) setPeriodeId((s) => s || daftar[0].id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataDaftar]);
+
+  const jalurDetail = periodeId ? `/api/v1/payroll/periode/${periodeId}` : null;
+  const { data: detail, memuat, galat: galatMuat, muatUlang: muatUlangDetail } =
+    useData<Detail>(jalurDetail);
+  const muat = useCallback(async () => { await muatUlangDetail(); }, [muatUlangDetail]);
+
+  // `bermasalah` datang dari RESPON POST /hitung, bukan dari GET — tak ada
+  // endpoint untuk memuatnya lewat `useData`. Dikosongkan saat pindah
+  // periode (kunci efek), sama seperti versi lama.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setBermasalah([]);
+  }, [periodeId]);
+
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi
+    ?? (galatDaftar ? "Gagal memuat daftar periode payroll" : null)
+    ?? (galatMuat ? "Gagal memuat periode payroll" : null);
 
   const buatPeriode = useCallback(async () => {
     if (!/^\d{4}-\d{2}$/.test(fBulan)) { setGalatModal("Bulan wajib diisi"); return; }
@@ -184,29 +196,29 @@ export default function PayrollPage() {
 
   const hitung = useCallback(async () => {
     if (!periodeId) return;
-    setBekerja(true); setGalat(null);
+    setBekerja(true); setGalatAksi(null);
     try {
       const r = await api.post<{ bermasalah: Bermasalah[] }>(
         `/api/v1/payroll/periode/${periodeId}/hitung`, {});
       setBermasalah(r.data.bermasalah ?? []);
-      await muat(periodeId);
+      await muat();
       await muatDaftar();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menghitung payroll");
+      setGalatAksi(m ?? "Gagal menghitung payroll");
     } finally { setBekerja(false); }
   }, [periodeId, muat, muatDaftar]);
 
   const kunci = useCallback(async () => {
     if (!periodeId) return;
-    setBekerja(true); setGalat(null);
+    setBekerja(true); setGalatAksi(null);
     try {
       await api.post(`/api/v1/payroll/periode/${periodeId}/kunci`, {});
-      await muat(periodeId);
+      await muat();
       await muatDaftar();
     } catch (e) {
       const d = (e as { response?: { data?: { error?: string; penghalang?: Array<{ pesan: string }> } } })?.response?.data;
-      setGalat(
+      setGalatAksi(
         d?.penghalang?.length
           ? `${d.error ?? "Belum bisa dikunci"} — ${d.penghalang.map((p) => p.pesan).join(" ")}`
           : (d?.error ?? "Gagal mengunci periode"),

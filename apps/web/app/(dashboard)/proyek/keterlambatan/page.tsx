@@ -20,9 +20,9 @@
  * "denda" membuat angka perkiraan terbaca sebagai kewajiban yang sudah pasti.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertTriangle, CalendarClock, Clock, FileCheck2, RefreshCw } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
@@ -97,12 +97,7 @@ const tanggalTerbaca = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
 export default function KeterlambatanPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
   const [proyekId, setProyekId] = useState("");
-  const [hasil, setHasil] = useState<Hasil | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
   /**
    * Bawaan "perlu_tindakan", BUKAN "semua".
    *
@@ -116,30 +111,30 @@ export default function KeterlambatanPage() {
    */
   const [saring, setSaring] = useState<Status | "semua" | "perlu_tindakan">("perlu_tindakan");
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); })
-      .finally(() => setMemuat(false));
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    const url = proyekId
-      ? `/api/v1/analisa-keterlambatan?project_id=${proyekId}`
-      : "/api/v1/analisa-keterlambatan";
-    api.get<Hasil>(url, { signal: ac.signal })
-      .then((r) => setHasil(r.data))
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-        setGalat(m ?? "Gagal memuat analisa keterlambatan");
-        setHasil(null);
-      });
-    return () => ac.abort();
-  }, [proyekId, muatUlangKe]);
+    Dua sumber independen: daftar proyek (untuk saringan), dan hasil analisa
+    dengan URL DINAMIS mengikuti `proyekId` — `useData` memakai URL sebagai
+    kunci cache, jadi ganti proyek lalu kembali tak mengambil ulang.
+    `muatUlangKe` DIBUANG — `muatUlang()` melakukan hal yang sama langsung.
+
+    `memuat` dipetakan ke pemuatan HASIL, bukan daftar proyek: itu yang
+    dijaga render di bawah (`!hasil ? null` sesudah `memuat`), dan versi lama
+    pun hanya mematikan `memuat` sesudah daftar proyek datang — hasil
+    analisa yang menentukan kapan halaman berhenti menampilkan "Memuat…".
+  */
+  const { data: dataProyek, galat: galatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
+
+  const jalurHasil = proyekId
+    ? `/api/v1/analisa-keterlambatan?project_id=${proyekId}`
+    : "/api/v1/analisa-keterlambatan";
+  const { data: hasil, memuat, galat: galatHasil, muatUlang } = useData<Hasil>(jalurHasil);
+
+  const galat = (galatProyek ? "Gagal memuat daftar proyek" : null)
+    ?? (galatHasil ? "Gagal memuat analisa keterlambatan" : null);
 
   const terlihat = useMemo(
     () => (hasil?.baris ?? []).filter((b) => {
@@ -329,7 +324,7 @@ export default function KeterlambatanPage() {
         </div>
 
         <button
-          type="button" onClick={() => setMuatUlangKe((n) => n + 1)}
+          type="button" onClick={() => void muatUlang()}
           style={{
             padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
             background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer",

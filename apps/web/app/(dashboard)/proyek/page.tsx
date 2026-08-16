@@ -43,7 +43,7 @@
  * "progres" membuat orang mengira 40% berarti bangunannya sudah 40% berdiri.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { KepalaHalaman } from "@/components/dasar";
 import { useRouter } from "next/navigation";
@@ -51,7 +51,7 @@ import Link from "next/link";
 import {
   AlertTriangle, Building2, CalendarClock, CheckCircle2, Clock,
   LayoutGrid, List, Plus, RefreshCw, Search, TrendingDown, TrendingUp, FolderKanban } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { KartuKPI, Kosong, Panel } from "@/components/ui-dasar";
@@ -85,15 +85,11 @@ function ProyekRingkasan() {
   // dan klien berbeda. Detail: `lib/use-izin.ts`.
   const bolehBuatProyek = useIzin("projects:create");
 
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sort, setSort] = useState<SortKey>("newest");
@@ -106,31 +102,22 @@ function ProyekRingkasan() {
   // orang berhenti memercayai keduanya.
   const [hariIni] = useState(() => hariIniWIB());
 
-  useEffect(() => {
-    void muatProyek();
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      abortRef.current?.abort();
-    };
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function muatProyek() {
-    abortRef.current?.abort();
-    abortRef.current = makeAbortController();
-    setLoading(true);
-    setError("");
-    try {
-      const { data } = await api.get<{ projects: Project[] }>("/api/v1/projects", {
-        signal: abortRef.current.signal,
-      });
-      setProjects(data.projects);
-    } catch (err: unknown) {
-      if ((err as { name?: string })?.name === "CanceledError") return;
-      setError("Gagal memuat proyek. Pastikan API server berjalan.");
-    } finally {
-      setLoading(false);
-    }
-  }
+    `useData` menggantikan `abortRef`+`fetchProject`+try/catch/finally
+    manual. `AbortController` tak lagi perlu dikelola sendiri — `useData`
+    sudah menjaga jawaban yang datang sesudah komponen mati.
+  */
+  const { data, memuat: loading, galat: galatMuat, muatUlang } =
+    useData<{ projects: Project[] }>("/api/v1/projects");
+  // `useMemo`, bukan `?? []` polos: turunan array yang masuk dependensi
+  // `useMemo`/`useCallback` lain (ringkas, tertinggal, filtered, rail) di
+  // bawah butuh referensi STABIL — kalau tidak, tiap render membuat array
+  // baru dan menembus ratchet `exhaustive-deps`.
+  const projects = useMemo(() => data?.projects ?? [], [data]);
+  const muatProyek = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+  const error = galatMuat ? "Gagal memuat proyek. Pastikan API server berjalan." : "";
 
   function handleSearchChange(val: string) {
     setSearchInput(val);
@@ -211,6 +198,14 @@ function ProyekRingkasan() {
     progresnya belum bergerak. Keduanya dari `projects` yang SUDAH dimuat
     halaman — nol permintaan jaringan tambahan.
   */
+  // `sekarang` DIBEKUKAN saat halaman dipasang — pola yang sama dengan
+  // `hariIni` di atas, bukan `Date.now()` dipanggil ulang di dalam `.map()`.
+  // Sesudah `useEffect` pemuatan lama dibuang (F4-2), linter murni
+  // (`react-hooks/purity`) tak lagi punya batas efek untuk menganggap
+  // `Date.now()` di badan render sebagai "boleh tak murni" — dibekukan lewat
+  // `useState` menahannya, dan sekaligus lebih benar: "N hari lagi" di rail
+  // tak lagi diam-diam berubah tiap render tanpa alasan.
+  const [sekarang] = useState(() => Date.now());
   usePasangRail(
     <RailIsi
       tanggalTenggat={projects.map((p) => p.end_date)}
@@ -228,7 +223,7 @@ function ProyekRingkasan() {
               .slice(0, 5)
               .map((p, i) => {
                 const sisa = Math.round(
-                  (new Date(p.end_date).getTime() - Date.now()) / 86_400_000,
+                  (new Date(p.end_date).getTime() - sekarang) / 86_400_000,
                 );
                 return (
                   <BarisRail
