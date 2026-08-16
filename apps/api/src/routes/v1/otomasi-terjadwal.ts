@@ -8250,6 +8250,242 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       checked: { jatuh_tempo: jatuh.length },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/perawatan-diprediksi ────────────────────
+  //
+  // Automation 10.2 — Predictive Maintenance Alert.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA INI BUKAN DUPLIKAT `perawatan-alat` (10.7)
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // 10.7 memperingatkan berdasarkan JATUH TEMPO, dan untuk jalur jam ia menulis
+  // batasannya sendiri di komentar:
+  //
+  //     "Jam TAK punya padanan 'N hari sebelum'. Ambang hari bisa dibaca
+  //      sebagai kalender; ambang jam tidak — 14 jam operasi bisa habis dalam
+  //      dua hari atau dua bulan tergantung alatnya. Jadi untuk jalur jam
+  //      ambangnya nol: yang sudah melewati jam servisnya sudah terlambat."
+  //
+  // Benar — SELAMA lajunya tak diketahui. Begitu jam-meter tercatat berkali-kali
+  // pada tanggal berbeda, lajunya terukur dan sisa jam punya padanan hari.
+  //
+  // Diukur pada basis nyata 2026-08-16:
+  //
+  //   Excavator 20 Ton   8,7 jam/hari   sisa  −18 jam   10.7 sudah bersuara
+  //   Truk Mixer 7 m3    6,7 jam/hari   sisa  190 jam   10.7 DIAM — 28 hari lagi
+  //   Mobile Crane       tak ada meter  sisa  500 jam   10.7 DIAM SELAMANYA
+  //
+  // Dua baris terakhir itulah yang rute ini tangkap.
+  //
+  // ── Baris ketiga adalah cacat yang paling berbahaya
+  //
+  // `hitungJatuhTempo` memulangkan `belum_ada_acuan` untuk jadwal tanpa
+  // `tanggal_terakhir` MAUPUN pembacaan meter, dan 10.7 sengaja MELEWATINYA
+  // tanpa notifikasi — dengan alasan yang sah: "jadwal yang belum pernah
+  // dipakai, menegurnya tiap hari cuma kebisingan".
+  //
+  // Tapi ada kasus yang tak sama: jadwal berbasis JAM pada alat yang jelas-jelas
+  // DIPAKAI, hanya saja jam-meternya tak pernah dicatat. Kalibrasi load
+  // indicator Mobile Crane 25 Ton seharga Rp 12.000.000 tiap 500 jam berada di
+  // basis dalam keadaan itu: aktif, tak pernah bisa jatuh tempo, tak pernah
+  // memicu apa pun. Ia bukan jadwal yang menganggur — ia jadwal yang RUSAK, dan
+  // kerusakannya tak punya gejala sama sekali.
+  //
+  // Rute ini menegurnya SEKALI (lalu tunduk jeda melandai seperti yang lain),
+  // karena yang dibutuhkan tindakan sekali: mulai mencatat meternya.
+  app.get('/api/v1/otomasi/jalankan/perawatan-diprediksi', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { hitungJatuhTempo, hitungLajuPakai, prediksiHariDariJam } =
+      await import('../../lib/alat-operasional.js')
+
+    const q = request.query as { hari?: string; min?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.perawatan_prediksi.hari', q.hari)
+    const minBaca = await ambilAmbang(
+      request, 'otomasi.perawatan_prediksi.min_pembacaan', q.min,
+    )
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['perawatan_diprediksi', 'alat_jam_tanpa_meter'])
+
+    // `assets`, `jadwal_perawatan`, `pemakaian_alat` — ketiganya kategori B.
+    const { data: aset, error: eAset } = await request.db!
+      .from('assets')
+      .select('id, asset_code, name, current_project_id, status')
+    if (eAset) return reply.status(500).send({ error: eAset.message })
+
+    const { data: jadwal, error: eJadwal } = await request.db!
+      .from('jadwal_perawatan')
+      .select('id, asset_id, nama, jenis, setiap_jam, setiap_hari, jam_terakhir, tanggal_terakhir, aktif, perkiraan_biaya')
+      .eq('aktif', true)
+      .not('setiap_jam', 'is', null)
+    if (eJadwal) return reply.status(500).send({ error: eJadwal.message })
+
+    /*
+      BERHALAMAN — wajib. `pemakaian_alat` tumbuh tiap sesi alat dan sudah
+      pasti melewati 1.000 baris pada perusahaan yang benar-benar memakai
+      alatnya. PostgREST memotongnya TANPA galat, dan yang terpotong adalah
+      pembacaan TERBARU bila urutannya tak dipaku — lajunya lalu dihitung dari
+      data lama dan perkiraannya meleset ke arah yang lebih berbahaya
+      (terlihat lebih santai daripada kenyataan).
+      Dijaga `audit-baca-tak-terpotong` (ambang NOL).
+    */
+    const HALAMAN = 1000
+    const pakai: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('pemakaian_alat')
+        .select('asset_id, tanggal, jam_selesai')
+        .not('jam_selesai', 'is', null)
+        .order('tanggal', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      pakai.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    /** asset_id → pembacaan meter, untuk laju DAN untuk meter terkini. */
+    const bacaan = new Map<string, Array<{ tanggal: string; jam: number | string | null }>>()
+    for (const p of pakai) {
+      const id = p.asset_id as string
+      if (!id) continue
+      const daftar = bacaan.get(id) ?? []
+      daftar.push({ tanggal: String(p.tanggal ?? ''), jam: p.jam_selesai as number | null })
+      bacaan.set(id, daftar)
+    }
+
+    const meterKini = new Map<string, number>()
+    for (const [id, daftar] of bacaan) {
+      for (const b of daftar) {
+        const n = b.jam == null ? NaN : Number(b.jam)
+        if (Number.isFinite(n)) meterKini.set(id, Math.max(meterKini.get(id) ?? n, n))
+      }
+    }
+
+    const namaAset = new Map<string, { kode: string; nama: string; proyek: string | null }>()
+    for (const a of aset ?? []) {
+      namaAset.set(a.id as string, {
+        kode: String(a.asset_code ?? '—'),
+        nama: String(a.name ?? '—'),
+        proyek: (a.current_project_id as string | null) ?? null,
+      })
+    }
+
+    let dibuat = 0
+    let diprediksi = 0
+    let tanpaMeter = 0
+    let lajuTakCukup = 0
+
+    for (const j of jadwal ?? []) {
+      const idAset = j.asset_id as string
+      const a = namaAset.get(idAset)
+      const label = a ? `${a.nama} (${a.kode})` : 'Alat'
+
+      /*
+        JADWAL JAM TANPA SATU PUN PEMBACAAN METER.
+
+        Diperiksa LEBIH DULU dari laju, karena keduanya menghasilkan "tak bisa
+        dihitung" dan mencampurnya membuat jadwal rusak terlihat seperti alat
+        yang datanya baru sedikit. Yang pertama butuh tindakan; yang kedua
+        cukup ditunggu.
+      */
+      if (!meterKini.has(idAset)) {
+        tanpaMeter++
+        if (sudah('alat_jam_tanpa_meter', j.id as string)) continue
+        const penerima = await resolveRecipients('alat_jam_tanpa_meter', {
+          companyId: request.companyId!,
+          projectId: a?.proyek ?? undefined,
+        })
+        for (const uid of penerima) {
+          await createNotification({
+            company_id: request.companyId!,
+            user_id: uid,
+            title: 'Jadwal perawatan tak bisa jatuh tempo',
+            message:
+              `${label} — "${String(j.nama ?? 'perawatan')}" dijadwalkan tiap `
+              + `${Number(j.setiap_jam)} jam, tetapi jam-meter alat ini belum pernah `
+              + 'dicatat sekali pun. Selama itu, jadwal ini tak akan pernah '
+              + 'memicu peringatan apa pun.',
+            type: 'alat_jam_tanpa_meter',
+            priority: 'normal',
+            project_id: a?.proyek ?? undefined,
+            action_url: '/alat',
+            // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+            action_data: { record_id: j.id, asset_id: idAset },
+          })
+          dibuat++
+        }
+        continue
+      }
+
+      const laju = hitungLajuPakai(bacaan.get(idAset) ?? [], minBaca)
+      if (laju.perHari == null) { lajuTakCukup++; continue }
+
+      const hasil = hitungJatuhTempo(j as never, meterKini.get(idAset) ?? null, today)
+      const hari = prediksiHariDariJam(hasil.sisaJam, laju.perHari)
+      if (hari == null) { lajuTakCukup++; continue }
+
+      /*
+        Yang SUDAH lewat sengaja dilewati — itu wilayah 10.7, dan ia sudah
+        memperingatkannya. Dua peringatan untuk satu alat pada hari yang sama
+        adalah cara tercepat membuat orang mematikan keduanya.
+
+        Batas bawah 0 dipilih, bukan 1: alat yang jatuh tempo TEPAT hari ini
+        masih milik rute ini sampai 10.7 menghitungnya lewat.
+      */
+      if (hari < 0 || hari > ambangHari) continue
+
+      diprediksi++
+      if (sudah('perawatan_diprediksi', j.id as string)) continue
+
+      const biaya = j.perkiraan_biaya == null ? null : Number(j.perkiraan_biaya)
+      const rupiah = biaya != null && Number.isFinite(biaya)
+        ? ` Perkiraan biaya Rp ${biaya.toLocaleString('id-ID')}.`
+        : ''
+
+      const penerima = await resolveRecipients('perawatan_diprediksi', {
+        companyId: request.companyId!,
+        projectId: a?.proyek ?? undefined,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: 'Perawatan alat diperkirakan jatuh tempo',
+          message:
+            `${label} — "${String(j.nama ?? 'perawatan')}" tinggal `
+            + `${hasil.sisaJam} jam lagi. Pada laju ${laju.perHari} jam/hari `
+            + `(${laju.pembacaan} pembacaan, ${laju.rentangHari} hari), itu `
+            + `sekitar ${hari} hari dari sekarang.${rupiah}`,
+          type: 'perawatan_diprediksi',
+          priority: hari <= Math.ceil(ambangHari / 3) ? 'high' : 'normal',
+          project_id: a?.proyek ?? undefined,
+          action_url: '/alat',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: j.id, asset_id: idAset, hari_lagi: hari },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: {
+        jadwal_berbasis_jam: (jadwal ?? []).length,
+        diprediksi_jatuh_tempo: diprediksi,
+        jadwal_tanpa_meter: tanpaMeter,
+        laju_tak_cukup: lajuTakCukup,
+        ambang_hari: ambangHari,
+        min_pembacaan: minBaca,
+      },
+    })
+  })
 }
 
 /**

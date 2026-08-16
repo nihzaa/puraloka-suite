@@ -259,3 +259,117 @@ function selisihHari(dari: string, sampai: string): number {
   const b = new Date(sampai + 'T00:00:00Z').getTime()
   return Math.round((b - a) / 86_400_000)
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// LAJU PEMAKAIAN — mengubah "sisa jam" jadi "sisa hari"
+// ════════════════════════════════════════════════════════════════════════════
+//
+// `hitungJatuhTempo()` di atas memulangkan `sisaJam`, dan rute `perawatan-alat`
+// menulis alasannya sendiri kenapa ia tak bisa memperingatkan lebih awal untuk
+// jalur jam:
+//
+//     "Jam TAK punya padanan 'N hari sebelum'. Ambang hari bisa dibaca sebagai
+//      kalender; ambang jam tidak — 14 jam operasi bisa habis dalam dua hari
+//      atau dua bulan tergantung alatnya."
+//
+// Itu benar SELAMA lajunya tak diketahui. Begitu jam-meter tercatat berkali-kali
+// pada tanggal berbeda, lajunya terukur — dan sisa jam punya padanan hari.
+//
+// Diukur pada basis nyata 2026-08-16:
+//
+//   Excavator 20 Ton   96 jam / 11 hari = 8,7 jam/hari   sisa −18 jam
+//   Truk Mixer 7 m3    60 jam /  9 hari = 6,7 jam/hari   sisa 190 jam → 28 hari
+//   Mobile Crane       tak ada satu pun pembacaan meter  sisa 500 jam → ?
+//
+// Baris kedua itulah yang hilang: `perawatan-alat` DIAM untuk Truk Mixer karena
+// sisa jamnya masih positif, padahal servis drum mixer jatuh tempo dalam empat
+// minggu dan bengkelnya perlu dipesan.
+
+export interface PembacaanMeter {
+  /** Tanggal pembacaan (ISO atau `YYYY-MM-DD`). */
+  tanggal: string
+  /** Angka jam-meter pada akhir sesi. */
+  jam: number | string | null | undefined
+}
+
+export interface HasilLaju {
+  /** Jam per hari. `null` bila tak bisa dihitung. */
+  perHari: number | null
+  /** Berapa pembacaan yang dipakai. */
+  pembacaan: number
+  /** Rentang hari antara pembacaan pertama dan terakhir. */
+  rentangHari: number
+  /**
+   * Kenapa `perHari` null — supaya pemanggil bisa membedakan "belum cukup
+   * data" dari "alatnya memang diam". Keduanya menghasilkan null, dan
+   * memperlakukannya sama pernah membuat penjaga lain salah lapor.
+   */
+  sebab: 'cukup' | 'kurang_pembacaan' | 'rentang_nol' | 'tak_bergerak'
+}
+
+/**
+ * Laju pemakaian dari sekumpulan pembacaan jam-meter.
+ *
+ * `minPembacaan` sengaja WAJIB diisi pemanggil, bukan berdefault: nilainya
+ * ambang bisnis yang harus bisa disetel dari UI, dan default tersembunyi di
+ * sini akan menjadi angka yang tak seorang pun tahu sedang berlaku.
+ */
+export function hitungLajuPakai(
+  pembacaan: PembacaanMeter[],
+  minPembacaan: number,
+): HasilLaju {
+  const sah = pembacaan
+    .map((p) => ({ t: String(p.tanggal ?? '').slice(0, 10), j: angka(p.jam) }))
+    .filter((p): p is { t: string; j: number } => p.t.length === 10 && p.j != null)
+    .sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0))
+
+  if (sah.length < Math.max(2, minPembacaan)) {
+    return { perHari: null, pembacaan: sah.length, rentangHari: 0, sebab: 'kurang_pembacaan' }
+  }
+
+  const awal = sah[0]
+  const akhir = sah[sah.length - 1]
+  const rentangHari = selisihHari(awal.t, akhir.t)
+
+  // Semua pembacaan di hari yang sama: tak ada rentang waktu untuk membagi.
+  if (rentangHari <= 0) {
+    return { perHari: null, pembacaan: sah.length, rentangHari: 0, sebab: 'rentang_nol' }
+  }
+
+  /*
+    Meter TURUN diperlakukan sebagai tak-bergerak, bukan laju negatif.
+
+    Jam-meter tak bisa mundur; kalau angkanya turun, itu penggantian unit,
+    salah ketik, atau meter di-reset. Memulangkan laju negatif akan membuat
+    prediksi jatuh tempo mundur ke masa lalu dan memicu peringatan "sudah
+    lewat" untuk alat yang baru diservis — persis kebalikan dari yang benar.
+  */
+  const naik = akhir.j - awal.j
+  if (naik <= 0) {
+    return { perHari: null, pembacaan: sah.length, rentangHari, sebab: 'tak_bergerak' }
+  }
+
+  return {
+    perHari: Math.round((naik / rentangHari) * 100) / 100,
+    pembacaan: sah.length,
+    rentangHari,
+    sebab: 'cukup',
+  }
+}
+
+/**
+ * Sisa jam → perkiraan sisa hari.
+ *
+ * Memulangkan `null` bila lajunya tak diketahui. `Math.ceil` dipakai supaya
+ * pembulatan selalu ke arah AMAN: 0,3 hari lagi dilaporkan 1 hari, bukan 0
+ * yang terbaca "sudah lewat".
+ */
+export function prediksiHariDariJam(
+  sisaJam: number | null | undefined,
+  perHari: number | null | undefined,
+): number | null {
+  const s = angka(sisaJam)
+  const l = angka(perHari)
+  if (s == null || l == null || l <= 0) return null
+  return Math.ceil(s / l)
+}

@@ -525,6 +525,12 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     'invoice-ringkasan-melenceng',
     'kesiapan-audit',
     'opname-menggantung',
+    /*
+      10.2 Predictive Maintenance (2026-08-16). Ditambahkan BERSAMAAN dengan
+      rutenya, bukan menunggu penjaga daftar merah lebih dulu — pelajaran
+      dari 25 rute yang sempat lahir tanpa pernah sekali pun dipanggil test.
+    */
+    'perawatan-diprediksi',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

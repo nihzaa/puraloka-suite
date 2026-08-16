@@ -135,6 +135,13 @@ export type NotificationType =
   | 'penyusutan_belum_dijurnal'
   | 'perawatan_alat_jatuh_tempo'
   | 'alat_tanpa_jadwal_perawatan'
+  // 10.2 Predictive Maintenance. `perawatan_diprediksi` memperingatkan
+  // SEBELUM jam servis tercapai, memakai laju pemakaian terukur;
+  // `alat_jam_tanpa_meter` menandai jadwal berbasis jam pada alat yang
+  // jam-meternya tak pernah dicatat - jadwal yang tak akan pernah bisa
+  // jatuh tempo, dan kerusakannya tak punya gejala apa pun.
+  | 'perawatan_diprediksi'
+  | 'alat_jam_tanpa_meter'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'

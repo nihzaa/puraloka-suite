@@ -1043,6 +1043,33 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'yang belum bisa ditutup hanya melatih orang mengabaikan notifikasi.',
   },
   {
+    kunci: 'perawatan-diprediksi',
+    nomor: '10.2',
+    nama: 'Perawatan alat diperkirakan jatuh tempo',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Memperkirakan KAPAN jam servis akan tercapai memakai laju pemakaian '
+      + 'alat yang terukur dari jam-meter, lalu memperingatkan jauh sebelum '
+      + 'harinya tiba. Ini melengkapi peringatan jatuh tempo biasa, yang untuk '
+      + 'jadwal berbasis jam baru bisa bersuara SESUDAH terlambat — jam operasi '
+      + 'tak punya padanan kalender sampai lajunya diketahui. Diukur pada data '
+      + 'nyata: satu truk mixer memakai 6,7 jam/hari dengan sisa 190 jam, jatuh '
+      + 'tempo empat minggu lagi, dan tak ada satu pun peringatan sampai hari H. '
+      + 'Sekaligus menandai jadwal berbasis jam pada alat yang jam-meternya tak '
+      + 'pernah dicatat — jadwal seperti itu tak akan pernah bisa jatuh tempo, '
+      + 'dan kerusakannya tak punya gejala apa pun.',
+    penerima: 'Bagian peralatan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca jadwal perawatan berbasis jam yang masih aktif.' },
+      { di: 'sistem', teks: 'Menghitung laju pemakaian tiap alat dari riwayat jam-meter.' },
+      { di: 'sistem', teks: 'Mengubah sisa jam menjadi perkiraan sisa hari.' },
+      { di: 'sistem', teks: 'Menandai jadwal jam yang alatnya tak punya pembacaan meter sama sekali.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.perawatan_prediksi.hari',
+  },
+  {
     kunci: 'perawatan-alat',
     nomor: '10.7',
     nama: 'Perawatan & sertifikasi alat jatuh tempo',

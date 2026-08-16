@@ -784,6 +784,54 @@ export const AMBANG_OTOMASI = {
     ILEGAL dipakai, bukan sekadar kurang terawat — dan itu risiko yang
     ditanggung proyek, bukan bengkel.
   */
+  /*
+    10.2 Predictive Maintenance. TERPISAH dari `perawatan_alat.hari` di bawah,
+    dan itu keputusan sadar.
+
+    `perawatan_alat.hari` menjawab "berapa hari sebelum tanggal jatuh tempo".
+    Ambang ini menjawab pertanyaan LAIN: "berapa hari sebelum jam servis
+    diperkirakan TERCAPAI menurut laju pemakaian". Angkanya boleh jauh lebih
+    besar, karena inilah satu-satunya peringatan dini yang jalur jam punya —
+    tanpa laju, jalur jam baru bersuara sesudah terlambat.
+  */
+  'otomasi.perawatan_prediksi.hari': {
+    bawaan: 21,
+    min: 3,
+    max: 120,
+    label: 'Hari sebelum jam servis diperkirakan tercapai',
+    judul: 'Perkiraan perawatan dari laju pemakaian',
+    akibat:
+      'Alat yang jam servisnya masih jauh tetap diingatkan bila laju '
+      + 'pemakaiannya membuat jatuh tempo tiba dalam sekian hari. Diukur pada '
+      + 'data nyata: satu truk mixer memakai 6,7 jam/hari dengan sisa 190 jam '
+      + '— jatuh tempo 28 hari lagi, dan tanpa ambang ini tak ada peringatan '
+      + 'sama sekali sampai hari H. Memesan bengkel butuh antrean.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  /*
+    Berapa pembacaan meter minimum sebelum lajunya dipercaya.
+
+    Dua titik cukup secara matematika tetapi rapuh: satu hari kerja lembur
+    membuat laju terlihat dua kali lipat, dan seluruh perkiraan ikut meleset.
+    Nilainya sengaja bisa disetel — perusahaan yang mencatat meter tiap hari
+    bisa menurunkannya, yang mencatat mingguan perlu menaikkannya.
+  */
+  'otomasi.perawatan_prediksi.min_pembacaan': {
+    bawaan: 3,
+    min: 2,
+    max: 20,
+    label: 'Pembacaan jam-meter minimum sebelum laju dipercaya',
+    judul: 'Perkiraan perawatan dari laju pemakaian',
+    akibat:
+      'Makin kecil, makin cepat alat baru ikut diperkirakan — tetapi '
+      + 'perkiraannya makin mudah meleset karena satu hari lembur. Alat yang '
+      + 'pembacaannya kurang dari angka ini dilewati, bukan ditebak.',
+    satuan: 'pembacaan',
+    langkah: 1,
+  },
+
   'otomasi.perawatan_alat.hari': {
     bawaan: 14,
     min: 1,
