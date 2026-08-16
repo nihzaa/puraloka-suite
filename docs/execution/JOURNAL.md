@@ -22144,3 +22144,83 @@ mutasi blok verifikasi 413        3/3 MERAH lalu pulih
 13 penjaga arsitektural           exit=0
 lint:ratchet                      0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 (7) — Gelombang 1: pemasok terpencar 4.11 · DAN saya menghapus kerja sesi lain
+
+40 rute terjadwal, 47 nomor katalog.
+
+### ⚠ Saya melanggar aturan berhenti #1, dan hampir kehilangan 487 baris orang lain
+
+`git stash push --keep-index --include-untracked <dua berkas>` gagal pada
+pathspec kedua — tetapi **berkas pertama tetap ter-stash dan hilang dari
+disk.** Keduanya milik sesi lain: `ai-tool-pengingat.ts` (276 baris) dan
+`ai-tool-titip-pesan.ts` (211 baris).
+
+Dipulihkan penuh dengan `git stash pop` — 10.103 dan 9.003 byte kembali utuh.
+
+Yang saya lakukan salah: **`git stash` bukan perintah baca.** Saya memakainya
+untuk "sekadar memeriksa" apakah rute asing ada di berkas saya, padahal ia
+memindahkan berkas dari disk. Di checkout bersama, perintah yang memindahkan
+apa pun harus diperlakukan seperti penghapusan.
+
+Yang benar untuk pertanyaan itu: `grep -c "<rute>" <berkas>` — dan itu memang
+yang akhirnya menjawabnya.
+
+CHARTER §8a.1 sudah menyebut ini sebagai salah satu dari lima alasan berhenti.
+Saya membacanya di awal sesi dan tetap melakukannya.
+
+### Tabrakan nomor migrasi yang ikut terungkap
+
+Sesi lain menulis `414_pengingat_asisten.sql`; saya menulis
+`414_pemasok_terpencar.sql`. Keduanya belum ter-commit. Milik saya digeser ke
+**415** — bukan karena aturan, melainkan karena rute mereka sudah lebih dulu
+berada di berkas bersama `otomasi-terjadwal.ts`.
+
+### Penjaga katalog MERAH, dan itu bukan cacat saya maupun mereka
+
+`audit-katalog-otomasi-nyata` melaporkan rute `kirim-pengingat` tanpa entri
+katalog. Itu rute sesi lain yang **sedang dikerjakan** — entri katalognya
+belum ditulis karena pekerjaannya belum selesai. Saya TIDAK menambahkan
+entrinya: menuliskan penjelasan untuk otomasi yang bukan saya bangun adalah
+katalog yang mengklaim pemahaman yang tak saya punya.
+
+### 4.11 — angkanya batas atas, dan pesannya menyatakan itu sendiri
+
+```
+Besi Beton Ø12mm SNI   CV Sinar Abadi Rp 100.000  lawan  Maju Jaya Rp 120.000
+                       160 batang · selisih Rp 3.200.000  (20%)
+Besi Beton Ø10mm SNI   Rp 80.000 lawan Rp 85.000 · Rp 1.020.000  (6%)
+Pasir Pasang           Rp 185.000 lawan Rp 195.000 · Rp 170.000  (5%)
+```
+
+Selisih × volume adalah penghematan yang hanya terjadi kalau SELURUH pesanan
+bisa dialihkan ke harga terendah — dan itu jarang benar. Harga berbeda karena
+tempo bayar, ongkos kirim, siapa yang sanggup mengantar hari itu juga.
+
+Otomasi yang menyodorkan Rp 3,2 juta sebagai "potensi hemat" membuat orang
+mengejar angka yang tak pernah ada, lalu berhenti percaya. Kolom hasilnya pun
+dinamai `selisih_batas_atas`, bukan `potensi_hemat` — nama kolom ikut terbaca.
+
+Dibaca dari `supplier_id`/`material_id` pada pesanan pembelian, BUKAN nama
+vendor di catatan biaya: teks bebas membuat tiap salah ketik jadi temuan palsu.
+
+### Satu penjaga yang TAK BISA dimutasi, dan itu dinyatakan
+
+Kasus satu-pemasok dijaga tiga lapis. Melucuti dua penjaga eksplisit sekaligus
+tetap tak membuat test merah — lapisan ketiga bukan penjaga melainkan
+aritmetika: dengan satu pemasok, termurah dan termahal menunjuk entri yang
+sama, jadi selisihnya nol. Ditulis di test sebagai catatan, bukan dipaksa jadi
+mutasi palsu.
+
+### Bukti
+
+```
+otomasi-pemasok.test.ts           6 passed
+mutasi rute                       4/5 MERAH lalu pulih (1 mustahil, didokumentasikan)
+mutasi blok verifikasi 415        3/3 MERAH lalu pulih
+12 penjaga arsitektural           exit=0
+audit-katalog-otomasi-nyata       MERAH — rute sesi lain, bukan milik saya
+lint:ratchet                      0 error, 231 warning
+```

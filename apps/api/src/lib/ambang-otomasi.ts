@@ -220,6 +220,19 @@ export const AMBANG_OTOMASI = {
     label: 'Hari sesudah proyek selesai sebelum retensi tertahan ditegur',
   },
   /*
+    Material dibeli dari beberapa pemasok. Bawaan selisih 5%.
+
+    Rendah dengan sengaja: selisih 5% pada material curah adalah uang yang
+    nyata, dan pertanyaannya ("kenapa dua harga?") murah untuk ditanyakan.
+    Yang mahal justru tak pernah menanyakannya.
+  */
+  'otomasi.pemasok_terpencar.persen': {
+    bawaan: 5,
+    min: 1,
+    max: 100,
+    label: 'Selisih harga antar pemasok (%) yang mulai dipertanyakan',
+  },
+  /*
     Margin bocor. Bawaan 85% dari RAB.
 
     Persen, bukan selisih rupiah: proyek Rp 100 juta dan proyek Rp 10 miliar

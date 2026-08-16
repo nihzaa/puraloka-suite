@@ -211,6 +211,11 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'pemasok-terpencar': {
+    label: 'Material Sama, Beberapa Pemasok',
+    keterangan: 'Material yang sama dibeli dengan harga berbeda dari pemasok berbeda.',
+    jalur: '/api/v1/otomasi/jalankan/pemasok-terpencar',
+  },
   'margin-bocor': {
     label: 'Margin Bocor',
     keterangan: 'RAB melampaui kontrak, biaya melampaui RAB, dan proyek tanpa RAB sama sekali.',

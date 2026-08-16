@@ -1311,6 +1311,35 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'sebagai kemungkinan keliru — otomasi yang menebak mana yang salah '
       + 'akan menyuruh orang memperbaiki angka yang benar.',
   },
+  {
+    kunci: 'pemasok-terpencar',
+    nomor: '4.11',
+    nama: 'Material sama dibeli dari beberapa pemasok',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menemukan material yang dipesan dari lebih dari satu pemasok dengan '
+      + 'harga rata-rata yang berbeda, lalu menyebut berapa selisihnya atas '
+      + 'volume yang sudah dipesan.',
+    penerima: 'Bagian pengadaan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca item pesanan pembelian yang tidak dibatalkan.' },
+      { di: 'sistem', teks: 'Menghitung harga rata-rata tiap pemasok, ditimbang volumenya.' },
+      { di: 'sistem', teks: 'Membandingkan pemasok termurah dengan termahal.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.pemasok_terpencar.persen',
+    catatan:
+      'Angka selisihnya BATAS ATAS, bukan penghematan — dan pesannya '
+      + 'menyatakan itu sendiri. Harga bisa berbeda karena tempo pembayaran, '
+      + 'ongkos kirim, atau siapa yang sanggup mengantar hari itu juga. '
+      + 'Otomasi yang menyodorkannya sebagai "potensi hemat" membuat orang '
+      + 'mengejar angka yang tak pernah ada, lalu berhenti percaya. Yang '
+      + 'berguna bukan angkanya melainkan pertanyaannya: kenapa material yang '
+      + 'sama dibeli dengan dua harga? Dibaca dari `supplier_id` dan '
+      + '`material_id` pada pesanan pembelian, BUKAN dari nama vendor di '
+      + 'catatan biaya — teks bebas membuat tiap salah ketik jadi temuan palsu.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */
