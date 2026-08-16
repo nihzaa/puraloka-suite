@@ -37,7 +37,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { FileSignature, Plus, RefreshCw, ScrollText, TriangleAlert } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
@@ -210,14 +211,8 @@ function kolomKontrak(
 }
 
 export default function RegisterKontrakPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
   const [dipilih, setDipilih] = useState("");
-  const [hasil, setHasil] = useState<Hasil | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [memuatDetail, setMemuatDetail] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
   const [sukses, setSukses] = useState<string | null>(null);
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
 
   const [dialogBuka, setDialogBuka] = useState(false);
   const [mengirim, setMengirim] = useState(false);
@@ -233,33 +228,31 @@ export default function RegisterKontrakPage() {
   const [fSelesai, setFSelesai] = useState("");
   const [fLingkup, setFLingkup] = useState("");
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => {
-        const d = r.data.projects ?? [];
-        setProyek(d);
-        if (d.length > 0) setDipilih((s) => s || d[0].id);
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); })
-      .finally(() => setMemuat(false));
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    if (!dipilih) return;
-    const ac = makeAbortController();
-    setMemuatDetail(true);
-    api.get<Hasil>(`/api/v1/kontrak/proyek/${dipilih}`, { signal: ac.signal })
-      .then((r) => setHasil(r.data))
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-        setGalat(m ?? "Gagal memuat register kontrak");
-      })
-      .finally(() => setMemuatDetail(false));
-    return () => ac.abort();
-  }, [dipilih, muatUlangKe]);
+    Dua `useData`: daftar proyek, lalu detail register yang bergantung
+    `dipilih`. Galat AKSI (kirim kontrak / ubah status) dipisah dari galat
+    MUAT — satu state gabungan sebelumnya membuat gagal menyimpan menghapus
+    pesan gagal memuat.
+  */
+  const { data: dataProyek, memuat, galat: galatMuatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  // `useMemo`: masuk dependensi `useEffect` di bawah, dan array baru tiap
+  // render membuat efek itu berjalan tanpa henti.
+  const proyek = useMemo(() => dataProyek?.projects ?? [], [dataProyek]);
+
+  // Default `dipilih` ke proyek pertama begitu daftarnya datang.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setDipilih((s) => s || proyek[0]?.id || ""); }, [proyek]);
+
+  const { data: hasil, memuat: memuatDetail, galat: galatMuatDetail, muatUlang: muatUlangDetail } =
+    useData<Hasil>(dipilih ? `/api/v1/kontrak/proyek/${dipilih}` : null);
+
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi
+    ?? (galatMuatProyek ? "Gagal memuat daftar proyek."
+      : galatMuatDetail ? "Gagal memuat register kontrak." : null);
 
   // Induk yang boleh ditunjuk addendum: hanya yang berjenis induk DAN belum
   // dibatalkan. Menawarkan yang dibatalkan berarti membiarkan orang menyusun
@@ -301,13 +294,13 @@ export default function RegisterKontrakPage() {
     setFInduk(jenis === "addendum" && indukTersedia.length > 0 ? indukTersedia[0].id : "");
     setFNomor(""); setFJudul(""); setFTanggal(""); setFNilai("");
     setFRetensi(""); setFMulai(""); setFSelesai(""); setFLingkup("");
-    setGalat(null);
+    setGalatAksi(null);
     setDialogBuka(true);
   }
 
   async function kirim() {
     if (halangan) return;
-    setMengirim(true); setGalat(null); setSukses(null);
+    setMengirim(true); setGalatAksi(null); setSukses(null);
     try {
       await api.post("/api/v1/kontrak", {
         project_id: dipilih,
@@ -327,10 +320,10 @@ export default function RegisterKontrakPage() {
         + "draf. Nilainya belum dihitung sampai statusnya diberlakukan.",
       );
       setDialogBuka(false);
-      setMuatUlangKe((n) => n + 1);
+      await muatUlangDetail();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal mencatat kontrak");
+      setGalatAksi(m ?? "Gagal mencatat kontrak");
     } finally {
       setMengirim(false);
     }
@@ -347,14 +340,14 @@ export default function RegisterKontrakPage() {
       if (!jawab || !jawab.trim()) return;
       alasan = jawab.trim();
     }
-    setGalat(null); setSukses(null);
+    setGalatAksi(null); setSukses(null);
     try {
       await api.patch(`/api/v1/kontrak/${k.id}/status`, { status, alasan });
       setSukses(`Kontrak ${k.nomor} kini berstatus ${STATUS_META[status].label.toLowerCase()}.`);
-      setMuatUlangKe((n) => n + 1);
+      await muatUlangDetail();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal mengubah status kontrak");
+      setGalatAksi(m ?? "Gagal mengubah status kontrak");
     }
   }
 
@@ -465,7 +458,7 @@ export default function RegisterKontrakPage() {
               </p>
             )}
 
-            <button type="button" onClick={() => setMuatUlangKe((n) => n + 1)}
+            <button type="button" onClick={() => void muatUlangDetail()}
               aria-label="Muat ulang register kontrak" style={{
                 display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
                 padding: "9px 12px", borderRadius: 6, fontSize: 13,

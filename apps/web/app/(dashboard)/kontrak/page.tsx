@@ -52,11 +52,11 @@
  * menggambar ulang daftarnya, dan itu tinta tanpa informasi.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle, FileSignature, RefreshCw, ShieldAlert, ShieldCheck, FileText } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
@@ -77,66 +77,50 @@ function rupiahRingkas(n: number): string {
 }
 
 export default function KontrakRingkasanPage() {
-  const [proyek, setProyek] = useState<ProyekKontrak[]>([]);
-  const [jaminan, setJaminan] = useState<BarisJaminan[]>([]);
-  // `null` = tak diketahui, BUKAN nol. Bedanya menentukan apakah kartunya tampil.
-  const [asuransi, setAsuransi] = useState<RingkasAsuransi | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
-
   // Tanggal acuan DIBEKUKAN saat halaman dipasang — kalau tidak, KPI dan
   // daftar di bawahnya bisa memakai tanggal berbeda saat halaman terbuka
   // melewati tengah malam, dan angka yang tak cocok dengan daftarnya sendiri
   // adalah cara tercepat membuat orang berhenti memercayai keduanya.
   const [hariIni] = useState(() => hariIniWIB());
+  // Dibekukan sekali juga untuk rail kontekstual di bawah — `Date.now()`
+  // dipanggil langsung di dalam render (lewat closure `usePasangRail`) tak
+  // murni menurut aturan compiler React; membekukannya di sini membuatnya
+  // stabil dan lolos aturan itu sekaligus.
+  const [sekarangMs] = useState(() => Date.now());
 
-  // Pembatal disimpan di ref, dan `muat` ditulis sebagai fungsi biasa —
-  // mengikuti `proyek/page.tsx` persis. Bukan gaya: `useCallback` yang
-  // dirujuk dari daftar dependensi `useEffect` membuat
-  // `react-hooks/set-state-in-effect` membaca setState di dalamnya sebagai
-  // setState di badan efek, dan halaman ini tak boleh menambah warning baru
-  // ke lint-ratchet. Efek dengan dependensi kosong tak punya masalah itu.
-  const abortRef = useRef<AbortController | null>(null);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    void muat();
-    return () => abortRef.current?.abort();
-  }, []);
+    Tiga `useData` independen menggantikan `muat()` gabungan. Asuransi TETAP
+    dipisah secara logis (kegagalannya tak menjatuhkan galat gabungan) —
+    `useData` sudah menjaga tiap sumber galatnya sendiri-sendiri, jadi
+    kartunya menghilang sendiri saat `/api/v1/asuransi` gagal, bukan seluruh
+    halaman.
+  */
+  const { data: dataProyek, memuat: memuatProyek, galat: galatProyek, muatUlang: muatUlangProyek } =
+    useData<{ projects: ProyekKontrak[] }>("/api/v1/projects");
+  const { data: dataJaminan, memuat: memuatJaminan, galat: galatJaminan, muatUlang: muatUlangJaminan } =
+    useData<{ data: BarisJaminan[] }>("/api/v1/bonds");
+  const { data: dataAsuransi, muatUlang: muatUlangAsuransi } =
+    useData<RingkasAsuransi>("/api/v1/asuransi");
 
-  async function muat() {
-    abortRef.current?.abort();
-    abortRef.current = makeAbortController();
-    const signal = abortRef.current.signal;
-    setMemuat(true);
-    setGalat("");
+  // `useMemo`: keduanya masuk dependensi `useMemo` di bawah (`ringkas`), dan
+  // array baru tiap render membuat memo itu tak pernah dianggap sama.
+  const proyek = useMemo(() => dataProyek?.projects ?? [], [dataProyek]);
+  const jaminan = useMemo(() => dataJaminan?.data ?? [], [dataJaminan]);
+  // `null` = tak diketahui, BUKAN nol. Bedanya menentukan apakah kartunya
+  // tampil — kegagalan `/api/v1/asuransi` (izin berbeda, modul baru) sudah
+  // menghasilkan `data === null` dari `useData` sendiri.
+  const asuransi = dataAsuransi ?? null;
 
-    // Dua muatan inti berjalan bersama; keduanya wajib ada untuk KPI utama.
-    try {
-      const [rProyek, rJaminan] = await Promise.all([
-        api.get<{ projects: ProyekKontrak[] }>("/api/v1/projects", { signal }),
-        api.get<{ data: BarisJaminan[] }>("/api/v1/bonds", { signal }),
-      ]);
-      setProyek(rProyek.data.projects ?? []);
-      setJaminan(rJaminan.data.data ?? []);
-    } catch (e: unknown) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      setGalat("Gagal memuat kontrak dan jaminan. Pastikan API server berjalan.");
-      setMemuat(false);
-      return;
-    }
+  const memuat = memuatProyek || memuatJaminan;
+  const galat = (galatProyek || galatJaminan)
+    ? "Gagal memuat kontrak dan jaminan. Pastikan API server berjalan."
+    : "";
 
-    // Asuransi DIPISAH: modul ini baru (migrasi 199) dan izinnya berbeda
-    // (`projects:contract`, bukan `projects:view`). Orang yang boleh melihat
-    // jaminan belum tentu boleh melihat polis — dan saat itu terjadi,
-    // kartunya yang menghilang, bukan seluruh halamannya.
-    try {
-      const r = await api.get<RingkasAsuransi>("/api/v1/asuransi", { signal });
-      setAsuransi(r.data ?? null);
-    } catch (e: unknown) {
-      if ((e as { name?: string })?.name !== "CanceledError") setAsuransi(null);
-    }
-    setMemuat(false);
-  }
+  const muat = useCallback(async () => {
+    await Promise.all([muatUlangProyek(), muatUlangJaminan(), muatUlangAsuransi()]);
+  }, [muatUlangProyek, muatUlangJaminan, muatUlangAsuransi]);
 
   const ringkas = useMemo(
     () => ringkasKontrak(proyek, jaminan, asuransi, hariIni),
@@ -224,7 +208,7 @@ export default function KontrakRingkasanPage() {
             .slice(0, 6)
             .map((j, i) => {
               const sisa = Math.round(
-                (new Date(j.expiry_date).getTime() - Date.now()) / 86_400_000,
+                (new Date(j.expiry_date).getTime() - sekarangMs) / 86_400_000,
               );
               return (
                 <BarisRail

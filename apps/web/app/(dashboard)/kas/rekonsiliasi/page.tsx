@@ -36,7 +36,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Landmark, TriangleAlert, Link2, Unlink, Lock, CircleCheck,
 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { formatRupiah } from "@/lib/format";
@@ -115,45 +116,37 @@ const NAMA_SUMBER: Record<string, string> = {
 };
 
 export default function RekonsiliasiBankPage() {
-  const [daftar, setDaftar] = useState<KoranRingkas[]>([]);
   const [pilih, setPilih] = useState<string | null>(null);
-  const [detail, setDetail] = useState<Detail | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
+  // Galat AKSI (cocokkan/lepas/kunci) dipisah dari galat MUAT: satu state
+  // untuk keduanya membuat gagal mencocokkan menghapus pesan gagal memuat.
+  const [galatAksi, setGalatAksi] = useState("");
   const [sibuk, setSibuk] = useState(false);
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    // `queueMicrotask`: `setMemuat(true)` di sini jatuh SINKRON di dalam
-    // fase render effect dan memicu render kedua sebelum yang pertama
-    // selesai. Menundanya satu microtask memindahkannya keluar; cleanup
-    // `ac.abort()` tetap bekerja karena pembatalan terjadi belakangan.
-    queueMicrotask(() => setMemuat(true));
-    api.get<{ koran: KoranRingkas[] }>("/api/v1/rekonsiliasi", { signal: ac.signal })
-      .then(({ data }) => {
-        const k = data.koran ?? [];
-        setDaftar(k);
-        setPilih((p) => p ?? k[0]?.id ?? null);
-        setGalat("");
-      })
-      .catch((e) => {
-        if (!ac.signal.aborted) setGalat(e?.message ?? "Gagal memuat daftar rekonsiliasi");
-      })
-      .finally(() => setMemuat(false));
-    return () => ac.abort();
-  }, [muatUlangKe]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    if (!pilih) { setDetail(null); return; }
-    const ac = makeAbortController();
-    api.get<Detail>(`/api/v1/rekonsiliasi/${pilih}`, { signal: ac.signal })
-      .then(({ data }) => setDetail(data))
-      .catch((e) => {
-        if (!ac.signal.aborted) setGalat(e?.message ?? "Gagal memuat detail rekonsiliasi");
-      });
-    return () => ac.abort();
-  }, [pilih, muatUlangKe]);
+    Dua `useData`: daftar koran, lalu detail yang bergantung `pilih` — pola
+    "muat berantai" yang sama dengan `keuangan/invoice` (URL dinamis sebagai
+    kunci cache). `pilih` sendiri tetap state lokal karena ia bukan berasal
+    dari URL, melainkan defaultnya "item pertama daftar".
+  */
+  const { data: dataDaftar, memuat, galat: galatMuat, muatUlang: muatUlangDaftar } =
+    useData<{ koran: KoranRingkas[] }>("/api/v1/rekonsiliasi");
+  // `useMemo`: turunan ini masuk dependensi `useEffect` di bawah, dan array
+  // baru tiap render membuat efek itu berjalan tanpa henti.
+  const daftar = useMemo(() => dataDaftar?.koran ?? [], [dataDaftar]);
+
+  // Default `pilih` ke item pertama begitu daftarnya datang — efek samping
+  // saat memuat, dipindah ke `useEffect` tersendiri bergantung `daftar` saja.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setPilih((p) => p ?? daftar[0]?.id ?? null); }, [daftar]);
+
+  const { data: detail, muatUlang: muatUlangDetail } =
+    useData<Detail>(pilih ? `/api/v1/rekonsiliasi/${pilih}` : null);
+
+  const muatUlangKeduanya = useCallback(async () => {
+    await Promise.all([muatUlangDaftar(), muatUlangDetail()]);
+  }, [muatUlangDaftar, muatUlangDetail]);
 
   const cocokkan = useCallback(async (barisId: string, sumber: string, sumberId: string) => {
     if (!pilih || sibuk) return;
@@ -161,41 +154,41 @@ export default function RekonsiliasiBankPage() {
     try {
       await api.post(`/api/v1/rekonsiliasi/${pilih}/cocokkan`,
         { baris_id: barisId, sumber_tabel: sumber, sumber_id: sumberId });
-      setMuatUlangKe((n) => n + 1);
+      await muatUlangKeduanya();
     } catch (e) {
       // Galat DITAMPILKAN, bukan ditelan. Pencocokan yang gagal diam-diam
       // membuat orang mengklik berulang kali dan menyimpulkan aplikasinya rusak.
-      setGalat((e as { message?: string })?.message ?? "Pencocokan ditolak");
+      setGalatAksi((e as { message?: string })?.message ?? "Pencocokan ditolak");
     } finally {
       setSibuk(false);
     }
-  }, [pilih, sibuk]);
+  }, [pilih, sibuk, muatUlangKeduanya]);
 
   const lepas = useCallback(async (cocokId: string) => {
     if (!pilih || sibuk) return;
     setSibuk(true);
     try {
       await api.delete(`/api/v1/rekonsiliasi/${pilih}/cocokkan/${cocokId}`);
-      setMuatUlangKe((n) => n + 1);
+      await muatUlangKeduanya();
     } catch (e) {
-      setGalat((e as { message?: string })?.message ?? "Gagal melepas pencocokan");
+      setGalatAksi((e as { message?: string })?.message ?? "Gagal melepas pencocokan");
     } finally {
       setSibuk(false);
     }
-  }, [pilih, sibuk]);
+  }, [pilih, sibuk, muatUlangKeduanya]);
 
   const kunci = useCallback(async () => {
     if (!pilih || sibuk) return;
     setSibuk(true);
     try {
       await api.post(`/api/v1/rekonsiliasi/${pilih}/kunci`, {});
-      setMuatUlangKe((n) => n + 1);
+      await muatUlangKeduanya();
     } catch (e) {
-      setGalat((e as { message?: string })?.message ?? "Gagal mengunci");
+      setGalatAksi((e as { message?: string })?.message ?? "Gagal mengunci");
     } finally {
       setSibuk(false);
     }
-  }, [pilih, sibuk]);
+  }, [pilih, sibuk, muatUlangKeduanya]);
 
   // Belum cocok NAIK KE ATAS. Ini kebalikan urutan tabel biasa, dan disengaja:
   // yang sudah berpasangan tak menuntut tindakan apa pun.
@@ -232,6 +225,9 @@ export default function RekonsiliasiBankPage() {
   };
 
   const terkunci = detail?.koran.status === "dikunci";
+
+  // Galat gabungan: aksi menang bila ada, kalau tidak baru dibaca galat muat.
+  const galat = galatAksi || (galatMuat ? "Gagal memuat daftar rekonsiliasi." : "");
 
   return (
     <div style={{ width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
