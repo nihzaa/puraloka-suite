@@ -128,6 +128,10 @@ internal tak bisa menemukannya.
 > tahapan satu alur kerja. Alasan itu mungkin masih benar; **ukurannya tidak
 > lagi bisa diabaikan**. Ini pekerjaan terbuka, bukan keputusan yang sudah turun.
 >
+> **→ SELESAI 2026-08-16.** Diukur ulang: 4.070 baris (naik lagi dari 3.713).
+> Estimasi dipecah jadi 5 rute + 2 halaman master. Alasan lengkapnya, termasuk
+> kenapa §6b berubah arah, ada di **§6d**.
+>
 > ```bash
 > wc -l "apps/web/app/(dashboard)"/*/page.tsx | sort -rn | head -8
 > ```
@@ -414,9 +418,60 @@ jawabannya bergantung tab mana yang terakhir dibuka, itu **seharusnya halaman**.
 | **mandor** (3.667 baris) | 7 tab | **dashboard** + `/mandor/penugasan` `/upah` `/kasbon` `/penagihan` `/retensi` |
 | **kas** (1.447 baris) | ~4 tab | **dashboard** + `/kas/transaksi` `/transfer` |
 | **laporan** (1.713 baris) | ~5 tab | tetap tab — semuanya **laporan yang sama, periode berbeda** ✅ |
-| **estimasi** | 7 tab | tetap tab — tahapan satu alur kerja ✅ |
+| ~~**estimasi**~~ | ~~7 tab~~ | ~~tetap tab — tahapan satu alur kerja ✅~~ → **DIPECAH 2026-08-16**, lihat §6d |
 
-Dua yang terakhir **sengaja tak dipecah**: tab di sana memang benar.
+Yang tersisa **sengaja tak dipecah**: `laporan` — tab di sana memang benar.
+
+### 6d. Estimasi akhirnya DIPECAH — 2026-08-16
+
+Baris di atas menggolongkan estimasi "tetap tab" dengan alasan *tahapan satu
+alur kerja*. Alasan itu **kalah oleh dua hal**, dan keduanya sudah tertulis di
+dokumen ini sendiri.
+
+**Pertama, §1c sudah menandainya sebagai pekerjaan terbuka**, bukan keputusan:
+
+> estimasi **3.713 baris** kini memegang rekor, dan §6b menggolongkannya
+> "tetap tab ✅"… Alasan itu mungkin masih benar; **ukurannya tidak lagi bisa
+> diabaikan**. Ini **pekerjaan terbuka, bukan keputusan yang sudah turun.**
+
+Diukur ulang 2026-08-16: **4.070 baris** — naik dari 3.713, masih bertambah.
+
+**Kedua, aturan uji §6a menjawab "pecah" kalau dijalankan jujur.** Tab = sudut
+pandang berbeda atas *data yang sama*. Tetapi:
+
+| Isi tab | Entitasnya | Uji §6a |
+|---|---|---|
+| Katalog AHSP | master **nasional**, lintas proyek | entitas lain → halaman |
+| Harga (price book) | master **perusahaan**, lintas proyek | entitas lain → halaman |
+| Komposer / RAP / Kas / Varians | dokumen **per proyek** | entitas lain → halaman |
+
+Katalog AHSP nasional dan RAP satu proyek bukan dua sudut pandang atas data
+yang sama.
+
+**Yang memicu pemeriksaan ulang** — diukur lewat sesi ber-login, bukan dibaca
+dari kode: **empat dari enam tab merender NOL tabel**, dan "Material & RAP"
+berupa halaman putih tanpa satu pun penjelasan. Backend-nya sementara itu punya
+47 endpoint, 22 permission, 3.043 analisa, 3.212 harga, 208 skenario, 2.221
+versi. Ketimpangan itu yang membuat modul ini terasa "kurang intuitif" — bukan
+gaya visualnya.
+
+**Hasilnya:**
+
+```
+/estimasi            ikhtisar (daftar proyek + jalan masuk)
+/estimasi/rab        susun RAB          ← inti
+/estimasi/rap        anggaran pelaksanaan
+/estimasi/kas        proyeksi kas
+/estimasi/varians    varians biaya
+/master/ahsp         katalog AHSP    (master lintas proyek)
+/master/harga        price book      (master lintas proyek)
+```
+
+Tautan lama `?tab=…` **dialihkan**, bukan dimatikan — 6 pengalihan diuji satu
+per satu di peramban, lulus 6 gagal 0.
+
+Founder menyetujui arah ini setelah melihat mockup berdampingan (pola §10d yang
+sama, *"tunjukkan dulu, baru saya putuskan"*).
 
 ### 6c. Yang didapat
 

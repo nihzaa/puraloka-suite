@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 280 dokumen** — antrean 13 · acuan 204 · riwayat 63.
+**Total 281 dokumen** — antrean 13 · acuan 204 · riwayat 64.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -121,6 +121,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [2026-08-06-landing-publik-design](superpowers/specs/2026-08-06-landing-publik-design.md) | acuan |  | Landing Publik — Compro Puraloka Persada + Halaman Jual ERP |
 | [2026-08-06-sumbu-ui-roadmap-design](superpowers/specs/2026-08-06-sumbu-ui-roadmap-design.md) | acuan | ✓ | Sumbu UI/UX + penjaga status — desain |
 | [2026-08-09-lapisan-ai-dan-platform-design](superpowers/specs/2026-08-09-lapisan-ai-dan-platform-design.md) | acuan |  | Lapisan AI & Platform — mengambil dari TJS Command Center, membangun lebih bai |
+| [2026-08-16-cecep-rombak-ui-design](superpowers/specs/2026-08-16-cecep-rombak-ui-design.md) | riwayat |  | CECEP — Rombak UI & Alur Kerja (Estimasi/RAB/RAP) |
 
 ### `docs/superpowers/specs/2026-07-18-enterprise-architecture`
 

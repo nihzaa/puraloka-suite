@@ -5,6 +5,118 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi CECEP-UI) — 4.070 baris dibongkar; dan penjaga yang tak bisa merah
+
+Founder: *"rombak lagi ui-ux dan alur kerja di modul cecep, masih kurang
+intuitif"* → *"rombak total, visual terbaik, UX mudah digunakan"* → *"kerjakan
+terpisah aja secara paralel"*. Dikerjakan di worktree `cecep-ui`, cabang
+`feat/cecep-ui-rombak`, karena ada 5 agent lain menulis di checkout yang sama.
+
+### Diagnosisnya bukan gaya visual
+
+Diukur lewat sesi ber-login (Playwright, akun admin) — bukan dibaca dari kode:
+
+    tab           tabel  baris
+    komposer        0      0    isinya PANDUAN cara pakai, bukan alat kerja
+    katalog         0      0    3.043 analisa, daftar datar
+    harga           1     30    satu-satunya yang matang
+    material/RAP    0      0    HALAMAN PUTIH, tanpa empty state
+    cashflow        0      0
+    varians         0      0
+
+Memilih proyek nyata TIDAK mengubah keempat tab kosong itu.
+
+    backend  : 47 endpoint · 9 modul · 22 permission · 3.043 AHSP · 3.212 harga
+               · 208 skenario · 2.221 versi
+    frontend : 1 halaman · 4.070 baris
+
+Pembanding: procurement 13 halaman, keuangan 9, gudang 6. Modul paling kompleks
+punya halaman paling sedikit. **Itu** yang terasa "kurang intuitif".
+
+### Saya salah sekali, dan itu tercatat
+
+Laporan awal saya: *"nol skenario di SELURUH 17 proyek"*. Salah — saya menguji
+3 proyek pertama, ketiganya kebetulan kosong, lalu menggeneralisasi. Nyatanya
+208 skenario / 2.221 versi. Catatan `peta-menu.ts` yang saya curigai ternyata
+benar. Dikoreksi di commit `b3453d57` sebelum lanjut.
+
+Koreksi itu MEMPERKUAT diagnosis: skenario & versi terpakai, tapi UI tak
+menampilkan apa pun dari keduanya. Murni kegagalan lapis tampilan.
+
+### Yang dikerjakan
+
+    /estimasi            ikhtisar — daftar proyek + jalan masuk
+    /estimasi/rab        inti: dua pintu (susun di sini / unggah Excel)
+    /estimasi/rap        + empty state yang membaca keadaan
+    /estimasi/kas        proyeksi
+    /estimasi/varians    pagu vs komitmen vs aktual
+    /master/ahsp         katalog (DISALIN apa adanya)
+    /master/harga        price book (DISALIN apa adanya)
+
+Empat pertanyaan berjargon (skenario→versi→edisi→item) jadi SATU tombol.
+Mekanismenya utuh — immutability, approval, penguncian edisi tak disentuh;
+yang diterjemahkan cuma namanya jadi "Buat pilihan lain" / "Revisi" /
+"Kunci & kirim ke klien". Diuji lewat jalur nyata di proyek uji [TEST-RAP-EP]:
+satu klik → skenario "Utama" + "Revisi 1" + empty state, 0 galat konsol.
+
+Katalog & Harga **disalin, bukan ditulis ulang** — keduanya memuat
+virtualisasi 3.043 baris dan pencarian in-memory yang lahir dari cacat nyata.
+Mengetik ulang satu-satunya bagian modul yang TIDAK rusak cuma mengundang
+regresi.
+
+### Dua temuan di luar rencana
+
+**1. `/master` tak pernah ada di middleware.** `/master/ahsp` dialihkan
+diam-diam ke `/dashboard` — dan ternyata `/master/wbs` + `/master/karyawan`
+yang sudah lama ada pun tak pernah bisa dibuka. Nol galat, nol gejala. Kelas
+cacat yang sama pernah menahan `/estimasi` sendiri.
+
+**2. `BAGIAN as const` merah di tsc tapi hijau di `next dev`.** Union menyempit
+sehingga `tepat` cuma ada di satu anggota. Sudah ter-commit sebelum ketahuan —
+`next dev` memang tak menjalankan typecheck.
+
+### Penjaga baru yang gagal di uji pertamanya
+
+`uji-layar-kosong-menjelaskan.mjs` — layar kosong wajib punya jalan keluar.
+
+Saat disuntik pelanggaran, ia **tetap HIJAU**. Sebabnya:
+`isi.includes('LayarKosong')`, dan berkas mutasi saya menyebut kata itu di
+KOMENTARNYA. Penjaga yang bisa dipuaskan sebuah komentar bukan penjaga.
+
+Persis kegagalan yang §8a.2 ada untuk mencegah — dan tanpa uji mutasi ia akan
+di-commit hijau selamanya tanpa seorang pun tahu ia tak pernah bisa merah.
+Diperbaiki (`tanpaKomentar()`), lalu siklus penuh:
+
+    dasar          126  exit 0  ✅
+    + mutasi       127  exit 1  ❌
+    mutasi dibuang 126  exit 0  ✅
+
+### Markup: rute bersarang DIBATALKAN sesudah dipotret
+
+`/estimasi/markup` lewat re-export menghasilkan DUA `<h1>` + padding ganda.
+`uji-judul-halaman-ada` tetap hijau — ia memastikan judul ADA, bukan tunggal.
+**Hijaunya penjaga bukan bukti benarnya hierarki.** Yang dipindahkan cukup
+jalan masuknya.
+
+### Angka penjaga (dijalankan, bukan diklaim)
+
+    tsc --noEmit               NOL galat seluruh proyek
+    uji-judul-halaman-ada      145 halaman, semua ber-<h1>
+    uji-remah-lengkap          37 entri
+    uji-token-css-ada          semua token terdefinisi
+    uji-tabel-seragam          66  (lantai 102) — TURUN dari 74
+    audit-halaman-pakai-cache  55  (lantai 69)  — TURUN dari 69
+    pengalihan ?tab=           lulus 6 · gagal 0
+
+### Belum dikerjakan
+
+Auto Structure Pro (opsi 1c founder: analisa SNI 2847 penuh + gambar kerja) —
+spec terpisah, sesudah CECEP. Jembatannya sudah separuh ada
+(`/estimate-versions/:id/rebar-takeoff`, `/material-takeoff`,
+`/cecep/steel-profiles` yang datanya dari workbook proyek).
+
+---
+
 ## 2026-08-16 (sesi asisten) — asisten tak tahu lawan bicaranya; dan dua nama kolom yang berbohong
 
 Dua pekerjaan, satu benang merah: **nama boleh menyesatkan, data tidak.**
