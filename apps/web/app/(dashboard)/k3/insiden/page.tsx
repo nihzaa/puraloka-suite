@@ -47,12 +47,13 @@
  * pekerjaan yang selesai, bukan masalah yang menunggu.
  */
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   HardHat, TriangleAlert, ShieldAlert, Plus, Scale, Link2, CircleCheck,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, KartuAngka, BarisAngka,
@@ -177,14 +178,7 @@ export default function InsidenK3Page() {
 function IsiInsiden() {
   const params = useSearchParams();
   const dariUrl = params.get("proyek") ?? "";
-  const [proyekList, setProyekList] = useState<Proyek[]>([]);
   const [proyekId, setProyekId] = useState("");
-  const [data, setData] = useState<Muatan | null>(null);
-  const [selaras, setSelaras] = useState<Selaras | null>(null);
-  const [subkon, setSubkon] = useState<Subkon[]>([]);
-  const [pekerja, setPekerja] = useState<Pekerja[]>([]);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
 
   const [tambah, setTambah] = useState(false);
   const [fJenis, setFJenis] = useState<JenisInsiden>("nyaris_celaka");
@@ -203,32 +197,25 @@ function IsiInsiden() {
   const [menyimpan, setMenyimpan] = useState(false);
   const [galatModal, setGalatModal] = useState<string | null>(null);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => {
-        const d = r.data.projects ?? [];
-        setProyekList(d);
-        setProyekId((s) =>
-          s || (dariUrl && d.some((p) => p.id === dariUrl) ? dariUrl : "") || d[0]?.id || "");
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); });
-    return () => ac.abort();
-  }, [dariUrl]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    // `/procurement/suppliers`, BUKAN `/penyedia` — DIUKUR, bukan ditebak
-    // dari namanya. `/api/v1/penyedia` adalah penyedia AI/adaptor, dan
-    // memanggilnya di sini menghasilkan dropdown berisi nama model bahasa.
-    // Pelajaran yang sama dengan `/claims` di G3, hampir terulang.
-    api.get<{ suppliers: Subkon[] }>("/api/v1/procurement/suppliers", { signal: ac.signal })
-      .then((r) => setSubkon(r.data.suppliers ?? []))
-      // Gagal memuat subkon TIDAK menggagalkan halaman — insiden tetap bisa
-      // dicatat tanpa menyebut subkon (mis. kecelakaan pekerja sendiri).
-      .catch(() => setSubkon([]));
-    return () => ac.abort();
-  }, []);
+    Lima `useData`: tiga independen (proyek, subkon, pekerja) + dua yang
+    BERGANTUNG `proyekId` (K3 + selaras) — muat berantai dua tingkat, masih
+    dalam batas yang dianjurkan. Subkon dan pekerja TETAP "gagal tak
+    melumpuhkan": galatnya sengaja tak diperiksa di bawah, persis seperti
+    versi lama yang menelannya lewat `.catch(() => setX([]))`.
+  */
+  const { data: dataProyek, galat: galatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyekList = useMemo(() => dataProyek?.projects ?? [], [dataProyek]);
+
+  // `/procurement/suppliers`, BUKAN `/penyedia` — DIUKUR, bukan ditebak dari
+  // namanya. `/api/v1/penyedia` adalah penyedia AI/adaptor, dan memanggilnya
+  // di sini menghasilkan dropdown berisi nama model bahasa. Pelajaran yang
+  // sama dengan `/claims` di G3, hampir terulang.
+  const { data: dataSubkon } = useData<{ suppliers: Subkon[] }>("/api/v1/procurement/suppliers");
+  const subkon = dataSubkon?.suppliers ?? [];
 
   /**
    * Pekerja terdaftar — untuk memilih korban, bukan mengetik namanya.
@@ -242,34 +229,41 @@ function IsiInsiden() {
    * Medan nama bebas TETAP ada: tak semua korban terdaftar (tamu, pengemudi
    * pengantar, warga sekitar).
    */
+  const { data: dataPekerja } = useData<{ workers: Pekerja[] }>("/api/v1/mandor/workers");
+  const pekerja = dataPekerja?.workers ?? [];
+
+  // Proyek awal: dari URL bila valid, kalau tidak proyek pertama. Efek
+  // terpisah bergantung `proyekList` saja — tak menimpa pilihan pengguna
+  // begitu sudah memilih sendiri (lihat penjaga `s ||` di bawah).
+  //
+  // set-state di badan efek ditandai sadar, bukan dibungkam: `proyekList`
+  // datang dari `useData`, dan efek ini hanya menetapkan pilihan AWAL sekali
+  // saat daftarnya tiba — bukan render berantai sinkron.
   useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ workers: Pekerja[] }>("/api/v1/mandor/workers", { signal: ac.signal })
-      .then((r) => setPekerja(r.data.workers ?? []))
-      .catch(() => setPekerja([]));
-    return () => ac.abort();
-  }, []);
+    if (proyekList.length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProyekId((s) =>
+      s || (dariUrl && proyekList.some((p) => p.id === dariUrl) ? dariUrl : "") || proyekList[0]?.id || "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proyekList]);
 
-  const muat = useCallback(async (id: string) => {
-    if (!id) { void Promise.resolve().then(() => setData(null)); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const [r, s] = await Promise.all([
-        api.get<Muatan>(`/api/v1/proyek/${id}/k3`),
-        api.get<Selaras>(`/api/v1/proyek/${id}/k3/selaras`),
-      ]);
-      setData(r.data);
-      setSelaras(s.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat insiden K3");
-      setData(null); setSelaras(null);
-    } finally { setMemuat(false); }
-  }, []);
+  const jalurK3 = proyekId ? `/api/v1/proyek/${proyekId}/k3` : null;
+  const jalurSelaras = proyekId ? `/api/v1/proyek/${proyekId}/k3/selaras` : null;
+  const { data, memuat, galat: galatK3, muatUlang: muatUlangK3 } = useData<Muatan>(jalurK3);
+  const { data: selaras, muatUlang: muatUlangSelaras } = useData<Selaras>(jalurSelaras);
 
-  // `queueMicrotask`, bukan panggilan langsung — `muat()` menyetel state di
-  // awalnya, dan memanggilnya dari badan efek adalah setState-di-dalam-efek.
-  useEffect(() => { queueMicrotask(() => { void muat(proyekId); }); }, [proyekId, muat]);
+  const muat = useCallback(async () => {
+    await Promise.all([muatUlangK3(), muatUlangSelaras()]);
+  }, [muatUlangK3, muatUlangSelaras]);
+
+  /*
+    Galat MUAT dan galat AKSI (simpan/tutup insiden) sengaja dipisah —
+    `galatModal` sudah menjalankan peran galat AKSI di dalam dialog, jadi
+    galat muat ditambahkan sebagai lapis terpisah untuk daftar utama.
+  */
+  const galat = galatProyek
+    ? "Gagal memuat daftar proyek"
+    : (proyekId && galatK3 ? "Gagal memuat insiden K3" : null);
 
   const simpan = useCallback(async () => {
     if (!proyekId) return;
@@ -289,7 +283,7 @@ function IsiInsiden() {
       setTambah(false);
       setFKronologi(""); setFLokasi(""); setFKorban(""); setFKorbanWorker("");
       setFHari(""); setFTanggal("");
-      await muat(proyekId);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal mencatat insiden");
@@ -307,12 +301,12 @@ function IsiInsiden() {
         ...(tPenyebab.trim() ? { penyebab_dasar: tPenyebab.trim() } : {}),
       });
       setTutupBaris(null); setTKorektif(""); setTPenyebab("");
-      await muat(proyekId);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menutup insiden");
     } finally { setMenyimpan(false); }
-  }, [tutupBaris, tKorektif, tPenyebab, proyekId, muat]);
+  }, [tutupBaris, tKorektif, tPenyebab, muat]);
 
   const kolom: Array<Kolom<Insiden>> = [
     {
@@ -439,7 +433,7 @@ function IsiInsiden() {
         }
       />
 
-      {galat && <Galat pesan={galat} onCobaLagi={() => void muat(proyekId)} />}
+      {galat && <Galat pesan={galat} onCobaLagi={() => void muat()} />}
 
       <Kartu pad="sedang">
         <label htmlFor="k3-proyek" style={{

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Bell, CheckCheck } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -26,24 +27,33 @@ function timeAgo(s: string) {
 }
 
 export default function PortalNotifPage() {
-  const [notifs, setNotifs] = useState<Notif[]>([]);
-  const [loading, setLoading] = useState(true);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    api.get("/api/v1/notifications").then((res) => {
-      setNotifs(res.data?.notifications ?? []);
-    }).finally(() => setLoading(false));
+    `useData` menggantikan useEffect+useState. Tandai-dibaca TETAP menulis
+    langsung ke `api.patch` lalu memutakhirkan tampilan secara optimistik —
+    itu perilaku lama yang dipertahankan, bukan diganti `muatUlang()`, karena
+    menandai satu notifikasi dibaca tak perlu mengambil ulang seluruh daftar
+    dari server.
+  */
+  const { data, memuat: loading } = useData<{ notifications: Notif[] }>("/api/v1/notifications");
+  const [tandaLokal, setTandaLokal] = useState<Set<string>>(new Set());
+  const [semuaTertanda, setSemuaTertanda] = useState(false);
+
+  // Diturunkan dari jawaban server + penanda lokal, bukan disalin ke state
+  // terpisah — satu sumber kebenaran untuk daftarnya.
+  const notifs = (data?.notifications ?? []).map((n) =>
+    (semuaTertanda || tandaLokal.has(n.id)) && !n.is_read ? { ...n, is_read: true } : n);
+
+  const markAllRead = useCallback(async () => {
+    setSemuaTertanda(true);
+    await api.patch("/api/v1/notifications/read-all").catch(() => {});
   }, []);
 
-  const markAllRead = async () => {
-    await api.patch("/api/v1/notifications/read-all").catch(() => {});
-    setNotifs((prev) => prev.map((n) => ({ ...n, is_read: true })));
-  };
-
-  const markRead = async (id: string) => {
+  const markRead = useCallback(async (id: string) => {
+    setTandaLokal((s) => new Set(s).add(id));
     await api.patch(`/api/v1/notifications/${id}/read`).catch(() => {});
-    setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, is_read: true } : n));
-  };
+  }, []);
 
   const unread = notifs.filter((n) => !n.is_read).length;
 

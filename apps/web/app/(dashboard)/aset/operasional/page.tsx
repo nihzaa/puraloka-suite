@@ -32,9 +32,10 @@
  * KEADAAN (4 KPI) → POLA (yang menuntut tindakan) → DETAIL (tabel).
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Wrench, RefreshCw, TriangleAlert, Clock, Gauge, BookOpen, Check } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom } from "@/components/dasar";
@@ -183,24 +184,16 @@ function SisaJatuhTempo({ jt }: { jt: JatuhTempo }) {
 }
 
 export default function OperasionalAlatPage() {
-  const [alat, setAlat] = useState<Alat[]>([]);
-  const [galat, setGalat] = useState("");
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
-  // Pemuatan dilacak lewat putaran yang datanya sudah tiba, bukan bendera
-  // boolean yang dinyalakan di badan efek — bendera memicu render bertingkat.
-  const [putaranTiba, setPutaranTiba] = useState(-1);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ alat: Alat[] }>("/api/v1/alat-operasional", { signal: ac.signal })
-      .then((r) => { setAlat(r.data.alat ?? []); setGalat(""); })
-      .catch((e) => { if (!ac.signal.aborted) setGalat(e?.response?.data?.error ?? "Gagal memuat data operasional alat"); })
-      .finally(() => { if (!ac.signal.aborted) setPutaranTiba(muatUlangKe); });
-    return () => ac.abort();
-  }, [muatUlangKe]);
-
-  const memuat = putaranTiba !== muatUlangKe;
-  const muatUlang = useCallback(() => setMuatUlangKe((n) => n + 1), []);
+    `useData` menggantikan useEffect+useState+AbortController+putaranTiba.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang: muatUlangData } =
+    useData<{ alat: Alat[] }>("/api/v1/alat-operasional");
+  const alat = useMemo(() => data?.alat ?? [], [data]);
+  const galat = galatMuat ? "Gagal memuat data operasional alat" : "";
+  const muatUlang = useCallback(() => { void muatUlangData(); }, [muatUlangData]);
 
   const ringkas = useMemo(() => {
     const jatuhTempo = alat.filter((a) => a.palingMendesak?.jatuhTempo.status === "jatuh_tempo").length;

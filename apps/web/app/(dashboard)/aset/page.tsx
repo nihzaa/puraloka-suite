@@ -53,11 +53,12 @@
  * warna tipis praktis hilang.
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import {
   Plus, Wallet, Wrench, MapPin, AlertTriangle, CalendarClock,
   CircleSlash, Clock, Boxes } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 
 import { C } from "@/lib/warna-ui";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
@@ -140,12 +141,6 @@ function IsiAset() {
   // Tab hidup di URL supaya menu "Sewa Alat" bisa menunjuknya langsung,
   // bukan mendarat di tab Milik lalu menuntut satu klik lagi.
   const [tab, setTab] = useTabUrl<"milik" | "sewa">(TAB_ASET, "milik");
-  const [aset, setAset] = useState<Aset[]>([]);
-  const [metaAset, setMetaAset] = useState<MetaAset | null>(null);
-  const [sewa, setSewa] = useState<Sewa[]>([]);
-  const [metaSewa, setMetaSewa] = useState<MetaSewa | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [formBuka, setFormBuka] = useState(false);
 
   // Tanggal acuan DIBEKUKAN saat halaman dipasang, bukan dibaca ulang tiap
@@ -155,35 +150,32 @@ function IsiAset() {
   // memercayai keduanya.
   const [hariIni] = useState(() => hariIniWIB());
 
-  // `setMemuat(true)` SENGAJA tidak di sini. Fungsi ini dipanggil dari effect,
-  // dan set-state sinkron di dalam effect memicu render tambahan sebelum data
-  // sempat datang (`react-hooks/set-state-in-effect`). Keadaan awal sudah
-  // `true`; pemanggilan ulang dari tombol/form memakai `muatUlang()` di bawah
-  // yang boleh menyalakannya karena berjalan di handler, bukan di effect.
-  const muat = useCallback((signal?: AbortSignal) => {
-    return Promise.all([
-      api.get<{ data: Aset[]; meta: MetaAset }>("/api/v1/assets", { signal }),
-      api.get<{ data: Sewa[]; meta: MetaSewa }>("/api/v1/asset-rentals", { signal }),
-    ])
-      .then(([a, s]) => {
-        setAset(a.data.data ?? []); setMetaAset(a.data.meta);
-        setSewa(s.data.data ?? []); setMetaSewa(s.data.meta);
-        setGalat(null);
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat data aset"); })
-      .finally(() => setMemuat(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    muat(ac.signal);
-    return () => ac.abort();
-  }, [muat]);
+    `useData` menggantikan Promise.all + useCallback + useEffect +
+    AbortController. Dipanggil dua kali, satu per URL.
+  */
+  const { data: dataAset, memuat: memuatAset, galat: galatAset, muatUlang: muatUlangAset } =
+    useData<{ data: Aset[]; meta: MetaAset }>("/api/v1/assets");
+  const { data: dataSewa, memuat: memuatSewa, galat: galatSewa, muatUlang: muatUlangSewa } =
+    useData<{ data: Sewa[]; meta: MetaSewa }>("/api/v1/asset-rentals");
 
-  /** Muat ulang dari handler (tombol/form) — di sini spinner boleh dinyalakan. */
-  const muatUlang = useCallback(() => { setMemuat(true); return muat(); }, [muat]);
+  const memuat = memuatAset || memuatSewa;
+  const galat = galatAset || galatSewa ? "Gagal memuat data aset" : null;
 
-  const asetMilik = aset.filter((a) => a.ownership === "milik");
+  // Diturunkan dari jawaban, bukan disalin ke state sendiri.
+  const aset = useMemo(() => dataAset?.data ?? [], [dataAset]);
+  const metaAset = dataAset?.meta ?? null;
+  const sewa = useMemo(() => dataSewa?.data ?? [], [dataSewa]);
+  const metaSewa = dataSewa?.meta ?? null;
+
+  /** Muat ulang dari handler (tombol/form). */
+  const muatUlang = useCallback(async () => {
+    await Promise.all([muatUlangAset(), muatUlangSewa()]);
+  }, [muatUlangAset, muatUlangSewa]);
+
+  const asetMilik = useMemo(() => aset.filter((a) => a.ownership === "milik"), [aset]);
 
   // ── LAPIS 1 & 2 — dihitung dari respons yang SAMA dengan tabelnya ─────────
   const ringkas = useMemo(() => ringkasAset(aset, sewa, hariIni), [aset, sewa, hariIni]);
@@ -261,7 +253,7 @@ function IsiAset() {
       {formBuka && (
         <FormBaru
           jenis={tab}
-          onSelesai={() => { setFormBuka(false); muatUlang(); }}
+          onSelesai={() => { setFormBuka(false); void muatUlang(); }}
           onBatal={() => setFormBuka(false)}
         />
       )}

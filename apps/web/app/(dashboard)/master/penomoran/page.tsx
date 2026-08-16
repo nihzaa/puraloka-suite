@@ -28,7 +28,8 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { Hash, RefreshCw, Check, ChevronDown, ChevronRight, Lock } from "lucide-react";
-import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel } from "@/components/dasar";
@@ -81,35 +82,29 @@ function contohNomor(prefix: string, periode: string, padding: number, urut: num
 }
 
 export default function PenomoranPage() {
-  const [daftar, setDaftar] = useState<Jenis[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
   const [pesan, setPesan] = useState<{ jenis: "ok" | "galat"; teks: string } | null>(null);
-  const [putaran, setPutaran] = useState(0);
 
   const bolehKelola = useSyncExternalStore(
     langganan, () => hasPermission("penomoran:kelola"), () => false);
 
-  const muat = useCallback((signal: AbortSignal) => {
-    setMemuat(true);
-    setGalat("");
-    return api.get<{ penomoran: Jenis[] }>("/api/v1/penomoran", { signal })
-      .then((r) => setDaftar(r.data.penomoran ?? []))
-      .catch((e) => {
-        if ((e as { code?: string })?.code === "ERR_CANCELED") return;
-        setGalat(
-          (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-            ?? "Gagal memuat seri penomoran.",
-        );
-      })
-      .finally(() => setMemuat(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat, putaran]);
+    `useData` menggantikan useCallback+useEffect+AbortController+putaran.
+    Menyimpan/mengubah status memakai `muatUlang()`, bukan `putaran` lagi.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<{ penomoran: Jenis[] }>("/api/v1/penomoran");
+  const daftar = data?.penomoran ?? [];
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  /*
+    Galat MUAT dan galat AKSI (simpan penomoran) sengaja dipisah — satu state
+    untuk keduanya membuat gagal menyimpan menghapus pesan gagal memuat.
+    `pesan` sudah ada sebagai jalur galat AKSI (dipakai `onGagal` di bawah),
+    jadi galat muat ditambahkan sebagai lapis terpisah, bukan menumpang di sana.
+  */
+  const galat = galatMuat ? "Gagal memuat seri penomoran." : "";
 
   useEffect(() => {
     if (!pesan) return;
@@ -131,7 +126,7 @@ export default function PenomoranPage() {
         />
         <button
           type="button"
-          onClick={() => setPutaran((x) => x + 1)}
+          onClick={() => void muat()}
           disabled={memuat}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
@@ -208,7 +203,7 @@ export default function PenomoranPage() {
               bolehKelola={bolehKelola}
               onSimpan={(teks) => {
                 setPesan({ jenis: "ok", teks });
-                setPutaran((x) => x + 1);
+                void muat();
               }}
               onGagal={(teks) => setPesan({ jenis: "galat", teks })}
             />
