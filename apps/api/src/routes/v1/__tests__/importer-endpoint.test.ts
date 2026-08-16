@@ -420,16 +420,27 @@ describe('skema pemasok & cost code (427)', () => {
   })
 
   it('cost code impor lahir DRAFT, bukan langsung aktif', async () => {
-    await purge()
+    // ⚠ Kode dibuat UNIK per jalannya test, dan itu BUKAN kerapian belaka.
+    //
+    // `cost_codes` tak bisa dihapus — trigger `fn_cost_codes_no_delete`
+    // (migrasi 102) menolaknya karena riwayat lintas domain merujuknya, jadi
+    // `purge()` hanya bisa menandainya `deprecated`. Sementara unik
+    // `(company_id, code)` TIDAK mengecualikan yang deprecated.
+    //
+    // Akibatnya kode tetap akan ditolak pada jalan KEDUA. Versi pertama test
+    // ini memakai kode tetap: ia HIJAU sendirian dan MERAH begitu dijalankan
+    // dua kali — bentuk kegagalan yang menyalahkan fiturnya, padahal
+    // fiturnya benar dan test-nya yang keliru berasumsi basis bisa bersih.
+    const kode = `[TEST-IM]C-${Date.now()}`
     const r = await post('/api/v1/impor/commit', {
       skema: 'cost_code',
       pemetaan: { Kode: 'code', Nama: 'name' },
-      baris: [{ Kode: '[TEST-IM]C1', Nama: 'Pekerjaan uji' }],
+      baris: [{ Kode: kode, Nama: 'Pekerjaan uji' }],
     })
-    expect(r.statusCode).toBe(200)
+    expect(r.statusCode, r.body.slice(0, 300)).toBe(200)
 
     const { rows } = await client.query(
-      `SELECT status FROM cost_codes WHERE code='[TEST-IM]C1'`,
+      `SELECT status FROM cost_codes WHERE code=$1`, [kode],
     )
     // Kode biaya yang lahir AKTIF melewati satu-satunya tahap di mana orang
     // memeriksa apakah kodenya benar.
