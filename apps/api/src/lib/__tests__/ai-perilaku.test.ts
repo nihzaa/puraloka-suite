@@ -52,10 +52,28 @@ let konfigSebelum: Array<{
 
 beforeAll(async () => {
   db = await createRlsClient()
+  /*
+   * Tenant uji WAJIB yang benar-benar punya `ai_provider_config`.
+   *
+   * Versi sebelumnya `LIMIT 1` tanpa `ORDER BY` dan tanpa syarat config —
+   * artinya PT mana yang terpilih ditentukan urutan fisik baris, sesuatu yang
+   * berubah begitu ada company baru. Dan itu terjadi 2026-08-16: dua PT anak
+   * disemai untuk menguji portofolio grup, keduanya terpilih lebih dulu, dan
+   * keduanya belum punya baris config — sehingga `UPDATE ... WHERE company_id`
+   * tak mengenai baris apa pun, dan test "basis MENOLAK nilai berbahaya" jadi
+   * hijau-karena-buta lalu merah karena tak menemukan baris.
+   *
+   * Yang rusak BUKAN kode produk (`konfigurasiBawaan()` menangani tenant tanpa
+   * config dengan benar), melainkan asumsi test ini. Sekarang syaratnya
+   * eksplisit dan urutannya pasti.
+   */
   const { rows } = await db.query(`
     SELECT c.id FROM companies c
-    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
+    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id)
+      AND EXISTS (SELECT 1 FROM ai_provider_config a WHERE a.company_id = c.id)
+    ORDER BY c.created_at LIMIT 1
   `)
+  if (rows.length === 0) throw new Error('Butuh satu tenant ber-ai_provider_config')
   companyId = rows[0].id
 
   const { rows: cfg } = await db.query(

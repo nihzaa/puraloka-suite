@@ -74,6 +74,7 @@ import { toolTukangCocok } from './ai-tool-tukang-cocok.js'
 import { ringkasPerformaMandor } from './ai-tool-performa-mandor.js'
 import { ringkasUtilisasiAlat } from './ai-tool-utilisasi-alat.js'
 import { analisisInvestasiAlat } from './ai-tool-investasi-alat.js'
+import { ringkasPortofolioGrup } from './ai-tool-portofolio-grup.js'
 
 
 
@@ -1025,6 +1026,66 @@ const toolInvestasiAlat: DefinisiToolAi = {
   },
 }
 
+/**
+ * 1.15 — portofolio lintas badan usaha.
+ *
+ * Izinnya `finance:view:all`, bukan kunci grup tersendiri. Alasannya: yang
+ * ditampilkan tool ini adalah NILAI KONTRAK seluruh badan usaha, dan itu
+ * persis yang dijaga izin tersebut. Membuat kunci baru berarti satu gerbang
+ * lagi yang harus diingat saat menyusun peran — dan gerbang yang terlupa
+ * adalah gerbang yang terbuka.
+ *
+ * Batas sesungguhnya bukan izin ini melainkan KEANGGOTAAN: tool hanya membaca
+ * PT tempat penanya terdaftar. Lihat kepala `ai-tool-portofolio-grup.ts`.
+ */
+const toolPortofolioGrup: DefinisiToolAi = {
+  nama: 'portofolio_grup',
+  label: 'Portofolio lintas badan usaha',
+  keterangan:
+    'Ringkasan seluruh PT/badan usaha tempat Anda terdaftar — jumlah proyek, '
+    + 'proyek berjalan, dan nilai kontrak per badan usaha. Pakai untuk '
+    + '"bagaimana performa semua PT saya", "PT mana yang paling besar", atau '
+    + '"total nilai kontrak grup". Hanya untuk pemilik beberapa badan usaha.',
+  izin: 'finance:view:all',
+  skema: { type: 'object', properties: {} },
+  async jalan({ db, userId, companyId }) {
+    const h = await ringkasPortofolioGrup(db, userId, companyId)
+    if ('galat' in h) return { isi: h.galat, isError: true, entitas: [] }
+
+    if (h.badanUsaha.length === 0) {
+      return {
+        isi: bungkusData('portofolio_grup', h.catatan ?? 'Tidak ada data.'),
+        isError: false,
+        entitas: [],
+      }
+    }
+
+    const baris = h.badanUsaha.map(
+      (b) =>
+        `${b.ini ? '▸ ' : '  '}${b.nama}: ${b.jumlahProyek} proyek `
+        + `(${b.proyekBerjalan} berjalan) · nilai kontrak ${rupiah(b.nilaiKontrak)}`
+        + (b.ini ? '   ← yang sedang Anda buka' : ''),
+    )
+
+    return {
+      isi: bungkusData(
+        'portofolio_grup',
+        [
+          `${h.badanUsaha.length} badan usaha · ${h.totalProyek} proyek · `
+          + `total nilai kontrak ${rupiah(h.totalNilaiKontrak)}`,
+          '',
+          ...baris,
+          '',
+          'Hanya badan usaha tempat Anda terdaftar sebagai anggota yang '
+          + 'ditampilkan.',
+        ].join('\n'),
+      ),
+      isError: false,
+      entitas: h.badanUsaha.map((b) => b.nama),
+    }
+  },
+}
+
 export const KATALOG_TOOL: DefinisiToolAi[] = [
   toolDaftarProyek,
   toolRingkasKeuangan,
@@ -1152,6 +1213,14 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     salah: harga beli tersebar sepanjang umur ekonomis.
   */
   toolInvestasiAlat,
+  /*
+    Katalog 1.15 (portofolio lintas badan usaha) — SATU-SATUNYA tool yang
+    sengaja melihat lebih dari satu tenant. Batasnya KEANGGOTAAN penanya,
+    bukan silsilah induk-anak: pemilik grup bisa punya PT yang direkturnya
+    bukan dia, dan staf satu anak perusahaan tak boleh melihat angka anak
+    lainnya.
+  */
+  toolPortofolioGrup,
 ]
 
 /**
