@@ -818,6 +818,25 @@ export const AMBANG_OTOMASI = {
     10.6 Maintenance Cost Trend. TIGA ambang karena dua jalur yang terpisah,
     dan pemisahan itu memang intinya (lihat `kesehatan-perawatan.ts`).
   */
+  /*
+    9.2 Insurance Coverage Gap. SATU ambang saja — tiga celah lain
+    (tanpa polis, kadaluarsa, salah jenis) tak punya ambang: keduanya
+    keadaan biner, bukan derajat.
+  */
+  'otomasi.celah_asuransi.hari': {
+    bawaan: 45,
+    min: 7,
+    max: 180,
+    label: 'Hari sebelum polis berakhir sudah diperingatkan',
+    judul: 'Celah perlindungan asuransi',
+    akibat:
+      'Berapa hari sebelum polis CAR berakhir sudah diingatkan. Menerbitkan '
+      + 'perpanjangan butuh survei dan persetujuan penanggung; jeda satu hari '
+      + 'pun berarti proyeknya berjalan tanpa perlindungan.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
   'otomasi.alat_tak_sehat.persen': {
     bawaan: 15,
     min: 2,

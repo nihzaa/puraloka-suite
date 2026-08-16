@@ -154,6 +154,10 @@ export type NotificationType =
   // 10.6 Maintenance Cost Trend. Alat yang mulai lebih sering RUSAK
   // daripada dirawat - tindakannya mengganti/menyewa, bukan menjadwalkan.
   | 'alat_tak_sehat'
+  // 9.2 Insurance Coverage Gap. Termasuk celah yang TAK terlihat oleh
+  // hitungan biasa: proyek ber-polis AKTIF yang jenisnya tak menanggung
+  // pekerjaannya sendiri (TPL saja).
+  | 'celah_asuransi'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'

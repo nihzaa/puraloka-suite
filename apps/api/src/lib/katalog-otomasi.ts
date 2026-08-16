@@ -1293,6 +1293,35 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'yang belum bisa ditutup hanya melatih orang mengabaikan notifikasi.',
   },
   {
+    kunci: 'celah-asuransi',
+    nomor: '9.2',
+    nama: 'Celah perlindungan asuransi',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai proyek aktif yang tak terlindungi asuransi. Tiga keadaan '
+      + 'diperiksa, dan yang KETIGA tak terlihat oleh pemeriksaan biasa: '
+      + 'proyek tanpa polis sama sekali, proyek yang seluruh polisnya sudah '
+      + 'kadaluarsa, dan — yang paling tenang — proyek yang punya polis AKTIF '
+      + 'tetapi jenisnya tak menanggung pekerjaannya sendiri. Polis tanggung '
+      + 'jawab pihak ketiga (TPL) dan asuransi tenaga kerja membuat sebuah '
+      + 'proyek TERLIHAT terasuransi di daftar mana pun yang cuma menghitung '
+      + 'jumlah polis, padahal kebakaran atau longsor yang merusak '
+      + 'pekerjaannya tak ditanggung siapa pun. Itu baru ketahuan saat klaim '
+      + 'ditolak. Polis yang mendekati akhir masa berlaku juga diingatkan, '
+      + 'karena menerbitkan perpanjangan butuh survei dan persetujuan '
+      + 'penanggung.',
+    penerima: 'Yang mengurus risiko',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengambil seluruh proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Membaca polis tiap proyek beserta jenis dan masa berlakunya.' },
+      { di: 'sistem', teks: 'Memeriksa apakah ada polis yang benar-benar menanggung pekerjaan.' },
+      { di: 'sistem', teks: 'Memilih SATU sebab yang paling mendesak per proyek.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.celah_asuransi.hari',
+  },
+  {
     kunci: 'alat-tak-sehat',
     nomor: '10.6',
     nama: 'Alat yang tak lagi sehat',

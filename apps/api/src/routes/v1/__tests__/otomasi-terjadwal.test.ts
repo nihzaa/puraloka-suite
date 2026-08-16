@@ -547,6 +547,10 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     // rencana yang BELUM PERNAH digali sama sekali — galian sebelumnya cuma
     // menilai 92 dari 140.
     'alat-tak-sehat',
+    // 9.2 Insurance Coverage Gap (2026-08-16). Dibangun di atas data yang
+    // diisi migrasi 428, yang SENGAJA meninggalkan celah — termasuk proyek
+    // ber-polis AKTIF yang jenisnya tak menanggung pekerjaannya sendiri.
+    'celah-asuransi',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

@@ -9286,6 +9286,189 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/celah-asuransi ──────────────────────────
+  //
+  // Automation 9.2 — Insurance Coverage Gap Detection.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // TIGA CELAH, DAN YANG KETIGA TAK TERLIHAT OLEH PEMERIKSAAN BIASA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Pemeriksaan yang lazim ditulis orang: "proyek ini punya polis?" — satu
+  // hitungan, satu jawaban. Itu menangkap celah pertama saja.
+  //
+  //   1. TAK ADA POLIS         terlihat oleh hitungan apa pun
+  //   2. POLIS KADALUARSA      terlihat kalau statusnya ikut diperiksa
+  //   3. PUNYA POLIS AKTIF,    TIDAK terlihat oleh keduanya
+  //      TAPI BUKAN YANG
+  //      MENANGGUNG PEKERJAAN
+  //
+  // Celah ketiga paling berbahaya justru karena paling tenang. Proyek dengan
+  // TPL saja punya polis AKTIF, muncul sebagai "terasuransi" di daftar mana
+  // pun, dan lolos audit yang cuma menghitung.
+  //
+  // Tetapi TPL menanggung kerugian PIHAK KETIGA — tetangga yang temboknya
+  // retak, pejalan kaki yang tertimpa. Kerusakan pekerjaannya SENDIRI
+  // (kebakaran, longsor, banjir) tak ditanggung siapa pun. Itu baru ketahuan
+  // saat klaim ditolak.
+  //
+  // ── YANG DITEMUKAN SAAT DIUKUR, dan ini bukan cacat data
+  //
+  // Enam proyek aktif berjalan tanpa polis apa pun, tiga di antaranya
+  // infrastruktur bernilai miliaran. Angkanya BERGERAK — sesi lain menambah
+  // proyek sementara ini ditulis — jadi jangan percaya angka di komentar ini;
+  // ukur sendiri lewat jawaban rutenya (`checked.tanpa_polis`).
+  app.get('/api/v1/otomasi/jalankan/celah-asuransi', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiCelahAsuransi } = await import('../../lib/celah-asuransi.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.celah_asuransi.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['celah_asuransi'])
+
+    const HALAMAN = 1000
+
+    /*
+      `projects` ANCHOR — dibaca lebih dulu, id-nya menyaring sisanya.
+      `polis_asuransi` kategori C lewat `project_id`; membacanya langsung
+      ditolak gerbang tenancy saat berjalan.
+
+      Pelajaran dari rute 2.12, yang tertangkap persis begitu: tanpa saringan,
+      query itu memulangkan polis SELURUH tenant — dan pada automation asuransi
+      akibatnya lebih buruk daripada sekadar salah angka. Proyek tenant ini bisa
+      terlihat "terlindungi" oleh polis milik perusahaan LAIN.
+    */
+    const proyek: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('projects')
+        .select('id, name, status, is_deleted, contract_value')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      proyek.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const aktif = proyek.filter((p) => p.is_deleted !== true && p.status === 'active')
+    const idAktif = aktif.map((p) => p.id as string)
+    if (idAktif.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    const polis: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .unsafe('polis_asuransi', 'disaring .in(project_id, ...) proyek aktif milik tenant ini')
+        .select('project_id, jenis, status, periode_selesai, nilai_pertanggungan')
+        .in('project_id', idAktif)
+        .order('project_id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      polis.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const perProyek = new Map<string, Array<{
+      jenis: string; status: string; periodeSelesai: string; nilaiPertanggungan: number | null
+    }>>()
+    for (const p of polis) {
+      const id = p.project_id as string
+      if (!id) continue
+      const daftar = perProyek.get(id) ?? []
+      daftar.push({
+        jenis: String(p.jenis ?? ''),
+        status: String(p.status ?? ''),
+        periodeSelesai: String(p.periode_selesai ?? ''),
+        nilaiPertanggungan: p.nilai_pertanggungan == null ? null : Number(p.nilai_pertanggungan),
+      })
+      perProyek.set(id, daftar)
+    }
+
+    let dibuat = 0
+    const hitung = {
+      tanpa_polis: 0, semua_kadaluarsa: 0,
+      tak_menanggung_pekerjaan: 0, segera_berakhir: 0, terlindungi: 0,
+    }
+
+    for (const p of aktif) {
+      const id = p.id as string
+      const h = nilaiCelahAsuransi(perProyek.get(id) ?? [], today, ambangHari)
+      hitung[h.sebab]++
+      if (!h.celah) continue
+      if (sudah('celah_asuransi', id)) continue
+
+      const nama = String(p.name ?? 'Proyek')
+      const nilai = p.contract_value == null ? null : Number(p.contract_value)
+      const rupiah = nilai != null && Number.isFinite(nilai)
+        ? ` Nilai kontrak Rp ${nilai.toLocaleString('id-ID')}.`
+        : ''
+
+      /*
+        Tiap sebab menyebut TINDAKANNYA, bukan sekadar keadaannya.
+
+        "Tak ada asuransi" memberi tahu apa yang salah. "Beli polis CAR"
+        memberi tahu apa yang harus dilakukan — dan pada peringatan yang datang
+        ke orang yang mungkin bukan ahli asuransi, bedanya menentukan apakah
+        pesannya ditindaklanjuti atau ditunda.
+      */
+      const pesan = {
+        tanpa_polis:
+          `${nama} berjalan TANPA asuransi apa pun.${rupiah} `
+          + 'Kebakaran, longsor, atau kecelakaan pihak ketiga ditanggung sendiri. '
+          + 'Terbitkan polis CAR sebelum pekerjaan berlanjut.',
+        semua_kadaluarsa:
+          `${nama} — seluruh ${h.polis} polisnya sudah kadaluarsa atau dibatalkan.`
+          + `${rupiah} Proyeknya masih berjalan; perpanjang segera.`,
+        tak_menanggung_pekerjaan:
+          `${nama} punya ${h.polisAktif} polis AKTIF, tetapi tak satu pun `
+          + 'menanggung pekerjaannya sendiri — yang ada hanya tanggung jawab '
+          + `pihak ketiga atau asuransi tenaga kerja.${rupiah} `
+          + 'Tambahkan CAR (Contractor All Risk).',
+        segera_berakhir:
+          `${nama} — polis CAR berakhir dalam ${h.hariTersisa} hari.${rupiah} `
+          + 'Urus perpanjangan sebelum jatuh tempo; jeda satu hari pun berarti '
+          + 'proyeknya tak terlindungi.',
+        terlindungi: '',
+      }[h.sebab]
+
+      const penerima = await resolveRecipients('celah_asuransi', {
+        companyId: request.companyId!,
+        projectId: id,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: h.sebab === 'segera_berakhir'
+            ? 'Polis asuransi proyek segera berakhir'
+            : 'Proyek tanpa perlindungan asuransi',
+          message: pesan,
+          // `segera_berakhir` masih punya waktu; tiga lainnya berarti proyeknya
+          // TIDAK terlindungi sekarang juga.
+          type: 'celah_asuransi',
+          priority: h.sebab === 'segera_berakhir' ? 'normal' : 'high',
+          project_id: id,
+          action_url: '/kontrak/asuransi',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: id, project_id: id, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: { proyek_aktif: idAktif.length, ...hitung, ambang_hari: ambangHari },
+    })
+  })
 }
 
 /**
