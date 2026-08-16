@@ -361,6 +361,47 @@ export const AMBANG_OTOMASI = {
     langkah: 1,
   },
   /*
+    Proyeksi selesai meleset. Bawaan 7 hari dari tanggal kontrak.
+
+    Kecil, karena proyeksi yang meleset seminggu masih bisa dikejar dengan
+    menambah orang; yang meleset sebulan menuntut renegosiasi. Yang berguna
+    tahu selagi masih di rentang pertama.
+  */
+  'otomasi.proyeksi_selesai.hari': {
+    bawaan: 7,
+    min: 0,
+    max: 180,
+    label: 'Hari proyeksi selesai boleh lewat dari tanggal kontrak',
+    judul: 'Proyeksi selesai lewat kontrak',
+    akibat:
+      'Berapa hari proyeksi tanggal selesai boleh melewati tanggal kontrak '
+      + 'sebelum diperingatkan. Proyeksinya dihitung dari laju yang sudah '
+      + 'terjadi, jadi ia berubah begitu lajunya berubah.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+  /*
+    Progres berhenti dilaporkan. Bawaan 21 hari.
+
+    Laju NOL adalah temuan, bukan kegagalan menghitung: proyek yang mandek di
+    50% dengan target sudah lewat adalah sinyal keterlambatan terkuat yang
+    ada. Terukur keenam proyek aktif terakhir melapor 2-4 bulan lalu.
+  */
+  'otomasi.proyeksi_selesai.diam': {
+    bawaan: 21,
+    min: 3,
+    max: 180,
+    label: 'Hari tanpa laporan progres sebelum proyek disebut mandek',
+    judul: 'Progres berhenti dilaporkan',
+    akibat:
+      'Berapa hari tanpa laporan progres sebelum sebuah proyek disebut '
+      + 'mandek. Tanpa laporan baru tak ada yang bisa memperkirakan kapan '
+      + 'selesai — dan berhentinya laporan sendiri sering tanda pekerjaannya '
+      + 'memang berhenti.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+  /*
     Pengeluaran pencilan. Bawaan 2 simpangan baku dari kebiasaan proyeknya.
 
     Pembandingnya proyek ITU SENDIRI, bukan rata-rata perusahaan: proyek

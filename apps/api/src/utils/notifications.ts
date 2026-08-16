@@ -164,6 +164,8 @@ export type NotificationType =
   | 'stok_melenceng'
   | 'stok_susut_berulang'
   | 'biaya_pencilan'
+  | 'proyeksi_selesai_meleset'
+  | 'progres_mandek'
   | 'pengingat_asisten'
   | 'titipan_asisten'
   | 'general'

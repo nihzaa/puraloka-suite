@@ -1534,6 +1534,36 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'menyimpang KE ATAS yang ditandai — belanja yang jauh lebih kecil '
       + 'bukan kejanggalan keuangan.',
   },
+  {
+    kunci: 'proyeksi-selesai',
+    nomor: '3.3',
+    nama: 'Proyeksi tanggal selesai dari laju nyata',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menghitung kapan sebuah proyek benar-benar selesai kalau laju '
+      + 'progresnya sekarang diteruskan, lalu membandingkannya dengan tanggal '
+      + 'kontrak. Proyek yang laporannya berhenti ditandai terpisah.',
+    penerima: 'Manajer proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca catatan progres tiap proyek yang sedang berjalan.' },
+      { di: 'sistem', teks: 'Menghitung laju kenaikan persen per hari dari catatan yang ada.' },
+      { di: 'sistem', teks: 'Memproyeksikan tanggal selesai dan membandingkannya dengan kontrak.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.proyeksi_selesai.hari',
+    catatan:
+      'BUKAN pengulangan 3.18 (EVM). Yang itu menjawab "tertinggal berapa" '
+      + 'lewat indeks jadwal; ini menjawab "kalau laju ini diteruskan, '
+      + 'selesainya kapan" — dan angka tanggal bisa ditindaklanjuti sementara '
+      + '"SPI 0,4" menuntut penerimanya menerjemahkan sendiri. LAJU NOL adalah '
+      + 'temuan, bukan kegagalan menghitung: proyek yang mandek di 50% dengan '
+      + 'target sudah lewat adalah sinyal keterlambatan TERKUAT, bukan yang '
+      + 'paling lemah — otomasi yang memilih diam karena "tak bisa dihitung" '
+      + 'membuang justru yang paling penting. Beda dengan `progres-belum-lapor` '
+      + 'yang menegur MANDOR: ini bicara ke manajer proyek tentang akibatnya '
+      + 'pada tanggal selesai.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */

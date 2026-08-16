@@ -7133,6 +7133,240 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     })
   })
 
+  // ── GET /api/v1/otomasi/jalankan/proyeksi-selesai ────────────────────────
+  //
+  // Automation 3.3 — Delay Prediction.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA INI BUKAN PENGULANGAN 3.18 (EVM)
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // `evm-kinerja` sudah menjawab *"tertinggal berapa"* lewat indeks jadwal.
+  // Pertanyaan di sini berbeda dan jauh lebih bisa ditindaklanjuti:
+  //
+  //     "Kalau laju ini diteruskan, selesainya kapan?"
+  //
+  // "SPI 0,4" menuntut penerimanya menerjemahkan sendiri. "Dengan laju enam
+  // puluh hari terakhir, proyek ini selesai 14 November — 76 hari sesudah
+  // tanggal kontrak" tidak.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // LAJU NOL ADALAH TEMUAN, BUKAN KEGAGALAN MENGHITUNG
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Terukur di basis: keenam proyek aktif terakhir melaporkan progres 2–4
+  // BULAN lalu, dan semua tanggal targetnya sudah lewat. Lajunya nol.
+  //
+  // Otomasi yang membagi dengan laju nol menghasilkan tak-terhingga, lalu
+  // memilih diam karena "tak bisa dihitung". Padahal proyek yang mandek di 50%
+  // dengan target dua minggu lewat adalah sinyal keterlambatan TERKUAT yang
+  // ada — bukan yang paling lemah.
+  //
+  // Maka laju nol dikirim sebagai temuannya sendiri, dengan kalimat yang
+  // menyebut sejak kapan berhentinya.
+  //
+  // ── Beda dengan `progres-belum-lapor`
+  //
+  // Yang itu menegur MANDOR yang belum menyetor laporan. Yang ini bicara ke
+  // manajer proyek tentang AKIBATNYA pada tanggal selesai. Sumbernya sama,
+  // pertanyaannya beda, dan penerimanya beda.
+  app.get('/api/v1/otomasi/jalankan/proyeksi-selesai', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string; diam?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.proyeksi_selesai.hari', q.hari)
+    const ambangDiam = await ambilAmbang(request, 'otomasi.proyeksi_selesai.diam', q.diam)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['proyeksi_selesai_meleset', 'progres_mandek'])
+
+    const { data: proyek, error } = await request.db!
+      .from('projects')
+      .select('id, name, status, start_date, end_date')
+      .eq('status', 'active')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const idProyek = (proyek ?? []).map((p) => p.id as string)
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { proyek_aktif: 0, meleset: 0, mandek: 0, ambang_hari: ambangHari },
+      })
+    }
+
+    /*
+      Dibaca BERHALAMAN: satu proyek saja punya 244 catatan progres, dan
+      pemotongan senyap membuat catatan TERBARU hilang — persis yang dipakai
+      menghitung laju. Akibatnya proyek yang mandek terlihat masih bergerak.
+    */
+    const HALAMAN = 1000
+    const log: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error: eLog } = await request.db!
+        .unsafe('progress_logs', 'kategori C lewat project_id; disaring ke proyek aktif ter-scope')
+        .select('id, project_id, pct_overall, logged_at')
+        .in('project_id', idProyek)
+        .not('pct_overall', 'is', null)
+        .order('logged_at', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (eLog) return reply.status(500).send({ error: eLog.message })
+      if (!data || data.length === 0) break
+      log.push(...(data as Array<Record<string, unknown>>))
+      if (data.length < HALAMAN) break
+    }
+
+    const perProyek = new Map<string, Array<{ pct: number; tgl: string }>>()
+    for (const l of log) {
+      const pid = l.project_id as string
+      const tgl = String(l.logged_at ?? '').slice(0, 10)
+      if (!tgl) continue
+      const arr = perProyek.get(pid) ?? []
+      arr.push({ pct: Number(l.pct_overall ?? 0), tgl })
+      perProyek.set(pid, arr)
+    }
+
+    const hari = (a: string, b: string) =>
+      Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000)
+
+    let meleset = 0
+    let mandek = 0
+    let takBisaDinilai = 0
+    let dibuat = 0
+
+    for (const p of proyek ?? []) {
+      const pid = p.id as string
+      const target = String(p.end_date ?? '').slice(0, 10)
+      const daftar = (perProyek.get(pid) ?? []).sort((a, b) => (a.tgl < b.tgl ? -1 : 1))
+
+      /*
+        Butuh dua titik untuk punya laju. Satu catatan progres bukan laju —
+        ia satu foto, dan memproyeksikan garis dari satu titik adalah menebak
+        yang dibungkus angka.
+      */
+      if (daftar.length < 2 || !target) { takBisaDinilai++; continue }
+
+      const akhir = daftar[daftar.length - 1]
+      const diam = hari(akhir.tgl, today)
+
+      // ── Temuan 1: laporan berhenti. Lajunya nol, dan itu SINYAL.
+      if (diam >= ambangDiam) {
+        mandek++
+        if (!sudah('progres_mandek', pid)) {
+          const penerima = await resolveRecipients('progres_mandek', {
+            projectId: pid, companyId: request.companyId!,
+          })
+          const lewatTarget = hari(target, today)
+          for (const uid of penerima) {
+            await createNotification({
+              company_id: request.companyId!,
+              user_id:    uid,
+              title:      'Progres Berhenti Dilaporkan — Tanggal Selesai Tak Bisa Diperkirakan',
+              message:
+                `"${p.name}" terakhir dilaporkan ${akhir.pct}% pada ${akhir.tgl}, `
+                + `${diam} hari lalu. `
+                + (lewatTarget > 0
+                  ? `Tanggal targetnya (${target}) sudah lewat ${lewatTarget} hari `
+                    + 'dan pekerjaannya belum 100%.'
+                  : `Targetnya ${target}.`)
+                + ' Tanpa laporan baru, tak ada yang bisa memperkirakan kapan '
+                + 'ini selesai — dan berhentinya laporan sendiri sering tanda '
+                + 'pekerjaannya memang berhenti.',
+              type:       'progres_mandek',
+              priority:   lewatTarget > 0 ? 'urgent' : 'high',
+              project_id: pid,
+              action_url: `/proyek/${pid}`,
+              action_data: {
+                record_id: pid,
+                pct_terakhir: akhir.pct, tanggal_terakhir: akhir.tgl,
+                diam_hari: diam, target, lewat_target: lewatTarget,
+              },
+            })
+            dibuat++
+          }
+        }
+        continue
+      }
+
+      /*
+        ── Temuan 2: proyeksi tanggal selesai dari laju NYATA
+
+        Lajunya diambil dari catatan pertama dan terakhir dalam jendela yang
+        ada — bukan rata-rata seluruh riwayat. Proyek yang dua bulan pertamanya
+        lambat lalu dipercepat tak boleh dinilai dari periode lambatnya.
+      */
+      const awal = daftar[0]
+      const rentang = hari(awal.tgl, akhir.tgl)
+      const naik = akhir.pct - awal.pct
+      if (rentang <= 0 || naik <= 0) { takBisaDinilai++; continue }
+
+      const perHari = naik / rentang
+      const sisa = 100 - akhir.pct
+      if (sisa <= 0) continue
+
+      const hariLagi = Math.ceil(sisa / perHari)
+      const proyeksi = new Date(Date.parse(`${akhir.tgl}T00:00:00Z`) + hariLagi * 86_400_000)
+        .toISOString().slice(0, 10)
+      const selisih = hari(target, proyeksi)
+
+      if (selisih < ambangHari) continue
+      meleset++
+
+      if (sudah('proyeksi_selesai_meleset', pid)) continue
+
+      const penerima = await resolveRecipients('proyeksi_selesai_meleset', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Proyeksi Selesai Lewat dari Tanggal Kontrak',
+          message:
+            `"${p.name}" baru ${akhir.pct}% pada ${akhir.tgl}. `
+            + `Dengan laju ${Math.round(perHari * 100) / 100}% per hari — `
+            + `dihitung dari ${daftar.length} catatan sejak ${awal.tgl} — `
+            + `sisanya butuh ${hariLagi} hari lagi, jadi selesai sekitar `
+            + `${proyeksi}: ${selisih} hari setelah tanggal kontrak ${target}. `
+            + 'Ini proyeksi dari laju yang sudah terjadi, bukan ramalan — ia '
+            + 'berubah begitu lajunya berubah.',
+          type:       'proyeksi_selesai_meleset',
+          priority:   selisih >= ambangHari * 3 ? 'urgent' : 'high',
+          project_id: pid,
+          action_url: `/proyek/${pid}`,
+          action_data: {
+            record_id: pid,
+            pct_terakhir: akhir.pct, laju_per_hari: Math.round(perHari * 1000) / 1000,
+            proyeksi_selesai: proyeksi, target, meleset_hari: selisih,
+            dari_catatan: daftar.length,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_aktif: (proyek ?? []).length,
+        meleset,
+        mandek,
+        // Dilaporkan EKSPLISIT: proyek yang lajunya tak bisa dihitung sama
+        // sekali — satu catatan, atau tanpa tanggal target. Tanpa angka ini,
+        // "0 meleset" terbaca sebagai "semuanya tepat waktu".
+        tak_bisa_dinilai: takBisaDinilai,
+        ambang_hari: ambangHari,
+        ambang_diam: ambangDiam,
+      },
+    })
+  })
+
   // ── GET /api/v1/otomasi/jalankan/invoice-ringkasan-melenceng ─────────────
   //
   // TANPA nomor katalog — dan itu diperiksa, bukan diasumsikan.

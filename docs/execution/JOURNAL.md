@@ -22545,3 +22545,55 @@ mutasi blok verifikasi 419        2/2 MERAH lalu pulih
 15 penjaga arsitektural           exit=0
 lint:ratchet                      0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 (13) - proyeksi tanggal selesai 3.3
+
+46 rute terjadwal, 53 nomor katalog.
+
+### Laju nol adalah temuan, bukan kegagalan menghitung
+
+Diukur: **keenam** proyek aktif terakhir melaporkan progres 2-4 bulan lalu.
+
+```
+Gudang Pak Hendra   50%  lapor 15 Mei  (93 hari lalu)
+Rumah Bu Ratna      35%  lapor 15 Mei  (93 hari lalu)
+Rumah Bu Sari       40%  lapor 01 Jun  (76 hari lalu)
+```
+
+Otomasi yang membagi dengan laju nol menghasilkan tak-terhingga lalu memilih
+diam karena "tak bisa dihitung". Padahal proyek yang mandek di 50% dengan
+target dua minggu lewat adalah sinyal keterlambatan **terkuat** yang ada.
+
+### Bukan pengulangan 3.18 (EVM)
+
+`evm-kinerja` menjawab "tertinggal berapa"; ini menjawab "kalau laju ini
+diteruskan, selesainya kapan". "SPI 0,4" menuntut penerimanya menerjemahkan
+sendiri; sebuah tanggal tidak.
+
+Dan beda dengan `progres-belum-lapor`: yang itu menegur **mandor**, ini bicara
+ke **manajer proyek** tentang akibatnya pada tanggal selesai.
+
+### Satu mutasi LOLOS, dan ia menunjuk cacat nyata di test saya
+
+`laju-rata-rata` — mengganti `kenaikan / rentang` dengan `persen_terakhir /
+rentang` tak membuat satu pun test merah.
+
+Sebabnya: **semua test saya mulai dari 0%.** Kalau catatan pertama nol,
+`kenaikan` dan `persen terakhir` angkanya sama persis, jadi rumus mana pun
+memberi hasil identik.
+
+Proyek nyata tak begitu. Catatan pertama dalam jendela bisa sudah 80% — dan
+menghitung dari persen terakhir membuat lajunya terlihat 8 kali lebih cepat.
+Ditambah kasus 80% ke 82% dalam 40 hari; mutasi diulang jadi merah.
+
+### Bukti
+
+```
+otomasi-proyeksi-selesai.test.ts  6 passed
+mutasi rute                       4/4 MERAH lalu pulih (1 diperbaiki dulu)
+mutasi blok verifikasi 420        2/2 MERAH lalu pulih
+15 penjaga arsitektural           exit=0
+lint:ratchet                      0 error, 231 warning
+```

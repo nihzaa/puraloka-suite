@@ -211,6 +211,11 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'proyeksi-selesai': {
+    label: 'Proyeksi Tanggal Selesai',
+    keterangan: 'Kapan proyek benar-benar selesai dengan laju sekarang, dan mana yang mandek.',
+    jalur: '/api/v1/otomasi/jalankan/proyeksi-selesai',
+  },
   'biaya-pencilan': {
     label: 'Pengeluaran Pencilan',
     keterangan: 'Belanja jauh di atas kebiasaan proyeknya sendiri.',
