@@ -38,6 +38,7 @@ import { entitasTakDikenal, jalankanLoop } from './ai-loop.js'
 import { KATALOG_TOOL, katalogUntuk } from './ai-tool.js'
 import { bacaIngatan, susunBlokIngatan } from './ai-ingatan.js'
 import { susunKonteksPenanya } from './ai-konteks-penanya.js'
+import { PENALARAN_BERLAPIS, tempelCatatanRonde } from './ai-penalaran-berlapis.js'
 import type { HasilLoop } from './ai-loop.js'
 
 /**
@@ -259,17 +260,27 @@ export function susunPromptSistem(
   /*
    * Urutannya mengikat:
    *
-   *   1. PAGAR_FAKTA    larangan mutlak, selalu paling atas
-   *   2. gaya           watak — hanya mengatur cara bicara
-   *   3. gayaKanal      bentuk keluaran
-   *   4. blokPenanya    KONTEKS, bukan wewenang — lihat kepala berkasnya
-   *   5. blokIngatan    catatan, sudah dibungkus penyangkalan wewenang
+   *   1. PAGAR_FAKTA          larangan mutlak, selalu paling atas
+   *   2. gaya                 watak — hanya mengatur cara bicara
+   *   3. gayaKanal            bentuk keluaran
+   *   4. PENALARAN_BERLAPIS   CARA BEKERJA — beberapa tool, lalu sintesis
+   *   5. blokPenanya          KONTEKS, bukan wewenang — lihat kepala berkasnya
+   *   6. blokIngatan          catatan, sudah dibungkus penyangkalan wewenang
    *
    * Konteks penanya ditaruh SESUDAH pagar dengan sengaja: nama dan peran
    * datang dari basis, tetapi menaruhnya sebelum pagar akan membuat kalimat
    * "Peran: direktur" terbaca sejajar dengan larangan mengarang angka.
+   *
+   * `PENALARAN_BERLAPIS` juga sesudah pagar, dan itu penting: ia memuat
+   * satu-satunya izin mengarang angka di seluruh sistem (skenario andaian
+   * 8.2). Izin itu HARUS terbaca sebagai pengecualian sempit di bawah pagar,
+   * bukan sebagai aturan yang sederajat dengannya.
    */
-  const dasar = PAGAR_FAKTA + gaya + gayaKanal + blokPenanya + blokIngatan
+  // Satu baris, disengaja: `audit-pagar-fakta-utuh.mjs` mencocokkan pola
+  // penyusunan `dasar` untuk memastikan PAGAR_FAKTA selalu ikut. Memecahnya
+  // jadi dua baris membuat penjaga itu MERAH — dan itu perilaku yang benar,
+  // karena penjaga yang bisa dielakkan dengan pindah baris tak menjaga apa pun.
+  const dasar = PAGAR_FAKTA + gaya + gayaKanal + PENALARAN_BERLAPIS + blokPenanya + blokIngatan
   if (!tambahan?.trim()) return dasar
   return [
     dasar,
@@ -581,10 +592,25 @@ export async function jalankanGiliranAi(opsi: OpsiJalan): Promise<HasilJalan> {
     return { ok: false, tahap: 'loop', alasan: hasil.alasan, pesan: hasil.pesanGagal ?? '' }
   }
 
+  /*
+   * RONDE HABIS DINYATAKAN DI JAWABAN, bukan cuma di metadata.
+   *
+   * `ai-loop.ts` sudah menandainya `alasan: 'ronde_habis'`, tapi penanda itu
+   * ada di bidang yang dibaca kode — bukan di kalimat yang dibaca founder.
+   * Jawaban yang terpotong karena kehabisan langkah terbaca persis sama
+   * yakinnya dengan jawaban yang lengkap, dan itulah bentuk kesalahan paling
+   * mahal: kesimpulan dari data separuh yang tak menyebut dirinya separuh.
+   *
+   * Prompt sudah menyuruh model menyatakannya sendiri (`PENALARAN_BERLAPIS`),
+   * tapi pada saat ronde habis model sudah tak punya kesempatan bicara lagi —
+   * ronde terakhirnya sudah terpakai. Maka pertahanan kedua di sini.
+   */
+  const teksAkhir = tempelCatatanRonde(hasil.teks, hasil.alasan)
+
   return {
     ok: true,
-    hasil,
-    entitasAsing: entitasTakDikenal(hasil.teks, hasil.entitas),
+    hasil: { ...hasil, teks: teksAkhir },
+    entitasAsing: entitasTakDikenal(teksAkhir, hasil.entitas),
     toolTersedia: katalog.map((t) => t.nama),
     penyedia,
     model: gerbang.konfigurasi.model,
