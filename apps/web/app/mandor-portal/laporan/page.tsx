@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -32,21 +32,24 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
 };
 
 export default function MandorLaporanPage() {
-  const [reports, setReports] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    api.get("/api/v1/mandor/wage-reports").then((res) => {
-      setReports(res.data?.reports ?? []);
-    }).finally(() => setLoading(false));
-  }, []);
+  // ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16 — halaman ini
+  // hanya baca, tak ada tulis lapangan, jadi tak ada cache offline yang
+  // perlu dipertahankan.
+  const { data, memuat: loading, galat: galatMuat } = useData<{ reports: any[] }>("/api/v1/mandor/wage-reports");
+  const reports = data?.reports ?? [];
 
   function toggle(id: string) {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   }
 
   if (loading) return <div style={{ textAlign: "center", padding: 60, color: C.mid }}>Memuat laporan upah...</div>;
+  if (galatMuat) return (
+    <div role="alert" style={{ textAlign: "center", padding: 60, color: C.red }}>
+      Gagal memuat laporan upah. Coba muat ulang halaman.
+    </div>
+  );
 
   return (
     <div style={{ maxWidth: 800, margin: "0 auto" }}>

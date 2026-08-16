@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api, getStoredUser } from "@/lib/api";
+import { getStoredUser } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { FolderKanban, TrendingUp, AlertTriangle, Clock, ChevronRight } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -21,20 +21,20 @@ const STATUS_META: Record<string, { label: string; color: string; bg: string }> 
 };
 
 export default function PMDashboardPage() {
-  const [projects, setProjects] = useState<any[]>([]);
-  const [pendingKasbons, setPendingKasbons] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const user = getStoredUser();
 
-  useEffect(() => {
-    Promise.all([
-      api.get("/api/v1/projects"),
-      api.get("/api/v1/finance/kasbons?status=pending"),
-    ]).then(([pRes, kRes]) => {
-      setProjects(pRes.data?.projects ?? []);
-      setPendingKasbons(kRes.data?.kasbons ?? []);
-    }).finally(() => setLoading(false));
-  }, []);
+  // ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16 — halaman ini
+  // hanya baca (ringkasan PM), tak ada mekanisme offline di portal PM.
+  const { data: dataProj, memuat: memuatProj, galat: galatProj } =
+    useData<{ projects: any[] }>("/api/v1/projects");
+  const { data: dataKasbon, memuat: memuatKasbon, galat: galatKasbon } =
+    useData<{ kasbons: any[] }>("/api/v1/finance/kasbons?status=pending");
+
+  const loading = memuatProj || memuatKasbon;
+  const galatMuat = galatProj ?? galatKasbon;
+
+  const projects = dataProj?.projects ?? [];
+  const pendingKasbons = dataKasbon?.kasbons ?? [];
 
   const activeProjects = projects.filter((p) => p.status === "active");
   const overdueProjects = activeProjects.filter((p) => p.end_date && new Date(p.end_date) < new Date());
@@ -48,6 +48,12 @@ export default function PMDashboardPage() {
         </h1>
         <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>Ringkasan proyek yang Anda kelola</p>
       </div>
+
+      {!loading && galatMuat && (
+        <div role="alert" style={{ background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: C.red }}>
+          Sebagian ringkasan gagal dimuat. Coba muat ulang halaman.
+        </div>
+      )}
 
       {/* KPI Cards */}
       {!loading && (

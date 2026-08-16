@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
-import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { type Kasbon, type Tukang, type Penugasan, pesanGalat } from "../_bersama/tipe";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { CreditCard, Plus } from "lucide-react";
@@ -23,10 +23,6 @@ const PURPOSE_LABELS: Record<string, string> = {
 };
 
 export default function KasbonTukangPage() {
-  const [kasbons, setKasbons] = useState<Kasbon[]>([]);
-  const [workers, setWorkers] = useState<Tukang[]>([]);
-  const [assignments, setAssignments] = useState<Penugasan[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   // Modal di portal ini tak punya prop `onClose` — ia dikendalikan state
   // lokal — sehingga penjaga `modal-esc-ratchet` tak menjangkaunya, dan
@@ -42,25 +38,31 @@ export default function KasbonTukangPage() {
     amount: "", purpose: "gaji_tukang", kasbon_date: "", notes: "",
   });
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function loadData() {
-    setLoading(true);
-    try {
-      const [kRes, wRes, aRes] = await Promise.all([
-        api.get<{ kasbons: Kasbon[] }>("/api/v1/mandor/worker-kasbons"),
-        api.get<{ workers: Tukang[] }>("/api/v1/mandor/workers"),
-        api.get<{ assignments: Penugasan[] }>("/api/v1/mandor/assignments"),
-      ]);
-      setKasbons(kRes.data?.kasbons ?? []);
-      setWorkers(wRes.data?.workers ?? []);
-      setAssignments(aRes.data?.assignments ?? []);
-    } finally {
-      setLoading(false);
-    }
-  }
+    Tiga GET berpasangan diganti `useData`. TIDAK ada cache offline di jalur
+    BACA halaman ini — `kirimLapangan` di bawah hanya membungkus jalur TULIS
+    (pengajuan kasbon tukang), tidak disentuh.
+  */
+  const { data: dataKasbon, memuat: memuatKasbon, galat: galatMuatKasbon, muatUlang: muatUlangKasbon } =
+    useData<{ kasbons: Kasbon[] }>("/api/v1/mandor/worker-kasbons");
+  const { data: dataWorkers, memuat: memuatWorkers, galat: galatMuatWorkers, muatUlang: muatUlangWorkers } =
+    useData<{ workers: Tukang[] }>("/api/v1/mandor/workers");
+  const { data: dataAssign, memuat: memuatAssign, galat: galatMuatAssign, muatUlang: muatUlangAssign } =
+    useData<{ assignments: Penugasan[] }>("/api/v1/mandor/assignments");
+
+  const loading = memuatKasbon || memuatWorkers || memuatAssign;
+  const galatMuat = galatMuatKasbon ?? galatMuatWorkers ?? galatMuatAssign;
+
+  // Diturunkan, bukan disalin.
+  const kasbons = dataKasbon?.kasbons ?? [];
+  const workers = dataWorkers?.workers ?? [];
+  const assignments = dataAssign?.assignments ?? [];
+
+  const loadData = useCallback(async () => {
+    await Promise.all([muatUlangKasbon(), muatUlangWorkers(), muatUlangAssign()]);
+  }, [muatUlangKasbon, muatUlangWorkers, muatUlangAssign]);
 
   const scopesForProject = assignments
     .find((a) => a.project?.id === form.project_id)
@@ -163,7 +165,13 @@ export default function KasbonTukangPage() {
 
       {loading && <div style={{ textAlign: "center", padding: 40, color: C.mid }}>Memuat...</div>}
 
-      {!loading && kasbons.length === 0 && (
+      {!loading && galatMuat && (
+        <div role="alert" style={{ background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: C.red }}>
+          Gagal memuat kasbon tukang. Coba muat ulang halaman.
+        </div>
+      )}
+
+      {!loading && !galatMuat && kasbons.length === 0 && (
         <div style={{ background: C.surface, borderRadius: 10, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
           <CreditCard size={28} color={C.muted} style={{ marginBottom: 8 }} />
           <div style={{ fontSize: 13, color: C.mid }}>Belum ada kasbon tukang</div>

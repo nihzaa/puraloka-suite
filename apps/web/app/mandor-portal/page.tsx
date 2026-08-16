@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api, getStoredUser } from "@/lib/api";
+import { getStoredUser } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { type Penugasan, type Kasbon, type LaporanUpah } from "./_bersama/tipe";
 import { Briefcase, Wallet, Clock, CheckCircle, ChevronRight, CreditCard, ClipboardList, AlertCircle } from "lucide-react";
 import Link from "next/link";
@@ -44,26 +44,28 @@ const REPORT_STATUS: Record<string, { label: string; color: string }> = {
 };
 
 export default function MandorDashboardPage() {
-  const [assignments, setAssignments] = useState<Penugasan[]>([]);
-  const [kasbons, setKasbons] = useState<Kasbon[]>([]);
-  const [workerKasbons, setWorkerKasbons] = useState<Kasbon[]>([]);
-  const [recentReports, setRecentReports] = useState<LaporanUpah[]>([]);
-  const [loading, setLoading] = useState(true);
   const user = getStoredUser();
 
-  useEffect(() => {
-    Promise.all([
-      api.get<{ assignments: Penugasan[] }>("/api/v1/mandor/assignments"),
-      api.get<{ kasbons: Kasbon[] }>("/api/v1/kasbons"),
-      api.get<{ kasbons: Kasbon[] }>("/api/v1/mandor/worker-kasbons"),
-      api.get<{ reports: LaporanUpah[] }>("/api/v1/mandor/wage-reports"),
-    ]).then(([aRes, kRes, wkRes, rRes]) => {
-      setAssignments(aRes.data?.assignments ?? []);
-      setKasbons(kRes.data?.kasbons ?? []);
-      setWorkerKasbons(wkRes.data?.kasbons ?? []);
-      setRecentReports((rRes.data?.reports ?? []).slice(0, 3));
-    }).finally(() => setLoading(false));
-  }, []);
+  // ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16 — halaman ini
+  // hanya baca (ringkasan), tak ada tulis lapangan di sini, jadi tak ada
+  // cache offline yang perlu dipertahankan.
+  const { data: dataAssign, memuat: memuatAssign, galat: galatAssign } =
+    useData<{ assignments: Penugasan[] }>("/api/v1/mandor/assignments");
+  const { data: dataKasbon, memuat: memuatKasbon, galat: galatKasbon } =
+    useData<{ kasbons: Kasbon[] }>("/api/v1/kasbons");
+  const { data: dataWorkerKasbon, memuat: memuatWorkerKasbon, galat: galatWorkerKasbon } =
+    useData<{ kasbons: Kasbon[] }>("/api/v1/mandor/worker-kasbons");
+  const { data: dataReports, memuat: memuatReports, galat: galatReports } =
+    useData<{ reports: LaporanUpah[] }>("/api/v1/mandor/wage-reports");
+
+  const loading = memuatAssign || memuatKasbon || memuatWorkerKasbon || memuatReports;
+  const galatMuat = galatAssign ?? galatKasbon ?? galatWorkerKasbon ?? galatReports;
+
+  // Diturunkan, bukan disalin.
+  const assignments = dataAssign?.assignments ?? [];
+  const kasbons = dataKasbon?.kasbons ?? [];
+  const workerKasbons = dataWorkerKasbon?.kasbons ?? [];
+  const recentReports = (dataReports?.reports ?? []).slice(0, 3);
 
   const allScopes = assignments.flatMap((a) => (a.work_scopes ?? []).map((s) => ({ ...s, project: a.project })));
   const activeScopes = allScopes.filter((s) => s.status === "active");
@@ -83,6 +85,12 @@ export default function MandorDashboardPage() {
           Ringkasan pekerjaan, upah, dan kasbon Anda
         </p>
       </div>
+
+      {!loading && galatMuat && (
+        <div role="alert" style={{ background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: C.red }}>
+          Sebagian ringkasan gagal dimuat. Coba muat ulang halaman.
+        </div>
+      )}
 
       {/* KPI Cards */}
       {!loading && (
