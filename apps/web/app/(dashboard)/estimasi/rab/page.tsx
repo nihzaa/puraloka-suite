@@ -595,12 +595,15 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, sibuk }: {
               </tr>
             </thead>
             <tbody>
-              {items.map((it) => (
-                <tr key={it.id}>
-                  <td style={{ ...td, color: C.aksen, fontWeight: 600, whiteSpace: "nowrap" }}>
+              {items.map((it, i) => {
+                const akhir = i === items.length - 1;
+                const sel = akhir ? tdAkhir : td;
+                return (
+                <tr key={it.id} style={i % 2 === 1 ? { background: "var(--surface-subtle)" } : undefined}>
+                  <td style={{ ...sel, color: C.aksen, fontWeight: 600, whiteSpace: "nowrap" }}>
                     {it.assembly?.code ?? it.cost_code?.code ?? "—"}
                   </td>
-                  <td style={td}>
+                  <td style={sel}>
                     {it.assembly?.name ?? it.description ?? it.cost_code?.name ?? "—"}
                     {/* Item lump-sum tak punya analisa — dinyatakan, bukan
                         dibiarkan tampak seperti baris yang datanya hilang. */}
@@ -610,7 +613,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, sibuk }: {
                       </div>
                     )}
                   </td>
-                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                  <td style={{ ...sel, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                     {angka(it.quantity, 2)}
                     <span style={{ fontSize: 11, color: C.muted, marginLeft: 4 }}>
                       {it.assembly?.output_unit_code ?? it.unit ?? ""}
@@ -627,10 +630,10 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, sibuk }: {
                     bertentangan lebih merusak kepercayaan daripada kolom yang
                     memang kosong.
                   */}
-                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                  <td style={{ ...sel, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                     {angka(hsp(it))}
                   </td>
-                  <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
+                  <td style={{ ...sel, textAlign: "right", fontVariantNumeric: "tabular-nums", fontWeight: 600 }}>
                     {angka(it.amount)}
                   </td>
                   {/*
@@ -647,7 +650,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, sibuk }: {
                     angkanya diketik langsung. Menawarkan tombol yang pasti
                     gagal lebih buruk daripada tak menawarkannya.
                   */}
-                  <td style={{ ...td, textAlign: "right" }}>
+                  <td style={{ ...sel, textAlign: "right" }}>
                     {punyaAnalisa(it) ? (
                       <button
                         type="button"
@@ -671,66 +674,120 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, sibuk }: {
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
       </section>
 
+      {/*
+        ── Hierarki panel ini disengaja (ARAH-VISUAL §3d: SATU aksen per layar)
+        Total RAB adalah satu-satunya angka yang dicari orang saat membuka
+        layar ini, jadi ia yang mendapat ukuran display + warna aksen. Dua
+        baris di atasnya (biaya, PPN) sengaja abu-abu dan lebih kecil: mereka
+        penyusun, bukan jawaban. Memberi ketiganya bobot yang sama membuat
+        mata harus memilih sendiri mana yang penting — itu kerja yang
+        seharusnya dikerjakan tata letak.
+      */}
       <aside style={{
         border: `1px solid ${C.border}`, borderRadius: "var(--radius-md)",
-        background: C.subtle, padding: 15, position: "sticky", top: 18,
+        background: C.surface, position: "sticky", top: 18, overflow: "hidden",
       }}>
-        <h2 style={{
-          fontSize: 11, fontWeight: 700, letterSpacing: ".06em",
-          textTransform: "uppercase", color: C.muted, marginBottom: 11,
-        }}>Ringkasan</h2>
-
-        <BarisJumlah label="Biaya pekerjaan" nilai={rollup?.totalBiaya} />
-        <BarisJumlah label="PPN" nilai={rollup?.ppn} />
-        <div style={{ height: 1, background: C.border, margin: "9px 0" }} />
-        <div style={{ fontSize: "var(--teks-label)", color: C.mid, marginBottom: 2 }}>
-          Total RAB
-        </div>
         <div style={{
-          fontFamily: "var(--font-display), sans-serif",
-          fontSize: "var(--teks-kpi)", fontWeight: 700, color: C.aksen,
-          fontVariantNumeric: "tabular-nums", lineHeight: 1.1,
-          letterSpacing: "-.02em",
+          padding: "10px 15px", borderBottom: `1px solid ${C.border}`,
+          background: C.subtle,
         }}>
-          {rp(rollup?.grandTotal)}
+          <h2 style={{
+            fontSize: 11, fontWeight: 700, letterSpacing: ".06em",
+            textTransform: "uppercase", color: C.muted,
+          }}>Ringkasan</h2>
         </div>
-        <p style={{ fontSize: 11, color: C.muted, marginTop: 5, lineHeight: 1.5 }}>
-          {items.length} item
-          {versi.edition ? ` · edisi ${versi.edition}` : ""}
-          {` · ${LABEL_STATUS[versi.status]}`}
-        </p>
 
-        {!terkunci && (
-          <>
-            <div style={{ height: 1, background: C.border, margin: "11px 0" }} />
-            <button
-              type="button"
-              onClick={onKunci}
-              disabled={sibuk}
-              style={{
-                width: "100%", justifyContent: "center",
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "var(--pad-tombol)", borderRadius: "var(--radius-dense)",
-                background: C.aksen, color: C.onAksen, border: `1px solid ${C.aksen}`,
-                fontSize: "var(--teks-label)", fontWeight: 600,
-                fontFamily: "inherit", cursor: sibuk ? "wait" : "pointer",
-              }}
-            >
-              <Lock size={13} aria-hidden="true" /> Kunci &amp; kirim ke klien
-            </button>
-            <p style={{ fontSize: 11, color: C.muted, marginTop: 7, textAlign: "center", lineHeight: 1.5 }}>
-              Setelah dikunci, angka tak bisa berubah diam-diam
+        <div style={{ padding: 15 }}>
+          <BarisJumlah label="Biaya pekerjaan" nilai={rollup?.totalBiaya} />
+          <BarisJumlah label="PPN" nilai={rollup?.ppn} />
+
+          <div style={{
+            marginTop: 12, paddingTop: 12,
+            borderTop: `2px solid ${C.aksen}`,
+          }}>
+            <div style={{
+              fontSize: 11, fontWeight: 700, letterSpacing: ".06em",
+              textTransform: "uppercase", color: C.muted, marginBottom: 3,
+            }}>
+              Total RAB
+            </div>
+            <div style={{
+              fontFamily: "var(--font-display), sans-serif",
+              fontSize: "var(--teks-kpi)", fontWeight: 700, color: C.aksen,
+              fontVariantNumeric: "tabular-nums", lineHeight: 1.08,
+              letterSpacing: "-.025em",
+            }}>
+              {rp(rollup?.grandTotal)}
+            </div>
+            <p style={{ fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
+              {items.length} item
+              {versi.edition ? ` · edisi ${versi.edition}` : ""}
             </p>
-          </>
-        )}
+            <LencanaStatus status={versi.status} />
+          </div>
+
+          {!terkunci && (
+            <>
+              <button
+                type="button"
+                onClick={onKunci}
+                disabled={sibuk}
+                style={{
+                  width: "100%", justifyContent: "center", marginTop: 14,
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  padding: "var(--pad-tombol)", borderRadius: "var(--radius-dense)",
+                  background: "var(--grad-aksen)", color: C.onNavy,
+                  border: "none",
+                  fontSize: "var(--teks-label)", fontWeight: 600,
+                  fontFamily: "inherit", cursor: sibuk ? "wait" : "pointer",
+                }}
+              >
+                <Lock size={13} aria-hidden="true" /> Kunci &amp; kirim ke klien
+              </button>
+              <p style={{
+                fontSize: 11, color: C.muted, marginTop: 7,
+                textAlign: "center", lineHeight: 1.5,
+              }}>
+                Setelah dikunci, angka tak bisa berubah diam-diam
+              </p>
+            </>
+          )}
+        </div>
       </aside>
     </div>
+  );
+}
+
+/**
+ * Keadaan RAB sebagai PIL BERWARNA, bukan kalimat abu-abu di antara kalimat
+ * abu-abu lain.
+ *
+ * "Masih disusun" dan "Terkunci — sudah dikirim" adalah perbedaan yang paling
+ * mahal salah baca di layar ini: yang pertama masih bisa diubah, yang kedua
+ * sudah jadi bukti penawaran ke klien. Ditulis dengan bobot yang sama seperti
+ * "4 item · edisi SE-47/2026", keduanya larut jadi metadata.
+ */
+function LencanaStatus({ status }: { status: StatusVersi }) {
+  const terkunci = status !== "draft";
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 5, marginTop: 8,
+      padding: "var(--pad-lencana)", borderRadius: "var(--radius-pill)",
+      fontSize: 11, fontWeight: 600,
+      background: terkunci ? "var(--success-bg)" : "var(--surface-hover)",
+      color: terkunci ? "var(--success)" : C.mid,
+      border: `1px solid ${terkunci ? "var(--success-border)" : C.border}`,
+    }}>
+      {terkunci && <Lock size={10} aria-hidden="true" />}
+      {LABEL_STATUS[status]}
+    </span>
   );
 }
 
@@ -752,13 +809,22 @@ const th: React.CSSProperties = {
   textAlign: "left", padding: "var(--pad-baris)",
   fontSize: 11, fontWeight: 700, letterSpacing: ".04em",
   textTransform: "uppercase", color: "var(--text-muted)",
-  borderBottom: "1px solid var(--border)",
-  background: "var(--surface-subtle)", whiteSpace: "nowrap",
+  borderBottom: `1px solid var(--border)`,
+  whiteSpace: "nowrap",
 };
+/*
+  Baris terakhir TANPA garis bawah.
+
+  Tabel di dalam kartu ber-`overflow:hidden` yang tiap barisnya bergaris
+  menghasilkan garis ganda di dasar kartu — satu dari baris terakhir, satu
+  dari tepi kartu. Detail kecil, tapi ia yang membedakan tabel yang terasa
+  disusun dari tabel yang terasa ditempel.
+*/
 const td: React.CSSProperties = {
   padding: "var(--pad-baris)", borderBottom: "1px solid var(--border)",
   verticalAlign: "middle",
 };
+const tdAkhir: React.CSSProperties = { ...td, borderBottom: "none" };
 const tombolTipis: React.CSSProperties = {
   display: "inline-flex", alignItems: "center", gap: 5,
   padding: "var(--pad-tombol-kcl)", borderRadius: "var(--radius-dense)",
