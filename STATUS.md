@@ -20,12 +20,23 @@ kali keadaan berubah; detail selalu di dokumen rujukan.
 > **Diam berarti setuju.** Berhenti hanya di lima Gerbang Keras (G-1…G-5);
 > selebihnya diputuskan sendiri lewat Protokol Keputusan (CHARTER §4).
 >
-> **🔴 MENUNGGU FOUNDER — R-001 (P0):** migrasi **047 dan 167** sama-sama
-> mendefinisikan `accounts`/`journal_entries` dengan bentuk tak kompatibel
-> (047 single-tenant, 167 ber-`company_id`). Di lingkungan baru 047 jalan lebih
-> dulu lalu 167 **no-op senyap** → **buku besar tidak bisa memisahkan
-> perusahaan**, tanpa satu pun pesan galat. Biaya pembatalan hari ini **nol**
-> (`journal_entries` 0 baris). **Jangan bangun apa pun di atas GL dulu.**
+> ## ✅ R-001 SUDAH SELESAI — dikoreksi 2026-08-16
+>
+> Blok di sini masih memasang peringatan merah R-001 ("jangan bangun apa pun
+> di atas GL") sembilan hari sesudah penyebabnya diperbaiki. QUEUE.yaml
+> mencatat `R-001 status: done`, dan CLAUDE.md §5.5 sudah mencabutnya.
+> Hanya berkas ini yang tertinggal.
+>
+> Ini kejadian KEDUA untuk peringatan yang sama persis: pada 2026-08-07 ia
+> membuat saya melapor ke founder bahwa penyusutan→GL menunggu ratifikasi,
+> padahal tidak. Peringatan pun bisa basi — dan peringatan basi lebih mahal
+> daripada angka basi, karena ia MENGHENTIKAN pekerjaan yang sebenarnya boleh
+> jalan.
+>
+> Ukur sendiri, jangan percaya baris ini:
+>
+>     node scripts/db/introspect.mjs columns | grep accounts
+>     node scripts/db/ledger-diff.mjs
 >
 > Menunggu juga: R-002 (buku migrasi tertinggal 12 versi), R-003 (bekerja di atas
 > branch `fix/search-…`, bukan `main` — 8 commit GL belum ter-merge), R-004

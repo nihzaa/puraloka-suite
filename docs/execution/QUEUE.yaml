@@ -2121,7 +2121,13 @@ items:
     blokir_oleh: []
     kriteria_selesai:
       - "tiap automation punya endpoint + entri di KATALOG_TUGAS"
-      - "dedup harian terbukti: panggilan kedua di hari sama = 0 notifikasi"
+      # DIUBAH 2026-08-16. Kriteria lama ("dedup harian terbukti") sudah
+      # BASI, dan lebih buruk: memenuhinya berarti mempertahankan cacat.
+      # Dedup harian menahan kembar per HARI, sehingga masalah yang belum
+      # diperbaiki menagih ulang tiap hari selamanya — diukur 9.009
+      # notifikasi, 3 dibaca, satu `gr_tak_cocok` menagih orang yang sama
+      # 5 hari berturut-turut. Diganti jeda melandai (+3, +7, tiap 14 hari).
+      - "jeda melandai terbukti: tagihan ulang tertahan sampai jedanya lewat, lalu lepas"
       - "aturan routing punya PENERIMA (aturan tanpa target = notifikasi hilang senyap)"
       - "test dijalankan, ringkasannya ditempel"
     cara_verifikasi: >-
@@ -2182,8 +2188,27 @@ items:
       `SCHEDULER_URL` + `SCHEDULER_SECRET` belum disetel di GitHub Secrets,
       jadi denyut 15 menit dilewati dengan notice. TUGAS FOUNDER — tanpa itu,
       keempat automation di atas tak akan pernah berjalan sendiri.
+
+      ── 2026-08-16: KODE SELESAI, TINGGAL TUGAS FOUNDER ──────────────────
+      Status diubah `wip` → `ratifikasi`. `wip` menyiratkan masih ada yang
+      saya garap; tak ada. Yang tersisa satu-satunya `SCHEDULER_URL` +
+      `SCHEDULER_SECRET` di GitHub Secrets, dan itu sudah tercatat di
+      RATIFIKASI.md §1 sejak lama.
+
+      Membiarkannya `wip` membuat antrean berbohong tentang siapa yang
+      sedang memegang bola.
+
+      Terpenuhi dan terukur:
+        47 rute otomasi terdaftar (katalog Phase 2 = 8, sisanya di atasnya)
+        56 test lulus di otomasi-terjadwal.test.ts, ke-47 rute dipanggil
+        73 kunci routing dipakai, 73 punya aturan, 0 aturan tanpa penerima
+        jeda melandai terbukti lewat mutasi (M1 harian, M2 indeks meleset)
+
+      Yang TIDAK diklaim: otomasi belum pernah berjalan sendiri di produksi.
+      Ia terbukti bisa DIPANGGIL dan benar; terbukti BERDENYUT adalah hal
+      lain, dan itu menunggu founder.
     bobot: M
-    status: wip
+    status: ratifikasi
 
   - id: AUT-DEBT-101
     fase: 2

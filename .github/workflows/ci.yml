@@ -692,6 +692,26 @@ jobs:
       - name: Kunci izin benar-benar ada di basis
         run: node scripts/audit-izin-benar-ada.mjs
 
+      # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
+      # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
+      # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris
+      # dan memulangkan sukses, dan rutenya membalas 200 dengan
+      # `notifications_created: 0` — tak bisa dibedakan dari "hari ini tak ada
+      # temuan". Otomasinya terlihat sehat selamanya sambil tak memberi tahu
+      # siapa pun.
+      #
+      # Yang diperiksa argumen `resolveRecipients`, BUKAN `type:`. Bentuk
+      # pertama memeriksa `type:` dan salah menuduh delapan dari sepuluh:
+      # `type` itu kategori tampilan, kunci routing string yang lain
+      # (`resolveRecipients('material_request_submitted')` + `type: 'general'`).
+      #
+      # Ambang NOL: diukur 73 kunci dipakai, 73 punya aturan, 0 aturan yatim.
+      #
+      # Bukti merah: satu huruf dihapus dari kunci → exit 1; target satu-satunya
+      # sebuah aturan dihapus → exit 1; keduanya dipulihkan → exit 0.
+      - name: Kunci routing notifikasi punya aturan dan penerima
+        run: node scripts/audit-jenis-notifikasi-punya-aturan.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan
