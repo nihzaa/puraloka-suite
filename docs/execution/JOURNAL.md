@@ -5,6 +5,87 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi asisten) — asisten tak tahu lawan bicaranya; dan dua nama kolom yang berbohong
+
+Dua pekerjaan, satu benang merah: **nama boleh menyesatkan, data tidak.**
+
+### 1. Konteks penanya (`ai-konteks-penanya.ts`)
+
+Diukur: prompt sistem tak memuat nama penanya, perannya, maupun tanggal hari
+ini. Akibatnya "kasbon minggu ini berapa?" tak bisa dijawab benar — model tak
+punya jam, jadi ia menebak atau memanggil tool tanpa saringan tanggal lalu
+menyodorkan seluruh riwayat sebagai "minggu ini". Tanpa satu galat pun.
+
+Blok disambung **setelah** `PAGAR_FAKTA`, bukan sebelum: "Peran: direktur" tak
+boleh terbaca sederajat dengan aturan anti-halusinasi. Peran di sini KONTEKS,
+bukan wewenang — otorisasi tetap di `requirePermission`.
+
+Rentang pekan SENIN–hari ini. `getDay()` memulai pekan di Minggu; memakainya
+apa adanya membuat "minggu ini" pada hari Minggu meleset **enam hari**.
+Tanggal dari waktu lokal, bukan `toISOString()` — di WIB pukul 06:00 tanggal
+12 menjadi "2026-08-11", jadi tiap pagi asisten menjawab dengan tanggal kemarin.
+
+### 2. Dua tool baru — dan dua nama kolom yang berbohong
+
+| Nomor | Tool | Yang hampir salah |
+|---|---|---|
+| 6.12 | `performa_mandor` | `count(*)` vs `sum(porsi_hari)` — 113 dari 1.279 baris bernilai 0,5, jadi menghitung baris melebihkan **56,5 hari orang** |
+| 10.1 | `utilisasi_alat` | `jam_mulai`/`jam_selesai` **bukan jam dinding** |
+
+Yang kedua layak dicatat panjang. Namanya `jam_mulai`/`jam_selesai`, jadi saya
+menulis pengurai `HH:MM`. Datanya menolak: tipenya `numeric`, nilainya
+1.172,00 → 1.180,00 → 1.188,00 — **berlanjut antar hari**, jauh melewati 24.
+Itu pembacaan **hour meter kumulatif**, odometer alat berat. Tafsiran `HH:MM`
+mengurai "1172" jadi pukul 11:72 dan menghasilkan durasi karangan yang tetap
+terlihat wajar di laporan.
+
+Pelajarannya sama dengan pembuka `CLAUDE.md`: **nama kolom adalah dokumen, dan
+dokumen bisa berbohong.** Yang tidak berbohong adalah `information_schema` dan
+isi barisnya.
+
+### Yang ditemukan TEST, bukan pembacaan ulang
+
+Dua cacat lolos dari saya dan ditangkap test yang baru ditulis:
+
+1. `Number('')` adalah **0**, bukan NaN — kolom kosong terbaca sebagai "hour
+   meter menunjuk nol", dan pasangan `('', '1200')` menghasilkan **1.200 jam**
+   dari satu baris.
+2. Rentang tanggal kosong tetap memulangkan **enam mandor bernilai nol semua** —
+   "tidak ada data" terbaca sebagai "enam mandor, semuanya nol hari". Entri
+   akumulator dibuat sebelum memeriksa ada-tidaknya absensi.
+
+### Yang ditemukan PEMBUNGKUS TENANCY
+
+Tiga penolakan `TenantDbError` yang semuanya benar: `companies`, `users`
+(kategori D), `mandor_assignments` dan `work_scopes` (kategori C). Versi
+pertama saya memakai `.from()` polos dengan `.in('project_id', …)` — yang akan
+menjangkau baris tenant lain. Nama mandor akhirnya ikut dari embed di lompatan
+pertama, jadi satu `unsafe()` bisa dihapus seluruhnya.
+
+### Bukti
+
+- `npx vitest run src/lib/__tests__/ai-` → **Test Files 33 passed · Tests 392 passed**
+- mutasi (4×, semuanya dibuktikan MERAH lalu pulih HIJAU):
+  `mundur = hariKe` → 4 merah · `toISOString()` → 3 merah ·
+  `hariOrang += 1` → 2 merah · hapus `baris.length === 0` → 1 merah ·
+  `jamPakai` jadi HH:MM → 3 merah · hapus tolak-string-kosong → 1 merah
+- ⚠ mutasi putaran pertama **tidak menggigit** karena berkas ber-CRLF sementara
+  pola cari saya ber-`\n`. Hijau-nya tak berarti apa-apa; diulang dengan
+  penjaga "MUTASI TAK MENGGIGIT" yang gagal keras bila pola tak cocok.
+- penjaga exit 0: `audit-tool-ai-read-only` · `audit-katalog-tool-tak-membengkak`
+  (4.733/5.200 token, 42 tool) · `audit-izin-benar-ada` ·
+  `audit-baca-tak-terpotong` · `audit-gerbang-tenancy` · `audit-kegagalan-senyap`
+  · `audit-catch-senyap` · `audit-pagar-fakta-utuh`
+- keduanya dijalankan lewat `jalankanTool()` sungguhan: 1.222,5 hari orang ·
+  Excavator 20 Ton 96 jam · **15 alat tak terpakai sama sekali**
+
+### Catatan untuk sesi berikut
+
+`utilisasi_alat` menyebut alat menganggur secara eksplisit — 15 dari 18 aset
+nol pemakaian pada rentang penuh. Itu temuan operasional, bukan cacat tool.
+
+---
+
 ## 2026-08-16 (sesi CECEP, 11) — audit UI `/estimasi`: backendnya kaya, UI-nya satu halaman
 
 Founder minta rombak UI/UX + alur kerja CECEP ("masih kurang intuitif"), plus

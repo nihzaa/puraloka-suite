@@ -129,6 +129,27 @@ Dikelompokkan menurut yang menanyakannya:
 **Kemampuan asisten, bukan data (3)** — 1.12 klarifikasi multi-giliran,
 1.13 serah ke manusia, 2.8 hitung pajak per invoice
 
+### Yang sudah jadi tool — UKUR, jangan percaya daftar di atas
+
+Daftar di atas adalah KANDIDAT, bukan status. Yang sudah terbangun diukur
+dari katalognya sendiri, bukan dari dokumen ini:
+
+```bash
+cd apps/api && npx tsx -e "import {KATALOG_TOOL} from './src/lib/ai-tool.js'; \
+  console.log(KATALOG_TOOL.length, KATALOG_TOOL.map(t=>t.nama).join(' '))"
+```
+
+Diukur 2026-08-16: **42 tool**. Dua terakhir yang masuk —
+
+| Nomor | Tool | Izin | Catatan pengukuran |
+|---|---|---|---|
+| 6.12 | `performa_mandor` | `mandor:view` | hari orang = `sum(porsi_hari)`; 113 dari 1.279 baris absensi bernilai 0,5 — `count(*)` melebihkan 56,5 hari orang |
+| 10.1 | `utilisasi_alat` | `assets:view` | `jam_mulai`/`jam_selesai` ternyata `numeric` HOUR METER kumulatif (1.172 → 1.180), **bukan** jam dinding |
+
+Sisa nomor "Pemilik/eksekutif" (1.15, 2.18, 8.2, 8.5, 8.7) tetap tertahan
+karena datanya belum ada — bukan karena belum sempat. Ukur dulu sebelum
+membangunnya.
+
 ---
 
 ## 5. Cara mengukur ulang (yang harus dipercaya, bukan tabel di atas)

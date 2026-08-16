@@ -71,6 +71,8 @@ import { toolSerapanBiaya } from './ai-tool-serapan-biaya.js'
 import { toolIkhtisar } from './ai-tool-ikhtisar.js'
 import { toolBebanMandorLintas } from './ai-tool-beban-mandor.js'
 import { toolTukangCocok } from './ai-tool-tukang-cocok.js'
+import { ringkasPerformaMandor } from './ai-tool-performa-mandor.js'
+import { ringkasUtilisasiAlat } from './ai-tool-utilisasi-alat.js'
 
 
 
@@ -813,6 +815,130 @@ const toolSaldoKas: DefinisiToolAi = {
   },
 }
 
+/**
+ * 6.12 — ringkasan performa mandor.
+ *
+ * Rentang tanggal OPSIONAL dan bawaannya 30 hari terakhir. Sengaja tidak
+ * diwajibkan: blok konteks penanya sudah memberi model rentang "minggu ini"
+ * dan "bulan ini" yang dihitung server, jadi model punya nilai yang benar
+ * untuk diisi — dan kalau ia tak mengisinya, jawabannya tetap menyebut
+ * rentang mana yang dipakai alih-alih diam.
+ */
+const toolPerformaMandor: DefinisiToolAi = {
+  nama: 'performa_mandor',
+  label: 'Ringkasan performa mandor',
+  keterangan:
+    'Hari orang, jumlah tukang, jam lembur, dan hari aktif per mandor dalam '
+    + 'rentang tanggal. Pakai untuk "mandor mana yang paling banyak menurunkan '
+    + 'orang bulan ini" atau "lembur minggu ini berapa jam". Bawaan 30 hari '
+    + 'terakhir bila rentang tak disebut.',
+  izin: 'mandor:view',
+  skema: {
+    type: 'object',
+    properties: {
+      sejak: { type: 'string', description: 'Tanggal awal, format YYYY-MM-DD.' },
+      sampai: { type: 'string', description: 'Tanggal akhir, format YYYY-MM-DD.' },
+    },
+  },
+  async jalan({ db }, argumen) {
+    const a = (argumen ?? {}) as { sejak?: string; sampai?: string }
+    const h = await ringkasPerformaMandor(db, { sejak: a.sejak, sampai: a.sampai })
+    if ('galat' in h) return { isi: h.galat, isError: true, entitas: [] }
+
+    if (h.mandor.length === 0) {
+      return {
+        isi: bungkusData(
+          'performa_mandor',
+          `${h.catatan ?? 'Tidak ada data.'} (rentang ${h.sejak} s.d. ${h.sampai})`,
+        ),
+        isError: false,
+        entitas: [],
+      }
+    }
+
+    const rows = h.mandor.map(
+      (m) =>
+        `${m.mandor}: ${angka(m.hariOrang)} hari orang · ${m.jumlahTukang} tukang · `
+        + `${angka(m.jamLembur)} jam lembur · aktif ${m.hariAktif} hari`,
+    )
+    return {
+      isi: bungkusData(
+        'performa_mandor',
+        [
+          `Rentang ${h.sejak} s.d. ${h.sampai}. Total ${angka(h.totalHariOrang)} hari orang.`,
+          '(1 hari orang = 1 orang bekerja sehari penuh; setengah hari dihitung 0,5)',
+          '',
+          ...rows,
+        ].join('\n'),
+      ),
+      isError: false,
+      entitas: h.mandor.map((m) => m.mandor),
+    }
+  },
+}
+
+/**
+ * 10.1 — utilisasi alat.
+ */
+const toolUtilisasiAlat: DefinisiToolAi = {
+  nama: 'utilisasi_alat',
+  label: 'Utilisasi alat',
+  keterangan:
+    'Total jam pemakaian, jumlah hari terpakai, dan kapan terakhir dipakai '
+    + 'untuk tiap alat — berikut alat yang TIDAK dipakai sama sekali pada '
+    + 'rentang itu. Pakai untuk "alat mana yang nganggur" atau "excavator '
+    + 'kepakai berapa jam bulan ini". Bawaan 30 hari terakhir.',
+  izin: 'assets:view',
+  skema: {
+    type: 'object',
+    properties: {
+      sejak: { type: 'string', description: 'Tanggal awal, format YYYY-MM-DD.' },
+      sampai: { type: 'string', description: 'Tanggal akhir, format YYYY-MM-DD.' },
+    },
+  },
+  async jalan({ db }, argumen) {
+    const a = (argumen ?? {}) as { sejak?: string; sampai?: string }
+    const h = await ringkasUtilisasiAlat(db, { sejak: a.sejak, sampai: a.sampai })
+    if ('galat' in h) return { isi: h.galat, isError: true, entitas: [] }
+
+    const baris: string[] = [`Rentang ${h.sejak} s.d. ${h.sampai}.`, '']
+
+    if (h.alat.length === 0) {
+      baris.push(h.catatan ?? 'Tidak ada pemakaian alat tercatat pada rentang ini.')
+    } else {
+      for (const m of h.alat) {
+        const takWajar =
+          m.barisTakWajar > 0
+            ? ` — ${m.barisTakWajar} catatan berjam janggal, TIDAK ikut dijumlah`
+            : ''
+        baris.push(
+          `${m.alat}: ${angka(m.totalJam)} jam · ${m.jumlahPemakaian}× pakai · `
+          + `${m.hariTerpakai} hari · terakhir ${m.terakhirDipakai ?? '-'}${takWajar}`,
+        )
+      }
+    }
+
+    /*
+      Alat menganggur disebut EKSPLISIT. Daftar yang hanya memuat alat terpakai
+      membuat pembacanya menyimpulkan "semuanya jalan" — kebalikan dari yang
+      ditanyakan.
+    */
+    if (h.alatTakTerpakai.length > 0) {
+      baris.push(
+        '',
+        `Tidak dipakai sama sekali pada rentang ini (${h.alatTakTerpakai.length}): `
+        + h.alatTakTerpakai.join(', '),
+      )
+    }
+
+    return {
+      isi: bungkusData('utilisasi_alat', baris.join('\n')),
+      isError: false,
+      entitas: [...h.alat.map((m) => m.alat), ...h.alatTakTerpakai],
+    }
+  },
+}
+
 export const KATALOG_TOOL: DefinisiToolAi[] = [
   toolDaftarProyek,
   toolRingkasKeuangan,
@@ -921,6 +1047,18 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     yang bisa" padahal yang benar "cuma segini yang TERCATAT bisa".
   */
   toolTukangCocok,
+  /*
+    Katalog 6.12 (ringkasan performa mandor). Yang dijumlah `porsi_hari`,
+    bukan `count(*)` — 113 dari 1.279 baris absensi bernilai 0,5 hari, dan
+    menghitung barisnya melebihkan 56,5 hari orang tanpa satu pun galat.
+  */
+  toolPerformaMandor,
+  /*
+    Katalog 10.1 (utilisasi alat). Alat yang TAK muncul sama sekali ikut
+    disebut: menghilangkannya membuat laporan berbunyi "semua alat terpakai",
+    persis kebalikan dari yang ditanyakan.
+  */
+  toolUtilisasiAlat,
 ]
 
 /**

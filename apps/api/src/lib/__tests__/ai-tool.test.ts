@@ -170,6 +170,9 @@ describe('tool terhadap data NYATA', () => {
       // `titip_pesan` — satu-satunya tool yang menyentuh ORANG LAIN, jadi
       // izinnya sengaja terpisah dari `ai:chat`.
       'notifications:rules:manage',
+      // `utilisasi_alat` (10.1, 2026-08-16). `performa_mandor` (6.12) tak
+      // menambah baris karena memakai `mandor:view` yang sudah ada di atas.
+      'assets:view',
     ])
   })
 
