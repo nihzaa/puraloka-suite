@@ -30,8 +30,8 @@
  *      yang penuh "—" membuat yang berisi jadi sulit ditemukan.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { api, makeAbortController } from "@/lib/api";
+import { useMemo, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import {
   ClipboardList, CloudRain, Users, RefreshCw, MessageSquareText, TrendingUp,
 } from "lucide-react";
@@ -87,33 +87,38 @@ function tanggalPanjang(iso: string): string {
 }
 
 export default function LaporanHarianPage() {
-  const [data, setData] = useState<Tanggapan | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
   const [proyekId, setProyekId] = useState("");
-  const [putaran, setPutaran] = useState(0);
 
-  const muat = useCallback((signal: AbortSignal) => {
-    setMemuat(true);
-    setGalat("");
-    const params = proyekId ? { project_id: proyekId } : undefined;
-    return api.get<Tanggapan>("/api/v1/lapangan/laporan-harian", { params, signal })
-      .then((r) => setData(r.data))
-      .catch((e) => {
-        if ((e as { code?: string })?.code === "ERR_CANCELED") return;
-        setGalat(
-          (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-            ?? "Gagal memuat laporan harian.",
-        );
-      })
-      .finally(() => setMemuat(false));
-  }, [proyekId]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat, putaran]);
+    URL-nya DINAMIS mengikuti saringan proyek, dan itu justru menguntungkan:
+    `useData` memakai URL sebagai kunci cache, jadi berpindah antar proyek lalu
+    kembali tak mengambil ulang selama masih segar.
+
+    ── `putaran` DIBUANG, digantikan `muatUlang()`
+
+    State `putaran` adalah penghitung yang dinaikkan tombol "segarkan", dipakai
+    sebagai dependensi efek supaya efeknya berjalan lagi. Itu cara yang sah
+    sebelum ada lapis cache; sesudahnya `muatUlang()` melakukan hal yang sama
+    secara langsung — dan dengan `paksa: true`, jadi ia benar-benar melewati
+    cache alih-alih memulangkan salinan yang baru saja disimpan.
+
+    ⚠ Saya sempat menulis di sini bahwa `setPutaran` "tak pernah dipanggil".
+    Itu SALAH, dan salahnya dari alat ukur: `grep "putaran"` huruf kecil tak
+    cocok dengan `setPutaran` yang ber-P besar. Tombolnya ada di baris ~153.
+    Nol hasil bukan bukti ketiadaan — untuk kesekian kalinya di repo ini.
+  */
+  const jalur = proyekId
+    ? `/api/v1/lapangan/laporan-harian?project_id=${encodeURIComponent(proyekId)}`
+    : "/api/v1/lapangan/laporan-harian";
+  const { data, memuat, galat: galatMuat, muatUlang } = useData<Tanggapan>(jalur);
+  // Tombol segarkan memanggil `muatUlang()` LANGSUNG — pembungkus `muat()`
+  // tak lagi perlu, dan membiarkannya menganggur membuat ratchet lint merah.
+
+  // Halaman ini murni baca — tak ada aksi tulis, jadi tak ada galat aksi.
+  const galat = galatMuat ? "Gagal memuat laporan harian." : "";
+
 
   const namaProyek = useMemo(
     () => new Map((data?.proyek ?? []).map((p) => [p.id, p.name])),
@@ -150,7 +155,7 @@ export default function LaporanHarianPage() {
           </select>
           <button
             type="button"
-            onClick={() => setPutaran((x) => x + 1)}
+            onClick={() => { void muatUlang(); }}
             disabled={memuat}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
