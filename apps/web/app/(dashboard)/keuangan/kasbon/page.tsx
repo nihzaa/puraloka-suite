@@ -16,12 +16,13 @@
  * Menulisnya ulang berarti mempertaruhkan alur persetujuan uang.
  */
 
-import React, { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import React, { useCallback, useState, useSyncExternalStore } from "react";
 import {
   AlertTriangle, Banknote, Clock,
-  PieChart, Plus, RefreshCw, Wallet, 
+  PieChart, Plus, RefreshCw, Wallet,
 } from "lucide-react";
-import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Kosong } from "@/components/ui-dasar";
 import { Paginasi } from "@/components/paginasi";
 import { C } from "@/lib/warna-ui";
@@ -35,25 +36,18 @@ import {
 const PER_HALAMAN = 25;
 
 export default function KasbonPage() {
-  const [kasbons, setKasbons] = useState<Kasbon[]>([]);
-  const [loadingKasbon, setLoadingKasbon] = useState(true);
   const [kasbonStatusFilter, setKasbonStatusFilter] = useState("all");
   // Paginasi: 25 per halaman. Sebelumnya `limit: 200` dirender sekaligus
   // dan halaman ini jadi 9.083px — sembilan layar gulir untuk mencari satu
   // kasbon, dua kali lipat halaman terpanjang berikutnya di seluruh aplikasi.
   const [halaman, setHalaman] = useState(1);
-  const [totalKasbon, setTotalKasbon] = useState(0);
   const [kasbonSubTab, setKasbonSubTab] = useState<"daftar" | "summary">("daftar");
-  const [kasbonSummary, setKasbonSummary] = useState<KasbonSummaryData | null>(null);
   const [kasbonType, setKasbonType] = useState<"mandor" | "tukang">("mandor");
-  const [workerKasbons, setWorkerKasbons] = useState<WorkerKasbon[]>([]);
-  const [loadingWorkerKasbon, setLoadingWorkerKasbon] = useState(false);
   const [workerKasbonFilter, setWorkerKasbonFilter] = useState("all");
   const [showAddKasbon, setShowAddKasbon] = useState(false);
   const [approvingKasbonId, setApprovingKasbonId] = useState<string | null>(null);
   const [kasbonCashAccountId, setKasbonCashAccountId] = useState("");
   const [kasbonCashAccounts, setKasbonCashAccounts] = useState<CashAccount[]>([]);
-  const [galat, setGalat] = useState<string | null>(null);
 
   // `useSyncExternalStore` — lihat catatan di /keuangan/invoice:
   // `hasPermission` membaca localStorage, jadi memanggilnya saat render
@@ -64,66 +58,59 @@ export default function KasbonPage() {
     () => false,
   );
 
-  const loadKasbons = useCallback(async (signal?: AbortSignal) => {
-    setLoadingKasbon(true);
-    try {
-      const params: Record<string, string> = {
-        limit: String(PER_HALAMAN),
-        offset: String((halaman - 1) * PER_HALAMAN),
-      };
-      if (kasbonStatusFilter !== "all") params.status = kasbonStatusFilter;
-      const [listRes, summaryRes] = await Promise.all([
-        api.get<{ kasbons: Kasbon[]; total?: number }>("/api/v1/finance/kasbons", { params, signal }),
-        api.get<KasbonSummaryData>("/api/v1/finance/kasbon-summary", { signal }),
-      ]);
-      setKasbons(listRes.data.kasbons);
-      setTotalKasbon(listRes.data.total ?? listRes.data.kasbons.length);
-      setKasbonSummary(summaryRes.data);
-      setGalat(null);
-    } catch (e: unknown) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      // Daftar kosong dan daftar-gagal-dimuat terlihat sama. Di halaman
-      // persetujuan uang, membedakannya penting: "tak ada yang menunggu"
-      // adalah kabar baik yang salah kalau sebenarnya API-nya mati.
-      setKasbons([]);
-      setGalat("Gagal memuat daftar kasbon.");
-    } finally {
-      setLoadingKasbon(false);
-    }
-  }, [kasbonStatusFilter, halaman]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const loadWorkerKasbons = useCallback(async (signal?: AbortSignal) => {
-    setLoadingWorkerKasbon(true);
-    try {
-      const params: Record<string, string> = {};
-      if (workerKasbonFilter === "settled") params.is_settled = "true";
-      if (workerKasbonFilter === "active") params.is_settled = "false";
-      const res = await api.get<{ kasbons: WorkerKasbon[] }>(
-        "/api/v1/mandor/worker-kasbons", { params, signal });
-      setWorkerKasbons(res.data.kasbons);
-    } catch (e: unknown) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      setWorkerKasbons([]);
-    } finally {
-      setLoadingWorkerKasbon(false);
-    }
-  }, [workerKasbonFilter]);
+    Tiga permintaan lama jadi tiga `useData`:
+      · daftar kasbon mandor — URL dinamis (status + paginasi)
+      · summary kasbon mandor — statis, tak ikut paginasi/saringan
+      · kasbon tukang — URL dinamis (filter), hanya dimuat saat
+        `kasbonType === "tukang"` lewat `useData(kondisi ? url : null)`
 
-  // `queueMicrotask` — lihat catatan yang sama di /keuangan/invoice: kedua
-  // pemuat menyetel state di baris pertamanya, dan setState sinkron di dalam
-  // effect memicu render kedua sebelum yang pertama selesai.
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void loadKasbons(ac.signal); });
-    return () => ac.abort();
-  }, [loadKasbons]);
+    Akun kas untuk approve TETAP `api.get` langsung, bukan `useData`: ia
+    dimuat sekali secara lazy saat tombol "Setujui" diklik pertama kali,
+    bukan pola baca-halaman biasa.
+  */
+  const jalurKasbon = kasbonStatusFilter !== "all"
+    ? `/api/v1/finance/kasbons?limit=${PER_HALAMAN}&offset=${(halaman - 1) * PER_HALAMAN}&status=${encodeURIComponent(kasbonStatusFilter)}`
+    : `/api/v1/finance/kasbons?limit=${PER_HALAMAN}&offset=${(halaman - 1) * PER_HALAMAN}`;
+  const { data: dataKasbon, memuat: memuatKasbonList, galat: galatMuatKasbon, muatUlang: muatUlangKasbon } =
+    useData<{ kasbons: Kasbon[]; total?: number }>(jalurKasbon);
+  const kasbons = dataKasbon?.kasbons ?? [];
+  const totalKasbon = dataKasbon?.total ?? kasbons.length;
 
-  useEffect(() => {
-    if (kasbonType !== "tukang") return;
-    const ac = makeAbortController();
-    queueMicrotask(() => { void loadWorkerKasbons(ac.signal); });
-    return () => ac.abort();
-  }, [kasbonType, loadWorkerKasbons]);
+  const { data: kasbonSummary, memuat: memuatSummary, galat: galatMuatSummary, muatUlang: muatUlangSummary } =
+    useData<KasbonSummaryData>("/api/v1/finance/kasbon-summary");
+
+  const loadingKasbon = memuatKasbonList || memuatSummary;
+
+  const jalurWorker = kasbonType === "tukang"
+    ? (workerKasbonFilter === "settled"
+        ? "/api/v1/mandor/worker-kasbons?is_settled=true"
+        : workerKasbonFilter === "active"
+          ? "/api/v1/mandor/worker-kasbons?is_settled=false"
+          : "/api/v1/mandor/worker-kasbons")
+    : null;
+  const { data: dataWorker, memuat: loadingWorkerKasbon, muatUlang: muatUlangWorker } =
+    useData<{ kasbons: WorkerKasbon[] }>(jalurWorker);
+  const workerKasbons = dataWorker?.kasbons ?? [];
+
+  const loadKasbons = useCallback(async () => {
+    await Promise.all([muatUlangKasbon(), muatUlangSummary()]);
+  }, [muatUlangKasbon, muatUlangSummary]);
+
+  const loadWorkerKasbons = useCallback(async () => { await muatUlangWorker(); }, [muatUlangWorker]);
+
+  /*
+    Galat MUAT dan galat AKSI (setujui/tolak kasbon, muat akun kas) sengaja
+    dipisah — satu state untuk keduanya membuat gagal menyetujui menghapus
+    pesan gagal memuat, dan pengguna yang jaringannya putus lalu menekan
+    Setujui mengira daftarnya sudah termuat.
+  */
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi ?? (
+    (galatMuatKasbon || galatMuatSummary) ? "Gagal memuat daftar kasbon." : null
+  );
 
   async function handleKasbonAction(
     id: string, action: "approved" | "rejected", cashAccountId?: string,
@@ -133,12 +120,12 @@ export default function KasbonPage() {
         status: action, cash_account_id: cashAccountId || undefined,
       });
       setApprovingKasbonId(null);
-      loadKasbons();
+      await loadKasbons();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       // Kegagalan menyetujui HARUS terlihat: kalau diam, orang mengira uang
       // sudah disetujui padahal belum, dan mandor menunggu tanpa kabar.
-      setGalat(msg ?? "Gagal memproses kasbon. Coba lagi.");
+      setGalatAksi(msg ?? "Gagal memproses kasbon. Coba lagi.");
     }
   }
 
@@ -151,7 +138,7 @@ export default function KasbonPage() {
           const utama = r.data.accounts.find((a) => a.type === "main");
           if (utama) setKasbonCashAccountId(utama.id);
         })
-        .catch(() => setGalat("Gagal memuat daftar akun kas."));
+        .catch(() => setGalatAksi("Gagal memuat daftar akun kas."));
     }
   }
 
@@ -171,7 +158,7 @@ export default function KasbonPage() {
         }}>
           <AlertTriangle size={14} aria-hidden="true" style={{ flexShrink: 0 }} />
           {galat}
-          <button onClick={() => { setGalat(null); loadKasbons(); }} style={{
+          <button onClick={() => { setGalatAksi(null); void loadKasbons(); }} style={{
             marginLeft: "auto", padding: "2px 8px", borderRadius: 6,
             border: `1px solid ${C.redBorder}`, background: "transparent",
             color: C.onDangerBg, fontSize: 12, fontWeight: 600, cursor: "pointer",
@@ -257,7 +244,7 @@ export default function KasbonPage() {
                 <option value="rejected">Ditolak</option>
                 <option value="settled">Settled</option>
               </select>
-              <button onClick={() => loadKasbons()} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
+              <button onClick={() => void loadKasbons()} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                 <RefreshCw size={13} /> Refresh
               </button>
               {kasbons.length > 0 && (
@@ -499,7 +486,7 @@ export default function KasbonPage() {
                 <option value="active">Belum Lunas</option>
                 <option value="settled">Sudah Lunas</option>
               </select>
-              <button onClick={() => loadWorkerKasbons()} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
+              <button onClick={() => void loadWorkerKasbons()} style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer" }}>
                 <RefreshCw size={13} /> Refresh
               </button>
               {workerKasbons.length > 0 && (
@@ -598,7 +585,7 @@ export default function KasbonPage() {
       {showAddKasbon && (
         <AddKasbonModal
           onClose={() => setShowAddKasbon(false)}
-          onSuccess={() => { setShowAddKasbon(false); loadKasbons(); }}
+          onSuccess={() => { setShowAddKasbon(false); void loadKasbons(); }}
         />
       )}
     </div>

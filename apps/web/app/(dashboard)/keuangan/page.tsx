@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import {
   Wallet, Receipt, AlertTriangle,
   Clock, 
@@ -58,54 +58,8 @@ function KeuanganContent() {
   const [overviewFrom, setOverviewFrom] = useState("");
   const [overviewTo, setOverviewTo] = useState("");
 
-  // Summary
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [cashflow, setCashflow] = useState<CashflowPoint[]>([]);
-  const [loadingSummary, setLoadingSummary] = useState(true);
-
-  // Umur piutang — endpoint ar-aging sudah lama ada tapi TIDAK PERNAH dipakai
-  // UI. Ditemukan saat menyisir endpoint keuangan; kelas "API tanpa layar"
-  // yang membuat fitur terasa hilang padahal datanya siap.
-  //
-  // Dimuat terpisah dari summary karena ia tak bergantung periode: piutang
-  // yang menunggu 90 hari tetap menunggu 90 hari, apa pun rentang yang
-  // sedang dilihat di grafik arus kas.
-  const [umur, setUmur] = useState<{ buckets: PetaUmur; total_outstanding: number } | null>(null);
-  const [umurMemuat, setUmurMemuat] = useState(true);
-
-  // Invoices
-
-  // Payments
-
-  // Kasbons
-  // Kasbon tukang
-
   // Modals
   const [showCreateInvoice, setShowCreateInvoice] = useState(false);
-
-  // Load summary + cashflow on mount and when period changes
-  useEffect(() => {
-    const { from, to } = computePeriodDates(overviewPeriod, overviewFrom, overviewTo);
-    loadSummary(from, to);
-    loadCashflowForOverview(from, to);
-  }, [overviewPeriod, overviewFrom, overviewTo]);
-
-  // Efek pemuat invoice/pembayaran/kasbon dihapus di sini: ketiganya kini
-  // rute sendiri dan memuat datanya masing-masing. Halaman Ringkasan hanya
-  // butuh `summary` + `cashflow` + umur piutang.
-
-  useEffect(() => {
-    // Sekali saat mount — tak bergantung periode.
-    queueMicrotask(() => {
-      void api.get<{ buckets: PetaUmur; total_outstanding: number }>("/api/v1/finance/ar-aging")
-        .then((r) => setUmur(r.data))
-        // Panel ini pelengkap, bukan angka utama. Kalau gagal, komponennya
-        // menampilkan keadaan kosong yang jujur — tak ada angka karangan.
-        .catch(() => setUmur(null))
-        .finally(() => setUmurMemuat(false));
-    });
-  }, []);
-
 
   function computePeriodDates(period: string, customFrom: string, customTo: string) {
     const now = new Date();
@@ -133,36 +87,51 @@ function KeuanganContent() {
     return { from: customFrom, to: customTo };
   }
 
-  async function loadSummary(from?: string, to?: string) {
-    setLoadingSummary(true);
-    try {
-      const params: Record<string, string> = {};
-      if (from) params.date_from = from;
-      if (to)   params.date_to   = to;
-      const res = await api.get<Summary>("/api/v1/finance/summary", { params });
-      setSummary(res.data);
-    } finally {
-      setLoadingSummary(false);
-    }
-  }
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function loadCashflowForOverview(from?: string, to?: string) {
-    try {
-      const params: Record<string, string> = {
-        type: "payment,expense,wage,progress_payment,settlement_borongan",
-      };
-      if (from) params.date_from = from;
-      if (to)   params.date_to   = to;
-      const res = await api.get<{ chartData: ArusKasChartPoint[] }>("/api/v1/finance/cashflow-chart", { params });
-      // Map ArusKasChartPoint to CashflowPoint shape for backward-compat with chart
-      setCashflow(res.data.chartData.map(p => ({
-        label: p.label, masuk: p.masuk, keluar: p.keluar, net: p.net,
-        keluarKasbon: 0, keluarExpense: 0, keluarUpah: 0,
-      })));
-    } catch {}
-  }
+    Summary dan cashflow keduanya bergantung pada `{from, to}` yang sama —
+    URL dinamisnya jadi kunci cache, jadi berpindah rentang lalu kembali ke
+    rentang yang sama tak mengambil ulang selama masih segar. Umur piutang
+    TETAP dimuat sekali tanpa bergantung periode, sama seperti sebelumnya.
+  */
+  const { from: periodFrom, to: periodTo } =
+    computePeriodDates(overviewPeriod, overviewFrom, overviewTo);
 
+  const qSummary = new URLSearchParams();
+  if (periodFrom) qSummary.set("date_from", periodFrom);
+  if (periodTo) qSummary.set("date_to", periodTo);
+  const { data: summary, memuat: loadingSummary, muatUlang: muatUlangSummary } =
+    useData<Summary>(`/api/v1/finance/summary${qSummary.size ? `?${qSummary}` : ""}`);
 
+  const qCashflow = new URLSearchParams({
+    type: "payment,expense,wage,progress_payment,settlement_borongan",
+  });
+  if (periodFrom) qCashflow.set("date_from", periodFrom);
+  if (periodTo) qCashflow.set("date_to", periodTo);
+  const { data: dataCashflow } =
+    useData<{ chartData: ArusKasChartPoint[] }>(`/api/v1/finance/cashflow-chart?${qCashflow}`);
+  // Map ArusKasChartPoint ke bentuk CashflowPoint untuk backward-compat grafik.
+  const cashflow: CashflowPoint[] = (dataCashflow?.chartData ?? []).map((p) => ({
+    label: p.label, masuk: p.masuk, keluar: p.keluar, net: p.net,
+    keluarKasbon: 0, keluarExpense: 0, keluarUpah: 0,
+  }));
+
+  // Umur piutang — endpoint ar-aging sudah lama ada tapi TIDAK PERNAH dipakai
+  // UI. Ditemukan saat menyisir endpoint keuangan; kelas "API tanpa layar"
+  // yang membuat fitur terasa hilang padahal datanya siap.
+  //
+  // Dimuat terpisah dari summary karena ia tak bergantung periode: piutang
+  // yang menunggu 90 hari tetap menunggu 90 hari, apa pun rentang yang
+  // sedang dilihat di grafik arus kas. Panel ini pelengkap, bukan angka
+  // utama — kalau gagal, komponennya menampilkan keadaan kosong yang jujur,
+  // jadi `galat` sengaja tak diperiksa di sini (sama seperti versi lama).
+  const { data: umur, memuat: umurMemuat } =
+    useData<{ buckets: PetaUmur; total_outstanding: number }>("/api/v1/finance/ar-aging");
+
+  // Efek pemuat invoice/pembayaran/kasbon dihapus di sini: ketiganya kini
+  // rute sendiri dan memuat datanya masing-masing. Halaman Ringkasan hanya
+  // butuh `summary` + `cashflow` + umur piutang.
 
   // Arus kas & profitabilitas kini rute sendiri:
   //   /keuangan/arus-kas · /keuangan/profitabilitas
@@ -543,7 +512,7 @@ function KeuanganContent() {
             // mencerminkan tagihan baru. Perpindahan ke daftar invoice
             // TIDAK dilakukan otomatis lagi: setelah modul dipecah, itu
             // berarti meninggalkan halaman yang sedang dibaca orang.
-            loadSummary();
+            void muatUlangSummary();
           }}
         />
       )}

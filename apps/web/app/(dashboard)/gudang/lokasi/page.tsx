@@ -26,7 +26,8 @@ import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 
 import {
   Warehouse, RefreshCw, Plus, Pencil, Package, UserCheck, PowerOff, Power,
 } from "lucide-react";
-import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
@@ -56,74 +57,72 @@ const langganan = (cb: () => void) => {
 };
 
 export default function GudangLokasiPage() {
-  const [daftar, setDaftar] = useState<Gudang[]>([]);
-  const [anggota, setAnggota] = useState<Anggota[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
-  const [pesan, setPesan] = useState<{ jenis: "ok" | "galat"; teks: string } | null>(null);
   const [sibuk, setSibuk] = useState<string | null>(null);
-  const [putaran, setPutaran] = useState(0);
   const [form, setForm] = useState<{ mode: "baru" } | { mode: "sunting"; g: Gudang } | null>(null);
 
   const bolehKelola = useSyncExternalStore(
     langganan, () => hasPermission("gudang:manage"), () => false);
 
-  const muat = useCallback((signal: AbortSignal) => {
-    setMemuat(true);
-    setGalat("");
-    return Promise.all([
-      api.get<{ gudang: Gudang[] }>("/api/v1/gudang", { signal }),
-      api.get<{ pegawai: Array<{ user?: { id: string; name: string } | null }> }>(
-        "/api/v1/sdm/pegawai", { signal }).catch(() => null),
-    ])
-      .then(([r, p]) => {
-        setDaftar(r.data.gudang ?? []);
-        // Daftar orang hanya untuk memilih penjaga. Gagal memuatnya TIDAK
-        // melumpuhkan halaman — yang utama di sini membaca gudang.
-        if (p) {
-          setAnggota(
-            (p.data.pegawai ?? [])
-              .map((x) => x.user)
-              .filter((u): u is Anggota => !!u),
-          );
-        }
-      })
-      .catch((e) => {
-        if ((e as { code?: string })?.code === "ERR_CANCELED") return;
-        setGalat(
-          (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-            ?? "Gagal memuat daftar gudang.",
-        );
-      })
-      .finally(() => setMemuat(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat, putaran]);
+    Dua permintaan lama (gudang + pegawai) dipisah jadi dua `useData`. Yang
+    kedua (daftar penjaga) TETAP tidak boleh melumpuhkan halaman kalau gagal —
+    itu sebabnya `anggota` diturunkan dengan fallback array kosong, bukan
+    membaca `galatAnggota`.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<{ gudang: Gudang[] }>("/api/v1/gudang");
+  const { data: dataPegawai } =
+    useData<{ pegawai: Array<{ user?: { id: string; name: string } | null }> }>("/api/v1/sdm/pegawai");
 
+  // `useMemo` di sini bukan optimisasi — ia menstabilkan rujukan array
+  // supaya `useMemo` lain (baris `urut` di bawah) yang bergantung padanya
+  // tak menghitung ulang tiap render. `data?.gudang ?? []` sebagai ekspresi
+  // langsung melahirkan array baru tiap render, yang bikin dependensi
+  // hook di bawahnya berubah "terus-menerus" (react-hooks/exhaustive-deps).
+  const daftar = useMemo(() => data?.gudang ?? [], [data]);
+  const anggota = useMemo(
+    () => (dataPegawai?.pegawai ?? []).map((x) => x.user).filter((u): u is Anggota => !!u),
+    [dataPegawai],
+  );
+
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  /*
+    Galat MUAT dan galat AKSI (pesan sukses/gagal dari tombol) sengaja
+    dipisah — pola yang sama tiga kali ditemukan di halaman lain di F4-2.
+    Satu state `galat` untuk keduanya membuat gagal menyimpan menghapus
+    pesan gagal memuat, dan sebaliknya.
+  */
+  const [pesanAksi, setPesanAksi] = useState<{ jenis: "ok" | "galat"; teks: string } | null>(null);
+  const pesan = pesanAksi ?? (galatMuat
+    ? { jenis: "galat" as const, teks: "Gagal memuat daftar gudang." }
+    : null);
+
+  // Pesan aksi hilang sendiri sesudah 6 detik. Ini efek samping yang tak bisa
+  // masuk `useData`, jadi tetap `useEffect` tersendiri — bergantung hanya
+  // pada `pesanAksi`.
   useEffect(() => {
-    if (!pesan) return;
-    const t = setTimeout(() => setPesan(null), 6000);
+    if (!pesanAksi) return;
+    const t = setTimeout(() => setPesanAksi(null), 6000);
     return () => clearTimeout(t);
-  }, [pesan]);
+  }, [pesanAksi]);
 
   async function ubahAktif(g: Gudang) {
     setSibuk(g.id);
-    setPesan(null);
+    setPesanAksi(null);
     try {
       await api.patch(`/api/v1/gudang/${g.id}`, { aktif: !g.aktif });
-      setPesan({
+      setPesanAksi({
         jenis: "ok",
         teks: g.aktif
           ? `${g.kode} dinonaktifkan — ia tak lagi muncul sebagai pilihan lokasi.`
           : `${g.kode} diaktifkan kembali.`,
       });
-      setPutaran((x) => x + 1);
+      await muat();
     } catch (e) {
-      setPesan({
+      setPesanAksi({
         jenis: "galat",
         teks: (e as { response?: { data?: { error?: string } } })?.response?.data?.error
           ?? "Gagal mengubah status gudang.",
@@ -169,7 +168,7 @@ export default function GudangLokasiPage() {
           )}
           <button
             type="button"
-            onClick={() => setPutaran((x) => x + 1)}
+            onClick={() => void muat()}
             disabled={memuat}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
@@ -192,16 +191,6 @@ export default function GudangLokasiPage() {
           fontSize: 13, lineHeight: 1.55,
         }}>
           {pesan.teks}
-        </div>
-      )}
-
-      {galat && (
-        <div role="alert" style={{
-          ...GAYA_KARTU, padding: "10px 14px", marginBottom: "var(--gap-bagian)",
-          borderColor: "var(--danger-border)", background: "var(--danger-bg)",
-          color: "var(--danger)", fontSize: 13,
-        }}>
-          {galat}
         </div>
       )}
 
@@ -258,8 +247,8 @@ export default function GudangLokasiPage() {
           onTutup={() => setForm(null)}
           onSelesai={(teks) => {
             setForm(null);
-            setPesan({ jenis: "ok", teks });
-            setPutaran((x) => x + 1);
+            setPesanAksi({ jenis: "ok", teks });
+            void muat();
           }}
         />
       )}

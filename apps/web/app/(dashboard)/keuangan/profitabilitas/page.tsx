@@ -9,9 +9,9 @@
  * lain ("lihat margin proyek Dago"), dan sebagai tab ia tak punya URL.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { PieChart, X } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { marginPerluDicurigai, keandalanMargin, alasanMarginRagu } from "@/lib/margin-tepercaya";
 
@@ -65,52 +65,35 @@ const gaya = {
 };
 
 export default function ProfitabilitasPage() {
-  const [data, setData] = useState<{ projects: ProfitProject[]; totals: ProfitTotals } | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [gagal, setGagal] = useState<string | null>(null);
-  const [proyek, setProyek] = useState<Proyek[]>([]);
   const [dari, setDari] = useState("");
   const [sampai, setSampai] = useState("");
   const [filterProyek, setFilterProyek] = useState("");
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects))
-      // Daftar proyek hanya mengisi dropdown filter. Gagal memuatnya tak
-      // membuat halaman salah — hanya filternya kosong.
-      .catch(() => {});
-    return () => ac.abort();
-  }, []);
+  // Daftar proyek hanya mengisi dropdown filter. Gagal memuatnya tak
+  // membuat halaman salah — hanya filternya kosong, jadi galatnya sengaja
+  // tak diperiksa di sini.
+  const { data: dataProyek } = useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
 
-  const muat = useCallback((signal?: AbortSignal) => {
-    setMemuat(true);
-    const params: Record<string, string> = {};
-    if (dari) params.date_from = dari;
-    if (sampai) params.date_to = sampai;
-    if (filterProyek) params.project_id = filterProyek;
-    return api.get<{ projects: ProfitProject[]; totals: ProfitTotals }>(
-      "/api/v1/finance/profitability", { params, signal })
-      .then((r) => { setData(r.data); setGagal(null); })
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        // Angka laba yang salah lebih berbahaya daripada tak ada angka:
-        // orang mengambil keputusan harga dari layar ini. Jadi galat
-        // ditampilkan, bukan disamarkan jadi "belum ada data".
-        setData(null);
-        setGagal(e?.response?.data?.error ?? "Gagal memuat data profitabilitas.");
-      })
-      .finally(() => setMemuat(false));
-  }, [dari, sampai, filterProyek]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask` — lihat catatan yang sama di /keuangan/invoice:
-  // `muat()` menyetel state di baris pertamanya, dan setState sinkron di
-  // dalam effect memicu render kedua sebelum yang pertama selesai.
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    URL-nya DINAMIS mengikuti tiga saringan (dari/sampai/proyek) — `useData`
+    memakai URL sebagai kunci cache, jadi kombinasi saringan yang sama
+    persis tak perlu diambil ulang selama masih segar.
+  */
+  const q = new URLSearchParams();
+  if (dari) q.set("date_from", dari);
+  if (sampai) q.set("date_to", sampai);
+  if (filterProyek) q.set("project_id", filterProyek);
+  const jalur = `/api/v1/finance/profitability${q.size ? `?${q}` : ""}`;
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<{ projects: ProfitProject[]; totals: ProfitTotals }>(jalur);
+  // Angka laba yang salah lebih berbahaya daripada tak ada angka: orang
+  // mengambil keputusan harga dari layar ini. Jadi galat ditampilkan, bukan
+  // disamarkan jadi "belum ada data".
+  const gagal = galatMuat ? "Gagal memuat data profitabilitas." : null;
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   const adaFilter = dari || sampai || filterProyek;
 
@@ -161,7 +144,7 @@ export default function ProfitabilitasPage() {
           color: C.onDangerBg, fontSize: 13,
         }}>
           {gagal}{" "}
-          <button onClick={() => muat()} style={{
+          <button onClick={() => void muat()} style={{
             marginLeft: 8, padding: "2px 8px", borderRadius: 6,
             border: `1px solid ${C.redBorder}`, background: "transparent",
             color: C.onDangerBg, fontSize: 12, fontWeight: 600, cursor: "pointer",

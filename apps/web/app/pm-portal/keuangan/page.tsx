@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -28,8 +29,6 @@ const PURPOSE_LABEL: Record<string, string> = {
 };
 
 export default function PMKeuanganPage() {
-  const [kasbons, setKasbons] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [actioningId, setActioningId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -39,20 +38,26 @@ export default function PMKeuanganPage() {
     setTimeout(() => setToast(null), 3500);
   }
 
-  function loadData() {
-    return api.get("/api/v1/finance/kasbons").then((res) => {
-      setKasbons(res.data?.kasbons ?? []);
-    }).finally(() => setLoading(false));
-  }
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => { loadData(); }, []);
+    `useData` menggantikan `useState` + `useEffect` tunggal. Halaman ini
+    murni baca sampai aksi setuju/tolak dijalankan, jadi tak perlu galat
+    muat terpisah — kegagalan memuat cukup menampilkan daftar kosong seperti
+    versi lama (`.finally(() => setLoading(false))` tanpa penanganan galat
+    eksplisit).
+  */
+  const { data, memuat: loading, muatUlang } =
+    useData<{ kasbons: any[] }>("/api/v1/finance/kasbons");
+  const kasbons = data?.kasbons ?? [];
+  const loadData = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   async function handleAction(id: string, action: "approved" | "rejected") {
     setActioningId(id);
     try {
       await api.patch(`/api/v1/kasbons/${id}/status`, { status: action });
       showToast(action === "approved" ? "Kasbon disetujui" : "Kasbon ditolak");
-      loadData();
+      await loadData();
     } catch (err: any) {
       showToast(err?.response?.data?.error ?? "Gagal", false);
     } finally {

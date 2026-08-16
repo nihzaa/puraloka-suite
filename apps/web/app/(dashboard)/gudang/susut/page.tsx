@@ -32,9 +32,10 @@
  * menarik perhatian tiap kali dibuka.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Percent, TriangleAlert, Info, Link2, Trash2 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, Tabel, Rangka, Galat,
@@ -71,11 +72,6 @@ const pct = (v: string | number | null | undefined) => {
 };
 
 export default function SusutPage() {
-  const [peta, setPeta] = useState<Peta[]>([]);
-  const [material, setMaterial] = useState<Material[]>([]);
-  const [rencana, setRencana] = useState<Rencana[]>([]);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
 
   const [rMaterial, setRMaterial] = useState("");
@@ -92,31 +88,44 @@ export default function SusutPage() {
   const [pMaterial, setPMaterial] = useState("");
   const [pFaktor, setPFaktor] = useState("1");
 
-  const muat = useCallback(async (signal?: AbortSignal) => {
-    setMemuat(true); setGalat(null);
-    try {
-      const [p, r] = await Promise.all([
-        api.get<{ peta: Peta[]; material: Material[] }>("/api/v1/gudang/susut/peta", { signal }),
-        api.get<{ rencana: Rencana[] }>("/api/v1/gudang/susut/rencana", { signal }),
-      ]);
-      setPeta(p.data.peta ?? []);
-      setMaterial(p.data.material ?? []);
-      setRencana(r.data.rencana ?? []);
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat rencana susut");
-    } finally { setMemuat(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    Dua permintaan lama digabung `Promise.all` dalam satu `muat()`. Sekarang
+    dua `useData` terpisah — tetap dimuat bersamaan (React tak menunggu satu
+    selesai sebelum memulai yang lain), tapi masing-masing bisa ter-cache dan
+    ter-invalidasi sendiri.
+  */
+  const { data: dataPeta, memuat: memuatPeta, galat: galatMuatPeta, muatUlang: muatUlangPeta } =
+    useData<{ peta: Peta[]; material: Material[] }>("/api/v1/gudang/susut/peta");
+  const { data: dataRencana, memuat: memuatRencana, galat: galatMuatRencana, muatUlang: muatUlangRencana } =
+    useData<{ rencana: Rencana[] }>("/api/v1/gudang/susut/rencana");
+
+  // `useMemo` menstabilkan rujukan array: `belumBerencana` di bawah
+  // bergantung pada `material`/`rencana`, dan ekspresi langsung
+  // `data?.x ?? []` melahirkan array baru tiap render — membuat dependensi
+  // hook itu berubah "terus-menerus" (react-hooks/exhaustive-deps).
+  const peta = useMemo(() => dataPeta?.peta ?? [], [dataPeta]);
+  const material = useMemo(() => dataPeta?.material ?? [], [dataPeta]);
+  const rencana = useMemo(() => dataRencana?.rencana ?? [], [dataRencana]);
+  const memuat = memuatPeta || memuatRencana;
+
+  const muat = useCallback(async () => {
+    await Promise.all([muatUlangPeta(), muatUlangRencana()]);
+  }, [muatUlangPeta, muatUlangRencana]);
+
+  /*
+    Galat MUAT dan galat AKSI (simpan/hapus/cari) sengaja dipisah — satu
+    state untuk keduanya membuat gagal menyimpan menghapus pesan gagal
+    memuat, dan sebaliknya. Ditemukan berpola di halaman lain F4-2.
+  */
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi ?? (
+    (galatMuatPeta || galatMuatRencana) ? "Gagal memuat rencana susut" : null
+  );
 
   const simpanRencana = useCallback(async () => {
-    setMenyimpan(true); setGalat(null);
+    setMenyimpan(true); setGalatAksi(null);
     try {
       await api.put("/api/v1/gudang/susut/rencana", {
         material_id: rMaterial,
@@ -126,30 +135,30 @@ export default function SusutPage() {
         dasar: rDasar.trim() || null,
       });
       setRMaterial(""); setRPersen(""); setRDasar("");
-      await muat();
+      await muatUlangRencana();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menyimpan rencana susut");
+      setGalatAksi(m ?? "Gagal menyimpan rencana susut");
     } finally { setMenyimpan(false); }
-  }, [rMaterial, rPersen, rDasar, muat]);
+  }, [rMaterial, rPersen, rDasar, muatUlangRencana]);
 
   /** Mencari resource. Dipanggil dari tombol, bukan tiap ketikan. */
   const jalankanCari = useCallback(async () => {
     if (cari.trim().length < 2) return;
-    setMencari(true); setGalat(null);
+    setMencari(true); setGalatAksi(null);
     try {
       const r = await api.get<{ resource: Resource[] }>(
         `/api/v1/gudang/susut/resource?cari=${encodeURIComponent(cari.trim())}`);
       setHasilCari(r.data.resource ?? []);
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal mencari resource");
+      setGalatAksi(m ?? "Gagal mencari resource");
     } finally { setMencari(false); }
   }, [cari]);
 
   const simpanPeta = useCallback(async () => {
     if (!pResource || !pMaterial) return;
-    setMenyimpan(true); setGalat(null);
+    setMenyimpan(true); setGalatAksi(null);
     try {
       await api.put("/api/v1/gudang/susut/peta", {
         resource_id: pResource.id,
@@ -160,23 +169,23 @@ export default function SusutPage() {
       });
       setPResource(null); setPMaterial(""); setPFaktor("1");
       setCari(""); setHasilCari([]);
-      await muat();
+      await muatUlangPeta();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menyimpan pemetaan");
+      setGalatAksi(m ?? "Gagal menyimpan pemetaan");
     } finally { setMenyimpan(false); }
-  }, [pResource, pMaterial, pFaktor, muat]);
+  }, [pResource, pMaterial, pFaktor, muatUlangPeta]);
 
   const hapusPeta = useCallback(async (p: Peta) => {
-    setGalat(null);
+    setGalatAksi(null);
     try {
       await api.delete(`/api/v1/gudang/susut/peta/${p.id}`);
-      await muat();
+      await muatUlangPeta();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menghapus pemetaan");
+      setGalatAksi(m ?? "Gagal menghapus pemetaan");
     }
-  }, [muat]);
+  }, [muatUlangPeta]);
 
   /** Material yang BELUM punya rencana — itu yang perlu dikerjakan. */
   const belumBerencana = useMemo(() => {

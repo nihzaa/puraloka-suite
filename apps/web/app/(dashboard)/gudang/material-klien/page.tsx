@@ -21,9 +21,10 @@
  * pengeluaran yang tak pernah terjadi.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { PackageSearch, HandCoins, RefreshCw, PackageCheck } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
@@ -50,14 +51,8 @@ const tanggalTerbaca = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
 export default function MaterialKlienPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  const [material, setMaterial] = useState<Material[]>([]);
-  const [penerimaan, setPenerimaan] = useState<Penerimaan[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [sukses, setSukses] = useState<string | null>(null);
   const [mengirim, setMengirim] = useState(false);
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
 
   const [proyekId, setProyekId] = useState("");
   const [materialId, setMaterialId] = useState("");
@@ -65,28 +60,38 @@ export default function MaterialKlienPage() {
   const [pemasok, setPemasok] = useState("");
   const [suratJalan, setSuratJalan] = useState("");
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    Promise.all([
-      api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal }),
-      api.get<{ materials: Material[] }>("/api/v1/procurement/materials", { signal: ac.signal }),
-    ])
-      .then(([p, m]) => {
-        setProyek(p.data.projects ?? []);
-        setMaterial(m.data.materials ?? []);
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek atau material"); })
-      .finally(() => setMemuat(false));
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ penerimaan: Penerimaan[] }>("/api/v1/material-klien", { signal: ac.signal })
-      .then((r) => setPenerimaan(r.data.penerimaan ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat riwayat penerimaan"); });
-    return () => ac.abort();
-  }, [muatUlangKe]);
+    Tiga permintaan lama (proyek + material via Promise.all, lalu riwayat
+    penerimaan terpisah) jadi tiga `useData` independen.
+  */
+  const { data: dataProyek, memuat: memuatProyek, galat: galatMuatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const { data: dataMaterial, memuat: memuatMaterial, galat: galatMuatMaterial } =
+    useData<{ materials: Material[] }>("/api/v1/procurement/materials");
+  const proyek = dataProyek?.projects ?? [];
+  // `useMemo`: `materialTerpilih` di bawah bergantung pada `material`, dan
+  // ekspresi langsung `data?.x ?? []` melahirkan array baru tiap render
+  // (react-hooks/exhaustive-deps).
+  const material = useMemo(() => dataMaterial?.materials ?? [], [dataMaterial]);
+  const memuat = memuatProyek || memuatMaterial;
+
+  const { data: dataPenerimaan, galat: galatMuatPenerimaan, muatUlang: muatUlangPenerimaan } =
+    useData<{ penerimaan: Penerimaan[] }>("/api/v1/material-klien");
+  const penerimaan = dataPenerimaan?.penerimaan ?? [];
+
+  /*
+    Galat MUAT dan galat AKSI (catat penerimaan) sengaja dipisah — satu
+    state untuk keduanya membuat gagal mencatat menghapus pesan gagal
+    memuat.
+  */
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi ?? (
+    (galatMuatProyek || galatMuatMaterial) ? "Gagal memuat daftar proyek atau material"
+      : galatMuatPenerimaan ? "Gagal memuat riwayat penerimaan"
+      : null
+  );
 
   const jumlah = Number(qty);
   const materialTerpilih = useMemo(
@@ -106,7 +111,7 @@ export default function MaterialKlienPage() {
   async function kirim() {
     if (halangan) return;
     setMengirim(true);
-    setGalat(null);
+    setGalatAksi(null);
     setSukses(null);
     try {
       await api.post("/api/v1/material-klien", {
@@ -117,10 +122,10 @@ export default function MaterialKlienPage() {
       const nm = materialTerpilih?.name ?? "Material";
       setSukses(`${nm} ${angka(jumlah)} tercatat sebagai material milik klien. Stok gudang bertambah, tapi ini TIDAK dihitung sebagai pembelian.`);
       setQty(""); setSuratJalan("");
-      setMuatUlangKe((n) => n + 1);
+      await muatUlangPenerimaan();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal mencatat penerimaan");
+      setGalatAksi(m ?? "Gagal mencatat penerimaan");
     } finally {
       setMengirim(false);
     }
@@ -273,7 +278,7 @@ export default function MaterialKlienPage() {
                 Riwayat penerimaan
               </h2>
               <button
-                type="button" onClick={() => setMuatUlangKe((n) => n + 1)}
+                type="button" onClick={() => void muatUlangPenerimaan()}
                 style={{
                   padding: "5px 10px", borderRadius: 6, border: `1px solid ${C.border}`,
                   background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer",

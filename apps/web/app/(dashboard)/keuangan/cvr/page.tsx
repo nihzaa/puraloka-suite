@@ -36,9 +36,10 @@
  * salahnya di angka untung-rugi — tempat kesalahan paling mahal.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Scale, TriangleAlert, Info } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
@@ -236,60 +237,47 @@ function kolomCvr(
 }
 
 export default function CvrPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
   const [projectId, setProjectId] = useState("");
-  const [hasil, setHasil] = useState<HasilCvr | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
 
   // ── Kategori RAB: dimuat per proyek, disimpan per baris ─────────────────
-  const [kategori, setKategori] = useState<KategoriRab[]>([]);
   const [menyimpan, setMenyimpan] = useState<string | null>(null);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); });
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const muat = useCallback(async (pid: string) => {
-    if (!pid) { setHasil(null); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<HasilCvr>(`/api/v1/projects/${pid}/cvr`);
-      setHasil(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat rekonsiliasi biaya");
-      setHasil(null);
-    } finally { setMemuat(false); }
-  }, []);
+    Tiga permintaan lama (daftar proyek, cvr per proyek, kategori RAB per
+    proyek) jadi tiga `useData`. Dua yang terakhir memakai URL DINAMIS
+    bergantung `projectId` — dibungkus `null` selama proyek belum dipilih,
+    jadi tak ada permintaan terkirim untuk proyek kosong (menggantikan
+    `if (!pid) { setHasil(null); return; }` lama).
+  */
+  const { data: dataProyek, galat: galatMuatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
 
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void muat(projectId); }); }, [projectId, muat]);
+  const { data: hasil, memuat, galat: galatMuatHasil, muatUlang: muatUlangHasil } =
+    useData<HasilCvr>(projectId ? `/api/v1/projects/${projectId}/cvr` : null);
 
-  useEffect(() => {
-    if (!projectId) { setKategori([]); return; }
-    let batal = false;
-    // Kunci balasannya `data`, bukan `items` — diperiksa ke `rab.ts:441`,
-    // bukan ditebak dari nama yang terdengar wajar.
-    api.get<{ data?: Array<{ id: string; name: string; level: string }> }>(
-      `/api/v1/projects/${projectId}/rab`)
-      .then((r) => {
-        if (batal) return;
-        setKategori((r.data.data ?? [])
-          .filter((i) => i.level === "category")
-          .map((i) => ({ id: i.id, name: i.name })));
-      })
-      .catch(() => { if (!batal) setKategori([]); });
-    return () => { batal = true; };
-  }, [projectId]);
+  const { data: dataRab } = useData<{ data?: Array<{ id: string; name: string; level: string }> }>(
+    projectId ? `/api/v1/projects/${projectId}/rab` : null,
+  );
+  // Kunci balasannya `data`, bukan `items` — diperiksa ke `rab.ts:441`, bukan
+  // ditebak dari nama yang terdengar wajar.
+  const kategori: KategoriRab[] = (dataRab?.data ?? [])
+    .filter((i) => i.level === "category")
+    .map((i) => ({ id: i.id, name: i.name }));
+
+  const muat = useCallback(async () => { await muatUlangHasil(); }, [muatUlangHasil]);
+
+  /*
+    Galat MUAT dan galat AKSI (simpan kategori) sengaja dipisah — satu state
+    untuk keduanya membuat gagal menyimpan menghapus pesan gagal memuat.
+    Ditemukan berpola di halaman lain F4-2.
+  */
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi ?? (
+    (galatMuatProyek || (projectId && galatMuatHasil)) ? "Gagal memuat rekonsiliasi biaya" : null
+  );
 
   /**
    * Memasang kategori RAB pada sebuah scope.
@@ -300,19 +288,19 @@ export default function CvrPage() {
    * keadaan yang tak pernah ada bersamaan.
    */
   const simpanKategori = useCallback(async (scopeId: string, kategoriId: string) => {
-    setMenyimpan(scopeId); setGalat(null);
+    setMenyimpan(scopeId); setGalatAksi(null);
     try {
       await api.patch(`/api/v1/mandor/work-scopes/${scopeId}`, { rab_category_id: kategoriId });
-      await muat(projectId);
+      await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menyimpan kategori RAB");
+      setGalatAksi(m ?? "Gagal menyimpan kategori RAB");
     } finally {
       setMenyimpan(null);
     }
-  }, [projectId, muat]);
+  }, [muat]);
 
-  
+
   return (
     <div>
       <p style={{ fontSize: 13, color: C.mid, margin: "0 0 18px", maxWidth: "70ch", lineHeight: 1.55 }}>
