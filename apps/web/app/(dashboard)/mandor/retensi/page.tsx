@@ -29,9 +29,10 @@
  * Yang ini milik modul Mandor karena tindakannya ada di sana.
  */
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { AlertTriangle, HandCoins, Lock, RefreshCw } from "lucide-react";
-import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
 
@@ -66,9 +67,6 @@ const rpRingkas = (n: number) => {
 };
 
 export default function RetensiPage() {
-  const [data, setData] = useState<Register | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [cairkan, setCairkan] = useState<BarisRetensi | null>(null);
 
   const bolehCairkan = useSyncExternalStore(
@@ -77,23 +75,15 @@ export default function RetensiPage() {
     () => false,
   );
 
-  const muat = useCallback((signal?: AbortSignal) => {
-    setMemuat(true);
-    return api.get<Register>("/api/v1/mandor/retensi-register", { signal })
-      .then((r) => { setData(r.data); setGalat(null); })
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        setData(null);
-        setGalat(e?.response?.data?.error ?? "Gagal memuat register retensi.");
-      })
-      .finally(() => setMemuat(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    `useData` menggantikan useCallback+useEffect+AbortController manual.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<Register>("/api/v1/mandor/retensi-register");
+  const galat = galatMuat ? "Gagal memuat register retensi." : null;
+  const muat = () => { void muatUlang(); };
 
   // Scope yang PEKERJAANNYA SELESAI tapi retensinya belum keluar. Ini yang
   // menuntut tindakan — sisanya memang belum waktunya.

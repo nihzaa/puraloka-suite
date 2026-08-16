@@ -12,9 +12,10 @@
  * rincian item, dan tautan ke profil mandor.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { HardHat, Plus, ChevronRight, RefreshCw, Search, Phone } from "lucide-react";
 import { C } from "@/lib/warna-ui";
@@ -31,10 +32,6 @@ import {
 
 export default function PenugasanPage() {
   const router = useRouter();
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [mandorList, setMandorList] = useState<MandorUser[]>([]);
-  const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
   const [showAddAssignment, setShowAddAssignment] = useState(false);
@@ -45,24 +42,25 @@ export default function PenugasanPage() {
   const [loadingScope, setLoadingScope] = useState(false);
   const [settlementModal, setSettlementModal] = useState<SettlementModalState | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [asgRes, mandorRes, cashRes] = await Promise.all([
-        api.get<{ assignments: Assignment[] }>("/api/v1/mandor/assignments"),
-        api.get<{ mandors: MandorUser[] }>("/api/v1/mandor/list").catch(() => ({ data: { mandors: [] } })),
-        api.get<{ accounts: CashAccount[] }>("/api/v1/cash/accounts").catch(() => ({ data: { accounts: [] } })),
-      ]);
-      setAssignments(asgRes.data.assignments);
-      setMandorList(mandorRes.data.mandors ?? []);
-      setCashAccounts((cashRes.data.accounts ?? []).filter((a: CashAccount) => a.is_active));
-    } catch { /* silent */ } finally { setLoading(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan panggilan langsung: memanggil `setLoading(true)`
-  // di badan efek memicu render berantai (`react-hooks/set-state-in-effect`).
-  // Pola yang sama dipakai `mandor/retensi` dan sudah lolos ratchet lint.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+    Tiga `useData` menggantikan satu `Promise.all` + `useState` ganda.
+  */
+  const { data: dataAsg, memuat: memuatAsg, muatUlang: muatUlangAsg } =
+    useData<{ assignments: Assignment[] }>("/api/v1/mandor/assignments");
+  const { data: dataMandor, memuat: memuatMandor, muatUlang: muatUlangMandor } =
+    useData<{ mandors: MandorUser[] }>("/api/v1/mandor/list");
+  const { data: dataCash, memuat: memuatCash, muatUlang: muatUlangCash } =
+    useData<{ accounts: CashAccount[] }>("/api/v1/cash/accounts");
+
+  const loading = memuatAsg || memuatMandor || memuatCash;
+  const load = async () => {
+    await Promise.all([muatUlangAsg(), muatUlangMandor(), muatUlangCash()]);
+  };
+  const assignments = dataAsg?.assignments ?? [];
+  const mandorList = dataMandor?.mandors ?? [];
+  const cashAccounts = (dataCash?.accounts ?? []).filter((a: CashAccount) => a.is_active);
 
   async function loadScopeDetail(scopeId: string) {
     setLoadingScope(true);

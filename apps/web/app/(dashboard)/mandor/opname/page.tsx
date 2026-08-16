@@ -32,11 +32,12 @@
  *    di menu tambahan.
  */
 
-import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import {
   ClipboardCheck, RefreshCw, Check, X, AlertTriangle, Ruler, Lock,
 } from "lucide-react";
-import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
@@ -92,38 +93,27 @@ const angka = (v: number | string | null | undefined) =>
 const langganan = (cb: () => void) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); };
 
 export default function OpnamePage() {
-  const [data, setData] = useState<Opname[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState("");
   const [pesan, setPesan] = useState<{ jenis: "ok" | "galat"; teks: string } | null>(null);
   const [sibuk, setSibuk] = useState<string | null>(null);
   const [sengketaId, setSengketaId] = useState<string | null>(null);
   const [alasan, setAlasan] = useState("");
-  const [putaran, setPutaran] = useState(0);
 
   const bolehVerifikasi = useSyncExternalStore(
     langganan, () => hasPermission("opname:verifikasi"), () => false);
 
-  const muat = useCallback((signal: AbortSignal) => {
-    setMemuat(true);
-    setGalat("");
-    return api.get<{ opname: Opname[] }>("/api/v1/opname", { signal })
-      .then((r) => setData(r.data.opname ?? []))
-      .catch((e) => {
-        if ((e as { code?: string })?.code === "ERR_CANCELED") return;
-        setGalat(
-          (e as { response?: { data?: { error?: string } } })?.response?.data?.error
-            ?? "Gagal memuat berita acara opname.",
-        );
-      })
-      .finally(() => setMemuat(false));
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat, putaran]);
+    `useData` menggantikan useCallback+useEffect+AbortController+`putaran`.
+    `galatAksi`/`pesan` tetap terpisah dari galat MUAT (jebakan #1) — `pesan`
+    di sini sudah selalu galat AKSI (setuju/sengketa), tak pernah galat muat.
+  */
+  const { data: dataOpname, memuat, galat: galatMuat, muatUlang } =
+    useData<{ opname: Opname[] }>("/api/v1/opname");
+  // `useMemo`: `data` masuk dependensi `useMemo` (`urut`) di bawah — literal
+  // `?? []` baru tiap render akan membuat memo itu percuma (jebakan #3).
+  const data = useMemo(() => dataOpname?.opname ?? [], [dataOpname]);
+  const galat = galatMuat ? "Gagal memuat berita acara opname." : "";
 
   useEffect(() => {
     if (!pesan) return;
@@ -147,7 +137,7 @@ export default function OpnamePage() {
       });
       setSengketaId(null);
       setAlasan("");
-      setPutaran((x) => x + 1);
+      void muatUlang();
     } catch (e) {
       // Pesan server ditampilkan apa adanya — ia sudah ditulis untuk manusia
       // ("Anda yang mengukur berita acara ini…"), dan menggantinya dengan
@@ -185,7 +175,7 @@ export default function OpnamePage() {
         />
         <button
           type="button"
-          onClick={() => setPutaran((x) => x + 1)}
+          onClick={() => void muatUlang()}
           disabled={memuat}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,

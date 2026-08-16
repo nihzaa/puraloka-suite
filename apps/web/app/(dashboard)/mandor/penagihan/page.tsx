@@ -8,8 +8,9 @@
  * sendiri: "tinjau yang di /mandor/penagihan" bisa dikirim apa adanya.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Kosong } from "@/components/ui-dasar";
 import { Banknote, RefreshCw, Ruler, AlertTriangle, Check, Scissors } from "lucide-react";
 import { C } from "@/lib/warna-ui";
@@ -106,37 +107,33 @@ interface Kesiapan {
 }
 
 export default function PenagihanPage() {
-  const [progressPayments, setProgressPayments] = useState<ProgressPayment[]>([]);
-  const [kesiapan, setKesiapan] = useState<Kesiapan[]>([]);
-  const [backCharge, setBackCharge] = useState<BackCharge[]>([]);
-  const [ringkasBc, setRingkasBc] = useState<RingkasBc | null>(null);
-  const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([]);
-  const [loading, setLoading] = useState(true);
   const [ppConfirmModal, setPpConfirmModal] = useState<{ payment: ProgressPayment } | null>(null);
   const [ppActionLoading, setPpActionLoading] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [ppRes, cashRes, siapRes, bcRes] = await Promise.all([
-        api.get<{ payments: ProgressPayment[] }>("/api/v1/mandor/progress-payments").catch(() => ({ data: { payments: [] } })),
-        api.get<{ accounts: CashAccount[] }>("/api/v1/cash/accounts").catch(() => ({ data: { accounts: [] } })),
-        api.get<{ kesiapan: Kesiapan[] }>("/api/v1/opname/kesiapan").catch(() => ({ data: { kesiapan: [] } })),
-        api.get<{ back_charge: BackCharge[]; ringkasan: RingkasBc }>("/api/v1/back-charge")
-          .catch(() => ({ data: { back_charge: [], ringkasan: null } })),
-      ]);
-      setProgressPayments(ppRes.data.payments ?? []);
-      setKesiapan(siapRes.data.kesiapan ?? []);
-      setBackCharge(bcRes.data.back_charge ?? []);
-      setRingkasBc(bcRes.data.ringkasan ?? null);
-      setCashAccounts((cashRes.data.accounts ?? []).filter((a: CashAccount) => a.is_active));
-    } catch { /* silent */ } finally { setLoading(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan panggilan langsung: memanggil `setLoading(true)`
-  // di badan efek memicu render berantai (`react-hooks/set-state-in-effect`).
-  // Pola yang sama dipakai `mandor/retensi` dan sudah lolos ratchet lint.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+    Empat `useData` menggantikan satu `Promise.all` + `useState` ganda.
+  */
+  const { data: dataPp, memuat: memuatPp, muatUlang: muatUlangPp } =
+    useData<{ payments: ProgressPayment[] }>("/api/v1/mandor/progress-payments");
+  const { data: dataCash, memuat: memuatCash, muatUlang: muatUlangCash } =
+    useData<{ accounts: CashAccount[] }>("/api/v1/cash/accounts");
+  const { data: dataSiap, memuat: memuatSiap, muatUlang: muatUlangSiap } =
+    useData<{ kesiapan: Kesiapan[] }>("/api/v1/opname/kesiapan");
+  const { data: dataBc, memuat: memuatBc, muatUlang: muatUlangBc } =
+    useData<{ back_charge: BackCharge[]; ringkasan: RingkasBc | null }>("/api/v1/back-charge");
+
+  const loading = memuatPp || memuatCash || memuatSiap || memuatBc;
+  const load = async () => {
+    await Promise.all([muatUlangPp(), muatUlangCash(), muatUlangSiap(), muatUlangBc()]);
+  };
+
+  const progressPayments = dataPp?.payments ?? [];
+  const kesiapan = dataSiap?.kesiapan ?? [];
+  const backCharge = dataBc?.back_charge ?? [];
+  const ringkasBc = dataBc?.ringkasan ?? null;
+  const cashAccounts = (dataCash?.accounts ?? []).filter((a: CashAccount) => a.is_active);
 
   const pendingPP = progressPayments.filter(p => p.status === "pending");
   const otherPP = progressPayments.filter(p => p.status !== "pending");

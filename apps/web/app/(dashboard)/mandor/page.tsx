@@ -33,9 +33,9 @@
  * tugasnya justru memuat cepat.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Kosong } from "@/components/ui-dasar";
 import { GrafikModul } from "@/components/shell/grafik-modul";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
@@ -84,35 +84,24 @@ function JudulBagian({ children, tautan, labelTautan }: {
 }
 
 export default function MandorRingkasanPage() {
-  const [reports, setReports] = useState<WageReport[]>([]);
-  const [kasbons, setKasbons] = useState<WorkerKasbon[]>([]);
-  const [payments, setPayments] = useState<ProgressPayment[]>([]);
-  const [loading, setLoading] = useState(true);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const muat = useCallback((signal?: AbortSignal) => {
-    setLoading(true);
-    Promise.all([
-      api.get<{ reports: WageReport[] }>("/api/v1/mandor/wage-reports", { signal })
-        .catch(() => ({ data: { reports: [] } })),
-      api.get<{ kasbons: WorkerKasbon[] }>("/api/v1/mandor/worker-kasbons", { signal })
-        .catch(() => ({ data: { kasbons: [] } })),
-      api.get<{ payments: ProgressPayment[] }>("/api/v1/mandor/progress-payments", { signal })
-        .catch(() => ({ data: { payments: [] } })),
-    ]).then(([rpt, kb, pp]) => {
-      setReports(rpt.data.reports ?? []);
-      setKasbons(kb.data.kasbons ?? []);
-      setPayments(pp.data.payments ?? []);
-    }).finally(() => setLoading(false));
-  }, []);
-
-  // `queueMicrotask`, bukan panggilan langsung: memanggil `setLoading(true)`
-  // di badan efek memicu render berantai (`react-hooks/set-state-in-effect`).
-  // Pola yang sama dipakai `mandor/retensi` dan sudah lolos ratchet lint.
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    Tiga `useData` menggantikan `Promise.all` + `AbortController` manual.
+    `useData` sudah menjaga sendiri agar jawaban yang datang sesudah komponen
+    lepas tak menyentuh state, jadi `makeAbortController` tak lagi perlu di
+    sini.
+  */
+  const { data: dataRpt, memuat: memuatRpt } = useData<{ reports: WageReport[] }>("/api/v1/mandor/wage-reports");
+  const { data: dataKb, memuat: memuatKb } = useData<{ kasbons: WorkerKasbon[] }>("/api/v1/mandor/worker-kasbons");
+  const { data: dataPp, memuat: memuatPp } = useData<{ payments: ProgressPayment[] }>("/api/v1/mandor/progress-payments");
+  const loading = memuatRpt || memuatKb || memuatPp;
+  // `useMemo`, bukan `?? []` polos: keduanya masuk dependensi `usePasangRail`
+  // di bawah, dan array literal baru tiap render membuat efeknya berjalan
+  // tanpa henti (jebakan #3 F4-2 — sudah dua kali menjebak agent sebelumnya).
+  const reports = useMemo(() => dataRpt?.reports ?? [], [dataRpt]);
+  const kasbons = useMemo(() => dataKb?.kasbons ?? [], [dataKb]);
+  const payments = dataPp?.payments ?? [];
 
   // ── POLA 1 — komposisi laporan menurut status ────────────────────────────
   const komposisi = Object.entries(

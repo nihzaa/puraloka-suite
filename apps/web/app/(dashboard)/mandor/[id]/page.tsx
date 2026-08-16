@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import {
   ArrowLeft, Phone, Banknote, Users, AlertTriangle, Briefcase,
   Calendar, CheckCircle2, Clock, XCircle,
@@ -92,44 +91,33 @@ interface MandorProfile {
 export default function MandorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  // `dimuat` menyimpan id yang datanya sudah tiba, BUKAN bendera boolean.
-  //
-  // Dulu efek ini memanggil `setLoading(true)` sinkron di badan efek: render
-  // bertingkat, dan lint menandainya. Tapi menghapusnya begitu saja lebih buruk
-  // daripada warning-nya — saat pindah dari satu mandor ke mandor lain, layar
-  // akan menampilkan profil mandor SEBELUMNYA sambil memuat yang baru. Nama,
-  // KPI, dan kasbon milik ORANG YANG SALAH, tanpa satu pun gejala.
-  //
-  // Membandingkan `dimuat !== id` menutup keduanya: nol setState sinkron, dan
-  // data lama tak pernah tampil di bawah id yang baru.
-  const [data, setData] = useState<MandorProfile | null>(null);
-  const [dimuat, setDimuat] = useState<string | null>(null);
-  // Galat juga disimpan PER-ID, dengan alasan yang sama. Kalau ia cuma bendera
-  // boolean, mandor yang gagal dimuat akan membuat mandor BERIKUTNYA langsung
-  // tampil galat tanpa pernah dicoba — dan menekan muat ulang tak menolong,
-  // karena bendera itu tak pernah direset.
-  const [gagal, setGagal] = useState<string | null>(null);
-  const loading = dimuat !== id && gagal !== id;
 
-  useEffect(() => {
-    let batal = false;
-    api.get<MandorProfile>(`/api/v1/mandor/profile/${id}`)
-      .then(r => { if (!batal) { setData(r.data); setDimuat(id); } })
-      .catch(() => { if (!batal) setGagal(id); })
-    return () => { batal = true; };
-  }, [id]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    `useData` mengunci cache lewat URL, yang sudah memuat `id` — jadi pindah
+    dari satu mandor ke mandor lain otomatis memuat entri cache yang BERBEDA.
+
+    Tapi `useData` TAK mengosongkan `data` lama saat url berganti — ia hanya
+    menaikkan `memuat` lalu menimpa `data` setelah jawaban baru tiba. Kalau
+    dibaca polos, itu membuka kembali cacat yang catatan lama di sini
+    memperbaiki: pindah dari mandor A ke B akan menampilkan profil A sekejap
+    di bawah URL B. Karena itu `data.mandor.id` (bukan hanya `memuat`)
+    dicocokkan ke `id` dari URL — kalau belum cocok, dianggap masih memuat.
+  */
+  const { data: mentah, memuat: sedangMuat, galat } =
+    useData<MandorProfile>(`/api/v1/mandor/profile/${id}`);
+  const data = mentah && mentah.mandor.id === id ? mentah : null;
+  const loading = sedangMuat || (!!mentah && mentah.mandor.id !== id);
 
   if (loading) return (
     <div style={{ padding: "60px 32px", textAlign: "center", color: C.muted, background: C.bg, minHeight: "100vh" }}>
       Memuat profil mandor...
     </div>
   );
-  // Syaratnya `dimuat !== id`, BUKAN `!data`: sesudah mandor A berhasil dimuat,
-  // `data` tetap terisi: kalau B gagal, `!data` bernilai false dan layar akan
-  // menampilkan profil A di bawah id B.
-  if (gagal === id || dimuat !== id || !data) return (
+  if (galat || !data) return (
     <div style={{ padding: "60px 32px", textAlign: "center", color: C.red, background: C.bg, minHeight: "100vh" }}>
-      {gagal === id ? "Gagal memuat profil mandor" : "Data tidak ditemukan"}
+      {galat ? "Gagal memuat profil mandor" : "Data tidak ditemukan"}
     </div>
   );
 
