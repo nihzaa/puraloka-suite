@@ -757,10 +757,33 @@ export interface ChangeOrderSectionProps {
   contractValue?: number;
 }
 
+/** Rekap penagihan CO — jawaban `/change-orders/penagihan`. */
+type RekapPenagihan = {
+  rekap: {
+    lewatTermin: number; terpisah: number; akhir: number;
+    tanpaCara: number; jumlahTanpaCara: number;
+  };
+  belum_ditagih: Array<{ id: string; co_number: string; title: string | null; nilai: number }>;
+  nilai_belum_ditagih: number;
+  sudah_ditagih: Array<{
+    change_order_id: string; invoice_id: string; invoice_number: string;
+    total_amount: number; status: string; issued_date: string | null;
+  }>;
+};
+
 export function ChangeOrderSection({ projectId, userRole, contractValue }: ChangeOrderSectionProps) {
   const [cos, setCos] = useState<ChangeOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [penagihan, setPenagihan] = useState<RekapPenagihan | null>(null);
+  const [menagih, setMenagih] = useState<string | null>(null);
+  // Galat MENAGIH dipisah dari galat memuat.
+  //
+  // Satu state `err` untuk keduanya adalah cacat yang sudah ditemukan di 11
+  // halaman repo ini (jurnal 2026-08-16): gagal menyimpan MENGHAPUS pesan
+  // gagal memuat, jadi orang yang jaringannya putus lalu menekan tombol
+  // melihat pesan tombolnya saja dan mengira datanya sudah termuat.
+  const [galatTagih, setGalatTagih] = useState<string | null>(null);
 
   const canManage = userRole === "admin" || userRole === "pm";
 
@@ -776,9 +799,42 @@ export function ChangeOrderSection({ projectId, userRole, contractValue }: Chang
     }
   }, [projectId]);
 
+  // Rekap penagihan dimuat TERPISAH dari daftar CO, dan kegagalannya tidak
+  // mengosongkan daftar: panel penagihan yang gagal muat lebih baik hilang
+  // daripada menjatuhkan seluruh bagian Change Order.
+  const fetchPenagihan = useCallback(async () => {
+    try {
+      const { data } = await api.get(
+        `/api/v1/projects/${projectId}/change-orders/penagihan`,
+      );
+      setPenagihan(data ?? null);
+    } catch {
+      setPenagihan(null);
+    }
+  }, [projectId]);
+
   useEffect(() => {
     fetchCos();
-  }, [fetchCos]);
+    fetchPenagihan();
+  }, [fetchCos, fetchPenagihan]);
+
+  const terbitkanTagihan = async (coId: string) => {
+    setMenagih(coId);
+    setGalatTagih(null);
+    try {
+      await api.post(`/api/v1/change-orders/${coId}/tagihan`, {});
+      await Promise.all([fetchCos(), fetchPenagihan()]);
+    } catch (e) {
+      // Pesan dari server ditampilkan apa adanya: basis sudah menuliskan
+      // kalimatnya dalam bahasa manusia ("...menagih pekerjaan yang sama dua
+      // kali"), dan menggantinya dengan "Gagal" menghapus satu-satunya
+      // penjelasan yang berguna.
+      const r = (e as { response?: { data?: { error?: string } } }).response;
+      setGalatTagih(r?.data?.error ?? "Tagihan gagal diterbitkan.");
+    } finally {
+      setMenagih(null);
+    }
+  };
 
   // Aggregate stats
   const totalApproved = cos.filter(c => c.status === "approved").reduce((s, c) => s + c.total_amount_delta, 0);
@@ -815,6 +871,74 @@ export function ChangeOrderSection({ projectId, userRole, contractValue }: Chang
           </button>
         )}
       </div>
+
+      {/* ── Tagihan CO tersendiri ────────────────────────────────────────────
+          Hanya muncul kalau ADA yang belum ditagih. Panel kosong berisi
+          "Rp 0" mengajari orang mengabaikan bagian ini, dan justru bagian
+          inilah yang tak boleh diabaikan: nilai `separate_co` tidak ada di
+          nilai kontrak (migrasi 348, benar) dan tidak ada di daftar tagihan
+          sampai diterbitkan — jadi ia tak terlihat di layar mana pun. */}
+      {penagihan && penagihan.belum_ditagih.length > 0 && (
+        <div style={{
+          marginBottom: 16, padding: 14, borderRadius: 8,
+          border: "1px solid var(--warning-border, #f0c36d)",
+          background: "var(--warning-bg, #fff8e6)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <FileText size={14} style={{ color: "var(--warning-teks)" }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--warning-teks)" }}>
+              Pekerjaan tambah menunggu ditagih
+            </span>
+          </div>
+          <p style={{ margin: "0 0 10px", fontSize: 12, color: C.mid, lineHeight: 1.5 }}>
+            {penagihan.belum_ditagih.length} change order sudah disetujui dengan cara
+            tagih tersendiri, senilai <strong>{fmt(penagihan.nilai_belum_ditagih)}</strong>.
+            Nilai ini <strong>tidak</strong> masuk nilai kontrak dan tidak tertagih lewat
+            termin — selama tagihannya belum terbit, ia tak muncul di piutang mana pun.
+          </p>
+
+          {galatTagih && (
+            <div role="alert" style={{
+              marginBottom: 10, padding: "8px 10px", borderRadius: 6, fontSize: 12,
+              background: "var(--danger-bg)", color: "var(--danger)",
+              border: "1px solid var(--danger-border)",
+            }}>
+              {galatTagih}
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {penagihan.belum_ditagih.map((c) => (
+              <div key={c.id} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                gap: 12, padding: "8px 10px", borderRadius: 6,
+                background: "var(--surface, #fff)", border: `1px solid ${C.border}`,
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>
+                    {c.co_number}{c.title ? ` — ${c.title}` : ""}
+                  </div>
+                  <div style={{ fontSize: 12, color: C.mid }}>{fmt(c.nilai)}</div>
+                </div>
+                {canManage && (
+                  <button
+                    onClick={() => terbitkanTagihan(c.id)}
+                    disabled={menagih === c.id}
+                    style={{
+                      flexShrink: 0, padding: "6px 12px", fontSize: 12, fontWeight: 600,
+                      borderRadius: 6, border: `1px solid ${C.navy}`,
+                      background: menagih === c.id ? C.border : C.navyLight,
+                      color: C.navy, cursor: menagih === c.id ? "wait" : "pointer",
+                    }}
+                  >
+                    {menagih === c.id ? "Menerbitkan…" : "Terbitkan Tagihan"}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Loading */}
       {loading && (
