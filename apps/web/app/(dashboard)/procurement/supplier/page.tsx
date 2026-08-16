@@ -8,15 +8,16 @@
  * edit, dan detail yang memuat hutang belum lunas serta riwayat pembayaran.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { MapPin, Phone, Plus, Search } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import {
   Badge, Btn, Card, Input, KotakGalat, Memuat, Modal, Select,
-  fmt, fmtDate, pesanError, tundaSatuTick,
+  fmt, fmtDate, pesanError,
 } from "../_bersama/ui";
 import { PAYMENT_TERMS, type Supplier } from "../_bersama/tipe";
 
@@ -40,8 +41,6 @@ const FORM_KOSONG = {
 };
 
 export default function SupplierPage() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<"add" | "detail" | "edit" | null>(null);
   const [selected, setSelected] = useState<DetailSupplier | null>(null);
@@ -49,20 +48,16 @@ export default function SupplierPage() {
   const [saveError, setSaveError] = useState("");
   const [form, setForm] = useState(FORM_KOSONG);
 
-  // `load` sengaja fungsi biasa, bukan `useCallback` — lihat catatan pola di
-  // `_bersama/ui.tsx`. `useCallback` yang dirujuk dari daftar dependensi
-  // `useEffect` membuat `react-hooks/set-state-in-effect` membaca setState di
-  // dalamnya sebagai setState di badan efek. Efek berdependensi nilai (bukan
-  // fungsi) tak punya masalah itu, dan perilakunya sama persis.
-  useEffect(() => { void load(); }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function load() {
-    await tundaSatuTick(); // lihat catatannya di `_bersama/ui.tsx`
-    setLoading(true);
-    const res = await api.get<{ suppliers: Supplier[] }>("/api/v1/procurement/suppliers").catch(() => null);
-    setSuppliers(res?.data?.suppliers ?? []);
-    setLoading(false);
-  }
+    `useData` menggantikan useEffect+useState+tundaSatuTick.
+  */
+  const { data, memuat: loading, muatUlang } = useData<{ suppliers: Supplier[] }>("/api/v1/procurement/suppliers");
+  const load = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  // Diturunkan, bukan disalin.
+  const suppliers = data?.suppliers ?? [];
 
   const filtered = suppliers.filter(s => s.name.toLowerCase().includes(search.toLowerCase()));
 

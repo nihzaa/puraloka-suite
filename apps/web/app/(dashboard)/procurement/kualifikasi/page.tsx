@@ -33,9 +33,9 @@
  * memaksa memindai 40 baris untuk hal yang bisa dijawab satu angka.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { ShieldCheck, RefreshCw, TriangleAlert, Ban, Clock } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
@@ -149,32 +149,26 @@ function BatangSkor({ skor, warna }: { skor: number; warna: string }) {
 }
 
 export default function KualifikasiVendorPage() {
-  const [prakualifikasi, setPrakualifikasi] = useState<Prakualifikasi[]>([]);
-  const [evaluasi, setEvaluasi] = useState<Evaluasi[]>([]);
-  const [galat, setGalat] = useState("");
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
-  // Pemuatan dilacak lewat putaran yang datanya sudah tiba, bukan bendera
-  // boolean yang dinyalakan di badan efek — bendera memicu render bertingkat.
-  const [putaranTiba, setPutaranTiba] = useState(-1);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    Promise.all([
-      api.get<{ prakualifikasi: Prakualifikasi[] }>("/api/v1/vendor-kualifikasi", { signal: ac.signal }),
-      api.get<{ evaluasi: Evaluasi[] }>("/api/v1/vendor-kualifikasi/evaluasi", { signal: ac.signal }),
-    ])
-      .then(([p, e]) => {
-        setPrakualifikasi(p.data.prakualifikasi ?? []);
-        setEvaluasi(e.data.evaluasi ?? []);
-        setGalat("");
-      })
-      .catch((e) => { if (!ac.signal.aborted) setGalat(e?.response?.data?.error ?? "Gagal memuat kualifikasi vendor"); })
-      .finally(() => { if (!ac.signal.aborted) setPutaranTiba(muatUlangKe); });
-    return () => ac.abort();
-  }, [muatUlangKe]);
+    `useData` menggantikan pasangan useEffect+useState+AbortController dan
+    penghitung "putaran tiba" — dipanggil dua kali, satu per URL.
+  */
+  const { data: dataPra, memuat: memuatPra, galat: galatPra, muatUlang: muatUlangPra } =
+    useData<{ prakualifikasi: Prakualifikasi[] }>("/api/v1/vendor-kualifikasi");
+  const { data: dataEval, memuat: memuatEval, galat: galatEval, muatUlang: muatUlangEval } =
+    useData<{ evaluasi: Evaluasi[] }>("/api/v1/vendor-kualifikasi/evaluasi");
 
-  const memuat = putaranTiba !== muatUlangKe;
-  const muatUlang = useCallback(() => setMuatUlangKe((n) => n + 1), []);
+  const memuat = memuatPra || memuatEval;
+  const galat = (galatPra || galatEval) ? "Gagal memuat kualifikasi vendor" : "";
+  const muatUlang = useCallback(() => { void muatUlangPra(); void muatUlangEval(); }, [muatUlangPra, muatUlangEval]);
+
+  // Diturunkan, bukan disalin. Dibungkus `useMemo` — `?? []` inline melahirkan
+  // larik baru tiap render, dan `useMemo` di bawah yang membacanya tak pernah
+  // berhenti menghitung ulang (react-hooks/exhaustive-deps).
+  const prakualifikasi = useMemo(() => dataPra?.prakualifikasi ?? [], [dataPra]);
+  const evaluasi = useMemo(() => dataEval?.evaluasi ?? [], [dataEval]);
 
   const ringkas = useMemo(() => {
     const bolehDiundang = prakualifikasi.filter((p) => p.nilai.bolehDiundang).length;

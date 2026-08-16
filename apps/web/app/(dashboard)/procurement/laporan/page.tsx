@@ -20,14 +20,14 @@
  * duduk di `<tfoot>`.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Download, RefreshCw } from "lucide-react";
 
-import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KartuKPI, Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom, type SelTotal } from "@/components/dasar";
-import { Badge, Btn, Input, Memuat, STATUS_BADGE, fmt, fmtDate, fmtRingkas, tundaSatuTick } from "../_bersama/ui";
+import { Badge, Btn, Input, Memuat, STATUS_BADGE, fmt, fmtDate, fmtRingkas } from "../_bersama/ui";
 
 interface PoLaporan {
   id: string;
@@ -86,65 +86,44 @@ const BUCKET = [
 
 export default function LaporanPage() {
   const [subTab, setSubTab] = useState<"rekap" | "aging">("rekap");
-  const [purchases, setPurchases] = useState<{ purchase_orders: PoLaporan[]; summary: RingkasBelanja | null }>({ purchase_orders: [], summary: null });
-  const [aging, setAging] = useState<Aging>({ invoices: [], buckets: null, total: 0 });
-  const [loading, setLoading] = useState(false);
-  const [projects, setProjects] = useState<Proyek[]>([]);
-  const [suppliers, setSuppliers] = useState<SupplierRingkas[]>([]);
   const [filters, setFilters] = useState({ from: "", to: "", project_id: "", supplier_id: "" });
 
-  useEffect(() => {
-    void Promise.all([
-      api.get<{ projects: Proyek[] }>("/api/v1/projects").catch(() => null),
-      api.get<{ suppliers: SupplierRingkas[] }>("/api/v1/procurement/suppliers").catch(() => null),
-    ]).then(([pRes, sRes]) => {
-      setProjects(pRes?.data?.projects ?? []);
-      setSuppliers(sRes?.data?.suppliers ?? []);
-    });
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // Pemuat ditulis sebagai fungsi biasa yang menerima sub-tab dan saringannya
-  // lewat PARAMETER, bukan `useCallback` yang membacanya dari closure. Dua
-  // alasan, keduanya soal lint dan bukan gaya:
-  //
-  //  1. `useCallback` yang dirujuk dari daftar dependensi `useEffect` membuat
-  //     `react-hooks/set-state-in-effect` membaca setState di dalam pemuat
-  //     sebagai setState di badan efek.
-  //  2. Karena keduanya masuk sebagai argumen, badan efek tak lagi menutup
-  //     nilai apa pun dari luar — `exhaustive-deps` pun tak punya dependensi
-  //     yang hilang untuk dikeluhkan, tanpa perlu `eslint-disable`.
-  //
-  // Medan saringan diteruskan SATU PER SATU, bukan sebagai objek `filters`
-  // utuh: kalau objeknya yang dioper, badan efek menutup `filters` dan
-  // `exhaustive-deps` menuntutnya masuk daftar. Objek itu selalu dibuat baru
-  // oleh `setFilters`, jadi mendaftar medannya memberi pemicu yang sama
-  // persis — tak ada muatan yang hilang atau bertambah.
-  useEffect(
-    () => { void loadData(subTab, filters.from, filters.to, filters.project_id, filters.supplier_id); },
-    [subTab, filters.from, filters.to, filters.project_id, filters.supplier_id]);
+    `useData` menggantikan tiga pasang useEffect+useState+tundaSatuTick.
+    Rekap dan aging memakai URL KONDISIONAL — `null` selama sub-tabnya tak
+    aktif, sama seperti percabangan `tab === "rekap"` yang lama. Filter rekap
+    masuk sebagai query string, jadi kunci cache berubah otomatis saat
+    saringannya berubah.
+  */
+  const paramsRekap = new URLSearchParams();
+  if (filters.from) paramsRekap.set("from", filters.from);
+  if (filters.to) paramsRekap.set("to", filters.to);
+  if (filters.project_id) paramsRekap.set("project_id", filters.project_id);
+  if (filters.supplier_id) paramsRekap.set("supplier_id", filters.supplier_id);
+  const qsRekap = paramsRekap.toString();
 
-  async function loadData(
-    tab: "rekap" | "aging",
-    from: string, to: string, projectId: string, supplierId: string,
-  ) {
-    await tundaSatuTick(); // lihat catatannya di `_bersama/ui.tsx`
-    setLoading(true);
-    if (tab === "rekap") {
-      const p: Record<string, string> = {};
-      if (from) p.from = from;
-      if (to) p.to = to;
-      if (projectId) p.project_id = projectId;
-      if (supplierId) p.supplier_id = supplierId;
-      const res = await api.get<{ purchase_orders: PoLaporan[]; summary: RingkasBelanja }>(
-        "/api/v1/procurement/reports/purchases", { params: p },
-      ).catch(() => null);
-      setPurchases(res?.data ?? { purchase_orders: [], summary: null });
-    } else {
-      const res = await api.get<Aging>("/api/v1/procurement/reports/aging").catch(() => null);
-      setAging(res?.data ?? { invoices: [], buckets: null, total: 0 });
-    }
-    setLoading(false);
-  }
+  const { data: dataRekap, memuat: memuatRekap, muatUlang: muatUlangRekap } =
+    useData<{ purchase_orders: PoLaporan[]; summary: RingkasBelanja }>(
+      subTab === "rekap" ? `/api/v1/procurement/reports/purchases${qsRekap ? `?${qsRekap}` : ""}` : null,
+    );
+  const { data: dataAging, memuat: memuatAging, muatUlang: muatUlangAging } =
+    useData<Aging>(subTab === "aging" ? "/api/v1/procurement/reports/aging" : null);
+  const { data: dataProjects } = useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const { data: dataSuppliers } = useData<{ suppliers: SupplierRingkas[] }>("/api/v1/procurement/suppliers");
+
+  const loading = subTab === "rekap" ? memuatRekap : memuatAging;
+  const loadData = useCallback(async () => {
+    if (subTab === "rekap") await muatUlangRekap();
+    else await muatUlangAging();
+  }, [subTab, muatUlangRekap, muatUlangAging]);
+
+  // Diturunkan, bukan disalin.
+  const purchases = dataRekap ?? { purchase_orders: [], summary: null };
+  const aging = dataAging ?? { invoices: [], buckets: null, total: 0 };
+  const projects = dataProjects?.projects ?? [];
+  const suppliers = dataSuppliers?.suppliers ?? [];
 
   const exportExcel = async () => {
     const XLSX = await import("xlsx");
@@ -260,7 +239,7 @@ export default function LaporanPage() {
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
             <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-              <Btn variant="secondary" onClick={() => void loadData(subTab, filters.from, filters.to, filters.project_id, filters.supplier_id)}><RefreshCw size={13} aria-hidden="true" /> Refresh</Btn>
+              <Btn variant="secondary" onClick={() => void loadData()}><RefreshCw size={13} aria-hidden="true" /> Refresh</Btn>
               <Btn variant="secondary" onClick={() => void exportExcel()}><Download size={13} aria-hidden="true" /> Export Excel</Btn>
             </div>
           </div>
@@ -318,7 +297,7 @@ export default function LaporanPage() {
       ) : (
         <>
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16, gap: 8 }}>
-            <Btn variant="secondary" onClick={() => void loadData(subTab, filters.from, filters.to, filters.project_id, filters.supplier_id)}><RefreshCw size={13} aria-hidden="true" /> Refresh</Btn>
+            <Btn variant="secondary" onClick={() => void loadData()}><RefreshCw size={13} aria-hidden="true" /> Refresh</Btn>
             <Btn variant="secondary" onClick={() => void exportExcel()}><Download size={13} aria-hidden="true" /> Export Excel</Btn>
           </div>
 

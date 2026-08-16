@@ -35,9 +35,9 @@
  * KEADAAN (4 KPI) → POLA (peringatan) → DETAIL (tabel).
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo } from "react";
 import { PackageSearch, RefreshCw, FileMinus, Truck, Boxes } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
@@ -254,24 +254,16 @@ export default function PengadaanLanjutanPage() {
 
 function IsiPengadaanLanjutan() {
   const [bagian, setBagian] = useTabUrl<Bagian>(BAGIAN, "payung", "bagian");
-  const [data, setData] = useState<Data | null>(null);
-  const [galat, setGalat] = useState("");
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
-  // Pemuatan dilacak lewat putaran yang datanya sudah tiba, bukan bendera
-  // boolean yang dinyalakan di badan efek — bendera memicu render bertingkat.
-  const [putaranTiba, setPutaranTiba] = useState(-1);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<Data>("/api/v1/pengadaan-lanjutan", { signal: ac.signal })
-      .then((r) => { setData(r.data); setGalat(""); })
-      .catch((e) => { if (!ac.signal.aborted) setGalat(e?.response?.data?.error ?? "Gagal memuat data pengadaan"); })
-      .finally(() => { if (!ac.signal.aborted) setPutaranTiba(muatUlangKe); });
-    return () => ac.abort();
-  }, [muatUlangKe]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const memuat = putaranTiba !== muatUlangKe;
-  const muatUlang = useCallback(() => setMuatUlangKe((n) => n + 1), []);
+    `useData` menggantikan pasangan useEffect+useState+AbortController dan
+    penghitung "putaran tiba" yang dipakai sekadar melacak pemuatan.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } = useData<Data>("/api/v1/pengadaan-lanjutan");
+  const galat = galatMuat ? "Gagal memuat data pengadaan" : "";
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   const kolomKiriman: Array<Kolom<Kiriman>> = useMemo(() => [
     {
@@ -451,7 +443,7 @@ function IsiPengadaanLanjutan() {
         </div>
         <button
           type="button"
-          onClick={muatUlang}
+          onClick={() => void muat()}
           disabled={memuat}
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,

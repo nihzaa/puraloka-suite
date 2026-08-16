@@ -13,15 +13,16 @@
  * `colSpan` — bedanya bukan kosmetik, catatannya ada di `dasar.tsx`.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Check, Plus, Send, Truck, X } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom, type SelTotal } from "@/components/dasar";
-import { Badge, Btn, Card, Input, Memuat, Modal, STATUS_BADGE, fmt, fmtDate, tundaSatuTick } from "../_bersama/ui";
+import { Badge, Btn, Card, Input, Memuat, Modal, STATUS_BADGE, fmt, fmtDate } from "../_bersama/ui";
 import { CreatePoModal, KirimPoModal } from "../_bersama/modal-po";
 import type { PoRingkas, PurchaseOrder } from "../_bersama/tipe";
 
@@ -46,8 +47,6 @@ interface DetailPo extends PurchaseOrder {
 const STATUS_PO = ["draft", "sent", "confirmed", "partially_received", "fully_received", "cancelled"];
 
 export default function PesananPage() {
-  const [pos, setPos] = useState<PurchaseOrder[]>([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [detailPo, setDetailPo] = useState<DetailPo | null>(null);
@@ -57,35 +56,24 @@ export default function PesananPage() {
   const [kirimPo, setKirimPo] = useState<PoRingkas | null>(null);
   const canManage = useIzin("procurement:po:manage");
 
-  // Pemuat ditulis sebagai fungsi biasa yang menerima saringannya lewat
-  // PARAMETER, bukan `useCallback` yang membacanya dari closure. Dua alasan,
-  // keduanya soal lint dan bukan gaya:
-  //
-  //  1. `useCallback` yang dirujuk dari daftar dependensi `useEffect` membuat
-  //     `react-hooks/set-state-in-effect` membaca setState di dalam pemuat
-  //     sebagai setState di badan efek.
-  //  2. Karena saringan masuk sebagai argumen, badan efek tak lagi menutup
-  //     nilai apa pun dari luar — `exhaustive-deps` pun tak punya dependensi
-  //     yang hilang untuk dikeluhkan, tanpa perlu `eslint-disable`.
-  //
-  // Perilakunya sama persis: efek jalan saat dipasang dan setiap kali
-  // `statusFilter` berubah, dengan nilai saringan yang sama seperti dulu.
-  useEffect(() => { void load(statusFilter); }, [statusFilter]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function load(status: string) {
-    await tundaSatuTick(); // lihat catatannya di `_bersama/ui.tsx`
-    setLoading(true);
-    const res = await api.get<{ purchase_orders: PurchaseOrder[] }>(
-      "/api/v1/procurement/purchase-orders",
-      { params: status ? { status } : {} },
-    ).catch(() => null);
-    setPos(res?.data?.purchase_orders ?? []);
-    setLoading(false);
-  }
+    `useData` menggantikan pasangan useEffect+useState+tundaSatuTick. Saringan
+    status masuk sebagai bagian dari URL — kunci cache berubah otomatis saat
+    saringannya berubah, dan `useData` memuat ulang sendiri.
+  */
+  const { data, memuat: loading, muatUlang } = useData<{ purchase_orders: PurchaseOrder[] }>(
+    `/api/v1/procurement/purchase-orders${statusFilter ? `?status=${statusFilter}` : ""}`,
+  );
+  const load = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  // Diturunkan, bukan disalin.
+  const pos = data?.purchase_orders ?? [];
 
   const updateStatus = async (id: string, status: string) => {
     await api.patch(`/api/v1/procurement/purchase-orders/${id}/status`, { status }).catch(() => null);
-    void load(statusFilter);
+    void load();
   };
 
   const openDetail = async (po: PurchaseOrder) => {
@@ -99,7 +87,7 @@ export default function PesananPage() {
     if (!cancelId) return;
     setCancelling(true);
     await api.patch(`/api/v1/procurement/purchase-orders/${cancelId}/cancel`, { notes: cancelNotes }).catch(() => null);
-    setCancelling(false); setCancelId(null); setCancelNotes(""); void load(statusFilter);
+    setCancelling(false); setCancelId(null); setCancelNotes(""); void load();
   };
 
   const kolomItem: Kolom<ItemPo>[] = [
@@ -223,8 +211,8 @@ export default function PesananPage() {
         </div>
       )}
 
-      {showCreate && <CreatePoModal onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); void load(statusFilter); }} />}
-      {kirimPo && <KirimPoModal po={kirimPo} onClose={() => setKirimPo(null)} onSuccess={() => { setKirimPo(null); void load(statusFilter); }} />}
+      {showCreate && <CreatePoModal onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); void load(); }} />}
+      {kirimPo && <KirimPoModal po={kirimPo} onClose={() => setKirimPo(null)} onSuccess={() => { setKirimPo(null); void load(); }} />}
 
       {detailPo && (
         <Modal title={`Detail ${detailPo.po_number}`} onClose={() => setDetailPo(null)} width={680}>

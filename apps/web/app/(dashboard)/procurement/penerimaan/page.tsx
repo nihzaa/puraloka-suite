@@ -10,17 +10,18 @@
  * Tabel HTML mentah di modal pencatatan diganti `<Tabel>`.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Check, Plus } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
 import {
   Badge, Btn, Card, Input, KotakGalat, Memuat, Modal, Select,
-  fmtDate, pesanError, tundaSatuTick,
+  fmtDate, pesanError,
 } from "../_bersama/ui";
 
 interface GoodsReceipt {
@@ -36,43 +37,29 @@ interface GoodsReceipt {
 }
 
 export default function PenerimaanPage() {
-  const [grs, setGrs] = useState<GoodsReceipt[]>([]);
-  const [loading, setLoading] = useState(true);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const canManage = useIzin("procurement:po:manage");
 
-  // Pemuat ditulis sebagai fungsi biasa yang menerima saringannya lewat
-  // PARAMETER, bukan `useCallback` yang membacanya dari closure. Dua alasan,
-  // keduanya soal lint dan bukan gaya:
-  //
-  //  1. `useCallback` yang dirujuk dari daftar dependensi `useEffect` membuat
-  //     `react-hooks/set-state-in-effect` membaca setState di dalam pemuat
-  //     sebagai setState di badan efek.
-  //  2. Karena saringan masuk sebagai argumen, badan efek tak lagi menutup
-  //     nilai apa pun dari luar — `exhaustive-deps` pun tak punya dependensi
-  //     yang hilang untuk dikeluhkan, tanpa perlu `eslint-disable`.
-  //
-  // Perilakunya sama persis: efek jalan saat dipasang dan setiap kali
-  // `statusFilter` berubah, dengan nilai saringan yang sama seperti dulu.
-  useEffect(() => { void load(statusFilter); }, [statusFilter]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function load(status: string) {
-    await tundaSatuTick(); // lihat catatannya di `_bersama/ui.tsx`
-    setLoading(true);
-    const res = await api.get<{ goods_receipts: GoodsReceipt[] }>(
-      "/api/v1/procurement/goods-receipts",
-      { params: status ? { status } : {} },
-    ).catch(() => null);
-    setGrs(res?.data?.goods_receipts ?? []);
-    setLoading(false);
-  }
+    `useData` menggantikan useEffect+useState+tundaSatuTick. Saringan status
+    masuk sebagai bagian dari URL.
+  */
+  const { data, memuat: loading, muatUlang } = useData<{ goods_receipts: GoodsReceipt[] }>(
+    `/api/v1/procurement/goods-receipts${statusFilter ? `?status=${statusFilter}` : ""}`,
+  );
+  const load = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  // Diturunkan, bukan disalin.
+  const grs = data?.goods_receipts ?? [];
 
   const confirm = async (id: string) => {
     setConfirming(id);
     await api.patch(`/api/v1/procurement/goods-receipts/${id}/confirm`).catch(() => null);
-    setConfirming(null); void load(statusFilter);
+    setConfirming(null); void load();
   };
 
   return (
@@ -132,7 +119,7 @@ export default function PenerimaanPage() {
         </div>
       )}
 
-      {showCreate && <CreateGrModal onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); void load(statusFilter); }} />}
+      {showCreate && <CreateGrModal onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); void load(); }} />}
     </div>
   );
 }
@@ -158,7 +145,6 @@ interface BarisTerima {
 }
 
 function CreateGrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
-  const [confirmedPos, setConfirmedPos] = useState<PoTerkonfirmasi[]>([]);
   const [selectedPo, setSelectedPo] = useState<PoTerkonfirmasi | null>(null);
   const [form, setForm] = useState({
     po_id: "", receipt_date: new Date().toISOString().split("T")[0], notes: "",
@@ -167,11 +153,11 @@ function CreateGrModal({ onClose, onSuccess }: { onClose: () => void; onSuccess:
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    void api.get<{ purchase_orders: PoTerkonfirmasi[] }>(
-      "/api/v1/procurement/purchase-orders", { params: { status: "confirmed" } },
-    ).then(r => setConfirmedPos(r.data?.purchase_orders ?? [])).catch(() => null);
-  }, []);
+  // PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16 — sama kunci cache dengan
+  // saringan "confirmed" di halaman lain yang memuat URL ini.
+  const { data: dataConfirmedPos } =
+    useData<{ purchase_orders: PoTerkonfirmasi[] }>("/api/v1/procurement/purchase-orders?status=confirmed");
+  const confirmedPos = dataConfirmedPos?.purchase_orders ?? [];
 
   const loadPoItems = async (poId: string) => {
     const res = await api.get<{ purchase_order: PoTerkonfirmasi }>(
