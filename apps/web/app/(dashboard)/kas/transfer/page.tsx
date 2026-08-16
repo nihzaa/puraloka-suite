@@ -16,11 +16,12 @@
  * menautkannya, tombol Kembali bekerja, dan tautannya bisa ditempel di chat.
  */
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRightLeft, RefreshCw } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
@@ -55,28 +56,19 @@ function TransferIsi() {
   const dariUrl = params.get("status") ?? "";
   const saring = (STATUS_SAH as readonly string[]).includes(dariUrl) ? dariUrl : "all";
 
-  const [transfer, setTransfer] = useState<CashTransfer[]>([]);
-  const [memuat, setMemuat] = useState(true);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const muat = useCallback(async (status: string, signal?: AbortSignal) => {
-    setMemuat(true);
-    try {
-      const q: Record<string, string> = { limit: "100" };
-      if (status !== "all") q.status = status;
-      const r = await api.get<{ transfers: CashTransfer[] }>("/api/v1/cash/transfers", { params: q, signal });
-      setTransfer(r.data.transfers);
-    } finally { setMemuat(false); }
-  }, []);
-
-  useEffect(() => {
-    const ac = makeAbortController();
-    // `queueMicrotask`: setState di baris pertama `muat()` jatuh di dalam
-    // fase render effect. Menundanya satu microtask memindahkannya keluar
-    // tanpa jeda yang terlihat — `ac.abort()` di cleanup tetap bekerja,
-    // karena pembatalan terjadi belakangan.
-    queueMicrotask(() => { void muat(saring, ac.signal).catch(() => {}); });
-    return () => ac.abort();
-  }, [saring, muat]);
+    `useData` menggantikan useCallback+useEffect+AbortController+queueMicrotask.
+    Saringan status masuk sebagai bagian dari URL — kunci cache berubah
+    otomatis saat saringannya berganti.
+  */
+  const jalur = saring !== "all"
+    ? `/api/v1/cash/transfers?limit=100&status=${encodeURIComponent(saring)}`
+    : "/api/v1/cash/transfers?limit=100";
+  const { data, memuat, muatUlang } = useData<{ transfers: CashTransfer[] }>(jalur);
+  const transfer = data?.transfers ?? [];
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   function gantiSaring(nilai: string) {
     // Saringan ditulis ke URL, bukan ke state lokal — supaya keadaan layar
@@ -87,7 +79,10 @@ function TransferIsi() {
   async function konfirmasi(id: string) {
     try {
       await api.patch(`/api/v1/cash/transfers/${id}/confirm`);
-      setTransfer(prev => prev.map(t => t.id === id ? { ...t, status: "confirmed" } : t));
+      // `muat()` (bukan setState lokal): data kini datang dari lapis cache,
+      // dan menulis ke situ langsung akan tertimpa saat cache lain
+      // menyegarkan diri.
+      await muat();
     } catch (err: unknown) {
       alert(pesanGalat(err, "Gagal konfirmasi"));
     }
@@ -96,7 +91,7 @@ function TransferIsi() {
   async function batalkan(id: string) {
     try {
       await api.patch(`/api/v1/cash/transfers/${id}/cancel`);
-      setTransfer(prev => prev.map(t => t.id === id ? { ...t, status: "cancelled" } : t));
+      await muat();
     } catch (err: unknown) {
       // Kegagalan ini SEBELUMNYA ditelan `catch {}` — dan tampilan lokal di
       // atas tetap berubah jadi "dibatalkan". Jadi layar menunjukkan transfer
@@ -122,7 +117,7 @@ function TransferIsi() {
           <option value="confirmed">Dikonfirmasi</option>
           <option value="cancelled">Dibatalkan</option>
         </select>
-        <button onClick={() => void muat(saring)} style={{
+        <button onClick={() => void muat()} style={{
           display: "flex", alignItems: "center", gap: 4, padding: "8px 12px",
           border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)",
           color: C.mid, fontSize: 12, cursor: "pointer",

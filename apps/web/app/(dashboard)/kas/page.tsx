@@ -40,14 +40,14 @@
  * di bawahnya — dua angka yang memang berbeda, disebut berbeda.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
 import {
   AlertTriangle, ArrowRightLeft, Banknote, Building2, Clock,
   ShoppingCart, TrendingDown, TrendingUp, Wallet,
 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
@@ -78,9 +78,20 @@ function bulanIni() {
 }
 
 function KasRingkasan() {
-  const [ringkas, setRingkas] = useState<CashSummary | null>(null);
-  const [gagalRingkas, setGagalRingkas] = useState(false);
-  const [memuatRingkas, setMemuatRingkas] = useState(true);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Tiga sumber independen, tiga `useData`. Rentang tanggal (bulan berjalan,
+    enam bulan terakhir) dihitung sekali per render sebagai bagian URL —
+    stabil dalam satu hari, dan cache 5 menit bawaan sudah cukup pendek untuk
+    tak menyimpan tanggal basi lintas hari.
+  */
+  const { data: ringkas, memuat: memuatRingkas, galat: galatRingkas } =
+    useData<CashSummary>("/api/v1/cash/summary");
+  // Menampilkan "Rp 0" pada data yang tak terbaca adalah kebohongan yang
+  // menenangkan, dan di layar kas itu berbahaya — jadi galat muat dibaca
+  // langsung sebagai kegagalan ringkasan, bukan diam-diam menampilkan nol.
+  const gagalRingkas = Boolean(galatRingkas);
 
   // Enam bulan terakhir — bukan bulan berjalan saja.
   //
@@ -88,47 +99,20 @@ function KasRingkasan() {
   // pertanyaan yang sudah dijawab kartu KPI di atasnya. Enam bulan menjawab
   // pertanyaan yang berbeda ("arahnya ke mana"), dan itulah alasan lapis
   // kedua ada. Angka KPI-nya tetap dihitung dari titik bulan berjalan saja.
-  const [arus, setArus] = useState<TitikArusKas[]>([]);
-  const [memuatArus, setMemuatArus] = useState(true);
+  const kini = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const enamBulanLalu = new Date(kini.getFullYear(), kini.getMonth() - 5, 1);
+  const jalurArus = `/api/v1/finance/cashflow-chart?date_from=${enamBulanLalu.getFullYear()}-${pad(enamBulanLalu.getMonth() + 1)}-01&date_to=${bulanIni().sampai}`;
+  const { data: dataArus, memuat: memuatArus } = useData<{ chartData: TitikArusKas[] }>(jalurArus);
+  // `useMemo`, bukan `?? []` telanjang: turunan ini masuk dependensi
+  // `useMemo` lain di bawah (`titikBulanIni`), dan array baru tiap render
+  // membuat memo itu tak pernah dianggap sama.
+  const arus = useMemo(() => dataArus?.chartData ?? [], [dataArus]);
 
-  const [kategori, setKategori] = useState<RingkasKategori[]>([]);
-  const [memuatKategori, setMemuatKategori] = useState(true);
-
-  useEffect(() => {
-    const ac = makeAbortController();
-
-    api.get<CashSummary>("/api/v1/cash/summary", { signal: ac.signal })
-      .then((r) => { setRingkas(r.data); setGagalRingkas(false); })
-      // Menampilkan "Rp 0" pada data yang tak terbaca adalah kebohongan yang
-      // menenangkan, dan di layar kas itu berbahaya.
-      .catch((e) => { if (e?.name !== "CanceledError") setGagalRingkas(true); })
-      .finally(() => setMemuatRingkas(false));
-
-    const kini = new Date();
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const enamBulanLalu = new Date(kini.getFullYear(), kini.getMonth() - 5, 1);
-    api.get<{ chartData: TitikArusKas[] }>("/api/v1/finance/cashflow-chart", {
-      signal: ac.signal,
-      params: {
-        date_from: `${enamBulanLalu.getFullYear()}-${pad(enamBulanLalu.getMonth() + 1)}-01`,
-        date_to: bulanIni().sampai,
-      },
-    })
-      .then((r) => setArus(r.data.chartData))
-      .catch(() => setArus([]))
-      .finally(() => setMemuatArus(false));
-
-    const { dari, sampai } = bulanIni();
-    api.get<{ summary: RingkasKategori[] }>("/api/v1/cash/expenses/summary-by-category", {
-      signal: ac.signal,
-      params: { date_from: dari, date_to: sampai },
-    })
-      .then((r) => setKategori(r.data.summary))
-      .catch(() => setKategori([]))
-      .finally(() => setMemuatKategori(false));
-
-    return () => ac.abort();
-  }, []);
+  const { dari, sampai } = bulanIni();
+  const jalurKategori = `/api/v1/cash/expenses/summary-by-category?date_from=${dari}&date_to=${sampai}`;
+  const { data: dataKategori, memuat: memuatKategori } = useData<{ summary: RingkasKategori[] }>(jalurKategori);
+  const kategori = dataKategori?.summary ?? [];
 
   // Titik bulan BERJALAN dari deret arus kas. Dicari lewat `period`, bukan
   // diambil sebagai elemen terakhir: bulan tanpa satu pun transaksi tidak

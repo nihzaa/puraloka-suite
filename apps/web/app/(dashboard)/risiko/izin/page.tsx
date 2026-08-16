@@ -47,12 +47,13 @@
  * yang mati tak terlihat.
  */
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Stamp, TriangleAlert, ShieldCheck, Clock, Plus, FileWarning, Ban,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, Tabel, Kosong, Rangka, Galat,
@@ -184,11 +185,7 @@ export default function IzinProyekPage() {
 function IsiIzin() {
   const params = useSearchParams();
   const dariUrl = params.get("proyek") ?? "";
-  const [proyekList, setProyekList] = useState<Proyek[]>([]);
   const [proyekId, setProyekId] = useState("");
-  const [data, setData] = useState<Muatan | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
 
   const [tambah, setTambah] = useState(false);
   const [fJenis, setFJenis] = useState("");
@@ -203,43 +200,35 @@ function IsiIzin() {
   const [menyimpan, setMenyimpan] = useState(false);
   const [galatModal, setGalatModal] = useState<string | null>(null);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Dua `useData`: daftar proyek, lalu perizinan yang bergantung `proyekId`.
+    Galat AKSI (simpan izin) sudah dipisah lewat `galatModal` yang sudah ada
+    sejak awal — tinggal galat MUAT yang kini datang dari `useData`.
+  */
+  const { data: dataProyek, galat: galatMuatProyek } = useData<{ projects: Proyek[] }>(
+    "/api/v1/projects",
+  );
+  // `useMemo`: masuk dependensi `useEffect` di bawah, dan array baru tiap
+  // render membuat efek itu berjalan tanpa henti.
+  const proyekList = useMemo(() => dataProyek?.projects ?? [], [dataProyek]);
+
+  // Yang dari URL menang, TAPI hanya kalau id-nya benar-benar ada di daftar:
+  // id ngawur dari tautan lama harus mendarat di sesuatu yang nyata, bukan
+  // di layar kosong yang tak bisa dijelaskan.
   useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => {
-        const d = r.data.projects ?? [];
-        setProyekList(d);
-        // Yang dari URL menang, TAPI hanya kalau id-nya benar-benar ada di
-        // daftar: id ngawur dari tautan lama harus mendarat di sesuatu yang
-        // nyata, bukan di layar kosong yang tak bisa dijelaskan.
-        setProyekId((s) =>
-          s || (dariUrl && d.some((p) => p.id === dariUrl) ? dariUrl : "") || d[0]?.id || "");
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); });
-    return () => ac.abort();
-  }, [dariUrl]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProyekId((s) =>
+      s || (dariUrl && proyekList.some((p) => p.id === dariUrl) ? dariUrl : "") || proyekList[0]?.id || "");
+  }, [proyekList, dariUrl]);
 
-  const muat = useCallback(async (id: string) => {
-    // Lewat mikrotask, BUKAN setState langsung di badan efek: yang kedua
-    // memicu render bertingkat (`set-state-in-effect`).
-    if (!id) { void Promise.resolve().then(() => setData(null)); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Muatan>(`/api/v1/proyek/${id}/izin`);
-      setData(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat perizinan proyek");
-      setData(null);
-    } finally { setMemuat(false); }
-  }, []);
-
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state di
-  // awalnya, dan memanggilnya dari badan efek adalah setState-di-dalam-efek
-  // (`react-hooks/set-state-in-effect`) yang memicu render bertingkat. Pola
-  // yang sama dipakai `/mutu/ncr`; ratchet lint mengukurnya 67 → 71 pada
-  // percobaan pertama halaman ini.
-  useEffect(() => { queueMicrotask(() => { void muat(proyekId); }); }, [proyekId, muat]);
+  const { data, memuat, galat: galatMuatIzin, muatUlang } = useData<Muatan>(
+    proyekId ? `/api/v1/proyek/${proyekId}/izin` : null,
+  );
+  const galat = galatMuatProyek
+    ? "Gagal memuat daftar proyek"
+    : galatMuatIzin ? "Gagal memuat perizinan proyek" : null;
 
   const simpan = useCallback(async () => {
     if (!proyekId) return;
@@ -258,12 +247,12 @@ function IsiIzin() {
       });
       setTambah(false);
       setFJenis(""); setFNomor(""); setFPenerbit(""); setFDari(""); setFSampai(""); setFBiaya("");
-      await muat(proyekId);
+      await muatUlang();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menambah izin");
     } finally { setMenyimpan(false); }
-  }, [proyekId, fJenis, fStatus, fNomor, fPenerbit, fDari, fSampai, fBiaya, fMenghalangi, muat]);
+  }, [proyekId, fJenis, fStatus, fNomor, fPenerbit, fDari, fSampai, fBiaya, fMenghalangi, muatUlang]);
 
   const kolom: Array<Kolom<Izin>> = [
     {
@@ -367,7 +356,7 @@ function IsiIzin() {
         }
       />
 
-      {galat && <Galat pesan={galat} onCobaLagi={() => void muat(proyekId)} />}
+      {galat && <Galat pesan={galat} onCobaLagi={() => void muatUlang()} />}
 
       <Kartu pad="sedang">
         <label htmlFor="iz-proyek" style={{

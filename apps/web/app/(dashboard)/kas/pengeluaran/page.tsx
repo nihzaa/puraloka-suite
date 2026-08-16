@@ -17,13 +17,14 @@
  * meninggalkan jejak di alamat.
  */
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Building2, CheckCircle2, RefreshCw, ShoppingCart, TrendingDown,
 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
@@ -56,75 +57,56 @@ function PengeluaranIsi() {
   const dariUrl = params.get("status") ?? "";
   const saring = (STATUS_SAH as readonly string[]).includes(dariUrl) ? dariUrl : "all";
 
-  const [pengeluaran, setPengeluaran] = useState<Expense[]>([]);
-  const [memuat, setMemuat] = useState(true);
-
-  const [kategori, setKategori] = useState<RingkasKategori[]>([]);
   const [bukaKategori, setBukaKategori] = useState(false);
 
-  const [bayarSupplier, setBayarSupplier] = useState<BarisSupplier[]>([]);
-  const [memuatSupplier, setMemuatSupplier] = useState(true);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const [bayarProgres, setBayarProgres] = useState<BarisProgres[]>([]);
-  const [settlementBorongan, setSettlementBorongan] = useState<BarisSettlement[]>([]);
-  const [memuatMandor, setMemuatMandor] = useState(true);
+    Empat `useData` — satu per URL, sama seperti `procurement/hutang`. Ketiga
+    aliran pendamping (supplier, progres mandor, settlement borongan, kategori)
+    tak bergantung saringan status, jadi URL-nya tetap dan `useData` men-dedup
+    sendiri tanpa perlu "dimuat sekali" secara eksplisit seperti versi lama.
+  */
+  const jalur = saring !== "all"
+    ? `/api/v1/cash/expenses?limit=100&status=${encodeURIComponent(saring)}`
+    : "/api/v1/cash/expenses?limit=100";
+  const { data: dataPengeluaran, memuat, muatUlang: muatUlangPengeluaran } =
+    useData<{ expenses: Expense[] }>(jalur);
+  const pengeluaran = dataPengeluaran?.expenses ?? [];
 
-  const muat = useCallback(async (status: string, signal?: AbortSignal) => {
-    setMemuat(true);
-    try {
-      const q: Record<string, string> = { limit: "100" };
-      if (status !== "all") q.status = status;
-      const r = await api.get<{ expenses: Expense[] }>("/api/v1/cash/expenses", { params: q, signal });
-      setPengeluaran(r.data.expenses);
-    } finally { setMemuat(false); }
-  }, []);
+  const { data: dataKategori } = useData<{ summary: RingkasKategori[] }>(
+    "/api/v1/cash/expenses/summary-by-category",
+  );
+  const kategori = dataKategori?.summary ?? [];
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    // `queueMicrotask`: setState di baris pertama `muat()` jatuh di dalam
-    // fase render effect. Menundanya satu microtask memindahkannya keluar
-    // tanpa jeda yang terlihat — `ac.abort()` di cleanup tetap bekerja,
-    // karena pembatalan terjadi belakangan.
-    queueMicrotask(() => { void muat(saring, ac.signal).catch(() => {}); });
-    return () => ac.abort();
-  }, [saring, muat]);
+  const { data: dataSupplier, memuat: memuatSupplier } = useData<{ supplier_payments?: BarisSupplier[] }>(
+    "/api/v1/procurement/supplier-payments?limit=100",
+  );
+  // Hanya yang punya `cash_account` — sisanya tidak memotong saldo kas, jadi
+  // menampilkannya di halaman kas akan menggandakan angka keluar.
+  const bayarSupplier = useMemo(
+    () => (dataSupplier?.supplier_payments ?? []).filter(p => p.cash_account),
+    [dataSupplier],
+  );
 
-  // Aliran keluar pendamping dimuat SEKALI — ketiganya tak bergantung saringan
-  // status pengeluaran proyek. Memuat ulang tiap kali saringan berubah berarti
-  // tiga panggilan sia-sia yang hasilnya persis sama.
-  useEffect(() => {
-    const ac = makeAbortController();
+  const { data: dataProgres, memuat: memuatProgres } = useData<{ payments?: BarisProgres[] }>(
+    "/api/v1/mandor/progress-payments?status=approved",
+  );
+  const bayarProgres = useMemo(
+    () => (dataProgres?.payments ?? []).filter(p => p.cash_account_id),
+    [dataProgres],
+  );
 
-    api.get<{ supplier_payments?: BarisSupplier[] }>("/api/v1/procurement/supplier-payments", {
-      params: { limit: "100" }, signal: ac.signal,
-    })
-      // Hanya yang punya `cash_account` — sisanya tidak memotong saldo kas,
-      // jadi menampilkannya di halaman kas akan menggandakan angka keluar.
-      .then(r => setBayarSupplier((r.data.supplier_payments ?? []).filter(p => p.cash_account)))
-      .catch(() => setBayarSupplier([]))
-      .finally(() => setMemuatSupplier(false));
+  const { data: dataSettlement, memuat: memuatSettlement } = useData<{ settlements?: BarisSettlement[] }>(
+    "/api/v1/mandor/borongan-settlements",
+  );
+  const settlementBorongan = useMemo(
+    () => (dataSettlement?.settlements ?? []).filter(s => s.cash_account_id),
+    [dataSettlement],
+  );
+  const memuatMandor = memuatProgres || memuatSettlement;
 
-    Promise.all([
-      api.get<{ payments?: BarisProgres[] }>("/api/v1/mandor/progress-payments", {
-        params: { status: "approved" }, signal: ac.signal,
-      }).catch(() => ({ data: { payments: [] as BarisProgres[] } })),
-      api.get<{ settlements?: BarisSettlement[] }>("/api/v1/mandor/borongan-settlements", {
-        signal: ac.signal,
-      }).catch(() => ({ data: { settlements: [] as BarisSettlement[] } })),
-    ])
-      .then(([pp, bs]) => {
-        setBayarProgres((pp.data.payments ?? []).filter(p => p.cash_account_id));
-        setSettlementBorongan((bs.data.settlements ?? []).filter(s => s.cash_account_id));
-      })
-      .catch(() => { /* non-fatal — dua bagian ini pelengkap */ })
-      .finally(() => setMemuatMandor(false));
-
-    api.get<{ summary: RingkasKategori[] }>("/api/v1/cash/expenses/summary-by-category", { signal: ac.signal })
-      .then(r => setKategori(r.data.summary))
-      .catch(() => setKategori([]));
-
-    return () => ac.abort();
-  }, []);
+  const muat = useCallback(async () => { await muatUlangPengeluaran(); }, [muatUlangPengeluaran]);
 
   function gantiSaring(nilai: string) {
     router.replace(nilai === "all" ? "/kas/pengeluaran" : `/kas/pengeluaran?status=${nilai}`);
@@ -133,7 +115,7 @@ function PengeluaranIsi() {
   async function setujui(id: string) {
     try {
       await api.patch(`/api/v1/cash/expenses/${id}/status`, { status: "approved" });
-      setPengeluaran(prev => prev.map(e => e.id === id ? { ...e, status: "approved" } : e));
+      await muat();
     } catch (err: unknown) {
       alert(pesanGalat(err, "Gagal approve"));
     }
@@ -142,7 +124,7 @@ function PengeluaranIsi() {
   async function tolak(id: string) {
     try {
       await api.patch(`/api/v1/cash/expenses/${id}/status`, { status: "rejected" });
-      setPengeluaran(prev => prev.map(e => e.id === id ? { ...e, status: "rejected" } : e));
+      await muat();
     } catch (err: unknown) {
       // Kembarannya (`setujui`) sudah memberi tahu sejak awal; yang menolak
       // justru diam. Inkonsistensi itu berarti PENOLAKAN yang gagal terlihat
@@ -168,7 +150,7 @@ function PengeluaranIsi() {
           <option value="rejected">Ditolak</option>
           <option value="draft">Draft</option>
         </select>
-        <button onClick={() => void muat(saring)} style={{
+        <button onClick={() => void muat()} style={{
           display: "flex", alignItems: "center", gap: 4, padding: "8px 12px",
           border: `1px solid ${C.border}`, borderRadius: 6, background: "var(--surface)",
           color: C.mid, fontSize: 12, cursor: "pointer",

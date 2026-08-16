@@ -49,7 +49,8 @@ import {
   CircleDot, ArrowDown,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, KartuAngka, BarisAngka,
@@ -190,15 +191,8 @@ export default function RisikoPage() {
 function IsiRisiko() {
   const params = useSearchParams();
   const dariUrl = params.get("proyek") ?? "";
-  const [proyekList, setProyekList] = useState<Proyek[]>([]);
   const [proyekId, setProyekId] = useState("");
-  const [data, setData] = useState<Muatan | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
   const [tab, setTab] = useState<"register" | "mitigasi">("register");
-
-  const [orang, setOrang] = useState<Orang[]>([]);
-  const [izinKerja, setIzinKerja] = useState<IzinKerja[]>([]);
 
   const [tambah, setTambah] = useState(false);
   const [fJudul, setFJudul] = useState("");
@@ -220,21 +214,29 @@ function IsiRisiko() {
   const [menyimpan, setMenyimpan] = useState(false);
   const [galatModal, setGalatModal] = useState<string | null>(null);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Empat `useData`: proyek, pengguna (untuk pemilik/penanggung), izin kerja
+    (bergantung `proyekId`), dan register risiko itu sendiri (bergantung
+    `proyekId`). Galat AKSI tetap `galatModal`, tak berubah; galat MUAT kini
+    datang dari `useData` masing-masing.
+  */
+  const { data: dataProyek, galat: galatMuatProyek } = useData<{ projects: Proyek[] }>(
+    "/api/v1/projects",
+  );
+  // `useMemo`: masuk dependensi `useEffect` di bawah, dan array baru tiap
+  // render membuat efek itu berjalan tanpa henti.
+  const proyekList = useMemo(() => dataProyek?.projects ?? [], [dataProyek]);
+
+  // Yang dari URL menang, TAPI hanya kalau id-nya benar-benar ada di daftar:
+  // id ngawur dari tautan lama harus mendarat di sesuatu yang nyata, bukan
+  // di layar kosong yang tak bisa dijelaskan.
   useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => {
-        const d = r.data.projects ?? [];
-        setProyekList(d);
-        // Yang dari URL menang, TAPI hanya kalau id-nya benar-benar ada di
-        // daftar: id ngawur dari tautan lama harus mendarat di sesuatu yang
-        // nyata, bukan di layar kosong yang tak bisa dijelaskan.
-        setProyekId((s) =>
-          s || (dariUrl && d.some((p) => p.id === dariUrl) ? dariUrl : "") || d[0]?.id || "");
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); });
-    return () => ac.abort();
-  }, [dariUrl]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProyekId((s) =>
+      s || (dariUrl && proyekList.some((p) => p.id === dariUrl) ? dariUrl : "") || proyekList[0]?.id || "");
+  }, [proyekList, dariUrl]);
 
   // Daftar orang untuk memilih PEMILIK risiko dan PENANGGUNG tindakan.
   //
@@ -244,13 +246,8 @@ function IsiRisiko() {
   // cacat kosmetik: "belum ada pemiliknya" ADALAH salah satu alasan mendesak
   // yang ditampilkan register ini, dan menampilkan keluhan yang tak bisa
   // diperbaiki pengguna adalah cara tercepat membuat orang berhenti membaca.
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ users: Orang[] }>("/api/v1/users", { signal: ac.signal })
-      .then((r) => setOrang(r.data.users ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar pengguna"); });
-    return () => ac.abort();
-  }, []);
+  const { data: dataOrang, galat: galatMuatOrang } = useData<{ users: Orang[] }>("/api/v1/users");
+  const orang = dataOrang?.users ?? [];
 
   /**
    * Izin kerja proyek — untuk menautkan risiko K3 ke izin yang mengendalikannya.
@@ -263,41 +260,23 @@ function IsiRisiko() {
    * Gagal memuatnya TIDAK menggagalkan halaman — risiko tetap bisa dicatat
    * tanpa menyebut izin kerja (sebagian besar risiko memang bukan K3).
    */
-  useEffect(() => {
-    // Lewat mikrotask — setState sinkron di badan efek memicu render
-    // bertingkat (`react-hooks/set-state-in-effect`), dan ratchet lint
-    // mengukurnya: 67 → 68 pada percobaan pertama.
-    if (!proyekId) { void Promise.resolve().then(() => setIzinKerja([])); return; }
-    const ac = makeAbortController();
-    api.get<{ izin: IzinKerja[] }>(
-      `/api/v1/kepatuhan/izin-kerja?project_id=${proyekId}`, { signal: ac.signal })
-      .then((r) => setIzinKerja(r.data.izin ?? []))
-      .catch(() => setIzinKerja([]));
-    return () => ac.abort();
-  }, [proyekId]);
+  const { data: dataIzinKerja } = useData<{ izin: IzinKerja[] }>(
+    proyekId ? `/api/v1/kepatuhan/izin-kerja?project_id=${proyekId}` : null,
+  );
+  const izinKerja = dataIzinKerja?.izin ?? [];
 
-  const muat = useCallback(async (id: string) => {
-    // Lewat mikrotask, BUKAN setState langsung di badan efek: yang kedua
-    // memicu render bertingkat (`set-state-in-effect`). Pola yang sama sudah
-    // dipakai `/jadwal`.
-    if (!id) { void Promise.resolve().then(() => setData(null)); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Muatan>(`/api/v1/proyek/${id}/risiko`);
-      setData(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat register risiko");
-      setData(null);
-    } finally { setMemuat(false); }
-  }, []);
-
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state di
-  // awalnya, dan memanggilnya dari badan efek adalah setState-di-dalam-efek
-  // (`react-hooks/set-state-in-effect`) yang memicu render bertingkat. Pola
-  // yang sama dipakai `/mutu/ncr`; ratchet lint mengukurnya 67 → 71 pada
-  // percobaan pertama halaman ini.
-  useEffect(() => { queueMicrotask(() => { void muat(proyekId); }); }, [proyekId, muat]);
+  const { data, memuat, galat: galatMuatRisiko, muatUlang } = useData<Muatan>(
+    proyekId ? `/api/v1/proyek/${proyekId}/risiko` : null,
+  );
+  // Galat AKSI (mis. gagal menandai tindakan selesai dari baris tabel, di
+  // luar dialog) dipisah dari galat MUAT: satu state gabungan sebelumnya
+  // membuat gagal menandai selesai menghapus pesan gagal memuat register.
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi
+    ?? (galatMuatProyek
+      ? "Gagal memuat daftar proyek"
+      : galatMuatOrang ? "Gagal memuat daftar pengguna"
+      : galatMuatRisiko ? "Gagal memuat register risiko" : null);
 
   const simpanRisiko = useCallback(async () => {
     if (!proyekId) return;
@@ -317,13 +296,13 @@ function IsiRisiko() {
       });
       setTambah(false);
       setFJudul(""); setFUraian(""); setFTenggat(""); setFPemilik(""); setFIzinKerja("");
-      await muat(proyekId);
+      await muatUlang();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menambah risiko");
     } finally { setMenyimpan(false); }
   }, [proyekId, fJudul, fKategori, fDampak, fKemungkinan, fStrategi, fUraian,
-      fTenggat, fPemilik, fIzinKerja, muat]);
+      fTenggat, fPemilik, fIzinKerja, muatUlang]);
 
   const simpanMitigasi = useCallback(async () => {
     if (!mitigasiUntuk) return;
@@ -338,22 +317,22 @@ function IsiRisiko() {
       });
       setMitigasiUntuk(null);
       setMTindakan(""); setMTenggat(""); setMBiaya(""); setMPenanggung("");
-      await muat(proyekId);
+      await muatUlang();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal menambah tindakan");
     } finally { setMenyimpan(false); }
-  }, [mitigasiUntuk, mTindakan, mTenggat, mBiaya, mPenanggung, proyekId, muat]);
+  }, [mitigasiUntuk, mTindakan, mTenggat, mBiaya, mPenanggung, muatUlang]);
 
   const tandaiSelesai = useCallback(async (t: Tindakan) => {
     try {
       await api.patch(`/api/v1/mitigasi/${t.id}`, { status: "selesai" });
-      await muat(proyekId);
+      await muatUlang();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menandai selesai");
+      setGalatAksi(m ?? "Gagal menandai selesai");
     }
-  }, [proyekId, muat]);
+  }, [muatUlang]);
 
   /**
    * Semua tindakan dari semua risiko, dengan risikonya ikut terbawa.
@@ -614,7 +593,7 @@ function IsiRisiko() {
         }
       />
 
-      {galat && <Galat pesan={galat} onCobaLagi={() => void muat(proyekId)} />}
+      {galat && <Galat pesan={galat} onCobaLagi={() => void muatUlang()} />}
 
       <Kartu pad="sedang">
         <label htmlFor="rk-proyek" style={{
