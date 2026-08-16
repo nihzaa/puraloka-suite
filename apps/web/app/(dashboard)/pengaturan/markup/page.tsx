@@ -31,9 +31,10 @@
  * ini tenang.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Percent, TriangleAlert, Info, Trash2 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import { C } from "@/lib/warna-ui";
 import {
@@ -82,9 +83,7 @@ const pct = (v: string | number | null | undefined) => {
 const CONTOH = 1_000_000_000;
 
 export default function MarkupPage() {
-  const [data, setData] = useState<Muatan | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
 
   const [jenis, setJenis] = useState("");
@@ -94,26 +93,31 @@ export default function MarkupPage() {
   const [kontinjensi, setKontinjensi] = useState("");
   const [alasan, setAlasan] = useState("");
 
-  const muat = useCallback(async (signal?: AbortSignal) => {
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Muatan>("/api/v1/markup", { signal });
-      setData(r.data);
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat markup");
-    } finally { setMemuat(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    `useData` menggantikan useCallback+useEffect+AbortController. Yang didapat:
+    dedup permintaan, cache lintas navigasi, dan langganan invalidasi — halaman
+    ini menyegarkan diri saat data yang dipakainya dibuang di tempat lain.
+
+    `makeAbortController` tak lagi perlu: `useData` sudah menjaga agar jawaban
+    yang datang sesudah komponen mati tidak menyentuh state.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<Muatan>("/api/v1/markup");
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  /*
+    Galat MUAT dan galat AKSI dipisah lalu digabung saat dipakai.
+    Satu state untuk keduanya punya cacat halus: gagal menyimpan
+    MENGHAPUS pesan gagal memuat, dan pengguna mengira datanya termuat.
+  */
+  const galat = galatAksi ?? (galatMuat ? "Gagal memuat markup" : null);
+
+
 
   const simpan = useCallback(async () => {
-    setMenyimpan(true); setGalat(null);
+    setMenyimpan(true); setGalatAksi(null);
     try {
       await api.post("/api/v1/markup", {
         jenis_pekerjaan: jenis.trim() || null,
@@ -129,18 +133,18 @@ export default function MarkupPage() {
       await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menyimpan markup");
+      setGalatAksi(m ?? "Gagal menyimpan markup");
     } finally { setMenyimpan(false); }
   }, [jenis, sejak, overhead, untung, kontinjensi, alasan, muat]);
 
   const hapus = useCallback(async (p: Periode) => {
-    setGalat(null);
+    setGalatAksi(null);
     try {
       await api.delete(`/api/v1/markup/${p.id}`);
       await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menghapus periode");
+      setGalatAksi(m ?? "Gagal menghapus periode");
     }
   }, [muat]);
 

@@ -10,10 +10,10 @@
  * negatif tak mungkin secara fisik.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { Plus, RefreshCw, Wallet } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
@@ -32,27 +32,26 @@ function AkunKasIsi() {
   // pada `POST /api/v1/cash/accounts`.
   const bolehKelola = useIzin("cash:account:manage");
 
-  const [akun, setAkun] = useState<CashAccount[]>([]);
-  const [memuat, setMemuat] = useState(true);
   const [bukaBuat, setBukaBuat] = useState(false);
 
-  const muat = useCallback(async (signal?: AbortSignal) => {
-    setMemuat(true);
-    try {
-      const r = await api.get<{ accounts: CashAccount[] }>("/api/v1/cash/accounts", { signal });
-      setAkun(r.data.accounts);
-    } finally { setMemuat(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    // `queueMicrotask`: setState di baris pertama `muat()` jatuh di dalam
-    // fase render effect. Menundanya satu microtask memindahkannya keluar
-    // tanpa jeda yang terlihat — `ac.abort()` di cleanup tetap bekerja,
-    // karena pembatalan terjadi belakangan.
-    queueMicrotask(() => { void muat(ac.signal).catch(() => {}); });
-    return () => ac.abort();
-  }, [muat]);
+    `useData` menggantikan useCallback+useEffect+AbortController. Yang didapat:
+    dedup permintaan, cache lintas navigasi, dan langganan invalidasi — halaman
+    ini menyegarkan diri saat data yang dipakainya dibuang di tempat lain.
+
+    `makeAbortController` tak lagi perlu: `useData` sudah menjaga agar jawaban
+    yang datang sesudah komponen mati tidak menyentuh state.
+  */
+  const { data, memuat, muatUlang } =
+    useData<{ accounts: CashAccount[] }>("/api/v1/cash/accounts");
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  // Daftar diturunkan dari jawaban, bukan disalin ke state sendiri: satu
+  // sumber kebenaran, dan tak ada jendela di mana keduanya berbeda.
+  const akun = data?.accounts ?? [];
+
 
   return (
     // Token lebar diulang di tiap halaman bagian, bukan hanya di `layout.tsx`.

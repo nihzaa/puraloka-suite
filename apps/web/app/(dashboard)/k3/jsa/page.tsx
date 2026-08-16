@@ -37,9 +37,10 @@
  * tenggelam di antara yang belum sempat diisi.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { ShieldAlert, Plus, TriangleAlert, CircleCheck, ListChecks } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, Tabel, Kosong, Rangka, Galat,
@@ -97,9 +98,6 @@ function tingkatDari(skor: number): { label: string; nada: "netral" | "info" | "
 }
 
 export default function JsaPage() {
-  const [daftar, setDaftar] = useState<Jsa[]>([]);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
   const [terpilih, setTerpilih] = useState<string>("");
 
   const [tambah, setTambah] = useState(false);
@@ -119,25 +117,33 @@ export default function JsaPage() {
   const [menyimpan, setMenyimpan] = useState(false);
   const [galatModal, setGalatModal] = useState<string | null>(null);
 
-  const muat = useCallback(async (signal?: AbortSignal) => {
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<{ jsa: Jsa[] }>("/api/v1/k3/jsa", { signal });
-      const d = r.data.jsa ?? [];
-      setDaftar(d);
-      setTerpilih((s) => s || d[0]?.id || "");
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat JSA");
-    } finally { setMemuat(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    `useData` menggantikan useCallback+useEffect+AbortController. Yang didapat:
+    dedup permintaan, cache lintas navigasi, dan langganan invalidasi — halaman
+    ini menyegarkan diri saat data yang dipakainya dibuang di tempat lain.
+
+    `makeAbortController` tak lagi perlu: `useData` sudah menjaga agar jawaban
+    yang datang sesudah komponen mati tidak menyentuh state.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<{ jsa: Jsa[] }>("/api/v1/k3/jsa");
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
+
+  /*
+    Galat MUAT dan galat AKSI dipisah lalu digabung saat dipakai.
+    Satu state untuk keduanya punya cacat halus: gagal menyimpan
+    MENGHAPUS pesan gagal memuat, dan pengguna mengira datanya termuat.
+  */
+  // Halaman ini tak punya galat aksi sendiri — semua tulisannya memakai
+  // dialog terpisah. Jadi galat di sini murni galat MUAT.
+  const galat = galatMuat ? "Gagal memuat JSA" : null;
+
+  // Diturunkan dari jawaban, bukan disalin ke state sendiri: satu sumber
+  // kebenaran, dan tak ada jendela di mana keduanya berbeda.
+  const daftar = data?.jsa ?? [];
+
 
   const simpanJsa = useCallback(async () => {
     if (!fJenis.trim()) { setGalatModal("Jenis pekerjaan wajib diisi"); return; }
