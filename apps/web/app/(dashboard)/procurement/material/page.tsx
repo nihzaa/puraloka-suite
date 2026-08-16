@@ -10,15 +10,16 @@
  * yang sebelumnya ditulis tangan dan tak pernah lengkap di semua tabel.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Plus, Search } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { useUnits } from "@/lib/use-units";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
-import { Btn, Input, Memuat, Modal, Select, fmt, tundaSatuTick } from "../_bersama/ui";
+import { Btn, Input, Memuat, Modal, Select, fmt } from "../_bersama/ui";
 
 interface Material {
   id: string;
@@ -32,9 +33,6 @@ interface Material {
 interface Kategori { id: string; name: string }
 
 export default function MaterialPage() {
-  const [materials, setMaterials] = useState<Material[]>([]);
-  const [categories, setCategories] = useState<Kategori[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [catFilter, setCatFilter] = useState("");
   const [modal, setModal] = useState(false);
@@ -44,24 +42,24 @@ export default function MaterialPage() {
   // Sumber tunggal satuan (master `units`); procurement menyimpan symbol-nya.
   const { units } = useUnits();
 
-  // `load` sengaja fungsi biasa, bukan `useCallback` — lihat catatan pola di
-  // `_bersama/ui.tsx`. `useCallback` yang dirujuk dari daftar dependensi
-  // `useEffect` membuat `react-hooks/set-state-in-effect` membaca setState di
-  // dalamnya sebagai setState di badan efek. Efek berdependensi nilai (bukan
-  // fungsi) tak punya masalah itu, dan perilakunya sama persis.
-  useEffect(() => { void load(); }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function load() {
-    await tundaSatuTick(); // lihat catatannya di `_bersama/ui.tsx`
-    setLoading(true);
-    const [matRes, catRes] = await Promise.all([
-      api.get<{ materials: Material[] }>("/api/v1/procurement/materials", { params: { is_active: true } }).catch(() => null),
-      api.get<{ categories: Kategori[] }>("/api/v1/procurement/material-categories").catch(() => null),
-    ]);
-    setMaterials(matRes?.data?.materials ?? []);
-    setCategories(catRes?.data?.categories ?? []);
-    setLoading(false);
-  }
+    `useData` menggantikan useEffect+useState+tundaSatuTick, dipanggil dua
+    kali — satu per URL, seperti dianjurkan untuk halaman ber-`Promise.all`.
+  */
+  const { data: dataMat, memuat: memuatMat, muatUlang: muatUlangMat } =
+    useData<{ materials: Material[] }>("/api/v1/procurement/materials?is_active=true");
+  const { data: dataCat, memuat: memuatCat, muatUlang: muatUlangCat } =
+    useData<{ categories: Kategori[] }>("/api/v1/procurement/material-categories");
+  const loading = memuatMat || memuatCat;
+  const load = useCallback(async () => {
+    await Promise.all([muatUlangMat(), muatUlangCat()]);
+  }, [muatUlangMat, muatUlangCat]);
+
+  // Diturunkan, bukan disalin.
+  const materials = dataMat?.materials ?? [];
+  const categories = dataCat?.categories ?? [];
 
   const filtered = materials.filter(m =>
     m.name.toLowerCase().includes(search.toLowerCase()) &&

@@ -24,9 +24,9 @@
  * kenaikan.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { TrendingUp, TrendingDown, Minus, LineChart, RefreshCw } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
 import { Tabel, type Kolom } from "@/components/dasar";
@@ -69,37 +69,21 @@ const tanggalTerbaca = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
 
 export default function RiwayatHargaPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
   const [proyekId, setProyekId] = useState("");
-  const [hasil, setHasil] = useState<Hasil | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); })
-      .finally(() => setMemuat(false));
-    return () => ac.abort();
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    const url = proyekId
-      ? `/api/v1/riwayat-harga?project_id=${proyekId}`
-      : "/api/v1/riwayat-harga";
-    api.get<Hasil>(url, { signal: ac.signal })
-      .then((r) => setHasil(r.data))
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-        setGalat(m ?? "Gagal memuat riwayat harga");
-        setHasil(null);
-      });
-    return () => ac.abort();
-  }, [proyekId, muatUlangKe]);
+    `useData` menggantikan dua pasang useEffect+useState+AbortController.
+    Saringan proyek masuk sebagai bagian dari URL hasil.
+  */
+  const { data: dataProyek, galat: galatProyek } = useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const { data: hasil, memuat, galat: galatHasil, muatUlang } = useData<Hasil>(
+    proyekId ? `/api/v1/riwayat-harga?project_id=${proyekId}` : "/api/v1/riwayat-harga",
+  );
+
+  const proyek = dataProyek?.projects ?? [];
+  const galat = galatProyek ? "Gagal memuat daftar proyek" : galatHasil ? "Gagal memuat riwayat harga" : null;
 
   const bergerak = useMemo(
     () => (hasil?.material ?? []).filter((m) => m.titik.length >= 2),
@@ -295,7 +279,7 @@ export default function RiwayatHargaPage() {
         </div>
 
         <button
-          type="button" onClick={() => setMuatUlangKe((n) => n + 1)}
+          type="button" onClick={() => void muatUlang()}
           style={{
             padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`,
             background: "var(--surface)", color: C.text, fontSize: 13, cursor: "pointer",

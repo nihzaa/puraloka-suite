@@ -55,7 +55,7 @@
  * penerimaan NYATA per item, dan `/purchase-orders` hanya mengirim janjinya.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import Link from "next/link";
 import {
@@ -63,7 +63,7 @@ import {
   PackageCheck, Receipt, ShoppingCart, Truck, Wallet,
 } from "lucide-react";
 
-import { api, makeAbortController } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KartuRail, BarisRail } from "@/components/shell/rail-kartu";
 import { RailIsi } from "@/components/shell/rail-isi";
@@ -85,12 +85,6 @@ export default function ProcurementPage() {
 }
 
 function ProcurementRingkasan() {
-  const [kpi, setKpi] = useState<KpiProcurement | null>(null);
-  const [gagalKpi, setGagalKpi] = useState(false);
-  const [pos, setPos] = useState<PurchaseOrder[]>([]);
-  const [vendor, setVendor] = useState<Supplier[]>([]);
-  const [memuat, setMemuat] = useState(true);
-
   // Tanggal acuan DIBEKUKAN saat halaman dipasang, bukan dibaca ulang tiap
   // render. Kalau tidak, kartu KPI dan panel di bawahnya bisa memakai tanggal
   // berbeda saat halaman dibuka melewati tengah malam — dan angka yang tak
@@ -98,25 +92,29 @@ function ProcurementRingkasan() {
   // berhenti memercayai keduanya.
   const [hariIni] = useState(() => hariIniWIB());
 
-  useEffect(() => {
-    const ac = makeAbortController();
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-    void Promise.all([
-      api.get<KpiProcurement>("/api/v1/procurement/dashboard", { signal: ac.signal })
-        .then((r) => { setKpi(r.data); setGagalKpi(false); })
-        // Menampilkan "Rp 0" pada data yang tak terbaca adalah kebohongan yang
-        // menenangkan, dan di layar yang menyatakan komitmen uang itu berbahaya.
-        .catch((e) => { if (e?.name !== "CanceledError") setGagalKpi(true); }),
-      api.get<{ purchase_orders: PurchaseOrder[] }>("/api/v1/procurement/purchase-orders", { signal: ac.signal })
-        .then((r) => setPos(r.data.purchase_orders ?? []))
-        .catch(() => setPos([])),
-      api.get<{ suppliers: Supplier[] }>("/api/v1/procurement/suppliers", { signal: ac.signal })
-        .then((r) => setVendor(r.data.suppliers ?? []))
-        .catch(() => setVendor([])),
-    ]).finally(() => setMemuat(false));
+    `useData` menggantikan Promise.all+useEffect+AbortController — dipanggil
+    tiga kali, satu per URL. Galat KPI TETAP dibedakan dari galat pos/vendor:
+    menampilkan "Rp 0" pada data yang tak terbaca adalah kebohongan yang
+    menenangkan, jadi `gagalKpi` diturunkan dari galat `useData`-nya sendiri
+    alih-alih ditelan seperti pos/vendor (yang boleh jatuh ke larik kosong).
+  */
+  const { data: kpi, memuat: memuatKpi, galat: galatKpi } =
+    useData<KpiProcurement>("/api/v1/procurement/dashboard");
+  const { data: dataPos, memuat: memuatPos } =
+    useData<{ purchase_orders: PurchaseOrder[] }>("/api/v1/procurement/purchase-orders");
+  const { data: dataVendor, memuat: memuatVendor } =
+    useData<{ suppliers: Supplier[] }>("/api/v1/procurement/suppliers");
 
-    return () => ac.abort();
-  }, []);
+  const gagalKpi = !!galatKpi;
+  const memuat = memuatKpi || memuatPos || memuatVendor;
+  // `useMemo`, bukan `?? []` telanjang: tiga `useMemo` di bawah membaca `pos`,
+  // dan larik baru tiap render membuat ketiganya tak pernah berhenti
+  // menghitung ulang (react-hooks/exhaustive-deps).
+  const pos = useMemo(() => dataPos?.purchase_orders ?? [], [dataPos]);
+  const vendor = dataVendor?.suppliers ?? [];
 
   // ── LAPIS 1 & 2 — dihitung dari respons yang SAMA dengan pintunya ─────────
   const ringkas = useMemo(() => ringkasPo(pos, hariIni), [pos, hariIni]);

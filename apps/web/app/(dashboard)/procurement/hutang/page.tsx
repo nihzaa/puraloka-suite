@@ -14,15 +14,16 @@
  * dan "Rp 888.888" punya lebar berbeda dan tak bisa dibandingkan sekilas.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { AlertTriangle, CalendarClock, Receipt } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KartuKPI, Kosong } from "@/components/ui-dasar";
 import {
   Badge, Btn, Card, Input, KotakGalat, Memuat, Modal, Select,
-  STATUS_BADGE, fmt, fmtDate, fmtRingkas, pesanError, tundaSatuTick,
+  STATUS_BADGE, fmt, fmtDate, fmtRingkas, pesanError,
 } from "../_bersama/ui";
 
 interface SupplierInvoice {
@@ -42,53 +43,39 @@ interface SupplierInvoice {
 interface AkunKas { id: string; name: string; type: string; balance?: number | string }
 
 export default function HutangPage() {
-  const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
-  const [overdue, setOverdue] = useState<SupplierInvoice[]>([]);
-  const [dueSoon, setDueSoon] = useState<SupplierInvoice[]>([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
   const [payModal, setPayModal] = useState<SupplierInvoice | null>(null);
   const [payForm, setPayForm] = useState({ amount: "", payment_method: "transfer", reference_number: "", notes: "", cash_account_id: "" });
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState("");
-  const [summary, setSummary] = useState({ total_outstanding: 0, overdue_count: 0 });
-  const [cashAccounts, setCashAccounts] = useState<AkunKas[]>([]);
 
-  // Pemuat ditulis sebagai fungsi biasa yang menerima saringannya lewat
-  // PARAMETER, bukan `useCallback` yang membacanya dari closure. Dua alasan,
-  // keduanya soal lint dan bukan gaya:
-  //
-  //  1. `useCallback` yang dirujuk dari daftar dependensi `useEffect` membuat
-  //     `react-hooks/set-state-in-effect` membaca setState di dalam pemuat
-  //     sebagai setState di badan efek.
-  //  2. Karena saringan masuk sebagai argumen, badan efek tak lagi menutup
-  //     nilai apa pun dari luar — `exhaustive-deps` pun tak punya dependensi
-  //     yang hilang untuk dikeluhkan, tanpa perlu `eslint-disable`.
-  //
-  // Perilakunya sama persis: efek jalan saat dipasang dan setiap kali
-  // `statusFilter` berubah, dengan nilai saringan yang sama seperti dulu.
-  useEffect(() => { void load(statusFilter); }, [statusFilter]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  async function load(status: string) {
-    await tundaSatuTick(); // lihat catatannya di `_bersama/ui.tsx`
-    setLoading(true);
-    const [invRes, alertRes, cashRes] = await Promise.all([
-      api.get<{ supplier_invoices: SupplierInvoice[]; summary: { total_outstanding: number; overdue_count: number } }>(
-        "/api/v1/procurement/supplier-invoices", { params: status ? { status } : {} },
-      ).catch(() => null),
-      api.get<{ overdue: SupplierInvoice[]; due_soon: SupplierInvoice[] }>(
-        "/api/v1/procurement/supplier-invoices/overdue",
-      ).catch(() => null),
-      api.get<{ cash_accounts: AkunKas[] }>("/api/v1/cash/accounts").catch(() => null),
-    ]);
-    setInvoices(invRes?.data?.supplier_invoices ?? []);
-    setSummary(invRes?.data?.summary ?? { total_outstanding: 0, overdue_count: 0 });
-    setOverdue(alertRes?.data?.overdue ?? []);
-    setDueSoon(alertRes?.data?.due_soon ?? []);
-    // Kecualikan petty_cash — tak wajar dipakai membayar supplier.
-    setCashAccounts((cashRes?.data?.cash_accounts ?? []).filter(a => a.type !== "petty_cash"));
-    setLoading(false);
-  }
+    `useData` menggantikan pasangan useEffect+useState+tundaSatuTick — dipanggil
+    tiga kali, satu per URL. Saringan status masuk sebagai bagian dari URL.
+  */
+  const { data: dataInv, memuat: memuatInv, muatUlang: muatUlangInv } =
+    useData<{ supplier_invoices: SupplierInvoice[]; summary: { total_outstanding: number; overdue_count: number } }>(
+      `/api/v1/procurement/supplier-invoices${statusFilter ? `?status=${statusFilter}` : ""}`,
+    );
+  const { data: dataAlert, memuat: memuatAlert, muatUlang: muatUlangAlert } =
+    useData<{ overdue: SupplierInvoice[]; due_soon: SupplierInvoice[] }>("/api/v1/procurement/supplier-invoices/overdue");
+  const { data: dataCash, memuat: memuatCash, muatUlang: muatUlangCash } =
+    useData<{ cash_accounts: AkunKas[] }>("/api/v1/cash/accounts");
+
+  const loading = memuatInv || memuatAlert || memuatCash;
+  const load = useCallback(async () => {
+    await Promise.all([muatUlangInv(), muatUlangAlert(), muatUlangCash()]);
+  }, [muatUlangInv, muatUlangAlert, muatUlangCash]);
+
+  // Diturunkan, bukan disalin.
+  const invoices = dataInv?.supplier_invoices ?? [];
+  const summary = dataInv?.summary ?? { total_outstanding: 0, overdue_count: 0 };
+  const overdue = dataAlert?.overdue ?? [];
+  const dueSoon = dataAlert?.due_soon ?? [];
+  // Kecualikan petty_cash — tak wajar dipakai membayar supplier.
+  const cashAccounts = (dataCash?.cash_accounts ?? []).filter(a => a.type !== "petty_cash");
 
   const pay = async () => {
     if (!payModal || !payForm.amount) return;
@@ -104,7 +91,7 @@ export default function HutangPage() {
       });
       setPayModal(null);
       setPayForm({ amount: "", payment_method: "transfer", reference_number: "", notes: "", cash_account_id: "" });
-      void load(statusFilter);
+      void load();
     } catch (err: unknown) {
       setPayError(pesanError(err, "Gagal menyimpan pembayaran"));
     } finally { setPaying(false); }

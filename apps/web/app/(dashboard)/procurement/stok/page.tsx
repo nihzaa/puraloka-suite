@@ -9,10 +9,11 @@
  * TIGA tabel HTML mentah (stok, log mutasi, opname) diganti `<Tabel>`.
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Plus, RefreshCw, Search } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { Kosong } from "@/components/ui-dasar";
@@ -61,60 +62,38 @@ export default function StokPage() {
   // procurement TIDAK melihat tombolnya (ADR-004).
   const canEdit = useIzin("procurement:view");
 
-  const [stocks, setStocks] = useState<Stok[]>([]);
-  const [projects, setProjects] = useState<Proyek[]>([]);
-  const [loading, setLoading] = useState(true);
   const [projectFilter, setProjectFilter] = useState("");
   const [search, setSearch] = useState("");
 
-  const [movements, setMovements] = useState<Mutasi[]>([]);
   const [logProject, setLogProject] = useState("");
-  const [loadingLog, setLoadingLog] = useState(false);
   const [showLog, setShowLog] = useState(false);
 
   const [showUsage, setShowUsage] = useState(false);
   const [showOpname, setShowOpname] = useState(false);
 
-  // Kedua pemuat ditulis sebagai fungsi biasa yang menerima nilai yang
-  // dibutuhkannya lewat PARAMETER, bukan `useCallback` yang membacanya dari
-  // closure. Dua alasan, keduanya soal lint dan bukan gaya:
-  //
-  //  1. `useCallback` yang dirujuk dari daftar dependensi `useEffect` membuat
-  //     `react-hooks/set-state-in-effect` membaca setState di dalam pemuat
-  //     sebagai setState di badan efek.
-  //  2. Karena nilainya masuk sebagai argumen, badan efek tak lagi menutup
-  //     nilai apa pun dari luar — `exhaustive-deps` pun tak punya dependensi
-  //     yang hilang untuk dikeluhkan, tanpa perlu `eslint-disable`.
-  //
-  // Perilakunya sama persis: efek pertama jalan saat dipasang dan tiap kali
-  // `projectFilter` berubah; efek kedua tetap hanya memuat log saat panelnya
-  // terbuka DAN proyeknya terpilih.
-  useEffect(() => { void load(projectFilter); }, [projectFilter]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => { if (showLog && logProject) void loadLog(logProject); }, [showLog, logProject]);
+    `useData` menggantikan dua pasang useEffect+useState+tundaSatuTick.
+    Saringan proyek masuk sebagai bagian dari URL. Log mutasi memakai URL
+    KONDISIONAL — `null` sampai panelnya dibuka DAN proyeknya terpilih,
+    sama seperti efek keduanya dulu.
+  */
+  const { data: dataStocks, memuat: loading, muatUlang: muatUlangStocks } =
+    useData<{ stocks: Stok[] }>(`/api/v1/procurement/stocks${projectFilter ? `?project_id=${projectFilter}` : ""}`);
+  const { data: dataProjects } = useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const { data: dataLog, memuat: loadingLog, muatUlang: muatUlangLog } =
+    useData<{ movements: Mutasi[] }>(
+      showLog && logProject ? `/api/v1/procurement/stocks/${logProject}/movements?limit=200` : null,
+    );
 
-  async function load(projectId: string) {
-    await tundaSatuTick(); // lihat catatannya di `_bersama/ui.tsx`
-    setLoading(true);
-    const [stockRes, projRes] = await Promise.all([
-      api.get<{ stocks: Stok[] }>("/api/v1/procurement/stocks", { params: projectId ? { project_id: projectId } : {} }).catch(() => null),
-      api.get<{ projects: Proyek[] }>("/api/v1/projects").catch(() => null),
-    ]);
-    setStocks(stockRes?.data?.stocks ?? []);
-    setProjects(projRes?.data?.projects ?? []);
-    setLoading(false);
-  }
+  const load = useCallback(async () => { await muatUlangStocks(); }, [muatUlangStocks]);
+  const loadLog = useCallback(async () => { await muatUlangLog(); }, [muatUlangLog]);
 
-  async function loadLog(projectId: string) {
-    if (!projectId) return;
-    await tundaSatuTick(); // lihat catatannya di `_bersama/ui.tsx`
-    setLoadingLog(true);
-    const r = await api.get<{ movements: Mutasi[] }>(
-      `/api/v1/procurement/stocks/${projectId}/movements`, { params: { limit: 200 } },
-    ).catch(() => null);
-    setMovements(r?.data?.movements ?? []);
-    setLoadingLog(false);
-  }
+  // Diturunkan, bukan disalin.
+  const stocks = dataStocks?.stocks ?? [];
+  const projects = dataProjects?.projects ?? [];
+  const movements = dataLog?.movements ?? [];
 
   const filtered = stocks.filter(s => (s.material?.name ?? "").toLowerCase().includes(search.toLowerCase()));
   const dibawahMinimum = (s: Stok) => {
@@ -280,7 +259,7 @@ export default function StokPage() {
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
             {logProject && (
-              <Btn variant="secondary" onClick={() => void loadLog(logProject)} aria-label="Muat ulang log mutasi">
+              <Btn variant="secondary" onClick={() => void loadLog()} aria-label="Muat ulang log mutasi">
                 <RefreshCw size={13} aria-hidden="true" />
               </Btn>
             )}
@@ -309,7 +288,7 @@ export default function StokPage() {
         <UsageModal
           projects={projects} stocks={stocks}
           onClose={() => setShowUsage(false)}
-          onSuccess={() => { setShowUsage(false); void load(projectFilter); if (showLog && logProject) void loadLog(logProject); }}
+          onSuccess={() => { setShowUsage(false); void load(); if (showLog && logProject) void loadLog(); }}
         />
       )}
 
@@ -317,7 +296,7 @@ export default function StokPage() {
         <OpnameModal
           projects={projects}
           onClose={() => setShowOpname(false)}
-          onSuccess={() => { setShowOpname(false); void load(projectFilter); if (showLog && logProject) void loadLog(logProject); }}
+          onSuccess={() => { setShowOpname(false); void load(); if (showLog && logProject) void loadLog(); }}
         />
       )}
     </div>
