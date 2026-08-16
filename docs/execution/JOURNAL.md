@@ -22224,3 +22224,58 @@ mutasi blok verifikasi 415        3/3 MERAH lalu pulih
 audit-katalog-otomasi-nyata       MERAH — rute sesi lain, bukan milik saya
 lint:ratchet                      0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 (8) — invoice melenceng dari buku pembayaran (tanpa nomor)
+
+41 rute terjadwal, 47 nomor katalog + 2 otomasi tanpa nomor.
+
+### Cacat yang tak terlihat dari layar mana pun
+
+```
+INV/PRL/2026/016   status `partial`
+invoices.amount_paid        Rp 19.200.000
+jumlah baris payments       Rp          0
+```
+
+Rp 19,2 juta tercatat sudah diterima **tanpa satu pun bukti penerimaan.**
+
+Yang membuatnya berbahaya: pemeriksaan `total_amount = amount_paid +
+amount_due` **lulus sempurna di seluruh 26 invoice.** Invoice itu konsisten
+dengan dirinya sendiri; yang tak konsisten hubungannya dengan buku pembayaran.
+Tak ada pemeriksaan satu-tabel yang bisa melihatnya.
+
+Bentuknya sama persis dengan temuan penyusutan (10.8): angka yang sudah
+terlihat benar di satu layar, dan tak pernah sampai ke tempat yang seharusnya
+membuktikannya. Dua kali hari ini pola yang sama muncul di modul berbeda.
+
+### Status diperiksa TERPISAH, karena pembacanya berbeda
+
+Selisih rupiah dilihat bagian keuangan; STATUS dilihat semua orang — termasuk
+klien di portal. Invoice `paid` yang bukunya belum penuh berarti seseorang
+menutup tagihan yang belum lunas, dan **penagihan berhenti mengejarnya.**
+
+### Ambangnya Rp 1, dan migrasinya menolak yang longgar
+
+Bukan ambang kewajaran melainkan pengaman pembulatan. Blok verifikasi 416
+menolak tenant yang memasangnya di atas Rp 100.000: dilonggarkan, selisih yang
+justru paling penting akan lolos diam-diam.
+
+### Empat constraint yang saya tebak dan salah
+
+`invoices` tak punya `client_id` (kliennya lewat proyek) · kolomnya
+`issued_date` bukan `invoice_date` · `invoice_type` enum dengan akhiran
+`_billing`/`_fee` · `chk_invoice_termin_billing` menuntut `termin_schedule_id`
+— invarian yang benar: tagihan termin yang tak bisa menunjuk termin mana yang
+ditagih bukan tagihan termin.
+
+### Bukti
+
+```
+otomasi-invoice-rekonsiliasi.test.ts   5 passed
+mutasi rute                            4/4 MERAH lalu pulih
+mutasi blok verifikasi 416             4/4 MERAH lalu pulih
+14 penjaga arsitektural                exit=0
+lint:ratchet                           0 error, 231 warning
+```

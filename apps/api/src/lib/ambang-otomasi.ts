@@ -220,6 +220,22 @@ export const AMBANG_OTOMASI = {
     label: 'Hari sesudah proyek selesai sebelum retensi tertahan ditegur',
   },
   /*
+    Ringkasan invoice melenceng dari buku pembayaran. Bawaan Rp 1.
+
+    Hampir NOL dengan sengaja. Ini bukan ambang kewajaran melainkan pengaman
+    terhadap pembulatan: selisih satu rupiah antara kolom ringkasan dan jumlah
+    baris pembayaran tetap berarti keduanya tak sejalan.
+
+    Uang yang diakui masuk tanpa bukti penerimaan bukan hal yang punya "batas
+    wajar".
+  */
+  'otomasi.invoice_melenceng.rupiah': {
+    bawaan: 1,
+    min: 1,
+    max: 1_000_000,
+    label: 'Selisih rupiah minimum antara ringkasan invoice dan buku pembayaran',
+  },
+  /*
     Material dibeli dari beberapa pemasok. Bawaan selisih 5%.
 
     Rendah dengan sengaja: selisih 5% pada material curah adalah uang yang

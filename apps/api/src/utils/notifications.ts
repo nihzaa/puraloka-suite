@@ -156,6 +156,8 @@ export type NotificationType =
   | 'margin_biaya_lampaui_rab'
   | 'proyek_tanpa_rab'
   | 'pemasok_terpencar'
+  | 'invoice_ringkasan_melenceng'
+  | 'invoice_status_melenceng'
   | 'pengingat_asisten'
   | 'titipan_asisten'
   | 'general'

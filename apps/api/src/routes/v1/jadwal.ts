@@ -211,6 +211,11 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'invoice-ringkasan-melenceng': {
+    label: 'Invoice Melenceng dari Buku Pembayaran',
+    keterangan: 'Kolom ringkasan invoice tak cocok dengan baris pembayaran yang sesungguhnya.',
+    jalur: '/api/v1/otomasi/jalankan/invoice-ringkasan-melenceng',
+  },
   'pemasok-terpencar': {
     label: 'Material Sama, Beberapa Pemasok',
     keterangan: 'Material yang sama dibeli dengan harga berbeda dari pemasok berbeda.',

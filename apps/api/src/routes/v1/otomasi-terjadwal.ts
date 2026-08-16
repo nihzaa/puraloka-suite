@@ -6670,6 +6670,229 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     })
   })
 
+  // ── GET /api/v1/otomasi/jalankan/invoice-ringkasan-melenceng ─────────────
+  //
+  // TANPA nomor katalog — dan itu diperiksa, bukan diasumsikan.
+  //
+  // Kandidat terdekat 2.1 *Auto Bank Reconciliation* menuntut integrasi
+  // rekening koran bank, yang belum ada. Yang ini rekonsiliasi INTERNAL:
+  // kolom ringkasan di `invoices` lawan baris `payments` yang sesungguhnya.
+  // Tak ada nomor di katalog 140 yang menggambarkannya.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // ANGKA YANG BENAR DI SATU TEMPAT DAN KOSONG DI TEMPAT LAIN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Terukur di basis dev:
+  //
+  //     INV/PRL/2026/016   status `partial`
+  //     invoices.amount_paid           Rp 19.200.000
+  //     jumlah baris `payments`        Rp          0
+  //
+  // Rp 19,2 juta tercatat sebagai sudah diterima tanpa satu pun bukti
+  // penerimaan di belakangnya.
+  //
+  // Yang membuatnya berbahaya: pemeriksaan `total_amount = amount_paid +
+  // amount_due` LULUS SEMPURNA di seluruh 26 invoice. Invoice itu konsisten
+  // dengan dirinya sendiri; yang tak konsisten hubungannya dengan buku
+  // pembayaran. Tak ada pemeriksaan satu-tabel yang bisa melihatnya.
+  //
+  // Bentuknya sama persis dengan temuan penyusutan (10.8): angka yang sudah
+  // terlihat benar di satu layar, dan tak pernah sampai ke tempat yang
+  // seharusnya membuktikannya.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // STATUS IKUT DIPERIKSA, KARENA IA YANG DIBACA ORANG
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Selisih rupiah dilihat bagian keuangan; STATUS dilihat semua orang —
+  // termasuk klien di portal. Invoice berstatus `paid` yang bukunya belum
+  // penuh berarti seseorang menutup tagihan yang belum lunas, dan penagihan
+  // berhenti mengejarnya.
+  app.get('/api/v1/otomasi/jalankan/invoice-ringkasan-melenceng', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { rupiah?: string }
+    const ambangRupiah = await ambilAmbang(request, 'otomasi.invoice_melenceng.rupiah', q.rupiah)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['invoice_ringkasan_melenceng', 'invoice_status_melenceng'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { invoice: 0, melenceng: 0, ambang_rupiah: ambangRupiah },
+      })
+    }
+
+    /*
+      Keduanya dibaca BERHALAMAN. Invoice dan pembayaran tumbuh seumur
+      perusahaan, bukan seumur proyek — dan pemotongan senyap PostgREST akan
+      membuat sebagian pembayaran hilang dari penjumlahan. Akibatnya invoice
+      yang sehat dilaporkan melenceng, dan itu jenis kesalahan yang paling
+      cepat membuat orang berhenti membaca peringatan.
+    */
+    const HALAMAN = 1000
+    const invoice: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error } = await request.db!
+        .unsafe('invoices', 'kategori C lewat project_id; disaring ke projectIds()')
+        .select('id, project_id, invoice_number, status, total_amount, amount_paid, amount_due')
+        .in('project_id', idProyek)
+        .order('id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!data || data.length === 0) break
+      invoice.push(...(data as Array<Record<string, unknown>>))
+      if (data.length < HALAMAN) break
+    }
+
+    const idInvoice = invoice.map((i) => i.id as string)
+    const dibayar = new Map<string, number>()
+    for (let dari = 0; idInvoice.length > 0; dari += HALAMAN) {
+      const { data, error: eBayar } = await request.db!
+        .unsafe('payments',
+          'kategori C berhop-jauh lewat invoice_id; disaring ke invoice ter-scope di atas')
+        .select('id, invoice_id, amount_paid')
+        .in('invoice_id', idInvoice)
+        .order('id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (eBayar) return reply.status(500).send({ error: eBayar.message })
+      if (!data || data.length === 0) break
+      for (const p of data) {
+        const iid = p.invoice_id as string
+        dibayar.set(iid, (dibayar.get(iid) ?? 0) + Number(p.amount_paid ?? 0))
+      }
+      if (data.length < HALAMAN) break
+    }
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects').select('id, name')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    let melenceng = 0
+    let statusSalah = 0
+    let selisihTotal = 0
+    let dibuat = 0
+
+    for (const inv of invoice) {
+      const iid = inv.id as string
+      const pid = inv.project_id as string
+      const ringkas = Number(inv.amount_paid ?? 0)
+      const buku = dibayar.get(iid) ?? 0
+      const total = Number(inv.total_amount ?? 0)
+      const st = String(inv.status ?? '')
+
+      // Invoice yang dibatalkan tak lagi menagih apa pun.
+      if (st === 'cancelled' || st === 'void') continue
+
+      const selisih = Math.abs(ringkas - buku)
+
+      // ── Temuan 1: kolom ringkasan tak cocok dengan buku pembayaran
+      if (selisih >= ambangRupiah) {
+        melenceng++
+        selisihTotal += selisih
+
+        if (!sudah('invoice_ringkasan_melenceng', iid)) {
+          const penerima = await resolveRecipients('invoice_ringkasan_melenceng', {
+            projectId: pid, companyId: request.companyId!,
+          })
+          const lebihBesar = ringkas > buku
+          for (const uid of penerima) {
+            await createNotification({
+              company_id: request.companyId!,
+              user_id:    uid,
+              title:      'Invoice: Angka Ringkasan Tak Cocok dengan Buku Pembayaran',
+              message:
+                `${inv.invoice_number} di ${namaProyek.get(pid)} mencatat `
+                + `${rp(ringkas)} sudah diterima, tetapi jumlah seluruh baris `
+                + `pembayarannya ${rp(buku)} — selisih ${rp(selisih)}. `
+                + (lebihBesar
+                  ? 'Uang yang diakui masuk tak punya bukti penerimaan di '
+                    + 'belakangnya.'
+                  : 'Ada pembayaran tercatat yang belum diakui di invoicenya, '
+                    + 'jadi tagihan ini terlihat lebih besar daripada sisanya.')
+                + ' Pemeriksaan "total = dibayar + sisa" tetap lulus pada '
+                + 'invoice ini, jadi selisihnya tak terlihat dari layar mana pun.',
+              type:       'invoice_ringkasan_melenceng',
+              priority:   'urgent',
+              project_id: pid,
+              action_url: '/piutang',
+              action_data: {
+                record_id: iid,
+                nomor: inv.invoice_number,
+                ringkasan: ringkas, buku, selisih,
+              },
+            })
+            dibuat++
+          }
+        }
+      }
+
+      /*
+        ── Temuan 2: STATUS tak sejalan dengan buku pembayaran
+
+        Dipisah karena pembacanya berbeda. Selisih rupiah dilihat bagian
+        keuangan; status dilihat semua orang, termasuk klien di portal.
+      */
+      const bukuLunas = total > 0 && buku >= total - 0.005
+      const salah =
+        (st === 'paid' && !bukuLunas) ? 'ditandai LUNAS tetapi buku pembayarannya belum penuh'
+        : (st === 'partial' && buku <= 0) ? 'ditandai DIBAYAR SEBAGIAN tetapi belum ada satu pun pembayaran tercatat'
+        : (st === 'sent' && buku > 0) ? 'masih ditandai TERKIRIM padahal sudah ada pembayaran tercatat'
+        : null
+
+      if (!salah) continue
+      statusSalah++
+      if (sudah('invoice_status_melenceng', iid)) continue
+
+      const penerima = await resolveRecipients('invoice_status_melenceng', {
+        projectId: pid, companyId: request.companyId!,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Status Invoice Tak Sejalan dengan Pembayarannya',
+          message:
+            `${inv.invoice_number} di ${namaProyek.get(pid)} ${salah}. `
+            + `Nilai tagihan ${rp(total)}, tercatat masuk ${rp(buku)}. `
+            + (st === 'paid'
+              ? 'Selama berstatus lunas, penagihan berhenti mengejarnya.'
+              : 'Status ini juga yang dilihat klien di portal.'),
+          type:       'invoice_status_melenceng',
+          priority:   st === 'paid' ? 'urgent' : 'high',
+          project_id: pid,
+          action_url: '/piutang',
+          action_data: {
+            record_id: iid, nomor: inv.invoice_number,
+            status: st, total, buku,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        invoice: invoice.length,
+        ringkasan_melenceng: melenceng,
+        status_melenceng: statusSalah,
+        selisih_total: Math.round(selisihTotal),
+        ambang_rupiah: ambangRupiah,
+      },
+    })
+  })
+
   // ── GET /api/v1/otomasi/jalankan/kirim-pengingat ──────────────────────────
   //
   // Pasangan `titip_pengingat`. Tanpa rute ini, janji yang dititipkan pengguna

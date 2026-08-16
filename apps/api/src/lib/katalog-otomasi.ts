@@ -1370,6 +1370,35 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'katalog: ini kemampuan asisten, bukan salah satu dari 140 otomasi '
       + 'bernomor.',
   },
+  {
+    kunci: 'invoice-ringkasan-melenceng',
+    nama: 'Invoice melenceng dari buku pembayaran',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Membandingkan angka "sudah dibayar" yang tersimpan di invoice dengan '
+      + 'jumlah seluruh catatan pembayarannya yang sesungguhnya, lalu menegur '
+      + 'yang tak cocok — termasuk invoice yang statusnya tak sejalan dengan '
+      + 'uang yang benar-benar masuk.',
+    penerima: 'Bagian keuangan & penagihan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca seluruh invoice beserta angka ringkasannya.' },
+      { di: 'sistem', teks: 'Menjumlahkan catatan pembayaran yang sesungguhnya per invoice.' },
+      { di: 'sistem', teks: 'Membandingkan keduanya, dan memeriksa statusnya terpisah.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.invoice_melenceng.rupiah',
+    catatan:
+      'TANPA nomor katalog, dan itu diperiksa: kandidat terdekat 2.1 Auto Bank '
+      + 'Reconciliation menuntut integrasi rekening koran yang belum ada. Yang '
+      + 'ini rekonsiliasi INTERNAL. Terukur satu invoice mencatat Rp 19,2 juta '
+      + 'sudah diterima tanpa satu pun baris pembayaran di belakangnya — dan '
+      + 'pemeriksaan "total = dibayar + sisa" LULUS SEMPURNA di seluruh 26 '
+      + 'invoice, jadi selisih itu tak bisa dilihat oleh pemeriksaan satu '
+      + 'tabel mana pun. Status diperiksa terpisah karena pembacanya berbeda: '
+      + 'selisih rupiah dilihat bagian keuangan, status dilihat semua orang '
+      + 'termasuk klien di portal.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */
