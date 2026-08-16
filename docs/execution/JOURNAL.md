@@ -22854,3 +22854,67 @@ lint:ratchet                0 error, 231 warning
 
 9.006 notifikasi lama masih menumpuk di kotak semua orang. Membersihkannya
 **menghapus data** — butuh keputusan founder (§8a.5), tidak dilakukan sendiri.
+
+---
+
+## 2026-08-16 (lanjutan) — AUT-P2 ditutup, dan penjaga saya menuduh yang salah
+
+Founder mengizinkan mengosongkan notifikasi dummy: **8.621 dihapus**, tak ada FK
+yang menunjuk ke `notifications` jadi tak ada yang patah. Lalu antrean resmi
+menunjuk **AUT-P2 (Fase 2, `wip`)** — fase terendah yang belum tutup.
+
+### Kriteria yang belum pernah dimekaniskan
+
+"aturan routing punya PENERIMA" diperiksa sekali dengan tangan, lalu dibiarkan.
+Ia menjaga separuh lubang: aturan yang ADA tapi tanpa target. Separuh lain —
+kunci yang DIPAKAI kode dan tak punya aturan sama sekali — menganga.
+
+Keduanya berujung sama: `resolveRecipients` kosong → `createNotifications([])`
+menulis nol baris dan **memulangkan sukses** → rute membalas 200 dengan
+`notifications_created: 0`, tak bisa dibedakan dari "tak ada temuan".
+
+Diukur: 73 kunci dipakai, 73 punya aturan, 0 aturan yatim. Bersih — penjaganya
+mengunci keadaan itu.
+
+### Saya salah: penjaga versi pertama memeriksa string yang keliru
+
+Bentuk pertama memeriksa `type:` di dalam `createNotification`. Dijalankan, ia
+menuduh sepuluh jenis dan **delapan tuduhannya keliru**.
+
+`type:` kategori tampilan, bukan kunci routing. Di `procurement.ts:689`:
+`resolveRecipients('material_request_submitted')` dengan `type: 'general'` —
+yang dicari ke basis kunci pertama; `general` tak pernah dicari sama sekali.
+
+Ketahuannya bukan dari membaca ulang kode, tapi dari **menjalankan penjaganya
+lalu memeriksa satu per satu apa yang dituduhnya**. Penjaga yang salah menuduh
+akan dimatikan orang, bukan diperbaiki.
+
+### AUT-P2: `wip` → `ratifikasi`
+
+Kode selesai; sisanya `SCHEDULER_URL` + `SCHEDULER_SECRET` di GitHub Secrets —
+tugas founder, sudah tercatat di RATIFIKASI §1. `wip` membuat antrean berbohong
+tentang siapa yang memegang bola.
+
+Kriteria "dedup harian terbukti" **diganti**: memenuhinya berarti mempertahankan
+cacat yang baru diperbaiki commit sebelumnya.
+
+**Tidak diklaim:** otomasi belum pernah berjalan sendiri di produksi. Terbukti
+bisa DIPANGGIL dan benar; terbukti BERDENYUT hal lain.
+
+### STATUS.md — peringatan basi, korban kedua
+
+Masih memasang "🔴 R-001 … jangan bangun apa pun di atas GL" sembilan hari
+sesudah penyebabnya diperbaiki. Yang pertama membuat saya melapor salah ke
+founder pada 2026-08-07. **Peringatan basi lebih mahal daripada angka basi** —
+ia menghentikan pekerjaan yang boleh jalan. Diganti cara mengukurnya.
+
+### Bukti
+
+```
+audit-jenis-notifikasi-punya-aturan   73 kunci, 73 punya aturan, 0 yatim
+mutasi M1 kunci salah ketik 1 huruf   MERAH
+mutasi M2 target aturan dihapus       MERAH
+dipulihkan                            HIJAU
+14 penjaga arsitektural               exit=0
+gen-indeks-docs --check               278 dokumen, mutakhir
+```
