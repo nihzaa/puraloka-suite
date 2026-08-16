@@ -22779,3 +22779,78 @@ mutasi penjaga                  MERAH lalu pulih
 10 penjaga arsitektural         exit=0
 lint:ratchet                    0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 — 9.009 notifikasi, 3 dibaca
+
+Founder bertanya berapa otomasi yang sudah jadi, dan menawarkan mengganti yang
+kurang berguna dengan yang lebih kuat. Pengukurannya menemukan sesuatu yang
+lebih besar daripada "otomasi mana yang lemah".
+
+### Yang terbangun
+
+47 rute otomasi · 52 dari ~140 nomor katalog · 43 ambang bisa disetel dari UI.
+
+### Yang sebenarnya rusak
+
+```
+notifikasi di basis      9.009
+yang sudah DIBACA            3
+masuk ke kotak pemilik   3.474
+rentang                     17 hari
+```
+
+Belum ada satu pun otomasi yang berguna kalau 100% pesannya tak dibaca.
+
+Penyebabnya: dedup menahan kembar **per hari**, sehingga masalah yang belum
+diperbaiki menagih ulang tiap hari selamanya. Bukti langsung dari basis — satu
+`gr_tak_cocok`, satu penerimaan, satu orang, **lima hari berturut-turut**.
+Bukan bug; persis yang dirancang.
+
+### Yang diganti
+
+Bukan menambah otomasi. Satu fungsi (`pembuatDedup`) dan ke-47 ikut membaik:
+tagih hari ini, lalu **+3 hari, +7 hari, tiap 14 hari**. Tak ada sinyal hilang;
+yang hilang cuma pengulangannya — masalah sebulan jadi 5 notifikasi, bukan 30.
+
+Sengaja tak bisa disetel dari UI: ini sifat alat, bukan ambang bisnis.
+Membuatnya bisa disetel mengundang orang mengembalikannya ke "tiap hari" saat
+panik, dan cacat ini lahir kembali.
+
+### Saya salah — dua kali, dalam perbaikannya sendiri
+
+1. **`kali` menghitung baris, bukan tagihan.** Satu tagihan ke tiga orang
+   menulis tiga baris, jadi tagihan pertama langsung dianggap yang ketiga dan
+   jedanya melompat 3 → 14 hari. Tanpa gejala apa pun dari luar.
+2. **`mundurkan()` di test memaku seluruh riwayat ke satu instan**, meruntuhkan
+   "hari berbeda" jadi satu — test menguji hal lain daripada yang ditulisnya.
+
+Keduanya ketahuan hanya karena testnya menuntut angka yang tepat pada hari
+ke-4 dan ke-8, bukan sekadar "lebih sedikit".
+
+### Dan satu yang lebih memalukan: 25 rute tak pernah diuji
+
+Daftar TUGAS di test cakupan tertinggal **22 dari 47**. Selama dua puluh lima
+rute lahir, tak satu pun pernah dipanggil test — rute yang melempar saat
+dijalankan akan lolos CI dengan mulus, persis jenis cacat yang test itu ada
+untuk menahannya. Dilengkapi; semuanya terbukti bisa dipanggil dan selesai.
+
+`cost-control` kini ikut didaftarkan di app test — `serapan-anggaran` memanggil
+rute lain lewat `server.inject`, dan tanpa itu ia 404 lalu 500.
+
+### Bukti
+
+```
+otomasi-terjadwal.test.ts   56 passed  (sebelumnya 30, dengan 2 merah)
+mutasi M1 jeda → harian     MERAH
+mutasi M2 indeks meleset 1  MERAH
+pulih                       HIJAU
+9 penjaga arsitektural      exit=0
+lint:ratchet                0 error, 231 warning
+```
+
+### Terbuka
+
+9.006 notifikasi lama masih menumpuk di kotak semua orang. Membersihkannya
+**menghapus data** — butuh keputusan founder (§8a.5), tidak dilakukan sendiri.
