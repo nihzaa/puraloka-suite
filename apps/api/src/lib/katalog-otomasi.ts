@@ -750,6 +750,40 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'otomasi Kasbon Belum Dilunasi, supaya dua angka tak pernah berselisih.',
   },
   {
+    /*
+      Didaftarkan sebagai `percakapan`, BUKAN `jadwal` — ia menjawab saat
+      ditanya, bukan mengirim tanpa diminta. Sama dengan `tanya-uang` di atas.
+
+      Nomornya 2.4 (Cashflow Prediction) + 8.3 (Payment Recommendation), dan
+      keduanya DIUKUR lebih dulu ke basis sebelum ditulis: 5 rekening kas,
+      15 termin pending, 5 tagihan supplier — semuanya bertanggal, jadi
+      proyeksinya penjumlahan terjadwal, bukan ramalan.
+    */
+    kunci: 'tanya-arus-kas',
+    kunci_bukan_rute: true,
+    nomor: '2.4, 8.3',
+    nama: 'Tanya proyeksi kas & prioritas bayar',
+    pemicu: 'percakapan',
+    penjelasan:
+      'Menanyakan perkiraan kas 30/60/90 hari ke depan, atau tagihan mana '
+      + 'yang paling mendesak dibayar saat kas terbatas — dijawab dari '
+      + 'dokumen yang sudah ada, bukan dari perkiraan.',
+    penerima: 'Yang bertanya',
+    alur: [
+      { di: 'n8n', teks: 'Pertanyaan masuk lewat WhatsApp.' },
+      { di: 'sistem', teks: 'Asisten memilih alat baca yang sesuai izin penanya.' },
+      { di: 'sistem', teks: 'Saldo, invoice, termin, dan tagihan supplier dijumlah menurut tanggalnya.' },
+      { di: 'n8n', teks: 'Jawabannya dikirim balik.' },
+    ],
+    catatan:
+      'Termin yang belum ditagih DIPISAH dari proyeksi utama — ia baru jadwal '
+      + 'tagih, belum tentu masuk, dan menjumlahkannya membuat kas terlihat '
+      + 'jauh lebih sehat daripada kenyataannya. Yang sudah lewat tempo tetap '
+      + 'ikut dihitung: membuangnya membuat kas terlihat sehat justru saat ia '
+      + 'tidak. Prioritas bayar MENGURUTKAN menurut jatuh tempo, tidak '
+      + 'memutuskan — hubungan dagang tak terbaca dari tanggal.',
+  },
+  {
     kunci: 'tanya-mandor',
     kunci_bukan_rute: true,
     nomor: '6.7, 6.11',

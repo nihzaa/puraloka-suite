@@ -2902,6 +2902,41 @@ items:
       CHECK kepatuhan_verifikasi_lengkap sempat menolak test saya —
       terverifikasi=true menuntut diverifikasi_oleh + diverifikasi_pada.
 
+  - id: ASISTEN-14
+    fase: null
+    judul: "2.4 proyeksi arus kas + 8.3 prioritas bayar — tool baca, bukan rute jadwal"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "SUDAH: termin `pending` DIPISAH dari proyeksi utama, tidak dijumlahkan"
+      - "SUDAH: yang lewat tempo IKUT dihitung dan disebut satu per satu"
+      - "SUDAH: keterbatasannya dinyatakan — bukan disebut ramalan"
+      - "SUDAH: prioritas bayar diurut jatuh tempo, keputusan diserahkan manusia"
+      - "SUDAH: invoices & termin_schedules lewat unsafe()+project_id (kategori C)"
+      - "SUDAH: mutasi terbukti merah (termin dijumlahkan → proyeksi melonjak)"
+    cara_verifikasi: >-
+      cd apps/api && npx vitest run src/lib/__tests__/ai-tool-arus-kas.test.ts
+      (9 hijau) · node scripts/audit-tool-ai-read-only.mjs (exit 0)
+    bobot: M
+    status: done
+    catatan_kemajuan: >-
+      SELESAI 2026-08-16 (sesi ASISTEN). Katalog tool 31 → 33.
+      Diukur SEBELUM ditulis: 5 rekening Rp 222.475.000 · 15 termin pending
+      Rp 1.079.250.000 · 3 invoice belum lunas Rp 100.395.000 · 5 tagihan
+      supplier Rp 50.485.000 — semuanya bertanggal.
+      Dua keputusan yang menahan angka jadi terlalu optimis: (1) termin pending
+      dipisah — menjumlahkannya membuat kas terlihat 5× lebih sehat (Rp 320 jt
+      jadi Rp 797 jt di jendela 30 hari); (2) yang lewat tempo tetap dihitung —
+      membuangnya membuat kas terlihat sehat justru saat ia tidak.
+      Wrapper tenancy menangkap cacat senyap: invoices & termin_schedules
+      kategori C, `.from()` ditolak; tanpa saringan proyek arus kas tenant lain
+      ikut terjumlah dan angkanya tetap terlihat masuk akal.
+      Test sempat TAK BISA membedakan benar dari rusak — ambang
+      `< totalTermin` hijau meski termin sengaja dijumlahkan, karena termin di
+      jendela 30 hari lebih kecil daripada totalnya. Diganti persamaan utuh
+      `proyeksi === saldo + masuk − keluar`.
+      Temuan nyata dari keluarannya: Rp 100.395.000 piutang 70 hari lewat
+      tempo, satu tagihan supplier 96 hari lewat.
+
   - id: TUNDA-3.6
     fase: null
     judul: "3.6 Subcontractor Scoring — ditunda, syarat masuk terukur"

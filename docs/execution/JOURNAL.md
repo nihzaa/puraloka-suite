@@ -5,6 +5,83 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-16 (sesi ASISTEN, 1) — arus kas 2.4 + prioritas bayar 8.3
+
+Sesi terpisah untuk TOOL BACA asisten; sesi lain melanjutkan rute otomasi
+terjadwal di checkout yang sama.
+
+### Yang dibangun
+
+Dua tool dari kelompok "Pemilik/eksekutif" di `GALIAN-92-OTOMASI.md` §4:
+
+    2.4  Cashflow Prediction    → proyeksi_arus_kas
+    8.3  Payment Recommendation → prioritas_bayar
+
+Katalog tool asisten: 31 → 33.
+
+### Diukur SEBELUM ditulis, bukan sesudah
+
+    cash_accounts        5 rekening · Rp 222.475.000
+    termin pending      15 · Rp 1.079.250.000
+    invoices belum lunas 3 · Rp 100.395.000
+    supplier_invoices    5 · Rp 50.485.000
+
+Keempatnya bertanggal — jadi proyeksinya penjumlahan terjadwal, bukan ramalan.
+
+### Dua keputusan yang menahan angka jadi terlalu optimis
+
+**Termin `pending` DIPISAH dari proyeksi utama.** Ia baru jadwal tagih —
+belum ditagih, apalagi dibayar. Menjumlahkannya membuat kas terlihat **5×
+lebih sehat**: Rp 320 jt jadi Rp 797 jt di jendela 30 hari.
+
+**Yang lewat tempo TETAP dihitung.** Invoice 70 hari lewat adalah uang yang
+seharusnya sudah ada. Membuangnya membuat kas terlihat sehat justru saat ia
+tidak — arah kesalahan yang paling berbahaya.
+
+Keluaran nyata menemukan **Rp 100.395.000 piutang 70 hari lewat tempo**, dan
+satu tagihan supplier **96 hari lewat**.
+
+### Wrapper tenancy menangkap cacat yang akan senyap
+
+`invoices` dan `termin_schedules` kategori C — `.from()` DITOLAK. Benar: tanpa
+saringan proyek, arus kas tenant lain ikut terjumlah, dan angkanya tetap
+terlihat masuk akal. Diperbaiki jadi `unsafe()` + `.in('project_id', …)`.
+
+### Test yang tak bisa membedakan benar dari rusak — LAGI
+
+Assertion pertama: `|proyeksi − saldo| < totalTermin`. HIJAU bahkan sesudah
+termin sengaja dijumlahkan — karena termin di jendela 30 hari (Rp 477 jt)
+lebih kecil daripada TOTAL termin (Rp 1,08 M), jadi ambangnya tak pernah
+tersentuh.
+
+Diganti jadi persamaan utuh: `proyeksi === saldo + masuk − keluar`. Sekarang
+mutasi merah dan menyebut angkanya: *"expected 796995000 to be 319995000"*.
+
+Ini kelima kalinya dalam dua hari alat ukur saya yang keliru, bukan yang
+diukur.
+
+### Bukti
+
+    tsc api (berkas saya)  0 galat
+    ai-tool-arus-kas       9 hijau (Postgres NYATA)
+    ai-tool                18 hijau
+    lint:ratchet           API 0 error/231 warning · web 0 error/295 warning
+    audit-izin-benar-ada       exit 0
+    audit-kredensial-tak-bocor exit 0
+    audit-kegagalan-senyap     exit 0
+    audit-catch-senyap         exit 0
+    audit-tool-ai-read-only    exit 0  (ambang NOL, tetap utuh)
+    audit-baca-tak-terpotong   exit 0
+    audit-gerbang-tenancy      exit 0
+    nomor katalog kembar       NOL (56 nomor)
+    mutasi                 termin dijumlahkan → MERAH → pulih → HIJAU
+
+⚠ `tsc` melaporkan 3 galat di `otomasi-terjadwal.ts` dan `notifications.ts` —
+keduanya `M` di `git status` dan milik SESI LAIN yang sedang berjalan. Tidak
+saya sentuh (batas berkas prompt sesi ini).
+
+---
+
 ## 2026-08-16 (lanjutan 8) — uang masuk & grafik: dua penjaga yang MERAH lebih dulu
 
 Founder: *"assisten bisa menyimpan semua data (seperti jika pembayaran masuk)"*

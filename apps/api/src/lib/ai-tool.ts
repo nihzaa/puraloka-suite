@@ -63,6 +63,7 @@ import { toolHitungPekerjaan } from './ai-tool-hitung.js'
 import { toolJejakPerubahan } from './ai-tool-jejak.js'
 import { TOOL_PENGINGAT } from './ai-tool-pengingat.js'
 import { toolTitipPesan } from './ai-tool-titip-pesan.js'
+import { TOOL_ARUS_KAS } from './ai-tool-arus-kas.js'
 
 
 
@@ -861,6 +862,13 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
   */
   ...TOOL_PENGINGAT,
   toolTitipPesan,
+  /*
+    Katalog 2.4 (proyeksi arus kas) + 8.3 (prioritas bayar), 2026-08-16.
+    Diukur sebelum ditulis: 5 rekening Rp 222 jt · 15 termin pending Rp 1,08 M ·
+    5 tagihan supplier Rp 50 jt. Keempatnya bertanggal, jadi proyeksinya
+    penjumlahan terjadwal — bukan ramalan.
+  */
+  ...TOOL_ARUS_KAS,
 ]
 
 /**

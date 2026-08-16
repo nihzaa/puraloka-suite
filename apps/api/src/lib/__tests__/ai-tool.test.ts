@@ -167,6 +167,9 @@ describe('tool terhadap data NYATA', () => {
       // `ai:chat`: yang boleh memakai asisten tak otomatis boleh membaca
       // siapa mengubah apa.
       'audit:view',
+      // `titip_pesan` — satu-satunya tool yang menyentuh ORANG LAIN, jadi
+      // izinnya sengaja terpisah dari `ai:chat`.
+      'notifications:rules:manage',
     ])
   })
 
