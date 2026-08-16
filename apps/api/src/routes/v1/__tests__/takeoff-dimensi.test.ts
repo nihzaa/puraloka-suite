@@ -64,8 +64,23 @@ beforeAll(async () => {
   adminAuth = (await authIdForRole(client, 'admin')) as string
   await purge()
 
+  // Diturunkan dari `adminAuth`, BUKAN dicari ulang dengan query sendiri.
+  //
+  // Versi pertama memakai `... WHERE r.name='admin' LIMIT 1` — query terpisah
+  // tanpa urutan, yang memilih pengguna admin MANA SAJA. Selama itu kebetulan
+  // orang yang sama dengan pilihan `authIdForRole`, tak ada yang terlihat
+  // salah.
+  //
+  // Begitu harness diperbaiki (2026-08-16) supaya melewati pengguna yatim
+  // tanpa keanggotaan, keduanya menunjuk orang BERBEDA: rute mencatat
+  // `diterapkan_oleh` = pengguna sesi, sementara test membandingkannya dengan
+  // pengguna hasil query sendiri. Test merah, padahal rutenya benar.
+  //
+  // Dua sumber untuk satu fakta — "siapa admin yang sedang dipakai test ini" —
+  // akan berbeda suatu hari. Sekarang satu sumber.
   const { rows: u } = await client.query(
-    `SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1`)
+    'SELECT id FROM users WHERE auth_id = $1', [adminAuth])
+  if (!u.length) throw new Error('pengguna sesi tak ditemukan — fixture tak terbentuk')
   adminUserId = u[0].id
 
   // `ON CONFLICT (code)` TIDAK bisa dipakai di sini, dan itu diukur bukan
