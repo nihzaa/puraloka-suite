@@ -188,7 +188,19 @@ export default function PengaturanOtomasiPage() {
   };
 
   return (
-    <>
+    /*
+      Container ber-token lebar — dituntut `tata-letak-ratchet` (ambang NOL).
+
+      `--w-form` (900px), bukan `--w-page`: isinya satu kolom kartu berisi
+      penjelasan naratif dan satu medan angka. Dilebarkan sampai 1280px,
+      kalimat "akibat"-nya melar melewati 75 karakter per baris dan justru
+      lebih sulit dibaca — padahal kalimat itulah yang membuat orang paham
+      apa yang berubah kalau angkanya digeser.
+    */
+    <div style={{
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-form)", margin: "0 auto",
+    }}>
       <KepalaHalaman
         judul="Ambang Otomasi"
         keterangan="Angka yang menentukan kapan otomasi mengirim pesan."
@@ -332,6 +344,6 @@ export default function PengaturanOtomasiPage() {
           </p>
         </>
       )}
-    </>
+    </div>
   );
 }

@@ -182,7 +182,18 @@ export default function KatalogOtomasiPage() {
     });
 
   return (
-    <>
+    /*
+      Container ber-token lebar — dituntut `tata-letak-ratchet` (ambang NOL).
+
+      `--w-page` (1280px): isinya kartu bercampur — penjelasan naratif, daftar
+      langkah alur, dan penanda status. `--w-form` terlalu sempit untuk
+      langkah alur yang berdampingan; `--w-luas` untuk tabel padat kolom, dan
+      halaman ini tak punya tabel.
+    */
+    <div style={{
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
+    }}>
       <KepalaHalaman
         judul="Katalog Otomasi"
         keterangan="Apa yang dikerjakan tiap otomasi, kapan berjalan, dan di bagian mana ia dipasang."
@@ -229,7 +240,17 @@ export default function KatalogOtomasiPage() {
                     opacity: n === 0 ? 0.5 : 1,
                   }}
                 >
-                  {label} <span style={{ opacity: 0.7 }}>({n})</span>
+                  {/*
+                    Warna, bukan `opacity` — dituntut `uji-opacity-teks`.
+
+                    `opacity` menipiskan teks TERHADAP apa pun di belakangnya,
+                    jadi rasio kontrasnya tak bisa dihitung dan tak bisa
+                    dijamin lolos WCAG. Di tombol aktif yang berlatar navy,
+                    0,7 menjatuhkannya jauh di bawah 4,5:1 — angka dalam
+                    kurung itu justru yang paling sering dibaca sekilas.
+                  */}
+                  {label}{" "}
+                  <span style={{ color: aktif ? C.onNavy : C.muted }}>({n})</span>
                 </button>
               );
             })}
@@ -432,6 +453,6 @@ export default function KatalogOtomasiPage() {
           )}
         </>
       )}
-    </>
+    </div>
   );
 }
