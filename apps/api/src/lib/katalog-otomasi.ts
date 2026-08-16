@@ -1340,6 +1340,36 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + '`material_id` pada pesanan pembelian, BUKAN dari nama vendor di '
       + 'catatan biaya — teks bebas membuat tiap salah ketik jadi temuan palsu.',
   },
+  {
+    kunci: 'kirim-pengingat',
+    nama: 'Membacakan kembali pengingat yang dititipkan',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Mengirimkan kembali janji atau catatan yang pernah dititipkan pengguna '
+      + 'kepada asisten, pada waktu yang mereka minta. Tanpa ini, titipannya '
+      + 'tersimpan rapi dan tak pernah dibacakan — sama saja dengan tak '
+      + 'dicatat.',
+    penerima: 'Orang yang menitipkan pengingatnya',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengambil pengingat yang waktunya sudah lewat dan belum terkirim.' },
+      { di: 'sistem', teks: 'Menandainya terkirim LEBIH DULU, baru mengirim notifikasinya.' },
+      { di: 'sistem', teks: 'Pengingat yang sudah dibatalkan tak pernah ikut terambil.' },
+    ],
+    catatan:
+      'Dibangun sesi lain sebagai pasangan tool `titip_pengingat`; entri ini '
+      + 'ditulis dari MEMBACA kodenya, bukan dari rancangannya. Dua keputusan '
+      + 'yang terbaca di sana: (1) yang diambil `jatuh_pada <= sekarang`, '
+      + 'bukan "hari ini" — pengingat yang terlewat karena server mati tetap '
+      + 'sampai, terlambat lebih baik daripada hilang; (2) penandaan terkirim '
+      + 'ditulis SEBELUM notifikasinya dibuat, dengan `dikirim_pada IS NULL` '
+      + 'ikut di WHERE, supaya dua putaran yang tumpang tindih tak sama-sama '
+      + 'mengirim. Konsekuensi yang diterima sadar: bila pengiriman gagal '
+      + 'SESUDAH penandaan, pengingatnya hilang — dicatat di log, dan lebih '
+      + 'ringan daripada pengingat yang berbunyi berkali-kali. Tanpa nomor '
+      + 'katalog: ini kemampuan asisten, bukan salah satu dari 140 otomasi '
+      + 'bernomor.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */
