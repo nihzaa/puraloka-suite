@@ -211,6 +211,16 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Polis yang mendekati akhir masa berlaku, dan proyek yang belum berasuransi.',
     jalur: '/api/v1/otomasi/jalankan/polis-berakhir',
   },
+  'kesiapan-audit': {
+    label: 'Kesiapan Audit Berkas Proyek',
+    keterangan: 'Proyek yang jenis berkas wajibnya belum lengkap.',
+    jalur: '/api/v1/otomasi/jalankan/kesiapan-audit',
+  },
+  'opname-menggantung': {
+    label: 'Opname Bersama Menggantung',
+    keterangan: 'Opname belum diverifikasi atau sedang disengketakan — upah mandor tertahan.',
+    jalur: '/api/v1/otomasi/jalankan/opname-menggantung',
+  },
   'invoice-ringkasan-melenceng': {
     label: 'Invoice Melenceng dari Buku Pembayaran',
     keterangan: 'Kolom ringkasan invoice tak cocok dengan baris pembayaran yang sesungguhnya.',

@@ -220,6 +220,23 @@ export const AMBANG_OTOMASI = {
     label: 'Hari sesudah proyek selesai sebelum retensi tertahan ditegur',
   },
   /*
+    Opname bersama belum diverifikasi. Bawaan 7 hari.
+
+    Pendek, dan alasannya bukan administratif: selama opname belum
+    diverifikasi, mandor sudah mengerjakan tetapi belum bisa menagih. Yang
+    menanggung keterlambatannya bukan perusahaan melainkan orang yang sudah
+    bekerja.
+
+    Tak berlaku untuk yang DISENGKETAKAN — itu tenggangnya nol, karena yang
+    dibutuhkan orang ketiga yang memutuskan, sejak hari sengketanya dicatat.
+  */
+  'otomasi.opname_menggantung.hari': {
+    bawaan: 7,
+    min: 1,
+    max: 60,
+    label: 'Hari sebelum opname yang belum diverifikasi ditegur',
+  },
+  /*
     Ringkasan invoice melenceng dari buku pembayaran. Bawaan Rp 1.
 
     Hampir NOL dengan sengaja. Ini bukan ambang kewajaran melainkan pengaman

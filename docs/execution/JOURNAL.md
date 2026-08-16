@@ -22279,3 +22279,77 @@ mutasi blok verifikasi 416             4/4 MERAH lalu pulih
 14 penjaga arsitektural                exit=0
 lint:ratchet                           0 error, 231 warning
 ```
+
+---
+
+## 2026-08-16 (9) — kesiapan audit 9.9 · opname bersama menggantung
+
+43 rute terjadwal, 48 nomor katalog + 3 tanpa nomor.
+
+### Dua tabel kosong dibuka, dan bentuk semaiannya sengaja TIDAK rata
+
+`documents` dan `opname_bersama` sama-sama nol baris.
+`scripts/db/_seed-dokumen-opname.mjs` menyemai **bertingkat**:
+
+```
+dokumen   4 / 3 / 1 jenis pada tiga proyek pertama
+opname    diverifikasi · diajukan lama · diajukan baru · disengketakan
+```
+
+Menyemai semuanya lengkap membuat otomasinya melaporkan nol — dan nol tak
+membuktikan apa pun, ia sama saja dengan otomasi yang rusak. Menyemai semuanya
+kosong sama buruknya: semua tertuduh, tak ada yang bisa dibedakan.
+
+Saldo kas sebelum/sesudah: **Rp 222.475.000, tidak bergeser.**
+
+### Dua invarian schema yang ditemukan lewat kegagalan, keduanya benar
+
+- `opname_bersama_check2` — pemverifikasi tak boleh sama dengan pengukur.
+  Opname bersama menentukan berapa mandor dibayar; kalau keduanya orang yang
+  sama, **"bersama"-nya tinggal nama.**
+- `fn_opname_item_terkunci` — item tak bisa disisipkan sesudah berita acaranya
+  diverifikasi. Kalau bisa, tanda tangan pengawas melekat pada dokumen yang
+  isinya masih berubah.
+
+Penyemainya menulis header `diajukan` dulu, item masuk, baru statusnya
+dinaikkan — persis urutan yang terjadi di lapangan.
+
+### 9.9 — yang diperiksa kelengkapan JENIS, bukan jumlah berkas
+
+Proyek dengan tiga puluh foto progres dan tanpa satu pun kontrak lebih tak siap
+diaudit daripada proyek dengan empat berkas yang tepat. Terbukti bertingkat di
+basis: Bu Sari punya kontrak → NORMAL; yang nol berkas → HIGH.
+
+Berita acara sengaja **tak dituntut** pada proyek yang belum rampung — itu
+menuntut bukti serah terima untuk pekerjaan yang belum diserahkan, dan daftar
+yang selalu penuh berhenti dibaca.
+
+### Opname TANPA nomor katalog, dan itu diperiksa
+
+Kandidat terdekat 4.8 *Stock Opname Discrepancy* adalah opname **stok gudang**.
+`opname_bersama` mengukur **volume pekerjaan**. Satu menghitung barang di rak,
+satu menentukan berapa orang dibayar. Kesalahan yang sama persis dengan
+menempelkan 7.10 pada kontrak pemasok.
+
+Sengketa dikirim terpisah dengan tenggang **NOL**: itu bukan keterlambatan
+proses melainkan ketidaksepakatan, dan yang dibutuhkan orang ketiga yang
+memutuskan sejak hari sengketanya dicatat.
+
+### Dua cacat kecil saya
+
+- `"sampai muka.."` — titik ganda karena alasan sengketa sudah berakhiran
+  titik. Terkirim sungguhan sebelum diperbaiki; ada test yang menjaganya.
+- Test pertama gagal karena meminjam proyek yang **sudah** diisi penyemai.
+  Test yang lulus atau gagal karena isi seed tak menguji kodenya. Sekarang ia
+  memilih proyek yang belum punya dokumen sama sekali.
+
+### Bukti
+
+```
+otomasi-audit-opname.test.ts      7 passed
+mutasi rute                       7/7 MERAH lalu pulih
+mutasi blok verifikasi 417        4/4 MERAH lalu pulih
+14 penjaga arsitektural           exit=0
+lint:ratchet                      0 error, 231 warning
+saldo kas sebelum/sesudah semai   Rp 222.475.000 → Rp 222.475.000
+```

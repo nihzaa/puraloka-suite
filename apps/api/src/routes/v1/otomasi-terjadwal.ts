@@ -6893,6 +6893,312 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     })
   })
 
+  // ── GET /api/v1/otomasi/jalankan/kesiapan-audit ──────────────────────────
+  //
+  // Automation 9.9 — Audit Readiness Checker.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // YANG DIPERIKSA KELENGKAPAN JENIS, BUKAN JUMLAH BERKAS
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Proyek dengan tiga puluh foto progres dan tanpa satu pun kontrak lebih
+  // tak siap diaudit daripada proyek dengan empat berkas yang tepat. Menghitung
+  // "punya dokumen atau tidak" menyamakan keduanya.
+  //
+  // Empat jenis yang dianggap wajib, dan alasannya masing-masing:
+  //
+  //     kontrak        dasar hukum seluruh pekerjaan
+  //     spk            perintah kerja — tanpa ini, siapa menyuruh apa tak jelas
+  //     gambar_kerja   acuan pelaksanaan; sengketa mutu selalu kembali ke sini
+  //     berita_acara   bukti pekerjaan diserahkan dan diterima
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // BERITA ACARA HANYA WAJIB PADA PROYEK YANG SUDAH ATAU HAMPIR SELESAI
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Menuntutnya pada proyek yang baru berjalan dua minggu adalah menuntut
+  // bukti serah terima untuk pekerjaan yang belum diserahkan. Otomasi yang
+  // melakukannya membuat tiap proyek baru langsung "tidak siap audit", dan
+  // daftar yang selalu penuh berhenti dibaca.
+  app.get('/api/v1/otomasi/jalankan/kesiapan-audit', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['kesiapan_audit'])
+
+    const idProyek = await request.db!.projectIds()
+    if (idProyek.length === 0) {
+      return reply.send({
+        success: true, notifications_created: 0,
+        checked: { proyek: 0, belum_lengkap: 0 },
+      })
+    }
+
+    const { data: proyek, error } = await request.db!
+      .from('projects')
+      .select('id, name, status, end_date, contract_value')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    /*
+      `documents` kategori C lewat `project_id`. Dibaca BERHALAMAN: berkas
+      proyek tumbuh paling cepat di antara semua tabel — foto progres saja
+      bisa ratusan per bulan — dan pemotongan senyap membuat jenis yang ada
+      terlihat hilang. Akibatnya proyek yang lengkap dilaporkan kurang.
+    */
+    const HALAMAN = 1000
+    const punyaJenis = new Map<string, Set<string>>()
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error: eDok } = await request.db!
+        .unsafe('documents', 'kategori C lewat project_id; disaring ke projectIds()')
+        .select('id, project_id, doc_type')
+        .in('project_id', idProyek)
+        .order('id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+
+      if (eDok) return reply.status(500).send({ error: eDok.message })
+      if (!data || data.length === 0) break
+      for (const d of data) {
+        const pid = d.project_id as string
+        const s = punyaJenis.get(pid) ?? new Set<string>()
+        s.add(String(d.doc_type ?? ''))
+        punyaJenis.set(pid, s)
+      }
+      if (data.length < HALAMAN) break
+    }
+
+    const WAJIB_SELALU = [
+      { jenis: 'kontrak', sebut: 'kontrak' },
+      { jenis: 'spk', sebut: 'SPK' },
+      { jenis: 'gambar_kerja', sebut: 'gambar kerja' },
+    ]
+
+    let belumLengkap = 0
+    let dibuat = 0
+    let takBisaDinilai = 0
+
+    for (const p of proyek ?? []) {
+      const pid = p.id as string
+      const st = String(p.status ?? '')
+      // `draft` dan `cancelled` belum/tak lagi punya kewajiban arsip.
+      if (st === 'draft' || st === 'cancelled') continue
+
+      const ada = punyaJenis.get(pid) ?? new Set<string>()
+      const kurang = WAJIB_SELALU.filter((w) => !ada.has(w.jenis)).map((w) => w.sebut)
+
+      /*
+        Berita acara: hanya dituntut kalau pekerjaannya sudah selesai atau
+        tanggal selesainya sudah lewat. Sebelum itu, ketiadaannya normal.
+      */
+      const akhir = String(p.end_date ?? '').slice(0, 10)
+      const sudahRampung = st === 'completed'
+        || (akhir !== '' && akhir <= today)
+      if (sudahRampung && !ada.has('berita_acara')) kurang.push('berita acara')
+
+      if (kurang.length === 0) continue
+      belumLengkap++
+      if (ada.size === 0) takBisaDinilai++
+
+      if (sudah('kesiapan_audit', pid)) continue
+
+      const penerima = await resolveRecipients('kesiapan_audit', {
+        projectId: pid, companyId: request.companyId!,
+      })
+
+      const nilai = Number(p.contract_value ?? 0)
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      ada.size === 0 ? 'Proyek Tanpa Satu Pun Berkas Tersimpan'
+                                     : 'Berkas Proyek Belum Lengkap untuk Diaudit',
+          message:
+            `"${p.name}"`
+            + (nilai > 0 ? ` (nilai kontrak ${rp(nilai)})` : '')
+            + ` belum punya ${kurang.join(', ')}.`
+            + (ada.size === 0
+              ? ' Tak ada satu pun berkas tersimpan untuk proyek ini — kalau '
+                + 'auditor atau klien memintanya, tak ada yang bisa dikeluarkan.'
+              : ` Yang sudah ada: ${[...ada].join(', ').replace(/_/g, ' ')}.`)
+            + (sudahRampung && kurang.includes('berita acara')
+              ? ' Pekerjaannya sudah lewat tanggal selesai, jadi berita acara '
+                + 'seharusnya sudah ada.'
+              : ''),
+          type:       'kesiapan_audit',
+          // Yang NOL berkas paling mendesak: yang lain tinggal melengkapi,
+          // yang ini belum mulai mengarsip sama sekali.
+          priority:   ada.size === 0 ? 'high' : 'normal',
+          project_id: pid,
+          action_url: '/dokumen/kendali',
+          action_data: {
+            record_id: pid,
+            kurang, jenis_ada: [...ada], nilai_kontrak: nilai,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_diperiksa: (proyek ?? []).length,
+        belum_lengkap: belumLengkap,
+        // Dipisah karena maknanya berbeda: yang ini bukan "kurang berkas",
+        // melainkan belum mengarsip sama sekali.
+        tanpa_berkas_sama_sekali: takBisaDinilai,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/opname-menggantung ──────────────────────
+  //
+  // TANPA nomor katalog, dan itu diperiksa.
+  //
+  // Kandidat terdekat 4.8 *Stock Opname Discrepancy Analysis* — dan itu opname
+  // STOK GUDANG. `opname_bersama` mengukur VOLUME PEKERJAAN bersama mandor;
+  // yang satu menghitung barang di rak, yang satu menentukan berapa orang
+  // dibayar. Menempelkan 4.8 padanya akan membuat katalog mengklaim modul
+  // gudang yang tak dikerjakan — kesalahan yang sama persis dengan menempelkan
+  // 7.10 pada kontrak pemasok.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // OPNAME YANG MENGGANTUNG ADALAH UPAH YANG TERTAHAN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Opname bersama menentukan berapa volume pekerjaan yang diakui, dan dari
+  // situlah tagihan mandor dihitung. Selama berstatus `diajukan`, mandor sudah
+  // mengerjakan tetapi belum bisa menagih.
+  //
+  // Itu membuat keterlambatan di sini berbeda sifatnya dari keterlambatan
+  // administratif lain: yang menanggung bukan perusahaan melainkan orang yang
+  // sudah bekerja.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // SENGKETA DIKIRIM TERPISAH, DAN TENGGANGNYA NOL
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Opname `disengketakan` bukan opname yang lambat diproses — ia opname yang
+  // pengukurnya dan mandornya TIDAK SEPAKAT. Menunggu tenggang untuk itu tak
+  // masuk akal: yang dibutuhkan orang ketiga yang memutuskan, dan ia dibutuhkan
+  // sejak hari sengketanya dicatat.
+  app.get('/api/v1/otomasi/jalankan/opname-menggantung', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.opname_menggantung.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today,
+      ['opname_menggantung', 'opname_disengketakan'])
+
+    // `opname_bersama` kategori B — `.from()` menyaringnya langsung.
+    const { data: opname, error } = await request.db!
+      .from('opname_bersama')
+      .select(`id, project_id, work_scope_id, nomor, tanggal_opname, status,
+               alasan_sengketa`)
+      .neq('status', 'diverifikasi')
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    const { data: proyek, error: eProyek } = await request.db!
+      .from('projects').select('id, name')
+    if (eProyek) return reply.status(500).send({ error: eProyek.message })
+    const namaProyek = new Map((proyek ?? []).map((p) => [p.id as string, String(p.name ?? '—')]))
+
+    let menggantung = 0
+    let sengketa = 0
+    let dibuat = 0
+
+    for (const o of opname ?? []) {
+      const tgl = String(o.tanggal_opname ?? '').slice(0, 10)
+      if (!tgl) continue
+      const umur = Math.round(
+        (Date.parse(today + 'T00:00:00Z') - Date.parse(tgl + 'T00:00:00Z')) / 86_400_000)
+      const pid = o.project_id as string
+
+      // ── Sengketa: tenggangnya NOL
+      if (String(o.status ?? '') === 'disengketakan') {
+        sengketa++
+        if (sudah('opname_disengketakan', o.id as string)) continue
+
+        const penerima = await resolveRecipients('opname_disengketakan', {
+          projectId: pid, companyId: request.companyId!,
+        })
+        for (const uid of penerima) {
+          await createNotification({
+            company_id: request.companyId!,
+            user_id:    uid,
+            title:      'Opname Bersama Disengketakan',
+            message:
+              `${o.nomor} di ${namaProyek.get(pid)} (${umur} hari lalu) `
+              + 'disengketakan: '
+              // Alasannya diketik orang dan sering sudah berakhiran titik —
+              // menambah satu lagi menghasilkan ".." yang terbaca seperti
+              // teks yang terpotong.
+              + `${String(o.alasan_sengketa ?? 'alasan tak dicatat').replace(/[.\s]+$/, '')}. `
+              + 'Selama belum diputuskan, volume yang diakui belum ada — dan '
+              + 'mandor tak bisa menagih pekerjaan yang sudah dikerjakannya.',
+            type:       'opname_disengketakan',
+            priority:   'urgent',
+            project_id: pid,
+            action_url: '/mandor/opname',
+            action_data: {
+              record_id: o.id as string, nomor: o.nomor, umur_hari: umur,
+            },
+          })
+          dibuat++
+        }
+        continue
+      }
+
+      if (umur < ambangHari) continue
+      menggantung++
+
+      if (sudah('opname_menggantung', o.id as string)) continue
+
+      const penerima = await resolveRecipients('opname_menggantung', {
+        projectId: pid, companyId: request.companyId!,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id:    uid,
+          title:      'Opname Bersama Belum Diverifikasi',
+          message:
+            `${o.nomor} di ${namaProyek.get(pid)} diajukan ${umur} hari lalu `
+            + 'dan belum diverifikasi. Selama belum, mandor sudah mengerjakan '
+            + 'tetapi belum bisa menagih — yang menanggung keterlambatannya '
+            + 'bukan perusahaan melainkan orang yang sudah bekerja.',
+          type:       'opname_menggantung',
+          priority:   umur >= ambangHari * 2 ? 'urgent' : 'high',
+          project_id: pid,
+          action_url: '/mandor/opname',
+          action_data: {
+            record_id: o.id as string, nomor: o.nomor, umur_hari: umur,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        belum_diverifikasi: (opname ?? []).length,
+        menggantung,
+        disengketakan: sengketa,
+        ambang_hari: ambangHari,
+      },
+    })
+  })
+
   // ── GET /api/v1/otomasi/jalankan/kirim-pengingat ──────────────────────────
   //
   // Pasangan `titip_pengingat`. Tanpa rute ini, janji yang dititipkan pengguna

@@ -1399,6 +1399,60 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'selisih rupiah dilihat bagian keuangan, status dilihat semua orang '
       + 'termasuk klien di portal.',
   },
+  {
+    kunci: 'kesiapan-audit',
+    nomor: '9.9',
+    nama: 'Kesiapan audit berkas proyek',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Memeriksa apakah tiap proyek punya jenis berkas yang wajib ada bila '
+      + 'sewaktu-waktu diaudit atau diminta klien: kontrak, SPK, gambar '
+      + 'kerja, dan berita acara.',
+    penerima: 'Pengendali dokumen',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengumpulkan JENIS berkas yang dimiliki tiap proyek.' },
+      { di: 'sistem', teks: 'Membandingkan dengan daftar jenis yang wajib ada.' },
+      { di: 'sistem', teks: 'Berita acara hanya dituntut pada proyek yang sudah rampung.' },
+      ...LANGKAH_KIRIM,
+    ],
+    catatan:
+      'Yang diperiksa KELENGKAPAN JENIS, bukan jumlah berkas: proyek dengan '
+      + 'tiga puluh foto progres dan tanpa satu pun kontrak lebih tak siap '
+      + 'diaudit daripada proyek dengan empat berkas yang tepat. Berita acara '
+      + 'sengaja tak dituntut pada proyek yang baru berjalan — itu menuntut '
+      + 'bukti serah terima untuk pekerjaan yang belum diserahkan, dan daftar '
+      + 'yang selalu penuh berhenti dibaca. Proyek yang NOL berkas dipisahkan '
+      + 'dengan prioritas lebih tinggi: yang lain tinggal melengkapi, yang ini '
+      + 'belum mulai mengarsip sama sekali.',
+  },
+  {
+    kunci: 'opname-menggantung',
+    nama: 'Opname bersama menggantung atau disengketakan',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menegur pengukuran volume pekerjaan bersama mandor yang belum '
+      + 'diverifikasi, dan yang sedang disengketakan. Selama belum beres, '
+      + 'mandor sudah mengerjakan tetapi belum bisa menagih.',
+    penerima: 'Pengawas lapangan & manajer proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca opname yang belum diverifikasi.' },
+      { di: 'sistem', teks: 'Memisahkan yang disengketakan — tenggangnya nol.' },
+      { di: 'sistem', teks: 'Menghitung berapa lama yang lain sudah menggantung.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.opname_menggantung.hari',
+    catatan:
+      'TANPA nomor katalog, dan itu diperiksa: kandidat terdekat 4.8 Stock '
+      + 'Opname Discrepancy adalah opname STOK GUDANG. Yang ini mengukur '
+      + 'VOLUME PEKERJAAN — satu menghitung barang di rak, satu menentukan '
+      + 'berapa orang dibayar. Menempelkan 4.8 padanya akan membuat katalog '
+      + 'mengklaim modul gudang yang tak dikerjakan. Sengketa dikirim '
+      + 'terpisah dengan tenggang NOL: itu bukan keterlambatan proses '
+      + 'melainkan ketidaksepakatan, dan yang dibutuhkan orang ketiga yang '
+      + 'memutuskan sejak hari sengketanya dicatat.',
+  },
 ]
 
 /** Pencarian satu entri. `null` bila tak ada, bukan melempar. */
