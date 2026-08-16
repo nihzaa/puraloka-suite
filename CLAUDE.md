@@ -214,6 +214,7 @@ salah dengar memindahkan uang.
 | `audit-keanggotaan-punya-default.mjs` | pengguna aktif wajib punya keanggotaan default — tanpa itu RLS menyaring habis (ambang NOL) |
 | `audit-izin-benar-ada.mjs` | kunci `requirePermission` wajib ada di tabel `permissions` — kunci hantu menolak SEMUA orang tanpa gejala (ambang NOL) |
 | `audit-jenis-notifikasi-punya-aturan.mjs` | kunci `resolveRecipients` wajib punya aturan, dan aturan wajib punya penerima — keduanya membuat notifikasi hilang tanpa jejak (ambang NOL) |
+| `audit-halaman-pakai-cache.mjs` | halaman yang mengambil data wajib lewat `useData()` — lapis cache dibangun 2026-08-04 lalu tak dipakai satu halaman pun (ratchet) |
 | `audit-notifikasi-tak-kembar.mjs` | dedup notifikasi harian wajib menahan — kembar HARI INI (ambang NOL) |
 | `audit-izin-tanpa-konteks.mjs` | fungsi izin tak boleh kosong saat `auth_company_id()` NULL (ambang NOL) |
 | `audit-peristiwa-punya-alur.mjs` | tiap peristiwa yang diterbitkan wajib punya alur n8n penerima (ambang NOL) |

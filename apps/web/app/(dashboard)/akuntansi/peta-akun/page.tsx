@@ -34,7 +34,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link2, TriangleAlert, CircleCheck, Info } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, Tabel, Rangka, Galat,
@@ -124,44 +125,59 @@ const URUTAN: JenisPeta[] = [
 ];
 
 export default function PetaAkunPage() {
-  const [data, setData] = useState<Muatan | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    `useData` menggantikan pasangan useEffect+useState+AbortController yang
+    ditulis ulang di 154 halaman. Yang didapat bukan kerapian:
+
+      · DEDUP - dua komponen yang butuh URL sama pada layar sama mengirim
+        SATU permintaan, bukan dua.
+      · CACHE LINTAS NAVIGASI - pindah halaman lalu kembali tak mengambil
+        ulang selama masih segar (5 menit bawaan).
+      · INVALIDASI TERARAH - `invalidasi()` di tempat lain membuat halaman
+        ini menyegarkan diri sendiri, tanpa perlu tahu siapa yang mengubah.
+
+    AbortController tak lagi dipakai di sini: `useData` sudah menjaga agar
+    jawaban yang datang sesudah komponen mati tidak menyentuh state (`hidup`).
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } = useData<Muatan>("/api/v1/gl/peta-akun");
+
+  const [galatSimpan, setGalatSimpan] = useState<string | null>(null);
   const [menyimpan, setMenyimpan] = useState<JenisPeta | null>(null);
   const [pilihan, setPilihan] = useState<Partial<Record<JenisPeta, string>>>({});
 
-  const muat = useCallback(async (signal?: AbortSignal) => {
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Muatan>("/api/v1/gl/peta-akun", { signal });
-      setData(r.data);
-      // Pilihan awal = yang sudah ditetapkan. Yang belum dibiarkan KOSONG —
-      // bukan diisi usulan, supaya "belum ditetapkan" tetap terlihat.
-      const p: Partial<Record<JenisPeta, string>> = {};
-      for (const b of r.data.peta) p[b.jenis] = b.account_id;
-      setPilihan(p);
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat peta akun");
-    } finally { setMemuat(false); }
-  }, []);
+  /*
+    Galat MUAT dan galat SIMPAN sengaja dipisah.
 
+    Bentuk lama memakai satu `galat` untuk keduanya, dan itu punya cacat yang
+    tak terlihat: gagal menyimpan menghapus pesan gagal memuat, dan sebaliknya.
+    Pengguna yang jaringannya putus lalu menekan Simpan melihat pesan simpan
+    saja, lalu mengira datanya sudah termuat.
+  */
+  const galat = galatSimpan ?? (galatMuat ? "Gagal memuat peta akun" : null);
+
+  // Pilihan awal = yang sudah ditetapkan. Yang belum dibiarkan KOSONG - bukan
+  // diisi usulan, supaya "belum ditetapkan" tetap terlihat.
   useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    if (!data) return;
+    const p: Partial<Record<JenisPeta, string>> = {};
+    for (const b of data.peta) p[b.jenis] = b.account_id;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPilihan(p);
+  }, [data]);
+
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   const simpan = useCallback(async (jenis: JenisPeta, accountId: string) => {
     if (!accountId) return;
-    setMenyimpan(jenis); setGalat(null);
+    setMenyimpan(jenis); setGalatSimpan(null);
     try {
       await api.put(`/api/v1/gl/peta-akun/${jenis}`, { account_id: accountId });
       await muat();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal menetapkan akun");
+      setGalatSimpan(m ?? "Gagal menetapkan akun");
     } finally { setMenyimpan(null); }
   }, [muat]);
 

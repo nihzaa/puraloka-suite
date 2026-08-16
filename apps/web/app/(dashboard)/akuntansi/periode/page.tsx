@@ -46,12 +46,14 @@
  * seseorang menandatangani laporannya.
  */
 
-import { useCallback, useEffect, useState } from "react";
+// `useEffect` tak lagi dipakai: pengambilan data pindah ke `useData`.
+import { useCallback, useState } from "react";
 import {
   Lock, LockOpen, CalendarRange, TriangleAlert, ScrollText, Plus,
   CircleAlert, History,
 } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, KartuAngka, BarisAngka,
@@ -134,9 +136,15 @@ const TINDAKAN: Record<Riwayat["tindakan"], { label: string; nada: "netral" | "i
 };
 
 export default function PeriodeAkuntansiPage() {
-  const [data, setData] = useState<Muatan | null>(null);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
+  /*
+    `useData` menggantikan trio useState(data/memuat/galat) + useEffect +
+    AbortController. Selain dedup dan cache lintas navigasi, ia juga
+    berlangganan invalidasi: bila modul lain membuang cache periode, halaman
+    ini menyegarkan diri tanpa perlu tahu siapa yang mengubah.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<Muatan>("/api/v1/gl/periode");
+  const galat = galatMuat ? "Gagal memuat periode akuntansi" : null;
 
   const [tambah, setTambah] = useState(false);
   const [fNama, setFNama] = useState("");
@@ -156,23 +164,15 @@ export default function PeriodeAkuntansiPage() {
   const [menyimpan, setMenyimpan] = useState(false);
   const [galatModal, setGalatModal] = useState<string | null>(null);
 
-  const muat = useCallback(async (signal?: AbortSignal) => {
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Muatan>("/api/v1/gl/periode", { signal });
-      setData(r.data);
-    } catch (e) {
-      if ((e as { name?: string })?.name === "CanceledError") return;
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat periode akuntansi");
-    } finally { setMemuat(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+    Halaman ini memanggil `muat()` di TIGA tempat sesudah menulis (tutup
+    periode, buka periode, simpan). `muatUlang()` menggantikannya dengan
+    `paksa: true`, jadi jawaban lama di cache dilewati — menyegarkan setelah
+    menulis harus melihat hasil tulisannya, bukan salinan lima menit lalu.
+  */
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   const bukaDialogTutup = useCallback(async (p: Periode) => {
     setTutupBaris(p); setKesiapan(null); setTCatatan(""); setGalatModal(null);

@@ -712,6 +712,28 @@ jobs:
       - name: Kunci routing notifikasi punya aturan dan penerima
         run: node scripts/audit-jenis-notifikasi-punya-aturan.mjs
 
+      # Halaman yang mengambil data wajib lewat lapis cache bersama (F4-2).
+      #
+      # `apps/web/lib/data-cache.ts` dibangun 2026-08-04 - 232 baris, 10 test
+      # hijau - lalu diukur 2026-08-16: NOL halaman memakainya, 154 dari 164
+      # mengambil data sendiri-sendiri.
+      #
+      # Infrastruktur yang ada tetapi tak terpakai LEBIH berbahaya daripada
+      # yang belum ada: ia membaca sebagai "sudah beres" dari mana pun orang
+      # melihat - berkasnya ada, testnya hijau, QUEUE mencatat `wip` seolah
+      # tinggal sedikit. Repo ini sudah punya kalimatnya: "Kolom DB sudah ada
+      # BUKAN selesai."
+      #
+      # RATCHET, bukan ambang nol: memindahkan 154 halaman sekaligus adalah
+      # perubahan yang tak bisa ditinjau siapa pun dengan jujur. Yang dijaga
+      # arahnya.
+      #
+      # Bukti merah: halaman baru ber-useEffect+api ditambahkan -> exit 1;
+      # halaman yang menyebut `useData` HANYA di komentar -> tetap exit 1
+      # (komentar dilucuti sebelum diperiksa); dipulihkan -> exit 0.
+      - name: Halaman mengambil data lewat lapis cache (ratchet)
+        run: node scripts/audit-halaman-pakai-cache.mjs
+
       # Keputusan persetujuan hanya lewat SATU pintu (utils/approval.ts).
       # Menulis `approved_by` langsung berarti entitas yang menurut
       # konfigurasi butuh dua level bisa lolos dengan satu ketukan — dan
