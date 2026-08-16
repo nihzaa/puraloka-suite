@@ -127,6 +127,94 @@ menyimpulkan dari kebiasaan tabel lain.**
 ### Status
 
 `crm-boq` **`sebagian` → `hidup`** di `peta-menu.ts`, href ke `?tab=takeoff`.
+## 2026-08-16 (sesi mb-notif) — catatan yang menyuruh menguji HP, padahal kodenya belum ada
+
+Menutup `mb-notif` (Notifikasi Perangkat). Catatan lamanya berbunyi *"Web Push
+sudah dikonfigurasi; belum diverifikasi di perangkat nyata"* — dan kalimat itu
+mengirim pembacanya ke pekerjaan yang salah.
+
+### Yang diukur sebelum menulis kode
+
+| Klaim catatan lama | Kenyataan terukur |
+|---|---|
+| Web Push "belum diverifikasi" | Web Push **lengkap end-to-end** — `utils/webpush.ts` terpanggil dari corong `notifications.ts:369`, `/subscribe` hidup, `sw.js` terpasang. Tak ada yang perlu diverifikasi. |
+| (tak disebut sama sekali) | Push **natif nol** — `apps/mobile` tak punya `expo-notifications`, layar notifikasinya murni tarik/poll. HP-nya tak pernah dibangunkan. |
+
+Kalimat itu bukan sekadar basi, ia **menunjuk arah yang salah**: menyuruh orang
+menguji perangkat, padahal yang kurang adalah kode yang memang belum ditulis.
+Web Push tak akan pernah sampai ke React Native berapa kali pun diuji di HP —
+`sw.js` service worker peramban, dan RN tak menjalankan service worker.
+
+### Keputusan schema: tabel baru, bukan kolom di `users`
+
+Migrasi **438** (`perangkat_pengguna`). Godaan yang ditolak: `users.expo_push_token`
+di sebelah `push_subscription`. Alasannya bukan selera —
+
+- **satu pengguna punya beberapa perangkat**, dan justru yang paling butuh push
+  yang punya lebih dari satu (HP lapangan + HP pribadi). Kolom tunggal berarti
+  login di perangkat kedua **menimpa** token perangkat pertama, dan perangkat
+  pertama diam tanpa satu pun galat. `users.push_subscription` mengidap cacat
+  ini hari ini; ia tak diperbaiki di sini (memindahkan Web Push yang sedang
+  bekerja = pekerjaan tersendiri), tapi cacatnya **tidak diwariskan**;
+- bentuknya beda — objek langganan vs string opaque. Satu kolom = dua bahasa,
+  dan tiap pembaca harus menebak yang mana yang sedang ia pegang.
+
+`token` unik **GLOBAL** — kebalikan keputusan 427, dan sengaja. Di 427 `code`
+milik tiap tenant, jadi unik global membocorkan tenant lain. Di sini token
+melekat pada **pemasangan aplikasi**, bukan pada sesi: satu HP proyek dipegang
+bergantian dua orang memulangkan token yang SAMA. Unik global memaksa
+`ON CONFLICT DO UPDATE` **memindahkan kepemilikan** — kalau tidak, kasbon milik
+orang pertama mengalir ke HP yang sekarang dipegang orang kedua.
+
+### Satu corong, bukan jalur kedua
+
+Push natif disambung di `kirimPush` — fungsi yang sudah dipakai
+`createNotification` DAN `createNotifications`. Muatannya dibangun **sekali**
+lalu dipakai dua saluran, supaya keduanya tak mungkin menyimpang isinya.
+`Promise.allSettled`, bukan `all`: Expo mati tak boleh membatalkan Web Push.
+
+### Saya salah dua kali, dan keduanya ditangkap alat, bukan review
+
+1. **Test saya HIJAU karena sebab yang salah.** Mutasi 2 mencabut pagar
+   `NODE_ENV==='test'`; penjaga CI merah, **test saya tidak**. Sebabnya mock
+   Supabase hanya mendukung `.delete()`, jadi `.select()` melempar, error
+   ditelan `catch`, dan fungsinya pulang 0 tanpa pernah menyentuh `fetch` —
+   asersi "tak ada yang dikirim" lulus tanpa menguji apa pun. Mock dilengkapi,
+   dan barulah mutasi 2 merah. **Test yang lulus karena sebab salah lebih
+   berbahaya daripada test yang tak ada: ia menghalangi orang menulis yang benar.**
+2. **`expo-notifications@57` versi yang salah.** Terpasang bersih, pnpm diam,
+   lalu `tsc` menuduh `granted` tak ada. Sebabnya v57 mewarisi tipe dari
+   `expo@54+` sementara project ini `expo@53` — tipe tak ter-resolve, seluruh
+   bidang warisan lenyap. Turun ke `~0.31` (SDK 53). Dicatat di berkasnya.
+
+### Bukti
+
+```
+30 test HIJAU  (10 push-natif · 7 dua-saluran · 5 integrasi Postgres nyata · 8 web-push lama)
+3 mutasi MERAH → pulih HIJAU:
+  1. `mati.push(tokens[i])` dicabut        → 2 test merah
+  2. pagar NODE_ENV dicabut                → 1 test merah + penjaga CI merah
+  3. `kirimPushNatifKeUsers` dicabut corong → 6 test merah
+audit-saluran-keluar-berpagar        exit 0
+audit-jenis-notifikasi-punya-aturan  exit 0  (77 kunci, 0 aturan tanpa penerima)
+audit-peta-modul-vs-halaman          exit 0
+tsc --noEmit (api + mobile)          exit 0
+```
+
+### Yang TIDAK terbukti — dinyatakan terus terang
+
+**Bahwa HP fisik benar-benar berbunyi.** Itu butuh perangkat nyata + build Expo,
+tak bisa dari CI. Yang terbukti: token tersimpan dengan invarian benar, corong
+memanggil pengirimnya, token mati dibersihkan, dan test tak mengirim apa pun
+sungguhan. Catatan `mb-notif` menuliskan batas ini apa adanya — supaya tak
+mengulang dosa kalimat yang digantikannya.
+
+### Dua kegagalan PRA-ADA, diverifikasi bukan dari sesi ini
+
+`recipient-resolution.test.ts` dan `hrefBeda` di `audit-peta-menu-vs-db`.
+Keduanya diuji dengan `git stash` (kode sesi ini dilepas seluruhnya): yang
+pertama justru gagal **lebih parah** tanpa perubahan saya (2 vs 1), yang kedua
+identik. Berasal dari basis bersama/branch lain, bukan regresi di sini.
 
 ---
 
