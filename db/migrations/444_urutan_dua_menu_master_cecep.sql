@@ -1,9 +1,31 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- 444 — sort_order dua menu CECEP di luar rentang grup barunya (cacat dari 443)
+-- 444 — sort_order dua menu CECEP di luar rentang grup barunya (cacat dari 449)
+--
+-- ⚠ URUTAN NOMOR DI SINI TIDAK MENCERMINKAN URUTAN SEBAB-AKIBAT.
+--
+-- Migrasi ini memperbaiki akibat dari **449**, sebuah nomor yang LEBIH BESAR.
+-- Bukan salah tulis: ketiganya (441 · 448 · 449 · 444) lahir bersama dalam
+-- satu sesi sebagai 441–444, lalu 442 dan 443 BENTROK dengan pekerjaan sesi
+-- lain yang tercatat lebih dulu, dan dinomori ulang jadi 448/449 (`846a437b`).
+--
+-- Yang ini TIDAK ikut dinomori ulang karena `444` SUDAH TERCATAT di
+-- `supabase_migrations.schema_migrations`. Memindahkannya ke 451 akan membuat
+-- buku menyebut berkas yang tak ada lagi — Gerbang Keras G-2, dan cara paling
+-- rapi untuk membuat sebuah migrasi dilewati senyap selamanya.
+--
+-- Konsekuensinya pada REPLAY LINGKUNGAN BERSIH: 444 berjalan SEBELUM 449,
+-- jadi saat ia berjalan, kedua menu belum dipindahkan ke `g-master-data` dan
+-- `sort_order`-nya belum di luar rentang. UPDATE-nya mengenai baris yang
+-- sudah ada (idempoten, aman), dan blok verifikasinya memeriksa SELURUH menu
+-- aktif — bukan hanya dua key ini — sehingga tetap sah dijalankan lebih dulu.
+-- 449 kemudian memindahkan induknya, dan hasil akhirnya sama.
+--
+-- Diverifikasi pada basis dev: audit-sidebar-urutan HIJAU (0 bentrok, 0 di
+-- luar rentang, 0 yatim) sesudah keempatnya dijalankan.
 --
 -- ── Cacat yang diperbaiki
 --
--- Migrasi 443 memindahkan `crm-estimating` dan `md-price-book` ke grup
+-- Migrasi 449 memindahkan `crm-estimating` dan `md-price-book` ke grup
 -- `g-master-data`, tetapi TIDAK menyesuaikan `sort_order`-nya. Keduanya
 -- membawa urutan lama dari grup asalnya:
 --
