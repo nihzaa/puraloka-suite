@@ -802,12 +802,28 @@ export default async function reportsRoutes(app: FastifyInstance) {
         .gte('paid_at', dateFrom + 'T00:00:00').lte('paid_at', dateTo + 'T23:59:59')
 
       const [aR, kR, wR] = await Promise.all([assignQ, kasbonQ, wageQ])
-       
-      const assignments = (aR.data ?? []) as any[]
-       
-      const kasbons     = ((kR.data ?? []) as any[]).filter((k: any) => !projectId || k.scope?.assignment?.project_id === projectId)
-       
-      const wages       = (wR.data ?? []) as any[]
+
+      // Galat DIPERIKSA sebelum `.data` dipakai. Tanpa ini `?? []` mengubah
+      // query yang GAGAL jadi "nol baris" yang terlihat sah — dan laporan ini
+      // menjumlahkan UANG (upah + kasbon mandor). Nol yang palsu di sini
+      // terbaca sebagai "tak ada pengeluaran", persis kelas cacat yang
+      // membuat kurva-s kehilangan Rp 631,7 juta selama berbulan-bulan.
+      for (const [nama, r] of [['penugasan', aR], ['kasbon', kR], ['upah', wR]] as const) {
+        if (r.error) {
+          request.log.error({ err: r.error, bagian: nama }, 'gagal memuat data rekap mandor')
+          return reply.status(500).send({ error: `Gagal memuat data ${nama}` })
+        }
+      }
+
+      // `?? []` sengaja TIDAK dipakai: galatnya sudah dipulangkan 500 di atas,
+      // jadi `data` mustahil null karena kegagalan. Menuliskannya tetap salah
+      // bentuk — itu pola yang penjaga cari, dan penjaga tak bisa membedakan
+      // yang aman dari yang berbahaya.
+      const assignments = aR.data as any[]
+
+      const kasbons     = (kR.data as any[]).filter((k: any) => !projectId || k.scope?.assignment?.project_id === projectId)
+
+      const wages       = wR.data as any[]
 
       const grandWage   = wages.reduce((s, w) => s + Number(w.net_amount), 0)
       const grandKasbon = kasbons.reduce((s, k) => s + Number(k.amount), 0)
