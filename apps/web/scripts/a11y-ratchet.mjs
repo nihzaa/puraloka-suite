@@ -269,14 +269,33 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
       // Tanpa pengecualian ini, kontrol yang sudah benar ikut dihitung sebagai
       // pelanggaran, dan "perbaikannya" (menambah aria-label) malah membuat
       // nama ganda yang membingungkan pembaca layar.
-      const punyaId = blok.match(/\bid=(?:"([^"]+)"|\{`([^`]+)`\})/)
+      const punyaId = blok.match(/\bid=(?:"([^"]+)"|\{`([^`]+)`\}|\{(\w+)\})/)
       if (punyaId) {
         const idLiteral = punyaId[1]
         // Template literal (`cc-${x}`) tak bisa dicocokkan persis; samakan
         // bagian statisnya saja — cukup untuk membedakan "ada label" vs tidak.
+        //
+        // Bentuk KETIGA `id={id}` — variabel polos — sengaja ditambahkan
+        // 2026-08-17. Sebelumnya hanya dua bentuk pertama yang dikenali,
+        // sehingga `components/kendali-dokumen-aksi.tsx:54` dilaporkan sebagai
+        // "select tanpa nama" padahal empat baris di atasnya berdiri
+        // `<label htmlFor={id}>Proyek</label>` — pasangan yang PALING benar,
+        // karena labelnya juga terlihat oleh yang tidak memakai pembaca layar.
+        //
+        // "Perbaikan" yang dituntut penjaga (menambah `aria-label`) justru
+        // akan MERUSAK: pembaca layar mengumumkan aria-label dan mengabaikan
+        // label yang terlihat, jadi yang didengar berbeda dari yang dibaca
+        // orang di sebelahnya. Persis kerusakan yang dua pengecualian di atas
+        // ada untuk mencegahnya.
+        //
+        // Tetap KETAT: nama variabelnya wajib cocok persis (`id={id}` menuntut
+        // `htmlFor={id}` yang sama), jadi `<select id={idA}>` dengan
+        // `<label htmlFor={idB}>` tetap dihitung pelanggar.
         const cari = idLiteral
           ? `htmlFor="${idLiteral}"`
-          : `htmlFor={\`${punyaId[2].split('${')[0]}`
+          : punyaId[2]
+            ? `htmlFor={\`${punyaId[2].split('${')[0]}`
+            : `htmlFor={${punyaId[3]}}`
         const isiBerkas = readFileSync(f, 'utf8')
         if (isiBerkas.includes(cari)) continue
 
