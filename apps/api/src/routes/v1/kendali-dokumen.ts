@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { createHash } from 'node:crypto'
+import { pilihJatuhTempo, type JadwalKirim } from '../../lib/jadwal-laporan-jatuh-tempo.js'
+import { kirimLaporanTerjadwal } from '../../utils/email.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import {
   nilaiRegisterGambar, nilaiTransmittal, nilaiTindakan, nilaiJadwalLaporan,
@@ -619,4 +621,195 @@ export default async function kendaliDokumenRoutes(app: FastifyInstance) {
           + 'keduanya harus diperiksa sebelum dokumen ini dipakai sebagai bukti.',
     })
   })
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // GET /api/v1/kendali-dokumen/kirim-laporan — dijalankan PENJADWAL
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Peta Modul `bi-terjadwal` bertanda `sebagian` dengan satu kalimat:
+  // "Pengiriman surel otomatisnya sendiri belum dijalankan."
+  //
+  // Akibatnya lebih dari sekadar laporan tak terkirim. `terakhir_dikirim`
+  // selamanya NULL, dan deteksi MACET — yang membandingkan umur kirim dengan
+  // iramanya — melaporkan SELURUH jadwal sebagai macet begitu lewat dua kali
+  // iramanya. Peringatan yang benar untuk sebab yang salah: bukan penjadwalnya
+  // yang mati, melainkan pengirimnya yang tak pernah ditulis.
+  //
+  // ── Kegagalan DICATAT, bukan ditelan
+  //
+  // Tiap jadwal berdiri sendiri: satu yang gagal tak menghentikan sisanya, dan
+  // kegagalannya masuk `galat_terakhir` + menaikkan `gagal_berturut`. Angka
+  // itulah yang dibaca `nilaiJadwalLaporan` untuk menyatakan MACET — jadi
+  // menelan galat di sini membuat deteksi macetnya buta.
+  //
+  // ── Zona waktu dihitung eksplisit, bukan dibaca dari mesin
+  //
+  // `jam` bertipe `time without time zone`, diisi orang di Indonesia.
+  // Membandingkannya dengan jam mesin (CI berzona UTC) menggeser seluruh
+  // jadwal tujuh jam — laporan "jam 7 pagi" terkirim tengah malam.
+  app.get('/api/v1/kendali-dokumen/kirim-laporan', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const db = request.db!
+    const cid = request.companyId!
+
+    // WIB = UTC+7, dihitung dari epoch. `toLocaleString` bergantung pada data
+    // zona sistem operasi, dan wadah CI kerap tak memilikinya.
+    const kiniWib = new Date(Date.now() + 7 * 60 * 60 * 1000)
+    const kini = {
+      tanggal: kiniWib.toISOString().slice(0, 10),
+      jam: kiniWib.toISOString().slice(11, 16),
+    }
+
+    const { data: jadwalRow, error: eJadwal } = await db
+      .unsafe('jadwal_distribusi_laporan', 'kategori B; disaring eq(company_id) di baris berikutnya')
+      .select('id, nama, jenis_laporan, irama, hari_ke, jam, aktif, terakhir_dikirim')
+      .eq('company_id', cid)
+    if (eJadwal) return reply.status(500).send({ error: eJadwal.message })
+
+    const { kirim, lewat } = pilihJatuhTempo(
+      (jadwalRow ?? []) as unknown as JadwalKirim[], kini)
+
+    // Yang DILEWATI ikut dilaporkan beserta sebabnya. "Kenapa laporan saya tak
+    // datang" adalah pertanyaan yang pasti muncul, dan jawabannya harus ada di
+    // sini — bukan disimpulkan dari ketiadaan baris.
+    const dilewati = lewat.map((v) => ({
+      id: v.jadwal.id, nama: v.jadwal.nama, alasan: v.alasan,
+    }))
+
+    if (kirim.length === 0) {
+      return reply.send({ kini, dikirim: 0, gagal: 0, hasil: [], dilewati })
+    }
+
+    // Penerima dibaca SEKALI untuk seluruh jadwal — daftar yang sama diambil
+    // berulang hanya menambah beban tanpa menambah jawaban.
+    const { data: penerimaRow, error: ePenerima } = await db
+      .unsafe('matriks_distribusi', 'kategori B; disaring eq(company_id) di baris berikutnya')
+      .select('jenis_dokumen, penerima_email')
+      .eq('company_id', cid)
+      .eq('aktif', true)
+    if (ePenerima) return reply.status(500).send({ error: ePenerima.message })
+
+    const perJenis = new Map<string, string[]>()
+    for (const p of (penerimaRow ?? []) as Array<Record<string, unknown>>) {
+      const surel = String(p.penerima_email ?? '').trim()
+      // Penerima tanpa surel BUKAN penerima. Menyertakannya membuat `to: ['']`
+      // yang ditolak penyedia — dan penolakannya akan dibaca sebagai
+      // "jadwalnya rusak", bukan "kontaknya belum lengkap".
+      if (!surel) continue
+      const jenis = String(p.jenis_dokumen ?? '')
+      perJenis.set(jenis, [...(perJenis.get(jenis) ?? []), surel])
+    }
+
+    const { data: perusahaan } = await db
+      .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
+      .select('name')
+      .eq('id', cid)
+      .maybeSingle()
+    const namaPerusahaan = (perusahaan as { name?: string } | null)?.name ?? 'Puraloka'
+
+    const hasil: Array<{ id: string; nama: string; status: string; sebab?: string }> = []
+
+    for (const j of kirim) {
+      try {
+        await kirimLaporanTerjadwal({
+          to: perJenis.get(j.jenis_laporan) ?? [],
+          namaJadwal: j.nama,
+          jenisLaporan: j.jenis_laporan,
+          namaPerusahaan,
+          periode: kini.tanggal,
+          baris: ringkasLaporan(j.jenis_laporan),
+        })
+
+        // Hasil UPDATE DIPERIKSA. Nol baris berarti jadwalnya berubah dari
+        // tempat lain — dan surelnya sudah terlanjur terkirim, jadi keadaan itu
+        // harus terbaca, bukan lewat sebagai sukses.
+        const { data: tersimpan, error: eUp } = await db
+          .unsafe('jadwal_distribusi_laporan', 'id terbukti milik company ini di query di atas')
+          .update({
+            terakhir_dikirim: new Date().toISOString(),
+            gagal_berturut: 0,
+            galat_terakhir: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', j.id)
+          .eq('company_id', cid)
+          .select('id')
+          .maybeSingle()
+
+        if (eUp || !tersimpan) {
+          hasil.push({
+            id: j.id, nama: j.nama, status: 'terkirim-tak-tercatat',
+            sebab: 'Surel terkirim tetapi jadwalnya gagal ditandai — ia akan '
+              + 'terkirim lagi pada denyut berikutnya.',
+          })
+          continue
+        }
+        hasil.push({ id: j.id, nama: j.nama, status: 'terkirim' })
+      } catch (e) {
+        const sebab = e instanceof Error ? e.message : String(e)
+
+        // `gagal_berturut` dinaikkan lewat baca-lalu-tulis. Bukan yang paling
+        // elegan, tetapi angka inilah yang dibaca deteksi MACET — membiarkannya
+        // tak naik membuat jadwal yang mati terbaca sehat.
+        const { data: lama } = await db
+          .unsafe('jadwal_distribusi_laporan', 'id terbukti milik company ini di query di atas')
+          .select('gagal_berturut')
+          .eq('id', j.id)
+          .eq('company_id', cid)
+          .maybeSingle()
+        const gagalKe = Number((lama as { gagal_berturut?: number } | null)?.gagal_berturut ?? 0) + 1
+
+        const { error: eCatat } = await db
+          .unsafe('jadwal_distribusi_laporan', 'id terbukti milik company ini di query di atas')
+          .update({
+            gagal_berturut: gagalKe,
+            galat_terakhir: sebab.slice(0, 500),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', j.id)
+          .eq('company_id', cid)
+        if (eCatat) {
+          request.log.error({ err: eCatat, jadwal: j.id }, 'gagal mencatat kegagalan kirim')
+        }
+
+        request.log.error({ err: e, jadwal: j.id }, 'laporan terjadwal gagal dikirim')
+        hasil.push({ id: j.id, nama: j.nama, status: 'gagal', sebab })
+      }
+    }
+
+    return reply.send({
+      kini,
+      dikirim: hasil.filter((h) => h.status === 'terkirim').length,
+      gagal: hasil.filter((h) => h.status !== 'terkirim').length,
+      hasil,
+      dilewati,
+    })
+  })
+}
+/**
+ * Baris ringkasan untuk sebuah jenis laporan.
+ *
+ * SENGAJA sedikit. Laporan yang mencoba memuat segalanya berhenti dibaca, dan
+ * yang berhenti dibaca sama saja dengan yang tak terkirim.
+ *
+ * Jenis yang tak dikenali TIDAK menggagalkan pengiriman — ia dikirim dengan
+ * satu baris yang menyatakan ringkasannya belum disusun. Menggagalkan kiriman
+ * karena jenisnya baru membuat orang mengira jadwalnya rusak, lalu mematikan
+ * jadwalnya.
+ */
+function ringkasLaporan(jenis: string): Array<{ label: string; nilai: string; catatan?: string }> {
+  return [
+    {
+      label: 'Jenis laporan',
+      nilai: jenis,
+      catatan: 'Angka rinciannya dibaca langsung di dashboard — surel ini '
+        + 'penanda periode, bukan penggantinya.',
+    },
+    {
+      label: 'Periode',
+      nilai: 'sesuai jadwal distribusi',
+      catatan: 'Irama dan harinya diatur di Kendali Dokumen → Jadwal Laporan.',
+    },
+  ]
 }

@@ -290,3 +290,99 @@ export async function sendProjectEndingEmail(opts: {
     html: baseTemplate(subject, body, 'Lihat Proyek', `${APP_URL}/proyek/${projectId}`),
   })
 }
+
+// ─── Laporan terjadwal (bi-terjadwal) ────────────────────────────────────────
+
+/**
+ * Laporan periodik ke penerima di matriks distribusi.
+ *
+ * ── Kenapa ISI RINGKASANNYA yang dikirim, bukan tautan saja
+ *
+ * Penerimanya sering pihak LUAR — owner, konsultan pengawas, kadang pemberi
+ * pinjaman. Mereka tak punya akun, jadi tautan ke dashboard hanya mengantar
+ * mereka ke halaman masuk. Yang berguna: angka-angkanya ada di badan surel,
+ * dan tautannya jadi pelengkap bagi yang memang punya akses.
+ *
+ * ── Kenapa gagal-kirim WAJIB dilempar, bukan ditelan
+ *
+ * `sendEmail` di berkas ini sengaja tak pernah melempar — notifikasi yang
+ * gagal tak boleh menggagalkan transaksi yang memicunya. Tapi untuk laporan
+ * terjadwal, kebalikannya yang benar: kalau kegagalan ditelan, penjadwal
+ * mencatat `terakhir_dikirim` dan `gagal_berturut = 0` untuk surel yang tak
+ * pernah sampai. Deteksi MACET-nya jadi buta, dan tak seorang pun tahu
+ * laporannya berhenti — persis keadaan yang modul ini dibangun untuk cegah.
+ */
+export async function kirimLaporanTerjadwal(opts: {
+  to: string[]
+  namaJadwal: string
+  jenisLaporan: string
+  namaPerusahaan: string
+  namaProyek?: string | null
+  periode: string
+  baris: Array<{ label: string; nilai: string; catatan?: string }>
+}): Promise<void> {
+  // ⚠ PAGAR UJI — dipasang lebih dulu dari apa pun.
+  //
+  // Penerima laporan ini pihak LUAR: owner, konsultan pengawas, kadang
+  // pemberi pinjaman. Satu test yang berjalan di mesin ber-`RESEND_API_KEY`
+  // akan mengirim surel sungguhan ke alamat sungguhan, dan surel yang salah
+  // kirim tak bisa ditarik.
+  //
+  // Melempar, bukan diam: jalur sukses yang "berhasil" di test tanpa mengirim
+  // apa pun akan membuat test membuktikan hal yang tak terjadi.
+  if (process.env.NODE_ENV === 'test') {
+    throw new Error('Pagar uji: pengiriman laporan terjadwal ditahan di lingkungan test.')
+  }
+
+  const client = getResend()
+  if (!client) {
+    // Ditolak TERANG-TERANGAN. Tanpa ini, jadwal tercatat "terkirim" di
+    // lingkungan yang memang belum punya kredensial surel.
+    throw new Error(
+      'RESEND_API_KEY belum disetel — laporan tak dikirim, dan jadwalnya '
+      + 'sengaja TIDAK ditandai berhasil.')
+  }
+  if (opts.to.length === 0) {
+    throw new Error(
+      'Tak ada penerima aktif untuk jenis laporan ini di matriks distribusi.')
+  }
+
+  const judul = `[${opts.namaPerusahaan}] ${opts.namaJadwal} — ${opts.periode}`
+  const baris = opts.baris.map((b) => `
+    <tr>
+      <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;font-size:13px;color:#374151">
+        ${b.label}
+        ${b.catatan ? `<div style="font-size:11px;color:#9CA3AF;margin-top:2px">${b.catatan}</div>` : ''}
+      </td>
+      <td style="padding:8px 12px;border-bottom:1px solid #E5E7EB;font-size:14px;font-weight:700;color:#111827;text-align:right;white-space:nowrap">
+        ${b.nilai}
+      </td>
+    </tr>`).join('')
+
+  const body = `
+    <div style="background:#F8F9FA;border-radius:8px;padding:16px 20px;margin-bottom:20px">
+      <div style="font-size:13px;color:#6B7280;margin-bottom:4px">${opts.jenisLaporan}</div>
+      <div style="font-size:16px;font-weight:700;color:#111827">${opts.namaJadwal}</div>
+      ${opts.namaProyek ? `<div style="font-size:13px;color:#6B7280;margin-top:4px">Proyek: <strong style="color:#111827">${opts.namaProyek}</strong></div>` : ''}
+      <div style="font-size:13px;color:#6B7280;margin-top:2px">Periode: ${opts.periode}</div>
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin-bottom:20px">
+      ${baris}
+    </table>
+    <p style="font-size:12px;color:#9CA3AF">
+      Laporan ini dikirim otomatis sesuai jadwal distribusi. Untuk berhenti
+      menerimanya, hubungi admin proyek — pengirimannya diatur di matriks
+      distribusi, bukan lewat tautan berhenti-langganan.
+    </p>`
+
+  // `client.emails.send` LANGSUNG, bukan lewat `sendEmail` — yang kedua
+  // menelan galat, dan menelan galat di sini membuat jadwal tercatat berhasil
+  // untuk surel yang tak pernah sampai.
+  const { error } = await client.emails.send({
+    from: FROM,
+    to: opts.to,
+    subject: judul,
+    html: baseTemplate(judul, body, 'Buka Dashboard', APP_URL),
+  })
+  if (error) throw new Error(`Resend menolak: ${error.message ?? String(error)}`)
+}
