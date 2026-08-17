@@ -24738,3 +24738,65 @@ atau men-stash pekerjaan orang lain bukan wewenang saya.
 Penomoran ulangnya sudah aman ter-commit di branch seberang (`0ee9022f`), jadi
 merge bisa dijalankan kapan saja sesudah berkas-berkas itu di-commit
 pemiliknya.
+
+---
+
+## 2026-08-17 (lanjutan) — RK3K dibangun, merge BERHENTI di −23k baris
+
+### RK3K: penundaan dicabut karena SYARATNYA terpenuhi
+
+Catatan G4 menyebut syarat pencabutannya sendiri — "isinya kini sudah ada".
+Diukur: jsa 3 · inspeksi 3 · temuan 7 · induksi 25 · APD 5 · insiden 6.
+Terpenuhi, jadi dibangun.
+
+Yang dibangun BUKAN formulir kosong: `GET /proyek/:id/k3/rk3k` membaca kelima
+sumber dan menyatakan mana yang kosong. Kesiapan PER BAGIAN, bukan satu
+persentase — proyek ber-induksi 25 dan JSA nol akan terlihat "83% siap"
+padahal yang hilang justru yang paling ditagih auditor.
+
+Diverifikasi terhadap basis nyata lewat login sungguhan: 5/5 bagian terisi,
+23 dari 25 induksi masih berlaku, 4 insiden belum ditutup.
+
+Ditandai `sebagian`, BUKAN `hidup` — endpointnya siap, layarnya belum ada.
+
+### `/master` tertutup middleware — dan penjaga yang mengukurnya
+
+Tiga halaman Master Data (718, 760, 404 baris, hidup sejak 2026-08-12) tak
+bisa dibuka SIAPA PUN: `/master` tak pernah masuk `ROLE_ALLOWED.admin`.
+`/m` ADA di daftar, tapi `cocokRute` mencocokkan di batas segmen — `/m`
+tak pernah mencakup `/master`.
+
+Diukur sesudah diperbaiki: 153 menu aktif × 34 prefiks → **nol tertutup**.
+
+### Merge `feat/kematangan-modul` BERHENTI — dan ini yang paling penting
+
+Dua penghalang dibereskan lebih dulu: lima nomor migrasi dilepas ke 441-445,
+dan 11 berkas sesi lain di-commit sesudah diverifikasi (tsc + 4 penjaga).
+
+Merge-nya tetap berhenti, tapi bukan karena penghalang itu:
+
+```
+36 berkas konflik
+490 files changed, 50396 insertions(+), 73431 deletions(-)   → net −23.035
+```
+
+Kedua branch membangun fitur SAMA dengan desain BERBEDA. `importer.ts`:
+`supplier`/`cost_code` di sini vs `pemasok`/`pekerja` di sana; nilai
+`payment_terms` tak dikenal jadi **NULL** di sini vs jatuh ke **`'cod'`**
+di sana.
+
+Keduanya beralasan. Yang tidak beralasan: memilih salah satunya diam-diam
+saat menyelesaikan konflik — apalagi `payment_terms`, yang menentukan KAPAN
+UANG KELUAR. Diajukan sebagai **R-013**.
+
+`git merge --abort`; pohon bersih, tsc api+web bersih sesudahnya.
+
+### Ratchet yang saya rusak, dan yang bukan saya
+
+`audit-kegagalan-senyap` 188 > 186. Tujuh `?? []` — dua dari `surat.ts`,
+lima dari RK3K saya. Semuanya AMAN (error sudah diperiksa) tapi salah
+bentuk. Ditulis ulang jadi cast langsung: kembali ke 186 = lantai.
+
+`audit-tulis-tanpa-periksa` 79 > 76 **BUKAN dari pekerjaan ini** — diukur
+dengan checkout ke commit sebelum saya menyentuh apa pun, angkanya sudah 79.
+Dibiarkan apa adanya, bukan ditambal.
