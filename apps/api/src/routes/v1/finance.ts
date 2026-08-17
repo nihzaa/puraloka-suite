@@ -5,6 +5,7 @@ import { validateMime } from '../../utils/mime.js'
 import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { naikkanTerpisah } from '../../lib/penagihan-co.js'
 import { computeAndPersistPenalty, estimatePenalty } from '../../utils/penalty.js'
 import { computeAging, retentionOutstanding, validateDpDeduction } from '../../lib/ar-register.js'
 import {
@@ -446,9 +447,19 @@ export default async function financeRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const body = request.body as {
       project_id: string
-      invoice_type: 'termin_billing' | 'commission_billing' | 'expense_billing' | 'commission_fee' | 'retention_release'
+      invoice_type: 'termin_billing' | 'commission_billing' | 'expense_billing'
+        | 'commission_fee' | 'retention_release' | 'change_order_billing'
       // Termin
       termin_schedule_id?: string
+      /**
+       * Change order yang ditagih. WAJIB untuk `change_order_billing`, dan
+       * DILARANG untuk tipe lain.
+       *
+       * Basis sudah menjaga keduanya lewat trigger `fn_invoice_co_sah`
+       * (migrasi 348). Diperiksa juga di sini supaya penolakannya berupa
+       * kalimat yang bisa ditindaklanjuti, bukan galat trigger mentah.
+       */
+      change_order_id?: string
       // Legacy komisi
       base_amount?: number
       commission_amount?: number
@@ -503,6 +514,25 @@ export default async function financeRoutes(app: FastifyInstance) {
 
     if ((body.invoice_type === 'commission_billing' || body.invoice_type === 'commission_fee') && !body.base_amount && !body.commission_fee_amount) {
       return reply.status(400).send({ error: 'commission_billing / commission_fee membutuhkan base_amount atau commission_fee_amount' })
+    }
+
+    // ── Tagihan CHANGE ORDER tersendiri (migrasi 348) ───────────────────────
+    //
+    // `separate_co` dan `final_account` sengaja TIDAK menaikkan
+    // `contract_value` (lihat `lib/penagihan-co.ts`), justru supaya IPC tak
+    // ikut menagihnya. Tanpa jalur ini, pekerjaan tambah yang sudah disetujui
+    // tak punya cara ditagih sama sekali — dan yang terjadi berikutnya bisa
+    // ditebak: seseorang menaikkan `billing_mode` jadi `include_termin`
+    // belakangan supaya tertagih, lalu selisihnya jadi sengketa.
+    if (body.invoice_type === 'change_order_billing' && !body.change_order_id) {
+      return reply.status(400).send({
+        error: 'change_order_billing membutuhkan change_order_id',
+      })
+    }
+    if (body.change_order_id && body.invoice_type !== 'change_order_billing') {
+      return reply.status(400).send({
+        error: 'change_order_id hanya berlaku untuk invoice bertipe change_order_billing',
+      })
     }
 
     // ── Validasi project exists dan akses ────────────────────────────────────
@@ -625,6 +655,53 @@ export default async function financeRoutes(app: FastifyInstance) {
       }
     }
 
+    // ── Validasi change order bila change_order_billing ─────────────────────
+    //
+    // Trigger `fn_invoice_co_sah` (migrasi 348) menegakkan aturan yang SAMA di
+    // basis, dan itu yang sungguh menjaga — jalur tulis lain (importer, psql)
+    // tetap terjaga. Yang dilakukan di sini hanya menerjemahkan penolakannya
+    // jadi kalimat yang bisa ditindaklanjuti, lalu MENGAMBIL nilainya dari CO
+    // supaya klien tak bisa menagih angka yang berbeda dari yang disetujui.
+    let nilaiCo: number | null = null
+    if (body.change_order_id) {
+      const { data: co, error: eCo } = await request.db!
+        .viaProject('change_orders', body.project_id)
+        .select('id, co_number, status, billing_mode, total_amount_delta, project_id')
+        .eq('id', body.change_order_id)
+        .maybeSingle()
+      if (eCo) return reply.status(500).send({ error: eCo.message })
+      if (!co) return reply.status(404).send({ error: 'Change order tidak ditemukan' })
+      if (co.project_id !== body.project_id) {
+        return reply.status(400).send({ error: 'Change order bukan milik proyek ini' })
+      }
+      if (co.status !== 'approved') {
+        return reply.status(400).send({
+          error: `Change order ${co.co_number} berstatus "${co.status}" — hanya yang `
+            + 'sudah disetujui boleh ditagih.',
+        })
+      }
+      if (!naikkanTerpisah(co.billing_mode as string | null)) {
+        return reply.status(400).send({
+          error: `Change order ${co.co_number} bercara tagih `
+            + `"${co.billing_mode ?? 'belum diputuskan'}" — hanya "separate_co" dan `
+            + '"final_account" yang ditagih tersendiri. Yang "include_termin" sudah '
+            + 'menaikkan nilai kontrak dan tertagih lewat IPC; menagihnya lagi di '
+            + 'sini berarti pekerjaan yang sama tertagih DUA KALI.',
+        })
+      }
+
+      // Nilai DIAMBIL dari CO, bukan diterima dari klien. Menerima angka dari
+      // luar membuat tagihan bisa berbeda dari yang disetujui — dan yang
+      // menandatangani persetujuan bukan yang menerbitkan tagihan.
+      nilaiCo = Number(co.total_amount_delta ?? 0)
+      if (!Number.isFinite(nilaiCo) || nilaiCo <= 0) {
+        return reply.status(400).send({
+          error: `Nilai change order ${co.co_number} nol atau tak terbaca — `
+            + 'tak ada yang bisa ditagih.',
+        })
+      }
+    }
+
     // ── Hitung amount ────────────────────────────────────────────────────────
     let baseAmount = 0
     let commissionAmount = 0
@@ -632,6 +709,9 @@ export default async function financeRoutes(app: FastifyInstance) {
     if (body.invoice_type === 'expense_billing') {
       // base = sum semua line items
       baseAmount = (body.line_items ?? []).reduce((s, i) => s + Number(i.amount), 0)
+    } else if (body.invoice_type === 'change_order_billing') {
+      // Dari CO-nya, bukan dari badan permintaan — lihat blok validasi di atas.
+      baseAmount = nilaiCo ?? 0
     } else if (body.invoice_type === 'commission_fee') {
       // Fee komisi saja — amount sudah dihitung di frontend (auto-suggest atau manual)
       baseAmount = Number(body.commission_fee_amount ?? body.base_amount ?? 0)
@@ -737,6 +817,7 @@ export default async function financeRoutes(app: FastifyInstance) {
       .insert({
         project_id:         body.project_id,
         termin_schedule_id: body.termin_schedule_id ?? null,
+        change_order_id:    body.change_order_id ?? null,
         invoice_number:     invoiceNumber,
         invoice_type:       body.invoice_type,
         base_amount:        baseAmount,
@@ -841,23 +922,7 @@ export default async function financeRoutes(app: FastifyInstance) {
           project_id:  body.project_id,
           action_url:  '/keuangan?tab=invoice',
           action_type: 'view_invoice',
-          /*
-            `record_id` WAJIB — dan kunci lamanya DIPERTAHANKAN.
-
-            Sebelum ini kolom ini hanya berisi kunci bernama sendiri, jadi
-            `record_id`-nya NULL. Akibatnya jenis ini kebal dedup DAN tak
-            terlihat `audit-notifikasi-tak-kembar`, yang sengaja melewati
-            baris ber-record_id NULL.
-
-            Cacat yang sama sudah ditemukan dan diperbaiki tiga kali di repo
-            ini: `mandor.ts` 2026-08-14, `kasbons.ts` dan berkas ini
-            2026-08-16. Sekarang dijaga `audit-notifikasi-punya-record.mjs`.
-
-            Kunci lamanya tetap ditulis: ia kontrak dengan halaman notifikasi,
-            dan menghapusnya perubahan terpisah yang menuntut pemeriksaan
-            sendiri.
-          */
-          action_data: { record_id: invoice.id, invoice_id: invoice.id, invoice_number: invoice.invoice_number },
+          action_data: { invoice_id: invoice.id, invoice_number: invoice.invoice_number },
         })))
       } catch (err) {
         // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
@@ -1390,7 +1455,7 @@ export default async function financeRoutes(app: FastifyInstance) {
         project_id:  invoice.project_id,
         action_url:  '/keuangan?tab=invoice',
         action_type: 'view_invoice',
-        action_data: { record_id: id, invoice_id: id, amount_paid: amountPaid },
+        action_data: { invoice_id: id, amount_paid: amountPaid },
       })))
     } catch (err) {
       // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.

@@ -15,16 +15,16 @@
  * daftar penuh yang harus disaring ulang dengan tangan.
  */
 
-import { Suspense, useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus, Receipt, RefreshCw, Search } from "lucide-react";
-import { hasPermission } from "@/lib/api";
-import { useData } from "@/lib/data-cache";
+import { FilePlus2, Plus, Receipt, RefreshCw, Search } from "lucide-react";
+import { api, hasPermission, makeAbortController } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import {
   Skeleton, InvoiceRow, CreateInvoiceModal, PayInvoiceModal, unduhInvoicePdf,
 } from "../_bersama/komponen";
 import type { Invoice } from "../_bersama/tipe";
+import { ModalTagihanCo } from "@/components/tagihan-co";
 
 const STATUS = [
   { v: "all", l: "Semua Status" },
@@ -42,10 +42,14 @@ function InvoicePageInner() {
   const status = params.get("status") ?? "all";
   const cari = params.get("q") ?? "";
 
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [memuat, setMemuat] = useState(true);
+  const [gagal, setGagal] = useState<string | null>(null);
   const [cariKetik, setCariKetik] = useState(cari);
   const [bayar, setBayar] = useState<Invoice | null>(null);
   const [pdfId, setPdfId] = useState<string | null>(null);
   const [buatBaru, setBuatBaru] = useState(false);
+  const [tagihanCo, setTagihanCo] = useState(false);
   const tunda = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // `hasPermission` membaca localStorage — kosong di server, terisi di
@@ -76,44 +80,50 @@ function InvoicePageInner() {
     router.replace(`/keuangan/invoice${p.size ? `?${p}` : ""}`, { scroll: false });
   }, [params, router]);
 
-  /*
-    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+  const muat = useCallback((signal?: AbortSignal) => {
+    setMemuat(true);
+    // Awalan `finance/` WAJIB — versi pertama halaman ini menghilangkannya
+    // dan menghasilkan 404 yang hanya terlihat di konsol, sementara
+    // halamannya tampil rapi bertuliskan "Tidak ada invoice". Kegagalan yang
+    // menyamar jadi kabar baik. Dijaga `scripts/uji-endpoint-ada.mjs`.
+    const q: Record<string, string> = { limit: "200" };
+    if (status !== "all") q.status = status;
+    return api.get<{ invoices: Invoice[] }>("/api/v1/finance/invoices", { params: q, signal })
+      .then((r) => {
+        // Pencarian disaring di SISI KLIEN — endpoint ini tak menerima
+        // parameter `search`, dan mengirimkannya diam-diam diabaikan.
+        // Daftar dibatasi 200 baris, jadi menyaring di sini tak berat.
+        const k = cari.trim().toLowerCase();
+        const semua = r.data.invoices;
+        setInvoices(k
+          ? semua.filter((i) =>
+              i.invoice_number.toLowerCase().includes(k) ||
+              (i.projects?.name ?? "").toLowerCase().includes(k))
+          : semua);
+        setGagal(null);
+      })
+      .catch((e) => {
+        if (e?.name === "CanceledError") return;
+        // Daftar kosong dan daftar-yang-gagal-dimuat terlihat sama persis di
+        // layar. Membedakannya penting di sini: "tak ada invoice jatuh tempo"
+        // adalah kabar baik yang salah kalau sebenarnya API-nya mati.
+        setInvoices([]);
+        setGagal(e?.response?.data?.error ?? "Gagal memuat daftar invoice.");
+      })
+      .finally(() => setMemuat(false));
+  }, [status, cari]);
 
-    URL-nya DINAMIS mengikuti `status` — itu justru menguntungkan: `useData`
-    memakai URL sebagai kunci cache, jadi ganti status lalu kembali tak
-    mengambil ulang selama masih segar. Awalan `finance/` WAJIB — versi
-    pertama halaman ini menghilangkannya dan menghasilkan 404 yang hanya
-    terlihat di konsol; dijaga `scripts/uji-endpoint-ada.mjs`.
-
-    Pencarian TETAP disaring di sisi klien sesudah data datang — endpoint ini
-    tak menerima parameter `search`, jadi `cari` bukan bagian kunci cache.
-  */
-  const jalur = status !== "all"
-    ? `/api/v1/finance/invoices?limit=200&status=${encodeURIComponent(status)}`
-    : "/api/v1/finance/invoices?limit=200";
-  const { data, memuat, galat: galatMuat, muatUlang } = useData<{ invoices: Invoice[] }>(jalur);
-
-  const invoices = useMemo(() => {
-    const semua = data?.invoices ?? [];
-    const k = cari.trim().toLowerCase();
-    return k
-      ? semua.filter((i) =>
-          i.invoice_number.toLowerCase().includes(k) ||
-          (i.projects?.name ?? "").toLowerCase().includes(k))
-      : semua;
-  }, [data, cari]);
-
-  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
-
-  /*
-    Galat MUAT dan galat AKSI (unduh PDF) sengaja dipisah — satu state untuk
-    keduanya membuat gagal mengunduh menghapus pesan gagal memuat.
-  */
-  const [galatAksi, setGalatAksi] = useState<string | null>(null);
-  // Daftar kosong dan daftar-yang-gagal-dimuat terlihat sama persis di
-  // layar. Membedakannya penting di sini: "tak ada invoice jatuh tempo"
-  // adalah kabar baik yang salah kalau sebenarnya API-nya mati.
-  const gagal = galatAksi ?? (galatMuat ? "Gagal memuat daftar invoice." : null);
+  // `queueMicrotask`, bukan panggilan langsung: `muat()` memanggil
+  // `setMemuat(true)` di baris pertamanya, dan setState SINKRON di dalam
+  // effect memicu render kedua sebelum yang pertama selesai
+  // (`react-hooks/set-state-in-effect`). Menunda satu microtask
+  // memindahkannya keluar dari fase render tanpa jeda yang terlihat.
+  // Pola yang sama dipakai di /akuntansi dan /aset.
+  useEffect(() => {
+    const ac = makeAbortController();
+    queueMicrotask(() => { void muat(ac.signal); });
+    return () => ac.abort();
+  }, [muat]);
 
   function ketik(v: string) {
     setCariKetik(v);
@@ -128,7 +138,7 @@ function InvoicePageInner() {
     } catch {
       // Gagal mengunduh tak boleh diam: orang akan menekan tombolnya
       // berulang kali dan menyimpulkan aplikasinya menggantung.
-      setGalatAksi("Gagal membuat PDF. Coba lagi, atau muat ulang halaman.");
+      setGagal("Gagal membuat PDF. Coba lagi, atau muat ulang halaman.");
     } finally {
       setPdfId(null);
     }
@@ -175,7 +185,7 @@ function InvoicePageInner() {
         >
           {STATUS.map((s) => <option key={s.v} value={s.v}>{s.l}</option>)}
         </select>
-        <button onClick={() => void muat()} style={{
+        <button onClick={() => muat()} style={{
           display: "flex", alignItems: "center", gap: 4, padding: "8px 12px",
           border: `1px solid ${C.border}`, borderRadius: 6,
           background: "var(--surface)", color: C.mid, fontSize: 12, cursor: "pointer",
@@ -191,6 +201,28 @@ function InvoicePageInner() {
             <Plus size={13} aria-hidden="true" /> Buat Invoice
           </button>
         )}
+        {/*
+          Tagihan PEKERJAAN TAMBAH — jalur terpisah, bukan pilihan di dalam
+          "Buat Invoice".
+
+          Sebabnya bukan kerapian: change order bercara tagih `separate_co` /
+          `final_account` sengaja TIDAK menaikkan nilai kontrak supaya IPC tak
+          ikut menagihnya, jadi nilainya HARUS datang dari CO-nya dan tak
+          boleh diketik. Menyatukannya dengan form invoice biasa — yang
+          seluruh isinya memang diketik — melahirkan satu kotak nilai yang
+          boleh diisi untuk sebagian tipe dan tidak untuk sebagian lain, dan
+          kotak seperti itu akan diisi orang.
+        */}
+        {bolehUbah && (
+          <button onClick={() => setTagihanCo(true)} style={{
+            display: "flex", alignItems: "center", gap: 4, padding: "8px 12px",
+            border: `1px solid ${C.border}`, borderRadius: 6,
+            background: "var(--surface)", color: C.text,
+            fontSize: 12, fontWeight: 600, cursor: "pointer",
+          }}>
+            <FilePlus2 size={13} aria-hidden="true" /> Pekerjaan tambah
+          </button>
+        )}
       </div>
 
       {gagal && (
@@ -200,7 +232,7 @@ function InvoicePageInner() {
           color: C.onDangerBg, fontSize: 13,
         }}>
           {gagal}{" "}
-          <button onClick={() => void muat()} style={{
+          <button onClick={() => muat()} style={{
             marginLeft: 6, padding: "2px 8px", borderRadius: 6,
             border: `1px solid ${C.redBorder}`, background: "transparent",
             color: C.onDangerBg, fontSize: 12, fontWeight: 600, cursor: "pointer",
@@ -248,7 +280,8 @@ function InvoicePageInner() {
             <tbody>
               {invoices.map((inv) => (
                 <InvoiceRow key={inv.id} inv={inv} onPayClick={setBayar}
-                  onPdfClick={unduhPdf} loadingPdf={pdfId === inv.id} canEdit={bolehUbah} />
+                  onPdfClick={unduhPdf} loadingPdf={pdfId === inv.id} canEdit={bolehUbah}
+                  onStatusChanged={() => { void muat(); }} />
               ))}
             </tbody>
           </table>
@@ -261,14 +294,24 @@ function InvoicePageInner() {
       {buatBaru && (
         <CreateInvoiceModal
           onClose={() => setBuatBaru(false)}
-          onSuccess={() => { setBuatBaru(false); void muat(); }}
+          onSuccess={() => { setBuatBaru(false); muat(); }}
         />
       )}
       {bayar && (
         <PayInvoiceModal
           invoice={bayar}
           onClose={() => setBayar(null)}
-          onSuccess={() => { setBayar(null); void muat(); }}
+          onSuccess={() => { setBayar(null); muat(); }}
+        />
+      )}
+      {tagihanCo && (
+        <ModalTagihanCo
+          onClose={() => setTagihanCo(false)}
+          // TIDAK menutup modalnya. Satu proyek bisa punya beberapa pekerjaan
+          // tambah yang menunggu, dan menutup sesudah satu terbit memaksa
+          // orang membukanya lagi untuk tiap CO — daftarnya sudah dimuat
+          // ulang sendiri di dalam.
+          onSukses={() => { void muat(); }}
         />
       )}
     </div>
