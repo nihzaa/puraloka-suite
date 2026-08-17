@@ -933,7 +933,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
             </div>
             <p style={{ fontSize: 11, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>
               {items.length} item
-              {versi.edition ? ` · edisi ${versi.edition}` : ""}
+              {kodeEdisi(versi.edition) ? ` · edisi ${kodeEdisi(versi.edition)}` : ""}
             </p>
             <LencanaStatus status={versi.status} />
           </div>
