@@ -22,6 +22,7 @@ import {
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 import { C } from "@/lib/warna-ui";
+import { TombolUnduh } from "@/components/tombol-unduh";
 // UI-0-4: kelima tabel halaman ini memakai primitif bersama, termasuk delapan
 // yang dulu lewat wrapper `DataTable` lokal. `Tabel` menjamin caption sr-only,
 // kolom pertama <th scope="row">, tabular-nums, dan pembungkus overflow-x.
@@ -667,6 +668,44 @@ function LaporanContent() {
                     >
                       <Download size={12} /> Export Excel
                     </button>
+                  </div>
+
+                  {/* Ekspor SERVER — berbeda maksud dari tombol Excel di atas.
+
+                      Yang di atas menyalin apa yang SEDANG TAMPIL di layar,
+                      dibangun di peramban. Yang di sini diambil dari server:
+                      ia menyertakan kolom yang tak muat di layar, memakai
+                      kop identitas tenant untuk PDF, dan yang terpenting —
+                      dua di antaranya berformat WAJIB DJP yang tak boleh
+                      disusun ulang di klien.
+
+                      Bupot & e-Faktur sengaja hanya CSV: keduanya berkas
+                      IMPOR untuk aplikasi DJP, dan PDF-nya tak akan diterima
+                      siapa pun. Menawarkan format yang pasti gagal adalah
+                      cara paling cepat membuat orang berhenti percaya
+                      seluruh menu unduhan. */}
+                  <div style={{
+                    padding: "14px 20px", borderBottom: `1px solid ${C.border}`,
+                    display: "flex", flexDirection: "column", gap: 12,
+                  }}>
+                    <TombolUnduh
+                      label="Rekap pajak"
+                      jalur={`/api/v1/reports/rekap-pajak/ekspor?date_from=${dateFrom}&date_to=${dateTo}`}
+                      namaBerkas={`rekap-pajak-${dateFrom}-${dateTo}`}
+                      format={["csv", "xlsx", "pdf"]}
+                    />
+                    <TombolUnduh
+                      label="Bukti potong (unggah ke e-Bupot DJP)"
+                      jalur={`/api/v1/reports/rekap-pajak/bupot.csv?date_from=${dateFrom}&date_to=${dateTo}`}
+                      namaBerkas={`bupot-${dateFrom}-${dateTo}`}
+                      format={["csv"]}
+                    />
+                    <TombolUnduh
+                      label="Faktur Pajak (impor ke e-Faktur DJP)"
+                      jalur={`/api/v1/reports/rekap-pajak/efaktur.csv?date_from=${dateFrom}&date_to=${dateTo}`}
+                      namaBerkas={`efaktur-${dateFrom}-${dateTo}`}
+                      format={["csv"]}
+                    />
                   </div>
                   {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
                       scope="row", tabular-nums, dan overflow-x dijamin komponen.
