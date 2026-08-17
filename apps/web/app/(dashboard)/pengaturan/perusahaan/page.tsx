@@ -34,6 +34,35 @@ interface BadanUsaha {
   is_akar: boolean;
 }
 
+/**
+ * Bingkai halaman — shell + judul yang SAMA di setiap keadaan.
+ *
+ * Sebelum ini, tiga keadaan awal (memuat, ditolak, gagal muat) mengembalikan
+ * `<div style={{ padding: 24, maxWidth: 640 }}>` masing-masing: tanpa `<h1>`,
+ * dan dengan padding yang bukan padding shell. Akibatnya halaman "Badan Usaha"
+ * yang gagal memuat tampil TANPA JUDUL dan menempel ke tepi kiri — persis yang
+ * tertangkap di layar founder 2026-08-16.
+ *
+ * Judul yang hilang bukan cuma soal rapi: `uji-judul-halaman-ada.mjs` menuntut
+ * tiap halaman dashboard punya `<h1>`, dan pembaca layar kehilangan satu-satunya
+ * penanda "saya ada di halaman apa" justru saat ada yang salah — saat penanda
+ * itu paling dibutuhkan.
+ */
+function Bingkai({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+      <div style={{ marginBottom: 18 }}>
+        <KepalaHalaman
+          judul="Badan Usaha"
+          keterangan="PT/CV dalam grup usaha Anda. Setiap badan usaha punya proyek, keuangan, dan penomoran dokumen yang terpisah penuh."
+          ikon={<Building size={19} />}
+        />
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function PerusahaanPage() {
   const [formTerbuka, setFormTerbuka] = useState(false);
   const [pesan, setPesan] = useState<{ tipe: "ok" | "salah"; teks: string } | null>(null);
@@ -102,13 +131,17 @@ export default function PerusahaanPage() {
   }
 
   if (memuat) {
-    return <div style={{ padding: 24, color: C.muted }}>Memuat…</div>;
+    return (
+      <Bingkai>
+        <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>Memuat…</p>
+      </Bingkai>
+    );
   }
 
   if (ditolak) {
     return (
-      <div style={{ padding: 24, maxWidth: 640 }}>
-        <div style={{ ...GAYA_KARTU, padding: 20, display: "flex", gap: 12, alignItems: "flex-start" }}>
+      <Bingkai>
+        <div style={{ ...GAYA_KARTU, padding: 20, display: "flex", gap: 12, alignItems: "flex-start", maxWidth: 640 }}>
           <AlertTriangle size={18} style={{ color: C.amber, flexShrink: 0, marginTop: 2 }} />
           <div>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 6px" }}>
@@ -121,14 +154,14 @@ export default function PerusahaanPage() {
             </p>
           </div>
         </div>
-      </div>
+      </Bingkai>
     );
   }
 
   if (galatMuatUmum) {
     return (
-      <div style={{ padding: 24, maxWidth: 640 }}>
-        <div role="alert" style={{ ...GAYA_KARTU, padding: 20, display: "flex", gap: 12, alignItems: "flex-start" }}>
+      <Bingkai>
+        <div role="alert" style={{ ...GAYA_KARTU, padding: 20, display: "flex", gap: 12, alignItems: "flex-start", maxWidth: 640 }}>
           <AlertTriangle size={18} style={{ color: C.red, flexShrink: 0, marginTop: 2 }} />
           <p style={{ fontSize: 13, color: C.mid, margin: 0, lineHeight: 1.6 }}>
             {galatMuatUmum}{" "}
@@ -137,7 +170,7 @@ export default function PerusahaanPage() {
             </button>
           </p>
         </div>
-      </div>
+      </Bingkai>
     );
   }
 
