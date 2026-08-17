@@ -1,8 +1,11 @@
 import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
 import { susunKop, kunciLogo, BUCKET_LOGO, type IdentitasTenant } from '../../lib/kop-dokumen.js'
-import { gabungKlausul, type Klausul } from '../../lib/klausul-kontrak.js'
+import {
+  gabungKlausul, bolehDiubah, NOMOR_DIRAKIT_KODE, type Klausul,
+} from '../../lib/klausul-kontrak.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { logAuditEvent } from '../../utils/audit.js'
 // Storage bukan query tabel, jadi pembungkus sadar-tenant tak berlaku.
 // Isolasinya dijaga `kunciLogo()`: kunci DIBANGUN dari `request.companyId`,
 // dan URL yang tak memuat segmen tenant itu ditolak.
@@ -716,5 +719,200 @@ export default async function contractRoutes(app: FastifyInstance) {
         .header('Content-Length', pdfBuffer.length)
         .send(pdfBuffer)
     }
+  )
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // KLAUSUL KONTRAK PER TENANT — menyunting bunyi pasal tanpa rilis kode
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Migrasi 450 memindahkan klausul ke basis; `lib/klausul-kontrak.ts`
+  // menggabungkannya di atas bawaan. Yang belum ada sampai 2026-08-17: cara
+  // menyuntingnya dari UI.
+  //
+  // "Kolom DB sudah ada" BUKAN selesai (CHARTER §8). Tanpa layar, satu-satunya
+  // cara mengubah bunyi pasal tetap SQL langsung ke basis produksi — dan itu
+  // persis yang hendak dihindari saat memindahkannya dari kode.
+
+  // ── GET /api/v1/klausul-kontrak ──────────────────────────────────────────
+  //
+  // Memulangkan hasil GABUNGAN, bukan isi tabel mentah.
+  //
+  // Tabel mentah hanya berisi yang SUDAH ditimpa tenant — jadi tenant baru
+  // melihat layar kosong, dan menyimpulkan kontraknya terbit tanpa pasal apa
+  // pun. Padahal bawaan tetap tercetak. Layar yang menampilkan kekosongan
+  // untuk dokumen yang sebenarnya berisi adalah layar yang mendorong orang
+  // mengetik ulang sebelas pasal yang sudah ada.
+  app.get(
+    '/api/v1/klausul-kontrak',
+    { preHandler: [authenticate, requirePermission('settings:manage')] },
+    async (request, reply) => {
+      const { data, error } = await request.db!
+        .from('klausul_kontrak')
+        .select('id, nomor, judul, isi, urutan, versi, aktif, updated_at')
+        .eq('aktif', true)
+        .order('urutan', { ascending: true })
+      if (error) {
+        request.log.error({ err: error }, 'gagal memuat klausul kontrak')
+        return reply.status(500).send({ error: 'Gagal memuat klausul kontrak' })
+      }
+
+      const tenant = (data ?? []) as unknown as Klausul[]
+      const petaTenant = new Map(
+        (data ?? []).map((k) => [String((k as Record<string, unknown>).nomor), k as Record<string, unknown>]))
+
+      // Tiap pasal ditandai ASALNYA. Tanpa itu, yang menyunting tak bisa
+      // membedakan pasal yang sudah ia ubah dari pasal yang masih bawaan —
+      // dan "sudah saya ubah, kok tak berubah di kontrak" adalah keluhan yang
+      // tak bisa dijawab tanpa membuka basis.
+      const gabungan = gabungKlausul(tenant).map((k) => {
+        const milikTenant = petaTenant.get(k.nomor)
+        return {
+          ...k,
+          asal: milikTenant ? 'tenant' : 'bawaan',
+          id: milikTenant ? String(milikTenant.id) : null,
+          versi: milikTenant ? Number(milikTenant.versi) : null,
+          bisa_diubah: bolehDiubah(k.nomor),
+        }
+      })
+
+      return reply.send({
+        klausul: gabungan,
+        // Pasal yang dirakit kode DISEBUTKAN, bukan didiamkan. Yang membuka
+        // layar ini akan mencari "PASAL 3 NILAI KONTRAK" dan tak menemukannya;
+        // tanpa penjelasan, ia menyimpulkan pasalnya hilang dari kontrak.
+        dirakit_kode: NOMOR_DIRAKIT_KODE,
+        catatan_dirakit:
+          'Pasal yang menganyam data hidup (nilai kontrak + terbilang, jangka waktu, '
+          + 'tabel termin, masa pemeliharaan, lingkup dari RAB) tetap dirakit sistem dan '
+          + 'tak bisa disunting di sini. Template yang salah tulis akan menghasilkan '
+          + 'kontrak bernilai KOSONG yang tetap tercetak rapi.',
+      })
+    },
+  )
+
+  // ── PUT /api/v1/klausul-kontrak/:nomor ───────────────────────────────────
+  //
+  // Menimpa bunyi satu pasal. Versi LAMA tidak dihapus, hanya dinonaktifkan.
+  //
+  // Kontrak yang sudah ditandatangani harus bisa dicetak ulang persis seperti
+  // saat ditandatangani — dan PDF-nya di-generate ulang tiap kali diunduh.
+  // Tanpa versi, memperbaiki satu salah ketik hari ini diam-diam mengubah
+  // bunyi seluruh kontrak yang pernah terbit.
+  app.put<{ Params: { nomor: string }; Body: { judul?: string; isi?: string; urutan?: number } }>(
+    '/api/v1/klausul-kontrak/:nomor',
+    { preHandler: [authenticate, requirePermission('settings:manage')] },
+    async (request, reply) => {
+      const nomor = String(request.params.nomor ?? '').trim()
+      const b = request.body ?? {}
+      const judul = String(b.judul ?? '').trim()
+      const isi = String(b.isi ?? '').trim()
+
+      if (!nomor) return reply.status(400).send({ error: 'Nomor pasal wajib diisi' })
+      if (!judul) return reply.status(400).send({ error: 'Judul pasal wajib diisi' })
+      if (!isi) {
+        // Pasal berjudul tanpa badan = kertas yang terlihat lengkap padahal
+        // kewajibannya hilang. Basis sudah menolaknya lewat CHECK; ditolak
+        // di sini juga supaya pesannya bisa dibaca manusia.
+        return reply.status(400).send({
+          error: 'Isi pasal tak boleh kosong — pasal berjudul tanpa badan membuat '
+            + 'kontrak terlihat lengkap padahal kewajibannya hilang.',
+        })
+      }
+
+      if (!bolehDiubah(nomor)) {
+        return reply.status(422).send({
+          error: `Pasal ${nomor} dirakit sistem dari data proyek (nilai kontrak, termin, `
+            + 'jangka waktu) dan tak bisa diganti teksnya.',
+        })
+      }
+
+      const db = request.db!
+
+      // Versi lama dinonaktifkan LEBIH DULU: indeks unik parsial hanya
+      // mengizinkan satu pasal AKTIF per nomor per tenant, jadi menyisipkan
+      // duluan akan ditolak.
+      const { data: lama, error: eLama } = await db
+        .from('klausul_kontrak')
+        .update({ aktif: false, updated_at: new Date().toISOString() })
+        .eq('nomor', nomor).eq('aktif', true)
+        .select('id, versi')
+      if (eLama) {
+        request.log.error({ err: eLama, nomor }, 'gagal menonaktifkan klausul lama')
+        return reply.status(500).send({ error: 'Gagal menyimpan klausul' })
+      }
+
+      const versiBaru = (lama?.[0] ? Number((lama[0] as Record<string, unknown>).versi) : 0) + 1
+
+      const { data, error } = await db
+        .from('klausul_kontrak')
+        .insert({
+          nomor,
+          judul,
+          isi,
+          urutan: Number.isFinite(b.urutan) ? Number(b.urutan) : 999,
+          versi: versiBaru,
+          aktif: true,
+          created_by: request.currentUser!.id,
+          updated_by: request.currentUser!.id,
+        })
+        .select('id, nomor, judul, isi, urutan, versi')
+      if (error || !data || data.length === 0) {
+        request.log.error({ err: error, nomor }, 'gagal menyimpan klausul baru')
+        return reply.status(500).send({ error: 'Gagal menyimpan klausul' })
+      }
+
+      void logAuditEvent(request, {
+        tableName: 'klausul_kontrak',
+        recordId: String((data[0] as Record<string, unknown>).id),
+        action: 'klausul.ubah',
+        actorId: request.currentUser!.id,
+        newValues: { nomor, judul, versi: versiBaru },
+        severity: 'critical',
+      })
+
+      return reply.send({ klausul: data[0] })
+    },
+  )
+
+  // ── DELETE /api/v1/klausul-kontrak/:nomor ────────────────────────────────
+  //
+  // MEMULIHKAN bawaan, bukan menghapus pasal.
+  //
+  // Menghapus pasal sama sekali TIDAK disediakan — menyembunyikan pasal
+  // penyelesaian sengketa dari kontrak harus jadi tindakan yang disengaja dan
+  // terlihat, bukan efek samping dari menekan tombol berlabel "hapus".
+  //
+  // Yang terjadi: penimpaan tenant dinonaktifkan, dan bunyi bawaan produk
+  // kembali dipakai. Riwayatnya tetap tersimpan.
+  app.delete<{ Params: { nomor: string } }>(
+    '/api/v1/klausul-kontrak/:nomor',
+    { preHandler: [authenticate, requirePermission('settings:manage')] },
+    async (request, reply) => {
+      const nomor = String(request.params.nomor ?? '').trim()
+      if (!nomor) return reply.status(400).send({ error: 'Nomor pasal wajib diisi' })
+
+      const { data, error } = await request.db!
+        .from('klausul_kontrak')
+        .update({ aktif: false, updated_at: new Date().toISOString() })
+        .eq('nomor', nomor).eq('aktif', true)
+        .select('id')
+      if (error) {
+        request.log.error({ err: error, nomor }, 'gagal memulihkan klausul bawaan')
+        return reply.status(500).send({ error: 'Gagal memulihkan bawaan' })
+      }
+      if (!data || data.length === 0) {
+        return reply.status(404).send({
+          error: `Pasal ${nomor} memang belum pernah ditimpa — bunyinya sudah bawaan.`,
+        })
+      }
+
+      void logAuditEvent(request, {
+        tableName: 'klausul_kontrak', recordId: String((data[0] as Record<string, unknown>).id),
+        action: 'klausul.pulihkan_bawaan', actorId: request.currentUser!.id,
+        newValues: { nomor }, severity: 'critical',
+      })
+
+      return reply.send({ dipulihkan: nomor })
+    },
   )
 }

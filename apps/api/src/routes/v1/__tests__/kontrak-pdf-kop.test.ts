@@ -297,3 +297,139 @@ describe('klausul tenant di PDF kontrak', () => {
       .toContain('PENYELESAIAN PERSELISIHAN')
   })
 })
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ * MENYUNTING KLAUSUL DARI UI — "kolom DB sudah ada" bukan selesai
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Migrasi 450 memindahkan klausul ke basis, tapi tanpa endpoint sunting,
+ * satu-satunya cara mengubah bunyi pasal tetap SQL langsung ke basis
+ * produksi — persis yang hendak dihindari saat memindahkannya dari kode.
+ */
+describe('menyunting klausul kontrak', () => {
+  const NOMOR_UJI = '9'
+  let isiAsli: string | null = null
+  let adaAsli = false
+
+  beforeAll(async () => {
+    const { rows } = await db.query(
+      `SELECT isi FROM klausul_kontrak
+        WHERE company_id = $1 AND nomor = $2 AND aktif`, [companyId, NOMOR_UJI])
+    adaAsli = rows.length > 0
+    isiAsli = rows[0]?.isi ?? null
+  })
+
+  afterAll(async () => {
+    // Basis dev yang NYATA disunting di sini. Keadaan awal dipulihkan:
+    // yang tadinya tak punya timpaan dikembalikan tanpa timpaan.
+    await db.query(
+      'DELETE FROM klausul_kontrak WHERE company_id = $1 AND nomor = $2',
+      [companyId, NOMOR_UJI])
+    if (adaAsli && isiAsli) {
+      await db.query(
+        `INSERT INTO klausul_kontrak (company_id, nomor, judul, isi, urutan, aktif)
+         VALUES ($1, $2, 'PENYELESAIAN PERSELISIHAN', $3, 90, TRUE)`,
+        [companyId, NOMOR_UJI, isiAsli])
+    }
+  })
+
+  const daftar = () => app.inject({
+    method: 'GET', url: '/api/v1/klausul-kontrak',
+    headers: { authorization: 'Bearer t' },
+  })
+  const simpan = (nomor: string, body: Record<string, unknown>) => app.inject({
+    method: 'PUT', url: `/api/v1/klausul-kontrak/${nomor}`,
+    headers: { authorization: 'Bearer t' }, payload: body,
+  })
+
+  it('daftar memulangkan GABUNGAN, bukan tabel mentah', async () => {
+    // Tabel mentah hanya berisi yang sudah ditimpa. Tenant baru akan melihat
+    // layar kosong dan menyimpulkan kontraknya terbit tanpa pasal apa pun —
+    // padahal bawaan tetap tercetak.
+    await db.query(
+      'DELETE FROM klausul_kontrak WHERE company_id = $1 AND nomor = $2',
+      [companyId, NOMOR_UJI])
+
+    const r = await daftar()
+    expect(r.statusCode, r.body.slice(0, 200)).toBe(200)
+    const j = r.json()
+    const p9 = (j.klausul as Array<Record<string, unknown>>).find((k) => k.nomor === NOMOR_UJI)
+    expect(p9, 'pasal bawaan hilang dari daftar — layar akan terlihat kosong').toBeTruthy()
+    expect(p9!.asal).toBe('bawaan')
+  })
+
+  it('pasal yang DIRAKIT KODE disebutkan, bukan didiamkan', async () => {
+    // Yang membuka layar akan mencari "PASAL 3 NILAI KONTRAK" dan tak
+    // menemukannya; tanpa penjelasan ia menyimpulkan pasalnya hilang.
+    const j = (await daftar()).json()
+    expect(j.dirakit_kode).toContain('3')
+    expect(String(j.catatan_dirakit)).toMatch(/nilai kontrak/i)
+  })
+
+  it('menyimpan menimpa bawaan, dan asalnya berubah jadi tenant', async () => {
+    const r = await simpan(NOMOR_UJI, {
+      judul: 'PENYELESAIAN PERSELISIHAN',
+      isi: 'Sengketa diselesaikan melalui BANI Jakarta.',
+      urutan: 90,
+    })
+    expect(r.statusCode, r.body.slice(0, 200)).toBe(200)
+
+    const j = (await daftar()).json()
+    const p9 = (j.klausul as Array<Record<string, unknown>>).find((k) => k.nomor === NOMOR_UJI)
+    expect(p9!.asal).toBe('tenant')
+    expect(String(p9!.isi)).toContain('BANI Jakarta')
+  })
+
+  it('menyunting ULANG menaikkan versi dan TIDAK menghapus yang lama', async () => {
+    // Yang dijaga di sini bukan angka versinya. Kontrak yang sudah
+    // ditandatangani harus bisa dicetak ulang persis seperti saat
+    // ditandatangani — dan PDF-nya di-generate ulang tiap kali diunduh.
+    await simpan(NOMOR_UJI, {
+      judul: 'PENYELESAIAN PERSELISIHAN',
+      isi: 'Sengketa diselesaikan melalui Pengadilan Negeri Bandung.',
+      urutan: 90,
+    })
+
+    const { rows } = await db.query(
+      `SELECT versi, aktif, isi FROM klausul_kontrak
+        WHERE company_id = $1 AND nomor = $2 ORDER BY versi`, [companyId, NOMOR_UJI])
+    expect(rows.length, 'versi lama terhapus — riwayat klausul hilang').toBeGreaterThanOrEqual(2)
+    expect(rows.filter((r) => r.aktif).length,
+      'lebih dari satu versi AKTIF — kontrak akan memuat dua PASAL 9').toBe(1)
+    const aktif = rows.find((r) => r.aktif)!
+    expect(String(aktif.isi)).toContain('Pengadilan Negeri Bandung')
+  })
+
+  it('isi KOSONG ditolak dengan pesan yang bisa dibaca manusia', async () => {
+    const r = await simpan(NOMOR_UJI, { judul: 'PASAL', isi: '   ' })
+    expect(r.statusCode).toBe(400)
+    expect(String(r.json().error)).toMatch(/tak boleh kosong/i)
+  })
+
+  it('pasal yang DIRAKIT KODE ditolak — template bernilai kosong tercetak rapi', async () => {
+    const r = await simpan('3', { judul: 'NILAI KONTRAK', isi: 'Nilainya sekian.' })
+    expect(r.statusCode).toBe(422)
+    expect(String(r.json().error)).toMatch(/dirakit sistem/i)
+  })
+
+  it('memulihkan bawaan menonaktifkan timpaan, bukan menghapus pasal', async () => {
+    const r = await app.inject({
+      method: 'DELETE', url: `/api/v1/klausul-kontrak/${NOMOR_UJI}`,
+      headers: { authorization: 'Bearer t' },
+    })
+    expect(r.statusCode, r.body.slice(0, 200)).toBe(200)
+
+    const j = (await daftar()).json()
+    const p9 = (j.klausul as Array<Record<string, unknown>>).find((k) => k.nomor === NOMOR_UJI)
+    // Pasalnya HARUS tetap ada — hanya bunyinya yang kembali bawaan.
+    expect(p9, 'pasal hilang sama sekali sesudah dipulihkan').toBeTruthy()
+    expect(p9!.asal).toBe('bawaan')
+
+    // Riwayat timpaan tetap tersimpan (non-aktif).
+    const { rows } = await db.query(
+      `SELECT count(*)::int c FROM klausul_kontrak
+        WHERE company_id = $1 AND nomor = $2 AND NOT aktif`, [companyId, NOMOR_UJI])
+    expect(rows[0].c, 'riwayat timpaan ikut terhapus').toBeGreaterThan(0)
+  })
+})
