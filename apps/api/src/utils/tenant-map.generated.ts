@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 261 tabel · A=11 · AB=15 · ANCHOR=1 · B=111 · C=116 · D=7
+// 265 tabel · A=11 · AB=16 · ANCHOR=1 · B=112 · C=118 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -178,6 +178,8 @@ export const PETA_TENANCY = {
   'pegawai': { kategori: 'B' },
   'pemakaian_alat': { kategori: 'B' },
   'pemantauan_lingkungan': { kategori: 'C', lewat: 'project_id' },  // pemantauan_lingkungan.project_id
+  'penawaran': { kategori: 'B' },
+  'penawaran_item': { kategori: 'C', lewat: 'penawaran_id' },  // penawaran_item.penawaran_id
   'penawaran_subkon': { kategori: 'C', lewat: 'tender_id' },  // penawaran_subkon.tender_id → tender_subkon.project_id
   'penawaran_subkon_item': { kategori: 'C', lewat: 'penawaran_id' },  // penawaran_subkon_item.penawaran_id → penawaran_subkon.tender_id → tender_subkon.project_id
   'pencocokan_bank': { kategori: 'B' },
@@ -189,6 +191,7 @@ export const PETA_TENANCY = {
   'penyedia_uji_log': { kategori: 'B' },
   'penyesuaian_rekonsiliasi': { kategori: 'B' },
   'penyusutan_alat': { kategori: 'B' },
+  'perangkat_pengguna': { kategori: 'AB' },
   'periode_akuntansi': { kategori: 'B' },
   'periode_akuntansi_riwayat': { kategori: 'C', lewat: 'periode_id' },  // periode_akuntansi_riwayat.periode_id
   'permission_scopes': { kategori: 'A' },
@@ -265,6 +268,7 @@ export const PETA_TENANCY = {
   'supplier_payments': { kategori: 'B' },
   'suppliers': { kategori: 'B' },
   'surat_perintah_kerja': { kategori: 'B' },
+  'takeoff_dimensi': { kategori: 'C', lewat: 'estimate_item_id' },  // takeoff_dimensi.estimate_item_id → estimate_items.estimate_version_id → estimate_versions.scenario_id → scenarios.project_id
   'tanda_tangan_elektronik': { kategori: 'B' },
   'tarif_payroll_baris': { kategori: 'C', lewat: 'periode_id' },  // tarif_payroll_baris.periode_id
   'tarif_payroll_periode': { kategori: 'B' },

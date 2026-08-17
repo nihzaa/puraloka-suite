@@ -86,6 +86,25 @@ const SKEMA: SkemaImpor[] = [
       { kunci: 'category', label: 'Kategori', jenis: 'teks', wajib: false, alias: ['kelompok', 'golongan'] },
     ],
   },
+  {
+    // Diambil dari `feat/kematangan-modul` (migrasi 441, kini digabung ke
+    // 446). Skema ini TIDAK bertabrakan dengan tiga di atas — ia menulis ke
+    // `workers`, tabel yang tak disentuh skema lain.
+    kunci: 'pekerja',
+    label: 'Pekerja (Tukang / Laden / Kenek)',
+    keterangan: 'Registry pekerja lapangan. Penugasan ke mandor TIDAK ikut '
+      + 'diimpor — itu ditentukan per lingkup kerja, bukan per orang.',
+    kolom: [
+      { kunci: 'name', label: 'Nama', jenis: 'teks', wajib: true, alias: ['nama pekerja', 'nama tukang', 'nama'] },
+      { kunci: 'phone', label: 'Telepon', jenis: 'teks', wajib: false, alias: ['hp', 'no hp', 'wa', 'whatsapp'] },
+      // `tukang` / `laden` / `kenek`. Yang lain jadi KOSONG, bukan ditebak —
+      // "Tukang Batu" yang ditebak jadi `tukang` akan dipakai laporan
+      // komposisi regu sebagai fakta.
+      { kunci: 'tipe', label: 'Tipe', jenis: 'teks', wajib: false, alias: ['jenis', 'posisi', 'keahlian'] },
+      { kunci: 'notes', label: 'Catatan', jenis: 'teks', wajib: false, alias: ['keterangan'] },
+      { kunci: 'is_active', label: 'Aktif', jenis: 'bool', wajib: false, alias: ['status aktif'] },
+    ],
+  },
 ]
 
 const cariSkema = (k: string) => SKEMA.find((s) => s.kunci === k) ?? null
@@ -116,6 +135,7 @@ const TABEL: Record<string, string> = {
   material: 'materials',
   supplier: 'suppliers',
   cost_code: 'cost_codes',
+  pekerja: 'workers',
 }
 
 /** Izin per skema. Impor massal menulis ratusan baris sekaligus — ia lebih
@@ -128,6 +148,9 @@ const IZIN: Record<string, string> = {
   material: 'gudang:manage',
   supplier: 'procurement:supplier:manage',
   cost_code: 'cecep:cost_code:manage',
+  // Diukur ada di tabel `permissions` sebelum dipakai — kunci hantu menolak
+  // SEMUA orang tanpa gejala apa pun.
+  pekerja: 'mandor:worker:manage',
 }
 
 interface BodiBaca { skema?: string; berkas_base64?: string }

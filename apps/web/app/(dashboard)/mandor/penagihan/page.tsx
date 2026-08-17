@@ -8,11 +8,15 @@
  * sendiri: "tinjau yang di /mandor/penagihan" bisa dikirim apa adanya.
  */
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { useData } from "@/lib/data-cache";
 import { Kosong } from "@/components/ui-dasar";
-import { Banknote, RefreshCw, Ruler, AlertTriangle, Check, Scissors } from "lucide-react";
+import { useIzin } from "@/lib/use-izin";
+import {
+  ModalBackChargeBaru, ModalPutusanBackCharge,
+  type BackChargeRingkas,
+} from "@/components/back-charge-aksi";
+import { Banknote, RefreshCw, Ruler, AlertTriangle, Check, Scissors, Plus } from "lucide-react";
 import { C } from "@/lib/warna-ui";
 import {
   type ProgressPayment, type CashAccount,
@@ -107,33 +111,55 @@ interface Kesiapan {
 }
 
 export default function PenagihanPage() {
+  const [progressPayments, setProgressPayments] = useState<ProgressPayment[]>([]);
+  const [kesiapan, setKesiapan] = useState<Kesiapan[]>([]);
+  const [backCharge, setBackCharge] = useState<BackCharge[]>([]);
+  const [ringkasBc, setRingkasBc] = useState<RingkasBc | null>(null);
+  const [cashAccounts, setCashAccounts] = useState<CashAccount[]>([]);
+
+  /**
+   * DUA izin terpisah, dan pemisahannya bukan gaya:
+   *
+   *   backcharge:kelola   MENCATAT potongan
+   *   backcharge:setujui  MEMUTUSKANNYA
+   *
+   * Basis menolak pemutus yang sama dengan pengaju (403), jadi orang yang
+   * memegang keduanya pun tetap tak bisa menyetujui potongan buatannya
+   * sendiri. Layar tak ikut menjaga hal itu — `diajukan_oleh` tak ada di
+   * balasan API, dan menyembunyikan tombol atas dasar tebakan lebih buruk
+   * daripada menampilkan pesan 403 yang sudah menjelaskan sendiri.
+   */
+  const bolehKelolaBc = useIzin("backcharge:kelola");
+  const bolehSetujuiBc = useIzin("backcharge:setujui");
+
+  const [bcBaru, setBcBaru] = useState(false);
+  const [bcPutus, setBcPutus] = useState<BackChargeRingkas | null>(null);
+  const [loading, setLoading] = useState(true);
   const [ppConfirmModal, setPpConfirmModal] = useState<{ payment: ProgressPayment } | null>(null);
   const [ppActionLoading, setPpActionLoading] = useState(false);
 
-  /*
-    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [ppRes, cashRes, siapRes, bcRes] = await Promise.all([
+        api.get<{ payments: ProgressPayment[] }>("/api/v1/mandor/progress-payments").catch(() => ({ data: { payments: [] } })),
+        api.get<{ accounts: CashAccount[] }>("/api/v1/cash/accounts").catch(() => ({ data: { accounts: [] } })),
+        api.get<{ kesiapan: Kesiapan[] }>("/api/v1/opname/kesiapan").catch(() => ({ data: { kesiapan: [] } })),
+        api.get<{ back_charge: BackCharge[]; ringkasan: RingkasBc }>("/api/v1/back-charge")
+          .catch(() => ({ data: { back_charge: [], ringkasan: null } })),
+      ]);
+      setProgressPayments(ppRes.data.payments ?? []);
+      setKesiapan(siapRes.data.kesiapan ?? []);
+      setBackCharge(bcRes.data.back_charge ?? []);
+      setRingkasBc(bcRes.data.ringkasan ?? null);
+      setCashAccounts((cashRes.data.accounts ?? []).filter((a: CashAccount) => a.is_active));
+    } catch { /* silent */ } finally { setLoading(false); }
+  }, []);
 
-    Empat `useData` menggantikan satu `Promise.all` + `useState` ganda.
-  */
-  const { data: dataPp, memuat: memuatPp, muatUlang: muatUlangPp } =
-    useData<{ payments: ProgressPayment[] }>("/api/v1/mandor/progress-payments");
-  const { data: dataCash, memuat: memuatCash, muatUlang: muatUlangCash } =
-    useData<{ accounts: CashAccount[] }>("/api/v1/cash/accounts");
-  const { data: dataSiap, memuat: memuatSiap, muatUlang: muatUlangSiap } =
-    useData<{ kesiapan: Kesiapan[] }>("/api/v1/opname/kesiapan");
-  const { data: dataBc, memuat: memuatBc, muatUlang: muatUlangBc } =
-    useData<{ back_charge: BackCharge[]; ringkasan: RingkasBc | null }>("/api/v1/back-charge");
-
-  const loading = memuatPp || memuatCash || memuatSiap || memuatBc;
-  const load = async () => {
-    await Promise.all([muatUlangPp(), muatUlangCash(), muatUlangSiap(), muatUlangBc()]);
-  };
-
-  const progressPayments = dataPp?.payments ?? [];
-  const kesiapan = dataSiap?.kesiapan ?? [];
-  const backCharge = dataBc?.back_charge ?? [];
-  const ringkasBc = dataBc?.ringkasan ?? null;
-  const cashAccounts = (dataCash?.accounts ?? []).filter((a: CashAccount) => a.is_active);
+  // `queueMicrotask`, bukan panggilan langsung: memanggil `setLoading(true)`
+  // di badan efek memicu render berantai (`react-hooks/set-state-in-effect`).
+  // Pola yang sama dipakai `mandor/retensi` dan sudah lolos ratchet lint.
+  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
 
   const pendingPP = progressPayments.filter(p => p.status === "pending");
   const otherPP = progressPayments.filter(p => p.status !== "pending");
@@ -158,7 +184,29 @@ export default function PenagihanPage() {
           Yang menyetujui pembayaran perlu tahu berapa yang akan terpotong
           SEBELUM menekan konfirmasi, bukan menemukannya di angka neto. */}
       {!loading && ringkasBc && ringkasBc.jumlahBaris > 0 && (
-        <PanelBackCharge baris={backCharge} ringkas={ringkasBc} />
+        <PanelBackCharge
+          baris={backCharge}
+          ringkas={ringkasBc}
+          bolehSetujui={bolehSetujuiBc}
+          onPutuskan={setBcPutus}
+        />
+      )}
+
+      {/* Tombol catat berdiri SENDIRI, di luar panel back-charge.
+          Panel itu hanya dirender bila sudah ADA barisnya — menaruh tombolnya
+          di dalam berarti back-charge pertama tak pernah bisa dibuat, persis
+          kelas cacat "unggah RAB mati di keadaan kosong" (JOURNAL 2026-08-01). */}
+      {!loading && bolehKelolaBc && (
+        <div>
+          <button type="button" onClick={() => setBcBaru(true)} style={{
+            padding: "8px 14px", borderRadius: 8, border: "none",
+            background: "var(--grad-aksen)", color: "var(--on-aksen)",
+            fontSize: 12, fontWeight: 600, cursor: "pointer",
+            display: "inline-flex", alignItems: "center", gap: 6,
+          }}>
+            <Plus size={13} aria-hidden="true" /> Catat back-charge
+          </button>
+        </div>
       )}
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -205,6 +253,21 @@ export default function PenagihanPage() {
             </div>
           )}
         </>
+      )}
+
+      {bcBaru && (
+        <ModalBackChargeBaru
+          lingkup={kesiapan.map((k) => ({ work_scope_id: k.work_scope_id, scope_name: k.scope_name }))}
+          onClose={() => setBcBaru(false)}
+          onSukses={() => { setBcBaru(false); load(); }}
+        />
+      )}
+      {bcPutus && (
+        <ModalPutusanBackCharge
+          bc={bcPutus}
+          onClose={() => setBcPutus(null)}
+          onSukses={() => { setBcPutus(null); load(); }}
+        />
       )}
 
       {ppConfirmModal && (
@@ -330,7 +393,11 @@ function PanelKesiapan({ kesiapan }: { kesiapan: Kesiapan[] }) {
  * `sudahDipotong`   sudah masuk pembayaran lain; ditampilkan supaya tak
  *                   dikira hilang
  */
-function PanelBackCharge({ baris, ringkas }: { baris: BackCharge[]; ringkas: RingkasBc }) {
+function PanelBackCharge({ baris, ringkas, bolehSetujui, onPutuskan }: {
+  baris: BackCharge[]; ringkas: RingkasBc;
+  bolehSetujui: boolean;
+  onPutuskan: (bc: BackChargeRingkas) => void;
+}) {
   const rupiah = (n: number) => "Rp " + Math.round(n).toLocaleString("id-ID");
   // Yang siap memotong di atas — itu yang mengubah angka pembayaran.
   const urut = [...baris].sort((a, b) => {
@@ -370,7 +437,9 @@ function PanelBackCharge({ baris, ringkas }: { baris: BackCharge[]; ringkas: Rin
           : b.status === "diajukan" ? "var(--warning-teks)" : C.muted;
         return (
           <div key={b.id} style={{
-            display: "grid", gridTemplateColumns: "1fr 150px 130px", gap: 12,
+            display: "grid",
+            gridTemplateColumns: bolehSetujui ? "1fr 150px 130px 108px" : "1fr 150px 130px",
+            gap: 12,
             padding: "10px 16px", alignItems: "center", fontSize: 13,
             borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : "none",
           }}>
@@ -390,6 +459,25 @@ function PanelBackCharge({ baris, ringkas }: { baris: BackCharge[]; ringkas: Rin
                 : b.status === "diajukan" ? "Menunggu setuju"
                   : b.status === "dipotong" ? "Sudah dipotong" : "Dibatalkan"}
             </div>
+            {/* Hanya yang MASIH DIAJUKAN bisa diputus — sama dengan aturan
+                API. Yang lain tetap memakan kolomnya supaya lebar baris tak
+                berubah-ubah antar status. */}
+            {bolehSetujui && (
+              <div style={{ textAlign: "right" }}>
+                {b.status === "diajukan" ? (
+                  <button type="button" onClick={() => onPutuskan({
+                    id: b.id, nomor: b.nomor, uraian: b.uraian,
+                    nilai: b.nilai, scopeNama: b.scope?.scope_name ?? null,
+                  })} style={{
+                    padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 600,
+                    border: `1px solid ${C.border}`, background: "var(--surface)",
+                    color: C.mid, cursor: "pointer", whiteSpace: "nowrap",
+                  }}>Putuskan</button>
+                ) : (
+                  <span style={{ fontSize: 11, color: C.muted }}>—</span>
+                )}
+              </div>
+            )}
           </div>
         );
       })}

@@ -5,7 +5,7 @@ import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
-import { periksaPenyetujuanCo, rekapPenagihanCo } from '../../lib/penagihan-co.js'
+import { periksaPenyetujuanCo } from '../../lib/penagihan-co.js'
 import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan , periksaGerbangSod } from '../../utils/approval.js'
 
 const CO_SELECT = `
@@ -117,6 +117,77 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
 
       return reply.send({ data: data ?? [] })
     }
+  )
+
+  // ── GET /api/v1/change-orders/siap-tagih ───────────────────────────────────
+  //
+  // Change order yang SUDAH disetujui, ditagih TERSENDIRI, dan belum punya
+  // tagihan aktif.
+  //
+  // Ditambahkan 2026-08-16 bersama tagihan CO di `/keuangan/invoice`.
+  // Sebelumnya daftar ini tak ada di mana pun, dan akibatnya bukan sekadar
+  // repot: CO `separate_co` sengaja TIDAK menaikkan `contract_value` supaya
+  // IPC tak ikut menagihnya (`lib/penagihan-co.ts`) — jadi pekerjaan tambah
+  // yang sudah disetujui **tak tertagih lewat jalur mana pun** sampai ada
+  // yang ingat menerbitkannya sendiri.
+  //
+  // Yang terjadi berikutnya bisa ditebak dan sudah pernah terjadi di kelas
+  // cacat yang sama: seseorang mengubah `billing_mode` jadi `include_termin`
+  // belakangan supaya tertagih, dan selisihnya jadi sengketa.
+  app.get<{ Querystring: { project_id?: string } }>(
+    '/api/v1/change-orders/siap-tagih',
+    { preHandler: [authenticate, requirePermission('finance:invoice:create')] },
+    async (request, reply) => {
+      const db = request.db!
+      const idProyek = await db.projectIds()
+      if (idProyek.length === 0) return reply.send({ data: [] })
+
+      let q = db
+        .unsafe('change_orders', 'disaring .in(project_id, projectIds()) di query yang SAMA')
+        .select(`id, co_number, title, total_amount_delta, billing_mode, approved_at,
+                 project_id, projects ( id, name )`)
+        .eq('status', 'approved')
+        .in('billing_mode', ['separate_co', 'final_account'])
+        .in('project_id', idProyek)
+        .order('approved_at', { ascending: true })
+        .limit(300)
+      if (request.query.project_id) q = q.eq('project_id', request.query.project_id)
+
+      const { data, error } = await q
+      if (error) {
+        request.log.error({ err: error }, 'gagal memuat CO siap tagih')
+        return reply.status(500).send({ error: 'Gagal memuat change order siap tagih' })
+      }
+
+      const baris = (data ?? []) as Array<Record<string, unknown>>
+      if (baris.length === 0) return reply.send({ data: [] })
+
+      // Tagihan yang SUDAH ada. `cancelled` dikecualikan — indeks unik parsial
+      // migrasi 348 pun begitu, jadi CO yang tagihannya dibatalkan memang
+      // boleh ditagih ulang dan HARUS muncul lagi di daftar ini.
+      const { data: tagihan, error: eTag } = await db
+        .unsafe('invoices', 'disaring .in(change_order_id, id CO milik tenant ini)')
+        .select('id, invoice_number, change_order_id, status, total_amount')
+        .in('change_order_id', baris.map((c) => c.id as string))
+        .neq('status', 'cancelled')
+      if (eTag) {
+        request.log.error({ err: eTag }, 'gagal memuat tagihan CO')
+        return reply.status(500).send({ error: 'Gagal memuat tagihan change order' })
+      }
+      const petaTagihan = new Map(
+        (tagihan ?? []).map((t) => [(t as { change_order_id: string }).change_order_id, t]))
+
+      return reply.send({
+        data: baris.map((c) => ({
+          ...c,
+          // `tagihan` disertakan, bukan barisnya disaring habis. Yang SUDAH
+          // ditagih tetap perlu terlihat beserta nomor tagihannya — kalau
+          // hilang dari daftar, orang yang mencarinya akan menyimpulkan CO-nya
+          // yang hilang, lalu menerbitkan tagihan kedua lewat jalur lain.
+          tagihan: petaTagihan.get(c.id as string) ?? null,
+        })),
+      })
+    },
   )
 
   // ── GET /api/v1/change-orders/:id ──────────────────────────────────────────
@@ -552,23 +623,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             project_id:  co.project_id,
             action_url:  `/proyek/${co.project_id}?tab=change-order`,
             action_type: 'view_change_order',
-            /*
-              `record_id` WAJIB — dan kunci lamanya DIPERTAHANKAN.
-
-              Sebelum ini kolom ini hanya berisi kunci bernama sendiri, jadi
-              `record_id`-nya NULL. Akibatnya jenis ini kebal dedup DAN tak
-              terlihat `audit-notifikasi-tak-kembar`, yang sengaja melewati
-              baris ber-record_id NULL.
-
-              Cacat yang sama sudah ditemukan dan diperbaiki tiga kali di repo
-              ini: `mandor.ts` 2026-08-14, `kasbons.ts` dan berkas ini
-              2026-08-16. Sekarang dijaga `audit-notifikasi-punya-record.mjs`.
-
-              Kunci lamanya tetap ditulis: ia kontrak dengan halaman notifikasi,
-              dan menghapusnya perubahan terpisah yang menuntut pemeriksaan
-              sendiri.
-            */
-            action_data: { record_id: id, change_order_id: id },
+            action_data: { change_order_id: id },
           })))
         } catch (err) {
           // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
@@ -839,7 +894,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             project_id:  coFull.project_id,
             action_url:  `/proyek/${coFull.project_id}?tab=change-order`,
             action_type: 'view_change_order',
-            action_data: { record_id: id, change_order_id: id },
+            action_data: { change_order_id: id },
           })))
         } catch (err) {
           // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
@@ -936,7 +991,7 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             project_id:  coInfo.project_id,
             action_url:  `/proyek/${coInfo.project_id}?tab=change-order`,
             action_type: 'view_change_order',
-            action_data: { record_id: id, change_order_id: id },
+            action_data: { change_order_id: id },
           }])
         } catch (err) {
           // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
@@ -949,251 +1004,5 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
 
       return reply.send({ data })
     }
-  )
-
-  // ── GET /api/v1/projects/:projectId/change-orders/penagihan ────────────────
-  //
-  // Rekap CO disetujui menurut cara penagihannya, plus daftar CO
-  // `separate_co` yang BELUM diterbitkan tagihannya.
-  //
-  // ── Kenapa endpoint ini ada
-  //
-  // Migrasi 348 membetulkan cacat yang lebih berbahaya: `billing_mode` dulu
-  // ditulis tapi tak pernah dibaca, jadi CO `separate_co` ikut menaikkan
-  // `contract_value` dan tertagih DUA KALI.
-  //
-  // Perbaikan itu meninggalkan lubang berlawanan arah. Sesudah 348, CO
-  // `separate_co` yang disetujui TIDAK menaikkan `contract_value` (benar) dan
-  // TIDAK punya invoice (karena tak ada jalan membuatnya) — jadi nilainya
-  // hilang dari SELURUH layar. Tidak di nilai kontrak, tidak di daftar
-  // tagihan, tidak di piutang.
-  //
-  // `rekapPenagihanCo()` sudah ada di `lib/penagihan-co.ts` justru untuk
-  // memunculkannya, dan diukur 2026-08-16 ia **diekspor tanpa satu pun
-  // pemanggil**. Ini pemanggilnya.
-  //
-  // Pekerjaan tambah yang disetujui lalu tak tertagih adalah kerugian paling
-  // sunyi di proyek konstruksi: tak ada galat, tak ada selisih mencolok,
-  // hanya uang yang tak pernah ditagih karena tak ada yang ingat.
-  app.get<{ Params: { projectId: string } }>(
-    '/api/v1/projects/:projectId/change-orders/penagihan',
-    { preHandler: [authenticate, requirePermission('finance:view')] },
-    async (request, reply) => {
-      const { projectId } = request.params
-
-      if (!(await proyekMilikTenant(request, projectId))) {
-        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
-      }
-
-      const { data: daftarCo, error: errCo } = await request.db!
-        .viaProject('change_orders', projectId)
-        .select('id, co_number, title, status, billing_mode, total_amount_delta')
-        .eq('project_id', projectId)
-
-      if (errCo) {
-        request.log.error({ err: errCo }, 'gagal membaca change orders untuk rekap penagihan')
-        return reply.status(500).send({ error: 'Gagal mengambil data change order' })
-      }
-
-      const co = (daftarCo ?? []) as Array<{
-        id: string; co_number: string; title: string | null
-        status: string; billing_mode: string | null; total_amount_delta: number | string
-      }>
-
-      const rekap = rekapPenagihanCo(co)
-
-      // Tagihan CO yang sudah terbit. `cancelled` DIKECUALIKAN dengan sengaja,
-      // sama seperti index `invoices_satu_tagihan_per_co` (348): tagihan yang
-      // dibatalkan berarti CO-nya boleh ditagih ulang, dan menganggapnya
-      // "sudah tertagih" membuat pekerjaan yang batal tagih hilang selamanya.
-      const { data: inv, error: errInv } = await request.db!
-        .viaProject('invoices', projectId)
-        .select('id, invoice_number, change_order_id, total_amount, status, issued_date')
-        .eq('project_id', projectId)
-        .not('change_order_id', 'is', null)
-        .neq('status', 'cancelled')
-
-      if (errInv) {
-        request.log.error({ err: errInv }, 'gagal membaca tagihan CO')
-        return reply.status(500).send({ error: 'Gagal mengambil data tagihan' })
-      }
-
-      const tagihan = (inv ?? []) as Array<{
-        id: string; invoice_number: string; change_order_id: string
-        total_amount: number | string; status: string; issued_date: string | null
-      }>
-      const sudahDitagih = new Map(tagihan.map((t) => [t.change_order_id, t]))
-
-      // "Sudah ditagih" DITURUNKAN dari ada-tidaknya invoice, tidak disimpan
-      // sebagai penanda di `change_orders`. Penanda terpisah menciptakan
-      // kebenaran kedua tentang satu fakta — dan dua sumber akan berbeda suatu
-      // hari, yang menemukannya adalah orang yang menagih dua kali.
-      const belumDitagih = co
-        .filter((c) => c.status === 'approved' && c.billing_mode === 'separate_co')
-        .filter((c) => !sudahDitagih.has(c.id))
-        .map((c) => ({
-          id: c.id,
-          co_number: c.co_number,
-          title: c.title,
-          nilai: Number(c.total_amount_delta) || 0,
-        }))
-
-      return reply.send({
-        rekap,
-        belum_ditagih: belumDitagih,
-        nilai_belum_ditagih: Math.round(
-          belumDitagih.reduce((s, c) => s + c.nilai, 0) * 100,
-        ) / 100,
-        sudah_ditagih: tagihan.map((t) => ({
-          change_order_id: t.change_order_id,
-          invoice_id: t.id,
-          invoice_number: t.invoice_number,
-          total_amount: Number(t.total_amount) || 0,
-          status: t.status,
-          issued_date: t.issued_date,
-        })),
-      })
-    },
-  )
-
-  // ── POST /api/v1/change-orders/:id/tagihan ─────────────────────────────────
-  //
-  // Menerbitkan tagihan untuk satu CO `separate_co` yang sudah disetujui.
-  //
-  // ── Yang TIDAK diperiksa di sini, dan kenapa itu disengaja
-  //
-  // Sah-tidaknya penagihan ditegakkan TRIGGER `fn_invoice_co_sah` (348):
-  // status wajib `approved`, `billing_mode` wajib ada, dan `include_termin`
-  // ditolak karena nilainya sudah masuk `contract_value` dan tertagih lewat
-  // IPC. Ganda ditahan index `invoices_satu_tagihan_per_co`.
-  //
-  // Rute ini TIDAK mengulang pemeriksaan itu sebagai gerbang — ia
-  // menerjemahkan galatnya jadi kalimat yang bisa dibaca orang. Mengulangnya
-  // di aplikasi berarti dua tempat yang harus sepakat, dan pemeriksaan
-  // aplikasi tak menahan dua penerbitan BERSAMAAN.
-  app.post<{ Params: { id: string }; Body: { due_date?: string; catatan?: string } }>(
-    '/api/v1/change-orders/:id/tagihan',
-    { preHandler: [authenticate, requirePermission('finance:manage')] },
-    async (request, reply) => {
-      const { id } = request.params
-      const body = request.body ?? {}
-
-      const { data: co, error: errCo } = await request.db!
-        .unsafe('change_orders', 'dibaca untuk menagih; kepemilikan proyeknya diperiksa di bawah')
-        .select('id, project_id, co_number, title, status, billing_mode, total_amount_delta')
-        .eq('id', id)
-        .maybeSingle()
-
-      if (errCo) {
-        request.log.error({ err: errCo }, 'gagal membaca change order')
-        return reply.status(500).send({ error: 'Gagal membaca change order' })
-      }
-      if (!co) return reply.status(404).send({ error: 'Change order tidak ditemukan' })
-
-      const c = co as {
-        id: string; project_id: string; co_number: string; title: string | null
-        status: string; billing_mode: string | null; total_amount_delta: number | string
-      }
-
-      if (!(await proyekMilikTenant(request, c.project_id))) {
-        return reply.status(404).send({ error: 'Change order tidak ditemukan' })
-      }
-
-      const nilai = Number(c.total_amount_delta)
-      if (!Number.isFinite(nilai) || nilai <= 0) {
-        return reply.status(422).send({
-          error: `Change order ${c.co_number} bernilai ${c.total_amount_delta} — `
-            + 'tak ada yang bisa ditagih. Pekerjaan kurang (nilai negatif) '
-            + 'mengurangi tagihan berikutnya, bukan menerbitkan tagihan sendiri.',
-        })
-      }
-
-      // Nomor dari counter transaksional per (company, jenis, periode) — BUKAN
-      // COUNT(*)+1. `COUNT` menghitung baris yang ADA, bukan yang PERNAH ada,
-      // jadi menghapus tagihan terakhir membuat nomornya lahir kembali untuk
-      // dokumen yang sudah terkirim ke klien (pelajaran migrasi 333).
-      const { data: companyRow } = await request.db!
-        .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
-        .select('invoice_prefix')
-        .eq('id', request.companyId!)
-        .maybeSingle()
-
-      const prefix = (companyRow as { invoice_prefix?: string } | null)?.invoice_prefix ?? 'INV'
-      const now = new Date()
-      const tahun = now.getFullYear()
-      const bulan = String(now.getMonth() + 1).padStart(2, '0')
-      const awalan = `${prefix}/${tahun}/${bulan}/`
-
-      const { data: nomorUrut, error: errNomor } = await supabase.rpc('next_document_number', {
-        p_company_id: request.companyId!,
-        p_doc_type: 'invoice',
-        p_period: `${tahun}-${bulan}`,
-        p_prefix: awalan,
-      })
-      if (errNomor) {
-        request.log.error({ err: errNomor }, 'gagal mengambil nomor tagihan CO')
-        return reply.status(500).send({ error: 'Gagal membuat nomor tagihan' })
-      }
-
-      const nomor = `${awalan}${String(nomorUrut).padStart(3, '0')}`
-      const terbit = now.toISOString().split('T')[0]
-
-      const { data: inv, error: errInv } = await supabase
-        .from('invoices')
-        .insert({
-          project_id: c.project_id,
-          change_order_id: c.id,
-          invoice_number: nomor,
-          invoice_type: 'change_order_billing',
-          base_amount: nilai,
-          total_amount: nilai,
-          amount_paid: 0,
-          amount_due: nilai,
-          issued_date: terbit,
-          due_date: body.due_date ?? terbit,
-          status: 'sent',
-          description: `Pekerjaan tambah ${c.co_number}${c.title ? ` — ${c.title}` : ''}`,
-          notes: body.catatan ?? null,
-          created_by: request.currentUser!.id,
-        })
-        .select('id, invoice_number, total_amount, issued_date, due_date, status')
-        .single()
-
-      if (errInv) {
-        // Galat basis diterjemahkan, bukan diteruskan mentah: pesan Postgres
-        // menyebut nama index, yang tak berarti apa-apa bagi orang yang
-        // sedang menagih.
-        const pesan = String(errInv.message ?? '')
-        if (errInv.code === '23505' || /satu_tagihan_per_co/.test(pesan)) {
-          return reply.status(409).send({
-            error: `Change order ${c.co_number} sudah punya tagihan yang masih berlaku. `
-              + 'Batalkan tagihan lamanya lebih dulu bila memang harus diterbitkan ulang.',
-          })
-        }
-        // Trigger `fn_invoice_co_sah` sudah menulis kalimatnya sendiri dalam
-        // bahasa manusia — diteruskan apa adanya.
-        if (errInv.code === 'P0001') {
-          return reply.status(422).send({ error: pesan })
-        }
-        request.log.error({ err: errInv, co: c.co_number }, 'gagal menerbitkan tagihan CO')
-        return reply.status(500).send({ error: 'Gagal menerbitkan tagihan' })
-      }
-
-      void logAuditEvent(request, {
-        tableName: 'invoices',
-        recordId: (inv as { id: string }).id,
-        action: 'invoice.amount',
-        actorId: request.currentUser!.id,
-        newValues: {
-          invoice_number: nomor,
-          total_amount: nilai,
-          change_order_id: c.id,
-          co_number: c.co_number,
-        },
-        severity: 'critical',
-      })
-
-      return reply.status(201).send({ data: inv })
-    },
   )
 }

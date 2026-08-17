@@ -34,15 +34,17 @@ import {
 } from "./tipe";
 import { formatRupiah } from "@/lib/format";
 import { Saklar } from "@/components/saklar";
+import { ModalStatusInvoice } from "@/components/akuntansi-aksi";
 export function Skeleton({ h = 20, w = "100%" }: { h?: number; w?: string | number }) {
   return <div style={{ height: h, width: w, borderRadius: 6, background: "linear-gradient(90deg, var(--surface-hover) 0%, var(--border) 50%, var(--surface-hover) 100%)", backgroundSize: "200% 100%", animation: "shimmer 1.5s ease-in-out infinite" }} />;
 }
 
-export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }: { inv: Invoice; onPayClick: (inv: Invoice) => void; onPdfClick: (inv: Invoice) => void; loadingPdf: boolean; canEdit: boolean }) {
+export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit, onStatusChanged }: { inv: Invoice; onPayClick: (inv: Invoice) => void; onPdfClick: (inv: Invoice) => void; loadingPdf: boolean; canEdit: boolean; onStatusChanged?: () => void }) {
   const days = daysUntil(inv.due_date);
   const overdue = inv.status !== "paid" && inv.status !== "cancelled" && days < 0;
   const dueSoon = !overdue && inv.status !== "paid" && inv.status !== "cancelled" && days >= 0 && days <= 7;
   const [dendaOpen, setDendaOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
 
   return (
     <>
@@ -130,10 +132,39 @@ export function InvoiceRow({ inv, onPayClick, onPdfClick, loadingPdf, canEdit }:
               <AlertTriangle size={11} /> Denda
             </button>
           )}
+          {/*
+            Status.
+
+            `PATCH /finance/invoices/:id/status` berdiri tanpa pemanggil
+            sampai 2026-08-16. Akibatnya invoice DRAFT tak pernah bisa
+            dinyatakan terkirim (saringan "Terkirim" selamanya kosong), dan
+            invoice yang salah terbit tak bisa dibatalkan — ia menua jadi
+            "jatuh tempo" lalu ikut dalam angka piutang dan umur tagihan.
+
+            Tak muncul untuk yang LUNAS: statusnya diturunkan dari pembayaran,
+            dan menawarkan pilihan yang API tolak membuat orang mengira
+            aplikasinya rusak.
+          */}
+          {canEdit && inv.status !== "paid" && (
+            <button aria-label="Ubah status invoice" onClick={() => setStatusOpen(true)}
+              title="Ubah status invoice"
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", color: C.mid, fontSize: 11, cursor: "pointer", whiteSpace: "nowrap" }}>
+              <FileText size={11} /> Status
+            </button>
+          )}
         </div>
       </td>
     </tr>
     {dendaOpen && createPortal(<PenaltyModal invoiceId={inv.id} invoiceNumber={inv.invoice_number} onClose={() => setDendaOpen(false)} />, document.body)}
+    {statusOpen && createPortal(
+      <ModalStatusInvoice
+        invoice={{
+          id: inv.id, invoice_number: inv.invoice_number,
+          status: inv.status, amount_paid: inv.amount_paid,
+        }}
+        onClose={() => setStatusOpen(false)}
+        onSukses={() => { setStatusOpen(false); onStatusChanged?.(); }}
+      />, document.body)}
     </>
   );
 }

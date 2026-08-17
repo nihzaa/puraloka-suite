@@ -43,7 +43,7 @@ const AKAR = join(import.meta.dirname, '..', 'src', 'routes', 'v1')
  * kegagalannya bisa menyamar jadi "nol baris" — perbaiki kodenya dengan
  * memeriksa `error`, JANGAN naikkan ambangnya.
  */
-const AMBANG = 186
+const AMBANG = 185
 
 function berkasRute(dir) {
   const hasil = []
