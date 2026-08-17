@@ -25025,3 +25025,59 @@ bentuk. Ditulis ulang jadi cast langsung: kembali ke 186 = lantai.
 `audit-tulis-tanpa-periksa` 79 > 76 **BUKAN dari pekerjaan ini** — diukur
 dengan checkout ke commit sebelum saya menyentuh apa pun, angkanya sudah 79.
 Dibiarkan apa adanya, bukan ditambal.
+
+
+---
+
+## 2026-08-17 (lanjutan 2) — `rencana` habis, dan triase 12 `sebagian`
+
+### `crm-proposal`: status yang tak ikut bergerak
+
+Merge R-013 butir 1 membawa `/tender/penawaran` beserta rute, PDF, dan 50
+test hijau — tapi statusnya tetap `rencana`.
+
+Catatan lamanya menjelaskan href SENGAJA dikosongkan supaya penjaga tak
+merah. Alasan itu benar SAAT DITULIS dan gugur begitu halamannya lahir.
+Membiarkannya justru membalik arah kebohongannya: modul yang sudah bisa
+dipakai terbaca belum ada.
+
+Kelas cacat yang sama dengan titik kesiapan basi (439/440) dan peringatan
+R-001 yang bertahan sembilan hari sesudah penyebabnya diperbaiki.
+
+**Peta Modul kini NOL entri `rencana`.**
+
+### Tombol unduh: tiga endpoint yang tak bisa diklik siapa pun
+
+Ekspor bupot, e-Faktur, dan rekap pajak dibangun hari ini — dan tak satu pun
+punya tombol. Endpoint tanpa tombol sama saja dengan belum ada.
+
+Yang halus: `<a href>` biasa TIDAK BISA dipakai. Ia membuat peramban
+meminta URL tanpa header sesi, jadi yang terunduh halaman login berformat
+HTML bernama `rekap-pajak.csv` — gagal yang tak menampilkan galat apa pun.
+
+`TombolUnduh` mengambilnya lewat `api` yang membawa sesi, lalu melaporkan
+jumlah baris DAN yang ditolak. Berkas 0 baris yang terunduh diam-diam
+membuat orang mengira datanya kosong — padahal hari ini seluruh 18 barisnya
+ditolak karena NPWP klien belum diisi.
+
+### Triase 12 `sebagian` — dan kenapa tak semuanya bisa dituntaskan
+
+Diukur dari kalimat "Sisa" di tiap catatan:
+
+| Pemblokir | Modul |
+|---|---|
+| **Keputusan bisnis founder** | `dk-esign` (e-meterai Peruri = kontrak komersial) |
+| **Pihak ketiga tak membuka API** | `fn-efaktur` (jatah NSFP dari e-Nofa manual) |
+| **Keputusan desain terdokumentasi** | `md-subkon`, `kt-subkon` (identitas 3 tabel, migrasi 201) |
+| **Sengaja dibatasi** | `cc-cvr` (cakupan upah borongan, dijamin 20 test) |
+| **Belum dipakai operasional** | `mb-progres` (kode lengkap, aplikasi belum disebar) |
+| **Pekerjaan kode tersisa** | `md-template-dok` (klausul dipaku), `hse-rk3k` (layar+PDF) |
+
+Enam dari dua belas BUKAN kekurangan kode — dan menandainya `hidup` supaya
+angkanya bagus justru mengulang kebohongan yang penjaga ini ada untuk
+mencegahnya.
+
+### Penjaga yang merah, dan bukan dari sini
+
+`audit-modal-dialog` 41 > 37. Diukur dengan `git stash`: angkanya 41 juga
+TANPA perubahan saya. Bawaan merge CECEP. Dicatat, tidak ditambal.
