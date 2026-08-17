@@ -554,6 +554,121 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     },
   )
 
+  // ── GET /k3/insiden ──────────────────────────────────────────────────────
+  //
+  // Daftar insiden LINTAS PROYEK, dengan saringan proyek opsional.
+  //
+  // ── Kenapa endpoint ini perlu ada, padahal insiden sudah bisa dibaca
+  //
+  // Yang sudah ada semuanya BER-PROYEK: `/proyek/:id/k3` dan
+  // `/proyek/:id/k3/selaras`. Keduanya menuntut orang memilih proyek LEBIH
+  // DULU — dan itu urutan yang salah untuk pertanyaan yang paling sering
+  // ditanyakan tentang K3: *"ada kecelakaan apa belakangan ini?"*.
+  //
+  // Menu `/mutu/insiden` sudah AKTIF di sidebar sejak lama sementara
+  // halamannya tak pernah ada (diukur 2026-08-16, salah satu dari lima).
+  // Halaman itu tak bisa dibangun tanpa endpoint ini: memaksanya memanggil
+  // `/proyek/:id/k3` untuk TIAP proyek berarti 17 permintaan untuk satu
+  // layar, dan angkanya tetap tak bisa diurutkan lintas proyek.
+  //
+  // ── Kenapa daftar proyek diambil LEBIH DULU, dan saya sempat salah di sini
+  //
+  // Percobaan pertama memakai `request.db!.from('insiden_k3')` dengan alasan
+  // "pembungkus sadar-tenant sudah membatasi barisnya". Itu KELIRU, dan
+  // pembungkusnya sendiri yang menolak:
+  //
+  //     TenantDbError: 'insiden_k3' mewarisi tenancy lewat project —
+  //     pakai db.viaProject(...). Tanpa project_id, query ini akan
+  //     mengembalikan baris milik tenant lain.
+  //
+  // `insiden_k3` kategori C: ia TIDAK punya `company_id` sendiri, jadi tak ada
+  // yang bisa disaring tanpa menyebut proyeknya. Kalau penjaga itu tak ada,
+  // endpoint ini akan memulangkan insiden milik perusahaan lain — dan tak ada
+  // galat apa pun yang memberi tahu siapa pun.
+  //
+  // Jalan yang benar untuk daftar LINTAS proyek: ambil dulu id proyek milik
+  // tenant ini (`db.projectIds()`), lalu `.in('project_id', …)`. Isolasinya
+  // eksplisit, dan tetap satu query untuk seluruh proyek.
+  //
+  // ── Batas 500, dan kenapa disebut di jawabannya
+  //
+  // Baca tabel penuh yang terpotong senyap di 1.000 baris PostgREST adalah
+  // cacat yang sudah punya penjaganya sendiri (`audit-baca-tak-terpotong`).
+  // Di sini batasnya EKSPLISIT dan dilaporkan lewat `terpotong`, supaya layar
+  // bisa mengatakan "500 teratas" alih-alih diam-diam menyembunyikan sisanya.
+  app.get<{ Querystring: { proyek?: string; jenis?: string } }>(
+    '/api/v1/k3/insiden',
+    { preHandler: [authenticate, requirePermission('k3:insiden:view')] },
+    async (request, reply) => {
+      const { proyek, jenis } = request.query
+
+      if (jenis && !JENIS_SAH.includes(jenis as JenisInsiden)) {
+        return reply.status(400).send({
+          error: `jenis harus salah satu dari: ${JENIS_SAH.join(', ')}`,
+        })
+      }
+
+      const BATAS = 500
+
+      // Proyek milik tenant ini. Kalau `proyek` diminta, ia WAJIB termasuk —
+      // tanpa pemeriksaan ini, menyebut id proyek tenant lain akan
+      // memulangkan insidennya.
+      const idProyekTenant = await request.db!.projectIds()
+      if (proyek && !idProyekTenant.includes(proyek)) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+      const lingkup = proyek ? [proyek] : idProyekTenant
+
+      if (lingkup.length === 0) {
+        return reply.send({ insiden: [], jumlah: 0, terpotong: false, batas: BATAS })
+      }
+
+      let q = request.db!
+        .unsafe('insiden_k3', 'kategori C; disaring .in(project_id) ke proyek tenant di baris berikutnya')
+        .select(INSIDEN_SELECT)
+        .in('project_id', lingkup)
+        .order('tanggal', { ascending: false })
+        .limit(BATAS)
+
+      if (jenis) q = q.eq('jenis', jenis)
+
+      const { data, error } = await q
+      if (error) {
+        request.log.error({ err: error }, 'gagal memuat daftar insiden')
+        return reply.status(500).send({ error: 'Gagal memuat daftar insiden' })
+      }
+
+      const insiden = data ?? []
+
+      // Nama proyek diambil sekali untuk seluruh baris — tanpa ini layar
+      // hanya bisa menampilkan UUID, dan daftar lintas proyek yang tak
+      // menyebut proyeknya tak menjawab apa pun.
+      const idProyek = [...new Set(insiden.map((i) => i.project_id as string).filter(Boolean))]
+      let namaProyek: Record<string, string> = {}
+      if (idProyek.length > 0) {
+        const { data: pr, error: ePr } = await request.db!
+          .from('projects').select('id, name').in('id', idProyek)
+        if (ePr) {
+          // Dicatat, tidak ditelan — nama yang hilang membuat daftar tak
+          // terbaca, dan itu harus terlihat di log kalau terjadi.
+          request.log.error({ err: ePr }, 'gagal memuat nama proyek untuk daftar insiden')
+        } else {
+          namaProyek = Object.fromEntries((pr ?? []).map((p) => [p.id as string, p.name as string]))
+        }
+      }
+
+      return reply.send({
+        insiden: insiden.map((i) => ({
+          ...i,
+          proyek_nama: namaProyek[i.project_id as string] ?? null,
+        })),
+        jumlah: insiden.length,
+        terpotong: insiden.length >= BATAS,
+        batas: BATAS,
+      })
+    },
+  )
+
   // ── GET /k3/jsa ──────────────────────────────────────────────────────────
   app.get<{ Querystring: { proyek?: string } }>(
     '/api/v1/k3/jsa',

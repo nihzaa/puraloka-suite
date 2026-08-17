@@ -847,8 +847,19 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
     if (!token) return reply.status(400).send({ error: 'token wajib diisi' })
 
-    const { error } = await supabase
-      .from('perangkat_pengguna')
+    // `request.db!.unsafe(...)` dengan alasan tertulis, BUKAN `supabase`
+    // mentah — dan bedanya nyata, bukan formalitas.
+    //
+    // `perangkat_pengguna` bertaut ke `users`, bukan ke company, jadi tak ada
+    // kolom tenant yang bisa disaring pembungkusnya. Yang menjaga barisnya
+    // adalah `user_id` dari SESI di baris bawah.
+    //
+    // Memakai `supabase` mentah membuat rute ini tak terlihat oleh
+    // `audit-gerbang-tenancy` sebagai bergerbang — ia terhitung sebagai rute
+    // ke-5 tanpa gerbang dan MEMERAHKAN penjaga yang ambangnya 4. Menaikkan
+    // ambang dilarang (G-5); yang benar menyatakan saringannya di sini.
+    const { error } = await request.db!
+      .unsafe('perangkat_pengguna', 'bertaut ke users, bukan company; disaring user_id sesi di bawah')
       .delete()
       .eq('token', token)
       .eq('user_id', user.id)
