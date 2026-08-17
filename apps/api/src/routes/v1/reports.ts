@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
 import { susunCsvBupot, type BarisPajak } from '../../lib/ekspor-bupot.js'
 import { susunCsvEfaktur, type BarisFaktur } from '../../lib/ekspor-efaktur.js'
+import { susunEkspor, formatSah, FORMAT_EKSPOR } from '../../lib/ekspor-tabel.js'
 import { supabase } from '../../utils/supabase.js'
 import type { FastifyRequest } from 'fastify'
 
@@ -1144,6 +1145,132 @@ export default async function reportsRoutes(app: FastifyInstance) {
         record_count: records.length,
       },
     })
+  })
+
+  // ── GET /api/v1/reports/rekap-pajak/ekspor ───────────────────────────────
+  //
+  // Rekap pajak dalam format APA PUN: csv · xlsx · pdf · json.
+  //
+  // ── Kenapa TERPISAH dari `bupot.csv` dan `efaktur.csv`
+  //
+  // Dua endpoint itu menghasilkan berkas berSKEMA WAJIB dari DJP — susunan
+  // kolomnya ditentukan aplikasi penerima, dan mengubahnya berarti berkasnya
+  // ditolak. Menambahkan `?format=pdf` di sana akan menghasilkan PDF yang
+  // meniru skema mesin: tak terbaca manusia, dan tak diterima DJP.
+  //
+  // Yang ini kebalikannya: rekap untuk DIBACA — dikirim ke akuntan, dilampirkan
+  // ke berkas pengajuan, atau disimpan sebagai arsip. Karena itu susunannya
+  // bebas dan formatnya empat.
+  //
+  // ── Kenapa PDF ikut, padahal CSV lebih berguna untuk diolah
+  //
+  // CSV untuk MESIN, PDF untuk MANUSIA. Rekap pajak yang dikirim ke akuntan
+  // lewat WhatsApp tak berguna sebagai CSV — ia dibuka di HP, dan yang
+  // dibutuhkan halaman yang bisa dibaca apa adanya.
+  app.get('/api/v1/reports/rekap-pajak/ekspor', {
+    preHandler: [authenticate, requirePermission('finance:tax:view')],
+  }, async (request, reply) => {
+    const { project_id, date_from, date_to, format } = request.query as {
+      project_id?: string; date_from?: string; date_to?: string; format?: string
+    }
+
+    // Daftar TERTUTUP — `format` datang dari query string.
+    const fmt = formatSah(format ?? 'csv')
+    if (!fmt) {
+      return reply.status(400).send({
+        error: `Format tidak dikenal. Pilih salah satu: ${FORMAT_EKSPOR.join(', ')}.`,
+      })
+    }
+
+    const idProyek = await proyekBolehDibaca(request, project_id ?? null)
+    if (idProyek === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+    const { data: co } = await request.db!
+      .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
+      .select('name, legal_name').eq('id', request.companyId!).maybeSingle()
+
+    let q = request.db!
+      .unsafe('tax_records', 'kategori C lewat invoice_id; disaring .in(invoice.project_id) di bawah')
+      .select(`
+        id, tax_type, tax_scheme, base_amount, rate_pct, tax_amount,
+        period_month, efaktur_number, status,
+        invoice:invoices!tax_records_invoice_id_fkey (
+          invoice_number, issued_date, project_id,
+          project:projects!invoices_project_id_fkey ( name,
+            client:clients!projects_client_id_fkey ( contact_person, company_name, npwp )
+          )
+        )
+      `)
+      .order('period_month', { ascending: true })
+      .limit(5000)
+
+    if (idProyek.length > 0) q = q.in('invoice.project_id', idProyek)
+    if (date_from) q = q.gte('period_month', String(date_from).slice(0, 7))
+    if (date_to) q = q.lte('period_month', String(date_to).slice(0, 7))
+
+    const { data, error } = await q
+    if (error) {
+      request.log.error({ err: error }, 'gagal memuat rekap pajak untuk ekspor')
+      return reply.status(500).send({ error: 'Gagal memuat rekap pajak' })
+    }
+
+    type Baris = {
+      tax_type: string; tax_scheme: string | null
+      base_amount: number | string | null; rate_pct: number | string | null
+      tax_amount: number | string | null; period_month: string | null
+      efaktur_number: string | null; status: string | null
+      invoice: {
+        invoice_number?: string | null; issued_date?: string | null
+        project?: { name?: string | null; client?: { contact_person?: string | null
+          company_name?: string | null; npwp?: string | null } | null } | null
+      } | null
+    }
+
+    const baris = ((data ?? []) as Baris[])
+      .filter((r) => r.invoice)
+      .map((r) => ({
+        periode: r.period_month ?? '',
+        jenis: r.tax_type,
+        proyek: r.invoice?.project?.name ?? '',
+        klien: r.invoice?.project?.client?.company_name
+          ?? r.invoice?.project?.client?.contact_person ?? '',
+        npwp: r.invoice?.project?.client?.npwp ?? '',
+        invoice: r.invoice?.invoice_number ?? '',
+        tanggal: r.invoice?.issued_date ?? '',
+        dpp: Number(r.base_amount) || 0,
+        tarif: Number(r.rate_pct) || 0,
+        pajak: Number(r.tax_amount) || 0,
+        nomor_faktur: r.efaktur_number ?? '',
+        status: r.status ?? '',
+      }))
+
+    const hasil = await susunEkspor(fmt, {
+      judul: 'Rekap Pajak',
+      tenant: (co as { legal_name?: string; name?: string } | null)?.legal_name
+        ?? (co as { name?: string } | null)?.name ?? null,
+      keterangan: `Periode ${date_from ?? 'awal'} s.d. ${date_to ?? 'akhir'} · ${baris.length} catatan`,
+      kolom: [
+        { kunci: 'periode', judul: 'Masa', lebar: 10 },
+        { kunci: 'jenis', judul: 'Jenis', lebar: 14 },
+        { kunci: 'proyek', judul: 'Proyek', lebar: 22 },
+        { kunci: 'klien', judul: 'Klien', lebar: 22 },
+        { kunci: 'npwp', judul: 'NPWP', lebar: 18 },
+        { kunci: 'invoice', judul: 'Invoice', lebar: 18 },
+        { kunci: 'dpp', judul: 'DPP', angka: true, lebar: 16 },
+        { kunci: 'tarif', judul: 'Tarif %', angka: true, lebar: 9 },
+        { kunci: 'pajak', judul: 'Pajak', angka: true, lebar: 16 },
+        { kunci: 'nomor_faktur', judul: 'No. Faktur', lebar: 18 },
+        { kunci: 'status', judul: 'Status', lebar: 11 },
+      ],
+      baris,
+    })
+
+    return reply
+      .header('content-type', hasil.tipeKonten)
+      .header('content-disposition',
+        `attachment; filename="rekap-pajak-${date_from ?? 'awal'}-${date_to ?? 'akhir'}.${hasil.ekstensi}"`)
+      .header('x-ekspor-jumlah', String(baris.length))
+      .send(hasil.isi)
   })
 
   // ── GET /api/v1/reports/rekap-pajak/bupot.csv ────────────────────────────
