@@ -20,6 +20,7 @@ import type { Client } from 'pg'
 import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import spkRoutes from '../spk.js'
+import { teksPdf } from '../../../test-utils/teks-pdf.js'
 
 let app: FastifyInstance
 let db: Client
@@ -63,17 +64,32 @@ beforeAll(async () => {
   vi.spyOn(supabaseAuth.auth, 'getUser')
     .mockResolvedValue({ data: { user: { id: adminAuth } }, error: null } as never)
 
-  const { rows: u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [adminAuth])
-  const { rows: co } = await db.query(
-    'SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1', [u[0].id])
-  companyId = co[0].company_id
-
+  // Company dipilih yang BENAR-BENAR punya work_scope.
+  //
+  // Versi sebelumnya memakai `company_members ... LIMIT 1` tanpa ORDER BY,
+  // menyerahkan pilihannya ke Postgres. Akun uji anggota TIGA company, dan
+  // begitu yang terpilih adalah yang tanpa lingkup kerja, SELURUH berkas ini
+  // mati di setup dengan pesan "tak ada work_scope untuk diuji" — pesan yang
+  // menuduh SEED, padahal seednya baik.
+  //
+  // `companyBerisi` tak bisa dipakai apa adanya di sini: ia memeriksa kolom
+  // `company_id`, sedangkan `work_scopes` baru sampai ke company lewat
+  // mandor_assignments → projects. Jadi dipilih dengan JOIN-nya sendiri.
   const { rows: ws } = await db.query(
-    `SELECT ws.id, ws.contract_status FROM work_scopes ws
+    `SELECT ws.id, ws.contract_status, p.company_id
+       FROM work_scopes ws
        JOIN mandor_assignments ma ON ma.id = ws.assignment_id
        JOIN projects p ON p.id = ma.project_id
-      WHERE p.company_id = $1 LIMIT 1`, [companyId])
-  if (!ws.length) throw new Error('tak ada work_scope untuk diuji')
+       JOIN company_members cm ON cm.company_id = p.company_id
+       JOIN users u ON u.id = cm.user_id
+      WHERE u.auth_id = $1
+      ORDER BY ws.created_at, ws.id
+      LIMIT 1`, [adminAuth])
+  if (!ws.length) {
+    throw new Error('akun uji tak punya SATU pun work_scope di company mana pun — '
+      + 'periksa keanggotaan/seed, bukan berkas ini')
+  }
+  companyId = ws[0].company_id
   scopeId = ws[0].id
   // Status asli DISIMPAN — test ini mengubahnya lewat trigger, dan data
   // nyata tak boleh tertinggal dalam keadaan yang bukan miliknya.
@@ -341,5 +357,164 @@ describe('denda dihitung saat baca', () => {
     // Batas 5% dari 100 jt = 5 jt, jauh di bawah denda kotornya.
     expect(d.dendaTerbatas).toBe(5_000_000)
     expect(d.terkenaBatas).toBe(true)
+  })
+})
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ * MENCETAK SPK — apa yang ADA DI KERTAS, bukan apa yang ada di basis
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Diukur 2026-08-17: seluruh rantai SPK sudah ada — tabel, rute, layar, test,
+ * bahkan kolom `pdf_url`. Yang tak ada: dokumennya. `pdf_url` tersimpan tapi
+ * tak satu baris pun pernah mengisinya.
+ *
+ * Selama SPK cuma baris di basis, yang diserahkan ke subkontraktor tetap
+ * kertas yang diketik di Word — dan begitu itu terjadi, angka di layar dan
+ * angka di kertas berhenti dijamin sama.
+ *
+ * Yang diperiksa di sini ISI PDF-nya. Status 200 tetap keluar meski nilainya
+ * tak pernah digambar.
+ */
+describe('mencetak SPK', () => {
+  const cetak = (id: string) => app.inject({
+    method: 'GET', url: `/api/v1/spk/${id}.pdf`, headers: { authorization: 'Bearer t' },
+  })
+
+  it('terbit sebagai PDF ber-nama berkas', async () => {
+    const r = await cetak(dibuat[0])
+    expect(r.statusCode, r.body.slice(0, 200)).toBe(200)
+    expect(r.headers['content-type']).toContain('application/pdf')
+    expect(String(r.headers['content-disposition'])).toContain('SPK-')
+  })
+
+  it('nilai kontrak tercetak sebagai ANGKA dan HURUF', async () => {
+    // Nominal berangka bisa bergeser satu digit tanpa terlihat; huruf tidak.
+    // Itu sebabnya surat resmi memuat keduanya — dan kenapa yang dipegang
+    // saat keduanya berbeda adalah hurufnya.
+    const r = await cetak(dibuat[0])
+    const isi = teksPdf(r.rawPayload)
+    const { rows } = await db.query(
+      'SELECT nilai_kontrak FROM surat_perintah_kerja WHERE id = $1', [dibuat[0]])
+    const n = Number(rows[0].nilai_kontrak)
+    expect(n).toBeGreaterThan(0)
+
+    // Frasa PENDEK: teks PDF dirakit ulang dari pecahan operator TJ, dan
+    // kalimat panjang bisa terpotong di tengah kata.
+    expect(isi, 'kata "Terbilang" tak tercetak — nilai hanya berangka').toContain('Terbilang')
+    expect(isi, 'nilai berangka tak tercetak').toContain('NILAI PEKERJAAN')
+  })
+
+  it('denda yang TIDAK diperjanjikan tercetak sebagai kalimat, bukan kolom hilang', async () => {
+    // Kolom denda yang hilang terbaca seperti kelalaian penyusun, dan pihak
+    // yang dirugikan belakangan akan memperdebatkan apakah dendanya memang
+    // tak disepakati.
+    const r0 = await buat(isiSah({ denda_per_hari: null, denda_maks_pct: null }))
+    expect(r0.statusCode, r0.body).toBe(201)
+    const tanpaDenda = r0.json().spk.id as string
+    dibuat.push(tanpaDenda)
+
+    const isi = teksPdf((await cetak(tanpaDenda)).rawPayload)
+    expect(isi).toContain('DENDA KETERLAMBATAN')
+    expect(isi, 'denda kosong dilewati diam-diam').toContain('Tidak diperjanjikan')
+  })
+
+  it('DRAF bertanda di kepala dan TANPA blok tanda tangan', async () => {
+    // Kolom tanda tangan di atas kertas adalah undangan untuk
+    // menandatanganinya. Draf yang menyediakannya akan ditandatangani
+    // sebelum diterbitkan — dan kertas draf yang tak bisa dibedakan dari
+    // kertas final adalah kertas yang ditandatangani orang tanpa sadar.
+    const r0 = await buat(isiSah({ denda_per_hari: 100_000 }))
+    expect(r0.statusCode, r0.body).toBe(201)
+    const draf = r0.json().spk.id as string
+    dibuat.push(draf)
+
+    const isi = teksPdf((await cetak(draf)).rawPayload)
+    expect(isi, 'draf tak bertanda — tak bisa dibedakan dari dokumen final').toContain('DRAF')
+    expect(isi, 'draf menyediakan blok tanda tangan').not.toContain('Pelaksana Pekerjaan,')
+  })
+
+  it('yang SUDAH diterbitkan mendapat blok tanda tangan', async () => {
+    // Kebalikan test di atas — tanpa ini, "draf tak punya tanda tangan"
+    // tetap hijau meski TAK ADA dokumen yang pernah punya.
+    const { rows } = await db.query(
+      `SELECT id FROM surat_perintah_kerja
+        WHERE id = ANY($1) AND status IN ('diterbitkan','ditandatangani') LIMIT 1`,
+      [dibuat])
+    if (!rows.length) return
+    const isi = teksPdf((await cetak(rows[0].id)).rawPayload)
+    expect(isi).toContain('Pelaksana Pekerjaan,')
+    expect(isi).not.toContain('DRAF')
+  })
+
+  it('SPK tenant LAIN tidak bisa dicetak', async () => {
+    // UUID acak tak cukup: id yang tak ada di tabel mana pun memulangkan 404
+    // dengan ATAU tanpa saringan tenant, jadi testnya tetap hijau saat
+    // saringannya dibuang. Barisnya harus benar-benar ADA, milik orang lain.
+    // ── Lingkup kerja asing DIBUAT, bukan diharapkan ada ───────────────
+    //
+    // Versi pertama test ini MENCARI work_scope milik company lain lalu
+    // `return` diam-diam kalau tak ketemu. Diukur: hanya SATU company yang
+    // punya work_scope sama sekali — jadi test ini tak pernah menjalankan
+    // assertion-nya, dan tetap hijau saat saringan tenant dicopot.
+    // Terbukti lewat mutasi: 55 passed dengan `.eq(company_id)` dibuang.
+    //
+    // Test yang melewati dirinya sendiri lebih buruk daripada test yang
+    // tak ada: yang kedua terlihat sebagai lubang, yang pertama terlihat
+    // sebagai penjagaan.
+    const { rows: pAsing } = await db.query(
+      'SELECT id, company_id FROM projects WHERE company_id <> $1 LIMIT 1', [companyId])
+    if (!pAsing.length) throw new Error('basis uji tak punya company kedua — saringan tenant mustahil diuji')
+
+    // Rantainya dibangun utuh: assignment → work_scope → SPK, semuanya
+    // milik company asing.
+    const { rows: mandorAsing } = await db.query(
+      `SELECT id FROM users WHERE id IN (SELECT user_id FROM company_members
+        WHERE company_id = $1) LIMIT 1`, [pAsing[0].company_id])
+    if (!mandorAsing.length) throw new Error('company kedua tanpa anggota — rantai uji tak bisa dibangun')
+
+    // Assignment DIPAKAI ULANG bila sudah ada: pasangan (project, mandor)
+    // unik, dan memaksa yang baru hanya menabrak batasan tanpa menguji
+    // apa pun. Yang dibuat sendiri dicatat supaya dibersihkan; yang
+    // dipinjam TIDAK boleh ikut terhapus.
+    const { rows: maAda } = await db.query(
+      'SELECT id FROM mandor_assignments WHERE project_id = $1 LIMIT 1', [pAsing[0].id])
+    let maBuatan: string | null = null
+    let maId: string
+    if (maAda.length) {
+      maId = maAda[0].id
+    } else {
+      const { rows: maBaru } = await db.query(
+        `INSERT INTO mandor_assignments (project_id, mandor_id, status, assigned_by)
+         VALUES ($1, $2, 'active', $3) RETURNING id`,
+        [pAsing[0].id, mandorAsing[0].id, mandorAsing[0].id])
+      maId = maBaru[0].id
+      maBuatan = maId
+    }
+    const { rows: wsAsing } = await db.query(
+      `INSERT INTO work_scopes (assignment_id, scope_name, payment_system,
+                                borongan_value, status)
+       VALUES ($1, $2, 'borongan', 1000000, 'active') RETURNING id`,
+      [maId, `${TANDA} scope tenant lain`])
+
+    const { rows: ins } = await db.query(
+      `INSERT INTO surat_perintah_kerja
+         (company_id, project_id, work_scope_id, nomor, lingkup_kerja,
+          nilai_kontrak, tanggal_terbit, tanggal_mulai, tanggal_selesai,
+          status, diterbitkan_oleh)
+       VALUES ($1, $2, $3, $4, $5, 1000000, CURRENT_DATE, CURRENT_DATE,
+               CURRENT_DATE + 30, 'diterbitkan', $6) RETURNING id`,
+      [pAsing[0].company_id, pAsing[0].id, wsAsing[0].id,
+        `${TANDA}-ASING-${Date.now()}`, `${TANDA} milik tenant lain`, mandorAsing[0].id])
+
+    try {
+      const r = await cetak(ins[0].id)
+      expect(r.statusCode, 'SPK tenant lain BISA dicetak — kebocoran dokumen').toBe(404)
+    } finally {
+      await db.query('DELETE FROM surat_perintah_kerja WHERE id = $1', [ins[0].id])
+      await db.query('DELETE FROM work_scopes WHERE id = $1', [wsAsing[0].id])
+      // Hanya yang DIBUAT di sini yang dihapus.
+      if (maBuatan) await db.query('DELETE FROM mandor_assignments WHERE id = $1', [maBuatan])
+    }
   })
 })

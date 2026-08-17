@@ -42,6 +42,7 @@ import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
+import { TombolUnduh } from "@/components/tombol-unduh";
 
 type StatusSpk = "draf" | "diterbitkan" | "ditandatangani" | "dibatalkan";
 
@@ -391,6 +392,29 @@ function KartuSpk({ spk: s, bolehKelola, bolehTtd, sibuk, onTerbitkan, onTtd, on
           bisa={bolehKelola && (s.status === "draf" || s.status === "diterbitkan")}
           sibuk={sibuk}
           onKlik={() => onTtd("pelaksana")}
+        />
+      </div>
+
+      {/* ── Cetak: tersedia untuk SEMUA status, termasuk yang terkunci ────
+          Baris aksi di bawah menyembunyikan diri saat SPK sudah
+          ditandatangani atau dibatalkan — dan justru dua status itulah yang
+          paling sering perlu dicetak ulang (diserahkan ke subkon, dilampirkan
+          ke penagihan, dijadikan bukti pembatalan). Jadi cetak punya barisnya
+          sendiri, tak ikut disembunyikan.
+          Draf pun boleh dicetak: menolaknya memaksa orang menyusunnya di Word
+          untuk dibahas lebih dulu, dan yang dibahas di Word itulah yang
+          akhirnya ditandatangani. Kertas drafnya bertanda "DRAF" dan tanpa
+          blok tanda tangan. */}
+      <div style={{
+        padding: "10px var(--pad-kartu-lega)",
+        display: "flex", justifyContent: "flex-end",
+      }}>
+        <TombolUnduh
+          jalur={`/api/v1/spk/${s.id}.pdf`}
+          jalurTetap
+          format={["pdf"]}
+          namaBerkas={`SPK-${s.nomor ?? s.id}`}
+          label="Cetak"
         />
       </div>
 
