@@ -25,6 +25,8 @@ const post = (url: string, payload: unknown) =>
   app.inject({ method: 'POST', url, payload: payload as never, headers: { authorization: 'Bearer t' } })
 const del = (url: string) =>
   app.inject({ method: 'DELETE', url, headers: { authorization: 'Bearer t' } })
+const get = (url: string) =>
+  app.inject({ method: 'GET', url, headers: { authorization: 'Bearer t' } })
 
 // Verbatim 3.6.1.1 + harga ilustrasi SE (fixture price book, BUKAN harga nyata).
 const KOEF: Record<string, [category: string, unit: string, koef: number, harga: number]> = {
@@ -197,14 +199,92 @@ describe('POST /estimate-versions/:id/items — GOLDEN dari assembly × price bo
   })
 })
 
+/**
+ * GET /estimate-items/:itemId/explain
+ *
+ * ── Kenapa test ini ada (2026-08-16)
+ *
+ * Rute ini memulangkan 404 untuk SETIAP item — termasuk item yang jelas-jelas
+ * ada — selama entah berapa lama. Sebabnya `.select()` menyebut dua kolom yang
+ * TIDAK PERNAH ADA di `estimate_items`: `description` dan `unit`. SELECT gagal,
+ * `item` jadi undefined, lalu penjaga di bawahnya menyimpulkan "Item tidak
+ * ditemukan".
+ *
+ * Yang membuatnya bertahan: 404-nya MASUK AKAL — ada cabang sah yang memang
+ * memulangkan 404 untuk item milik tenant lain — dan NOL test menyentuh rute
+ * ini. Kegagalannya menyamar jadi perilaku normal, dan fitur yang jadi janji
+ * inti modul ("setiap rupiah bisa ditelusuri") tak pernah sekali pun berhasil.
+ *
+ * Test ini mengunci yang paling penting: item yang ADA harus 200, bukan 404.
+ */
+describe('GET /estimate-items/:itemId/explain — telusur angka', () => {
+  it('item yang ada → 200 + rantai langkah, BUKAN 404', async () => {
+    actAs(adminAuth)
+    const tambah = await post(`/api/v1/estimate-versions/${versionId}/items`,
+      { ...BODY, assembly_id: assemblyId })
+    expect(tambah.statusCode).toBe(201)
+    const itemId = tambah.json().item?.id ?? tambah.json().id
+
+    const res = await get(`/api/v1/estimate-items/${itemId}/explain`)
+    // Regresi utama: kolom hantu membuat ini 404.
+    expect(res.statusCode).toBe(200)
+
+    const d = res.json().data
+    expect(d.itemId).toBe(itemId)
+    // Nama datang dari assemblies, bukan dari kolom `description` yang tak ada.
+    expect(d.nama).toBeTruthy()
+    expect(d.nama).not.toBe('(tanpa nama)')
+    expect(Number(d.volume)).toBe(10)
+    // Rantai penjelasannya berisi — bukan cangkang kosong.
+    expect(Array.isArray(d.langkah)).toBe(true)
+    expect(d.langkah.length).toBeGreaterThan(0)
+  })
+
+  it('item tak dikenal → 404 (cabang sah, tetap harus jalan)', async () => {
+    actAs(adminAuth)
+    const res = await get(
+      '/api/v1/estimate-items/00000000-0000-0000-0000-0000000000ff/explain')
+    expect(res.statusCode).toBe(404)
+  })
+})
+
 describe('DELETE /estimate-versions/:id/items/:itemId', () => {
-  it('hapus item → total versi di-recompute ke 0', async () => {
+  /*
+    SELURUH item dihapus, bukan yang pertama saja.
+
+    Versi lama menghapus `rows[0]` lalu menuntut `version_total === 0` — benar
+    hanya selama versi ini punya TEPAT SATU item. Asumsi itu patah begitu
+    describe `explain` di atas ditambahkan (2d9229a9): ia menambah item kedua,
+    sehingga sesudah menghapus satu masih tersisa 2.783.000 dan test merah.
+
+    Yang diuji sebenarnya adalah **recompute**-nya: total versi mengikuti isi,
+    bukan angka yang tersimpan lepas. Menghapus semua item menguji itu tanpa
+    bergantung pada berapa banyak test di atasnya membuat item — dan tanpa
+    bergantung pada URUTAN eksekusi, yang tak dijamin.
+
+    Total DIPERIKSA di tiap langkah, bukan cuma di akhir: kalau recompute
+    berhenti bekerja di tengah, yang terlihat harus langkah yang salah, bukan
+    sekadar "angka akhirnya bukan nol".
+  */
+  it('hapus semua item → total versi di-recompute ke 0', async () => {
     actAs(adminAuth)
     const { rows } = await client.query(
-      `SELECT id FROM estimate_items WHERE estimate_version_id=$1`, [versionId])
+      `SELECT id FROM estimate_items WHERE estimate_version_id=$1 ORDER BY id`, [versionId])
     expect(rows.length).toBeGreaterThan(0)
-    const res = await del(`/api/v1/estimate-versions/${versionId}/items/${rows[0].id}`)
-    expect(res.statusCode).toBe(200)
-    expect(res.json().version_total).toBe(0)
+
+    let terakhir: number | null = null
+    for (const r of rows) {
+      const res = await del(`/api/v1/estimate-versions/${versionId}/items/${r.id}`)
+      expect(res.statusCode).toBe(200)
+      terakhir = res.json().version_total
+      expect(terakhir).not.toBeNull()
+    }
+    expect(terakhir).toBe(0)
+
+    // Basis ikut diperiksa: `version_total` yang benar di respons tetapi
+    // salah di tabel adalah kegagalan yang tak terlihat dari API mana pun.
+    const { rows: sisa } = await client.query(
+      `SELECT total_amount FROM estimate_versions WHERE id=$1`, [versionId])
+    expect(Number(sisa[0].total_amount)).toBe(0)
   })
 })

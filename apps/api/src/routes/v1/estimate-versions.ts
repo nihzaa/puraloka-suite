@@ -97,7 +97,34 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       // (lewat estimate_version_id), jadi kepemilikannya diperiksa di sana.
       const { data: item } = await request.db!
         .unsafe('estimate_items', 'kategori C lewat estimate_version_id; dicek versiMilikTenant di bawah')
-        .select('id, description, unit, quantity, price_date, hsp_snapshot, estimate_version_id')
+        /*
+          ── KOLOM `description` DAN `unit` TIDAK PERNAH ADA. Diukur 2026-08-16.
+
+          Baris ini dulu berbunyi:
+
+              .select('id, description, unit, quantity, price_date, …')
+
+          `estimate_items` tak punya keduanya (`introspect.mjs columns`):
+
+              id · estimate_version_id · cost_code_id · assembly_id ·
+              cbs_node_id · wbs_node_id · quantity · amount · sort_order ·
+              notes · created_at · price_date · price_location ·
+              hsp_snapshot · provenance_captured
+
+          Akibatnya SELECT gagal, `item` undefined, dan penjaganya di bawah
+          menyimpulkan "Item tidak ditemukan" — 404 untuk SETIAP item, termasuk
+          item yang jelas-jelas ada. Di layar terbaca "Gagal memuat penjelasan".
+
+          Yang membuatnya bertahan: 404-nya terlihat MASUK AKAL (ada cabang
+          yang memang memulangkan 404 untuk item milik tenant lain), dan tak
+          ada satu pun test menyentuh rute ini. Fitur "kenapa angkanya segini?"
+          — janji inti modul ini — tak pernah sekali pun berhasil.
+
+          Nama & satuan diambil dari analisanya (`assemblies`), tempat data itu
+          sebenarnya tinggal; item lump-sum memakai `notes`.
+        */
+        .select(`id, quantity, price_date, hsp_snapshot, estimate_version_id, notes,
+                 assembly:assemblies(name, output_unit_code)`)
         .eq('id', itemId)
         .maybeSingle()
 
@@ -105,9 +132,13 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Item tidak ditemukan' })
       }
 
+      const asm = (item as { assembly?: { name?: string; output_unit_code?: string } | null }).assembly
+      const nama = asm?.name ?? (item.notes as string | null) ?? '(tanpa nama)'
+      const satuan = asm?.output_unit_code ?? null
+
       const hasil = jelaskanItem(item.hsp_snapshot as HspSnapshot | null, {
-        namaItem: item.description ?? '(tanpa nama)',
-        satuan: item.unit ?? null,
+        namaItem: nama,
+        satuan,
         volume: item.quantity == null ? null : Number(item.quantity),
         priceDate: item.price_date ?? null,
       })
@@ -115,8 +146,8 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       return reply.send({
         data: {
           itemId: item.id,
-          nama: item.description,
-          satuan: item.unit,
+          nama,
+          satuan,
           volume: item.quantity == null ? null : Number(item.quantity),
           ...hasil,
         },
@@ -192,6 +223,115 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       return reply.send({
         estimate_version_id: id, status: v.status,
         baseline_total: Number(v.total_amount) || 0, periods, forecast,
+      })
+    })
+
+  /*
+    ── GET /estimate-versions — DAFTAR RAB lintas proyek ─────────────────────
+
+    Kenapa endpoint ini ada, padahal 16 endpoint estimasi lainnya sudah cukup
+    untuk MENGERJAKAN satu RAB.
+
+    Seluruh modul ini di-key oleh id: buka versi X, ubah item Y. Itu melayani
+    orang yang SUDAH TAHU RAB mana yang dicarinya. Yang tak pernah dilayani:
+    "RAB apa saja yang kami punya, dan mana yang perlu saya lanjutkan?" —
+    pertanyaan yang dibawa orang saat membuka menunya, bukan saat sudah di
+    dalam satu dokumen.
+
+    Diukur 2026-08-16: 208 skenario dan 2.221 versi tersimpan, dan TAK SATU
+    PUN tampil di layar mana pun. Datanya ada, jalan masuknya tidak. Ikhtisar
+    /estimasi menampilkan daftar PROYEK sebagai gantinya — sehingga proyek yang
+    RAB-nya sudah Rp 4,8 M terlihat persis sama dengan yang masih kosong.
+
+    Bentuk jawabannya sengaja SATU BARIS PER VERSI, bukan per proyek:
+    membandingkan dua penawaran untuk proyek yang sama adalah pekerjaan nyata
+    di sini (itu guna `scenarios`), dan pengelompokan per proyek justru
+    menyembunyikannya.
+  */
+  app.get<{ Querystring: { limit?: string } }>(
+    '/api/v1/estimate-versions',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
+    async (request, reply) => {
+      // Gerbang tenancy T4g: saring lewat skenario milik tenant, bukan
+      // memercayai id yang dikirim. Tanpa ini daftar membocorkan seluruh RAB
+      // tenant lain sekaligus — kebocoran terluas yang mungkin di modul ini.
+      const skenarioIds = await skenarioIdsTenant(request)
+      if (skenarioIds.length === 0) return reply.send({ data: [] })
+
+      // Batas eksplisit: `audit-baca-tak-terpotong` menolak baca tabel penuh
+      // yang bisa terpotong senyap di 1.000 baris PostgREST. 2.221 versi sudah
+      // melewatinya hari ini, jadi batasnya ditulis, bukan diwariskan.
+      const limit = Math.max(1, Math.min(500, Number(request.query.limit) || 200))
+
+      const { data, error } = await supabase
+        .from('estimate_versions')
+        .select(`id, version_number, status, total_amount, created_at, edition_id,
+                 scenario:scenarios!inner(id, name, project_id)`)
+        .in('scenario_id', skenarioIds)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+      if (error) return reply.status(500).send({ error: error.message })
+
+      const baris = data ?? []
+
+      /*
+        PostgREST memulangkan relasi kadang sebagai OBJEK, kadang sebagai
+        ARRAY berisi satu — bergantung bagaimana ia menyimpulkan kardinalitas
+        embed. `versiMilikTenant` di berkas ini sudah menangani hal yang sama;
+        pola itu diangkat jadi satu helper supaya tak ditebak dua kali.
+
+        Kalau ini dilewatkan, `sc.project_id` bernilai undefined pada bentuk
+        array — dan akibatnya BUKAN galat melainkan daftar yang nama proyeknya
+        kosong seluruhnya.
+      */
+      const satu = <T,>(v: T | T[] | null | undefined): T | undefined =>
+        (Array.isArray(v) ? v[0] : v) ?? undefined
+      type ScenarioEmbed = { id: string; name: string; project_id: string }
+
+      // Nama proyek & kode edisi diambil sekali untuk seluruh daftar, bukan
+      // per baris: 200 baris × 2 query = 400 perjalanan bolak-balik, dan
+      // halaman daftar adalah tempat paling sering dibuka di modul ini.
+      const projectIds = [...new Set(baris
+        .map((r) => satu(r.scenario as ScenarioEmbed | ScenarioEmbed[] | null)?.project_id)
+        .filter((x): x is string => Boolean(x)))]
+      const editionIds = [...new Set(baris
+        .map((r) => r.edition_id).filter((x): x is string => Boolean(x)))]
+
+      const [proyekRes, edisiRes] = await Promise.all([
+        projectIds.length
+          ? supabase.from('projects').select('id, name').in('id', projectIds)
+          : Promise.resolve({ data: [], error: null }),
+        editionIds.length
+          ? supabase.from('ahsp_editions').select('id, code').in('id', editionIds)
+          : Promise.resolve({ data: [], error: null }),
+      ])
+      if (proyekRes.error) return reply.status(500).send({ error: proyekRes.error.message })
+      if (edisiRes.error) return reply.status(500).send({ error: edisiRes.error.message })
+
+      const namaProyek = new Map((proyekRes.data ?? []).map((p) => [p.id, p.name]))
+      const kodeEdisi = new Map((edisiRes.data ?? []).map((e) => [e.id, e.code]))
+
+      return reply.send({
+        data: baris.map((r) => {
+          const sc = satu(r.scenario as ScenarioEmbed | ScenarioEmbed[] | null)
+          return {
+            id: r.id,
+            version_number: r.version_number,
+            status: r.status,
+            // `total_amount` numeric datang sebagai string dari PostgREST.
+            // Dikirim sebagai number supaya UI tak menjumlahkan teks —
+            // dan null TETAP null, bukan 0: RAB yang belum dihitung dan RAB
+            // yang benar-benar nol rupiah adalah dua keadaan berbeda.
+            total_amount: r.total_amount == null ? null : Number(r.total_amount),
+            created_at: r.created_at,
+            scenario_id: sc?.id ?? null,
+            scenario_name: sc?.name ?? null,
+            project_id: sc?.project_id ?? null,
+            project_name: sc ? (namaProyek.get(sc.project_id) ?? null) : null,
+            edition_code: r.edition_id ? (kodeEdisi.get(r.edition_id) ?? null) : null,
+          }
+        }),
+        meta: { jumlah: baris.length, batas: limit, terpotong: baris.length === limit },
       })
     })
 
