@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
 import { susunKop, kunciLogo, BUCKET_LOGO, type IdentitasTenant } from '../../lib/kop-dokumen.js'
+import { gabungKlausul, type Klausul } from '../../lib/klausul-kontrak.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 // Storage bukan query tabel, jadi pembungkus sadar-tenant tak berlaku.
 // Isolasinya dijaga `kunciLogo()`: kunci DIBANGUN dari `request.companyId`,
@@ -119,6 +120,27 @@ function pasal(ctx: DocContext, num: string, title: string) {
   ctx.doc.font('Helvetica-Bold').fontSize(10)
     .text(title, MARGIN, ctx.y, { width: CONTENT_W, align: 'center' })
   ctx.y = ctx.doc.y + 8
+}
+
+/**
+ * Mencetak satu pasal dari klausul gabungan (bawaan + timpaan tenant).
+ *
+ * ── Kenapa nomor dicari, bukan diurut
+ *
+ * Pasal yang menganyam data (2,3,4,5,7) tetap dirakit kode di antara
+ * pemanggilan ini, jadi urutan cetaknya ditentukan posisi di fungsi — bukan
+ * oleh isi array. Mencari per nomor membuat keduanya bisa berselang-seling
+ * tanpa salah satu memaksakan urutannya pada yang lain.
+ *
+ * Kalau nomornya tak ditemukan, TIDAK mencetak apa pun — dan itu disengaja.
+ * Judul pasal tanpa badan adalah kertas yang terlihat lengkap padahal
+ * kewajibannya hilang; lebih baik pasalnya absen dan terlihat absen.
+ */
+function cetakKlausul(ctx: DocContext, daftar: Klausul[], nomor: string) {
+  const k = daftar.find((x) => x.nomor === nomor)
+  if (!k) return
+  pasal(ctx, k.nomor, k.judul)
+  paragraph(ctx, k.isi)
 }
 
 function drawTable(
@@ -304,6 +326,27 @@ export default async function contractRoutes(app: FastifyInstance) {
 
       const kop = susunKop(perusahaan as IdentitasTenant | null)
 
+      // ── Klausul: bawaan produk, ditimpa milik tenant ───────────────────────
+      //
+      // Gagal memuat TIDAK menghentikan pencetakan — `gabungKlausul([])`
+      // memulangkan bawaan penuh, jadi kontraknya tetap terbit dengan pasal
+      // standar. Dokumen yang tak bisa terbit jauh lebih merugikan daripada
+      // dokumen berpasal bawaan, dan alasan yang sama sudah dipakai untuk kop
+      // dan logo di berkas ini.
+      //
+      // Galatnya tetap DICATAT: klausul tenant yang diam-diam tak terpakai
+      // berarti kontrak berbunyi berbeda dari yang disepakati penasihat
+      // hukumnya, dan tak ada yang memberi tahu siapa pun.
+      const { data: klausulTenant, error: eKlausul } = await request.db!
+        .from('klausul_kontrak')
+        .select('nomor, judul, isi, urutan')
+        .eq('aktif', true)
+        .order('urutan', { ascending: true })
+      if (eKlausul) {
+        request.log.error({ err: eKlausul }, 'klausul tenant gagal dimuat, memakai bawaan')
+      }
+      const klausul = gabungKlausul((klausulTenant ?? []) as Klausul[])
+
       // ── Build PDF ──────────────────────────────────────────────────────────
 
       const doc = new PDFDocument({ size: 'A4', margin: MARGIN, autoFirstPage: true })
@@ -436,9 +479,7 @@ export default async function contractRoutes(app: FastifyInstance) {
         `Kedua belah pihak sepakat untuk mengikatkan diri dalam Kontrak Pekerjaan ${proj.name} yang terletak di ${proj.location}, dengan ketentuan dan syarat-syarat sebagai berikut:`)
 
       // ── PASAL 1 ──────────────────────────────────────────────────────────
-      pasal(ctx, '1', 'MAKSUD DAN TUJUAN')
-      paragraph(ctx,
-        'Kontrak ini bermaksud untuk mengatur pelaksanaan pekerjaan pembangunan/renovasi oleh PIHAK KEDUA sesuai dengan gambar rencana, spesifikasi teknis, dan Rencana Anggaran Biaya (RAB) yang telah disetujui oleh PIHAK PERTAMA.')
+      cetakKlausul(ctx, klausul, '1')
 
       // ── PASAL 2 ──────────────────────────────────────────────────────────
       pasal(ctx, '2', 'LINGKUP PEKERJAAN')
@@ -598,19 +639,13 @@ export default async function contractRoutes(app: FastifyInstance) {
       })
 
       // ── PASAL 9 ──────────────────────────────────────────────────────────
-      pasal(ctx, '9', 'PENYELESAIAN PERSELISIHAN')
-      paragraph(ctx,
-        'Apabila terjadi perselisihan antara PIHAK PERTAMA dan PIHAK KEDUA dalam pelaksanaan kontrak ini, kedua belah pihak sepakat untuk menyelesaikannya secara musyawarah untuk mufakat. Apabila musyawarah tidak mencapai kesepakatan, maka penyelesaian perselisihan akan diselesaikan melalui jalur hukum yang berlaku sesuai peraturan perundang-undangan Republik Indonesia.')
+      cetakKlausul(ctx, klausul, '9')
 
       // ── PASAL 10 ─────────────────────────────────────────────────────────
-      pasal(ctx, '10', 'FORCE MAJEURE')
-      paragraph(ctx,
-        'Yang dimaksud dengan force majeure dalam kontrak ini adalah kejadian-kejadian di luar kemampuan dan kekuasaan para pihak yang mempengaruhi pelaksanaan kewajiban, antara lain: bencana alam (gempa bumi, banjir, tanah longsor), kebakaran, huru-hara, pandemi, perang, dan kebijakan pemerintah yang secara langsung mempengaruhi pelaksanaan pekerjaan. Pihak yang mengalami force majeure wajib memberitahukan kepada pihak lainnya selambat-lambatnya 7 (tujuh) hari kalender sejak kejadian tersebut berlangsung.')
+      cetakKlausul(ctx, klausul, '10')
 
       // ── PASAL 11 ─────────────────────────────────────────────────────────
-      pasal(ctx, '11', 'PENUTUP')
-      paragraph(ctx,
-        'Kontrak ini dibuat rangkap 2 (dua) bermaterai cukup, masing-masing mempunyai kekuatan hukum yang sama, ditandatangani oleh kedua belah pihak dalam keadaan sadar dan tanpa paksaan dari pihak manapun, serta berlaku sejak tanggal ditandatangani.')
+      cetakKlausul(ctx, klausul, '11')
 
       // ── Footer tanda tangan ───────────────────────────────────────────────
       gap(ctx, 20)

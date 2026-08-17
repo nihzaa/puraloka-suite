@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 265 tabel · A=11 · AB=16 · ANCHOR=1 · B=112 · C=118 · D=7
+// 266 tabel · A=11 · AB=17 · ANCHOR=1 · B=113 · C=117 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -141,6 +141,7 @@ export const PETA_TENANCY = {
   'kebutuhan_sumber_daya': { kategori: 'B' },
   'klaim_perjalanan': { kategori: 'B' },
   'klaim_perjalanan_item': { kategori: 'C', lewat: 'klaim_id' },  // klaim_perjalanan_item.klaim_id
+  'klausul_kontrak': { kategori: 'B' },
   'kontrak': { kategori: 'B' },
   'kontrak_payung': { kategori: 'B' },
   'kontrak_payung_item': { kategori: 'B' },
@@ -272,7 +273,7 @@ export const PETA_TENANCY = {
   'tanda_tangan_elektronik': { kategori: 'B' },
   'tarif_payroll_baris': { kategori: 'C', lewat: 'periode_id' },  // tarif_payroll_baris.periode_id
   'tarif_payroll_periode': { kategori: 'B' },
-  'tax_records': { kategori: 'C', lewat: 'invoice_id' },  // tax_records.invoice_id → invoices.project_id
+  'tax_records': { kategori: 'AB' },
   'temuan_audit': { kategori: 'C', lewat: 'audit_id' },  // temuan_audit.audit_id → audit_mutu.project_id
   'temuan_k3': { kategori: 'C', lewat: 'inspeksi_id' },  // temuan_k3.inspeksi_id → inspeksi_k3.project_id
   'tender_subkon': { kategori: 'C', lewat: 'project_id' },  // tender_subkon.project_id

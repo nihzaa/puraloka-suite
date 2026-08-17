@@ -21,7 +21,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, companyBerisi } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import { inflateSync } from 'node:zlib'
 import contractRoutes from '../contracts.js'
@@ -98,10 +98,11 @@ beforeAll(async () => {
   vi.spyOn(supabaseAuth.auth, 'getUser')
     .mockResolvedValue({ data: { user: { id: auth } }, error: null } as never)
 
-  const { rows: u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [auth])
-  const { rows: co } = await db.query(
-    'SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1', [u[0].id])
-  companyId = co[0].company_id
+  // Company dipilih yang BENAR-BENAR punya proyek. Akun uji anggota TIGA
+  // company, dan `LIMIT 1` tanpa `ORDER BY` menyerahkan pilihannya ke
+  // Postgres — sempat memilih yang kosong, lalu seluruh test gagal dengan
+  // "Proyek tidak ditemukan" yang menuduh SEED, padahal seednya baik.
+  companyId = await companyBerisi(db, auth, ['projects'])
 
   // Proyek dipilih menurut SYARAT: harus punya klien dan nilai kontrak,
   // karena PDF-nya menolak terbit tanpa keduanya.
@@ -272,5 +273,79 @@ describe('logo di PDF kontrak', () => {
     const r = await get(`/api/v1/projects/${projectId}/contracts/generate`)
     expect(r.statusCode, r.body.slice(0, 200)).toBe(200)
     expect(r.rawPayload.length).toBeGreaterThan(1000)
+  })
+})
+
+/**
+ * KLAUSUL TENANT benar-benar tercetak di PDF — bukan sekadar tersimpan.
+ *
+ * Yang HANYA bisa dijawab di sini: bunyi pasal yang disunting tenant sampai
+ * ke kertas. Tersimpan di basis tapi tak tercetak adalah bentuk kegagalan
+ * paling mudah lolos — layar Pengaturan menampilkan teks barunya, kontrak
+ * yang terbit memakai bawaan, dan tak ada galat di mana pun.
+ */
+describe('klausul tenant di PDF kontrak', () => {
+  const TANDA = 'SENGKETA LEWAT BANI BANDUNG [UJI-KLAUSUL]'
+
+  afterAll(async () => {
+    await db.query(`DELETE FROM klausul_kontrak WHERE isi LIKE '%[UJI-KLAUSUL]%'`)
+  })
+
+  it('bawaan tercetak saat tenant belum menyunting apa pun', async () => {
+    await db.query(`DELETE FROM klausul_kontrak WHERE company_id = $1`, [companyId])
+    const r = await get(`/api/v1/projects/${projectId}/contracts/generate`)
+    expect(r.statusCode, r.body.slice(0, 200)).toBe(200)
+
+    const isi = teksPdf(r.rawPayload)
+    // Tenant BARU tak boleh berakhir tanpa pasal penyelesaian sengketa.
+    expect(isi, 'pasal sengketa bawaan tak tercetak').toContain('PENYELESAIAN PERSELISIHAN')
+    expect(isi, 'pasal force majeure bawaan tak tercetak').toContain('FORCE MAJEURE')
+  })
+
+  it('klausul tenant MENIMPA bunyi bawaan di kertas', async () => {
+    await db.query(
+      `INSERT INTO klausul_kontrak (company_id, nomor, judul, isi, urutan)
+       VALUES ($1, '9', 'PENYELESAIAN PERSELISIHAN', $2, 90)`,
+      [companyId, TANDA])
+
+    const r = await get(`/api/v1/projects/${projectId}/contracts/generate`)
+    expect(r.statusCode).toBe(200)
+
+    const isi = teksPdf(r.rawPayload)
+    // Inti seluruh fitur: yang disunting tenant SAMPAI ke kertas.
+    expect(isi, 'klausul tenant tersimpan tapi TIDAK tercetak').toContain(TANDA)
+    // Dan bunyi bawaannya benar-benar tergantikan, bukan tercetak berdua.
+    expect(isi).not.toContain('musyawarah untuk mufakat')
+  })
+
+  it('pasal bawaan LAIN tetap tercetak meski satu ditimpa', async () => {
+    // Menimpa pasal 9 tak boleh membuat pasal 10 hilang — kontrak tanpa
+    // force majeure membebankan seluruh risiko bencana ke satu pihak.
+    const r = await get(`/api/v1/projects/${projectId}/contracts/generate`)
+    const isi = teksPdf(r.rawPayload)
+    expect(isi).toContain('FORCE MAJEURE')
+    expect(isi).toContain('MAKSUD DAN TUJUAN')
+  })
+
+  it('klausul tenant NONAKTIF tidak dipakai', async () => {
+    await db.query(
+      `UPDATE klausul_kontrak SET aktif = FALSE WHERE isi LIKE '%[UJI-KLAUSUL]%'`)
+    const r = await get(`/api/v1/projects/${projectId}/contracts/generate`)
+    const isi = teksPdf(r.rawPayload)
+    expect(isi, 'versi nonaktif ikut tercetak — riwayat bocor ke kontrak baru')
+      .not.toContain(TANDA)
+
+    // Dan pasalnya KEMBALI, bukan hilang bersama versi yang dinonaktifkan.
+    //
+    // Yang diperiksa JUDULNYA, bukan kalimat di badan pasal: `teksPdf`
+    // menyusun ulang teks dari potongan hex per-operator TJ, dan kalimat
+    // panjang bisa terpecah di tengah kata. Judul pendek dan tercetak
+    // sebagai satu operator, jadi ia penanda yang bisa dipercaya.
+    //
+    // Ini pilihan sadar untuk TIDAK melonggarkan harapan: yang dijaga tetap
+    // "pasalnya ada kembali", hanya penandanya yang dipilih supaya alat
+    // ukurnya tak jadi sumber kegagalan palsu.
+    expect(isi, 'pasal sengketa HILANG sesudah versinya dinonaktifkan')
+      .toContain('PENYELESAIAN PERSELISIHAN')
   })
 })
