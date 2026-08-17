@@ -24678,3 +24678,63 @@ uji-rute-id-tak-basi        invarian lapisan utuh
 audit-kredensial-tak-bocor  exit=0
 8 penjaga visual            exit=0
 ```
+
+---
+
+## 2026-08-17 — Master Data tertutup middleware, dan lima nomor migrasi dilepas
+
+### Tiga menu yang "belum jadi" ternyata sudah jadi, dua kali
+
+Founder mengeklik Template WBS, Data Kepegawaian, dan Penomoran Dokumen —
+ketiganya balik ke dashboard. Halamannya ADA: 718, 760, dan 404 baris, hidup
+sejak 2026-08-12.
+
+DUA cacat berbeda menumpuk di tiga menu yang sama:
+
+1. **`menu_items.kesiapan` basi** (`rencana` untuk halaman hidup) → titik abu
+   di sidebar. Ditutup migrasi 439.
+2. **`/master` hilang dari `ROLE_ALLOWED.admin`** → middleware melempar ke
+   dashboard SEBELUM halaman dimuat.
+
+Yang kedua paling jahat karena TAK ADA galat sama sekali. Orang menyimpulkan
+modulnya belum jadi — dan kesimpulan itu masuk akal, karena titik abunya pun
+berkata begitu.
+
+Jebakannya halus: `/m` ADA di daftar, tapi `cocokRute` mencocokkan di batas
+segmen, jadi `/m` tak pernah mencakup `/master`.
+
+Diukur sesudah diperbaiki — 153 menu aktif × 34 prefiks izin: **nol tertutup**.
+
+### Titik kesiapan bisa bohong DUA ARAH
+
+439 membetulkan titik yang sejak awal salah. 440 membetulkan titik yang BARU
+jadi salah — empat halaman dibangun 2026-08-17 karena menunya 404, dan
+membangun halaman TIDAK otomatis memperbarui `kesiapan`. Sengaja dipisah
+supaya riwayatnya menyimpan kedua sebab itu.
+
+`/tender/penawaran` sengaja tetap `rencana`; halamannya memang belum ada di
+branch ini.
+
+### Halaman baru "mepet" — penjaganya ada tapi buta
+
+111 dari 143 halaman memakai pembungkus baku. Empat halaman yang saya buat
+melewatkannya seluruhnya. `uji-lebar-responsif.mjs` hijau sepanjang waktu
+karena ia hanya memeriksa TIGA halaman yang dipaku.
+
+Sesudah diperbaiki keempatnya mengukur identik dengan `/mutu/ncr`.
+
+### Lima nomor migrasi dilepas — merge-nya BERHENTI
+
+406-410 di `feat/kematangan-modul` bentrok dengan berkas lain bernomor sama
+yang SUDAH tercatat di buku. Dinomori ulang ke **441-445**, termasuk nomor di
+dalam berkasnya (header + RAISE) supaya pesan galatnya tak menyesatkan.
+
+**Merge-nya sendiri BERHENTI di syarat §8a.1 nomor satu.** Bukan karena
+worktree seberang — di worktree INI ada 11 berkas belum di-commit milik sesi
+lain (`judul-halaman.tsx` sedang ditambahi `useSearchParams` + `MENU_CACHE_KEY`,
+`companies.ts` +29 baris). `git merge` menolak menimpanya, dan meng-commit
+atau men-stash pekerjaan orang lain bukan wewenang saya.
+
+Penomoran ulangnya sudah aman ter-commit di branch seberang (`0ee9022f`), jadi
+merge bisa dijalankan kapan saja sesudah berkas-berkas itu di-commit
+pemiliknya.
