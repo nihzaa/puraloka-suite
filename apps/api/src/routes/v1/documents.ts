@@ -3,6 +3,9 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { validateMime } from '../../utils/mime.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
+import {
+  nilaiRevisiDokumen, periksaRevisi, nomorRevisiBerikut,
+} from '../../lib/revisi-dokumen.js'
 
 const BUCKET = 'project-documents'
 const ALLOWED_TYPES = [
@@ -20,6 +23,7 @@ const MAX_SIZE_MB = 20
 const SELECT_FIELDS = `
   id, project_id, title, doc_type, file_url,
   file_size_kb, file_extension, version, is_visible_to_client,
+  revisi, menggantikan_id,
   uploaded_by, uploaded_at, created_at,
   uploader:users!documents_uploaded_by_fkey ( id, name )
 `
@@ -74,7 +78,33 @@ export default async function documentRoutes(app: FastifyInstance) {
         return reply.status(500).send({ error: 'Gagal mengambil data dokumen' })
       }
 
-      return reply.send({ data: data ?? [] })
+      // ── Status revisi: DITURUNKAN, bukan dibaca dari kolom ───────────────
+      //
+      // Kolom `status` hanya benar kalau ada yang ingat memperbaruinya saat
+      // revisi baru terbit. Yang tak pernah lupa: memeriksa apakah ADA baris
+      // lain yang menunjuk baris ini sebagai yang digantikannya.
+      //
+      // ⚠ Dinilai atas SELURUH hasil query, dan itu berarti saringan peran di
+      // atas ikut menentukan. Untuk `client` yang hanya melihat sebagian
+      // dokumen, "rev-1 dari 3" bisa terbaca "rev-1 dari 1" — tetapi itu
+      // memang keadaan yang benar BAGI DIA: revisi yang tak boleh ia lihat
+      // tak boleh pula diberitahukan keberadaannya.
+      const { hasil } = nilaiRevisiDokumen(
+        (data ?? []) as unknown as Array<{ id: string; title: string; menggantikan_id?: string | null }>)
+      const peta = new Map(hasil.map((h) => [h.dokumen.id, h]))
+
+      return reply.send({
+        data: (data ?? []).map((d) => {
+          const h = peta.get((d as { id: string }).id)
+          return {
+            ...d,
+            digantikan: h?.digantikan ?? false,
+            digantikan_oleh: h?.digantikan_oleh ?? null,
+            revisi_hitung: h?.revisi ?? 1,
+            revisi_terkini: h?.revisi_terkini ?? 1,
+          }
+        }),
+      })
     }
   )
 
@@ -88,6 +118,14 @@ export default async function documentRoutes(app: FastifyInstance) {
       file_base64: string
       file_name: string
       file_type: string
+      /**
+       * Dokumen yang digantikan unggahan ini. Kosong = dokumen baru.
+       *
+       * Sebelum ini, unggah ulang menghasilkan dua baris berjudul sama tanpa
+       * satu pun tautan di antaranya — dan daftar dokumen menampilkan keduanya
+       * sebagai dokumen terpisah tanpa cara tahu mana yang BERLAKU.
+       */
+      menggantikan_id?: string | null
     }
   }>(
     '/api/v1/projects/:projectId/documents/upload',
@@ -103,10 +141,40 @@ export default async function documentRoutes(app: FastifyInstance) {
       if (!(await proyekMilikTenant(request, projectId))) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
-      const { title, doc_type, is_visible_to_client, file_base64, file_name } = request.body
+      const {
+        title, doc_type, is_visible_to_client, file_base64, file_name, menggantikan_id,
+      } = request.body
 
       if (!title?.trim()) return reply.status(400).send({ error: 'Judul dokumen wajib diisi' })
       if (!file_base64) return reply.status(400).send({ error: 'File tidak ditemukan' })
+
+      // ── Revisi: diperiksa SEBELUM berkasnya diunggah ─────────────────────
+      //
+      // Urutan ini bukan selera. Mengunggah dulu lalu menolak berarti berkas
+      // yatim tertinggal di storage — dan yang membersihkannya tak pernah ada.
+      let revisiBaru = 1
+      if (menggantikan_id) {
+        const { data: induk } = await request.db!
+          .viaProject('documents', projectId)
+          .select('id, title, project_id, revisi, menggantikan_id')
+          .eq('id', menggantikan_id)
+          .maybeSingle()
+
+        const { data: penerus } = await request.db!
+          .viaProject('documents', projectId)
+          .select('id')
+          .eq('menggantikan_id', menggantikan_id)
+          .maybeSingle()
+
+        const v = periksaRevisi({
+          induk: induk as { id: string; title: string; project_id?: string } | null,
+          projectId,
+          sudahDigantikan: !!penerus,
+        })
+        if (!v.ok) return reply.status(409).send({ error: v.galat })
+
+        revisiBaru = nomorRevisiBerikut(induk as { revisi?: number | null } | null)
+      }
 
       const buffer = Buffer.from(file_base64, 'base64')
       if (buffer.byteLength > MAX_SIZE_MB * 1024 * 1024) {
@@ -149,6 +217,14 @@ export default async function documentRoutes(app: FastifyInstance) {
           file_size_kb:         Math.ceil(buffer.byteLength / 1024),
           file_extension:       ext,
           is_visible_to_client: is_visible_to_client ?? false,
+          menggantikan_id:      menggantikan_id || null,
+          revisi:               revisiBaru,
+          // `version` (VARCHAR bebas, bawaan '1.0') DIBIARKAN apa adanya.
+          //
+          // Ia sudah dipakai data lama dan tak punya constraint apa pun —
+          // menimpanya dengan nomor revisi berarti mengubah arti kolom yang
+          // sudah terlanjur diisi orang dengan "Rev A", "final", "v2 fix".
+          // Nomor yang bisa dipercaya ada di `revisi`.
           uploaded_by:          request.currentUser!.id,
         })
         .select(SELECT_FIELDS)
