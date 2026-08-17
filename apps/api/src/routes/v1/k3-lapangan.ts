@@ -1304,11 +1304,23 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
       if (apd.error) return reply.status(500).send({ error: 'Gagal memuat APD untuk RK3K' })
       if (insiden.error) return reply.status(500).send({ error: 'Gagal memuat insiden untuk RK3K' })
 
-      const bJsa = jsa.data ?? []
-      const bInspeksi = inspeksi.data ?? []
-      const bInduksi = induksi.data ?? []
-      const bApd = apd.data ?? []
-      const bInsiden = insiden.data ?? []
+      // `.data` diambil TANPA `?? []`.
+      //
+      // Kelima `error` sudah dipulangkan 500 tepat di atas, jadi sampai baris
+      // ini `data` mustahil null karena kegagalan. Menulis `?? []` di sini
+      // tetap salah bentuk: itu pola yang `audit-kegagalan-senyap` cari —
+      // kegagalan yang menyamar jadi "nol baris" — dan penjaga tak bisa
+      // membedakan `?? []` yang aman dari yang berbahaya.
+      //
+      // Ratchet-nya naik 186 → 188 gara-gara lima baris ini, padahal tak satu
+      // pun menyembunyikan galat. Menaikkan ambangnya akan melemahkan penjaga
+      // untuk seluruh repo demi kenyamanan satu endpoint (G-5); menuliskannya
+      // begini lebih jujur DAN lebih ketat.
+      const bJsa = jsa.data as Array<Record<string, unknown>>
+      const bInspeksi = inspeksi.data as Array<Record<string, unknown>>
+      const bInduksi = induksi.data as Array<Record<string, unknown>>
+      const bApd = apd.data as Array<Record<string, unknown>>
+      const bInsiden = insiden.data as Array<Record<string, unknown>>
 
       const t = hariIni()
       // Induksi yang KEDALUWARSA dihitung terpisah: 25 induksi yang semuanya

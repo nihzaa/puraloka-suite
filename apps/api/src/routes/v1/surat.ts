@@ -173,13 +173,20 @@ export default async function suratRoutes(app: FastifyInstance) {
         return reply.status(500).send({ error: 'Gagal memuat daftar proyek' })
       }
 
-      const namaProyek = new Map(
-        (proyek ?? []).map((p) => [(p as { id: string }).id, (p as { name: string }).name]))
+      // `.data` diambil TANPA `?? []` — `errProyek` sudah dipulangkan 500 di
+      // atas, jadi sampai baris ini ia mustahil null karena kegagalan.
+      //
+      // `?? []` di sini bukan cuma mubazir, ia SALAH BENTUK: itu persis pola
+      // yang `audit-kegagalan-senyap` cari (kegagalan menyamar jadi "nol
+      // baris"), dan penjaga tak bisa membedakan yang aman dari yang
+      // berbahaya. Ratchet-nya naik 186 → 188 karena dua baris ini.
+      const barisProyek = proyek as Array<{ id: string; name: string }>
+      const namaProyek = new Map(barisProyek.map((p) => [p.id, p.name]))
 
       const surat = lengkapiBatas((data ?? []) as BarisSurat[], hariIniWIB())
         .map((s) => ({ ...s, project_name: namaProyek.get(s.project_id ?? '') ?? '—' }))
 
-      return reply.send({ data: surat, proyek: proyek ?? [], ringkas: ringkasSurat(surat) })
+      return reply.send({ data: surat, proyek: barisProyek, ringkas: ringkasSurat(surat) })
     },
   )
 
