@@ -209,8 +209,18 @@ export function Btn({ children, variant = "primary", loading, ...props }: {
   variant?: "primary" | "secondary" | "danger";
   loading?: boolean;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  // Tombol utama memakai GRADASI, sama dengan seluruh aplikasi.
+  //
+  // Sebelumnya `C.navy` rata. Bedanya halus per tombol, tetapi seluruh modul
+  // pengadaan (8 halaman) jadi satu-satunya wilayah yang tombol utamanya
+  // terlihat berbeda dari modul lain — dan yang berpindah antar modul
+  // membacanya sebagai dua aplikasi yang ditempel, bukan satu.
+  //
+  // `--on-aksen` menggantikan `--surface`: teks tombol harus dipasangkan
+  // dengan latar tombolnya, bukan dengan latar kartu. Keduanya kebetulan
+  // sama-sama terang di mode terang, dan BERBEDA di mode gelap.
   const styles = {
-    primary:   { background: C.navy,     color: "var(--surface)", border: "none" },
+    primary:   { background: "var(--grad-aksen)", color: "var(--on-aksen)", border: "none" },
     secondary: { background: C.surface,  color: C.text,           border: `1px solid ${C.border}` },
     danger:    { background: C.dangerBg, color: C.danger,         border: `1px solid ${C.danger}` },
   };

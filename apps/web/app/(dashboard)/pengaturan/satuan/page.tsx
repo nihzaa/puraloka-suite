@@ -162,7 +162,7 @@ function AddUnitCard({ existing, onDone, onError }: { existing: UnitRow[]; onDon
   if (!open) {
     return (
       <button onClick={() => setOpen(true)}
-        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", marginBottom: 18, borderRadius: 10, border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "8px 16px", marginBottom: 18, borderRadius: 10, border: "none", background: "var(--grad-aksen)", color: "var(--on-aksen)", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
         <Plus size={15} /> Tambah Satuan
       </button>
     );

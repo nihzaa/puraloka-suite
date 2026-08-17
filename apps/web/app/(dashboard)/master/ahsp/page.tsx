@@ -273,9 +273,25 @@ function KatalogTab() {
           jumlah data sesungguhnya, sehingga posisi scroll terasa wajar.
           Saat data sedikit (<60), virtualisasi mati sendiri dan daftarnya
           dirender apa adanya. */}
+      {/* Tinggi mengikuti LAYAR, bukan 560px dipaku.
+          560px menghasilkan kotak yang berhenti di tengah baris lalu
+          meninggalkan ruang kosong di bawahnya — daftarnya terlihat
+          menggantung, dan di layar tinggi separuh jendela terbuang. Yang
+          dikurangi (300px) adalah tinggi kepala halaman + pencarian +
+          penyaring di atasnya; `min()` menjaga daftar pendek tak ikut
+          diregangkan. */}
       <div ref={pasangKatalog} style={{
         display: "grid", gap: 8,
-        ...(vkOff ? {} : { maxHeight: 560, overflowY: "auto" as const, paddingRight: 4 }),
+        ...(vkOff ? {} : {
+          maxHeight: "calc(100vh - 300px)",
+          minHeight: 320,
+          overflowY: "auto" as const,
+          paddingRight: 4,
+          // Ruang bawah supaya baris terakhir tak menempel tepi kotak —
+          // baris yang terpotong rata di tepi terbaca seperti data yang
+          // hilang, bukan seperti daftar yang sudah habis.
+          paddingBottom: 4,
+        }),
       }}>
         {vkTop > 0 && <div style={{ height: vkTop }} aria-hidden="true" />}
         {terlihat.slice(vkMulai, vkAkhir).map(a => {

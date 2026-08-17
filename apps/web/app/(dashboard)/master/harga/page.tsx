@@ -762,10 +762,55 @@ function NewPriceModal({ initial, onClose, onDone }: {
     <Modal title="Entry Harga Baru (lahir draft)" onClose={onClose}>
       {label("Cari resource")}
       <input className="isian-fokus" style={GAYA_ISIAN} value={query} onChange={e => setQuery(e.target.value)} placeholder="ketik nama resource… mis. semen" />
-      <select className="isian-fokus" aria-label="Pilih resource" style={{ ...GAYA_ISIAN, marginTop: 6 }} size={6} value={resourceCode} onChange={e => setResourceCode(e.target.value)}>
-        {resources.map(r => <option key={r.code} value={r.code}>{r.name} ({r.code}, per {r.unit_code})</option>)}
-        {resources.length === 0 && <option value="" disabled>— tidak ada hasil —</option>}
-      </select>
+      {/* Daftar pilihan digambar sendiri, BUKAN `<select size={6}>`.
+          `size={6}` menyerahkan penggambarannya ke sistem operasi: baris
+          terpilih memakai biru bawaan Windows yang tak ada hubungannya dengan
+          palet aplikasi, sudutnya siku, dan di mode gelap teksnya nyaris tak
+          terbaca. Satu-satunya tempat di seluruh aplikasi yang tampak seperti
+          dialog Windows 98.
+          Yang menggantikannya tetap sebuah daftar ber-keyboard: `role=listbox`
+          + `aria-selected`, jadi pembaca layar membacanya sama seperti
+          sebelumnya. */}
+      <div
+        role="listbox"
+        aria-label="Pilih resource"
+        style={{
+          marginTop: 6, maxHeight: 168, overflowY: "auto",
+          border: `1px solid ${C.border}`, borderRadius: 8,
+          background: "var(--surface)",
+        }}
+      >
+        {resources.length === 0 && (
+          <div style={{ padding: "10px 12px", fontSize: 12.5, color: C.muted }}>
+            — tidak ada hasil —
+          </div>
+        )}
+        {resources.map(r => {
+          const dipilih = r.code === resourceCode;
+          return (
+            <button
+              key={r.code}
+              type="button"
+              role="option"
+              aria-selected={dipilih}
+              onClick={() => setResourceCode(r.code)}
+              style={{
+                display: "block", width: "100%", textAlign: "left",
+                padding: "8px 12px", fontSize: 12.5, lineHeight: 1.45,
+                border: "none", cursor: "pointer",
+                background: dipilih ? "var(--aksen-lembut)" : "transparent",
+                color: dipilih ? "var(--aksen)" : C.text,
+                fontWeight: dipilih ? 600 : 400,
+              }}
+            >
+              {r.name}
+              <span style={{ color: dipilih ? "var(--aksen)" : C.muted, fontWeight: 400 }}>
+                {" "}({r.code}, per {r.unit_code})
+              </span>
+            </button>
+          );
+        })}
+      </div>
       {label("Harga (Rp)")}
       <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={amount} onChange={e => setAmount(e.target.value)} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>

@@ -171,7 +171,13 @@ export default function KaryawanPage() {
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 14px", borderRadius: 8, fontSize: 13, fontWeight: 600,
                 border: "none",
-                background: calon.length === 0 ? "var(--surface-subtle)" : "var(--aksen)",
+                // Gradasi, sama dengan tombol aksi utama di seluruh aplikasi.
+                // `var(--aksen)` rata membuat tombol ini terlihat berbeda dari
+                // "Buat" yang berdiri beberapa sentimeter di atasnya, di layar
+                // yang SAMA — dan dua tombol utama bergaya berbeda dalam satu
+                // pandangan terbaca sebagai dua tingkat kepentingan yang
+                // sebenarnya tak ada.
+                background: calon.length === 0 ? "var(--surface-subtle)" : "var(--grad-aksen)",
                 color: calon.length === 0 ? C.muted : "var(--on-aksen)",
                 cursor: calon.length === 0 ? "not-allowed" : "pointer",
               }}
