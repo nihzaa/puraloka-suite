@@ -5,6 +5,102 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-17 (sesi CECEP-UI, 3) — merge ke 3000, dan tiga cacat yang hanya muncul saat halamannya BERISI
+
+Lanjutan sesi 2. Founder: *"gabungkan aja ke 3000"*, lalu *"lanjutkan sampe
+rombak modul cecep ini selesai"*.
+
+### Merge: 4 konflik di worktree, 0 konflik ke checkout utama
+
+Cabang `feat/cecep-ui-rombak` tertinggal 40 commit dari induknya. Induk
+di-merge masuk lebih dulu (4 konflik), baru cabangnya digabungkan ke checkout
+utama — dan yang kedua nol konflik karena yang pertama sudah membereskannya.
+
+| Konflik | Keputusan |
+|---|---|
+| `estimasi/page.tsx` | versi cabang, seluruhnya — itu justru pekerjaan yang di-merge |
+| `middleware.ts` | isi daftar IDENTIK, ambil komentar induk (menjelaskan sebab `cocokRute`) |
+| `peta-menu.ts` | **DIGABUNG** — catatan terbaru dari induk + href baru dari cabang |
+| `JOURNAL.md` | **KEDUA sisi disimpan** — dokumen ini append-only |
+
+Hipotesis harness sesi 2 terbukti: test CECEP **25 merah → 2** begitu
+`rls-harness.ts` ikut ter-merge. Nol baris kode CECEP disentuh untuk itu.
+
+### Tiga cacat yang lolos SEMUA potret sebelumnya
+
+Sesi 2 memotret lima halaman dan menyatakan hijau. Ketiganya keadaan KOSONG.
+Begitu dipotret dengan proyek terpilih + RAB berisi:
+
+1. **`?versi=` diabaikan** — daftar RAB menautkan baris tertentu, halaman
+   hanya membaca `proyek`. Klik satu RAB → mendarat di daftar pilihan lagi.
+   Ini membatalkan separuh guna opsi C.
+2. **Empat revisi terlihat identik** — pil "Revisi 1–4" hanya menyebut nomor,
+   padahal satu berisi Rp 20.056.000 dan tiga lainnya nol. `total_amount`
+   SUDAH dikirim API, hanya tak pernah diketik di `VersiRingkas`.
+3. **"edisi [object Object]"** — terpampang di bawah TOTAL RAB, tepat di
+   sebelah angka yang jadi dasar penawaran.
+
+**Pelajarannya:** potret keadaan kosong membuktikan halaman tidak crash, bukan
+halamannya benar. Tiga cacat ini semuanya di jalur yang paling sering dipakai,
+dan tak satu pun terlihat sampai ada datanya.
+
+Nomor 3 kelas cacat yang **sudah tercatat di berkas yang sama** untuk
+`assembly`/`cost_code` — tebakan "medan datar" yang lolos `tsc` lalu merender
+"—". Ia terulang karena yang dicatat waktu itu *kejadiannya*, bukan *polanya*.
+Kali ini disapu: nol pola serupa tersisa di seluruh modul.
+
+### Penjaga a11y menuntut perbaikan yang MERUSAK
+
+`a11y-ratchet` merah: "select tanpa nama" di `kendali-dokumen-aksi.tsx:54`.
+Diperiksa — kontrolnya justru sudah benar (`<label htmlFor={id}>` +
+`<select id={id}>`, cara paling benar karena labelnya juga terlihat).
+
+Penjaga sudah punya pengecualian untuk pola itu, tetapi hanya mengenali
+`id="literal"` dan ``id={`tpl-${x}`}`` — bukan `id={id}` variabel polos.
+"Perbaikan" yang dituntutnya (menambah `aria-label`) akan membuat NAMA GANDA:
+pembaca layar mengumumkan aria-label dan mengabaikan label terlihat.
+
+Penjaganya yang diperbaiki, dan tetap ketat — dibuktikan **dua** mutasi:
+select tanpa nama → MERAH, dan `htmlFor={idLain}` → MERAH.
+
+### Nomor migrasi bentrok, dan G-2 yang menahan tangan saya
+
+Sesi lain menomori ulang dua migrasi CECEP saya (442→448, 443→449). Yang
+ketiga (444) tidak ikut, jadi komentarnya menunjuk migrasi orang lain.
+
+Saya sempat me-rename-nya ke 451 supaya urutan nomor mengikuti sebab-akibat.
+Lalu diukur ke buku migrasi: **444 SUDAH TERCATAT**. Memindahkannya berarti
+buku menyebut berkas yang tak ada — Gerbang Keras G-2. Rename dibatalkan.
+
+Konsekuensinya (444 berjalan sebelum 449 yang ia perbaiki) **diuji**, bukan
+diasumsikan: replay urutan-nomor 441→444→448→449 dalam satu transaksi
+ber-ROLLBACK terhadap Postgres nyata — keempatnya lolos blok verifikasinya,
+hasil akhir persis benar.
+
+### Yang TIDAK saya sentuh
+
+Sesi lain aktif menulis selama sesi ini (`laporan/page.tsx` + `tombol-unduh`,
+`contracts.ts`, `klausul-kontrak`). `tsc` melaporkan 3 error `TombolUnduh`
+milik pekerjaan setengah jalan itu — dibiarkan, dan disebut eksplisit di
+commit supaya tak terbaca sebagai cacat CECEP.
+
+5 test `price-book` merah: diperiksa `git log`, nol sentuhan dari commit saya.
+
+### Bukti
+
+```
+next build                exit 0
+tsc (berkas CECEP)        nol error
+17 penjaga visual         17/17 HIJAU
+  termasuk a11y-ratchet MERAH → HIJAU (2 mutasi terbukti)
+  dan audit-nav-yatim MERAH → HIJAU (4 link mati hilang saat merge)
+test CECEP                144 lulus / 5 gagal — kelimanya price-book (warisan)
+layar                     /estimasi · /estimasi/rab (berisi) · /rap · /kas ·
+                          /varians · /master/ahsp — dipotret di :3000
+```
+
+---
+
 ## 2026-08-17 (sesi CECEP-UI, 2) — worktree yatim yang ternyata hampir jadi, dan tujuh cacat yang hanya terlihat dari layar
 
 Founder bertanya *"rombak halaman modul CECEP sudah sampai mana?"*. Jawaban
