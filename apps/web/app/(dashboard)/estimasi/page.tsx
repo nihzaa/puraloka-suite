@@ -263,7 +263,16 @@ function IsiIkhtisar() {
         }}
       >
         Analisa AHSP dan price book kini berada di{" "}
-        <Link href="/master/ahsp" style={{ color: C.aksen }}>
+        {/* DIGARISBAWAHI, bukan hanya diwarnai. Tautan di TENGAH paragraf yang
+            hanya dibedakan warna melanggar WCAG 1.4.1 — yang buta warna tak
+            melihat ada tautan di sini sama sekali, dan satu-satunya jalan ke
+            Master Data dari halaman ini jadi tak terlihat.
+            Tautan yang berdiri SENDIRI (baris/tombol sendiri) tak kena aturan
+            ini; yang di dalam blok teks kena. */}
+        <Link
+          href="/master/ahsp"
+          style={{ color: C.aksen, textDecoration: "underline" }}
+        >
           Master&nbsp;Data
         </Link>{" "}
         — keduanya dipakai lintas proyek, jadi bukan bagian dari pekerjaan satu

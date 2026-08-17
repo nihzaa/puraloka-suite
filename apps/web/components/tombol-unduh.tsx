@@ -51,6 +51,8 @@ export function TombolUnduh({
   namaBerkas,
   format = ["csv", "xlsx", "pdf"],
   label = "Unduh",
+  jalurTetap = false,
+  nonaktif = false,
 }: {
   /** Jalur endpoint TANPA `?format=` — ditambahkan komponen ini. */
   jalur: string;
@@ -58,6 +60,18 @@ export function TombolUnduh({
   namaBerkas: string;
   format?: FormatUnduh[];
   label?: string;
+  /**
+   * Endpoint yang formatnya sudah ada DI JALURNYA (mis. `/k3/rk3k.pdf`),
+   * bukan lewat `?format=`.
+   *
+   * Alternatifnya membuat tiap endpoint dokumen tunggal menerima `?format=`
+   * yang hanya punya satu nilai sah — parameter yang berpura-pura menawarkan
+   * pilihan padahal tidak. Yang mengirim `?format=csv` ke pencetak RK3K akan
+   * menerima PDF, dan tak ada yang memberitahunya.
+   */
+  jalurTetap?: boolean;
+  /** Dinonaktifkan (mis. proyek belum dipilih). */
+  nonaktif?: boolean;
 }) {
   const [sibuk, setSibuk] = useState<FormatUnduh | null>(null);
   const [galat, setGalat] = useState<string | null>(null);
@@ -69,7 +83,8 @@ export function TombolUnduh({
     setKabar(null);
     try {
       const pemisah = jalur.includes("?") ? "&" : "?";
-      const r = await api.get(`${jalur}${pemisah}format=${f}`, { responseType: "blob" });
+      const alamat = jalurTetap ? jalur : `${jalur}${pemisah}format=${f}`;
+      const r = await api.get(alamat, { responseType: "blob" });
 
       // Server bisa membalas JSON galat dengan status 200-an palsu? Tidak —
       // tapi ia BISA membalas 422 (mis. belum PKP), dan axios melemparkannya
@@ -123,14 +138,14 @@ export function TombolUnduh({
           <button
             key={f}
             onClick={() => unduh(f)}
-            disabled={sibuk !== null}
+            disabled={sibuk !== null || nonaktif}
             style={{
               display: "inline-flex", alignItems: "center", gap: 5,
               minHeight: 34, padding: "0 12px", fontSize: 12, fontWeight: 600,
               borderRadius: 7, border: `1px solid ${C.border}`,
               background: "var(--surface)", color: C.text,
-              cursor: sibuk ? "wait" : "pointer",
-              opacity: sibuk && sibuk !== f ? 0.5 : 1,
+              cursor: nonaktif ? "not-allowed" : sibuk ? "wait" : "pointer",
+              opacity: nonaktif || (sibuk && sibuk !== f) ? 0.5 : 1,
             }}
           >
             {sibuk === f

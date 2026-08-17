@@ -1,6 +1,12 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
+import PDFDocument from 'pdfkit'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { supabase } from '../../utils/supabase.js'
+import {
+  siapkanKop, gambarKop, KOLOM_IDENTITAS, BUCKET_LOGO,
+} from '../../lib/gambar-kop.js'
+import type { IdentitasTenant } from '../../lib/kop-dokumen.js'
 import {
   rekapInsiden, hitungTrir, hitungInsidenSubkon, periksaSelaras,
   ringkasJsa, rekapTemuan, statusInduksi, rekapApd, rekapLingkungan,
@@ -1259,19 +1265,28 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
   // Angka gabungan menyembunyikan bagian yang NOL. Proyek dengan induksi 25
   // dan JSA nol akan terlihat "83% siap" — padahal yang hilang justru dokumen
   // yang paling ditagih auditor. Tiap bagian berdiri sendiri.
-  app.get<{ Params: { id: string } }>(
-    '/api/v1/proyek/:id/k3/rk3k',
-    { preHandler: [authenticate, requirePermission('k3:inspeksi:view')] },
-    async (request, reply) => {
-      const { id } = request.params
-
+  //
+  // ── Kenapa perakitannya jadi fungsi, bukan badan endpoint
+  //
+  // RK3K punya DUA pintu: JSON untuk layar, PDF untuk dokumen tender. Kalau
+  // masing-masing merakit rangkumannya sendiri, keduanya akan berbeda begitu
+  // satu bagian ditambah — dan yang dibaca di layar bukan yang tercetak di
+  // kertas yang ditandatangani. Cacat seperti itu tak punya gejala sampai
+  // seseorang membandingkan keduanya berdampingan.
+  async function rakitRk3k(
+    request: FastifyRequest,
+    id: string,
+  ): Promise<
+    | { ok: false; status: number; pesan: string }
+    | { ok: true; hasil: Record<string, unknown> }
+  > {
       const { data: proyek, error: eProy } = await request.db!
         .from('projects').select('id, name, location').eq('id', id).maybeSingle()
       if (eProy) {
         request.log.error({ err: eProy, id }, 'gagal memuat proyek untuk RK3K')
-        return reply.status(500).send({ error: 'Gagal memuat proyek' })
+        return { ok: false, status: 500, pesan: 'Gagal memuat proyek' }
       }
-      if (!proyek) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      if (!proyek) return { ok: false, status: 404, pesan: 'Proyek tidak ditemukan' }
 
       // Kelima sumber dibaca BERSAMAAN — RK3K adalah potret satu waktu, dan
       // bagian yang diambil pada detik berbeda membuat rangkumannya tak
@@ -1298,11 +1313,11 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
       // akan gagal tanpa suara, lalu `?? []` mengubahnya jadi "nol baris"
       // yang sah. RK3K yang melaporkan NOL induksi padahal ada 25 adalah
       // dokumen yang menuduh proyeknya lalai.
-      if (jsa.error) return reply.status(500).send({ error: 'Gagal memuat JSA untuk RK3K' })
-      if (inspeksi.error) return reply.status(500).send({ error: 'Gagal memuat inspeksi untuk RK3K' })
-      if (induksi.error) return reply.status(500).send({ error: 'Gagal memuat induksi untuk RK3K' })
-      if (apd.error) return reply.status(500).send({ error: 'Gagal memuat APD untuk RK3K' })
-      if (insiden.error) return reply.status(500).send({ error: 'Gagal memuat insiden untuk RK3K' })
+      if (jsa.error) return { ok: false, status: 500, pesan: 'Gagal memuat JSA untuk RK3K' }
+      if (inspeksi.error) return { ok: false, status: 500, pesan: 'Gagal memuat inspeksi untuk RK3K' }
+      if (induksi.error) return { ok: false, status: 500, pesan: 'Gagal memuat induksi untuk RK3K' }
+      if (apd.error) return { ok: false, status: 500, pesan: 'Gagal memuat APD untuk RK3K' }
+      if (insiden.error) return { ok: false, status: 500, pesan: 'Gagal memuat insiden untuk RK3K' }
 
       // `.data` diambil TANPA `?? []`.
       //
@@ -1358,18 +1373,253 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
 
       const kosong = bagian.filter((b) => b.jumlah === 0).map((b) => b.judul)
 
-      return reply.send({
-        proyek: { id: proyek.id, nama: proyek.name, lokasi: proyek.location },
-        tanggal: t,
-        bagian,
-        bagian_kosong: kosong,
-        siap_disusun: kosong.length === 0,
-        catatan_kesiapan: kosong.length === 0
-          ? 'Seluruh bagian punya isi. RK3K bisa disusun dari catatan nyata.'
-          : `${kosong.length} bagian belum punya catatan sama sekali: ${kosong.join(', ')}. `
-            + 'Menyusun RK3K sekarang berarti mengarang bagian itu — dan dokumen '
-            + 'yang dikarang justru jadi bukti bahwa K3-nya administratif belaka.',
+      return {
+        ok: true,
+        hasil: {
+          proyek: { id: proyek.id, nama: proyek.name, lokasi: proyek.location },
+          tanggal: t,
+          bagian,
+          bagian_kosong: kosong,
+          siap_disusun: kosong.length === 0,
+          catatan_kesiapan: kosong.length === 0
+            ? 'Seluruh bagian punya isi. RK3K bisa disusun dari catatan nyata.'
+            : `${kosong.length} bagian belum punya catatan sama sekali: ${kosong.join(', ')}. `
+              + 'Menyusun RK3K sekarang berarti mengarang bagian itu — dan dokumen '
+              + 'yang dikarang justru jadi bukti bahwa K3-nya administratif belaka.',
+          // Hanya dipakai pencetak: lampiran daftar nama/nomor. Layar
+          // menampilkan hitungannya, kertas tender menuntut daftarnya.
+          rinci: { jsa: bJsa, inspeksi: bInspeksi, induksi: bInduksi, apd: bApd, insiden: bInsiden },
+        },
+      }
+  }
+
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/proyek/:id/k3/rk3k',
+    { preHandler: [authenticate, requirePermission('k3:inspeksi:view')] },
+    async (request, reply) => {
+      const r = await rakitRk3k(request, request.params.id)
+      if (!r.ok) return reply.status(r.status).send({ error: r.pesan })
+      // `rinci` TIDAK dikirim ke layar: sampai 300 baris induksi per proyek,
+      // dan layarnya hanya menampilkan hitungan. Yang tak ditampilkan tak
+      // perlu diangkut.
+      const { rinci: _rinci, ...untukLayar } = r.hasil
+      return reply.send(untukLayar)
+    },
+  )
+
+  // ── GET /proyek/:id/k3/rk3k.pdf ──────────────────────────────────────────
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA DOKUMEN INI BOLEH TERBIT WALAU BELUM SIAP
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Godaannya menolak mencetak saat `siap_disusun` false — supaya tak ada
+  // RK3K setengah jadi yang beredar.
+  //
+  // Ditolak, karena penolakan itu justru mendorong hasil yang lebih buruk:
+  // orang yang tendernya besok dan ditolak sistem akan menyusunnya di Word,
+  // di luar jangkauan aplikasi ini, dan mengarang bagian yang kosong tanpa
+  // seorang pun tahu. Yang hilang bukan cuma catatannya — hilang juga
+  // kesempatan memberi tahu bahwa bagian itu kosong.
+  //
+  // Jadi dokumennya TERBIT, dan bagian yang kosong dicetak sebagai
+  // "BELUM ADA CATATAN" dengan latar bertanda, bukan dibiarkan sebagai
+  // ruang kosong yang mengundang diisi tangan. Halaman terakhir memuat
+  // pernyataan cakupan: ini rangkuman dari catatan yang ADA per tanggal
+  // cetak, bukan pernyataan bahwa K3-nya lengkap.
+  //
+  // Pemeriksa yang menerima kertas ini bisa melihat sendiri mana yang
+  // dipertanggungjawabkan dan mana yang belum — dan itu lebih jujur daripada
+  // dokumen rapi yang tak menyebut apa-apa tentang kekosongannya.
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/proyek/:id/k3/rk3k.pdf',
+    { preHandler: [authenticate, requirePermission('k3:inspeksi:view')] },
+    async (request, reply) => {
+      const r = await rakitRk3k(request, request.params.id)
+      if (!r.ok) return reply.status(r.status).send({ error: r.pesan })
+
+      const h = r.hasil as any
+      const proyek = h.proyek as { nama: string; lokasi: string | null }
+      const bagian = h.bagian as Array<{
+        kunci: string; judul: string; jumlah: number; catatan: string | null; arti: string
+      }>
+      const rinci = h.rinci as Record<string, Array<Record<string, unknown>>>
+
+      const { kop, logo } = await siapkanKop({
+        companyId: request.companyId!,
+        ambilIdentitas: async () => {
+          const { data } = await request.db!
+            .unsafe('companies', 'identitas penerbit dokumen; disaring ke companyId di baris berikutnya')
+            .select(KOLOM_IDENTITAS).eq('id', request.companyId!).maybeSingle()
+          return data as IdentitasTenant | null
+        },
+        unduh: async (kunci) => {
+          const { data: blob, error } = await supabase.storage.from(BUCKET_LOGO).download(kunci)
+          if (error) {
+            request.log.warn({ err: error, kunci }, 'logo tak terunduh, RK3K dicetak tanpa logo')
+            return null
+          }
+          return blob ? Buffer.from(await blob.arrayBuffer()) : null
+        },
+        log: request.log,
       })
+
+      const M = 55
+      const doc = new PDFDocument({ size: 'A4', margin: M, autoFirstPage: true })
+      const W = doc.page.width - M * 2
+      const chunks: Buffer[] = []
+      doc.on('data', (c: Buffer) => chunks.push(c))
+
+      let y = gambarKop(
+        { doc: doc as any, y: M, margin: M, lebar: W, kop, logo }, request.log)
+
+      doc.font('Helvetica-Bold').fontSize(13)
+        .text('RENCANA KESELAMATAN DAN KESEHATAN KERJA KONTRAK (RK3K)',
+          M, y, { width: W, align: 'center' })
+      y = doc.y + 10
+
+      const baris = (label: string, nilai: string) => {
+        doc.font('Helvetica-Bold').fontSize(9).text(label, M, y, { width: 110 })
+        doc.font('Helvetica').fontSize(9).text(nilai, M + 115, y, { width: W - 115 })
+        y = Math.max(doc.y, y) + 3
+      }
+      baris('Proyek', proyek.nama)
+      baris('Lokasi', proyek.lokasi || '—')
+      baris('Tanggal cetak', String(h.tanggal))
+      baris('Disusun oleh', kop.nama)
+
+      y += 8
+      doc.moveTo(M, y).lineTo(M + W, y).lineWidth(0.8).stroke()
+      y += 14
+
+      // ── Ringkasan kesiapan ───────────────────────────────────────────────
+      doc.font('Helvetica-Bold').fontSize(11).text('A. RINGKASAN KESIAPAN', M, y, { width: W })
+      y = doc.y + 6
+
+      for (const [i, b] of bagian.entries()) {
+        // Jarak sebelum menggambar, bukan sesudah: yang diperiksa adalah
+        // apakah blok INI muat, dan tingginya baru diketahui di sini.
+        if (y > doc.page.height - 120) { doc.addPage(); y = M }
+
+        const kosong = b.jumlah === 0
+        doc.font('Helvetica-Bold').fontSize(9.5)
+          .text(`A.${i + 1}  ${b.judul}`, M, y, { width: W - 130 })
+        const yJudul = y
+
+        // Bagian kosong ditandai dengan KATA, bukan hanya angka 0. Angka nol
+        // di ujung baris mudah terbaca sebagai "belum diisi kolomnya";
+        // "BELUM ADA CATATAN" tak bisa disalahpahami.
+        doc.font('Helvetica-Bold').fontSize(9.5)
+          .text(kosong ? 'BELUM ADA CATATAN' : `${b.jumlah} catatan`,
+            M + W - 130, yJudul, { width: 130, align: 'right' })
+        y = doc.y + 2
+
+        doc.font('Helvetica').fontSize(8.5).fillColor('#444444')
+          .text(b.arti, M + 14, y, { width: W - 24 })
+        y = doc.y + 1
+        if (b.catatan) {
+          doc.font('Helvetica-Oblique').fontSize(8.5).text(b.catatan, M + 14, y, { width: W - 24 })
+          y = doc.y + 1
+        }
+        doc.fillColor('black')
+        y += 6
+      }
+
+      // ── Lampiran: daftar, bukan hitungan ─────────────────────────────────
+      //
+      // Pemeriksa tender menagih DAFTARnya — nama peserta induksi, nomor
+      // inspeksi, nomor insiden. Rangkuman berangka saja tak bisa diperiksa
+      // silang dengan apa pun, dan dokumen yang tak bisa diperiksa silang
+      // adalah dokumen yang meminta dipercaya begitu saja.
+      const lampiran: Array<{ judul: string; kunci: string; kolom: string[]; ambil: (x: any) => string[] }> = [
+        { judul: 'B. Identifikasi Bahaya (JSA)', kunci: 'jsa', kolom: ['Kode', 'Jenis Pekerjaan', 'Status'],
+          ambil: (x) => [String(x.kode ?? '—'), String(x.jenis_pekerjaan ?? '—'),
+            x.disetujui_pada ? 'Disetujui' : 'Belum disetujui'] },
+        { judul: 'C. Inspeksi Lapangan', kunci: 'inspeksi', kolom: ['Tanggal', 'Nomor', 'Area', 'Pemeriksa'],
+          ambil: (x) => [String(x.tanggal ?? '—'), String(x.nomor ?? '—'),
+            String(x.area ?? '—'), String(x.pemeriksa_nama ?? '—')] },
+        { judul: 'D. Induksi & Pelatihan', kunci: 'induksi', kolom: ['Tanggal', 'Peserta', 'Jenis', 'Berlaku s.d.'],
+          ambil: (x) => [String(x.tanggal ?? '—'), String(x.peserta_nama ?? '—'),
+            String(x.jenis ?? '—'), String(x.berlaku_sampai ?? 'tanpa batas')] },
+        { judul: 'E. Serah Terima APD', kunci: 'apd', kolom: ['Tanggal', 'Penerima', 'Jenis APD', 'Jumlah'],
+          ambil: (x) => [String(x.tanggal ?? '—'), String(x.penerima_nama ?? '—'),
+            String(x.jenis_apd ?? '—'), String(x.jumlah ?? '—')] },
+        { judul: 'F. Insiden & Kecelakaan', kunci: 'insiden', kolom: ['Tanggal', 'Nomor', 'Jenis', 'Status'],
+          ambil: (x) => [String(x.tanggal ?? '—'), String(x.nomor ?? '—'),
+            String(x.jenis ?? '—'), String(x.status ?? '—')] },
+      ]
+
+      for (const L of lampiran) {
+        const isi = rinci[L.kunci] ?? []
+        if (y > doc.page.height - 140) { doc.addPage(); y = M }
+
+        y += 6
+        doc.font('Helvetica-Bold').fontSize(11).text(L.judul, M, y, { width: W })
+        y = doc.y + 5
+
+        if (isi.length === 0) {
+          // Lampiran kosong TETAP dicetak berjudul. Bagian yang hilang sama
+          // sekali dari daftar isi terbaca seperti bagian yang tak diminta —
+          // padahal justru inilah yang harus terlihat.
+          doc.font('Helvetica-Oblique').fontSize(9).fillColor('#8a2b2b')
+            .text('Belum ada catatan untuk bagian ini per tanggal cetak.', M + 10, y, { width: W - 20 })
+          doc.fillColor('black')
+          y = doc.y + 6
+          continue
+        }
+
+        const wKol = L.kolom.map(() => W / L.kolom.length)
+        doc.font('Helvetica-Bold').fontSize(8.5)
+        let x = M
+        for (const [i, k] of L.kolom.entries()) {
+          doc.text(k, x, y, { width: wKol[i] - 4 }); x += wKol[i]
+        }
+        y = doc.y + 2
+        doc.moveTo(M, y).lineTo(M + W, y).lineWidth(0.5).stroke()
+        y += 4
+
+        doc.font('Helvetica').fontSize(8.5)
+        for (const r of isi) {
+          if (y > doc.page.height - 60) { doc.addPage(); y = M }
+          const sel = L.ambil(r)
+          let xx = M
+          let bawah = y
+          for (const [i, s] of sel.entries()) {
+            doc.text(s, xx, y, { width: wKol[i] - 4 })
+            bawah = Math.max(bawah, doc.y)
+            xx += wKol[i]
+          }
+          y = bawah + 2
+        }
+        y += 4
+      }
+
+      // ── Pernyataan cakupan ───────────────────────────────────────────────
+      //
+      // Tanpa ini, kertasnya berlaku sebagai pernyataan bahwa K3-nya lengkap.
+      // Dengan ini, ia berlaku sebagaimana adanya: rangkuman catatan yang ADA
+      // per tanggal cetak.
+      if (y > doc.page.height - 130) { doc.addPage(); y = M }
+      y += 10
+      doc.moveTo(M, y).lineTo(M + W, y).lineWidth(0.8).stroke()
+      y += 10
+      doc.font('Helvetica-Bold').fontSize(9).text('PERNYATAAN CAKUPAN', M, y, { width: W })
+      y = doc.y + 3
+      doc.font('Helvetica').fontSize(8.5).text(
+        'Dokumen ini dirakit dari catatan K3 yang tersimpan pada sistem per tanggal cetak di atas. '
+        + 'Bagian yang bertanda "BELUM ADA CATATAN" berarti belum ada catatannya pada sistem — '
+        + 'bukan berarti kegiatannya tidak dilaksanakan, dan bukan pula bukti bahwa ia dilaksanakan. '
+        + String(h.catatan_kesiapan),
+        M, y, { width: W, align: 'justify' })
+
+      doc.end()
+      await new Promise<void>((res) => doc.on('end', () => res()))
+
+      const namaBerkas = `RK3K-${String(proyek.nama).replace(/[^\w-]+/g, '-').slice(0, 60)}-${h.tanggal}.pdf`
+      return reply
+        .header('Content-Type', 'application/pdf')
+        .header('Content-Disposition', `attachment; filename="${namaBerkas}"`)
+        .send(Buffer.concat(chunks))
     },
   )
 }

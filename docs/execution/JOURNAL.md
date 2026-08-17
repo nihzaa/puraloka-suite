@@ -5,6 +5,118 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-17 (sesi peta-modul, penutup) — dua sisa terakhir: klausul kontrak & RK3K
+
+Founder: *"kerjakan dan tuntaskan, caranya terserah kamu, aku serahkan padamu,
+daya mau yg terbaik"*.
+
+Dua entri `sebagian` terakhir yang benar-benar cacat kode (sisanya sudah
+ditriase sebagai keputusan bisnis / batas pihak ketiga). Keduanya tuntas.
+
+### 1. `md-template-dok` — klausul kontrak jadi milik tiap tenant
+
+Sebelas pasal kontrak tertulis sebagai string di tengah fungsi penggambar PDF.
+Untuk aplikasi satu perusahaan itu cukup; untuk SaaS multi-tenant ia berarti
+tiap PT menerbitkan kontrak berklausul IDENTIK — termasuk pilihan forum
+sengketa, justru bagian yang tiap penasihat hukum ingin atur sendiri.
+
+Migrasi 450 + `lib/klausul-kontrak.ts`. **Bawaan TETAP di kode sebagai LANTAI,
+bukan contoh.** Memindahkan seluruhnya ke basis membuat tenant baru punya nol
+klausul, dan kontrak pertamanya terbit tanpa pasal sengketa maupun force
+majeure. Kertas yang tak menyebut forum sengketa bukan kertas yang "belum
+lengkap" — ia kertas yang menyerahkan penentuannya kepada siapa pun yang
+menggugat lebih dulu.
+
+Yang bisa ditimpa HANYA pasal berteks murni. Lima pasal menganyam data hidup
+(nilai kontrak + terbilang, jangka waktu, tabel termin, masa pemeliharaan,
+lingkup dari RAB) — menjadikannya template menuntut bahasa templating, dan
+template yang salah tulis menghasilkan kontrak bernilai KOSONG yang tetap
+tercetak rapi. Pasal 6 & 8 juga tetap di kode: keduanya daftar bernomor
+bersub-judul, dan memaksakannya jadi satu blok teks menghilangkan strukturnya.
+**Saya berhenti di situ alih-alih memaksakan pola yang tak cocok.**
+
+`versi` disimpan dan yang lama tak dihapus: PDF di-generate ulang tiap kali
+diunduh, jadi tanpa versi, memperbaiki satu salah ketik hari ini diam-diam
+mengubah bunyi seluruh kontrak yang pernah terbit.
+
+### 2. `hse-rk3k` — layar + pencetak dokumen tender
+
+Endpoint `GET /proyek/:id/k3/rk3k` sudah ada dari pagi; yang belum: layarnya
+dan cetak PDF-nya. Keduanya dibangun, plus migrasi 451 yang menyalakan menunya
+(href pindah dari singgahan `/m/hse-rk3k`, izin `k3:inspeksi:view` diisi —
+menu aktif ber-izin KOSONG tampil untuk semua orang termasuk yang halamannya
+akan menolak mereka, dan yang ditolak sesudah mengklik menyimpulkan
+aplikasinya rusak).
+
+**Layarnya sengaja tak punya satu pun medan isian.** Modul ini dulu ditunda
+karena RK3K adalah RANGKUMAN, dan formulir kosong yang diisi asal supaya tender
+lolos justru jadi bukti bahwa K3-nya administratif belaka. Satu-satunya cara
+memperbaiki angkanya adalah mencatat kegiatannya di modul masing-masing, dan
+tiap bagian menautkan ke sana.
+
+**Dokumennya tetap bisa dicetak walau ada bagian kosong.** Godaannya menolak
+mencetak saat belum siap; ditolak, karena penolakan itu mendorong hasil yang
+lebih buruk — yang tendernya besok dan ditolak sistem menyusunnya di Word, di
+luar jangkauan aplikasi ini, dan mengarang bagian kosong tanpa seorang pun
+tahu. Kertasnya mencetak bagian kosong sebagai "BELUM ADA CATATAN" plus
+pernyataan cakupan di halaman akhir.
+
+JSON dan PDF dirakit SATU fungsi (`rakitRk3k`). Kalau masing-masing merakit
+sendiri, yang dibaca di layar bukan yang tercetak di kertas yang ditandatangani
+— dan itu tak punya gejala sampai keduanya dibandingkan berdampingan.
+
+`lib/gambar-kop.ts` diekstrak dari `contracts.ts`. Yang diduplikasi kalau
+disalin bukan kode melainkan **keputusan keamanan**: logo diturunkan dari kunci
+Storage, bukan mem-fetch `logo_url` yang bisa disunting pemegang
+`settings:manage` (SSRF).
+
+### Saya salah: mutasi pertama LOLOS, dan saya sempat menyebutnya bukti
+
+Mutasi pertama RK3K — melewati lampiran kosong diam-diam — **tidak membuat satu
+test pun merah.** Sebabnya: kata penanda "BELUM ADA CATATAN" sudah muncul di
+ringkasan beberapa sentimeter di atas lampiran, jadi `toContain` tetap lolos
+meski seluruh blok lampirannya hilang.
+
+Assertion saya lebih lemah dari yang saya kira, dan kalau saya berhenti di
+"7 passed" saya akan melaporkan penjagaan yang tak ada. Assertion dipertajam
+ke frasa milik lampiran sendiri ("Belum ada catatan untuk bagian ini"), mutasi
+diulang → **MERAH**, dipulihkan → **HIJAU**.
+
+Pelajaran yang layak diingat: **assertion yang cocok dengan teks di dua tempat
+hanya menjaga tempat yang lebih dangkal.** Mutasi bukan formalitas — ia satu-
+satunya yang membedakan test dari hiasan.
+
+### Satu pelanggaran a11y ditemukan dan ditutup (bukan milik pekerjaan ini)
+
+Audit runtime memerahkan `link-in-text-block` [serious] di `/estimasi`: tautan
+"Master Data" di tengah paragraf dibedakan HANYA dengan warna (WCAG 1.4.1) —
+yang buta warna tak melihat ada tautan sama sekali, padahal itu satu-satunya
+jalan ke Master Data dari halaman itu. Digarisbawahi.
+
+### Bukti
+
+    migrasi 450          5 invarian LULUS
+    migrasi 451          4 invarian LULUS (termasuk: izin tak boleh kosong,
+                         dan kuncinya wajib ada di tabel permissions)
+    vitest (8 berkas)    188 passed
+    mutasi klausul       10 test MERAH → pulih HIJAU
+    mutasi RK3K          LOLOS dulu (lihat di atas) → dipertajam → MERAH → HIJAU
+    a11y runtime         152 halaman · 0 pelanggaran (dari 1 [serious])
+    tsc api + web        bersih
+    audit-menu-punya-halaman  159 menu aktif · 0 tanpa halaman
+    audit-izin-benar-ada      183 kunci · semuanya terdaftar
+    audit-peta-modul-vs-halaman · gerbang-tenancy · kegagalan-senyap ·
+      catch-senyap · baca-tak-terpotong · port-api-cocok · token-css ·
+      judul-halaman · remah-lengkap · galat-muat-terpisah · rute-id-tak-basi ·
+      tabel-seragam                                          semuanya exit 0
+
+⚠ `audit-halaman-pakai-cache` MERAH di 30 (lantai 25) — **sudah merah sebelum
+sesi ini**, diperiksa dengan `git stash` lalu dijalankan ulang: angkanya 30 juga
+tanpa perubahan saya. Halaman `/k3/rk3k` sendiri memakai `useData`. Tidak
+dinaikkan ambangnya (G-5); dicatat sebagai hutang yang belum saya sentuh.
+
+---
+
 ## 2026-08-17 (sesi CECEP-UI, 3) — merge ke 3000, dan tiga cacat yang hanya muncul saat halamannya BERISI
 
 Lanjutan sesi 2. Founder: *"gabungkan aja ke 3000"*, lalu *"lanjutkan sampe

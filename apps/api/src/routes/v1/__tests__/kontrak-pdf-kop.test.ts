@@ -23,61 +23,9 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
 import { createRlsClient, authIdForRole, companyBerisi } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
-import { inflateSync } from 'node:zlib'
 import contractRoutes from '../contracts.js'
+import { teksPdf } from '../../../test-utils/teks-pdf.js'
 
-/**
- * Teks yang benar-benar tercetak di sebuah PDF pdfkit.
- *
- * DUA lapis penyandian harus dibuka, dan keduanya ditemukan dengan mengukur —
- * bukan ditebak:
- *
- *  1. Stream halaman dikompresi FlateDecode, jadi tak ada teks apa pun yang
- *     muncul apa adanya di buffer.
- *  2. Sesudah diurai, teksnya tersimpan sebagai string HEKSADESIMAL di dalam
- *     operator TJ — `[<505420554a49> 30 <4b4f50>] TJ` adalah "PT UJI" + "KOP".
- *     Angka di antaranya adalah kerning, dan harus dibuang.
- *
- * Asumsi pertama berkas ini ("pdfkit tak mengompresi teks sederhana") keliru
- * di kedua lapis. Yang dibetulkan cara memeriksanya, bukan harapannya.
- */
-function teksPdf(buf: Buffer): string {
-  const mentah = buf.toString('latin1')
-  const TANDA = 'stream'
-  let terurai = ''
-  let i = mentah.indexOf(TANDA)
-  while (i >= 0) {
-    // Lewati 'stream' beserta akhir barisnya (CR opsional, lalu LF).
-    let mulai = i + TANDA.length
-    if (mentah.charCodeAt(mulai) === 13) mulai++
-    if (mentah.charCodeAt(mulai) === 10) mulai++
-    const akhir = mentah.indexOf('endstream', mulai)
-    if (akhir > mulai) {
-      try {
-        terurai += inflateSync(Buffer.from(mentah.slice(mulai, akhir), 'latin1')).toString('latin1')
-      } catch { /* bukan stream terkompresi (font, gambar) — dilewati */ }
-    }
-    i = mentah.indexOf(TANDA, mulai)
-  }
-
-  // Tiap `<...>` di dalam stream diterjemahkan dari hex. Yang bukan hex sah
-  // dilewati, bukan membuat seluruh pemeriksaan gagal.
-  let hurufnya = ''
-  let j = terurai.indexOf('<')
-  while (j >= 0) {
-    const tutup = terurai.indexOf('>', j)
-    if (tutup < 0) break
-    const hex = terurai.slice(j + 1, tutup)
-    if (/^[0-9a-fA-F]+$/.test(hex) && hex.length % 2 === 0) {
-      for (let k = 0; k < hex.length; k += 2) {
-        hurufnya += String.fromCharCode(parseInt(hex.slice(k, k + 2), 16))
-      }
-    }
-    j = terurai.indexOf('<', tutup + 1)
-  }
-
-  return `${hurufnya}\n${terurai}\n${mentah}`
-}
 
 let app: FastifyInstance
 let db: Client
