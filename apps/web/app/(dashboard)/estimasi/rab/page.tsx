@@ -34,7 +34,7 @@
  * mekanismenya utuh, hanya namanya yang diterjemahkan.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Plus, Upload, Lock, FileSpreadsheet, Layers, HelpCircle, ArrowRightLeft, Trash2 } from "lucide-react";
@@ -122,7 +122,17 @@ interface Rollup {
   groups?: { name: string; subtotal: number }[];
 }
 
+// Lihat catatan di /estimasi/kas: useSearchParams() tanpa Suspense
+// MENGHENTIKAN `next build`, bukan sekadar memperingatkan.
 export default function SusunRabPage() {
+  return (
+    <Suspense fallback={null}>
+      <IsiSusunRab />
+    </Suspense>
+  );
+}
+
+function IsiSusunRab() {
   const router = useRouter();
   const params = useSearchParams();
   const proyekId = params.get("proyek") ?? "";

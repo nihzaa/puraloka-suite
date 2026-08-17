@@ -13,7 +13,7 @@
  * kekosongan itu diberi jalan keluar (spec §5).
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { TrendingUp } from "lucide-react";
 import { api } from "@/lib/api";
@@ -45,7 +45,19 @@ interface JawabKas {
 
 const PERIODE = [6, 12, 18, 24];
 
+// useSearchParams() memaksa render sisi-klien. Tanpa Suspense di atasnya,
+// `next build` GAGAL saat prerender halaman ini — bukan peringatan, build
+// berhenti. Kelas cacat yang sama sudah pernah menutup build di
+// /procurement/lanjutan (UIR-0C); pola pembungkusnya disamakan.
 export default function ProyeksiKasPage() {
+  return (
+    <Suspense fallback={null}>
+      <IsiProyeksiKas />
+    </Suspense>
+  );
+}
+
+function IsiProyeksiKas() {
   const router = useRouter();
   const params = useSearchParams();
   const proyekId = params.get("proyek") ?? "";

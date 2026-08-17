@@ -15,7 +15,7 @@
  * Karena itu kolom komitmen TIDAK disembunyikan meski nol.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Scale } from "lucide-react";
 import { api } from "@/lib/api";
@@ -48,7 +48,17 @@ interface JawabVarians {
   meta: VariansMeta;
 }
 
+// Lihat catatan di /estimasi/kas: useSearchParams() tanpa Suspense
+// MENGHENTIKAN `next build`, bukan sekadar memperingatkan.
 export default function VariansPage() {
+  return (
+    <Suspense fallback={null}>
+      <IsiVarians />
+    </Suspense>
+  );
+}
+
+function IsiVarians() {
   const router = useRouter();
   const params = useSearchParams();
   const proyekId = params.get("proyek") ?? "";
