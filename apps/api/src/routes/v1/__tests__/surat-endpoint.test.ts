@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, companyBerisi } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import suratRoutes from '../surat.js'
 
@@ -74,9 +74,17 @@ beforeAll(async () => {
 
   // `company_id` EKSPLISIT — `fn_isi_company_id()` menolak menebak saat ada
   // lebih dari satu company, dan CI punya beberapa (pelajaran F0-14).
-  const { rows: co } = await client.query(
-    `SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1`)
-  companyId = co[0].id
+  //
+  // ⚠️ Dulu di sini: `SELECT id FROM companies ... LIMIT 1`, yang memilih
+  // company TANPA melihat keanggotaan si admin. Selama akun uji cuma anggota
+  // satu company itu tak pernah terlihat salah.
+  //
+  // `GET /api/v1/letters` menyaring lewat `db.projectIds()`, dan daftar itu
+  // dibangun dari keanggotaan pengguna. Begitu fixture menaruh proyeknya di
+  // company yang BUKAN keanggotaan admin, endpoint dengan benar memulangkan
+  // nol baris — dan test-nya gagal dengan pesan yang menuduh endpoint-nya,
+  // padahal yang salah pilihan company-nya.
+  companyId = await companyBerisi(client, adminAuth)
 
   const { rows: c } = await client.query(
     `INSERT INTO clients (company_id, contact_person, phone, created_by)
@@ -283,5 +291,73 @@ describe('PATCH — validasi memakai nilai GABUNGAN, bukan hanya yang dikirim', 
       headers: { authorization: 'Bearer t' },
     })
     expect(res.statusCode).toBe(400)
+  })
+})
+
+// ════════════════════════════════════════════════════════════════════════════
+// GET /api/v1/letters — DAFTAR LINTAS PROYEK (dasar halaman /kontrak/surat)
+// ════════════════════════════════════════════════════════════════════════════
+//
+// Yang diuji di sini justru yang TAK bisa diuji lewat endpoint per-proyek:
+// gerbang tenancy-nya berbeda. Yang per-proyek dijaga `viaProject()` dengan
+// satu id yang sudah divalidasi; yang ini menyaring `project_id` ke seluruh
+// `db.projectIds()`, dan kesalahan di sana memulangkan surat proyek TENANT
+// LAIN tanpa satu pun galat.
+describe('GET /letters — daftar lintas proyek', () => {
+  it('memuat surat dari proyek tenant, lengkap dengan nama proyeknya', async () => {
+    actAs(adminAuth)
+    const nomor = nomorBaru()
+    const dibuat = await post(`/api/v1/projects/${projectId}/letters`,
+      { ...suratKeluar(), nomor, perihal: 'Surat yang harus muncul di daftar lintas proyek' })
+    expect(dibuat.statusCode, `body: ${dibuat.body.slice(0, 300)}`).toBe(201)
+
+    const res = await get('/api/v1/letters')
+    expect(res.statusCode, `body: ${res.body.slice(0, 300)}`).toBe(200)
+
+    const baris = (res.json().data as Array<{ id: string; project_name: string }>)
+      .find((x) => x.id === dibuat.json().data.id)
+
+    expect(baris,
+      'surat yang baru dicatat tak muncul di daftar lintas proyek — halaman ' +
+      'kontrak menampilkan daftar kosong sementara suratnya ada di basis').toBeTruthy()
+
+    // Nama proyek diambil lewat peta id→nama, bukan join. Kalau petanya salah,
+    // tiap baris berbunyi "—" dan daftarnya tak bisa dipakai memilah proyek.
+    expect(baris?.project_name).toBe(`${PREFIX} Proyek`)
+  })
+
+  it('ringkasan memisahkan KITA lalai dari LAWAN lalai, sama seperti per-proyek', async () => {
+    actAs(adminAuth)
+    const res = await get('/api/v1/letters')
+    const r = res.json().ringkas as Record<string, number>
+
+    // Keduanya WAJIB ada sebagai angka. Kalau salah satunya `undefined`, kartu
+    // KPI di layar menampilkan "—" dan orang menyimpulkan tak ada yang lewat
+    // batas — kebalikan dari keadaan sebenarnya.
+    expect(typeof r.kita_belum_menjawab).toBe('number')
+    expect(typeof r.lawan_belum_menjawab).toBe('number')
+    expect(r.jumlah).toBeGreaterThan(0)
+  })
+
+  it('saringan arah=masuk tak memulangkan surat keluar', async () => {
+    actAs(adminAuth)
+    const res = await get('/api/v1/letters?arah=masuk')
+    expect(res.statusCode).toBe(200)
+    const semua = res.json().data as Array<{ arah: string }>
+    expect(semua.every((s) => s.arah === 'masuk'),
+      'saringan arah bocor — daftar "surat masuk" memuat surat keluar, dan ' +
+      'kolom yang menentukan SIAPA yang lalai jadi tak bisa dipercaya').toBe(true)
+  })
+
+  it('PENJAGA TENANCY: project_id milik proyek yang tak ada DITOLAK 404', async () => {
+    actAs(adminAuth)
+    // UUID sah tapi bukan proyek tenant ini. Yang diuji: endpoint MEMBEDAKAN
+    // "bukan proyek Anda" dari "proyek Anda yang kebetulan belum bersurat" —
+    // keduanya sama-sama nol baris, dan menyamakannya menyembunyikan salah
+    // ketik id di balik daftar kosong yang terlihat wajar.
+    const res = await get('/api/v1/letters?project_id=00000000-0000-0000-0000-000000000000')
+    expect(res.statusCode,
+      'proyek di luar tenant dijawab 200 berisi daftar kosong — tak ada ' +
+      'yang membedakannya dari proyek sendiri yang belum bersurat').toBe(404)
   })
 })

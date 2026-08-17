@@ -40,6 +40,149 @@ export default async function suratRoutes(app: FastifyInstance) {
     return new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10)
   }
 
+  /**
+   * Bentuk baris surat apa adanya dari basis, sebelum `batas` dihitung.
+   *
+   * Ditulis sekali dan dipakai dua endpoint — per-proyek dan lintas-proyek.
+   * Kalau tiap endpoint mendefinisikan bentuknya sendiri, keduanya akan
+   * menyimpang begitu satu kolom ditambahkan, dan yang menyimpang diam-diam
+   * adalah yang jarang dibuka.
+   */
+  type BarisSurat = Record<string, unknown> & {
+    arah?: string; status?: string; butuh_balasan?: boolean
+    batas_balas?: string | null
+    tanggal_kirim?: string | null; tanggal_terima?: string | null
+    // Disebut EKSPLISIT, bukan diambil lewat index signature. Hasil `.map()`
+    // atas tipe ini kehilangan index signature-nya, jadi tanpa baris ini
+    // pemakaian `s.project_id` di endpoint lintas-proyek hanya bisa lolos
+    // lewat cast — dan cast di kolom yang menentukan tenancy adalah tempat
+    // terakhir yang boleh kehilangan pemeriksaan tipe.
+    project_id?: string
+  }
+
+  /**
+   * Menempelkan status batas balas pada tiap surat.
+   *
+   * ⚠️ Dipakai BERSAMA oleh kedua endpoint dengan sengaja. Status batas adalah
+   * satu-satunya bagian jawaban yang DIHITUNG, bukan dibaca — menyalinnya ke
+   * dua tempat berarti dua tanggal acuan yang bisa berbeda, dan selisih satu
+   * hari di sini menentukan lalai atau tidak (lihat header berkas).
+   */
+  function lengkapiBatas(rows: BarisSurat[], hariIni: string) {
+    return rows.map((s) => ({
+      ...s,
+      batas: evaluasiBatasBalas({
+        arah: (s.arah ?? 'keluar') as ArahSurat,
+        butuhBalasan: Boolean(s.butuh_balasan),
+        batasBalas: s.batas_balas ?? null,
+        tanggalKirim: s.tanggal_kirim ?? null,
+        tanggalTerima: s.tanggal_terima ?? null,
+        status: (s.status ?? 'draft') as StatusSurat,
+        hariIni,
+      }),
+    }))
+  }
+
+  /**
+   * Ringkasan yang DIPISAH per pihak yang ditunggu.
+   *
+   * Dua angka ini menuntut tindakan yang BERLAWANAN — yang satu pekerjaan kita
+   * hari ini, yang lain bahan penagihan ke lawan. Menjumlahkannya jadi satu
+   * "lewat batas" membuat daftarnya tak bisa dipakai siapa pun.
+   */
+  function ringkasSurat(surat: ReturnType<typeof lengkapiBatas>) {
+    const lewat = surat.filter((s) => s.batas.keadaan === 'lewat')
+    return {
+      jumlah: surat.length,
+      masuk: surat.filter((s) => s.arah === 'masuk').length,
+      keluar: surat.filter((s) => s.arah === 'keluar').length,
+      kita_belum_menjawab: lewat.filter((s) => s.batas.siapaYangDitunggu === 'kita').length,
+      lawan_belum_menjawab: lewat.filter((s) => s.batas.siapaYangDitunggu === 'lawan').length,
+      mendesak: surat.filter((s) => s.batas.keadaan === 'mendesak').length,
+    }
+  }
+
+  // ── GET /api/v1/letters ────────────────────────────────────────────────────
+  //
+  // Daftar surat SELURUH proyek tenant — dasar halaman `/kontrak/surat`.
+  //
+  // ── Kenapa endpoint ini ada, padahal yang per-proyek sudah ada
+  //
+  // Yang per-proyek menjawab "surat apa saja di proyek ini". Pertanyaan yang
+  // dibawa orang ke menu Kontrak berbeda: "surat mana yang WAJIB saya jawab
+  // hari ini" — dan jawabannya tersebar di semua proyek sekaligus. Tanpa ini,
+  // halaman kontrak harus memanggil endpoint per-proyek sekali per proyek,
+  // lalu menggabungkannya di peramban; dengan 30 proyek itu 30 permintaan yang
+  // tiba di 30 waktu berbeda, dan ringkasannya menjumlah keadaan yang tak
+  // pernah ada bersamaan.
+  //
+  // ── Tenancy
+  //
+  // `project_letters` kategori C (mewarisi lewat proyek), jadi `viaProject()`
+  // menuntut SATU project_id dan tak bisa dipakai untuk daftar lintas-proyek.
+  // Polanya sama dengan tabel kategori C lain: saring `project_id` dengan
+  // `db.projectIds()`, yang isinya hanya proyek milik tenant ini.
+  app.get<{ Querystring: { arah?: string; status?: string; project_id?: string } }>(
+    '/api/v1/letters',
+    { preHandler: [authenticate, requirePermission('documents:manage')] },
+    async (request, reply) => {
+      const idProyek = await request.db!.projectIds()
+
+      // Tenant tanpa satu pun proyek: `in('project_id', [])` di PostgREST
+      // menghasilkan daftar kosong yang benar, tapi ringkasannya tetap perlu
+      // dibentuk supaya layar tak menerima `undefined` dan menampilkan "—".
+      if (idProyek.length === 0) {
+        return reply.send({ data: [], proyek: [], ringkas: ringkasSurat([]) })
+      }
+
+      const { project_id, arah, status } = request.query
+
+      // Saringan proyek dari pengguna dipersempit ke yang MILIK TENANT, bukan
+      // dipakai apa adanya. Tanpa irisan ini, `?project_id=<milik-tenant-lain>`
+      // akan melewati `in()` dan mengembalikan nol baris — bocor tidak, tapi
+      // juga tak membedakan "tak ada surat" dari "bukan proyek Anda".
+      if (project_id && !idProyek.includes(project_id)) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      let q = request.db!
+        .unsafe('project_letters',
+          'kategori C lintas-proyek; disaring project_id ke db.projectIds() di baris berikutnya')
+        .select('*')
+        .in('project_id', project_id ? [project_id] : idProyek)
+
+      if (arah === 'masuk' || arah === 'keluar') q = q.eq('arah', arah)
+      if (status) q = q.eq('status', status)
+
+      const { data, error } = await q.order('created_at', { ascending: false })
+      if (error) {
+        request.log.error({ err: error }, 'gagal memuat surat lintas proyek')
+        return reply.status(500).send({ error: 'Gagal memuat surat' })
+      }
+
+      // Nama proyek diambil TERPISAH, bukan lewat join PostgREST.
+      //
+      // `project_letters` memang punya FK ke `projects`, tapi join di sini
+      // akan ikut menarik baris proyek untuk tiap surat — dan daftar surat
+      // tenant besar melewati batas 1.000 baris PostgREST jauh lebih cepat
+      // bila tiap barisnya membawa objek proyek. Peta id→nama jauh lebih kecil.
+      const { data: proyek, error: errProyek } = await request.db!
+        .from('projects').select('id, name').in('id', idProyek).order('name')
+      if (errProyek) {
+        request.log.error({ err: errProyek }, 'gagal memuat nama proyek')
+        return reply.status(500).send({ error: 'Gagal memuat daftar proyek' })
+      }
+
+      const namaProyek = new Map(
+        (proyek ?? []).map((p) => [(p as { id: string }).id, (p as { name: string }).name]))
+
+      const surat = lengkapiBatas((data ?? []) as BarisSurat[], hariIniWIB())
+        .map((s) => ({ ...s, project_name: namaProyek.get(s.project_id ?? '') ?? '—' }))
+
+      return reply.send({ data: surat, proyek: proyek ?? [], ringkas: ringkasSurat(surat) })
+    },
+  )
+
   // ── GET /api/v1/projects/:projectId/letters ────────────────────────────────
   app.get<{ Params: { projectId: string } }>(
     '/api/v1/projects/:projectId/letters',
@@ -58,45 +201,13 @@ export default async function suratRoutes(app: FastifyInstance) {
         return reply.status(500).send({ error: 'Gagal memuat surat' })
       }
 
-      const kini = hariIniWIB()
-      type BarisSurat = Record<string, unknown> & {
-        arah?: string; status?: string; butuh_balasan?: boolean
-        batas_balas?: string | null
-        tanggal_kirim?: string | null; tanggal_terima?: string | null
-      }
-
-      const surat = ((data ?? []) as BarisSurat[]).map((s) => ({
-        ...s,
-        // Status batas DIHITUNG saat dibaca, bukan disimpan: ia berubah tiap
-        // hari berjalan, dan kolom yang perlu di-refresh harian pasti basi.
-        batas: evaluasiBatasBalas({
-          arah: (s.arah ?? 'keluar') as ArahSurat,
-          butuhBalasan: Boolean(s.butuh_balasan),
-          batasBalas: s.batas_balas ?? null,
-          tanggalKirim: s.tanggal_kirim ?? null,
-          tanggalTerima: s.tanggal_terima ?? null,
-          status: (s.status ?? 'draft') as StatusSurat,
-          hariIni: kini,
-        }),
-      }))
-
-      // Dipisah per PIHAK yang ditunggu — dua angka ini menuntut tindakan yang
-      // BERLAWANAN, dan menggabungkannya membuat daftarnya tak bisa dipakai.
-      const lewat = surat.filter((s) => s.batas.keadaan === 'lewat')
-      return reply.send({
-        data: surat,
-        ringkas: {
-          jumlah: surat.length,
-          masuk: surat.filter((s) => s.arah === 'masuk').length,
-          keluar: surat.filter((s) => s.arah === 'keluar').length,
-          // KITA yang belum menjawab — ini yang harus dikerjakan HARI INI,
-          // karena tiap hari lewat menambah bukti melawan kita.
-          kita_belum_menjawab: lewat.filter((s) => s.batas.siapaYangDitunggu === 'kita').length,
-          // LAWAN yang belum menjawab — ini bahan penagihan, bukan pekerjaan.
-          lawan_belum_menjawab: lewat.filter((s) => s.batas.siapaYangDitunggu === 'lawan').length,
-          mendesak: surat.filter((s) => s.batas.keadaan === 'mendesak').length,
-        },
-      })
+      // Status batas DIHITUNG saat dibaca, bukan disimpan: ia berubah tiap
+      // hari berjalan, dan kolom yang perlu di-refresh harian pasti basi.
+      //
+      // Perhitungan dan ringkasannya DIBAGI dengan `GET /api/v1/letters` —
+      // lihat alasannya di atas `lengkapiBatas`.
+      const surat = lengkapiBatas((data ?? []) as BarisSurat[], hariIniWIB())
+      return reply.send({ data: surat, ringkas: ringkasSurat(surat) })
     },
   )
 
