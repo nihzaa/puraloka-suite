@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { susunEkspor, formatSah, FORMAT_EKSPOR } from '../../lib/ekspor-tabel.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { hitungNeraca, hitungLabaRugi, type SaldoAkun } from '../../lib/laporan-keuangan.js'
 
@@ -527,6 +528,142 @@ export default async function glRoutes(app: FastifyInstance) {
           terpotong: jurnal.length >= 1000,
         },
       }
+    },
+  )
+
+  // ── GET /api/v1/gl/jurnal/ekspor ─────────────────────────────────────────
+  //
+  // Jurnal umum siap dibawa ke perangkat lunak akuntansi — csv/xlsx/pdf/json.
+  //
+  // ── Kenapa ini menutup separuh `sy-api` TANPA satu pun kredensial
+  //
+  // Katalog menandai `sy-api` "sebagian" karena sambungan KELUAR ke akuntansi
+  // belum ada, dan itu butuh kredensial pihak ketiga dari founder.
+  //
+  // Tapi yang sebenarnya dibutuhkan pemakainya BUKAN sambungan hidup: ia ingin
+  // angka bulan ini masuk ke Accurate/Jurnal tanpa mengetik ulang. Berkas
+  // impor menyelesaikan itu, dan tak menuntut langganan, kunci API, maupun
+  // perjanjian dengan siapa pun.
+  //
+  // Sambungan API tetap lebih baik bagi yang bertransaksi harian. Untuk
+  // kontraktor yang tutup buku bulanan, berkas justru lebih tepat — ia bisa
+  // DIPERIKSA sebelum masuk, sementara sambungan langsung menulis.
+  //
+  // ── Kenapa hanya jurnal TERPOSTING
+  //
+  // `draft` masih bisa berubah. Mengekspornya berarti akuntan memasukkan angka
+  // yang keesokan harinya berbeda — dan selisih itu ditemukan berbulan
+  // kemudian saat rekonsiliasi, bukan saat terjadi.
+  app.get<{ Querystring: { dari?: string; sampai?: string; format?: string } }>(
+    '/api/v1/gl/jurnal/ekspor',
+    { preHandler: [authenticate, requirePermission('gl:view')] },
+    async (request, reply) => {
+      const { dari, sampai } = request.query
+      const fmt = formatSah(request.query.format ?? 'csv')
+      if (!fmt) {
+        return reply.status(400).send({
+          error: `Format tidak dikenal. Pilih salah satu: ${FORMAT_EKSPOR.join(', ')}.`,
+        })
+      }
+
+      const { data: co } = await request.db!
+        .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
+        .select('name, legal_name').eq('id', request.companyId!).maybeSingle()
+
+      let q = request.db!
+        .from('journal_entries')
+        .select('id, entry_number, entry_date, description, source, status')
+        .eq('status', 'posted')
+        .order('entry_date', { ascending: true })
+        .limit(5000)
+      if (dari) q = q.gte('entry_date', dari)
+      if (sampai) q = q.lte('entry_date', sampai)
+
+      const { data: kepala, error: eKepala } = await q
+      if (eKepala) {
+        request.log.error({ err: eKepala }, 'gagal memuat jurnal untuk ekspor')
+        return reply.status(500).send({ error: 'Gagal memuat jurnal' })
+      }
+
+      const idKepala = (kepala ?? []).map((e) => (e as { id: string }).id)
+      let baris: Array<Record<string, unknown>> = []
+
+      if (idKepala.length > 0) {
+        const { data: garis, error: eGaris } = await request.db!
+          .unsafe('journal_entry_lines', 'disaring .in(entry_id) ke jurnal milik tenant ini')
+          .select('entry_id, account_id, debit, credit, description, line_order')
+          .in('entry_id', idKepala)
+          .order('line_order', { ascending: true })
+          .limit(20000)
+        if (eGaris) {
+          request.log.error({ err: eGaris }, 'gagal memuat baris jurnal')
+          return reply.status(500).send({ error: 'Gagal memuat baris jurnal' })
+        }
+
+        const { data: akun, error: eAkun } = await request.db!
+          .from('accounts').select('id, code, name')
+        if (eAkun) {
+          request.log.error({ err: eAkun }, 'gagal memuat bagan akun')
+          return reply.status(500).send({ error: 'Gagal memuat bagan akun' })
+        }
+
+        const petaAkun = new Map(
+          (akun ?? []).map((a) => [(a as { id: string }).id, a as unknown as { code: string; name: string }]))
+        const petaKepala = new Map(
+          (kepala ?? []).map((e) => [(e as { id: string }).id, e as Record<string, unknown>]))
+
+        baris = (garis ?? []).map((g) => {
+          const l = g as Record<string, unknown>
+          const k = petaKepala.get(l.entry_id as string) ?? {}
+          const a = petaAkun.get(l.account_id as string)
+          return {
+            tanggal: k.entry_date ?? '',
+            nomor: k.entry_number ?? '',
+            kode_akun: a?.code ?? '',
+            nama_akun: a?.name ?? '',
+            keterangan: (l.description as string) || (k.description as string) || '',
+            debit: Number(l.debit) || 0,
+            kredit: Number(l.credit) || 0,
+            sumber: k.source ?? '',
+          }
+        })
+      }
+
+      // Keseimbangan DINYATAKAN, bukan diandaikan. Jurnal yang debitnya tak
+      // sama dengan kreditnya ditolak perangkat lunak akuntansi mana pun —
+      // dan lebih baik ketahuan di keterangan berkas daripada saat impor
+      // gagal tanpa menyebut barisnya.
+      const totalDebit = baris.reduce((s, b) => s + (Number(b.debit) || 0), 0)
+      const totalKredit = baris.reduce((s, b) => s + (Number(b.kredit) || 0), 0)
+      const seimbang = Math.round(totalDebit) === Math.round(totalKredit)
+
+      const hasil = await susunEkspor(fmt, {
+        judul: 'Jurnal Umum',
+        tenant: (co as { legal_name?: string; name?: string } | null)?.legal_name
+          ?? (co as { name?: string } | null)?.name ?? null,
+        keterangan: `Periode ${dari ?? 'awal'} s.d. ${sampai ?? 'akhir'} · ${baris.length} baris · `
+          + `debit ${Math.round(totalDebit)} vs kredit ${Math.round(totalKredit)}`
+          + (seimbang ? ' (seimbang)' : ' — TIDAK SEIMBANG'),
+        kolom: [
+          { kunci: 'tanggal', judul: 'Tanggal', lebar: 12 },
+          { kunci: 'nomor', judul: 'No. Jurnal', lebar: 16 },
+          { kunci: 'kode_akun', judul: 'Kode Akun', lebar: 12 },
+          { kunci: 'nama_akun', judul: 'Nama Akun', lebar: 26 },
+          { kunci: 'keterangan', judul: 'Keterangan', lebar: 30 },
+          { kunci: 'debit', judul: 'Debit', angka: true, lebar: 16 },
+          { kunci: 'kredit', judul: 'Kredit', angka: true, lebar: 16 },
+          { kunci: 'sumber', judul: 'Sumber', lebar: 14 },
+        ],
+        baris,
+      })
+
+      return reply
+        .header('content-type', hasil.tipeKonten)
+        .header('content-disposition',
+          `attachment; filename="jurnal-${dari ?? 'awal'}-${sampai ?? 'akhir'}.${hasil.ekstensi}"`)
+        .header('x-jurnal-baris', String(baris.length))
+        .header('x-jurnal-seimbang', String(seimbang))
+        .send(hasil.isi)
     },
   )
 }
