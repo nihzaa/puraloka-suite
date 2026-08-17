@@ -58,6 +58,20 @@ interface VersiRingkas {
   id: string;
   version_number: number;
   status: StatusVersi;
+  /*
+    Nilai RAB. SUDAH dikirim `GET /projects/:id/scenarios` sejak lama
+    (`estimate-versions.ts` memilih `total_amount` di embed versinya), hanya
+    tak pernah diketik di sini sehingga tak pernah dirender.
+
+    Akibatnya terlihat di tangkapan layar 2026-08-17: empat pil "Revisi 1–4"
+    yang tak bisa dibedakan satu sama lain, padahal salah satunya
+    Rp 20.056.000 dan tiga lainnya nol. Daftar RAB di /estimasi menampilkan
+    angka itu, lalu pengguna mengklik masuk dan angkanya HILANG.
+
+    `numeric` datang sebagai string dari PostgREST — karena itu union-nya
+    memuat string, dan pemakainya wajib `Number()` lebih dulu.
+  */
+  total_amount?: number | string | null;
 }
 interface SkenarioLengkap {
   id: string;
@@ -100,8 +114,35 @@ interface DetailVersi {
   id: string;
   version_number: number;
   status: StatusVersi;
-  edition?: string | null;
+  /*
+    Edisi AHSP datang BERSARANG dari PostgREST, bukan sebagai string:
+
+        edition:ahsp_editions!…(code, name)     estimate-versions.ts:433
+
+    Sampai 2026-08-17 tipe ini menuliskannya `string`, dan panel ringkasan
+    merendernya langsung — hasilnya **"edisi [object Object]"** terpampang di
+    bawah TOTAL RAB, tepat di sebelah angka yang jadi dasar penawaran.
+
+    `tsc` tak menangkapnya: bentuknya datang dari `api.get` saat runtime, jadi
+    anotasi yang salah tak pernah diadu dengan data sungguhan. Kelas cacat yang
+    sama sudah tercatat di berkas ini untuk `assembly`/`cost_code` — tebakan
+    "medan datar" yang lolos typecheck lalu merender "—".
+
+    PostgREST juga bisa memulangkan embed sebagai ARRAY berisi satu, jadi
+    pembacanya wajib menangani kedua bentuk.
+  */
+  edition?: EdisiRingkas | EdisiRingkas[] | null;
   items?: ItemVersi[];
+}
+interface EdisiRingkas {
+  code?: string | null;
+  name?: string | null;
+}
+
+/** Kode edisi untuk ditampilkan — menangani objek, array-berisi-satu, dan null. */
+function kodeEdisi(e: DetailVersi["edition"]): string | null {
+  const satu = Array.isArray(e) ? e[0] : e;
+  return satu?.code ?? null;
 }
 /**
  * Bentuk jawaban `GET /estimate-versions/:id/rollup`.
@@ -136,6 +177,19 @@ function IsiSusunRab() {
   const router = useRouter();
   const params = useSearchParams();
   const proyekId = params.get("proyek") ?? "";
+  /*
+    `?versi=` — RAB mana yang harus LANGSUNG terbuka.
+
+    Daftar RAB di /estimasi menautkan baris tertentu
+    (`/estimasi/rab?proyek=X&versi=Y`), dan sampai 2026-08-17 parameter kedua
+    itu DIABAIKAN: halaman berhenti di daftar pilihan, dan pengguna harus
+    mencari lagi baris yang baru saja diklik. Tautan yang tak membuka apa yang
+    ditunjuknya lebih buruk daripada tak bisa diklik — orang mengira sudah
+    salah klik.
+
+    Tanpa `?versi=`, perilaku lama dipertahankan: tampilkan daftar pilihan.
+  */
+  const versiDiminta = params.get("versi") ?? "";
 
   const { data: dataProyek } = useData<{ projects?: ProyekRingkas[] }>("/api/v1/projects");
   const proyek = useMemo(() => dataProyek?.projects ?? [], [dataProyek]);
@@ -207,6 +261,20 @@ function IsiSusunRab() {
     setRollup(null);
   }, [proyekId, muatSkenario]);
 
+  /*
+    Buka versi dari `?versi=` — SESUDAH skenario termuat, bukan sebelumnya.
+
+    Urutannya penting: id dicocokkan dulu ke daftar skenario proyek ini, jadi
+    `?versi=` milik proyek LAIN (tautan basi, id salah tempel) tak pernah
+    dibuka. Tanpa pencocokan itu halaman akan menampilkan RAB proyek A di
+    bawah URL yang menyebut proyek B — kelas cacat yang persis dijaga
+    `uji-rute-id-tak-basi` untuk rute `[id]`.
+
+    Tidak dipasang di `muatSkenario` supaya efek ini tak ikut berjalan setiap
+    kali daftar disegarkan sesudah aksi (revisi, kunci, hapus item) — kalau
+    ikut, RAB yang sedang dibuka akan melompat balik ke versi di URL setiap
+    kali pengguna menekan tombol.
+  */
   const bukaVersi = useCallback(async (versiId: string) => {
     const r = await api.get<{ data: DetailVersi }>(`/api/v1/estimate-versions/${versiId}`);
     setVersiDibuka(r.data.data);
@@ -217,6 +285,31 @@ function IsiSusunRab() {
       } catch { setRollup(null); }
     } else setRollup(null);
   }, []);
+
+  /*
+    Buka versi dari `?versi=` — SESUDAH skenario termuat, bukan sebelumnya.
+
+    Urutannya penting: id dicocokkan dulu ke daftar skenario proyek ini, jadi
+    `?versi=` milik proyek LAIN (tautan basi, id salah tempel) tak pernah
+    dibuka. Tanpa pencocokan itu halaman akan menampilkan RAB proyek A di
+    bawah URL yang menyebut proyek B — kelas cacat yang persis dijaga
+    `uji-rute-id-tak-basi` untuk rute `[id]`.
+
+    Ditempatkan SESUDAH `bukaVersi` dideklarasikan: `const` tidak ter-hoist,
+    jadi efek yang memanggilnya dari atas akan melempar ReferenceError pada
+    render pertama — dan halamannya kosong tanpa satu pun galat yang menunjuk
+    sebabnya.
+
+    Penjaga `!versiDibuka` membuatnya berjalan sekali saja: tanpa itu, tiap
+    penyegaran daftar sesudah aksi (revisi, kunci, hapus item) akan melompat
+    balik ke versi di URL, membatalkan apa pun yang sedang dibuka pengguna.
+  */
+  useEffect(() => {
+    if (!versiDiminta || versiDibuka || skenario.length === 0) return;
+    const ada = skenario.some((sc) =>
+      (sc.versions ?? []).some((v) => v.id === versiDiminta));
+    if (ada) void bukaVersi(versiDiminta);
+  }, [versiDiminta, versiDibuka, skenario, bukaVersi]);
 
   /**
    * "Buat RAB" — satu klik, tanpa pertanyaan.
@@ -575,6 +668,26 @@ function DaftarPilihan({ skenario, versiAktif, onBuka, onRevisi, onPilihanLain, 
                     >
                       {terkunci && <Lock size={10} aria-hidden="true" />}
                       Revisi {v.version_number}
+                      {/*
+                        Nilainya ikut di pil — tanpa ini empat revisi terlihat
+                        identik dan pengguna harus membuka satu per satu untuk
+                        tahu mana yang berisi. Daftar RAB di /estimasi sudah
+                        menampilkan angka ini; menghilangkannya di layar
+                        berikutnya membuat orang mengira salah masuk.
+
+                        null/undefined → tak ditulis sama sekali (bukan "Rp 0"):
+                        "belum dihitung" beda dari "nol rupiah", dan aturan yang
+                        sama sudah dipakai di kolom Nilai daftar RAB.
+                      */}
+                      {v.total_amount != null && (
+                        <span style={{
+                          fontWeight: 500,
+                          opacity: aktif ? 0.85 : 0.6,
+                          fontVariantNumeric: "tabular-nums",
+                        }}>
+                          · {rp(Number(v.total_amount))}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
