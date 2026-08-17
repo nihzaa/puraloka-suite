@@ -371,6 +371,73 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Transmittal yang sudah dikirim tetapi belum dikonfirmasi diterima.',
     jalur: '/api/v1/otomasi/jalankan/transmittal-menggantung',
   },
+
+  // ── Pengirim laporan terjadwal (2026-08-17) ──────────────────────────────
+  //
+  // `GET /kendali-dokumen/kirim-laporan` sudah ada, tetapi TIDAK PERNAH
+  // terdaftar di sini — jadi tak ada satu pun cara memicunya, dan Peta Modul
+  // `bi-terjadwal` menulis "pengiriman surel otomatisnya belum dijalankan".
+  //
+  // Akibatnya lebih dari sekadar laporan tak terkirim. `terakhir_dikirim`
+  // selamanya NULL, dan deteksi MACET — yang membandingkan umur kirim dengan
+  // iramanya — melaporkan SELURUH jadwal sebagai macet begitu lewat dua kali
+  // iramanya. Peringatan yang benar untuk sebab yang salah: bukan penjadwalnya
+  // yang mati, melainkan pemicunya yang tak pernah didaftarkan.
+  //
+  // Ini pengulangan persis cacat yang sudah tercatat di blok "Otomasi Phase
+  // 3-5" di atas: rute ADA, tugasnya tidak terdaftar, dan tak ada satu pun
+  // gejala yang menunjuk ke sana. `audit-tugas-punya-rute.mjs` menjaga arah
+  // sebaliknya (tugas → rute), jadi rute tanpa tugas lolos tanpa suara.
+  'kirim-laporan-terjadwal': {
+    label: 'Kirim Laporan Terjadwal',
+    keterangan: 'Laporan periodik yang jatuh tempo dikirim ke penerimanya, lalu dicatat waktunya.',
+    jalur: '/api/v1/kendali-dokumen/kirim-laporan',
+  },
+
+  // ── Tujuh rute yang ternyata yatim juga (2026-08-17) ─────────────────────
+  //
+  // Ditemukan penjaga BARU `audit-rute-penjadwal-punya-tugas.mjs` pada jam
+  // yang sama ia ditulis. Ketujuhnya rute lengkap ber-preHandler, dan tak
+  // satu pun pernah bisa dipicu.
+  //
+  // Ini kali KETIGA cacat yang sama: 8 rute pada 2026-08-16, pengirim laporan
+  // di atas, dan ketujuh ini. Dua yang pertama ditemukan tangan; yang ketiga
+  // ditemukan penjaga — itulah sebabnya penjaganya ditulis.
+  'kirim-pengingat': {
+    label: 'Bacakan Pengingat yang Dititipkan',
+    keterangan: 'Janji yang dititipkan lewat asisten dibacakan kembali saat waktunya tiba.',
+    jalur: '/api/v1/otomasi/jalankan/kirim-pengingat',
+  },
+  'perawatan-diprediksi': {
+    label: 'Perawatan Alat Diprediksi',
+    keterangan: 'Alat yang menurut laju pemakaiannya akan jatuh tempo servis, sebelum tanggalnya.',
+    jalur: '/api/v1/otomasi/jalankan/perawatan-diprediksi',
+  },
+  'kebiasaan-bayar': {
+    label: 'Kebiasaan Bayar Klien',
+    keterangan: 'Klien yang biasa telat, supaya penagihannya didahulukan — bukan menunggu lewat.',
+    jalur: '/api/v1/otomasi/jalankan/kebiasaan-bayar',
+  },
+  'ringkasan-mingguan': {
+    label: 'Ringkasan Mingguan',
+    keterangan: 'Rangkuman sepekan: uang, progres, dan yang menunggu keputusan.',
+    jalur: '/api/v1/otomasi/jalankan/ringkasan-mingguan',
+  },
+  'material-kurang': {
+    label: 'Material Diperkirakan Kurang',
+    keterangan: 'Material yang menurut laju pemakaiannya habis sebelum pekerjaannya selesai.',
+    jalur: '/api/v1/otomasi/jalankan/material-kurang',
+  },
+  'alat-tak-sehat': {
+    label: 'Biaya Perawatan Alat Membengkak',
+    keterangan: 'Alat yang biaya perawatannya menanjak — pertanda menuju keputusan ganti.',
+    jalur: '/api/v1/otomasi/jalankan/alat-tak-sehat',
+  },
+  'celah-asuransi': {
+    label: 'Celah Perlindungan Asuransi',
+    keterangan: 'Proyek yang nilainya melampaui pertanggungan, dan celah yang tak terlihat pemeriksaan biasa.',
+    jalur: '/api/v1/otomasi/jalankan/celah-asuransi',
+  },
 }
 
 interface BarisJadwal {

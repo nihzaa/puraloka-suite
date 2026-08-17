@@ -231,6 +231,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-kredensial-tak-bocor.mjs` | nilai kredensial tak pernah keluar server (ambang NOL) |
 | `audit-jadwal-punya-pembaca.mjs` | kolom jadwal wajib punya pembaca — L-4 (ambang NOL) |
 | `audit-tugas-punya-rute.mjs` | tugas terjadwal wajib menunjuk rute yang TERDAFTAR (ambang NOL) |
+| `audit-rute-penjadwal-punya-tugas.mjs` | arah sebaliknya — rute otomasi wajib punya tugas pemicu; rute tanpa tugas tak pernah bisa dijalankan siapa pun, dan diamnya bukan galat (ambang NOL) |
 | `audit-baca-tak-terpotong.mjs` | baca tabel penuh tak boleh terpotong senyap di 1.000 baris PostgREST (ambang NOL, peringatan di 800) |
 | `audit-saluran-keluar-berpagar.mjs` | modul ber-`fetch` wajib berpagar `NODE_ENV==='test'` — test tak boleh mengirim WA/tagihan sungguhan (ambang NOL) |
 | `audit-alur-tercatat.mjs` | webhook n8n wajib lewat `jalankanAlur()` — eksekusi tak boleh luput dari `otomasi_jalan` (ambang NOL) |

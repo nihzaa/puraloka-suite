@@ -316,6 +316,26 @@ jobs:
       - name: Tugas terjadwal punya rute terpasang
         run: node scripts/audit-tugas-punya-rute.mjs
 
+      # ARAH SEBALIKNYA, dan cacatnya sudah terjadi TIGA KALI.
+      #
+      # Penjaga di atas menjamin tiap TUGAS punya rute. Ia tak menjamin tiap
+      # RUTE punya tugas — dan rute otomasi tanpa tugas tak pernah bisa dipicu
+      # siapa pun. Rute yang tak pernah dipanggil TIDAK error; ia hanya diam,
+      # dan satu-satunya jejaknya adalah sesuatu yang TIDAK terjadi.
+      #
+      #   2026-08-16  8 rute otomasi ada sejak 15/16, tak pernah terdaftar
+      #   2026-08-17  `kendali-dokumen/kirim-laporan` — akibatnya
+      #               `terakhir_dikirim` selamanya NULL, dan deteksi MACET
+      #               melaporkan SELURUH jadwal macet: peringatan yang BENAR
+      #               untuk sebab yang SALAH
+      #   2026-08-17  7 rute lagi — ditemukan penjaga ini pada jam yang sama
+      #               ia ditulis
+      #
+      # Dua yang pertama ditemukan tangan. Yang ketiga ditemukan penjaga, dan
+      # itulah alasan penjaganya ada.
+      - name: Rute penjadwal punya tugas pemicu
+        run: node scripts/audit-rute-penjadwal-punya-tugas.mjs
+
       # Sepupu L-4 untuk arah sebaliknya: bukan "kolom punya pembaca" melainkan
       # "peristiwa punya alur". `utils/terbit-peristiwa.ts` memetakan jenis
       # notifikasi ke kode alur otomasi, dan kode itu jadi `path` webhook n8n.

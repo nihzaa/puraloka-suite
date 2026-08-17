@@ -5,6 +5,108 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-17 (sesi peta-modul, lanjutan) — SPK bisa dicetak, klausul bisa disunting, dan penjaga yang menemukan 7 rute mati pada jam ia ditulis
+
+Lanjutan. Founder menyisipkan tiga keluhan UI di tengah jalan dengan syarat
+*"jalan beriringan aja nyambil, jangan mengganggu urutan kerja untuk
+penyelesaian peta-modul"* — dikerjakan begitu, di commit terpisah.
+
+### Yang ditutup di peta modul
+
+| Entri | Yang dibangun |
+|---|---|
+| `kt-subkon` | `GET /spk/:id.pdf` + tombol Cetak. Rantainya lengkap sejak lama — tabel, rute, layar, test, bahkan kolom `pdf_url`. Yang tak ada: dokumennya. |
+| `dk-esign` | `/dokumen/verifikasi` — endpoint verifikasi sudah ada sejak kemarin, tak punya layar. |
+| `md-template-dok` | `/pengaturan/klausul-kontrak` + CRUD. "Kolom DB sudah ada" bukan selesai. |
+| `bi-terjadwal` | Pemicunya didaftarkan (lihat bawah). |
+
+Peta modul: **214/15/2 → 222/11/0**. Nol `rencana`.
+
+### Penjaga baru menemukan cacat yang sama untuk KETIGA kalinya
+
+`bi-terjadwal` menulis "pengiriman surel otomatisnya belum dijalankan". Diukur:
+rutenya SUDAH lengkap. Yang tak ada cuma entri di `KATALOG_TUGAS` — jadi tak
+ada satu pun cara memicunya.
+
+Akibatnya bukan sekadar laporan tak terkirim: `terakhir_dikirim` selamanya
+NULL, sehingga deteksi MACET melaporkan SELURUH jadwal sebagai macet.
+**Peringatan yang benar untuk sebab yang salah** — yang membacanya akan
+memeriksa penjadwal yang sebenarnya sehat.
+
+Ini bentuk yang sama dengan cacat 2026-08-16 (8 rute otomasi tak terdaftar).
+`audit-tugas-punya-rute.mjs` menjaga arah tugas→rute; arah rute→tugas tak
+dijaga siapa pun. Jadi ditulis `audit-rute-penjadwal-punya-tugas.mjs`.
+
+**Ia langsung menemukan 7 rute yatim lainnya** — `kirim-pengingat`,
+`perawatan-diprediksi`, `kebiasaan-bayar`, `ringkasan-mingguan`,
+`material-kurang`, `alat-tak-sehat`, `celah-asuransi`. Semuanya rute lengkap
+ber-preHandler yang tak pernah bisa dipicu siapa pun.
+
+Katalog tugas **51 → 58**.
+
+Rute yang tak pernah dipanggil TIDAK error. Ia hanya diam, dan satu-satunya
+jejaknya adalah sesuatu yang tidak terjadi.
+
+### Dua mutasi yang LOLOS lebih dulu — dan itu yang paling layak dicatat
+
+**1. Lampiran RK3K kosong.** Melewatinya diam-diam tak membuat test merah,
+karena kata penanda "BELUM ADA CATATAN" sudah muncul di ringkasan beberapa
+sentimeter di atasnya. Assertion saya cocok dengan teks di DUA tempat, jadi ia
+hanya menjaga yang lebih dangkal.
+
+**2. Uji kebocoran SPK antar-tenant.** Ia MENCARI `work_scope` milik company
+lain lalu `return` diam-diam kalau tak ketemu. Diukur: hanya satu company
+punya `work_scope` sama sekali — assertion-nya tak pernah dijalankan. Dengan
+`.eq('company_id', …)` DIBUANG, 55 test tetap hijau.
+
+Keduanya diperbaiki lalu dimutasi ulang sampai MERAH, baru dipulihkan.
+
+Kalau saya berhenti di "passed", saya akan melaporkan dua penjagaan yang tak
+ada. **Test yang melewati dirinya sendiri lebih buruk daripada test yang tak
+ada**: yang kedua terlihat sebagai lubang, yang pertama terlihat sebagai
+penjagaan.
+
+### Tiga keluhan UI founder
+
+1. **Katalog AHSP menggantung** — `maxHeight: 560` dipaku, berhenti di tengah
+   baris lalu meninggalkan ruang kosong sampai bawah jendela. Diganti
+   `calc(100vh - 300px)`.
+2. **Pemilih resource Price Book** — `<select size={6})` menyerahkan
+   penggambaran ke sistem operasi: biru bawaan Windows, sudut siku, dan di
+   mode gelap nyaris tak terbaca. Diganti listbox yang digambar sendiri,
+   tetap `role="listbox"` + `aria-selected`.
+3. **Tombol tak seragam** — 6 tempat: `Btn` primary procurement (8 halaman
+   sekaligus), "Daftarkan pegawai", dan 4 tombol "Tambah" di pengaturan
+   master. Yang TIDAK disentuh: tombol bergaris yang memang bukan aksi utama
+   — di sana gaya bergaris justru benar.
+
+Sekalian satu pelanggaran a11y [serious] di `/estimasi`: tautan di tengah
+paragraf dibedakan hanya dengan warna (WCAG 1.4.1).
+
+### Bukti
+
+    migrasi 451/452/453   masing-masing 4-6 invarian LULUS, tercatat di
+                          buku migrasi HANYA sesudah artefaknya terbukti
+    vitest                55 (spk) · 32 (kontrak+klausul) · 17 (rk3k+kop)
+    mutasi                4 dijalankan; 2 LOLOS lebih dulu lalu dipertajam
+    a11y terang           154 halaman · 0 pelanggaran (dari 1 [serious])
+    a11y gelap            148 halaman · 0 pelanggaran
+    tsc api + web         bersih
+    penjaga baru          dibuktikan MERAH lewat mutasi, lalu HIJAU
+    tugas-punya-rute + rute-punya-tugas · gerbang-tenancy ·
+      kegagalan-senyap · catch-senyap · baca-tak-terpotong ·
+      klaim-status-atomik · jejak-tak-hilang · izin-benar-ada ·
+      peta-modul · menu-punya-halaman · judul-halaman · token-css ·
+      galat-muat-terpisah · remah-lengkap · tabel-seragam   semuanya exit 0
+
+⚠ Dua penjaga MERAH dan keduanya sudah merah SEBELUM sesi ini (diperiksa
+dengan `git stash`): `audit-halaman-pakai-cache` 30 (lantai 25) dan
+`audit-tulis-tanpa-periksa` 82 (ambang 76). Tak satu pun ditambah pekerjaan
+ini — endpoint yang ditulis read-only, dan halaman baru memakai `useData`.
+Ambang TIDAK dinaikkan (G-5). Dicatat sebagai hutang yang belum saya sentuh.
+
+---
+
 ## 2026-08-17 (sesi peta-modul, penutup) — dua sisa terakhir: klausul kontrak & RK3K
 
 Founder: *"kerjakan dan tuntaskan, caranya terserah kamu, aku serahkan padamu,
