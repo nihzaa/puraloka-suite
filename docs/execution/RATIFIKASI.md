@@ -2553,3 +2553,89 @@ repo ini sudah mencatat kerusakan seperti itu terjadi 3× pada 2026-08-06.
 Sampai itu diputuskan, keempat modul yang menunggu merge (`crm-proposal`,
 `dk-register`, `bi-terjadwal`, `tg-tambah`) tetap `sebagian`/`rencana` di
 Peta Modul — dan itu jujur, bukan kelalaian.
+
+### R-013 — REKOMENDASI SAYA (diukur 2026-08-17)
+
+Founder meminta saya yang memutuskan. Ini rekomendasinya beserta buktinya —
+bukan selera, dan tiap butir bisa Anda tolak.
+
+#### 1. `payment_terms` tak dikenal → **NULL menang**
+
+Diukur lebih dulu, karena ini menentukan seberapa besar taruhannya:
+
+```
+grep net_30|net_14|net_7 di seluruh apps/api (di luar importer)  → NOL
+```
+
+**Tak ada satu pun kode yang menghitung jatuh tempo dari kolom ini.** Ia
+murni tampilan hari ini. Jadi risikonya BUKAN "uang keluar di tanggal yang
+salah" melainkan "manusia membaca keterangan yang salah lalu bertindak".
+
+Sebaran nyata di basis: `net_14` 2 · `net_30` 1 · `cod` 1 · `net_7` 1 —
+lima pemasok, EMPAT di antaranya BUKAN `cod`.
+
+Jatuh ke `'cod'` berarti: pemasok yang sebenarnya bertempo 30 hari tercatat
+"bayar di tempat". Yang membaca akan mengira uangnya harus keluar hari ini.
+Itu tebakan yang menyamar jadi fakta, dan tak meninggalkan jejak bahwa ia
+pernah ditebak.
+
+NULL jujur: kolomnya nullable, dan termin kosong TERLIHAT kosong. Orang
+yang melihatnya tahu harus bertanya.
+
+> Alasan branch seberang tetap sah untuk kasusnya: "yang menulis 'tempo 30
+> hari' di Excel tak sedang salah; formatnya yang tak pernah disepakati."
+> Itu benar — dan sudah ditutup `lib/importer-nilai.ts` yang menerjemahkan
+> "30 hari"/"NET 30"/"tunai" ke nilai sah. Yang tersisa jatuh ke NULL cuma
+> yang BENAR-BENAR tak terbaca ("sesuai kesepakatan", "nego").
+
+#### 2. Skema impor → **AMBIL KEDUANYA, tidak memilih**
+
+Ini bukan konflik sungguhan, dan itu temuan yang mengubah bentuk masalahnya:
+
+| branch ini | kematangan-modul |
+|---|---|
+| `supplier`, `cost_code` | `pemasok`, `pekerja` |
+
+Keduanya menambah DUA skema, tapi skema yang BERBEDA. `supplier` dan
+`pemasok` menulis ke tabel yang sama; `cost_code` dan `pekerja` sama sekali
+tak bersinggungan.
+
+Jadi hasil yang benar: **empat skema** (`supplier`/`pemasok` disatukan jadi
+satu, plus `cost_code`, plus `pekerja`) — bukan memilih dua dan membuang dua.
+Untuk yang disatukan, pakai kunci `supplier` (kolom & aliasnya lebih
+lengkap) dengan alias tambahan dari sisi seberang.
+
+#### 3. ⚠ TEMUAN YANG MENGUBAH URUTAN KERJA
+
+Migrasi 441 (dulu 406) menulis asumsi ini di headernya:
+
+> "`code` pemasok bahkan tak unik di basis (diukur: nol unique index pada
+> `suppliers.code`). Duplikat karena itu MUNGKIN, dan itu keputusan sadar."
+
+**Asumsi itu SUDAH TIDAK BENAR.** Migrasi 427 (branch ini, sudah jalan)
+memasang `suppliers_code_per_company` — unik parsial `(company_id, code)`.
+
+Dan `INSERT INTO suppliers` di 441 **tak punya `ON CONFLICT`**. Artinya
+sesudah merge, mengimpor dua pemasok berkode sama akan MENGGAGALKAN SELURUH
+BERKAS (importer all-or-nothing) — bukan menghasilkan duplikat seperti yang
+dirancangnya.
+
+Ini harus dibereskan SEBELUM merge, bukan sesudah. Kalau tidak, gejalanya
+muncul sebagai "importer rusak" pada pelanggan pertama yang berkasnya punya
+kode berulang.
+
+#### 4. Cara merge → **per-fitur, bukan sekaligus**
+
+`--no-ff` sekaligus menghasilkan 36 konflik dan net −23.035 baris. Yang
+saya sarankan: `git checkout feat/kematangan-modul -- <berkas>` per fitur,
+verifikasi tiap kelompok, commit terpisah. Lebih lambat, tapi tiap langkah
+bisa dibaca dan dibatalkan sendiri-sendiri.
+
+Urutan yang saya usulkan (dari yang paling tak bersinggungan):
+
+1. `crm-proposal` (dokumen penawaran + PDF) — berkas baru, nyaris nol konflik
+2. `dk-register` (revisi dokumen) — sudah di basis, tinggal kode
+3. `bi-terjadwal` (laporan terjadwal) — wiring surel
+4. `tg-tambah` — ⚠ BERSINGGUNGAN dengan tagihan CO yang sudah ada di sini;
+   dua implementasi untuk satu fitur, perlu dibaca berdampingan
+5. `importer` — sesudah butir 3 di atas dibereskan
