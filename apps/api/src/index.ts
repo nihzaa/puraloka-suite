@@ -105,6 +105,7 @@ import deretModulRoutes from './routes/v1/deret-modul.js'
 import rfiRoutes from './routes/v1/rfi.js'
 import submittalRoutes from './routes/v1/submittal.js'
 import suratRoutes from './routes/v1/surat.js'
+import penawaranRoutes from './routes/v1/penawaran.js'
 import instruksiLapanganRoutes from './routes/v1/instruksi-lapangan.js'
 import rabScheduleRoutes from './routes/v1/rab-schedule.js'
 import auditRoutes from './routes/v1/audit.js'
@@ -418,6 +419,7 @@ await app.register(deretModulRoutes)
 await app.register(rfiRoutes)
 await app.register(submittalRoutes)
 await app.register(suratRoutes)
+await app.register(penawaranRoutes)
 await app.register(instruksiLapanganRoutes)
 await app.register(rabScheduleRoutes)
 await app.register(auditRoutes)
