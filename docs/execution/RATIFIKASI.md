@@ -2639,3 +2639,43 @@ Urutan yang saya usulkan (dari yang paling tak bersinggungan):
 4. `tg-tambah` — ⚠ BERSINGGUNGAN dengan tagihan CO yang sudah ada di sini;
    dua implementasi untuk satu fitur, perlu dibaca berdampingan
 5. `importer` — sesudah butir 3 di atas dibereskan
+
+### R-013 — SELESAI 2026-08-17
+
+Dieksekusi sesuai rekomendasi, per-fitur, lima commit terpisah.
+Merge balik ke `feat/sumbu-ui-roadmap` berhasil.
+
+| # | Fitur | Keputusan |
+|---|---|---|
+| 1 | `crm-proposal` | diambil utuh (berkas baru) |
+| 2 | `dk-register` | diambil; `kop-dokumen.ts` & `kendali-dokumen.ts` TIDAK |
+| 3 | `bi-terjadwal` | blok 166 baris DIPINDAH ke berkas di sini, bukan berkasnya diambil |
+| 4 | `tg-tambah` | **desain mereka**; punya saya dipensiunkan + testnya dihapus |
+| 5 | `importer` | 4 skema; migrasi 446 menutup tabrakan `code` |
+
+**Dua berkas digabung, bukan dipilih** — dan itu yang paling mudah salah:
+`git checkout` utuh atas `kop-dokumen.ts` akan menghapus `kunciLogo()`
+(logo PDF tanpa SSRF), dan atas `kendali-dokumen.ts` akan menghapus
+`POST /tanda-tangan/verifikasi`. Keduanya hilang TANPA satu pun galat.
+
+**Temuan yang paling berbahaya** ada di butir 5, dan ia tak akan terlihat
+sampai pelanggan pertama mengimpor: migrasi 441 menulis "nol unique index
+pada `suppliers.code`" — benar saat ditulis, sudah tidak benar sejak 427.
+INSERT-nya tak punya `ON CONFLICT`, jadi dua pemasok berkode sama akan
+menggagalkan SELURUH berkas. Ditutup migrasi 446.
+
+**Satu cacat uang ikut ketahuan**: `reports.ts` (rekap mandor) menjumlahkan
+upah + kasbon dari tiga query TANPA memeriksa `error` sekali pun. Query
+gagal → "nol baris" → laporan berkata "tak ada pengeluaran". Diperbaiki;
+ratchet `audit-kegagalan-senyap` justru DIKENCANGKAN 186 → 185.
+
+Bukti akhir di `feat/sumbu-ui-roadmap`:
+
+```
+237 test hijau (13 berkas, Postgres NYATA)
+tsc api + web                    bersih
+13 penjaga arsitektural          exit=0
+audit-menu-punya-halaman         7 tersisa — KELIMANYA yatim lama
+                                 (href disetel 2026-08-10, halaman tak
+                                 pernah ada di branch mana pun)
+```
