@@ -118,7 +118,14 @@ export default function HalamanInsiden() {
   }, [insiden]);
 
   return (
-    <div>
+    <div style={{
+      // Pembungkus BAKU halaman dashboard — 111 dari 143 halaman memakainya.
+      // Tanpa ini isinya menempel ke tepi layar ("mepet") dan melebar tanpa
+      // batas di monitor lebar, sementara halaman sebelahnya tidak — dan
+      // ketaksamaan itu yang paling terasa saat berpindah menu.
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
+    }}>
       <KepalaHalaman
         judul="Insiden & Kecelakaan"
         keterangan="Register K3 lintas proyek — termasuk nyaris celaka, yang justru paling bisa dipelajari."

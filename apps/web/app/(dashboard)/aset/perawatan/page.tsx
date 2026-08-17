@@ -323,7 +323,15 @@ export default function JadwalPerawatanPage() {
   ], []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
+    <div style={{
+      // Pembungkus BAKU halaman dashboard — 111 dari 143 halaman memakainya.
+      // Tanpa ini isinya menempel ke tepi layar ("mepet") dan melebar tanpa
+      // batas di monitor lebar, sementara halaman sebelahnya tidak — dan
+      // ketaksamaan itu yang paling terasa saat berpindah menu.
+      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
+      width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
+      display: "flex", flexDirection: "column", gap: "var(--gap-bagian)",
+    }}>
       <KepalaHalaman
         judul="Jadwal Perawatan"
         ikon={<Wrench size={19} />}
