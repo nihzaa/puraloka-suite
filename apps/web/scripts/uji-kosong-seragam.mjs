@@ -71,9 +71,27 @@ for (const f of halaman(AKAR)) {
     const konteks = baris.slice(Math.max(0, i - 6), i + 1).join("\n");
     if (!/length === 0|length < 1|!\w+\.length|length\)\s*===\s*0/.test(konteks)) return;
 
-    // Sudah memakai <Kosong> di blok yang sama? Berarti sudah benar.
+    /*
+      Sudah memakai komponen kekosongan bersama di blok yang sama? Berarti
+      sudah benar.
+
+      DUA nama yang sah, bukan satu:
+
+        <Kosong>       @/components/ui-dasar        — dipakai seluruh aplikasi
+        <LayarKosong>  estimasi/_bersama/layar-kosong — modul CECEP
+
+      `<LayarKosong>` bukan penyimpangan yang ditoleransi, melainkan bentuk
+      yang LEBIH KETAT: ia MEWAJIBKAN `apa` + `kenapa` + `aksi` (spec rombak
+      CECEP §5), sementara `<Kosong>` hanya menganjurkan `sebab`. Menolaknya
+      berarti penjaga ini menyuruh menurunkan mutu.
+
+      Tanpa baris ini, tujuh keadaan kosong yang justru PALING lengkap di
+      repo terhitung sebagai pelanggaran — dan angka pelanggaran naik persis
+      karena cacatnya diperbaiki. Penjaga yang menghukum perbaikan akan
+      diabaikan orang, lalu berhenti menjaga apa pun.
+    */
     const blok = baris.slice(Math.max(0, i - 8), i + 3).join("\n");
-    if (/<Kosong/.test(blok)) return;
+    if (/<(Kosong|LayarKosong)/.test(blok)) return;
 
     temuan.push(`${rel}:${i + 1}  ${b.trim().slice(0, 62)}`);
   });

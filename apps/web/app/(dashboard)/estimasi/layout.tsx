@@ -76,6 +76,32 @@ const BAGIAN: Bagian[] = [
   { href: "/pengaturan/markup", label: "Markup & PPN", luar: true },
 ];
 
+/**
+ * Keterangan PER HALAMAN, bukan satu untuk seluruh modul.
+ *
+ * Sampai 2026-08-17 layout ini memaku satu kalimat — "RAB dari analisa AHSP
+ * ber-edisi × price book…" — di kelima halaman. Terlihat di tangkapan layar:
+ * halaman **RAP** menyatakan dirinya sebagai RAB, padahal RAP justru
+ * kebalikannya (belanja internal, bukan nilai jual ke klien). Keterangan yang
+ * salah lebih buruk daripada tak ada keterangan: ia mengajari hal yang keliru
+ * pada halaman yang memang ada untuk membedakan keduanya.
+ *
+ * Judulnya sendiri datang dari entri menu (`JudulBagian`), jadi ia sudah benar
+ * per halaman. Hanya keterangannya yang tertinggal.
+ */
+const KETERANGAN: Record<string, string> = {
+  "/estimasi":
+    "RAB dari analisa AHSP ber-edisi × price book — setiap rupiah bisa ditelusuri ke koefisien & harga sumbernya.",
+  "/estimasi/rab":
+    "Susun rencana anggaran biaya satu proyek: pilih analisa, isi volume, harga jalan dari price book yang berlaku.",
+  "/estimasi/rap":
+    "Anggaran biaya pelaksanaan — rencana belanja internal, beda dari RAB yang merupakan nilai jual ke klien.",
+  "/estimasi/kas":
+    "Perkiraan uang masuk dan keluar per periode, diturunkan dari RAB yang sudah tersusun.",
+  "/estimasi/varians":
+    "Pagu vs komitmen vs belanja aktual per cost code — apakah belanja masih di dalam anggaran.",
+};
+
 export default function EstimasiLayout({ children }: { children: React.ReactNode }) {
   const path = usePathname();
 
@@ -93,10 +119,7 @@ export default function EstimasiLayout({ children }: { children: React.ReactNode
       }}
     >
       <div className="rise" style={{ marginBottom: 14 }}>
-        <JudulBagian
-          cadangan="Estimasi & RAB"
-          keterangan="RAB dari analisa AHSP ber-edisi × price book — setiap rupiah bisa ditelusuri ke koefisien & harga sumbernya."
-        />
+        <JudulBagian cadangan="Estimasi & RAB" keterangan={KETERANGAN[path] ?? KETERANGAN["/estimasi"]} />
       </div>
 
       <nav

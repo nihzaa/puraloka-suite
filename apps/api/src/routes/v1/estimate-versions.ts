@@ -222,6 +222,115 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
       })
     })
 
+  /*
+    ── GET /estimate-versions — DAFTAR RAB lintas proyek ─────────────────────
+
+    Kenapa endpoint ini ada, padahal 16 endpoint estimasi lainnya sudah cukup
+    untuk MENGERJAKAN satu RAB.
+
+    Seluruh modul ini di-key oleh id: buka versi X, ubah item Y. Itu melayani
+    orang yang SUDAH TAHU RAB mana yang dicarinya. Yang tak pernah dilayani:
+    "RAB apa saja yang kami punya, dan mana yang perlu saya lanjutkan?" —
+    pertanyaan yang dibawa orang saat membuka menunya, bukan saat sudah di
+    dalam satu dokumen.
+
+    Diukur 2026-08-16: 208 skenario dan 2.221 versi tersimpan, dan TAK SATU
+    PUN tampil di layar mana pun. Datanya ada, jalan masuknya tidak. Ikhtisar
+    /estimasi menampilkan daftar PROYEK sebagai gantinya — sehingga proyek yang
+    RAB-nya sudah Rp 4,8 M terlihat persis sama dengan yang masih kosong.
+
+    Bentuk jawabannya sengaja SATU BARIS PER VERSI, bukan per proyek:
+    membandingkan dua penawaran untuk proyek yang sama adalah pekerjaan nyata
+    di sini (itu guna `scenarios`), dan pengelompokan per proyek justru
+    menyembunyikannya.
+  */
+  app.get<{ Querystring: { limit?: string } }>(
+    '/api/v1/estimate-versions',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:view')] },
+    async (request, reply) => {
+      // Gerbang tenancy T4g: saring lewat skenario milik tenant, bukan
+      // memercayai id yang dikirim. Tanpa ini daftar membocorkan seluruh RAB
+      // tenant lain sekaligus — kebocoran terluas yang mungkin di modul ini.
+      const skenarioIds = await skenarioIdsTenant(request)
+      if (skenarioIds.length === 0) return reply.send({ data: [] })
+
+      // Batas eksplisit: `audit-baca-tak-terpotong` menolak baca tabel penuh
+      // yang bisa terpotong senyap di 1.000 baris PostgREST. 2.221 versi sudah
+      // melewatinya hari ini, jadi batasnya ditulis, bukan diwariskan.
+      const limit = Math.max(1, Math.min(500, Number(request.query.limit) || 200))
+
+      const { data, error } = await supabase
+        .from('estimate_versions')
+        .select(`id, version_number, status, total_amount, created_at, edition_id,
+                 scenario:scenarios!inner(id, name, project_id)`)
+        .in('scenario_id', skenarioIds)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+      if (error) return reply.status(500).send({ error: error.message })
+
+      const baris = data ?? []
+
+      /*
+        PostgREST memulangkan relasi kadang sebagai OBJEK, kadang sebagai
+        ARRAY berisi satu — bergantung bagaimana ia menyimpulkan kardinalitas
+        embed. `versiMilikTenant` di berkas ini sudah menangani hal yang sama;
+        pola itu diangkat jadi satu helper supaya tak ditebak dua kali.
+
+        Kalau ini dilewatkan, `sc.project_id` bernilai undefined pada bentuk
+        array — dan akibatnya BUKAN galat melainkan daftar yang nama proyeknya
+        kosong seluruhnya.
+      */
+      const satu = <T,>(v: T | T[] | null | undefined): T | undefined =>
+        (Array.isArray(v) ? v[0] : v) ?? undefined
+      type ScenarioEmbed = { id: string; name: string; project_id: string }
+
+      // Nama proyek & kode edisi diambil sekali untuk seluruh daftar, bukan
+      // per baris: 200 baris × 2 query = 400 perjalanan bolak-balik, dan
+      // halaman daftar adalah tempat paling sering dibuka di modul ini.
+      const projectIds = [...new Set(baris
+        .map((r) => satu(r.scenario as ScenarioEmbed | ScenarioEmbed[] | null)?.project_id)
+        .filter((x): x is string => Boolean(x)))]
+      const editionIds = [...new Set(baris
+        .map((r) => r.edition_id).filter((x): x is string => Boolean(x)))]
+
+      const [proyekRes, edisiRes] = await Promise.all([
+        projectIds.length
+          ? supabase.from('projects').select('id, name').in('id', projectIds)
+          : Promise.resolve({ data: [], error: null }),
+        editionIds.length
+          ? supabase.from('ahsp_editions').select('id, code').in('id', editionIds)
+          : Promise.resolve({ data: [], error: null }),
+      ])
+      if (proyekRes.error) return reply.status(500).send({ error: proyekRes.error.message })
+      if (edisiRes.error) return reply.status(500).send({ error: edisiRes.error.message })
+
+      const namaProyek = new Map((proyekRes.data ?? []).map((p) => [p.id, p.name]))
+      const kodeEdisi = new Map((edisiRes.data ?? []).map((e) => [e.id, e.code]))
+
+      return reply.send({
+        data: baris.map((r) => {
+          const sc = satu(r.scenario as ScenarioEmbed | ScenarioEmbed[] | null)
+          return {
+            id: r.id,
+            version_number: r.version_number,
+            status: r.status,
+            // `total_amount` numeric datang sebagai string dari PostgREST.
+            // Dikirim sebagai number supaya UI tak menjumlahkan teks —
+            // dan null TETAP null, bukan 0: RAB yang belum dihitung dan RAB
+            // yang benar-benar nol rupiah adalah dua keadaan berbeda.
+            total_amount: r.total_amount == null ? null : Number(r.total_amount),
+            created_at: r.created_at,
+            scenario_id: sc?.id ?? null,
+            scenario_name: sc?.name ?? null,
+            project_id: sc?.project_id ?? null,
+            project_name: sc ? (namaProyek.get(sc.project_id) ?? null) : null,
+            edition_code: r.edition_id ? (kodeEdisi.get(r.edition_id) ?? null) : null,
+          }
+        }),
+        meta: { jumlah: baris.length, batas: limit, terpotong: baris.length === limit },
+      })
+    })
+
   // ── GET /projects/:projectId/scenarios — daftar skenario + ringkas versi ────
   app.get<{ Params: { projectId: string } }>(
     '/api/v1/projects/:projectId/scenarios',

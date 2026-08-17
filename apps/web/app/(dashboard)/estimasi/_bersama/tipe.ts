@@ -61,6 +61,30 @@ export interface VersiEstimasi {
   created_at?: string;
 }
 
+/**
+ * Satu BARIS di daftar RAB (`GET /api/v1/estimate-versions`).
+ *
+ * Bentuknya sengaja rata — proyek, skenario, dan versi digabung jadi satu
+ * baris — karena itulah yang dibaca orang saat memindai daftar: "RAB mana
+ * ini, punya proyek apa, berapa, dan sudah sejauh mana?"
+ *
+ * `total_amount` boleh null, dan null BUKAN nol: RAB yang belum dihitung
+ * berbeda dari RAB yang benar-benar nol rupiah. Layar wajib membedakannya
+ * ("—" vs "Rp 0"), karena keduanya menuntut tindakan berbeda.
+ */
+export interface BarisRab {
+  id: string;
+  version_number: number;
+  status: StatusVersi;
+  total_amount: number | null;
+  created_at?: string;
+  scenario_id: string | null;
+  scenario_name: string | null;
+  project_id: string | null;
+  project_name: string | null;
+  edition_code: string | null;
+}
+
 // ── Item RAB ──────────────────────────────────────────────────────────────
 export interface ItemEstimasi {
   id: string;

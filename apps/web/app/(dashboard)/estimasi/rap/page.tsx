@@ -207,6 +207,31 @@ function RapTab() {
         ada lebih buruk daripada tak ada petunjuk: pemakainya mencari sesuatu
         yang mustahil ditemukan, lalu menyimpulkan dirinya yang salah.
       */}
+      {/*
+        Proyek BELUM dipilih — keadaan pertama yang dilihat setiap orang, dan
+        sampai 2026-08-17 ia menghasilkan HALAMAN PUTIH.
+
+        Seluruh isi halaman ini bersyarat `projectId`, jadi tanpa proyek
+        terpilih tak satu pun blok di bawah dirender: tak ada tabel, tak ada
+        empty state, tak ada penjelasan. Persis kegagalan yang jadi ALASAN
+        utama rombak modul ini (spec §5, "Material & RAP = halaman putih"), dan
+        ia lolos karena `uji-layar-kosong-menjelaskan` memeriksa apakah berkas
+        PUNYA empty state — bukan apakah setiap jalan kosong sampai ke sana.
+
+        /estimasi/rab dan /estimasi/varians sudah menangani keadaan ini sejak
+        awal; RAP tertinggal karena ia memakai state lokal, bukan `?proyek=`
+        di URL, sehingga tak ikut pola early-return keduanya.
+      */}
+      {!projectId && (
+        <LayarKosong
+          ikon={<ClipboardList size={21} />}
+          judul="Pilih proyek dulu"
+          apa="RAP adalah anggaran biaya pelaksanaan — rencana belanja internal satu proyek, beda dari RAB yang merupakan nilai jual ke klien."
+          kenapa="Ia selalu melekat pada satu proyek. Pilih proyeknya di atas, atau buka dari daftar di Ikhtisar."
+          aksi={{ label: "Lihat daftar proyek", href: "/estimasi" }}
+        />
+      )}
+
       {projectId && rapList.length === 0 && (
         <LayarKosong
           ikon={<ClipboardList size={21} />}
