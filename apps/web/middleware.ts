@@ -94,7 +94,23 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // Kalau kelak staf perlu mengisi timesheet-nya sendiri, yang dibuka adalah
   // rute terpisah (mis. `/sdm/saya`) dengan endpoint yang menyaring ke
   // pegawai yang sedang masuk — bukan membuka `/sdm` seluruhnya.
-  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/risiko", "/k3", "/m", "/peta-modul"],
+  // ⚠ `/master` WAJIB disebut sendiri — `/m` TIDAK mencakupnya.
+  //
+  // `cocokRute` mencocokkan DI BATAS SEGMEN (`pathname === prefix ||
+  // pathname.startsWith(prefix + "/")`), jadi `/m` hanya cocok untuk `/m`
+  // dan `/m/…`. `/master/wbs` tidak pernah cocok.
+  //
+  // Ditemukan 2026-08-17: founder mengeklik tiga sub-menu Master Data
+  // (Template WBS, Data Kepegawaian, Penomoran Dokumen) dan ketiganya
+  // terlempar ke dashboard. Halamannya ADA — 718, 760, dan 404 baris, hidup
+  // sejak 2026-08-12 — tapi middleware menutup jalannya sebelum halaman
+  // sempat dimuat.
+  //
+  // Bentuk kegagalannya yang paling jahat: TAK ADA galat sama sekali. Orang
+  // menyimpulkan modulnya belum jadi, padahal sudah. Itu kelas cacat yang
+  // sama dengan titik kesiapan yang basi (migrasi 439/440) — hanya saja yang
+  // ini menutup aksesnya, bukan sekadar menyesatkan tampilannya.
+  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/risiko", "/k3", "/m", "/master", "/peta-modul"],
 };
 
 /**
