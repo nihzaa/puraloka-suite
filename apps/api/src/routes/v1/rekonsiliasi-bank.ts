@@ -1,5 +1,7 @@
 import type { FastifyInstance } from 'fastify'
+import * as XLSX from 'xlsx'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
+import { uraikanMutasi } from '../../lib/impor-mutasi-bank.js'
 import {
   usulkanPencocokan, hitungLaporan, sidikBaris,
   type BarisKoran, type TransaksiBuku, type SumberBuku,
@@ -493,6 +495,85 @@ export default async function rekonsiliasiBankRoutes(app: FastifyInstance) {
     }
     return { dikunci: true }
   })
+
+  // ── POST /api/v1/rekonsiliasi/uraikan-berkas ─────────────────────────────
+  //
+  // Berkas mutasi bank (CSV/Excel) → baris rekonsiliasi. TIDAK MENULIS apa pun.
+  //
+  // ── Kenapa dipisah dari `POST /rekonsiliasi` yang menyimpan
+  //
+  // Pola yang sama dengan importer umum (TJS-P3): urai → PERIKSA di layar →
+  // baru simpan. Menyatukannya berarti berkas yang kolomnya salah tafsir
+  // langsung jadi 200 baris rekonsiliasi yang harus dihapus satu per satu.
+  //
+  // Dan salah tafsir di sini bukan hipotesis: judul `DB/CR` sempat diklaim
+  // sebagai kolom KREDIT oleh pencocokan-sebagian, dan seluruh berkas ditolak
+  // dengan pesan yang menuduh berkasnya. Jawabannya membawa `pemetaan` supaya
+  // orang bisa MELIHAT kolom mana ditafsirkan sebagai apa, sebelum menyimpan.
+  //
+  // ── Kenapa tak butuh kredensial bank
+  //
+  // Sambungan API bank menuntut perjanjian tertulis, biaya bulanan, dan proses
+  // berbulan-bulan. Sementara tiap internet banking bisa mengunduh mutasi
+  // sebagai CSV/Excel hari ini juga. Yang memisahkan pemakai dari rekonsiliasi
+  // bukan ketiadaan API, melainkan ketiadaan pengurai.
+  app.post<{ Body: { berkas_base64?: string } }>(
+    '/api/v1/rekonsiliasi/uraikan-berkas',
+    { preHandler: [authenticate, requirePermission('rekonsiliasi:manage')] },
+    async (request, reply) => {
+      const b = request.body ?? {}
+      if (!b.berkas_base64) {
+        return reply.status(400).send({ error: 'Berkas wajib diunggah' })
+      }
+
+      let mentah: Array<Record<string, unknown>>
+      try {
+        const buf = Buffer.from(b.berkas_base64, 'base64')
+        // Batas 5 MB: mutasi setahun pun jauh di bawahnya, dan berkas yang
+        // lebih besar hampir pasti salah unggah.
+        if (buf.byteLength > 5 * 1024 * 1024) {
+          return reply.status(400).send({ error: 'Berkas melebihi 5 MB' })
+        }
+        const wb = XLSX.read(buf, { type: 'buffer', cellDates: false, raw: false })
+        const sheet = wb.Sheets[wb.SheetNames[0]]
+        if (!sheet) return reply.status(400).send({ error: 'Berkas tak punya lembar data' })
+        mentah = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
+      } catch (e) {
+        request.log.error({ err: e }, 'gagal membaca berkas mutasi bank')
+        return reply.status(400).send({
+          error: 'Berkas tak bisa dibaca. Pastikan formatnya CSV atau Excel (.xlsx).',
+        })
+      }
+
+      if (mentah.length === 0) {
+        return reply.status(400).send({ error: 'Berkas tak berisi satu baris data pun' })
+      }
+      if (mentah.length > 5000) {
+        return reply.status(400).send({
+          error: `Berkas berisi ${mentah.length} baris, melebihi batas 5000. Pecah per bulan.`,
+        })
+      }
+
+      const h = uraikanMutasi(mentah)
+
+      // Ringkasan dihitung di sini supaya layar tak menjumlahkan sendiri —
+      // dua tempat yang menjumlahkan hal sama akan berbeda suatu hari.
+      const totalDebit = h.baris.reduce((s, x) => s + x.debit, 0)
+      const totalKredit = h.baris.reduce((s, x) => s + x.kredit, 0)
+
+      return reply.send({
+        baris: h.baris,
+        // `pemetaan` DIBAWA ke layar: itu satu-satunya cara orang tahu kolom
+        // mana ditafsirkan sebagai apa sebelum menyimpan.
+        pemetaan: h.pemetaan,
+        ditolak: h.ditolak,
+        jumlah_baris: h.baris.length,
+        jumlah_ditolak: h.ditolak.length,
+        total_debit: Math.round(totalDebit * 100) / 100,
+        total_kredit: Math.round(totalKredit * 100) / 100,
+      })
+    },
+  )
 }
 
 /**
