@@ -2493,3 +2493,63 @@ Kalau dibangun, pemicunya harus per-PROYEK atau per-bulan, bukan per-milestone.
 
 Tanpa jawaban ini saya tidak membangunnya. Menebaknya berarti mengirim pesan
 atas nama perusahaan Anda ke pelanggan Anda berdasarkan tebakan saya.
+
+---
+
+## R-013 — Merge `feat/kematangan-modul`: DUA implementasi untuk fitur yang SAMA
+
+**Status:** menunggu founder · diajukan 2026-08-17
+
+### Yang terjadi
+
+Merge dicoba sesudah lima nomor migrasi yang bentrok dilepas ke 441-445
+(commit `0ee9022f`) dan 11 berkas penghalang di-commit (`a5b7695f`).
+
+Hasilnya **36 berkas konflik**, dan sebagian besar BUKAN konflik sepele:
+
+```
+git diff --stat HEAD feat/kematangan-modul
+490 files changed, 50396 insertions(+), 73431 deletions(-)
+```
+
+**Net −23.035 baris.** Merge yang diselesaikan tergesa akan menghapus
+puluhan ribu baris tanpa ada yang menyadarinya.
+
+### Kenapa ini bukan konflik biasa
+
+Kedua branch membangun fitur yang SAMA secara terpisah, dengan keputusan
+desain yang BERBEDA. Contoh dari `importer.ts`:
+
+| | branch ini | `feat/kematangan-modul` |
+|---|---|---|
+| kunci skema | `supplier`, `cost_code` | `pemasok`, `pekerja` |
+| nilai tak dikenal | jadi **NULL** (`lib/importer-nilai.ts`) | jatuh ke **`'cod'`** (migrasi 406→441) |
+
+Keduanya punya alasan tertulis dan keduanya masuk akal. Yang tidak masuk
+akal adalah memilih salah satunya diam-diam saat menyelesaikan konflik —
+terutama `payment_terms`, yang menentukan KAPAN UANG KELUAR.
+
+Hal serupa di `middleware.ts` (`/master` ditambahkan dua kali dengan
+komentar berbeda), `peta-menu.ts`, `kendali-dokumen.ts`, dan
+`tenant-map.generated.ts`.
+
+### Yang saya TIDAK lakukan, dan kenapa
+
+Tidak menyelesaikan konflik satu per satu. Dengan 36 berkas dan −23k baris,
+peluang menghapus pekerjaan orang tanpa sadar terlalu besar — dan jurnal
+repo ini sudah mencatat kerusakan seperti itu terjadi 3× pada 2026-08-06.
+
+`git merge --abort` dijalankan; pohon kerja diverifikasi bersih dan
+`tsc` api + web keduanya bersih sesudahnya.
+
+### Yang perlu diputuskan founder
+
+1. **Mana yang menang untuk fitur kembar?** Terutama `payment_terms`
+   (NULL vs `'cod'`) — ini keputusan uang, bukan gaya kode.
+2. **Cara merge-nya:** satu per satu per-fitur (lebih lambat, bisa
+   diperiksa), atau ambil salah satu branch sebagai dasar lalu terapkan
+   ulang yang lain di atasnya?
+
+Sampai itu diputuskan, keempat modul yang menunggu merge (`crm-proposal`,
+`dk-register`, `bi-terjadwal`, `tg-tambah`) tetap `sebagian`/`rencana` di
+Peta Modul — dan itu jujur, bukan kelalaian.
