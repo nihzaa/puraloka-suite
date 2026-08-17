@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
 import { susunCsvBupot, type BarisPajak } from '../../lib/ekspor-bupot.js'
+import { susunCsvEfaktur, type BarisFaktur } from '../../lib/ekspor-efaktur.js'
 import { supabase } from '../../utils/supabase.js'
 import type { FastifyRequest } from 'fastify'
 
@@ -1218,6 +1219,96 @@ export default async function reportsRoutes(app: FastifyInstance) {
         `attachment; filename="bupot-${date_from ?? 'awal'}-${date_to ?? 'akhir'}.csv"`)
       .header('x-bupot-jumlah', String(hasil.jumlah))
       .header('x-bupot-ditolak', String(hasil.ditolak.length))
+      .send(hasil.csv)
+  })
+
+  // ── GET /api/v1/reports/rekap-pajak/efaktur.csv ──────────────────────────
+  //
+  // Faktur Pajak siap IMPOR ke aplikasi e-Faktur DJP (skema FK/LT/OF).
+  //
+  // ── Kenapa ada meski Puraloka belum PKP
+  //
+  // Ini produk SaaS multi-tenant. Tenant yang sudah PKP wajib menerbitkan
+  // Faktur Pajak tiap masa — dan mengetiknya ulang satu per satu di aplikasi
+  // DJP adalah pekerjaan yang paling mudah salah ketik justru karena
+  // membosankan.
+  //
+  // Membangunnya hanya kalau tenant PERTAMA membutuhkannya berarti
+  // menyempitkan keputusan produk ke data satu perusahaan — kesalahan yang
+  // sama bentuknya dengan menulis angka di dokumen konteks.
+  //
+  // ── Gerbang PKP, dan kenapa ia BERTANGGAL
+  //
+  // Non-PKP yang menerbitkan Faktur Pajak melanggar UU PPN. Karena itu
+  // endpoint ini menolak bila `companies.pkp_sejak` NULL — dan memakai
+  // TANGGAL, bukan boolean: faktur untuk masa SEBELUM dikukuhkan tetap tak
+  // sah meski hari ini perusahaannya sudah PKP.
+  app.get('/api/v1/reports/rekap-pajak/efaktur.csv', {
+    preHandler: [authenticate, requirePermission('finance:tax:view')],
+  }, async (request, reply) => {
+    const { project_id, date_from, date_to } = request.query as {
+      project_id?: string; date_from?: string; date_to?: string
+    }
+
+    const { data: co, error: eCo } = await request.db!
+      .unsafe('companies', 'tabel tenant itu sendiri; di-scope eq(id, companyId)')
+      .select('id, name, pkp_sejak, pkp_dicabut_sejak')
+      .eq('id', request.companyId!)
+      .maybeSingle()
+    if (eCo) {
+      request.log.error({ err: eCo }, 'gagal memuat status PKP')
+      return reply.status(500).send({ error: 'Gagal memuat status PKP perusahaan' })
+    }
+
+    const pkp = (co as { pkp_sejak?: string | null } | null)?.pkp_sejak ?? null
+    if (!pkp) {
+      // 422, bukan 403: ini bukan soal hak akses melainkan keadaan
+      // perusahaan — dan pesannya menyebut cara memperbaikinya.
+      return reply.status(422).send({
+        error: 'Perusahaan ini belum berstatus PKP, jadi tidak menerbitkan Faktur Pajak. '
+          + 'Isi tanggal pengukuhan PKP di Pengaturan bila sudah dikukuhkan. '
+          + 'Untuk PPh Final, pakai ekspor bukti potong (bupot.csv).',
+      })
+    }
+
+    const idProyek = await proyekBolehDibaca(request, project_id ?? null)
+    if (idProyek === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+    let q = request.db!
+      .unsafe('tax_records', 'kategori C lewat invoice_id; disaring .in(invoice.project_id) di bawah')
+      .select(`
+        id, tax_type, base_amount, rate_pct, tax_amount, period_month, efaktur_number,
+        invoice:invoices!tax_records_invoice_id_fkey (
+          id, invoice_number, issued_date, project_id,
+          project:projects!invoices_project_id_fkey ( id, name,
+            client:clients!projects_client_id_fkey ( contact_person, company_name, npwp, address )
+          )
+        )
+      `)
+      // HANYA PPN. PPh Final tak pernah masuk Faktur Pajak — mencampurnya
+      // membuat SPT Masa PPN memuat pajak yang bukan objeknya.
+      .eq('tax_type', 'ppn')
+      .limit(5000)
+
+    if (idProyek.length > 0) q = q.in('invoice.project_id', idProyek)
+    if (date_from) q = q.gte('period_month', String(date_from).slice(0, 7))
+    if (date_to) q = q.lte('period_month', String(date_to).slice(0, 7))
+
+    const { data, error } = await q
+    if (error) {
+      request.log.error({ err: error }, 'gagal memuat catatan PPN untuk ekspor e-faktur')
+      return reply.status(500).send({ error: 'Gagal memuat catatan PPN' })
+    }
+
+    const baris = (data as BarisFaktur[]).filter((r) => r.invoice)
+    const hasil = susunCsvEfaktur(baris)
+
+    return reply
+      .header('content-type', 'text/csv; charset=utf-8')
+      .header('content-disposition',
+        `attachment; filename="efaktur-${date_from ?? 'awal'}-${date_to ?? 'akhir'}.csv"`)
+      .header('x-efaktur-jumlah', String(hasil.jumlah))
+      .header('x-efaktur-ditolak', String(hasil.ditolak.length))
       .send(hasil.csv)
   })
 
