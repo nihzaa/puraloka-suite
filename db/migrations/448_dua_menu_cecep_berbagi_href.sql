@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- 442 — dua menu CECEP berbagi href dengan menu lain (cacat dari 441)
+-- 448 — dua menu CECEP berbagi href dengan menu lain (cacat dari 441)
 --
 -- ── Cacat yang diperbaiki, dan ini cacat MIGRASI SEBELUMNYA
 --
@@ -65,6 +65,6 @@ BEGIN
            GROUP BY href HAVING count(*) > 1) k;
 
   IF v_kembar IS NOT NULL THEN
-    RAISE EXCEPTION '442 gagal: href masih dipakai lebih dari satu menu: %', v_kembar;
+    RAISE EXCEPTION '448 gagal: href masih dipakai lebih dari satu menu: %', v_kembar;
   END IF;
 END $$;

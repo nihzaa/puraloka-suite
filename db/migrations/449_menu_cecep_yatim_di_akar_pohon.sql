@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
--- 443 — lima menu CECEP menggantung di AKAR pohon, tanpa grup induk
+-- 449 — lima menu CECEP menggantung di AKAR pohon, tanpa grup induk
 --
 -- ── Gejalanya: ubin judul berisi TITIK, bukan lambang modul
 --
@@ -82,7 +82,7 @@ BEGIN
     FROM menu_items WHERE key = ANY(v_kunci) AND parent_id IS NULL;
 
   IF v_tanpa_induk IS NOT NULL THEN
-    RAISE EXCEPTION '443 gagal: menu tanpa induk (ikon judul akan kosong): %', v_tanpa_induk;
+    RAISE EXCEPTION '449 gagal: menu tanpa induk (ikon judul akan kosong): %', v_tanpa_induk;
   END IF;
 
   -- 2. Induk yang ADA tetapi MATI sama saja dengan tak punya induk: rute
@@ -94,6 +94,6 @@ BEGIN
    WHERE c.key = ANY(v_kunci) AND c.is_active AND NOT p.is_active;
 
   IF v_induk_mati IS NOT NULL THEN
-    RAISE EXCEPTION '443 gagal: induk tidak aktif (anak jatuh ke akar): %', v_induk_mati;
+    RAISE EXCEPTION '449 gagal: induk tidak aktif (anak jatuh ke akar): %', v_induk_mati;
   END IF;
 END $$;
