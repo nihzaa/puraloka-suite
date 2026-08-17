@@ -165,6 +165,49 @@ antaranya master dan empat sisanya berurutan.
 
 ---
 
+## 3c. Ikhtisar `/estimasi` — DAFTAR RAB (opsi C, diputuskan 2026-08-17)
+
+> Founder memilih **C** setelah dua opsi pertama (A: sembunyikan skenario di
+> balik satu tombol · B: wizard bertahap) dinilai sama-sama menjawab pertanyaan
+> yang salah.
+
+**Kenapa A dan B keduanya meleset.** Keduanya bertengkar soal berapa banyak
+struktur yang ditampilkan **saat membuat** RAB. Tetapi audit §1 tidak
+menemukan masalah di situ: yang ditemukan adalah 208 skenario + 2.221 versi
+yang **sudah ada** dan tak pernah tampil. Orang bukan gagal *membuat* — mereka
+gagal *menemukan kembali apa yang sudah dibuat*. A dan B mengoptimalkan pintu
+masuk yang dilewati sekali, sambil membiarkan layar harian tetap kosong.
+
+**Bentuknya.** Satu baris per RAB, dikelompokkan per proyek:
+
+```
+Ruko Pak Eko — Pasteur                                    + RAB baru
+  RAB                  Edisi AHSP     Nilai            Keadaan
+  Tes · revisi 4       belum dipilih  Rp 0             Masih disusun
+  Tes · revisi 1       SE-47-2026     Rp 20.056.000    Masih disusun
+```
+
+Tiga keputusan yang mengikat, masing-masing dengan alasannya:
+
+| Keputusan | Kenapa |
+|---|---|
+| dikelompokkan per proyek, bukan tabel rata | membandingkan dua penawaran untuk proyek yang SAMA adalah pekerjaan nyata (itu guna `scenarios`); tabel rata mengurutkan menurut waktu dan memisahkan keduanya puluhan baris |
+| `total_amount` null tetap **"—"**, bukan Rp 0 | "belum dihitung" ≠ "nol rupiah"; keduanya menuntut tindakan berbeda |
+| edisi AHSP jadi **kolom**, tak disembunyikan | selisih antar-edisi terukur **−13,47%** (`SE47-VS-CIBULUH-ANALYSIS.md`), jadi dua RAB berbeda nilai bisa sama-sama benar — asal edisinya terbaca. Menyembunyikannya membuat selisih itu tampak seperti salah hitung |
+| lencana `draft` **netral**, bukan kuning | separuh daftar ini draft; layar penuh peringatan menenggelamkan yang benar-benar mendesak |
+
+**Proyek tanpa RAB tetap ditampilkan** di bawah (kartu bergaris putus + "+"),
+bukan disembunyikan: kalau hilang dari layar, "belum ada RAB" jadi keadaan tak
+terlihat dan orang mengira proyeknya yang hilang.
+
+**Satu endpoint baru** — `GET /api/v1/estimate-versions`. Ke-16 endpoint
+estimasi lain semuanya di-key oleh id (buka versi X, ubah item Y), jadi tak
+satu pun bisa menjawab *"RAB apa saja yang kami punya?"*. Bergerbang
+`skenarioIdsTenant()` (T4g) — tanpa itu daftar membocorkan seluruh RAB tenant
+lain sekaligus, kebocoran terluas yang mungkin di modul ini.
+
+---
+
 ## 4. Layar inti — `/estimasi/rab`
 
 ### 4a. Dua pintu (opsi D)
@@ -273,18 +316,51 @@ wajib diperbarui di commit yang sama. Rencana: `/estimasi?tab=x` **dialihkan**
 
 ## 8. Urutan kerja
 
-| # | Langkah | Selesai bila |
-|---|---|---|
-| 1 | Kerangka: `layout.tsx` + `_bersama/` | rute baru bisa dibuka, guard hijau |
-| 2 | `/estimasi/rab` — dua pintu + tabel kerja | RAB bisa disusun tanpa jargon |
-| 3 | `/estimasi/rap` + empty state | tak ada lagi halaman putih |
-| 4 | `/estimasi/kas` + `/estimasi/varians` | keduanya berisi |
-| 5 | `/master/ahsp` + `/master/harga` | pindah, tautan lama dialihkan |
-| 6 | `/estimasi/markup` | pindah dari Pengaturan |
-| 7 | Penjaga baru + mutation test | terbukti bisa merah |
-| 8 | Dokumen: `ARAH-VISUAL §6b`, taksonomi, QUEUE, JOURNAL | penjaga docs hijau |
+| # | Langkah | Selesai bila | Status |
+|---|---|---|---|
+| 1 | Kerangka: `layout.tsx` + `_bersama/` | rute baru bisa dibuka, guard hijau | ✅ |
+| 2 | `/estimasi/rab` — dua pintu + tabel kerja | RAB bisa disusun tanpa jargon | ✅ |
+| 3 | `/estimasi/rap` + empty state | tak ada lagi halaman putih | ✅ 2026-08-17 |
+| 4 | `/estimasi/kas` + `/estimasi/varians` | keduanya berisi | ✅ |
+| 5 | `/master/ahsp` + `/master/harga` | pindah, tautan lama dialihkan | ✅ |
+| 6 | `/estimasi/markup` | pindah dari Pengaturan | ✅ **jalan masuknya saja** |
+| 7 | Penjaga baru + mutation test | terbukti bisa merah | ✅ |
+| 8 | Dokumen: `ARAH-VISUAL §6b`, taksonomi, QUEUE, JOURNAL | penjaga docs hijau | ✅ 2026-08-17 |
 
 Tiap langkah = satu commit dengan penjaga dijalankan, exit code ditempel.
+
+### 8a. Langkah 6 — yang dipindah JALAN MASUKNYA, bukan halamannya
+
+Markup **tidak** dijadikan rute bersarang `/estimasi/markup`. Sempat dicoba
+sebagai re-export, dan hasilnya terlihat di tangkapan layar: **dua `<h1>`** di
+satu halaman ("Estimasi & RAB" dari layout + "Markup & Margin" dari
+halamannya) plus padding ganda karena halaman itu membawa `<Halaman>` sendiri.
+
+`uji-judul-halaman-ada` tetap hijau selama itu — ia memastikan judul **ADA**,
+bukan memastikan judulnya **tunggal**. Hijaunya penjaga bukan bukti benarnya
+hierarki.
+
+Yang dipindah cukup jalan masuknya: `/pengaturan/markup` muncul sebagai
+bagian "Markup & PPN" di navigasi modul (`luar: true` — ditandai supaya tak
+pernah tampak aktif). Orang yang sedang menyusun RAB menemukannya dari sini,
+tanpa halaman itu digandakan atau dibedah.
+
+### 8b. Langkah 3 — halaman putihnya SEMPAT KEMBALI, dan cara ia lolos
+
+Ditutup pada gelombang pertama, lalu terbuka lagi: `/estimasi/rap` merender
+halaman putih **sebelum proyek dipilih** — keadaan pertama yang dilihat setiap
+orang. Seluruh isinya bersyarat `projectId`, jadi tanpa proyek tak satu pun
+blok dirender: tak ada tabel, tak ada empty state, tak ada penjelasan.
+
+Penjaga `uji-layar-kosong-menjelaskan` hijau sepanjang itu, dan itu bukan
+kesalahannya: ia memeriksa apakah berkas **punya** empty state, bukan apakah
+**setiap jalan kosong** sampai ke sana. `/estimasi/rab` dan `/estimasi/varians`
+menanganinya sejak awal lewat early-return `if (!proyekId)`; RAP tertinggal
+karena memakai state lokal, bukan `?proyek=` di URL.
+
+**Pelajaran untuk penjaga berikutnya:** "berkas ini punya X" jauh lebih murah
+diperiksa daripada "setiap jalan menuju keadaan Y melewati X" — dan yang murah
+itulah yang biasanya ditulis, lalu disangka membuktikan yang kedua.
 
 ---
 

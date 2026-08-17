@@ -5,6 +5,126 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-17 (sesi CECEP-UI, 2) — worktree yatim yang ternyata hampir jadi, dan tujuh cacat yang hanya terlihat dari layar
+
+Founder bertanya *"rombak halaman modul CECEP sudah sampai mana?"*. Jawaban
+pertama saya **salah**, dan koreksinya mengubah seluruh sesi.
+
+### Saya salah: melaporkan "belum dimulai" padahal sudah 12 commit
+
+Saya membaca `JOURNAL.md` + `QUEUE-UI.yaml` di checkout utama, menemukan entri
+2026-08-16 yang menulis *"Belum ada kode UI ditulis"*, lalu melaporkan bahwa
+rombak CECEP menunggu keputusan founder. Itu benar **saat entri itu ditulis** —
+tetapi pekerjaannya jalan setelahnya, di worktree `.claude/worktrees/cecep-ui`
+(cabang `feat/cecep-ui-rombak`, 12 commit, terakhir 2026-08-17 00:10).
+
+Kelas cacat yang sama dengan yang dokumen ini keluhkan berkali-kali: **membaca
+dokumen, bukan mengukur ke kode.** `git worktree list` akan menjawabnya dalam
+satu perintah. Founder lalu mengabarkan sesi pemilik worktree itu hilang, jadi
+pekerjaannya dilanjutkan dari sini.
+
+### Keputusan founder: opsi C
+
+Tiga opsi diajukan untuk ikhtisar modul — (A) sembunyikan skenario di balik
+satu tombol, (B) wizard bertahap, (C) daftar RAB dulu. Founder memilih **C**.
+
+Alasan A dan B keduanya meleset, dan ini yang mengubah spec: keduanya
+bertengkar soal berapa banyak struktur ditampilkan **saat membuat** RAB,
+sementara audit menemukan 208 skenario + 2.221 versi yang **sudah ada** dan tak
+pernah tampil. Orang bukan gagal *membuat* — mereka gagal *menemukan kembali*.
+
+### Tujuh cacat, dan cara masing-masing lolos
+
+Empat penjaga ambang-nol hijau, `tsc` bersih, 12 commit rapi — dan halamannya
+tetap tak bisa dipakai. Yang menemukan ketujuhnya: **memotretnya**.
+
+| # | Cacat | Kenapa lolos |
+|---|---|---|
+| 1 | `next build` **GAGAL** — 3 halaman `useSearchParams()` tanpa Suspense | `suspense-ratchet` ADA dan jujur (diuji mutasi: merah), hanya tak pernah dijalankan sebelum commit |
+| 2 | `/master/ahsp` + `/master/harga` **yatim** | sidebar baca `menu_items` di BASIS, bukan `peta-menu.ts` yang sudah benar |
+| 3 | ikhtisar = daftar **proyek**, bukan RAB | tak ada penjaga untuk "halaman menjawab pertanyaan yang salah" |
+| 4 | `/estimasi/rap` **halaman putih** sebelum proyek dipilih | penjaga cek berkas PUNYA empty state, bukan setiap jalan kosong SAMPAI ke sana |
+| 5 | keterangan RAP menyalin milik RAB | layout memaku satu kalimat untuk lima rute |
+| 6 | judul `/estimasi/varians` jadi **"Cost Code / CBS"** | dua menu berbagi satu href — cacat migrasi 441 saya sendiri |
+| 7 | ubin judul berisi **titik**, bukan lambang modul | `parent_id` menunjuk grup `is_active=false` → anak jatuh ke akar pohon, dan node akar tak punya induk untuk diambil ikonnya |
+
+Nomor 6 dan 7 **saya sendiri yang membuatnya** lewat migrasi 441. Pelajarannya
+spesifik: **menyalakan menu anak tanpa memeriksa induknya adalah kelas cacat
+tersendiri**, dan tak satu pun dari ketiganya mengeluarkan galat.
+
+### Migrasi 441 lolos verifikasinya sendiri sementara cacatnya utuh
+
+Percobaan pertama 441 memperbaiki `href` ketujuh menu, blok verifikasinya
+lolos, dan `/master/ahsp` **tetap yatim** — ketujuhnya `is_active = false`.
+Href yang benar pada menu yang tak pernah dirender sama saja dengan tak ada
+menunya. Pemeriksaan ketiga ditambahkan supaya migrasi GAGAL, bukan melapor
+sukses.
+
+Pola yang sama berulang di 443: pemeriksaan "parent_id NULL" sendirian akan
+lolos untuk induk yang ADA tetapi MATI. Ditambahkan pemeriksaan keduanya.
+
+### Yang TIDAK saya lakukan
+
+- **Tidak melonggarkan penjaga.** `uji-kosong-seragam` menghitung tujuh
+  `<LayarKosong>` CECEP sebagai pelanggaran; ambangnya tak disentuh, penjaganya
+  yang DIAJARI mengenali komponen itu — ia justru lebih ketat dari `<Kosong>`
+  (mewajibkan apa+kenapa+aksi, bukan menganjurkan). 64 → 59, di bawah checkout
+  utama (61). Penjaga yang menghukum perbaikan akan diabaikan, lalu berhenti
+  menjaga apa pun.
+- **Tidak merge.** Percobaan merge induk menghasilkan 4 konflik
+  (`peta-menu.ts`, `estimasi/page.tsx`, `middleware.ts`, `JOURNAL.md`);
+  dibatalkan bersih dengan `git merge --abort`. Konflik `peta-menu` butuh
+  keputusan isi, dan merge belum diminta.
+
+### 1.088 test gagal yang BUKAN regresi — dan cara membuktikannya
+
+`npx vitest run` di worktree: 143 berkas / 1.088 test MERAH. Di `main` file
+yang sama hijau. Terbukti bukan kode CECEP: `rls-harness.ts` di cabang ini
+**107 baris lebih pendek** dari induknya (cabang lahir sebelum gerbang
+Segregation of Duties dipasang). Dibuktikan dengan menukar harness saja —
+**16 gagal → 16 lulus**, nol baris kode CECEP disentuh — lalu dikembalikan.
+
+Catatan cara: `git diff main` sempat menyesatkan saya. Cabang ini **493 commit
+di depan main**, induknya `feat/sumbu-ui-roadmap` (tertinggal 40) — jadi 120
+berkas yang terlihat "hilang" sebenarnya belum lahir di sini.
+
+### Uji mutasi yang GAGAL MENGUBAH terbaca seperti penjaga yang tak bisa merah
+
+Menurunkan lantai `audit-rute-terkunci` 6 → 0 menuntut bukti penjaganya bisa
+merah. Percobaan pertama memakai `sed`, penjaga tetap hijau — polanya tak
+mengenai apa pun karena urutan prefiks di berkas berbeda dari dugaan saya.
+Diperiksa `git diff` (kosong) sebelum menyimpulkan, lalu diulang dengan
+penyuntingan presisi: **0 → 6 MERAH**, dipulihkan **0 HIJAU**.
+
+### Bukti
+
+```
+next build                     exit 0   (sebelumnya exit 1 — build BERHENTI)
+tsc --noEmit (web + api)       exit 0
+GET /api/v1/estimate-versions  200, data terisi (login sungguhan)
+audit-menu-berbagi-href        4 item / 2 href → 0
+audit-nav-yatim                yatim 2 → 0; sidebar 140 → 145 href
+audit-rute-terkunci            0  (lantai 6 → 0, mutasi MERAH terbukti)
+audit-sidebar-urutan           1 di luar rentang → 0 bentrok, 0 yatim
+uji-token-css-ada              1 token hantu (--pad-sel, karangan saya) → 0
+suspense-ratchet               3 pelanggaran → 0  (mutasi MERAH terbukti)
+judul-ratchet                  31 → 28  (lantai ikut turun, terkunci)
++ 8 penjaga visual lain        exit 0
+
+MERAH yang TETAP, dan keduanya warisan:
+  kerapatan-ratchet   184 vs lantai 181 — pelanggarnya lapangan/mandor/mutu/
+                      pengaturan/proyek. /estimasi justru HILANG dari daftar
+                      pelanggar terbesar (di checkout utama ia peringkat 1)
+  uji-kosong-seragam  59 vs lantai 49 — checkout utama 61, jadi cabang ini
+                      MENURUNKANNYA, bukan menambah
+```
+
+Migrasi baru: **441** (href + nyalakan menu), **442** (href kembar), **443**
+(induk mati → anak yatim di akar), **444** (sort_order di luar rentang).
+Ketiganya terakhir memperbaiki cacat yang dibangunkan 441.
+
+---
+
 ## 2026-08-16 (sesi CECEP-UI) — 4.070 baris dibongkar; dan penjaga yang tak bisa merah
 
 Founder: *"rombak lagi ui-ux dan alur kerja di modul cecep, masih kurang
