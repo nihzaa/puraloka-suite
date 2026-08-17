@@ -73,6 +73,8 @@ import { toolBebanMandorLintas } from './ai-tool-beban-mandor.js'
 import { toolTukangCocok } from './ai-tool-tukang-cocok.js'
 import { ringkasPerformaMandor } from './ai-tool-performa-mandor.js'
 import { ringkasUtilisasiAlat } from './ai-tool-utilisasi-alat.js'
+import { analisisInvestasiAlat } from './ai-tool-investasi-alat.js'
+import { ringkasPortofolioGrup } from './ai-tool-portofolio-grup.js'
 
 
 
@@ -939,6 +941,151 @@ const toolUtilisasiAlat: DefinisiToolAi = {
   },
 }
 
+/**
+ * 8.5 — kelayakan investasi alat (milik vs sewa).
+ *
+ * Tanpa argumen: pertanyaannya selalu "alat mana yang salah posisi", bukan
+ * "bagaimana alat X". Meminta model menyebut nama alat mengundangnya
+ * mengarang nama yang tak ada, lalu tool menjawab kosong dan model
+ * menyimpulkan alatnya memang tak terpakai.
+ */
+const toolInvestasiAlat: DefinisiToolAi = {
+  nama: 'investasi_alat',
+  label: 'Kelayakan investasi alat',
+  keterangan:
+    'Membandingkan biaya MEMILIKI alat (penyusutan + operasional tercatat) '
+    + 'dengan biaya MENYEWA untuk lama pemakaian yang sama, plus alat yang '
+    + 'belum dimiliki tapi berulang disewa. Pakai untuk "alat mana yang '
+    + 'sebaiknya disewa saja", "ada alat nganggur tidak", atau "layak tidak '
+    + 'beli tower crane".',
+  izin: 'assets:view',
+  skema: { type: 'object', properties: {} },
+  async jalan({ db }) {
+    const h = await analisisInvestasiAlat(db)
+    if ('galat' in h) return { isi: h.galat, isError: true, entitas: [] }
+
+    if (h.alat.length === 0 && h.kandidatBeli.length === 0) {
+      return {
+        isi: bungkusData('investasi_alat', h.catatan ?? 'Tidak ada data.'),
+        isError: false,
+        entitas: [],
+      }
+    }
+
+    const baris: string[] = []
+
+    /*
+      Yang punya verdict SUNGGUHAN dirinci; `data-belum-cukup` cukup dihitung.
+      Diukur 2026-08-16: 11 dari 15 alat milik belum punya catatan apa pun —
+      merincinya satu per satu menghasilkan sebelas baris "belum tercatat"
+      yang menenggelamkan empat baris yang benar-benar berisi temuan.
+    */
+    const dinilai = h.alat.filter((a) => a.verdict !== 'data-belum-cukup')
+    const belum = h.alat.filter((a) => a.verdict === 'data-belum-cukup')
+
+    if (dinilai.length > 0) {
+      baris.push('ALAT YANG DIMILIKI:')
+      for (const a of dinilai) {
+        baris.push(
+          `- ${a.alat} [${a.verdict}] — beli ${rupiah(a.hargaBeli)}; `
+          + `biaya memiliki ${rupiah(a.biayaMemiliki)}; dipakai ${a.hariPakai} hari `
+          + `/ ${angka(a.jamPakai)} jam; `
+          + (a.biayaMenyewa === null
+            ? 'tarif sewa pembanding belum ada'
+            : `bila disewa ≈ ${rupiah(a.biayaMenyewa)}`),
+        )
+        baris.push(`  ${a.alasan}`)
+      }
+    }
+
+    if (belum.length > 0) {
+      baris.push(
+        '',
+        `${belum.length} alat lain belum punya catatan pemakaian/biaya sama `
+        + `sekali, jadi belum bisa dinilai: ${belum.map((a) => a.alat).join(', ')}.`,
+      )
+    }
+
+    if (h.kandidatBeli.length > 0) {
+      baris.push('', 'BELUM DIMILIKI (kandidat beli):')
+      for (const k of h.kandidatBeli) {
+        baris.push(`- ${k.nama} — ${k.jumlahSewa}× sewa, total ${rupiah(k.totalSewa)}`)
+      }
+    }
+
+    baris.push(
+      '',
+      'Semua angka HISTORIS dari catatan yang ada — bukan proyeksi.',
+    )
+
+    return {
+      isi: bungkusData('investasi_alat', baris.join('\n')),
+      isError: false,
+      entitas: [...h.alat.map((a) => a.alat), ...h.kandidatBeli.map((k) => k.nama)],
+    }
+  },
+}
+
+/**
+ * 1.15 — portofolio lintas badan usaha.
+ *
+ * Izinnya `finance:view:all`, bukan kunci grup tersendiri. Alasannya: yang
+ * ditampilkan tool ini adalah NILAI KONTRAK seluruh badan usaha, dan itu
+ * persis yang dijaga izin tersebut. Membuat kunci baru berarti satu gerbang
+ * lagi yang harus diingat saat menyusun peran — dan gerbang yang terlupa
+ * adalah gerbang yang terbuka.
+ *
+ * Batas sesungguhnya bukan izin ini melainkan KEANGGOTAAN: tool hanya membaca
+ * PT tempat penanya terdaftar. Lihat kepala `ai-tool-portofolio-grup.ts`.
+ */
+const toolPortofolioGrup: DefinisiToolAi = {
+  nama: 'portofolio_grup',
+  label: 'Portofolio lintas badan usaha',
+  keterangan:
+    'Ringkasan seluruh PT/badan usaha tempat Anda terdaftar — jumlah proyek, '
+    + 'proyek berjalan, dan nilai kontrak per badan usaha. Pakai untuk '
+    + '"bagaimana performa semua PT saya", "PT mana yang paling besar", atau '
+    + '"total nilai kontrak grup". Hanya untuk pemilik beberapa badan usaha.',
+  izin: 'finance:view:all',
+  skema: { type: 'object', properties: {} },
+  async jalan({ db, userId, companyId }) {
+    const h = await ringkasPortofolioGrup(db, userId, companyId)
+    if ('galat' in h) return { isi: h.galat, isError: true, entitas: [] }
+
+    if (h.badanUsaha.length === 0) {
+      return {
+        isi: bungkusData('portofolio_grup', h.catatan ?? 'Tidak ada data.'),
+        isError: false,
+        entitas: [],
+      }
+    }
+
+    const baris = h.badanUsaha.map(
+      (b) =>
+        `${b.ini ? '▸ ' : '  '}${b.nama}: ${b.jumlahProyek} proyek `
+        + `(${b.proyekBerjalan} berjalan) · nilai kontrak ${rupiah(b.nilaiKontrak)}`
+        + (b.ini ? '   ← yang sedang Anda buka' : ''),
+    )
+
+    return {
+      isi: bungkusData(
+        'portofolio_grup',
+        [
+          `${h.badanUsaha.length} badan usaha · ${h.totalProyek} proyek · `
+          + `total nilai kontrak ${rupiah(h.totalNilaiKontrak)}`,
+          '',
+          ...baris,
+          '',
+          'Hanya badan usaha tempat Anda terdaftar sebagai anggota yang '
+          + 'ditampilkan.',
+        ].join('\n'),
+      ),
+      isError: false,
+      entitas: h.badanUsaha.map((b) => b.nama),
+    }
+  },
+}
+
 export const KATALOG_TOOL: DefinisiToolAi[] = [
   toolDaftarProyek,
   toolRingkasKeuangan,
@@ -1059,6 +1206,21 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     persis kebalikan dari yang ditanyakan.
   */
   toolUtilisasiAlat,
+  /*
+    Katalog 8.5 (kelayakan investasi alat). Yang dibandingkan biaya per
+    PERIODE YANG SAMA — penyusutan + operasional vs tarif sewa × lama pakai.
+    Membandingkan HARGA BELI dengan sewa selalu memenangkan sewa, dan selalu
+    salah: harga beli tersebar sepanjang umur ekonomis.
+  */
+  toolInvestasiAlat,
+  /*
+    Katalog 1.15 (portofolio lintas badan usaha) — SATU-SATUNYA tool yang
+    sengaja melihat lebih dari satu tenant. Batasnya KEANGGOTAAN penanya,
+    bukan silsilah induk-anak: pemilik grup bisa punya PT yang direkturnya
+    bukan dia, dan staf satu anak perusahaan tak boleh melihat angka anak
+    lainnya.
+  */
+  toolPortofolioGrup,
 ]
 
 /**

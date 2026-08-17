@@ -172,7 +172,12 @@ describe('tool terhadap data NYATA', () => {
       'notifications:rules:manage',
       // `utilisasi_alat` (10.1, 2026-08-16). `performa_mandor` (6.12) tak
       // menambah baris karena memakai `mandor:view` yang sudah ada di atas.
+      // `investasi_alat` (8.5) juga memakai `assets:view`.
       'assets:view',
+      // `portofolio_grup` (1.15) — SATU-SATUNYA tool lintas badan usaha.
+      // Izinnya `finance:view:all` karena yang ditampilkan nilai kontrak
+      // seluruh PT; batas sesungguhnya keanggotaan penanya, bukan izin ini.
+      'finance:view:all',
     ])
   })
 

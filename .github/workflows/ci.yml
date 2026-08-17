@@ -1268,6 +1268,26 @@ jobs:
       - name: Peta Modul vs halaman nyata (F8-1b)
         run: node ../web/scripts/audit-peta-modul-vs-halaman.mjs
 
+      # Arah SEBALIKNYA dari penjaga di atas, dan lubang di antara keduanya
+      # yang dipijak founder 2026-08-16: ia mengeklik `/aset/perawatan` di
+      # sidebar lalu terlempar ke dashboard.
+      #
+      # Penjaga F8-1b memeriksa entri Peta Modul `rencana` yang ternyata PUNYA
+      # halaman. `audit-nav-yatim` memeriksa halaman yang tak punya menu.
+      # Tak satu pun memeriksa MENU AKTIF yang halamannya tak pernah dibuat —
+      # dan diukur, ada LIMA. Keempatnya bahkan tak tercatat di Peta Modul
+      # sama sekali, jadi F8-1b hijau dengan percaya diri.
+      #
+      # Terbukti bisa merah DAN hijau: penyaringnya dicopot (→ HIJAU palsu,
+      # membuktikan ia memang yang menentukan), lalu dipulihkan (→ MERAH
+      # dengan kelima menu itu disebut namanya).
+      #
+      # Butuh DATABASE_URL: sumber sidebar adalah tabel `menu_items`, bukan
+      # konstanta di kode. Tanpa kredensial ia melapor DILEWATI — dan
+      # "dilewati" BUKAN "lulus".
+      - name: Menu aktif wajib punya halaman (ambang NOL)
+        run: node ../web/scripts/audit-menu-punya-halaman.mjs
+
       # F8-2 — CLAUDE.md §8: "Kolom DB sudah ada BUKAN selesai." Commit
       # db463d9: lima modul berturut-turut dibangun sampai endpoint lalu
       # dilaporkan "INTI #N selesai" — endpoint `retensi-register` yang
@@ -2132,6 +2152,19 @@ jobs:
       # terbukti TIDAK cerewet: padding tombol/sel tabel sengaja diabaikan.
       - name: Baris daftar tak boleh lebih sempit dari kepala panel
         run: node scripts/uji-baris-tak-mepet.mjs
+
+      # `var(--pad-atas) var(--pad-x) var(--pad-bawah)` adalah padding SHELL
+      # HALAMAN (32px 36px 64px). Disalin ke sebuah <select>, ia menghasilkan
+      # dropdown setinggi 108px yang terlihat seperti kartu — founder
+      # menunjuknya 2026-08-16 ("tombol/dropdown filter yg terlalu besar").
+      # Diukur saat itu: 6 kontrol di 6 halaman, bukan cuma 2 yang ia lihat.
+      #
+      # Lolos tinjauan justru KARENA memakai token: penjaga hex & kerapatan
+      # melihat `var(--…)` lalu menyatakan patuh. Token yang benar di tempat
+      # yang salah tetap cacat. Ambang NOL — tak ada kasus sah sebuah kontrol
+      # memakai padding shell; penggantinya `--pad-tombol`/`--pad-tombol-kcl`.
+      - name: Kontrol tak boleh memakai padding shell halaman
+        run: node scripts/uji-kontrol-bukan-shell.mjs
 
       # Keadaan kosong yang digambar sendiri menyimpang bentuknya (padding 40
       # vs 48, ikon 26 vs 32) dan biasanya lupa menyebut LANGKAH BERIKUTNYA —

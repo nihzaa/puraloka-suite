@@ -814,6 +814,83 @@ export const AMBANG_OTOMASI = {
     karena tabel petanya nol baris — tabelnya ADA, isinya yang belum. Migrasi
     425 mengisinya atas izin founder.
   */
+  /*
+    10.6 Maintenance Cost Trend. TIGA ambang karena dua jalur yang terpisah,
+    dan pemisahan itu memang intinya (lihat `kesehatan-perawatan.ts`).
+  */
+  /*
+    9.2 Insurance Coverage Gap. SATU ambang saja — tiga celah lain
+    (tanpa polis, kadaluarsa, salah jenis) tak punya ambang: keduanya
+    keadaan biner, bukan derajat.
+  */
+  'otomasi.celah_asuransi.hari': {
+    bawaan: 45,
+    min: 7,
+    max: 180,
+    label: 'Hari sebelum polis berakhir sudah diperingatkan',
+    judul: 'Celah perlindungan asuransi',
+    akibat:
+      'Berapa hari sebelum polis CAR berakhir sudah diingatkan. Menerbitkan '
+      + 'perpanjangan butuh survei dan persetujuan penanggung; jeda satu hari '
+      + 'pun berarti proyeknya berjalan tanpa perlindungan.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.alat_tak_sehat.persen': {
+    bawaan: 15,
+    min: 2,
+    max: 100,
+    label: 'Biaya perawatan kumulatif (% harga beli) sebelum ditandai',
+    judul: 'Alat yang tak lagi sehat',
+    akibat:
+      'Berapa persen dari harga beli yang sudah habis untuk perawatan sebelum '
+      + 'alat itu diusulkan diganti atau disewa. Diukur pada data nyata: satu '
+      + 'dump truck sudah menghabiskan 2,54% dalam enam bulan.',
+    satuan: 'persen',
+    langkah: 1,
+  },
+
+  /*
+    Jalur KEDUA, dan yang paling tajam.
+
+    Rasio biaya bisa tinggi karena SATU overhaul terjadwal yang wajar. Porsi
+    servis TAK TERJADWAL tak bisa: tiap satu berarti alat berhenti bekerja di
+    tengah pekerjaan.
+  */
+  'otomasi.alat_tak_sehat.porsi': {
+    bawaan: 50,
+    min: 20,
+    max: 100,
+    label: 'Persen servis tak terjadwal sebelum alat disebut sering rusak',
+    judul: 'Alat yang tak lagi sehat',
+    akibat:
+      'Berapa persen servis yang berupa KERUSAKAN (bukan perawatan berkala) '
+      + 'sudah cukup untuk menyebut sebuah alat sering rusak. Ini tanda yang '
+      + 'lebih mendesak daripada biaya: kerusakan menghentikan pekerjaan di '
+      + 'lapangan, bukan sekadar mengeluarkan uang.',
+    satuan: 'persen',
+    langkah: 5,
+  },
+
+  /*
+    Satu servis bukan kesimpulan. Menuduh alat baru yang sekali mogok sebagai
+    "sering rusak" akan membuat orang mengganti alat yang tak perlu diganti.
+  */
+  'otomasi.alat_tak_sehat.min_servis': {
+    bawaan: 2,
+    min: 2,
+    max: 20,
+    label: 'Servis minimum sebelum kesehatan alat disimpulkan',
+    judul: 'Alat yang tak lagi sehat',
+    akibat:
+      'Alat dengan riwayat servis lebih sedikit dari angka ini dilewati, bukan '
+      + 'ditebak. Makin besar makin yakin, tetapi alat baru butuh lebih lama '
+      + 'sebelum masalahnya terlihat.',
+    satuan: 'servis',
+    langkah: 1,
+  },
+
   'otomasi.material_kurang.bantalan': {
     bawaan: 10,
     min: 0,

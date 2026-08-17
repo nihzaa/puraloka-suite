@@ -40,8 +40,15 @@ let companyId: string
 beforeAll(async () => {
   db = await createRlsClient()
   const { rows } = await db.query(`
+    -- Tenant uji WAJIB punya baris ai_provider_config: seluruh berkas ini
+    -- meng-UPDATE baris itu. Tanpa syarat + ORDER BY, PT mana yang terpilih
+    -- ditentukan urutan fisik baris, dan UPDATE yang tak mengenai baris apa
+    -- pun membuat test "basis MENOLAK nilai tak sah" hijau-karena-buta.
+    -- Terjadi 2026-08-16 saat dua PT anak disemai untuk portofolio grup.
     SELECT c.id FROM companies c
-    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
+    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id)
+      AND EXISTS (SELECT 1 FROM ai_provider_config a WHERE a.company_id = c.id)
+    ORDER BY c.created_at LIMIT 1
   `)
   companyId = rows[0].id
 }, 60_000)

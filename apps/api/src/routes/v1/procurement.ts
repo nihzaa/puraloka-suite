@@ -1854,7 +1854,7 @@ export default async function procurementRoutes(app: FastifyInstance) {
   // GET /api/v1/procurement/dashboard — KPI summary
   app.get('/api/v1/procurement/dashboard', {
     preHandler: [authenticate, requirePermission('procurement:view')]
-  }, async (request, reply) => {
+  }, async (request, _reply) => {   // `_reply`: handler ini memulangkan objek, tak pernah menyentuh reply
     const today = new Date().toISOString().split('T')[0]
     const in7days = new Date(); in7days.setDate(in7days.getDate() + 7)
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]

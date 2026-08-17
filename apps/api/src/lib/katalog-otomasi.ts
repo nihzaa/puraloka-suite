@@ -1293,6 +1293,62 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'yang belum bisa ditutup hanya melatih orang mengabaikan notifikasi.',
   },
   {
+    kunci: 'celah-asuransi',
+    nomor: '9.2',
+    nama: 'Celah perlindungan asuransi',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai proyek aktif yang tak terlindungi asuransi. Tiga keadaan '
+      + 'diperiksa, dan yang KETIGA tak terlihat oleh pemeriksaan biasa: '
+      + 'proyek tanpa polis sama sekali, proyek yang seluruh polisnya sudah '
+      + 'kadaluarsa, dan — yang paling tenang — proyek yang punya polis AKTIF '
+      + 'tetapi jenisnya tak menanggung pekerjaannya sendiri. Polis tanggung '
+      + 'jawab pihak ketiga (TPL) dan asuransi tenaga kerja membuat sebuah '
+      + 'proyek TERLIHAT terasuransi di daftar mana pun yang cuma menghitung '
+      + 'jumlah polis, padahal kebakaran atau longsor yang merusak '
+      + 'pekerjaannya tak ditanggung siapa pun. Itu baru ketahuan saat klaim '
+      + 'ditolak. Polis yang mendekati akhir masa berlaku juga diingatkan, '
+      + 'karena menerbitkan perpanjangan butuh survei dan persetujuan '
+      + 'penanggung.',
+    penerima: 'Yang mengurus risiko',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengambil seluruh proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Membaca polis tiap proyek beserta jenis dan masa berlakunya.' },
+      { di: 'sistem', teks: 'Memeriksa apakah ada polis yang benar-benar menanggung pekerjaan.' },
+      { di: 'sistem', teks: 'Memilih SATU sebab yang paling mendesak per proyek.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.celah_asuransi.hari',
+  },
+  {
+    kunci: 'alat-tak-sehat',
+    nomor: '10.6',
+    nama: 'Alat yang tak lagi sehat',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai alat yang mulai lebih sering RUSAK daripada dirawat. Berbeda '
+      + 'dari dua peringatan perawatan lain: yang itu menjadwalkan bengkel, '
+      + 'yang ini memutuskan apakah alatnya masih layak dipertahankan atau '
+      + 'lebih murah disewa. Dua tanda diperiksa TERPISAH, dan yang kedua lebih '
+      + 'dulu: biaya perawatan kumulatif terhadap harga beli, dan porsi servis '
+      + 'yang berupa kerusakan di luar jadwal. Rasio biaya bisa tinggi karena '
+      + 'satu overhaul terjadwal yang wajar; porsi kerusakan tak bisa — tiap '
+      + 'satu berarti alat berhenti bekerja di tengah pekerjaan. Diukur pada '
+      + 'data nyata: satu dump truck menghabiskan 2,54% harga belinya dalam '
+      + 'enam bulan, dengan empat dari enam servis berupa kerusakan.',
+    penerima: 'Bagian peralatan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca seluruh riwayat perawatan per alat.' },
+      { di: 'sistem', teks: 'Menghitung biaya kumulatif sebagai persen harga beli.' },
+      { di: 'sistem', teks: 'Menghitung porsi servis yang tak terjadwal.' },
+      { di: 'sistem', teks: 'Melewati alat yang riwayat servisnya masih terlalu sedikit.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.alat_tak_sehat.porsi',
+  },
+  {
     kunci: 'material-kurang',
     nomor: '3.4',
     nama: 'Material kurang terhadap progres',

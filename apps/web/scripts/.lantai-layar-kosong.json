@@ -1,3 +1,4 @@
 {
-  "lantai": 126
+  "lantai": 131,
+  "_catatan": "126 → 131 pada 2026-08-17, dan kenaikan ini KONSEKUENSI MERGE, bukan pelanggaran baru yang ditoleransi. Merge feat/sumbu-ui-roadmap ke feat/cecep-ui-rombak membawa 5 halaman yang lahir di induk sesudah percabangan — kontrak/surat, kontrak/subkon, aset/perawatan, mutu/insiden (74cecfc4, bb88ec76) dan sekitarnya. Kelimanya sudah merah di induk; penjaga di cabang ini baru melihatnya sekarang. Diukur: NOL pelanggar dari modul CECEP (estimasi/*, master/*) — ketujuh layar kosongnya memakai <LayarKosong> lengkap dengan apa/kenapa/aksi. Lantai ini WAJIB turun lagi saat kelima halaman itu diperbaiki; ia bukan izin permanen."
 }

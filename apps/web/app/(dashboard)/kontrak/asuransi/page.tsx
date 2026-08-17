@@ -18,9 +18,10 @@
  * itu terlihat sah di lemari dan tak berguna di dua ujungnya.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ShieldCheck, ShieldAlert, ShieldX, CalendarClock, Plus, RefreshCw } from "lucide-react";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { Tabel, type Kolom, KepalaHalaman } from "@/components/dasar";
@@ -191,12 +192,26 @@ const KOLOM_POLIS: Array<Kolom<Polis>> = [
 ];
 
 export default function AsuransiPage() {
-  const [proyek, setProyek] = useState<Proyek[]>([]);
-  const [hasil, setHasil] = useState<Hasil | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Dua `useData` menggantikan dua `useEffect` + `muatUlangKe`. Galat MUAT
+    dan galat AKSI (kirim polis) dipisah: satu state gabungan sebelumnya
+    membuat gagal mencatat polis menghapus pesan gagal memuat proyek.
+  */
+  const { data: dataProyek, memuat, galat: galatMuatProyek } =
+    useData<{ projects: Proyek[] }>("/api/v1/projects");
+  const proyek = dataProyek?.projects ?? [];
+
+  const { data: hasil, galat: galatMuatHasil, muatUlang: muatUlangHasil } =
+    useData<Hasil>("/api/v1/asuransi");
+
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const galat = galatAksi
+    ?? (galatMuatProyek ? "Gagal memuat daftar proyek."
+      : galatMuatHasil ? "Gagal memuat register asuransi." : null);
+
   const [sukses, setSukses] = useState<string | null>(null);
-  const [muatUlangKe, setMuatUlangKe] = useState(0);
   const [mengirim, setMengirim] = useState(false);
 
   const [fProyek, setFProyek] = useState("");
@@ -207,27 +222,6 @@ export default function AsuransiPage() {
   const [fNilai, setFNilai] = useState("");
   const [fMulai, setFMulai] = useState("");
   const [fSelesai, setFSelesai] = useState("");
-
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => setProyek(r.data.projects ?? []))
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); })
-      .finally(() => setMemuat(false));
-    return () => ac.abort();
-  }, []);
-
-  useEffect(() => {
-    const ac = makeAbortController();
-    api.get<Hasil>("/api/v1/asuransi", { signal: ac.signal })
-      .then((r) => setHasil(r.data))
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-        setGalat(m ?? "Gagal memuat register asuransi");
-      });
-    return () => ac.abort();
-  }, [muatUlangKe]);
 
   // Alasan tombol mati DINYATAKAN, bukan sekadar membuat tombol abu-abu.
   const halangan = useMemo(() => {
@@ -242,7 +236,7 @@ export default function AsuransiPage() {
 
   async function kirim() {
     if (halangan) return;
-    setMengirim(true); setGalat(null); setSukses(null);
+    setMengirim(true); setGalatAksi(null); setSukses(null);
     try {
       await api.post("/api/v1/asuransi", {
         project_id: fProyek, jenis: fJenis,
@@ -253,10 +247,10 @@ export default function AsuransiPage() {
       });
       setSukses(`Polis ${fNomor.trim()} tercatat. Celah pertanggungannya dihitung otomatis terhadap masa proyek.`);
       setFNomor(""); setFNilai("");
-      setMuatUlangKe((n) => n + 1);
+      await muatUlangHasil();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal mencatat polis");
+      setGalatAksi(m ?? "Gagal mencatat polis");
     } finally {
       setMengirim(false);
     }
@@ -389,7 +383,7 @@ export default function AsuransiPage() {
               </button>
               {halangan && <span role="status" style={{ fontSize: 12, color: C.mid }}>{halangan}</span>}
 
-              <button type="button" onClick={() => setMuatUlangKe((n) => n + 1)}
+              <button type="button" onClick={() => void muatUlangHasil()}
                 style={{
                   marginLeft: "auto", padding: "8px 12px", borderRadius: 6,
                   border: `1px solid ${C.border}`, background: "var(--surface)",

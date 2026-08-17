@@ -9114,6 +9114,361 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/alat-tak-sehat ──────────────────────────
+  //
+  // Automation 10.6 — Maintenance Cost Trend Analysis.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // BUKAN DUPLIKAT 10.7 MAUPUN 10.2 — PERTANYAANNYA BEDA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  //   10.7 `perawatan-alat`        alat mana yang JATUH TEMPO servis
+  //   10.2 `perawatan-diprediksi`  alat mana yang AKAN jatuh tempo
+  //   ini  `alat-tak-sehat`        alat mana yang mulai lebih sering RUSAK
+  //                                daripada dirawat
+  //
+  // Dua yang pertama menjadwalkan bengkel. Yang ini memutuskan apakah alatnya
+  // masih layak dipertahankan, atau lebih murah disewa.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // DUA TANDA, DAN YANG KEDUA JAUH LEBIH TAJAM
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Diukur 2026-08-16 pada basis nyata:
+  //
+  //   DTR-002 Dump Truck   Rp 19,85 jt / Rp 780 jt = 2,54%   4 dari 6 TAK TERJADWAL
+  //   TRK-004 Truk Mixer   Rp  6,70 jt / Rp 950 jt = 0,71%   0 dari 2
+  //   EXC-001 Excavator    Rp  6,43 jt / Rp 1,85 M = 0,35%   1 dari 3
+  //
+  // Angka rupiahnya sudah membedakan. Tetapi yang benar-benar menceritakan
+  // keadaannya adalah kolom terakhir: uraian keenam servis Dump Truck berbunyi
+  // *turun mesin sebagian, ganti kopling set, perbaikan rem angin, ganti gardan
+  // belakang*. Itu bukan alat yang mahal dirawat — itu alat yang RUSAK BERUNTUN.
+  //
+  // Rasio biaya bisa tinggi karena SATU servis besar yang wajar (overhaul
+  // terjadwal). Porsi tak terjadwal tak bisa: tiap satu berarti alat berhenti
+  // bekerja di tengah pekerjaan.
+  //
+  // Karena itu keduanya diperiksa TERPISAH, dan yang kedua LEBIH DULU.
+  app.get('/api/v1/otomasi/jalankan/alat-tak-sehat', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiKesehatanPerawatan } = await import('../../lib/kesehatan-perawatan.js')
+
+    const q = request.query as { persen?: string; porsi?: string; min?: string }
+    const ambangPersen = await ambilAmbang(request, 'otomasi.alat_tak_sehat.persen', q.persen)
+    const ambangPorsiPersen = await ambilAmbang(request, 'otomasi.alat_tak_sehat.porsi', q.porsi)
+    const minServis = await ambilAmbang(request, 'otomasi.alat_tak_sehat.min_servis', q.min)
+    const ambangPorsi = ambangPorsiPersen / 100
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['alat_tak_sehat'])
+
+    // `assets` dan `riwayat_perawatan` KEDUANYA kategori B — master data
+    // ber-`company_id`, jadi `.from()` sudah menyaringnya. Tak perlu
+    // `.unsafe()`, dan memakainya di sini justru melemahkan gerbangnya.
+    const { data: aset, error: eAset } = await request.db!
+      .from('assets')
+      .select('id, asset_code, name, purchase_price, status, current_project_id')
+    if (eAset) return reply.status(500).send({ error: eAset.message })
+
+    /*
+      BERHALAMAN — wajib. `riwayat_perawatan` tumbuh tiap servis dan melewati
+      1.000 baris pada perusahaan yang benar-benar memakai alatnya bertahun.
+      PostgREST memotongnya TANPA galat, dan yang terpotong membuat alat paling
+      bermasalah justru terlihat paling sehat: riwayatnya hilang, jadi
+      hitungannya nol. Dijaga `audit-baca-tak-terpotong` (ambang NOL).
+    */
+    const HALAMAN = 1000
+    const riwayat: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('riwayat_perawatan')
+        .select('asset_id, biaya, tak_terjadwal, tanggal')
+        .order('asset_id', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      riwayat.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const perAset = new Map<string, Array<{ biaya: number; takTerjadwal: boolean }>>()
+    for (const s of riwayat) {
+      const id = s.asset_id as string
+      if (!id) continue
+      const biaya = Number(s.biaya)
+      if (!Number.isFinite(biaya)) continue
+      const daftar = perAset.get(id) ?? []
+      daftar.push({ biaya, takTerjadwal: s.tak_terjadwal === true })
+      perAset.set(id, daftar)
+    }
+
+    let dibuat = 0
+    let ditandai = 0
+    let diperiksa = 0
+
+    for (const a of aset ?? []) {
+      const id = a.id as string
+      const daftar = perAset.get(id)
+      if (!daftar || daftar.length === 0) continue      // belum pernah diservis
+      diperiksa++
+
+      const h = nilaiKesehatanPerawatan(
+        daftar,
+        a.purchase_price == null ? null : Number(a.purchase_price),
+        minServis, ambangPersen, ambangPorsi,
+      )
+      if (!h.perlu) continue
+      ditandai++
+      if (sudah('alat_tak_sehat', id)) continue
+
+      const label = `${String(a.name ?? 'Alat')} (${String(a.asset_code ?? '—')})`
+      const rupiah = h.totalBiaya.toLocaleString('id-ID')
+
+      /*
+        Pesannya menyebut SEBAB yang memicu, bukan menggabung keduanya.
+
+        Cacat yang sama pernah terjadi di `perawatan-alat`: ia memeriksa jam DAN
+        hari lalu selalu menulis sisa HARI, menghasilkan "[URGENT] 154 hari lagi"
+        untuk sesuatu yang dipicu meter jam. Yang membacanya menyimpulkan
+        sistemnya rusak, lalu berhenti mempercayai seluruh peringatan.
+      */
+      const pesan = h.sebab === 'sering_rusak'
+        ? `${label} — ${h.takTerjadwal} dari ${h.servis} servis TAK TERJADWAL `
+          + `(${Math.round(h.porsiRusak * 100)}%). Tiap kerusakan berarti alat `
+          + `berhenti bekerja di tengah pekerjaan. Total perawatan Rp ${rupiah}.`
+        : `${label} — biaya perawatan kumulatif Rp ${rupiah}, `
+          + `${h.persenHarga}% dari harga beli, dari ${h.servis} servis. `
+          + 'Pertimbangkan mengganti atau menyewa.'
+
+      const penerima = await resolveRecipients('alat_tak_sehat', {
+        companyId: request.companyId!,
+        projectId: (a.current_project_id as string | null) ?? undefined,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: h.sebab === 'sering_rusak'
+            ? 'Alat sering rusak di luar jadwal'
+            : 'Biaya perawatan alat menanjak',
+          message: pesan,
+          type: 'alat_tak_sehat',
+          priority: h.sebab === 'sering_rusak' ? 'high' : 'normal',
+          project_id: (a.current_project_id as string | null) ?? undefined,
+          action_url: '/aset',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: {
+            record_id: id,
+            asset_id: id,
+            sebab: h.sebab,
+            porsi_rusak: h.porsiRusak,
+            persen_harga: h.persenHarga,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: {
+        aset_punya_riwayat: diperiksa,
+        ditandai,
+        ambang_persen: ambangPersen,
+        ambang_porsi_persen: ambangPorsiPersen,
+        min_servis: minServis,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/celah-asuransi ──────────────────────────
+  //
+  // Automation 9.2 — Insurance Coverage Gap Detection.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // TIGA CELAH, DAN YANG KETIGA TAK TERLIHAT OLEH PEMERIKSAAN BIASA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Pemeriksaan yang lazim ditulis orang: "proyek ini punya polis?" — satu
+  // hitungan, satu jawaban. Itu menangkap celah pertama saja.
+  //
+  //   1. TAK ADA POLIS         terlihat oleh hitungan apa pun
+  //   2. POLIS KADALUARSA      terlihat kalau statusnya ikut diperiksa
+  //   3. PUNYA POLIS AKTIF,    TIDAK terlihat oleh keduanya
+  //      TAPI BUKAN YANG
+  //      MENANGGUNG PEKERJAAN
+  //
+  // Celah ketiga paling berbahaya justru karena paling tenang. Proyek dengan
+  // TPL saja punya polis AKTIF, muncul sebagai "terasuransi" di daftar mana
+  // pun, dan lolos audit yang cuma menghitung.
+  //
+  // Tetapi TPL menanggung kerugian PIHAK KETIGA — tetangga yang temboknya
+  // retak, pejalan kaki yang tertimpa. Kerusakan pekerjaannya SENDIRI
+  // (kebakaran, longsor, banjir) tak ditanggung siapa pun. Itu baru ketahuan
+  // saat klaim ditolak.
+  //
+  // ── YANG DITEMUKAN SAAT DIUKUR, dan ini bukan cacat data
+  //
+  // Enam proyek aktif berjalan tanpa polis apa pun, tiga di antaranya
+  // infrastruktur bernilai miliaran. Angkanya BERGERAK — sesi lain menambah
+  // proyek sementara ini ditulis — jadi jangan percaya angka di komentar ini;
+  // ukur sendiri lewat jawaban rutenya (`checked.tanpa_polis`).
+  app.get('/api/v1/otomasi/jalankan/celah-asuransi', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiCelahAsuransi } = await import('../../lib/celah-asuransi.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.celah_asuransi.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['celah_asuransi'])
+
+    const HALAMAN = 1000
+
+    /*
+      `projects` ANCHOR — dibaca lebih dulu, id-nya menyaring sisanya.
+      `polis_asuransi` kategori C lewat `project_id`; membacanya langsung
+      ditolak gerbang tenancy saat berjalan.
+
+      Pelajaran dari rute 2.12, yang tertangkap persis begitu: tanpa saringan,
+      query itu memulangkan polis SELURUH tenant — dan pada automation asuransi
+      akibatnya lebih buruk daripada sekadar salah angka. Proyek tenant ini bisa
+      terlihat "terlindungi" oleh polis milik perusahaan LAIN.
+    */
+    const proyek: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('projects')
+        .select('id, name, status, is_deleted, contract_value')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      proyek.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const aktif = proyek.filter((p) => p.is_deleted !== true && p.status === 'active')
+    const idAktif = aktif.map((p) => p.id as string)
+    if (idAktif.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    const polis: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .unsafe('polis_asuransi', 'disaring .in(project_id, ...) proyek aktif milik tenant ini')
+        .select('project_id, jenis, status, periode_selesai, nilai_pertanggungan')
+        .in('project_id', idAktif)
+        .order('project_id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      polis.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const perProyek = new Map<string, Array<{
+      jenis: string; status: string; periodeSelesai: string; nilaiPertanggungan: number | null
+    }>>()
+    for (const p of polis) {
+      const id = p.project_id as string
+      if (!id) continue
+      const daftar = perProyek.get(id) ?? []
+      daftar.push({
+        jenis: String(p.jenis ?? ''),
+        status: String(p.status ?? ''),
+        periodeSelesai: String(p.periode_selesai ?? ''),
+        nilaiPertanggungan: p.nilai_pertanggungan == null ? null : Number(p.nilai_pertanggungan),
+      })
+      perProyek.set(id, daftar)
+    }
+
+    let dibuat = 0
+    const hitung = {
+      tanpa_polis: 0, semua_kadaluarsa: 0,
+      tak_menanggung_pekerjaan: 0, segera_berakhir: 0, terlindungi: 0,
+    }
+
+    for (const p of aktif) {
+      const id = p.id as string
+      const h = nilaiCelahAsuransi(perProyek.get(id) ?? [], today, ambangHari)
+      hitung[h.sebab]++
+      if (!h.celah) continue
+      if (sudah('celah_asuransi', id)) continue
+
+      const nama = String(p.name ?? 'Proyek')
+      const nilai = p.contract_value == null ? null : Number(p.contract_value)
+      const rupiah = nilai != null && Number.isFinite(nilai)
+        ? ` Nilai kontrak Rp ${nilai.toLocaleString('id-ID')}.`
+        : ''
+
+      /*
+        Tiap sebab menyebut TINDAKANNYA, bukan sekadar keadaannya.
+
+        "Tak ada asuransi" memberi tahu apa yang salah. "Beli polis CAR"
+        memberi tahu apa yang harus dilakukan — dan pada peringatan yang datang
+        ke orang yang mungkin bukan ahli asuransi, bedanya menentukan apakah
+        pesannya ditindaklanjuti atau ditunda.
+      */
+      const pesan = {
+        tanpa_polis:
+          `${nama} berjalan TANPA asuransi apa pun.${rupiah} `
+          + 'Kebakaran, longsor, atau kecelakaan pihak ketiga ditanggung sendiri. '
+          + 'Terbitkan polis CAR sebelum pekerjaan berlanjut.',
+        semua_kadaluarsa:
+          `${nama} — seluruh ${h.polis} polisnya sudah kadaluarsa atau dibatalkan.`
+          + `${rupiah} Proyeknya masih berjalan; perpanjang segera.`,
+        tak_menanggung_pekerjaan:
+          `${nama} punya ${h.polisAktif} polis AKTIF, tetapi tak satu pun `
+          + 'menanggung pekerjaannya sendiri — yang ada hanya tanggung jawab '
+          + `pihak ketiga atau asuransi tenaga kerja.${rupiah} `
+          + 'Tambahkan CAR (Contractor All Risk).',
+        segera_berakhir:
+          `${nama} — polis CAR berakhir dalam ${h.hariTersisa} hari.${rupiah} `
+          + 'Urus perpanjangan sebelum jatuh tempo; jeda satu hari pun berarti '
+          + 'proyeknya tak terlindungi.',
+        terlindungi: '',
+      }[h.sebab]
+
+      const penerima = await resolveRecipients('celah_asuransi', {
+        companyId: request.companyId!,
+        projectId: id,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: h.sebab === 'segera_berakhir'
+            ? 'Polis asuransi proyek segera berakhir'
+            : 'Proyek tanpa perlindungan asuransi',
+          message: pesan,
+          // `segera_berakhir` masih punya waktu; tiga lainnya berarti proyeknya
+          // TIDAK terlindungi sekarang juga.
+          type: 'celah_asuransi',
+          priority: h.sebab === 'segera_berakhir' ? 'normal' : 'high',
+          project_id: id,
+          action_url: '/kontrak/asuransi',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: id, project_id: id, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: { proyek_aktif: idAktif.length, ...hitung, ambang_hari: ambangHari },
+    })
+  })
 }
 
 /**

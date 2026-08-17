@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { KepalaHalaman } from "@/components/dasar";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Globe, Save, Check, X, AlertTriangle, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { C } from "@/lib/warna-ui";
 import { GAYA_KARTU } from "@/components/ui-dasar";
@@ -83,7 +84,6 @@ function SitusContent() {
   const canManage = hasPerm("situs:manage");
 
   const [konten, setKonten] = useState<Record<string, string>>({});
-  const [seksi, setSeksi] = useState<Seksi[]>([]);
   // Kosong, BUKAN "#003366"/"#FFD600".
   //
   // Default warna merek sudah ada satu-satunya di skema
@@ -96,35 +96,46 @@ function SitusContent() {
   const [merek, setMerek] = useState<Merek>({
     warna_utama: "", warna_aksen: "", logo_path: null,
   });
-  const [loading, setLoading] = useState(true);
   const [simpan, setSimpan] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [k, s, m] = await Promise.all([
-        api.get<{ data: Record<string, unknown> }>("/api/v1/situs/konten"),
-        api.get<{ data: Seksi[] }>("/api/v1/situs/seksi"),
-        api.get<{ data: Merek | null }>("/api/v1/situs/merek"),
-      ]);
-      const teks: Record<string, string> = {};
-      for (const [kk, vv] of Object.entries(k.data.data ?? {})) {
-        teks[kk] = typeof vv === "string" ? vv : JSON.stringify(vv);
-      }
-      setKonten(teks);
-      setSeksi(s.data.data ?? []);
-      if (m.data.data) setMerek(m.data.data);
-    } catch {
-      setToast({ type: "error", msg: "Gagal memuat konten situs" });
-    } finally { setLoading(false); }
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan panggilan langsung: `load()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+    Tiga endpoint independen → tiga `useData`, menggantikan `Promise.all`
+    manual. `konten` dan `merek` tetap DRAF yang disunting lokal — nilainya
+    dituang lewat `useEffect` begitu data datang, sama seperti perilaku lama.
+  */
+  const { data: dataKonten, memuat: memuatKonten, galat: galatKonten, muatUlang: muatUlangKonten } =
+    useData<{ data: Record<string, unknown> }>("/api/v1/situs/konten");
+  const { data: dataSeksi, memuat: memuatSeksi, galat: galatSeksi, muatUlang: muatUlangSeksi } =
+    useData<{ data: Seksi[] }>("/api/v1/situs/seksi");
+  const { data: dataMerek, memuat: memuatMerek, galat: galatMerek, muatUlang: muatUlangMerek } =
+    useData<{ data: Merek | null }>("/api/v1/situs/merek");
+
+  const loading = memuatKonten || memuatSeksi || memuatMerek;
+  const galatMuat = galatKonten || galatSeksi || galatMerek;
+  const load = useCallback(async () => {
+    await Promise.all([muatUlangKonten(), muatUlangSeksi(), muatUlangMerek()]);
+  }, [muatUlangKonten, muatUlangSeksi, muatUlangMerek]);
+
+  const seksi = dataSeksi?.data ?? [];
+
+  useEffect(() => {
+    if (!dataKonten) return;
+    const teks: Record<string, string> = {};
+    for (const [kk, vv] of Object.entries(dataKonten.data ?? {})) {
+      teks[kk] = typeof vv === "string" ? vv : JSON.stringify(vv);
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setKonten(teks);
+  }, [dataKonten]);
+
+  useEffect(() => {
+    if (!dataMerek?.data) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMerek(dataMerek.data);
+  }, [dataMerek]);
 
   useEffect(() => {
     if (!toast) return;
@@ -178,8 +189,10 @@ function SitusContent() {
   const ubahSeksi = async (kunci: string, patch: Partial<Seksi>) => {
     setSimpan(kunci);
     try {
-      const { data } = await api.patch<{ data: Seksi }>("/api/v1/situs/seksi", { kunci, ...patch });
-      setSeksi((s) => s.map((x) => (x.kunci === kunci ? data.data : x)));
+      await api.patch<{ data: Seksi }>("/api/v1/situs/seksi", { kunci, ...patch });
+      // Menyegarkan dari server lewat cache, bukan menimpa baris lokal
+      // secara manual — `useData` sudah menjaga dedup & invalidasi.
+      await muatUlangSeksi();
       await revalidate();
       setToast({ type: "success", msg: `Seksi "${LABEL_SEKSI[kunci] ?? kunci}" diperbarui` });
     } catch (e) {
@@ -190,6 +203,22 @@ function SitusContent() {
 
   if (loading) {
     return <div style={{ padding: "var(--pad-kartu-lega)", color: C.muted }}>Memuat konten situs…</div>;
+  }
+
+  // Galat MUAT dipisah dari `toast` (dipakai untuk galat AKSI simpan) — satu
+  // state untuk keduanya membuat gagal menyimpan menghapus pesan gagal
+  // memuat.
+  if (galatMuat) {
+    return (
+      <div style={{ padding: "var(--pad-kartu-lega)" }}>
+        <p role="alert" style={{ color: "var(--danger)", fontSize: 13 }}>
+          Gagal memuat konten situs.{" "}
+          <button onClick={() => void load()} style={{ color: "inherit", background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+            Coba lagi.
+          </button>
+        </p>
+      </div>
+    );
   }
 
   const kunciKonten = Object.keys(LABEL).filter((k) => k in konten);

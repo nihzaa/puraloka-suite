@@ -1,8 +1,9 @@
 "use client";
 
 import {
-useEffect, useState, useCallback, useRef, useMemo } from "react";
+useEffect, useState, useRef, useMemo } from "react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useToast } from "@/components/toast";
 import { KepalaHalaman } from "@/components/dasar";
 import { Saklar } from "@/components/saklar";
@@ -78,65 +79,44 @@ const tanggal = (d: string | null) =>
 
 export default function RfiPage() {
   const { showToast } = useToast();
-  const [proyek, setProyek] = useState<Array<{ id: string; name: string }>>([]);
   const [proyekId, setProyekId] = useState<string>("");
-  const [items, setItems] = useState<Rfi[]>([]);
-  const [meta, setMeta] = useState<MetaRfi | null>(null);
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [formTerbuka, bukaForm] = useState(false);
   const [sedangUbah, setSedangUbah] = useState<string | null>(null);
   const [terbuka, setTerbuka] = useState<Set<string>>(new Set());
-  const batalRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    let batal = false;
-    api.get("/api/v1/projects")
-      .then((r) => {
-        if (batal) return;
-        const daftar = (r.data?.projects ?? []) as Array<{ id: string; name: string }>;
-        setProyek(daftar);
-        setProyekId((kini) => kini || daftar[0]?.id || "");
-        if (daftar.length === 0) setMemuat(false);
-      })
-      .catch(() => {
-        if (!batal) { setGalat("Daftar proyek tidak bisa dimuat."); setMemuat(false); }
-      });
-    return () => { batal = true; };
-  }, []);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  const muat = useCallback(async (pid: string) => {
-    if (!pid) return;
-    batalRef.current?.abort();
-    const ac = new AbortController();
-    batalRef.current = ac;
-    setMemuat(true);
-    setGalat(null);
-    try {
-      const r = await api.get(`/api/v1/projects/${pid}/rfis`, { signal: ac.signal });
-      setItems(r.data?.data ?? []);
-      setMeta(r.data?.meta ?? null);
-    } catch (e) {
-      if ((e as { name?: string }).name === "CanceledError") return;
-      setGalat("Daftar RFI tidak bisa dimuat. Periksa koneksi lalu muat ulang.");
-    } finally {
-      if (!ac.signal.aborted) setMemuat(false);
-    }
-  }, []);
+    Dua `useData`: daftar proyek, lalu RFI yang bergantung `proyekId`. Galat
+    gabungan (muat proyek ATAU muat RFI) sudah cukup di sini — halaman ini
+    tak punya galat AKSI tersendiri karena tiap aksi tulis melapor lewat
+    toast, bukan lewat pita galat statis.
+  */
+  const { data: dataProyek } = useData<{ projects: Array<{ id: string; name: string }> }>(
+    "/api/v1/projects",
+  );
+  // `useMemo`: masuk dependensi `useEffect` di bawah, dan array baru tiap
+  // render membuat efek itu berjalan tanpa henti.
+  const proyek = useMemo(() => dataProyek?.projects ?? [], [dataProyek]);
 
-  useEffect(() => {
-    if (!proyekId) return;
-    let batal = false;
-    void Promise.resolve().then(() => { if (!batal) void muat(proyekId); });
-    return () => { batal = true; };
-  }, [proyekId, muat]);
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setProyekId((kini) => kini || proyek[0]?.id || ""); }, [proyek]);
+
+  const { data: dataRfi, memuat, galat: galatMuat, muatUlang } = useData<{
+    data: Rfi[]; meta: MetaRfi | null;
+  }>(proyekId ? `/api/v1/projects/${proyekId}/rfis` : null);
+  // `useMemo`: `items` masuk dependensi `useMemo` (`urut`) di bawah.
+  const items = useMemo(() => dataRfi?.data ?? [], [dataRfi]);
+  const meta = dataRfi?.meta ?? null;
+  const galat = galatMuat ? "Daftar RFI tidak bisa dimuat. Periksa koneksi lalu muat ulang." : null;
+
+  const muat = async () => { await muatUlang(); };
 
   const kirim = async (it: Rfi) => {
     setSedangUbah(it.id);
     try {
-      const r = await api.patch(`/api/v1/rfis/${it.id}/status`, { status: "terkirim" });
-      setItems((k) => k.map((x) => (x.id === it.id ? r.data.data : x)));
-      void muat(proyekId);
+      await api.patch(`/api/v1/rfis/${it.id}/status`, { status: "terkirim" });
+      await muat();
       showToast("success", `${it.nomor} dicatat terkirim.`);
     } catch (e) {
       const p = (e as { response?: { data?: { error?: string } } }).response?.data?.error;
@@ -161,8 +141,7 @@ export default function RfiPage() {
         jawaban: jawaban.trim(),
         ...(dari.trim() ? { dijawab_oleh: dari.trim() } : {}),
       });
-      setItems((k) => k.map((x) => (x.id === it.id ? r.data.data : x)));
-      void muat(proyekId);
+      await muat();
       const hari = r.data?.data?.hari_menggantung;
       showToast(
         "success",
@@ -179,9 +158,8 @@ export default function RfiPage() {
   const ubahStatus = async (it: Rfi, status: Rfi["status"]) => {
     setSedangUbah(it.id);
     try {
-      const r = await api.patch(`/api/v1/rfis/${it.id}/status`, { status });
-      setItems((k) => k.map((x) => (x.id === it.id ? r.data.data : x)));
-      void muat(proyekId);
+      await api.patch(`/api/v1/rfis/${it.id}/status`, { status });
+      await muat();
       showToast("success", `${it.nomor} → ${STATUS_LABEL[status].toLowerCase()}`);
     } catch (e) {
       const p = (e as { response?: { data?: { error?: string } } }).response?.data?.error;
@@ -288,7 +266,7 @@ export default function RfiPage() {
         <div className="rf-galat" role="alert">
           <AlertTriangle size={18} aria-hidden />
           <span>{galat}</span>
-          <button className="rf-tombol-halus" onClick={() => void muat(proyekId)}>Muat ulang</button>
+          <button className="rf-tombol-halus" onClick={() => void muat()}>Muat ulang</button>
         </div>
       ) : memuat ? (
         <div className="rf-memuat" aria-live="polite">
@@ -468,7 +446,7 @@ export default function RfiPage() {
         <FormRfi
           proyekId={proyekId}
           onTutup={() => bukaForm(false)}
-          onSimpan={() => { bukaForm(false); void muat(proyekId); }}
+          onSimpan={() => { bukaForm(false); void muat(); }}
         />
       )}
 

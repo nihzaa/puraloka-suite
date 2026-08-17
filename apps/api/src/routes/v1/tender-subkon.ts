@@ -1,9 +1,13 @@
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, FastifyRequest } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import {
-  susunTender, periksaPenetapan, periksaPenutupan, type BarisPenawaranSubkon,
+  susunTender, periksaPenetapan, periksaPenutupan, susunTabulasiItem,
+  type BarisPenawaranSubkon, type BarisItemPenawaran,
 } from '../../lib/tender-subkon.js'
+import {
+  rencanakanSalinBoq, type ItemPenawaranMenang, type ItemBoqAda,
+} from '../../lib/salin-boq-pemenang.js'
 import { logAuditEvent } from '../../utils/audit.js'
 
 /**
@@ -31,6 +35,132 @@ import { logAuditEvent } from '../../utils/audit.js'
  * disunting — dan yang paling berkepentingan menyuntingnya adalah orang yang
  * mandornya sedang kalah.
  */
+/** Ringkasan penyalinan BOQ yang ikut di balasan penetapan pemenang. */
+interface RingkasanBoq {
+  /** `false` bila tender belum punya `work_scope_id` — bukan kegagalan. */
+  disalin: boolean
+  sebab?: string
+  jumlah_sisip?: number
+  jumlah_perbarui?: number
+  /** Nama item yang TIDAK ditimpa karena sudah punya progres lapangan. */
+  dilewati_berprogres?: string[]
+}
+
+/**
+ * Salin rincian penawaran PEMENANG ke `work_scope_items`.
+ *
+ * ⚠ ADITIF, tidak pernah destruktif. Aturan lengkap beserta alasannya ada di
+ * `lib/salin-boq-pemenang.ts`; yang paling penting: item yang sudah punya
+ * `volume_done > 0` DILEWATI. Progres lapangan adalah satu-satunya data di
+ * modul ini yang tak bisa dibuat ulang dari mana pun.
+ *
+ * Kegagalan penyalinan TIDAK membatalkan penetapan pemenang. Pemenangnya
+ * sudah tercatat beserta alasannya — itu keputusan yang sah dan lengkap.
+ * BOQ adalah turunan yang bisa disusun ulang; membatalkan keputusan yang
+ * benar karena turunannya gagal justru menghapus jejak yang lebih berharga.
+ * Karena itu sebabnya DILAPORKAN, bukan ditelan diam-diam.
+ */
+async function salinBoqPemenang(
+  request: FastifyRequest,
+  idTender: string,
+  idPenawaran: string,
+  idProyek: string[],
+): Promise<RingkasanBoq> {
+  const db = request.db!
+  const kosong = (sebab: string): RingkasanBoq => ({ disalin: false, sebab })
+
+  const { data: tender, error: eT } = await db
+    .unsafe('tender_subkon', 'membaca work_scope_id tender yang kepemilikannya sudah diverifikasi pemanggil')
+    .select('work_scope_id')
+    .eq('id', idTender)
+    .in('project_id', idProyek)
+    .maybeSingle()
+  if (eT) return kosong(`Gagal membaca lingkup kerja tender: ${eT.message}`)
+
+  const idScope = (tender as { work_scope_id: string | null } | null)?.work_scope_id
+  if (!idScope) {
+    // BUKAN kegagalan. Migrasi 347 memang tak membuat `work_scopes` otomatis.
+    return kosong(
+      'Tender ini belum terkait lingkup kerja (work_scope), jadi BOQ pemenang belum '
+      + 'bisa disalin. Kaitkan lingkup kerjanya lebih dulu, lalu salin BOQ dari sana.')
+  }
+
+  // ⚠ `viaProject` untuk tabel kategori C menyaring lewat kolom INDUKNYA,
+  // bukan lewat project_id. Untuk `penawaran_subkon_item` induknya
+  // `penawaran_id` (tenant-map), jadi yang diserahkan adalah id PENAWARAN.
+  //
+  // Percobaan pertama menyerahkan id TENDER dan hasilnya nol baris — tanpa
+  // galat. Rutenya lalu melapor "penawaran pemenang tidak berisi rincian",
+  // kalimat yang masuk akal dan sepenuhnya salah. Ditangkap test, bukan oleh
+  // pembacaan kode.
+  const { data: itemMenang, error: eI } = await db
+    .viaProject('penawaran_subkon_item', idPenawaran)
+    .select('kode_item, uraian, satuan, volume, harga_satuan, urutan')
+    .order('urutan', { ascending: true })
+  if (eI) return kosong(`Gagal membaca rincian pemenang: ${eI.message}`)
+
+  const item = (itemMenang ?? []) as unknown as ItemPenawaranMenang[]
+  if (item.length === 0) {
+    // Penawaran hanya-total. Sah (437), tapi tak ada yang bisa disalin.
+    return kosong('Penawaran pemenang tidak berisi rincian per-item, jadi BOQ tidak berubah.')
+  }
+
+  // `work_scope_items` kategori C lewat `work_scope_id` (tenant-map), jadi
+  // yang diserahkan `viaProject` adalah id LINGKUP KERJA — bukan id proyek.
+  const { data: boqLama, error: eB } = await db
+    .viaProject('work_scope_items', idScope)
+    .select('id, item_name, volume_done')
+  if (eB) return kosong(`Gagal membaca BOQ lingkup kerja: ${eB.message}`)
+
+  const rencana = rencanakanSalinBoq(item, (boqLama ?? []) as unknown as ItemBoqAda[])
+
+  for (const t of rencana.tindakan) {
+    if (t.jenis === 'lewati') continue
+
+    if (t.jenis === 'sisip') {
+      const { error } = await db
+        .viaProject('work_scope_items', idScope)
+        .insert({
+          work_scope_id: idScope,
+          item_name: t.item_name,
+          unit: t.unit,
+          volume: t.volume,
+          unit_price: t.unit_price,
+          sort_order: t.sort_order,
+          created_by: request.currentUser!.id,
+          // `category` sengaja dibiarkan pada DEFAULT 'lain_lain' (023:68).
+          // Menebaknya dari uraian akan salah diam-diam, dan kategori yang
+          // salah mengalir ke laporan biaya per-kategori.
+        })
+      if (error) return kosong(`Gagal menyisipkan item BOQ "${t.item_name}": ${error.message}`)
+      continue
+    }
+
+    // `volume_done` ikut di WHERE — pagar KEDUA di luar `rencanakanSalinBoq`.
+    //
+    // Rencana disusun dari pembacaan beberapa milidetik lalu; kalau seorang
+    // mandor mencatat progres di antara baca dan tulis, aturan "jangan timpa
+    // progres" akan terlewat justru pada baris yang paling perlu dijaga.
+    // Di sini basis yang memutuskan, bukan ingatan aplikasi.
+    const { error } = await db
+      .viaProject('work_scope_items', idScope)
+      .update({
+        unit: t.unit, volume: t.volume, unit_price: t.unit_price,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', t.id)
+      .eq('volume_done', 0)
+    if (error) return kosong(`Gagal memperbarui item BOQ "${t.item_name}": ${error.message}`)
+  }
+
+  return {
+    disalin: true,
+    jumlah_sisip: rencana.jumlah_sisip,
+    jumlah_perbarui: rencana.jumlah_perbarui,
+    dilewati_berprogres: rencana.dilewati_berprogres,
+  }
+}
+
 export default async function tenderSubkonRoutes(app: FastifyInstance) {
   // ── GET /api/v1/tender-subkon ────────────────────────────────────────────
   app.get('/api/v1/tender-subkon', {
@@ -135,9 +265,49 @@ export default async function tenderSubkonRoutes(app: FastifyInstance) {
       catatan: p.catatan,
     }))
 
+    // ── Rincian per-item (437) ─────────────────────────────────────────────
+    //
+    // Diambil TERPISAH, bukan lewat nested select di query penawaran di atas.
+    // Alasannya PostgREST: baca bersarang tunduk pada batas 1.000 baris yang
+    // memotong SENYAP (penjaga `audit-baca-tak-terpotong.mjs`), dan pemotongan
+    // di sini tak menghasilkan galat — ia menghasilkan tabel perbandingan yang
+    // kehilangan pos-pos terakhir, persis bentuk kesalahan yang paling sulit
+    // terlihat: tabel yang tampak lengkap.
+    const idPenawaran = baris.map((b) => b.id)
+    let itemMentah: BarisItemPenawaran[] = []
+
+    if (idPenawaran.length > 0) {
+      // `unsafe`, bukan `viaProject`: rincian diambil untuk BEBERAPA penawaran
+      // sekaligus, sementara `viaProject` hanya bisa menyaring satu induk
+      // (`.eq('penawaran_id', …)`). Tenancy tetap terjaga — `idPenawaran`
+      // berasal dari `baris`, yang sudah disaring `projectIds()` di atas.
+      const { data: dataItem, error: e3 } = await db
+        .unsafe('penawaran_subkon_item',
+          'id penawaran berasal dari daftar yang sudah disaring projectIds() di atas')
+        .select('penawaran_id, kode_item, uraian, satuan, volume, harga_satuan, subtotal, urutan')
+        .in('penawaran_id', idPenawaran)
+        .order('urutan', { ascending: true })
+
+      // Galat TIDAK ditelan: rincian yang gagal dibaca membuat perbandingan
+      // per-item tampil kosong, dan "tak ada rincian" adalah kesimpulan yang
+      // salah tapi masuk akal — pembacanya tak akan pernah tahu ia menatap
+      // kegagalan, bukan keadaan.
+      if (e3) return reply.status(500).send({ error: e3.message })
+      itemMentah = (dataItem ?? []) as unknown as BarisItemPenawaran[]
+    }
+
+    const namaPenawar: Record<string, string> = {}
+    for (const b of baris) namaPenawar[b.id] = b.worker_name ?? '—'
+
     return reply.send({
       tender: kepala,
       perbandingan: susunTender(baris, (kepala as { nilai_perkiraan: number | string | null }).nilai_perkiraan),
+      // `null`, bukan objek kosong, saat tak ada rincian sama sekali. Layar
+      // harus bisa membedakan "tender ini dibandingkan per-total saja" dari
+      // "ada rincian tapi semuanya nol" — keduanya bukan keadaan yang sama.
+      perbandingan_item: itemMentah.length > 0
+        ? susunTabulasiItem(itemMentah, namaPenawar)
+        : null,
     })
   })
 
@@ -270,6 +440,222 @@ export default async function tenderSubkonRoutes(app: FastifyInstance) {
     return reply.status(201).send({ penawaran: data })
   })
 
+  // ── PUT /api/v1/tender-subkon/:id/penawaran/:pid/item ────────────────────
+  //
+  // Rincian per-item sebuah penawaran (437). PUT, bukan POST: yang dikirim
+  // adalah SELURUH rincian penawaran itu, dan hasilnya menggantikan yang lama
+  // seluruhnya.
+  //
+  // Kenapa mengganti seluruhnya, bukan menambah baris demi baris: total dan
+  // rinciannya wajib cocok (trigger 437), jadi keadaan setengah-terkirim
+  // SELALU melanggar. Menyisipkan per baris berarti tiap permintaan di
+  // tengah-tengah pasti ditolak — kecuali kalau pemeriksaannya dilonggarkan,
+  // yang justru membuang gunanya.
+  app.put('/api/v1/tender-subkon/:id/penawaran/:pid/item', {
+    preHandler: [authenticate, requirePermission('projects:contract')],
+  }, async (request, reply) => {
+    const { id, pid } = request.params as { id: string; pid: string }
+    const b = request.body as {
+      item?: Array<{
+        kode_item?: string | null; uraian?: string; satuan?: string | null
+        volume?: number | string; harga_satuan?: number | string; catatan?: string | null
+      }>
+      /**
+       * Total baru, opsional.
+       *
+       * Dikirim bersama itemnya supaya keduanya berubah dalam SATU permintaan.
+       * Tanpa ini, mengganti rincian yang jumlahnya berbeda dari total lama
+       * selalu ditolak trigger — dan pengguna tak punya urutan langkah yang
+       * bisa berhasil.
+       */
+      nilai_penawaran?: number | string
+    }
+
+    if (!Array.isArray(b.item)) {
+      return reply.status(400).send({ error: 'item wajib berupa array (kirim [] untuk menghapus seluruh rincian)' })
+    }
+    if (b.item.length > 500) {
+      return reply.status(400).send({ error: 'Rincian melebihi 500 baris' })
+    }
+
+    const db = request.db!
+    const idProyek = await db.projectIds()
+    if (idProyek.length === 0) return reply.status(404).send({ error: 'Tender tidak ditemukan' })
+
+    const { data: tender, error: eT } = await db
+      .unsafe('tender_subkon', 'kepemilikan diverifikasi lewat projectIds() di baris berikutnya')
+      .select('id, status')
+      .eq('id', id)
+      .in('project_id', idProyek)
+      .maybeSingle()
+    if (eT) return reply.status(500).send({ error: eT.message })
+    if (!tender) return reply.status(404).send({ error: 'Tender tidak ditemukan' })
+
+    if ((tender as { status: string }).status !== 'terkirim') {
+      // Rincian yang berubah SESUDAH keputusan mengubah dasar perbandingan di
+      // belakang keputusan yang sudah diambil — dan jejak auditnya berbohong.
+      return reply.status(409).send({
+        error: `Tender berstatus "${(tender as { status: string }).status}" tidak menerima perubahan rincian`,
+      })
+    }
+
+    const { data: pen, error: eP } = await db
+      .viaProject('penawaran_subkon', id)
+      .select('id, tidak_menawar, nilai_penawaran')
+      .eq('id', pid)
+      .eq('tender_id', id)
+      .maybeSingle()
+    if (eP) return reply.status(500).send({ error: eP.message })
+    if (!pen) return reply.status(404).send({ error: 'Penawaran tidak ditemukan pada tender ini' })
+
+    if ((pen as { tidak_menawar: boolean }).tidak_menawar && b.item.length > 0) {
+      // Dijaga juga oleh trigger 437; diperiksa di sini supaya penolakannya
+      // berupa kalimat yang bisa ditindaklanjuti, bukan galat trigger mentah.
+      return reply.status(409).send({
+        error: 'Penawar ini menyatakan TIDAK menawar — rincian harga tidak bisa dilampirkan.',
+      })
+    }
+
+    // Validasi bentuk sebelum menyentuh basis: satu baris tanpa uraian akan
+    // ditolak CHECK, dan galatnya tak menyebut baris ke berapa.
+    //
+    // Nomor barisnya ikut disebut karena inilah yang membedakan galat yang
+    // bisa diperbaiki dari galat yang hanya bisa ditebak: rincian 40 baris
+    // yang ditolak "uraian wajib diisi" tanpa menyebut baris ke berapa
+    // membuat penggunanya memeriksa keempat puluhnya satu per satu.
+    const baris: Array<{
+      penawaran_id: string; kode_item: string | null; uraian: string
+      satuan: string | null; volume: number; harga_satuan: number
+      urutan: number; catatan: string | null
+    }> = []
+
+    for (const [i, it] of b.item.entries()) {
+      const uraian = String(it.uraian ?? '').trim()
+      if (!uraian) {
+        return reply.status(400).send({ error: `Baris ${i + 1}: uraian wajib diisi` })
+      }
+      const volume = Number(it.volume ?? 0)
+      const harga = Number(it.harga_satuan ?? 0)
+      if (!Number.isFinite(volume) || volume < 0) {
+        return reply.status(400).send({ error: `Baris ${i + 1}: volume tidak sah` })
+      }
+      if (!Number.isFinite(harga) || harga < 0) {
+        return reply.status(400).send({ error: `Baris ${i + 1}: harga satuan tidak sah` })
+      }
+      baris.push({
+        penawaran_id: pid,
+        kode_item: it.kode_item?.toString().trim() || null,
+        uraian,
+        satuan: it.satuan?.toString().trim() || null,
+        volume,
+        harga_satuan: harga,
+        urutan: i,
+        catatan: it.catatan?.toString().trim() || null,
+      })
+    }
+
+    // Total dikirim → dipakai. Tidak dikirim → dihitung dari rincian.
+    //
+    // Yang kedua BUKAN pelanggaran keputusan "total divalidasi, bukan
+    // dihitung" (kepala migrasi 437): keputusan itu tentang apa yang basis
+    // lakukan pada angka yang SUDAH tersimpan. Di sini pengguna baru saja
+    // mengetik rinciannya dan tak menyebut total — menawarkan jumlahnya
+    // sebagai nilai awal lebih jujur daripada menolak dengan "totalnya tak
+    // cocok" atas angka yang belum pernah ia tetapkan.
+    const jumlahItem = baris.reduce((s, x) => s + x.volume * x.harga_satuan, 0)
+    const totalBaru = b.nilai_penawaran != null && b.nilai_penawaran !== ''
+      ? Number(b.nilai_penawaran)
+      : baris.length > 0
+        ? Number(jumlahItem.toFixed(2))
+        : Number((pen as { nilai_penawaran: number | string }).nilai_penawaran)
+
+    if (!Number.isFinite(totalBaru) || totalBaru < 0) {
+      return reply.status(400).send({ error: 'nilai_penawaran tidak sah' })
+    }
+    if (baris.length > 0 && Math.abs(totalBaru - jumlahItem) > 1) {
+      // Ditolak SEBELUM menulis apa pun — trigger 437 akan menolaknya juga,
+      // tapi di sini pesannya bisa menyebut kedua angkanya.
+      return reply.status(409).send({
+        error: `Rincian berjumlah Rp ${jumlahItem.toLocaleString('id-ID')} tetapi nilai `
+          + `penawaran Rp ${totalBaru.toLocaleString('id-ID')}. Perbaiki salah satunya.`,
+      })
+    }
+
+    // ── URUTAN TULIS: kosongkan → set total → sisip ────────────────────────
+    //
+    // ⚠ Urutan ini WAJIB, dan alasannya bukan selera.
+    //
+    // Percobaan pertama menulis "hapus → sisip → set total" dengan anggapan
+    // trigger 437 yang DEFERRABLE INITIALLY DEFERRED akan menahan pemeriksaan
+    // sampai seluruh rangkaian selesai. Itu SALAH, dan testnya menangkapnya:
+    //
+    //     Rincian item berjumlah Rp 3.000.000 tetapi nilai penawaran
+    //     tertulis Rp 50.000.000
+    //
+    // `request.db` adalah PostgREST lewat HTTP — TIAP pemanggilan adalah
+    // transaksinya SENDIRI. "Deferred" hanya menunda pemeriksaan sampai akhir
+    // transaksi, dan di sini akhir transaksi datang di ujung tiap statement.
+    // Jadi tak ada satu pun jendela di mana keadaan setengah jalan tersembunyi.
+    //
+    // Yang menyelamatkan: trigger MELEWATI penawaran yang TAK punya item sama
+    // sekali (`v_n = 0` → sah, itulah "per-item opsional"). Jadi dengan
+    // mengosongkan rincian lebih dulu, penawaran kembali ke bentuk hanya-total
+    // yang selalu sah — totalnya bebas diubah — lalu rincian yang sudah cocok
+    // disisipkan terakhir.
+    //
+    // Tiap batas commit di antaranya menyimpan keadaan yang SAH.
+    // `viaProject` untuk tabel ini menyaring lewat `penawaran_id` (kategori C,
+    // induknya penawaran — bukan project). Yang diserahkan karena itu `pid`,
+    // dan kepemilikannya sudah diverifikasi lewat tender di atas.
+    const { error: eDel } = await db
+      .viaProject('penawaran_subkon_item', pid)
+      .delete()
+      .eq('penawaran_id', pid)
+    if (eDel) return reply.status(500).send({ error: eDel.message })
+
+    const { data: totalTersimpan, error: eUp } = await db
+      .viaProject('penawaran_subkon', id)
+      .update({ nilai_penawaran: totalBaru, updated_at: new Date().toISOString() })
+      .eq('id', pid)
+      .eq('tender_id', id)
+      .select('id, nilai_penawaran')
+      .maybeSingle()
+    if (eUp) return reply.status(409).send({ error: eUp.message })
+    if (!totalTersimpan) {
+      // NOL baris TIDAK sah di sini: rincian lama sudah terhapus, totalnya
+      // tak berubah. Dinyatakan alih-alih melapor berhasil.
+      return reply.status(409).send({
+        error: 'Rincian lama terhapus tetapi totalnya gagal diperbarui — penawaran '
+          + 'berubah dari tempat lain. Muat ulang dan periksa nilainya.',
+      })
+    }
+
+    if (baris.length > 0) {
+      const { error: eIns } = await db
+        .viaProject('penawaran_subkon_item', pid)
+        .insert(baris)
+      if (eIns) {
+        if (eIns.code === '23505') {
+          return reply.status(400).send({
+            error: 'Ada kode item yang kembar dalam satu penawaran — tiap kode hanya boleh sekali.',
+          })
+        }
+        return reply.status(400).send({ error: eIns.message })
+      }
+    }
+
+    await logAuditEvent(request, {
+      action: 'update',
+      tableName: 'penawaran_subkon',
+      recordId: pid,
+      actorId: request.currentUser!.id,
+      newValues: { rincian_item: baris.length, nilai_penawaran: totalBaru },
+      reason: `Rincian per-item diperbarui (${baris.length} baris)`,
+    })
+
+    return reply.send({ jumlah_item: baris.length, nilai_penawaran: totalBaru })
+  })
+
   // ── PATCH /api/v1/tender-subkon/:id/pemenang ─────────────────────────────
   //
   // Endpoint yang selama ini HILANG. Diukur 2026-08-13: `status = 'menang'`
@@ -383,6 +769,19 @@ export default async function tenderSubkonRoutes(app: FastifyInstance) {
       })
     }
 
+    // ── Salin BOQ pemenang ke `work_scope_items` (437) ─────────────────────
+    //
+    // Menutup rantai yang selama ini putus tepat sesudah uang dijanjikan:
+    // rincian harga yang dipakai MEMILIH pemenang berhenti di tender, lalu
+    // BOQ pelaksanaannya diketik ulang dari nol — atau tidak sama sekali.
+    // Diukur 2026-08-16: `work_scope_items` tak punya SATU PUN rute tulis.
+    //
+    // Hanya bila `work_scope_id` sudah terisi. Migrasi 347:48-52 menyatakan
+    // menutup tender TIDAK membuat `work_scopes`; kaitannya dipasang manual.
+    // Tanpa kaitan itu tak ada tujuan yang bisa dituju, dan MEMBUAT scope di
+    // sini adalah keputusan lain yang bukan milik endpoint ini.
+    const ringkasanBoq = await salinBoqPemenang(request, id, b.penawaran_id, idProyek)
+
     await logAuditEvent(request, {
       action: 'update',
       tableName: 'penawaran_subkon',
@@ -396,6 +795,7 @@ export default async function tenderSubkonRoutes(app: FastifyInstance) {
       pemenang: jadi,
       peringatan: verdict.peringatan,
       penawar_dikalahkan: jumlahKalah,
+      boq: ringkasanBoq,
     })
   })
 

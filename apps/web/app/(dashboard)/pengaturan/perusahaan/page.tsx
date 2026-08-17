@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { Building2, Plus, Users, AlertTriangle, Check, X, ArrowRightLeft, Building } from "lucide-react";
 
 // ============================================================
@@ -33,10 +34,36 @@ interface BadanUsaha {
   is_akar: boolean;
 }
 
+/**
+ * Bingkai halaman — shell + judul yang SAMA di setiap keadaan.
+ *
+ * Sebelum ini, tiga keadaan awal (memuat, ditolak, gagal muat) mengembalikan
+ * `<div style={{ padding: 24, maxWidth: 640 }}>` masing-masing: tanpa `<h1>`,
+ * dan dengan padding yang bukan padding shell. Akibatnya halaman "Badan Usaha"
+ * yang gagal memuat tampil TANPA JUDUL dan menempel ke tepi kiri — persis yang
+ * tertangkap di layar founder 2026-08-16.
+ *
+ * Judul yang hilang bukan cuma soal rapi: `uji-judul-halaman-ada.mjs` menuntut
+ * tiap halaman dashboard punya `<h1>`, dan pembaca layar kehilangan satu-satunya
+ * penanda "saya ada di halaman apa" justru saat ada yang salah — saat penanda
+ * itu paling dibutuhkan.
+ */
+function Bingkai({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+      <div style={{ marginBottom: 18 }}>
+        <KepalaHalaman
+          judul="Badan Usaha"
+          keterangan="PT/CV dalam grup usaha Anda. Setiap badan usaha punya proyek, keuangan, dan penomoran dokumen yang terpisah penuh."
+          ikon={<Building size={19} />}
+        />
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export default function PerusahaanPage() {
-  const [daftar, setDaftar] = useState<BadanUsaha[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [ditolak, setDitolak] = useState(false);
   const [formTerbuka, setFormTerbuka] = useState(false);
   const [pesan, setPesan] = useState<{ tipe: "ok" | "salah"; teks: string } | null>(null);
 
@@ -50,27 +77,22 @@ export default function PerusahaanPage() {
   // supaya ketikannya tak tertimpa tiap kali nama disunting.
   const [kodeDisentuh, setKodeDisentuh] = useState(false);
 
-  async function muat() {
-    setMemuat(true);
-    try {
-      const r = await api.get<{ data: BadanUsaha[] }>("/api/v1/companies");
-      setDaftar(r.data.data ?? []);
-      setDitolak(false);
-    } catch (e: unknown) {
-      const status = (e as { response?: { status?: number } })?.response?.status;
-      if (status === 403) setDitolak(true);
-      else setPesan({ tipe: "salah", teks: "Gagal memuat daftar badan usaha" });
-    } finally {
-      setMemuat(false);
-    }
-  }
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void muat(); }); }, []);
+    `useData` menggantikan useCallback+useEffect+queueMicrotask. 403 tetap
+    ditangani sebagai keadaan TERSENDIRI (bukan galat generik) — axios
+    melampirkan `.response` ke `Error`-nya, jadi bisa dibaca dari `galat`.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } = useData<{ data: BadanUsaha[] }>("/api/v1/companies");
+  const muat = async () => { await muatUlang(); };
+  const daftar = data?.data ?? [];
+  const ditolak = (galatMuat as unknown as { response?: { status?: number } } | null)?.response?.status === 403;
+  // Galat MUAT generik (BUKAN 403 — yang itu ditangani sebagai `ditolak`)
+  // dipisah dari `pesan` (dipakai untuk galat/sukses AKSI membuat badan
+  // usaha) — satu state untuk keduanya membuat berhasil membuat menghapus
+  // pesan gagal memuat.
+  const galatMuatUmum = galatMuat && !ditolak ? "Gagal memuat daftar badan usaha." : null;
 
   // Kode disarankan dari nama, tapi tetap bisa diubah: yang mengetik nama
   // "PT Puraloka Karya Nusantara" tak perlu memikirkan slug-nya sendiri.
@@ -109,13 +131,17 @@ export default function PerusahaanPage() {
   }
 
   if (memuat) {
-    return <div style={{ padding: 24, color: C.muted }}>Memuat…</div>;
+    return (
+      <Bingkai>
+        <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>Memuat…</p>
+      </Bingkai>
+    );
   }
 
   if (ditolak) {
     return (
-      <div style={{ padding: 24, maxWidth: 640 }}>
-        <div style={{ ...GAYA_KARTU, padding: 20, display: "flex", gap: 12, alignItems: "flex-start" }}>
+      <Bingkai>
+        <div style={{ ...GAYA_KARTU, padding: 20, display: "flex", gap: 12, alignItems: "flex-start", maxWidth: 640 }}>
           <AlertTriangle size={18} style={{ color: C.amber, flexShrink: 0, marginTop: 2 }} />
           <div>
             <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 6px" }}>
@@ -128,7 +154,23 @@ export default function PerusahaanPage() {
             </p>
           </div>
         </div>
-      </div>
+      </Bingkai>
+    );
+  }
+
+  if (galatMuatUmum) {
+    return (
+      <Bingkai>
+        <div role="alert" style={{ ...GAYA_KARTU, padding: 20, display: "flex", gap: 12, alignItems: "flex-start", maxWidth: 640 }}>
+          <AlertTriangle size={18} style={{ color: C.red, flexShrink: 0, marginTop: 2 }} />
+          <p style={{ fontSize: 13, color: C.mid, margin: 0, lineHeight: 1.6 }}>
+            {galatMuatUmum}{" "}
+            <button onClick={() => void muat()} style={{ color: C.navy, background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+              Coba lagi.
+            </button>
+          </p>
+        </div>
+      </Bingkai>
     );
   }
 

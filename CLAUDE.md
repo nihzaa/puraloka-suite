@@ -413,8 +413,13 @@ tak ada yang tahu id apa yang harus diisi. Pembungkusnya mengambil sendiri
 dari basis. **Angka "0 pelanggaran" tanpa menyebut berapa rute dinamis yang
 terlewat bukan bukti apa-apa.**
 
-Diukur 2026-08-13 (akun admin, id lengkap): **133 halaman, 0 pelanggaran** —
-naik dari 129, dan baris "rute dinamis TERLEWAT" hilang.
+Diukur 2026-08-16 (akun admin, id dinamis terisi otomatis oleh pembungkus):
+**137 halaman, 0 pelanggaran** — naik dari 133 (2026-08-13) dan 129
+sebelumnya. Baris "rute dinamis TERLEWAT" tetap hilang.
+
+Kredensial akun ujinya sudah tersimpan di `apps/web/.env.local`
+(`LAYAR_EMAIL`/`LAYAR_SANDI`/`LAYAR_BASIS`) — berkas itu ter-gitignore, jadi
+sandi tak pernah masuk git. Tak perlu menanyakannya lagi ke founder.
 
 ⚠ **Tiga rute tetap tak teraudit** karena butuh peran lain, bukan karena
 skripnya: `/portal/proyek/[id]` (klien), `/pm-portal/proyek/[id]` (PM),

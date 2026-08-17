@@ -15,7 +15,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, companyBerisi } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import tenderSubkonRoutes from '../tender-subkon.js'
 
@@ -76,10 +76,14 @@ beforeAll(async () => {
   vi.spyOn(supabaseAuth.auth, 'getUser')
     .mockResolvedValue({ data: { user: { id: auth } }, error: null } as never)
 
-  const { rows: u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [auth])
-  const { rows: co } = await db.query(
-    'SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1', [u[0].id])
-  companyId = co[0].company_id
+  // Company dipilih yang BENAR-BENAR berisi bahan fixture.
+  //
+  // Akun uji ini anggota TIGA company, dan seluruh 60 `workers` ada di satu
+  // saja. `LIMIT 1` tanpa `ORDER BY` menyerahkan pilihannya ke Postgres —
+  // sempat memilih company yang kosong, lalu test mati dengan "butuh tiga
+  // worker di company ini" yang menuduh SEED, padahal seednya baik-baik saja
+  // dan yang salah pilihan company-nya.
+  companyId = await companyBerisi(db, auth, ['workers', 'projects'])
 
   const { rows: p } = await db.query(
     'SELECT id FROM projects WHERE company_id = $1 LIMIT 1', [companyId])

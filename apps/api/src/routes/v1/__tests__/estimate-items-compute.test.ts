@@ -249,13 +249,42 @@ describe('GET /estimate-items/:itemId/explain — telusur angka', () => {
 })
 
 describe('DELETE /estimate-versions/:id/items/:itemId', () => {
-  it('hapus item → total versi di-recompute ke 0', async () => {
+  /*
+    SELURUH item dihapus, bukan yang pertama saja.
+
+    Versi lama menghapus `rows[0]` lalu menuntut `version_total === 0` — benar
+    hanya selama versi ini punya TEPAT SATU item. Asumsi itu patah begitu
+    describe `explain` di atas ditambahkan (2d9229a9): ia menambah item kedua,
+    sehingga sesudah menghapus satu masih tersisa 2.783.000 dan test merah.
+
+    Yang diuji sebenarnya adalah **recompute**-nya: total versi mengikuti isi,
+    bukan angka yang tersimpan lepas. Menghapus semua item menguji itu tanpa
+    bergantung pada berapa banyak test di atasnya membuat item — dan tanpa
+    bergantung pada URUTAN eksekusi, yang tak dijamin.
+
+    Total DIPERIKSA di tiap langkah, bukan cuma di akhir: kalau recompute
+    berhenti bekerja di tengah, yang terlihat harus langkah yang salah, bukan
+    sekadar "angka akhirnya bukan nol".
+  */
+  it('hapus semua item → total versi di-recompute ke 0', async () => {
     actAs(adminAuth)
     const { rows } = await client.query(
-      `SELECT id FROM estimate_items WHERE estimate_version_id=$1`, [versionId])
+      `SELECT id FROM estimate_items WHERE estimate_version_id=$1 ORDER BY id`, [versionId])
     expect(rows.length).toBeGreaterThan(0)
-    const res = await del(`/api/v1/estimate-versions/${versionId}/items/${rows[0].id}`)
-    expect(res.statusCode).toBe(200)
-    expect(res.json().version_total).toBe(0)
+
+    let terakhir: number | null = null
+    for (const r of rows) {
+      const res = await del(`/api/v1/estimate-versions/${versionId}/items/${r.id}`)
+      expect(res.statusCode).toBe(200)
+      terakhir = res.json().version_total
+      expect(terakhir).not.toBeNull()
+    }
+    expect(terakhir).toBe(0)
+
+    // Basis ikut diperiksa: `version_total` yang benar di respons tetapi
+    // salah di tabel adalah kegagalan yang tak terlihat dari API mana pun.
+    const { rows: sisa } = await client.query(
+      `SELECT total_amount FROM estimate_versions WHERE id=$1`, [versionId])
+    expect(Number(sisa[0].total_amount)).toBe(0)
   })
 })

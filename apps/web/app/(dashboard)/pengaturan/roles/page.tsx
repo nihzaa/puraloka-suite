@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { KepalaHalaman } from "@/components/dasar";
 import { dapatDitekan } from "@/lib/dapat-ditekan";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import {
   Shield,
@@ -89,8 +90,35 @@ function RolesContent() {
   // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
   const canManage = useIzin("users:roles:manage");
 
-  const [roles, setRoles] = useState<Role[]>([]);
-  const [permissions, setPermissions] = useState<PermissionGroup[]>([]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    `useData` menggantikan `loadRoles`/`loadPermissions` yang lama. Keduanya
+    fetch independen, jadi dua `useData` terpisah — bukan `Promise.all`
+    manual, yang tak lagi perlu setelah dedup+cache ditangani lapisannya.
+  */
+  const { data: dataRoles, galat: galatRoles, muatUlang: muatUlangRoles } = useData<{ roles: Role[] }>("/api/v1/roles");
+  const loadRoles = useCallback(async () => { await muatUlangRoles(); }, [muatUlangRoles]);
+  // `useMemo`, bukan `?? []` telanjang: `roles` masuk dependensi
+  // `useEffect` "pilih role pertama" di bawah, dan referensi array baru
+  // tiap render membuat efek itu berjalan tanpa henti.
+  const roles = useMemo(() => dataRoles?.roles ?? [], [dataRoles]);
+
+  const { data: dataPerms, galat: galatPerms } = useData<{ permissions: Permission[]; grouped: Record<string, Permission[]> }>("/api/v1/permissions");
+  // Convert the grouped object into an ordered array
+  const permissions: PermissionGroup[] = dataPerms
+    ? Object.entries(dataPerms.grouped).map(([module, perms]) => ({ module, permissions: perms }))
+    : [];
+
+  // Galat MUAT dipisah dari `toast` (dipakai untuk galat AKSI simpan/hapus
+  // role) — satu state untuk keduanya membuat gagal menyimpan menghapus
+  // pesan gagal memuat, dan daftar kosong tak bisa dibedakan dari galat.
+  const galatMuat = galatRoles
+    ? "Gagal memuat daftar role."
+    : galatPerms
+      ? "Gagal memuat daftar permission."
+      : null;
+
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [rolePerms, setRolePerms] = useState<Set<string>>(new Set());
   const [dirtyPerms, setDirtyPerms] = useState<Set<string>>(new Set());
@@ -107,10 +135,27 @@ function RolesContent() {
   // Collapsed modules
   const [collapsedModules, setCollapsedModules] = useState<Set<string>>(new Set());
 
+  /*
+    Semua modul TERLIPAT saat pertama dibuka.
+
+    Administrator punya 114 permission di 30-an modul. Terbuka semua, halaman
+    jadi 18.732px — orang harus menggulir sepuluh layar untuk tahu modul apa
+    saja yang ada, dan tak pernah melihat ringkasannya. Terlipat, seluruh
+    daftar modul muat dalam satu layar, dan yang perlu diperiksa dibuka satu
+    per satu.
+
+    Efek ini reaksi terhadap KEDATANGAN `permissions` (bukan tiap render) —
+    begitu grup modulnya berubah dari kosong ke terisi, semuanya dilipat.
+  */
   useEffect(() => {
-    loadRoles();
-    loadPermissions();
-  }, []);
+    if (permissions.length === 0) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCollapsedModules(new Set(permissions.map((g) => g.module)));
+    // Sengaja hanya bereaksi pada KEDATANGAN pertama data, bukan tiap kali
+    // `permissions` berubah referensi (ia dihitung ulang tiap render dari
+    // `dataPerms`) — jadi dependensinya `dataPerms`, bukan `permissions`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataPerms]);
 
   /**
    * Pilih role pertama begitu daftarnya datang.
@@ -142,37 +187,6 @@ function RolesContent() {
     const t = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(t);
   }, [toast]);
-
-  async function loadRoles() {
-    try {
-      const { data } = await api.get<{ roles: Role[] }>("/api/v1/roles");
-      setRoles(data.roles);
-    } catch {
-      setToast({ type: "error", msg: "Gagal memuat daftar role" });
-    }
-  }
-
-  async function loadPermissions() {
-    try {
-      const { data } = await api.get<{ permissions: Permission[]; grouped: Record<string, Permission[]> }>("/api/v1/permissions");
-      // Convert the grouped object into an ordered array
-      const groups: PermissionGroup[] = Object.entries(data.grouped).map(([module, perms]) => ({
-        module,
-        permissions: perms,
-      }));
-      setPermissions(groups);
-      // Semua modul TERLIPAT saat pertama dibuka.
-      //
-      // Administrator punya 114 permission di 30-an modul. Terbuka
-      // semua, halaman jadi 18.732px — orang harus menggulir sepuluh
-      // layar untuk tahu modul apa saja yang ada, dan tak pernah
-      // melihat ringkasannya. Terlipat, seluruh daftar modul muat dalam
-      // satu layar, dan yang perlu diperiksa dibuka satu per satu.
-      setCollapsedModules(new Set(groups.map((g) => g.module)));
-    } catch {
-      setToast({ type: "error", msg: "Gagal memuat daftar permission" });
-    }
-  }
 
   async function selectRole(role: Role) {
     setSelectedRole(role);
@@ -285,6 +299,20 @@ function RolesContent() {
           </button>
         )}
       </div>
+
+      {galatMuat && (
+        <div role="alert" style={{
+          marginBottom: 16, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          background: C.redBg, border: `1px solid ${C.redBorder}`, color: C.red,
+          display: "flex", alignItems: "center", gap: 8,
+        }}>
+          <AlertTriangle size={14} />
+          {galatMuat}{" "}
+          <button onClick={() => { void loadRoles(); }} style={{ color: "inherit", background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+            Coba lagi.
+          </button>
+        </div>
+      )}
 
       {/* Two-column layout */}
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>

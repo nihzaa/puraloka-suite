@@ -100,6 +100,53 @@ type Perbandingan = {
   selisih_pemenang_termurah: number;
 };
 
+/**
+ * Perbandingan PER-ITEM (migrasi 437).
+ *
+ * Menjawab pertanyaan yang tabel di atas tak bisa jawab: "Agung Rp 12jt
+ * lebih murah — di POS MANA?" Selisih total yang sama bisa berarti penawar
+ * yang efisien merata, ATAU penawar yang melewatkan satu pos. Yang kedua
+ * kembali sebagai klaim tambah.
+ */
+type SelItem = {
+  penawaran_id: string;
+  worker_name: string;
+  /** null bila penawar tak mengisi item ini — BUKAN 0. */
+  harga_satuan: number | null;
+  subtotal: number | null;
+  termurah: boolean;
+  selisih_pct: number | null;
+};
+
+type BarisItem = {
+  kunci: string;
+  kode_item: string | null;
+  uraian: string;
+  satuan: string | null;
+  volume: number;
+  sel: SelItem[];
+  harga_termurah: number | null;
+  rentang_pct: number | null;
+  /** Tak semua penawar mengisi item ini — pos yang tak dihitung. */
+  tak_lengkap: boolean;
+};
+
+type RingkasanItem = {
+  penawaran_id: string;
+  worker_name: string;
+  jumlah_item: number;
+  jumlah_termurah: number;
+  jumlah_tak_diisi: number;
+  total_item: number;
+};
+
+type PerbandinganItem = {
+  baris: BarisItem[];
+  penawar: RingkasanItem[];
+  jumlah_item_tak_lengkap: number;
+  total_termurah_gabungan: number;
+};
+
 const rupiah = (n: number | string | null | undefined) =>
   n === null || n === undefined || n === ""
     ? "—"
@@ -169,6 +216,7 @@ export default function TenderSubkonPage() {
   const [daftar, setDaftar] = useState<Tender[]>([]);
   const [terpilih, setTerpilih] = useState("");
   const [banding, setBanding] = useState<Perbandingan | null>(null);
+  const [bandingItem, setBandingItem] = useState<PerbandinganItem | null>(null);
   const [tenderAktif, setTenderAktif] = useState<Tender | null>(null);
   const [galat, setGalat] = useState("");
   const [muatUlangKe, setMuatUlangKe] = useState(0);
@@ -217,11 +265,15 @@ export default function TenderSubkonPage() {
     // render bertingkat untuk keadaan yang tak pernah terlihat.
     if (!idEfektif) return;
     const ac = makeAbortController();
-    api.get<{ tender: Tender; perbandingan: Perbandingan }>(
+    api.get<{ tender: Tender; perbandingan: Perbandingan; perbandingan_item: PerbandinganItem | null }>(
       `/api/v1/tender-subkon/${idEfektif}`, { signal: ac.signal })
       .then((r) => {
         setTenderAktif(r.data.tender);
         setBanding(r.data.perbandingan);
+        // `null` berarti tender ini dibandingkan per-total saja — bukan
+        // "ada rincian tapi kosong". Bagian per-item tak ditampilkan sama
+        // sekali, alih-alih tampil sebagai tabel kosong yang membingungkan.
+        setBandingItem(r.data.perbandingan_item ?? null);
         setGalat("");
       })
       .catch((e) => { if (!ac.signal.aborted) setGalat(e?.response?.data?.error ?? "Gagal memuat perbandingan"); })
@@ -237,6 +289,7 @@ export default function TenderSubkonPage() {
   const siap = !!idEfektif && detailUntuk === kunciDetail;
   const tenderTampil = siap ? tenderAktif : null;
   const bandingTampil = siap ? banding : null;
+  const itemTampil = siap ? bandingItem : null;
 
   const muatUlang = useCallback(() => setMuatUlangKe((n) => n + 1), []);
 
@@ -416,7 +469,7 @@ export default function TenderSubkonPage() {
         }
         return (
           <button type="button" onClick={() => bukaPenetapan(p)} style={{
-            cursor: "pointer", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", borderRadius: 5, fontSize: 12,
+            cursor: "pointer", padding: "var(--pad-tombol-kcl)", borderRadius: 5, fontSize: 12,
             border: `1px solid ${C.border}`, background: "var(--surface)", color: C.text,
             whiteSpace: "nowrap",
           }}>
@@ -698,6 +751,182 @@ export default function TenderSubkonPage() {
                   }
                 />
               </div>
+
+              {/* ── Perbandingan PER-ITEM (437) ──────────────────────────
+                  Hanya muncul bila ada rincian. Tender yang penawarannya
+                  cuma satu angka total tetap sah — bagian ini tak
+                  ditampilkan sama sekali, alih-alih tampil sebagai tabel
+                  kosong yang terbaca seperti fitur yang rusak. */}
+              {itemTampil && itemTampil.baris.length > 0 && (
+                <div className="rise rise-4" style={{ marginTop: "var(--gap-bagian)" }}>
+                  <h3 style={{
+                    fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 700,
+                    color: C.text, margin: "0 0 4px",
+                  }}>
+                    Perbandingan per-item
+                  </h3>
+                  <p style={{ fontSize: 12.5, color: C.mid, margin: "0 0 12px", maxWidth: "72ch", lineHeight: 1.55 }}>
+                    Bukan siapa yang termurah <em>seluruhnya</em>, tapi siapa yang
+                    termurah <strong>di tiap pos</strong>. Selisih total yang sama bisa
+                    berarti penawar yang efisien merata — atau penawar yang melewatkan
+                    satu pekerjaan.
+                  </p>
+
+                  {/* Pos yang tak diisi semua penawar: peringatan paling mahal
+                      di layar ini, jadi ia di ATAS tabelnya. */}
+                  {itemTampil.jumlah_item_tak_lengkap > 0 && (
+                    <div style={{
+                      ...kartu, padding: "12px 16px", marginBottom: 12,
+                      borderColor: "var(--warning-border)", background: "var(--warning-bg)",
+                      display: "flex", gap: 10, alignItems: "flex-start",
+                    }}>
+                      <TriangleAlert size={16} aria-hidden="true" style={{ color: "var(--warning)", flexShrink: 0, marginTop: 1 }} />
+                      <div style={{ fontSize: 13, color: "var(--on-warning-bg)", lineHeight: 1.55 }}>
+                        <strong>
+                          {itemTampil.jumlah_item_tak_lengkap} pos tidak diisi semua penawar
+                        </strong>{" "}
+                        — periksa sebelum membandingkan totalnya. Penawar yang tak
+                        menghitung sebuah pekerjaan akan terlihat lebih murah tanpa
+                        benar-benar lebih murah, dan selisihnya kembali sebagai klaim
+                        tambah.
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Ringkasan per penawar: berapa pos ia menangi, berapa yang
+                      tak ia isi. Dua angka yang harus dibaca BERSAMA. */}
+                  <div style={{
+                    display: "flex", gap: "var(--gap-grid)", flexWrap: "wrap", marginBottom: 12,
+                  }}>
+                    {itemTampil.penawar.map((p) => (
+                      <div key={p.penawaran_id} style={{
+                        ...kartu, padding: "10px 14px", flex: "1 1 200px", minWidth: 190,
+                      }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                          {p.worker_name}
+                        </div>
+                        <div style={{ fontSize: 12, color: C.mid, marginTop: 3, lineHeight: 1.5 }}>
+                          termurah di <strong>{p.jumlah_termurah}</strong> dari {p.jumlah_item} pos
+                        </div>
+                        {p.jumlah_tak_diisi > 0 && (
+                          <div style={{ fontSize: 12, color: "var(--warning)", marginTop: 2, fontWeight: 600 }}>
+                            {p.jumlah_tak_diisi} pos tidak diisi
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Matriks item × penawar. Lebar kolomnya tumbuh mengikuti
+                      jumlah penawar, jadi ia menggulir sendiri — bukan
+                      memaksa seluruh halaman menggulir mendatar. */}
+                  <div style={{ ...kartu, overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 520 }}>
+                      <caption style={{
+                        textAlign: "left", padding: "10px 12px 8px",
+                        fontSize: 12, color: C.mid,
+                      }}>
+                        Harga satuan tiap pos menurut masing-masing penawar — tender{" "}
+                        {tenderTampil.nomor}
+                      </caption>
+                      <thead>
+                        <tr style={{ borderBottom: `1px solid ${C.border}` }}>
+                          <th scope="col" style={{ textAlign: "left", padding: "8px 12px", color: C.mid, fontWeight: 600 }}>
+                            Pos pekerjaan
+                          </th>
+                          <th scope="col" style={{ textAlign: "right", padding: "8px 12px", color: C.mid, fontWeight: 600, whiteSpace: "nowrap" }}>
+                            Volume
+                          </th>
+                          {itemTampil.penawar.map((p) => (
+                            <th key={p.penawaran_id} scope="col" style={{
+                              textAlign: "right", padding: "8px 12px", color: C.mid,
+                              fontWeight: 600, whiteSpace: "nowrap",
+                            }}>
+                              {p.worker_name}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {itemTampil.baris.map((b) => (
+                          <tr key={b.kunci} style={{
+                            borderBottom: `1px solid ${C.border}`,
+                            background: b.tak_lengkap ? "var(--warning-bg)" : undefined,
+                          }}>
+                            <th scope="row" style={{
+                              textAlign: "left", padding: "8px 12px", fontWeight: 500, color: C.text,
+                            }}>
+                              {b.kode_item && (
+                                <span style={{ color: C.muted, fontVariantNumeric: "tabular-nums" }}>
+                                  {b.kode_item}{" "}
+                                </span>
+                              )}
+                              {b.uraian}
+                              {/* Ditulis sebagai KATA, bukan hanya warna latar —
+                                  WCAG 1.4.1. Yang tak bisa membedakan warna dan
+                                  pembaca layar sama-sama hanya punya teks ini. */}
+                              {b.tak_lengkap && (
+                                <span style={{
+                                  display: "block", fontSize: 11, fontWeight: 600,
+                                  color: "var(--warning)", marginTop: 2,
+                                }}>
+                                  tidak diisi semua penawar
+                                </span>
+                              )}
+                            </th>
+                            <td style={{
+                              textAlign: "right", padding: "8px 12px", color: C.mid,
+                              whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums",
+                            }}>
+                              {b.volume.toLocaleString("id-ID")} {b.satuan ?? ""}
+                            </td>
+                            {itemTampil.penawar.map((p) => {
+                              const s = b.sel.find((x) => x.penawaran_id === p.penawaran_id);
+                              // Yang TIDAK mengisi tak dipajang "Rp 0". Nol adalah
+                              // angka terkecil; di kolom yang sedang dibandingkan
+                              // besarannya, ia menang sebagai termurah di mata
+                              // pembaca sebelum satu kata pun dibaca.
+                              if (!s || s.harga_satuan === null) {
+                                return (
+                                  <td key={p.penawaran_id} style={{
+                                    textAlign: "right", padding: "8px 12px", color: C.muted,
+                                    whiteSpace: "nowrap",
+                                  }}>
+                                    tidak diisi
+                                  </td>
+                                );
+                              }
+                              return (
+                                <td key={p.penawaran_id} style={{
+                                  textAlign: "right", padding: "8px 12px",
+                                  whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums",
+                                  color: s.termurah ? "var(--success)" : C.text,
+                                  fontWeight: s.termurah ? 700 : 400,
+                                }}>
+                                  {rupiah(s.harga_satuan)}
+                                  {/* Selisih terhadap termurah, sebagai teks —
+                                      supaya "lebih mahal" tak hanya tersirat
+                                      dari warna. */}
+                                  {s.selisih_pct !== null && s.selisih_pct > 0 && (
+                                    <span style={{ display: "block", fontSize: 11, color: C.mid, fontWeight: 400 }}>
+                                      {persenBertanda(s.selisih_pct)}
+                                    </span>
+                                  )}
+                                  {s.termurah && (
+                                    <span style={{ display: "block", fontSize: 11, color: "var(--success)", fontWeight: 600 }}>
+                                      termurah
+                                    </span>
+                                  )}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </>

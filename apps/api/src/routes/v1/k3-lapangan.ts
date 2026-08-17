@@ -554,6 +554,121 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
     },
   )
 
+  // ── GET /k3/insiden ──────────────────────────────────────────────────────
+  //
+  // Daftar insiden LINTAS PROYEK, dengan saringan proyek opsional.
+  //
+  // ── Kenapa endpoint ini perlu ada, padahal insiden sudah bisa dibaca
+  //
+  // Yang sudah ada semuanya BER-PROYEK: `/proyek/:id/k3` dan
+  // `/proyek/:id/k3/selaras`. Keduanya menuntut orang memilih proyek LEBIH
+  // DULU — dan itu urutan yang salah untuk pertanyaan yang paling sering
+  // ditanyakan tentang K3: *"ada kecelakaan apa belakangan ini?"*.
+  //
+  // Menu `/mutu/insiden` sudah AKTIF di sidebar sejak lama sementara
+  // halamannya tak pernah ada (diukur 2026-08-16, salah satu dari lima).
+  // Halaman itu tak bisa dibangun tanpa endpoint ini: memaksanya memanggil
+  // `/proyek/:id/k3` untuk TIAP proyek berarti 17 permintaan untuk satu
+  // layar, dan angkanya tetap tak bisa diurutkan lintas proyek.
+  //
+  // ── Kenapa daftar proyek diambil LEBIH DULU, dan saya sempat salah di sini
+  //
+  // Percobaan pertama memakai `request.db!.from('insiden_k3')` dengan alasan
+  // "pembungkus sadar-tenant sudah membatasi barisnya". Itu KELIRU, dan
+  // pembungkusnya sendiri yang menolak:
+  //
+  //     TenantDbError: 'insiden_k3' mewarisi tenancy lewat project —
+  //     pakai db.viaProject(...). Tanpa project_id, query ini akan
+  //     mengembalikan baris milik tenant lain.
+  //
+  // `insiden_k3` kategori C: ia TIDAK punya `company_id` sendiri, jadi tak ada
+  // yang bisa disaring tanpa menyebut proyeknya. Kalau penjaga itu tak ada,
+  // endpoint ini akan memulangkan insiden milik perusahaan lain — dan tak ada
+  // galat apa pun yang memberi tahu siapa pun.
+  //
+  // Jalan yang benar untuk daftar LINTAS proyek: ambil dulu id proyek milik
+  // tenant ini (`db.projectIds()`), lalu `.in('project_id', …)`. Isolasinya
+  // eksplisit, dan tetap satu query untuk seluruh proyek.
+  //
+  // ── Batas 500, dan kenapa disebut di jawabannya
+  //
+  // Baca tabel penuh yang terpotong senyap di 1.000 baris PostgREST adalah
+  // cacat yang sudah punya penjaganya sendiri (`audit-baca-tak-terpotong`).
+  // Di sini batasnya EKSPLISIT dan dilaporkan lewat `terpotong`, supaya layar
+  // bisa mengatakan "500 teratas" alih-alih diam-diam menyembunyikan sisanya.
+  app.get<{ Querystring: { proyek?: string; jenis?: string } }>(
+    '/api/v1/k3/insiden',
+    { preHandler: [authenticate, requirePermission('k3:insiden:view')] },
+    async (request, reply) => {
+      const { proyek, jenis } = request.query
+
+      if (jenis && !JENIS_SAH.includes(jenis as JenisInsiden)) {
+        return reply.status(400).send({
+          error: `jenis harus salah satu dari: ${JENIS_SAH.join(', ')}`,
+        })
+      }
+
+      const BATAS = 500
+
+      // Proyek milik tenant ini. Kalau `proyek` diminta, ia WAJIB termasuk —
+      // tanpa pemeriksaan ini, menyebut id proyek tenant lain akan
+      // memulangkan insidennya.
+      const idProyekTenant = await request.db!.projectIds()
+      if (proyek && !idProyekTenant.includes(proyek)) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+      const lingkup = proyek ? [proyek] : idProyekTenant
+
+      if (lingkup.length === 0) {
+        return reply.send({ insiden: [], jumlah: 0, terpotong: false, batas: BATAS })
+      }
+
+      let q = request.db!
+        .unsafe('insiden_k3', 'kategori C; disaring .in(project_id) ke proyek tenant di baris berikutnya')
+        .select(INSIDEN_SELECT)
+        .in('project_id', lingkup)
+        .order('tanggal', { ascending: false })
+        .limit(BATAS)
+
+      if (jenis) q = q.eq('jenis', jenis)
+
+      const { data, error } = await q
+      if (error) {
+        request.log.error({ err: error }, 'gagal memuat daftar insiden')
+        return reply.status(500).send({ error: 'Gagal memuat daftar insiden' })
+      }
+
+      const insiden = data ?? []
+
+      // Nama proyek diambil sekali untuk seluruh baris — tanpa ini layar
+      // hanya bisa menampilkan UUID, dan daftar lintas proyek yang tak
+      // menyebut proyeknya tak menjawab apa pun.
+      const idProyek = [...new Set(insiden.map((i) => i.project_id as string).filter(Boolean))]
+      let namaProyek: Record<string, string> = {}
+      if (idProyek.length > 0) {
+        const { data: pr, error: ePr } = await request.db!
+          .from('projects').select('id, name').in('id', idProyek)
+        if (ePr) {
+          // Dicatat, tidak ditelan — nama yang hilang membuat daftar tak
+          // terbaca, dan itu harus terlihat di log kalau terjadi.
+          request.log.error({ err: ePr }, 'gagal memuat nama proyek untuk daftar insiden')
+        } else {
+          namaProyek = Object.fromEntries((pr ?? []).map((p) => [p.id as string, p.name as string]))
+        }
+      }
+
+      return reply.send({
+        insiden: insiden.map((i) => ({
+          ...i,
+          proyek_nama: namaProyek[i.project_id as string] ?? null,
+        })),
+        jumlah: insiden.length,
+        terpotong: insiden.length >= BATAS,
+        batas: BATAS,
+      })
+    },
+  )
+
   // ── GET /k3/jsa ──────────────────────────────────────────────────────────
   app.get<{ Querystring: { proyek?: string } }>(
     '/api/v1/k3/jsa',
@@ -1112,6 +1227,149 @@ export default async function k3LapanganRoutes(app: FastifyInstance) {
         return reply.status(400).send({ error: error.message })
       }
       return reply.status(201).send({ ukur: data })
+    },
+  )
+
+  // ── GET /proyek/:id/k3/rk3k ──────────────────────────────────────────────
+  //
+  // RK3K — Rencana K3 Kontrak, dokumen wajib tender pemerintah.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA BARU SEKARANG, DAN KENAPA BUKAN TEMPLATE KOSONG
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Modul ini SENGAJA ditunda 2026-08-12 (G4), dengan alasan yang ditulis di
+  // katalog: RK3K adalah RANGKUMAN dari JSA + inspeksi + induksi + APD +
+  // insiden. Menyusunnya sebelum isinya ada menghasilkan template kosong yang
+  // diisi asal supaya tender lolos — dan template seperti itu justru jadi
+  // bukti bahwa K3-nya administratif belaka.
+  //
+  // Catatan itu menyebut syarat pencabutannya SENDIRI: "isinya kini sudah
+  // ada". Diukur 2026-08-17, syarat itu TERPENUHI:
+  //
+  //     jsa 3 · inspeksi 3 · temuan 7 · induksi 25 · APD 5 · insiden 6
+  //
+  // Jadi yang dibangun BUKAN formulir kosong. Ia MEMBACA kelima sumber itu
+  // dan menyatakan mana yang masih kosong — supaya penyusun dokumen tender
+  // tahu persis apa yang belum bisa dipertanggungjawabkan, alih-alih
+  // mengarangnya di kolom yang disediakan.
+  //
+  // ── Kenapa kesiapan dilaporkan PER BAGIAN, bukan satu persentase
+  //
+  // Angka gabungan menyembunyikan bagian yang NOL. Proyek dengan induksi 25
+  // dan JSA nol akan terlihat "83% siap" — padahal yang hilang justru dokumen
+  // yang paling ditagih auditor. Tiap bagian berdiri sendiri.
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/proyek/:id/k3/rk3k',
+    { preHandler: [authenticate, requirePermission('k3:inspeksi:view')] },
+    async (request, reply) => {
+      const { id } = request.params
+
+      const { data: proyek, error: eProy } = await request.db!
+        .from('projects').select('id, name, location').eq('id', id).maybeSingle()
+      if (eProy) {
+        request.log.error({ err: eProy, id }, 'gagal memuat proyek untuk RK3K')
+        return reply.status(500).send({ error: 'Gagal memuat proyek' })
+      }
+      if (!proyek) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+      // Kelima sumber dibaca BERSAMAAN — RK3K adalah potret satu waktu, dan
+      // bagian yang diambil pada detik berbeda membuat rangkumannya tak
+      // pernah benar-benar cocok satu sama lain.
+      const [jsa, inspeksi, induksi, apd, insiden] = await Promise.all([
+        request.db!.unsafe('jsa', 'kategori B; company_id disaring pembungkus, project_id di bawah')
+          .select('id, kode, jenis_pekerjaan, disetujui_pada').eq('project_id', id).limit(200),
+        request.db!.viaProject('inspeksi_k3', id)
+          .select('id, nomor, tanggal, area, pemeriksa_nama')
+          .order('tanggal', { ascending: false }).limit(200),
+        request.db!.viaProject('induksi_k3', id)
+          .select('id, peserta_nama, jenis, tanggal, berlaku_sampai')
+          .order('tanggal', { ascending: false }).limit(300),
+        request.db!.viaProject('apd_serah_terima', id)
+          .select('id, penerima_nama, jenis_apd, jumlah, tanggal')
+          .order('tanggal', { ascending: false }).limit(300),
+        request.db!.viaProject('insiden_k3', id)
+          .select('id, nomor, jenis, tanggal, status, hari_kerja_hilang')
+          .order('tanggal', { ascending: false }).limit(200),
+      ])
+
+      // Diperiksa satu per satu dengan MENYEBUT NAMANYA, bukan lewat loop
+      // atas array: query keenam yang ditambahkan nanti dan lupa dimasukkan
+      // akan gagal tanpa suara, lalu `?? []` mengubahnya jadi "nol baris"
+      // yang sah. RK3K yang melaporkan NOL induksi padahal ada 25 adalah
+      // dokumen yang menuduh proyeknya lalai.
+      if (jsa.error) return reply.status(500).send({ error: 'Gagal memuat JSA untuk RK3K' })
+      if (inspeksi.error) return reply.status(500).send({ error: 'Gagal memuat inspeksi untuk RK3K' })
+      if (induksi.error) return reply.status(500).send({ error: 'Gagal memuat induksi untuk RK3K' })
+      if (apd.error) return reply.status(500).send({ error: 'Gagal memuat APD untuk RK3K' })
+      if (insiden.error) return reply.status(500).send({ error: 'Gagal memuat insiden untuk RK3K' })
+
+      // `.data` diambil TANPA `?? []`.
+      //
+      // Kelima `error` sudah dipulangkan 500 tepat di atas, jadi sampai baris
+      // ini `data` mustahil null karena kegagalan. Menulis `?? []` di sini
+      // tetap salah bentuk: itu pola yang `audit-kegagalan-senyap` cari —
+      // kegagalan yang menyamar jadi "nol baris" — dan penjaga tak bisa
+      // membedakan `?? []` yang aman dari yang berbahaya.
+      //
+      // Ratchet-nya naik 186 → 188 gara-gara lima baris ini, padahal tak satu
+      // pun menyembunyikan galat. Menaikkan ambangnya akan melemahkan penjaga
+      // untuk seluruh repo demi kenyamanan satu endpoint (G-5); menuliskannya
+      // begini lebih jujur DAN lebih ketat.
+      const bJsa = jsa.data as Array<Record<string, unknown>>
+      const bInspeksi = inspeksi.data as Array<Record<string, unknown>>
+      const bInduksi = induksi.data as Array<Record<string, unknown>>
+      const bApd = apd.data as Array<Record<string, unknown>>
+      const bInsiden = insiden.data as Array<Record<string, unknown>>
+
+      const t = hariIni()
+      // Induksi yang KEDALUWARSA dihitung terpisah: 25 induksi yang semuanya
+      // lewat masa berlaku sama saja dengan nol di mata auditor.
+      const induksiBerlaku = bInduksi.filter(
+        (x) => !x.berlaku_sampai || String(x.berlaku_sampai) >= t)
+
+      const bagian = [
+        {
+          kunci: 'jsa', judul: 'Identifikasi Bahaya (JSA)', jumlah: bJsa.length,
+          catatan: `${bJsa.filter((x) => x.disetujui_pada).length} disetujui`,
+          arti: 'Analisa keselamatan per jenis pekerjaan. Tanpa ini RK3K tak punya dasar teknis.',
+        },
+        {
+          kunci: 'inspeksi', judul: 'Inspeksi Lapangan', jumlah: bInspeksi.length,
+          catatan: null,
+          arti: 'Bukti rencananya benar-benar diperiksa di lapangan, bukan disimpan di laci.',
+        },
+        {
+          kunci: 'induksi', judul: 'Induksi & Pelatihan', jumlah: bInduksi.length,
+          catatan: `${induksiBerlaku.length} masih berlaku`,
+          arti: 'Siapa yang sudah diinduksi — dan berapa yang induksinya kedaluwarsa.',
+        },
+        {
+          kunci: 'apd', judul: 'Alat Pelindung Diri', jumlah: bApd.length,
+          catatan: null,
+          arti: 'Serah terima APD bernama penerima. Stok tanpa nama penerima bukan bukti.',
+        },
+        {
+          kunci: 'insiden', judul: 'Insiden & Kecelakaan', jumlah: bInsiden.length,
+          catatan: `${bInsiden.filter((x) => x.status !== 'ditutup').length} belum ditutup`,
+          arti: 'Termasuk nyaris celaka. Nol insiden bukan otomatis kabar baik.',
+        },
+      ]
+
+      const kosong = bagian.filter((b) => b.jumlah === 0).map((b) => b.judul)
+
+      return reply.send({
+        proyek: { id: proyek.id, nama: proyek.name, lokasi: proyek.location },
+        tanggal: t,
+        bagian,
+        bagian_kosong: kosong,
+        siap_disusun: kosong.length === 0,
+        catatan_kesiapan: kosong.length === 0
+          ? 'Seluruh bagian punya isi. RK3K bisa disusun dari catatan nyata.'
+          : `${kosong.length} bagian belum punya catatan sama sekali: ${kosong.join(', ')}. `
+            + 'Menyusun RK3K sekarang berarti mengarang bagian itu — dan dokumen '
+            + 'yang dikarang justru jadi bukti bahwa K3-nya administratif belaka.',
+      })
     },
   )
 }

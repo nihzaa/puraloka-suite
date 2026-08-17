@@ -201,9 +201,32 @@ export default async function companiesRoutes(app: FastifyInstance) {
   app.get('/api/v1/companies', { preHandler: [authenticate] }, async (request, reply) => {
     if (!(await requireGroupOwner(request, reply))) return
 
+    /*
+     * `.eq('is_active', true)` BUKAN kerapian — ia yang membuat rute ini hidup.
+     *
+     * Badan usaha TIDAK PERNAH dihapus dari basis: trigger melarangnya, dan
+     * larangan itu benar (menghapus tenant = kehilangan data lintas puluhan
+     * tabel, tak bisa di-rollback). Off-boarding menyetel `is_active = false`.
+     * `ai-isolasi-tenant.test.ts` tunduk pada aturan yang sama — tiap kali
+     * berjalan ia MENINGGALKAN satu baris nonaktif.
+     *
+     * Diukur 2026-08-16: 652 baris, 647 di antaranya nonaktif, semuanya
+     * dimiliki satu akun. Saringan `.or(id.in.(…),parent_company_id.in.(…))`
+     * di bawah lalu tumbuh jadi 48.204 byte — jauh melewati batas baris
+     * permintaan HTTP (~8 KB), jadi PostgREST menolaknya dan halaman "Badan
+     * Usaha" membalas 500 setiap kali dibuka.
+     *
+     * Gejalanya menyesatkan: yang terlihat cuma "Gagal memuat daftar badan
+     * usaha", seolah-olah izin atau jaringan. Yang sebenarnya terjadi adalah
+     * URL yang terlalu panjang — dan ia akan terjadi pada pelanggan SUNGGUHAN
+     * yang punya banyak anak perusahaan, bukan cuma di basis pengembangan.
+     *
+     * Halaman ini memang hanya menampilkan badan usaha aktif, jadi menyaring
+     * di sumbernya benar dua kali: hasilnya sama, URL-nya tetap kecil.
+     */
     const { data: akar } = await request.db!
       .unsafe('companies', 'kategori D; T9 memang lintas company — daftar grup milik pemanggil')
-      .select('id').eq('owner_user_id', request.currentUser!.id)
+      .select('id').eq('owner_user_id', request.currentUser!.id).eq('is_active', true)
     const idAkar = (akar ?? []).map((r: { id: string }) => r.id)
     if (idAkar.length === 0) return reply.send({ data: [] })
 
@@ -211,6 +234,10 @@ export default async function companiesRoutes(app: FastifyInstance) {
       .unsafe('companies', 'kategori D; T9 memang lintas company — daftar badan usaha dalam grup')
       .select('id, code, name, legal_name, invoice_prefix, parent_company_id, is_active, created_at')
       .or(`id.in.(${idAkar.join(',')}),parent_company_id.in.(${idAkar.join(',')})`)
+      // Anak perusahaan yang sudah di-off-boarding tak ikut terdaftar — dan
+      // tanpa ini, sisa fixture test yang berinduk pada grup aktif tetap
+      // membengkakkan daftarnya kembali.
+      .eq('is_active', true)
       .order('created_at', { ascending: true })
 
     if (error) return reply.status(500).send({ error: 'Gagal memuat daftar badan usaha' })

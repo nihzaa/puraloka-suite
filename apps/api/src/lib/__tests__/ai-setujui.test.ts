@@ -38,15 +38,32 @@ const TANDA = 'uji-e1-'
 
 beforeAll(async () => {
   db = await createRlsClient()
+  /*
+   * Tenant uji WAJIB punya MINIMAL DUA anggota — P-4 (token satu orang tak
+   * bisa dipakai orang lain) mustahil diuji dengan satu orang.
+   *
+   * Versi sebelumnya `LIMIT 1` tanpa `ORDER BY` dan tanpa syarat itu, jadi PT
+   * mana yang terpilih ditentukan urutan fisik baris. Begitu dua PT anak
+   * disemai 2026-08-16 — masing-masing beranggota SATU orang — keduanya
+   * terpilih lebih dulu dan `u[1]` menjadi undefined, membuat seluruh berkas
+   * ini gagal dimuat.
+   *
+   * Syaratnya sekarang eksplisit, jadi kegagalannya (kalau terjadi lagi)
+   * menyebut sebabnya alih-alih melempar "cannot read properties of undefined".
+   */
   const { rows: c } = await db.query(`
     SELECT c.id FROM companies c
-    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
+    WHERE (SELECT count(*) FROM company_members m WHERE m.company_id = c.id) >= 2
+    ORDER BY c.created_at LIMIT 1
   `)
+  if (c.length === 0) throw new Error('Butuh satu tenant dengan >= 2 anggota')
   companyId = c[0].id
 
   // Dua pengguna BERBEDA — P-4 tak bisa diuji dengan satu orang.
   const { rows: u } = await db.query(
-    `SELECT user_id FROM company_members WHERE company_id = $1 LIMIT 2`, [companyId])
+    `SELECT user_id FROM company_members WHERE company_id = $1
+      ORDER BY created_at LIMIT 2`, [companyId])
+  if (u.length < 2) throw new Error('Tenant uji punya < 2 anggota')
   userId = u[0].user_id
   userLain = u[1].user_id
 

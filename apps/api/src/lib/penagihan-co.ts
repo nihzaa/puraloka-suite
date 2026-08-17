@@ -67,6 +67,27 @@ export function naikkanNilaiKontrak(mode: string | null | undefined): boolean {
   return mode === 'include_termin'
 }
 
+/**
+ * Apakah CO ini ditagih lewat TAGIHAN TERSENDIRI?
+ *
+ * Kebalikan tepat dari `naikkanNilaiKontrak`, dan sengaja ditulis sebagai
+ * fungsi sendiri alih-alih `!naikkanNilaiKontrak(m)`.
+ *
+ * Sebabnya `null`. "Belum diputuskan" BUKAN "ditagih terpisah" — negasi akan
+ * meloloskannya, dan yang lolos adalah CO yang cara tagihnya tak pernah
+ * diputuskan siapa pun. Justru di situlah tagihan ganda lahir: nilai kontrak
+ * tak naik (karena bukan `include_termin`), tagihan terpisah terbit, lalu
+ * seseorang membetulkan `billing_mode` jadi `include_termin` belakangan
+ * supaya "konsisten" — dan IPC berikutnya menagihnya lagi.
+ *
+ * `final_account` IKUT di sini: ia memang ditagih tersendiri, hanya waktunya
+ * ditahan sampai perhitungan akhir. Yang menentukan KAPAN adalah manusia yang
+ * menerbitkannya, bukan kolom ini.
+ */
+export function naikkanTerpisah(mode: string | null | undefined): boolean {
+  return mode === 'separate_co' || mode === 'final_account'
+}
+
 export type HasilPeriksa =
   | { boleh: true; naikkanKontrak: boolean; catatan: string }
   | { boleh: false; sebab: string }

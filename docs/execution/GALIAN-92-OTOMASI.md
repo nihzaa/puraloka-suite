@@ -146,9 +146,38 @@ Diukur 2026-08-16: **42 tool**. Dua terakhir yang masuk —
 | 6.12 | `performa_mandor` | `mandor:view` | hari orang = `sum(porsi_hari)`; 113 dari 1.279 baris absensi bernilai 0,5 — `count(*)` melebihkan 56,5 hari orang |
 | 10.1 | `utilisasi_alat` | `assets:view` | `jam_mulai`/`jam_selesai` ternyata `numeric` HOUR METER kumulatif (1.172 → 1.180), **bukan** jam dinding |
 
-Sisa nomor "Pemilik/eksekutif" (1.15, 2.18, 8.2, 8.5, 8.7) tetap tertahan
-karena datanya belum ada — bukan karena belum sempat. Ukur dulu sebelum
-membangunnya.
+Diukur ulang 2026-08-16 — dan **empat dari lima nomor yang "tertahan karena
+datanya belum ada" ternyata tertahan karena alasan yang berbeda-beda:**
+
+| Nomor | Verdict sebenarnya | Yang dikerjakan |
+|---|---|---|
+| 8.5 | data memang kurang: `asset_rentals` NOL baris | disemai (`seed-sewa-alat.mjs`), tool `investasi_alat` |
+| 1.15 | data kurang **dan** butuh keputusan founder | founder memutuskan bangun sebagai kapabilitas SaaS; disemai (`seed-grup-usaha.mjs`), tool `portofolio_grup` |
+| 8.2 | **bukan tool** — datanya sudah lengkap | `PENALARAN_BERLAPIS` (prompt), bukan tool ke-45 |
+| 8.7 | **bukan tool** — idem | idem |
+| 2.18 | benar-benar tertahan: tak ada tabel fasilitas kredit | belum dikerjakan |
+
+**Pelajarannya sama dengan §0 dokumen ini.** "Tertahan karena data" adalah
+verdict yang gampang ditulis dan jarang diperiksa ulang. Tiga dari lima
+nomor di atas salah diberi label oleh saya sendiri satu sesi sebelumnya.
+
+### 8.2 dan 8.7 bukan tool — dan itu penting
+
+Keduanya terdaftar sebagai kandidat TOOL. Bukan. Datanya sudah punya tool
+masing-masing (`simulasi_kas`, `banding_proyek`, `ikhtisar`, `arus_kas`,
+`serapan_biaya`, `investasi_alat`). Yang kurang: **model tak pernah diberi
+tahu bahwa ia boleh memanggil beberapa tool berurutan lalu menyintesis.**
+
+Membuat tool `what_if` berarti menyalin logika keenamnya ke tempat baru, dan
+salinan itu akan menyimpang dari aslinya.
+
+⚠ **Batas ronde adalah batas berpikir.** `ai-loop.ts` menyisihkan ronde
+terakhir tanpa tool, jadi `maks_ronde = 4` berarti **tiga** pembacaan saja.
+Dinaikkan ke 6. Ukur sendiri:
+
+```sql
+SELECT asisten, maks_ronde, sifat_bicara FROM ai_provider_config ORDER BY asisten;
+```
 
 ---
 

@@ -25,9 +25,28 @@ import { NAVY, DI_ATAS_NAVY } from "@/lib/warna-merek";
  * palsu, SVG raksasa. Favicon dirender 16px, dan logo memanjang di 16px jadi
  * garis tak terbaca.
  *
- * Jadi logonya dipasang DI DALAM kotak berwarna merek: `objectFit: contain`
- * menjaga proporsinya, latar navy memberi bentuk yang tetap terbaca di tab
- * peramban terang maupun gelap.
+ * Jadi logonya dipasang DI DALAM kotak: `objectFit: contain` menjaga
+ * proporsinya, dan kotak itu memberi bentuk yang tetap terbaca di tab peramban
+ * terang maupun gelap.
+ *
+ * ── ⚠ Kenapa latar kotaknya TERANG, bukan navy
+ *
+ * Versi pertama memakai latar NAVY. Itu masuk akal di atas kertas — warna
+ * merek, kontras dengan tab terang — dan salah total begitu diukur:
+ * logo Puraloka Persada adalah gambar NAVY di atas latar transparan. Navy di
+ * atas navy menghasilkan kotak nyaris kosong; yang tersisa cuma lengkung tipis
+ * anti-aliasing di tepi huruf. Diukur 2026-08-16: berkas hasil render 962 byte,
+ * sementara logo aslinya 12.742 byte — hampir tak ada yang tergambar.
+ *
+ * Gejalanya tak pernah terlihat seperti bug: favicon-nya ADA, cuma "tidak mirip
+ * logo". Founder menyebutnya "favicon belum sama kaya logo perusahaan".
+ *
+ * Latar terang aman untuk KEDUA arah: logo gelap (mayoritas — logo perusahaan
+ * konstruksi hampir selalu gelap di atas putih) tampil penuh, dan logo terang
+ * tetap punya kotak yang membedakannya dari tab kosong. Yang tak bisa
+ * diselamatkan hanyalah logo putih-di-atas-transparan; untuk itu tak ada satu
+ * warna latar yang benar, dan menebak salah lebih mahal daripada memilih yang
+ * benar untuk mayoritas.
  *
  * ── Kalau logo tak ada / gagal dimuat
  *
@@ -96,7 +115,12 @@ export default async function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: NAVY,
+          /*
+            Logo yang ada → plat PUTIH (logo merek hampir selalu gelap).
+            Tak ada logo → kotak NAVY dengan inisial putih, karena di situ
+            yang digambar adalah huruf yang warnanya kita tentukan sendiri.
+          */
+          background: logo ? DI_ATAS_NAVY : NAVY,
           // Sudut membulat mengikuti bentuk ikon aplikasi modern; di 16px ia
           // nyaris tak terlihat, tetapi di 64px (tab yang di-pin) terasa.
           borderRadius: 14,
@@ -104,12 +128,24 @@ export default async function Icon() {
         }}
       >
         {logo ? (
+          /*
+            58px di dalam kotak 64px — sisa 3px tiap sisi cukup supaya logo tak
+            menyentuh tepi sudut membulat, tanpa menyusutkannya lagi.
+
+            `contain`, BUKAN `cover`: logo tenant datang dalam bentuk apa pun,
+            dan `cover` akan MEMOTONG yang tidak persegi. Logo terpotong lebih
+            buruk daripada logo kecil — ia terlihat rusak, bukan sekadar padat.
+            Konsekuensinya diterima: logo yang memuat nama perusahaan (seperti
+            milik Puraloka) menyusut sampai teksnya tak terbaca di 16px. Itu
+            benar — di 16px, teks apa pun memang tak terbaca; yang harus tetap
+            terbaca adalah BENTUK lambangnya.
+          */
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={logo}
             alt=""
-            width={52}
-            height={52}
+            width={58}
+            height={58}
             style={{ objectFit: "contain" }}
           />
         ) : (

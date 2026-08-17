@@ -42,10 +42,11 @@
  * biayanya melonjak dan keputusannya keluar dari tangan sendiri.
  */
 
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Gavel, Scale, Plus, ArrowRight, CircleHelp } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { api, makeAbortController } from "@/lib/api";
+import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, KartuAngka, BarisAngka,
@@ -159,12 +160,7 @@ export default function SengketaPage() {
 function IsiSengketa() {
   const params = useSearchParams();
   const dariUrl = params.get("proyek") ?? "";
-  const [proyekList, setProyekList] = useState<Proyek[]>([]);
   const [proyekId, setProyekId] = useState("");
-  const [data, setData] = useState<Muatan | null>(null);
-  const [klaim, setKlaim] = useState<Klaim[]>([]);
-  const [memuat, setMemuat] = useState(false);
-  const [galat, setGalat] = useState<string | null>(null);
 
   const [tambah, setTambah] = useState(false);
   const [fJudul, setFJudul] = useState("");
@@ -184,68 +180,55 @@ function IsiSengketa() {
   const [menyimpan, setMenyimpan] = useState(false);
   const [galatModal, setGalatModal] = useState<string | null>(null);
 
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Tiga `useData`: proyek, sengketa (bergantung `proyekId`), dan klaim yang
+    bisa disengketakan (bergantung `proyekId` DAN `tambah` — hanya diambil
+    saat dialog catat-sengketa dibuka, sama seperti versi lama).
+  */
+  const { data: dataProyek, galat: galatMuatProyek } = useData<{ projects: Proyek[] }>(
+    "/api/v1/projects",
+  );
+  // `useMemo`: masuk dependensi `useEffect` di bawah, dan array baru tiap
+  // render membuat efek itu berjalan tanpa henti.
+  const proyekList = useMemo(() => dataProyek?.projects ?? [], [dataProyek]);
+
+  // Yang dari URL menang, TAPI hanya kalau id-nya benar-benar ada di daftar:
+  // id ngawur dari tautan lama harus mendarat di sesuatu yang nyata, bukan
+  // di layar kosong yang tak bisa dijelaskan.
   useEffect(() => {
-    const ac = makeAbortController();
-    api.get<{ projects: Proyek[] }>("/api/v1/projects", { signal: ac.signal })
-      .then((r) => {
-        const d = r.data.projects ?? [];
-        setProyekList(d);
-        // Yang dari URL menang, TAPI hanya kalau id-nya benar-benar ada di
-        // daftar: id ngawur dari tautan lama harus mendarat di sesuatu yang
-        // nyata, bukan di layar kosong yang tak bisa dijelaskan.
-        setProyekId((s) =>
-          s || (dariUrl && d.some((p) => p.id === dariUrl) ? dariUrl : "") || d[0]?.id || "");
-      })
-      .catch((e) => { if (e?.name !== "CanceledError") setGalat("Gagal memuat daftar proyek"); });
-    return () => ac.abort();
-  }, [dariUrl]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProyekId((s) =>
+      s || (dariUrl && proyekList.some((p) => p.id === dariUrl) ? dariUrl : "") || proyekList[0]?.id || "");
+  }, [proyekList, dariUrl]);
 
-  const muat = useCallback(async (id: string) => {
-    // Lewat mikrotask, BUKAN setState langsung di badan efek: yang kedua
-    // memicu render bertingkat (`set-state-in-effect`).
-    if (!id) { void Promise.resolve().then(() => setData(null)); return; }
-    setMemuat(true); setGalat(null);
-    try {
-      const r = await api.get<Muatan>(`/api/v1/proyek/${id}/sengketa`);
-      setData(r.data);
-    } catch (e) {
-      const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setGalat(m ?? "Gagal memuat sengketa");
-      setData(null);
-    } finally { setMemuat(false); }
-  }, []);
-
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state di
-  // awalnya, dan memanggilnya dari badan efek adalah setState-di-dalam-efek
-  // (`react-hooks/set-state-in-effect`) yang memicu render bertingkat. Pola
-  // yang sama dipakai `/mutu/ncr`; ratchet lint mengukurnya 67 → 71 pada
-  // percobaan pertama halaman ini.
-  useEffect(() => { queueMicrotask(() => { void muat(proyekId); }); }, [proyekId, muat]);
+  const { data, memuat, galat: galatMuatData, muatUlang } = useData<Muatan>(
+    proyekId ? `/api/v1/proyek/${proyekId}/sengketa` : null,
+  );
+  const galat = galatMuatProyek
+    ? "Gagal memuat daftar proyek"
+    : galatMuatData ? "Gagal memuat sengketa" : null;
 
   /**
    * Klaim yang BISA disengketakan saja yang ditawarkan — bukan seluruh klaim.
    * Menawarkan klaim yang masih diproses lalu menolaknya saat disimpan adalah
    * membiarkan orang mengisi formulir untuk ditolak belakangan.
+   *
+   * Rutenya `/projects/:id/claims` dan kuncinya `data` — DIUKUR ke
+   * `rantai-kontrak.ts`, bukan ditebak dari nama modulnya. Salah tebak di
+   * sini gagal SENYAP: daftar klaim kosong terlihat seperti "memang belum
+   * ada klaim yang ditolak".
+   *
+   * Bukan kegagalan yang menghalangi: sengketa boleh dicatat tanpa klaim —
+   * jadi galat sumber ini sengaja TIDAK ikut dibaca ke banner `galat` di
+   * atas.
    */
-  const muatKlaim = useCallback(async (id: string) => {
-    if (!id) { void Promise.resolve().then(() => setKlaim([])); return; }
-    try {
-      // Rutenya `/projects/:id/claims` dan kuncinya `data` — DIUKUR ke
-      // `rantai-kontrak.ts`, bukan ditebak dari nama modulnya. Salah tebak di
-      // sini gagal SENYAP: daftar klaim kosong terlihat seperti "memang belum
-      // ada klaim yang ditolak".
-      const r = await api.get<{ data: Klaim[] }>(`/api/v1/projects/${id}/claims`);
-      setKlaim((r.data.data ?? []).filter(
-        (k) => k.status === "ditolak" || k.status === "gugur"));
-    } catch {
-      // Bukan kegagalan yang menghalangi: sengketa boleh dicatat tanpa klaim.
-      setKlaim([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (tambah) queueMicrotask(() => { void muatKlaim(proyekId); });
-  }, [tambah, proyekId, muatKlaim]);
+  const { data: dataKlaim } = useData<{ data: Klaim[] }>(
+    tambah && proyekId ? `/api/v1/projects/${proyekId}/claims` : null,
+  );
+  const klaim = (dataKlaim?.data ?? []).filter(
+    (k) => k.status === "ditolak" || k.status === "gugur");
 
   const simpan = useCallback(async () => {
     if (!proyekId) return;
@@ -266,12 +249,12 @@ function IsiSengketa() {
       setTambah(false);
       setFJudul(""); setFLawan(""); setFPokok(""); setFDasar("");
       setFNilai(""); setFMulai(""); setFKlaim("");
-      await muat(proyekId);
+      await muatUlang();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal mencatat sengketa");
     } finally { setMenyimpan(false); }
-  }, [proyekId, fJudul, fLawan, fPokok, fDasar, fNilai, fMulai, fKlaim, muat]);
+  }, [proyekId, fJudul, fLawan, fPokok, fDasar, fNilai, fMulai, fKlaim, muatUlang]);
 
   const simpanPindah = useCallback(async () => {
     if (!pindah) return;
@@ -285,12 +268,12 @@ function IsiSengketa() {
           : {}),
       });
       setPindah(null); setPForum(""); setPHasil(""); setPPutusan("");
-      await muat(proyekId);
+      await muatUlang();
     } catch (e) {
       const m = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setGalatModal(m ?? "Gagal memindahkan tahap");
     } finally { setMenyimpan(false); }
-  }, [pindah, pTahap, pForum, pHasil, pPutusan, proyekId, muat]);
+  }, [pindah, pTahap, pForum, pHasil, pPutusan, muatUlang]);
 
   const kolom: Array<Kolom<Sengketa>> = [
     {
@@ -413,7 +396,7 @@ function IsiSengketa() {
         }
       />
 
-      {galat && <Galat pesan={galat} onCobaLagi={() => void muat(proyekId)} />}
+      {galat && <Galat pesan={galat} onCobaLagi={() => void muatUlang()} />}
 
       <Kartu pad="sedang">
         <label htmlFor="sg-proyek" style={{

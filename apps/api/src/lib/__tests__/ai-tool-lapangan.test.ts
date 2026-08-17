@@ -236,11 +236,26 @@ describe('I-1 — ketiganya BACA saja', () => {
       PERILAKU. Keduanya perlu — penjaga bisa dikelabui bentuk baru, perilaku
       tidak.
     */
+    /*
+      `notifications` SENGAJA TIDAK DIHITUNG.
+
+      Versi sebelumnya memasukkannya, dan itu membuat test ini rapuh terhadap
+      hal yang bukan urusannya: notifikasi ditulis tugas terjadwal, webhook,
+      dan berkas test lain yang berjalan paralel. Diukur 2026-08-16 — 62 baris
+      notifikasi baru dalam 30 menit tanpa satu pun tool AI dipanggil, dan
+      test ini merah dengan pesan "tool BACA menciptakan baris" yang MENUDUH
+      hal yang salah.
+
+      Test yang merah karena sebab di luar yang diuji lebih buruk daripada tak
+      ada test: ia melatih pembacanya mengabaikan kegagalan.
+
+      Yang tersisa dua tabel yang HANYA bisa berubah lewat jalur tulis
+      sungguhan, dan itu memang yang dijaga I-1.
+    */
     const hitung = async () => {
       const { rows } = await db.query(
         `SELECT (SELECT count(*) FROM kasbons WHERE company_id = $1)
-              + (SELECT count(*) FROM workers WHERE company_id = $1)
-              + (SELECT count(*) FROM notifications WHERE company_id = $1) AS n`,
+              + (SELECT count(*) FROM workers WHERE company_id = $1) AS n`,
         [companyId])
       return Number(rows[0].n)
     }

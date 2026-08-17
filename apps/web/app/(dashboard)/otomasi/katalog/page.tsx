@@ -47,13 +47,13 @@
  * netral.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Bot, CalendarClock, ChevronDown, ChevronRight, MessageSquare,
   Server, Settings2, Workflow, Zap,
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Galat, Rangka, Lencana, Kartu } from "@/components/dasar";
 import { Kosong } from "@/components/ui-dasar";
@@ -120,43 +120,20 @@ function ringkasAngka(n: number, kunci: string): string {
 }
 
 export default function KatalogOtomasiPage() {
-  const [data, setData] = useState<Entri[] | null>(null);
-  const [galat, setGalat] = useState<string | null>(null);
   const [buka, setBuka] = useState<Set<string>>(new Set());
   const [saring, setSaring] = useState<Pemicu | "semua">("semua");
 
   /*
-    `setGalat(null)` DI DALAM blok async, bukan sebagai baris pertama.
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
 
-    Sebagai baris pertama, ia berjalan SINKRON di badan efek pemanggilnya, dan
-    `react-hooks/set-state-in-effect` menaikkan ratchet lint (58 -> 59) —
-    ratchet yang berlaku sebagai lantai, jadi menaikkan ambangnya butuh
-    ratifikasi.
-
-    Menundanya satu microtask menghilangkan render bertingkat tanpa mengubah
-    apa yang dilihat pengguna: galat lama tetap terhapus sebelum permintaan
-    barunya selesai.
+    `useData` menggantikan useCallback+useEffect+queueMicrotask.
   */
-  const muat = useCallback(async () => {
-    try {
-      setGalat(null);
-      const r = await api.get<{ data: Entri[] }>("/api/v1/otomasi/katalog");
-      setData(r.data.data ?? []);
-    } catch (e) {
-      setGalat(e instanceof Error ? e.message : "Gagal memuat katalog otomasi");
-    }
-  }, []);
-
-  /*
-    `queueMicrotask` — pola yang sudah dipakai halaman Riwayat Asisten, dan
-    yang membuatnya bebas peringatan sementara halaman lain tidak.
-
-    Tanpa itu, `muat()` memanggil `setState` SINKRON di badan efek: render
-    bertingkat, dan ratchet lint naik (58 -> 60 untuk dua halaman ini).
-    Ratchet berlaku sebagai lantai — menaikkannya butuh ratifikasi, jadi yang
-    benar adalah menyamakan polanya, bukan ambangnya.
-  */
-  useEffect(() => { queueMicrotask(() => { void muat(); }); }, [muat]);
+  const { data: hasil, galat: galatMuat, muatUlang } = useData<{ data: Entri[] }>(
+    "/api/v1/otomasi/katalog",
+  );
+  const data = hasil?.data ?? null;
+  const galat = galatMuat ? "Gagal memuat katalog otomasi" : null;
+  const muat = async () => { await muatUlang(); };
 
   const tampil = useMemo(
     () => (data ?? []).filter((e) => saring === "semua" || e.pemicu === saring),

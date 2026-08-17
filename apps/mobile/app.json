@@ -33,7 +33,8 @@
       [
         "expo-image-picker",
         { "photosPermission": "Izinkan Puraloka Suite mengakses galeri untuk upload foto progress." }
-      ]
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true

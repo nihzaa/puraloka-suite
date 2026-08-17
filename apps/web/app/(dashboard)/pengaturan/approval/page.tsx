@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { GitBranch, Plus, Trash2, Check, X, AlertTriangle, Info } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
@@ -29,28 +30,25 @@ export default function ApprovalPage() {
 
 function Content() {
   const canManage = hasPerm("approval:chains:manage");
-  const [chains, setChains] = useState<Chain[]>([]);
-  const [perms, setPerms] = useState<Permission[]>([]);
-  const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [c, p] = await Promise.all([
-        api.get<{ chains: Chain[] }>("/api/v1/approval-chains"),
-        api.get<{ permissions: Permission[] }>("/api/v1/permissions").catch(() => ({ data: { permissions: [] } })),
-      ]);
-      setChains(c.data.chains ?? []);
-      setPerms(p.data.permissions ?? []);
-    } catch { setToast({ type: "err", msg: "Gagal memuat rantai approval" }); }
-    finally { setLoading(false); }
-  }, []);
-  // `queueMicrotask`, bukan panggilan langsung: `load()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect memicu
-  // render kedua sebelum yang pertama selesai (react-hooks/set-state-in-effect).
-  // Menunda satu microtask memindahkannya keluar dari fase render tanpa
-  // menambah jeda yang terlihat.
-  useEffect(() => { queueMicrotask(() => { void load(); }); }, [load]);
+  /*
+    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
+
+    Dua endpoint independen → dua `useData`, menggantikan `Promise.all`
+    manual. Kegagalan `permissions` sengaja tak menjatuhkan seluruh halaman
+    (perilaku lama: `.catch(() => ({ data: { permissions: [] } }))`) — cukup
+    daftar kosong, karena halaman tetap berguna melihat rantai tanpa daftar
+    permission untuk menambah level baru.
+  */
+  const { data: dataChains, memuat: memuatChains, galat: galatChains, muatUlang: muatUlangChains } =
+    useData<{ chains: Chain[] }>("/api/v1/approval-chains");
+  const { data: dataPerms } = useData<{ permissions: Permission[] }>("/api/v1/permissions");
+  const loading = memuatChains;
+  const load = async () => { await muatUlangChains(); };
+  const chains = dataChains?.chains ?? [];
+  const perms = dataPerms?.permissions ?? [];
+
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 4000); return () => clearTimeout(t); }, [toast]);
 
   const err = (e: unknown, fallback: string) =>
@@ -115,6 +113,16 @@ function Content() {
 
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: C.muted, fontSize: 13 }}>Memuat…</div>
+      ) : galatChains ? (
+        // Galat MUAT dipisah dari `toast` (dipakai untuk galat AKSI ubah
+        // rantai/level) — satu state untuk keduanya membuat gagal menyimpan
+        // menghapus pesan gagal memuat.
+        <div role="alert" style={{ ...card, padding: 40, textAlign: "center", color: C.red, fontSize: 13 }}>
+          Gagal memuat rantai approval.{" "}
+          <button onClick={() => void load()} style={{ color: C.navy, background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
+            Coba lagi.
+          </button>
+        </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {chains.map(ch => (

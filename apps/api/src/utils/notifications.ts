@@ -1,6 +1,7 @@
 ﻿import { supabase } from './supabase.js'
 import { terbitkanPeristiwa } from './terbit-peristiwa.js'
 import { sendWebPushToUsers } from './webpush.js'
+import { kirimPushNatifKeUsers } from './push-natif.js'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -151,6 +152,13 @@ export type NotificationType =
   // 3.4 Material Consumption. Kekurangan terhadap RENCANA pada progres
   // sekarang - terlihat berminggu-minggu sebelum stok fisik menipis.
   | 'material_kurang'
+  // 10.6 Maintenance Cost Trend. Alat yang mulai lebih sering RUSAK
+  // daripada dirawat - tindakannya mengganti/menyewa, bukan menjadwalkan.
+  | 'alat_tak_sehat'
+  // 9.2 Insurance Coverage Gap. Termasuk celah yang TAK terlihat oleh
+  // hitungan biasa: proyek ber-polis AKTIF yang jenisnya tak menanggung
+  // pekerjaannya sendiri (TPL saja).
+  | 'celah_asuransi'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'
@@ -365,11 +373,42 @@ export async function createNotifications(list: NotificationParams[]): Promise<v
  * mengetuk push, membuka aplikasi, dan tak menemukan apa pun.
  */
 async function kirimPush(userIds: string[], p: NotificationParams): Promise<void> {
+  const muatan = {
+    title: p.title,
+    message: p.message,
+    action_url: p.action_url,
+  }
+
   try {
-    await sendWebPushToUsers(userIds, {
-      title: p.title,
-      message: p.message,
-      action_url: p.action_url,
+    /*
+      ── DUA SALURAN, SATU CORONG (2026-08-16)
+
+      Web Push menjangkau PERAMBAN; push natif menjangkau APLIKASI MOBILE.
+      Keduanya dikirim dari fungsi yang sama dan sengaja demikian: notifikasi
+      yang lahir di dua tempat akan berbeda isinya suatu hari — satu pihak
+      memperbaiki judul, pihak lain tidak, dan tak ada test yang membandingkan
+      keduanya karena keduanya "benar" menurut berkasnya masing-masing.
+
+      Muatan `muatan` dibangun SEKALI di atas, bukan dua objek literal, supaya
+      penyimpangan itu tak mungkin secara bentuk.
+
+      `allSettled`, bukan `all`: Expo yang mati tak boleh membatalkan Web Push
+      yang sudah terkirim, dan sebaliknya. `all` menolak pada kegagalan
+      pertama dan menelan hasil saluran yang satunya.
+    */
+    const hasil = await Promise.allSettled([
+      sendWebPushToUsers(userIds, muatan),
+      kirimPushNatifKeUsers(userIds, muatan),
+    ])
+
+    // Kegagalan per-saluran DICATAT, tidak ditelan. Keduanya sudah menangani
+    // errornya sendiri di dalam, jadi sampai ke sini berarti ada yang lolos —
+    // dan itu justru yang perlu terlihat.
+    const nama = ['web-push', 'push-natif']
+    hasil.forEach((h, i) => {
+      if (h.status === 'rejected') {
+        console.error(`[notifications] ${nama[i]} gagal:`, (h.reason as Error)?.message)
+      }
     })
   } catch (err) {
     // Kegagalan push tak boleh menyentuh alur utama.

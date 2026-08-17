@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
+import { tokenExpoSah } from '../../utils/push-natif.js'
 
 export default async function notificationRoutes(app: FastifyInstance) {
 
@@ -745,6 +746,123 @@ export default async function notificationRoutes(app: FastifyInstance) {
       .from('users')
       .update({ push_subscription: null })
       .eq('id', user.id)
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    return reply.send({ success: true })
+  })
+
+  /*
+    ── POST /api/v1/notifications/perangkat ──────────────────────────────────
+
+    Daftarkan token push NATIF (Expo) dari aplikasi mobile.
+
+    Rute TERPISAH dari `/subscribe`, bukan satu rute yang menebak bentuk
+    muatannya. Alasannya: langganan Web Push adalah objek `{endpoint, keys}`
+    dan token Expo adalah string `ExponentPushToken[…]` — rute yang menerima
+    keduanya harus memilih cabang berdasarkan tebakan bentuk, dan tebakan itu
+    akan salah pada muatan yang cacat sebagian, lalu menyimpannya di tempat
+    yang keliru tanpa galat.
+
+    ⚠️ TIDAK ber-`requirePermission`. Ini bukan kelalaian ADR-004: mendaftarkan
+    perangkat SENDIRI bukan kapabilitas yang bisa dicabut dari sebagian orang —
+    siapa pun yang boleh login boleh menerima notifikasinya sendiri. Yang
+    dipagari adalah IDENTITASNYA (`authenticate`), dan `user_id` diambil dari
+    token, TIDAK PERNAH dari badan permintaan.
+  */
+  app.post('/api/v1/notifications/perangkat', {
+    preHandler: [authenticate]
+  }, async (request, reply) => {
+    const user = request.currentUser!
+    const body = request.body as {
+      token?: string
+      platform?: string
+      nama_perangkat?: string
+    }
+
+    if (!tokenExpoSah(body?.token)) {
+      return reply.status(400).send({
+        error: 'Token tidak valid — harus berbentuk ExponentPushToken[…]',
+      })
+    }
+
+    // Daftar tertutup, sepadan dengan CHECK di migrasi 438. Diperiksa di sini
+    // supaya penolakannya jadi 400 yang bisa dibaca aplikasi, bukan 500 dari
+    // pelanggaran constraint.
+    const platform = body.platform
+    if (platform && !['ios', 'android', 'web'].includes(platform)) {
+      return reply.status(400).send({ error: `Platform "${platform}" tidak dikenal` })
+    }
+
+    /*
+      `upsert` atas `token`, BUKAN insert.
+
+      Skenario yang menuntutnya: satu HP proyek dipakai bergantian dua orang.
+      Expo memulangkan token yang SAMA untuk pemasangan yang sama tanpa peduli
+      siapa yang login. Insert biasa akan melanggar unik dan membalas 500 pada
+      login yang sah; dua baris (kalau uniknya tak ada) akan mengirim kasbon
+      milik orang pertama ke HP yang sekarang dipegang orang kedua.
+
+      Upsert memindahkan KEPEMILIKAN baris. Satu perangkat fisik = satu baris
+      = satu penerima.
+    */
+    const { error } = await supabase
+      .from('perangkat_pengguna')
+      .upsert({
+        user_id:    user.id,
+        // Tenant aktif diambil dari `request.companyId` (disetel `authenticate`
+        // dari keanggotaan), BUKAN dari `currentUser` — `AuthUser` memang tak
+        // punya company_id, dan satu pengguna bisa jadi anggota beberapa
+        // perusahaan. Yang benar adalah tenant yang sedang AKTIF di permintaan
+        // ini, bukan salah satu yang kebetulan melekat di objek pengguna.
+        company_id: request.companyId ?? null,
+        token:      body.token,
+        penyedia:   'expo',
+        platform:   platform ?? null,
+        nama_perangkat: body.nama_perangkat ?? null,
+        terakhir_dipakai_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'token' })
+
+    if (error) return reply.status(500).send({ error: error.message })
+
+    return reply.send({ success: true })
+  })
+
+  /*
+    ── DELETE /api/v1/notifications/perangkat ────────────────────────────────
+
+    Cabut satu perangkat — dipanggil saat logout.
+
+    Disaring `user_id` DI SAMPING `token`. Tanpa itu, siapa pun yang tahu
+    token orang lain bisa membungkam notifikasi orang tersebut dengan satu
+    permintaan — dan token itu bocor ke mana pun perangkatnya pernah
+    mendaftar.
+  */
+  app.delete('/api/v1/notifications/perangkat', {
+    preHandler: [authenticate]
+  }, async (request, reply) => {
+    const user = request.currentUser!
+    const { token } = (request.body ?? {}) as { token?: string }
+
+    if (!token) return reply.status(400).send({ error: 'token wajib diisi' })
+
+    // `request.db!.unsafe(...)` dengan alasan tertulis, BUKAN `supabase`
+    // mentah — dan bedanya nyata, bukan formalitas.
+    //
+    // `perangkat_pengguna` bertaut ke `users`, bukan ke company, jadi tak ada
+    // kolom tenant yang bisa disaring pembungkusnya. Yang menjaga barisnya
+    // adalah `user_id` dari SESI di baris bawah.
+    //
+    // Memakai `supabase` mentah membuat rute ini tak terlihat oleh
+    // `audit-gerbang-tenancy` sebagai bergerbang — ia terhitung sebagai rute
+    // ke-5 tanpa gerbang dan MEMERAHKAN penjaga yang ambangnya 4. Menaikkan
+    // ambang dilarang (G-5); yang benar menyatakan saringannya di sini.
+    const { error } = await request.db!
+      .unsafe('perangkat_pengguna', 'bertaut ke users, bukan company; disaring user_id sesi di bawah')
+      .delete()
+      .eq('token', token)
+      .eq('user_id', user.id)
 
     if (error) return reply.status(500).send({ error: error.message })
 

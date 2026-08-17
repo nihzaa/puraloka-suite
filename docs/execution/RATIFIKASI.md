@@ -2493,3 +2493,189 @@ Kalau dibangun, pemicunya harus per-PROYEK atau per-bulan, bukan per-milestone.
 
 Tanpa jawaban ini saya tidak membangunnya. Menebaknya berarti mengirim pesan
 atas nama perusahaan Anda ke pelanggan Anda berdasarkan tebakan saya.
+
+---
+
+## R-013 — Merge `feat/kematangan-modul`: DUA implementasi untuk fitur yang SAMA
+
+**Status:** menunggu founder · diajukan 2026-08-17
+
+### Yang terjadi
+
+Merge dicoba sesudah lima nomor migrasi yang bentrok dilepas ke 441-445
+(commit `0ee9022f`) dan 11 berkas penghalang di-commit (`a5b7695f`).
+
+Hasilnya **36 berkas konflik**, dan sebagian besar BUKAN konflik sepele:
+
+```
+git diff --stat HEAD feat/kematangan-modul
+490 files changed, 50396 insertions(+), 73431 deletions(-)
+```
+
+**Net −23.035 baris.** Merge yang diselesaikan tergesa akan menghapus
+puluhan ribu baris tanpa ada yang menyadarinya.
+
+### Kenapa ini bukan konflik biasa
+
+Kedua branch membangun fitur yang SAMA secara terpisah, dengan keputusan
+desain yang BERBEDA. Contoh dari `importer.ts`:
+
+| | branch ini | `feat/kematangan-modul` |
+|---|---|---|
+| kunci skema | `supplier`, `cost_code` | `pemasok`, `pekerja` |
+| nilai tak dikenal | jadi **NULL** (`lib/importer-nilai.ts`) | jatuh ke **`'cod'`** (migrasi 406→441) |
+
+Keduanya punya alasan tertulis dan keduanya masuk akal. Yang tidak masuk
+akal adalah memilih salah satunya diam-diam saat menyelesaikan konflik —
+terutama `payment_terms`, yang menentukan KAPAN UANG KELUAR.
+
+Hal serupa di `middleware.ts` (`/master` ditambahkan dua kali dengan
+komentar berbeda), `peta-menu.ts`, `kendali-dokumen.ts`, dan
+`tenant-map.generated.ts`.
+
+### Yang saya TIDAK lakukan, dan kenapa
+
+Tidak menyelesaikan konflik satu per satu. Dengan 36 berkas dan −23k baris,
+peluang menghapus pekerjaan orang tanpa sadar terlalu besar — dan jurnal
+repo ini sudah mencatat kerusakan seperti itu terjadi 3× pada 2026-08-06.
+
+`git merge --abort` dijalankan; pohon kerja diverifikasi bersih dan
+`tsc` api + web keduanya bersih sesudahnya.
+
+### Yang perlu diputuskan founder
+
+1. **Mana yang menang untuk fitur kembar?** Terutama `payment_terms`
+   (NULL vs `'cod'`) — ini keputusan uang, bukan gaya kode.
+2. **Cara merge-nya:** satu per satu per-fitur (lebih lambat, bisa
+   diperiksa), atau ambil salah satu branch sebagai dasar lalu terapkan
+   ulang yang lain di atasnya?
+
+Sampai itu diputuskan, keempat modul yang menunggu merge (`crm-proposal`,
+`dk-register`, `bi-terjadwal`, `tg-tambah`) tetap `sebagian`/`rencana` di
+Peta Modul — dan itu jujur, bukan kelalaian.
+
+### R-013 — REKOMENDASI SAYA (diukur 2026-08-17)
+
+Founder meminta saya yang memutuskan. Ini rekomendasinya beserta buktinya —
+bukan selera, dan tiap butir bisa Anda tolak.
+
+#### 1. `payment_terms` tak dikenal → **NULL menang**
+
+Diukur lebih dulu, karena ini menentukan seberapa besar taruhannya:
+
+```
+grep net_30|net_14|net_7 di seluruh apps/api (di luar importer)  → NOL
+```
+
+**Tak ada satu pun kode yang menghitung jatuh tempo dari kolom ini.** Ia
+murni tampilan hari ini. Jadi risikonya BUKAN "uang keluar di tanggal yang
+salah" melainkan "manusia membaca keterangan yang salah lalu bertindak".
+
+Sebaran nyata di basis: `net_14` 2 · `net_30` 1 · `cod` 1 · `net_7` 1 —
+lima pemasok, EMPAT di antaranya BUKAN `cod`.
+
+Jatuh ke `'cod'` berarti: pemasok yang sebenarnya bertempo 30 hari tercatat
+"bayar di tempat". Yang membaca akan mengira uangnya harus keluar hari ini.
+Itu tebakan yang menyamar jadi fakta, dan tak meninggalkan jejak bahwa ia
+pernah ditebak.
+
+NULL jujur: kolomnya nullable, dan termin kosong TERLIHAT kosong. Orang
+yang melihatnya tahu harus bertanya.
+
+> Alasan branch seberang tetap sah untuk kasusnya: "yang menulis 'tempo 30
+> hari' di Excel tak sedang salah; formatnya yang tak pernah disepakati."
+> Itu benar — dan sudah ditutup `lib/importer-nilai.ts` yang menerjemahkan
+> "30 hari"/"NET 30"/"tunai" ke nilai sah. Yang tersisa jatuh ke NULL cuma
+> yang BENAR-BENAR tak terbaca ("sesuai kesepakatan", "nego").
+
+#### 2. Skema impor → **AMBIL KEDUANYA, tidak memilih**
+
+Ini bukan konflik sungguhan, dan itu temuan yang mengubah bentuk masalahnya:
+
+| branch ini | kematangan-modul |
+|---|---|
+| `supplier`, `cost_code` | `pemasok`, `pekerja` |
+
+Keduanya menambah DUA skema, tapi skema yang BERBEDA. `supplier` dan
+`pemasok` menulis ke tabel yang sama; `cost_code` dan `pekerja` sama sekali
+tak bersinggungan.
+
+Jadi hasil yang benar: **empat skema** (`supplier`/`pemasok` disatukan jadi
+satu, plus `cost_code`, plus `pekerja`) — bukan memilih dua dan membuang dua.
+Untuk yang disatukan, pakai kunci `supplier` (kolom & aliasnya lebih
+lengkap) dengan alias tambahan dari sisi seberang.
+
+#### 3. ⚠ TEMUAN YANG MENGUBAH URUTAN KERJA
+
+Migrasi 441 (dulu 406) menulis asumsi ini di headernya:
+
+> "`code` pemasok bahkan tak unik di basis (diukur: nol unique index pada
+> `suppliers.code`). Duplikat karena itu MUNGKIN, dan itu keputusan sadar."
+
+**Asumsi itu SUDAH TIDAK BENAR.** Migrasi 427 (branch ini, sudah jalan)
+memasang `suppliers_code_per_company` — unik parsial `(company_id, code)`.
+
+Dan `INSERT INTO suppliers` di 441 **tak punya `ON CONFLICT`**. Artinya
+sesudah merge, mengimpor dua pemasok berkode sama akan MENGGAGALKAN SELURUH
+BERKAS (importer all-or-nothing) — bukan menghasilkan duplikat seperti yang
+dirancangnya.
+
+Ini harus dibereskan SEBELUM merge, bukan sesudah. Kalau tidak, gejalanya
+muncul sebagai "importer rusak" pada pelanggan pertama yang berkasnya punya
+kode berulang.
+
+#### 4. Cara merge → **per-fitur, bukan sekaligus**
+
+`--no-ff` sekaligus menghasilkan 36 konflik dan net −23.035 baris. Yang
+saya sarankan: `git checkout feat/kematangan-modul -- <berkas>` per fitur,
+verifikasi tiap kelompok, commit terpisah. Lebih lambat, tapi tiap langkah
+bisa dibaca dan dibatalkan sendiri-sendiri.
+
+Urutan yang saya usulkan (dari yang paling tak bersinggungan):
+
+1. `crm-proposal` (dokumen penawaran + PDF) — berkas baru, nyaris nol konflik
+2. `dk-register` (revisi dokumen) — sudah di basis, tinggal kode
+3. `bi-terjadwal` (laporan terjadwal) — wiring surel
+4. `tg-tambah` — ⚠ BERSINGGUNGAN dengan tagihan CO yang sudah ada di sini;
+   dua implementasi untuk satu fitur, perlu dibaca berdampingan
+5. `importer` — sesudah butir 3 di atas dibereskan
+
+### R-013 — SELESAI 2026-08-17
+
+Dieksekusi sesuai rekomendasi, per-fitur, lima commit terpisah.
+Merge balik ke `feat/sumbu-ui-roadmap` berhasil.
+
+| # | Fitur | Keputusan |
+|---|---|---|
+| 1 | `crm-proposal` | diambil utuh (berkas baru) |
+| 2 | `dk-register` | diambil; `kop-dokumen.ts` & `kendali-dokumen.ts` TIDAK |
+| 3 | `bi-terjadwal` | blok 166 baris DIPINDAH ke berkas di sini, bukan berkasnya diambil |
+| 4 | `tg-tambah` | **desain mereka**; punya saya dipensiunkan + testnya dihapus |
+| 5 | `importer` | 4 skema; migrasi 446 menutup tabrakan `code` |
+
+**Dua berkas digabung, bukan dipilih** — dan itu yang paling mudah salah:
+`git checkout` utuh atas `kop-dokumen.ts` akan menghapus `kunciLogo()`
+(logo PDF tanpa SSRF), dan atas `kendali-dokumen.ts` akan menghapus
+`POST /tanda-tangan/verifikasi`. Keduanya hilang TANPA satu pun galat.
+
+**Temuan yang paling berbahaya** ada di butir 5, dan ia tak akan terlihat
+sampai pelanggan pertama mengimpor: migrasi 441 menulis "nol unique index
+pada `suppliers.code`" — benar saat ditulis, sudah tidak benar sejak 427.
+INSERT-nya tak punya `ON CONFLICT`, jadi dua pemasok berkode sama akan
+menggagalkan SELURUH berkas. Ditutup migrasi 446.
+
+**Satu cacat uang ikut ketahuan**: `reports.ts` (rekap mandor) menjumlahkan
+upah + kasbon dari tiga query TANPA memeriksa `error` sekali pun. Query
+gagal → "nol baris" → laporan berkata "tak ada pengeluaran". Diperbaiki;
+ratchet `audit-kegagalan-senyap` justru DIKENCANGKAN 186 → 185.
+
+Bukti akhir di `feat/sumbu-ui-roadmap`:
+
+```
+237 test hijau (13 berkas, Postgres NYATA)
+tsc api + web                    bersih
+13 penjaga arsitektural          exit=0
+audit-menu-punya-halaman         7 tersisa — KELIMANYA yatim lama
+                                 (href disetel 2026-08-10, halaman tak
+                                 pernah ada di branch mana pun)
+```
