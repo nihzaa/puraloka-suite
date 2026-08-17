@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
+import { susunCsvBupot, type BarisPajak } from '../../lib/ekspor-bupot.js'
 import { supabase } from '../../utils/supabase.js'
 import type { FastifyRequest } from 'fastify'
 
@@ -1142,6 +1143,82 @@ export default async function reportsRoutes(app: FastifyInstance) {
         record_count: records.length,
       },
     })
+  })
+
+  // ── GET /api/v1/reports/rekap-pajak/bupot.csv ────────────────────────────
+  //
+  // Bukti potong siap UNGGAH ke e-Bupot Unifikasi DJP.
+  //
+  // ── Kenapa berkas unggah, bukan sambungan API
+  //
+  // DJP tidak membuka API publik untuk e-Bupot; host-to-host hanya lewat
+  // PJAP bersertifikat dengan langganan bulanan. Untuk perusahaan dengan
+  // 18 catatan pajak setahun (diukur 2026-08-17), langganan itu lebih mahal
+  // daripada mengetik ulang.
+  //
+  // Yang benar-benar menghemat waktu adalah berkas yang bisa diunggah — dan
+  // itu tak butuh kredensial apa pun. Katalog menandai `fn-efaktur`
+  // "sebagian" karena "pembuatan berkasnya lewat aplikasi DJP"; ini
+  // memangkas separuh pekerjaan itu tanpa berpura-pura menggantikannya.
+  //
+  // ── Kenapa BUPOT, bukan e-Faktur
+  //
+  // 18 dari 18 catatan bertipe `pph_final_42`, NOL PPN. e-Faktur adalah
+  // aplikasi PPN — tak relevan bagi yang belum PKP. Bukti potong PPh Final
+  // justru terbit tiap kali klien memotong pembayaran.
+  //
+  // ── Baris yang tak lengkap: DILAPORKAN, bukan dibuang
+  //
+  // Header `X-Bupot-Ditolak` membawa jumlahnya, dan badan CSV hanya memuat
+  // yang sah. Membuang diam-diam berarti orang mengunggah 12 baris dari 18
+  // lalu mengira sudah lengkap — dan kekurangannya baru ketahuan saat DJP
+  // menagih.
+  app.get('/api/v1/reports/rekap-pajak/bupot.csv', {
+    preHandler: [authenticate, requirePermission('finance:tax:view')],
+  }, async (request, reply) => {
+    const { project_id, date_from, date_to } = request.query as {
+      project_id?: string; date_from?: string; date_to?: string
+    }
+
+    const idProyek = await proyekBolehDibaca(request, project_id ?? null)
+    if (idProyek === null) return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+
+    let q = request.db!
+      .unsafe('tax_records', 'kategori C lewat invoice_id; disaring .in(invoice.project_id) di bawah')
+      .select(`
+        id, tax_type, base_amount, rate_pct, tax_amount, period_month, efaktur_number,
+        invoice:invoices!tax_records_invoice_id_fkey (
+          id, invoice_number, issued_date, project_id,
+          project:projects!invoices_project_id_fkey ( id, name,
+            client:clients!projects_client_id_fkey ( contact_person, company_name, npwp )
+          )
+        )
+      `)
+      .limit(5000)
+
+    if (idProyek.length > 0) q = q.in('invoice.project_id', idProyek)
+    if (date_from) q = q.gte('period_month', String(date_from).slice(0, 7))
+    if (date_to) q = q.lte('period_month', String(date_to).slice(0, 7))
+
+    const { data, error } = await q
+    if (error) {
+      request.log.error({ err: error }, 'gagal memuat catatan pajak untuk ekspor bupot')
+      return reply.status(500).send({ error: 'Gagal memuat catatan pajak' })
+    }
+
+    // Baris tanpa invoice tersaring di sini: `.in('invoice.project_id')` pada
+    // PostgREST menyaring RELASINYA, bukan barisnya — jadi baris yang
+    // invoicenya di luar jangkauan tetap terbawa dengan `invoice: null`.
+    const baris = (data as BarisPajak[]).filter((r) => r.invoice)
+    const hasil = susunCsvBupot(baris)
+
+    return reply
+      .header('content-type', 'text/csv; charset=utf-8')
+      .header('content-disposition',
+        `attachment; filename="bupot-${date_from ?? 'awal'}-${date_to ?? 'akhir'}.csv"`)
+      .header('x-bupot-jumlah', String(hasil.jumlah))
+      .header('x-bupot-ditolak', String(hasil.ditolak.length))
+      .send(hasil.csv)
   })
 
   // ── PATCH /api/v1/reports/rekap-pajak/:id/status ─────────────────────────────
