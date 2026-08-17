@@ -54,11 +54,20 @@
 /**
  * Lantai: jumlah menu terkunci yang sudah ada sebelum penjaga ini dibuat.
  *
- * Diukur 2026-08-11. Menaikkannya butuh alasan tertulis di sini — dan alasan
- * yang sah hanya satu: menu baru yang halamannya sengaja belum dibangun,
- * yang seharusnya dinonaktifkan alih-alih dibiarkan terkunci.
+ * Diukur 2026-08-11 (6). Menaikkannya butuh alasan tertulis di sini — dan
+ * alasan yang sah hanya satu: menu baru yang halamannya sengaja belum
+ * dibangun, yang seharusnya dinonaktifkan alih-alih dibiarkan terkunci.
+ *
+ * 6 → 0 pada 2026-08-17, diukur di cabang rombak UI CECEP: 160 menu aktif
+ * diadu dengan 39 prefiks middleware, nol terkunci. Keenamnya ditutup oleh
+ * pekerjaan yang memang menyelesaikannya — `/master` ditambahkan ke
+ * `ROLE_ALLOWED.admin` (dua kali secara terpisah: `732fba72` di induk untuk
+ * WBS/karyawan/penomoran, dan cabang ini saat memindahkan katalog AHSP +
+ * price book ke `/master`) — bukan oleh pelonggaran penjaga.
+ *
+ * Sekarang lantainya NOL, jadi satu menu terkunci saja langsung merah.
  */
-const LANTAI = 6
+const LANTAI = 0
 
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
