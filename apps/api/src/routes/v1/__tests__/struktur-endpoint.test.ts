@@ -292,6 +292,39 @@ describe('GET rekap-volume — angka yang dipakai RAP', () => {
     expect(rekap.besi.every((b: { totalKg: number }) => b.totalKg > 0)).toBe(true)
   })
 
+  it('MEMBAWA catatan batas — angka yang 26% kurang tak boleh dikirim polos', async () => {
+    /*
+      Volume besi Fase 1 tak menghitung panjang penyaluran, kait, dan
+      sambungan lewatan. Diukur pada balok 300×520 L=6m: BBS memberi 1,26×
+      (terpasang) sampai 1,41× (dibeli).
+
+      Endpoint ini yang dipakai RAP. Angka yang kurang segitu tanpa satu
+      kalimat pun keterangan adalah cara paling rapi membuat orang salah:
+      terlihat wajar, tak ada galat, dan selisihnya baru ketahuan saat besi
+      di lapangan kurang.
+    */
+    await purge()
+    await seedElemen('[TEST-ST] CAT', 'balok', BALOK)
+
+    const r = await get(`/api/v1/projects/${projectId}/struktur/rekap-volume`)
+    const catatan = r.json().catatan as string[]
+    expect(catatan.length).toBeGreaterThan(0)
+    expect(catatan.join(' ')).toMatch(/penyaluran/i)
+    expect(catatan.join(' ')).toMatch(/BBS|Bar Bending/i)
+  })
+
+  it('catatan yang sama dari banyak elemen muncul SEKALI', async () => {
+    await purge()
+    await seedElemen('[TEST-ST] C1', 'balok', BALOK)
+    await seedElemen('[TEST-ST] C2', 'balok', BALOK)
+    await seedElemen('[TEST-ST] C3', 'balok', BALOK)
+
+    const r = await get(`/api/v1/projects/${projectId}/struktur/rekap-volume`)
+    const catatan = r.json().catatan as string[]
+    // 3 balok, catatan identik → tetap sejumlah catatan unik, bukan 3×.
+    expect(new Set(catatan).size).toBe(catatan.length)
+  })
+
   it('DIHITUNG ULANG dari input — kebal terhadap ringkasan basi', async () => {
     await purge()
     const id = await seedElemen('[TEST-ST] RB', 'balok', BALOK)

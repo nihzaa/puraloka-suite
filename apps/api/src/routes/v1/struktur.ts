@@ -446,12 +446,29 @@ export default async function strukturRoutes(app: FastifyInstance) {
       */
       const hasil: { volume: VolumeElemen }[] = []
       const gagal: { kode: string; alasan: string }[] = []
+      /*
+        CATATAN IKUT NAIK KE SINI — dan itu bukan kelengkapan kosmetik.
+
+        Volume besi Fase 1 TIDAK menghitung panjang penyaluran, kait, dan
+        sambungan lewatan. Diukur pada balok 300×520 L=6m: BBS memberi 1,26×
+        (terpasang) sampai 1,41× (dibeli) dari angka ini.
+
+        Endpoint inilah yang dipakai RAP. Mengirim angka yang 26% kurang tanpa
+        satu kalimat pun keterangan adalah cara paling rapi membuat orang
+        salah — angkanya terlihat wajar, tak ada galat, dan selisihnya baru
+        ketahuan saat besi di lapangan kurang.
+
+        Dikumpulkan sebagai himpunan: catatan yang sama dari 40 balok cukup
+        muncul sekali.
+      */
+      const catatan = new Set<string>()
 
       for (const el of data ?? []) {
         try {
           const h = hitung(el.jenis as Jenis, el.input as Record<string, unknown>, el.jumlah)
           const v = volumeDari(h)
           if (v) hasil.push({ volume: v })
+          for (const c of (h as { catatan?: string[] }).catatan ?? []) catatan.add(c)
         } catch (e) {
           gagal.push({ kode: el.kode, alasan: (e as Error).message })
         }
@@ -467,6 +484,7 @@ export default async function strukturRoutes(app: FastifyInstance) {
           besi: r.besi,
         },
         jumlahElemen: hasil.length,
+        catatan: [...catatan],
         gagal,
       })
     })

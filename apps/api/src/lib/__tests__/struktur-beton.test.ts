@@ -215,6 +215,22 @@ describe('analisaBalok — volume untuk RAP', () => {
     expect(empat.antara.phiMnKnm).toBeCloseTo(h.antara.phiMnKnm, 9)
   })
 
+  it('MEMBAWA catatan batas — volume besi belum termasuk penyaluran', () => {
+    /*
+      Balok & kolom sempat jadi satu-satunya modul struktur TANPA `catatan`,
+      padahal keduanya elemen paling banyak di proyek mana pun. Batas
+      "belum termasuk panjang penyaluran" hanya hidup sebagai komentar di
+      dalam berkas sumber — tempat yang tak pernah dibaca orang yang memakai
+      angkanya untuk RAP.
+
+      Diukur: BBS memberi 1,26× (terpasang) sampai 1,41× (dibeli) dari
+      angka Fase 1 pada balok 300×520 L=6m.
+    */
+    expect(h.catatan.length).toBeGreaterThan(0)
+    expect(h.catatan.join(' ')).toMatch(/penyaluran/i)
+    expect(analisaKolom(INPUT_KOLOM).catatan.length).toBeGreaterThan(0)
+  })
+
   it('sengkang: keliling inti + kait 135°, jumlah = ⌈L/s⌉ + 1', () => {
     const s = h.volume.besi.find((b) => b.peran === 'sengkang')!
     // inti 240 × 460, kait 2×6×8 = 96 mm

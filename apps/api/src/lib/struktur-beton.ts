@@ -226,6 +226,20 @@ export interface HasilElemen {
   volume: VolumeElemen
   /** Angka antara yang dipakai — supaya hasilnya bisa ditelusuri. */
   antara: Record<string, number>
+  /**
+   * Asumsi & batas yang HARUS ikut terbaca bersama angkanya.
+   *
+   * Enam modul struktur lain sudah punya medan ini; balok & kolom — dua elemen
+   * paling banyak di proyek mana pun — sempat TIDAK. Akibatnya batas
+   * "volume besi belum termasuk panjang penyaluran & sambungan lewatan"
+   * hanya hidup sebagai komentar di dalam berkas ini, tempat yang tak pernah
+   * dibaca orang yang memakai angkanya untuk RAP.
+   *
+   * Diukur pada balok 300×520 L=6m: BBS (Fase 3, menghitung penyaluran & kait)
+   * memberi 1.26× berat Fase 1 untuk yang terpasang, 1.41× untuk yang dibeli.
+   * Selisih sebesar itu tak boleh sampai ke estimator tanpa keterangan.
+   */
+  catatan: string[]
 }
 
 // ── Helper ───────────────────────────────────────────────────────────────────
@@ -344,7 +358,26 @@ export function analisaBalok(input: InputBalok): HasilElemen {
       dEfektifMm, asMm2, aMm, mnKnm, phiMnKnm, vcKn, vsKn, phiVnKn,
       rho, rhoMin, rhoMaks, rhoBalance, beta1: beta1(mutu.fcMpa), jumlah,
     },
+    catatan: catatanVolumeBeton(),
   }
+}
+
+/**
+ * Batas yang berlaku untuk SEMUA elemen balok/kolom di berkas ini.
+ *
+ * Ditulis sekali dan dipakai keduanya supaya tak bisa berselisih: kalau
+ * batasnya berubah, ia berubah di satu tempat.
+ */
+function catatanVolumeBeton(): string[] {
+  return [
+    'Volume besi BELUM termasuk panjang penyaluran, kait, dan sambungan '
+    + 'lewatan — tulangan utama dihitung sepanjang bentang saja. Untuk RAP, '
+    + 'pakai Bar Bending Schedule (BBS) yang menghitungnya; pada balok '
+    + '300×520 L=6m selisihnya 1,26× (terpasang) sampai 1,41× (dibeli).',
+    'Kapasitas lentur dihitung sebagai tulangan TUNGGAL — tulangan tekan '
+    + 'ikut ditimbang di volume tetapi tidak menambah φMn. Konservatif: '
+    + 'kapasitas nyatanya lebih besar, tak pernah lebih kecil.',
+  ]
 }
 
 /**
@@ -492,6 +525,7 @@ export function analisaKolom(input: InputKolom): HasilElemen {
       nTotal, asMm2, agMm2, rho, pnMaxKn, phiPnKn,
       d1Mm, cbMm, abMm, ccKn, beta1: b1, jumlah,
     },
+    catatan: catatanVolumeBeton(),
   }
 }
 
