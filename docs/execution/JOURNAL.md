@@ -5,6 +5,142 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-18 (pematangan, putaran 3) — memeriksa ARTEFAK tiap fase, bukan mengingat bahwa "tadi hijau"
+
+Founder: *"pastikan fase fase sebelumnyaa sudah matang dan tanpa kekurangan
+ataupun cacat"*.
+
+### Audit artefak: 16/16 lulus
+
+Tiap pekerjaan sesi ini diperiksa ke BASIS dan DISK — bukan dari ingatan:
+
+    450 klausul     tabel ada · RLS+FORCE · indeks unik parsial      ✓✓✓
+    451 rk3k        menu aktif + href benar · izin terdaftar         ✓✓
+    452 verif-ttd   menu aktif + href benar                          ✓
+    453/455 urutan  nol sort_order bentrok                           ✓
+    456 rentang     nol anak aktif di luar rentang induknya          ✓
+    454 addendum    tabel · RLS+FORCE · trigger · FK RESTRICT        ✓✓✓✓
+    457 rls         nol policy permisif bebas · RLS+FORCE            ✓✓
+    buku migrasi    450-457 tercatat SEMUA (8/8)                     ✓
+
+Plus 9 berkas kunci (lib, halaman, komponen, penjaga) — semuanya ada.
+
+### Uji END-TO-END lewat API hidup: 7/7 lulus
+
+Artefak "ada" belum berarti "bekerja". Tiap fitur dipicu sungguhan:
+
+    klausul       6 pasal · 6 bawaan · pasal dirakit-kode (2,3,4,5,7) DISEBUT
+    rk3k          5 bagian · siap=true · PDF 9.421 byte ber-header %PDF
+    verifikasi    keadaan=belum_ditandatangani · sidik sha256 sah
+    ekspor        16/16 kombinasi · material=1 supplier=5 cost_code=26
+                  pekerja=60 baris
+    addendum      efektif 115jt · INDUK di basis TETAP 100jt ·
+                  pengurangan-habis ditolak 422
+    otomasi       7/7 rute baru dipicu + kirim-laporan 200
+
+Yang paling menentukan: **induk SPK terbukti tak berubah** sesudah dua
+addendum. Itu janji utama rancangannya, dan satu-satunya cara membuktikannya
+adalah membaca basis SESUDAH menembak endpoint-nya.
+
+### Cacat 8 — `decided_by` diperiksa terhadap orang yang salah
+
+`klaim-kontraktual-endpoint.test.ts` mencari `adminUserId` dengan `LIMIT 1`
+atas SELURUH admin, sementara `adminAuth` dari `authIdForRole()` menuntut
+keanggotaan dan ber-ORDER BY. **Keduanya menunjuk orang berbeda.**
+
+    expected 'a0000000-…-0001' to be 'e5f96970-…'
+
+Dua UUID yang sama-sama sah, dan kegagalannya terbaca seperti bug JEJAK
+AUDIT — padahal fixture-nya yang menunjuk dua orang. 13/13 hijau sesudah
+diturunkan dari `adminAuth`.
+
+Varian kedelapan dari cacat `LIMIT 1` yang sama di sesi ini.
+
+### ⚠ Saya nyaris menimpa kerja sesi paralel
+
+Untuk membandingkan dengan baseline saya menjalankan `git stash -u` — dan itu
+**menyapu pekerjaan sesi lain yang sedang berjalan** (`struktur.ts`, migrasi
+458/459, dan empat berkas ter-modifikasi). `git stash pop` mengembalikannya,
+tetapi menyisakan entri stash dan mengubah akhir barisnya jadi CRLF.
+
+Diperiksa: isi stash IDENTIK dengan pohon kerja (nol selisih), jadi tak ada
+yang hilang. Entri dibuang, akhir baris dipulihkan ke LF, berkas mereka utuh.
+
+**Ini stop-condition #1 di CLAUDE.md §8a.1, dan saya melanggarnya.** Yang
+menyelamatkan cuma keberuntungan bahwa `pop` berhasil. Untuk membandingkan
+baseline, cara yang benar adalah **worktree terpisah** — dan `mklink /J`
+(junction), bukan symlink, supaya `node_modules` pnpm terbaca di Windows.
+
+### Perbandingan suite penuh: baseline vs sekarang
+
+Diukur di worktree `34237405` (sebelum sesi ini) dengan junction `mklink /J`
+— symlink tak cukup untuk `node_modules` pnpm di Windows.
+
+| | baseline | sekarang |
+|---|---:|---:|
+| lulus | 5.256 | **5.787** (+531) |
+| gagal | 93 | 102 |
+| berkas gagal | 42 | **39** |
+| **dilewati** | **160** | **17** (−143) |
+
+Gagal naik 93 → 102 sementara **dilewati turun 160 → 17**. Bukan regresi:
+test yang dulu DILEWATI (karena `beforeAll` mati) sekarang BERJALAN, dan
+sebagian di antaranya memang merah.
+
+### Delapan berkas yang "baru gagal" — DIUKUR, bukan diasumsikan
+
+Diff berkas gagal memberi 8 nama baru. Dijalankan set yang sama di kedua sisi:
+
+    baseline  : 7 gagal · 64 lulus
+    sekarang  : 7 gagal · 64 lulus   ← IDENTIK
+
+Jadi kedelapan itu **sudah gagal sebelum sesi ini**. Yang berubah cuma
+posisinya di daftar, karena berkas lain berpindah dari "dilewati" ke
+"berjalan".
+
+⚠ Sebelum ini saya sempat menulis kesimpulan yang SALAH dua kali:
+
+1. Diff pertama memakai `grep` atas SELURUH nama berkas di log, bukan hanya
+   baris `FAIL` — jadi `klausul-kontrak.test.ts` dan `rk3k-pdf.test.ts`
+   (milik saya, dan HIJAU) ikut terdaftar sebagai "gagal baru".
+2. Saya sempat menyimpulkan `otomasi-gr-matching` "hijau saat sendiri".
+   Salah — run yang saya baca tak memulangkan baris `Tests` sama sekali,
+   dan saya membaca ketiadaan sebagai kehijauan. Ia memang 3/9 merah,
+   sendiri maupun bersama.
+
+**Ketiadaan keluaran bukan kehijauan.** Pelajaran yang sama dengan nol-hasil
+grep, dalam bentuk lain.
+
+### Yang tersisa merah: 102 test di 39 berkas
+
+Seluruhnya pre-existing. Sebagian besar butuh fixture yang tak ada di basis
+dev (pengguna kedua berizin tertentu, proyek ber-punch-item, dsb) — pekerjaan
+DATA, bukan kode, dan menyentuhnya berarti mengubah seed yang dipakai sesi
+paralel.
+
+Dicatat sebagai hutang terukur, dengan angka yang bisa diperiksa ulang:
+
+```bash
+cd apps/api && npx vitest run          # 5.787 lulus · 102 gagal · 17 dilewati
+```
+
+### Test yang gagal: dipilah, bukan disamaratakan
+
+Suite API penuh: **5.787 lulus · 102 gagal · 39 berkas** (naik dari 5.620
+lulus / 49 berkas gagal sebelum perbaikan hari ini).
+
+Dari 102 itu:
+
+  · `kontrak` (31) dan `otomasi-biaya-pencilan` (24) **HIJAU saat dijalankan
+    sendiri** (205/206 dan 6/6) — kegagalannya muncul hanya dalam run penuh.
+  · `wa-nomor`, `situs`, `penomoran`, `klaim-perjalanan` (30 total) gagal
+    JUGA di worktree baseline `34237405` — **pre-existing**, bukan dari sesi
+    ini.
+
+Tak satu pun dari keempatnya saya sentuh. Dicatat sebagai hutang terukur.
+
+---
+
 ## 2026-08-18 (sesi peta-modul, pematangan lanjutan) — `LIMIT 1` tanpa ORDER BY: cacat yang sama di TUJUH berkas test
 
 Lanjutan pematangan. Sesudah `@anthropic-ai/sdk` dipulihkan, suite API penuh
