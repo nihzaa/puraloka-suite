@@ -71,6 +71,22 @@ interface HasilCvr {
   jumlah_rugi: number;
   jumlah_tanpa_biaya: number;
   jumlah_tak_berlaku: number;
+  /**
+   * CAKUPAN KEDUA — biaya proyek yang TAK BISA dipecah per scope.
+   *
+   * Tak pernah dijumlahkan ke `total_terpakai`: nilai terpasang yang diadu
+   * hanya nilai borongan UPAH, jadi mengadu biaya material dengannya
+   * menghasilkan "rugi" yang cuma kesalahan aritmetika.
+   *
+   * Diukur 2026-08-19 — tiga proyek punya puluhan juta biaya `approved` dan
+   * NOL upah borongan. Sebelum kartu ini ada, ketiganya tampil di layar ini
+   * seolah tak punya biaya sama sekali.
+   */
+  biaya_luar_scope: {
+    total: number;
+    jumlah: number;
+    per_kategori: { kategori: string; total: number; jumlah: number }[];
+  };
   meta: { cakupan: string; keterbatasan?: string; jumlah_scope: number };
 }
 
@@ -236,6 +252,94 @@ function kolomCvr(
   ];
 }
 
+/**
+ * CAKUPAN KEDUA — "berapa besar yang TIDAK ikut dihitung".
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA KARTU INI ADA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Layar ini selalu jujur soal apa yang IA HITUNG (spanduk cakupan di atas),
+ * tetapi tak pernah menyebut **berapa besar yang di luar jangkauannya** — dan
+ * angka yang tak disebut dibaca sebagai nol.
+ *
+ * Diukur 2026-08-19, biaya `approved` pada proyek yang punya work_scope:
+ *
+ *   Pak Andi — Buah Batu    upah 126,6 jt   di luar hitungan  88,3 jt
+ *   Dapur & KM Pak Hendra   upah      0     di luar hitungan  80,3 jt
+ *   Gudang — Gedebage       upah      0     di luar hitungan  48,7 jt
+ *   Bu Sari — Dago          upah      0     di luar hitungan  46,2 jt
+ *
+ * Tiga proyek terakhir tampil di layar ini seolah tak punya biaya sama
+ * sekali. Cacatnya bukan angka yang kurang lengkap — melainkan angka yang
+ * TERLIHAT lengkap.
+ *
+ * ── Kenapa BUKAN spanduk peringatan
+ *
+ * `ARAH-VISUAL-2026.md` §10g membuang spanduk dan menggantinya dengan kartu,
+ * dengan alasan yang berlaku persis di sini: *"saat semuanya menonjol, tak
+ * ada yang menonjol"*. Lagi pula ini bukan peringatan — ini ANGKA, dan angka
+ * tempatnya di kartu bersama angka lain.
+ *
+ * Warnanya sengaja NETRAL, bukan merah. Biaya di luar hitungan bukan kabar
+ * buruk; ia keterangan cakupan. Memerahkannya membuat pembaca mengira
+ * proyeknya rugi, padahal yang dinyatakan justru bahwa untung-ruginya belum
+ * bisa dihitung sampai ke sana.
+ */
+function BiayaLuar({ data }: { data: HasilCvr["biaya_luar_scope"] }) {
+  // Nol rupiah TIDAK disembunyikan kalau barisnya ada — "Rp 0 dari 3 catatan"
+  // adalah keterangan; yang disembunyikan hanya keadaan benar-benar kosong,
+  // karena kartu nol-dari-nol cuma menambah bacaan tanpa menambah tahu.
+  if (data.jumlah === 0) return null;
+
+  return (
+    <div
+      className="rise rise-3"
+      style={{ ...GAYA_KARTU, padding: "14px 16px", marginTop: 16 }}
+    >
+      <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+        <h2 style={{
+          fontSize: 11, fontWeight: 700, color: C.muted, margin: 0,
+          textTransform: "uppercase", letterSpacing: "0.05em",
+        }}>
+          Biaya di luar hitungan
+        </h2>
+        <strong style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, lineHeight: 1.1, color: C.text }}>
+          {rp(data.total)}
+        </strong>
+        <span style={{ fontSize: 11.5, color: C.muted }}>
+          {data.jumlah} catatan belanja
+        </span>
+      </div>
+
+      <p style={{ fontSize: 12, color: C.mid, margin: "8px 0 0", lineHeight: 1.55 }}>
+        Biaya proyek yang <strong>tidak</strong> bisa dipecah per pekerjaan, jadi tak
+        ikut ke angka untung-rugi di atas. Menjumlahkannya ke sana berarti mengadu
+        biaya material dengan nilai upah — dan selisihnya bukan rugi, melainkan salah
+        hitung.
+      </p>
+
+      {data.per_kategori.length > 0 && (
+        <ul style={{
+          listStyle: "none", margin: "10px 0 0", padding: 0,
+          display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 6,
+        }}>
+          {data.per_kategori.map((k) => (
+            <li key={k.kategori} style={{
+              display: "flex", justifyContent: "space-between", gap: 10,
+              fontSize: 12.5, color: C.text,
+              padding: "5px 0", borderTop: `1px solid ${C.border}`,
+            }}>
+              <span style={{ color: C.mid }}>{k.kategori}</span>
+              <span style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{rp(k.total)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function CvrPage() {
   const [projectId, setProjectId] = useState("");
 
@@ -364,11 +468,22 @@ export default function CvrPage() {
           </div>
 
           {hasil.baris.length === 0 ? (
-            <Kosong
-              ikon={<Scale size={28} />}
-              judul="Belum ada scope borongan di proyek ini"
-              sebab="Rekonsiliasi ini membandingkan nilai borongan dengan upah terbayar. Proyek yang seluruh mandornya bersistem harian belum bisa dinilai begini."
-            />
+            <>
+              <Kosong
+                ikon={<Scale size={28} />}
+                judul="Belum ada scope borongan di proyek ini"
+                sebab="Rekonsiliasi ini membandingkan nilai borongan dengan upah terbayar. Proyek yang seluruh mandornya bersistem harian belum bisa dinilai begini."
+              />
+              {/* Kartu biaya-di-luar tetap tampil di sini, dan justru DI SINI
+                  ia paling menentukan.
+
+                  Diukur 2026-08-19: tiga proyek punya biaya `approved`
+                  puluhan juta (Rp 80,3 jt · Rp 48,7 jt · Rp 46,2 jt) dengan
+                  NOL upah borongan. Sebelum ini, layarnya cuma berbunyi
+                  "belum ada scope" — dan pembaca menyimpulkan belum ada
+                  apa-apa, padahal uangnya sudah keluar. */}
+              <BiayaLuar data={hasil.biaya_luar_scope} />
+            </>
           ) : (
             <>
               {/* Yang menuntut tindakan lebih dulu — bukan total yang menenangkan. */}
@@ -487,6 +602,11 @@ export default function CvrPage() {
                   )}
                 </p>
               </div>
+
+              {/* SESUDAH tabel, bukan sebelum: ia keterangan cakupan, bukan
+                  temuan. Menaruhnya di atas membuat pembaca menghitungnya
+                  bersama angka margin — persis yang kartunya bilang jangan. */}
+              <BiayaLuar data={hasil.biaya_luar_scope} />
             </>
           )}
         </>

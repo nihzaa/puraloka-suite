@@ -6,7 +6,7 @@ import { analisaProyek, ringkasPortofolio, urutkanPerhatian, type BarisProyek } 
 import { agregasiVarians, type CostCodeRef } from '../../lib/varians-cost-code.js'
 import { sarankanPemetaan } from '../../lib/saran-cost-map.js'
 import { rangkumBelanjaAktual, type BarisSumber } from '../../lib/belanja-aktual.js'
-import { ringkasCvr, type BarisScope } from '../../lib/cvr.js'
+import { ringkasCvr, ringkasBiayaLuarScope, type BarisScope } from '../../lib/cvr.js'
 
 // ============================================================
 // ROADMAP #9 — Commitment & Varians per Cost Code.
@@ -424,12 +424,65 @@ export default async function costControlRoutes(app: FastifyInstance) {
       if (ePen) return reply.status(500).send({ error: ePen.message })
       const idPenugasan = (penugasan as { id: string }[]).map((x) => x.id)
 
+      // ── CAKUPAN KEDUA: biaya yang TAK BISA dipecah per scope ─────────────
+      //
+      // Diambil SEBELUM cabang "nol penugasan" supaya proyek tanpa scope pun
+      // tetap menyebutkan biayanya. Justru proyek itulah yang paling salah
+      // dibaca: layar kosong terbaca sebagai "belum ada apa-apa", padahal
+      // diukur 2026-08-19 ada proyek ber-Rp 80 juta biaya disetujui yang nol
+      // scope-nya.
+      //
+      // ⚠ `rab_category_id` TIDAK dipakai di sini, dan itu bukan kelalaian.
+      // Diukur ke `pg_constraint`: taksonomi biaya (`project_expense_categories`)
+      // dan taksonomi BoQ (`rab_items`) tak pernah bertemu — nol kolom di sisi
+      // biaya menunjuk `rab_items`. Mengisi `rab_category_id` pada scope tak
+      // membuat satu rupiah pun biaya ini ikut terhitung per-scope.
+      const biayaRes = await request.db!
+        .viaProject('project_expenses', projectId)
+        .select('total_amount, status, category_id, project_expense_categories(name)')
+      if (biayaRes.error) return reply.status(500).send({ error: biayaRes.error.message })
+
+      type Biaya = {
+        total_amount: unknown; status: string
+        project_expense_categories: { name: string } | { name: string }[] | null
+      }
+      const biayaLuar = ringkasBiayaLuarScope(
+        (biayaRes.data as Biaya[])
+          // Aturan yang SAMA dengan upah (`status='paid'`) dan dengan
+          // `belanja-aktual.ts`: hanya yang sudah disetujui. Biaya `draft`
+          // dan `submitted` belum tentu jadi uang keluar, dan memasukkannya
+          // membuat angka di layar ini berbeda dari `/belanja-aktual`.
+          .filter((b) => b.status === 'approved')
+          .map((b) => {
+            // PostgREST memulangkan relasi to-one bisa sebagai objek ATAU
+            // larik satu unsur, tergantung bagaimana ia menyimpulkan
+            // kardinalitasnya. Ditangani keduanya — kalau tidak, seluruh
+            // kategori jatuh ke "Tanpa kategori" tanpa satu pun galat.
+            const k = b.project_expense_categories
+            const nama = Array.isArray(k) ? k[0]?.name : k?.name
+            return { kategori: nama ?? null, total_amount: b.total_amount as number | string | null }
+          }),
+      )
+
+      // Kalimat cakupan disusun sekali, dipakai kedua cabang. Menyalinnya
+      // berarti dua kalimat yang bisa menyimpang.
+      const meta = (jumlahScope: number) => ({
+        cakupan: 'upah borongan mandor',
+        keterbatasan:
+          'Hanya upah borongan. Material dan faktur supplier TIDAK bisa dipecah per ' +
+          'pekerjaan: taksonomi biaya dan taksonomi RAB tak saling menunjuk, jadi ' +
+          'mengisi kategori RAB pada scope pun tak mengubahnya. Besarnya dinyatakan ' +
+          'terpisah di "biaya di luar hitungan".',
+        jumlah_scope: jumlahScope,
+      })
+
       if (idPenugasan.length === 0) {
         return reply.send({
           baris: [], total_nilai_terpasang: 0, total_terpakai: 0, total_selisih: 0,
           terpakai_harian: 0,
           jumlah_rugi: 0, jumlah_tanpa_biaya: 0, jumlah_tak_berlaku: 0,
-          meta: { cakupan: 'upah borongan mandor', jumlah_scope: 0 },
+          biaya_luar_scope: biayaLuar,
+          meta: meta(0),
         })
       }
 
@@ -486,19 +539,12 @@ export default async function costControlRoutes(app: FastifyInstance) {
         }
       })
 
-      const hasil = ringkasCvr(baris)
-      return reply.send({
-        ...hasil,
-        meta: {
-          // Cakupan DINYATAKAN, bukan disamarkan. Ini CVR upah borongan —
-          // material dan faktur supplier belum bisa dipecah per scope.
-          cakupan: 'upah borongan mandor',
-          keterbatasan:
-            'Hanya upah borongan. Material dan faktur supplier belum bisa dipecah ' +
-            'per pekerjaan karena tak menyimpan cost code — lihat F5-1 §PEMBEDA CVR.',
-          jumlah_scope: baris.length,
-        },
-      })
+      // Cakupan kedua diteruskan, TIDAK dijumlahkan ke margin. Alasannya di
+      // blok "CAKUPAN KEDUA" pada `lib/cvr.ts`: nilai terpasang yang diadu
+      // hanya nilai borongan upah, jadi mengadu biaya material dengannya
+      // menghasilkan "rugi" yang cuma kesalahan aritmetika.
+      const hasil = ringkasCvr(baris, biayaLuar)
+      return reply.send({ ...hasil, meta: meta(baris.length) })
     },
   )
 

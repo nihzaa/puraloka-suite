@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { hitungCvr, ringkasCvr, type BarisScope } from '../cvr.js'
+import { hitungCvr, ringkasCvr, ringkasBiayaLuarScope, type BarisScope } from '../cvr.js'
 
 /**
  * CVR — Cost Value Reconciliation, per SCOPE BORONGAN.
@@ -219,5 +219,116 @@ describe('ringkasCvr — portofolio scope', () => {
     const r = ringkasCvr([])
     expect(r.baris).toEqual([])
     expect(r.total_terpakai).toBe(0)
+  })
+})
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ * CAKUPAN KEDUA — biaya yang TAK BISA dipecah per scope (2026-08-19)
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Founder menjawab R-017: CVR "bisa cukup upah borongan tapi bisa juga yang
+ * 20 lingkup kerja itu". Diukur sebelum dibangun, dan pengukurannya membalik
+ * rancangan yang sudah ditulis:
+ *
+ *   work_scopes.rab_category_id  → rab_items                  (BoQ)
+ *   project_expenses.category_id → project_expense_categories (bagan biaya)
+ *
+ * Dua taksonomi yang tak pernah bertemu — nol kolom di sisi biaya menunjuk
+ * `rab_items` (diukur ke `pg_constraint`). Jadi "isi kategorinya lalu CVR
+ * jadi penuh" TIDAK BENAR, dan cakupan penuh per-scope bukan pekerjaan data
+ * melainkan perubahan skema yang belum ada.
+ *
+ * Yang justru terlihat begitu diukur, biaya `approved` pada proyek yang
+ * PUNYA work_scope (2026-08-19):
+ *
+ *   Pak Andi — Buah Batu     upah 126,6 jt   biaya lain  88,3 jt
+ *   Dapur & KM Pak Hendra    upah      0     biaya lain  80,3 jt
+ *   Gudang — Gedebage        upah      0     biaya lain  48,7 jt
+ *   Bu Sari — Dago           upah      0     biaya lain  46,2 jt
+ *
+ * Tiga proyek terakhir hari ini tampil **seolah tak punya biaya sama sekali**.
+ * Cacatnya bukan angka yang kurang lengkap — melainkan angka yang TERLIHAT
+ * lengkap, karena layar tak pernah menyebut berapa besar yang di luar
+ * jangkauannya.
+ */
+describe('cakupan kedua — biaya di luar scope', () => {
+  it('TIDAK ikut ke margin — didampingkan, bukan dijumlahkan', () => {
+    /*
+      Inti berkas ini, dan alasannya aritmetika bukan selera.
+
+      Nilai terpasang yang diadu HANYA nilai borongan upah. Menambahkan
+      Rp 88 juta biaya material ke `total_terpakai` membuat margin Pak Andi
+      anjlok dari +Rp 40 juta jadi −Rp 48 juta — dan itu bukan temuan, itu
+      membandingkan biaya material dengan nilai upah lalu menyebut selisihnya
+      "rugi".
+    */
+    const luar = ringkasBiayaLuarScope([
+      { kategori: 'Material', total_amount: 60_000_000 },
+      { kategori: 'Sewa alat', total_amount: 28_300_000 },
+    ])
+    const r = ringkasCvr(
+      [s({ scope_id: 'a', borongan_value: 100_000_000, progress_pct: 100, terpakai: 60_000_000 })],
+      luar,
+    )
+
+    expect(r.biaya_luar_scope.total).toBe(88_300_000)
+    // Ketiga angka margin TAK TERSENTUH. Kalau salah satu bergeser, biaya
+    // material sudah bocor ke hitungan untung-rugi.
+    expect(r.total_terpakai).toBe(60_000_000)
+    expect(r.total_nilai_terpasang).toBe(100_000_000)
+    expect(r.total_selisih).toBe(40_000_000)
+  })
+
+  it('rincian per kategori menjumlah PERSIS ke totalnya', () => {
+    // Rincian yang tak menjumlah ke totalnya lebih buruk daripada tak ada
+    // rincian: pembaca yang menjumlahkan sendiri menemukan selisih dan tak
+    // punya cara tahu mana yang benar.
+    const luar = ringkasBiayaLuarScope([
+      { kategori: 'Material', total_amount: 10_000_000 },
+      { kategori: 'Material', total_amount: 5_000_000 },
+      { kategori: 'Upah harian', total_amount: 3_000_000 },
+    ])
+    expect(luar.total).toBe(18_000_000)
+    expect(luar.per_kategori.reduce((x, k) => x + k.total, 0)).toBe(18_000_000)
+    // Terbesar dulu — yang paling perlu dijelaskan tak boleh ada di bawah.
+    expect(luar.per_kategori[0]).toEqual({ kategori: 'Material', total: 15_000_000, jumlah: 2 })
+  })
+
+  it('biaya TANPA kategori tetap masuk — tak dibuang, tak digabung diam-diam', () => {
+    /*
+      Kalau baris tak berkategori dibuang, `total` berkurang tanpa satu pun
+      tanda, dan angka "di luar hitungan" jadi lebih kecil dari yang
+      sebenarnya — persis kesalahan yang layar ini dibangun untuk mencegah.
+    */
+    const luar = ringkasBiayaLuarScope([
+      { kategori: null, total_amount: 7_000_000 },
+      { kategori: '   ', total_amount: 1_000_000 },
+      { kategori: 'Material', total_amount: 2_000_000 },
+    ])
+    expect(luar.total).toBe(10_000_000)
+    expect(luar.jumlah).toBe(3)
+    const tanpa = luar.per_kategori.find((k) => k.kategori === 'Tanpa kategori')
+    expect(tanpa).toEqual({ kategori: 'Tanpa kategori', total: 8_000_000, jumlah: 2 })
+  })
+
+  it('NaN dilewati — satu baris tak meracuni seluruh total', () => {
+    // Postgres `numeric` MENERIMA NaN, terbukti di repo ini.
+    const luar = ringkasBiayaLuarScope([
+      { kategori: 'Material', total_amount: 'NaN' },
+      { kategori: 'Material', total_amount: 5_000_000 },
+    ])
+    expect(luar.total).toBe(5_000_000)
+    // Barisnya tetap DIHITUNG: ia ada di basis, dan `jumlah` menjawab
+    // "berapa baris", bukan "berapa baris yang terbaca".
+    expect(luar.jumlah).toBe(2)
+  })
+
+  it('tanpa argumen kedua, bentuk responsnya tetap lengkap', () => {
+    // Pemanggil lama tak boleh mendapat `undefined` di field baru — layar
+    // yang membaca `.total` dari undefined mati dengan galat yang menunjuk
+    // komponen, bukan penyebabnya.
+    const r = ringkasCvr([])
+    expect(r.biaya_luar_scope).toEqual({ total: 0, jumlah: 0, per_kategori: [] })
   })
 })

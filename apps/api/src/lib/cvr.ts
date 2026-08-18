@@ -37,6 +37,80 @@
 // nol, atau menenggelamkannya di total proyek yang masih untung, menghapus
 // satu-satunya sinyal yang bisa ditindaklanjuti selagi pekerjaan berjalan.
 
+// ══════════════════════════════════════════════════════════════════════════
+// CAKUPAN KEDUA — biaya proyek yang TAK BISA dipecah per scope (2026-08-19)
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Founder menjawab R-017: CVR "bisa cukup upah borongan TAPI bisa juga yang
+// 20 lingkup kerja itu". Saya ukur dulu sebelum membangun, dan pengukurannya
+// membalik rancangan yang sudah saya tulis:
+//
+//   work_scopes.rab_category_id  → rab_items                (BoQ)
+//   project_expenses.category_id → project_expense_categories (bagan biaya)
+//
+// **Keduanya taksonomi yang berbeda dan tak pernah bertemu.** Jembatan yang
+// ada — `cost_code_category_map` — menghubungkan kategori-biaya ke cost_code,
+// lalu BERHENTI: tak ada satu pun kolom di sisi biaya yang menunjuk
+// `rab_items` (diukur `pg_constraint`, hasilnya nol).
+//
+// Jadi "isi saja kategorinya lalu CVR jadi penuh" TIDAK BENAR. Mengisi
+// `rab_category_id` pada 20 scope tak membuat satu rupiah pun biaya material
+// ikut terhitung, karena biayanya tak menyimpan rujukan ke sana.
+//
+// ── Yang justru terlihat begitu diukur
+//
+// Diukur 2026-08-19, biaya `approved` pada proyek yang PUNYA work_scope:
+//
+//   Renovasi Pak Andi — Buah Batu     upah 126,6 jt   biaya lain  88,3 jt
+//   Dapur & KM Pak Hendra             upah      0     biaya lain  80,3 jt
+//   Gudang Pak Hendra — Gedebage      upah      0     biaya lain  48,7 jt
+//   Rumah Bu Sari — Dago              upah      0     biaya lain  46,2 jt
+//                                                     ─────────────────────
+//                                                     total      263,5 jt
+//
+// Tiga proyek itu hari ini tampil di CVR **seolah tak punya biaya sama
+// sekali**, dan scope-nya berkeadaan `tanpa_biaya` — yang terbaca sebagai
+// "mencurigakan, biayanya di tempat lain". Biayanya memang di tempat lain,
+// dan besarnya Rp 175 juta.
+//
+// Itulah cacatnya: bukan angka yang kurang lengkap, melainkan angka yang
+// **terlihat lengkap**. Layar tak pernah menyebut berapa besar yang di luar
+// jangkauannya, jadi pembaca menganggap sisanya nol.
+//
+// ── Kenapa DIDAMPINGKAN, bukan dijumlahkan
+//
+// Menambahkan Rp 88 juta biaya material ke `total_terpakai` Pak Andi akan
+// membuat marginnya anjlok — dan itu bukan temuan, itu kesalahan aritmetika:
+// nilai terpasang yang diadu HANYA nilai borongan upah. Mengadu biaya
+// material dengan nilai upah adalah membandingkan dua hal yang berbeda, lalu
+// menyebut selisihnya "rugi".
+//
+// Maka: dua cakupan berdampingan, masing-masing berlabel, tak pernah
+// dijumlahkan jadi satu margin. Persis seperti ukuran 2.2 di
+// `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` — setiap angka menyebut cakupannya.
+
+/**
+ * Cakupan KEDUA: biaya proyek di luar upah borongan.
+ *
+ * Dilaporkan sebagai konteks, **bukan** sebagai bagian margin. Ia menjawab
+ * satu pertanyaan yang selama ini tak terjawab di layar ini: *"berapa besar
+ * yang TIDAK ikut dihitung?"*
+ */
+export interface BiayaLuarScope {
+  /** Biaya `approved` pada proyek ini yang tak bisa dipecah per scope. */
+  total: number
+  /** Berapa baris biaya — membedakan "nol rupiah" dari "belum dicatat". */
+  jumlah: number
+  /**
+   * Rincian per kategori biaya, terbesar dulu.
+   *
+   * Tanpa rincian, angka gabungan cuma memindahkan ketidaktahuan: pembaca
+   * tahu ada Rp 88 juta di luar hitungan tapi tak tahu itu material, sewa
+   * alat, atau apa.
+   */
+  per_kategori: { kategori: string; total: number; jumlah: number }[]
+}
+
 export interface BarisScope {
   scope_id: string
   scope_name: string
@@ -198,6 +272,15 @@ export interface RingkasanCvr {
   jumlah_tanpa_biaya: number
   /** Scope harian yang CVR-nya tak berlaku — dihitung supaya cakupannya jelas. */
   jumlah_tak_berlaku: number
+  /**
+   * CAKUPAN KEDUA — biaya di luar jangkauan hitungan di atas.
+   *
+   * TIDAK ikut ke `total_terpakai` maupun `total_selisih`. Lihat alasannya di
+   * blok "CAKUPAN KEDUA" di kepala berkas ini: nilai terpasang yang diadu
+   * hanya nilai borongan upah, jadi menjumlahkan biaya material ke sana
+   * menghasilkan "rugi" yang cuma kesalahan aritmetika.
+   */
+  biaya_luar_scope: BiayaLuarScope
 }
 
 /** Urutan tampil: yang menuntut tindakan lebih dulu. */
@@ -216,7 +299,53 @@ const URUTAN: Record<KeadaanCvr, number> = {
  * Yang RUGI naik ke atas — itu satu-satunya baris yang menuntut tindakan, dan
  * daftar yang mengurutkannya di bawah membuatnya tak pernah dibaca.
  */
-export function ringkasCvr(daftar: BarisScope[]): RingkasanCvr {
+/** Satu baris biaya proyek, apa adanya dari basis. */
+export interface BarisBiaya {
+  kategori: string | null
+  total_amount: number | string | null
+}
+
+/**
+ * Rangkum biaya di luar scope.
+ *
+ * Dipisah dari `ringkasCvr` supaya bisa diuji sendiri, dan supaya jelas ia
+ * TAK PERNAH menyentuh angka margin.
+ *
+ * INVARIAN yang diuji:
+ *  1. kategori `null` jadi "Tanpa kategori" — tak dibuang, tak digabung
+ *     diam-diam dengan kategori yang bernama
+ *  2. NaN dilewati (`numeric` Postgres menerima NaN)
+ *  3. urutan menurun — yang terbesar yang perlu dijelaskan lebih dulu
+ */
+export function ringkasBiayaLuarScope(daftar: BarisBiaya[]): BiayaLuarScope {
+  const peta = new Map<string, { total: number; jumlah: number }>()
+  let total = 0
+
+  for (const b of daftar) {
+    const n = angka(b.total_amount)
+    // Kategori kosong TIDAK dibuang: biaya yang tak berkategori tetap uang
+    // yang keluar, dan membuangnya membuat rincian tak menjumlah ke totalnya.
+    const kunci = (b.kategori ?? '').trim() || 'Tanpa kategori'
+    const kini = peta.get(kunci) ?? { total: 0, jumlah: 0 }
+    peta.set(kunci, { total: kini.total + n, jumlah: kini.jumlah + 1 })
+    total += n
+  }
+
+  return {
+    total,
+    jumlah: daftar.length,
+    per_kategori: [...peta.entries()]
+      .map(([kategori, v]) => ({ kategori, total: v.total, jumlah: v.jumlah }))
+      .sort((a, b) => b.total - a.total || a.kategori.localeCompare(b.kategori)),
+  }
+}
+
+const BIAYA_LUAR_KOSONG: BiayaLuarScope = { total: 0, jumlah: 0, per_kategori: [] }
+
+export function ringkasCvr(
+  daftar: BarisScope[],
+  biayaLuar: BiayaLuarScope = BIAYA_LUAR_KOSONG,
+): RingkasanCvr {
   const baris = daftar.map(hitungCvr).sort((a, b) =>
     URUTAN[a.keadaan] - URUTAN[b.keadaan]
     // Dalam keadaan yang sama: nilai mutlak selisih terbesar lebih dulu.
@@ -236,5 +365,8 @@ export function ringkasCvr(daftar: BarisScope[]): RingkasanCvr {
     jumlah_rugi: baris.filter((x) => x.keadaan === 'rugi').length,
     jumlah_tanpa_biaya: baris.filter((x) => x.keadaan === 'tanpa_biaya').length,
     jumlah_tak_berlaku: baris.filter((x) => x.keadaan === 'tak_berlaku').length,
+    // Diteruskan APA ADANYA. Tak satu pun angka di atas menyentuhnya, dan itu
+    // disengaja — lihat blok "CAKUPAN KEDUA" di kepala berkas.
+    biaya_luar_scope: biayaLuar,
   }
 }

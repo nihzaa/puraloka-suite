@@ -43,19 +43,45 @@ const get = (url: string) =>
 async function purge() {
   await client.query(`DELETE FROM weekly_wage_reports WHERE notes LIKE '[TEST]%'`)
   await client.query(`DELETE FROM work_scopes WHERE scope_name LIKE '[TEST]%'`)
+  // Biaya uji cakupan kedua. Dibersihkan di SINI, bukan hanya di afterAll:
+  // baris yang mengendap sesudah test gagal membuat jalan berikutnya gagal
+  // karena alasan yang sama sekali berbeda (totalnya berlipat).
+  await client.query(`DELETE FROM project_expenses WHERE description LIKE '[TEST]%'`)
+  // Kategori dihapus SESUDAH biayanya — FK-nya menahan urutan sebaliknya, dan
+  // galatnya akan muncul di test yang sama sekali lain.
+  await client.query(`DELETE FROM project_expense_categories WHERE name LIKE '[TEST]%'`)
 }
 
 beforeAll(async () => {
   client = await createRlsClient()
   adminAuth = await authIdForRole(client, 'admin')
 
+  /*
+    ORDER BY WAJIB — `LIMIT 1` tanpa urutan bukan pilihan, ia kebetulan.
+
+    Selama jumlah barisnya tetap, Postgres memulangkan baris yang sama tiap
+    kali dan ini tak pernah terlihat salah. Ia berhenti benar begitu ada baris
+    ditambah atau dihapus: fixture bergeser ke proyek lain, dan test gagal
+    dengan pesan yang menuduh KODE padahal yang salah pilihan datanya.
+
+    Sudah memakan delapan berkas di repo ini (`spk`, `kontrak-pdf-kop`,
+    `wa-webhook`, `back-charge`, `co-billing-mode`, `opname-bersama`,
+    `sod-gerbang`, `tulis-absensi`) — tiap kali gejalanya menuduh hal lain.
+
+    Sekaligus: proyek yang dipilih WAJIB punya kategori RAB, karena test
+    kategori di bawah menuntutnya. Syarat itu kini dinyatakan di query, bukan
+    diharapkan kebetulan.
+  */
   const { rows: p } = await client.query(
     `SELECT ma.project_id, ma.id AS assignment_id
        FROM mandor_assignments ma
        JOIN projects pr ON pr.id = ma.project_id
       WHERE pr.company_id IS NOT NULL
+        AND EXISTS (SELECT 1 FROM rab_items ri
+                     WHERE ri.project_id = ma.project_id AND ri.level = 'category')
+      ORDER BY ma.created_at, ma.id
       LIMIT 1`)
-  if (!p[0]) throw new Error('tak ada penugasan mandor untuk diuji')
+  if (!p[0]) throw new Error('tak ada penugasan mandor di proyek berkategori RAB untuk diuji')
   projectId = p[0].project_id
   assignmentId = p[0].assignment_id
 
@@ -240,4 +266,137 @@ describe('GET /projects/:id/cvr', () => {
         [awal[0].rab_category_id, idScope])
     }
   })
+
+  /**
+   * ══════════════════════════════════════════════════════════════════════
+   * CAKUPAN KEDUA — berapa besar yang TIDAK ikut dihitung
+   * ══════════════════════════════════════════════════════════════════════
+   *
+   * Diukur 2026-08-19: tiga proyek punya biaya `approved` puluhan juta dan
+   * NOL upah borongan. Di CVR sebelum hari ini mereka tampil seolah tak
+   * punya biaya sama sekali — layarnya tak pernah menyebut berapa besar yang
+   * di luar jangkauannya, jadi pembaca menganggap sisanya nol.
+   *
+   *   Dapur & KM Pak Hendra   upah 0   biaya lain 80,3 jt
+   *   Gudang — Gedebage       upah 0   biaya lain 48,7 jt
+   *   Bu Sari — Dago          upah 0   biaya lain 46,2 jt
+   *
+   * Yang dibuktikan di sini bukan aritmetikanya (itu di `lib/__tests__/cvr`)
+   * melainkan RANTAINYA: biaya sungguhan di basis sampai ke respons, dan
+   * TIDAK menyentuh satu pun angka margin.
+   */
+  it('biaya di luar scope sampai ke respons — dan TIDAK menggeser margin', async () => {
+    const sebelum = await get(`/api/v1/projects/${projectId}/cvr`)
+    expect(sebelum.statusCode, sebelum.body).toBe(200)
+    const m0 = sebelum.json()
+
+    /*
+      Kategori dibuat SENDIRI, tidak dipinjam.
+
+      Diukur 2026-08-19: `project_expenses.category_id` **NOT NULL**, dan
+      kesepuluh kategori yang ada milik satu proyek saja. Meminjam kategori
+      proyek lain melanggar tenancy; memakai NULL melanggar constraint. Versi
+      pertama test ini melakukan yang kedua dan gagal dengan galat basis, bukan
+      dengan kalimat — persis kegagalan yang menuduh kode padahal fixture-nya.
+
+      Sekaligus catatan untuk yang membaca `lib/cvr.ts`: cabang "Tanpa
+      kategori" di sana TAK BISA lahir dari tabel ini karena kolomnya NOT NULL.
+      Ia tetap ada dan tetap diuji di level pustaka — sebagai pertahanan kalau
+      constraint itu suatu hari dilonggarkan, karena saat itu terjadi
+      kesalahannya berupa total yang menyusut diam-diam, bukan galat.
+    */
+    const { rows: kat } = await client.query(
+      // `type` NOT NULL dan ber-enum. Nilainya DIUKUR ke basis (`material`
+      // dipakai kesepuluh kategori yang ada), bukan ditebak dari ingatan —
+      // tebakan `'pending'` pada enum lain sudah memakan satu putaran di repo
+      // ini, dan gejalanya galat basis yang menuduh kode.
+      `INSERT INTO project_expense_categories (project_id, name, type)
+       VALUES ($1, '[TEST] Material uji CVR', 'material')
+       RETURNING id, name`, [projectId])
+
+    // Biaya `approved` Rp 88,3 juta — angka Pak Andi yang sesungguhnya.
+    // Ditambah biaya `draft` yang HARUS diabaikan: ia belum tentu jadi uang
+    // keluar, dan memasukkannya membuat angka layar ini berbeda dari
+    // /belanja-aktual untuk proyek yang sama.
+    /*
+      Kolom wajibnya DIUKUR sekaligus, bukan ditemukan satu per satu lewat
+      galat berturut-turut:
+
+        SELECT column_name FROM information_schema.columns
+         WHERE table_name='project_expenses'
+           AND is_nullable='NO' AND column_default IS NULL
+
+      → project_id, category_id, description, unit_price, total_amount,
+        submitted_by
+
+      Menemukannya lewat gagal-perbaiki-gagal memakan satu putaran per kolom,
+      dan tiap galatnya berbunyi seperti kerusakan kode.
+    */
+    const { rows: pengaju } = await client.query(
+      `SELECT id FROM users ORDER BY created_at, id LIMIT 1`)
+
+    for (const [jumlah, status] of [[88300000, 'approved'], [9000000, 'draft']] as const) {
+      await client.query(
+        // `expense_source` DINYATAKAN, tak dibiarkan bawaan: bawaannya
+        // `petty_cash`, dan CHECK `chk_petty_cash_source` lalu menuntut
+        // `petty_cash_id` terisi. Ke-88 baris nyata memakai `client_fund`.
+        `INSERT INTO project_expenses
+           (project_id, category_id, description, expense_date,
+            qty, unit_price, total_amount, status, submitted_by, expense_source)
+         VALUES ($1, $2, '[TEST] cvr cakupan kedua', CURRENT_DATE,
+                 1, $3, $3, $4, $5, 'client_fund')`,
+        [projectId, kat[0].id, jumlah, status, pengaju[0].id])
+    }
+
+    const r = await get(`/api/v1/projects/${projectId}/cvr`)
+    expect(r.statusCode, r.body).toBe(200)
+    const m = r.json()
+
+    // 1. Sampai ke respons, dan HANYA yang approved.
+    expect(m.biaya_luar_scope.total - m0.biaya_luar_scope.total).toBe(88_300_000)
+
+    // 2. Rinciannya menjumlah PERSIS ke totalnya. Rincian yang tak menjumlah
+    //    lebih buruk daripada tak ada rincian: pembaca menemukan selisih dan
+    //    tak punya cara tahu mana yang benar.
+    const rincian = m.biaya_luar_scope.per_kategori as { kategori: string; total: number }[]
+    expect(rincian.reduce((x, k) => x + k.total, 0)).toBe(m.biaya_luar_scope.total)
+
+    /*
+      NAMA kategorinya dibandingkan, bukan hanya jumlahnya — dan itu perbaikan
+      sesudah mutasi yang LOLOS.
+
+      Versi pertama test ini cuma memeriksa rincian menjumlah ke totalnya.
+      Mutasi yang merusak penanganan bentuk relasi PostgREST
+      (`Array.isArray(k) ? k[0]?.name : k?.name` → selalu `undefined` untuk
+      larik) tetap HIJAU: begitu semua nama hilang, seluruh biaya berkumpul di
+      satu ember "Tanpa kategori" — dan ember tunggal tetap menjumlah persis ke
+      totalnya.
+
+      Yang lolos itu bukan cacat sepele. PostgREST memulangkan relasi to-one
+      bisa sebagai objek ATAU larik satu unsur tergantung bagaimana ia
+      menyimpulkan kardinalitas; kalau bentuknya berubah, layar menampilkan
+      "Tanpa kategori Rp 88 juta" tanpa satu pun galat — persis kebutaan yang
+      cakupan kedua ini dibangun untuk mengakhiri.
+    */
+    const material = rincian.find((k) => k.kategori === '[TEST] Material uji CVR')
+    expect(material, 'nama kategori tak sampai ke UI — bentuk relasi PostgREST tak tertangani')
+      .toBeDefined()
+    expect(material!.total).toBe(88_300_000)
+
+    // 3. INTI-nya: ketiga angka margin TAK BERGESER SEDIKIT PUN.
+    //    Kalau salah satu berubah, biaya material sudah bocor ke hitungan
+    //    untung-rugi — dan "rugi" yang muncul cuma kesalahan aritmetika:
+    //    nilai terpasang yang diadu hanya nilai borongan UPAH.
+    expect(m.total_terpakai).toBe(m0.total_terpakai)
+    expect(m.total_nilai_terpasang).toBe(m0.total_nilai_terpasang)
+    expect(m.total_selisih).toBe(m0.total_selisih)
+
+    // 4. Keterbatasannya menyebut sebabnya yang BENAR. Kalimat lama berbunyi
+    //    "belum bisa dipecah karena tak menyimpan cost code" — itu keliru dan
+    //    menyesatkan: ia mengesankan cukup mengisi data. Diukur ke
+    //    pg_constraint, taksonomi biaya dan taksonomi RAB tak saling menunjuk
+    //    sama sekali, jadi mengisi kategori RAB pun tak mengubah apa pun.
+    expect(m.meta.keterbatasan).toMatch(/tak saling menunjuk/i)
+  })
+
 })

@@ -161,16 +161,53 @@ dikerjakan.
 
 ## 4. Urutan yang disarankan, dan alasannya
 
-### Urutan 1 — `cc-cvr` (dua cakupan)
+### Urutan 1 — `cc-cvr` (dua cakupan) — ✅ **SELESAI 2026-08-19**
 
 **Kenapa pertama:** nol risiko migrasi, nol menunggu data, dan ia memperbaiki
-angka yang **sudah dibaca orang sekarang**. Layar CVR hari ini menampilkan
-angka tanpa menyebut cakupannya — itu bukan fitur kurang, itu angka yang
-menyesatkan.
+angka yang **sudah dibaca orang sekarang**.
 
-Ukuran selesai: dua kolom cakupan berdampingan, yang belum berkategori
-menyebut sendiri bahwa material & alat belum ikut, dan test yang membuktikan
-angka cakupan-penuh HANYA muncul bila kategorinya terisi.
+**Saya salah menebak cacatnya, dan pengukuran memperbaikinya.** Dugaan saya:
+"layar menampilkan angka tanpa menyebut cakupannya". Diukur — tidak benar,
+spanduk cakupan sudah ada sejak 2026-08-08 dan berbunyi jelas. Yang benar
+lebih halus dan lebih berbahaya:
+
+    work_scopes.rab_category_id  → rab_items                  (BoQ)
+    project_expenses.category_id → project_expense_categories (bagan biaya)
+
+**Dua taksonomi yang tak pernah bertemu** — nol kolom di sisi biaya menunjuk
+`rab_items` (diukur ke `pg_constraint`). Jembatan `cost_code_category_map`
+berhenti di cost_code. Jadi rencana "isi kategorinya lalu cakupan jadi penuh"
+tak akan pernah berhasil: mengisi kategori pada 20 scope tak membuat satu
+rupiah pun biaya material ikut terhitung.
+
+Yang justru terlihat begitu diukur — biaya `approved` pada proyek
+ber-work_scope, total **Rp 263,5 juta**:
+
+    Pak Andi — Buah Batu    upah 126,6 jt   di luar hitungan  88,3 jt
+    Dapur & KM Pak Hendra   upah      0     di luar hitungan  80,3 jt
+    Gudang — Gedebage       upah      0     di luar hitungan  48,7 jt
+    Bu Sari — Dago          upah      0     di luar hitungan  46,2 jt
+
+Tiga proyek terakhir tampil di CVR **seolah tak punya biaya sama sekali**.
+Cacatnya bukan angka yang kurang lengkap — melainkan angka yang **terlihat
+lengkap**, karena layar tak pernah menyebut berapa besar yang di luar
+jangkauannya, dan angka yang tak disebut dibaca sebagai nol.
+
+**Yang dibangun:** `ringkasBiayaLuarScope()` + kartu "Biaya di luar hitungan"
+berikut rincian per kategori — didampingkan, **tak pernah dijumlahkan** ke
+margin. Menjumlahkannya berarti mengadu biaya material dengan nilai upah lalu
+menyebut selisihnya "rugi", dan itu kesalahan aritmetika, bukan temuan.
+
+Kartunya sengaja tampil juga saat **nol scope** — justru di sanalah ia paling
+menentukan (tiga proyek di atas).
+
+**Bukti:** 37 test hijau (27 pustaka + 10 endpoint), 4 mutasi terbukti MERAH.
+Mutasi keempat **LOLOS** lebih dulu: test cuma memeriksa rincian menjumlah ke
+totalnya, dan itu tetap benar saat semua nama kategori hilang ke satu ember
+"Tanpa kategori". Dipertajam ke NAMA-nya, lalu MERAH.
+
+**Tetap `sebagian`, dan itu jujur:** cakupan penuh per-pekerjaan menuntut
+perubahan skema (rujukan dari sisi biaya ke RAB), bukan pengisian data.
 
 ### Urutan 2 — `md-subkon` (identitas mitra)
 
