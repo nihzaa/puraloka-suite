@@ -5,6 +5,114 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-17 (sesi peta-modul, hutang penjaga) — dua ratchet merah dibayar, dan test yang merah karena LINGKUNGANnya
+
+Founder: *"yaa kerjakan semuanyaa, dan jika sudah rencanakan untuk menuntaskan
+apa yg sudah mulai tapi masih sebagian itu"*.
+
+Tiga hal dikerjakan: dua penjaga merah dibayar, otomasi yang baru terdaftar
+diperiksa, dan rencana untuk sisa `sebagian` disusun.
+
+### 1. `audit-tulis-tanpa-periksa` — 82 → 72, ambang dikencangkan
+
+Yang ditutup **bukan yang paling mudah**, melainkan yang paling mahal kalau
+gagal senyap:
+
+| Tempat | Kalau nol baris |
+|---|---|
+| pemutihan denda invoice | uang yang dilepaskan, audit mencatat "diputihkan" |
+| persetujuan laporan upah | pemakai membaca "disetujui", status tak berubah |
+| persetujuan permintaan material | dua orang memutuskan bersamaan, yang kedua menimpa |
+| penandaan lingkup kerja selesai | uang dicatat lunas, scope masih aktif |
+| 3 rollback jurnal + koran bank | jurnal hantu TETAP ada, kode melapor bersih |
+
+**Empat di antaranya punya komentar yang MENYATAKAN hasilnya diperiksa**,
+padahal `{ error }` saja hanya menangkap query yang gagal. Komentar yang
+menjanjikan lebih dari yang dilakukan kodenya adalah kegagalan tersendiri:
+pembaca berikutnya berhenti memeriksa.
+
+Ambang diturunkan 76 → 72, dan mutasi membuktikan lantai barunya menggigit.
+
+### Saya salah: menebak nilai enum dari ingatan
+
+Saat menambah `.eq('status', …)` pada persetujuan permintaan material, saya
+menulis `'pending'` — dari ingatan, tanpa mengukur. Nilai sahnya
+`draft·submitted·approved·rejected·partially_ordered·fully_ordered`.
+
+Kalau lolos, saringannya **takkan pernah cocok**: setiap persetujuan yang sah
+ditolak 409, dan gejalanya terbaca seperti "selalu ada yang mendahului".
+Ketahuan karena saya mengukur ke basis sesudahnya. Yang kedua
+(`weekly_wage_reports`) saya ukur LEBIH DULU — dan `submitted` ternyata benar.
+
+### 2. `audit-halaman-pakai-cache` — 30 → 25 (tepat di lantai)
+
+Tiga dari 30 ternyata **bukan pelanggaran**: `login/`, `auth/callback/`, dan
+halaman akar. Ketiganya cocok pola (useEffect + pemanggil API) tetapi tak boleh
+memakai cache — men-cache POST kredensial berarti sesi satu orang bisa terpakai
+orang berikutnya; kode OAuth sekali-pakai yang diulang dari cache justru gagal.
+Dikecualikan eksplisit di penjaga, bukan dimaafkan diam-diam.
+
+Dua halaman sungguhan dipindahkan ke `useData`
+(`pengaturan/plafon-asisten`, `pengaturan/asisten`), lengkap dengan pemisahan
+galat MUAT vs AKSI.
+
+### 3. Test yang MERAH karena lingkungannya, bukan karena kodenya
+
+`tg-tambah` di Peta Modul bertanda `sebagian` padahal catatannya sendiri
+menulis "SELESAI 2026-08-16". Diperiksa — dan **pemeriksaan pertama saya salah
+dua kali berturut-turut**:
+
+1. `grep --include=*.ts` tak menjangkau `.tsx`; glob halaman tak menjangkau
+   `components/`. Nol hasil saya baca sebagai "kodenya tak ada", lalu saya
+   sempat menulis "koreksi" yang justru keliru — dan mencabutnya kembali.
+   **Nol hasil bukan bukti ketiadaan** (pelajaran yang sama dengan jebakan grep
+   CR-saja di CLAUDE.md §7).
+2. Ke-8 test `tagihan-co.test.tsx` MERAH dengan `d.showModal is not a
+   function`. Saya sempat membacanya sebagai "fiturnya rusak". Ternyata jsdom
+   tak mengimplementasikan `<dialog>.showModal()` — dan SELURUH modal aplikasi
+   ini memakainya lewat `DialogBersama`.
+
+Ditutup dengan polyfill minim di `vitest.setup.ts` (dibuktikan load-bearing
+lewat mutasi). Hasilnya: **649 test web hijau di 50 berkas** — naik dari 641,
+karena 8 test itu selama ini merah tanpa ada yang menyadarinya.
+
+`tg-tambah` → `hidup`. Peta Modul: **223 / 10 / 0**.
+
+### 4. Rencana sisa `sebagian` → `docs/execution/RENCANA-SISA-SEBAGIAN.md`
+
+Dari 10 yang tersisa, hanya **tiga** yang benar-benar pekerjaan kode:
+
+| Gol. | Jml | Isi |
+|---|---:|---|
+| A. pekerjaan kode | 3 | `sy-import` (ekspor belum ada), `kt-subkon` (addendum SPK), `dk-register` (versi dokumen) |
+| B. keputusan founder | 2 | `md-subkon` (identitas terpecah 3 tabel), `cc-cvr` (cakupan) |
+| C. pihak ketiga/rilis | 3 | Peruri, SMTP tenant, build mobile |
+| E. sengaja `sebagian` | 2 | `md-template-dok`, `fn-efaktur` |
+
+Menyebut B/C/E sebagai "belum dikerjakan" menciptakan hutang yang tak ada —
+itu sebabnya dokumennya memisahkan mereka.
+
+### Bukti
+
+    vitest web           649 passed · 50 berkas (dari 641 — polyfill dialog)
+    vitest api           226 passed · 15 berkas (rute yang disentuh)
+    mutasi               3 dijalankan, semuanya MERAH lalu pulih HIJAU
+    a11y runtime         154 halaman · 0 pelanggaran
+                         plafon-asisten 28 lolos · asisten 26 · invoice 27
+    tsc api + web        bersih
+    tulis-tanpa-periksa  72 (ambang DIKENCANGKAN 76 → 72)
+    halaman-pakai-cache  25 (lantai 25) — dari 30
+    kegagalan-senyap · catch-senyap · gerbang-tenancy ·
+      klaim-status-atomik · baca-tak-terpotong · izin-benar-ada ·
+      taksonomi · rute-penjadwal-punya-tugas · tugas-punya-rute ·
+      token-css · judul-halaman · galat-muat-terpisah · remah-lengkap ·
+      rute-id-tak-basi · tabel-seragam · menu-punya-halaman ·
+      peta-modul · indeks-docs                          semuanya exit 0
+
+Tak ada penjaga yang tersisa merah.
+
+---
+
 ## 2026-08-17 (sesi peta-modul, lanjutan) — SPK bisa dicetak, klausul bisa disunting, dan penjaga yang menemukan 7 rute mati pada jam ia ditulis
 
 Lanjutan. Founder menyisipkan tiga keluhan UI di tengah jalan dengan syarat

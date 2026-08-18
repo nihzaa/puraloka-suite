@@ -223,11 +223,19 @@ export default async function glRoutes(app: FastifyInstance) {
           // terlihat sah di daftar. Dibersihkan, dan hasil pembersihannya
           // DIPERIKSA: rollback yang gagal diam-diam meninggalkan persis
           // jurnal hantu yang hendak dicegah.
-          const { error: eRollback } = await request.db!
-            .from('journal_entries').delete().eq('id', kepala.id)
-          if (eRollback) {
+          // `.select('id')` — nol baris terhapus SAMA BAHAYANYA dengan galat.
+          //
+          // `{ error }` saja hanya menangkap query yang gagal. Kalau
+          // penghapusannya menyentuh nol baris (RLS menyaringnya, atau id-nya
+          // sudah berpindah), jurnal kosongnya TETAP ada — dan itu persis
+          // jurnal hantu yang blok ini hendak cegah. Rollback yang gagal
+          // senyap lebih buruk daripada tak ada rollback: yang membaca kode
+          // ini menyangka pembersihannya dijamin.
+          const { data: terhapus, error: eRollback } = await request.db!
+            .from('journal_entries').delete().eq('id', kepala.id).select('id')
+          if (eRollback || !terhapus || terhapus.length === 0) {
             request.log.error(
-              { eRollback, entryId: kepala.id, nomor },
+              { eRollback, entryId: kepala.id, nomor, terhapus: terhapus?.length ?? 0 },
               'Jurnal kosong gagal dibersihkan — tertinggal di daftar tanpa baris',
             )
           }

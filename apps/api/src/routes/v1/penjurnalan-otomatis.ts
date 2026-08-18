@@ -355,9 +355,18 @@ export default async function penjurnalanOtomatisRoutes(app: FastifyInstance) {
         // gagal, jurnal kosong itu TETAP ADA — dan diam tentangnya berarti
         // pengguna melihat "gagal" sementara ada baris siluman di buku
         // besar. Nomornya disebut supaya bisa dicari dan dihapus.
-        const { error: eBersih } = await request.db!
-          .from('journal_entries').delete().eq('id', je!.id)
-        if (eBersih) {
+        // `.select('id')` — nol baris terhapus SAMA BAHAYANYA dengan galat.
+        //
+        // Komentar di atas sudah menyatakan "hasil penghapusan DIPERIKSA",
+        // tetapi `{ error }` saja hanya menangkap query yang GAGAL. Penghapusan
+        // yang menyentuh nol baris meninggalkan jurnal kosong itu TETAP ADA di
+        // buku besar, sementara kode ini melapor berhasil.
+        //
+        // Komentar yang menjanjikan lebih dari yang dilakukan kodenya adalah
+        // bentuk kegagalan tersendiri: pembaca berikutnya berhenti memeriksa.
+        const { data: terhapus, error: eBersih } = await request.db!
+          .from('journal_entries').delete().eq('id', je!.id).select('id')
+        if (eBersih || !terhapus || terhapus.length === 0) {
           request.log.error(
             { err: eBersih, jurnal: je!.entry_number },
             'jurnal kepala kosong GAGAL dibersihkan — perlu dihapus manual')
@@ -471,9 +480,18 @@ export default async function penjurnalanOtomatisRoutes(app: FastifyInstance) {
 
       if (eBaris) {
         // Sama dengan penjurnalan invoice di atas — lihat catatan di sana.
-        const { error: eBersih } = await request.db!
-          .from('journal_entries').delete().eq('id', je!.id)
-        if (eBersih) {
+        // `.select('id')` — nol baris terhapus SAMA BAHAYANYA dengan galat.
+        //
+        // Komentar di atas sudah menyatakan "hasil penghapusan DIPERIKSA",
+        // tetapi `{ error }` saja hanya menangkap query yang GAGAL. Penghapusan
+        // yang menyentuh nol baris meninggalkan jurnal kosong itu TETAP ADA di
+        // buku besar, sementara kode ini melapor berhasil.
+        //
+        // Komentar yang menjanjikan lebih dari yang dilakukan kodenya adalah
+        // bentuk kegagalan tersendiri: pembaca berikutnya berhenti memeriksa.
+        const { data: terhapus, error: eBersih } = await request.db!
+          .from('journal_entries').delete().eq('id', je!.id).select('id')
+        if (eBersih || !terhapus || terhapus.length === 0) {
           request.log.error(
             { err: eBersih, jurnal: je!.entry_number },
             'jurnal kepala kosong GAGAL dibersihkan — perlu dihapus manual')

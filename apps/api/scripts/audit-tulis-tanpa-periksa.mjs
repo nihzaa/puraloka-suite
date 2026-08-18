@@ -123,7 +123,26 @@ const AMBANG = 17
  * datanya, dan balas 404 kalau nol. Atau tulis `// best-effort: <alasan>`
  * kalau nol baris memang bukan kegagalan.
  */
-const AMBANG_ERROR_SAJA = 76
+/*
+ * 2026-08-17: 82 → 72. Yang ditutup bukan yang paling mudah, melainkan yang
+ * paling mahal kalau gagal senyap:
+ *
+ *   · pemutihan denda invoice        uang yang dilepaskan
+ *   · persetujuan laporan upah       uang yang dibayarkan
+ *   · persetujuan permintaan material
+ *   · penandaan lingkup kerja selesai (settlement sudah tersimpan)
+ *   · tiga rollback jurnal + koran bank
+ *
+ * Empat di antaranya punya komentar yang MENYATAKAN hasilnya diperiksa,
+ * padahal `{ error }` saja hanya menangkap query yang gagal. Komentar yang
+ * menjanjikan lebih dari yang dilakukan kodenya adalah kegagalan tersendiri:
+ * pembaca berikutnya berhenti memeriksa.
+ *
+ * Sisanya (72) kebanyakan pembersihan & penandaan yang nol barisnya memang
+ * bukan kegagalan — tapi belum semuanya ditandai `// best-effort`, jadi
+ * angkanya masih pantas turun.
+ */
+const AMBANG_ERROR_SAJA = 72
 
 /** Penulisan yang memang boleh gagal diam-diam, ditandai di kodenya. */
 const POLA_SENGAJA = /\/\/\s*best-effort/i

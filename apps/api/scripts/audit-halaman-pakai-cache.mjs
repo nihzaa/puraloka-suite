@@ -51,6 +51,32 @@ import { fileURLToPath } from 'node:url'
 
 const AKAR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const WEB = join(AKAR, 'apps', 'web', 'app')
+
+/*
+ * Halaman yang TAK BOLEH memakai `useData`, jadi tak pantas dihitung
+ * pelanggaran (2026-08-17).
+ *
+ * Ketiganya terhitung karena polanya cocok (useEffect + pemanggil API), bukan
+ * karena mereka mengambil data yang layak di-cache:
+ *
+ *   login/            POST kredensial. Men-cache-nya berarti sesi satu orang
+ *                     bisa terpakai orang berikutnya di peramban yang sama.
+ *   auth/callback/    tukar-menukar kode OAuth SEKALI PAKAI. Diulang dari
+ *                     cache, ia gagal — dan gagalnya terlihat seperti login
+ *                     yang rusak.
+ *   page.tsx (akar)   tak mengambil apa pun; ia hanya membaca pengguna
+ *                     tersimpan lalu mengalihkan.
+ *
+ * Ini pengecualian karena SIFAT halamannya, bukan karena belum sempat
+ * dipindahkan — jadi ia tak boleh ikut jadi hutang di lantai ratchet.
+ * Daftarnya sengaja pendek dan eksplisit: pola glob akan diam-diam
+ * memaafkan halaman yang belum ada.
+ */
+const DIKECUALIKAN = new Set([
+  'login/page.tsx',
+  'auth/callback/page.tsx',
+  'page.tsx',
+])
 const LANTAI_BERKAS = join(dirname(fileURLToPath(import.meta.url)), 'halaman-cache-lantai.json')
 
 const bacaLantai = () => {
@@ -64,6 +90,7 @@ const tanpaCache = []
 
 for (const rel of halaman) {
   const jalur = rel.split(String.fromCharCode(92)).join('/')
+  if (DIKECUALIKAN.has(jalur)) continue
   const isi = readFileSync(join(WEB, rel), 'utf8')
 
   /*

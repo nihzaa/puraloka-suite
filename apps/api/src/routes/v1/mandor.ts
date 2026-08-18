@@ -2178,11 +2178,21 @@ export default async function mandorRoutes(app: FastifyInstance) {
     // kalau penandaan ini gagal diam-diam, keadaannya jadi separuh — uang
     // dicatat lunas tapi scope masih aktif, dan mandor terlihat masih
     // mengerjakan pekerjaan yang sudah dibayar penuh.
-    const { error: errScope } = await supabase.from('work_scopes').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', body.work_scope_id)
-    if (errScope) {
+    // `.select('id')` — komentar di atas menjanjikan "hasil diperiksa", tapi
+    // `{ error }` saja hanya menangkap query yang GAGAL. Update yang menyentuh
+    // nol baris (id sudah berpindah, atau baris terhapus di antara dua langkah)
+    // meninggalkan keadaan separuh yang persis digambarkan di atas: uang
+    // dicatat lunas, scope masih aktif — dan request membalas 200.
+    const { data: scopeTerubah, error: errScope } = await supabase
+      .from('work_scopes')
+      .update({ status: 'completed', updated_at: new Date().toISOString() })
+      .eq('id', body.work_scope_id)
+      .select('id')
+    if (errScope || !scopeTerubah || scopeTerubah.length === 0) {
       return reply.status(500).send({
-        error: `Settlement tersimpan, tapi scope gagal ditandai selesai: ${errScope.message}. ` +
-               `Tandai manual agar data tidak separuh jalan.`,
+        error: `Settlement tersimpan, tapi scope gagal ditandai selesai`
+               + `${errScope ? `: ${errScope.message}` : ' (tak ada baris yang cocok)'}. `
+               + `Tandai manual agar data tidak separuh jalan.`,
       })
     }
 

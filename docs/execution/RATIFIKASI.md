@@ -6,6 +6,94 @@ bawah entrinya.
 
 ---
 
+# 🧭 R-017 · Dua keputusan tersisa dari Peta Modul — DUA PERTANYAAN untuk Anda (2026-08-17)
+
+> **Peta Modul tuntas: 223 hidup · 10 sebagian · 0 rencana.**
+>
+> Dari 10 yang tersisa, **hanya dua yang benar-benar butuh keputusan Anda.**
+> Sisanya menunggu pihak ketiga (Peruri, SMTP, build mobile), sudah sengaja
+> dibatasi, atau tinggal pekerjaan kode yang bisa saya kerjakan sendiri.
+>
+> Rinciannya: `docs/execution/RENCANA-SISA-SEBAGIAN.md`.
+
+---
+
+## Pertanyaan 1 — Subkontraktor itu **perusahaan** atau **orang**?
+
+Diukur 2026-08-13, identitas subkon terpecah **tiga tabel tanpa FK penghubung**:
+
+| Tabel | Perannya |
+|---|---|
+| `workers` | yang **menawar** di tender |
+| `users` (via `mandor_assignments`) | yang **mengerjakan** di lapangan |
+| `suppliers` | yang **dievaluasi** kinerjanya |
+
+**Akibat nyatanya, bukan hipotetis:** satu pihak bisa muncul di ketiganya
+sebagai tiga entitas yang tak saling mengenal — dan **evaluasi buruk di
+`suppliers` tidak menghalangi pihak yang sama menang tender lewat `workers`.**
+Gerbang kelayakan yang sudah dibangun (`lib/kepatuhan-k3.ts` menggugurkan
+subkon berkecelakaan) hanya menutup satu dari tiga pintu.
+
+**Kenapa ini keputusan Anda, bukan tugas saya:** menyatukannya berarti memilih
+SATU tabel sebagai identitas utama, dan ketiganya sudah dirujuk banyak modul.
+Salah pilih berarti migrasi besar untuk kedua kalinya.
+
+- **Kalau subkon = perusahaan** → `suppliers` jadi induk; `workers` dan
+  penugasan menunjuk ke sana. Cocok bila yang Anda ikat kontrak adalah badan
+  usaha (CV/PT), dan orangnya bisa berganti.
+- **Kalau subkon = orang** → `workers` jadi induk. Cocok bila yang Anda
+  percayai adalah mandornya sendiri, terlepas dari bendera perusahaannya.
+
+Praktik konstruksi di Indonesia condong ke yang **kedua** untuk mandor borongan
+dan yang **pertama** untuk spesialis (ME, lift, waterproofing). Kalau Anda
+membenarkan itu, jawabannya bisa "keduanya" — dan saya akan merancang induk
+yang bisa menampung dua-duanya, bukan memaksa satu.
+
+**Diam berarti:** saya TIDAK menyatukannya, dan tiga tabel itu tetap terpisah.
+Tidak ada yang rusak; yang hilang cuma gerbang kelayakan yang menyeluruh.
+
+---
+
+## Pertanyaan 2 — CVR: isi kategori 20 lingkup kerja, atau cukup upah borongan?
+
+**Cost Value Reconciliation** menjawab "pekerjaan mana yang merugi SEKARANG".
+Ia sudah hidup, tapi cakupannya masih **upah borongan saja** — nilai terpasang
+dihitung `borongan × progres`, bukan nilai kontrak penuh.
+
+Yang menahan bukan kode: sejak 2026-08-13 `rab_category_id` sudah bisa diisi
+langsung dari baris CVR di UI. Yang belum ada **isinya** — 20 lingkup kerja
+belum dikategorikan.
+
+- **Kalau diisi** → CVR menghitung terhadap nilai kontrak penuh, dan angka
+  "merugi/untung" jadi angka yang bisa dipakai mengambil keputusan.
+- **Kalau tidak** → CVR tetap berguna untuk upah, dan **catatannya saya ubah
+  supaya menyatakan itu dengan jujur** — bukan dibiarkan terbaca seperti fitur
+  setengah jadi.
+
+Ini pekerjaan **data**, bukan kode, dan hanya Anda yang tahu kategori tiap
+lingkup kerja. Saya tidak bisa menebaknya: salah kategori membuat angka
+untung-rugi menunjuk pekerjaan yang salah — lebih buruk daripada tak ada angka.
+
+**Diam berarti:** cakupan tetap upah borongan, dan saya perbarui catatannya
+supaya tak menyesatkan.
+
+---
+
+## Yang TIDAK menunggu Anda
+
+| Entri | Keadaan |
+|---|---|
+| `sy-import` · `kt-subkon` · `dk-register` | pekerjaan kode — saya kerjakan sendiri, urutannya di `RENCANA-SISA-SEBAGIAN.md` |
+| `dk-esign` | menunggu kontrak komersial **Peruri** (e-meterai). Verifikasi sidik + layarnya sudah jalan |
+| `bi-terjadwal` | menunggu **kredensial SMTP** tiap tenant. Pemicunya sudah terdaftar; begitu SMTP diisi lewat Pengaturan, ia jalan tanpa perubahan kode |
+| `mb-progres` | menunggu **build & sebar** aplikasi mobile. Kodenya lengkap, belum pernah dipakai mandor sungguhan |
+| `md-template-dok` · `fn-efaktur` | sengaja dibatasi — bukan kekurangan |
+
+⚠ `dk-register` menyentuh **data yang sudah ada** (versi dokumen jadi bernomor).
+Sesuai §8a.5 saya akan minta konfirmasi terpisah sebelum menjalankannya.
+
+---
+
 # 💰 R-016 · PO bisa dikirim ke vendor TANPA persetujuan — DIKERJAKAN, angkanya lewat UI (2026-08-14)
 
 > **✅ TIDAK ADA yang perlu Anda putuskan sekarang.**

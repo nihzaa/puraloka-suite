@@ -793,8 +793,38 @@ export default async function procurementRoutes(app: FastifyInstance) {
       approved_at: action === 'approve' ? new Date().toISOString() : null,
       rejection_notes: action === 'reject' ? (rejection_notes ?? null) : null,
     }
-    const { error } = await supabase.from('material_requests').update(updates).eq('id', id)
+    // `.select('id')` + status lama di WHERE.
+    //
+    // Ini keputusan PERSETUJUAN. Dua hal yang `{ error }` saja tak bisa
+    // bedakan dari keberhasilan:
+    //
+    //   1. nol baris cocok — request membalas 200, notifikasi "disetujui"
+    //      terkirim, dan statusnya tak pernah berubah;
+    //   2. dua orang menyetujui bersamaan — yang kedua menimpa yang pertama
+    //      tanpa ada yang tahu.
+    //
+    // `.eq('status', 'submitted')` menutup keduanya: hanya yang MASIH menunggu
+    // yang bisa diputuskan, dan yang kalah balapan menerima 409, bukan 200.
+    //
+    // ⚠ Nilainya `submitted`, BUKAN `pending`. Versi pertama baris ini saya
+    // tulis `pending` dari ingatan — dan karena CHECK-nya
+    // (draft·submitted·approved·rejected·partially_ordered·fully_ordered)
+    // tak memuat nilai itu, saringannya takkan pernah cocok: SETIAP
+    // persetujuan yang sah akan ditolak 409, dan gejalanya terlihat seperti
+    // "selalu ada yang mendahului". Diukur ke basis, bukan ditebak.
+    const { data: terubah, error } = await supabase
+      .from('material_requests')
+      .update(updates)
+      .eq('id', id)
+      .eq('status', 'submitted')
+      .select('id')
     if (error) return reply.status(500).send({ error: error.message })
+    if (!terubah || terubah.length === 0) {
+      return reply.status(409).send({
+        error: 'Permintaan material ini sudah diputuskan pihak lain atau tak lagi berstatus '
+          + 'menunggu. Muat ulang untuk melihat keputusan yang berlaku.',
+      })
+    }
 
     // Notif ke requester
     try {

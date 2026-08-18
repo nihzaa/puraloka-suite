@@ -85,6 +85,13 @@ export default async function notificationRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const user = request.currentUser!
 
+    // best-effort: "tandai semua terbaca" pada kotak yang SUDAH bersih memang
+    // menyentuh nol baris, dan itu bukan kegagalan — itu keadaan akhir yang
+    // diminta. Memaksanya 404 akan menyalahkan pengguna yang menekan tombol
+    // dua kali.
+    //
+    // Galat query TETAP dibalas 500; yang sengaja tidak diperiksa hanya
+    // JUMLAH barisnya.
     const { error } = await request.db!
       .from('notifications')
       .update({ is_read: true, read_at: new Date().toISOString() })
@@ -103,13 +110,28 @@ export default async function notificationRoutes(app: FastifyInstance) {
     const user = request.currentUser!
     const { id } = request.params as { id: string }
 
-    const { error } = await request.db!
+    // `.select('id')` — beda dengan "tandai semua terbaca" di atas.
+    //
+    // Di sini id-nya DISEBUT pemanggil, dan `.eq('user_id', …)` adalah
+    // saringan kepemilikan. Nol baris berarti salah satu dari dua hal, dan
+    // keduanya bukan keberhasilan:
+    //
+    //   • notifikasinya sudah terhapus, atau
+    //   • ia milik ORANG LAIN dan saringan menahannya.
+    //
+    // Membalas 200 untuk yang kedua memberi tahu penghapusnya bahwa ia
+    // berhasil menghapus milik orang lain — padahal tidak terjadi apa pun.
+    const { data: terhapus, error } = await request.db!
       .from('notifications')
       .delete()
       .eq('id', id)
       .eq('user_id', user.id)
+      .select('id')
 
     if (error) return reply.status(500).send({ error: error.message })
+    if (!terhapus || terhapus.length === 0) {
+      return reply.status(404).send({ error: 'Notifikasi tidak ditemukan' })
+    }
 
     return reply.send({ success: true })
   })
@@ -310,13 +332,30 @@ export default async function notificationRoutes(app: FastifyInstance) {
       }
       if (body.data?.reason) update.review_notes = body.data.reason
 
-      const { error: rErr } = await supabase
+      // `.select('id')` + status lama di WHERE — ini menyetujui UPAH.
+      //
+      // `{ error }` saja tak bisa membedakan "laporan disetujui" dari:
+      //   • laporan yang sudah diputuskan orang lain lebih dulu, atau
+      //   • `assignment_id` yang tak ada di daftar milik pemutus.
+      //
+      // Keduanya memulangkan nol baris tanpa galat, dan pemakainya membaca
+      // "Laporan upah disetujui" — kalimat yang dipasang beberapa baris di
+      // bawah TANPA syarat apa pun.
+      const { data: laporanTerubah, error: rErr } = await supabase
         .from('weekly_wage_reports')
         .update(update)
         .eq('id', reportId)
         .in('assignment_id', idAsgNotif)
+        .eq('status', 'submitted')
+        .select('id')
 
       if (rErr) return reply.status(500).send({ error: rErr.message })
+      if (!laporanTerubah || laporanTerubah.length === 0) {
+        return reply.status(409).send({
+          error: 'Laporan upah ini sudah diputuskan pihak lain, atau bukan milik penugasan '
+            + 'Anda. Muat ulang untuk melihat keputusan yang berlaku.',
+        })
+      }
 
       resultMessage = body.action === 'approve' ? 'Laporan upah disetujui' : 'Laporan upah ditolak'
     }

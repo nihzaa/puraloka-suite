@@ -35,9 +35,10 @@
  * simpan. Baris "belum diatur" netral — ia keadaan, bukan peringatan.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useIzin } from "@/lib/use-izin";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 // `Info` dilepas bersama kartu penjelas yang digantikan `PanduanHalaman` —
 // panduan tak memakai ikon, dan impor mati menaikkan lint-ratchet.
 import { ShieldCheck } from "lucide-react";
@@ -76,37 +77,30 @@ const rupiah = (n: number) => `Rp ${n.toLocaleString("id-ID")}`;
 export default function PlafonAsistenPage() {
   const bolehUbah = useIzin("settings:ai:batas");
 
-  const [baris, setBaris] = useState<Baris[]>([]);
-  const [memuat, setMemuat] = useState(true);
   const [draf, setDraf] = useState<Record<string, string>>({});
   const [sedang, setSedang] = useState<string | null>(null);
   const [toast, setToast] = useState<{ tipe: "ok" | "err"; pesan: string } | null>(null);
 
-  const muat = useCallback(async () => {
-    try {
-      // axios: `r.data` adalah SELURUH badan respons, dan rute ini membungkus
-      // barisnya dalam `{ data: [...] }` — jadi barisnya di `r.data.data`.
-      // Salah satu tingkat saja menghasilkan `baris.map is not a function`,
-      // yang baru terlihat di tangkapan layar, bukan di log server.
-      const r = await api.get<{ data: Baris[] }>("/api/v1/ai/batas-setujui");
-      setBaris(r.data.data ?? []);
-    } catch {
-      setToast({ tipe: "err", pesan: "Gagal memuat daftar plafon" });
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+  /*
+    PINDAH KE LAPIS CACHE BERSAMA (2026-08-17).
 
-  // `queueMicrotask`, bukan panggilan langsung: `muat()` menyetel state
-  // pemuatan di baris pertamanya, dan setState SINKRON di dalam effect
-  // memicu render kedua sebelum yang pertama selesai
-  // (react-hooks/set-state-in-effect). Menunda satu microtask
-  // memindahkannya keluar dari fase render tanpa jeda yang terlihat.
-  //
-  // Pola yang sama sudah dipakai 131 tempat di aplikasi ini.
-  useEffect(() => {
-    queueMicrotask(() => { void muat(); });
-  }, [muat]);
+    `useData` menggantikan useState+useCallback+useEffect+queueMicrotask.
+    Selain lebih pendek, ia menghilangkan permintaan ganda: halaman ini dan
+    komponen lain yang butuh `/ai/batas-setujui` kini berbagi satu panggilan.
+
+    ⚠ `r.data.data` — rute ini membungkus barisnya dalam `{ data: [...] }`,
+    jadi tipe muatannya `{ data: Baris[] }` dan barisnya diambil satu tingkat
+    lebih dalam. Salah satu tingkat saja menghasilkan `baris.map is not a
+    function`, yang baru terlihat di tangkapan layar — bukan di log server.
+
+    `toast` (galat AKSI simpan) tetap TERPISAH dari galat MUAT: gagal
+    menyimpan tak boleh menghapus pesan gagal memuat, dan sebaliknya.
+  */
+  const { data, memuat, galat: galatMuat, muatUlang } =
+    useData<{ data: Baris[] }>("/api/v1/ai/batas-setujui");
+  const baris = useMemo(() => data?.data ?? [], [data]);
+
+  const muat = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   async function simpan(b: Baris) {
     const mentah = (draf[b.user_id] ?? "").trim();
@@ -191,7 +185,23 @@ export default function PlafonAsistenPage() {
       />
 
       <div style={{ ...GAYA_KARTU, overflow: "hidden" }}>
-        {memuat ? (
+        {/* Galat MUAT ditampilkan TERPISAH dari `toast` (galat AKSI simpan).
+            Tanpa ini, "gagal memuat" tak punya tempat sama sekali dan
+            halamannya hanya menampilkan "Belum ada anggota perusahaan" —
+            kalimat yang menuduh datanya kosong padahal permintaannya gagal. */}
+        {galatMuat ? (
+          <div role="alert" style={{
+            padding: 20, fontSize: 13, lineHeight: 1.6,
+            color: "var(--danger)", background: "var(--danger-bg)",
+          }}>
+            Gagal memuat daftar plafon.{" "}
+            <button type="button" onClick={() => void muat()} style={{
+              background: "none", border: "none", padding: 0,
+              color: "inherit", font: "inherit", fontWeight: 700,
+              textDecoration: "underline", cursor: "pointer",
+            }}>Coba lagi</button>
+          </div>
+        ) : memuat ? (
           <div style={{ padding: 24, color: C.muted, fontSize: 14 }}>Memuat…</div>
         ) : baris.length === 0 ? (
           <div style={{ padding: 24, color: C.muted, fontSize: 14 }}>

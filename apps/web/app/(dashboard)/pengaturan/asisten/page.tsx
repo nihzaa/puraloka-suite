@@ -39,9 +39,10 @@
  * salinan yang pelan-pelan berbeda.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Loader2, Power, Save } from "lucide-react";
 import { api } from "@/lib/api";
+import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { C } from "@/lib/warna-ui";
 import { GAYA_KARTU } from "@/components/ui-dasar";
@@ -53,29 +54,28 @@ import { Saklar } from "@/components/saklar";
 export default function LapisanAiPage() {
   const bolehKelola = useIzin("settings:ai:manage");
 
-  const [tenant, setTenant] = useState<PengaturanTenant | null>(null);
   const [draf, setDraf] = useState<Partial<PengaturanTenant>>({});
-  const [memuat, setMemuat] = useState(true);
-  const [galat, setGalat] = useState<string | null>(null);
   const [menyimpan, setMenyimpan] = useState(false);
   const [toast, setToast] = useState<{ tipe: "ok" | "salah"; pesan: string } | null>(null);
 
-  const ambil = useCallback(async () => {
-    setMemuat(true);
-    setGalat(null);
-    try {
-      const r = await api.get<PengaturanTenant>("/api/v1/ai/pengaturan");
-      setTenant(r.data);
-    } catch {
-      setGalat("Pengaturan AI tidak bisa dimuat.");
-    } finally {
-      setMemuat(false);
-    }
-  }, []);
+  /*
+    PINDAH KE LAPIS CACHE BERSAMA (2026-08-17).
 
-  // `queueMicrotask`, bukan panggilan langsung — lihat catatan yang sama di
-  // `_bersama/kartu-asisten.tsx`.
-  useEffect(() => { queueMicrotask(() => { void ambil(); }); }, [ambil]);
+    `useData` menggantikan useState+useCallback+useEffect+queueMicrotask.
+    `/ai/pengaturan` dibaca beberapa layar asisten; tanpa lapis cache tiap
+    perpindahan mengambilnya ulang, dan dua komponen yang membutuhkannya
+    bersamaan mengirim dua permintaan.
+
+    `toast` (hasil AKSI simpan) tetap TERPISAH dari `galat` (gagal MUAT) —
+    penjaga `uji-galat-muat-terpisah` menuntutnya, dan alasannya nyata:
+    gagal menyimpan yang menimpa pesan gagal memuat membuat orang menekan
+    simpan berulang kali pada layar yang datanya memang tak pernah datang.
+  */
+  const { data: tenant, memuat, galat: galatMuat, muatUlang } =
+    useData<PengaturanTenant>("/api/v1/ai/pengaturan");
+  const galat = galatMuat ? "Pengaturan AI tidak bisa dimuat." : null;
+
+  const ambil = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   const t = tenant ? { ...tenant, ...draf } : null;
   const berubah = Object.keys(draf).length > 0;

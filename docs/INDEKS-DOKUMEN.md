@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 281 dokumen** — antrean 13 · acuan 204 · riwayat 64.
+**Total 282 dokumen** — antrean 13 · acuan 204 · riwayat 65.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -96,6 +96,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [RATIFIKASI](execution/RATIFIKASI.md) | riwayat | ✓ | RATIFIKASI — Satu-satunya Berkas yang Perlu Dibaca Founder |
 | [RENCANA-113-OTOMASI](execution/RENCANA-113-OTOMASI.md) | acuan |  | RENCANA 113 OTOMASI SISA — dan kenapa "belum bisa" itu keliru |
 | [RENCANA-PERBAIKAN-SIDEBAR](execution/RENCANA-PERBAIKAN-SIDEBAR.md) | riwayat |  | Rencana perbaikan navigasi — sidebar, tab-bagian, dan route |
+| [RENCANA-SISA-SEBAGIAN](execution/RENCANA-SISA-SEBAGIAN.md) | riwayat |  | Rencana Menuntaskan Entri sebagian |
 | [ROADMAP-WORKFLOW](execution/ROADMAP-WORKFLOW.md) | riwayat |  | ROADMAP WORKFLOW — checklist, dan di mana tiap bagian dipasang |
 | [TUGAS-FOUNDER-WHATSAPP-AI](execution/TUGAS-FOUNDER-WHATSAPP-AI.md) | acuan |  | Tugas yang HARUS dikerjakan founder sendiri — WhatsApp & AI |
 

@@ -1495,14 +1495,30 @@ export default async function financeRoutes(app: FastifyInstance) {
       .in('project_id', await request.db!.projectIds()).maybeSingle()
     if (!prev) return reply.status(404).send({ error: 'Invoice tidak ditemukan' })
 
-    const { error } = await supabase.from('invoices').update({
+    // `.select('id')` — bukan `{ error }` saja.
+    //
+    // Ini memutihkan DENDA: uang yang seharusnya ditagih dilepaskan. `error`
+    // hanya terisi kalau query-nya gagal; baris yang keburu terhapus, atau id
+    // yang lolos pemeriksaan di atas lalu hilang sebelum baris ini, menghasilkan
+    // NOL BARIS tanpa galat — dan request tetap membalas 200.
+    //
+    // Akibatnya: audit mencatat "denda diputihkan", pemakai melihat berhasil,
+    // dan dendanya masih tertagih. Untuk keputusan uang, "mungkin tersimpan"
+    // tidak cukup.
+    const { data: terubah, error } = await supabase.from('invoices').update({
       penalty_waived: waived,
       penalty_waived_reason: String(body.reason).trim(),
       penalty_waived_by: request.currentUser!.id,
       penalty_waived_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }).eq('id', id)
+    }).eq('id', id).select('id')
     if (error) return reply.status(500).send({ error: error.message })
+    if (!terubah || terubah.length === 0) {
+      return reply.status(409).send({
+        error: 'Invoice sudah berubah atau terhapus saat pemutihan diproses. '
+          + 'Muat ulang lalu periksa kembali — dendanya BELUM diputihkan.',
+      })
+    }
 
     // Waiver membebaskan denda: void angka otoritatif yang mungkin sudah dipersist
     // (kasus: invoice lunas telat lalu diputihkan). Peristiwa waive tetap terekam audit.
