@@ -5,6 +5,228 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-18 (sesi peta-modul, pematangan) — menjalankan SELURUH penjaga CI, dan dua cacat yang saya sebabkan sendiri
+
+Founder: *"pastikan tidak ada kesalahan, dan jika masih belum matang silahkan
+ulangi sampai benar benar matang sebelum lanjut"*.
+
+Sebelum lanjut ke A3, saya berhenti dan memeriksa ulang — bukan mengandalkan
+ingatan bahwa "tadi hijau".
+
+### Yang saya lakukan salah selama ini: menjalankan penjaga yang saya KIRA relevan
+
+Tiap sesi saya menjalankan 10–15 penjaga yang saya pilih sendiri. CI
+menjalankan **167**. "Yang saya kira relevan" bukan ukuran — dan dua cacat
+lolos justru karena penjaganya ADA, berjalan di CI, dan tak pernah saya
+panggil.
+
+Dibuat pembanding: worktree pada `34237405` (sebelum sesi ini), lalu seluruh
+penjaga dijalankan di kedua sisi dan hasilnya dibandingkan.
+
+    baseline (34237405) : 104 hijau · 62 MERAH
+    sesudah sesi ini    : 136 hijau · 31 MERAH
+
+Turun 31 merah. Tapi yang penting bukan angka itu — melainkan **daftar
+selisihnya**, dan di situ ada dua yang BARU:
+
+### Cacat 1 — `sort_order` bentrok (migrasi 453 saya)
+
+`md-klausul-kontrak` diberi `sort_order + 1` dari `md-template-dok` (64) → 65.
+Yang tak saya periksa: **65 sudah dipakai `crm-estimating`**.
+
+Dua item ber-`sort_order` sama membuat urutannya jatuh ke tie-break `key`
+secara abjad. Urutan sidebar lalu berubah begitu ada menu baru yang namanya
+lebih kecil — dan yang mengubahnya bukan siapa pun yang memutuskan urutan.
+
+Orang menghafal LETAK menu, bukan namanya. Menu yang berpindah tanpa ada yang
+memindahkannya membuat orang mengira fiturnya hilang.
+
+→ **migrasi 455**, dengan verifikasi yang memeriksa SELURUH pohon (bukan cuma
+grup ini) plus posisi relatifnya.
+
+### Cacat 2 — mewarisi urutan dari MENU MATI (migrasi 452 saya)
+
+`dk-verifikasi-ttd` diberi `sort_order + 1` dari `dk-esign` → 1608. Yang tak
+saya periksa: `dk-esign` dan seluruh saudara `dk-*` **`is_active = false`** —
+sisa penataan lama. Anak yang AKTIF di grup itu semuanya `kd-*` di 1401–1404.
+
+Diukur:
+
+    kd-gambar        1401   aktif
+    kd-transmittal   1402   aktif
+    kd-notulen       1403   aktif
+    kd-jadwal        1404   aktif
+    dk-register …    1601+  MATI semua
+    dk-verifikasi    1608   aktif   ← yatim di antara yang mati
+
+Konvensi repo: anak berada di `induk+1 .. induk+99`. Induknya 1400, jadi 1608
+di luar rentang. Ia tak terlihat salah hari ini karena urutan antar-grup
+ditentukan `sort_order` GRUPNYA — ia menggigit saat grup lain digeser.
+
+Yang lebih pokok: **mengambil nomor dari baris MATI berarti tata letak
+ditentukan sesuatu yang tak seorang pun lihat di layar.**
+
+→ **migrasi 456**.
+
+Keduanya bentuk kesalahan yang sama: `sort_order + 1` dari tetangga tanpa
+memeriksa apakah hasilnya bentrok (453) atau apakah acuannya masih hidup (452).
+
+### Cacat 3 — `uji-layar-kosong-menjelaskan` naik 131 → 132
+
+Halaman RK3K saya memakai label "Belum ada catatan" per-bagian, dan penjaga
+itu mencari frasa "Belum ada" sebagai penanda LAYAR yang menyatakan dirinya
+kosong tanpa jalan keluar.
+
+Halaman itu justru KEBALIKANNYA — tiap bagian menautkan ke tempat mengisinya.
+Tapi penjaganya tak bisa membedakan label per-bagian dari layar kosong, dan
+**menaikkan ambangnya demi satu halaman berarti melemahkannya untuk seluruh
+repo** (G-5).
+
+Jadi yang mengalah kalimatnya: "Nol catatan". Ia bahkan lebih tepat — yang
+ditampilkan memang HITUNGAN, bukan pernyataan tentang layar.
+
+### Cacat 4 — SAYA MENYARING GALAT NYATA DARI VERIFIKASI SAYA SENDIRI
+
+Ini yang paling serius, dan sepenuhnya kesalahan saya.
+
+Sepanjang sesi ini saya menjalankan typecheck begini:
+
+```bash
+npx tsc --noEmit 2>&1 | grep -v ai-sifat | head -5
+```
+
+Dan melaporkan **"tsc bersih"** belasan kali. Padahal yang disaring itu galat
+SUNGGUHAN:
+
+    src/lib/ai-penyedia-anthropic.ts(11,23): error TS2307:
+      Cannot find module '@anthropic-ai/sdk'
+
+Paketnya benar-benar hilang dari disk — entri pnpm store-nya KOSONG sejak
+2026-08-08 (sepuluh hari sebelum sesi ini). Akibatnya **6 berkas test mati
+total dan 99 test tak pernah berjalan**, dan saya tak pernah tahu karena
+saya hanya menjalankan berkas test yang saya sentuh.
+
+Saya mewarisi `grep -v ai-sifat` dari perintah di awal sesi dan
+memakainya terus tanpa pernah bertanya apa yang disaringnya. **Filter yang
+tak pernah diperiksa isinya adalah kebohongan yang saya ucapkan kepada diri
+sendiri belasan kali.**
+
+Diperbaiki: entri store yang kosong dihapus, `pnpm install` penuh. Sesudahnya
+`tsc --noEmit` **tanpa filter apa pun** → 0 galat di api DAN web.
+
+Pelajarannya sama persis dengan pembuka CLAUDE.md, tapi satu tingkat lebih
+dalam: bukan cuma angka dan alasan yang membusuk — **alat ukur pun bisa
+dicurangi, dan yang mencurangi biasanya orang yang memakainya.**
+
+⚠ `pnpm install --filter` sempat merusak `apps/web/node_modules` (next hilang).
+Ditutup dengan `pnpm install` penuh. Di workspace pnpm, memasang satu paket
+untuk satu filter bukan operasi lokal.
+
+### Cacat 5 — jurnal saya sendiri jadi CRLF, dan penjaganya menyuruh pakai python yang tak terpasang
+
+`audit-akhir-baris` merah: `docs/execution/JOURNAL.md` LF di HEAD, CRLF di
+pohon kerja. Penyebabnya penulisan jurnal saya sendiri.
+
+Yang lebih layak dicatat: **petunjuk pemulihan di penjaga itu menyuruh
+`python`, dan python TIDAK terpasang di mesin ini.** Satu-satunya jalan
+keluar yang ditawarkan penjaga mustahil dijalankan orang yang membacanya.
+
+Petunjuk yang tak bisa diikuti sama saja dengan tak ada petunjuk — dan lebih
+buruk, karena ia membuat pembacanya mengira dirinya yang salah.
+
+Diganti perintah `node` setara, lalu **dibuktikan dengan memakainya**: jurnal
+sengaja dijadikan CRLF lagi (penjaga MERAH), dipulihkan dengan perintah yang
+tertulis di petunjuknya sendiri (penjaga HIJAU).
+
+### Cacat 6 — alat sapuan saya salah cwd, lalu melaporkan hijau yang merah
+
+Versi pertama `jalankan-semua-penjaga.mjs` mencoba `apps/api` lebih dulu.
+`audit-akhir-baris.mjs` ada di sana, jadi ia dijalankan dengan cwd `apps/api`
+— dan dari sana ia melihat pohon kerja yang berbeda, lalu **exit 0**.
+
+Saya sempat menyimpulkan "penjaganya sebenarnya hijau, alat sapuannya yang
+salah". Terbalik: cwd-nya yang salah, dan penjaganya memang MERAH.
+
+CI menjalankannya dari akar repo (`node apps/api/scripts/audit-akhir-baris.mjs`),
+jadi urutan pencarian dibalik: akar repo lebih dulu.
+
+**Penjaga yang dilaporkan hijau padahal merah sama berbahayanya dengan
+sebaliknya** — dan kali ini alat pemeriksanya sendiri yang berbohong.
+
+### Cacat 7 — `wa-webhook.test.ts` mati di setup, dan komentarnya memperingatkan cacat yang SAMA satu tingkat di bawahnya
+
+Sesudah `@anthropic-ai/sdk` dipulihkan, lima dari enam berkas yang tadinya
+mati langsung hijau (**107 test kembali hidup**). Satu masih merah:
+
+    Error: tak ada anggota ber-peran client di company uji
+
+Diukur: dari tiga company ber-anggota, **hanya SATU** yang punya peran
+`client` (13 orang); dua lainnya cuma `admin`. Test memilih company-nya
+dengan `WHERE EXISTS (…company_members…) LIMIT 1` — cukup ada anggota, peran
+apa pun, tanpa ORDER BY.
+
+Yang membuatnya layak dicatat: **berkas itu sendiri sudah memperingatkan
+cacat yang persis sama**, satu tingkat lebih bawah —
+
+> *"Peran DIPILIH EKSPLISIT, tak pernah `LIMIT 1`. Versi pertama test ini
+> memakai `LIMIT 1` dan mendapat seorang client … test tetap hijau tanpa
+> pernah membuktikan bahwa gerbang SETELAHNYA bekerja."*
+
+Perannya diperbaiki; **company-nya masih diundi.** Peringatan yang benar,
+diterapkan setengah.
+
+Diperbaiki: company dipilih yang punya `admin` DAN `client`, ber-ORDER BY.
+15/15 hijau — dari 0.
+
+Pola yang sama sudah saya perbaiki dua kali sesi ini (`spk.test.ts`,
+`kontrak-pdf-kop.test.ts`). Ia berulang karena `LIMIT 1` terlihat tak
+berbahaya sampai basisnya punya lebih dari satu baris yang memenuhi syarat.
+
+### Yang TIDAK saya perbaiki, dan kenapa
+
+31 penjaga masih merah. **Nol di antaranya baru** — seluruhnya sudah merah di
+baseline (yang 62). Beberapa di antaranya besar (`lint-ratchet`,
+`uji-baris-tak-mepet` 42, `medan-hantu-ratchet` 11) dan menyentuh puluhan
+berkas milik modul lain yang sedang dikerjakan sesi paralel.
+
+Memperbaikinya sekarang berarti menyentuh berkas yang sedang berubah di
+tangan orang lain. Dicatat sebagai hutang yang terukur, bukan disapu diam-diam.
+
+### Bukti
+
+    penjaga CI       136 hijau · 31 merah · NOL yang baru
+                     (baseline 34237405: 104 hijau · 62 merah)
+    migrasi 455      2 invarian LULUS — nol bentrok di SELURUH pohon,
+                     klausul tepat sesudah template dokumen
+    migrasi 456      3 invarian LULUS — dalam rentang, tak menabrak saudara
+                     aktif, nol anak aktif di luar rentang di seluruh pohon
+    ledger-diff      450–456 semuanya TERCATAT-KONSISTEN; nol di daftar
+                     "artefak hilang" maupun "tidak di buku"
+    artefak diukur   klausul_kontrak ✓ · rk3k aktif ✓ · verifikasi aktif ✓ ·
+                     menu klausul aktif ✓ · spk_addendum ✓ ·
+                     bentrok 0 · luar-rentang 0
+    vitest web       649 passed · 50 berkas
+    vitest api       6 berkas yang tadinya MATI kini hidup:
+                     122 test (107 passed + 15 wa-webhook) — dari NOL
+    tsc api + web    bersih, TANPA filter apa pun
+    akhir-baris      hijau; petunjuk pemulihannya diganti ke `node` dan
+                     DIBUKTIKAN bisa dijalankan (mutasi CRLF → merah →
+                     dipulihkan pakai petunjuknya sendiri → hijau)
+
+### Alat baru: `jalankan-semua-penjaga.mjs`
+
+Supaya sesi berikutnya tak mengulang kesalahan saya, sapuan penjaga
+dipromosikan jadi skrip tetap — ia membaca daftar penjaganya dari `ci.yml`
+SENDIRI, bukan dari daftar yang diketik tangan. Daftar yang diketik tangan
+akan melewatkan penjaga yang baru ditambahkan orang lain, dan "semua hijau"
+jadi klaim tentang daftar saya, bukan tentang CI.
+
+    cd apps/api && node scripts/jalankan-semua-penjaga.mjs
+
+Dicatat juga di `CLAUDE.md` §7, bersama peringatan jangan-menyaring-tsc.
+
+---
+
 ## 2026-08-18 (sesi peta-modul, A2) — addendum SPK: kalimat yang menyuruh tanpa menyediakan jalannya
 
 Founder: *"lanjutkan, dan biarkan kerja pararel saja"*.

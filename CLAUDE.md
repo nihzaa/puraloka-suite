@@ -311,6 +311,25 @@ grep NEXT_PUBLIC_API_URL apps/web/.env.local
 netstat -ano | grep ':300[0-9].*LISTENING'
 cd apps/api && npx vitest run          # test (integration, butuh DB)
 
+# ⚠ JANGAN MENYARING KELUARAN TYPECHECK. Sesi 2026-08-18 menjalankan
+#
+#     npx tsc --noEmit 2>&1 | grep -v ai-sifat
+#
+# dan melaporkan "tsc bersih" BELASAN KALI. Yang disaring galat sungguhan:
+# `@anthropic-ai/sdk` hilang dari disk (entri pnpm store KOSONG sejak
+# 2026-08-08), yang membuat 6 berkas test mati dan 99 test tak pernah
+# berjalan. Filter itu diwarisi dari perintah sebelumnya dan tak pernah
+# diperiksa isinya.
+#
+# Kalau `tsc` mengeluh, PERBAIKI atau LAPORKAN — jangan disaring.
+# Filter yang tak diperiksa isinya adalah kebohongan kepada diri sendiri.
+
+# ⚠ MENJALANKAN PENJAGA: jangan pilih dari ingatan. CI menjalankan 167;
+# sesi yang memilih 10-15 "yang saya kira relevan" melewatkan dua cacat
+# yang penjaganya SUDAH ADA dan berjalan di CI (2026-08-18: sort_order
+# bentrok + anak di luar rentang, keduanya dari migrasi sesi itu sendiri).
+cd apps/api && node scripts/jalankan-semua-penjaga.mjs   # SEMUA penjaga CI
+
 # ── n8n & Evolution: MILIK PURALOKA, bukan milik TJS ──────────────────
 #
 # Di mesin ini ada DUA proyek yang memakai keduanya, dan instance-nya

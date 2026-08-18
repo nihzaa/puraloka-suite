@@ -67,10 +67,34 @@ async function jumlahBiaya(): Promise<number> {
 
 beforeAll(async () => {
   db = await createRlsClient()
+  /*
+   * Company dipilih yang BENAR-BENAR punya kedua peran yang dibutuhkan.
+   *
+   * Versi sebelumnya: `WHERE EXISTS (…company_members…) LIMIT 1` — cukup ada
+   * ANGGOTA, peran apa pun, dan tanpa ORDER BY.
+   *
+   * Diukur 2026-08-18: dari tiga company ber-anggota, hanya SATU yang punya
+   * peran `client` (13 orang); dua lainnya cuma punya `admin`. Begitu
+   * Postgres memilih salah satu dari dua itu, SELURUH berkas ini mati di
+   * setup dengan "tak ada anggota ber-peran client di company uji" — pesan
+   * yang menuduh SEED, padahal seednya baik.
+   *
+   * Ini persis cacat yang diperingatkan komentar di bawah, satu tingkat lebih
+   * atas: di sana peran dipilih eksplisit, tapi COMPANY-nya masih diundi.
+   */
   const { rows: c } = await db.query(`
     SELECT c.id FROM companies c
-    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
+    WHERE EXISTS (SELECT 1 FROM company_members m JOIN roles r ON r.id = m.role_id
+                   WHERE m.company_id = c.id AND r.name = 'admin')
+      AND EXISTS (SELECT 1 FROM company_members m JOIN roles r ON r.id = m.role_id
+                   WHERE m.company_id = c.id AND r.name = 'client')
+    ORDER BY c.created_at, c.id
+    LIMIT 1
   `)
+  if (!c[0]) {
+    throw new Error('tak ada company yang punya peran admin DAN client — '
+      + 'periksa seed/keanggotaan, bukan berkas ini')
+  }
   companyId = c[0].id
   /*
    * Peran DIPILIH EKSPLISIT, tak pernah `LIMIT 1`.

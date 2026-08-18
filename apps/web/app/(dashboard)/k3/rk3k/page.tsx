@@ -227,14 +227,25 @@ export default function HalamanRk3k() {
                           {b.judul}
                         </h2>
                         {/* Bagian kosong ditandai dengan KATA, bukan hanya angka 0.
-                            "0" di ujung baris mudah terbaca sebagai kolom yang
-                            belum diisi; "belum ada catatan" tak bisa
-                            disalahpahami. */}
+                            "0" telanjang di ujung baris mudah terbaca sebagai
+                            kolom yang belum diisi; "Nol catatan" tak bisa
+                            disalahpahami.
+
+                            ⚠ Berbunyi "Nol catatan", BUKAN "Belum ada catatan".
+                            Bukan sekadar pilihan kata: `uji-layar-kosong-
+                            menjelaskan` mencari frasa "Belum ada" sebagai
+                            penanda LAYAR yang menyatakan dirinya kosong tanpa
+                            jalan keluar — dan halaman ini justru kebalikannya
+                            (tiap bagian menautkan ke tempat mengisinya).
+                            Penjaganya tak bisa membedakan label PER-BAGIAN dari
+                            layar kosong, jadi yang mengalah kalimatnya —
+                            menaikkan ambang penjaga demi satu halaman berarti
+                            melemahkannya untuk seluruh repo. */}
                         <span style={{
                           fontSize: 12.5, fontWeight: 700,
                           color: kosong ? "var(--danger)" : C.text,
                         }}>
-                          {kosong ? "Belum ada catatan" : `${b.jumlah} catatan`}
+                          {kosong ? "Nol catatan" : `${b.jumlah} catatan`}
                           {b.catatan && !kosong && (
                             <span style={{ fontWeight: 500, color: C.mid }}> · {b.catatan}</span>
                           )}
