@@ -11,9 +11,10 @@ import { analisaFootplat } from '../../lib/struktur-footplat.js'
 import { analisaPilecap } from '../../lib/struktur-pilecap.js'
 import { analisaTiang } from '../../lib/struktur-tiang.js'
 import { analisaKolomLengkap, analisaKolomBulatLengkap } from '../../lib/struktur-kolom-lengkap.js'
+import { jelaskan, ringkasanAwam, tingkatBahaya, apakahBiner } from '../../lib/struktur-awam.js'
 import {
   gambarPenampang, gambarDiagramPM, gambarPenampangLingkaran,
-  gambarPotonganPelat, gambarPondasi, gambarTiang,
+  gambarPotonganPelat, gambarPondasi, gambarTiang, gambarMeteranKekuatan,
 } from '../../lib/struktur-gambar.js'
 
 /**
@@ -313,10 +314,61 @@ export default async function strukturRoutes(app: FastifyInstance) {
 
       const badan: Record<string, unknown> = { elemen: el, hasil }
 
+      /*
+        ══════════════════════════════════════════════════════════════════════
+        LAPISAN AWAM — untuk yang memutuskan tapi tidak mengerti teknik
+
+        Yang memutuskan membangun sering BUKAN insinyur: pemilik proyek,
+        klien, manajer. Bagi mereka "φMn = 0.9 · As · fy · (d − a/2)" tak bisa
+        ditindak — dan yang tak bisa ditindak akan diterima begitu saja,
+        TERMASUK saat ia merah.
+
+        Dikirim BERSAMA hasil teknisnya, bukan menggantikannya: insinyur tetap
+        butuh angka dan rumusnya untuk memeriksa ulang. Keduanya turunan dari
+        verdict yang SAMA, jadi tak bisa berselisih.
+      */
+      const daftarPeriksa = periksaDari(hasil) as Array<{
+        nama: string; aman: boolean; rasio: number
+      }>
+      badan.awam = {
+        ringkasan: ringkasanAwam(daftarPeriksa),
+        pemeriksaan: daftarPeriksa.map((pp) => ({
+          nama: pp.nama,
+          tingkat: tingkatBahaya(pp.rasio, pp.aman),
+          persenTerpakai: Math.round(pp.rasio * 100),
+          penjelasan: jelaskan(pp.nama),
+        })),
+      }
+
       // Gambar HANYA bila diminta — SVG penampang + diagram P-M menambah
       // beberapa KB, dan halaman daftar tak membutuhkannya.
       if (request.query.gambar === '1') {
         badan.gambar = gambarUntuk(el, hasil)
+
+        /*
+          METERAN dibuat DI SINI, bukan di `gambarUntuk`.
+
+          `gambarUntuk` menggambar BENDANYA (penampang, potongan, denah);
+          meteran menggambar VERDICT-nya. Dua hal berbeda, dan memisahkannya
+          membuat jelas bahwa meteran berlaku untuk SEMUA jenis elemen —
+          sementara gambar benda selalu khas per jenis.
+        */
+        if (daftarPeriksa.length > 0) {
+          try {
+            (badan.gambar as Record<string, string>).meteran = gambarMeteranKekuatan(
+              daftarPeriksa.map((pp) => ({
+                judul: jelaskan(pp.nama)?.judul ?? pp.nama,
+                rasio: pp.rasio,
+                aman: pp.aman,
+                biner: apakahBiner(pp.nama),
+              })),
+              { judul: `Seberapa terpakai kekuatannya — ${el.kode}` },
+            )
+          } catch {
+            (badan.gambar as Record<string, string>).meteranGagal =
+              'Meteran kekuatan tak dapat digambar'
+          }
+        }
       }
 
       return reply.send(badan)

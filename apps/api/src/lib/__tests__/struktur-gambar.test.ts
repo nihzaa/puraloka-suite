@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   posisiTulangan, gambarPenampang, gambarBatang, gambarDiagramPM, amankanTeks,
   gambarPenampangLingkaran, posisiTulanganLingkaran,
-  gambarPotonganPelat, gambarPondasi, gambarTiang,
+  gambarPotonganPelat, gambarPondasi, gambarTiang, gambarMeteranKekuatan,
   type InputGambarPenampang,
 } from '../struktur-gambar'
 import { diagramPM, penampangPersegi, cekTitikBeban } from '../struktur-diagram-pm'
@@ -807,5 +807,84 @@ describe('SVG tak bisa disusupi lewat teks pengguna', () => {
       .replace(/="[^"]*"/g, '=""')       // buang isi nilai atribut
       .replace(/>[^<]*</g, '><')          // buang isi teks antar-tag
     expect(hanyaStruktur).not.toMatch(/onload/i)
+  })
+})
+
+describe('gambarMeteranKekuatan — visual untuk yang tak mengerti teknik', () => {
+  const B = (judul: string, rasio: number, aman: boolean) => ({ judul, rasio, aman })
+
+  it('rasio BERBEDA menghasilkan panjang batang yang BERBEDA — meski dua-duanya lewat batas', () => {
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      CACAT YANG DITANGKAP TEST INI
+
+      Skala linier 0–130% (percobaan pertama) membuat batang 148% dan 260%
+      berakhir di titik yang SAMA PERSIS — keduanya mentok di ujung.
+
+      Terlihat di tangkapan layar: dua pemeriksaan dengan tingkat kekurangan
+      yang jauh berbeda tergambar identik, padahal yang satu perlu diperbesar
+      sedikit dan yang lain perlu dirancang ulang. Bagi pembaca non-teknis —
+      justru orang yang meteran ini dibuat untuknya — keduanya terlihat
+      sama-sama "merah penuh".
+      ══════════════════════════════════════════════════════════════════════
+    */
+    const svg = gambarMeteranKekuatan([
+      B('Satu', 1.48, false), B('Dua', 2.6, false),
+    ])
+    // Ambil lebar tiap batang terisi (rect kedua tiap baris punya stroke warna).
+    const lebar = [...svg.matchAll(/<rect[^>]*width="([\d.]+)"[^>]*stroke="#dc2626"/g)]
+      .map((m) => Number(m[1]))
+    expect(lebar).toHaveLength(2)
+    expect(lebar[0]).not.toBeCloseTo(lebar[1], 1)
+    expect(lebar[1]).toBeGreaterThan(lebar[0])
+  })
+
+  it('GARIS BATAS digambar — verdict terbaca tanpa bergantung warna', () => {
+    /*
+      Sekitar 8% laki-laki mengalami buta warna merah-hijau; bagi mereka batang
+      merah dan hijau nyaris sama. Garis batas membuat "lewat batas" terbaca
+      dari POSISI, dan posisi bisa dilihat semua orang.
+    */
+    const svg = gambarMeteranKekuatan([B('Satu', 0.5, true)])
+    expect(svg).toMatch(/batas aman \(100%\)/)
+    expect(svg).toMatch(/stroke-dasharray/)
+  })
+
+  it('angka persen ikut ditulis — grafik tanpa angka tak bisa dirujuk', () => {
+    const svg = gambarMeteranKekuatan([B('Satu', 0.54, true), B('Dua', 1.48, false)])
+    expect(svg).toMatch(/>54%</)
+    expect(svg).toMatch(/>148%</)
+  })
+
+  it('tiga tingkat DIBEDAKAN warnanya: aman, mepet, bahaya', () => {
+    const svg = gambarMeteranKekuatan([
+      B('Aman', 0.4, true), B('Mepet', 0.95, true), B('Bahaya', 1.5, false),
+    ])
+    expect(svg).toMatch(/#059669/)   // hijau
+    expect(svg).toMatch(/#d97706/)   // amber
+    expect(svg).toMatch(/#dc2626/)   // merah
+  })
+
+  it('rasio ekstrem ditandai bergerigi, bukan dipotong diam-diam', () => {
+    // 500% > RASIO_MAKS 400%: harus ada penanda "di luar sumbu".
+    const svg = gambarMeteranKekuatan([B('Ekstrem', 5.0, false)])
+    expect(svg).toMatch(/<path d="M/)
+    expect(svg).toMatch(/>500%</)
+  })
+
+  it('rasio nol/negatif tidak menghasilkan lebar negatif', () => {
+    const svg = gambarMeteranKekuatan([B('Nol', 0, true)])
+    const lebar = [...svg.matchAll(/<rect[^>]*width="([\d.-]+)"/g)].map((m) => Number(m[1]))
+    for (const w of lebar) expect(w).toBeGreaterThanOrEqual(0)
+  })
+
+  it('menolak daftar kosong alih-alih menggambar kanvas hampa', () => {
+    expect(() => gambarMeteranKekuatan([])).toThrow(/minimal satu/)
+  })
+
+  it('judul jahat tidak lolos', () => {
+    const svg = gambarMeteranKekuatan(
+      [B('</text><script>alert(1)</script><text>', 0.5, true)])
+    expect(svg).not.toMatch(/<script/i)
   })
 })

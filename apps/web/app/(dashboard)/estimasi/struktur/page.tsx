@@ -97,8 +97,23 @@ interface Periksa {
   aman: boolean; rasio: number; rumus: string;
 }
 
+interface PenjelasanAwam {
+  nama: string; judul: string; apa: string; risiko: string; tindakan: string;
+}
+
+interface PemeriksaanAwam {
+  nama: string;
+  tingkat: "aman" | "mepet" | "bahaya";
+  persenTerpakai: number;
+  penjelasan: PenjelasanAwam | null;
+}
+
 interface MuatanDetail {
   elemen: BarisElemen;
+  awam?: {
+    ringkasan: { tingkat: "aman" | "mepet" | "bahaya"; kalimat: string };
+    pemeriksaan: PemeriksaanAwam[];
+  };
   hasil: {
     aman?: boolean;
     periksa?: Periksa[];
@@ -941,7 +956,13 @@ function PanelDetail({ detail, onTutup }: { detail: MuatanDetail; onTutup: () =>
   const h = detail.hasil ?? {};
   const periksa = h.periksa ?? h.dasar?.periksa ?? [];
   const catatan = h.catatan ?? h.dasar?.catatan ?? [];
-  const gambar = Object.entries(detail.gambar ?? {}).filter(([k]) => !k.endsWith("Gagal"));
+  /*
+    `meteran` DIKELUARKAN dari galeri gambar benda: ia sudah ditampilkan di
+    atas bersama ringkasan awam. Tanpa penyaringan ini ia muncul dua kali —
+    sekali sebagai penjelasan, sekali sebagai "gambar kerja" yang bukan.
+  */
+  const gambar = Object.entries(detail.gambar ?? {})
+    .filter(([k]) => !k.endsWith("Gagal") && k !== "meteran");
   const gagal = Object.entries(detail.gambar ?? {}).filter(([k]) => k.endsWith("Gagal"));
 
   const JUDUL_GAMBAR: Record<string, string> = {
@@ -963,7 +984,91 @@ function PanelDetail({ detail, onTutup }: { detail: MuatanDetail; onTutup: () =>
         </button>
       </div>
 
+      {/*
+        ══════════════════════════════════════════════════════════════════════
+        LAPISAN AWAM DITAMPILKAN LEBIH DULU, tabel teknis di bawahnya.
+
+        Bukan karena yang teknis kurang penting — melainkan karena yang
+        MEMUTUSKAN membangun sering bukan insinyur. Kalau yang pertama terlihat
+        adalah "φMn = 0.9 · As · fy · (d − a/2)", pemilik proyek berhenti
+        membaca di situ, dan verdict merah pun ikut terlewat.
+
+        Keduanya turunan dari verdict yang SAMA — jadi tak mungkin berselisih,
+        dan insinyur tetap punya angkanya untuk diperiksa ulang.
+        ══════════════════════════════════════════════════════════════════════
+      */}
+      {detail.awam && (
+        <div style={{
+          padding: "var(--pad-kartu)",
+          borderRadius: "var(--radius-dense)",
+          border: `1px solid ${
+            detail.awam.ringkasan.tingkat === "bahaya" ? C.dangerBorder
+              : detail.awam.ringkasan.tingkat === "mepet" ? C.warningBorder
+              : C.successBorder}`,
+          background:
+            detail.awam.ringkasan.tingkat === "bahaya" ? C.dangerBg
+              : detail.awam.ringkasan.tingkat === "mepet" ? C.warningBg
+              : C.successBg,
+          color:
+            detail.awam.ringkasan.tingkat === "bahaya" ? C.onDangerBg
+              : detail.awam.ringkasan.tingkat === "mepet" ? C.onWarningBg
+              : C.onSuccessBg,
+        }}>
+          <p style={{ margin: 0, fontSize: "var(--teks-badan)", fontWeight: 600 }}>
+            {detail.awam.ringkasan.kalimat}
+          </p>
+        </div>
+      )}
+
+      {/* Meteran: seberapa terpakai kapasitasnya, terbaca tanpa angka teknis. */}
+      {detail.gambar?.meteran && (
+        <div
+          style={{
+            background: "var(--kertas-gambar)", border: `1px solid ${C.border}`,
+            borderRadius: "var(--radius-dense)", padding: 10, overflowX: "auto",
+          }}
+          dangerouslySetInnerHTML={{ __html: detail.gambar.meteran }}
+        />
+      )}
+
+      {/*
+        Penjelasan per pemeriksaan yang BERMASALAH saja.
+
+        Menampilkan kelimanya sekaligus membuat yang penting tenggelam. Yang
+        aman-berjarak tak butuh penjelasan; yang merah dan mepet justru harus
+        dibaca sampai bagian TINDAKAN-nya.
+      */}
+      {detail.awam?.pemeriksaan
+        .filter((pp) => pp.tingkat !== "aman" && pp.penjelasan)
+        .map((pp) => (
+          <details key={pp.nama} open={pp.tingkat === "bahaya"} style={{
+            border: `1px solid ${pp.tingkat === "bahaya" ? C.dangerBorder : C.warningBorder}`,
+            borderRadius: "var(--radius-dense)",
+            padding: "var(--pad-kartu)",
+            background: pp.tingkat === "bahaya" ? C.dangerBg : C.warningBg,
+            color: pp.tingkat === "bahaya" ? C.onDangerBg : C.onWarningBg,
+            fontSize: "var(--teks-delta)",
+          }}>
+            <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+              {pp.penjelasan!.judul} — terpakai {pp.persenTerpakai}%
+              {pp.tingkat === "bahaya" ? " (melewati batas)" : " (mepet)"}
+            </summary>
+            <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+              <p style={{ margin: 0 }}><strong>Apa ini:</strong> {pp.penjelasan!.apa}</p>
+              <p style={{ margin: 0 }}><strong>Kalau dibiarkan:</strong> {pp.penjelasan!.risiko}</p>
+              <p style={{ margin: 0 }}><strong>Yang bisa dilakukan:</strong> {pp.penjelasan!.tindakan}</p>
+            </div>
+          </details>
+        ))}
+
       {periksa.length > 0 && (
+        <details style={{ border: `1px solid ${C.border}`, borderRadius: "var(--radius-dense)", padding: "var(--pad-kartu)" }}>
+          <summary style={{
+            cursor: "pointer", fontWeight: 600, fontSize: "var(--teks-delta)", color: C.mid,
+          }}>
+            Angka teknis & rumusnya — untuk diperiksa ulang insinyur
+          </summary>
+          <div style={{ marginTop: 10 }}>
         <Tabel<Periksa>
           caption={`Hasil pemeriksaan struktural elemen ${detail.elemen.kode}`}
           data={periksa}
@@ -996,6 +1101,8 @@ function PanelDetail({ detail, onTutup }: { detail: MuatanDetail; onTutup: () =>
             },
           ]}
         />
+          </div>
+        </details>
       )}
 
       {gambar.length > 0 && (

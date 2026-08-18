@@ -5,6 +5,102 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 3) — kekuatan struktur bisa dibaca orang yang tak mengerti teknik
+
+Founder: *"untuk kekuatan struktur saya mau tidak hanya angka, tapi bisa
+divisualkan juga agar yg tidak mengerti teknis bisa mengerti"*.
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur    426 passed (15 files)   ← dari 401
+apps/api  npx tsc --noEmit           exit 0
+apps/web  npx tsc --noEmit           exit 0
+apps/web  npx next build             exit 0
+penjaga UI (69 skrip)                25 merah — IDENTIK baseline
+a11y runtime terang + gelap          1/1 halaman, 0 pelanggaran
+```
+
+### Masalahnya bukan angkanya kurang, tapi tak bisa ditindak
+
+Keluaran modul sebelumnya berbunyi:
+
+```
+Lentur   φMn = 0.9 · As · fy · (d − a/2)   153,15 ≥ 83,20 kNm   aman
+```
+
+Benar, lengkap, bisa diperiksa insinyur. Tetapi yang MEMUTUSKAN membangun
+sering bukan insinyur — pemilik proyek, klien, manajer, pengawas pemberi
+kerja. Bagi mereka baris itu tak bisa ditindak, dan yang tak bisa ditindak
+diterima begitu saja **termasuk saat ia merah**.
+
+Diukur: 26 jenis pemeriksaan, **nol** yang punya penjelasan non-teknis.
+
+### Yang dibangun
+
+`lib/struktur-awam.ts` — kamus 25 terjemahan, tiap satu wajib menyebut:
+
+  1. APA yang diperiksa (kalimat yang bisa dibayangkan)
+  2. APA RISIKONYA — akibat fisiknya, bukan istilahnya
+  3. APA TINDAKANNYA — langkah nyata
+
+Contoh: *"Tanah yang kelebihan beban akan AMBLAS — bangunan turun tak merata,
+dinding retak diagonal, pintu dan jendela macet"* → *"Perluas ukuran pondasi
+(paling murah), atau ganti ke pondasi tiang bila tanah kerasnya dalam."*
+
+`gambarMeteranKekuatan` — batang per pemeriksaan, panjangnya sebanding
+pemakaian kapasitas, dengan garis batas 100%.
+
+### Empat keputusan yang bukan selera
+
+**Garis batas digambar, bukan cuma warna.** ~8% laki-laki buta warna
+merah-hijau; bagi mereka batang merah dan hijau nyaris sama. Garis batas
+membuat "lewat batas" terbaca dari POSISI.
+
+**"Aman tapi mepet" tidak dibulatkan jadi "aman".** Rasio 0,98 dan 0,42
+sama-sama lulus, tetapi cuma satu yang bertahan kalau beban bertambah sedikit
+— dan beban bertambah sedikit PASTI terjadi.
+
+**Lapisan awam ditampilkan LEBIH DULU, tabel teknis di `<details>`.** Kalau
+yang pertama terlihat adalah rumus, pemilik proyek berhenti membaca di situ.
+Keduanya turunan verdict yang SAMA, jadi tak bisa berselisih.
+
+**Hanya pemeriksaan bermasalah yang dijelaskan.** Menampilkan kelimanya
+membuat yang penting tenggelam.
+
+### Dua cacat yang hanya terlihat dari gambar
+
+**Batang 148% dan 260% berakhir di titik yang SAMA.** Skala linier 0–130%
+membuat keduanya mentok di ujung — dua tingkat kekurangan yang jauh berbeda
+tergambar identik. Diganti skala dua bagian: 0–100% memakai 70% lebar,
+100–400% logaritmik di sisanya.
+
+**"Pondasi tidak terjungkit — 0%"** dengan batang kosong. Pemeriksaan itu
+BINER (terjadi atau tidak), rasionya 0 saat lulus. Digambar sebagai persen,
+pembaca menyangka kapasitasnya nol — kebalikan artinya. Kini lencana
+"terpenuhi".
+
+### Penjaga yang menangkap kekurangan saya sendiri
+
+`struktur-awam.test.ts` menjalankan SELURUH modul, mengumpulkan tiap nama
+pemeriksaan yang NYATA muncul, lalu menuntut semuanya punya terjemahan —
+dan menuntut terjemahannya tidak memakai istilah yang justru mau dihindari
+(φ, ρ, Mn, Mu, As, f'c, fy, kNm, MPa).
+
+Ia langsung merah pada tiga penjelasan yang saya tulis menumpang ("Sama dengan
+arah X"), yang panjangnya di bawah ambang. Ditulis lengkap.
+
+### Soal "menunggu founder"
+
+Founder bertanya kenapa apa-apa harus menunggu. Jawabannya: G-2 (menulis buku
+migrasi) memang butuh ratifikasi — tapi CHARTER §5 sendiri menyatakan
+*"berhenti di gerbang tidak pernah berarti berhenti bekerja"*, dan saya salah
+menaruhnya di akhir tiap laporan seolah pekerjaan tertahan. Tidak ada yang
+tertahan: semua migrasi sudah berjalan, yang tertunda hanya pencatatan agar CI
+ikut menjalankannya. Berhenti mengangkatnya tiap kali.
+
+---
+
 ## 2026-08-19 (lanjutan 2) — "sudah sempurna?" ternyata belum: 5 dari 7 jenis tak punya gambar
 
 Founder bertanya apakah benar-benar tak ada kekurangan. Saya jawab "matang"

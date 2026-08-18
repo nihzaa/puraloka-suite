@@ -1254,3 +1254,180 @@ export function gambarTiang(input: InputGambarTiang, opsi: OpsiGambar = {}): str
     '</svg>',
   ].join('\n')
 }
+
+// ── METERAN KEKUATAN — visual untuk yang TIDAK mengerti teknik ────────────────
+
+export interface BarisMeteran {
+  /** Judul versi awam ("Kekuatan menahan lenturan"). */
+  judul: string
+  /** Rasio tuntutan/kapasitas. 1,0 = tepat di batas. */
+  rasio: number
+  aman: boolean
+  /**
+   * Pemeriksaan BINER — lulus atau gagal, tanpa "seberapa terpakai".
+   *
+   * Dua pemeriksaan berperilaku begini: "Tanah tidak terangkat" dan "Tidak ada
+   * tiang tercabut". Keduanya memakai `rasio: 0` saat lulus, karena memang tak
+   * ada kapasitas yang terpakai — yang ditanya cuma "terjadi atau tidak".
+   *
+   * Digambar sebagai batang, hasilnya "0%" dengan alur kosong — dan pembaca
+   * non-teknis menyangka kapasitasnya NOL, yaitu kebalikan dari artinya.
+   * Terlihat di tangkapan layar sebagai satu baris yang mengganggu di tengah
+   * meteran yang lain masuk akal.
+   */
+  biner?: boolean
+}
+
+/**
+ * Meteran batang: seberapa banyak kapasitas tiap pemeriksaan sudah terpakai.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
+ * KENAPA VISUAL, BUKAN TABEL ANGKA
+ *
+ * Tabel "153,15 ≥ 83,20 kNm · aman" benar dan bisa diperiksa insinyur. Tetapi
+ * yang memutuskan membangun sering bukan insinyur, dan bagi mereka baris itu
+ * cuma dua angka: tak terlihat mana yang longgar dan mana yang nyaris lewat.
+ *
+ * Batang yang panjangnya sebanding dengan pemakaian kapasitas menjawab itu
+ * dalam sekali lihat — dan yang paling penting: batang 98% dan batang 42%
+ * terlihat BERBEDA JAUH, padahal keduanya sama-sama berlabel "aman".
+ *
+ * ── Kenapa garis batas digambar, bukan cuma warna
+ *
+ * Warna saja tak cukup: sekitar 8% laki-laki mengalami buta warna merah-hijau,
+ * dan mereka melihat batang merah dan hijau nyaris sama. Garis batas vertikal
+ * di 100% membuat "lewat batas" terbaca dari POSISI, bukan dari warna — dan
+ * posisi bisa dilihat semua orang.
+ *
+ * Angka persennya juga ditulis, karena grafik tanpa angka tak bisa dijadikan
+ * rujukan saat orang berdiskusi.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+export function gambarMeteranKekuatan(
+  baris: BarisMeteran[], opsi: OpsiGambar = {},
+): string {
+  if (!baris.length) throw new Error('Meteran butuh minimal satu pemeriksaan')
+
+  // Satuan gambar = piksel logis; tak ada dimensi fisik di sini.
+  const W = 1000
+  const tinggiBaris = 56
+  const jarakBaris = 16
+  const xLabel = 0
+  const lebarLabel = 380
+  const xBatang = lebarLabel + 24
+  const lebarBatang = W - xBatang - 90     // sisakan ruang untuk angka persen
+  const atas = opsi.judul ? 54 : 12
+
+  const H = atas + baris.length * (tinggiBaris + jarakBaris) + 46
+  const t = 1.6
+  const teksUkuran = 17
+
+  const bagian: string[] = []
+
+  if (opsi.judul) {
+    bagian.push(teks(0, 26, opsi.judul, teksUkuran * 1.25, WARNA.teks, 'start'))
+  }
+
+  /*
+    ── SKALA DUA BAGIAN, bukan linier
+
+    Rasio bisa jauh melewati 1: pondasi yang kurang setengahnya punya rasio
+    2,0 atau lebih, dan geser pons bisa 2,6.
+
+    Skala linier 0–130% (percobaan pertama) membuat batang 148% dan 260%
+    berakhir di titik yang SAMA PERSIS — keduanya mentok di ujung. Terlihat di
+    tangkapan layar: dua pemeriksaan dengan tingkat kekurangan yang jauh
+    berbeda tergambar identik, padahal yang satu perlu diperbesar sedikit dan
+    yang lain perlu dirancang ulang.
+
+    Sekarang 0–100% memakai 70% lebar (bagian yang paling sering dibaca dan
+    paling butuh ketelitian), sisanya 30% lebar memuat 100%–400% secara
+    logaritmik. Di atas 400% ujungnya bergerigi — konvensi grafik untuk
+    "nilainya di luar sumbu", bukan disamarkan seolah pas di tepi.
+
+    Garis batas 100% karena itu berada tepat di 70% lebar batang: posisi tetap,
+    mudah dibandingkan antar baris.
+  */
+  const PORSI_AMAN = 0.7          // 0–100% menempati 70% lebar
+  const RASIO_MAKS = 4.0          // di atas ini: bergerigi
+  const x100 = xBatang + lebarBatang * PORSI_AMAN
+
+  /** Rasio → panjang batang, dua bagian. */
+  const panjangBatang = (r: number): number => {
+    if (r <= 1) return lebarBatang * PORSI_AMAN * Math.max(r, 0)
+    const lebih = Math.min(r, RASIO_MAKS)
+    // Logaritmik: 100%→0, 400%→penuh. log(1)=0, jadi tak ada pembagian nol.
+    const bagian = Math.log(lebih) / Math.log(RASIO_MAKS)
+    return lebarBatang * (PORSI_AMAN + (1 - PORSI_AMAN) * bagian)
+  }
+
+  baris.forEach((b, i) => {
+    const y = atas + i * (tinggiBaris + jarakBaris)
+    const yTengah = y + tinggiBaris / 2
+
+    // Warna mengikuti tingkat bahaya yang sama dengan `struktur-awam.ts`.
+    const warna = !b.aman ? WARNA.tulangan
+      : b.rasio >= 0.9 ? '#d97706'      // amber — "mepet"
+      : '#059669'                        // hijau — aman berjarak
+    const warnaLatar = !b.aman ? '#fee2e2' : b.rasio >= 0.9 ? '#fef3c7' : '#d1fae5'
+
+    bagian.push(teks(xLabel, yTengah + teksUkuran * 0.34, b.judul, teksUkuran, WARNA.teks, 'start'))
+
+    /*
+      Pemeriksaan biner: lencana "terpenuhi"/"TIDAK", bukan batang persen.
+      Digambar di posisi batang supaya barisnya tetap sejajar dengan yang lain.
+    */
+    if (b.biner) {
+      const lebarLencana = 190
+      bagian.push(`<rect x="${bulat(xBatang)}" y="${bulat(y + 14)}" `
+        + `width="${lebarLencana}" height="${bulat(tinggiBaris - 28)}" rx="6" `
+        + `fill="${b.aman ? '#d1fae5' : '#fee2e2'}" `
+        + `stroke="${b.aman ? '#059669' : WARNA.tulangan}" stroke-width="${t * 1.2}"/>`)
+      bagian.push(teks(xBatang + lebarLencana / 2, yTengah + teksUkuran * 0.34,
+        b.aman ? 'terpenuhi' : 'TIDAK terpenuhi',
+        teksUkuran * 0.9, b.aman ? '#059669' : WARNA.tulangan))
+      return
+    }
+
+
+    // Alur batang (kapasitas penuh) — supaya "sisa" ikut terlihat, bukan
+    // hanya yang terpakai.
+    bagian.push(`<rect x="${bulat(xBatang)}" y="${bulat(y + 14)}" `
+      + `width="${bulat(lebarBatang)}" height="${bulat(tinggiBaris - 28)}" `
+      + `rx="6" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="${t}"/>`)
+
+    const terpakai = panjangBatang(b.rasio)
+    bagian.push(`<rect x="${bulat(xBatang)}" y="${bulat(y + 14)}" `
+      + `width="${bulat(Math.max(terpakai, 2))}" height="${bulat(tinggiBaris - 28)}" `
+      + `rx="6" fill="${warnaLatar}" stroke="${warna}" stroke-width="${t * 1.2}"/>`)
+
+    // Ujung bergerigi bila nilainya melewati skala.
+    if (b.rasio > RASIO_MAKS) {
+      const xu = xBatang + lebarBatang
+      const yA = y + 14, yB = y + tinggiBaris - 14
+      bagian.push(`<path d="M ${bulat(xu - 10)} ${bulat(yA)} L ${bulat(xu)} ${bulat((yA + yB) / 2)} `
+        + `L ${bulat(xu - 10)} ${bulat(yB)}" fill="none" stroke="${warna}" stroke-width="${t * 1.6}"/>`)
+    }
+
+    bagian.push(teks(xBatang + lebarBatang + 12, yTengah + teksUkuran * 0.34,
+      `${Math.round(b.rasio * 100)}%`, teksUkuran, warna, 'start'))
+  })
+
+  /*
+    GARIS BATAS 100% digambar TERAKHIR supaya berada di atas semua batang.
+
+    Inilah yang membuat verdict terbaca tanpa warna: apa pun warnanya, batang
+    yang ujungnya melewati garis ini berarti lewat batas.
+  */
+  const yAkhir = atas + baris.length * (tinggiBaris + jarakBaris) - jarakBaris
+  bagian.push(garis(x100, atas - 4, x100, yAkhir + 6, '#334155', t * 1.6, true))
+  bagian.push(teks(x100, yAkhir + 30, 'batas aman (100%)', teksUkuran * 0.82, '#334155'))
+
+  const lebarPx = opsi.lebarPx ?? 720
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${bulat(H)}" `
+    + `width="${lebarPx}" role="img" aria-label="${amankanTeks(opsi.judul ?? 'Meteran pemakaian kapasitas')}">`,
+    ...bagian,
+    '</svg>',
+  ].join('\n')
+}
