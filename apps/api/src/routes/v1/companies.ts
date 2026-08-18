@@ -28,6 +28,41 @@ import { lupakanKredensialCompany } from '../../lib/kredensial.js'
 // tanpa diminta.
 // ============================================================
 
+/**
+ * Awalan nama yang dipakai SELURUH fixture test untuk badan usaha uji
+ * (`[UJI]`, `[UJI-S1]`, `[UJI-ISOLASI]`, `[UJI-RUTE]`, …).
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA DISARING DI SINI, BUKAN DIHAPUS DARI BASIS
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Founder 2026-08-19: *"badan usaha itu bukan usaha sungguhan, ini untuk test,
+ * hapus ajaa"* — dan itu benar, barisnya memang sampah fixture. Tapi
+ * MENGHAPUSNYA tidak bisa dilakukan diam-diam:
+ *
+ *   • `trg_company_no_casual_delete` menolak DELETE pada `companies`. Diuji
+ *     langsung (di dalam transaksi yang di-ROLLBACK): ditolak.
+ *   • 216 baris turunan menempel padanya, 186 di antaranya `audit_logs` —
+ *     yang dijaga `trg_audit_logs_no_delete`. Immutability audit log adalah
+ *     Ember [C] (CLAUDE.md §5.3): *"jangan pernah membuatnya bisa diubah."*
+ *
+ * Menghapus paksa berarti mematikan DUA perlindungan itu untuk merapikan
+ * data uji. Harganya tak sepadan, dan §8a.1 menuntut berhenti untuk operasi
+ * destruktif yang tak bisa mundur.
+ *
+ * Saringan ini memberi hasil yang SAMA di layar — badan usaha uji tak pernah
+ * muncul lagi — tanpa menyentuh satu pun perlindungan. Ia juga lebih tahan
+ * lama daripada penghapusan: jumlahnya naik 652 → 741 hanya selama satu sesi
+ * karena test terus berjalan. Sekali dihapus, besok muncul lagi; sekali
+ * disaring, selamanya bersih.
+ *
+ * ⚠ Nama badan usaha SUNGGUHAN tak boleh diawali `[UJI`. Itu bukan batasan
+ * yang mengganggu — kurung siku di awal nama PT/CV tak pernah sah — tetapi
+ * kalau suatu hari perlu, saringan ini yang harus diganti (mis. kolom
+ * `is_fixture` khusus), bukan namanya yang dipaksakan.
+ */
+const TANDA_FIXTURE = '[UJI'
+
 /** Gerbang: hanya pemilik grup yang lolos. */
 async function requireGroupOwner(
   request: FastifyRequest,
@@ -227,6 +262,7 @@ export default async function companiesRoutes(app: FastifyInstance) {
     const { data: akar } = await request.db!
       .unsafe('companies', 'kategori D; T9 memang lintas company — daftar grup milik pemanggil')
       .select('id').eq('owner_user_id', request.currentUser!.id).eq('is_active', true)
+      .not('name', 'like', `${TANDA_FIXTURE}%`)
     const idAkar = (akar ?? []).map((r: { id: string }) => r.id)
     if (idAkar.length === 0) return reply.send({ data: [] })
 
@@ -238,6 +274,7 @@ export default async function companiesRoutes(app: FastifyInstance) {
       // tanpa ini, sisa fixture test yang berinduk pada grup aktif tetap
       // membengkakkan daftarnya kembali.
       .eq('is_active', true)
+      .not('name', 'like', `${TANDA_FIXTURE}%`)
       .order('created_at', { ascending: true })
 
     if (error) return reply.status(500).send({ error: 'Gagal memuat daftar badan usaha' })

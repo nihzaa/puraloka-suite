@@ -221,3 +221,96 @@ describe('F1-8 — tanpa token sama sekali', () => {
     expect(r.statusCode).toBe(401)
   }, 30_000)
 })
+
+// ============================================================================
+// DAFTAR BADAN USAHA — tak boleh 500, dan tak boleh memuat fixture test.
+//
+// ══════════════════════════════════════════════════════════════════════════
+// CACAT YANG MELAHIRKANNYA
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Founder membuka `/pengaturan/perusahaan` 2026-08-16 dan melihat "Gagal
+// memuat daftar badan usaha". Terlihat seperti masalah tampilan; ternyata
+// endpoint-nya membalas **500 setiap kali dipanggil**.
+//
+// Sebabnya: rute ini menyusun saringan `id.in.(…),parent_company_id.in.(…)`
+// dari SEMUA company milik pemanggil. Badan usaha tak pernah dihapus dari
+// basis (trigger melarangnya), dan tiap kali `ai-isolasi-tenant.test.ts`
+// berjalan ia meninggalkan satu baris. Diukur: 652 baris → saringan 48.204
+// byte → jauh melewati batas baris permintaan HTTP (~8 KB) → PostgREST
+// menolak → 500.
+//
+// Angkanya masih naik: 652 (16 Agu) → 741 (19 Agu), karena test terus jalan.
+//
+// ── Kenapa dua assertion, bukan satu
+//
+//   1. **Tidak 500** — menjaga cacat aslinya. Kalau saringan `is_active` atau
+//      `[UJI` hilang, jumlah id membengkak lagi dan URL-nya kepanjangan.
+//   2. **Tak ada `[UJI` di hasil** — menjaga niat foundernya ("hapus ajaa").
+//      Baris fixture tak boleh terlihat seperti badan usaha sungguhan di
+//      layar keputusan, sekalipun ia masih ada di basis.
+//
+// Assertion (1) saja tak cukup: daftar bisa saja berhasil dimuat TAPI penuh
+// sampah uji — persis keadaan yang dikeluhkan founder.
+// ============================================================================
+describe('daftar badan usaha — tahan membengkak & bersih dari fixture', () => {
+  it('membalas 200, bukan 500, walau ratusan company uji menumpuk', async () => {
+    actAs(authPemilik)
+    const r = await kirim('GET', '/api/v1/companies')
+
+    expect(
+      r.statusCode,
+      `Daftar badan usaha membalas ${r.statusCode}. 500 di sini biasanya berarti ` +
+        'saringan .in.() tumbuh melewati batas panjang URL — periksa ' +
+        '`is_active` dan TANDA_FIXTURE di companies.ts. Body: ' + r.body.slice(0, 200),
+    ).toBe(200)
+  }, 30_000)
+
+  /*
+   * ⚠ BATAS TEST INI — dibaca dulu sebelum percaya ia menjaga saringan nama.
+   *
+   * Assertion di bawah TIDAK bisa membuktikan saringan `[UJI` bekerja, dan
+   * itu sudah diuji dengan mutasi: saringannya dicopot dari `companies.ts`,
+   * test tetap HIJAU. Dua sebab, keduanya struktural:
+   *
+   *   1. Rute membaca lewat `request.db` → `createTenantDb` → klien Supabase
+   *      (HTTP). Test menulis lewat `pg` di dalam transaksi yang belum
+   *      di-commit. Dua koneksi berbeda: baris fixture yang dibuat di sini
+   *      TAK PERNAH terlihat oleh rutenya.
+   *   2. Seluruh 740 sisa fixture di basis kini `is_active = false`, jadi
+   *      saringan `is_active` saja sudah cukup menyaringnya — tak ada yang
+   *      tersisa untuk dibedakan.
+   *
+   * Yang MASIH dijaga assertion ini nyata dan berharga: kalau suatu hari
+   * fixture aktif bocor ke daftar (mis. seseorang melonggarkan `is_active`),
+   * ia berbunyi. Yang TIDAK dijaganya: saringan nama itu sendiri.
+   *
+   * Menuliskannya begini adalah pilihan sadar. Menghapus test ini membuang
+   * penjagaan yang nyata; membiarkannya tanpa catatan membuat sesi berikutnya
+   * mengira saringan nama sudah teruji padahal tidak. CHARTER §7: yang tak
+   * terbukti tak boleh diklaim terbukti.
+   *
+   * Untuk benar-benar menguji saringan nama, fixture harus di-COMMIT (terlihat
+   * PostgREST) lalu dibersihkan — dan `companies` menolak DELETE, jadi
+   * pembersihannya sendiri butuh keputusan yang belum diambil.
+   */
+  it('tak memulangkan satu pun badan usaha bertanda [UJI', async () => {
+    actAs(authPemilik)
+    const r = await kirim('GET', '/api/v1/companies')
+    expect(r.statusCode).toBe(200)
+
+    const isi = JSON.parse(r.body) as { data: Array<{ name: string; is_active: boolean }> }
+    const fixture = (isi.data ?? []).filter((x) => x.name?.startsWith('[UJI'))
+
+    expect(
+      fixture.map((x) => x.name),
+      'Fixture test bocor ke daftar badan usaha — ia akan tampil seperti PT sungguhan ' +
+        'di layar Pengaturan → Badan Usaha.',
+    ).toEqual([])
+
+    // Yang lolos saringan wajib aktif — nonaktif berarti sudah di-off-board.
+    for (const x of isi.data ?? []) {
+      expect(x.is_active, `"${x.name}" nonaktif tapi tetap terdaftar`).toBe(true)
+    }
+  }, 30_000)
+})
