@@ -9,6 +9,45 @@
 
 ---
 
+## 0. DIRAPIKAN 2026-08-19 — 18 worktree jadi 3
+
+Founder: *"baiknya digimanain biar bersih, tapi untuk yg struktur biarin aja
+soalnya masih jalan"*.
+
+| Tersisa | Kenapa dipertahankan |
+|---|---|
+| `feat/sumbu-ui-roadmap` | direktori utama |
+| `feat/struktur-analisa` | **sesi lain masih jalan** — jangan disentuh |
+| `feat/kematangan-modul` | 25 berkas **belum ter-commit** (kondisi berhenti #2) |
+
+**15 worktree dilepas. Nol cabang dihapus, nol commit hilang** — yang dilepas
+hanya direktori kerjanya; seluruh riwayatnya tetap di cabang masing-masing dan
+bisa dibuka lagi kapan saja dengan `git worktree add`.
+
+Yang belum ter-commit di `kematangan-modul` **tidak** dihapus dan **tidak**
+di-worktree-remove — diarsipkan sebagai patch di `docs/arsip-worktree/`
+sebagai jaring pengaman, tetapi worktree-nya sendiri dibiarkan utuh.
+
+### ⚠ Kesalahan yang saya buat saat merapikan — supaya tak terulang
+
+`rmdir /S /Q .worktrees` menghapus **seluruh direktori**, padahal yang perlu
+dihapus cuma folder worktree-nya. Ikut terhapus:
+
+    .worktrees/cadangan-buku-migrasi-2026-08-16.json
+
+Berkas itu **ter-gitignore** (`.gitignore:16`), jadi git tak bisa
+memulihkannya — dan tak ada galat apa pun saat terhapus.
+
+Bisa dipulihkan karena isinya turunan dari basis, bukan sumber kebenaran:
+buku migrasi hidup di `supabase_migrations.schema_migrations`. Dibuat ulang
+per 2026-08-19, 349 baris — cocok dengan `ledger-diff.mjs`.
+
+**Pelajarannya:** direktori ber-gitignore adalah tempat berkas yang git TAK
+BISA kembalikan. Hapus isinya satu per satu, jangan direktorinya. Dan periksa
+isinya lebih dulu — `.worktrees/` ternyata bukan cuma berisi worktree.
+
+---
+
 ## 1. Jawaban singkat
 
 | Pertanyaan | Jawaban |

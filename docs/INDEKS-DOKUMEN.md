@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 284 dokumen** — antrean 13 · acuan 205 · riwayat 66.
+**Total 285 dokumen** — antrean 13 · acuan 206 · riwayat 66.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -45,6 +45,12 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [ADR-010-bentuk-grup-holding](adr/ADR-010-bentuk-grup-holding.md) | acuan |  | ADR-010 — Bentuk grup/holding: bagan akun tiga lapis, konsolidasi, transfer an |
 | [F2-2-KLASIFIKASI-TENANCY](adr/F2-2-KLASIFIKASI-TENANCY.md) | acuan |  | F2-2 — Klasifikasi tenancy 123 tabel |
 | [F2-6-KEPUTUSAN-FORCE-RLS](adr/F2-6-KEPUTUSAN-FORCE-RLS.md) | acuan |  | F2-6 — Keputusan relforcerowsecurity: TIDAK dipaksa, dengan syarat |
+
+### `docs/arsip-worktree`
+
+| Dokumen | Peran | RM | Isi |
+|---|---|:-:|---|
+| [README](arsip-worktree/README.md) | acuan |  | Arsip worktree — kerja belum-ter-commit yang diselamatkan sebelum worktree dih |
 
 ### `docs/audit/2026-08-02`
 

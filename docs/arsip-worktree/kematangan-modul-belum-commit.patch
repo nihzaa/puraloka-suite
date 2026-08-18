@@ -1,0 +1,1119 @@
+diff --git a/apps/web/app/(dashboard)/audit/page.tsx b/apps/web/app/(dashboard)/audit/page.tsx
+index 11590fc2..1669c610 100644
+--- a/apps/web/app/(dashboard)/audit/page.tsx
++++ b/apps/web/app/(dashboard)/audit/page.tsx
+@@ -325,7 +325,7 @@ export default function AuditPage() {
+         {loading ? (
+           <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>Memuat...</div>
+         ) : filteredLogs.length === 0 ? (
+-          <div style={{ padding: 20 }}>
++          <div style={{ padding: "var(--pad-kartu-lega)" }}>
+             <Kosong
+               ikon={<Database size={28} />}
+               judul="Tidak ada log yang cocok"
+diff --git a/apps/web/app/(dashboard)/estimasi/page.tsx b/apps/web/app/(dashboard)/estimasi/page.tsx
+index ec48d956..d59ba896 100644
+--- a/apps/web/app/(dashboard)/estimasi/page.tsx
++++ b/apps/web/app/(dashboard)/estimasi/page.tsx
+@@ -191,7 +191,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
+   return createPortal(
+     <div style={{ position: "fixed", inset: 0, background: "rgba(17,24,39,.45)", zIndex: 60, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+       <div style={{ background: C.surface, borderRadius: 14, width: "100%", maxWidth: 520, maxHeight: "88vh", overflow: "auto", boxShadow: "var(--naik-3)" }} onClick={(e) => e.stopPropagation()}>
+-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${C.border}` }}>
++        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
+           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>{title}</h3>
+           <button aria-label="Tutup" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted }}><X size={18} /></button>
+         </div>
+@@ -524,7 +524,7 @@ function JelaskanModal({ itemId, onClose }: { itemId: string; onClose: () => voi
+       role="dialog" aria-modal="true" aria-label="Penjelasan perhitungan item"
+       style={{
+         position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", zIndex: 1000,
+-        display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px 16px", overflowY: "auto",
++        display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "40px var(--pad-kartu-lega)", overflowY: "auto",
+       }}>
+       <button
+         aria-label="Tutup penjelasan"
+@@ -2140,7 +2140,7 @@ function RapTab() {
+           </div>
+ 
+           <div style={GAYA_KARTU}>
+-            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
++            <div style={{ padding: "12px var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+               <Package size={15} color={C.navy} />
+               <strong style={{ fontSize: 13 }}>Material</strong>
+               <span style={{ fontSize: 11, color: C.muted }}>({detail.material.length} item)</span>
+@@ -2159,7 +2159,7 @@ function RapTab() {
+               caption="Penyesuaian kuantitas material: qty RAB, qty disesuaikan, satuan, harga supplier, dan pagu."
+               data={detail.material}
+               kunciBaris={m => m.id}
+-              kosong={<p style={{ padding: "12px 16px", fontSize: 13, color: C.muted, margin: 0 }}>Tidak ada baris material — versi estimasi ini mungkin tidak punya item berkategori material.</p>}
++              kosong={<p style={{ padding: "12px var(--pad-kartu-lega)", fontSize: 13, color: C.muted, margin: 0 }}>Tidak ada baris material — versi estimasi ini mungkin tidak punya item berkategori material.</p>}
+               kolom={[
+                 { kunci: "material", judul: "Material", kepalaBaris: true, render: m => m.resource?.name ?? "—" },
+                 { kunci: "qtyAhsp", judul: "Qty RAB", rata: "kanan", render: m => (
+@@ -2203,7 +2203,7 @@ function RapTab() {
+           </div>
+ 
+           <div style={GAYA_KARTU}>
+-            <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
++            <div style={{ padding: "12px var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                 <HardHat size={15} color={C.navy} />
+                 <strong style={{ fontSize: 13 }}>Tenaga Kerja (Borongan)</strong>
+@@ -2219,7 +2219,7 @@ function RapTab() {
+               caption="Nilai borongan per uraian pekerjaan."
+               data={detail.labor}
+               kunciBaris={l => l.id}
+-              kosong={<p style={{ padding: "12px 16px", fontSize: 13, color: C.muted, margin: 0 }}>Belum ada borongan tenaga kerja.</p>}
++              kosong={<p style={{ padding: "12px var(--pad-kartu-lega)", fontSize: 13, color: C.muted, margin: 0 }}>Belum ada borongan tenaga kerja.</p>}
+               kolom={[
+                 { kunci: "uraian", judul: "Uraian Pekerjaan", kepalaBaris: true, render: l => l.description },
+                 { kunci: "nilai", judul: "Nilai Borongan", rata: "kanan", render: l => (
+@@ -2244,7 +2244,7 @@ function RapTab() {
+ 
+           <div style={GAYA_KARTU}>
+             <button onClick={() => setShowLogTable(s => !s)}
+-              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px 16px",
++              style={{ width: "100%", display: "flex", alignItems: "center", gap: 8, padding: "12px var(--pad-kartu-lega)",
+                        background: "none", border: "none", cursor: "pointer", textAlign: "left" }}>
+               <History size={15} color={C.mid} />
+               <strong style={{ fontSize: 13, color: C.text }}>Log Perubahan</strong>
+@@ -2269,7 +2269,7 @@ function RapTab() {
+                   caption="Riwayat perubahan: alasan, waktu, kolom yang diubah, nilai lama, dan nilai baru."
+                   data={changeLog}
+                   kunciBaris={l => l.id}
+-                  kosong={<p style={{ padding: "12px 16px", fontSize: 13, color: C.muted, margin: 0 }}>Belum ada catatan perubahan.</p>}
++                  kosong={<p style={{ padding: "12px var(--pad-kartu-lega)", fontSize: 13, color: C.muted, margin: 0 }}>Belum ada catatan perubahan.</p>}
+                   kolom={[
+                     { kunci: "alasan", judul: "Alasan", kepalaBaris: true, render: l => l.reason },
+                     { kunci: "waktu", judul: "Waktu", render: l => (
+@@ -2956,7 +2956,7 @@ function FormOverride({ proyekId, onTutup, onSimpan }: {
+         maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden",
+         boxShadow: "var(--naik-3)" }}>
+         <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+-          padding: "16px 16px", borderBottom: `1px solid ${C.border}` }}>
++          padding: "16px var(--pad-kartu-lega)", borderBottom: `1px solid ${C.border}` }}>
+           <h3 id="ovr-judul" style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>
+             Harga khusus proyek
+           </h3>
+@@ -3053,7 +3053,7 @@ function FormOverride({ proyekId, onTutup, onSimpan }: {
+           {err && <p style={{ margin: 0, fontSize: 12, color: C.red, lineHeight: 1.5 }}>{err}</p>}
+         </div>
+ 
+-        <footer style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "12px 16px",
++        <footer style={{ display: "flex", gap: 8, justifyContent: "flex-end", padding: "12px var(--pad-kartu-lega)",
+           borderTop: `1px solid ${C.border}`, background: "var(--surface-subtle)" }}>
+           <button onClick={onTutup} disabled={menyimpan}
+             style={{ minHeight: 40, padding: "0 15px", borderRadius: 6, fontSize: 13,
+diff --git a/apps/web/app/(dashboard)/gudang/transfer/page.tsx b/apps/web/app/(dashboard)/gudang/transfer/page.tsx
+index bc62ad06..c3e516b8 100644
+--- a/apps/web/app/(dashboard)/gudang/transfer/page.tsx
++++ b/apps/web/app/(dashboard)/gudang/transfer/page.tsx
+@@ -344,7 +344,7 @@ export default function TransferStokPage() {
+             </div>
+ 
+             {transfer.length === 0 ? (
+-              <div style={{ padding: "16px" }}>
++              <div style={{ padding: "var(--pad-kartu-lega)" }}>
+                 <Kosong
+                   ikon={<ArrowLeftRight size={28} />}
+                   judul="Belum ada perpindahan tercatat"
+diff --git a/apps/web/app/(dashboard)/laporan/page.tsx b/apps/web/app/(dashboard)/laporan/page.tsx
+index a76152aa..680708ef 100644
+--- a/apps/web/app/(dashboard)/laporan/page.tsx
++++ b/apps/web/app/(dashboard)/laporan/page.tsx
+@@ -1242,7 +1242,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
+                   `${expanded ? "Tutup" : "Buka"} rincian ${mr.assignment.mandor?.name ?? "mandor"}`,
+                   { terbuka: expanded },
+                 )}
+-                  style={{ padding: "12px 16px", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, background: expanded ? "var(--surface-subtle)" : "var(--surface)" }}>
++                  style={{ padding: "12px var(--pad-kartu-lega)", cursor: "pointer", display: "flex", alignItems: "center", gap: 12, background: expanded ? "var(--surface-subtle)" : "var(--surface)" }}>
+                   <div style={{ width: 36, height: 36, borderRadius: 10, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                     <Users size={16} color={C.navy} />
+                   </div>
+@@ -1259,7 +1259,7 @@ function TabMandor({ data }: { data: MandorReportData }) {
+ 
+                 {/* Expanded */}
+                 {expanded && (
+-                  <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
++                  <div style={{ borderTop: `1px solid ${C.border}`, padding: "12px var(--pad-kartu-lega)", display: "flex", flexDirection: "column", gap: 12 }}>
+                     {/* Scopes */}
+                     {scopes.length > 0 && (
+                       <div>
+@@ -1715,7 +1715,7 @@ function PortofolioTab() {
+       {/* Keterbatasan DI ATAS tabel — syarat eksplisit ROADMAP #18. */}
+       {meta && meta.keterbatasan.length > 0 && (
+         <div style={{
+-          padding: "12px 16px", borderRadius: 10,
++          padding: "12px var(--pad-kartu-lega)", borderRadius: 10,
+           background: C.yellowBg, border: `1px solid ${C.yellowBorder}`,
+           fontSize: 12, color: C.yellow,
+         }}>
+diff --git a/apps/web/app/(dashboard)/mandor/[id]/page.tsx b/apps/web/app/(dashboard)/mandor/[id]/page.tsx
+index 12accd20..37f691bc 100644
+--- a/apps/web/app/(dashboard)/mandor/[id]/page.tsx
++++ b/apps/web/app/(dashboard)/mandor/[id]/page.tsx
+@@ -145,13 +145,13 @@ export default function MandorProfilePage() {
+     // Menambahkannya lagi di sini membuat jaraknya ganda.
+     <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
+       {/* Header */}
+-      <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 28 }}>
++      <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--gap-bagian)", marginBottom: 28 }}>
+         <button
+           onClick={() => router.back()}
+           style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mid, flexShrink: 0, marginTop: 2 }}>
+           <ArrowLeft size={14} /> Kembali
+         </button>
+-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
++        <div style={{ display: "flex", alignItems: "center", gap: "var(--gap-bagian)" }}>
+           <div style={{ width: 56, height: 56, borderRadius: 14, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, color: C.navy, flexShrink: 0 }}>
+             {mandor.name.charAt(0).toUpperCase()}
+           </div>
+@@ -200,8 +200,8 @@ export default function MandorProfilePage() {
+         ))}
+       </div>
+ 
+-      <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 20, alignItems: "start" }}>
+-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
++      <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "var(--r5)", alignItems: "start" }}>
++        <div style={{ display: "flex", flexDirection: "column", gap: "var(--r5)" }}>
+           {/* Section: Scope & Progress */}
+           <div style={card}>
+             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 8 }}>
+@@ -210,7 +210,7 @@ export default function MandorProfilePage() {
+               <span style={{ fontSize: 12, color: C.muted, marginLeft: "auto" }}>{allScopes.length} scope</span>
+             </div>
+             {allScopes.length === 0 ? (
+-              <div style={{ padding: "20px" }}>
++              <div style={{ padding: "var(--pad-kartu-lega)" }}>
+                 <Kosong
+                   ikon={<Briefcase size={28} />}
+                   judul="Belum ada scope aktif"
+@@ -308,7 +308,7 @@ export default function MandorProfilePage() {
+               <span style={{ fontSize: 12, color: C.muted, marginLeft: "auto" }}>10 terbaru</span>
+             </div>
+             {reports.length === 0 ? (
+-              <div style={{ padding: "20px" }}>
++              <div style={{ padding: "var(--pad-kartu-lega)" }}>
+                 <Kosong
+                   ikon={<Calendar size={28} />}
+                   judul="Belum ada laporan upah"
+@@ -364,7 +364,7 @@ export default function MandorProfilePage() {
+             </span>
+           </div>
+           {kasbons.length === 0 ? (
+-            <div style={{ padding: "20px" }}>
++            <div style={{ padding: "var(--pad-kartu-lega)" }}>
+               <Kosong
+                 ikon={<CheckCircle2 size={28} />}
+                 judul="Tidak ada kasbon aktif"
+diff --git a/apps/web/app/(dashboard)/mandor/_bersama/komponen.tsx b/apps/web/app/(dashboard)/mandor/_bersama/komponen.tsx
+index 652dd3c7..7f676e97 100644
+--- a/apps/web/app/(dashboard)/mandor/_bersama/komponen.tsx
++++ b/apps/web/app/(dashboard)/mandor/_bersama/komponen.tsx
+@@ -265,7 +265,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
+   
+   if (!mounted) return null;
+   return createPortal(
+-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" }}>
++    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px var(--pad-kartu-lega)", overflowY: "auto" }}>
+       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 700, boxShadow: "var(--naik-3)" }}>
+         {/* Header */}
+         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+@@ -461,7 +461,7 @@ export function CreateWageReportModal({ onClose, onSuccess }: {
+           </div>
+ 
+           {/* Summary total */}
+-          <div style={{ padding: "12px 16px", background: C.navyLight, borderRadius: 10, border: `1px solid ${C.border}` }}>
++          <div style={{ padding: "12px var(--pad-kartu-lega)", background: C.navyLight, borderRadius: 10, border: `1px solid ${C.border}` }}>
+             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+               {[
+                 { label: "Subtotal Upah", value: subtotal, color: C.text },
+@@ -545,7 +545,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
+ 
+   if (!mounted) return null;
+   return createPortal(
+-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px 16px", overflowY: "auto" }}>
++    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "24px var(--pad-kartu-lega)", overflowY: "auto" }}>
+       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 640, boxShadow: "var(--naik-3)" }}>
+         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+           <div>
+@@ -634,7 +634,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
+           )}
+ 
+           {/* Ringkasan total */}
+-          <div style={{ padding: "12px 16px", background: C.navyLight, borderRadius: 10, border: `1px solid #C7D9F0` }}>
++          <div style={{ padding: "12px var(--pad-kartu-lega)", background: C.navyLight, borderRadius: 10, border: `1px solid #C7D9F0` }}>
+             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: C.mid }}>
+                 <span>Subtotal upah</span><span>{fmt(r?.subtotal ?? 0)}</span>
+@@ -674,7 +674,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
+ 
+               {/* Form approve */}
+               {showApproveForm && (
+-                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 16px", background: C.greenBg, borderRadius: 10, border: `1px solid ${C.greenBorder}` }}>
++                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px var(--pad-kartu-lega)", background: C.greenBg, borderRadius: 10, border: `1px solid ${C.greenBorder}` }}>
+                   <div style={{ fontSize: 13, fontWeight: 600, color: C.green }}>Konfirmasi Persetujuan</div>
+                   <div>
+                     <span id="metode-pembayaran" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Metode Pembayaran <span style={{ color: C.red }}>*</span></span>
+@@ -702,7 +702,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
+ 
+               {/* Form reject */}
+               {showRejectForm && (
+-                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 16px", background: C.redBg, borderRadius: 10, border: `1px solid ${C.redBorder}` }}>
++                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px var(--pad-kartu-lega)", background: C.redBg, borderRadius: 10, border: `1px solid ${C.redBorder}` }}>
+                   <div style={{ fontSize: 13, fontWeight: 600, color: C.red }}>Tolak Laporan</div>
+                   <div>
+                     <label htmlFor="reject-notes" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 6 }}>Alasan Penolakan <span style={{ color: C.red }}>*</span></label>
+@@ -730,7 +730,7 @@ export function WageReportDetailModal({ data, onClose, onApprove }: {
+                   </button>
+                 </div>
+               ) : (
+-                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px 16px", background: C.navyLight, borderRadius: 10, border: `1px solid #C7D9F0` }}>
++                <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "12px var(--pad-kartu-lega)", background: C.navyLight, borderRadius: 10, border: `1px solid #C7D9F0` }}>
+                   <div style={{ fontSize: 13, fontWeight: 600, color: C.navy }}>Konfirmasi Pembayaran Upah</div>
+                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                     <div>
+@@ -846,7 +846,7 @@ export function WorkerFormModal({ mandorId: initialMandorId, mandorName: initial
+ 
+   if (!mounted) return null;
+   return createPortal(
+-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
++    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "24px var(--pad-kartu-lega)" }}>
+       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 460, padding: "var(--pad-kartu-lega)", boxShadow: "var(--naik-3)" }}>
+         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+           <div>
+@@ -1974,7 +1974,7 @@ export function SettlementBoronganModal({ data, cashAccounts, onClose, onSuccess
+             <label htmlFor="total-other-expense" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Pengeluaran Lain (Rp)</label>
+             <input className="isian-fokus" id="total-other-expense" type="number" min={0} value={totalOtherExpense} onChange={e => setTotalOtherExpense(e.target.value)} placeholder="0" style={GAYA_ISIAN} />
+           </div>
+-          <div style={{ background: "var(--navy-light)", borderRadius: 10, padding: "12px 16px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
++          <div style={{ background: "var(--navy-light)", borderRadius: 10, padding: "12px var(--pad-kartu-lega)", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+             <div>
+               <div style={{ fontSize: 10, color: "var(--text-secondary)", marginBottom: 2 }}>Nilai Kontrak</div>
+               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{fmtLocal(bv)}</div>
+diff --git a/apps/web/app/(dashboard)/mandor/retensi/page.tsx b/apps/web/app/(dashboard)/mandor/retensi/page.tsx
+index 2476d2b6..3911e46b 100644
+--- a/apps/web/app/(dashboard)/mandor/retensi/page.tsx
++++ b/apps/web/app/(dashboard)/mandor/retensi/page.tsx
+@@ -157,7 +157,7 @@ export default function RetensiPage() {
+         ].map((k) => (
+           <div key={k.label} style={{
+             background: "var(--surface)", border: `1px solid ${k.tepi ?? C.border}`,
+-            borderRadius: 10, padding: "12px 16px",
++            borderRadius: 10, padding: "12px var(--pad-kartu-lega)",
+           }}>
+             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 7 }}>
+               <span style={{ color: k.warna, display: "flex" }}>{k.ikon}</span>
+@@ -181,7 +181,7 @@ export default function RetensiPage() {
+           keputusan hari ini. Sisanya memang belum waktunya. */}
+       {!memuat && siapCair.length > 0 && (
+         <div className="rise rise-2" style={{
+-          padding: "12px 16px", borderRadius: 10, marginBottom: 16,
++          padding: "12px var(--pad-kartu-lega)", borderRadius: 10, marginBottom: 16,
+           background: C.yellowBg, border: `1px solid ${C.yellowBorder}`,
+           display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap",
+         }}>
+diff --git a/apps/web/app/(dashboard)/mutu/audit/page.tsx b/apps/web/app/(dashboard)/mutu/audit/page.tsx
+index 351669d5..5ea59a64 100644
+--- a/apps/web/app/(dashboard)/mutu/audit/page.tsx
++++ b/apps/web/app/(dashboard)/mutu/audit/page.tsx
+@@ -420,14 +420,14 @@ export default function AuditMutuPage() {
+ 
+       {galat && (
+         <div role="alert" style={{
+-          marginBottom: 14, padding: "10px 16px", borderRadius: 8, fontSize: 13,
++          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
+           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+           color: "var(--danger)",
+         }}>{galat}</div>
+       )}
+ 
+       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+-        <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 280, flex: "1 1 280px", maxWidth: 420 }}>
++        <div className="rise" style={{ ...kartu, padding: "12px var(--pad-kartu-lega)", minWidth: 280, flex: "1 1 280px", maxWidth: 420 }}>
+           <label htmlFor="am-proyek" style={{
+             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
+@@ -445,7 +445,7 @@ export default function AuditMutuPage() {
+         </div>
+ 
+         {daftar.length > 0 && (
+-          <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 280, flex: "1 1 280px", maxWidth: 460 }}>
++          <div className="rise" style={{ ...kartu, padding: "12px var(--pad-kartu-lega)", minWidth: 280, flex: "1 1 280px", maxWidth: 460 }}>
+             <label htmlFor="am-audit" style={{
+               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
+@@ -610,7 +610,7 @@ export default function AuditMutuPage() {
+                   : "major & minor terverifikasi",
+               },
+             ].map((k) => (
+-              <div key={k.l} style={{ ...kartu, padding: "12px 16px" }}>
++              <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
+                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                   textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
+                 {/* Angka tenang — penekanan sudah dipakai verdict (§3d). */}
+@@ -669,7 +669,7 @@ export default function AuditMutuPage() {
+         {temuanAktif && (
+           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+             <div style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               background: "var(--surface-2)", border: `1px solid ${C.border}`, color: C.mid,
+             }}>
+               <strong style={{ color: C.text }}>Klausul:</strong> {temuanAktif.klausul}
+@@ -677,7 +677,7 @@ export default function AuditMutuPage() {
+ 
+             {temuanAktif.klasifikasi === "major" && (
+               <div style={{
+-                padding: "10px 16px", borderRadius: 8, fontSize: 12,
++                padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+                 background: "var(--danger-bg)", border: "1px solid var(--danger-border)",
+                 color: "var(--danger)",
+               }}>
+@@ -735,7 +735,7 @@ export default function AuditMutuPage() {
+ 
+             {galatModal && (
+               <div role="alert" style={{
+-                padding: "10px 16px", borderRadius: 8, fontSize: 12,
++                padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+                 border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+                 color: "var(--danger)",
+               }}>{galatModal}</div>
+diff --git a/apps/web/app/(dashboard)/mutu/ncr/page.tsx b/apps/web/app/(dashboard)/mutu/ncr/page.tsx
+index 6920a9cf..bbdd86db 100644
+--- a/apps/web/app/(dashboard)/mutu/ncr/page.tsx
++++ b/apps/web/app/(dashboard)/mutu/ncr/page.tsx
+@@ -311,7 +311,7 @@ function NcrInner() {
+           ].map((k) => (
+             <div key={k.l} style={{
+               background: "var(--surface)", border: `1px solid ${k.t ?? C.border}`,
+-              borderRadius: 10, padding: "12px 16px",
++              borderRadius: 10, padding: "12px var(--pad-kartu-lega)",
+             }}>
+               <div style={{
+                 fontSize: 10, fontWeight: 700, letterSpacing: ".05em",
+diff --git a/apps/web/app/(dashboard)/mutu/rencana/page.tsx b/apps/web/app/(dashboard)/mutu/rencana/page.tsx
+index 795b1b65..db3b3892 100644
+--- a/apps/web/app/(dashboard)/mutu/rencana/page.tsx
++++ b/apps/web/app/(dashboard)/mutu/rencana/page.tsx
+@@ -447,14 +447,14 @@ export default function RencanaMutuPage() {
+ 
+       {galat && (
+         <div role="alert" style={{
+-          marginBottom: 14, padding: "10px 16px", borderRadius: 8, fontSize: 13,
++          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
+           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+           color: "var(--danger)",
+         }}>{galat}</div>
+       )}
+ 
+       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+-        <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 280, flex: "1 1 280px", maxWidth: 420 }}>
++        <div className="rise" style={{ ...kartu, padding: "12px var(--pad-kartu-lega)", minWidth: 280, flex: "1 1 280px", maxWidth: 420 }}>
+           <label htmlFor="rmp-proyek" style={{
+             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
+@@ -472,7 +472,7 @@ export default function RencanaMutuPage() {
+         </div>
+ 
+         {daftar.length > 0 && (
+-          <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 280, flex: "1 1 280px", maxWidth: 420 }}>
++          <div className="rise" style={{ ...kartu, padding: "12px var(--pad-kartu-lega)", minWidth: 280, flex: "1 1 280px", maxWidth: 420 }}>
+             <label htmlFor="rmp-dokumen" style={{
+               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
+@@ -648,7 +648,7 @@ export default function RencanaMutuPage() {
+               { l: "Lolos", v: r.pct_lolos === null ? "—" : `${Math.round(r.pct_lolos)}%`, sub: r.pct_lolos === null ? "belum ada yang diperiksa" : "dari yang sudah diperiksa" },
+               { l: "Tidak lolos", v: r.gagal, sub: r.gagal > 0 ? "perlu perbaikan" : "—" },
+             ].map((k) => (
+-              <div key={k.l} style={{ ...kartu, padding: "12px 16px" }}>
++              <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
+                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                   textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
+                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
+@@ -660,7 +660,7 @@ export default function RencanaMutuPage() {
+ 
+           {detail.cacat.length > 0 && (
+             <div className="rise" style={{
+-              ...kartu, padding: "12px 16px", marginBottom: 14,
++              ...kartu, padding: "12px var(--pad-kartu-lega)", marginBottom: 14,
+               borderColor: "var(--warning-border)", background: "var(--warning-bg)",
+             }}>
+               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+@@ -723,7 +723,7 @@ export default function RencanaMutuPage() {
+           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+             {titikDiperiksa.kriteria && (
+               <div style={{
+-                padding: "10px 16px", borderRadius: 8, fontSize: 12,
++                padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+                 background: "var(--surface-2)", border: `1px solid ${C.border}`, color: C.mid,
+               }}>
+                 <strong style={{ color: C.text }}>Kriteria penerimaan:</strong> {titikDiperiksa.kriteria}
+@@ -733,7 +733,7 @@ export default function RencanaMutuPage() {
+ 
+             {titikDiperiksa.jenis_titik === "hold" && (
+               <div style={{
+-                padding: "10px 16px", borderRadius: 8, fontSize: 12,
++                padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+                 background: "var(--danger-bg)", border: "1px solid var(--danger-border)",
+                 color: "var(--danger)",
+               }}>
+@@ -799,7 +799,7 @@ export default function RencanaMutuPage() {
+ 
+             {galatModal && (
+               <div role="alert" style={{
+-                padding: "10px 16px", borderRadius: 8, fontSize: 12,
++                padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+                 border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+                 color: "var(--danger)",
+               }}>{galatModal}</div>
+diff --git a/apps/web/app/(dashboard)/mutu/uji-material/page.tsx b/apps/web/app/(dashboard)/mutu/uji-material/page.tsx
+index 603af0cb..2c6144ed 100644
+--- a/apps/web/app/(dashboard)/mutu/uji-material/page.tsx
++++ b/apps/web/app/(dashboard)/mutu/uji-material/page.tsx
+@@ -260,13 +260,13 @@ export default function UjiMaterialPage() {
+ 
+       {galat && (
+         <div role="alert" style={{
+-          marginBottom: 14, padding: "10px 16px", borderRadius: 8, fontSize: 13,
++          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
+           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+           color: "var(--danger)",
+         }}>{galat}</div>
+       )}
+ 
+-      <div className="rise" style={{ ...kartu, padding: "12px 16px", marginBottom: 16, maxWidth: 420 }}>
++      <div className="rise" style={{ ...kartu, padding: "12px var(--pad-kartu-lega)", marginBottom: 16, maxWidth: 420 }}>
+         <label htmlFor="uji-proyek" style={{
+           fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+           marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
+@@ -302,7 +302,7 @@ export default function UjiMaterialPage() {
+           <>
+             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+               gap: 8, marginBottom: 16 }}>
+-              <div style={{ ...kartu, padding: "12px 16px",
++              <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)",
+                 borderColor: hasil.tidak_memenuhi > 0 ? "var(--danger-border)" : C.border }}>
+                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Tidak memenuhi</div>
+@@ -315,7 +315,7 @@ export default function UjiMaterialPage() {
+                 </div>
+               </div>
+ 
+-              <div style={{ ...kartu, padding: "12px 16px" }}>
++              <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
+                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Perlu uji ulang</div>
+                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
+@@ -324,7 +324,7 @@ export default function UjiMaterialPage() {
+                 <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>hasilnya belum bisa dipakai</div>
+               </div>
+ 
+-              <div style={{ ...kartu, padding: "12px 16px" }}>
++              <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
+                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Belum disimpulkan</div>
+                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
+@@ -335,7 +335,7 @@ export default function UjiMaterialPage() {
+                 </div>
+               </div>
+ 
+-              <div style={{ ...kartu, padding: "12px 16px" }}>
++              <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
+                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Memenuhi</div>
+                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: "var(--success)" }}>
+@@ -347,7 +347,7 @@ export default function UjiMaterialPage() {
+ 
+             {hasil.bertentangan > 0 && (
+               <div role="status" style={{
+-                display: "flex", gap: 8, alignItems: "flex-start", padding: "10px 16px",
++                display: "flex", gap: 8, alignItems: "flex-start", padding: "10px var(--pad-kartu-lega)",
+                 background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
+                 borderRadius: 8, fontSize: 12.5, color: "var(--warning-teks)",
+                 marginBottom: 14, lineHeight: 1.55,
+@@ -370,7 +370,7 @@ export default function UjiMaterialPage() {
+                 kunciBaris={(u) => u.id}
+                 kolom={KOLOM}
+               />
+-              <p style={{ margin: 0, padding: "10px 16px", fontSize: 11.5, color: C.mid,
++              <p style={{ margin: 0, padding: "10px var(--pad-kartu-lega)", fontSize: 11.5, color: C.mid,
+                 borderTop: `1px solid ${C.border}`, lineHeight: 1.55 }}>
+                 Syarat mutu disimpan bersama hasilnya, bukan dicari saat dibaca —
+                 standar berubah antar-proyek dan antar-edisi SNI, dan kesimpulan
+diff --git a/apps/web/app/(dashboard)/otomasi/katalog/page.tsx b/apps/web/app/(dashboard)/otomasi/katalog/page.tsx
+index a24a81da..3ac253c7 100644
+--- a/apps/web/app/(dashboard)/otomasi/katalog/page.tsx
++++ b/apps/web/app/(dashboard)/otomasi/katalog/page.tsx
+@@ -182,7 +182,14 @@ export default function KatalogOtomasiPage() {
+     });
+ 
+   return (
+-    <>
++    <div style={{
++      // --w-page — daftar kartu otomasi beserta uraiannya, bukan tabel padat
++      // kolom. Tanpa container, isi halaman ini melebar mengikuti induknya
++      // sementara `/otomasi` dan `/otomasi/alur` di sebelahnya memusat —
++      // berpindah antar ketiganya terasa seperti tiga aplikasi berbeda.
++      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
++      width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
++    }}>
+       <KepalaHalaman
+         judul="Katalog Otomasi"
+         keterangan="Apa yang dikerjakan tiap otomasi, kapan berjalan, dan di bagian mana ia dipasang."
+@@ -432,6 +439,6 @@ export default function KatalogOtomasiPage() {
+           )}
+         </>
+       )}
+-    </>
++    </div>
+   );
+ }
+diff --git a/apps/web/app/(dashboard)/pengaturan/otomasi/page.tsx b/apps/web/app/(dashboard)/pengaturan/otomasi/page.tsx
+index f81ce46f..d8a053d0 100644
+--- a/apps/web/app/(dashboard)/pengaturan/otomasi/page.tsx
++++ b/apps/web/app/(dashboard)/pengaturan/otomasi/page.tsx
+@@ -348,7 +348,14 @@ export default function PengaturanOtomasiPage() {
+   };
+ 
+   return (
+-    <>
++    <div style={{
++      // --w-form — halaman ini deretan isian bernilai tunggal beserta
++      // penjelasannya, jadi bentuknya bacaan satu kolom. Melebar sampai lebar
++      // layar membuat label dan kolomnya berjauhan, dan pasangan mana-milik-
++      // mana hilang justru pada halaman yang tiap angkanya mengubah perilaku.
++      padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
++      width: "100%", maxWidth: "var(--w-form)", margin: "0 auto",
++    }}>
+       <KepalaHalaman
+         judul="Ambang Otomasi"
+         keterangan="Angka yang menentukan kapan otomasi mengirim pesan."
+@@ -492,6 +499,6 @@ export default function PengaturanOtomasiPage() {
+           </p>
+         </>
+       )}
+-    </>
++    </div>
+   );
+ }
+diff --git a/apps/web/app/(dashboard)/pengaturan/penyedia/page.tsx b/apps/web/app/(dashboard)/pengaturan/penyedia/page.tsx
+index 9f8c14af..1162d245 100644
+--- a/apps/web/app/(dashboard)/pengaturan/penyedia/page.tsx
++++ b/apps/web/app/(dashboard)/pengaturan/penyedia/page.tsx
+@@ -344,7 +344,7 @@ export default function PenyediaPage() {
+       {/* Penjelasan yang menahan salah paham paling mahal di halaman ini. */}
+       <div
+         style={{
+-          padding: "12px 16px",
++          padding: "12px var(--pad-kartu-lega)",
+           borderRadius: 12,
+           border: "1px solid var(--border)",
+           background: "var(--surface)",
+@@ -579,7 +579,7 @@ export default function PenyediaPage() {
+             position: "fixed",
+             bottom: 20,
+             right: 20,
+-            padding: "12px 16px",
++            padding: "12px var(--pad-kartu-lega)",
+             borderRadius: 10,
+             background: toast.tipe === "ok" ? C.aksen : C.danger,
+             color: "#fff",
+diff --git a/apps/web/app/(dashboard)/pengaturan/tarif-payroll/page.tsx b/apps/web/app/(dashboard)/pengaturan/tarif-payroll/page.tsx
+index afa7afcf..b726dd87 100644
+--- a/apps/web/app/(dashboard)/pengaturan/tarif-payroll/page.tsx
++++ b/apps/web/app/(dashboard)/pengaturan/tarif-payroll/page.tsx
+@@ -261,7 +261,7 @@ export default function TarifPayrollPage() {
+ 
+       {galat && (
+         <div role="alert" style={{
+-          marginBottom: 14, padding: "10px 16px", borderRadius: 8, fontSize: 13,
++          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
+           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+           color: "var(--danger)",
+         }}>{galat}</div>
+@@ -541,7 +541,7 @@ export default function TarifPayrollPage() {
+ 
+           {galatModal && (
+             <div role="alert" style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+               color: "var(--danger)",
+             }}>{galatModal}</div>
+@@ -576,7 +576,7 @@ export default function TarifPayrollPage() {
+         {tambahKe && (
+           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+             <div style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               background: "var(--surface-2)", border: `1px solid ${C.border}`, color: C.mid,
+             }}>
+               {JENIS[tambahKe.jenis].kolom} Kunci yang dipakai:{" "}
+@@ -626,7 +626,7 @@ export default function TarifPayrollPage() {
+ 
+             {galatModal && (
+               <div role="alert" style={{
+-                padding: "10px 16px", borderRadius: 8, fontSize: 12,
++                padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+                 border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+                 color: "var(--danger)",
+               }}>{galatModal}</div>
+diff --git a/apps/web/app/(dashboard)/pengaturan/whatsapp/_sambungan.tsx b/apps/web/app/(dashboard)/pengaturan/whatsapp/_sambungan.tsx
+index 84ebcefb..1ee491d6 100644
+--- a/apps/web/app/(dashboard)/pengaturan/whatsapp/_sambungan.tsx
++++ b/apps/web/app/(dashboard)/pengaturan/whatsapp/_sambungan.tsx
+@@ -297,7 +297,10 @@ export default function KartuSambungan({
+             <div style={{ marginTop: 16, display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
+               <div
+                 style={{
+-                  width: 240, height: 240, borderRadius: 12, background: "#fff",
++                  // `--qr-latar` (putih di KEDUA mode) — alasannya di
++                  // globals.css: kode QR di latar gelap tak bisa dipindai,
++                  // dan kegagalannya tak punya pesan galat.
++                  width: 240, height: 240, borderRadius: 12, background: "var(--qr-latar)",
+                   display: "grid", placeItems: "center", flexShrink: 0,
+                   border: `1px solid ${C.border}`,
+                 }}
+diff --git a/apps/web/app/(dashboard)/proyek/[id]/page.tsx b/apps/web/app/(dashboard)/proyek/[id]/page.tsx
+index a5106ee9..b4664bd7 100644
+--- a/apps/web/app/(dashboard)/proyek/[id]/page.tsx
++++ b/apps/web/app/(dashboard)/proyek/[id]/page.tsx
+@@ -1749,7 +1749,7 @@ function ProjectDetailContent() {
+       {/* ── Delete confirmation ── */}
+       {showDeleteConfirm && createPortal(
+         <div
+-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: 24 }}
++          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "var(--r6)" }}
+           onClick={e => { if (e.target === e.currentTarget) setShowDeleteConfirm(false); }}
+         >
+           <div style={{ background: "var(--surface)", borderRadius: 14, padding: 28, maxWidth: 420, width: "100%", boxShadow: "var(--naik-3)" }}>
+@@ -1786,7 +1786,7 @@ function ProjectDetailContent() {
+       {/* ── Print / Export Ringkasan Modal ── */}
+       {showPrintModal && createPortal(
+         <div
+-          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: 24 }}
++          style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1100, padding: "var(--r6)" }}
+           onClick={e => { if (e.target === e.currentTarget) setShowPrintModal(false); }}
+         >
+           <div style={{
+@@ -1824,7 +1824,7 @@ function ProjectDetailContent() {
+               {/* Project header */}
+               <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "2px solid var(--border)" }}>
+                 <div style={{ fontSize: 20, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)", marginBottom: 4 }}>{p.name}</div>
+-                <div style={{ display: "flex", gap: 16, fontSize: 12, color: C.mid, flexWrap: "wrap" }}>
++                <div style={{ display: "flex", gap: "var(--gap-bagian)", fontSize: 12, color: C.mid, flexWrap: "wrap" }}>
+                   <span>📍 {p.location}</span>
+                   <span>👤 Klien: {(p.clients as any)?.name ?? "—"}</span>
+                   <span>🗓 {fmtDate(p.start_date)} — {fmtDate(p.end_date)}</span>
+diff --git a/apps/web/app/(dashboard)/sdm/cuti/page.tsx b/apps/web/app/(dashboard)/sdm/cuti/page.tsx
+index 8b9e5d33..520e677d 100644
+--- a/apps/web/app/(dashboard)/sdm/cuti/page.tsx
++++ b/apps/web/app/(dashboard)/sdm/cuti/page.tsx
+@@ -444,14 +444,14 @@ export default function CutiPage() {
+ 
+       {galat && (
+         <div role="alert" style={{
+-          marginBottom: 14, padding: "10px 16px", borderRadius: 8, fontSize: 13,
++          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
+           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+           color: "var(--danger)",
+         }}>{galat}</div>
+       )}
+ 
+       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+-        <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 260, flex: "1 1 260px", maxWidth: 400 }}>
++        <div className="rise" style={{ ...kartu, padding: "12px var(--pad-kartu-lega)", minWidth: 260, flex: "1 1 260px", maxWidth: 400 }}>
+           <label htmlFor="ct-pegawai" style={{
+             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
+@@ -473,7 +473,7 @@ export default function CutiPage() {
+           </select>
+         </div>
+ 
+-        <div className="rise" style={{ ...kartu, padding: "12px 16px", flex: "0 1 160px" }}>
++        <div className="rise" style={{ ...kartu, padding: "12px var(--pad-kartu-lega)", flex: "0 1 160px" }}>
+           <label htmlFor="ct-tahun" style={{
+             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
+@@ -508,7 +508,7 @@ export default function CutiPage() {
+               { l: "Hak tahun ini", v: hari(s.hak), sub: `${detail.hak.filter((h) => h.tahun === tahun).length} pemberian` },
+             ].map((k) => (
+               <div key={k.l} style={{
+-                ...kartu, padding: "12px 16px",
++                ...kartu, padding: "12px var(--pad-kartu-lega)",
+                 // Satu aksen: hanya sisa jatah yang diberi penekanan, dan
+                 // hanya saat NEGATIF ia berubah warna — jatah yang terlanjur
+                 // terpakai berlebih harus terlihat.
+@@ -528,7 +528,7 @@ export default function CutiPage() {
+ 
+           {s.sisa < 0 && (
+             <div role="status" className="rise" style={{
+-              ...kartu, padding: "12px 16px", marginBottom: 14,
++              ...kartu, padding: "12px var(--pad-kartu-lega)", marginBottom: 14,
+               borderColor: "var(--danger-border)", background: "var(--danger-bg)",
+             }}>
+               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+@@ -711,7 +711,7 @@ export default function CutiPage() {
+ 
+           {penghalang.length > 0 && (
+             <div role="alert" style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               border: "1px solid var(--warning-border)", background: "var(--warning-bg)",
+               color: C.text,
+             }}>
+@@ -727,7 +727,7 @@ export default function CutiPage() {
+ 
+           {galatModal && (
+             <div role="alert" style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+               color: "var(--danger)",
+             }}>{galatModal}</div>
+@@ -783,7 +783,7 @@ export default function CutiPage() {
+ 
+           {galatModal && (
+             <div role="alert" style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+               color: "var(--danger)",
+             }}>{galatModal}</div>
+@@ -854,7 +854,7 @@ export default function CutiPage() {
+ 
+           {galatModal && (
+             <div role="alert" style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+               color: "var(--danger)",
+             }}>{galatModal}</div>
+diff --git a/apps/web/app/(dashboard)/sdm/kompetensi/page.tsx b/apps/web/app/(dashboard)/sdm/kompetensi/page.tsx
+index c704d1bf..43598eb9 100644
+--- a/apps/web/app/(dashboard)/sdm/kompetensi/page.tsx
++++ b/apps/web/app/(dashboard)/sdm/kompetensi/page.tsx
+@@ -448,7 +448,7 @@ export default function KompetensiPage() {
+ 
+       {galat && (
+         <div role="alert" style={{
+-          marginBottom: 14, padding: "10px 16px", borderRadius: 8, fontSize: 13,
++          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
+           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+           color: "var(--danger)",
+         }}>{galat}</div>
+@@ -485,7 +485,7 @@ export default function KompetensiPage() {
+       />
+ 
+       {tab !== "rekrutmen" && (
+-        <div className="rise" style={{ ...kartu, padding: "12px 16px", marginBottom: 16, maxWidth: 420 }}>
++        <div className="rise" style={{ ...kartu, padding: "12px var(--pad-kartu-lega)", marginBottom: 16, maxWidth: 420 }}>
+           <label htmlFor="km-pegawai" style={{
+             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
+@@ -554,7 +554,7 @@ export default function KompetensiPage() {
+                 { l: "Total", v: s.baris.length, sub: "sertifikat tercatat" },
+               ].map((k) => (
+                 <div key={k.l} style={{
+-                  ...kartu, padding: "12px 16px",
++                  ...kartu, padding: "12px var(--pad-kartu-lega)",
+                   borderColor: k.bahaya && s.kedaluwarsa > 0 ? "var(--danger-border)" : C.border,
+                 }}>
+                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+@@ -629,7 +629,7 @@ export default function KompetensiPage() {
+                   { l: "Final", v: detail.kinerja.jumlah_final, sub: "sudah disampaikan" },
+                   { l: "Draf", v: detail.kinerja.jumlah_draf, sub: "masih bisa berubah" },
+                 ].map((k) => (
+-                  <div key={k.l} style={{ ...kartu, padding: "12px 16px" }}>
++                  <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
+                     <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                       textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
+                     <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
+@@ -723,7 +723,7 @@ export default function KompetensiPage() {
+             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+               gap: 8, marginBottom: 14 }}>
+               {(["masuk", "seleksi_berkas", "wawancara", "tawaran"] as TahapLamaran[]).map((t) => (
+-                <div key={t} style={{ ...kartu, padding: "12px 16px" }}>
++                <div key={t} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
+                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                     textTransform: "uppercase", letterSpacing: "0.05em" }}>{TAHAP[t].label}</div>
+                   <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
+@@ -865,7 +865,7 @@ export default function KompetensiPage() {
+ 
+           {galatModal && (
+             <div role="alert" style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+               color: "var(--danger)",
+             }}>{galatModal}</div>
+@@ -974,7 +974,7 @@ export default function KompetensiPage() {
+ 
+           {galatModal && (
+             <div role="alert" style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+               color: "var(--danger)",
+             }}>{galatModal}</div>
+diff --git a/apps/web/app/(dashboard)/sdm/payroll/page.tsx b/apps/web/app/(dashboard)/sdm/payroll/page.tsx
+index 3ebb6196..be27049a 100644
+--- a/apps/web/app/(dashboard)/sdm/payroll/page.tsx
++++ b/apps/web/app/(dashboard)/sdm/payroll/page.tsx
+@@ -255,7 +255,7 @@ export default function PayrollPage() {
+ 
+       {galat && (
+         <div role="alert" style={{
+-          marginBottom: 14, padding: "10px 16px", borderRadius: 8, fontSize: 13,
++          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
+           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+           color: "var(--danger)",
+         }}>{galat}</div>
+@@ -263,7 +263,7 @@ export default function PayrollPage() {
+ 
+       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "flex-end" }}>
+         {daftar.length > 0 && (
+-          <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 240, flex: "0 1 320px" }}>
++          <div className="rise" style={{ ...kartu, padding: "12px var(--pad-kartu-lega)", minWidth: 240, flex: "0 1 320px" }}>
+             <label htmlFor="pr-periode" style={{
+               fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+               marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
+@@ -441,7 +441,7 @@ export default function PayrollPage() {
+                   { l: "Potongan", v: rp(detail.total.potongan), sub: `termasuk PPh 21 ${rp(detail.total.pph21)}` },
+                   { l: "Dibayarkan", v: rp(detail.total.bersih), sub: "gaji bersih" },
+                 ].map((k) => (
+-                  <div key={k.l} style={{ ...kartu, padding: "12px 16px" }}>
++                  <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
+                     <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                       textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
+                     <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, color: C.text,
+@@ -453,7 +453,7 @@ export default function PayrollPage() {
+ 
+               {bermasalah.length > 0 && (
+                 <div className="rise" style={{
+-                  ...kartu, padding: "12px 16px", marginBottom: 14,
++                  ...kartu, padding: "12px var(--pad-kartu-lega)", marginBottom: 14,
+                   borderColor: "var(--warning-border)", background: "var(--warning-bg)",
+                 }}>
+                   <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+@@ -514,7 +514,7 @@ export default function PayrollPage() {
+                         aria-expanded={buka}
+                         style={{
+                           width: "100%", display: "flex", alignItems: "center", gap: 10,
+-                          padding: "12px 16px", background: "transparent", border: "none",
++                          padding: "12px var(--pad-kartu-lega)", background: "transparent", border: "none",
+                           cursor: "pointer", textAlign: "left", color: C.text,
+                         }}
+                       >
+@@ -672,7 +672,7 @@ export default function PayrollPage() {
+ 
+           {galatModal && (
+             <div role="alert" style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+               color: "var(--danger)",
+             }}>{galatModal}</div>
+diff --git a/apps/web/app/(dashboard)/sdm/timesheet/page.tsx b/apps/web/app/(dashboard)/sdm/timesheet/page.tsx
+index 8411bd93..f8db2516 100644
+--- a/apps/web/app/(dashboard)/sdm/timesheet/page.tsx
++++ b/apps/web/app/(dashboard)/sdm/timesheet/page.tsx
+@@ -425,14 +425,14 @@ export default function TimesheetPage() {
+ 
+       {galat && (
+         <div role="alert" style={{
+-          marginBottom: 14, padding: "10px 16px", borderRadius: 8, fontSize: 13,
++          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
+           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+           color: "var(--danger)",
+         }}>{galat}</div>
+       )}
+ 
+       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+-        <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 260, flex: "1 1 260px", maxWidth: 400 }}>
++        <div className="rise" style={{ ...kartu, padding: "12px var(--pad-kartu-lega)", minWidth: 260, flex: "1 1 260px", maxWidth: 400 }}>
+           <label htmlFor="ts-pegawai" style={{
+             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
+@@ -454,7 +454,7 @@ export default function TimesheetPage() {
+           </select>
+         </div>
+ 
+-        <div className="rise" style={{ ...kartu, padding: "12px 16px", minWidth: 180, flex: "0 1 220px" }}>
++        <div className="rise" style={{ ...kartu, padding: "12px var(--pad-kartu-lega)", minWidth: 180, flex: "0 1 220px" }}>
+           <label htmlFor="ts-bulan" style={{
+             fontSize: 11, fontWeight: 700, color: C.muted, display: "block",
+             marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.05em",
+@@ -487,7 +487,7 @@ export default function TimesheetPage() {
+               { l: "Menunggu putusan", v: r.per_status.diajukan, sub: "diajukan ke atasan" },
+               { l: "Disetujui", v: r.per_status.disetujui, sub: `dari ${r.hari_terisi} baris` },
+             ].map((k) => (
+-              <div key={k.l} style={{ ...kartu, padding: "12px 16px" }}>
++              <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
+                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
+                   textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
+                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
+@@ -499,7 +499,7 @@ export default function TimesheetPage() {
+ 
+           {r.hari_kosong.length > 0 && (
+             <div role="status" className="rise" style={{
+-              ...kartu, padding: "12px 16px", marginBottom: 14,
++              ...kartu, padding: "12px var(--pad-kartu-lega)", marginBottom: 14,
+               borderColor: "var(--warning-border)", background: "var(--warning-bg)",
+             }}>
+               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+@@ -724,7 +724,7 @@ export default function TimesheetPage() {
+ 
+           {galatModal && (
+             <div role="alert" style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+               color: "var(--danger)",
+             }}>{galatModal}</div>
+@@ -784,7 +784,7 @@ export default function TimesheetPage() {
+ 
+           {galatModal && (
+             <div role="alert" style={{
+-              padding: "10px 16px", borderRadius: 8, fontSize: 12,
++              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
+               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
+               color: "var(--danger)",
+             }}>{galatModal}</div>
+diff --git a/apps/web/app/globals.css b/apps/web/app/globals.css
+index 76aa8783..5d33f753 100644
+--- a/apps/web/app/globals.css
++++ b/apps/web/app/globals.css
+@@ -26,6 +26,18 @@
+   --border:           #E5E7EB;
+   --border-strong:    #D1D5DB;
+ 
++  /* Latar KODE QR — sengaja putih di KEDUA mode, dan itu bukan kelalaian.
++   *
++   * Pemindai QR menuntut modul gelap di atas latar terang beserta zona
++   * tenangnya. Mengikutkannya ke mode gelap menghasilkan kode yang tampak
++   * benar di layar tetapi TIDAK BISA DIPINDAI — kegagalan yang tak punya
++   * pesan galat: orang mengira kameranya, atau nomornya, yang bermasalah.
++   *
++   * Ditulis sebagai token supaya niatnya punya satu tempat. `#fff` telanjang
++   * di TSX ditolak `uji-warna-buta-mode.mjs`, dan penolakan itu benar —
++   * pengecualiannya harus dijelaskan, bukan disebar. */
++  --qr-latar:         #FFFFFF;
++
+   --text-primary:     #111827;
+   /* #6B7280 sampai 2026-07-31 — lulus di putih (4,83) tapi GAGAL di latar
+    * yang sedikit lebih gelap: 4,39 di --surface-hover, 4,30 di --navy-light.
+diff --git a/apps/web/lib/api.ts b/apps/web/lib/api.ts
+index adda7e0a..5090bb68 100644
+--- a/apps/web/lib/api.ts
++++ b/apps/web/lib/api.ts
+@@ -56,9 +56,10 @@ export function simpanCompanyAktif(id: string | null | undefined): void {
+       localStorage.setItem("puraloka_company_id", id);
+     }
+   } catch {
+-    // Mode privat tertentu menolak menulis. Bukan alasan menjatuhkan
+-    // permintaannya — header tetap terkirim tanpa nilai, dan backend memakai
+-    // default penggunanya.
++    // best-effort: mode privat tertentu menolak menulis localStorage. Diamnya
++    // DISENGAJA — ini bukan aksi yang ditekan orang, melainkan penyimpanan
++    // sampingan. Menjatuhkan permintaannya justru lebih merugikan: header
++    // tetap terkirim tanpa nilai, dan backend memakai default penggunanya.
+   }
+ }
+ 
+diff --git a/apps/web/scripts/a11y-ratchet.mjs b/apps/web/scripts/a11y-ratchet.mjs
+index c038afc3..97519afd 100644
+--- a/apps/web/scripts/a11y-ratchet.mjs
++++ b/apps/web/scripts/a11y-ratchet.mjs
+@@ -127,7 +127,29 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
+   const rel = relative(AKAR, f).replace(/\\/g, '/')
+   const baris = readFileSync(f, 'utf8').split('\n')
+ 
++  /*
++    Apakah baris ini berada di dalam blok komentar yang BELUM ditutup.
++
++    Pemeriksaan per-baris tanpa memori membaca komentar berbaris-baris sebagai
++    kode: hanya baris PERTAMA-nya yang dikenali komentar. Nyata 2026-08-16 —
++    `pengaturan/penyedia-ai/page.tsx:728`, sebuah kalimat yang MENJELASKAN
++    kenapa kolomnya `minmax(0, 1fr)` supaya `<select>` panjang tak melebar,
++    dilaporkan sebagai kontrol tanpa nama.
++
++    Kesalahan yang sama sudah pernah ditemukan dan diperbaiki di penjaga
++    saudaranya (`uji-warna-buta-mode.mjs`), dan catatannya di sana berlaku
++    kata demi kata: menyunting komentarnya supaya penjaga diam berarti
++    menghapus penjelasan demi alat. Yang diperbaiki parsernya.
++  */
++  let dalamBlok = false
++
+   for (let i = 0; i < baris.length; i++) {
++    if (dalamBlok) {
++      if (/\*\/|\*\/\}/.test(baris[i])) dalamBlok = false
++      continue
++    }
++    if (/\{?\/\*/.test(baris[i]) && !/\*\//.test(baris[i])) { dalamBlok = true; continue }
++
+     for (const tag of ['select', 'button']) {
+       if (!baris[i].includes(`<${tag}`)) continue
+       // KOMENTAR bukan kode. Berkas di repo ini menjelaskan dirinya panjang
+@@ -227,14 +249,34 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
+       // Tanpa pengecualian ini, kontrol yang sudah benar ikut dihitung sebagai
+       // pelanggaran, dan "perbaikannya" (menambah aria-label) malah membuat
+       // nama ganda yang membingungkan pembaca layar.
+-      const punyaId = blok.match(/\bid=(?:"([^"]+)"|\{`([^`]+)`\})/)
++      const punyaId = blok.match(/\bid=(?:"([^"]+)"|\{`([^`]+)`\}|\{([A-Za-z_$][\w$]*)\})/)
+       if (punyaId) {
+         const idLiteral = punyaId[1]
+         // Template literal (`cc-${x}`) tak bisa dicocokkan persis; samakan
+         // bagian statisnya saja — cukup untuk membedakan "ada label" vs tidak.
++        //
++        // `id={id}` — IDENTIFIER TELANJANG, ditambahkan 2026-08-16.
++        //
++        // Bentuk ini dipakai komponen isian yang menerima `id` sebagai prop dan
++        // merender `<label htmlFor={id}>` tepat di atasnya. Labelnya nyata,
++        // terlihat, dan berpasangan — tetapi penjaga ini hanya mengenali id
++        // LITERAL, jadi lima kontrol yang sudah benar terhitung melanggar.
++        //
++        // "Perbaikannya" akan berupa `aria-label` — persis yang diperingatkan
++        // dua paragraf di atas: pembaca layar lalu menyebut aria-label dan
++        // MENGABAIKAN label yang terlihat, sehingga yang didengar berbeda dari
++        // yang dibaca orang di sebelahnya. Menambah nama ganda demi menyenangkan
++        // alat adalah memperburuk a11y atas nama menjaga a11y.
++        //
++        // Dicocokkan ke NAMA VARIABELNYA, bukan sekadar "ada `htmlFor` di
++        // berkas ini": `htmlFor={id}` yang menunjuk variabel LAIN tak
++        // dianggap cocok, dan `<select id={x}>` tanpa `htmlFor={x}` di mana
++        // pun tetap terhitung melanggar.
+         const cari = idLiteral
+           ? `htmlFor="${idLiteral}"`
+-          : `htmlFor={\`${punyaId[2].split('${')[0]}`
++          : punyaId[2]
++            ? `htmlFor={\`${punyaId[2].split('${')[0]}`
++            : `htmlFor={${punyaId[3]}}`
+         const isiBerkas = readFileSync(f, 'utf8')
+         if (isiBerkas.includes(cari)) continue
+ 
+diff --git a/apps/web/scripts/kerapatan-lantai.json b/apps/web/scripts/kerapatan-lantai.json
+index edae37d4..66bf85e9 100644
+--- a/apps/web/scripts/kerapatan-lantai.json
++++ b/apps/web/scripts/kerapatan-lantai.json
+@@ -1,7 +1,7 @@
+ {
+-  "nilai": 181,
++  "nilai": 179,
+   "_catatan": "181 sejak 2026-08-13: penjaga kini MELEWATI keadaan kosong/memuat (padding 40-80 pada 'Memuat…' / 'Belum ada…'), yang memang sengaja lapang dan salah kalau dipaksa memakai token kerapatan 12-16px. Turunnya 307→181 BUKAN perbaikan 126 tempat, melainkan koreksi alat ukur. Sebelumnya: 307 dicapai NYATA 2026-08-08 (UIR-0B).",
+-  "_diukur": "2026-08-13",
++  "_diukur": "2026-08-16",
+   "_riwayat": [
+     "422 → 422",
+     "422 → 394 (otomatis)",
+@@ -9,6 +9,7 @@
+     "369 → 358 (otomatis)",
+     "358 → 307 (otomatis)",
+     "307 dikonfirmasi nyata 2026-08-08 — document-section.tsx gap:16 → var(--gap-bagian)",
+-    "307 → 181 (2026-08-13) — keadaan kosong/memuat dikecualikan, bukan diperbaiki"
++    "307 → 181 (2026-08-13) — keadaan kosong/memuat dikecualikan, bukan diperbaiki",
++    "181 → 179 (otomatis)"
+   ]
+ }
