@@ -51,6 +51,29 @@ node scripts/db/introspect.mjs migration-ledger
 node scripts/db/ledger-diff.mjs
 ```
 
+⚠ **`information_schema` WAJIB disaring `table_schema = 'public'`.**
+
+Basis ini punya skema `test` yang membayangi **9 tabel** `public` bernama
+sama (`progress_payments`, `projects`, `kasbons`, `roles`, `permissions`,
+`clients`, `mandor_assignments`, `daily_wage_logs`, `borongan_settlements`),
+plus `extensions` membayangi 5 lagi (`audit_logs`, `cash_transfers`,
+`cost_codes`, `materials`, `role_permissions`).
+
+Tanpa saringan itu, query kolom memulangkan **tiap kolom DUA KALI** — dan
+`approval-satu-pintu.test.ts` merah 2026-08-18 dengan
+`['approved_by','approved_by',…]`, kegagalan yang terbaca seperti KOLOM
+HILANG padahal kolomnya ada.
+
+Yang lebih halus: `rows[0]` tanpa saringan bisa jatuh ke baris skema `test`
+dan menjawab BENAR secara kebetulan. Ukur skemanya:
+
+```sql
+SELECT table_name, string_agg(DISTINCT table_schema, ', ') skema
+  FROM information_schema.columns
+ WHERE table_schema NOT IN ('pg_catalog','information_schema')
+ GROUP BY table_name HAVING count(DISTINCT table_schema) > 1;
+```
+
 Angka endpoint, halaman, dan test:
 
 ```bash
