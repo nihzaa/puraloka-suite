@@ -26008,3 +26008,88 @@ mencegahnya.
 
 `audit-modal-dialog` 41 > 37. Diukur dengan `git stash`: angkanya 41 juga
 TANPA perubahan saya. Bawaan merge CECEP. Dicatat, tidak ditambal.
+
+---
+
+## 2026-08-19 — Analisa struktur Fase 5 (API), dan tiga cacat yang hanya ketahuan dari basis nyata
+
+Fase 5 modul analisa struktur (replikasi + modifikasi "Auto Structure Pro"):
+7 endpoint, migrasi 458–460, 17 test integrasi terhadap Postgres nyata.
+
+**Ringkasan run** (`cd apps/api && npx vitest run struktur`):
+
+```
+Test Files  14 passed (14)
+     Tests  361 passed (361)
+```
+
+`npx tsc --noEmit` → exit 0. Penjaga: `audit-gerbang-tenancy`,
+`audit-tulis-tanpa-periksa`, `audit-kegagalan-senyap`, `audit-catch-senyap`,
+`audit-izin-benar-ada`, `audit-baca-tak-terpotong`, `audit-klaim-status-atomik`,
+`audit-jejak-tak-hilang`, `audit-kredensial-tak-bocor` — semuanya exit 0.
+
+### Cacat 1 — `basi` tak pernah padam: jam aplikasi vs jam basis
+
+Kolom `basi` (458) adalah `dihitung_pada IS NULL OR dihitung_pada < updated_at`.
+`updated_at` diisi trigger dengan `clock_timestamp()` — jam BASIS. Rute mengisi
+`dihitung_pada` dengan `new Date()` — jam APLIKASI.
+
+Diukur di mesin ini: jam basis **1.648 ms DI DEPAN** jam aplikasi (pooler
+ap-southeast-1). Artinya setiap `dihitung_pada` lahir sudah tertinggal, `basi`
+menyala selamanya, dan rekap — yang sengaja mengecualikan elemen basi —
+memulangkan **nol** untuk proyek yang seluruh elemennya baru saja dihitung.
+Tak ada galat di mana pun: rute membalas 200, layar bilang "tersimpan".
+
+Migrasi 460 memindahkan pengisiannya ke trigger. Diperbaiki di basis, bukan di
+rute, supaya aturannya berlaku juga untuk seed, impor massal, dan psql manual —
+yang harus diingat pemanggil akan terlupa. Blok verifikasinya **dibuktikan bisa
+merah**: trigger dilepas → `460 GAGAL — basi masih menyala`.
+
+### Cacat 2 — izin dibuat tapi tak ditautkan ke peran mana pun
+
+458 membuat `cecep:struktur:view/manage` tetapi tak menautkannya. Ketahuannya
+dari test rute: **16 dari 16 merah dengan 403**, termasuk untuk admin.
+
+`audit-izin-benar-ada` menjaga arah SEBALIKNYA (kunci di kode wajib ada di
+tabel) — kunci yang ada tapi tak dipegang siapa pun lolos penjaga itu. Migrasi
+459 menautkan mengikuti pola CECEP yang sudah mapan (diukur dari basis, bukan
+ditebak): `:view` → admin/pm/direktur, `:manage` → admin/estimator, ke peran
+template DAN per-tenant.
+
+### Cacat 3 — volume balok kehilangan SELURUH tulangan atas
+
+`volumeBalok` hanya menimbang `nTarik`. Balok tanpa batang atas tak bisa
+dirakit — sengkang tertutup harus digantung. Jadi RAP dari modul ini
+kekurangan besi pada **setiap balok di setiap proyek**.
+
+Tak ada test yang merah karenanya; angka 15 lulus dengan rapi. Yang
+membongkarnya adalah memeriksa silang ke `bbsBalok` (Fase 3), yang sejak awal
+punya `nAtas`. Ditambahkan `nTekan` (default 2) — masuk volume dan masuk
+gambar, dengan kapasitas lentur sengaja tetap tulangan-tunggal (konservatif).
+
+Gambar kerja ikut diperbaiki: versi pertama menggambar `nTarik >= 2 ? 2 : 0`
+batang atas — angka karangan yang tak muncul di perhitungan mana pun.
+Estimator memesan besi DARI GAMBAR; batang yang tergambar tapi tak terhitung
+adalah selisih yang baru ketahuan saat besinya kurang di lapangan.
+
+### Mutation test — enam mutasi, dan satu yang mengungkap test lemah
+
+M1 gerbang tenant · M2 rekap tak mengecualikan basi · M3 gagal hitung-semua
+ditelan · M4 kode ganda tak jadi 409 · M6 gambar kembali ke tebakan lama —
+semuanya MERAH.
+
+**M5 (lepas cek nol-baris pada PATCH & /hitung) LOLOS.** Sebabnya: test saya
+menghapus elemen lebih dulu, jadi `ambilElemen` sudah memulangkan null dan
+404-nya datang dari sana — cek nol-baris tak pernah ikut diuji. Keadaan yang
+benar-benar mengujinya adalah BALAPAN: ada saat dibaca, hilang saat ditulis.
+Ditambahkan test yang menciptakannya lewat trigger sekali-pakai di basis (pola
+`wa-template-rute.test.ts`), dan M5 kini merah.
+
+Mutasi yang lolos itu bukan gangguan — itu satu-satunya yang memberi tahu
+bahwa test yang sudah hijau tidak menguji apa yang saya kira.
+
+### Menunggu ratifikasi (G-2)
+
+458, 459, 460 **belum dicatat** di `supabase_migrations.schema_migrations`.
+Artefak fisiknya terbukti ada (blok verifikasi tiap migrasi lulus), tetapi
+menulis ke buku migrasi adalah Gerbang Keras G-2 — tidak dilakukan sendiri.

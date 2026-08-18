@@ -128,6 +128,7 @@ import approvalChainRoutes from './routes/v1/approval-chains.js'
 import notificationRuleRoutes from './routes/v1/notification-rules.js'
 import estimateVersionRoutes from './routes/v1/estimate-versions.js'
 import ahspRoutes from './routes/v1/ahsp.js'
+import strukturRoutes from './routes/v1/struktur.js'
 import priceBookRoutes, { projectPriceOverrideRoutes } from './routes/v1/price-book.js'
 import lessonsLearnedRoutes from './routes/v1/lessons-learned.js'
 import bidRoutes from './routes/v1/bids.js'
@@ -365,6 +366,7 @@ await app.register(jadwalRoutes)
 await app.register(approvalInboxRoutes)
 await app.register(companiesRoutes)
 await app.register(rapRoutes)
+await app.register(strukturRoutes)
 await app.register(costControlRoutes)
 await app.register(menuRoutes)
 await app.register(moduleRoutes)

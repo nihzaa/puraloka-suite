@@ -119,6 +119,16 @@ export interface InputBalok {
   dUtamaMm: number
   /** Jumlah tulangan tarik (sisi bawah untuk momen positif). */
   nTarik: number
+  /**
+   * Jumlah tulangan sisi ATAS (tekan / gantungan sengkang). Default **2**.
+   *
+   * Bukan angka karangan: sengkang tertutup harus digantung pada batang
+   * memanjang di kedua sudut atas — balok tanpa batang atas tak bisa dirakit.
+   * Kapasitas lentur SENGAJA tetap dihitung tanpa memperhitungkannya
+   * (tulangan tunggal, konservatif), tetapi VOLUME-nya harus ikut: RAP yang
+   * melewatkannya kekurangan besi pada SETIAP balok di proyek.
+   */
+  nTekan?: number
   /** Diameter sengkang, mm. */
   dSengkangMm: number
   /** Jarak sengkang terpasang, mm. */
@@ -375,12 +385,18 @@ function volumeBalok(input: InputBalok, dEfektifMm: number): VolumeElemen {
   // +1 karena sengkang dipasang di KEDUA ujung bentang (pagar, bukan celah).
   const jumlahSengkang = Math.ceil(panjangM * 1000 / jarakSengkangMm) + 1
 
+  // Batang memanjang = tarik (bawah) + tekan/gantungan (atas). Keduanya
+  // sepanjang bentang dan berdiameter sama; digabung jadi satu baris BBS
+  // karena pemesanannya memang satu jenis.
+  const nTekan = input.nTekan ?? 2
+  const nMemanjang = nTarik + nTekan
+
   const besi: BarisBesi[] = [
     {
       tipe: 'BjTS', diameterMm: dUtamaMm, peran: 'utama',
-      jumlahBatang: nTarik * jumlah, panjangPerBatangM: panjangM,
+      jumlahBatang: nMemanjang * jumlah, panjangPerBatangM: panjangM,
       beratKgPerM: beratPerM(dUtamaMm),
-      totalKg: nTarik * jumlah * panjangM * beratPerM(dUtamaMm),
+      totalKg: nMemanjang * jumlah * panjangM * beratPerM(dUtamaMm),
     },
     {
       tipe: 'BjTP', diameterMm: dSengkangMm, peran: 'sengkang',

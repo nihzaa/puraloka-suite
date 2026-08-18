@@ -185,13 +185,34 @@ describe('analisaBalok — volume untuk RAP', () => {
     expect(h.volume.beratSendiriKg).toBeCloseTo(0.3 * 0.52 * 6 * 2400, 6)
   })
 
-  it('besi utama: 15 batang × 6 m × berat D16', () => {
+  /*
+    17 = nTarik 15 + nTekan (default 2), satu balok.
+
+    Batang ATAS sempat hilang dari volume ini, dan tak ada satu pun test yang
+    merah karenanya — angka 15 lulus dengan rapi. Yang membongkarnya adalah
+    memeriksa silang ke `bbsBalok` (Fase 3), yang sejak awal punya `nAtas`.
+    Balok tanpa batang atas tak bisa dirakit: sengkang tertutup harus
+    digantung. RAP tanpa baris ini kekurangan besi pada SETIAP balok.
+  */
+  it('besi utama: 15 tarik + 2 tekan = 17 batang × 6 m × berat D16', () => {
     const utama = h.volume.besi.find((b) => b.peran === 'utama')!
-    expect(utama.jumlahBatang).toBe(15)
+    expect(utama.jumlahBatang).toBe(17)
     expect(utama.panjangPerBatangM).toBe(6)
     // D16 → 0.0061654 × 256 = 1.5783 kg/m (tabel baku SNI: 1.578)
     expect(utama.beratKgPerM).toBeCloseTo(1.5783, 3)
-    expect(utama.totalKg).toBeCloseTo(15 * 6 * KOEF_BERAT_BESI * 256, 6)
+    expect(utama.totalKg).toBeCloseTo(17 * 6 * KOEF_BERAT_BESI * 256, 6)
+  })
+
+  it('nTekan bisa dinaikkan — dan volumenya ikut naik, bukan diabaikan', () => {
+    const empat = analisaBalok({ ...INPUT_BALOK, nTekan: 4 })
+    const utama4 = empat.volume.besi.find((b) => b.peran === 'utama')!
+    // nTekan 2 → 4 menambah 2 batang.
+    expect(utama4.jumlahBatang).toBe(19)
+  })
+
+  it('nTekan TIDAK mengubah kapasitas lentur — tulangan tunggal, konservatif', () => {
+    const empat = analisaBalok({ ...INPUT_BALOK, nTekan: 4 })
+    expect(empat.antara.phiMnKnm).toBeCloseTo(h.antara.phiMnKnm, 9)
   })
 
   it('sengkang: keliling inti + kait 135°, jumlah = ⌈L/s⌉ + 1', () => {
@@ -339,7 +360,8 @@ describe('rekapVolume — gabung banyak elemen untuk RAP', () => {
     // bukan 4. Itulah satuan yang dibeli orang.
     expect(r.besi).toHaveLength(2)
     const utama = r.besi.find((b) => b.peran === 'utama')!
-    expect(utama.jumlahBatang).toBe(15 + 12)
+    // 17 balok (5 tarik + 2 tekan, × 3) + 12 kolom.
+    expect(utama.jumlahBatang).toBe(17 + 12)
   })
 
   it('elemen berbeda diameter TIDAK digabung', () => {

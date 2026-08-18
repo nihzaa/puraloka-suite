@@ -2767,3 +2767,42 @@ audit-menu-punya-halaman         7 tersisa — KELIMANYA yatim lama
                                  (href disetel 2026-08-10, halaman tak
                                  pernah ada di branch mana pun)
 ```
+
+---
+
+## R-014 — Tiga migrasi struktur (458–460) menunggu pencatatan buku migrasi (G-2)
+
+**Status:** menunggu founder · diajukan 2026-08-19
+
+### Yang sudah dikerjakan
+
+Modul analisa struktur Fase 5 (API) selesai: 7 endpoint, 17 test integrasi
+terhadap Postgres nyata, 361 test hijau seluruhnya, `tsc --noEmit` exit 0,
+sembilan penjaga arsitektural exit 0. Rinciannya di `JOURNAL.md` 2026-08-19.
+
+Tiga migrasi sudah **dijalankan** dan artefak fisiknya **terbukti ada**:
+
+| Migrasi | Isi | Bukti |
+|---|---|---|
+| `458_struktur_elemen` | tabel + RLS FORCE + 2 trigger + 2 permission + kolom `basi` GENERATED | blok verifikasi 4 pemeriksaan lulus |
+| `459_izin_struktur_tertaut_peran` | tautan izin→peran (view: 6 peran, manage: 4) | `NOTICE 459 OK` |
+| `460_struktur_dihitung_pada_jam_basis` | trigger memaksa `dihitung_pada` ke jam basis | `NOTICE 460 OK`, dan **dibuktikan bisa merah** (trigger dilepas → EXCEPTION) |
+
+### Yang saya TIDAK lakukan, dan kenapa
+
+Ketiganya **belum dicatat** di `supabase_migrations.schema_migrations`.
+
+Menulis ke buku itu adalah **Gerbang Keras G-2** (CHARTER). Buku itu menentukan
+apa yang di-replay CI; entri yang salah berarti migrasi dilewati senyap
+selamanya. `scripts/db/catat-migrasi-terbukti.mjs` sendiri menyatakan ia
+dijalankan **hanya sesudah ratifikasi** (R-002), dan daftarnya ditulis tangan
+per baris — bukan alat rutin.
+
+Konsekuensi selama belum dicatat: lingkungan bersih (CI, checkout baru) **tidak
+akan menjalankan** ketiganya, sehingga test rute struktur akan merah di sana
+meski hijau di mesin ini.
+
+### Yang perlu diputuskan founder
+
+Izin mencatat 458, 459, 460 ke buku migrasi — atau menunjuk cara lain yang
+Anda kehendaki untuk membawanya ke CI.
