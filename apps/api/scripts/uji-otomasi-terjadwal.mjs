@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 // ============================================================================
-// UJI KETUJUH TUGAS TERJADWAL — SUNGGUHAN, DAN TANPA SALDO AI
+// UJI TUGAS TERJADWAL — SUNGGUHAN, DAN TANPA SALDO AI
+//
+// ⚠ Judul ini dulu berbunyi "UJI KETUJUH TUGAS TERJADWAL", dan tetap begitu
+// sesudah daftarnya jadi 14 pada 2026-08-17. Angka di judul membusuk tanpa
+// satu pun galat — pembuka CLAUDE.md, dalam bentuk paling kecil. Jumlahnya
+// kini dihitung dari `TUGAS.length`, bukan ditulis.
 //
 // ══════════════════════════════════════════════════════════════════════════
 // KENAPA SKRIP INI ADA
@@ -51,7 +56,7 @@ const EMAIL = process.env.UJI_EMAIL
 const SANDI = process.env.UJI_SANDI
 
 /**
- * Ketujuh tugas terjadwal, dibaca dari kode sumbernya sendiri supaya daftar
+ * Tugas terjadwal, dibaca dari kode sumbernya sendiri supaya daftar
  * ini tak pernah berselisih dengan rute yang benar-benar ada.
  */
 const TUGAS = [
@@ -62,6 +67,29 @@ const TUGAS = [
   'gr-matching',
   'invoice-termin',
   'stok-menipis',
+
+  // ── Delapan yang baru terdaftar 2026-08-17 ────────────────────────────────
+  //
+  // Ketujuhnya di bawah, plus `kirim-laporan-terjadwal`, baru masuk `KATALOG_TUGAS`
+  // hari ini; sebelumnya rutenya ADA tapi tak ada satu pun cara memicunya
+  // (ditemukan `audit-rute-penjadwal-punya-tugas.mjs`).
+  //
+  // Terdaftar BUKAN berarti bekerja. Penjaga itu statis — ia membaca katalog
+  // dan daftar rute, tak pernah memanggil satu pun. Yang membuktikan
+  // pekerjaannya benar-benar jalan cuma berkas ini.
+  'kirim-pengingat',
+  'perawatan-diprediksi',
+  'kebiasaan-bayar',
+  'ringkasan-mingguan',
+  'material-kurang',
+  'alat-tak-sehat',
+  'celah-asuransi',
+
+  // `kirim-laporan-terjadwal` SENGAJA tak ikut: jalurnya di luar prefiks
+  // `otomasi/jalankan/` (`kendali-dokumen/kirim-laporan`), dan berkas ini
+  // merakit URL dari prefiks itu. Menambahkannya menuntut perubahan bentuk
+  // skrip — dicatat di sini supaya ketiadaannya terbaca sebagai keputusan,
+  // bukan kelalaian.
 ]
 
 if (!EMAIL || !SANDI) {
@@ -170,5 +198,11 @@ const berisi = hasil.filter((h) => {
 console.log(`   ${berisi.length} di antaranya benar-benar mengerjakan sesuatu;`)
 console.log(`   ${hasil.length - berisi.length} memulangkan nol — WAJAR bila tak ada yang perlu dikerjakan hari ini.`)
 console.log('')
-console.log('✅ Ketujuh tugas terjadwal bisa dipicu dan selesai tanpa saldo AI.')
+// Angka DIHITUNG, tidak dipaku di teks.
+//
+// Baris ini dulu berbunyi "Ketujuh tugas terjadwal…" — dan tetap berbunyi
+// begitu sesudah daftarnya jadi 14 pada 2026-08-17. Angka yang dipaku di
+// kalimat membusuk tanpa satu pun galat, persis peringatan pembuka CLAUDE.md.
+console.log(
+  `✅ Ke-${TUGAS.length} tugas terjadwal bisa dipicu dan selesai tanpa saldo AI.`)
 console.log('')
