@@ -70,14 +70,36 @@ async function tokenAbsensi(tanggal: string, porsi = 1): Promise<string> {
 beforeAll(async () => {
   db = await createRlsClient()
 
+  /*
+    Lingkup kerja dipilih dengan ORDER BY, dan HANYA yang company-nya punya
+    tukang aktif.
+
+    Versi sebelumnya `LIMIT 1` tanpa ORDER BY. Selama jumlah barisnya tetap,
+    Postgres memulangkan yang sama tiap kali dan itu tak pernah terlihat
+    salah. Ia berhenti benar begitu ada baris DIHAPUS: 2026-08-18 dua
+    `work_scopes` sisa fixture uji SPK dibersihkan, urutan bergeser, dan
+    lingkup yang terpilih ternyata milik company yang tak punya tukang
+    aktif — sehingga baris absensi pertama tak pernah tercipta dan test
+    "absensi KEDUA DITOLAK" gagal dengan `expected true to be false`.
+
+    Kegagalannya menuduh LOGIKA DUPLIKAT, padahal yang salah pilihan
+    fixture-nya. Syaratnya kini dinyatakan di query, bukan diharapkan
+    kebetulan.
+  */
   const { rows } = await db.query(`
     SELECT ws.id scope_id, ma.project_id, p.company_id, p.name proyek, p.created_by
       FROM work_scopes ws
       JOIN mandor_assignments ma ON ma.id = ws.assignment_id
       JOIN projects p ON p.id = ma.project_id
      WHERE p.created_by IS NOT NULL
+       AND EXISTS (SELECT 1 FROM workers w
+                    WHERE w.company_id = p.company_id AND w.is_active)
+     ORDER BY ws.created_at, ws.id
      LIMIT 1`)
-  if (rows.length === 0) throw new Error('Butuh satu work_scope untuk test ini')
+  if (rows.length === 0) {
+    throw new Error('Butuh satu work_scope di company yang punya tukang aktif — '
+      + 'periksa seed/keanggotaan, bukan berkas ini')
+  }
 
   scopeId = rows[0].scope_id
   projectId = rows[0].project_id

@@ -43,9 +43,20 @@ describe('progress_payments — pemohon tak boleh jadi penyetuju', () => {
   it('kolom requested_by dan approved_by ADA dan terpisah', async () => {
     // Kalau keduanya digabung jadi satu kolom, pemisahan wewenang mustahil
     // ditegakkan di lapisan mana pun.
+    /*
+      `table_schema = 'public'` WAJIB.
+
+      Basis ini punya skema `test` yang membayangi 9 tabel `public` dengan
+      nama yang sama (`progress_payments`, `projects`, `kasbons`, …). Tanpa
+      saringan skema, query ini memulangkan TIAP KOLOM DUA KALI dan
+      assertion-nya merah dengan `['approved_by','approved_by',…]` —
+      kegagalan yang terbaca seperti kolom hilang, padahal kolomnya ada dan
+      pertanyaannya yang tak menyebut skema.
+    */
     const { rows } = await db.query(`
       SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'progress_payments'
+      WHERE table_schema = 'public'
+        AND table_name = 'progress_payments'
         AND column_name IN ('requested_by', 'approved_by')
       ORDER BY column_name
     `)
@@ -56,9 +67,13 @@ describe('progress_payments — pemohon tak boleh jadi penyetuju', () => {
     // Ini yang membuat perbaikannya mungkin. Kalau kolomnya NOT NULL, kode
     // TERPAKSA mengisinya saat membuat — dan satu-satunya nilai yang tersedia
     // saat itu adalah pemohonnya sendiri.
+    // `table_schema = 'public'` — lihat alasannya di test sebelumnya.
+    // Di sini efeknya lebih halus: tanpa saringan, `rows[0]` bisa jatuh ke
+    // baris skema `test` dan jawabannya benar SECARA KEBETULAN.
     const { rows } = await db.query(`
       SELECT is_nullable FROM information_schema.columns
-      WHERE table_name = 'progress_payments' AND column_name = 'approved_by'
+      WHERE table_schema = 'public'
+        AND table_name = 'progress_payments' AND column_name = 'approved_by'
     `)
     expect(rows[0]?.is_nullable).toBe('YES')
   })
