@@ -257,7 +257,7 @@ function RuleCard({ rule, roles, perms, canManage, onToggle, onAdd, onRemove }: 
             </select>
           )}
           <button onClick={submit} disabled={needsValue && !value}
-            style={{ ...input, width: "auto", cursor: needsValue && !value ? "not-allowed" : "pointer", background: C.navy, color: C.onNavy, borderColor: C.navy, fontWeight: 600 }}>
+            style={{ ...input, width: "auto", cursor: needsValue && !value ? "not-allowed" : "pointer", background: "var(--grad-aksen)", color: C.onNavy, borderColor: C.navy, fontWeight: 600 }}>
             Tambah
           </button>
           <button onClick={() => { setAdding(false); setValue(""); }}

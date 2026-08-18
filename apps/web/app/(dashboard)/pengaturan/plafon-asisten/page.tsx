@@ -284,7 +284,7 @@ export default function PlafonAsistenPage() {
                         padding: "7px 14px",
                         borderRadius: 8,
                         border: "none",
-                        background: C.aksen,
+                        background: "var(--grad-aksen)",
                         color: "#fff",
                         fontSize: 13,
                         fontWeight: 600,

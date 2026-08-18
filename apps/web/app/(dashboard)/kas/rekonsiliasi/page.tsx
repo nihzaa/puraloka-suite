@@ -348,7 +348,7 @@ export default function RekonsiliasiBankPage() {
                       marginTop: 14, display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "8px 14px", fontSize: 13, fontFamily: "inherit", fontWeight: 600,
                       border: "none", borderRadius: 10,
-                      background: "var(--navy)", color: "var(--on-navy, #fff)",
+                      background: "var(--grad-aksen)", color: "var(--on-navy, #fff)",
                       cursor: sibuk ? "default" : "pointer", opacity: sibuk ? 0.6 : 1,
                     }}
                   >

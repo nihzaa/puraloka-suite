@@ -213,7 +213,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 12px", borderRadius: 10, border: "none",
-                background: "var(--navy)", color: "var(--surface)",
+                background: "var(--grad-aksen)", color: "var(--surface)",
                 fontSize: 13, fontWeight: 600, cursor: "pointer",
                 transition: "background 0.15s", flexShrink: 0,
               }}

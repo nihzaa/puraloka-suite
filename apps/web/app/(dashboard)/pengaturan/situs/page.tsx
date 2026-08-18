@@ -355,7 +355,7 @@ function SitusContent() {
             style={{
               display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600,
               padding: "9px 16px", borderRadius: 8, border: "none",
-              background: "var(--navy)", color: "var(--on-navy)",
+              background: "var(--grad-aksen)", color: "var(--on-navy)",
               cursor: canManage ? "pointer" : "not-allowed",
             }}
           >

@@ -443,7 +443,7 @@ export default function CutiPage() {
 
       {galat && (
         <div role="alert" style={{
-          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)",
         }}>{galat}</div>
@@ -507,7 +507,7 @@ export default function CutiPage() {
               { l: "Hak tahun ini", v: hari(s.hak), sub: `${detail.hak.filter((h) => h.tahun === tahun).length} pemberian` },
             ].map((k) => (
               <div key={k.l} style={{
-                ...kartu, padding: "12px 14px",
+                ...kartu, padding: "12px var(--pad-kartu-lega)",
                 // Satu aksen: hanya sisa jatah yang diberi penekanan, dan
                 // hanya saat NEGATIF ia berubah warna — jatah yang terlanjur
                 // terpakai berlebih harus terlihat.
@@ -549,7 +549,7 @@ export default function CutiPage() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "1px solid var(--navy)", background: "var(--navy)",
+                border: "none", background: "var(--grad-aksen)",
                 color: "var(--on-navy)", cursor: "pointer",
               }}
             ><Plus size={14} aria-hidden="true" /> Ajukan cuti</button>
@@ -636,7 +636,7 @@ export default function CutiPage() {
             <button type="button" onClick={() => void simpanAjukan()} disabled={menyimpan}
               style={{
                 padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "1px solid var(--navy)", background: "var(--navy)",
+                border: "none", background: "var(--grad-aksen)",
                 color: "var(--on-navy)", cursor: menyimpan ? "not-allowed" : "pointer",
                 opacity: menyimpan ? 0.7 : 1,
               }}>{menyimpan ? "Mengajukan…" : "Ajukan"}</button>
@@ -710,7 +710,7 @@ export default function CutiPage() {
 
           {penghalang.length > 0 && (
             <div role="alert" style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               border: "1px solid var(--warning-border)", background: "var(--warning-bg)",
               color: C.text,
             }}>
@@ -726,7 +726,7 @@ export default function CutiPage() {
 
           {galatModal && (
             <div role="alert" style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
               color: "var(--danger)",
             }}>{galatModal}</div>
@@ -782,7 +782,7 @@ export default function CutiPage() {
 
           {galatModal && (
             <div role="alert" style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
               color: "var(--danger)",
             }}>{galatModal}</div>
@@ -807,7 +807,7 @@ export default function CutiPage() {
             <button type="button" onClick={() => void simpanHak()} disabled={menyimpan}
               style={{
                 padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "1px solid var(--navy)", background: "var(--navy)",
+                border: "none", background: "var(--grad-aksen)",
                 color: "var(--on-navy)", cursor: menyimpan ? "not-allowed" : "pointer",
                 opacity: menyimpan ? 0.7 : 1,
               }}>{menyimpan ? "Menyimpan…" : "Simpan"}</button>
@@ -853,7 +853,7 @@ export default function CutiPage() {
 
           {galatModal && (
             <div role="alert" style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
               color: "var(--danger)",
             }}>{galatModal}</div>

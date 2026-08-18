@@ -406,7 +406,7 @@ export default function KompetensiPage() {
 
       {galat && (
         <div role="alert" style={{
-          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)",
         }}>{galat}</div>
@@ -512,7 +512,7 @@ export default function KompetensiPage() {
                 { l: "Total", v: s.baris.length, sub: "sertifikat tercatat" },
               ].map((k) => (
                 <div key={k.l} style={{
-                  ...kartu, padding: "12px 14px",
+                  ...kartu, padding: "12px var(--pad-kartu-lega)",
                   borderColor: k.bahaya && s.kedaluwarsa > 0 ? "var(--danger-border)" : C.border,
                 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
@@ -533,7 +533,7 @@ export default function KompetensiPage() {
                 style={{
                   display: "inline-flex", alignItems: "center", gap: 6,
                   padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                  border: "1px solid var(--navy)", background: "var(--navy)",
+                  border: "none", background: "var(--grad-aksen)",
                   color: "var(--on-navy)", cursor: "pointer",
                 }}
               ><Plus size={14} aria-hidden="true" /> Tambah sertifikat</button>
@@ -587,7 +587,7 @@ export default function KompetensiPage() {
                   { l: "Final", v: detail.kinerja.jumlah_final, sub: "sudah disampaikan" },
                   { l: "Draf", v: detail.kinerja.jumlah_draf, sub: "masih bisa berubah" },
                 ].map((k) => (
-                  <div key={k.l} style={{ ...kartu, padding: "12px 14px" }}>
+                  <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                       textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                     <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
@@ -658,7 +658,7 @@ export default function KompetensiPage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
               gap: 8, marginBottom: 14 }}>
               {(["masuk", "seleksi_berkas", "wawancara", "tawaran"] as TahapLamaran[]).map((t) => (
-                <div key={t} style={{ ...kartu, padding: "12px 14px" }}>
+                <div key={t} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                     textTransform: "uppercase", letterSpacing: "0.05em" }}>{TAHAP[t].label}</div>
                   <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
@@ -700,7 +700,7 @@ export default function KompetensiPage() {
             <button type="button" onClick={() => void simpanSertifikat()} disabled={menyimpan}
               style={{
                 padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "1px solid var(--navy)", background: "var(--navy)",
+                border: "none", background: "var(--grad-aksen)",
                 color: "var(--on-navy)", cursor: menyimpan ? "not-allowed" : "pointer",
                 opacity: menyimpan ? 0.7 : 1,
               }}>{menyimpan ? "Menyimpan…" : "Simpan"}</button>
@@ -800,7 +800,7 @@ export default function KompetensiPage() {
 
           {galatModal && (
             <div role="alert" style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
               color: "var(--danger)",
             }}>{galatModal}</div>
@@ -825,7 +825,7 @@ export default function KompetensiPage() {
             <button type="button" onClick={() => void simpanPindah()} disabled={menyimpan}
               style={{
                 padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "1px solid var(--navy)", background: "var(--navy)",
+                border: "none", background: "var(--grad-aksen)",
                 color: "var(--on-navy)", cursor: menyimpan ? "not-allowed" : "pointer",
                 opacity: menyimpan ? 0.7 : 1,
               }}>{menyimpan ? "Memindah…" : "Pindah"}</button>
@@ -909,7 +909,7 @@ export default function KompetensiPage() {
 
           {galatModal && (
             <div role="alert" style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
               color: "var(--danger)",
             }}>{galatModal}</div>

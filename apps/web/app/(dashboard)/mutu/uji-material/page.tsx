@@ -252,7 +252,7 @@ export default function UjiMaterialPage() {
 
       {galat && (
         <div role="alert" style={{
-          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)",
         }}>{galat}</div>
@@ -294,7 +294,7 @@ export default function UjiMaterialPage() {
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
               gap: 8, marginBottom: 16 }}>
-              <div style={{ ...kartu, padding: "12px 14px",
+              <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)",
                 borderColor: hasil.tidak_memenuhi > 0 ? "var(--danger-border)" : C.border }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Tidak memenuhi</div>
@@ -307,7 +307,7 @@ export default function UjiMaterialPage() {
                 </div>
               </div>
 
-              <div style={{ ...kartu, padding: "12px 14px" }}>
+              <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Perlu uji ulang</div>
                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
@@ -316,7 +316,7 @@ export default function UjiMaterialPage() {
                 <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>hasilnya belum bisa dipakai</div>
               </div>
 
-              <div style={{ ...kartu, padding: "12px 14px" }}>
+              <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Belum disimpulkan</div>
                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text }}>
@@ -327,7 +327,7 @@ export default function UjiMaterialPage() {
                 </div>
               </div>
 
-              <div style={{ ...kartu, padding: "12px 14px" }}>
+              <div style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>Memenuhi</div>
                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: "var(--success)" }}>
@@ -339,7 +339,7 @@ export default function UjiMaterialPage() {
 
             {hasil.bertentangan > 0 && (
               <div role="status" style={{
-                display: "flex", gap: 8, alignItems: "flex-start", padding: "10px 12px",
+                display: "flex", gap: 8, alignItems: "flex-start", padding: "10px var(--pad-kartu-lega)",
                 background: "var(--warning-bg)", border: "1px solid var(--warning-border)",
                 borderRadius: 8, fontSize: 12.5, color: "var(--warning-teks)",
                 marginBottom: 14, lineHeight: 1.55,
@@ -362,7 +362,7 @@ export default function UjiMaterialPage() {
                 kunciBaris={(u) => u.id}
                 kolom={KOLOM}
               />
-              <p style={{ margin: 0, padding: "10px 14px", fontSize: 11.5, color: C.mid,
+              <p style={{ margin: 0, padding: "10px var(--pad-kartu-lega)", fontSize: 11.5, color: C.mid,
                 borderTop: `1px solid ${C.border}`, lineHeight: 1.55 }}>
                 Syarat mutu disimpan bersama hasilnya, bukan dicari saat dibaca —
                 standar berubah antar-proyek dan antar-edisi SNI, dan kesimpulan
