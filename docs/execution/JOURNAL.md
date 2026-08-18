@@ -5,6 +5,86 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (pematangan, putaran 4) — dua cacat fixture: satu SAYA sebabkan, satu skema tersembunyi
+
+Founder: *"pastikan fase fase sebelumnyaa sudah matang… jikaa ada dan belum
+sempurna, sempurnakan dulu"*.
+
+### Pemulihan lebih dulu: `apps/api/node_modules` kosong
+
+`pnpm install --filter` saya kemarin mengosongkannya, dan sesi paralel
+melaporkannya lewat tangkapan layar founder. Dipulihkan; 7 paket kunci
+diverifikasi ada (`fastify`, `vitest`, `pg`, `pdfkit`, `xlsx`,
+`@anthropic-ai/sdk`, `@supabase/supabase-js`), `tsc` bersih di api DAN web.
+
+Sesi struktur sudah pindah ke `.claude/worktrees/struktur`, dan pohon kerja
+utama bersih — kami tak lagi berbagi direktori.
+
+### Verifikasi ulang seluruh fase
+
+    audit artefak    14/14 (tabel · RLS+FORCE · indeks · trigger · FK ·
+                     menu aktif · nol bentrok · nol luar-rentang · buku 8/8)
+    E2E lewat API    6/6 — klausul · RK3K+PDF · verifikasi · ekspor 16/16 ·
+                     addendum (induk TETAP 100jt) · otomasi 7/7
+    berkas kunci     11/11 ada
+    ledger-diff      450-457 konsisten
+    ratchet          tulis-senyap 72 · cache 25 · rute-penjadwal 0 yatim
+    a11y             154 halaman · 0 pelanggaran
+    vitest web       649/649
+
+### Cacat 9 — pembersihan SAYA menggeser fixture test lain
+
+`tulis-absensi.test.ts` memilih `work_scopes` dengan `LIMIT 1` TANPA
+ORDER BY. Selama jumlah barisnya tetap, Postgres memulangkan yang sama tiap
+kali — dan itu tak pernah terlihat salah.
+
+Ia berhenti benar begitu ada baris **dihapus**: saya membersihkan dua
+`work_scopes` sisa fixture uji SPK (`[TEST-SPK]`), urutan bergeser, dan
+lingkup yang terpilih ternyata milik company **tanpa tukang aktif**. Baris
+absensi pertama tak pernah tercipta, jadi test "absensi KEDUA di hari yang
+sama DITOLAK" gagal dengan `expected true to be false`.
+
+Kegagalannya menuduh **logika duplikat** — padahal logikanya benar.
+
+Ini akibat langsung tindakan saya, dan bentuk yang layak diingat:
+**membersihkan data uji pun bisa merusak test lain**, kalau test itu
+bergantung pada urutan yang tak pernah dinyatakan.
+
+### Cacat 10 — skema `test` membayangi `public`
+
+`approval-satu-pintu.test.ts` menanyakan `information_schema.columns` tanpa
+`table_schema = 'public'`.
+
+Diukur: basis ini punya skema `test` yang membayangi **9 tabel** `public`
+bernama sama (`progress_payments`, `projects`, `kasbons`, `roles`,
+`permissions`, `clients`, `mandor_assignments`, `daily_wage_logs`,
+`borongan_settlements`), plus `extensions` membayangi 5 lagi.
+
+Akibatnya query memulangkan tiap kolom DUA KALI:
+
+    expected ['approved_by','approved_by',…] to equal ['approved_by','requested_by']
+
+Kegagalan yang terbaca seperti **kolom hilang** — padahal kolomnya ada, dan
+pertanyaannya yang tak menyebut skema.
+
+Query kedua di berkas yang sama juga diperbaiki: tanpa saringan, `rows[0]`
+bisa jatuh ke baris skema `test` dan menjawab **benar secara kebetulan**.
+
+**Disapu, bukan diasumsikan:** 7 berkas test lain juga tak menyaring skema,
+tetapi seluruhnya menanyakan tabel yang TIDAK dibayangi. `audit-record-key`
+menanyakan `audit_logs` (dibayangi `extensions`) dan tetap 8/8 hijau karena
+bentuk query-nya tahan duplikat. Diperiksa satu per satu.
+
+Dicatat permanen di `CLAUDE.md` §1 beserta perintah pengukurnya.
+
+### Hasil
+
+    7 berkas yang tadinya bermasalah : 45/45 hijau (dari 44/45)
+    tulis-absensi                    : 6/6, stabil dua run berturut
+    approval-satu-pintu              : 6/6
+
+---
+
 ## 2026-08-18 (pematangan, putaran 3) — memeriksa ARTEFAK tiap fase, bukan mengingat bahwa "tadi hijau"
 
 Founder: *"pastikan fase fase sebelumnyaa sudah matang dan tanpa kekurangan
