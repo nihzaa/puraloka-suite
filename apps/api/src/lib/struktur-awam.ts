@@ -317,6 +317,44 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
     tindakan: 'Perbesar pondasi ke arah ini, atau geser posisi kolom mendekati '
       + 'pusat pondasi.',
   },
+  'Lentur baja': {
+    judul: 'Kekuatan balok baja menahan lenturan',
+    apa: 'Balok baja yang dibebani melengkung ke bawah. Ini memeriksa apakah '
+      + 'ukuran profilnya cukup — dan sekaligus apakah sisi atasnya cukup '
+      + 'sering dipegang supaya tidak berputar ke samping saat melengkung.',
+    risiko: 'Balok baja yang kurang kuat tidak langsung patah seperti beton — '
+      + 'ia BERPUTAR ke samping sambil melengkung (disebut tekuk lateral), dan '
+      + 'begitu mulai berputar, kemampuannya menahan beban anjlok cepat. '
+      + 'Runtuhnya terlihat seperti balok yang tiba-tiba "terpelintir".',
+    tindakan: 'Pakai profil yang lebih tinggi, atau tambahkan pengaku samping '
+      + '(bracing/gording) supaya jarak antar pemegang sisi atasnya lebih '
+      + 'rapat. Menambah pengaku biasanya jauh lebih murah daripada mengganti '
+      + 'profil.',
+  },
+  'Geser baja': {
+    judul: 'Kekuatan pelat tengah menahan gaya sobek',
+    apa: 'Bagian tegak di tengah profil baja (badannya) yang menahan gaya '
+      + 'sobek dekat tumpuan. Sayap atas dan bawah hampir tidak berperan '
+      + 'untuk ini.',
+    risiko: 'Badan profil yang terlalu tipis akan menekuk seperti kaleng '
+      + 'penyok tepat di dekat tumpuan — mendadak, dan biasanya di tempat '
+      + 'yang tak terlihat karena tertutup dinding atau plafon.',
+    tindakan: 'Pakai profil dengan badan lebih tebal, atau pasang pelat '
+      + 'pengaku (stiffener) di daerah dekat tumpuan.',
+  },
+  'Lendutan': {
+    judul: 'Balok tidak melendut berlebihan',
+    apa: 'Seberapa banyak balok turun di tengah saat dibebani sehari-hari. '
+      + 'Berbeda dari kekuatan: balok bisa sangat kuat tetapi tetap terasa '
+      + 'melendut saat dilewati orang.',
+    risiko: 'Lantai terasa mengayun saat dilewati, keramik dan plafon retak, '
+      + 'pintu dan jendela macet. Pada baja inilah yang PALING SERING jadi '
+      + 'penentu ukuran profil — bukan kekuatannya — dan keluhan penghuni '
+      + 'nomor satu pada bangunan berlantai baja.',
+    tindakan: 'Pakai profil yang lebih TINGGI (paling efektif — lendutan '
+      + 'sangat peka terhadap tinggi profil), perpendek bentang dengan '
+      + 'menambah kolom, atau tambahkan balok anak di tengah bentang.',
+  },
   'bahan': {
     judul: 'Kekuatan bahan tiang itu sendiri',
     apa: 'Selain tanah, tiangnya sendiri punya batas: beton dan besinya hanya '

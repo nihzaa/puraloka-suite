@@ -10,6 +10,7 @@ import { analisaPilecap } from '../struktur-pilecap'
 import { analisaKolomBulat } from '../struktur-kolom-bulat'
 import { analisaTiang } from '../struktur-tiang'
 import { analisaKolomLengkap } from '../struktur-kolom-lengkap'
+import { analisaBalokBaja } from '../struktur-baja'
 
 /**
  * ══════════════════════════════════════════════════════════════════════════════
@@ -77,6 +78,27 @@ function semuaNamaPemeriksaan(): string[] {
       diameterM: 0.4, panjangM: 16, fcMpa: 36.6,
       lapisan: Array.from({ length: 8 }, () => ({ tebalM: 2, nSpt: 20 })),
       bebanRencanaKn: 300,
+    }) as never,
+    /*
+      BAJA IKUT — dan penjaga ini langsung membuktikan gunanya.
+
+      Modul baja lahir sesudah kamus awam ditulis, dan ketiga pemeriksaannya
+      (Lentur baja, Geser baja, Lendutan) TAK punya terjemahan sama sekali.
+      Ketahuannya bukan dari membaca kode melainkan dari audit lintas-modul
+      yang menjalankan keduanya berdampingan.
+
+      Modul baru yang lupa didaftarkan di sini akan lolos tanpa gejala —
+      karena itu daftarnya diperiksa terhadap apa yang NYATA dihasilkan, dan
+      tiap modul baru wajib ditambahkan ke fungsi ini.
+    */
+    analisaBalokBaja({
+      profil: {
+        designation: '200x100x5.5x8', profile_type: 'WF',
+        hMm: 200, bMm: 100, t1Mm: 5.5, t2Mm: 8,
+        beratKgPerM: 21.3333, panjangStandarM: 12,
+      },
+      mutu: { fyMpa: 240, fuMpa: 370 },
+      bentangM: 6, jarakPengakuM: 0, muKnm: 30, vuKn: 60, bebanLayanKnPerM: 3,
     }) as never,
   ]
   return [...new Set(hasil.flatMap((h) => h.periksa.map((p) => p.nama)))]

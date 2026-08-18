@@ -215,8 +215,23 @@ export interface BarisBesi {
   /** kg/m untuk diameter ini. */
   beratKgPerM: number
   totalKg: number
-  /** Peruntukan — supaya BBS bisa dibaca manusia. */
-  peran: 'utama' | 'sengkang'
+  /**
+   * Peruntukan — supaya BBS bisa dibaca manusia.
+   *
+   * `'utama' | 'sengkang'` untuk tulangan beton. Diperluas jadi `string`
+   * karena baja profil punya peran ketiga yang nyata: `"profil WF 200x100x5.5x8"`.
+   *
+   * Perluasan ini AMAN untuk `rekapVolume`: `peran` hanya dipakai sebagai
+   * bagian kunci penggabungan (`tipe|diameter|peran`), jadi dua profil WF yang
+   * berbeda TIDAK tergabung — dan itu memang yang benar, karena keduanya
+   * dipesan sebagai barang berbeda.
+   *
+   * Dibiarkan `string` alih-alih menambah satu literal: daftar tertutup akan
+   * menuntut satu literal baru untuk tiap profil dari 58 baris tabel
+   * `steel_profiles`, dan daftar sepanjang itu akan berselisih dengan tabelnya
+   * begitu ada profil baru ditambahkan.
+   */
+  peran: string
 }
 
 export interface HasilElemen {
