@@ -1,6 +1,6 @@
 # Rencana Menuntaskan Entri `sebagian`
 
-> Disusun 2026-08-17. Peta Modul saat pemutakhiran terakhir (2026-08-18): **224 hidup / 9 sebagian / 0 rencana**.
+> Disusun 2026-08-17. Peta Modul saat pemutakhiran terakhir (2026-08-18): **225 hidup / 8 sebagian / 0 rencana**.
 >
 > **Golongan D sudah dikerjakan saat dokumen ini ditulis** — lihat bagian D.
 >
@@ -21,7 +21,7 @@
 
 | Golongan | Jumlah | Artinya |
 |---|---:|---|
-| **A. Pekerjaan kode** | ~~3~~ → 2 | A1 SELESAI 2026-08-18; sisa A2 (addendum SPK) & A3 (versi dokumen) |
+| **A. Pekerjaan kode** | ~~3~~ → **1** | A1 & A2 SELESAI 2026-08-18; sisa A3 (versi dokumen) |
 | **B. Menunggu keputusan founder** | 2 | masuk `RATIFIKASI.md`, bukan antrean kerja |
 | **C. Menunggu pihak ketiga / rilis** | 3 | kredensial, kontrak komersial, atau distribusi aplikasi |
 | ~~D. Status BASI~~ | ~~1~~ → **0** | **SELESAI** — `tg-tambah` diverifikasi lalu jadi `hidup` |
@@ -29,7 +29,7 @@
 
 ---
 
-## A. Pekerjaan kode — 1 selesai, 2 tersisa
+## A. Pekerjaan kode — 2 selesai, 1 tersisa
 
 ### A1. ✅ SELESAI 2026-08-18 — `sy-import` sudah `hidup`
 
@@ -81,7 +81,15 @@ tiap baris, dan akun yang lahir tanpa ada yang memutuskan adalah lubang izin.
 
 ---
 
-### A2. `kt-subkon` — addendum SPK belum punya alur
+### A2. SELESAI 2026-08-18 — `kt-subkon` sudah `hidup`
+
+Migrasi 454 + endpoint + panel di `/mandor/spk`. Dibangun persis seperti
+rencana di bawah (DELTA, induk tak berubah, trigger untuk syarat lintas-baris).
+Sisa: cetak PDF addendum belum ada.
+
+<details><summary>Rencana asli</summary>
+
+#### `kt-subkon` — addendum SPK belum punya alur
 
 SPK sudah bisa diterbitkan, ditandatangani, dan **dicetak** (2026-08-17).
 Yang belum: mengubah lingkup SPK yang SUDAH ditandatangani.
@@ -108,6 +116,8 @@ Keduanya lebih buruk daripada addendum yang dirancang.
 
 **Ukuran selesai:** migrasi ber-verifikasi, endpoint CRUD, PDF, test yang
 membuktikan nilai efektif berubah sementara nilai induk TIDAK.
+
+</details>
 
 ---
 

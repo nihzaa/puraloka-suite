@@ -43,6 +43,7 @@ import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman } from "@/components/dasar";
 import { DialogBersama } from "@/components/dialog-bersama";
 import { TombolUnduh } from "@/components/tombol-unduh";
+import { AddendumSpk } from "@/components/addendum-spk";
 
 type StatusSpk = "draf" | "diterbitkan" | "ditandatangani" | "dibatalkan";
 
@@ -455,13 +456,20 @@ function KartuSpk({ spk: s, bolehKelola, bolehTtd, sibuk, onTerbitkan, onTtd, on
       )}
 
       {s.status === "ditandatangani" && (
-        <div style={{
-          padding: "10px var(--pad-kartu-lega)", background: "var(--surface-subtle)",
-          fontSize: 12, color: C.mid, display: "flex", alignItems: "center", gap: 6,
-        }}>
-          <Lock size={12} aria-hidden="true" />
-          Nilai, lingkup, jangka waktu, dan denda terkunci. Terbitkan addendum bila lingkupnya berubah.
-        </div>
+        <>
+          <div style={{
+            padding: "10px var(--pad-kartu-lega)", background: "var(--surface-subtle)",
+            fontSize: 12, color: C.mid, display: "flex", alignItems: "center", gap: 6,
+          }}>
+            <Lock size={12} aria-hidden="true" />
+            Nilai, lingkup, jangka waktu, dan denda terkunci. Terbitkan addendum bila lingkupnya berubah.
+          </div>
+          {/* Kalimat di atas sudah lama menulis "terbitkan addendum" — untuk
+              jalan yang TIDAK ADA sampai 2026-08-18. Kalimat yang menyuruh
+              tanpa menyediakan jalannya mendorong orang menerbitkan SPK
+              KEDUA, atau menyunting basis langsung. */}
+          <AddendumSpk spkId={s.id} bolehKelola={bolehKelola} />
+        </>
       )}
     </div>
   );

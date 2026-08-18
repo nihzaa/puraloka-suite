@@ -5,6 +5,105 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-18 (sesi peta-modul, A2) — addendum SPK: kalimat yang menyuruh tanpa menyediakan jalannya
+
+Founder: *"lanjutkan, dan biarkan kerja pararel saja"*.
+
+Golongan A2 dari `RENCANA-SISA-SEBAGIAN.md` — `kt-subkon`.
+
+### Kartunya sudah lama menyuruh, jalannya tak pernah ada
+
+Kartu SPK menulis *"Terbitkan addendum bila lingkupnya berubah"* — kalimat
+yang benar, untuk jalan yang **tidak ada**. Yang terjadi tanpa jalan itu bisa
+ditebak:
+
+1. orang menerbitkan **SPK KEDUA** untuk lingkup yang sama — layar
+   memperingatkan "SPK ganda", tapi memperingatkan bukan menyediakan jalan;
+2. seseorang menyunting basis langsung.
+
+Yang pertama menghasilkan dua kertas yang sama-sama terlihat sah untuk satu
+pekerjaan. Yang kedua membuat kertas yang ditandatangani berbeda bunyi dari
+yang tersimpan.
+
+### DELTA, bukan nilai baru
+
+Addendum menyimpan **selisih**. SPK induk tak pernah berubah, jadi ia tetap
+bisa dicetak ulang persis seperti saat ditandatangani — syarat yang sama
+dengan klausul kontrak (450), dan alasannya sama: PDF di-generate ulang tiap
+kali diunduh.
+
+Nilai efektif **dihitung saat baca**, bukan disimpan sebagai kolom. Kolom
+tersimpan basi tiap kali addendum ditambah atau dibatalkan, dan yang menemukan
+selisihnya adalah orang yang membayar menurut angka lama.
+
+### Delta negatif sah, nilai nol tidak
+
+Pekerjaan kurang itu nyata — lingkup dicoret, nilainya turun. Tapi total
+efektif tak boleh jatuh ke nol atau minus: **SPK bernilai nol bukan "SPK yang
+dikurangi habis"**, ia SPK yang seharusnya DIBATALKAN, dan keduanya berbeda di
+mata hukum maupun pembukuan.
+
+Dijaga trigger, bukan CHECK — CHECK tak bisa membaca baris tabel lain.
+
+### Tiga kesalahan saya, semuanya berulang dari sesi sebelumnya
+
+**1. `diterbitkan_oleh` diisi `auth_id`, bukan `users.id`.** Persis kesalahan
+yang sama dengan uji kebocoran SPK antar-tenant kemarin. Seluruh `beforeAll`
+mati dengan galat FK.
+
+**2. Urutan pembersihan test melanggar FK yang saya buat sendiri.**
+`spk_addendum.spk_id` ber-ON DELETE RESTRICT dengan sengaja — dan `afterAll`
+menghapus SPK lebih dulu, jadi seluruh suite mati dengan galat FK yang tak
+menyebut test mana penyebabnya.
+
+**3. Test bergantung pada keadaan yang diubah test lain.** "SPK belum
+ditandatangani menolak addendum" memungut SPK dari `dibuat` — dan test alur
+status di atas sudah menandatangani sebagiannya, jadi yang terpungut ternyata
+SUDAH bertanda tangan dan addendumnya sah (201). Diperbaiki: **membuat SPK
+draf sendiri**, bukan memungut.
+
+Yang ketiga paling layak diingat: test yang bergantung pada keadaan test lain
+lulus atau gagal menurut **urutan jalannya**, bukan menurut benar-salahnya
+kode.
+
+### Bukti
+
+    migrasi 454       6 invarian LULUS — perubahan wajib ada · delta negatif
+                      sah · nilai tak boleh habis · urutan unik per SPK ·
+                      hanya pada SPK bertanda tangan · tenant lain DITOLAK
+    vitest spk        64 passed
+    mutasi            addendum DIBATALKAN ikut dihitung →
+                      "expected 105000000 to be 115000000" MERAH → HIJAU
+                      (selisih Rp 10 juta yang akan lolos senyap)
+    API hidup         alur lengkap: +15jt/+7hari · −10jt · tolak −200jt ·
+                      efektif 105jt · selesai bergeser 7 hari ·
+                      INDUK di basis TETAP 100jt
+    a11y runtime      154 halaman · 0 pelanggaran
+    tsc api + web     bersih
+    gerbang-tenancy · kegagalan-senyap · catch-senyap ·
+      klaim-status-atomik · tulis-tanpa-periksa · jejak-tak-hilang ·
+      izin-benar-ada · halaman-pakai-cache · token-css · judul-halaman ·
+      galat-muat-terpisah · remah-lengkap · tabel-seragam ·
+      menu-punya-halaman · peta-modul            semuanya exit 0
+
+⚠ `audit-migrasi-skema-dipaku` MERAH di 9 — SELURUHNYA dari lima migrasi lama
+(363 · 366 · 371 · 372 · 437). Migrasi 454 nol memakai `public.` (diukur:
+`grep -c "public\." 454_spk_addendum.sql` → 0). Bukan hutang yang saya tambah.
+
+`kt-subkon` → `hidup`. Peta Modul: **225 / 8 / 0**.
+
+Sisa: cetak PDF addendum belum ada — SPK induknya sudah bisa dicetak.
+
+### Kerja paralel dihormati
+
+Sesi lain sedang menulis `struktur-plat.ts` dan `struktur-tabel-plat.ts` di
+checkout yang sama. `git rm --cached` menolak dengan "staged content different
+from both the file and the HEAD" — tanda berkasnya sedang berubah SAAT ITU.
+Dilepas dengan `git restore --staged` (tak menyentuh working tree) dan tak
+ikut di commit mana pun.
+
+---
+
 ## 2026-08-18 (sesi peta-modul, A1) — ekspor: menu yang berbohong tentang isinya
 
 Founder: *"kerjakan dulu yg tak menunggu jawaban dulu"*.

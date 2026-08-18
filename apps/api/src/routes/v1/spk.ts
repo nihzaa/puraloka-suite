@@ -556,4 +556,268 @@ export default async function spkRoutes(app: FastifyInstance) {
         .send(Buffer.concat(chunks))
     },
   )
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ADDENDUM — mengubah SPK yang sudah ditandatangani, secara sah
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Migrasi 454. Alasan lengkapnya di kepala berkas migrasi itu; ringkasnya:
+  // lingkup di lapangan MEMANG berubah, dan tanpa jalur yang sah orang akan
+  // menerbitkan SPK kedua (dua kertas sah untuk satu pekerjaan) atau
+  // menyunting basis langsung.
+  //
+  // Addendum menyimpan DELTA. SPK induk tak pernah berubah, jadi ia tetap
+  // bisa dicetak ulang persis seperti saat ditandatangani.
+
+  // ── GET /api/v1/spk/:id/addendum ─────────────────────────────────────────
+  //
+  // Memulangkan daftar addendum BESERTA nilai efektifnya.
+  //
+  // Nilai efektif dihitung DI SINI, bukan disimpan sebagai kolom di SPK.
+  // Kolom tersimpan akan basi tiap kali addendum ditambah/dibatalkan, dan
+  // yang menemukan selisihnya adalah orang yang membayar menurut angka lama.
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/spk/:id/addendum',
+    { preHandler: [authenticate, requirePermission('mandor:view')] },
+    async (request, reply) => {
+      const db = request.db!
+      const { id } = request.params
+
+      const { data: spk, error: eSpk } = await db
+        .unsafe('surat_perintah_kerja', ALASAN)
+        .select('id, nomor, nilai_kontrak, tanggal_selesai, status')
+        .eq('id', id).eq('company_id', request.companyId!)
+        .maybeSingle()
+      if (eSpk) {
+        request.log.error({ err: eSpk, id }, 'gagal memuat SPK untuk addendum')
+        return reply.status(500).send({ error: 'Gagal memuat SPK' })
+      }
+      if (!spk) return reply.status(404).send({ error: 'SPK tidak ditemukan' })
+
+      const { data, error } = await db
+        .from('spk_addendum')
+        .select('id, urutan, nomor, tanggal, alasan, lingkup_tambahan, '
+          + 'nilai_delta, hari_delta, status, ttd_penerbit_pada, ttd_pelaksana_pada')
+        .eq('spk_id', id)
+        .order('urutan', { ascending: true })
+      if (error) {
+        request.log.error({ err: error, id }, 'gagal memuat addendum')
+        return reply.status(500).send({ error: 'Gagal memuat addendum' })
+      }
+
+      // Lewat `unknown` lebih dulu: `.select()` multi-kolom membuat TypeScript
+      // memulangkan tipe galat generik. Kolomnya konstanta di kode, jadi yang
+      // hilang cuma inferensi.
+      const daftar = (data ?? []) as unknown as Array<Record<string, unknown>>
+      // Yang DIBATALKAN tak ikut dihitung, tapi TETAP ditampilkan. Addendum
+      // batal yang hilang dari daftar membuat orang bertanya-tanya ke mana
+      // perginya nomor urut yang loncat.
+      const berlaku = daftar.filter((a) => a.status !== 'dibatalkan')
+
+      const nilaiInduk = Number((spk as Record<string, unknown>).nilai_kontrak) || 0
+      const deltaNilai = berlaku.reduce((t, a) => t + (Number(a.nilai_delta) || 0), 0)
+      const deltaHari = berlaku.reduce((t, a) => t + (Number(a.hari_delta) || 0), 0)
+
+      const selesaiInduk = String((spk as Record<string, unknown>).tanggal_selesai)
+      const selesaiEfektif = new Date(`${selesaiInduk}T12:00:00`)
+      selesaiEfektif.setDate(selesaiEfektif.getDate() + deltaHari)
+
+      return reply.send({
+        spk: {
+          id: (spk as Record<string, unknown>).id,
+          nomor: (spk as Record<string, unknown>).nomor,
+          status: (spk as Record<string, unknown>).status,
+          nilai_induk: nilaiInduk,
+          tanggal_selesai_induk: selesaiInduk,
+        },
+        addendum: daftar,
+        efektif: {
+          nilai: nilaiInduk + deltaNilai,
+          delta_nilai: deltaNilai,
+          tanggal_selesai: selesaiEfektif.toISOString().slice(0, 10),
+          delta_hari: deltaHari,
+          jumlah_berlaku: berlaku.length,
+        },
+      })
+    },
+  )
+
+  // ── POST /api/v1/spk/:id/addendum ────────────────────────────────────────
+  app.post<{
+    Params: { id: string }
+    Body: {
+      alasan?: string
+      lingkup_tambahan?: string
+      nilai_delta?: number
+      hari_delta?: number
+      tanggal?: string
+    }
+  }>(
+    '/api/v1/spk/:id/addendum',
+    { preHandler: [authenticate, requirePermission('spk:kelola')] },
+    async (request, reply) => {
+      const db = request.db!
+      const { id } = request.params
+      const b = request.body ?? {}
+
+      const alasan = String(b.alasan ?? '').trim()
+      if (!alasan) {
+        return reply.status(400).send({
+          error: 'Alasan wajib diisi. Addendum tanpa alasan adalah perubahan nilai '
+            + 'kontrak yang tak seorang pun bisa pertanggungjawabkan enam bulan lagi.',
+        })
+      }
+
+      const nilaiDelta = Number(b.nilai_delta ?? 0)
+      const hariDelta = Number(b.hari_delta ?? 0)
+      if (!Number.isFinite(nilaiDelta) || !Number.isFinite(hariDelta)) {
+        return reply.status(400).send({ error: 'nilai_delta dan hari_delta harus angka' })
+      }
+
+      const lingkup = String(b.lingkup_tambahan ?? '').trim()
+      if (nilaiDelta === 0 && hariDelta === 0 && lingkup === '') {
+        return reply.status(400).send({
+          error: 'Addendum harus mengubah sesuatu — nilai, jangka waktu, atau lingkup. '
+            + 'Yang tak mengubah apa pun hanya menambah kertas tanpa menambah kejelasan.',
+        })
+      }
+
+      // SPK-nya diperiksa di sini supaya pesannya bisa dibaca manusia.
+      // Trigger basis tetap memeriksanya juga — ini lapis kedua, bukan
+      // pengganti: yang menulis lewat jalur lain tetap tertahan.
+      const { data: spk, error: eSpk } = await db
+        .unsafe('surat_perintah_kerja', ALASAN)
+        .select('id, nomor, status, nilai_kontrak')
+        .eq('id', id).eq('company_id', request.companyId!)
+        .maybeSingle()
+      if (eSpk) return reply.status(500).send({ error: eSpk.message })
+      if (!spk) return reply.status(404).send({ error: 'SPK tidak ditemukan' })
+
+      const s = spk as Record<string, unknown>
+      if (s.status !== 'ditandatangani') {
+        return reply.status(409).send({
+          error: `SPK ${s.nomor} berstatus '${s.status}'. Addendum hanya untuk SPK yang `
+            + 'sudah ditandatangani — yang masih draf atau baru diterbitkan bisa '
+            + 'disunting langsung.',
+        })
+      }
+
+      // Urutan berikutnya, dihitung dari yang SUDAH ada.
+      const { data: adaDulu, error: eUrut } = await db
+        .from('spk_addendum')
+        .select('urutan').eq('spk_id', id).neq('status', 'dibatalkan')
+        .order('urutan', { ascending: false }).limit(1)
+      if (eUrut) return reply.status(500).send({ error: eUrut.message })
+      const urutan = (adaDulu?.[0] ? Number((adaDulu[0] as Record<string, unknown>).urutan) : 0) + 1
+
+      const { data, error } = await db
+        .from('spk_addendum')
+        .insert({
+          company_id: request.companyId!,
+          spk_id: id,
+          urutan,
+          // Nomornya menurunkan nomor SPK induk — "Addendum ke-2 dari
+          // SPK-2026-0007" adalah cara orang menyebutnya di lapangan, dan
+          // nomor global yang tak menyebut induknya harus dicari dulu.
+          nomor: `${s.nomor}/ADD-${urutan}`,
+          tanggal: b.tanggal && /^\d{4}-\d{2}-\d{2}$/.test(b.tanggal)
+            ? b.tanggal : new Date().toISOString().slice(0, 10),
+          alasan,
+          lingkup_tambahan: lingkup || null,
+          nilai_delta: nilaiDelta,
+          hari_delta: hariDelta,
+          dibuat_oleh: request.currentUser!.id,
+        })
+        .select('id, urutan, nomor, nilai_delta, hari_delta, status')
+      if (error) {
+        // Trigger basis memulangkan pesan yang sudah ditulis untuk manusia
+        // ("Addendum membuat nilai SPK jadi -5000000 — batalkan SPK-nya,
+        // jangan dikurangi habis"). Diteruskan apa adanya, bukan diganti
+        // "Gagal menyimpan" yang membuang petunjuknya.
+        request.log.error({ err: error, id }, 'addendum ditolak')
+        return reply.status(422).send({ error: error.message })
+      }
+      if (!data || data.length === 0) {
+        return reply.status(500).send({ error: 'Addendum tak tersimpan' })
+      }
+
+      const baru = data[0] as Record<string, unknown>
+      void logAuditEvent(request, {
+        tableName: 'spk_addendum', recordId: String(baru.id),
+        action: 'addendum.buat', actorId: request.currentUser!.id,
+        newValues: { spk: s.nomor, urutan, nilai_delta: nilaiDelta, hari_delta: hariDelta },
+        severity: 'critical',
+      })
+
+      return reply.status(201).send({ addendum: baru })
+    },
+  )
+
+  // ── PATCH /api/v1/spk/addendum/:id/status ────────────────────────────────
+  //
+  // Alur yang sama dengan SPK induknya: draf → diterbitkan → ditandatangani,
+  // dan `dibatalkan` dari mana pun kecuali yang sudah ditandatangani.
+  app.patch<{ Params: { id: string }; Body: { status?: string } }>(
+    '/api/v1/spk/addendum/:id/status',
+    { preHandler: [authenticate, requirePermission('spk:kelola')] },
+    async (request, reply) => {
+      const db = request.db!
+      const { id } = request.params
+      const tujuan = String(request.body?.status ?? '').trim()
+
+      const SAH = ['diterbitkan', 'ditandatangani', 'dibatalkan']
+      if (!SAH.includes(tujuan)) {
+        return reply.status(400).send({ error: `status harus salah satu: ${SAH.join(', ')}` })
+      }
+
+      const { data: ada, error: eAda } = await db
+        .from('spk_addendum').select('id, status, nomor').eq('id', id).maybeSingle()
+      if (eAda) return reply.status(500).send({ error: eAda.message })
+      if (!ada) return reply.status(404).send({ error: 'Addendum tidak ditemukan' })
+
+      const lama = String((ada as Record<string, unknown>).status)
+
+      // Yang SUDAH ditandatangani terkunci — sama dengan SPK induknya.
+      // Membatalkan addendum bertanda tangan berarti mengubah nilai kontrak
+      // yang sudah disepakati dua pihak secara sepihak.
+      if (lama === 'ditandatangani') {
+        return reply.status(409).send({
+          error: 'Addendum yang sudah ditandatangani terkunci. Terbitkan addendum '
+            + 'berikutnya untuk mengoreksinya.',
+        })
+      }
+      if (tujuan === 'ditandatangani' && lama !== 'diterbitkan') {
+        return reply.status(409).send({
+          error: 'Addendum harus diterbitkan lebih dulu sebelum ditandatangani.',
+        })
+      }
+
+      const patch: Record<string, unknown> = { status: tujuan, diubah_pada: new Date().toISOString() }
+      if (tujuan === 'ditandatangani') {
+        patch.ttd_penerbit_pada = new Date().toISOString()
+        patch.ttd_pelaksana_pada = new Date().toISOString()
+      }
+
+      const { data, error } = await db
+        .from('spk_addendum')
+        .update(patch)
+        .eq('id', id)
+        // Status lama ikut di WHERE: dua perpindahan bersamaan hanya boleh
+        // menghasilkan satu yang berhasil.
+        .eq('status', lama)
+        .select('id, nomor, status')
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!data || data.length === 0) {
+        return reply.status(409).send({ error: 'Status addendum sudah diubah pihak lain.' })
+      }
+
+      void logAuditEvent(request, {
+        tableName: 'spk_addendum', recordId: id,
+        action: `addendum.${tujuan}`, actorId: request.currentUser!.id,
+        newValues: patch, severity: 'critical',
+      })
+
+      return reply.send({ addendum: data[0] })
+    },
+  )
 }

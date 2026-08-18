@@ -119,7 +119,18 @@ beforeAll(async () => {
 }, 90_000)
 
 afterAll(async () => {
+  // Addendum dihapus LEBIH DULU. `spk_addendum.spk_id` ber-ON DELETE
+  // RESTRICT dengan sengaja (migrasi 454): SPK yang punya addendum tak boleh
+  // lenyap dan meninggalkan addendum yatim yang menunjuk kertas yang tak ada.
+  //
+  // Konsekuensinya urutan pembersihan test JUGA harus menghormatinya —
+  // versi pertama berkas ini menghapus SPK lebih dulu dan seluruh suite mati
+  // di `afterAll` dengan galat FK yang tak menyebut test mana penyebabnya.
+  await db.query(
+    `DELETE FROM spk_addendum WHERE spk_id IN (
+       SELECT id FROM surat_perintah_kerja WHERE lingkup_kerja LIKE '${TANDA}%')`)
   for (const id of dibuat) {
+    await db.query('DELETE FROM spk_addendum WHERE spk_id = $1', [id])
     await db.query('DELETE FROM surat_perintah_kerja WHERE id = $1', [id])
   }
   await db.query(`DELETE FROM surat_perintah_kerja WHERE lingkup_kerja LIKE '${TANDA}%'`)
@@ -516,5 +527,182 @@ describe('mencetak SPK', () => {
       // Hanya yang DIBUAT di sini yang dihapus.
       if (maBuatan) await db.query('DELETE FROM mandor_assignments WHERE id = $1', [maBuatan])
     }
+  })
+})
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ * ADDENDUM — mengubah SPK yang sudah ditandatangani, secara sah
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * SPK bertanda tangan terkunci, dan itu benar. Tapi lingkup di lapangan
+ * MEMANG berubah — dan tanpa jalur addendum yang sah, orang menerbitkan SPK
+ * KEDUA untuk lingkup yang sama (dua kertas yang sama-sama terlihat sah)
+ * atau menyunting basis langsung.
+ *
+ * Yang dijaga blok ini: SPK induk TIDAK PERNAH berubah. Nilai efektif
+ * dihitung, bukan disimpan — kolom tersimpan basi tiap kali addendum
+ * ditambah, dan yang menemukan selisihnya adalah orang yang membayar
+ * menurut angka lama.
+ */
+describe('addendum SPK', () => {
+  let spkTtd: string | null = null
+
+  const daftarAdd = (id: string) => app.inject({
+    method: 'GET', url: `/api/v1/spk/${id}/addendum`, headers: { authorization: 'Bearer t' },
+  })
+  const buatAdd = (id: string, body: Record<string, unknown>) => app.inject({
+    method: 'POST', url: `/api/v1/spk/${id}/addendum`,
+    headers: { authorization: 'Bearer t' }, payload: body,
+  })
+
+  beforeAll(async () => {
+    // `diterbitkan_oleh` FK ke `users.id`, BUKAN `auth_id` — kesalahan yang
+    // sama pernah terjadi di uji kebocoran antar-tenant di berkas ini.
+    const { rows: u } = await db.query(
+      'SELECT id FROM users WHERE auth_id = $1', [adminAuth])
+    const penerbitId = u[0]?.id ?? null
+    if (!penerbitId) throw new Error('users.id untuk akun uji tak ditemukan')
+
+    // SPK bertanda tangan dibuat LANGSUNG di basis: jalur endpoint menuntut
+    // dua tanda tangan berurutan, dan yang diuji di sini addendumnya —
+    // bukan alur tanda tangan yang sudah punya test sendiri di atas.
+    const { rows } = await db.query(
+      `INSERT INTO surat_perintah_kerja
+         (company_id, project_id, work_scope_id, nomor, lingkup_kerja, nilai_kontrak,
+          tanggal_terbit, tanggal_mulai, tanggal_selesai, status,
+          ttd_penerbit_url, ttd_pelaksana_url, diterbitkan_oleh)
+       SELECT $1, ma.project_id, $2, $3, $4, 100000000,
+              CURRENT_DATE, CURRENT_DATE, CURRENT_DATE + 30, 'ditandatangani',
+              'a.png', 'b.png', $5
+         FROM work_scopes ws
+         JOIN mandor_assignments ma ON ma.id = ws.assignment_id
+        WHERE ws.id = $2
+       RETURNING id`,
+      [companyId, scopeId, `${TANDA}-ADD`, `${TANDA} induk addendum`, penerbitId])
+    spkTtd = rows[0]?.id ?? null
+    if (spkTtd) dibuat.push(spkTtd)
+  })
+
+  afterAll(async () => {
+    if (spkTtd) await db.query('DELETE FROM spk_addendum WHERE spk_id = $1', [spkTtd])
+  })
+
+  it('alasan KOSONG ditolak — perubahan nilai kontrak tanpa alasan tak bisa dipertanggungjawabkan', async () => {
+    const r = await buatAdd(spkTtd!, { alasan: '   ', nilai_delta: 5_000_000 })
+    expect(r.statusCode).toBe(400)
+    expect(String(r.json().error)).toMatch(/alasan wajib/i)
+  })
+
+  it('addendum yang tak mengubah APA PUN ditolak', async () => {
+    const r = await buatAdd(spkTtd!, { alasan: 'Cuma catatan' })
+    expect(r.statusCode).toBe(400)
+    expect(String(r.json().error)).toMatch(/mengubah sesuatu/i)
+  })
+
+  it('delta POSITIF menaikkan nilai efektif — induk TIDAK berubah', async () => {
+    const r = await buatAdd(spkTtd!, {
+      alasan: 'Tambah pekerjaan plafon', nilai_delta: 15_000_000, hari_delta: 7,
+    })
+    expect(r.statusCode, r.body.slice(0, 250)).toBe(201)
+
+    const d = (await daftarAdd(spkTtd!)).json()
+    expect(d.efektif.nilai).toBe(115_000_000)
+    expect(d.efektif.delta_hari).toBe(7)
+
+    // Yang paling penting: INDUKNYA utuh. Kalau induk ikut berubah, kertas
+    // yang ditandatangani dan kertas yang tersimpan berbeda bunyi.
+    expect(d.spk.nilai_induk, 'nilai SPK induk ikut berubah').toBe(100_000_000)
+    const { rows } = await db.query(
+      'SELECT nilai_kontrak FROM surat_perintah_kerja WHERE id = $1', [spkTtd])
+    expect(Number(rows[0].nilai_kontrak)).toBe(100_000_000)
+  })
+
+  it('delta NEGATIF sah — pekerjaan kurang itu nyata', async () => {
+    const r = await buatAdd(spkTtd!, { alasan: 'Lingkup taman dicoret', nilai_delta: -10_000_000 })
+    expect(r.statusCode, r.body.slice(0, 250)).toBe(201)
+
+    const d = (await daftarAdd(spkTtd!)).json()
+    expect(d.efektif.nilai).toBe(105_000_000)
+    expect(d.efektif.jumlah_berlaku).toBe(2)
+  })
+
+  it('addendum yang MENGOSONGKAN nilai ditolak — itu pembatalan yang menyamar', async () => {
+    // SPK bernilai nol bukan "SPK yang dikurangi habis" — ia SPK yang
+    // seharusnya DIBATALKAN, dan keduanya berbeda di mata hukum.
+    const r = await buatAdd(spkTtd!, { alasan: 'Dikurangi habis', nilai_delta: -200_000_000 })
+    expect(r.statusCode).toBe(422)
+    expect(String(r.json().error)).toMatch(/batalkan SPK/i)
+  })
+
+  it('urutan & nomornya menurunkan nomor SPK induk', async () => {
+    const d = (await daftarAdd(spkTtd!)).json()
+    const a = d.addendum as Array<{ urutan: number; nomor: string }>
+    expect(a[0].urutan).toBe(1)
+    expect(a[1].urutan).toBe(2)
+    // "Addendum ke-2 dari SPK-…" adalah cara orang menyebutnya di lapangan.
+    expect(a[1].nomor).toContain('/ADD-2')
+  })
+
+  it('SPK yang BELUM ditandatangani menolak addendum, dengan sebabnya', async () => {
+    /*
+      SPK draf DIBUAT sendiri, bukan dipungut dari `dibuat`.
+
+      Versi pertama memungut "yang bukan spkTtd" — dan test alur status di
+      atas sudah menandatangani sebagiannya, jadi yang terpungut ternyata
+      SUDAH bertanda tangan dan addendumnya sah (201).
+
+      Test yang bergantung pada keadaan yang diubah test LAIN akan lulus atau
+      gagal menurut urutan jalannya, bukan menurut benar-salahnya kode.
+    */
+    const { rows } = await db.query(
+      `INSERT INTO surat_perintah_kerja
+         (company_id, project_id, work_scope_id, nomor, lingkup_kerja, nilai_kontrak,
+          tanggal_terbit, tanggal_mulai, tanggal_selesai, status, diterbitkan_oleh)
+       SELECT $1, ma.project_id, $2, $3, $4, 50000000,
+              CURRENT_DATE, CURRENT_DATE, CURRENT_DATE + 30, 'draf', $5
+         FROM work_scopes ws
+         JOIN mandor_assignments ma ON ma.id = ws.assignment_id
+        WHERE ws.id = $2
+       RETURNING id`,
+      [companyId, scopeId, `${TANDA}-DRAF-ADD`, `${TANDA} draf untuk uji addendum`,
+        (await db.query('SELECT id FROM users WHERE auth_id = $1', [adminAuth])).rows[0].id])
+    const draf = rows[0].id as string
+    dibuat.push(draf)
+
+    const r = await buatAdd(draf, { alasan: 'Coba', nilai_delta: 1_000_000 })
+    expect(r.statusCode, r.body.slice(0, 250)).toBe(409)
+    expect(String(r.json().error)).toMatch(/sudah ditandatangani/i)
+  })
+
+  it('yang DIBATALKAN tak ikut dihitung, tapi TETAP terlihat', async () => {
+    // Addendum batal yang hilang dari daftar membuat orang bertanya-tanya
+    // ke mana perginya nomor urut yang loncat.
+    const d0 = (await daftarAdd(spkTtd!)).json()
+    const target = (d0.addendum as Array<{ id: string; nilai_delta: string }>)
+      .find((x) => Number(x.nilai_delta) < 0)
+    expect(target, 'addendum negatif tak ditemukan untuk dibatalkan').toBeTruthy()
+
+    const r = await app.inject({
+      method: 'PATCH', url: `/api/v1/spk/addendum/${target!.id}/status`,
+      headers: { authorization: 'Bearer t' }, payload: { status: 'dibatalkan' },
+    })
+    expect(r.statusCode, r.body.slice(0, 250)).toBe(200)
+
+    const d = (await daftarAdd(spkTtd!)).json()
+    // Nilainya kembali naik karena yang negatif tak lagi dihitung…
+    expect(d.efektif.nilai).toBe(115_000_000)
+    expect(d.efektif.jumlah_berlaku).toBe(1)
+    // …tapi barisnya tetap ada di daftar.
+    expect((d.addendum as unknown[]).length).toBe(2)
+  })
+
+  it('addendum SPK tenant LAIN tidak terbaca', async () => {
+    const { rows: pAsing } = await db.query(
+      'SELECT id, company_id FROM projects WHERE company_id <> $1 LIMIT 1', [companyId])
+    if (!pAsing.length) return
+    const r = await daftarAdd(pAsing[0].id)
+    // Id proyek bukan id SPK — yang penting ia TIDAK memulangkan 200 berisi.
+    expect(r.statusCode).toBe(404)
   })
 })
