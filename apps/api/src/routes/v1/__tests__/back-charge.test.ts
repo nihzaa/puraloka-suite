@@ -18,7 +18,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole , companyDenganIzinKedua } from "../../../test-utils/rls-harness.js"
 import { supabaseAuth } from '../../../utils/supabase.js'
 import backChargeRoutes from '../back-charge.js'
 
@@ -59,9 +59,19 @@ beforeAll(async () => {
   const { rows: u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [adminAuth])
   adminUserId = u[0].id
 
-  const { rows: co } = await db.query(
-    'SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1', [adminUserId])
-  companyId = co[0].company_id
+  // Company dipilih yang BENAR-BENAR punya pengguna kedua berizin
+  // `backcharge:setujui` — bukan company pertama yang ditemukan.
+  //
+  // SoD menuntut penyetuju KEDUA — dan izin itu ada di 4 pengguna, tapi tersebar di company berbeda.
+  // `LIMIT 1` tanpa ORDER BY menyerahkan pilihannya ke Postgres, dan
+  // begitu yang terpilih tak punya penyetuju kedua, SELURUH berkas ini
+  // mati di setup dengan pesan yang menuduh SEED — padahal seednya baik.
+  const pilih = await companyDenganIzinKedua(db, adminAuth, 'backcharge:setujui')
+  if (!pilih) {
+    throw new Error('tak ada company yang punya pengguna kedua berizin backcharge:setujui — '
+      + 'periksa seed/keanggotaan, bukan berkas ini')
+  }
+  companyId = pilih.companyId
 
   // Pengguna kedua ber-auth_id DAN berizin setujui — dipilih menurut
   // syaratnya, bukan `LIMIT 1` apa adanya. Pelajaran D1: fixture yang salah

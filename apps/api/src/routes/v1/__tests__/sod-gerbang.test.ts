@@ -39,11 +39,28 @@ const TANDA = '[TEST-SOD]'
 beforeAll(async () => {
   db = await createRlsClient()
 
+  /*
+    Company dipilih yang punya DUA anggota — bukan sekadar "ada anggota".
+
+    SoD menuntut dua pengguna berbeda; komentar di bawah sudah menyatakan itu.
+    Tapi company-nya dipilih dengan `EXISTS (…) LIMIT 1` tanpa ORDER BY —
+    cukup ada SATU anggota, dan pilihannya diserahkan ke Postgres.
+
+    Diukur 2026-08-18: dari 3 company ber-anggota, dua di antaranya hanya
+    punya SATU. Begitu salah satunya terpilih, seluruh berkas mati di setup
+    dengan "butuh minimal 2 pengguna di satu company" — pesan yang menuduh
+    SEED, padahal seednya baik dan yang salah pilihan company-nya.
+  */
   const { rows: co } = await db.query(`
     SELECT c.id FROM companies c
-    WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id) LIMIT 1
+    WHERE (SELECT count(*) FROM company_members m WHERE m.company_id = c.id) >= 2
+    ORDER BY c.created_at, c.id
+    LIMIT 1
   `)
-  if (!co.length) throw new Error('tak ada company untuk test ini')
+  if (!co.length) {
+    throw new Error('tak ada company ber-anggota >= 2 — SoD mustahil diuji. '
+      + 'Periksa seed/keanggotaan, bukan berkas ini')
+  }
   companyId = co[0].id
 
   // DUA pengguna berbeda dari company yang sama. Test yang memakai satu

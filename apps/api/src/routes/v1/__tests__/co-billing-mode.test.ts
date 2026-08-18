@@ -74,8 +74,30 @@ beforeAll(async () => {
 
   const { rows: u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [auth])
   userId = u[0].id
+  /*
+    Company dipilih yang punya ANGGOTA KEDUA — bukan yang pertama ditemukan.
+
+    Gerbang SoD di bawah menuntut pengaju yang berbeda dari penyetuju. Dengan
+    `LIMIT 1` tanpa ORDER BY, pilihannya diserahkan ke Postgres — dan begitu
+    yang terpilih cuma punya satu anggota, SELURUH berkas ini mati di setup
+    dengan "butuh pengguna kedua di company ini untuk memenuhi SoD": pesan
+    yang menuduh SEED, padahal seednya baik dan yang salah pilihan company.
+
+    Diukur 2026-08-18: dari 3 company ber-anggota, dua di antaranya hanya
+    punya SATU anggota.
+  */
   const { rows: co } = await db.query(
-    'SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1', [userId])
+    `SELECT m.company_id
+       FROM company_members m
+      WHERE m.user_id = $1
+        AND (SELECT count(*) FROM company_members m2
+              WHERE m2.company_id = m.company_id) >= 2
+      ORDER BY m.created_at, m.company_id
+      LIMIT 1`, [userId])
+  if (!co.length) {
+    throw new Error('tak ada company ber-anggota >= 2 untuk akun uji — '
+      + 'periksa seed/keanggotaan, bukan berkas ini')
+  }
   companyId = co[0].company_id
 
   // Proyek dipilih menurut SYARAT: harus punya contract_value > 0, karena

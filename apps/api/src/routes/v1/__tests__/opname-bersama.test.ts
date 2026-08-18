@@ -20,7 +20,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole , companyDenganIzinKedua } from "../../../test-utils/rls-harness.js"
 import { supabaseAuth } from '../../../utils/supabase.js'
 import opnameRoutes from '../opname-bersama.js'
 import mandorRoutes from '../mandor.js'
@@ -69,9 +69,23 @@ beforeAll(async () => {
   const { rows: u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [adminAuth])
   adminUserId = u[0].id
 
-  const { rows: co } = await db.query(
-    `SELECT m.company_id FROM company_members m WHERE m.user_id = $1 LIMIT 1`, [adminUserId])
-  companyId = co[0].company_id
+  /*
+    Company dipilih yang punya VERIFIKATOR KEDUA — bukan yang pertama.
+
+    Komentar di bawah sudah memperingatkan cacat ini untuk PENGGUNAnya
+    ("versi pertama memakai LIMIT 1 apa adanya"), tapi COMPANY-nya masih
+    diundi dengan `LIMIT 1` tanpa ORDER BY.
+
+    Diukur 2026-08-18: izin `opname:verifikasi` ADA di 2 pengguna — tapi
+    tersebar, jadi company yang terpilih belum tentu punya salah satunya.
+    Akibatnya seluruh berkas mati di setup dengan pesan yang menuduh seed.
+  */
+  const pilih = await companyDenganIzinKedua(db, adminAuth, 'opname:verifikasi')
+  if (!pilih) {
+    throw new Error('tak ada company yang punya pengguna kedua berizin '
+      + 'opname:verifikasi — periksa seed/keanggotaan, bukan berkas ini')
+  }
+  companyId = pilih.companyId
 
   // Pengguna kedua yang BER-auth_id DAN berizin `opname:verifikasi`.
   //

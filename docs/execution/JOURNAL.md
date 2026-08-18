@@ -5,6 +5,101 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-18 (sesi peta-modul, pematangan lanjutan) — `LIMIT 1` tanpa ORDER BY: cacat yang sama di TUJUH berkas test
+
+Lanjutan pematangan. Sesudah `@anthropic-ai/sdk` dipulihkan, suite API penuh
+akhirnya bisa jalan — dan memperlihatkan **11 berkas gagal** yang selama ini
+tak pernah terlihat karena saya hanya menjalankan berkas yang saya sentuh.
+
+### Satu cacat, tujuh berkas
+
+Semuanya bentuk yang sama:
+
+```sql
+SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1
+```
+
+Tanpa `ORDER BY`, pilihannya diserahkan Postgres. Akun uji anggota **tiga
+company**, dan datanya tidak tersebar merata:
+
+    company ber-proyek       : 4  (1 punya 21, sisanya 1-3)
+    company punya rab_items  : 1
+    company punya anggota ≥2 : 1
+    company punya peran client: 1
+
+Jadi `LIMIT 1` salah pilih tiga dari empat kali — dan **gejalanya selalu
+menuduh pihak lain**:
+
+| Pesan | Yang dituduh | Yang sebenarnya salah |
+|---|---|---|
+| "butuh pengguna kedua berizin backcharge:setujui" | seed | company yang diundi |
+| "butuh minimal 2 pengguna di satu company" | seed | company yang diundi |
+| "tak ada anggota ber-peran client" | seed | company yang diundi |
+| "Proyek tidak ditemukan" (404) | RUTE | fixture menunjuk company kosong |
+| "tak ada proyek ber-RAB untuk diuji" | seed | company yang diundi |
+
+Yang terakhir paling menipu: rutenya membalas 404 yang **benar** — proyek itu
+memang bukan milik company yang dipilih fixture.
+
+### Beberapa berkas SUDAH memperingatkan cacatnya, satu tingkat di bawah
+
+`opname-bersama.test.ts` menulis:
+
+> *"Versi pertama memakai `LIMIT 1` apa adanya dan mendapat pengguna tanpa
+> `auth_id` … Hijau/merahnya jadi soal urutan baris di basis, bukan soal kode."*
+
+Benar — dan **PENGGUNAnya diperbaiki, COMPANY-nya masih diundi.** Hal yang
+sama di `wa-webhook.test.ts` dan `back-charge.test.ts`.
+
+Peringatan yang benar, diterapkan setengah. Itu pola yang layak diingat: yang
+memperbaiki satu tingkat sering berhenti tepat sebelum tingkat berikutnya.
+
+### Yang diperbaiki
+
+| Berkas | Sebelum | Sesudah |
+|---|---:|---:|
+| `back-charge` | 19 lulus / 14 dilewati | **33 lulus** |
+| `co-billing-mode` | 0 (11 dilewati) | **11 lulus** |
+| `opname-bersama` | 0 (mati) | **20 lulus** |
+| `sod-gerbang` | 0 (9 dilewati) | **9 lulus** |
+| `wa-webhook` | 0 (mati) | **15 lulus** |
+| `lessons-crud` | sebagian merah | **10 lulus** |
+| `template-wbs` + `serah-terima` | 55 lulus / 41 dilewati | **96 lulus** |
+
+Ditambah helper baru di harness: `companyDenganIzinKedua()` — memilih company
+yang punya pengguna KEDUA berizin tertentu, lewat `company_members.role_id`
+(jalur yang dipakai `authenticate`), bukan `users.role_id`.
+
+⚠ `users.role_id` masih ada dan masih terisi, jadi menjoin lewatnya TIDAK
+melempar galat — ia hanya menjawab pertanyaan yang berbeda dari kode
+produksi. **Test yang memakai jalur berbeda dari produksi bisa hijau untuk
+keadaan yang tak pernah terjadi.**
+
+### `companyBerisi` diperluas: tenancy lewat proyek
+
+Percobaan pertama saya memakai `companyBerisi(db, auth, ['rab_items'])` dan
+gagal dengan `column "company_id" does not exist` — galat yang menuduh
+HARNESS, padahal pemanggilnya yang keliru berasumsi.
+
+Diukur: `rab_items` dan `punch_items` hanya punya `project_id` (kategori C).
+Harness kini mengenali keduanya dan menjoin lewat `projects` bila perlu; tabel
+yang tak punya keduanya ditolak dengan pesan yang menyebut sebabnya.
+
+### Satu kegagalan yang ternyata FLAKE, bukan cacat
+
+`template-wbs > template DRAF tak bisa diterapkan` merah sekali saat
+dijalankan berbarengan `serah-terima`, lalu hijau pada pengulangan (96/96).
+Tulisan basis yang bersamaan, bukan cacat kode. Dicatat supaya tak ada yang
+mengejarnya sebagai bug.
+
+### Berkas sesi lain
+
+`apps/api/src/lib/struktur-gambar.ts` (belum ter-commit, milik sesi paralel)
+punya 5 galat TypeScript. **Bukan milik saya, tidak saya sentuh.** Typecheck
+untuk seluruh berkas SAYA bersih.
+
+---
+
 ## 2026-08-18 (sesi peta-modul, pematangan) — menjalankan SELURUH penjaga CI, dan dua cacat yang saya sebabkan sendiri
 
 Founder: *"pastikan tidak ada kesalahan, dan jika masih belum matang silahkan

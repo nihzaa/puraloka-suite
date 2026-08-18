@@ -296,13 +296,117 @@ export async function companyBerisi(
       // Nama tabel dari KODE test, bukan dari masukan pengguna — tapi tetap
       // disaring supaya tak pernah jadi jalan masuk SQL injection.
       if (!/^[a-z_][a-z0-9_]*$/.test(t)) throw new Error(`Nama tabel tak wajar: ${t}`)
-      const { rows } = await client.query(
-        `SELECT 1 FROM public.${t} WHERE company_id = $1 LIMIT 1`, [co],
+
+      /*
+        Tabel bisa ber-tenancy LANGSUNG (`company_id`) atau LEWAT PROYEK
+        (`project_id`) — dan yang lewat proyek jumlahnya banyak
+        (kategori C di peta tenancy).
+
+        Versi pertama hanya tahu `company_id`, jadi
+        `companyBerisi(db, auth, ['rab_items'])` melempar
+        `column "company_id" does not exist` — galat yang menuduh HARNESS,
+        bukan pemanggilnya, dan yang membacanya akan mengira tabelnya salah
+        nama.
+
+        Diukur 2026-08-18: `rab_items` dan `punch_items` keduanya hanya
+        punya `project_id`.
+      */
+      const { rows: kol } = await client.query(
+        `SELECT column_name FROM information_schema.columns
+          WHERE table_schema = 'public' AND table_name = $1
+            AND column_name IN ('company_id', 'project_id')`,
+        [t],
       )
+      const punya = new Set(kol.map((r) => r.column_name as string))
+
+      let sql: string
+      if (punya.has('company_id')) {
+        sql = `SELECT 1 FROM public.${t} WHERE company_id = $1 LIMIT 1`
+      } else if (punya.has('project_id')) {
+        sql = `SELECT 1 FROM public.${t} x
+                 JOIN public.projects p ON p.id = x.project_id
+                WHERE p.company_id = $1 LIMIT 1`
+      } else {
+        throw new Error(
+          `Tabel '${t}' tak punya company_id MAUPUN project_id — ` +
+          'ia tak bisa dipakai sebagai syarat "company yang berisi".',
+        )
+      }
+
+      const { rows } = await client.query(sql, [co])
       if (!rows.length) { cocok = false; break }
     }
     if (cocok) return co
   }
 
   return anggota[0].company_id as string
+}
+
+/**
+ * Company yang punya PENGGUNA KEDUA berizin `kunciIzin` — bukan sekadar
+ * company pertama yang ditemukan.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA ADA — cacat yang berulang EMPAT KALI
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Pola `SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1`
+ * muncul di 16 berkas test. Tanpa `ORDER BY`, pilihannya diserahkan ke
+ * Postgres — dan begitu akun uji jadi anggota beberapa company, yang terpilih
+ * belum tentu yang punya data/pengguna yang dibutuhkan.
+ *
+ * Gejalanya SELALU menuduh seed:
+ *
+ *   "butuh pengguna kedua berizin backcharge:setujui"      back-charge
+ *   "butuh pengguna kedua di company ini untuk memenuhi SoD" co-billing-mode
+ *   "butuh pengguna kedua ber-auth_id dan berizin opname:verifikasi"
+ *   "tak ada anggota ber-peran client di company uji"      wa-webhook
+ *
+ * Diukur 2026-08-18: keempat izin itu ADA di basis (2–4 pengguna masing-
+ * masing). Yang salah bukan seednya — melainkan company yang diundi.
+ *
+ * ── Kenapa lewat `company_members.role_id`, bukan `users.role_id`
+ *
+ * Peran EFEKTIF seseorang ditentukan keanggotaannya di company itu (ADR-004:
+ * peran adalah data konfigurasi per-tenant). `users.role_id` masih ada dan
+ * masih terisi, jadi menjoin lewatnya TIDAK melempar galat — ia hanya
+ * menjawab pertanyaan yang berbeda dari yang dipakai `authenticate`.
+ *
+ * Test yang memakai jalur berbeda dari kode produksi bisa hijau untuk
+ * keadaan yang tak pernah terjadi.
+ */
+export async function companyDenganIzinKedua(
+  client: Client,
+  authId: string,
+  kunciIzin: string,
+): Promise<{ companyId: string; userId: string; authId: string } | null> {
+  const { rows: u } = await client.query(
+    'SELECT id FROM public.users WHERE auth_id = $1', [authId],
+  )
+  if (!u.length) throw new Error(`Pengguna dengan auth_id ${authId} tak ada`)
+  const akuId = u[0].id as string
+
+  const { rows } = await client.query(
+    `SELECT m.company_id, u2.id AS user_id, u2.auth_id
+       FROM public.company_members m
+       JOIN public.company_members m2 ON m2.company_id = m.company_id
+       JOIN public.users u2 ON u2.id = m2.user_id
+       JOIN public.role_permissions rp ON rp.role_id = m2.role_id
+       JOIN public.permissions p ON p.id = rp.permission_id
+      WHERE m.user_id = $1
+        AND u2.id <> $1
+        AND u2.auth_id IS NOT NULL
+        AND u2.is_active
+        AND p.key = $2
+      ORDER BY m.created_at, m.company_id, u2.id
+      LIMIT 1`,
+    [akuId, kunciIzin],
+  )
+
+  if (!rows.length) return null
+  return {
+    companyId: rows[0].company_id as string,
+    userId: rows[0].user_id as string,
+    authId: rows[0].auth_id as string,
+  }
 }
