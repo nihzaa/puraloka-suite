@@ -164,70 +164,176 @@ export function posisiTulangan(input: InputGambarPenampang): {
  * Keluarannya SVG utuh (`<svg>…</svg>`) yang bisa langsung ditulis ke berkas,
  * ditanam di HTML, atau dikirim ke pencetak — tanpa pustaka apa pun.
  */
+/**
+ * Notasi tulangan gaya gambar kerja: "3D16" / "2P8-150".
+ *
+ * Konvensi Indonesia: D = deform (BjTS), P = polos (BjTP). Angka di depan
+ * jumlah batang, di belakang jaraknya bila berulang.
+ */
+export function notasiTulangan(jumlah: number, diameterMm: number, tipe: 'D' | 'P' = 'D', jarakMm?: number): string {
+  const dasar = `${jumlah}${tipe}${diameterMm}`
+  return jarakMm ? `${dasar}-${jarakMm}` : dasar
+}
+
+/**
+ * Garis dimensi lengkap: garis ukur + dua tick miring 45° + teks.
+ *
+ * Tick miring (bukan panah) adalah konvensi gambar arsitektur/struktur
+ * Indonesia dan ISO 129. Versi pertama berkas ini hanya menggambar garis
+ * bantu tegak lurus tanpa tick — terbaca sebagai garis biasa, bukan dimensi.
+ */
+function dimensi(
+  x1: number, y1: number, x2: number, y2: number,
+  label: string, t: number, ukuranTeks: number, tegak = false,
+): string[] {
+  const out: string[] = []
+  const tick = ukuranTeks * 0.45
+  out.push(garis(x1, y1, x2, y2, WARNA.dimensi, t * 0.7))
+
+  // Tick 45° di kedua ujung.
+  for (const [x, y] of [[x1, y1], [x2, y2]]) {
+    out.push(garis(x - tick / 2, y - tick / 2, x + tick / 2, y + tick / 2, WARNA.dimensi, t * 0.7))
+  }
+
+  if (tegak) {
+    const cx = x1 - ukuranTeks * 0.45
+    const cy = (y1 + y2) / 2
+    out.push(`<text x="${bulat(cx)}" y="${bulat(cy)}" font-size="${bulat(ukuranTeks)}" `
+      + `fill="${WARNA.dimensi}" text-anchor="middle" font-family="system-ui, sans-serif" `
+      + `transform="rotate(-90 ${bulat(cx)} ${bulat(cy)})">${amankanTeks(label)}</text>`)
+  } else {
+    out.push(teks((x1 + x2) / 2, y1 - ukuranTeks * 0.35, label, ukuranTeks, WARNA.dimensi))
+  }
+  return out
+}
+
 export function gambarPenampang(input: InputGambarPenampang, opsi: OpsiGambar = {}): string {
-  const { bMm, hMm, selimutMm, dSengkangMm } = input
-  const margin = opsi.marginMm ?? Math.max(bMm, hMm) * 0.35
+  const { bMm, hMm, selimutMm, dSengkangMm, dUtamaMm } = input
+  const margin = opsi.marginMm ?? Math.max(bMm, hMm) * 0.42
   const pakaiDimensi = opsi.dimensi ?? true
 
   const { bawah, atas } = posisiTulangan(input)
 
-  // viewBox: seluruh gambar + margin. Titik (0,0) di sudut kiri atas beton.
+  // Ruang tambahan di kanan untuk notasi tulangan ("3D16").
+  const ruangNotasi = pakaiDimensi ? margin * 1.15 : 0
   const vbX = -margin
   const vbY = -margin - (opsi.judul ? margin * 0.4 : 0)
-  const vbW = bMm + 2 * margin
+  const vbW = bMm + 2 * margin + ruangNotasi
   const vbH = hMm + 2 * margin + (opsi.judul ? margin * 0.4 : 0)
 
-  // Tebal garis diskalakan terhadap ukuran benda supaya tetap terlihat
-  // proporsional pada penampang 200 mm maupun 1200 mm.
   const t = Math.max(bMm, hMm) / 250
-  const ukuranTeks = Math.max(bMm, hMm) / 16
+  const ukuranTeks = Math.max(bMm, hMm) / 18
 
   const bagian: string[] = []
 
-  // Beton
-  bagian.push(`<rect x="0" y="0" width="${bulat(bMm)}" height="${bulat(hMm)}" `
-    + `fill="${WARNA.betonIsi}" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.5)}"/>`)
+  /*
+    ── ARSIR BETON
+    Konvensi gambar teknik: penampang beton diarsir. Tanpa arsir, penampang
+    terbaca sebagai kotak kosong — dan pada gambar bergabung dengan elemen
+    lain, sulit membedakan mana yang terpotong dan mana yang tampak.
+    Dibuat sangat halus supaya tak mengalahkan tulangan.
+  */
+  const jarakArsir = Math.max(bMm, hMm) / 22
+  bagian.push(
+    `<defs><pattern id="arsir" width="${bulat(jarakArsir)}" height="${bulat(jarakArsir)}" `
+    + `patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
+    + `<line x1="0" y1="0" x2="0" y2="${bulat(jarakArsir)}" `
+    + `stroke="#cbd5e1" stroke-width="${bulat(t * 0.5)}"/></pattern></defs>`)
 
-  // Sengkang — persegi di dalam selimut, sudut dibulatkan seperti aslinya.
-  const sx = selimutMm
-  const sy = selimutMm
+  // Beton: isi polos + arsir di atasnya, lalu garis tepi tebal.
+  bagian.push(`<rect x="0" y="0" width="${bulat(bMm)}" height="${bulat(hMm)}" fill="${WARNA.betonIsi}"/>`)
+  bagian.push(`<rect x="0" y="0" width="${bulat(bMm)}" height="${bulat(hMm)}" fill="url(#arsir)"/>`)
+  bagian.push(`<rect x="0" y="0" width="${bulat(bMm)}" height="${bulat(hMm)}" `
+    + `fill="none" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.6)}"/>`)
+
+  /*
+    ── SENGKANG
+    Digambar sebagai GARIS TIPIS mengikuti sumbu batang, bukan pita setebal
+    diameternya. Versi pertama memakai `stroke-width = dSengkangMm` (8 mm pada
+    penampang 300 mm) dan hasilnya terlihat seperti pita biru — bukan
+    tulangan.
+
+    Radius sudut = 2·db, bukan 2×diameter dalam satuan gambar: bengkokan
+    sengkang memang punya jari-jari dalam ±2db (SNI 2847 §25.3.2), tetapi
+    pada skala penampang itu nyaris tajam.
+  */
+  const sx = selimutMm, sy = selimutMm
   const sw = bMm - 2 * selimutMm
   const sh = hMm - 2 * selimutMm
   if (sw > 0 && sh > 0) {
-    const r = Math.min(dSengkangMm * 2, sw / 4, sh / 4)
+    const r = Math.min(2 * dSengkangMm, sw / 8, sh / 8)
+    /*
+      Tebal garis sengkang: proporsional ukuran gambar, TETAPI tak boleh
+      lebih tipis dari 60% diameter sesungguhnya.
+
+      Versi sebelumnya memakai `t * 1.1` polos — pada penampang 250×400
+      hasilnya 1.76 unit dan sengkang nyaris tak terlihat di sebelah tulangan
+      D13. Batas bawah membuatnya tetap terbaca tanpa kembali jadi "pita"
+      seperti versi yang memakai diameter penuh.
+    */
+    const tebalSengkang = Math.max(t * 1.1, dSengkangMm * 0.6)
     bagian.push(`<rect x="${bulat(sx)}" y="${bulat(sy)}" width="${bulat(sw)}" height="${bulat(sh)}" `
       + `rx="${bulat(r)}" ry="${bulat(r)}" fill="none" `
-      + `stroke="${WARNA.sengkang}" stroke-width="${bulat(Math.max(dSengkangMm, t))}"/>`)
+      + `stroke="${WARNA.sengkang}" stroke-width="${bulat(tebalSengkang)}"/>`)
   }
 
-  // Tulangan — lingkaran penuh, ukuran sesuai diameter sesungguhnya.
+  // Tulangan — lingkaran berdiameter SESUNGGUHNYA, bergaris tepi supaya
+  // batang yang berdekatan tetap bisa dibedakan.
   for (const b of [...bawah, ...atas]) {
     bagian.push(`<circle cx="${bulat(b.xMm)}" cy="${bulat(b.yMm)}" r="${bulat(b.diameterMm / 2)}" `
-      + `fill="${WARNA.tulangan}"/>`)
+      + `fill="${WARNA.tulangan}" stroke="#7f1d1d" stroke-width="${bulat(t * 0.35)}"/>`)
   }
 
-  // Dimensi
   if (pakaiDimensi) {
-    const off = margin * 0.55
-    // Lebar (bawah)
-    bagian.push(garis(0, hMm + off, bMm, hMm + off, WARNA.dimensi, t))
-    bagian.push(garis(0, hMm, 0, hMm + off * 1.15, WARNA.dimensi, t * 0.6))
-    bagian.push(garis(bMm, hMm, bMm, hMm + off * 1.15, WARNA.dimensi, t * 0.6))
-    bagian.push(teks(bMm / 2, hMm + off - ukuranTeks * 0.35, `${bulat(bMm, 0)} mm`,
-      ukuranTeks, WARNA.dimensi))
-    // Tinggi (kiri)
-    bagian.push(garis(-off, 0, -off, hMm, WARNA.dimensi, t))
-    bagian.push(garis(-off * 1.15, 0, 0, 0, WARNA.dimensi, t * 0.6))
-    bagian.push(garis(-off * 1.15, hMm, 0, hMm, WARNA.dimensi, t * 0.6))
-    bagian.push(`<text x="${bulat(-off - ukuranTeks * 0.35)}" y="${bulat(hMm / 2)}" `
-      + `font-size="${bulat(ukuranTeks)}" fill="${WARNA.dimensi}" text-anchor="middle" `
-      + `font-family="system-ui, sans-serif" `
-      + `transform="rotate(-90 ${bulat(-off - ukuranTeks * 0.35)} ${bulat(hMm / 2)})">`
-      + `${bulat(hMm, 0)} mm</text>`)
+    const off = margin * 0.6
+
+    // Garis bantu dari benda ke garis dimensi (extension line).
+    bagian.push(garis(0, hMm, 0, hMm + off * 1.18, WARNA.dimensi, t * 0.5))
+    bagian.push(garis(bMm, hMm, bMm, hMm + off * 1.18, WARNA.dimensi, t * 0.5))
+    bagian.push(...dimensi(0, hMm + off, bMm, hMm + off, `${bulat(bMm, 0)} mm`, t, ukuranTeks))
+
+    bagian.push(garis(0, 0, -off * 1.18, 0, WARNA.dimensi, t * 0.5))
+    bagian.push(garis(0, hMm, -off * 1.18, hMm, WARNA.dimensi, t * 0.5))
+    bagian.push(...dimensi(-off, 0, -off, hMm, `${bulat(hMm, 0)} mm`, t, ukuranTeks, true))
+
+    /*
+      ── NOTASI TULANGAN — inilah yang membuatnya gambar KERJA, bukan sketsa.
+
+      Tanpa "3D16" di sebelah tulangan, tukang besi tak tahu apa yang harus
+      dipasang. Garis penunjuk (leader) ditarik dari batang terluar tiap lapis.
+    */
+    const xNot = bMm + off * 0.9
+    const tulisLapis = (jml: number[], titik: TitikTulangan[], dariAtas: boolean) => {
+      let mulai = 0
+      for (const [i, n] of jml.entries()) {
+        if (n <= 0) { continue }
+        const batang = titik.slice(mulai, mulai + n)
+        mulai += n
+        if (batang.length === 0) continue
+        const y = batang[0].yMm
+        const xUjung = Math.max(...batang.map((b) => b.xMm))
+        bagian.push(garis(xUjung + dUtamaMm, y, xNot - ukuranTeks * 0.3, y, WARNA.tulangan, t * 0.5))
+        bagian.push(teks(xNot, y + ukuranTeks * 0.32,
+          notasiTulangan(n, dUtamaMm, 'D'), ukuranTeks * 0.95, WARNA.tulangan, 'start'))
+        void i; void dariAtas
+      }
+    }
+    tulisLapis(input.tulanganAtas, atas, true)
+    tulisLapis(input.tulanganBawah, bawah, false)
+
+    // Notasi sengkang & selimut.
+    if (sw > 0 && sh > 0) {
+      const ys = hMm / 2
+      bagian.push(garis(sx + sw, ys, xNot - ukuranTeks * 0.3, ys, WARNA.sengkang, t * 0.5))
+      bagian.push(teks(xNot, ys + ukuranTeks * 0.32,
+        `P${dSengkangMm}`, ukuranTeks * 0.95, WARNA.sengkang, 'start'))
+    }
+    bagian.push(teks(bMm / 2, hMm + off + ukuranTeks * 1.5,
+      `selimut ${bulat(selimutMm, 0)} mm`, ukuranTeks * 0.8, WARNA.dimensi))
   }
 
   if (opsi.judul) {
-    bagian.push(teks(bMm / 2, -margin * 0.5, opsi.judul, ukuranTeks * 1.15))
+    bagian.push(teks(bMm / 2, -margin * 0.55, opsi.judul, ukuranTeks * 1.25))
   }
 
   const lebarPx = opsi.lebarPx ?? 420
@@ -269,7 +375,14 @@ export function gambarBatang(input: InputGambarBatang, opsi: OpsiGambar = {}): s
   const { segmenM, kaitM, jumlahKait, sudutKait, diameterMm } = input
   if (segmenM.length === 0) throw new Error('gambarBatang: tak ada segmen')
 
-  const W = 300, H = 90
+  /*
+    Tinggi 108, bukan 90.
+
+    Sengkang butuh tiga baris teks di bawah gambarnya (ukuran sisi, keterangan
+    kait, lalu uraian) — pada kanvas 90 px keterangan kait dan uraian saling
+    menimpa. Terlihat begitu dirender, tak terlihat dari test mana pun.
+  */
+  const W = 300, H = 108
   const t = 3
   const bagian: string[] = []
 
@@ -277,15 +390,30 @@ export function gambarBatang(input: InputGambarBatang, opsi: OpsiGambar = {}): s
   const isSengkang = segmenM.length >= 4
 
   if (isSengkang) {
-    // Persegi tertutup + dua kait miring di sudut kanan atas.
-    const x0 = 60, y0 = 22, w = 170, h = 46
-    bagian.push(`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="6" `
+    /*
+      Sengkang tertutup: persegi dengan sudut membulat halus + DUA kait 135°
+      yang menekuk KE DALAM.
+
+      Versi pertama menggambar kait keluar dari sudut kanan atas dengan arah
+      sembarang, dan hasilnya terlihat seperti garis nyasar. Kait 135° yang
+      benar menekuk ke DALAM penampang — itu justru gunanya: mengunci inti
+      beton saat selimut luar pecah. Kait yang menghadap keluar tak menahan
+      apa pun, dan itu kesalahan pemasangan yang nyata di lapangan.
+    */
+    const x0 = 62, y0 = 24, w = 166, h = 44
+    bagian.push(`<rect x="${x0}" y="${y0}" width="${w}" height="${h}" rx="4" `
       + `fill="none" stroke="${WARNA.tulangan}" stroke-width="${t}"/>`)
-    bagian.push(garis(x0 + w, y0, x0 + w + kaitPanjang, y0 - kaitPanjang * 0.7, WARNA.tulangan, t))
-    bagian.push(garis(x0 + w, y0, x0 + w + kaitPanjang * 0.3, y0 + kaitPanjang, WARNA.tulangan, t))
-    // Ukuran sisi.
-    bagian.push(teks(x0 + w / 2, y0 - 6, `${bulat(segmenM[0] * 1000, 0)}`, 13, WARNA.dimensi))
-    bagian.push(teks(x0 - 16, y0 + h / 2 + 4, `${bulat(segmenM[1] * 1000, 0)}`, 13, WARNA.dimensi))
+
+    // Dua kait di sudut kanan atas, menekuk masuk ±135°.
+    const kx = x0 + w, ky = y0
+    bagian.push(garis(kx, ky, kx - kaitPanjang * 0.72, ky + kaitPanjang * 0.72, WARNA.tulangan, t))
+    bagian.push(garis(kx, ky, kx - kaitPanjang * 0.1, ky + kaitPanjang, WARNA.tulangan, t))
+
+    // Ukuran sisi + penanda kait.
+    bagian.push(teks(x0 + w / 2, y0 - 7, `${bulat(segmenM[0] * 1000, 0)}`, 13, WARNA.dimensi))
+    bagian.push(teks(x0 - 18, y0 + h / 2 + 4, `${bulat(segmenM[1] * 1000, 0)}`, 13, WARNA.dimensi))
+    bagian.push(teks(x0 + w / 2, y0 + h + 16,
+      `kait ${sudutKait}° · ${bulat(kaitM * 1000, 0)} mm × ${jumlahKait}`, 10, WARNA.dimensi))
   } else {
     // Batang lurus mendatar; kait digambar menekuk ke bawah di ujung.
     const x0 = jumlahKait >= 1 ? 45 : 25

@@ -15,6 +15,8 @@
 // yang benar — dan arah kesalahannya tak bisa ditebak tanpa menghitung.
 // ══════════════════════════════════════════════════════════════════════════════
 
+import { RHO_BETON, type VolumeElemen } from './struktur-beton'
+
 /** Satu lapisan data uji tanah sepanjang kedalaman tiang. */
 export interface LapisanTanah {
   /** Tebal lapisan, m. */
@@ -58,7 +60,20 @@ export interface HasilTiang {
   penentu: string
   periksa: { nama: string; nilai: number; syarat: number; satuan: string; aman: boolean; rasio: number; rumus: string }[]
   aman: boolean
-  volume: { betonM3: number; jumlahTiang: number; totalPanjangM: number }
+  /**
+   * Volume — berbentuk `VolumeElemen` yang SAMA dengan modul lain, plus dua
+   * medan khas tiang.
+   *
+   * ⚠ Versi pertama hanya memuat `{ betonM3, jumlahTiang, totalPanjangM }`,
+   * dan itu MEMUTUS jalur RAP: `rekapVolume` membaca `volume.besi` lalu crash
+   * dengan "h.volume.besi is not iterable" begitu tiang ikut direkap bersama
+   * elemen lain.
+   *
+   * TypeScript tak menangkapnya — `rekapVolume` menerima bentuk struktural
+   * `{ volume: VolumeElemen }`, dan objek tiang yang kekurangan medan hanya
+   * gagal saat dijalankan. Ditemukan lewat audit silang, bukan test.
+   */
+  volume: VolumeElemen & { jumlahTiang: number; totalPanjangM: number }
   antara: Record<string, number>
   catatan: string[]
 }
@@ -222,6 +237,19 @@ export function analisaTiang(input: InputTiang): HasilTiang {
     aman: periksa.length === 0 ? true : periksa.every((p) => p.aman),
     volume: {
       betonM3: bahan.aM2 * input.panjangM * jumlah,
+      /*
+        Tiang pancang PRACETAK: tak ada bekisting di proyek, dan tulangannya
+        sudah terpasang dari pabrik. Keduanya NOL — dan itu jawaban yang
+        benar, bukan data yang hilang.
+
+        Dinyatakan eksplisit supaya `rekapVolume` bisa menjumlahkannya bersama
+        elemen cor-di-tempat tanpa crash, dan supaya orang yang membaca rekap
+        tahu bahwa nol di sini disengaja.
+      */
+      bekistingM2: 0,
+      besi: [],
+      besiTotalKg: 0,
+      beratSendiriKg: bahan.aM2 * input.panjangM * jumlah * RHO_BETON,
       jumlahTiang: jumlah,
       totalPanjangM: input.panjangM * jumlah,
     },

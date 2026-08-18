@@ -107,8 +107,62 @@ describe('gambarPenampang — SVG utuh & masuk akal', () => {
     const p = posisiTulangan(BALOK)
     // 7 batang → 7 lingkaran.
     expect((svg.match(/<circle/g) ?? []).length).toBe(p.bawah.length + p.atas.length)
-    // Beton + sengkang = 2 rect.
-    expect((svg.match(/<rect/g) ?? []).length).toBe(2)
+
+    /*
+      Beton digambar TIGA lapis rect (isi polos → arsir → garis tepi) plus
+      satu rect sengkang. Jumlah pastinya bukan yang penting — yang dijaga:
+      beton ADA, sengkang ADA, dan arsirnya terpasang.
+
+      Test versi pertama menuntut tepat 2 rect, dan langsung merah begitu
+      arsir ditambahkan — padahal gambarnya justru membaik. Test yang
+      menghitung elemen menghambat perbaikan; test yang memeriksa MAKSUD tidak.
+    */
+    expect(svg).toContain('fill="url(#arsir)"')            // arsir beton terpasang
+    expect(svg).toContain(`stroke="${'#2563eb'}"`)          // sengkang ada
+    expect((svg.match(/<rect/g) ?? []).length).toBeGreaterThanOrEqual(2)
+  })
+
+  /**
+   * NOTASI TULANGAN — yang membedakan gambar KERJA dari sketsa.
+   *
+   * Tanpa "3D16" di sebelah batang, tukang besi tak tahu apa yang dipasang.
+   * Ditambahkan setelah gambar dirender dan diperiksa mata: versi pertama
+   * hanya menggambar lingkaran merah tanpa keterangan apa pun.
+   */
+  it('menulis notasi tulangan per lapis (3D16, 2D16) + notasi sengkang', () => {
+    expect(svg).toContain('>3D16</text>')   // lapis bawah terluar, 3 batang
+    expect(svg).toContain('>2D16</text>')   // lapis kedua & atas, 2 batang
+    expect(svg).toContain('>P8</text>')     // sengkang polos Ø8
+  })
+
+  it('menulis label selimut — informasi yang wajib ada di gambar kerja', () => {
+    expect(svg).toContain('selimut 30 mm')
+  })
+
+  it('notasi mengikuti jumlah & diameter sesungguhnya', () => {
+    const lain = gambarPenampang({
+      ...BALOK, tulanganBawah: [4], tulanganAtas: [2], dUtamaMm: 22, dSengkangMm: 10,
+    })
+    expect(lain).toContain('>4D22</text>')
+    expect(lain).toContain('>2D22</text>')
+    expect(lain).toContain('>P10</text>')
+  })
+
+  /**
+   * Tebal garis sengkang punya BATAS BAWAH.
+   *
+   * Versi pertama memakai `t * 1.1` polos; pada penampang 250×400 hasilnya
+   * 1.76 unit dan sengkang nyaris tak terlihat di sebelah tulangan D13.
+   * Terlihat begitu dirender, tak terlihat dari test mana pun sampai ini
+   * ditulis.
+   */
+  it('sengkang tetap terbaca pada penampang kecil (≥ 60% diameter)', () => {
+    const kecil = gambarPenampang({
+      bMm: 250, hMm: 400, selimutMm: 25, dSengkangMm: 8,
+      tulanganBawah: [2], tulanganAtas: [2], dUtamaMm: 13,
+    })
+    const sengkang = kecil.match(/stroke="#2563eb" stroke-width="([\d.]+)"/)!
+    expect(Number(sengkang[1])).toBeGreaterThanOrEqual(8 * 0.6)
   })
 
   it('viewBox mencakup seluruh penampang plus margin', () => {

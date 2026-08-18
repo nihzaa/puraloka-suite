@@ -4,6 +4,7 @@ import { analisaPlat } from '../struktur-plat'
 import { analisaFootplat } from '../struktur-footplat'
 import { analisaPilecap } from '../struktur-pilecap'
 import { analisaKolomBulat } from '../struktur-kolom-bulat'
+import { analisaTiang } from '../struktur-tiang'
 
 /**
  * REKAP LINTAS MODUL — jalur ke RAP.
@@ -73,7 +74,65 @@ const PILECAP = analisaPilecap({
   pukKn: 1200, muxKnm: 40, muyKnm: 40, pIjinTiangKn: 425, jumlah: 2,
 })
 
+const TIANG = analisaTiang({
+  diameterM: 0.4, panjangM: 16, fcMpa: 36.6,
+  lapisan: Array(8).fill(null).map(() => ({ tebalM: 2, nSpt: 20 })),
+  bebanRencanaKn: 300, jumlah: 6,
+})
+
 const SEMUA = [BALOK, KOLOM, KOLOM_BULAT, PLAT, FOOTPLAT, PILECAP]
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════════
+ * TIANG PANCANG — cacat yang memutus jalur RAP, ditemukan lewat AUDIT.
+ *
+ * `HasilTiang.volume` semula hanya `{ betonM3, jumlahTiang, totalPanjangM }`.
+ * Begitu tiang ikut direkap bersama elemen lain, `rekapVolume` crash:
+ *
+ *     TypeError: h.volume.besi is not iterable
+ *
+ * TypeScript TIDAK menangkapnya — `rekapVolume` menerima bentuk struktural
+ * `{ volume: VolumeElemen }`, dan objek yang kekurangan medan hanya gagal saat
+ * dijalankan. Test per-modul juga tidak: tiap modul lulus sendiri-sendiri.
+ *
+ * Kelas cacat yang sama dengan dua temuan Fase 1 (jalur RAP putus, besi pelat
+ * kurang 14×) — dan itu sebabnya audit silang dijadikan test, bukan
+ * pemeriksaan sekali jalan.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+describe('tiang pancang ikut jalur RAP', () => {
+  it('volume tiang berbentuk VolumeElemen lengkap', () => {
+    expect(Array.isArray(TIANG.volume.besi)).toBe(true)
+    expect(typeof TIANG.volume.bekistingM2).toBe('number')
+    expect(typeof TIANG.volume.besiTotalKg).toBe('number')
+    expect(typeof TIANG.volume.beratSendiriKg).toBe('number')
+  })
+
+  it('bekisting & besi NOL — pracetak, bukan data hilang', () => {
+    // Tiang pancang datang jadi dari pabrik: tak ada bekisting di proyek,
+    // tulangannya sudah terpasang. Nol di sini adalah jawaban, bukan lubang.
+    expect(TIANG.volume.bekistingM2).toBe(0)
+    expect(TIANG.volume.besi).toEqual([])
+    expect(TIANG.volume.besiTotalKg).toBe(0)
+    // Betonnya TIDAK nol — tiangnya tetap volume beton yang dibeli.
+    expect(TIANG.volume.betonM3).toBeGreaterThan(0)
+    expect(TIANG.volume.beratSendiriKg).toBeCloseTo(TIANG.volume.betonM3 * 2400, 6)
+  })
+
+  it('bisa direkap bersama SELURUH elemen lain tanpa crash', () => {
+    const r = rekapVolume([...SEMUA, TIANG])
+    expect(r.betonM3).toBeCloseTo(
+      SEMUA.reduce((s, e) => s + e.volume.betonM3, 0) + TIANG.volume.betonM3, 9)
+    // Besi tiang nol, jadi tak menambah — tetapi juga tak merusak.
+    expect(r.besiTotalKg).toBeCloseTo(
+      SEMUA.reduce((s, e) => s + e.volume.besiTotalKg, 0), 6)
+  })
+
+  it('medan khas tiang tetap ada di sampingnya', () => {
+    expect(TIANG.volume.jumlahTiang).toBe(6)
+    expect(TIANG.volume.totalPanjangM).toBe(96)
+  })
+})
 
 describe('rekapVolume menerima SELURUH jenis elemen', () => {
   it('kelima tipe hasil bisa direkap bersama — tanpa cast, tanpa adapter', () => {
