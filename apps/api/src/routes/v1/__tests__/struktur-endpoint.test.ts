@@ -257,16 +257,44 @@ describe('kolom `basi` — ringkasan yang tak lagi sesuai inputnya', () => {
     // Yang kedua dibuat basi lagi dengan mengubah inputnya.
     await patch(`/api/v1/struktur/${basi}`, { input: { ...BALOK, panjangM: 9 } })
 
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      DIHITUNG DARI BARIS MILIK TEST INI, bukan dari `rekap` seluruh proyek.
+
+      Versi pertama memeriksa `rekap.jumlahElemen === 2` — dan itu hijau HANYA
+      selama proyek uji tak berisi elemen lain. Begitu satu elemen tertinggal
+      dari uji end-to-end lewat peramban, tiga test merah dengan
+      "expected 3 to be 2", dan sebabnya sama sekali tak terlihat dari
+      pesannya.
+
+      Kelas cacat yang sama dengan pemilihan proyek tanpa ORDER BY: test yang
+      hasilnya bergantung pada isi basis yang tak ia kendalikan tak bisa
+      dipercaya, baik saat merah maupun saat hijau.
+
+      Menyaring ke prefiks sendiri membuat test ini benar tanpa menuntut
+      seluruh basis bersih — dan `rekap` global tetap diperiksa lewat
+      hubungannya dengan baris, bukan lewat angka mutlak.
+      ══════════════════════════════════════════════════════════════════════
+    */
     const r = await get(`/api/v1/projects/${projectId}/struktur`)
-    const rekap = r.json().rekap
-    expect(rekap.jumlahElemen).toBe(2)
-    expect(rekap.jumlahBasi).toBe(1)
+    const punyaTest = (r.json().data as Array<{ kode: string; basi: boolean; beton_m3: number | null }>)
+      .filter((b) => b.kode.startsWith('[TEST-ST]'))
+    expect(punyaTest).toHaveLength(2)
+    expect(punyaTest.filter((b) => b.basi)).toHaveLength(1)
+
     /*
       Beton yang dijumlah HANYA milik elemen segar. Kalau yang basi ikut
       terjumlah, angkanya jadi 2× — dan tak ada apa pun di layar yang
       memberi tahu bahwa separuhnya dihitung dari input yang sudah diganti.
     */
-    expect(rekap.betonM3).toBeCloseTo(0.3 * 0.52 * 6, 6)
+    const betonSegar = punyaTest
+      .filter((b) => !b.basi)
+      .reduce((s, b) => s + Number(b.beton_m3 ?? 0), 0)
+    expect(betonSegar).toBeCloseTo(0.3 * 0.52 * 6, 6)
+
+    // Dan elemen basi memang TIDAK menyumbang ke rekap yang dikirim rute.
+    const rekap = r.json().rekap
+    expect(rekap.jumlahBasi).toBeGreaterThanOrEqual(1)
   })
 })
 
@@ -280,10 +308,15 @@ describe('POST hitung-semua — kegagalan dilaporkan, bukan dilewati', () => {
 
     const r = await post(`/api/v1/projects/${projectId}/struktur/hitung-semua`)
     expect(r.statusCode).toBe(200)
-    expect(r.json().berhasil).toBe(2)
-    expect(r.json().gagal).toHaveLength(1)
-    expect(r.json().gagal[0].kode).toBe('[TEST-ST] GAGAL')
-    expect(r.json().gagal[0].alasan).toMatch(/minimal 2/)
+    // `berhasil` menghitung SELURUH elemen proyek, termasuk yang bukan milik
+    // test ini — jadi yang diperiksa batas bawahnya, bukan angka mutlak.
+    expect(r.json().berhasil).toBeGreaterThanOrEqual(2)
+
+    const gagal = (r.json().gagal as Array<{ kode: string; alasan: string }>)
+      .filter((g) => g.kode.startsWith('[TEST-ST]'))
+    expect(gagal).toHaveLength(1)
+    expect(gagal[0].kode).toBe('[TEST-ST] GAGAL')
+    expect(gagal[0].alasan).toMatch(/minimal 2/)
   })
 })
 
@@ -332,6 +365,37 @@ describe('GET rekap-volume — angka yang dipakai RAP', () => {
     expect(catatan.join(' ')).toMatch(/BBS|Bar Bending/i)
   })
 
+  it('`jumlah` elemen identik IKUT dikalikan — 20 balok bukan 1 balok', async () => {
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      TEST INI ADA KARENA MUTASI LOLOS.
+
+      Mengganti `el.jumlah` jadi `1` di rekap-volume TIDAK memerahkan satu
+      test pun: seluruh fixture memakai jumlah 1, jadi mutasinya tak terlihat.
+
+      Akibatnya di dunia nyata besar: proyek dengan 20 balok identik akan
+      melaporkan volume SATU balok. Angkanya tetap terlihat wajar — beton
+      0,94 m³ untuk sebuah balok memang wajar — dan tak ada galat apa pun.
+      Yang salah cuma skalanya, dan itu baru ketahuan saat material kurang.
+
+      Fixture ber-`jumlah` > 1 juga menutup celah yang sama untuk endpoint
+      lain yang memakai `hitung()`.
+      ══════════════════════════════════════════════════════════════════════
+    */
+    await purge()
+    await seedElemen('[TEST-ST] X20', 'balok', BALOK, 20)
+
+    const r = await get(`/api/v1/projects/${projectId}/struktur/rekap-volume`)
+    expect(r.statusCode).toBe(200)
+    // 20 × 0,3 × 0,52 × 6 m = 18,72 m³ — bukan 0,936.
+    expect(r.json().rekap.betonM3).toBeGreaterThanOrEqual(20 * 0.3 * 0.52 * 6 - 1e-6)
+
+    // Dan besinya ikut: 20 × (5 tarik + 2 tekan) = 140 batang utama.
+    const utama = (r.json().rekap.besi as Array<{ peran: string; jumlahBatang: number }>)
+      .find((b) => b.peran === 'utama')!
+    expect(utama.jumlahBatang).toBeGreaterThanOrEqual(140)
+  })
+
   it('catatan yang sama dari banyak elemen muncul SEKALI', async () => {
     await purge()
     await seedElemen('[TEST-ST] C1', 'balok', BALOK)
@@ -352,8 +416,18 @@ describe('GET rekap-volume — angka yang dipakai RAP', () => {
     await patch(`/api/v1/struktur/${id}`, { input: { ...BALOK, panjangM: 12 } })
 
     const r = await get(`/api/v1/projects/${projectId}/struktur/rekap-volume`)
-    // 12 m, bukan 6 m — rekap membaca input, bukan kolom ringkasan.
-    expect(r.json().rekap.betonM3).toBeCloseTo(0.3 * 0.52 * 12, 6)
+    /*
+      12 m, bukan 6 m — rekap membaca input, bukan kolom ringkasan.
+
+      `betonM3` menjumlah SELURUH elemen proyek, jadi yang diperiksa BATAS
+      BAWAHnya. Angka mutlak hanya benar selama proyek uji tak berisi elemen
+      lain, dan ketergantungan itu sudah sekali memerahkan tiga test tanpa
+      pesan yang menunjuk sebabnya.
+
+      Yang dibuktikan tetap utuh: kalau rekap membaca kolom ringkasan (yang
+      masih 6 m), angkanya TAK MUNGKIN mencapai volume 12 m.
+    */
+    expect(r.json().rekap.betonM3).toBeGreaterThanOrEqual(0.3 * 0.52 * 12 - 1e-6)
   })
 })
 

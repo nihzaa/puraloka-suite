@@ -2787,6 +2787,7 @@ Tiga migrasi sudah **dijalankan** dan artefak fisiknya **terbukti ada**:
 | `458_struktur_elemen` | tabel + RLS FORCE + 2 trigger + 2 permission + kolom `basi` GENERATED | blok verifikasi 4 pemeriksaan lulus |
 | `459_izin_struktur_tertaut_peran` | tautan izin→peran (view: 6 peran, manage: 4) | `NOTICE 459 OK` |
 | `460_struktur_dihitung_pada_jam_basis` | trigger memaksa `dihitung_pada` ke jam basis | `NOTICE 460 OK`, dan **dibuktikan bisa merah** (trigger dilepas → EXCEPTION) |
+| `461_menu_analisa_struktur` | menu `cc-struktur` → `/estimasi/struktur` | `NOTICE 461 OK`, **3 mutasi MERAH** (sort_order bentrok · kunci izin hantu · induk dilepas) |
 
 ### Yang saya TIDAK lakukan, dan kenapa
 
@@ -2804,5 +2805,5 @@ meski hijau di mesin ini.
 
 ### Yang perlu diputuskan founder
 
-Izin mencatat 458, 459, 460 ke buku migrasi — atau menunjuk cara lain yang
+Izin mencatat 458, 459, 460, 461 ke buku migrasi — atau menunjuk cara lain yang
 Anda kehendaki untuk membawanya ke CI.

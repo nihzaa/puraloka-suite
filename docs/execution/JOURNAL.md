@@ -5,6 +5,95 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan) — Fase 6 UI, dan cacat yang hanya terlihat dari GAMBAR
+
+Halaman `/estimasi/struktur` + migrasi 461 (menu). Pekerjaan dipindahkan ke
+worktree `.claude/worktrees/struktur` (branch `feat/struktur-analisa`) supaya
+bisa jalan paralel dengan sesi lain tanpa saling menimpa.
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur    373 passed (14 files)
+apps/api  npx tsc --noEmit           exit 0
+apps/web  npx tsc --noEmit           exit 0
+apps/web  npx next build             exit 0
+penjaga UI (69 skrip)                25 merah — IDENTIK dengan baseline
+a11y runtime terang + gelap          1/1 halaman, 0 pelanggaran
+```
+
+Baseline 25 merah diukur SEBELUM menulis sebaris pun. Nol penjaga naik.
+
+### Kenapa worktree — sesi lain menyapu pekerjaan saya
+
+Sesi paralel menjalankan `git stash -u` untuk membandingkan baseline, dan itu
+menyapu `struktur.ts` + migrasi 458/459 yang sedang saya kerjakan. Ia mencatat
+sendiri pelanggarannya. Ditambah `pnpm install` yang mengosongkan
+`apps/api/node_modules` di tengah audit saya — `npx tsc` mati dengan "This is
+not the tsc command you are looking for", galat yang sama sekali tak menunjuk
+sebabnya.
+
+Perpindahan dilakukan lewat PATCH, bukan `git stash`: perintah itu justru yang
+menyebabkan masalahnya.
+
+### Tiga cacat visual yang penjaga TIDAK tangkap
+
+Semuanya lolos seluruh 69 penjaga dan baru terlihat di tangkapan layar:
+
+1. **Judul "Analisa Struktur" muncul DUA KALI** — layout `estimasi` sudah
+   menyediakan judul dari entri menu; `KepalaHalaman` saya menambah yang kedua.
+   `uji-judul-halaman-ada` tetap hijau: ia memastikan judul ADA, bukan TUNGGAL.
+   `layout.tsx` sudah mencatat cacat identik untuk halaman markup — saya
+   mengulanginya karena membaca kodenya, bukan hasilnya.
+
+2. **Keterangan halaman salah** — berbunyi "RAB dari analisa AHSP…", milik
+   halaman lain, karena rute ini belum terdaftar di `KETERANGAN`.
+
+3. **Tombol nonaktif tampak aktif** — `btnGhost` gaya statis, `cursor: pointer`
+   tetap terpasang meski `disabled`. Tombol yang tak merespons klik terbaca
+   sebagai aplikasi rusak.
+
+Dan satu yang hanya muncul dengan data tertentu: **ubin "Besi" 90,5 kg vs tabel
+125,2 kg di layar yang sama**. Keduanya benar — ubin membaca kolom ringkasan
+(mengecualikan basi), tabel menghitung ulang dari input (memasukkannya) —
+tetapi bagi pembaca itu kontradiksi. Kini dijelaskan, dan hanya saat bedanya
+benar-benar ada.
+
+### Mutasi yang LOLOS, dan yang ditemukannya
+
+Mengganti `el.jumlah` jadi `1` di rekap-volume TIDAK memerahkan satu test pun:
+seluruh fixture memakai jumlah 1. Akibatnya di dunia nyata besar — proyek
+dengan 20 balok identik melaporkan volume SATU balok, angkanya tetap terlihat
+wajar, dan tak ada galat. Ditambah test ber-`jumlah: 20`; mutasi kini MERAH.
+
+### Test yang hijau karena basis kebetulan kosong
+
+Tiga test merah dengan "expected 3 to be 2" sesudah satu elemen tertinggal dari
+uji lewat peramban. Sebabnya tak terlihat sama sekali dari pesannya: test
+memeriksa `rekap.jumlahElemen` seluruh proyek, padahal ia hanya mengendalikan
+elemen berprefiks sendiri. Kini disaring ke prefiksnya; angka global diperiksa
+lewat batas bawah, bukan nilai mutlak.
+
+Kelas yang sama dengan pemilihan proyek tanpa `ORDER BY` kemarin: **test yang
+bergantung pada isi basis yang tak ia kendalikan tak bisa dipercaya, baik saat
+merah maupun saat hijau.**
+
+### Alat ukurnya sendiri sempat berbohong
+
+`audit-a11y-runtime --url /estimasi/struktur` melaporkan "dialihkan, 0 dari 1
+terpindai". Halamannya baik-baik saja: **Git Bash mengonversi** `/estimasi/struktur`
+jadi `C:/Program Files/Git/estimasi/struktur`. Yang dibuka URL ngawur.
+`MSYS_NO_PATHCONV=1` menutupnya. Skrip itu tak melaporkan KE MANA halaman
+dialihkan — kalau ia melaporkannya, sebabnya ketahuan dalam satu jalan.
+
+### Menunggu ratifikasi (G-2)
+
+458, 459, 460, 461 **belum dicatat** di `supabase_migrations.schema_migrations`.
+Artefak fisiknya terbukti (blok verifikasi tiap migrasi lulus; 461 dibuktikan
+bisa merah lewat 3 mutasi). Menulis ke buku migrasi adalah Gerbang Keras G-2.
+
+---
+
 ## 2026-08-18 (pematangan, putaran 3) — memeriksa ARTEFAK tiap fase, bukan mengingat bahwa "tadi hijau"
 
 Founder: *"pastikan fase fase sebelumnyaa sudah matang dan tanpa kekurangan
