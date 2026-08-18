@@ -414,7 +414,7 @@ export default function AuditMutuPage() {
 
       {galat && (
         <div role="alert" style={{
-          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)",
         }}>{galat}</div>
@@ -534,7 +534,7 @@ export default function AuditMutuPage() {
                   style={{
                     marginLeft: "auto",
                     padding: "7px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                    border: "1px solid var(--navy)", background: "var(--navy)",
+                    border: "none", background: "var(--grad-aksen)",
                     color: "var(--on-navy)", cursor: menyelesaikan ? "not-allowed" : "pointer",
                     opacity: menyelesaikan ? 0.7 : 1,
                   }}
@@ -604,7 +604,7 @@ export default function AuditMutuPage() {
                   : "major & minor terverifikasi",
               },
             ].map((k) => (
-              <div key={k.l} style={{ ...kartu, padding: "12px 14px" }}>
+              <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                 {/* Angka tenang — penekanan sudah dipakai verdict (§3d). */}
@@ -652,7 +652,7 @@ export default function AuditMutuPage() {
               type="button" onClick={() => void simpanTemuan()} disabled={menyimpan}
               style={{
                 padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "1px solid var(--navy)", background: "var(--navy)",
+                border: "none", background: "var(--grad-aksen)",
                 color: "var(--on-navy)", cursor: menyimpan ? "not-allowed" : "pointer",
                 opacity: menyimpan ? 0.7 : 1,
               }}
@@ -663,7 +663,7 @@ export default function AuditMutuPage() {
         {temuanAktif && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               background: "var(--surface-2)", border: `1px solid ${C.border}`, color: C.mid,
             }}>
               <strong style={{ color: C.text }}>Klausul:</strong> {temuanAktif.klausul}
@@ -671,7 +671,7 @@ export default function AuditMutuPage() {
 
             {temuanAktif.klasifikasi === "major" && (
               <div style={{
-                padding: "10px 12px", borderRadius: 8, fontSize: 12,
+                padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
                 background: "var(--danger-bg)", border: "1px solid var(--danger-border)",
                 color: "var(--danger)",
               }}>
@@ -729,7 +729,7 @@ export default function AuditMutuPage() {
 
             {galatModal && (
               <div role="alert" style={{
-                padding: "10px 12px", borderRadius: 8, fontSize: 12,
+                padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
                 border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
                 color: "var(--danger)",
               }}>{galatModal}</div>

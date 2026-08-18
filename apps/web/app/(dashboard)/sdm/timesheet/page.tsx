@@ -426,7 +426,7 @@ export default function TimesheetPage() {
 
       {galat && (
         <div role="alert" style={{
-          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)",
         }}>{galat}</div>
@@ -488,7 +488,7 @@ export default function TimesheetPage() {
               { l: "Menunggu putusan", v: r.per_status.diajukan, sub: "diajukan ke atasan" },
               { l: "Disetujui", v: r.per_status.disetujui, sub: `dari ${r.hari_terisi} baris` },
             ].map((k) => (
-              <div key={k.l} style={{ ...kartu, padding: "12px 14px" }}>
+              <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                   textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                 <div style={{ fontSize: "var(--teks-kpi)", fontWeight: 700, marginTop: 4, lineHeight: 1.1, color: C.text,
@@ -563,7 +563,7 @@ export default function TimesheetPage() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "1px solid var(--navy)", background: "var(--navy)",
+                border: "none", background: "var(--grad-aksen)",
                 color: "var(--on-navy)", cursor: "pointer",
               }}
             ><Plus size={14} aria-hidden="true" /> Isi hari</button>
@@ -622,7 +622,7 @@ export default function TimesheetPage() {
             <button type="button" onClick={() => void simpanHari()} disabled={menyimpan}
               style={{
                 padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "1px solid var(--navy)", background: "var(--navy)",
+                border: "none", background: "var(--grad-aksen)",
                 color: "var(--on-navy)", cursor: menyimpan ? "not-allowed" : "pointer",
                 opacity: menyimpan ? 0.7 : 1,
               }}>{menyimpan ? "Menyimpan…" : "Simpan"}</button>
@@ -725,7 +725,7 @@ export default function TimesheetPage() {
 
           {galatModal && (
             <div role="alert" style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
               color: "var(--danger)",
             }}>{galatModal}</div>
@@ -785,7 +785,7 @@ export default function TimesheetPage() {
 
           {galatModal && (
             <div role="alert" style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
               color: "var(--danger)",
             }}>{galatModal}</div>

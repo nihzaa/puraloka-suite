@@ -344,7 +344,7 @@ export default function PenyediaPage() {
       {/* Penjelasan yang menahan salah paham paling mahal di halaman ini. */}
       <div
         style={{
-          padding: "12px 14px",
+          padding: "12px var(--pad-kartu-lega)",
           borderRadius: 12,
           border: "1px solid var(--border)",
           background: "var(--surface)",

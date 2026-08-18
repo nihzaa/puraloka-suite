@@ -2173,6 +2173,23 @@ jobs:
       - name: Baris daftar tak boleh lebih sempit dari kepala panel
         run: node scripts/uji-baris-tak-mepet.mjs
 
+      # Tombol aksi utama memakai `var(--grad-aksen)` — itu yang dilakukan
+      # `<Tombol jenis="utama">`. Puluhan halaman menulis gayanya sendiri
+      # sebagai `background: C.navy`, jadi DUA konvensi hidup berdampingan
+      # untuk elemen yang sama. Diukur 2026-08-16 saat founder bertanya
+      # "apakah styling setiap tombol udh sama?": 115 gradasi : 29 padat.
+      # Sudah dilunasi jadi 115+25 = 140 gradasi : 4 padat.
+      #
+      # RATCHET dengan lantai 4, bukan ambang nol — empat sisanya BENAR:
+      # kartu "FOKUS HARI INI" di rail (satu-satunya blok navy di sana, dan
+      # ujung terang gradasi mode gelap cuma berkontras 1.99 dengan teks
+      # putih), dua tombol 11.5px di dalam kartu navyLight, dan halaman 404
+      # di luar shell dashboard.
+      #
+      # Terbukti bisa merah: satu tombol dikembalikan ke navy → 5 > 4 → exit 1.
+      - name: Tombol primer seragam bergradasi
+        run: node scripts/uji-tombol-primer-seragam.mjs
+
       # `var(--pad-atas) var(--pad-x) var(--pad-bawah)` adalah padding SHELL
       # HALAMAN (32px 36px 64px). Disalin ke sebuah <select>, ia menghasilkan
       # dropdown setinggi 108px yang terlihat seperti kartu — founder

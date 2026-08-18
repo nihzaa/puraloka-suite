@@ -1,0 +1,4 @@
+{
+  "_catatan": "Tombol <button>/<a>/<Link> berlatar navy PADAT (bukan --grad-aksen). Boleh TURUN, tidak boleh NAIK. Konvensi: <Tombol jenis=\"utama\"> → var(--grad-aksen).",
+  "jumlah": 4
+}

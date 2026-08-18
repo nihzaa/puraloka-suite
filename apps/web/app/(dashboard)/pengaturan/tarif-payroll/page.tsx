@@ -260,7 +260,7 @@ export default function TarifPayrollPage() {
 
       {galat && (
         <div role="alert" style={{
-          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)",
         }}>{galat}</div>
@@ -268,7 +268,7 @@ export default function TarifPayrollPage() {
 
       {galatAksi && (
         <div role="alert" style={{
-          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)",
         }}>{galatAksi}</div>
@@ -327,7 +327,7 @@ export default function TarifPayrollPage() {
           style={{
             display: "inline-flex", alignItems: "center", gap: 6,
             padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-            border: "1px solid var(--navy)", background: "var(--navy)",
+            border: "none", background: "var(--grad-aksen)",
             color: "var(--on-navy)", cursor: "pointer",
           }}
         >
@@ -488,7 +488,7 @@ export default function TarifPayrollPage() {
             <button type="button" onClick={() => void simpanPeriode()} disabled={menyimpan}
               style={{
                 padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "1px solid var(--navy)", background: "var(--navy)",
+                border: "none", background: "var(--grad-aksen)",
                 color: "var(--on-navy)", cursor: menyimpan ? "not-allowed" : "pointer",
                 opacity: menyimpan ? 0.7 : 1,
               }}>{menyimpan ? "Menyimpan…" : "Simpan"}</button>
@@ -546,7 +546,7 @@ export default function TarifPayrollPage() {
 
           {galatModal && (
             <div role="alert" style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
               color: "var(--danger)",
             }}>{galatModal}</div>
@@ -571,7 +571,7 @@ export default function TarifPayrollPage() {
             <button type="button" onClick={() => void simpanBaris()} disabled={menyimpan}
               style={{
                 padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "1px solid var(--navy)", background: "var(--navy)",
+                border: "none", background: "var(--grad-aksen)",
                 color: "var(--on-navy)", cursor: menyimpan ? "not-allowed" : "pointer",
                 opacity: menyimpan ? 0.7 : 1,
               }}>{menyimpan ? "Menyimpan…" : "Simpan"}</button>
@@ -581,7 +581,7 @@ export default function TarifPayrollPage() {
         {tambahKe && (
           <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               background: "var(--surface-2)", border: `1px solid ${C.border}`, color: C.mid,
             }}>
               {JENIS[tambahKe.jenis].kolom} Kunci yang dipakai:{" "}
@@ -631,7 +631,7 @@ export default function TarifPayrollPage() {
 
             {galatModal && (
               <div role="alert" style={{
-                padding: "10px 12px", borderRadius: 8, fontSize: 12,
+                padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
                 border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
                 color: "var(--danger)",
               }}>{galatModal}</div>

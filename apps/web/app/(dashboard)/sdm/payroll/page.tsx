@@ -267,7 +267,7 @@ export default function PayrollPage() {
 
       {galat && (
         <div role="alert" style={{
-          marginBottom: 14, padding: "10px 14px", borderRadius: 8, fontSize: 13,
+          marginBottom: 14, padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 13,
           border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
           color: "var(--danger)",
         }}>{galat}</div>
@@ -396,7 +396,7 @@ export default function PayrollPage() {
                     marginLeft: "auto",
                     display: "inline-flex", alignItems: "center", gap: 6,
                     padding: "7px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                    border: "1px solid var(--navy)", background: "var(--navy)",
+                    border: "none", background: "var(--grad-aksen)",
                     color: "var(--on-navy)", cursor: bekerja ? "not-allowed" : "pointer",
                     opacity: bekerja ? 0.7 : 1,
                   }}
@@ -453,7 +453,7 @@ export default function PayrollPage() {
                   { l: "Potongan", v: rp(detail.total.potongan), sub: `termasuk PPh 21 ${rp(detail.total.pph21)}` },
                   { l: "Dibayarkan", v: rp(detail.total.bersih), sub: "gaji bersih" },
                 ].map((k) => (
-                  <div key={k.l} style={{ ...kartu, padding: "12px 14px" }}>
+                  <div key={k.l} style={{ ...kartu, padding: "12px var(--pad-kartu-lega)" }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: C.muted,
                       textTransform: "uppercase", letterSpacing: "0.05em" }}>{k.l}</div>
                     <div style={{ fontSize: 18, fontWeight: 700, marginTop: 4, color: C.text,
@@ -660,7 +660,7 @@ export default function PayrollPage() {
             <button type="button" onClick={() => void buatPeriode()} disabled={bekerja}
               style={{
                 padding: "8px 14px", borderRadius: 6, fontSize: 13, fontWeight: 700,
-                border: "1px solid var(--navy)", background: "var(--navy)",
+                border: "none", background: "var(--grad-aksen)",
                 color: "var(--on-navy)", cursor: bekerja ? "not-allowed" : "pointer",
                 opacity: bekerja ? 0.7 : 1,
               }}>{bekerja ? "Membuat…" : "Buat"}</button>
@@ -684,7 +684,7 @@ export default function PayrollPage() {
 
           {galatModal && (
             <div role="alert" style={{
-              padding: "10px 12px", borderRadius: 8, fontSize: 12,
+              padding: "10px var(--pad-kartu-lega)", borderRadius: 8, fontSize: 12,
               border: "1px solid var(--danger-border)", background: "var(--danger-bg)",
               color: "var(--danger)",
             }}>{galatModal}</div>

@@ -354,7 +354,7 @@ export default function KredensialPage() {
                           style={{
                             padding: "var(--pad-tombol)", borderRadius: 6, fontSize: 13, fontWeight: 500,
                             border: "none", cursor: "pointer",
-                            background: C.aksen, color: "var(--on-aksen)",
+                            background: "var(--grad-aksen)", color: "var(--on-aksen)",
                             opacity: !bolehKelola || !nilaiDraf.trim() || !enkripsiSiap ? 0.45 : 1,
                           }}
                         >

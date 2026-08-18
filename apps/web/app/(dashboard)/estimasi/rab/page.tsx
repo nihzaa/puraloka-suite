@@ -756,7 +756,7 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
               style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "var(--pad-tombol-kcl)", borderRadius: "var(--radius-dense)",
-                background: C.aksen, color: C.onAksen, border: `1px solid ${C.aksen}`,
+                background: "var(--grad-aksen)", color: C.onAksen, border: `1px solid ${C.aksen}`,
                 fontSize: "var(--teks-label)", fontWeight: 600,
                 fontFamily: "inherit", cursor: "pointer",
               }}
