@@ -216,20 +216,41 @@ function volumePlat(input: InputPlat, sisiPanjang: number, sisiPendek: number): 
   const bekistingM2 = luasM2
 
   const beratKgPerM = KOEF_BERAT_BESI * dTulanganMm * dTulanganMm
+
+  /*
+    ⚠ TULANGAN MENGIKUTI `luasM2`, bukan satu panel saja.
+
+    Versi pertama menghitung beton dari `luasM2` tetapi tulangan dari
+    `sisiPanjang × sisiPendek` — satu panel. Untuk pelat lantai 200 m² yang
+    dianalisa lewat panel 4×3.5 m, betonnya 24 m³ sementara besinya hanya
+    untuk 14 m²: **kekurangan 14× lipat**.
+
+    Hasilnya bukan galat, melainkan RAP yang terlihat wajar dengan tonase besi
+    yang mustahil. Ditemukan penjaga rasio besi/beton di
+    `struktur-rekap-lintas.test.ts` — pelat memulangkan 5.1 kg/m³, padahal
+    pelat normal 60–100.
+
+    Panel tetap dipakai untuk KAPASITAS (momen bergantung bentang panel);
+    yang diskalakan hanya kuantitasnya. Faktor luas dibulatkan ke atas — pelat
+    3.7 panel tetap butuh potongan batang untuk panel keempat.
+  */
+  const luasPanelM2 = sisiPanjang * sisiPendek
+  const faktorLuas = luasPanelM2 > 0 ? luasM2 / luasPanelM2 : 1
+
   // Arah X: batang membentang sepanjang sisiPanjang, jumlahnya sepanjang sisiPendek.
-  const nArahX = Math.ceil(sisiPendek * 1000 / jarakTulanganMm) + 1
-  const nArahY = Math.ceil(sisiPanjang * 1000 / jarakTulanganMm) + 1
+  const nArahX = (Math.ceil(sisiPendek * 1000 / jarakTulanganMm) + 1) * faktorLuas
+  const nArahY = (Math.ceil(sisiPanjang * 1000 / jarakTulanganMm) + 1) * faktorLuas
 
   const besi: BarisBesi[] = [
     {
       tipe: 'BjTS', diameterMm: dTulanganMm, peran: 'utama',
-      jumlahBatang: nArahX, panjangPerBatangM: sisiPanjang,
-      beratKgPerM, totalKg: nArahX * sisiPanjang * beratKgPerM,
+      jumlahBatang: Math.ceil(nArahX), panjangPerBatangM: sisiPanjang,
+      beratKgPerM, totalKg: Math.ceil(nArahX) * sisiPanjang * beratKgPerM,
     },
     {
       tipe: 'BjTS', diameterMm: dTulanganMm, peran: 'utama',
-      jumlahBatang: nArahY, panjangPerBatangM: sisiPendek,
-      beratKgPerM, totalKg: nArahY * sisiPendek * beratKgPerM,
+      jumlahBatang: Math.ceil(nArahY), panjangPerBatangM: sisiPendek,
+      beratKgPerM, totalKg: Math.ceil(nArahY) * sisiPendek * beratKgPerM,
     },
   ]
 

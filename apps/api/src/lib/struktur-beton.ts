@@ -521,7 +521,19 @@ function volumeKolom(input: InputKolom, nTotal: number): VolumeElemen {
  * Besi digabung per (tipe, diameter) seperti BBS: itulah satuan yang dibeli.
  * Beton dan bekisting dijumlah polos.
  */
-export function rekapVolume(hasil: HasilElemen[]): VolumeElemen {
+/**
+ * ⚠ Menerima APA PUN yang punya `.volume`, bukan hanya `HasilElemen`.
+ *
+ * Versi pertama menuntut `HasilElemen[]` — tipe milik balok & kolom persegi
+ * saja. Akibatnya pelat, footplat, pilecap, dan kolom bulat TAK BISA direkap,
+ * dan itu memutus jalur ke RAP tepat di tempat yang paling dibutuhkan:
+ * satu proyek nyata berisi kelima jenis elemen sekaligus.
+ *
+ * Celah ini tak terlihat dari test mana pun — tiap modul lulus sendiri-sendiri,
+ * dan tak ada yang mencoba menggabungkan keduanya. Ditemukan lewat audit
+ * silang antar-modul, bukan dari test yang gagal.
+ */
+export function rekapVolume(hasil: ReadonlyArray<{ volume: VolumeElemen }>): VolumeElemen {
   const peta = new Map<string, BarisBesi>()
   let betonM3 = 0, bekistingM2 = 0, beratSendiriKg = 0
 
