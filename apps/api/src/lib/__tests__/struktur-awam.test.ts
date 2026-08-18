@@ -10,7 +10,10 @@ import { analisaPilecap } from '../struktur-pilecap'
 import { analisaKolomBulat } from '../struktur-kolom-bulat'
 import { analisaTiang } from '../struktur-tiang'
 import { analisaKolomLengkap } from '../struktur-kolom-lengkap'
-import { analisaBalokBaja } from '../struktur-baja'
+import { analisaBalokBaja, analisaKolomBaja } from '../struktur-baja'
+import {
+  analisaSambunganBaut, analisaSambunganLas, MUTU_BAUT,
+} from '../struktur-baja-sambungan'
 
 /**
  * ══════════════════════════════════════════════════════════════════════════════
@@ -99,6 +102,36 @@ function semuaNamaPemeriksaan(): string[] {
       },
       mutu: { fyMpa: 240, fuMpa: 370 },
       bentangM: 6, jarakPengakuM: 0, muKnm: 30, vuKn: 60, bebanLayanKnPerM: 3,
+    }) as never,
+    /*
+      KOLOM BAJA & SAMBUNGAN ikut — dan audit yang sama menangkap keduanya.
+
+      Sesudah baja balok didaftarkan, saya menambah kolom baja dan sambungan
+      baut/las. Ketujuh pemeriksaan barunya TAK punya terjemahan sama sekali,
+      dan penjaga ini tak menangkapnya karena modulnya belum terdaftar di
+      fungsi ini.
+
+      Itu kelemahan penjaga yang terulang dua kali: ia hanya menjaga apa yang
+      DIDAFTARKAN. Menambah modul tanpa menambahkannya ke sini lolos tanpa
+      gejala. Belum ada cara memaksanya otomatis tanpa memindai berkas —
+      dan itu pekerjaan penjaga skrip, bukan test.
+    */
+    analisaKolomBaja({
+      profil: {
+        designation: '200x100x5.5x8', profile_type: 'WF',
+        hMm: 200, bMm: 100, t1Mm: 5.5, t2Mm: 8,
+        beratKgPerM: 21.3333, panjangStandarM: 12,
+      },
+      mutu: { fyMpa: 240, fuMpa: 370 },
+      tinggiM: 3, puKn: 100,
+    }) as never,
+    analisaSambunganBaut({
+      diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlah: 4, bidangGeser: 1,
+      tebalPelatMm: 8, mutuPelat: { fyMpa: 240, fuMpa: 370 }, vuKn: 150,
+    }) as never,
+    analisaSambunganLas({
+      ukuranMm: 6, panjangMm: 200, fuElektrodaMpa: 490,
+      mutuPelat: { fyMpa: 240, fuMpa: 370 }, tebalPelatMm: 10, vuKn: 100,
     }) as never,
   ]
   return [...new Set(hasil.flatMap((h) => h.periksa.map((p) => p.nama)))]

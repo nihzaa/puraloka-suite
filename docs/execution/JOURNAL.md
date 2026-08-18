@@ -5,6 +5,98 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 4) — baja WF: 58 profil ada di basis, NOL yang menghitung kekuatannya
+
+Founder minta perluasan volume ke semua item pekerjaan, terutama baja WF, dan
+menyebut perlu perencanaan khusus untuk itu.
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur    485 passed (18 files)   ← dari 426
+apps/api  npx tsc --noEmit           exit 0
+penjaga baru + 3 penjaga lama        exit 0
+```
+
+### Peta cakupan yang terukur — jawaban atas "apakah semua sudah bisa?"
+
+| Pekerjaan | Sebelum | Sesudah |
+|---|---|---|
+| Beton struktur (7 jenis) | desain + volume | sama |
+| Galian/urugan/pasangan/plesteran/keramik | volume saja (`takeoff-dimensi`) | sama |
+| **Baja WF/H/siku** | **58 profil di basis, NOL yang menghitung** | **desain + volume** |
+| Atap, kusen, plafon, sanitair, MEP | tak ada | tak ada |
+
+Jadi jawabannya: **belum semua**, dan sekarang lubang terbesarnya tertutup.
+
+### Temuan yang menentukan arah
+
+`steel_profiles` (migrasi 122) sudah berisi **58 profil** — 23 WF, 9 H, 26
+siku — lengkap dengan dimensi, berat/m, dan panjang standar. Yang TIDAK ada:
+apa pun yang menghitung apakah profil itu kuat.
+
+Akibatnya estimator memilih profil, mengalikan panjang × berat/m, dan mendapat
+rupiah yang terlihat wajar tanpa seorang pun memeriksa kekuatannya.
+
+### Kenapa BUKAN replikasi workbook
+
+Sembilan workbook "Auto Structure Pro" seluruhnya beton dan tanah — nol modul
+baja (diukur dari daftar berkasnya). Rujukannya SNI 1729:2020, dan tiap
+besaran diuji terhadap perhitungan tangan yang ditulis penuh di test.
+
+Pemeriksaan silang paling berguna: luas penampang hitungan × 7850 = 20,50 kg/m
+terhadap 21,3333 kg/m di tabel — selisih 3,9% ke arah yang MASUK AKAL (fillet
+diabaikan, dan fillet menambah material). Selisih berlawanan arah berarti
+rumusnya salah.
+
+### LENDUTAN diperlakukan sejajar dengan kekuatan
+
+Pada baja, lendutan sering yang MENENTUKAN — kebalikan dari beton. Balok yang
+gagal lendutan tetap `aman: false`. Dijaga test: balok 9 m LULUS lentur tetapi
+GAGAL lendutan → elemen tidak aman.
+
+### SAMBUNGAN — dan catatan saya sendiri yang jadi basi
+
+Modul baja awalnya menyatakan "sambungan TIDAK dihitung" di catatan. Jujur,
+tetapi berarti bagian paling berbahaya dibiarkan di luar — dan catatan yang
+menyebut sesuatu tak dihitung tak pernah menghentikan siapa pun membangun.
+
+`struktur-baja-sambungan.ts`: baut (geser + tumpu) dan las (las + logam induk
++ ukuran minimum). Dua keputusan yang bukan kerapian:
+
+**Geser dan tumpu diperiksa TERPISAH**, tak diambil yang terkecil diam-diam —
+keduanya menuntut tindakan berbeda. Geser kurang → baut lebih besar. Tumpu
+kurang → tebalkan PELAT; baut lebih kuat tak menolong sama sekali. Dijaga test
+yang membuktikan A490 tak menaikkan kapasitas tumpu sedikit pun.
+
+**Ukuran las minimum diperiksa** meski kekuatannya cukup — itu batas TEKNOLOGI
+(las kecil pada pelat tebal mendingin terlalu cepat lalu getas), bukan batas
+tegangan, dan justru karena itu mudah dilanggar.
+
+Catatan lama diperbarui, dan test yang menguncinya ikut merah — persis
+fungsinya.
+
+### Kelemahan penjaga yang terulang DUA KALI dalam satu hari
+
+`struktur-awam.test.ts` menuntut tiap pemeriksaan punya terjemahan awam —
+tetapi ia hanya menjalankan modul yang DIDAFTARKAN di dalamnya:
+
+1. baja balok ditambahkan → 3 pemeriksaan tanpa terjemahan
+2. kolom baja + sambungan → 7 lagi
+
+Keduanya ketahuan dari audit MANUAL yang kebetulan saya jalankan. Kalau tidak,
+istilah teknik bocor ke layar orang awam tanpa satu pun test merah.
+
+Ditutup penjaga skrip `audit-modul-struktur-terdaftar.mjs` yang MEMINDAI
+berkas. Penjaganya sendiri sempat cacat: versi pertama mencari `Periksa[]` dan
+MELEWATKAN `struktur-tiang` yang menulis tipenya inline — kegagalan yang persis
+sama dengan yang ia ada untuk mencegah. Deteksinya dilonggarkan ke arah yang
+aman.
+
+Dibuktikan bisa merah, dan didaftarkan ke CI.
+
+---
+
 ## 2026-08-19 (lanjutan 3) — kekuatan struktur bisa dibaca orang yang tak mengerti teknik
 
 Founder: *"untuk kekuatan struktur saya mau tidak hanya angka, tapi bisa

@@ -355,6 +355,89 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
       + 'sangat peka terhadap tinggi profil), perpendek bentang dengan '
       + 'menambah kolom, atau tambahkan balok anak di tengah bentang.',
   },
+  'Tekan kolom baja': {
+    judul: 'Kolom baja tidak menekuk',
+    apa: 'Kolom baja yang dibebani dari atas bisa gagal dengan dua cara: '
+      + 'bahannya remuk, atau batangnya melengkung ke samping seperti '
+      + 'penggaris yang ditekan dari kedua ujung. Yang kedua terjadi jauh '
+      + 'lebih dulu pada kolom yang tinggi dan ramping.',
+    risiko: 'Kolom yang menekuk kehilangan kemampuannya menahan beban dengan '
+      + 'sangat cepat begitu mulai melengkung — tidak ada tahap "melengkung '
+      + 'sedikit lalu bertahan". Runtuhnya mendadak dan menjatuhkan seluruh '
+      + 'lantai di atasnya.',
+    tindakan: 'Pakai profil yang lebih besar, atau pasang pengaku samping '
+      + '(bracing) di tengah tinggi kolom. Memberi pengaku di tengah membuat '
+      + 'kolom berperilaku seperti dua kolom pendek — jauh lebih kuat, dan '
+      + 'biasanya jauh lebih murah daripada memperbesar profil.',
+  },
+  'Kelangsingan kolom': {
+    judul: 'Kolom tidak terlalu ramping untuk dipasang lurus',
+    apa: 'Batas seberapa ramping sebuah kolom boleh dibuat. Bukan soal '
+      + 'kekuatan di atas kertas, melainkan soal apakah ia bisa dipasang '
+      + 'benar-benar lurus di lapangan.',
+    risiko: 'Batang yang sangat ramping sudah melengkung sedikit sejak dari '
+      + 'pabrik dan bertambah bengkok saat diangkut serta dipasang. '
+      + 'Kelengkungan awal itu saja membuatnya jauh lebih lemah daripada '
+      + 'hitungan mana pun — hitungan menganggap batangnya lurus sempurna.',
+    tindakan: 'Pakai profil yang lebih gemuk, atau pasang pengaku samping '
+      + 'supaya panjang bebasnya berkurang.',
+  },
+  'Geser baut': {
+    judul: 'Baut tidak putus tergunting',
+    apa: 'Baut yang menyambung dua pelat menahan gaya yang menggeser kedua '
+      + 'pelat itu saling melewati — seperti gunting yang menjepit batang '
+      + 'bautnya.',
+    risiko: 'Baut yang putus membuat sambungan lepas seketika. Pada struktur '
+      + 'baja, sambungan adalah titik gagal PALING SERING — bukan batangnya, '
+      + 'karena batang dibuat pabrik sementara sambungan dikerjakan di '
+      + 'lapangan dan jarang diperiksa ulang.',
+    tindakan: 'Perbanyak jumlah baut, pakai diameter lebih besar, atau pakai '
+      + 'mutu baut yang lebih tinggi. Menambah jumlah biasanya paling murah.',
+  },
+  'Tumpu pelat': {
+    judul: 'Pelat tidak sobek di lubang bautnya',
+    apa: 'Baut menekan dinding lubangnya. Kalau pelatnya tipis, lubang itu '
+      + 'yang memanjang jadi lonjong — bukan bautnya yang putus.',
+    risiko: 'Lubang yang memanjang membuat sambungan mengendur dan struktur '
+      + 'bergoyang, lalu bebannya berpindah tak merata ke baut lain sampai '
+      + 'ada yang putus. Memakai baut yang lebih kuat TIDAK menolong sama '
+      + 'sekali untuk kegagalan ini.',
+    tindakan: 'TEBALKAN pelatnya, atau perbanyak baut supaya bebannya '
+      + 'terbagi. Mengganti baut dengan yang lebih kuat percuma.',
+  },
+  'Las sudut': {
+    judul: 'Las cukup kuat menahan gayanya',
+    apa: 'Las sudut mengisi sudut pertemuan dua pelat. Yang menahan bukan '
+      + 'seluruh lebar lasnya, melainkan bagian tersempit di tengah '
+      + 'segitiganya — sekitar 70% dari ukuran yang terlihat.',
+    risiko: 'Las yang kurang panjang atau kurang tebal putus di sepanjang '
+      + 'garisnya, dan sambungan lepas. Pada struktur baja, sambungan adalah '
+      + 'titik gagal paling sering.',
+    tindakan: 'Perpanjang lasnya (paling efektif dan paling murah), atau '
+      + 'perbesar ukuran kakinya.',
+  },
+  'Logam induk di sisi las': {
+    judul: 'Pelat tidak sobek di sebelah lasnya',
+    apa: 'Las yang lebih kuat daripada pelat yang disambungnya tidak membuat '
+      + 'sambungan lebih kuat — yang menyerah pelatnya, tepat di sisi las.',
+    risiko: 'Kegagalan ini sering mengejutkan karena lasnya terlihat utuh '
+      + 'sempurna: yang sobek justru pelatnya, memanjang mengikuti garis las. '
+      + 'Memakai elektroda yang lebih kuat sama sekali tidak menolong.',
+    tindakan: 'Perpanjang lasnya supaya gayanya terbagi di garis yang lebih '
+      + 'panjang, atau tebalkan pelatnya.',
+  },
+  'Ukuran las minimum': {
+    judul: 'Las tidak terlalu kecil untuk pelat setebal itu',
+    apa: 'Ada ukuran las paling kecil yang boleh dipakai untuk tiap tebal '
+      + 'pelat. Ini bukan soal kekuatan, melainkan soal panas: las kecil pada '
+      + 'pelat tebal kehilangan panasnya terlalu cepat karena terserap pelat.',
+    risiko: 'Las yang mendingin terlalu cepat menjadi getas — keras tetapi '
+      + 'rapuh — lalu retak, kadang berminggu-minggu setelah dikerjakan dan '
+      + 'tanpa beban apa pun. Hitungan kekuatan yang sudah cukup tidak '
+      + 'membatalkan batas ini.',
+    tindakan: 'Perbesar ukuran lasnya sampai memenuhi minimum, atau panaskan '
+      + 'pelat lebih dulu (preheat) sesuai prosedur pengelasan.',
+  },
   'bahan': {
     judul: 'Kekuatan bahan tiang itu sendiri',
     apa: 'Selain tanah, tiangnya sendiri punya batas: beton dan besinya hanya '

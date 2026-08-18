@@ -271,9 +271,21 @@ describe('analisaBalokBaja — verdict lengkap', () => {
     expect(h.catatan.join(' ')).toMatch(/TERLALU BESAR/)
   })
 
-  it('SAMBUNGAN dinyatakan tak dihitung — titik gagal paling sering pada baja', () => {
+  it('SAMBUNGAN diarahkan ke modulnya, bukan sekadar dinyatakan tak dihitung', () => {
+    /*
+      Kalimatnya sempat berbunyi "sambungan TIDAK dihitung" — benar sampai
+      `struktur-baja-sambungan.ts` ada. Membiarkannya berarti menyuruh orang
+      menghitung sendiri sesuatu yang sudah tersedia; kelas cacat yang sama
+      dengan catatan basi mana pun: ia terbaca sebagai kepastian.
+
+      Yang dijaga: catatan tetap MENYEBUT sambungan sebagai titik gagal, DAN
+      menunjukkan ke mana harus pergi.
+    */
     const h = analisaBalokBaja(dasar)
-    expect(h.catatan.join(' ')).toMatch(/SAMBUNGAN.*TIDAK dihitung/s)
+    const c = h.catatan.join(' ')
+    expect(c).toMatch(/SAMBUNGAN/)
+    expect(c).toMatch(/titik gagal paling sering/)
+    expect(c).toMatch(/analisa sambungan baut\/las/)
   })
 
   it('pendekatan Lr dinyatakan, bukan disembunyikan', () => {

@@ -727,6 +727,22 @@ jobs:
       - name: Kunci izin benar-benar ada di basis
         run: node scripts/audit-izin-benar-ada.mjs
 
+      # Tiap modul analisa struktur wajib terdaftar di penjaga terjemahan awam
+      # (`lib/__tests__/struktur-awam.test.ts`). Penjaga itu menuntut tiap
+      # pemeriksaan punya penjelasan non-teknis — tetapi ia hanya menjalankan
+      # modul yang DIDAFTARKAN di dalamnya, sehingga modul baru lolos tanpa
+      # gejala. Sudah terjadi DUA KALI dalam satu hari (baja balok: 3
+      # pemeriksaan tanpa terjemahan; kolom baja + sambungan: 7 lagi), dan
+      # keduanya ketahuan hanya dari audit manual yang kebetulan dijalankan.
+      #
+      # Akibat kalau lolos: istilah teknik bocor ke layar orang non-teknis —
+      # dan verdict merah yang tak dipahami akan dilewati.
+      #
+      # Bukti merah: impor `struktur-baja-sambungan` dihapus dari berkas
+      # penjaga → exit 1 menyebut modulnya → dipulihkan → exit 0.
+      - name: Modul analisa struktur terdaftar di penjaga terjemahan awam
+        run: node scripts/audit-modul-struktur-terdaftar.mjs
+
       # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
       # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
       # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris

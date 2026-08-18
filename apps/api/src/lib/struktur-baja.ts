@@ -39,9 +39,10 @@
 // struktur baja, dan ia tak pernah muncul di pemeriksaan tegangan.
 //
 // ⚠ BATAS TANGGUNG JAWAB. Membantu estimasi & pemeriksaan awal, BUKAN
-// menggantikan perhitungan bertanda tangan insinyur. Sambungan (baut, las,
-// pelat buhul) TIDAK dihitung di sini — dan pada struktur baja, sambungan
-// justru yang paling sering jadi titik gagal.
+// menggantikan perhitungan bertanda tangan insinyur. Sambungan dihitung di
+// berkas TERPISAH (`struktur-baja-sambungan.ts`) karena masukannya sama sekali
+// berbeda — dan pada struktur baja, sambungan justru titik gagal paling
+// sering, jadi ia tak boleh terlewat hanya karena berada di berkas lain.
 // ══════════════════════════════════════════════════════════════════════════════
 
 import type { Periksa, VolumeElemen, BarisBesi } from './struktur-beton'
@@ -403,10 +404,16 @@ export function analisaBalokBaja(input: InputBalokBaja): HasilBalokBaja {
     + 'KONSERVATIF (5–15% lebih kecil dari rumus penuh SNI 1729 §F2-6).',
   )
 
+  /*
+    Catatan ini sempat berbunyi "sambungan TIDAK dihitung" — dan itu benar
+    sampai `struktur-baja-sambungan.ts` ada. Membiarkannya berarti menyuruh
+    orang menghitung sendiri sesuatu yang sudah tersedia, dan itu kelas cacat
+    yang sama dengan catatan basi mana pun: ia terbaca sebagai kepastian.
+  */
   catatan.push(
-    'SAMBUNGAN (baut, las, pelat buhul) TIDAK dihitung di sini — dan pada '
-    + 'struktur baja, sambungan justru yang paling sering jadi titik gagal. '
-    + 'Anggarkan dan hitung terpisah.',
+    'SAMBUNGAN belum diperiksa oleh perhitungan batang ini — pada struktur '
+    + 'baja, sambungan justru titik gagal paling sering. Hitung terpisah '
+    + 'lewat analisa sambungan baut/las dengan gaya dari elemen ini.',
   )
 
   return {
@@ -474,6 +481,207 @@ function volumeBalokBaja(input: InputBalokBaja, jumlah: number): VolumeElemen {
     betonM3: 0,
     bekistingM2: 0,
     besi,
+    besiTotalKg: beratDibeliKg,
+    beratSendiriKg: beratKg,
+  }
+}
+
+// ── KOLOM BAJA: tekan + tekuk ────────────────────────────────────────────────
+
+export interface InputKolomBaja {
+  profil: ProfilBaja
+  mutu: MutuBaja
+  /** Tinggi kolom, m. */
+  tinggiM: number
+  /**
+   * Faktor panjang efektif K (SNI 1729 Tabel C-A-7.1).
+   *
+   *   0,65  jepit–jepit
+   *   0,80  jepit–sendi
+   *   1,00  sendi–sendi  ← paling umum & paling aman untuk rangka bergoyang
+   *   2,00  jepit–bebas (kantilever, mis. tiang lampu)
+   *
+   * Nilai bawaan 1,0 dipilih bukan karena paling sering benar, melainkan
+   * karena paling AMAN saat orang tak mengisinya: K yang ditaksir terlalu
+   * kecil membuat kapasitas terhitung jauh lebih besar dari kenyataan, dan
+   * kesalahan itu tak meninggalkan gejala sampai kolomnya menekuk.
+   */
+  faktorK?: number
+  /** Beban aksial tekan terfaktor, kN. */
+  puKn: number
+  jumlah?: number
+}
+
+export interface HasilKolomBaja {
+  periksa: Periksa[]
+  aman: boolean
+  volume: VolumeElemen
+  antara: Record<string, number>
+  catatan: string[]
+}
+
+/**
+ * Kapasitas tekan nominal Pn, kN (SNI 1729 §E3).
+ *
+ * ── Kenapa sumbu LEMAH yang dipakai
+ *
+ * Kolom menekuk ke arah yang paling mudah — dan untuk profil I, itu selalu
+ * sumbu lemah (ry), bukan sumbu kuat. Memakai rx menghasilkan kapasitas
+ * 3–4 kali lipat lebih besar dari kenyataan.
+ *
+ * Kalau kolom dipegang ke arah lemahnya (mis. oleh dinding pengisi atau
+ * bracing), itu keadaan khusus yang harus dinyatakan pemakainya lewat panjang
+ * efektif yang berbeda per sumbu — dan modul ini SENGAJA tidak menerimanya,
+ * karena membiarkan dua nilai K membuat orang mengisi yang menguntungkan.
+ *
+ * ── Dua daerah tekuk
+ *
+ *   λc ≤ 4,71·√(E/fy)   tekuk TAK-ELASTIS — bahan sempat meleleh sebagian
+ *   λc >  4,71·√(E/fy)  tekuk ELASTIS — batangnya melengkung sebelum meleleh
+ *
+ * Kolom pendek gagal karena bahannya menyerah; kolom langsing gagal karena
+ * bentuknya. Keduanya butuh rumus berbeda, dan menyamakannya membuat kolom
+ * langsing terhitung jauh lebih kuat dari kenyataan.
+ */
+export function kapasitasTekan(
+  p: ProfilBaja, mutu: MutuBaja, tinggiM: number, faktorK = 1.0,
+): { pnKn: number; daerah: 'tak-elastis' | 'elastis'; kelangsingan: number } {
+  const ag = luasPenampang(p)
+  const ry = radiusGirasiY(p)
+  const fy = mutu.fyMpa
+
+  // Kelangsingan efektif — pakai ry (sumbu LEMAH), lihat alasan di atas.
+  const lambda = (faktorK * tinggiM * 1000) / ry
+
+  // Tegangan tekuk Euler.
+  const fe = (Math.PI ** 2 * ES_BAJA_STRUKTUR) / lambda ** 2
+
+  const batas = 4.71 * Math.sqrt(ES_BAJA_STRUKTUR / fy)
+
+  let fcr: number
+  let daerah: 'tak-elastis' | 'elastis'
+  if (lambda <= batas) {
+    // §E3-2: sebagian penampang sempat meleleh sebelum menekuk.
+    fcr = Math.pow(0.658, fy / fe) * fy
+    daerah = 'tak-elastis'
+  } else {
+    // §E3-3: menekuk sepenuhnya elastis, jauh sebelum leleh.
+    fcr = 0.877 * fe
+    daerah = 'elastis'
+  }
+
+  return { pnKn: (fcr * ag) / 1000, daerah, kelangsingan: lambda }
+}
+
+/**
+ * Analisa kolom baja.
+ *
+ * Kelangsingan DIPERIKSA TERPISAH dari kapasitas, meski keduanya turunan dari
+ * angka yang sama. Alasannya: kolom dengan KL/r di atas 200 secara teknis
+ * masih punya kapasitas terhitung, tetapi ia sudah tak bisa dipasang dengan
+ * lurus — kelengkungan dari pengangkutan dan pemasangan saja sudah cukup
+ * membuatnya jauh lebih lemah dari hitungan. SNI membatasinya 200 untuk batang
+ * tekan, dan batas itu tentang KEBISAAN DIBANGUN, bukan tentang rumus.
+ */
+export function analisaKolomBaja(input: InputKolomBaja): HasilKolomBaja {
+  const { profil, mutu, tinggiM, puKn } = input
+  bilanganPositif('Tinggi kolom', tinggiM)
+  bilanganPositif('fy', mutu.fyMpa)
+
+  const jumlah = input.jumlah ?? 1
+  const k = input.faktorK ?? 1.0
+  const catatan: string[] = []
+
+  const kelas = klasifikasiPenampang(profil, mutu.fyMpa)
+  const tekan = kapasitasTekan(profil, mutu, tinggiM, k)
+  const phiPnKn = PHI.tekan * tekan.pnKn
+
+  const BATAS_KELANGSINGAN = 200
+
+  const periksa: Periksa[] = [
+    {
+      nama: 'Tekan kolom baja', nilai: phiPnKn, syarat: puKn,
+      satuan: 'kN', aman: phiPnKn >= puKn, rasio: rasio(puKn, phiPnKn),
+      rumus: 'φPn = 0.85 · Fcr · Ag   (Fcr dari SNI 1729 §E3, sumbu LEMAH)',
+    },
+    {
+      nama: 'Kelangsingan kolom', nilai: BATAS_KELANGSINGAN, syarat: tekan.kelangsingan,
+      satuan: '—', aman: tekan.kelangsingan <= BATAS_KELANGSINGAN,
+      rasio: tekan.kelangsingan / BATAS_KELANGSINGAN,
+      rumus: 'KL/r ≤ 200 — batas tentang KEBISAAN DIBANGUN, bukan tentang rumus',
+    },
+  ]
+
+  if (kelas.sayap !== 'kompak' || kelas.badan !== 'kompak') {
+    catatan.push(
+      `Penampang TIDAK kompak (sayap: ${kelas.sayap}, badan: ${kelas.badan}). `
+      + 'Kapasitas tekan di atas belum memperhitungkan tekuk lokal — nilainya '
+      + 'TERLALU BESAR untuk profil ini. Perlu perhitungan §E7 terpisah.',
+    )
+  }
+
+  if (input.faktorK === undefined) {
+    catatan.push(
+      'Faktor panjang efektif K dianggap 1,0 (sendi–sendi). Isi sesuai kondisi '
+      + 'nyata: 0,65 jepit–jepit · 0,80 jepit–sendi · 2,0 kantilever. K yang '
+      + 'ditaksir terlalu kecil membuat kapasitas terhitung jauh lebih besar '
+      + 'dari kenyataan, tanpa gejala sampai kolomnya menekuk.',
+    )
+  }
+
+  catatan.push(
+    'Kapasitas dihitung terhadap sumbu LEMAH — kolom menekuk ke arah yang '
+    + 'paling mudah. Bila kolom dipegang ke arah lemahnya (dinding pengisi, '
+    + 'bracing), kapasitas nyatanya lebih besar; itu perlu perhitungan '
+    + 'terpisah per sumbu.',
+  )
+
+  catatan.push(
+    'Kolom ini dianggap menerima tekan MURNI. Bila ada momen (kolom tepi, '
+    + 'rangka bergoyang, beban angin), perlu pemeriksaan interaksi §H1 yang '
+    + 'BELUM dihitung di sini.',
+  )
+
+  return {
+    periksa,
+    aman: periksa.every((p) => p.aman),
+    volume: volumeBatangBaja(profil, tinggiM, jumlah),
+    antara: {
+      luasMm2: luasPenampang(profil),
+      ryMm: radiusGirasiY(profil),
+      kelangsingan: tekan.kelangsingan,
+      pnKn: tekan.pnKn, phiPnKn, faktorK: k, jumlah,
+    },
+    catatan,
+  }
+}
+
+/**
+ * Volume satu batang baja — dipakai balok maupun kolom.
+ *
+ * Dipisah dari `volumeBalokBaja` karena keduanya identik, dan dua salinan
+ * berarti dua tempat yang bisa menyimpang saat aturan pembelian berubah.
+ */
+function volumeBatangBaja(
+  profil: ProfilBaja, panjangM: number, jumlah: number,
+): VolumeElemen {
+  const beratKg = profil.beratKgPerM * panjangM * jumlah
+  const panjangStandar = profil.panjangStandarM > 0 ? profil.panjangStandarM : 12
+  const batangTotal = Math.ceil(panjangM / panjangStandar) * jumlah
+  const beratDibeliKg = batangTotal * panjangStandar * profil.beratKgPerM
+
+  return {
+    betonM3: 0,
+    bekistingM2: 0,
+    besi: [{
+      tipe: 'BjTS',
+      diameterMm: profil.hMm,
+      peran: `profil ${profil.profile_type} ${profil.designation}`,
+      jumlahBatang: batangTotal,
+      panjangPerBatangM: panjangStandar,
+      beratKgPerM: profil.beratKgPerM,
+      totalKg: beratDibeliKg,
+    }],
     besiTotalKg: beratDibeliKg,
     beratSendiriKg: beratKg,
   }
