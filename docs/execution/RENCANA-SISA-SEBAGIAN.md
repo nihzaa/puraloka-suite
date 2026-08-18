@@ -1,13 +1,15 @@
 # Rencana Menuntaskan Entri `sebagian`
 
-> Disusun 2026-08-17. Peta Modul saat pemutakhiran terakhir (2026-08-18): **225 hidup / 8 sebagian / 0 rencana**.
+> Disusun 2026-08-17, dimutakhirkan 2026-08-19. Peta Modul: **225 hidup / 8 sebagian / 0 rencana**.
 >
 > **Golongan D sudah dikerjakan saat dokumen ini ditulis** — lihat bagian D.
 >
-> Dokumen ini menjawab satu pertanyaan: **dari 11 yang tersisa, mana yang
-> benar-benar pekerjaan kode?** Jawabannya **tiga**. Sisanya menunggu keputusan
-> founder, kredensial pihak ketiga, atau rilis — dan menyebutnya "belum
-> dikerjakan" menciptakan hutang yang tak ada.
+> Dokumen ini menjawab satu pertanyaan: **dari sisa yang ada, mana yang
+> benar-benar pekerjaan kode?** Sesudah founder menjawab R-017 (2026-08-19):
+> **empat**. Sisanya menunggu pihak ketiga atau rilis — dan menyebutnya
+> "belum dikerjakan" menciptakan hutang yang tak ada.
+>
+> **Urutan pengerjaan + alasannya:** `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` §4.
 >
 > Cara mengukur ulang:
 > ```bash
@@ -21,15 +23,15 @@
 
 | Golongan | Jumlah | Artinya |
 |---|---:|---|
-| **A. Pekerjaan kode** | ~~3~~ → **1** | A1 & A2 SELESAI 2026-08-18; sisa A3 (versi dokumen) |
-| **B. Menunggu keputusan founder** | 2 | masuk `RATIFIKASI.md`, bukan antrean kerja |
+| **A. Pekerjaan kode** | ~~3~~ → **4** | A1/A2 selesai; `cc-cvr` + `md-template-dok` pindah ke sini sesudah jawaban founder (R-017). Urutan di `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` §4 |
+| ~~B. Menunggu keputusan founder~~ | ~~2~~ → **0** | **DIJAWAB 2026-08-19** — keduanya "bisa dua-duanya"; lihat R-017 |
 | **C. Menunggu pihak ketiga / rilis** | 3 | kredensial, kontrak komersial, atau distribusi aplikasi |
 | ~~D. Status BASI~~ | ~~1~~ → **0** | **SELESAI** — `tg-tambah` diverifikasi lalu jadi `hidup` |
 | **E. Sengaja `sebagian` selamanya** | 2 | batasnya keputusan sadar, bukan kekurangan |
 
 ---
 
-## A. Pekerjaan kode — 2 selesai, 1 tersisa
+## A. Pekerjaan kode — 2 selesai, 4 tersisa (urutan di `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` §4)
 
 ### A1. ✅ SELESAI 2026-08-18 — `sy-import` sudah `hidup`
 
@@ -144,31 +146,44 @@ sebelum dijalankan.
 
 ---
 
-## B. Menunggu keputusan founder (2) → `RATIFIKASI.md`
+## B. ✅ DIJAWAB 2026-08-19 — dan kedua jawaban menolak dikotomi saya
 
-### B1. `md-subkon` — identitas subkon terpecah TIGA tabel
+Founder menjawab keduanya dengan **"bisa dua-duanya"**, dan pengukuran
+membuktikan itu bukan kompromi melainkan satu-satunya yang jujur. Rancangan
+lengkapnya di `RATIFIKASI.md` R-017.
 
-`workers` yang menawar · `users` (via `mandor_assignments`) yang mengerjakan ·
-`suppliers` yang dievaluasi. **Tanpa FK penghubung.**
+### B1 → `md-subkon`: subkon bisa ORANG **atau** BADAN USAHA
 
-Satu orang bisa muncul di ketiganya sebagai tiga entitas yang tak saling
-mengenal — dan evaluasi buruk di `suppliers` tak menghalangi orang yang sama
-menang tender lewat `workers`.
+Saya bertanya "perusahaan ATAU orang?". Pertanyaannya yang salah — praktik
+konstruksi Indonesia memang campuran: mandor borongan diikat **orangnya**,
+spesialis (ME, lift, waterproofing) diikat **badan usahanya**.
 
-**Kenapa ini keputusan, bukan tugas:** menyatukannya berarti memilih SATU
-tabel sebagai identitas utama, dan ketiganya sudah dirujuk banyak modul.
-Salah pilih berarti migrasi besar kedua. Founder perlu memutuskan: subkon itu
-**perusahaan** (→ `suppliers`) atau **orang** (→ `workers`)?
+Rancangan: satu tabel induk `mitra` dengan kolom `bentuk`
+(`orang` | `badan_usaha`). Tiga tabel lama TETAP HIDUP dan menunjuk induknya
+— nol rute berubah, nol tabel dihapus.
 
-### B2. `cc-cvr` — cakupan masih upah borongan
+**Pindah ke golongan A (pekerjaan kode).** Yang tersisa untuk founder cuma
+KAPAN, bukan apa. Diukur 2026-08-19: `workers` 60 baris, `suppliers` 5 baris,
+**nol nama yang sama** — jadi backfill tak perlu menebak, dan sekarang waktu
+termurah yang akan pernah ada.
 
-Nilai terpasang dihitung `borongan × progres`, bukan nilai kontrak penuh.
-Melengkapinya menuntut tiap lingkup kerja punya `rab_category_id` — kolomnya
-kini bisa diisi dari UI (2026-08-13), tapi **pengisiannya pekerjaan data**,
-bukan kode.
+### B2 → `cc-cvr`: dua cakupan BERDAMPINGAN
 
-**Yang perlu diputuskan:** apakah 20 lingkup kerja yang ada akan diisi
-kategorinya, atau CVR memang cukup pada cakupan upah borongan.
+Diukur 2026-08-19, dan angkanya menutup perdebatan:
+
+    20 lingkup kerja · 0 berkategori RAB
+      16 borongan     Rp 1,53 M   ← bisa dihitung dari borongan
+       3 progress_pct Rp 245 jt   ← bisa dihitung
+       3 harian       (nol nilai) ← MUSTAHIL kecuali lewat kategori RAB
+
+    11 proyek ber-lingkup kerja · hanya 2 punya kategori RAB
+
+Memaksa satu cakupan berarti: cuma-borongan → 3 lingkup harian selamanya
+kosong; cuma-kategori → 9 dari 11 proyek tak menampilkan apa pun sampai
+seseorang mengisi kategorinya (dan fitur yang menunggu data lengkap tak
+pernah dipakai, lalu tak pernah diisi).
+
+**Pindah ke golongan A.** Tak perlu menunggu satu pun kategori diisi.
 
 ---
 

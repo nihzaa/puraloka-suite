@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 282 dokumen** — antrean 13 · acuan 204 · riwayat 65.
+**Total 283 dokumen** — antrean 13 · acuan 205 · riwayat 65.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -28,6 +28,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [DATABASE_SCHEMA](DATABASE_SCHEMA.md) | acuan |  | Database Schema — Puraloka Suite |
 | [DEVELOPMENT_LOG](DEVELOPMENT_LOG.md) | riwayat | ✓ | Puraloka Suite — Development Log |
 | [ERP_MASTER_PLAN](ERP_MASTER_PLAN.md) | riwayat | ✓ | Puraloka Suite — ERP Master Plan |
+| [ERP-KONTRAKTOR-BESAR-ARAH](ERP-KONTRAKTOR-BESAR-ARAH.md) | acuan |  | ERP Kontraktor Besar — apa yang membedakannya, dan bagaimana 8 sisa sebagian t |
 | [ERP-KONTRAKTOR-TAKSONOMI-MENU](ERP-KONTRAKTOR-TAKSONOMI-MENU.md) | riwayat | ✓ | Taksonomi Menu ERP Kontraktor — Referensi Lengkap (TERVERIFIKASI) |
 | [KEPUTUSAN-MULTI-COMPANY](KEPUTUSAN-MULTI-COMPANY.md) | acuan | ✓ | Keputusan Arsitektur: Multi-Company (dan Arsip Multi-Currency) |
 | [KEPUTUSAN-SCOPE-ERP-AI](KEPUTUSAN-SCOPE-ERP-AI.md) | acuan | ✓ | KEPUTUSAN SCOPE — ERP Kontraktor Lengkap, Terintegrasi, Berbasis AI |

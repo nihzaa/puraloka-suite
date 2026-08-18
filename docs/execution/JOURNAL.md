@@ -5,6 +5,60 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (R-017 dijawab) — founder menolak dikotomi saya, dan pengukuran membenarkannya
+
+Founder: *"bukannya yg perlu keputusan saya itu sudah saya jawab? dan sekalian
+coba kamu pikirkan bagaimana ERP profesional yg dipakai kontraktor besar itu
+seperti apa agar semua yg masih sebagian ini bisa tuntas"*.
+
+**Ia benar — jawabannya sudah turun, saya yang belum mencatatnya.** R-017 masih
+berbunyi "DUA PERTANYAAN" padahal keduanya sudah dijawab satu putaran sebelumnya.
+Dokumen yang menagih apa yang sudah dibayar memaksa founder menjawab dua kali.
+
+### Kedua jawaban menolak pilihan yang saya paksakan
+
+Saya bertanya *"subkon itu perusahaan ATAU orang?"* dan *"CVR cukup upah
+borongan ATAU isi kategorinya?"*. Jawaban founder untuk keduanya: **bisa
+dua-duanya**. Saya ukur dulu sebelum menerimanya, dan angkanya menutup
+perdebatan:
+
+- `workers` 60 baris · `suppliers` 5 baris · **nol nama yang sama** → tabel
+  induk `mitra` ber-kolom `bentuk` bisa di-backfill tanpa menebak satu pun
+  pasangan. Menunggu berarti mahal, bukan aman.
+- 20 lingkup kerja: 16 borongan (Rp 1,53 M) · 3 progress_pct (Rp 245 jt) ·
+  **3 harian tanpa nilai sama sekali**. Cakupan borongan saja membuat 3 lingkup
+  harian kosong selamanya; cakupan kategori saja membuat **9 dari 11 proyek**
+  tak menampilkan apa pun sampai ada yang mengisi kategorinya — dan fitur yang
+  menunggu data lengkap tak pernah dipakai, lalu tak pernah diisi.
+
+Saya salah bukan pada jawabannya, melainkan pada **bentuk pertanyaannya**.
+Dikotomi yang saya ajukan lahir dari membaca skema, bukan dari mengukur isinya.
+
+### Yang ditulis
+
+- `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` (baru) — menjawab pertanyaan founder soal
+  ERP kontraktor besar. Intinya satu kalimat: yang membedakannya bukan jumlah
+  fitur melainkan **setiap angka bisa ditelusuri sampai ke dokumen yang
+  ditandatangani seseorang**. Empat rantai yang tak boleh putus, lima ukuran,
+  lalu kedelapan sisa `sebagian` dipetakan ke sana.
+- `RATIFIKASI.md` R-017 — dari daftar pertanyaan menjadi **catatan keputusan**.
+- `RENCANA-SISA-SEBAGIAN.md` — golongan B (menunggu founder) **2 → 0**;
+  keduanya pindah ke golongan A. Pekerjaan kode 1 → 4.
+
+### Akibatnya pada hitungan
+
+Sebelumnya saya menghitung **satu** pekerjaan kode tersisa. Sekarang **empat** —
+dan itu kabar baik, bukan kemunduran: dua di antaranya sebelumnya terhitung
+"terblokir founder" padahal tidak, dan `md-template-dok` ternyata bukan batas
+sengaja melainkan penambahan wajar yang belum dikerjakan.
+
+Urutan yang disarankan (§4 dokumen itu): `cc-cvr` → `md-subkon` →
+`md-template-dok` → `dk-register`. Yang pertama karena nol risiko migrasi, nol
+menunggu data, dan ia memperbaiki angka yang **sudah dibaca orang sekarang**.
+Yang terakhir karena ia satu-satunya yang menyentuh data lama (§8a.5).
+
+---
+
 ## 2026-08-19 (pematangan, putaran 4) — dua cacat fixture: satu SAYA sebabkan, satu skema tersembunyi
 
 Founder: *"pastikan fase fase sebelumnyaa sudah matang… jikaa ada dan belum

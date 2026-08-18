@@ -6,93 +6,133 @@ bawah entrinya.
 
 ---
 
-# 🧭 R-017 · Dua keputusan tersisa dari Peta Modul — DUA PERTANYAAN untuk Anda (2026-08-17)
+# ✅ R-017 · Dua keputusan Anda SUDAH TURUN — dan keduanya lebih baik dari usulan saya (2026-08-19)
 
-> **Peta Modul tuntas: 223 hidup · 10 sebagian · 0 rencana.**
->
-> Dari 10 yang tersisa, **hanya dua yang benar-benar butuh keputusan Anda.**
-> Sisanya menunggu pihak ketiga (Peruri, SMTP, build mobile), sudah sengaja
-> dibatasi, atau tinggal pekerjaan kode yang bisa saya kerjakan sendiri.
->
-> Rinciannya: `docs/execution/RENCANA-SISA-SEBAGIAN.md`.
+> **Status: DIJAWAB.** Entri ini semula dua pertanyaan. Founder menjawab
+> keduanya, dan **kedua jawabannya menolak dikotomi yang saya paksakan.**
+> Yang tertulis di bawah kini rancangan, bukan pertanyaan.
 
 ---
 
-## Pertanyaan 1 — Subkontraktor itu **perusahaan** atau **orang**?
+## Jawaban 1 — "subkon itu kan bisa orang atau perusahaan jugakan?"
 
-Diukur 2026-08-13, identitas subkon terpecah **tiga tabel tanpa FK penghubung**:
+Saya bertanya: **perusahaan (`suppliers`) ATAU orang (`workers`)?**
+Founder menjawab: **bisa dua-duanya.**
 
-| Tabel | Perannya |
-|---|---|
-| `workers` | yang **menawar** di tender |
-| `users` (via `mandor_assignments`) | yang **mengerjakan** di lapangan |
-| `suppliers` | yang **dievaluasi** kinerjanya |
+Itu jawaban yang benar, dan pertanyaan saya yang salah. Praktik konstruksi
+Indonesia memang campuran:
 
-**Akibat nyatanya, bukan hipotetis:** satu pihak bisa muncul di ketiganya
-sebagai tiga entitas yang tak saling mengenal — dan **evaluasi buruk di
-`suppliers` tidak menghalangi pihak yang sama menang tender lewat `workers`.**
-Gerbang kelayakan yang sudah dibangun (`lib/kepatuhan-k3.ts` menggugurkan
-subkon berkecelakaan) hanya menutup satu dari tiga pintu.
+| Yang Anda ikat | Bentuknya | Contoh |
+|---|---|---|
+| **Orang** | mandor borongan, kepala tukang | Pak Budi — yang Anda percayai orangnya, benderanya tak penting |
+| **Badan usaha** | spesialis ME, lift, waterproofing | CV/PT — orangnya boleh berganti, kontraknya ke badan |
 
-**Kenapa ini keputusan Anda, bukan tugas saya:** menyatukannya berarti memilih
-SATU tabel sebagai identitas utama, dan ketiganya sudah dirujuk banyak modul.
-Salah pilih berarti migrasi besar untuk kedua kalinya.
+**Rancangannya: satu tabel induk `mitra` dengan kolom `bentuk`.**
 
-- **Kalau subkon = perusahaan** → `suppliers` jadi induk; `workers` dan
-  penugasan menunjuk ke sana. Cocok bila yang Anda ikat kontrak adalah badan
-  usaha (CV/PT), dan orangnya bisa berganti.
-- **Kalau subkon = orang** → `workers` jadi induk. Cocok bila yang Anda
-  percayai adalah mandornya sendiri, terlepas dari bendera perusahaannya.
+    mitra
+      id · company_id
+      bentuk        'orang' | 'badan_usaha'      ← jawaban founder, jadi kolom
+      nama · npwp · alamat · telepon
+      status_kelayakan  'layak' | 'ditinjau' | 'tak_layak'
 
-Praktik konstruksi di Indonesia condong ke yang **kedua** untuk mandor borongan
-dan yang **pertama** untuk spesialis (ME, lift, waterproofing). Kalau Anda
-membenarkan itu, jawabannya bisa "keduanya" — dan saya akan merancang induk
-yang bisa menampung dua-duanya, bukan memaksa satu.
+Tiga tabel yang ada **TETAP HIDUP** dan menunjuk induk itu:
 
-**Diam berarti:** saya TIDAK menyatukannya, dan tiga tabel itu tetap terpisah.
-Tidak ada yang rusak; yang hilang cuma gerbang kelayakan yang menyeluruh.
+    workers.mitra_id      → mitra    (yang menawar / tukang)
+    suppliers.mitra_id    → mitra    (yang dievaluasi)
+    mandor_assignments    → lewat workers (yang mengerjakan)
 
----
+**Operasional sekarang tidak berubah sama sekali.** Tak ada tabel yang
+dihapus, tak ada kolom yang dipindah, tak ada rute yang berubah bentuk.
 
-## Pertanyaan 2 — CVR: isi kategori 20 lingkup kerja, atau cukup upah borongan?
+### Kenapa ini penting untuk kontraktor besar
 
-**Cost Value Reconciliation** menjawab "pekerjaan mana yang merugi SEKARANG".
-Ia sudah hidup, tapi cakupannya masih **upah borongan saja** — nilai terpasang
-dihitung `borongan × progres`, bukan nilai kontrak penuh.
+Yang dicari ERP kontraktor besar adalah **satu riwayat per mitra** — pernah
+menang tender apa, kinerjanya bagaimana, pernah kecelakaan kerja tidak,
+tagihannya lancar tidak.
 
-Yang menahan bukan kode: sejak 2026-08-13 `rab_category_id` sudah bisa diisi
-langsung dari baris CVR di UI. Yang belum ada **isinya** — 20 lingkup kerja
-belum dikategorikan.
+Sekarang riwayat itu tercecer di tiga tempat, dan akibatnya nyata:
+`lib/kepatuhan-k3.ts` menggugurkan subkon berkecelakaan lewat `suppliers` —
+**tapi pihak yang sama tetap bisa menang tender lewat `workers`.** Gerbang
+kelayakan yang sudah dibangun hanya menutup satu dari tiga pintu.
 
-- **Kalau diisi** → CVR menghitung terhadap nilai kontrak penuh, dan angka
-  "merugi/untung" jadi angka yang bisa dipakai mengambil keputusan.
-- **Kalau tidak** → CVR tetap berguna untuk upah, dan **catatannya saya ubah
-  supaya menyatakan itu dengan jujur** — bukan dibiarkan terbaca seperti fitur
-  setengah jadi.
+### Kenapa MASIH perlu ratifikasi meski jawabannya sudah jelas
 
-Ini pekerjaan **data**, bukan kode, dan hanya Anda yang tahu kategori tiap
-lingkup kerja. Saya tidak bisa menebaknya: salah kategori membuat angka
-untung-rugi menunjuk pekerjaan yang salah — lebih buruk daripada tak ada angka.
+Migrasinya menyentuh tiga tabel yang dirujuk banyak modul. Yang perlu
+Anda setujui bukan lagi "orang atau perusahaan" — melainkan **kapan**:
 
-**Diam berarti:** cakupan tetap upah borongan, dan saya perbarui catatannya
-supaya tak menyesatkan.
+- **Sekarang** — sementara datanya masih dummy dan salah pun murah.
+- **Nanti** — sesudah `dk-register` dan hutang test beres.
+
+Diukur 2026-08-19: `workers` 60 baris, `suppliers` 5 baris, dan **nol nama
+yang sama di keduanya** — jadi backfill-nya tak perlu menebak siapa yang
+sebenarnya satu orang. Sekarang adalah waktu termurah yang akan pernah ada.
 
 ---
 
-## Yang TIDAK menunggu Anda
+## Jawaban 2 — "gimana kalo bisa cukup upah borongan tapi bisa juga yang 20 lingkup kerja itu?"
 
-| Entri | Keadaan |
-|---|---|
-| `sy-import` · `kt-subkon` · `dk-register` | pekerjaan kode — saya kerjakan sendiri, urutannya di `RENCANA-SISA-SEBAGIAN.md` |
-| `dk-esign` | menunggu kontrak komersial **Peruri** (e-meterai). Verifikasi sidik + layarnya sudah jalan |
-| `bi-terjadwal` | menunggu **kredensial SMTP** tiap tenant. Pemicunya sudah terdaftar; begitu SMTP diisi lewat Pengaturan, ia jalan tanpa perubahan kode |
-| `mb-progres` | menunggu **build & sebar** aplikasi mobile. Kodenya lengkap, belum pernah dipakai mandor sungguhan |
-| `md-template-dok` · `fn-efaktur` | sengaja dibatasi — bukan kekurangan |
+Saya bertanya: **isi kategori 20 lingkup kerja ATAU cukup upah borongan?**
+Founder menjawab: **bisa dua-duanya.**
 
-⚠ `dk-register` menyentuh **data yang sudah ada** (versi dokumen jadi bernomor).
-Sesuai §8a.5 saya akan minta konfirmasi terpisah sebelum menjalankannya.
+Benar lagi — dan pengukuran membuktikan jawaban itu bukan sekadar kompromi,
+melainkan **satu-satunya yang jujur**:
+
+    20 lingkup kerja · 0 berkategori RAB
+      16 borongan       Rp 1,53 M    ← nilai terpasang bisa dihitung
+       3 progress_pct   Rp 245 jt    ← bisa dihitung
+       3 harian         (tanpa nilai) ← MUSTAHIL dihitung dari borongan
+
+    11 proyek ber-lingkup kerja · hanya 2 punya kategori RAB
+
+**Tiga lingkup harian tak punya nilai borongan sama sekali.** Untuk mereka,
+CVR memang mustahil dihitung dengan cara apa pun kecuali lewat kategori RAB.
+Dan hanya 2 dari 11 proyek punya kategorinya.
+
+Jadi memaksa satu cakupan berarti salah satu dari dua hal:
+
+- **Cuma borongan** → 3 lingkup harian selamanya kosong tanpa penjelasan.
+- **Cuma kategori RAB** → 9 dari 11 proyek tak menampilkan apa pun sampai
+  seseorang mengisi kategorinya. Fitur yang menunggu data lengkap tak
+  pernah dipakai, dan yang tak pernah dipakai tak pernah diisi.
+
+**Rancangannya: dua cakupan berdampingan, dengan label yang menyatakan
+mana yang dipakai.**
+
+    Cakupan          Dasar hitung              Kapan tampil
+    ─────────────────────────────────────────────────────────
+    Upah borongan    borongan × progres        selalu (16+3 lingkup)
+    Kontrak penuh    nilai kontrak × bobot     bila kategori RAB terisi
+                     kategori RAB
+
+Yang belum berkategori tetap terbaca — ia menampilkan cakupan upah dan
+**menyebut sendiri** bahwa material & alat belum ikut. Bukan angka
+tersembunyi, bukan layar kosong.
+
+### Kenapa ini yang dipakai ERP kontraktor besar
+
+CVR (Cost Value Reconciliation) di ERP kontraktor besar **selalu**
+menyatakan cakupannya. Yang berbahaya bukan angka yang tak lengkap —
+melainkan angka tak lengkap yang **terlihat lengkap**.
+
+Manajer proyek yang membaca "rugi Rp 40 juta" perlu tahu apakah itu sudah
+termasuk material, atau baru upah. Dua kesimpulan yang sangat berbeda dari
+angka yang sama.
 
 ---
+
+## Apa yang berubah pada rencana
+
+| Entri | Sebelumnya | Sekarang |
+|---|---|---|
+| `md-subkon` | menunggu keputusan founder | **rancangan siap** — tinggal Anda setujui KAPAN |
+| `cc-cvr` | menunggu keputusan founder | **pekerjaan kode**, bukan lagi keputusan |
+
+`cc-cvr` pindah golongan: dua cakupan berdampingan bisa saya kerjakan tanpa
+menunggu satu pun kategori diisi.
+
+---
+
+
 
 # 💰 R-016 · PO bisa dikirim ke vendor TANPA persetujuan — DIKERJAKAN, angkanya lewat UI (2026-08-14)
 
