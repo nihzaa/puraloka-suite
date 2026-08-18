@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
+import { TombolUnduh } from "@/components/tombol-unduh";
 import { C } from "@/lib/warna-ui";
 import {
   Halaman, KepalaHalaman, Kartu, JudulKartu, Tabel, Rangka, Galat,
@@ -307,6 +308,45 @@ export default function ImporPage() {
               <span style={{ fontSize: 11.5, color: C.muted }}>
                 Kolom bertanda <strong>*</strong> wajib diisi.
               </span>
+            </div>
+          )}
+
+          {/* ── EKSPOR: separuh menu yang selama ini tak ada ────────────────
+              Menu ini bernama "Impor & Ekspor Data" dan sampai 2026-08-17
+              hanya punya separuhnya. Yang membukanya mencari tombol ekspor,
+              tak menemukannya, lalu menyimpulkan aplikasinya rusak — bukan
+              menyimpulkan fiturnya memang belum ada.
+
+              Memakai `TombolUnduh`, BUKAN `<a href>` seperti tombol template
+              di atas. Bedanya nyata: template itu berkas statis, sementara
+              ekspor bergerbang izin per-skema — dan `<a href>` biasa meminta
+              URL-nya TANPA header sesi, jadi yang terunduh halaman login
+              berformat HTML bernama `supplier-2026-08-17.xlsx`.
+
+              Berkas hasil ekspor memakai judul kolom yang SAMA dengan
+              template impor, jadi ia bisa disunting massal di Excel lalu
+              dimasukkan lagi lewat kotak unggah di atas. */}
+          {aktif && (
+            <div style={{
+              marginTop: 14, paddingTop: 14, borderTop: `1px solid ${C.border}`,
+              display: "flex", gap: 10, alignItems: "flex-start", flexWrap: "wrap",
+              justifyContent: "space-between",
+            }}>
+              <div style={{ flex: "1 1 260px", minWidth: 0 }}>
+                <span style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: C.text }}>
+                  Ekspor {aktif.label} yang sudah ada
+                </span>
+                <span style={{ display: "block", fontSize: 11.5, color: C.muted, lineHeight: 1.55, marginTop: 2 }}>
+                  Berkasnya memakai kolom yang sama dengan template — bisa disunting
+                  massal di Excel lalu diunggah kembali di atas.
+                </span>
+              </div>
+              <TombolUnduh
+                jalur={`/api/v1/ekspor/${aktif.kunci}`}
+                namaBerkas={aktif.kunci}
+                format={["xlsx", "csv", "pdf"]}
+                label="Ekspor"
+              />
             </div>
           )}
 

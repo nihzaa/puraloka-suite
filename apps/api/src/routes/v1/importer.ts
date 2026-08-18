@@ -8,6 +8,21 @@ import {
   type SkemaImpor,
 } from '../../lib/importer.js'
 import { terminPemasok } from '../../lib/importer-nilai.js'
+import {
+  susunEkspor, formatSah, FORMAT_EKSPOR,
+} from '../../lib/ekspor-tabel.js'
+
+/**
+ * Batas baris per berkas ekspor.
+ *
+ * PostgREST memotong SENYAP di 1.000 baris. Berkas yang terpotong diam-diam
+ * lebih berbahaya daripada ekspor yang gagal: orang menyuntingnya lalu
+ * mengimpornya kembali, dan yang tak ikut terekspor terlihat seperti data
+ * yang memang tak ada.
+ *
+ * Karena itu batasnya DISEBUT, dan kelebihannya DILAPORKAN lewat header.
+ */
+const BATAS_EKSPOR = 5000
 
 /**
  * IMPORTER GENERIK (TJS-P3) — unggah → petakan → pratinjau → commit.
@@ -348,6 +363,134 @@ export default async function importerRoutes(app: FastifyInstance) {
       })
 
       return reply.send({ masuk, skema: s.kunci })
+    },
+  )
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // EKSPOR — sisi lain dari menu yang bernama "Impor & Ekspor Data"
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Diukur 2026-08-17: menunya bernama "Impor & Ekspor Data", dan yang ada
+  // cuma impor. Masalahnya bukan fitur kurang, melainkan **menu yang
+  // berbohong tentang isinya**: orang yang membukanya mencari tombol ekspor,
+  // tak menemukannya, lalu menyimpulkan aplikasinya rusak — bukan
+  // menyimpulkan fiturnya memang belum ada.
+  //
+  // ── Kenapa memakai SKEMA yang sama dengan impor, bukan daftar kolom sendiri
+  //
+  // Supaya berkas hasil ekspor bisa langsung diimpor kembali. Ekspor yang
+  // bentuknya berbeda dari impor menghasilkan berkas yang tak bisa dipakai
+  // untuk apa pun kecuali dibaca — sementara pemakaian yang paling lazim
+  // justru: ekspor → sunting massal di Excel → impor lagi.
+  //
+  // Urutan kolomnya pun mengikuti `SKEMA`. Kalau berbeda, orang yang
+  // menyunting hasil ekspor lalu mengimpornya harus memetakan kolom secara
+  // manual — dan salah petakan pada kolom HARGA tak menimbulkan galat apa pun.
+  //
+  // ── Kenapa izinnya sama dengan impor, bukan izin baca biasa
+  //
+  // Ekspor mengeluarkan SELURUH isi tabel dalam satu berkas yang bisa dikirim
+  // ke mana saja. Daftar pemasok lengkap beserta kontak dan terminnya adalah
+  // data yang paling berharga bagi pesaing. Yang boleh membaca satu baris di
+  // layar tidak otomatis boleh membawa pulang seluruhnya.
+  app.get<{ Params: { skema: string }; Querystring: { format?: string } }>(
+    '/api/v1/ekspor/:skema',
+    { preHandler: [authenticate] },
+    async (request, reply) => {
+      const s = SKEMA.find((x) => x.kunci === request.params.skema)
+      if (!s) {
+        return reply.status(404).send({
+          error: `Skema '${request.params.skema}' tak dikenal. `
+            + `Yang tersedia: ${SKEMA.map((x) => x.kunci).join(', ')}.`,
+        })
+      }
+
+      // Gerbang izin dijalankan SESUDAH skema dikenali, sama seperti jalur
+      // impor: kunci izinnya bergantung pada skema, jadi ia tak bisa dipasang
+      // sebagai preHandler statis.
+      // Pola yang SAMA dengan `/impor/commit` beberapa baris di atas —
+      // bukan pembungkus buatan sendiri. Versi pertama saya membungkus
+      // `reply` dengan proxy penangkap status; itu menambah cara kedua untuk
+      // memeriksa izin di berkas yang sama, dan dua cara yang pelan-pelan
+      // berbeda adalah cara gerbang izin berhenti menjaga.
+      const gerbang = requirePermission(IZIN[s.kunci])
+      await gerbang(request, reply)
+      if (reply.sent) return
+
+      const format = formatSah(request.query.format ?? 'xlsx')
+      if (!format) {
+        return reply.status(400).send({
+          error: `Format tak dikenal. Yang tersedia: ${FORMAT_EKSPOR.join(', ')}.`,
+        })
+      }
+
+      const tabel = TABEL[s.kunci]
+
+      // Kolom diambil dari SKEMA — satu sumber dengan impor.
+      const kunciKolom = s.kolom.map((k) => k.kunci)
+
+      const { data, error } = await request.db!
+        .unsafe(tabel, 'ekspor massal; disaring company_id di baris berikutnya')
+        .select(kunciKolom.join(', '))
+        .eq('company_id', request.companyId!)
+        .order('created_at', { ascending: true })
+        // Batas eksplisit. PostgREST memotong senyap di 1.000 baris, dan
+        // berkas yang terpotong diam-diam lebih berbahaya daripada ekspor
+        // yang gagal: orang menyuntingnya lalu mengimpornya kembali, dan
+        // yang tak ikut terekspor terlihat seperti data yang memang tak ada.
+        .limit(BATAS_EKSPOR + 1)
+
+      if (error) {
+        request.log.error({ err: error, tabel }, 'gagal membaca tabel untuk ekspor')
+        return reply.status(500).send({ error: `Gagal membaca data ${s.label}` })
+      }
+
+      // Lewat `unknown` lebih dulu: `.select()` bernilai string DINAMIS, jadi
+      // TypeScript tak bisa menyimpulkan bentuk barisnya dan memulangkan tipe
+      // galat generik. Kolomnya sendiri berasal dari `SKEMA` (konstanta di
+      // kode), bukan dari masukan pengguna — jadi yang hilang cuma inferensi,
+      // bukan jaminannya.
+      const semua = (data ?? []) as unknown as Array<Record<string, unknown>>
+      const terpotong = semua.length > BATAS_EKSPOR
+      const baris = terpotong ? semua.slice(0, BATAS_EKSPOR) : semua
+
+      // Identitas tenant untuk kop dokumen. Gagal memuatnya TIDAK
+      // menghentikan ekspor — berkas tanpa kop tetap berguna, berkas yang
+      // tak bisa terbit tidak.
+      const { data: perusahaan } = await request.db!
+        .unsafe('companies', 'nama tenant untuk kop; disaring ke companyId di baris berikutnya')
+        .select('name, legal_name')
+        .eq('id', request.companyId!)
+        .maybeSingle()
+      const namaTenant = (perusahaan as { legal_name?: string; name?: string } | null)
+        ?.legal_name ?? (perusahaan as { name?: string } | null)?.name ?? null
+
+      const hasil = await susunEkspor(format, {
+        judul: s.label,
+        tenant: namaTenant,
+        keterangan: terpotong
+          ? `PERHATIAN: terpotong di ${BATAS_EKSPOR} baris pertama — masih ada sisanya.`
+          : s.keterangan,
+        kolom: s.kolom.map((k) => ({
+          kunci: k.kunci,
+          judul: k.label,
+          angka: k.jenis === 'angka',
+        })),
+        baris,
+      })
+
+      const tanggal = new Date().toISOString().slice(0, 10)
+      const namaBerkas = `${s.kunci}-${tanggal}.${hasil.ekstensi}`
+
+      return reply
+        .header('Content-Type', hasil.tipeKonten)
+        .header('Content-Disposition', `attachment; filename="${namaBerkas}"`)
+        // Dibaca `TombolUnduh` di web dan dilaporkan ke pemakai. Berkas 0
+        // baris yang terunduh diam-diam membuat orang mengira datanya memang
+        // kosong.
+        .header('x-ekspor-jumlah', String(baris.length))
+        .header('x-ekspor-terpotong', terpotong ? '1' : '0')
+        .send(hasil.isi)
     },
   )
 }

@@ -1,6 +1,6 @@
 # Rencana Menuntaskan Entri `sebagian`
 
-> Disusun 2026-08-17, sesudah Peta Modul mencapai **223 hidup / 10 sebagian / 0 rencana**.
+> Disusun 2026-08-17. Peta Modul saat pemutakhiran terakhir (2026-08-18): **224 hidup / 9 sebagian / 0 rencana**.
 >
 > **Golongan D sudah dikerjakan saat dokumen ini ditulis** — lihat bagian D.
 >
@@ -21,7 +21,7 @@
 
 | Golongan | Jumlah | Artinya |
 |---|---:|---|
-| **A. Pekerjaan kode** | 3 | bisa dikerjakan sekarang, tanpa menunggu siapa pun |
+| **A. Pekerjaan kode** | ~~3~~ → 2 | A1 SELESAI 2026-08-18; sisa A2 (addendum SPK) & A3 (versi dokumen) |
 | **B. Menunggu keputusan founder** | 2 | masuk `RATIFIKASI.md`, bukan antrean kerja |
 | **C. Menunggu pihak ketiga / rilis** | 3 | kredensial, kontrak komersial, atau distribusi aplikasi |
 | ~~D. Status BASI~~ | ~~1~~ → **0** | **SELESAI** — `tg-tambah` diverifikasi lalu jadi `hidup` |
@@ -29,9 +29,26 @@
 
 ---
 
-## A. Pekerjaan kode (3) — bisa dimulai kapan saja
+## A. Pekerjaan kode — 1 selesai, 2 tersisa
 
-### A1. `sy-import` — ekspor belum ada sama sekali
+### A1. ✅ SELESAI 2026-08-18 — `sy-import` sudah `hidup`
+
+Ekspor dibangun persis seperti rencana di bawah: memakai `SKEMA` yang sama
+dengan impor, memakai `lib/ekspor-tabel.ts` yang sudah ada, dan diuji
+round-trip.
+
+Yang **tidak** terduga: mutasi pertama LOLOS. Test round-trip versi pertama
+cuma memeriksa nama kolom dikenali — dan `usulkanPemetaan` juga mencocokkan
+nama kolom basis, jadi menggeser judul dari `label` ke `kunci` tetap hijau.
+Dipertajam ke NILAI, lalu mutasi kedua (angka jadi teks ber-pemisah ribuan)
+MERAH dengan `expected 65 to be 65000` — kesalahan seribu kali lipat.
+
+Sisa yang tetap dicatat: impor **pegawai** belum bisa (`pegawai.user_id`
+NOT NULL — perubahan rancangan, bukan penambahan skema).
+
+<details><summary>Rencana asli (dipertahankan sebagai catatan)</summary>
+
+#### `sy-import` — ekspor belum ada sama sekali
 
 **Masalahnya bukan fitur kurang, melainkan menu yang berbohong.** Namanya
 "Impor & Ekspor Data"; yang ada cuma impor. Orang yang membuka halaman ini
@@ -59,6 +76,8 @@ dan tombolnya di `/sistem/impor`.
 baris menuntut akun pengguna lebih dulu — itu perubahan rancangan, bukan
 penambahan skema. Kalau dipaksakan, importer akan membuat akun diam-diam untuk
 tiap baris, dan akun yang lahir tanpa ada yang memutuskan adalah lubang izin.
+
+</details>
 
 ---
 

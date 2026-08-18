@@ -5,6 +5,99 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-18 (sesi peta-modul, A1) — ekspor: menu yang berbohong tentang isinya
+
+Founder: *"kerjakan dulu yg tak menunggu jawaban dulu"*.
+
+Golongan A1 dari `RENCANA-SISA-SEBAGIAN.md` — `sy-import`.
+
+### Masalahnya bukan fitur kurang
+
+Menunya bernama **"Impor & Ekspor Data"**, dan yang ada cuma impor. Orang yang
+membukanya mencari tombol ekspor, tak menemukannya, lalu menyimpulkan
+**aplikasinya rusak** — bukan menyimpulkan fiturnya memang belum ada.
+
+`GET /api/v1/ekspor/:skema?format=` untuk keempat skema × empat format.
+
+### Tiga keputusan yang menentukan bentuknya
+
+**1. Memakai `SKEMA` yang SAMA dengan impor**, bukan daftar kolom sendiri.
+Pemakaian paling lazim adalah ekspor → sunting massal di Excel → impor lagi.
+Ekspor yang bentuknya berbeda dari impor menghasilkan berkas yang tak bisa
+dipakai untuk apa pun kecuali dibaca.
+
+**2. Izinnya sama dengan impor**, bukan izin baca biasa. Ekspor mengeluarkan
+SELURUH isi tabel dalam satu berkas yang bisa dikirim ke mana saja — daftar
+pemasok lengkap beserta kontak dan terminnya adalah data paling berharga bagi
+pesaing. Yang boleh membaca satu baris di layar tidak otomatis boleh membawa
+pulang seluruhnya.
+
+**3. Batas 5.000 baris DISEBUT**, kelebihannya dilaporkan lewat header.
+PostgREST memotong senyap di 1.000, dan berkas terpotong yang diimpor kembali
+membuat data yang hilang terlihat seperti data yang memang tak ada.
+
+Tombolnya `TombolUnduh` (membawa sesi), BUKAN `<a href>` seperti tombol
+template di sebelahnya — href biasa mengunduh halaman login berformat HTML
+bernama `supplier-2026-08-18.xlsx`.
+
+### Saya salah: mutasi pertama LOLOS, lagi
+
+Test round-trip versi pertama hanya memeriksa **nama kolomnya dikenali**.
+Mutasi (judul kolom digeser dari `label` "Nama" ke `kunci` "name") tetap hijau,
+karena `usulkanPemetaan` juga mencocokkan nama kolom basis.
+
+Assertion dipertajam ke **NILAI**: harga harus kembali sebagai `65000`.
+
+Mutasi kedua — angka diekspor sebagai teks ber-pemisah ribuan — langsung MERAH:
+
+    expected 65 to be 65000
+
+**Kesalahan seribu kali lipat**, dan itu persis bentuk yang akan lolos senyap
+lewat impor: "65.000" dibaca importer sebagai 65, tak ada satu pun galat, dan
+harga material berubah dua digit.
+
+Mutasi ketiga (urutan kolom digeser satu posisi) juga lolos — tapi itu memang
+BUKAN cacat yang mungkin: ekspor menulis per-kunci, bukan per-posisi. Dicatat
+supaya tak ada yang membuang waktu menutup lubang yang tak ada.
+
+### Satu pemeriksaan saya sendiri yang keliru
+
+Saya sempat melaporkan "BOM UTF-8 tidak ada" pada CSV hasil ekspor. Ternyata
+`fetch().text()` **membuang BOM secara otomatis** — diperiksa ulang pada byte
+mentah: `EF BB BF`, ada. Alat ukurnya yang salah, bukan berkasnya.
+
+### Bukti
+
+    vitest importer      29 passed (termasuk ROUND-TRIP ber-nilai)
+    mutasi               3 dijalankan: 1 MERAH (yang benar), 2 lolos —
+                         satu karena assertion lemah (dipertajam),
+                         satu karena cacatnya memang mustahil
+    API hidup            16 kombinasi skema×format, semuanya 200
+                         60 pekerja · 19 cost code · 5 pemasok · 1 material
+    BOM UTF-8            EF BB BF — diperiksa pada byte mentah
+    a11y runtime         154 halaman · 0 pelanggaran
+                         /sistem/impor: 25 lolos
+    tsc api + web        bersih
+    gerbang-tenancy · kegagalan-senyap · baca-tak-terpotong ·
+      catch-senyap · izin-benar-ada · tulis-tanpa-periksa ·
+      halaman-pakai-cache · token-css · judul-halaman ·
+      galat-muat-terpisah · peta-modul          semuanya exit 0
+
+`sy-import` → `hidup`. Peta Modul: **224 / 9 / 0**.
+
+Sisa yang tetap dicatat: impor **pegawai** belum bisa — `pegawai.user_id`
+NOT NULL, jadi tiap baris menuntut akun pengguna lebih dulu. Itu perubahan
+rancangan, bukan penambahan skema; importer yang membuat akun diam-diam untuk
+tiap baris adalah lubang izin.
+
+### Sekalian: dua baris uji yang tertinggal di basis
+
+`work_scopes` memuat dua baris `[TEST-SPK] scope tenant lain` — sisa fixture
+uji SPK yang lolos karena test-nya sempat gagal di tengah sebelum blok
+`finally` terpasang. Dibersihkan; `work_scopes` kembali **20 baris nyata**.
+
+---
+
 ## 2026-08-17 (sesi peta-modul, hutang penjaga) — dua ratchet merah dibayar, dan test yang merah karena LINGKUNGANnya
 
 Founder: *"yaa kerjakan semuanyaa, dan jika sudah rencanakan untuk menuntaskan

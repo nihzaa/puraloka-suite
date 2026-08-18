@@ -455,3 +455,119 @@ describe('skema pemasok & cost code (427)', () => {
     expect(r.payload).toContain('Nama*')
   })
 })
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ * EKSPOR — dan yang paling penting: HASILNYA BISA DIIMPOR KEMBALI
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Menu ini bernama "Impor & Ekspor Data" dan sampai 2026-08-17 hanya punya
+ * separuhnya. Yang ditambahkan bukan sekadar tombol unduh: ekspor memakai
+ * `SKEMA` yang SAMA dengan impor, supaya berkas hasilnya bisa langsung
+ * disunting massal di Excel lalu dimasukkan lagi.
+ *
+ * Test yang paling menentukan di blok ini adalah round-trip. Ekspor yang
+ * kolomnya bergeser dari impor tetap menghasilkan berkas yang terlihat wajar
+ * — dan cacatnya baru ketahuan saat orang mengimpornya kembali dan harga
+ * masuk ke kolom stok.
+ */
+describe('GET /ekspor/:skema', () => {
+  it('menolak skema yang tak dikenal, dan MENYEBUT yang tersedia', async () => {
+    // Pesan yang cuma "tidak ditemukan" memaksa orang menebak nama skemanya.
+    const r = await get('/api/v1/ekspor/tidak-ada')
+    expect(r.statusCode).toBe(404)
+    expect(r.json().error).toMatch(/material/)
+  })
+
+  it('menolak format yang tak dikenal', async () => {
+    const r = await get('/api/v1/ekspor/material?format=docx')
+    expect(r.statusCode).toBe(400)
+    expect(r.json().error).toMatch(/csv/)
+  })
+
+  it('xlsx bawaan, ber-nama berkas dan jumlah baris di header', async () => {
+    const r = await get('/api/v1/ekspor/material')
+    expect(r.statusCode, r.body.slice(0, 200)).toBe(200)
+    expect(r.headers['content-type']).toContain('spreadsheetml')
+    expect(String(r.headers['content-disposition'])).toContain('material-')
+    // Jumlah baris DILAPORKAN. Berkas 0 baris yang terunduh diam-diam
+    // membuat orang mengira datanya memang kosong.
+    expect(r.headers['x-ekspor-jumlah']).toBeDefined()
+    expect(r.headers['x-ekspor-terpotong']).toBe('0')
+  })
+
+  it('csv memakai JUDUL kolom dari skema, bukan nama kolom basis', async () => {
+    // Yang membuka berkasnya orang gudang, bukan orang basis data.
+    const r = await get('/api/v1/ekspor/material?format=csv')
+    expect(r.statusCode).toBe(200)
+    const kepala = r.payload.split('\n').find((b) => b.includes('Nama')) ?? ''
+    expect(kepala).toContain('Satuan')
+    expect(kepala).not.toContain('unit_price')
+  })
+
+  it('ROUND-TRIP: hasil ekspor bisa diimpor kembali tanpa dipetakan tangan', async () => {
+    // Inti dari memakai skema yang sama. Kalau urutan/judul kolomnya bergeser,
+    // `usulkanPemetaan` tak akan mengenalinya dan orang harus memetakan
+    // manual — dan salah petakan pada kolom HARGA tak menimbulkan galat.
+    await purge()
+
+    // Satu baris ditanam supaya ekspornya pasti berisi.
+    const tanam = await post('/api/v1/impor/commit', {
+      skema: 'material',
+      baris: [{ Kode: '[TEST-IM]RT1', Nama: 'Semen Round Trip', Satuan: 'sak', Harga: 65000 }],
+      pemetaan: PETA,
+    })
+    expect(tanam.statusCode, tanam.body.slice(0, 200)).toBe(200)
+
+    const eks = await get('/api/v1/ekspor/material?format=xlsx')
+    expect(eks.statusCode).toBe(200)
+
+    // Berkas hasil ekspor dikirim balik ke jalur BACA, persis seperti orang
+    // yang mengunduh lalu mengunggahnya lagi.
+    const baca = await post('/api/v1/impor/baca', {
+      skema: 'material',
+      berkas_base64: Buffer.from(eks.rawPayload).toString('base64'),
+    })
+    expect(baca.statusCode, baca.body.slice(0, 300)).toBe(200)
+
+    const j = baca.json()
+    const terpetakan = (j.usulan as Array<{ kolomTarget: string | null }>)
+      .filter((u) => u.kolomTarget !== null).map((u) => u.kolomTarget)
+
+    // Kolom WAJIB harus terpetakan otomatis.
+    expect(terpetakan, 'kolom Nama tak dikenali dari berkas ekspornya sendiri')
+      .toContain('name')
+    expect(terpetakan, 'kolom Satuan tak dikenali dari berkas ekspornya sendiri')
+      .toContain('unit')
+
+    /*
+      NILAI-nya juga diperiksa, bukan cuma nama kolomnya.
+
+      Mutasi pertama membuktikan assertion di atas TIDAK CUKUP: menggeser
+      judul kolom ekspor dari `label` ("Nama") ke `kunci` ("name") tetap
+      lolos, karena `usulkanPemetaan` juga mencocokkan nama kolom basis.
+
+      Yang tak bisa ditipu: apakah baris yang keluar sama dengan yang masuk.
+      Berkas ekspor yang kolomnya bergeser satu posisi akan memindahkan HARGA
+      ke kolom stok — nama kolomnya tetap dikenali, angkanya yang salah
+      tempat, dan tak ada satu pun galat.
+    */
+    const contoh = j.contoh as Array<Record<string, unknown>>
+    const kolomNama = (j.usulan as Array<{ kolomBerkas: string; kolomTarget: string | null }>)
+      .find((u) => u.kolomTarget === 'name')?.kolomBerkas
+    const kolomHarga = (j.usulan as Array<{ kolomBerkas: string; kolomTarget: string | null }>)
+      .find((u) => u.kolomTarget === 'unit_price')?.kolomBerkas
+
+    expect(kolomNama, 'kolom nama tak punya judul di berkas').toBeTruthy()
+    const barisRt = contoh.find((c) => String(c[kolomNama!]) === 'Semen Round Trip')
+    expect(barisRt, 'baris yang baru ditanam tak muncul di berkas ekspornya').toBeTruthy()
+
+    // Harga harus kembali sebagai 65000, bukan tergeser ke kolom lain dan
+    // bukan berubah jadi teks ber-pemisah ribuan.
+    expect(kolomHarga, 'kolom harga tak punya judul di berkas').toBeTruthy()
+    expect(Number(barisRt![kolomHarga!]),
+      'harga tak bertahan utuh melewati ekspor→impor').toBe(65000)
+
+    await purge()
+  })
+})
