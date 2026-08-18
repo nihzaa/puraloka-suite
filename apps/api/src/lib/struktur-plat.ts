@@ -183,6 +183,25 @@ export function analisaPlat(input: InputPlat): HasilPlat {
       + 'Menambah tulangan tidak menolong; tebalkan pelat atau perkecil bentang.')
   }
 
+  /*
+    Batas yang SELALU berlaku, bukan peringatan situasional.
+
+    Batang pelat dihitung sepanjang bentang saja — tanpa kait ujung dan tanpa
+    sambungan lewatan. Sama seperti balok & kolom, dan alasannya sama: panjang
+    lewatan bergantung detail sambungan yang belum diketahui saat estimasi,
+    dan menebaknya di sini menyembunyikan asumsi di dalam angka.
+
+    Yang membedakannya dari catatan `bisaDitulangi` di atas: yang itu hanya
+    muncul kalau pelatnya bermasalah, yang ini berlaku pada SETIAP hasil —
+    termasuk yang seluruh pemeriksaannya hijau. Batas yang hanya muncul saat
+    ada masalah tak pernah terbaca oleh orang yang hasilnya baik-baik saja,
+    dan justru merekalah yang memakai angkanya untuk memesan besi.
+  */
+  catatan.push(
+    'Volume besi BELUM termasuk kait ujung dan sambungan lewatan — batang '
+    + 'dihitung sepanjang bentang saja. Tambahkan sendiri saat menyusun RAP.',
+  )
+
   return {
     periksa,
     aman: periksa.every((p) => p.aman),

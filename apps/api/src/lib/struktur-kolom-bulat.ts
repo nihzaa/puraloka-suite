@@ -201,6 +201,23 @@ export function analisaKolomBulat(input: InputKolomBulat): HasilKolomBulat {
     + 'BUKAN diagram interaksi P-M penuh. Kolom dengan momen besar pada beban '
     + 'aksial kecil bisa lolos di sini padahal titik bebannya di luar kurva.')
 
+  /*
+    Batas KUANTITAS — beda jenis dari batas analisis di atas.
+
+    Tulangan utama dihitung sepanjang tinggi kolom saja. Kolom bersambung
+    antar lantai selalu punya sambungan lewatan di atas lantai, dan panjangnya
+    bergantung detail yang belum diketahui saat estimasi.
+
+    Dipisah dari catatan di atas karena keduanya menuntut tindakan berbeda:
+    yang di atas menyuruh memeriksa ulang DESAIN, yang ini menyuruh menambah
+    BESI. Menggabungkannya membuat salah satunya terlewat.
+  */
+  catatan.push(
+    'Volume besi BELUM termasuk sambungan lewatan antar lantai dan panjang '
+    + 'penyaluran — tulangan utama dihitung setinggi kolom saja. Tambahkan '
+    + 'saat menyusun RAP.',
+  )
+
   return {
     periksa,
     aman: periksa.every((p) => p.aman),

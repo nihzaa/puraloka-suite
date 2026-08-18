@@ -227,6 +227,25 @@ export function analisaFootplat(input: InputFootplat): HasilFootplat {
       + 'linier ini; perbesar pondasi atau kurangi eksentrisitas.')
   }
 
+  /*
+    Batas yang SELALU berlaku — berbeda dari dua catatan situasional di atas.
+
+    STEK KOLOM (dowel) TIDAK ikut ditimbang. Batang itu selalu dipasang: ia
+    yang menyambungkan tulangan kolom ke fondasi. Ia tak bisa dihitung di sini
+    karena jumlah & diameternya milik KOLOM di atasnya, bukan milik fondasi —
+    dan menebaknya berarti menaruh angka karangan di dalam RAP.
+
+    Besarnya bukan pembulatan: untuk fondasi 2×2 m dengan kolom 8D19 dan
+    panjang stek ~1,5 m, steknya ~27 kg terhadap ~97 kg tulangan fondasi —
+    sekitar 28%. Angka sebesar itu tak boleh hanya "tidak ada"; ia harus
+    tertulis, supaya yang menyusun RAP menambahkannya sadar-sadar.
+  */
+  catatan.push(
+    'Volume besi BELUM termasuk stek kolom (dowel) — jumlah dan diameternya '
+    + 'mengikuti tulangan kolom di atasnya, bukan fondasi ini. Pada fondasi '
+    + '2×2 m dengan kolom 8D19, steknya sekitar 28% dari tulangan fondasi.',
+  )
+
   return {
     periksa,
     aman: periksa.every((p) => p.aman),

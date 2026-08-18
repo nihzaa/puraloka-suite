@@ -76,19 +76,38 @@ beforeAll(async () => {
   )
 
   /*
-    Proyek diambil dari company yang benar-benar punya anggota — bukan dibuat
-    baru. `seedProjectContext` tidak menyetel `company_id` proyek, dan trigger
-    `fn_struktur_elemen_tenant_cocok` menolak elemen yang company-nya tak sama
-    dengan pemilik proyek. Memakai proyek yang sudah utuh menghindari
-    menyiapkan tenancy dari nol hanya untuk menguji perhitungan.
+    ══════════════════════════════════════════════════════════════════════════
+    PROYEK DITURUNKAN DARI ADMIN YANG TERPILIH — bukan dipilih bebas.
+
+    Versi pertama mengambil proyek mana pun yang company-nya punya anggota.
+    Itu HIJAU di satu checkout dan MERAH 16/16 di checkout lain, terhadap
+    basis yang sama persis: proyek pertama yang terambil kebetulan cocok di
+    satu tempat dan tidak di tempat lain, karena urutan baris tanpa ORDER BY
+    tidak dijamin.
+
+    `proyekMilikTenant` memeriksa `request.db.projectIds()` — daftar proyek
+    milik company AKTIF sesi ini. Jadi proyek uji harus milik company tempat
+    admin yang sedang disamar (`auth`) benar-benar jadi anggota. Menurunkannya
+    lewat `company_members` membuat syarat itu terpenuhi menurut definisi,
+    bukan menurut keberuntungan.
+
+    ORDER BY dipasang supaya pilihannya sama di setiap jalan — test yang
+    hasilnya bergantung urutan baris basis adalah test yang tak bisa dipercaya
+    saat merah maupun saat hijau.
+    ══════════════════════════════════════════════════════════════════════════
   */
   const { rows } = await db.query(`
-    SELECT p.id, p.company_id FROM projects p
-    WHERE p.company_id IS NOT NULL
-      AND EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = p.company_id)
-    LIMIT 1
-  `)
-  if (!rows.length) throw new Error('tak ada proyek ber-company untuk diuji')
+    SELECT p.id, p.company_id
+      FROM projects p
+      JOIN company_members m ON m.company_id = p.company_id
+      JOIN users u ON u.id = m.user_id
+     WHERE u.auth_id = $1
+     ORDER BY p.created_at, p.id
+     LIMIT 1
+  `, [auth])
+  if (!rows.length) {
+    throw new Error('admin uji tak punya proyek di company-nya — seed data uji dulu')
+  }
   projectId = rows[0].id
   companyId = rows[0].company_id
 

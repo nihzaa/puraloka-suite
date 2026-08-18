@@ -231,3 +231,65 @@ describe('kewajaran angka rekap — penjaga satuan', () => {
     expect(rasio).toBeLessThan(12)
   })
 })
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════════
+ * PENJAGA CATATAN — batas yang tak tertulis akan dipakai sebagai kebenaran.
+ *
+ * Angka volume dari modul-modul ini masuk ke RAP, dan RAP jadi dasar pemesanan
+ * besi. Setiap modul punya batas yang SELALU berlaku dan tak bisa dihitung dari
+ * inputnya:
+ *
+ *   balok/kolom       — panjang penyaluran, kait, sambungan lewatan
+ *   pelat             — kait ujung & lewatan
+ *   footplat/pilecap  — stek kolom (dowel); pilecap juga stek tiang
+ *   tiang             — kapasitas BAHAN saja bila tak ada data tanah
+ *
+ * Batas itu sempat hidup hanya sebagai komentar di dalam berkas sumber —
+ * tempat yang tak pernah dibaca orang yang memakai angkanya. Diukur pada
+ * balok 300×520 L=6m: BBS memberi 1,26× berat Fase 1; stek kolom pada
+ * fondasi 2×2 dengan kolom 8D19 sekitar 28% tulangan fondasi.
+ *
+ * Penjaga ini menuntut catatan itu ADA pada hasil yang SELURUH pemeriksaannya
+ * hijau — bukan hanya saat elemennya bermasalah. Yang hasilnya baik-baik saja
+ * justru yang langsung dipakai untuk memesan.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+describe('setiap modul membawa batasnya sendiri, bukan hanya angkanya', () => {
+  const bercatatan: Array<[string, { catatan: string[]; aman: boolean }]> = [
+    ['balok', BALOK], ['kolom', KOLOM], ['kolom bulat', KOLOM_BULAT],
+    ['pelat', PLAT], ['footplat', FOOTPLAT], ['pilecap', PILECAP],
+  ]
+
+  it.each(bercatatan)('%s punya catatan meski seluruh pemeriksaannya hijau', (_n, h) => {
+    expect(Array.isArray(h.catatan)).toBe(true)
+    expect(h.catatan.length).toBeGreaterThan(0)
+  })
+
+  it('catatan menyebut BATAS VOLUME, bukan sekadar peringatan desain', () => {
+    /*
+      Perbedaan yang dijaga di sini: "pelat terlalu tipis" adalah peringatan
+      DESAIN — muncul hanya saat ada masalah, dan orang yang hasilnya hijau
+      tak pernah melihatnya. Yang harus selalu ada adalah batas KUANTITAS,
+      karena itulah yang dipakai memesan besi.
+    */
+    const batasVolume = /penyaluran|lewatan|kait|stek|dowel/i
+    for (const [nama, h] of bercatatan) {
+      expect(
+        h.catatan.some((c) => batasVolume.test(c)),
+        `${nama} tak menyebut satu pun batas volume besi`,
+      ).toBe(true)
+    }
+  })
+
+  it('tiang: batasnya disebut saat data tanah tak ada', () => {
+    // Tiang tak punya batas penyaluran (precast, tulangan pabrikan), tetapi
+    // punya batas yang jauh lebih berbahaya: angka tanpa data tanah BUKAN
+    // daya dukung. Dijaga terpisah karena bentuk batasnya beda.
+    const tanpaTanah = analisaTiang({
+      diameterM: 0.4, panjangM: 16, fcMpa: 36.6,
+      lapisan: [], bebanRencanaKn: 300, jumlah: 6,
+    })
+    expect(tanpaTanah.catatan.join(' ')).toMatch(/BUKAN daya dukung/i)
+  })
+})
