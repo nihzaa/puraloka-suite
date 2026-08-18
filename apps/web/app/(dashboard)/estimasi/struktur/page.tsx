@@ -47,7 +47,7 @@ import { GAYA_KARTU } from "@/components/ui-dasar";
 import { Isian, KotakIsian, PilihanIsian } from "@/components/isian";
 import { formatAngka } from "@/lib/format";
 import {
-  AlertTriangle, Boxes, CheckCircle2, Info, Plus, RefreshCw, Ruler, Trash2, X,
+  AlertTriangle, Boxes, CheckCircle2, Eye, Info, Plus, RefreshCw, Ruler, Trash2, X,
 } from "lucide-react";
 import { Modal, btnPrimary, btnGhost } from "../_bersama/kerangka";
 import { LayarKosong } from "../_bersama/layar-kosong";
@@ -90,6 +90,22 @@ interface BarisBesi {
   peran: string;
   jumlahBatang: number;
   totalKg: number;
+}
+
+interface Periksa {
+  nama: string; nilai: number; syarat: number; satuan: string;
+  aman: boolean; rasio: number; rumus: string;
+}
+
+interface MuatanDetail {
+  elemen: BarisElemen;
+  hasil: {
+    aman?: boolean;
+    periksa?: Periksa[];
+    catatan?: string[];
+    dasar?: { periksa?: Periksa[]; catatan?: string[] };
+  };
+  gambar?: Record<string, string>;
 }
 
 interface MuatanRekapVolume {
@@ -356,6 +372,28 @@ function StrukturLayar() {
 
   const { data: volume, muatUlang: muatUlangVolume } = useData<MuatanRekapVolume>(
     projectId ? `/api/v1/projects/${projectId}/struktur/rekap-volume` : null);
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    GAMBAR KERJA DITAMPILKAN — sebelumnya TIDAK, dan itu cacat besar.
+
+    Fase penggambar membangun tujuh jenis gambar SVG (penampang persegi &
+    lingkaran, potongan pelat, denah+potongan pondasi, potongan tiang berikut
+    profil tanahnya, diagram P-M, bar bending schedule) — dan halaman ini
+    tak menampilkan satu pun. Endpoint `?gambar=1` ada sejak awal dan tak
+    pernah dipanggil.
+
+    Kelas cacat yang sudah tercatat di repo ini: lapis cache dibangun 2026-08-04
+    lalu tak dipakai satu halaman pun. Kode yang tak terpanggil sama dengan
+    kode yang tak ada — dengan tambahan biaya perawatan.
+
+    Dimuat HANYA saat elemen dibuka: SVG penampang + diagram P-M beberapa KB
+    per elemen, dan daftar 200 elemen tak membutuhkannya.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const [dibuka, setDibuka] = useState<string | null>(null);
+  const { data: detail, memuat: memuatDetail, galat: galatDetail } =
+    useData<MuatanDetail>(dibuka ? `/api/v1/struktur/${dibuka}?gambar=1` : null);
 
   /*
     GALAT MUAT DAN GALAT AKSI DIPISAH.
@@ -645,6 +683,12 @@ function StrukturLayar() {
                   kunci: "aksi", judul: "Tindakan", rata: "kanan",
                   render: (el) => (
                     <span style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                      <button type="button" style={btnGhost}
+                        onClick={() => setDibuka(dibuka === el.id ? null : el.id)}
+                        aria-expanded={dibuka === el.id}
+                        aria-label={`Lihat detail & gambar kerja ${el.kode}`}>
+                        <Eye size={13} aria-hidden="true" />
+                      </button>
                       <button type="button" style={mati(btnGhost, sibuk)} disabled={sibuk}
                         onClick={() => void hitungSatu(el)}
                         aria-label={`Hitung ulang ${el.kode}`}>
@@ -661,6 +705,23 @@ function StrukturLayar() {
               ]}
             />
           </div>
+
+          {/* ── Detail elemen: pemeriksaan + GAMBAR KERJA ───────────── */}
+          {dibuka && (
+            <div style={GAYA_KARTU}>
+              {memuatDetail ? (
+                <p style={{ color: C.mid, fontSize: "var(--teks-label)", margin: 0 }}>
+                  Memuat detail & gambar kerja…
+                </p>
+              ) : galatDetail ? (
+                <p role="alert" style={{ color: C.onDangerBg, fontSize: "var(--teks-label)", margin: 0 }}>
+                  Gagal memuat detail elemen ini.
+                </p>
+              ) : detail ? (
+                <PanelDetail detail={detail} onTutup={() => setDibuka(null)} />
+              ) : null}
+            </div>
+          )}
 
           {/* ── Rekap besi per diameter + batasnya ───────────────────── */}
           {volume && volume.rekap.besi.length > 0 && (
@@ -851,6 +912,149 @@ function StrukturLayar() {
             </div>
           </div>
         </Modal>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Detail satu elemen: verdict ber-ANGKA + gambar kerjanya.
+ *
+ * ── Kenapa verdict-nya menampilkan angka, bukan cuma "aman"
+ *
+ * Sama dengan alasan `Periksa` menyimpan `nilai` & `syarat` di lapisan
+ * perhitungan: verdict tanpa angka tak bisa ditanya "dari mana?", dan yang tak
+ * bisa ditanya akan dipercaya bulat-bulat — termasuk saat ia salah. Rasio
+ * ditampilkan karena itulah yang memberi tahu SEBERAPA dekat ke batas: 0,98
+ * dan 0,42 sama-sama "aman", tetapi cuma satu yang aman kalau bebannya naik.
+ *
+ * ── Kenapa SVG ditanam langsung, bukan lewat <img>
+ *
+ * `<img src="data:...">` membuat gambar tak bisa dipilih, tak bisa diperbesar
+ * tanpa buram, dan tak terbaca pembaca layar. SVG yang ditanam membawa
+ * `role="img"` + `aria-label` dari penggambarnya sendiri.
+ *
+ * Isinya dibuat SEPENUHNYA oleh `lib/struktur-gambar.ts` dari angka — tak ada
+ * teks pengguna yang masuk tanpa lewat `amankanTeks()`.
+ */
+function PanelDetail({ detail, onTutup }: { detail: MuatanDetail; onTutup: () => void }) {
+  const h = detail.hasil ?? {};
+  const periksa = h.periksa ?? h.dasar?.periksa ?? [];
+  const catatan = h.catatan ?? h.dasar?.catatan ?? [];
+  const gambar = Object.entries(detail.gambar ?? {}).filter(([k]) => !k.endsWith("Gagal"));
+  const gagal = Object.entries(detail.gambar ?? {}).filter(([k]) => k.endsWith("Gagal"));
+
+  const JUDUL_GAMBAR: Record<string, string> = {
+    penampang: "Penampang",
+    potongan: "Potongan",
+    pondasi: "Denah & potongan",
+    diagramPM: "Diagram interaksi P-M",
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <h2 style={{ fontSize: "var(--teks-badan)", fontWeight: 600, color: C.text, margin: 0 }}>
+          {detail.elemen.kode}
+          {detail.elemen.nama && <span style={{ color: C.mid, fontWeight: 400 }}> — {detail.elemen.nama}</span>}
+        </h2>
+        <button type="button" style={btnGhost} onClick={onTutup} aria-label="Tutup detail">
+          <X size={13} aria-hidden="true" /> Tutup
+        </button>
+      </div>
+
+      {periksa.length > 0 && (
+        <Tabel<Periksa>
+          caption={`Hasil pemeriksaan struktural elemen ${detail.elemen.kode}`}
+          data={periksa}
+          kunciBaris={(p) => p.nama}
+          tandaiBaris={(p) => (p.aman ? undefined : C.dangerBg)}
+          kolom={[
+            { kunci: "nama", judul: "Pemeriksaan", kepalaBaris: true, render: (p) => p.nama },
+            {
+              kunci: "nilai", judul: "Kapasitas", rata: "kanan",
+              render: (p) => `${formatAngka(p.nilai, 2)} ${p.satuan}`,
+            },
+            {
+              kunci: "syarat", judul: "Tuntutan", rata: "kanan",
+              render: (p) => `${formatAngka(p.syarat, 2)} ${p.satuan}`,
+            },
+            {
+              // Rasio > 1 berarti lewat batas — diberi warna, bukan cuma angka.
+              kunci: "rasio", judul: "Rasio", rata: "kanan",
+              render: (p) => (
+                <span style={{ color: p.rasio > 1 ? C.danger : p.rasio > 0.9 ? C.warning : C.text, fontWeight: 600 }}>
+                  {formatAngka(p.rasio, 3)}
+                </span>
+              ),
+            },
+            {
+              kunci: "aman", judul: "Verdict",
+              render: (p) => (p.aman
+                ? <span style={{ color: C.success, fontWeight: 600 }}>Aman</span>
+                : <span style={{ color: C.danger, fontWeight: 600 }}>Tidak aman</span>),
+            },
+          ]}
+        />
+      )}
+
+      {gambar.length > 0 && (
+        <div style={{
+          display: "grid", gap: 14,
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+        }}>
+          {gambar.map(([nama, svg]) => (
+            <figure key={nama} style={{ margin: 0 }}>
+              <figcaption style={{
+                fontSize: "var(--teks-delta)", fontWeight: 600,
+                color: C.mid, marginBottom: 6,
+              }}>
+                {JUDUL_GAMBAR[nama] ?? nama}
+              </figcaption>
+              {/*
+                Latar PUTIH dipaku, bukan mengikuti tema.
+
+                Gambar teknik memakai garis gelap di atas kertas putih; di mode
+                gelap, latar tema membuat garis hitamnya nyaris hilang. Ini satu
+                dari sedikit tempat yang benar untuk memaku warna: yang
+                ditampilkan adalah dokumen cetak, bukan elemen antarmuka.
+              */}
+              <div
+                style={{
+                  background: "var(--kertas-gambar)", border: `1px solid ${C.border}`,
+                  borderRadius: "var(--radius-dense)", padding: 10,
+                  overflowX: "auto",
+                }}
+                dangerouslySetInnerHTML={{ __html: svg }}
+              />
+            </figure>
+          ))}
+        </div>
+      )}
+
+      {gagal.length > 0 && (
+        <p role="note" style={{
+          fontSize: "var(--teks-delta)", color: C.onWarningBg,
+          background: C.warningBg, border: `1px solid ${C.warningBorder}`,
+          borderRadius: "var(--radius-dense)", padding: "var(--pad-kartu)", margin: 0,
+        }}>
+          {gagal.map(([, pesan]) => pesan).join(" · ")}
+        </p>
+      )}
+
+      {catatan.length > 0 && (
+        <div role="note" style={{
+          fontSize: "var(--teks-delta)", color: C.onInfoBg,
+          background: C.infoBg, border: `1px solid ${C.infoBorder}`,
+          borderRadius: "var(--radius-dense)", padding: "var(--pad-kartu)",
+        }}>
+          <strong style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
+            <Info size={14} aria-hidden="true" /> Asumsi & batas
+          </strong>
+          <ul style={{ margin: 0, paddingLeft: 18, display: "grid", gap: 4 }}>
+            {catatan.map((c) => <li key={c}>{c}</li>)}
+          </ul>
+        </div>
       )}
     </div>
   );

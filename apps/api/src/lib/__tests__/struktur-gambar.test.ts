@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   posisiTulangan, gambarPenampang, gambarBatang, gambarDiagramPM, amankanTeks,
+  gambarPenampangLingkaran, posisiTulanganLingkaran,
+  gambarPotonganPelat, gambarPondasi, gambarTiang,
   type InputGambarPenampang,
 } from '../struktur-gambar'
 import { diagramPM, penampangPersegi, cekTitikBeban } from '../struktur-diagram-pm'
@@ -473,5 +475,337 @@ describe('integrasi — gambar dari hasil modul struktur', () => {
     expect(penampangSvg).toContain('<svg')
     // 8 batang: 4 atas + 4 bawah.
     expect((penampangSvg.match(/<circle/g) ?? []).length).toBe(8)
+  })
+})
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════════
+ * GAMBAR UNTUK EMPAT JENIS YANG SEBELUMNYA TAK PUNYA APA-APA
+ *
+ * Diukur lewat API hidup: dari 7 jenis elemen, hanya balok & kolom persegi yang
+ * menghasilkan gambar. Kolom bulat hanya punya diagram P-M (kurva kapasitas
+ * tanpa pernah memperlihatkan susunan tulangan yang menghasilkannya), sementara
+ * pelat, footplat, dan pilecap TIDAK punya gambar sama sekali.
+ *
+ * Pelat justru elemen bertonase besi TERBESAR (1.746 kg pada contoh 200 m²,
+ * dua puluh kali balok tunggal) — dan estimator memesan besi terbanyak untuk
+ * elemen yang tak bisa ia lihat gambarnya.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+describe('gambarPenampangLingkaran — kolom bulat', () => {
+  const IN = {
+    diameterMm: 400, selimutMm: 40, dPengekangMm: 10, dUtamaMm: 16,
+    nTulangan: 8, pengekang: 'sengkang' as const,
+  }
+
+  it('menggambar SEMUA batang yang diminta', () => {
+    const svg = gambarPenampangLingkaran(IN)
+    // 3 lingkaran beton (isi, arsir, tepi) + 1 pengekang + 8 tulangan = 12.
+    expect((svg.match(/<circle/g) ?? []).length).toBe(12)
+  })
+
+  it('batang disebar merata pada lingkaran inti', () => {
+    const t = posisiTulanganLingkaran(IN)
+    expect(t).toHaveLength(8)
+    // Semua berjarak sama dari pusat.
+    const r = t.map((p) => Math.hypot(p.xMm - 200, p.yMm - 200))
+    for (const x of r) expect(x).toBeCloseTo(r[0], 9)
+    // Jari-jarinya = R − selimut − Øpengekang − ½Øutama = 200−40−10−8 = 142.
+    expect(r[0]).toBeCloseTo(142, 9)
+  })
+
+  it('batang PERTAMA di ATAS, bukan di kanan', () => {
+    // Konvensi gambar kolom. Kalau mulai dari 0°, kolom 4-batang tergambar
+    // miring 45° — salah, dan hanya terlihat kalau dirender.
+    const t = posisiTulanganLingkaran({ ...IN, nTulangan: 4 })
+    expect(t[0].xMm).toBeCloseTo(200, 6)
+    expect(t[0].yMm).toBeLessThan(200)
+  })
+
+  it('spiral DIBEDAKAN dari sengkang cincin', () => {
+    /*
+      Bukan hiasan: keduanya beda cara pasang, beda harga, dan beda faktor φ
+      (0,75 vs 0,65). Gambar yang menyamakannya membuat pelaksana memasang
+      yang salah.
+    */
+    const spiral = gambarPenampangLingkaran({ ...IN, pengekang: 'spiral' })
+    const cincin = gambarPenampangLingkaran({ ...IN, pengekang: 'sengkang' })
+    expect(spiral).toMatch(/stroke-dasharray/)
+    expect(spiral).toMatch(/Spiral/)
+    expect(cincin).toMatch(/Sengkang/)
+  })
+
+  it('selimut terlalu tebal → tak ada batang, bukan koordinat negatif', () => {
+    expect(posisiTulanganLingkaran({ ...IN, selimutMm: 300 })).toHaveLength(0)
+  })
+
+  it('menolak diameter nol alih-alih menggambar titik', () => {
+    expect(() => gambarPenampangLingkaran({ ...IN, diameterMm: 0 })).toThrow(/Diameter/)
+  })
+})
+
+describe('gambarPotonganPelat', () => {
+  const IN = {
+    bentangM: 4, tebalM: 0.12, dTulanganMm: 10, jarakTulanganMm: 150, selimutMm: 20,
+  }
+
+  it('menyatakan bahwa gambarnya SEPOTONG, bukan seluruh bentang', () => {
+    /*
+      Pelat 4 m × 120 mm punya rasio 33:1 — digambar utuh ia jadi garis rambut.
+      Yang digambar sepotong, dan pemotongannya HARUS dinyatakan: gambar
+      sepotong yang mengaku utuh membuat orang salah membaca panjangnya.
+    */
+    const svg = gambarPotonganPelat(IN)
+    expect(svg).toMatch(/potongan/i)
+    expect(svg).toMatch(/dari bentang/i)
+  })
+
+  it('pelat pendek TIDAK ditandai terpotong', () => {
+    const svg = gambarPotonganPelat({ ...IN, bentangM: 0.9 })
+    expect(svg).not.toMatch(/dari bentang/i)
+  })
+
+  it('dua lapis tulangan — atas DAN bawah', () => {
+    const svg = gambarPotonganPelat(IN)
+    expect(svg).toMatch(/dua lapis/i)
+    // Batang digambar berpasangan, jadi jumlahnya genap dan > 0.
+    const n = (svg.match(/<circle/g) ?? []).length
+    expect(n).toBeGreaterThan(0)
+    expect(n % 2).toBe(0)
+  })
+
+  it('notasi tulangan menerus TANPA angka nol di depan', () => {
+    // "0D10-150" adalah omong kosong di gambar kerja; yang benar "D10-150".
+    const svg = gambarPotonganPelat(IN)
+    expect(svg).toMatch(/D10-150/)
+    expect(svg).not.toMatch(/0D10/)
+  })
+
+  it('menolak jarak tulangan nol alih-alih menggantung', () => {
+    expect(() => gambarPotonganPelat({ ...IN, jarakTulanganMm: 0 })).toThrow(/Jarak/)
+  })
+})
+
+describe('gambarPondasi — footplat & pilecap', () => {
+  const FOOT = {
+    lxM: 1.5, lyM: 1.5, hM: 0.3, bxM: 0.4, byM: 0.4,
+    dTulanganMm: 13, jarakTulanganMm: 150,
+  }
+  const PILE = {
+    ...FOOT, lxM: 2.2, lyM: 2.2, hM: 0.5, dTulanganMm: 16, diameterTiangM: 0.4,
+    tiang: [
+      { xM: -0.6, yM: -0.6 }, { xM: 0.6, yM: -0.6 },
+      { xM: -0.6, yM: 0.6 }, { xM: 0.6, yM: 0.6 },
+    ],
+  }
+
+  it('memuat DENAH dan POTONGAN dalam satu gambar', () => {
+    /*
+      Disatukan karena yang harus dicocokkan orang di lapangan adalah posisi
+      tiang terhadap tebal poer — dua gambar terpisah membuat pencocokan itu
+      jadi pekerjaan pembaca.
+    */
+    const svg = gambarPondasi(FOOT)
+    expect(svg).toMatch(/DENAH/)
+    expect(svg).toMatch(/POTONGAN/)
+  })
+
+  it('footplat: ada garis tanah, TIDAK ada tiang', () => {
+    const svg = gambarPondasi(FOOT)
+    expect(svg).not.toMatch(/tiang/i)
+  })
+
+  it('pilecap: menggambar tiang sebanyak yang diberikan', () => {
+    const svg = gambarPondasi(PILE)
+    expect(svg).toMatch(/4 tiang/)
+    // 4 lingkaran tiang di denah + batang tulangan pada potongan.
+    expect((svg.match(/<circle/g) ?? []).length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('tiang digambar pada koordinat NYATA, bukan simetris begitu saja', () => {
+    /*
+      Grup tiang yang TAK simetris justru yang paling perlu diperiksa
+      gambarnya — di sanalah beban per tiang paling timpang.
+    */
+    const miring = gambarPondasi({
+      ...PILE, tiang: [{ xM: -0.8, yM: 0 }, { xM: 0.3, yM: 0 }],
+    })
+    // 2,2 m → pusat 1100 mm; tiang di −800 dan +300 mm.
+    expect(miring).toMatch(/cx="300"/)
+    expect(miring).toMatch(/cx="1400"/)
+  })
+
+  it('notasi tulangan pondasi tanpa nol di depan', () => {
+    expect(gambarPondasi(FOOT)).toMatch(/D13-150 dua arah/)
+    expect(gambarPondasi(FOOT)).not.toMatch(/0D13/)
+  })
+
+  it('menolak dimensi nol', () => {
+    expect(() => gambarPondasi({ ...FOOT, hM: 0 })).toThrow(/Dimensi/)
+  })
+})
+
+describe('gambarTiang — potongan + profil tanah', () => {
+  const IN = {
+    diameterM: 0.4, panjangM: 16,
+    lapisan: [
+      { tebalM: 3, nSpt: 8 }, { tebalM: 4, nSpt: 12 },
+      { tebalM: 5, nSpt: 25 }, { tebalM: 6, nSpt: 42 },
+    ],
+    pIjinKn: 412.5, penentu: 'SPT (Meyerhof)',
+  }
+
+  it('menggambar SETIAP lapisan tanah beserta N-SPT-nya', () => {
+    /*
+      Tiang satu-satunya elemen yang kapasitasnya ditentukan sesuatu DI LUAR
+      dirinya. Gambar tanpa profil tanah membuat dua tiang berdimensi identik
+      dengan kapasitas berbeda tiga kali lipat terlihat sama persis.
+    */
+    const svg = gambarTiang(IN)
+    for (const n of [8, 12, 25, 42]) expect(svg).toMatch(new RegExp(`N-SPT ${n}`))
+  })
+
+  it('tebal tiap lapisan PROPORSIONAL, bukan dibagi rata', () => {
+    const svg = gambarTiang(IN)
+    // Lapisan 3 m dan 6 m harus punya height berbeda 2×.
+    const tinggi = [...svg.matchAll(/<rect[^>]*height="([\d.]+)"/g)]
+      .map((m) => Number(m[1]))
+    expect(tinggi).toContain(3000)
+    expect(tinggi).toContain(6000)
+  })
+
+  it('menyebut APA yang membatasi, bukan hanya angkanya', () => {
+    /*
+      "P ijin 300 kN" saja tak bisa ditindak: kalau BAHAN yang membatasi,
+      memperpanjang tiang tak menolong; kalau TANAH, justru itu satu-satunya
+      yang menolong.
+    */
+    const svg = gambarTiang(IN)
+    expect(svg).toMatch(/P ijin 412\.5 kN/)
+    expect(svg).toMatch(/ditentukan SPT \(Meyerhof\)/)
+  })
+
+  it('tanpa kapasitas → tetap menggambar, tanpa baris kosong', () => {
+    const svg = gambarTiang({ ...IN, pIjinKn: undefined, penentu: undefined })
+    expect(svg).toMatch(/^<svg/)
+    expect(svg).not.toMatch(/P ijin/)
+  })
+
+  it('viewBox memuat baris terpanjang — tak ada teks terpotong', () => {
+    /*
+      Cacat yang dua kali terjadi dan dua kali hanya terlihat dari gambarnya:
+      viewBox ditaksir dari kelipatan margin, lalu judul terpotong di kiri dan
+      baris "ditentukan SPT (Meyerhof)" terpotong di kanan.
+
+      Yang dijaga: tepi kanan viewBox ≥ perkiraan lebar baris terpanjang.
+    */
+    const svg = gambarTiang({ ...IN, penentu: 'Sondir dengan nama metode yang panjang sekali' })
+    const vb = svg.match(/viewBox="([-\d.]+) ([-\d.]+) ([\d.]+) ([\d.]+)"/)!
+    const x = Number(vb[1]), w = Number(vb[3])
+    const ukuranTeks = 16000 / 34
+    const perkiraan = ukuranTeks * 0.92 * 'P ijin 000.0 kN — ditentukan Sondir dengan nama metode yang panjang sekali'.length * 0.58
+    expect(x + w).toBeGreaterThanOrEqual(perkiraan)
+  })
+
+  it('menolak dimensi nol', () => {
+    expect(() => gambarTiang({ ...IN, panjangM: 0 })).toThrow(/Dimensi/)
+  })
+})
+
+describe('SVG tak bisa disusupi lewat teks pengguna', () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KENAPA PENJAGA INI ADA, DAN KENAPA SEKARANG
+
+    Halaman `/estimasi/struktur` menanam SVG ini lewat
+    `dangerouslySetInnerHTML` — satu-satunya cara membuat gambar teknik bisa
+    diperbesar tanpa buram dan tetap terbaca pembaca layar (`<img src="data:">`
+    kehilangan keduanya).
+
+    Yang membuat itu boleh: SELURUH teks yang masuk SVG lewat `amankanTeks()`.
+    Tetapi "boleh" itu bergantung pada satu fungsi yang bisa saja dilewati
+    penggambar berikutnya — dan kalau dilewati, kode nama elemen yang diketik
+    pengguna berubah jadi jalur eksekusi skrip di peramban orang lain.
+
+    Judul dan `penentu` diuji karena keduanya berasal dari data pengguna:
+    judul dari `kode`+`nama` elemen, `penentu` dari nama metode.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const JAHAT = '</text><script>alert(1)</script><text>'
+
+  it('judul jahat tidak menghasilkan <script> di penampang', () => {
+    const svg = gambarPenampang(
+      { bMm: 300, hMm: 500, selimutMm: 30, dSengkangMm: 8, dUtamaMm: 16,
+        tulanganBawah: [3], tulanganAtas: [2] },
+      { judul: JAHAT })
+    expect(svg).not.toMatch(/<script/i)
+    expect(svg).toMatch(/&lt;script/)
+  })
+
+  it('judul & penentu jahat tidak lolos di gambar tiang', () => {
+    const svg = gambarTiang(
+      { diameterM: 0.4, panjangM: 16, lapisan: [{ tebalM: 16, nSpt: 20 }],
+        pIjinKn: 300, penentu: JAHAT },
+      { judul: JAHAT })
+    expect(svg).not.toMatch(/<script/i)
+  })
+
+  it('judul jahat tidak lolos di gambar pondasi & potongan pelat', () => {
+    expect(gambarPondasi(
+      { lxM: 1.5, lyM: 1.5, hM: 0.3, bxM: 0.4, byM: 0.4,
+        dTulanganMm: 13, jarakTulanganMm: 150 },
+      { judul: JAHAT })).not.toMatch(/<script/i)
+
+    expect(gambarPotonganPelat(
+      { bentangM: 4, tebalM: 0.12, dTulanganMm: 10, jarakTulanganMm: 150, selimutMm: 20 },
+      { judul: JAHAT })).not.toMatch(/<script/i)
+
+    expect(gambarPenampangLingkaran(
+      { diameterMm: 400, selimutMm: 40, dPengekangMm: 10, dUtamaMm: 16, nTulangan: 8 },
+      { judul: JAHAT })).not.toMatch(/<script/i)
+  })
+
+  it('kutip ganda di judul TIDAK memutus atribut aria-label', () => {
+    /*
+      Yang berbahaya bukan kata "onload" muncul di keluaran — melainkan
+      atributnya TERPUTUS sehingga `onload` jadi atribut SVG yang sungguhan.
+
+      Percobaan pertama saya menguji `not.toMatch(/onload=/)` dan MERAH,
+      padahal keluarannya aman: kutipnya sudah jadi `&quot;`, jadi seluruh
+      muatan tetap berada DI DALAM nilai atribut. Assertion itu menguji
+      kemunculan huruf, bukan bahaya — dan test yang merah untuk keluaran yang
+      benar sama merugikannya dengan test yang hijau untuk keluaran yang salah.
+
+      Yang diperiksa sekarang: nilai atribut hanya berakhir pada kutip yang
+      TIDAK berasal dari pengguna.
+    */
+    const svg = gambarPenampang(
+      { bMm: 300, hMm: 500, selimutMm: 30, dSengkangMm: 8, dUtamaMm: 16,
+        tulanganBawah: [3], tulanganAtas: [2] },
+      { judul: '" onload="alert(1)' })
+
+    const label = svg.match(/aria-label="([^"]*)"/)
+    expect(label).not.toBeNull()
+    // Muatannya utuh di dalam atribut, dengan kutip yang sudah dilolos.
+    expect(label![1]).toContain('&quot; onload=&quot;alert(1)')
+    /*
+      Dan tak ada atribut `onload` SUNGGUHAN.
+
+      Dua percobaan sebelumnya salah dengan cara yang layak dicatat:
+
+        `/onload=/`          — MERAH untuk keluaran yang benar; ia menguji
+                               kemunculan HURUF, bukan bahaya.
+        `/<[^>]*\sonload=/`  — juga merah; `[^>]*` ikut mencakup teks di DALAM
+                               nilai atribut, karena di sana memang tak ada `>`.
+        `DOMParser`          — tak tersedia di lingkungan test node ini.
+
+      Yang benar: BUANG dulu seluruh isi nilai atribut, lalu cari `onload=` di
+      sisanya. Kalau muatan pengguna tetap terkurung di dalam kutip, ia ikut
+      terbuang dan tak ada apa pun yang tersisa untuk ditemukan.
+    */
+    const hanyaStruktur = svg
+      .replace(/="[^"]*"/g, '=""')       // buang isi nilai atribut
+      .replace(/>[^<]*</g, '><')          // buang isi teks antar-tag
+    expect(hanyaStruktur).not.toMatch(/onload/i)
   })
 })

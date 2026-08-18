@@ -11,7 +11,10 @@ import { analisaFootplat } from '../../lib/struktur-footplat.js'
 import { analisaPilecap } from '../../lib/struktur-pilecap.js'
 import { analisaTiang } from '../../lib/struktur-tiang.js'
 import { analisaKolomLengkap, analisaKolomBulatLengkap } from '../../lib/struktur-kolom-lengkap.js'
-import { gambarPenampang, gambarDiagramPM } from '../../lib/struktur-gambar.js'
+import {
+  gambarPenampang, gambarDiagramPM, gambarPenampangLingkaran,
+  gambarPotonganPelat, gambarPondasi, gambarTiang,
+} from '../../lib/struktur-gambar.js'
 
 /**
  * ANALISA STRUKTUR — rute penyimpanan & perhitungan.
@@ -544,6 +547,100 @@ function gambarUntuk(el: BarisElemen, hasil: unknown): Record<string, string> {
       // tetap berguna tanpa SVG. Ditandai supaya diamnya tak terbaca sebagai
       // "elemen ini memang tak punya penampang".
       g.penampangGagal = 'Penampang tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    EMPAT JENIS YANG SEBELUMNYA TAK PUNYA GAMBAR SAMA SEKALI.
+
+    Diukur lewat API hidup: dari 7 jenis, hanya balok & kolom persegi yang
+    menghasilkan SVG. Kolom bulat cuma punya diagram P-M — kurva kapasitas
+    tanpa pernah memperlihatkan susunan tulangan yang menghasilkannya —
+    sementara pelat, footplat, dan pilecap kosong.
+
+    Pelat justru elemen bertonase besi TERBESAR (1.746 kg pada contoh 200 m²,
+    dua puluh kali balok tunggal). Estimator memesan besi terbanyak untuk
+    elemen yang tak bisa ia lihat gambarnya.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (el.jenis === 'kolom_bulat') {
+    try {
+      g.penampang = gambarPenampangLingkaran({
+        diameterMm: Number(i.diameterMm), selimutMm: Number(i.selimutMm),
+        dPengekangMm: Number(i.dPengekangMm), dUtamaMm: Number(i.dUtamaMm),
+        nTulangan: Number(i.nTulangan),
+        pengekang: (el.input.pengekang === 'spiral' ? 'spiral' : 'sengkang'),
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.penampangGagal = 'Penampang tak dapat digambar dari input ini'
+    }
+  }
+
+  if (el.jenis === 'plat') {
+    try {
+      g.potongan = gambarPotonganPelat({
+        // Bentang yang digambar = sisi PENDEK, yaitu yang menentukan momen.
+        bentangM: Math.min(Number(i.lxM), Number(i.lyM)),
+        tebalM: Number(i.hM), dTulanganMm: Number(i.dTulanganMm),
+        jarakTulanganMm: Number(i.jarakTulanganMm), selimutMm: Number(i.selimutMm),
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.potonganGagal = 'Potongan pelat tak dapat digambar dari input ini'
+    }
+  }
+
+  if (el.jenis === 'footplat' || el.jenis === 'pilecap') {
+    try {
+      /*
+        Pilecap: posisi tiang diambil dari hasil `analisaPilecap`, BUKAN
+        dihitung ulang di sini. Menghitungnya dua kali berarti gambar dan
+        beban-per-tiang bisa berselisih diam-diam saat rumusnya diperbaiki —
+        dan yang tergambar salah posisi adalah yang dipakai orang di lapangan.
+      */
+      const tg = (hasil as { tiang?: { xM: number; yM: number }[] }).tiang
+      const lx = el.jenis === 'pilecap'
+        ? (Number(i.nx) - 1) * Number(i.dxM) + 2 * Number(i.axM)
+        : Number(i.lxM)
+      const ly = el.jenis === 'pilecap'
+        ? (Number(i.ny) - 1) * Number(i.dyM) + 2 * Number(i.ayM)
+        : Number(i.lyM)
+
+      g.pondasi = gambarPondasi({
+        lxM: lx, lyM: ly, hM: Number(i.hM),
+        bxM: Number(i.bxM), byM: Number(i.byM),
+        dTulanganMm: Number(i.dTulanganMm), jarakTulanganMm: Number(i.jarakTulanganMm),
+        ...(el.jenis === 'pilecap' && tg?.length
+          ? { tiang: tg.map((t) => ({ xM: t.xM, yM: t.yM })), diameterTiangM: Number(i.diameterTiangM) }
+          : {}),
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.pondasiGagal = 'Gambar pondasi tak dapat dibuat dari input ini'
+    }
+  }
+
+  if (el.jenis === 'tiang') {
+    try {
+      /*
+        Tiang adalah satu-satunya elemen yang kapasitasnya ditentukan oleh
+        sesuatu DI LUAR dirinya — lapisan tanah yang ditembusnya. Gambar tanpa
+        profil tanah menyembunyikan justru variabel yang menentukan, dan
+        membuat dua tiang berdimensi identik dengan kapasitas berbeda tiga
+        kali lipat terlihat sama persis.
+
+        `pIjinKn` dan `penentu` diambil dari HASIL, bukan dihitung ulang:
+        "P ijin 300 kN" tanpa menyebut apa yang membatasinya tak bisa
+        ditindak — kalau bahan yang membatasi, memperpanjang tiang tak
+        menolong; kalau tanah, justru itu satu-satunya yang menolong.
+      */
+      const h = hasil as { pIjinKn?: number; penentu?: string }
+      g.potongan = gambarTiang({
+        diameterM: Number(i.diameterM), panjangM: Number(i.panjangM),
+        lapisan: (el.input.lapisan as { tebalM: number; nSpt?: number; qcKgCm2?: number }[]) ?? [],
+        pIjinKn: h.pIjinKn, penentu: h.penentu,
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.potonganGagal = 'Potongan tiang tak dapat digambar dari input ini'
     }
   }
 

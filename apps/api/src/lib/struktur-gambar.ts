@@ -171,7 +171,16 @@ export function posisiTulangan(input: InputGambarPenampang): {
  * jumlah batang, di belakang jaraknya bila berulang.
  */
 export function notasiTulangan(jumlah: number, diameterMm: number, tipe: 'D' | 'P' = 'D', jarakMm?: number): string {
-  const dasar = `${jumlah}${tipe}${diameterMm}`
+  /*
+    `jumlah <= 0` berarti tulangan MENERUS — dinotasikan tanpa angka di depan.
+
+    Pelat, footplat, dan pilecap memakai tulangan per meter lari: notasi
+    bakunya "D10-150" (Ø10 tiap 150 mm), bukan jumlah batang tertentu.
+    Melewatkan 0 sebagai "jumlah tak relevan" menghasilkan **"0D10-150"** di
+    gambar kerja — terbaca di tangkapan layar, dan omong kosong bagi yang
+    memesan besi.
+  */
+  const dasar = jumlah > 0 ? `${jumlah}${tipe}${diameterMm}` : `${tipe}${diameterMm}`
   return jarakMm ? `${dasar}-${jarakMm}` : dasar
 }
 
@@ -587,6 +596,660 @@ export function gambarDiagramPM(input: InputGambarPM, opsi: OpsiGambar = {}): st
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" `
     + `width="${opsi.lebarPx ?? W}" role="img" `
     + `aria-label="${amankanTeks(input.judul ?? 'Diagram interaksi P-M')}">`,
+    ...bagian,
+    '</svg>',
+  ].join('\n')
+}
+
+// ── Penampang LINGKARAN (kolom bulat) ────────────────────────────────────────
+
+export interface InputGambarLingkaran {
+  /** Diameter kolom, mm. */
+  diameterMm: number
+  /** Selimut beton bersih ke pengekang, mm. */
+  selimutMm: number
+  /** Diameter pengekang (sengkang cincin / spiral), mm. */
+  dPengekangMm: number
+  /** Diameter tulangan utama, mm. */
+  dUtamaMm: number
+  /** Jumlah tulangan utama, disebar merata pada lingkaran. */
+  nTulangan: number
+  /** Spiral digambar sebagai garis putus; sengkang cincin sebagai garis utuh. */
+  pengekang?: 'spiral' | 'sengkang'
+}
+
+/**
+ * Posisi tiap batang pada kolom bulat — DIPISAH supaya bisa diuji sebagai angka.
+ *
+ * Batang disebar merata pada lingkaran inti (di dalam pengekang). Batang
+ * pertama diletakkan di ATAS (sudut −90°), bukan di kanan (0°): itu konvensi
+ * gambar kolom, dan membuat kolom 4-batang tergambar sebagai belah ketupat
+ * yang benar alih-alih miring 45°.
+ */
+export function posisiTulanganLingkaran(input: InputGambarLingkaran): TitikTulangan[] {
+  const { diameterMm, selimutMm, dPengekangMm, dUtamaMm, nTulangan } = input
+  if (!(nTulangan > 0)) return []
+
+  // Jari-jari lingkaran pusat batang: R − selimut − Øpengekang − ½Øutama.
+  const rInti = diameterMm / 2 - selimutMm - dPengekangMm - dUtamaMm / 2
+  if (rInti <= 0) return []
+
+  const pusat = diameterMm / 2
+  return Array.from({ length: nTulangan }, (_, i) => {
+    const sudut = -Math.PI / 2 + (2 * Math.PI * i) / nTulangan
+    return {
+      xMm: pusat + rInti * Math.cos(sudut),
+      yMm: pusat + rInti * Math.sin(sudut),
+      diameterMm: dUtamaMm,
+    }
+  })
+}
+
+/**
+ * Penampang kolom bulat — pasangan `gambarPenampang` untuk elemen lingkaran.
+ *
+ * Sebelum ini, kolom bulat adalah satu-satunya elemen yang punya diagram P-M
+ * tetapi TIDAK punya gambar penampang: pembaca gambar kerja melihat kurva
+ * kapasitas tanpa pernah melihat susunan tulangan yang menghasilkannya.
+ *
+ * Spiral dibedakan dari sengkang cincin lewat garis putus — bukan hiasan:
+ * keduanya beda cara pasang, beda harga, dan beda faktor φ (0,75 vs 0,65).
+ * Gambar yang menyamakan keduanya membuat pelaksana memasang yang salah.
+ */
+export function gambarPenampangLingkaran(
+  input: InputGambarLingkaran, opsi: OpsiGambar = {},
+): string {
+  const { diameterMm: D, selimutMm, dPengekangMm, dUtamaMm, nTulangan } = input
+  if (!(D > 0)) throw new Error('Diameter kolom harus > 0')
+
+  const margin = opsi.marginMm ?? D * 0.42
+  const pakaiDimensi = opsi.dimensi ?? true
+  const spiral = (input.pengekang ?? 'sengkang') === 'spiral'
+
+  const ruangNotasi = pakaiDimensi ? margin * 1.15 : 0
+  const vbX = -margin
+  const vbY = -margin - (opsi.judul ? margin * 0.4 : 0)
+  const vbW = D + 2 * margin + ruangNotasi
+  const vbH = D + 2 * margin + (opsi.judul ? margin * 0.4 : 0)
+
+  const t = D / 250
+  const ukuranTeks = D / 18
+  const pusat = D / 2
+  const bagian: string[] = []
+
+  // Arsir beton — konvensi yang sama dengan penampang persegi.
+  const jarakArsir = D / 22
+  bagian.push(
+    `<defs><pattern id="arsirL" width="${bulat(jarakArsir)}" height="${bulat(jarakArsir)}" `
+    + `patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
+    + `<line x1="0" y1="0" x2="0" y2="${bulat(jarakArsir)}" `
+    + `stroke="#cbd5e1" stroke-width="${bulat(t * 0.5)}"/></pattern></defs>`)
+
+  bagian.push(`<circle cx="${bulat(pusat)}" cy="${bulat(pusat)}" r="${bulat(D / 2)}" fill="${WARNA.betonIsi}"/>`)
+  bagian.push(`<circle cx="${bulat(pusat)}" cy="${bulat(pusat)}" r="${bulat(D / 2)}" fill="url(#arsirL)"/>`)
+  bagian.push(`<circle cx="${bulat(pusat)}" cy="${bulat(pusat)}" r="${bulat(D / 2)}" `
+    + `fill="none" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.6)}"/>`)
+
+  // Pengekang: lingkaran pada garis pusatnya, tebal minimal 60% diameter —
+  // alasan yang sama dengan sengkang persegi (lihat `gambarPenampang`).
+  const rPengekang = D / 2 - selimutMm - dPengekangMm / 2
+  if (rPengekang > 0) {
+    const tebal = Math.max(t * 1.1, dPengekangMm * 0.6)
+    bagian.push(`<circle cx="${bulat(pusat)}" cy="${bulat(pusat)}" r="${bulat(rPengekang)}" `
+      + `fill="none" stroke="${WARNA.sengkang}" stroke-width="${bulat(tebal)}"`
+      + (spiral ? ` stroke-dasharray="${bulat(D / 14)} ${bulat(D / 22)}"` : '')
+      + `/>`)
+  }
+
+  for (const b of posisiTulanganLingkaran(input)) {
+    bagian.push(`<circle cx="${bulat(b.xMm)}" cy="${bulat(b.yMm)}" r="${bulat(b.diameterMm / 2)}" `
+      + `fill="${WARNA.tulangan}" stroke="#7f1d1d" stroke-width="${bulat(t * 0.35)}"/>`)
+  }
+
+  if (pakaiDimensi) {
+    const off = margin * 0.6
+    bagian.push(garis(0, D, 0, D + off * 1.18, WARNA.dimensi, t * 0.5))
+    bagian.push(garis(D, D, D, D + off * 1.18, WARNA.dimensi, t * 0.5))
+    bagian.push(...dimensi(0, D + off, D, D + off, `Ø${bulat(D, 0)} mm`, t, ukuranTeks))
+
+    // Notasi: jumlah & diameter batang, lalu pengekangnya beserta jenisnya.
+    const xNot = D + off * 0.5
+    bagian.push(teks(xNot, pusat - ukuranTeks * 0.4,
+      notasiTulangan(nTulangan, dUtamaMm), ukuranTeks, WARNA.tulangan, 'start'))
+    bagian.push(teks(xNot, pusat + ukuranTeks * 0.9,
+      `${spiral ? 'Spiral' : 'Sengkang'} Ø${bulat(dPengekangMm, 0)}`,
+      ukuranTeks * 0.9, WARNA.sengkang, 'start'))
+    bagian.push(teks(xNot, pusat + ukuranTeks * 2.2,
+      `selimut ${bulat(selimutMm, 0)} mm`, ukuranTeks * 0.8, WARNA.dimensi, 'start'))
+  }
+
+  if (opsi.judul) {
+    bagian.push(teks(pusat, -margin * 0.55, opsi.judul, ukuranTeks * 1.25))
+  }
+
+  const lebarPx = opsi.lebarPx ?? 420
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bulat(vbX)} ${bulat(vbY)} ${bulat(vbW)} ${bulat(vbH)}" `
+    + `width="${lebarPx}" role="img" aria-label="${amankanTeks(opsi.judul ?? 'Penampang kolom bulat')}">`,
+    ...bagian,
+    '</svg>',
+  ].join('\n')
+}
+
+// ── Potongan PELAT ───────────────────────────────────────────────────────────
+
+export interface InputGambarPelat {
+  /** Bentang yang digambar (arah potongan), m. */
+  bentangM: number
+  /** Tebal pelat, m. */
+  tebalM: number
+  /** Diameter tulangan, mm. */
+  dTulanganMm: number
+  /** Jarak tulangan, mm. */
+  jarakTulanganMm: number
+  /** Selimut beton bersih, mm. */
+  selimutMm: number
+}
+
+/**
+ * Potongan melintang pelat dengan tulangan atas & bawah.
+ *
+ * Pelat sebelumnya tak punya gambar apa pun — padahal ia elemen dengan tonase
+ * besi TERBESAR di gedung bertingkat (diukur pada contoh 200 m²: 1.746 kg,
+ * dua puluh kali balok tunggal). Estimator memesan besi terbanyak justru untuk
+ * elemen yang tak bisa ia lihat gambarnya.
+ *
+ * Digambar sebagai POTONGAN, bukan denah: yang menentukan kebutuhan besi
+ * adalah jarak antar batang dan posisinya terhadap tebal, dan keduanya hanya
+ * terbaca dari potongan.
+ */
+export function gambarPotonganPelat(
+  input: InputGambarPelat, opsi: OpsiGambar = {},
+): string {
+  const { bentangM, tebalM, dTulanganMm, jarakTulanganMm, selimutMm } = input
+  if (!(bentangM > 0 && tebalM > 0)) throw new Error('Bentang & tebal pelat harus > 0')
+  if (!(jarakTulanganMm > 0)) throw new Error('Jarak tulangan harus > 0')
+
+  // Semua dalam mm supaya sekelas dengan gambar penampang.
+  const L = bentangM * 1000
+  const H = tebalM * 1000
+
+  /*
+    Panjang yang DIGAMBAR dibatasi.
+
+    Pelat 8 m dengan tebal 120 mm punya rasio 66:1 — digambar apa adanya, ia
+    jadi garis rambut selebar layar dan tulangannya tak terlihat sama sekali.
+    Yang digambar potongan sepanjang 12× tebal (cukup memuat beberapa jarak
+    tulangan), dan pemotongannya DINYATAKAN lewat garis putus di kedua ujung —
+    bukan disamarkan seolah itu seluruh bentangnya.
+  */
+  const Lgambar = Math.min(L, Math.max(H * 12, jarakTulanganMm * 4.5))
+  const terpotong = Lgambar < L - 1
+
+  const margin = opsi.marginMm ?? Math.max(Lgambar, H) * 0.16
+  const pakaiDimensi = opsi.dimensi ?? true
+  const t = Math.max(Lgambar, H) / 250
+  const ukuranTeks = Math.max(Lgambar, H) / 26
+
+  const vbX = -margin
+  const vbY = -margin - (opsi.judul ? margin * 0.5 : 0)
+  const vbW = Lgambar + 2 * margin
+  const vbH = H + 2 * margin + (opsi.judul ? margin * 0.5 : 0) + (pakaiDimensi ? margin * 0.9 : 0)
+
+  const bagian: string[] = []
+  const jarakArsir = Math.max(H / 6, Lgambar / 60)
+  bagian.push(
+    `<defs><pattern id="arsirP" width="${bulat(jarakArsir)}" height="${bulat(jarakArsir)}" `
+    + `patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
+    + `<line x1="0" y1="0" x2="0" y2="${bulat(jarakArsir)}" `
+    + `stroke="#cbd5e1" stroke-width="${bulat(t * 0.5)}"/></pattern></defs>`)
+
+  bagian.push(`<rect x="0" y="0" width="${bulat(Lgambar)}" height="${bulat(H)}" fill="${WARNA.betonIsi}"/>`)
+  bagian.push(`<rect x="0" y="0" width="${bulat(Lgambar)}" height="${bulat(H)}" fill="url(#arsirP)"/>`)
+  bagian.push(`<rect x="0" y="0" width="${bulat(Lgambar)}" height="${bulat(H)}" `
+    + `fill="none" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.6)}"/>`)
+
+  // Tulangan memanjang (terpotong → lingkaran) pada lapis atas & bawah.
+  const yBawah = H - selimutMm - dTulanganMm / 2
+  const yAtas = selimutMm + dTulanganMm / 2
+  const n = Math.floor(Lgambar / jarakTulanganMm) + 1
+  /*
+    Jari-jari batang dibatasi DUA arah.
+
+    Batas bawah supaya batang tetap terlihat pada gambar pelat panjang; batas
+    ATAS (12% tebal) supaya ia tak mendominasi. Pelat t=120 dengan D10
+    digambar apa adanya membuat dua lapis tulangan memakan sepertiga tebalnya
+    — terbaca seperti pelat yang penuh besi, dan itu memberi kesan yang salah
+    tentang kerapatannya.
+  */
+  const rTul = Math.min(Math.max(dTulanganMm / 2, t * 1.6), H * 0.12)
+  for (let i = 0; i < n; i++) {
+    const x = selimutMm + i * jarakTulanganMm
+    if (x > Lgambar - selimutMm) break
+    for (const y of [yBawah, yAtas]) {
+      bagian.push(`<circle cx="${bulat(x)}" cy="${bulat(y)}" r="${bulat(rTul)}" `
+        + `fill="${WARNA.tulangan}" stroke="#7f1d1d" stroke-width="${bulat(t * 0.35)}"/>`)
+    }
+  }
+
+  // Tulangan arah tegak lurus: garis menerus di belakang batang terpotong.
+  for (const y of [yBawah, yAtas]) {
+    bagian.push(garis(selimutMm, y, Lgambar - selimutMm, y,
+      WARNA.sengkang, bulat(Math.max(t * 0.8, dTulanganMm * 0.35))))
+  }
+
+  // Tanda potong — menyatakan bahwa gambar ini SEPOTONG, bukan seluruh bentang.
+  if (terpotong) {
+    bagian.push(garis(Lgambar, -H * 0.18, Lgambar, H * 1.18, WARNA.dimensi, t * 0.8, true))
+    bagian.push(teks(Lgambar - ukuranTeks * 0.3, -H * 0.24,
+      `⟨ potongan ${bulat(Lgambar / 1000, 2)} m dari bentang ${bulat(bentangM, 2)} m ⟩`,
+      ukuranTeks * 0.85, WARNA.dimensi, 'end'))
+  }
+
+  if (pakaiDimensi) {
+    const off = margin * 0.55
+    bagian.push(garis(0, H, -off * 1.2, H, WARNA.dimensi, t * 0.5))
+    bagian.push(garis(0, 0, -off * 1.2, 0, WARNA.dimensi, t * 0.5))
+    bagian.push(...dimensi(-off, 0, -off, H, `t ${bulat(H, 0)} mm`, t, ukuranTeks, true))
+
+    // Jarak antar batang — angka yang menentukan tonase besi pelat.
+    if (n >= 2) {
+      const x1 = selimutMm, x2 = selimutMm + jarakTulanganMm
+      const yD = H + off
+      bagian.push(garis(x1, H, x1, yD * 1.04, WARNA.dimensi, t * 0.5))
+      bagian.push(garis(x2, H, x2, yD * 1.04, WARNA.dimensi, t * 0.5))
+      bagian.push(...dimensi(x1, yD, x2, yD, `s ${bulat(jarakTulanganMm, 0)}`, t, ukuranTeks))
+    }
+
+    bagian.push(teks(Lgambar / 2, H + off * 2.1,
+      notasiTulangan(0, dTulanganMm, 'D', jarakTulanganMm) + ' — dua lapis (atas & bawah)',
+      ukuranTeks * 0.95, WARNA.tulangan))
+  }
+
+  if (opsi.judul) bagian.push(teks(Lgambar / 2, -margin * 0.6, opsi.judul, ukuranTeks * 1.2))
+
+  const lebarPx = opsi.lebarPx ?? 560
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bulat(vbX)} ${bulat(vbY)} ${bulat(vbW)} ${bulat(vbH)}" `
+    + `width="${lebarPx}" role="img" aria-label="${amankanTeks(opsi.judul ?? 'Potongan pelat')}">`,
+    ...bagian,
+    '</svg>',
+  ].join('\n')
+}
+
+// ── PONDASI: denah + potongan (footplat & pilecap) ───────────────────────────
+
+export interface InputGambarPondasi {
+  /** Lebar pondasi arah X, m. */
+  lxM: number
+  /** Lebar pondasi arah Y, m. */
+  lyM: number
+  /** Tebal pondasi, m. */
+  hM: number
+  /** Lebar kolom arah X, m. */
+  bxM: number
+  /** Lebar kolom arah Y, m. */
+  byM: number
+  /** Diameter tulangan, mm. */
+  dTulanganMm: number
+  /** Jarak tulangan, mm. */
+  jarakTulanganMm: number
+  /**
+   * Tiang di bawah pilecap — koordinat dari PUSAT pondasi, m.
+   * Kosong untuk footplat (bertumpu tanah).
+   */
+  tiang?: { xM: number; yM: number }[]
+  /** Diameter tiang, m — dipakai bila `tiang` diisi. */
+  diameterTiangM?: number
+}
+
+/**
+ * Denah pondasi + potongannya dalam SATU gambar.
+ *
+ * Footplat dan pilecap sebelumnya tak punya gambar apa pun. Keduanya
+ * digambar oleh fungsi yang sama karena bedanya cuma satu: apa yang ada di
+ * BAWAHNYA — tanah (footplat) atau kelompok tiang (pilecap).
+ *
+ * Denah dan potongan disatukan, bukan dipisah jadi dua gambar: yang harus
+ * dicocokkan orang di lapangan adalah posisi tiang terhadap tebal poer, dan
+ * dua gambar terpisah membuat pencocokan itu jadi pekerjaan pembaca.
+ *
+ * Susunan tiang digambar dari koordinat NYATA hasil `bebanPerTiang`, bukan
+ * digambar simetris begitu saja — grup tiang yang tak simetris adalah justru
+ * yang paling perlu diperiksa gambarnya.
+ */
+export function gambarPondasi(
+  input: InputGambarPondasi, opsi: OpsiGambar = {},
+): string {
+  const { lxM, lyM, hM, bxM, byM, dTulanganMm, jarakTulanganMm } = input
+  if (!(lxM > 0 && lyM > 0 && hM > 0)) throw new Error('Dimensi pondasi harus > 0')
+
+  // mm sebagai satuan gambar.
+  const LX = lxM * 1000, LY = lyM * 1000, H = hM * 1000
+  const BX = bxM * 1000, BY = byM * 1000
+  const tiang = input.tiang ?? []
+  const DT = (input.diameterTiangM ?? 0) * 1000
+
+  const skala = Math.max(LX, LY)
+  const margin = opsi.marginMm ?? skala * 0.2
+  const pakaiDimensi = opsi.dimensi ?? true
+  const t = skala / 250
+  const ukuranTeks = skala / 24
+
+  // Potongan diletakkan DI BAWAH denah, dipisah jarak yang jelas.
+  const jarakAntar = skala * 0.42   // memuat kolom yang menjulang + label POTONGAN
+  const yPotongan = LY + jarakAntar
+
+  const vbX = -margin
+  // Ruang atas: judul (1,05·margin) + garis dimensi (0,5·margin) + napas.
+  const vbY = -margin - (opsi.judul ? margin * 0.85 : 0)
+  const vbW = LX + 2 * margin * 1.2
+  const vbH = yPotongan + H + 2.9 * margin + (opsi.judul ? margin * 0.85 : 0)
+
+  const bagian: string[] = []
+  const jarakArsir = skala / 26
+  bagian.push(
+    `<defs><pattern id="arsirF" width="${bulat(jarakArsir)}" height="${bulat(jarakArsir)}" `
+    + `patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
+    + `<line x1="0" y1="0" x2="0" y2="${bulat(jarakArsir)}" `
+    + `stroke="#cbd5e1" stroke-width="${bulat(t * 0.5)}"/></pattern></defs>`)
+
+  // ── DENAH
+  bagian.push(`<rect x="0" y="0" width="${bulat(LX)}" height="${bulat(LY)}" fill="${WARNA.betonIsi}"/>`)
+  bagian.push(`<rect x="0" y="0" width="${bulat(LX)}" height="${bulat(LY)}" fill="url(#arsirF)"/>`)
+  bagian.push(`<rect x="0" y="0" width="${bulat(LX)}" height="${bulat(LY)}" `
+    + `fill="none" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.6)}"/>`)
+
+  // Jaring tulangan bawah — dua arah, digambar sesuai jarak sesungguhnya.
+  const tebalJaring = Math.max(t * 0.6, dTulanganMm * 0.3)
+  for (let x = jarakTulanganMm / 2; x < LX; x += jarakTulanganMm) {
+    bagian.push(garis(x, 0, x, LY, WARNA.tulangan, bulat(tebalJaring)))
+  }
+  for (let y = jarakTulanganMm / 2; y < LY; y += jarakTulanganMm) {
+    bagian.push(garis(0, y, LX, y, WARNA.sengkang, bulat(tebalJaring)))
+  }
+
+  // Kolom di tengah — garis putus karena ia BERADA DI ATAS bidang potong.
+  const kx = (LX - BX) / 2, ky = (LY - BY) / 2
+  bagian.push(`<rect x="${bulat(kx)}" y="${bulat(ky)}" width="${bulat(BX)}" height="${bulat(BY)}" `
+    + `fill="none" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.2)}" stroke-dasharray="${bulat(skala / 40)} ${bulat(skala / 60)}"/>`)
+
+  // Tiang (pilecap) — lingkaran pada posisi nyatanya.
+  for (const p of tiang) {
+    bagian.push(`<circle cx="${bulat(LX / 2 + p.xM * 1000)}" cy="${bulat(LY / 2 + p.yM * 1000)}" `
+      + `r="${bulat(DT / 2)}" fill="none" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.2)}"/>`)
+  }
+
+  /*
+    Label bagian ditaruh di KIRI-ATAS benda, bukan di tengah.
+
+    Versi pertama meletakkan "POTONGAN" di tengah-atas — dan di sana persis
+    berdiri kolomnya, sehingga tulisannya tertimpa kotak kolom. Terlihat di
+    tangkapan layar, tak terlihat sama sekali dari kode.
+  */
+  bagian.push(teks(0, -margin * 0.2, 'DENAH', ukuranTeks * 0.95, WARNA.dimensi, 'start'))
+
+  // ── POTONGAN
+  const yP = yPotongan
+  bagian.push(`<rect x="0" y="${bulat(yP)}" width="${bulat(LX)}" height="${bulat(H)}" fill="${WARNA.betonIsi}"/>`)
+  bagian.push(`<rect x="0" y="${bulat(yP)}" width="${bulat(LX)}" height="${bulat(H)}" fill="url(#arsirF)"/>`)
+  bagian.push(`<rect x="0" y="${bulat(yP)}" width="${bulat(LX)}" height="${bulat(H)}" `
+    + `fill="none" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.6)}"/>`)
+
+  // Kolom berdiri di atas pondasi — digambar terpotong di tepi atas gambar.
+  /*
+    Tinggi kolom yang tampak dibatasi 60% tebal poer, bukan 85%.
+
+    Pada pilecap tebal 500 mm, 85% berarti kolom menjulang 425 mm ke atas dan
+    menabrak label "POTONGAN" — terlihat di tangkapan layar. Yang perlu
+    disampaikan gambar ini cuma "ada kolom berdiri di sini", bukan tinggi
+    kolomnya (yang memang bukan milik gambar pondasi).
+  */
+  const tinggiKolom = H * 0.6
+  bagian.push(`<rect x="${bulat(kx)}" y="${bulat(yP - tinggiKolom)}" width="${bulat(BX)}" height="${bulat(tinggiKolom)}" `
+    + `fill="${WARNA.betonIsi}" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.4)}"/>`)
+
+  // Tulangan bawah pada potongan.
+  /*
+    URUTAN GAMBAR PENTING: garis arah-lain DULU, baru batang terpotong.
+
+    Versi pertama menggambar lingkaran lebih dulu lalu menimpanya dengan
+    garis biru — hasilnya batang merah nyaris hilang di balik garis. Di gambar
+    kerja, batang terpotong (yang dihitung jumlahnya) harus lebih menonjol
+    daripada batang menerus yang cuma menunjukkan arah.
+
+    Jari-jarinya juga dinaikkan: pada pondasi 1,5 m, D13 hanya 0,9% lebar
+    gambar — digambar apa adanya ia jadi titik yang tak terbaca.
+  */
+  const yTul = yP + H - (dTulanganMm * 2.4)
+  const rTul = Math.max(dTulanganMm / 2, skala / 130)
+
+  bagian.push(garis(dTulanganMm * 2, yTul, LX - dTulanganMm * 2, yTul,
+    WARNA.sengkang, bulat(Math.max(t * 0.7, dTulanganMm * 0.3))))
+  for (let x = jarakTulanganMm / 2; x < LX; x += jarakTulanganMm) {
+    bagian.push(`<circle cx="${bulat(x)}" cy="${bulat(yTul)}" r="${bulat(rTul)}" `
+      + `fill="${WARNA.tulangan}" stroke="#7f1d1d" stroke-width="${bulat(t * 0.35)}"/>`)
+  }
+
+  if (tiang.length) {
+    // Tiang menembus ke bawah — digambar terpotong, sepanjang 60% tebal poer.
+    const panjangTampak = H * 0.6
+    const xUnik = [...new Set(tiang.map((p) => bulat(p.xM, 3)))]
+    for (const xm of xUnik) {
+      const x = LX / 2 + xm * 1000
+      bagian.push(`<rect x="${bulat(x - DT / 2)}" y="${bulat(yP + H)}" `
+        + `width="${bulat(DT)}" height="${bulat(panjangTampak)}" `
+        + `fill="${WARNA.betonIsi}" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.2)}"/>`)
+    }
+    bagian.push(teks(LX / 2, yP + H + panjangTampak + ukuranTeks * 1.1,
+      `${tiang.length} tiang Ø${bulat(DT, 0)} mm`, ukuranTeks * 0.85, WARNA.dimensi))
+  } else {
+    // Footplat: garis tanah di bawah dasar pondasi.
+    const yTanah = yP + H
+    bagian.push(garis(-margin * 0.5, yTanah, LX + margin * 0.5, yTanah, WARNA.dimensi, t * 1.1))
+    for (let x = -margin * 0.4; x < LX + margin * 0.5; x += skala / 18) {
+      bagian.push(garis(x, yTanah, x - skala / 40, yTanah + skala / 40, WARNA.dimensi, t * 0.5))
+    }
+  }
+
+  bagian.push(teks(0, yP - ukuranTeks * 1.6, 'POTONGAN', ukuranTeks * 0.95, WARNA.dimensi, 'start'))
+
+  if (pakaiDimensi) {
+    const off = margin * 0.5
+    bagian.push(...dimensi(0, -off, LX, -off, `${bulat(lxM, 2)} m`, t, ukuranTeks))
+    bagian.push(...dimensi(-off, 0, -off, LY, `${bulat(lyM, 2)} m`, t, ukuranTeks, true))
+    bagian.push(...dimensi(LX + off, yP, LX + off, yP + H, `t ${bulat(H, 0)}`, t, ukuranTeks, true))
+    // Diberi jarak dari label tiang di atasnya — keduanya sempat bertabrakan.
+    const yNotasi = yP + H
+      + (tiang.length ? H * 0.6 + ukuranTeks * 2.9 : ukuranTeks * 1.8)
+    bagian.push(teks(LX / 2, yNotasi,
+      notasiTulangan(0, dTulanganMm, 'D', jarakTulanganMm) + ' dua arah',
+      ukuranTeks * 0.95, WARNA.tulangan))
+  }
+
+  if (opsi.judul) bagian.push(teks(LX / 2, -margin * 1.05, opsi.judul, ukuranTeks * 1.2))
+
+  const lebarPx = opsi.lebarPx ?? 480
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bulat(vbX)} ${bulat(vbY)} ${bulat(vbW)} ${bulat(vbH)}" `
+    + `width="${lebarPx}" role="img" aria-label="${amankanTeks(opsi.judul ?? 'Denah & potongan pondasi')}">`,
+    ...bagian,
+    '</svg>',
+  ].join('\n')
+}
+
+// ── TIANG PANCANG: potongan memanjang + profil tanah ─────────────────────────
+
+export interface InputGambarTiang {
+  /** Diameter tiang, m. */
+  diameterM: number
+  /** Panjang tiang, m. */
+  panjangM: number
+  /** Lapisan tanah dari permukaan ke bawah. */
+  lapisan: { tebalM: number; nSpt?: number; qcKgCm2?: number }[]
+  /** Daya dukung ijin yang MENENTUKAN, kN. */
+  pIjinKn?: number
+  /** Apa yang membatasi: 'bahan' atau nama metode tanah. */
+  penentu?: string
+}
+
+/**
+ * Potongan memanjang tiang beserta profil tanahnya.
+ *
+ * Tiang adalah satu-satunya elemen yang daya dukungnya ditentukan oleh sesuatu
+ * DI LUAR dirinya — lapisan tanah yang ditembusnya. Gambar yang hanya
+ * menampilkan tiangnya tanpa tanah menyembunyikan justru variabel yang
+ * menentukan, dan membuat dua tiang berdimensi identik dengan kapasitas
+ * berbeda tiga kali lipat terlihat sama persis.
+ *
+ * Karena itu N-SPT tiap lapisan ikut ditulis: itulah angka yang, kalau
+ * berubah, mengubah verdict-nya.
+ */
+export function gambarTiang(input: InputGambarTiang, opsi: OpsiGambar = {}): string {
+  const { diameterM, panjangM, lapisan } = input
+  if (!(diameterM > 0 && panjangM > 0)) throw new Error('Dimensi tiang harus > 0')
+
+  const D = diameterM * 1000
+  const L = panjangM * 1000
+
+  /*
+    Skala VERTIKAL dan HORIZONTAL sengaja berbeda.
+
+    Tiang Ø400 sepanjang 16 m punya rasio 40:1 — digambar sebangun ia jadi
+    garis rambut. Konvensi gambar geoteknik memang memakai skala terdistorsi
+    untuk profil tiang; yang penting proporsi ANTAR LAPISAN tetap benar,
+    karena itulah yang dibaca.
+  */
+  const lebarGambar = Math.max(D * 3.4, L / 12)
+  const skalaX = lebarGambar / D
+
+  const margin = L * 0.07
+  const pakaiDimensi = opsi.dimensi ?? true
+  const t = L / 320
+  const ukuranTeks = L / 34
+
+  /*
+    ViewBox DIUKUR dari isi terjauh, bukan ditaksir.
+
+    Versi pertama memakai kelipatan `margin` yang saya karang, dan hasilnya
+    terlihat begitu dirender: judul terpotong di kiri, label N-SPT terpotong
+    di kanan, "tahanan ujung" dan baris P-ijin hilang di bawah. Semuanya lolos
+    tsc dan lolos test — cacat viewBox hanya terlihat dari gambarnya.
+
+    Sekarang tiap tepi dihitung dari elemen terjauh ke arah itu:
+      kiri   — teks "gesekan selimut" + garis dimensi panjang tiang
+      kanan  — kolom tanah + label N-SPT (ditaksir 13 karakter)
+      bawah  — ujung runcing + dua baris teks di bawahnya
+  */
+  const xTanahKanan = lebarGambar * 1.5 + lebarGambar * 1.62
+  const lebarLabelNSpt = ukuranTeks * 0.82 * 13 * 0.55
+  const tepiKiri = -(lebarGambar * 0.55 + ukuranTeks * 8)
+
+  /*
+    Tepi kanan harus memuat BARIS TERPANJANG, bukan hanya label N-SPT.
+
+    Versi sebelumnya cuma menghitung kolom tanah — dan baris
+    "P ijin 412.5 kN — ditentukan SPT (Meyerhof)" (±44 karakter) terpotong
+    jadi "…SPT (Meye". Cacat yang persis sama dengan yang baru saja diperbaiki
+    di atasnya, terulang karena saya menaksir lagi alih-alih mengukur.
+
+    Lebar teks ditaksir dari jumlah karakter × ukuran font: SVG tak
+    menyediakan pengukuran teks tanpa mesin render, jadi taksiran konservatif
+    (0,58 em per karakter untuk sans-serif) adalah yang paling jujur di sini.
+  */
+  const barisBawah = `P ijin 000.0 kN — ditentukan ${input.penentu ?? ''}`.length
+  const lebarBarisBawah = ukuranTeks * 0.92 * barisBawah * 0.58
+  const tepiKanan = Math.max(xTanahKanan + lebarLabelNSpt, lebarBarisBawah)
+  const tepiBawah = L + lebarGambar * 2.35 + ukuranTeks * 1.6
+
+  const vbX = tepiKiri - margin * 0.5
+  const vbY = -(lebarGambar * 0.35 + (opsi.judul ? margin * 1.6 : margin * 0.8))
+  const vbW = (tepiKanan - tepiKiri) + margin
+  const vbH = (tepiBawah - vbY) + margin * 0.6
+
+  const bagian: string[] = []
+  const xTiang = 0
+  const xTanah = lebarGambar * 1.5
+
+  // ── Profil tanah, digambar sesuai tebal sesungguhnya.
+  let y = 0
+  const abu = ['#e2e8f0', '#cbd5e1']
+  lapisan.forEach((lap, k) => {
+    const h = lap.tebalM * 1000
+    if (h <= 0) return
+    bagian.push(`<rect x="${bulat(xTanah)}" y="${bulat(y)}" width="${bulat(lebarGambar * 1.5)}" height="${bulat(h)}" `
+      + `fill="${abu[k % 2]}" stroke="#94a3b8" stroke-width="${bulat(t * 0.6)}"/>`)
+    const label = lap.nSpt != null ? `N-SPT ${lap.nSpt}`
+      : lap.qcKgCm2 != null ? `qc ${lap.qcKgCm2}` : '—'
+    bagian.push(teks(xTanah + lebarGambar * 1.62, y + h / 2 + ukuranTeks * 0.32,
+      `${label}  (${bulat(lap.tebalM, 1)} m)`, ukuranTeks * 0.82, WARNA.teks, 'start'))
+    y += h
+  })
+
+  // Garis muka tanah.
+  bagian.push(garis(xTiang - lebarGambar * 0.6, 0, xTanah + lebarGambar * 1.5, 0,
+    WARNA.dimensi, t * 1.3))
+  for (let x = xTiang - lebarGambar * 0.55; x < xTanah; x += lebarGambar * 0.35) {
+    bagian.push(garis(x, 0, x - lebarGambar * 0.18, -lebarGambar * 0.18, WARNA.dimensi, t * 0.6))
+  }
+
+  // ── Tiang.
+  bagian.push(`<rect x="${bulat(xTiang)}" y="0" width="${bulat(lebarGambar)}" height="${bulat(L)}" `
+    + `fill="${WARNA.betonIsi}" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.8)}"/>`)
+
+  // Ujung tiang dibuat runcing — konvensi tiang pancang, dan menyatakan bahwa
+  // tahanan ujung (end bearing) bekerja di sana.
+  bagian.push(`<path d="M ${bulat(xTiang)} ${bulat(L)} L ${bulat(xTiang + lebarGambar / 2)} ${bulat(L + lebarGambar * 0.85)} `
+    + `L ${bulat(xTiang + lebarGambar)} ${bulat(L)} Z" `
+    + `fill="${WARNA.betonIsi}" stroke="${WARNA.beton}" stroke-width="${bulat(t * 1.8)}"/>`)
+
+  // Panah gesekan selimut di kiri + tahanan ujung di bawah.
+  /*
+    Dua label mekanisme dijadikan SATU baris keterangan di bawah gambar.
+
+    Ditaruh di kiri, ia menimpa garis dimensi ("kan selimut" di atas "L 16 m").
+    Ditaruh di celah antara tiang dan tanah, ia menimpa badan tiang — celahnya
+    memang tak cukup lebar untuk teks. Keduanya terlihat di tangkapan layar,
+    tak satu pun terlihat dari kode.
+
+    Sebagai keterangan di bawah, keduanya terbaca utuh dan justru lebih jelas:
+    yang perlu disampaikan adalah bahwa kapasitas tiang datang dari DUA
+    mekanisme, bukan menunjuk lokasi persisnya pada gambar.
+  */
+  bagian.push(teks(xTiang, L + lebarGambar * 1.5,
+    'Kapasitas = gesekan selimut + tahanan ujung',
+    ukuranTeks * 0.8, WARNA.sengkang, 'start'))
+
+  if (pakaiDimensi) {
+    const off = lebarGambar * 0.55
+    bagian.push(...dimensi(xTiang - off, 0, xTiang - off, L,
+      `L ${bulat(panjangM, 1)} m`, t, ukuranTeks, true))
+    bagian.push(teks(xTiang + lebarGambar / 2, -lebarGambar * 0.35,
+      `Ø${bulat(D, 0)} mm`, ukuranTeks * 0.95, WARNA.teks))
+
+    if (input.pIjinKn != null) {
+      /*
+        Kapasitas DAN penentunya ditulis bersama.
+
+        "P ijin 300 kN" saja tak bisa ditindak: kalau yang membatasi BAHAN,
+        memperpanjang tiang tak menolong; kalau yang membatasi TANAH, justru
+        itu satu-satunya yang menolong. Menyebut penentunya membuat gambar ini
+        bisa dipakai mengambil keputusan, bukan cuma dibaca.
+      */
+      bagian.push(teks(xTiang, L + lebarGambar * 2.35,
+        `P ijin ${bulat(input.pIjinKn, 1)} kN` + (input.penentu ? ` — ditentukan ${input.penentu}` : ''),
+        ukuranTeks * 0.92, WARNA.tulangan, 'start'))
+    }
+  }
+
+  if (opsi.judul) {
+    bagian.push(teks(xTiang + lebarGambar / 2, -margin * 1.0, opsi.judul, ukuranTeks * 1.15))
+  }
+
+  const lebarPx = opsi.lebarPx ?? 380
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bulat(vbX)} ${bulat(vbY)} ${bulat(vbW)} ${bulat(vbH)}" `
+    + `width="${lebarPx}" role="img" aria-label="${amankanTeks(opsi.judul ?? 'Potongan tiang pancang')}">`,
     ...bagian,
     '</svg>',
   ].join('\n')

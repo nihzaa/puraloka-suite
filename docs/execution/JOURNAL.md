@@ -5,6 +5,99 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 2) — "sudah sempurna?" ternyata belum: 5 dari 7 jenis tak punya gambar
+
+Founder bertanya apakah benar-benar tak ada kekurangan. Saya jawab "matang"
+berdasarkan penjaga hijau — padahal fase ini sendiri sudah membuktikan penjaga
+hijau bukan bukti. Audit ulang menemukan enam kekurangan nyata.
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur    401 passed (14 files)   ← dari 373
+apps/api  npx tsc --noEmit           exit 0
+apps/web  npx tsc --noEmit           exit 0
+apps/web  npx next build             exit 0
+penjaga UI (69 skrip)                25 merah — IDENTIK baseline
+a11y runtime terang + gelap          1/1 halaman, 0 pelanggaran
+7 jenis lewat API hidup              7/7 punya gambar   ← dari 2/7
+```
+
+### 1. Lima dari tujuh jenis TAK punya gambar sama sekali
+
+Diukur lewat API hidup, bukan dibaca dari kode: hanya balok & kolom persegi
+yang menghasilkan SVG. Kolom bulat cuma punya diagram P-M — kurva kapasitas
+tanpa pernah memperlihatkan susunan tulangan yang menghasilkannya. Pelat,
+footplat, pilecap, tiang: kosong.
+
+Pelat justru elemen bertonase besi TERBESAR (1.746 kg pada contoh 200 m², dua
+puluh kali balok tunggal). Estimator memesan besi terbanyak untuk elemen yang
+tak bisa ia lihat gambarnya.
+
+Ditambah empat penggambar: penampang lingkaran, potongan pelat, denah+potongan
+pondasi (footplat & pilecap), dan potongan tiang berikut profil tanahnya.
+
+### 2. Halaman TAK PERNAH menampilkan gambar
+
+Endpoint `?gambar=1` ada sejak Fase 5 dan tak pernah dipanggil UI. Seluruh
+penggambar — kini 900+ baris — tak terlihat pengguna. Kelas cacat yang sudah
+tercatat di repo ini (lapis cache dibangun lalu tak dipakai satu halaman pun).
+Ditambah panel detail: verdict ber-angka + rasio + gambar kerja + catatan batas.
+
+### 3. Tiang melaporkan "besi 0,0 kg" tanpa satu kata keterangan
+
+Nol-nya BENAR (precast, tulangan pabrikan) dan berkomentar rapi — di berkas
+sumber. Tempat yang tak pernah dibaca orang yang memakai angkanya. Estimator
+yang merekap 6 tiang melihat "0,0 kg" dan menyimpulkan tiang tak butuh besi.
+
+Penjaga lintas-modul saya sendiri MENGECUALIKAN tiang, dengan alasan "tiang tak
+punya batas penyaluran". Benar, tetapi itu membuat batasnya lebih berbahaya,
+bukan tak ada. **Penjaga yang mengecualikan kasus tersulitnya sendiri bukan
+penjaga.** Tiang kini masuk daftar.
+
+### 4. Notasi "0D10-150" di gambar kerja
+
+`notasiTulangan(0, …)` menghasilkan angka nol di depan. Tulangan menerus
+dinotasikan "D10-150", bukan "0D10-150" — yang kedua omong kosong bagi yang
+memesan besi. Terlihat di tangkapan layar; lolos tsc dan lolos 42 test.
+
+### 5. Enam cacat tata letak, semuanya hanya terlihat dari GAMBAR
+
+Label "POTONGAN" tertimpa kolom · judul menempel garis dimensi · denah tak
+diarsir sementara potongan diarsir · tulangan pelat mendominasi tebalnya ·
+batang merah tertutup garis biru (urutan gambar salah) · viewBox tiang
+memotong judul di kiri DAN baris "ditentukan SPT (Meyerhof)" di kanan.
+
+Yang terakhir terjadi DUA KALI: saya menaksir viewBox dari kelipatan margin,
+diperbaiki, lalu menaksir lagi untuk baris bawah. Sekarang tiap tepi dihitung
+dari elemen terjauh ke arah itu.
+
+### 6. Penjaga penyisipan SVG — dan tiga assertion saya yang salah
+
+Halaman menanam SVG lewat `dangerouslySetInnerHTML` (satu-satunya cara gambar
+teknik tetap bisa diperbesar tanpa buram dan terbaca pembaca layar). Itu boleh
+karena seluruh teks lewat `amankanTeks()` — tetapi "boleh" itu bergantung pada
+satu fungsi yang bisa dilewati penggambar berikutnya.
+
+Menulis penjaganya butuh tiga percobaan, dan ketiganya layak dicatat:
+
+    /onload=/           MERAH untuk keluaran yang BENAR — menguji huruf,
+                        bukan bahaya
+    /<[^>]*\sonload=/   juga merah; `[^>]*` ikut mencakup teks DI DALAM nilai
+                        atribut, karena di sana memang tak ada `>`
+    DOMParser           tak tersedia di lingkungan test node ini
+
+Yang benar: buang isi nilai atribut DAN isi teks, lalu cari di sisanya.
+Dibuktikan bisa merah — melepas pelolosan kutip → 2 test MERAH.
+
+### Yang saya pelajari dari pertanyaan founder
+
+Saya menyatakan "matang" dengan bukti yang tak menyentuh lima dari tujuh jenis
+elemen. Cakupan yang tak diukur terbaca seperti cakupan penuh — kelas kesalahan
+yang sama dengan "0 pelanggaran dari 0 halaman terpindai" kemarin.
+
+---
+
 ## 2026-08-19 (lanjutan) — Fase 6 UI, dan cacat yang hanya terlihat dari GAMBAR
 
 Halaman `/estimasi/struktur` + migrasi 461 (menu). Pekerjaan dipindahkan ke

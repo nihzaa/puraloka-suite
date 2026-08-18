@@ -256,9 +256,24 @@ describe('kewajaran angka rekap — penjaga satuan', () => {
  * ══════════════════════════════════════════════════════════════════════════════
  */
 describe('setiap modul membawa batasnya sendiri, bukan hanya angkanya', () => {
+  /*
+    TIANG IKUT — pengecualian sebelumnya adalah kesalahan saya.
+
+    Alasan yang saya tulis: "tiang tak punya batas penyaluran (precast,
+    tulangan pabrikan)". Benar, tetapi itu justru membuat batasnya LEBIH
+    berbahaya, bukan tak ada: tiang memulangkan besi 0 kg dan bekisting 0 m²,
+    dan nol di layar rekap tak bisa membedakan dirinya dari "belum dihitung".
+
+    Diukur: `analisaTiang` dengan data tanah lengkap memulangkan `catatan`
+    KOSONG. Estimator yang merekap 6 tiang melihat "besi 0,0 kg" tanpa satu
+    kata pun keterangan.
+
+    Penjaga yang mengecualikan kasus tersulitnya sendiri bukan penjaga.
+  */
   const bercatatan: Array<[string, { catatan: string[]; aman: boolean }]> = [
     ['balok', BALOK], ['kolom', KOLOM], ['kolom bulat', KOLOM_BULAT],
     ['pelat', PLAT], ['footplat', FOOTPLAT], ['pilecap', PILECAP],
+    ['tiang', TIANG],
   ]
 
   it.each(bercatatan)('%s punya catatan meski seluruh pemeriksaannya hijau', (_n, h) => {
@@ -273,7 +288,7 @@ describe('setiap modul membawa batasnya sendiri, bukan hanya angkanya', () => {
       tak pernah melihatnya. Yang harus selalu ada adalah batas KUANTITAS,
       karena itulah yang dipakai memesan besi.
     */
-    const batasVolume = /penyaluran|lewatan|kait|stek|dowel/i
+    const batasVolume = /penyaluran|lewatan|kait|stek|dowel|pracetak/i
     for (const [nama, h] of bercatatan) {
       expect(
         h.catatan.some((c) => batasVolume.test(c)),
