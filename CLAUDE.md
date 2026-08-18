@@ -390,6 +390,34 @@ jadi **todo yang banyak dan spesifik**, lalu habiskan.
 
 Di luar lima itu: jalan terus.
 
+#### Tiga perintah yang DILARANG saat sesi lain hidup di checkout yang sama
+
+Ditambahkan 2026-08-18 sesudah ketiganya benar-benar terjadi dalam satu sore.
+Ketiganya **tak mengeluarkan satu pun galat** — kerusakannya baru terlihat
+dari gejala yang menunjuk ke tempat lain.
+
+| Perintah | Yang terjadi |
+|---|---|
+| `git stash -u` | menyapu berkas belum-ter-commit sesi lain (`struktur.ts`, migrasi 458/459). `pop` menyelamatkannya, tapi menyisakan entri stash dan mengubah akhir baris jadi CRLF. |
+| `pnpm install` / `--filter` | mengosongkan `node_modules` workspace lain di tengah jalan. `tsc`/`vitest` sesi itu mati dengan "Cannot find package" — galat yang menuduh KODE. |
+| menulis `JOURNAL.md` | dua sesi menulis dengan konvensi berbeda; yang belakangan menimpa struktur yang pertama. |
+
+**Yang benar:** pindah ke worktree sendiri. Repo ini sudah punya jalurnya —
+`.claude/worktrees/` dan `.worktrees/` berisi beberapa, dan `git worktree list`
+memperlihatkan siapa di mana.
+
+⚠ Untuk MEMBANDINGKAN dengan commit lama (mis. mencari "penjaga ini sudah
+merah sebelum saya?"), pakai worktree terpisah — **jangan `git stash`**. Dan
+`node_modules` pnpm di Windows butuh **junction**, bukan symlink:
+
+```bash
+git worktree add --detach /e/tmp/base <commit>
+cmd //c "mklink /J E:\\tmp\\base\\node_modules E:\\Project\\puraloka-suite\\node_modules"
+cmd //c "mklink /J E:\\tmp\\base\\apps\\api\\node_modules E:\\Project\\puraloka-suite\\apps\\api\\node_modules"
+cp apps/api/.env /e/tmp/base/apps/api/.env
+# selesai: rmdir junction-nya DULU, baru `git worktree remove`
+```
+
 ### 8a.2 Tiap sektor WAJIB ditest dan diaudit
 
 Selesai ≠ kode jalan. Selesai = **ada buktinya**:
