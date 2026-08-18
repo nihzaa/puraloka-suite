@@ -75,8 +75,23 @@ beforeAll(async () => {
   adminAuth = (await authIdForRole(client, 'admin')) as string
   await purge()
 
+  /*
+    `adminUserId` DITURUNKAN dari `adminAuth`, bukan dicari sendiri.
+
+    Versi sebelumnya memilihnya dengan `LIMIT 1` atas SELURUH admin di basis —
+    sementara `adminAuth` datang dari `authIdForRole()` yang menuntut
+    keanggotaan dan ber-ORDER BY. Keduanya bisa menunjuk ORANG BERBEDA.
+
+    Akibatnya `decided_by` yang dicatat rute (dari sesi = adminAuth) tak sama
+    dengan `adminUserId` yang diharapkan test, dan assertion-nya merah dengan
+    dua UUID yang sama-sama sah — kegagalan yang terbaca seperti bug jejak
+    audit, padahal fixture-nya yang menunjuk dua orang.
+
+    Satu sumber: siapa pun yang dipakai sesi, itulah yang diperiksa.
+  */
   const { rows: u } = await client.query(
-    `SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1`)
+    'SELECT id FROM users WHERE auth_id = $1', [adminAuth])
+  if (!u.length) throw new Error('users.id untuk akun sesi tak ditemukan')
   adminUserId = u[0].id
 
   // `company_id` EKSPLISIT — `fn_isi_company_id()` menolak menebak saat ada
