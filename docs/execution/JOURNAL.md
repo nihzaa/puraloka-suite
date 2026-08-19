@@ -93,13 +93,32 @@ mengganti.** Penggantian yang gagal senyap membuat mutasi yang tak pernah
 terjadi terbaca sebagai test yang lemah — dan "memperbaiki" test yang sudah
 benar adalah cara paling rapi membuang waktu.
 
-### Yang masih belum
+### Barisnya IKUT TERSIMPAN — ditutup di commit yang sama
 
-Kalkulator ini menghitung di KLIEN sebagai pratinjau; baris `takeoff_dimensi`
-belum disimpan dari layar ini (endpoint-nya ada, tombolnya belum). Jadi rantai
-perhitungannya terlihat saat mengisi, tetapi belum tersimpan sebagai jejak yang
-bisa dibuka lagi enam bulan kemudian. Rumus klien dikunci test yang angkanya
-sama persis dengan test sisi API supaya keduanya tak menyimpang diam-diam.
+Kalkulator menghitung di klien sebagai pratinjau, tetapi masukan mentahnya
+dibawa keluar bersama hasilnya dan disimpan lewat
+`POST …/items/:itemId/takeoff-dimensi` sesudah itemnya dibuat. Server
+MENGHITUNG ULANG dari masukan itu — angka klien tak pernah dipercaya untuk apa
+pun yang jadi rupiah.
+
+Diuji lewat API sungguhan, dan yang penting adalah pembacaan ULANGNYA:
+
+```
+item dibuat : 201
+takeoff     : 201  8.67 m2
+dibaca ulang: 200  | baris: 1
+   Take-off dinding | 8.67 | 4 × 3 × 1 = 12 m² − bukaan 3,33 m² (P1 0,9×2,1×1 + J1 1,2×1,2×1)
+```
+
+Itulah yang membedakan volume yang bisa diperiksa dari angka yang sekadar ada.
+
+Kegagalan menyimpan baris takeoff SENGAJA tidak menggagalkan penambahan item:
+itemnya sudah tersimpan dan bernilai benar, yang hilang cuma jejaknya. Melempar
+di sana membuat orang menekan "Tambah" lagi dan menghasilkan item KEMBAR.
+Galatnya tetap dicatat, tidak ditelan.
+
+Rumus klien dikunci test yang angkanya sama persis dengan test sisi API supaya
+keduanya tak menyimpang diam-diam.
 
 ---
 

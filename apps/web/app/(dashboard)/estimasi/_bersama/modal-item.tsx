@@ -38,7 +38,7 @@ import { C } from "@/lib/warna-ui";
 import { PilihCari } from "@/components/pilih-cari";
 import { GAYA_ISIAN } from "@/components/isian";
 import { formatRupiah, formatAngka, formatKuantitas } from "@/lib/format";
-import { HitungVolume } from "./hitung-volume";
+import { HitungVolume, type MasukanTakeoff } from "./hitung-volume";
 import { Plus, X } from "lucide-react";
 import { Modal, label, btnPrimary, btnGhost } from "./kerangka";
 
@@ -169,12 +169,53 @@ export function AddItemModal({ version, onClose, onDone }:
     return () => { batal = true; };
   }, [version.edition]);
 
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    MASUKAN TAKE-OFF DISIMPAN, bukan cuma hasilnya.
+
+    Volume yang tersimpan tanpa asal-usul tak bisa diperiksa siapa pun enam
+    bulan kemudian — dan itu justru alasan `takeoff_dimensi` dibangun (431).
+    Kalau orang memakai kalkulator, barisnya ikut tersimpan; kalau ia mengetik
+    angkanya langsung, tak ada yang disimpan dan itu memang benar.
+
+    Server MENGHITUNG ULANG dari masukan ini; angka klien tak pernah dipercaya
+    untuk apa pun yang jadi rupiah.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const [takeoff, setTakeoff] = useState<MasukanTakeoff | null>(null);
+
+  /**
+   * Simpan baris take-off untuk item yang baru dibuat.
+   *
+   * Kegagalannya TIDAK menggagalkan penambahan item: itemnya sudah tersimpan
+   * dan bernilai benar, yang hilang cuma jejak perhitungannya. Melempar di sini
+   * membuat orang menekan "Tambah" lagi dan menghasilkan item KEMBAR.
+   */
+  const simpanTakeoff = async (itemId: string) => {
+    if (!takeoff) return;
+    try {
+      await api.post(
+        `/api/v1/estimate-versions/${version.id}/items/${itemId}/takeoff-dimensi`,
+        { ...takeoff, uraian: `Take-off ${takeoff.sektor ?? "dimensional"}` },
+      );
+    } catch (e) {
+      /*
+        Dilaporkan, tidak ditelan. Jejak yang gagal tersimpan tanpa seorang pun
+        tahu adalah kelas cacat yang dijaga `catch-senyap-ratchet`.
+      */
+      console.warn("Baris take-off gagal disimpan (item tetap tersimpan):", e);
+    }
+  };
+
   const submitKatalog = async () => {
-    await api.post(`/api/v1/estimate-versions/${version.id}/items`, {
-      item_type: "assembly", assembly_id: assemblyId, quantity: Number(qty), price_date: priceDate,
-      location: location || null, buk_fraction: Number(bukPct) / 100,
-      rounding: { mode: roundMode, step: Number(roundStep) },
-    });
+    const r = await api.post<{ item?: { id: string }; id?: string }>(
+      `/api/v1/estimate-versions/${version.id}/items`, {
+        item_type: "assembly", assembly_id: assemblyId, quantity: Number(qty), price_date: priceDate,
+        location: location || null, buk_fraction: Number(bukPct) / 100,
+        rounding: { mode: roundMode, step: Number(roundStep) },
+      });
+    const itemId = r.data.item?.id ?? r.data.id;
+    if (itemId) await simpanTakeoff(itemId);
   };
   const submitCustom = async () => {
     const created = await api.post<{ id: string }>("/api/v1/cecep/assemblies", {
@@ -185,11 +226,14 @@ export function AddItemModal({ version, onClose, onDone }:
         .map(c => ({ resource_code: c.resource_code.trim(), coefficient: Number(c.coefficient) })),
       created_in_estimate_id: version.id,
     });
-    await api.post(`/api/v1/estimate-versions/${version.id}/items`, {
-      item_type: "assembly", assembly_id: created.data.id, quantity: Number(qty), price_date: priceDate,
-      location: location || null, buk_fraction: Number(bukPct) / 100,
-      rounding: { mode: roundMode, step: Number(roundStep) },
-    });
+    const r = await api.post<{ item?: { id: string }; id?: string }>(
+      `/api/v1/estimate-versions/${version.id}/items`, {
+        item_type: "assembly", assembly_id: created.data.id, quantity: Number(qty), price_date: priceDate,
+        location: location || null, buk_fraction: Number(bukPct) / 100,
+        rounding: { mode: roundMode, step: Number(roundStep) },
+      });
+    const itemId = r.data.item?.id ?? r.data.id;
+    if (itemId) await simpanTakeoff(itemId);
   };
   const submitLumpsum = async () => {
     await api.post(`/api/v1/estimate-versions/${version.id}/items`, {
@@ -285,7 +329,7 @@ export function AddItemModal({ version, onClose, onDone }:
           </button>
           {label("Volume")}
           <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} />
-          <HitungVolume onPakai={(v) => setQty(String(v))} />
+          <HitungVolume onPakai={(v, m) => { setQty(String(v)); setTakeoff(m); }} />
         </>
       )}
 
@@ -302,7 +346,7 @@ export function AddItemModal({ version, onClose, onDone }:
                 migrasi 431: endpoint-nya lengkap sejak 2026-08-16, layarnya tak
                 pernah ada, jadi volume tetap diketik tangan.
               */}
-              <HitungVolume onPakai={(v) => setQty(String(v))} /></>
+              <HitungVolume onPakai={(v, m) => { setQty(String(v)); setTakeoff(m); }} /></>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>{label("Tanggal harga (price book)")}

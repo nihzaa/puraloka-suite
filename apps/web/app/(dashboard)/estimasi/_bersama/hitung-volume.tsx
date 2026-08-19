@@ -203,7 +203,30 @@ export function hitung(
   };
 }
 
-export function HitungVolume({ onPakai }: { onPakai: (volume: number) => void }) {
+/**
+ * Masukan mentah yang dipakai, dalam bentuk yang siap dikirim ke
+ * `POST …/takeoff-dimensi`.
+ *
+ * Dibawa keluar bersama hasilnya supaya pemanggil bisa MENYIMPAN rantai
+ * perhitungannya, bukan cuma angkanya. Volume yang tersimpan tanpa asal-usul
+ * tak bisa diperiksa siapa pun enam bulan kemudian — dan itu justru alasan
+ * `takeoff_dimensi` dibangun.
+ */
+export interface MasukanTakeoff {
+  sektor?: string
+  panjang_m?: number | null
+  lebar_m?: number | null
+  tinggi_m?: number | null
+  jumlah?: number
+  faktor?: number
+  kemiringan_derajat?: number | null
+  cacah?: number | null
+  bukaan?: Array<{ nama: string; lebarM: number; tinggiM: number; jumlah: number }> | null
+}
+
+export function HitungVolume(
+  { onPakai }: { onPakai: (volume: number, masukan: MasukanTakeoff) => void },
+) {
   const [buka, setBuka] = useState(false);
   const [sektor, setSektor] = useState("");
   const [d, setD] = useState({
@@ -329,7 +352,36 @@ export function HitungVolume({ onPakai }: { onPakai: (volume: number) => void })
 
       <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
         <button type="button" disabled={!!galat}
-          onClick={() => { onPakai((hasil as Hasil).volume); setBuka(false); }}
+          onClick={() => {
+            /*
+              Angka DAN masukannya diteruskan bersama. Pemanggil menyimpan
+              barisnya lewat `POST …/takeoff-dimensi`, dan server menghitung
+              ULANG dari masukan itu — klien tak pernah dipercaya untuk angka
+              yang jadi rupiah.
+            */
+            const ang = (v: string) => (v.trim() === "" ? null : Number(v));
+            onPakai((hasil as Hasil).volume, {
+              sektor: sektor || undefined,
+              panjang_m: ang(d.panjang),
+              lebar_m: ang(d.lebar),
+              tinggi_m: ang(d.tinggi),
+              jumlah: Number(d.jumlah) || 1,
+              faktor: Number(d.faktor) || 1,
+              kemiringan_derajat: sektor === "atap" ? ang(d.kemiringan) : null,
+              cacah: ang(d.cacah),
+              bukaan: bukaan.length
+                ? bukaan
+                    .filter((b) => Number(b.lebar) > 0 && Number(b.tinggi) > 0)
+                    .map((b) => ({
+                      nama: b.nama || "?",
+                      lebarM: Number(b.lebar),
+                      tinggiM: Number(b.tinggi),
+                      jumlah: Number(b.jumlah) || 1,
+                    }))
+                : null,
+            });
+            setBuka(false);
+          }}
           style={{
             background: galat ? C.border : C.aksen, color: galat ? C.mid : C.onAksen,
             border: "none", borderRadius: "var(--radius-dense)", padding: "5px 12px",
