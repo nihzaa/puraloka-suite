@@ -1484,3 +1484,24 @@ details > summary:focus-visible {
     grid-template-columns: 1fr;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   PORTAL — shimmer skeleton (BottomSheet/ActionCard/dst di
+   components/portal/). Task 5, spec sumbu UI portal mobile.
+   ══════════════════════════════════════════════════════════════════════════ */
+@keyframes portal-skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Brief asli menyasar SEMUA `[aria-hidden="true"]` di seluruh aplikasi —
+ * termasuk dashboard admin di luar portal, yang tak dianalisis di sini dan
+ * bisa saja punya animasi dekoratif lain yang perlu tetap jalan meski
+ * elemen-nya aria-hidden. Dipersempit ke `.portal-skeleton` saja (kelas
+ * yang dipasang SkeletonCard) supaya perubahan ini hanya menyentuh wilayah
+ * yang benar-benar diaudit di task ini. */
+@media (prefers-reduced-motion: reduce) {
+  .portal-skeleton {
+    animation: none !important;
+  }
+}
