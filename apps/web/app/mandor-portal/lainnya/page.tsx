@@ -13,9 +13,17 @@ import type { Penugasan } from "../_bersama/tipe";
 // hanya mengurasi 4 item + tombol Lainnya; sisanya (termasuk item kondisional
 // payment_system yang dulu ada di bottom nav) dipindah ke sini.
 //
-// Lima link terakhir (K3, Punch List, Inspeksi & RFI, Submittal, Jadwal
-// Proyek) menunjuk ke rute yang BELUM DIBUAT — dibangun Task 7. Link 404
-// sementara itu disengaja, bukan bug — sudah diputuskan di brief task ini.
+// ⚠️ `<h1>` di bawah TIDAK boleh dihapus, sekalipun tampak mubazir di layar.
+//
+// Penjaga `uji-judul-halaman-ada.mjs` menerima judul dari `layout.tsx`
+// LELUHUR — dan `mandor-portal/layout.tsx` memang memuat teks berjudul, jadi
+// penjaga menyatakan halaman ini HIJAU meski ia tak punya `<h1>` sama sekali.
+// Diukur 2026-08-20 lewat sapuan peramban 17 rute: halaman ini satu-satunya
+// yang memulangkan `jml_h1: 0`. Penjaganya benar untuk kasus umum (judul dari
+// layout grup memang sah), tapi buta untuk kasus ini.
+//
+// Pembaca layar menavigasi dengan melompati heading; halaman tanpa `<h1>`
+// membuat pengguna mendarat tanpa tahu ia ada di mana.
 // ============================================================================
 
 interface RespAssignments { assignments: Penugasan[] }
@@ -42,10 +50,23 @@ export default function MandorLainnyaPage() {
   ].filter((x): x is { href: string; label: string; icon: typeof ClipboardList } => Boolean(x));
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-      {items.map((item) => (
-        <ActionCard key={item.href} {...item} />
-      ))}
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1
+        style={{
+          fontSize: 22,
+          fontWeight: 800,
+          color: "var(--text-primary)",
+          letterSpacing: "-0.01em",
+          margin: 0,
+        }}
+      >
+        Menu Lainnya
+      </h1>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+        {items.map((item) => (
+          <ActionCard key={item.href} {...item} />
+        ))}
+      </div>
     </div>
   );
 }
