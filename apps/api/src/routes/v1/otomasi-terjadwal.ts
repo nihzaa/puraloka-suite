@@ -10451,6 +10451,850 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    TUJUH OTOMASI BERTENGGAT — satu bentuk, tujuh tabel
+    ══════════════════════════════════════════════════════════════════════════
+
+    Semuanya memakai `nilaiTenggat` dari `lib/tenggat-terlewat.ts`. Menulis
+    tujuh fungsi yang hampir sama berarti tujuh tempat yang harus diperbaiki
+    tiap kali ada cacat, dan tujuh kesempatan untuk memperbaiki enam saja.
+    Repo ini sudah punya contohnya: dedup harian salah berbulan-bulan di 47
+    rute karena disalin, bukan dibagi.
+
+    Diukur 2026-08-19, semuanya SUDAH melanggar tenggatnya hari ini:
+
+      punch_items          36 belum ditutup, terlama 16 hari lewat
+      ncr_items            17 belum ditutup, terlama 15 hari lewat, 1 TANPA target
+      inspection_requests  12 belum diperiksa, terlama 22 hari lewat
+      tindakan_mitigasi     5 belum selesai, terlama 18 hari lewat
+      notulen_tindakan      3 belum selesai, terlama 17 hari lewat, 1 TANPA tenggat
+      temuan_k3             3 belum ditutup, terlama 9 hari lewat
+      rfq                   2 lewat batas masuk, terlama 10 hari
+
+    ⚠ TENANCY-nya TIDAK seragam, dan dua di antaranya butuh DUA LOMPATAN:
+
+      punch_items · ncr_items · inspection_requests · rfq   C lewat project_id
+      notulen_tindakan                                      B (punya company_id)
+      temuan_k3          C lewat inspeksi_id  → inspeksi_k3.project_id
+      tindakan_mitigasi  C lewat risiko_id    → risiko_proyek.project_id
+
+    Dua yang terakhir itu jebakan yang sama dengan `work_scopes`: menulis
+    `viaProject('temuan_k3', pid)` mengirim id PROYEK ke tempat yang menunggu
+    id INSPEKSI. Hasilnya nol baris, balas 200, dan tak ada satu pun galat.
+  */
+
+  /**
+   * Baca tabel kategori C penuh, disaring ke proyek milik tenant ini.
+   *
+   * Dipakai ketujuh otomasi bertenggat. Tanpa pembantu ini, tiap rute harus
+   * mengulang lingkaran `.range()` yang sama — dan lingkaran yang disalin
+   * adalah lingkaran yang salah di salah satu salinannya.
+   *
+   * ⚠ `.range()` WAJIB. PostgREST memotong senyap di 1.000 baris; penjaga
+   * `audit-baca-tak-terpotong` berambang NOL karena alasan itu.
+   */
+  async function bacaViaKolom(
+    request: FastifyRequest,
+    tabel: string,
+    kolom: string,
+    idInduk: string[],
+    pilih: string,
+  ): Promise<{ data: Array<Record<string, unknown>>; error: string | null }> {
+    const HALAMAN = 1000
+    const keluar: Array<Record<string, unknown>> = []
+    if (idInduk.length === 0) return { data: keluar, error: null }
+
+    // Disaring per potongan supaya URL `.in()` tak membengkak melewati batas
+    // panjang yang diterima PostgREST.
+    for (let i = 0; i < idInduk.length; i += 200) {
+      const potongan = idInduk.slice(i, i + 200)
+      for (let dari = 0; ; dari += HALAMAN) {
+        const r = await request.db!
+          .unsafe(tabel, `disaring .in(${kolom}, ...) induk milik tenant ini`)
+          .select(pilih)
+          .in(kolom, potongan)
+          .order('id', { ascending: true })
+          .range(dari, dari + HALAMAN - 1)
+        if (r.error) return { data: keluar, error: r.error.message }
+        if (!r.data || r.data.length === 0) break
+        /*
+          Lewat `unknown` karena `select()` di sini menerima string DINAMIS.
+
+          Dengan kolom literal, supabase-js menyimpulkan bentuk barisnya. Dengan
+          string yang baru diketahui saat jalan, ia melebar sampai memuat
+          `GenericStringError` — dan compiler benar menolak konversi langsung.
+
+          Yang dijamin oleh `unknown` di sini: cek `r.error` di atas sudah
+          menyingkirkan cabang galatnya, jadi yang tersisa memang baris data.
+        */
+        keluar.push(...(r.data as unknown as Array<Record<string, unknown>>))
+        if (r.data.length < HALAMAN) break
+      }
+    }
+    return { data: keluar, error: null }
+  }
+
+  /** Id proyek AKTIF milik tenant ini, plus namanya. */
+  async function proyekAktif(
+    request: FastifyRequest,
+  ): Promise<{ id: string[]; nama: Map<string, string>; error: string | null }> {
+    const HALAMAN = 1000
+    const semua: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('projects').select('id, name, status, is_deleted')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return { id: [], nama: new Map(), error: r.error.message }
+      if (!r.data || r.data.length === 0) break
+      semua.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+    const aktif = semua.filter((p) => p.is_deleted !== true && p.status === 'active')
+    return {
+      id: aktif.map((p) => p.id as string),
+      nama: new Map(aktif.map((p) => [p.id as string, String(p.name ?? 'Proyek')])),
+      error: null,
+    }
+  }
+
+  // ── GET /api/v1/otomasi/jalankan/punch-lewat-target ───────────────────────
+  //
+  // Punch list adalah daftar cacat yang harus dituntaskan SEBELUM serah
+  // terima. Item yang terbuka menahan berita acara, dan berita acara yang
+  // tertahan menahan retensi — biasanya 5% nilai kontrak.
+  //
+  // Diukur 2026-08-19: 36 item belum ditutup, terlama 16 hari lewat target.
+  app.get('/api/v1/otomasi/jalankan/punch-lewat-target', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiTenggat } = await import('../../lib/tenggat-terlewat.js')
+
+    const q = request.query as { hari?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.tenggat_mutu.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['punch_lewat_target'])
+
+    const p = await proyekAktif(request)
+    if (p.error) return reply.status(500).send({ error: p.error })
+    if (p.id.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    const baca = await bacaViaKolom(request, 'punch_items', 'project_id', p.id,
+      'id, project_id, nomor, judul, lokasi, severity, status, target_selesai, ditutup_pada')
+    if (baca.error) return reply.status(500).send({ error: baca.error })
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { aman: 0, selesai: 0, lewat: 0, segera: 0, tanpa_tenggat: 0 }
+
+    for (const x of baca.data) {
+      const t = Date.parse(String(x.target_selesai ?? '').slice(0, 10) + 'T00:00:00Z')
+      const h = nilaiTenggat({
+        sisaHari: Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI),
+        // `ditutup_pada` yang terisi menang atas kolom status — tanggal punya
+        // bukti, status diketik.
+        selesai: x.ditutup_pada != null || String(x.status ?? '') === 'ditutup',
+        keparahan: (x.severity as string | null) ?? null,
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('punch_lewat_target', id)) continue
+
+      const pid = x.project_id as string
+      const label = `${String(x.nomor ?? '')} ${String(x.judul ?? 'Item punch list')}`.trim()
+      const lokasi = String(x.lokasi ?? '').trim()
+      const sisa = Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI)
+
+      const pesan = {
+        lewat: `${label} sudah LEWAT ${Math.abs(sisa ?? 0)} hari dari target penyelesaian`
+          + `${lokasi ? ` (${lokasi})` : ''}. Punch list yang terbuka menahan berita acara `
+          + 'serah terima, dan berita acara yang tertahan menahan pencairan retensi.',
+        segera: `${label} jatuh tempo dalam ${sisa} hari${lokasi ? ` (${lokasi})` : ''}. `
+          + 'Masih ada waktu menutupnya sebelum menahan serah terima.',
+        tanpa_tenggat: `${label} terbuka TANPA target penyelesaian${lokasi ? ` (${lokasi})` : ''}. `
+          + 'Item tanpa target tak pernah terhitung terlambat — dan karena itu tak pernah dikerjakan.',
+        aman: '', selesai: '',
+      }[h.sebab]
+
+      for (const uid of await resolveRecipients('punch_lewat_target', {
+        companyId: request.companyId!, projectId: pid,
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: h.sebab === 'lewat' ? 'Punch list lewat target' : 'Punch list perlu ditutup',
+          message: `${p.nama.get(pid) ?? 'Proyek'}: ${pesan}`,
+          priority: h.mendesak ? 'high' : 'normal',
+          type: 'punch_lewat_target', project_id: pid,
+          action_url: '/mutu/punch-list',
+          // `record_id` WAJIB — lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { proyek_aktif: p.id.length, dibaca: baca.data.length, ...hitung, ambang_hari: ambang },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/ncr-lewat-target ─────────────────────────
+  //
+  // NCR adalah tindak lanjut FORMAL dari cacat mutu — pasangan hilir dari
+  // `uji-material-gagal`, yang menegur uji gagal yang BELUM ber-NCR. Yang ini
+  // menegur NCR yang sudah dibuat tetapi tak kunjung ditutup.
+  //
+  // Diukur 2026-08-19: 17 NCR belum ditutup, terlama 15 hari lewat target,
+  // dan SATU tanpa target sama sekali.
+  app.get('/api/v1/otomasi/jalankan/ncr-lewat-target', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiTenggat } = await import('../../lib/tenggat-terlewat.js')
+
+    const q = request.query as { hari?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.tenggat_mutu.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['ncr_lewat_target'])
+
+    const p = await proyekAktif(request)
+    if (p.error) return reply.status(500).send({ error: p.error })
+    if (p.id.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    const baca = await bacaViaKolom(request, 'ncr_items', 'project_id', p.id,
+      'id, project_id, nomor, judul, lokasi, severity, status, target_selesai, ditutup_pada, biaya_dampak')
+    if (baca.error) return reply.status(500).send({ error: baca.error })
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { aman: 0, selesai: 0, lewat: 0, segera: 0, tanpa_tenggat: 0 }
+
+    for (const x of baca.data) {
+      const t = Date.parse(String(x.target_selesai ?? '').slice(0, 10) + 'T00:00:00Z')
+      const h = nilaiTenggat({
+        sisaHari: Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI),
+        selesai: x.ditutup_pada != null || String(x.status ?? '') === 'ditutup',
+        keparahan: (x.severity as string | null) ?? null,
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('ncr_lewat_target', id)) continue
+
+      const pid = x.project_id as string
+      const label = `${String(x.nomor ?? 'NCR')} ${String(x.judul ?? '')}`.trim()
+      const sisa = Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI)
+      const biaya = x.biaya_dampak == null ? null : Number(x.biaya_dampak)
+      const rp = biaya != null && biaya > 0
+        ? ` Dampak biaya tercatat Rp ${Math.round(biaya).toLocaleString('id-ID')}.` : ''
+
+      const pesan = {
+        lewat: `${label} LEWAT ${Math.abs(sisa ?? 0)} hari dari target penutupan.${rp} `
+          + 'NCR yang menggantung berarti cacatnya masih ada di lapangan, dan pekerjaan '
+          + 'di atasnya terus bertambah.',
+        segera: `${label} jatuh tempo dalam ${sisa} hari.${rp}`,
+        tanpa_tenggat: `${label} terbuka TANPA target penutupan.${rp} `
+          + 'NCR tanpa target tak pernah muncul di laporan keterlambatan mana pun.',
+        aman: '', selesai: '',
+      }[h.sebab]
+
+      for (const uid of await resolveRecipients('ncr_lewat_target', {
+        companyId: request.companyId!, projectId: pid,
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: h.sebab === 'lewat' ? 'NCR lewat target penutupan' : 'NCR perlu ditutup',
+          message: `${p.nama.get(pid) ?? 'Proyek'}: ${pesan}`,
+          priority: h.mendesak ? 'high' : 'normal',
+          type: 'ncr_lewat_target', project_id: pid,
+          action_url: '/mutu/ncr',
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { proyek_aktif: p.id.length, dibaca: baca.data.length, ...hitung, ambang_hari: ambang },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/inspeksi-terlewat ────────────────────────
+  //
+  // Permintaan inspeksi adalah TITIK HENTI: pekerjaan berikutnya tak boleh
+  // dituang/ditutup sebelum yang ini diperiksa. Permintaan yang terlewat
+  // menghentikan pekerjaan berikutnya — atau lebih buruk, pekerjaan berikutnya
+  // jalan terus dan titik hentinya terlanggar tanpa catatan.
+  //
+  // Diukur 2026-08-19: 12 permintaan belum diperiksa, terlama 22 hari lewat
+  // tanggal yang diminta.
+  app.get('/api/v1/otomasi/jalankan/inspeksi-terlewat', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiTenggat } = await import('../../lib/tenggat-terlewat.js')
+
+    const q = request.query as { hari?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.tenggat_mutu.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['inspeksi_terlewat'])
+
+    const p = await proyekAktif(request)
+    if (p.error) return reply.status(500).send({ error: p.error })
+    if (p.id.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    const baca = await bacaViaKolom(request, 'inspection_requests', 'project_id', p.id,
+      'id, project_id, nomor, judul, lokasi, status, diminta_untuk, diperiksa_pada, pekerjaan_lanjutan')
+    if (baca.error) return reply.status(500).send({ error: baca.error })
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { aman: 0, selesai: 0, lewat: 0, segera: 0, tanpa_tenggat: 0 }
+
+    for (const x of baca.data) {
+      const t = Date.parse(String(x.diminta_untuk ?? '').slice(0, 10) + 'T00:00:00Z')
+      /*
+        `tidak_lolos` BUKAN selesai.
+
+        Inspeksi yang gagal tetap menuntut inspeksi ulang; menganggapnya
+        selesai membuat pekerjaan yang TIDAK LOLOS justru berhenti ditegur —
+        kebalikan dari yang seharusnya.
+      */
+      const st = String(x.status ?? '')
+      const h = nilaiTenggat({
+        sisaHari: Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI),
+        selesai: x.diperiksa_pada != null && st === 'lolos',
+        // Tabel ini tak punya kolom keparahan.
+        keparahan: null,
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('inspeksi_terlewat', id)) continue
+
+      const pid = x.project_id as string
+      const label = `${String(x.nomor ?? '')} ${String(x.judul ?? 'Permintaan inspeksi')}`.trim()
+      const sisa = Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI)
+      const lanjut = String(x.pekerjaan_lanjutan ?? '').trim()
+      const tahan = lanjut ? ` Pekerjaan yang menunggu: ${lanjut}.` : ''
+
+      const pesan = {
+        lewat: st === 'tidak_lolos'
+          ? `${label} dinyatakan TIDAK LOLOS dan belum ada inspeksi ulang — `
+            + `${Math.abs(sisa ?? 0)} hari lewat.${tahan}`
+          : `${label} belum diperiksa, LEWAT ${Math.abs(sisa ?? 0)} hari dari tanggal `
+            + `yang diminta.${tahan} Titik henti yang terlewat berarti pekerjaan `
+            + 'berikutnya berjalan tanpa persetujuan mutu.',
+        segera: `${label} dijadwalkan dalam ${sisa} hari.${tahan}`,
+        tanpa_tenggat: `${label} tak punya tanggal permintaan.${tahan} `
+          + 'Tanpa tanggal, tak ada yang bisa menyebutnya terlambat.',
+        aman: '', selesai: '',
+      }[h.sebab]
+
+      for (const uid of await resolveRecipients('inspeksi_terlewat', {
+        companyId: request.companyId!, projectId: pid,
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: st === 'tidak_lolos' ? 'Inspeksi tidak lolos, belum diulang' : 'Permintaan inspeksi terlewat',
+          message: `${p.nama.get(pid) ?? 'Proyek'}: ${pesan}`,
+          // Yang TIDAK LOLOS lebih mendesak: cacatnya sudah terbukti ada.
+          priority: st === 'tidak_lolos' ? 'high' : 'normal',
+          type: 'inspeksi_terlewat', project_id: pid,
+          action_url: '/mutu/inspeksi',
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { proyek_aktif: p.id.length, dibaca: baca.data.length, ...hitung, ambang_hari: ambang },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/mitigasi-lewat-tenggat ───────────────────
+  //
+  // Risiko yang sudah diidentifikasi dan diberi rencana mitigasi, lalu
+  // mitigasinya tak dikerjakan, LEBIH BURUK daripada risiko yang tak
+  // teridentifikasi: register risikonya terlihat terkelola, dan tak ada yang
+  // memeriksa ulang.
+  //
+  // ⚠ TENANCY DUA LOMPATAN: tindakan_mitigasi.risiko_id → risiko_proyek.project_id
+  //
+  // Diukur 2026-08-19: 5 tindakan belum selesai, terlama 18 hari lewat.
+  app.get('/api/v1/otomasi/jalankan/mitigasi-lewat-tenggat', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiTenggat } = await import('../../lib/tenggat-terlewat.js')
+
+    const q = request.query as { hari?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.tenggat_risiko.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['mitigasi_lewat_tenggat'])
+
+    const p = await proyekAktif(request)
+    if (p.error) return reply.status(500).send({ error: p.error })
+    if (p.id.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    // Lompatan 1: risiko milik proyek tenant ini.
+    const risiko = await bacaViaKolom(request, 'risiko_proyek', 'project_id', p.id,
+      'id, project_id, kode, judul, skor, status')
+    if (risiko.error) return reply.status(500).send({ error: risiko.error })
+
+    const petaRisiko = new Map(risiko.data.map((r) => [r.id as string, r]))
+    if (petaRisiko.size === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: p.id.length, risiko: 0 } })
+    }
+
+    // Lompatan 2: tindakan milik risiko itu.
+    const baca = await bacaViaKolom(request, 'tindakan_mitigasi', 'risiko_id', [...petaRisiko.keys()],
+      'id, risiko_id, tindakan, tenggat, status, selesai_pada, biaya_estimasi')
+    if (baca.error) return reply.status(500).send({ error: baca.error })
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { aman: 0, selesai: 0, lewat: 0, segera: 0, tanpa_tenggat: 0 }
+
+    for (const x of baca.data) {
+      const induk = petaRisiko.get(x.risiko_id as string)
+      // Tindakan yatim tak bisa dinilai konteksnya; ia juga tak lolos saringan
+      // tenancy di atas, jadi keadaan ini seharusnya mustahil. Dilewati
+      // dengan sengaja alih-alih diam-diam menganggapnya milik proyek acak.
+      if (!induk) continue
+
+      const t = Date.parse(String(x.tenggat ?? '').slice(0, 10) + 'T00:00:00Z')
+      /*
+        Skor risiko dipakai sebagai keparahan — sebagai ANGKA, bukan kata.
+
+        Register risiko memakai angka (dampak × kemungkinan) pada matriks 5×5,
+        jadi rentangnya 1..25. Ambang 12 adalah batas zona merah yang lazim.
+
+        `nilaiTenggat` menerima angka maupun kata; yang wajib diberikan adalah
+        `ambangBerat`, karena skala tiap tabel berbeda (`temuan_k3.tingkat`
+        cuma 1..3) dan satu nilai bawaan yang benar untuk keduanya tak ada.
+      */
+      const skor = induk.skor == null ? 0 : Number(induk.skor)
+      const h = nilaiTenggat({
+        sisaHari: Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI),
+        selesai: x.selesai_pada != null || String(x.status ?? '') === 'selesai',
+        keparahan: skor,
+        ambangBerat: 12,
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('mitigasi_lewat_tenggat', id)) continue
+
+      const pid = induk.project_id as string
+      const kode = String(induk.kode ?? '').trim()
+      const judul = String(induk.judul ?? 'Risiko').trim()
+      const tindakan = String(x.tindakan ?? 'Tindakan mitigasi').trim()
+      const sisa = Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI)
+      const nilaiSkor = skor > 0 ? ` (skor risiko ${skor})` : ''
+
+      const pesan = {
+        lewat: `Mitigasi "${tindakan}" untuk ${kode ? kode + ' ' : ''}${judul}${nilaiSkor} `
+          + `LEWAT ${Math.abs(sisa ?? 0)} hari. Risiko yang punya rencana tetapi rencananya `
+          + 'tak dikerjakan lebih berbahaya daripada risiko yang belum diidentifikasi — '
+          + 'registernya terlihat terkelola, jadi tak ada yang memeriksa ulang.',
+        segera: `Mitigasi "${tindakan}" untuk ${kode ? kode + ' ' : ''}${judul}${nilaiSkor} `
+          + `jatuh tempo dalam ${sisa} hari.`,
+        tanpa_tenggat: `Mitigasi "${tindakan}" untuk ${kode ? kode + ' ' : ''}${judul}${nilaiSkor} `
+          + 'tak punya tenggat. Rencana tanpa tanggal bukan rencana.',
+        aman: '', selesai: '',
+      }[h.sebab]
+
+      for (const uid of await resolveRecipients('mitigasi_lewat_tenggat', {
+        companyId: request.companyId!, projectId: pid,
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: h.sebab === 'lewat' ? 'Mitigasi risiko lewat tenggat' : 'Mitigasi risiko perlu dikerjakan',
+          message: `${p.nama.get(pid) ?? 'Proyek'}: ${pesan}`,
+          priority: h.mendesak ? 'high' : 'normal',
+          type: 'mitigasi_lewat_tenggat', project_id: pid,
+          action_url: '/risiko',
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_aktif: p.id.length, risiko: petaRisiko.size,
+        dibaca: baca.data.length, ...hitung, ambang_hari: ambang,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/notulen-tak-ditindak ─────────────────────
+  //
+  // Kelas cacat paling sering di kantor mana pun: rapat menghasilkan
+  // keputusan, keputusan diberi penanggung jawab dan tenggat, lalu tak ada
+  // yang memeriksanya sampai rapat berikutnya — dan rapat berikutnya membahas
+  // hal yang sama dari awal.
+  //
+  // `notulen_tindakan` kategori B (punya `company_id`), jadi terbaca langsung.
+  //
+  // Diukur 2026-08-19: 3 tindak lanjut belum selesai, terlama 17 hari lewat,
+  // dan SATU tanpa tenggat sama sekali.
+  app.get('/api/v1/otomasi/jalankan/notulen-tak-ditindak', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiTenggat } = await import('../../lib/tenggat-terlewat.js')
+
+    const q = request.query as { hari?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.tenggat_notulen.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['notulen_tak_ditindak'])
+
+    const HALAMAN = 1000
+    const baca: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('notulen_tindakan')
+        .select('id, notulen_id, urutan, uraian, pj_nama, tenggat, status, selesai_pada')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      baca.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    /*
+      Judul rapatnya diambil terpisah, dan pesannya TIDAK bergantung padanya.
+
+      Tindak lanjut yatim — notulennya terhapus — tetap dilaporkan: tugasnya
+      nyata dan tetap belum dikerjakan. `notulen_rapat` kategori B juga, jadi
+      terbaca dengan `.from()`.
+    */
+    const judulRapat = new Map<string, { judul: string; projectId: string | null }>()
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('notulen_rapat').select('id, nomor, judul, project_id')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      for (const n of r.data as Array<Record<string, unknown>>) {
+        judulRapat.set(n.id as string, {
+          judul: String(n.judul ?? n.nomor ?? 'Rapat'),
+          projectId: (n.project_id as string | null) ?? null,
+        })
+      }
+      if (r.data.length < HALAMAN) break
+    }
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { aman: 0, selesai: 0, lewat: 0, segera: 0, tanpa_tenggat: 0 }
+
+    for (const x of baca) {
+      const t = Date.parse(String(x.tenggat ?? '').slice(0, 10) + 'T00:00:00Z')
+      const h = nilaiTenggat({
+        sisaHari: Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI),
+        selesai: x.selesai_pada != null || String(x.status ?? '') === 'selesai',
+        // Tindak lanjut notulen tak punya keparahan.
+        keparahan: null,
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('notulen_tak_ditindak', id)) continue
+
+      const rapat = x.notulen_id ? judulRapat.get(x.notulen_id as string) : undefined
+      const asal = rapat?.judul ?? '(notulen tak ditemukan)'
+      const uraian = String(x.uraian ?? 'Tindak lanjut').trim()
+      const pj = String(x.pj_nama ?? '').trim()
+      const sisa = Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI)
+
+      const pesan = {
+        lewat: `"${uraian}" dari rapat ${asal}${pj ? ` — penanggung jawab ${pj}` : ''} `
+          + `LEWAT ${Math.abs(sisa ?? 0)} hari. Keputusan rapat yang tak dikerjakan membuat `
+          + 'rapat berikutnya membahas hal yang sama dari awal.',
+        segera: `"${uraian}" dari rapat ${asal}${pj ? ` — ${pj}` : ''} jatuh tempo dalam ${sisa} hari.`,
+        tanpa_tenggat: `"${uraian}" dari rapat ${asal}${pj ? ` — ${pj}` : ''} tak diberi tenggat. `
+          + 'Tugas tanpa tanggal tak pernah terlambat, dan karena itu tak pernah dikerjakan.',
+        aman: '', selesai: '',
+      }[h.sebab]
+
+      for (const uid of await resolveRecipients('notulen_tak_ditindak', {
+        companyId: request.companyId!,
+        ...(rapat?.projectId ? { projectId: rapat.projectId } : {}),
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: h.sebab === 'lewat' ? 'Tindak lanjut rapat lewat tenggat' : 'Tindak lanjut rapat menunggu',
+          message: pesan,
+          priority: 'normal',
+          type: 'notulen_tak_ditindak',
+          ...(rapat?.projectId ? { project_id: rapat.projectId } : {}),
+          action_url: '/dokumen/notulen',
+          action_data: { record_id: id, notulen_id: x.notulen_id ?? null, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { dibaca: baca.length, ...hitung, ambang_hari: ambang },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/temuan-k3-lewat-tenggat ──────────────────
+  //
+  // Keselamatan. Temuan inspeksi K3 yang lewat tenggat perbaikan berarti
+  // bahayanya masih ada di lapangan hari ini, dan orang masih bekerja di
+  // sekitarnya.
+  //
+  // ⚠ TENANCY DUA LOMPATAN: temuan_k3.inspeksi_id → inspeksi_k3.project_id
+  //
+  // Diukur 2026-08-19: 3 temuan belum ditutup, terlama 9 hari lewat.
+  app.get('/api/v1/otomasi/jalankan/temuan-k3-lewat-tenggat', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiTenggat } = await import('../../lib/tenggat-terlewat.js')
+
+    const q = request.query as { hari?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.tenggat_k3.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['temuan_k3_lewat_tenggat'])
+
+    const p = await proyekAktif(request)
+    if (p.error) return reply.status(500).send({ error: p.error })
+    if (p.id.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    // Lompatan 1: inspeksi milik proyek tenant ini.
+    const inspeksi = await bacaViaKolom(request, 'inspeksi_k3', 'project_id', p.id,
+      'id, project_id, nomor, tanggal, area')
+    if (inspeksi.error) return reply.status(500).send({ error: inspeksi.error })
+
+    const petaInspeksi = new Map(inspeksi.data.map((i) => [i.id as string, i]))
+    if (petaInspeksi.size === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: p.id.length, inspeksi: 0 } })
+    }
+
+    // Lompatan 2: temuan milik inspeksi itu.
+    const baca = await bacaViaKolom(request, 'temuan_k3', 'inspeksi_id', [...petaInspeksi.keys()],
+      'id, inspeksi_id, uraian, kategori, tingkat, tindakan, tenggat, status, ditutup_pada')
+    if (baca.error) return reply.status(500).send({ error: baca.error })
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { aman: 0, selesai: 0, lewat: 0, segera: 0, tanpa_tenggat: 0 }
+
+    for (const x of baca.data) {
+      const induk = petaInspeksi.get(x.inspeksi_id as string)
+      if (!induk) continue
+
+      const t = Date.parse(String(x.tenggat ?? '').slice(0, 10) + 'T00:00:00Z')
+      const h = nilaiTenggat({
+        sisaHari: Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI),
+        selesai: x.ditutup_pada != null || String(x.status ?? '') === 'ditutup',
+        /*
+          ⚠ `temuan_k3.tingkat` adalah SMALLINT (1·2·3), bukan kata.
+
+          Saya sempat menulisnya sebagai string bahasa Indonesia di sini, dan
+          rutenya balas 500 dengan `.trim is not a function`. Diukur: nilai
+          yang ada di basis cuma 2 dan 3.
+
+          Ambang 3 berarti hanya tingkat tertinggi yang dianggap berat — dan
+          itu pun hanya menggeser ambang peringatan dini, karena temuan K3
+          yang SUDAH lewat selalu dikirim mendesak apa pun tingkatnya.
+        */
+        keparahan: x.tingkat == null ? null : Number(x.tingkat),
+        ambangBerat: 3,
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('temuan_k3_lewat_tenggat', id)) continue
+
+      const pid = induk.project_id as string
+      const area = String(induk.area ?? '').trim()
+      const uraian = String(x.uraian ?? 'Temuan K3').trim()
+      const tindakan = String(x.tindakan ?? '').trim()
+      const sisa = Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI)
+
+      const pesan = {
+        lewat: `"${uraian}"${area ? ` di ${area}` : ''} LEWAT ${Math.abs(sisa ?? 0)} hari `
+          + `dari tenggat perbaikan.${tindakan ? ` Tindakan yang disepakati: ${tindakan}.` : ''} `
+          + 'Bahayanya masih ada di lapangan hari ini, dan orang masih bekerja di sekitarnya.',
+        segera: `"${uraian}"${area ? ` di ${area}` : ''} jatuh tempo dalam ${sisa} hari.`
+          + `${tindakan ? ` Tindakan: ${tindakan}.` : ''}`,
+        tanpa_tenggat: `"${uraian}"${area ? ` di ${area}` : ''} belum diberi tenggat perbaikan. `
+          + 'Temuan keselamatan tanpa tanggal adalah temuan yang tak pernah ditutup.',
+        aman: '', selesai: '',
+      }[h.sebab]
+
+      for (const uid of await resolveRecipients('temuan_k3_lewat_tenggat', {
+        companyId: request.companyId!, projectId: pid,
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: h.sebab === 'lewat' ? 'Temuan K3 lewat tenggat perbaikan' : 'Temuan K3 menunggu perbaikan',
+          message: `${p.nama.get(pid) ?? 'Proyek'}: ${pesan}`,
+          /*
+            Yang LEWAT selalu mendesak di K3, tak peduli tingkatnya.
+
+            Ini satu-satunya dari tujuh otomasi bertenggat yang begitu. Di
+            enam lainnya keterlambatan berarti biaya atau jadwal; di sini ia
+            berarti seseorang bisa celaka hari ini.
+          */
+          priority: h.sebab === 'lewat' ? 'urgent' : (h.mendesak ? 'high' : 'normal'),
+          type: 'temuan_k3_lewat_tenggat', project_id: pid,
+          action_url: '/k3/inspeksi',
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_aktif: p.id.length, inspeksi: petaInspeksi.size,
+        dibaca: baca.data.length, ...hitung, ambang_hari: ambang,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/rfq-lewat-batas ──────────────────────────
+  //
+  // RFQ yang batas masuknya lewat tanpa keputusan berarti pengadaan berhenti
+  // TANPA GEJALA: tak ada penawaran yang ditolak, tak ada PO yang terbit, dan
+  // permintaan materialnya masih menunggu di hulu.
+  //
+  // Diukur 2026-08-19: 2 RFQ terkirim melewati batas masuk, terlama 10 hari.
+  app.get('/api/v1/otomasi/jalankan/rfq-lewat-batas', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiTenggat } = await import('../../lib/tenggat-terlewat.js')
+
+    const q = request.query as { hari?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.tenggat_pengadaan.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['rfq_lewat_batas'])
+
+    const p = await proyekAktif(request)
+    if (p.error) return reply.status(500).send({ error: p.error })
+    if (p.id.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    const baca = await bacaViaKolom(request, 'rfq', 'project_id', p.id,
+      'id, project_id, nomor, tanggal, batas_masuk, status, po_id')
+    if (baca.error) return reply.status(500).send({ error: baca.error })
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { aman: 0, selesai: 0, lewat: 0, segera: 0, tanpa_tenggat: 0 }
+
+    for (const x of baca.data) {
+      const t = Date.parse(String(x.batas_masuk ?? '').slice(0, 10) + 'T00:00:00Z')
+      const st = String(x.status ?? '')
+      const h = nilaiTenggat({
+        sisaHari: Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI),
+        /*
+          RFQ tak punya kolom "selesai_pada". Yang menandainya tuntas adalah
+          status `selesai`/`batal`, ATAU adanya PO — dan PO itu bukti yang
+          lebih kuat daripada status, karena PO terbit dari tindakan nyata.
+        */
+        selesai: x.po_id != null || st === 'selesai' || st === 'batal' || st === 'dibatalkan',
+        keparahan: null,
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('rfq_lewat_batas', id)) continue
+
+      const pid = x.project_id as string
+      const nomor = String(x.nomor ?? 'RFQ')
+      const sisa = Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI)
+
+      const pesan = {
+        lewat: `${nomor} sudah LEWAT ${Math.abs(sisa ?? 0)} hari dari batas masuk penawaran `
+          + 'dan belum diputuskan. Pengadaan yang berhenti di tahap ini tak menimbulkan '
+          + 'gejala apa pun — permintaan materialnya masih menunggu di hulu, dan tak ada '
+          + 'PO yang terbit untuk ditanyakan siapa pun.',
+        segera: `${nomor} menutup penawaran dalam ${sisa} hari.`,
+        tanpa_tenggat: `${nomor} terkirim tanpa batas masuk penawaran. `
+          + 'Tanpa batas, tak ada saat yang bisa disebut "waktunya memutuskan".',
+        aman: '', selesai: '',
+      }[h.sebab]
+
+      for (const uid of await resolveRecipients('rfq_lewat_batas', {
+        companyId: request.companyId!, projectId: pid,
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: h.sebab === 'lewat' ? 'RFQ lewat batas masuk' : 'RFQ menutup penawaran',
+          message: `${p.nama.get(pid) ?? 'Proyek'}: ${pesan}`,
+          priority: 'normal',
+          type: 'rfq_lewat_batas', project_id: pid,
+          action_url: '/procurement',
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { proyek_aktif: p.id.length, dibaca: baca.data.length, ...hitung, ambang_hari: ambang },
+    })
+  })
 }
 
 /**

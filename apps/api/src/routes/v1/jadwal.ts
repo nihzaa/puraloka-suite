@@ -479,6 +479,54 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Klaim yang belum bernomor, belum berforum, atau sekadar lama tak selesai.',
     jalur: '/api/v1/otomasi/jalankan/sengketa-menggantung',
   },
+
+  /*
+    ── TUJUH OTOMASI BERTENGGAT (2026-08-19)
+    ────────────────────────────────────────────────────────────────────────
+
+    Semuanya memakai satu fungsi bersama (`lib/tenggat-terlewat.ts`): ada
+    tenggat, belum ditutup, sudah lewat. Yang berbeda cuma tabelnya, tenancy-
+    nya, dan siapa penerimanya.
+
+    Ketujuhnya sudah melanggar tenggatnya saat diukur — 36 punch item, 17 NCR,
+    12 permintaan inspeksi, 5 mitigasi, 3 tindak lanjut rapat, 3 temuan K3,
+    dan 2 RFQ.
+  */
+  'punch-lewat-target': {
+    label: 'Punch List Lewat Target',
+    keterangan: 'Item punch list yang belum ditutup melewati target — menahan berita acara dan retensi.',
+    jalur: '/api/v1/otomasi/jalankan/punch-lewat-target',
+  },
+  'ncr-lewat-target': {
+    label: 'NCR Lewat Target',
+    keterangan: 'NCR yang belum ditutup melewati target penutupan, dan yang tak diberi target sama sekali.',
+    jalur: '/api/v1/otomasi/jalankan/ncr-lewat-target',
+  },
+  'inspeksi-terlewat': {
+    label: 'Permintaan Inspeksi Terlewat',
+    keterangan: 'Titik henti mutu yang belum diperiksa, dan inspeksi tidak lolos yang belum diulang.',
+    jalur: '/api/v1/otomasi/jalankan/inspeksi-terlewat',
+  },
+  'mitigasi-lewat-tenggat': {
+    label: 'Mitigasi Risiko Lewat Tenggat',
+    keterangan: 'Tindakan mitigasi yang tenggatnya lewat — register terlihat terkelola padahal tidak.',
+    jalur: '/api/v1/otomasi/jalankan/mitigasi-lewat-tenggat',
+  },
+  'notulen-tak-ditindak': {
+    label: 'Tindak Lanjut Rapat Menggantung',
+    keterangan: 'Keputusan rapat berpenanggung jawab dan bertenggat yang tak dikerjakan.',
+    jalur: '/api/v1/otomasi/jalankan/notulen-tak-ditindak',
+  },
+  'temuan-k3-lewat-tenggat': {
+    label: 'Temuan K3 Lewat Tenggat',
+    keterangan: 'Temuan inspeksi K3 yang belum diperbaiki — bahayanya masih ada di lapangan.',
+    jalur: '/api/v1/otomasi/jalankan/temuan-k3-lewat-tenggat',
+  },
+  'rfq-lewat-batas': {
+    label: 'RFQ Lewat Batas Masuk',
+    keterangan: 'Permintaan penawaran yang batas masuknya lewat tanpa keputusan — pengadaan berhenti tanpa gejala.',
+    jalur: '/api/v1/otomasi/jalankan/rfq-lewat-batas',
+  },
 }
 
 interface BarisJadwal {

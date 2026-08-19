@@ -177,6 +177,23 @@ export type NotificationType =
   // lain di sini: sengketa tidak MEMBURUK bila didiamkan, ia KEDALUWARSA -
   // klaim yang benar isinya bisa gugur karena tenggat, tanpa gejala apa pun.
   | 'sengketa_menggantung'
+  /*
+    TUJUH JENIS BERTENGGAT — satu bentuk logika (`lib/tenggat-terlewat.ts`),
+    tujuh tabel, dan TUJUH jenis notifikasi terpisah.
+
+    Sengaja tidak digabung jadi satu jenis "tenggat_terlewat" berparameter.
+    Alasannya dedup: `pembuatDedup` menahan kembar per (type, record_id), dan
+    id dari tujuh tabel berbeda bisa saja sama. Lebih penting lagi, aturan
+    penerima di `notification_rules` dikunci per `event_type` — satu jenis
+    bersama berarti temuan K3 dan RFQ terkirim ke orang yang sama.
+  */
+  | 'punch_lewat_target'
+  | 'ncr_lewat_target'
+  | 'inspeksi_terlewat'
+  | 'mitigasi_lewat_tenggat'
+  | 'notulen_tak_ditindak'
+  | 'temuan_k3_lewat_tenggat'
+  | 'rfq_lewat_batas'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'

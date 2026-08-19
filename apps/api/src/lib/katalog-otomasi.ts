@@ -1391,6 +1391,188 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'proyek aktif akan membuang justru perkara yang paling mungkin '
       + 'terlantar, karena tak ada lagi rapat mingguan yang membahasnya.',
   },
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    TUJUH OTOMASI BERTENGGAT — satu bentuk logika, tujuh tabel
+    ══════════════════════════════════════════════════════════════════════════
+
+    Ketujuhnya memakai `lib/tenggat-terlewat.ts`: ada tenggat, belum ditutup,
+    sudah lewat. Yang berbeda cuma tabelnya, cara membacanya, dan penerimanya.
+
+    Semuanya melaporkan TIGA keadaan, dan yang ketiga paling mudah luput:
+    yang LEWAT, yang SEGERA jatuh tempo, dan yang TANPA TENGGAT sama sekali.
+    Pekerjaan tanpa tenggat tak pernah terhitung terlambat — dan karena itu tak
+    pernah dikerjakan.
+  */
+  {
+    kunci: 'punch-lewat-target',
+    nama: 'Punch list lewat target',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai item punch list yang belum ditutup melewati target penyelesaian. '
+      + 'Punch list adalah daftar cacat yang harus dituntaskan SEBELUM serah '
+      + 'terima: item yang terbuka menahan berita acara, dan berita acara yang '
+      + 'tertahan menahan pencairan retensi — biasanya 5% nilai kontrak. Item '
+      + 'berkeparahan tinggi diperingatkan lebih awal, tetapi keparahan tak '
+      + 'pernah membuat sesuatu berhenti dilaporkan: cacat ringan yang lewat '
+      + 'tetap dilaporkan, ia hanya tak membangunkan siapa pun. Item yang '
+      + 'terbuka TANPA target juga dilaporkan.',
+    penerima: 'Penanggung jawab mutu & pelaksana proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca punch list proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Memisahkan yang lewat target, yang segera jatuh tempo, dan yang tak bertarget.' },
+      { di: 'sistem', teks: 'Melewati yang tanggal penutupannya sudah terisi, apa pun status tertulisnya.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.tenggat_mutu.hari',
+  },
+  {
+    kunci: 'ncr-lewat-target',
+    nama: 'NCR lewat target penutupan',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai NCR yang belum ditutup melewati target. Ini pasangan HILIR dari '
+      + '"Hasil uji material bermasalah", yang menegur uji gagal yang belum '
+      + 'dibuatkan NCR; yang ini menegur NCR yang sudah dibuat tetapi tak kunjung '
+      + 'ditutup. NCR yang menggantung berarti cacatnya masih ada di lapangan dan '
+      + 'pekerjaan di atasnya terus bertambah. Dampak biaya ikut disebut bila '
+      + 'tercatat. NCR yang tak diberi target penutupan juga dilaporkan — diukur '
+      + '2026-08-19 ada satu, dan NCR seperti itu tak pernah muncul di laporan '
+      + 'keterlambatan mana pun.',
+    penerima: 'Penanggung jawab mutu',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca NCR proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Memisahkan yang lewat target, yang segera jatuh tempo, dan yang tak bertarget.' },
+      { di: 'sistem', teks: 'Menaikkan prioritas untuk NCR berkeparahan tinggi.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.tenggat_mutu.hari',
+  },
+  {
+    kunci: 'inspeksi-terlewat',
+    nama: 'Permintaan inspeksi terlewat',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai permintaan inspeksi yang belum diperiksa melewati tanggal yang '
+      + 'diminta. Permintaan inspeksi adalah TITIK HENTI: pekerjaan berikutnya '
+      + 'tak boleh dituang atau ditutup sebelum yang ini diperiksa. Yang terlewat '
+      + 'menghentikan pekerjaan berikutnya — atau lebih buruk, pekerjaan '
+      + 'berikutnya jalan terus dan titik hentinya terlanggar tanpa catatan. '
+      + 'Inspeksi yang dinyatakan TIDAK LOLOS diperlakukan sebagai belum selesai '
+      + 'dan dikirim sebagai prioritas tinggi: cacatnya sudah terbukti ada, dan '
+      + 'menganggapnya selesai justru membuat pekerjaan bermasalah berhenti ditegur.',
+    penerima: 'Penanggung jawab mutu & pengawas lapangan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca permintaan inspeksi proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Menghitung selisih terhadap tanggal yang diminta.' },
+      { di: 'sistem', teks: 'Memisahkan yang tidak lolos dari yang sekadar belum diperiksa.' },
+      { di: 'sistem', teks: 'Menyebutkan pekerjaan lanjutan yang tertahan, bila tercatat.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.tenggat_mutu.hari',
+  },
+  {
+    kunci: 'mitigasi-lewat-tenggat',
+    nama: 'Mitigasi risiko lewat tenggat',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai tindakan mitigasi yang tenggatnya lewat tanpa dikerjakan. Risiko '
+      + 'yang sudah diidentifikasi dan diberi rencana, lalu rencananya tak '
+      + 'dikerjakan, LEBIH BERBAHAYA daripada risiko yang belum teridentifikasi: '
+      + 'register risikonya terlihat terkelola, jadi tak ada yang memeriksa ulang. '
+      + 'Risiko berskor tinggi (≥ 12 pada matriks 5×5, zona merah) diperingatkan '
+      + 'lebih awal. Tindakan tanpa tenggat juga dilaporkan — rencana tanpa '
+      + 'tanggal bukan rencana.',
+    penerima: 'Pemilik risiko & manajer proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca register risiko proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Membaca tindakan mitigasi milik risiko itu.' },
+      { di: 'sistem', teks: 'Memisahkan yang lewat tenggat, yang segera, dan yang tak bertenggat.' },
+      { di: 'sistem', teks: 'Menaikkan prioritas untuk risiko berskor tinggi.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.tenggat_risiko.hari',
+    catatan:
+      'Tenancy-nya DUA LOMPATAN: tindakan_mitigasi.risiko_id → risiko_proyek.'
+      + 'project_id. Menulisnya sebagai satu lompatan mengirim id proyek ke tempat '
+      + 'yang menunggu id risiko — hasilnya nol baris, balas 200, dan tak ada satu '
+      + 'pun galat.',
+  },
+  {
+    kunci: 'notulen-tak-ditindak',
+    nama: 'Tindak lanjut rapat menggantung',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai keputusan rapat yang sudah diberi penanggung jawab dan tenggat '
+      + 'tetapi tak dikerjakan. Ini kelas cacat paling sering di kantor mana pun: '
+      + 'rapat menghasilkan keputusan, tak ada yang memeriksanya sampai rapat '
+      + 'berikutnya, dan rapat berikutnya membahas hal yang sama dari awal. '
+      + 'Ambangnya paling pendek di antara tujuh otomasi bertenggat karena tindak '
+      + 'lanjut rapat biasanya pekerjaan sehari-dua — mengingatkan seminggu '
+      + 'sebelumnya hanya menghasilkan kebisingan. Tindak lanjut yang notulennya '
+      + 'sudah terhapus TETAP dilaporkan: tugasnya nyata dan tetap belum dikerjakan.',
+    penerima: 'Penanggung jawab tindak lanjut & pengelola dokumen',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca seluruh tindak lanjut notulen milik badan usaha ini.' },
+      { di: 'sistem', teks: 'Mengambil judul rapat asalnya, bila notulennya masih ada.' },
+      { di: 'sistem', teks: 'Memisahkan yang lewat tenggat, yang segera, dan yang tak bertenggat.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.tenggat_notulen.hari',
+  },
+  {
+    kunci: 'temuan-k3-lewat-tenggat',
+    nama: 'Temuan K3 lewat tenggat perbaikan',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai temuan inspeksi K3 yang belum diperbaiki melewati tenggat. Temuan '
+      + 'yang lewat berarti bahayanya masih ada di lapangan hari ini, dan orang '
+      + 'masih bekerja di sekitarnya. Ini SATU-SATUNYA dari tujuh otomasi '
+      + 'bertenggat yang mengirim temuan terlambat sebagai MENDESAK tanpa melihat '
+      + 'tingkatnya: di enam lainnya keterlambatan berarti biaya atau jadwal, di '
+      + 'sini ia berarti seseorang bisa celaka. Temuan tanpa tenggat perbaikan '
+      + 'juga dilaporkan.',
+    penerima: 'Petugas K3 & pengawas lapangan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca inspeksi K3 proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Membaca temuan milik inspeksi itu.' },
+      { di: 'sistem', teks: 'Memisahkan yang lewat tenggat, yang segera, dan yang tak bertenggat.' },
+      { di: 'sistem', teks: 'Menandai SEMUA yang lewat sebagai mendesak, apa pun tingkatnya.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.tenggat_k3.hari',
+    catatan:
+      'Tenancy-nya DUA LOMPATAN: temuan_k3.inspeksi_id → inspeksi_k3.project_id. '
+      + 'Tabel ini juga memakai kolom `tingkat` (bahasa Indonesia), bukan '
+      + '`severity` seperti punch list dan NCR — fungsi bersamanya menerima keduanya.',
+  },
+  {
+    kunci: 'rfq-lewat-batas',
+    nama: 'RFQ lewat batas masuk penawaran',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai permintaan penawaran yang batas masuknya lewat tanpa keputusan. '
+      + 'Pengadaan yang berhenti di tahap ini tak menimbulkan gejala apa pun: tak '
+      + 'ada penawaran yang ditolak, tak ada PO yang terbit untuk ditanyakan siapa '
+      + 'pun, dan permintaan materialnya masih menunggu di hulu. Yang menandai RFQ '
+      + 'tuntas adalah adanya PO — bukti yang lebih kuat daripada kolom status, '
+      + 'karena PO terbit dari tindakan nyata.',
+    penerima: 'Penanggung jawab pengadaan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca RFQ proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Melewati yang sudah menghasilkan PO, apa pun status tertulisnya.' },
+      { di: 'sistem', teks: 'Memisahkan yang lewat batas, yang segera menutup, dan yang tak berbatas.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.tenggat_pengadaan.hari',
+  },
   {
     kunci: 'bbm-melonjak',
     nomor: '10.4',

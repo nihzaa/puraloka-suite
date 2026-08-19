@@ -987,6 +987,102 @@ export const AMBANG_OTOMASI = {
     langkah: 10_000_000,
   },
 
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    TUJUH OTOMASI BERTENGGAT — lima ambang, dipisah menurut SIAPA yang menyetel
+    ══════════════════════════════════════════════════════════════════════════
+
+    Ketujuhnya memakai fungsi yang sama (`lib/tenggat-terlewat.ts`), tetapi
+    ambangnya sengaja TIDAK satu.
+
+    Alasannya bukan teknis melainkan organisasi: yang menyetel ambang mutu
+    adalah manajer QC, ambang K3 adalah petugas K3, ambang pengadaan adalah
+    bagian pembelian. Satu ambang bersama berarti mereka bertiga berebut satu
+    kotak isian — dan yang terakhir mengubahnya menang tanpa tahu ia menggeser
+    peringatan dua departemen lain.
+
+    Yang digabung hanya yang benar-benar satu urusan: punch list, NCR, dan
+    inspeksi semuanya milik QC, jadi berbagi `tenggat_mutu`.
+
+    Semua ambang ini berarti "berapa hari SEBELUM tenggat peringatan mulai
+    dikirim" — bukan berapa hari sesudah. Yang sudah lewat SELALU dilaporkan,
+    tak peduli ambangnya; ambang cuma mengatur seberapa dini peringatan
+    pencegahan datang.
+  */
+  'otomasi.tenggat_mutu.hari': {
+    bawaan: 3,
+    min: 0,
+    max: 30,
+    label: 'Hari sebelum tenggat mutu diperingatkan',
+    judul: 'Pekerjaan mutu lewat tenggat',
+    akibat:
+      'Berlaku untuk punch list, NCR, dan permintaan inspeksi. Peringatan yang '
+      + 'datang SEBELUM tenggat masih bisa mencegah; yang datang sesudah hanya '
+      + 'bisa melapor. Yang sudah lewat tetap dilaporkan berapa pun angkanya. '
+      + 'Cacat berkeparahan tinggi diperingatkan lebih awal (dua kali ambang ini).',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.tenggat_k3.hari': {
+    bawaan: 3,
+    min: 0,
+    max: 30,
+    label: 'Hari sebelum tenggat perbaikan K3 diperingatkan',
+    judul: 'Temuan K3 lewat tenggat',
+    akibat:
+      'Temuan inspeksi K3 yang belum diperbaiki. Dipisahkan dari ambang mutu '
+      + 'karena yang menyetelnya petugas K3, bukan manajer QC. Temuan yang SUDAH '
+      + 'lewat selalu dikirim sebagai mendesak, tak peduli tingkatnya — di '
+      + 'keselamatan, keterlambatan berarti seseorang bisa celaka hari ini.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.tenggat_risiko.hari': {
+    bawaan: 7,
+    min: 0,
+    max: 60,
+    label: 'Hari sebelum tenggat mitigasi risiko diperingatkan',
+    judul: 'Mitigasi risiko lewat tenggat',
+    akibat:
+      'Tindakan mitigasi yang belum dikerjakan. Ambangnya lebih panjang daripada '
+      + 'mutu dan K3 karena mitigasi biasanya pekerjaan berminggu-minggu, bukan '
+      + 'perbaikan sehari. Risiko berskor tinggi (≥ 12) diperingatkan lebih awal.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.tenggat_notulen.hari': {
+    bawaan: 2,
+    min: 0,
+    max: 30,
+    label: 'Hari sebelum tenggat tindak lanjut rapat diperingatkan',
+    judul: 'Tindak lanjut rapat lewat tenggat',
+    akibat:
+      'Keputusan rapat yang diberi penanggung jawab dan tenggat, lalu tak ada '
+      + 'yang memeriksanya sampai rapat berikutnya. Ambangnya paling pendek '
+      + 'karena tindak lanjut rapat biasanya pekerjaan sehari-dua — mengingatkan '
+      + 'seminggu sebelumnya hanya menghasilkan kebisingan.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.tenggat_pengadaan.hari': {
+    bawaan: 2,
+    min: 0,
+    max: 30,
+    label: 'Hari sebelum batas masuk penawaran diperingatkan',
+    judul: 'RFQ lewat batas masuk',
+    akibat:
+      'RFQ yang batas masuknya mendekat atau sudah lewat tanpa keputusan. '
+      + 'Pengadaan yang berhenti di tahap ini tak menimbulkan gejala apa pun — '
+      + 'tak ada penawaran yang ditolak, tak ada PO yang terbit, dan permintaan '
+      + 'materialnya masih menunggu di hulu.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
   'otomasi.bbm_melonjak.hari': {
     bawaan: 30,
     min: 7,

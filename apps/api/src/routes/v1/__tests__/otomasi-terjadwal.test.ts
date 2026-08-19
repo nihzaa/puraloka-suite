@@ -570,6 +570,23 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     // objeknya tidak MEMBURUK bila didiamkan — ia KEDALUWARSA. Diukur:
     // Rp 420 juta menggantung 97 hari di negosiasi tanpa forum.
     'sengketa-menggantung',
+    /*
+      TUJUH OTOMASI BERTENGGAT (2026-08-19). Satu fungsi bersama
+      (`lib/tenggat-terlewat.ts`), tujuh tabel, tenancy yang TIDAK seragam —
+      dua di antaranya butuh DUA LOMPATAN (temuan_k3 lewat inspeksi_k3,
+      tindakan_mitigasi lewat risiko_proyek).
+
+      Kalau lompatan keduanya salah, rutenya tetap balas 200 dengan nol
+      notifikasi — dan test ini yang membedakan "tak ada yang lewat tenggat"
+      dari "querynya tak pernah menemukan apa pun".
+    */
+    'punch-lewat-target',
+    'ncr-lewat-target',
+    'inspeksi-terlewat',
+    'mitigasi-lewat-tenggat',
+    'notulen-tak-ditindak',
+    'temuan-k3-lewat-tenggat',
+    'rfq-lewat-batas',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {
