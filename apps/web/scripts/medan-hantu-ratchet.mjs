@@ -172,9 +172,24 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
     const baris = lingkup.split('\n')
     const rxSetter = new RegExp(`\\b${setter}\\s*\\(`)
     const RX_PENANGAN =
-      /\bon(Change|Click|Input|Blur|Submit|KeyDown|KeyUp|Select|Drop|MouseEnter|MouseLeave|Focus|Toggle)\s*=/
+      /\bon(Change|Click|Input|Blur|Submit|KeyDown|KeyUp|Select|Drop|MouseEnter|MouseLeave|Focus|Toggle|Ubah|Pilih|Klik|Simpan|Tutup|Batal)\s*=/
 
     let bisaDiisi = false
+
+    // (b0) Setter DIOPER LANGSUNG sebagai prop, tanpa dipanggil.
+    //
+    //      <Saklar nyala={x} onUbah={setX} />
+    //
+    // `rxSetter` menuntut `setX(` — dengan kurung — jadi bentuk ini luput.
+    // Padahal ia idiom React yang paling biasa, dan di repo ini dipakai 27
+    // berkas lewat prop `onUbah`.
+    //
+    // Diukur 2026-08-19: dari 11 temuan penjaga ini, tak satu pun nyata.
+    // Penjaga yang menuduh kode yang BENAR lebih berbahaya daripada tak ada
+    // penjaga: orang berhenti membacanya, lalu temuan yang SUNGGUHAN ikut
+    // terlewat.
+    const rxSetterProp = new RegExp(`\\bon[A-Z]\\w*\\s*=\\s*\\{\\s*${setter}\\s*\\}`)
+    if (rxSetterProp.test(lingkup)) bisaDiisi = true
 
     // (b1) Langsung di dalam/berdekatan dengan penangan.
     for (let i = 0; i < baris.length && !bisaDiisi; i++) {
