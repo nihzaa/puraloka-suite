@@ -76,7 +76,7 @@ export default function PortalShell({
         <div>
           <div
             style={{
-              color: "var(--on-navy)",
+              color: "var(--on-merek)",
               fontWeight: 800,
               fontSize: 15,
               fontFamily: "var(--font-display, inherit)",
@@ -86,8 +86,7 @@ export default function PortalShell({
           </div>
           <div
             style={{
-              color: "var(--on-navy)",
-              opacity: 0.75,
+              color: "var(--on-merek-redup)",
               fontSize: 12,
               marginTop: 2,
             }}
@@ -109,9 +108,9 @@ export default function PortalShell({
               width: 44,
               height: 44,
               borderRadius: "var(--portal-radius-pill)",
-              border: "1px solid rgba(255,255,255,0.25)",
+              border: "1px solid var(--on-merek-redup)",
               background: "rgba(255,255,255,0.1)",
-              color: "var(--on-navy)",
+              color: "var(--on-merek)",
               cursor: "pointer",
             }}
           >
