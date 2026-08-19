@@ -14,6 +14,12 @@ import { analisaSloof } from '../../lib/struktur-sloof.js'
 import { analisaTangga } from '../../lib/struktur-tangga.js'
 import { analisaBalokT } from '../../lib/struktur-balok-t.js'
 import {
+  analisaPondasiMenerus, analisaRaft,
+} from '../../lib/struktur-pondasi-dangkal.js'
+import {
+  analisaDindingPenahan, analisaDindingGeser,
+} from '../../lib/struktur-dinding.js'
+import {
   analisaGempaStatik, analisaAngin, analisaDrift,
   SISTEM_STRUKTUR, KATEGORI_RISIKO, KOEF_PERIODA, EKSPOSUR,
 } from '../../lib/struktur-beban-lateral.js'
@@ -76,6 +82,7 @@ const JENIS = [
   // Beton
   'balok', 'kolom', 'kolom_bulat', 'plat', 'footplat', 'pilecap', 'tiang',
   'sloof', 'tangga', 'balok_t',
+  'pondasi_menerus', 'raft', 'dinding_penahan', 'dinding_geser',
   // Baja
   'baja_balok', 'baja_kolom', 'baja_gording', 'baja_bracing',
   'baja_rangka', 'baja_base_plate', 'baja_angkur',
@@ -131,6 +138,22 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
       persegi) — bukan mengambil yang menguntungkan.
     */
     case 'balok_t': return analisaBalokT(dgnJumlah as never)
+    /*
+      Pondasi dangkal & dinding. Empat elemen yang menutup sisa celah beton:
+
+        pondasi_menerus  paling umum di Indonesia, hampir tak pernah dihitung —
+                         ukurannya diwariskan turun-temurun
+        raft             dipakai justru saat tanahnya lemah, dan di situlah
+                         kesalahan paling mahal
+        dinding_penahan  tiga cara gagal (guling/geser/tekanan); yang paling
+                         sering dilewatkan adalah GESER
+        dinding_geser    yang diperiksa URUTAN kegagalannya, bukan hanya
+                         kuatnya — geser yang lebih lemah runtuh mendadak
+    */
+    case 'pondasi_menerus': return analisaPondasiMenerus(dgnJumlah as never)
+    case 'raft': return analisaRaft(dgnJumlah as never)
+    case 'dinding_penahan': return analisaDindingPenahan(dgnJumlah as never)
+    case 'dinding_geser': return analisaDindingGeser(dgnJumlah as never)
 
     /*
       ── BAJA

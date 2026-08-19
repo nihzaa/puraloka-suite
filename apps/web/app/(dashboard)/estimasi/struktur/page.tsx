@@ -57,7 +57,8 @@ interface Project { id: string; name: string }
 
 type JenisBeton =
   | "balok" | "kolom" | "kolom_bulat" | "plat" | "footplat" | "pilecap" | "tiang"
-  | "sloof" | "tangga";
+  | "sloof" | "tangga" | "balok_t"
+  | "pondasi_menerus" | "raft" | "dinding_penahan" | "dinding_geser";
 
 type JenisBaja =
   | "baja_balok" | "baja_kolom" | "baja_gording" | "baja_bracing"
@@ -201,6 +202,11 @@ const NAMA_JENIS: Record<Jenis, string> = {
   tiang: "Tiang pancang",
   sloof: "Sloof (tie beam)",
   tangga: "Tangga beton",
+  balok_t: "Balok anak (T)",
+  pondasi_menerus: "Pondasi menerus",
+  raft: "Raft (pelat pondasi)",
+  dinding_penahan: "Dinding penahan tanah",
+  dinding_geser: "Dinding geser",
   // Baja
   baja_balok: "Balok baja",
   baja_kolom: "Kolom baja",
@@ -232,8 +238,9 @@ const KELOMPOK_JENIS: { label: string; jenis: Jenis[] }[] = [
       urutannya acak membuatnya membaca seluruh isinya tiap kali.
     */
     jenis: [
-      "footplat", "pilecap", "tiang", "sloof",
-      "kolom", "kolom_bulat", "balok", "plat", "tangga",
+      "pondasi_menerus", "footplat", "pilecap", "raft", "tiang", "sloof",
+      "kolom", "kolom_bulat", "balok", "balok_t", "plat", "tangga",
+      "dinding_penahan", "dinding_geser",
     ],
   },
   {
@@ -304,6 +311,82 @@ const MEDAN: Record<Jenis, Medan[]> = {
     { kunci: "jarakBagiMm", label: "Jarak tulangan bagi", satuan: "mm" },
     ...MEDAN_MUTU,
     { kunci: "panjangBordesM", label: "Panjang bordes (0 bila tak ada)", satuan: "m" },
+  ],
+  balok_t: [
+    { kunci: "bwMm", label: "Lebar badan bw", satuan: "mm" },
+    { kunci: "hMm", label: "Tinggi total (termasuk pelat)", satuan: "mm" },
+    { kunci: "hfMm", label: "Tebal pelat hf", satuan: "mm" },
+    { kunci: "bentangBersihM", label: "Bentang bersih", satuan: "m" },
+    { kunci: "jarakAsAsM", label: "Jarak as-as ke balok sebelah", satuan: "m" },
+    { kunci: "selimutMm", label: "Selimut beton", satuan: "mm" },
+    { kunci: "dUtamaMm", label: "Ø tulangan utama", satuan: "mm" },
+    { kunci: "nTarik", label: "Jumlah tulangan bawah" },
+    { kunci: "nAtas", label: "Jumlah tulangan atas" },
+    { kunci: "dSengkangMm", label: "Ø sengkang", satuan: "mm" },
+    { kunci: "jarakSengkangMm", label: "Jarak sengkang", satuan: "mm" },
+    ...MEDAN_MUTU,
+    { kunci: "muPositifKnm", label: "Momen lapangan Mu+", satuan: "kNm" },
+    { kunci: "muNegatifKnm", label: "Momen tumpuan Mu− (0 bila sederhana)", satuan: "kNm" },
+    { kunci: "vuKn", label: "Gaya geser Vu", satuan: "kN" },
+  ],
+  pondasi_menerus: [
+    { kunci: "lebarBawahM", label: "Lebar dasar", satuan: "m" },
+    { kunci: "lebarAtasM", label: "Lebar puncak", satuan: "m" },
+    { kunci: "tinggiM", label: "Tinggi badan", satuan: "m" },
+    { kunci: "panjangM", label: "Panjang total", satuan: "m" },
+    { kunci: "kedalamanM", label: "Kedalaman dari muka tanah", satuan: "m" },
+    { kunci: "bebanKnPerM", label: "Beban dinding", satuan: "kN/m" },
+    { kunci: "qaKnM2", label: "Daya dukung tanah izin", satuan: "kPa" },
+    { kunci: "gammaTanahKnM3", label: "Berat volume tanah", satuan: "kN/m³" },
+    { kunci: "tebalPasirM", label: "Tebal pasir urug", satuan: "m" },
+    { kunci: "tinggiAanstampingM", label: "Tinggi aanstamping", satuan: "m" },
+  ],
+  raft: [
+    { kunci: "panjangM", label: "Panjang raft", satuan: "m" },
+    { kunci: "lebarM", label: "Lebar raft", satuan: "m" },
+    { kunci: "tebalMm", label: "Tebal pelat", satuan: "mm" },
+    { kunci: "bebanTotalKn", label: "Jumlah beban semua kolom", satuan: "kN" },
+    { kunci: "eksentrisitasXM", label: "Eksentrisitas arah panjang", satuan: "m" },
+    { kunci: "eksentrisitasYM", label: "Eksentrisitas arah lebar", satuan: "m" },
+    { kunci: "qaKnM2", label: "Daya dukung tanah izin", satuan: "kPa" },
+    { kunci: "bentangKolomM", label: "Bentang terbesar antar kolom", satuan: "m" },
+    { kunci: "selimutMm", label: "Selimut beton", satuan: "mm" },
+    { kunci: "dUtamaMm", label: "Ø tulangan", satuan: "mm" },
+    { kunci: "jarakUtamaMm", label: "Jarak tulangan", satuan: "mm" },
+    ...MEDAN_MUTU,
+  ],
+  dinding_penahan: [
+    { kunci: "tinggiM", label: "Tinggi total", satuan: "m" },
+    { kunci: "tebalAtasM", label: "Tebal badan di puncak", satuan: "m" },
+    { kunci: "tebalBawahM", label: "Tebal badan di dasar", satuan: "m" },
+    { kunci: "panjangTelapakM", label: "Panjang telapak", satuan: "m" },
+    { kunci: "tebalTelapakM", label: "Tebal telapak", satuan: "m" },
+    { kunci: "kakiM", label: "Panjang kaki depan", satuan: "m" },
+    { kunci: "gammaTanahKnM3", label: "Berat volume tanah", satuan: "kN/m³" },
+    { kunci: "phiDerajat", label: "Sudut geser dalam tanah φ", satuan: "°" },
+    { kunci: "kohesiKpa", label: "Kohesi tanah (0 untuk pasir)", satuan: "kPa" },
+    { kunci: "surchargeKpa", label: "Beban di atas tanah urug", satuan: "kPa" },
+    { kunci: "qaKnM2", label: "Daya dukung tanah izin", satuan: "kPa" },
+    { kunci: "panjangDindingM", label: "Panjang dinding", satuan: "m" },
+    { kunci: "selimutMm", label: "Selimut beton", satuan: "mm" },
+    { kunci: "dUtamaMm", label: "Ø tulangan", satuan: "mm" },
+    { kunci: "jarakUtamaMm", label: "Jarak tulangan", satuan: "mm" },
+    ...MEDAN_MUTU,
+  ],
+  dinding_geser: [
+    { kunci: "panjangM", label: "Panjang dinding (arah gaya)", satuan: "m" },
+    { kunci: "tebalMm", label: "Tebal", satuan: "mm" },
+    { kunci: "tinggiM", label: "Tinggi total", satuan: "m" },
+    { kunci: "vuKn", label: "Gaya geser Vu", satuan: "kN" },
+    { kunci: "muKnm", label: "Momen guling Mu", satuan: "kNm" },
+    { kunci: "puKn", label: "Gaya aksial Pu", satuan: "kN" },
+    { kunci: "rhoHorizontal", label: "Rasio tulangan mendatar ρt" },
+    { kunci: "rhoVertikal", label: "Rasio tulangan tegak ρl" },
+    { kunci: "asUjungMm2", label: "Luas tulangan ujung tiap sisi", satuan: "mm²" },
+    { kunci: "selimutMm", label: "Selimut beton", satuan: "mm" },
+    { kunci: "dUtamaMm", label: "Ø tulangan", satuan: "mm" },
+    { kunci: "jarakUtamaMm", label: "Jarak tulangan", satuan: "mm" },
+    ...MEDAN_MUTU,
   ],
   balok: [
     { kunci: "bMm", label: "Lebar b", satuan: "mm" },
@@ -595,6 +678,45 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     dUtamaMm: 12, jarakUtamaMm: 150, dBagiMm: 8, jarakBagiMm: 200,
     mutu: { fcMpa: 25, fyMpa: 400 },
     pemakaian: "hunian", panjangBordesM: 0,
+  },
+  balok_t: {
+    bwMm: 200, hMm: 400, hfMm: 120, bentangBersihM: 4, jarakAsAsM: 3,
+    selimutMm: 30, dUtamaMm: 16, nTarik: 3, nAtas: 2,
+    dSengkangMm: 8, jarakSengkangMm: 150,
+    mutu: { fcMpa: 25, fyMpa: 400 },
+    muPositifKnm: 60, muNegatifKnm: 40, vuKn: 70,
+  },
+  /*
+    Contoh pondasi batu kali rumah tinggal — ukuran yang diwariskan
+    turun-temurun (60/30/60), justru yang paling perlu diperiksa.
+  */
+  pondasi_menerus: {
+    jenis: "batu_kali",
+    lebarBawahM: 0.6, lebarAtasM: 0.3, tinggiM: 0.6,
+    panjangM: 40, kedalamanM: 0.8,
+    bebanKnPerM: 25, qaKnM2: 150, gammaTanahKnM3: 17,
+    tebalPasirM: 0.05, tinggiAanstampingM: 0.2,
+  },
+  raft: {
+    panjangM: 12, lebarM: 8, tebalMm: 400, bebanTotalKn: 4800,
+    eksentrisitasXM: 0.5, eksentrisitasYM: 0.3, qaKnM2: 120,
+    selimutMm: 50, dUtamaMm: 16, jarakUtamaMm: 150,
+    mutu: { fcMpa: 30, fyMpa: 400 }, bentangKolomM: 4,
+  },
+  dinding_penahan: {
+    tinggiM: 3, tebalAtasM: 0.25, tebalBawahM: 0.4,
+    panjangTelapakM: 2, tebalTelapakM: 0.4, kakiM: 0.5,
+    gammaTanahKnM3: 18, phiDerajat: 30, kohesiKpa: 0, surchargeKpa: 0,
+    qaKnM2: 200, panjangDindingM: 20,
+    selimutMm: 50, dUtamaMm: 16, jarakUtamaMm: 150,
+    mutu: { fcMpa: 25, fyMpa: 400 },
+  },
+  dinding_geser: {
+    panjangM: 4, tebalMm: 250, tinggiM: 12,
+    vuKn: 800, muKnm: 6000, puKn: 1500,
+    rhoHorizontal: 0.003, rhoVertikal: 0.003, asUjungMm2: 2000,
+    selimutMm: 40, dUtamaMm: 13, jarakUtamaMm: 200,
+    mutu: { fcMpa: 30, fyMpa: 400 },
   },
   plat: {
     lxM: 3.5, lyM: 4, hM: 0.12, selimutMm: 20,

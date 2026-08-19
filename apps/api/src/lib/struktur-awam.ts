@@ -702,6 +702,94 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
       + 'tambah bresing. Menambah tulangan saja tidak menolong — yang kurang '
       + 'kekakuan, bukan kekuatan.',
   },
+  // ── PONDASI DANGKAL & DINDING ─────────────────────────────────────────────
+  'Daya dukung tanah': {
+    judul: 'Tanahnya sanggup memikul',
+    apa: 'Setiap tanah punya batas berapa berat yang bisa dipikul tiap meter '
+      + 'perseginya. Ini membandingkan tekanan yang benar-benar bekerja dengan '
+      + 'batas itu.',
+    risiko: 'Kalau melebihi, tanah di bawah pondasi tertekan keluar dan '
+      + 'bangunan AMBLAS — turun perlahan sampai lantai miring, dinding retak '
+      + 'menyilang, dan pintu tak bisa ditutup. Penurunan yang sudah terjadi '
+      + 'tidak bisa dibalikkan; bangunannya harus diangkat atau pondasinya '
+      + 'diperkuat dari bawah, dan keduanya jauh lebih mahal daripada membuat '
+      + 'pondasi yang benar sejak awal.',
+    tindakan: 'Perlebar pondasinya supaya bebannya tersebar, perdalam sampai '
+      + 'lapisan tanah yang lebih keras, atau ganti ke pondasi tiang.',
+  },
+  'Sudut sebar batu kali': {
+    judul: 'Bentuk pondasi batu kali masuk akal',
+    apa: 'Pasangan batu kali hanya kuat menahan TEKAN, tidak menahan tarik '
+      + 'seperti beton bertulang. Karena itu bentuknya harus cukup gemuk: '
+      + 'tonjolan di kiri-kanan tak boleh terlalu lebar dibanding tingginya.',
+    risiko: 'Pondasi yang terlalu ceper dan lebar akan PECAH di tepinya — '
+      + 'bagian yang menonjol patah karena tak ada besi yang menahannya, dan '
+      + 'beban dinding lalu terpusat di bagian tengah yang jadi terlalu sempit.',
+    tindakan: 'Tinggikan pondasinya, sempitkan dasarnya, atau ganti ke beton '
+      + 'bertulang yang memang kuat menahan tarik.',
+  },
+  'Stabilitas guling': {
+    judul: 'Dinding tidak terguling ke depan',
+    apa: 'Tanah di belakang dinding mendorongnya terus-menerus. Ini memeriksa '
+      + 'apakah berat dinding dan tanah di atas telapaknya cukup untuk menahan '
+      + 'dorongan itu — dengan cadangan dua kali lipat.',
+    risiko: 'Dinding berputar ke depan mengelilingi ujung kakinya dan roboh '
+      + 'sekaligus, membawa tanah di belakangnya. Ini bukan retak yang melebar '
+      + 'pelan — ia terjadi dalam hitungan detik, dan yang tertimbun adalah '
+      + 'apa pun yang ada di depan dinding.',
+    tindakan: 'Perpanjang telapaknya ke belakang (tumit) supaya lebih banyak '
+      + 'tanah menahan, atau tebalkan dindingnya.',
+  },
+  'Stabilitas geser': {
+    judul: 'Dinding tidak melorot mendatar',
+    apa: 'Selain terguling, dinding bisa MELUNCUR mendatar di atas tanah — '
+      + 'terdorong utuh tanpa berputar. Yang menahannya gesekan antara dasar '
+      + 'telapak dan tanah, bukan berat dindingnya.',
+    risiko: 'Inilah yang paling sering dilewatkan. Dinding boleh sangat berat '
+      + 'sehingga mustahil terguling, dan tetap melorot — karena pada tanah '
+      + 'lempung basah gesekannya kecil. Yang terlihat: dinding bergeser '
+      + 'beberapa sentimeter tiap musim hujan sampai akhirnya roboh.',
+    tindakan: 'Tambahkan gigi (kunci geser) di bawah telapak, perpanjang '
+      + 'telapaknya, atau perbaiki drainase supaya tanahnya tidak jenuh air.',
+  },
+  'Resultan di inti telapak': {
+    judul: 'Telapak menapak penuh, tidak terangkat',
+    apa: 'Beban yang tidak terpusat membuat tekanan tak merata di bawah '
+      + 'telapak. Kalau terlalu tak merata, sebagian telapak justru TERANGKAT '
+      + 'dari tanah dan tidak memikul apa-apa.',
+    risiko: 'Seluruh beban lalu ditumpu bagian yang lebih kecil, dan tekanan '
+      + 'di sana jauh lebih besar daripada yang dihitung — angka daya dukung '
+      + 'di layar ini jadi tak berlaku. Bagian yang tertekan berlebih amblas '
+      + 'lebih dulu, dan dindingnya makin miring, yang membuatnya makin '
+      + 'terangkat: kerusakan yang mempercepat dirinya sendiri.',
+    tindakan: 'Perpanjang telapak ke arah tumit supaya beban lebih terpusat, '
+      + 'atau kurangi ketinggian tanah yang ditahan.',
+  },
+  'Kapasitas geser': {
+    judul: 'Kekuatan menahan sobek mendatar',
+    apa: 'Saat gempa, dinding didorong ke samping dan cenderung tersobek '
+      + 'menyilang. Ini memeriksa apakah beton dan tulangan mendatarnya cukup '
+      + 'menahan sobekan itu.',
+    risiko: 'Kegagalan geser terjadi TIBA-TIBA — retak menyilang muncul dan '
+      + 'melebar dalam hitungan detik, tanpa lendutan yang memberi peringatan '
+      + 'lebih dulu.',
+    tindakan: 'Tambah tulangan mendatar, tebalkan dindingnya, atau naikkan '
+      + 'mutu betonnya.',
+  },
+  'Lentur leleh sebelum geser': {
+    judul: 'Dinding memberi peringatan sebelum runtuh',
+    apa: 'Dinding geser boleh rusak saat gempa besar — yang tidak boleh adalah '
+      + 'runtuh mendadak. Ini memeriksa urutannya: tulangan harus MELELEH '
+      + 'lebih dulu (dinding melengkung, retak melebar pelan) sebelum betonnya '
+      + 'tersobek.',
+    risiko: 'Kalau urutannya terbalik, dinding runtuh TIBA-TIBA tanpa retak '
+      + 'yang memberi peringatan dan tanpa waktu bagi orang untuk keluar. '
+      + 'Inilah yang dihindari seluruh filosofi bangunan tahan gempa: bangunan '
+      + 'boleh rusak berat asal orangnya sempat keluar.',
+    tindakan: 'Perbesar tulangan MENDATAR atau tebalkan dindingnya. Menambah '
+      + 'tulangan di ujung dinding justru MEMPERBURUK — ia menaikkan kekuatan '
+      + 'lentur sehingga gesernya makin tertinggal.',
+  },
 }
 
 /**

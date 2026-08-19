@@ -15,6 +15,8 @@ import { analisaSloof } from '../struktur-sloof'
 import { analisaTangga } from '../struktur-tangga'
 import { analisaBalokT } from '../struktur-balok-t'
 import { analisaGempaStatik, analisaDrift } from '../struktur-beban-lateral'
+import { analisaPondasiMenerus, analisaRaft } from '../struktur-pondasi-dangkal'
+import { analisaDindingPenahan, analisaDindingGeser } from '../struktur-dinding'
 import {
   analisaSambunganBaut, analisaSambunganLas, MUTU_BAUT,
 } from '../struktur-baja-sambungan'
@@ -60,6 +62,33 @@ function semuaNamaPemeriksaan(): string[] {
       berarti apa-apa sampai diterjemahkan jadi "dindingnya akan retak saat
       gempa sedang".
     */
+    /*
+      Pondasi dangkal & dinding. Empat pemeriksaan yang khas di sini —
+      stabilitas guling, stabilitas geser, resultan di inti telapak, dan
+      urutan lentur-vs-geser — semuanya butuh terjemahan: "SF guling 2,3" tak
+      berarti apa-apa sampai dijelaskan bahwa dinding bisa berputar ke depan.
+    */
+    analisaPondasiMenerus({
+      jenis: 'batu_kali', lebarBawahM: 0.6, lebarAtasM: 0.3, tinggiM: 0.6,
+      panjangM: 40, kedalamanM: 0.8, bebanKnPerM: 25, qaKnM2: 150,
+    }),
+    analisaRaft({
+      panjangM: 12, lebarM: 8, tebalMm: 400, bebanTotalKn: 4800,
+      eksentrisitasXM: 0.5, eksentrisitasYM: 0.3, qaKnM2: 120,
+      selimutMm: 50, dUtamaMm: 16, jarakUtamaMm: 150, mutu, bentangKolomM: 4,
+    }),
+    analisaDindingPenahan({
+      tinggiM: 3, tebalAtasM: 0.25, tebalBawahM: 0.4,
+      panjangTelapakM: 2, tebalTelapakM: 0.4, kakiM: 0.5,
+      gammaTanahKnM3: 18, phiDerajat: 30, qaKnM2: 200, panjangDindingM: 20,
+      selimutMm: 50, dUtamaMm: 16, jarakUtamaMm: 150, mutu,
+    }),
+    analisaDindingGeser({
+      panjangM: 4, tebalMm: 250, tinggiM: 12,
+      vuKn: 800, muKnm: 6000, puKn: 1500,
+      rhoHorizontal: 0.003, rhoVertikal: 0.003, asUjungMm2: 2000,
+      selimutMm: 40, dUtamaMm: 13, jarakUtamaMm: 200, mutu,
+    }),
     analisaBalokT({
       bwMm: 200, hMm: 400, hfMm: 120, bentangBersihM: 4, jarakAsAsM: 3,
       selimutMm: 30, dUtamaMm: 16, nTarik: 3, nAtas: 2,
