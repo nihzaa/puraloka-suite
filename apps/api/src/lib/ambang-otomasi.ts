@@ -831,6 +831,57 @@ export const AMBANG_OTOMASI = {
     sudah tertangani; ini salah satu dari lima celah, dan sinyalnya paling
     kuat: 14 dari 15 proyek aktif berjalan tanpa kabar ke pemiliknya.
   */
+  /*
+    10.4 Fleet Fuel Anomaly. TIGA ambang karena tiga keputusan berbeda:
+    seberapa jauh ke belakang, seberapa tinggi baru disebut melonjak, dan
+    berapa pengisian sebelum disimpulkan.
+  */
+  'otomasi.bbm_melonjak.hari': {
+    bawaan: 30,
+    min: 7,
+    max: 180,
+    label: 'Panjang periode yang dinilai konsumsi BBM-nya',
+    judul: 'Konsumsi BBM melonjak',
+    akibat:
+      'Berapa hari terakhir yang dibandingkan terhadap kebiasaan alat itu '
+      + 'sendiri. Terlalu pendek membuat satu hari kerja berat terlihat seperti '
+      + 'lonjakan; terlalu panjang membuat kebocoran nyata tersamar rata-rata.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.bbm_melonjak.persen': {
+    bawaan: 30,
+    min: 10,
+    max: 200,
+    label: 'Kenaikan liter/jam (%) sebelum disebut melonjak',
+    judul: 'Konsumsi BBM melonjak',
+    akibat:
+      'Berapa persen di atas kebiasaan alat itu sendiri sudah dianggap tak '
+      + 'wajar. Penyebabnya salah satu dari tiga hal yang semuanya merugikan: '
+      + 'filter atau injektor bermasalah, mesin dibiarkan menyala menganggur, '
+      + 'atau solar hilang di lapangan.',
+    satuan: 'persen',
+    langkah: 5,
+  },
+
+  /*
+    Satu pengisian bisa berarti tangki diisi penuh sesudah lama kosong — bukan
+    konsumsi periode itu.
+  */
+  'otomasi.bbm_melonjak.min_isi': {
+    bawaan: 2,
+    min: 1,
+    max: 20,
+    label: 'Pengisian minimum sebelum konsumsi disimpulkan',
+    judul: 'Konsumsi BBM melonjak',
+    akibat:
+      'Alat dengan pengisian lebih sedikit dari angka ini dilewati, bukan '
+      + 'ditebak. Satu pengisian tak menceritakan laju pemakaian.',
+    satuan: 'pengisian',
+    langkah: 1,
+  },
+
   'otomasi.klien_didiamkan.hari': {
     bawaan: 14,
     min: 3,

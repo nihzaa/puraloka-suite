@@ -1293,6 +1293,34 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'yang belum bisa ditutup hanya melatih orang mengabaikan notifikasi.',
   },
   {
+    kunci: 'bbm-melonjak',
+    nomor: '10.4',
+    nama: 'Konsumsi BBM melonjak',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai alat yang konsumsi bahan bakarnya naik jauh dari kebiasaannya '
+      + 'sendiri. Yang diukur LITER PER JAM OPERASI, bukan rupiah per '
+      + 'pengisian — rupiah tak bisa membedakan alat yang boros dari harga '
+      + 'solar yang naik, dan tangki yang selalu diisi penuh membuat nominalnya '
+      + 'selalu sama. Kalau liter per jam melonjak, penyebabnya salah satu dari '
+      + 'tiga hal yang semuanya merugikan: filter atau injektor bermasalah, '
+      + 'mesin dibiarkan menyala menganggur, atau solar hilang di lapangan. '
+      + 'Dibandingkan dengan riwayat alat itu SENDIRI, bukan dengan alat lain — '
+      + 'excavator dan truk mixer punya konsumsi wajar yang berbeda jauh, dan '
+      + 'membandingkan antar-alat selalu menuduh yang terbesar. Alat tanpa '
+      + 'riwayat dilewati sampai punya acuannya sendiri.',
+    penerima: 'Bagian peralatan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca pengisian BBM beserta kuantitas literannya.' },
+      { di: 'sistem', teks: 'Menghitung jam operasi dari selisih jam-meter tiap sesi.' },
+      { di: 'sistem', teks: 'Memisahkan periode terakhir dari riwayat sebelumnya.' },
+      { di: 'sistem', teks: 'Membandingkan liter/jam periode ini dengan acuan alat itu sendiri.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.bbm_melonjak.persen',
+  },
+  {
     kunci: 'klien-didiamkan',
     nama: 'Klien yang didiamkan',
     pemicu: 'jadwal',

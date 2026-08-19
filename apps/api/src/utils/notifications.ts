@@ -163,6 +163,9 @@ export type NotificationType =
   // (3.11) yang menegur MANDOR soal disiplin catat. Ini soal hubungan
   // klien, dan tindakannya menelepon.
   | 'klien_didiamkan'
+  // 10.4 Fleet Fuel Anomaly. LITER per jam operasi, bukan rupiah per
+  // pengisian - rupiah tak bisa membedakan boros dari harga solak naik.
+  | 'bbm_melonjak'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'

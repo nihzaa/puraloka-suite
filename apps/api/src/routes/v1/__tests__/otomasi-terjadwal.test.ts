@@ -554,6 +554,10 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     // TANPA NOMOR (2026-08-16). Otomasi pertama yang lahir dari PEMETAAN
     // 51 peristiwa dunia-proyek lintas tujuh pihak, bukan dari rencana 140.
     'klien-didiamkan',
+    // 10.4 Fleet Fuel Anomaly (2026-08-16). Sempat DICORET karena saya
+    // mengukur `jumlah` (rupiah) alih-alih `kuantitas` (liter) — rupiahnya
+    // seragam karena tangki diisi PENUH tiap kali.
+    'bbm-melonjak',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

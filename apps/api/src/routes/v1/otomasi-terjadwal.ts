@@ -9654,6 +9654,197 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       checked: { proyek_aktif: idAktif.length, ...hitung, ambang_hari: ambangHari },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/bbm-melonjak ────────────────────────────
+  //
+  // Automation 10.4 — Fleet Fuel Consumption Anomaly.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // PENCORETAN SAYA, DAN KOLOM YANG SALAH SAYA UKUR
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Automation ini sempat dicoret: "nominal BBM tiap pengisian identik, nol
+  // variasi, tak ada anomali untuk dideteksi."
+  //
+  // Diukur ulang ke kolom yang benar (`kuantitas`, bukan `jumlah`):
+  //
+  //   Excavator 20 Ton   12 pengisian   960 liter   80 L tiap kali
+  //   Truk Mixer 7 m3    10 pengisian   450 liter   45 L tiap kali
+  //
+  // Nominalnya memang seragam — karena tangkinya diisi PENUH tiap kali dan
+  // harga solar tak berubah. Itu bukan ketiadaan sinyal; itu ukuran yang salah.
+  //
+  // Yang bermakna: LITER PER JAM OPERASI. Kalau angkanya melonjak, penyebabnya
+  // salah satu dari tiga hal yang SEMUANYA merugikan — filter/injektor
+  // bermasalah, mesin dibiarkan menyala menganggur berjam-jam, atau solar
+  // hilang di lapangan. Rupiah tak bisa membedakan ketiganya dari kenaikan
+  // harga solar; liter per jam bisa.
+  //
+  // ── DIBANDINGKAN DENGAN DIRINYA SENDIRI
+  //
+  // Excavator dan truk mixer punya konsumsi wajar yang berbeda jauh.
+  // Membandingkan antar-alat menghasilkan tuduhan yang selalu menunjuk alat
+  // terbesar — benar secara aritmetika, tak berguna sama sekali.
+  app.get('/api/v1/otomasi/jalankan/bbm-melonjak', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiKonsumsiBbm } = await import('../../lib/konsumsi-bbm.js')
+
+    const q = request.query as { hari?: string; persen?: string; min?: string }
+    const jendelaHari = await ambilAmbang(request, 'otomasi.bbm_melonjak.hari', q.hari)
+    const ambangPersen = await ambilAmbang(request, 'otomasi.bbm_melonjak.persen', q.persen)
+    const minPengisian = await ambilAmbang(request, 'otomasi.bbm_melonjak.min_isi', q.min)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['bbm_melonjak'])
+
+    const batas = new Date(today + 'T00:00:00Z')
+    batas.setUTCDate(batas.getUTCDate() - jendelaHari)
+    const batasISO = batas.toISOString().slice(0, 10)
+
+    // `assets`, `biaya_operasional_alat`, `pemakaian_alat` — ketiganya
+    // kategori B, jadi `.from()` sudah menyaring tenant-nya.
+    const { data: aset, error: eAset } = await request.db!
+      .from('assets')
+      .select('id, asset_code, name, current_project_id')
+    if (eAset) return reply.status(500).send({ error: eAset.message })
+
+    const HALAMAN = 1000
+
+    /*
+      BERHALAMAN — wajib untuk keduanya. Pengisian BBM dan sesi pemakaian
+      tumbuh tiap hari kerja; pada armada sungguhan keduanya melewati 1.000
+      baris dalam hitungan bulan.
+
+      Terpotong di sini membuat alat yang PALING sering dipakai justru yang
+      riwayatnya hilang — dan alat itulah yang paling mungkin borosnya nyata.
+      Dijaga `audit-baca-tak-terpotong` (ambang NOL).
+    */
+    const bbm: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('biaya_operasional_alat')
+        .select('asset_id, tanggal, kuantitas')
+        .eq('jenis', 'bbm')
+        .order('tanggal', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      bbm.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const pakai: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('pemakaian_alat')
+        .select('asset_id, tanggal, jam_mulai, jam_selesai')
+        .order('tanggal', { ascending: true })
+        .range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      pakai.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    /** asset_id → { terbaru, riwayat } pengisian, dipisah di `batasISO`. */
+    const isi = new Map<string, { terbaru: Array<{ tanggal: string; liter: number }>;
+                                  riwayat: Array<{ tanggal: string; liter: number }> }>()
+    for (const b of bbm) {
+      const id = b.asset_id as string
+      const tgl = String(b.tanggal ?? '').slice(0, 10)
+      const liter = Number(b.kuantitas)
+      if (!id || tgl.length !== 10 || !Number.isFinite(liter)) continue
+      const e = isi.get(id) ?? { terbaru: [], riwayat: [] }
+      ;(tgl >= batasISO ? e.terbaru : e.riwayat).push({ tanggal: tgl, liter })
+      isi.set(id, e)
+    }
+
+    /*
+      Jam operasi dihitung dari SELISIH jam-meter tiap sesi.
+
+      `jam_mulai`/`jam_selesai` di tabel ini adalah pembacaan METER, bukan jam
+      dinding — pelajaran dari automation 10.2, yang tebakan pertamanya
+      memperlakukannya sebagai timestamp dan gagal di `EXTRACT`.
+    */
+    const jam = new Map<string, { terbaru: number; riwayat: number }>()
+    for (const p of pakai) {
+      const id = p.asset_id as string
+      const tgl = String(p.tanggal ?? '').slice(0, 10)
+      const a = Number(p.jam_mulai)
+      const z = Number(p.jam_selesai)
+      if (!id || tgl.length !== 10 || !Number.isFinite(a) || !Number.isFinite(z)) continue
+      const durasi = z - a
+      if (durasi <= 0) continue          // meter mundur / salah catat
+      const e = jam.get(id) ?? { terbaru: 0, riwayat: 0 }
+      if (tgl >= batasISO) e.terbaru += durasi
+      else e.riwayat += durasi
+      jam.set(id, e)
+    }
+
+    let dibuat = 0
+    let diperiksa = 0
+    let melonjak = 0
+
+    for (const a of aset ?? []) {
+      const id = a.id as string
+      const e = isi.get(id)
+      if (!e || e.terbaru.length === 0) continue
+      diperiksa++
+
+      const j = jam.get(id) ?? { terbaru: 0, riwayat: 0 }
+      const h = nilaiKonsumsiBbm(
+        e.terbaru, j.terbaru || null,
+        e.riwayat, j.riwayat || null,
+        minPengisian, ambangPersen,
+      )
+      if (!h.boros) continue
+      melonjak++
+      if (sudah('bbm_melonjak', id)) continue
+
+      const label = `${String(a.name ?? 'Alat')} (${String(a.asset_code ?? '—')})`
+      const penerima = await resolveRecipients('bbm_melonjak', {
+        companyId: request.companyId!,
+        projectId: (a.current_project_id as string | null) ?? undefined,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: 'Konsumsi BBM alat melonjak',
+          message:
+            `${label} — ${h.literPerJam} liter/jam dalam ${jendelaHari} hari terakhir, `
+            + `naik ${h.naikPersen}% dari kebiasaannya sendiri (${h.acuanPerJam} liter/jam). `
+            + `Total ${h.totalLiter} liter dari ${h.pengisian} pengisian. `
+            + 'Periksa filter dan injektor, jam menganggur, dan pencatatan pengisian.',
+          type: 'bbm_melonjak',
+          priority: (h.naikPersen ?? 0) >= ambangPersen * 2 ? 'high' : 'normal',
+          project_id: (a.current_project_id as string | null) ?? undefined,
+          action_url: '/aset/operasional',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: {
+            record_id: id, asset_id: id,
+            liter_per_jam: h.literPerJam, naik_persen: h.naikPersen,
+          },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: {
+        aset_punya_pengisian: diperiksa,
+        melonjak,
+        jendela_hari: jendelaHari,
+        ambang_persen: ambangPersen,
+        min_isi: minPengisian,
+      },
+    })
+  })
 }
 
 /**
