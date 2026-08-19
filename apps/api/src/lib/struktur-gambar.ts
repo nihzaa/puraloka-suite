@@ -1890,9 +1890,25 @@ export function gambarDindingPenahan(
     if (input.sfGeser != null) {
       barisSf.push([`SF geser ${bulat(input.sfGeser, 2)}`, input.sfGeser < SF_MINIMUM])
     }
+    /*
+      Dua baris ini SALING MENIMPA pada versi pertama: jarak antar baris
+      `uk * 1.05` terlalu rapat untuk teks setinggi `uk * 0.82`, dan barisnya
+      mulai terlalu dekat ke gambar.
+
+      Ketahuan dari POTRET LAYAR, bukan dari test — SVG-nya sah, angkanya
+      benar, dan tak ada satu pun pemeriksaan yang bisa menyatakan dua teks
+      bertumpuk. Yang membacanya melihat "SF guling 4.76" dengan garis merah
+      menyilang di tengahnya, dan itu terbaca seperti peringatan pada angka
+      yang justru aman.
+
+      Baris terakhir diletakkan PALING ATAS supaya jarak ke gambar tetap sama
+      berapa pun jumlah barisnya.
+    */
+    const tinggiBaris = uk * 1.35
     barisSf.forEach(([isi, kurang], k) => {
-      bagian.push(teks(0, -margin * 0.14 + k * uk * 1.05,
-        isi, uk * 0.82, kurang ? '#dc2626' : WARNA.dimensi, 'start'))
+      const y = -margin * 0.16 - (barisSf.length - 1 - k) * tinggiBaris
+      bagian.push(teks(0, y, isi, uk * 0.82,
+        kurang ? WARNA_BAHAYA : WARNA.dimensi, 'start'))
     })
   }
 

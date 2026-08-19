@@ -84,6 +84,35 @@ Diukur 2026-08-19: **34 dari 34 (100%)** — pondasi sampai atap, beton dan baja
 Angka itu akan basi begitu ada elemen ke-35 yang layak ditambahkan; jalankan
 skripnya, jangan percaya angka ini.
 
+**Cakupan GAMBAR KERJA — dan JANGAN percaya laporannya.**
+
+```bash
+# Perkiraan cepat, TAK butuh API hidup. Membaca BENTUK kode.
+cd apps/api && node scripts/lapor-cakupan-gambar.mjs
+
+# YANG BERWENANG — membuat elemen tiap jenis lewat rute sungguhan,
+# meminta gambarnya, lalu MEMBUKA SVG-nya. Butuh API hidup + akun.
+cd apps/api && UJI_EMAIL=… UJI_SANDI=… UJI_BASIS=http://127.0.0.1:3017 \
+  node scripts/uji-gambar-semua-jenis.mjs
+```
+
+⚠ Yang pertama salah **EMPAT KALI dalam satu sesi** (2026-08-19), tiap kali
+karena cabang baru ditulis dengan bentuk yang belum dikenali pembacaan teksnya,
+dan tiap kali angkanya terlihat masuk akal: 7/32 saat 17/32 · 26/32 saat 29/32 ·
+31/32 saat 32/32 · dan yang terburuk **32/32 saat sesungguhnya 30/32**.
+
+Yang terakhir melapor SUDAH LENGKAP saat dua jenis masih kosong — laporan yang
+salah ke arah "sudah selesai" menghentikan pekerjaan yang belum selesai.
+
+**Dan sesudah 32/32 pun, MEMOTRET LAYAR masih menemukan tiga cacat** yang tak
+satu pun dari 1.028 test tangkap: `Infinity%` di batang kekuatan, judul gambar
+berupa kunci mentah, dan dua baris angka keamanan yang saling menimpa.
+
+```bash
+# Dari akar repo. Web + API harus hidup; ukur portnya (§7).
+node apps/web/scripts/potret-struktur.mjs   # → apps/web/.layar/*.png
+```
+
 **Otomasi mana yang hidup** — jangan dibaca dari katalog, UKUR:
 
 ```bash
@@ -257,6 +286,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-baris-besi-dibedakan.mjs` | baris `besi` memuat tulangan DAN profil baja; pembacanya wajib membedakan — tanpa itu WF 200×100 tampil sebagai "Ulir D200", besi yang tak ada di pasar (ambang NOL) |
 | `audit-jenis-volume-terdaftar.mjs` | jenis tanpa volume wajib terdaftar — yang tak terdaftar dituduh "cacat modul" padahal benar, dan yang salah terdaftar volumenya HILANG senyap dari rekap proyek (ambang NOL) |
 | `audit-medan-jumlah-tak-bentrok.mjs` | rute menimpakan `{ ...input, jumlah }` sebagai BANYAKNYA ELEMEN; modul yang memakai nama itu untuk mencacah baut/angkur/paku kehilangan angka penggunanya — rute memberi 117% terpakai sementara fungsinya sendiri memberi 29%, tanpa satu pun galat (ambang NOL) |
+| `audit-gambar-punya-judul.mjs` | tiap kunci gambar yang ditulis rute wajib punya judul di halaman detail; halaman memakai `JUDUL_GAMBAR[nama] ?? nama`, jadi kunci tak terdaftar MUNCUL APA ADANYA sebagai kepala gambar — kata teknis mentah di layar orang yang justru tak paham istilah teknis (ambang NOL) |
 
 **Uang lewat percakapan — dijaga test, bukan penjaga skrip.** `payments` adalah
 satu-satunya entitas tulis yang **tak punya kolom `status`**, jadi tak ada

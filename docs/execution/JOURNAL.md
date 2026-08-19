@@ -5,6 +5,95 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 19) — MEMOTRET LAYAR menemukan tiga cacat yang 1.028 test lewatkan
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur                 1035 lulus / 36 berkas
+$ npx tsc --noEmit  (api & web)           exit=0 keduanya
+$ uji-gambar-semua-jenis.mjs (rute 3017)  exit=0 — BERGAMBAR 32 / 32
+$ audit-gambar-punya-judul.mjs            exit=0  (mutasi → 1 → pulih → 0)
+$ audit-akhir-baris.mjs                   exit=0
+$ jalankan-semua-penjaga.mjs              vs baseline: NOL penjaga baru merah
+```
+
+Modul dinyatakan 32/32 bergambar dan seluruh penjaga hijau. Lalu layarnya
+DIBUKA — dan tiga cacat muncul, tak satu pun tertangkap 1.028 test.
+
+### 1. `Infinity%` di batang kekuatan
+
+Balok baja yang kehilangan dua medan wajib menampilkan **Infinity%** dan
+lendutan **NaN**. Sebabnya sebaris: `undefined < 0` adalah **FALSE**, jadi
+`if (jarakPengakuM < 0) throw` TIDAK menahan medan yang HILANG.
+
+Yang membuatnya berbahaya bukan angka anehnya, melainkan verdict di atasnya:
+"TIDAK AMAN — 2 pemeriksaan tidak terpenuhi". Itu terbaca sebagai kesimpulan
+TEKNIK, bukan keluhan tentang input. Pembacanya akan memperbesar profilnya —
+dan angkanya tetap Infinity.
+
+Dijaga di `struktur-awam.test.ts`: SELURUH modul dijalankan, tiap `rasio`
+wajib berhingga dan tak negatif. Memakai fixture yang SAMA dengan penjaga
+terjemahan awam — dua tuntutan berbeda dari satu himpunan input yang sudah
+terbukti sah, bukan dua daftar yang bisa menyimpang.
+
+### 2. Judul gambar berupa KUNCI MENTAH
+
+Halaman detail memakai `JUDUL_GAMBAR[nama] ?? nama`. Tiga kunci baru
+(`denah`, `tampak`, `pola`) lahir bersama sepuluh gambar terakhir, dan
+tabel judulnya tetap berisi EMPAT entri. Gambarnya terbit dengan benar — hanya
+kepalanya berbunyi "pola" dan "tampak", kata teknis mentah di layar orang yang
+justru memakai layar ini karena tak paham istilah teknis.
+
+Tak ada yang salah secara teknis, jadi tak ada test yang bisa merah. Dijaga
+`audit-gambar-punya-judul.mjs` (ambang NOL) — membandingkan `g.<kunci>` di
+rute terhadap `JUDUL_GAMBAR` di halaman.
+
+### 3. Dua baris SF SALING MENIMPA
+
+Jarak antar baris `uk * 1.05` untuk teks setinggi `uk * 0.82`. SVG-nya sah,
+angkanya benar, dan yang membacanya melihat "SF guling 4.76" dengan garis merah
+menyilang di tengahnya — terbaca seperti peringatan pada angka yang justru aman.
+
+**Ambang ujinya sendiri butuh dua kali koreksi, dan mutasi yang menemukannya:**
+
+| ambang | mutasi `uk*1.05` (cacat aslinya) |
+|---|---|
+| 1,0 × tinggi teks | **LOLOS** — 1,05·uk memang > 0,82·uk |
+| 1,25 × | **LOLOS** — rasionya 1,28 |
+| 1,4 × | MERAH ✓ (yang terpasang: 1,65) |
+
+Dua ambang pertama adalah uji yang lolos pada cacat yang justru melahirkannya.
+Tanpa mutasi, keduanya akan terlihat seperti uji yang bekerja.
+
+### Skrip potret yang berbohong tiga kali
+
+`apps/web/scripts/potret-struktur.mjs`, dan tiap kali potretnya TERLIHAT
+berhasil:
+
+1. **`?project=`** — parameternya `proyek`. Potretnya memperlihatkan
+   "Pilih proyek dulu"; tak satu pun elemen pernah dibuka.
+2. **`.first()` untuk ketiganya** — ketiga potret memperlihatkan elemen yang
+   SAMA. Sekarang tiap elemen dibuka lewat kode uniknya, dan panel WAJIB
+   memperlihatkan kode itu sebelum dipotret.
+3. **`fullPage: true` hanya setinggi viewport** pada halaman ini (panel detail
+   memakai kontainer bergulir sendiri), jadi galeri gambar — yang letaknya
+   paling bawah — tak pernah ikut terpotret. Sekarang `<figure>`-nya dipotret
+   langsung, dan nol `<figure>` dilaporkan sebagai galat.
+
+### Yang perlu dicatat
+
+Ketiga cacat aplikasi di atas ditemukan **sesudah** modulnya dinyatakan lengkap
+dan seluruh penjaga hijau. Urutan yang produktif di arc ini tetap sama seperti
+yang tercatat berkali-kali: **(1) menjalankan rute, (2) memotret layar,
+(3) mutasi, (4) test biasa** — dan test biasa belum sekali pun menjadi yang
+pertama menemukan cacat.
+
+Empat elemen uji `UJI-SAMB-*` juga ditemukan tertinggal di proyek sungguhan,
+sisa jalan pertama sebelum kode unik dan perbaikan header DELETE. Sudah dihapus.
+
+---
+
 ## 2026-08-19 (lanjutan 18) — 32/32 bergambar, dan laporan yang berbohong empat kali
 
 **Ringkasan run:**

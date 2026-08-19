@@ -394,7 +394,32 @@ export function analisaBalokBaja(input: InputBalokBaja): HasilBalokBaja {
   bilanganPositif('Bentang', bentangM)
   bilanganPositif('Tinggi profil', profil.hMm)
   bilanganPositif('fy', mutu.fyMpa)
-  if (jarakPengakuM < 0) throw new Error('Jarak pengaku lateral tak boleh negatif')
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    `undefined < 0` adalah FALSE, dan itu yang membuat pemeriksaan di bawah
+    tak menahan apa pun ketika medannya HILANG.
+
+    Diukur 2026-08-19 dengan MEMOTRET LAYAR: balok baja tanpa `jarakPengakuM`
+    dan `bebanLayanKnPerM` menghasilkan verdict "TIDAK AMAN" dengan batang
+    kekuatan bertuliskan **Infinity%** dan lendutan **NaN** — dua angka yang
+    tak berarti apa-apa, ditampilkan ke orang yang justru memakai layar ini
+    karena tak paham rumusnya.
+
+    Yang bikin berbahaya: verdict-nya tetap terbaca sebagai kesimpulan teknik
+    ("2 pemeriksaan tidak terpenuhi"), bukan sebagai keluhan tentang input.
+    Pembacanya akan memperbesar profilnya, dan angkanya tetap Infinity.
+
+    `bilanganPositif` menolak `undefined`, `NaN`, dan nol sekaligus — dan
+    pesannya menyebut nama medannya, seperti pemeriksaan lain di berkas ini.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (!Number.isFinite(jarakPengakuM) || jarakPengakuM < 0) {
+    throw new Error(
+      'Jarak pengaku lateral (`jarakPengakuM`) wajib diisi dan tak boleh '
+      + 'negatif. Isi 0 bila sayap tekannya dipegang penuh oleh pelat lantai.',
+    )
+  }
+  bilanganPositif('Beban layan (`bebanLayanKnPerM`)', bebanLayanKnPerM)
 
   const jumlah = input.jumlah ?? 1
   const batas = input.batasLendutan ?? 360

@@ -297,6 +297,46 @@ describe('analisaBalokBaja — verdict lengkap', () => {
     expect(() => analisaBalokBaja({ ...dasar, bentangM: 0 })).toThrow(/Bentang/)
     expect(() => analisaBalokBaja({ ...dasar, jarakPengakuM: -1 })).toThrow(/negatif/)
   })
+
+  it('medan WAJIB yang HILANG ditolak — bukan dijawab Infinity/NaN', () => {
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      Ditemukan 2026-08-19 dengan MEMOTRET LAYAR, bukan dari test.
+
+      `undefined < 0` adalah FALSE, jadi pemeriksaan `jarakPengakuM < 0`
+      tak menahan apa pun ketika medannya hilang. Balok baja tanpa
+      `jarakPengakuM` dan `bebanLayanKnPerM` lolos sampai ke layar dan
+      menampilkan batang kekuatan bertuliskan **Infinity%** serta lendutan
+      **NaN**.
+
+      Yang membuatnya berbahaya bukan angka anehnya, melainkan verdict di
+      atasnya: "TIDAK AMAN — 2 pemeriksaan tidak terpenuhi". Itu terbaca
+      sebagai kesimpulan TEKNIK, bukan sebagai keluhan tentang input.
+      Pembacanya akan memperbesar profilnya, dan angkanya tetap Infinity.
+      ══════════════════════════════════════════════════════════════════════
+    */
+    const tanpaPengaku = { ...dasar } as Partial<typeof dasar>
+    delete tanpaPengaku.jarakPengakuM
+    expect(() => analisaBalokBaja(tanpaPengaku as typeof dasar))
+      .toThrow(/jarakPengakuM/)
+
+    const tanpaBeban = { ...dasar } as Partial<typeof dasar>
+    delete tanpaBeban.bebanLayanKnPerM
+    expect(() => analisaBalokBaja(tanpaBeban as typeof dasar))
+      .toThrow(/bebanLayanKnPerM/)
+  })
+
+  it('TAK ADA rasio Infinity atau NaN pada input yang sah', () => {
+    /*
+      Batang persen di layar dibangun dari `rasio`. Satu saja yang Infinity
+      atau NaN membuat layar menampilkan angka yang tak berarti apa-apa
+      kepada orang yang memakai layar ini justru karena tak paham rumusnya.
+    */
+    const h = analisaBalokBaja(dasar)
+    for (const p of h.periksa) {
+      expect(Number.isFinite(p.rasio), `${p.nama} rasio=${p.rasio}`).toBe(true)
+    }
+  })
 })
 
 describe('volume baja untuk RAP', () => {

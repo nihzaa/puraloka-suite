@@ -52,9 +52,16 @@ import {
 
 const mutu = { fcMpa: 25, fyMpa: 400, fyvMpa: 240 }
 
-/** Menjalankan seluruh modul, mengumpulkan nama pemeriksaan yang NYATA muncul. */
-function semuaNamaPemeriksaan(): string[] {
-  const hasil: Array<{ periksa: ReadonlyArray<{ nama: string }> }> = [
+/**
+ * Menjalankan SELURUH modul analisa sekali, memulangkan hasilnya apa adanya.
+ *
+ * Dipisah dari `semuaNamaPemeriksaan()` supaya fixture yang sama — yang sudah
+ * terbukti sah karena dipakai penjaga terjemahan awam — bisa dipakai juga oleh
+ * penjaga RASIO BERHINGGA di bawah. Dua daftar fixture terpisah berarti dua
+ * tempat yang bisa menyimpang, dan yang menyimpang tak akan ketahuan.
+ */
+function semuaHasilAnalisa(): Array<{ periksa: ReadonlyArray<{ nama: string; rasio: number }> }> {
+  const hasil: Array<{ periksa: ReadonlyArray<{ nama: string; rasio: number }> }> = [
     /*
       Sloof & tangga — dua elemen beton yang paling sering muncul di RAB nyata
       dan paling lama tak punya penguji. Tangga membawa tiga pemeriksaan yang
@@ -353,8 +360,71 @@ function semuaNamaPemeriksaan(): string[] {
       ],
     }) as never,
   ]
-  return [...new Set(hasil.flatMap((h) => h.periksa.map((p) => p.nama)))]
+  return hasil
 }
+
+/** Nama pemeriksaan yang NYATA muncul dari seluruh modul. */
+function semuaNamaPemeriksaan(): string[] {
+  return [...new Set(semuaHasilAnalisa().flatMap((h) => h.periksa.map((p) => p.nama)))]
+}
+
+describe('tiap rasio BERHINGGA — Infinity/NaN tak boleh sampai ke layar', () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    Ditemukan 2026-08-19 dengan MEMOTRET LAYAR, bukan dari satu pun test.
+
+    Balok baja yang kehilangan dua medan wajib menampilkan batang kekuatan
+    bertuliskan **Infinity%** dan lendutan **NaN** di panel detail.
+
+    Yang membuatnya berbahaya bukan angka anehnya. Verdict di atasnya berbunyi
+    "TIDAK AMAN — 2 pemeriksaan tidak terpenuhi", dan itu terbaca sebagai
+    kesimpulan TEKNIK, bukan keluhan tentang input. Pembacanya akan
+    memperbesar profilnya — dan angkanya tetap Infinity.
+
+    Sebabnya bisa terulang di modul mana pun: `undefined < 0` adalah FALSE,
+    jadi pemeriksaan berbentuk `if (x < 0) throw` TIDAK menahan medan yang
+    HILANG. Hampir tiap modul memakai pola serupa di suatu tempat.
+
+    Memakai fixture yang SAMA dengan penjaga terjemahan awam — keduanya
+    menuntut hal yang berbeda dari satu himpunan input yang sudah terbukti sah.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  it('tak ada satu pun rasio Infinity atau NaN', () => {
+    const cacat: string[] = []
+    for (const h of semuaHasilAnalisa()) {
+      for (const p of h.periksa) {
+        if (!Number.isFinite(p.rasio)) cacat.push(`${p.nama} = ${p.rasio}`)
+      }
+    }
+    expect(
+      cacat,
+      'Batang persen di layar dibangun dari rasio ini. Infinity/NaN muncul '
+      + 'sebagai "Infinity%" kepada orang yang memakai layar ini justru karena '
+      + `tak paham rumusnya. Yang cacat: ${cacat.join(', ')}`,
+    ).toHaveLength(0)
+  })
+
+  it('rasio tak boleh NEGATIF — persen negatif tak punya arti di layar', () => {
+    const negatif: string[] = []
+    for (const h of semuaHasilAnalisa()) {
+      for (const p of h.periksa) {
+        if (Number.isFinite(p.rasio) && p.rasio < 0) {
+          negatif.push(`${p.nama} = ${p.rasio}`)
+        }
+      }
+    }
+    expect(negatif, negatif.join(', ')).toHaveLength(0)
+  })
+
+  it('modul yang diuji tak boleh menyusut diam-diam', () => {
+    /*
+      Angkanya dipaku supaya modul yang hilang dari fixture (mis. saat
+      seseorang "membersihkan" test yang merah) ketahuan sebagai perubahan
+      yang disengaja, bukan hilang senyap.
+    */
+    expect(semuaHasilAnalisa().length).toBeGreaterThanOrEqual(30)
+  })
+})
 
 describe('setiap pemeriksaan bisa dijelaskan ke orang non-teknis', () => {
   it('TIDAK ADA pemeriksaan tanpa terjemahan', () => {

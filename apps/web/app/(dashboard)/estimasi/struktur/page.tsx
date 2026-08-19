@@ -2207,11 +2207,22 @@ function PanelDetail({ detail, onTutup }: { detail: MuatanDetail; onTutup: () =>
     .filter(([k]) => !k.endsWith("Gagal") && k !== "meteran");
   const gagal = Object.entries(detail.gambar ?? {}).filter(([k]) => k.endsWith("Gagal"));
 
+  /*
+    Judul tiap jenis gambar. Yang TAK terdaftar jatuh ke kunci mentahnya
+    (`?? nama` di bawah), dan kunci mentah di layar terbaca seperti cacat —
+    "pola", "tampak", "denah" bukan kalimat yang ditulis untuk dibaca orang.
+
+    Ditambah 2026-08-19 bersama sepuluh gambar terakhir: sebelum itu hanya
+    empat kunci yang punya judul, sementara gambar sudah terbit untuk 32 jenis.
+  */
   const JUDUL_GAMBAR: Record<string, string> = {
     penampang: "Penampang",
     potongan: "Potongan",
     pondasi: "Denah & potongan",
     diagramPM: "Diagram interaksi P-M",
+    denah: "Denah",
+    tampak: "Tampak",
+    pola: "Pola sambungan",
   };
 
   return (

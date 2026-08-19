@@ -61,6 +61,72 @@ describe('gambarDindingPenahan — SVG yang bisa ditampilkan', () => {
     expect(svg).toContain('&lt;')
   })
 
+  it('dua baris SF tak SALING MENIMPA', () => {
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      Ditemukan dari POTRET LAYAR, bukan dari test — dan itu sebabnya uji ini
+      ditulis belakangan.
+
+      Versi pertama menaruh dua baris berjarak `uk * 1.05` untuk teks setinggi
+      `uk * 0.82`, dan keduanya bertumpuk. SVG-nya sah, angkanya benar, dan
+      tak satu pun pemeriksaan bisa menyatakan dua teks saling menimpa.
+
+      Yang membacanya melihat "SF guling 4.76" dengan garis merah menyilang di
+      tengahnya — terbaca seperti peringatan pada angka yang justru aman.
+      ══════════════════════════════════════════════════════════════════════
+    */
+    const svg = gambarDindingPenahan(AMAN)
+    const baris = [...svg.matchAll(
+      /<text x="[-\d.]+" y="([-\d.]+)" font-size="([\d.]+)"[^>]*>([^<]*SF[^<]*)</g,
+    )]
+    expect(baris.length, 'dua baris SF harus ada').toBe(2)
+
+    const [a, b] = baris.map((m) => ({ y: Number(m[1]), ukuran: Number(m[2]) }))
+    const jarak = Math.abs(a.y - b.y)
+    const tinggiTeks = Math.max(a.ukuran, b.ukuran)
+
+    /*
+      Ambangnya 1,4 × tinggi teks — dan angka itu DIUKUR lewat mutasi, bukan
+      dipilih karena terdengar aman.
+
+      Perjalanannya:
+
+        ambang 1,0  → mutasi `uk * 1.05` (cacat aslinya) LOLOS, karena
+                      1,05·uk memang lebih besar daripada 0,82·uk
+        ambang 1,25 → mutasi yang sama LOLOS juga: rasionya 1,28
+        ambang 1,4  → mutasi MERAH; yang terpasang sekarang berasio 1,65
+
+      Dua ambang pertama adalah uji yang lolos pada cacat yang justru
+      melahirkannya — yaitu uji yang tak menjaga apa pun. Baru mutasi yang
+      memperlihatkannya.
+    */
+    expect(
+      jarak / tinggiTeks,
+      `jarak antar baris ${jarak} terhadap tinggi teks ${tinggiTeks} = `
+      + `${(jarak / tinggiTeks).toFixed(2)}× — di bawah 1,4× keduanya `
+      + 'bertumpuk atau bersentuhan di layar',
+    ).toBeGreaterThanOrEqual(1.4)
+  })
+
+  it('seluruh teks berada DI DALAM viewBox — tak terpotong', () => {
+    /*
+      Teks yang jatuh di luar viewBox tak digambar sama sekali, dan SVG-nya
+      tetap sah. Angka keamanan yang hilang dari gambar adalah angka yang
+      tak dibaca.
+    */
+    const svg = gambarDindingPenahan(AMAN, { judul: 'DP-1' })
+    const vb = svg.match(/viewBox="([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+)"/)!
+    const atas = Number(vb[2])
+    const bawah = atas + Number(vb[4])
+
+    for (const m of svg.matchAll(/<text x="[-\d.]+" y="([-\d.]+)"/g)) {
+      const y = Number(m[1])
+      expect(y, `teks di y=${y} keluar dari viewBox [${atas}, ${bawah}]`)
+        .toBeGreaterThan(atas)
+      expect(y).toBeLessThan(bawah)
+    }
+  })
+
   it('punya role dan aria-label', () => {
     const svg = gambarDindingPenahan(AMAN, { judul: 'DP-1' })
     expect(svg).toContain('role="img"')
