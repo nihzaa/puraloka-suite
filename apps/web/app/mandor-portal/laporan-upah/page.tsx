@@ -1,12 +1,36 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useData } from "@/lib/data-cache";
-import { type LaporanUpah, pesanGalat } from "../_bersama/tipe";
-import { kirimLapangan } from "@/lib/kirim-lapangan";
-import { ClipboardList, Plus, Trash2, CheckCircle, Clock, XCircle } from "lucide-react";
+// ============================================================================
+// Laporan Upah — riwayat laporan upah mingguan (harian) + form kirim baru.
+//
+// Restyle F7d (2026-08-20): warna-ui → token CSS, modal-tab lama → SegmentedTab,
+// badge status → StatusBadge, kosong/loading → EmptyState/SkeletonCard.
+//
+// ── Grafik upah per-minggu
+//
+// Ditambahkan bar chart di atas daftar Riwayat: total `net_amount` per
+// `week_start`, dari `reports` yang SUDAH diambil untuk daftar riwayat —
+// tidak ada endpoint baru. Titik data diurutkan lama→baru (kiri→kanan).
+//
+// Tren periode (`KpiCard.tren`) TIDAK ditampilkan di halaman ini: laporan
+// upah dikirim mandor sendiri secara tidak teratur (sekali per minggu per
+// scope aktif), jadi "minggu ini vs minggu lalu" pada data yang jumlahnya
+// kecil dan jarang berturut-turut lebih menyesatkan daripada informatif —
+// satu minggu kosong (scope belum jalan) akan terbaca sebagai "turun 100%".
+// Grafik batang mentahnya sendiri tetap ditampilkan sebagai teks tabel di
+// bawahnya (lihat catatan MiniChart di komponen KpiCard/MiniChart).
+// ============================================================================
 
-import { C } from "@/lib/warna-ui";
+import { useMemo, useState } from "react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { type LaporanUpah, type GalatApi, pesanGalat } from "../_bersama/tipe";
+import { kirimLapangan } from "@/lib/kirim-lapangan";
+import { ClipboardList, Plus, Trash2 } from "lucide-react";
+import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -16,11 +40,18 @@ function fmtDate(s: string | null) {
   return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string; icon: any }> = {
-  submitted: { label: "Menunggu", color: C.yellow, bg: C.yellowBg, icon: Clock },
-  approved:  { label: "Disetujui", color: C.green,  bg: C.greenBg,  icon: CheckCircle },
-  rejected:  { label: "Ditolak",   color: C.red,    bg: C.redBg,    icon: XCircle },
-  paid:      { label: "Dibayar",   color: C.green,  bg: C.greenBg,  icon: CheckCircle },
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  submitted: "pending",
+  approved: "approved",
+  rejected: "rejected",
+  paid: "approved",
+};
+
+const LABEL_STATUS: Record<string, string> = {
+  submitted: "Menunggu",
+  approved: "Disetujui",
+  rejected: "Ditolak",
+  paid: "Dibayar",
 };
 
 interface Assignment {
@@ -71,11 +102,11 @@ export default function LaporanUpahPage() {
     useData<{ reports: LaporanUpah[] }>("/api/v1/mandor/wage-reports");
   const { data: dataAssign, memuat: memuatAssign, galat: galatMuatAssign } =
     useData<{ assignments: Assignment[] }>("/api/v1/mandor/assignments");
-  const { data: dataWorkers, memuat: memuatWorkers, galat: galatMuatWorkers } =
+  const { data: dataWorkers } =
     useData<{ workers: Worker[] }>("/api/v1/mandor/workers");
 
-  const loading = memuatReports || memuatAssign || memuatWorkers;
-  const galatMuat = galatMuatReports ?? galatMuatAssign ?? galatMuatWorkers;
+  const loading = memuatReports || memuatAssign;
+  const galatMuat = galatMuatReports ?? galatMuatAssign;
 
   const reports = useMemo(
     () => (dataReports?.reports ?? []).filter((r) => r.scope?.payment_system === "harian"),
@@ -87,6 +118,25 @@ export default function LaporanUpahPage() {
     [dataAssign],
   );
   const workers = dataWorkers?.workers ?? [];
+
+  // Total upah bersih per minggu (week_start), lama→baru — sumbu data untuk
+  // bar chart di atas riwayat. Dihitung dari `reports` yang sudah diambil,
+  // bukan endpoint terpisah.
+  const dataMingguan = useMemo(() => {
+    const perMinggu = new Map<string, number>();
+    for (const r of reports) {
+      if (!r.week_start) continue;
+      const nilai = Number(r.net_amount ?? 0);
+      perMinggu.set(r.week_start, (perMinggu.get(r.week_start) ?? 0) + nilai);
+    }
+    return [...perMinggu.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-8)
+      .map(([minggu, total]) => ({
+        label: new Date(minggu).toLocaleDateString("id-ID", { day: "2-digit", month: "short" }),
+        total,
+      }));
+  }, [reports]);
 
   const scopesForAssignment = assignments
     .find((a) => a.id === selectedAssignment)
@@ -132,7 +182,10 @@ export default function LaporanUpahPage() {
       // Baris tukang TIDAK dikosongkan bila kirimannya tak aman.
       if (!hasil.aman) return;
       setTab("riwayat");
-      if (hasil.terkirim) await muatUlangReports();
+      if (hasil.terkirim) {
+        await muatUlangReports();
+        invalidasi("/api/v1/mandor/wage-reports");
+      }
       // Reset form
       setSelectedAssignment(""); setSelectedScope(""); setWeekStart(""); setNotes("");
       setRows([{ worker_name: "", days_worked: 0, daily_rate: 0, overtime_hours: 0, overtime_rate: 0 }]);
@@ -144,229 +197,399 @@ export default function LaporanUpahPage() {
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {toast && (
         // Toast sebagai TOMBOL, bukan `<div onClick>`: ia memang bisa ditekan
         // (untuk menutup), jadi harus bisa difokus dan menanggapi Enter/Space.
         //
-        // `role="alert"` ada di WADAHNYA, bukan di tombolnya. Versi pertama
-        // menaruhnya langsung di `<button>` dan lint benar menolaknya: `alert`
-        // adalah peran non-interaktif, jadi memasangnya ke tombol justru
-        // MENGHAPUS makna "ini bisa ditekan". Memisahkan keduanya membuat
-        // pembaca layar mengumumkan pesannya begitu muncul DAN tetap tahu
-        // bahwa ia bisa ditutup — tanpa itu, pesan "berhasil"/"gagal" hanya
-        // terlihat oleh yang kebetulan menatap sudut kanan atas layar.
+        // `role="alert"` ada di WADAHNYA, bukan di tombolnya — `alert` adalah
+        // peran non-interaktif, memasangnya ke tombol MENGHAPUS makna "ini
+        // bisa ditekan". Memisahkan keduanya membuat pembaca layar
+        // mengumumkan pesannya begitu muncul DAN tetap tahu ia bisa ditutup.
         <div role="alert" aria-live="polite">
-        <button
-          type="button"
-          onClick={() => setToast(null)}
-          aria-label={`Tutup pesan: ${toast.msg}`}
-          style={{
-          position: "fixed", top: 72, right: 20, zIndex: 999,
-          background: toast.ok ? C.greenBg : C.redBg,
-          border: `1px solid ${toast.ok ? C.green : C.red}`,
-          color: toast.ok ? C.green : C.red,
-          padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 500,
-          boxShadow: "var(--naik-2)",
-          textAlign: "left",
-        }}>
-          {toast.msg}
-        </button>
+          <button
+            type="button"
+            onClick={() => setToast(null)}
+            aria-label={`Tutup pesan: ${toast.msg}`}
+            style={{
+              position: "fixed", top: 72, right: 20, zIndex: 999,
+              background: toast.ok ? "var(--success-bg)" : "var(--danger-bg)",
+              border: `1px solid ${toast.ok ? "var(--success)" : "var(--danger)"}`,
+              color: toast.ok ? "var(--on-success-bg)" : "var(--on-danger-bg)",
+              padding: "12px 20px", borderRadius: 10, fontSize: 13, fontWeight: 600,
+              boxShadow: "var(--naik-2)", cursor: "pointer", textAlign: "left",
+            }}
+          >
+            {toast.msg}
+          </button>
         </div>
       )}
 
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>Laporan Upah</h1>
-        <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>Kirim dan lihat riwayat laporan upah mingguan</p>
+      <div>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Laporan Upah</h1>
+        <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
+          Kirim dan lihat riwayat laporan upah mingguan
+        </p>
       </div>
 
-      {/* Tab switcher */}
-      <div style={{ display: "flex", gap: 4, marginBottom: 20, background: "var(--surface-hover)", borderRadius: 10, padding: 4 }}>
-        {(["riwayat", "buat"] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            flex: 1, padding: "8px 16px", borderRadius: 6, border: "none", cursor: "pointer",
-            background: tab === t ? "var(--surface)" : "transparent",
-            color: tab === t ? C.navy : C.mid,
-            fontWeight: tab === t ? 600 : 400, fontSize: 13,
-            boxShadow: tab === t ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-            transition: "all 0.15s",
-          }}>
-            {t === "riwayat" ? "Riwayat Laporan" : "Buat Laporan"}
-          </button>
-        ))}
-      </div>
+      <SegmentedTab
+        opsi={[
+          { value: "riwayat", label: "Riwayat Laporan" },
+          { value: "buat", label: "Buat Laporan" },
+        ]}
+        aktif={tab}
+        onUbah={(v) => setTab(v as typeof tab)}
+      />
 
       {/* RIWAYAT TAB */}
       {tab === "riwayat" && (
-        <div>
-          {loading && <div style={{ textAlign: "center", padding: 40, color: C.mid }}>Memuat...</div>}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {loading && (
+            <>
+              <SkeletonCard tinggi={140} />
+              <SkeletonCard tinggi={80} />
+            </>
+          )}
+
           {!loading && galatMuat && (
-            <div role="alert" style={{ background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: C.red }}>
-              Gagal memuat laporan upah. Coba muat ulang halaman.
-            </div>
+            <EmptyState
+              icon={ClipboardList}
+              judul="Gagal memuat laporan upah"
+              deskripsi={pesanGalat(galatMuat as GalatApi, "Coba muat ulang halaman ini.")}
+            />
           )}
+
           {!loading && !galatMuat && reports.length === 0 && (
-            <div style={{ background: C.surface, borderRadius: 10, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
-              <ClipboardList size={28} color={C.muted} style={{ marginBottom: 8 }} />
-              <div style={{ fontSize: 13, color: C.mid }}>Belum ada laporan upah</div>
-              <button onClick={() => setTab("buat")} style={{
-                marginTop: 12, padding: "8px 20px", borderRadius: 6, border: "none",
-                background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600,
-              }}>Buat Laporan Pertama</button>
+            <EmptyState
+              icon={ClipboardList}
+              judul="Belum ada laporan upah"
+              deskripsi="Laporan upah mingguan yang Anda kirim akan muncul di sini, lengkap dengan status review dan rincian potongannya."
+              aksi={{ label: "Buat Laporan Pertama", onClick: () => setTab("buat") }}
+            />
+          )}
+
+          {!loading && !galatMuat && dataMingguan.length > 1 && (
+            <div
+              style={{
+                padding: 16, borderRadius: "var(--portal-radius-card)", background: "var(--surface)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>
+                Upah Bersih per Minggu
+              </div>
+              <div style={{ width: "100%", height: 140 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dataMingguan} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--text-secondary)" }} axisLine={false} tickLine={false} />
+                    <YAxis
+                      tick={{ fontSize: 10, fill: "var(--text-secondary)" }}
+                      axisLine={false}
+                      tickLine={false}
+                      tickFormatter={(v) => `${Math.round(v / 1000)}rb`}
+                      width={40}
+                    />
+                    <Tooltip
+                      formatter={(v) => fmt(Number(v))}
+                      contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid var(--border)" }}
+                    />
+                    <Bar dataKey="total" fill="var(--navy)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {/* Grafik di atas dekoratif secara visual, tapi datanya bukan
+                  dekorasi — angka yang sama tersedia sebagai teks di tiap
+                  kartu laporan di bawah, jadi tak ada informasi yang HANYA
+                  bisa diakses lewat grafik. */}
             </div>
           )}
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {reports.map((r) => {
-              const meta = STATUS_META[r.status ?? ""] ?? STATUS_META.submitted;
-              const Icon = meta.icon;
-              return (
-                <div key={r.id} style={{
-                  background: C.surface, borderRadius: 10, padding: "12px 16px",
-                  border: `1px solid ${C.border}`, boxShadow: "var(--naik-1)",
-                }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+
+          {!loading && !galatMuat && reports.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {reports.map((r) => (
+                <div
+                  key={r.id}
+                  style={{
+                    padding: 16, borderRadius: 16, background: "var(--surface)",
+                    border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>
                         {r.scope?.scope_name ?? "—"}
                       </div>
-                      <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>
+                      <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>
                         {r.assignment?.project?.name ?? "—"} · {fmtDate(r.week_start ?? null)} – {fmtDate(r.week_end ?? null)}
                       </div>
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20, color: meta.color, background: meta.bg, display: "flex", alignItems: "center", gap: 4 }}>
-                      <Icon size={11} /> {meta.label}
-                    </span>
+                    <StatusBadge
+                      status={VARIAN_STATUS[r.status ?? ""] ?? "netral"}
+                      label={LABEL_STATUS[r.status ?? ""] ?? (r.status ?? "—")}
+                    />
                   </div>
-                  <div style={{ marginTop: 10, display: "flex", gap: 16 }}>
-                    <div style={{ fontSize: 12, color: C.mid }}>
-                      Subtotal: <span style={{ fontWeight: 600, color: C.text }}>{fmt(Number(r.subtotal ?? 0))}</span>
+                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                    <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                      Subtotal:{" "}
+                      <span style={{ fontWeight: 600, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
+                        {fmt(Number(r.subtotal ?? 0))}
+                      </span>
                     </div>
-                    <div style={{ fontSize: 12, color: C.mid }}>
-                      Potongan: <span style={{ fontWeight: 600, color: C.red }}>−{fmt(Number(r.total_deduction ?? 0))}</span>
+                    <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                      Potongan:{" "}
+                      <span style={{ fontWeight: 600, color: "var(--danger)", fontVariantNumeric: "tabular-nums" }}>
+                        −{fmt(Number(r.total_deduction ?? 0))}
+                      </span>
                     </div>
-                    <div style={{ fontSize: 12, color: C.mid }}>
-                      Bersih: <span style={{ fontWeight: 700, color: C.green }}>{fmt(Number(r.net_amount ?? 0))}</span>
+                    <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                      Bersih:{" "}
+                      <span style={{ fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
+                        {fmt(Number(r.net_amount ?? 0))}
+                      </span>
                     </div>
                   </div>
                   {r.review_notes && (
-                    <div style={{ marginTop: 8, fontSize: 12, color: C.mid, background: C.redBg, borderRadius: 6, padding: "6px 8px" }}>
+                    <div
+                      style={{
+                        fontSize: 12, color: "var(--text-secondary)", background: "var(--surface-subtle)",
+                        borderRadius: 8, padding: "6px 10px",
+                      }}
+                    >
                       Catatan: {r.review_notes}
                     </div>
                   )}
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* BUAT LAPORAN TAB */}
       {tab === "buat" && (
-        <form onSubmit={handleSubmit}>
-          <div style={{ background: C.surface, borderRadius: 10, padding: 20, border: `1px solid ${C.border}`, display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {/* Proyek */}
-              <div>
-                <label htmlFor="selected-assignment" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek *</label>
-                <select id="selected-assignment" aria-label="Pilih proyek" value={selectedAssignment} onChange={(e) => { setSelectedAssignment(e.target.value); setSelectedScope(""); }}
-                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, background: "var(--surface)" }}>
-                  <option value="">Pilih proyek...</option>
-                  {assignments.map((a) => (
-                    <option key={a.id} value={a.id}>{a.project.name}</option>
-                  ))}
-                </select>
-              </div>
-              {/* Scope */}
-              <div>
-                <label htmlFor="selected-scope" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Scope Pekerjaan *</label>
-                <select id="selected-scope" aria-label="Pilih lingkup pekerjaan" value={selectedScope} onChange={(e) => setSelectedScope(e.target.value)}
-                  disabled={!selectedAssignment}
-                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, background: "var(--surface)", opacity: selectedAssignment ? 1 : 0.5 }}>
-                  <option value="">Pilih scope...</option>
-                  {scopesForAssignment.map((s) => (
-                    <option key={s.id} value={s.id}>{s.scope_name}</option>
-                  ))}
-                </select>
-              </div>
-              {/* Minggu */}
-              <div>
-                <label htmlFor="week-start" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal Mulai Minggu (Senin) *</label>
-                <input id="week-start" aria-label="Tanggal mulai" type="date" value={weekStart} onChange={(e) => setWeekStart(e.target.value)}
-                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }} />
-              </div>
-              {/* Catatan */}
-              <div>
-                <label htmlFor="notes" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan</label>
-                <input id="notes" type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Opsional"
-                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }} />
-              </div>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label htmlFor="selected-assignment" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+                Proyek *
+              </label>
+              <select
+                id="selected-assignment"
+                aria-label="Pilih proyek"
+                value={selectedAssignment}
+                onChange={(e) => { setSelectedAssignment(e.target.value); setSelectedScope(""); }}
+                style={{
+                  width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                  border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)",
+                  color: "var(--text-primary)", boxSizing: "border-box",
+                }}
+              >
+                <option value="">Pilih proyek...</option>
+                {assignments.map((a) => (
+                  <option key={a.id} value={a.id}>{a.project.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="selected-scope" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+                Scope Pekerjaan *
+              </label>
+              <select
+                id="selected-scope"
+                aria-label="Pilih lingkup pekerjaan"
+                value={selectedScope}
+                onChange={(e) => setSelectedScope(e.target.value)}
+                disabled={!selectedAssignment}
+                style={{
+                  width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                  border: "1px solid var(--border)", fontSize: 14, color: "var(--text-primary)",
+                  background: selectedAssignment ? "var(--surface)" : "var(--surface-subtle)",
+                  boxSizing: "border-box",
+                }}
+              >
+                <option value="">Pilih scope...</option>
+                {scopesForAssignment.map((s) => (
+                  <option key={s.id} value={s.id}>{s.scope_name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="week-start" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+                Tanggal Mulai Minggu (Senin) *
+              </label>
+              <input
+                id="week-start"
+                aria-label="Tanggal mulai"
+                type="date"
+                value={weekStart}
+                onChange={(e) => setWeekStart(e.target.value)}
+                style={{
+                  width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                  border: "1px solid var(--border)", fontSize: 14, boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div>
+              <label htmlFor="notes" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+                Catatan
+              </label>
+              <input
+                id="notes"
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Opsional"
+                style={{
+                  width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                  border: "1px solid var(--border)", fontSize: 14, boxSizing: "border-box",
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Tabel tukang */}
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Detail Tukang *</span>
+              <button
+                type="button"
+                onClick={addRow}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                  minHeight: 36, padding: "0 12px", borderRadius: "var(--portal-radius-pill)",
+                  border: "1px solid var(--navy)", background: "var(--navy-light)", color: "var(--navy)",
+                  fontSize: 12, fontWeight: 700, cursor: "pointer",
+                }}
+              >
+                <Plus size={14} aria-hidden="true" /> Tambah Baris
+              </button>
             </div>
 
-            {/* Tabel tukang */}
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-                <span style={{ fontSize: 12, fontWeight: 600, color: C.text }}>Detail Tukang *</span>
-                <button type="button" onClick={addRow} style={{
-                  display: "flex", alignItems: "center", gap: 4, padding: "4px 12px", borderRadius: 6,
-                  border: `1px solid ${C.navy}`, background: C.navyLight, color: C.navy, fontSize: 12, fontWeight: 600, cursor: "pointer",
-                }}>
-                  <Plus size={13} /> Tambah Baris
-                </button>
-              </div>
-
-              {/* Header */}
-              <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 32px", gap: 6, marginBottom: 6 }}>
-                {["Nama Tukang", "Hari Kerja", "Tarif/Hari", "Lembur (jam)", "Tarif Lembur", ""].map((h) => (
-                  <div key={h} style={{ fontSize: 11, fontWeight: 600, color: C.mid }}>{h}</div>
-                ))}
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {rows.map((row, i) => (
-                  <div key={i} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr 32px", gap: 6, alignItems: "center" }}>
-                    <div style={{ position: "relative" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {rows.map((row, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: 12, borderRadius: 12, border: "1px solid var(--border)",
+                    background: "var(--surface)", display: "flex", flexDirection: "column", gap: 8,
+                  }}
+                >
+                  <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                    <div style={{ flex: 1, position: "relative" }}>
                       <input
                         value={row.worker_name}
                         onChange={(e) => updateRow(i, "worker_name", e.target.value)}
                         placeholder="Nama tukang"
                         list={`workers-list-${i}`}
-                        style={{ width: "100%", padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}
+                        aria-label={`Nama tukang baris ${i + 1}`}
+                        style={{
+                          width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 10,
+                          border: "1px solid var(--border)", fontSize: 14, boxSizing: "border-box",
+                        }}
                       />
                       <datalist id={`workers-list-${i}`}>
                         {workers.map((w) => <option key={w.id} value={w.name} />)}
                       </datalist>
                     </div>
-                    <input type="number" min="0" max="7" step="0.5" value={row.days_worked || ""} onChange={(e) => updateRow(i, "days_worked", Number(e.target.value))}
-                      placeholder="0" style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
-                    <input type="number" min="0" value={row.daily_rate || ""} onChange={(e) => updateRow(i, "daily_rate", Number(e.target.value))}
-                      placeholder="0" style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
-                    <input type="number" min="0" value={row.overtime_hours || ""} onChange={(e) => updateRow(i, "overtime_hours", Number(e.target.value))}
-                      placeholder="0" style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
-                    <input type="number" min="0" value={row.overtime_rate || ""} onChange={(e) => updateRow(i, "overtime_rate", Number(e.target.value))}
-                      placeholder="0" style={{ padding: "6px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, textAlign: "right" }} />
-                    <button type="button" aria-label="Hapus baris tukang ini dari laporan" onClick={() => removeRow(i)} disabled={rows.length === 1}
-                      style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: rows.length === 1 ? "default" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: rows.length === 1 ? 0.3 : 1 }}>
-                      <Trash2 size={13} color={C.red} />
+                    <button
+                      type="button"
+                      aria-label="Hapus baris tukang ini dari laporan"
+                      onClick={() => removeRow(i)}
+                      disabled={rows.length === 1}
+                      style={{
+                        width: 44, height: 44, borderRadius: 10, border: "1px solid var(--border)",
+                        background: "var(--surface)", cursor: rows.length === 1 ? "default" : "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        opacity: rows.length === 1 ? 0.4 : 1,
+                      }}
+                    >
+                      <Trash2 size={16} color="var(--danger)" aria-hidden="true" />
                     </button>
                   </div>
-                ))}
-              </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    <label style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      Hari kerja
+                      <input
+                        type="number" min="0" max="7" step="0.5"
+                        value={row.days_worked || ""}
+                        onChange={(e) => updateRow(i, "days_worked", Number(e.target.value))}
+                        placeholder="0"
+                        style={{
+                          width: "100%", marginTop: 4, minHeight: 40, padding: "0 10px", borderRadius: 10,
+                          border: "1px solid var(--border)", fontSize: 14, textAlign: "right", boxSizing: "border-box",
+                        }}
+                      />
+                    </label>
+                    <label style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      Tarif/hari (Rp)
+                      <input
+                        type="number" min="0"
+                        value={row.daily_rate || ""}
+                        onChange={(e) => updateRow(i, "daily_rate", Number(e.target.value))}
+                        placeholder="0"
+                        style={{
+                          width: "100%", marginTop: 4, minHeight: 40, padding: "0 10px", borderRadius: 10,
+                          border: "1px solid var(--border)", fontSize: 14, textAlign: "right", boxSizing: "border-box",
+                        }}
+                      />
+                    </label>
+                    <label style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      Lembur (jam)
+                      <input
+                        type="number" min="0"
+                        value={row.overtime_hours || ""}
+                        onChange={(e) => updateRow(i, "overtime_hours", Number(e.target.value))}
+                        placeholder="0"
+                        style={{
+                          width: "100%", marginTop: 4, minHeight: 40, padding: "0 10px", borderRadius: 10,
+                          border: "1px solid var(--border)", fontSize: 14, textAlign: "right", boxSizing: "border-box",
+                        }}
+                      />
+                    </label>
+                    <label style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      Tarif lembur (Rp)
+                      <input
+                        type="number" min="0"
+                        value={row.overtime_rate || ""}
+                        onChange={(e) => updateRow(i, "overtime_rate", Number(e.target.value))}
+                        placeholder="0"
+                        style={{
+                          width: "100%", marginTop: 4, minHeight: 40, padding: "0 10px", borderRadius: 10,
+                          border: "1px solid var(--border)", fontSize: 14, textAlign: "right", boxSizing: "border-box",
+                        }}
+                      />
+                    </label>
+                  </div>
+                </div>
+              ))}
             </div>
-
-            {/* Total */}
-            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 13, color: C.mid }}>Total Upah</span>
-              <span style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>{fmt(total)}</span>
-            </div>
-
-            <button type="submit" disabled={submitting} style={{
-              padding: "12px 24px", borderRadius: 10, border: "none",
-              background: submitting ? C.mid : C.navy, color: "var(--surface)",
-              fontSize: 13, fontWeight: 600, cursor: submitting ? "wait" : "pointer",
-            }}>
-              {submitting ? "Mengirim..." : "Kirim Laporan"}
-            </button>
           </div>
+
+          <div
+            style={{
+              borderTop: "1px solid var(--border)", paddingTop: 12,
+              display: "flex", justifyContent: "space-between", alignItems: "center",
+            }}
+          >
+            <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>Total Upah</span>
+            <span style={{ fontSize: 18, fontWeight: 800, color: "var(--navy)", fontVariantNumeric: "tabular-nums" }}>
+              {fmt(total)}
+            </span>
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{
+              minHeight: 48, padding: "0 24px", borderRadius: "var(--portal-radius-pill)", border: "none",
+              background: "var(--grad-merek)", color: "var(--on-navy)",
+              fontSize: 14, fontWeight: 700, cursor: submitting ? "default" : "pointer",
+              opacity: submitting ? 0.6 : 1,
+            }}
+          >
+            {submitting ? "Mengirim…" : "Kirim Laporan"}
+          </button>
         </form>
       )}
     </div>

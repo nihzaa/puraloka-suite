@@ -1,14 +1,40 @@
 "use client";
 
+// ============================================================================
+// Rekapitulasi Keuangan — ringkasan earned vs dibayar vs kasbon beredar.
+//
+// Restyle F7d (2026-08-20): warna-ui → token CSS, kartu → KpiCard, komposisi
+// → donat (recharts PieChart) menggantikan tiga progress bar terpisah.
+//
+// ── Kenapa TIDAK ADA tren periode di halaman ini
+//
+// `GET /api/v1/mandor/rekapitulasi` (diverifikasi ke `mandor.ts` baris 2481)
+// memulangkan HANYA angka agregat SAAT INI (`total_earned`, `total_paid`,
+// `outstanding`, `kasbon_beredar`, `sisa_bersih`) dan breakdown per-proyek —
+// TIDAK ADA riwayat/deret waktu apa pun (tak ada tanggal per baris, tak ada
+// snapshot bulan lalu). Endpoint ini dirancang sebagai potret SAAT INI, bukan
+// seri waktu.
+//
+// Menghitung "naik/turun X% vs bulan lalu" dari SATU angka snapshot tunggal
+// tanpa pembanding historis berarti mengarang pembandingnya — itu justru
+// yang dilarang brief task ini ("kalau data historisnya tidak cukup untuk
+// menghitung tren yang jujur, JANGAN tampilkan tren palsu"). Endpoint lain
+// (`wage-reports`, `progress-payments`) punya tanggal dan dipakai untuk tren
+// jujur di halaman `laporan-upah` dan `pembayaran` — tapi mencampur data dari
+// endpoint LAIN ke sini akan mendefinisikan ulang "outstanding"/"kasbon
+// beredar" versi halaman ini secara tidak konsisten dengan angka yang
+// dikembalikan API. Lebih aman berhenti di komposisi (donat), yang memang
+// snapshot, dan tak mengklaim tren apa pun.
+// ============================================================================
+
 import { useData } from "@/lib/data-cache";
 import { TrendingUp, Wallet, CheckCircle, AlertCircle, MinusCircle, BarChart2 } from "lucide-react";
-
-import { C } from "@/lib/warna-ui";
-
-const card: React.CSSProperties = {
-  background: C.surface, border: `1px solid ${C.border}`,
-  borderRadius: 10, boxShadow: "var(--naik-1)",
-};
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import KpiCard from "@/components/portal/KpiCard";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import type { GalatApi } from "../_bersama/tipe";
+import { pesanGalat } from "../_bersama/tipe";
 
 function fmtRp(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -23,108 +49,76 @@ interface Rekap {
   projects: Array<{ id: string; name: string; earned: number; paid: number }>;
 }
 
-interface SummaryCard {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  color: string;
-  bg: string;
-  sub?: string;
-}
-
 export default function RekapitulasiPage() {
   // ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16 — halaman ini
   // hanya baca, tak ada tulis lapangan, jadi tak ada cache offline yang
   // perlu dipertahankan.
   const { data, memuat: loading, galat: galatMuat } = useData<Rekap>("/api/v1/mandor/rekapitulasi");
 
-  const summaryCards: SummaryCard[] = data
+  // Komposisi keuangan untuk donat: Dibayar / Outstanding / Kasbon Beredar.
+  // Ketiganya bagian dari `total_earned` (kasbon beredar mengurangi
+  // outstanding secara konseptual, tapi ditampilkan sebagai irisan sendiri
+  // di sini supaya proporsinya terlihat langsung — angka mentahnya tetap
+  // sama seperti KPI card di atasnya).
+  const dataKomposisi = data
     ? [
-        {
-          label: "Total Earned",
-          value: data.total_earned,
-          icon: <TrendingUp size={18} />,
-          color: C.navy, bg: C.navyLight,
-          sub: "Nilai pekerjaan yang sudah selesai/disetujui",
-        },
-        {
-          label: "Total Dibayar",
-          value: data.total_paid,
-          icon: <CheckCircle size={18} />,
-          color: C.green, bg: C.greenBg,
-          sub: "Upah & settlement yang sudah diterima",
-        },
-        {
-          label: "Outstanding",
-          value: data.outstanding,
-          icon: <AlertCircle size={18} />,
-          color: data.outstanding > 0 ? C.yellow : C.mid,
-          bg: data.outstanding > 0 ? C.yellowBg : C.bg,
-          sub: "Earned belum dibayar",
-        },
-        {
-          label: "Kasbon Beredar",
-          value: data.kasbon_beredar,
-          icon: <Wallet size={18} />,
-          color: data.kasbon_beredar > 0 ? C.orange : C.mid,
-          bg: data.kasbon_beredar > 0 ? C.orangeBg : C.bg,
-          sub: "Kasbon yang belum dilunasi",
-        },
-        {
-          label: "Sisa Bersih",
-          value: data.sisa_bersih,
-          icon: <MinusCircle size={18} />,
-          color: data.sisa_bersih >= 0 ? C.green : C.red,
-          bg: data.sisa_bersih >= 0 ? C.greenBg : C.redBg,
-          sub: "Outstanding setelah dikurangi kasbon beredar",
-        },
-      ]
+        { name: "Dibayar", value: data.total_paid, color: "var(--success)" },
+        { name: "Outstanding", value: Math.max(0, data.outstanding), color: "var(--warning)" },
+        { name: "Kasbon Beredar", value: Math.max(0, data.kasbon_beredar), color: "var(--danger)" },
+      ].filter((d) => d.value > 0)
     : [];
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>Rekapitulasi Keuangan</h1>
-        <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Rekapitulasi Keuangan</h1>
+        <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
           Ringkasan earned vs dibayar vs kasbon beredar
         </p>
       </div>
 
       {loading && (
-        <div style={{ textAlign: "center", padding: 60, color: C.mid }}>Memuat data...</div>
+        <>
+          <SkeletonCard tinggi={90} />
+          <SkeletonCard tinggi={110} />
+          <SkeletonCard tinggi={110} />
+        </>
       )}
 
       {!loading && !data && (
-        <div style={{ ...card, padding: 60, textAlign: "center" }}>
-          <BarChart2 size={36} color={C.muted} style={{ marginBottom: 12 }} />
-          <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>
-            {galatMuat ? "Gagal memuat data" : "Data tidak tersedia"}
-          </div>
-          <div style={{ fontSize: 13, color: C.mid, marginTop: 4 }}>
-            {galatMuat ? "Coba muat ulang halaman." : "Belum ada data keuangan untuk ditampilkan"}
-          </div>
-        </div>
+        <EmptyState
+          icon={BarChart2}
+          judul={galatMuat ? "Gagal memuat data" : "Data tidak tersedia"}
+          deskripsi={galatMuat ? pesanGalat(galatMuat as GalatApi, "Coba muat ulang halaman ini.") : "Belum ada data keuangan untuk ditampilkan."}
+        />
       )}
 
       {!loading && data && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-          {/* Hero gradient card */}
-          <div style={{
-            background: `linear-gradient(135deg, ${C.navy} 0%, var(--aksen-terang) 100%)`,
-            borderRadius: 14, padding: "20px 24px", color: "var(--surface)",
-          }}>
-            <div style={{ fontSize: 12, marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Hero: sisa bersih */}
+          <div
+            style={{
+              background: "var(--grad-merek)", borderRadius: "var(--portal-radius-card)",
+              padding: "20px 24px", color: "var(--on-navy)",
+            }}
+          >
+            <div style={{ fontSize: 12, marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>
               Sisa Bersih Setelah Kasbon
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.1 }}>
+            <div style={{ fontSize: 32, fontWeight: 800, lineHeight: 1.1, fontVariantNumeric: "tabular-nums" }}>
               {fmtRp(data.sisa_bersih)}
             </div>
             {data.sisa_bersih < 0 && (
-              <div style={{ marginTop: 6, fontSize: 12, opacity: 0.9, background: "rgba(255,100,100,0.3)", borderRadius: 6, padding: "4px 8px", display: "inline-block" }}>
+              <div
+                style={{
+                  marginTop: 8, fontSize: 12, fontWeight: 600, background: "rgba(0,0,0,0.18)",
+                  borderRadius: 8, padding: "4px 10px", display: "inline-block",
+                }}
+              >
                 Kasbon melebihi outstanding — perlu penyelesaian
               </div>
             )}
-            {data.sisa_bersih >= 0 && data.sisa_bersih > 0 && (
+            {data.sisa_bersih > 0 && (
               <div style={{ marginTop: 6, fontSize: 12 }}>
                 Dana yang dapat dicairkan setelah semua kasbon dilunasi
               </div>
@@ -136,119 +130,118 @@ export default function RekapitulasiPage() {
             )}
           </div>
 
-          {/* Summary cards — 2-col grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-            {summaryCards.map((sc) => (
-              <div key={sc.label} style={{ ...card, padding: "16px 16px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 10,
-                    background: sc.bg, color: sc.color,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    flexShrink: 0,
-                  }}>
-                    {sc.icon}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: C.mid, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                    {sc.label}
-                  </div>
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: sc.color }}>
-                  {fmtRp(sc.value)}
-                </div>
-                {sc.sub && (
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{sc.sub}</div>
-                )}
-              </div>
-            ))}
+          {/* KPI grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <KpiCard label="Total Earned" nilai={fmtRp(data.total_earned)} icon={TrendingUp} />
+            <KpiCard label="Total Dibayar" nilai={fmtRp(data.total_paid)} icon={CheckCircle} />
+            <KpiCard label="Outstanding" nilai={fmtRp(data.outstanding)} icon={AlertCircle} />
+            <KpiCard label="Kasbon Beredar" nilai={fmtRp(data.kasbon_beredar)} icon={Wallet} />
           </div>
 
-          {/* Visual breakdown bar */}
-          {data.total_earned > 0 && (
-            <div style={{ ...card, padding: "16px 20px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 14 }}>
+          {/* Donat komposisi + rincian teks (grafik bukan satu-satunya akses
+              ke data — angka yang sama tersedia sebagai legenda + KPI di
+              atas). */}
+          {dataKomposisi.length > 0 && (
+            <div
+              style={{
+                padding: 16, borderRadius: "var(--portal-radius-card)", background: "var(--surface)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>
                 Komposisi Keuangan
               </div>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.mid, marginBottom: 5 }}>
-                  <span>Dibayar</span>
-                  <span style={{ fontWeight: 600 }}>{((data.total_paid / data.total_earned) * 100).toFixed(1)}%</span>
-                </div>
-                <div style={{ height: 10, background: C.border, borderRadius: 6, overflow: "hidden" }}>
-                  <div style={{
-                    height: "100%", borderRadius: 6,
-                    width: `${Math.min(100, (data.total_paid / data.total_earned) * 100)}%`,
-                    background: C.green, transition: "width 0.6s ease",
-                  }} />
-                </div>
+              <div style={{ width: "100%", height: 200 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={dataKomposisi}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius="55%"
+                      outerRadius="80%"
+                      paddingAngle={2}
+                      isAnimationActive={false}
+                    >
+                      {dataKomposisi.map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(v) => fmtRp(Number(v))} contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid var(--border)" }} />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      formatter={(value) => <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{value}</span>}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-
-              {data.outstanding > 0 && (
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.mid, marginBottom: 5 }}>
-                    <span>Outstanding</span>
-                    <span style={{ fontWeight: 600 }}>{((data.outstanding / data.total_earned) * 100).toFixed(1)}%</span>
-                  </div>
-                  <div style={{ height: 10, background: C.border, borderRadius: 6, overflow: "hidden" }}>
-                    <div style={{
-                      height: "100%", borderRadius: 6,
-                      width: `${Math.min(100, (data.outstanding / data.total_earned) * 100)}%`,
-                      background: C.yellow, transition: "width 0.6s ease",
-                    }} />
-                  </div>
-                </div>
-              )}
-
-              {data.kasbon_beredar > 0 && (
-                <div>
-                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: C.mid, marginBottom: 5 }}>
-                    <span>Kasbon beredar vs outstanding</span>
-                    <span style={{ fontWeight: 600 }}>
-                      {data.outstanding > 0 ? ((data.kasbon_beredar / data.outstanding) * 100).toFixed(1) : "100"}%
+              {/* Rincian teks eksplisit — angka yang sama seperti irisan
+                  donat, supaya tak ada informasi yang hanya bisa diakses
+                  lewat grafik. */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
+                {dataKomposisi.map((d) => (
+                  <div key={d.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
+                    <span style={{ color: "var(--text-secondary)" }}>{d.name}</span>
+                    <span style={{ fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
+                      {fmtRp(d.value)}
                     </span>
                   </div>
-                  <div style={{ height: 10, background: C.border, borderRadius: 6, overflow: "hidden" }}>
-                    <div style={{
-                      height: "100%", borderRadius: 6,
-                      width: `${Math.min(100, data.outstanding > 0 ? (data.kasbon_beredar / data.outstanding) * 100 : 100)}%`,
-                      background: C.orange, transition: "width 0.6s ease",
-                    }} />
-                  </div>
-                </div>
-              )}
+                ))}
+              </div>
             </div>
           )}
 
           {/* Per-project breakdown */}
           {data.projects.length > 1 && (
-            <div style={{ ...card, padding: "16px 20px" }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 14 }}>
+            <div
+              style={{
+                padding: 16, borderRadius: "var(--portal-radius-card)", background: "var(--surface)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>
                 Per Proyek
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {data.projects.map((proj) => {
                   const outstanding = proj.earned - proj.paid;
                   return (
-                    <div key={proj.id} style={{
-                      padding: "12px 16px", borderRadius: 10,
-                      border: `1px solid ${C.border}`, background: C.bg,
-                    }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 10 }}>
+                    <div
+                      key={proj.id}
+                      style={{
+                        padding: 12, borderRadius: 12, border: "1px solid var(--border)",
+                        background: "var(--surface-subtle)",
+                      }}
+                    >
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>
                         {proj.name}
                       </div>
                       <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, marginBottom: 2, fontWeight: 600, textTransform: "uppercase" }}>Earned</div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: C.navy }}>{fmtRp(proj.earned)}</div>
+                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2, fontWeight: 700, textTransform: "uppercase" }}>
+                            Earned
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)", fontVariantNumeric: "tabular-nums" }}>
+                            {fmtRp(proj.earned)}
+                          </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 10, color: C.muted, marginBottom: 2, fontWeight: 600, textTransform: "uppercase" }}>Dibayar</div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: C.green }}>{fmtRp(proj.paid)}</div>
+                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2, fontWeight: 700, textTransform: "uppercase" }}>
+                            Dibayar
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
+                            {fmtRp(proj.paid)}
+                          </div>
                         </div>
                         {outstanding > 0 && (
                           <div>
-                            <div style={{ fontSize: 10, color: C.muted, marginBottom: 2, fontWeight: 600, textTransform: "uppercase" }}>Outstanding</div>
-                            <div style={{ fontSize: 13, fontWeight: 700, color: C.yellow }}>{fmtRp(outstanding)}</div>
+                            <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2, fontWeight: 700, textTransform: "uppercase" }}>
+                              Outstanding
+                            </div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--warning)", fontVariantNumeric: "tabular-nums" }}>
+                              {fmtRp(outstanding)}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -261,13 +254,11 @@ export default function RekapitulasiPage() {
 
           {/* Empty state: no projects */}
           {data.total_earned === 0 && data.projects.length === 0 && (
-            <div style={{ ...card, padding: 48, textAlign: "center" }}>
-              <BarChart2 size={32} color={C.muted} style={{ marginBottom: 10 }} />
-              <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Belum ada data keuangan</div>
-              <div style={{ fontSize: 13, color: C.mid, marginTop: 4 }}>
-                Data akan muncul setelah ada laporan upah atau pembayaran yang disetujui
-              </div>
-            </div>
+            <EmptyState
+              icon={MinusCircle}
+              judul="Belum ada data keuangan"
+              deskripsi="Data akan muncul setelah ada laporan upah atau pembayaran yang disetujui."
+            />
           )}
         </div>
       )}
