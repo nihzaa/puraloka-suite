@@ -188,3 +188,268 @@ export function pesanGalat(e: unknown, bawaan: string): string {
   const g = e as GalatApi
   return g?.response?.data?.error ?? g?.response?.data?.message ?? g?.message ?? bawaan
 }
+
+/**
+ * ── Tipe modul baru (K3, punch, inspeksi, RFI, submittal, retensi)
+ *
+ * Bentuk di bawah disalin dari `apps/api/src/routes/v1/k3-lapangan.ts`,
+ * `punch-list.ts`, `inspeksi.ts`, `rfi.ts`, `submittal.ts`, dan bagian
+ * "RETENSI SUBKONTRAK" di `mandor.ts` — dibaca ULANG dari kode nyata, bukan
+ * dari dugaan nama kolom. Beberapa nama field yang tampak "wajar" ternyata
+ * SALAH kalau ditebak dari nama file (didokumentasikan per-tipe di bawah).
+ */
+
+/** Insiden K3 lapangan. Bentuk dari `INSIDEN_SELECT` di `k3-lapangan.ts`. */
+export interface InsidenK3 {
+  id: string
+  project_id?: string | null
+  nomor?: string | null
+  jenis?: string | null
+  tanggal?: string | null
+  waktu?: string | null
+  lokasi?: string | null
+  kronologi?: string | null
+  supplier_id?: string | null
+  mandor_id?: string | null
+  korban_nama?: string | null
+  korban_worker_id?: string | null
+  melukai?: boolean | null
+  hari_kerja_hilang?: number | null
+  cedera_uraian?: string | null
+  penyebab_langsung?: string | null
+  penyebab_dasar?: string | null
+  tindakan_korektif?: string | null
+  jsa_id?: string | null
+  izin_kerja_id?: string | null
+  status?: string | null
+  ditutup_pada?: string | null
+  biaya_akibat?: number | string | null
+  catatan?: string | null
+  created_at?: string | null
+  /**
+   * Pelapor insiden. Nama embed API: `pelapor` — BUKAN `dilaporkan_oleh`
+   * (itu nama KOLOM fk-nya, `dilaporkan_oleh_fkey`; embed-nya sendiri
+   * bernama `pelapor`). Brief awal task ini menebak field `dilaporkan_oleh`
+   * berisi objek `{id, name}` — salah, itu string id kolom fk mentah kalau
+   * tak di-select sebagai embed.
+   */
+  pelapor?: { id: string; name: string } | null
+  subkon?: { id: string; name: string } | null
+}
+
+/**
+ * Job Safety Analysis. Bentuk dari `JSA_SELECT` di `k3-lapangan.ts`.
+ *
+ * Tak punya `judul`/`status`/`dibuat_pada` seperti dugaan awal — JSA
+ * diidentifikasi lewat `jenis_pekerjaan` + `kode`, dan tak berstatus
+ * (ia berlaku/tidak lewat kolom `berlaku`, bukan status bertingkat).
+ */
+export interface JsaK3 {
+  id: string
+  company_id?: string | null
+  project_id?: string | null
+  kode?: string | null
+  jenis_pekerjaan?: string | null
+  uraian?: string | null
+  disetujui_pada?: string | null
+  berlaku?: boolean | null
+  catatan?: string | null
+  created_at?: string | null
+  penyusun?: { id: string; name: string } | null
+}
+
+/**
+ * Inspeksi K3 rutin (bagian dari `GET /proyek/:id/k3`, BUKAN endpoint
+ * inspeksi terpisah). Kolomnya: `id, nomor, tanggal, area, pemeriksa_nama,
+ * ringkasan` — tak ada `jenis_inspeksi` atau `status` seperti dugaan awal.
+ */
+export interface InspeksiK3 {
+  id: string
+  nomor?: string | null
+  tanggal?: string | null
+  area?: string | null
+  pemeriksa_nama?: string | null
+  ringkasan?: string | null
+}
+
+/** Item punch list (temuan cacat/kekurangan pekerjaan). Bentuk dari `PUNCH_SELECT`. */
+export interface PunchItem {
+  id: string
+  project_id?: string | null
+  nomor?: string | null
+  judul?: string | null
+  deskripsi?: string | null
+  lokasi?: string | null
+  severity?: string | null
+  status?: string | null
+  rab_item_id?: string | null
+  work_scope_id?: string | null
+  ditemukan_oleh?: string | null
+  /** Id user yang ditugaskan — kolom mentah, BUKAN embed. Embednya `petugas`. */
+  ditugaskan_ke?: string | null
+  diverifikasi_oleh?: string | null
+  diverifikasi_pada?: string | null
+  alasan_penolakan?: string | null
+  target_selesai?: string | null
+  ditutup_pada?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  penemu?: { id: string; name: string } | null
+  petugas?: { id: string; name: string } | null
+  verifikator?: { id: string; name: string } | null
+  rab_item?: { id: string; name: string; category_code: string | null; level: string | null } | null
+  work_scope?: { id: string; scope_name: string } | null
+}
+
+/**
+ * Permintaan inspeksi (izin cor/izin tutup) sebelum pekerjaan ditutup.
+ * Bentuk dari `INSPEKSI_SELECT` di `inspeksi.ts`. Beda modul dari
+ * `InspeksiK3` di atas — ini tabel `inspection_requests`, ber-workflow.
+ */
+export interface Inspeksi {
+  id: string
+  project_id?: string | null
+  nomor?: string | null
+  judul?: string | null
+  lokasi?: string | null
+  catatan?: string | null
+  pekerjaan_lanjutan?: string | null
+  status?: string | null
+  rab_item_id?: string | null
+  work_scope_id?: string | null
+  diminta_oleh?: string | null
+  /** Kapan diminta diperiksa (dijadwalkan), BUKAN "diajukan_pada". */
+  diminta_untuk?: string | null
+  diperiksa_oleh?: string | null
+  diperiksa_pada?: string | null
+  hasil_catatan?: string | null
+  punch_item_id?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  pemohon?: { id: string; name: string } | null
+  pemeriksa?: { id: string; name: string } | null
+  rab_item?: { id: string; name: string; category_code: string | null } | null
+  temuan?: { id: string; nomor: string; judul: string; status: string } | null
+  /** Dihitung API kalau relevan di sisi klien; endpoint ini tak mengirim ini sendiri. */
+  terlambat?: boolean
+}
+
+/**
+ * Request for Information ke konsultan/pemberi kerja. Bentuk dari
+ * `RFI_SELECT` di `rfi.ts`. Field tanggal PENGIRIMAN bernama `dikirim_pada`
+ * — bukan `diajukan_pada` seperti dugaan awal (itu istilah submittal).
+ */
+export interface Rfi {
+  id: string
+  project_id?: string | null
+  nomor?: string | null
+  perihal?: string | null
+  pertanyaan?: string | null
+  ditujukan_ke?: string | null
+  referensi_gambar?: string | null
+  status?: string | null
+  dikirim_pada?: string | null
+  jawaban_diharapkan?: string | null
+  dijawab_pada?: string | null
+  jawaban?: string | null
+  dijawab_oleh?: string | null
+  menghentikan_pekerjaan?: boolean | null
+  pekerjaan_terdampak?: string | null
+  eot_id?: string | null
+  diajukan_oleh?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  pengaju?: { id: string; name: string } | null
+  eot?: {
+    id: string; eot_number?: string | null
+    days_requested?: number | null; days_approved?: number | null; status?: string | null
+  } | null
+  /** Dihitung API (`hariMenggantung`) — null kalau belum dikirim. */
+  hari_menggantung?: number | null
+  /** Dihitung API — sudah lewat `jawaban_diharapkan` dan belum dijawab. */
+  terlambat?: boolean
+}
+
+/**
+ * Submittal material/shop drawing/metode kerja. Bentuk dari
+ * `SUBMITTAL_SELECT` di `submittal.ts`. Beda dari RFI: field tanggal
+ * pengajuannya memang `diajukan_pada` (bukan `dikirim_pada`).
+ */
+export interface Submittal {
+  id: string
+  project_id?: string | null
+  nomor?: string | null
+  judul?: string | null
+  jenis?: string | null
+  spesifikasi?: string | null
+  referensi_spek?: string | null
+  status?: string | null
+  revisi?: number | null
+  induk_id?: string | null
+  ditujukan_ke?: string | null
+  diajukan_pada?: string | null
+  keputusan_diharapkan?: string | null
+  diputuskan_pada?: string | null
+  catatan_reviewer?: string | null
+  diputuskan_oleh?: string | null
+  rab_item_id?: string | null
+  material_id?: string | null
+  menghentikan_pekerjaan?: boolean | null
+  diajukan_oleh?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  pengaju?: { id: string; name: string } | null
+  rab_item?: { id: string; name: string; category_code: string | null } | null
+  material?: { id: string; name: string; code: string | null; unit: string | null } | null
+  /** Dihitung API (`hariMenunggu`) — null kalau belum diajukan. */
+  hari_menunggu?: number | null
+}
+
+/**
+ * Satu baris register retensi subkontrak — SATU SCOPE, bukan satu
+ * transaksi rilis. Bentuk dari `GET /api/v1/mandor/retensi-register` di
+ * `mandor.ts` (bagian "RETENSI SUBKONTRAK").
+ *
+ * ⚠️ Bentuk ini TOTAL BERBEDA dari dugaan awal task ini (`jumlah`,
+ * `tanggal_rilis`). Endpoint sungguhan memulangkan `{ scopes: RetensiRegister[],
+ * total_ditahan, total_dicairkan, total_outstanding }` — satu baris per
+ * lingkup kerja, dengan `ditahan`/`dicairkan`/`outstanding` HASIL HITUNGAN
+ * server (Σ retensi progress payment approved − Σ pencairan), bukan kolom.
+ */
+export interface RetensiRegister {
+  work_scope_id: string
+  scope_name?: string | null
+  status?: string | null
+  retensi_pct?: number | string | null
+  mandor?: { id: string; name: string } | null
+  project?: { id: string; name: string } | null
+  ditahan: number
+  dicairkan: number
+  outstanding: number
+}
+
+/** Bungkus respons `GET /api/v1/mandor/retensi-register`. */
+export interface ResponsRetensiRegister {
+  scopes: RetensiRegister[]
+  total_ditahan: number
+  total_dicairkan: number
+  total_outstanding: number
+}
+
+/**
+ * Satu baris pencairan retensi — hasil `POST /api/v1/mandor/retensi-releases`,
+ * tabel `subcontract_retention_releases`. Bentuk `select()` polos (SELECT *)
+ * di endpoint itu, jadi seluruh kolom kemungkinan besar ikut; yang tercantum
+ * di sini adalah yang eksplisit di-`insert()` sehingga PASTI ada.
+ */
+export interface RetensiRelease {
+  id: string
+  company_id?: string | null
+  work_scope_id: string
+  amount: number | string
+  released_at?: string | null
+  cash_account_id?: string | null
+  notes?: string | null
+  released_by?: string | null
+  created_at?: string | null
+}
