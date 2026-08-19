@@ -139,6 +139,69 @@ export interface HasilBalokBaja {
   catatan: string[]
 }
 
+/**
+ * Jenis profil yang rumus penampangnya BERLAKU di berkas ini.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
+ * KENAPA INI PENJAGA, BUKAN SEKADAR DAFTAR
+ *
+ * Seluruh rumus penampang di bawah (`inersiaX`, `modulusPlastis`,
+ * `radiusGirasiY`) menurunkan bentuknya dari SATU asumsi: profil I simetris
+ * ganda — dua sayap sama besar, badan di tengah, simetris terhadap kedua sumbu.
+ *
+ * WF dan H memenuhi itu. Yang TIDAK:
+ *
+ *   CNP (kanal C)  sayapnya hanya di SATU sisi badan. Tak simetris terhadap
+ *                  sumbu Y, punya titik pusat geser di luar penampang, dan
+ *                  cenderung MEMUNTIR saat dibebani — perilaku yang tak ada
+ *                  sama sekali pada WF.
+ *   INP            sayapnya MIRING 14%, jadi tebalnya berubah sepanjang lebar.
+ *   L (siku)       sumbu utamanya MIRING, bukan tegak-datar.
+ *
+ * Dipakai apa adanya, rumus di bawah memberi angka yang TERLIHAT WAJAR untuk
+ * ketiganya — dan itulah bahayanya. Tak ada galat, tak ada nilai negatif,
+ * cuma kapasitas yang salah. Untuk CNP selisihnya bisa 20-40% ke arah yang
+ * TIDAK aman karena puntirnya diabaikan.
+ *
+ * Karena itu jenis yang tak didukung DITOLAK, bukan dihitung dengan
+ * peringatan: peringatan bisa dilewati, angka yang sudah tampil di layar
+ * akan dipakai.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+export const PROFIL_DIDUKUNG = ['WF', 'H'] as const
+
+/** Alasan kenapa sebuah jenis profil belum bisa dihitung berkas ini. */
+export const ALASAN_TAK_DIDUKUNG: Record<string, string> = {
+  CNP: 'Kanal C bersayap satu sisi: tak simetris terhadap sumbu Y, titik pusat '
+    + 'gesernya di luar penampang, dan ia MEMUNTIR saat dibebani. Rumus profil '
+    + 'I memberi kapasitas 20-40% terlalu besar untuknya.',
+  C: 'Kanal C bersayap satu sisi — lihat CNP.',
+  INP: 'Sayap INP MIRING 14%, tebalnya berubah sepanjang lebar sayap. Rumus '
+    + 'profil I bersayap seragam tak berlaku.',
+  L: 'Siku punya sumbu utama yang MIRING, bukan tegak-datar. Lentur terhadap '
+    + 'sumbu tegak menghasilkan lendutan menyamping sekaligus.',
+}
+
+/**
+ * Pastikan profil boleh dihitung rumus di berkas ini.
+ *
+ * Dipanggil di awal tiap fungsi analisa. Melempar, bukan memulangkan
+ * peringatan — lihat alasannya di `PROFIL_DIDUKUNG`.
+ */
+export function pastikanProfilDidukung(p: ProfilBaja): void {
+  const jenis = (p.profile_type || '').toUpperCase()
+  if ((PROFIL_DIDUKUNG as readonly string[]).includes(jenis)) return
+
+  const alasan = ALASAN_TAK_DIDUKUNG[jenis]
+    ?? 'Bentuk penampangnya tak dikenali rumus profil I di modul ini.'
+  throw new Error(
+    `Profil ${p.profile_type} ${p.designation} belum bisa dihitung modul ini. `
+    + `${alasan} `
+    + `Volume dan beratnya TETAP bisa dipakai untuk RAB (berat per meter dari `
+    + `tabel), yang belum bisa hanya pemeriksaan kekuatannya.`,
+  )
+}
+
 /** Luas penampang WF/H dari dimensinya, mm². */
 export function luasPenampang(p: ProfilBaja): number {
   const { hMm: h, bMm: b, t1Mm: tw, t2Mm: tf } = p
