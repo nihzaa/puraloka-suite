@@ -5,6 +5,62 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 11) — suite penuh dibandingkan terhadap baseline: nol regresi, dan angka yang tak stabil
+
+**Diukur BERURUTAN, bukan paralel** (CLAUDE.md §7: run yang tumpang tindih
+menghasilkan angka yang tidak sah).
+
+```
+baseline 7a044928   Test Files  28 failed | 403 passed (431)
+                          Tests  73 failed | 6050 passed | 19 skipped (6142)
+
+sesudah  542554ef   Test Files  32 failed | 399 passed (432)
+                          Tests  96 failed | 6063 passed | 19 skipped (6178)
+```
+
+Selisih 23 test merah. Angka itu TIDAK boleh dibaca sebagai 23 regresi, dan
+menelusurinya berkas per berkas memberi jawaban yang berbeda sama sekali.
+
+### Lima berkas yang merah HANYA sesudah — semuanya bukan regresi
+
+| Berkas | Sendirian di branch | Sendirian di baseline | Kesimpulan |
+|---|---|---|---|
+| `kontrak` | 206 lulus | — | tabrakan data paralel |
+| `approval-satu-pintu` | 6 lulus | — | tabrakan data paralel |
+| `ai-tulis` | 1 gagal | **1 gagal** | sudah merah sebelumnya |
+| `otomasi-gr-matching` | 3 gagal | **3 gagal** | sudah merah sebelumnya |
+| `otomasi-stok-menipis` | 3 gagal | **3 gagal** | sudah merah sebelumnya |
+
+Dua di antaranya HIJAU saat dijalankan sendirian — yang memerahkannya adalah
+berkas lain yang berjalan bersamaan dan menggeser fixture-nya. Tiga sisanya
+merah dengan jumlah yang PERSIS SAMA di baseline.
+
+28 berkas merah di baseline tetap merah sesudahnya, dan **nol** berkas yang
+tadinya merah jadi hijau — jadi tak ada yang tertutupi.
+
+### Yang benar-benar milik pekerjaan ini
+
+```
+$ npx vitest run struktur     597 lulus (597)
+$ npx vitest run takeoff       81 lulus  (81)
+penjaga: audit-harga-satuan-waras · audit-sektor-takeoff-cocok ·
+         audit-modul-struktur-terdaftar · audit-jenis-struktur-cocok  → exit 0
+```
+
+### Pelajaran tentang ALAT UKURNYA
+
+Angka ringkasan suite penuh di repo ini **tidak cukup untuk menyimpulkan
+regresi**. Test memakai Postgres sungguhan, satu basis, dan banyak fixture
+memilih barisnya lewat `LIMIT 1` — dua berkas yang menyisip dan membersihkan
+baris bersamaan saling menggeser fixture. Ini sudah tercatat di CLAUDE.md §7
+untuk kasus dua RUN yang tumpang tindih; yang terlihat di sini adalah bentuk
+yang lebih halus: satu run, berkas-berkas di dalamnya saling mengganggu.
+
+Satu-satunya perbandingan yang sah adalah **per berkas, dijalankan sendirian,
+di kedua commit**. Itu yang dilakukan di sini, dan hasilnya nol regresi.
+
+---
+
 ## 2026-08-19 (lanjutan 10) — take-off sektor: bukaan akhirnya dikurangi, atap akhirnya miring
 
 **Ringkasan run:**
