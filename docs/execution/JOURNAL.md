@@ -5,6 +5,92 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-20 — enam batas struktur ditutup, dan tiga penjaga yang menuduh hal yang BENAR
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur takeoff        1238 lulus / 44 berkas
+$ npx tsc --noEmit  (api & web)          exit=0 keduanya
+$ uji-gambar-semua-jenis.mjs (3017)      exit=0 — BERGAMBAR 32/32
+$ uji-takeoff-ke-rab-hidup.mjs           exit=0 — 2 kasus tembus ke RAB
+$ jalankan-semua-penjaga.mjs             vs baseline: NOL penjaga baru merah
+$ suite PENUH vs baseline 59902edc       79 gagal vs 81 — LEBIH SEDIKIT
+```
+
+### Enam batas, semuanya dengan dua lapis
+
+| batas | kenapa berbahaya | kalimat awamnya |
+|---|---|---|
+| **Mononobe-Okabe** | dinding aman statis roboh saat gempa | "Dinding tetap berdiri saat tanah bergoyang" |
+| **Penurunan** | yang meretakkan bukan turunnya, tapi turun tak rata | "Bangunan turun MERATA, tidak miring sebelah" |
+| **P-Delta** | satu-satunya batas yang TAK memberi peringatan | "Miringnya berhenti, tidak makin menjadi" |
+| **Hankinson** | pada 45° kapasitas tinggal 40% | (sudut serat, di dalam sambungan kayu) |
+| **Ketahanan api** | beton tak terbakar, TULANGANNYA meleleh | "Besinya cukup terlindung kalau terjadi kebakaran" |
+| **Panel zone** | sambungan berputar meski bautnya cukup | "Kolomnya tidak melintir di tempat balok menempel" |
+
+Tiap angka dicocokkan ke PUSTAKA atau HITUNGAN TANGAN, bukan ke keluaran kode
+sendiri. Kae pada kh=0 runtuh persis ke Rankine; θ P-Delta cocok sampai empat
+desimal; φRn panel zone 388,8 kN cocok persis.
+
+### Empat kesalahan saya, semuanya ketahuan bukan dari test
+
+1. **588 mm** penurunan lempung lunak — modulus seperlima pustaka DAN faktor
+   konsolidasi ditumpuk. Dua kesalahan berlipat. Ketahuan karena saya LIHAT
+   angkanya; 24 test bentuk semuanya hijau.
+2. **Batang hijau bertuliskan 128%** — bagi orang non-teknis, di atas 100%
+   berarti melewati batas. Dipindahkan ke catatan.
+3. **Bendera bertentangan** — `tidakStabil: true` bersama
+   `perluDihitung: false`, karena θmaks (0,0909) bisa DI BAWAH ambang abaikan
+   (0,10). Ketahuan saat menguji keadaan batas dengan tangan.
+4. **Dua catatan "BELUM diperiksa" yang BASI** — menyebut Mononobe-Okabe dan
+   penurunan yang sudah dibangun berjam-jam sebelumnya. Catatan itu tampil DI
+   LAYAR; pembacanya akan mencari konsultan lain untuk hal yang sudah dihitung.
+
+### Tiga penjaga yang menuduh hal yang BENAR
+
+Pola yang berulang dan layak dicatat sendiri:
+
+| penjaga | tuduhan palsunya | sebabnya |
+|---|---|---|
+| `audit-medan-jumlah-tak-bentrok` | `InputGambarPolaSambungan` | menyaring dari daftar IMPOR, bukan dari fungsi yang dipanggil `hitung()` |
+| `audit-jenis-volume-terdaftar` | `sambungan_kayu` bervolume | membaca kata `dasar,` di dalam KOMENTAR sebagai kode |
+| `audit-batas-tak-basi` | tiga catatan yang masih berlaku | mencocokkan kata kunci telanjang, bukan bentuk kalimat yang menyangkal |
+
+Ketiganya diperbaiki, dan ketiganya tetap terbukti merah pada cacat aslinya.
+**Penjaga yang menuduh hal yang benar akan dimatikan orang — dan yang
+dimatikan tak lagi menjaga yang sungguhan.**
+
+### Baseline penuh: NOL regresi, terbukti
+
+Sempat saya ragukan sendiri. Diukur berurutan (bukan paralel — CLAUDE.md §7):
+
+```
+baseline 59902edc   81 gagal / 32 berkas
+cabang ini          79 gagal / 30 berkas
+```
+
+Cabang ini **lebih sedikit merah**, dan tiga berkas justru jadi hijau. Satu
+berkas yang tampak baru merah (`ai-tulis`) ternyata juga merah di baseline
+saat dijalankan sendiri — pesan galatnya sama persis.
+
+### Take-off → RAB: tujuh tebakan salah, semuanya diperbaiki dengan MENGUKUR
+
+Alurnya belum pernah diuji lewat rute hidup. Sekarang terbukti: volume 12 m³
+dan 24 m² tersimpan, terbaca kembali, dan tembus sampai kuantitas RAB.
+
+Tujuh tebakan saya salah (endpoint versi, tipe item, path assembly, nama
+medan, bentuk balasan). Tiap kali rutenya menolak dengan menyebut PILIHAN YANG
+SAH — "metode wajib salah satu dari: volume, luas, dinding, panjang" — dan itu
+yang membuat tujuh kesalahan selesai dalam beberapa menit. Pesan galat yang
+menyebut pilihannya jauh lebih menolong daripada "input tak sah".
+
+Ditemukan juga: kegagalan simpan take-off hanya masuk `console.warn`. Bagi
+estimator itu TIDAK MENINGGALKAN GEJALA — itemnya masuk, angkanya benar, dan
+jejak perhitungannya hilang tanpa suara. Sekarang tampil di layar.
+
+---
+
 ## 2026-08-19 (lanjutan 19) — MEMOTRET LAYAR menemukan tiga cacat yang 1.028 test lewatkan
 
 **Ringkasan run:**
