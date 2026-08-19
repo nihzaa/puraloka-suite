@@ -22,6 +22,26 @@ di luar kode dan penghalangnya sudah diverifikasi satu per satu.
 | `md-template-dok` | SPK berbunyi milik pembuat aplikasi, bukan milik tenant |
 | `dk-register` | rantai revisi lengkap di basis & API, putus sebelum mata orang |
 
+### Bukti akhir — suite serial, sendirian
+
+```
+Test Files  31 failed | 397 passed  (428)
+     Tests  94 failed | 5875 passed | 8 skipped  (5977)
+  Duration  1500s
+```
+
+Terhadap run bersih sebelum kerja hari ini (5853 / 95 / 32): **lulus +22,
+gagal −1, berkas gagal −1.**
+
+Kesebelas berkas yang saya sentuh hari ini dijalankan sendiri: **172 test,
+semuanya lulus.** Ke-94 kegagalan yang tersisa tak satu pun menyebut modul
+yang dikerjakan hari ini — dua di antaranya (`struktur-endpoint`, `situs`)
+sudah terbukti merah di worktree pada commit sebelum sesi ini.
+
+Penjaga: **33 merah, nol yang baru** — dan dua di antaranya
+(`audit-nav-yatim`, `audit-peta-menu-vs-db`) memang milik sesi `struktur`
+yang masih berjalan, bukan cacat.
+
 ### DUA rencana saya sendiri terbukti salah — dan itu temuan, bukan kecelakaan
 
 **1. `dk-register`.** Saya merencanakannya sebagai *"satu-satunya yang
