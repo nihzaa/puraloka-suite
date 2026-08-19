@@ -16,6 +16,9 @@ import {
 } from '../struktur-baja-sambungan'
 import { analisaBasePlate, analisaAngkur } from '../struktur-baja-tumpuan'
 import { analisaRangka } from '../struktur-baja-rangka'
+import {
+  analisaGording, analisaInteraksiTekanMomen, analisaBracing,
+} from '../struktur-baja-gording'
 
 /**
  * ══════════════════════════════════════════════════════════════════════════════
@@ -156,6 +159,34 @@ function semuaNamaPemeriksaan(): string[] {
     analisaAngkur({
       diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlah: 4,
       kedalamanMm: 300, fcBetonMpa: 25, tuKn: 100, vuKn: 60,
+    }) as never,
+    analisaGording({
+      profil: {
+        designation: '150x65x20x3.2', profile_type: 'CNP',
+        hMm: 150, bMm: 65, t1Mm: 3.2, t2Mm: 3.2,
+        beratKgPerM: 8.01, panjangStandarM: 6,
+      },
+      mutu: { fyMpa: 240, fuMpa: 370 },
+      bentangM: 4, kemiringanDerajat: 30,
+      bebanVertikalKnPerM: 1.2, bebanLayanKnPerM: 0.9, jarakSagrodM: 2,
+    }) as never,
+    analisaInteraksiTekanMomen({
+      profil: {
+        designation: '200x100x5.5x8', profile_type: 'WF',
+        hMm: 200, bMm: 100, t1Mm: 5.5, t2Mm: 8,
+        beratKgPerM: 21.3333, panjangStandarM: 12,
+      },
+      mutu: { fyMpa: 240, fuMpa: 370 },
+      panjangM: 3.5, puKn: 100, muxKnm: 10,
+    }) as never,
+    analisaBracing({
+      profil: {
+        designation: '70x70x7', profile_type: 'L',
+        hMm: 70, bMm: 70, t1Mm: 7, t2Mm: 7,
+        beratKgPerM: 7.38, panjangStandarM: 6,
+      },
+      mutu: { fyMpa: 240, fuMpa: 370 },
+      panjangM: 3, gayaKn: 40,
     }) as never,
     analisaRangka({
       nama: 'KK-1', mutu: { fyMpa: 240, fuMpa: 370 },

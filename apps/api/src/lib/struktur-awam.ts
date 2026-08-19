@@ -505,6 +505,79 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
     tindakan: 'Perbaiki batang yang disebutkan gagal — memperkuat batang lain '
       + 'tidak menolong, karena masing-masing memikul bagiannya sendiri.',
   },
+  'Lentur gording dua arah': {
+    judul: 'Gording atap kuat menahan beban miring',
+    apa: 'Gording adalah balok yang membentang di atas kuda-kuda, tempat '
+      + 'penutup atap dipasang. Karena atapnya miring, beban dari atas tak '
+      + 'jatuh lurus ke sumbu kuat gording — sebagian menekannya menyamping.',
+    risiko: 'Bagian yang menekan menyamping ditahan oleh sisi LEMAH profil, '
+      + 'yang hanya sekitar seperlima kekuatan sisi kuatnya. Gording yang '
+      + 'dihitung seperti balok biasa akan melendut ke samping dan MEMUTIR, '
+      + 'membuat atap bergelombang dan sambungannya kendur.',
+    tindakan: 'Pasang sagrod — batang besi yang menahan gording agar tak '
+      + 'melorot ke bawah sepanjang bidang atap. Sagrod di tengah bentang '
+      + 'menaikkan kapasitas EMPAT KALI LIPAT, jauh lebih murah daripada '
+      + 'memperbesar profilnya.',
+  },
+  'Lendutan gording': {
+    judul: 'Gording tidak melendut berlebihan',
+    apa: 'Seberapa jauh gording turun di tengah saat dibebani penutup atap, '
+      + 'air hujan, dan orang yang memasangnya.',
+    risiko: 'Gording yang melendut membuat atap bergelombang — air hujan '
+      + 'menggenang di cekungannya alih-alih mengalir, dan genangan itu '
+      + 'menambah beban yang membuatnya melendut lebih jauh lagi. Pada atap '
+      + 'landai, ini bisa berakhir dengan atap yang jebol.',
+    tindakan: 'Pakai profil yang lebih tinggi, atau perpendek bentang dengan '
+      + 'menambah kuda-kuda.',
+  },
+  'Interaksi tekan + momen': {
+    judul: 'Kolom kuat saat ditekan DAN didorong bersamaan',
+    apa: 'Kolom tepi, kolom rangka, dan kolom yang menahan angin menerima dua '
+      + 'hal sekaligus: beban dari atas yang menekannya, dan dorongan '
+      + 'menyamping yang membengkokkannya.',
+    risiko: 'Beban tekan MEMPERBESAR bengkokan: kolom yang sudah melengkung '
+      + 'sedikit akan melengkung lebih jauh karena tekannya bekerja pada '
+      + 'lengkungan itu. Kolom bisa lulus pemeriksaan tekan sendiri DAN '
+      + 'pemeriksaan bengkokan sendiri, tetapi gagal saat keduanya bekerja '
+      + 'bersamaan — dan itu kegagalan yang tak terlihat dari kedua angka itu.',
+    tindakan: 'Perbesar profil, atau kurangi dorongan menyampingnya dengan '
+      + 'memasang pengaku (bracing) atau dinding geser.',
+  },
+  'Tarik bracing': {
+    judul: 'Batang pengaku tidak putus tertarik',
+    apa: 'Bracing adalah batang miring yang menahan rangka agar tidak roboh '
+      + 'menyamping — seperti tali penahan tenda. Saat angin mendorong, '
+      + 'bracing inilah yang menahannya.',
+    risiko: 'Bracing yang putus membuat rangka kehilangan penahan sampingnya, '
+      + 'dan seluruh bangunan bisa roboh ke samping seperti kartu domino. '
+      + 'Kegagalan ini terjadi saat angin kencang atau gempa, bukan saat '
+      + 'bangunan dibebani berat.',
+    tindakan: 'Perbesar profil bracing, atau tambah jumlahnya.',
+  },
+  'Tekan bracing': {
+    judul: 'Batang pengaku tidak menekuk saat tertekan',
+    apa: 'Bracing tunggal harus sanggup menahan dorongan dari DUA arah — saat '
+      + 'angin dari kiri ia tertarik, saat dari kanan ia tertekan.',
+    risiko: 'Bracing yang menekuk tak lagi menahan apa pun, dan rangkanya '
+      + 'bebas bergoyang ke arah itu. Pada bracing silang hal ini disengaja '
+      + '(pasangannya yang bekerja), tetapi pada bracing TUNGGAL ia berarti '
+      + 'tak ada penahan sama sekali.',
+    tindakan: 'Perbesar profil, perpendek batangnya dengan menambah titik '
+      + 'sambung, atau pakai sistem silang (dua diagonal) supaya cukup '
+      + 'mengandalkan tarikan saja.',
+  },
+  'Kelangsingan bracing': {
+    judul: 'Batang pengaku cukup kaku, bukan cuma kuat',
+    apa: 'Bracing punya syarat yang tak dimiliki batang lain: selain kuat, ia '
+      + 'harus KAKU. Batang panjang dan tipis bisa sangat kuat menahan '
+      + 'tarikan, tetapi ia meregang dulu sebelum benar-benar menahan.',
+    risiko: 'Rangka sempat bergoyang lebih dulu sebelum bracingnya bekerja. '
+      + 'Goyangan itulah yang meretakkan dinding pengisi, memecahkan kaca, '
+      + 'dan membuat penghuni tak nyaman — meski strukturnya sendiri tak '
+      + 'runtuh.',
+    tindakan: 'Pakai profil yang lebih gemuk (bukan sekadar lebih kuat), atau '
+      + 'perpendek batang bracingnya.',
+  },
   'bahan': {
     judul: 'Kekuatan bahan tiang itu sendiri',
     apa: 'Selain tanah, tiangnya sendiri punya batas: beton dan besinya hanya '

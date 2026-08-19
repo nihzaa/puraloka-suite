@@ -5,6 +5,88 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 6) — tiga sisa baja ditutup: gording, bracing, interaksi P-M
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur satuan-beli   572 passed (dari 550)
+apps/api  npx tsc --noEmit                      exit 0
+penjaga-modul + 4 penjaga lama                  exit 0
+```
+
+Ketiganya sebelumnya DINYATAKAN belum dihitung di catatan keluaran modul baja —
+supaya tak dikira sudah diperiksa. Sekarang ditutup.
+
+### Gording: beban terurai ke DUA sumbu
+
+Gording dipasang MIRING mengikuti atap, jadi beban gravitasi (yang selalu tegak
+lurus ke bawah) terurai:
+
+    tegak lurus atap  →  sumbu KUAT
+    sejajar atap      →  sumbu LEMAH   ← yang sering dilupakan
+
+Untuk atap 30°, SETENGAH bebannya jatuh ke sumbu lemah — dan sumbu lemah kanal
+C hanya sekitar seperlima kekuatan sumbu kuatnya. Gording yang dihitung sebagai
+balok biasa melendut KE SAMPING dan memuntir, meski hitungan sumbu kuatnya
+aman.
+
+Keduanya diperiksa BERSAMA lewat rumus interaksi, bukan sendiri-sendiri:
+tegangan di sudut penampang adalah JUMLAH keduanya, dan sudut itulah yang leleh
+lebih dulu.
+
+**Sagrod** memotong bentang sumbu lemah. Momen berbanding kuadrat bentang, jadi
+sagrod di tengah membuat momennya SEPEREMPAT — perbaikan yang jauh lebih murah
+daripada memperbesar profil. Dijaga test dengan angka.
+
+**Angin hisap** membalik arah lendutan dan membuat sayap BAWAH jadi sayap tekan
+— dan sayap bawah tak terpegang penutup atap.
+
+### Interaksi tekan+momen: kolom yang lulus keduanya sendiri, gagal bersama
+
+Diukur dan dijadikan test: WF200, Pu 100 kN, Mux 10 kNm →
+
+    rasio tekan   0,623   AMAN sendiri
+    rasio momen   0,766   AMAN sendiri
+    interaksi     1,304   GAGAL bersama
+
+Sebabnya: gaya tekan MEMPERBESAR momen. Kolom yang sudah melengkung sedikit
+karena momen melengkung lebih jauh karena tekannya bekerja pada lengkungan itu.
+
+Dua rumus berbeda (tekan dominan vs lentur dominan) karena perilakunya memang
+berbeda: batang bertekan besar berperilaku seperti kolom, bertekan kecil
+seperti balok.
+
+### Bracing: harus KUAT dan KAKU
+
+Syarat yang tak dimiliki batang lain. Bracing yang kuat tetapi lentur
+membiarkan rangka bergoyang lebih dulu sebelum bracingnya sempat bekerja — dan
+goyangan itulah yang meretakkan dinding pengisi serta memecahkan kaca, meski
+strukturnya sendiri tak runtuh.
+
+Bracing SILANG "tarik saja" dibedakan dari bracing TUNGGAL: yang pertama
+membiarkan batang tekannya menekuk (pasangannya yang bekerja), yang kedua wajib
+menahan tekan. Sistem silang HANYA sah bila kedua diagonal benar-benar
+terpasang — bila satu hilang atau kendur, rangkanya tak terkekang sama sekali.
+
+### Catatan lama yang jadi basi — lagi
+
+`analisaKolomBaja` menyatakan "interaksi §H1 BELUM dihitung di sini". Benar
+sampai modulnya ada; sesudah itu ia menyuruh orang mencari sendiri sesuatu yang
+sudah tersedia. Diperbarui, dan test yang menguncinya ikut merah — persis
+fungsinya. Ini kejadian KETIGA dalam sesi ini (sambungan, lalu ini).
+
+### Penjaga menangkap kelalaian untuk KETIGA kalinya
+
+`audit-modul-struktur-terdaftar.mjs` langsung merah menyebut
+`struktur-baja-gording`. Lalu penjaga terjemahan awam merah menyebut 6
+pemeriksaan baru tanpa penjelasan non-teknis. Keduanya ditutup.
+
+Pola ini sekarang jelas: tiap modul analisa baru PASTI melewatkan pendaftaran
+dan terjemahan kalau tak ada yang memaksa. Penjaganya bekerja.
+
+---
+
 ## 2026-08-19 (lanjutan 5) — uji struktur baja LENGKAP: base plate, angkur, rangka batang
 
 Founder: *"ada uji struktur untuk baja juga, mulai dari pondasi, sambungan,

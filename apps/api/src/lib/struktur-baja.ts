@@ -700,9 +700,16 @@ export function analisaKolomBaja(input: InputKolomBaja): HasilKolomBaja {
   )
 
   catatan.push(
+    /*
+      Kalimat ini sempat berbunyi "interaksi §H1 BELUM dihitung di sini" —
+      benar sampai `struktur-baja-gording.ts` ada. Membiarkannya berarti
+      menyuruh orang mencari sendiri sesuatu yang sudah tersedia; kelas cacat
+      yang sama dengan catatan basi mana pun: ia terbaca sebagai kepastian.
+    */
     'Kolom ini dianggap menerima tekan MURNI. Bila ada momen (kolom tepi, '
-    + 'rangka bergoyang, beban angin), perlu pemeriksaan interaksi §H1 yang '
-    + 'BELUM dihitung di sini.',
+    + 'rangka bergoyang, beban angin), pakai analisa INTERAKSI tekan+momen — '
+    + 'kolom bisa lulus pemeriksaan tekan ini DAN pemeriksaan momen '
+    + 'sendiri-sendiri, tetapi tetap gagal saat keduanya bekerja bersamaan.',
   )
 
   return {

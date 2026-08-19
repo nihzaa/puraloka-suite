@@ -276,12 +276,20 @@ describe('kolom baja — tekuk pada sumbu LEMAH', () => {
     expect(h.aman).toBe(false)
   })
 
-  it('interaksi tekan+momen dinyatakan BELUM dihitung', () => {
-    // Kolom tepi dan rangka bergoyang selalu bermomen; menganggapnya tekan
-    // murni membuat kapasitas terhitung jauh lebih besar dari kenyataan.
+  it('interaksi tekan+momen DIARAHKAN ke modulnya, bukan dinyatakan tak ada', () => {
+    /*
+      Kalimatnya sempat berbunyi "interaksi §H1 BELUM dihitung di sini" —
+      benar sampai `struktur-baja-gording.ts` ada. Membiarkannya berarti
+      menyuruh orang mencari sendiri sesuatu yang sudah tersedia.
+
+      Yang dijaga: catatan tetap MEMPERINGATKAN bahwa kolom bermomen tak boleh
+      dihitung sebagai tekan murni, DAN menunjukkan ke mana harus pergi.
+    */
     const h = analisaKolomBaja({ profil: WF200, mutu: BJ, tinggiM: 3, puKn: 100 })
-    expect(h.catatan.join(' ')).toMatch(/tekan MURNI/)
-    expect(h.catatan.join(' ')).toMatch(/interaksi.*BELUM dihitung/is)
+    const c = h.catatan.join(' ')
+    expect(c).toMatch(/tekan MURNI/)
+    expect(c).toMatch(/analisa INTERAKSI tekan\+momen/)
+    expect(c).toMatch(/gagal saat keduanya bekerja bersamaan/)
   })
 
   it('volume kolom berbentuk sama dengan elemen lain', () => {
