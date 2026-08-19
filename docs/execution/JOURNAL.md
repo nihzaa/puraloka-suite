@@ -5,6 +5,81 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (dua entri tuntas) — dan empat penjaga menangkap cacat SAYA
+
+Founder: *"okee jadi soal worktree menurutmu baiknya digimanain biar bersih,
+tapi untuk yg struktur biarin aja soalnya masih jalan / lalu langsung sambung
+pekerjaan berikutnyaa"*.
+
+### Worktree: 18 → 3
+
+13 dari 18 cabang punya NOL commit unik terhadap direktori utama — seluruh
+kerjanya sudah tampil. 15 worktree dilepas, **nol cabang dihapus, nol commit
+hilang**; diverifikasi satu per satu sesudahnya.
+
+Dipertahankan: `struktur-analisa` (sesi lain masih jalan, diminta founder)
+dan `kematangan-modul` (25 berkas belum ter-commit — kondisi berhenti #2).
+
+**Saya salah satu kali:** `rmdir /S /Q .worktrees` menghapus seluruh
+direktori, termasuk `cadangan-buku-migrasi-2026-08-16.json` yang
+ter-gitignore — git tak bisa memulihkannya, dan tak ada satu pun galat.
+Bisa dibuat ulang karena isinya turunan basis (349 baris, cocok
+`ledger-diff`). Pelajarannya dicatat di `PETA-WORKTREE.md` §0.
+
+### `cc-cvr` — pengukuran MEMBALIK rancangan saya
+
+Dugaan saya: "layar menampilkan angka tanpa menyebut cakupannya". Diukur —
+**tidak benar**, spanduk cakupan sudah ada sejak 2026-08-08.
+
+Yang benar lebih berbahaya: `work_scopes.rab_category_id` menunjuk
+`rab_items` (BoQ) sementara `project_expenses.category_id` menunjuk
+`project_expense_categories`. Dua taksonomi yang **tak pernah bertemu** —
+nol kolom di sisi biaya menunjuk `rab_items`. Jadi rencana lama "isi
+kategorinya lalu cakupan jadi penuh" tak akan pernah berhasil, dan catatan
+peta-menu yang menjanjikannya sudah diperbaiki.
+
+Yang justru terlihat: **Rp 263,5 juta** biaya `approved` pada proyek
+ber-work_scope, dan TIGA proyek tampil seolah tak punya biaya sama sekali.
+Cacatnya bukan angka yang kurang lengkap — melainkan angka yang **terlihat
+lengkap**.
+
+### `md-subkon` — gerbang yang berdiri di pintu yang salah
+
+Kedelapan penawaran tender datang lewat `workers`, sementara penanda daftar
+hitam hanya bisa menunjuk `suppliers` — dan rute tendernya nol rujukan
+padanya. Pihak yang di-blacklist bisa menawar DAN MENANG.
+
+Migrasi 461-464 + `lib/gerbang-kelayakan.ts` + `routes/v1/mitra.ts` +
+layar `/mandor/mitra`. Nol tabel dihapus, nol FK dipindah (22 FK yang tak
+perlu disentuh), nol rute berubah.
+
+### Yang paling berharga hari ini: EMPAT penjaga menangkap cacat saya
+
+Semuanya diperbaiki, **nol dilemahkan**:
+
+| Penjaga | Yang ia tangkap |
+|---|---|
+| `audit-sidebar-urutan` | migrasi 463 LULUS verifikasinya sendiri, tapi induk menunya MATI — item akan muncul menggantung. Blok verifikasi 463 memeriksa barisnya sendiri dan tak pernah bertanya soal induknya. → migrasi 464 |
+| `audit-peta-modul` | koma ganda dari splice saya |
+| `uji-layar-kosong` | halaman baru wajib `<LayarKosong>`. Komponennya dipromosikan dari `estimasi/_bersama/` ke `components/` — penjaganya berlaku SELURUH dashboard |
+| `audit-kegagalan-senyap` | satu lookup benar-benar menelan error, lalu menjawab "Mitra tidak ditemukan" untuk kegagalan BASIS |
+
+Yang terakhir juga mengajarkan sesuatu tentang bentuk kode: `for (const r of
+[w, s])` BENAR secara logika tetapi menyembunyikan nama variabel dari
+penjaga. Menuliskannya harfiah (`w.error`, `s.error`) bukan sekadar
+menyenangkan penjaga — ia membuat maksudnya terbaca.
+
+### Sisa
+
+Peta Modul: **226 hidup / 7 sebagian** (diukur, bukan ditebak — saya sempat
+menulis 227/6 di draf ini; `cc-cvr` memang TETAP `sebagian`, karena cakupan
+penuh per-pekerjaan menuntut perubahan skema, bukan pengisian data).
+Pekerjaan kode tersisa DUA
+(`md-template-dok`, `dk-register`); empat lainnya menunggu pihak ketiga
+atau rilis.
+
+---
+
 ## 2026-08-19 (R-017 dijawab) — founder menolak dikotomi saya, dan pengukuran membenarkannya
 
 Founder: *"bukannya yg perlu keputusan saya itu sudah saya jawab? dan sekalian
