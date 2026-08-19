@@ -5,6 +5,66 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (tuntas) — keempat pekerjaan kode selesai, dan DUA rencana saya sendiri terbukti salah
+
+Founder: *"lanjutkan sampai tuntas"*.
+
+### Hasil
+
+Peta Modul **225 → 228 hidup, 8 → 5 sebagian**. Keempat pekerjaan kode yang
+disebut `ERP-KONTRAKTOR-BESAR-ARAH.md` §4 selesai; kelima sisanya menunggu
+di luar kode dan penghalangnya sudah diverifikasi satu per satu.
+
+| Entri | Yang ditutup |
+|---|---|
+| `cc-cvr` | Rp 263,5 juta biaya yang tak pernah muncul di layar untung-rugi |
+| `md-subkon` | daftar hitam yang cuma menutup pintu yang tak dipakai orang |
+| `md-template-dok` | SPK berbunyi milik pembuat aplikasi, bukan milik tenant |
+| `dk-register` | rantai revisi lengkap di basis & API, putus sebelum mata orang |
+
+### DUA rencana saya sendiri terbukti salah — dan itu temuan, bukan kecelakaan
+
+**1. `dk-register`.** Saya merencanakannya sebagai *"satu-satunya yang
+menyentuh data lama (backfill seluruh `documents` jadi revisi 1)"* dan butuh
+izin §8a.5. Diukur: **backfill-nya sudah dikerjakan migrasi 445** — kolom,
+FK, CHECK, dua index, pustaka, 24 test. Catatan peta-menu bahkan menulis
+"nol constraint", yang keliru sejak 445.
+
+Yang benar-benar kurang **tak tertulis di rencana mana pun**: keempat medan
+revisi dikirim API sejak 445 dengan **nol** rujukan di seluruh `apps/web`.
+
+**2. `bi-terjadwal`.** Dua dokumen menulis "menunggu kredensial SMTP tenant —
+itu pengaturan, bukan kode". Diukur: **nol kolom `smtp` di seluruh basis**,
+pengirimnya **Resend**, kuncinya **global** (`process.env`). Dan
+`sendEmail()` no-op tanpa kunci — jadwal berjalan, `terakhir_dikirim`
+ter-update, nol surel terkirim.
+
+Keduanya berbentuk sama: **rencana yang ditulis dari membaca dokumen, bukan
+dari mengukur kode.** Ia mengarahkan pekerjaan ke tempat yang salah sambil
+terdengar meyakinkan sepanjang jalan — persis racun konteks yang dilarang
+pembuka `CLAUDE.md`, kali ini dalam bentuk RENCANA, bukan angka.
+
+### Penjaga menangkap tiga cacat saya lagi
+
+- `audit-tab-seragam` — pemilih jenis dokumen saya memakai peran ARIA tab
+  padahal ia SARINGAN. Diperbaiki jadi `aria-pressed` + penanda aktif tiga
+  lapis (WCAG 1.4.1).
+- `audit-peta-modul-vs-halaman` — koma ganda dari splice saya.
+- `audit-kegagalan-senyap` — `for (const r of [w, s])` benar secara logika
+  tapi menyembunyikan nama variabel dari penjaga.
+
+Semuanya diperbaiki, **nol dilemahkan**. Total hari ini: **tujuh** cacat
+saya sendiri ditangkap penjaga yang sudah ada.
+
+### Cacat yang ditemukan SAAT membangun
+
+`DELETE /klausul-kontrak/:nomor` menyaring hanya `nomor`. Sesudah migrasi
+465, "pulihkan bawaan Pasal 6 SPK" menonaktifkan **Pasal 6 KONTRAK** — kertas
+bertanda tangan — lalu membalas 200. Sebabnya ketiga rute klausul hidup sejak
+migrasi 450 **tanpa satu pun test endpoint**.
+
+---
+
 ## 2026-08-19 (dua entri tuntas) — dan empat penjaga menangkap cacat SAYA
 
 Founder: *"okee jadi soal worktree menurutmu baiknya digimanain biar bersih,

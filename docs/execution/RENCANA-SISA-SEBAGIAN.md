@@ -23,7 +23,7 @@
 
 | Golongan | Jumlah | Artinya |
 |---|---:|---|
-| **A. Pekerjaan kode** | ~~3~~ → **4**, ~~4~~ → **2 tersisa** | A1/A2 selesai 2026-08-18; **`cc-cvr` + `md-subkon` selesai 2026-08-19**. Sisa: `md-template-dok`, `dk-register`. Urutan di `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` §4 |
+| ~~A. Pekerjaan kode~~ | ~~3~~ → ~~4~~ → **0 tersisa** | **SELESAI SEMUA 2026-08-19.** A1/A2 (2026-08-18), lalu `cc-cvr`, `md-subkon`, `md-template-dok`, `dk-register`. Riwayat + alasan urutannya di `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` §4 |
 | ~~B. Menunggu keputusan founder~~ | ~~2~~ → **0** | **DIJAWAB 2026-08-19** — keduanya "bisa dua-duanya"; lihat R-017 |
 | **C. Menunggu pihak ketiga / rilis** | 3 | kredensial, kontrak komersial, atau distribusi aplikasi |
 | ~~D. Status BASI~~ | ~~1~~ → **0** | **SELESAI** — `tg-tambah` diverifikasi lalu jadi `hidup` |
@@ -31,7 +31,20 @@
 
 ---
 
-## A. Pekerjaan kode — 4 selesai, 2 tersisa (urutan di `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` §4)
+## A. Pekerjaan kode — ✅ SELESAI SEMUA (6 dari 6)
+
+> **Dua di antaranya membuktikan rencana di dokumen ini SALAH**, dan itu
+> dicatat alih-alih dirapikan:
+>
+> - `dk-register` (A3 di bawah) direncanakan sebagai "menyentuh data lama,
+>   butuh izin §8a.5". Diukur: backfill-nya sudah dikerjakan migrasi 445.
+>   Yang benar-benar kurang — lencana revisi tak pernah sampai ke layar —
+>   tak tertulis di rencana mana pun.
+> - `bi-terjadwal` (golongan C) ditulis "menunggu SMTP tenant, itu
+>   pengaturan bukan kode". Diukur: nol kolom `smtp` di basis; pengirimnya
+>   Resend dengan kunci global.
+>
+> Keduanya lahir dari membaca dokumen, bukan dari mengukur kode.
 
 ### A1. ✅ SELESAI 2026-08-18 — `sy-import` sudah `hidup`
 
