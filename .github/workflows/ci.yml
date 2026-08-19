@@ -822,6 +822,29 @@ jobs:
       - name: Jenis tanpa volume terdaftar sepadan dengan modulnya
         run: node scripts/audit-jenis-volume-terdaftar.mjs
 
+      # Medan `jumlah` milik RUTE, bukan milik modul.
+      #
+      # Rute menyusun input tiap modul sebagai `{ ...input, jumlah }`, dan
+      # `jumlah` di sana berarti BANYAKNYA ELEMEN — pengali volume. Ia ditimpakan
+      # DI ATAS input pengguna, jadi modul yang memakai nama medan yang sama
+      # untuk mencacah hal LAIN (baut, angkur, paku, sekrup) kehilangan angka
+      # yang ditulis penggunanya.
+      #
+      # Ditemukan 2026-08-19 lewat rute HIDUP, bukan lewat test: pemanggilan
+      # langsung fungsinya memberi 29% terpakai, rute memberi 117% — dua angka
+      # dari fungsi yang SAMA, tanpa satu pun galat di antaranya. Tiga modul
+      # terkena: sambungan kayu (paku), sambungan baut, dan angkur.
+      #
+      # Arah kesalahannya dua-duanya berbahaya: elemen berjumlah 1 membuat
+      # sambungan berpaku 14 dihitung berpaku 1 (merah palsu), dan elemen
+      # berjumlah 20 membuat sambungan berbaut 4 dihitung berbaut 20 —
+      # HIJAU PALSU pada sambungan yang sesungguhnya kurang.
+      #
+      # Bukti merah: nama medan dikembalikan ke `jumlah` → exit 1;
+      # dipulihkan → exit 0.
+      - name: Medan `jumlah` tak bentrok dengan pengali elemen
+        run: node scripts/audit-medan-jumlah-tak-bentrok.mjs
+
       # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
       # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
       # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris

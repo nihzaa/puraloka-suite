@@ -73,7 +73,7 @@ export interface InputAngkur {
   diameterMm: number
   mutu: MutuBaut
   /** Jumlah angkur. */
-  jumlah: number
+  jumlahAngkur: number
   /** Kedalaman tanam efektif, mm. */
   kedalamanMm: number
   /** Kuat tekan beton, MPa. */
@@ -278,11 +278,11 @@ export function analisaBasePlate(input: InputBasePlate): HasilTumpuan {
  * bukan sesudah.
  */
 export function analisaAngkur(input: InputAngkur): HasilTumpuan {
-  const { diameterMm, mutu, jumlah, kedalamanMm, fcBetonMpa, tuKn, vuKn } = input
+  const { diameterMm, mutu, jumlahAngkur, kedalamanMm, fcBetonMpa, tuKn, vuKn } = input
   bilanganPositif('Diameter angkur', diameterMm)
   bilanganPositif('Kedalaman tanam', kedalamanMm)
   bilanganPositif("f'c beton", fcBetonMpa)
-  if (!Number.isInteger(jumlah) || jumlah < 1) {
+  if (!Number.isInteger(jumlahAngkur) || jumlahAngkur < 1) {
     throw new Error('Jumlah angkur harus bilangan bulat minimal 1')
   }
 
@@ -290,8 +290,8 @@ export function analisaAngkur(input: InputAngkur): HasilTumpuan {
   const ab = (Math.PI / 4) * diameterMm ** 2
 
   // ── 1. Kekuatan BAJA angkur
-  const nsaKn = (0.75 * mutu.fubMpa * ab * jumlah) / 1000        // tarik §17.4.1
-  const vsaKn = (0.60 * mutu.fubMpa * ab * jumlah) / 1000        // geser §17.5.1
+  const nsaKn = (0.75 * mutu.fubMpa * ab * jumlahAngkur) / 1000        // tarik §17.4.1
+  const vsaKn = (0.60 * mutu.fubMpa * ab * jumlahAngkur) / 1000        // geser §17.5.1
   const PHI_BAJA = 0.75
   const phiNsa = PHI_BAJA * nsaKn
   const phiVsa = PHI_BAJA * vsaKn
@@ -313,7 +313,7 @@ export function analisaAngkur(input: InputAngkur): HasilTumpuan {
   */
   const ncbSatuKn = (10 * Math.sqrt(fcBetonMpa) * Math.pow(kedalamanMm, 1.5)) / 1000
   const PHI_BETON = 0.70
-  const phiNcb = PHI_BETON * ncbSatuKn * jumlah
+  const phiNcb = PHI_BETON * ncbSatuKn * jumlahAngkur
 
   const periksa: Periksa[] = [
     {
@@ -361,7 +361,7 @@ export function analisaAngkur(input: InputAngkur): HasilTumpuan {
     periksa,
     aman: periksa.every((p) => p.aman),
     antara: {
-      luasAngkurMm2: ab, jumlahAngkur: jumlah,
+      luasAngkurMm2: ab, jumlahAngkur,
       nsaKn, vsaKn, ncbSatuKn,
       phiNsaKn: phiNsa, phiVsaKn: phiVsa, phiNcbKn: phiNcb,
       kedalamanMm,

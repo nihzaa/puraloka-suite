@@ -790,6 +790,123 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
       + 'tulangan di ujung dinding justru MEMPERBURUK — ia menaikkan kekuatan '
       + 'lentur sehingga gesernya makin tertinggal.',
   },
+  // ── SAMBUNGAN RANGKA ATAP ─────────────────────────────────────────────────
+  /*
+    Kelompok yang paling sulit diterjemahkan, dan yang paling perlu.
+
+    Empat modul lain menyebut hal yang sama sebagai batasnya: sambungan hampir
+    selalu lebih lemah daripada batangnya. Yang memasang sambungan itu tukang
+    atap, bukan insinyur — dan tindakan perbaikannya justru sederhana dan bisa
+    dikerjakan hari itu juga: geser pakunya, tambah satu baris sekrup, ganti
+    ke baut. Istilah yang tak dipahami membuang perbaikan semurah itu.
+  */
+  'Kapasitas sambungan': {
+    judul: 'Kekuatan titik sambungnya, bukan kayunya',
+    apa: 'Kayunya sendiri mungkin sangat kuat, tetapi rangka atap tak pernah '
+      + 'satu batang utuh — ia terdiri dari batang-batang yang disambung. '
+      + 'Ini memeriksa apakah paku atau bautnya sanggup memindahkan gaya '
+      + 'dari batang satu ke batang berikutnya.',
+    risiko: 'Sambungan yang kurang membuat kayu di sekitar pakunya tertekan '
+      + 'terus-menerus sampai lubangnya MELONJONG. Sambungannya jadi longgar, '
+      + 'rangka bergoyang, dan atap melendut — semuanya terjadi jauh sebelum '
+      + 'ada satu pun kayu yang patah, jadi pemeriksaan mata pada kayunya '
+      + 'tidak akan menemukan apa pun.',
+    tindakan: 'Tambah jumlah pakunya, pakai diameter yang lebih besar, atau '
+      + 'ganti ke baut. Menebalkan kayunya TIDAK menolong kalau yang kurang '
+      + 'adalah alat sambungnya.',
+  },
+  'Kedalaman paku': {
+    judul: 'Pakunya masuk cukup dalam',
+    apa: 'Paku hanya memegang kalau ujungnya menembus cukup dalam ke kayu di '
+      + 'baliknya. Ada batas minimum, dan di bawah itu kekuatannya turun '
+      + 'jauh lebih cepat daripada yang diduga orang.',
+    risiko: 'Paku yang dangkal tercabut pelan-pelan oleh getaran dan angin. '
+      + 'Ia masih terlihat terpasang dari luar sementara pegangannya sudah '
+      + 'hampir habis.',
+    tindakan: 'Pakai paku yang lebih panjang. Kalau kayu di baliknya memang '
+      + 'tipis, ganti ke baut yang dikencangkan dari dua sisi.',
+  },
+  'Jarak ke ujung kayu': {
+    judul: 'Paku tidak terlalu dekat ke ujung papan',
+    apa: 'Kayu kuat menahan tekanan tetapi lemah terhadap belahan sepanjang '
+      + 'seratnya. Alat sambung yang dipasang terlalu dekat ke ujung akan '
+      + 'mendorong serat itu sampai kayunya terbelah seperti membelah bambu.',
+    risiko: 'Ini kegagalan GETAS — kayunya membelah sekaligus, tanpa lendutan '
+      + 'atau bunyi yang memberi peringatan lebih dulu. Dan ini pelanggaran '
+      + 'yang paling sering terjadi di lapangan, karena memasang alat sambung '
+      + 'lebih ke tengah membuat sambungannya terlihat kurang rapi.',
+    tindakan: 'Geser alat sambungnya menjauh dari ujung, atau perpanjang '
+      + 'kayunya. Tidak perlu menambah bahan — cukup memindahkan posisinya.',
+  },
+  'Jarak ke sisi kayu': {
+    judul: 'Paku tidak terlalu dekat ke tepi papan',
+    apa: 'Sama dengan jarak ke ujung, tetapi ke arah samping. Alat sambung '
+      + 'yang terlalu mepet tepi menyisakan kayu yang terlalu tipis untuk '
+      + 'menahan desakannya.',
+    risiko: 'Tepi kayunya pecah dan alat sambungnya kehilangan pegangan pada '
+      + 'satu sisi — sambungannya lalu bekerja miring dan makin cepat rusak.',
+    tindakan: 'Geser alat sambungnya ke tengah, atau pakai kayu yang lebih '
+      + 'lebar.',
+  },
+  'Jarak antar alat sambung': {
+    judul: 'Pakunya tidak terlalu rapat satu sama lain',
+    apa: 'Dua paku yang berdekatan menekan serat kayu yang SAMA. Kalau terlalu '
+      + 'rapat, keduanya tidak menambah kekuatan — mereka justru bersama-sama '
+      + 'membelah kayu di antaranya.',
+    risiko: 'Menambah paku pada baris yang sudah rapat membuat sambungannya '
+      + 'LEBIH lemah, bukan lebih kuat. Ini kebalikan dari dugaan siapa pun '
+      + 'yang memasangnya.',
+    tindakan: 'Renggangkan jaraknya, atau susun pakunya berselang-seling dalam '
+      + 'dua baris supaya tidak semuanya menekan serat yang sama.',
+  },
+  'Geser sambungan sekrup': {
+    judul: 'Sekrupnya menahan tarikan menyamping',
+    apa: 'Batang baja ringan saling menarik ke arah samping di titik '
+      + 'sambungnya. Ini memeriksa apakah sekrupnya sanggup menahan tarikan '
+      + 'itu — bukan hanya sekrupnya sendiri, tetapi juga pelat tipis yang '
+      + 'dilubanginya.',
+    risiko: 'Pada pelat setipis baja ringan, yang gagal biasanya BUKAN '
+      + 'sekrupnya. Sekrupnya miring dan lubangnya melonjong, sehingga '
+      + 'sambungannya longgar sementara sekrupnya sendiri masih utuh. '
+      + 'Diperiksa dengan mata, semuanya terlihat baik-baik saja.',
+    tindakan: 'Tambah jumlah sekrupnya, atau pakai profil dengan tebal yang '
+      + 'lebih besar. Memakai sekrup yang lebih kuat tidak menolong kalau '
+      + 'yang kalah adalah pelatnya.',
+  },
+  'Tarik cabut sekrup': {
+    judul: 'Sekrupnya tidak tercabut oleh hisapan angin',
+    apa: 'Angin kencang tidak menekan atap — ia MENGHISAPNYA ke atas. Ini '
+      + 'memeriksa apakah ulir sekrupnya cukup memegang, dan apakah kepala '
+      + 'sekrupnya cukup lebar untuk tidak menembus lembaran penutupnya.',
+    risiko: 'Kepala sekrup yang menembus penutup atap membuat penutupnya '
+      + 'terbang meski sekrupnya masih menancap utuh di kaso. Inilah yang '
+      + 'terjadi pada hampir semua atap yang lepas saat angin kencang — '
+      + 'bukan sekrupnya yang putus.',
+    tindakan: 'Pakai sekrup dengan ring penahan (washer) yang lebih lebar, '
+      + 'rapatkan jaraknya di tepi dan sudut atap tempat hisapan angin paling '
+      + 'kuat, dan pastikan ulirnya menembus kaso, bukan hanya reng.',
+  },
+  'Jarak sekrup ke tepi': {
+    judul: 'Sekrupnya tidak terlalu mepet ujung profil',
+    apa: 'Sekrup yang dipasang terlalu dekat ujung profil baja ringan '
+      + 'menyisakan pelat yang terlalu sedikit untuk ditahan.',
+    risiko: 'Pelatnya sobek dari lubang sekrup ke arah ujung dan sambungannya '
+      + 'lepas sekaligus.',
+    tindakan: 'Geser sekrupnya menjauh dari ujung — biasanya cukup satu '
+      + 'sentimeter, dan tidak menambah biaya sama sekali.',
+  },
+  'Interaksi geser + tarik': {
+    judul: 'Sekrup yang ditarik DAN digeser sekaligus',
+    apa: 'Satu sekrup bisa aman terhadap tarikan saja, aman terhadap geseran '
+      + 'saja, tetapi tetap gagal saat keduanya bekerja bersamaan — dan pada '
+      + 'rangka atap saat angin kencang, keduanya memang bekerja bersamaan.',
+    risiko: 'Memeriksa keduanya sendiri-sendiri memberi kesimpulan AMAN yang '
+      + 'keliru. Ini kesalahan yang tak terlihat dari dua angka yang '
+      + 'masing-masing di bawah batas.',
+    tindakan: 'Tambah jumlah sekrup di titik itu, atau kurangi salah satu '
+      + 'gayanya — biasanya dengan menambah dudukan supaya batangnya tidak '
+      + 'menggantung pada satu sambungan saja.',
+  },
   // ── KOMPOSIT, SAMBUNGAN LANJUT, ATAP RINGAN ───────────────────────────────
   'Rasio luas baja': {
     judul: 'Bajanya cukup banyak untuk disebut komposit',

@@ -5,6 +5,113 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 15) — sambungan rangka atap, dan medan `jumlah` yang menimpa angka pengguna
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur              949 lulus / 32 berkas
+$ npx tsc --noEmit  (api)              exit=0
+$ npx tsc --noEmit  (web)              exit=0
+$ uji-sambungan-hidup.mjs (rute 3017)  exit=0 — 5 kasus
+$ audit-medan-jumlah-tak-bentrok.mjs   exit=0  (mutasi → exit 1 → pulih exit 0)
+$ audit-jenis-volume-terdaftar.mjs     exit=0 — 32 jenis
+$ audit-jenis-struktur-cocok.mjs       exit=0 — kode & basis cocok
+$ lapor-cakupan-struktur.mjs           ADA 34 / 34 (100%)
+$ jalankan-semua-penjaga.mjs           136 hijau · 38 MERAH
+    baseline 59902edc                  135 hijau · 39 MERAH
+    → NOL penjaga baru merah; `gen-indeks-docs` justru jadi hijau
+```
+
+### Yang dibangun
+
+Sambungan kayu (paku/baut/pelat bergigi) dan sekrup baja ringan — dua jenis
+baru, total 32. **Empat modul lain menyebut hal yang sama sebagai batasnya:**
+"pada kuda-kuda kayu, sambungan hampir selalu lebih lemah daripada batangnya".
+Sampai sekarang aplikasi menghitung batang dengan teliti lalu menyerahkan titik
+gagal sesungguhnya ke perkiraan.
+
+Kapasitas paku dihitung dari **moda leleh** (SNI 7973 §12.3), bukan tumpu penuh.
+Selisihnya bukan halus: `Fe·d·t` polos memberi 8,29 kN untuk paku yang
+sesungguhnya memikul sekitar 0,54 kN — **tujuh kali lipat, ke arah yang
+berbahaya.** Yang menemukannya bukan test, melainkan membandingkan ke angka
+lapangan yang sudah diketahui.
+
+Keduanya `TANPA_VOLUME`: alat sambung dibeli per kilogram sebagai bahan
+pembantu, bukan item RAB tersendiri.
+
+### Cacat yang ditemukan — dan cara ia ditemukan
+
+Rute menyusun input tiap modul sebagai:
+
+```ts
+const dgnJumlah = { ...input, jumlah }
+```
+
+`jumlah` di sana berarti **banyaknya elemen** — 12 kolom yang sama, 40 m sloof
+yang sama — dan dipakai sebagai pengali volume. Ia ditimpakan **di atas** input
+pengguna.
+
+Modul sambungan saya tulis dengan medan `jumlah` yang berarti **jumlah alat
+sambung**. Akibatnya angka yang ditulis pengguna HILANG, diganti banyaknya
+elemen.
+
+Dan bukan hanya modul baru. Penjaganya, begitu ditulis, langsung menemukan
+**dua modul lama yang sudah berjalan**: `analisaSambunganBaut` (jumlah baut)
+dan `analisaAngkur` (jumlah angkur). Keduanya terjangkau rute, dan UI-nya
+bahkan sudah menampilkan medan "Jumlah baut" / "Jumlah angkur" yang nilainya
+dibuang diam-diam.
+
+**Arah kesalahannya dua-duanya berbahaya:**
+
+| Keadaan | Akibat |
+|---|---|
+| elemen berjumlah 1, sambungan 14 paku | dihitung 1 paku → **merah palsu** |
+| elemen berjumlah 20, sambungan 4 baut | dihitung 20 baut → **HIJAU PALSU** |
+
+Yang kedua yang menakutkan: sambungan yang sesungguhnya kurang dinyatakan aman.
+
+**Bagaimana ia ketahuan.** Bukan dari test — 949 test hijau melewatinya, karena
+semuanya memanggil fungsinya LANGSUNG. Ia ketahuan karena satu jalan lewat rute
+hidup memberi `117%` terpakai sementara pemanggilan langsung memberi `29%` —
+dua angka dari fungsi yang SAMA. Tak ada galat di antaranya.
+
+Ini keempat kalinya di arc ini cacat ditemukan dengan MENJALANKAN, bukan dengan
+menguji. Tiga sebelumnya: `satuan-beli.ts` yang tak pernah dipanggil, profil WF
+tertulis "Ulir (BjTS) D200", dan `rekap-volume` runtuh HTTP 500.
+
+Perbaikannya rename: `jumlahAlat`, `jumlahSekrup`, `jumlahBaut`,
+`jumlahAngkur`. Typecheck menemukan tiap call site — itulah gunanya.
+
+Dijaga `audit-medan-jumlah-tak-bentrok.mjs` (ambang NOL), yang membaca pola
+`{ ...input, jumlah }` **dari rutenya**, bukan menulis ulang aturannya — kalau
+rute berhenti memakai pola itu, penjaganya melapor supaya diperiksa, bukan
+bertahan hijau tanpa menjaga apa pun.
+
+### Dua koreksi pada contoh saya sendiri
+
+Contoh "praktik lapangan biasa" yang saya tulis GAGAL dua kali berturut-turut,
+dan keduanya benar:
+
+1. **8 paku untuk 6 kN** → 139% terpakai. Diukur: kapasitas per paku 540 N,
+   tepat di rentang lapangan. Butuh ~12 paku, bukan 8.
+2. **14 paku pada jarak 45 mm** → 137% pada jarak antar alat sambung. Menambah
+   paku pada baris yang sudah rapat tidak menguatkan — keempat belasnya menekan
+   serat yang sama dan justru membelah kayunya.
+
+Modul ini ditulis persis untuk menahan dua kesalahan itu, dan yang pertama
+tertipu olehnya adalah saya sendiri.
+
+### Saya salah
+
+Dua kali dalam sesi ini saya menulis `node skrip.mjs | tail` lalu membaca
+`$?` — yang dipulangkan status `tail`, bukan status skripnya. Sekali ia
+melaporkan `exit=0` untuk penjaga yang sebenarnya MERAH, dan saya sempat
+menyatakan penjaga itu hijau padahal ia belum pernah hijau. Alat ukur yang salah
+lebih berbahaya daripada tak mengukur.
+
+---
+
 ## 2026-08-19 (lanjutan 14) — cakupan uji struktur 100%: pondasi sampai atap, beton dan baja
 
 **Ringkasan run:**

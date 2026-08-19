@@ -200,7 +200,7 @@ describe('analisaBasePlate', () => {
 
 describe('analisaAngkur — baja vs JEBOL BETON', () => {
   const dasar = {
-    diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlah: 4,
+    diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlahAngkur: 4,
     kedalamanMm: 300, fcBetonMpa: 25, tuKn: 100, vuKn: 60,
   }
 
@@ -268,7 +268,7 @@ describe('analisaAngkur — baja vs JEBOL BETON', () => {
   })
 
   it('menolak jumlah angkur pecahan', () => {
-    expect(() => analisaAngkur({ ...dasar, jumlah: 2.5 })).toThrow(/bulat/)
+    expect(() => analisaAngkur({ ...dasar, jumlahAngkur: 2.5 })).toThrow(/bulat/)
   })
 })
 
@@ -358,7 +358,7 @@ describe('volume base plate — pelat baja nyata yang dipesan', () => {
       seluruh gunanya daftar TANPA_VOLUME di rute.
     */
     const h = analisaAngkur({
-      diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlah: 4,
+      diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlahAngkur: 4,
       kedalamanMm: 300, fcBetonMpa: 25, tuKn: 100, vuKn: 60,
     })
     expect(h.volume).toBeUndefined()

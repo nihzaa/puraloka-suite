@@ -21,6 +21,9 @@ import { analisaKolomKomposit, analisaBondek } from '../struktur-komposit'
 import { analisaGusset, analisaSambunganMomen } from '../struktur-baja-sambungan-lanjut'
 import { analisaKudaKudaKayu, analisaBajaRingan } from '../struktur-atap-ringan'
 import {
+  analisaSambunganKayu, analisaSekrupBajaRingan,
+} from '../struktur-sambungan-ringan'
+import {
   analisaSambunganBaut, analisaSambunganLas, MUTU_BAUT,
 } from '../struktur-baja-sambungan'
 import { analisaBasePlate, analisaAngkur } from '../struktur-baja-tumpuan'
@@ -242,7 +245,7 @@ function semuaNamaPemeriksaan(): string[] {
       tinggiM: 3, puKn: 100,
     }) as never,
     analisaSambunganBaut({
-      diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlah: 4, bidangGeser: 1,
+      diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlahBaut: 4, bidangGeser: 1,
       tebalPelatMm: 8, mutuPelat: { fyMpa: 240, fuMpa: 370 }, vuKn: 150,
     }) as never,
     analisaSambunganLas({
@@ -268,7 +271,7 @@ function semuaNamaPemeriksaan(): string[] {
       fcBetonMpa: 25, puKn: 500,
     }) as never,
     analisaAngkur({
-      diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlah: 4,
+      diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlahAngkur: 4,
       kedalamanMm: 300, fcBetonMpa: 25, tuKn: 100, vuKn: 60,
     }) as never,
     analisaGording({
@@ -298,6 +301,35 @@ function semuaNamaPemeriksaan(): string[] {
       },
       mutu: { fyMpa: 240, fuMpa: 370 },
       panjangM: 3, gayaKn: 40,
+    }) as never,
+    /*
+      SAMBUNGAN rangka atap — yang paling perlu diterjemahkan dari seluruh
+      modul di sini, dan justru yang paling sulit.
+
+      Pemeriksaannya bernama "moda leleh", "jarak ke ujung kayu", "tarik cabut
+      sekrup", "pull-over". Yang membaca layar adalah tukang atap dan pemilik
+      rumah, dan bagi mereka istilah-istilah itu kosong — padahal keputusan
+      yang bergantung padanya sederhana dan bisa ditindak hari itu juga:
+      geser pakunya menjauh dari ujung kayu, tambah satu baris sekrup.
+    */
+    analisaSambunganKayu({
+      alat: 'paku', diameterMm: 4.1, jumlahAlat: 8,
+      tebalUtamaMm: 60, tebalSisiMm: 30, penetrasiMm: 45,
+      kelas: 'II', durasi: 'tetap', kadarAir: 'kering',
+      gayaKn: 6,
+      jarakTepiSejajarMm: 70, jarakTepiTegakMm: 25, jarakAntarAlatMm: 45,
+    }) as never,
+    analisaSambunganKayu({
+      /* baut — moda leleh yang lain, dan pemeriksaan yang lain pula */
+      alat: 'baut', diameterMm: 12, jumlahAlat: 4,
+      tebalUtamaMm: 80, tebalSisiMm: 40, penetrasiMm: 40,
+      kelas: 'I', durasi: 'sepuluh_menit', kadarAir: 'basah',
+      gayaKn: 25,
+      jarakTepiSejajarMm: 100, jarakTepiTegakMm: 60, jarakAntarAlatMm: 60,
+    }) as never,
+    analisaSekrupBajaRingan({
+      diameterMm: 4.8, jumlahSekrup: 4, tebal1Mm: 0.75, tebal2Mm: 1,
+      fuMpa: 550, gayaGeserKn: 3, gayaTarikKn: 1.2, jarakTepiMm: 15,
     }) as never,
     analisaRangka({
       nama: 'KK-1', mutu: { fyMpa: 240, fuMpa: 370 },

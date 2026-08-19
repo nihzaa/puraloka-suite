@@ -65,7 +65,8 @@ type JenisBaja =
   | "baja_balok" | "baja_kolom" | "baja_gording" | "baja_bracing"
   | "baja_rangka" | "baja_base_plate" | "baja_angkur"
   | "baja_sambungan_baut" | "baja_sambungan_las" | "baja_interaksi"
-  | "baja_gusset" | "baja_sambungan_momen" | "kuda_kuda_kayu" | "baja_ringan";
+  | "baja_gusset" | "baja_sambungan_momen" | "kuda_kuda_kayu" | "baja_ringan"
+  | "sambungan_kayu" | "sekrup_baja_ringan";
 
 type Jenis = JenisBeton | JenisBaja;
 
@@ -215,6 +216,8 @@ const NAMA_JENIS: Record<Jenis, string> = {
   baja_sambungan_momen: "Sambungan momen",
   kuda_kuda_kayu: "Kuda-kuda kayu",
   baja_ringan: "Rangka baja ringan",
+  sambungan_kayu: "Sambungan kayu (paku / baut)",
+  sekrup_baja_ringan: "Sekrup baja ringan",
   // Baja
   baja_balok: "Balok baja",
   baja_kolom: "Kolom baja",
@@ -269,7 +272,16 @@ const KELOMPOK_JENIS: { label: string; jenis: Jenis[] }[] = [
       bersama baja profil membuat orang menyangka rumusnya sama.
     */
     label: "Atap ringan & kayu",
-    jenis: ["kuda_kuda_kayu", "baja_ringan"],
+    /*
+      Sambungan ikut kelompok ini, bukan kelompok sendiri, karena orang yang
+      baru saja memeriksa batangnya justru yang perlu diingatkan bahwa
+      batangnya bukan titik gagalnya. Menaruhnya di kelompok terpisah membuat
+      keduanya terlihat sebagai pekerjaan yang berbeda.
+    */
+    jenis: [
+      "kuda_kuda_kayu", "baja_ringan",
+      "sambungan_kayu", "sekrup_baja_ringan",
+    ],
   },
 ];
 
@@ -396,6 +408,31 @@ const MEDAN: Record<Jenis, Medan[]> = {
     { kunci: "kadarAir", label: "Kadar air (kering / basah)" },
     { kunci: "lebarTumpuanMm", label: "Lebar landasan tumpuan", satuan: "mm" },
     { kunci: "gayaTumpuKn", label: "Gaya tumpu tegak lurus serat", satuan: "kN" },
+  ],
+  sambungan_kayu: [
+    { kunci: "alat", label: "Alat sambung (paku / baut / pelat_bergigi)" },
+    { kunci: "diameterMm", label: "Ø alat sambung", satuan: "mm" },
+    { kunci: "jumlahAlat", label: "Jumlah alat sambung" },
+    { kunci: "tebalUtamaMm", label: "Tebal kayu utama", satuan: "mm" },
+    { kunci: "tebalSisiMm", label: "Tebal kayu penyambung", satuan: "mm" },
+    { kunci: "penetrasiMm", label: "Kedalaman tembus ke kayu utama", satuan: "mm" },
+    { kunci: "kelas", label: "Kelas kayu (I / II / III / IV)" },
+    { kunci: "durasi", label: "Durasi beban (tetap / sepuluh_menit / …)" },
+    { kunci: "kadarAir", label: "Kadar air (kering / basah)" },
+    { kunci: "gayaKn", label: "Gaya yang dipindahkan sambungan", satuan: "kN" },
+    { kunci: "jarakTepiSejajarMm", label: "Jarak ke UJUNG kayu (arah serat)", satuan: "mm" },
+    { kunci: "jarakTepiTegakMm", label: "Jarak ke TEPI kayu (tegak serat)", satuan: "mm" },
+    { kunci: "jarakAntarAlatMm", label: "Jarak antar alat sambung", satuan: "mm" },
+  ],
+  sekrup_baja_ringan: [
+    { kunci: "diameterMm", label: "Ø sekrup", satuan: "mm" },
+    { kunci: "jumlahSekrup", label: "Jumlah sekrup di titik ini" },
+    { kunci: "tebal1Mm", label: "Tebal pelat sisi kepala", satuan: "mm" },
+    { kunci: "tebal2Mm", label: "Tebal pelat sisi ulir", satuan: "mm" },
+    { kunci: "fuMpa", label: "Kuat tarik baja profil fu", satuan: "MPa" },
+    { kunci: "gayaGeserKn", label: "Gaya geser per sambungan", satuan: "kN" },
+    { kunci: "gayaTarikKn", label: "Gaya cabut (hisapan angin)", satuan: "kN" },
+    { kunci: "jarakTepiMm", label: "Jarak sekrup ke ujung profil", satuan: "mm" },
   ],
   baja_ringan: [
     { kunci: "profil", label: "Profil (C75_075 / C75_100 / C100_100 / R30_045)" },
@@ -628,7 +665,7 @@ const MEDAN: Record<Jenis, Medan[]> = {
   ],
   baja_angkur: [
     { kunci: "diameterMm", label: "Diameter angkur", satuan: "mm" },
-    { kunci: "jumlah", label: "Jumlah angkur" },
+    { kunci: "jumlahAngkur", label: "Jumlah angkur" },
     { kunci: "kedalamanMm", label: "Kedalaman tanam", satuan: "mm" },
     { kunci: "fcBetonMpa", label: "Mutu beton f'c", satuan: "MPa" },
     { kunci: "tuKn", label: "Gaya cabut Tu", satuan: "kN" },
@@ -636,7 +673,7 @@ const MEDAN: Record<Jenis, Medan[]> = {
   ],
   baja_sambungan_baut: [
     { kunci: "diameterMm", label: "Diameter baut", satuan: "mm" },
-    { kunci: "jumlah", label: "Jumlah baut" },
+    { kunci: "jumlahBaut", label: "Jumlah baut" },
     { kunci: "bidangGeser", label: "Bidang geser (1 tunggal, 2 ganda)" },
     { kunci: "tebalPelatMm", label: "Tebal pelat tertipis", satuan: "mm" },
     { kunci: "vuKn", label: "Gaya geser Vu", satuan: "kN" },
@@ -804,6 +841,23 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     durasi: "tetap", kadarAir: "kering",
     lebarTumpuanMm: 80, gayaTumpuKn: 12,
   },
+  /*
+    Contoh sambungan paku kuda-kuda kayu — dan angkanya sengaja diambil dari
+    praktik lapangan yang biasa: paku 4,1 mm, delapan buah, jarak ke ujung
+    70 mm. Yang memakai layar ini akan mengenali angkanya, lalu melihat
+    pemeriksaan mana yang sebenarnya menahan.
+  */
+  sambungan_kayu: {
+    alat: "paku", diameterMm: 4.1, jumlahAlat: 8,
+    tebalUtamaMm: 60, tebalSisiMm: 30, penetrasiMm: 45,
+    kelas: "II", durasi: "tetap", kadarAir: "kering",
+    gayaKn: 6,
+    jarakTepiSejajarMm: 70, jarakTepiTegakMm: 25, jarakAntarAlatMm: 45,
+  },
+  sekrup_baja_ringan: {
+    diameterMm: 4.8, jumlahSekrup: 4, tebal1Mm: 0.75, tebal2Mm: 1,
+    fuMpa: 550, gayaGeserKn: 3, gayaTarikKn: 1.2, jarakTepiMm: 15,
+  },
   baja_ringan: {
     profil: "C75_100", panjangM: 1.5, gayaKn: -4,
     jarakKudaKudaM: 1.2, lapisanGM2: 100, lingkungan: "biasa",
@@ -910,11 +964,11 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     fcBetonMpa: 25, puKn: 500,
   },
   baja_angkur: {
-    diameterMm: 16, mutu: MUTU_BAUT_A325, jumlah: 4,
+    diameterMm: 16, mutu: MUTU_BAUT_A325, jumlahAngkur: 4,
     kedalamanMm: 300, fcBetonMpa: 25, tuKn: 100, vuKn: 60,
   },
   baja_sambungan_baut: {
-    diameterMm: 16, mutu: MUTU_BAUT_A325, jumlah: 4, bidangGeser: 1,
+    diameterMm: 16, mutu: MUTU_BAUT_A325, jumlahBaut: 4, bidangGeser: 1,
     tebalPelatMm: 8, mutuPelat: MUTU_BJ37, vuKn: 150,
   },
   baja_sambungan_las: {

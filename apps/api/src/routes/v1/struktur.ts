@@ -29,6 +29,9 @@ import {
   analisaKudaKudaKayu, analisaBajaRingan,
 } from '../../lib/struktur-atap-ringan.js'
 import {
+  analisaSambunganKayu, analisaSekrupBajaRingan,
+} from '../../lib/struktur-sambungan-ringan.js'
+import {
   analisaGempaStatik, analisaAngin, analisaDrift,
   SISTEM_STRUKTUR, KATEGORI_RISIKO, KOEF_PERIODA, EKSPOSUR,
 } from '../../lib/struktur-beban-lateral.js'
@@ -95,6 +98,7 @@ const JENIS = [
   'kolom_komposit', 'bondek',
   // Baja & atap ringan
   'baja_gusset', 'baja_sambungan_momen', 'kuda_kuda_kayu', 'baja_ringan',
+  'sambungan_kayu', 'sekrup_baja_ringan',
   // Baja
   'baja_balok', 'baja_kolom', 'baja_gording', 'baja_bracing',
   'baja_rangka', 'baja_base_plate', 'baja_angkur',
@@ -191,6 +195,19 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
     case 'baja_sambungan_momen': return analisaSambunganMomen(dgnJumlah as never)
     case 'kuda_kuda_kayu': return analisaKudaKudaKayu(dgnJumlah as never)
     case 'baja_ringan': return analisaBajaRingan(dgnJumlah as never)
+    /*
+      SAMBUNGAN rangka atap — titik gagal SESUNGGUHNYA.
+
+      Empat modul lain menyebutkan hal yang sama sebagai batasnya: "pada
+      kuda-kuda kayu, sambungan hampir selalu lebih lemah daripada batangnya".
+      Sampai keduanya ada, aplikasi menghitung batang dengan teliti lalu
+      menyerahkan titik gagal sesungguhnya ke perkiraan.
+
+      Keduanya TAK bervolume: alat sambung dibeli per kilogram sebagai bahan
+      pembantu, bukan item RAB tersendiri.
+    */
+    case 'sambungan_kayu': return analisaSambunganKayu(dgnJumlah as never)
+    case 'sekrup_baja_ringan': return analisaSekrupBajaRingan(dgnJumlah as never)
 
     /*
       ── BAJA
@@ -250,6 +267,13 @@ const TANPA_VOLUME: ReadonlySet<string> = new Set([
     dari rekap tanpa ada yang tahu.
   */
   'baja_gusset', 'baja_sambungan_momen',
+  /*
+    Sambungan rangka atap: yang dihitung KAPASITAS, bukan kuantitas. Paku,
+    baut, dan sekrup dibeli per kilogram sebagai bahan pembantu — memasukkan
+    keduanya ke rekap volume sebagai item tersendiri membuat RAB berisi baris
+    yang tak pernah ditawarkan supplier.
+  */
+  'sambungan_kayu', 'sekrup_baja_ringan',
 ])
 
 /** Ambil `volume` dari hasil apa pun bentuknya. */

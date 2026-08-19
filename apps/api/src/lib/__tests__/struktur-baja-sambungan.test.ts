@@ -62,7 +62,7 @@ describe('kapasitas baut — diadu ke hitungan tangan', () => {
 
 describe('analisaSambunganBaut — dua mekanisme, dua TINDAKAN berbeda', () => {
   const dasar = {
-    diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlah: 4,
+    diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlahBaut: 4,
     bidangGeser: 1 as const, tebalPelatMm: 8, mutuPelat: BJ37, vuKn: 150,
   }
 
@@ -131,8 +131,8 @@ describe('analisaSambunganBaut — dua mekanisme, dua TINDAKAN berbeda', () => {
   })
 
   it('menolak jumlah baut pecahan atau nol', () => {
-    expect(() => analisaSambunganBaut({ ...dasar, jumlah: 0 })).toThrow(/minimal 1/)
-    expect(() => analisaSambunganBaut({ ...dasar, jumlah: 2.5 })).toThrow(/bulat/)
+    expect(() => analisaSambunganBaut({ ...dasar, jumlahBaut: 0 })).toThrow(/minimal 1/)
+    expect(() => analisaSambunganBaut({ ...dasar, jumlahBaut: 2.5 })).toThrow(/bulat/)
   })
 
   it('phi sambungan 0,75 — lebih ketat daripada batang', () => {

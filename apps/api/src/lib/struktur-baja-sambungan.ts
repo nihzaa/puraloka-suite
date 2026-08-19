@@ -55,7 +55,7 @@ export interface InputSambunganBaut {
   diameterMm: number
   mutu: MutuBaut
   /** Jumlah baut dalam sambungan. */
-  jumlah: number
+  jumlahBaut: number
   /**
    * Bidang geser per baut: 1 (irisan tunggal) atau 2 (irisan ganda).
    *
@@ -134,10 +134,10 @@ export function kapasitasTumpuBaut(
  * besar) justru yang salah untuk kegagalan tumpu.
  */
 export function analisaSambunganBaut(input: InputSambunganBaut): HasilSambungan {
-  const { diameterMm, mutu, jumlah, bidangGeser, tebalPelatMm, mutuPelat, vuKn } = input
+  const { diameterMm, mutu, jumlahBaut, bidangGeser, tebalPelatMm, mutuPelat, vuKn } = input
   bilanganPositif('Diameter baut', diameterMm)
   bilanganPositif('Tebal pelat', tebalPelatMm)
-  if (!Number.isInteger(jumlah) || jumlah < 1) {
+  if (!Number.isInteger(jumlahBaut) || jumlahBaut < 1) {
     throw new Error('Jumlah baut harus bilangan bulat minimal 1')
   }
 
@@ -148,14 +148,14 @@ export function analisaSambunganBaut(input: InputSambunganBaut): HasilSambungan 
   const geserPerBaut = kapasitasGeserBaut(diameterMm, mutu, ulir, bidangGeser)
   const tumpuPerBaut = kapasitasTumpuBaut(diameterMm, tebalPelatMm, mutuPelat.fuMpa)
 
-  const phiGeserTotal = PHI_SAMBUNGAN * geserPerBaut * jumlah
-  const phiTumpuTotal = PHI_SAMBUNGAN * tumpuPerBaut * jumlah
+  const phiGeserTotal = PHI_SAMBUNGAN * geserPerBaut * jumlahBaut
+  const phiTumpuTotal = PHI_SAMBUNGAN * tumpuPerBaut * jumlahBaut
 
   const periksa: Periksa[] = [
     {
       nama: 'Geser baut', nilai: phiGeserTotal, syarat: vuKn,
       satuan: 'kN', aman: phiGeserTotal >= vuKn, rasio: rasio(vuKn, phiGeserTotal),
-      rumus: `phiRn = 0.75 x ${ulir ? '0.45' : '0.56'}Fub x Ab x ${bidangGeser} bidang x ${jumlah} baut`,
+      rumus: `phiRn = 0.75 x ${ulir ? '0.45' : '0.56'}Fub x Ab x ${bidangGeser} bidang x ${jumlahBaut} baut`,
     },
     {
       nama: 'Tumpu pelat', nilai: phiTumpuTotal, syarat: vuKn,
@@ -193,7 +193,7 @@ export function analisaSambunganBaut(input: InputSambunganBaut): HasilSambungan 
     antara: {
       geserPerBautKn: geserPerBaut, tumpuPerBautKn: tumpuPerBaut,
       phiGeserTotalKn: phiGeserTotal, phiTumpuTotalKn: phiTumpuTotal,
-      jumlahBaut: jumlah, luasBautMm2: (Math.PI / 4) * diameterMm ** 2,
+      jumlahBaut, luasBautMm2: (Math.PI / 4) * diameterMm ** 2,
     },
     catatan,
   }
