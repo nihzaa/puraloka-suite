@@ -69,6 +69,45 @@ Yang terakhir juga mengajarkan sesuatu tentang bentuk kode: `for (const r of
 penjaga. Menuliskannya harfiah (`w.error`, `s.error`) bukan sekadar
 menyenangkan penjaga — ia membuat maksudnya terbaca.
 
+### Suite penuh — angka sungguhan, dan satu kesalahan membaca
+
+```
+Test Files  32 failed | 394 passed  (426)
+     Tests  95 failed | 5853 passed | 8 skipped  (5956)
+  Duration  1538s
+```
+
+Terhadap dasar 2026-08-18 (5834 lulus / 84 gagal / 33 berkas): **lulus naik
+19, gagal naik 11**.
+
+**Saya sempat salah membacanya.** Berkas keluaran run itu terlihat KOSONG
+saat saya mengintipnya, dan saya menyimpulkan run-nya mati di awal — lalu
+menjalankan ulang. Keluarannya ternyata di-buffer sampai proses selesai.
+Nol byte bukan bukti proses berhenti; ia cuma bukti belum ada yang ter-flush.
+Kesalahan yang sama bentuknya dengan "membaca ketiadaan sebagai kehijauan"
+yang sudah tercatat di jurnal ini 2026-08-18.
+
+**Attribusi 11 kegagalan tambahan — diukur, bukan diasumsikan:**
+
+- Nol kegagalan menyebut `mitra`, `kelayakan`, `cvr`, atau `tender-subkon`.
+- Kelima berkas yang saya sentuh dijalankan sendiri: **5 berkas, semua lulus**.
+- Yang muncul di daftar gagal justru `struktur-endpoint` (modul sesi lain) dan
+  `situs` (tak pernah saya sentuh; `git log` mengonfirmasi commit saya tak
+  menyentuh keduanya).
+- Diuji di worktree terpisah pada commit **sebelum** kerja mitra
+  (`0738228c`, junction `node_modules` ala CLAUDE.md §8a.1): **keduanya
+  SUDAH merah di sana**.
+
+Kegagalan `situs` seluruhnya `expected 403` — dan admin terbukti punya
+`situs:view`+`situs:manage` lewat `get_role_permissions('admin')`. Jadi
+bukan hibah yang hilang, melainkan cara test itu menyusun perannya. Sejalan
+dengan temuan hari ini di `mitra.test.ts`: RPC memilih peran lewat NAMA
+dengan `ORDER BY (company_id IS NULL) LIMIT 1`, sehingga salinan TENANT
+menang atas template — dan basis ini punya DUA baris bernama `admin`.
+
+Itu dugaan yang PALING mungkin, bukan kesimpulan: belum diukur sampai
+tuntas, dan tak boleh ditulis seolah sudah.
+
 ### Sisa
 
 Peta Modul: **226 hidup / 7 sebagian** (diukur, bukan ditebak — saya sempat
