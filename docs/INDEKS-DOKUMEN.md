@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 287 dokumen** — antrean 13 · acuan 208 · riwayat 66.
+**Total 288 dokumen** — antrean 13 · acuan 209 · riwayat 66.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -34,6 +34,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [KEPUTUSAN-SCOPE-ERP-AI](KEPUTUSAN-SCOPE-ERP-AI.md) | acuan | ✓ | KEPUTUSAN SCOPE — ERP Kontraktor Lengkap, Terintegrasi, Berbasis AI |
 | [MODULE_STATUS](MODULE_STATUS.md) | riwayat |  | Module Status Tracker |
 | [PETA-PRIORITAS-ERP](PETA-PRIORITAS-ERP.md) | acuan | ✓ | PETA PRIORITAS ERP — Dokumen Induk Pemersatu |
+| [PETUNJUK-SISA-SEBAGIAN](PETUNJUK-SISA-SEBAGIAN.md) | acuan |  | Lima sisa sebagian — apa yang harus founder lakukan |
 | [PROTOKOL-SESI](PROTOKOL-SESI.md) | acuan |  | PROTOKOL SESI — baca ini dulu, di setiap sesi, sebelum aksi apa pun |
 | [RANCANGAN-DIKERJAKAN](RANCANGAN-DIKERJAKAN.md) | acuan |  | Sub-menu berisiko yang digarap sebelum disiplin rancangan berlaku |
 | [RILIS-MOBILE](RILIS-MOBILE.md) | acuan |  | Merilis aplikasi mobile ke HP mandor |
