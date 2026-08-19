@@ -70,7 +70,7 @@ const RANTAI = [
   ['KOLOM',     'kolom komposit',                 null,                '%komposit%'],
   ['BALOK',     'balok beton',                    'balok',             '%balok%'],
   ['BALOK',     'balok baja',                     'baja_balok',        null],
-  ['BALOK',     'balok anak / balok T',           null,                '%balok anak%'],
+  ['BALOK',     'balok anak / balok T',           'balok_t',           '%balok anak%'],
   ['PELAT',     'pelat lantai beton',             'plat',              '%pelat lantai%'],
   ['PELAT',     'pelat komposit / bondek',        null,                '%bondek%'],
   ['TANGGA',    'tangga beton',                   'tangga',            '%tangga%'],
@@ -87,9 +87,9 @@ const RANTAI = [
   ['ATAP',      'kuda-kuda kayu',                 null,                '%kuda%kayu%'],
   ['ATAP',      'rangka atap baja ringan',        null,                '%baja ringan%'],
   ['GLOBAL',    'interaksi P-M baja',             'baja_interaksi',    null],
-  ['GLOBAL',    'beban gempa statik ekuivalen',   null,                null],
-  ['GLOBAL',    'beban angin',                    null,                null],
-  ['GLOBAL',    'drift antar tingkat',            null,                null],
+  ['GLOBAL',    'beban gempa statik ekuivalen',   'lateral*',          null],
+  ['GLOBAL',    'beban angin',                    'lateral*',          null],
+  ['GLOBAL',    'drift antar tingkat',            'lateral*',          null],
 ]
 
 const terdaftar = jenisTerdaftar()
@@ -124,7 +124,18 @@ for (const [sektor, nama, jenis, pola] of RANTAI) {
     `tanah*` menandai modul yang ADA tetapi bukan jenis elemen — daya dukung
     tanah dipakai di dalam analisa pondasi, bukan sebagai elemen tersendiri.
   */
-  const punya = jenis === 'tanah*' || (jenis !== null && terdaftar.has(jenis))
+  /*
+    Akhiran `*` menandai modul yang ADA tetapi bukan jenis elemen:
+
+      tanah*    daya dukung tanah — dipakai DI DALAM analisa pondasi
+      lateral*  gempa/angin/drift — berlaku untuk SELURUH bangunan, bukan satu
+                penampang; endpoint `POST …/struktur/beban-lateral`
+
+    Memaksakannya jadi jenis elemen akan membuat rekap volume mencoba
+    menghitung beton dari gaya gempa.
+  */
+  const punya = (typeof jenis === 'string' && jenis.endsWith('*'))
+    || (jenis !== null && terdaftar.has(jenis))
   if (punya) ada++
   else belum.push({ sektor, nama, dipakai: pola ? (pakai.get(pola) ?? 0) : 0 })
 

@@ -13,6 +13,8 @@ import { analisaKolomLengkap } from '../struktur-kolom-lengkap'
 import { analisaBalokBaja, analisaKolomBaja } from '../struktur-baja'
 import { analisaSloof } from '../struktur-sloof'
 import { analisaTangga } from '../struktur-tangga'
+import { analisaBalokT } from '../struktur-balok-t'
+import { analisaGempaStatik, analisaDrift } from '../struktur-beban-lateral'
 import {
   analisaSambunganBaut, analisaSambunganLas, MUTU_BAUT,
 } from '../struktur-baja-sambungan'
@@ -52,6 +54,30 @@ function semuaNamaPemeriksaan(): string[] {
       ketiganya justru yang paling perlu diterjemahkan: orang yang membaca
       "Blondel 617 mm" tak tahu itu berarti tangganya nyaman dinaiki.
     */
+    /*
+      Balok T & beban lateral. Yang terakhir membawa pemeriksaan yang paling
+      sulit dipahami orang non-teknis — "simpangan tingkat 2 = 0,0056" tak
+      berarti apa-apa sampai diterjemahkan jadi "dindingnya akan retak saat
+      gempa sedang".
+    */
+    analisaBalokT({
+      bwMm: 200, hMm: 400, hfMm: 120, bentangBersihM: 4, jarakAsAsM: 3,
+      selimutMm: 30, dUtamaMm: 16, nTarik: 3, nAtas: 2,
+      dSengkangMm: 8, jarakSengkangMm: 150, mutu,
+      muPositifKnm: 60, muNegatifKnm: 40, vuKn: 70,
+    }),
+    analisaGempaStatik({
+      tingkat: [
+        { nama: 'Lantai 2', tinggiM: 4, beratKn: 600 },
+        { nama: 'Atap', tinggiM: 8, beratKn: 400 },
+      ],
+      sds: 0.7, sd1: 0.4, sistem: 'rangka_pemikul_momen_menengah',
+      risiko: 'II', tipeRangka: 'rangka_beton', kategoriSeismik: 'D',
+    }),
+    analisaDrift({
+      simpanganElastisMm: [5, 12], tinggiTingkatM: [4, 4],
+      cd: 4.5, ie: 1.0, risiko: 'II',
+    }),
     analisaSloof({
       bMm: 150, hMm: 250, bentangM: 3, selimutMm: 30, dUtamaMm: 12,
       nBawah: 2, nAtas: 2, dSengkangMm: 8, jarakSengkangMm: 150, mutu,

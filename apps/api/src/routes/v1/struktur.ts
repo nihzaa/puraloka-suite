@@ -12,6 +12,11 @@ import { analisaPilecap } from '../../lib/struktur-pilecap.js'
 import { analisaTiang } from '../../lib/struktur-tiang.js'
 import { analisaSloof } from '../../lib/struktur-sloof.js'
 import { analisaTangga } from '../../lib/struktur-tangga.js'
+import { analisaBalokT } from '../../lib/struktur-balok-t.js'
+import {
+  analisaGempaStatik, analisaAngin, analisaDrift,
+  SISTEM_STRUKTUR, KATEGORI_RISIKO, KOEF_PERIODA, EKSPOSUR,
+} from '../../lib/struktur-beban-lateral.js'
 import { analisaKolomLengkap, analisaKolomBulatLengkap } from '../../lib/struktur-kolom-lengkap.js'
 import { jelaskan, ringkasanAwam, tingkatBahaya, apakahBiner } from '../../lib/struktur-awam.js'
 import {
@@ -70,7 +75,7 @@ import {
 const JENIS = [
   // Beton
   'balok', 'kolom', 'kolom_bulat', 'plat', 'footplat', 'pilecap', 'tiang',
-  'sloof', 'tangga',
+  'sloof', 'tangga', 'balok_t',
   // Baja
   'baja_balok', 'baja_kolom', 'baja_gording', 'baja_bracing',
   'baja_rangka', 'baja_base_plate', 'baja_angkur',
@@ -118,6 +123,14 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
     */
     case 'sloof': return analisaSloof(dgnJumlah as never)
     case 'tangga': return analisaTangga(dgnJumlah as never)
+    /*
+      Balok T / balok anak: hampir semua balok lantai beton dicor MENYATU
+      dengan pelat, dan menghitungnya sebagai persegi memperbesar setiap balok
+      anak di proyek tanpa perlu. Modulnya menghitung DUA kondisi — momen
+      positif (flens tertekan, penampang T) dan negatif (flens tarik, kembali
+      persegi) — bukan mengambil yang menguntungkan.
+    */
+    case 'balok_t': return analisaBalokT(dgnJumlah as never)
 
     /*
       ── BAJA
@@ -683,6 +696,83 @@ export default async function strukturRoutes(app: FastifyInstance) {
   // diam-diam begitu tenant memakai edisi lain — dan rusaknya berupa item RAB
   // yang menunjuk pekerjaan yang salah, bukan galat.
   // ══════════════════════════════════════════════════════════════════════════
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    BEBAN LATERAL — gempa, angin, simpangan. BUKAN jenis elemen.
+
+    Tiga perhitungan ini berlaku untuk SELURUH BANGUNAN, bukan satu penampang:
+    gaya gempa lahir dari berat semua tingkat sekaligus, dan hasilnya adalah
+    gaya yang lalu dibagikan ke elemen-elemennya.
+
+    Karena itu ia tidak masuk `struktur_elemen` (yang satu baris = satu
+    penampang) melainkan berdiri sendiri. Memaksakannya jadi "elemen" akan
+    membuat rekap volume mencoba menghitung beton dari gaya gempa.
+
+    ── Kenapa TIDAK DISIMPAN
+
+    Endpoint ini menghitung dan memulangkan, tanpa menulis apa pun. Masukannya
+    (berat tiap tingkat, SDS/SD1 lokasi, sistem struktur) adalah keputusan
+    perencana yang belum punya tempat penyimpanan di aplikasi ini — dan
+    menyimpan hasilnya tanpa masukannya menghasilkan angka yang tak bisa
+    ditelusuri, persis yang dihindari seluruh modul struktur.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  app.post<{
+    Params: { projectId: string }
+    Body: {
+      gempa?: Record<string, unknown>
+      angin?: Record<string, unknown>
+      drift?: Record<string, unknown>
+    }
+  }>(
+    '/api/v1/projects/:projectId/struktur/beban-lateral',
+    { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },
+    async (request, reply) => {
+      if (!(await proyekMilikTenant(request, request.params.projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+      const b = request.body ?? {}
+      if (!b.gempa && !b.angin && !b.drift) {
+        return reply.status(400).send({
+          error: 'Isi minimal satu dari: gempa, angin, drift',
+        })
+      }
+
+      /*
+        Masukan cacat memulangkan 400 (salah pengguna), bukan 500 (salah
+        server) — dua hal yang menuntut tindakan berbeda. Modulnya melempar
+        Error biasa dengan pesan yang sudah bisa dibaca orang.
+      */
+      try {
+        return reply.send({
+          gempa: b.gempa ? analisaGempaStatik(b.gempa as never) : null,
+          angin: b.angin ? analisaAngin(b.angin as never) : null,
+          drift: b.drift ? analisaDrift(b.drift as never) : null,
+        })
+      } catch (e) {
+        return reply.status(400).send({ error: (e as Error).message })
+      }
+    })
+
+  /*
+    Katalog pilihan untuk layar: sistem struktur beserta R/Cd-nya, kategori
+    risiko, koefisien perioda, dan eksposur angin.
+
+    Dipulangkan dari SATU tempat — konstanta di `struktur-beban-lateral.ts` —
+    bukan diketik ulang di UI. Daftar yang disalin ke layar akan berpisah dari
+    kodenya saat salah satunya dikoreksi, dan memilih R yang salah adalah
+    kesalahan paling mahal di seluruh perhitungan gempa.
+  */
+  app.get(
+    '/api/v1/struktur/katalog-seismik',
+    { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },
+    async (_request, reply) => reply.send({
+      sistem: Object.entries(SISTEM_STRUKTUR).map(([kunci, v]) => ({ kunci, ...v })),
+      risiko: Object.entries(KATEGORI_RISIKO).map(([kunci, v]) => ({ kunci, ...v })),
+      perioda: Object.entries(KOEF_PERIODA).map(([kunci, v]) => ({ kunci, ...v })),
+      eksposur: Object.entries(EKSPOSUR).map(([kunci, v]) => ({ kunci, ...v })),
+    }))
+
   app.get<{ Params: { projectId: string } }>(
     '/api/v1/projects/:projectId/struktur/usulan-rab',
     { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },

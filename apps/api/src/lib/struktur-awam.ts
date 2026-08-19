@@ -662,6 +662,46 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
     tindakan: 'Tebalkan pelatnya, naikkan mutu betonnya, atau tambahkan '
       + 'sengkang di daerah dekat tumpuan.',
   },
+  // ── BALOK T & BEBAN LATERAL ───────────────────────────────────────────────
+  'Lentur negatif (tumpuan)': {
+    judul: 'Kekuatan di atas tumpuan',
+    apa: 'Balok yang menerus di atas kolom melengkung ke ATAS di titik itu — '
+      + 'kebalikan dari lengkungan di tengah bentang. Yang menahannya tulangan '
+      + 'di sisi ATAS balok, bukan yang di bawah.',
+    risiko: 'Kalau kurang, retak muncul di permukaan atas balok tepat di '
+      + 'sebelah kolom — tertutup lantai dan tak terlihat sampai melebar. Ini '
+      + 'titik paling sulit diperbaiki: membongkarnya berarti membongkar lantai '
+      + 'di atasnya.',
+    tindakan: 'Tambah tulangan di sisi ATAS balok pada daerah tumpuan, atau '
+      + 'tinggikan baloknya.',
+  },
+  'Tinggi untuk prosedur statik': {
+    judul: 'Bangunan cukup rendah untuk cara hitung ini',
+    apa: 'Gaya gempa di sini dihitung dengan cara sederhana yang hanya berlaku '
+      + 'untuk bangunan tidak terlalu tinggi. Bangunan tinggi bergoyang dengan '
+      + 'pola yang lebih rumit.',
+    risiko: 'Kalau bangunannya melewati batas, angka gempa di layar ini TIDAK '
+      + 'SAH sebagai dasar desain — bukan berarti bangunannya bahaya, '
+      + 'melainkan cara hitungnya yang tak berlaku dan hasilnya bisa meleset '
+      + 'ke dua arah.',
+    tindakan: 'Bangunan setinggi ini butuh analisa dinamik (respons spektrum) '
+      + 'yang dikerjakan dengan perangkat lunak struktur khusus. Angka di sini '
+      + 'boleh dipakai sebagai pembanding kasar saja.',
+  },
+  'Simpangan tingkat N': {
+    judul: 'Seberapa jauh lantai bergoyang saat gempa',
+    apa: 'Saat gempa, tiap lantai bergerak menyamping relatif terhadap lantai '
+      + 'di bawahnya. Yang diperiksa: pergeseran itu tidak melebihi batas — '
+      + 'sekitar 2 cm untuk tiap 1 meter tinggi lantai.',
+    risiko: 'Kegagalannya TIDAK meruntuhkan bangunan. Yang rusak isinya: '
+      + 'dinding retak menyilang, kusen terjepit sampai pintu tak bisa dibuka, '
+      + 'kaca pecah, pipa dan kabel putus. Dan ini terjadi pada gempa SEDANG — '
+      + 'yang pasti datang beberapa kali seumur bangunan, bukan gempa besar '
+      + 'yang mungkin tak pernah terjadi.',
+    tindakan: 'Perkaku bangunannya: perbesar kolom, tambah dinding geser, atau '
+      + 'tambah bresing. Menambah tulangan saja tidak menolong — yang kurang '
+      + 'kekakuan, bukan kekuatan.',
+  },
 }
 
 /**
@@ -702,7 +742,27 @@ export function apakahBiner(nama: string): boolean {
  */
 export function jelaskan(namaPemeriksaan: string): PenjelasanAwam | null {
   const isi = KAMUS[namaPemeriksaan]
-  return isi ? { nama: namaPemeriksaan, ...isi } : null
+  if (isi) return { nama: namaPemeriksaan, ...isi }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    NAMA BERNOMOR dicocokkan ke pola — "Simpangan tingkat 3" → "Simpangan
+    tingkat N".
+
+    Sebagian pemeriksaan lahir per-tingkat, dan jumlah tingkatnya baru
+    diketahui saat dihitung. Menyeragamkan namanya jadi "Simpangan" akan
+    menghilangkan informasi TINGKAT MANA yang gagal — dan pada bangunan
+    bertingkat itu justru yang pertama ditanyakan orang.
+
+    Membuat entri kamus per tingkat juga bukan jalan keluar: jumlahnya tak
+    terbatas, dan tingkat ke-9 akan lolos tanpa terjemahan tanpa ada yang tahu.
+  */
+  const bernomor = namaPemeriksaan.replace(/\s+\d+$/, ' N')
+  if (bernomor !== namaPemeriksaan) {
+    const pola = KAMUS[bernomor]
+    if (pola) return { nama: namaPemeriksaan, ...pola }
+  }
+  return null
 }
 
 /** Semua nama pemeriksaan yang punya terjemahan. */
