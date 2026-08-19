@@ -5,6 +5,88 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 16) — gambar kerja untuk sisi BAJA: sepuluh jenis, satu gambar
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur              969 lulus / 33 berkas
+$ npx tsc --noEmit  (api)              exit=0
+$ uji-gambar-hidup.mjs (rute 3017)     exit=0 — 5 kasus, SVG DIBUKA & diperiksa
+$ uji-sambungan-hidup.mjs              exit=0 — 5 kasus (tak regresi)
+$ lapor-cakupan-gambar.mjs             BERGAMBAR 17 / 32  (dari 7/32)
+$ jalankan-semua-penjaga.mjs           vs baseline: NOL penjaga baru merah
+```
+
+### Yang diukur lebih dulu
+
+`lapor-cakupan-gambar.mjs` — ditulis sebelum menambah apa pun, dan angkanya
+mengejutkan: **7 dari 32 jenis** yang menghasilkan gambar, dan **ketujuhnya
+beton**. Seluruh sisi baja — balok, kolom, gording, bracing, rangka, base
+plate, angkur, sambungan, interaksi — tak punya satu pun.
+
+Termasuk `baja_rangka`, yang justru elemen dengan batang terbanyak.
+
+### Satu gambar untuk sepuluh jenis
+
+`gambarProfilBaja()` + `titikProfilBaja()`. Profil diambil dari
+`input.profil`, medan yang **sudah ada** di tiap modul baja (dipakai untuk
+berat per meter di RAB) — tak ada data baru yang perlu diminta ke pengguna.
+
+Geometrinya dipisah dari penggambarannya supaya bisa diuji sebagai ANGKA,
+pelajaran yang sama dengan `posisiTulangan()`. Kanal (C) digambar dengan badan
+di SATU sisi, bukan di tengah: menggambarnya sebagai I membuat sumbu lemahnya
+terlihat simetris padahal tidak, dan justru ketaksimetrisan itu yang membuat
+kanal terpuntir saat dibebani.
+
+**Tebal badan dan tebal sayap ditunjuk TERPISAH,** dengan garis penunjuk
+masing-masing. Itu alasan utama gambar ini ada: keduanya berdampingan di
+penamaan profil ("200x100x5,5x8") dan tertukar tanpa gejala sampai batangnya
+datang ke lapangan. Angka di daftar tak mencegah itu.
+
+Dijaga mutasi: badan/sayap ditukar → MERAH; badan digeser dari tengah → MERAH;
+kanal digambar sebagai WF → MERAH; dipulihkan → HIJAU.
+
+### Cacat yang ditemukan, lagi-lagi dengan MENJALANKAN
+
+Input pelat tanpa `bebanMatiTambahan` gagal dengan
+`Cannot read properties of undefined (reading 'reduce')` — pesan yang tak
+menyebut satu pun medan. Modul itu SUDAH memvalidasi medan lain dengan pesan
+yang menyebut namanya ("Tebal pelat harus > 0"); yang satu ini terlewat, dan
+terlewatnya baru ketahuan saat rutenya dijalankan dengan input yang kurang.
+
+Sekarang menyebut nama medannya, dan menerangkan bahwa daftar KOSONG sah —
+pelat yang hanya memikul berat sendirinya nyata ada.
+
+### Penguji yang MEMBUKA gambarnya
+
+`uji-gambar-hidup.mjs` tidak memeriksa "ada medan gambar". Ia memeriksa:
+
+1. ada `<svg` sungguhan,
+2. **viewBox berukuran positif** — viewBox nol menghasilkan gambar KOSONG tanpa
+   satu pun galat, dan berkasnya tetap terlihat wajar dari luar,
+3. tak ada medan `…Gagal` yang terisi,
+4. angka yang dijanjikan **benar-benar muncul di dalam SVG-nya**
+   ("badan 5.5", "sayap 8").
+
+Rute sengaja tidak menggagalkan permintaan saat gambar gagal — hasil analisa
+tetap berguna tanpa SVG. Keputusan itu benar, dan justru karena itu gambar yang
+gagal DIAM.
+
+### Saya salah, dua kali
+
+**Laporan cakupan mengukur bentuk kode, bukan akibatnya.** Versi pertamanya
+membaca `el.jenis === …` saja, jadi sesudah sepuluh jenis baja mulai
+bergambar ia tetap melapor 7/32 — karena cabang barunya memilih lewat
+`input.profil`. Laporan yang salah ukur lebih buruk daripada tak ada laporan.
+
+**Satu uji lulus karena kebetulan angka.** Uji "kanal tak simetris" saya tulis
+sebagai "jumlah simpul kiri ≠ kanan", dan pada profil itu kebetulan 4 lawan 4.
+Diganti dengan yang benar-benar membedakan: tepi kiri kanal LURUS PENUH (hanya
+dua titik di x=0), sisi kanan bertakik empat kali.
+
+---
+
 ## 2026-08-19 (lanjutan 15) — sambungan rangka atap, dan medan `jumlah` yang menimpa angka pengguna
 
 **Ringkasan run:**

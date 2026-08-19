@@ -845,6 +845,18 @@ jobs:
       - name: Medan `jumlah` tak bentrok dengan pengali elemen
         run: node scripts/audit-medan-jumlah-tak-bentrok.mjs
 
+      # Laporan cakupan gambar kerja — TIDAK menggagalkan CI.
+      #
+      # Diukur 2026-08-19: dari 32 jenis elemen, hanya TUJUH menghasilkan
+      # gambar, dan ketujuhnya beton. Seluruh sisi baja tak punya satu pun.
+      # Sesudah penampang profil baja masuk: 17/32.
+      #
+      # Dijalankan supaya angkanya terlihat di log tiap kali, bukan diingat.
+      # Cakupan yang belum lengkap adalah urutan kerja, bukan cacat — karena
+      # itu laporan, bukan penjaga.
+      - name: Cakupan gambar kerja per jenis (laporan)
+        run: node scripts/lapor-cakupan-gambar.mjs
+
       # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
       # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
       # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris

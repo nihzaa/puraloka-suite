@@ -1431,3 +1431,184 @@ export function gambarMeteranKekuatan(
     '</svg>',
   ].join('\n')
 }
+
+// ── Penampang profil BAJA ────────────────────────────────────────────────────
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════════
+ * PENAMPANG PROFIL BAJA — satu gambar untuk sepuluh jenis elemen
+ *
+ * Sampai 2026-08-19, dari 32 jenis elemen hanya TUJUH yang menghasilkan gambar,
+ * dan ketujuhnya beton. Seluruh sisi baja — balok, kolom, gording, bracing,
+ * rangka, base plate, angkur, sambungan, interaksi — tak punya satu pun.
+ *
+ * Yang membuatnya berarti bukan kerapian. Estimator memesan baja dari GAMBAR,
+ * dan angka yang paling sering salah pesan adalah TEBAL BADAN vs TEBAL SAYAP:
+ * keduanya ditulis berdampingan di penamaan profil ("200x100x5,5x8") dan
+ * tertukar tanpa gejala sampai batangnya datang.
+ *
+ * Karena itu gambar ini menandai keduanya TERPISAH dengan garis penunjuk
+ * masing-masing, bukan hanya mencetak ulang penamaannya.
+ *
+ * ── Yang TIDAK digambar, dan kenapa
+ *
+ * Fillet (lengkungan sudut antara badan dan sayap) diabaikan — sama seperti
+ * `luasPenampang()` mengabaikannya. Kalau gambar memperlihatkan fillet
+ * sementara perhitungannya tidak, gambar itu menjanjikan ketelitian yang tak
+ * ada di angkanya.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+export interface InputGambarProfilBaja {
+  /** Tinggi profil, mm. */
+  hMm: number
+  /** Lebar sayap, mm. */
+  bMm: number
+  /** Tebal badan (web), mm. */
+  twMm: number
+  /** Tebal sayap (flange), mm. */
+  tfMm: number
+  /** WF · H · C · L — menentukan bentuk yang digambar. */
+  bentuk?: string
+  /** Penamaan dari tabel, dicetak sebagai catatan. */
+  designation?: string
+}
+
+/** Warna baja — dibedakan dari beton supaya dua gambar tak tertukar sekilas. */
+const WARNA_BAJA = '#334155'
+const WARNA_BAJA_ISI = '#e2e8f0'
+
+/**
+ * Titik-titik tepi luar penampang, searah jarum jam dari kiri-atas.
+ *
+ * DIPISAH dari penggambaran supaya bisa diuji sebagai ANGKA. Bentuk penampang
+ * adalah hal yang harus benar, dan memeriksanya lewat string SVG akan rapuh —
+ * pelajaran yang sama dengan `posisiTulangan()`.
+ */
+export function titikProfilBaja(input: InputGambarProfilBaja): Array<[number, number]> {
+  const { hMm: h, bMm: b, twMm: tw, tfMm: tf } = input
+  if (!(h > 0) || !(b > 0) || !(tw > 0) || !(tf > 0)) {
+    throw new Error('Dimensi profil harus > 0')
+  }
+  if (2 * tf >= h) throw new Error('Dua tebal sayap tak boleh setinggi profilnya')
+  if (tw >= b) throw new Error('Tebal badan tak boleh selebar sayapnya')
+
+  const bentuk = (input.bentuk ?? 'WF').toUpperCase()
+
+  /*
+    Profil C (kanal) — badan di SATU sisi, bukan di tengah. Menggambarnya
+    sebagai I membuat sumbu lemahnya terlihat simetris padahal tidak, dan
+    justru ketaksimetrisan itu yang membuat kanal terpuntir saat dibebani.
+  */
+  if (bentuk === 'C' || bentuk === 'CNP' || bentuk === 'KANAL') {
+    return [
+      [0, 0], [b, 0], [b, tf], [tw, tf],
+      [tw, h - tf], [b, h - tf], [b, h], [0, h],
+    ]
+  }
+
+  /* Siku (L) — dua kaki, tanpa sayap kedua. */
+  if (bentuk === 'L' || bentuk === 'SIKU') {
+    return [[0, 0], [tw, 0], [tw, h - tf], [b, h - tf], [b, h], [0, h]]
+  }
+
+  /* WF / H / INP — badan di tengah, dua sayap. */
+  const x1 = (b - tw) / 2
+  const x2 = x1 + tw
+  return [
+    [0, 0], [b, 0], [b, tf], [x2, tf],
+    [x2, h - tf], [b, h - tf], [b, h], [0, h],
+    [0, h - tf], [x1, h - tf], [x1, tf], [0, tf],
+  ]
+}
+
+export function gambarProfilBaja(
+  input: InputGambarProfilBaja,
+  opsi: OpsiGambar = {},
+): string {
+  const { hMm: h, bMm: b, twMm: tw, tfMm: tf } = input
+  const titik = titikProfilBaja(input)
+
+  const margin = opsi.marginMm ?? Math.max(b, h) * 0.45
+  const pakaiDimensi = opsi.dimensi ?? true
+  const ruangNotasi = pakaiDimensi ? margin * 1.3 : 0
+
+  const vbX = -margin
+  const vbY = -margin - (opsi.judul ? margin * 0.4 : 0)
+  const vbW = b + 2 * margin + ruangNotasi
+  const vbH = h + 2 * margin + (opsi.judul ? margin * 0.4 : 0)
+
+  const t = Math.max(b, h) / 250
+  const ukuranTeks = Math.max(b, h) / 18
+
+  const bagian: string[] = []
+
+  /* Arsir baja: garis rapat 45°, konvensi berbeda dari beton. */
+  const jarakArsir = Math.max(b, h) / 34
+  bagian.push(
+    `<defs><pattern id="arsirBaja" width="${bulat(jarakArsir)}" height="${bulat(jarakArsir)}" `
+    + `patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
+    + `<line x1="0" y1="0" x2="0" y2="${bulat(jarakArsir)}" `
+    + `stroke="#94a3b8" stroke-width="${bulat(t * 0.55)}"/></pattern></defs>`)
+
+  const d = titik.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${bulat(x)},${bulat(y)}`).join(' ') + ' Z'
+  bagian.push(`<path d="${d}" fill="${WARNA_BAJA_ISI}"/>`)
+  bagian.push(`<path d="${d}" fill="url(#arsirBaja)"/>`)
+  bagian.push(`<path d="${d}" fill="none" stroke="${WARNA_BAJA}" stroke-width="${bulat(t * 1.7)}"/>`)
+
+  if (pakaiDimensi) {
+    const off = margin * 0.42
+    const xNot = b + off * 1.1
+
+    /* Tinggi total (h) — di kiri. */
+    bagian.push(garis(-off, 0, -off, h, WARNA.dimensi, t * 0.7))
+    bagian.push(garis(-off - t * 3, 0, -off + t * 3, 0, WARNA.dimensi, t * 0.7))
+    bagian.push(garis(-off - t * 3, h, -off + t * 3, h, WARNA.dimensi, t * 0.7))
+    bagian.push(
+      `<g transform="translate(${bulat(-off - ukuranTeks * 0.6)},${bulat(h / 2)}) rotate(-90)">`
+      + `<text x="0" y="0" font-family="ui-sans-serif,system-ui,sans-serif" `
+      + `font-size="${bulat(ukuranTeks * 0.95)}" fill="${WARNA.dimensi}" `
+      + `text-anchor="middle">h ${bulat(h, 0)}</text></g>`)
+
+    /* Lebar sayap (b) — di bawah. */
+    bagian.push(garis(0, h + off, b, h + off, WARNA.dimensi, t * 0.7))
+    bagian.push(teks(b / 2, h + off + ukuranTeks * 1.15,
+      `b ${bulat(b, 0)}`, ukuranTeks * 0.95, WARNA.dimensi))
+
+    /*
+      ── TEBAL BADAN dan TEBAL SAYAP, ditunjuk TERPISAH.
+
+      Inilah alasan utama gambar ini ada. Keduanya ditulis berdampingan di
+      penamaan profil ("200x100x5,5x8") dan tertukar tanpa gejala sampai
+      batangnya datang ke lapangan. Angka di daftar tak mencegah itu; garis
+      penunjuk ke bagian yang dimaksud mencegahnya.
+    */
+    const yBadan = h / 2
+    const xBadan = (b + tw) / 2
+    bagian.push(garis(xBadan, yBadan, xNot - ukuranTeks * 0.3, yBadan, WARNA_BAJA, t * 0.5))
+    bagian.push(teks(xNot, yBadan + ukuranTeks * 0.32,
+      `badan ${bulat(tw, 1)}`, ukuranTeks * 0.9, WARNA_BAJA, 'start'))
+
+    const ySayap = tf / 2
+    bagian.push(garis(b * 0.72, ySayap, xNot - ukuranTeks * 0.3, ySayap, WARNA_BAJA, t * 0.5))
+    bagian.push(teks(xNot, ySayap + ukuranTeks * 0.32,
+      `sayap ${bulat(tf, 1)}`, ukuranTeks * 0.9, WARNA_BAJA, 'start'))
+
+    if (input.designation) {
+      bagian.push(teks(b / 2, h + off + ukuranTeks * 2.4,
+        amankanTeks(`${(input.bentuk ?? 'WF').toUpperCase()} ${input.designation}`),
+        ukuranTeks * 0.85, WARNA.dimensi))
+    }
+  }
+
+  if (opsi.judul) {
+    bagian.push(teks(b / 2, -margin * 0.55, opsi.judul, ukuranTeks * 1.25))
+  }
+
+  const lebarPx = opsi.lebarPx ?? 420
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bulat(vbX)} ${bulat(vbY)} ${bulat(vbW)} ${bulat(vbH)}" `
+    + `width="${lebarPx}" role="img" aria-label="${amankanTeks(opsi.judul ?? 'Penampang profil baja')}">`,
+    ...bagian,
+    '</svg>',
+  ].join('\n')
+}

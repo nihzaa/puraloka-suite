@@ -53,6 +53,7 @@ import {
 import {
   gambarPenampang, gambarDiagramPM, gambarPenampangLingkaran,
   gambarPotonganPelat, gambarPondasi, gambarTiang, gambarMeteranKekuatan,
+  gambarProfilBaja,
 } from '../../lib/struktur-gambar.js'
 
 /**
@@ -1319,6 +1320,61 @@ function gambarUntuk(el: BarisElemen, hasil: unknown): Record<string, string> {
       }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
     } catch {
       g.potonganGagal = 'Potongan tiang tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    PENAMPANG PROFIL BAJA — sepuluh jenis, satu gambar.
+
+    Diukur 2026-08-19 lewat `lapor-cakupan-gambar.mjs`: dari 32 jenis, hanya
+    TUJUH menghasilkan gambar, dan ketujuhnya beton. Seluruh sisi baja tak
+    punya satu pun — termasuk `baja_rangka`, yang justru elemen dengan
+    batang terbanyak.
+
+    Profil diambil dari `input.profil`, medan yang SUDAH ada di tiap modul
+    baja (dipakai untuk berat per meter di RAB). Tak ada data baru yang perlu
+    diminta ke pengguna.
+
+    Yang digambar bukan sekadar bentuknya: TEBAL BADAN dan TEBAL SAYAP
+    ditunjuk terpisah. Keduanya berdampingan di penamaan profil
+    ("200x100x5,5x8") dan tertukar tanpa gejala sampai batangnya datang.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const profil = (el.input as { profil?: Record<string, unknown> }).profil
+  if (profil && typeof profil === 'object') {
+    try {
+      g.penampang = gambarProfilBaja({
+        hMm: Number(profil.hMm), bMm: Number(profil.bMm),
+        twMm: Number(profil.t1Mm), tfMm: Number(profil.t2Mm),
+        bentuk: String(profil.profile_type ?? 'WF'),
+        designation: profil.designation ? String(profil.designation) : undefined,
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.penampangGagal = 'Penampang profil tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    RANGKA batang: profilnya ada DI DALAM tiap batang, bukan di akar input.
+    Digambar untuk batang PERTAMA yang punya profil — rangka bisa memakai
+    beberapa profil berbeda, dan menggambar semuanya membuat balasan membengkak
+    tanpa diminta. Yang butuh semuanya membuka tiap batangnya.
+  */
+  if (!g.penampang && Array.isArray((el.input as { batang?: unknown[] }).batang)) {
+    const batang = (el.input as { batang: Array<{ nama?: string; profil?: Record<string, unknown> }> }).batang
+    const b0 = batang.find((b) => b?.profil)
+    if (b0?.profil) {
+      try {
+        g.penampang = gambarProfilBaja({
+          hMm: Number(b0.profil.hMm), bMm: Number(b0.profil.bMm),
+          twMm: Number(b0.profil.t1Mm), tfMm: Number(b0.profil.t2Mm),
+          bentuk: String(b0.profil.profile_type ?? 'WF'),
+          designation: b0.profil.designation ? String(b0.profil.designation) : undefined,
+        }, { judul: `${el.kode} — batang ${b0.nama ?? '1'}` })
+      } catch {
+        g.penampangGagal = 'Penampang batang rangka tak dapat digambar'
+      }
     }
   }
 

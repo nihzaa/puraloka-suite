@@ -85,6 +85,27 @@ export function analisaPlat(input: InputPlat): HasilPlat {
   // ── 1. Beban
   // Berat sendiri DITURUNKAN dari tebal, tidak diminta ke pengguna.
   const beratSendiriKnM2 = hM * (RHO_BETON * 9.81 / 1000)  // kg/m³ → kN/m³
+  /*
+    Divalidasi, bukan langsung di-`reduce`.
+
+    Tanpa penjagaan ini, input yang tak memuat `bebanMatiTambahan` gagal dengan
+    `Cannot read properties of undefined (reading 'reduce')` — pesan yang tak
+    menyebut satu pun medan, dan yang membacanya akan mencari cacat di modulnya.
+
+    Modul ini SUDAH memvalidasi medan lain dengan pesan yang menyebut namanya
+    ("Tebal pelat harus > 0"); yang satu ini terlewat, dan terlewatnya baru
+    ketahuan saat rute hidup dijalankan dengan input tanpa medan itu.
+
+    Array KOSONG sah — pelat tanpa beban mati tambahan memang mungkin. Yang
+    tak sah adalah tidak ada sama sekali.
+  */
+  if (!Array.isArray(input.bebanMatiTambahan)) {
+    throw new Error(
+      'Beban mati tambahan (`bebanMatiTambahan`) wajib diisi sebagai daftar — '
+      + 'pakai daftar kosong bila pelat tak memikul beban mati selain berat '
+      + 'sendirinya. Berat sendiri dihitung dari tebalnya, tak perlu ditulis.',
+    )
+  }
   const qdTambahan = input.bebanMatiTambahan.reduce(
     (s, b) => s + (b.tebalM != null ? b.nilai * b.tebalM : b.nilai), 0)
   const qdKnM2 = beratSendiriKnM2 + qdTambahan
