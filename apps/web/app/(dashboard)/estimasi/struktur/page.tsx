@@ -47,7 +47,7 @@ import { GAYA_KARTU } from "@/components/ui-dasar";
 import { Isian, KotakIsian, PilihanIsian, TeksIsian } from "@/components/isian";
 import { formatAngka } from "@/lib/format";
 import {
-  AlertTriangle, Boxes, CheckCircle2, Eye, History, Info, Plus, RefreshCw, Ruler, Trash2, X,
+  AlertTriangle, Boxes, CheckCircle2, Eye, History, Info, Plus, RefreshCw, Ruler, Scale, Trash2, X,
 } from "lucide-react";
 import { Modal, btnPrimary, btnGhost } from "../_bersama/kerangka";
 import { LayarKosong } from "../_bersama/layar-kosong";
@@ -77,6 +77,12 @@ interface BarisElemen {
   nama: string | null;
   jenis: Jenis;
   jumlah: number;
+  /*
+    Hanya terisi di rute DETAIL (yang memulangkan `elemen: el` utuh); rute
+    daftar sengaja tak membawanya supaya muatan daftar tak membengkak. Karena
+    itu opsional — komponen yang memakainya wajib tahan menghadapinya kosong.
+  */
+  input?: Record<string, unknown>;
   aman: boolean | null;
   basi: boolean;
   beton_m3: number | null;
@@ -120,6 +126,27 @@ interface PemeriksaanAwam {
   tingkat: "aman" | "mepet" | "bahaya";
   persenTerpakai: number;
   penjelasan: PenjelasanAwam | null;
+}
+
+interface BarisBanding {
+  label: string;
+  aman: boolean | null;
+  gagal: string | null;
+  gagalPeriksa: string[];
+  puncakPersen: number | null;
+  puncakNama: string | null;
+  /* Puncak di antara pemeriksaan yang BERUBAH — lihat catatan di BandingElemen. */
+  puncakBerubahPersen: number | null;
+  puncakBerubahNama: string | null;
+  betonM3: number | null;
+  bekistingM2: number | null;
+  besiKg: number | null;
+}
+
+interface BandingMuatan {
+  elemen: { kode: string; jenis: string; jumlah: number };
+  sekarang: BarisBanding;
+  data: BarisBanding[];
 }
 
 interface MuatanDetail {
@@ -2513,7 +2540,186 @@ function PanelDetail({ detail, onTutup }: { detail: MuatanDetail; onTutup: () =>
         </div>
       )}
 
+      <BandingElemen elemen={detail.elemen} />
+
       <RiwayatElemen id={detail.elemen.id} />
+    </div>
+  );
+}
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ * BANDING ALTERNATIF — "kalau baloknya 450 saja, masih kuat?"
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Sampai sekarang pertanyaan itu dijawab dengan cara yang mahal: UBAH
+ * inputnya, hitung ulang, lihat, lalu KEMBALIKAN kalau ternyata tak kuat.
+ * Elemen aslinya sempat menyimpan desain yang belum diputuskan, dan mencoba
+ * lima kandidat berarti sepuluh kali bolak-balik.
+ *
+ * Rute `/banding` menghitung semuanya sekaligus dan TIDAK MENULIS apa pun —
+ * mencoba-coba tak meninggalkan jejak di riwayat revisi, karena riwayat
+ * mencatat keputusan, bukan penjajakan.
+ *
+ * ── Kolom "terpakai" memakai puncak YANG BERUBAH, bukan puncak keseluruhan
+ *
+ * Pemeriksaan yang tak terpengaruh ubahan bisa MENDOMINASI puncaknya. Diukur
+ * pada balok contoh: selimut api 141,3% tetap sama untuk tinggi 450 maupun
+ * 700, sementara lenturnya 89,0% → 53,3%. Menampilkan puncak keseluruhan
+ * berarti memperlihatkan dua angka identik, dan pembacanya menyimpulkan
+ * menaikkan tinggi tak ada gunanya — kesimpulan yang salah.
+ */
+function BandingElemen({ elemen }: { elemen: BarisElemen }) {
+  const [medan, setMedan] = useState("");
+  const [nilai, setNilai] = useState("");
+  const [hasil, setHasil] = useState<BandingMuatan | null>(null);
+  const [sibuk, setSibuk] = useState(false);
+  /*
+    Galat AKSI terpisah dari galat MUAT — dijaga CI (`uji-galat-muat-terpisah`):
+    gagal membandingkan tak boleh menghapus pesan kegagalan lain.
+  */
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+
+  /*
+    Medan yang bisa divariasikan diturunkan dari INPUT ELEMEN ITU SENDIRI,
+    bukan dari daftar yang ditulis tangan. Daftar tangan akan tertinggal
+    begitu ada jenis elemen baru — dan yang tertinggal tak terlihat: layarnya
+    tetap jalan, hanya medannya diam-diam tak bisa dicoba.
+
+    Hanya medan berANGKA yang ditawarkan; "coba mutu = BJ37, BJ41" bukan
+    variasi yang bisa diurutkan pada sumbu apa pun.
+  */
+  const medanAngka = useMemo(() => {
+    const keluar: string[] = [];
+    const telusur = (o: Record<string, unknown>, awalan = "") => {
+      for (const [k, v] of Object.entries(o ?? {})) {
+        const nama = awalan ? `${awalan}.${k}` : k;
+        if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+          telusur(v as Record<string, unknown>, nama);
+        } else if (typeof v === "number") keluar.push(nama);
+      }
+    };
+    telusur((elemen.input ?? {}) as Record<string, unknown>);
+    return keluar;
+  }, [elemen.input]);
+
+  const jalankan = async () => {
+    setGalatAksi(null);
+    const angka = nilai.split(/[,\s]+/).map((x) => Number(x.trim())).filter((x) => Number.isFinite(x));
+    if (!medan || !angka.length) {
+      setGalatAksi("Pilih medan dan isi minimal satu nilai.");
+      return;
+    }
+    setSibuk(true);
+    try {
+      const r = await api.post<BandingMuatan>(`/api/v1/struktur/${elemen.id}/banding`,
+        { medan, nilai: angka });
+      setHasil(r.data);
+    } catch (e) {
+      const d = (e as { response?: { data?: { error?: string } } }).response?.data;
+      setGalatAksi(d?.error ?? "Gagal membandingkan.");
+    } finally {
+      setSibuk(false);
+    }
+  };
+
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      <strong style={{
+        display: "flex", gap: 6, alignItems: "center",
+        fontSize: "var(--teks-label)", color: C.text,
+      }}>
+        <Scale size={14} aria-hidden="true" /> Coba alternatif
+      </strong>
+      <p style={{ margin: 0, fontSize: "var(--teks-delta)", color: C.mid }}>
+        Menghitung beberapa pilihan sekaligus untuk dibandingkan.
+        Tidak mengubah elemen ini — hasilnya hanya ditampilkan.
+      </p>
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
+        <Isian label="Medan yang dicoba" id="banding-medan">
+          <PilihanIsian id="banding-medan" value={medan}
+            onChange={(e) => setMedan(e.target.value)}>
+            <option value="">— pilih medan —</option>
+            {medanAngka.map((m) => <option key={m} value={m}>{m}</option>)}
+          </PilihanIsian>
+        </Isian>
+        <Isian label="Nilai (pisahkan koma)" id="banding-nilai">
+          <KotakIsian id="banding-nilai" value={nilai} placeholder="450, 550, 700"
+            onChange={(e) => setNilai(e.target.value)} />
+        </Isian>
+        <button type="button" style={mati(btnGhost, sibuk || !medan)}
+          disabled={sibuk || !medan} onClick={() => void jalankan()}>
+          <Scale size={13} aria-hidden="true" /> Bandingkan
+        </button>
+      </div>
+
+      {galatAksi && (
+        <div role="alert" style={{
+          fontSize: "var(--teks-delta)", color: C.onDangerBg, background: C.dangerBg,
+          border: `1px solid ${C.dangerBorder}`, borderRadius: "var(--radius-dense)",
+          padding: "var(--pad-kartu)",
+        }}>{galatAksi}</div>
+      )}
+
+      {hasil && (
+        <Tabel
+          caption={`Perbandingan alternatif ${hasil.elemen.kode}`}
+          data={[hasil.sekarang, ...hasil.data].filter(Boolean)}
+          kunciBaris={(b) => (b as BarisBanding).label}
+          /* Baris "Sekarang" ditandai supaya kandidat punya titik acuan. */
+          tandaiBaris={(b) => ((b as BarisBanding).label === "Sekarang" ? C.infoBg : undefined)}
+          kolom={[
+            {
+              kunci: "label", judul: "PILIHAN", kepalaBaris: true,
+              render: (b) => (b as BarisBanding).label,
+            },
+            {
+              kunci: "hasil", judul: "HASIL",
+              render: (b) => {
+                const x = b as BarisBanding;
+                /*
+                  TIGA keadaan, bukan dua. "Tak bisa dihitung" bukan "tidak
+                  memenuhi": yang pertama berarti inputnya tak sah, dan orang
+                  yang menyamakannya akan membesarkan penampang untuk
+                  memperbaiki salah ketik.
+                */
+                if (x.aman === null) {
+                  return <span style={{ color: C.mid }}>tak bisa dihitung</span>;
+                }
+                return x.aman
+                  ? <span style={{ color: C.onSuccessBg }}>memenuhi syarat</span>
+                  : <span style={{ color: C.onDangerBg }}>tidak memenuhi</span>;
+              },
+            },
+            {
+              kunci: "terpakai", judul: "TERPAKAI", rata: "kanan",
+              render: (b) => {
+                const x = b as BarisBanding;
+                return x.puncakBerubahPersen === null ? "—" : `${x.puncakBerubahPersen}%`;
+              },
+            },
+            {
+              kunci: "penentu", judul: "YANG MENENTUKAN",
+              render: (b) => (b as BarisBanding).puncakBerubahNama ?? "—",
+            },
+            {
+              kunci: "beton", judul: "BETON (M³)", rata: "kanan",
+              render: (b) => {
+                const v = (b as BarisBanding).betonM3;
+                return v === null ? "—" : formatAngka(v, 3);
+              },
+            },
+            {
+              kunci: "besi", judul: "BESI (KG)", rata: "kanan",
+              render: (b) => {
+                const v = (b as BarisBanding).besiKg;
+                return v === null ? "—" : formatAngka(v, 1);
+              },
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }

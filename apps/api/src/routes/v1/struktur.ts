@@ -66,6 +66,7 @@ import {
   gambarLas,
   gambarPenampangKayu,
 } from '../../lib/struktur-gambar.js'
+import { bandingkan, kandidatDariVariasi } from '../../lib/struktur-banding.js'
 import { catatRiwayat, inputBerbeda } from '../../lib/struktur-riwayat.js'
 import { susunLembar } from '../../lib/struktur-lembar.js'
 import { susunPdfLembar } from '../../lib/struktur-lembar-pdf.js'
@@ -645,6 +646,119 @@ export default async function strukturRoutes(app: FastifyInstance) {
           aman: el.aman ?? null, sekarang: true,
         },
         data: data ?? [],
+      })
+    })
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    POST /struktur/:id/banding — "kalau baloknya 450 saja, masih kuat?"
+
+    Pertanyaan itu ditanyakan di tiap proyek, dan sampai sekarang dijawab
+    dengan cara yang mahal: UBAH inputnya, hitung ulang, lihat, lalu
+    KEMBALIKAN kalau ternyata tak kuat. Elemen aslinya sempat menyimpan
+    desain yang belum diputuskan, dan mencoba lima kandidat berarti sepuluh
+    kali bolak-balik.
+
+    ── TIDAK MENULIS APA PUN
+
+    Ini rute POST yang murni membaca. POST-nya dipilih karena badan
+    permintaannya bisa panjang (daftar kandidat), bukan karena ada yang
+    berubah di basis.
+
+    Konsekuensinya disengaja: mencoba-coba desain TIDAK meninggalkan jejak di
+    riwayat revisi. Riwayat mencatat keputusan, bukan penjajakan — kalau tiap
+    percobaan tercatat, riwayat yang dibangun untuk menjawab "kenapa dulu
+    300x500?" akan tenggelam dalam puluhan baris yang tak pernah dipakai.
+
+    ── TIDAK menghitung harga
+
+    Godaan besarnya adalah menjawab "mana yang PALING MURAH". Ditolak dengan
+    alasan yang sama yang sudah ditulis di rute `usulan-rab`: harga lahir dari
+    AHSP x price book pada TANGGAL tertentu, dan jalur kedua yang menghitung
+    harga sendiri berarti dua rumus harga di satu aplikasi.
+
+    Yang dibandingkan adalah yang benar-benar dimiliki modul ini: lolos/tidak,
+    seberapa terpakai kapasitasnya, dan volume bahannya.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  app.post<{
+    Params: { id: string }
+    Body: {
+      medan?: string
+      nilai?: Array<number | string>
+      kandidat?: Array<{ label?: string; input?: Record<string, unknown> }>
+    }
+  }>(
+    '/api/v1/struktur/:id/banding',
+    { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },
+    async (request, reply) => {
+      const el = await ambilElemen(request, request.params.id)
+      if (!el) return reply.status(404).send({ error: 'Elemen tidak ditemukan' })
+
+      /*
+        Dua cara memberi kandidat. Yang pertama (medan + nilai) menutup kasus
+        yang jauh paling sering, dan menutup satu cacat sekaligus: input penuh
+        yang disalin per kandidat bisa menyimpang di lebih dari satu medan,
+        dan perbandingannya lalu membandingkan dua hal yang berbeda tanpa ada
+        yang tahu.
+      */
+      let kandidat
+      if (request.body?.medan) {
+        const nilai = request.body?.nilai
+        if (!Array.isArray(nilai) || !nilai.length) {
+          return reply.status(400).send({ error: '`nilai` wajib berupa larik tak kosong' })
+        }
+        if (nilai.length > 12) {
+          /*
+            Batas atas yang disebutkan, bukan pemotongan diam-diam: daftar
+            yang dipotong tanpa kabar terbaca seperti daftar yang lengkap.
+          */
+          return reply.status(400).send({ error: 'Maksimal 12 kandidat sekali banding' })
+        }
+        try {
+          kandidat = kandidatDariVariasi(el.input, request.body.medan, nilai)
+        } catch (e) {
+          return reply.status(400).send({ error: (e as Error).message })
+        }
+      } else if (Array.isArray(request.body?.kandidat) && request.body.kandidat.length) {
+        if (request.body.kandidat.length > 12) {
+          return reply.status(400).send({ error: 'Maksimal 12 kandidat sekali banding' })
+        }
+        kandidat = request.body.kandidat.map((k, i) => ({
+          label: k.label?.trim() || `Kandidat ${i + 1}`,
+          input: k.input ?? el.input,
+        }))
+      } else {
+        return reply.status(400).send({
+          error: 'Kirim `medan` + `nilai`, atau `kandidat` berisi daftar input',
+        })
+      }
+
+      /*
+        Dispatcher yang SAMA dengan jalur simpan. Dispatcher kedua yang
+        "mirip" akan berselisih diam-diam begitu salah satunya diperbaiki.
+      */
+      /*
+        Keadaan SEKARANG dihitung DI DALAM set yang sama, bukan lewat
+        panggilan terpisah.
+
+        Versi pertama memanggilnya sendiri — dan itu membuat
+        `puncakBerubahPersen` miliknya SELALU null, karena pemeriksaan mana
+        yang "berubah" hanya kelihatan dari perbandingan lintas kandidat.
+        Akibatnya baris pembanding tak bisa dibandingkan pada kolom yang
+        justru paling menentukan.
+
+        Dispatcher yang dipakai SAMA dengan jalur simpan. Dispatcher kedua
+        yang "mirip" akan berselisih diam-diam begitu salah satunya
+        diperbaiki.
+      */
+      const semua = bandingkan([{ label: 'Sekarang', input: el.input }, ...kandidat],
+        el.jumlah, (input) => hitung(el.jenis, input, el.jumlah))
+
+      return reply.send({
+        elemen: { kode: el.kode, jenis: el.jenis, jumlah: el.jumlah },
+        sekarang: semua[0],
+        data: semua.slice(1),
       })
     })
 
