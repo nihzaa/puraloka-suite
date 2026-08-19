@@ -84,7 +84,21 @@ const KASUS = [
   },
   {
     jenis: 'baja_balok', label: 'balok baja WF — penampang profil',
-    input: { profil: WF200, mutu: BJ, bentangM: 6, muKnm: 60, vuKn: 50 },
+    /*
+      `jarakPengakuM` dan `bebanLayanKnPerM` WAJIB — dan penguji ini sempat
+      MERAH karenanya, yang justru berarti perbaikannya bekerja.
+
+      Sebelum validasi itu ada, input tanpa kedua medan ini lolos dan
+      menampilkan **Infinity%** di batang kekuatan. Sekarang ia ditolak di
+      pintu masuk dengan pesan yang menyebut medannya.
+
+      Penguji lama yang merah karena aplikasinya jadi LEBIH benar adalah
+      penguji yang harus diperbarui — bukan validasi yang harus dilonggarkan.
+    */
+    input: {
+      profil: WF200, mutu: BJ, bentangM: 6, jarakPengakuM: 2,
+      muKnm: 60, vuKn: 50, bebanLayanKnPerM: 8,
+    },
     wajibGambar: ['penampang'],
     /*
       Tebal badan dan tebal sayap wajib MUNCUL di SVG-nya. Keduanya
