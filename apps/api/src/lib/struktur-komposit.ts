@@ -259,9 +259,10 @@ export function analisaKolomKomposit(input: InputKolomKomposit): HasilKolomKompo
     + 'memakai 0,85 untuk kolom terisi mengecilkan kapasitas 12%.',
   )
   catatan.push(
-    'KETAHANAN API belum dihitung — dan itu justru salah satu alasan utama '
-    + 'memakai kolom komposit. Ia butuh kurva suhu-waktu dan tabel ketebalan '
-    + 'selimut yang berbeda per standar.',
+    'KETAHANAN API tidak dihitung DI SINI — pakai `analisaKetahananApi` '
+    + '(modulnya sudah ada, jenis elemen kolom). Ketahanan api justru salah '
+    + 'satu alasan utama memakai kolom komposit: betonnya melindungi bajanya, '
+    + 'dan baja telanjang kehilangan separuh kekuatannya pada 550 °C.',
   )
   catatan.push(
     'Yang BELUM diperiksa: interaksi aksial-momen (diagram P-M komposit), '

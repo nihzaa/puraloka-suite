@@ -909,6 +909,25 @@ jobs:
       # konsultan lain untuk hal yang sudah dihitung aplikasi ini.
       #
       # Bukti merah: kedua catatan basi dipulihkan → exit 1 masing-masing.
+      # Tiap catatan batas WAJIB sudah ditimbang terhadap daftar klaim.
+      #
+      # Penjaga di bawah bekerja dari DAFTAR yang ditulis tangan, jadi ia
+      # hanya menjaga yang didaftarkan. Diukur 2026-08-20: dua catatan
+      # "BELUM diperiksa: SAMBUNGAN" di struktur-atap-ringan BASI berjam-jam,
+      # dan penjaganya LOLOS karena frasa itu tak ada di daftarnya.
+      #
+      # Penjaga yang tak bisa tahu dirinya tertinggal adalah penjaga yang
+      # pelan-pelan berhenti menjaga tanpa satu pun gejala: ia tetap hijau,
+      # cakupannya yang menyusut.
+      #
+      # Yang dijaga BUKAN isi catatannya melainkan RASIONYA — berapa catatan
+      # batas yang ada, berapa yang sudah ditimbang. Menambah catatan tanpa
+      # menimbangnya = MERAH.
+      #
+      # Bukti merah: catatan batas baru disuntik ke struktur-sloof → exit 1.
+      - name: Tiap catatan batas sudah ditimbang
+        run: node scripts/audit-batas-terpetakan.mjs
+
       - name: Catatan batas tak menyangkal kemampuan yang sudah ada
         run: node scripts/audit-batas-tak-basi.mjs
 

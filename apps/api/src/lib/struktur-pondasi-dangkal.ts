@@ -578,7 +578,9 @@ export function analisaRaft(input: InputRaft): HasilRaft {
     + 'di seluruh bangunan.',
   )
   catatan.push(
-    'Penurunan (settlement) dan penurunan TAK SERAGAM belum diperiksa. Raft '
+    'Penurunan (settlement) belum tersambung ke RAFT ini — modulnya sudah '
+    + 'ada (`struktur-penurunan.ts`, ber-ambang raft 50 mm) dan sudah dipakai '
+    + 'footplat & pondasi menerus. Raft '
     + 'justru dipakai saat tanahnya lemah, dan di situlah penurunan tak seragam '
     + 'yang meretakkan seluruh lantai dasar sekaligus.',
   )
