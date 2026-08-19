@@ -206,10 +206,27 @@ describe('inbox — filter proyek milik PM (Task 8)', () => {
     clientId = cl[0].id
 
     // PM lain: siapa saja berbeda dari pmUserId untuk jadi pm_id proyek B.
+    //
+    // ⚠️ TANPA fallback ke pmUserId. Versi sebelumnya jatuh ke
+    // `?? pmUserId` — kalau basis cuma punya SATU user aktif, proyek B jadi
+    // milik PM UJI SENDIRI, dan test pertama LULUS PALSU: ia mengklaim
+    // menguji "PM tak melihat proyek orang lain" padahal kedua proyek
+    // kebetulan miliknya. Lulus semacam itu tak membuktikan apa pun tentang
+    // filter — dan diam-diam menurunkan cakupan test tanpa ada yang tahu.
+    // Wajib GAGAL dengan pesan jelas kalau prasyaratnya tak terpenuhi
+    // (pola `wajibAda` di rls-harness.ts), bukan mengarang fallback.
     const { rows: lain } = await client.query(
       `SELECT id FROM users WHERE id <> $1 AND is_active = true ORDER BY created_at LIMIT 1`,
       [pmUserId])
-    pmLainUserId = lain[0]?.id ?? pmUserId // fallback: kalau cuma 1 user, test B akan gagal informatif
+    if (!lain[0]) {
+      throw new Error(
+        'Prasyarat test tak terpenuhi: butuh minimal 2 user aktif di basis ' +
+        '(PM uji + satu user lain untuk jadi pm_id proyek B). Tanpa itu ' +
+        '"PM lain" akan jatuh ke PM uji sendiri dan test filter proyek-PM ' +
+        'lulus tanpa menguji apa pun.'
+      )
+    }
+    pmLainUserId = lain[0].id
 
     await purgeTestProjects()
 
@@ -241,6 +258,10 @@ describe('inbox — filter proyek milik PM (Task 8)', () => {
 
   it('PM hanya melihat baris approval dari proyek yang di-PM-inya', async () => {
     if (!pmAuth) return // basis dev tak selalu punya PM
+    // Prasyarat fixture: proyek B WAJIB milik user LAIN, bukan PM uji sendiri
+    // — kalau tidak, test ini lulus tanpa menguji filternya sama sekali.
+    expect(pmLainUserId).not.toBe(pmUserId)
+    expect(projectAId).not.toBe(projectBId)
     actAs(pmAuth)
     const r = await ambil()
     expect(r.statusCode).toBe(200)
@@ -274,5 +295,79 @@ describe('inbox — filter proyek milik PM (Task 8)', () => {
     )
     expect(projectIdsMuncul.has(projectAId)).toBe(true)
     expect(projectIdsMuncul.has(projectBId)).toBe(true)
+  })
+
+  // ── Fail-closed: PM TANPA proyek sama sekali ─────────────────────────────
+  //
+  // Jalur `pmProjectIds = []` (bukan `null`) adalah yang PALING berbahaya
+  // untuk lolos tanpa test: kalau kelak seseorang "menyederhanakan" guard
+  // `if (pmProjectIds !== null)` di approval-inbox.ts jadi
+  // `if (pmProjectIds?.length)`, filternya akan DILEWATI persis saat
+  // pmProjectIds kosong — dan PM tanpa proyek mendadak melihat SELURUH
+  // company, bukan nol baris. Sebelumnya jalur ini hanya "terbukti" lewat
+  // membaca kode + verifikasi SQL manual, bukan test yang benar-benar
+  // menjalankan endpoint.
+  //
+  // ⚠️ Memindahkan HANYA dua proyek [TEST-T8] TIDAK CUKUP: PM uji di basis
+  // dev ini (`Rizky Firmansyah`) sudah memegang proyek seed asli lain di
+  // luar fixture (diukur langsung: 6 proyek). `pmProjectIds` hasil query
+  // sungguhan jadi tetap non-kosong walau kedua proyek fixture dipindah —
+  // dan mutasi guard `!== null` → `?.length` TIDAK terdeteksi test, karena
+  // array 6-elemen itu tetap truthy. Ditemukan lewat uji mutasi sengaja
+  // (lihat report), bukan diasumsikan aman.
+  //
+  // Diperbaiki: pindahkan SEMUA proyek yang pm_id-nya = pmUserId (fixture
+  // MAUPUN seed asli) ke pmLainUserId untuk sesaat, verifikasi pmProjectIds
+  // benar-benar [] dari sisi DB, panggil endpoint, lalu KEMBALIKAN utuh ke
+  // pemilik semula satu-per-satu (bukan "semua ke pmUserId lagi" — sebagian
+  // proyek yang dipindah TADINYA bukan milik pmUserId sama sekali kalau
+  // suatu saat data seed berubah, jadi dicatat map asal→pemilik, bukan
+  // ditebak).
+  it('PM tanpa proyek sama sekali mendapat NOL baris ber-project — bukan semua', async () => {
+    if (!pmAuth) return
+    expect(pmLainUserId).not.toBe(pmUserId) // prasyarat sama seperti test pertama
+
+    const { rows: milikPm } = await client.query(
+      `SELECT id FROM projects WHERE pm_id = $1`, [pmUserId])
+    const idProyekMilikPm = milikPm.map((r) => r.id as string)
+    // Fixture sendiri wajib ikut ketahuan di sini — kalau tidak, prasyarat
+    // test-test lain di describe ini sudah salah.
+    expect(idProyekMilikPm).toContain(projectAId)
+
+    await client.query(
+      `UPDATE projects SET pm_id = $1 WHERE id = ANY($2)`,
+      [pmLainUserId, idProyekMilikPm],
+    )
+    try {
+      // Buktikan prasyaratnya benar-benar terpasang DARI SISI DB sebelum
+      // menilai endpoint — persis pelajaran temuan review sebelumnya
+      // (fixture yang diam-diam tak sesuai klaim membuat test lulus palsu).
+      const { rows: cek } = await client.query(
+        `SELECT id FROM projects WHERE pm_id = $1`, [pmUserId])
+      expect(cek, 'pmUserId harus benar-benar NOL proyek sekarang').toEqual([])
+
+      actAs(pmAuth)
+      const r = await ambil()
+      expect(r.statusCode).toBe(200)
+      const b = JSON.parse(r.body)
+      const kasbonRows = (b.data as Array<{ jenis: string; project_id: string | null }>)
+        .filter((x) => x.jenis === 'kasbon')
+      const projectIdsMuncul = new Set(kasbonRows.map((x) => x.project_id))
+
+      // NOL baris ber-project — bukan "semua company" seperti perilaku
+      // sebelum fix (dan seperti mutasi `?.length` yang dicoba sengaja).
+      expect(kasbonRows.length, `harus 0 baris kasbon, dapat: ${JSON.stringify(kasbonRows)}`).toBe(0)
+      expect(projectIdsMuncul.has(projectAId)).toBe(false)
+      expect(projectIdsMuncul.has(projectBId)).toBe(false)
+    } finally {
+      // Kembalikan SATU PER SATU ke pmUserId — semuanya memang berasal dari
+      // pmUserId (dibuktikan query di atas), jadi restore-nya simetris.
+      if (idProyekMilikPm.length > 0) {
+        await client.query(
+          `UPDATE projects SET pm_id = $1 WHERE id = ANY($2)`,
+          [pmUserId, idProyekMilikPm],
+        )
+      }
+    }
   })
 })
