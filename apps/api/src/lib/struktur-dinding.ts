@@ -75,6 +75,16 @@ export interface InputDindingPenahan {
   /** Beban merata di atas tanah urug (surcharge), kPa. */
   surchargeKpa?: number
   /** Panjang dinding, m — untuk volume. */
+  /**
+   * Percepatan tanah puncak (PGA), g — dari peta gempa SNI 1726 untuk
+   * lokasinya.
+   *
+   * OPSIONAL, dan ketiadaannya BUKAN nol. Kalau tak diisi, pemeriksaan gempa
+   * tak dijalankan dan catatannya menyatakan itu — bukan diam-diam
+   * menganggap tak ada gempa. Indonesia rawan gempa; "tak diisi" hampir
+   * selalu berarti "belum dipikirkan", bukan "memang nol".
+   */
+  pgaG?: number
   panjangDindingM: number
   selimutMm: number
   dUtamaMm: number
@@ -360,6 +370,51 @@ export function analisaDindingPenahan(input: InputDindingPenahan): HasilDindingP
     + 'sampai dua kali lipat.',
   )
 
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    GEMPA — dijalankan DI SINI, bukan sebagai jenis elemen terpisah.
+
+    Alasannya: satu dinding punya satu verdict. Memisahkannya jadi elemen
+    sendiri berarti estimator memasukkan dinding yang sama DUA KALI, dan
+    volumenya terhitung ganda di RAB — cacat yang jauh lebih mahal daripada
+    kerapian struktur kode.
+
+    Momen statis diteruskan APA ADANYA dari perhitungan di atas, bukan
+    dihitung ulang: dua perhitungan yang sama akan menyimpang diam-diam saat
+    salah satunya diperbaiki.
+  */
+  if (input.pgaG != null) {
+    try {
+      const gempa = analisaGempaDinding({
+        tinggiM,
+        gammaTanahKnM3: gammaTanahKnM3,
+        phiDerajat,
+        pgaG: input.pgaG,
+        momenGulingStatisKnm: momenGulingKnm,
+        momenPenahanKnm,
+      })
+      periksa.push(...gempa.periksa)
+      catatan.push(...gempa.catatan)
+    } catch (e) {
+      /*
+        Gempa yang TAK BISA dihitung tak boleh menggagalkan seluruh analisa —
+        pemeriksaan statisnya tetap berguna. Tetapi ia juga tak boleh DIAM:
+        sebabnya dicatat apa adanya, karena "tanahnya sudah longsor pada
+        percepatan itu" adalah temuan, bukan kegagalan alat.
+      */
+      catatan.push(
+        `Pemeriksaan GEMPA tak dapat dijalankan: ${(e as Error).message}`,
+      )
+    }
+  } else {
+    catatan.push(
+      'Pemeriksaan GEMPA tidak dijalankan karena PGA (`pgaG`) belum diisi. '
+      + 'Itu BUKAN berarti aman terhadap gempa — Indonesia rawan gempa, dan '
+      + 'dorongan tanah saat gempa bisa 40-60% lebih besar daripada saat '
+      + 'diam. Isi PGA dari peta gempa SNI 1726 untuk lokasinya.',
+    )
+  }
+
   return {
     periksa,
     aman: periksa.every((p) => p.aman),
@@ -641,6 +696,325 @@ export function analisaDindingGeser(input: InputDindingGeser): HasilDindingGeser
       phiVnKn: Math.round(phiVnPakai * 100) / 100,
       phiMnKnm: Math.round(phiMnKnm * 100) / 100,
       lenturDuluan,
+    },
+  }
+}
+
+// ── Tekanan tanah saat GEMPA (Mononobe-Okabe) ────────────────────────────────
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════════
+ * MONONOBE-OKABE — dinding yang aman saat diam bisa runtuh saat bergoyang
+ *
+ * Seluruh perhitungan di atas mengandaikan tanah DIAM. Saat gempa, tanah di
+ * belakang dinding ikut bergoyang, dan massa yang bergoyang itu mendorong jauh
+ * lebih kuat daripada saat diam.
+ *
+ * Selisihnya bukan halus. Pada percepatan 0,3 g — lazim di Jawa dan Sumatera —
+ * dorongan tanah naik sekitar 40-60%, dan titik tangkapnya NAIK dari sepertiga
+ * tinggi ke sekitar tengah dinding. Keduanya memperbesar momen guling:
+ * gayanya lebih besar DAN lengannya lebih panjang.
+ *
+ * Karena itu dinding yang lulus pemeriksaan statis dengan SF 1,6 bisa gagal
+ * total saat gempa — dan gagalnya berupa dinding yang menimbun apa pun di
+ * bawahnya.
+ *
+ * ── Yang membuat rumus ini sering salah dipakai
+ *
+ * Mononobe-Okabe mengandaikan dinding BOLEH BERGESER sedikit (mode aktif). Itu
+ * benar untuk dinding kantilever yang berdiri bebas. Untuk dinding basement
+ * yang terkunci pelat lantai di atas dan bawah, tanahnya tak bisa mengembang,
+ * dan tekanannya jauh lebih besar (mendekati diam / at-rest). Modul ini menolak
+ * memberi angka untuk keadaan itu, bukan memberi angka yang terlalu kecil.
+ *
+ * ── Ambang kh yang membuat rumusnya pecah
+ *
+ * Akar dalam rumus Mononobe-Okabe menjadi negatif bila sudut inersia seismik
+ * melewati (φ − β). Secara fisika artinya: tanahnya sendiri sudah longsor,
+ * dinding apa pun tak menolong. Rumusnya tak boleh dipaksa — yang benar adalah
+ * MENOLAK dan mengatakan bahwa yang dibutuhkan bukan dinding lebih tebal
+ * melainkan lereng yang diperlandai atau tanah yang diperbaiki.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+
+/** Koefisien percepatan tanah puncak → koefisien seismik horizontal. */
+export const FAKTOR_KH_DARI_PGA = 0.5
+
+/**
+ * Ketinggian titik tangkap tambahan gempa, dinyatakan sebagai fraksi tinggi
+ * dinding dari DASAR.
+ *
+ * Statis menangkap di H/3 (segitiga). Tambahan gempa menangkap jauh lebih
+ * tinggi — Seed & Whitman mengusulkan 0,6H, dan itu yang dipakai di sini.
+ * Titik tangkap yang lebih tinggi memperpanjang lengan momen guling.
+ */
+export const TINGGI_TANGKAP_GEMPA = 0.6
+
+export interface InputGempaDinding {
+  /** Tinggi dinding total, m. */
+  tinggiM: number
+  /** Berat volume tanah, kN/m³. */
+  gammaTanahKnM3: number
+  /** Sudut geser dalam tanah, derajat. */
+  phiDerajat: number
+  /**
+   * Percepatan tanah puncak (PGA), g. Dari peta gempa SNI 1726 untuk
+   * lokasinya — bukan ditebak.
+   */
+  pgaG: number
+  /** Sudut kemiringan permukaan tanah di belakang dinding, derajat. Default 0. */
+  kemiringanTanahDerajat?: number
+  /**
+   * Dinding boleh bergeser sedikit saat gempa (kantilever berdiri bebas)?
+   * `false` untuk dinding basement yang terkunci pelat — rumus ini TIDAK
+   * berlaku di sana.
+   */
+  bolehBergeser?: boolean
+  /** Momen guling & penahan statis, kNm/m — untuk menghitung SF gabungan. */
+  momenGulingStatisKnm?: number
+  momenPenahanKnm?: number
+}
+
+export interface HasilGempaDinding {
+  periksa: Periksa[]
+  aman: boolean
+  catatan: string[]
+  antara: {
+    /** Koefisien seismik horizontal yang dipakai. */
+    kh: number
+    /** Sudut inersia seismik θ, derajat. */
+    thetaDerajat: number
+    /** Koefisien tekanan aktif seismik total. */
+    kae: number
+    /** Koefisien tekanan aktif statis (pembanding). */
+    ka: number
+    /** Dorongan total saat gempa, kN/m. */
+    paeKnPerM: number
+    /** Dorongan statis, kN/m. */
+    paStatisKnPerM: number
+    /** TAMBAHAN akibat gempa saja, kN/m. */
+    tambahanKnPerM: number
+    /** Kenaikan dorongan, %. */
+    kenaikanPersen: number
+  }
+}
+
+/**
+ * Angka keamanan guling minimum saat GEMPA.
+ *
+ * Lebih rendah daripada 1,5 statis, dan itu disengaja: gempa adalah beban
+ * SESAAT. Menuntut 1,5 saat gempa akan membuat tiap dinding taman setebal
+ * dinding bendungan. SNI 8460 dan praktik internasional memakai 1,1-1,2.
+ */
+export const SF_GULING_GEMPA_MIN = 1.1
+
+export function analisaGempaDinding(input: InputGempaDinding): HasilGempaDinding {
+  const {
+    tinggiM: H, gammaTanahKnM3: gamma, phiDerajat: phi, pgaG,
+  } = input
+  const beta = input.kemiringanTanahDerajat ?? 0
+
+  positif('Tinggi dinding', H)
+  positif('Berat volume tanah', gamma)
+  positif('Sudut geser dalam', phi)
+  if (!Number.isFinite(pgaG) || pgaG < 0) {
+    throw new Error(
+      'PGA (`pgaG`) wajib diisi, angka >= 0 dalam satuan g. Ambil dari peta '
+      + 'gempa SNI 1726 untuk lokasinya — jangan ditebak; selisih 0,2 g dan '
+      + '0,4 g menggandakan tambahan dorongannya.',
+    )
+  }
+  if (phi >= 90) throw new Error('Sudut geser dalam harus < 90°')
+  if (beta < 0 || beta >= phi) {
+    throw new Error(
+      `Kemiringan tanah (${beta}°) harus 0..< sudut geser dalam (${phi}°). `
+      + 'Lereng yang lebih curam daripada sudut geser tanahnya sudah longsor '
+      + 'dengan sendirinya, tanpa perlu gempa.',
+    )
+  }
+
+  const catatan: string[] = []
+  const rad = (d: number) => (d * Math.PI) / 180
+
+  /*
+    ── DINDING TERKUNCI: rumus ini TIDAK berlaku.
+
+    Mononobe-Okabe mengandaikan tanah boleh mengembang sedikit (mode aktif).
+    Dinding basement yang terkunci pelat lantai tak memberi ruang itu, dan
+    tekanannya mendekati keadaan DIAM (at-rest) yang jauh lebih besar.
+
+    Menolak lebih baik daripada memberi angka yang terlalu kecil untuk
+    elemen yang kegagalannya menimbun orang.
+  */
+  if (input.bolehBergeser === false) {
+    throw new Error(
+      'Dinding yang TIDAK boleh bergeser (basement terkunci pelat lantai) '
+      + 'tak bisa dihitung dengan Mononobe-Okabe: rumus ini mengandaikan '
+      + 'tanah boleh mengembang sedikit. Pada dinding terkunci, tekanannya '
+      + 'mendekati keadaan DIAM (at-rest) yang jauh lebih besar — butuh '
+      + 'analisa terpisah, bukan angka dari sini.',
+    )
+  }
+
+  /*
+    ── Koefisien seismik horizontal.
+
+    kh = 0,5 × PGA adalah praktik yang lazim (AASHTO, dan diikuti SNI 8460):
+    percepatan puncak hanya terjadi sesaat, sementara dinding merespons
+    percepatan RATA-RATA selama guncangan. Memakai PGA penuh memberi dinding
+    yang jauh lebih mahal tanpa menambah keselamatan yang sepadan.
+  */
+  const kh = FAKTOR_KH_DARI_PGA * pgaG
+  const theta = Math.atan(kh / 1)          // kv diabaikan (konservatif untuk guling)
+  const thetaDerajat = (theta * 180) / Math.PI
+
+  /*
+    ── Batas fisika: akar menjadi negatif bila θ > (φ − β).
+
+    Artinya bukan "rumusnya gagal" melainkan TANAHNYA SENDIRI SUDAH LONGSOR
+    pada percepatan itu. Dinding apa pun tak menolong.
+  */
+  const batasDerajat = phi - beta
+  if (thetaDerajat >= batasDerajat) {
+    throw new Error(
+      `Pada PGA ${pgaG} g, sudut inersia seismik ${thetaDerajat.toFixed(1)}° `
+      + `melewati batas (φ − β) = ${batasDerajat.toFixed(1)}°. Artinya BUKAN `
+      + 'rumusnya gagal, melainkan tanahnya sendiri sudah longsor pada '
+      + 'percepatan itu — dinding setebal apa pun tak menolong. Yang '
+      + 'dibutuhkan: lereng diperlandai, tanah diperbaiki, atau dinding '
+      + 'dipindahkan. Konsultasikan ke ahli geoteknik.',
+    )
+  }
+
+  /*
+    ── Koefisien Mononobe-Okabe, bentuk sederhana (δ = 0, dinding tegak).
+
+               cos²(φ − θ)
+    Kae = ──────────────────────────────────────────
+          cosθ · [1 + √( sinφ · sin(φ − θ − β)
+                         / (cosθ · cos β) )]²
+  */
+  const pembilang = Math.cos(rad(phi) - theta) ** 2
+  const akar = Math.sqrt(
+    (Math.sin(rad(phi)) * Math.sin(rad(phi) - theta - rad(beta)))
+    / (Math.cos(theta) * Math.cos(rad(beta))),
+  )
+  const kae = pembilang / (Math.cos(theta) * (1 + akar) ** 2)
+
+  /* Rankine statis sebagai pembanding — sama dengan yang dipakai analisa utama. */
+  const ka = (1 - Math.sin(rad(phi))) / (1 + Math.sin(rad(phi)))
+
+  const paeKnPerM = 0.5 * kae * gamma * H * H
+  const paStatisKnPerM = 0.5 * ka * gamma * H * H
+  const tambahanKnPerM = Math.max(0, paeKnPerM - paStatisKnPerM)
+  const kenaikanPersen = paStatisKnPerM > 0
+    ? ((paeKnPerM - paStatisKnPerM) / paStatisKnPerM) * 100
+    : 0
+
+  const periksa: Periksa[] = []
+
+  /*
+    ── SF guling saat gempa, bila momen statisnya diberikan.
+
+    Tambahan gempa menangkap di 0,6H dari dasar (Seed & Whitman), bukan di
+    H/3 seperti tekanan statis. Titik tangkap yang lebih tinggi memperpanjang
+    lengan — dan itulah kenapa gempa memperburuk guling lebih parah daripada
+    kenaikan gayanya sendiri.
+  */
+  if (input.momenGulingStatisKnm != null && input.momenPenahanKnm != null) {
+    const momenTambahan = tambahanKnPerM * (TINGGI_TANGKAP_GEMPA * H)
+    const momenGulingTotal = input.momenGulingStatisKnm + momenTambahan
+    const sfGempa = momenGulingTotal > 0
+      ? input.momenPenahanKnm / momenGulingTotal
+      : Infinity
+
+    periksa.push({
+      nama: 'Tidak terguling saat gempa',
+      nilai: Math.round(sfGempa * 1000) / 1000,
+      syarat: SF_GULING_GEMPA_MIN,
+      satuan: '×',
+      aman: sfGempa >= SF_GULING_GEMPA_MIN,
+      rasio: Math.round((SF_GULING_GEMPA_MIN / Math.max(sfGempa, 1e-9)) * 1e4) / 1e4,
+      rumus: `SF = M_penahan / (M_guling statis + ΔPae × ${TINGGI_TANGKAP_GEMPA}H) `
+        + `≥ ${SF_GULING_GEMPA_MIN} (SNI 8460, beban sesaat)`,
+    })
+
+    catatan.push(
+      `Tambahan gempa ${tambahanKnPerM.toFixed(1)} kN/m menangkap di `
+      + `${(TINGGI_TANGKAP_GEMPA * H).toFixed(2)} m dari dasar (0,6H), bukan di `
+      + `${(H / 3).toFixed(2)} m seperti tekanan statis. Titik tangkap yang `
+      + 'lebih tinggi memperpanjang lengan momen — inilah sebabnya gempa '
+      + 'memperburuk guling LEBIH PARAH daripada kenaikan gayanya sendiri.',
+    )
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KENAIKAN DORONGAN — angkanya BUKAN pemeriksaan, dan itu penting.
+
+    Versi pertama memasukkannya ke `periksa` dengan `aman: true` dan rasio
+    yang memperlihatkan besarnya. Hasilnya di layar: batang HIJAU bertuliskan
+    "128%".
+
+    Bagi pembaca non-teknis — yang justru menjadi alasan seluruh lapisan awam
+    ini ada — angka di atas 100% pada batang kekuatan berarti SATU hal:
+    melewati batas. Hijau dan 128% bersamaan hanya membingungkan, dan yang
+    membingungkan akan diabaikan, termasuk saat ia sungguhan merah.
+
+    Kenaikan dorongan bukan lulus/gagal: ia MASUKAN bagi pemeriksaan guling
+    dan geser di atasnya. Tempatnya di catatan (untuk yang membaca) dan di
+    `antara` (untuk yang menghitung ulang), bukan di meteran kekuatan.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  catatan.push(
+    `Dorongan tanah saat gempa ${paeKnPerM.toFixed(1)} kN/m, saat diam `
+    + `${paStatisKnPerM.toFixed(1)} kN/m — dihitung dengan Mononobe-Okabe `
+    + `(Kae ${kae.toFixed(4)}) terhadap Rankine statis (Ka ${ka.toFixed(4)}). `
+    + 'Selisihnya yang harus ditahan tambahan oleh dinding, dan ia sudah '
+    + 'termasuk dalam pemeriksaan guling di atas.',
+  )
+
+  catatan.push(
+    `Koefisien seismik kh = ${FAKTOR_KH_DARI_PGA} × PGA ${pgaG} g = ${kh.toFixed(3)}. `
+    + 'Setengah PGA, bukan PGA penuh: percepatan puncak hanya terjadi sesaat '
+    + 'sementara dinding merespons percepatan RATA-RATA selama guncangan '
+    + '(AASHTO, diikuti SNI 8460). Memakai PGA penuh memberi dinding yang '
+    + 'jauh lebih mahal tanpa menambah keselamatan yang sepadan.',
+  )
+  catatan.push(
+    `Dorongan naik ${kenaikanPersen.toFixed(0)}% saat gempa `
+    + `(${paStatisKnPerM.toFixed(1)} → ${paeKnPerM.toFixed(1)} kN/m). `
+    + 'Dinding yang lulus pemeriksaan statis dengan angka keamanan pas-pasan '
+    + 'BISA gagal saat gempa — dan gagalnya berupa dinding yang menimbun apa '
+    + 'pun di bawahnya.',
+  )
+  catatan.push(
+    `Angka keamanan guling saat gempa memakai ${SF_GULING_GEMPA_MIN}, lebih `
+    + 'rendah daripada 1,5 statis. Itu disengaja: gempa adalah beban SESAAT, '
+    + 'dan menuntut 1,5 saat gempa akan membuat tiap dinding taman setebal '
+    + 'dinding bendungan.',
+  )
+  catatan.push(
+    'Yang BELUM diperiksa di sini: percepatan VERTIKAL (kv), tekanan air pori '
+    + 'yang ikut naik saat gempa (likuefaksi), dan perpindahan permanen '
+    + 'dinding setelah guncangan (metode Newmark). Yang terakhir penting '
+    + 'untuk dinding yang boleh bergeser sedikit asalkan tak roboh — dan itu '
+    + 'keputusan pemilik, bukan keputusan rumus.',
+  )
+
+  return {
+    periksa,
+    aman: periksa.every((p) => p.aman),
+    catatan,
+    antara: {
+      kh: Math.round(kh * 1e4) / 1e4,
+      thetaDerajat: Math.round(thetaDerajat * 100) / 100,
+      kae: Math.round(kae * 1e6) / 1e6,
+      ka: Math.round(ka * 1e6) / 1e6,
+      paeKnPerM: Math.round(paeKnPerM * 100) / 100,
+      paStatisKnPerM: Math.round(paStatisKnPerM * 100) / 100,
+      tambahanKnPerM: Math.round(tambahanKnPerM * 100) / 100,
+      kenaikanPersen: Math.round(kenaikanPersen * 10) / 10,
     },
   }
 }

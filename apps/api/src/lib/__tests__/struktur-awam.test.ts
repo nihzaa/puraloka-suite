@@ -16,7 +16,9 @@ import { analisaTangga } from '../struktur-tangga'
 import { analisaBalokT } from '../struktur-balok-t'
 import { analisaGempaStatik, analisaDrift } from '../struktur-beban-lateral'
 import { analisaPondasiMenerus, analisaRaft } from '../struktur-pondasi-dangkal'
-import { analisaDindingPenahan, analisaDindingGeser } from '../struktur-dinding'
+import {
+  analisaDindingPenahan, analisaDindingGeser, analisaGempaDinding,
+} from '../struktur-dinding'
 import { analisaKolomKomposit, analisaBondek } from '../struktur-komposit'
 import { analisaGusset, analisaSambunganMomen } from '../struktur-baja-sambungan-lanjut'
 import { analisaKudaKudaKayu, analisaBajaRingan } from '../struktur-atap-ringan'
@@ -337,6 +339,17 @@ function semuaHasilAnalisa(): Array<{ periksa: ReadonlyArray<{ nama: string; ras
     analisaSekrupBajaRingan({
       diameterMm: 4.8, jumlahSekrup: 4, tebal1Mm: 0.75, tebal2Mm: 1,
       fuMpa: 550, gayaGeserKn: 3, gayaTarikKn: 1.2, jarakTepiMm: 15,
+    }) as never,
+    /*
+      GEMPA pada dinding penahan — pemeriksaan yang paling perlu diterjemahkan.
+
+      Yang memutuskan membangun dinding penahan hampir tak pernah insinyur:
+      pemilik rumah berlahan undak, atau pengembang yang memotong lereng.
+      Bagi mereka "Kae 0,46" kosong, sementara akibatnya sangat nyata.
+    */
+    analisaGempaDinding({
+      tinggiM: 3, gammaTanahKnM3: 18, phiDerajat: 30, pgaG: 0.3,
+      momenGulingStatisKnm: 24, momenPenahanKnm: 62,
     }) as never,
     analisaRangka({
       nama: 'KK-1', mutu: { fyMpa: 240, fuMpa: 370 },

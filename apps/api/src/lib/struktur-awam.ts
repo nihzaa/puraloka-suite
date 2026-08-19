@@ -776,6 +776,33 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
     tindakan: 'Tambah tulangan mendatar, tebalkan dindingnya, atau naikkan '
       + 'mutu betonnya.',
   },
+  // ── DINDING PENAHAN SAAT GEMPA ────────────────────────────────────────────
+  /*
+    Dua pemeriksaan yang paling sulit dijelaskan, dan paling perlu.
+
+    Yang memutuskan membangun dinding penahan hampir tak pernah insinyur —
+    ia pemilik rumah yang lahannya berundak, atau pengembang yang memotong
+    lereng. Bagi mereka "Kae 0,46" tak berarti apa-apa, sementara keputusan
+    yang bergantung padanya sangat nyata: dinding yang runtuh saat gempa
+    menimbun apa pun di bawahnya.
+  */
+  'Tidak terguling saat gempa': {
+    judul: 'Dinding tetap berdiri saat tanah bergoyang',
+    apa: 'Seluruh perhitungan yang lain mengandaikan tanah DIAM. Saat gempa, '
+      + 'tanah di belakang dinding ikut bergoyang, dan massa yang bergoyang '
+      + 'itu mendorong jauh lebih kuat daripada saat diam. Ini memeriksa '
+      + 'apakah dinding masih sanggup menahan dorongan yang membesar itu.',
+    risiko: 'Dinding yang aman saat diam BISA terguling saat gempa — dan dua '
+      + 'hal memperburuknya sekaligus: dorongannya lebih besar, DAN titik '
+      + 'dorongnya naik ke tengah dinding sehingga daya ungkitnya lebih '
+      + 'panjang. Dinding penahan yang roboh tidak retak dulu; ia menimbun '
+      + 'apa pun yang ada di bawahnya, sekaligus.',
+    tindakan: 'Perpanjang telapak ke arah tumit (paling murah dan paling '
+      + 'berpengaruh), tambah kaki di depan, atau kurangi tinggi tanah yang '
+      + 'ditahan dengan membuatnya berundak dua. Menebalkan badan dinding '
+      + 'hampir tak menolong untuk guling — yang menahan guling adalah '
+      + 'LEBAR telapak, bukan tebal dindingnya.',
+  },
   'Lentur leleh sebelum geser': {
     judul: 'Dinding memberi peringatan sebelum runtuh',
     apa: 'Dinding geser boleh rusak saat gempa besar — yang tidak boleh adalah '
