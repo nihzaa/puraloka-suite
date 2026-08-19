@@ -528,6 +528,98 @@ describe('mencetak SPK', () => {
       if (maBuatan) await db.query('DELETE FROM mandor_assignments WHERE id = $1', [maBuatan])
     }
   })
+  /**
+   * ══════════════════════════════════════════════════════════════════════
+   * SYARAT UMUM — milik TENANT, bukan milik produk (migrasi 465)
+   * ══════════════════════════════════════════════════════════════════════
+   *
+   * Diukur 2026-08-19: berkas rutenya punya NOL rujukan ke klausul,
+   * sementara `contracts.ts` sudah membacanya dari tenant di empat tempat
+   * sejak migrasi 450. Akibatnya tiap perusahaan menerbitkan SPK dengan
+   * syarat yang ditulis pembuat aplikasi, bukan penasihat hukumnya.
+   *
+   * Yang dibuktikan di sini bukan penggabungannya (itu di
+   * `lib/__tests__/klausul-jenis`) melainkan RANTAINYA: baris di basis
+   * sampai ke KERTAS.
+   */
+  it('syarat umum BAWAAN tercetak — SPK tak pernah terbit tanpa dasar', async () => {
+    // Bawaan adalah LANTAI. Tenant yang belum menyunting apa pun tetap
+    // menerbitkan SPK yang menyebut kewajiban K3 dan tata cara pemutusan.
+    const isi = teksPdf((await cetak(dibuat[0])).rawPayload)
+    expect(isi, 'bagian syarat umum tak tercetak sama sekali').toContain('SYARAT UMUM')
+    // Frasa PENDEK — teks PDF dirakit dari pecahan TJ, kalimat panjang
+    // bisa terpotong di tengah kata.
+    expect(isi).toContain('KESELAMATAN KERJA')
+    expect(isi).toContain('PEMUTUSAN')
+  })
+
+  it('klausul TENANT MENIMPA bawaan — dan sampai ke kertas', async () => {
+    /*
+      Inti migrasi 465. Kalau penimpaannya berhenti di basis dan tak pernah
+      sampai ke PDF, tenant menyunting syaratnya lalu menerbitkan kertas yang
+      tetap berbunyi bawaan produk — dan tak ada satu pun galat.
+    */
+    const { rows: co } = await db.query(
+      'SELECT company_id FROM surat_perintah_kerja WHERE id = $1', [dibuat[0]])
+    const companyId = co[0].company_id
+
+    const PENANDA = 'BUNYI KHUSUS PERUSAHAAN INI'
+    await db.query(
+      `INSERT INTO klausul_kontrak
+         (company_id, jenis_dokumen, nomor, judul, isi, urutan, aktif)
+       VALUES ($1, 'spk', '2', 'K3 VERSI KAMI', $2, 20, true)`,
+      [companyId, PENANDA])
+    try {
+      const isi = teksPdf((await cetak(dibuat[0])).rawPayload)
+      expect(isi, 'klausul tenant tak sampai ke kertas').toContain('K3 VERSI KAMI')
+
+      // Dan bawaan yang DITIMPA benar-benar hilang dari kertas — bukan
+      // tercetak dua kali berdampingan, yang justru lebih membingungkan
+      // daripada bawaan saja.
+      expect(isi, 'bawaan yang ditimpa masih ikut tercetak').not.toContain('KESELAMATAN KERJA')
+
+      // Bawaan yang TIDAK ditimpa tetap ada — tenant tak bisa berakhir tanpa
+      // pasal pemutusan hanya karena menyunting pasal K3.
+      expect(isi, 'menyunting satu pasal menghapus sisanya').toContain('PEMUTUSAN')
+    } finally {
+      await db.query(
+        `DELETE FROM klausul_kontrak WHERE company_id = $1 AND isi = $2`,
+        [companyId, PENANDA])
+    }
+  })
+
+  it('klausul jenis KONTRAK tidak bocor ke kertas SPK', async () => {
+    /*
+      Index unik migrasi 465 kini per-(company, jenis, nomor), jadi "Pasal 1"
+      kontrak dan "Pasal 1" SPK bisa hidup bersamaan. Yang harus dibuktikan:
+      penyaring `jenis_dokumen='spk'` di rute BENAR-BENAR menyaring.
+
+      Tanpa itu, SPK senilai belasan juta akan memuat pasal penyelesaian
+      sengketa versi kontrak induk — kertas yang terlihat lengkap dan
+      berbunyi salah.
+    */
+    const { rows: co } = await db.query(
+      'SELECT company_id FROM surat_perintah_kerja WHERE id = $1', [dibuat[0]])
+    const companyId = co[0].company_id
+
+    const PENANDA = 'PASAL MILIK KERTAS KONTRAK'
+    await db.query(
+      `INSERT INTO klausul_kontrak
+         (company_id, jenis_dokumen, nomor, judul, isi, urutan, aktif)
+       VALUES ($1, 'kontrak', '2', $2, 'isi pasal kontrak', 20, true)`,
+      [companyId, PENANDA])
+    try {
+      const isi = teksPdf((await cetak(dibuat[0])).rawPayload)
+      expect(isi, 'klausul KONTRAK bocor ke kertas SPK').not.toContain('PASAL MILIK KERTAS')
+      // Dan bawaan SPK-nya tetap utuh.
+      expect(isi).toContain('KESELAMATAN KERJA')
+    } finally {
+      await db.query(
+        `DELETE FROM klausul_kontrak WHERE company_id = $1 AND judul = $2`,
+        [companyId, PENANDA])
+    }
+  })
+
 })
 
 /**
@@ -705,4 +797,5 @@ describe('addendum SPK', () => {
     // Id proyek bukan id SPK — yang penting ia TIDAK memulangkan 200 berisi.
     expect(r.statusCode).toBe(404)
   })
+
 })

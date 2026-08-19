@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { gabungKlausulJenis, type Klausul } from '../../lib/klausul-kontrak.js'
 import PDFDocument from 'pdfkit'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
@@ -516,6 +517,53 @@ export default async function spkRoutes(app: FastifyInstance) {
         doc.font('Helvetica').fontSize(9.5)
           .text(String(s.syarat_khusus), M, y, { width: W, align: 'justify' })
         y = doc.y + 12
+      }
+
+      // ── SYARAT UMUM — milik TENANT, bukan milik produk ───────────────────
+      //
+      // Diukur 2026-08-19: berkas ini punya NOL rujukan ke klausul, sementara
+      // `contracts.ts` sudah membacanya dari tenant di empat tempat sejak
+      // migrasi 450. Akibatnya tiap perusahaan menerbitkan SPK dengan syarat
+      // yang ditulis pembuat aplikasi, bukan penasihat hukumnya.
+      //
+      // `syarat_khusus` di atas TIDAK menggantikan ini: ia per-pekerjaan,
+      // sedangkan yang di sini berlaku untuk semua SPK perusahaan itu.
+      // Keduanya tercetak, dan urutannya disengaja — yang khusus lebih dulu
+      // karena itulah yang dibaca orang, yang umum menyusul sebagai dasar.
+      //
+      // Kegagalan memuat DICATAT lalu dilewati, tidak menghentikan
+      // pencetakan: aturan yang sama dengan `lib/kop-dokumen.ts` dan
+      // `lib/gambar-kop.ts` — dokumen yang tak bisa terbit lebih merugikan
+      // daripada dokumen tanpa syarat umum. Tapi diamnya TIDAK boleh
+      // sempurna, karena SPK yang berbunyi berbeda dari yang disepakati
+      // penasihat hukum adalah cacat yang baru ketahuan saat bersengketa.
+      const { data: klausulTenant, error: eKlausul } = await request.db!
+        .from('klausul_kontrak')
+        .select('nomor, judul, isi, urutan')
+        .eq('jenis_dokumen', 'spk')
+        .eq('aktif', true)
+        .order('urutan', { ascending: true })
+      if (eKlausul) {
+        request.log.error({ err: eKlausul }, 'klausul SPK tenant gagal dimuat, memakai bawaan')
+      }
+      const klausul = gabungKlausulJenis('spk', (klausulTenant ?? []) as Klausul[])
+
+      if (klausul.length > 0) {
+        if (y > doc.page.height - 200) { doc.addPage(); y = M }
+        doc.font('Helvetica-Bold').fontSize(10).text('SYARAT UMUM', M, y, { width: W })
+        y = doc.y + 4
+        for (const k of klausul) {
+          // Pasal tak boleh terbelah judul-di-halaman-ini isi-di-sana. Pembaca
+          // yang menemukan judul tanpa isi menganggap pasalnya kosong.
+          if (y > doc.page.height - 110) { doc.addPage(); y = M }
+          doc.font('Helvetica-Bold').fontSize(9)
+            .text(`${k.nomor}. ${k.judul}`, M, y, { width: W })
+          y = doc.y + 2
+          doc.font('Helvetica').fontSize(8.5)
+            .text(k.isi, M, y, { width: W, align: 'justify' })
+          y = doc.y + 7
+        }
+        y += 5
       }
 
       // ── Tanda tangan ─────────────────────────────────────────────────────

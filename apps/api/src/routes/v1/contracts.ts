@@ -2,7 +2,8 @@ import type { FastifyInstance } from 'fastify'
 import PDFDocument from 'pdfkit'
 import { susunKop, kunciLogo, BUCKET_LOGO, type IdentitasTenant } from '../../lib/kop-dokumen.js'
 import {
-  gabungKlausul, bolehDiubah, NOMOR_DIRAKIT_KODE, type Klausul,
+  gabungKlausul, gabungKlausulJenis, bolehDiubah, NOMOR_DIRAKIT_KODE,
+  type Klausul, type JenisDokumenKlausul,
 } from '../../lib/klausul-kontrak.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
@@ -228,6 +229,24 @@ interface ProjectData {
 }
 
 // ─── Route ────────────────────────────────────────────────────────────────────
+
+
+/**
+ * Baca jenis dokumen dari kueri/body, atau `null` bila tak dikenal.
+ *
+ * Bawaannya `kontrak` — pemanggil lama (termasuk layar yang sudah dipakai
+ * orang sejak migrasi 450) berperilaku PERSIS seperti sebelum migrasi 465.
+ *
+ * Nilai asing memulangkan `null` supaya rutenya membalas 400, bukan diam-diam
+ * jatuh ke `kontrak`. Salah ketik `?jenis=SPK` yang senyap-jatuh ke kontrak
+ * akan menyunting pasal kertas yang SALAH — dan yang menyuntingnya mengira
+ * berhasil.
+ */
+function jenisDariKueri(v: unknown): JenisDokumenKlausul | null {
+  const t = String(v ?? '').trim()
+  if (t === '') return 'kontrak'
+  return t === 'kontrak' || t === 'spk' || t === 'berita_acara' ? t : null
+}
 
 export default async function contractRoutes(app: FastifyInstance) {
 
@@ -746,9 +765,20 @@ export default async function contractRoutes(app: FastifyInstance) {
     '/api/v1/klausul-kontrak',
     { preHandler: [authenticate, requirePermission('settings:manage')] },
     async (request, reply) => {
+      // `jenis` menentukan kertas apa yang sedang disunting (migrasi 465).
+      // Bawaannya `kontrak` supaya pemanggil lama — termasuk layar yang
+      // sudah dipakai orang — berperilaku PERSIS seperti sebelumnya.
+      const jenis = jenisDariKueri((request.query as Record<string, unknown>)?.jenis)
+      if (!jenis) {
+        return reply.status(400).send({
+          error: 'Jenis dokumen tak dikenal. Pilihannya: kontrak, spk, berita_acara.',
+        })
+      }
+
       const { data, error } = await request.db!
         .from('klausul_kontrak')
         .select('id, nomor, judul, isi, urutan, versi, aktif, updated_at')
+        .eq('jenis_dokumen', jenis)
         .eq('aktif', true)
         .order('urutan', { ascending: true })
       if (error) {
@@ -764,14 +794,19 @@ export default async function contractRoutes(app: FastifyInstance) {
       // membedakan pasal yang sudah ia ubah dari pasal yang masih bawaan —
       // dan "sudah saya ubah, kok tak berubah di kontrak" adalah keluhan yang
       // tak bisa dijawab tanpa membuka basis.
-      const gabungan = gabungKlausul(tenant).map((k) => {
+      const gabungan = gabungKlausulJenis(jenis, tenant).map((k) => {
         const milikTenant = petaTenant.get(k.nomor)
         return {
           ...k,
           asal: milikTenant ? 'tenant' : 'bawaan',
           id: milikTenant ? String(milikTenant.id) : null,
           versi: milikTenant ? Number(milikTenant.versi) : null,
-          bisa_diubah: bolehDiubah(k.nomor),
+          // `NOMOR_DIRAKIT_KODE` hanya berlaku untuk KONTRAK: lima pasalnya
+          // menganyam data hidup di `contracts.ts`. SPK & berita acara tak
+          // punya pasal semacam itu, jadi seluruhnya boleh disunting —
+          // menandainya terkunci akan melarang tenant menyunting syarat yang
+          // memang miliknya.
+          bisa_diubah: jenis === 'kontrak' ? bolehDiubah(k.nomor) : true,
         }
       })
 
@@ -780,8 +815,9 @@ export default async function contractRoutes(app: FastifyInstance) {
         // Pasal yang dirakit kode DISEBUTKAN, bukan didiamkan. Yang membuka
         // layar ini akan mencari "PASAL 3 NILAI KONTRAK" dan tak menemukannya;
         // tanpa penjelasan, ia menyimpulkan pasalnya hilang dari kontrak.
-        dirakit_kode: NOMOR_DIRAKIT_KODE,
-        catatan_dirakit:
+        jenis,
+        dirakit_kode: jenis === 'kontrak' ? NOMOR_DIRAKIT_KODE : [],
+        catatan_dirakit: jenis !== 'kontrak' ? null :
           'Pasal yang menganyam data hidup (nilai kontrak + terbilang, jangka waktu, '
           + 'tabel termin, masa pemeliharaan, lingkup dari RAB) tetap dirakit sistem dan '
           + 'tak bisa disunting di sini. Template yang salah tulis akan menghasilkan '
@@ -798,12 +834,21 @@ export default async function contractRoutes(app: FastifyInstance) {
   // saat ditandatangani — dan PDF-nya di-generate ulang tiap kali diunduh.
   // Tanpa versi, memperbaiki satu salah ketik hari ini diam-diam mengubah
   // bunyi seluruh kontrak yang pernah terbit.
-  app.put<{ Params: { nomor: string }; Body: { judul?: string; isi?: string; urutan?: number } }>(
+  app.put<{
+    Params: { nomor: string }
+    Body: { judul?: string; isi?: string; urutan?: number; jenis?: string }
+  }>(
     '/api/v1/klausul-kontrak/:nomor',
     { preHandler: [authenticate, requirePermission('settings:manage')] },
     async (request, reply) => {
       const nomor = String(request.params.nomor ?? '').trim()
       const b = request.body ?? {}
+      const jenis = jenisDariKueri(b.jenis)
+      if (!jenis) {
+        return reply.status(400).send({
+          error: 'Jenis dokumen tak dikenal. Pilihannya: kontrak, spk, berita_acara.',
+        })
+      }
       const judul = String(b.judul ?? '').trim()
       const isi = String(b.isi ?? '').trim()
 
@@ -819,7 +864,11 @@ export default async function contractRoutes(app: FastifyInstance) {
         })
       }
 
-      if (!bolehDiubah(nomor)) {
+      // Pagar `NOMOR_DIRAKIT_KODE` HANYA berlaku untuk kontrak — lima
+      // pasalnya menganyam data hidup. SPK & berita acara tak punya pasal
+      // semacam itu, dan menerapkan pagar yang sama akan melarang tenant
+      // menyunting syarat yang memang miliknya.
+      if (jenis === 'kontrak' && !bolehDiubah(nomor)) {
         return reply.status(422).send({
           error: `Pasal ${nomor} dirakit sistem dari data proyek (nilai kontrak, termin, `
             + 'jangka waktu) dan tak bisa diganti teksnya.',
@@ -834,7 +883,7 @@ export default async function contractRoutes(app: FastifyInstance) {
       const { data: lama, error: eLama } = await db
         .from('klausul_kontrak')
         .update({ aktif: false, updated_at: new Date().toISOString() })
-        .eq('nomor', nomor).eq('aktif', true)
+        .eq('jenis_dokumen', jenis).eq('nomor', nomor).eq('aktif', true)
         .select('id, versi')
       if (eLama) {
         request.log.error({ err: eLama, nomor }, 'gagal menonaktifkan klausul lama')
@@ -850,6 +899,7 @@ export default async function contractRoutes(app: FastifyInstance) {
           judul,
           isi,
           urutan: Number.isFinite(b.urutan) ? Number(b.urutan) : 999,
+          jenis_dokumen: jenis,
           versi: versiBaru,
           aktif: true,
           created_by: request.currentUser!.id,
@@ -884,17 +934,27 @@ export default async function contractRoutes(app: FastifyInstance) {
   //
   // Yang terjadi: penimpaan tenant dinonaktifkan, dan bunyi bawaan produk
   // kembali dipakai. Riwayatnya tetap tersimpan.
-  app.delete<{ Params: { nomor: string } }>(
+  app.delete<{ Params: { nomor: string }; Querystring: { jenis?: string } }>(
     '/api/v1/klausul-kontrak/:nomor',
     { preHandler: [authenticate, requirePermission('settings:manage')] },
     async (request, reply) => {
       const nomor = String(request.params.nomor ?? '').trim()
       if (!nomor) return reply.status(400).send({ error: 'Nomor pasal wajib diisi' })
 
+      // Penyaring jenis WAJIB — tanpa itu "pulihkan bawaan Pasal 2 SPK"
+      // menonaktifkan Pasal 2 KONTRAK, dan tak ada satu pun galat. Index unik
+      // migrasi 465 memang membolehkan keduanya hidup bersamaan.
+      const jenis = jenisDariKueri(request.query?.jenis)
+      if (!jenis) {
+        return reply.status(400).send({
+          error: 'Jenis dokumen tak dikenal. Pilihannya: kontrak, spk, berita_acara.',
+        })
+      }
+
       const { data, error } = await request.db!
         .from('klausul_kontrak')
         .update({ aktif: false, updated_at: new Date().toISOString() })
-        .eq('nomor', nomor).eq('aktif', true)
+        .eq('jenis_dokumen', jenis).eq('nomor', nomor).eq('aktif', true)
         .select('id')
       if (error) {
         request.log.error({ err: error, nomor }, 'gagal memulihkan klausul bawaan')

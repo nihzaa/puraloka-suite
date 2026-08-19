@@ -1,7 +1,20 @@
 "use client";
 
 /**
- * KLAUSUL KONTRAK — menyunting bunyi pasal tanpa rilis kode.
+ * KLAUSUL DOKUMEN — menyunting bunyi pasal tanpa rilis kode.
+ *
+ * ⚠ Sejak 2026-08-19 (migrasi 465) layar ini melayani TIGA jenis kertas:
+ * kontrak, SPK, dan berita acara. Sebelumnya hanya kontrak.
+ *
+ * Diukur saat itu: `spk.ts` punya NOL rujukan ke klausul, sementara
+ * `contracts.ts` sudah membacanya dari tenant di empat tempat sejak migrasi
+ * 450. Akibatnya tiap perusahaan menerbitkan SPK dengan syarat yang ditulis
+ * pembuat aplikasi, bukan penasihat hukumnya.
+ *
+ * Satu layar untuk tiga jenis, bukan tiga layar: yang membedakan klausul
+ * kontrak dari klausul SPK bukan cara menyuntingnya — keduanya nomor, judul,
+ * isi — melainkan untuk kertas apa ia dicetak. Tiga layar berarti tiga tempat
+ * memperbaiki bug yang sama, dan yang ketiga selalu tertinggal.
  *
  * ══════════════════════════════════════════════════════════════════════════
  * KENAPA LAYAR INI ADA
@@ -59,13 +72,34 @@ interface Klausul {
 
 interface Muatan {
   klausul: Klausul[];
+  jenis: JenisDokumen;
   dirakit_kode: readonly string[];
-  catatan_dirakit: string;
+  /** `null` untuk SPK & berita acara — keduanya tak punya pasal dirakit kode. */
+  catatan_dirakit: string | null;
 }
 
+/**
+ * Jenis dokumen yang punya klausul (migrasi 465).
+ *
+ * ── Kenapa layar ini melayani tiga jenis, bukan tiga layar
+ *
+ * Yang membedakan klausul kontrak dari klausul SPK bukan cara menyuntingnya —
+ * keduanya: nomor, judul, isi. Yang berbeda cuma untuk kertas apa ia
+ * dicetak. Tiga layar berarti tiga tempat memperbaiki bug yang sama, dan
+ * yang ketiga selalu tertinggal.
+ */
+type JenisDokumen = "kontrak" | "spk" | "berita_acara";
+
+const JENIS: { nilai: JenisDokumen; label: string; kertas: string }[] = [
+  { nilai: "kontrak", label: "Kontrak", kertas: "kontrak kerja dengan pemberi kerja" },
+  { nilai: "spk", label: "SPK", kertas: "surat perintah kerja ke subkontraktor" },
+  { nilai: "berita_acara", label: "Berita Acara", kertas: "berita acara pemeriksaan pekerjaan" },
+];
+
 export default function HalamanKlausulKontrak() {
+  const [jenis, setJenis] = useState<JenisDokumen>("kontrak");
   const { data, memuat, galat: galatMuat, muatUlang } =
-    useData<Muatan>("/api/v1/klausul-kontrak");
+    useData<Muatan>(`/api/v1/klausul-kontrak?jenis=${jenis}`);
 
   const [sunting, setSunting] = useState<Klausul | null>(null);
   const [judul, setJudul] = useState("");
@@ -91,8 +125,11 @@ export default function HalamanKlausulKontrak() {
     setSibuk(true);
     setGalatAksi(null);
     try {
+      // `jenis` IKUT — tanpa itu rutenya jatuh ke bawaan `kontrak`, dan
+      // menyunting syarat SPK diam-diam mengubah pasal kontrak yang sudah
+      // ditandatangani orang.
       await api.put(`/api/v1/klausul-kontrak/${sunting.nomor}`, {
-        judul, isi, urutan: sunting.urutan,
+        judul, isi, urutan: sunting.urutan, jenis,
       });
       setSunting(null);
       setKabar(`Pasal ${sunting.nomor} disimpan. Kontrak baru akan memakai bunyi ini.`);
@@ -111,7 +148,7 @@ export default function HalamanKlausulKontrak() {
     setSibuk(true);
     setGalatAksi(null);
     try {
-      await api.delete(`/api/v1/klausul-kontrak/${k.nomor}`);
+      await api.delete(`/api/v1/klausul-kontrak/${k.nomor}?jenis=${jenis}`);
       setKabar(`Pasal ${k.nomor} kembali memakai bunyi bawaan. Riwayat suntingan tetap tersimpan.`);
       void muatUlang();
     } catch (e) {
@@ -128,11 +165,58 @@ export default function HalamanKlausulKontrak() {
     <Halaman>
       <KepalaHalaman
         ikon={<Scale size={20} aria-hidden="true" />}
-        judul="Klausul Kontrak"
-        keterangan={<>Bunyi pasal yang tercetak di kontrak perusahaan ini. Yang belum
-          disunting memakai <strong>bawaan produk</strong> — dan bawaan itu selalu ikut
-          tercetak, jadi kontrak tak pernah terbit tanpa pasal penyelesaian sengketa.</>}
+        judul="Klausul Dokumen"
+        keterangan={<>Bunyi pasal yang tercetak di dokumen resmi perusahaan ini. Yang
+          belum disunting memakai <strong>bawaan produk</strong> — dan bawaan itu selalu
+          ikut tercetak, jadi dokumen tak pernah terbit tanpa dasar hukumnya.</>}
       />
+
+      {/* Pemilih jenis dokumen (migrasi 465).
+
+          Tiap kertas punya syaratnya sendiri: kontrak mengatur hubungan dengan
+          pemberi kerja, SPK memerintah subkontraktor, berita acara mencatat
+          pemeriksaan. Meminjamkan pasal kontrak ke SPK menghasilkan kertas yang
+          TERLIHAT lengkap dan berbunyi salah. */}
+      {/* `aria-pressed`, BUKAN `peran ARIA tab` — ditunjukkan penjaga
+          `audit-tab-seragam.mjs`, dan penjaganya benar: ini SARINGAN atas satu
+          daftar, bukan navigasi antar-bagian halaman. Memakai `peran ARIA tab`
+          menjanjikan panel-per-tab kepada pembaca layar, lalu tak
+          menyediakannya. */}
+      <div role="group" aria-label="Jenis dokumen"
+        style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {JENIS.map((j) => {
+          const aktif = j.nilai === jenis;
+          return (
+            <button
+              key={j.nilai}
+              type="button"
+              aria-pressed={aktif}
+              onClick={() => { setJenis(j.nilai); setSunting(null); setGalatAksi(null); setKabar(null); }}
+              style={{
+                padding: "7px 13px", fontSize: 13, borderRadius: 8, cursor: "pointer",
+                fontWeight: aktif ? 700 : 500,
+                border: `1px solid ${aktif ? C.text : C.border}`,
+                background: aktif ? C.text : "transparent",
+                color: aktif ? "var(--surface)" : C.text,
+                // Penanda aktif tak boleh warna SAJA (WCAG 1.4.1): tebal huruf
+                // di atas + tanda centang di bawah menandainya dua kali lagi.
+              }}
+            >
+              {aktif ? `✓ ${j.label}` : j.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Kertas yang sedang disunting DINYATAKAN. Tanpa itu, orang yang
+          berpindah tab lalu terganggu sejenak akan menyunting pasal kertas yang
+          salah — dan tak ada satu pun tanda di layar bahwa ia salah tempat. */}
+      <p style={{ margin: 0, fontSize: 12.5, color: C.mid }}>
+        Pasal di bawah ini tercetak di{" "}
+        <strong style={{ color: C.text }}>
+          {JENIS.find((j) => j.nilai === jenis)?.kertas}
+        </strong>.
+      </p>
 
       {galat && <Galat pesan={galat} onCobaLagi={() => void muatUlang()} />}
       {galatAksi && (
@@ -155,7 +239,7 @@ export default function HalamanKlausulKontrak() {
 
       {/* Pasal yang dirakit sistem DISEBUTKAN. Yang mencarinya di daftar dan
           tak menemukannya akan menyimpulkan pasalnya hilang dari kontrak. */}
-      {data && (
+      {data && data.dirakit_kode.length > 0 && data.catatan_dirakit && (
         <div style={{
           display: "flex", gap: 9, alignItems: "flex-start",
           padding: "11px 14px", borderRadius: 10, fontSize: 12.5, lineHeight: 1.55,

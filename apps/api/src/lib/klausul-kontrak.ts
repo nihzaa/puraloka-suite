@@ -118,9 +118,28 @@ export const KLAUSUL_BAWAAN: Klausul[] = [
  * dan terlihat — bukan efek samping dari mengosongkan sebuah kolom.
  */
 export function gabungKlausul(tenant: readonly Klausul[]): Klausul[] {
+  // Meneruskan ke `gabungDenganBawaan` — SATU logika penggabungan, dipakai
+  // seluruh jenis dokumen. Tanda tangan fungsi ini sengaja tak berubah: ia
+  // jalur KONTRAK, satu-satunya kertas yang sudah terbit dan ditandatangani
+  // orang, dan menyentuh bentuknya berarti mempertaruhkan itu.
+  return gabungDenganBawaan(KLAUSUL_BAWAAN, tenant)
+}
+
+/**
+ * Inti penggabungan — bawaan mana pun, tenant mana pun.
+ *
+ * Dipisah 2026-08-19 saat klausul diperluas ke SPK & berita acara (migrasi
+ * 465). Menyalin fungsinya untuk tiap jenis akan membuat tiga aturan
+ * penggabungan yang harus tetap sama — dan yang pertama kali menyimpang
+ * adalah yang paling jarang dibaca.
+ */
+function gabungDenganBawaan(
+  bawaan: readonly Klausul[],
+  tenant: readonly Klausul[],
+): Klausul[] {
   const peta = new Map<string, Klausul>()
 
-  for (const k of KLAUSUL_BAWAAN) peta.set(k.nomor, k)
+  for (const k of bawaan) peta.set(k.nomor, k)
 
   for (const k of tenant) {
     const isi = (k.isi ?? '').trim()
@@ -151,4 +170,130 @@ export function gabungKlausul(tenant: readonly Klausul[]): Klausul[] {
 /** Apakah nomor pasal ini boleh diubah tenant? */
 export function bolehDiubah(nomor: string): boolean {
   return (NOMOR_BISA_DIUBAH as readonly string[]).includes(String(nomor).trim())
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// KLAUSUL UNTUK JENIS DOKUMEN LAIN (migrasi 465, 2026-08-19)
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Migrasi 450 memindahkan klausul KONTRAK ke tenant. Yang tertinggal:
+// dokumen lain yang juga ditandatangani orang.
+//
+// Diukur 2026-08-19 ke kode pencetaknya:
+//
+//   contracts.ts  membaca `klausul_kontrak` (4 tempat)  ✅ milik tenant
+//   spk.ts        NOL rujukan ke klausul                ❌ dipaku di kode
+//
+// SPK punya `syarat_khusus` per-baris — bagus untuk yang memang berbeda tiap
+// pekerjaan. Tapi SYARAT UMUM (kewajiban K3, tata cara pemutusan, jaminan
+// mutu) sama untuk semua SPK sebuah perusahaan, dan tak punya tempat sama
+// sekali. Akibatnya tiap perusahaan menerbitkan SPK dengan syarat yang
+// ditulis pembuat aplikasi, bukan penasihat hukumnya.
+//
+// ── Kenapa SPK punya bawaannya SENDIRI, bukan meminjam bawaan kontrak
+//
+// Kontrak mengatur hubungan pemberi kerja ↔ pelaksana utama; SPK mengatur
+// perintah kerja ke subkontraktor. Pasal "penyelesaian sengketa" versi
+// kontrak menyebut forum dan nilai gugatan yang tak sepadan untuk SPK
+// senilai belasan juta.
+//
+// Meminjam bawaan kontrak akan menghasilkan kertas yang terlihat lengkap
+// dan berbunyi salah — lebih buruk daripada kertas yang jelas ringkas.
+
+/** Jenis dokumen yang punya klausul. Sepadan dengan enum migrasi 465. */
+export type JenisDokumenKlausul = 'kontrak' | 'spk' | 'berita_acara'
+
+/**
+ * Bawaan SPK — RINGKAS dengan sengaja.
+ *
+ * SPK adalah perintah kerja, bukan kontrak induk. Ia menunjuk kembali ke
+ * kontrak utama untuk hal yang sudah diatur di sana; mengulanginya di sini
+ * menciptakan dua kertas yang bisa berbunyi berbeda tentang satu hal, dan
+ * yang menemukan perbedaannya adalah pihak yang sedang bersengketa.
+ */
+export const KLAUSUL_BAWAAN_SPK: Klausul[] = [
+  {
+    nomor: '1', urutan: 10, judul: 'DASAR PERINTAH KERJA',
+    isi: 'Surat perintah kerja ini diterbitkan berdasarkan kontrak induk '
+      + 'antara PIHAK PERTAMA dengan pemberi kerja, dan merupakan bagian tak '
+      + 'terpisahkan darinya. Hal yang tidak diatur dalam surat ini mengikuti '
+      + 'ketentuan kontrak induk tersebut.',
+  },
+  {
+    nomor: '2', urutan: 20, judul: 'KEWAJIBAN KESELAMATAN KERJA',
+    isi: 'PIHAK KEDUA wajib menyediakan dan memastikan pemakaian alat '
+      + 'pelindung diri bagi seluruh pekerja yang diturunkannya, serta '
+      + 'mematuhi seluruh ketentuan keselamatan dan kesehatan kerja yang '
+      + 'berlaku di lokasi pekerjaan. Kelalaian atas ketentuan ini menjadi '
+      + 'tanggung jawab PIHAK KEDUA sepenuhnya.',
+  },
+  {
+    nomor: '3', urutan: 30, judul: 'MUTU DAN PERBAIKAN',
+    isi: 'Pekerjaan yang tidak memenuhi spesifikasi wajib diperbaiki oleh '
+      + 'PIHAK KEDUA atas biayanya sendiri, dalam jangka waktu yang '
+      + 'ditetapkan PIHAK PERTAMA. Pembayaran atas bagian pekerjaan yang '
+      + 'belum diperbaiki dapat ditangguhkan.',
+  },
+  {
+    nomor: '4', urutan: 40, judul: 'PEMUTUSAN',
+    isi: 'PIHAK PERTAMA berhak memutuskan surat perintah kerja ini apabila '
+      + 'PIHAK KEDUA meninggalkan pekerjaan tanpa keterangan selama 7 (tujuh) '
+      + 'hari kalender berturut-turut, atau melanggar ketentuan keselamatan '
+      + 'kerja yang membahayakan jiwa. Pekerjaan yang telah terpasang dan '
+      + 'diterima tetap dibayarkan.',
+  },
+]
+
+/** Bawaan berita acara — paling ringkas: ia mencatat, bukan mengikat. */
+export const KLAUSUL_BAWAAN_BERITA_ACARA: Klausul[] = [
+  {
+    nomor: '1', urutan: 10, judul: 'DASAR PEMERIKSAAN',
+    isi: 'Pemeriksaan dilakukan bersama oleh para pihak di lokasi pekerjaan, '
+      + 'terhadap bagian pekerjaan yang dinyatakan telah selesai oleh '
+      + 'pelaksana.',
+  },
+  {
+    nomor: '2', urutan: 20, judul: 'AKIBAT BERITA ACARA',
+    isi: 'Berita acara ini menjadi dasar perhitungan prestasi pekerjaan dan '
+      + 'pengajuan pembayaran. Bagian yang dinyatakan belum memenuhi syarat '
+      + 'tidak diperhitungkan sampai diperbaiki dan diperiksa ulang.',
+  },
+]
+
+const BAWAAN_PER_JENIS: Record<JenisDokumenKlausul, Klausul[]> = {
+  kontrak: KLAUSUL_BAWAAN,
+  spk: KLAUSUL_BAWAAN_SPK,
+  berita_acara: KLAUSUL_BAWAAN_BERITA_ACARA,
+}
+
+/**
+ * Bawaan untuk satu jenis dokumen.
+ *
+ * Memulangkan SALINAN, bukan larik aslinya: pemanggil yang mengurutkan atau
+ * menyunting hasilnya tak boleh mengubah bawaan produk untuk seluruh proses.
+ */
+export function klausulBawaan(jenis: JenisDokumenKlausul): Klausul[] {
+  return (BAWAAN_PER_JENIS[jenis] ?? []).map((k) => ({ ...k }))
+}
+
+/**
+ * Sama seperti `gabungKlausul`, tetapi untuk jenis dokumen mana pun.
+ *
+ * `gabungKlausul` TIDAK dihapus dan tidak diubah — ia tetap jalur kontrak,
+ * dan mengubah tanda tangannya berarti menyentuh satu-satunya kertas yang
+ * sudah terbit dan ditandatangani orang. Fungsi ini memanggil logika yang
+ * sama dengan bawaan yang berbeda.
+ *
+ * INVARIAN yang diuji (`__tests__/klausul-jenis.test.ts`):
+ *  1. tiap jenis memakai bawaannya SENDIRI — SPK tak meminjam pasal kontrak
+ *  2. tenant menimpa bawaan bernomor sama, DALAM jenis itu saja
+ *  3. bawaan yang tak ditimpa TETAP ikut
+ *  4. jenis tak dikenal memulangkan larik kosong, bukan melempar — dokumen
+ *     yang gagal terbit lebih merugikan daripada dokumen tanpa syarat umum
+ */
+export function gabungKlausulJenis(
+  jenis: JenisDokumenKlausul,
+  tenant: readonly Klausul[],
+): Klausul[] {
+  return gabungDenganBawaan(klausulBawaan(jenis), tenant)
 }
