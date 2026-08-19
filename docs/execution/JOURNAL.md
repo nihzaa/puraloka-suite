@@ -5,6 +5,90 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 5) — uji struktur baja LENGKAP: base plate, angkur, rangka batang
+
+Founder: *"ada uji struktur untuk baja juga, mulai dari pondasi, sambungan,
+baut, kuda kuda, dll, pokoknya semua harus ada uji strukturnya"*.
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur satuan-beli   550 passed (dari 504)
+apps/api  npx tsc --noEmit                      exit 0
+penjaga-modul-struktur + 3 penjaga lama         exit 0
+```
+
+### Peta uji struktur baja — sesudah sesi ini
+
+| Bagian | Modul | Status |
+|---|---|---|
+| Balok | `analisaBalokBaja` | ✅ |
+| Kolom | `analisaKolomBaja` | ✅ |
+| Sambungan baut | `analisaSambunganBaut` | ✅ |
+| Sambungan las | `analisaSambunganLas` | ✅ |
+| **Base plate** | `analisaBasePlate` | ✅ BARU |
+| **Angkur** | `analisaAngkur` | ✅ BARU |
+| **Kuda-kuda / rangka batang** | `analisaRangka` | ✅ BARU |
+
+### Base plate — jebakan yang paling sering salah ditaksir
+
+Orang memperbesar pelat supaya tegangan betonnya turun, lalu lupa bahwa pelat
+yang makin lebar makin mudah MELENGKUNG di bagian yang menjorok. Pelat yang
+melengkung tak menyebarkan beban — sehingga pemeriksaan tumpu beton pun batal.
+
+Dijaga test dengan angka: pelat 500×500 menuntut tebal LEBIH BESAR daripada
+300×300 untuk beban yang sama.
+
+Fixture "memadai" saya sendiri MERAH pada percobaan pertama: pelat 350×350
+berbeban 500 kN menuntut 26,2 mm, dan saya menulis 20 mm. Itu justru
+memperlihatkan gunanya — 20 mm terasa tebal bagi yang menaksir, dan tetap
+kurang.
+
+### Angkur — jebol beton, bukan putusnya baja
+
+Kedalaman tanam berpangkat 1,5: menanam 1,5× lebih dalam memberi 1,84×
+kapasitas. Sebaliknya angkur yang dipasang lebih DANGKAL dari rencana — lazim
+terjadi karena tulangan pondasi menghalangi — kehilangan kapasitas jauh lebih
+cepat daripada yang diduga di lapangan.
+
+Dan memakai angkur bermutu lebih tinggi TIDAK menolong sama sekali untuk
+kegagalan ini. Dibuktikan test: A490 vs A325 menghasilkan kapasitas jebol beton
+yang IDENTIK, sementara kapasitas bajanya naik.
+
+### Rangka batang — gaya BALIK, penyebab runtuh kuda-kuda paling sering
+
+Angin hisap MEMBALIK arah gaya: batang bawah yang biasanya tarik jadi TEKAN,
+dan batang tipis yang dirancang untuk tarik akan menekuk. Atap terangkat saat
+angin kencang — bukan roboh karena beban berat.
+
+Modul MENUNTUT gaya balik dinyatakan, dan memperingatkan bila sebuah batang
+tarik hanya diperiksa untuk satu arah. Dijaga test: batang yang aman untuk
+tarik 60 kN GAGAL untuk tekan 60 kN pada panjang yang sama.
+
+Batas kelangsingan dibedakan: tekan 200 (soal bisa-dibangun), tarik 300
+(batang tarik tak menekuk, tetapi yang terlalu langsing melendut & bergetar,
+dan getaran melelahkan sambungannya).
+
+### Cacat desain yang ditangkap test sendiri
+
+`kapasitasTarik` memulangkan nilai NOMINAL sementara keputusan "mana yang
+menentukan" dibuat SESUDAH φ diterapkan — sehingga nilainya bisa tak konsisten
+dengan penentunya. Test merah: 444 kN nominal leleh vs 415 kN ber-φ putus.
+Kini hanya nilai ber-φ yang dipulangkan; nilai nominal tak dipakai siapa pun
+dan memulangkannya cuma mengundang pemakaian yang salah.
+
+### Penjaga menangkap kelalaian saya SEBELUM lolos
+
+`audit-modul-struktur-terdaftar.mjs` — dibuat sesi sebelumnya karena kelalaian
+yang sama sudah terjadi dua kali — langsung merah menyebut `struktur-baja-rangka`
+dan `struktur-baja-tumpuan`. Kali ini penjaga skripnya yang menemukan, bukan
+audit manual.
+
+Lalu penjaga terjemahan awam merah lagi, menyebut keenam pemeriksaan baru yang
+belum punya penjelasan non-teknis. Keduanya ditutup.
+
+---
+
 ## 2026-08-19 (lanjutan 4) — baja WF: 58 profil ada di basis, NOL yang menghitung kekuatannya
 
 Founder minta perluasan volume ke semua item pekerjaan, terutama baja WF, dan

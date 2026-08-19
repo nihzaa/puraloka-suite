@@ -14,6 +14,8 @@ import { analisaBalokBaja, analisaKolomBaja } from '../struktur-baja'
 import {
   analisaSambunganBaut, analisaSambunganLas, MUTU_BAUT,
 } from '../struktur-baja-sambungan'
+import { analisaBasePlate, analisaAngkur } from '../struktur-baja-tumpuan'
+import { analisaRangka } from '../struktur-baja-rangka'
 
 /**
  * ══════════════════════════════════════════════════════════════════════════════
@@ -132,6 +134,49 @@ function semuaNamaPemeriksaan(): string[] {
     analisaSambunganLas({
       ukuranMm: 6, panjangMm: 200, fuElektrodaMpa: 490,
       mutuPelat: { fyMpa: 240, fuMpa: 370 }, tebalPelatMm: 10, vuKn: 100,
+    }) as never,
+    /*
+      BASE PLATE, ANGKUR, dan RANGKA BATANG ikut.
+
+      Ketiganya modul baru, dan `audit-modul-struktur-terdaftar.mjs` MENANGKAP
+      keduanya sebelum sempat lolos — persis kelalaian yang sama sudah terjadi
+      dua kali sebelumnya (baja balok, lalu kolom+sambungan), dan kali ini
+      penjaga skripnya yang menemukan, bukan audit manual.
+    */
+    analisaBasePlate({
+      profil: {
+        designation: '200x100x5.5x8', profile_type: 'WF',
+        hMm: 200, bMm: 100, t1Mm: 5.5, t2Mm: 8,
+        beratKgPerM: 21.3333, panjangStandarM: 12,
+      },
+      mutuPelat: { fyMpa: 240, fuMpa: 370 },
+      panjangPelatMm: 350, lebarPelatMm: 350, tebalPelatMm: 30,
+      fcBetonMpa: 25, puKn: 500,
+    }) as never,
+    analisaAngkur({
+      diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlah: 4,
+      kedalamanMm: 300, fcBetonMpa: 25, tuKn: 100, vuKn: 60,
+    }) as never,
+    analisaRangka({
+      nama: 'KK-1', mutu: { fyMpa: 240, fuMpa: 370 },
+      batang: [
+        {
+          nama: 'atas', panjangM: 2, gayaKn: -100,
+          profil: {
+            designation: '150x75x5x7', profile_type: 'WF',
+            hMm: 150, bMm: 75, t1Mm: 5, t2Mm: 7,
+            beratKgPerM: 14, panjangStandarM: 12,
+          },
+        },
+        {
+          nama: 'bawah', panjangM: 2, gayaKn: 80, gayaBalikKn: -20,
+          profil: {
+            designation: '70x70x7', profile_type: 'L',
+            hMm: 70, bMm: 70, t1Mm: 7, t2Mm: 7,
+            beratKgPerM: 7.38, panjangStandarM: 6,
+          },
+        },
+      ],
     }) as never,
   ]
   return [...new Set(hasil.flatMap((h) => h.periksa.map((p) => p.nama)))]

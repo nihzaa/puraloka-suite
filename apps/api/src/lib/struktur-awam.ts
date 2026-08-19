@@ -438,6 +438,73 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
     tindakan: 'Perbesar ukuran lasnya sampai memenuhi minimum, atau panaskan '
       + 'pelat lebih dulu (preheat) sesuai prosedur pengelasan.',
   },
+  'Tumpu beton di bawah pelat': {
+    judul: 'Beton di bawah kolom baja tidak melesak',
+    apa: 'Kolom baja tak bisa berdiri langsung di atas beton — bajanya jauh '
+      + 'lebih keras. Pelat landas di bawah kolom menyebarkan bebannya ke '
+      + 'luasan yang cukup, seperti alas kaki di tanah lembek.',
+    risiko: 'Beton yang tertekan melebihi kemampuannya akan hancur remuk di '
+      + 'bawah pelat, dan kolom TURUN. Penurunan satu kolom saja membuat balok '
+      + 'di atasnya melengkung dan dinding retak — dan memperbaikinya berarti '
+      + 'mengangkat kembali bangunan yang sudah berdiri.',
+    tindakan: 'Perbesar ukuran pelat landas, atau naikkan mutu beton '
+      + 'pondasinya. Memperbesar pelat biasanya jauh lebih murah.',
+  },
+  'Tebal pelat landas': {
+    judul: 'Pelat landas tidak melengkung',
+    apa: 'Bagian pelat yang menjorok keluar dari penampang kolom ikut memikul '
+      + 'beban, seperti papan yang ditopang di tengah. Kalau terlalu tipis, ia '
+      + 'melengkung ke atas di tepinya.',
+    risiko: 'Pelat yang melengkung tidak lagi menyebarkan beban ke seluruh '
+      + 'luasnya — bebannya menumpuk di tengah, dan pemeriksaan beton di '
+      + 'bawahnya jadi tak berlaku lagi. Yang tampak aman di atas kertas '
+      + 'menjadi tidak aman di lapangan.',
+    tindakan: 'TEBALKAN pelatnya, atau pasang pengaku (rusuk baja) di bagian '
+      + 'yang menjorok. Perhatikan: MEMPERBESAR pelat justru memperburuk hal '
+      + 'ini, karena bagian yang menjorok jadi lebih panjang.',
+  },
+  'Tarik baja angkur': {
+    judul: 'Angkur tidak putus tertarik',
+    apa: 'Angkur adalah besi yang ditanam di pondasi untuk mengikat kolom '
+      + 'baja. Saat angin kencang mengangkat atap, angkur inilah yang menahan '
+      + 'bangunan tetap di tempatnya.',
+    risiko: 'Angkur yang putus membuat kolom lepas dari pondasi. Pada gudang '
+      + 'dan kanopi, ini kegagalan yang terjadi saat angin kencang — bukan '
+      + 'saat bangunan dibebani berat.',
+    tindakan: 'Perbanyak jumlah angkur, atau pakai diameter yang lebih besar.',
+  },
+  'Jebol beton (cabut angkur)': {
+    judul: 'Beton tidak jebol saat angkur tertarik',
+    apa: 'Angkur yang ditarik kuat bisa mencabut sebongkah beton berbentuk '
+      + 'kerucut di sekelilingnya — bukan angkurnya yang putus, melainkan '
+      + 'betonnya yang terangkat bersama angkur itu.',
+    risiko: 'Kegagalan ini terjadi pada beban yang jauh LEBIH KECIL daripada '
+      + 'kekuatan angkurnya sendiri, terutama bila angkur ditanam dangkal. '
+      + 'Memakai angkur bermutu lebih tinggi TIDAK menolong sama sekali.',
+    tindakan: 'TANAM LEBIH DALAM — itu satu-satunya yang benar-benar '
+      + 'menolong. Dan keputusan itu harus diambil sebelum beton dicor, bukan '
+      + 'sesudah. Menjauhkan angkur dari tepi pondasi juga membantu.',
+  },
+  'Geser baja angkur': {
+    judul: 'Angkur tidak putus tergunting',
+    apa: 'Selain menahan tarikan ke atas, angkur juga menahan kolom agar tidak '
+      + 'bergeser menyamping saat ada dorongan angin atau gempa.',
+    risiko: 'Angkur yang tergunting membuat kolom bergeser dari posisinya, dan '
+      + 'seluruh bangunan miring mengikuti.',
+    tindakan: 'Perbanyak angkur, perbesar diameternya, atau tambahkan '
+      + 'pengunci geser (shear key) di bawah pelat landas.',
+  },
+  'Seluruh batang rangka aman': {
+    judul: 'Semua batang kuda-kuda memenuhi syarat',
+    apa: 'Rangka kuda-kuda tersusun dari banyak batang yang saling menopang. '
+      + 'Pemeriksaan ini merangkum apakah SEMUA batangnya memenuhi syarat.',
+    risiko: 'Rangka batang tidak punya jalur beban cadangan: setiap batang '
+      + 'memikul bagiannya sendiri, dan yang putus membuat seluruh rangka '
+      + 'runtuh seketika. Ini berbeda dari struktur beton, yang masih bisa '
+      + 'menyalurkan beban lewat jalur lain saat satu bagian menyerah.',
+    tindakan: 'Perbaiki batang yang disebutkan gagal — memperkuat batang lain '
+      + 'tidak menolong, karena masing-masing memikul bagiannya sendiri.',
+  },
   'bahan': {
     judul: 'Kekuatan bahan tiang itu sendiri',
     apa: 'Selain tanah, tiangnya sendiri punya batas: beton dan besinya hanya '
