@@ -66,6 +66,7 @@ import {
   gambarLas,
   gambarPenampangKayu,
 } from '../../lib/struktur-gambar.js'
+import { catatRiwayat, inputBerbeda } from '../../lib/struktur-riwayat.js'
 import { susunLembar } from '../../lib/struktur-lembar.js'
 import { susunPdfLembar } from '../../lib/struktur-lembar-pdf.js'
 
@@ -449,6 +450,23 @@ export default async function strukturRoutes(app: FastifyInstance) {
         })
       }
 
+      /*
+        RIWAYAT dicatat SEBELUM ditimpa, dan HANYA bila inputnya berubah.
+
+        Mengubah nama atau catatan bukan perubahan desain — melahirkan revisi
+        untuk itu membuat riwayat penuh baris yang tak menjelaskan apa pun,
+        dan perubahan dimensi yang sesungguhnya tenggelam di antaranya.
+
+        Kegagalan mencatat TIDAK menggagalkan penyuntingan; alasannya ada di
+        kepala `lib/struktur-riwayat.ts`.
+      */
+      if (request.body?.input !== undefined && inputBerbeda(el.input, input)) {
+        await catatRiwayat(
+          el as never, request.currentUser!.id,
+          request.body?.catatan ?? null, request.log,
+        )
+      }
+
       const ubah: Record<string, unknown> = { updated_by: request.currentUser!.id }
       if (request.body?.kode !== undefined) ubah.kode = request.body.kode.trim()
       if (request.body?.nama !== undefined) ubah.nama = request.body.nama?.trim() ?? null
@@ -583,6 +601,51 @@ export default async function strukturRoutes(app: FastifyInstance) {
       }
 
       return reply.send(badan)
+    })
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    GET /struktur/:id/riwayat — daftar revisi elemen, terbaru dulu
+
+    Menjawab "kenapa dulu 300x500?" — pertanyaan yang sebelumnya tak punya
+    jawaban di mana pun, karena hitung-ulang menimpa satu-satunya salinan.
+
+    Yang dipulangkan adalah INPUT tiap revisi (sebabnya), bukan angka antara.
+    Alasannya sama dengan migrasi 458: fungsi analisa PURE, jadi angka
+    turunan yang disimpan bisa berselisih diam-diam dengan rumus yang sudah
+    diperbaiki — dan yang berselisih diam-diam adalah yang paling berbahaya.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  app.get<{ Params: { id: string } }>(
+    '/api/v1/struktur/:id/riwayat',
+    { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },
+    async (request, reply) => {
+      const el = await ambilElemen(request, request.params.id)
+      if (!el) return reply.status(404).send({ error: 'Elemen tidak ditemukan' })
+
+      const { data, error } = await supabase
+        .from('struktur_riwayat')
+        .select('urutan, input, jenis, jumlah, aman, beton_m3, bekisting_m2, besi_kg, alasan, dicatat_pada, dicatat_oleh')
+        .eq('elemen_id', request.params.id)
+        .order('urutan', { ascending: false })
+        .limit(200)
+      if (error) return reply.status(500).send({ error: error.message })
+
+      /*
+        Keadaan SEKARANG ikut dipulangkan sebagai puncak daftar, ditandai
+        `sekarang: true`.
+
+        Tanpa itu layar riwayat memperlihatkan revisi-revisi lama tanpa
+        pembanding, dan pembacanya harus mengingat sendiri angka yang berlaku
+        hari ini untuk tahu apa yang berubah.
+      */
+      return reply.send({
+        sekarang: {
+          input: el.input, jenis: el.jenis, jumlah: el.jumlah,
+          aman: el.aman ?? null, sekarang: true,
+        },
+        data: data ?? [],
+      })
     })
 
   // ── POST /struktur/:id/hitung — simpan ringkasan hasil ────────────────────
@@ -1313,7 +1376,15 @@ export default async function strukturRoutes(app: FastifyInstance) {
 async function ambilElemen(request: FastifyRequest, id: string): Promise<BarisElemen | null> {
   const { data } = await supabase
     .from('struktur_elemen')
-    .select('id, kode, nama, jenis, jumlah, input, aman, basi, project_id')
+    /*
+      `company_id` dan ketiga volume IKUT DIAMBIL — dibutuhkan riwayat.
+
+      Tanpa `company_id`, insert ke `struktur_riwayat` masuk dengan nilai
+      undefined dan DITOLAK RLS tanpa galat yang terlihat di layar mana pun:
+      penyuntingan tetap berhasil, riwayatnya diam-diam kosong selamanya.
+      Cacat ini lolos dari tsc karena pemanggilnya memakai `as never`.
+    */
+    .select('id, kode, nama, jenis, jumlah, input, aman, basi, project_id, company_id, beton_m3, bekisting_m2, besi_kg')
     .eq('id', id).maybeSingle()
   if (!data) return null
 

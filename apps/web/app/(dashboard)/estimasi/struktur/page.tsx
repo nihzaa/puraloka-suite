@@ -47,7 +47,7 @@ import { GAYA_KARTU } from "@/components/ui-dasar";
 import { Isian, KotakIsian, PilihanIsian, TeksIsian } from "@/components/isian";
 import { formatAngka } from "@/lib/format";
 import {
-  AlertTriangle, Boxes, CheckCircle2, Eye, Info, Plus, RefreshCw, Ruler, Trash2, X,
+  AlertTriangle, Boxes, CheckCircle2, Eye, History, Info, Plus, RefreshCw, Ruler, Trash2, X,
 } from "lucide-react";
 import { Modal, btnPrimary, btnGhost } from "../_bersama/kerangka";
 import { LayarKosong } from "../_bersama/layar-kosong";
@@ -2512,6 +2512,165 @@ function PanelDetail({ detail, onTutup }: { detail: MuatanDetail; onTutup: () =>
           </ul>
         </div>
       )}
+
+      <RiwayatElemen id={detail.elemen.id} />
+    </div>
+  );
+}
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ * RIWAYAT REVISI — "kenapa dulu 300×500?"
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Sebelum ini, menghitung ulang MENIMPA satu-satunya salinan input. Jadi tiga
+ * pertanyaan yang pasti muncul di proyek sungguhan tak punya jawaban:
+ * kenapa dimensinya dulu berbeda, sejak kapan elemen ini tidak aman, dan
+ * siapa yang mengubah mutu betonnya.
+ *
+ * Yang ketiga bukan soal saling menyalahkan. Ia muncul saat lembar
+ * perhitungan yang SUDAH DITANDATANGANI memuat angka berbeda dari yang
+ * terpasang, dan yang meneken perlu tahu: dokumennya yang basi, atau
+ * desainnya yang berubah sesudah diteken?
+ *
+ * ── Yang ditampilkan: APA YANG BERUBAH, bukan seluruh input
+ *
+ * Menampilkan seluruh input tiap revisi (20-an medan) membuat pembacanya
+ * harus membandingkan sendiri dua daftar panjang untuk menemukan satu angka
+ * yang berpindah. Yang dihitung di sini adalah SELISIHNYA terhadap revisi
+ * sesudahnya — itulah yang sebenarnya dicari orang saat membuka riwayat.
+ */
+function RiwayatElemen({ id }: { id: string }) {
+  /*
+    Lewat `useData()`, bukan `fetch` langsung — dijaga CI
+    (`audit-halaman-pakai-cache.mjs`): lapis cache pernah dibangun lalu tak
+    dipakai satu halaman pun.
+  */
+  const { data, memuat, galat } = useData<{
+    sekarang: { input: Record<string, unknown> } | null;
+    data: Array<{
+      urutan: number;
+      input: Record<string, unknown>;
+      aman: boolean | null;
+      alasan: string | null;
+      dicatat_pada: string;
+    }>;
+  }>(`/api/v1/struktur/${id}/riwayat`);
+
+  if (memuat) return <div style={{ fontSize: "var(--teks-delta)", color: C.mid }}>Memuat riwayat…</div>;
+
+  /*
+    Galat MUAT ditampilkan, tidak ditelan. Riwayat yang gagal dimuat terlihat
+    persis sama dengan riwayat yang memang kosong — dan yang kedua adalah
+    kesimpulan yang salah tentang dokumen yang mungkin dipakai di sengketa.
+  */
+  if (galat) {
+    return (
+      <div role="alert" style={{
+        fontSize: "var(--teks-delta)", color: C.onDangerBg, background: C.dangerBg,
+        border: `1px solid ${C.dangerBorder}`, borderRadius: "var(--radius-dense)",
+        padding: "var(--pad-kartu)",
+      }}>
+        Riwayat revisi gagal dimuat — ini BUKAN berarti elemen ini belum pernah diubah.
+      </div>
+    );
+  }
+
+  const revisi = data?.data ?? [];
+  if (!revisi.length) {
+    return (
+      <div style={{ fontSize: "var(--teks-delta)", color: C.mid }}>
+        <strong style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 4, color: C.text }}>
+          <History size={14} aria-hidden="true" /> Riwayat revisi
+        </strong>
+        Belum pernah diubah sejak dibuat.
+      </div>
+    );
+  }
+
+  /*
+    Pembanding tiap revisi adalah revisi SESUDAHNYA (yang lebih baru), dan
+    untuk revisi teratas pembandingnya keadaan SEKARANG. Tanpa itu selisih
+    revisi terbaru tak punya lawan dan tak bisa ditampilkan sama sekali.
+  */
+  const bandingUntuk = (i: number): Record<string, unknown> =>
+    (i === 0 ? data?.sekarang?.input : revisi[i - 1].input) ?? {};
+
+  /*
+    Selisih diratakan sampai ke DAUN, bukan berhenti di kunci puncak.
+
+    Versi pertama membandingkan kunci tingkat atas saja, dan perubahan mutu
+    beton tampil sebagai:
+
+        mutu: [object Object] -> [object Object]
+
+    Baris itu memberi tahu SESUATU berubah tanpa memberi tahu APA — persis
+    pertanyaan yang membuat orang membuka riwayat. Yang tampil sekarang:
+
+        mutu.fcMpa: 25 -> 30
+
+    Cacat ini lolos dari pengujinya sendiri, karena pengujinya hanya
+    mencari /hMm|fcMpa/ di SELURUH halaman — dan `hMm` memang ada, di
+    revisi yang lain. Ia ketahuan dari MELIHAT tangkapan layarnya.
+  */
+  const ratakan = (
+    o: Record<string, unknown>, awalan = "",
+  ): Record<string, unknown> => {
+    const hasil: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(o ?? {})) {
+      const nama = awalan ? `${awalan}.${k}` : k;
+      if (v !== null && typeof v === "object" && !Array.isArray(v)) {
+        Object.assign(hasil, ratakan(v as Record<string, unknown>, nama));
+      } else {
+        /* Larik diringkas isinya — cukup untuk memperlihatkan ia berubah. */
+        hasil[nama] = Array.isArray(v) ? `${v.length} baris` : v;
+      }
+    }
+    return hasil;
+  };
+  return (
+    <div style={{ display: "grid", gap: 8 }}>
+      <strong style={{
+        display: "flex", gap: 6, alignItems: "center",
+        fontSize: "var(--teks-label)", color: C.text,
+      }}>
+        <History size={14} aria-hidden="true" /> Riwayat revisi ({revisi.length})
+      </strong>
+
+      <ol style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 6 }}>
+        {revisi.map((r, i) => {
+          const lama = ratakan(r.input);
+          const sesudah = ratakan(bandingUntuk(i));
+          const berubah = Object.keys({ ...lama, ...sesudah }).filter(
+            (k) => JSON.stringify(lama[k]) !== JSON.stringify(sesudah[k]),
+          );
+          return (
+            <li key={r.urutan} style={{
+              fontSize: "var(--teks-delta)", color: C.mid,
+              border: `1px solid ${C.border}`, borderRadius: "var(--radius-dense)",
+              padding: "var(--pad-kartu)",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+                <span style={{ color: C.text, fontWeight: 600 }}>Revisi {r.urutan}</span>
+                <span>{new Date(r.dicatat_pada).toLocaleString("id-ID")}</span>
+              </div>
+              {r.alasan && <div style={{ marginTop: 3 }}>“{r.alasan}”</div>}
+              <div style={{ marginTop: 3 }}>
+                {berubah.length === 0
+                  ? "tidak ada medan yang berbeda"
+                  : berubah.map((k) => (
+                    <span key={k} style={{ marginRight: 10 }}>
+                      <span style={{ color: C.mid }}>{k}:</span>{" "}
+                      <span style={{ color: C.text }}>{String(lama[k] ?? "—")}</span>
+                      {" → "}
+                      <span style={{ color: C.text, fontWeight: 600 }}>{String(sesudah[k] ?? "—")}</span>
+                    </span>
+                  ))}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
