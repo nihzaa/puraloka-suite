@@ -200,10 +200,29 @@ export function AddItemModal({ version, onClose, onDone }:
       );
     } catch (e) {
       /*
-        Dilaporkan, tidak ditelan. Jejak yang gagal tersimpan tanpa seorang pun
-        tahu adalah kelas cacat yang dijaga `catch-senyap-ratchet`.
+        ══════════════════════════════════════════════════════════════════════
+        DILAPORKAN KE LAYAR, bukan cuma ke console.
+
+        Versi pertama memakai `console.warn` saja — dan console tak dilihat
+        siapa pun kecuali programmer yang sedang membukanya. Bagi estimator,
+        take-off yang gagal tersimpan TIDAK MENINGGALKAN GEJALA: itemnya
+        masuk, angkanya benar, dan jejak perhitungannya hilang tanpa suara.
+
+        Justru jejak itulah seluruh alasan take-off dibangun. Volume 12 yang
+        tak bisa ditanya "dari mana?" sama saja dengan volume yang diketik
+        langsung — dan itu masalah yang hendak diselesaikannya.
+
+        Tetap TIDAK melempar: itemnya sudah tersimpan dan bernilai benar.
+        Melempar di sini membuat orang menekan "Tambah" lagi dan menghasilkan
+        item KEMBAR.
+        ══════════════════════════════════════════════════════════════════════
       */
       console.warn("Baris take-off gagal disimpan (item tetap tersimpan):", e);
+      setErr(
+        "Item tersimpan, tetapi RINCIAN take-off-nya gagal disimpan. "
+        + "Volumenya benar, yang hilang catatan asal-usulnya — buka item ini "
+        + "dan isi ulang take-off-nya kalau rinciannya perlu ditelusuri nanti.",
+      );
     }
   };
 

@@ -290,6 +290,17 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-takeoff-kembar-sepakat.mjs` | rumus take-off ditulis DUA kali (modul API + kalkulator di layar, sengaja — kalkulator yang memanggil API tiap ketukan tombol tak dipakai orang); dijaga daftar sektor, ambang kemiringan, dan satuannya. Dua implementasi yang menyimpang tak mengeluarkan galat: layar memperlihatkan satu angka, RAB memakai yang tersimpan (ambang NOL) |
 | `audit-batas-tak-basi.mjs` | catatan "BELUM diperiksa" tak boleh menyebut yang SUDAH ADA — catatan itu TAMPIL DI LAYAR, dan pembacanya menyimpulkan pemeriksaannya tak ada lalu mencari konsultan lain untuk hal yang sudah dihitung. Dua catatan terbukti basi 2026-08-20 (ambang NOL) |
 
+**Alur take-off → RAB — MANUAL, butuh API hidup:**
+
+```bash
+cd apps/api && UJI_EMAIL=… UJI_SANDI=… UJI_BASIS=http://127.0.0.1:3017 \n  node scripts/uji-takeoff-ke-rab-hidup.mjs
+```
+
+Membuktikan baris take-off TERSIMPAN, BISA DIBACA KEMBALI, volumenya sama
+dengan yang dihitung kalkulator, dan `terapkan` menyalinnya ke kuantitas item
+RAB. Diukur 2026-08-20: metode volume 12 m³ dan dinding 24 m² keduanya
+tembus sampai kuantitas RAB.
+
 **Uang lewat percakapan — dijaga test, bukan penjaga skrip.** `payments` adalah
 satu-satunya entitas tulis yang **tak punya kolom `status`**, jadi tak ada
 approval yang bisa menahan angka salah dengar. Yang menahannya:
