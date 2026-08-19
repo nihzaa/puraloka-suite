@@ -453,6 +453,39 @@ dari gejala yang menunjuk ke tempat lain.
 `.claude/worktrees/` dan `.worktrees/` berisi beberapa, dan `git worktree list`
 memperlihatkan siapa di mana.
 
+⚠ **MEMBERSIHKAN worktree ber-junction: hapus JUNCTION-nya, jangan
+direktorinya.** Diukur 2026-08-19 — perintah ini menghancurkan
+`node_modules` SUNGGUHAN milik repo:
+
+```bash
+rmdir /S /Q E:\tmp\<worktree>          # ❌ MENEMBUS junction, menghapus TARGETNYA
+```
+
+Akibatnya: `node_modules` root tersisa 2 entri, `apps/api/node_modules`
+KOSONG, dan satu entri `.pnpm` (vitest) tinggal cangkang tanpa isi. Gejalanya
+`ERR_MODULE_NOT_FOUND` pada `vitest/dist/worker.js` — galat yang menuduh
+VITEST, bukan perintah yang menyebabkannya.
+
+Lebih buruk lagi: `pnpm install` menjawab **"Already up to date"** dan tak
+memperbaiki apa pun, karena `node_modules/.pnpm-workspace-state-v1.json`
+selamat. Yang benar:
+
+```bash
+cmd //c "rmdir E:\tmp\<worktree>\node_modules"          # ✅ junction SAJA, tanpa /S
+cmd //c "rmdir E:\tmp\<worktree>\apps\api\node_modules"
+cmd //c "dir /AL E:\tmp\<worktree>"                     # buktikan nol JUNCTION tersisa
+cmd //c "rmdir /S /Q E:\tmp\<worktree>"                 # baru direktorinya
+
+# Kalau terlanjur: buang state pnpm + entri store yang jadi cangkang.
+rm -f node_modules/.pnpm-workspace-state-v1.json node_modules/.modules.yaml
+rm -rf "node_modules/.pnpm/<paket-yang-rusak>"          # pnpm menyebut namanya di ENOENT
+pnpm install
+```
+
+Ini kerusakan yang sama bentuknya dengan `@anthropic-ai/sdk` hilang pada
+2026-08-08: **entri `.pnpm` yang ada tapi kosong**, dan pnpm menganggapnya
+terpasang.
+
 ⚠ Untuk MEMBANDINGKAN dengan commit lama (mis. mencari "penjaga ini sudah
 merah sebelum saya?"), pakai worktree terpisah — **jangan `git stash`**. Dan
 `node_modules` pnpm di Windows butuh **junction**, bukan symlink:
