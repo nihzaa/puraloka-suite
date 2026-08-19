@@ -5,6 +5,67 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (sisa 5) — `cc-cvr` bukan "tinggal bikin FK", dan itu baru ketahuan hari ini
+
+Founder: *"yg masih sebagian sekarang sisa berapa dan apakah bisa
+dituntaskan?"* — dan menyebut `cc-cvr` sedang dikerjakan sesi lain.
+
+**Diperiksa: sesi lain TIDAK menyentuh `cc-cvr`.** `git log` pada berkas
+`lib/cvr.ts` + `cost-control.ts` di cabang `feat/struktur-analisa`
+memulangkan **nol commit**. Cabang itu mengerjakan struktur baja (profil,
+gording, base plate). Berkas CVR-nya berbeda semata karena cabang itu
+tertinggal dari kerja saya, bukan karena disentuh.
+
+### Sisa 5, dan hanya SATU yang pernah saya kira bisa dikerjakan
+
+| Entri | Menunggu | Bisa dikerjakan? |
+|---|---|---|
+| `mb-progres` | alamat API | ⏸ jalannya sudah dibuka (eas.json) |
+| `bi-terjadwal` | `RESEND_API_KEY` | ⏸ nol di `.env`, terverifikasi |
+| `dk-esign` | kontrak Peruri | ❌ di luar kode |
+| `fn-efaktur` | DJP tak buka API | ❌ di luar kode |
+| `cc-cvr` | ~~perubahan skema~~ | ❌ **lihat di bawah** |
+
+### `cc-cvr`: saya menawarkan merancang skema yang TAK MUNGKIN membantu
+
+Kemarin saya menutup sesi dengan menawarkan *"mau saya rancang skema
+penghubung biaya→RAB?"*. Diukur hari ini, tawaran itu **salah** — dan
+untungnya founder belum menyetujuinya.
+
+Kedua taksonomi bukan dua daftar yang belum disambung. Ia **dua sumbu yang
+berbeda**:
+
+    kategori BIAYA  = JENIS MATERIAL    Bata & Blok · Besi & Baja · Cat
+    kategori RAB    = PAKET PEKERJAAN   PEKERJAAN ATAP · BAJA · CAT
+
+Satu sak semen melayani pondasi, kolom, DAN lantai. Tak ada FK yang bisa
+memecahnya — pemecahannya **keputusan manusia per-pembelian**.
+
+Dan datanya memang tak pernah ditangkap. Diukur ke `information_schema`:
+`purchase_order_items`, `material_request_items`, `goods_receipt_items`,
+`project_expenses` — **nol kolom** yang menyimpan tujuan pekerjaannya.
+
+Jadi yang dituntut bukan migrasi melainkan **perubahan alur kerja**: tiap
+permintaan material menyebut untuk pekerjaan apa. Itu menambah beban isian
+di lapangan, jadi **keputusan operasional founder** — bukan keputusan
+teknis. Membangunnya tanpa keputusan itu menghasilkan kolom yang tak pernah
+diisi, lalu CVR tetap kosong dengan tambahan kolom yang menuduh penggunanya
+lalai.
+
+### Pola yang berulang KETIGA kalinya hari ini
+
+`dk-register` (rencana bilang butuh backfill — sudah ada), `bi-terjadwal`
+(rencana bilang SMTP — ternyata Resend), dan sekarang `cc-cvr` (rencana
+bilang FK — ternyata tak ada datanya).
+
+Ketiganya lahir dari **membaca dokumen, bukan mengukur kode**. Dan ketiganya
+baru ketahuan saat hendak dikerjakan — bukan saat direncanakan.
+
+Alasannya sekarang ditulis permanen di `ERP-KONTRAKTOR-BESAR-ARAH.md` §7,
+supaya sesi berikutnya tak merencanakannya sebagai "tinggal bikin FK".
+
+---
+
 ## 2026-08-19 (siap deploy) — belum punya domain BUKAN penghalang, dan itu diukur
 
 Founder: *"kalo saya blm punya domain karna belum deploy gimana? saya maunya

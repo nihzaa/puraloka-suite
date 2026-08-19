@@ -369,3 +369,52 @@ psql -c "SELECT count(DISTINCT p.id) FILTER (WHERE
     FROM projects p JOIN mandor_assignments ma ON ma.project_id=p.id
     JOIN work_scopes ws ON ws.assignment_id=ma.id"
 ```
+
+---
+
+## 7. Kenapa `cc-cvr` TIDAK bisa dituntaskan dengan migrasi
+
+> Ditambahkan 2026-08-19 sesudah founder bertanya apakah sisa `sebagian`
+> bisa dituntaskan. Ditulis supaya tak ada sesi berikutnya yang
+> merencanakannya sebagai "tinggal bikin FK".
+
+Dokumen ini sebelumnya menulis cakupan penuh CVR "butuh perubahan skema
+(rujukan biaya→RAB)". Diukur lagi, dan itu **masih terlalu optimistis**.
+
+Kedua taksonomi bukan dua daftar yang belum disambung — ia **dua sumbu yang
+berbeda**:
+
+    kategori BIAYA  = JENIS MATERIAL     (10)  Bata & Blok · Besi & Baja
+                                               Beton & Semen · Cat & Pelapis
+
+    kategori RAB    = PAKET PEKERJAAN    (25)  PEKERJAAN ATAP · PEKERJAAN BAJA
+                                               PEKERJAAN CAT · PEKERJAAN BETON
+
+Satu sak semen melayani pondasi, kolom, **dan** lantai. Tak ada FK yang bisa
+memecahnya, karena pemecahannya adalah **keputusan manusia per-pembelian**,
+bukan turunan dari data.
+
+Dan datanya memang tak pernah ditangkap. Diukur ke `information_schema`:
+
+| Tabel | Kolom tujuan pekerjaan |
+|---|---|
+| `purchase_order_items` | **nol** |
+| `material_request_items` | **nol** |
+| `goods_receipt_items` | **nol** |
+| `project_expenses` | **nol** |
+
+### Yang sebenarnya dituntut
+
+Bukan migrasi — **perubahan alur kerja**: tiap permintaan material menyebut
+untuk pekerjaan apa, dan tiap penerimaan mempertahankannya.
+
+Itu menambah beban isian bagi orang di lapangan, dan karena itu **keputusan
+operasional founder**, bukan keputusan teknis. Membangunnya tanpa keputusan
+itu menghasilkan kolom yang tak pernah diisi — lalu CVR tetap kosong,
+sekarang dengan tambahan kolom yang menuduh penggunanya lalai.
+
+### Yang SUDAH dikerjakan sebagai gantinya
+
+Layar CVR kini menyatakan **berapa besar** yang di luar jangkauannya (Rp
+263,5 juta, per kategori), alih-alih membiarkannya terbaca sebagai nol. Itu
+jawaban paling jujur yang bisa diberikan data hari ini.
