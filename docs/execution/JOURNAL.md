@@ -146,6 +146,42 @@ run "dasar" yang saya jalankan di worktree terpisah untuk membandingkan
 Kalau butuh membandingkan terhadap commit lama: jalankan **berurutan**, satu
 selesai baru yang lain — bukan paralel di dua worktree.
 
+### Angka SAH — run serial, sendirian, sesudah toolchain dipulihkan
+
+```
+Test Files  32 failed | 394 passed  (426)
+     Tests  95 failed | 5853 passed | 8 skipped  (5956)
+  Duration  1457s
+```
+
+**Persis sama dengan run 1** (5853/95/32). Jadi run 1 memang bersih, dan run
+2 (5837/111/34) yang tercemar — bukan sebaliknya. Kesimpulan itu tak bisa
+diambil dari satu run mana pun; ia butuh run ketiga yang dijalankan
+sendirian.
+
+Terhadap dasar 2026-08-18 (5834 lulus / 84 gagal / 33 berkas): **lulus +19,
+gagal +11, berkas −1**.
+
+Attribusi 11 kegagalan tambahan — sudah diukur, dan tak berubah:
+
+- nol kegagalan menyebut `mitra`, `kelayakan`, `cvr`, `tender-subkon`
+- kelima berkas yang saya sentuh, dijalankan sendiri: **semua lulus**
+- `struktur-endpoint` (modul sesi lain) dan `situs` **SUDAH merah** di
+  worktree pada commit sebelum kerja mitra
+- `git log` mengonfirmasi commit saya tak menyentuh keduanya
+
+### Dua kali saya merusak alat ukur sendiri hari ini
+
+1. **Dua suite bersamaan** — beda 16 kegagalan pada kode yang sama.
+2. **`rmdir /S` pada worktree ber-junction** — menembus junction dan
+   menghapus `node_modules` SUNGGUHAN. Gejalanya `ERR_MODULE_NOT_FOUND`
+   pada `vitest/dist/worker.js`, galat yang menuduh vitest. `pnpm install`
+   menjawab "Already up to date" dua kali karena state file-nya selamat.
+
+Keduanya berbentuk sama: **alat ukurnya rusak, dan galatnya menunjuk ke
+tempat lain.** Keduanya kini punya peringatannya di `CLAUDE.md` §7 dan
+§8a.1 — lengkap dengan perintah pemulihannya, bukan cuma larangannya.
+
 ### Sisa
 
 Peta Modul: **226 hidup / 7 sebagian** (diukur, bukan ditebak — saya sempat
