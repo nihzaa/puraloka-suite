@@ -547,6 +547,14 @@ const MEDAN: Record<Jenis, Medan[]> = {
     ...MEDAN_MUTU,
     { kunci: "muKnm", label: "Momen rencana Mu", satuan: "kNm" },
     { kunci: "vuKn", label: "Geser rencana Vu", satuan: "kN" },
+    /*
+      KETAHANAN API — opsional, dan kosongnya BUKAN "tak perlu tahan api".
+
+      Labelnya menyebut ANGKANYA yang lazim, bukan cuma nama besarannya:
+      yang mengisi biasanya tak hafal tingkat mana yang diminta peraturan
+      untuk bangunannya.
+    */
+    { kunci: "tingkatApiMenit", label: "Ketahanan api yang diminta (30/60/90/120/180/240) — kosongkan bila tak disyaratkan", satuan: "menit" },
   ],
   kolom: [
     { kunci: "bMm", label: "Sisi b", satuan: "mm" },
@@ -802,6 +810,8 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     bMm: 300, hMm: 520, panjangM: 6, selimutMm: 30, dUtamaMm: 16,
     nTarik: 5, nTekan: 2, dSengkangMm: 8, jarakSengkangMm: 150,
     mutu: { fcMpa: 25, fyMpa: 400 }, muKnm: 120, vuKn: 90,
+    /* 120 menit — lazim untuk bangunan bertingkat. */
+    tingkatApiMenit: 120,
   },
   kolom: {
     bMm: 400, hMm: 400, tinggiM: 3.5, selimutMm: 40, dUtamaMm: 19,

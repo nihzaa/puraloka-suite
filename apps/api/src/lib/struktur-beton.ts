@@ -45,6 +45,8 @@
 // ANGKANYA supaya bisa diperiksa ulang, bukan sekadar "aman" tanpa jejak.
 // ══════════════════════════════════════════════════════════════════════════════
 
+import { analisaKetahananApi } from './struktur-api.js'
+
 // ── Konstanta standar ────────────────────────────────────────────────────────
 
 /** Regangan tekan beton ultimit (SNI 2847 §22.2.2.1). */
@@ -115,6 +117,14 @@ export interface InputBalok {
   panjangM: number
   /** Selimut beton bersih terhadap sengkang, mm. */
   selimutMm: number
+  /**
+   * Tingkat ketahanan api yang DIMINTA peraturan, menit (30/60/90/120/180/240).
+   *
+   * OPSIONAL, dan ketiadaannya BUKAN "tidak perlu tahan api". Tiap bangunan
+   * punya persyaratannya; kalau tak diisi, catatannya menyatakan bahwa
+   * ketahanan api belum diperiksa — bukan diam.
+   */
+  tingkatApiMenit?: number
   /** Diameter tulangan utama, mm. */
   dUtamaMm: number
   /** Jumlah tulangan tarik (sisi bawah untuk momen positif). */
@@ -365,6 +375,46 @@ export function analisaBalok(input: InputBalok): HasilElemen {
     },
   ]
 
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KETAHANAN API — dijalankan DI SINI, bukan sebagai jenis elemen terpisah.
+
+    Satu balok punya satu verdict. Memisahkannya berarti estimator memasukkan
+    balok yang sama DUA KALI, dan volumenya terhitung ganda di RAB.
+
+    Selimut, Ø sengkang, dan Ø tulangan utama SUDAH ada di input balok —
+    tak ada data baru yang perlu diminta, cuma tingkat api yang diminta
+    peraturan.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const catatanApi: string[] = []
+  if (input.tingkatApiMenit != null) {
+    try {
+      const api = analisaKetahananApi({
+        elemen: 'balok',
+        tingkatDimintaMenit: input.tingkatApiMenit as never,
+        selimutBersihMm: selimutMm,
+        dSengkangMm,
+        dUtamaMm,
+        dimensiTerkecilMm: bMm,
+      })
+      periksa.push(...api.periksa)
+      catatanApi.push(...api.catatan)
+    } catch (e) {
+      catatanApi.push(
+        `Pemeriksaan KETAHANAN API tak dapat dijalankan: ${(e as Error).message}`,
+      )
+    }
+  } else {
+    catatanApi.push(
+      'Ketahanan api TIDAK diperiksa karena tingkat yang diminta '
+      + '(`tingkatApiMenit`) belum diisi. Beton memang tak terbakar, tetapi '
+      + 'yang memikul beban adalah tulangan di dalamnya — dan baja kehilangan '
+      + 'lebih dari separuh kekuatannya pada 550 °C, suhu yang dicapai '
+      + 'kebakaran ruangan biasa dalam sekitar sepuluh menit.',
+    )
+  }
+
   return {
     periksa,
     aman: periksa.every((p) => p.aman),
@@ -373,7 +423,7 @@ export function analisaBalok(input: InputBalok): HasilElemen {
       dEfektifMm, asMm2, aMm, mnKnm, phiMnKnm, vcKn, vsKn, phiVnKn,
       rho, rhoMin, rhoMaks, rhoBalance, beta1: beta1(mutu.fcMpa), jumlah,
     },
-    catatan: catatanVolumeBeton(),
+    catatan: [...catatanVolumeBeton(), ...catatanApi],
   }
 }
 

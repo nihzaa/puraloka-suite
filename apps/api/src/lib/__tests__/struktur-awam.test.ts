@@ -22,6 +22,7 @@ import {
   analisaDindingPenahan, analisaDindingGeser, analisaGempaDinding,
 } from '../struktur-dinding'
 import { analisaPenurunan } from '../struktur-penurunan'
+import { analisaKetahananApi } from '../struktur-api'
 import { analisaKolomKomposit, analisaBondek } from '../struktur-komposit'
 import { analisaGusset, analisaSambunganMomen } from '../struktur-baja-sambungan-lanjut'
 import { analisaKudaKudaKayu, analisaBajaRingan } from '../struktur-atap-ringan'
@@ -374,6 +375,15 @@ function semuaHasilAnalisa(): Array<{ periksa: ReadonlyArray<{ nama: string; ras
     analisaPDelta({
       nama: ['L1'], bebanVertikalKumulatifKn: [4000], driftMm: [20],
       gayaGeserKn: [500], tinggiTingkatM: [3.5], cd: 5.5,
+    }) as never,
+    /*
+      KETAHANAN API — salah paham paling mahal tentang beton: karena tak
+      terbakar, orang menyangka bangunannya aman dari kebakaran.
+    */
+    analisaKetahananApi({
+      elemen: 'balok', tingkatDimintaMenit: 120,
+      selimutBersihMm: 40, dSengkangMm: 10, dUtamaMm: 19,
+      dimensiTerkecilMm: 300,
     }) as never,
     analisaRangka({
       nama: 'KK-1', mutu: { fyMpa: 240, fuMpa: 370 },

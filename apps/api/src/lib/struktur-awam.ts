@@ -776,6 +776,54 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
     tindakan: 'Tambah tulangan mendatar, tebalkan dindingnya, atau naikkan '
       + 'mutu betonnya.',
   },
+  // ── KETAHANAN API ─────────────────────────────────────────────────────────
+  /*
+    Salah paham paling mahal tentang beton: karena tak terbakar, orang
+    menyangka bangunan beton aman dari kebakaran. Yang memikul beban bukan
+    betonnya melainkan tulangan di dalamnya.
+
+    Dan ini keputusan LAPANGAN, bukan keputusan gambar: ditentukan tukang
+    yang memasang beton decking saat tulangan diikat.
+  */
+  'Tulangan terlindungi dari api': {
+    judul: 'Besinya cukup terlindung kalau terjadi kebakaran',
+    apa: 'Beton memang tidak terbakar. Tetapi yang memikul beban bukan '
+      + 'betonnya melainkan besi di dalamnya, dan besi kehilangan lebih dari '
+      + 'separuh kekuatannya saat panas. Yang menahan panas sampai ke besi '
+      + 'hanya lapisan beton di luarnya.',
+    risiko: 'Lapisan yang kurang dua sentimeter saja bisa memangkas waktu '
+      + 'bertahan dari dua jam jadi setengah jam — dan setengah jam itu '
+      + 'selisih antara penghuni sempat keluar dan tidak. Bangunannya tak '
+      + 'terlihat berbeda sama sekali dari luar.',
+    tindakan: 'Tambah tebal beton decking saat tulangan diikat — ini murah '
+      + 'dan cepat, TETAPI hanya bisa dilakukan SEBELUM dicor. Sesudah '
+      + 'bangunan berdiri, tak ada cara memperbaikinya selain membongkar '
+      + 'atau melapisinya dengan bahan tahan api.',
+  },
+  'Penampang cukup tebal menahan api': {
+    judul: 'Balok/kolomnya tidak terlalu kecil untuk menahan panas',
+    apa: 'Pada balok yang tipis, panas masuk dari kedua sisi dan bertemu di '
+      + 'tengah. Menebalkan lapisan pelindungnya tak menolong kalau '
+      + 'baloknya sendiri terlalu kecil.',
+    risiko: 'Ini yang sering terlewat karena berlawanan dengan dugaan: orang '
+      + 'menambah lapisan pelindung dan mengira sudah beres, padahal yang '
+      + 'kurang ukuran baloknya.',
+    tindakan: 'Perbesar balok atau kolomnya. Ini mengubah gambar dan volume '
+      + 'beton, jadi lebih mahal daripada menambah decking — dan itu '
+      + 'sebabnya perlu ketahuan SEKARANG, bukan saat sudah dicor.',
+  },
+  'Selimut tidak berlebihan': {
+    judul: 'Lapisan pelindungnya tidak kelewat tebal',
+    apa: 'Lapisan beton di luar besi yang terlalu tebal justru merugikan: ia '
+      + 'mendorong besinya terlalu ke dalam, sehingga daya angkat baloknya '
+      + 'berkurang.',
+    risiko: 'Beton di bagian luar itu juga lebih mudah terkelupas karena tak '
+      + 'ada besi yang menahannya — dan begitu terkelupas, besinya justru '
+      + 'jadi terbuka.',
+    tindakan: 'Kurangi tebal decking-nya. Kalau butuh tahan api lebih lama, '
+      + 'perbesar penampangnya atau pakai lapisan pelindung khusus — bukan '
+      + 'dengan menebalkan beton terus-menerus.',
+  },
   // ── P-DELTA ───────────────────────────────────────────────────────────────
   /*
     Pemeriksaan yang paling sulit dijelaskan tanpa rumus, dan paling berbahaya
