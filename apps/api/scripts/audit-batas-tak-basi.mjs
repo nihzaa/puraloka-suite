@@ -100,6 +100,34 @@ const KLAIM = [
     frasa: /[Pp]enurunan \(settlement\) BELUM diperiksa\./,
     fungsi: 'analisaPenurunan',
   },
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    Dua klaim ini DITAMBAHKAN 2026-08-20 sesudah penjaga ini MELEWATKAN
+    keduanya.
+
+    `struktur-atap-ringan` masih menulis "BELUM diperiksa: SAMBUNGAN (paku,
+    baut, pelat gigi)" dan "BELUM diperiksa: SAMBUNGAN sekrup" — padahal
+    `analisaSambunganKayu` dan `analisaSekrupBajaRingan` sudah ada sejak hari
+    yang sama.
+
+    Penjaganya tak menangkapnya karena daftar klaimnya hanya memuat lima
+    frasa yang saya ingat saat menulisnya. Itu batas yang jujur dari
+    pendekatan "daftar eksplisit": ia hanya menjaga yang didaftarkan.
+
+    Pelajarannya bukan "ganti dengan tebakan otomatis" — versi yang menebak
+    dari kata kunci sudah terbukti menuduh tiga hal yang benar. Yang benar:
+    daftar ini WAJIB ditambah tiap kali batas baru ditutup, dan komentar ini
+    yang mengingatkannya.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  {
+    frasa: /BELUM diperiksa:\s*SAMBUNGAN \(paku/i,
+    fungsi: 'analisaSambunganKayu',
+  },
+  {
+    frasa: /BELUM diperiksa:\s*SAMBUNGAN sekrup/i,
+    fungsi: 'analisaSekrupBajaRingan',
+  },
 ]
 
 const berkas = readdirSync(LIB).filter((f) => f.endsWith('.ts'))

@@ -301,10 +301,10 @@ export function analisaKudaKudaKayu(input: InputKudaKudaKayu): HasilKudaKudaKayu
     )
   }
   catatan.push(
-    'Yang BELUM diperiksa: SAMBUNGAN (paku, baut, pelat gigi) — pada kuda-kuda '
-    + 'kayu, sambungan hampir selalu lebih lemah daripada batangnya, dan '
-    + 'kapasitasnya bergantung jenis alat sambung serta jarak ke tepi kayu. '
-    + 'Batang yang cukup tak menjamin kuda-kudanya cukup.',
+    'SAMBUNGAN batang ini TIDAK diperiksa di sini — pakai jenis elemen '
+    + '`sambungan_kayu` untuk memeriksanya. Pada kuda-kuda kayu, sambungan '
+    + 'hampir selalu lebih lemah daripada batangnya: batang yang cukup TAK '
+    + 'menjamin kuda-kudanya cukup.',
   )
   catatan.push(
     'Rayap dan jamur TIDAK dihitung dan tak bisa dihitung — keduanya '
@@ -549,10 +549,11 @@ export function analisaBajaRingan(input: InputBajaRingan): HasilBajaRingan {
     + 'tercapai, dan menghitungnya dengan luas bruto melebihkan kapasitas.',
   )
   catatan.push(
-    'Yang BELUM diperiksa: SAMBUNGAN sekrup (jumlah, jarak tepi, dan tarik '
-    + 'cabut), yang pada rangka baja ringan hampir selalu lebih lemah daripada '
-    + 'batangnya. Juga ikatan angin dan bracing — rangka baja ringan sangat '
-    + 'langsing dan mudah terpuntir sebelum bracingnya terpasang penuh.',
+    'SAMBUNGAN sekrup TIDAK diperiksa di sini — pakai jenis elemen '
+    + '`sekrup_baja_ringan` untuk memeriksanya (jumlah, jarak tepi, tarik '
+    + 'cabut). Yang BELUM ada sama sekali: ikatan angin dan bracing — rangka '
+    + 'baja ringan sangat langsing dan mudah terpuntir sebelum bracingnya '
+    + 'terpasang penuh.',
   )
   catatan.push(
     'Beban ANGIN pada atap belum dihitung di sini. Rangka ringan justru paling '
