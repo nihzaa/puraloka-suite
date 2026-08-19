@@ -57,7 +57,23 @@ dikirim: hari ini" dan Anda menyimpulkan laporannya sampai.
 
 2. Menu **API Keys** → **Create API Key** → salin (bentuknya `re_xxxxx…`).
 
-3. Buka `apps/api/.env`, tambahkan **dua baris**:
+3. Pasang kuncinya. **Cara termudah** — jalankan ini, lalu tempel saat
+   diminta:
+
+```bash
+node apps/api/scripts/pasang-kunci-resend.mjs
+```
+
+   Ketikannya tak ditampilkan, kuncinya tak masuk riwayat shell, dan tak
+   pernah jadi argumen perintah (argumen terlihat di `ps aux` dan tersimpan
+   di `~/.bash_history` — dua tempat yang tak seorang pun periksa saat
+   mencari kebocoran).
+
+   ⚠ **Jangan tempel kunci ke percakapan dengan asisten.** Kunci yang sudah
+   masuk riwayat percakapan sudah bocor dan harus dicabut di resend.com, lalu
+   dibuat baru.
+
+   Kalau lebih suka manual, buka `apps/api/.env` dan tambahkan **dua baris**:
 
 ```
 RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxx
