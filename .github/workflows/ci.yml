@@ -336,6 +336,23 @@ jobs:
       - name: Rute penjadwal punya tugas pemicu
         run: node scripts/audit-rute-penjadwal-punya-tugas.mjs
 
+      # Titik KETIGA pada rantai yang sama, dan yang terakhir tertutup.
+      #
+      #   jadwal_tugas.tugas -> KATALOG_TUGAS[kunci] -> app.get(jalur)
+      #      ^-- rute-penjadwal    ^-- INI              ^-- tugas-punya-rute
+      #          -punya-tugas
+      #
+      # Diukur 2026-08-19: 58 rute otomasi terdaftar, 53 entri KATALOG_TUGAS.
+      # Lima rute — tiga di antaranya sudah tiga hari begitu — tak dikenal
+      # katalog, jadi penjadwal tak pernah memanggilnya. Migrasi lulus, baris
+      # `jadwal_tugas` aktif, katalog UI menampilkannya sebagai terpasang, dan
+      # tak satu pun pernah berjalan.
+      #
+      # Tanpa galat, tanpa 404, tanpa satu baris log. Kedua penjaga sepupunya
+      # HIJAU sepanjang itu — mereka memeriksa arah yang lain.
+      - name: Rute otomasi punya entri katalog tugas
+        run: node scripts/audit-rute-otomasi-punya-entri.mjs
+
       # Sepupu L-4 untuk arah sebaliknya: bukan "kolom punya pembaca" melainkan
       # "peristiwa punya alur". `utils/terbit-peristiwa.ts` memetakan jenis
       # notifikasi ke kode alur otomasi, dan kode itu jadi `path` webhook n8n.

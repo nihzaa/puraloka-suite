@@ -859,6 +859,134 @@ export const AMBANG_OTOMASI = {
     langkah: 1,
   },
 
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    BARANG TERTAHAN — dua ambang, dan yang lebih PENDEK terasa terbalik
+    ══════════════════════════════════════════════════════════════════════════
+
+    Kiriman yang TERTAHAN ditegur lebih cepat (3 hari) daripada yang sekadar
+    terlambat (7 hari), meskipun yang tertahan sudah punya sebab tercatat.
+
+    Terdengar terbalik, dan memang sengaja: penahanan hampir selalu urusan
+    administratif — dokumen bea cukai kurang, sertifikat SNI belum keluar,
+    pembayaran tertunda. Barang seperti itu tak akan bergerak sendiri, dan
+    biaya penyimpanannya berjalan tiap hari.
+
+    Keterlambatan tanpa sebab sering selesai sendiri dalam beberapa hari
+    perjalanan; menegurnya di hari ketiga membuat peringatan ini berbunyi
+    untuk kiriman yang sebenarnya sehat.
+  */
+  'otomasi.expediting.hari_tertahan': {
+    bawaan: 3,
+    min: 0,
+    max: 60,
+    label: 'Hari sesudah tenggat sebelum barang TERTAHAN diperingatkan',
+    judul: 'Barang tertahan di perjalanan',
+    akibat:
+      'Berlaku untuk kiriman yang sebabnya sudah tercatat — dokumen kurang, '
+      + 'menunggu pembayaran, tertahan bea cukai. Penahanan tak selesai '
+      + 'sendiri, dan biaya penyimpanan berjalan tiap hari, jadi ambangnya '
+      + 'sengaja lebih pendek daripada keterlambatan biasa.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.expediting.hari_terlambat': {
+    bawaan: 7,
+    min: 1,
+    max: 90,
+    label: 'Hari sesudah tenggat sebelum kiriman biasa diperingatkan',
+    judul: 'Barang tertahan di perjalanan',
+    akibat:
+      'Berlaku untuk kiriman yang belum tiba tanpa sebab tercatat. Terlalu '
+      + 'pendek, peringatan berbunyi untuk kiriman yang masih dalam perjalanan '
+      + 'wajar; terlalu panjang, barang bisa berhenti sebulan di gudang transit '
+      + 'sementara semua orang mengira materialnya sudah dipesan.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    SENGKETA — tiga ambang waktu, diperiksa dari yang PALING MUDAH DIKERJAKAN
+    ══════════════════════════════════════════════════════════════════════════
+
+    Urutannya bukan menurut yang paling mahal: memberi nomor perkara pekerjaan
+    lima menit, memilih forum arbitrase keputusan direksi. Peringatan yang
+    meminta hal termudah lebih mungkin dikerjakan hari itu juga.
+
+    Karena itu ambang nomor paling pendek (14 hari), forum menengah (60), dan
+    "berhenti bergerak" paling panjang (90).
+  */
+  'otomasi.sengketa.hari_nomor': {
+    bawaan: 14,
+    min: 1,
+    max: 120,
+    label: 'Hari sebelum sengketa tanpa nomor perkara diingatkan',
+    judul: 'Sengketa berhenti bergerak',
+    akibat:
+      'Sengketa tanpa nomor tak bisa dirujuk di surat-menyurat dan praktis tak '
+      + 'ada dalam arsip. Ini yang paling murah diperbaiki, jadi ambangnya '
+      + 'paling pendek.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.sengketa.hari_forum': {
+    bawaan: 60,
+    min: 7,
+    max: 365,
+    label: 'Hari sebelum sengketa tanpa forum penyelesaian diingatkan',
+    judul: 'Sengketa berhenti bergerak',
+    akibat:
+      'Selama perundingan berjalan, belum menetapkan forum itu wajar. Sesudah '
+      + 'berbulan-bulan, itu berarti tak ada rencana apa pun bila perundingannya '
+      + 'buntu — dan klaim konstruksi bisa gugur karena tenggat, bukan karena '
+      + 'isinya salah.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.sengketa.hari_diam': {
+    bawaan: 90,
+    min: 14,
+    max: 730,
+    label: 'Hari sebelum sengketa yang belum selesai diingatkan',
+    judul: 'Sengketa berhenti bergerak',
+    akibat:
+      'Berlaku untuk perkara yang sudah bernomor dan sudah punya forum, tetapi '
+      + 'tak juga selesai. Sengketa tidak memburuk seperti stok atau alat — ia '
+      + 'kedaluwarsa, dan tak ada gejala apa pun sebelum tenggatnya lewat.',
+    satuan: 'hari',
+    langkah: 7,
+  },
+
+  /*
+    Ambang RUPIAH, bukan hari — satu-satunya di kelompok sengketa.
+
+    Ia tidak memutuskan ditegur atau tidak; perkara kecil yang terlantar tetap
+    ditegur. Ia hanya menentukan mana yang naik ke prioritas tinggi, karena
+    "besar" berbeda artinya bagi perusahaan beromzet miliaran dan yang beromzet
+    ratusan juta.
+
+    `min: 0` disengaja: menyetelnya nol berarti SEMUA sengketa berprioritas
+    tinggi — pilihan sah untuk perusahaan yang belum pernah bersengketa dan
+    ingin melihat semuanya.
+  */
+  'otomasi.sengketa.nilai_besar': {
+    bawaan: 100_000_000,
+    min: 0,
+    max: 100_000_000_000,
+    label: 'Nilai tuntutan yang dianggap besar',
+    judul: 'Sengketa berhenti bergerak',
+    akibat:
+      'Sengketa dengan tuntutan di atas angka ini dikirim sebagai prioritas '
+      + 'tinggi. Yang di bawahnya tetap dikirim, hanya tidak membangunkan '
+      + 'siapa pun. Menyetelnya nol membuat semua sengketa berprioritas tinggi.',
+    satuan: 'Rp',
+    langkah: 10_000_000,
+  },
+
   'otomasi.bbm_melonjak.hari': {
     bawaan: 30,
     min: 7,

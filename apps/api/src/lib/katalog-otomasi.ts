@@ -1321,6 +1321,77 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
     ambang: 'otomasi.uji_material.hari',
   },
   {
+    kunci: 'barang-tertahan',
+    nama: 'Barang tertahan di perjalanan',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai barang yang sudah dipesan tetapi tak pernah sampai. Seluruh '
+      + 'otomasi pengadaan lain berhenti begitu PO diterbitkan — yang terjadi '
+      + 'SESUDAHNYA tak dijaga siapa pun, padahal di situlah pekerjaan lapangan '
+      + 'benar-benar berhenti sementara semua orang mengira materialnya "sudah '
+      + 'dipesan". Dua keadaan dipisahkan karena tindakannya berbeda sama '
+      + 'sekali. Yang TERTAHAN punya sebab tertulis dan hampir selalu butuh '
+      + 'pekerjaan administratif — dokumen bea cukai, sertifikat SNI, pembayaran '
+      + 'tertunda; pesannya menyebut sebab itu, karena sebab itulah pekerjaannya, '
+      + 'dan ambangnya sengaja LEBIH PENDEK karena penahanan tak selesai sendiri '
+      + 'sementara biaya penyimpanan berjalan tiap hari. Yang TERLAMBAT tanpa '
+      + 'sebab cuma butuh satu telepon ke pemasok; pesannya menyebut posisi '
+      + 'terakhir, karena itulah satu-satunya petunjuk yang ada. Kiriman yang '
+      + 'sama sekali tak bertanggal juga dilaporkan — tanpa tenggat ia tak bisa '
+      + 'dinilai telat atau tidak selamanya, dan diamnya justru menjadikannya '
+      + 'tempat paling aman untuk hilang.',
+    penerima: 'Penanggung jawab pengadaan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca catatan pengiriman yang belum ditandai tiba.' },
+      { di: 'sistem', teks: 'Mengambil tenggat dari yang PALING BELAKANG antara janji vendor dan perkiraan tiba.' },
+      { di: 'sistem', teks: 'Memisahkan yang tertahan bersebab dari yang sekadar terlambat.' },
+      { di: 'sistem', teks: 'Melewati yang tanggal tibanya sudah terisi, apa pun status tertulisnya.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.expediting.hari_tertahan',
+    catatan:
+      'Ambang untuk yang TERTAHAN sengaja lebih pendek daripada yang terlambat '
+      + 'biasa, meskipun terdengar terbalik. Penahanan hampir selalu urusan '
+      + 'dokumen — ia tak akan lengkap sendiri, dan biaya penyimpanan berjalan '
+      + 'tiap hari. Keterlambatan tanpa sebab sering selesai sendiri dalam '
+      + 'beberapa hari perjalanan.',
+  },
+  {
+    kunci: 'sengketa-menggantung',
+    nama: 'Sengketa berhenti bergerak',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai klaim dan perselisihan yang berhenti bergerak. Ini satu-satunya '
+      + 'otomasi di katalog yang objeknya TIDAK memburuk bila didiamkan — ia '
+      + 'kedaluwarsa. Klaim konstruksi punya tenggat yang lahir dari kontrak dan '
+      + 'dari hukum, dan klaim yang benar isinya bisa GUGUR total karena berhenti '
+      + 'bergerak, tanpa satu pun gejala di sepanjang jalan. Tiga keadaan '
+      + 'diperiksa berurutan, dan urutannya bukan menurut yang paling mahal '
+      + 'melainkan yang paling mudah DIKERJAKAN: sengketa yang belum diberi '
+      + 'NOMOR perkara (tak bisa dirujuk di surat-menyurat, praktis tak ada '
+      + 'dalam arsip), lalu yang belum punya FORUM penyelesaian (tak ada rencana '
+      + 'apa pun bila perundingan buntu), lalu yang sekadar LAMA DIAM. Perkara '
+      + 'yang sudah ditutup tidak ditegur, berapa pun umurnya.',
+    penerima: 'Penanggung jawab kontrak & legal',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca sengketa dari proyek yang belum dihapus — termasuk proyek yang sudah selesai.' },
+      { di: 'sistem', teks: 'Melewati perkara yang sudah ditutup, dicabut, atau batal.' },
+      { di: 'sistem', teks: 'Memeriksa berurutan: belum bernomor, lalu tanpa forum, lalu lama diam.' },
+      { di: 'sistem', teks: 'Menaikkan prioritas untuk tuntutan di atas ambang nilai.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.sengketa.hari_nomor',
+    catatan:
+      'Sengaja membaca proyek yang SUDAH SELESAI juga, berbeda dari otomasi '
+      + 'lain yang semuanya menyaring ke proyek aktif. Sengketa konstruksi '
+      + 'justru paling sering hidup sesudah serah terima — klaim pekerjaan '
+      + 'tambah, retensi tak dibayar, cacat masa pemeliharaan. Menyaring ke '
+      + 'proyek aktif akan membuang justru perkara yang paling mungkin '
+      + 'terlantar, karena tak ada lagi rapat mingguan yang membahasnya.',
+  },
+  {
     kunci: 'bbm-melonjak',
     nomor: '10.4',
     nama: 'Konsumsi BBM melonjak',

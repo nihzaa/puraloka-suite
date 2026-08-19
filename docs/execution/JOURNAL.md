@@ -26884,3 +26884,117 @@ bahwa test yang sudah hijau tidak menguji apa yang saya kira.
 458, 459, 460 **belum dicatat** di `supabase_migrations.schema_migrations`.
 Artefak fisiknya terbukti ada (blok verifikasi tiap migrasi lulus), tetapi
 menulis ke buku migrasi adalah Gerbang Keras G-2 — tidak dilakukan sendiri.
+
+## 2026-08-19 (lanjutan) — Dua otomasi terakhir dari 109 tabel, dan rantai penjadwal yang putus di titik ketiga
+
+Dua otomasi baru: **`barang-tertahan`** dan **`sengketa-menggantung`**. Keduanya
+tak punya nomor rencana — ditemukan dengan mencari tabel yang **terisi tetapi
+tak satu pun otomasi menyentuhnya**, bukan dengan menyisir daftar 140.
+
+Rute otomasi kini **58**, katalog **76 entri** (65 bernomor, 11 tanpa nomor),
+migrasi 466–467.
+
+### Yang ditemukan di data nyata
+
+```
+BARANG TERTAHAN (ambang 3 / 7)
+  PO-2026-001  dalam_perjalanan  lewat 132h  Gudang transit Cikarang  → TERLAMBAT
+  PO-2026-002  tertahan          lewat  85h  Pelabuhan Tanjung Priok  → TERTAHAN
+  PO-2026-003  tiba              lewat 104h  Gudang proyek            → aman
+
+SENGKETA MENGGANTUNG (ambang 14 / 60 / 90)
+  SKT-01         negosiasi   97h  Rp 420.000.000  forum=—             → TANPA_FORUM
+  SKT-02         mediasi    170h  (tak diisi)     forum=BANI Bandung  → LAMA_DIAM
+  (tanpa nomor)  dicatat     22h  (tak diisi)     forum=—             → BELUM_BERNOMOR
+  SKT-03         selesai    352h  Rp 780.000.000  (ditutup)           → selesai
+```
+
+Empat bulan barang berhenti di gudang transit tanpa satu pun peringatan, dan
+Rp 420 juta menggantung 97 hari di negosiasi tanpa forum penyelesaian.
+
+### Sengketa adalah satu-satunya objek yang tidak MEMBURUK
+
+Seluruh otomasi lain menjaga sesuatu yang memburuk bila didiamkan: stok habis,
+polis kedaluwarsa, beton gagal. Sengketa **kedaluwarsa** — klaim yang benar
+isinya bisa gugur karena tenggat kontrak/hukum, tanpa gejala apa pun.
+
+Dua akibat desain: (1) rutenya membaca proyek yang **sudah selesai** juga,
+berbeda dari semua otomasi lain, karena klaim justru paling sering hidup
+sesudah serah terima; (2) jadwalnya **mingguan** sementara `barang-tertahan`
+harian — perkara hukum bergerak dalam hitungan minggu.
+
+### Rantai penjadwal punya TIGA titik, dan yang ketiga tak dijaga
+
+```
+jadwal_tugas.tugas  →  KATALOG_TUGAS[kunci]  →  app.get(jalur)
+   ^ rute-penjadwal      ^ TAK DIJAGA           ^ tugas-punya-rute
+     -punya-tugas
+```
+
+Diukur: **58 rute otomasi, 53 entri `KATALOG_TUGAS`**. Lima rute tak dikenal
+katalog — `klien-didiamkan`, `bbm-melonjak`, `uji-material-gagal` (ketiganya
+sudah **tiga hari** begitu), plus dua yang baru.
+
+Penjadwal hanya menjalankan tugas yang dikenal katalog. Kelimanya duduk di
+`jadwal_tugas` dengan `aktif = true`, migrasinya lulus verifikasi, katalog UI
+menampilkannya sebagai terpasang — dan **tak satu pun pernah dipanggil**. Tanpa
+galat, tanpa 404, tanpa satu baris log. Kedua penjaga sepupunya HIJAU sepanjang
+itu; mereka memeriksa arah yang lain.
+
+Ditutup `audit-rute-otomasi-punya-entri.mjs` (ambang NOL, di CI). Dibuktikan
+merah lewat dua mutasi: entri dihapus, dan entri dikomentari.
+
+### Saya salah dua kali, dan keduanya soal ALAT UKUR
+
+**Pertama**: skrip laporan sementara saya memakai driver `pg`, yang memulangkan
+kolom `date` sebagai objek `Date`. `String(Date).slice(0,10)` menghasilkan
+`"Fri Apr 0"` → `NaN`, jadi SEMUA baris terklasifikasi `tanpa_tenggat`/
+`bergerak`. Saya sempat menyimpulkan rutenya cacat.
+
+Yang benar: rute memakai `request.db` → PostgREST → JSON, dan itu memulangkan
+`"2026-04-02"` — string ISO polos. **Diukur, bukan disimpulkan.** `pg` juga
+menggeser tanggalnya mundur sehari (`2026-04-01T17:00Z` untuk tanggal 2 April);
+kalau saya percaya angka pertama, saya akan "memperbaiki" kode yang benar.
+
+**Kedua**: mutasi pertama penjaga baru dilaporkan LOLOS. Sebabnya regex saya
+memakai `\n` pada berkas **CRLF** — mutasinya tak pernah terjadi. Jebakan yang
+sudah tercatat di CLAUDE.md. Sesudah diperbaiki jadi `\r?\n`: merah.
+
+Dan satu lagi: saya menjalankan `git checkout --` pada berkas test untuk
+memulihkan sisipan sementara yang rusak, dan itu **ikut menghapus dua entri
+TUGAS** yang sudah saya tulis. Dipasang ulang. Perintah pemulih yang tak
+menyaring jalur akan selalu membuang lebih dari yang dimaksud.
+
+### Gerbang tenancy menangkap kebocoran lintas-tenant
+
+`expediting` kategori B, tetapi `purchase_orders` kategori **C**. Versi pertama
+saya membaca PO dengan `.from()` — kalau gerbangnya tak ada, rute ini akan
+memulangkan nomor PO **seluruh tenant** untuk dicocokkan dengan kiriman tenant
+ini. Nol galat; gejalanya cuma nomor PO asing muncul di notifikasi. Diganti
+`viaProject` per-proyek.
+
+### Bukti
+
+- Fungsi murni: **17 test**, 2 berkas, semua hijau
+- Mutasi fungsi: **9 mutasi, 9 merah** (4 sengketa + 5 barang tertahan)
+- Mutasi blok verifikasi migrasi: invarian `tertahan ≤ terlambat` dan
+  `nomor ≤ forum ≤ diam` keduanya MERAH saat ditukar
+- Rute: `otomasi-terjadwal.test.ts` **67 lulus**, termasuk keduanya
+- `tsc --noEmit` exit 0, **tanpa filter**
+- Penjaga: `audit-tugas-punya-rute`, `audit-rute-penjadwal-punya-tugas`,
+  `audit-rute-otomasi-punya-entri`, `audit-jenis-notifikasi-punya-aturan`,
+  `audit-jenis-tulis-punya-label`, `audit-akhir-baris` — semua HIJAU
+
+### Yang MERAH dan bukan milik saya
+
+`audit-penomoran-migrasi` merah karena **427 ganda** dan lompatan **434–436**;
+466/467 saya berurutan tanpa celah. `audit-viaproject-argumen` menuduh
+`otomasi-terjadwal.ts:2864` — itu **komentar** dari 2026-08-16 yang menjelaskan
+cacat ini, dibaca sebagai kode. Sebelas penjaga web merah dari pekerjaan sesi
+lain; saya tak menyentuh satu berkas `apps/web` pun.
+
+### Menunggu ratifikasi (G-2)
+
+466 dan 467 **belum dicatat** di `supabase_migrations.schema_migrations`.
+Artefak fisiknya terbukti ada — blok verifikasi keduanya lulus di basis dev —
+tetapi menulis ke buku migrasi adalah Gerbang Keras G-2.

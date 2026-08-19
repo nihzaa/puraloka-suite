@@ -169,6 +169,14 @@ export type NotificationType =
   // TANPA NOMOR. Uji material yang GAGAL tanpa NCR, atau yang hasilnya tak
   // pernah disimpulkan - yang kedua tak terhitung 'gagal' di laporan mana pun.
   | 'uji_material_gagal'
+  // TANPA NOMOR. Barang yang sudah di-PO tetapi tak pernah sampai. Seluruh
+  // otomasi pengadaan lain berhenti begitu PO terbit; `expediting` mencatat
+  // apa yang terjadi SESUDAHNYA, dan tak satu pun otomasi membacanya.
+  | 'barang_tertahan'
+  // TANPA NOMOR. Klaim yang berhenti bergerak. Berbeda dari semua otomasi
+  // lain di sini: sengketa tidak MEMBURUK bila didiamkan, ia KEDALUWARSA -
+  // klaim yang benar isinya bisa gugur karena tenggat, tanpa gejala apa pun.
+  | 'sengketa_menggantung'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'

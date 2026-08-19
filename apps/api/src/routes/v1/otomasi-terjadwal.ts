@@ -10037,6 +10037,420 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/barang-tertahan ─────────────────────────
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // PO YANG "SUDAH DIPESAN" TIDAK BERARTI BARANGNYA DATANG
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Otomasi pengadaan yang sudah ada menjaga sisi PEMESANAN: MR menunggu
+  // persetujuan, PO belum dikirim, pemasok telat merespons. Semuanya berhenti
+  // begitu PO diterbitkan.
+  //
+  // Yang terjadi sesudahnya tak dijaga siapa pun. Barang berangkat, lalu diam.
+  // Tabel `expediting` mencatatnya, dan tak satu pun otomasi membacanya.
+  //
+  // Diukur 2026-08-16:
+  //
+  //   PO-2026-001  Toko Bangunan Maju Jaya · Rp 40.200.000
+  //                status `dalam_perjalanan` · "Gudang transit Cikarang"
+  //                tiba_aktual NULL  →  LEWAT 132 HARI
+  //
+  //   PO-2026-002  Toko Keramik Indah · Rp 9.775.000
+  //                `tertahan` di Pelabuhan Tanjung Priok · LEWAT 85 HARI
+  //                sebab: "Dokumen impor kurang lengkap — menunggu SNI marking"
+  //
+  // Empat bulan barang berhenti di gudang transit tanpa satu pun peringatan.
+  // Di lapangan, inilah yang menghentikan pekerjaan sementara semua orang
+  // mengira materialnya "sudah dipesan".
+  //
+  // ⚠ Angka di atas SAAT DIUKUR. Ukur sendiri lewat `checked` di jawaban rute.
+  app.get('/api/v1/otomasi/jalankan/barang-tertahan', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiKiriman } = await import('../../lib/barang-tertahan.js')
+
+    const q = request.query as { tertahan?: string; terlambat?: string }
+    const ambangTertahan = await ambilAmbang(request, 'otomasi.expediting.hari_tertahan', q.tertahan)
+    const ambangTerlambat = await ambilAmbang(request, 'otomasi.expediting.hari_terlambat', q.terlambat)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['barang_tertahan'])
+
+    const HALAMAN = 1000
+
+    // `expediting` kategori B — terbaca lewat `.from()` tanpa penyaringan manual.
+    const kiriman: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('expediting')
+        .select('id, po_id, janji_vendor, perkiraan_tiba, tiba_aktual, status, lokasi_terkini, nomor_resi, moda, sebab_tertahan')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      kiriman.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    if (kiriman.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { kiriman_dibaca: 0 } })
+    }
+
+    /*
+      Nomor PO diambil terpisah, dan pesannya TIDAK bergantung padanya.
+
+      Kiriman yatim — `po_id` menunjuk PO yang sudah terhapus, atau PO milik
+      tenant lain — tetap harus dilaporkan. Barangnya nyata dan tetap tak
+      sampai; PO-nya yang hilang. Menjadikan nama PO syarat pelaporan berarti
+      kasus paling kacau justru yang paling sunyi.
+
+      ⚠ `expediting` kategori B, tetapi `purchase_orders` kategori C lewat
+      `project_id` — jadi ia TIDAK boleh dibaca dengan `.from()`.
+
+      Saya sempat menulisnya begitu, dan gerbang tenancy menolaknya saat test
+      dijalankan. Kalau gerbang itu tak ada, rute ini akan memulangkan nomor
+      PO SELURUH tenant untuk dicocokkan dengan kiriman tenant ini — kebocoran
+      yang tak menghasilkan satu pun galat, dan gejalanya cuma nomor PO asing
+      muncul di notifikasi.
+
+      Karena `viaProject` menuntut satu proyek, PO dibaca per-proyek dan
+      digabung. Proyek yang tak punya PO terkirim tak menambah apa pun.
+    */
+    const proyek: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('projects').select('id, is_deleted')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      proyek.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const namaPo = new Map<string, string>()
+    for (const p of proyek.filter((x) => x.is_deleted !== true)) {
+      const r = await request.db!
+        .viaProject('purchase_orders', p.id as string)
+        .select('id, po_number')
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      for (const po of (r.data ?? []) as Array<Record<string, unknown>>) {
+        namaPo.set(po.id as string, String(po.po_number ?? 'PO'))
+      }
+    }
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+
+    let dibuat = 0
+    const hitung = { aman: 0, tertahan: 0, terlambat: 0, tanpa_tenggat: 0 }
+
+    for (const k of kiriman) {
+      /*
+        TENGGAT = yang PALING BELAKANG dari janji vendor dan perkiraan tiba.
+
+        `janji_vendor` adalah yang dijanjikan pemasok; `perkiraan_tiba` adalah
+        perkiraan logistik sesudah memperhitungkan perjalanan.
+
+        Memakai yang paling AWAL membuat tiap kiriman normal terlihat telat
+        sejak hari pertama — dan peringatan yang berbunyi untuk kiriman sehat
+        adalah cara tercepat membuat orang mematikan seluruh peringatan
+        pengadaan.
+      */
+      const t1 = Date.parse(String(k.janji_vendor ?? '').slice(0, 10) + 'T00:00:00Z')
+      const t2 = Date.parse(String(k.perkiraan_tiba ?? '').slice(0, 10) + 'T00:00:00Z')
+      const sah = [t1, t2].filter((t) => !Number.isNaN(t))
+      const tenggat = sah.length > 0 ? Math.max(...sah) : null
+
+      const h = nilaiKiriman({
+        status: String(k.status ?? ''),
+        lewatHari: tenggat == null ? null : Math.floor((acuan - tenggat) / HARI),
+        sebabTertahan: (k.sebab_tertahan as string | null) ?? null,
+        sudahTiba: k.tiba_aktual != null,
+      }, ambangTertahan, ambangTerlambat)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+
+      const id = k.id as string
+      if (sudah('barang_tertahan', id)) continue
+
+      const po = (k.po_id ? namaPo.get(k.po_id as string) : null) ?? '(PO tak ditemukan)'
+      const lewat = tenggat == null ? null : Math.floor((acuan - tenggat) / HARI)
+      const lokasi = String(k.lokasi_terkini ?? '').trim()
+      const resi = String(k.nomor_resi ?? '').trim()
+      const jejak = [lokasi && `terakhir di ${lokasi}`, resi && `resi ${resi}`]
+        .filter(Boolean).join(', ')
+
+      const pesan = {
+        tertahan:
+          `${po} TERTAHAN ${lewat} hari melewati tenggat. `
+          + `Sebab tercatat: "${String(k.sebab_tertahan ?? '').trim()}". `
+          + (jejak ? `Posisi ${jejak}. ` : '')
+          + 'Penahanan hampir selalu urusan dokumen — ia tak akan selesai sendiri, '
+          + 'dan biaya penyimpanan berjalan tiap hari.',
+        terlambat:
+          `${po} belum tiba, LEWAT ${lewat} hari dari tenggat. `
+          + (jejak ? `Posisi ${jejak}. ` : 'Tak ada catatan posisi terakhir. ')
+          + 'Tak ada sebab tercatat — yang dibutuhkan biasanya satu telepon ke pemasok.',
+        tanpa_tenggat:
+          `${po} tak punya tanggal janji maupun perkiraan tiba. `
+          + (jejak ? `Posisi ${jejak}. ` : '')
+          + 'Kiriman tanpa tenggat tak bisa dinilai telat atau tidak — selamanya. '
+          + 'Isi tanggalnya supaya ia ikut terpantau.',
+        aman: '',
+      }[h.sebab]
+
+      const penerima = await resolveRecipients('barang_tertahan', {
+        companyId: request.companyId!,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: h.sebab === 'tertahan' ? 'Barang tertahan di perjalanan' : 'Kiriman belum tiba',
+          message: pesan,
+          /*
+            Tertahan lebih mendesak daripada terlambat: ada biaya berjalan dan
+            ada pekerjaan administratif yang menunggu. Yang tanpa tenggat
+            adalah kerapian data, bukan kedaruratan.
+          */
+          priority: h.sebab === 'tertahan' ? 'high' : 'normal',
+          type: 'barang_tertahan',
+          action_url: '/procurement',
+          // `record_id` WAJIB — lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: id, po_id: k.po_id ?? null, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: {
+        kiriman_dibaca: kiriman.length,
+        ...hitung,
+        ambang_tertahan: ambangTertahan,
+        ambang_terlambat: ambangTerlambat,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/sengketa-menggantung ─────────────────────
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // SENGKETA TIDAK MEMBURUK — IA KEDALUWARSA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Hampir semua otomasi di berkas ini menjaga sesuatu yang MEMBURUK bila
+  // didiamkan: stok habis, polis kedaluwarsa, alat rusak. Sengketa tidak.
+  //
+  // Klaim konstruksi punya tenggat yang lahir dari kontrak dan dari hukum:
+  // pemberitahuan dalam sekian hari, somasi sebelum arbitrase, daluwarsa
+  // gugatan. Klaim yang BENAR secara isi bisa GUGUR total karena berhenti
+  // bergerak — dan tak ada satu pun gejala di sepanjang jalan.
+  //
+  // Diukur 2026-08-16:
+  //
+  //   SKT-01  Perbedaan volume galian tanah keras
+  //           Rp 420.000.000 · negosiasi · TANPA FORUM · 97 hari
+  //   SKT-02  Perpanjangan waktu akibat keterlambatan lahan
+  //           mediasi BANI Bandung · 170 hari
+  //   (tanpa nomor)  Batas lahan sisi utara tak sesuai sertifikat
+  //           dicatat · 22 hari · belum diberi nomor perkara
+  //
+  // SKT-01 yang paling mahal sekaligus paling sunyi: hampir setengah miliar,
+  // masih "negosiasi" sesudah tiga bulan, `forum` NULL — artinya belum ada
+  // jalur formal apa pun bila negosiasinya buntu.
+  //
+  // ── TIGA SEBAB, DIPERIKSA BERURUTAN, YANG PERTAMA MENANG
+  //
+  // Urutannya bukan menurut yang paling mahal, melainkan yang paling mudah
+  // DIKERJAKAN. Memberi nomor perkara pekerjaan lima menit; memilih forum
+  // arbitrase keputusan direksi. Peringatan yang meminta hal termudah lebih
+  // mungkin dikerjakan hari itu juga.
+  app.get('/api/v1/otomasi/jalankan/sengketa-menggantung', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiSengketa } = await import('../../lib/sengketa-menggantung.js')
+
+    const q = request.query as { nomor?: string; forum?: string; diam?: string; nilai?: string }
+    const ambangNomor = await ambilAmbang(request, 'otomasi.sengketa.hari_nomor', q.nomor)
+    const ambangForum = await ambilAmbang(request, 'otomasi.sengketa.hari_forum', q.forum)
+    const ambangDiam = await ambilAmbang(request, 'otomasi.sengketa.hari_diam', q.diam)
+    /*
+      Ambang "tuntutan besar" — dalam RUPIAH, bukan hari.
+
+      Dipakai hanya untuk menaikkan prioritas notifikasi, tidak untuk memutuskan
+      ditegur atau tidak. Perkara kecil yang terlantar tetap ditegur; ia cuma
+      tak membangunkan orang.
+
+      Disetel per badan usaha karena "besar" berbeda artinya bagi perusahaan
+      beromzet miliaran dan yang beromzet ratusan juta.
+    */
+    const ambangNilai = await ambilAmbang(request, 'otomasi.sengketa.nilai_besar', q.nilai)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['sengketa_menggantung'])
+
+    const HALAMAN = 1000
+
+    // `projects` ANCHOR; `sengketa` kategori C lewat `project_id`.
+    const proyek: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('projects').select('id, name, status, is_deleted')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      proyek.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    /*
+      Sengketa dibaca dari proyek AKTIF **dan** yang sudah selesai.
+
+      Ini sengaja BERBEDA dari otomasi lain di berkas ini, yang semuanya
+      menyaring ke proyek aktif saja.
+
+      Alasannya: sengketa konstruksi justru paling sering hidup SESUDAH
+      proyeknya diserahterimakan — klaim pekerjaan tambah, retensi yang tak
+      dibayar, cacat yang muncul di masa pemeliharaan. Menyaring ke proyek
+      aktif akan membuang justru perkara yang paling mungkin terlantar, karena
+      tak ada lagi rapat mingguan yang membahas proyek yang sudah tutup.
+
+      Yang tetap dibuang hanya proyek yang DIHAPUS.
+    */
+    const hidup = proyek.filter((p) => p.is_deleted !== true)
+    const idHidup = hidup.map((p) => p.id as string)
+    if (idHidup.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek: 0 } })
+    }
+    const namaProyek = new Map(hidup.map((p) => [p.id as string, String(p.name ?? 'Proyek')]))
+
+    const perkara: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .unsafe('sengketa', 'disaring .in(project_id, ...) proyek milik tenant ini')
+        .select('id, project_id, nomor, judul, pihak_lawan, nilai_tuntutan, status, tanggal_mulai, forum')
+        .in('project_id', idHidup)
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      perkara.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+
+    let dibuat = 0
+    const hitung = {
+      bergerak: 0, selesai: 0, belum_bernomor: 0, tanpa_forum: 0, lama_diam: 0,
+    }
+
+    const rupiah = (n: number) => 'Rp ' + Math.round(n).toLocaleString('id-ID')
+
+    for (const s of perkara) {
+      const mulai = Date.parse(String(s.tanggal_mulai ?? '').slice(0, 10) + 'T00:00:00Z')
+
+      const h = nilaiSengketa({
+        nomor: (s.nomor as string | null) ?? null,
+        status: String(s.status ?? ''),
+        forum: (s.forum as string | null) ?? null,
+        nilaiTuntutan: s.nilai_tuntutan == null ? null : Number(s.nilai_tuntutan),
+        // NaN ditangani di dalam `nilaiSengketa` — perkara bertanggal rusak
+        // dianggap BERGERAK, bukan menggantung. Alasannya di berkas lib.
+        umurHari: Number.isNaN(mulai) ? Number.NaN : Math.floor((acuan - mulai) / HARI),
+      }, ambangNomor, ambangForum, ambangDiam)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+
+      const id = s.id as string
+      if (sudah('sengketa_menggantung', id)) continue
+
+      const pid = s.project_id as string
+      const label = String(s.nomor ?? '').trim() || String(s.judul ?? 'Sengketa')
+      const lawan = String(s.pihak_lawan ?? '').trim()
+      const nilai = s.nilai_tuntutan == null ? null : Number(s.nilai_tuntutan)
+
+      /*
+        Nilai tuntutan disebut bila ada, DAN ketiadaannya juga disebut.
+
+        SKT-02 tak mencantumkan nilai — dan itu sendiri masalah: perkara tanpa
+        angka tak bisa dicadangkan di neraca, tak bisa diprioritaskan terhadap
+        perkara lain, dan tak bisa dinilai layak-tidaknya biaya arbitrase.
+      */
+      const angka = nilai != null && nilai > 0
+        ? ` Nilai tuntutan ${rupiah(nilai)}.`
+        : ' Nilai tuntutan belum dicantumkan — perkara tanpa angka tak bisa dicadangkan maupun diprioritaskan.'
+
+      const pesan = {
+        belum_bernomor:
+          `"${label}"${lawan ? ` melawan ${lawan}` : ''} sudah ${h.umurHari} hari tercatat `
+          + 'tetapi BELUM diberi nomor perkara.' + angka
+          + ' Tanpa nomor ia tak bisa dirujuk di surat-menyurat dan praktis tak ada dalam arsip.',
+        tanpa_forum:
+          `${label}${lawan ? ` melawan ${lawan}` : ''} berjalan ${h.umurHari} hari TANPA FORUM `
+          + 'penyelesaian yang ditetapkan.' + angka
+          + ' Belum ada jalur formal apa pun bila perundingannya buntu — dan klaim '
+          + 'konstruksi bisa gugur karena tenggat, bukan karena isinya salah.',
+        lama_diam:
+          `${label}${lawan ? ` melawan ${lawan}` : ''} sudah ${h.umurHari} hari dan belum selesai.`
+          + angka + ' Perkara yang berhenti bergerak tidak memburuk — ia kedaluwarsa, '
+          + 'dan tak ada satu pun gejala sebelum tenggatnya lewat.',
+        bergerak: '', selesai: '',
+      }[h.sebab]
+
+      const penerima = await resolveRecipients('sengketa_menggantung', {
+        companyId: request.companyId!,
+        projectId: pid,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: h.sebab === 'belum_bernomor'
+            ? 'Sengketa belum diberi nomor perkara'
+            : 'Sengketa berhenti bergerak',
+          message: `${namaProyek.get(pid) ?? 'Proyek'}: ${pesan}`,
+          /*
+            Tuntutan besar naik ke `high`, sisanya `normal`.
+
+            Ambangnya diambil dari setelan yang sama dengan pencadangan, bukan
+            angka dipaku — perusahaan kecil dan besar punya arti berbeda untuk
+            "besar".
+          */
+          priority: nilai != null && nilai >= ambangNilai ? 'high' : 'normal',
+          type: 'sengketa_menggantung',
+          project_id: pid,
+          action_url: '/risiko/sengketa',
+          // `record_id` WAJIB — lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: {
+        proyek: idHidup.length,
+        sengketa_dibaca: perkara.length,
+        ...hitung,
+        ambang_nomor: ambangNomor,
+        ambang_forum: ambangForum,
+        ambang_diam: ambangDiam,
+      },
+    })
+  })
 }
 
 /**

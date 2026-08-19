@@ -438,6 +438,47 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Proyek yang nilainya melampaui pertanggungan, dan celah yang tak terlihat pemeriksaan biasa.',
     jalur: '/api/v1/otomasi/jalankan/celah-asuransi',
   },
+
+  /*
+    ── LIMA ENTRI YANG SEMPAT TERTINGGAL (dilengkapi 2026-08-19)
+    ────────────────────────────────────────────────────────────────────────
+
+    Kelima rutenya sudah ada dan berjalan, tetapi tak pernah didaftarkan di
+    sini. Akibatnya bukan galat: penjadwal hanya menjalankan tugas yang
+    dikenal katalog, jadi kelimanya duduk di `jadwal_tugas` dengan
+    `aktif = true` dan tak pernah dipanggil sama sekali.
+
+    Bentuk kegagalan yang sama persis dengan cacat 2026-08-13 yang melahirkan
+    `audit-tugas-punya-rute` — dan penjaga itu TIDAK menangkap yang ini,
+    karena ia memeriksa arah sebaliknya (tiap entri katalog punya rute).
+    Arah yang bolong: tiap rute punya entri katalog. Ditutup penjaga baru
+    `audit-rute-otomasi-punya-entri.mjs`.
+  */
+  'klien-didiamkan': {
+    label: 'Klien Lama Tak Dikabari',
+    keterangan: 'Klien proyek berjalan yang sudah lama tak menerima kabar apa pun, dan yang belum pernah sama sekali.',
+    jalur: '/api/v1/otomasi/jalankan/klien-didiamkan',
+  },
+  'bbm-melonjak': {
+    label: 'Konsumsi BBM Melonjak',
+    keterangan: 'Alat yang liter-per-jam-operasinya naik jauh dari kebiasaannya sendiri.',
+    jalur: '/api/v1/otomasi/jalankan/bbm-melonjak',
+  },
+  'uji-material-gagal': {
+    label: 'Hasil Uji Material Bermasalah',
+    keterangan: 'Uji yang tak memenuhi syarat tanpa NCR, yang belum disimpulkan, dan uji ulang yang menggantung.',
+    jalur: '/api/v1/otomasi/jalankan/uji-material-gagal',
+  },
+  'barang-tertahan': {
+    label: 'Barang Tertahan di Perjalanan',
+    keterangan: 'Kiriman yang sudah di-PO tetapi belum tiba — tertahan bersebab, terlambat, atau tak bertenggat.',
+    jalur: '/api/v1/otomasi/jalankan/barang-tertahan',
+  },
+  'sengketa-menggantung': {
+    label: 'Sengketa Berhenti Bergerak',
+    keterangan: 'Klaim yang belum bernomor, belum berforum, atau sekadar lama tak selesai.',
+    jalur: '/api/v1/otomasi/jalankan/sengketa-menggantung',
+  },
 }
 
 interface BarisJadwal {

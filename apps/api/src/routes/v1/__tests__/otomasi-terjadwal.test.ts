@@ -562,6 +562,14 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     // rencana, melainkan mencari tabel yang TERISI tapi tak satu pun otomasi
     // menyentuhnya. Ada 109; ini yang paling mahal bila diam.
     'uji-material-gagal',
+    // TANPA NOMOR (2026-08-19). Sisi PENGIRIMAN pengadaan — seluruh otomasi
+    // pengadaan lain berhenti begitu PO terbit. Diukur: satu kiriman 132 hari
+    // di gudang transit, satu lagi 85 hari tertahan bea cukai.
+    'barang-tertahan',
+    // TANPA NOMOR (2026-08-19). Satu-satunya otomasi di berkas ini yang
+    // objeknya tidak MEMBURUK bila didiamkan — ia KEDALUWARSA. Diukur:
+    // Rp 420 juta menggantung 97 hari di negosiasi tanpa forum.
+    'sengketa-menggantung',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {
