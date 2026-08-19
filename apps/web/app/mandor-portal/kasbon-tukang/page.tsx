@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { useData } from "@/lib/data-cache";
-import { type Kasbon, type Tukang, type Penugasan, pesanGalat } from "../_bersama/tipe";
+import { type Kasbon, type Tukang, type Penugasan, type GalatApi, pesanGalat } from "../_bersama/tipe";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { CreditCard, Plus } from "lucide-react";
-
-import { C } from "@/lib/warna-ui";
+import BottomSheet from "@/components/portal/BottomSheet";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -23,13 +23,9 @@ const PURPOSE_LABELS: Record<string, string> = {
 };
 
 export default function KasbonTukangPage() {
-  const [showModal, setShowModal] = useState(false);
-  // Modal di portal ini tak punya prop `onClose` — ia dikendalikan state
-  // lokal — sehingga penjaga `modal-esc-ratchet` tak menjangkaunya, dan
-  // kelima modal portal mandor menjebak pemakai keyboard tanpa terdeteksi.
-  // Penjaganya ikut diperluas; ini perbaikan kodenya.
-  useTutupEsc(showModal ? () => setShowModal(false) : null);
+  const [sheetTerbuka, setSheetTerbuka] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   // Form
@@ -71,10 +67,11 @@ export default function KasbonTukangPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.worker_id || !form.project_id || !form.amount) {
-      setToast({ msg: "Worker, proyek, dan jumlah wajib diisi", ok: false });
+      setGalatForm("Tukang, proyek, dan jumlah wajib diisi");
       return;
     }
     setSubmitting(true);
+    setGalatForm(null);
     try {
       // F4-3 — lewat antrean offline; sinyal buruk adalah norma di lapangan.
       const hasil = await kirimLapangan("POST", "/api/v1/mandor/worker-kasbons", {
@@ -87,15 +84,19 @@ export default function KasbonTukangPage() {
         notes: form.notes || undefined,
       }, "Kasbon tukang berhasil diajukan", "Gagal mengajukan kasbon");
 
-      setToast({ msg: hasil.pesan, ok: hasil.aman });
       // Form dikosongkan hanya bila kirimannya AMAN — kalau tidak, isian
       // mandor hilang dan ia harus mengetik ulang.
-      if (!hasil.aman) return;
-      setShowModal(false);
+      if (!hasil.aman) {
+        setGalatForm(hasil.pesan);
+        return;
+      }
+      setToast({ msg: hasil.pesan, ok: true });
+      setTimeout(() => setToast(null), 3500);
+      setSheetTerbuka(false);
       setForm({ worker_id: "", project_id: "", scope_id: "", amount: "", purpose: "gaji_tukang", kasbon_date: "", notes: "" });
       if (hasil.terkirim) await loadData();
     } catch (err) {
-      setToast({ msg: pesanGalat(err, "Gagal mengajukan kasbon"), ok: false });
+      setGalatForm(pesanGalat(err, "Gagal mengajukan kasbon"));
     } finally {
       setSubmitting(false);
     }
@@ -107,196 +108,285 @@ export default function KasbonTukangPage() {
     .reduce((s, k) => s + (Number(k.amount) - Number(k.amount_settled ?? 0)), 0);
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      {toast && (
-        // Toast sebagai TOMBOL, bukan `<div onClick>`: ia memang bisa ditekan
-        // (untuk menutup), jadi harus bisa difokus dan menanggapi Enter/Space.
-        //
-        // `role="alert"` ada di WADAHNYA, bukan di tombolnya. Versi pertama
-        // menaruhnya langsung di `<button>` dan lint benar menolaknya: `alert`
-        // adalah peran non-interaktif, jadi memasangnya ke tombol justru
-        // MENGHAPUS makna "ini bisa ditekan". Memisahkan keduanya membuat
-        // pembaca layar mengumumkan pesannya begitu muncul DAN tetap tahu
-        // bahwa ia bisa ditutup — tanpa itu, pesan "berhasil"/"gagal" hanya
-        // terlihat oleh yang kebetulan menatap sudut kanan atas layar.
-        <div role="alert" aria-live="polite">
-        <button
-          type="button"
-          onClick={() => setToast(null)}
-          aria-label={`Tutup pesan: ${toast.msg}`}
-          style={{
-          position: "fixed", top: 72, right: 20, zIndex: 999,
-          background: toast.ok ? C.greenBg : C.redBg, border: `1px solid ${toast.ok ? C.green : C.red}`,
-          color: toast.ok ? C.green : C.red, padding: "12px 20px", borderRadius: 10, fontSize: 13,
-          fontWeight: 500, boxShadow: "var(--naik-2)", cursor: "pointer",
-          textAlign: "left",
-        }}>
-          {toast.msg}
-        </button>
-        </div>
-      )}
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>Kasbon Tukang</h1>
-          <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>Ajukan kasbon untuk tukang di bawah Anda</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Kasbon Tukang</h1>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>Ajukan kasbon untuk tukang di bawah Anda</p>
         </div>
-        <button onClick={() => setShowModal(true)} style={{
-          display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10,
-          border: "none", background: "var(--grad-aksen)", color: "var(--surface)", fontSize: 13, fontWeight: 600, cursor: "pointer",
-        }}>
-          <Plus size={15} /> Ajukan Kasbon
+        <button
+          onClick={() => setSheetTerbuka(true)}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            minHeight: 44, padding: "0 16px", borderRadius: "var(--portal-radius-pill)",
+            border: "none", background: "var(--grad-merek)", color: "var(--on-navy)",
+            fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0,
+          }}
+        >
+          <Plus size={16} aria-hidden="true" /> Ajukan
         </button>
       </div>
 
-      {/* KPI */}
-      {!loading && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-          <div style={{ background: C.surface, borderRadius: 10, padding: 16, border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 11, color: C.mid, fontWeight: 500, marginBottom: 6 }}>Kasbon Aktif</div>
-            <div style={{ fontSize: 26, fontWeight: 700, color: C.yellow }}>{pending}</div>
+      {!loading && !galatMuat && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600, marginBottom: 6 }}>Kasbon Aktif</div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: "var(--on-warning-bg)" }}>{pending}</div>
           </div>
-          <div style={{ background: C.surface, borderRadius: 10, padding: 16, border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 11, color: C.mid, fontWeight: 500, marginBottom: 6 }}>Total Outstanding</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: C.red }}>{fmt(totalOutstanding)}</div>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600, marginBottom: 6 }}>Total Outstanding</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "var(--on-danger-bg)" }}>{fmt(totalOutstanding)}</div>
           </div>
         </div>
       )}
 
-      {loading && <div style={{ textAlign: "center", padding: 40, color: C.mid }}>Memuat...</div>}
+      {loading && (
+        <>
+          <SkeletonCard tinggi={80} />
+          <SkeletonCard tinggi={80} />
+        </>
+      )}
 
       {!loading && galatMuat && (
-        <div role="alert" style={{ background: C.redBg, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px 16px", marginBottom: 16, fontSize: 13, color: C.red }}>
-          Gagal memuat kasbon tukang. Coba muat ulang halaman.
-        </div>
+        <EmptyState
+          icon={CreditCard}
+          judul="Gagal memuat kasbon tukang"
+          deskripsi={pesanGalat(galatMuat as GalatApi, "Coba muat ulang halaman ini.")}
+        />
       )}
 
       {!loading && !galatMuat && kasbons.length === 0 && (
-        <div style={{ background: C.surface, borderRadius: 10, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
-          <CreditCard size={28} color={C.muted} style={{ marginBottom: 8 }} />
-          <div style={{ fontSize: 13, color: C.mid }}>Belum ada kasbon tukang</div>
+        <EmptyState
+          icon={CreditCard}
+          judul="Belum ada kasbon tukang"
+          deskripsi="Kasbon yang Anda ajukan untuk tukang akan muncul di sini, lengkap dengan status pelunasannya."
+        />
+      )}
+
+      {!loading && !galatMuat && kasbons.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {kasbons.map((k) => (
+            <div
+              key={k.id}
+              style={{
+                padding: 16, borderRadius: 16, background: "var(--surface)",
+                border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{k.worker?.name ?? "—"}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>
+                    {PURPOSE_LABELS[k.purpose ?? ""] ?? k.purpose} · {k.project?.name ?? "—"} · {fmtDate(k.kasbon_date ?? null)}
+                  </div>
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "var(--text-primary)" }}>{fmt(Number(k.amount))}</div>
+                  <div style={{ fontSize: 11, color: k.is_settled ? "var(--on-success-bg)" : "var(--on-warning-bg)", fontWeight: 600, marginTop: 2 }}>
+                    {k.is_settled ? "Lunas" : `Sisa ${fmt(Number(k.amount) - Number(k.amount_settled ?? 0))}`}
+                  </div>
+                </div>
+              </div>
+              {Number(k.amount_settled ?? 0) > 0 && !k.is_settled && (
+                <div>
+                  <div style={{ height: 4, background: "var(--surface-subtle)", borderRadius: 6, overflow: "hidden" }}>
+                    <div
+                      style={{
+                        height: "100%", borderRadius: 6, background: "var(--success)",
+                        width: `${Math.min(100, (Number(k.amount_settled) / Number(k.amount)) * 100)}%`,
+                      }}
+                    />
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3 }}>
+                    Dicicil {fmt(Number(k.amount_settled ?? 0))} dari {fmt(Number(k.amount))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {kasbons.map((k) => (
-          <div key={k.id} style={{
-            background: C.surface, borderRadius: 10, padding: "12px 16px",
-            border: `1px solid ${C.border}`, boxShadow: "var(--naik-1)",
-          }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{k.worker?.name ?? "—"}</div>
-                <div style={{ fontSize: 12, color: C.mid, marginTop: 2 }}>
-                  {PURPOSE_LABELS[k.purpose ?? ""] ?? k.purpose} · {k.project?.name ?? "—"} · {fmtDate(k.kasbon_date ?? null)}
-                </div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{fmt(Number(k.amount))}</div>
-                <div style={{ fontSize: 11, color: k.is_settled ? C.green : C.yellow, fontWeight: 500, marginTop: 2 }}>
-                  {k.is_settled ? "✓ Lunas" : `Sisa ${fmt(Number(k.amount) - Number(k.amount_settled ?? 0))}`}
-                </div>
-              </div>
+      <BottomSheet terbuka={sheetTerbuka} onTutup={() => setSheetTerbuka(false)} judul="Ajukan Kasbon Tukang">
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label htmlFor="worker-id" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+              Tukang *
+            </label>
+            <select
+              id="worker-id"
+              aria-label="Pilih tukang"
+              value={form.worker_id}
+              onChange={(e) => setForm((f) => ({ ...f, worker_id: e.target.value }))}
+              style={{
+                width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                border: "1px solid var(--border)", fontSize: 14, color: "var(--text-primary)",
+                background: "var(--surface)", boxSizing: "border-box",
+              }}
+            >
+              <option value="">Pilih tukang...</option>
+              {workers.filter((w) => w.is_active).map((w) => (
+                <option key={w.id} value={w.id}>{w.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="project-id" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+              Proyek *
+            </label>
+            <select
+              id="project-id"
+              aria-label="Proyek"
+              value={form.project_id}
+              onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value, scope_id: "" }))}
+              style={{
+                width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                border: "1px solid var(--border)", fontSize: 14, color: "var(--text-primary)",
+                background: "var(--surface)", boxSizing: "border-box",
+              }}
+            >
+              <option value="">Pilih proyek...</option>
+              {assignments.map((a) => (
+                <option key={a.project?.id} value={a.project?.id ?? ""}>{a.project?.name}</option>
+              ))}
+            </select>
+          </div>
+          {scopesForProject.length > 0 && (
+            <div>
+              <label htmlFor="scope-id" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+                Scope (opsional)
+              </label>
+              <select
+                id="scope-id"
+                aria-label="Lingkup"
+                value={form.scope_id}
+                onChange={(e) => setForm((f) => ({ ...f, scope_id: e.target.value }))}
+                style={{
+                  width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                  border: "1px solid var(--border)", fontSize: 14, color: "var(--text-primary)",
+                  background: "var(--surface)", boxSizing: "border-box",
+                }}
+              >
+                <option value="">Semua scope</option>
+                {scopesForProject.map((s) => (
+                  <option key={s.id} value={s.id}>{s.scope_name}</option>
+                ))}
+              </select>
             </div>
-            {Number(k.amount_settled ?? 0) > 0 && !k.is_settled && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ height: 4, background: C.border, borderRadius: 6, overflow: "hidden" }}>
-                  <div style={{
-                    height: "100%", borderRadius: 6, background: C.green,
-                    width: `${Math.min(100, (Number(k.amount_settled) / Number(k.amount)) * 100)}%`,
-                  }} />
-                </div>
-                <div style={{ fontSize: 11, color: C.mid, marginTop: 3 }}>
-                  Dicicil {fmt(Number(k.amount_settled ?? 0))} dari {fmt(Number(k.amount))}
-                </div>
-              </div>
-            )}
+          )}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div>
+              <label htmlFor="amount" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+                Jumlah (Rp) *
+              </label>
+              <input
+                id="amount"
+                type="number"
+                min="1"
+                value={form.amount}
+                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                placeholder="0"
+                style={{
+                  width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                  border: "1px solid var(--border)", fontSize: 14, boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div>
+              <label htmlFor="kasbon-date" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+                Tanggal
+              </label>
+              <input
+                id="kasbon-date"
+                aria-label="Tanggal"
+                type="date"
+                value={form.kasbon_date}
+                onChange={(e) => setForm((f) => ({ ...f, kasbon_date: e.target.value }))}
+                style={{
+                  width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                  border: "1px solid var(--border)", fontSize: 14, boxSizing: "border-box",
+                }}
+              />
+            </div>
           </div>
-        ))}
-      </div>
+          <div>
+            <label htmlFor="purpose" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+              Tujuan
+            </label>
+            <select
+              id="purpose"
+              aria-label="Tujuan kasbon"
+              value={form.purpose}
+              onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))}
+              style={{
+                width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                border: "1px solid var(--border)", fontSize: 14, color: "var(--text-primary)",
+                background: "var(--surface)", boxSizing: "border-box",
+              }}
+            >
+              {Object.entries(PURPOSE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="notes" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+              Catatan
+            </label>
+            <textarea
+              id="notes"
+              value={form.notes}
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              rows={2}
+              placeholder="Opsional"
+              style={{
+                width: "100%", padding: 12, borderRadius: 12, border: "1px solid var(--border)",
+                fontSize: 14, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit",
+              }}
+            />
+          </div>
 
-      {/* Modal Ajukan */}
-      {showModal && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000,
-          display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)",
-        }} onClick={(e) => { if (e.target === e.currentTarget) setShowModal(false); }}>
-          <div style={{
-            background: "var(--surface)", borderRadius: 14, padding: "var(--pad-kartu-lega)", width: "100%", maxWidth: 480,
-            boxShadow: "var(--naik-3)",
-          }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: "0 0 20px" }}>Ajukan Kasbon Tukang</h2>
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div>
-                <label htmlFor="worker-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tukang *</label>
-                <select id="worker-id" aria-label="Pilih tukang" value={form.worker_id} onChange={(e) => setForm((f) => ({ ...f, worker_id: e.target.value }))}
-                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}>
-                  <option value="">Pilih tukang...</option>
-                  {workers.filter((w) => w.is_active).map((w) => (
-                    <option key={w.id} value={w.id}>{w.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="project-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Proyek *</label>
-                <select id="project-id" aria-label="Proyek" value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value, scope_id: "" }))}
-                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}>
-                  <option value="">Pilih proyek...</option>
-                  {assignments.map((a) => (
-                    <option key={a.project?.id} value={a.project?.id}>{a.project?.name}</option>
-                  ))}
-                </select>
-              </div>
-              {scopesForProject.length > 0 && (
-                <div>
-                  <label htmlFor="scope-id" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Scope (opsional)</label>
-                  <select id="scope-id" aria-label="Lingkup" value={form.scope_id} onChange={(e) => setForm((f) => ({ ...f, scope_id: e.target.value }))}
-                    style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}>
-                    <option value="">Semua scope</option>
-                    {scopesForProject.map((s) => (
-                      <option key={s.id} value={s.id}>{s.scope_name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <div>
-                  <label htmlFor="amount" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Jumlah (Rp) *</label>
-                  <input id="amount" type="number" min="1" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                    placeholder="0" style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }} />
-                </div>
-                <div>
-                  <label htmlFor="kasbon-date" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tanggal</label>
-                  <input id="kasbon-date" aria-label="Tanggal" type="date" value={form.kasbon_date} onChange={(e) => setForm((f) => ({ ...f, kasbon_date: e.target.value }))}
-                    style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }} />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="purpose" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Tujuan</label>
-                <select id="purpose" aria-label="Tujuan kasbon" value={form.purpose} onChange={(e) => setForm((f) => ({ ...f, purpose: e.target.value }))}
-                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13 }}>
-                  {Object.entries(PURPOSE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="notes" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 5 }}>Catatan</label>
-                <textarea id="notes" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                  rows={2} placeholder="Opsional"
-                  style={{ width: "100%", padding: "8px 8px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, resize: "none" }} />
-              </div>
-              <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-                <button type="button" onClick={() => setShowModal(false)} style={{
-                  flex: 1, padding: "8px", borderRadius: 10, border: `1px solid ${C.border}`,
-                  background: "var(--surface)", color: C.mid, fontSize: 13, fontWeight: 600, cursor: "pointer",
-                }}>Batal</button>
-                <button type="submit" disabled={submitting} style={{
-                  flex: 2, padding: "8px", borderRadius: 10, border: "none",
-                  background: submitting ? C.mid : C.navy, color: "var(--surface)",
-                  fontSize: 13, fontWeight: 600, cursor: submitting ? "wait" : "pointer",
-                }}>{submitting ? "Mengajukan..." : "Ajukan Kasbon"}</button>
-              </div>
-            </form>
+          {galatForm && <div style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+
+          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+            <button
+              type="button"
+              onClick={() => setSheetTerbuka(false)}
+              style={{
+                flex: 1, minHeight: 44, padding: "0 12px", borderRadius: "var(--portal-radius-pill)",
+                border: "1px solid var(--border)", background: "var(--surface)",
+                color: "var(--text-secondary)", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              style={{
+                flex: 2, minHeight: 44, padding: "0 12px", borderRadius: "var(--portal-radius-pill)",
+                border: "none", background: "var(--navy)", color: "var(--on-navy)",
+                fontSize: 13, fontWeight: 700, cursor: submitting ? "default" : "pointer",
+                opacity: submitting ? 0.6 : 1,
+              }}
+            >
+              {submitting ? "Mengajukan…" : "Ajukan Kasbon"}
+            </button>
           </div>
+        </form>
+      </BottomSheet>
+
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", zIndex: 10000,
+            padding: "12px 20px", borderRadius: 10,
+            background: toast.ok ? "var(--success)" : "var(--danger)",
+            color: toast.ok ? "var(--on-success-bg)" : "var(--on-danger-bg)",
+            fontSize: 13, fontWeight: 600, boxShadow: "var(--naik-2)", whiteSpace: "nowrap",
+          }}
+        >
+          {toast.msg}
         </div>
       )}
     </div>

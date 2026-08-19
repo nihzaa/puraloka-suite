@@ -1,16 +1,46 @@
 "use client";
 
+// ============================================================================
+// Input Progress — laporan harian lapangan: teks + foto + geotag, dikirim
+// lewat antrean offline.
+//
+// ── PERINGATAN UNTUK PENYUNTING BERIKUTNYA
+//
+// Ini restyle tampilan SAJA. Mekanisme berikut TIDAK BOLEH disederhanakan
+// atau diganti — mandor bekerja di sinyal buruk, dan menghilangkan salah
+// satunya berarti data lapangan hilang:
+//
+//   1. `loadData`/`loadLogs` TETAP `api.get` manual, BUKAN `useData`. Alasan:
+//      `loadLogs` dipanggil ULANG secara imperatif dari beberapa titik
+//      (ganti proyek di selector, sesudah submit sukses, sesudah retry foto)
+//      dengan parameter proyek yang baru saja diketahui di closure yang
+//      sama — pola "fetch lalu langsung fetch lagi dengan hasilnya" yang
+//      tidak cocok dengan model `useData(url)` berbasis URL reaktif tanpa
+//      menulis ulang alur pemanggilannya. Risiko regresi pada jalur yang
+//      sudah bekerja lebih besar dari manfaat menaikkan angka penjaga cache.
+//   2. `kirimLapangan()` untuk teks laporan — TETAP dipakai, tidak diganti
+//      `api.post`.
+//   3. `antrekanFoto`/`tautkanKeLog` (IndexedDB, `antrean-foto.ts`) untuk
+//      foto yang gagal upload — TETAP dipakai. Foto punya antrean TERPISAH
+//      dari teks karena bentuk kegagalannya beda (lihat komentar di
+//      `handleSubmit`).
+//   4. `ambilLokasi()` (geotag) dipanggil SEKALI per submit, SEBELUM upload
+//      foto — urutan dan frekuensi ini disengaja, jangan diubah.
+//
+// Yang berubah di sini murni lapisan render: modal tengah → BottomSheet,
+// warna → token, badge/empty/skeleton → komponen bersama.
+// ============================================================================
+
 import { useEffect, useState } from "react";
-import { useTutupEsc } from "@/lib/use-tutup-esc";
-import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
 import { type Penugasan, type LogProgres, type ProyekRingkas, pesanGalat } from "../_bersama/tipe";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { ambilLokasi } from "@/lib/lokasi-perangkat";
 import { uploadProgressPhoto, attachProgressPhoto } from "@/lib/storage";
-import { Plus, Image, X, Check, Loader2, AlertCircle, Calendar, MapPin } from "lucide-react";
-
-import { C } from "@/lib/warna-ui";
+import { Plus, ImageIcon, X, Check, Loader2, ClipboardList, Calendar, MapPin } from "lucide-react";
+import BottomSheet from "@/components/portal/BottomSheet";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
 import { antrekan as antrekanFoto, tautkanKeLog, companyAktif } from "@/lib/antrean-foto";
 
 function fmtDate(s: string | null) {
@@ -19,10 +49,10 @@ function fmtDate(s: string | null) {
 }
 
 const WEATHER_OPTIONS = [
-  { value: "cerah",        label: "Cerah ☀️"  },
-  { value: "berawan",      label: "Berawan ⛅" },
-  { value: "hujan_ringan", label: "Hujan 🌧️"  },
-  { value: "hujan_lebat",  label: "Lebat ⛈️"  },
+  { value: "cerah", label: "Cerah" },
+  { value: "berawan", label: "Berawan" },
+  { value: "hujan_ringan", label: "Hujan ringan" },
+  { value: "hujan_lebat", label: "Hujan lebat" },
 ];
 
 interface PhotoEntry { id: string; file: File; previewUrl: string; caption: string; uploading: boolean; uploadedUrl: string | null; error: string | null; }
@@ -31,12 +61,8 @@ export default function MandorProgressPage() {
   const [assignments, setAssignments] = useState<Penugasan[]>([]);
   const [logs, setLogs] = useState<LogProgres[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  // Modal di portal ini tak punya prop `onClose` — ia dikendalikan state
-  // lokal — sehingga penjaga `modal-esc-ratchet` tak menjangkaunya, dan
-  // kelima modal portal mandor menjebak pemakai keyboard tanpa terdeteksi.
-  // Penjaganya ikut diperluas; ini perbaikan kodenya.
-  useTutupEsc(showModal ? () => setShowModal(false) : null);
+  const [galatMuat, setGalatMuat] = useState<string | null>(null);
+  const [sheetTerbuka, setSheetTerbuka] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
   // Form state
@@ -48,6 +74,7 @@ export default function MandorProgressPage() {
   const [workersCount, setWorkersCount] = useState("");
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [saving, setSaving] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
   // Foto yang gagal terupload padahal log SUDAH tersimpan → bisa dicoba ulang
   // tanpa mengetik ulang laporan (lihat handleSubmit).
   const [retry, setRetry] = useState<{ logId: string; items: PhotoEntry[] } | null>(null);
@@ -65,11 +92,14 @@ export default function MandorProgressPage() {
   }
 
   function loadData() {
+    setGalatMuat(null);
     return Promise.all([
       api.get("/api/v1/mandor/assignments"),
       api.get("/api/v1/projects?limit=100"),
     ]).then(([aRes]) => {
       setAssignments(aRes.data?.assignments ?? []);
+    }).catch((e) => {
+      setGalatMuat(pesanGalat(e, "Coba muat ulang halaman ini."));
     }).finally(() => setLoading(false));
   }
 
@@ -144,6 +174,7 @@ export default function MandorProgressPage() {
     e.preventDefault();
     if (!projectId || !notes) return;
     setSaving(true);
+    setGalatForm(null);
     try {
       // Upload foto. Kegagalan foto TIDAK membatalkan laporan: mandor sering di lokasi
       // bersinyal buruk dan foto (file besar) jauh lebih rentan gagal daripada teks.
@@ -247,7 +278,7 @@ export default function MandorProgressPage() {
 
       if (!hasil.aman) {
         // Form dibiarkan terisi — catatan harian tak boleh hilang.
-        showToast(hasil.pesan, false);
+        setGalatForm(hasil.pesan);
         return;
       }
 
@@ -256,7 +287,7 @@ export default function MandorProgressPage() {
         // logId) belum bisa dipakai. Foto yang gagal DIPERTAHANKAN di form
         // supaya mandor tak kehilangannya.
         showToast(hasil.pesan, true);
-        setShowModal(false);
+        setSheetTerbuka(false);
         setNotes(""); setWorkersCount(""); setScopeId("");
         setPhotos(failedPhotos);
         setRetry(null);
@@ -265,7 +296,7 @@ export default function MandorProgressPage() {
 
       const created = hasil.data as { data?: { id?: string } } | undefined;
       const logId = created?.data?.id;
-      setShowModal(false);
+      setSheetTerbuka(false);
       setNotes(""); setWorkersCount(""); setScopeId("");
 
       if (logId) {
@@ -286,23 +317,26 @@ export default function MandorProgressPage() {
       }
       loadLogs(projectId);
     } catch (err: unknown) {
-      showToast(pesanGalat(err, "Gagal menyimpan progress"), false);
+      setGalatForm(pesanGalat(err, "Gagal menyimpan progress"));
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>Input Progress</h1>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Input Progress</h1>
         <button
-          onClick={() => setShowModal(true)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 6, background: "var(--grad-aksen)", color: "var(--surface)", border: "none", cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+          onClick={() => { setGalatForm(null); setSheetTerbuka(true); }}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+            minHeight: 44, padding: "0 16px", borderRadius: "var(--portal-radius-pill)",
+            background: "var(--grad-merek)", color: "var(--on-navy)", border: "none",
+            fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0,
+          }}
         >
-          <Plus size={15} />
-          Input Progress
+          <Plus size={16} aria-hidden="true" /> Input
         </button>
       </div>
 
@@ -311,12 +345,14 @@ export default function MandorProgressPage() {
           tindakan. Foto sudah terkirim; yang tak ada hanya titik lokasinya,
           dan kalimatnya sendiri sudah mengatakan itu. */}
       {pesanLokasi && (
-        <div role="status" style={{
-          marginBottom: 14, padding: "10px 12px", borderRadius: 8, fontSize: 12.5,
-          lineHeight: 1.5, border: "1px solid var(--info-border)",
-          background: "var(--info-bg)", color: "var(--info)",
-          display: "flex", alignItems: "flex-start", gap: 8,
-        }}>
+        <div
+          role="status"
+          style={{
+            padding: "10px 12px", borderRadius: 12, fontSize: 12.5, lineHeight: 1.5,
+            border: "1px solid var(--info-border)", background: "var(--info-bg)", color: "var(--on-info-bg)",
+            display: "flex", alignItems: "flex-start", gap: 8,
+          }}
+        >
           <MapPin size={15} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden="true" />
           <span>{pesanLokasi}</span>
         </div>
@@ -325,8 +361,8 @@ export default function MandorProgressPage() {
       {/* Banner: laporan sudah tersimpan, tapi sebagian foto gagal terupload.
           Mandor bisa coba ulang tanpa mengetik ulang laporan. */}
       {retry && retry.items.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", padding: "12px 12px", marginBottom: 16, borderRadius: 10, background: "var(--warning-bg)", border: "1px solid var(--warning-border)" }}>
-          <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: 14, borderRadius: 16, background: "var(--warning-bg)", border: "1px solid var(--warning-border)" }}>
+          <div style={{ fontSize: 13, color: "var(--on-warning-bg)", lineHeight: 1.5 }}>
             <strong>Progress sudah tersimpan.</strong> {retry.items.length} foto gagal terupload
             (kemungkinan sinyal lemah). Laporanmu aman — foto bisa dicoba lagi.
           </div>
@@ -334,14 +370,23 @@ export default function MandorProgressPage() {
             <button
               onClick={retryFailedPhotos}
               disabled={saving}
-              style={{ padding: "8px 12px", borderRadius: 6, background: "var(--grad-aksen)", color: "var(--surface)", border: "none", cursor: saving ? "default" : "pointer", fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}
+              style={{
+                minHeight: 44, padding: "0 14px", borderRadius: "var(--portal-radius-pill)",
+                background: "var(--navy)", color: "var(--on-navy)", border: "none",
+                cursor: saving ? "default" : "pointer", fontSize: 13, fontWeight: 700,
+                opacity: saving ? 0.6 : 1,
+              }}
             >
               {saving ? "Mengupload…" : "Coba upload ulang"}
             </button>
             <button
               onClick={() => { setRetry(null); setPhotos([]); }}
               disabled={saving}
-              style={{ padding: "8px 12px", borderRadius: 6, background: "transparent", border: `1px solid ${C.border}`, color: C.mid, cursor: "pointer", fontSize: 13 }}
+              style={{
+                minHeight: 44, padding: "0 14px", borderRadius: "var(--portal-radius-pill)",
+                background: "transparent", border: "1px solid var(--border)",
+                color: "var(--text-secondary)", cursor: "pointer", fontSize: 13, fontWeight: 600,
+              }}
             >
               Lewati
             </button>
@@ -350,161 +395,288 @@ export default function MandorProgressPage() {
       )}
 
       {/* Project selector for log history */}
-      <div style={{ marginBottom: 16 }}>
-        <select aria-label="Proyek"
+      <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Riwayat proyek</span>
+        <select
+          aria-label="Proyek"
           value={projectId}
           onChange={(e) => { setProjectId(e.target.value); loadLogs(e.target.value); }}
-          style={{ padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)", minWidth: 220 }}
+          style={{
+            minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)",
+            fontSize: 14, color: "var(--text-primary)", background: "var(--surface)",
+          }}
         >
           <option value="">Pilih proyek untuk lihat history</option>
           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-      </div>
+      </label>
+
+      {loading && (
+        <>
+          <SkeletonCard tinggi={100} />
+          <SkeletonCard tinggi={100} />
+        </>
+      )}
+
+      {!loading && galatMuat && (
+        <EmptyState
+          icon={ClipboardList}
+          judul="Gagal memuat data"
+          deskripsi={galatMuat}
+        />
+      )}
 
       {/* Log history */}
-      {!loading && projectId && logs.length === 0 && (
-        <div style={{ background: C.surface, borderRadius: 10, padding: 40, border: `1px solid ${C.border}`, textAlign: "center" }}>
-          <AlertCircle size={28} color={C.muted} style={{ marginBottom: 8 }} />
-          <div style={{ fontSize: 13, color: C.mid }}>Belum ada catatan progress</div>
+      {!loading && !galatMuat && projectId && logs.length === 0 && (
+        <EmptyState
+          icon={ClipboardList}
+          judul="Belum ada catatan progress"
+          deskripsi="Laporan harian yang Anda catat untuk proyek ini — teks, cuaca, jumlah pekerja, dan foto — akan muncul di sini."
+        />
+      )}
+
+      {!loading && !galatMuat && logs.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {logs.map((log) => (
+            <div key={log.id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                <Calendar size={14} color="var(--text-secondary)" aria-hidden="true" />
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{fmtDate(log.log_date ?? null)}</span>
+                {log.weather && <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>· {log.weather}</span>}
+                {log.worker_count && <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>· {log.worker_count} pekerja</span>}
+              </div>
+              <p style={{ fontSize: 13, color: "var(--text-primary)", margin: 0, lineHeight: 1.6 }}>{log.notes}</p>
+              {(log.project_photos ?? []).length > 0 && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {(log.project_photos ?? []).map((ph) => (
+                    <a key={ph.id} href={ph.photo_url ?? undefined} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={ph.photo_url ?? undefined}
+                        alt={ph.caption ?? "foto dokumentasi progres"}
+                        style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }}
+                      />
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {logs.map((log) => (
-          <div key={log.id} style={{ background: C.surface, borderRadius: 10, padding: "16px 20px", border: `1px solid ${C.border}`, boxShadow: "var(--naik-1)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <Calendar size={14} color={C.mid} />
-              <span style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{fmtDate(log.log_date ?? null)}</span>
-              {log.weather && <span style={{ fontSize: 12, color: C.mid }}>· {log.weather}</span>}
-              {log.worker_count && <span style={{ fontSize: 12, color: C.mid }}>· {log.worker_count} pekerja</span>}
+      <BottomSheet terbuka={sheetTerbuka} onTutup={() => setSheetTerbuka(false)} judul="Input Progress Harian">
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label htmlFor="project-id" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+              Proyek *
+            </label>
+            <select
+              id="project-id"
+              aria-label="Proyek"
+              value={projectId}
+              onChange={(e) => { setProjectId(e.target.value); setScopeId(""); }}
+              required
+              style={{
+                width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                border: "1px solid var(--border)", fontSize: 14, color: "var(--text-primary)",
+                background: "var(--surface)", boxSizing: "border-box",
+              }}
+            >
+              <option value="">Pilih proyek...</option>
+              {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+
+          {projectScopes.length > 0 && (
+            <div>
+              <label htmlFor="scope-id" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+                Scope (opsional)
+              </label>
+              <select
+                id="scope-id"
+                aria-label="Pilih lingkup pekerjaan"
+                value={scopeId}
+                onChange={(e) => setScopeId(e.target.value)}
+                style={{
+                  width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                  border: "1px solid var(--border)", fontSize: 14, color: "var(--text-primary)",
+                  background: "var(--surface)", boxSizing: "border-box",
+                }}
+              >
+                <option value="">Semua scope</option>
+                {projectScopes.map((s) => <option key={s.id} value={s.id}>{s.scope_name}</option>)}
+              </select>
             </div>
-            <p style={{ fontSize: 13, color: C.text, margin: "0 0 8px", lineHeight: 1.6 }}>{log.notes}</p>
-            {(log.project_photos ?? []).length > 0 && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {(log.project_photos ?? []).map((ph) => (
-                  <a key={ph.id} href={ph.photo_url ?? undefined} target="_blank" rel="noopener noreferrer">
-                    <img src={ph.photo_url ?? undefined} alt={ph.caption ?? "foto"} style={{ width: 80, height: 80, objectFit: "cover", borderRadius: 6, border: `1px solid ${C.border}` }} />
-                  </a>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div>
+              <label htmlFor="log-date" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+                Tanggal
+              </label>
+              <input
+                id="log-date"
+                aria-label="Tanggal"
+                type="date"
+                value={logDate}
+                onChange={(e) => setLogDate(e.target.value)}
+                style={{
+                  width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                  border: "1px solid var(--border)", fontSize: 14, boxSizing: "border-box",
+                }}
+              />
+            </div>
+            <div>
+              <label htmlFor="weather" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+                Cuaca
+              </label>
+              <select
+                id="weather"
+                aria-label="Cuaca hari ini"
+                value={weather}
+                onChange={(e) => setWeather(e.target.value)}
+                style={{
+                  width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                  border: "1px solid var(--border)", fontSize: 14, color: "var(--text-primary)",
+                  background: "var(--surface)", boxSizing: "border-box",
+                }}
+              >
+                {WEATHER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="workers-count" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+              Jumlah Pekerja
+            </label>
+            <input
+              id="workers-count"
+              type="number"
+              min="0"
+              placeholder="Opsional"
+              value={workersCount}
+              onChange={(e) => setWorkersCount(e.target.value)}
+              style={{
+                width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
+                border: "1px solid var(--border)", fontSize: 14, boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="notes" style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+              Catatan Pekerjaan *
+            </label>
+            <textarea
+              id="notes"
+              placeholder="Deskripsikan pekerjaan hari ini..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              required
+              rows={4}
+              style={{
+                width: "100%", padding: 12, borderRadius: 12, border: "1px solid var(--border)",
+                fontSize: 14, resize: "vertical", boxSizing: "border-box", fontFamily: "inherit",
+              }}
+            />
+          </div>
+
+          {/* Photo upload */}
+          <div>
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>
+              Foto Dokumentasi
+            </span>
+            {photos.length > 0 && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                {photos.map((ph) => (
+                  <div key={ph.id} style={{ position: "relative" }}>
+                    <img src={ph.previewUrl} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
+                    {ph.uploading && (
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", borderRadius: 10 }}>
+                        <Loader2 size={18} color="var(--on-navy)" style={{ animation: "spin 1s linear infinite" }} aria-hidden="true" />
+                      </div>
+                    )}
+                    {ph.uploadedUrl && (
+                      <div style={{ position: "absolute", bottom: 2, right: 2, background: "var(--success)", borderRadius: 10, padding: 2 }}>
+                        <Check size={10} color="var(--on-success-bg)" aria-hidden="true" />
+                      </div>
+                    )}
+                    {!ph.uploading && !ph.uploadedUrl && (
+                      <button
+                        aria-label="Hapus foto"
+                        type="button"
+                        onClick={() => removePhoto(ph.id)}
+                        style={{
+                          position: "absolute", top: -6, right: -6, background: "var(--danger)",
+                          border: "none", borderRadius: "50%", width: 22, height: 22, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <X size={12} color="var(--on-danger-bg)" aria-hidden="true" />
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
+            <label
+              style={{
+                display: "flex", alignItems: "center", gap: 8, minHeight: 44, padding: "0 12px",
+                borderRadius: 12, border: "1px dashed var(--border)", cursor: "pointer",
+                fontSize: 13, color: "var(--text-secondary)",
+              }}
+            >
+              <ImageIcon size={16} aria-hidden="true" />
+              Tambah foto
+              <input type="file" accept="image/*" multiple onChange={handlePhotoAdd} style={{ display: "none" }} />
+            </label>
           </div>
-        ))}
-      </div>
 
-      {/* Modal */}
-      {showModal && typeof window !== "undefined" && createPortal(
-        <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: 16, paddingTop: 40, overflowY: "auto" }}>
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)" }} onClick={() => setShowModal(false)} />
-          <div style={{ position: "relative", background: C.surface, borderRadius: 14, width: "100%", maxWidth: 520, boxShadow: "var(--naik-3)", zIndex: 1 }}>
-            <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>Input Progress Harian</h2>
-              <button aria-label="Tutup input progress harian" onClick={() => setShowModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: C.mid }}><X size={20} /></button>
-            </div>
-            <form onSubmit={handleSubmit} style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <label htmlFor="project-id" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Proyek *</label>
-                <select id="project-id" aria-label="Proyek"
-                  value={projectId}
-                  onChange={(e) => { setProjectId(e.target.value); setScopeId(""); }}
-                  required
-                  style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
-                >
-                  <option value="">Pilih proyek...</option>
-                  {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </div>
+          {galatForm && <div style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
 
-              {projectScopes.length > 0 && (
-                <div>
-                  <label htmlFor="scope-id" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Scope (opsional)</label>
-                  <select id="scope-id" aria-label="Pilih lingkup pekerjaan"
-                    value={scopeId}
-                    onChange={(e) => setScopeId(e.target.value)}
-                    style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}
-                  >
-                    <option value="">Semua scope</option>
-                    {projectScopes.map((s) => <option key={s.id} value={s.id}>{s.scope_name}</option>)}
-                  </select>
-                </div>
-              )}
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label htmlFor="log-date" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Tanggal</label>
-                  <input id="log-date" aria-label="Tanggal" type="date" value={logDate} onChange={(e) => setLogDate(e.target.value)} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
-                </div>
-                <div>
-                  <label htmlFor="weather" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Cuaca</label>
-                  <select id="weather" aria-label="Cuaca hari ini" value={weather} onChange={(e) => setWeather(e.target.value)} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, background: "var(--surface)" }}>
-                    {WEATHER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="workers-count" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Jumlah Pekerja</label>
-                <input id="workers-count" type="number" min="0" placeholder="Opsional" value={workersCount} onChange={(e) => setWorkersCount(e.target.value)} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, boxSizing: "border-box" }} />
-              </div>
-
-              <div>
-                <label htmlFor="notes" style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Catatan Pekerjaan *</label>
-                <textarea id="notes" placeholder="Deskripsikan pekerjaan hari ini..." value={notes} onChange={(e) => setNotes(e.target.value)} required rows={4} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, resize: "vertical", boxSizing: "border-box" }} />
-              </div>
-
-              {/* Photo upload */}
-              <div>
-                <label style={{ fontSize: 13, fontWeight: 600, color: C.text, display: "block", marginBottom: 6 }}>Foto Dokumentasi</label>
-                {photos.length > 0 && (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-                    {photos.map((ph) => (
-                      <div key={ph.id} style={{ position: "relative" }}>
-                        <img src={ph.previewUrl} alt="" style={{ width: 72, height: 72, objectFit: "cover", borderRadius: 6, border: `1px solid ${C.border}` }} />
-                        {ph.uploading && (
-                          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)", borderRadius: 6 }}>
-                            <Loader2 size={18} color="var(--surface)" style={{ animation: "spin 1s linear infinite" }} />
-                          </div>
-                        )}
-                        {ph.uploadedUrl && (
-                          <div style={{ position: "absolute", bottom: 2, right: 2, background: C.green, borderRadius: 10, padding: 2 }}>
-                            <Check size={10} color="var(--surface)" />
-                          </div>
-                        )}
-                        {!ph.uploading && !ph.uploadedUrl && (
-                          <button aria-label="Hapus foto" type="button" onClick={() => removePhoto(ph.id)} style={{ position: "absolute", top: -6, right: -6, background: C.red, border: "none", borderRadius: "50%", width: 18, height: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            <X size={10} color="var(--surface)" />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <label style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderRadius: 6, border: `1px dashed ${C.border}`, cursor: "pointer", fontSize: 13, color: C.mid }}>
-                  <Image size={16} />
-                  Tambah foto
-                  <input type="file" accept="image/*" multiple onChange={handlePhotoAdd} style={{ display: "none" }} />
-                </label>
-              </div>
-
-              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                <button type="button" onClick={() => setShowModal(false)} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>
-                  Batal
-                </button>
-                <button type="submit" disabled={saving} style={{ padding: "8px 20px", borderRadius: 6, background: "var(--grad-aksen)", color: "var(--surface)", border: "none", cursor: saving ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
-                  {saving ? "Menyimpan..." : "Simpan Progress"}
-                </button>
-              </div>
-            </form>
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <button
+              type="button"
+              onClick={() => setSheetTerbuka(false)}
+              style={{
+                minHeight: 44, padding: "0 16px", borderRadius: "var(--portal-radius-pill)",
+                border: "1px solid var(--border)", background: "var(--surface)",
+                cursor: "pointer", fontSize: 13, color: "var(--text-secondary)",
+              }}
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              style={{
+                flex: 1, minHeight: 44, padding: "0 20px", borderRadius: "var(--portal-radius-pill)",
+                background: "var(--navy)", color: "var(--on-navy)", border: "none",
+                cursor: saving ? "default" : "pointer", fontSize: 14, fontWeight: 700,
+                opacity: saving ? 0.6 : 1,
+              }}
+            >
+              {saving ? "Menyimpan..." : "Simpan Progress"}
+            </button>
           </div>
-        </div>,
-        document.body
-      )}
+        </form>
+      </BottomSheet>
 
-      {toast && typeof window !== "undefined" && createPortal(
-        <div style={{ position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", zIndex: 10000, padding: "12px 20px", borderRadius: 10, background: toast.ok ? "var(--success)" : C.red, color: "var(--surface)", fontSize: 13, fontWeight: 500, boxShadow: "var(--naik-2)", whiteSpace: "nowrap" }}>
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: "fixed", bottom: 80, left: "50%", transform: "translateX(-50%)", zIndex: 10000,
+            padding: "12px 20px", borderRadius: 10,
+            background: toast.ok ? "var(--success)" : "var(--danger)",
+            color: toast.ok ? "var(--on-success-bg)" : "var(--on-danger-bg)",
+            fontSize: 13, fontWeight: 600, boxShadow: "var(--naik-2)", whiteSpace: "nowrap",
+          }}
+        >
           {toast.msg}
-        </div>,
-        document.body
+        </div>
       )}
 
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
