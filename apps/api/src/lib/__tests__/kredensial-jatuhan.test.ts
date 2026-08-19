@@ -114,3 +114,84 @@ describe('katalog — kunci mana yang punya jatuhan', () => {
     ).toEqual([])
   })
 })
+
+describe('surel multi-tenant (2026-08-19)', () => {
+  /*
+    Founder bertanya: *"gimana soal multi tenant api ini? perusahaan lain pake
+    api yang sama dengan yang ini juga?"* — dan pertanyaannya menemukan cacat
+    yang nyata.
+
+    Sampai hari itu `utils/email.ts` membaca `process.env.RESEND_API_KEY`
+    LANGSUNG, tak lewat lapisan kredensial. Artinya seluruh tenant berkirim
+    surel lewat SATU akun Resend milik operator:
+
+      · kuota 3.000/bulan dibagi tanpa ada yang tahu siapa memakai berapa
+      · satu tenant kena batas → surel tenant LAIN ikut mati
+      · penerima melihat domain OPERATOR, bukan domain perusahaan pengirim
+      · satu tenant di-spam-report → reputasi domain semua tenant kena
+
+    Yang ketiga paling mahal: tagihan dan berita acara yang datang dari domain
+    tak dikenal terbaca seperti penipuan.
+  */
+  it('RESEND_API_KEY ada di katalog — bisa dipasang per tenant', () => {
+    const meta = metaKredensial('RESEND_API_KEY')
+    expect(meta, 'kunci Resend tak ada di katalog, jadi tak bisa dipasang dari UI')
+      .toBeDefined()
+    expect(meta!.env, 'jatuhan env dicabut — instalasi satu-perusahaan akan mati')
+      .toBe('RESEND_API_KEY')
+  })
+
+  it('EMAIL_FROM ada di katalog — kunci saja TIDAK cukup', () => {
+    /*
+      Kunci Resend milik sendiri tapi alamat pengirim milik operator masih
+      salah: penerimanya tetap melihat domain operator. Multi-tenant surel
+      menuntut KEDUANYA.
+    */
+    const meta = metaKredensial('EMAIL_FROM')
+    expect(meta, 'alamat pengirim tak bisa disetel per tenant').toBeDefined()
+    expect(meta!.grup).toBe('Email')
+  })
+
+  it('KUNCI punya jatuhan env, ALAMAT tidak — dan bedanya disengaja', () => {
+    /*
+      Penjaga `audit-jatuhan-env-tak-bertambah.mjs` menolak versi pertama
+      entri `EMAIL_FROM` yang punya `env:`, dan penjaganya BENAR.
+
+      Jatuhan env untuk KUNCI API masih masuk akal: tenant yang belum punya
+      akun Resend tetap bisa berkirim surel, dan yang "bocor" cuma kuota
+      operator. Puraloka hari ini satu perusahaan, dan mencabutnya akan
+      mematikan surel yang sekarang jalan.
+
+      Untuk ALAMAT PENGIRIM, jatuhannya justru cacat yang hendak ditutup:
+      tenant tanpa alamat sendiri akan mengirim TAGIHAN dan BERITA ACARA dari
+      domain OPERATOR — penerimanya melihat pengirim yang tak ia kenal, dan
+      untuk dokumen yang meminta uang itu terbaca seperti penipuan.
+    */
+    delete process.env.KREDENSIAL_TANPA_JATUHAN_ENV
+    process.env.RESEND_API_KEY = 'nilai-uji'
+    process.env.EMAIL_FROM = 'nilai-uji'
+
+    expect(sumberKredensial(false, 'RESEND_API_KEY'),
+      'kunci Resend kehilangan jatuhan env — instalasi satu-perusahaan mati')
+      .toBe('env')
+
+    expect(sumberKredensial(false, 'EMAIL_FROM'),
+      'alamat pengirim mewarisi env — tenant mengirim tagihan dari domain operator')
+      .not.toBe('env')
+  })
+
+  it('saat saklar tanpa-jatuhan menyala, kunci Resend IKUT mati', () => {
+    /*
+      Inti multi-tenant yang sesungguhnya. Operator yang menjual ke banyak PT
+      menyalakan saklar ini supaya tak ada tenant yang diam-diam memakai
+      kunci — dan tagihan — operator.
+
+      Kalau surel LOLOS dari saklar itu, ia jadi satu-satunya jalur yang tetap
+      memakai akun operator tanpa ada yang menyadarinya.
+    */
+    process.env.KREDENSIAL_TANPA_JATUHAN_ENV = '1'
+    process.env.RESEND_API_KEY = 'nilai-uji'
+    expect(sumberKredensial(false, 'RESEND_API_KEY'), 'surel lolos dari saklar')
+      .not.toBe('env')
+  })
+})

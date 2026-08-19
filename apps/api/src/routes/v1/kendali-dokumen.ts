@@ -719,6 +719,12 @@ export default async function kendaliDokumenRoutes(app: FastifyInstance) {
           namaPerusahaan,
           periode: kini.tanggal,
           baris: ringkasLaporan(j.jenis_laporan),
+          // Tenant DINYATAKAN — kunci Resend & alamat pengirim miliknya yang
+          // dipakai. Laporan berkala pergi ke pihak LUAR (owner, konsultan
+          // pengawas), jadi surel yang berangkat dari akun operator alih-alih
+          // akun tenant adalah kebocoran identitas: penerimanya melihat
+          // domain operator, bukan domain perusahaan yang mengirim.
+          companyId: cid,
         })
 
         // Hasil UPDATE DIPERIKSA. Nol baris berarti jadwalnya berubah dari

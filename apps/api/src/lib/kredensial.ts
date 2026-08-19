@@ -202,6 +202,45 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
   },
 
   /*
+   * ── Alamat pengirim, dan kenapa ia kredensial TENANT ────────────────────
+   *
+   * Ditambahkan 2026-08-19 sesudah founder bertanya *"perusahaan lain pake
+   * api yang sama dengan yang ini juga?"*.
+   *
+   * Kunci Resend saja tidak cukup untuk multi-tenant. Kalau alamat
+   * pengirimnya tetap milik operator, penerima surel PT Anu melihat domain
+   * OPERATOR — dan itu terbaca seperti surel dari pihak ketiga yang tak ia
+   * kenal. Untuk tagihan dan berita acara, itu masalah kepercayaan, bukan
+   * kosmetik.
+   *
+   * ── TANPA `env:`, dan itu DISENGAJA
+   *
+   * Penjaga `audit-jatuhan-env-tak-bertambah.mjs` menolak versi pertama entri
+   * ini yang punya `env: 'EMAIL_FROM'`, dan penjaganya BENAR.
+   *
+   * Jatuhan env untuk kunci API masih masuk akal: tenant yang belum punya
+   * akun Resend tetap bisa berkirim surel, dan yang "bocor" cuma kuota
+   * operator. Untuk ALAMAT PENGIRIM, jatuhannya justru cacat yang hendak
+   * ditutup: tenant tanpa alamat sendiri akan mengirim tagihan dan berita
+   * acara dari domain OPERATOR, dan penerimanya melihat pengirim yang tak
+   * ia kenal.
+   *
+   * Jadi kunci ini murni per-tenant. `utils/email.ts` tetap punya
+   * `FROM_BAWAAN` dari `process.env.EMAIL_FROM` sebagai jaring instalasi
+   * satu-perusahaan — tapi itu keputusan OPERATOR di berkas env, bukan
+   * sesuatu yang tenant warisi diam-diam lewat katalog ini.
+   */
+  {
+    kunci: 'EMAIL_FROM',
+    label: 'Alamat pengirim email',
+    keterangan: 'Contoh: PT Anu <noreply@ptanu.co.id>. Domainnya harus sudah '
+      + 'diverifikasi di Resend. Kosongkan untuk memakai alamat bawaan sistem — '
+      + 'penerima akan melihat domain operator, bukan domain perusahaan ini.',
+    tautan: 'https://resend.com/domains',
+    grup: 'Email',
+  },
+
+  /*
    * ── n8n (S7) ────────────────────────────────────────────────────────────
    *
    * ⚠ KETERANGAN DI BAWAH DIBACA PENYEWA, bukan developer.

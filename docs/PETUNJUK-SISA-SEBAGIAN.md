@@ -82,6 +82,39 @@ berarti klien mengklik tombol yang menunjuk ke komputernya sendiri.
 SENDIRI, jangan dulu ke klien.** Baru sesudah domain siap, aktifkan jadwal
 yang mengirim ke luar.
 
+### Multi-tenant: kunci ini dipakai perusahaan lain juga?
+
+**Pertanyaan founder 2026-08-19, dan ia menemukan cacat yang nyata.**
+
+Sampai hari itu `utils/email.ts` membaca `process.env.RESEND_API_KEY`
+LANGSUNG. Artinya seluruh tenant berkirim lewat **satu akun Resend milik
+operator**:
+
+- kuota 3.000/bulan dibagi tanpa ada yang tahu siapa memakai berapa
+- satu tenant kena batas → surel tenant **lain** ikut mati
+- penerima melihat domain **operator**, bukan domain perusahaan pengirim
+- satu tenant di-spam-report → reputasi domain semua tenant kena
+
+Sudah diperbaiki. Urutannya sekarang:
+
+    1. kunci TENANT  (app_credentials, terenkripsi)  ← menang
+    2. env server    (process.env)                   ← jaring pengaman
+    3. tidak ada                                     → tak mengirim
+
+**Untuk Anda hari ini (satu perusahaan):** isi di `.env` saja, seperti langkah
+di atas. Itu jaring pengamannya, dan sah.
+
+**Nanti saat menjual ke PT lain:** tiap tenant memasang kuncinya sendiri lewat
+layar **Pengaturan → Kredensial** — tanpa menyentuh `.env` dan tanpa restart.
+Ada tombol ujinya di layar itu.
+
+⚠ **Alamat pengirim (`EMAIL_FROM`) SENGAJA tak punya jatuhan env.** Kunci API
+boleh diwarisi dari server — yang "bocor" cuma kuota operator. Tapi alamat
+pengirim yang diwarisi berarti tenant mengirim **tagihan dan berita acara dari
+domain operator**, dan penerimanya melihat pengirim yang tak ia kenal. Untuk
+dokumen yang meminta uang, itu terbaca seperti penipuan. Jadi tiap tenant
+memasang alamatnya sendiri, atau memakai bawaan operator secara sadar.
+
 ### Alternatif lebih mudah?
 
 **Tak ada yang lebih mudah dari ini** — Resend gratis, tanpa kartu, tanpa

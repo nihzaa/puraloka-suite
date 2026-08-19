@@ -1,16 +1,92 @@
 import { Resend } from 'resend'
+import { ambilKredensialTanpaRequest } from '../lib/kredensial.js'
 
-// Lazy-init: jika RESEND_API_KEY tidak diset, semua kirim email jadi no-op
-let resend: Resend | null = null
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  KUNCI PER TENANT — dan kenapa `process.env` saja TIDAK cukup
+  ══════════════════════════════════════════════════════════════════════════
 
-function getResend(): Resend | null {
-  if (resend) return resend
-  if (!process.env.RESEND_API_KEY) return null
-  resend = new Resend(process.env.RESEND_API_KEY)
-  return resend
+  Founder bertanya 2026-08-19: *"gimana soal multi tenant api ini? perusahaan
+  lain pake api yang sama dengan yang ini juga?"*
+
+  Pertanyaan itu menemukan cacat yang nyata. Sebelum hari itu berkas ini
+  membaca `process.env.RESEND_API_KEY` langsung — artinya SELURUH tenant
+  berkirim surel lewat satu akun Resend milik operator:
+
+    • kuota 3.000/bulan dibagi rata tanpa ada yang tahu siapa memakai berapa
+    • satu tenant yang kena batas MEMATIKAN surel tenant lain
+    • alamat pengirim sama untuk semua — PT A menerima surel ber-domain
+      operator, bukan domain PT A
+    • reputasi domain tercampur: satu tenant di-spam-report, semua kena
+
+  Repo ini SUDAH punya lapisannya (`lib/kredensial.ts`, dipakai WhatsApp &
+  n8n), dan `RESEND_API_KEY` bahkan sudah terdaftar di katalognya lengkap
+  dengan layar `/pengaturan/kredensial` dan tombol uji. Yang kurang cuma
+  satu: berkas INI tak pernah memakainya.
+
+  ── Urutan sumber (sama dengan kredensial lain)
+
+    1. kunci TENANT (app_credentials, terenkripsi)  ← menang
+    2. env server (process.env)                     ← jaring pengaman
+    3. tidak ada                                    → no-op senyap
+
+  Tenant lebih dulu supaya pelanggan yang memasang kuncinya sendiri memakai
+  kuncinya sendiri. Env tetap ada supaya instalasi satu-perusahaan (keadaan
+  Puraloka hari ini) jalan tanpa tiap tenant wajib punya akun Resend.
+
+  ── Kenapa klien TIDAK di-cache di modul lagi
+
+  Bentuk sebelumnya menyimpan `let resend` sekali seumur proses. Dengan kunci
+  per tenant itu jadi BUG: tenant yang kebetulan mengirim lebih dulu
+  "mengunci" kliennya, dan surel tenant berikutnya terkirim lewat akun
+  perusahaan lain. `lib/kredensial.ts` sudah punya cache 60 detik sendiri,
+  jadi membuat klien baru per pengiriman tak menambah query.
+*/
+async function getResend(companyId?: string | null): Promise<Resend | null> {
+  let kunci: string | null = null
+
+  if (companyId) {
+    try {
+      kunci = await ambilKredensialTanpaRequest(companyId, 'RESEND_API_KEY')
+    } catch (err) {
+      // Gangguan basis TIDAK boleh menghentikan surel kalau env punya
+      // jaringnya. Dicatat, lalu jatuh ke env.
+      console.error('[email] gagal membaca kunci tenant, memakai env:', err)
+    }
+  }
+
+  const dipakai = kunci ?? process.env.RESEND_API_KEY
+  if (!dipakai) return null
+  return new Resend(dipakai)
 }
 
-const FROM = process.env.EMAIL_FROM ?? 'Puraloka Suite <noreply@puraloka.id>'
+/**
+ * Alamat pengirim bawaan — dipakai kalau tenant tak punya alamatnya sendiri.
+ *
+ * ⚠ Ini alamat OPERATOR. Tenant yang berkirim lewat sini akan terlihat
+ * mengirim dari domain operator, bukan domainnya sendiri — sah untuk
+ * instalasi satu-perusahaan, keliru untuk SaaS multi-tenant.
+ */
+const FROM_BAWAAN = process.env.EMAIL_FROM ?? 'Puraloka Suite <noreply@puraloka.id>'
+
+/**
+ * Alamat pengirim untuk satu tenant.
+ *
+ * Kunci `EMAIL_FROM` dibaca dari kredensial tenant lebih dulu. Tenant yang
+ * sudah memverifikasi domainnya di Resend bisa memasang
+ * `PT Anu <noreply@ptanu.co.id>` dan surelnya berangkat dari domainnya
+ * sendiri — itu yang membedakan multi-tenant dari satu akun bersama.
+ */
+async function alamatPengirim(companyId?: string | null): Promise<string> {
+  if (!companyId) return FROM_BAWAAN
+  try {
+    const milikTenant = await ambilKredensialTanpaRequest(companyId, 'EMAIL_FROM')
+    return (milikTenant ?? '').trim() || FROM_BAWAAN
+  } catch {
+    // Alamat pengirim BUKAN alasan yang cukup untuk membatalkan surel.
+    return FROM_BAWAAN
+  }
+}
 const APP_URL = process.env.APP_URL ?? 'http://localhost:3000'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -19,17 +95,25 @@ interface EmailPayload {
   to: string | string[]
   subject: string
   html: string
+  /**
+   * Tenant pengirim. Kalau diisi, kunci & alamat pengirim MILIKNYA yang
+   * dipakai; kalau tidak, jatuh ke env server.
+   *
+   * Opsional supaya pemanggil lama (mis. surel sambutan saat mendaftar,
+   * yang terjadi SEBELUM pengguna punya company) tetap jalan.
+   */
+  companyId?: string | null
 }
 
 // ─── Core send (fire-and-forget, never throws) ────────────────────────────────
 
 async function sendEmail(payload: EmailPayload): Promise<void> {
-  const client = getResend()
+  const client = await getResend(payload.companyId)
   if (!client) return  // no-op jika belum dikonfigurasi
 
   try {
     await client.emails.send({
-      from: FROM,
+      from: await alamatPengirim(payload.companyId),
       to: Array.isArray(payload.to) ? payload.to : [payload.to],
       subject: payload.subject,
       html: payload.html,
@@ -320,6 +404,15 @@ export async function kirimLaporanTerjadwal(opts: {
   namaProyek?: string | null
   periode: string
   baris: Array<{ label: string; nilai: string; catatan?: string }>
+  /**
+   * Tenant pengirim — kunci Resend & alamat pengirim MILIKNYA yang dipakai.
+   *
+   * Opsional supaya pemanggil lama tak mendadak gagal kompilasi, tetapi
+   * pemanggil di `kendali-dokumen.ts` MENGISINYA: laporan berkala pergi ke
+   * pihak luar (owner, konsultan pengawas), dan surel yang berangkat dari
+   * akun operator alih-alih akun tenant adalah kebocoran identitas.
+   */
+  companyId?: string | null
 }): Promise<void> {
   // ⚠ PAGAR UJI — dipasang lebih dulu dari apa pun.
   //
@@ -334,7 +427,7 @@ export async function kirimLaporanTerjadwal(opts: {
     throw new Error('Pagar uji: pengiriman laporan terjadwal ditahan di lingkungan test.')
   }
 
-  const client = getResend()
+  const client = await getResend(opts.companyId)
   if (!client) {
     // Ditolak TERANG-TERANGAN. Tanpa ini, jadwal tercatat "terkirim" di
     // lingkungan yang memang belum punya kredensial surel.
@@ -379,7 +472,7 @@ export async function kirimLaporanTerjadwal(opts: {
   // menelan galat, dan menelan galat di sini membuat jadwal tercatat berhasil
   // untuk surel yang tak pernah sampai.
   const { error } = await client.emails.send({
-    from: FROM,
+    from: await alamatPengirim(opts.companyId),
     to: opts.to,
     subject: judul,
     html: baseTemplate(judul, body, 'Buka Dashboard', APP_URL),
