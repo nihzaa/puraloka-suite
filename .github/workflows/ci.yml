@@ -869,6 +869,22 @@ jobs:
       # perintahnya di kepala berkasnya. Dicatat di sini supaya keberadaannya
       # tak hilang dari ingatan orang yang membaca daftar ini.
 
+      # Tiap kunci gambar yang ditulis rute wajib punya JUDUL di halaman detail.
+      #
+      # Halaman memakai `JUDUL_GAMBAR[nama] ?? nama`, jadi kunci yang tak
+      # terdaftar TIDAK menghilang dan TIDAK menggagalkan apa pun — ia muncul
+      # apa adanya sebagai kepala gambar. Pengguna melihat kata "pola" atau
+      # "tampak", dan itu terbaca seperti cacat aplikasi.
+      #
+      # Ditemukan 2026-08-19 dengan MEMOTRET LAYAR: sepuluh jenis gambar baru
+      # lahir, tiga kunci baru bersamanya, dan tabel judulnya tetap 4 entri.
+      # Tak ada yang salah secara teknis, jadi tak ada test yang bisa merah.
+      #
+      # Bukti merah: judul "pola" dicabut → exit 1; dipulihkan → exit 0.
+      - name: Tiap jenis gambar punya judul di layar
+        run: node scripts/audit-gambar-punya-judul.mjs
+
+
       # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
       # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
       # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris
