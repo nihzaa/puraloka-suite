@@ -412,6 +412,19 @@
    * ruangan; permukaan merek juga tidak. */
   --grad-merek:       linear-gradient(135deg, #001F3D 0%, #003366 55%, #0059B3 100%);
   --on-merek:         #FFFFFF;
+  /* Teks SEKUNDER di atas permukaan merek — pengganti `opacity` pada teks.
+   *
+   * Diukur 2026-08-19: `opacity: 0.75` dan `0.88` di hero beranda memang
+   * masih lolos WCAG AA (terendah 4,56:1 di ujung tergelap gradien). Tapi
+   * `opacity` membuat kontras MUSTAHIL dinilai dari membaca kode — nilai
+   * tokennya benar, hasil akhirnya tidak terlihat. Sidebar pernah jatuh dari
+   * 5,98:1 ke 2,34:1 dengan cara persis itu, dan menghasilkan 227 dari 235
+   * pelanggaran a11y.
+   *
+   * Warna DIPAKU supaya angkanya bisa diperiksa: dihitung dari campuran
+   * putih di atas #003366 (stop tengah gradien merek). */
+  --on-merek-lembut:  #E0E7ED;   /* setara opacity .88 — 10,10:1 */
+  --on-merek-redup:   #BFCCD9;   /* setara opacity .75 —  7,72:1 */
   /* Untuk area di bawah garis grafik — memudar jadi tembus pandang supaya
    * garis kisi di belakangnya tetap terbaca. */
   --grad-area:        linear-gradient(180deg, rgba(0,51,102,0.24) 0%, rgba(0,51,102,0.02) 100%);

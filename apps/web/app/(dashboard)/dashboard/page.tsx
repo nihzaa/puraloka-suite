@@ -1289,7 +1289,7 @@ function DashboardContent() {
           dan ringkasan yang membesar.
         */}
         <div style={{ padding: "var(--pad-kartu-lega)", display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0 }}>
-          <p style={{ fontSize: 12, color: "var(--on-merek)", opacity: 0.75, margin: "0 0 8px" }}>
+          <p style={{ fontSize: 12, color: "var(--on-merek-redup)", margin: "0 0 8px" }}>
             {formatTanggalPanjang(new Date())}
           </p>
           <h1 style={{
@@ -1303,7 +1303,7 @@ function DashboardContent() {
             Selamat datang{user && <>, {namaSapaan(user.name)}</>}
           </h1>
           {loading ? <Skeleton h={16} w={300} /> : data && (
-            <p style={{ fontSize: 15, color: "var(--on-merek)", opacity: 0.88, margin: 0, lineHeight: 1.5 }}>
+            <p style={{ fontSize: 15, color: "var(--on-merek-lembut)", margin: 0, lineHeight: 1.5 }}>
               {data.kpis.active_projects} proyek aktif · nilai kontrak {fmtShort(data.kpis.total_contract_value)}
               {totalAlerts > 0 && (
                 <span style={{ fontWeight: 700 }}> · {totalAlerts} perlu perhatian</span>
