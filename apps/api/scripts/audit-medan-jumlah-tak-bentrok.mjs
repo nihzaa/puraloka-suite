@@ -62,10 +62,32 @@ if (!menimpa) {
   process.exit(0)
 }
 
-/* Modul mana yang dipanggil rute — hanya itu yang terkena `dgnJumlah`. */
+/*
+  Modul mana yang terkena `dgnJumlah` — dan itu BUKAN semua modul yang diimpor
+  rute.
+
+  Yang ditimpakan `{ ...input, jumlah }` hanya input modul ANALISA, yaitu yang
+  dipanggil dari `switch` di `hitung()`. Modul lain yang juga diimpor rute —
+  `struktur-gambar` yang paling menonjol — menerima inputnya dari tempat lain
+  dan tak pernah lewat sana.
+
+  Versi pertama penjaga ini menyaring dari DAFTAR IMPOR, dan begitu
+  `InputGambarPolaSambungan` lahir (medan `jumlah` = jumlah alat sambung, sah
+  sepenuhnya karena tak pernah ditimpa siapa pun) ia menuduhnya melanggar.
+
+  Penjaga yang menuduh hal yang benar akan dimatikan orang — dan yang
+  dimatikan tak lagi menjaga yang sungguhan.
+*/
 const modulTerpakai = new Set()
-for (const m of isiRute.matchAll(/from '\.\.\/\.\.\/lib\/([\w-]+)\.js'/g)) {
-  modulTerpakai.add(m[1])
+const fungsiAnalisa = new Set(
+  [...isiRute.matchAll(/case '[a-z_]+': return (\w+)\(/g)].map((m) => m[1]),
+)
+for (const m of isiRute.matchAll(/import \{([^}]+)\} from '\.\.\/\.\.\/lib\/([\w-]+)\.js'/g)) {
+  const namaImpor = m[1]
+    .split(',')
+    .map((x) => x.trim().replace(/^type\s+/, ''))
+    .filter(Boolean)
+  if (namaImpor.some((n) => fungsiAnalisa.has(n))) modulTerpakai.add(m[2])
 }
 
 const pelanggaran = []

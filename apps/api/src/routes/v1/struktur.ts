@@ -26,7 +26,7 @@ import {
   analisaGusset, analisaSambunganMomen,
 } from '../../lib/struktur-baja-sambungan-lanjut.js'
 import {
-  analisaKudaKudaKayu, analisaBajaRingan,
+  analisaKudaKudaKayu, analisaBajaRingan, PROFIL_BAJA_RINGAN,
 } from '../../lib/struktur-atap-ringan.js'
 import {
   analisaSambunganKayu, analisaSekrupBajaRingan,
@@ -55,6 +55,16 @@ import {
   gambarPotonganPelat, gambarPondasi, gambarTiang, gambarMeteranKekuatan,
   gambarProfilBaja,
   gambarDindingPenahan,
+  gambarTangga,
+  gambarKolomKomposit,
+  gambarBondek,
+  gambarDindingGeser,
+  gambarRaft,
+  gambarPondasiMenerus,
+  gambarPolaSambungan,
+  gambarGusset,
+  gambarLas,
+  gambarPenampangKayu,
 } from '../../lib/struktur-gambar.js'
 
 /**
@@ -1321,6 +1331,376 @@ function gambarUntuk(el: BarisElemen, hasil: unknown): Record<string, string> {
       }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
     } catch {
       g.potonganGagal = 'Potongan tiang tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    TANGGA — satu-satunya elemen yang kegagalannya BUKAN runtuh.
+
+    Tangga yang kuat sempurna tetap gagal kalau ORANG TERJATUH di atasnya, dan
+    itu jauh lebih sering terjadi daripada tangga beton yang patah. Tiga dari
+    tujuh pemeriksaannya karena itu bukan tentang kekuatan sama sekali:
+    Blondel, tinggi anak tangga, lebar injakan — semuanya GEOMETRI.
+
+    Optrede yang dipakai diambil dari HASIL (`optredeNyataMm`), bukan dari
+    input: modulnya MENGHITUNG ULANG optrede supaya tinggi total habis dibagi
+    rata, dan anak tangga terakhir yang berbeda sendirian adalah penyebab
+    tersandung paling sering. Menggambar dari input akan menyembunyikan
+    perbaikan itu.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (el.jenis === 'tangga') {
+    try {
+      const g2 = (hasil as {
+        geometri?: { jumlahOptrede?: number; kemiringanDerajat?: number }
+        antara?: { optredeNyataMm?: number; jumlahOptrede?: number; kemiringanDerajat?: number }
+      })
+      const optrede = g2.antara?.optredeNyataMm ?? Number(i.optredeMm)
+      g.potongan = gambarTangga({
+        tinggiM: Number(i.tinggiM),
+        optredeMm: optrede,
+        antredeMm: Number(i.antredeMm),
+        tebalPelatMm: Number(i.tebalPelatMm),
+        jumlahOptrede: g2.geometri?.jumlahOptrede ?? g2.antara?.jumlahOptrede,
+        kemiringanDerajat: g2.geometri?.kemiringanDerajat ?? g2.antara?.kemiringanDerajat,
+        blondelMm: 2 * optrede + Number(i.antredeMm),
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.potonganGagal = 'Potongan tangga tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KOLOM KOMPOSIT & BONDEK — dua bahan yang harus terlihat sebagai DUA bahan.
+
+    Kolom komposit TERBUNGKUS dan TERISI memakai koefisien berbeda (0,85 vs
+    0,95, karena baja yang membungkus MENGEKANG betonnya). Dari daftar angka
+    perbedaan itu cuma satu kata; dari gambar ia langsung terlihat.
+
+    Bondek: gelombangnya BUKAN hiasan — ia yang membuat lembaran setipis
+    0,75 mm sanggup memikul beton basah sebelum mengeras. Digambar rata,
+    gambar itu membuat orang menyangka perancah sementara tak diperlukan.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (el.jenis === 'kolom_komposit') {
+    try {
+      g.penampang = gambarKolomKomposit({
+        jenis: String(el.input.jenis ?? 'terbungkus'),
+        lebarBetonMm: Number(i.lebarBetonMm),
+        tinggiBetonMm: Number(i.tinggiBetonMm),
+        asBajaMm2: Number(i.asBajaMm2),
+        asTulanganMm2: Number(i.asTulanganMm2),
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.penampangGagal = 'Penampang kolom komposit tak dapat digambar dari input ini'
+    }
+  }
+
+  if (el.jenis === 'bondek') {
+    try {
+      const hb = hasil as {
+        antara?: { lendutanPelaksanaanMm?: number; batasLendutanPelaksanaanMm?: number }
+      }
+      g.potongan = gambarBondek({
+        tebalTotalMm: Number(i.tebalTotalMm),
+        tinggiGelombangMm: Number(i.tinggiGelombangMm),
+        tebalBajaMm: Number(i.tebalBajaMm),
+        bentangM: Number(i.bentangM),
+        lendutanPelaksanaanMm: hb.antara?.lendutanPelaksanaanMm,
+        batasLendutanMm: hb.antara?.batasLendutanPelaksanaanMm,
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.potonganGagal = 'Potongan bondek tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    DINDING GESER — perbandingan hw/lw yang menentukan perilakunya.
+
+    hw/lw >= 2 langsing (lentur menentukan, DIINGINKAN — meleleh pelan dan
+    memberi peringatan); hw/lw <= 1 gemuk (geser menentukan, kegagalannya
+    GETAS). Itu satu-satunya hal yang tak bisa dibaca dari daftar angka tanpa
+    membagi dua bilangan di kepala.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (el.jenis === 'dinding_geser') {
+    try {
+      const per = periksaDari(hasil) as Array<{ nama: string; aman: boolean; rasio: number }>
+      const geser = per.find((x) => /geser/i.test(x.nama))
+      const urutan = per.find((x) => /lentur.*sebelum.*geser/i.test(x.nama))
+      g.tampak = gambarDindingGeser({
+        panjangM: Number(i.panjangM),
+        tinggiM: Number(i.tinggiM),
+        tebalMm: Number(i.tebalMm),
+        asUjungMm2: Number(i.asUjungMm2),
+        vuKn: Number(i.vuKn),
+        rasioGeser: geser?.rasio,
+        lenturDuluan: urutan ? urutan.aman : undefined,
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.tampakGagal = 'Tampak dinding geser tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    RAFT — yang berbahaya adalah TEPI, bukan rata-rata.
+
+    Tekanan rata-rata (beban ÷ luas) hampir selalu aman. Yang membuat raft
+    gagal adalah tekanan di TEPI begitu resultan bergeser dari pusat. Denah
+    memperlihatkan pergeseran itu sebagai jarak yang bisa dilihat.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (el.jenis === 'raft') {
+    try {
+      const hr = hasil as {
+        tekanan?: { qMaksKnM2?: number; qMinKnM2?: number }
+        antara?: { qMaksKnM2?: number; qMinKnM2?: number }
+      }
+      g.denah = gambarRaft({
+        panjangM: Number(i.panjangM),
+        lebarM: Number(i.lebarM),
+        tebalMm: Number(i.tebalMm),
+        eksentrisitasXM: Number(i.eksentrisitasXM ?? 0),
+        eksentrisitasYM: Number(i.eksentrisitasYM ?? 0),
+        qMaksKnM2: hr.tekanan?.qMaksKnM2 ?? hr.antara?.qMaksKnM2,
+        qMinKnM2: hr.tekanan?.qMinKnM2 ?? hr.antara?.qMinKnM2,
+        qaKnM2: Number(i.qaKnM2),
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.denahGagal = 'Denah raft tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    PONDASI MENERUS — ukuran warisan (60/30/60) yang tak pernah diperiksa.
+
+    Lebar DASAR yang menentukan tekanan ke tanah, bukan lebar atasnya, dan
+    pada trapesium keduanya berbeda jauh. Aanstamping & pasir urug digambar
+    karena selalu dikerjakan tetapi sering hilang dari RAB.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (el.jenis === 'pondasi_menerus') {
+    try {
+      const hp = hasil as { antara?: { qKnM2?: number }; tekanan?: { qKnM2?: number } }
+      g.potongan = gambarPondasiMenerus({
+        lebarBawahM: Number(i.lebarBawahM),
+        lebarAtasM: Number(i.lebarAtasM),
+        tinggiM: Number(i.tinggiM),
+        kedalamanM: Number(i.kedalamanM),
+        tebalPasirM: Number(i.tebalPasirM ?? 0),
+        tinggiAanstampingM: Number(i.tinggiAanstampingM ?? 0),
+        qKnM2: hp.antara?.qKnM2 ?? hp.tekanan?.qKnM2,
+        qaKnM2: Number(i.qaKnM2),
+        jenis: String(el.input.jenis ?? 'batu_kali'),
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.potonganGagal = 'Potongan pondasi menerus tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KUDA-KUDA KAYU & BAJA RINGAN — dua jenis yang laporan cakupan SANGKA
+    sudah bergambar, padahal tidak.
+
+    Laporan itu menghitung keduanya karena modulnya menyebut medan `profil`.
+    Tetapi `profil` pada baja ringan adalah KUNCI KATALOG berupa teks
+    ("C75_100"), bukan objek berdimensi seperti pada baja profil berat — jadi
+    cabang penampang baja melewatinya, dengan benar.
+
+    Ketahuan hanya karena `uji-gambar-semua-jenis.mjs` MEMBUAT elemennya dan
+    membuka balasannya: 30/32, bukan 32/32 seperti yang dilaporkan. Ini
+    keempat kalinya laporan berbasis pembacaan kode salah dalam satu sesi.
+
+    ── Kayu digambar berbeda dari beton dan baja, dan itu perlu
+
+    Kayu kuat sepanjang serat, LEMAH tegak lurus serat — pada kelas II hanya
+    sepertiganya. Dua kegagalan tersering keduanya soal arah: tumpuan yang
+    PENYOK (bukan patah) dan belah mengikuti serat. Digambar sebagai kotak
+    polos, arah itu hilang.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (el.jenis === 'kuda_kuda_kayu') {
+    try {
+      const per = periksaDari(hasil) as Array<{ nama: string; rasio: number }>
+      g.penampang = gambarPenampangKayu({
+        lebarMm: Number(i.lebarMm),
+        tinggiMm: Number(i.tinggiMm),
+        kelas: String(el.input.kelas ?? ''),
+        panjangM: Number(i.panjangM),
+        gayaKn: Number(i.gayaKn),
+        lebarTumpuanMm: Number(i.lebarTumpuanMm),
+        rasioTumpu: per.find((x) => /tumpu/i.test(x.nama))?.rasio,
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.penampangGagal = 'Penampang kayu tak dapat digambar dari input ini'
+    }
+  }
+
+  if (el.jenis === 'baja_ringan') {
+    try {
+      /*
+        Dimensi diambil dari KATALOG modulnya, bukan dari input — input hanya
+        memuat kunci teksnya. Membaca dari katalog yang sama dengan yang
+        dipakai perhitungan menjamin gambar dan angka tak berselisih.
+      */
+      const kunci = String(el.input.profil ?? '')
+      const pr = (PROFIL_BAJA_RINGAN as Record<string, {
+        tinggiMm: number; lebarMm: number; tebalMm: number
+      }>)[kunci]
+      if (!pr) throw new Error(`Profil baja ringan tak dikenal: ${kunci}`)
+      g.penampang = gambarProfilBaja({
+        hMm: pr.tinggiMm, bMm: pr.lebarMm,
+        twMm: pr.tebalMm, tfMm: pr.tebalMm,
+        bentuk: 'C', designation: kunci,
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.penampangGagal = 'Penampang baja ringan tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    GUSSET — hanya SEPOTONG pelatnya yang bekerja, dan itu tak terlihat.
+
+    Kesalahpahaman paling mahal pada pelat buhul: menyangka SELURUH lebar pelat
+    memikul gaya batangnya. Yang bekerja hanya sepotong yang menyebar 30° dari
+    baris alat sambung pertama — lebar efektif Whitmore. Pelat selebar 400 mm
+    bisa jadi hanya 180 mm-nya yang bekerja, dan MEMPERLEBAR pelat tak menolong
+    kalau penyebarannya sudah terhalang tepi.
+
+    Lebar Whitmore diambil dari HASIL, bukan dihitung ulang.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (el.jenis === 'baja_gusset') {
+    try {
+      const hg = hasil as { antara?: { lebarWhitmoreMm?: number } }
+      const per = periksaDari(hasil) as Array<{ nama: string; rasio: number }>
+      g.pola = gambarGusset({
+        tebalMm: Number(i.tebalMm),
+        lebarSambunganMm: Number(i.lebarSambunganMm),
+        panjangSambunganMm: Number(i.panjangSambunganMm),
+        panjangBebasMm: Number(i.panjangBebasMm),
+        lebarWhitmoreMm: hg.antara?.lebarWhitmoreMm,
+        gayaKn: Number(i.gayaKn),
+        rasioTekuk: per.find((x) => /tekuk/i.test(x.nama))?.rasio,
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.polaGagal = 'Pelat buhul tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    LAS SUDUT — yang menahan TENGGOROKAN, bukan kakinya.
+
+    Ukuran yang ditulis di gambar ("las 6 mm") adalah panjang KAKI. Yang
+    sesungguhnya menahan adalah tenggorokan, sebesar 0,707 × kaki — 29% lebih
+    kecil. Menghitungnya dengan ukuran kaki memberi kapasitas terlalu besar,
+    dan sambungan las yang gagal jarang memberi peringatan lebih dulu.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (el.jenis === 'baja_sambungan_las') {
+    try {
+      const per = periksaDari(hasil) as Array<{ nama: string; rasio: number }>
+      g.pola = gambarLas({
+        ukuranMm: Number(i.ukuranMm),
+        panjangMm: Number(i.panjangMm),
+        tebalPelatMm: Number(i.tebalPelatMm),
+        vuKn: Number(i.vuKn),
+        rasio: per[0]?.rasio,
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.polaGagal = 'Potongan las tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    POLA SAMBUNGAN — satu gambar untuk baut, gusset, sekrup, dan paku.
+
+    Yang membuat sambungan gagal jarang berupa kekurangan JUMLAH alat sambung;
+    hampir selalu berupa PENEMPATANNYA — terlalu dekat ujung (membelah, GETAS),
+    terlalu dekat tepi, atau terlalu rapat (menambah alat sambung justru
+    MEMPERLEMAH). Ketiganya jarak, dan jarak hanya bisa diperiksa dengan mata.
+
+    Empat jenis berbeda rumusnya tetapi SAMA bentuk gambarnya, jadi satu
+    fungsi — empat fungsi berarti empat tempat yang bisa menyimpang.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  {
+    const polaSambungan: Record<string, () => Parameters<typeof gambarPolaSambungan>[0]> = {
+      baja_sambungan_baut: () => ({
+        jumlah: Number(i.jumlahBaut),
+        diameterMm: Number(i.diameterMm),
+        /* SNI 1729 §A3.5: jarak ujung >= 1,5d, jarak antar >= 3d. */
+        minUjungMm: 1.5 * Number(i.diameterMm),
+        minAntarMm: 3 * Number(i.diameterMm),
+        alat: 'baut',
+        gayaKn: Number(i.vuKn),
+      }),
+      baja_angkur: () => ({
+        jumlah: Number(i.jumlahAngkur),
+        diameterMm: Number(i.diameterMm),
+        alat: 'angkur',
+        gayaKn: Number(i.tuKn),
+      }),
+      sambungan_kayu: () => ({
+        jumlah: Number(i.jumlahAlat),
+        diameterMm: Number(i.diameterMm),
+        jarakUjungMm: Number(i.jarakTepiSejajarMm),
+        jarakTepiMm: Number(i.jarakTepiTegakMm),
+        jarakAntarMm: Number(i.jarakAntarAlatMm),
+        /* SNI 7973 §12.5 untuk paku: ujung 15d, tepi 5d, antar 10d. */
+        minUjungMm: 15 * Number(i.diameterMm),
+        minTepiMm: 5 * Number(i.diameterMm),
+        minAntarMm: 10 * Number(i.diameterMm),
+        alat: String(el.input.alat ?? 'paku'),
+        gayaKn: Number(i.gayaKn),
+      }),
+      /*
+        SAMBUNGAN MOMEN: yang digambar baut di SAYAP TARIK, karena di situlah
+        momen dipindahkan. Jumlahnya diturunkan dari luas baut tarik yang
+        dipakai perhitungan — bukan dari medan tersendiri, yang memang tak ada.
+      */
+      baja_sambungan_momen: () => {
+        const dBaut = 22
+        const luasSatu = (Math.PI / 4) * dBaut ** 2
+        const n = Math.max(2, Math.round(Number(i.asBautTarikMm2) / luasSatu))
+        return {
+          jumlah: n,
+          diameterMm: dBaut,
+          minUjungMm: 1.5 * dBaut,
+          minAntarMm: 3 * dBaut,
+          alat: 'baut sayap tarik',
+          gayaKn: Number(i.vuKn),
+        }
+      },
+      sekrup_baja_ringan: () => ({
+        jumlah: Number(i.jumlahSekrup),
+        diameterMm: Number(i.diameterMm),
+        jarakUjungMm: Number(i.jarakTepiMm),
+        /* SNI 7971 §5.4: jarak tepi >= 3d. */
+        minUjungMm: 3 * Number(i.diameterMm),
+        alat: 'sekrup',
+        gayaKn: Number(i.gayaGeserKn),
+      }),
+    }
+
+    const buat = polaSambungan[el.jenis]
+    if (buat) {
+      try {
+        g.pola = gambarPolaSambungan(buat(), {
+          judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}`,
+        })
+      } catch {
+        g.polaGagal = 'Pola sambungan tak dapat digambar dari input ini'
+      }
     }
   }
 

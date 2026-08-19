@@ -857,6 +857,18 @@ jobs:
       - name: Cakupan gambar kerja per jenis (laporan)
         run: node scripts/lapor-cakupan-gambar.mjs
 
+      # ⚠ Laporan di atas PERKIRAAN — ia membaca BENTUK kode dan sudah salah
+      # empat kali, sekali melapor 32/32 saat sesungguhnya 30/32.
+      #
+      # Yang berwenang `uji-gambar-semua-jenis.mjs`: ia MEMBUAT elemen untuk
+      # tiap jenis lewat rute sungguhan, meminta gambarnya, dan MEMBUKA SVG-nya
+      # (viewBox positif, aria-label ada, tak ada medan `…Gagal`). Contoh
+      # inputnya dibaca dari halaman UI, jadi contoh UI yang rusak juga merah.
+      #
+      # TIDAK dijalankan di CI: ia butuh API hidup + akun. Dijalankan manual —
+      # perintahnya di kepala berkasnya. Dicatat di sini supaya keberadaannya
+      # tak hilang dari ingatan orang yang membaca daftar ini.
+
       # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
       # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
       # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris

@@ -5,6 +5,107 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 18) — 32/32 bergambar, dan laporan yang berbohong empat kali
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur                 1028 lulus / 36 berkas
+$ npx tsc --noEmit  (api & web)           exit=0 keduanya
+$ uji-gambar-semua-jenis.mjs (rute 3017)  exit=0 — BERGAMBAR 32 / 32
+$ uji-gambar-hidup.mjs                    exit=0 — 8 kasus
+$ uji-sambungan-hidup.mjs                 exit=0 — 5 kasus
+$ audit-medan-jumlah-tak-bentrok.mjs      exit=0  (mutasi → 1 → pulih → 0)
+$ audit-akhir-baris.mjs                   exit=0
+$ jalankan-semua-penjaga.mjs              vs baseline: NOL penjaga baru merah
+```
+
+### Sepuluh gambar terakhir
+
+`tangga` · `kolom_komposit` · `bondek` · `dinding_geser` · `raft` ·
+`pondasi_menerus` · `pola sambungan` (baut/angkur/paku/sekrup/momen — satu
+fungsi) · `gusset` · `las` · `kayu`. Cakupan 20/32 → **32/32**.
+
+Yang membuat tiap gambar berarti bukan bentuknya, melainkan hal yang tak bisa
+dibaca dari daftar angka:
+
+- **Tangga** — satu-satunya elemen yang kegagalannya BUKAN runtuh. Tangga yang
+  kuat sempurna tetap gagal kalau orang terjatuh di atasnya. Blondel di luar
+  600–650 mm dimerahkan.
+- **Bondek** — gelombangnya yang membuat lembaran 0,75 mm sanggup memikul beton
+  basah. Lendutan tahap pelaksanaan yang lewat batas memunculkan
+  "BUTUH PERANCAH SEMENTARA".
+- **Gusset** — hanya SEPOTONG pelat yang bekerja (lebar efektif Whitmore, sebar
+  30°). Pelat 400 mm bisa jadi hanya 180 mm-nya bekerja, dan MEMPERLEBAR pelat
+  tak menolong.
+- **Las** — yang menahan TENGGOROKAN (0,707 × kaki), bukan kakinya. Las 6 mm
+  hanya setebal 4,24 mm di bidang yang menentukan.
+- **Kayu** — digambar dengan arah serat, karena dua kegagalan tersering (tumpuan
+  yang PENYOK, belah mengikuti serat) keduanya soal arah.
+- **Raft** — yang berbahaya TEPI, bukan rata-rata; inti sepertiga tengah digambar.
+- **Dinding geser** — hw/lw dicetak beserta ARTINYA ("gemuk — GESER cenderung
+  menentukan"), dan retak menyilang muncul HANYA bila geser memang menentukan.
+
+### Laporan yang berbohong empat kali
+
+`lapor-cakupan-gambar.mjs` membaca BENTUK kode, dan salah **empat kali dalam
+satu sesi** — tiap kali karena cabang baru ditulis dengan bentuk yang belum
+dikenalinya, dan tiap kali angkanya terlihat masuk akal:
+
+| # | sebab | melapor | sesungguhnya |
+|---|---|---|---|
+| 1 | penampang baja dipilih dari `input.profil` | 7/32 | 17/32 |
+| 2 | empat sambungan memakai TABEL berkunci jenis | 26/32 | 29/32 |
+| 3 | satu entri tabel berbadan blok `() => { … }` | 31/32 | 32/32 |
+| 4 | `kuda_kuda_kayu`/`baja_ringan` disangka bergambar karena modulnya menyebut `profil` — padahal itu KUNCI KATALOG berupa teks | **32/32** | **30/32** |
+
+Yang keempat paling berbahaya: ia melapor **SUDAH LENGKAP** saat dua jenis
+masih kosong. Laporan yang salah ke arah "sudah selesai" menghentikan pekerjaan
+yang belum selesai.
+
+Perbaikannya bukan menambal pola kelima. `uji-gambar-semua-jenis.mjs`
+MEMBUAT elemen untuk tiap jenis lewat rute sungguhan, meminta gambarnya, lalu
+MEMBUKA SVG-nya — viewBox positif, aria-label ada, tak ada medan `…Gagal`. Ia
+tak membaca kode sama sekali, jadi tak bisa dibohongi oleh cara kode ditulis.
+Laporan lama sekarang MENYATAKAN SENDIRI bahwa ia perkiraan, dan menunjuk ke
+penguji itu.
+
+Contoh inputnya dibaca dari `CONTOH` di halaman UI, bukan ditulis ulang —
+efek sampingnya berharga: contoh UI yang rusak membuat penguji ini merah.
+
+### Merah yang memikul dua arti
+
+Uji "gambar aman TIDAK memuat merah" merah, dan **yang salah bukan ujinya**:
+`#dc2626` dipakai untuk BAHAYA (SF kurang, tumit terangkat, jarak dilanggar)
+sekaligus untuk HIASAN lewat `WARNA.tulangan` yang kebetulan bernilai sama —
+garis ukur, anak panah gaya, isian penanda.
+
+Dua arti pada satu warna membuat warna itu berhenti berarti apa-apa: pembaca
+yang melihat merah pada gambar yang sehat belajar bahwa merah tak selalu
+berarti masalah, dan pelajaran itu terbawa ke gambar berikutnya yang merahnya
+sungguhan. Dipisah jadi `WARNA_BAHAYA`, `WARNA_TEKAN` (ungu), dan
+`WARNA_AKSEN` (oranye).
+
+### Penjaga sendiri yang menuduh salah
+
+`audit-medan-jumlah-tak-bentrok.mjs` — yang saya tulis kemarin — merah pada
+`InputGambarPolaSambungan`, medan `jumlah` yang sah sepenuhnya karena ia
+input GAMBAR dan tak pernah lewat `{ ...input, jumlah }` di rute. Penyaringnya
+memakai daftar impor; diperbaiki jadi "fungsi yang benar-benar dipanggil
+`switch` di `hitung()`" (25 → 20 modul).
+
+Penjaga yang menuduh hal yang benar akan dimatikan orang, dan yang dimatikan
+tak lagi menjaga yang sungguhan. Tetap terbukti merah pada cacat aslinya.
+
+### Bukti mutasi (12, semuanya tertangkap)
+
+Blondel tak diperiksa · jenis komposit diabaikan · tenggorokan = kaki ·
+perancah tak diperingatkan · inti raft diabaikan · pondasi terbalik lolos ·
+jarak kurang tak dimerahkan · retak geser tak muncul · dan empat dari sesi
+sebelumnya.
+
+---
+
 ## 2026-08-19 (lanjutan 17) — sloof, balok T, dan dinding penahan yang MENJELASKAN verdict-nya
 
 **Ringkasan run:**
