@@ -285,7 +285,30 @@ export default function KatalogOtomasiPage() {
                             </span>
                           )}
                           {bermasalah && <Lencana nada="bahaya">Bermasalah</Lencana>}
-                          {!e.terpasang && <Lencana nada="netral">Belum dipasang</Lencana>}
+                          {/*
+                            ── LABEL DIBEDAKAN MENURUT PEMICU, 2026-08-16
+
+                            Sebelumnya SETIAP entri tanpa alur n8n diberi label
+                            "Belum dipasang" — termasuk 54 otomasi berpemicu
+                            JADWAL yang memang TAK PERNAH membutuhkan n8n.
+                            Mereka dipanggil penjadwal lewat rute
+                            `/api/v1/otomasi/jalankan/...`; diukur 2026-08-16,
+                            49 dari 57 tugas terjadwal SUDAH benar-benar jalan.
+
+                            Akibatnya founder membaca halaman ini dan
+                            menyimpulkan hampir seluruh otomasi belum jadi —
+                            padahal yang belum ada cuma alur n8n untuk yang
+                            berpemicu PERISTIWA.
+
+                            Label yang membuat orang salah menyimpulkan keadaan
+                            sistemnya sendiri lebih buruk daripada tak ada label.
+                          */}
+                          {e.pemicu === "jadwal" && (
+                            <Lencana nada="netral">Lewat penjadwal</Lencana>
+                          )}
+                          {e.pemicu === "peristiwa" && !e.terpasang && (
+                            <Lencana nada="netral">Belum dipasang</Lencana>
+                          )}
                           {e.terpasang && !e.aktif && <Lencana nada="netral">Dimatikan</Lencana>}
                         </span>
 

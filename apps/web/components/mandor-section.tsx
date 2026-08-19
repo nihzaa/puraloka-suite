@@ -419,11 +419,29 @@ function AssignMandorModal({ projectId, existingMandorIds, onClose, onSuccess }:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  /*
+    Daftar mandor diambil SEKALI saat formulir dibuka, lalu disaring terhadap
+    yang sudah ditugaskan.
+
+    `existingMandorIds` sengaja TIDAK masuk daftar dependensi: ia array literal
+    yang lahir baru tiap render induknya, dan memasukkannya membuat efek ini
+    memanggil API tanpa henti.
+
+    Penyaringan dipindah ke RENDER supaya nilainya selalu mutakhir tanpa
+    mengambil ulang — sebelumnya hasil saringan dibekukan ke state, jadi mandor
+    yang baru ditugaskan di tempat lain tetap muncul sebagai pilihan sampai
+    formulirnya ditutup dan dibuka lagi.
+
+    Jadi ini bukan sekadar menyenangkan linter: yang lama memang bisa
+    menawarkan mandor yang sudah tak tersedia.
+  */
   useEffect(() => {
     api.get<{ users: MandorUser[] }>("/api/v1/users?role=mandor")
-      .then(r => setMandors(r.data.users.filter(u => !existingMandorIds.includes(u.id))))
+      .then(r => setMandors(r.data.users))
       .catch(() => {});
   }, []);
+
+  const mandorTersedia = mandors.filter(u => !existingMandorIds.includes(u.id));
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setError("");
@@ -463,9 +481,9 @@ function AssignMandorModal({ projectId, existingMandorIds, onClose, onSuccess }:
             <label htmlFor="mandor-id" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Mandor <span style={{ color: C.red }}>*</span></label>
             <select id="mandor-id" aria-label="Pilih mandor" value={mandorId} onChange={e => setMandorId(e.target.value)} style={inputStyle}>
               <option value="">-- Pilih mandor --</option>
-              {mandors.map(m => <option key={m.id} value={m.id}>{m.name}{m.phone ? ` (${m.phone})` : ""}</option>)}
+              {mandorTersedia.map(m => <option key={m.id} value={m.id}>{m.name}{m.phone ? ` (${m.phone})` : ""}</option>)}
             </select>
-            {mandors.length === 0 && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Semua mandor sudah di-assign ke proyek ini</div>}
+            {mandorTersedia.length === 0 && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Semua mandor sudah di-assign ke proyek ini</div>}
           </div>
           <div>
             <label htmlFor="assigned-at" style={{ fontSize: 12, fontWeight: 600, color: C.mid, display: "block", marginBottom: 6 }}>Tanggal Assign</label>
@@ -478,7 +496,7 @@ function AssignMandorModal({ projectId, existingMandorIds, onClose, onSuccess }:
           {error && <div style={{ padding: "8px 12px", background: C.redBg, borderRadius: 6, fontSize: 13, color: C.red }}>{error}</div>}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button type="button" onClick={onClose} style={{ padding: "8px 16px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13 }}>Batal</button>
-            <button type="submit" disabled={loading || mandors.length === 0} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: (loading || mandors.length === 0) ? 0.7 : 1 }}>
+            <button type="submit" disabled={loading || mandorTersedia.length === 0} style={{ padding: "8px 16px", borderRadius: 6, border: "none", background: "var(--grad-aksen)", color: "var(--surface)", cursor: "pointer", fontSize: 13, fontWeight: 600, opacity: (loading || mandorTersedia.length === 0) ? 0.7 : 1 }}>
               {loading ? "Menyimpan..." : "Assign"}
             </button>
           </div>
