@@ -2327,6 +2327,27 @@ jobs:
       # dan tabel `menu_items` (sidebar). `gen-migrasi-menu.mjs` meramalkan
       # keduanya akan berpisah diam-diam — dan itu terjadi: 23 href berbeda,
       # yang melahirkan empat halaman lengkap tak bisa dicapai siapa pun.
+      # Catatan di peta-menu yang MENJANJIKAN sebuah layar wajib punya jejak
+      # layar itu di kode. Ditemukan 2026-08-19: entri `crm-boq` menyatakan
+      # "SELESAI 2026-08-16 — ditutup migrasi 431 + tab 'Take-off Volume'".
+      # Migrasinya ada, endpoint-nya ada, TAB ITU TIDAK PERNAH DIBANGUN —
+      # `/estimasi/rab` memuat NOL rujukan takeoff. Akibatnya seluruh take-off
+      # dimensional hanya terjangkau lewat API, jadi estimator tetap mengetik
+      # volume langsung ke RAB: persis masalah yang hendak diselesaikan 431.
+      #
+      # Kelas cacat yang sama dengan tujuh sub-menu yang pernah ditandai merah
+      # padahal UI-nya hidup (F5-1 §3a), tetapi BERLAWANAN ARAH — dan arah ini
+      # lebih berbahaya: yang membacanya menyilang pekerjaan itu dari daftar
+      # dan tak pernah kembali. `audit-taksonomi-vs-kode` tak menangkapnya
+      # karena ia memeriksa TABEL, dan tabelnya memang ada.
+      #
+      # Bukti merah: cacat aslinya dikembalikan ke peta-menu → exit 1 menyebut
+      # entrinya → dipulihkan → exit 0. Ditambah satu mutasi kedua (rujukan ke
+      # halaman yang tak ada) yang juga merah.
+      - name: Klaim layar di peta-menu terbukti di kode
+        run: node apps/web/scripts/audit-klaim-layar-nyata.mjs
+        working-directory: apps/web
+
       - name: Drift peta-menu.ts vs menu_items
         run: node apps/web/scripts/audit-peta-menu-vs-db.mjs
         working-directory: .

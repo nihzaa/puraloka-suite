@@ -5,6 +5,104 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 12) — dokumen mengklaim layar yang tak pernah dibangun
+
+**Ringkasan run:**
+
+```
+$ npx vitest run hitung-volume        (apps/web)
+ Test Files  1 passed (1)
+      Tests  21 passed (21)
+
+$ node scripts/audit-klaim-layar-nyata.mjs
+✅ Tiap klaim layar di peta-menu punya jejak di halaman yang ditunjuknya   exit=0
+
+$ audit-a11y-runtime --url /estimasi/rab   →  0 pelanggaran
+$ npx tsc --noEmit  (apps/web)             →  exit=0
+```
+
+### Temuan: klaim SELESAI atas layar yang tak ada
+
+Entri `crm-boq` di `peta-menu.ts` berbunyi:
+
+> `status: 'hidup'` — "SELESAI 2026-08-16 — celah terakhirnya ditutup migrasi
+> 431 + tab **Take-off Volume** … layarnya menampilkan RANTAI perhitungannya"
+
+Migrasinya ADA. Endpoint-nya ADA. **Tab itu tidak pernah dibangun.** Diukur:
+`/estimasi/rab` memuat NOL rujukan takeoff, dan pencarian di seluruh `apps/web`
+hanya menemukan satu penyebutan — di peta-menu itu sendiri.
+
+Akibatnya bukan sekadar dokumen keliru: seluruh take-off dimensional hanya
+terjangkau lewat API, jadi estimator tetap mengetik volume langsung ke RAB —
+persis masalah yang hendak diselesaikan migrasi 431.
+
+Ini kelas cacat yang sama dengan tujuh sub-menu yang pernah ditandai 🔴 padahal
+UI-nya hidup (F5-1 §3a), tetapi **berlawanan arah**. Dan arah ini lebih
+berbahaya: yang membacanya menyilang pekerjaan itu dari daftar dan tak pernah
+kembali. Saya sendiri hampir melakukannya — entri itu yang saya baca saat
+mencari tempat menaruh UI sektor.
+
+`audit-taksonomi-vs-kode` tak menangkapnya karena ia memeriksa TABEL, dan
+tabelnya memang ada.
+
+### Yang dikerjakan
+
+1. **Klaimnya dikoreksi** — status turun ke `sebagian`, catatannya menuliskan
+   apa yang benar-benar ada (endpoint) dan apa yang tidak (layar).
+
+2. **Penjaga baru `audit-klaim-layar-nyata.mjs`** — catatan yang menjanjikan
+   sebuah layar wajib punya jejaknya di kode halaman yang ditunjuk. Dibuktikan
+   merah dengan MENGEMBALIKAN cacat aslinya, bukan mutasi karangan.
+
+3. **Layarnya dibangun** — `HitungVolume`, kalkulator take-off tepat di sebelah
+   isian Volume di modal item, bukan di halaman terpisah. Take-off yang harus
+   dibuka di layar lain tak akan dipakai saat orang sedang menyusun RAB, dan
+   itu persis yang terjadi pada 431.
+
+   Sembilan sektor + metode generik, medan menyesuaikan sektornya, baris bukaan
+   bisa ditambah/dihapus, rantai perhitungan ditampilkan, dan hasilnya
+   **MENGUSULKAN** — baru mengisi isian Volume kalau ditekan.
+
+### Penjaga yang hampir jadi hiasan — lagi
+
+Versi pertamanya memulangkan positif palsu: `md-resource` berbunyi "layarnya di
+/gudang/susut", halaman itu ADA, tetapi penjaganya mencari kata "gudang" dan
+"susut" di dalam `/master/ahsp`. Dipisahkan jadi dua pola dengan cara periksa
+yang berbeda.
+
+Positif palsu pada penjaga dokumen sangat mahal: yang membacanya berhenti
+memercayai seluruh keluarannya, lalu mematikannya.
+
+### Mutasi — dan satu yang "lolos" karena ALAT UKURNYA gagal senyap
+
+Lima dari enam langsung merah. Yang keenam (menghapus pemeriksaan dimensi
+plafon) tampak LOLOS — dan hampir saya catat sebagai test yang lemah.
+
+Ternyata mutasinya **tidak pernah diterapkan**: skrip penggantinya mencari baris
+ber-tanda-kutip tunggal sementara berkasnya memakai kutip ganda, jadi
+`str.replace` memulangkan string yang sama tanpa galat apa pun. Sesudah
+ditambahi `assert` sebelum mengganti, mutasinya benar-benar masuk dan test-nya
+**merah**.
+
+Satu mutasi lain (M4: `Number("")` alih-alih NaN) benar-benar setara — cek
+`.trim() === ''` di pemanggil sudah menanganinya lewat jalur lain. Itu diukur,
+bukan diasumsikan.
+
+Pelajarannya sama dengan yang berulang sepanjang sesi ini: **`assert` sebelum
+mengganti.** Penggantian yang gagal senyap membuat mutasi yang tak pernah
+terjadi terbaca sebagai test yang lemah — dan "memperbaiki" test yang sudah
+benar adalah cara paling rapi membuang waktu.
+
+### Yang masih belum
+
+Kalkulator ini menghitung di KLIEN sebagai pratinjau; baris `takeoff_dimensi`
+belum disimpan dari layar ini (endpoint-nya ada, tombolnya belum). Jadi rantai
+perhitungannya terlihat saat mengisi, tetapi belum tersimpan sebagai jejak yang
+bisa dibuka lagi enam bulan kemudian. Rumus klien dikunci test yang angkanya
+sama persis dengan test sisi API supaya keduanya tak menyimpang diam-diam.
+
+---
+
 ## 2026-08-19 (lanjutan 11) — suite penuh dibandingkan terhadap baseline: nol regresi, dan angka yang tak stabil
 
 **Diukur BERURUTAN, bukan paralel** (CLAUDE.md §7: run yang tumpang tindih

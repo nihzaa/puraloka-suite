@@ -38,6 +38,7 @@ import { C } from "@/lib/warna-ui";
 import { PilihCari } from "@/components/pilih-cari";
 import { GAYA_ISIAN } from "@/components/isian";
 import { formatRupiah, formatAngka, formatKuantitas } from "@/lib/format";
+import { HitungVolume } from "./hitung-volume";
 import { Plus, X } from "lucide-react";
 import { Modal, label, btnPrimary, btnGhost } from "./kerangka";
 
@@ -284,6 +285,7 @@ export function AddItemModal({ version, onClose, onDone }:
           </button>
           {label("Volume")}
           <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} />
+          <HitungVolume onPakai={(v) => setQty(String(v))} />
         </>
       )}
 
@@ -291,7 +293,16 @@ export function AddItemModal({ version, onClose, onDone }:
         <>
           {mode === "katalog" && (
             <>{label("Volume")}
-              <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} placeholder="mis. 518.4" /></>
+              <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} placeholder="mis. 518.4" />
+              {/*
+                KALKULATOR di sebelah isian angkanya, bukan di layar terpisah.
+
+                Take-off yang harus dibuka di halaman lain tak akan dipakai saat
+                orang sedang menyusun RAB — dan itu persis yang terjadi pada
+                migrasi 431: endpoint-nya lengkap sejak 2026-08-16, layarnya tak
+                pernah ada, jadi volume tetap diketik tangan.
+              */}
+              <HitungVolume onPakai={(v) => setQty(String(v))} /></>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>{label("Tanggal harga (price book)")}
