@@ -743,6 +743,18 @@ jobs:
       - name: Modul analisa struktur terdaftar di penjaga terjemahan awam
         run: node scripts/audit-modul-struktur-terdaftar.mjs
 
+      # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
+      # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
+      # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan
+      # keduanya menyesatkan — yang ada di kode tetapi tak di basis ditolak
+      # dengan pesan constraint MENTAH; yang ada di basis tetapi tak di kode
+      # jadi tak terjangkau lewat aplikasi tanpa satu pun galat.
+      #
+      # Bukti merah: jenis karangan ditambahkan ke konstanta JENIS → exit 1
+      # menyebut namanya → dipulihkan → exit 0.
+      - name: Jenis elemen struktur cocok antara kode dan basis
+        run: node scripts/audit-jenis-struktur-cocok.mjs
+
       # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
       # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
       # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris

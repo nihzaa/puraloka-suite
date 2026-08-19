@@ -5,6 +5,88 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 7) — 10 jenis baja tersambung ke API & UI
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur satuan-beli   580 passed (dari 572)
+apps/api  npx tsc --noEmit                      exit 0
+apps/web  npx tsc --noEmit                      exit 0
+apps/web  npx next build                        exit 0
+a11y runtime terang + gelap                     1/1 halaman, 0 pelanggaran
+10 jenis baja lewat API hidup                   10/10 tersimpan & terhitung
+```
+
+Sebelum ini seluruh modul baja (8 fungsi analisa, 572 test) berhenti di
+lapisan perhitungan: rute hanya mengenal 7 jenis beton, dan CHECK di basis
+menolak sisanya. Ia lulus test tetapi tak seorang pun bisa memakainya.
+
+### Migrasi 463 + penjaga dua-arah
+
+CHECK diperluas ke 17 jenis. Blok verifikasinya MENYIMPAN baris nyata untuk
+tiap jenis — membaca definisi CHECK dengan regex akan lulus meski
+constraint-nya tak berlaku. Dan jenis karangan diuji TETAP ditolak: CHECK yang
+menerima apa pun sama saja dengan tak ada CHECK.
+
+`audit-jenis-struktur-cocok.mjs` menjaga daftar di KODE tetap sama dengan
+CHECK di BASIS. Kalau berbeda, kegagalannya berbeda arah dan keduanya
+menyesatkan:
+
+    ada di KODE, tak di BASIS  → pesan constraint MENTAH, tak menyebut
+                                  jenis apa yang salah
+    ada di BASIS, tak di KODE  → baris SAH tetapi tak terjangkau lewat
+                                  aplikasi, tanpa satu pun galat
+
+Dibuktikan bisa merah, didaftarkan ke CI.
+
+### Dua cacat yang ditemukan dari MENJALANKAN, bukan membaca
+
+**1. Base plate tak punya volume.** `analisaBasePlate` tak memulangkan
+`volume` sama sekali. Ketahuannya bukan dari test — melainkan dari penjaga
+yang saya tulis di rute, yang membedakan "jenis yang MEMANG tak bervolume"
+(sambungan baut/las/angkur) dari "jenis yang seharusnya punya tetapi tak
+memulangkannya".
+
+Tanpa itu, base plate hilang diam-diam dari rekap RAP. Satu gedung baja bisa
+punya puluhan pelat landas 20–30 mm; pelat 350×350×30 beratnya 28,9 kg.
+Sesudah diperbaiki: rekap naik dari 6 jadi 7 elemen bervolume, 1.160 → 1.838 kg.
+
+**2. Rangka melaporkan "terpakai 0% dari kapasitasnya".** Verdict-nya benar,
+kalimatnya omong kosong: "seluruh batang aman" adalah pemeriksaan BINER yang
+tak punya konsep cadangan. Kini "Aman — seluruh pemeriksaan terpenuhi".
+
+Keduanya hanya terlihat dari MENJALANKAN 10 jenis lewat API hidup — tak satu
+pun muncul di 572 test yang sudah hijau.
+
+### UI: 17 jenis dikelompokkan, dan editor JSON yang dinyatakan sementara
+
+Jenis dikelompokkan BETON vs BAJA lewat `<optgroup>`: tujuh belas jenis dalam
+daftar datar membuat "Balok" dan "Balok baja" berdampingan tanpa penanda, dan
+salah pilih menghasilkan verdict untuk bahan yang salah.
+
+Profil baja, mutu, dan daftar batang rangka adalah objek bersarang — diisi
+lewat editor JSON yang DINYATAKAN sementara di layar. Pemilih profil yang
+membaca 58 baris `steel_profiles` adalah pekerjaan berikutnya; membuatnya
+setengah jadi lebih buruk daripada tak ada, karena orang akan mengira
+daftarnya lengkap.
+
+Teks JSON disimpan TERPISAH dari objek input — kalau layar merender
+`JSON.stringify(input)` langsung, tiap ketikan yang belum sah dibuang dan
+kursor melompat.
+
+### Dua penjaga UI merah — BUKAN dari kerja ini
+
+`audit-nav-yatim` dan `audit-peta-menu-vs-db` naik 25 → 27. Diukur: keduanya
+dari `md-subkon` (Mitra & Subkontraktor), commit `ac53a723` di branch
+`feat/sumbu-ui-roadmap` — sesi lain mengubah menu di basis yang SAMA, dan
+halaman `/mandor/mitra` ada di branch mereka, bukan di worktree ini.
+
+Tidak diperbaiki dari sini: menyunting `peta-menu.ts` yang sedang mereka
+kerjakan justru mengulang tabrakan yang worktree ini ada untuk mencegahnya.
+
+---
+
 ## 2026-08-19 (lanjutan 6) — tiga sisa baja ditutup: gording, bracing, interaksi P-M
 
 **Ringkasan run:**

@@ -324,6 +324,35 @@ describe('ringkasanAwam — satu kalimat yang bisa ditindak', () => {
     expect(r.tingkat).toBe('bahaya')
   })
 
+  it('pemeriksaan BINER tak menghasilkan kalimat "terpakai 0%"', () => {
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      DITEMUKAN SAAT MENGUJI RANGKA BATANG LEWAT API HIDUP.
+
+      Rangka yang seluruh batangnya aman melaporkan "terpakai 0% dari
+      kapasitasnya, masih tersisa 100% cadangan" — verdict-nya benar, tetapi
+      kalimatnya omong kosong: pemeriksaan "seluruh batang aman" tak punya
+      konsep cadangan sama sekali.
+
+      Rasio 0 pada pemeriksaan biner berarti "tak terjadi", bukan "kapasitas
+      terpakai nol".
+      ══════════════════════════════════════════════════════════════════════
+    */
+    const r = ringkasanAwam([P('Seluruh batang rangka aman', true, 0)])
+    expect(r.tingkat).toBe('aman')
+    expect(r.kalimat).not.toMatch(/0%/)
+    expect(r.kalimat).not.toMatch(/100% cadangan/)
+    expect(r.kalimat).toMatch(/seluruh pemeriksaan terpenuhi/i)
+  })
+
+  it('biner + berskala → yang berskala yang dilaporkan persennya', () => {
+    const r = ringkasanAwam([
+      P('Tanah tidak terangkat', true, 0),
+      P('Lentur', true, 0.55),
+    ])
+    expect(r.kalimat).toMatch(/55%/)
+  })
+
   it('belum ada pemeriksaan → dinyatakan, bukan diklaim aman', () => {
     const r = ringkasanAwam([])
     expect(r.kalimat).toMatch(/Belum ada pemeriksaan/i)

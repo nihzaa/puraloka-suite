@@ -12,6 +12,15 @@ import { analisaPilecap } from '../../lib/struktur-pilecap.js'
 import { analisaTiang } from '../../lib/struktur-tiang.js'
 import { analisaKolomLengkap, analisaKolomBulatLengkap } from '../../lib/struktur-kolom-lengkap.js'
 import { jelaskan, ringkasanAwam, tingkatBahaya, apakahBiner } from '../../lib/struktur-awam.js'
+import { analisaBalokBaja, analisaKolomBaja } from '../../lib/struktur-baja.js'
+import {
+  analisaSambunganBaut, analisaSambunganLas,
+} from '../../lib/struktur-baja-sambungan.js'
+import { analisaBasePlate, analisaAngkur } from '../../lib/struktur-baja-tumpuan.js'
+import { analisaRangka } from '../../lib/struktur-baja-rangka.js'
+import {
+  analisaGording, analisaBracing, analisaInteraksiTekanMomen,
+} from '../../lib/struktur-baja-gording.js'
 import {
   gambarPenampang, gambarDiagramPM, gambarPenampangLingkaran,
   gambarPotonganPelat, gambarPondasi, gambarTiang, gambarMeteranKekuatan,
@@ -41,7 +50,25 @@ import {
  */
 
 /** Jenis elemen yang dikenali — cerminan CHECK di migrasi 458. */
-const JENIS = ['balok', 'kolom', 'kolom_bulat', 'plat', 'footplat', 'pilecap', 'tiang'] as const
+/**
+ * Jenis elemen yang dikenali — cerminan CHECK di migrasi 458 + 463.
+ *
+ * ⚠ Daftar ini WAJIB sama dengan CHECK `struktur_elemen_jenis_check` di basis.
+ * Kalau berbeda, salah satu arah gagal tanpa gejala yang menunjuk sebabnya:
+ * jenis yang ada di sini tetapi tidak di basis ditolak dengan pesan constraint
+ * mentah; yang ada di basis tetapi tidak di sini ditolak rute sebagai "jenis
+ * tak dikenal" padahal barisnya sah.
+ *
+ * Dijaga `audit-jenis-struktur-cocok.mjs`.
+ */
+const JENIS = [
+  // Beton
+  'balok', 'kolom', 'kolom_bulat', 'plat', 'footplat', 'pilecap', 'tiang',
+  // Baja
+  'baja_balok', 'baja_kolom', 'baja_gording', 'baja_bracing',
+  'baja_rangka', 'baja_base_plate', 'baja_angkur',
+  'baja_sambungan_baut', 'baja_sambungan_las', 'baja_interaksi',
+] as const
 type Jenis = (typeof JENIS)[number]
 
 interface BarisElemen {
@@ -76,8 +103,48 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
     case 'footplat': return analisaFootplat(dgnJumlah as never)
     case 'pilecap': return analisaPilecap(dgnJumlah as never)
     case 'tiang': return analisaTiang(dgnJumlah as never)
+
+    /*
+      ── BAJA
+
+      Tiap jenis punya bentuk INPUT yang berbeda, dan validasinya dilakukan
+      modulnya sendiri lewat `throw` — sama seperti beton. Yang membedakan:
+      sebagian jenis baja TIDAK punya `volume` (sambungan baut, las, angkur,
+      interaksi), karena yang dihitung kapasitas sambungan, bukan kuantitas
+      material.
+
+      `volumeDari` memulangkan null untuk mereka, dan `rekap-volume`
+      melewatkannya — itu benar, tetapi harus DISENGAJA. Lihat catatan di
+      `volumeDari`.
+    */
+    case 'baja_balok': return analisaBalokBaja(dgnJumlah as never)
+    case 'baja_kolom': return analisaKolomBaja(dgnJumlah as never)
+    case 'baja_gording': return analisaGording(dgnJumlah as never)
+    case 'baja_bracing': return analisaBracing(dgnJumlah as never)
+    case 'baja_rangka': return analisaRangka(dgnJumlah as never)
+    case 'baja_base_plate': return analisaBasePlate(dgnJumlah as never)
+    case 'baja_angkur': return analisaAngkur(dgnJumlah as never)
+    case 'baja_sambungan_baut': return analisaSambunganBaut(dgnJumlah as never)
+    case 'baja_sambungan_las': return analisaSambunganLas(dgnJumlah as never)
+    case 'baja_interaksi': return analisaInteraksiTekanMomen(dgnJumlah as never)
   }
 }
+
+/**
+ * Jenis yang memang TIDAK menghasilkan volume material.
+ *
+ * Dinyatakan sebagai daftar, bukan disimpulkan dari `volume === undefined`:
+ * modul yang LUPA memulangkan volume akan terlihat sama dengan yang memang
+ * tak punya, dan bedanya besar — yang pertama cacat, yang kedua benar.
+ *
+ * Sambungan menghitung KAPASITAS (apakah sambungannya kuat), bukan KUANTITAS.
+ * Baut dan las-nya sendiri tetap perlu dianggarkan, tetapi lewat AHSP
+ * `2.3.1.2` (angkur) dan `2.3.1.3` (mur & baut) yang dihitung per kilogram —
+ * bukan dari geometri sambungan.
+ */
+const TANPA_VOLUME: ReadonlySet<string> = new Set([
+  'baja_sambungan_baut', 'baja_sambungan_las', 'baja_angkur', 'baja_interaksi',
+])
 
 /** Ambil `volume` dari hasil apa pun bentuknya. */
 function volumeDari(h: unknown): VolumeElemen | null {
@@ -518,11 +585,40 @@ export default async function strukturRoutes(app: FastifyInstance) {
       */
       const catatan = new Set<string>()
 
+      /*
+        Elemen yang memang TAK punya volume dilaporkan TERPISAH, bukan
+        dilewati diam-diam.
+
+        Sambungan baut/las/angkur menghitung KAPASITAS, bukan kuantitas — jadi
+        tak masuk rekap material, dan itu benar. Tetapi pembaca yang menghitung
+        sendiri "10 elemen, kok cuma 6 yang terjumlah?" akan menyimpulkan ada
+        yang hilang.
+
+        Menyebutnya membuat perbedaan itu jadi keterangan, bukan kecurigaan.
+      */
+      const tanpaVolume: { kode: string; jenis: string }[] = []
+
       for (const el of data ?? []) {
         try {
           const h = hitung(el.jenis as Jenis, el.input as Record<string, unknown>, el.jumlah)
           const v = volumeDari(h)
-          if (v) hasil.push({ volume: v })
+          if (v) {
+            hasil.push({ volume: v })
+          } else if (TANPA_VOLUME.has(el.jenis)) {
+            tanpaVolume.push({ kode: el.kode, jenis: el.jenis })
+          } else {
+            /*
+              Jenis yang SEHARUSNYA punya volume tetapi tak memulangkannya
+              adalah CACAT, bukan keadaan sah — dan ia harus terlihat sebagai
+              kegagalan, bukan sebagai baris yang hilang dari total.
+            */
+            gagal.push({
+              kode: el.kode,
+              alasan: `Jenis "${el.jenis}" seharusnya menghasilkan volume, `
+                + 'tetapi modulnya tak memulangkannya. Ini cacat modul, bukan '
+                + 'kesalahan input.',
+            })
+          }
           for (const c of (h as { catatan?: string[] }).catatan ?? []) catatan.add(c)
         } catch (e) {
           gagal.push({ kode: el.kode, alasan: (e as Error).message })
@@ -540,6 +636,11 @@ export default async function strukturRoutes(app: FastifyInstance) {
         },
         jumlahElemen: hasil.length,
         catatan: [...catatan],
+        /*
+          Elemen yang memang tak bervolume — disebut supaya selisih antara
+          jumlah elemen proyek dan `jumlahElemen` di sini punya penjelasan.
+        */
+        tanpaVolume,
         gagal,
       })
     })

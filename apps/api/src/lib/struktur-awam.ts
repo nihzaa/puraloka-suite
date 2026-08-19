@@ -603,6 +603,15 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
 export const PEMERIKSAAN_BINER: readonly string[] = [
   'Tanah tidak terangkat',
   'Tidak ada tiang tercabut',
+  /*
+    Ditemukan saat menguji 10 jenis baja lewat API hidup: rangka yang seluruh
+    batangnya aman melaporkan "terpakai 0% dari kapasitasnya" — kalimat yang
+    tak masuk akal, dan meteran menggambarnya sebagai batang kosong.
+
+    Sama seperti dua di atasnya: yang ditanya "ada yang gagal atau tidak",
+    bukan "seberapa terpakai".
+  */
+  'Seluruh batang rangka aman',
 ]
 
 export function apakahBiner(nama: string): boolean {
@@ -663,7 +672,26 @@ export function ringkasanAwam(
     Menyamakan keduanya jadi "aman" menghilangkan justru informasi yang paling
     berguna bagi yang memutuskan.
   */
-  const paling = periksa.reduce((a, b) => (b.rasio > a.rasio ? b : a))
+  /*
+    Pemeriksaan BINER dikeluarkan dari perhitungan "seberapa terpakai".
+
+    Rasionya 0 saat lulus — bukan karena kapasitasnya kosong, melainkan karena
+    yang ditanya "terjadi atau tidak". Ikut dihitung, ia menghasilkan kalimat
+    "terpakai 0% dari kapasitasnya, masih tersisa 100% cadangan" untuk elemen
+    yang sebenarnya tak punya konsep cadangan sama sekali.
+
+    Ditemukan saat menguji rangka batang lewat API hidup — verdict-nya benar,
+    kalimatnya yang omong kosong.
+  */
+  const berskala = periksa.filter((p) => !apakahBiner(p.nama))
+  if (berskala.length === 0) {
+    return {
+      tingkat: 'aman',
+      kalimat: 'Aman — seluruh pemeriksaan terpenuhi.',
+    }
+  }
+
+  const paling = berskala.reduce((a, b) => (b.rasio > a.rasio ? b : a))
   if (paling.rasio >= AMBANG_MEPET) {
     const judul = jelaskan(paling.nama)?.judul ?? paling.nama
     return {

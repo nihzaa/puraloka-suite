@@ -44,7 +44,7 @@ import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { Tabel } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
-import { Isian, KotakIsian, PilihanIsian } from "@/components/isian";
+import { Isian, KotakIsian, PilihanIsian, TeksIsian } from "@/components/isian";
 import { formatAngka } from "@/lib/format";
 import {
   AlertTriangle, Boxes, CheckCircle2, Eye, Info, Plus, RefreshCw, Ruler, Trash2, X,
@@ -55,7 +55,15 @@ import { LayarKosong } from "../_bersama/layar-kosong";
 // ── Bentuk respons API ────────────────────────────────────────────────────
 interface Project { id: string; name: string }
 
-type Jenis = "balok" | "kolom" | "kolom_bulat" | "plat" | "footplat" | "pilecap" | "tiang";
+type JenisBeton =
+  | "balok" | "kolom" | "kolom_bulat" | "plat" | "footplat" | "pilecap" | "tiang";
+
+type JenisBaja =
+  | "baja_balok" | "baja_kolom" | "baja_gording" | "baja_bracing"
+  | "baja_rangka" | "baja_base_plate" | "baja_angkur"
+  | "baja_sambungan_baut" | "baja_sambungan_las" | "baja_interaksi";
+
+type Jenis = JenisBeton | JenisBaja;
 
 interface BarisElemen {
   id: string;
@@ -143,6 +151,7 @@ interface MuatanRekapVolume {
  * estimator dan pelaksana, bukan yang menulis skemanya.
  */
 const NAMA_JENIS: Record<Jenis, string> = {
+  // Beton
   balok: "Balok",
   kolom: "Kolom persegi",
   kolom_bulat: "Kolom bulat",
@@ -150,7 +159,41 @@ const NAMA_JENIS: Record<Jenis, string> = {
   footplat: "Pondasi footplat",
   pilecap: "Pilecap",
   tiang: "Tiang pancang",
+  // Baja
+  baja_balok: "Balok baja",
+  baja_kolom: "Kolom baja",
+  baja_gording: "Gording atap",
+  baja_bracing: "Bracing (pengaku)",
+  baja_rangka: "Kuda-kuda / rangka batang",
+  baja_base_plate: "Pelat landas (base plate)",
+  baja_angkur: "Angkur",
+  baja_sambungan_baut: "Sambungan baut",
+  baja_sambungan_las: "Sambungan las",
+  baja_interaksi: "Kolom tekan + momen",
 };
+
+/**
+ * Jenis dikelompokkan BETON vs BAJA di daftar pilihan.
+ *
+ * Tanpa pengelompokan, tujuh belas jenis dalam satu daftar datar membuat
+ * orang harus membaca semuanya untuk menemukan yang dicari — dan "Balok"
+ * serta "Balok baja" berdampingan tanpa penanda apa pun mudah tertukar.
+ * Salah pilih di antara keduanya menghasilkan verdict untuk bahan yang salah.
+ */
+const KELOMPOK_JENIS: { label: string; jenis: Jenis[] }[] = [
+  {
+    label: "Beton bertulang",
+    jenis: ["balok", "kolom", "kolom_bulat", "plat", "footplat", "pilecap", "tiang"],
+  },
+  {
+    label: "Baja profil",
+    jenis: [
+      "baja_balok", "baja_kolom", "baja_gording", "baja_bracing", "baja_rangka",
+      "baja_base_plate", "baja_angkur",
+      "baja_sambungan_baut", "baja_sambungan_las", "baja_interaksi",
+    ],
+  },
+];
 
 /**
  * Medan input per jenis — sumber tunggal untuk form DAN untuk contoh.
@@ -263,6 +306,84 @@ const MEDAN: Record<Jenis, Medan[]> = {
     { kunci: "fcMpa", label: "Mutu beton f'c", satuan: "MPa" },
     { kunci: "bebanRencanaKn", label: "Beban rencana", satuan: "kN" },
   ],
+
+  /*
+    ── BAJA
+
+    Medan yang ditampilkan hanya yang BERUPA ANGKA TUNGGAL. Profil baja,
+    daftar batang rangka, dan mutu adalah objek bersarang — ketiganya diisi
+    lewat editor JSON di bawah form, dan contohnya sudah terisi lengkap.
+
+    Alasannya bukan kemalasan: memilih profil semestinya lewat pencarian ke
+    tabel `steel_profiles` (58 profil, tiap tipe bermedan berbeda), dan
+    membuat pemilih itu setengah jadi lebih buruk daripada tak ada — orang
+    akan mengira daftarnya lengkap padahal cuma sebagian. Ditandai sebagai
+    pekerjaan berikutnya, bukan disamarkan.
+  */
+  baja_balok: [
+    { kunci: "bentangM", label: "Bentang balok", satuan: "m" },
+    { kunci: "jarakPengakuM", label: "Jarak pengaku lateral (0 = terpegang pelat)", satuan: "m" },
+    { kunci: "muKnm", label: "Momen rencana Mu", satuan: "kNm" },
+    { kunci: "vuKn", label: "Geser rencana Vu", satuan: "kN" },
+    { kunci: "bebanLayanKnPerM", label: "Beban layan (untuk lendutan)", satuan: "kN/m" },
+    { kunci: "batasLendutan", label: "Batas lendutan L/n (360 lantai, 240 atap)" },
+  ],
+  baja_kolom: [
+    { kunci: "tinggiM", label: "Tinggi kolom", satuan: "m" },
+    { kunci: "faktorK", label: "Faktor K (1,0 sendi | 0,65 jepit | 2,0 kantilever)" },
+    { kunci: "puKn", label: "Beban tekan Pu", satuan: "kN" },
+  ],
+  baja_gording: [
+    { kunci: "bentangM", label: "Bentang gording", satuan: "m" },
+    { kunci: "kemiringanDerajat", label: "Kemiringan atap", satuan: "derajat" },
+    { kunci: "bebanVertikalKnPerM", label: "Beban vertikal terfaktor", satuan: "kN/m" },
+    { kunci: "bebanAnginKnPerM", label: "Beban angin (negatif = hisap)", satuan: "kN/m" },
+    { kunci: "bebanLayanKnPerM", label: "Beban layan (untuk lendutan)", satuan: "kN/m" },
+    { kunci: "jarakSagrodM", label: "Jarak sagrod (kosong = tanpa sagrod)", satuan: "m" },
+  ],
+  baja_bracing: [
+    { kunci: "panjangM", label: "Panjang bracing", satuan: "m" },
+    { kunci: "gayaKn", label: "Gaya (positif tarik, negatif tekan)", satuan: "kN" },
+  ],
+  baja_rangka: [],
+  baja_base_plate: [
+    { kunci: "panjangPelatMm", label: "Panjang pelat", satuan: "mm" },
+    { kunci: "lebarPelatMm", label: "Lebar pelat", satuan: "mm" },
+    { kunci: "tebalPelatMm", label: "Tebal pelat", satuan: "mm" },
+    { kunci: "fcBetonMpa", label: "Mutu beton pondasi f'c", satuan: "MPa" },
+    { kunci: "luasPondasiMm2", label: "Luas pondasi (kosong = tanpa pengekangan)", satuan: "mm2" },
+    { kunci: "puKn", label: "Beban tekan Pu", satuan: "kN" },
+    { kunci: "tuKn", label: "Gaya cabut Tu (angin/gempa)", satuan: "kN" },
+  ],
+  baja_angkur: [
+    { kunci: "diameterMm", label: "Diameter angkur", satuan: "mm" },
+    { kunci: "jumlah", label: "Jumlah angkur" },
+    { kunci: "kedalamanMm", label: "Kedalaman tanam", satuan: "mm" },
+    { kunci: "fcBetonMpa", label: "Mutu beton f'c", satuan: "MPa" },
+    { kunci: "tuKn", label: "Gaya cabut Tu", satuan: "kN" },
+    { kunci: "vuKn", label: "Gaya geser Vu", satuan: "kN" },
+  ],
+  baja_sambungan_baut: [
+    { kunci: "diameterMm", label: "Diameter baut", satuan: "mm" },
+    { kunci: "jumlah", label: "Jumlah baut" },
+    { kunci: "bidangGeser", label: "Bidang geser (1 tunggal, 2 ganda)" },
+    { kunci: "tebalPelatMm", label: "Tebal pelat tertipis", satuan: "mm" },
+    { kunci: "vuKn", label: "Gaya geser Vu", satuan: "kN" },
+  ],
+  baja_sambungan_las: [
+    { kunci: "ukuranMm", label: "Ukuran kaki las", satuan: "mm" },
+    { kunci: "panjangMm", label: "Panjang las efektif", satuan: "mm" },
+    { kunci: "fuElektrodaMpa", label: "Kuat elektroda (E70XX = 490)", satuan: "MPa" },
+    { kunci: "tebalPelatMm", label: "Tebal pelat tertipis", satuan: "mm" },
+    { kunci: "vuKn", label: "Gaya Vu", satuan: "kN" },
+  ],
+  baja_interaksi: [
+    { kunci: "panjangM", label: "Panjang batang", satuan: "m" },
+    { kunci: "faktorK", label: "Faktor K" },
+    { kunci: "puKn", label: "Beban tekan Pu", satuan: "kN" },
+    { kunci: "muxKnm", label: "Momen sumbu kuat Mux", satuan: "kNm" },
+    { kunci: "muyKnm", label: "Momen sumbu lemah Muy", satuan: "kNm" },
+  ],
 };
 
 /**
@@ -273,6 +394,34 @@ const MEDAN: Record<Jenis, Medan[]> = {
  * masuk akal. Contoh yang LULUS analisa memberi titik berangkat yang bisa
  * diubah, dan sekaligus memperlihatkan satuannya lewat angka nyata.
  */
+/*
+  Profil & mutu contoh — angkanya dari tabel `steel_profiles` di basis.
+
+  Ditulis sebagai konstanta, bukan diketik ulang di tiap contoh: tiga profil
+  ini dipakai delapan kali, dan menyalinnya berarti delapan tempat yang bisa
+  menyimpang saat angkanya diperbaiki.
+
+  Ini CONTOH, bukan katalog. Pemilih profil yang membaca 58 baris
+  `steel_profiles` belum ada — pengguna mengubahnya lewat editor JSON.
+*/
+const PROFIL_WF200 = {
+  designation: "200x100x5.5x8", profile_type: "WF",
+  hMm: 200, bMm: 100, t1Mm: 5.5, t2Mm: 8,
+  beratKgPerM: 21.3333, panjangStandarM: 12,
+};
+const PROFIL_CNP150 = {
+  designation: "150x65x20x3.2", profile_type: "CNP",
+  hMm: 150, bMm: 65, t1Mm: 3.2, t2Mm: 3.2,
+  beratKgPerM: 8.01, panjangStandarM: 6,
+};
+const PROFIL_SIKU70 = {
+  designation: "70x70x7", profile_type: "L",
+  hMm: 70, bMm: 70, t1Mm: 7, t2Mm: 7,
+  beratKgPerM: 7.38, panjangStandarM: 6,
+};
+const MUTU_BJ37 = { fyMpa: 240, fuMpa: 370 };
+const MUTU_BAUT_A325 = { nama: "A325", fubMpa: 825 };
+
 const CONTOH: Record<Jenis, Record<string, unknown>> = {
   balok: {
     bMm: 300, hMm: 520, panjangM: 6, selimutMm: 30, dUtamaMm: 16,
@@ -316,6 +465,56 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     diameterM: 0.4, panjangM: 16, fcMpa: 36.6,
     lapisan: Array.from({ length: 8 }, () => ({ tebalM: 2, nSpt: 20 })),
     bebanRencanaKn: 300,
+  },
+
+  // -- BAJA. Profil & mutu terisi lengkap supaya bisa langsung dihitung.
+  baja_balok: {
+    profil: PROFIL_WF200, mutu: MUTU_BJ37,
+    bentangM: 6, jarakPengakuM: 0,
+    muKnm: 30, vuKn: 60, bebanLayanKnPerM: 3, batasLendutan: 360,
+  },
+  baja_kolom: {
+    profil: PROFIL_WF200, mutu: MUTU_BJ37,
+    tinggiM: 3, faktorK: 1.0, puKn: 200,
+  },
+  baja_gording: {
+    profil: PROFIL_CNP150, mutu: MUTU_BJ37,
+    bentangM: 4, kemiringanDerajat: 30,
+    bebanVertikalKnPerM: 1.2, bebanAnginKnPerM: -0.5,
+    bebanLayanKnPerM: 0.9, jarakSagrodM: 2, batasLendutan: 240,
+  },
+  baja_bracing: {
+    profil: PROFIL_SIKU70, mutu: MUTU_BJ37,
+    panjangM: 3, gayaKn: 40,
+  },
+  baja_rangka: {
+    nama: "KK-1", mutu: MUTU_BJ37,
+    batang: [
+      { nama: "atas-1", profil: PROFIL_WF200, panjangM: 2, gayaKn: -120 },
+      { nama: "bawah-1", profil: PROFIL_SIKU70, panjangM: 2, gayaKn: 100, gayaBalikKn: -20 },
+      { nama: "diagonal-1", profil: PROFIL_SIKU70, panjangM: 1.5, gayaKn: -40 },
+    ],
+  },
+  baja_base_plate: {
+    profil: PROFIL_WF200, mutuPelat: MUTU_BJ37,
+    panjangPelatMm: 350, lebarPelatMm: 350, tebalPelatMm: 30,
+    fcBetonMpa: 25, puKn: 500,
+  },
+  baja_angkur: {
+    diameterMm: 16, mutu: MUTU_BAUT_A325, jumlah: 4,
+    kedalamanMm: 300, fcBetonMpa: 25, tuKn: 100, vuKn: 60,
+  },
+  baja_sambungan_baut: {
+    diameterMm: 16, mutu: MUTU_BAUT_A325, jumlah: 4, bidangGeser: 1,
+    tebalPelatMm: 8, mutuPelat: MUTU_BJ37, vuKn: 150,
+  },
+  baja_sambungan_las: {
+    ukuranMm: 6, panjangMm: 200, fuElektrodaMpa: 490,
+    mutuPelat: MUTU_BJ37, tebalPelatMm: 10, vuKn: 100,
+  },
+  baja_interaksi: {
+    profil: PROFIL_WF200, mutu: MUTU_BJ37,
+    panjangM: 3.5, faktorK: 1.0, puKn: 100, muxKnm: 10,
   },
 };
 
@@ -429,9 +628,21 @@ function StrukturLayar() {
   const [jumlah, setJumlah] = useState("1");
   const [input, setInput] = useState<Record<string, unknown>>(CONTOH.balok);
 
+  /*
+    Teks JSON disimpan TERPISAH dari objek `input`.
+
+    Kalau layar merender `JSON.stringify(input)` langsung, tiap ketikan yang
+    belum sah akan dibuang dan kursor melompat — mengetik jadi mustahil.
+    Teksnya milik pengguna; `input` hanya diperbarui saat teksnya bisa diurai.
+  */
+  const [teksJson, setTeksJson] = useState(() => JSON.stringify(CONTOH.balok, null, 2));
+  const [galatJson, setGalatJson] = useState<string | null>(null);
+
   const gantiJenis = useCallback((j: Jenis) => {
     setJenis(j);
     setInput(CONTOH[j]);
+    setTeksJson(JSON.stringify(CONTOH[j], null, 2));
+    setGalatJson(null);
   }, []);
 
   const segarkan = useCallback(async () => {
@@ -870,8 +1081,21 @@ function StrukturLayar() {
               <Isian id="f-jenis" label="Jenis elemen" wajib>
                 <PilihanIsian id="f-jenis" value={jenis} style={{ width: "100%" }}
                   onChange={(e) => gantiJenis(e.target.value as Jenis)}>
-                  {(Object.keys(NAMA_JENIS) as Jenis[]).map((j) => (
-                    <option key={j} value={j}>{NAMA_JENIS[j]}</option>
+                  {/*
+                    Dikelompokkan BETON vs BAJA lewat <optgroup>.
+
+                    Tujuh belas jenis dalam satu daftar datar membuat orang
+                    harus membaca semuanya untuk menemukan yang dicari — dan
+                    "Balok" serta "Balok baja" berdampingan tanpa penanda
+                    mudah tertukar. Salah pilih di antara keduanya
+                    menghasilkan verdict untuk bahan yang salah.
+                  */}
+                  {KELOMPOK_JENIS.map((k) => (
+                    <optgroup key={k.label} label={k.label}>
+                      {k.jenis.map((j) => (
+                        <option key={j} value={j}>{NAMA_JENIS[j]}</option>
+                      ))}
+                    </optgroup>
                   ))}
                 </PilihanIsian>
               </Isian>
@@ -909,11 +1133,78 @@ function StrukturLayar() {
                     step="any"
                     value={bacaMedan(input, m.kunci)}
                     style={{ width: "100%" }}
-                    onChange={(e) => setInput(tulisMedan(input, m.kunci, e.target.value))}
+                    onChange={(e) => {
+                      /*
+                        Isian angka dan editor JSON menyunting objek yang SAMA.
+                        Keduanya harus disegarkan bersama — kalau tidak, yang
+                        satu menimpa yang lain saat disimpan, dan pengguna tak
+                        pernah tahu suntingannya hilang.
+                      */
+                      const baru = tulisMedan(input, m.kunci, e.target.value);
+                      setInput(baru);
+                      setTeksJson(JSON.stringify(baru, null, 2));
+                      setGalatJson(null);
+                    }}
                   />
                 </Isian>
               ))}
             </div>
+
+            {/*
+              ══════════════════════════════════════════════════════════════
+              EDITOR JSON untuk medan BERSARANG.
+
+              Profil baja, mutu, dan daftar batang rangka adalah objek — tak
+              bisa diisi lewat kotak angka. Ditampilkan apa adanya sebagai
+              JSON, bukan disembunyikan: yang tersembunyi tak bisa diperbaiki
+              pengguna, dan contoh yang selalu dipakai apa adanya menghasilkan
+              seluruh proyek memakai WF 200.
+
+              Ini JELAS bukan bentuk akhirnya. Pemilih profil yang membaca 58
+              baris `steel_profiles` adalah pekerjaan berikutnya — dan
+              dinyatakan begitu di layar, supaya tak dikira memang begini.
+              ══════════════════════════════════════════════════════════════
+            */}
+            {MEDAN[jenis].length < Object.keys(CONTOH[jenis]).length && (
+              <Isian
+                id="f-json"
+                label="Profil, mutu, & daftar batang (JSON)"
+                bantuan={
+                  galatJson
+                    ? undefined
+                    : "Profil baja dan daftar batang belum punya pemilih sendiri — "
+                      + "sunting di sini. Angkanya sudah terisi contoh yang lulus analisa."
+                }
+                galat={galatJson}
+              >
+                <TeksIsian
+                  id="f-json"
+                  value={teksJson}
+                  rows={8}
+                  style={{ width: "100%", fontFamily: "var(--font-mono, monospace)", fontSize: 12 }}
+                  onChange={(e) => {
+                    const t = e.target.value;
+                    setTeksJson(t);
+                    /*
+                      Diurai SETIAP ketikan, dan galatnya ditampilkan seketika
+                      — bukan saat menekan Simpan. JSON yang rusak baru
+                      ketahuan di akhir berarti pengguna kehilangan seluruh
+                      suntingannya kalau ia menutup form.
+                    */
+                    try {
+                      const objek = JSON.parse(t) as Record<string, unknown>;
+                      setInput(objek);
+                      setGalatJson(null);
+                    } catch (err) {
+                      setGalatJson(
+                        `JSON belum sah: ${(err as Error).message}. `
+                        + "Isian angka di atas tetap tersimpan.",
+                      );
+                    }
+                  }}
+                />
+              </Isian>
+            )}
 
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
               <button type="button" style={btnGhost} onClick={() => setFormBuka(false)}>

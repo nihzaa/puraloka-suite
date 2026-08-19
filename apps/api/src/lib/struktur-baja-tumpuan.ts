@@ -33,7 +33,7 @@
 // angkur bertarik — itu perhitungan yang berbeda dan lebih panjang.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import type { Periksa } from './struktur-beton'
+import type { Periksa, VolumeElemen } from './struktur-beton'
 import type { MutuBaja, ProfilBaja } from './struktur-baja'
 import { PHI_SAMBUNGAN, type MutuBaut } from './struktur-baja-sambungan'
 
@@ -89,6 +89,14 @@ export interface HasilTumpuan {
   aman: boolean
   antara: Record<string, number>
   catatan: string[]
+  /**
+   * Kuantitas material — hanya untuk yang memang punya.
+   *
+   * Base plate PUNYA: ia pelat baja nyata yang dipesan per lembar. Angkur
+   * TIDAK punya di sini — ia dianggarkan lewat AHSP `2.3.1.2` (pemasangan
+   * angkur, per kilogram), bukan dari geometri sambungannya.
+   */
+  volume?: VolumeElemen
 }
 
 function bilanganPositif(nama: string, v: number): void {
@@ -243,6 +251,7 @@ export function analisaBasePlate(input: InputBasePlate): HasilTumpuan {
   return {
     periksa,
     aman: periksa.every((p) => p.aman),
+    volume: volumeBasePlate(N, B, t, input.jumlah ?? 1),
     antara: {
       luasPelatMm2: luasPelat,
       faktorPengekangan: tumpu.faktorPengekangan,
@@ -358,6 +367,64 @@ export function analisaAngkur(input: InputAngkur): HasilTumpuan {
       kedalamanMm,
     },
     catatan,
+  }
+}
+
+/**
+ * Volume pelat landas — baja PELAT, dibeli per LEMBAR.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
+ * KENAPA INI SEMPAT HILANG, DAN KENAPA ITU MAHAL
+ *
+ * `analisaBasePlate` semula tak memulangkan `volume` sama sekali. Ketahuannya
+ * bukan dari test — melainkan dari penjaga di `routes/v1/struktur.ts` yang
+ * membedakan "jenis yang MEMANG tak bervolume" dari "jenis yang seharusnya
+ * punya tetapi tak memulangkannya".
+ *
+ * Tanpa penjaga itu, base plate akan hilang diam-diam dari rekap RAP — dan
+ * satu gedung baja bisa punya puluhan pelat landas tebal 20-30 mm. Pelat 350x350x30
+ * beratnya 28,9 kg; dua puluh di antaranya 578 kg baja yang tak teranggarkan.
+ *
+ * ── Kenapa per LEMBAR, bukan per kilogram
+ *
+ * Pelat baja dijual per lembar 1,2 x 2,4 m. Pelat landas dipotong darinya, dan
+ * sisa potongan berukuran ganjil jarang terpakai untuk pelat lain. Menghitung
+ * per kilogram terpasang membuat RAP kekurangan — sama seperti lonjor besi dan
+ * batang profil.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+function volumeBasePlate(
+  panjangMm: number, lebarMm: number, tebalMm: number, jumlah: number,
+): VolumeElemen {
+  const RHO_BAJA = 7850          // kg/m3
+  const LEMBAR_M2 = 1.2 * 2.4    // ukuran lembar pelat yang lazim dijual
+
+  const luasM2 = (panjangMm / 1000) * (lebarMm / 1000)
+  const beratSatuanKg = luasM2 * (tebalMm / 1000) * RHO_BAJA
+  const beratTerpasangKg = beratSatuanKg * jumlah
+
+  /*
+    Berapa pelat landas muat dalam satu lembar — dibulatkan ke BAWAH, karena
+    potongan yang tak utuh tak bisa dipakai.
+  */
+  const perLembar = Math.max(1, Math.floor(LEMBAR_M2 / luasM2))
+  const lembar = Math.ceil(jumlah / perLembar)
+  const beratDibeliKg = lembar * LEMBAR_M2 * (tebalMm / 1000) * RHO_BAJA
+
+  return {
+    betonM3: 0,
+    bekistingM2: 0,
+    besi: [{
+      tipe: 'BjTS',
+      diameterMm: tebalMm,      // tebal pelat sebagai penanda ukuran
+      peran: `pelat landas ${panjangMm}x${lebarMm}x${tebalMm}`,
+      jumlahBatang: lembar,
+      panjangPerBatangM: 2.4,   // sisi panjang lembar
+      beratKgPerM: (LEMBAR_M2 / 2.4) * (tebalMm / 1000) * RHO_BAJA,
+      totalKg: beratDibeliKg,
+    }],
+    besiTotalKg: beratDibeliKg,
+    beratSendiriKg: beratTerpasangKg,
   }
 }
 

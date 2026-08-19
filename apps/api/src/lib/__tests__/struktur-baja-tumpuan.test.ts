@@ -286,3 +286,81 @@ describe('faktor reduksi', () => {
     expect(PHI_TUMPUAN.tumpuBeton).toBeLessThan(PHI_TUMPUAN.jebolBeton)
   })
 })
+
+describe('volume base plate — pelat baja nyata yang dipesan', () => {
+  const dasar = {
+    profil: WF200, mutuPelat: BJ37,
+    panjangPelatMm: 350, lebarPelatMm: 350, tebalPelatMm: 30,
+    fcBetonMpa: 25, puKn: 500,
+  }
+
+  it('base plate PUNYA volume — sempat hilang, dan itu mahal', () => {
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      `analisaBasePlate` semula tak memulangkan `volume` sama sekali.
+
+      Ketahuannya BUKAN dari test — melainkan dari penjaga di
+      `routes/v1/struktur.ts` yang membedakan "jenis yang MEMANG tak
+      bervolume" (sambungan baut/las/angkur) dari "jenis yang seharusnya punya
+      tetapi tak memulangkannya".
+
+      Tanpa penjaga itu, base plate hilang diam-diam dari rekap RAP — dan satu
+      gedung baja bisa punya puluhan pelat landas tebal 20-30 mm. Pelat
+      350x350x30 beratnya 28,9 kg; dua puluh di antaranya 578 kg baja yang tak
+      teranggarkan.
+      ══════════════════════════════════════════════════════════════════════
+    */
+    const h = analisaBasePlate(dasar)
+    expect(h.volume).toBeTruthy()
+    expect(h.volume!.besiTotalKg).toBeGreaterThan(0)
+  })
+
+  it('berat terpasang = luas x tebal x 7850', () => {
+    // 0,35 x 0,35 x 0,030 x 7850 = 28,85 kg
+    const h = analisaBasePlate(dasar)
+    expect(h.volume!.beratSendiriKg).toBeCloseTo(0.35 * 0.35 * 0.03 * 7850, 3)
+  })
+
+  it('dibeli per LEMBAR, dan yang dibeli lebih berat dari yang terpasang', () => {
+    /*
+      Pelat baja dijual per lembar 1,2 x 2,4 m. Pelat landas dipotong darinya,
+      dan sisa potongan berukuran ganjil jarang terpakai untuk pelat lain.
+      Menghitung per kilogram terpasang membuat RAP kekurangan — sama seperti
+      lonjor besi dan batang profil.
+    */
+    const h = analisaBasePlate(dasar)
+    expect(h.volume!.besiTotalKg).toBeGreaterThan(h.volume!.beratSendiriKg)
+    expect(h.volume!.besi[0].peran).toMatch(/pelat landas/)
+  })
+
+  it('banyak pelat kecil muat dalam satu lembar', () => {
+    /*
+      Lembar 2,88 m2; pelat 0,1225 m2 → 23 pelat per lembar. 20 pelat landas
+      cukup SATU lembar, bukan 20.
+    */
+    const h = analisaBasePlate({ ...dasar, jumlah: 20 })
+    expect(h.volume!.besi[0].jumlahBatang).toBe(1)
+  })
+
+  it('pelat besar butuh lebih dari satu lembar', () => {
+    // Pelat 900x900 = 0,81 m2 → 3 per lembar. 10 pelat butuh 4 lembar.
+    const h = analisaBasePlate({
+      ...dasar, panjangPelatMm: 900, lebarPelatMm: 900, tebalPelatMm: 40,
+      puKn: 1500, jumlah: 10,
+    })
+    expect(h.volume!.besi[0].jumlahBatang).toBe(4)
+  })
+
+  it('ANGKUR tidak punya volume — dan itu benar, bukan cacat', () => {
+    /*
+      Angkur dianggarkan lewat AHSP 2.3.1.2 (pemasangan angkur, per kilogram),
+      bukan dari geometri sambungannya. Membedakan ini dari cacat adalah
+      seluruh gunanya daftar TANPA_VOLUME di rute.
+    */
+    const h = analisaAngkur({
+      diameterMm: 16, mutu: MUTU_BAUT['A325'], jumlah: 4,
+      kedalamanMm: 300, fcBetonMpa: 25, tuKn: 100, vuKn: 60,
+    })
+    expect(h.volume).toBeUndefined()
+  })
+})
