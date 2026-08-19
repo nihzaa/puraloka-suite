@@ -5,6 +5,67 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (mb-progres) — penghalangnya ternyata satu berkas yang tak ada
+
+Founder: *"yg masih sebagian ituu nunggu apa? bisa lanjutt lagi?"*.
+
+Kelima sisa `sebagian` diperiksa ke KODE, bukan ke catatannya — pelajaran
+dari dua kali salah hari ini. Empat penghalangnya terbukti nyata di luar
+kode. Yang kelima **tidak**.
+
+### `mb-progres`: "menunggu rilis" itu benar, tapi terlalu kabur
+
+Diukur:
+
+| Yang diperiksa | Keadaan |
+|---|---|
+| Layar input progres | ✅ 357 baris, dua mode, foto + izin runtime |
+| `app.json` | ✅ slug, `com.puraloka.suite` (Android & iOS) |
+| `eas.json` | ❌ **TIDAK ADA** |
+
+Tanpa `eas.json`, `eas build` menolak jalan — jadi tak pernah ada satu pun
+APK yang bisa dipasang siapa pun. Bukan "menunggu keputusan rilis";
+**menunggu berkas yang tak pernah dibuat.**
+
+### Jebakan yang akan merusak build PERTAMA
+
+`apps/mobile/.env` berisi `EXPO_PUBLIC_API_URL=http://localhost:3001`, dan
+`lib/api.ts` memakainya sebagai bawaan.
+
+`EXPO_PUBLIC_*` **dipanggang ke bundel saat build**, bukan dibaca saat
+jalan. Jadi APK pertama akan membawa `localhost` ke HP mandor — dan di sana,
+localhost adalah **HP-nya sendiri**. Tiap permintaan gagal dengan galat
+jaringan yang **menuduh server**, di tangan orang yang tak punya cara
+memeriksanya, sesudah aplikasinya telanjur disebar.
+
+Ditutup dua lapis:
+
+1. `lib/api.ts` **melempar saat modul dimuat** bila alamat rilis kosong —
+   gagal di tangan PEMBUILD, bukan di tangan mandor.
+2. Penjaga `audit-alamat-api-terisi.mjs`, **dua tingkat**: kosong =
+   peringatan (alamat publik keputusan founder), terisi tapi localhost/LAN =
+   MERAH. Terbukti empat arah — alamat publik hijau; localhost,
+   `192.168.x`, dan `10.x` semuanya merah.
+
+Tingkat lunak untuk yang kosong dipilih sesudah menanyakannya ke founder:
+memerahkan CI karena keputusan yang **belum diambil** melatih orang
+mengabaikan CI merah, dan penjaga yang diabaikan tak menjaga apa pun. Ia
+otomatis jadi tegas begitu alamatnya diisi — tanpa ada yang perlu mengingat
+menaikkannya.
+
+### Sisa
+
+`docs/RILIS-MOBILE.md` memuat langkahnya. Yang tersisa **satu isian yang
+hanya founder tahu**: alamat API yang bisa dijangkau dari jaringan seluler.
+Sesudah itu `eas build --profile preview` menghasilkan APK yang bisa
+dibagikan lewat tautan.
+
+Tetap `sebagian`, dan alasannya tak berubah: fitur yang tak pernah dipakai
+orang sungguhan belum terbukti bekerja di tangan penggunanya. Yang berubah,
+sekarang ada jalan untuk membuktikannya.
+
+---
+
 ## 2026-08-19 (tuntas) — keempat pekerjaan kode selesai, dan DUA rencana saya sendiri terbukti salah
 
 Founder: *"lanjutkan sampai tuntas"*.

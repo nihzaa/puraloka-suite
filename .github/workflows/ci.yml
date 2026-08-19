@@ -2348,6 +2348,21 @@ jobs:
         run: node apps/web/scripts/audit-modal-dialog.mjs
         working-directory: .
 
+      # EXPO_PUBLIC_* DIPANGGANG ke bundel saat build, bukan dibaca saat jalan.
+      # apps/mobile/.env berisi http://localhost:3001 — dan di HP mandor,
+      # localhost adalah HP-nya sendiri. Build yang salah konfigurasi tak
+      # menghasilkan galat saat membuild; ia menghasilkan aplikasi yang gagal
+      # di tangan mandor dengan pesan yang MENUDUH SERVER.
+      #
+      # DUA TINGKAT: kosong = PERINGATAN (alamat publik adalah keputusan
+      # founder, dan memerahkan CI karena keputusan yang belum diambil melatih
+      # orang mengabaikan CI merah). Terisi TAPI localhost/LAN = MERAH —
+      # di sinilah bahayanya, karena alamat yang terisi TERLIHAT sudah
+      # dipikirkan. Otomatis jadi tegas begitu alamatnya diisi.
+      - name: Alamat API profil build mobile terisi
+        run: node apps/mobile/scripts/audit-alamat-api-terisi.mjs
+        working-directory: .
+
       # Audit a11y runtime (axe-core) MELEWATI rute dinamis yang tak diberi
       # contoh id — dan tetap melaporkan "0 pelanggaran". Diukur 2026-08-07:
       # enam halaman terlewat selama ini, dan outputnya terbaca sebagai

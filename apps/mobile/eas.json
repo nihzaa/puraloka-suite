@@ -1,0 +1,71 @@
+{
+  "//": [
+    "══════════════════════════════════════════════════════════════════════",
+    "BUILD & SEBAR — berkas yang hilang, dan itulah yang menahan mb-progres",
+    "══════════════════════════════════════════════════════════════════════",
+    "",
+    "Diukur 2026-08-19: kode input progres LENGKAP (357 baris, dua mode,",
+    "foto + izin runtime), app.json lengkap (slug, package, bundleIdentifier",
+    "com.puraloka.suite) — tetapi eas.json TIDAK ADA. Tanpa berkas ini",
+    "`eas build` menolak jalan, jadi tak ada satu pun cara membuat APK yang",
+    "bisa dipasang di HP mandor.",
+    "",
+    "Itu sebabnya mb-progres bernilai `sebagian` dengan alasan 'menunggu",
+    "rilis': bukan kodenya yang kurang, melainkan jalan keluarnya.",
+    "",
+    "── Kenapa `env` DINYATAKAN di tiap profil",
+    "",
+    "`EXPO_PUBLIC_*` dipanggang ke dalam bundel saat build, bukan dibaca saat",
+    "aplikasi jalan. Profil tanpa `env` akan memakai apa pun yang kebetulan",
+    "ada di .env mesin yang membuild — dan .env di repo ini berisi",
+    "http://localhost:3001, yang di HP mandor berarti HP-nya sendiri.",
+    "",
+    "Alamat produksi SENGAJA dikosongkan di berkas ini, bukan ditebak:",
+    "`lib/api.ts` melempar saat modul dimuat kalau ia kosong, jadi build yang",
+    "salah konfigurasi GAGAL DI TANGAN PEMBUILD — bukan di tangan mandor.",
+    "",
+    "── Urutan pakai",
+    "",
+    "  1. isi `EXPO_PUBLIC_API_URL` profil `preview` & `production` di bawah",
+    "  2. npx eas-cli build -p android --profile preview   (APK, bagikan link)",
+    "  3. mandor pasang, coba satu proyek nyata",
+    "  4. baru `production` (AAB) kalau hendak ke Play Store",
+    "",
+    "APK dipilih untuk `preview` karena bisa dipasang langsung dari tautan —",
+    "AAB tak bisa, ia hanya untuk Play Store, dan mandor tak akan menunggu"
+  ],
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:3001"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": ""
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": ""
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
