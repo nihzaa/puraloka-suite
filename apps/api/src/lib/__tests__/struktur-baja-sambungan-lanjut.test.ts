@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  analisaGusset, analisaSambunganMomen,
+  analisaGusset, analisaSambunganMomen, analisaPanelZone,
   SUDUT_WHITMORE, BATAS_KAKU, BATAS_SENDI, PHI_LELEH, PHI_PUTUS,
   type InputGusset, type InputSambunganMomen,
 } from '../struktur-baja-sambungan-lanjut'
@@ -246,5 +246,141 @@ describe('sambungan momen — kopel sayap', () => {
   it('menolak tipe karangan', () => {
     expect(() => analisaSambunganMomen({ ...MOMEN, tipe: 'dilem' as never }))
       .toThrow(/tak dikenal/i)
+  })
+})
+
+describe('PANEL ZONE — sambungan yang bautnya cukup tetap berputar', () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    Panel zone adalah sepotong BADAN KOLOM yang terkurung di antara sayap
+    balok. Saat balok memikul momen, kopel sayapnya menggeser potongan itu
+    seperti kartu remi yang didorong miring.
+
+    Sering terlewat karena ia bagian dari KOLOM, bukan bagian dari sambungan:
+    perancang memeriksa baut, las, dan pelat ujung — panel zone tak masuk
+    daftar sama sekali.
+
+    Angka acuannya hitungan tangan dari SNI 1729 §J10.6, bukan keluaran kode.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const KOLOM = {
+    tinggiKolomMm: 300, tebalBadanKolomMm: 10,
+    tebalSayapKolomMm: 15, lebarSayapKolomMm: 300,
+    tinggiBalokMm: 400, tebalSayapBalokMm: 13,
+    muKnm: 150,
+    mutu: { fyMpa: 240, fuMpa: 370 },
+  }
+
+  it('φRn dan Vu cocok dengan HITUNGAN TANGAN', () => {
+    /*
+      Rn = 0,6 × 240 × 300 × 10 / 1000 = 432 kN → φRn = 0,9 × 432 = 388,8
+      lengan = 400 − 13 = 387 mm → Vu = 150e6 / 387 / 1000 = 387,6 kN
+    */
+    const h = analisaPanelZone(KOLOM)
+    expect(h.antara.phiVnKn).toBeCloseTo(388.8, 1)
+    expect(h.antara.vuPanelKn).toBeCloseTo(387.6, 1)
+  })
+
+  it('badan kolom TIPIS gagal ketiganya', () => {
+    const h = analisaPanelZone({ ...KOLOM, tebalBadanKolomMm: 6 })
+    expect(h.aman).toBe(false)
+    expect(h.antara.perluDoubler).toBe(true)
+    expect(h.periksa.every((p) => !p.aman)).toBe(true)
+  })
+
+  it('jalan keluarnya BUKAN baut lebih besar — dan catatannya mengatakan itu', () => {
+    /*
+      Kesalahpahaman yang mahal: sambungan yang gagal disangka kurang baut.
+      Yang kurang badan KOLOMnya, dan menambah baut tak mengubah apa pun.
+    */
+    const h = analisaPanelZone({ ...KOLOM, tebalBadanKolomMm: 6 })
+    expect(h.catatan.some(
+      (c) => /BUKAN baut yang lebih besar/.test(c) && /doubler/.test(c),
+    )).toBe(true)
+  })
+
+  it('tebal doubler yang DIBUTUHKAN disebut angkanya', () => {
+    /*
+      "Pasang doubler plate" tak bisa ditindak tanpa tebalnya. Yang membaca
+      perlu tahu berapa, bukan cuma bahwa perlu.
+    */
+    const h = analisaPanelZone({ ...KOLOM, tebalBadanKolomMm: 6 })
+    expect(h.catatan.some((c) => /setebal minimal [\d.]+ mm/.test(c))).toBe(true)
+  })
+
+  it('beban AKSIAL kolom besar MENGURANGI kapasitas panel', () => {
+    /*
+      Baja yang sudah terpakai menahan tekan tak bisa dipakai lagi menahan
+      geser. Kolom bawah gedung bertingkat justru yang paling terbebani.
+    */
+    const tanpa = analisaPanelZone(KOLOM)
+    const dengan = analisaPanelZone({
+      ...KOLOM, puKolomKn: 2000, pyKolomKn: 3000,     // Pu = 0,67 Py
+    })
+    expect(dengan.antara.phiVnKn).toBeLessThan(tanpa.antara.phiVnKn)
+    expect(dengan.catatan.some((c) => /DIKURANGI/.test(c))).toBe(true)
+  })
+
+  it('aksial di BAWAH 0,4·Py tidak mengurangi apa pun', () => {
+    const tanpa = analisaPanelZone(KOLOM)
+    const kecil = analisaPanelZone({
+      ...KOLOM, puKolomKn: 900, pyKolomKn: 3000,      // Pu = 0,3 Py
+    })
+    expect(kecil.antara.phiVnKn).toBeCloseTo(tanpa.antara.phiVnKn, 3)
+  })
+
+  it('PENGAKU BADAN diminta saat dorongan sayap melewati kapasitas setempat', () => {
+    /*
+      Sayap balok mendorong badan kolom pada bidang selebar tebal sayapnya
+      saja. Tanpa pengaku, badan kolom leleh setempat jauh sebelum panel
+      zone-nya sendiri bekerja — dan pengaku itu pelat sederhana yang murah,
+      sering dilupakan justru karena tak terlihat di gambar denah.
+    */
+    const h = analisaPanelZone(KOLOM)
+    expect(h.periksa.some(
+      (p) => /dorongan sayap balok/.test(p.nama) && !p.aman,
+    )).toBe(true)
+    expect(h.catatan.some((c) => /continuity plate/.test(c))).toBe(true)
+  })
+
+  it('menyatakan pengaku SUDAH ADA membuat pemeriksaannya lulus', () => {
+    const h = analisaPanelZone({ ...KOLOM, adaPengaku: true })
+    const p = h.periksa.find((x) => /dorongan sayap balok/.test(x.nama))!
+    expect(p.aman).toBe(true)
+    /* Tetapi disertai syarat, bukan lolos begitu saja. */
+    expect(h.catatan.some(
+      (c) => /minimal setebal sayap balok/.test(c) && /dilas penuh/.test(c),
+    )).toBe(true)
+  })
+
+  it('memakai persamaan J10-9, dan MENYATAKAN kenapa bukan yang lebih longgar', () => {
+    /*
+      J10-11 memperhitungkan sumbangan sayap kolom dan memberi kapasitas
+      lebih besar — tetapi hanya sah bila deformasi panel zone ikut masuk
+      analisa strukturnya. Memakainya tanpa itu memberi kapasitas yang tak
+      pernah ada.
+    */
+    const h = analisaPanelZone(KOLOM)
+    expect(h.catatan.some(
+      (c) => /J10-9/.test(c) && /J10-11/.test(c),
+    )).toBe(true)
+  })
+
+  it('geometri mustahil ditolak', () => {
+    expect(() => analisaPanelZone({ ...KOLOM, tebalBadanKolomMm: 0 }))
+      .toThrow(/Tebal badan kolom/)
+    expect(() => analisaPanelZone({ ...KOLOM, tebalSayapBalokMm: 250 }))
+      .toThrow(/tertukar/)
+    expect(() => analisaPanelZone({ ...KOLOM, muKnm: 0 }))
+      .toThrow(/Momen balok/)
+  })
+
+  it('tiap rasio BERHINGGA', () => {
+    for (const tw of [4, 10, 25]) {
+      const h = analisaPanelZone({ ...KOLOM, tebalBadanKolomMm: tw })
+      for (const p of h.periksa) {
+        expect(Number.isFinite(p.rasio), `${p.nama} = ${p.rasio}`).toBe(true)
+      }
+    }
   })
 })

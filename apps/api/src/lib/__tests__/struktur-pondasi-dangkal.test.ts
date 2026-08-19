@@ -326,3 +326,99 @@ describe('raft — pelat & volume', () => {
     expect(dua.aman).toBe(satu.aman)
   })
 })
+
+describe('PENURUNAN pada pondasi menerus — yang paling banyak dipakai', () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    Rumah tinggal di Indonesia hampir seluruhnya memakai pondasi menerus batu
+    kali. Ia hampir SELALU lulus daya dukung — beban dindingnya kecil — dan
+    justru karena itu tak ada yang memeriksanya lebih jauh.
+
+    Modul penurunan sudah ada dan sudah tersambung ke footplat sejak commit
+    sebelumnya; pondasi menerus tertinggal. Catatan "BELUM diperiksa"-nya
+    bahkan sempat basi.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const DASAR = {
+    jenis: 'batu_kali' as const,
+    lebarBawahM: 0.6, lebarAtasM: 0.3, tinggiM: 0.6,
+    panjangM: 40, kedalamanM: 0.8, bebanKnPerM: 25, qaKnM2: 150,
+    gammaTanahKnM3: 17, tebalPasirM: 0.05, tinggiAanstampingM: 0.2,
+  }
+
+  it('tanpa data tanah, penurunan TIDAK dikarang — dan ketiadaannya dinyatakan', () => {
+    const h = analisaPondasiMenerus(DASAR)
+    expect(h.periksa.some((p) => /Penurunan/.test(p.nama))).toBe(false)
+    expect(h.catatan.some((c) => /TIDAK diperiksa/.test(c))).toBe(true)
+    expect(h.catatan.some((c) => /KERUNTUHAN/.test(c))).toBe(true)
+  })
+
+  it('dengan data tanah, pemeriksaan penurunan ikut muncul', () => {
+    const h = analisaPondasiMenerus({
+      ...DASAR, jenisTanahPenurunan: 'lempung', nSptPenurunan: 6,
+      jarakKolomM: 3,
+    })
+    const nama = h.periksa.map((p) => p.nama)
+    expect(nama).toContain('Penurunan total')
+    expect(nama).toContain('Lantai tidak miring berlebihan')
+  })
+
+  it('besarannya MASUK AKAL — beban dinding kecil, jadi turunnya kecil', () => {
+    /*
+      Uji BESARAN, bukan cuma bentuk. Modul penurunan pernah memberi 588 mm
+      karena dua kesalahan berlipat, dan tak satu pun test bentuk
+      menangkapnya.
+    */
+    const pasir = analisaPondasiMenerus({
+      ...DASAR, jenisTanahPenurunan: 'pasir', nSptPenurunan: 20,
+    })
+    const lempung = analisaPondasiMenerus({
+      ...DASAR, jenisTanahPenurunan: 'lempung', nSptPenurunan: 6,
+    })
+    const nilai = (h: typeof pasir) =>
+      h.periksa.find((p) => p.nama === 'Penurunan total')!.nilai
+
+    expect(nilai(pasir)).toBeGreaterThan(0)
+    expect(nilai(pasir)).toBeLessThan(15)
+    expect(nilai(lempung)).toBeGreaterThan(nilai(pasir))
+    expect(nilai(lempung)).toBeLessThan(40)
+  })
+
+  it('PANJANG dibatasi 10× lebar — pondasi 40 m bukan pelat selebar 40 m', () => {
+    /*
+      Pondasi sepanjang puluhan meter tak berperilaku seperti pelat selebar
+      itu: yang menentukan hanya sepanjang beberapa kali lebarnya di sekitar
+      titik yang ditinjau.
+
+      Tanpa pembatasan ini, faktor bentuknya melompat ke nilai "memanjang"
+      penuh dan penurunannya jauh terlalu besar.
+    */
+    const pendek = analisaPondasiMenerus({
+      ...DASAR, panjangM: 6,
+      jenisTanahPenurunan: 'lempung', nSptPenurunan: 6,
+    })
+    const panjang = analisaPondasiMenerus({
+      ...DASAR, panjangM: 40,
+      jenisTanahPenurunan: 'lempung', nSptPenurunan: 6,
+    })
+    const nilai = (h: typeof pendek) =>
+      h.periksa.find((p) => p.nama === 'Penurunan total')!.nilai
+
+    /* 6 m dan 40 m sama-sama > 10×0,6 = 6 m, jadi hasilnya SAMA. */
+    expect(nilai(panjang)).toBeCloseTo(nilai(pendek), 2)
+    expect(panjang.catatan.some((c) => /10× lebar/.test(c))).toBe(true)
+  })
+
+  it('penurunan yang tak bisa dihitung TIDAK menggagalkan analisa strukturnya', () => {
+    /*
+      N-SPT di luar batas wajar ditolak modul penurunan. Pemeriksaan daya
+      dukung dan proporsi tetap berguna — tetapi sebabnya harus dicatat,
+      bukan diam.
+    */
+    const h = analisaPondasiMenerus({
+      ...DASAR, jenisTanahPenurunan: 'pasir', nSptPenurunan: 200,
+    })
+    expect(h.periksa.length).toBeGreaterThan(0)
+    expect(h.catatan.some((c) => /tak dapat dijalankan/.test(c))).toBe(true)
+  })
+})

@@ -24,7 +24,7 @@ import {
 import { analisaPenurunan } from '../struktur-penurunan'
 import { analisaKetahananApi } from '../struktur-api'
 import { analisaKolomKomposit, analisaBondek } from '../struktur-komposit'
-import { analisaGusset, analisaSambunganMomen } from '../struktur-baja-sambungan-lanjut'
+import { analisaGusset, analisaSambunganMomen, analisaPanelZone } from '../struktur-baja-sambungan-lanjut'
 import { analisaKudaKudaKayu, analisaBajaRingan } from '../struktur-atap-ringan'
 import {
   analisaSambunganKayu, analisaSekrupBajaRingan,
@@ -384,6 +384,16 @@ function semuaHasilAnalisa(): Array<{ periksa: ReadonlyArray<{ nama: string; ras
       elemen: 'balok', tingkatDimintaMenit: 120,
       selimutBersihMm: 40, dSengkangMm: 10, dUtamaMm: 19,
       dimensiTerkecilMm: 300,
+    }) as never,
+    /*
+      PANEL ZONE — sering terlewat karena ia bagian dari KOLOM, bukan bagian
+      dari sambungan. Perancang memeriksa baut, las, dan pelat ujung.
+    */
+    analisaPanelZone({
+      tinggiKolomMm: 300, tebalBadanKolomMm: 10,
+      tebalSayapKolomMm: 15, lebarSayapKolomMm: 300,
+      tinggiBalokMm: 400, tebalSayapBalokMm: 13, muKnm: 150,
+      mutu: { fyMpa: 240, fuMpa: 370 },
     }) as never,
     analisaRangka({
       nama: 'KK-1', mutu: { fyMpa: 240, fuMpa: 370 },

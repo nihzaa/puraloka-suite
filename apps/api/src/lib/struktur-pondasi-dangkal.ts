@@ -31,6 +31,9 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { RHO_BETON } from './struktur-beton.js'
+import {
+  analisaPenurunan, type JenisTanahPenurunan,
+} from './struktur-penurunan.js'
 import type { HasilElemen, Periksa, VolumeElemen, BarisBesi } from './struktur-beton.js'
 
 /** Berat volume pasangan batu kali, kN/m³ — SNI 1727 Tabel C3-1. */
@@ -58,6 +61,18 @@ export interface InputPondasiMenerus {
   jenis: JenisPondasiMenerus
   /** Lebar dasar pondasi, m. */
   lebarBawahM: number
+  /**
+   * Jenis tanah pendukung, untuk perkiraan penurunan. OPSIONAL.
+   *
+   * Daya dukung izin menahan KERUNTUHAN tanah, bukan penurunan. Pondasi
+   * menerus rumah tinggal hampir selalu lulus daya dukung — dan pada lempung
+   * lunak tetap turun berlebihan.
+   */
+  jenisTanahPenurunan?: JenisTanahPenurunan
+  /** N-SPT rata-rata pada kedalaman pengaruh (~2B di bawah dasar). */
+  nSptPenurunan?: number
+  /** Jarak ke pondasi tetangga, m — untuk distorsi sudut (yang meretakkan). */
+  jarakKolomM?: number
   /** Lebar puncak pondasi, m. */
   lebarAtasM: number
   /** Tinggi badan pondasi, m. */
@@ -260,13 +275,59 @@ export function analisaPondasiMenerus(input: InputPondasiMenerus): HasilPondasiM
       + 'yang tak pernah dikeluarkan.',
     )
   }
-  catatan.push(
-    'Penurunan (settlement) belum diperiksa PADA PONDASI MENERUS ini. '
-    + 'Modulnya sudah ada (`struktur-penurunan.ts`) dan sudah tersambung ke '
-    + 'FOOTPLAT; pondasi menerus belum. Daya dukung izin menahan keruntuhan '
-    + 'tanah, bukan penurunan — dan pada tanah lempung, penurunanlah yang '
-    + 'lebih dulu merusak bangunan.',
-  )
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    PENURUNAN — pondasi menerus justru yang PALING BANYAK dipakai.
+
+    Rumah tinggal di Indonesia hampir seluruhnya memakai pondasi menerus batu
+    kali. Ia hampir selalu lulus daya dukung — beban dindingnya kecil — dan
+    justru karena itu tak ada yang memeriksanya lebih jauh.
+
+    Yang membuatnya berbeda dari footplat: pondasi menerus MEMANJANG, dan
+    pondasi memanjang turun lebih banyak daripada telapak bujur sangkar pada
+    tekanan yang sama, karena bebannya menyebar ke tanah yang lebih dalam.
+    `analisaPenurunan` sudah menangani itu lewat faktor bentuknya.
+
+    Panjang yang dipakai untuk penurunan DIBATASI: pondasi sepanjang 40 m tak
+    berperilaku seperti pelat selebar 40 m — yang menentukan hanya sepanjang
+    beberapa kali lebarnya di sekitar titik yang ditinjau. Dipakai 10× lebar,
+    yang sudah masuk daerah "memanjang" pada faktor bentuknya.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (input.jenisTanahPenurunan != null && input.nSptPenurunan != null) {
+    try {
+      const turun = analisaPenurunan({
+        lebarM: lebarBawahM,
+        panjangM: Math.min(panjangM, lebarBawahM * 10),
+        tekananNetoKnM2: Math.max(qKnM2, 1),
+        jenisTanah: input.jenisTanahPenurunan,
+        nSpt: input.nSptPenurunan,
+        jarakKolomM: input.jarakKolomM,
+      })
+      periksa.push(...turun.periksa)
+      catatan.push(...turun.catatan)
+      catatan.push(
+        `Panjang yang dipakai untuk penurunan dibatasi `
+        + `${Math.min(panjangM, lebarBawahM * 10).toFixed(1)} m (10× lebar), `
+        + `bukan panjang penuh ${panjangM} m. Pondasi sepanjang puluhan meter `
+        + 'tak berperilaku seperti pelat selebar itu — yang menentukan hanya '
+        + 'sepanjang beberapa kali lebarnya di sekitar titik yang ditinjau.',
+      )
+    } catch (e) {
+      catatan.push(
+        `Perkiraan PENURUNAN tak dapat dijalankan: ${(e as Error).message}`,
+      )
+    }
+  } else {
+    catatan.push(
+      'Penurunan (settlement) TIDAK diperiksa karena jenis tanah dan N-SPT '
+      + 'belum diisi. Daya dukung izin menahan KERUNTUHAN tanah, bukan '
+      + 'penurunan — dan pondasi menerus hampir selalu lulus daya dukung '
+      + 'karena beban dindingnya kecil, justru karena itu tak ada yang '
+      + 'memeriksanya lebih jauh. Pada lempung lunak, penurunanlah yang lebih '
+      + 'dulu merusak bangunan.',
+    )
+  }
 
   return {
     periksa,

@@ -262,6 +262,28 @@ export interface InputSambunganMomen {
   /** Kuat tarik baut, MPa. */
   fuBautMpa: number
   mutu: { fyMpa: number; fuMpa: number }
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    PANEL ZONE — dimensi KOLOM, opsional.
+
+    Panel zone bagian dari KOLOM, bukan bagian dari sambungan — dan itulah
+    kenapa ia sering terlewat: perancang memeriksa baut, las, dan pelat
+    ujung, lalu berhenti.
+
+    Diisi, pemeriksaannya ikut jalan. Tak diisi, catatannya MENYATAKAN bahwa
+    panel zone belum diperiksa — bukan diam.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  /** Tinggi penampang kolom, mm. */
+  tinggiKolomMm?: number
+  /** Tebal badan kolom, mm. */
+  tebalBadanKolomMm?: number
+  /** Tebal sayap kolom, mm. */
+  tebalSayapKolomMm?: number
+  /** Lebar sayap kolom, mm. */
+  lebarSayapKolomMm?: number
+  /** Sudah ada pengaku badan (continuity plate)? */
+  adaPengaku?: boolean
 }
 
 export interface HasilSambunganMomen {
@@ -392,15 +414,63 @@ export function analisaSambunganMomen(input: InputSambunganMomen): HasilSambunga
     + 'daripada geser baloknya, dan itu yang menentukan jumlah bautnya.',
   )
   catatan.push(
-    'Yang BELUM diperiksa: pengaku badan kolom (continuity plate) di depan '
-    + 'sayap balok, geser panel zone kolom, dan prying action pada baut tarik. '
-    + 'Panel zone yang lemah membuat sambungan berputar meski bautnya cukup — '
-    + 'dan itu mengubah kelasnya dari kaku jadi semi-rigid.',
+    'Yang BELUM diperiksa DI SINI: prying action pada baut tarik. '
+    + 'Pengaku badan kolom dan geser panel zone SUDAH diperiksa — isi '
+    + 'dimensi kolomnya lewat `analisaPanelZone`, atau lewat medan panel '
+    + 'zone pada elemen ini.',
   )
   if (tipe === 'siku_sayap') {
     catatan.push(
       'Sambungan SIKU SAYAP hampir selalu semi-rigid — sikunya melentur dan '
       + 'menyerap rotasi. Merancangnya sebagai kaku penuh jarang benar.',
+    )
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    PANEL ZONE — dijalankan DI SINI, bukan sebagai jenis elemen terpisah.
+
+    Satu sambungan momen punya satu verdict. Memisahkannya berarti estimator
+    memasukkan sambungan yang sama DUA KALI.
+
+    Butuh dimensi KOLOM yang tak ada di input sambungan — itu sebabnya
+    opsional. Tetapi ketiadaannya DINYATAKAN: panel zone yang lemah membuat
+    sambungan berputar meski bautnya cukup, dan itu mengubah kelasnya dari
+    kaku jadi semi-rigid — seluruh analisa yang mengandaikan kaku jadi tak
+    berlaku.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (
+    input.tinggiKolomMm != null && input.tebalBadanKolomMm != null
+    && input.tebalSayapKolomMm != null && input.lebarSayapKolomMm != null
+  ) {
+    try {
+      const pz = analisaPanelZone({
+        tinggiKolomMm: input.tinggiKolomMm,
+        tebalBadanKolomMm: input.tebalBadanKolomMm,
+        tebalSayapKolomMm: input.tebalSayapKolomMm,
+        lebarSayapKolomMm: input.lebarSayapKolomMm,
+        tinggiBalokMm,
+        tebalSayapBalokMm: tebalSayapMm,
+        muKnm,
+        mutu,
+        adaPengaku: input.adaPengaku,
+      })
+      periksa.push(...pz.periksa)
+      catatan.push(...pz.catatan)
+    } catch (e) {
+      catatan.push(
+        `Pemeriksaan PANEL ZONE tak dapat dijalankan: ${(e as Error).message}`,
+      )
+    }
+  } else {
+    catatan.push(
+      'PANEL ZONE tidak diperiksa karena dimensi kolom belum diisi '
+      + '(`tinggiKolomMm`, `tebalBadanKolomMm`, `tebalSayapKolomMm`, '
+      + '`lebarSayapKolomMm`). Panel zone yang lemah membuat sambungan '
+      + 'BERPUTAR meski bautnya cukup — dan itu mengubah kelasnya dari kaku '
+      + 'jadi semi-rigid, sehingga seluruh analisa yang mengandaikan '
+      + 'sambungan kaku tak lagi berlaku.',
     )
   }
 
@@ -417,5 +487,312 @@ export function analisaSambunganMomen(input: InputSambunganMomen): HasilSambunga
       phiMomenKnm: Math.round(phiMomenKnm * 100) / 100,
     },
     catatan,
+  }
+}
+
+// ── PANEL ZONE kolom ─────────────────────────────────────────────────────────
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════════
+ * PANEL ZONE — sambungan yang bautnya cukup tetap berputar
+ *
+ * Panel zone adalah sepotong BADAN KOLOM yang terkurung di antara sayap balok
+ * kiri dan kanan. Saat balok memikul momen, kopel sayapnya mendorong potongan
+ * itu ke dua arah berlawanan — dan potongan itu tergeser seperti kartu remi
+ * yang didorong miring.
+ *
+ * Yang membuatnya sering terlewat: perancang memeriksa bautnya, memeriksa
+ * lasnya, memeriksa pelat ujungnya — dan panel zone-nya tak masuk daftar
+ * sama sekali karena ia bagian dari KOLOM, bukan bagian dari sambungan.
+ *
+ * ── Dua akibat yang berbeda jenis
+ *
+ * Panel zone yang lemah TIDAK langsung meruntuhkan. Yang terjadi:
+ *
+ *   1. sambungan BERPUTAR meski bautnya utuh — dan putaran itu mengubah
+ *      kelasnya dari KAKU jadi SEMI-RIGID. Seluruh analisa struktur yang
+ *      mengandaikan sambungan kaku jadi tak berlaku: momen berpindah, dan
+ *      lendutan baloknya lebih besar daripada yang dihitung.
+ *
+ *   2. pada gempa, panel zone yang meleleh lebih dulu justru BAIK — ia
+ *      menyerap energi. Yang tak boleh adalah ia meleleh TERLALU dini,
+ *      sebelum baloknya sempat bekerja.
+ *
+ * Karena itu ada DUA ambang, bukan satu: cukup kuat untuk beban kerja, dan
+ * tak terlalu kuat sampai memaksa kolomnya yang rusak.
+ *
+ * ── Pengaku badan (continuity plate)
+ *
+ * Sayap balok mendorong badan kolom pada bidang yang sangat sempit. Tanpa
+ * pengaku di depan sayap balok, badan kolom itu bisa MENEKUK setempat —
+ * kegagalan yang terjadi jauh sebelum panel zone-nya sendiri leleh.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+
+/** Faktor tahanan geser panel zone, SNI 1729 §J10.6. */
+export const PHI_PANEL = 0.9
+
+export interface InputPanelZone {
+  /** Tinggi penampang KOLOM, mm. */
+  tinggiKolomMm: number
+  /** Tebal badan kolom, mm. */
+  tebalBadanKolomMm: number
+  /** Tebal sayap kolom, mm. */
+  tebalSayapKolomMm: number
+  /** Lebar sayap kolom, mm. */
+  lebarSayapKolomMm: number
+  /** Tinggi penampang BALOK yang bertemu di situ, mm. */
+  tinggiBalokMm: number
+  /** Tebal sayap balok, mm. */
+  tebalSayapBalokMm: number
+  /** Momen terfaktor balok, kNm. */
+  muKnm: number
+  /** Gaya aksial kolom terfaktor, kN. Nol bila tak diketahui. */
+  puKolomKn?: number
+  /** Gaya aksial leleh kolom Py = Ag·fy, kN. Untuk koreksi aksial. */
+  pyKolomKn?: number
+  mutu: { fyMpa: number; fuMpa: number }
+  /** Sudah ada pengaku badan (continuity plate) di depan sayap balok? */
+  adaPengaku?: boolean
+}
+
+export interface HasilPanelZone {
+  periksa: Periksa[]
+  aman: boolean
+  catatan: string[]
+  antara: {
+    /** Gaya geser yang bekerja pada panel zone, kN. */
+    vuPanelKn: number
+    /** Kapasitas geser panel zone, kN. */
+    phiVnKn: number
+    /** Kelangsingan badan kolom di panel zone. */
+    kelangsinganBadan: number
+    /** Batas kelangsingan supaya tak menekuk setempat. */
+    batasKelangsingan: number
+    /** Perlu pelat pengganda (doubler plate)? */
+    perluDoubler: boolean
+  }
+}
+
+export function analisaPanelZone(input: InputPanelZone): HasilPanelZone {
+  const {
+    tinggiKolomMm: dc, tebalBadanKolomMm: twc, tebalSayapKolomMm: tfc,
+    lebarSayapKolomMm: bfc, tinggiBalokMm: db, tebalSayapBalokMm: tfb,
+    muKnm, mutu,
+  } = input
+
+  for (const [nama, v] of [
+    ['Tinggi kolom', dc], ['Tebal badan kolom', twc],
+    ['Tebal sayap kolom', tfc], ['Lebar sayap kolom', bfc],
+    ['Tinggi balok', db], ['Tebal sayap balok', tfb],
+    ['fy', mutu.fyMpa],
+  ] as const) {
+    if (!Number.isFinite(v) || v <= 0) {
+      throw new Error(`${nama} harus angka > 0 (diterima: ${v})`)
+    }
+  }
+  if (!(muKnm > 0)) throw new Error('Momen balok harus > 0')
+  if (tfb >= db / 2) {
+    throw new Error(
+      `Tebal sayap balok (${tfb} mm) tak boleh setengah tingginya (${db} mm) — `
+      + 'periksa angkanya, kemungkinan tertukar.',
+    )
+  }
+
+  const catatan: string[] = []
+  const periksa: Periksa[] = []
+
+  /*
+    ── Gaya geser pada panel zone.
+
+    Momen balok disalurkan sebagai KOPEL sayap dengan lengan (db − tfb).
+    Gaya kopel itulah yang menggeser panel zone:
+
+        Vu_panel = Mu / (db − tfb)
+
+    Kolom di atas panel ikut menahan sebagian, tetapi mengabaikannya
+    konservatif dan itu yang dilakukan di sini.
+  */
+  const lenganMm = db - tfb
+  const vuPanelKn = (muKnm * 1e6) / lenganMm / 1000
+
+  /*
+    ── Kapasitas geser panel zone — SNI 1729 §J10.6, tanpa deformasi
+       inelastis diperhitungkan (persamaan J10-9):
+
+        Rn = 0,6 · fy · dc · twc
+
+    Ada bentuk yang lebih longgar (J10-11) yang memperhitungkan sumbangan
+    sayap kolom, TETAPI hanya sah bila deformasi panel zone ikut
+    diperhitungkan dalam analisa strukturnya. Itu jarang dilakukan, dan
+    memakainya tanpa itu memberi kapasitas yang tak pernah ada.
+  */
+  let rnKn = (0.6 * mutu.fyMpa * dc * twc) / 1000
+
+  /*
+    ── Koreksi AKSIAL.
+
+    Kolom yang sudah memikul beban aksial besar punya sisa kapasitas geser
+    yang lebih kecil — bajanya sudah terpakai untuk menahan tekan. SNI 1729
+    memberi pengurangan bila Pu > 0,4·Py.
+  */
+  const pu = input.puKolomKn ?? 0
+  const py = input.pyKolomKn ?? 0
+  if (py > 0 && pu > 0.4 * py) {
+    const faktor = 1.4 - pu / py
+    rnKn *= Math.max(faktor, 0)
+    catatan.push(
+      `Kapasitas panel zone DIKURANGI faktor ${faktor.toFixed(3)} karena beban `
+      + `aksial kolom (${pu} kN) melewati 0,4·Py (${(0.4 * py).toFixed(0)} kN). `
+      + 'Baja yang sudah terpakai menahan tekan tak bisa dipakai lagi menahan '
+      + 'geser — dan kolom bawah gedung bertingkat justru yang paling '
+      + 'terbebani aksial.',
+    )
+  }
+
+  const phiVnKn = PHI_PANEL * rnKn
+
+  periksa.push({
+    nama: 'Badan kolom tidak tergeser di titik sambungan',
+    nilai: Math.round(phiVnKn * 100) / 100,
+    syarat: Math.round(vuPanelKn * 100) / 100,
+    satuan: 'kN',
+    aman: phiVnKn >= vuPanelKn,
+    rasio: Math.round((vuPanelKn / Math.max(phiVnKn, 1e-9)) * 1e4) / 1e4,
+    rumus: `φRn = ${PHI_PANEL}·0,6·fy·dc·twc ≥ Vu = Mu/(db−tfb) `
+      + `= ${muKnm}/(${db}−${tfb}) (SNI 1729 §J10.6 pers. J10-9)`,
+  })
+
+  /*
+    ── KELANGSINGAN badan kolom di panel zone.
+
+    Badan yang terlalu tipis relatif ukurannya MENEKUK sebelum lelehnya
+    tercapai — dan tekuk itu tak terwakili rumus geser di atas.
+
+    SNI 1729 §J10.6: (dz + wz)/90 ≤ tw, dengan dz tinggi panel dan wz
+    lebarnya.
+  */
+  const dz = db - 2 * tfb
+  const wz = dc - 2 * tfc
+  const batasKelangsingan = (dz + wz) / 90
+  const kelangsinganBadan = twc
+
+  periksa.push({
+    nama: 'Badan kolom tidak menekuk setempat',
+    nilai: Math.round(twc * 100) / 100,
+    syarat: Math.round(batasKelangsingan * 100) / 100,
+    satuan: 'mm',
+    aman: twc >= batasKelangsingan,
+    rasio: Math.round((batasKelangsingan / Math.max(twc, 1e-9)) * 1e4) / 1e4,
+    rumus: `twc ≥ (dz + wz)/90 = (${dz.toFixed(0)} + ${wz.toFixed(0)})/90 `
+      + `= ${batasKelangsingan.toFixed(2)} mm (SNI 1729 §J10.6). Badan yang `
+      + 'terlalu tipis MENEKUK sebelum lelehnya tercapai.',
+  })
+
+  /*
+    ── PENGAKU BADAN (continuity plate).
+
+    Sayap balok mendorong badan kolom pada bidang yang sangat sempit —
+    selebar tebal sayapnya saja. Tanpa pengaku, badan kolom bisa leleh
+    setempat (web yielding) atau menekuk (web crippling) jauh sebelum panel
+    zone-nya sendiri bekerja.
+
+    Diperiksa dengan aturan praktis SNI 1729 §J10.1: pengaku WAJIB bila
+    gaya sayap balok melewati kapasitas leleh setempat badan kolom.
+  */
+  const gayaSayapKn = vuPanelKn
+  /* Panjang leleh setempat: 5k + tfb, dengan k ≈ tfc + jari-jari fillet. */
+  const kMm = tfc * 1.5
+  const rnLelehSetempatKn = (mutu.fyMpa * twc * (5 * kMm + tfb)) / 1000
+  const phiLelehKn = 1.0 * rnLelehSetempatKn      // φ = 1,0 untuk web yielding
+  const perluPengaku = gayaSayapKn > phiLelehKn
+
+  if (perluPengaku && input.adaPengaku !== true) {
+    periksa.push({
+      nama: 'Badan kolom tahan dorongan sayap balok',
+      nilai: Math.round(phiLelehKn * 100) / 100,
+      syarat: Math.round(gayaSayapKn * 100) / 100,
+      satuan: 'kN',
+      aman: false,
+      rasio: Math.round((gayaSayapKn / Math.max(phiLelehKn, 1e-9)) * 1e4) / 1e4,
+      rumus: `φRn = fy·twc·(5k + tfb) = ${phiLelehKn.toFixed(1)} kN < gaya sayap `
+        + `${gayaSayapKn.toFixed(1)} kN → PENGAKU BADAN (continuity plate) WAJIB `
+        + '(SNI 1729 §J10.1)',
+    })
+    catatan.push(
+      'PENGAKU BADAN (continuity plate) WAJIB dipasang di depan sayap balok. '
+      + 'Sayap balok mendorong badan kolom pada bidang selebar tebal sayapnya '
+      + 'saja — tanpa pengaku, badan kolom leleh setempat jauh sebelum panel '
+      + 'zone-nya sendiri bekerja. Ini pelat sederhana, murah, dan sering '
+      + 'dilupakan justru karena tak terlihat di gambar denah.',
+    )
+  } else if (perluPengaku) {
+    periksa.push({
+      nama: 'Badan kolom tahan dorongan sayap balok',
+      nilai: Math.round(gayaSayapKn * 100) / 100,
+      syarat: Math.round(gayaSayapKn * 100) / 100,
+      satuan: 'kN',
+      aman: true,
+      rasio: 1,
+      rumus: 'Pengaku badan (continuity plate) DINYATAKAN ADA — dorongan '
+        + 'sayap balok disalurkan pengaku, bukan oleh badan kolom sendiri.',
+    })
+    catatan.push(
+      'Pengaku badan dinyatakan ADA, jadi dorongan sayap balok dianggap '
+      + 'tersalurkan. Pastikan tebalnya minimal setebal sayap balok dan '
+      + 'dilas penuh ke badan maupun sayap kolom — pengaku yang ada tetapi '
+      + 'kurang tebal tak menolong.',
+    )
+  }
+
+  /*
+    ── Perlu pelat pengganda (doubler plate)?
+
+    Bila panel zone kurang kuat, jalan keluarnya BUKAN memperbesar bautnya —
+    yang kurang badan kolomnya. Pelat pengganda dilas ke badan kolom untuk
+    menebalkannya setempat.
+  */
+  const perluDoubler = phiVnKn < vuPanelKn
+  if (perluDoubler) {
+    const kurangMm = (vuPanelKn / (PHI_PANEL * 0.6 * mutu.fyMpa * dc)) * 1000 - twc
+    catatan.push(
+      `Panel zone KURANG KUAT. Yang dibutuhkan BUKAN baut yang lebih besar — `
+      + `yang kurang badan kolomnya. Pasang pelat pengganda (doubler plate) `
+      + `setebal minimal ${Math.max(kurangMm, 0).toFixed(1)} mm, dilas ke badan `
+      + 'kolom. Atau ganti kolomnya dengan profil berbadan lebih tebal.',
+    )
+  }
+
+  catatan.push(
+    `Momen ${muKnm} kNm menjadi gaya geser panel ${vuPanelKn.toFixed(1)} kN — `
+    + `momen disalurkan sebagai KOPEL sayap dengan lengan ${lenganMm.toFixed(0)} mm, `
+    + 'dan kopel itulah yang menggeser badan kolom seperti kartu remi yang '
+    + 'didorong miring.',
+  )
+  catatan.push(
+    'Dipakai persamaan J10-9 (tanpa deformasi inelastis diperhitungkan). Ada '
+    + 'bentuk yang lebih longgar (J10-11) yang memperhitungkan sumbangan sayap '
+    + 'kolom, TETAPI hanya sah bila deformasi panel zone ikut masuk analisa '
+    + 'strukturnya. Itu jarang dilakukan, dan memakainya tanpa itu memberi '
+    + 'kapasitas yang tak pernah ada.',
+  )
+  catatan.push(
+    'Yang BELUM diperiksa: panel zone pada sambungan balok DUA SISI dengan '
+    + 'momen tak seimbang, kolom yang dilanjutkan dengan sambungan las di '
+    + 'dekat panel, dan perilaku panel zone saat gempa besar (di sana panel '
+    + 'yang meleleh lebih dulu justru diinginkan — asalkan tak terlalu dini).',
+  )
+
+  return {
+    periksa,
+    aman: periksa.every((p) => p.aman),
+    catatan,
+    antara: {
+      vuPanelKn: Math.round(vuPanelKn * 100) / 100,
+      phiVnKn: Math.round(phiVnKn * 100) / 100,
+      kelangsinganBadan: Math.round(kelangsinganBadan * 100) / 100,
+      batasKelangsingan: Math.round(batasKelangsingan * 100) / 100,
+      perluDoubler,
+    },
   }
 }

@@ -396,6 +396,16 @@ const MEDAN: Record<Jenis, Medan[]> = {
     { kunci: "fuBautMpa", label: "Kuat tarik baut", satuan: "MPa" },
     { kunci: "mutu.fyMpa", label: "Mutu baja fy", satuan: "MPa" },
     { kunci: "mutu.fuMpa", label: "Mutu baja fu", satuan: "MPa" },
+    /*
+      PANEL ZONE — dimensi KOLOM, opsional.
+
+      Sering terlewat karena bagian dari KOLOM, bukan dari sambungan.
+      Labelnya menyebut akibatnya supaya yang mengisi tahu kenapa penting.
+    */
+    { kunci: "tinggiKolomMm", label: "Tinggi kolom (untuk cek panel zone)", satuan: "mm" },
+    { kunci: "tebalBadanKolomMm", label: "Tebal badan kolom", satuan: "mm" },
+    { kunci: "tebalSayapKolomMm", label: "Tebal sayap kolom", satuan: "mm" },
+    { kunci: "lebarSayapKolomMm", label: "Lebar sayap kolom", satuan: "mm" },
   ],
   kuda_kuda_kayu: [
     { kunci: "kelas", label: "Kelas kuat kayu (I / II / III / IV)" },
@@ -478,6 +488,9 @@ const MEDAN: Record<Jenis, Medan[]> = {
     { kunci: "gammaTanahKnM3", label: "Berat volume tanah", satuan: "kN/m³" },
     { kunci: "tebalPasirM", label: "Tebal pasir urug", satuan: "m" },
     { kunci: "tinggiAanstampingM", label: "Tinggi aanstamping", satuan: "m" },
+    { kunci: "jenisTanahPenurunan", label: "Jenis tanah untuk penurunan (pasir / lempung_kaku / lempung)" },
+    { kunci: "nSptPenurunan", label: "N-SPT rata-rata di bawah pondasi" },
+    { kunci: "jarakKolomM", label: "Jarak ke pondasi tetangga (cek lantai miring)", satuan: "m" },
   ],
   raft: [
     { kunci: "panjangM", label: "Panjang raft", satuan: "m" },
@@ -871,6 +884,8 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     muKnm: 150, vuKn: 80, inersiaBalokMm4: 237000000, bentangM: 6,
     kekakuanKnmPerRad: 200000, asBautTarikMm2: 1200, fuBautMpa: 800,
     mutu: { fyMpa: 240, fuMpa: 370 },
+    tinggiKolomMm: 300, tebalBadanKolomMm: 10,
+    tebalSayapKolomMm: 15, lebarSayapKolomMm: 300,
   },
   kuda_kuda_kayu: {
     kelas: "II", lebarMm: 60, tinggiMm: 120, panjangM: 3,
@@ -918,6 +933,7 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     panjangM: 40, kedalamanM: 0.8,
     bebanKnPerM: 25, qaKnM2: 150, gammaTanahKnM3: 17,
     tebalPasirM: 0.05, tinggiAanstampingM: 0.2,
+    jenisTanahPenurunan: "lempung_kaku", nSptPenurunan: 12, jarakKolomM: 3,
   },
   raft: {
     panjangM: 12, lebarM: 8, tebalMm: 400, bebanTotalKn: 4800,

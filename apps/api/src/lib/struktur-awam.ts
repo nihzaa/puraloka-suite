@@ -776,6 +776,49 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
     tindakan: 'Tambah tulangan mendatar, tebalkan dindingnya, atau naikkan '
       + 'mutu betonnya.',
   },
+  // ── PANEL ZONE ────────────────────────────────────────────────────────────
+  /*
+    Sering terlewat karena ia bagian dari KOLOM, bukan bagian dari sambungan:
+    perancang memeriksa baut, las, dan pelat ujung — panel zone tak masuk
+    daftar sama sekali.
+  */
+  'Badan kolom tidak tergeser di titik sambungan': {
+    judul: 'Kolomnya tidak melintir di tempat balok menempel',
+    apa: 'Di titik pertemuan balok dan kolom, ada sepotong badan kolom yang '
+      + 'terjepit di antara sayap balok kiri dan kanan. Saat balok memikul '
+      + 'beban, potongan itu didorong ke dua arah berlawanan — seperti kartu '
+      + 'remi yang didorong miring.',
+    risiko: 'Kalau potongan itu kalah, sambungannya BERPUTAR meski bautnya '
+      + 'masih utuh. Bangunan tidak langsung roboh, tetapi seluruh '
+      + 'perhitungan yang mengandaikan sambungan kaku jadi tak berlaku: '
+      + 'baloknya melendut lebih dalam daripada yang dihitung, dan lantainya '
+      + 'terasa bergetar saat dilewati.',
+    tindakan: 'Menambah baut TIDAK menolong — yang kurang badan kolomnya. '
+      + 'Pasang pelat pengganda (doubler plate) yang dilas ke badan kolom, '
+      + 'atau ganti kolomnya dengan profil berbadan lebih tebal.',
+  },
+  'Badan kolom tidak menekuk setempat': {
+    judul: 'Badan kolomnya tidak terlalu tipis sampai mengkerut',
+    apa: 'Badan kolom yang terlalu tipis dibanding ukurannya akan MENGKERUT '
+      + 'lebih dulu, sebelum bajanya sendiri sempat bekerja penuh.',
+    risiko: 'Mengkerutnya tiba-tiba dan setempat — tak ada peregangan yang '
+      + 'memberi peringatan, dan bentuknya tak terlihat dari luar sampai '
+      + 'terjadi.',
+    tindakan: 'Pakai profil kolom dengan badan lebih tebal, atau tambahkan '
+      + 'pelat pengganda di daerah pertemuan baloknya.',
+  },
+  'Badan kolom tahan dorongan sayap balok': {
+    judul: 'Ada penguat di tempat balok menekan kolom',
+    apa: 'Sayap balok menekan badan kolom pada bidang yang sangat sempit — '
+      + 'selebar tebal sayapnya saja. Tekanan sesempit itu bisa membuat '
+      + 'badan kolom penyok setempat.',
+    risiko: 'Penyoknya terjadi jauh sebelum bagian lain sambungan bekerja, '
+      + 'dan sesudah penyok, sambungannya tak pernah sekaku semula lagi.',
+    tindakan: 'Pasang pengaku badan (continuity plate) — pelat sederhana '
+      + 'yang dilas di dalam kolom, tepat di depan sayap balok. Murah, dan '
+      + 'sering dilupakan justru karena tak terlihat di gambar denah. '
+      + 'Tebalnya minimal setebal sayap baloknya.',
+  },
   // ── KETAHANAN API ─────────────────────────────────────────────────────────
   /*
     Salah paham paling mahal tentang beton: karena tak terbakar, orang
