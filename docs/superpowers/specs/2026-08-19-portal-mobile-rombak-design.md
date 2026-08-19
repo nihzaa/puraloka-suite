@@ -61,19 +61,36 @@ portalnya, bukan sekadar restyle yang sudah ada.
 
 ### 2.2 PM — gap terbesar, approval inbox paling kritis
 
-PM punya grant seluas admin dikurangi segelintir permission destruktif
-(`projects:status/delete`, `cash:account:manage`, `users:*`, dll). `pm-portal/`
-saat ini cuma 4 halaman (dashboard, mandor, keuangan, proyek).
+⚠️ **Klaim di bawah diverifikasi LANGSUNG ke tabel `role_permissions` produksi**
+(bukan cuma migrasi/kode) — karena arsitektur permission di repo ini bersifat
+runtime/dinamis (ADR-004): siapa memegang permission apa BUKAN hardcode di
+migrasi, melainkan data `role_permissions` yang bisa diubah lewat role editor
+UI. Query dijalankan 2026-08-19 terhadap role `pm` (133 permission distinct).
+Beberapa klaim awal saya SALAH dan sudah dikoreksi di tabel ini.
 
-| Modul | Route API | Kenapa penting |
+PM punya grant seluas admin dikurangi segelintir permission destruktif.
+`pm-portal/` saat ini cuma 4 halaman (dashboard, mandor, keuangan, proyek).
+
+| Modul | Route API | Permission (dikonfirmasi PM PUNYA) |
 |---|---|---|
-| **Approval inbox** | `approval-inbox.ts` (`GET /api/v1/approval/inbox`) | **Prioritas tertinggi.** PM approver hampir semua entity (kasbon, change order, opname bersama, back-charge, submittal, PO, cuti) tapi TIDAK PUNYA UI approval di portalnya — harus ke dashboard admin |
-| K3 (manage), Punch list (verify), Inspeksi (periksa), Submittal (decide) | masing-masing route di atas | PM satu-satunya (di luar admin) berwenang verifikasi/keputusan |
-| Dokumen proyek | `documents.ts` | `documents:manage` — upload/hapus dokumen kontrak/SPK |
-| Jadwal & baseline | `jadwal-cpm.ts`, `baseline-jadwal.ts` | `projects:baseline:manage` |
-| Opname bersama & back-charge | `opname-bersama.ts`, `back-charge.ts` | alur uang lapangan, PM berwenang penuh |
-| Kontrak / change order / instruksi lapangan | `kontrak.ts`, `change-orders.ts`, `instruksi-lapangan.ts` | `projects:contract/edit` |
-| Procurement (approve MR/PO, gudang) | `procurement.ts`, `pengadaan-lanjutan.ts`, `gudang-kelola.ts` | belum ada UI di luar kasbon+keuangan |
+| **Approval inbox** — kasbon, MR, K3, punch, inspeksi, submittal, PO | `approval-inbox.ts` + `utils/approval.ts` | **Prioritas tertinggi.** `mandor:kasbon:approve`, `procurement:mr:manage`, `submittal:decide`, `punch:verify`, `inspeksi:periksa` — semua terkonfirmasi PM punya. Lihat §2.4 untuk detail alur & 2 modul yang DICORET. |
+| K3 (manage), Punch list (verify), Inspeksi (periksa), RFI (manage) | masing-masing route di atas | `k3:insiden/jsa/inspeksi:manage`, `punch:verify`, `inspeksi:periksa`, `rfi:manage` — semua terkonfirmasi |
+| Dokumen proyek | `documents.ts` | `documents:manage` — terkonfirmasi |
+| Jadwal & baseline | `jadwal-cpm.ts`, `baseline-jadwal.ts` | `projects:baseline:manage` — terkonfirmasi |
+| Kontrak / instruksi lapangan | `kontrak.ts`, `instruksi-lapangan.ts` | `projects:contract`, `projects:edit` — terkonfirmasi |
+| Procurement (approve PO, gudang) | `procurement.ts`, `pengadaan-lanjutan.ts`, `gudang-kelola.ts` | `procurement:po:manage` — terkonfirmasi |
+| Opname bersama (KELOLA/catat, bukan verifikasi) | `opname-bersama.ts` | `opname:kelola` — PM boleh CATAT opname, **TIDAK boleh** memverifikasi (lihat §2.4) |
+
+**Dicoret dari scope PM** (permission TIDAK dimiliki PM di data aktual,
+berbeda dari asumsi awal saya): **Change Order approval** (`change_order:approve`
+— PM tidak punya), **Opname Bersama verifikasi/putuskan** (`opname:verifikasi`
+tidak dimiliki, hanya `opname:kelola`/pencatatan), **Back-charge putuskan**
+(`backcharge:setujui` tidak dimiliki, hanya `backcharge:kelola`/pencatatan),
+**Cash expense approve** (`cash:expense:approve` tidak dimiliki). Modul-modul
+ini tetap boleh punya UI *pencatatan/pengajuan* di PM portal kalau PM punya
+permission `:kelola`-nya, tapi TOMBOL APPROVE/VERIFIKASI-nya tidak boleh
+muncul di PM portal — approver sesungguhnya (kemungkinan direktur/keuangan)
+di luar scope dokumen ini.
 
 ### 2.3 Klien — sudah relatif representatif, gap kecil
 
@@ -87,6 +104,56 @@ Permission klien tak pernah bertambah sejak migrasi 050 (`projects:view`,
 
 Dokumen & notifikasi klien sudah tercakup (endpoint dokumen cuma butuh
 `authenticate`, bukan `documents:manage`).
+
+### 2.4 Approval inbox PM — detail alur (WAJIB dibaca sebelum implementasi)
+
+Riset mendalam ke `approval-inbox.ts` dan `utils/approval.ts` menemukan 3 hal
+yang mengubah cara modul ini harus dibangun, bukan sekadar "pasang UI di atas
+endpoint yang ada":
+
+1. **Endpoint inbox murni listing generik, bukan detail.** Respons
+   `GET /api/v1/approval/inbox` (`jenis, label, id, judul, nomor, nominal,
+   pengaju_id, project_id, level_selesai, jalur_ui, saya_pengajunya`) TIDAK
+   membawa nama pemohon maupun detail entity (mis. kasbon: sumber dana,
+   scope kerja). Kartu approval di bottom-sheet PM portal **wajib fetch
+   tambahan** ke endpoint detail per-entity (`GET /api/v1/kasbons/:id`, dst)
+   sebelum ditampilkan — bukan sekali panggil selesai.
+
+2. **⚠️ Endpoint inbox TIDAK memfilter berdasarkan proyek milik PM.**
+   `canParticipateInChain` menyaring berdasarkan PERMISSION (apakah user
+   punya salah satu permission di rantai approval), BUKAN berdasarkan
+   apakah `project_id` baris itu adalah proyek yang di-PM-i user tsb.
+   Pembatasan proyek baru terjadi di endpoint approve/reject-nya masing-
+   masing (mis. `kasbons.ts` cek `project.pm_id !== user.id`). Kalau UI
+   PM portal menampilkan hasil inbox mentah, **PM berisiko melihat baris
+   approval dari proyek yang bukan tanggung jawabnya** — bukan bug baru
+   yang dibuat rombak ini, tapi kondisi existing yang jadi lebih terlihat
+   begitu UI-nya sungguhan dipakai. **Wajib**: PM portal menambah filter
+   `project_id IN (proyek yang di-PM-i user ini)` di sisi pemanggilan
+   (route baru atau query param), sebelum daftar ditampilkan.
+
+3. **`jalurUi` tidak bisa dipakai apa adanya di PM portal.** Field ini satu
+   nilai global per jenis entity, dan SEMUANYA menunjuk halaman dashboard
+   admin (mis. kasbon → `/mandor/kasbon`, submittal → `/lapangan/submittal`).
+   Mengubah nilai `jalurUi` di katalog akan memutus dashboard admin dan
+   melanggar `audit-inbox-jalur-nyata.mjs`. **Pendekatan yang benar**: PM
+   portal punya mapping `jenis → path pm-portal` sendiri di sisi frontend
+   (tidak menyentuh katalog `SUMBER_INBOX`), dipakai untuk tombol "lihat
+   detail" — `jalur_ui` dari API diabaikan di konteks PM portal.
+
+4. **Alur approve bertingkat, bukan selalu 1 langkah.** Rantai approval per
+   `entity_type` bisa multi-level (`approval_chains`/`approval_steps`,
+   data per-tenant) — PM belum tentu approver final. UI wajib menampilkan
+   `level_selesai` vs total level, dan setelah PM approve di langkah
+   non-final, statusnya TETAP "menunggu" (bukan langsung "disetujui") —
+   pesan konfirmasi di UI harus mencerminkan ini, jangan klaim "disetujui"
+   kalau sebenarnya baru naik satu level.
+
+5. **Reject: alasan wajib TIDAK seragam per entity type** (back-charge
+   mewajibkan validasi server-side, kasbon/change-order opsional) — UI
+   tetap tampilkan field alasan di semua kasus untuk konsistensi, tapi
+   tombol submit tidak boleh diblok di sisi klien untuk entity yang
+   tidak mewajibkan (biarkan server yang menegakkan).
 
 ## 3. Arah visual — "Navy Ledger"
 
@@ -172,6 +239,40 @@ portal saat ini pakai inline `style={}` mandiri. Dibangun dari nol:
 | `SkeletonCard` | Loading state pengganti spinner |
 | `MiniChart` | Wrapper recharts bergaya mobile (dipakai KpiCard & grafik utama) |
 
+### 6.1 Batas portabilitas ke `apps/mobile/` (koreksi asumsi awal)
+
+Riset ke `apps/mobile/` (gelombang 2, di luar scope eksekusi dokumen ini)
+mengoreksi rencana awal saya bahwa component library ini bisa "dirancang
+portable" ke native lewat shared hooks. Faktanya:
+
+- **JSX/styling TIDAK portable.** `apps/mobile/components/ui/` pakai
+  `StyleSheet.create` + RN primitives (`View`/`Text`/`TouchableOpacity`)
+  murni, tanpa NativeWind. `PortalShell`/`KpiCard`/`BottomSheet` versi web
+  (DOM + CSS) dan versi native akan selalu jadi **2 implementasi terpisah**
+  — jangan berinvestasi waktu mengejar portabilitas JSX yang tak akan
+  terpakai.
+- **Yang layak dipisah jadi shared logic** (murni `.ts`, tanpa import
+  React/JSX) untuk dipakai ulang nanti di gelombang 2: fungsi format angka/
+  tanggal, `statusVariant`/`statusLabel` (mapping status → warna/label),
+  validasi form, shape data/types (`DashboardData`, dsb). Taruh di
+  `apps/web/lib/portal/` sebagai modul polos — bukan di `components/portal/`
+  — supaya jelas batasnya dari awal.
+- **Jangan bangun `useData()`/cache hook baru untuk portal ini** dengan
+  asumsi nanti dipakai bareng mobile. `apps/web/lib/data-cache.ts` (`useData`)
+  sudah ada tapi **0 dari 164 halaman web memakainya** (`audit-halaman-
+  pakai-cache.mjs` — ratchet, bukan wajib-baru). Portal ini sebaiknya
+  **memakai `useData()` yang sudah ada** (bukan bikin cache layer kedua)
+  untuk sekaligus menaikkan angka ratchet itu — tapi ini keputusan
+  implementasi, dicek ulang saat `writing-plans`.
+- **Offline-queue mandor**: web sudah punya (`antrean-offline.ts`,
+  `antrean-foto.ts`, `kirim-lapangan.ts`, `lokasi-perangkat.ts`), mobile
+  belum punya sama sekali. Jangan asumsikan pola queue web akan "tinggal
+  dipindah" ke native saat gelombang 2 — kemungkinan besar perlu didesain
+  ulang dari nol karena arsitektur storage & background-sync di RN beda
+  dari browser (`localStorage`/`IndexedDB` vs `expo-secure-store`/native
+  background tasks). Dicatat sebagai risiko gelombang 2, bukan dipecahkan
+  di sini.
+
 ## 7. Cakupan fitur final per portal
 
 ### 7.1 Mandor
@@ -183,13 +284,20 @@ sebelumnya.
 
 ### 7.2 PM
 Dibangun paling besar — dari 4 halaman jadi portal setara mandor/klien.
-**Approval Inbox jadi modul prioritas tertinggi** (temuan §2.2, paling
-berdampak nyata). Ditambah: K3/Punch/Inspeksi/Submittal (versi
-verify/decide untuk PM), Dokumen proyek, Jadwal & Baseline, Opname
-bersama & Back-charge, Kontrak/Change Order/Instruksi Lapangan,
-Procurement (approve MR/PO, gudang). "Mode Mandor/PM" switcher yang sudah
-ada di `mandor-portal/layout.tsx` dipertahankan sebagai jembatan antar
-kedua portal untuk user dual-role.
+**Approval Inbox jadi modul prioritas tertinggi** (temuan §2.2 & §2.4,
+paling berdampak nyata) — dengan filter wajib proyek-milik-PM (§2.4 poin 2)
+dan mapping `jalurUi` sendiri (§2.4 poin 3). Ditambah: K3/Punch/Inspeksi/
+Submittal (versi manage/verify/periksa/decide untuk PM — dikonfirmasi ke
+`role_permissions`), Dokumen proyek, Jadwal & Baseline, Kontrak/Instruksi
+Lapangan, Procurement (approve PO, gudang). Opname bersama masuk sebagai
+modul **pencatatan** (`opname:kelola`) tanpa tombol verifikasi — PM
+TIDAK punya `opname:verifikasi`. **Change Order dan Back-charge approval
+DICORET dari scope PM portal** (PM tidak punya `change_order:approve`
+maupun `backcharge:setujui` di data aktual — lihat §2.2) — kalau PM tetap
+perlu melihat status CO/back-charge proyeknya, itu tampilan read-only,
+bukan tombol approve. "Mode Mandor/PM" switcher yang sudah ada di
+`mandor-portal/layout.tsx` dipertahankan sebagai jembatan antar kedua
+portal untuk user dual-role.
 
 ### 7.3 Klien
 Struktur 7-tab `proyek/[id]` dipertahankan (sudah paling matang), direstyle
@@ -215,6 +323,19 @@ Mengikuti CLAUDE.md §8a.2 (tiap sektor wajib ditest & diaudit):
   bikin jalur approval kedua di luar `utils/approval.ts`.
 - Test integrasi Vitest untuk tiap endpoint yang mulai dipanggil dari
   portal (kalau belum ada test-nya).
+
+## 8a. Peringatan: permission adalah data runtime, bukan konstanta
+
+Semua tabel permission di §2 diukur langsung ke `role_permissions` pada
+2026-08-19 dan BISA berubah kapan saja lewat role editor UI (ADR-004 — role
+adalah data konfigurasi per-tenant, bukan literal kode). Sebelum membangun
+tiap modul di `writing-plans`, ukur ulang dengan query yang sama (lihat
+riwayat commit dokumen ini untuk skrip query `role_permissions` yang dipakai)
+— JANGAN asumsikan tabel di §2.2 masih akurat tanpa diverifikasi ulang,
+terutama kalau ada jeda waktu antara brainstorming ini dan implementasinya.
+Kode UI sendiri tetap WAJIB pakai `requirePermission`/pengecekan permission
+dinamis (bukan hardcode "PM boleh X") — tabel di dokumen ini hanya untuk
+KEPUTUSAN SCOPE (modul mana yang dibangun), bukan untuk logic run-time.
 
 ## 9. Yang di luar scope dokumen ini
 
