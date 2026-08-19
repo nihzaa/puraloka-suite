@@ -14,7 +14,9 @@ import { analisaBalokBaja, analisaKolomBaja } from '../struktur-baja'
 import { analisaSloof } from '../struktur-sloof'
 import { analisaTangga } from '../struktur-tangga'
 import { analisaBalokT } from '../struktur-balok-t'
-import { analisaGempaStatik, analisaDrift } from '../struktur-beban-lateral'
+import {
+  analisaGempaStatik, analisaDrift, analisaPDelta,
+} from '../struktur-beban-lateral'
 import { analisaPondasiMenerus, analisaRaft } from '../struktur-pondasi-dangkal'
 import {
   analisaDindingPenahan, analisaDindingGeser, analisaGempaDinding,
@@ -364,6 +366,14 @@ function semuaHasilAnalisa(): Array<{ periksa: ReadonlyArray<{ nama: string; ras
     analisaPenurunan({
       lebarM: 2, panjangM: 2, tekananNetoKnM2: 150,
       jenisTanah: 'lempung', nSpt: 8, jarakKolomM: 4,
+    }) as never,
+    /*
+      P-DELTA — paling sulit dijelaskan tanpa rumus, dan paling berbahaya
+      kalau tak dijelaskan: ia tak memberi peringatan seperti batas lain.
+    */
+    analisaPDelta({
+      nama: ['L1'], bebanVertikalKumulatifKn: [4000], driftMm: [20],
+      gayaGeserKn: [500], tinggiTingkatM: [3.5], cd: 5.5,
     }) as never,
     analisaRangka({
       nama: 'KK-1', mutu: { fyMpa: 240, fuMpa: 370 },

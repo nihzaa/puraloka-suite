@@ -565,3 +565,298 @@ export function analisaDrift(input: InputDrift): HasilDrift {
     ],
   }
 }
+
+// ── Efek P-DELTA (orde kedua) ────────────────────────────────────────────────
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════════
+ * P-DELTA — bangunan yang sudah miring dijatuhkan oleh beratnya sendiri
+ *
+ * Seluruh perhitungan gempa di atas mengandaikan bangunan tetap TEGAK saat
+ * dihitung. Kenyataannya gempa memiringkannya lebih dulu, dan begitu miring,
+ * berat bangunan tak lagi menekan lurus ke bawah — ia menekan MIRING, dan
+ * komponen miringnya mendorong bangunan makin miring lagi.
+ *
+ * Itulah P-Delta: beban (P) dikalikan simpangan (Δ) menjadi momen tambahan
+ * yang tak pernah dihitung oleh analisa yang mengandaikan bangunan tegak.
+ *
+ * ── Kenapa ini berbahaya berbeda dari batas lain
+ *
+ * Hampir semua batas struktur lain memberi peringatan: baja meleleh dulu,
+ * beton retak dulu, kayu melendut dulu. P-Delta tidak. Ia BERPUTAR BALIK ke
+ * dirinya sendiri — miring sedikit menambah momen, momen tambahan menambah
+ * miring, dan seterusnya. Di bawah ambang tertentu putaran itu mengecil dan
+ * berhenti; di atasnya ia MEMBESAR, dan bangunan runtuh tanpa didahului
+ * gejala apa pun yang bisa dilihat orang.
+ *
+ * Karena itu SNI 1726 §7.8.7 memberi dua ambang, bukan satu:
+ *
+ *   θ ≤ 0,10          efeknya kecil, boleh diabaikan
+ *   0,10 < θ ≤ θmaks  WAJIB diperhitungkan (gaya diperbesar 1/(1−θ))
+ *   θ > θmaks         struktur TIDAK STABIL — bukan "kurang kuat",
+ *                     melainkan tak boleh dibangun dengan bentuk itu
+ *
+ * Yang terakhir bukan soal memperbesar penampang. Bangunan yang θ-nya
+ * melewati batas harus diubah BENTUKNYA: ditambah dinding geser, ditambah
+ * bresing, atau dikurangi tingginya.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+
+/**
+ * Ambang bawah — di bawah ini efek P-Delta boleh diabaikan.
+ *
+ * SNI 1726 §7.8.7 mengikuti ASCE 7. Angkanya bukan kehati-hatian berlebihan:
+ * pada θ = 0,10 pembesaran gayanya sekitar 11%, masih di dalam cadangan
+ * angka keamanan yang lain.
+ */
+export const THETA_ABAIKAN = 0.10
+
+/**
+ * Batas atas θmaks = 0,5 / (β·Cd) ≤ 0,25.
+ *
+ * β adalah perbandingan kuat geser yang dibutuhkan terhadap yang tersedia.
+ * Bila tak diketahui, SNI mengizinkan β = 1,0 — dan itu yang dipakai di sini
+ * secara bawaan, karena menebak β lebih kecil MEMPERLONGGAR batas ke arah
+ * yang berbahaya.
+ */
+export const THETA_MAKS_ABSOLUT = 0.25
+
+export interface InputPDelta {
+  /** Nama tingkat, untuk keluaran yang bisa dibaca. */
+  nama: string[]
+  /**
+   * Beban vertikal TOTAL yang dipikul tingkat ini ke bawah, kN.
+   *
+   * Bukan berat tingkat itu sendiri, melainkan berat KUMULATIF dari tingkat
+   * ini ke atas — itulah yang menekan kolom tingkat ini saat ia miring.
+   */
+  bebanVertikalKumulatifKn: number[]
+  /** Simpangan antar tingkat (drift) yang SUDAH diperbesar Cd, mm. */
+  driftMm: number[]
+  /** Gaya geser tingkat, kN. */
+  gayaGeserKn: number[]
+  /** Tinggi tiap tingkat, m. */
+  tinggiTingkatM: number[]
+  /** Faktor pembesaran defleksi Cd dari sistem strukturnya. */
+  cd: number
+  /**
+   * β — perbandingan kuat geser yang dibutuhkan terhadap yang tersedia.
+   * Default 1,0 (paling konservatif, dan yang diizinkan SNI bila tak dihitung).
+   */
+  beta?: number
+}
+
+export interface HasilPDelta {
+  periksa: Periksa[]
+  aman: boolean
+  catatan: string[]
+  tingkat: Array<{
+    nama: string
+    /** Koefisien stabilitas θ. */
+    theta: number
+    /** Batas θmaks untuk tingkat ini. */
+    thetaMaks: number
+    /** Faktor pembesaran gaya 1/(1−θ). 1,0 bila θ ≤ 0,10. */
+    pembesaran: number
+    /** Perlu diperhitungkan (θ > 0,10)? */
+    perluDihitung: boolean
+    /** TIDAK STABIL (θ > θmaks)? */
+    tidakStabil: boolean
+  }>
+  antara: {
+    /** θ terbesar di seluruh tingkat. */
+    thetaMaksimum: number
+    /** Tingkat mana yang paling kritis. */
+    tingkatKritis: string
+    /** Pembesaran gaya terbesar. */
+    pembesaranMaksimum: number
+  }
+}
+
+export function analisaPDelta(input: InputPDelta): HasilPDelta {
+  const {
+    nama, bebanVertikalKumulatifKn: px, driftMm: delta,
+    gayaGeserKn: vx, tinggiTingkatM: hsx, cd,
+  } = input
+  const beta = input.beta ?? 1.0
+
+  const n = nama.length
+  for (const [label, arr] of [
+    ['beban vertikal', px], ['drift', delta],
+    ['gaya geser', vx], ['tinggi tingkat', hsx],
+  ] as const) {
+    if (arr.length !== n) {
+      throw new Error(
+        `Jumlah ${label} (${arr.length}) tak sama dengan jumlah tingkat (${n}). `
+        + 'Tiap tingkat butuh keempat angkanya.',
+      )
+    }
+  }
+  if (!n) throw new Error('Minimal satu tingkat')
+  positif('Cd', cd)
+  positif('β', beta)
+
+  const catatan: string[] = []
+  const periksa: Periksa[] = []
+  const tingkat: HasilPDelta['tingkat'] = []
+
+  /*
+    θmaks = 0,5 / (β·Cd) ≤ 0,25.
+
+    Cd yang lebih besar (sistem yang lebih daktail) memberi θmaks yang lebih
+    KECIL — dan itu berlawanan dengan dugaan orang. Alasannya: sistem daktail
+    memang boleh berdeformasi besar, tetapi justru karena itu ia lebih peka
+    terhadap efek orde kedua.
+  */
+  const thetaMaks = Math.min(0.5 / (beta * cd), THETA_MAKS_ABSOLUT)
+
+  let thetaTerbesar = 0
+  let tingkatKritis = nama[0] ?? '—'
+  let pembesaranTerbesar = 1
+
+  for (let i = 0; i < n; i++) {
+    positif(`Beban vertikal ${nama[i]}`, px[i])
+    positif(`Gaya geser ${nama[i]}`, vx[i])
+    positif(`Tinggi tingkat ${nama[i]}`, hsx[i])
+    if (!Number.isFinite(delta[i]) || delta[i] < 0) {
+      throw new Error(`Drift ${nama[i]} harus angka >= 0 (diterima: ${delta[i]})`)
+    }
+
+    /*
+      θ = (Px · Δ) / (Vx · hsx · Cd)
+
+      Pembilang: momen tambahan akibat berat yang menekan miring.
+      Penyebut: kemampuan tingkat itu menahan momen tersebut.
+
+      Cd di PENYEBUT karena Δ yang dimasukkan sudah diperbesar Cd — kalau
+      tidak dibagi lagi, efeknya terhitung dua kali.
+    */
+    const theta = (px[i] * (delta[i] / 1000)) / (vx[i] * hsx[i] * cd)
+
+    const tidakStabil = theta > thetaMaks
+
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      `perluDihitung` HARUS benar juga saat tidak stabil.
+
+      Dua ambangnya bergerak sendiri-sendiri: ambang abaikan dipaku 0,10,
+      sementara θmaks = 0,5/(β·Cd) BISA LEBIH KECIL daripada itu — pada
+      Cd 5,5 (rangka pemikul momen khusus beton) θmaks hanya 0,0909.
+
+      Versi pertama menulis `theta > THETA_ABAIKAN` saja, dan pada θ = 0,097
+      hasilnya bendera yang saling bertentangan: `tidakStabil: true` bersama
+      `perluDihitung: false` — "strukturnya tak stabil, tetapi efeknya boleh
+      diabaikan". Verdict-nya benar (tidak stabil menang), tetapi bendera
+      yang bertentangan akan dibaca UI dan ditampilkan apa adanya.
+
+      Struktur yang tidak stabil SELALU perlu diperhitungkan; yang jadi
+      pertanyaan hanya apakah ia masih bisa diperbaiki dengan pembesaran
+      gaya, atau bentuknya yang harus diubah.
+      ══════════════════════════════════════════════════════════════════════
+    */
+    const perluDihitung = theta > THETA_ABAIKAN || tidakStabil
+
+    /*
+      Pembesaran 1/(1−θ) hanya SAH bila strukturnya masih stabil. Di atas
+      θmaks, angka itu tak berarti apa-apa — yang dibutuhkan bukan gaya yang
+      diperbesar melainkan bentuk bangunan yang diubah.
+    */
+    const pembesaran = tidakStabil ? 1 : (theta > THETA_ABAIKAN ? 1 / (1 - theta) : 1)
+
+    if (theta > thetaTerbesar) {
+      thetaTerbesar = theta
+      tingkatKritis = nama[i]
+    }
+    if (pembesaran > pembesaranTerbesar) pembesaranTerbesar = pembesaran
+
+    tingkat.push({
+      nama: nama[i],
+      theta: Math.round(theta * 1e4) / 1e4,
+      thetaMaks: Math.round(thetaMaks * 1e4) / 1e4,
+      pembesaran: Math.round(pembesaran * 1e4) / 1e4,
+      perluDihitung,
+      tidakStabil,
+    })
+  }
+
+  /*
+    ── SATU pemeriksaan per bangunan, bukan per tingkat.
+
+    Memberi satu baris per tingkat pada bangunan 20 lantai menghasilkan 20
+    batang persen yang hampir semuanya hijau — dan yang berulang tak dibaca.
+    Yang dilaporkan tingkat TERKRITIS, dan nama tingkatnya disebut supaya
+    bisa langsung dicari.
+  */
+  periksa.push({
+    nama: 'Bangunan tidak makin miring sendiri',
+    nilai: Math.round(thetaTerbesar * 1e4) / 1e4,
+    syarat: Math.round(thetaMaks * 1e4) / 1e4,
+    satuan: 'θ',
+    aman: thetaTerbesar <= thetaMaks,
+    rasio: Math.round((thetaTerbesar / thetaMaks) * 1e4) / 1e4,
+    rumus: `θ = Px·Δ/(Vx·hsx·Cd) ≤ θmaks = 0,5/(β·Cd) = `
+      + `${thetaMaks.toFixed(4)} (SNI 1726 §7.8.7, β ${beta}, Cd ${cd}). `
+      + `Terkritis: ${tingkatKritis}`,
+  })
+
+  /* ── Catatan yang menjelaskan apa artinya ─────────────────────────────── */
+  if (thetaTerbesar > thetaMaks) {
+    catatan.push(
+      `TIDAK STABIL di ${tingkatKritis}: θ ${thetaTerbesar.toFixed(3)} melewati `
+      + `batas ${thetaMaks.toFixed(3)}. Ini BUKAN "kurang kuat" yang bisa `
+      + 'diperbaiki dengan memperbesar penampang — bentuk bangunannya yang '
+      + 'harus diubah: tambah dinding geser, tambah bresing, atau kurangi '
+      + 'tingginya. Memperbesar kolom saja justru menambah berat, dan berat '
+      + 'yang bertambah MEMPERBURUK efek ini.',
+    )
+  } else if (thetaTerbesar > THETA_ABAIKAN) {
+    catatan.push(
+      `Efek P-Delta WAJIB diperhitungkan: θ ${thetaTerbesar.toFixed(3)} di `
+      + `${tingkatKritis} melewati ${THETA_ABAIKAN}. Seluruh gaya dan `
+      + `simpangan tingkat itu harus diperbesar ${pembesaranTerbesar.toFixed(3)}× `
+      + '(faktor 1/(1−θ)). Pembesaran ini BELUM diterapkan ke hasil '
+      + 'perhitungan lain di aplikasi ini — terapkan sendiri, atau kurangi '
+      + 'simpangannya sampai θ di bawah 0,10.',
+    )
+  } else {
+    catatan.push(
+      `Efek P-Delta boleh diabaikan: θ terbesar ${thetaTerbesar.toFixed(3)} di `
+      + `${tingkatKritis}, di bawah ambang ${THETA_ABAIKAN} (SNI 1726 §7.8.7). `
+      + 'Pada nilai itu pembesaran gayanya di bawah 11%, masih di dalam '
+      + 'cadangan angka keamanan yang lain.',
+    )
+  }
+
+  catatan.push(
+    `β = ${beta} dipakai untuk menghitung θmaks. β adalah perbandingan kuat `
+    + 'geser yang DIBUTUHKAN terhadap yang TERSEDIA; bila tak dihitung, SNI '
+    + 'mengizinkan β = 1,0 — dan itu bawaan di sini. Menebak β lebih kecil '
+    + 'MEMPERLONGGAR batasnya ke arah yang berbahaya, jadi jangan diubah '
+    + 'tanpa menghitungnya.',
+  )
+  catatan.push(
+    'Beban vertikal yang dipakai harus KUMULATIF dari tingkat ini ke ATAS, '
+    + 'bukan berat tingkat itu sendiri — yang menekan kolom tingkat bawah '
+    + 'adalah seluruh bangunan di atasnya. Memakai berat per tingkat memberi '
+    + 'θ yang jauh terlalu kecil, dan justru di tingkat bawah efeknya paling '
+    + 'besar.',
+  )
+  catatan.push(
+    'Yang BELUM diperiksa: P-Delta akibat beban GRAVITASI saja (tanpa gempa) '
+    + 'pada kolom langsing, efek orde kedua pada elemen tunggal (P-δ, huruf '
+    + 'kecil — lengkungan batang itu sendiri), dan analisa riwayat waktu '
+    + 'nonlinier yang menangkap keruntuhan progresif.',
+  )
+
+  return {
+    periksa,
+    aman: periksa.every((p) => p.aman),
+    catatan,
+    tingkat,
+    antara: {
+      thetaMaksimum: Math.round(thetaTerbesar * 1e4) / 1e4,
+      tingkatKritis,
+      pembesaranMaksimum: Math.round(pembesaranTerbesar * 1e4) / 1e4,
+    },
+  }
+}

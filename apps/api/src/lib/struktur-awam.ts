@@ -776,6 +776,32 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
     tindakan: 'Tambah tulangan mendatar, tebalkan dindingnya, atau naikkan '
       + 'mutu betonnya.',
   },
+  // ── P-DELTA ───────────────────────────────────────────────────────────────
+  /*
+    Pemeriksaan yang paling sulit dijelaskan tanpa rumus, dan paling berbahaya
+    kalau tak dijelaskan: ia tak memberi peringatan seperti batas lain.
+
+    Yang membacanya perlu tahu satu hal saja — kalau ini merah, memperbesar
+    kolom TIDAK menolong. Bentuk bangunannya yang harus diubah.
+  */
+  'Bangunan tidak makin miring sendiri': {
+    judul: 'Miringnya berhenti, tidak makin menjadi',
+    apa: 'Saat gempa, bangunan miring sedikit. Begitu miring, beratnya tak '
+      + 'lagi menekan lurus ke bawah melainkan MIRING — dan tekanan miring '
+      + 'itu mendorongnya makin miring lagi. Ini memeriksa apakah dorongan '
+      + 'balik itu mengecil dan berhenti, atau justru membesar.',
+    risiko: 'Hampir semua kegagalan struktur memberi peringatan lebih dulu: '
+      + 'baja meleleh, beton retak, kayu melendut. Yang ini TIDAK. Di bawah '
+      + 'ambangnya bangunan berayun lalu tegak kembali; di atasnya ia terus '
+      + 'miring sampai roboh, tanpa satu pun gejala yang bisa dilihat orang '
+      + 'sebelumnya. Bangunan yang lebih berat dan lebih tinggi lebih '
+      + 'rentan.',
+    tindakan: 'Kalau ini merah, memperbesar kolom TIDAK menolong — kolom '
+      + 'yang lebih besar lebih berat, dan berat yang bertambah justru '
+      + 'MEMPERBURUK. Yang menolong: tambah dinding geser (dinding beton '
+      + 'tebal dari bawah sampai atas), tambah bresing baja menyilang, atau '
+      + 'kurangi jumlah lantainya.',
+  },
   // ── PENURUNAN PONDASI ─────────────────────────────────────────────────────
   /*
     Tiga pemeriksaan yang paling sering disalahpahami, termasuk oleh orang

@@ -32,7 +32,7 @@ import {
   analisaSambunganKayu, analisaSekrupBajaRingan,
 } from '../../lib/struktur-sambungan-ringan.js'
 import {
-  analisaGempaStatik, analisaAngin, analisaDrift,
+  analisaGempaStatik, analisaAngin, analisaDrift, analisaPDelta,
   SISTEM_STRUKTUR, KATEGORI_RISIKO, KOEF_PERIODA, EKSPOSUR,
 } from '../../lib/struktur-beban-lateral.js'
 import { analisaKolomLengkap, analisaKolomBulatLengkap } from '../../lib/struktur-kolom-lengkap.js'
@@ -837,6 +837,7 @@ export default async function strukturRoutes(app: FastifyInstance) {
       gempa?: Record<string, unknown>
       angin?: Record<string, unknown>
       drift?: Record<string, unknown>
+      pdelta?: Record<string, unknown>
     }
   }>(
     '/api/v1/projects/:projectId/struktur/beban-lateral',
@@ -846,9 +847,9 @@ export default async function strukturRoutes(app: FastifyInstance) {
         return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
       }
       const b = request.body ?? {}
-      if (!b.gempa && !b.angin && !b.drift) {
+      if (!b.gempa && !b.angin && !b.drift && !b.pdelta) {
         return reply.status(400).send({
-          error: 'Isi minimal satu dari: gempa, angin, drift',
+          error: 'Isi minimal satu dari: gempa, angin, drift, pdelta',
         })
       }
 
@@ -862,6 +863,15 @@ export default async function strukturRoutes(app: FastifyInstance) {
           gempa: b.gempa ? analisaGempaStatik(b.gempa as never) : null,
           angin: b.angin ? analisaAngin(b.angin as never) : null,
           drift: b.drift ? analisaDrift(b.drift as never) : null,
+          /*
+            P-DELTA — bangunan yang sudah miring dijatuhkan beratnya sendiri.
+
+            Ditaruh bersama drift, bukan sebagai jenis elemen: keduanya
+            sifat SELURUH bangunan, bukan sifat satu balok atau satu kolom.
+            Menjadikannya elemen akan membuat rekap volume mencoba
+            menghitung beton dari koefisien stabilitas.
+          */
+          pdelta: b.pdelta ? analisaPDelta(b.pdelta as never) : null,
         })
       } catch (e) {
         return reply.status(400).send({ error: (e as Error).message })
