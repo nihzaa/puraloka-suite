@@ -2093,6 +2093,74 @@ identik. Berasal dari basis bersama/branch lain, bukan regresi di sini.
 
 ---
 
+## 2026-08-16 (sesi asisten, penutup) — 2.18 tuntas; katalog tool asisten HABIS
+
+Nomor terakhir. Dan saya salah label untuk **kedua kalinya** pada nomor yang
+sama: satu sesi sebelumnya "tertahan karena data belum ada", lalu sesudah
+dikoreksi jadi "tertahan: tak ada tabel fasilitas kredit". Keduanya meleset —
+**2.18 tak butuh tabel pinjaman sama sekali**, ia butuh proyeksi kas yang
+sudah ada sejak 2.4.
+
+### Yang ditemukan jauh lebih penting daripada nomornya
+
+`proyeksi_arus_kas` dijalankan ke data nyata: saldo Rp 222 juta → Rp 275 juta,
+**naik dan datar** di ketiga jendela. Perusahaan konstruksi yang membayar upah
+tiap minggu tidak mungkin kasnya datar.
+
+```
+kasbon `approved` belum settled   Rp 491.100.000  (46 item)  ← 2,2× saldo
+pengeluaran proyek `approved`     Rp 263.505.000  (80 item)
+                                  ───────────────
+                                  Rp 754.605.000 = 3,4× saldo kas
+```
+
+Ketiganya kewajiban yang **sudah disetujui**, tak punya tanggal jatuh tempo,
+karena itu tak terlihat oleh proyeksi bertanggal mana pun. Proyeksi yang tak
+memuatnya menjawab **"aman"** untuk keadaan yang justru paling perlu
+diwaspadai — bentuk kesalahan paling mahal yang bisa dilakukan alat keuangan.
+
+⚠ **Tanggalnya TIDAK ditebak.** Tebakan akan menentukan verdict-nya sendiri:
+"anggap 60 hari" → aman; "anggap 14 hari" → kritis. Dilaporkan sebagai **beban
+menggantung** terpisah dari garis waktu, dan **selalu disebut meski proyeksi
+terlihat aman** — justru saat itulah ia paling perlu.
+
+⚠ **Nama katalognya sengaja tidak dipakai.** "Loan/Credit Facility Advisor"
+menjanjikan saran produk keuangan; plafon/tenor/bunga tak satu pun ada di
+basis. Tool-nya menunjukkan KAPAN kering dan BERAPA kurangnya. Penafiannya
+diuji tersendiri.
+
+### Katalog tool asisten: HABIS
+
+**45 tool · nol nama kembar · 15 izin, semuanya nyata di tabel `permissions`
+· 4.990 dari ambang 5.200 token.**
+
+Seluruh 36 kandidat TOOL di `GALIAN-92` §4 sudah terjawab — sebagian jadi
+tool, dua (8.2/8.7) ternyata bukan tool melainkan instruksi merangkai.
+
+### Bukti
+
+- `npx vitest run src/lib/__tests__/ai-` → **37 berkas · 435 test hijau**
+- mutasi: beban-menggantung disembunyikan → 2 merah · saringan status kasbon
+  dicabut → 2 merah · penafian saran keuangan dihapus → 1 merah
+- penjaga exit 0: tool-ai-read-only · katalog-tak-membengkak · izin-benar-ada
+  · baca-tak-terpotong · pagar-fakta-utuh · kegagalan-senyap · catch-senyap
+  · tulis-tanpa-periksa · gerbang-biaya-ai
+
+### Satu mutasi TIDAK menggigit — dan sebabnya data, bukan test
+
+Mengganti `Math.min(saldo, ...proyeksi)` dengan saldo jendela **terakhir**
+tidak membuat satu test pun merah. Tenant uji tak punya jendela bersaldo
+negatif, jadi minimum dan nilai akhir sama persis; bedanya baru muncul pada
+pola "minus di hari ke-30, pulih di hari ke-90". Dinyatakan di dalam test.
+
+Dan percobaan mutasi pertama saya sendiri salah: mutator memakai pola **CRLF**
+sementara berkas itu **LF**, jadi ia melapor "tak menggigit" padahal belum
+tersuntik sama sekali. Diulang dengan `assert` yang gagal keras. **Alat ukur
+yang salah menghasilkan kesimpulan yang salah dua arah** — ini kedua kalinya
+akhir-baris menipu saya dalam satu sesi.
+
+---
+
 ## 2026-08-16 (sesi asisten, lanjutan) — "tertahan karena data" ternyata salah untuk 3 dari 5 nomor
 
 Founder: *"kalo gaada data, tambahkan aja data dummy dulu"* dan *"saya mau

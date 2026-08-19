@@ -155,11 +155,40 @@ datanya belum ada" ternyata tertahan karena alasan yang berbeda-beda:**
 | 1.15 | data kurang **dan** butuh keputusan founder | founder memutuskan bangun sebagai kapabilitas SaaS; disemai (`seed-grup-usaha.mjs`), tool `portofolio_grup` |
 | 8.2 | **bukan tool** — datanya sudah lengkap | `PENALARAN_BERLAPIS` (prompt), bukan tool ke-45 |
 | 8.7 | **bukan tool** — idem | idem |
-| 2.18 | benar-benar tertahan: tak ada tabel fasilitas kredit | belum dikerjakan |
+| 2.18 | **juga salah label** — tak butuh tabel pinjaman sama sekali | tool `kebutuhan_dana` |
 
 **Pelajarannya sama dengan §0 dokumen ini.** "Tertahan karena data" adalah
-verdict yang gampang ditulis dan jarang diperiksa ulang. Tiga dari lima
-nomor di atas salah diberi label oleh saya sendiri satu sesi sebelumnya.
+verdict yang gampang ditulis dan jarang diperiksa ulang. **Empat dari lima**
+nomor di atas salah diberi label oleh saya sendiri — dan yang kelima (2.18)
+salah label pada percobaan KEDUA, sesudah keempatnya dikoreksi.
+
+### 2.18 tak butuh tabel pinjaman — dan yang ditemukan lebih penting
+
+Saya melaporkannya "tertahan: tak ada tabel fasilitas kredit". Benar bahwa
+tabelnya tak ada, dan tidak relevan: 2.18 butuh **proyeksi kas**, yang sudah
+ada sejak 2.4.
+
+Yang ditemukan saat mengukur: `proyeksi_arus_kas` memulangkan saldo **naik dan
+datar** di 30/60/90 hari. Perusahaan yang membayar upah tiap minggu tidak
+mungkin kasnya datar. Yang hilang:
+
+```
+kasbon `approved` belum settled   Rp 491.100.000   (46 item)  ← 2,2× saldo kas
+pengeluaran proyek `approved`     Rp 263.505.000   (80 item)
+                                  ───────────────
+                                  Rp 754.605.000 = 3,4× saldo kas
+```
+
+Ketiganya kewajiban yang **sudah disetujui** tapi tak punya tanggal jatuh
+tempo, sehingga proyeksi bertanggal mana pun buta terhadapnya. Ukur sendiri:
+
+```sql
+SELECT status, count(*), sum(amount) FROM kasbons GROUP BY 1;
+```
+
+⚠ **Jangan menebak tanggalnya.** Tebakan menentukan verdict-nya sendiri:
+"anggap 60 hari" → aman; "anggap 14 hari" → kritis. `kebutuhan_dana`
+melaporkannya sebagai **beban menggantung** terpisah dari garis waktu.
 
 ### 8.2 dan 8.7 bukan tool — dan itu penting
 
