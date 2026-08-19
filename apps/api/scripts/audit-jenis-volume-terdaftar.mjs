@@ -114,7 +114,33 @@ for (const jenis of semuaJenis) {
     bervolume akan menuntut pendaftaran, bukan lolos diam-diam.
   */
   const reFungsi = new RegExp(`export function ${fungsi}\\(([\\s\\S]*?)\\n\\}`, 'm')
-  const badan = isiModul.match(reFungsi)?.[1] ?? ''
+  const badanMentah = isiModul.match(reFungsi)?.[1] ?? ''
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KOMENTAR DIBUANG sebelum dipindai — penjaga tak boleh membaca prosa
+    sebagai kode.
+
+    Ditemukan 2026-08-19: satu kalimat komentar berbunyi "…tanpa dasar," dan
+    kata `dasar,` itu cocok dengan pola `\bdasar[,:]` yang dimaksudkan untuk
+    menangkap bentuk bersarang `dasar: analisaKolom(...)`.
+
+    Akibatnya `analisaSambunganKayu` DITUDUH memulangkan volume — padahal
+    hasilnya cuma `{ periksa, aman, kapasitas, catatan }`. Tuduhan yang salah
+    pada modul yang benar, dan penyebabnya sebuah kalimat berbahasa
+    Indonesia.
+
+    Penjaga yang menuduh hal yang benar akan dimatikan orang, dan yang
+    dimatikan tak lagi menjaga yang sungguhan. Ini kedua kalinya di sesi ini
+    — yang pertama `audit-medan-jumlah-tak-bentrok` menuduh
+    `InputGambarPolaSambungan`.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const buangKomentar = (t) => t
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')     // blok
+    .replace(/(^|[^:])\/\/[^\n]*/g, '$1')  // baris (bukan `://` di URL)
+
+  const badan = buangKomentar(badanMentah)
   /*
     Volume bisa muncul dalam TIGA bentuk, dan versi pertama penjaga ini hanya
     mengenali satu — lalu menuduh kolom dan kolom_bulat tak bervolume,
@@ -128,11 +154,14 @@ for (const jenis of semuaJenis) {
     Penjaga yang tak mengenalinya menghasilkan tuduhan palsu — dan penjaga
     yang menuduh hal yang benar akan dimatikan orang.
   */
+  /* Berkas penuh juga dibersihkan — alasannya sama dengan badan fungsi. */
+  const isiBersih = buangKomentar(isiModul)
+
   const bervolume =
     /\bvolume[,:]/.test(badan)
     || /\bdasar[,:]/.test(badan)
-    || /volume:\s*VolumeElemen/.test(isiModul)
-    || /extends HasilElemen/.test(isiModul)
+    || /volume:\s*VolumeElemen/.test(isiBersih)
+    || /extends HasilElemen/.test(isiBersih)
 
   const terdaftarTanpa = tanpaVolume.has(jenis)
 

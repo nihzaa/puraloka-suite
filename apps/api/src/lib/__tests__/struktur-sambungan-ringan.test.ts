@@ -314,3 +314,141 @@ describe('sekrup — EMPAT moda, dan yang gagal bukan sekrupnya', () => {
     expect(c).toMatch(/korosi galvanis/i)
   })
 })
+
+describe('HANKINSON — kayu jauh lebih lemah ditekan MELINTANG serat', () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    Batas yang paling sering ditemui di lapangan, karena batang kuda-kuda
+    memang bertemu MENYUDUT di titik buhul — sudut 0° justru yang jarang.
+
+    Rumusnya:
+
+                  Fe∥ · Fe⊥
+      Feθ = ─────────────────────────
+            Fe∥·sin²θ + Fe⊥·cos²θ
+
+    Nilai acuannya dihitung tangan dari rumus itu, bukan dari keluaran kode.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const BAUT = {
+    alat: 'baut' as const, diameterMm: 12, jumlahAlat: 4,
+    tebalUtamaMm: 80, tebalSisiMm: 40, penetrasiMm: 40,
+    kelas: 'II' as const, durasi: 'tetap' as const,
+    kadarAir: 'kering' as const, gayaKn: 20,
+    jarakTepiSejajarMm: 100, jarakTepiTegakMm: 60, jarakAntarAlatMm: 60,
+  }
+
+  /** Rasio Feθ/Fe∥ dari rumus Hankinson, Fe⊥ = Fe∥/4. */
+  function hankinsonTangan(derajat: number): number {
+    const r = (derajat * Math.PI) / 180
+    const s = Math.sin(r) ** 2
+    const c = Math.cos(r) ** 2
+    return 0.25 / (s + 0.25 * c)
+  }
+
+  it.each([0, 15, 30, 45, 60, 90])('θ=%i° cocok dengan hitungan tangan', (sudut) => {
+    const fe0 = analisaSambunganKayu({ ...BAUT, sudutTerhadapSeratDerajat: 0 })
+      .kapasitas.tumpuMpa
+    const feT = analisaSambunganKayu({ ...BAUT, sudutTerhadapSeratDerajat: sudut })
+      .kapasitas.tumpuMpa
+    expect(feT / fe0).toBeCloseTo(hankinsonTangan(sudut), 3)
+  })
+
+  it('45° tinggal 40%, 90° tinggal 25% — selisih yang BESAR', () => {
+    /*
+      Ini yang membuat batas ini perlu ditutup: kalau selisihnya kecil,
+      mengabaikannya tak apa-apa. 60% kapasitas yang hilang pada 45° bukan
+      selisih kecil.
+    */
+    const fe0 = analisaSambunganKayu({ ...BAUT, sudutTerhadapSeratDerajat: 0 })
+      .kapasitas.tumpuMpa
+    const fe45 = analisaSambunganKayu({ ...BAUT, sudutTerhadapSeratDerajat: 45 })
+      .kapasitas.tumpuMpa
+    const fe90 = analisaSambunganKayu({ ...BAUT, sudutTerhadapSeratDerajat: 90 })
+      .kapasitas.tumpuMpa
+    expect(fe45 / fe0).toBeCloseTo(0.40, 2)
+    expect(fe90 / fe0).toBeCloseTo(0.25, 2)
+  })
+
+  it('kapasitas turun MONOTON saat sudutnya membesar', () => {
+    const kap = [0, 15, 30, 45, 60, 75, 90].map(
+      (t) => analisaSambunganKayu({ ...BAUT, sudutTerhadapSeratDerajat: t })
+        .kapasitas.totalKn,
+    )
+    for (let i = 1; i < kap.length; i++) {
+      expect(kap[i], `sudut naik tetapi kapasitas naik di langkah ${i}`)
+        .toBeLessThan(kap[i - 1])
+    }
+  })
+
+  it('PAKU TIDAK terpengaruh sudut — dan itu bukan kelalaian', () => {
+    /*
+      Paku berdiameter kecil menekan serat yang sangat sedikit, dan seratnya
+      menutup kembali di belakangnya. SNI 7973 §12.3 memakai satu nilai Fe
+      tanpa memandang arah.
+
+      Menerapkan Hankinson ke paku akan MENGECILKAN kapasitasnya tanpa dasar,
+      dan sambungan paku yang terlalu konservatif berarti tukang memasang dua
+      kali lebih banyak paku — yang justru membelah kayunya.
+    */
+    const PAKU = {
+      ...BAUT, alat: 'paku' as const, diameterMm: 4.1, jumlahAlat: 14,
+      gayaKn: 6, jarakTepiSejajarMm: 70, jarakTepiTegakMm: 25,
+      jarakAntarAlatMm: 65,
+    }
+    const fe = [0, 45, 90].map(
+      (t) => analisaSambunganKayu({ ...PAKU, sudutTerhadapSeratDerajat: t })
+        .kapasitas.tumpuMpa,
+    )
+    expect(fe[1]).toBe(fe[0])
+    expect(fe[2]).toBe(fe[0])
+  })
+
+  it('sudut 0 bawaan — dan ketiadaannya DINYATAKAN, bukan diam', () => {
+    /*
+      Bawaan 0 adalah arah PALING KUAT. Diam saat 0 berarti hasil optimistis
+      lolos tanpa ada yang tahu sudutnya tak pernah diisi — dan pada
+      kuda-kuda, sudut 0 justru yang jarang.
+    */
+    const h = analisaSambunganKayu(BAUT)
+    expect(h.catatan.some(
+      (c) => /dianggap 0°/.test(c) && /PALING KUAT/.test(c),
+    )).toBe(true)
+    expect(h.catatan.some((c) => /45°.*40%/.test(c))).toBe(true)
+  })
+
+  it('sudut yang DIISI dinyatakan beserta persen sisanya', () => {
+    const h = analisaSambunganKayu({ ...BAUT, sudutTerhadapSeratDerajat: 45 })
+    expect(h.catatan.some((c) => /45°/.test(c) && /40%/.test(c))).toBe(true)
+    expect(h.catatan.some((c) => /Hankinson/.test(c))).toBe(true)
+  })
+
+  it('paku menyatakan bahwa sudut TIDAK berpengaruh padanya', () => {
+    const h = analisaSambunganKayu({
+      ...BAUT, alat: 'paku', diameterMm: 4.1, jumlahAlat: 14, gayaKn: 6,
+      jarakTepiSejajarMm: 70, jarakTepiTegakMm: 25, jarakAntarAlatMm: 65,
+      sudutTerhadapSeratDerajat: 45,
+    })
+    expect(h.catatan.some(
+      (c) => /TIDAK berpengaruh pada paku/.test(c),
+    )).toBe(true)
+  })
+
+  it('sudut di luar 0..90 ditolak', () => {
+    for (const rusak of [-10, 91, 180, NaN]) {
+      expect(() => analisaSambunganKayu({
+        ...BAUT, sudutTerhadapSeratDerajat: rusak,
+      })).toThrow(/0\.\.90/)
+    }
+  })
+
+  it('Hankinson TIDAK mengubah hasil lama — bawaan 0 setara sebelum ada fitur ini', () => {
+    /*
+      Penambahan yang mengubah hasil yang sudah ada adalah regresi, bukan
+      fitur. Bawaan 0 memberi Feθ = Fe∥ persis.
+    */
+    const tanpa = analisaSambunganKayu(BAUT)
+    const nol = analisaSambunganKayu({ ...BAUT, sudutTerhadapSeratDerajat: 0 })
+    expect(nol.kapasitas.totalKn).toBe(tanpa.kapasitas.totalKn)
+  })
+})

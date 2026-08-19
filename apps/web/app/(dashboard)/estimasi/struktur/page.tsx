@@ -423,6 +423,14 @@ const MEDAN: Record<Jenis, Medan[]> = {
     { kunci: "jarakTepiSejajarMm", label: "Jarak ke UJUNG kayu (arah serat)", satuan: "mm" },
     { kunci: "jarakTepiTegakMm", label: "Jarak ke TEPI kayu (tegak serat)", satuan: "mm" },
     { kunci: "jarakAntarAlatMm", label: "Jarak antar alat sambung", satuan: "mm" },
+    /*
+      SUDUT terhadap serat — hanya berpengaruh pada BAUT.
+
+      Bawaannya 0 (sejajar serat) yang justru arah PALING KUAT, jadi
+      mengosongkannya memberi hasil optimistis. Labelnya menyebut akibatnya
+      supaya yang mengisi tahu kenapa ini penting.
+    */
+    { kunci: "sudutTerhadapSeratDerajat", label: "Sudut gaya ke serat kayu (0=sejajar, 45=turun jadi 40%) — baut saja", satuan: "°" },
   ],
   sekrup_baja_ringan: [
     { kunci: "diameterMm", label: "Ø sekrup", satuan: "mm" },
@@ -872,6 +880,8 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     kelas: "II", durasi: "tetap", kadarAir: "kering",
     gayaKn: 6,
     jarakTepiSejajarMm: 70, jarakTepiTegakMm: 25, jarakAntarAlatMm: 45,
+    /* Sudut tak berpengaruh pada paku, tetapi diisi supaya medannya terlihat. */
+    sudutTerhadapSeratDerajat: 0,
   },
   sekrup_baja_ringan: {
     diameterMm: 4.8, jumlahSekrup: 4, tebal1Mm: 0.75, tebal2Mm: 1,

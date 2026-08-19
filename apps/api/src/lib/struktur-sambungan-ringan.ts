@@ -93,6 +93,20 @@ export interface InputSambunganKayu {
   kelas: KelasKayu
   durasi: DurasiBeban
   kadarAir: KadarAir
+  /**
+   * Sudut gaya terhadap arah serat kayu, derajat (0..90).
+   *
+   * 0 = sejajar serat (arah batang), 90 = tegak lurus. Pada kuda-kuda hampir
+   * SELALU menyudut: batang diagonal bertemu batang horizontal di titik
+   * buhul, dan sudut itu yang menentukan.
+   *
+   * Bawaan 0 — dan itu arah yang PALING KUAT, jadi mengosongkannya memberi
+   * hasil yang optimistis. Catatan hasil menyatakan hal itu.
+   *
+   * Hanya berpengaruh pada BAUT. Paku berdiameter kecil menekan serat yang
+   * sangat sedikit; SNI 7973 §12.3 memakai satu nilai tanpa memandang arah.
+   */
+  sudutTerhadapSeratDerajat?: number
   /** Gaya yang disalurkan sambungan, kN. */
   gayaKn: number
   /** Jarak alat sambung terdekat ke ujung kayu searah gaya, mm. */
@@ -163,7 +177,55 @@ export function analisaSambunganKayu(input: InputSambunganKayu): HasilSambunganK
     pendekatan yang cukup untuk perencanaan awal, dan disebutkan sebagai
     pendekatan di catatan.
   */
-  const tumpuMpa = k.fc * cm * (alat === 'baut' ? 1.0 : 1.3)
+  const tumpuSejajarMpa = k.fc * cm * (alat === 'baut' ? 1.0 : 1.3)
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    HANKINSON — kayu jauh lebih lemah saat ditekan MELINTANG serat
+
+    Kuat tumpu di atas berlaku untuk gaya SEJAJAR serat. Kalau gayanya
+    menyudut — dan pada kuda-kuda hampir SELALU menyudut, karena batang
+    diagonal bertemu batang horizontal di titik buhul — kuat tumpunya turun
+    mengikuti rumus Hankinson:
+
+                    Fe∥ · Fe⊥
+        Feθ = ─────────────────────────
+              Fe∥·sin²θ + Fe⊥·cos²θ
+
+    Selisihnya besar. Melintang serat, kayu hanya sekitar SEPEREMPAT kuat
+    sejajarnya (SNI 7973: Fe⊥ ≈ Fe∥/4 untuk baut berdiameter lazim). Pada
+    45° kapasitasnya sudah turun sekitar 40%.
+
+    ── Kenapa PAKU tak terpengaruh, dan itu bukan kelalaian
+
+    Paku berdiameter kecil menekan serat yang sangat sedikit, dan seratnya
+    menutup kembali di belakang paku. SNI 7973 §12.3 karena itu memakai satu
+    nilai Fe untuk paku tanpa memandang arah gaya. Baut berdiameter besar
+    lain: ia benar-benar memampatkan serat, dan arahnya menentukan.
+
+    Menerapkan Hankinson ke paku akan MENGECILKAN kapasitasnya tanpa dasar,
+    dan sambungan paku yang terlalu konservatif berarti tukang memasang
+    dua kali lebih banyak paku — yang justru membelah kayunya.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const sudut = input.sudutTerhadapSeratDerajat ?? 0
+  if (!Number.isFinite(sudut) || sudut < 0 || sudut > 90) {
+    throw new Error(
+      `Sudut terhadap serat harus 0..90 derajat (diterima: ${sudut}). `
+      + '0 = gaya sejajar serat (arah batang), 90 = tegak lurus serat.',
+    )
+  }
+
+  const RASIO_MELINTANG = 0.25
+  const rad = (sudut * Math.PI) / 180
+  const feSejajar = tumpuSejajarMpa
+  const feMelintang = tumpuSejajarMpa * RASIO_MELINTANG
+
+  /* Paku: satu nilai, tanpa memandang arah (SNI 7973 §12.3). */
+  const tumpuMpa = alat === 'baut'
+    ? (feSejajar * feMelintang)
+      / (feSejajar * Math.sin(rad) ** 2 + feMelintang * Math.cos(rad) ** 2)
+    : tumpuSejajarMpa
 
   // ── Faktor penetrasi (paku) ──────────────────────────────────────────────
   /*
@@ -341,6 +403,38 @@ export function analisaSambunganKayu(input: InputSambunganKayu): HasilSambunganK
       + 'kapasitasnya tidak sebanding jumlahnya.',
     )
   }
+  /*
+    SUDUT terhadap serat — dinyatakan SELALU, termasuk saat 0.
+
+    Bawaannya 0 derajat, dan itu arah yang PALING KUAT. Diam saat 0 berarti
+    hasil yang optimistis lolos tanpa ada yang tahu bahwa sudutnya tak
+    pernah diisi — dan pada kuda-kuda, sudut 0 justru yang jarang.
+  */
+  if (alat === 'baut') {
+    if (sudut === 0) {
+      catatan.push(
+        'Sudut gaya terhadap serat dianggap 0° (SEJAJAR serat) karena tak '
+        + 'diisi — dan itu arah yang PALING KUAT. Pada kuda-kuda, batang '
+        + 'diagonal bertemu batang horizontal menyudut, dan kapasitasnya '
+        + 'turun mengikuti rumus Hankinson: pada 45° tinggal 40%, pada 90° '
+        + 'tinggal 25%. Isi sudutnya kalau sambungannya memang menyudut.',
+      )
+    } else {
+      const rasio = tumpuMpa / tumpuSejajarMpa
+      catatan.push(
+        `Gaya menyudut ${sudut}° terhadap serat, jadi kuat tumpunya `
+        + `${(rasio * 100).toFixed(0)}% dari nilai sejajar serat (rumus `
+        + 'Hankinson, SNI 7973 §12.3.3). Kayu jauh lebih lemah ditekan '
+        + 'MELINTANG serat — melintang penuh hanya seperempatnya.',
+      )
+    }
+  } else {
+    catatan.push(
+      'Sudut terhadap serat TIDAK berpengaruh pada paku: diameternya kecil, '
+      + 'seratnya menutup kembali di belakangnya, dan SNI 7973 §12.3 memakai '
+      + 'satu nilai tanpa memandang arah. Pada BAUT sudut itu menentukan.',
+    )
+  }
   catatan.push(
     'Kuat tumpu kayu di sini DITURUNKAN dari kelas kuatnya, bukan dari uji '
     + 'dowel bearing. Cukup untuk perencanaan awal; sambungan yang menentukan '
@@ -354,9 +448,9 @@ export function analisaSambunganKayu(input: InputSambunganKayu): HasilSambunganK
     )
   }
   catatan.push(
-    'Yang BELUM diperiksa: sambungan miring terhadap serat (rumus Hankinson), '
-    + 'sambungan yang memikul momen, dan pelat gigi berpaku yang kapasitasnya '
-    + 'ditentukan pabrik — ketiganya butuh data yang tak ada di sini.',
+    'Yang BELUM diperiksa: sambungan yang memikul MOMEN (bukan hanya gaya '
+    + 'searah), dan pelat gigi berpaku yang kapasitasnya ditentukan pabrik — '
+    + 'keduanya butuh data yang tak ada di sini.',
   )
 
   return {
