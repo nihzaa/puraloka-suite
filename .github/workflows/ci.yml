@@ -881,6 +881,25 @@ jobs:
       # Tak ada yang salah secara teknis, jadi tak ada test yang bisa merah.
       #
       # Bukti merah: judul "pola" dicabut → exit 1; dipulihkan → exit 0.
+      # Kalkulator volume di LAYAR wajib sepakat dengan modul take-off di API.
+      #
+      # Rumusnya sengaja ditulis DUA KALI: estimator ingin melihat volumenya
+      # seketika saat mengetik dimensi, dan memanggil API tiap ketukan tombol
+      # berarti layar yang tersendat — kalkulator tersendat tak dipakai orang.
+      #
+      # Tetapi dua implementasi rumus yang sama akan MENYIMPANG, dan
+      # penyimpangannya tak mengeluarkan galat: layar memperlihatkan satu angka,
+      # basis menyimpan angka lain, dan RAB memakai yang tersimpan. Estimator
+      # memeriksa yang di layar.
+      #
+      # Dijaga: daftar sektor, ambang kemiringan (60 derajat, ditulis telanjang
+      # di kedua sisi), dan satuan tiap sektor.
+      #
+      # Bukti merah: ambang layar diubah 60 ke 75 → exit 1; satu sektor
+      # dihilangkan dari layar → exit 1; satuan API diubah → exit 1.
+      - name: Kalkulator layar sepakat dengan modul take-off API
+        run: node scripts/audit-takeoff-kembar-sepakat.mjs
+
       - name: Tiap jenis gambar punya judul di layar
         run: node scripts/audit-gambar-punya-judul.mjs
 

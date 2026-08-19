@@ -287,6 +287,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-jenis-volume-terdaftar.mjs` | jenis tanpa volume wajib terdaftar — yang tak terdaftar dituduh "cacat modul" padahal benar, dan yang salah terdaftar volumenya HILANG senyap dari rekap proyek (ambang NOL) |
 | `audit-medan-jumlah-tak-bentrok.mjs` | rute menimpakan `{ ...input, jumlah }` sebagai BANYAKNYA ELEMEN; modul yang memakai nama itu untuk mencacah baut/angkur/paku kehilangan angka penggunanya — rute memberi 117% terpakai sementara fungsinya sendiri memberi 29%, tanpa satu pun galat (ambang NOL) |
 | `audit-gambar-punya-judul.mjs` | tiap kunci gambar yang ditulis rute wajib punya judul di halaman detail; halaman memakai `JUDUL_GAMBAR[nama] ?? nama`, jadi kunci tak terdaftar MUNCUL APA ADANYA sebagai kepala gambar — kata teknis mentah di layar orang yang justru tak paham istilah teknis (ambang NOL) |
+| `audit-takeoff-kembar-sepakat.mjs` | rumus take-off ditulis DUA kali (modul API + kalkulator di layar, sengaja — kalkulator yang memanggil API tiap ketukan tombol tak dipakai orang); dijaga daftar sektor, ambang kemiringan, dan satuannya. Dua implementasi yang menyimpang tak mengeluarkan galat: layar memperlihatkan satu angka, RAB memakai yang tersimpan (ambang NOL) |
 
 **Uang lewat percakapan — dijaga test, bukan penjaga skrip.** `payments` adalah
 satu-satunya entitas tulis yang **tak punya kolom `status`**, jadi tak ada
