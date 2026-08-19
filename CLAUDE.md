@@ -255,6 +255,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-sektor-takeoff-cocok.mjs` | daftar sektor take-off di kode wajib sama dengan CHECK di basis, dan tiap sektor wajib punya satuan + cabang perhitungan (ambang NOL) |
 | `audit-klaim-layar-nyata.mjs` | catatan peta-menu yang menjanjikan LAYAR wajib punya jejaknya di kode — `crm-boq` mengklaim tab "Take-off Volume" SELESAI atas layar yang tak pernah dibangun (ratchet, lantai 0) |
 | `audit-baris-besi-dibedakan.mjs` | baris `besi` memuat tulangan DAN profil baja; pembacanya wajib membedakan — tanpa itu WF 200×100 tampil sebagai "Ulir D200", besi yang tak ada di pasar (ambang NOL) |
+| `audit-jenis-volume-terdaftar.mjs` | jenis tanpa volume wajib terdaftar — yang tak terdaftar dituduh "cacat modul" padahal benar, dan yang salah terdaftar volumenya HILANG senyap dari rekap proyek (ambang NOL) |
 
 **Uang lewat percakapan — dijaga test, bukan penjaga skrip.** `payments` adalah
 satu-satunya entitas tulis yang **tak punya kolom `status`**, jadi tak ada

@@ -808,6 +808,20 @@ jobs:
       - name: Baris besi membedakan tulangan dari profil baja
         run: node scripts/audit-baris-besi-dibedakan.mjs
 
+      # Rute rekap-volume membedakan dua keadaan yang terlihat sama: jenis yang
+      # TERDAFTAR di TANPA_VOLUME dilaporkan "sengaja tak bervolume", yang tidak
+      # terdaftar dilaporkan GAGAL ("cacat modul"). Pembedaan itu benar; yang tak
+      # ada adalah apa pun yang memastikan daftarnya tetap sepadan.
+      #
+      # Ditemukan 2026-08-19: dua jenis baru tak masuk daftar (dituduh cacat
+      # padahal benar), dan satu jenis LAMA (baja_interaksi) terdaftar padahal
+      # BERVOLUME — volumenya dilewati senyap dari rekap proyek.
+      #
+      # Bukti merah: cacat aslinya dikembalikan → exit 1; jenis dihapus dari
+      # daftar → exit 1; dipulihkan → exit 0.
+      - name: Jenis tanpa volume terdaftar sepadan dengan modulnya
+        run: node scripts/audit-jenis-volume-terdaftar.mjs
+
       # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
       # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
       # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris

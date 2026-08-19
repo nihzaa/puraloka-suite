@@ -5,6 +5,7 @@ import {
 } from '../struktur-ke-rab'
 import { analisaBalok } from '../struktur-beton'
 import { analisaBalokBaja } from '../struktur-baja'
+import { analisaKudaKudaKayu, analisaBajaRingan } from '../struktur-atap-ringan'
 import { konversiBesiBeton, konversiBajaProfil } from '../satuan-beli'
 
 /**
@@ -570,5 +571,118 @@ describe('satuan beli sesudah gabungUsulan', () => {
     for (const g of gabung.filter((x) => x.jenis === 'beton' || x.jenis === 'bekisting')) {
       expect(g.beli).toBeUndefined()
     }
+  })
+})
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════════
+ * KAYU & BAJA RINGAN — AHSP-nya BUKAN beton dan BUKAN baja profil
+ *
+ * Ditemukan dengan MENJALANKAN endpoint dan membaca hasilnya:
+ *
+ *     kuda-kuda kayu  → "Beton kuda_kuda_kayu", dicari di AHSP beton
+ *     baja ringan C75 → 2.3.1.1 "Pabrikasi dan Ereksi Baja Profil"
+ *
+ * Yang pertama diselamatkan oleh "tak ketemu"; yang kedua TERPASANGKAN ke AHSP
+ * baja WF berat dengan las dan crane, dan harganya jauh meleset — tanpa satu
+ * pun galat.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+describe('kayu & baja ringan dipisahkan dari beton dan baja profil', () => {
+  const kayu = analisaKudaKudaKayu({
+    kelas: 'II', lebarMm: 60, tinggiMm: 120, panjangM: 3,
+    gayaKn: -15, momenKnm: 0.5, durasi: 'tetap', kadarAir: 'kering',
+    lebarTumpuanMm: 80, gayaTumpuKn: 12,
+  })
+  const ringan = analisaBajaRingan({
+    profil: 'C75_100', panjangM: 1.5, gayaKn: -4,
+    jarakKudaKudaM: 1.2, lapisanGM2: 100, lingkungan: 'biasa',
+  })
+
+  it('kuda-kuda kayu berjenis "kayu", BUKAN "beton"', () => {
+    const u = usulanDariElemen(el('KK1', 'kuda_kuda_kayu', kayu))
+    expect(u.map((x) => x.jenis)).toContain('kayu')
+    expect(u.map((x) => x.jenis)).not.toContain('beton')
+  })
+
+  it('uraian kayu tidak menyebut "Beton"', () => {
+    const u = usulanDariElemen(el('KK1', 'kuda_kuda_kayu', kayu))
+      .find((x) => x.jenis === 'kayu')!
+    expect(u.uraian).toMatch(/kayu/i)
+    expect(u.uraian).not.toMatch(/beton/i)
+  })
+
+  it('polanya mencari AHSP KAYU, bukan AHSP beton', () => {
+    /* Diukur di basis: 2.1.2.1 "konstruksi kuda-kuda konvensional, kayu kelas II". */
+    const u = usulanDariElemen(el('KK1', 'kuda_kuda_kayu', kayu))
+      .find((x) => x.jenis === 'kayu')!
+    const NAMA = 'Pemasangan 1 m3 konstruksi kuda-kuda konvensional, kayu kelas II'
+    expect(u.assemblyPola.some((pl) => assemblyCocok(NAMA, pl))).toBe(true)
+    /* dan TIDAK cocok dengan AHSP beton */
+    const BETON = "1 m3 beton mutu sedang f'c 25 MPa, slump (100 ± 25) mm"
+    expect(u.assemblyPola.some((pl) => assemblyCocok(BETON, pl))).toBe(false)
+  })
+
+  it('baja ringan berjenis "baja-ringan", BUKAN "baja-profil"', () => {
+    const u = usulanDariElemen(el('BR1', 'baja_ringan', ringan))
+    expect(u.map((x) => x.jenis)).toContain('baja-ringan')
+    expect(u.map((x) => x.jenis)).not.toContain('baja-profil')
+  })
+
+  it('baja ringan diusulkan per METER, bukan kg', () => {
+    /*
+      AHSP-nya bersatuan m, dan assemblyCocok mensyaratkan satuan cocok —
+      usulan bersatuan kg tak pernah menemukan pasangannya.
+
+      Bukan sekadar konversi: baja ringan memang DIBELI per batang. Tulangan
+      beton ditimbang karena diameternya bermacam; kaso baja ringan dihitung
+      panjangnya karena profilnya seragam.
+    */
+    const u = usulanDariElemen(el('BR1', 'baja_ringan', ringan))
+      .find((x) => x.jenis === 'baja-ringan')!
+    expect(u.satuan).toBe('m')
+    expect(u.kuantitas).toBeCloseTo(1.5, 4)
+  })
+
+  it('polanya TIDAK cocok dengan AHSP baja profil berat', () => {
+    /*
+      2.3.1.1 "Pabrikasi dan Ereksi Baja Profil" adalah AHSP baja WF dengan
+      las dan crane — memakainya untuk baja ringan memberi harga yang jauh
+      meleset, dan hasilnya tetap terlihat wajar.
+    */
+    const u = usulanDariElemen(el('BR1', 'baja_ringan', ringan))
+      .find((x) => x.jenis === 'baja-ringan')!
+    const BERAT = '1 kg Pabrikasi dan Ereksi Baja Profil'
+    expect(u.assemblyPola.some((pl) => assemblyCocok(BERAT, pl))).toBe(false)
+    const RINGAN = 'Pemasangan 1 m Kaso Baja Ringan C75 tebal 0,75 mm'
+    expect(u.assemblyPola.some((pl) => assemblyCocok(RINGAN, pl))).toBe(true)
+  })
+
+  it('baja profil BERAT tetap berjenis baja-profil', () => {
+    /* Pemisahan tak boleh merusak yang sudah benar. */
+    const baja = analisaBalokBaja({
+      profil: {
+        designation: '200x100x5.5x8', profile_type: 'WF',
+        hMm: 200, bMm: 100, t1Mm: 5.5, t2Mm: 8,
+        beratKgPerM: 21.3333, panjangStandarM: 12,
+      },
+      mutu: { fyMpa: 240, fuMpa: 370 },
+      bentangM: 6, jarakPengakuM: 0, muKnm: 30, vuKn: 60, bebanLayanKnPerM: 3,
+    } as never)
+    const u = usulanDariElemen(el('BJ1', 'baja_balok', baja))
+      .find((x) => x.jenis === 'baja-profil')!
+    expect(u.satuan).toBe('kg')
+  })
+
+  it('urutan: rangka atap SESUDAH pekerjaan beton', () => {
+    /* Mengikuti urutan pengerjaan di lapangan. */
+    const semua = [
+      ...usulanDariElemen(el('B1', 'balok', BALOK)),
+      ...usulanDariElemen(el('KK1', 'kuda_kuda_kayu', kayu)),
+      ...usulanDariElemen(el('BR1', 'baja_ringan', ringan)),
+    ]
+    const urut = gabungUsulan(semua).map((x) => x.jenis)
+    expect(urut.indexOf('beton')).toBeLessThan(urut.indexOf('kayu'))
+    expect(urut.indexOf('kayu')).toBeLessThan(urut.indexOf('baja-ringan'))
   })
 })

@@ -53,6 +53,27 @@ export type JenisPekerjaan =
   | 'bekisting'
   | 'pembesian'
   | 'baja-profil'
+  /*
+    Kayu dan baja ringan punya AHSP yang SAMA SEKALI BERBEDA dari beton
+    maupun baja profil berat, dan satuannya pun lain (kayu m³, baja ringan m).
+
+    Sebelum keduanya dipisahkan, kuda-kuda kayu masuk usulan sebagai
+    "Beton kuda_kuda_kayu" dan dicarikan AHSP beton — "tak ketemu" itu justru
+    yang menyelamatkannya dari harga yang keliru. Baja ringan lebih buruk: ia
+    TERPASANGKAN ke 2.3.1.1 "Pabrikasi dan Ereksi Baja Profil", yaitu AHSP
+    baja WF berat dengan las dan crane, dan harganya jauh meleset.
+  */
+  | 'kayu'
+  | 'baja-ringan'
+
+/**
+ * Satuan usulan item RAB.
+ *
+ * `m` ditambahkan bersama baja ringan: AHSP-nya bersatuan meter (kaso
+ * dipasang per batang), dan `assemblyCocok` mensyaratkan satuan cocok —
+ * usulan bersatuan kg tak pernah menemukan pasangannya.
+ */
+export type SatuanUsulan = 'm3' | 'm2' | 'm' | 'kg'
 
 /**
  * Satu usulan item RAB.
@@ -67,7 +88,7 @@ export interface UsulanItemRab {
   /** Kuantitas hasil analisa struktur. */
   kuantitas: number
   /** Satuan RAB — HARUS cocok dengan `output_unit_code` assembly-nya. */
-  satuan: 'm3' | 'm2' | 'kg'
+  satuan: SatuanUsulan
   /**
    * Satuan & kuantitas PEMBELIAN untuk RAP — beda dari RAB, dan itu disengaja.
    *
@@ -223,6 +244,29 @@ const POLA_PEMBESIAN: string[] = [
   'pembesian',
 ]
 
+/**
+ * Pola AHSP kuda-kuda kayu — diukur di basis: `2.1.2.1` "Pemasangan 1 m3
+ * konstruksi kuda-kuda konvensional, kayu kelas II" dan `CIB-STD-47/48`.
+ *
+ * Satuannya m³, SAMA dengan beton — karena itu pemeriksaan satuan di
+ * `assemblyCocok` tak cukup membedakannya. Polanya harus menyebut kayu.
+ */
+const POLA_KAYU: string[] = [
+  'konstruksi kuda-kuda kayu', 'kuda-kuda kayu', 'konstruksi kayu',
+]
+
+/**
+ * Pola AHSP baja ringan — diukur di basis: `2.1.1.3` "Pemasangan 1 m Kaso
+ * Baja Ringan C75 tebal 0,75 mm" dan `2.1.1.1` rangka atap per m².
+ *
+ * DIPISAHKAN dari baja profil: `2.3.1.1` adalah AHSP baja WF berat dengan
+ * las dan crane. Memakainya untuk baja ringan memberi harga yang jauh
+ * meleset — dan hasilnya tetap terlihat wajar.
+ */
+const POLA_BAJA_RINGAN: string[] = [
+  'kaso baja ringan', 'baja ringan', 'rangka atap baja ringan',
+]
+
 const POLA_BAJA_PROFIL: string[] = [
   'pabrikasi ereksi baja profil', 'baja profil',
 ]
@@ -265,11 +309,25 @@ export function usulanDariElemen(el: ElemenTerhitung): UsulanItemRab[] {
 
   if (el.volume.betonM3 > 0) {
     usulan.push({
-      jenis: 'beton',
-      uraian: `Beton ${namaElemen(el.jenis)} ${el.kode}`,
+      /*
+        Medan `betonM3` menampung volume bahan utama, dan untuk kuda-kuda
+        kayu isinya KAYU — bukan beton. Modul kayu memakai medan yang sama
+        supaya rekap proyek bisa menjumlahkannya (satuannya sama, m³), tetapi
+        AHSP dan harganya berbeda sama sekali.
+
+        Tanpa pembedaan ini usulan berbunyi "Beton kuda_kuda_kayu" dan dicari
+        di AHSP beton — dan kalau kebetulan ada yang cocok satuannya, kayu
+        akan dihargai sebagai beton.
+      */
+      jenis: el.jenis === 'kuda_kuda_kayu' ? 'kayu' : 'beton',
+      uraian: el.jenis === 'kuda_kuda_kayu'
+        ? `Konstruksi kayu ${el.kode}`
+        : `Beton ${namaElemen(el.jenis)} ${el.kode}`,
       kuantitas: el.volume.betonM3,
       satuan: 'm3',
-      assemblyPola: polaBeton(el.fcMpa),
+      assemblyPola: el.jenis === 'kuda_kuda_kayu'
+        ? POLA_KAYU
+        : polaBeton(el.fcMpa),
       asal,
       catatan,
     })
@@ -304,6 +362,13 @@ export function usulanDariElemen(el: ElemenTerhitung): UsulanItemRab[] {
     if (b.totalKg <= 0) continue
 
     const profil = b.peran.startsWith('profil ')
+    /*
+      Baja RINGAN dipisahkan dari baja profil berat. Keduanya berperan
+      `profil …`, tetapi AHSP-nya berbeda jauh: baja ringan dipasang per
+      meter kaso oleh tukang atap, baja profil difabrikasi dan diereksi
+      dengan las dan crane.
+    */
+    const ringan = el.jenis === 'baja_ringan'
 
     /*
       ══════════════════════════════════════════════════════════════════════
@@ -332,13 +397,28 @@ export function usulanDariElemen(el: ElemenTerhitung): UsulanItemRab[] {
       : konversiBesiBeton(b.diameterMm, b.totalKg)
 
     usulan.push({
-      jenis: profil ? 'baja-profil' : 'pembesian',
+      jenis: ringan ? 'baja-ringan' : profil ? 'baja-profil' : 'pembesian',
+      /*
+        Baja ringan diusulkan per METER, bukan kg.
+
+        AHSP-nya `2.1.1.3` "Pemasangan 1 m Kaso Baja Ringan C75"
+        bersatuan m — dan `assemblyCocok` mensyaratkan satuan cocok,
+        jadi usulan bersatuan kg tak pernah menemukan pasangannya.
+
+        Ini bukan sekadar konversi: baja ringan memang DIBELI dan DIPASANG per
+        batang/meter. Tulangan beton ditimbang karena diameternya bermacam;
+        kaso baja ringan dihitung panjangnya karena profilnya seragam.
+      */
       uraian: profil
         ? `${b.peran} — ${el.kode}`
         : `Pembesian ${b.tipe} Ø${b.diameterMm} (${b.peran}) — ${el.kode}`,
-      kuantitas: b.totalKg,
-      satuan: 'kg',
-      assemblyPola: profil ? POLA_BAJA_PROFIL : POLA_PEMBESIAN,
+      kuantitas: ringan
+        ? b.jumlahBatang * b.panjangPerBatangM
+        : b.totalKg,
+      satuan: ringan ? 'm' : 'kg',
+      assemblyPola: ringan
+        ? POLA_BAJA_RINGAN
+        : profil ? POLA_BAJA_PROFIL : POLA_PEMBESIAN,
       asal,
       catatan,
       beli: {
@@ -372,7 +452,7 @@ export interface UsulanGabungan {
   jenis: JenisPekerjaan
   uraian: string
   kuantitas: number
-  satuan: 'm3' | 'm2' | 'kg'
+  satuan: SatuanUsulan
   assemblyPola: string[]
   /** Elemen penyusunnya — supaya angkanya bisa ditelusuri. */
   asal: { kodeElemen: string; jenisElemen: string }[]
@@ -475,6 +555,8 @@ export function gabungUsulan(usulan: UsulanItemRab[]): UsulanGabungan[] {
   // di lapangan. RAB yang urutannya acak sulit diperiksa orang.
   const urutan: Record<JenisPekerjaan, number> = {
     beton: 1, bekisting: 2, pembesian: 3, 'baja-profil': 4,
+    /* Rangka atap dikerjakan terakhir — mengikuti urutan lapangan. */
+    kayu: 5, 'baja-ringan': 6,
   }
   return [...peta.values()].sort(
     (a, b) => urutan[a.jenis] - urutan[b.jenis] || a.uraian.localeCompare(b.uraian),

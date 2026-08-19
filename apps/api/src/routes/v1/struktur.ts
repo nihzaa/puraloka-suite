@@ -231,7 +231,25 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
  * bukan dari geometri sambungan.
  */
 const TANPA_VOLUME: ReadonlySet<string> = new Set([
-  'baja_sambungan_baut', 'baja_sambungan_las', 'baja_angkur', 'baja_interaksi',
+  'baja_sambungan_baut', 'baja_sambungan_las', 'baja_angkur',
+  /*
+    ⚠ `baja_interaksi` DIKELUARKAN dari daftar ini 2026-08-19.
+
+    Ia MEMULANGKAN volume (`HasilGording.volume`), jadi mendaftarkannya di
+    sini membuat volumenya dilewati SENYAP — elemen itu hilang dari rekap
+    proyek tanpa satu pun galat. Ditemukan `audit-jenis-volume-terdaftar.mjs`.
+  */
+  /*
+    Ditambahkan bersama modul sambungan lanjut. Keduanya menghitung KAPASITAS
+    sambungan, bukan kuantitas material — pelat buhul dan pelat ujung dibeli
+    sebagai bagian dari pekerjaan fabrikasi baja, bukan item RAB tersendiri.
+
+    Jenis yang TIDAK terdaftar di sini tetapi juga tak memulangkan volume akan
+    dilaporkan `rekap-volume` sebagai KEGAGALAN ("modulnya tak memulangkan
+    volume") — dan itu benar: diam-diam melewatkannya membuat elemen hilang
+    dari rekap tanpa ada yang tahu.
+  */
+  'baja_gusset', 'baja_sambungan_momen',
 ])
 
 /** Ambil `volume` dari hasil apa pun bentuknya. */

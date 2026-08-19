@@ -33,7 +33,7 @@
 //   berlapis tipis habis dalam belasan tahun di daerah pantai.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import type { Periksa } from './struktur-beton.js'
+import type { Periksa, VolumeElemen, BarisBesi } from './struktur-beton.js'
 
 /** Modulus elastisitas baja, MPa. */
 export const ES_MPA = 200_000
@@ -116,7 +116,23 @@ export interface HasilKudaKudaKayu {
     phiTarikKn: number
     phiLenturKnm: number
   }
-  volume: { kayuM3: number }
+  /*
+    ⚠ Bentuknya `VolumeElemen` KANONIK, bukan `{ kayuM3 }` sendiri.
+
+    Versi pertama memulangkan bentuk khusus, dan itu MERUNTUHKAN
+    `rekap-volume` seluruh proyek dengan HTTP 500: pembacanya mengandaikan
+    medan `besi` selalu ada, dan bentuk khusus lolos cek "seharusnya punya
+    volume" karena objeknya memang ada.
+
+    Bukan satu baris yang hilang — seluruh halaman rekap gagal begitu ada satu
+    elemen kayu di proyek. Ditemukan dengan MENJALANKAN, bukan oleh test.
+
+    Kayu memang bukan beton dan bukan besi. Yang dipakai: `betonM3` menampung
+    volume kayunya (satuan sama, m³) dan `besi` kosong — sementara catatan
+    menjelaskan bahwa angka itu KAYU. Memaksakan medan baru ke tipe bersama
+    berarti setiap pembaca lama harus tahu tentang kayu.
+  */
+  volume: VolumeElemen
   catatan: string[]
 }
 
@@ -268,6 +284,8 @@ export function analisaKudaKudaKayu(input: InputKudaKudaKayu): HasilKudaKudaKayu
   // ── Volume ───────────────────────────────────────────────────────────────
   const jumlah = input.jumlah ?? 1
   const kayuM3 = (lebarMm / 1000) * (tinggiMm / 1000) * panjangM * jumlah
+  /* Berat jenis kayu kering udara ~600 kg/m³ (kelas II–III). */
+  const beratKayuKg = kayuM3 * 600
 
   catatan.push(
     `Faktor durasi ${cd} (${durasi}) dan kadar air ${cm} (${kadarAir}) sudah `
@@ -306,8 +324,26 @@ export function analisaKudaKudaKayu(input: InputKudaKudaKayu): HasilKudaKudaKayu
       phiTarikKn: Math.round(phiTarikKn * 100) / 100,
       phiLenturKnm: Math.round(phiLenturKnm * 100) / 100,
     },
-    volume: { kayuM3: Math.round(kayuM3 * 1e5) / 1e5 },
-    catatan: [...catatan, `Kuat geser terkoreksi ${fvMpa.toFixed(1)} MPa.`],
+    volume: {
+      /*
+        `betonM3` menampung volume KAYU — satuannya sama (m³) dan pembaca
+        rekap menjumlahkannya sebagai "volume bahan utama". Catatan di bawah
+        menyatakan bahwa angka itu kayu, bukan beton.
+      */
+      betonM3: Math.round(kayuM3 * 1e5) / 1e5,
+      bekistingM2: 0,
+      besi: [],
+      besiTotalKg: 0,
+      beratSendiriKg: Math.round(beratKayuKg * 1e4) / 1e4,
+    },
+    catatan: [
+      ...catatan,
+      `Kuat geser terkoreksi ${fvMpa.toFixed(1)} MPa.`,
+      `Volume ${kayuM3.toFixed(4)} m³ adalah KAYU, bukan beton — ia menempati `
+      + 'medan volume yang sama supaya rekap proyek bisa menjumlahkannya, '
+      + 'tetapi AHSP dan harganya sama sekali berbeda. Jangan menjumlahkannya '
+      + 'ke volume beton saat menyusun RAB.',
+    ],
   }
 }
 
@@ -370,7 +406,8 @@ export interface HasilBajaRingan {
     phiTekanKn: number
     phiTarikKn: number
   }
-  volume: { beratKg: number }
+  /* Bentuk KANONIK — alasan sama dengan kayu di atas. */
+  volume: VolumeElemen
   catatan: string[]
 }
 
@@ -492,6 +529,19 @@ export function analisaBajaRingan(input: InputBajaRingan): HasilBajaRingan {
   const jumlah = input.jumlah ?? 1
   const beratKg = p.beratKgPerM * panjangM * jumlah
 
+  const besiRingan: BarisBesi[] = [
+    {
+      tipe: 'BjTS',
+      /* Tinggi profil dipakai sebagai penanda ukuran, bukan diameter. */
+      diameterMm: p.tinggiMm,
+      jumlahBatang: jumlah,
+      panjangPerBatangM: panjangM,
+      beratKgPerM: p.beratKgPerM,
+      totalKg: Math.round(beratKg * 1e4) / 1e4,
+      peran: `profil ${p.nama}`,
+    },
+  ]
+
   catatan.push(
     `Luas efektif ${(rasioEfektif * 100).toFixed(1)}% dari bruto akibat TEKUK `
     + `LOKAL (w/t = ${wPerT.toFixed(0)}). Inilah yang membedakan baja ringan `
@@ -521,7 +571,19 @@ export function analisaBajaRingan(input: InputBajaRingan): HasilBajaRingan {
       phiTekanKn: Math.round(phiTekanKn * 100) / 100,
       phiTarikKn: Math.round(phiTarikKn * 100) / 100,
     },
-    volume: { beratKg: Math.round(beratKg * 1e4) / 1e4 },
+    /*
+      Baja ringan masuk sebagai baris BESI berperan `profil`, sama dengan
+      baja profil biasa — supaya tabel "kebutuhan besi & baja profil" di layar
+      menampilkannya dengan benar, dan `struktur-ke-rab` mengenalinya sebagai
+      baja-profil (AHSP-nya memang beda dari tulangan beton).
+    */
+    volume: {
+      betonM3: 0,
+      bekistingM2: 0,
+      besi: besiRingan,
+      besiTotalKg: Math.round(beratKg * 1e4) / 1e4,
+      beratSendiriKg: Math.round(beratKg * 1e4) / 1e4,
+    },
     catatan,
   }
 }

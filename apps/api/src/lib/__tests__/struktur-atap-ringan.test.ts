@@ -133,7 +133,36 @@ describe('kayu — tekan, tarik, lentur', () => {
 
   it('volume kayu = b × h × L', () => {
     /* 0,06 × 0,12 × 3 = 0,0216 m³ */
-    expect(analisaKudaKudaKayu(KAYU).volume.kayuM3).toBeCloseTo(0.0216, 5)
+    expect(analisaKudaKudaKayu(KAYU).volume.betonM3).toBeCloseTo(0.0216, 5)
+  })
+
+  it('volume berbentuk VolumeElemen KANONIK — bukan bentuk khusus', () => {
+    /*
+      ⚠ Test ini ada karena bentuk khusus `{ kayuM3 }` MERUNTUHKAN
+      `rekap-volume` seluruh proyek dengan HTTP 500. Pembacanya mengandaikan
+      medan `besi` selalu ada, dan bentuk khusus lolos cek "seharusnya punya
+      volume" karena objeknya memang ada.
+
+      Bukan satu baris yang hilang — SELURUH halaman rekap gagal begitu ada
+      satu elemen kayu di proyek. Ditemukan dengan MENJALANKAN, bukan oleh
+      test mana pun.
+    */
+    const v = analisaKudaKudaKayu(KAYU).volume
+    expect(Array.isArray(v.besi)).toBe(true)
+    expect(typeof v.betonM3).toBe('number')
+    expect(typeof v.bekistingM2).toBe('number')
+    expect(typeof v.besiTotalKg).toBe('number')
+    expect(typeof v.beratSendiriKg).toBe('number')
+  })
+
+  it('MENYATAKAN bahwa volumenya KAYU, bukan beton', () => {
+    /*
+      Ia menempati medan yang sama supaya rekap bisa menjumlahkannya, tetapi
+      AHSP dan harganya sama sekali berbeda. Tanpa catatan ini, volume kayu
+      akan dijumlahkan ke volume beton saat menyusun RAB.
+    */
+    expect(analisaKudaKudaKayu(KAYU).catatan.join(' '))
+      .toMatch(/adalah KAYU, bukan beton/i)
   })
 
   it('menyebut SAMBUNGAN dan rayap yang BELUM/tak bisa dihitung', () => {
@@ -248,8 +277,27 @@ describe('baja ringan — lapisan antikarat menentukan UMUR', () => {
 
   it('volume dilaporkan sebagai BERAT, bukan panjang', () => {
     /* Baja ringan dibeli per kg maupun per batang; berat yang menyambung ke RAB. */
-    expect(analisaBajaRingan(RINGAN).volume.beratKg)
+    expect(analisaBajaRingan(RINGAN).volume.besiTotalKg)
       .toBeCloseTo(PROFIL_BAJA_RINGAN.C75_075.beratKgPerM * 1.5, 4)
+  })
+
+  it('masuk sebagai baris besi berperan PROFIL — bukan tulangan', () => {
+    /*
+      Supaya tabel "kebutuhan besi & baja profil" menampilkannya dengan benar
+      (bukan sebagai "Ulir D75"), dan `struktur-ke-rab` mengenalinya sebagai
+      baja-profil — AHSP-nya memang beda dari tulangan beton.
+    */
+    const besi = analisaBajaRingan(RINGAN).volume.besi
+    expect(besi).toHaveLength(1)
+    expect(besi[0].peran).toMatch(/^profil /)
+    expect(besi[0].peran).toContain('C75.75')
+  })
+
+  it('volume berbentuk VolumeElemen KANONIK', () => {
+    const v = analisaBajaRingan(RINGAN).volume
+    expect(Array.isArray(v.besi)).toBe(true)
+    expect(v.betonM3).toBe(0)
+    expect(v.bekistingM2).toBe(0)
   })
 
   it('menyebut sekrup, bracing, dan ANGIN yang BELUM dihitung', () => {
