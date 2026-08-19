@@ -166,6 +166,9 @@ export type NotificationType =
   // 10.4 Fleet Fuel Anomaly. LITER per jam operasi, bukan rupiah per
   // pengisian - rupiah tak bisa membedakan boros dari harga solak naik.
   | 'bbm_melonjak'
+  // TANPA NOMOR. Uji material yang GAGAL tanpa NCR, atau yang hasilnya tak
+  // pernah disimpulkan - yang kedua tak terhitung 'gagal' di laporan mana pun.
+  | 'uji_material_gagal'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'

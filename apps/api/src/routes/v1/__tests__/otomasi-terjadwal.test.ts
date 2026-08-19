@@ -558,6 +558,10 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     // mengukur `jumlah` (rupiah) alih-alih `kuantitas` (liter) — rupiahnya
     // seragam karena tangki diisi PENUH tiap kali.
     'bbm-melonjak',
+    // TANPA NOMOR (2026-08-16). Ditemukan dari arah BERBEDA: bukan menyisir
+    // rencana, melainkan mencari tabel yang TERISI tapi tak satu pun otomasi
+    // menyentuhnya. Ada 109; ini yang paling mahal bila diam.
+    'uji-material-gagal',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

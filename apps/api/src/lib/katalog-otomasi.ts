@@ -1293,6 +1293,34 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'yang belum bisa ditutup hanya melatih orang mengabaikan notifikasi.',
   },
   {
+    kunci: 'uji-material-gagal',
+    nama: 'Hasil uji material bermasalah',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai hasil uji laboratorium yang bermasalah, dan tiga keadaannya '
+      + 'diperiksa terpisah. Yang TIDAK MEMENUHI syarat tetapi belum dibuatkan '
+      + 'NCR — mutu yang gagal tanpa NCR tak masuk sistem tindak lanjut mana '
+      + 'pun, sementara pekerjaan di atasnya terus bertambah. Yang BELUM '
+      + 'DISIMPULKAN lulus atau tidak — ini yang paling mudah terlewat, karena '
+      + 'laporan mutu yang menghitung "berapa yang gagal" tak menghitungnya '
+      + 'sebagai kegagalan; uji tanpa kesimpulan bukan uji yang lulus, ia uji '
+      + 'yang belum selesai. Dan yang diputuskan PERLU UJI ULANG lalu tak ada '
+      + 'lanjutannya. Uji yang sudah punya NCR tidak ditegur lagi — jalur itu '
+      + 'punya otomasinya sendiri. Berjadwal HARIAN, satu-satunya otomasi mutu '
+      + 'yang begitu: beton yang gagal sudah terlanjur mengeras, dan tiap hari '
+      + 'yang lewat berarti pengecoran berikutnya dituang di atasnya.',
+    penerima: 'Penanggung jawab mutu',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca hasil uji material proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Memisahkan yang gagal, yang belum disimpulkan, dan yang menunggu uji ulang.' },
+      { di: 'sistem', teks: 'Melewati yang sudah ditindaklanjuti lewat NCR.' },
+      { di: 'sistem', teks: 'Melewati yang baru dicatat — laboratorium butuh waktu.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.uji_material.hari',
+  },
+  {
     kunci: 'bbm-melonjak',
     nomor: '10.4',
     nama: 'Konsumsi BBM melonjak',

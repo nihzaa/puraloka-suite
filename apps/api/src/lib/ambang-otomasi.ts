@@ -836,6 +836,29 @@ export const AMBANG_OTOMASI = {
     seberapa jauh ke belakang, seberapa tinggi baru disebut melonjak, dan
     berapa pengisian sebelum disimpulkan.
   */
+  /*
+    Uji material gagal — TANPA NOMOR, ditemukan dari tabel bukan dari rencana.
+
+    Satu ambang saja: "gagal tanpa NCR" tak punya derajat (gagal ya gagal),
+    yang butuh ambang cuma dua keadaan MENGGANTUNG — laboratorium dan tim mutu
+    butuh waktu, dan menegur uji yang dicatat kemarin membuat peringatan ini
+    jadi kebisingan harian.
+  */
+  'otomasi.uji_material.hari': {
+    bawaan: 7,
+    min: 1,
+    max: 60,
+    label: 'Hari sebelum hasil uji yang menggantung diingatkan',
+    judul: 'Hasil uji material',
+    akibat:
+      'Berapa lama sebuah hasil uji boleh tanpa kesimpulan, atau menunggu uji '
+      + 'ulang, sebelum diingatkan. Tidak berlaku untuk yang sudah dinyatakan '
+      + 'TIDAK MEMENUHI — itu dilaporkan segera, karena beton yang gagal sudah '
+      + 'terlanjur mengeras dan pekerjaan di atasnya terus bertambah.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
   'otomasi.bbm_melonjak.hari': {
     bawaan: 30,
     min: 7,

@@ -9845,6 +9845,198 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/uji-material-gagal ──────────────────────
+  //
+  // Automation TANPA NOMOR — ditemukan dari arah yang berbeda.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // DICARI DARI TABEL, BUKAN DARI RENCANA
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Pemetaan 51 peristiwa dunia-proyek adalah daftar buatan sendiri — dan
+  // daftar buatan sendiri hanya memuat apa yang terpikirkan.
+  //
+  // Dicari ulang dari arah lain: tabel mana yang TERISI tetapi tak satu pun
+  // otomasi menyentuhnya? Ada 109. Kebanyakan master data yang memang diam.
+  //
+  // `uji_material` bukan salah satunya. Diukur 2026-08-16:
+  //
+  //   UJI-2608-002  Beton K-250 zona A lantai 1
+  //                 hasil 231 kg/cm2, syarat 250  →  TIDAK MEMENUHI
+  //                 NCR: tak ada.  Didiamkan 13 hari.
+  //
+  //   UJI-2608-004  Besi beton D13, kuat tarik
+  //                 hasil 4.250, syarat 4.000     →  kesimpulan NULL
+  //
+  //   UJI-2608-005  Beton K-300 kolom, uji 7 hari
+  //                 hasil 195, syarat 210         →  perlu uji ulang
+  //
+  // Beton yang tak mencapai kuat tekan rencana adalah cacat STRUKTURAL. Ia tak
+  // memburuk perlahan seperti anggaran — ia sudah terlanjur mengeras di kolom
+  // dan balok, dan tiap hari yang lewat menumpuk lebih banyak pekerjaan di
+  // atasnya.
+  //
+  // Tak ada satu pun peringatan untuk ini sebelum sekarang.
+  //
+  // ── TIGA KEADAAN, DAN YANG KEDUA PALING MUDAH TERLEWAT
+  //
+  //   TIDAK MEMENUHI      terlihat oleh laporan mutu mana pun
+  //   BELUM DISIMPULKAN   hasilnya ada, tetapi tak seorang pun memutuskan
+  //                       lulus atau tidak. Laporan yang menghitung "berapa
+  //                       yang gagal" MELEWATKANNYA — ia tak dihitung gagal.
+  //   PERLU UJI ULANG     sah, tetapi punya batas waktu: uji 7 hari yang tak
+  //                       dilanjutkan ke 28 hari tak pernah menjawab
+  //                       pertanyaannya.
+  //
+  // `UJI-2608-004` contoh keadaan kedua, dan angkanya JUSTRU lulus (4.250 dari
+  // syarat 4.000). Karena lulus, tak ada yang merasa perlu menindaklanjuti —
+  // dan berkasnya menggantung selamanya.
+  app.get('/api/v1/otomasi/jalankan/uji-material-gagal', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiHasilUji } = await import('../../lib/hasil-uji-material.js')
+
+    const q = request.query as { hari?: string }
+    const minHari = await ambilAmbang(request, 'otomasi.uji_material.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['uji_material_gagal'])
+
+    const HALAMAN = 1000
+
+    // `projects` ANCHOR; `uji_material` kategori C lewat `project_id`.
+    const proyek: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('projects').select('id, name, status, is_deleted')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      proyek.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const aktif = proyek.filter((p) => p.is_deleted !== true && p.status === 'active')
+    const idAktif = aktif.map((p) => p.id as string)
+    if (idAktif.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+    const namaProyek = new Map(aktif.map((p) => [p.id as string, String(p.name ?? 'Proyek')]))
+
+    const uji: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .unsafe('uji_material', 'disaring .in(project_id, ...) proyek aktif milik tenant ini')
+        .select('id, project_id, nomor, objek, jenis_uji, nilai_hasil, nilai_syarat, satuan, kesimpulan, ncr_id, tanggal_uji')
+        .in('project_id', idAktif)
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      uji.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+
+    let dibuat = 0
+    const hitung = {
+      aman: 0, gagal_tanpa_ncr: 0, belum_disimpulkan: 0, uji_ulang_menggantung: 0,
+    }
+
+    for (const u of uji) {
+      const tgl = Date.parse(String(u.tanggal_uji ?? '').slice(0, 10) + 'T00:00:00Z')
+      /*
+        Uji tanpa tanggal DILEWATI, bukan dianggap berumur nol.
+
+        Dianggap nol berarti ia selalu di bawah ambang umur dan tak pernah
+        dilaporkan — justru berkas yang paling tak rapi pencatatannya yang
+        menjadi paling sunyi.
+
+        Dihitung terpisah di `tanpa_tanggal` supaya ketiadaannya terlihat di
+        jawaban rute, bukan hilang begitu saja.
+      */
+      if (Number.isNaN(tgl)) continue
+
+      const h = nilaiHasilUji({
+        kesimpulan: (u.kesimpulan as string | null) ?? null,
+        nilaiHasil: u.nilai_hasil == null ? null : Number(u.nilai_hasil),
+        nilaiSyarat: u.nilai_syarat == null ? null : Number(u.nilai_syarat),
+        adaNcr: u.ncr_id != null,
+        hariLalu: Math.floor((acuan - tgl) / HARI),
+      }, minHari)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+
+      const id = u.id as string
+      if (sudah('uji_material_gagal', id)) continue
+
+      const pid = u.project_id as string
+      const nomor = String(u.nomor ?? '(tanpa nomor)')
+      const objek = String(u.objek ?? 'material')
+      const satuan = String(u.satuan ?? '')
+      const angka = u.nilai_hasil != null && u.nilai_syarat != null
+        ? ` Hasil ${Number(u.nilai_hasil)} ${satuan}, syarat ${Number(u.nilai_syarat)} ${satuan}`
+          + (h.selisihPersen != null ? ` (${h.selisihPersen > 0 ? '+' : ''}${h.selisihPersen}%).` : '.')
+        : ''
+
+      const pesan = {
+        gagal_tanpa_ncr:
+          `${nomor} — ${objek} TIDAK MEMENUHI syarat dan belum dibuatkan NCR.`
+          + `${angka} Mutu yang gagal tanpa NCR tak masuk sistem tindak lanjut mana pun; `
+          + 'pekerjaan di atasnya terus bertambah selama itu.',
+        belum_disimpulkan:
+          `${nomor} — ${objek} sudah diuji tetapi BELUM disimpulkan lulus atau tidak.`
+          + `${angka} Uji tanpa kesimpulan bukan uji yang lulus — ia uji yang belum `
+          + 'selesai, dan laporan mutu tak menghitungnya sebagai kegagalan.',
+        uji_ulang_menggantung:
+          `${nomor} — ${objek} diputuskan PERLU UJI ULANG dan belum ada lanjutannya.`
+          + `${angka} Uji umur muda yang tak dilanjutkan tak pernah menjawab `
+          + 'pertanyaannya.',
+        aman: '',
+      }[h.sebab]
+
+      const penerima = await resolveRecipients('uji_material_gagal', {
+        companyId: request.companyId!,
+        projectId: pid,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: h.sebab === 'gagal_tanpa_ncr'
+            ? 'Uji material GAGAL dan belum ber-NCR'
+            : 'Hasil uji material menggantung',
+          message: `${namaProyek.get(pid) ?? 'Proyek'}: ${pesan}`,
+          // Gagal tanpa NCR = cacat struktural yang tak tercatat di mana pun.
+          // Dua sebab lain adalah pekerjaan administrasi yang tertunda.
+          priority: h.sebab === 'gagal_tanpa_ncr' ? 'urgent' : 'normal',
+          type: 'uji_material_gagal',
+          project_id: pid,
+          action_url: '/mutu/uji-material',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: {
+        proyek_aktif: idAktif.length,
+        uji_dibaca: uji.length,
+        tanpa_tanggal: uji.length - Object.values(hitung).reduce((a, b) => a + b, 0),
+        ...hitung,
+        min_hari: minHari,
+      },
+    })
+  })
 }
 
 /**
