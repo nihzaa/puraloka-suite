@@ -623,7 +623,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             project_id:  co.project_id,
             action_url:  `/proyek/${co.project_id}?tab=change-order`,
             action_type: 'view_change_order',
-            action_data: { change_order_id: id },
+            // `record_id` WAJIB — dipulihkan 2026-08-16. Perbaikan asli ada di
+            // commit 01327c28 lalu HILANG lewat merge 8933d438. Kunci lamanya
+            // dipertahankan: ia kontrak dengan halaman notifikasi.
+            action_data: { record_id: id, change_order_id: id },
           })))
         } catch (err) {
           // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
@@ -894,7 +897,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             project_id:  coFull.project_id,
             action_url:  `/proyek/${coFull.project_id}?tab=change-order`,
             action_type: 'view_change_order',
-            action_data: { change_order_id: id },
+            // `record_id` WAJIB — dipulihkan 2026-08-16. Perbaikan asli ada di
+            // commit 01327c28 lalu HILANG lewat merge 8933d438. Kunci lamanya
+            // dipertahankan: ia kontrak dengan halaman notifikasi.
+            action_data: { record_id: id, change_order_id: id },
           })))
         } catch (err) {
           // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
@@ -991,7 +997,10 @@ export default async function changeOrderRoutes(app: FastifyInstance) {
             project_id:  coInfo.project_id,
             action_url:  `/proyek/${coInfo.project_id}?tab=change-order`,
             action_type: 'view_change_order',
-            action_data: { change_order_id: id },
+            // `record_id` WAJIB — dipulihkan 2026-08-16. Perbaikan asli ada di
+            // commit 01327c28 lalu HILANG lewat merge 8933d438. Kunci lamanya
+            // dipertahankan: ia kontrak dengan halaman notifikasi.
+            action_data: { record_id: id, change_order_id: id },
           }])
         } catch (err) {
           // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.

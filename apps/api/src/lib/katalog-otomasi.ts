@@ -1293,6 +1293,30 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       + 'yang belum bisa ditutup hanya melatih orang mengabaikan notifikasi.',
   },
   {
+    kunci: 'klien-didiamkan',
+    nama: 'Klien yang didiamkan',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai proyek yang berjalan tanpa kabar ke pemiliknya. Berbeda dari '
+      + 'peringatan progres-belum-lapor: yang itu menegur MANDOR soal disiplin '
+      + 'mencatat, penerimanya orang dalam. Yang ini menjawab "klien mana yang '
+      + 'sudah lama tak mendengar apa pun tentang proyeknya", dan tindakannya '
+      + 'menelepon. Keduanya bisa benar sekaligus — mandor rajin mengisi sistem '
+      + 'tetapi tak seorang pun meneruskannya ke klien. Dua keadaan dipisah: '
+      + 'proyek yang BELUM PERNAH punya laporan sama sekali (yang perlu '
+      + 'dibereskan jalur pelaporannya) dan yang jalurnya ada tetapi berhenti '
+      + '(cukup satu laporan menyusul).',
+    penerima: 'Yang mengurus hubungan klien',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Mengambil seluruh proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Mencari tanggal laporan progres TERBARU tiap proyek.' },
+      { di: 'sistem', teks: 'Memisahkan yang belum pernah dilaporkan dari yang lama diam.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.klien_didiamkan.hari',
+  },
+  {
     kunci: 'celah-asuransi',
     nomor: '9.2',
     nama: 'Celah perlindungan asuransi',

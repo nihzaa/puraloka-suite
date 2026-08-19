@@ -823,6 +823,29 @@ export const AMBANG_OTOMASI = {
     (tanpa polis, kadaluarsa, salah jenis) tak punya ambang: keduanya
     keadaan biner, bukan derajat.
   */
+  /*
+    Klien yang didiamkan — TANPA NOMOR, tak ada di rencana 140 item.
+
+    Lahir dari pemetaan 51 peristiwa dunia-proyek lintas tujuh pihak
+    (pemasok, lapangan, kantor, klien, alat, gudang, risiko). Empat puluh enam
+    sudah tertangani; ini salah satu dari lima celah, dan sinyalnya paling
+    kuat: 14 dari 15 proyek aktif berjalan tanpa kabar ke pemiliknya.
+  */
+  'otomasi.klien_didiamkan.hari': {
+    bawaan: 14,
+    min: 3,
+    max: 90,
+    label: 'Hari tanpa laporan progres sebelum klien dianggap didiamkan',
+    judul: 'Klien yang didiamkan',
+    akibat:
+      'Berapa lama sebuah proyek boleh berjalan tanpa laporan progres sebelum '
+      + 'diingatkan. Klien yang bertanya duluan sudah terlambat — pada titik '
+      + 'itu yang dijawab bukan lagi kabar proyek, melainkan kenapa ia tak '
+      + 'dikabari.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
   'otomasi.celah_asuransi.hari': {
     bawaan: 45,
     min: 7,

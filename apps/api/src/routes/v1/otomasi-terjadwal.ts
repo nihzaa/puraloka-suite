@@ -9469,6 +9469,191 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       checked: { proyek_aktif: idAktif.length, ...hitung, ambang_hari: ambangHari },
     })
   })
+
+  // ── GET /api/v1/otomasi/jalankan/klien-didiamkan ─────────────────────────
+  //
+  // Automation TANPA NOMOR — tak ada di rencana 140 item.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // KENAPA INI DIBANGUN MESKI TAK DIRENCANAKAN
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // Founder bertanya: adakah otomasi yang menangani SEMUA kemungkinan di dunia
+  // proyek — pemasok, orang lapangan, kantor, klien?
+  //
+  // Dipetakan 51 peristiwa nyata lintas tujuh pihak, lalu dicocokkan ke
+  // katalog. Empat puluh enam sudah tertangani. Lima celah, dan yang ini
+  // sinyalnya paling kuat sekaligus paling mahal bila dibiarkan.
+  //
+  // Diukur 2026-08-16:
+  //
+  //   15 proyek aktif
+  //    5 TAK PERNAH punya satu pun laporan progres — termasuk dua proyek
+  //      Dinas PUPR senilai Rp 11 miliar
+  //    9 terakhir dilaporkan lebih dari dua pekan lalu, terlama 131 hari
+  //
+  // Empat belas dari lima belas proyek berjalan tanpa kabar ke pemiliknya.
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // BUKAN DUPLIKAT `progres-belum-lapor` (3.11)
+  // ══════════════════════════════════════════════════════════════════════════
+  //
+  // 3.11 menegur MANDOR yang belum mengisi laporan harian — soal disiplin
+  // pencatatan, penerimanya orang dalam.
+  //
+  // Yang ini menjawab "klien mana yang sudah lama tak mendengar kabar apa pun
+  // tentang proyeknya?" — penerimanya yang mengurus hubungan klien, dan
+  // tindakannya MENELEPON, bukan menegur mandor.
+  //
+  // Keduanya bisa benar sekaligus: mandor rajin melapor ke sistem tetapi tak
+  // seorang pun meneruskannya ke klien; atau sebaliknya, proyek sepi laporan
+  // tetapi kliennya rutin ditelepon.
+  app.get('/api/v1/otomasi/jalankan/klien-didiamkan', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiKabarKlien } = await import('../../lib/kabar-klien.js')
+
+    const q = request.query as { hari?: string }
+    const ambangHari = await ambilAmbang(request, 'otomasi.klien_didiamkan.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['klien_didiamkan'])
+
+    const HALAMAN = 1000
+
+    // `projects` ANCHOR; `progress_logs` kategori C lewat `project_id`.
+    const proyek: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('projects')
+        .select('id, name, status, is_deleted, client_id, contract_value')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      proyek.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const aktif = proyek.filter((p) => p.is_deleted !== true && p.status === 'active')
+    const idAktif = aktif.map((p) => p.id as string)
+    if (idAktif.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    /*
+      BERHALAMAN — dan di sini pemotongan senyap paling menyesatkan.
+
+      `progress_logs` adalah tabel paling ramai kedua di basis ini. Kalau
+      terpotong, proyek yang laporannya TERBARU justru yang hilang — dan
+      hasilnya proyek yang paling rajin dilaporkan dilaporkan sebagai
+      "belum pernah dikabari". Kebalikan dari kebenarannya.
+      Dijaga `audit-baca-tak-terpotong` (ambang NOL).
+    */
+    const laporan: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .unsafe('progress_logs', 'disaring .in(project_id, ...) proyek aktif milik tenant ini')
+        .select('project_id, logged_at')
+        .in('project_id', idAktif)
+        .order('project_id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      laporan.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    /** project_id → tanggal laporan TERBARU. */
+    const terakhir = new Map<string, string>()
+    for (const l of laporan) {
+      const id = l.project_id as string
+      const tgl = String(l.logged_at ?? '').slice(0, 10)
+      if (!id || tgl.length !== 10) continue
+      const lama = terakhir.get(id)
+      if (!lama || tgl > lama) terakhir.set(id, tgl)
+    }
+
+    const { data: klien, error: eKlien } = await request.db!
+      .from('clients').select('id, company_name, contact_person')
+    if (eKlien) return reply.status(500).send({ error: eKlien.message })
+
+    /*
+      Nama klien: `company_name` bisa NULL — sepuluh klien di basis ini
+      berjenis perorangan dan kolomnya kosong pada SEMUANYA. Rute lain pernah
+      mengirim pesan berbunyi "klien null" ke kotak masuk sungguhan sebelum
+      cacat itu terlihat.
+    */
+    const namaKlien = new Map<string, string>()
+    for (const k of klien ?? []) {
+      namaKlien.set(k.id as string,
+        (k.company_name as string | null)?.trim()
+        || (k.contact_person as string | null)?.trim()
+        || 'Klien tanpa nama')
+    }
+
+    let dibuat = 0
+    const hitung = { belum_pernah: 0, lama_diam: 0, terkabari: 0 }
+
+    for (const p of aktif) {
+      const id = p.id as string
+      const h = nilaiKabarKlien(terakhir.get(id) ?? null, today, ambangHari)
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      if (sudah('klien_didiamkan', id)) continue
+
+      const nama = String(p.name ?? 'Proyek')
+      const cid = p.client_id as string | null
+      const siapa = cid ? (namaKlien.get(cid) ?? 'Klien tanpa nama') : 'tanpa klien terdaftar'
+      const nilai = p.contract_value == null ? null : Number(p.contract_value)
+      const rupiah = nilai != null && Number.isFinite(nilai) && nilai > 0
+        ? ` Nilai kontrak Rp ${nilai.toLocaleString('id-ID')}.`
+        : ''
+
+      /*
+        Dua sebab, dua tindakan — dan pesannya menyebut tindakannya.
+
+        "Belum pernah" berarti proses pelaporannya yang belum ada; satu laporan
+        susulan tak menyelesaikannya. "Lama diam" berarti jalurnya ada dan
+        berhenti. Menyamakan pesannya membuat yang pertama diperlakukan seperti
+        yang kedua.
+      */
+      const pesan = h.sebab === 'belum_pernah'
+        ? `${nama} (${siapa}) berjalan tanpa SATU PUN laporan progres.${rupiah} `
+          + 'Kliennya belum pernah menerima kabar apa pun — yang perlu dibereskan '
+          + 'jalur pelaporannya, bukan satu laporan susulan.'
+        : `${nama} (${siapa}) — laporan progres terakhir ${h.hariDiam} hari lalu.`
+          + `${rupiah} Kirim kabar sebelum kliennya yang bertanya duluan.`
+
+      const penerima = await resolveRecipients('klien_didiamkan', {
+        companyId: request.companyId!,
+        projectId: id,
+      })
+      for (const uid of penerima) {
+        await createNotification({
+          company_id: request.companyId!,
+          user_id: uid,
+          title: h.sebab === 'belum_pernah'
+            ? 'Proyek tanpa laporan progres sama sekali'
+            : 'Klien lama tak dikabari',
+          message: pesan,
+          priority: h.sebab === 'belum_pernah' ? 'high' : 'normal',
+          type: 'klien_didiamkan',
+          project_id: id,
+          action_url: '/lapangan/harian',
+          // `record_id` WAJIB - lihat `audit-notifikasi-punya-record.mjs`.
+          action_data: { record_id: id, project_id: id, sebab: h.sebab, hari_diam: h.hariDiam },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true,
+      notifications_created: dibuat,
+      checked: { proyek_aktif: idAktif.length, ...hitung, ambang_hari: ambangHari },
+    })
+  })
 }
 
 /**

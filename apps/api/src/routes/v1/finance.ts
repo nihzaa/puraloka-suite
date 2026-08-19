@@ -922,7 +922,9 @@ export default async function financeRoutes(app: FastifyInstance) {
           project_id:  body.project_id,
           action_url:  '/keuangan?tab=invoice',
           action_type: 'view_invoice',
-          action_data: { invoice_id: invoice.id, invoice_number: invoice.invoice_number },
+          // `record_id` WAJIB — dipulihkan 2026-08-16. Perbaikan asli ada di commit
+          // 01327c28 lalu HILANG lewat merge 8933d438.
+          action_data: { record_id: invoice.id, invoice_id: invoice.id, invoice_number: invoice.invoice_number },
         })))
       } catch (err) {
         // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.
@@ -1455,7 +1457,9 @@ export default async function financeRoutes(app: FastifyInstance) {
         project_id:  invoice.project_id,
         action_url:  '/keuangan?tab=invoice',
         action_type: 'view_invoice',
-        action_data: { invoice_id: id, amount_paid: amountPaid },
+        // `record_id` WAJIB — dipulihkan 2026-08-16. Perbaikan asli ada di commit
+        // 01327c28 lalu HILANG lewat merge 8933d438.
+        action_data: { record_id: id, invoice_id: id, amount_paid: amountPaid },
       })))
     } catch (err) {
       // best-effort: notifikasi tak boleh membatalkan tindakan yang sudah sah.

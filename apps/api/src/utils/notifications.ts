@@ -159,6 +159,10 @@ export type NotificationType =
   // hitungan biasa: proyek ber-polis AKTIF yang jenisnya tak menanggung
   // pekerjaannya sendiri (TPL saja).
   | 'celah_asuransi'
+  // TANPA NOMOR. Klien yang lama tak dikabari - BUKAN `progres-belum-lapor`
+  // (3.11) yang menegur MANDOR soal disiplin catat. Ini soal hubungan
+  // klien, dan tindakannya menelepon.
+  | 'klien_didiamkan'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'
