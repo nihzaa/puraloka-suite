@@ -66,10 +66,17 @@ jangkauannya (Rp 263,5 juta), alih-alih membiarkannya terbaca sebagai nol.
     gambar/dokumen → revisi → distribusi → tanda tangan
                    → arsip yang bisa dibuktikan tak berubah
 
-**Putus di versi dokumen** (`dk-register`): `documents.version` bertipe TEKS
-ber-default `"1.0"` dengan nol constraint, dan unggahan baru **menimpa**.
-Gambar kerja sudah aman lewat `register_gambar` (migrasi 343) — yang belum
-adalah dokumen selainnya.
+**Tersambung penuh sejak 2026-08-19 — dan saya SALAH menilainya di atas.**
+
+Kalimat aslinya berbunyi *"`documents.version` bertipe TEKS ber-default 1.0
+dengan nol constraint"*. Diukur ke `pg_constraint`: keliru. Migrasi 445 sudah
+menambah `revisi`, `menggantikan_id` (FK self-reference), CHECK
+`documents_tak_mengganti_diri`, dan dua index — plus 24 test hijau.
+
+Yang benar-benar kurang cuma satu, dan tak seorang pun menyebutnya: rantainya
+lengkap di basis dan API lalu **putus tepat sebelum mata orang**. Keempat
+medan revisi sudah dikirim API sejak 445, dengan **nol** rujukan di seluruh
+`apps/web`. Ditutup hari ini di `components/document-section.tsx`.
 
 ### Rantai D — dari kewajiban ke bukti kepatuhan
 
@@ -120,9 +127,10 @@ Repo ini sudah menerapkannya di dua tempat, dan alasannya identik:
 - klausul kontrak (migrasi 450): `versi` naik, yang lama dinonaktifkan
 - addendum SPK (migrasi 454): DELTA disimpan, induk tak pernah berubah
 
-Tinggal `documents` yang belum.
+`documents` menyusul lewat migrasi 445 — dan lencana revisinya baru sampai
+ke layar 2026-08-19.
 
-→ menutup **`dk-register`**
+→ **`dk-register` ✅ SELESAI 2026-08-19**
 
 ### 2.4 Template dokumen milik TENANT, bukan milik produk
 
@@ -130,10 +138,12 @@ Tiap perusahaan punya bunyi pasal, kop, dan format berita acara sendiri —
 sering ditentukan penasihat hukumnya. ERP yang memaksakan template produk
 akan ditinggalkan begitu klien pertama minta perubahan.
 
-Klausul kontrak sudah pindah ke tenant (450 + layar 453). Yang tersisa:
-berita acara, SPK, dan dokumen lain.
+Klausul kontrak pindah ke tenant lewat migrasi 450; SPK dan berita acara
+menyusul lewat **migrasi 465** (kolom `jenis_dokumen` pada tabel yang sama —
+yang membedakan keduanya bukan strukturnya melainkan untuk kertas apa ia
+dicetak).
 
-→ menutup **`md-template-dok`**
+→ **`md-template-dok` ✅ SELESAI 2026-08-19**
 
 ### 2.5 Kepatuhan punya JADWAL, bukan diingat orang
 
@@ -153,14 +163,16 @@ Repo ini sudah punya 58 tugas terjadwal. Yang menahan tiga sisa bukan kode.
 |---|---|---|---|---|
 | 1 | `md-subkon` | A | 2.1 | ✅ **SELESAI 2026-08-19** (migrasi 461-464) |
 | 2 | `cc-cvr` | B | 2.2 | ✅ **SELESAI 2026-08-19** (dua cakupan) |
-| 3 | `dk-register` | C | 2.3 | **kode** + izin backfill |
-| 4 | `md-template-dok` | C | 2.4 | **kode** — template non-kontrak |
+| 3 | `dk-register` | C | 2.3 | ✅ **SELESAI 2026-08-19** (445 + lencana UI) |
+| 4 | `md-template-dok` | C | 2.4 | ✅ **SELESAI 2026-08-19** (migrasi 465) |
 | 5 | `dk-esign` | D | 2.5 | kontrak Peruri |
 | 6 | `fn-efaktur` | D | 2.5 | integrasi DJP |
 | 7 | `bi-terjadwal` | D | 2.5 | kredensial SMTP tenant |
 | 8 | `mb-progres` | A | — | build & sebar aplikasi mobile |
 
-**Empat pekerjaan kode — DUA SUDAH SELESAI (2026-08-19). Empat menunggu di luar kode.**
+**KEEMPAT pekerjaan kode SELESAI 2026-08-19.** Empat sisanya menunggu di luar
+kode — kontrak Peruri, integrasi DJP, kredensial SMTP tenant, dan pemakaian
+sungguhan aplikasi mobile oleh mandor.
 
 Sebelumnya saya menghitung hanya SATU pekerjaan kode. Yang berubah: jawaban
 founder memindahkan `cc-cvr` dari "keputusan" ke "kode", dan `md-template-dok`
@@ -260,20 +272,46 @@ tak perlu disentuh.
 
 **Bukti:** 38 test hijau, 3 mutasi MERAH, nol penjaga baru merah.
 
-### Urutan 3 — `md-template-dok` (template non-kontrak)
+### Urutan 3 — `md-template-dok` — ✅ **SELESAI 2026-08-19**
 
-**Kenapa ketiga:** polanya sudah terbukti dua kali (klausul kontrak, kop
-dokumen). Ini penerapan ulang, bukan rancangan baru — risiko paling rendah
-dari ketiga sisanya.
+Dugaannya tepat kali ini: polanya memang sudah terbukti (klausul kontrak
+migrasi 450). Yang ditambahkan cuma satu kolom `jenis_dokumen` pada tabel
+yang sama — bukan tabel kedua, karena yang membedakan klausul kontrak dari
+klausul SPK bukan strukturnya melainkan untuk kertas apa ia dicetak.
 
-### Urutan 4 — `dk-register` (versi dokumen)
+Diukur sebelum dibangun: `contracts.ts` membaca klausul tenant di empat
+tempat; `spk.ts` **nol rujukan**. Tiap perusahaan menerbitkan SPK dengan
+syarat yang ditulis pembuat aplikasi.
 
-**Kenapa terakhir:** satu-satunya yang menyentuh data lama (backfill seluruh
-`documents` jadi revisi 1), dan satu-satunya yang butuh izin terpisah founder
-(§8a.5).
+**Cacat yang ditemukan SAAT membangun, dan itu yang paling berharga:** DELETE
+klausul menyaring hanya `nomor`. Sesudah 465, "pulihkan bawaan Pasal 6 SPK"
+menonaktifkan **Pasal 6 KONTRAK** — kertas bertanda tangan — lalu membalas
+200. Sebabnya ketiga rute klausul hidup sejak migrasi 450 **tanpa satu pun
+test endpoint**.
 
-Urgensinya juga paling rendah: riwayat revisi yang **paling menentukan** —
-gambar kerja — sudah aman lewat `register_gambar`.
+### Urutan 4 — `dk-register` — ✅ **SELESAI 2026-08-19**, dan saya salah menilainya
+
+**Rencana saya salah dari awal.** Saya menulis bahwa ini "satu-satunya yang
+menyentuh data lama (backfill seluruh `documents` jadi revisi 1)" dan butuh
+izin terpisah §8a.5.
+
+Diukur: **backfill-nya sudah dikerjakan migrasi 445.** Kolom `revisi`,
+`menggantikan_id`, CHECK, dua index, pustaka `lib/revisi-dokumen.ts`, dan 24
+test — semuanya sudah ada. Tak ada data lama yang perlu disentuh, jadi tak
+ada izin yang perlu diminta.
+
+Yang benar-benar kurang **tak tertulis di rencana mana pun**: rantainya
+lengkap di basis dan API lalu putus tepat sebelum mata orang. Keempat medan
+revisi (`digantikan`, `digantikan_oleh`, `revisi_hitung`, `revisi_terkini`)
+dikirim API sejak 445 dengan **nol** rujukan di seluruh `apps/web`.
+
+Dokumen yang sudah digantikan tampil persis seperti yang berlaku. Untuk
+gambar kerja, salah revisi berarti pekerjaan dibongkar.
+
+Pelajarannya sama dengan yang sudah tertulis di pembuka `CLAUDE.md`:
+**rencana pun bisa basi.** Rencana yang ditulis dari membaca dokumen — bukan
+dari mengukur kode — akan mengarahkan pekerjaan ke tempat yang salah, dan
+tetap terdengar meyakinkan sepanjang jalan.
 
 ---
 

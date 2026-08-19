@@ -24,6 +24,26 @@ interface Doc {
   is_visible_to_client: boolean;
   uploaded_at: string;
   uploader: { id: string; name: string } | null;
+
+  /*
+    ── Riwayat revisi (migrasi 445), 2026-08-19
+
+    Keempat medan ini SUDAH dikirim `GET /projects/:id/documents` sejak
+    migrasi 445 — dan tak satu pun dibaca layar mana pun. Diukur 2026-08-19:
+    nol rujukan `revisi_terkini`/`menggantikan_id` di seluruh apps/web.
+
+    Akibatnya rantainya lengkap di basis dan API, lalu putus tepat sebelum
+    mata orang: dokumen yang sudah DIGANTIKAN tampil persis seperti yang
+    berlaku, dan yang membukanya mengerjakan revisi lama tanpa satu pun
+    tanda. Untuk gambar kerja, salah revisi berarti pekerjaan dibongkar.
+
+    `version` (teks bebas, bawaan "1.0") DIPERTAHANKAN — ia isian manual
+    penggunanya, bukan turunan. Yang di bawah ini dihitung sistem.
+  */
+  digantikan?: boolean;
+  digantikan_oleh?: string | null;
+  revisi_hitung?: number;
+  revisi_terkini?: number;
 }
 
 interface Props {
@@ -315,7 +335,43 @@ export function DocumentSection({ projectId, userRole }: Props) {
                         v{doc.version}
                       </span>
                     )}
+                    {/* Revisi yang DIHITUNG sistem — bukan `version` yang
+                        diketik orang. Rev 1 tak diberi lencana: seluruh
+                        dokumen berawal di sana, dan lencana yang muncul di
+                        semua baris berhenti berarti apa-apa. */}
+                    {(doc.revisi_hitung ?? 1) > 1 && (
+                      <span style={{
+                        marginLeft: 6, fontSize: 10, padding: "0px 5px", borderRadius: 6,
+                        fontWeight: 700, background: "var(--surface-hover)", color: C.mid,
+                      }}>
+                        rev {doc.revisi_hitung}
+                      </span>
+                    )}
+                    {/* DIGANTIKAN — peringatan, bukan hiasan.
+
+                        Teks "digantikan" ikut, bukan warna saja: WCAG 1.4.1,
+                        dan sebagian pengguna aplikasi ini berperangkat lama
+                        dengan layar yang warnanya sudah pudar. */}
+                    {doc.digantikan && (
+                      <span style={{
+                        marginLeft: 6, fontSize: 10, padding: "0px 5px", borderRadius: 6,
+                        fontWeight: 700, background: "var(--danger-bg)", color: "var(--danger)",
+                        border: "1px solid var(--danger-border)",
+                      }}>
+                        digantikan
+                      </span>
+                    )}
                   </p>
+                  {/* Kalimatnya menyebut ke mana harus pergi, bukan cuma
+                      bahwa dokumen ini usang. Peringatan tanpa jalan keluar
+                      membuat orang tetap memakai yang di depannya. */}
+                  {doc.digantikan && (
+                    <p style={{ fontSize: 11, color: "var(--danger)", margin: "3px 0 0", lineHeight: 1.5 }}>
+                      Sudah ada revisi lebih baru
+                      {(doc.revisi_terkini ?? 0) > 0 && ` (rev ${doc.revisi_terkini})`}
+                      {" "}— jangan dipakai untuk pekerjaan lapangan.
+                    </p>
+                  )}
                   <p style={{ fontSize: 11, color: C.muted, margin: "3px 0 0", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                     <span style={{
                       display: "inline-block", padding: "0px 6px", borderRadius: 10,
