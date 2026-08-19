@@ -5,6 +5,69 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (siap deploy) — belum punya domain BUKAN penghalang, dan itu diukur
+
+Founder: *"kalo saya blm punya domain karna belum deploy gimana? saya maunya
+selesai semua dulu baru persiapan deploy"*.
+
+**Urutannya benar, dan saya tak menawar.** Alamat produksi adalah keputusan
+deploy, bukan keputusan fitur — menebaknya sekarang hanya menghasilkan nilai
+yang harus diganti nanti, dan nilai yang SALAH lebih berbahaya daripada yang
+kosong.
+
+Diukur: belum punya domain **tidak menghalangi apa pun**. CI hijau, seluruh
+test jalan (mereka memakai basis lokal), keempat pekerjaan kode selesai tanpa
+menyentuh satu pun alamat publik. Yang tertahan cuma dua — build APK dan
+pengiriman surel — dan keduanya memang mustahil tanpa alamat.
+
+### Yang dikerjakan alih-alih menunggu: memastikan tak ada KEJUTAN saat deploy
+
+Diukur `process.env` di seluruh `apps/api/src`: **21 variabel produksi**.
+Dua di antaranya dibaca kode tetapi **tak pernah disebut `.env.example`**:
+
+- `SUPABASE_PUBLISHABLE_KEY` — dipakai dengan `!` di `keamanan.ts:70`, jadi
+  kosong = **crash**. Berisik, dan itu justru murah.
+- `KURS_USD_IDR` — bawaan 16.000, memengaruhi angka UANG.
+
+Keduanya ditambahkan dengan format yang sudah dipakai berkas itu: menyebut
+`file:line` dan **apa yang terjadi kalau kosong**.
+
+### Koreksi: `.env.example` jauh lebih baik dari yang saya laporkan
+
+Pengukuran pertama saya bilang **delapan** variabel hilang. Salah — grep saya
+tak menghitung baris berkomentar (`# APP_URL=...`), padahal justru itulah
+bentuk dokumentasi yang dipakai berkas ini. Yang benar-benar hilang: **dua**.
+
+### Penjaga baru: `audit-env-siap-deploy.mjs` (ambang NOL, di CI)
+
+Ia menolak variabel yang dibaca kode tetapi tak disebut `.env.example`.
+**Tidak** menuntut `.env` terisi — mesin pengembang & CI memang tak punya
+kunci Resend. Yang dituntut cuma NAMANYA ada.
+
+Kenapa ini layak dijaga: env yang hilang di repo ini **tidak melempar**. Ia
+jatuh ke bawaan yang TERLIHAT benar —
+
+    APP_URL kosong        → localhost:3000 di EMPAT tombol surel KE KLIEN
+    RESEND_API_KEY kosong → sendEmail() no-op, jadwal jalan,
+                            terakhir_dikirim ter-update, NOL surel terkirim
+
+Kegagalan semacam itu tak muncul di log maupun test. Ia muncul sebagai
+keluhan pengguna berminggu-minggu kemudian, tentang gejala yang menunjuk ke
+tempat lain.
+
+Terbukti MERAH lewat mutasi (satu entri dihapus → `HILANG: 1`), lalu pulih
+HIJAU 21/21.
+
+### `docs/SIAP-DEPLOY.md`
+
+Memuat tabel "kalau kosong, yang terlihat apa" untuk keenam variabel yang
+gagal diam-diam, plus urutan lima langkah saat deploy tiba. Ditutup dengan
+peringatan: **jangan menyalin daftar variabelnya ke tempat lain** — ia akan
+basi, dan daftar env basi adalah cara termudah kehilangan satu variabel saat
+deploy. Jalankan penjaganya; ia membaca kode, bukan ingatan.
+
+---
+
 ## 2026-08-19 (mb-progres) — penghalangnya ternyata satu berkas yang tak ada
 
 Founder: *"yg masih sebagian ituu nunggu apa? bisa lanjutt lagi?"*.

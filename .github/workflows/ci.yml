@@ -2363,6 +2363,19 @@ jobs:
         run: node apps/mobile/scripts/audit-alamat-api-terisi.mjs
         working-directory: .
 
+      # Env yang hilang di repo ini TIDAK melempar — ia jatuh ke bawaan yang
+      # TERLIHAT benar. APP_URL kosong jadi localhost:3000 di tautan surel KE
+      # KLIEN; RESEND_API_KEY kosong membuat sendEmail() no-op tanpa galat,
+      # sehingga jadwal berjalan dan terakhir_dikirim ter-update tanpa satu
+      # pun surel terkirim.
+      #
+      # Penjaga ini TIDAK menuntut .env terisi (mesin CI memang tak punya
+      # kunci Resend) — ia menuntut NAMANYA disebut .env.example, supaya saat
+      # deploy tiba daftarnya lengkap. Ambang NOL.
+      - name: Env produksi terdokumentasi di .env.example
+        run: node apps/api/scripts/audit-env-siap-deploy.mjs
+        working-directory: .
+
       # Audit a11y runtime (axe-core) MELEWATI rute dinamis yang tak diberi
       # contoh id — dan tetap melaporkan "0 pelanggaran". Diukur 2026-08-07:
       # enam halaman terlewat selama ini, dan outputnya terbaca sebagai
