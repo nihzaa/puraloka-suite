@@ -17,6 +17,9 @@ import { analisaBalokT } from '../struktur-balok-t'
 import { analisaGempaStatik, analisaDrift } from '../struktur-beban-lateral'
 import { analisaPondasiMenerus, analisaRaft } from '../struktur-pondasi-dangkal'
 import { analisaDindingPenahan, analisaDindingGeser } from '../struktur-dinding'
+import { analisaKolomKomposit, analisaBondek } from '../struktur-komposit'
+import { analisaGusset, analisaSambunganMomen } from '../struktur-baja-sambungan-lanjut'
+import { analisaKudaKudaKayu, analisaBajaRingan } from '../struktur-atap-ringan'
 import {
   analisaSambunganBaut, analisaSambunganLas, MUTU_BAUT,
 } from '../struktur-baja-sambungan'
@@ -68,6 +71,39 @@ function semuaNamaPemeriksaan(): string[] {
       urutan lentur-vs-geser — semuanya butuh terjemahan: "SF guling 2,3" tak
       berarti apa-apa sampai dijelaskan bahwa dinding bisa berputar ke depan.
     */
+    /* Enam modul terakhir — menutup cakupan pondasi sampai atap. */
+    analisaKolomKomposit({
+      jenis: 'terbungkus', asBajaMm2: 6353, inersiaBajaMm4: 1.34e7,
+      lebarBetonMm: 400, tinggiBetonMm: 400, panjangTekukM: 3.5,
+      asTulanganMm2: 1256, mutuBaja: { fyMpa: 240 }, mutuBeton: { fcMpa: 30 },
+      mutuTulangan: { fyMpa: 400 }, puKn: 3000,
+    }),
+    analisaBondek({
+      bentangM: 2.5, tebalTotalMm: 120, tinggiGelombangMm: 50, tebalBajaMm: 0.75,
+      asBondekMm2PerM: 1300, inersiaBondekMm4PerM: 540000,
+      mutuBondek: { fyMpa: 550 }, mutuBeton: { fcMpa: 25 },
+      bebanHidupKpa: 2.5, bebanMatiTambahanKpa: 1.2, luasM2: 100,
+    }),
+    analisaGusset({
+      tebalMm: 10, lebarSambunganMm: 150, panjangSambunganMm: 200,
+      panjangBebasMm: 80, gayaKn: -300, mutu: { fyMpa: 240, fuMpa: 370 },
+      agvMm2: 4000, anvMm2: 3000, antMm2: 1500,
+    }),
+    analisaSambunganMomen({
+      tipe: 'pelat_ujung', tinggiBalokMm: 400, tebalSayapMm: 13, lebarSayapMm: 200,
+      muKnm: 150, vuKn: 80, inersiaBalokMm4: 2.37e8, bentangM: 6,
+      kekakuanKnmPerRad: 50000, asBautTarikMm2: 1200, fuBautMpa: 800,
+      mutu: { fyMpa: 240, fuMpa: 370 },
+    }),
+    analisaKudaKudaKayu({
+      kelas: 'II', lebarMm: 60, tinggiMm: 120, panjangM: 3,
+      gayaKn: -15, momenKnm: 0.5, durasi: 'tetap', kadarAir: 'kering',
+      lebarTumpuanMm: 80, gayaTumpuKn: 12,
+    }),
+    analisaBajaRingan({
+      profil: 'C75_075', panjangM: 1.5, gayaKn: -4,
+      jarakKudaKudaM: 1.2, lapisanGM2: 100, lingkungan: 'biasa',
+    }),
     analisaPondasiMenerus({
       jenis: 'batu_kali', lebarBawahM: 0.6, lebarAtasM: 0.3, tinggiM: 0.6,
       panjangM: 40, kedalamanM: 0.8, bebanKnPerM: 25, qaKnM2: 150,

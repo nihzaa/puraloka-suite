@@ -80,8 +80,9 @@ ada berdasarkan PEMAKAIAN NYATA di RAB, bukan kerumitan teorinya:
 cd apps/api && node -r dotenv/config scripts/lapor-cakupan-struktur.mjs
 ```
 
-Diukur 2026-08-19: **18 dari 34 (53%)**. Yang belum ada tetapi sudah dipakai di
-RAB nyata — sloof (15×), tangga (8×), pondasi batu kali (2×), balok anak (1×).
+Diukur 2026-08-19: **34 dari 34 (100%)** — pondasi sampai atap, beton dan baja.
+Angka itu akan basi begitu ada elemen ke-35 yang layak ditambahkan; jalankan
+skripnya, jangan percaya angka ini.
 
 **Otomasi mana yang hidup** — jangan dibaca dari katalog, UKUR:
 

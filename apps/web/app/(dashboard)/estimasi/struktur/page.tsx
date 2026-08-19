@@ -58,12 +58,14 @@ interface Project { id: string; name: string }
 type JenisBeton =
   | "balok" | "kolom" | "kolom_bulat" | "plat" | "footplat" | "pilecap" | "tiang"
   | "sloof" | "tangga" | "balok_t"
-  | "pondasi_menerus" | "raft" | "dinding_penahan" | "dinding_geser";
+  | "pondasi_menerus" | "raft" | "dinding_penahan" | "dinding_geser"
+  | "kolom_komposit" | "bondek";
 
 type JenisBaja =
   | "baja_balok" | "baja_kolom" | "baja_gording" | "baja_bracing"
   | "baja_rangka" | "baja_base_plate" | "baja_angkur"
-  | "baja_sambungan_baut" | "baja_sambungan_las" | "baja_interaksi";
+  | "baja_sambungan_baut" | "baja_sambungan_las" | "baja_interaksi"
+  | "baja_gusset" | "baja_sambungan_momen" | "kuda_kuda_kayu" | "baja_ringan";
 
 type Jenis = JenisBeton | JenisBaja;
 
@@ -207,6 +209,12 @@ const NAMA_JENIS: Record<Jenis, string> = {
   raft: "Raft (pelat pondasi)",
   dinding_penahan: "Dinding penahan tanah",
   dinding_geser: "Dinding geser",
+  kolom_komposit: "Kolom komposit",
+  bondek: "Pelat bondek",
+  baja_gusset: "Pelat buhul (gusset)",
+  baja_sambungan_momen: "Sambungan momen",
+  kuda_kuda_kayu: "Kuda-kuda kayu",
+  baja_ringan: "Rangka baja ringan",
   // Baja
   baja_balok: "Balok baja",
   baja_kolom: "Kolom baja",
@@ -241,6 +249,7 @@ const KELOMPOK_JENIS: { label: string; jenis: Jenis[] }[] = [
       "pondasi_menerus", "footplat", "pilecap", "raft", "tiang", "sloof",
       "kolom", "kolom_bulat", "balok", "balok_t", "plat", "tangga",
       "dinding_penahan", "dinding_geser",
+      "kolom_komposit", "bondek",
     ],
   },
   {
@@ -249,7 +258,18 @@ const KELOMPOK_JENIS: { label: string; jenis: Jenis[] }[] = [
       "baja_balok", "baja_kolom", "baja_gording", "baja_bracing", "baja_rangka",
       "baja_base_plate", "baja_angkur",
       "baja_sambungan_baut", "baja_sambungan_las", "baja_interaksi",
+      "baja_gusset", "baja_sambungan_momen",
     ],
+  },
+  {
+    /*
+      Kelompok ketiga: rangka atap ringan. Dipisahkan dari "Baja profil" karena
+      bahannya berbeda perilakunya — baja ringan dikendalikan TEKUK LOKAL
+      (luas efektif bisa sepertiga bruto) dan kayu oleh ARAH SERAT. Menaruhnya
+      bersama baja profil membuat orang menyangka rumusnya sama.
+    */
+    label: "Atap ringan & kayu",
+    jenis: ["kuda_kuda_kayu", "baja_ringan"],
   },
 ];
 
@@ -311,6 +331,79 @@ const MEDAN: Record<Jenis, Medan[]> = {
     { kunci: "jarakBagiMm", label: "Jarak tulangan bagi", satuan: "mm" },
     ...MEDAN_MUTU,
     { kunci: "panjangBordesM", label: "Panjang bordes (0 bila tak ada)", satuan: "m" },
+  ],
+  kolom_komposit: [
+    { kunci: "jenis", label: "Jenis (terbungkus / terisi)" },
+    { kunci: "asBajaMm2", label: "Luas penampang baja", satuan: "mm²" },
+    { kunci: "inersiaBajaMm4", label: "Inersia baja arah lemah", satuan: "mm⁴" },
+    { kunci: "lebarBetonMm", label: "Lebar beton", satuan: "mm" },
+    { kunci: "tinggiBetonMm", label: "Tinggi beton", satuan: "mm" },
+    { kunci: "panjangTekukM", label: "Panjang tekuk", satuan: "m" },
+    { kunci: "asTulanganMm2", label: "Luas tulangan longitudinal", satuan: "mm²" },
+    { kunci: "mutuBaja.fyMpa", label: "Mutu baja fy", satuan: "MPa" },
+    { kunci: "mutuBeton.fcMpa", label: "Mutu beton f'c", satuan: "MPa" },
+    { kunci: "mutuTulangan.fyMpa", label: "Mutu tulangan fy", satuan: "MPa" },
+    { kunci: "puKn", label: "Gaya aksial Pu", satuan: "kN" },
+  ],
+  bondek: [
+    { kunci: "bentangM", label: "Bentang bersih", satuan: "m" },
+    { kunci: "tebalTotalMm", label: "Tebal pelat total", satuan: "mm" },
+    { kunci: "tinggiGelombangMm", label: "Tinggi gelombang bondek", satuan: "mm" },
+    { kunci: "tebalBajaMm", label: "Tebal baja bondek", satuan: "mm" },
+    { kunci: "asBondekMm2PerM", label: "Luas bondek per m lebar", satuan: "mm²/m" },
+    { kunci: "inersiaBondekMm4PerM", label: "Inersia bondek per m", satuan: "mm⁴/m" },
+    { kunci: "mutuBondek.fyMpa", label: "Mutu bondek fy", satuan: "MPa" },
+    { kunci: "mutuBeton.fcMpa", label: "Mutu beton f'c", satuan: "MPa" },
+    { kunci: "bebanHidupKpa", label: "Beban hidup", satuan: "kPa" },
+    { kunci: "bebanMatiTambahanKpa", label: "Beban mati tambahan", satuan: "kPa" },
+    { kunci: "luasM2", label: "Luas pelat", satuan: "m²" },
+  ],
+  baja_gusset: [
+    { kunci: "tebalMm", label: "Tebal pelat buhul", satuan: "mm" },
+    { kunci: "lebarSambunganMm", label: "Lebar sambungan", satuan: "mm" },
+    { kunci: "panjangSambunganMm", label: "Panjang sambungan", satuan: "mm" },
+    { kunci: "panjangBebasMm", label: "Panjang bebas ke tumpuan", satuan: "mm" },
+    { kunci: "gayaKn", label: "Gaya batang (− untuk tekan)", satuan: "kN" },
+    { kunci: "mutu.fyMpa", label: "Mutu baja fy", satuan: "MPa" },
+    { kunci: "mutu.fuMpa", label: "Mutu baja fu", satuan: "MPa" },
+    { kunci: "agvMm2", label: "Luas geser bruto (blok)", satuan: "mm²" },
+    { kunci: "anvMm2", label: "Luas geser neto (blok)", satuan: "mm²" },
+    { kunci: "antMm2", label: "Luas tarik neto (blok)", satuan: "mm²" },
+  ],
+  baja_sambungan_momen: [
+    { kunci: "tipe", label: "Tipe (pelat_ujung / sayap_dilas / siku_sayap)" },
+    { kunci: "tinggiBalokMm", label: "Tinggi balok", satuan: "mm" },
+    { kunci: "tebalSayapMm", label: "Tebal sayap balok", satuan: "mm" },
+    { kunci: "lebarSayapMm", label: "Lebar sayap balok", satuan: "mm" },
+    { kunci: "muKnm", label: "Momen Mu", satuan: "kNm" },
+    { kunci: "vuKn", label: "Geser Vu", satuan: "kN" },
+    { kunci: "inersiaBalokMm4", label: "Inersia balok", satuan: "mm⁴" },
+    { kunci: "bentangM", label: "Bentang balok", satuan: "m" },
+    { kunci: "kekakuanKnmPerRad", label: "Kekakuan rotasi sambungan", satuan: "kNm/rad" },
+    { kunci: "asBautTarikMm2", label: "Luas baut tarik di sayap", satuan: "mm²" },
+    { kunci: "fuBautMpa", label: "Kuat tarik baut", satuan: "MPa" },
+    { kunci: "mutu.fyMpa", label: "Mutu baja fy", satuan: "MPa" },
+    { kunci: "mutu.fuMpa", label: "Mutu baja fu", satuan: "MPa" },
+  ],
+  kuda_kuda_kayu: [
+    { kunci: "kelas", label: "Kelas kuat kayu (I / II / III / IV)" },
+    { kunci: "lebarMm", label: "Lebar penampang", satuan: "mm" },
+    { kunci: "tinggiMm", label: "Tinggi penampang", satuan: "mm" },
+    { kunci: "panjangM", label: "Panjang batang", satuan: "m" },
+    { kunci: "gayaKn", label: "Gaya batang (− untuk tekan)", satuan: "kN" },
+    { kunci: "momenKnm", label: "Momen lentur", satuan: "kNm" },
+    { kunci: "durasi", label: "Durasi beban (tetap / sepuluh_menit / …)" },
+    { kunci: "kadarAir", label: "Kadar air (kering / basah)" },
+    { kunci: "lebarTumpuanMm", label: "Lebar landasan tumpuan", satuan: "mm" },
+    { kunci: "gayaTumpuKn", label: "Gaya tumpu tegak lurus serat", satuan: "kN" },
+  ],
+  baja_ringan: [
+    { kunci: "profil", label: "Profil (C75_075 / C75_100 / C100_100 / R30_045)" },
+    { kunci: "panjangM", label: "Panjang batang", satuan: "m" },
+    { kunci: "gayaKn", label: "Gaya batang (− untuk tekan)", satuan: "kN" },
+    { kunci: "jarakKudaKudaM", label: "Jarak antar kuda-kuda", satuan: "m" },
+    { kunci: "lapisanGM2", label: "Lapisan antikarat", satuan: "g/m²" },
+    { kunci: "lingkungan", label: "Lingkungan (biasa / pantai)" },
   ],
   balok_t: [
     { kunci: "bwMm", label: "Lebar badan bw", satuan: "mm" },
@@ -678,6 +771,42 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     dUtamaMm: 12, jarakUtamaMm: 150, dBagiMm: 8, jarakBagiMm: 200,
     mutu: { fcMpa: 25, fyMpa: 400 },
     pemakaian: "hunian", panjangBordesM: 0,
+  },
+  kolom_komposit: {
+    jenis: "terbungkus", asBajaMm2: 6353, inersiaBajaMm4: 13400000,
+    lebarBetonMm: 400, tinggiBetonMm: 400, panjangTekukM: 3.5,
+    asTulanganMm2: 1256,
+    mutuBaja: { fyMpa: 240 }, mutuBeton: { fcMpa: 30 },
+    mutuTulangan: { fyMpa: 400 }, puKn: 3000,
+  },
+  bondek: {
+    bentangM: 2.5, tebalTotalMm: 120, tinggiGelombangMm: 50, tebalBajaMm: 0.75,
+    asBondekMm2PerM: 1300, inersiaBondekMm4PerM: 540000,
+    mutuBondek: { fyMpa: 550 }, mutuBeton: { fcMpa: 25 },
+    bebanHidupKpa: 2.5, bebanMatiTambahanKpa: 1.2, luasM2: 100,
+    adaPenyanggaSementara: true,
+  },
+  baja_gusset: {
+    tebalMm: 10, lebarSambunganMm: 150, panjangSambunganMm: 200,
+    panjangBebasMm: 80, gayaKn: -300,
+    mutu: { fyMpa: 240, fuMpa: 370 },
+    agvMm2: 4000, anvMm2: 3000, antMm2: 1500,
+  },
+  baja_sambungan_momen: {
+    tipe: "pelat_ujung", tinggiBalokMm: 400, tebalSayapMm: 13, lebarSayapMm: 200,
+    muKnm: 150, vuKn: 80, inersiaBalokMm4: 237000000, bentangM: 6,
+    kekakuanKnmPerRad: 200000, asBautTarikMm2: 1200, fuBautMpa: 800,
+    mutu: { fyMpa: 240, fuMpa: 370 },
+  },
+  kuda_kuda_kayu: {
+    kelas: "II", lebarMm: 60, tinggiMm: 120, panjangM: 3,
+    gayaKn: -15, momenKnm: 0.5,
+    durasi: "tetap", kadarAir: "kering",
+    lebarTumpuanMm: 80, gayaTumpuKn: 12,
+  },
+  baja_ringan: {
+    profil: "C75_100", panjangM: 1.5, gayaKn: -4,
+    jarakKudaKudaM: 1.2, lapisanGM2: 100, lingkungan: "biasa",
   },
   balok_t: {
     bwMm: 200, hMm: 400, hfMm: 120, bentangBersihM: 4, jarakAsAsM: 3,

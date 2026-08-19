@@ -5,6 +5,108 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 14) — cakupan uji struktur 100%: pondasi sampai atap, beton dan baja
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur          887 lulus (887)
+$ npx tsc --noEmit  (api)          exit=0
+$ npx tsc --noEmit  (web)          exit=0
+$ lapor-cakupan-struktur.mjs       ADA 34 / 34  (100%)
+12 penjaga terkait                 exit=0 semuanya
+```
+
+Founder meminta ini dituntaskan tanpa mempertimbangkan penghematan. Dikerjakan
+dalam empat commit; cakupan 53% → 59% → 71% → 82% → **100%**.
+
+### Enam modul terakhir
+
+**KOMPOSIT** — kolom komposit & bondek. Beton menyumbang lebih dari separuh
+kapasitas kolom komposit; menghitungnya sebagai kolom baja saja mengabaikan
+porsi itu. Kolom TERISI mendapat kekangan dari pipanya (koef 0,95 bukan 0,85).
+
+Bondek diperiksa DUA tahap, dan tahap PELAKSANAAN yang paling sering
+menentukan: sebelum beton mengeras, bondek memikul sendiri beton basah +
+pekerja. Bondek yang melendut membuat beton di tengah lebih tebal, dan tambahan
+berat itu membuatnya melendut lebih jauh — lingkaran yang memperkuat dirinya
+sendiri. Diukur: bentang 2,5 m tanpa penyangga melendut 15,9 mm (batas 13,9);
+dengan penyangga di tengah lendutannya seperenambelas, karena lendutan
+sebanding L⁴.
+
+**SAMBUNGAN LANJUT** — pelat buhul & sambungan momen. Lebar efektif Whitmore
+(menyebar 30° dari baris baut pertama) bukan lebar penuh pelat. TEKUK pelat
+buhul terjadi KELUAR BIDANG — arah yang tak terlihat pada gambar sambungan yang
+selalu digambar dari samping; perancang memeriksa bautnya, memeriksa lasnya,
+dan pelatnya sendiri melengkung.
+
+Sambungan momen memeriksa KEKAKUAN, bukan hanya kekuatan. Diukur pada contoh
+nyata: kekakuan 50.000 kNm/rad terdengar besar, tetapi Ki·L/EI = 6,33 —
+SEMI-RIGID, bukan kaku. Momen yang dihitung tak sampai ke sana, dan momen
+lapangan justru lebih besar daripada rencana.
+
+**ATAP RINGAN** — kuda-kuda kayu & baja ringan. Pada kayu, TUMPU TEGAK LURUS
+SERAT paling sering gagal dan paling jarang diperiksa: kelas II kuat tekan
+sejajar 42,5 MPa tetapi tegak lurus hanya 15 MPa. Yang terjadi di lapangan
+gording menekan kuda-kuda, kayunya penyok, atapnya turun — dan tak ada yang
+mengira sebabnya tumpuan karena batangnya sendiri utuh.
+
+Faktor durasi beban diterapkan (kayu yang dibebani terus-menerus patah pada
+beban yang sanggup ditahannya sesaat), tetapi TIDAK pada tumpu — Fc⊥ adalah
+kegagalan penyok, bukan patah, jadi creep rupture tak berlaku.
+
+Pada baja ringan, TEKUK LOKAL mengendalikan: C75 setebal 0,75 mm hanya 33%
+efektif. Lapisan antikarat diperiksa karena ia menentukan UMUR bukan kekuatan —
+rangka kuat berlapis tipis habis dalam belasan tahun, dan menggantinya berarti
+membongkar seluruh penutup atap.
+
+### Mutasi — 23 pada tahap ini, dan DUA yang lolos
+
+Semua akhirnya merah. Dua yang sempat lolos, keduanya karena FIXTURE-nya tak
+membedakan:
+
+- **"baja ringan pakai luas bruto"** lolos karena fixture dasar sudah gagal
+  pada kedua versi (2,98 kN vs gaya 4 kN) — menaikkan kapasitas 3× tak
+  mengubah verdict. Ditutup dengan gaya yang jatuh DI ANTARA kapasitas efektif
+  dan bruto.
+- **"kekakuan sambungan tak diperiksa"** lolos karena test lain memeriksa
+  KLASIFIKASINYA (semi-rigid/kaku/sendi) dan catatannya, tetapi tak satu pun
+  memeriksa bahwa klasifikasi itu benar-benar MEMENGARUHI verdict.
+
+Pola yang sama dengan "raft pakai rata-rata" di commit sebelumnya: test yang
+memeriksa angka tanpa memeriksa akibatnya pada keputusan.
+
+### Yang tersambung penuh
+
+Migrasi 469 (30 jenis, idempoten) · dispatcher · 12 terjemahan awam baru · UI
+lengkap dengan kelompok ketiga "Atap ringan & kayu" — dipisahkan dari "Baja
+profil" karena bahannya berbeda perilakunya, dan menaruhnya bersama membuat
+orang menyangka rumusnya sama.
+
+Diuji lewat API sungguhan: keenam jenis tersimpan, `hitung-semua` berhasil 6
+gagal 0.
+
+### Cakupan akhir
+
+```
+TANAH      daya dukung tanah
+PONDASI    footplat · pilecap · tiang · sloof · menerus · raft
+BAWAH      dinding penahan tanah
+KOLOM      persegi · bulat · baja · komposit
+BALOK      beton · baja · balok T
+PELAT      beton · bondek
+TANGGA     beton
+DINDING    geser
+SAMBUNGAN  baut · las · base plate · angkur · gusset · momen
+ATAP       kuda-kuda baja · gording · bracing · kuda-kuda kayu · baja ringan
+GLOBAL     interaksi P-M · gempa · angin · drift
+```
+
+Angka 100% ini akan basi begitu ada elemen ke-35 yang layak ditambahkan —
+karena itu ia diukur `lapor-cakupan-struktur.mjs`, bukan ditulis di dokumen.
+
+---
+
 ## 2026-08-19 (lanjutan 13) — "sudah komplit?" diukur, dan jawabannya 53%
 
 Founder bertanya tiga hal: apakah semuanya aman tanpa cacat, apakah UI-nya

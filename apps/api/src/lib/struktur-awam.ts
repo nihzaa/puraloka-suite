@@ -790,6 +790,148 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
       + 'tulangan di ujung dinding justru MEMPERBURUK — ia menaikkan kekuatan '
       + 'lentur sehingga gesernya makin tertinggal.',
   },
+  // ── KOMPOSIT, SAMBUNGAN LANJUT, ATAP RINGAN ───────────────────────────────
+  'Rasio luas baja': {
+    judul: 'Bajanya cukup banyak untuk disebut komposit',
+    apa: 'Kolom komposit adalah baja dan beton yang bekerja sebagai satu. '
+      + 'Kalau bajanya terlalu sedikit, ia sebenarnya kolom beton bertulang '
+      + 'biasa — dan cara hitungnya berbeda.',
+    risiko: 'Menghitungnya tetap sebagai komposit MELEBIHKAN kapasitas: rumus '
+      + 'komposit mengandaikan baja dan beton saling menahan, dan itu tak '
+      + 'terjadi kalau bajanya cuma sedikit.',
+    tindakan: 'Perbesar profil bajanya, atau hitung ulang sebagai kolom beton '
+      + 'bertulang biasa dengan baja sebagai tulangan tambahan.',
+  },
+  'Kapasitas tekan': {
+    judul: 'Kekuatan menahan beban tekan',
+    apa: 'Batang atau kolom yang ditekan bisa gagal dua cara: hancur karena '
+      + 'bahannya kalah, atau MELENGKUNG keluar meski bahannya masih kuat. '
+      + 'Yang kedua terjadi pada batang yang panjang dan langsing.',
+    risiko: 'Kegagalan tekan pada kolom atau batang rangka bersifat '
+      + 'MERUNTUHKAN — beban yang dipikulnya berpindah mendadak ke batang lain '
+      + 'yang juga tak dirancang untuknya, dan keruntuhan menjalar.',
+    tindakan: 'Perbesar penampangnya, perpendek panjang bebasnya dengan '
+      + 'menambah pengaku, atau naikkan mutu bahannya.',
+  },
+  'Kelangsingan batang tekan': {
+    judul: 'Batangnya tidak terlalu ramping',
+    apa: 'Perbandingan panjang batang terhadap ukuran penampangnya. Batang '
+      + 'yang terlalu ramping melengkung jauh sebelum bahannya kalah — '
+      + 'seperti penggaris plastik yang ditekan dari kedua ujung.',
+    risiko: 'Di atas batas, batang praktis tak bisa dipakai sebagai penahan '
+      + 'tekan seberapa pun kuat bahannya. Menambah mutu bahan sama sekali '
+      + 'tidak menolong; yang kurang bentuknya, bukan kekuatannya.',
+    tindakan: 'Tambah pengaku di tengah bentang untuk memperpendek panjang '
+      + 'bebasnya, atau pakai penampang yang lebih gemuk.',
+  },
+  'Lendutan saat pengecoran': {
+    judul: 'Bondek tidak melendut saat dicor',
+    apa: 'Sebelum betonnya mengeras, lembaran bondek memikul SENDIRI berat '
+      + 'beton basah dan pekerja di atasnya. Ini memeriksa apakah ia cukup '
+      + 'kaku untuk itu.',
+    risiko: 'Bondek yang melendut membuat beton di tengah bentang lebih tebal, '
+      + 'dan tambahan berat itu membuatnya melendut lebih jauh — lingkaran '
+      + 'yang memperkuat dirinya sendiri. Ujungnya lantai bergelombang, '
+      + 'volumenya membengkak, dan pada kasus terburuk bondeknya runtuh saat '
+      + 'pengecoran sedang berlangsung.',
+    tindakan: 'Pasang PENYANGGA SEMENTARA di tengah bentang, dan jangan '
+      + 'bongkar sampai betonnya mencapai kekuatan rencana. Atau pakai bondek '
+      + 'yang lebih tebal.',
+  },
+  'Leleh tarik pelat buhul': {
+    judul: 'Pelat sambungan tidak melar',
+    apa: 'Pelat yang menyatukan batang-batang rangka di satu titik ikut '
+      + 'menahan gayanya. Yang bekerja bukan seluruh lebar pelat, melainkan '
+      + 'sepotong yang menyebar dari baris baut pertama.',
+    risiko: 'Kalau kurang, pelatnya melar permanen dan sambungan jadi longgar. '
+      + 'Rangka yang sambungannya longgar berubah bentuk, dan gaya di '
+      + 'batang-batangnya bergeser dari yang direncanakan.',
+    tindakan: 'Tebalkan pelatnya, perpanjang daerah sambungannya, atau '
+      + 'naikkan mutu pelatnya.',
+  },
+  'Sobek blok': {
+    judul: 'Pelat tidak tercabut mengikuti garis baut',
+    apa: 'Sepotong pelat bisa tercabut UTUH mengikuti lubang-lubang bautnya — '
+      + 'seperti perangko yang lepas di garis perforasinya. Ini kegagalan '
+      + 'PELATNYA, bukan bautnya.',
+    risiko: 'Bisa terjadi meski setiap bautnya sendiri sudah cukup — itulah '
+      + 'sebabnya ia harus diperiksa terpisah. Sambungan lepas sekaligus, dan '
+      + 'batang yang dipegangnya jatuh.',
+    tindakan: 'Perbesar jarak baut ke tepi pelat, tambah baris bautnya, atau '
+      + 'tebalkan pelatnya.',
+  },
+  'Tekuk pelat buhul': {
+    judul: 'Pelat sambungan tidak melengkung keluar',
+    apa: 'Pada batang yang DITEKAN, pelat sambungan bekerja seperti kolom '
+      + 'pendek — dan bisa melengkung ke samping, keluar dari bidang '
+      + 'rangkanya.',
+    risiko: 'Inilah yang paling sering dilewatkan: perancang memeriksa '
+      + 'bautnya, memeriksa lasnya, dan pelatnya sendiri melengkung. Arahnya '
+      + 'KELUAR BIDANG — tak terlihat pada gambar sambungan yang selalu '
+      + 'digambar dari samping.',
+    tindakan: 'Tebalkan pelatnya, atau perpendek bagian pelat yang menggantung '
+      + 'bebas antara baut terakhir dan tumpuannya.',
+  },
+  'Kekakuan sambungan': {
+    judul: 'Sambungan benar-benar kaku, bukan cuma kelihatan kaku',
+    apa: 'Sambungan yang dirancang menyalurkan momen harus cukup KAKU, bukan '
+      + 'sekadar cukup kuat. Yang menentukan bukan penampilannya melainkan '
+      + 'perbandingan kekakuannya terhadap kekakuan baloknya.',
+    risiko: 'Sambungan yang kurang kaku BERPUTAR saat dibebani. Momen yang '
+      + 'direncanakan tak sampai ke sana, dan momen di tengah bentang justru '
+      + 'lebih besar daripada yang dihitung — balok yang dirancang menerus '
+      + 'berperilaku lebih dekat ke tumpuan sederhana, dan bagian tengahnya '
+      + 'kelebihan beban.',
+    tindakan: 'Tebalkan pelat ujungnya, tambah pengaku di badan kolom, atau '
+      + 'hitung ulang seluruh baloknya sebagai bertumpu semi-kaku.',
+  },
+  'Kapasitas momen': {
+    judul: 'Sambungan sanggup menyalurkan momen',
+    apa: 'Momen disalurkan lewat pasangan gaya: sayap atas balok ditarik, '
+      + 'sayap bawah ditekan. Gaya tarik itu jauh lebih besar daripada gaya '
+      + 'geser baloknya, dan itu yang menentukan jumlah bautnya.',
+    risiko: 'Kalau kurang, baut di sayap atas putus atau tercabut, sambungan '
+      + 'terbuka seperti engsel, dan balok yang dirancang menerus mendadak '
+      + 'jadi bertumpu sederhana — dengan momen tengah yang tak pernah '
+      + 'dihitung untuknya.',
+    tindakan: 'Tambah jumlah atau ukuran baut di sayap tarik, atau perbesar '
+      + 'tinggi baloknya supaya lengan kopelnya lebih panjang.',
+  },
+  'Leleh sayap balok': {
+    judul: 'Sayap balok tidak melar di sambungan',
+    apa: 'Gaya tarik dari momen bekerja pada sayap balok. Ini memeriksa apakah '
+      + 'sayapnya sendiri sanggup — bukan hanya bautnya.',
+    risiko: 'Baut boleh cukup sementara sayap baloknya yang melar. Sayap yang '
+      + 'melar membuat sambungan berputar meski bautnya utuh, dan akibatnya '
+      + 'sama dengan sambungan yang kurang kaku.',
+    tindakan: 'Pakai balok dengan sayap lebih tebal, atau tambahkan pelat '
+      + 'penguat pada sayap di daerah sambungan.',
+  },
+  'Tumpu tegak lurus serat': {
+    judul: 'Kayunya tidak penyok di tumpuan',
+    apa: 'Kayu jauh lebih kuat searah seratnya daripada tegak lurus — bedanya '
+      + 'sampai tiga sampai lima kali lipat. Di tempat balok bertumpu, gaya '
+      + 'menekan TEGAK LURUS serat, dan di situ kayu paling lemah.',
+    risiko: 'Inilah yang paling sering gagal pada kuda-kuda kayu dan paling '
+      + 'jarang diperiksa. Yang terjadi: gording menekan kuda-kuda, kayunya '
+      + 'penyok beberapa milimeter, atapnya turun dan bergelombang — dan tak '
+      + 'ada yang mengira sebabnya tumpuan, karena batangnya sendiri utuh.',
+    tindakan: 'Perlebar landasan tumpuannya, atau sisipkan pelat baja/kayu '
+      + 'keras di bawah titik tumpu untuk menyebarkan gayanya.',
+  },
+  'Lapisan antikarat': {
+    judul: 'Lapisan pelindung cukup untuk lingkungannya',
+    apa: 'Baja ringan dilindungi lapisan seng-aluminium yang sangat tipis. '
+      + 'Tebal lapisan inilah yang menentukan berapa lama rangkanya bertahan — '
+      + 'bukan kekuatannya.',
+    risiko: 'Rangka yang KUAT tetapi berlapis tipis habis dimakan karat dalam '
+      + 'belasan tahun, terutama di daerah pantai atau dekat pabrik. Dan '
+      + 'mengganti rangka atap berarti membongkar seluruh penutup atapnya — '
+      + 'pekerjaan yang jauh lebih mahal daripada selisih harga lapisannya.',
+    tindakan: 'Pakai lapisan AZ100 untuk daerah biasa dan AZ150 untuk tepi '
+      + 'pantai. Minta sertifikat lapisannya dari pemasok; angka ini tak bisa '
+      + 'dilihat mata.',
+  },
 }
 
 /**

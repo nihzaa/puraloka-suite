@@ -20,6 +20,15 @@ import {
   analisaDindingPenahan, analisaDindingGeser,
 } from '../../lib/struktur-dinding.js'
 import {
+  analisaKolomKomposit, analisaBondek,
+} from '../../lib/struktur-komposit.js'
+import {
+  analisaGusset, analisaSambunganMomen,
+} from '../../lib/struktur-baja-sambungan-lanjut.js'
+import {
+  analisaKudaKudaKayu, analisaBajaRingan,
+} from '../../lib/struktur-atap-ringan.js'
+import {
   analisaGempaStatik, analisaAngin, analisaDrift,
   SISTEM_STRUKTUR, KATEGORI_RISIKO, KOEF_PERIODA, EKSPOSUR,
 } from '../../lib/struktur-beban-lateral.js'
@@ -83,6 +92,9 @@ const JENIS = [
   'balok', 'kolom', 'kolom_bulat', 'plat', 'footplat', 'pilecap', 'tiang',
   'sloof', 'tangga', 'balok_t',
   'pondasi_menerus', 'raft', 'dinding_penahan', 'dinding_geser',
+  'kolom_komposit', 'bondek',
+  // Baja & atap ringan
+  'baja_gusset', 'baja_sambungan_momen', 'kuda_kuda_kayu', 'baja_ringan',
   // Baja
   'baja_balok', 'baja_kolom', 'baja_gording', 'baja_bracing',
   'baja_rangka', 'baja_base_plate', 'baja_angkur',
@@ -154,6 +166,31 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
     case 'raft': return analisaRaft(dgnJumlah as never)
     case 'dinding_penahan': return analisaDindingPenahan(dgnJumlah as never)
     case 'dinding_geser': return analisaDindingGeser(dgnJumlah as never)
+    /*
+      Enam elemen terakhir — menutup cakupan pondasi→atap sepenuhnya.
+
+      Yang khas pada masing-masing, dan tak ada di elemen lain:
+
+        kolom_komposit  beton menyumbang > separuh kapasitas; menghitungnya
+                        sebagai kolom baja saja mengabaikan porsi itu
+        bondek          diperiksa DUA tahap — pelaksanaan (bondek memikul
+                        beton basah sendirian) dan layan. Tahap pertama yang
+                        paling sering menentukan dan paling sering dilewatkan
+        baja_gusset     TEKUK pelat buhul, yang terjadi KELUAR BIDANG dan tak
+                        terlihat pada gambar sambungan
+        baja_sambungan_momen  KEKAKUAN, bukan hanya kekuatan — sambungan yang
+                        "kelihatan kaku" sering semi-rigid
+        kuda_kuda_kayu  TUMPU TEGAK LURUS SERAT, yang paling sering gagal dan
+                        paling jarang diperiksa
+        baja_ringan     TEKUK LOKAL mengendalikan; luas efektif bisa hanya
+                        sepertiga luas bruto
+    */
+    case 'kolom_komposit': return analisaKolomKomposit(dgnJumlah as never)
+    case 'bondek': return analisaBondek(dgnJumlah as never)
+    case 'baja_gusset': return analisaGusset(dgnJumlah as never)
+    case 'baja_sambungan_momen': return analisaSambunganMomen(dgnJumlah as never)
+    case 'kuda_kuda_kayu': return analisaKudaKudaKayu(dgnJumlah as never)
+    case 'baja_ringan': return analisaBajaRingan(dgnJumlah as never)
 
     /*
       ── BAJA
