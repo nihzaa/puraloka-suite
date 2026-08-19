@@ -502,6 +502,14 @@ const MEDAN: Record<Jenis, Medan[]> = {
     { kunci: "dUtamaMm", label: "Ø tulangan", satuan: "mm" },
     { kunci: "jarakUtamaMm", label: "Jarak tulangan", satuan: "mm" },
     ...MEDAN_MUTU,
+    /*
+      GEMPA — opsional, dan kosongnya BUKAN berarti aman.
+
+      Labelnya sengaja menyebut SUMBER angkanya (peta gempa SNI 1726), bukan
+      cuma nama besarannya. "PGA" tak berarti apa-apa bagi yang mengisi;
+      "dari peta gempa SNI 1726" memberi tahu ke mana harus mencari.
+    */
+    { kunci: "pgaG", label: "Percepatan gempa PGA (peta SNI 1726) — kosongkan bila belum tahu", satuan: "g" },
   ],
   dinding_geser: [
     { kunci: "panjangM", label: "Panjang dinding (arah gaya)", satuan: "m" },
@@ -584,6 +592,17 @@ const MEDAN: Record<Jenis, Medan[]> = {
     { kunci: "pukKn", label: "Beban kolom Puk", satuan: "kN" },
     { kunci: "muxKnm", label: "Momen Mux", satuan: "kNm" },
     { kunci: "muyKnm", label: "Momen Muy", satuan: "kNm" },
+    /*
+      PENURUNAN — tiga medan opsional.
+
+      Daya dukung izin di atas menahan KERUNTUHAN tanah, bukan penurunan.
+      Pada lempung lunak, pondasi bisa lulus daya dukung dengan angka
+      keamanan 3 dan tetap turun berlebihan — dan yang meretakkan bangunan
+      justru selisih turun antar kolom, bukan turunnya sendiri.
+    */
+    { kunci: "jenisTanahPenurunan", label: "Jenis tanah untuk penurunan (pasir / lempung_kaku / lempung)" },
+    { kunci: "nSptPenurunan", label: "N-SPT rata-rata di bawah telapak" },
+    { kunci: "jarakKolomM", label: "Jarak ke kolom tetangga (untuk cek lantai miring)", satuan: "m" },
     { kunci: "qaKnM2", label: "Daya dukung ijin tanah", satuan: "kN/m²" },
   ],
   pilecap: [
@@ -893,6 +912,12 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     qaKnM2: 200, panjangDindingM: 20,
     selimutMm: 50, dUtamaMm: 16, jarakUtamaMm: 150,
     mutu: { fcMpa: 25, fyMpa: 400 },
+    /*
+      PGA 0,3 g — lazim untuk Jawa & Sumatera. Diisi di contoh supaya
+      pemeriksaan gempa langsung terlihat; tanpanya orang tak tahu
+      pemeriksaan itu ada.
+    */
+    pgaG: 0.3,
   },
   dinding_geser: {
     panjangM: 4, tebalMm: 250, tinggiM: 12,
@@ -915,6 +940,13 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     mutu: { fcMpa: 30, fyMpa: 400 },
     dAksenM: 0.07, dTulanganMm: 13, jarakTulanganMm: 150,
     pukKn: 400, muxKnm: 20, muyKnm: 20, qaKnM2: 300,
+    /*
+      Lempung kaku N=15, jarak kolom 4 m — tanah yang lazim di perkotaan
+      Jawa. Diisi supaya pemeriksaan penurunan langsung terlihat.
+    */
+    jenisTanahPenurunan: "lempung_kaku",
+    nSptPenurunan: 15,
+    jarakKolomM: 4,
   },
   pilecap: {
     nx: 2, ny: 2, dxM: 1.2, dyM: 1.2, axM: 0.5, ayM: 0.5,

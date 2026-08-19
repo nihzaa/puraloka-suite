@@ -59,6 +59,15 @@ const KASUS = [
     gammaTanahKnM3: 18, phiDerajat: 30, qaKnM2: 150,
     panjangDindingM: 12, selimutMm: 50, dUtamaMm: 13, jarakUtamaMm: 150,
     mutu: { fcMpa: 25, fyMpa: 400 },
+    pgaG: 0.3,
+  }],
+  ['footplat', 'penurunan pondasi — batas BARU', {
+    lxM: 2, lyM: 2, hM: 0.4, bxM: 0.4, byM: 0.4, pxM: 1, pyM: 1, zM: 1,
+    gammaTanahKnM3: 17, letakKolom: 'tengah',
+    mutu: { fcMpa: 25, fyMpa: 400, fyvMpa: 240 }, dAksenM: 0.08,
+    dTulanganMm: 16, jarakTulanganMm: 150,
+    pukKn: 600, muxKnm: 20, muyKnm: 20, qaKnM2: 200,
+    jenisTanahPenurunan: 'lempung', nSptPenurunan: 8, jarakKolomM: 4,
   }],
   ['sambungan_kayu', 'pola sambungan — judul BARU', {
     alat: 'paku', diameterMm: 4.1, jumlahAlat: 14,
@@ -85,6 +94,7 @@ console.log(`${dibuat.length} elemen uji dibuat`)
 
 /* ── Potret ── */
 const browser = await chromium.launch()
+try {
 /*
   Mode GELAP ikut dipotret bila diminta (--gelap).
 
@@ -188,10 +198,48 @@ for (const [idx, [id, jenis]] of dibuat.entries()) {
   if (await tutup.count()) { await tutup.click(); await page.waitForTimeout(600) }
 }
 
-await browser.close()
+} finally {
+  await browser.close()
+  /*
+    Pembersihan DI DALAM finally, bukan sesudah bloknya.
 
-/* ── Bersihkan ── */
-for (const [id] of dibuat) {
-  await fetch(`${API}/api/v1/struktur/${id}`, { method: 'DELETE', headers: { cookie } })
+    Diukur: menaruh  SESUDAH try/finally tetap tak
+    berjalan saat blok itu melempar — lemparan naik ke atas dan mematikan
+    proses sebelum baris berikutnya sempat dijalankan. Empat elemen POTRET-*
+    tertinggal di proyek SUNGGUHAN, dan rekap volume proyek ikut
+    menghitungnya.
+
+    Ini ketiga kalinya di sesi ini bersih-bersih ditaruh di jalur bahagia.
+  */
+  await bersihkan()
 }
-console.log(`${dibuat.length} elemen uji dihapus`)
+
+/*
+  ══════════════════════════════════════════════════════════════════════════════
+  Pembersihan dipanggil dari `finally`, bukan di sini saja.
+
+  Diukur 2026-08-19: satu jalan gagal di tengah (web mati saat Playwright
+  membuka /login), dan seluruh baris di bawah `browser.close()` tak pernah
+  dijalankan. Empat elemen `POTRET-*` tertinggal di proyek SUNGGUHAN — dan
+  proyek sungguhan itu yang dipakai founder.
+
+  Elemen uji yang tertinggal bukan sekadar berantakan: rekap volume proyek
+  ikut menghitungnya, dan angka yang salah di RAB adalah angka yang
+  ditawarkan ke klien.
+
+  Ini kedua kalinya di sesi ini — yang pertama `UJI-SAMB-*` dari penguji
+  sambungan. Pola yang sama: bersih-bersih ditaruh di jalur bahagia.
+  ══════════════════════════════════════════════════════════════════════════════
+*/
+
+async function bersihkan() {
+  let gagal = 0
+  for (const [id] of dibuat) {
+    const r = await fetch(`${API}/api/v1/struktur/${id}`, {
+      method: 'DELETE', headers: { cookie },
+    }).catch(() => ({ ok: false, status: 0 }))
+    if (!r.ok) { console.error(`  ⚠ elemen uji ${id} TAK terhapus (${r.status})`); gagal++ }
+  }
+  console.log(`${dibuat.length - gagal} elemen uji dihapus`
+    + (gagal ? ` — ${gagal} TERTINGGAL, hapus manual` : ''))
+}
