@@ -5,6 +5,118 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 10) — take-off sektor: bukaan akhirnya dikurangi, atap akhirnya miring
+
+**Ringkasan run:**
+
+```
+$ npx vitest run takeoff
+ Test Files  5 passed (5)
+      Tests  81 passed (81)
+
+$ node -r dotenv/config scripts/audit-sektor-takeoff-cocok.mjs
+✅ 9 sektor take-off — kode dan basis cocok, semuanya punya satuan & cabang   exit=0
+
+$ npx tsc --noEmit   exit=0
+```
+
+Founder minta SEMUA sektor pekerjaan bisa dihitung volumenya, bukan struktur
+saja. AHSP-nya sudah lengkap — diukur di basis: atap 57 assembly m², plafon 19,
+keramik 39, cat 27, plesteran 34, pipa 299 m + 98 buah, sanitair 2 buah. Yang
+tak ada: apa pun yang MENGHITUNG angka yang dikalikan ke AHSP itu.
+
+### Yang sudah ada, dan kenapa belum cukup
+
+`takeoff-dimensi.ts` (migrasi 431) sudah menyediakan empat metode generik —
+volume, luas, dinding, panjang. Modul baru TIDAK menggantikannya; baris tanpa
+`sektor` berperilaku persis seperti sebelumnya, dan test lamanya tetap hijau.
+
+Tiga hal yang tak bisa dijawabnya, ketiganya berujung rupiah:
+
+1. **Bukaan tak pernah dikurangi.** Dinding 4×3 m dengan satu pintu 0,9×2,1
+   dan satu jendela 1,2×1,2 dihitung 12 m² penuh; yang diplester 8,67 m².
+   Kelebihan **28%**, di sektor yang paling banyak barisnya — plesteran,
+   acian, cat.
+
+2. **Kemiringan atap tak ada.** Luas atap BUKAN luas denah: 100 m² denah pada
+   30° berukuran **115,47 m²**. Estimator yang memakai luas denah kekurangan
+   15% genteng, dan kekurangannya baru ketahuan saat pemasangan berhenti.
+
+3. **Yang dihitung per titik.** Sanitair dan MEP volumenya cacah, bukan
+   ukuran — tetapi tetap perlu tercatat per ruangan supaya bisa ditelusuri.
+
+### Kenapa MEMPERLUAS tabel, bukan tabel kedua
+
+Kolom yang dibutuhkan hanya lima, dan seluruh alur di sekitarnya sudah ada: FK
+ke `estimate_items`, jejak penerapan, rute baca-tulis, izin `cecep:takeoff:*`.
+Tabel kedua berarti dua tempat yang harus dibaca setiap kali orang bertanya
+"volume ini dari mana" — dan yang kedua akan terlupa.
+
+Rutenya pun satu, bukan dua: kehadiran `sektor` yang memilih jalur hitung.
+
+### CHECK lama menolak baris yang SAH — ketahuan saat diuji
+
+`takeoff_dimensi_dimensi_wajib` (431) menuntut dimensi berdasarkan `metode`:
+`luas` wajib punya panjang DAN lebar. Benar untuk baris generik, salah untuk
+baris sektor — `sanitair` volumenya cacah, `kusen` diukur dari lebar+tinggi
+bukaannya.
+
+Kalau dibiarkan, satu-satunya jalan keluar adalah mengisi kolom dimensi dengan
+angka karangan supaya lolos — dan angka karangan di kolom yang justru dibaca
+orang untuk memeriksa volume adalah kerusakan yang lebih besar daripada
+constraint yang menolak. CHECK-nya diperluas: aturan lama tetap berlaku persis
+untuk baris tanpa `sektor`.
+
+Diuji dua arah, 13 kasus: 7 ditolak oleh constraint yang TEPAT (bukan sekadar
+ditolak), 6 diterima termasuk baris generik lama.
+
+⚠ Uji pertama saya tak membuktikan apa-apa: kelima penolakan bertipe `23502`
+(NOT NULL), bukan `23514` (CHECK) — yang menahan adalah `estimate_item_id`,
+bukan constraint yang saya tulis. Diulang dengan FK yang sah.
+
+### Subquery dilarang di CHECK
+
+`cannot use subquery in check constraint`. Validasi bentuk array JSONB memang
+butuh iterasi, jadi dipindah ke fungsi `fn_bukaan_berbentuk` IMMUTABLE — cara
+yang sah, dan tetap menahan (terbukti: lebarM string, lebarM nol, dan objek
+tanpa nama ketiganya ditolak `takeoff_bukaan_berbentuk`).
+
+### Mutasi — enam, semuanya merah
+
+bukaan tak dikurangi · kemiringan pakai cos alih-alih 1/cos · kusen pakai luas
+alih-alih keliling · bukaan ≥ dinding tak ditolak · rekap mencampur sektor ·
+batas kemiringan dilepas.
+
+Penjaga `audit-sektor-takeoff-cocok.mjs` juga dibuktikan merah 4×: sektor
+karangan di kode, sektor dihapus dari kode, cabang perhitungan dihapus, satuan
+dihapus.
+
+### Satu cacat yang ditangkap test, bukan mata
+
+Helper `ang()` memotong nol trailing dari SELURUH string, jadi `ang(30, 0)`
+memulangkan `"3"` — rincian atap berbunyi **"÷ cos 3°"** untuk kemiringan 30°.
+Volumenya benar; kalimat penjelasnya yang berbohong. Angka salah di kalimat
+penjelas lebih berbahaya daripada tak ada kalimat sama sekali: pembacanya
+memeriksa hitungan yang tak pernah dilakukan.
+
+### Diuji lewat API sungguhan, bukan hanya unit test
+
+8 kasus lewat rute hidup: dinding 8,67 m² (rinciannya menyebut P1 dan J1),
+atap 115,47 m², kusen 24 m keliling, sanitair 3 unit, pipa 18,5 m, metode
+generik lama tetap 12 m², dan dua masukan cacat ditolak 400 dengan pesan yang
+bisa dibaca orang.
+
+Ini pelajaran dari entri sebelumnya yang saya bayar mahal: `satuan-beli.ts`
+ditulis lengkap dengan 25 aturan lalu tak pernah dipanggil sekali pun, dan 36
+test tetap hijau. Modul yang tak terpanggil sama dengan modul yang tak ada.
+
+### Belum dikerjakan
+
+UI-nya belum ada — sektor baru hanya terjangkau lewat API. Layar take-off yang
+sudah ada (`estimate-versions`) menampilkan empat metode generik saja.
+
+---
+
 ## 2026-08-19 (lanjutan 9) — jembatan volume→RAB tersambung, dan sebuah harga yang salah 509×
 
 **Ringkasan run:**

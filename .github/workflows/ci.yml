@@ -774,6 +774,23 @@ jobs:
       - name: Harga bahan masuk akal untuk satuannya
         run: node scripts/audit-harga-satuan-waras.mjs
 
+      # Daftar SEKTOR take-off ada di dua tempat yang harus sama: CHECK
+      # `takeoff_sektor_sah` (migrasi 465) dan konstanta SEKTOR_SAH di
+      # `lib/takeoff-sektor.ts`. Yang ada di kode tetapi tak di basis membuat
+      # rute menghitung volumenya lalu basis menolak dengan pesan constraint
+      # MENTAH; yang ada di basis tetapi tak di kode membuat sektornya tak
+      # terjangkau siapa pun lewat aplikasi, tanpa satu pun galat.
+      #
+      # Ikut memeriksa tiap sektor punya satuan DAN cabang perhitungan —
+      # sektor tanpa cabang lolos typecheck dan melempar di jalan, pada layar
+      # estimator, sesudah ia mengisi seluruh dimensinya.
+      #
+      # Bukti merah: 4 mutasi (sektor karangan di kode · sektor dihapus dari
+      # kode · cabang dihapus · satuan dihapus) → keempatnya exit 1 dengan
+      # pesan yang menyebut sektornya → dipulihkan → exit 0.
+      - name: Sektor take-off cocok antara kode dan basis
+        run: node scripts/audit-sektor-takeoff-cocok.mjs
+
       # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
       # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
       # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris

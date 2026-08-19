@@ -240,6 +240,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-jenis-tulis-punya-label.mjs` | tiap jenis tulis & persetujuan wajib punya label UI — kunci mentah muncul di layar keputusan uang (ambang NOL) |
 | `audit-katalog-tool-tak-membengkak.mjs` | skema tool asisten dikirim ULANG tiap ronde; katalog yang membengkak menaikkan tagihan tiap tenant tanpa gejala (ratchet) |
 | `audit-harga-satuan-waras.mjs` | harga bahan wajib masuk akal untuk SATUANNYA — harga per m³ yang tersalin ke baris kg membuat 1 m³ beton terhitung Rp 626 juta, menyebar ke 32 AHSP, tanpa satu pun galat (ambang NOL) |
+| `audit-sektor-takeoff-cocok.mjs` | daftar sektor take-off di kode wajib sama dengan CHECK di basis, dan tiap sektor wajib punya satuan + cabang perhitungan (ambang NOL) |
 
 **Uang lewat percakapan — dijaga test, bukan penjaga skrip.** `payments` adalah
 satu-satunya entitas tulis yang **tak punya kolom `status`**, jadi tak ada
