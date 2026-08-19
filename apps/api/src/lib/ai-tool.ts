@@ -75,6 +75,7 @@ import { ringkasPerformaMandor } from './ai-tool-performa-mandor.js'
 import { ringkasUtilisasiAlat } from './ai-tool-utilisasi-alat.js'
 import { analisisInvestasiAlat } from './ai-tool-investasi-alat.js'
 import { ringkasPortofolioGrup } from './ai-tool-portofolio-grup.js'
+import { hitungKebutuhanDana, ringkasKebutuhanDana } from './ai-tool-kebutuhan-dana.js'
 
 
 
@@ -1086,6 +1087,43 @@ const toolPortofolioGrup: DefinisiToolAi = {
   },
 }
 
+/**
+ * 2.18 — kebutuhan dana.
+ *
+ * Katalog menamainya "Loan/Credit Facility Advisor", dan nama itu sengaja
+ * TIDAK dipakai: menyarankan pinjaman menuntut plafon, tenor, dan bunga —
+ * tiga hal yang tak ada di basis, dan yang kalau dikarang terbaca seperti
+ * nasihat keuangan yang bisa dipertanggungjawabkan.
+ */
+const toolKebutuhanDana: DefinisiToolAi = {
+  nama: 'kebutuhan_dana',
+  label: 'Kebutuhan dana',
+  keterangan:
+    'Kapan kas diperkirakan kering dan berapa kekurangannya, PLUS kewajiban '
+    + 'yang tak punya tanggal jatuh tempo (kasbon disetujui, pengeluaran '
+    + 'disetujui) yang tak muncul di proyeksi biasa. Pakai untuk "kas cukup '
+    + 'sampai kapan", "perlu cari pinjaman tidak", atau "berapa yang kurang '
+    + 'bulan depan".',
+  izin: 'finance:view',
+  skema: { type: 'object', properties: {} },
+  async jalan({ db }) {
+    const h = await hitungKebutuhanDana(db)
+    if ('galat' in h) return { isi: h.galat, isError: true, entitas: [] }
+    if (h.catatan && h.proyeksi.length === 0) {
+      return {
+        isi: bungkusData('kebutuhan_dana', h.catatan),
+        isError: false,
+        entitas: [],
+      }
+    }
+    return {
+      isi: bungkusData('kebutuhan_dana', ringkasKebutuhanDana(h).join('\n')),
+      isError: false,
+      entitas: h.bebanMenggantung.map((b) => b.jenis),
+    }
+  },
+}
+
 export const KATALOG_TOOL: DefinisiToolAi[] = [
   toolDaftarProyek,
   toolRingkasKeuangan,
@@ -1221,6 +1259,14 @@ export const KATALOG_TOOL: DefinisiToolAi[] = [
     lainnya.
   */
   toolPortofolioGrup,
+  /*
+    Katalog 2.18 (kebutuhan dana). TIDAK menggantikan `proyeksi_arus_kas`
+    (2.4) — menjawab pertanyaan lain. Diukur 2026-08-16: proyeksi 2.4
+    memulangkan saldo NAIK dan DATAR di 30/60/90 hari, karena kasbon
+    approved Rp 491 juta (2,2× saldo kas) tak punya tanggal jatuh tempo dan
+    karenanya tak terlihat oleh proyeksi bertanggal mana pun.
+  */
+  toolKebutuhanDana,
 ]
 
 /**
