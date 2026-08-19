@@ -4,19 +4,28 @@
 // Riwayat Pembayaran — gabungan upah/progress/settlement yang SUDAH diterima,
 // dikelompokkan per bulan.
 //
-// Restyle F7d (2026-08-20): warna-ui → token CSS, badge tipe → StatusBadge
-// varian `info`/`netral` (tipe transaksi bukan status persetujuan, tapi
-// StatusBadge dipakai di sini murni untuk konsistensi visual pil ber-ikon —
-// makna "tipe" bukan "status" tetap dikomunikasikan lewat label eksplisit).
+// Restyle F7d (2026-08-20): warna-ui → token CSS, kosong/loading →
+// EmptyState/SkeletonCard.
+//
+// ⚠️ Badge TIPE transaksi (upah/progress/settlement) TIDAK memakai
+// `StatusBadge`. Dicoba, lalu dilepas: `StatusBadge` punya 5 varian dengan
+// SATU ikon tetap masing-masing (`VarianStatus` di `StatusBadge.tsx`), dan
+// tak ada tiga varian bebas-ikon yang bisa dipetakan ke tiga tipe transaksi
+// tanpa membuat dua di antaranya berbagi ikon/warna — itu justru MELANGGAR
+// prinsip color-not-only yang jadi alasan `StatusBadge` ada (lihat komentar
+// di berkasnya). Pil `<span>` manual di bawah (memakai `TYPE_META`)
+// dipertahankan justru supaya upah/progress/settlement tetap terbedakan
+// lewat ikon, bukan cuma warna.
 //
 // ── KPI + tren
 //
-// Ditambahkan KpiCard "Total Diterima" dengan `tren` DIISI: item punya
-// tanggal (`date`) yang bisa dikelompokkan per bulan kalender, dan
-// perbandingan "bulan ini vs bulan lalu" pada data pembayaran yang SUDAH
-// final (upah dibayar/disetujui, progress disetujui, settlement) adalah
-// perbandingan yang jujur — bukan sampel yang jarang seperti di halaman
-// penagihan. Dihitung dari `items` yang sudah diambil, bukan endpoint baru.
+// Ditambahkan KpiCard "Total Diterima" dengan `tren` DIISI, dihitung
+// PRO-RATA (Fix Round 1, 2026-08-20): tren mentah "bulan ini vs bulan
+// lalu" pada bulan yang belum penuh dulunya membandingkan hari 1..N bulan
+// ini vs SELURUH bulan lalu (hari 1..akhir) — bias "turun palsu" hampir
+// sepanjang bulan (mis. tanggal 3: 3 hari vs 31 hari). Sekarang dibandingkan
+// 1..N vs 1..N — periode setara, lihat `useMemo` bertanda "tren" di bawah
+// untuk detail dan contoh angka.
 // ============================================================================
 
 import { useMemo, useState } from "react";
@@ -181,37 +190,83 @@ export default function RiwayatPembayaranPage() {
 
   const filtered = filter === "all" ? items : items.filter((i) => i.type === filter);
   const totalReceived = filtered.reduce((s, i) => s + i.amount, 0);
+  const jumlahTransaksi = filtered.length;
 
-  // Tren "bulan ini vs bulan lalu", dihitung dari `filtered` (mengikuti
-  // filter tipe aktif — tren "upah saja" masuk akal saat tab itu dipilih).
-  // Kalau bulan lalu nol dan bulan ini juga nol, tren TIDAK ditampilkan:
-  // 0 → 0 bukan "tetap 0%" yang bermakna, itu ketiadaan data.
-  const tren: TrenPeriode | undefined = useMemo(() => {
+  /**
+   * Tren "bulan ini vs bulan lalu", PRO-RATA (Fix Round 1, 2026-08-20).
+   *
+   * ── Kenapa pro-rata, bukan bulan-penuh-vs-bulan-penuh
+   *
+   * Versi sebelumnya membandingkan SELURUH akumulasi bulan berjalan
+   * (hari 1..hari-ini) terhadap SELURUH bulan lalu (hari 1..akhir bulan).
+   * Itu perbandingan periode timpang: tanggal 3 Agustus membandingkan 3
+   * hari data terhadap 31 hari data, dan pola pembayaran mandor yang
+   * MENGGUMPAL (banyak dibayar sekali per minggu/bulan, mis. tanggal gajian
+   * tetap) membuat sisi "bulan ini" hampir selalu lebih kecil sampai
+   * mendekati akhir bulan — bukan karena penerimaan sungguhan turun,
+   * melainkan karena harinya belum habis. Efeknya: badge "turun" tampil
+   * palsu di layar mandor selama ~3 minggu setiap bulan.
+   *
+   * Pro-rata membandingkan PERIODE YANG SAMA PANJANGNYA: hari 1..N bulan
+   * ini vs hari 1..N bulan lalu (N = tanggal hari ini, dipotong ke jumlah
+   * hari riil bulan lalu kalau bulan lalu lebih pendek — mis. 31 Jan
+   * dibandingkan ke 28/29 Feb).
+   *
+   * Contoh (asumsi "hari ini" = 3 Agustus 2026):
+   *   - Total transaksi 1–3 Agustus 2026 (bulan ini, 3 hari)  = Rp X
+   *   - Total transaksi 1–3 Juli 2026    (bulan lalu, 3 hari) = Rp Y
+   *   - delta = (X - Y) / Y × 100
+   * BUKAN 1–3 Agustus vs 1–31 Juli seperti sebelumnya.
+   */
+  const { tren, baruPeriodeIni } = useMemo((): { tren: TrenPeriode | undefined; baruPeriodeIni: string | null } => {
     const now = new Date();
+    const tanggalHariIni = now.getDate(); // N — panjang jendela pro-rata
     const bulanIni = now.getMonth();
     const tahunIni = now.getFullYear();
     let bulanLalu = bulanIni - 1;
     let tahunLalu = tahunIni;
     if (bulanLalu < 0) { bulanLalu = 11; tahunLalu -= 1; }
 
+    // Panjang bulan lalu bisa < N (mis. N=31 dari Januari, Februari cuma
+    // 28/29 hari) — potong jendela bulan lalu ke hari terakhirnya sendiri
+    // supaya tak "meminjam" hari dari bulan sebelum itu.
+    const akhirBulanLalu = new Date(tahunLalu, bulanLalu + 1, 0).getDate();
+    const jendelaLalu = Math.min(tanggalHariIni, akhirBulanLalu);
+
     let totalBulanIni = 0;
     let totalBulanLalu = 0;
     for (const item of filtered) {
       if (!item.date) continue;
       const d = new Date(item.date);
-      if (d.getFullYear() === tahunIni && d.getMonth() === bulanIni) totalBulanIni += item.amount;
-      else if (d.getFullYear() === tahunLalu && d.getMonth() === bulanLalu) totalBulanLalu += item.amount;
+      const tgl = d.getDate();
+      if (d.getFullYear() === tahunIni && d.getMonth() === bulanIni && tgl <= tanggalHariIni) {
+        totalBulanIni += item.amount;
+      } else if (d.getFullYear() === tahunLalu && d.getMonth() === bulanLalu && tgl <= jendelaLalu) {
+        totalBulanLalu += item.amount;
+      }
     }
 
-    if (totalBulanLalu === 0 && totalBulanIni === 0) return undefined;
-    if (totalBulanLalu === 0) return { arah: "naik", persen: 100, labelPeriode: "vs bulan lalu" };
+    if (totalBulanLalu === 0 && totalBulanIni === 0) return { tren: undefined, baruPeriodeIni: null };
+    // Kenaikan dari NOL tak punya persentase yang bermakna (Rp 50rb dan
+    // Rp 500jt sama-sama jadi "+100%" kalau dipaksa jadi angka). `KpiCard`
+    // SELALU merender "±N%" begitu `tren` diisi — tak ada cara menampilkan
+    // tren tanpa angka persen lewat propnya. Daripada mengarang N, `tren`
+    // di sini dibiarkan `undefined` dan keadaannya diberi tahu lewat teks
+    // polos terpisah ("Mulai diterima bulan ini") — bukan badge tren.
+    if (totalBulanLalu === 0) {
+      return { tren: undefined, baruPeriodeIni: `Mulai diterima bulan ini (1–${tanggalHariIni})` };
+    }
 
     const delta = ((totalBulanIni - totalBulanLalu) / totalBulanLalu) * 100;
-    if (Math.abs(delta) < 1) return { arah: "tetap", persen: 0, labelPeriode: "vs bulan lalu" };
+    const labelPeriode = `vs 1–${jendelaLalu} bulan lalu`;
+    if (Math.abs(delta) < 1) return { tren: { arah: "tetap", persen: 0, labelPeriode }, baruPeriodeIni: null };
     return {
-      arah: delta > 0 ? "naik" : "turun",
-      persen: Math.round(Math.abs(delta)),
-      labelPeriode: "vs bulan lalu",
+      tren: {
+        arah: delta > 0 ? "naik" : "turun",
+        persen: Math.round(Math.abs(delta)),
+        labelPeriode,
+      },
+      baruPeriodeIni: null,
     };
   }, [filtered]);
 
@@ -235,11 +290,19 @@ export default function RiwayatPembayaranPage() {
       </div>
 
       {!loading && galatMuat && (
-        <EmptyState
-          icon={AlertCircle}
-          judul="Gagal memuat sebagian riwayat"
-          deskripsi={pesanGalat(galatMuat as GalatApi, "Coba muat ulang halaman ini.")}
-        />
+        // `role="alert"` — hilang sempat saat pindah ke EmptyState (Fix
+        // Round 1): banner galat MUAT lama mengumumkannya ke screen reader
+        // otomatis lewat `role="alert"` di wadahnya; EmptyState sendiri
+        // tak menyertakan peran itu (ia dipakai juga untuk kondisi
+        // "kosong" biasa yang bukan galat, jadi wajar tak dipaksakan di
+        // komponennya). Dipasang di sini, di wadah pembungkusnya.
+        <div role="alert">
+          <EmptyState
+            icon={AlertCircle}
+            judul="Gagal memuat sebagian riwayat"
+            deskripsi={pesanGalat(galatMuat as GalatApi, "Coba muat ulang halaman ini.")}
+          />
+        </div>
       )}
 
       {loading && (
@@ -251,12 +314,20 @@ export default function RiwayatPembayaranPage() {
       )}
 
       {!loading && items.length > 0 && (
-        <KpiCard
-          label={`Total Diterima${filter === "all" ? "" : ` — ${TYPE_META[filter as TipeItem]?.label}`}`}
-          nilai={fmtRp(totalReceived)}
-          tren={tren}
-          icon={Wallet}
-        />
+        <div>
+          <KpiCard
+            label={`Total Diterima${filter === "all" ? "" : ` — ${TYPE_META[filter as TipeItem]?.label}`}`}
+            nilai={fmtRp(totalReceived)}
+            tren={tren}
+            icon={Wallet}
+          />
+          {/* Field yang sempat hilang saat restyle (Fix Round 1): teks
+              "{n} transaksi" dari kartu ringkasan lama. */}
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 8, padding: "0 4px" }}>
+            {jumlahTransaksi} transaksi
+            {baruPeriodeIni && <> · {baruPeriodeIni}</>}
+          </div>
+        </div>
       )}
 
       <SegmentedTab

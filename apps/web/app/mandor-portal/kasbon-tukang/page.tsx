@@ -363,9 +363,10 @@ export default function KasbonTukangPage() {
               disabled={submitting}
               style={{
                 flex: 2, minHeight: 44, padding: "0 12px", borderRadius: "var(--portal-radius-pill)",
-                border: "none", background: "var(--navy)", color: "var(--on-navy)",
+                border: "none",
+                background: submitting ? "var(--surface-hover)" : "var(--navy)",
+                color: submitting ? "var(--text-muted)" : "var(--on-navy)",
                 fontSize: 13, fontWeight: 700, cursor: submitting ? "default" : "pointer",
-                opacity: submitting ? 0.6 : 1,
               }}
             >
               {submitting ? "Mengajukan…" : "Ajukan Kasbon"}

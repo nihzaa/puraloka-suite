@@ -372,9 +372,9 @@ export default function MandorProgressPage() {
               disabled={saving}
               style={{
                 minHeight: 44, padding: "0 14px", borderRadius: "var(--portal-radius-pill)",
-                background: "var(--navy)", color: "var(--on-navy)", border: "none",
+                background: saving ? "var(--surface-hover)" : "var(--navy)",
+                color: saving ? "var(--text-muted)" : "var(--on-navy)", border: "none",
                 cursor: saving ? "default" : "pointer", fontSize: 13, fontWeight: 700,
-                opacity: saving ? 0.6 : 1,
               }}
             >
               {saving ? "Mengupload…" : "Coba upload ulang"}
@@ -652,9 +652,9 @@ export default function MandorProgressPage() {
               disabled={saving}
               style={{
                 flex: 1, minHeight: 44, padding: "0 20px", borderRadius: "var(--portal-radius-pill)",
-                background: "var(--navy)", color: "var(--on-navy)", border: "none",
+                background: saving ? "var(--surface-hover)" : "var(--navy)",
+                color: saving ? "var(--text-muted)" : "var(--on-navy)", border: "none",
                 cursor: saving ? "default" : "pointer", fontSize: 14, fontWeight: 700,
-                opacity: saving ? 0.6 : 1,
               }}
             >
               {saving ? "Menyimpan..." : "Simpan Progress"}

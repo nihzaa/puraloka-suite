@@ -583,9 +583,9 @@ export default function LaporanUpahPage() {
             disabled={submitting}
             style={{
               minHeight: 48, padding: "0 24px", borderRadius: "var(--portal-radius-pill)", border: "none",
-              background: "var(--grad-merek)", color: "var(--on-navy)",
+              background: submitting ? "var(--surface-hover)" : "var(--grad-merek)",
+              color: submitting ? "var(--text-muted)" : "var(--on-navy)",
               fontSize: 14, fontWeight: 700, cursor: submitting ? "default" : "pointer",
-              opacity: submitting ? 0.6 : 1,
             }}
           >
             {submitting ? "Mengirim…" : "Kirim Laporan"}

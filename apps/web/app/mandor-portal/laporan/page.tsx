@@ -6,41 +6,32 @@
 // Restyle F7d (2026-08-20): warna-ui → token CSS, badge status → StatusBadge,
 // kosong/loading → EmptyState/SkeletonCard. Halaman ini hanya baca — beda
 // dari `laporan-upah/page.tsx` yang juga punya form kirim laporan baru.
+//
+// ⚠️ Bug pre-existing ditemukan Fix Round 1 (2026-08-20): versi restyle
+// pertama masih memakai `wage_items`/`total_amount` untuk total & rincian
+// per-pekerja — field itu TAK PERNAH dikirim `GET /api/v1/mandor/wage-reports`
+// (diverifikasi `SELECT` di `apps/api/src/routes/v1/mandor.ts` baris
+// 1236-1246: `id, week_start, week_end, status, subtotal, total_deduction,
+// net_amount, notes, submitted_at, reviewed_at, review_notes, paid_at,
+// created_at, assignment(...), scope(...), reviewer(...)` — tak ada
+// `wage_items` maupun `total_amount`). Akibatnya `items` selalu `[]` dan
+// total SELALU jatuh ke "Rp 0". Bug ini ADA SEBELUM restyle (di kode lama
+// yang dibaca `any`), bukan diperkenalkan oleh restyle — tapi halaman ini
+// sedang disentuh, jadi diperbaiki di sisi UI: dipakai `net_amount` (field
+// yang MEMANG dikirim, dan dipakai identik di `laporan-upah/page.tsx`).
+// Tabel per-pekerja (`<Tabel>` dari `@/components/dasar`) DIBUANG —
+// menampilkan tabel yang selalu kosong bukan tampilan, itu ilusi data yang
+// tidak ada. Diganti ringkasan subtotal/potongan/bersih, tiga angka yang
+// API BENAR-BENAR mengirimnya.
 // ============================================================================
 
 import { useState } from "react";
 import { useData } from "@/lib/data-cache";
 import { AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
-import { Tabel } from "@/components/dasar";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import { type LaporanUpah, type GalatApi, pesanGalat } from "../_bersama/tipe";
-
-/** Satu baris upah pekerja di dalam laporan mingguan. */
-interface WageItem {
-  id: string;
-  worker?: { name?: string } | null;
-  days_worked?: number | null;
-  daily_rate: number;
-}
-
-/** Bentuk lengkap satu laporan, dengan item upah — `LaporanUpah` bersama
- *  tak menyertakan `wage_items`/`total_amount`/`notes` karena hanya
- *  dipakai di sini.
- *
- *  `notes` (catatan mandor saat mengirim) dan `review_notes` (alasan
- *  reviewer) adalah DUA KOLOM BERBEDA — dikonfirmasi ke `mandor.ts`
- *  (`notes` diisi di POST baris 1386, `review_notes` diisi di PATCH
- *  status baris 1477). Versi sebelumnya memakai `r.notes` (lewat `any`)
- *  untuk kedua tempat, termasuk sebagai "alasan ditolak" — salah field,
- *  karena `notes` adalah catatan MANDOR sendiri, bukan alasan penolakan
- *  reviewer. Diperbaiki di sini. */
-interface LaporanDenganItem extends LaporanUpah {
-  wage_items?: WageItem[];
-  total_amount?: number | null;
-  notes?: string | null;
-}
 
 function fmt(n: number) {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
@@ -72,7 +63,7 @@ export default function MandorLaporanPage() {
   // ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16 — halaman ini
   // hanya baca, tak ada tulis lapangan, jadi tak ada cache offline yang
   // perlu dipertahankan.
-  const { data, memuat: loading, galat: galatMuat } = useData<{ reports: LaporanDenganItem[] }>("/api/v1/mandor/wage-reports");
+  const { data, memuat: loading, galat: galatMuat } = useData<{ reports: LaporanUpah[] }>("/api/v1/mandor/wage-reports");
   const reports = data?.reports ?? [];
 
   function toggle(id: string) {
@@ -93,18 +84,23 @@ export default function MandorLaporanPage() {
       )}
 
       {!loading && galatMuat && (
-        <EmptyState
-          icon={AlertCircle}
-          judul="Gagal memuat laporan upah"
-          deskripsi={pesanGalat(galatMuat as GalatApi, "Coba muat ulang halaman ini.")}
-        />
+        // `role="alert"` — hilang sempat saat pindah ke EmptyState (Fix
+        // Round 1). Dipasang di wadah pembungkus; lihat catatan yang sama
+        // di `pembayaran/page.tsx`.
+        <div role="alert">
+          <EmptyState
+            icon={AlertCircle}
+            judul="Gagal memuat laporan upah"
+            deskripsi={pesanGalat(galatMuat as GalatApi, "Coba muat ulang halaman ini.")}
+          />
+        </div>
       )}
 
       {!loading && !galatMuat && reports.length === 0 && (
         <EmptyState
           icon={AlertCircle}
           judul="Belum ada laporan upah"
-          deskripsi="Laporan upah mingguan yang sudah dikirim akan muncul di sini, lengkap dengan rincian per pekerja."
+          deskripsi="Laporan upah mingguan yang sudah dikirim akan muncul di sini, lengkap dengan status review dan rincian potongannya."
         />
       )}
 
@@ -112,8 +108,7 @@ export default function MandorLaporanPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {reports.map((r) => {
             const isOpen = expanded[r.id] ?? false;
-            const items: WageItem[] = r.wage_items ?? [];
-            const totalWage = items.reduce((s, i) => s + (i.daily_rate * (i.days_worked ?? 1)), 0) || Number(r.total_amount ?? 0);
+            const netAmount = Number(r.net_amount ?? 0);
 
             return (
               <div
@@ -146,9 +141,9 @@ export default function MandorLaporanPage() {
                     <div style={{ display: "flex", gap: 12, fontSize: 12, color: "var(--text-secondary)", flexWrap: "wrap" }}>
                       <span>{r.assignment?.project?.name ?? "—"}</span>
                       <span style={{ fontWeight: 700, color: "var(--navy)", fontVariantNumeric: "tabular-nums" }}>
-                        {fmt(Number(r.total_amount ?? totalWage))}
+                        {fmt(netAmount)}
                       </span>
-                      {items.length > 0 && <span>{items.length} pekerja</span>}
+                      <span>{r.scope?.scope_name ?? "—"}</span>
                     </div>
                   </div>
                   {isOpen
@@ -164,41 +159,31 @@ export default function MandorLaporanPage() {
                       </p>
                     )}
 
-                    {items.length > 0 ? (
-                      /* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4). Caption,
-                         scope="row", tabular-nums, dan overflow-x sekarang
-                         dijamin komponen — empat hal yang tabel mentah harus
-                         ingat sendiri, dan yang riwayat repo ini tunjukkan
-                         TIDAK diingat. Baris totalnya pindah ke <tfoot>: di
-                         <tbody> ia terbaca sebagai data biasa. */
-                      <Tabel<WageItem>
-                        berpermukaan
-                        caption="Rincian upah per pekerja untuk laporan minggu ini: hari kerja, upah harian, dan jumlah yang diterima masing-masing."
-                        data={items}
-                        kunciBaris={(i) => i.id}
-                        kolom={[
-                          { kunci: "pekerja", judul: "Pekerja", kepalaBaris: true,
-                            render: (i) => i.worker?.name ?? "—" },
-                          { kunci: "hari", judul: "Hari Kerja", rata: "kanan",
-                            render: (i) => i.days_worked ?? 1 },
-                          { kunci: "rate", judul: "Rate/Hari", rata: "kanan",
-                            render: (i) => fmt(i.daily_rate) },
-                          { kunci: "subtotal", judul: "Subtotal", rata: "kanan",
-                            render: (i) => fmt(i.daily_rate * (i.days_worked ?? 1)) },
-                        ]}
-                        total={[
-                          { kunci: "label", isi: "Total", rata: "kanan", rentang: 3 },
-                          { kunci: "nilai", isi: fmt(Number(r.total_amount ?? totalWage)), rata: "kanan" },
-                        ]}
-                      />
-                    ) : (
-                      <div style={{ fontSize: 13, color: "var(--text-secondary)", textAlign: "center", padding: "12px 0" }}>
-                        Total upah:{" "}
-                        <strong style={{ color: "var(--navy)", fontVariantNumeric: "tabular-nums" }}>
-                          {fmt(Number(r.total_amount ?? 0))}
-                        </strong>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                        <span style={{ color: "var(--text-secondary)" }}>Subtotal</span>
+                        <span style={{ fontWeight: 600, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
+                          {fmt(Number(r.subtotal ?? 0))}
+                        </span>
                       </div>
-                    )}
+                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+                        <span style={{ color: "var(--text-secondary)" }}>Potongan</span>
+                        <span style={{ fontWeight: 600, color: "var(--danger)", fontVariantNumeric: "tabular-nums" }}>
+                          −{fmt(Number(r.total_deduction ?? 0))}
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex", justifyContent: "space-between", fontSize: 13,
+                          borderTop: "1px solid var(--border)", paddingTop: 8,
+                        }}
+                      >
+                        <span style={{ color: "var(--text-primary)", fontWeight: 700 }}>Bersih Diterima</span>
+                        <span style={{ fontWeight: 700, color: "var(--success)", fontVariantNumeric: "tabular-nums" }}>
+                          {fmt(netAmount)}
+                        </span>
+                      </div>
+                    </div>
 
                     {r.status === "rejected" && r.review_notes && (
                       <div

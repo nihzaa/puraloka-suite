@@ -133,6 +133,13 @@ export interface LaporanUpah {
   subtotal?: number | string | null
   total_deduction?: number | string | null
   review_notes?: string | null
+  /**
+   * Catatan MANDOR sendiri saat mengirim laporan — BUKAN alasan reviewer
+   * (itu `review_notes`, kolom terpisah). Dikonfirmasi ke SELECT
+   * `weekly_wage_reports` di `apps/api/src/routes/v1/mandor.ts` (GET
+   * wage-reports, baris ~1237): API benar-benar mengirim kolom ini.
+   */
+  notes?: string | null
 }
 
 /** Kasbon — dipakai untuk kasbon mandor maupun kasbon tukang. */

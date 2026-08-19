@@ -181,8 +181,9 @@ export default function DaftarTukangPage() {
               <div
                 key={w.id}
                 style={{
-                  padding: 16, borderRadius: 16, background: "var(--surface)",
-                  border: "1px solid var(--border)", opacity: w.is_active ? 1 : 0.6,
+                  padding: 16, borderRadius: 16,
+                  background: w.is_active ? "var(--surface)" : "var(--surface-subtle)",
+                  border: "1px solid var(--border)",
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
@@ -348,9 +349,10 @@ export default function DaftarTukangPage() {
               disabled={submitting}
               style={{
                 flex: 2, minHeight: 44, padding: "0 12px", borderRadius: "var(--portal-radius-pill)",
-                border: "none", background: "var(--navy)", color: "var(--on-navy)",
+                border: "none",
+                background: submitting ? "var(--surface-hover)" : "var(--navy)",
+                color: submitting ? "var(--text-muted)" : "var(--on-navy)",
                 fontSize: 13, fontWeight: 700, cursor: submitting ? "default" : "pointer",
-                opacity: submitting ? 0.6 : 1,
               }}
             >
               {submitting ? "Menyimpan…" : editWorker ? "Simpan Perubahan" : "Tambah Tukang"}

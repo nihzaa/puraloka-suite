@@ -426,9 +426,11 @@ export default function MandorKasbonPage() {
               disabled={saving || !form.project_id}
               style={{
                 flex: 1, minHeight: 44, padding: "0 20px", borderRadius: "var(--portal-radius-pill)",
-                background: "var(--navy)", color: "var(--on-navy)", border: "none",
+                background: (saving || !form.project_id) ? "var(--surface-hover)" : "var(--navy)",
+                color: (saving || !form.project_id) ? "var(--text-muted)" : "var(--on-navy)",
+                border: "none",
                 cursor: (saving || !form.project_id) ? "default" : "pointer",
-                fontSize: 14, fontWeight: 700, opacity: (saving || !form.project_id) ? 0.5 : 1,
+                fontSize: 14, fontWeight: 700,
               }}
             >
               {saving ? "Mengajukan…" : "Ajukan Kasbon"}
