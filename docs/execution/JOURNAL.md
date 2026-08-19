@@ -98,15 +98,23 @@ yang sudah tercatat di jurnal ini 2026-08-18.
   (`0738228c`, junction `node_modules` ala CLAUDE.md §8a.1): **keduanya
   SUDAH merah di sana**.
 
-Kegagalan `situs` seluruhnya `expected 403` — dan admin terbukti punya
-`situs:view`+`situs:manage` lewat `get_role_permissions('admin')`. Jadi
-bukan hibah yang hilang, melainkan cara test itu menyusun perannya. Sejalan
-dengan temuan hari ini di `mitra.test.ts`: RPC memilih peran lewat NAMA
-dengan `ORDER BY (company_id IS NULL) LIMIT 1`, sehingga salinan TENANT
-menang atas template — dan basis ini punya DUA baris bernama `admin`.
+Kegagalan `situs` seluruhnya `expected 403` pada rute TULIS, sementara
+rute publik (baca) lulus.
 
-Itu dugaan yang PALING mungkin, bukan kesimpulan: belum diukur sampai
-tuntas, dan tak boleh ditulis seolah sudah.
+**Dugaan pertama saya SALAH, dan pengukuran membatalkannya.** Saya menduga
+sebabnya sama dengan yang saya temui di `mitra.test.ts` — test memilih
+pengguna lewat `users.role_id` (baris 72) padahal `requirePermission`
+menyusun izin lewat RPC yang mencari peran berdasarkan NAMA, dan basis ini
+punya DUA baris bernama `admin`.
+
+Diukur langsung: ketiga pengguna yang dipilih test berperan `admin`, dan
+`get_role_permissions('admin')` **memulangkan `situs:manage`**. Jadi izinnya
+ADA, dan hipotesis saya jatuh.
+
+Sebabnya belum ditemukan, dan **saya tidak menebaknya lagi**. Yang sudah
+pasti: cacatnya BUKAN dari kerja hari ini (terbukti merah di worktree pada
+commit sebelum kerja mitra), jadi ia milik pemilik modul `situs` — bukan
+sesuatu yang boleh saya tambal sambil lalu di tengah tugas lain.
 
 ### Sisa
 
