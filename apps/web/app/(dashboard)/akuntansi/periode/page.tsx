@@ -670,7 +670,7 @@ export default function PeriodeAkuntansiPage() {
       >
         {riwayat.length === 0 ? (
           <p style={{ fontSize: 12.5, color: C.muted, margin: 0 }}>
-            Belum ada riwayat tercatat.
+            Belum ada riwayat tercatat — riwayat terisi sendiri begitu periode pertama ditutup.
           </p>
         ) : (
           <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 10 }}>

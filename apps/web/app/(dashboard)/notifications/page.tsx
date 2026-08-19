@@ -13,7 +13,7 @@ import { api } from "@/lib/api";
 // ─── Design tokens ────────────────────────────────────────────────────────────
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
-import { GAYA_KARTU } from "@/components/ui-dasar";
+import { GAYA_KARTU, Kosong } from "@/components/ui-dasar";
 
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -395,7 +395,10 @@ export default function NotificationsPage() {
           display: "flex", flexDirection: "column", alignItems: "center", gap: 12,
         }}>
           <Bell size={40} strokeWidth={1.5} color={C.muted} />
-          <span style={{ fontSize: 13, color: C.muted }}>Tidak ada notifikasi ditemukan</span>
+          <Kosong
+            judul="Tidak ada notifikasi"
+            sebab="Yang belum dibaca muncul di sini. Atur jenis mana yang ingin diterima di Pengaturan › Notifikasi."
+          />
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>

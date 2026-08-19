@@ -38,7 +38,7 @@ import { CalendarClock, Info, CheckCircle2, XCircle, CircleDashed, TriangleAlert
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
-import { GAYA_KARTU } from "@/components/ui-dasar";
+import { GAYA_KARTU, Kosong } from "@/components/ui-dasar";
 import { Saklar } from "@/components/saklar";
 
 
@@ -279,9 +279,10 @@ export default function JadwalPage() {
           </div>
         </div>
       ) : daftar.length === 0 ? (
-        <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", textAlign: "center", color: C.muted, fontSize: 13 }}>
-          Belum ada tugas terjadwal untuk perusahaan ini.
-        </div>
+        <Kosong
+          judul="Belum ada tugas terjadwal"
+          sebab="Tugas terjadwal menjalankan pengingat dan laporan otomatis tanpa ada yang perlu mengingatnya. Katalognya diisi lewat migrasi — kalau kosong di sini, hubungi pengelola sistem."
+        />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           {daftar.map((t) => {

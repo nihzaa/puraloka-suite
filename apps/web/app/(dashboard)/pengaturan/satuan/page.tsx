@@ -11,6 +11,7 @@ import type { UnitRow } from "@/lib/use-units";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_ISIAN } from "@/components/isian";
+import { Kosong } from "@/components/ui-dasar";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)",
@@ -125,7 +126,10 @@ function SatuanContent() {
             </div>
           ))}
           {groups.length === 0 && (
-            <div style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>Belum ada satuan.</div>
+            <Kosong
+              judul="Belum ada satuan"
+              sebab="Satuan dipakai di RAB, permintaan material, dan opname. Tambahkan lewat tombol di atas — mis. m³, kg, ls."
+            />
           )}
         </div>
       )}

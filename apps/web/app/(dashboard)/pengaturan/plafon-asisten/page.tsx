@@ -45,7 +45,7 @@ import { ShieldCheck } from "lucide-react";
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman, Tabel } from "@/components/dasar";
-import { GAYA_KARTU } from "@/components/ui-dasar";
+import { GAYA_KARTU, Kosong } from "@/components/ui-dasar";
 import { PanduanHalaman } from "@/components/panduan-halaman";
 
 
@@ -204,9 +204,10 @@ export default function PlafonAsistenPage() {
         ) : memuat ? (
           <div style={{ padding: 24, color: C.muted, fontSize: 14 }}>Memuat…</div>
         ) : baris.length === 0 ? (
-          <div style={{ padding: 24, color: C.muted, fontSize: 14 }}>
-            Belum ada anggota perusahaan.
-          </div>
+          <Kosong
+            judul="Belum ada anggota perusahaan"
+            sebab="Plafon dipasang per orang, jadi daftarnya mengikuti keanggotaan. Undang anggota lebih dulu di Pengaturan › Pengguna."
+          />
         ) : (
           <Tabel
             caption="Plafon persetujuan lewat asisten per anggota perusahaan."

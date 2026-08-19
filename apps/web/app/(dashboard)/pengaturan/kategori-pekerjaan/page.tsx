@@ -10,6 +10,7 @@ import type { WorkCategoryRow } from "@/lib/use-work-categories";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_ISIAN } from "@/components/isian";
+import { Kosong } from "@/components/ui-dasar";
 
 const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)",
@@ -85,7 +86,12 @@ function KategoriContent() {
               onSaved={() => { load(); setToast({ type: "success", msg: `"${r.code}" disimpan` }); }}
               onError={(m) => setToast({ type: "error", msg: m })} />
           ))}
-          {rows.length === 0 && <div style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>Belum ada kategori.</div>}
+          {rows.length === 0 && (
+            <Kosong
+              judul="Belum ada kategori pekerjaan"
+              sebab="Kategori mengelompokkan lingkup kerja mandor supaya laporan biaya bisa dipecah per jenis pekerjaan. Tambahkan lewat kolom di atas."
+            />
+          )}
         </div>
       )}
     </div>

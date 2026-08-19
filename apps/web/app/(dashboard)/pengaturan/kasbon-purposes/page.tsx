@@ -10,6 +10,7 @@ import type { KasbonPurposeRow } from "@/lib/use-kasbon-purposes";
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_ISIAN } from "@/components/isian";
+import { Kosong } from "@/components/ui-dasar";
 
 const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)" };
 
@@ -83,7 +84,12 @@ function Content() {
               onSaved={() => { load(); setToast({ type: "success", msg: `"${r.code}" disimpan` }); }}
               onError={(m) => setToast({ type: "error", msg: m })} />
           ))}
-          {rows.length === 0 && <div style={{ padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>Belum ada tujuan.</div>}
+          {rows.length === 0 && (
+            <Kosong
+              judul="Belum ada tujuan kasbon"
+              sebab="Tujuan dipakai saat tukang mengajukan kasbon, supaya alasannya seragam dan bisa direkap. Tambahkan lewat kolom di atas — mis. beli material, ongkos kirim."
+            />
+          )}
         </div>
       )}
     </div>

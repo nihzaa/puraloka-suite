@@ -14,6 +14,7 @@ import {
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_ISIAN } from "@/components/isian";
+import { Kosong } from "@/components/ui-dasar";
 
 const ROLES = [
   { key: "admin",  label: "Administrator", icon: ShieldCheck, color: C.purple, bg: C.purpleBg, border: C.purpleBorder },
@@ -143,7 +144,10 @@ export default function UsersPage() {
       ) : filtered.length === 0 ? (
         <div style={{ textAlign: "center", padding: 60, color: C.muted }}>
           <Users size={32} color={C.border} style={{ marginBottom: 10 }} />
-          <div style={{ fontWeight: 600 }}>Tidak ada user ditemukan</div>
+          <Kosong
+            judul="Tidak ada pengguna yang cocok"
+            sebab="Ubah kata pencarian atau saringan perannya. Pengguna baru ditambahkan lewat tombol Undang."
+          />
         </div>
       ) : (
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", background: "var(--surface)" }}>

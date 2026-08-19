@@ -278,7 +278,7 @@ export default function MandorRingkasanPage() {
           </JudulBagian>
           {bebanPerMandor.length === 0 ? (
             <div style={{ fontSize: 12, color: C.muted, padding: "12px 0" }}>
-              Tidak ada kasbon tukang yang masih beredar.
+              Tak ada kasbon tukang yang masih beredar — seluruhnya sudah lunas atau belum ada yang diajukan.
             </div>
           ) : (
             <ul style={{

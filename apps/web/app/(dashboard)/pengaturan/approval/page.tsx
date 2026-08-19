@@ -8,6 +8,7 @@ import { GitBranch, Plus, Trash2, Check, X, AlertTriangle, Info } from "lucide-r
 
 import { C } from "@/lib/warna-ui";
 import { KepalaHalaman } from "@/components/dasar";
+import { Kosong } from "@/components/ui-dasar";
 
 const card: React.CSSProperties = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)" };
 const input: React.CSSProperties = { width: "100%", padding: "8px 8px", border: `1px solid ${C.border}`, borderRadius: 6, fontSize: 13, outline: "none", background: "var(--surface)", color: C.text, boxSizing: "border-box", fontFamily: "inherit" };
@@ -129,7 +130,12 @@ function Content() {
             <ChainCard key={ch.id} chain={ch} perms={perms} canManage={canManage}
               onToggle={toggleChain} onAdd={addStep} onPatch={patchStep} onDelete={delStep} />
           ))}
-          {chains.length === 0 && <div style={{ ...card, padding: 40, textAlign: "center", color: C.muted, fontSize: 13 }}>Belum ada rantai approval.</div>}
+          {chains.length === 0 && (
+            <Kosong
+              judul="Belum ada rantai approval"
+              sebab="Tanpa rantai, persetujuan langsung jatuh ke pemilik. Susun urutannya di sini kalau ada yang harus menyetujui lebih dulu — mis. PM sebelum direktur."
+            />
+          )}
         </div>
       )}
     </div>
