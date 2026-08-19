@@ -126,7 +126,34 @@ const RENCANA = new Set(
   menu.filter((r) => r.kesiapan === 'rencana').map((r) => tanpaQuery(r.href)))
 
 const sidebar = new Set(menu.map((r) => tanpaQuery(r.href)))
-const nav = new Set([...sidebar, ...[...tab.keys()].map(tanpaQuery)])
+
+// ── href dari grid "Lainnya" portal mobile (mandor/PM/klien) ────────────────
+//
+// Rombak portal (2026-08-19) memindahkan menu sekunder dari `layout.tsx` ke
+// grid `ActionCard` di `<portal>/lainnya/page.tsx` — bottom nav mobile hanya
+// mengurasi 4 item + tombol "Lainnya", sisanya hidup di halaman itu
+// (`PortalShell.tsx`). Tanpa sumber ini, penjaga memindai HANYA `href:` di
+// `layout.tsx` (blok tab-bagian di atas) dan tak pernah melihat grid
+// tersebut — enam halaman mandor sungguh-sungguh terjangkau pengguna lewat
+// grid ini dilaporkan YATIM begitu saja. Dipersempit ke berkas bernama PERSIS
+// `lainnya/page.tsx` (bukan semua `page.tsx`) supaya penjaga tak jadi longgar
+// dan menganggap href apa pun di halaman mana pun sebagai tautan nav.
+const lainnyaPages = execSync('find apps/web/app -name lainnya -type d', { cwd: AKAR, encoding: 'utf8' })
+  .trim().split('\n').filter(Boolean)
+  .map((d) => join(d, 'page.tsx'))
+
+const lainnya = new Map()
+for (const f of lainnyaPages) {
+  for (const m of readFileSync(join(AKAR, f), 'utf8').matchAll(/href:\s*["'`]([^"'`]+)["'`]/g)) {
+    if (!lainnya.has(m[1])) lainnya.set(m[1], f)
+  }
+}
+
+const nav = new Set([
+  ...sidebar,
+  ...[...tab.keys()].map(tanpaQuery),
+  ...[...lainnya.keys()].map(tanpaQuery),
+])
 
 // ── route nyata ─────────────────────────────────────────────────────────────
 const rute = execSync('find apps/web/app -name page.tsx', { cwd: AKAR, encoding: 'utf8' })
@@ -141,6 +168,7 @@ console.log('\n══ Nav yatim & link mati ════════════
 console.log(`  halaman (page.tsx)  : ${rute.length}`)
 console.log(`  href sidebar (DB)   : ${sidebar.size}`)
 console.log(`  href tab-bagian     : ${tab.size}`)
+console.log(`  href grid Lainnya   : ${lainnya.size}`)
 
 // ── 1. LINK MATI ────────────────────────────────────────────────────────────
 //
@@ -163,7 +191,10 @@ if (mati.length) {
   merah = true
   console.log(`\n❌ LINK MATI — nav menunjuk halaman yang tak ada: ${mati.length}`)
   for (const h of mati) {
-    console.log(`     ${h}   (${tab.has(h) ? 'tab: ' + tab.get(h) : 'sidebar/DB'})`)
+    const sumber = tab.has(h) ? 'tab: ' + tab.get(h)
+      : lainnya.has(h) ? 'lainnya: ' + lainnya.get(h)
+      : 'sidebar/DB'
+    console.log(`     ${h}   (${sumber})`)
   }
   console.log('\n   Pengguna yang mengkliknya mendapat 404.')
 }

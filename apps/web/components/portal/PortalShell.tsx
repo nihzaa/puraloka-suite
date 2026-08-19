@@ -164,28 +164,35 @@ export default function PortalShell({
             </Link>
           );
         })}
-        {hasMore && (
-          <Link
-            href={lainnyaHref ?? navItems[4]?.href ?? "#"}
-            style={{
-              flex: 1,
-              minHeight: 56,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 4,
-              padding: "8px 4px",
-              color: "var(--text-secondary)",
-              textDecoration: "none",
-              fontSize: 11,
-              fontWeight: 500,
-            }}
-          >
-            <MoreHorizontal size={22} aria-hidden="true" />
-            Lainnya
-          </Link>
-        )}
+        {hasMore && (() => {
+          const lainnyaTarget = lainnyaHref ?? navItems[4]?.href ?? "#";
+          // href "#" berarti tak ada tujuan nyata — jangan pernah ditandai aktif,
+          // sekalipun pathname kebetulan cocok secara string.
+          const active = lainnyaTarget !== "#" && isActive(pathname, lainnyaTarget);
+          return (
+            <Link
+              href={lainnyaTarget}
+              aria-current={active ? "page" : undefined}
+              style={{
+                flex: 1,
+                minHeight: 56,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 4,
+                padding: "8px 4px",
+                color: active ? "var(--navy)" : "var(--text-secondary)",
+                textDecoration: "none",
+                fontSize: 11,
+                fontWeight: active ? 700 : 500,
+              }}
+            >
+              <MoreHorizontal size={22} aria-hidden="true" />
+              Lainnya
+            </Link>
+          );
+        })()}
       </nav>
     </div>
   );
