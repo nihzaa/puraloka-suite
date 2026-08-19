@@ -85,7 +85,19 @@ console.log(`${dibuat.length} elemen uji dibuat`)
 
 /* ── Potret ── */
 const browser = await chromium.launch()
-const ctx = await browser.newContext({ viewport: { width: 1440, height: 1100 } })
+/*
+  Mode GELAP ikut dipotret bila diminta (--gelap).
+
+  Gambar teknik memakai garis gelap di atas kertas putih, dan halaman ini
+  sengaja MEMAKU latar putih untuk galeri gambarnya (`--kertas-gambar`).
+  Yang perlu diperiksa justru itu: apakah pemakuan itu benar-benar bekerja,
+  atau garis hitamnya menghilang di atas latar gelap.
+*/
+const GELAP = process.argv.includes('--gelap')
+const ctx = await browser.newContext({
+  viewport: { width: 1440, height: 1100 },
+  colorScheme: GELAP ? 'dark' : 'light',
+})
 const page = await ctx.newPage()
 
 await page.goto(`${BASIS}/login`, { waitUntil: 'networkidle' })
@@ -94,10 +106,29 @@ await page.fill('input[type=password]', SANDI)
 await page.click('button[type=submit]')
 await page.waitForURL(/dashboard|beranda/, { timeout: 30000 }).catch(() => {})
 
+/*
+  Tema DITEKAN lewat tombol aplikasinya, bukan lewat `colorScheme` Playwright.
+
+  Aplikasi ini menyimpan pilihan temanya sendiri (bukan mengikuti preferensi
+  sistem), jadi `colorScheme: dark` menghasilkan halaman yang tetap TERANG —
+  dan potretnya terlihat berhasil sambil tak menguji mode gelap sama sekali.
+  Ini kesalahan yang sama bentuknya dengan tiga kesalahan potret sebelumnya:
+  alat ukurnya yang salah, bukan yang diukur.
+*/
+if (GELAP) {
+  const tombolTema = page.locator('[aria-label="Ganti ke mode gelap"]').first()
+  if (await tombolTema.count()) {
+    await tombolTema.click()
+    await page.waitForTimeout(800)
+  } else {
+    console.error('  ⚠ tombol tema tak ditemukan — potret mungkin TETAP TERANG')
+  }
+}
+
 await page.goto(`${BASIS}/estimasi/struktur?proyek=${proyek.id}`, { waitUntil: 'networkidle' })
 await page.waitForTimeout(2500)
-await page.screenshot({ path: join(KELUAR, 'struktur-daftar.png'), fullPage: false })
-console.log('→ apps/web/.layar/struktur-daftar.png')
+await page.screenshot({ path: join(KELUAR, `struktur-daftar${GELAP ? '-gelap' : ''}.png`), fullPage: false })
+console.log(`→ apps/web/.layar/struktur-daftar${GELAP ? '-gelap' : ''}.png`)
 
 /*
   Tiap elemen dibuka lewat tombolnya SENDIRI, dikenali dari kode uniknya.
@@ -127,8 +158,8 @@ for (const [idx, [id, jenis]] of dibuat.entries()) {
     console.error(`  ⚠ panel tak memperlihatkan ${kode} — potret TIDAK sah`)
   }
 
-  await page.screenshot({ path: join(KELUAR, `struktur-detail-${jenis}.png`), fullPage: true })
-  console.log(`→ apps/web/.layar/struktur-detail-${jenis}.png  (${kode})`)
+  await page.screenshot({ path: join(KELUAR, `struktur-detail-${jenis}${GELAP ? "-gelap" : ""}.png`), fullPage: true })
+  console.log(`→ apps/web/.layar/struktur-detail-${jenis}${GELAP ? "-gelap" : ""}.png  (${kode})`)
 
   /*
     ── GAMBAR KERJANYA dipotret TERPISAH.
@@ -149,9 +180,9 @@ for (const [idx, [id, jenis]] of dibuat.entries()) {
     await figur.first().scrollIntoViewIfNeeded()
     await page.waitForTimeout(400)
     await figur.first().screenshot({
-      path: join(KELUAR, `struktur-gambar-${jenis}.png`),
+      path: join(KELUAR, `struktur-gambar-${jenis}${GELAP ? "-gelap" : ""}.png`),
     })
-    console.log(`→ apps/web/.layar/struktur-gambar-${jenis}.png  (${nFigur} gambar)`)
+    console.log(`→ apps/web/.layar/struktur-gambar-${jenis}${GELAP ? "-gelap" : ""}.png  (${nFigur} gambar)`)
   }
   const tutup = page.locator('[aria-label="Tutup detail"]').first()
   if (await tutup.count()) { await tutup.click(); await page.waitForTimeout(600) }

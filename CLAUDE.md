@@ -476,6 +476,22 @@ langsung. Yang kedua butuh empat env id contoh untuk rute `[id]`, dan tanpa
 itu ia MELEWATI tujuh rute — termasuk `/proyek/[id]`, halaman terkaya di
 aplikasi ini — sambil tetap melaporkan "0 pelanggaran".
 
+⚠ **`--url /apa/pun` DIRUSAK Git Bash.** MSYS mengubah argumen yang diawali
+`/` menjadi path Windows, jadi `--url "/estimasi/struktur"` sampai ke skrip
+sebagai `C:/Program Files/Git/estimasi/struktur`. Halamannya lalu "dialihkan
+ke /dashboard" — gejala yang terbaca persis seperti login gagal atau izin
+kurang, dan tak menyebut argumen sama sekali.
+
+```bash
+MSYS_NO_PATHCONV=1 LAYAR_EMAIL=… LAYAR_SANDI=… \
+  node apps/web/scripts/audit-a11y-runtime.mjs --url "/estimasi/struktur"
+```
+
+Diukur 2026-08-19 (halaman Analisa Struktur, sesudah 32 jenis bergambar):
+**0 pelanggaran di mode terang DAN gelap.** Laporannya sekarang menyebut
+tujuan pengalihan (`/x → /dashboard`); tanpa itu, sebabnya tak bisa
+didiagnosis — yang dilaporkan tanpa tujuannya hanya bisa ditebak.
+
 Mekanisme env-nya ada sejak 2026-08-07 dan tak pernah terpakai sekali pun:
 tak ada yang tahu id apa yang harus diisi. Pembungkusnya mengambil sendiri
 dari basis. **Angka "0 pelanggaran" tanpa menyebut berapa rute dinamis yang
