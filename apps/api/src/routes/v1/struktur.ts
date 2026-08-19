@@ -10,6 +10,8 @@ import { analisaPlat } from '../../lib/struktur-plat.js'
 import { analisaFootplat } from '../../lib/struktur-footplat.js'
 import { analisaPilecap } from '../../lib/struktur-pilecap.js'
 import { analisaTiang } from '../../lib/struktur-tiang.js'
+import { analisaSloof } from '../../lib/struktur-sloof.js'
+import { analisaTangga } from '../../lib/struktur-tangga.js'
 import { analisaKolomLengkap, analisaKolomBulatLengkap } from '../../lib/struktur-kolom-lengkap.js'
 import { jelaskan, ringkasanAwam, tingkatBahaya, apakahBiner } from '../../lib/struktur-awam.js'
 import {
@@ -68,6 +70,7 @@ import {
 const JENIS = [
   // Beton
   'balok', 'kolom', 'kolom_bulat', 'plat', 'footplat', 'pilecap', 'tiang',
+  'sloof', 'tangga',
   // Baja
   'baja_balok', 'baja_kolom', 'baja_gording', 'baja_bracing',
   'baja_rangka', 'baja_base_plate', 'baja_angkur',
@@ -107,6 +110,14 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
     case 'footplat': return analisaFootplat(dgnJumlah as never)
     case 'pilecap': return analisaPilecap(dgnJumlah as never)
     case 'tiang': return analisaTiang(dgnJumlah as never)
+    /*
+      Sloof & tangga: elemen beton yang paling sering muncul di RAB nyata
+      (diukur 2026-08-19: sloof 15 baris, tangga 8) dan paling lama tak punya
+      penguji. Keduanya punya modul sendiri, bukan memakai balok/pelat apa
+      adanya — alasannya di kepala berkas masing-masing.
+    */
+    case 'sloof': return analisaSloof(dgnJumlah as never)
+    case 'tangga': return analisaTangga(dgnJumlah as never)
 
     /*
       ── BAJA

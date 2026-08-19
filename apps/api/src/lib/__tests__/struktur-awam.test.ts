@@ -11,6 +11,8 @@ import { analisaKolomBulat } from '../struktur-kolom-bulat'
 import { analisaTiang } from '../struktur-tiang'
 import { analisaKolomLengkap } from '../struktur-kolom-lengkap'
 import { analisaBalokBaja, analisaKolomBaja } from '../struktur-baja'
+import { analisaSloof } from '../struktur-sloof'
+import { analisaTangga } from '../struktur-tangga'
 import {
   analisaSambunganBaut, analisaSambunganLas, MUTU_BAUT,
 } from '../struktur-baja-sambungan'
@@ -43,6 +45,24 @@ const mutu = { fcMpa: 25, fyMpa: 400, fyvMpa: 240 }
 /** Menjalankan seluruh modul, mengumpulkan nama pemeriksaan yang NYATA muncul. */
 function semuaNamaPemeriksaan(): string[] {
   const hasil: Array<{ periksa: ReadonlyArray<{ nama: string }> }> = [
+    /*
+      Sloof & tangga — dua elemen beton yang paling sering muncul di RAB nyata
+      dan paling lama tak punya penguji. Tangga membawa tiga pemeriksaan yang
+      tak ada di elemen lain (Blondel, tinggi anak tangga, lebar injakan), dan
+      ketiganya justru yang paling perlu diterjemahkan: orang yang membaca
+      "Blondel 617 mm" tak tahu itu berarti tangganya nyaman dinaiki.
+    */
+    analisaSloof({
+      bMm: 150, hMm: 250, bentangM: 3, selimutMm: 30, dUtamaMm: 12,
+      nBawah: 2, nAtas: 2, dSengkangMm: 8, jarakSengkangMm: 150, mutu,
+      tinggiDindingM: 3, tebalDindingM: 0.15, jenisDinding: 'bata_merah',
+    }),
+    analisaTangga({
+      tebalPelatMm: 120, lebarM: 1.2, tinggiM: 3.2,
+      optredeMm: 175, antredeMm: 280, selimutMm: 20,
+      dUtamaMm: 10, jarakUtamaMm: 150, dBagiMm: 8, jarakBagiMm: 200,
+      mutu, pemakaian: 'hunian',
+    }),
     analisaBalok({
       bMm: 300, hMm: 520, panjangM: 6, selimutMm: 30, dUtamaMm: 16,
       nTarik: 5, dSengkangMm: 8, jarakSengkangMm: 150, mutu, muKnm: 120, vuKn: 90,

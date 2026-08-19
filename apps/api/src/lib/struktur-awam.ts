@@ -587,6 +587,81 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
     tindakan: 'Naikkan mutu beton tiang atau perbesar diameternya. '
       + 'Memperpanjang tiang TIDAK menolong untuk batas ini.',
   },
+  // ── TANGGA ────────────────────────────────────────────────────────────────
+  //
+  // Tiga pemeriksaan di bawah tak ada di elemen struktur mana pun, dan justru
+  // ketiganya yang paling perlu diterjemahkan: mereka bukan soal kekuatan
+  // melainkan soal orang yang menaikinya. "Blondel 617 mm" tak berarti apa-apa
+  // bagi pemilik bangunan; "tangganya nyaman dinaiki" berarti.
+  'Langkah nyaman (Blondel)': {
+    judul: 'Tangganya nyaman dinaiki',
+    apa: 'Tinggi dan lebar anak tangga harus cocok dengan panjang langkah kaki '
+      + 'manusia. Ukurannya: dua kali tinggi anak tangga ditambah lebar '
+      + 'injakannya, harus jatuh di 60–65 cm.',
+    risiko: 'Kalau di luar itu, orang tersandung — terlalu curam membuat kaki '
+      + 'terantuk saat naik, terlalu landai membuat langkah jadi setengah dan '
+      + 'orang kehilangan irama saat turun. Jatuh di tangga adalah kecelakaan '
+      + 'rumah tangga yang paling sering, dan yang paling sering melukai orang '
+      + 'tua dan anak-anak.',
+    tindakan: 'Ubah tinggi anak tangga atau lebar injakannya. Kalau ruangnya '
+      + 'terbatas, tambah bordes di tengah supaya tangga tak perlu securam itu.',
+  },
+  'Tinggi anak tangga': {
+    judul: 'Tinggi tiap anak tangga',
+    apa: 'Seberapa tinggi kaki harus diangkat untuk naik satu anak tangga. '
+      + 'Yang wajar 15–20 cm.',
+    risiko: 'Anak tangga yang terlalu tinggi melelahkan dan berbahaya bagi '
+      + 'orang tua; yang terlalu rendah membuat orang melangkahi dua sekaligus '
+      + 'lalu salah perhitungan.',
+    tindakan: 'Tambah jumlah anak tangganya — itu menurunkan tinggi tiap anak '
+      + 'tangga, dengan konsekuensi tangga jadi lebih panjang.',
+  },
+  'Lebar injakan': {
+    judul: 'Lebar tempat kaki berpijak',
+    apa: 'Seberapa dalam tempat menapak. Telapak kaki dewasa butuh minimal '
+      + '25 cm supaya tumit tidak menggantung di udara.',
+    risiko: 'Injakan yang terlalu sempit membuat orang menuruni tangga dengan '
+      + 'kaki menyamping atau hanya berpijak pada ujung jari — dan itu yang '
+      + 'membuat orang terpeleset saat turun, bukan saat naik.',
+    tindakan: 'Perlebar injakannya. Kalau panjang tangga terbatas, kurangi '
+      + 'jumlah anak tangga dengan meninggikan tiap anaknya — selama masih di '
+      + 'bawah 20 cm.',
+  },
+  'Tebal minimum (lendutan)': {
+    judul: 'Ketebalan supaya tidak melendut',
+    apa: 'Pelat yang terlalu tipis untuk bentangnya akan melengkung ke bawah '
+      + 'meski kekuatannya cukup. Aturan praktisnya: tebal minimal 1/20 '
+      + 'bentang.',
+    risiko: 'Lendutan yang berlebihan tidak meruntuhkan apa pun, tetapi '
+      + 'membuat lantai terasa "hidup" saat diinjak, meretakkan keramik di '
+      + 'atasnya, dan merusak plafon di bawahnya. Keluhan yang muncul '
+      + 'bertahun-tahun sesudah bangunan dipakai.',
+    tindakan: 'Tebalkan pelatnya, atau perpendek bentangnya dengan menambah '
+      + 'tumpuan di tengah (bordes untuk tangga).',
+  },
+  'Tulangan minimum': {
+    judul: 'Besi minimum untuk menahan retak',
+    apa: 'Beton menyusut saat mengering dan memuai saat panas. Besi minimum '
+      + 'ini bukan untuk menahan beban, melainkan menahan retak akibat '
+      + 'gerakan itu.',
+    risiko: 'Tanpa besi minimum, pelat retak rambut di banyak tempat meski '
+      + 'tak pernah dibebani berat. Retak itu meloloskan air, dan air '
+      + 'mengaratkan besi di dalamnya — kerusakan yang berjalan pelan dan tak '
+      + 'bisa dihentikan sesudah mulai.',
+    tindakan: 'Rapatkan jarak tulangan atau perbesar diameternya sampai luas '
+      + 'besinya memenuhi 0,18% luas penampang beton.',
+  },
+  'Kapasitas geser beton': {
+    judul: 'Kekuatan menahan sobek di dekat tumpuan',
+    apa: 'Di dekat tumpuan, pelat cenderung tersobek miring — bukan melengkung '
+      + 'seperti di tengah bentang. Ini memeriksa apakah betonnya sendiri '
+      + 'cukup kuat menahan sobekan itu tanpa besi tambahan.',
+    risiko: 'Kegagalan geser terjadi TIBA-TIBA, tanpa lendutan atau retak yang '
+      + 'memberi peringatan lebih dulu. Berbeda dengan kegagalan lentur yang '
+      + 'melengkung dulu, yang ini langsung patah.',
+    tindakan: 'Tebalkan pelatnya, naikkan mutu betonnya, atau tambahkan '
+      + 'sengkang di daerah dekat tumpuan.',
+  },
 }
 
 /**

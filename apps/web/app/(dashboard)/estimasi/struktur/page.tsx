@@ -56,7 +56,8 @@ import { LayarKosong } from "../_bersama/layar-kosong";
 interface Project { id: string; name: string }
 
 type JenisBeton =
-  | "balok" | "kolom" | "kolom_bulat" | "plat" | "footplat" | "pilecap" | "tiang";
+  | "balok" | "kolom" | "kolom_bulat" | "plat" | "footplat" | "pilecap" | "tiang"
+  | "sloof" | "tangga";
 
 type JenisBaja =
   | "baja_balok" | "baja_kolom" | "baja_gording" | "baja_bracing"
@@ -198,6 +199,8 @@ const NAMA_JENIS: Record<Jenis, string> = {
   footplat: "Pondasi footplat",
   pilecap: "Pilecap",
   tiang: "Tiang pancang",
+  sloof: "Sloof (tie beam)",
+  tangga: "Tangga beton",
   // Baja
   baja_balok: "Balok baja",
   baja_kolom: "Kolom baja",
@@ -222,7 +225,16 @@ const NAMA_JENIS: Record<Jenis, string> = {
 const KELOMPOK_JENIS: { label: string; jenis: Jenis[] }[] = [
   {
     label: "Beton bertulang",
-    jenis: ["balok", "kolom", "kolom_bulat", "plat", "footplat", "pilecap", "tiang"],
+    /*
+      Urutannya mengikuti urutan PENGERJAAN di lapangan, bukan abjad: pondasi
+      (footplat, pilecap, tiang) → sloof → kolom → balok → pelat → tangga.
+      Estimator yang menyusun RAB bekerja dari bawah ke atas, dan daftar yang
+      urutannya acak membuatnya membaca seluruh isinya tiap kali.
+    */
+    jenis: [
+      "footplat", "pilecap", "tiang", "sloof",
+      "kolom", "kolom_bulat", "balok", "plat", "tangga",
+    ],
   },
   {
     label: "Baja profil",
@@ -249,6 +261,50 @@ const MEDAN_MUTU: Medan[] = [
 ];
 
 const MEDAN: Record<Jenis, Medan[]> = {
+  /*
+    SLOOF — bebannya DIHITUNG dari dinding, tidak diketik.
+
+    Medan `muKnm`/`vuKn` sengaja TIDAK ada di sini, berbeda dengan balok.
+    Estimator yang harus menghitung momen sloof sendiri di kertas akan salah,
+    dan salahnya tak terlihat karena angka momen tak punya "rasa benar" seperti
+    dimensi. Yang diisi: tinggi dan tebal dinding di atasnya.
+  */
+  sloof: [
+    { kunci: "bMm", label: "Lebar b", satuan: "mm" },
+    { kunci: "hMm", label: "Tinggi h", satuan: "mm" },
+    { kunci: "bentangM", label: "Bentang antar kolom", satuan: "m" },
+    { kunci: "selimutMm", label: "Selimut beton", satuan: "mm" },
+    { kunci: "dUtamaMm", label: "Ø tulangan utama", satuan: "mm" },
+    { kunci: "nBawah", label: "Jumlah tulangan bawah" },
+    { kunci: "nAtas", label: "Jumlah tulangan atas (wajib = bawah)" },
+    { kunci: "dSengkangMm", label: "Ø sengkang", satuan: "mm" },
+    { kunci: "jarakSengkangMm", label: "Jarak sengkang", satuan: "mm" },
+    ...MEDAN_MUTU,
+    { kunci: "tinggiDindingM", label: "Tinggi dinding di atasnya", satuan: "m" },
+    { kunci: "tebalDindingM", label: "Tebal dinding", satuan: "m" },
+  ],
+  /*
+    TANGGA — optrede & antrede diisi, sisanya dihitung.
+
+    Panjang miring, jumlah anak tangga, dan kemiringannya TIDAK diminta:
+    ketiganya turunan dari tinggi, optrede, dan antrede. Meminta orang
+    mengisinya membuka peluang isian yang saling bertentangan — dan yang
+    bertentangan itu tak akan ketahuan sampai tangganya dicor.
+  */
+  tangga: [
+    { kunci: "tebalPelatMm", label: "Tebal pelat", satuan: "mm" },
+    { kunci: "lebarM", label: "Lebar tangga", satuan: "m" },
+    { kunci: "tinggiM", label: "Tinggi antar lantai", satuan: "m" },
+    { kunci: "optredeMm", label: "Optrede (tinggi anak tangga)", satuan: "mm" },
+    { kunci: "antredeMm", label: "Antrede (lebar injakan)", satuan: "mm" },
+    { kunci: "selimutMm", label: "Selimut beton", satuan: "mm" },
+    { kunci: "dUtamaMm", label: "Ø tulangan utama", satuan: "mm" },
+    { kunci: "jarakUtamaMm", label: "Jarak tulangan utama", satuan: "mm" },
+    { kunci: "dBagiMm", label: "Ø tulangan bagi", satuan: "mm" },
+    { kunci: "jarakBagiMm", label: "Jarak tulangan bagi", satuan: "mm" },
+    ...MEDAN_MUTU,
+    { kunci: "panjangBordesM", label: "Panjang bordes (0 bila tak ada)", satuan: "m" },
+  ],
   balok: [
     { kunci: "bMm", label: "Lebar b", satuan: "mm" },
     { kunci: "hMm", label: "Tinggi h", satuan: "mm" },
@@ -516,6 +572,29 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     diameterMm: 400, tinggiM: 3.5, selimutMm: 40, dUtamaMm: 16, nTulangan: 8,
     dPengekangMm: 10, jarakPengekangMm: 150, pengekang: "sengkang",
     mutu: { fcMpa: 30, fyMpa: 400 }, puKn: 1200, muKnm: 60,
+  },
+  /*
+    Contoh sloof rumah tinggal 1 lantai: 15/25 dengan dinding bata merah
+    setinggi 3 m — ukuran yang paling sering dipakai, dan yang paling sering
+    diperkecil tanpa hitungan.
+  */
+  sloof: {
+    bMm: 150, hMm: 250, bentangM: 3, selimutMm: 30,
+    dUtamaMm: 12, nBawah: 2, nAtas: 2,
+    dSengkangMm: 8, jarakSengkangMm: 150,
+    mutu: { fcMpa: 20, fyMpa: 400 },
+    tinggiDindingM: 3, tebalDindingM: 0.15, jenisDinding: "bata_merah",
+  },
+  /*
+    Contoh tangga rumah tinggal: tinggi antar lantai 3,2 m dengan optrede 175
+    dan antrede 280 — kombinasi yang memenuhi Blondel dan lazim dipakai.
+  */
+  tangga: {
+    tebalPelatMm: 150, lebarM: 1.2, tinggiM: 3.2,
+    optredeMm: 175, antredeMm: 280, selimutMm: 20,
+    dUtamaMm: 12, jarakUtamaMm: 150, dBagiMm: 8, jarakBagiMm: 200,
+    mutu: { fcMpa: 25, fyMpa: 400 },
+    pemakaian: "hunian", panjangBordesM: 0,
   },
   plat: {
     lxM: 3.5, lyM: 4, hM: 0.12, selimutMm: 20,
