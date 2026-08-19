@@ -408,7 +408,7 @@ function FormMitra({ awal, menyimpan, tutup, simpan }: {
   return (
     <dialog open aria-labelledby="judul-form-mitra" style={{
       position: "fixed", inset: 0, zIndex: 60, width: "100%", height: "100%",
-      background: "rgba(0,0,0,0.45)", border: "none", padding: 16,
+      background: "rgba(0,0,0,0.45)", border: "none", padding: "var(--pad-kartu-lega)",
       display: "flex", alignItems: "center", justifyContent: "center",
     }}>
       <form
@@ -423,7 +423,7 @@ function FormMitra({ awal, menyimpan, tutup, simpan }: {
           });
         }}
         style={{
-          ...GAYA_KARTU, padding: 18, maxWidth: 460, width: "100%",
+          ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", maxWidth: 460, width: "100%",
           maxHeight: "90vh", overflowY: "auto",
         }}
       >
@@ -515,12 +515,12 @@ function DialogDaftarHitam({ mitra, menyimpan, tutup, kirim }: {
   return (
     <dialog open aria-labelledby="judul-hitam" style={{
       position: "fixed", inset: 0, zIndex: 60, width: "100%", height: "100%",
-      background: "rgba(0,0,0,0.45)", border: "none", padding: 16,
+      background: "rgba(0,0,0,0.45)", border: "none", padding: "var(--pad-kartu-lega)",
       display: "flex", alignItems: "center", justifyContent: "center",
     }}>
       <form
         onSubmit={(e) => { e.preventDefault(); kirim(alasan); }}
-        style={{ ...GAYA_KARTU, padding: 18, maxWidth: 440, width: "100%" }}
+        style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", maxWidth: 440, width: "100%" }}
       >
         <h2 id="judul-hitam" style={{ fontSize: 15, fontWeight: 700, margin: "0 0 8px", color: C.text }}>
           {mencabut ? "Cabut dari daftar hitam" : "Masukkan ke daftar hitam"}
