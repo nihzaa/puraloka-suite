@@ -243,8 +243,14 @@ export function HitungVolume(
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => setD((x) => ({ ...x, [k]: e.target.value })),
   });
 
-  const lbl = (t: string) => (
-    <label style={{ fontSize: "var(--teks-delta)", color: C.mid, display: "block", marginBottom: 3 }}>{t}</label>
+  /*
+    Label WAJIB terkait ke isiannya lewat `htmlFor`, bukan sekadar berdekatan
+    di DOM. Tanpa itu pembaca layar mengumumkan "kotak edit" tanpa menyebut
+    apa yang diminta — dan pengguna berperangkat lama/berliterasi digital
+    rendah adalah bagian besar pemakai perangkat lunak ini.
+  */
+  const lbl = (t: string, untuk?: string) => (
+    <label htmlFor={untuk} style={{ fontSize: "var(--teks-delta)", color: C.mid, display: "block", marginBottom: 3 }}>{t}</label>
   );
 
   if (!buka) {
@@ -271,20 +277,29 @@ export function HitungVolume(
         “Pakai angka ini” kalau sudah benar.
       </p>
 
-      {lbl("Sektor pekerjaan")}
-      <select className="isian-fokus" style={{ ...GAYA_ISIAN, marginBottom: 8 }}
+      {/*
+        `htmlFor`/`id` DIPASANG, bukan mengandalkan kedekatan.
+
+        `lbl()` memulangkan <label> tanpa `htmlFor`, jadi pembaca layar
+        mengumumkan "kotak kombo" tanpa menyebut apa yang dipilih — dan
+        `a11y-ratchet` merah karenanya (ambang NOL, dan itu benar).
+      */}
+      <label htmlFor="tk-sektor" style={{ fontSize: "var(--teks-delta)", color: C.mid, display: "block", marginBottom: 3 }}>
+        Sektor pekerjaan
+      </label>
+      <select id="tk-sektor" className="isian-fokus" style={{ ...GAYA_ISIAN, marginBottom: 8 }}
         value={sektor} onChange={(e) => { setSektor(e.target.value); setBukaan([]); }}>
         {SEKTOR.map((s) => <option key={s.nilai} value={s.nilai}>{s.label}</option>)}
       </select>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: 8 }}>
-        {medan.includes("panjang") && <div>{lbl("Panjang (m)")}<input className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("panjang")} /></div>}
-        {medan.includes("lebar") && <div>{lbl("Lebar (m)")}<input className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("lebar")} /></div>}
-        {medan.includes("tinggi") && <div>{lbl("Tinggi (m)")}<input className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("tinggi")} /></div>}
-        {medan.includes("kemiringan") && <div>{lbl("Kemiringan (°)")}<input className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" placeholder="mis. 30" {...isi("kemiringan")} /></div>}
-        {medan.includes("cacah") && <div>{lbl("Cacah")}<input className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("cacah")} /></div>}
-        <div>{lbl("Jumlah")}<input className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("jumlah")} /></div>
-        <div>{lbl("Faktor")}<input className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("faktor")} /></div>
+        {medan.includes("panjang") && <div>{lbl("Panjang (m)", "tk-panjang")}<input id="tk-panjang" className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("panjang")} /></div>}
+        {medan.includes("lebar") && <div>{lbl("Lebar (m)", "tk-lebar")}<input id="tk-lebar" className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("lebar")} /></div>}
+        {medan.includes("tinggi") && <div>{lbl("Tinggi (m)", "tk-tinggi")}<input id="tk-tinggi" className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("tinggi")} /></div>}
+        {medan.includes("kemiringan") && <div>{lbl("Kemiringan (°)", "tk-kemiringan")}<input id="tk-kemiringan" className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" placeholder="mis. 30" {...isi("kemiringan")} /></div>}
+        {medan.includes("cacah") && <div>{lbl("Cacah", "tk-cacah")}<input id="tk-cacah" className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("cacah")} /></div>}
+        <div>{lbl("Jumlah", "tk-jumlah")}<input id="tk-jumlah" className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("jumlah")} /></div>
+        <div>{lbl("Faktor", "tk-faktor")}<input id="tk-faktor" className="isian-fokus" style={GAYA_ISIAN} type="number" step="any" {...isi("faktor")} /></div>
       </div>
 
       {medan.includes("bukaan") && (

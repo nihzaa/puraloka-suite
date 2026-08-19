@@ -238,7 +238,7 @@ Ukur ulang kapan saja: `grep -nE "^\s*--data-[0-9]" apps/web/app/globals.css`
 **Yang sebenarnya terjadi:** alasan 1 dan 2 saling meniadakan di layar — cukup
 dekat untuk terbaca sebagai "navy yang salah", cukup jauh untuk tidak menyatu.
 Ada pula sebab kedua yang independen dan terukur, tercatat di
-[rfq/page.tsx:797](apps/web/app/(dashboard)/procurement/rfq/page.tsx#L797):
+[rfq/page.tsx:797](../../apps/web/app/%28dashboard%29/procurement/rfq/page.tsx#L797):
 indigo `#6366F1` berkontras **4,47** — di bawah ambang teks 4,5.
 
 ### 3d. Aturan pemakaian aksen — ini yang paling mudah dilanggar
