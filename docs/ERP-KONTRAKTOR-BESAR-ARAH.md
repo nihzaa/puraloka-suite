@@ -44,16 +44,22 @@ yang menentukan adalah **tak ada rantai yang putus di tengah**.
     mitra → kontrak/SPK → lingkup kerja → opname → berita acara
           → tagihan → pembayaran → jurnal
 
-**Di repo ini sudah tersambung**, kecuali satu simpul: identitas mitra
-terpecah tiga tabel (`md-subkon`). Akibatnya evaluasi buruk di satu jalur
-tak menghalangi pihak yang sama masuk lewat jalur lain.
+**Sudah tersambung penuh sejak 2026-08-19.** Simpul terakhirnya — identitas
+mitra yang terpecah tiga tabel — ditutup migrasi 461-464: satu tabel `mitra`
+ber-kolom `bentuk` (orang | badan usaha), dan daftar hitam yang menutup
+SEMUA pintu sekaligus. Sebelumnya evaluasi buruk di satu jalur tak
+menghalangi pihak yang sama masuk lewat jalur lain — dan diukur, kedelapan
+penawaran tender memang masuk lewat pintu yang tak dijaga.
 
 ### Rantai B — dari rencana ke kenyataan
 
     RAB → RAP → PO/SPK → realisasi biaya → CVR → laporan laba
 
-**Putus di CVR** (`cc-cvr`): nilai terpasang baru dihitung dari upah
-borongan. Material dan alat belum ikut, dan layarnya tak menyatakan itu.
+**Masih putus di CVR, tapi putusnya kini TERLIHAT** (`cc-cvr`, 2026-08-19).
+Nilai terpasang tetap dihitung dari upah borongan — dan itu tak bisa berubah
+tanpa perubahan skema, karena taksonomi biaya dan taksonomi RAB tak saling
+menunjuk. Yang berubah: layar kini menyebut **berapa besar** yang di luar
+jangkauannya (Rp 263,5 juta), alih-alih membiarkannya terbaca sebagai nol.
 
 ### Rantai C — dari gambar ke pertanggungjawaban
 
@@ -88,7 +94,9 @@ Yang dibeli dengan itu bukan kerapian — melainkan **gerbang kelayakan yang
 menutup semua pintu.** Selama identitasnya terpecah, memblokir seseorang
 hanya memblokir satu pintu.
 
-→ menutup **`md-subkon`**
+→ **`md-subkon` ✅ SELESAI 2026-08-19** (migrasi 461-464). Dibuktikan lewat
+mutasi: melumpuhkan gerbangnya menghasilkan HTTP 200 dan status `"menang"`
+untuk mitra berdaftar-hitam.
 
 ### 2.2 Setiap angka menyebut CAKUPANNYA
 
@@ -99,7 +107,9 @@ ERP kontraktor besar **selalu** menyertakan cakupan pada angka finansial.
 Yang berbahaya bukan angka tak lengkap — melainkan angka tak lengkap yang
 **terlihat lengkap**.
 
-→ menutup **`cc-cvr`** (dua cakupan berdampingan, masing-masing berlabel)
+→ **`cc-cvr` ✅ SELESAI 2026-08-19** — dua cakupan berdampingan, masing-masing
+berlabel, **tak pernah dijumlahkan**. Menjumlahkannya berarti mengadu biaya
+material dengan nilai upah lalu menyebut selisihnya "rugi".
 
 ### 2.3 Dokumen punya VERSI, dan versi lama tak pernah hilang
 
@@ -141,8 +151,8 @@ Repo ini sudah punya 58 tugas terjadwal. Yang menahan tiga sisa bukan kode.
 
 | # | Entri | Rantai | Ukuran | Yang menahan |
 |---|---|---|---|---|
-| 1 | `md-subkon` | A | 2.1 | **kode** — rancangan siap (R-017) |
-| 2 | `cc-cvr` | B | 2.2 | **kode** — tak perlu tunggu data |
+| 1 | `md-subkon` | A | 2.1 | ✅ **SELESAI 2026-08-19** (migrasi 461-464) |
+| 2 | `cc-cvr` | B | 2.2 | ✅ **SELESAI 2026-08-19** (dua cakupan) |
 | 3 | `dk-register` | C | 2.3 | **kode** + izin backfill |
 | 4 | `md-template-dok` | C | 2.4 | **kode** — template non-kontrak |
 | 5 | `dk-esign` | D | 2.5 | kontrak Peruri |
@@ -150,7 +160,7 @@ Repo ini sudah punya 58 tugas terjadwal. Yang menahan tiga sisa bukan kode.
 | 7 | `bi-terjadwal` | D | 2.5 | kredensial SMTP tenant |
 | 8 | `mb-progres` | A | — | build & sebar aplikasi mobile |
 
-**Empat pekerjaan kode. Empat menunggu di luar kode.**
+**Empat pekerjaan kode — DUA SUDAH SELESAI (2026-08-19). Empat menunggu di luar kode.**
 
 Sebelumnya saya menghitung hanya SATU pekerjaan kode. Yang berubah: jawaban
 founder memindahkan `cc-cvr` dari "keputusan" ke "kode", dan `md-template-dok`
@@ -209,17 +219,46 @@ totalnya, dan itu tetap benar saat semua nama kategori hilang ke satu ember
 **Tetap `sebagian`, dan itu jujur:** cakupan penuh per-pekerjaan menuntut
 perubahan skema (rujukan dari sisi biaya ke RAB), bukan pengisian data.
 
-### Urutan 2 — `md-subkon` (identitas mitra)
+### Urutan 2 — `md-subkon` (identitas mitra) — ✅ **SELESAI 2026-08-19**
 
 **Kenapa kedua:** rancangannya sudah disetujui, dan **sekarang waktu termurah
 yang akan pernah ada** — `workers` 60 baris, `suppliers` 5 baris, nol nama
 yang sama di keduanya, jadi backfill-nya tak perlu menebak.
 
-Tiap bulan menunggu berarti lebih banyak baris yang harus dicocokkan tangan.
+**Cacatnya lebih tajam dari yang saya duga.** Dugaan awal: "identitas terpecah
+tiga tabel, tak rapi". Diukur, dan yang ditemukan bukan soal kerapian:
 
-Ukuran selesai: tabel `mitra`, tiga tabel lama menunjuk induknya tanpa satu
-pun rute berubah, dan test yang membuktikan gerbang kelayakan kini menutup
-ketiga pintu.
+    evaluasi_subkon.supplier_id       → suppliers   (5 evaluasi)
+    prakualifikasi_vendor.supplier_id → suppliers   (5 prakualifikasi)
+    penawaran_subkon.worker_id        → workers     (8 penawaran)
+
+**Kedelapan penawaran tender datang lewat `workers`**, sementara
+`evaluasi_subkon.masuk_daftar_hitam` — satu-satunya penanda daftar hitam —
+hanya bisa menunjuk `suppliers`. Dan `tender-subkon.ts` maupun `spk.ts` **nol
+rujukan** padanya.
+
+Jadi pihak yang di-blacklist bisa menawar **dan menang**. Bukan karena
+penjaganya lalai — karena penjaganya berdiri di pintu yang lain. Dibuktikan
+lewat mutasi: melumpuhkan gerbangnya menghasilkan HTTP 200 dan status
+`"menang"` untuk mitra berdaftar-hitam.
+
+**Yang dibangun:**
+
+| | |
+|---|---|
+| migrasi 461 | tabel `mitra` ber-kolom `bentuk` (`orang`\|`badan_usaha`), RLS + FORCE, backfill 60+5 = **65 mitra, nol yatim** |
+| migrasi 462 | izin `mitra:view` / `manage` / `daftar_hitam` — yang ketiga **sengaja tak diwariskan** |
+| migrasi 463 | menu `md-subkon` akhirnya menunjuk halaman yang ada |
+| migrasi 464 | induknya dipindah ke grup yang **hidup** (463 lulus verifikasinya sendiri tapi menggantung di grup mati) |
+| `lib/gerbang-kelayakan.ts` | satu penanda, semua pintu |
+| `routes/v1/mitra.ts` | CRUD + endpoint daftar hitam **terpisah** |
+| `/mandor/mitra` | layarnya — §8: "kolom DB sudah ada" bukan selesai |
+
+**Tiga tabel lama tetap hidup, nol FK dipindah, nol rute berubah.** Diukur
+lebih dulu: 8 tabel merujuk `workers`, 14 merujuk `suppliers` — 22 FK yang
+tak perlu disentuh.
+
+**Bukti:** 38 test hijau, 3 mutasi MERAH, nol penjaga baru merah.
 
 ### Urutan 3 — `md-template-dok` (template non-kontrak)
 

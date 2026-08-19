@@ -23,7 +23,7 @@
 
 | Golongan | Jumlah | Artinya |
 |---|---:|---|
-| **A. Pekerjaan kode** | ~~3~~ → **4** | A1/A2 selesai; `cc-cvr` + `md-template-dok` pindah ke sini sesudah jawaban founder (R-017). Urutan di `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` §4 |
+| **A. Pekerjaan kode** | ~~3~~ → **4**, ~~4~~ → **2 tersisa** | A1/A2 selesai 2026-08-18; **`cc-cvr` + `md-subkon` selesai 2026-08-19**. Sisa: `md-template-dok`, `dk-register`. Urutan di `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` §4 |
 | ~~B. Menunggu keputusan founder~~ | ~~2~~ → **0** | **DIJAWAB 2026-08-19** — keduanya "bisa dua-duanya"; lihat R-017 |
 | **C. Menunggu pihak ketiga / rilis** | 3 | kredensial, kontrak komersial, atau distribusi aplikasi |
 | ~~D. Status BASI~~ | ~~1~~ → **0** | **SELESAI** — `tg-tambah` diverifikasi lalu jadi `hidup` |
@@ -31,7 +31,7 @@
 
 ---
 
-## A. Pekerjaan kode — 2 selesai, 4 tersisa (urutan di `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` §4)
+## A. Pekerjaan kode — 4 selesai, 2 tersisa (urutan di `docs/ERP-KONTRAKTOR-BESAR-ARAH.md` §4)
 
 ### A1. ✅ SELESAI 2026-08-18 — `sy-import` sudah `hidup`
 
@@ -162,10 +162,15 @@ Rancangan: satu tabel induk `mitra` dengan kolom `bentuk`
 (`orang` | `badan_usaha`). Tiga tabel lama TETAP HIDUP dan menunjuk induknya
 — nol rute berubah, nol tabel dihapus.
 
-**Pindah ke golongan A (pekerjaan kode).** Yang tersisa untuk founder cuma
-KAPAN, bukan apa. Diukur 2026-08-19: `workers` 60 baris, `suppliers` 5 baris,
-**nol nama yang sama** — jadi backfill tak perlu menebak, dan sekarang waktu
-termurah yang akan pernah ada.
+**✅ SELESAI 2026-08-19** — migrasi 461-464, `lib/gerbang-kelayakan.ts`,
+`routes/v1/mitra.ts`, layar `/mandor/mitra`. Backfill 60 tukang + 5 pemasok
+= 65 mitra, **nol yatim**. Tiga tabel lama tetap hidup, nol FK dipindah,
+nol rute berubah.
+
+Cacatnya lebih tajam dari dugaan: kedelapan penawaran tender datang lewat
+`workers`, sementara penanda daftar hitam hanya bisa menunjuk `suppliers` —
+dan rute tendernya nol rujukan padanya. Pihak yang di-blacklist bisa menawar
+DAN MENANG. Dibuktikan lewat mutasi (HTTP 200 + status `"menang"`).
 
 ### B2 → `cc-cvr`: dua cakupan BERDAMPINGAN
 
@@ -183,7 +188,15 @@ kosong; cuma-kategori → 9 dari 11 proyek tak menampilkan apa pun sampai
 seseorang mengisi kategorinya (dan fitur yang menunggu data lengkap tak
 pernah dipakai, lalu tak pernah diisi).
 
-**Pindah ke golongan A.** Tak perlu menunggu satu pun kategori diisi.
+**✅ SELESAI 2026-08-19** — dan pengukuran MEMBALIK rancangannya. `work_scopes.rab_category_id`
+menunjuk `rab_items` (BoQ) sementara `project_expenses.category_id` menunjuk
+`project_expense_categories`: dua taksonomi yang tak pernah bertemu. Jadi
+"isi kategorinya lalu cakupan jadi penuh" TIDAK BENAR.
+
+Yang justru terlihat: **Rp 263,5 juta** biaya `approved` pada proyek
+ber-work_scope, dan TIGA proyek tampil seolah tak punya biaya sama sekali.
+Kini dilaporkan sebagai kartu "Biaya di luar hitungan" — **tak pernah
+dijumlahkan** ke margin.
 
 ---
 

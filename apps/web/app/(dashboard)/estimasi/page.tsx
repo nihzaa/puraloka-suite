@@ -40,7 +40,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
 import { FileText, Plus } from "lucide-react";
-import { LayarKosong } from "./_bersama/layar-kosong";
+import { LayarKosong } from "@/components/layar-kosong";
 import {
   LABEL_STATUS,
   rp,

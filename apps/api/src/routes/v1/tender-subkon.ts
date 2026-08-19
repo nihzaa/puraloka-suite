@@ -9,6 +9,7 @@ import {
   rencanakanSalinBoq, type ItemPenawaranMenang, type ItemBoqAda,
 } from '../../lib/salin-boq-pemenang.js'
 import { logAuditEvent } from '../../utils/audit.js'
+import { periksaKelayakan } from '../../lib/gerbang-kelayakan.js'
 
 /**
  * TENDER & AWARD SUBKONTRAKTOR (F5 PEMBEDA)
@@ -704,6 +705,51 @@ export default async function tenderSubkonRoutes(app: FastifyInstance) {
       // 404 hanya untuk yang benar-benar tak ada; sisanya 409 — permintaannya
       // bisa dimengerti, keadaannya yang menolak.
       return reply.status(verdict.kode === 'tak_ada' ? 404 : 409).send({ error: verdict.sebab })
+    }
+
+    // ── GERBANG KELAYAKAN — di sinilah kerugiannya nyata ──────────────────
+    //
+    // Diukur 2026-08-19, SEBELUM migrasi 461: kedelapan penawaran tender
+    // datang lewat `workers`, sementara `evaluasi_subkon.masuk_daftar_hitam`
+    // hanya bisa menunjuk `suppliers` — dan berkas ini tak memeriksanya sama
+    // sekali. Pihak yang di-blacklist bisa menawar DAN MENANG, bukan karena
+    // penjaganya lalai melainkan karena penjaganya berdiri di pintu lain.
+    //
+    // Diperiksa di PENETAPAN, bukan di penawaran: menawar belum memindahkan
+    // uang, menetapkan sudah. Menolak keduanya sama kerasnya mendorong orang
+    // menghapus status daftar hitam supaya pekerjaannya jalan — dan penanda
+    // yang dihapus demi kelancaran adalah penanda yang mati.
+    const pemenang = (penawaran ?? []).find(
+      (p) => (p as { id: string }).id === b.penawaran_id) as { worker_id?: string } | undefined
+
+    if (pemenang?.worker_id) {
+      const { data: tukang, error: eTukang } = await db
+        .from('workers')
+        .select('mitra_id')
+        .eq('id', pemenang.worker_id)
+        .maybeSingle()
+      if (eTukang) return reply.status(500).send({ error: eTukang.message })
+
+      const idMitra = (tukang as { mitra_id: string | null } | null)?.mitra_id ?? null
+      if (idMitra) {
+        const { data: mitra, error: eMitra } = await db
+          .from('mitra')
+          .select('id, nama, daftar_hitam, alasan_daftar_hitam, aktif')
+          .eq('id', idMitra)
+          .maybeSingle()
+        if (eMitra) return reply.status(500).send({ error: eMitra.message })
+
+        const kelayakan = periksaKelayakan(mitra as never)
+        if (!kelayakan.boleh) {
+          // 409, bukan 403: permintaannya sah dan penggunanya berwenang —
+          // keadaan pihaknya yang menolak. 403 akan terbaca sebagai "Anda
+          // tak boleh menetapkan pemenang", tuduhan yang salah alamat.
+          return reply.status(409).send({ error: kelayakan.pesan })
+        }
+      }
+      // `mitra_id` NULL sengaja dilewati tanpa menolak — itu keadaan data
+      // (baris belum ter-backfill), bukan penilaian atas pihaknya. Menolaknya
+      // akan menghentikan seluruh tender di tenant yang belum ter-migrasi.
     }
 
     // Yang KALAH ditandai lebih dulu, pemenang belakangan.

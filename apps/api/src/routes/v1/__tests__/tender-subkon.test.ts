@@ -48,8 +48,12 @@ async function siapkanTender(nomor: string) {
      VALUES ($1, $2, 'Uji penetapan pemenang', 120000000, '2026-02-01', 'terkirim')
      RETURNING id`, [projectId, nomor])
 
+  // ORDER BY WAJIB. `LIMIT 3` tanpa urutan menyerahkan pilihannya ke
+  // Postgres: selama jumlah barisnya tetap ia memulangkan yang sama dan tak
+  // pernah terlihat salah, lalu berhenti benar begitu ada baris ditambah
+  // atau dihapus — dan kegagalannya menuduh RUTE, bukan fixture.
   const { rows: w } = await db.query(
-    'SELECT id FROM workers WHERE company_id = $1 LIMIT 3', [companyId])
+    'SELECT id FROM workers WHERE company_id = $1 ORDER BY created_at, id LIMIT 3', [companyId])
   if (w.length < 3) throw new Error('butuh tiga worker di company ini — fixture tak terbentuk')
 
   const buat = async (wid: string, nilai: number, absen = false) => {
@@ -66,6 +70,10 @@ async function siapkanTender(nomor: string) {
     murah: await buat(w[0].id, 100_000_000),
     mahal: await buat(w[1].id, 150_000_000),
     absen: await buat(w[2].id, 0, true),
+    // Id tukangnya ikut dipulangkan — test gerbang kelayakan perlu menandai
+    // mitra di baliknya, dan mencarinya ulang lewat penawaran berarti
+    // menduplikasi pengetahuan tentang bentuk fixture ini.
+    workerMurah: w[0].id as string,
   }
 }
 
@@ -288,4 +296,73 @@ describe('trigger 347 — penawaran terkunci sesudah putusan', () => {
       db.query(`UPDATE tender_subkon SET status = 'selesai' WHERE id = $1`, [f.tenderId]),
     ).rejects.toThrow(/[Aa]lasan/)
   })
+
+  /**
+   * ══════════════════════════════════════════════════════════════════════
+   * GERBANG KELAYAKAN — daftar hitam yang akhirnya menutup pintu ini
+   * ══════════════════════════════════════════════════════════════════════
+   *
+   * Diukur 2026-08-19, SEBELUM migrasi 461: kedelapan penawaran tender
+   * datang lewat `workers`, sementara `evaluasi_subkon.masuk_daftar_hitam`
+   * — satu-satunya penanda daftar hitam — hanya bisa menunjuk `suppliers`.
+   * Dan berkas rutenya tak memeriksanya SAMA SEKALI (nol rujukan).
+   *
+   * Jadi pihak yang di-blacklist bisa menawar DAN MENANG. Bukan karena
+   * penjaganya lalai, melainkan karena penjaganya berdiri di pintu lain.
+   *
+   * Migrasi 461 memindahkan penandanya ke `mitra.daftar_hitam`, tempat
+   * ketiga peran bertemu. Yang diuji di sini: penanda itu benar-benar
+   * menahan penetapan, dan menahannya dengan KALIMAT yang bisa ditindak.
+   */
+  it('mitra DAFTAR HITAM ditolak jadi pemenang — pintu yang dulu terbuka', async () => {
+    const f = await siapkanTender(`${TANDA}-HITAM`)
+
+    const { rows: mt } = await db.query(
+      'SELECT mitra_id FROM workers WHERE id = $1', [f.workerMurah])
+    const idMitra = mt[0]?.mitra_id
+    if (!idMitra) throw new Error('worker uji belum tertaut mitra — migrasi 461 belum jalan?')
+
+    const { rows: awal } = await db.query(
+      'SELECT daftar_hitam, alasan_daftar_hitam FROM mitra WHERE id = $1', [idMitra])
+    try {
+      await db.query(
+        `UPDATE mitra SET daftar_hitam = true,
+                alasan_daftar_hitam = 'tiga kali gagal serah terima',
+                daftar_hitam_sejak = now() WHERE id = $1`, [idMitra])
+
+      const r = await patch(`/api/v1/tender-subkon/${f.tenderId}/pemenang`,
+        { penawaran_id: f.murah, alasan: ALASAN })
+
+      // 409, bukan 403: permintaannya sah dan penggunanya berwenang —
+      // keadaan PIHAKNYA yang menolak. 403 terbaca sebagai "Anda tak boleh
+      // menetapkan pemenang", tuduhan yang salah alamat.
+      expect(r.statusCode, r.body).toBe(409)
+      expect(r.json().error).toMatch(/daftar hitam/i)
+      // Alasannya IKUT. Tanpa itu penggunanya harus membuka layar lain, dan
+      // sebagian akan menyimpulkan sistemnya rusak.
+      expect(r.json().error).toMatch(/tiga kali gagal serah terima/)
+
+      // Dan penawarannya BENAR-BENAR tak berpindah status. Menolak di
+      // balasan tetapi terlanjur menulis 'menang' adalah kegagalan yang
+      // paling sulit terlihat: layar bilang gagal, basis bilang menang.
+      const { rows: st } = await db.query(
+        'SELECT status FROM penawaran_subkon WHERE id = $1', [f.murah])
+      expect(st[0].status).toBe('diajukan')
+    } finally {
+      await db.query(
+        `UPDATE mitra SET daftar_hitam = $2, alasan_daftar_hitam = $3,
+                daftar_hitam_sejak = NULL WHERE id = $1`,
+        [idMitra, awal[0].daftar_hitam, awal[0].alasan_daftar_hitam])
+    }
+  })
+
+  it('sesudah daftar hitam DICABUT, mitra yang sama boleh menang', async () => {
+    // Gerbang yang tak bisa dibuka lagi bukan gerbang, melainkan tembok —
+    // dan keputusan blacklist memang bisa ditinjau ulang.
+    const f = await siapkanTender(`${TANDA}-CABUT`)
+    const r = await patch(`/api/v1/tender-subkon/${f.tenderId}/pemenang`,
+      { penawaran_id: f.murah, alasan: ALASAN })
+    expect(r.statusCode, r.body).toBe(200)
+  })
+
 })

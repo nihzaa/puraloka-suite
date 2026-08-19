@@ -21,7 +21,7 @@ import { Scale } from "lucide-react";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
-import { LayarKosong } from "../_bersama/layar-kosong";
+import { LayarKosong } from "@/components/layar-kosong";
 import { angka, type ProyekRingkas } from "../_bersama/tipe";
 
 interface VariansBaris {

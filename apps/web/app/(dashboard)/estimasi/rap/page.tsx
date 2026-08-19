@@ -40,7 +40,7 @@ import {
   Pencil, HardHat, ChevronDown, ChevronRight,
 } from "lucide-react";
 import { Modal, label, StatusBadge, btnPrimary, btnGhost } from "../_bersama/kerangka";
-import { LayarKosong } from "../_bersama/layar-kosong";
+import { LayarKosong } from "@/components/layar-kosong";
 
 const fmtRp = formatRupiah;
 const lbl: React.CSSProperties = {

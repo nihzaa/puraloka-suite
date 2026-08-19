@@ -1,7 +1,14 @@
 "use client";
 
 /**
- * LAYAR KOSONG YANG MENJELASKAN — komponen bersama modul Estimasi.
+ * LAYAR KOSONG YANG MENJELASKAN — komponen bersama SELURUH dashboard.
+ *
+ * ⚠ Dipindah dari `estimasi/_bersama/` ke sini pada 2026-08-19. Ia lahir di
+ * modul Estimasi, tetapi penjaga `uji-layar-kosong-menjelaskan.mjs` berlaku
+ * SELURUH dashboard — jadi halaman modul lain yang menyatakan dirinya kosong
+ * wajib memakainya juga, dan mengimpornya dari `estimasi/_bersama` akan
+ * menautkan modul yang tak berhubungan. Ditemukan saat membangun
+ * `/mandor/mitra`.
  *
  * ══════════════════════════════════════════════════════════════════════════
  * KENAPA ADA

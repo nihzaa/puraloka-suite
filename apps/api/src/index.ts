@@ -90,6 +90,7 @@ import analisaKeterlambatanRoutes from './routes/v1/analisa-keterlambatan.js'
 import asuransiRoutes from './routes/v1/asuransi.js'
 import contingencyRoutes from './routes/v1/contingency.js'
 import tenderSubkonRoutes from './routes/v1/tender-subkon.js'
+import mitraRoutes from './routes/v1/mitra.js'
 import sertifikatIpcRoutes from './routes/v1/sertifikat-ipc.js'
 import vendorKualifikasiRoutes from './routes/v1/vendor-kualifikasi.js'
 import alatOperasionalRoutes from './routes/v1/alat-operasional.js'
@@ -406,6 +407,7 @@ await app.register(analisaKeterlambatanRoutes)
 await app.register(asuransiRoutes)
 await app.register(contingencyRoutes)
 await app.register(tenderSubkonRoutes)
+await app.register(mitraRoutes)
 await app.register(sertifikatIpcRoutes)
 await app.register(vendorKualifikasiRoutes)
 await app.register(alatOperasionalRoutes)

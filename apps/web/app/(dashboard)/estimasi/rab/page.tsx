@@ -41,7 +41,7 @@ import { Plus, Upload, Lock, FileSpreadsheet, Layers, HelpCircle, ArrowRightLeft
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
-import { LayarKosong } from "../_bersama/layar-kosong";
+import { LayarKosong } from "@/components/layar-kosong";
 import { AddItemModal } from "../_bersama/modal-item";
 import { JelaskanModal } from "../_bersama/modal-jelaskan";
 import { TerapkanKeRabModal } from "../_bersama/modal-terapkan";
