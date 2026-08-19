@@ -66,6 +66,8 @@ import {
   gambarLas,
   gambarPenampangKayu,
 } from '../../lib/struktur-gambar.js'
+import { susunLembar } from '../../lib/struktur-lembar.js'
+import { susunPdfLembar } from '../../lib/struktur-lembar-pdf.js'
 
 /**
  * ANALISA STRUKTUR — rute penyimpanan & perhitungan.
@@ -686,6 +688,120 @@ export default async function strukturRoutes(app: FastifyInstance) {
     })
 
   // ── GET /projects/:projectId/struktur/rekap-volume ────────────────────────
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    GET /struktur/lembar.pdf — LEMBAR PERHITUNGAN yang bisa ditandatangani
+
+    Modul ini menyatakan sendiri batasnya: "MEMBANTU estimasi, bukan
+    menggantikan perhitungan bertanda tangan insinyur". Kalimat itu benar —
+    dan selama ini menggantung, karena insinyur yang mau menandatangani TAK
+    PUNYA LEMBAR untuk ditandatangani.
+
+    Seluruh hasilnya hanya hidup di layar: tak bisa dilampirkan ke pengajuan
+    IMB, tak bisa dikirim ke pemilik proyek, tak bisa diarsipkan saat proyek
+    disengketakan bertahun-tahun kemudian.
+
+    ── Kegagalan memuat identitas penerbit TIDAK menghentikan pencetakan
+
+    Pola yang sama dengan `penawaran.ts` dan `contracts.ts`: dokumen yang tak
+    bisa terbit jauh lebih merugikan daripada dokumen berkop tipis.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  app.get<{
+    Params: { projectId: string }
+    Querystring: { nomor?: string; disusun?: string; diperiksa?: string }
+  }>(
+    '/api/v1/projects/:projectId/struktur/lembar.pdf',
+    { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },
+    async (request, reply) => {
+      if (!(await proyekMilikTenant(request, request.params.projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      const { data: baris, error } = await supabase
+        .from('struktur_elemen')
+        .select('id, kode, nama, jenis, jumlah, input')
+        .eq('project_id', request.params.projectId)
+        .order('kode', { ascending: true })
+        .limit(500)
+      if (error) return reply.status(500).send({ error: error.message })
+
+      const elemen = baris ?? []
+      if (!elemen.length) {
+        return reply.status(400).send({
+          error: 'Belum ada elemen struktur di proyek ini — tak ada yang bisa '
+            + 'dicetak. Tambahkan elemen lebih dulu di layar Analisa Struktur.',
+        })
+      }
+
+      /*
+        Dihitung ULANG di sini, bukan memakai `hasil_ringkas` yang tersimpan.
+
+        Ringkasan tersimpan bisa BASI (kolom `basi` ada justru untuk itu), dan
+        lembar bertanda tangan yang memuat angka basi jauh lebih berbahaya
+        daripada lembar yang lambat terbit beberapa detik.
+      */
+      const disusun = []
+      for (const el of elemen) {
+        let hasil = null
+        let gambar
+        try {
+          hasil = hitung(el.jenis as Jenis, el.input as Record<string, unknown>,
+            Number(el.jumlah ?? 1)) as never
+          gambar = gambarUntuk(el as never, hasil)
+        } catch {
+          /*
+            Elemen yang tak bisa dihitung TETAP masuk lembar, dengan bagian
+            pemeriksaan kosong. Menghilangkannya diam-diam membuat lembar
+            terlihat lengkap padahal ada elemen yang terlewat — dan yang
+            menandatangani takkan tahu.
+          */
+          hasil = null
+        }
+        disusun.push({
+          kode: el.kode, nama: el.nama, jenis: el.jenis,
+          jumlah: Number(el.jumlah ?? 1),
+          input: el.input as Record<string, unknown>,
+          hasil, gambar,
+        })
+      }
+
+      const { data: proyek } = await request.db!
+        .from('projects').select('name, location').eq('id', request.params.projectId)
+        .maybeSingle()
+
+      const { data: perusahaan } = await request.db!
+        .unsafe('companies', 'identitas penerbit dokumen; disaring eq(id, companyId)')
+        .select('name, legal_name, address, city, phone')
+        .eq('id', request.companyId!)
+        .maybeSingle()
+
+      const pr = proyek as { name?: string; location?: string } | null
+      const pe = perusahaan as Record<string, string> | null
+
+      const lembar = susunLembar(disusun as never, {
+        nomor: request.query.nomor,
+        proyek: { nama: pr?.name ?? 'Proyek', lokasi: pr?.location ?? null },
+        penerbit: {
+          nama: pe?.legal_name || pe?.name || null,
+          alamat: pe?.address ?? null,
+          kota: pe?.city ?? null,
+          telepon: pe?.phone ?? null,
+        },
+        disusunOleh: request.query.disusun ?? null,
+        diperiksaOleh: request.query.diperiksa ?? null,
+      })
+
+      const pdf = await susunPdfLembar(lembar)
+      const namaBerkas = `Lembar_Struktur_${(pr?.name ?? 'Proyek')
+        .replace(/[^a-zA-Z0-9]+/g, '_').slice(0, 40)}.pdf`
+
+      return reply
+        .header('Content-Type', 'application/pdf')
+        .header('Content-Disposition', `inline; filename="${namaBerkas}"`)
+        .send(pdf)
+    })
+
   app.get<{ Params: { projectId: string } }>(
     '/api/v1/projects/:projectId/struktur/rekap-volume',
     { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },

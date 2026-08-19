@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import { Modal, btnPrimary, btnGhost } from "../_bersama/kerangka";
 import { LayarKosong } from "../_bersama/layar-kosong";
+import { TombolUnduh } from "@/components/tombol-unduh";
 
 // ── Bentuk respons API ────────────────────────────────────────────────────
 interface Project { id: string; name: string }
@@ -1358,6 +1359,33 @@ function StrukturLayar() {
               onClick={() => void hitungSemua()}>
               <RefreshCw size={14} aria-hidden="true" /> Hitung ulang semua
             </button>
+            {/*
+              LEMBAR PERHITUNGAN — yang membuat hasil di layar ini bisa
+              DIPAKAI di luar layar ini.
+
+              Modul ini menyatakan dirinya "membantu estimasi, bukan
+              menggantikan perhitungan bertanda tangan insinyur". Kalimat itu
+              menggantung selama tak ada lembar untuk ditandatangani:
+              hasilnya tak bisa dilampirkan ke pengajuan IMB, tak bisa
+              dikirim ke pemilik proyek, tak bisa diarsipkan saat proyek
+              disengketakan bertahun-tahun kemudian.
+
+              Memakai TombolUnduh, bukan <a href> — komponen itu ada justru
+              karena tautan biasa meminta URL TANPA header sesi, sehingga
+              yang terunduh adalah halaman login berformat HTML bernama
+              *.pdf, tanpa satu pun galat yang terlihat.
+            */}
+            <TombolUnduh
+              jalur={`/api/v1/projects/${projectId}/struktur/lembar.pdf`}
+              jalurTetap
+              format={["pdf"]}
+              nonaktif={sibuk || !baris.length}
+              namaBerkas={`Lembar-Struktur-${
+                (projects.find((p) => p.id === projectId)?.name ?? "proyek")
+                  .replace(/[^a-zA-Z0-9]+/g, "-").slice(0, 40)
+              }`}
+              label="Lembar perhitungan (siap tanda tangan)"
+            />
           </>
         )}
       </div>
