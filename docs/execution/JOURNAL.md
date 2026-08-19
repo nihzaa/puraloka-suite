@@ -116,6 +116,36 @@ pasti: cacatnya BUKAN dari kerja hari ini (terbukti merah di worktree pada
 commit sebelum kerja mitra), jadi ia milik pemilik modul `situs` — bukan
 sesuatu yang boleh saya tambal sambil lalu di tengah tugas lain.
 
+### ⚠ DUA SUITE BERSAMAAN MERUSAK ANGKA KEDUANYA
+
+Saya menjalankan suite penuh dua kali karena mengira yang pertama mati.
+Keduanya sempat berjalan BERSAMAAN, dan hasilnya:
+
+```
+run 1   5853 lulus /  95 gagal / 32 berkas    (1538s)
+run 2   5837 lulus / 111 gagal / 34 berkas    (1554s)
+```
+
+**Kode yang sama persis, selisih 16 kegagalan.** Sebabnya bukan misteri:
+integration test di repo ini memakai Postgres SUNGGUHAN, satu basis, dan
+banyak fixture memilih barisnya lewat `LIMIT 1`/`LIMIT 3`. Dua run yang
+menyisip dan membersihkan baris pada waktu bersamaan saling menggeser
+fixture — persis cacat `LIMIT tanpa ORDER BY` yang sudah memakan sembilan
+berkas di repo ini, tapi kali ini penyebabnya SAYA, bukan kodenya.
+
+`vitest.config.ts` sudah menyetel `fileParallelism: false` — itu
+menyerialkan berkas DI DALAM satu run, dan tak bisa berbuat apa-apa terhadap
+run KEDUA di proses lain.
+
+**Aturan yang saya langgar dan sekarang ditulis:** jangan pernah menjalankan
+dua suite integration bersamaan di repo ini. Angka mana pun dari run yang
+tumpang tindih **tidak sah** — termasuk kedua angka di atas, dan termasuk
+run "dasar" yang saya jalankan di worktree terpisah untuk membandingkan
+(ia juga tumpang tindih, jadi ikut batal).
+
+Kalau butuh membandingkan terhadap commit lama: jalankan **berurutan**, satu
+selesai baru yang lain — bukan paralel di dua worktree.
+
 ### Sisa
 
 Peta Modul: **226 hidup / 7 sebagian** (diukur, bukan ditebak — saya sempat

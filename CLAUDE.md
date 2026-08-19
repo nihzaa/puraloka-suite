@@ -334,6 +334,30 @@ grep NEXT_PUBLIC_API_URL apps/web/.env.local
 netstat -ano | grep ':300[0-9].*LISTENING'
 cd apps/api && npx vitest run          # test (integration, butuh DB)
 
+# ⚠ JANGAN MENJALANKAN DUA SUITE BERSAMAAN. Diukur 2026-08-19 — dua run
+# suite penuh yang tumpang tindih, KODE YANG SAMA PERSIS:
+#
+#     run 1   5853 lulus /  95 gagal / 32 berkas
+#     run 2   5837 lulus / 111 gagal / 34 berkas
+#
+# Selisih 16 kegagalan. Sebabnya bukan misteri: test di repo ini memakai
+# Postgres SUNGGUHAN, satu basis, dan banyak fixture memilih barisnya lewat
+# `LIMIT 1`. Dua run yang menyisip & membersihkan baris bersamaan saling
+# menggeser fixture — cacat `LIMIT tanpa ORDER BY` yang sama, tapi
+# penyebabnya operator, bukan kodenya.
+#
+# `fileParallelism: false` di vitest.config.ts TIDAK menolong: ia
+# menyerialkan berkas DI DALAM satu run, dan tak bisa berbuat apa pun
+# terhadap run kedua di proses lain.
+#
+# Angka apa pun dari run yang tumpang tindih TIDAK SAH. Membandingkan
+# terhadap commit lama? Jalankan BERURUTAN — bukan paralel di dua worktree.
+#
+# Dan satu jebakan alat ukurnya: keluaran vitest yang diarahkan ke berkas
+# DI-BUFFER sampai proses selesai. Berkas nol byte BUKAN bukti run-nya mati;
+# saya menyimpulkan begitu lalu menjalankan ulang — dan justru itu yang
+# membuat keduanya tumpang tindih.
+
 # ⚠ JANGAN MENYARING KELUARAN TYPECHECK. Sesi 2026-08-18 menjalankan
 #
 #     npx tsc --noEmit 2>&1 | grep -v ai-sifat
