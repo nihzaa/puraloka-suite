@@ -2511,10 +2511,32 @@ export default async function mandorRoutes(app: FastifyInstance) {
     // terlihat sah — mandor melihat ringkasan pendapatan KOSONG dan mengira
     // ia memang belum punya pekerjaan. Kelas galat yang sama pernah membuat
     // CPI terlalu optimis berbulan-bulan (lihat header penjaga).
+    // ⚠️ JANGAN menambahkan `payment_system_value` ke daftar kolom ini.
+    //
+    // Kolom itu TIDAK ADA di `work_scopes` — tak pernah ada, di migrasi mana
+    // pun. Ia tercantum di SELECT ini sejak commit 7f7d6918 (2026-07-15) dan
+    // membuat endpoint ini membalas 500 selama lebih dari sebulan:
+    //
+    //     column work_scopes.payment_system_value does not exist
+    //
+    // Akibatnya halaman Rekapitulasi Keuangan portal mandor tak pernah bisa
+    // dimuat sama sekali. Tak ada yang melaporkannya karena portal mandor
+    // memang belum dipakai sungguhan; ketahuan 2026-08-20 dari sapuan
+    // peramban atas 17 rute portal, bukan dari test — tak ada test yang
+    // menyentuh endpoint ini.
+    //
+    // Yang membuatnya aman dihapus: nilainya TIDAK PERNAH DIBACA. Ketiga
+    // cabang perhitungan di bawah (`harian`/`progress_pct`/`borongan`)
+    // mengambil angkanya dari tabel relasi — `weekly_wage_reports`,
+    // `progress_payments`, `borongan_settlements` — bukan dari kolom ini.
+    // Menghapusnya memulihkan endpoint tanpa menyentuh satu pun perhitungan.
+    //
+    // Kalau kelak butuh nilai kontrak per lingkup kerja, kolomnya bernama
+    // `borongan_value` (numeric), bukan `payment_system_value`.
     const { data: scopes, error: scopesErr } = await supabase
       .from('work_scopes')
       .select(`
-        id, scope_name, payment_system, payment_system_value,
+        id, scope_name, payment_system,
         assignment_id,
         progress_payments(id, gross_payment, status),
         borongan_settlements(id, net_payment),
