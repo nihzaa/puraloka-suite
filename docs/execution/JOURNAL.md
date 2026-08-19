@@ -5,6 +5,175 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 9) — jembatan volume→RAB tersambung, dan sebuah harga yang salah 509×
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur-ke-rab
+ Test Files  1 passed (1)
+      Tests  36 passed (36)
+
+$ node -r dotenv/config scripts/audit-harga-satuan-waras.mjs
+  pasangan harga identik lintas satuan ruah/massa : 0
+✅ Tak ada harga bahan yang identik lintas satuan ruah/massa      exit=0
+
+$ npx tsc --noEmit          (apps/api)   exit=0
+$ npx tsc --noEmit          (apps/web)   exit=0
+```
+
+Tujuan awal seluruh modul struktur akhirnya tersambung: volume yang dihitung di
+layar analisa tak perlu lagi diketik ulang ke RAB.
+
+### Jalur yang dipilih: struktur → ESTIMASI → RAB
+
+Menulis langsung ke `rab_items` lebih pendek dan salah. RAB butuh `unit_price`
+yang benar, dan harga itu lahir dari AHSP × price book pada TANGGAL tertentu
+berikut BUK, pembulatan, dan `hsp_snapshot` yang membuat angkanya bisa
+ditelusuri. Semua itu sudah dikerjakan `POST /estimate-versions/:id/items`.
+Jalur kedua yang menghitung harga sendiri berarti dua rumus harga di satu
+aplikasi — dan yang kedua tak ikut berubah saat yang pertama diperbaiki.
+
+Endpoint barunya memanggil rute itu lewat `app.inject`, bukan menyalin
+logikanya, sehingga auth, izin, gerbang tenant, dan perhitungan harganya persis
+sama.
+
+### Empat kegagalan pencocokan AHSP, masing-masing senyap
+
+1. `.or(name.ilike.…)` PostgREST **putus** oleh koma dan garis miring dalam
+   pola (`tulangan beton dengan besi polos / ulir`) — hasil salah, `error` null.
+   Sembilan dari sembilan usulan jadi "tak ketemu", termasuk yang tadinya jalan.
+2. Memuat SELURUH assembly lalu cocokkan di memori — **PostgREST memotong
+   senyap di 1.000 baris**, sementara ada 3.043 assembly. AHSP pembesian ada di
+   sepertiga yang tak pernah termuat. Repo ini bahkan punya penjaga untuk kelas
+   cacat ini (`audit-baca-tak-terpotong`), dan saya tetap melakukannya.
+3. Pencocokan frasa utuh gagal karena nama aslinya berspasi GANDA:
+   `"1 KG TULANGAN  BETON  DENGAN BESI POLOS / ULIR  (SNI.2013)"`.
+4. Pencocokan kata-lepas gagal pada ANGKA: setiap nama AHSP beton memuat
+   `slump (100 ± 25) mm`, jadi pola `beton 25 mpa` menemukan `25` pada SLUMP-nya
+   dan memilih **f'c 7,5 MPa** untuk balok f'c 25. Kolom f'c 30 kebetulan benar
+   — jadi hasil yang tampak benar pun tak membuktikan apa-apa.
+
+Sekarang: satu kueri per kata pertama tiap pola (menyaring di basis, jauh di
+bawah 1.000), pola frasa berawalan `~` untuk angka bermakna, dan pola kata-lepas
+untuk sisanya. Batas 400 per kata yang TERCAPAI dilaporkan, bukan dilewati.
+
+### Harga yang salah 509× — dan tak satu pun lapisan yang keliru
+
+Uji hidup pertama memulangkan **1 m³ beton f'c 25 = Rp 626.849.988**.
+
+Sebabnya di price book: harga per m³ tersalin apa adanya ke resource bersatuan
+**kg**.
+
+```
+AHSP-R0101  "Pasir beton (quarry…)"  m3  Rp 370.200   ← benar
+AHSP-R0076  "Pasir beton"            kg  Rp 370.200   ← angka m³ di baris kg
+AHSP-R0009  "Kerikil"                m3  Rp 352.300   ← benar
+AHSP-R0077  "Kerikil"                kg  Rp 352.300   ← angka yang sama persis
+```
+
+Koefisiennya justru BENAR — diukur: 731 kg pasir + 1.009 kg kerikil + 407 kg
+semen + 202 liter air ≈ 2.349 kg/m³, cocok dengan densitas beton nyata. Yang
+salah cuma harganya. Menyebar ke **32 AHSP**, seluruh keluarga beton.
+
+**Kenapa tak pernah ketahuan:** resource ada, satuan terisi, harga angka
+positif, resolver bekerja benar, AHSP menghitung benar. Setiap lapisan menjawab
+benar untuk dirinya sendiri. Yang salah cuma BESARAN — dan besaran tak punya
+penjaga.
+
+Migrasi `464` mengoreksinya. Percobaan pertama meng-UPDATE di tempat dan
+**ditolak basis** (`fn_price_book_immutable`): harga yang sudah diverifikasi tak
+boleh berubah retroaktif karena estimasi yang merujuknya akan bernilai lain
+tanpa jejak. Penolakan itu benar dan tidak dilemahkan — yang ditambahkan entri
+versi berikutnya, yang lama dibiarkan utuh sebagai riwayat. Jejak
+`verified_by`/`verified_at` disalin dari entri yang dikoreksi (CHECK
+`price_book_verified_trace` mensyaratkannya, dan itu juga benar).
+
+Hasilnya: pasir Rp 370.200/kg → **Rp 264,43/kg**; beton f'c 25 → **Rp 1.230.982
+per m³**.
+
+Penjaga baru `audit-harga-satuan-waras.mjs` (ambang NOL) menahannya. Ia tidak
+memakai daftar harga wajar per bahan — daftar begitu ikut membusuk. Yang dipakai:
+bahan sama muncul di satuan ruah DAN massa dengan harga SAMA PERSIS; satu m³
+pasir ~1.400 kg, jadi keduanya tak mungkin bertemu di angka yang sama.
+
+### Penjaga yang hampir jadi hiasan — dua kali
+
+Versi pertama penjaga itu mensyaratkan NAMA yang sama persis, dan **melewatkan
+justru baris yang melahirkannya** (`AHSP-R0076` "Pasir beton" vs `AHSP-R0101`
+"Pasir beton (quarry…)"). Diperbaiki jadi mencocokkan harga.
+
+Versi kedua membaca SELURUH entri termasuk arsip, jadi ia **tetap merah sesudah
+perbaikannya dijalankan** — dan penjaga yang tak bisa hijau akan dimatikan
+orang. Diperbaiki jadi menilai harga yang BERLAKU saja.
+
+Versi ketiga masih salah: `WHERE amount >= AMBANG` dievaluasi SEBELUM
+`DISTINCT ON`, jadi entri koreksi yang murah tersaring dan entri lama yang mahal
+tersisa sebagai "yang berlaku".
+
+### `satuan-beli.ts` — 25 aturan yang tak pernah dipanggil sekali pun
+
+Ketahuan bukan dari test (36 hijau) melainkan dari MEMOTRET halamannya: kolom
+"Dibeli" berisi `—` pada sembilan barisnya. Field `beli` dideklarasikan di tipe,
+modulnya ditulis lengkap, dan tak ada satu pun yang memanggilnya.
+
+Disambungkan, lalu ketahuan cacat kedua yang sama kelasnya: `gabungUsulan`
+membangun objek baru **tanpa menyalin `beli`** — dan seluruh test menguji
+`usulanDariElemen`, tak satu pun menguji jalur yang benar-benar dipakai
+endpoint. Ditambahkan blok test untuk jalur itu.
+
+Penggabungannya juga menghitung ULANG jumlah batang dari total gabungan, bukan
+menjumlahkan pembulatan tiap elemen — sisa potongan dari batang yang sama
+dipakai untuk elemen berikutnya, seperti besi dipotong di lapangan.
+
+### Mutasi — dan tiga yang LOLOS
+
+Semua akhirnya merah, tetapi tiga sempat lolos dan masing-masing menunjuk test
+yang lemah, bukan kode yang benar:
+
+- **normalisasi spasi ganda** lolos karena pola kata-lepas memang tak peduli
+  spasi; yang bergantung padanya adalah pola FRASA, dan tak ada frasa yang diuji
+  terhadap nama berspasi ganda.
+- **rumus baja profil ditukar rumus besi beton** lolos karena fixture-nya 256 kg
+  — persis satu batang, dan rumus salah pun membulatkan ke 1. Diukur, keduanya
+  jauh berbeda: 2.400 kg → 10 batang vs 1 batang. Fixture diperbesar.
+- Test yang sama semula mengunci `toBe(1)`, yaitu **mengunci angka yang salah**.
+
+### Kiriman ganda
+
+Uji kedua menghasilkan 14 baris estimasi dari 9 usulan. Ditahan lewat penanda
+`notes`, dengan `izinkanGanda` untuk kasus yang sah (desain berubah, volumenya
+beda). Tombol "Kirim lagi sebagai baris baru" hanya muncul SESUDAH ada yang
+ditahan — menampilkannya sejak awal menjadikan RAB berlipat dua sebagai pilihan
+sejajar.
+
+### Yang saya rapikan karena ratchet, dan yang bukan milik saya
+
+`struktur_elemen` belum ada di peta tenancy (gerbang P3 ADR-011) — diperbaiki
+lewat `gen-tenant-map.mjs emit`, kategori **B** (`company_id NOT NULL`).
+
+Ratchet supabase mentah naik 371 → 375 karena 4 akses baru saya; keempatnya
+dipindah ke `request.db` (`.from`, `.shared`, `.unsafe` beralasan) dan angkanya
+**kembali persis ke 371**. Sisanya (371 vs ambang 345) sudah ada sebelum sesi
+ini, dari sesi lain — diukur dengan `git stash`, bukan ditebak.
+
+Beberapa penjaga UI juga merah (`uji-tabel-terbaca`, `medan-hantu-ratchet`,
+`audit-nav-yatim`, dll). Semuanya menunjuk berkas yang tak saya sentuh
+(`estimasi/kas`, `estimasi/rab`, `kontrak/rfi`, …); halaman struktur bersih.
+
+### Yang saya salah
+
+Saya membangun pemuatan seluruh assembly ke memori padahal repo ini punya
+penjaga khusus untuk batas 1.000 baris PostgREST, lengkap dengan penjelasan di
+kepala berkasnya. Saya membaca penjaga itu SESUDAH cacatnya muncul, bukan
+sebelum menulis kuerinya.
+
+Dan saya menulis penjaga harga tiga kali sebelum benar — dua di antaranya
+gagal pada kasus yang justru melahirkannya. "Penjaga yang tak pernah merah
+adalah hiasan" ternyata punya pasangan: penjaga yang tak pernah bisa HIJAU juga.
+
+---
+
 ## 2026-08-19 (lanjutan 8) — pemilih profil baja: 82 profil yang sudah ada akhirnya bisa dipilih
 
 **Ringkasan run:**

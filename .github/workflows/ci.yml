@@ -755,6 +755,25 @@ jobs:
       - name: Jenis elemen struktur cocok antara kode dan basis
         run: node scripts/audit-jenis-struktur-cocok.mjs
 
+      # Harga bahan wajib masuk akal untuk SATUANNYA. Ditemukan 2026-08-19:
+      # harga per m3 tersalin apa adanya ke resource bersatuan kg — pasir beton
+      # Rp 370.200/kg, kerikil Rp 352.300/kg — dan akibatnya 1 m3 beton f'c 25
+      # terhitung **Rp 626.849.988**, bukan Rp 1,2 juta. Menyebar ke 32 AHSP.
+      #
+      # Tak ada satu pun yang salah secara struktural: resource ada, satuan
+      # terisi, harga angka positif, resolver dan AHSP menghitung benar. Yang
+      # salah cuma BESARAN — dan besaran tak punya penjaga sampai penjaga ini.
+      #
+      # Cara memutuskannya tak memakai daftar harga wajar (daftar begitu ikut
+      # membusuk): bahan yang sama muncul di satuan ruah DAN massa dengan harga
+      # SAMA PERSIS. Satu m3 pasir ~1.400 kg, jadi keduanya tak mungkin bertemu
+      # di angka yang sama kecuali salah satunya hasil salin.
+      #
+      # Bukti merah: memilih entri harga TERLAMA alih-alih yang berlaku → exit 1
+      # menyebut 4 pasangan → dipulihkan → exit 0.
+      - name: Harga bahan masuk akal untuk satuannya
+        run: node scripts/audit-harga-satuan-waras.mjs
+
       # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
       # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
       # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris

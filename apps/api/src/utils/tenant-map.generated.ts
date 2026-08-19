@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 267 tabel · A=11 · AB=17 · ANCHOR=1 · B=114 · C=117 · D=7
+// 269 tabel · A=11 · AB=17 · ANCHOR=1 · B=116 · C=117 · D=7
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -160,6 +160,7 @@ export const PETA_TENANCY = {
   'method_statement': { kategori: 'B' },
   'milestone_dependencies': { kategori: 'B' },
   'milestones': { kategori: 'C', lewat: 'project_id' },  // milestones.project_id
+  'mitra': { kategori: 'B' },
   'modules': { kategori: 'AB' },
   'mr_quota_override': { kategori: 'C', lewat: 'project_id' },  // mr_quota_override.project_id
   'ncr_items': { kategori: 'C', lewat: 'project_id' },  // ncr_items.project_id
@@ -262,6 +263,7 @@ export const PETA_TENANCY = {
   'steel_profiles': { kategori: 'A' },
   'stock_movements': { kategori: 'C', lewat: 'project_id' },  // stock_movements.project_id
   'stock_transfers': { kategori: 'C', lewat: 'project_asal_id' },  // stock_transfers.project_asal_id
+  'struktur_elemen': { kategori: 'B' },
   'subcontract_retention_releases': { kategori: 'B' },
   'submittal_documents': { kategori: 'C', lewat: 'document_id' },  // submittal_documents.document_id → documents.project_id
   'submittals': { kategori: 'C', lewat: 'project_id' },  // submittals.project_id

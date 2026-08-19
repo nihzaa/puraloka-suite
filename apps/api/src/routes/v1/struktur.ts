@@ -1,4 +1,4 @@
-import type { FastifyInstance, FastifyRequest } from 'fastify'
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
@@ -12,6 +12,10 @@ import { analisaPilecap } from '../../lib/struktur-pilecap.js'
 import { analisaTiang } from '../../lib/struktur-tiang.js'
 import { analisaKolomLengkap, analisaKolomBulatLengkap } from '../../lib/struktur-kolom-lengkap.js'
 import { jelaskan, ringkasanAwam, tingkatBahaya, apakahBiner } from '../../lib/struktur-awam.js'
+import {
+  usulanDariElemen, gabungUsulan, assemblyCocok,
+  type UsulanGabungan,
+} from '../../lib/struktur-ke-rab.js'
 import { analisaBalokBaja, analisaKolomBaja } from '../../lib/struktur-baja.js'
 import {
   analisaSambunganBaut, analisaSambunganLas,
@@ -644,6 +648,324 @@ export default async function strukturRoutes(app: FastifyInstance) {
         gagal,
       })
     })
+
+  // ── GET /projects/:projectId/struktur/usulan-rab ──────────────────────────
+  //
+  // ══════════════════════════════════════════════════════════════════════════
+  // TUJUAN AWAL SELURUH MODUL STRUKTUR
+  //
+  // Modul ini menghitung volume; basis punya 3.043 assembly AHSP lengkap
+  // dengan bahan, upah, dan alat. Yang TIDAK ada di antaranya: apa pun yang
+  // menyambungkan — sehingga estimator MENGETIK ULANG angka dari layar
+  // analisa ke RAB, dan begitu desainnya berubah RAB tidak ikut berubah.
+  //
+  // Endpoint ini MENGUSULKAN, tidak MENERAPKAN. Yang memasukkannya ke
+  // `estimate_items` adalah manusia lewat tombol — alasannya sama dengan
+  // takeoff dimensi: menimpa `quantity` otomatis menggeser nilai kontrak dan
+  // progres lapangan yang tak bisa dibuat ulang, tanpa galat dan tanpa
+  // keputusan siapa pun.
+  //
+  // ── Pencocokan assembly dilakukan DI SINI, bukan di modul pure
+  //
+  // `struktur-ke-rab.ts` memulangkan POLA pencarian, bukan id. Kode assembly
+  // berbeda antar edisi AHSP dan antar tenant, jadi id yang dipaku akan rusak
+  // diam-diam begitu tenant memakai edisi lain — dan rusaknya berupa item RAB
+  // yang menunjuk pekerjaan yang salah, bukan galat.
+  // ══════════════════════════════════════════════════════════════════════════
+  app.get<{ Params: { projectId: string } }>(
+    '/api/v1/projects/:projectId/struktur/usulan-rab',
+    { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },
+    async (request, reply) => {
+      if (!(await proyekMilikTenant(request, request.params.projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      const susun = await susunUsulan(request, request.params.projectId, reply)
+      if ('kirim' in susun) return susun.kirim
+
+      return reply.send({
+        usulan: susun.hasil,
+        jumlahUsulan: susun.hasil.length,
+        tanpaAssembly: susun.tanpaAssembly,
+        gagal: susun.gagal,
+        catatan: susun.catatan,
+        belumSegar: susun.belumSegar,
+      })
+    })
+
+  /**
+   * Penanda pada `notes` estimate item yang berasal dari analisa struktur.
+   *
+   * Dipakai dua arah: menandai asalnya supaya bisa ditelusuri, DAN mengenali
+   * kiriman sebelumnya supaya tombol yang ditekan dua kali tak menggandakan
+   * RAB. Jangan diubah tanpa memindahkan data lama — item yang sudah terkirim
+   * dikenali dari awalan ini.
+   */
+  const PENANDA_ASAL = 'Dari analisa struktur: '
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KIRIM USULAN KE VERSI ESTIMASI — ujung jembatan volume→RAB.
+
+    ── Kenapa lewat ESTIMASI, bukan langsung ke `rab_items`
+
+    Menulis langsung ke `rab_items` terlihat lebih pendek dan salah. Yang
+    dibutuhkan RAB bukan cuma kuantitas: ia butuh `unit_price` yang benar,
+    dan harga itu lahir dari analisa AHSP × price book pada TANGGAL tertentu,
+    berikut BUK, pembulatan, dan `hsp_snapshot` yang menjadikan angkanya bisa
+    ditelusuri kembali. Semua itu sudah dikerjakan
+    `POST /estimate-versions/:id/items`.
+
+    Jalur kedua yang menghitung harga sendiri berarti dua rumus harga di satu
+    aplikasi — dan yang kedua tak akan ikut berubah saat yang pertama
+    diperbaiki. Sambungan yang benar: struktur → estimasi → `terapkan-ke-rab`
+    (yang sudah ada, dan sudah dipakai Komposer).
+
+    ── Yang TIDAK dilakukan di sini
+
+    Usulan tanpa assembly TIDAK dikirim sebagai lumpsum bernilai nol. Item
+    berharga nol menumpang di RAB tanpa terlihat kurang — persis kelas cacat
+    yang dijaga di seluruh repo ini. Yang tak ketemu dipulangkan sebagai
+    `dilewati` supaya estimator memutuskannya sendiri.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  app.post<{
+    Params: { projectId: string }
+    Body: {
+      estimateVersionId?: string
+      priceDate?: string
+      /**
+       * Lokasi harga — diteruskan apa adanya ke resolver price book.
+       *
+       * WAJIB diisi bila price book tenant memakai harga berlokasi. Resolver
+       * sengaja MENOLAK memakai entri berlokasi saat lokasi tak diminta
+       * (`price-resolver.ts`): memakai harga Kabupaten Bandung untuk proyek di
+       * kota lain adalah kesalahan yang tak meninggalkan jejak apa pun.
+       *
+       * Diukur di dev: AHSP pembesian `CIB-STD-13#6` memakai resource
+       * berlokasi, jadi tanpa lokasi ia gagal ter-resolve — sementara AHSP
+       * beton (resource-nya berlokasi NULL) berhasil. Empat dari sembilan
+       * usulan terlewat karena ini, dan sebabnya hanya terlihat karena
+       * kegagalannya dilaporkan per baris.
+       */
+      location?: string | null
+      bukFraction?: number
+      rounding?: { mode: 'down' | 'up' | 'nearest' | 'none'; step: number }
+      /** Izinkan baris kedua untuk elemen yang sudah pernah dikirim. */
+      izinkanGanda?: boolean
+    }
+  }>(
+    '/api/v1/projects/:projectId/struktur/kirim-ke-estimasi',
+    { preHandler: [authenticate, requirePermission('cecep:estimate:manage')] },
+    async (request, reply) => {
+      const { projectId } = request.params
+      if (!(await proyekMilikTenant(request, projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      const b = request.body ?? {}
+      if (!b.estimateVersionId) {
+        return reply.status(400).send({ error: 'estimateVersionId wajib' })
+      }
+
+      /*
+        Versi WAJIB milik proyek yang sama.
+
+        Tanpa pemeriksaan ini, volume proyek A bisa masuk ke estimasi proyek B
+        milik tenant yang sama — lolos gerbang tenant, tetap salah, dan
+        salahnya baru ketahuan saat penawaran sudah dikirim.
+      */
+      const { data: versi, error: eVersi } = await request.db!
+        .unsafe(
+          'estimate_versions',
+          'Dibaca justru UNTUK memeriksa kepemilikannya: project_id versi '
+          + 'dibandingkan dengan projectId yang sudah lolos proyekMilikTenant '
+          + 'beberapa baris di atas, dan permintaan ditolak bila berbeda. '
+          + 'Menyaringnya lebih dulu lewat viaProject membuat versi milik '
+          + 'proyek lain memulangkan "tidak ditemukan" — pesan yang salah '
+          + 'untuk keadaan yang sebenarnya terjadi.',
+        )
+        .select('id, status, scenario:scenarios!inner(project_id)')
+        .eq('id', b.estimateVersionId)
+        .maybeSingle()
+      if (eVersi) return reply.status(500).send({ error: eVersi.message })
+      if (!versi) return reply.status(404).send({ error: 'Versi estimasi tidak ditemukan' })
+
+      const sc = versi.scenario as { project_id: string } | { project_id: string }[] | undefined
+      const pidVersi = (Array.isArray(sc) ? sc[0] : sc)?.project_id
+      if (pidVersi !== projectId) {
+        return reply.status(400).send({
+          error: 'Versi estimasi itu milik proyek lain — volume struktur hanya '
+            + 'boleh dikirim ke estimasi proyek yang sama.',
+        })
+      }
+      if (versi.status !== 'draft') {
+        return reply.status(409).send({
+          error: `Versi estimasi berstatus ${versi.status} — item hanya bisa `
+            + 'ditambah saat draft.',
+        })
+      }
+
+      /*
+        Usulannya dihitung ULANG di sini, tidak diterima dari badan permintaan.
+
+        Kuantitas yang dikirim klien bisa sudah basi (elemennya diubah sesudah
+        layar dimuat) atau dikarang. Yang masuk estimasi harus turunan dari
+        input struktur yang tersimpan — itu justru seluruh alasan modul ini
+        dibangun.
+      */
+      const asal = await susunUsulan(request, projectId, reply)
+      if ('kirim' in asal) return asal.kirim
+      const { hasil, catatan } = asal
+
+      /*
+        ══════════════════════════════════════════════════════════════════════
+        KIRIMAN GANDA DITAHAN — ditemukan dengan menjalankan dua kali.
+
+        Uji pertama menghasilkan 14 baris estimasi dari 9 usulan: sembilan
+        dari jalan kedua menumpuk di atas lima yang sudah masuk. Tak ada galat,
+        dan di layar Estimasi hasilnya terlihat seperti RAB yang memang punya
+        dua baris beton — nilainya jadi dua kali lipat tanpa sebab yang
+        terlihat.
+
+        Tombolnya sendiri gampang ditekan dua kali (jaringan lambat, halaman
+        di-refresh), jadi menahannya di sini bukan kemewahan.
+
+        Yang ditahan: usulan yang SUDAH punya item dengan assembly yang sama
+        DAN penanda asal yang sama. Item yang dibuat manual dengan assembly
+        yang sama TIDAK menghalangi — itu keputusan estimator, bukan duplikat.
+
+        Bisa dilewati dengan `izinkanGanda: true` untuk hal yang sah: desain
+        berubah, volumenya beda, dan estimator memang mau baris kedua.
+        ══════════════════════════════════════════════════════════════════════
+      */
+      const { data: sudahAda, error: eAda } = await request.db!
+        .unsafe(
+          'estimate_items',
+          'Disaring dengan estimate_version_id yang kepemilikannya SUDAH '
+          + 'diverifikasi tepat di atas (pidVersi === projectId). Kategori C '
+          + 'lewat estimate_version_id → scenarios.project_id; viaProject tak '
+          + 'menjangkau rantai dua tingkat itu.',
+        )
+        .select('assembly_id, notes')
+        .eq('estimate_version_id', b.estimateVersionId)
+      if (eAda) return reply.status(500).send({ error: eAda.message })
+
+      const terkirim = new Set(
+        (sudahAda ?? [])
+          .filter((r) => typeof r.notes === 'string' && r.notes.startsWith(PENANDA_ASAL))
+          .map((r) => `${r.assembly_id}|${(r.notes as string).slice(PENANDA_ASAL.length)}`),
+      )
+
+      const masuk: Array<{ uraian: string; kuantitas: number; satuan: string; assembly: string }> = []
+      const dilewati: Array<{ uraian: string; alasan: string }> = []
+
+      for (const u of hasil) {
+        if (!u.assembly) {
+          dilewati.push({
+            uraian: u.uraian,
+            alasan: 'Tak ada AHSP yang cocok — tambahkan analisanya lebih dulu, '
+              + 'atau masukkan manual sebagai lumpsum.',
+          })
+          continue
+        }
+
+        const kunci = `${u.assembly.id}|${u.asal.map((a) => a.kodeElemen).join(', ')}`
+        if (!b.izinkanGanda && terkirim.has(kunci)) {
+          dilewati.push({
+            uraian: u.uraian,
+            alasan: 'Sudah pernah dikirim ke versi estimasi ini dari elemen yang '
+              + 'sama. Kirim ulang dengan izinkanGanda:true bila memang ingin '
+              + 'baris kedua.',
+          })
+          continue
+        }
+
+        /*
+          Dipanggil lewat HTTP ke rutenya sendiri, bukan dengan menyalin
+          logikanya. `app.inject` menjalankan preHandler yang sama (auth,
+          izin, gerbang tenant) dan perhitungan harga yang sama — jadi tak ada
+          jalur kedua yang bisa menyimpang saat yang pertama diperbaiki.
+        */
+        const r = await app.inject({
+          method: 'POST',
+          url: `/api/v1/estimate-versions/${b.estimateVersionId}/items`,
+          headers: {
+            cookie: request.headers.cookie ?? '',
+            authorization: request.headers.authorization ?? '',
+          },
+          payload: {
+            item_type: 'assembly',
+            assembly_id: u.assembly.id,
+            quantity: u.kuantitas,
+            price_date: b.priceDate,
+            location: b.location ?? null,
+            buk_fraction: b.bukFraction ?? 0,
+            rounding: b.rounding ?? { mode: 'none', step: 0 },
+            notes: `${PENANDA_ASAL}${u.asal.map((a) => a.kodeElemen).join(', ')}`,
+          },
+        })
+
+        if (r.statusCode !== 201) {
+          /*
+            Kegagalan per baris DILAPORKAN, bukan menggagalkan seluruhnya.
+            Sebagian masuk lebih berguna daripada nol masuk — asalkan yang
+            tidak masuk terlihat jelas.
+          */
+          let alasan = `HTTP ${r.statusCode}`
+          try {
+            alasan = (JSON.parse(r.body) as { error?: string }).error ?? alasan
+          } catch (eParse) {
+            /*
+              Badan bukan JSON. Kode statusnya sudah cukup untuk PENGGUNA, tapi
+              galatnya tetap dicatat: rute yang membalas non-JSON pada
+              kegagalan adalah cacat tersendiri, dan menelannya di sini membuat
+              cacat itu tak pernah terlihat siapa pun.
+            */
+            app.log.warn(
+              { err: eParse, statusCode: r.statusCode, body: r.body.slice(0, 200) },
+              'Balasan non-JSON dari penambahan item estimasi',
+            )
+          }
+
+          /*
+            Kegagalan harga tanpa lokasi punya SEBAB yang bisa disebutkan, dan
+            menyebutkannya menghemat penelusuran panjang. Pesan asli hanya
+            berbunyi "Harga tidak ter-resolve dari price book" — benar, tapi
+            tak memberi tahu bahwa yang kurang adalah LOKASI, bukan harganya.
+          */
+          if (!b.location && /tidak ter-resolve/i.test(alasan)) {
+            alasan += '. Price book tenant ini memuat harga BERLOKASI, dan '
+              + 'resolver sengaja tak memakainya saat lokasi tak diminta. '
+              + 'Isi lokasi proyek lalu kirim ulang.'
+          }
+          dilewati.push({ uraian: u.uraian, alasan })
+          continue
+        }
+
+        masuk.push({
+          uraian: u.uraian,
+          kuantitas: u.kuantitas,
+          satuan: u.satuan,
+          assembly: u.assembly.code,
+        })
+      }
+
+      return reply.send({
+        masuk,
+        dilewati,
+        jumlahMasuk: masuk.length,
+        jumlahDilewati: dilewati.length,
+        catatan,
+        /*
+          Langkah berikutnya DISEBUTKAN. Item yang masuk estimasi belum
+          terlihat di RAB sampai "Terapkan ke Proyek" dijalankan — dan tanpa
+          kalimat ini estimator menyimpulkan pengirimannya gagal.
+        */
+        langkahBerikut: 'Item sudah masuk versi estimasi. Jalankan "Terapkan ke '
+          + 'Proyek" di layar Estimasi supaya angkanya muncul di RAB, Kurva S, dan EVM.',
+      })
+    })
 }
 
 /** Ambil satu elemen dengan gerbang tenant. */
@@ -815,4 +1137,201 @@ function gambarUntuk(el: BarisElemen, hasil: unknown): Record<string, string> {
   }
 
   return g
+}
+
+/**
+ * Susun usulan item RAB dari seluruh elemen struktur satu proyek.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
+ * DIPAKAI DUA RUTE — dan itu justru alasannya diekstrak.
+ *
+ *   GET  …/usulan-rab           → menampilkan usulannya
+ *   POST …/kirim-ke-estimasi    → mengirimkannya
+ *
+ * Kalau keduanya menyusun sendiri-sendiri, yang DITAMPILKAN dan yang DIKIRIM
+ * bisa berbeda tanpa ada satu pun galat — dan estimator menyetujui angka di
+ * layar sementara angka lain yang masuk. Satu penyusun berarti selisih itu
+ * mustahil.
+ * ══════════════════════════════════════════════════════════════════════════════
+ *
+ * Memulangkan `{ kirim }` bila ada galat basis: pemanggilnya meneruskan balasan
+ * itu apa adanya, tanpa perlu tahu galat apa yang terjadi.
+ */
+async function susunUsulan(
+  request: FastifyRequest,
+  projectId: string,
+  reply: FastifyReply,
+): Promise<
+  | { kirim: unknown }
+  | {
+      hasil: Array<UsulanGabungan & {
+        assembly: { id: string; code: string; name: string; unit: string } | null
+      }>
+      tanpaAssembly: { uraian: string; satuan: string; pola: string[] }[]
+      gagal: { kode: string; alasan: string }[]
+      catatan: string[]
+      /**
+       * Elemen yang ringkasannya tak lagi berlaku (`basi`) atau belum pernah
+       * dihitung (`aman == null`) — tetapi volumenya TETAP ikut di sini.
+       *
+       * Usulan ini dihitung ULANG dari input, jadi angkanya benar menurut
+       * desain terkini. Daftar elemen di layar yang sama MENGECUALIKANNYA.
+       * Dua angka berbeda di satu layar tanpa keterangan membuat pembaca
+       * menyimpulkan salah satunya salah hitung — kelas cacat yang sudah
+       * ditemukan sekali di kartu rekap besi halaman ini.
+       */
+      belumSegar: number
+    }
+> {
+    const { data, error } = await request.db!
+      .from('struktur_elemen')
+      .select('kode, jenis, jumlah, input, basi, aman')
+      .eq('project_id', projectId)
+      .limit(500)
+    if (error) return { kirim: reply.status(500).send({ error: error.message }) }
+
+    const mentah = []
+    const gagal: { kode: string; alasan: string }[] = []
+
+    for (const el of data ?? []) {
+      try {
+        const h = hitung(el.jenis as Jenis, el.input as Record<string, unknown>, el.jumlah)
+        const v = volumeDari(h)
+        if (!v) continue      // sambungan/angkur: kapasitas, bukan kuantitas
+        /*
+          MUTU BETON diteruskan supaya AHSP-nya cocok mutunya.
+
+          Ada belasan AHSP beton per mutu di basis, dari f'c 7,5 sampai 45
+          MPa, dan harganya berbeda jauh. Tanpa ini, balok f'c 25 dihargai
+          memakai baris pertama yang cocok — f'c 7,5 MPa — dan RAB-nya
+          terlihat wajar karena angkanya memang angka beton.
+
+          Dibaca dari `mutu.fcMpa` (balok/kolom/pelat/pondasi) atau `fcMpa`
+          (tiang, yang menyimpannya di akar). Yang tak punya keduanya —
+          elemen baja — memulangkan undefined, dan itu benar.
+        */
+        const inp = el.input as Record<string, unknown>
+        const mutu = inp.mutu as { fcMpa?: number } | undefined
+        const fcMpa = typeof mutu?.fcMpa === 'number'
+          ? mutu.fcMpa
+          : typeof inp.fcMpa === 'number' ? inp.fcMpa : undefined
+
+        mentah.push(...usulanDariElemen({
+          kode: el.kode,
+          jenis: el.jenis,
+          volume: v,
+          catatan: (h as { catatan?: string[] }).catatan ?? [],
+          fcMpa,
+        }))
+      } catch (e) {
+        gagal.push({ kode: el.kode, alasan: (e as Error).message })
+      }
+    }
+
+    const usulan = gabungUsulan(mentah)
+
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      DICARI PER-KATA DI BASIS — dua percobaan sebelumnya keduanya salah.
+
+      1. `.or(name.ilike.…)` dengan pola digabung koma. GAGAL TOTAL: pola
+         yang mengandung KOMA atau GARIS MIRING memutus sintaks `.or()`
+         PostgREST, dan kuerinya memulangkan hasil salah TANPA galat.
+
+      2. Memuat SELURUH assembly lalu cocokkan di memori. Juga gagal, dan
+         sebabnya sudah dijaga penjaga di repo ini: **PostgREST memotong
+         senyap di 1.000 baris**. Ada 3.043 assembly, jadi dua pertiganya tak
+         pernah termuat — dan AHSP pembesian yang dicari ada di sana.
+         `data` terisi, `error` null, kodenya jalan terus.
+
+      Sekarang: satu kueri per KATA PERTAMA tiap pola, dengan `ilike` yang
+      menyaring di basis. Jumlah kuerinya kecil (pola unik biasanya < 10),
+      hasilnya jauh di bawah 1.000, dan pencocokan kata sisanya tetap di
+      memori — yang bisa diuji tanpa basis.
+      ══════════════════════════════════════════════════════════════════════
+    */
+    /*
+      Kata penyaring diambil dari kata PERTAMA tiap pola, sesudah awalan
+      `~` (penanda pola frasa) dilucuti. Tanpa pelucutan itu, penyaringnya
+      berbunyi `~f'c` — tak cocok apa pun di basis, dan seluruh baris beton
+      jadi "tak ketemu" tanpa galat.
+    */
+    const kataPertama = [...new Set(
+      usulan.flatMap((u) => u.assemblyPola)
+        .map((x) => x.replace(/^~/, '').split(/\s+/)[0])
+        .filter(Boolean),
+    )]
+
+    const daftar: Array<{ id: string; code: string; name: string; output_unit_code: string }> = []
+    for (const kata of kataPertama) {
+      const { data: sebagian, error: eCari } = await request.db!
+        .shared('assemblies')
+        .select('id, code, name, output_unit_code')
+        .eq('status', 'active')
+        .ilike('name', `%${kata}%`)
+        .limit(400)
+      if (eCari) return { kirim: reply.status(500).send({ error: eCari.message }) }
+      /*
+        Batas 400 per kata jauh di bawah 1.000 (batas potong senyap
+        PostgREST), tetapi tetap bisa tercapai untuk kata yang sangat umum.
+        Yang tercapai DILAPORKAN, bukan dilewati — daftar terpotong
+        menghasilkan usulan "tak ketemu" yang sebabnya tak terlihat.
+      */
+      if ((sebagian?.length ?? 0) >= 400) {
+        gagal.push({
+          kode: `(pencarian AHSP "${kata}")`,
+          alasan: `Kata "${kata}" memulangkan 400+ assembly dan hasilnya `
+            + 'terpotong — pencocokan bisa melewatkan yang benar. Persempit '
+            + 'polanya di lib/struktur-ke-rab.ts.',
+        })
+      }
+      for (const a of sebagian ?? []) {
+        if (!daftar.some((x) => x.id === a.id)) daftar.push(a)
+      }
+    }
+
+    const hasil = usulan.map((u) => {
+      /*
+        Pola dicoba BERURUTAN dari yang paling spesifik. Yang pertama cocok
+        menang — "bekisting untuk balok" harus menang atas "bekisting".
+
+        Satuan WAJIB cocok: assembly bersatuan m3 tak boleh dipasangkan ke
+        usulan bersatuan kg, betapa pun namanya mirip. Itu jenis kesalahan
+        yang menghasilkan rupiah yang terlihat wajar sambil salah 1.000x.
+      */
+      let cocok: (typeof daftar)[number] | undefined
+      for (const pola of u.assemblyPola) {
+        cocok = daftar.find((a) =>
+          assemblyCocok(a.name, pola) && a.output_unit_code === u.satuan)
+        if (cocok) break
+      }
+
+      return {
+        ...u,
+        assembly: cocok
+          ? { id: cocok.id, code: cocok.code, name: cocok.name, unit: cocok.output_unit_code }
+          : null,
+      }
+    })
+
+    /*
+      Yang TAK ketemu DILAPORKAN, bukan dilewati.
+
+      Item RAB yang hilang diam-diam adalah kekurangan anggaran — dan
+      kekurangannya tak terlihat karena yang tersisa terlihat lengkap.
+    */
+    const tanpaAssembly = hasil
+      .filter((u) => !u.assembly)
+      .map((u) => ({ uraian: u.uraian, satuan: u.satuan, pola: u.assemblyPola }))
+
+  return {
+    hasil,
+    tanpaAssembly,
+    gagal,
+    catatan: [...new Set(usulan.flatMap((u) => u.catatan))],
+    belumSegar: (data ?? []).filter(
+      (el) => (el as { basi?: boolean }).basi
+        || (el as { aman?: boolean | null }).aman == null,
+    ).length,
+  }
 }

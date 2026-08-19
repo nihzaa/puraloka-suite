@@ -131,6 +131,45 @@ interface MuatanDetail {
   gambar?: Record<string, string>;
 }
 
+interface UsulanRab {
+  jenis: string;
+  uraian: string;
+  kuantitas: number;
+  satuan: string;
+  asal: { kodeElemen: string; jenisElemen: string }[];
+  catatan: string[];
+  assembly: { id: string; code: string; name: string; unit: string } | null;
+  beli?: {
+    kuantitas: number; satuan: string;
+    ukuranPerSatuan: string; asumsi: string; terpasangKg: number;
+  };
+}
+
+interface MuatanUsulanRab {
+  usulan: UsulanRab[];
+  jumlahUsulan: number;
+  tanpaAssembly: { uraian: string; satuan: string; pola: string[] }[];
+  gagal: { kode: string; alasan: string }[];
+  catatan: string[];
+  belumSegar: number;
+}
+
+interface HasilKirim {
+  masuk: { uraian: string; kuantitas: number; satuan: string; assembly: string }[];
+  dilewati: { uraian: string; alasan: string }[];
+  jumlahMasuk: number;
+  jumlahDilewati: number;
+  langkahBerikut: string;
+}
+
+interface VersiEstimasi {
+  id: string;
+  version_number: number;
+  status: string;
+  project_id: string;
+  scenario_name?: string;
+}
+
 interface MuatanRekapVolume {
   rekap: {
     betonM3: number;
@@ -629,6 +668,41 @@ function StrukturLayar() {
 
   /*
     ══════════════════════════════════════════════════════════════════════════
+    USULAN RAB — inilah alasan seluruh modul ini dibangun.
+
+    Volume yang dihitung di layar ini selama ini berhenti di layar: estimator
+    membacanya, lalu MENGETIK ULANG angkanya ke RAB. Begitu desainnya berubah,
+    RAB tidak ikut berubah, dan tak ada satu pun galat yang memberi tahu.
+
+    Panel ini memasangkan tiap volume dengan AHSP-nya dan mengirimkannya ke
+    versi estimasi — yang menghitung harganya dari analisa × price book, lalu
+    "Terapkan ke Proyek" memindahkannya ke RAB. Tak ada angka yang diketik dua
+    kali.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const { data: usulanRab, muatUlang: muatUlangUsulan } = useData<MuatanUsulanRab>(
+    projectId ? `/api/v1/projects/${projectId}/struktur/usulan-rab` : null);
+
+  const { data: versiData } = useData<VersiEstimasi[] | { versions: VersiEstimasi[] }>(
+    projectId ? "/api/v1/estimate-versions" : null);
+
+  /*
+    Hanya versi DRAFT milik proyek ini. Versi yang sudah disetujui menolak item
+    baru di sisi API — menawarkannya di daftar cuma menghasilkan galat sesudah
+    tombol ditekan.
+  */
+  const versiDraft = useMemo(() => {
+    const semua = Array.isArray(versiData) ? versiData : (versiData?.versions ?? []);
+    return semua.filter((v) => v.status === "draft" && v.project_id === projectId);
+  }, [versiData, projectId]);
+
+  const [versiPilih, setVersiPilih] = useState("");
+  const [lokasiHarga, setLokasiHarga] = useState("");
+  const [hasilKirim, setHasilKirim] = useState<HasilKirim | null>(null);
+  const [kirimBuka, setKirimBuka] = useState(false);
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
     GAMBAR KERJA DITAMPILKAN — sebelumnya TIDAK, dan itu cacat besar.
 
     Fase penggambar membangun tujuh jenis gambar SVG (penampang persegi &
@@ -686,8 +760,43 @@ function StrukturLayar() {
   }, []);
 
   const segarkan = useCallback(async () => {
-    await Promise.all([muatUlang(), muatUlangVolume()]);
-  }, [muatUlang, muatUlangVolume]);
+    /*
+      Usulan RAB IKUT dimuat ulang. Tanpa itu, mengubah desain lalu menghitung
+      ulang menyegarkan volumenya sementara panel usulan tetap menampilkan
+      kuantitas LAMA — dan yang terkirim ke estimasi adalah angka yang sudah
+      tak berlaku. Persis kelas cacat yang modul ini dibangun untuk mencegah.
+    */
+    await Promise.all([muatUlang(), muatUlangVolume(), muatUlangUsulan()]);
+  }, [muatUlang, muatUlangVolume, muatUlangUsulan]);
+
+  const kirimKeEstimasi = useCallback(async (izinkanGanda: boolean) => {
+    setGalatAksi(null); setPesan(null); setHasilKirim(null); setSibuk(true);
+    try {
+      const r = await api.post<HasilKirim>(
+        `/api/v1/projects/${projectId}/struktur/kirim-ke-estimasi`,
+        {
+          estimateVersionId: versiPilih,
+          location: lokasiHarga || null,
+          bukFraction: 0,
+          rounding: { mode: "none", step: 0 },
+          izinkanGanda,
+        });
+      setHasilKirim(r.data);
+      /*
+        Yang MASUK dan yang DILEWATI sama-sama ditampilkan.
+
+        "5 item terkirim" tanpa menyebut empat yang tidak adalah kekurangan
+        anggaran yang tak terlihat — sisanya tetap terlihat lengkap. Dua
+        angkanya diletakkan dalam satu kalimat supaya tak bisa dibaca separuh.
+      */
+      setPesan(
+        `${r.data.jumlahMasuk} item masuk ke estimasi` +
+        (r.data.jumlahDilewati ? `, ${r.data.jumlahDilewati} dilewati.` : "."),
+      );
+    } catch (e) {
+      setGalatAksi(e instanceof Error ? e.message : "Gagal mengirim ke estimasi");
+    } finally { setSibuk(false); }
+  }, [projectId, versiPilih, lokasiHarga]);
 
   const simpan = useCallback(async () => {
     setGalatAksi(null); setPesan(null); setSibuk(true);
@@ -1110,7 +1219,263 @@ function StrukturLayar() {
               )}
             </div>
           )}
+
+          {/* ── Usulan item RAB dari volume ──────────────────────────── */}
+          {usulanRab && usulanRab.jumlahUsulan > 0 && (
+            <div style={GAYA_KARTU}>
+              <h2 style={{
+                fontSize: "var(--teks-badan)", fontWeight: 600,
+                color: C.text, margin: "0 0 8px",
+              }}>
+                Item RAB dari volume ini
+              </h2>
+              <p style={{ fontSize: "var(--teks-delta)", color: C.mid, margin: "0 0 12px" }}>
+                Tiap volume sudah dipasangkan dengan analisa harga (AHSP) yang
+                cocok mutunya. Kirim ke versi estimasi, lalu tekan{" "}
+                <strong>Terapkan ke Proyek</strong> di layar Estimasi supaya
+                angkanya masuk RAB — tanpa mengetik ulang satu pun.
+              </p>
+
+              {/*
+                SELISIH DENGAN DAFTAR DI ATAS DIJELASKAN — dan itu memang benar
+                berbeda.
+
+                Usulan ini dihitung ULANG dari input, jadi elemen yang belum
+                dihitung ulang IKUT di sini. Daftar elemen dan ubin ringkasan
+                di atas MENGECUALIKANNYA. Keduanya benar menurut definisinya
+                sendiri.
+
+                Tanpa kalimat ini, pembaca melihat "Belum dihitung / —" di
+                tabel atas sementara panel ini menampilkan 0,94 m³ untuk elemen
+                yang sama, lalu menyimpulkan salah satunya salah hitung —
+                terlihat begitu halaman ini dipotret dengan satu elemen baru.
+
+                Ditampilkan cuma saat bedanya BENAR-BENAR ada.
+              */}
+              {usulanRab.belumSegar > 0 && (
+                <p role="note" style={{
+                  fontSize: "var(--teks-delta)", color: C.onWarningBg,
+                  background: C.warningBg, border: `1px solid ${C.warningBorder}`,
+                  borderRadius: "var(--radius-dense)",
+                  padding: "var(--pad-kartu)", margin: "0 0 10px",
+                }}>
+                  Angka di sini <strong>dihitung ulang dari input</strong>, jadi{" "}
+                  {usulanRab.belumSegar} elemen yang belum dihitung ulang{" "}
+                  <strong>ikut</strong> — sementara daftar elemen di atas
+                  mengecualikannya. Itu sebabnya kedua angka berbeda. Tekan
+                  “Hitung ulang semua” supaya keduanya bertemu.
+                </p>
+              )}
+
+              <Tabel<UsulanRab>
+                caption="Usulan item RAB beserta analisa harga yang dipasangkan"
+                data={usulanRab.usulan}
+                kunciBaris={(u) => `${u.jenis}-${u.uraian}`}
+                kolom={[
+                  {
+                    kunci: "uraian", judul: "Pekerjaan", kepalaBaris: true,
+                    render: (u) => (
+                      <div>
+                        <div>{u.uraian}</div>
+                        <div style={{ fontSize: "var(--teks-delta)", color: C.mid }}>
+                          dari {u.asal.map((a) => a.kodeElemen).join(", ")}
+                        </div>
+                      </div>
+                    ),
+                  },
+                  {
+                    kunci: "kuantitas", judul: "Volume", rata: "kanan",
+                    render: (u) => `${formatAngka(u.kuantitas, 2)} ${u.satuan}`,
+                  },
+                  {
+                    kunci: "beli", judul: "Dibeli", rata: "kanan",
+                    /*
+                      Satuan BELI ditampilkan berdampingan dengan satuan RAB.
+
+                      RAB memakai kg; yang dipesan ke supplier batang atau
+                      lembar. Estimator yang cuma melihat "132,58 kg" tetap
+                      harus menghitung sendiri berapa batang — dan pembulatan
+                      ke atas itulah selisih yang muncul di RAP.
+                    */
+                    render: (u) => u.beli ? (
+                      /*
+                        Ukuran per satuan ditulis di bawah angkanya, ASUMSINYA
+                        jadi tooltip. Versi pertama menaruh seluruh paragraf
+                        asumsi di sel ini — kalimat 40 kata di kolom selebar
+                        80 px, yang terlihat begitu halamannya dipotret.
+                      */
+                      <span title={u.beli.asumsi}>
+                        <span>{formatAngka(u.beli.kuantitas, 0)} {u.beli.satuan}</span>
+                        <span style={{
+                          display: "block",
+                          fontSize: "var(--teks-delta)", color: C.mid,
+                        }}>
+                          {u.beli.ukuranPerSatuan}
+                        </span>
+                      </span>
+                    ) : "—",
+                  },
+                  {
+                    kunci: "assembly", judul: "Analisa harga (AHSP)",
+                    render: (u) => u.assembly ? (
+                      <div>
+                        <div style={{ fontFamily: "var(--font-mono, monospace)" }}>
+                          {u.assembly.code}
+                        </div>
+                        <div style={{ fontSize: "var(--teks-delta)", color: C.mid }}>
+                          {u.assembly.name}
+                        </div>
+                      </div>
+                    ) : (
+                      <span style={{ color: C.onWarningBg }}>
+                        belum ada AHSP yang cocok
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+
+              {/*
+                Yang TAK punya AHSP disebutkan lagi di luar tabel.
+
+                Baris bertanda di tengah tabel panjang mudah terlewat, dan yang
+                terlewat di sini adalah item RAB yang hilang — kekurangan
+                anggaran yang tak terlihat karena sisanya tampak lengkap.
+              */}
+              {usulanRab.tanpaAssembly.length > 0 && (
+                <div role="note" style={{
+                  fontSize: "var(--teks-delta)", color: C.onWarningBg,
+                  background: C.warningBg, border: `1px solid ${C.warningBorder}`,
+                  borderRadius: "var(--radius-dense)",
+                  padding: "var(--pad-kartu)", margin: "10px 0 0",
+                }}>
+                  <strong>{usulanRab.tanpaAssembly.length} pekerjaan belum punya
+                  analisa harga</strong> dan tidak akan ikut terkirim:{" "}
+                  {usulanRab.tanpaAssembly.map((t) => t.uraian).join("; ")}.
+                  Tambahkan AHSP-nya lebih dulu, atau masukkan manual di layar
+                  Estimasi.
+                </div>
+              )}
+
+              {/*
+                CATATAN BATAS SENGAJA TIDAK DIULANG DI SINI.
+
+                Kartu "Kebutuhan besi per diameter" di atas sudah menampilkan
+                daftar yang sama persis, di bawah judul yang menjelaskan
+                maksudnya ("Yang BELUM termasuk dalam angka di atas"). Diukur
+                dari tangkapan layar: kelima barisnya muncul dua kali dalam
+                satu layar, dan salinan keduanya memakan ruang lebih besar
+                daripada tabel yang seharusnya jadi isi panel ini.
+
+                Teks yang diulang tidak dibaca dua kali — ia membuat pembaca
+                berhenti membaca. `usulanRab.catatan` tetap dipulangkan API
+                supaya pemakai lain (ekspor, API pihak ketiga) tak kehilangan
+                keterangannya.
+              */}
+
+              <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+                <button type="button" style={mati(btnPrimary, sibuk)} disabled={sibuk}
+                  onClick={() => { setHasilKirim(null); setKirimBuka(true); }}>
+                  <Boxes size={14} aria-hidden="true" /> Kirim ke estimasi
+                </button>
+              </div>
+            </div>
+          )}
         </>
+      )}
+
+      {/* ── Kirim usulan ke versi estimasi ───────────────────────────── */}
+      {kirimBuka && (
+        <Modal title="Kirim item RAB ke estimasi" onClose={() => setKirimBuka(false)}>
+          <div style={{ display: "grid", gap: 12 }}>
+            {versiDraft.length === 0 ? (
+              /*
+                Tak ada versi draft = tak ada yang bisa dituju. Dikatakan APA
+                yang harus dilakukan, bukan cuma bahwa daftarnya kosong —
+                daftar kosong tanpa jalan keluar membuat orang menyangka
+                fiturnya rusak.
+              */
+              <p style={{ fontSize: "var(--teks-delta)", color: C.mid, margin: 0 }}>
+                Proyek ini belum punya versi estimasi berstatus <strong>draft</strong>.
+                Buat satu lebih dulu di layar <strong>Estimasi</strong> — versi
+                yang sudah disetujui sengaja menolak item baru, supaya penawaran
+                yang sudah dikirim tak berubah diam-diam.
+              </p>
+            ) : (
+              <>
+                <Isian id="k-versi" label="Versi estimasi tujuan" wajib>
+                  <PilihanIsian id="k-versi" value={versiPilih} style={{ width: "100%" }}
+                    onChange={(e) => setVersiPilih(e.target.value)}>
+                    <option value="">— pilih versi —</option>
+                    {versiDraft.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.scenario_name ? `${v.scenario_name} — ` : ""}versi {v.version_number} (draft)
+                      </option>
+                    ))}
+                  </PilihanIsian>
+                </Isian>
+
+                <Isian
+                  id="k-lokasi"
+                  label="Lokasi harga"
+                  bantuan="Kosongkan bila price book memakai harga umum. Harga berlokasi sengaja tak dipakai saat lokasi tak diisi — memakai harga daerah lain adalah kesalahan yang tak meninggalkan jejak."
+                >
+                  <TeksIsian id="k-lokasi" value={lokasiHarga} style={{ width: "100%" }}
+                    placeholder="mis. Kabupaten Bandung"
+                    onChange={(e) => setLokasiHarga(e.target.value)} />
+                </Isian>
+
+                {hasilKirim && (
+                  <div role="status" style={{
+                    fontSize: "var(--teks-delta)",
+                    background: C.successBg ?? C.warningBg,
+                    border: `1px solid ${C.successBorder ?? C.warningBorder}`,
+                    borderRadius: "var(--radius-dense)",
+                    padding: "var(--pad-kartu)",
+                  }}>
+                    <div><strong>{hasilKirim.jumlahMasuk} item masuk</strong>
+                      {hasilKirim.jumlahDilewati > 0 && <>, {hasilKirim.jumlahDilewati} dilewati</>}.
+                    </div>
+                    {hasilKirim.dilewati.length > 0 && (
+                      <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+                        {hasilKirim.dilewati.map((d) => (
+                          <li key={d.uraian}>{d.uraian} — {d.alasan}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {hasilKirim.jumlahMasuk > 0 && (
+                      <p style={{ margin: "8px 0 0" }}>{hasilKirim.langkahBerikut}</p>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button type="button" disabled={sibuk || !versiPilih}
+                    style={mati(btnPrimary, sibuk || !versiPilih)}
+                    onClick={() => void kirimKeEstimasi(false)}>
+                    Kirim
+                  </button>
+                  {/*
+                    Tombol kedua muncul HANYA sesudah ada yang ditahan sebagai
+                    duplikat. Menampilkannya sejak awal menjadikan "kirim dua
+                    kali" pilihan sejajar — padahal RAB berlipat dua adalah
+                    kesalahan, bukan pilihan.
+                  */}
+                  {hasilKirim?.dilewati.some((d) => /sudah pernah dikirim/i.test(d.alasan)) && (
+                    <button type="button" disabled={sibuk}
+                      style={mati(btnGhost, sibuk)}
+                      onClick={() => void kirimKeEstimasi(true)}>
+                      Kirim lagi sebagai baris baru
+                    </button>
+                  )}
+                  <button type="button" style={btnGhost} onClick={() => setKirimBuka(false)}>
+                    Tutup
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </Modal>
       )}
 
       {/* ── Form tambah elemen ──────────────────────────────────────── */}
