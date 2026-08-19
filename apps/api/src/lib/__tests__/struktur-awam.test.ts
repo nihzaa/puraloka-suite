@@ -19,6 +19,7 @@ import { analisaPondasiMenerus, analisaRaft } from '../struktur-pondasi-dangkal'
 import {
   analisaDindingPenahan, analisaDindingGeser, analisaGempaDinding,
 } from '../struktur-dinding'
+import { analisaPenurunan } from '../struktur-penurunan'
 import { analisaKolomKomposit, analisaBondek } from '../struktur-komposit'
 import { analisaGusset, analisaSambunganMomen } from '../struktur-baja-sambungan-lanjut'
 import { analisaKudaKudaKayu, analisaBajaRingan } from '../struktur-atap-ringan'
@@ -350,6 +351,19 @@ function semuaHasilAnalisa(): Array<{ periksa: ReadonlyArray<{ nama: string; ras
     analisaGempaDinding({
       tinggiM: 3, gammaTanahKnM3: 18, phiDerajat: 30, pgaG: 0.3,
       momenGulingStatisKnm: 24, momenPenahanKnm: 62,
+    }) as never,
+    /*
+      PENURUNAN pondasi — tiga pemeriksaan yang paling sering disalahpahami,
+      termasuk oleh orang teknis: pondasi yang lulus daya dukung disangka
+      otomatis aman terhadap penurunan.
+
+      Bagi pemilik bangunan akibatnya sangat kelihatan (dinding retak, pintu
+      macet), tetapi sebabnya ada di bawah tanah — dan tanpa penjelasan ia
+      akan disalahkan ke tukang atau ke mutu batanya.
+    */
+    analisaPenurunan({
+      lebarM: 2, panjangM: 2, tekananNetoKnM2: 150,
+      jenisTanah: 'lempung', nSpt: 8, jarakKolomM: 4,
     }) as never,
     analisaRangka({
       nama: 'KK-1', mutu: { fyMpa: 240, fuMpa: 370 },

@@ -776,6 +776,62 @@ const KAMUS: Record<string, Omit<PenjelasanAwam, 'nama'>> = {
     tindakan: 'Tambah tulangan mendatar, tebalkan dindingnya, atau naikkan '
       + 'mutu betonnya.',
   },
+  // ── PENURUNAN PONDASI ─────────────────────────────────────────────────────
+  /*
+    Tiga pemeriksaan yang paling sering disalahpahami, termasuk oleh orang
+    teknis: pondasi yang lulus daya dukung disangka otomatis aman terhadap
+    penurunan. Tidak — daya dukung menahan KERUNTUHAN, dan pada lempung
+    lunak penurunanlah yang lebih dulu merusak.
+
+    Bagi pemilik bangunan, akibatnya sangat kelihatan: dinding retak, pintu
+    macet, lantai terasa miring. Tetapi sebabnya ada di bawah tanah, dan
+    tanpa penjelasan ia akan disalahkan ke tukang atau ke mutu batanya.
+  */
+  'Penurunan total': {
+    judul: 'Seberapa dalam bangunan turun',
+    apa: 'Tanah tertekan oleh berat bangunan dan memampat, jadi bangunan '
+      + 'turun beberapa milimeter sampai beberapa sentimeter. Ini normal dan '
+      + 'terjadi pada SEMUA bangunan — yang diperiksa hanya seberapa banyak.',
+    risiko: 'Turun banyak belum tentu berbahaya asalkan turunnya BERSAMA-SAMA. '
+      + 'Yang mengkhawatirkan pada angka besar adalah kemungkinan turunnya '
+      + 'tak merata — dan pada tanah lempung, penurunannya berlanjut '
+      + 'BERTAHUN-TAHUN setelah bangunan dihuni.',
+    tindakan: 'Perlebar telapak pondasi supaya tekanannya ke tanah berkurang, '
+      + 'atau pindahkan beban ke tanah keras di bawah dengan tiang pancang. '
+      + 'Pada tanah lempung tebal, angka yang bisa dipercaya cuma datang dari '
+      + 'pengeboran — perkiraan di layar ini untuk perencanaan awal.',
+  },
+  'Lantai tidak miring berlebihan': {
+    judul: 'Bangunan turun MERATA, tidak miring sebelah',
+    apa: 'Inilah yang sesungguhnya meretakkan bangunan — bukan turunnya, '
+      + 'melainkan SELISIH turun antara satu tiang dengan tiang sebelahnya. '
+      + 'Menara Pisa turun tiga meter dan masih berdiri; yang membuatnya '
+      + 'terkenal justru karena turunnya tidak sama rata.',
+    risiko: 'Selisih dua sentimeter saja antar kolom sudah cukup meretakkan '
+      + 'dinding, memacetkan pintu dan jendela, dan membuat lantai terasa '
+      + 'miring saat berjalan. Retaknya muncul BELAKANGAN — sering setelah '
+      + 'masa pemeliharaan habis — dan biasanya disalahkan ke tukang atau '
+      + 'mutu batanya, padahal sebabnya ada di bawah tanah.',
+    tindakan: 'Samakan tekanan ke tanah di semua kolom (kolom yang memikul '
+      + 'lebih berat diberi telapak lebih besar), atau satukan pondasinya '
+      + 'jadi satu pelat (raft) supaya turunnya bersama-sama. Memperkuat '
+      + 'dindingnya TIDAK menolong — yang bergerak pondasinya.',
+  },
+  'Struktur tidak rusak oleh penurunan': {
+    judul: 'Kemiringannya belum sampai merusak balok dan kolom',
+    apa: 'Ambang yang jauh lebih longgar daripada di atasnya. Yang di atas '
+      + 'soal penampilan dan kenyamanan (retak, pintu macet); ini soal '
+      + 'keselamatan — kemiringan yang cukup besar memaksa balok dan kolom '
+      + 'memikul beban yang tak pernah direncanakan.',
+    risiko: 'Kalau ini yang terlampaui, kerusakannya bukan lagi retak rambut '
+      + 'melainkan retak struktural pada balok dan kolom. Bangunan mungkin '
+      + 'masih berdiri, tetapi perbaikannya jauh lebih mahal daripada '
+      + 'membuat pondasinya benar sejak awal.',
+    tindakan: 'Perbaiki pondasinya, bukan strukturnya di atas: perbesar '
+      + 'telapak, satukan jadi raft, atau turunkan ke tanah keras dengan '
+      + 'tiang. Kalau bangunannya sudah berdiri, ini pekerjaan perbaikan '
+      + 'tanah (grouting, underpinning) yang butuh ahli geoteknik.',
+  },
   // ── DINDING PENAHAN SAAT GEMPA ────────────────────────────────────────────
   /*
     Dua pemeriksaan yang paling sulit dijelaskan, dan paling perlu.
