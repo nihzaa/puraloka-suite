@@ -5,6 +5,72 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 17) — sloof, balok T, dan dinding penahan yang MENJELASKAN verdict-nya
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur              983 lulus / 35 berkas
+$ npx tsc --noEmit  (api)              exit=0
+$ uji-gambar-hidup.mjs (rute 3017)     exit=0 — 8 kasus, SVG dibuka & diperiksa
+$ lapor-cakupan-gambar.mjs             BERGAMBAR 20 / 32  (dari 17, dari 7)
+$ audit-akhir-baris.mjs                exit=0
+$ jalankan-semua-penjaga.mjs           vs baseline: NOL penjaga baru merah
+```
+
+### Sloof & balok T — primitif yang sudah ada, tak pernah disambungkan
+
+Keduanya berpenampang b × h bertulangan atas-bawah, persis bentuk yang
+`gambarPenampang()` sudah tangani untuk balok sejak lama. Yang kurang bukan
+kemampuan menggambarnya, melainkan dua baris yang menyambungkannya.
+
+Balok T digambar sebagai PERSEGI badannya, dan itu disengaja: sayapnya adalah
+PELAT, dan pelat punya gambarnya sendiri. Menggambar keduanya menyatu membuat
+besi pelat terlihat sebagai bagian balok dan **terpesan dua kali**.
+
+### Dinding penahan — gambar yang menjelaskan verdict, bukan bentuk
+
+Ini satu-satunya elemen di aplikasi ini yang bisa runtuh **tanpa satu pun
+bahannya gagal**: betonnya utuh, tulangannya utuh, dan dindingnya terguling
+atau tergeser sebagai satu benda. Tiga dari empat pemeriksaannya bukan tentang
+kekuatan bahan sama sekali.
+
+Karena itu gambarnya memuat tiga hal yang tak ada di gambar elemen lain:
+
+1. **Segitiga tekanan tanah** di belakang badan — dan bentuk segitiganya
+   menjelaskan kenapa dorongan tumbuh dengan KUADRAT tinggi. Menggambarnya
+   sebagai persegi (dorongan merata) adalah kesalahpahaman yang membuat orang
+   menyangka menaikkan dinding setengah meter hanya menambah dorongan sedikit.
+2. **Trapesium tekanan tumpu** di bawah telapak — dan bila resultan keluar dari
+   inti sepertiga tengah, ujung tumitnya **TERANGKAT**, ditandai merah. Itu
+   keadaan yang tak terbaca dari satu angka pun tanpa gambar, dan yang membuat
+   dinding berputar pelan-pelan bertahun-tahun tanpa pernah benar-benar runtuh.
+3. **SF guling & SF geser dicetak di gambarnya**, merah bila di bawah 1,5.
+
+Alasannya sederhana: meteran kekuatan menjawab "seberapa terpakai", sementara
+untuk dinding penahan pertanyaannya adalah **"apa yang harus saya UBAH"** — dan
+jawabannya hampir selalu GEOMETRI (perpanjang tumit, tambah kaki), bukan mutu
+beton. Geometri hanya bisa ditunjukkan dengan gambar.
+
+Bukti mutasi: tumit-terangkat tak dibedakan → MERAH; batas qMin jadi eksklusif
+(q = 0 dianggap aman) → MERAH; SF kurang tak dimerahkan → MERAH; geometri
+mustahil (badan menjorok keluar telapak) diterima → MERAH; dipulihkan → HIJAU.
+
+### Saya salah
+
+Dua kali dalam satu sesi `audit-akhir-baris.mjs` merah karena saya sendiri:
+sekali karena Edit menulis CRLF ke berkas yang LF di HEAD, sekali karena
+penggabungan berkas saya paksa jadi CRLF berdasarkan pembacaan yang keliru
+tentang berkas induknya.
+
+Yang menarik: penjaga itu **hijau saat dijalankan sendiri dari `apps/api`**
+dan merah dari akar worktree — jadi sempat terbaca seperti "transien". Bukan
+transien; alat ukurnya yang saya jalankan dari tempat yang salah. Ini pola
+yang sama dengan `| tail` menelan exit code kemarin: **yang gagal alat
+ukurnya, dan kesimpulan dari alat ukur yang salah selalu terdengar meyakinkan.**
+
+---
+
 ## 2026-08-19 (lanjutan 16) — gambar kerja untuk sisi BAJA: sepuluh jenis, satu gambar
 
 **Ringkasan run:**

@@ -54,6 +54,7 @@ import {
   gambarPenampang, gambarDiagramPM, gambarPenampangLingkaran,
   gambarPotonganPelat, gambarPondasi, gambarTiang, gambarMeteranKekuatan,
   gambarProfilBaja,
+  gambarDindingPenahan,
 } from '../../lib/struktur-gambar.js'
 
 /**
@@ -1320,6 +1321,96 @@ function gambarUntuk(el: BarisElemen, hasil: unknown): Record<string, string> {
       }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
     } catch {
       g.potonganGagal = 'Potongan tiang tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    DINDING PENAHAN TANAH — gambar yang menjelaskan VERDICT-nya.
+
+    Ini satu-satunya elemen di aplikasi ini yang bisa runtuh TANPA satu pun
+    bahannya gagal: betonnya utuh, tulangannya utuh, dan dindingnya terguling
+    atau tergeser sebagai satu benda. Tiga dari empat pemeriksaannya bukan
+    tentang kekuatan bahan sama sekali.
+
+    Angka stabilitas diambil dari HASIL, bukan dihitung ulang di sini —
+    aturan yang sama dengan pilecap. Menghitungnya dua kali berarti gambar dan
+    verdict bisa berselisih diam-diam saat rumusnya diperbaiki, dan yang
+    tergambar salah adalah yang dipakai orang.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (el.jenis === 'dinding_penahan') {
+    try {
+      const st = (hasil as {
+        stabilitas?: {
+          qMaksKnM2?: number; qMinKnM2?: number
+          sfGuling?: number; sfGeser?: number; paKnPerM?: number
+        }
+      }).stabilitas
+      g.potongan = gambarDindingPenahan({
+        tinggiM: Number(i.tinggiM),
+        tebalAtasM: Number(i.tebalAtasM),
+        tebalBawahM: Number(i.tebalBawahM),
+        panjangTelapakM: Number(i.panjangTelapakM),
+        tebalTelapakM: Number(i.tebalTelapakM),
+        kakiM: Number(i.kakiM),
+        qMaksKnM2: st?.qMaksKnM2,
+        qMinKnM2: st?.qMinKnM2,
+        sfGuling: st?.sfGuling,
+        sfGeser: st?.sfGeser,
+        paKnPerM: st?.paKnPerM,
+      }, { judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}` })
+    } catch {
+      g.potonganGagal = 'Potongan dinding penahan tak dapat digambar dari input ini'
+    }
+  }
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    SLOOF & BALOK T — dua elemen beton yang penampangnya sudah bisa digambar
+    oleh primitif yang ADA, dan tak digambar selama ini hanya karena tak ada
+    yang menyambungkannya.
+
+    Keduanya berpenampang b × h bertulangan atas-bawah, persis bentuk yang
+    `gambarPenampang()` sudah tangani untuk balok. Menuliskan primitif baru
+    untuk keduanya berarti dua tempat yang bisa menyimpang dari satu bentuk
+    yang sama.
+
+    ── BALOK T digambar sebagai PERSEGI badannya, dan itu disengaja
+
+    Balok T bekerja sebagai T untuk momen POSITIF (sayapnya menekan) tetapi
+    sebagai PERSEGI untuk momen NEGATIF — di tumpuan, sayapnya justru tertarik
+    dan tak bisa diandalkan. Modulnya sudah membedakan keduanya.
+
+    Yang digambar di sini badan (bw × h) dengan tulangannya, yaitu penampang
+    yang dipakai tukang saat merakit besi. Sayapnya adalah PELAT, dan pelat
+    punya gambarnya sendiri — menggambar keduanya menyatu akan membuat besi
+    pelat terlihat seperti bagian dari balok dan terpesan dua kali.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (el.jenis === 'sloof' || el.jenis === 'balok_t') {
+    try {
+      const bt = el.jenis === 'balok_t'
+      g.penampang = gambarPenampang({
+        bMm: Number(bt ? i.bwMm : i.bMm),
+        hMm: Number(i.hMm),
+        selimutMm: Number(i.selimutMm),
+        dSengkangMm: Number(i.dSengkangMm),
+        dUtamaMm: Number(i.dUtamaMm),
+        /*
+          Jumlah batang di gambar HARUS sama dengan yang ditimbang di volume —
+          aturan yang sama dengan balok. Batang yang tergambar tapi tak
+          terhitung (atau sebaliknya) adalah selisih yang baru ketahuan di
+          lapangan.
+        */
+        tulanganBawah: [Number(bt ? i.nTarik : i.nBawah)],
+        tulanganAtas: [Number(i.nAtas)],
+      }, {
+        judul: `${el.kode}${el.nama ? ` — ${el.nama}` : ''}`
+          + (bt ? ' (badan)' : ''),
+      })
+    } catch {
+      g.penampangGagal = 'Penampang tak dapat digambar dari input ini'
     }
   }
 

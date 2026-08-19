@@ -1612,3 +1612,258 @@ export function gambarProfilBaja(
     '</svg>',
   ].join('\n')
 }
+
+// ── Potongan DINDING PENAHAN TANAH ───────────────────────────────────────────
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════════
+ * DINDING PENAHAN — gambar yang MENJELASKAN verdict-nya, bukan sekadar bentuknya
+ *
+ * Dinding penahan adalah satu-satunya elemen di aplikasi ini yang bisa runtuh
+ * TANPA satu pun bahannya gagal: betonnya utuh, tulangannya utuh, dan
+ * dindingnya terguling atau tergeser sebagai satu benda. Tiga dari empat
+ * pemeriksaannya bukan tentang kekuatan bahan sama sekali.
+ *
+ * Karena itu gambar ini memuat tiga hal yang tak ada di gambar elemen lain:
+ *
+ *   1. SEGITIGA TEKANAN TANAH di belakang badan — beban yang mendorongnya,
+ *      dan bentuk segitiganya menjelaskan kenapa dorongan tumbuh dengan
+ *      KUADRAT tinggi, bukan sebanding tingginya.
+ *   2. TRAPESIUM TEKANAN TUMPU di bawah telapak — dan bila resultan keluar
+ *      dari inti sepertiga tengah, ujung tumitnya TERANGKAT. Itu keadaan yang
+ *      tak bisa dibaca dari angka mana pun tanpa gambar.
+ *   3. Angka keamanan guling & geser dicetak di gambarnya.
+ *
+ * ── Kenapa bukan sekadar batang persen
+ *
+ * Meteran kekuatan menjawab "seberapa terpakai". Untuk dinding penahan,
+ * pertanyaan yang sesungguhnya adalah "apa yang harus saya UBAH" — dan
+ * jawabannya hampir selalu tentang GEOMETRI (perpanjang tumit, tambah kaki),
+ * bukan tentang mutu beton. Geometri hanya bisa ditunjukkan dengan gambar.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+export interface InputGambarDindingPenahan {
+  /** Tinggi total dinding (badan + telapak), m. */
+  tinggiM: number
+  /** Tebal badan di puncak, m. */
+  tebalAtasM: number
+  /** Tebal badan di dasar, m. */
+  tebalBawahM: number
+  /** Panjang telapak (kaki + tebal badan + tumit), m. */
+  panjangTelapakM: number
+  /** Tebal telapak, m. */
+  tebalTelapakM: number
+  /** Panjang kaki (sisi depan, arah tanah lebih rendah), m. */
+  kakiM: number
+  /** Tekanan tumpu maksimum di bawah telapak, kPa. */
+  qMaksKnM2?: number
+  /** Tekanan tumpu minimum. Nol atau negatif = tumit TERANGKAT. */
+  qMinKnM2?: number
+  /** Angka keamanan guling. */
+  sfGuling?: number
+  /** Angka keamanan geser. */
+  sfGeser?: number
+  /** Gaya dorong tanah per meter, kN/m. */
+  paKnPerM?: number
+}
+
+const WARNA_TANAH = '#a16207'
+const WARNA_TEKANAN = '#0891b2'
+
+/** Ambang angka keamanan yang lazim untuk guling & geser (SNI 8460). */
+const SF_MINIMUM = 1.5
+
+export function gambarDindingPenahan(
+  input: InputGambarDindingPenahan,
+  opsi: OpsiGambar = {},
+): string {
+  const {
+    tinggiM: H, tebalAtasM: ta, tebalBawahM: tb,
+    panjangTelapakM: B, tebalTelapakM: tt, kakiM: kaki,
+  } = input
+
+  for (const [nama, v] of [
+    ['Tinggi dinding', H], ['Tebal atas', ta], ['Tebal bawah', tb],
+    ['Panjang telapak', B], ['Tebal telapak', tt],
+  ] as const) {
+    if (!(v > 0)) throw new Error(`${nama} harus > 0`)
+  }
+  if (tt >= H) throw new Error('Tebal telapak tak boleh setinggi dindingnya')
+  if (!(kaki >= 0)) throw new Error('Panjang kaki tak boleh negatif')
+  if (kaki + tb > B) throw new Error('Kaki + tebal badan melebihi panjang telapak')
+
+  /* Digambar dalam MILIMETER supaya sekeluarga dengan gambar lain. */
+  const S = 1000
+  const h = H * S, bAtas = ta * S, bBawah = tb * S
+  const b = B * S, tTel = tt * S, xKaki = kaki * S
+  const hBadan = h - tTel
+
+  const margin = opsi.marginMm ?? Math.max(b, h) * 0.4
+  const pakaiDimensi = opsi.dimensi ?? true
+  /* Ruang kanan untuk segitiga tekanan tanah + angkanya. */
+  const ruangKanan = pakaiDimensi ? margin * 1.5 : 0
+
+  const vbX = -margin
+  const vbY = -margin - (opsi.judul ? margin * 0.4 : 0)
+  const vbW = b + 2 * margin + ruangKanan
+  const vbH = h + 2 * margin + (opsi.judul ? margin * 0.4 : 0)
+
+  const t = Math.max(b, h) / 260
+  const uk = Math.max(b, h) / 20
+
+  const bagian: string[] = []
+
+  const jarakArsir = Math.max(b, h) / 24
+  bagian.push(
+    `<defs><pattern id="arsirDinding" width="${bulat(jarakArsir)}" `
+    + `height="${bulat(jarakArsir)}" patternUnits="userSpaceOnUse" `
+    + `patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" `
+    + `y2="${bulat(jarakArsir)}" stroke="#cbd5e1" `
+    + `stroke-width="${bulat(t * 0.5)}"/></pattern></defs>`)
+
+  /*
+    ── TANAH DI BELAKANG, digambar lebih dulu supaya betonnya di atasnya.
+    Sisi belakang = sisi TUMIT, yaitu kanan pada gambar ini.
+  */
+  const xBelakang = xKaki + bBawah
+  bagian.push(
+    `<rect x="${bulat(xBelakang)}" y="0" width="${bulat(Math.max(0, b - xBelakang))}" `
+    + `height="${bulat(hBadan)}" fill="${WARNA_TANAH}" opacity="0.14"/>`)
+
+  /* Badan dinding: trapesium, karena tebal atas biasanya ≠ tebal bawah. */
+  const badan: Array<[number, number]> = [
+    [xKaki, 0], [xKaki + bAtas, 0],
+    [xKaki + bBawah, hBadan], [xKaki, hBadan],
+  ]
+  const dBadan = badan
+    .map(([x, y], k) => `${k === 0 ? 'M' : 'L'}${bulat(x)},${bulat(y)}`)
+    .join(' ') + ' Z'
+
+  bagian.push(`<path d="${dBadan}" fill="${WARNA.betonIsi}"/>`)
+  bagian.push(`<path d="${dBadan}" fill="url(#arsirDinding)"/>`)
+  bagian.push(`<path d="${dBadan}" fill="none" stroke="${WARNA.beton}" `
+    + `stroke-width="${bulat(t * 1.6)}"/>`)
+
+  /* Telapak. */
+  for (const [isi, stroke] of [
+    [WARNA.betonIsi, ''], ['url(#arsirDinding)', ''], ['none', WARNA.beton],
+  ] as Array<[string, string]>) {
+    bagian.push(
+      `<rect x="0" y="${bulat(hBadan)}" width="${bulat(b)}" height="${bulat(tTel)}" `
+      + `fill="${isi}"`
+      + (stroke ? ` stroke="${stroke}" stroke-width="${bulat(t * 1.6)}"` : '')
+      + `/>`)
+  }
+
+  if (pakaiDimensi) {
+    /*
+      ── SEGITIGA TEKANAN TANAH
+      Nol di permukaan, maksimum di dasar. Bentuk segitiganya menjelaskan
+      kenapa dorongan tumbuh dengan KUADRAT tinggi: luasnya ½·ka·γ·H².
+      Menggambarnya sebagai persegi (dorongan merata) adalah kesalahpahaman
+      yang paling sering pada orang yang belum pernah menghitungnya — dan
+      yang membuat orang menyangka menaikkan dinding setengah meter hanya
+      menambah dorongan sedikit.
+    */
+    const lebarSegitiga = margin * 0.9
+    const xT = b + margin * 0.18
+    bagian.push(
+      `<path d="M${bulat(xT)},0 L${bulat(xT + lebarSegitiga)},${bulat(hBadan)} `
+      + `L${bulat(xT)},${bulat(hBadan)} Z" fill="${WARNA_TANAH}" opacity="0.3" `
+      + `stroke="${WARNA_TANAH}" stroke-width="${bulat(t * 0.9)}"/>`)
+
+    /* Tiga anak panah dorongan, makin panjang ke bawah. */
+    for (const f of [0.35, 0.65, 0.95]) {
+      const y = hBadan * f
+      const pj = lebarSegitiga * f
+      bagian.push(garis(xT + pj, y, xT, y, WARNA_TANAH, t * 0.8))
+      bagian.push(
+        `<path d="M${bulat(xT)},${bulat(y)} l${bulat(uk * 0.4)},${bulat(-uk * 0.22)} `
+        + `l0,${bulat(uk * 0.44)} Z" fill="${WARNA_TANAH}"/>`)
+    }
+    if (input.paKnPerM != null) {
+      bagian.push(teks(xT + lebarSegitiga * 0.5, hBadan + uk * 1.15,
+        `Pa ${bulat(input.paKnPerM, 1)} kN/m`, uk * 0.8, WARNA_TANAH))
+    }
+
+    /*
+      ── TRAPESIUM TEKANAN TUMPU di bawah telapak.
+
+      Bila `qMin <= 0`, resultan keluar dari inti sepertiga tengah dan ujung
+      TUMIT TERANGKAT — tanah di sana tak menekan sama sekali. Itu keadaan
+      yang tak terbaca dari satu angka pun tanpa gambar, dan yang membuat
+      dinding berputar pelan-pelan selama bertahun-tahun tanpa pernah
+      benar-benar runtuh.
+    */
+    const qMaks = input.qMaksKnM2
+    const qMin = input.qMinKnM2
+    if (qMaks != null && qMaks > 0) {
+      const skala = (h * 0.17) / qMaks
+      const yDasar = hBadan + tTel
+      const hKiri = Math.max(0, qMaks * skala)
+      const hKanan = Math.max(0, (qMin ?? 0) * skala)
+      const terangkat = qMin != null && qMin <= 0
+
+      bagian.push(
+        `<path d="M0,${bulat(yDasar)} L${bulat(b)},${bulat(yDasar)} `
+        + `L${bulat(b)},${bulat(yDasar + hKanan)} L0,${bulat(yDasar + hKiri)} Z" `
+        + `fill="${terangkat ? '#dc2626' : WARNA_TEKANAN}" opacity="0.28" `
+        + `stroke="${terangkat ? '#dc2626' : WARNA_TEKANAN}" `
+        + `stroke-width="${bulat(t * 0.9)}"/>`)
+
+      bagian.push(teks(0, yDasar + hKiri + uk * 1.05,
+        `q ${bulat(qMaks, 0)} kPa`, uk * 0.78, WARNA_TEKANAN, 'start'))
+
+      if (terangkat) {
+        bagian.push(teks(b, yDasar + uk * 2.1,
+          'TUMIT TERANGKAT', uk * 0.82, '#dc2626', 'end'))
+      }
+    }
+
+    /* Dimensi utama. */
+    const off = margin * 0.4
+    bagian.push(garis(0, h + off, b, h + off, WARNA.dimensi, t * 0.7))
+    bagian.push(teks(b / 2, h + off + uk * 1.1,
+      `B ${bulat(B, 2)} m`, uk * 0.85, WARNA.dimensi))
+
+    bagian.push(garis(-off, 0, -off, h, WARNA.dimensi, t * 0.7))
+    bagian.push(
+      `<g transform="translate(${bulat(-off - uk * 0.55)},${bulat(h / 2)}) rotate(-90)">`
+      + `<text x="0" y="0" font-family="ui-sans-serif,system-ui,sans-serif" `
+      + `font-size="${bulat(uk * 0.85)}" fill="${WARNA.dimensi}" text-anchor="middle">`
+      + `H ${bulat(H, 2)} m</text></g>`)
+
+    /*
+      ── ANGKA KEAMANAN dicetak DI GAMBAR.
+
+      Guling dan geser adalah dua dari tiga cara dinding ini runtuh, dan
+      keduanya tak terlihat sama sekali dari bentuknya. Yang membaca gambar
+      tanpa angka ini akan menilainya dari "kelihatan kokoh" — penilaian yang
+      justru paling sering keliru pada dinding penahan: dinding yang tebal
+      dan berat bisa tetap terguling kalau telapaknya kurang panjang.
+    */
+    const barisSf: Array<[string, boolean]> = []
+    if (input.sfGuling != null) {
+      barisSf.push([`SF guling ${bulat(input.sfGuling, 2)}`, input.sfGuling < SF_MINIMUM])
+    }
+    if (input.sfGeser != null) {
+      barisSf.push([`SF geser ${bulat(input.sfGeser, 2)}`, input.sfGeser < SF_MINIMUM])
+    }
+    barisSf.forEach(([isi, kurang], k) => {
+      bagian.push(teks(0, -margin * 0.14 + k * uk * 1.05,
+        isi, uk * 0.82, kurang ? '#dc2626' : WARNA.dimensi, 'start'))
+    })
+  }
+
+  if (opsi.judul) {
+    bagian.push(teks(b / 2, -margin * 0.55, opsi.judul, uk * 1.2))
+  }
+
+  const lebarPx = opsi.lebarPx ?? 520
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${bulat(vbX)} ${bulat(vbY)} ${bulat(vbW)} ${bulat(vbH)}" `
+    + `width="${lebarPx}" role="img" aria-label="${amankanTeks(opsi.judul ?? 'Potongan dinding penahan tanah')}">`,
+    ...bagian,
+    '</svg>',
+  ].join('\n')
+}

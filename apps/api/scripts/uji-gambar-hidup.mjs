@@ -111,6 +111,51 @@ const KASUS = [
     wajibGambar: ['penampang'],
   },
   {
+    jenis: 'sloof', label: 'sloof — penampang bertulangan',
+    input: {
+      bMm: 150, hMm: 200, bentangM: 3.5, selimutMm: 30, dUtamaMm: 12,
+      nBawah: 2, nAtas: 2, dSengkangMm: 8, jarakSengkangMm: 150,
+      mutu: { fcMpa: 20, fyMpa: 400 },
+      tinggiDindingM: 3, tebalDindingM: 0.15, jenisDinding: 'bata_merah',
+    },
+    wajibGambar: ['penampang'],
+  },
+  {
+    jenis: 'balok_t', label: 'balok T — penampang BADAN saja',
+    /*
+      Yang digambar badan (bw × h), bukan T utuh. Sayapnya adalah PELAT, dan
+      pelat punya gambarnya sendiri — menggambar keduanya menyatu membuat besi
+      pelat terlihat sebagai bagian balok dan terpesan dua kali.
+    */
+    input: {
+      bwMm: 200, hMm: 400, hfMm: 120, bentangBersihM: 4, jarakAsAsM: 3,
+      selimutMm: 30, dUtamaMm: 16, nTarik: 3, nAtas: 2,
+      dSengkangMm: 8, jarakSengkangMm: 150,
+      mutu: { fcMpa: 25, fyMpa: 400 },
+      muPositifKnm: 60, muNegatifKnm: 40, vuKn: 70,
+    },
+    wajibGambar: ['penampang'],
+    wajibTeks: ['(badan)'],
+  },
+  {
+    jenis: 'dinding_penahan', label: 'dinding penahan — potongan + tekanan',
+    input: {
+      tinggiM: 3, tebalAtasM: 0.25, tebalBawahM: 0.4,
+      panjangTelapakM: 2.2, tebalTelapakM: 0.4, kakiM: 0.6,
+      gammaTanahKnM3: 18, phiDerajat: 30, qaKnM2: 150,
+      panjangDindingM: 12, selimutMm: 50, dUtamaMm: 13, jarakUtamaMm: 150,
+      mutu: { fcMpa: 25, fyMpa: 400 },
+    },
+    wajibGambar: ['potongan'],
+    /*
+      Angka keamanan WAJIB muncul di gambarnya. Guling dan geser adalah dua
+      dari tiga cara dinding ini runtuh, dan keduanya tak terlihat sama sekali
+      dari bentuknya — yang membaca gambar tanpa angka ini menilainya dari
+      "kelihatan kokoh".
+    */
+    wajibTeks: ['SF guling', 'SF geser'],
+  },
+  {
     jenis: 'plat', label: 'pelat — potongan',
     /*
       Medan `bebanMatiTambahan` dan `tumpuan` WAJIB — versi pertama kasus ini
