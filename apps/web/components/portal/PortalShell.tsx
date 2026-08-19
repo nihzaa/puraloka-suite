@@ -86,7 +86,7 @@ export default function PortalShell({
           </div>
           <div
             style={{
-              color: "var(--on-merek-redup)",
+              color: "var(--on-merek-lembut)",
               fontSize: 12,
               marginTop: 2,
             }}
