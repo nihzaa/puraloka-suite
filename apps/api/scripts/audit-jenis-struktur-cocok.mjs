@@ -52,10 +52,7 @@ function jenisDariKode() {
 
 /** Baca daftar jenis dari CHECK constraint di basis. */
 async function jenisDariBasis() {
-  const url = process.env.DIRECT_URL || process.env.DATABASE_URL
-  if (!url) throw new Error('DIRECT_URL / DATABASE_URL tak diset')
-
-  const c = new Client({ connectionString: url })
+  const c = new Client({ connectionString: DB })
   await c.connect()
   try {
     const { rows } = await c.query(
@@ -68,6 +65,22 @@ async function jenisDariBasis() {
   } finally {
     await c.end()
   }
+}
+
+/*
+  DILEWATI bila basis tak terjangkau — mengikuti pola `audit-izin-benar-ada`.
+
+  Penjaga yang MATI karena lingkungan tak lengkap menyembunyikan temuan
+  sebenarnya: pesannya berbunyi "DIRECT_URL tak diset", dan yang membacanya
+  menyimpulkan penjaganya rusak alih-alih melihat bahwa ia tak pernah
+  dijalankan. Dilewati dengan pesan yang jelas lebih jujur daripada merah
+  karena alasan yang salah.
+*/
+const DB = process.env.DATABASE_URL || process.env.DIRECT_URL
+if (!DB) {
+  console.log('══ Jenis elemen struktur: KODE vs BASIS ════════════════════')
+  console.log('  ⏭  DILEWATI — tak ada DATABASE_URL / DIRECT_URL')
+  process.exit(0)
 }
 
 const kode = jenisDariKode().sort()

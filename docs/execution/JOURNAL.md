@@ -5,6 +5,72 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 8) — pemilih profil baja: 82 profil yang sudah ada akhirnya bisa dipilih
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur satuan-beli   580 passed
+apps/api  npx tsc --noEmit                      exit 0
+apps/web  npx tsc --noEmit · next build         exit 0
+a11y runtime terang + gelap                     1/1 halaman, 0 pelanggaran
+```
+
+### Endpoint sudah ada — yang kurang cuma layarnya
+
+Diukur sebelum membangun: `GET /api/v1/cecep/steel-profiles` sudah ada di
+`ahsp.ts` sejak migrasi 122/123, lengkap dengan filter tipe dan pencarian.
+Diverifikasi lewat API hidup:
+
+    WF   23 profil      CNP  13 profil
+    H     9 profil      INP  11 profil
+    L    26 profil      ──────────────
+                        total 82
+
+Jadi tak ada endpoint baru yang perlu ditulis. Yang kurang: profil masih diisi
+lewat JSON mentah.
+
+### Kenapa JSON mentah itu bermasalah — bukan bentuknya, melainkan akibatnya
+
+Contoh WF 200 selalu dipakai apa adanya, sehingga SELURUH proyek dihitung
+memakai profil yang sama — dan angkanya terlihat wajar karena WF 200 memang
+profil yang wajar. Tak ada gejala apa pun.
+
+### Dimensi & berat ikut ditampilkan, bukan cuma nama
+
+"WF 200x100x5.5x8" dan "WF 198x99x4.5x7" berdampingan di daftar, berbeda 2 mm,
+dan berat per meternya berbeda 17%. Yang memilih dari nama saja mudah mengambil
+yang salah — berat per meter ditampilkan karena itulah yang langsung jadi
+rupiah, dan panjang batang karena CNP dijual 6 m sementara WF 12 m.
+
+### Dibuktikan dengan ANGKA, bukan dengan "pemilihnya muncul"
+
+Dipilih WF 400x200x8x13 (66,0 kg/m) lewat peramban, disimpan, lalu dihitung:
+
+    besiKg = 792   →  66,0 kg/m x 12 m batang
+
+Kalau pemilihnya tak bekerja, hasilnya 256 kg (WF 200 contoh). Selisihnya
+3,1x — cukup jauh untuk memastikan yang terpilih benar-benar dipakai.
+
+### `baja_rangka` SENGAJA tak memakai pemilih ini
+
+Tiap batangnya punya profil sendiri, jadi satu dropdown akan menimpa seluruh
+batang sekaligus — kebalikan dari yang dibutuhkan. Rangka tetap memakai editor
+JSON sampai ada pemilih per-batang, dan itu dinyatakan di layar.
+
+### Penjaga yang MATI karena lingkungan, bukan karena temuan
+
+`audit-jenis-struktur-cocok.mjs` gagal dengan "DIRECT_URL tak diset" saat
+dijalankan tanpa `-r dotenv/config`. Pesan itu menyesatkan: yang membacanya
+menyimpulkan penjaganya rusak, alih-alih melihat bahwa ia tak pernah
+dijalankan.
+
+Diperbaiki mengikuti pola `audit-izin-benar-ada`: DILEWATI dengan pesan yang
+jelas bila basis tak terjangkau. Diverifikasi dua arah — tanpa env exit 0
+dengan "DILEWATI", dengan env exit 0 memeriksa 17 jenis.
+
+---
+
 ## 2026-08-19 (lanjutan 7) — 10 jenis baja tersambung ke API & UI
 
 **Ringkasan run:**

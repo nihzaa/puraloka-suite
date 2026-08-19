@@ -404,6 +404,46 @@ const MEDAN: Record<Jenis, Medan[]> = {
   Ini CONTOH, bukan katalog. Pemilih profil yang membaca 58 baris
   `steel_profiles` belum ada — pengguna mengubahnya lewat editor JSON.
 */
+/** Satu baris `steel_profiles` seperti dikirim `GET /cecep/steel-profiles`. */
+interface ProfilBasis {
+  id: string
+  profile_type: string
+  designation: string
+  h_mm: number | string
+  b_mm: number | string
+  t1_mm: number | string
+  t2_mm: number | string
+  weight_kg_per_m: number | string
+  standard_length_m: number | string
+}
+
+/**
+ * Jenis yang inputnya memuat SATU profil di medan `profil`.
+ *
+ * `baja_rangka` sengaja TIDAK di sini: tiap batangnya punya profil sendiri,
+ * jadi ia butuh pemilih per-batang — dan itu bentuk layar yang berbeda, bukan
+ * satu dropdown. Memaksakannya ke pemilih tunggal akan menimpa profil seluruh
+ * batang sekaligus, yang justru kebalikan dari yang dibutuhkan.
+ */
+const JENIS_BERPROFIL: ReadonlySet<string> = new Set([
+  "baja_balok", "baja_kolom", "baja_gording", "baja_bracing",
+  "baja_base_plate", "baja_interaksi",
+]);
+
+/** Ubah baris basis jadi bentuk yang dipakai modul analisa. */
+function keProfilAnalisa(b: ProfilBasis) {
+  return {
+    designation: b.designation,
+    profile_type: b.profile_type,
+    hMm: Number(b.h_mm),
+    bMm: Number(b.b_mm),
+    t1Mm: Number(b.t1_mm),
+    t2Mm: Number(b.t2_mm),
+    beratKgPerM: Number(b.weight_kg_per_m),
+    panjangStandarM: Number(b.standard_length_m),
+  };
+}
+
 const PROFIL_WF200 = {
   designation: "200x100x5.5x8", profile_type: "WF",
   hMm: 200, bMm: 100, t1Mm: 5.5, t2Mm: 8,
@@ -1118,6 +1158,25 @@ function StrukturLayar() {
               </Isian>
             </div>
 
+            {/*
+              PEMILIH PROFIL — hanya untuk jenis yang inputnya memuat SATU profil.
+
+              `baja_rangka` dikecualikan: tiap batangnya punya profil sendiri,
+              dan satu dropdown akan menimpa seluruhnya sekaligus. Rangka tetap
+              memakai editor JSON sampai ada pemilih per-batang.
+            */}
+            {JENIS_BERPROFIL.has(jenis) && (
+              <PemilihProfil
+                nilai={input.profil as Record<string, unknown> | undefined}
+                onPilih={(pr) => {
+                  const baru = { ...input, profil: pr };
+                  setInput(baru);
+                  setTeksJson(JSON.stringify(baru, null, 2));
+                  setGalatJson(null);
+                }}
+              />
+            )}
+
             <p style={{ fontSize: "var(--teks-delta)", color: C.mid, margin: 0 }}>
               Angka di bawah sudah terisi contoh yang <strong>lulus analisa</strong> —
               ubah seperlunya. Satuan tertulis di tiap label.
@@ -1160,9 +1219,10 @@ function StrukturLayar() {
               pengguna, dan contoh yang selalu dipakai apa adanya menghasilkan
               seluruh proyek memakai WF 200.
 
-              Ini JELAS bukan bentuk akhirnya. Pemilih profil yang membaca 58
-              baris `steel_profiles` adalah pekerjaan berikutnya — dan
-              dinyatakan begitu di layar, supaya tak dikira memang begini.
+              PROFIL kini punya pemilihnya sendiri (`PemilihProfil`, membaca 82
+              baris `steel_profiles`). Yang tersisa di sini: mutu baja, dan
+              daftar batang rangka yang butuh pemilih PER-BATANG — bentuk layar
+              yang berbeda, dan belum ada.
               ══════════════════════════════════════════════════════════════
             */}
             {MEDAN[jenis].length < Object.keys(CONTOH[jenis]).length && (
@@ -1172,8 +1232,11 @@ function StrukturLayar() {
                 bantuan={
                   galatJson
                     ? undefined
-                    : "Profil baja dan daftar batang belum punya pemilih sendiri — "
-                      + "sunting di sini. Angkanya sudah terisi contoh yang lulus analisa."
+                    : JENIS_BERPROFIL.has(jenis)
+                      ? "Mutu baja dan medan lain yang berupa objek disunting di sini. "
+                        + "Profil sudah punya pemilihnya sendiri di atas."
+                      : "Daftar batang rangka belum punya pemilih per-batang — sunting "
+                        + "di sini. Angkanya sudah terisi contoh yang lulus analisa."
                 }
                 galat={galatJson}
               >
@@ -1219,6 +1282,102 @@ function StrukturLayar() {
           </div>
         </Modal>
       )}
+    </div>
+  );
+}
+
+/**
+ * Pemilih profil baja dari tabel `steel_profiles`.
+ *
+ * ══════════════════════════════════════════════════════════════════════════════
+ * KENAPA INI MENGGANTIKAN EDITOR JSON UNTUK MEDAN `profil`
+ *
+ * Sebelum ini profil diisi lewat JSON mentah, dengan catatan di layar bahwa itu
+ * sementara. Yang membuatnya benar-benar bermasalah bukan bentuknya, melainkan
+ * akibatnya: contoh WF 200 selalu dipakai apa adanya, sehingga SELURUH proyek
+ * dihitung memakai profil yang sama — dan angka yang dihasilkan terlihat wajar
+ * karena WF 200 memang profil yang wajar.
+ *
+ * Basis sudah punya 82 profil (23 WF, 9 H, 13 CNP, 11 INP, 26 siku) lewat
+ * `GET /cecep/steel-profiles`. Yang kurang cuma layarnya.
+ *
+ * ── Kenapa dimensi ikut ditampilkan, bukan cuma nama
+ *
+ * "WF 200x100x5.5x8" dan "WF 198x99x4.5x7" berdampingan di daftar, berbeda
+ * 2 mm, dan berat per meternya berbeda 17%. Yang memilih dari nama saja mudah
+ * mengambil yang salah — berat per meter ditampilkan karena itulah yang
+ * langsung jadi rupiah.
+ * ══════════════════════════════════════════════════════════════════════════════
+ */
+function PemilihProfil({
+  nilai, onPilih,
+}: {
+  nilai: Record<string, unknown> | undefined
+  onPilih: (p: ReturnType<typeof keProfilAnalisa>) => void
+}) {
+  const [tipe, setTipe] = useState<string>(
+    typeof nilai?.profile_type === "string" ? nilai.profile_type : "WF",
+  );
+
+  const { data, memuat, galat } = useData<{ data: ProfilBasis[] }>(
+    `/api/v1/cecep/steel-profiles?type=${tipe}&limit=200`,
+  );
+  const daftar = useMemo(() => data?.data ?? [], [data]);
+
+  const terpilih = typeof nilai?.designation === "string" ? nilai.designation : "";
+
+  return (
+    <div style={{ display: "grid", gap: 10, gridTemplateColumns: "160px 1fr" }}>
+      <Isian id="f-profil-tipe" label="Jenis profil">
+        <PilihanIsian
+          id="f-profil-tipe"
+          value={tipe}
+          style={{ width: "100%" }}
+          onChange={(e) => setTipe(e.target.value)}
+        >
+          <option value="WF">WF</option>
+          <option value="H">H-beam</option>
+          <option value="CNP">CNP (kanal C)</option>
+          <option value="INP">INP (kanal I)</option>
+          <option value="L">Siku</option>
+        </PilihanIsian>
+      </Isian>
+
+      <Isian
+        id="f-profil"
+        label="Profil"
+        bantuan={
+          galat
+            ? undefined
+            : memuat
+              ? "Memuat katalog profil…"
+              : `${daftar.length} profil ${tipe} di katalog. Berat per meter langsung jadi rupiah — periksa sebelum memilih.`
+        }
+        galat={galat ? "Gagal memuat katalog profil baja." : undefined}
+      >
+        <PilihanIsian
+          id="f-profil"
+          value={terpilih}
+          style={{ width: "100%" }}
+          onChange={(e) => {
+            const b = daftar.find((x) => x.designation === e.target.value);
+            if (b) onPilih(keProfilAnalisa(b));
+          }}
+        >
+          {/*
+            Pilihan kosong hanya muncul bila belum ada yang terpilih — tanpa
+            itu, daftar tampak punya baris kosong yang bisa dipilih dan
+            menghasilkan input tanpa profil.
+          */}
+          {!terpilih && <option value="">— pilih profil —</option>}
+          {daftar.map((b) => (
+            <option key={b.id} value={b.designation}>
+              {b.profile_type} {b.designation} — {Number(b.weight_kg_per_m).toFixed(2)} kg/m
+              {" · batang "}{Number(b.standard_length_m)} m
+            </option>
+          ))}
+        </PilihanIsian>
+      </Isian>
     </div>
   );
 }
