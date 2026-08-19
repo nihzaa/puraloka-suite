@@ -84,7 +84,7 @@ medan revisi sudah dikirim API sejak 445, dengan **nol** rujukan di seluruh
             → bukti → pelaporan ke pihak luar
 
 **Menunggu pihak ketiga**: e-meterai Peruri (`dk-esign`), integrasi DJP
-(`fn-efaktur`), SMTP tenant (`bi-terjadwal`).
+(`fn-efaktur`), kunci Resend (`bi-terjadwal` — bukan SMTP; lihat §5).
 
 ---
 
@@ -153,7 +153,8 @@ bukan mengandalkan ingatan.
 
 Repo ini sudah punya 58 tugas terjadwal. Yang menahan tiga sisa bukan kode.
 
-→ **`dk-esign`**, **`fn-efaktur`**, **`bi-terjadwal`** — menunggu pihak ketiga
+→ **`dk-esign`** (Peruri), **`fn-efaktur`** (DJP), **`bi-terjadwal`**
+(`RESEND_API_KEY`) — menunggu pihak ketiga
 
 ---
 
@@ -167,7 +168,7 @@ Repo ini sudah punya 58 tugas terjadwal. Yang menahan tiga sisa bukan kode.
 | 4 | `md-template-dok` | C | 2.4 | ✅ **SELESAI 2026-08-19** (migrasi 465) |
 | 5 | `dk-esign` | D | 2.5 | kontrak Peruri |
 | 6 | `fn-efaktur` | D | 2.5 | integrasi DJP |
-| 7 | `bi-terjadwal` | D | 2.5 | kredensial SMTP tenant |
+| 7 | `bi-terjadwal` | D | 2.5 | `RESEND_API_KEY` (global, bukan SMTP tenant) |
 | 8 | `mb-progres` | A | — | build & sebar aplikasi mobile |
 
 **KEEMPAT pekerjaan kode SELESAI 2026-08-19.** Empat sisanya menunggu di luar
@@ -326,8 +327,15 @@ menciptakan hutang yang tak ada:
 - **`fn-efaktur`** — ekspor DJP (e-Faktur FK/LT/OF + bukti potong) sudah
   jalan, PKP per tenant sudah ada. Yang tersisa **integrasi langsung ke
   sistem DJP** — wilayah pihak ketiga.
-- **`bi-terjadwal`** — pemicunya sudah terdaftar (2026-08-17). Begitu SMTP
-  diisi lewat Pengaturan, ia jalan **tanpa perubahan kode**.
+- **`bi-terjadwal`** — pemicunya sudah terdaftar (2026-08-17). **Kalimat saya
+  sebelumnya di sini salah**: ia berbunyi *"begitu SMTP diisi lewat
+  Pengaturan, ia jalan tanpa perubahan kode"*. Diukur 2026-08-19: **nol**
+  kolom ber-nama `smtp` di seluruh basis, dan pengirimnya bukan SMTP
+  melainkan **Resend** (`utils/email.ts`). Yang menahan adalah
+  `RESEND_API_KEY` — kredensial **global**, bukan pengaturan per-tenant.
+  Dan `sendEmail()` sengaja no-op tanpa kunci itu, jadi jadwalnya berjalan
+  dan `terakhir_dikirim` ter-update **tanpa satu pun surel terkirim** — diam
+  yang terbaca seperti berhasil. Membuatnya per-tenant adalah perubahan kode.
 - **`mb-progres`** — kodenya lengkap (357 baris, dua mode, foto + izin
   runtime). Yang belum: **dipakai mandor sungguhan**. Fitur yang tak pernah
   dipakai orang belum terbukti bekerja di tangan penggunanya, dan mandor di
