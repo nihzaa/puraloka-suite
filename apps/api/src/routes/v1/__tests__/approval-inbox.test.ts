@@ -148,3 +148,131 @@ describe('inbox — otorisasi', () => {
     )
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────
+// Task 8 — filter proyek-milik-PM.
+//
+// `canParticipateInChain` menyaring by PERMISSION ("apakah user punya salah
+// satu permission di rantai approval jenis ini"), TAPI TIDAK menyaring
+// berdasarkan apakah `project_id` baris itu adalah proyek yang di-PM-i user.
+// Pembatasan proyek baru terjadi di endpoint approve/reject masing-masing
+// (mis. kasbons.ts mengecek `project.pm_id !== user.id`) — jadi PM bisa
+// MELIHAT antrean approval proyek yang bukan tanggung jawabnya (termasuk
+// nominal & nama pemohon), meski ditolak saat mencoba menyetujuinya.
+//
+// Entitas yang dipilih: KASBON (tenancy 'B', yang cocok dengan `project_id`
+// langsung di baris — celahnya paling gamblang untuk jenis ini).
+describe('inbox — filter proyek milik PM (Task 8)', () => {
+  let pmAuth = ''
+  let pmUserId = ''
+  let pmLainUserId = ''
+  let companyId = ''
+  let clientId = ''
+  let projectAId = ''
+  let projectBId = ''
+  let kasbonAId = ''
+  let kasbonBId = ''
+
+  /** Hapus SEMUA artefak test berprefiks [TEST-T8] beserta yang menahannya. */
+  async function purgeTestProjects(): Promise<void> {
+    const { rows } = await client.query(
+      `SELECT id FROM projects WHERE name LIKE '[TEST-T8]%'`)
+    if (rows.length === 0) return
+    const ids = rows.map((r) => r.id)
+    await client.query(
+      `DELETE FROM approval_progress
+        WHERE entity_type = 'kasbon'
+          AND entity_id IN (SELECT id FROM kasbons WHERE project_id = ANY($1))`, [ids])
+    await client.query(`DELETE FROM kasbons WHERE project_id = ANY($1)`, [ids])
+    await client.query(`DELETE FROM notifications WHERE project_id = ANY($1)`, [ids])
+    await client.query(`DELETE FROM projects WHERE id = ANY($1)`, [ids])
+  }
+
+  beforeAll(async () => {
+    pmAuth = (await authIdForRole(client, 'pm')) ?? ''
+    if (!pmAuth) return // basis dev tak selalu punya PM — test SKIP di dalam `it`
+
+    const { rows: pmRow } = await client.query(
+      `SELECT id FROM users WHERE auth_id = $1`, [pmAuth])
+    pmUserId = pmRow[0].id
+
+    const { rows: cm } = await client.query(
+      `SELECT company_id FROM company_members WHERE user_id = $1 ORDER BY created_at LIMIT 1`,
+      [pmUserId])
+    companyId = cm[0].company_id
+
+    const { rows: cl } = await client.query(
+      `SELECT id FROM clients WHERE company_id = $1 LIMIT 1`, [companyId])
+    clientId = cl[0].id
+
+    // PM lain: siapa saja berbeda dari pmUserId untuk jadi pm_id proyek B.
+    const { rows: lain } = await client.query(
+      `SELECT id FROM users WHERE id <> $1 AND is_active = true ORDER BY created_at LIMIT 1`,
+      [pmUserId])
+    pmLainUserId = lain[0]?.id ?? pmUserId // fallback: kalau cuma 1 user, test B akan gagal informatif
+
+    await purgeTestProjects()
+
+    const { rows: pr } = await client.query(
+      `INSERT INTO projects (company_id, client_id, pm_id, name, location, start_date, end_date, created_by)
+       VALUES
+         ($1, $2, $3, '[TEST-T8] Proyek A (milik PM uji)', 'Bandung', CURRENT_DATE, CURRENT_DATE + 30, $3),
+         ($1, $2, $4, '[TEST-T8] Proyek B (milik PM lain)', 'Bandung', CURRENT_DATE, CURRENT_DATE + 30, $3)
+       RETURNING id, name`,
+      [companyId, clientId, pmUserId, pmLainUserId])
+    projectAId = pr.find((r) => r.name.includes('Proyek A')).id
+    projectBId = pr.find((r) => r.name.includes('Proyek B')).id
+
+    const { rows: kb } = await client.query(
+      `INSERT INTO kasbons (company_id, project_id, amount, fund_source, purpose, requested_by, status)
+       VALUES
+         ($4, $1, 500000, 'owner_advance', '[TEST-T8] kasbon proyek A', $3, 'pending'),
+         ($4, $2, 500000, 'owner_advance', '[TEST-T8] kasbon proyek B', $3, 'pending')
+       RETURNING id, project_id`,
+      [projectAId, projectBId, pmLainUserId, companyId])
+    kasbonAId = kb.find((r) => r.project_id === projectAId).id
+    kasbonBId = kb.find((r) => r.project_id === projectBId).id
+  }, 60_000)
+
+  afterAll(async () => {
+    if (!pmAuth) return
+    await purgeTestProjects()
+  })
+
+  it('PM hanya melihat baris approval dari proyek yang di-PM-inya', async () => {
+    if (!pmAuth) return // basis dev tak selalu punya PM
+    actAs(pmAuth)
+    const r = await ambil()
+    expect(r.statusCode).toBe(200)
+    const b = JSON.parse(r.body)
+    const kasbonIdsMuncul = new Set(
+      (b.data as Array<{ jenis: string; id: string }>)
+        .filter((x) => x.jenis === 'kasbon')
+        .map((x) => x.id),
+    )
+    const projectIdsMuncul = new Set(
+      (b.data as Array<{ jenis: string; project_id: string | null }>)
+        .filter((x) => x.jenis === 'kasbon')
+        .map((x) => x.project_id),
+    )
+    expect(kasbonIdsMuncul.has(kasbonAId)).toBe(true)
+    expect(kasbonIdsMuncul.has(kasbonBId)).toBe(false)
+    expect(projectIdsMuncul.has(projectAId)).toBe(true)
+    expect(projectIdsMuncul.has(projectBId)).toBe(false)
+  })
+
+  it('role selain PM (mis. admin) tetap melihat semua proyek company', async () => {
+    if (!pmAuth) return
+    actAs(adminAuth)
+    const r = await ambil()
+    expect(r.statusCode).toBe(200)
+    const b = JSON.parse(r.body)
+    const projectIdsMuncul = new Set(
+      (b.data as Array<{ jenis: string; project_id: string | null }>)
+        .filter((x) => x.jenis === 'kasbon')
+        .map((x) => x.project_id),
+    )
+    expect(projectIdsMuncul.has(projectAId)).toBe(true)
+    expect(projectIdsMuncul.has(projectBId)).toBe(true)
+  })
+})

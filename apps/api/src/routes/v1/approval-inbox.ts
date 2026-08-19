@@ -65,6 +65,13 @@ function kolomUntuk(s: SumberInbox): string {
   if (s.tenancy === 'C') k.add('project_id')
   if (s.tenancy === 'C-scenario') k.add('scenario_id')
   if (s.tenancy === 'C-pegawai') k.add('pegawai_id')
+  // Keempat sumber 'B' (kasbon, opname_bersama, back_charge, klaim_perjalanan)
+  // TERNYATA semuanya punya kolom project_id (diverifikasi ke
+  // information_schema 2026-08-20) meski tenancy-nya lewat company_id
+  // langsung. Tanpa ini, filter proyek-milik-PM (Task 8) tak punya apa pun
+  // untuk disaring — dan `project_id` di baris hasil selalu null, membuat
+  // celahnya tak kelihatan sekalipun sudah diperbaiki di query.
+  if (s.tenancy === 'B') k.add('project_id')
   return [...k].join(', ')
 }
 
@@ -83,7 +90,46 @@ export default async function approvalInboxRoutes(app: FastifyInstance) {
       const hasil: BarisInbox[] = []
       const ringkas: Record<string, number> = {}
       const dilewati: Array<{ jenis: string; sebab: string }> = []
-      const userId = request.currentUser!.id
+      const user = request.currentUser!
+      const userId = user.id
+
+      // ── Proyek milik PM (Task 8) ──────────────────────────────────────────
+      //
+      // `canParticipateInChain` di bawah hanya menyaring by PERMISSION —
+      // "apakah user punya salah satu permission di rantai approval jenis
+      // ini". Itu TIDAK menyaring apakah `project_id` baris itu adalah
+      // proyek yang di-PM-i user. Pembatasan proyek baru terjadi di endpoint
+      // approve/reject masing-masing (mis. kasbons.ts mengecek
+      // `project.pm_id !== user.id`), jadi tanpa filter ini PM bisa MELIHAT
+      // antrean approval proyek yang bukan tanggung jawabnya — termasuk
+      // nominal & nama pemohon — meski ditolak saat mencoba menyetujuinya.
+      //
+      // `pmProjectIds === null` berarti "tak perlu diirisan" (peran bukan
+      // pm — admin dkk tetap melihat semua proyek company, tak dipersempit).
+      // `pmProjectIds` berisi ARRAY (termasuk kosong) berarti WAJIB diiriskan
+      // — kosong harus menghasilkan KOSONG untuk jenis ber-project, bukan
+      // "semua" (fail-closed, bukan fail-open).
+      //
+      // Pola `.eq('pm_id', user.id)` mengikuti yang SUDAH dipakai di
+      // reports.ts/search.ts untuk konsistensi — bukan mekanisme otorisasi
+      // ketiga (ADR-004: role tetap data konfigurasi, bukan konstanta kode
+      // untuk gerbang permission; ini hanya penyempitan DATA, bukan gerbang).
+      let pmProjectIds: string[] | null = null
+      if (user.role === 'pm') {
+        const { data: pmProjects, error: errPm } = await request.db!
+          .from('projects')
+          .select('id')
+          .eq('pm_id', user.id)
+        if (errPm) {
+          request.log.error({ err: errPm }, 'inbox: gagal memuat proyek milik PM')
+          return reply.status(500).send({ error: 'Gagal memuat proyek PM' })
+        }
+        pmProjectIds = (pmProjects ?? []).map((p) => (p as { id: string }).id)
+      }
+
+      /** Irisan `ids` dengan `pmProjectIds` bila user PM; `ids` apa adanya untuk peran lain. */
+      const irisProyekPm = (ids: string[]): string[] =>
+        pmProjectIds !== null ? ids.filter((id) => pmProjectIds!.includes(id)) : ids
 
       for (const s of SUMBER_INBOX) {
         // Hanya jenis yang boleh diikuti pengguna ini. Menampilkan yang lain
@@ -105,8 +151,17 @@ export default async function approvalInboxRoutes(app: FastifyInstance) {
           : request.db!.unsafe(s.tabel, 'inbox approval; disaring project_id di baris berikutnya')
 
         let query = q.select(kolomUntuk(s)).in('status', s.statusMenunggu)
+        if (s.tenancy === 'B') {
+          // Keempat sumber 'B' punya project_id (lihat kolomUntuk). PM hanya
+          // boleh melihat baris proyek yang di-PM-inya; peran lain (admin dkk)
+          // tetap company-wide seperti sebelumnya — irisProyekPm no-op untuk
+          // mereka (pmProjectIds null).
+          if (pmProjectIds !== null) {
+            query = query.in('project_id', pmProjectIds)
+          }
+        }
         if (s.tenancy === 'C') {
-          query = query.in('project_id', await request.db!.projectIds())
+          query = query.in('project_id', irisProyekPm(await request.db!.projectIds()))
         }
         if (s.tenancy === 'C-pegawai') {
           // Cuti menuju tenant lewat PEGAWAI, bukan proyek — cuti bukan milik
@@ -133,7 +188,7 @@ export default async function approvalInboxRoutes(app: FastifyInstance) {
           const { data: skenario, error: errSkenario } = await request.db!
             .unsafe('scenarios', 'inbox approval; disaring project_id di baris ini juga')
             .select('id')
-            .in('project_id', await request.db!.projectIds())
+            .in('project_id', irisProyekPm(await request.db!.projectIds()))
           if (errSkenario) {
             // Gagal membaca skenario berarti versi estimasi TIDAK terbaca.
             // Dilaporkan, bukan ditelan — kalau tidak, jenis ini terlihat
