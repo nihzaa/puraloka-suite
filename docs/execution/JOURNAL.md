@@ -5,6 +5,93 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-19 (lanjutan 13) — "sudah komplit?" diukur, dan jawabannya 53%
+
+Founder bertanya tiga hal: apakah semuanya aman tanpa cacat, apakah UI-nya
+sudah baik, dan apakah uji strukturnya komplit dari pondasi sampai atap untuk
+beton maupun baja. Ketiganya dijawab dengan MENGUKUR.
+
+### 1. Uji struktur: 18 dari 34 — **53%**
+
+```
+$ node -r dotenv/config scripts/lapor-cakupan-struktur.mjs
+  ADA 18 / 34  (53%)
+
+  BELUM ADA, tetapi DIPAKAI di RAB nyata — urut paling sering:
+       15x  PONDASI    sloof / tie beam
+        8x  TANGGA     tangga beton
+        2x  PONDASI    pondasi menerus batu kali
+        1x  BALOK      balok anak / balok T
+```
+
+Yang SUDAH: tanah, footplat, pilecap, tiang, kolom (persegi/bulat/baja), balok
+(beton/baja), pelat, sambungan (baut/las/base plate/angkur), atap
+(rangka/gording/bracing), interaksi P-M.
+
+Yang BELUM dan **sudah dipakai orang**: sloof, tangga, pondasi batu kali, balok
+anak. Sloof yang paling mendesak — 15 baris RAB nyata menyebutnya, dan secara
+mekanika ia balok, jadi modulnya sudah ada; yang kurang hanya jenisnya
+terdaftar.
+
+Yang BELUM dan belum dipakai (12): raft, dinding penahan tanah, kolom komposit,
+bondek, shear wall, gusset, sambungan momen, kuda-kuda kayu, baja ringan, beban
+gempa, beban angin, drift antar tingkat.
+
+**Laporannya SKRIP, bukan dokumen** — angka cakupan basi begitu satu jenis
+ditambahkan, dan CLAUDE.md sendiri mencabut seluruh angkanya karena alasan itu.
+Ia juga bukan penjaga: tak pernah exit 1, karena cakupan yang belum lengkap
+adalah urutan kerja, bukan cacat. Yang membuatnya berguna: pengurutan
+berdasarkan **pemakaian nyata di RAB**, bukan kerumitan teori.
+
+### 2. UI: satu cacat yang salah secara TEKNIS, bukan kosmetik
+
+Ditemukan dengan memotret layar berisi. Tabel "Kebutuhan besi per diameter"
+menampilkan:
+
+```
+Ulir (BjTS)  ·  D200  ·  profil WF 200x100x5.5x8
+```
+
+**Besi ulir D200 tidak ada di pasar.** Yang tertulis "D200" itu TINGGI profil,
+bukan diameter. Estimator yang membaca tabel ini memesan barang yang tak bisa
+dipenuhi supplier.
+
+Sebabnya: baris `besi` memuat dua barang berbeda — tulangan beton
+(berdiameter, per lonjor) dan profil baja (berdesignation, per batang) —
+dibedakan hanya oleh awalan `'profil '` pada `peran`. Render tabel cuma
+mengenal dua tipe tulangan.
+
+597 test struktur hijau sepanjang waktu: tak satu pun memeriksa bagaimana
+barisnya DITAMPILKAN, hanya bagaimana ia dihitung.
+
+Diperbaiki: kolom "Jenis" mengenali "Baja profil", kolom "Diameter" berganti
+jadi "Ukuran" (kolom bernama Diameter yang berisi designation adalah label yang
+berbohong), judul kartu jadi "Kebutuhan besi & baja profil". Dijaga
+`audit-baris-besi-dibedakan.mjs` (ambang NOL), dibuktikan merah dengan
+MENGEMBALIKAN cacat aslinya.
+
+Selebihnya UI-nya baik: layar kosong menjelaskan apa yang akan muncul dan
+mengapa kosong, catatan batas ditampilkan tidak dilipat, selisih antar-angka
+diterangkan, a11y 0 pelanggaran.
+
+### 3. "Aman tanpa cacat?" — tidak, dan ini daftarnya
+
+Yang **sudah** aman: 597+81+21 test hijau, 10 penjaga hijau, typecheck bersih
+di API dan web, nol regresi terhadap baseline (diukur per berkas), a11y nol
+pelanggaran.
+
+Yang **masih** terbuka, dan saya sebutkan alih-alih mendiamkannya:
+
+- 16 elemen struktur belum punya penguji (4 di antaranya dipakai di RAB nyata)
+- baris `takeoff_dimensi` tersimpan, tetapi belum ada layar untuk MEMBACANYA
+  kembali — jejaknya ada, pembacanya belum
+- penjaga UI lain masih merah (`uji-opacity-teks`, `medan-hantu-ratchet`,
+  `catch-senyap-ratchet`, `uji-tabel-terbaca`, `uji-warna-buta-mode`) —
+  semuanya menunjuk berkas yang tak disentuh pekerjaan ini, diukur satu per
+  satu, bukan diasumsikan
+
+---
+
 ## 2026-08-19 (lanjutan 12) — dokumen mengklaim layar yang tak pernah dibangun
 
 **Ringkasan run:**

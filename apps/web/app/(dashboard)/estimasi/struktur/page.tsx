@@ -1105,11 +1105,12 @@ function StrukturLayar() {
                 fontSize: "var(--teks-badan)", fontWeight: 600,
                 color: C.text, margin: "0 0 8px",
               }}>
-                Kebutuhan besi per diameter
+                Kebutuhan besi &amp; baja profil
               </h2>
               <p style={{ fontSize: "var(--teks-delta)", color: C.mid, margin: "0 0 10px" }}>
                 Inilah satuan yang dipesan — total kilogram saja tak bisa
-                dibelanjakan karena tiap diameter berbeda harganya.
+                dibelanjakan karena tiap ukuran berbeda harganya, dan tulangan
+                beton dibeli per lonjor sementara profil baja per batang.
               </p>
 
               {/*
@@ -1144,7 +1145,7 @@ function StrukturLayar() {
                 </p>
               )}
               <Tabel<BarisBesi>
-                caption="Kebutuhan besi tulangan dirinci per diameter dan perannya"
+                caption="Kebutuhan besi tulangan dan baja profil dirinci per ukuran dan perannya"
                 data={volume.rekap.besi}
                 kunciBaris={(b) => `${b.tipe}-${b.diameterMm}-${b.peran}`}
                 total={[
@@ -1156,14 +1157,56 @@ function StrukturLayar() {
                 ]}
                 kolom={[
                   {
+                    /*
+                      ══════════════════════════════════════════════════════════
+                      BAJA PROFIL BUKAN TULANGAN ULIR — dan versi sebelumnya
+                      menampilkannya begitu.
+
+                      Baris `besi` memuat dua hal berbeda: tulangan beton
+                      (BjTP/BjTS, berdiameter) dan PROFIL baja (WF/H/CNP/INP,
+                      berdesignation). Render lama hanya mengenal dua tipe
+                      tulangan, jadi WF 200×100 muncul sebagai:
+
+                          "Ulir (BjTS) · D200 · profil WF 200x100x5.5x8"
+
+                      Besi ulir D200 tidak ada di pasar. Estimator yang membaca
+                      tabel ini memesan barang yang tak bisa dibeli — dan
+                      "D200" itu sebenarnya TINGGI profil, bukan diameter.
+
+                      Terlihat dari MEMOTRET layarnya; 597 test struktur hijau
+                      sepanjang waktu karena tak satu pun memeriksa bagaimana
+                      barisnya DITAMPILKAN.
+                      ══════════════════════════════════════════════════════════
+                    */
                     kunci: "jenis", judul: "Jenis", kepalaBaris: true,
-                    render: (b) => (b.tipe === "BjTS" ? "Ulir (BjTS)" : "Polos (BjTP)"),
+                    render: (b) => (
+                      b.peran.startsWith("profil ")
+                        ? "Baja profil"
+                        : b.tipe === "BjTS" ? "Ulir (BjTS)" : "Polos (BjTP)"
+                    ),
                   },
                   {
-                    kunci: "diameter", judul: "Diameter",
-                    render: (b) => `${b.tipe === "BjTS" ? "D" : "Ø"}${b.diameterMm}`,
+                    kunci: "diameter", judul: "Ukuran",
+                    /*
+                      Judulnya "Ukuran", bukan "Diameter": profil baja tak punya
+                      diameter, dan kolom bernama Diameter yang berisi
+                      designation profil adalah label yang berbohong.
+                    */
+                    render: (b) => (
+                      b.peran.startsWith("profil ")
+                        ? b.peran.replace(/^profil /, "")
+                        : `${b.tipe === "BjTS" ? "D" : "Ø"}${b.diameterMm}`
+                    ),
                   },
-                  { kunci: "peran", judul: "Peran", render: (b) => b.peran },
+                  {
+                    kunci: "peran", judul: "Peran",
+                    /*
+                      Untuk profil, `peran` berisi designation yang sudah
+                      tampil di kolom Ukuran. Mengulanginya membuat dua kolom
+                      berisi teks sama dan menyita ruang tanpa menambah apa pun.
+                    */
+                    render: (b) => (b.peran.startsWith("profil ") ? "profil baja" : b.peran),
+                  },
                   {
                     kunci: "batang", judul: "Batang", rata: "kanan",
                     render: (b) => formatAngka(b.jumlahBatang),

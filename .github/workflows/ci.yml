@@ -791,6 +791,23 @@ jobs:
       - name: Sektor take-off cocok antara kode dan basis
         run: node scripts/audit-sektor-takeoff-cocok.mjs
 
+      # Baris `besi` memuat DUA barang berbeda: tulangan beton (BjTP/BjTS,
+      # berdiameter, dijual per lonjor) dan profil baja (WF/H/CNP/INP,
+      # berdesignation, per batang). Pembedanya cuma awalan `'profil '` pada
+      # `peran` — kontrak tersirat yang tak dipaksa apa pun.
+      #
+      # Ditemukan 2026-08-19 dengan MEMOTRET layar: tabel menampilkan
+      # "Ulir (BjTS) · D200 · profil WF 200x100x5.5x8". Besi ulir D200 tak ada
+      # di pasar, dan "D200" itu TINGGI profil bukan diameter — estimator
+      # memesan barang yang tak bisa dipenuhi supplier. 597 test struktur
+      # hijau sepanjang waktu: tak satu pun memeriksa bagaimana barisnya
+      # DITAMPILKAN, hanya bagaimana ia dihitung.
+      #
+      # Bukti merah: cacat aslinya dikembalikan (pembeda dilumpuhkan di UI)
+      # → exit 1; penulis lupa awalan → exit 1; dipulihkan → exit 0.
+      - name: Baris besi membedakan tulangan dari profil baja
+        run: node scripts/audit-baris-besi-dibedakan.mjs
+
       # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
       # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
       # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris

@@ -72,6 +72,17 @@ UJI_EMAIL=… UJI_SANDI=… UJI_BASIS=http://127.0.0.1:3001 \
   node apps/api/scripts/uji-otomasi-terjadwal.mjs
 ```
 
+**Cakupan uji struktur** — pondasi sampai atap. Jangan menjawab dari ingatan;
+angkanya berubah tiap jenis ditambahkan, dan laporannya mengurutkan yang belum
+ada berdasarkan PEMAKAIAN NYATA di RAB, bukan kerumitan teorinya:
+
+```bash
+cd apps/api && node -r dotenv/config scripts/lapor-cakupan-struktur.mjs
+```
+
+Diukur 2026-08-19: **18 dari 34 (53%)**. Yang belum ada tetapi sudah dipakai di
+RAB nyata — sloof (15×), tangga (8×), pondasi batu kali (2×), balok anak (1×).
+
 **Otomasi mana yang hidup** — jangan dibaca dari katalog, UKUR:
 
 ```bash
@@ -242,6 +253,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-harga-satuan-waras.mjs` | harga bahan wajib masuk akal untuk SATUANNYA — harga per m³ yang tersalin ke baris kg membuat 1 m³ beton terhitung Rp 626 juta, menyebar ke 32 AHSP, tanpa satu pun galat (ambang NOL) |
 | `audit-sektor-takeoff-cocok.mjs` | daftar sektor take-off di kode wajib sama dengan CHECK di basis, dan tiap sektor wajib punya satuan + cabang perhitungan (ambang NOL) |
 | `audit-klaim-layar-nyata.mjs` | catatan peta-menu yang menjanjikan LAYAR wajib punya jejaknya di kode — `crm-boq` mengklaim tab "Take-off Volume" SELESAI atas layar yang tak pernah dibangun (ratchet, lantai 0) |
+| `audit-baris-besi-dibedakan.mjs` | baris `besi` memuat tulangan DAN profil baja; pembacanya wajib membedakan — tanpa itu WF 200×100 tampil sebagai "Ulir D200", besi yang tak ada di pasar (ambang NOL) |
 
 **Uang lewat percakapan — dijaga test, bukan penjaga skrip.** `payments` adalah
 satu-satunya entitas tulis yang **tak punya kolom `status`**, jadi tak ada
