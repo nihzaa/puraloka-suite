@@ -261,9 +261,11 @@ export function analisaPondasiMenerus(input: InputPondasiMenerus): HasilPondasiM
     )
   }
   catatan.push(
-    'Penurunan (settlement) BELUM diperiksa. Daya dukung izin menahan '
-    + 'keruntuhan tanah, bukan penurunan — dan pada tanah lempung, penurunanlah '
-    + 'yang lebih dulu merusak bangunan.',
+    'Penurunan (settlement) belum diperiksa PADA PONDASI MENERUS ini. '
+    + 'Modulnya sudah ada (`struktur-penurunan.ts`) dan sudah tersambung ke '
+    + 'FOOTPLAT; pondasi menerus belum. Daya dukung izin menahan keruntuhan '
+    + 'tanah, bukan penurunan — dan pada tanah lempung, penurunanlah yang '
+    + 'lebih dulu merusak bangunan.',
   )
 
   return {

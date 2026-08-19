@@ -359,8 +359,8 @@ export function analisaDindingPenahan(input: InputDindingPenahan): HasilDindingP
     + 'tetap meluncur pada tanah lempung basah.',
   )
   catatan.push(
-    'Yang BELUM diperiksa: tekanan tanah saat GEMPA (Mononobe-Okabe), tekanan '
-    + 'air pori bila drainase tersumbat, dan stabilitas lereng menyeluruh. '
+    'Yang BELUM diperiksa: tekanan air pori bila drainase tersumbat, dan '
+    + 'stabilitas lereng menyeluruh. '
     + 'Tekanan air pori yang terabaikan adalah penyebab runtuhnya dinding '
     + 'penahan yang paling sering — dan ia muncul justru saat hujan lebat.',
   )

@@ -897,6 +897,21 @@ jobs:
       #
       # Bukti merah: ambang layar diubah 60 ke 75 → exit 1; satu sektor
       # dihilangkan dari layar → exit 1; satuan API diubah → exit 1.
+      # Catatan "BELUM diperiksa" tak boleh menyebut yang SUDAH ADA.
+      #
+      # Tiap modul struktur membawa catatan jujur tentang batasnya, dan
+      # kejujuran itu berharga — justru karena itu ia berbahaya saat BASI.
+      #
+      # Diukur 2026-08-20: dua catatan menyebut hal yang sudah dibangun
+      # berjam-jam sebelumnya (Mononobe-Okabe di struktur-dinding, penurunan
+      # di struktur-pondasi-dangkal). Catatan itu TAMPIL DI LAYAR, dan
+      # pembacanya menyimpulkan pemeriksaannya tak ada — lalu mencari
+      # konsultan lain untuk hal yang sudah dihitung aplikasi ini.
+      #
+      # Bukti merah: kedua catatan basi dipulihkan → exit 1 masing-masing.
+      - name: Catatan batas tak menyangkal kemampuan yang sudah ada
+        run: node scripts/audit-batas-tak-basi.mjs
+
       - name: Kalkulator layar sepakat dengan modul take-off API
         run: node scripts/audit-takeoff-kembar-sepakat.mjs
 
