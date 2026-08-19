@@ -61,6 +61,17 @@
   --navy-light:       #EBF2FF;
   --navy-glow:        rgba(0,51,102,0.08);
 
+  /* ── Token khusus Portal (mandor/PM/klien) — "Navy Ledger" ──────────
+   * Portal mobile-style TIDAK tunduk ARAH-VISUAL-2026 (itu utk dashboard
+   * admin) — lihat docs/superpowers/specs/2026-08-19-portal-mobile-rombak-design.md §3.
+   * Warna tetap dari keluarga navy yang sama, hanya dipakai lebih berani. */
+  --portal-navy-deep:    #001F3D;
+  --portal-canvas:       #F5F7FA;
+  --portal-radius-card:  24px;
+  --portal-radius-pill:  999px;
+  --portal-shadow-navy:  0 8px 24px rgba(0,51,102,0.12);
+  --portal-glow-navy:    0 0 32px rgba(0,89,179,0.20);
+
   --success:          #15803d;
   --success-bg:       #F0FDF4;
   --success-border:   #BBF7D0;
@@ -637,6 +648,11 @@
   --navy-mid:         #5FA9FF;
   --navy-light:       rgba(77,159,255,0.06);
   --navy-glow:        rgba(77,159,255,0.08);
+
+  --portal-navy-deep:    #000C1A;
+  --portal-canvas:       #0A0C10;
+  --portal-shadow-navy:  0 8px 24px rgba(0,0,0,0.40);
+  --portal-glow-navy:    0 0 32px rgba(77,159,255,0.25);
 
   --success:          #22C55E;
   --success-bg:       rgba(34,197,94,0.10);
