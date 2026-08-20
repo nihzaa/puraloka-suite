@@ -68,6 +68,9 @@ import {
 } from '../../lib/struktur-gambar.js'
 import { bandingkan, kandidatDariVariasi } from '../../lib/struktur-banding.js'
 import { analisaBebanBalok } from '../../lib/struktur-beban-balok.js'
+import {
+  FUNGSI_RUANG, JENIS_DINDING, LAPIS_MATI,
+} from '../../lib/struktur-katalog-beban.js'
 import { gambarDiagramBeban } from '../../lib/struktur-gambar-beban.js'
 import {
   dampakMutu, fcDesainDari, mutuBetonTerukur,
@@ -154,7 +157,69 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
     // yang sudah ditutup Fase 2: kolom bermomen besar lolos dengan "aman".
     case 'kolom': return analisaKolomLengkap(dgnJumlah as never)
     case 'kolom_bulat': return analisaKolomBulatLengkap(dgnJumlah as never)
-    case 'balok': return analisaBalok(dgnJumlah as never)
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      BALOK: momen DIHITUNG dari beban bila datanya ada
+
+      `muKnm`/`vuKn` boleh diisi langsung (jalur lama, dan sebagian orang
+      memang sudah punya angkanya dari analisa rangka). Tapi bila input
+      memuat data BEBAN yang lengkap, momen dihitung dari situ dan
+      MENIMPA angka yang diketik.
+
+      Kenapa menimpa, bukan menolak salah satunya: angka yang DIHITUNG bisa
+      diperiksa orang lain lewat rinciannya, sementara angka yang diketik
+      tak bisa. Membiarkan keduanya hidup berdampingan berarti dua sumber
+      kebenaran untuk satu angka — dan yang dipercaya jadi bergantung pada
+      urutan medan di form, hal yang tak dilihat siapa pun.
+
+      Syaratnya KERAS (bentang + beban hidup + daftar beban mati). Kurang
+      satu pun, jalur lama yang dipakai — bukan diam-diam menganggapnya nol.
+      ══════════════════════════════════════════════════════════════════════
+    */
+    case 'balok': {
+      const i = dgnJumlah as Record<string, unknown>
+      const punyaBeban = Number.isFinite(Number(i.bentangM))
+        && Number.isFinite(Number(i.bebanHidupKnM2))
+        && Array.isArray(i.bebanMatiTambahan)
+      if (!punyaBeban) return analisaBalok(dgnJumlah as never)
+
+      const beban = analisaBebanBalok({
+        bentangM: Number(i.bentangM),
+        lebarPikulM: Number(i.lebarPikulM ?? 0),
+        bMm: Number(i.bMm), hMm: Number(i.hMm),
+        tebalPelatMm: Number(i.tebalPelatMm ?? 0),
+        bebanMatiTambahan: i.bebanMatiTambahan as never,
+        bebanHidupKnM2: Number(i.bebanHidupKnM2),
+        bebanDindingKnM: Number(i.bebanDindingKnM ?? 0),
+        bebanTerpusatKn: Number(i.bebanTerpusatKn ?? 0),
+        skema: i.skema as never,
+      })
+      const hasil = analisaBalok({
+        ...(dgnJumlah as object),
+        muKnm: beban.muKnm,
+        vuKn: beban.vuKn,
+      } as never) as { catatan?: string[] }
+
+      /*
+        Catatan bebannya IKUT NAIK ke hasil — termasuk rincian beban matinya.
+        Momen yang muncul tanpa asal-usul tak bisa diaudit siapa pun, dan
+        lembar bertanda tangan yang memuatnya jadi tak bisa dipertanggung-
+        jawabkan.
+      */
+      const asal = beban.rincianMati
+        .map((x) => `${x.nama} = ${Math.round(x.knM * 100) / 100} kN/m`).join(' · ')
+      return {
+        ...hasil,
+        catatan: [
+          ...(hasil.catatan ?? []),
+          `Mu ${Math.round(beban.muKnm * 100) / 100} kNm dan Vu `
+            + `${Math.round(beban.vuKn * 100) / 100} kN DIHITUNG dari beban, `
+            + 'bukan diketik.',
+          `Beban mati: ${asal}.`,
+          ...beban.catatan,
+        ],
+      }
+    }
     case 'plat': return analisaPlat(dgnJumlah as never)
     case 'footplat': return analisaFootplat(dgnJumlah as never)
     case 'pilecap': return analisaPilecap(dgnJumlah as never)
@@ -709,6 +774,25 @@ export default async function strukturRoutes(app: FastifyInstance) {
     memuat daftar beban mati, bukan karena ada yang berubah di basis.
     ══════════════════════════════════════════════════════════════════════════
   */
+  /*
+    GET /struktur/katalog-beban — beban hidup SNI & katalog beban mati.
+
+    Dipisah dari rute hitung supaya UI bisa mengisi pemilihnya SEBELUM ada
+    angka apa pun untuk dihitung. Tanpa ini, layar harus memaku daftarnya
+    sendiri — dan daftar yang dipaku di dua tempat akan menyimpang, dengan
+    akibat yang tak terlihat: beban hidup di layar berbeda dari yang dipakai
+    menghitung.
+  */
+  app.get('/api/v1/struktur/katalog-beban',
+    { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },
+    async (_request, reply) => reply.send({
+      fungsiRuang: FUNGSI_RUANG,
+      lapisMati: LAPIS_MATI,
+      jenisDinding: JENIS_DINDING,
+      acuan: "SNI 1727:2020 Tabel 4.3-1 (beban hidup) — nilai beban mati "
+        + "adalah angka LAZIM untuk perencanaan awal; berat sesungguhnya "
+        + "datang dari spesifikasi pabrik.",
+    }))
   app.post<{
     Body: {
       bentangM?: number; lebarPikulM?: number
@@ -1711,6 +1795,53 @@ async function ambilElemen(request: FastifyRequest, id: string): Promise<BarisEl
 function gambarUntuk(el: BarisElemen, hasil: unknown): Record<string, string> {
   const g: Record<string, string> = {}
   const i = el.input as Record<string, number | number[]>
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    DIAGRAM BEBAN — hanya bila elemennya MEMANG memuat data beban
+
+    Balok yang inputnya cuma `muKnm` (momen diketik langsung) TIDAK bisa
+    digambar diagramnya: kita tak tahu bebannya seperti apa, bentangnya
+    berapa, atau tumpuannya apa. Menggambar diagram karangan dari momen
+    tunggal jauh lebih berbahaya daripada tak menggambar — pembacanya akan
+    memercayai bentuk yang tak pernah dihitung siapa pun.
+
+    Jadi syaratnya keras: ada `bentangM` DAN `bebanHidupKnM2` DAN daftar
+    `bebanMatiTambahan`. Kurang satu pun, diagramnya tak terbit.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const punyaBeban = Number.isFinite(Number(i.bentangM))
+    && Number.isFinite(Number(i.bebanHidupKnM2))
+    && Array.isArray((el.input as Record<string, unknown>).bebanMatiTambahan)
+
+  if (punyaBeban && (el.jenis === 'balok' || el.jenis === 'sloof')) {
+    try {
+      const beban = analisaBebanBalok({
+        bentangM: Number(i.bentangM),
+        lebarPikulM: Number(i.lebarPikulM ?? 0),
+        bMm: Number(i.bMm), hMm: Number(i.hMm),
+        tebalPelatMm: Number(i.tebalPelatMm ?? 0),
+        bebanMatiTambahan: (el.input as never as { bebanMatiTambahan: never[] }).bebanMatiTambahan,
+        bebanHidupKnM2: Number(i.bebanHidupKnM2),
+        bebanDindingKnM: Number(i.bebanDindingKnM ?? 0),
+        bebanTerpusatKn: Number(i.bebanTerpusatKn ?? 0),
+        skema: (el.input as never as { skema?: never }).skema,
+      })
+      g.diagramBeban = gambarDiagramBeban(beban, Number(i.bentangM),
+        { uraian: `Diagram beban, momen, dan gaya lintang ${el.kode}` })
+    } catch (e) {
+      /*
+        Gagal menggambar BUKAN alasan seluruh permintaan gagal — pola yang
+        sama dengan gambar lain di fungsi ini. Tapi juga TIDAK BOLEH SENYAP:
+        medan `…Gagal` dibaca layar dan ditampilkan, jadi orang tahu ada
+        diagram yang seharusnya ada tapi tak terbit.
+
+        `catch {}` kosong yang sempat saya tulis di sini ditangkap penjaga
+        `audit-catch-senyap` — dan tuduhannya BENAR.
+      */
+      g.diagramBebanGagal = `Diagram beban tak dapat digambar: ${(e as Error).message}`
+    }
+  }
 
   // Penampang: hanya untuk elemen yang punya b × h persegi.
   if (el.jenis === 'balok' || el.jenis === 'kolom') {

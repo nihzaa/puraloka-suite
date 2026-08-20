@@ -182,6 +182,51 @@ if (c.status !== 400) {
   gagal++
 } else console.log('  ✓  skema karangan ditolak 400')
 
+// ── (6) KATALOG: beban hidup dari SNI, beban mati dari pilihan ─────────────
+const kat = await fetch(`${BASIS}/api/v1/struktur/katalog-beban`, { headers: { cookie } })
+if (!kat.ok) {
+  console.error(`❌ katalog-beban gagal ${kat.status}`)
+  gagal++
+} else {
+  const jk = await kat.json()
+  console.log(`  ·  katalog: ${jk.fungsiRuang?.length} fungsi ruang · ${jk.lapisMati?.length} lapis mati · ${jk.jenisDinding?.length} jenis dinding`)
+  const hunian = (jk.fungsiRuang ?? []).find((x) => x.kunci === "hunian")
+  if (hunian?.bebanHidupKnM2 !== 1.92) {
+    console.error(`❌ hunian = ${hunian?.bebanHidupKnM2}, SNI 1727 Tabel 4.3-1 menetapkan 1,92`)
+    gagal++
+  } else console.log("  ✓  katalog memuat angka SNI yang benar")
+}
+
+/* Hitung dengan PILIHAN, bukan angka. */
+const kk = await hitung({
+  bentangM: 6, lebarPikulM: 3, bMm: 300, hMm: 500, tebalPelatMm: 120,
+  lapisMati: ["keramik-spesi", "plafon-gypsum"],
+  fungsiRuangKunci: "restoran",
+  jenisDinding: "bata-merah-plester", tinggiDindingM: 3,
+})
+if (kk.status !== 200) {
+  console.error(`❌ hitung lewat katalog gagal ${kk.status}: ${JSON.stringify(kk.json).slice(0,200)}`)
+  gagal++
+} else {
+  const h = kk.json.hasil
+  /* restoran 4,79 x 3 m = 14,37 kN/m */
+  if (Math.abs(h.qHidupKnM - 14.37) > 0.01) {
+    console.error(`❌ beban hidup restoran = ${h.qHidupKnM}, seharusnya 4,79 x 3 = 14,37`)
+    gagal++
+  } else console.log("  ✓  beban hidup datang dari tabel SNI (restoran 4,79 kN/m2)")
+  /* dinding 2,5 x 3 m = 7,5 kN/m — beban GARIS, tak dikali lebar pikul */
+  const adaDinding = (h.rincianMati ?? []).find((x) => /dinding/i.test(x.nama))
+  if (!adaDinding || Math.abs(adaDinding.knM - 7.5) > 0.01) {
+    console.error(`❌ beban dinding = ${adaDinding?.knM}, seharusnya 2,5 x 3 = 7,5 kN/m`)
+    console.error("   Kalau 22,5: ia terkali lebar pikul — dinding itu beban GARIS.")
+    gagal++
+  } else console.log("  ✓  dinding dari katalog = beban GARIS, tak terkali lebar pikul")
+  if (!/1727/.test((h.catatan ?? []).join(" "))) {
+    console.error("❌ hasil tak menyebut acuan SNI-nya")
+    gagal++
+  } else console.log("  ✓  hasil menyebut fungsi ruang dan acuan SNI-nya")
+}
+
 // ── (5) Tak menulis apa pun ────────────────────────────────────────────────
 const sebelum = await fetch(`${BASIS}/api/v1/projects?limit=1`, { headers: { cookie } })
 if (sebelum.ok) {

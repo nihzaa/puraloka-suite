@@ -2412,6 +2412,7 @@ function PanelDetail({ detail, onTutup }: { detail: MuatanDetail; onTutup: () =>
     denah: "Denah",
     tampak: "Tampak",
     pola: "Pola sambungan",
+    diagramBeban: "Beban, momen & gaya lintang",
   };
 
   return (

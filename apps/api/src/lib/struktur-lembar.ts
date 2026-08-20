@@ -385,6 +385,7 @@ export function susunBagian(el: ElemenLembar): BagianElemen {
     penampang: 'Penampang', potongan: 'Potongan',
     pondasi: 'Denah & potongan', diagramPM: 'Diagram interaksi P-M',
     denah: 'Denah', tampak: 'Tampak', pola: 'Pola sambungan',
+    diagramBeban: 'Beban, momen & gaya lintang',
   }
   const gambar = Object.entries(el.gambar ?? {})
     .filter(([k, sv]) => !k.endsWith('Gagal') && k !== 'meteran'

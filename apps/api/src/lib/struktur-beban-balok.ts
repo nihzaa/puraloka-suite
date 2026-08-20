@@ -37,6 +37,10 @@
  * kalau fungsinya bisa dipanggil tanpa basis, tanpa login, tanpa fixture.
  */
 
+import {
+  bebanDindingDari, fungsiRuang, lapisMatiDari,
+} from './struktur-katalog-beban.js'
+
 /** Satu lapis beban mati tambahan (finishing, plafon, MEP, dinding). */
 export interface LapisBebanMati {
   nama: string
@@ -54,10 +58,34 @@ export interface InputBebanBalok {
   hMm: number
   /** Tebal pelat yang dipikul (mm). 0 bila balok tak memikul pelat. */
   tebalPelatMm: number
-  bebanMatiTambahan: LapisBebanMati[]
-  bebanHidupKnM2: number
+  /*
+    Beban mati bisa diberikan dua cara:
+
+      `bebanMatiTambahan` — daftar {nama, nilai} apa adanya (jalur lama)
+      `lapisMati`         — daftar KUNCI katalog, mis. ["keramik-spesi"]
+
+    Yang kedua lebih disukai: angkanya datang dari katalog yang bisa
+    diperiksa, bukan dari ingatan orang yang mengisi form.
+  */
+  bebanMatiTambahan?: LapisBebanMati[]
+  /** Kunci lapisan dari `LAPIS_MATI` — diubah jadi angka oleh modul ini. */
+  lapisMati?: readonly string[]
+  /*
+    Beban hidup: ANGKA atau FUNGSI RUANG.
+
+    `fungsiRuangKunci` lebih disukai — SNI 1727 Tabel 4.3-1 sudah menetapkan
+    angkanya per fungsi, dan selisih antar-fungsi besar (hunian 1,92 vs
+    ruang rapat 4,79 vs rak perpustakaan 7,18 kN/m²). Angka yang diketik
+    dari ingatan tak punya "rasa salah": 2,5 untuk ruang rapat terlihat
+    wajar, dan baloknya lolos dengan beban separuh dari seharusnya.
+  */
+  bebanHidupKnM2?: number
+  fungsiRuangKunci?: string
   /** Beban garis di atas balok, mis. dinding bata (kN/m). */
   bebanDindingKnM?: number
+  /** Atau: jenis dinding dari katalog + tingginya — dihitung jadi kN/m. */
+  jenisDinding?: string
+  tinggiDindingM?: number
   /** Beban terpusat di tengah bentang (kN) — mis. balok anak yang bertumpu. */
   bebanTerpusatKn?: number
   skema?: SkemaBalok
@@ -127,26 +155,66 @@ function angkaWajib(nilai: unknown, nama: string, { bolehNol = false } = {}): nu
  * diperiksa orang lain — angka `qu` tunggal tak bisa diaudit siapa pun.
  */
 export function analisaBebanBalok(input: InputBebanBalok): HasilBebanBalok {
+  /*
+    ── Pilihan katalog diterjemahkan jadi angka LEBIH DULU
+
+    Sesudah titik ini, sisa fungsi hanya berurusan dengan angka — tak ada
+    cabang "kalau pakai katalog" yang berserakan di bawah. Dua jalur yang
+    bercabang di banyak tempat adalah dua jalur yang bisa berselisih.
+  */
+  const dariKatalog = input.lapisMati?.length ? lapisMatiDari(input.lapisMati) : []
+  const dariAngka = Array.isArray(input.bebanMatiTambahan) ? input.bebanMatiTambahan : null
+
+  if (!dariAngka && !input.lapisMati) {
+    /*
+      Keduanya HILANG ditolak — bukan dianggap nol. Beban mati tambahan yang
+      diam-diam nol membuat balok terlihat jauh lebih kuat: finishing,
+      plafon, dan MEP lazimnya 1,5-2,5 kN/m², setara sepertiga beban hidup
+      hunian.
+    */
+    throw new Error(
+      'Beban mati tambahan wajib diisi: `lapisMati` (kunci katalog) atau '
+      + '`bebanMatiTambahan` (daftar angka). Kirim [] bila memang tak ada — '
+      + 'daftar yang HILANG diperlakukan sebagai kesalahan, bukan nol.')
+  }
+
+  /*
+    Beban hidup: fungsi ruang MENANG atas angka yang diketik.
+
+    Kalau keduanya diisi, yang dipakai adalah angka SNI — karena itu yang
+    bisa diperiksa orang lain. Membiarkan angka bebas menimpa tabel berarti
+    tabelnya cuma hiasan.
+  */
+  let hidupKnM2Efektif = input.bebanHidupKnM2
+  let namaFungsi: string | null = null
+  if (input.fungsiRuangKunci) {
+    const f = fungsiRuang(input.fungsiRuangKunci)
+    if (!f) {
+      throw new Error(`Fungsi ruang "${input.fungsiRuangKunci}" tak dikenal.`)
+    }
+    hidupKnM2Efektif = f.bebanHidupKnM2
+    namaFungsi = f.nama
+  }
+  if (hidupKnM2Efektif === undefined || hidupKnM2Efektif === null) {
+    throw new Error(
+      'Beban hidup wajib: pilih `fungsiRuangKunci` (SNI 1727 Tabel 4.3-1) '
+      + 'atau isi `bebanHidupKnM2` langsung.')
+  }
+
+  /* Dinding: katalog (jenis + tinggi) atau kN/m langsung. */
+  let dindingEfektif = Number(input.bebanDindingKnM ?? 0)
+  let namaDinding: string | null = null
+  if (input.jenisDinding) {
+    dindingEfektif = bebanDindingDari(input.jenisDinding, Number(input.tinggiDindingM))
+    namaDinding = input.jenisDinding
+  }
+
   const bentang = angkaWajib(input.bentangM, 'Bentang balok (bentangM)')
   const lebarPikul = angkaWajib(input.lebarPikulM, 'Lebar daerah pikul (lebarPikulM)', { bolehNol: true })
   const b = angkaWajib(input.bMm, 'Lebar balok (bMm)')
   const h = angkaWajib(input.hMm, 'Tinggi balok (hMm)')
   const tebalPelat = angkaWajib(input.tebalPelatMm, 'Tebal pelat (tebalPelatMm)', { bolehNol: true })
-  const hidupKnM2 = angkaWajib(input.bebanHidupKnM2, 'Beban hidup (bebanHidupKnM2)', { bolehNol: true })
-
-  if (!Array.isArray(input.bebanMatiTambahan)) {
-    /*
-      Bentuk yang sama dengan `struktur-plat`: daftar yang HILANG ditolak, tak
-      dianggap kosong. Beban mati tambahan yang diam-diam nol membuat balok
-      terlihat jauh lebih kuat dari kenyataannya — finishing, plafon, dan MEP
-      lazimnya 1,5-2,5 kN/m², setara sepertiga beban hidup hunian.
-    */
-    throw new Error(
-      'Beban mati tambahan (`bebanMatiTambahan`) wajib diisi sebagai daftar — '
-      + 'kirim [] bila memang tak ada. Daftar yang hilang diperlakukan sebagai '
-      + 'kesalahan, bukan nol, karena nol yang tak disengaja membuat balok '
-      + 'terlihat lebih kuat dari kenyataannya.')
-  }
+  const hidupKnM2 = angkaWajib(hidupKnM2Efektif, 'Beban hidup', { bolehNol: true })
 
   const skema: SkemaBalok = input.skema ?? 'sederhana'
   if (!PEMBAGI_MOMEN[skema]) {
@@ -168,7 +236,15 @@ export function analisaBebanBalok(input: InputBebanBalok): HasilBebanBalok {
   }
 
   /* 3. Beban mati tambahan (kN/m² × lebar pikul). */
-  for (const lapis of input.bebanMatiTambahan) {
+  /*
+    Katalog dan angka DIGABUNG, bukan salah satu.
+
+    Sebagian proyek memakai katalog untuk lapisan baku lalu menambahkan satu
+    beban khusus yang tak ada daftarnya (mis. kolam ikan di lantai 2).
+    Memaksa memilih salah satu membuat kasus itu tak bisa dihitung sama
+    sekali.
+  */
+  for (const lapis of [...dariKatalog, ...(dariAngka ?? [])]) {
     const nilai = Number(lapis?.nilai)
     if (!Number.isFinite(nilai) || nilai < 0) {
       throw new Error(`Beban mati "${lapis?.nama ?? '(tanpa nama)'}" bukan angka sah: ${lapis?.nilai}`)
@@ -180,7 +256,7 @@ export function analisaBebanBalok(input: InputBebanBalok): HasilBebanBalok {
   }
 
   /* 4. Dinding di atas balok — beban GARIS, tak dikali lebar pikul. */
-  const dinding = Number(input.bebanDindingKnM ?? 0)
+  const dinding = dindingEfektif
   if (dinding > 0) {
     rincianMati.push({ nama: 'Dinding di atas balok', knM: dinding })
   }
@@ -243,14 +319,27 @@ export function analisaBebanBalok(input: InputBebanBalok): HasilBebanBalok {
 
   if (dinding > 0) {
     catatan.push(
-      'Beban dinding dihitung sebagai beban GARIS penuh sepanjang balok. Bila '
-      + 'dindingnya berpintu/berjendela, angka ini konservatif.')
+      (namaDinding
+        ? `Dinding "${namaDinding}" setinggi ${input.tinggiDindingM} m = `
+          + `${Math.round(dinding * 100) / 100} kN/m. `
+        : '')
+      + 'Beban dinding dihitung sebagai beban GARIS penuh sepanjang balok. '
+      + 'Bila dindingnya berpintu/berjendela, angka ini konservatif.')
   }
 
-  if (qHidupKnM > 0 && hidupKnM2 < 1.9) {
+  if (namaFungsi) {
+    /*
+      Fungsi ruangnya DISEBUT di hasil. Angka 4,79 kN/m² tanpa keterangan tak
+      bisa diperiksa siapa pun; "Restoran (SNI 1727 Tabel 4.3-1)" bisa.
+    */
     catatan.push(
-      `Beban hidup ${hidupKnM2} kN/m² lebih rendah dari hunian (1,92 kN/m², `
-      + 'SNI 1727 Tabel 4.3-1). Pastikan itu memang fungsi ruangnya.')
+      `Beban hidup ${hidupKnM2} kN/m² dari fungsi ruang "${namaFungsi}" `
+      + '(SNI 1727:2020 Tabel 4.3-1) — dipilih dari katalog, bukan diketik.')
+  } else if (qHidupKnM > 0) {
+    catatan.push(
+      `Beban hidup ${hidupKnM2} kN/m² DIKETIK LANGSUNG, bukan dari tabel SNI. `
+      + 'Pilih fungsi ruangnya bila memungkinkan: selisih antar-fungsi besar '
+      + '(hunian 1,92 · kantor 2,40 · ruang rapat 4,79 · rak perpustakaan 7,18).')
   }
 
   return {
