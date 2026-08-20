@@ -134,6 +134,10 @@ const CONTOH_ID = {
   '/pm-portal/cecep/rab/[id]': process.env.LAYAR_ID_RAB,
   // Portal PM Lengkap Tahap 3, Task 20 — detail RAP (rap_budget.id).
   '/pm-portal/cecep/rap/[id]': process.env.LAYAR_ID_RAP,
+  // Portal PM Lengkap Tahap 4, Task 24 — detail Material Request (material_requests.id)
+  // dan detail Purchase Order (purchase_orders.id).
+  '/pm-portal/procurement/mr/[id]': process.env.LAYAR_ID_MR,
+  '/pm-portal/procurement/po/[id]': process.env.LAYAR_ID_PO,
 }
 
 function halamanDariBerkas() {

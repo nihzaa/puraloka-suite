@@ -84,6 +84,10 @@ const PERTANYAAN = [
   ['LAYAR_ID_RAB', 'select id from estimate_versions order by created_at desc limit 1'],
   // Portal PM Lengkap Tahap 3, Task 20 — detail RAP (`/pm-portal/cecep/rap/[id]`).
   ['LAYAR_ID_RAP', 'select id from rap_budget order by created_at desc limit 1'],
+  // Portal PM Lengkap Tahap 4, Task 24 — detail MR/PO
+  // (`/pm-portal/procurement/mr/[id]`, `/pm-portal/procurement/po/[id]`).
+  ['LAYAR_ID_MR', 'select id from material_requests order by created_at desc limit 1'],
+  ['LAYAR_ID_PO', 'select id from purchase_orders order by created_at desc limit 1'],
 ]
 
 const env = { ...process.env }

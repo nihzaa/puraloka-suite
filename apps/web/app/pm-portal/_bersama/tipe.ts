@@ -1897,6 +1897,161 @@ export interface RespCoSumberContingency {
 }
 
 /**
+ * Procurement — Material Request, Purchase Order, Goods Receipt (Task 24).
+ * Bentuk diverifikasi baris-per-baris ke `apps/api/src/routes/v1/procurement.ts`
+ * (dibaca ULANG langsung dari kode untuk task ini, bukan disalin mentah dari
+ * brief) — lihat komentar per-interface untuk baris rujukannya.
+ */
+
+/** Bentuk PERSIS `GET /api/v1/procurement/material-requests`, `procurement.ts:263-268`. */
+export interface MrRingkas {
+  id: string
+  mr_number: string | null
+  status: "draft" | "submitted" | "approved" | "rejected" | "partially_ordered" | "fully_ordered" | string
+  request_date: string | null
+  needed_date: string | null
+  notes: string | null
+  created_at: string
+  project: { id: string; name: string } | null
+  requested_by: { id: string; name: string } | null
+  approved_by: { id: string; name: string } | null
+  items: Array<{ id: string; qty_requested: number | string; qty_ordered: number | string | null; unit: string; material: { id: string; name: string; unit: string } | null }>
+}
+export interface RespMrDaftar { material_requests: MrRingkas[] }
+
+/**
+ * Bentuk PERSIS `GET /api/v1/procurement/material-requests/:id`,
+ * `procurement.ts:293-297` — `select('*', ...)` jadi item TAMBAHAN
+ * (`unit_price_est`, dst.) ikut lewat, tak semuanya dipakai di sini.
+ */
+export interface MrDetail extends MrRingkas {
+  requested_by: { id: string; name: string; phone: string | null } | null
+  items: Array<{
+    id: string; qty_requested: number | string; qty_ordered: number | string | null
+    unit: string; unit_price_est: number | string | null; notes: string | null
+    material: { id: string; name: string; unit: string; unit_price: number | string | null } | null
+  }>
+}
+export interface RespMrDetail { material_request: MrDetail }
+
+/**
+ * Bentuk PERSIS `GET /material-requests/:id/quota-check`, `procurement.ts:593-610`.
+ * `bisa_override` HAMPIR SELALU `false` untuk PM — diverifikasi LIVE
+ * 2026-08-21: PM tidak memegang `procurement:mr:override_quota` (query
+ * `role_permissions` untuk role `pm`, nol baris). Ditampilkan tetap, bukan
+ * disembunyikan: PM perlu tahu KENAPA tombol override tak muncul.
+ */
+export interface RespQuotaCheck {
+  mr_number: string | null
+  lolos: boolean
+  pelanggaran: Array<{ material_id: string; material_name?: string; diminta: number; sisa: number }>
+  tanpa_kuota: Array<{ material_id: string; material_name?: string }>
+  bisa_override: boolean
+}
+
+/** Bentuk PERSIS `GET /api/v1/procurement/purchase-orders`, `procurement.ts:861-866`. */
+export interface PoRingkas {
+  id: string
+  po_number: string | null
+  status: "draft" | "sent" | "confirmed" | "cancelled" | string
+  order_date: string | null
+  expected_delivery_date: string | null
+  total_amount: number | string | null
+  payment_terms: string | null
+  created_at: string
+  project: { id: string; name: string } | null
+  supplier: { id: string; name: string; phone: string | null } | null
+  created_by: { id: string; name: string } | null
+  items: Array<{ id: string; qty_ordered: number | string; qty_received: number | string | null; unit: string; unit_price: number | string; total_price: number | string; material: { id: string; name: string } | null }>
+}
+export interface RespPoDaftar { purchase_orders: PoRingkas[] }
+
+/** Bentuk PERSIS `GET /purchase-orders/:id`, `procurement.ts:889-895`. */
+export interface PoDetail extends Omit<PoRingkas, "supplier" | "project"> {
+  project: { id: string; name: string; location: string | null } | null
+  supplier: { id: string; name: string; phone: string | null; email: string | null; address: string | null; payment_terms: string | null } | null
+  mr: { id: string; mr_number: string | null } | null
+  items: Array<{ id: string; qty_ordered: number | string; qty_received: number | string | null; unit: string; unit_price: number | string; total_price: number | string; material: { id: string; name: string; unit: string } | null }>
+}
+export interface RespPoDetail { purchase_order: PoDetail }
+
+/**
+ * Bentuk PERSIS `GET /purchase-orders/:id/delivery-message`, `procurement.ts:409-420`.
+ * `wa_url` NULL kalau nomor telepon supplier tak sah — UI WAJIB
+ * menyembunyikan tombol kirim WA saat null, bukan memasang tautan ke nomor
+ * ngawur (komentar backend eksplisit).
+ */
+export interface RespPesanPo {
+  po_number: string | null
+  pesan: string
+  wa_url: string | null
+  email_tujuan: string | null
+  sudah_dikirim: { whatsapp_at: string | null; email_at: string | null }
+}
+
+/**
+ * Bentuk PERSIS `GET /purchase-orders/:id/delivery-log`, `procurement.ts:496-501`
+ * — kunci `data`, bukan `logs`.
+ */
+export interface RespDeliveryLog {
+  data: Array<{ id: string; channel: "whatsapp" | "email" | "manual"; recipient: string | null; status: string | null; notes: string | null; sent_at: string; sender: { name: string } | null }>
+}
+
+/** Bentuk PERSIS `GET /api/v1/procurement/goods-receipts`, `procurement.ts:1143-1149`. */
+export interface GrRingkas {
+  id: string
+  gr_number: string | null
+  status: "draft" | "confirmed" | string
+  receipt_date: string | null
+  delivery_note_number: string | null
+  delivery_note_url: string | null
+  notes: string | null
+  confirmed_at: string | null
+  created_at: string
+  project: { id: string; name: string } | null
+  supplier: { id: string; name: string } | null
+  po: { id: string; po_number: string | null } | null
+  received_by: { id: string; name: string } | null
+  items: Array<{ id: string; qty_received: number | string; unit: string; unit_price: number | string; material: { id: string; name: string } | null }>
+}
+export interface RespGrDaftar { goods_receipts: GrRingkas[] }
+
+/**
+ * Bentuk PERSIS `GET /api/v1/procurement/materials`, `procurement.ts:121` —
+ * dipakai picker item MR/PO.
+ */
+export interface MaterialRingkas {
+  id: string; code: string | null; name: string; unit: string
+  unit_price: number | string | null; description: string | null; is_active: boolean
+  category: { id: string; name: string } | null
+}
+export interface RespMaterialDaftar { materials: MaterialRingkas[] }
+
+/** Bentuk PERSIS `GET /api/v1/procurement/suppliers`, `procurement.ts:181-185`. */
+export interface SupplierRingkas {
+  id: string; code: string | null; name: string
+  contact_person: string | null; phone: string | null; email: string | null
+  payment_terms: string | null; is_active: boolean
+}
+export interface RespSupplierDaftar { suppliers: SupplierRingkas[] }
+
+/**
+ * Bentuk PERSIS `GET /projects/:projectId/rab-materials`, `procurement.ts:538-548`
+ * — dipakai memperingatkan kuota SEBELUM `submit` (bukan menggantikan
+ * `quota-check`, keduanya dipakai: ini untuk MENYUSUN, `quota-check` untuk
+ * MEMASTIKAN sebelum kirim). Tak dipakai di halaman Task 24 (dicadangkan
+ * untuk halaman kuota RAB tersendiri, di luar scope), tapi tipe tetap
+ * disiapkan sesuai brief karena bentuknya sudah diverifikasi ke kode.
+ */
+export interface KuotaRabMaterial {
+  id: string; material_id: string; rab_quantity: number | string; rab_unit_cost: number | string | null
+  notes: string | null
+  material: { id: string; name: string; unit: string } | null
+  terpakai: number; sisa: number; serapan_pct: number | null
+}
+export interface RespKuotaRab { data: KuotaRabMaterial[] }
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
