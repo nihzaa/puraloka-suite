@@ -1310,8 +1310,12 @@ file terpisah, pola sama Task 5:
   bukan tipenya yang salah.
   - `GET /api/v1/kontrak?project_id=&status=&jenis=` — `projects:view`.
   - `GET /api/v1/kontrak/proyek/:projectId` — `projects:view`. Payload:
-    `{ proyek, kontrak: BarisKontrak[], nilai: {induk, addendum,
-    berjalan}, banding: {selisih, keterangan, ...}, co_belum_addendum }`.
+    `{ proyek, kontrak: BarisKontrak[], nilai: {awal, addendum, berjalan,
+    jumlahAddendum}, banding: {menurutKontrak, menurutProyek, selisih,
+    cocok, sebab}, co_belum_addendum }` (field `nilai`/`banding`
+    diverifikasi PERSIS ke `apps/api/src/lib/kontrak.ts:254-361` —
+    `HasilNilai`/`HasilBanding` — bukan ditebak dari nama fungsi;
+    ⚠️ `cocok: true` = SESUAI, bukan sebaliknya).
   - `POST /api/v1/kontrak` — `projects:contract` (PM PUNYA izin ini,
     diverifikasi `role_permissions`). Body: `jenis` (`'induk'|'addendum'`),
     `nomor`, `judul`, `tanggal_tanda_tangan`, `tanggal_mulai`,
@@ -1369,18 +1373,39 @@ export interface DokumenKontrak {
   induk?: { id: string; nomor: string; judul: string } | null
 }
 
-/** Bentuk `hitungNilaiKontrak()` — `nilai` dari `GET /api/v1/kontrak/proyek/:id`. */
+/**
+ * Bentuk `HasilNilai` — `hitungNilaiKontrak()`, `apps/api/src/lib/kontrak.ts:254-262`.
+ * `nilai` dari `GET /api/v1/kontrak/proyek/:id`. Field PERSIS diverifikasi
+ * ke kode: `awal` (BUKAN `induk`), `jumlahAddendum` disertakan (jumlah
+ * baris addendum yang ikut dihitung, bukan nilainya).
+ */
 export interface NilaiKontrakBerjalan {
-  induk: number
+  /** Nilai kontrak INDUK yang berlaku — apa yang mula-mula ditandatangani. */
+  awal: number
+  /** Σ addendum berlaku. Bisa negatif (pengurangan lingkup). */
   addendum: number
+  /** awal + addendum — nilai kontraktual berjalan. */
   berjalan: number
+  jumlahAddendum: number
 }
 
-/** Bentuk `bandingkanNilai()` — `banding` dari `GET /api/v1/kontrak/proyek/:id`. */
+/**
+ * Bentuk `HasilBanding` — `bandingkanNilai()`, `apps/api/src/lib/kontrak.ts:306-314`.
+ * `banding` dari `GET /api/v1/kontrak/proyek/:id`. ⚠️ `cocok: true` berarti
+ * SESUAI (bukan "perlu perhatian") — logika kebalikan dari nama yang
+ * ditulis draf breakdown pertama (`perlu_perhatian`). Field asli:
+ * `menurutKontrak`, `menurutProyek`, `selisih`, `cocok`, `sebab` — TIDAK
+ * ada `keterangan`.
+ */
 export interface BandingNilaiKontrak {
+  /** Nilai menurut dokumen kontrak. */
+  menurutKontrak: number
+  /** Nilai yang dipakai jalur uang (`projects.contract_value`). */
+  menurutProyek: number
   selisih: number
-  keterangan: string
-  perlu_perhatian: boolean
+  /** true = nilai dokumen cocok dengan nilai penagihan. false = ADA selisih yang perlu dilihat. */
+  cocok: boolean
+  sebab: string
 }
 
 export interface RespKontrakProyek {
@@ -1392,49 +1417,54 @@ export interface RespKontrakProyek {
 }
 
 /**
- * Polis asuransi + celah pertanggungan. Bentuk dari `hitungRegisterAsuransi()`,
- * `lib/register-asuransi.ts` — dipanggil `asuransi.ts`.
+ * Polis asuransi + celah pertanggungan. Bentuk `PolisTerhitung`,
+ * `apps/api/src/lib/register-asuransi.ts:73-100` — dibaca LANGSUNG dari
+ * kode (bukan tebakan dari nama fungsi), dipanggil `asuransi.ts`.
+ *
+ * ⚠️ Field turunan bernama `status` (BUKAN `keadaan`) — dan field ini
+ * MENIMPA kolom `status` mentah dari tabel `polis_asuransi` di objek yang
+ * sama (lib membangun objek baru dari baris DB, kolom mentahnya tak ikut
+ * terbawa ke tipe ini). `sisa_hari` (BUKAN `hari_tersisa`) — negatif
+ * berarti sudah lewat, ditegaskan di komentar lib.
  */
 export interface PolisAsuransi {
   id: string
   project_id: string
-  jenis: string
-  jenis_lain: string | null
+  project_name: string
+  jenis: "car" | "tpl" | "jamsostek" | "car_tpl" | "lainnya"
+  /** Nama jenis siap-tampil; dipakai bila `jenis === 'lainnya'`. */
+  jenis_label: string
   nomor_polis: string
-  penerbit: string | null
-  nilai_pertanggungan: number | string
-  premi: number | string | null
+  penerbit: string
+  nilai_pertanggungan: number | null
   periode_mulai: string
   periode_selesai: string
-  tertanggung: string | null
-  status: string
-  /** Field turunan — DIHITUNG server, bukan kolom. */
-  keadaan?: "aktif" | "kadaluarsa" | "segera_berakhir" | "belum_berlaku"
-  hari_tersisa?: number | null
+  /** Field TURUNAN (dihitung server) — bukan kolom mentah `status` dari DB. */
+  status: "aktif" | "kadaluarsa" | "belum_berlaku" | "segera_berakhir" | "dibatalkan"
+  /** Sisa hari sampai berakhir. Negatif = sudah lewat. */
+  sisa_hari: number
+  /** Hari masa proyek yang TIDAK tertanggung. null = tanggal proyek tak diketahui (BEDA dari 0). */
+  celah_hari: number | null
+  /** Polis mulai SESUDAH proyek jalan. */
+  celah_awal: number
+  /** Polis berakhir SEBELUM proyek usai. */
+  celah_akhir: number
 }
 
+/** Bentuk `HasilRegister`, `apps/api/src/lib/register-asuransi.ts:102-118`. */
 export interface RespAsuransi {
   polis: PolisAsuransi[]
   jumlah_aktif: number
   jumlah_kadaluarsa: number
   jumlah_segera_berakhir: number
   jumlah_belum_berlaku: number
+  /** Polis yang meninggalkan hari proyek tanpa pertanggungan. */
   jumlah_ada_celah: number
-  proyek_tanpa_polis: string[]
+  /** Proyek yang TIDAK punya satu polis pun — dinyatakan supaya "nol kadaluarsa" tak terbaca "semua aman". */
+  proyek_tanpa_polis: Array<{ project_id: string; project_name: string }>
   total_nilai_pertanggungan: number
 }
 ```
-
-⚠️ `PolisAsuransi.keadaan`/`hari_tersisa` ditulis sebagai PERKIRAAN bentuk
-(field turunan disebut di komentar route tapi nama persisnya ada di
-`hitungRegisterAsuransi()`, `apps/api/src/lib/register-asuransi.ts`, yang
-BELUM dibaca isinya saat breakdown ini ditulis) — **executor Task 12 WAJIB
-membaca `lib/register-asuransi.ts` langsung sebelum memakai field ini**
-dan mengoreksi nama/bentuknya di tipe kalau berbeda, sebelum menulis
-halaman yang bergantung padanya. Field lain di atas (`polis[]` dasar,
-`jumlah_*`, `proyek_tanpa_polis`, `total_nilai_pertanggungan`) sudah
-diverifikasi langsung ke `asuransi.ts` — hanya bentuk PER-POLIS turunan
-yang masih perkiraan.
 
 - [ ] **Step 2: Tulis `kontrak-lengkap/register/page.tsx`**
 
@@ -1442,8 +1472,10 @@ Pola: pemilih proyek (seperti `pm-portal/kontrak/page.tsx`), lalu daftar
 `DokumenKontrak` per proyek dari `GET /api/v1/kontrak/proyek/:id` — kartu
 kontrak induk di atas (dengan badge `StatusBadge`), addendum-addendumnya
 di bawahnya berindentasi (variant='netral' badge kecil "Addendum #n").
-Tampilkan panel banding (`banding.selisih`, `banding.keterangan`) dengan
-warna `--warning` kalau `banding.perlu_perhatian`. Tombol "+ Kontrak
+Tampilkan panel banding (`banding.selisih`, `banding.sebab`) dengan warna
+`--warning` kalau `!banding.cocok` (⚠️ `cocok: true` = SESUAI — logikanya
+KEBALIKAN dari nama; banner tampil saat `cocok` FALSE, bukan saat
+`perlu_perhatian` — field itu tak ada di backend). Tombol "+ Kontrak
 Baru"/"+ Addendum" buka `BottomSheet` dengan form disederhanakan (nomor,
 judul, tanggal tanda tangan, nilai, retensi %, syarat pembayaran) — field
 `lingkup`/`catatan` sebagai textarea opsional collapsed by default (§1
@@ -1588,12 +1620,13 @@ export default function PmRegisterKontrakPage() {
       {memuat && <SkeletonCard tinggi={160} />}
       {galat && <EmptyState icon={FileSignature} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
 
-      {!memuat && data?.banding?.perlu_perhatian && (
+      {/* cocok: true = SESUAI — banner tampil saat cocok FALSE (ada selisih), bukan sebaliknya */}
+      {!memuat && data?.banding && !data.banding.cocok && (
         <div role="alert" style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: 12, borderRadius: 12, background: "var(--warning-bg)", border: "1px solid var(--warning-border)" }}>
           <AlertTriangle size={16} color="var(--warning)" aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--on-warning-bg)" }}>Selisih nilai kontrak</div>
-            <div style={{ fontSize: 12, color: "var(--on-warning-bg)", marginTop: 2 }}>{data.banding.keterangan}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--on-warning-bg)" }}>Selisih nilai kontrak: {fmtRupiah(data.banding.selisih)}</div>
+            <div style={{ fontSize: 12, color: "var(--on-warning-bg)", marginTop: 2 }}>{data.banding.sebab}</div>
           </div>
         </div>
       )}
@@ -1703,23 +1736,261 @@ export default function PmRegisterKontrakPage() {
 }
 ```
 
-- [ ] **Step 3: Baca `apps/api/src/lib/register-asuransi.ts` untuk bentuk
-`keadaan`/`hari_tersisa` per-polis** (lihat peringatan Step 1), koreksi
-`PolisAsuransi` di `_bersama/tipe.ts` kalau namanya berbeda.
+- [x] **Step 3: Baca `apps/api/src/lib/register-asuransi.ts` untuk bentuk
+per-polis** — SELESAI (fix round ini): `PolisTerhitung`/`HasilRegister`
+dibaca langsung, `PolisAsuransi`/`RespAsuransi` di Step 1 sudah
+diperbaiki mengikuti nama field asli (`status` bukan `keadaan`,
+`sisa_hari` bukan `hari_tersisa`, plus `celah_hari`/`celah_awal`/
+`celah_akhir`/`jenis_label`/`project_name` yang sebelumnya hilang total,
+dan `proyek_tanpa_polis` yang bentuknya array objek bukan array string).
 
 - [ ] **Step 4: Tulis `kontrak-lengkap/asuransi/page.tsx`**
 
-Daftar polis per proyek (atau semua proyek kalau tak dipilih — endpoint
-mendukung tanpa `project_id`), kartu per polis dengan `StatusBadge`
-mengikuti `keadaan` (aktif=approved, kadaluarsa=rejected,
-segera_berakhir=pending, belum_berlaku=netral), tampilkan masa berlaku
-dan nilai pertanggungan. Banner ringkasan di atas (4 KPI:
-`jumlah_aktif`/`jumlah_kadaluarsa`/`jumlah_segera_berakhir`/
-`proyek_tanpa_polis.length`). Tombol "+ Polis Baru" buka `BottomSheet`
-form (jenis, nomor polis, penerbit, nilai pertanggungan, premi, periode
-mulai/selesai, tertanggung) — PM punya `projects:contract` jadi form
-CREATE disertakan. TANPA tombol ubah status (endpoint tak menyediakannya
-— read+create saja, sesuai riset Step 1).
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { ShieldCheck, Plus } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import BottomSheet from "@/components/portal/BottomSheet";
+import type { ProyekPM, RespAsuransi, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+interface RespProyek { projects: ProyekPM[] }
+
+function fmtRupiah(v: number | string | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const n = typeof v === "string" ? Number(v) : v;
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+}
+function fmtTanggal(s: string | null): string {
+  if (!s) return "—";
+  return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+const LABEL_STATUS: Record<string, string> = {
+  aktif: "Aktif", kadaluarsa: "Kadaluarsa", belum_berlaku: "Belum Berlaku",
+  segera_berakhir: "Segera Berakhir", dibatalkan: "Dibatalkan",
+};
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  aktif: "approved", kadaluarsa: "rejected", belum_berlaku: "netral",
+  segera_berakhir: "pending", dibatalkan: "netral",
+};
+const LABEL_JENIS: Record<string, string> = {
+  car: "CAR", tpl: "TPL", jamsostek: "Jamsostek", car_tpl: "CAR + TPL", lainnya: "Lainnya",
+};
+
+export default function PmAsuransiPage() {
+  const [proyekId, setProyekId] = useState("");
+  const [sheetTerbuka, setSheetTerbuka] = useState(false);
+  const [form, setForm] = useState({
+    jenis: "car", jenis_lain: "", nomor_polis: "", penerbit: "",
+    nilai_pertanggungan: "", premi: "", periode_mulai: "", periode_selesai: "", tertanggung: "",
+  });
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+
+  const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+  const daftarProyek = useMemo(() => (dataProyek?.projects ?? []).filter((p) => p.pm), [dataProyek]);
+  const proyekAktif = proyekId || daftarProyek[0]?.id || "";
+
+  const url = proyekAktif ? `/api/v1/asuransi?project_id=${proyekAktif}` : "/api/v1/asuransi";
+  const { data, memuat, galat } = useData<RespAsuransi>(url);
+
+  function bukaForm() {
+    setForm({ jenis: "car", jenis_lain: "", nomor_polis: "", penerbit: "", nilai_pertanggungan: "", premi: "", periode_mulai: "", periode_selesai: "", tertanggung: "" });
+    setGalatForm(null);
+    setSheetTerbuka(true);
+  }
+
+  async function simpanPolis() {
+    if (!proyekAktif) {
+      setGalatForm("Pilih proyek terlebih dulu.");
+      return;
+    }
+    if (form.nomor_polis.trim().length === 0 || form.penerbit.trim().length === 0) {
+      setGalatForm("Nomor polis dan penerbit wajib diisi.");
+      return;
+    }
+    if (!form.periode_mulai || !form.periode_selesai) {
+      setGalatForm("Periode mulai dan selesai wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post("/api/v1/asuransi", {
+        project_id: proyekAktif,
+        jenis: form.jenis,
+        jenis_lain: form.jenis === "lainnya" ? form.jenis_lain.trim() || undefined : undefined,
+        nomor_polis: form.nomor_polis.trim(),
+        penerbit: form.penerbit.trim(),
+        nilai_pertanggungan: form.nilai_pertanggungan ? Number(form.nilai_pertanggungan) : undefined,
+        premi: form.premi ? Number(form.premi) : undefined,
+        periode_mulai: form.periode_mulai,
+        periode_selesai: form.periode_selesai,
+        tertanggung: form.tertanggung.trim() || undefined,
+      });
+      setSheetTerbuka(false);
+      invalidasi(url);
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menyimpan polis"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Register Asuransi
+      </h1>
+
+      {daftarProyek.length > 1 && (
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
+          <select
+            value={proyekAktif}
+            onChange={(e) => setProyekId(e.target.value)}
+            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
+          >
+            <option value="">Semua proyek</option>
+            {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+      )}
+
+      {memuat && <SkeletonCard tinggi={160} />}
+      {galat && <EmptyState icon={ShieldCheck} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+
+      {!memuat && data && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[
+            { label: "Aktif", value: data.jumlah_aktif, warna: "var(--success)" },
+            { label: "Segera Berakhir", value: data.jumlah_segera_berakhir, warna: "var(--warning)" },
+            { label: "Kadaluarsa", value: data.jumlah_kadaluarsa, warna: "var(--danger)" },
+            { label: "Tanpa Polis", value: data.proyek_tanpa_polis.length, warna: "var(--text-secondary)" },
+          ].map((k) => (
+            <div key={k.label} style={{ flex: "1 1 45%", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: k.warna }}>{k.value}</div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{k.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!memuat && (data?.polis?.length ?? 0) === 0 && (
+        <EmptyState icon={ShieldCheck} judul="Belum ada polis" deskripsi="Polis asuransi proyek akan muncul di sini." />
+      )}
+
+      {!memuat && data?.polis.map((p) => (
+        <div key={p.id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{p.nomor_polis}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{p.jenis_label} · {p.project_name}</div>
+            </div>
+            <StatusBadge status={VARIAN_STATUS[p.status] ?? "netral"} label={LABEL_STATUS[p.status] ?? p.status} />
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Penerbit: {p.penerbit}</div>
+          {p.nilai_pertanggungan !== null && (
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(p.nilai_pertanggungan)}</div>
+          )}
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            {fmtTanggal(p.periode_mulai)} — {fmtTanggal(p.periode_selesai)}
+            {p.status === "aktif" && ` · sisa ${p.sisa_hari} hari`}
+          </div>
+          {(p.celah_awal > 0 || p.celah_akhir > 0) && (
+            <div role="alert" style={{ fontSize: 11, color: "var(--on-warning-bg)", background: "var(--warning-bg)", padding: "6px 10px", borderRadius: 8 }}>
+              Ada celah {p.celah_hari ?? "—"} hari masa proyek tanpa pertanggungan.
+            </div>
+          )}
+        </div>
+      ))}
+
+      <button
+        type="button"
+        onClick={bukaForm}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+      >
+        <Plus size={18} aria-hidden="true" /> Polis Baru
+      </button>
+
+      <BottomSheet terbuka={sheetTerbuka} onTutup={() => setSheetTerbuka(false)} judul="Polis Baru">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Jenis
+            <select value={form.jenis} onChange={(e) => setForm((f) => ({ ...f, jenis: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              {Object.entries(LABEL_JENIS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </label>
+          {form.jenis === "lainnya" && (
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Jenis Lainnya
+              <input type="text" value={form.jenis_lain} onChange={(e) => setForm((f) => ({ ...f, jenis_lain: e.target.value }))}
+                style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+            </label>
+          )}
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Nomor Polis
+            <input type="text" value={form.nomor_polis} onChange={(e) => setForm((f) => ({ ...f, nomor_polis: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Penerbit
+            <input type="text" value={form.penerbit} onChange={(e) => setForm((f) => ({ ...f, penerbit: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Nilai Pertanggungan (Rp)
+            <input type="number" value={form.nilai_pertanggungan} onChange={(e) => setForm((f) => ({ ...f, nilai_pertanggungan: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Premi (Rp)
+            <input type="number" value={form.premi} onChange={(e) => setForm((f) => ({ ...f, premi: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Periode Mulai
+            <input type="date" value={form.periode_mulai} onChange={(e) => setForm((f) => ({ ...f, periode_mulai: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Periode Selesai
+            <input type="date" value={form.periode_selesai} onChange={(e) => setForm((f) => ({ ...f, periode_selesai: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Tertanggung
+            <input type="text" value={form.tertanggung} onChange={(e) => setForm((f) => ({ ...f, tertanggung: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && (
+            <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+              {galatForm}
+            </div>
+          )}
+          <button type="button" onClick={simpanPolis} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan Polis"}
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+Endpoint tak menyediakan PATCH status (read+create saja, sesuai riset
+Step 1) — halaman ini karena itu TANPA tombol ubah status, `status` per
+polis murni ditampilkan (turunan server, bukan bisa disunting).
 
 - [ ] **Step 5: Typecheck, lint, penjaga (pola sama Task 6 Step 6-8)**
 
@@ -1764,37 +2035,45 @@ jadi tak butuh hub untuk berfungsi.
 Ketiganya `projects:view` (baca) / `projects:edit` (aksi) — PM punya
 KEDUANYA:
 
-- `GET /api/v1/projects/:id/eot` → `{ data: BarisEot[], meta: {
-  tanggalSelesaiEfektif: string, eotDisetujuiHari: number,
-  eotMenggantung: number } }` (nama field `meta` PERKIRAAN dari
-  `tanggalSelesaiEfektif()` — **executor WAJIB baca
-  `apps/api/src/lib/rantai-kontrak.ts` fungsi itu sebelum memakainya**,
-  hanya `hasil.tanggal.eotMenggantung` yang terverifikasi langsung dari
-  endpoint LD di atas).
+- `GET /api/v1/projects/:id/eot` → `{ data: EotProyek[], meta:
+  HasilTanggalEfektif }`. `meta` diverifikasi PERSIS ke
+  `apps/api/src/lib/rantai-kontrak.ts:53-62,81-97` (`tanggalSelesaiEfektif()`):
+  `{ tanggalAsli, tanggalEfektif, totalHariEOT, eotMenggantung }` — bukan
+  nama yang ditulis draf pertama (`eotDisetujuiHari` tak ada).
 - `POST /api/v1/projects/:id/eot` — `projects:edit`. Body: `eot_number?`,
   `days_requested`, `reason` (min 10 karakter).
 - `PATCH /api/v1/eot/:id/decide` — `projects:edit`. Body: `{ status:
   'disetujui'|'ditolak', days_approved?, decision_note? }`.
 - `GET /api/v1/projects/:id/liquidated-damages` → `{ data: HasilLD,
-  meta: { label: string, peringatan: string | null } }`.
-- `GET /api/v1/bonds?project_id=&status=` → `{ data: BarisBond[], meta:
-  RingkasBond }`. `POST /api/v1/bonds` — `projects:edit`. Body:
-  `project_id` atau `bid_id`, `bond_type`
+  meta: { label: string, peringatan: string | null } }`. `HasilLD`
+  diverifikasi PERSIS ke `rantai-kontrak.ts:161-178`: `{ adaDenda,
+  hariTelat, dasarPerhitungan, dendaSebelumBatas, batasNominal, denda,
+  kenaBatas, tanggal: HasilTanggalEfektif, alasan: string | null }`.
+  TAK ADA endpoint POST/PATCH untuk modul ini — murni baca (dikonfirmasi
+  ulang: `rantai-kontrak.ts` hanya satu `app.get` untuk `liquidated-damages`).
+- `GET /api/v1/bonds?project_id=&status=` → `{ data: BondProyek[], meta:
+  RingkasBond }`. `RingkasBond` diverifikasi PERSIS ke
+  `rantai-kontrak.ts:264-271`: `{ totalAktif, jumlahAktif, segeraKadaluarsa:
+  Array<BondProyek & {sisaHari}>, telatDiperbarui: BondProyek[] }`.
+  `POST /api/v1/bonds` — `projects:edit`. Body: `project_id` atau
+  `bid_id`, `bond_type`
   (`'penawaran'|'pelaksanaan'|'uang_muka'|'pemeliharaan'`), `bond_number?`,
   `issuer?`, `amount`, `issued_date`, `expiry_date`, `notes?`.
   `PATCH /api/v1/bonds/:id` — `projects:edit`, field bebas dari daftar
   putih (`bond_number`, `issuer`, `amount`, `issued_date`, `expiry_date`,
   `status`, `released_at`, `notes`).
 
-- [ ] **Step 1: Baca `apps/api/src/lib/rantai-kontrak.ts`** untuk bentuk
-persis `hitungLDProyek()` (field `HasilLD`) dan `tanggalSelesaiEfektif()`
-SEBELUM menulis tipe — keduanya baru diverifikasi dari signature endpoint
-(Step riset di atas), belum dari isi fungsinya.
+- [x] **Step 1: Baca `apps/api/src/lib/rantai-kontrak.ts`** untuk bentuk
+persis `hitungLD()` (field `HasilLD`), `tanggalSelesaiEfektif()`
+(`HasilTanggalEfektif`), dan `ringkasBond()` (`RingkasBond`) — SELESAI
+(fix round ini), lihat riset di atas dan tipe Step 2 di bawah, semua
+field diambil langsung dari definisi interface di kode, bukan ditebak
+dari nama fungsi.
 
 - [ ] **Step 2: Tulis tipe di `_bersama/tipe.ts`**
 
 ```typescript
-/** Bentuk `ambilEOT()` map ke `BarisEOT` (lib) + kolom mentah dari `contract_eot`. */
+/** `contract_eot` — bentuk dari `GET /api/v1/projects/:id/eot`, kolom `select` eksplisit di route. */
 export interface EotProyek {
   id: string
   eot_number: string | null
@@ -1808,7 +2087,40 @@ export interface EotProyek {
   created_at: string
 }
 
-/** `contract_bonds` — bentuk dari `GET /api/v1/bonds`. */
+/** Bentuk `HasilTanggalEfektif`, `apps/api/src/lib/rantai-kontrak.ts:53-62`. `meta` dari `GET .../eot`. */
+export interface TanggalEfektifKontrak {
+  /** Tanggal kontrak asli, tak pernah berubah. */
+  tanggalAsli: string
+  /** Tanggal setelah seluruh EOT yang DISETUJUI. */
+  tanggalEfektif: string
+  /** Total hari yang ditambahkan oleh EOT disetujui. */
+  totalHariEOT: number
+  /** Berapa pengajuan yang masih menggantung — penting ditampilkan bersama LD. */
+  eotMenggantung: number
+}
+export interface RespEot { data: EotProyek[]; meta: TanggalEfektifKontrak }
+
+/** Bentuk `HasilLD`, `apps/api/src/lib/rantai-kontrak.ts:161-178`. `data` dari `GET .../liquidated-damages`. */
+export interface HasilLD {
+  /** `true` bila ada denda yang benar-benar terhitung. */
+  adaDenda: boolean
+  hariTelat: number
+  dasarPerhitungan: number
+  dendaSebelumBatas: number
+  batasNominal: number
+  denda: number
+  /** `true` bila denda menyentuh batas — sinyal kontrak layak diputus. */
+  kenaBatas: boolean
+  tanggal: TanggalEfektifKontrak
+  /** Kenapa dendanya nol / tak dihitung — supaya "0" tak ambigu. */
+  alasan: string | null
+}
+export interface RespLd {
+  data: HasilLD
+  meta: { label: string; peringatan: string | null }
+}
+
+/** `contract_bonds` — bentuk dari `GET /api/v1/bonds` (`select` eksplisit route). */
 export interface BondProyek {
   id: string
   project_id: string | null
@@ -1823,34 +2135,444 @@ export interface BondProyek {
   released_at: string | null
   notes: string | null
 }
-
-export interface RespEot { data: EotProyek[]; meta: Record<string, unknown> }
-export interface RespBond { data: BondProyek[]; meta: Record<string, unknown> }
-/** `hasil` dari `hitungLDProyek()` — bentuk PERKIRAAN, verifikasi Step 1 wajib sebelum dipakai. */
-export interface RespLd { data: Record<string, unknown>; meta: { label: string; peringatan: string | null } }
+/** Bentuk `RingkasBond`, `apps/api/src/lib/rantai-kontrak.ts:264-271`. `meta` dari `GET /api/v1/bonds`. */
+export interface RingkasBond {
+  totalAktif: number
+  jumlahAktif: number
+  /** Jaminan yang kadaluarsa ≤ N hari — uang yang bisa hangus bila terlewat. */
+  segeraKadaluarsa: Array<BondProyek & { sisaHari: number }>
+  /** Sudah lewat tanggal tapi statusnya masih 'aktif' — data yang perlu dirapikan. */
+  telatDiperbarui: BondProyek[]
+}
+export interface RespBond { data: BondProyek[]; meta: RingkasBond }
 ```
 
 - [ ] **Step 3: Tulis `kontrak-lengkap/eot-ld-bond/page.tsx`**
 
-`SegmentedTab` 3 opsi (EOT / Denda / Jaminan). Tab EOT: daftar pengajuan
-dengan `StatusBadge` (diajukan=pending, disetujui=approved,
-ditolak=rejected), tombol "+ Ajukan EOT" (`BottomSheet`: nomor opsional,
-jumlah hari, alasan min 10 karakter — validasi client-side SEBELUM
-kirim, pesan sama dengan validasi server). Untuk EOT berstatus `diajukan`,
-sertakan dua tombol putuskan (Setujui/Tolak, BUKAN `SwipeableCard` —
-keputusan EOT butuh input `days_approved`/`decision_note`, tak bisa
-swipe-cepat tanpa form). Tab Denda: tampilkan `meta.label` menonjol
-(bedakan "Angka final" vs "ESTIMASI — proyek belum selesai") dan
-`meta.peringatan` kalau ada (banner `--warning`), field detail dari
-`data` (baca saja — endpoint ini TAK PUNYA POST/PATCH, murni turunan EOT
-+ tanggal). Tab Jaminan: daftar `BondProyek` per jenis, `StatusBadge`
-(aktif=approved, dicairkan=info, dikembalikan=netral,
-kadaluarsa=rejected), tombol "+ Jaminan Baru" (`BottomSheet`: jenis,
-nomor, penerbit, nilai, tanggal terbit/kadaluarsa) dan untuk jaminan
-`aktif` yang sudah lewat proyek selesai, tombol "Tandai Dicairkan/
-Dikembalikan" (PATCH status).
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { CalendarClock, TriangleAlert, ShieldCheck, Plus } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import BottomSheet from "@/components/portal/BottomSheet";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import type { ProyekPM, RespEot, RespLd, RespBond, EotProyek, BondProyek, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+interface RespProyek { projects: ProyekPM[] }
+
+function fmtRupiah(v: number | string | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const n = typeof v === "string" ? Number(v) : v;
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+}
+function fmtTanggal(s: string | null): string {
+  if (!s) return "—";
+  return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+const LABEL_EOT: Record<string, string> = { diajukan: "Diajukan", disetujui: "Disetujui", ditolak: "Ditolak" };
+const VARIAN_EOT: Record<string, VarianStatus> = { diajukan: "pending", disetujui: "approved", ditolak: "rejected" };
+const LABEL_BOND: Record<string, string> = {
+  penawaran: "Jaminan Penawaran", pelaksanaan: "Jaminan Pelaksanaan",
+  uang_muka: "Jaminan Uang Muka", pemeliharaan: "Jaminan Pemeliharaan",
+};
+const LABEL_STATUS_BOND: Record<string, string> = {
+  aktif: "Aktif", dikembalikan: "Dikembalikan", dicairkan: "Dicairkan", kadaluarsa: "Kadaluarsa",
+};
+const VARIAN_STATUS_BOND: Record<string, VarianStatus> = {
+  aktif: "approved", dicairkan: "info", dikembalikan: "netral", kadaluarsa: "rejected",
+};
+
+export default function PmEotLdBondPage() {
+  const [tab, setTab] = useState<"eot" | "ld" | "bond">("eot");
+  const [proyekId, setProyekId] = useState("");
+
+  const [sheetEot, setSheetEot] = useState(false);
+  const [formEot, setFormEot] = useState({ eot_number: "", days_requested: "", reason: "" });
+
+  const [eotDiputuskan, setEotDiputuskan] = useState<EotProyek | null>(null);
+  const [daysApproved, setDaysApproved] = useState("");
+  const [decisionNote, setDecisionNote] = useState("");
+
+  const [sheetBond, setSheetBond] = useState(false);
+  const [formBond, setFormBond] = useState({ bond_type: "pelaksanaan", bond_number: "", issuer: "", amount: "", issued_date: "", expiry_date: "" });
+
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+
+  const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+  const daftarProyek = useMemo(() => (dataProyek?.projects ?? []).filter((p) => p.pm), [dataProyek]);
+  const proyekAktif = proyekId || daftarProyek[0]?.id || "";
+
+  const urlEot = proyekAktif ? `/api/v1/projects/${proyekAktif}/eot` : null;
+  const { data: dataEot, memuat: memuatEot, galat: galatEot } = useData<RespEot>(tab === "eot" ? urlEot : null);
+
+  const urlLd = proyekAktif ? `/api/v1/projects/${proyekAktif}/liquidated-damages` : null;
+  const { data: dataLd, memuat: memuatLd, galat: galatLd } = useData<RespLd>(tab === "ld" ? urlLd : null);
+
+  const urlBond = proyekAktif ? `/api/v1/bonds?project_id=${proyekAktif}` : null;
+  const { data: dataBond, memuat: memuatBond, galat: galatBond } = useData<RespBond>(tab === "bond" ? urlBond : null);
+
+  async function ajukanEot() {
+    if (!proyekAktif) return;
+    const hari = Number(formEot.days_requested);
+    if (!Number.isFinite(hari) || hari < 0) {
+      setGalatForm("Jumlah hari tidak sah.");
+      return;
+    }
+    if (formEot.reason.trim().length < 10) {
+      setGalatForm("Alasan wajib diisi, minimal 10 karakter.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post(`/api/v1/projects/${proyekAktif}/eot`, {
+        eot_number: formEot.eot_number.trim() || undefined,
+        days_requested: Math.trunc(hari),
+        reason: formEot.reason.trim(),
+      });
+      setSheetEot(false);
+      setFormEot({ eot_number: "", days_requested: "", reason: "" });
+      invalidasi(urlEot ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal mengajukan EOT"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function putuskanEot(status: "disetujui" | "ditolak") {
+    if (!eotDiputuskan) return;
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.patch(`/api/v1/eot/${eotDiputuskan.id}/decide`, {
+        status,
+        days_approved: status === "disetujui" && daysApproved ? Number(daysApproved) : undefined,
+        decision_note: decisionNote.trim() || undefined,
+      });
+      setEotDiputuskan(null);
+      setDaysApproved("");
+      setDecisionNote("");
+      invalidasi(urlEot ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal memutuskan EOT"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function simpanBond() {
+    if (!proyekAktif) return;
+    if (!formBond.issued_date || !formBond.expiry_date) {
+      setGalatForm("Tanggal terbit dan kadaluarsa wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post("/api/v1/bonds", {
+        project_id: proyekAktif,
+        bond_type: formBond.bond_type,
+        bond_number: formBond.bond_number.trim() || undefined,
+        issuer: formBond.issuer.trim() || undefined,
+        amount: formBond.amount ? Number(formBond.amount) : undefined,
+        issued_date: formBond.issued_date,
+        expiry_date: formBond.expiry_date,
+      });
+      setSheetBond(false);
+      invalidasi(urlBond ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menyimpan jaminan"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function ubahStatusBond(b: BondProyek, status: string) {
+    try {
+      await api.patch(`/api/v1/bonds/${b.id}`, { status, released_at: status === "dikembalikan" ? new Date().toISOString().slice(0, 10) : undefined });
+      invalidasi(urlBond ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal mengubah status jaminan"));
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        EOT, Denda &amp; Jaminan
+      </h1>
+
+      {daftarProyek.length > 1 && (
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
+          <select
+            value={proyekAktif}
+            onChange={(e) => setProyekId(e.target.value)}
+            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
+          >
+            {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+      )}
+
+      <SegmentedTab
+        opsi={[{ value: "eot", label: "EOT" }, { value: "ld", label: "Denda" }, { value: "bond", label: "Jaminan" }]}
+        aktif={tab}
+        onUbah={(v) => setTab(v as typeof tab)}
+      />
+
+      {!proyekAktif && <EmptyState icon={CalendarClock} judul="Pilih proyek" deskripsi="Data ini tercatat per proyek." />}
+
+      {proyekAktif && tab === "eot" && (
+        <>
+          {memuatEot && <SkeletonCard tinggi={100} />}
+          {galatEot && <EmptyState icon={CalendarClock} judul="Gagal memuat" deskripsi={pesanGalat(galatEot as GalatApi, "Coba muat ulang.")} />}
+          {dataEot?.meta && (
+            <div style={{ fontSize: 12, color: "var(--text-secondary)", padding: 10, borderRadius: 10, background: "var(--surface-subtle)" }}>
+              Tanggal efektif: {fmtTanggal(dataEot.meta.tanggalEfektif)} (asli {fmtTanggal(dataEot.meta.tanggalAsli)} + {dataEot.meta.totalHariEOT} hari EOT disetujui)
+              {dataEot.meta.eotMenggantung > 0 && ` · ${dataEot.meta.eotMenggantung} pengajuan belum diputus`}
+            </div>
+          )}
+          {!memuatEot && (dataEot?.data?.length ?? 0) === 0 && (
+            <EmptyState icon={CalendarClock} judul="Belum ada pengajuan EOT" deskripsi="Perpanjangan waktu proyek ini akan muncul di sini." />
+          )}
+          {!memuatEot && dataEot?.data.map((e) => (
+            <div key={e.id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{e.eot_number ?? "EOT"} · {e.days_requested} hari</div>
+                  {e.days_approved !== null && <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Disetujui: {e.days_approved} hari</div>}
+                </div>
+                <StatusBadge status={VARIAN_EOT[e.status] ?? "netral"} label={LABEL_EOT[e.status] ?? e.status} />
+              </div>
+              <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{e.reason}</div>
+              {e.status === "diajukan" && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="button" onClick={() => { setEotDiputuskan(e); setDaysApproved(String(e.days_requested)); setDecisionNote(""); setGalatForm(null); }}
+                    style={{ flex: 1, minHeight: 40, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+                    Putuskan
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={() => { setSheetEot(true); setFormEot({ eot_number: "", days_requested: "", reason: "" }); setGalatForm(null); }}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            <Plus size={18} aria-hidden="true" /> Ajukan EOT
+          </button>
+        </>
+      )}
+
+      {proyekAktif && tab === "ld" && (
+        <>
+          {memuatLd && <SkeletonCard tinggi={160} />}
+          {galatLd && <EmptyState icon={TriangleAlert} judul="Gagal memuat" deskripsi={pesanGalat(galatLd as GalatApi, "Coba muat ulang.")} />}
+          {!memuatLd && dataLd && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: dataLd.meta.label.startsWith("Angka final") ? "var(--success)" : "var(--warning)" }}>
+                {dataLd.meta.label}
+              </div>
+              {dataLd.meta.peringatan && (
+                <div role="alert" style={{ fontSize: 12, color: "var(--on-warning-bg)", background: "var(--warning-bg)", padding: 10, borderRadius: 10 }}>
+                  {dataLd.meta.peringatan}
+                </div>
+              )}
+              {!dataLd.data.adaDenda ? (
+                <EmptyState icon={ShieldCheck} judul="Tidak ada denda" deskripsi={dataLd.data.alasan ?? "Proyek ini tidak terkena denda keterlambatan."} />
+              ) : (
+                <div style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Denda {dataLd.data.kenaBatas ? "(menyentuh batas)" : ""}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: "var(--danger)" }}>{fmtRupiah(dataLd.data.denda)}</div>
+                  </div>
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    Telat {dataLd.data.hariTelat} hari · dasar {fmtRupiah(dataLd.data.dasarPerhitungan)} · batas {fmtRupiah(dataLd.data.batasNominal)}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      )}
+
+      {proyekAktif && tab === "bond" && (
+        <>
+          {memuatBond && <SkeletonCard tinggi={100} />}
+          {galatBond && <EmptyState icon={ShieldCheck} judul="Gagal memuat" deskripsi={pesanGalat(galatBond as GalatApi, "Coba muat ulang.")} />}
+          {dataBond?.meta && dataBond.meta.segeraKadaluarsa.length > 0 && (
+            <div role="alert" style={{ fontSize: 12, color: "var(--on-warning-bg)", background: "var(--warning-bg)", padding: 10, borderRadius: 10 }}>
+              {dataBond.meta.segeraKadaluarsa.length} jaminan segera kadaluarsa.
+            </div>
+          )}
+          {!memuatBond && (dataBond?.data?.length ?? 0) === 0 && (
+            <EmptyState icon={ShieldCheck} judul="Belum ada jaminan" deskripsi="Register jaminan proyek ini belum dicatat." />
+          )}
+          {!memuatBond && dataBond?.data.map((b) => (
+            <div key={b.id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{LABEL_BOND[b.bond_type]}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{b.bond_number ?? "—"} · {b.issuer ?? "—"}</div>
+                </div>
+                <StatusBadge status={VARIAN_STATUS_BOND[b.status] ?? "netral"} label={LABEL_STATUS_BOND[b.status] ?? b.status} />
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(b.amount)}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                {fmtTanggal(b.issued_date)} — {fmtTanggal(b.expiry_date)}
+              </div>
+              {b.status === "aktif" && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button type="button" onClick={() => ubahStatusBond(b, "dicairkan")}
+                    style={{ flex: 1, minHeight: 36, borderRadius: "var(--portal-radius-pill)", background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    Tandai Dicairkan
+                  </button>
+                  <button type="button" onClick={() => ubahStatusBond(b, "dikembalikan")}
+                    style={{ flex: 1, minHeight: 36, borderRadius: "var(--portal-radius-pill)", background: "var(--surface-subtle)", color: "var(--text-primary)", border: "1px solid var(--border)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                    Tandai Dikembalikan
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={() => { setSheetBond(true); setFormBond({ bond_type: "pelaksanaan", bond_number: "", issuer: "", amount: "", issued_date: "", expiry_date: "" }); setGalatForm(null); }}
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            <Plus size={18} aria-hidden="true" /> Jaminan Baru
+          </button>
+        </>
+      )}
+
+      <BottomSheet terbuka={sheetEot} onTutup={() => setSheetEot(false)} judul="Ajukan EOT">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Nomor EOT (opsional)
+            <input type="text" value={formEot.eot_number} onChange={(e) => setFormEot((f) => ({ ...f, eot_number: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Jumlah Hari
+            <input type="number" value={formEot.days_requested} onChange={(e) => setFormEot((f) => ({ ...f, days_requested: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Alasan (min 10 karakter)
+            <textarea value={formEot.reason} onChange={(e) => setFormEot((f) => ({ ...f, reason: e.target.value }))} rows={3}
+              style={{ width: "100%", marginTop: 6, padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, fontFamily: "inherit" }} />
+          </label>
+          {galatForm && (
+            <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+              {galatForm}
+            </div>
+          )}
+          <button type="button" onClick={ajukanEot} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Mengajukan…" : "Ajukan"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={!!eotDiputuskan} onTutup={() => setEotDiputuskan(null)} judul="Putuskan EOT">
+        {eotDiputuskan && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Diajukan: {eotDiputuskan.days_requested} hari — {eotDiputuskan.reason}</div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Hari Disetujui (bila disetujui)
+              <input type="number" value={daysApproved} onChange={(e) => setDaysApproved(e.target.value)}
+                style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+            </label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Catatan Keputusan
+              <textarea value={decisionNote} onChange={(e) => setDecisionNote(e.target.value)} rows={2}
+                style={{ width: "100%", marginTop: 6, padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, fontFamily: "inherit" }} />
+            </label>
+            {galatForm && (
+              <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+                {galatForm}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button type="button" onClick={() => putuskanEot("ditolak")} disabled={mengirim}
+                style={{ flex: 1, minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+                Tolak
+              </button>
+              <button type="button" onClick={() => putuskanEot("disetujui")} disabled={mengirim}
+                style={{ flex: 1, minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+                {mengirim ? "Memproses…" : "Setujui"}
+              </button>
+            </div>
+          </div>
+        )}
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheetBond} onTutup={() => setSheetBond(false)} judul="Jaminan Baru">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Jenis
+            <select value={formBond.bond_type} onChange={(e) => setFormBond((f) => ({ ...f, bond_type: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              {Object.entries(LABEL_BOND).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            </select>
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Nomor
+            <input type="text" value={formBond.bond_number} onChange={(e) => setFormBond((f) => ({ ...f, bond_number: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Penerbit
+            <input type="text" value={formBond.issuer} onChange={(e) => setFormBond((f) => ({ ...f, issuer: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Nilai (Rp)
+            <input type="number" value={formBond.amount} onChange={(e) => setFormBond((f) => ({ ...f, amount: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Tanggal Terbit
+            <input type="date" value={formBond.issued_date} onChange={(e) => setFormBond((f) => ({ ...f, issued_date: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Tanggal Kadaluarsa
+            <input type="date" value={formBond.expiry_date} onChange={(e) => setFormBond((f) => ({ ...f, expiry_date: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && (
+            <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+              {galatForm}
+            </div>
+          )}
+          <button type="button" onClick={simpanBond} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan Jaminan"}
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
 
 - [ ] **Step 4: Typecheck, lint, penjaga**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+pnpm exec eslint app/pm-portal/kontrak-lengkap/eot-ld-bond/
+node scripts/uji-token-css-ada.mjs
+node scripts/uji-tombol-primer-seragam.mjs
+node scripts/kerapatan-ratchet.mjs
+cd ../api && node scripts/audit-halaman-pakai-cache.mjs
+```
 
 - [ ] **Step 5: Commit**
 
@@ -2002,39 +2724,514 @@ export interface RespSuratLintasProyek {
 
 - [ ] **Step 2: Tulis `kontrak-lengkap/klaim/page.tsx`**
 
-Pemilih proyek + `SegmentedTab` bila mau (atau daftar polos — klaim
-biasanya sedikit per proyek). Kartu ringkas 3 KPI di atas
-(`ringkas.total_diklaim`, `ringkas.berisiko_gugur`, `ringkas.mendesak`).
-Daftar klaim dengan `StatusBadge`, dan badge KEDUA untuk
-`batas_pemberitahuan.keadaan` (mendesak/terlambat = warna `--danger`,
-ditonjolkan di ATAS status utama — batas waktu adalah alasan modul ini
-ada, sesuai komentar route "klaim jarang gugur karena angkanya salah —
-ia gugur karena terlambat diberitahukan"). Tombol "+ Klaim Baru"
-(`BottomSheet`: nomor, judul min 10 karakter, tanggal peristiwa, nilai
-diklaim, tanggal pemberitahuan opsional, batas hari opsional). Untuk
-klaim berstatus `diajukan`/`diberitahukan`, tombol Putuskan
-(`BottomSheet` kedua: status disetujui/disetujui_sebagian/ditolak/gugur,
-nilai disetujui kalau relevan, catatan keputusan) — kirim `project_id`
-eksplisit di body sesuai kontrak endpoint.
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { Scale, Plus } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import BottomSheet from "@/components/portal/BottomSheet";
+import type { ProyekPM, RespKlaimKontraktual, KlaimKontraktual, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+interface RespProyek { projects: ProyekPM[] }
+
+function fmtRupiah(v: number | string | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const n = typeof v === "string" ? Number(v) : v;
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+}
+function fmtTanggal(s: string | null): string {
+  if (!s) return "—";
+  return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+const LABEL_STATUS: Record<string, string> = {
+  draft: "Draf", diberitahukan: "Diberitahukan", diajukan: "Diajukan",
+  disetujui: "Disetujui", disetujui_sebagian: "Disetujui Sebagian", ditolak: "Ditolak", gugur: "Gugur",
+};
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  draft: "netral", diberitahukan: "pending", diajukan: "pending",
+  disetujui: "approved", disetujui_sebagian: "approved", ditolak: "rejected", gugur: "rejected",
+};
+const LABEL_BATAS: Record<string, string> = {
+  tak_diatur: "Batas tak diatur", aman: "Aman", berjalan: "Berjalan", mendesak: "Mendesak", terlambat: "Terlambat", tak_terbaca: "Tanggal tak terbaca",
+};
+
+export default function PmKlaimKontraktualPage() {
+  const [proyekId, setProyekId] = useState("");
+  const [sheetBaru, setSheetBaru] = useState(false);
+  const [formBaru, setFormBaru] = useState({ claim_number: "", title: "", event_date: "", amount_claimed: "", notified_at: "", notice_days_limit: "" });
+  const [klaimDiputuskan, setKlaimDiputuskan] = useState<KlaimKontraktual | null>(null);
+  const [statusPutus, setStatusPutus] = useState<"disetujui" | "disetujui_sebagian" | "ditolak" | "gugur">("disetujui");
+  const [amountApproved, setAmountApproved] = useState("");
+  const [decisionNote, setDecisionNote] = useState("");
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+
+  const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+  const daftarProyek = useMemo(() => (dataProyek?.projects ?? []).filter((p) => p.pm), [dataProyek]);
+  const proyekAktif = proyekId || daftarProyek[0]?.id || "";
+
+  const url = proyekAktif ? `/api/v1/projects/${proyekAktif}/claims` : null;
+  const { data, memuat, galat } = useData<RespKlaimKontraktual>(url);
+
+  async function ajukanKlaim() {
+    if (!proyekAktif) return;
+    if (formBaru.claim_number.trim().length === 0) {
+      setGalatForm("Nomor klaim wajib diisi.");
+      return;
+    }
+    if (formBaru.title.trim().length < 10) {
+      setGalatForm("Judul klaim wajib diisi, minimal 10 karakter.");
+      return;
+    }
+    const nilai = Number(formBaru.amount_claimed);
+    if (!Number.isFinite(nilai) || nilai < 0) {
+      setGalatForm("Nilai klaim tidak sah.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post(`/api/v1/projects/${proyekAktif}/claims`, {
+        claim_number: formBaru.claim_number.trim(),
+        title: formBaru.title.trim(),
+        event_date: formBaru.event_date || undefined,
+        amount_claimed: nilai,
+        notified_at: formBaru.notified_at || undefined,
+        notice_days_limit: formBaru.notice_days_limit ? Number(formBaru.notice_days_limit) : undefined,
+      });
+      setSheetBaru(false);
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal mengajukan klaim"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function putuskanKlaim() {
+    if (!klaimDiputuskan) return;
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.patch(`/api/v1/claims/${klaimDiputuskan.id}/decide`, {
+        project_id: klaimDiputuskan.project_id,
+        status: statusPutus,
+        amount_approved: statusPutus === "disetujui" || statusPutus === "disetujui_sebagian" ? Number(amountApproved) : undefined,
+        decision_note: decisionNote.trim() || undefined,
+      });
+      setKlaimDiputuskan(null);
+      setAmountApproved("");
+      setDecisionNote("");
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal memutuskan klaim"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Klaim Kontraktual
+      </h1>
+
+      {daftarProyek.length > 1 && (
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
+          <select
+            value={proyekAktif}
+            onChange={(e) => setProyekId(e.target.value)}
+            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
+          >
+            {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+      )}
+
+      {!proyekAktif && <EmptyState icon={Scale} judul="Pilih proyek" deskripsi="Klaim tercatat per proyek." />}
+      {memuat && <SkeletonCard tinggi={140} />}
+      {galat && <EmptyState icon={Scale} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+
+      {!memuat && data && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[
+            { label: "Total Diklaim", value: fmtRupiah(data.ringkas.total_diklaim), warna: "var(--navy)" },
+            { label: "Berisiko Gugur", value: String(data.ringkas.berisiko_gugur), warna: "var(--danger)" },
+            { label: "Mendesak", value: String(data.ringkas.mendesak), warna: "var(--warning)" },
+          ].map((k) => (
+            <div key={k.label} style={{ flex: "1 1 30%", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: k.warna }}>{k.value}</div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{k.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!memuat && (data?.data?.length ?? 0) === 0 && (
+        <EmptyState icon={Scale} judul="Belum ada klaim" deskripsi="Tuntutan biaya kontraktual proyek ini akan muncul di sini." />
+      )}
+
+      {!memuat && data?.data.map((k) => (
+        <div key={k.id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{k.claim_number}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{k.title}</div>
+            </div>
+            <StatusBadge status={VARIAN_STATUS[k.status] ?? "netral"} label={LABEL_STATUS[k.status] ?? k.status} />
+          </div>
+          {(k.batas_pemberitahuan.keadaan === "mendesak" || k.batas_pemberitahuan.keadaan === "terlambat") && (
+            <div role="alert" style={{ fontSize: 11, fontWeight: 700, color: "var(--danger)", background: "var(--danger-bg)", padding: "4px 10px", borderRadius: 8, alignSelf: "flex-start" }}>
+              {LABEL_BATAS[k.batas_pemberitahuan.keadaan]}
+              {k.batas_pemberitahuan.sisaHari !== null && ` · sisa ${k.batas_pemberitahuan.sisaHari} hari`}
+            </div>
+          )}
+          <div style={{ fontSize: 18, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(k.amount_claimed)}</div>
+          {k.amount_approved !== null && (
+            <div style={{ fontSize: 13, color: "var(--success)" }}>Disetujui: {fmtRupiah(k.amount_approved)}</div>
+          )}
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Peristiwa: {fmtTanggal(k.event_date)}</div>
+          {(k.status === "diajukan" || k.status === "diberitahukan") && (
+            <button type="button" onClick={() => { setKlaimDiputuskan(k); setStatusPutus("disetujui"); setAmountApproved(String(k.amount_claimed)); setDecisionNote(""); setGalatForm(null); }}
+              style={{ minHeight: 40, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              Putuskan
+            </button>
+          )}
+        </div>
+      ))}
+
+      {proyekAktif && (
+        <button type="button" onClick={() => { setSheetBaru(true); setFormBaru({ claim_number: "", title: "", event_date: "", amount_claimed: "", notified_at: "", notice_days_limit: "" }); setGalatForm(null); }}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+          <Plus size={18} aria-hidden="true" /> Klaim Baru
+        </button>
+      )}
+
+      <BottomSheet terbuka={sheetBaru} onTutup={() => setSheetBaru(false)} judul="Klaim Baru">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Nomor Klaim
+            <input type="text" value={formBaru.claim_number} onChange={(e) => setFormBaru((f) => ({ ...f, claim_number: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Judul (min 10 karakter)
+            <input type="text" value={formBaru.title} onChange={(e) => setFormBaru((f) => ({ ...f, title: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Tanggal Peristiwa
+            <input type="date" value={formBaru.event_date} onChange={(e) => setFormBaru((f) => ({ ...f, event_date: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Nilai Diklaim (Rp)
+            <input type="number" value={formBaru.amount_claimed} onChange={(e) => setFormBaru((f) => ({ ...f, amount_claimed: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Tanggal Pemberitahuan (opsional)
+            <input type="date" value={formBaru.notified_at} onChange={(e) => setFormBaru((f) => ({ ...f, notified_at: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Batas Hari Pemberitahuan (opsional)
+            <input type="number" value={formBaru.notice_days_limit} onChange={(e) => setFormBaru((f) => ({ ...f, notice_days_limit: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && (
+            <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+              {galatForm}
+            </div>
+          )}
+          <button type="button" onClick={ajukanKlaim} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Mengajukan…" : "Ajukan Klaim"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={!!klaimDiputuskan} onTutup={() => setKlaimDiputuskan(null)} judul="Putuskan Klaim">
+        {klaimDiputuskan && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{klaimDiputuskan.title} — diklaim {fmtRupiah(klaimDiputuskan.amount_claimed)}</div>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Status
+              <select value={statusPutus} onChange={(e) => setStatusPutus(e.target.value as typeof statusPutus)}
+                style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+                <option value="disetujui">Disetujui</option>
+                <option value="disetujui_sebagian">Disetujui Sebagian</option>
+                <option value="ditolak">Ditolak</option>
+                <option value="gugur">Gugur</option>
+              </select>
+            </label>
+            {(statusPutus === "disetujui" || statusPutus === "disetujui_sebagian") && (
+              <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+                Nilai Disetujui (Rp)
+                <input type="number" value={amountApproved} onChange={(e) => setAmountApproved(e.target.value)}
+                  style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+              </label>
+            )}
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Catatan Keputusan
+              <textarea value={decisionNote} onChange={(e) => setDecisionNote(e.target.value)} rows={2}
+                style={{ width: "100%", marginTop: 6, padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, fontFamily: "inherit" }} />
+            </label>
+            {galatForm && (
+              <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+                {galatForm}
+              </div>
+            )}
+            <button type="button" onClick={putuskanKlaim} disabled={mengirim}
+              style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+              {mengirim ? "Memproses…" : "Simpan Keputusan"}
+            </button>
+          </div>
+        )}
+      </BottomSheet>
+    </div>
+  );
+}
+```
 
 - [ ] **Step 3: Tulis `kontrak-lengkap/surat/page.tsx`**
 
 Pakai endpoint LINTAS-PROYEK (`GET /api/v1/letters`) sebagai default —
 ini yang menjawab "surat mana yang wajib saya jawab hari ini" lintas
-semua proyek PM, bukan per-proyek (beda dari pola pemilih-proyek halaman
-lain di Task 12-13, karena endpoint ini SENGAJA dirancang lintas-proyek —
-lihat komentar route). `SegmentedTab` 2 opsi (Masuk/Keluar) map ke
-`?arah=`. Banner ringkas (`ringkas.kita_belum_menjawab` ditonjolkan warna
-`--danger` — ini pekerjaan PM, `ringkas.lawan_belum_menjawab` warna
-netral — bahan penagihan, bukan pekerjaan PM hari ini, ikuti pembedaan
-eksplisit di komentar route). Kartu surat dengan `project_name`,
-`StatusBadge` utama + badge batas balas kalau `butuh_balasan`. Tombol
-"+ Surat Baru" perlu pemilih proyek DI DALAM `BottomSheet` (karena
-endpoint create per-proyek) — field nomor, perihal min 5 karakter, arah,
-dari/kepada pihak wajib, tanggal kirim/terima, butuh balasan (checkbox
-yang menampilkan field batas balas kalau dicentang).
+semua proyek PM (beda dari pola pemilih-proyek Task 12-13, karena
+endpoint ini SENGAJA dirancang lintas-proyek, lihat komentar route).
+
+```typescript
+"use client";
+
+import { useState } from "react";
+import { Mail, Plus } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import BottomSheet from "@/components/portal/BottomSheet";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import type { RespSuratLintasProyek, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+function fmtTanggal(s: string | null): string {
+  if (!s) return "—";
+  return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+const LABEL_STATUS: Record<string, string> = {
+  draft: "Draf", terkirim: "Terkirim", diterima: "Diterima", dibalas: "Dibalas", selesai: "Selesai", kedaluwarsa: "Kedaluwarsa",
+};
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  draft: "netral", terkirim: "pending", diterima: "pending", dibalas: "approved", selesai: "approved", kedaluwarsa: "rejected",
+};
+const LABEL_BATAS: Record<string, string> = {
+  tak_perlu: "", tak_diatur: "Batas tak diatur", berjalan: "Berjalan", mendesak: "Mendesak", lewat: "Lewat batas", tak_terbaca: "Tanggal tak terbaca",
+};
+
+export default function PmSuratPage() {
+  const [arah, setArah] = useState<"masuk" | "keluar">("keluar");
+  const [sheetTerbuka, setSheetTerbuka] = useState(false);
+  const [form, setForm] = useState({
+    project_id: "", nomor: "", perihal: "", arah: "keluar" as "masuk" | "keluar",
+    dari_pihak: "", kepada_pihak: "", tanggal_kirim: "", butuh_balasan: false, batas_balas: "",
+  });
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+
+  const url = `/api/v1/letters?arah=${arah}`;
+  const { data, memuat, galat } = useData<RespSuratLintasProyek>(url);
+
+  async function simpanSurat() {
+    if (!form.project_id) {
+      setGalatForm("Pilih proyek terlebih dulu.");
+      return;
+    }
+    if (form.nomor.trim().length === 0) {
+      setGalatForm("Nomor surat wajib diisi.");
+      return;
+    }
+    if (form.perihal.trim().length < 5) {
+      setGalatForm("Perihal wajib diisi, minimal 5 karakter.");
+      return;
+    }
+    if (form.dari_pihak.trim().length === 0 || form.kepada_pihak.trim().length === 0) {
+      setGalatForm("Pihak pengirim dan penerima wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post(`/api/v1/projects/${form.project_id}/letters`, {
+        nomor: form.nomor.trim(),
+        perihal: form.perihal.trim(),
+        arah: form.arah,
+        dari_pihak: form.dari_pihak.trim(),
+        kepada_pihak: form.kepada_pihak.trim(),
+        tanggal_kirim: form.tanggal_kirim || undefined,
+        butuh_balasan: form.butuh_balasan,
+        batas_balas: form.butuh_balasan ? (form.batas_balas || undefined) : undefined,
+      });
+      setSheetTerbuka(false);
+      invalidasi(url);
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal mencatat surat"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Surat Masuk &amp; Keluar
+      </h1>
+
+      <SegmentedTab
+        opsi={[{ value: "keluar", label: "Keluar" }, { value: "masuk", label: "Masuk" }]}
+        aktif={arah}
+        onUbah={(v) => setArah(v as typeof arah)}
+      />
+
+      {memuat && <SkeletonCard tinggi={100} />}
+      {galat && <EmptyState icon={Mail} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+
+      {!memuat && data && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <div style={{ flex: "1 1 45%", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "var(--danger)" }}>{data.ringkas.kita_belum_menjawab}</div>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Kita belum menjawab</div>
+          </div>
+          <div style={{ flex: "1 1 45%", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>{data.ringkas.lawan_belum_menjawab}</div>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Lawan belum menjawab</div>
+          </div>
+        </div>
+      )}
+
+      {!memuat && (data?.data?.length ?? 0) === 0 && (
+        <EmptyState icon={Mail} judul="Belum ada surat" deskripsi="Korespondensi proyek akan muncul di sini." />
+      )}
+
+      {!memuat && data?.data.map((s) => (
+        <div key={s.id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{s.nomor}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{s.perihal}</div>
+              {s.project_name && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{s.project_name}</div>}
+            </div>
+            <StatusBadge status={VARIAN_STATUS[s.status] ?? "netral"} label={LABEL_STATUS[s.status] ?? s.status} />
+          </div>
+          {s.butuh_balasan && s.batas.keadaan !== "tak_perlu" && (
+            <div role="alert" style={{ fontSize: 11, fontWeight: 700, color: s.batas.keadaan === "lewat" || s.batas.keadaan === "mendesak" ? "var(--danger)" : "var(--text-secondary)", alignSelf: "flex-start" }}>
+              {LABEL_BATAS[s.batas.keadaan]}
+              {s.batas.sisaHari !== null && ` · sisa ${s.batas.sisaHari} hari`}
+              {s.batas.siapaYangDitunggu && ` · menunggu ${s.batas.siapaYangDitunggu === "kita" ? "kita" : "lawan"}`}
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            {s.dari_pihak} → {s.kepada_pihak} · {fmtTanggal(s.tanggal_kirim)}
+          </div>
+        </div>
+      ))}
+
+      <button type="button" onClick={() => { setSheetTerbuka(true); setForm({ project_id: "", nomor: "", perihal: "", arah, dari_pihak: "", kepada_pihak: "", tanggal_kirim: "", butuh_balasan: false, batas_balas: "" }); setGalatForm(null); }}
+        style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+        <Plus size={18} aria-hidden="true" /> Surat Baru
+      </button>
+
+      <BottomSheet terbuka={sheetTerbuka} onTutup={() => setSheetTerbuka(false)} judul="Surat Baru">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Proyek
+            <select value={form.project_id} onChange={(e) => setForm((f) => ({ ...f, project_id: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              <option value="">Pilih proyek</option>
+              {(data?.proyek ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Arah
+            <select value={form.arah} onChange={(e) => setForm((f) => ({ ...f, arah: e.target.value as "masuk" | "keluar" }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              <option value="keluar">Keluar</option>
+              <option value="masuk">Masuk</option>
+            </select>
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Nomor
+            <input type="text" value={form.nomor} onChange={(e) => setForm((f) => ({ ...f, nomor: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Perihal (min 5 karakter)
+            <input type="text" value={form.perihal} onChange={(e) => setForm((f) => ({ ...f, perihal: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Dari Pihak
+            <input type="text" value={form.dari_pihak} onChange={(e) => setForm((f) => ({ ...f, dari_pihak: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Kepada Pihak
+            <input type="text" value={form.kepada_pihak} onChange={(e) => setForm((f) => ({ ...f, kepada_pihak: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Tanggal Kirim
+            <input type="date" value={form.tanggal_kirim} onChange={(e) => setForm((f) => ({ ...f, tanggal_kirim: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            <input type="checkbox" checked={form.butuh_balasan} onChange={(e) => setForm((f) => ({ ...f, butuh_balasan: e.target.checked }))} />
+            Butuh Balasan
+          </label>
+          {form.butuh_balasan && (
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Batas Balas
+              <input type="date" value={form.batas_balas} onChange={(e) => setForm((f) => ({ ...f, batas_balas: e.target.value }))}
+                style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+            </label>
+          )}
+          {galatForm && (
+            <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+              {galatForm}
+            </div>
+          )}
+          <button type="button" onClick={simpanSurat} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan Surat"}
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
 
 - [ ] **Step 4: Typecheck, lint, penjaga**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+pnpm exec eslint app/pm-portal/kontrak-lengkap/klaim/ app/pm-portal/kontrak-lengkap/surat/
+node scripts/uji-token-css-ada.mjs
+node scripts/uji-tombol-primer-seragam.mjs
+node scripts/kerapatan-ratchet.mjs
+cd ../api && node scripts/audit-halaman-pakai-cache.mjs
+```
 
 - [ ] **Step 5: Commit**
 
@@ -2083,23 +3280,27 @@ Statement tetap BACA SAJA (tampilkan status+alasan_tolak) dan catat
 temuan itu di commit message, bukan memaksa membangun tombol ke endpoint
 yang tak ada.
 
-- [ ] **Step 1: Grep ulang endpoint keputusan method statement**
+- [x] **Step 1: Grep ulang endpoint keputusan method statement** —
+SELESAI (fix round ini):
 
 ```bash
 grep -rn "method_statement" apps/api/src/routes/v1/*.ts
 ```
 
-Catat hasilnya di commit message Task 15 (ada/tidaknya rute PATCH
-menentukan apakah tab Method Statement dapat tombol aksi atau baca saja).
+Hasil: **satu-satunya kemunculan** adalah baca (`jadwal-cpm.ts:66`,
+`db.unsafe('method_statement', alasan).select(...)`) — TIDAK ADA rute
+PATCH/POST untuk keputusan method statement di seluruh
+`apps/api/src/routes/v1/`. Tab Method Statement karena itu BACA SAJA
+(tanpa tombol putuskan) — dikonfirmasi, bukan diasumsikan.
 
 - [ ] **Step 2: Tulis tipe di `_bersama/tipe.ts`**
 
-Bentuk `histogram` dari `histogramSumberDaya()` dan `methodStatement`
-dari `select` eksplisit di `jadwal-cpm.ts:66-68` (`id, milestone_id,
-nomor, judul, status, alasan_tolak, diputuskan_pada,
-pengendalian_risiko`) — yang kedua terverifikasi PERSIS dari kode,
-yang pertama (bentuk `Periode`) PERKIRAAN dan wajib dicocokkan ke
-`apps/api/src/lib/cpm.ts` sebelum dipakai:
+`methodStatement` dari `select` eksplisit `jadwal-cpm.ts:66-68` (`id,
+milestone_id, nomor, judul, status, alasan_tolak, diputuskan_pada,
+pengendalian_risiko`). `histogram` dari `HasilSumberDaya[]`,
+`apps/api/src/lib/cpm.ts:441-457` — dibaca LANGSUNG dari kode (fix round
+ini): struktur ASLI adalah array yang di-KEY PER SUMBER DAYA, bukan per
+minggu (`periode` ada DI DALAM tiap sumber daya, bukan sebaliknya):
 
 ```typescript
 /** `methodStatement[]` dari `GET /api/v1/jadwal-cpm/:projectId` — select eksplisit jadwal-cpm.ts:66-68. */
@@ -2114,69 +3315,328 @@ export interface MethodStatementItem {
   pengendalian_risiko: string | null
 }
 
+/** Bentuk `PeriodeSumberDaya`, `apps/api/src/lib/cpm.ts:432-439`. */
+export interface PeriodeSumberDaya {
+  /** Senin minggu itu, `YYYY-MM-DD`. */
+  minggu: string
+  dibutuhkan: number
+  tersedia: number | null
+  /** Kelebihan beban. 0 berarti cukup. */
+  kelebihan: number
+}
+
 /**
- * `histogram` dari `GET /api/v1/jadwal-cpm/:projectId` — bentuk PERKIRAAN
- * dari `histogramSumberDaya()`, `lib/cpm.ts`. WAJIB dicocokkan ke fungsi
- * itu sebelum dipakai (belum dibaca isinya saat breakdown ini ditulis).
+ * `histogram` dari `GET /api/v1/jadwal-cpm/:projectId` — bentuk
+ * `HasilSumberDaya[]`, `apps/api/src/lib/cpm.ts:441-457`. Array di-KEY
+ * PER SUMBER DAYA (bukan per minggu) — tiap elemen punya `periode[]`
+ * miliknya sendiri.
  */
 export interface HistogramSumberDaya {
-  periode: Array<{
-    minggu: string
-    sumberDaya: Array<{ nama: string; jenis: string; dibutuhkan: number; tersedia: number | null; kelebihan: number }>
-  }>
+  nama: string
+  jenis: string
+  periode: PeriodeSumberDaya[]
+  /**
+   * PUNCAK, bukan rata-rata — 40 tukang minggu 7 dan 4 di minggu 8 punya
+   * rata-rata 22 (angka yang tak pernah terjadi, menyembunyikan
+   * kekurangan 15 orang). Pengadaan tenaga ditentukan puncaknya.
+   */
+  puncak: number
+  mingguPuncak: string | null
+  tersedia: number | null
+  /** Minggu-minggu yang kelebihan beban — yang butuh leveling. */
+  mingguKelebihan: string[]
 }
 ```
 
 - [ ] **Step 3: Tambah 2 tab di `jadwal/page.tsx`**
 
 `SegmentedTab` existing (`cpm`/`baseline`) diperluas jadi 4 opsi
-(`cpm`/`histogram`/`method`/`baseline`) — TIDAK mengubah dua tab lama,
-hanya menambah. `RespJadwalCpm` di file itu diperluas: tambah
-`histogram: HistogramSumberDaya` dan `methodStatement:
-MethodStatementItem[]` ke interface yang sudah ada (import dari
-`_bersama/tipe.ts` atau extend inline — ikuti gaya file, yang saat ini
-mendefinisikan `RespJadwalCpm` LOKAL di file, bukan di `_bersama/tipe.ts`,
-jadi field baru ditambah ke definisi lokal itu, BUKAN definisi terpisah
-di `tipe.ts` — perbedaan dari pola Task 12-14 karena tipe ini sudah ada
-sebagai tipe halaman, bukan tipe bersama).
+(`cpm`/`histogram`/`method`/`baseline`) — dua tab lama TIDAK diubah.
+`RespJadwalCpm` LOKAL di file itu (bukan di `_bersama/tipe.ts` — file ini
+sudah mendefinisikan tipenya sendiri, field baru ditambah di sana, ikuti
+gaya yang sudah ada) diperluas: tambah `histogram: HistogramSumberDaya[]`
+(array, sesuai bentuk asli `HasilSumberDaya[]`) dan `methodStatement:
+MethodStatementItem[]`. Potongan diff dari file existing (baris
+34-45 sudah ada, ditambah `histogram`/`methodStatement`):
 
-Tab Histogram: per periode/minggu, tampilkan kebutuhan vs tersedia per
-sumber daya sebagai bar chart sederhana (dua batang berdampingan, warna
-`--navy` untuk dibutuhkan dan `--info` untuk tersedia) atau daftar
-angka kalau chart dianggap berlebihan untuk mobile — **keputusan
-executor, catat alasannya di komentar kode** (§1 spec: modul kompleks
-disederhanakan, executor putuskan per halaman). Highlight periode dengan
-`kelebihan < 0` (kekurangan sumber daya) warna `--danger` (komentar route
-"yang dilaporkan PUNCAK, bukan rata-rata" — histogram jangan dirata-rata
-saat disederhanakan untuk mobile, itu justru menghilangkan sinyal yang
-dijaga backend).
+```typescript
+// ...import tambahan di atas import existing...
+import { ClipboardList, Users2 } from "lucide-react";
 
-Tab Method Statement: kartu per item, `StatusBadge`
-(diajukan=pending/disetujui=approved/ditolak=rejected), tampilkan
-`pengendalian_risiko` (field K3 — kosongkan-merah kalau null, sesuai
-catatan `peta-menu.ts`: "Kolom pengendalian risiko K3 ditandai merah
-kalau kosong"). Tombol putuskan HANYA kalau Step 1 menemukan rute
-PATCH-nya.
+// ...RespJadwalCpm existing diperluas (baris ~42-45 file existing)...
+interface RespJadwalCpm {
+  proyek: { id: string; nama: string; mulai: string | null; akhir: string | null };
+  cpm: { pekerjaan: PekerjaanCpm[]; jalurKritis: string[]; selesaiProyek: string | null; lingkaran: string[] };
+  histogram: HistogramSumberDaya[];
+  methodStatement: MethodStatementItem[];
+}
+
+interface PeriodeSumberDaya {
+  minggu: string;
+  dibutuhkan: number;
+  tersedia: number | null;
+  kelebihan: number;
+}
+interface HistogramSumberDaya {
+  nama: string;
+  jenis: string;
+  periode: PeriodeSumberDaya[];
+  puncak: number;
+  mingguPuncak: string | null;
+  tersedia: number | null;
+  mingguKelebihan: string[];
+}
+interface MethodStatementItem {
+  id: string;
+  milestone_id: string | null;
+  nomor: string | null;
+  judul: string;
+  status: "diajukan" | "disetujui" | "ditolak";
+  alasan_tolak: string | null;
+  diputuskan_pada: string | null;
+  pengendalian_risiko: string | null;
+}
+
+const LABEL_METHOD: Record<string, string> = { diajukan: "Diajukan", disetujui: "Disetujui", ditolak: "Ditolak" };
+const VARIAN_METHOD: Record<string, VarianStatus> = { diajukan: "pending", disetujui: "approved", ditolak: "rejected" };
+
+// ...di dalam PmJadwalPage(), SegmentedTab existing diperluas:...
+const [tab, setTab] = useState<"cpm" | "histogram" | "method" | "baseline">("cpm");
+// ...
+<SegmentedTab
+  opsi={[
+    { value: "cpm", label: "Jalur Kritis" },
+    { value: "histogram", label: "Sumber Daya" },
+    { value: "method", label: "Method Statement" },
+    { value: "baseline", label: "Baseline" },
+  ]}
+  aktif={tab}
+  onUbah={(v) => setTab(v as typeof tab)}
+/>
+
+{/* ...blok existing proyekAktif && tab === "cpm" tetap sama... */}
+
+{proyekAktif && tab === "histogram" && (
+  <>
+    {memuatCpm && <SkeletonCard tinggi={100} />}
+    {!memuatCpm && (dataCpm?.histogram?.length ?? 0) === 0 && (
+      <EmptyState icon={Users2} judul="Belum ada kebutuhan sumber daya" deskripsi="Kebutuhan tenaga/alat per milestone belum diatur." />
+    )}
+    {!memuatCpm && dataCpm?.histogram.map((h) => (
+      <div key={`${h.jenis}-${h.nama}`} style={{ padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{h.nama}</span>
+          <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Puncak {h.puncak}{h.tersedia !== null ? ` / tersedia ${h.tersedia}` : ""}</span>
+        </div>
+        {/* Daftar angka per minggu, BUKAN dirata-rata — puncak adalah sinyal yang dijaga backend, rata-rata menyembunyikannya (§1 spec: disederhanakan tapi tak boleh menghilangkan sinyal). */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {h.periode.map((p) => (
+            <div key={p.minggu} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", borderTop: "1px solid var(--border)" }}>
+              <span style={{ color: "var(--text-secondary)" }}>{p.minggu}</span>
+              <span style={{ color: p.kelebihan > 0 ? "var(--danger)" : "var(--text-primary)", fontWeight: p.kelebihan > 0 ? 700 : 400 }}>
+                {p.dibutuhkan}{p.tersedia !== null ? ` / ${p.tersedia}` : ""}
+                {p.kelebihan > 0 && ` · kurang ${p.kelebihan}`}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </>
+)}
+
+{proyekAktif && tab === "method" && (
+  <>
+    {memuatCpm && <SkeletonCard tinggi={100} />}
+    {!memuatCpm && (dataCpm?.methodStatement?.length ?? 0) === 0 && (
+      <EmptyState icon={ClipboardList} judul="Belum ada method statement" deskripsi="Cara kerja pekerjaan berisiko belum diajukan." />
+    )}
+    {!memuatCpm && dataCpm?.methodStatement.map((m) => (
+      <div key={m.id} style={{ padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{m.nomor ?? m.judul}</span>
+          <StatusBadge status={VARIAN_METHOD[m.status] ?? "netral"} label={LABEL_METHOD[m.status] ?? m.status} />
+        </div>
+        {m.nomor && <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{m.judul}</div>}
+        <div style={{ fontSize: 12, padding: "6px 10px", borderRadius: 8, background: m.pengendalian_risiko ? "var(--surface-subtle)" : "var(--danger-bg)", color: m.pengendalian_risiko ? "var(--text-secondary)" : "var(--on-danger-bg)" }}>
+          {m.pengendalian_risiko ?? "Pengendalian risiko K3 belum diisi"}
+        </div>
+        {m.status === "ditolak" && m.alasan_tolak && (
+          <div style={{ fontSize: 12, color: "var(--danger)" }}>Alasan tolak: {m.alasan_tolak}</div>
+        )}
+      </div>
+    ))}
+    {/* Tanpa tombol putuskan — Step 1 mengonfirmasi tak ada rute PATCH untuk method statement. */}
+  </>
+)}
+
+{/* ...blok existing proyekAktif && tab === "baseline" tetap sama... */}
+```
+
+Ikuti gaya file existing untuk `StatusBadge`/`SkeletonCard`/`EmptyState`
+(sudah diimpor di file), tambahkan import `ClipboardList`/`Users2` dari
+`lucide-react` di baris import existing.
 
 - [ ] **Step 4: Tulis `kontrak-lengkap/keterlambatan/page.tsx`**
 
-Baca saja (tak ada tombol aksi — endpoint ini murni turunan, sesuai
-riset). Pemilih proyek (atau semua proyek tanpa filter — endpoint
-mendukung tanpa `project_id`). Banner ringkas 4 KPI
-(`jumlah_berjalan_terlambat` warna `--danger` paling menonjol,
-`telat_terparah`, `total_estimasi_paparan` format Rupiah,
-`jumlah_proyek_denda_mati` sebagai catatan kecil — bukan KPI utama, tapi
-JANGAN dihilangkan: komentar lib eksplisit "Rp0 tak boleh terbaca sebagai
-tak ada risiko"). Daftar `BarisAnalisa` per milestone dengan
-`StatusBadge` mengikuti `StatusTelat` (tepat_waktu=approved,
-belum_jatuh_tempo=netral, selesai_terlambat=rejected,
-berjalan_terlambat=rejected, dimaafkan_eot=info — dimaafkan ditampilkan
-beda warna dari terlambat murni, sesuai prinsip modul "yang sudah
-dimaafkan EOT bukan keterlambatan"). Tampilkan `telat_efektif` bukan
-`telat_kotor` sebagai angka utama (kotor sebagai detail sekunder kalau
-beda dari efektif), dan `estimasi_paparan` per baris kalau tak null.
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { AlarmClock } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import type { ProyekPM, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+interface RespProyek { projects: ProyekPM[] }
+
+/** Bentuk `BarisAnalisa`, `apps/api/src/lib/analisa-keterlambatan.ts:75-105`. */
+interface BarisAnalisa {
+  milestone_id: string;
+  project_id: string;
+  project_name: string;
+  title: string;
+  target_date: string;
+  completed_at: string | null;
+  telat_kotor: number;
+  eot_hari: number;
+  telat_efektif: number;
+  status: "tepat_waktu" | "belum_jatuh_tempo" | "selesai_terlambat" | "berjalan_terlambat" | "dimaafkan_eot";
+  estimasi_paparan: number | null;
+  kena_cap: boolean;
+  masih_bertambah: boolean;
+}
+
+/** Bentuk `HasilAnalisa`, `apps/api/src/lib/analisa-keterlambatan.ts:107-125`. */
+interface RespAnalisaKeterlambatan {
+  baris: BarisAnalisa[];
+  jumlah_selesai_terlambat: number;
+  jumlah_berjalan_terlambat: number;
+  jumlah_dimaafkan_eot: number;
+  jumlah_tepat_waktu: number;
+  jumlah_belum_jatuh_tempo: number;
+  telat_terparah: number;
+  total_estimasi_paparan: number;
+  jumlah_proyek_denda_mati: number;
+}
+
+function fmtRupiah(v: number | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
+}
+function fmtTanggal(s: string | null): string {
+  if (!s) return "—";
+  return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+const LABEL_STATUS: Record<string, string> = {
+  tepat_waktu: "Tepat Waktu", belum_jatuh_tempo: "Belum Jatuh Tempo",
+  selesai_terlambat: "Selesai Terlambat", berjalan_terlambat: "Berjalan Terlambat", dimaafkan_eot: "Dimaafkan EOT",
+};
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  tepat_waktu: "approved", belum_jatuh_tempo: "netral",
+  selesai_terlambat: "rejected", berjalan_terlambat: "rejected", dimaafkan_eot: "info",
+};
+
+export default function PmAnalisaKeterlambatanPage() {
+  const [proyekId, setProyekId] = useState("");
+  const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+  const daftarProyek = useMemo(() => (dataProyek?.projects ?? []).filter((p) => p.pm), [dataProyek]);
+
+  const url = proyekId ? `/api/v1/analisa-keterlambatan?project_id=${proyekId}` : "/api/v1/analisa-keterlambatan";
+  const { data, memuat, galat } = useData<RespAnalisaKeterlambatan>(url);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Analisa Keterlambatan
+      </h1>
+
+      {daftarProyek.length > 1 && (
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
+          <select
+            value={proyekId}
+            onChange={(e) => setProyekId(e.target.value)}
+            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
+          >
+            <option value="">Semua proyek</option>
+            {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+      )}
+
+      {memuat && <SkeletonCard tinggi={140} />}
+      {galat && <EmptyState icon={AlarmClock} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+
+      {!memuat && data && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {[
+            { label: "Berjalan Terlambat", value: String(data.jumlah_berjalan_terlambat), warna: "var(--danger)" },
+            { label: "Telat Terparah (hari)", value: String(data.telat_terparah), warna: "var(--warning)" },
+            { label: "Estimasi Paparan", value: fmtRupiah(data.total_estimasi_paparan), warna: "var(--navy)" },
+          ].map((k) => (
+            <div key={k.label} style={{ flex: "1 1 30%", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: k.warna }}>{k.value}</div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{k.label}</div>
+            </div>
+          ))}
+          {/* Rp0 tak boleh terbaca "tak ada risiko" — sebagian proyek dendanya memang mati (lib analisa-keterlambatan.ts). Dinyatakan, bukan disembunyikan. */}
+          {data.jumlah_proyek_denda_mati > 0 && (
+            <div style={{ flex: "1 1 100%", fontSize: 11, color: "var(--text-secondary)" }}>
+              {data.jumlah_proyek_denda_mati} proyek punya milestone telat tapi dendanya tidak aktif — estimasi paparan di atas TIDAK mencakupnya.
+            </div>
+          )}
+        </div>
+      )}
+
+      {!memuat && (data?.baris?.length ?? 0) === 0 && (
+        <EmptyState icon={AlarmClock} judul="Tidak ada keterlambatan" deskripsi="Seluruh milestone tepat waktu atau belum jatuh tempo." />
+      )}
+
+      {!memuat && data?.baris.map((b) => (
+        <div key={b.milestone_id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{b.title}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{b.project_name}</div>
+            </div>
+            <StatusBadge status={VARIAN_STATUS[b.status] ?? "netral"} label={LABEL_STATUS[b.status] ?? b.status} />
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            Target: {fmtTanggal(b.target_date)}{b.completed_at && ` · Selesai: ${fmtTanggal(b.completed_at)}`}
+          </div>
+          {b.telat_efektif > 0 && (
+            <div style={{ fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>
+              Telat {b.telat_efektif} hari{b.masih_bertambah ? " (masih berjalan)" : ""}
+              {b.telat_kotor !== b.telat_efektif && ` · kotor ${b.telat_kotor} hari, EOT ${b.eot_hari} hari`}
+            </div>
+          )}
+          {b.estimasi_paparan !== null && (
+            <div style={{ fontSize: 13, color: "var(--warning)" }}>
+              Estimasi paparan: {fmtRupiah(b.estimasi_paparan)}{b.kena_cap ? " (menyentuh batas)" : ""}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
 
 - [ ] **Step 5: Typecheck, lint, penjaga**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+pnpm exec eslint app/pm-portal/jadwal/ app/pm-portal/kontrak-lengkap/keterlambatan/
+node scripts/uji-token-css-ada.mjs
+node scripts/uji-tombol-primer-seragam.mjs
+node scripts/kerapatan-ratchet.mjs
+cd ../api && node scripts/audit-halaman-pakai-cache.mjs
+```
 
 - [ ] **Step 6: Commit**
 
@@ -2406,14 +3866,22 @@ kerangka riset, bukan kode lengkap — ini BUKAN pelanggaran "No
 Placeholders" karena skill writing-plans mengizinkan keputusan yang
 genuinely tergantung riset lanjutan untuk didelegasikan sebagai task
 riset eksplisit (bukan diisi tebakan kode yang keliru). Tahap 0-2 (Task
-1-16) sepenuhnya lengkap tanpa placeholder — kode nyata, bukan deskripsi,
-termasuk dua field bertanda "PERKIRAAN, wajib diverifikasi ulang saat
-eksekusi" (`PolisAsuransi.keadaan`/`hari_tersisa` di Task 12,
-`HistogramSumberDaya` di Task 15) yang EKSPLISIT menyuruh executor
-membaca fungsi lib sebelum memakainya — ini bukan tebakan yang disamarkan
-sebagai fakta, melainkan pengakuan jujur atas batas riset yang dilakukan
-(dua fungsi `lib/register-asuransi.ts` dan `lib/cpm.ts` tak sempat dibaca
-isinya, hanya signature endpoint pemanggilnya yang diverifikasi).
+1-16) sepenuhnya lengkap tanpa placeholder — kode nyata untuk SEMUA
+halaman (bukan prosa deskriptif untuk sebagian), diverifikasi ulang di
+fix round 2026-08-21 sesudah review menemukan 6 dari 7 halaman Task
+12-15 masih berbentuk deskripsi. `PolisAsuransi`/`HistogramSumberDaya`
+(sempat ditandai "PERKIRAAN" di draf pertama) SUDAH dikoreksi ke bentuk
+persis `PolisTerhitung`/`HasilSumberDaya` — dibaca langsung dari
+`apps/api/src/lib/register-asuransi.ts:73-100` dan
+`apps/api/src/lib/cpm.ts:432-457`, bukan lagi tebakan. `NilaiKontrakBerjalan`/
+`BandingNilaiKontrak` juga dikoreksi ke `HasilNilai`/`HasilBanding` persis
+(`apps/api/src/lib/kontrak.ts:254-361`) — draf pertama salah nama field
+(`induk` vs `awal`, `keterangan` vs `sebab`) dan salah arah logika
+boolean (`perlu_perhatian` vs `cocok`, MAKNANYA TERBALIK). Seluruh 6
+halaman baru + 1 patch diff (jadwal) diverifikasi `tsc --noEmit` NOL
+error terhadap `node_modules` project sungguhan, termasuk merge
+langsung patch diff Task 15 ke `jadwal/page.tsx` asli (bukan cuma
+sintaks terisolasi) — detail command di laporan fix round.
 
 **3. Type consistency:** `ambilMerek()` dipakai konsisten Task 1 (3
 tempat) dan Task 2 — signature sama. `SwipeableCard` props dipakai
