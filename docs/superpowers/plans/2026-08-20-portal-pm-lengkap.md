@@ -6740,8 +6740,8 @@ ditampilkan sebagai daftar pelanggaran per material — BUKAN blocking,
 sekadar pratinjau sebelum submit, sesuai desain backend "early warning"),
 tombol "Ajukan" (`PATCH .../submit`) hanya saat `status==='draft'`.
 **Approve/reject TIDAK ada di halaman ini** — diarahkan eksplisit ke
-`/pm-portal/approval` (Task 25 menambahkan `material_request` ke inbox
-terpusat) via banner info saat `status==='submitted'`.
+`/pm-portal/approval` (Task 24 Step 5 menambahkan `material_request` ke
+inbox terpusat) via banner info saat `status==='submitted'`.
 
 ```typescript
 "use client";
@@ -7544,6 +7544,20 @@ proyek seperti Task 24), daftar material + qty, tap buka riwayat mutasi
 ADA (bukan seluruh katalog, supaya tak bisa "memakai" material yang
 tak pernah tercatat di proyek ini), qty, jenis (usage/return/adjustment).
 
+⚠️ **Cacat gerbang pra-eksisting, dicatat bukan diperbaiki** (review
+Important-4, 2026-08-21): `POST /procurement/stocks/usage` bergerbang
+`procurement:view` (BACA) untuk aksi yang MENULIS `stock_movements` +
+`project_stocks` (`procurement.ts:1685-1688`, komentar `T4j` di kode
+itu sendiri sudah mendokumentasikan cacatnya tanpa memperbaikinya) —
+gerbang cacat PERSIS sama dengan `stocks/opname` (Task 26 Step 2,
+Temuan #2 Task 23 Step 1). Langkah ini MEMPERLUAS paparan cacat itu
+(menambah satu jalur UI baru — `SheetCatatPemakaian` — yang memakainya
+aktif), berbeda dari `stocks/opname` yang sekadar TIDAK dibangun. Ini
+TIDAK berarti `SheetCatatPemakaian` dibatalkan — backend memang sudah
+begini sejak sebelum Task 23, dan memperbaiki gerbangnya di luar
+wewenang task riset ini — tapi risikonya WAJIB dilaporkan ke founder
+sebelum task ini dieksekusi (lihat concern §7 laporan Task 23).
+
 ```typescript
 "use client";
 
@@ -8112,7 +8126,7 @@ ketat di repo ini (approval satu pintu, status atomik). Breakdown Task
 - [ ] **Step 2: Tulis breakdown Task 30-N** — tahap terakhir, setelah ini
 seluruh 32 modul (§1 spec) tercakup dan Portal PM Lengkap selesai.
 Breakdown ini WAJIB memeriksa apakah `jd-gantt` visual (ditunda Task 22),
-RFQ/Kontrak Payung (ditunda Task 26), dan hub `pm-portal/proyek/[id]`
+RFQ/Kontrak Payung (ditunda Task 28), dan hub `pm-portal/proyek/[id]`
 (masih belum dibangun sampai sini — Task 17 Step 1 & Step 2, dan Task 23
 Step 1, mengukur ulang dan TIDAK menemukannya diperlukan; setiap
 `tabProyek` CECEP dan procurement ternyata py endpoint standalone)
@@ -8249,11 +8263,22 @@ keduanya bisa dieksekusi terpisah tanpa saling memblokir. Task 24 Step 5
 (tambah `material_request`+`purchase_order` ke `pm-portal/approval/
 page.tsx`) TIDAK bergantung pada Task 25 sama sekali. Task 26 (navigasi)
 WAJIB SESUDAH Task 24-25 (referensi href ke halaman yang harus sudah
-ada), pola sama Task 22/Task 16/Task 9 — dan KHUSUSNYA sesudah Task 24
-Step 5, karena `audit-inbox-lengkap.mjs` (CLAUDE.md §6) memeriksa tiap
-jenis approval punya representasi di inbox; menjalankannya sebelum Task
-24 Step 5 akan salah melaporkan `material_request`/`purchase_order`
-sebagai jenis yang belum tercakup.
+ada), pola sama Task 22/Task 16/Task 9.
+
+⚠️ **Koreksi (review Important-3, 2026-08-21)**: draf pertama baris ini
+menyebut `audit-inbox-lengkap.mjs` sebagai alasan TAMBAHAN kenapa Task 26
+harus sesudah Task 24 Step 5 — itu KELIRU. Penjaga itu (dibaca langsung,
+`apps/api/scripts/audit-inbox-lengkap.mjs`) membandingkan union
+`ApprovalEntityType` di `apps/api/src/utils/approval.ts` terhadap katalog
+BACKEND `apps/api/src/lib/inbox-approval.ts` — KEDUANYA berkas backend.
+`material_request` dan `purchase_order` SUDAH TERDAFTAR di katalog itu
+SEBELUM Task 23 dimulai sama sekali (fitur backend lama, bukan hasil
+Task 24). Penjaga ini tidak peduli apakah `pm-portal/approval/page.tsx`
+(frontend) sudah punya tombol aksi untuk jenis tersebut — ia akan tetap
+HIJAU kapan pun dijalankan, tak terkait status Task 24 Step 5 sama
+sekali. Urutan Task 26 sesudah Task 24-25 tetap benar, tapi alasannya
+HANYA referensi href di `PETA_HREF_PORTAL` yang harus menunjuk halaman
+yang sudah ada — bukan penjaga CI mana pun.
 
 **5. Placeholder scan Tahap 4 (Task 23-26):** kode nyata untuk KESEMBILAN
 halaman (`procurement/page.tsx` + 2 detail `[id]`, `gudang/page.tsx` +
