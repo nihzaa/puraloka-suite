@@ -5,6 +5,120 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-20 (lanjutan) — beban, material, dan enam kali alat ukur saya berbohong
+
+**Ringkasan run (apps/api):**
+
+```
+vitest run struktur    47 berkas · 1288 test · LULUS · exit 0
+tsc --noEmit           api & web · exit 0 · TANPA disaring
+```
+
+**Tujuh commit**, dua arah kerja yang diminta founder.
+
+### A. Kebutuhan material — mesinnya sudah ada, layarnya tidak
+
+Founder minta "semua bahan material terlihat per jenis pekerjaan + rekapan
+0 sampai selesai". Diukur dulu, dan premisnya terbalik:
+
+| Yang diukur | Hasil |
+|---|---|
+| AHSP di basis | **3.043, 100% punya koefisien** |
+| Cakupan harga | **100%** (hanya 1 labor kosong) |
+| `material-takeoff` | **sudah ada, sudah benar** |
+| Halaman yang memakainya | **NOL** |
+
+Jadi tak ada yang perlu dibangun ulang. Yang hilang layarnya.
+
+⚠ **Saya hampir membangun "engine hitung bata".** AHSP sudah menjawabnya
+(1 m² pasangan = 140 buah + 64,03 kg semen). Membangunnya lagi = sumber
+kebenaran kedua yang pasti berselisih diam-diam.
+
+⚠ **Pesan galat yang menyesatkan.** `"Harga tidak ter-resolve dari price
+book"` terbaca seperti *harga belum diisi*. Sebenarnya: harganya ADA, aktif,
+tak kedaluwarsa — hanya terikat lokasi "Kabupaten Bandung" sementara
+permintaan tak menyebut lokasi. Dua hal yang penanganannya beda jauh.
+
+### B. Beban mati & hidup, dari nol sampai lembar bertanda tangan
+
+Sebelumnya `muKnm`/`puKn` adalah ANGKA JADI — dihitung di kertas lalu
+diketik. Itu persis yang modul sloof sengaja hindari.
+
+Yang dibangun berurutan: balok → katalog SNI → layar → kolom → pelat →
+pondasi → diagram di PDF.
+
+**Koreksi founder di tengah jalan** ("beban mati juga diinput? harusnya
+engga kan?") mengubah arahnya, dan hasilnya jauh lebih baik:
+
+- berat sendiri balok/pelat/kolom **dihitung dari dimensi**, tak diminta
+- finishing **dipilih dari katalog** (tak bisa diturunkan dari geometri)
+- beban hidup **dari SNI 1727 Tabel 4.3-1**, 24 fungsi ruang
+
+Selisih antar-fungsi besar: hunian 1,92 · kantor 2,40 · ruang rapat 4,79 ·
+rak perpustakaan 7,18 kN/m². Mengetik 2,5 untuk ruang rapat **terlihat
+wajar**, dan baloknya LOLOS dengan beban separuh — sampai lantainya dipakai
+rapat.
+
+**Reduksi beban hidup kolom (SNI §4.7)** — pada kasus acuan 52%. Tapi TIDAK
+untuk tempat berkumpul, parkir, dan atap: di sana orang memang berkerumun
+serentak, dan menerapkannya membuat kolom KURANG kuat.
+
+---
+
+### Enam kali alat ukur saya sendiri berbohong
+
+| # | Yang terjadi |
+|---|---|
+| 1 | mencetak "✓ 2 item ditambahkan" tepat di bawah DUA baris galat penambahan |
+| 2 | mencocokkan `resource.id` — daftar AHSP memulangkan `code`, tanpa `id`. Selalu kosong |
+| 3 | cabang "tak berbagi material" jadi jalan keluar diam-diam — pemeriksa LULUS tanpa menguji apa pun |
+| 4 | test tata letak diagram: ambang 12 px, tabrakan nyatanya 15,4 px. **Mutasi LOLOS** |
+| 5 | `select` pertama ternyata pemilih PROYEK, bukan jenis elemen — menuduh produk atas kesalahan sendiri |
+| 6 | pemeriksa "isian beban tak boleh muncul untuk kolom" jadi USANG sesudah kolom bisa dihitung |
+
+Nomor 4 yang paling menyakitkan: saya MELIHAT tabrakan itu di gambar, menulis
+test untuk menjaganya, lalu test-nya tak menangkap mutasi yang saya suntik
+sendiri. Ambangnya baru benar sesudah **diukur**, bukan ditebak.
+
+Nomor 6 penting dibedakan: pemeriksanya benar SAAT DITULIS. Yang salah adalah
+membiarkannya tak ikut berubah — ia lalu menuduh produk atas perubahan yang
+disengaja.
+
+### Penguraian id: kali KEEMPAT
+
+Rute memulangkan `{ id }` di puncak; saya menulis `.data.id`. Empat kali di
+satu sesi, dan tiga di antaranya membocorkan baris uji ke basis sungguhan.
+
+**Aturannya tetap:** pembersihan tak boleh bergantung pada penguraian jawaban
+berhasil. Pakai kode/nomor yang sudah ditentukan SEBELUM permintaan dikirim.
+
+### Penjaga yang menuduh saya, dan benar
+
+`audit-catch-senyap` merah — saya menulis `catch {}` kosong untuk kegagalan
+menggambar diagram. Diperbaiki mengikuti pola yang sudah ada di fungsi yang
+sama: medan `diagramBebanGagal` yang DIBACA LAYAR.
+
+### Cacat yang hanya ketahuan dari MERENDER lalu MELIHAT
+
+- `rgba()` tak dikenali perender SVG → seluruh bidang **hitam pekat**
+- label bertumpuk (tiga kali, di tiga tempat berbeda)
+- `16.800,000 buah` — tiga desimal pada barang butiran
+- kurva momen **terpotong** di PDF karena panelnya 96 pt
+
+Keempatnya keluaran yang SAH secara teknis. Tak satu pun ditangkap test
+sebelum dilihat.
+
+### Keputusan yang SENGAJA tidak diambil
+
+- **engine hitung bata** — AHSP sudah menjawabnya
+- **momen kolom dihitung** — ia lahir dari kekakuan portal; menghitungnya di
+  sini berarti mengarang angka yang terlihat sah
+- **menanam SVG ke PDF** — pdfkit butuh pustaka tambahan. Diagram digambar
+  ULANG dengan primitif pdfkit, jadi nol dependensi baru
+- **berat pondasi ditambahkan ke Pu** — modul footplat sudah menghitungnya
+
+---
+
 ## 2026-08-20 — empat fitur struktur, dan lima kebohongan alat ukur saya sendiri
 
 **Ringkasan run (apps/api):**
