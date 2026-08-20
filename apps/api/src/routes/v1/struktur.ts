@@ -149,6 +149,26 @@ interface BarisElemen {
  * sebagai pesan yang menyebut medannya ("Panjang balok harus > 0"), bukan
  * `undefined is not a number` di tengah perhitungan.
  */
+/**
+ * Apakah input elemen memuat data beban yang cukup untuk menghitung momen?
+ *
+ * Ditulis SEKALI dan dipakai dua tempat (`hitung` dan `gambarUntuk`).
+ * Versi sebelumnya menyalinnya di dua tempat, dan keduanya sama-sama tak
+ * mengenali bentuk KATALOG (`fungsiRuangKunci` / `lapisMati`) begitu itu
+ * ditambahkan — elemen berbeban lengkap diam-diam diperlakukan seolah tak
+ * punya beban. Tak ada galat, tak ada gejala.
+ */
+function punyaDataBeban(input: Record<string, unknown>): boolean {
+  const adaBentang = Number.isFinite(Number(input.bentangM))
+  /* Beban hidup: angka langsung ATAU pilihan fungsi ruang. */
+  const adaHidup = Number.isFinite(Number(input.bebanHidupKnM2))
+    || typeof input.fungsiRuangKunci === 'string'
+  /* Beban mati: daftar angka ATAU pilihan katalog. Keduanya boleh KOSONG —
+     yang penting dinyatakan, bukan hilang. */
+  const adaMati = Array.isArray(input.bebanMatiTambahan)
+    || Array.isArray(input.lapisMati)
+  return adaBentang && adaHidup && adaMati
+}
 function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
   const dgnJumlah = { ...input, jumlah }
   switch (jenis) {
@@ -178,9 +198,7 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
     */
     case 'balok': {
       const i = dgnJumlah as Record<string, unknown>
-      const punyaBeban = Number.isFinite(Number(i.bentangM))
-        && Number.isFinite(Number(i.bebanHidupKnM2))
-        && Array.isArray(i.bebanMatiTambahan)
+      const punyaBeban = punyaDataBeban(i)
       if (!punyaBeban) return analisaBalok(dgnJumlah as never)
 
       const beban = analisaBebanBalok({
@@ -189,7 +207,11 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
         bMm: Number(i.bMm), hMm: Number(i.hMm),
         tebalPelatMm: Number(i.tebalPelatMm ?? 0),
         bebanMatiTambahan: i.bebanMatiTambahan as never,
-        bebanHidupKnM2: Number(i.bebanHidupKnM2),
+        lapisMati: i.lapisMati as never,
+        bebanHidupKnM2: i.bebanHidupKnM2 as never,
+        fungsiRuangKunci: i.fungsiRuangKunci as never,
+        jenisDinding: i.jenisDinding as never,
+        tinggiDindingM: i.tinggiDindingM as never,
         bebanDindingKnM: Number(i.bebanDindingKnM ?? 0),
         bebanTerpusatKn: Number(i.bebanTerpusatKn ?? 0),
         skema: i.skema as never,
@@ -1810,9 +1832,7 @@ function gambarUntuk(el: BarisElemen, hasil: unknown): Record<string, string> {
     `bebanMatiTambahan`. Kurang satu pun, diagramnya tak terbit.
     ══════════════════════════════════════════════════════════════════════════
   */
-  const punyaBeban = Number.isFinite(Number(i.bentangM))
-    && Number.isFinite(Number(i.bebanHidupKnM2))
-    && Array.isArray((el.input as Record<string, unknown>).bebanMatiTambahan)
+  const punyaBeban = punyaDataBeban(el.input as Record<string, unknown>)
 
   if (punyaBeban && (el.jenis === 'balok' || el.jenis === 'sloof')) {
     try {
@@ -1821,8 +1841,12 @@ function gambarUntuk(el: BarisElemen, hasil: unknown): Record<string, string> {
         lebarPikulM: Number(i.lebarPikulM ?? 0),
         bMm: Number(i.bMm), hMm: Number(i.hMm),
         tebalPelatMm: Number(i.tebalPelatMm ?? 0),
-        bebanMatiTambahan: (el.input as never as { bebanMatiTambahan: never[] }).bebanMatiTambahan,
-        bebanHidupKnM2: Number(i.bebanHidupKnM2),
+        bebanMatiTambahan: (el.input as Record<string, unknown>).bebanMatiTambahan as never,
+        lapisMati: (el.input as Record<string, unknown>).lapisMati as never,
+        bebanHidupKnM2: (el.input as Record<string, unknown>).bebanHidupKnM2 as never,
+        fungsiRuangKunci: (el.input as Record<string, unknown>).fungsiRuangKunci as never,
+        jenisDinding: (el.input as Record<string, unknown>).jenisDinding as never,
+        tinggiDindingM: (el.input as Record<string, unknown>).tinggiDindingM as never,
         bebanDindingKnM: Number(i.bebanDindingKnM ?? 0),
         bebanTerpusatKn: Number(i.bebanTerpusatKn ?? 0),
         skema: (el.input as never as { skema?: never }).skema,

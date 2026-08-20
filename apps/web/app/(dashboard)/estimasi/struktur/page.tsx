@@ -53,6 +53,7 @@ import {
 import { Modal, btnPrimary, btnGhost } from "../_bersama/kerangka";
 import { LayarKosong } from "../_bersama/layar-kosong";
 import { TombolUnduh } from "@/components/tombol-unduh";
+import { IsianBeban, type NilaiBeban } from "@/components/isian-beban";
 
 // ── Bentuk respons API ────────────────────────────────────────────────────
 interface Project { id: string; name: string }
@@ -2206,6 +2207,50 @@ function StrukturLayar() {
               yang berbeda, dan belum ada.
               ══════════════════════════════════════════════════════════════
             */}
+            {/*
+              ══════════════════════════════════════════════════════════════
+              BEBAN — hanya untuk jenis yang momennya bisa dihitung darinya.
+
+              Balok dan sloof memikul beban lantai/dinding, jadi Mu dan Vu
+              bisa diturunkan. Kolom memikul beban AKSIAL dari lantai di
+              atasnya — bentuk perhitungan yang berbeda, dan belum ada.
+              Menampilkan isian ini di sana akan menjanjikan sesuatu yang
+              tak dihitung siapa pun.
+
+              Nilainya disimpan LANGSUNG ke `input` bersama medan lain —
+              satu objek, satu penyimpanan. Menyimpannya terpisah membuat
+              editor JSON di bawah menampilkan sebagian saja, dan yang
+              tak terlihat di sana tak bisa diperbaiki pengguna.
+              ══════════════════════════════════════════════════════════════
+            */}
+            {(jenis === "balok" || jenis === "sloof") && (
+              <IsianBeban
+                nonaktif={sibuk}
+                nilai={{
+                  fungsiRuangKunci: input.fungsiRuangKunci as string | undefined,
+                  lapisMati: input.lapisMati as string[] | undefined,
+                  jenisDinding: input.jenisDinding as string | undefined,
+                  tinggiDindingM: input.tinggiDindingM as number | undefined,
+                }}
+                onUbah={(b: NilaiBeban) => {
+                  /*
+                    Medan yang KOSONG dibuang, bukan disimpan sebagai
+                    undefined. `{fungsiRuangKunci: undefined}` tetap membuat
+                    kuncinya ADA di JSON, dan server memperlakukan "ada tapi
+                    kosong" berbeda dari "tak ada".
+                  */
+                  const baru = { ...input } as Record<string, unknown>;
+                  for (const [k, v] of Object.entries(b)) {
+                    if (v === undefined || v === "" || (Array.isArray(v) && !v.length)) {
+                      delete baru[k];
+                    } else baru[k] = v;
+                  }
+                  setInput(baru);
+                  setTeksJson(JSON.stringify(baru, null, 2));
+                  setGalatJson(null);
+                }}
+              />
+            )}
             {MEDAN[jenis].length < Object.keys(CONTOH[jenis]).length && (
               <Isian
                 id="f-json"

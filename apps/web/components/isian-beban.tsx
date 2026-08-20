@@ -1,0 +1,266 @@
+"use client";
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════════
+ * ISIAN BEBAN — dipilih dari SNI & katalog material, bukan diketik
+ * ══════════════════════════════════════════════════════════════════════════════
+ *
+ * Sebelum ini `bebanHidupKnM2` adalah kotak angka bebas, dan estimator
+ * mengetik 2,5 karena "biasanya segitu". SNI 1727:2020 Tabel 4.3-1 sudah
+ * menetapkannya per fungsi ruang, dan selisihnya besar:
+ *
+ *     hunian 1,92 · kantor 2,40 · ruang rapat 4,79 · rak perpustakaan 7,18
+ *
+ * Angka yang diketik dari ingatan tak punya "rasa salah": 2,5 untuk ruang
+ * rapat terlihat wajar, dan baloknya LOLOS pemeriksaan dengan beban separuh
+ * dari seharusnya. Tak ada galat — sampai lantainya dipakai rapat.
+ *
+ * ── Yang TIDAK diminta ke pengguna
+ *
+ * Berat sendiri balok dan berat pelat TIDAK ada di sini: keduanya dihitung
+ * server dari `b × h × 24` dan `tebal × 24 × lebar pikul`. Memintanya lagi
+ * berarti terhitung DUA KALI — dan dua kali beban mati menghasilkan balok
+ * jauh lebih besar dari perlu, tanpa satu pun galat.
+ *
+ * Yang diminta hanya yang MEMANG tak bisa diturunkan dari geometri: lapisan
+ * finishing (bergantung pilihan material) dan fungsi ruang (bergantung
+ * peruntukan).
+ *
+ * ── Katalognya datang dari SERVER, tak dipaku di sini
+ *
+ * Daftar yang dipaku di dua tempat akan menyimpang, dan menyimpangnya tak
+ * terlihat: layar menawarkan 4,79 sementara server menghitung 4,50, dan
+ * keduanya "angka beban yang wajar".
+ */
+
+import { useMemo } from "react";
+import { Weight, Info } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import { C } from "@/lib/warna-ui";
+import { Isian, PilihanIsian, KotakIsian } from "@/components/isian";
+
+interface FungsiRuang {
+  kunci: string;
+  nama: string;
+  bebanHidupKnM2: number;
+  kelompok: string;
+  catatan?: string;
+}
+interface LapisMati {
+  kunci: string;
+  nama: string;
+  knM2: number;
+  kelompok: string;
+  catatan?: string;
+}
+interface JenisDinding {
+  kunci: string;
+  nama: string;
+  knM2: number;
+  catatan?: string;
+}
+interface Katalog {
+  fungsiRuang: FungsiRuang[];
+  lapisMati: LapisMati[];
+  jenisDinding: JenisDinding[];
+  acuan: string;
+}
+
+export interface NilaiBeban {
+  fungsiRuangKunci?: string;
+  lapisMati?: string[];
+  jenisDinding?: string;
+  tinggiDindingM?: number;
+}
+
+export function IsianBeban({
+  nilai, onUbah, nonaktif = false,
+}: {
+  nilai: NilaiBeban;
+  onUbah: (baru: NilaiBeban) => void;
+  nonaktif?: boolean;
+}) {
+  const { data, galat } = useData<Katalog>("/api/v1/struktur/katalog-beban");
+
+  /* Dikelompokkan supaya 24 fungsi tak jadi daftar rata yang dipilih asal. */
+  const perKelompok = useMemo(() => {
+    const p = new Map<string, FungsiRuang[]>();
+    for (const f of data?.fungsiRuang ?? []) {
+      if (!p.has(f.kelompok)) p.set(f.kelompok, []);
+      p.get(f.kelompok)!.push(f);
+    }
+    return [...p.entries()];
+  }, [data]);
+
+  const lapisPerKelompok = useMemo(() => {
+    const p = new Map<string, LapisMati[]>();
+    for (const l of data?.lapisMati ?? []) {
+      if (!p.has(l.kelompok)) p.set(l.kelompok, []);
+      p.get(l.kelompok)!.push(l);
+    }
+    return [...p.entries()];
+  }, [data]);
+
+  const terpilih = nilai.lapisMati ?? [];
+  const fungsi = (data?.fungsiRuang ?? []).find((f) => f.kunci === nilai.fungsiRuangKunci);
+
+  /* Jumlah beban mati yang DIPILIH — supaya angkanya terlihat sebelum dihitung. */
+  const totalMati = useMemo(
+    () => (data?.lapisMati ?? [])
+      .filter((l) => terpilih.includes(l.kunci))
+      .reduce((a, l) => a + l.knM2, 0),
+    [data, terpilih],
+  );
+
+  if (galat) {
+    return (
+      <div role="alert" style={{
+        fontSize: "var(--teks-delta)", color: C.onDangerBg, background: C.dangerBg,
+        border: `1px solid ${C.dangerBorder}`, borderRadius: "var(--radius-dense)",
+        padding: "var(--pad-kartu)",
+      }}>
+        Katalog beban gagal dimuat — isi beban hidup dan beban mati secara manual
+        di editor JSON. Ini BUKAN berarti bebannya nol.
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 12 }}>
+      <strong style={{
+        display: "flex", gap: 6, alignItems: "center",
+        fontSize: "var(--teks-label)", color: C.text,
+      }}>
+        <Weight size={14} aria-hidden="true" /> Beban (opsional)
+      </strong>
+
+      <p style={{ margin: 0, fontSize: "var(--teks-delta)", color: C.mid }}>
+        Bila diisi, momen dan gaya lintang DIHITUNG dari beban — tak perlu
+        mengetik Mu/Vu sendiri. Berat sendiri balok dan pelat sudah dihitung
+        otomatis dari ukurannya, jadi tak perlu dimasukkan lagi di sini.
+      </p>
+
+      {/* ── Beban hidup: fungsi ruang ─────────────────────────────────── */}
+      <Isian
+        id="beban-fungsi"
+        label="Fungsi ruang (menentukan beban hidup)"
+        bantuan={fungsi
+          ? `${fungsi.bebanHidupKnM2} kN/m² — SNI 1727:2020 Tabel 4.3-1${
+            fungsi.catatan ? `. ${fungsi.catatan}` : ""}`
+          : "Pilih fungsi ruangnya; angkanya diambil dari tabel SNI."}
+      >
+        <PilihanIsian
+          id="beban-fungsi"
+          value={nilai.fungsiRuangKunci ?? ""}
+          disabled={nonaktif}
+          onChange={(e) => onUbah({ ...nilai, fungsiRuangKunci: e.target.value || undefined })}
+          style={{ width: "100%" }}
+        >
+          <option value="">— tidak dihitung dari beban —</option>
+          {perKelompok.map(([kelompok, daftar]) => (
+            <optgroup key={kelompok} label={kelompok}>
+              {daftar.map((f) => (
+                <option key={f.kunci} value={f.kunci}>
+                  {f.nama} — {f.bebanHidupKnM2} kN/m²
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </PilihanIsian>
+      </Isian>
+
+      {/* ── Beban mati: lapisan finishing ─────────────────────────────── */}
+      <fieldset style={{
+        border: `1px solid ${C.border}`, borderRadius: "var(--radius-dense)",
+        padding: "var(--pad-kartu)", margin: 0,
+      }}>
+        <legend style={{ fontSize: "var(--teks-delta)", color: C.mid, padding: "0 6px" }}>
+          Lapisan di atas pelat {totalMati > 0 && `— ${totalMati.toFixed(2)} kN/m²`}
+        </legend>
+
+        <div style={{ display: "grid", gap: 10 }}>
+          {lapisPerKelompok.map(([kelompok, daftar]) => (
+            <div key={kelompok}>
+              <div style={{
+                fontSize: "var(--teks-delta)", color: C.mid, fontWeight: 600, marginBottom: 4,
+              }}>{kelompok}</div>
+              <div style={{ display: "grid", gap: 4 }}>
+                {daftar.map((l) => (
+                  <label key={l.kunci} style={{
+                    display: "flex", gap: 8, alignItems: "flex-start",
+                    fontSize: "var(--teks-delta)", color: C.text, cursor: nonaktif ? "not-allowed" : "pointer",
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={terpilih.includes(l.kunci)}
+                      disabled={nonaktif}
+                      onChange={(e) => {
+                        const baru = e.target.checked
+                          ? [...terpilih, l.kunci]
+                          : terpilih.filter((x) => x !== l.kunci);
+                        onUbah({ ...nilai, lapisMati: baru });
+                      }}
+                      style={{ marginTop: 3, flexShrink: 0 }}
+                    />
+                    <span>
+                      {l.nama} <span style={{ color: C.mid }}>({l.knM2} kN/m²)</span>
+                      {l.catatan && (
+                        <span style={{ display: "block", color: C.mid, fontSize: "var(--teks-delta)" }}>
+                          {l.catatan}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </fieldset>
+
+      {/* ── Dinding di atas balok ─────────────────────────────────────── */}
+      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "2fr 1fr" }}>
+        <Isian id="beban-dinding" label="Dinding di atas balok">
+          <PilihanIsian
+            id="beban-dinding"
+            value={nilai.jenisDinding ?? ""}
+            disabled={nonaktif}
+            onChange={(e) => onUbah({ ...nilai, jenisDinding: e.target.value || undefined })}
+            style={{ width: "100%" }}
+          >
+            <option value="">— tidak ada dinding —</option>
+            {(data?.jenisDinding ?? []).map((d) => (
+              <option key={d.kunci} value={d.kunci}>
+                {d.nama} — {d.knM2} kN/m²
+              </option>
+            ))}
+          </PilihanIsian>
+        </Isian>
+        <Isian id="beban-tinggi-dinding" label="Tinggi dinding (m)">
+          <KotakIsian
+            id="beban-tinggi-dinding"
+            type="number"
+            step="any"
+            value={nilai.tinggiDindingM ?? ""}
+            disabled={nonaktif || !nilai.jenisDinding}
+            onChange={(e) => onUbah({
+              ...nilai,
+              tinggiDindingM: e.target.value === "" ? undefined : Number(e.target.value),
+            })}
+            style={{ width: "100%" }}
+          />
+        </Isian>
+      </div>
+
+      <p style={{
+        margin: 0, display: "flex", gap: 6, alignItems: "flex-start",
+        fontSize: "var(--teks-delta)", color: C.mid,
+      }}>
+        <Info size={13} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+        <span>
+          {data?.acuan ?? "Beban hidup mengikuti SNI 1727:2020 Tabel 4.3-1."}
+        </span>
+      </p>
+    </div>
+  );
+}
