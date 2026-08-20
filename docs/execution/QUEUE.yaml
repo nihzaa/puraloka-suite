@@ -3214,3 +3214,32 @@ items:
       Yang paling patut dicatat: satu-satunya detektor yang sunyi justru sunyi
       karena CHECK constraint menutup jalannya — otomasi yang tak mungkin
       berbunyi memberi rasa aman palsu.
+
+  - id: A11Y-PM-PORTAL
+    fase: null
+    judul: "Audit a11y runtime portal PM/mandor/klien — 25+ halaman pm-portal/* tak pernah terpindai"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "Akun uji berperan pm (bukan admin) tersedia di apps/web/.env.local"
+      - "node apps/web/scripts/jalankan-a11y-lengkap.mjs dijalankan dengan akun itu, cakupan pm-portal/* terkonfirmasi (bukan 'dialihkan')"
+    cara_verifikasi: "Cek rincian apps/web/.a11y-terang.json — halaman berprefix /pm-portal harus muncul di daftar 'dipindai', bukan 'dialihkan'"
+    bobot: S
+    status: menunggu
+    catatan_kemajuan: >-
+      Ditemukan 2026-08-20 saat Task 10 plan Portal PM Lengkap (Tahap 0-1):
+      hasil audit a11y "155 halaman, 0 pelanggaran" TIDAK mencakup 25
+      halaman pm-portal/*, termasuk 9 halaman baru Tahap 1
+      (mandor-lengkap/*). Akun uji LAYAR_* berperan admin, dan
+      middleware.ts mengalihkan role itu dari prefix /pm-portal ke
+      /dashboard sebelum axe-core sempat memindai — bukan galat, tapi
+      browser dialihkan sebelum scan sempat jalan.
+      Pola sama sudah didokumentasikan CLAUDE.md §8a.3 untuk SATU rute
+      (/pm-portal/proyek/[id]) sebelum sesi ini; Task 10 mengukur ulang
+      dan menemukan jangkauannya 25 halaman, bukan 1.
+      Final whole-branch review (agent) mengevaluasi independen apakah ini
+      layak jadi blocker — verdict: TIDAK, disclosure sudah memadai
+      (report+JOURNAL+catatan founder), tapi merekomendasikan item ini
+      dibuat supaya tak hilang begitu JOURNAL bertambah panjang.
+      Menutupnya BUKAN perubahan kode — murni provisioning akun uji baru
+      berperan pm (dan idealnya juga mandor/client kalau portal itu
+      punya gap serupa, belum diukur terpisah).
