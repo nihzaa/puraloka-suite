@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { NAVY, DI_ATAS_NAVY } from "@/lib/warna-merek";
+import { ambilMerek } from "@/lib/merek-perusahaan";
 
 /**
  * FAVICON — logo perusahaan yang diunggah, bukan lambang statis.
@@ -78,29 +79,6 @@ export const contentType = "image/png";
   dengan `globals.css`.
 */
 
-/**
- * Ambil logo + nama perusahaan dari API.
- *
- * Lewat HTTP, bukan koneksi DB langsung: `apps/web` tak punya kredensial
- * basis data sama sekali, dan memberinya kredensial hanya demi favicon
- * berarti membuka jalur baru ke DB dari lapisan yang selama ini tak
- * memilikinya.
- */
-async function ambilMerek(): Promise<{ logo: string | null; nama: string }> {
-  const basis = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-  try {
-    const r = await fetch(`${basis}/api/v1/public/merek`, {
-      next: { revalidate: 3600 },
-    });
-    if (!r.ok) return { logo: null, nama: "Puraloka" };
-    const j = (await r.json()) as { logo_url?: string | null; nama?: string };
-    return { logo: j.logo_url ?? null, nama: j.nama || "Puraloka" };
-  } catch {
-    // Favicon TIDAK BOLEH menggagalkan render halaman. Kegagalan jaringan
-    // apa pun jatuh ke inisial.
-    return { logo: null, nama: "Puraloka" };
-  }
-}
 
 export default async function Icon() {
   const { logo, nama } = await ambilMerek();
