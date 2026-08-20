@@ -187,7 +187,7 @@ function KurvaSTab({ projectId }: { projectId: string }) {
           </div>
         ))}
       </div>
-      <div style={{ ...kartu, padding: 18 }}>
+      <div style={{ ...kartu, padding: "var(--pad-kartu-lega)" }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>Kurva S — Rencana vs Progress Fisik</div>
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={chartData} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
@@ -236,7 +236,7 @@ function GanttTab({ projectId }: { projectId: string }) {
   const barColor = ["var(--navy)", "var(--navy)", "var(--info)", "var(--info)"];
 
   return (
-    <div style={{ ...kartu, padding: 18, overflowX: "auto" }}>
+    <div style={{ ...kartu, padding: "var(--pad-kartu-lega)", overflowX: "auto" }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>Jadwal Pelaksanaan (Gantt)</div>
       <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 16 }}>Rencana — baca saja</div>
       <div style={{ minWidth: 600 }}>
@@ -581,7 +581,7 @@ export default function PortalProyekDetailPage() {
         <ChevronLeft size={16} aria-hidden="true" /> Kembali
       </button>
 
-      <div style={{ ...kartu, padding: 20 }}>
+      <div style={{ ...kartu, padding: "var(--pad-kartu-lega)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0, flex: 1 }}>{project.name}</h1>
           <StatusBadge status={VARIAN_STATUS_PROYEK[project.status] ?? "netral"} label={LABEL_STATUS_PROYEK[project.status] ?? project.status} />
@@ -632,14 +632,14 @@ export default function PortalProyekDetailPage() {
       {activeTab === "overview" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {project.pm && (
-            <div style={{ ...kartu, padding: 18 }}>
+            <div style={{ ...kartu, padding: "var(--pad-kartu-lega)" }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Project Manager</div>
               <div style={{ fontSize: 15, fontWeight: 600, color: "var(--text-primary)" }}>{project.pm.name}</div>
               {project.pm.phone && (
                 <a
                   href={`https://wa.me/62${project.pm.phone.replace(/^0/, "")}`}
                   target="_blank" rel="noopener noreferrer"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", background: "#25D366", color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none" }}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, marginTop: 8, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", background: "#0F7A3F", color: "#fff", fontSize: 13, fontWeight: 600, textDecoration: "none" }}
                 >
                   Hubungi via WhatsApp
                 </a>
@@ -647,7 +647,7 @@ export default function PortalProyekDetailPage() {
             </div>
           )}
           {project.milestones?.length > 0 && (
-            <div style={{ ...kartu, padding: 18 }}>
+            <div style={{ ...kartu, padding: "var(--pad-kartu-lega)" }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.05em" }}>Milestone</div>
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                 {project.milestones.map((m) => {
@@ -670,7 +670,7 @@ export default function PortalProyekDetailPage() {
             </div>
           )}
           {project.notes && (
-            <div style={{ ...kartu, padding: 18 }}>
+            <div style={{ ...kartu, padding: "var(--pad-kartu-lega)" }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Catatan</div>
               <div style={{ fontSize: 13, color: "var(--text-primary)", lineHeight: 1.6 }}>{project.notes}</div>
             </div>
@@ -684,7 +684,7 @@ export default function PortalProyekDetailPage() {
             <EmptyState icon={TrendingUp} judul="Belum ada log progress" deskripsi="Catatan progres harian lapangan akan muncul di sini." />
           )}
           {project.progress_logs?.map((log) => (
-            <div key={log.id} style={{ ...kartu, padding: 16 }}>
+            <div key={log.id} style={{ ...kartu, padding: "var(--pad-kartu-lega)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 6 }}>
                 <div style={{ fontSize: 13, color: "var(--text-secondary)", display: "flex", alignItems: "center", gap: 4 }}>
                   <Calendar size={13} aria-hidden="true" />
@@ -712,7 +712,7 @@ export default function PortalProyekDetailPage() {
             <EmptyState icon={FileText} judul="Belum ada invoice" deskripsi="Tagihan proyek ini akan muncul di sini." />
           )}
           {project.invoices?.map((inv) => (
-            <div key={inv.id} style={{ ...kartu, padding: 16 }}>
+            <div key={inv.id} style={{ ...kartu, padding: "var(--pad-kartu-lega)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
