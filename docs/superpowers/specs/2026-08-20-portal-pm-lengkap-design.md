@@ -212,7 +212,7 @@ ulang lewat jalur berbeda.
 |---|---|---|---|
 | 0 | Fondasi PWA | — (manifest, ikon, sw diperluas) | — |
 | 1 | Operasi Lapangan + Mandor & Subkon | k3✓, punch✓, inspeksi✓, submittal✓ (restyle/lengkapi), progress, mandor, workers, mitra, backcharge, opname, spk | ~20 |
-| 2 | Kontrak + Perencanaan | projects (bagian kontrak), rfi, klaim, milestones, jadwal | ~15 |
+| 2 | Kontrak + Perencanaan | projects (bagian kontrak), rfi, klaim, milestones, jadwal | ~18 (dikoreksi dari ~15 saat riset Task 11, 2026-08-21 — lihat catatan di bawah tabel) |
 | 3 | Budget & Cost Control | cecep (estimasi/RAP/AHSP/WBS/markup) | ~10 |
 | 4 | Pengadaan + Gudang & Material | procurement, gudang | ~19 |
 | 5 | Rencana & Uji Mutu + K3 lanjutan | mutu, ncr, kepatuhan, izin | ~7 |
@@ -222,6 +222,27 @@ ulang lewat jalur berbeda.
 Urutan mengikuti kedekatan dengan kerja proyek harian PM (lapangan/kontrak
 dulu, administratif belakangan) — keputusan founder eksplisit, bukan
 alfabetis.
+
+**Koreksi Tahap 2 (riset Task 11, 2026-08-21):** perkiraan awal "~15"
+diasumsikan `kt-co`/`kt-eot`/`kt-ld`/`kt-bond`/`kt-surat` semuanya
+`tabProyek` pada `/proyek/[id]` (jadi TIDAK jadi halaman terpisah,
+mengurangi jumlah). Diukur ke `apps/web/lib/peta-menu.ts` langsung:
+hanya `kt-co` (Change Order) yang benar `tabProyek`. `kt-eot`/`kt-ld`/
+`kt-bond` py endpoint per-proyek BERDIRI SENDIRI di
+`apps/api/src/routes/v1/rantai-kontrak.ts` (bukan sekadar tab), dan
+`kt-rfi`/`kt-surat` juga endpoint berdiri sendiri (`rfi.ts`/`surat.ts`).
+Ditemukan pula DUA modul yang tak disebut ringkasan awal:
+`kt-register` (Register Kontrak, tabel `kontrak` migrasi 344,
+`kontrak.ts`) dan `kt-asuransi` (Register Asuransi, `asuransi.ts`) —
+keduanya `status: 'hidup'` di `peta-menu.ts` dengan endpoint lengkap.
+Angka jadi **~18** (naik, bukan turun): Register Kontrak, Asuransi, EOT,
+Denda Keterlambatan, Register Jaminan, Klaim Kontraktual, Surat
+Masuk/Keluar, Analisa Keterlambatan (8 baru) + CPM/Baseline/RFI (3 sudah
+ada Tahap 1) + Histogram/Method Statement (2 tab tambahan pada halaman
+Jadwal existing, bukan halaman baru) + WBS/Gantt/Kurva-S/Milestone/EVM/
+Look-Ahead/Method (7, murni `tabProyek` `/proyek/[id]` ADMIN — DITUNDA,
+lihat `docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md` Task 16
+"utang tercatat"). Rincian lengkap ada di Task 11 breakdown plan.
 
 Tiap tahap dieksekusi sebagai kelompok task dalam satu implementation plan
 besar (bukan spec terpisah per tahap) — progres tersimpan di plan seperti

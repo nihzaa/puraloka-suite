@@ -1202,42 +1202,1117 @@ git commit -m "docs(jurnal): Tahap 1 Portal PM Lengkap selesai — Operasi Lapan
 
 ---
 
-## Tahap 2-7: Kerangka (detail digali saat eksekusi)
+## Tahap 2: Kontrak + Perencanaan (Task 11-16)
 
-> Pola task per tahap MENGIKUTI struktur Tahap 1 (Task riset → Task
-> halaman per sub-kelompok → Task "Lainnya"/navigasi kalau perlu → Task
-> verifikasi akhir tahap). Detail kode TIDAK ditulis di sini — spec §5
-> menegaskan tipe/endpoint WAJIB diverifikasi ke kode nyata saat itu
-> dieksekusi, menulis kodenya sekarang (jauh sebelum eksekusi, tanpa
-> membaca ulang kode yang mungkin sudah berubah) akan jadi tebakan basi.
-> Sebelum memulai tiap Tahap, buat task riset (pola Task 5) lebih dulu,
-> BARU susun task halaman detailnya — sesi eksekusi tahap itu yang
-> menulis breakdown lengkap ke plan ini (mengedit file plan ini,
-> menambah Task baru di bagian Tahap yang relevan), bukan ditebak di
-> muka.
+> Tahap 1 (Task 5-10) sudah selesai dan di-merge sebelum Tahap 2 dimulai.
+> Task 11 di bawah adalah task RISET yang breakdown-nya (Task 12-16)
+> ditulis LANGSUNG ke dokumen ini pada sesi yang sama (bukan ditunda ke
+> sesi eksekusi terpisah) — polanya tetap sama dengan Tahap 1 (riset dulu,
+> tipe diverifikasi ke kode nyata, BARU kode halaman ditulis), hanya
+> urutannya digabung satu sesi karena riset Task 11 sudah cukup dalam
+> untuk langsung menghasilkan kode lengkap, bukan sekadar kerangka.
 
 ### Task 11: [Tahap 2] Kontrak + Perencanaan — riset & breakdown
 
-**Files:** Modify: dokumen plan ini (tambah Task 12+ dengan detail penuh,
-pola sama Task 6-9)
+**Files:** Modify: dokumen plan ini (Task 12-16 di bawah, kode lengkap)
 
-- [ ] **Step 1: Riset endpoint+permission** modul `projects` (bagian
+- [x] **Step 1: Riset endpoint+permission** modul `projects` (bagian
 kontrak), `rfi`, `klaim`, `milestones`, `jadwal` — pola sama Task 5.
-- [ ] **Step 2: Cek apakah `pm-portal/proyek/[id]/page.tsx` untuk PM sudah
-perlu dibangun di sini** (dicatat sebagai kemungkinan di Task 8 Step 1) —
-kalau iya, ini jadi hub tab seperti portal klien (`portal/proyek/[id]`,
-dibangun hari ini) tapi versi PM dengan kemampuan `:manage`, bukan
-read-only.
-- [ ] **Step 3: Tulis breakdown Task 12-N ke dokumen plan ini**, mengikuti
-pola Task 6-9 persis (halaman per sub-kelompok, tipe diverifikasi ke kode
-nyata, penjaga+a11y di akhir).
-- [ ] **Step 4: Update §6 spec kalau perkiraan halaman berubah** dari
-riset (mis. `kt-co`/`kt-eot`/`kt-ld`/`kt-bond`/`kt-surat` semuanya
-`tabProyek` di web — berarti di portal PM juga masuk sebagai tab
-`proyek/[id]`, bukan halaman berdiri sendiri, mengurangi jumlah halaman
-terpisah dari 15 perkiraan awal).
 
-### Task 12: [Tahap 3] Budget & Cost Control — riset & breakdown
+  **Temuan kunci** (detail lengkap per-endpoint ada di riset masing-masing
+  Task 12-15 di bawah, bukan diulang di sini):
+  - Modul kontrak jauh LEBIH KAYA dari perkiraan awal spec §6 (~15
+    halaman sumber) — ditemukan 4 route file tambahan yang tak disebut
+    brief: `kontrak.ts` (Register Kontrak, tabel `kontrak` migrasi 344),
+    `rantai-kontrak.ts` (EOT+LD+Bond+Klaim Kontraktual, 1 file 4 sub-
+    modul), `surat.ts` (korespondensi), `asuransi.ts` (register polis).
+  - `KontrakRingkas` yang SUDAH ADA di `_bersama/tipe.ts` (dari Tahap 1)
+    komentarnya menyatakan "tak ada tabel/endpoint `contracts` terpisah"
+    — itu SALAH untuk entitas `kontrak` (dokumen induk/addendum, migrasi
+    344), meski BENAR untuk perannya sendiri (`projects.contract_value`,
+    jalur uang yang berlaku). Dua entitas berbeda, dibandingkan bukan
+    ditimpa (lihat komentar `kontrak.ts` baris 12-23). Dikoreksi di Task
+    12.
+  - Permission `klaim:*` di `role_permissions` BUKAN klaim kontraktual
+    (`kt-claims`/`contract_claims`) — itu modul TERPISAH (Klaim
+    Perjalanan/reimbursement karyawan, `klaim-perjalanan.ts`). PM cuma
+    punya `klaim:setujui`+`klaim:bayar` (bukan `klaim:view`/`klaim:kelola`
+    — diukur `role_permissions`), jadi modul itu KELUAR scope Task 14.
+    Klaim kontraktual (`contract_claims`) pakai permission `projects:view`/
+    `projects:edit` yang PM PUNYA PENUH — itu yang dikerjakan Task 14.
+  - `jd-histogram`/`jd-method` TERNYATA bukan endpoint terpisah —
+    keduanya SUDAH ada di payload `GET /api/v1/jadwal-cpm/:projectId`
+    yang `pm-portal/jadwal/page.tsx` (Tahap 1) SUDAH memanggil, hanya
+    belum dirender. Task 15 menambah tab, bukan endpoint baru.
+  - `kt-co`/`kt-eot`/`kt-ld`/`kt-bond`/`kt-surat` TIDAK semuanya
+    `tabProyek` seperti dugaan brief — diverifikasi ke `peta-menu.ts`
+    ulang: hanya `kt-co` yang `tabProyek: 'sec-co'` (Change Order, live
+    di `/proyek/[id]` admin, endpoint `change_orders` tak diriset detail
+    Tahap 2 ini). `kt-eot`/`kt-ld`/`kt-bond` menunjuk `tabProyek:
+    'sec-info'` TAPI py endpoint per-proyek BERDIRI SENDIRI
+    (`/api/v1/projects/:id/eot`, dst, di `rantai-kontrak.ts`) — jadi
+    TETAP BISA dibangun sebagai halaman standalone tanpa menunggu hub
+    tab, dan itu yang dipilih Task 13. `kt-rfi`/`kt-surat` BUKAN
+    `tabProyek` sama sekali — keduanya endpoint berdiri sendiri
+    (`rfi.ts`/`surat.ts`).
+
+- [x] **Step 2: Cek apakah `pm-portal/proyek/[id]/page.tsx` untuk PM sudah
+perlu dibangun di sini.**
+
+  **Temuan**: `pm-portal/proyek/[id]/page.tsx` SUDAH ADA (dibuat sebelum
+  Tahap 1, bukan baru) tapi isinya HANYA `router.replace` ke
+  `/proyek/:id` ADMIN — 16 baris, bukan hub tab PM. Membangun hub tab
+  PM penuh (pola `portal/proyek/[id]` klien, ~750 baris, 10 tab) adalah
+  pekerjaan besar tersendiri. **Diputuskan TIDAK dibangun di Tahap 2** —
+  endpoint EOT/LD/Bond/Klaim/Surat semuanya SUDAH per-proyek berdiri
+  sendiri (lihat Step 1), jadi Tahap 2 tidak BUTUH hub untuk berfungsi.
+  Task 13 menggabungkan EOT+LD+Bond jadi satu halaman `SegmentedTab`
+  3-arah sebagai gantinya. Modul yang MEMANG murni `tabProyek` tanpa
+  endpoint berdiri sendiri (`kt-co`/Change Order, dan diperkirakan
+  `jd-gantt`/`jd-kurva-s`/`jd-evm`/`jd-wbs`/`cc-rab` dst di Tahap 3
+  CECEP) dicatat sebagai UTANG di Task 16, ditunda sampai hub-nya benar-
+  benar dibutuhkan banyak modul sekaligus (kemungkinan didorong Tahap 3,
+  dicatat di Task 17 Step 1).
+
+- [x] **Step 3: Tulis breakdown Task 12-16 ke dokumen plan ini** —
+selesai, lihat di bawah. 5 task (bukan kerangka riset seperti Tahap 3-7)
+karena riset Step 1-2 di atas sudah cukup dalam untuk kode lengkap
+langsung.
+
+- [x] **Step 4: Update §6 spec** — lihat perubahan di §6 (baris
+"Perkiraan halaman sumber" untuk Tahap 2 dikoreksi dari "~15" ke "~18"
+(bertambah, BUKAN berkurang seperti dugaan awal brief — modul kontrak
+ternyata punya endpoint LEBIH BANYAK dari yang tabProyek asumsikan,
+lihat Step 1), dan catatan baru ditambahkan menjelaskan `kt-co` tetap
+`tabProyek` murni sementara `kt-eot`/`kt-ld`/`kt-bond` py endpoint
+sendiri meski targetnya sama-sama `/proyek`.
+
+### Task 12: Register Kontrak + Asuransi — halaman baru
+
+**Files:**
+- Create: `apps/web/app/pm-portal/kontrak-lengkap/register/page.tsx`
+- Create: `apps/web/app/pm-portal/kontrak-lengkap/asuransi/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Riset yang sudah dilakukan (Task 11 Step 1)** — ditulis di sini, bukan
+file terpisah, pola sama Task 5:
+
+- `kt-register` (Register Kontrak) TERNYATA sudah punya tabel & rute
+  sendiri — **koreksi atas `KontrakRingkas` yang sudah ada di
+  `_bersama/tipe.ts`**, yang komentarnya menyatakan "tak ada
+  tabel/endpoint `contracts` terpisah". Itu benar untuk `projects`
+  (nilai kontrak yang BERLAKU, dipakai invoice/PPN/retensi/EVM), tapi ada
+  ENTITAS KEDUA: tabel `kontrak` (migrasi 344, `apps/api/src/routes/v1/
+  kontrak.ts`) — dokumen kontrak induk+addendum sebagai peristiwa
+  tersendiri, dibandingkan (bukan menimpa) terhadap `projects.
+  contract_value`. `KontrakRingkas` TETAP BENAR untuk perannya sendiri
+  (ringkasan nilai proyek) — catatan komentarnya yang perlu ditambah,
+  bukan tipenya yang salah.
+  - `GET /api/v1/kontrak?project_id=&status=&jenis=` — `projects:view`.
+  - `GET /api/v1/kontrak/proyek/:projectId` — `projects:view`. Payload:
+    `{ proyek, kontrak: BarisKontrak[], nilai: {induk, addendum,
+    berjalan}, banding: {selisih, keterangan, ...}, co_belum_addendum }`.
+  - `POST /api/v1/kontrak` — `projects:contract` (PM PUNYA izin ini,
+    diverifikasi `role_permissions`). Body: `jenis` (`'induk'|'addendum'`),
+    `nomor`, `judul`, `tanggal_tanda_tangan`, `tanggal_mulai`,
+    `tanggal_selesai`, `nilai`, `retensi_pct`, `syarat_pembayaran`,
+    `lingkup`, `catatan`, `project_id`, `kontrak_induk_id` (wajib kalau
+    `jenis: 'addendum'`).
+  - `PATCH /api/v1/kontrak/:id/status` — `projects:contract`. Body:
+    `{ status: 'draf'|'berlaku'|'selesai'|'dibatalkan', alasan? }`.
+- `kt-asuransi` (Register Asuransi) — modul BACA + CATAT, TANPA endpoint
+  ubah-status (diverifikasi: `asuransi.ts` cuma GET+POST, nol PATCH).
+  - `GET /api/v1/asuransi?project_id=` — `projects:contract`. Payload:
+    `{ polis: BarisPolisDenganCelah[], jumlah_aktif, jumlah_kadaluarsa,
+    jumlah_segera_berakhir, jumlah_belum_berlaku, jumlah_ada_celah,
+    proyek_tanpa_polis: string[], total_nilai_pertanggungan }`.
+  - `POST /api/v1/asuransi` — `projects:contract`. Body: `project_id`,
+    `jenis`, `jenis_lain?`, `nomor_polis`, `penerbit`,
+    `nilai_pertanggungan`, `premi`, `periode_mulai`, `periode_selesai`,
+    `tertanggung`.
+
+- [ ] **Step 1: Tulis tipe di `_bersama/tipe.ts`**
+
+Tambahkan sesudah `KontrakRingkas` (jangan menggantikannya — perbaiki
+komentarnya menjelaskan `kontrak` sebagai entitas kedua, lihat riset di
+atas):
+
+```typescript
+/**
+ * Kontrak sebagai DOKUMEN (induk/addendum) — tabel `kontrak`, migrasi 344.
+ * Beda dari `KontrakRingkas`/`ProyekPM`: yang itu nilai BERLAKU di
+ * `projects.contract_value` (jalur uang); ini nilai yang DITANDATANGANI,
+ * dibandingkan terhadapnya. Bentuk dari `SELECT_KONTRAK`, `kontrak.ts`.
+ */
+export interface DokumenKontrak {
+  id: string
+  jenis: "induk" | "addendum"
+  nomor: string
+  judul: string
+  tanggal_tanda_tangan: string
+  tanggal_mulai: string | null
+  tanggal_selesai: string | null
+  nilai: number | string
+  retensi_pct: number | string | null
+  syarat_pembayaran: string | null
+  lingkup: string | null
+  status: "draf" | "berlaku" | "selesai" | "dibatalkan"
+  alasan_batal: string | null
+  file_url: string | null
+  catatan: string | null
+  project_id: string
+  client_id: string | null
+  kontrak_induk_id: string | null
+  dibuat_pada: string
+  proyek?: { id: string; name: string; contract_value: number | string } | null
+  klien?: { id: string; company_name: string | null; contact_person: string | null } | null
+  induk?: { id: string; nomor: string; judul: string } | null
+}
+
+/** Bentuk `hitungNilaiKontrak()` — `nilai` dari `GET /api/v1/kontrak/proyek/:id`. */
+export interface NilaiKontrakBerjalan {
+  induk: number
+  addendum: number
+  berjalan: number
+}
+
+/** Bentuk `bandingkanNilai()` — `banding` dari `GET /api/v1/kontrak/proyek/:id`. */
+export interface BandingNilaiKontrak {
+  selisih: number
+  keterangan: string
+  perlu_perhatian: boolean
+}
+
+export interface RespKontrakProyek {
+  proyek: { id: string; name: string; contract_value: number | string } | null
+  kontrak: DokumenKontrak[]
+  nilai: NilaiKontrakBerjalan
+  banding: BandingNilaiKontrak
+  co_belum_addendum: number
+}
+
+/**
+ * Polis asuransi + celah pertanggungan. Bentuk dari `hitungRegisterAsuransi()`,
+ * `lib/register-asuransi.ts` — dipanggil `asuransi.ts`.
+ */
+export interface PolisAsuransi {
+  id: string
+  project_id: string
+  jenis: string
+  jenis_lain: string | null
+  nomor_polis: string
+  penerbit: string | null
+  nilai_pertanggungan: number | string
+  premi: number | string | null
+  periode_mulai: string
+  periode_selesai: string
+  tertanggung: string | null
+  status: string
+  /** Field turunan — DIHITUNG server, bukan kolom. */
+  keadaan?: "aktif" | "kadaluarsa" | "segera_berakhir" | "belum_berlaku"
+  hari_tersisa?: number | null
+}
+
+export interface RespAsuransi {
+  polis: PolisAsuransi[]
+  jumlah_aktif: number
+  jumlah_kadaluarsa: number
+  jumlah_segera_berakhir: number
+  jumlah_belum_berlaku: number
+  jumlah_ada_celah: number
+  proyek_tanpa_polis: string[]
+  total_nilai_pertanggungan: number
+}
+```
+
+⚠️ `PolisAsuransi.keadaan`/`hari_tersisa` ditulis sebagai PERKIRAAN bentuk
+(field turunan disebut di komentar route tapi nama persisnya ada di
+`hitungRegisterAsuransi()`, `apps/api/src/lib/register-asuransi.ts`, yang
+BELUM dibaca isinya saat breakdown ini ditulis) — **executor Task 12 WAJIB
+membaca `lib/register-asuransi.ts` langsung sebelum memakai field ini**
+dan mengoreksi nama/bentuknya di tipe kalau berbeda, sebelum menulis
+halaman yang bergantung padanya. Field lain di atas (`polis[]` dasar,
+`jumlah_*`, `proyek_tanpa_polis`, `total_nilai_pertanggungan`) sudah
+diverifikasi langsung ke `asuransi.ts` — hanya bentuk PER-POLIS turunan
+yang masih perkiraan.
+
+- [ ] **Step 2: Tulis `kontrak-lengkap/register/page.tsx`**
+
+Pola: pemilih proyek (seperti `pm-portal/kontrak/page.tsx`), lalu daftar
+`DokumenKontrak` per proyek dari `GET /api/v1/kontrak/proyek/:id` — kartu
+kontrak induk di atas (dengan badge `StatusBadge`), addendum-addendumnya
+di bawahnya berindentasi (variant='netral' badge kecil "Addendum #n").
+Tampilkan panel banding (`banding.selisih`, `banding.keterangan`) dengan
+warna `--warning` kalau `banding.perlu_perhatian`. Tombol "+ Kontrak
+Baru"/"+ Addendum" buka `BottomSheet` dengan form disederhanakan (nomor,
+judul, tanggal tanda tangan, nilai, retensi %, syarat pembayaran) — field
+`lingkup`/`catatan` sebagai textarea opsional collapsed by default (§1
+spec: modul kompleks disederhanakan, bukan direplikasi field-per-field).
+PM punya `projects:contract` jadi form CREATE disertakan (bukan baca
+saja). Transisi status (`draf→berlaku→selesai`/`dibatalkan`) sebagai
+tombol aksi di kartu detail — bukan swipe (bukan approval biner
+approve/reject, ini siklus dokumen 4 status).
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { FileSignature, Plus, AlertTriangle } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import BottomSheet from "@/components/portal/BottomSheet";
+import type { ProyekPM, RespKontrakProyek, DokumenKontrak, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+interface RespProyek { projects: ProyekPM[] }
+
+function fmtRupiah(v: number | string | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const n = typeof v === "string" ? Number(v) : v;
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+}
+function fmtTanggal(s: string | null): string {
+  if (!s) return "—";
+  return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+const LABEL_STATUS: Record<string, string> = {
+  draf: "Draf", berlaku: "Berlaku", selesai: "Selesai", dibatalkan: "Dibatalkan",
+};
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  draf: "netral", berlaku: "approved", selesai: "info", dibatalkan: "rejected",
+};
+const TRANSISI: Record<string, string[]> = {
+  draf: ["berlaku", "dibatalkan"],
+  berlaku: ["selesai", "dibatalkan"],
+  selesai: [],
+  dibatalkan: [],
+};
+
+export default function PmRegisterKontrakPage() {
+  const [proyekId, setProyekId] = useState("");
+  const [sheetTerbuka, setSheetTerbuka] = useState(false);
+  const [jenisBaru, setJenisBaru] = useState<"induk" | "addendum">("induk");
+  const [indukDipilih, setIndukDipilih] = useState<DokumenKontrak | null>(null);
+  const [form, setForm] = useState({ nomor: "", judul: "", tanggal_tanda_tangan: "", nilai: "", retensi_pct: "", syarat_pembayaran: "" });
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+
+  const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+  const daftarProyek = useMemo(() => (dataProyek?.projects ?? []).filter((p) => p.pm), [dataProyek]);
+  const proyekAktif = proyekId || daftarProyek[0]?.id || "";
+
+  const url = proyekAktif ? `/api/v1/kontrak/proyek/${proyekAktif}` : null;
+  const { data, memuat, galat } = useData<RespKontrakProyek>(url);
+
+  const induk = useMemo(() => (data?.kontrak ?? []).filter((k) => k.jenis === "induk"), [data]);
+  const addendumPerInduk = useMemo(() => {
+    const m = new Map<string, DokumenKontrak[]>();
+    for (const k of data?.kontrak ?? []) {
+      if (k.jenis !== "addendum" || !k.kontrak_induk_id) continue;
+      m.set(k.kontrak_induk_id, [...(m.get(k.kontrak_induk_id) ?? []), k]);
+    }
+    return m;
+  }, [data]);
+
+  function bukaForm(jenis: "induk" | "addendum", induk?: DokumenKontrak) {
+    setJenisBaru(jenis);
+    setIndukDipilih(induk ?? null);
+    setForm({ nomor: "", judul: "", tanggal_tanda_tangan: "", nilai: "", retensi_pct: "", syarat_pembayaran: "" });
+    setGalatForm(null);
+    setSheetTerbuka(true);
+  }
+
+  async function simpanKontrak() {
+    if (!proyekAktif) return;
+    if (form.nomor.trim().length === 0 || form.judul.trim().length === 0) {
+      setGalatForm("Nomor dan judul wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post("/api/v1/kontrak", {
+        project_id: proyekAktif,
+        jenis: jenisBaru,
+        kontrak_induk_id: jenisBaru === "addendum" ? indukDipilih?.id : undefined,
+        nomor: form.nomor.trim(),
+        judul: form.judul.trim(),
+        tanggal_tanda_tangan: form.tanggal_tanda_tangan || undefined,
+        nilai: form.nilai ? Number(form.nilai) : undefined,
+        retensi_pct: form.retensi_pct ? Number(form.retensi_pct) : undefined,
+        syarat_pembayaran: form.syarat_pembayaran.trim() || undefined,
+      });
+      setSheetTerbuka(false);
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menyimpan kontrak"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function ubahStatus(k: DokumenKontrak, status: string) {
+    try {
+      await api.patch(`/api/v1/kontrak/${k.id}/status`, { status });
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal mengubah status kontrak"));
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Register Kontrak
+      </h1>
+
+      {daftarProyek.length > 1 && (
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
+          <select
+            value={proyekAktif}
+            onChange={(e) => setProyekId(e.target.value)}
+            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
+          >
+            {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+      )}
+
+      {!proyekAktif && <EmptyState icon={FileSignature} judul="Pilih proyek" deskripsi="Kontrak tercatat per proyek." />}
+      {memuat && <SkeletonCard tinggi={160} />}
+      {galat && <EmptyState icon={FileSignature} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+
+      {!memuat && data?.banding?.perlu_perhatian && (
+        <div role="alert" style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: 12, borderRadius: 12, background: "var(--warning-bg)", border: "1px solid var(--warning-border)" }}>
+          <AlertTriangle size={16} color="var(--warning)" aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--on-warning-bg)" }}>Selisih nilai kontrak</div>
+            <div style={{ fontSize: 12, color: "var(--on-warning-bg)", marginTop: 2 }}>{data.banding.keterangan}</div>
+          </div>
+        </div>
+      )}
+
+      {!memuat && proyekAktif && induk.length === 0 && (
+        <EmptyState icon={FileSignature} judul="Belum ada kontrak" deskripsi="Kontrak induk proyek ini belum dicatat." />
+      )}
+
+      {!memuat && induk.map((k) => (
+        <div key={k.id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{k.nomor}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{k.judul}</div>
+            </div>
+            <StatusBadge status={VARIAN_STATUS[k.status] ?? "netral"} label={LABEL_STATUS[k.status] ?? k.status} />
+          </div>
+          <div style={{ fontSize: 18, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(k.nilai)}</div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            TTD {fmtTanggal(k.tanggal_tanda_tangan)} · Retensi {k.retensi_pct ?? "—"}%
+          </div>
+
+          {(addendumPerInduk.get(k.id) ?? []).map((a) => (
+            <div key={a.id} style={{ marginLeft: 16, paddingLeft: 12, borderLeft: "2px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{a.nomor} · {a.judul}</div>
+                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{fmtRupiah(a.nilai)}</div>
+              </div>
+              <StatusBadge status={VARIAN_STATUS[a.status] ?? "netral"} label={LABEL_STATUS[a.status] ?? a.status} />
+            </div>
+          ))}
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+            {(TRANSISI[k.status] ?? []).map((tujuan) => (
+              <button
+                key={tujuan}
+                type="button"
+                onClick={() => ubahStatus(k, tujuan)}
+                style={{ minHeight: 36, padding: "0 12px", borderRadius: "var(--portal-radius-pill)", background: "var(--surface-subtle)", color: "var(--text-primary)", border: "1px solid var(--border)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+              >
+                → {LABEL_STATUS[tujuan]}
+              </button>
+            ))}
+            {k.status === "berlaku" && (
+              <button
+                type="button"
+                onClick={() => bukaForm("addendum", k)}
+                style={{ minHeight: 36, padding: "0 12px", borderRadius: "var(--portal-radius-pill)", background: "var(--info-bg)", color: "var(--navy)", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+              >
+                + Addendum
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {!memuat && proyekAktif && (
+        <button
+          type="button"
+          onClick={() => bukaForm("induk")}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: 14, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+        >
+          <Plus size={18} aria-hidden="true" /> Kontrak Induk Baru
+        </button>
+      )}
+
+      <BottomSheet terbuka={sheetTerbuka} onTutup={() => setSheetTerbuka(false)} judul={jenisBaru === "induk" ? "Kontrak Induk Baru" : `Addendum — ${indukDipilih?.nomor ?? ""}`}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Nomor
+            <input type="text" value={form.nomor} onChange={(e) => setForm((f) => ({ ...f, nomor: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Judul
+            <input type="text" value={form.judul} onChange={(e) => setForm((f) => ({ ...f, judul: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Tanggal Tanda Tangan
+            <input type="date" value={form.tanggal_tanda_tangan} onChange={(e) => setForm((f) => ({ ...f, tanggal_tanda_tangan: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Nilai (Rp)
+            <input type="number" value={form.nilai} onChange={(e) => setForm((f) => ({ ...f, nilai: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Retensi (%)
+            <input type="number" value={form.retensi_pct} onChange={(e) => setForm((f) => ({ ...f, retensi_pct: e.target.value }))}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && (
+            <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+              {galatForm}
+            </div>
+          )}
+          <button type="button" onClick={simpanKontrak} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan"}
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: Baca `apps/api/src/lib/register-asuransi.ts` untuk bentuk
+`keadaan`/`hari_tersisa` per-polis** (lihat peringatan Step 1), koreksi
+`PolisAsuransi` di `_bersama/tipe.ts` kalau namanya berbeda.
+
+- [ ] **Step 4: Tulis `kontrak-lengkap/asuransi/page.tsx`**
+
+Daftar polis per proyek (atau semua proyek kalau tak dipilih — endpoint
+mendukung tanpa `project_id`), kartu per polis dengan `StatusBadge`
+mengikuti `keadaan` (aktif=approved, kadaluarsa=rejected,
+segera_berakhir=pending, belum_berlaku=netral), tampilkan masa berlaku
+dan nilai pertanggungan. Banner ringkasan di atas (4 KPI:
+`jumlah_aktif`/`jumlah_kadaluarsa`/`jumlah_segera_berakhir`/
+`proyek_tanpa_polis.length`). Tombol "+ Polis Baru" buka `BottomSheet`
+form (jenis, nomor polis, penerbit, nilai pertanggungan, premi, periode
+mulai/selesai, tertanggung) — PM punya `projects:contract` jadi form
+CREATE disertakan. TANPA tombol ubah status (endpoint tak menyediakannya
+— read+create saja, sesuai riset Step 1).
+
+- [ ] **Step 5: Typecheck, lint, penjaga (pola sama Task 6 Step 6-8)**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+pnpm exec eslint app/pm-portal/kontrak-lengkap/
+node scripts/uji-token-css-ada.mjs
+node scripts/uji-tombol-primer-seragam.mjs
+node scripts/kerapatan-ratchet.mjs
+cd ../api && node scripts/audit-halaman-pakai-cache.mjs
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add apps/web/app/pm-portal/kontrak-lengkap/register apps/web/app/pm-portal/kontrak-lengkap/asuransi apps/web/app/pm-portal/_bersama/tipe.ts
+git commit -m "feat(pm-portal): Register Kontrak, Asuransi — kelompok Kontrak bagian 1"
+```
+
+---
+
+### Task 13: EOT + Denda Keterlambatan + Register Jaminan — halaman baru
+
+**Files:**
+- Create: `apps/web/app/pm-portal/kontrak-lengkap/eot-ld-bond/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Riset (Task 11 Step 1)**: `kt-eot`/`kt-ld`/`kt-bond` di web adalah TAB
+`sec-info` pada `/proyek/[id]` admin (`tabProyek: 'sec-info'`, dari
+`peta-menu.ts`) — bukan tiga halaman berdiri sendiri. `pm-portal/proyek/
+[id]/page.tsx` PM SAAT INI cuma redirect ke `/proyek/:id` admin (bukan
+hub tab sendiri — dikonfirmasi baca filenya, 16 baris, murni
+`router.replace`). Membangun hub tab PM penuh (pola `portal/proyek/[id]`
+klien, 750 baris) adalah pekerjaan besar tersendiri yang lebih pas
+ditangani Task 16 (navigasi) atau tahap terpisah — **untuk Tahap 2 ini,
+ketiganya digabung SATU halaman standalone dengan `SegmentedTab` 3-arah**
+(pola sama `pm-portal/jadwal/page.tsx` yang menggabung CPM+Baseline satu
+halaman meski keduanya modul beda), bukan menunggu hub proyek dulu.
+Endpoint semuanya SUDAH per-proyek (`/api/v1/projects/:id/eot`, dst),
+jadi tak butuh hub untuk berfungsi.
+
+Ketiganya `projects:view` (baca) / `projects:edit` (aksi) — PM punya
+KEDUANYA:
+
+- `GET /api/v1/projects/:id/eot` → `{ data: BarisEot[], meta: {
+  tanggalSelesaiEfektif: string, eotDisetujuiHari: number,
+  eotMenggantung: number } }` (nama field `meta` PERKIRAAN dari
+  `tanggalSelesaiEfektif()` — **executor WAJIB baca
+  `apps/api/src/lib/rantai-kontrak.ts` fungsi itu sebelum memakainya**,
+  hanya `hasil.tanggal.eotMenggantung` yang terverifikasi langsung dari
+  endpoint LD di atas).
+- `POST /api/v1/projects/:id/eot` — `projects:edit`. Body: `eot_number?`,
+  `days_requested`, `reason` (min 10 karakter).
+- `PATCH /api/v1/eot/:id/decide` — `projects:edit`. Body: `{ status:
+  'disetujui'|'ditolak', days_approved?, decision_note? }`.
+- `GET /api/v1/projects/:id/liquidated-damages` → `{ data: HasilLD,
+  meta: { label: string, peringatan: string | null } }`.
+- `GET /api/v1/bonds?project_id=&status=` → `{ data: BarisBond[], meta:
+  RingkasBond }`. `POST /api/v1/bonds` — `projects:edit`. Body:
+  `project_id` atau `bid_id`, `bond_type`
+  (`'penawaran'|'pelaksanaan'|'uang_muka'|'pemeliharaan'`), `bond_number?`,
+  `issuer?`, `amount`, `issued_date`, `expiry_date`, `notes?`.
+  `PATCH /api/v1/bonds/:id` — `projects:edit`, field bebas dari daftar
+  putih (`bond_number`, `issuer`, `amount`, `issued_date`, `expiry_date`,
+  `status`, `released_at`, `notes`).
+
+- [ ] **Step 1: Baca `apps/api/src/lib/rantai-kontrak.ts`** untuk bentuk
+persis `hitungLDProyek()` (field `HasilLD`) dan `tanggalSelesaiEfektif()`
+SEBELUM menulis tipe — keduanya baru diverifikasi dari signature endpoint
+(Step riset di atas), belum dari isi fungsinya.
+
+- [ ] **Step 2: Tulis tipe di `_bersama/tipe.ts`**
+
+```typescript
+/** Bentuk `ambilEOT()` map ke `BarisEOT` (lib) + kolom mentah dari `contract_eot`. */
+export interface EotProyek {
+  id: string
+  eot_number: string | null
+  days_requested: number
+  days_approved: number | null
+  reason: string
+  status: "diajukan" | "disetujui" | "ditolak"
+  submitted_at: string
+  decided_at: string | null
+  decision_note: string | null
+  created_at: string
+}
+
+/** `contract_bonds` — bentuk dari `GET /api/v1/bonds`. */
+export interface BondProyek {
+  id: string
+  project_id: string | null
+  bid_id: string | null
+  bond_type: "penawaran" | "pelaksanaan" | "uang_muka" | "pemeliharaan"
+  bond_number: string | null
+  issuer: string | null
+  amount: number | string
+  issued_date: string
+  expiry_date: string
+  status: "aktif" | "dikembalikan" | "dicairkan" | "kadaluarsa"
+  released_at: string | null
+  notes: string | null
+}
+
+export interface RespEot { data: EotProyek[]; meta: Record<string, unknown> }
+export interface RespBond { data: BondProyek[]; meta: Record<string, unknown> }
+/** `hasil` dari `hitungLDProyek()` — bentuk PERKIRAAN, verifikasi Step 1 wajib sebelum dipakai. */
+export interface RespLd { data: Record<string, unknown>; meta: { label: string; peringatan: string | null } }
+```
+
+- [ ] **Step 3: Tulis `kontrak-lengkap/eot-ld-bond/page.tsx`**
+
+`SegmentedTab` 3 opsi (EOT / Denda / Jaminan). Tab EOT: daftar pengajuan
+dengan `StatusBadge` (diajukan=pending, disetujui=approved,
+ditolak=rejected), tombol "+ Ajukan EOT" (`BottomSheet`: nomor opsional,
+jumlah hari, alasan min 10 karakter — validasi client-side SEBELUM
+kirim, pesan sama dengan validasi server). Untuk EOT berstatus `diajukan`,
+sertakan dua tombol putuskan (Setujui/Tolak, BUKAN `SwipeableCard` —
+keputusan EOT butuh input `days_approved`/`decision_note`, tak bisa
+swipe-cepat tanpa form). Tab Denda: tampilkan `meta.label` menonjol
+(bedakan "Angka final" vs "ESTIMASI — proyek belum selesai") dan
+`meta.peringatan` kalau ada (banner `--warning`), field detail dari
+`data` (baca saja — endpoint ini TAK PUNYA POST/PATCH, murni turunan EOT
++ tanggal). Tab Jaminan: daftar `BondProyek` per jenis, `StatusBadge`
+(aktif=approved, dicairkan=info, dikembalikan=netral,
+kadaluarsa=rejected), tombol "+ Jaminan Baru" (`BottomSheet`: jenis,
+nomor, penerbit, nilai, tanggal terbit/kadaluarsa) dan untuk jaminan
+`aktif` yang sudah lewat proyek selesai, tombol "Tandai Dicairkan/
+Dikembalikan" (PATCH status).
+
+- [ ] **Step 4: Typecheck, lint, penjaga**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add apps/web/app/pm-portal/kontrak-lengkap/eot-ld-bond apps/web/app/pm-portal/_bersama/tipe.ts
+git commit -m "feat(pm-portal): EOT, Denda Keterlambatan, Register Jaminan — kelompok Kontrak bagian 2"
+```
+
+---
+
+### Task 14: Klaim Kontraktual + Surat Masuk/Keluar — halaman baru
+
+**Files:**
+- Create: `apps/web/app/pm-portal/kontrak-lengkap/klaim/page.tsx`
+- Create: `apps/web/app/pm-portal/kontrak-lengkap/surat/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Riset (Task 11 Step 1)**:
+
+⚠️ **Nama "klaim" bentrok dua modul berbeda** — jangan tertukar saat
+implementasi:
+- `kt-claims` (§6 tabel spec: "Claims") = KLAIM KONTRAKTUAL, tabel
+  `contract_claims` (migrasi 184), tuntutan biaya kontraktor ke pemberi
+  kerja. Endpoint di `rantai-kontrak.ts`, permission `projects:view`/
+  `projects:edit` — **PM punya keduanya**.
+- Permission `klaim:*` di `role_permissions` (ditemukan saat mengukur PM)
+  adalah modul LAIN SAMA SEKALI: Klaim Perjalanan (`klaim-perjalanan.ts`,
+  `klaim_perjalanan` — penggantian biaya karyawan yang ditalangi dulu).
+  PM cuma punya `klaim:setujui`+`klaim:bayar` (BUKAN `klaim:view`/
+  `klaim:kelola`, diverifikasi `role_permissions` — dua baris hilang
+  berarti PM tak bisa MELIHAT/MENGAJUKAN klaim perjalanan, hanya
+  memutuskan & mencairkan punya orang lain). Modul ini KELUAR scope Task
+  14 — ia bukan `kt-claims` dari §6 tabel, dan kemunculannya
+  kemungkinan besar lewat inbox approval terpusat yang sudah ada
+  (`pm-portal/approval`), bukan halaman berdiri sendiri. **Dicatat di
+  sini supaya Task 16 (verifikasi) tidak keliru menganggap ini modul yang
+  terlewat** — ia scope-nya beda, bukan lupa dikerjakan.
+
+Endpoint Klaim Kontraktual (`GET/POST /api/v1/projects/:id/claims`,
+`PATCH /api/v1/claims/:id/decide`):
+- `GET` → `{ data: BarisKlaim[], ringkas: { jumlah, total_diklaim,
+  total_disetujui, berisiko_gugur, mendesak } }`. Tiap baris punya
+  `batas_pemberitahuan: { keadaan: 'tak_diatur'|'aman'|'berjalan'|
+  'mendesak'|'terlambat'|'tak_terbaca', sisaHari: number|null,
+  hariTerpakai: number|null, pesan? }` (verified: `evaluasiBatasPemberitahuan`,
+  `lib/klaim-kontraktual.ts:59`).
+- `POST` — `projects:edit`. Body: `claim_number`, `claim_type?`, `title`
+  (min 10 karakter), `description?`, `event_date`, `notified_at?`,
+  `notice_days_limit?`, `amount_claimed`, `eot_id?`.
+- `PATCH /claims/:id/decide` — `projects:edit`. Body WAJIB `project_id`
+  (klaim mewarisi tenancy lewat proyek, bukan lewat id-nya sendiri —
+  lihat komentar route), `status`
+  (`'disetujui'|'disetujui_sebagian'|'ditolak'|'gugur'`), `amount_approved?`,
+  `decision_note?`.
+
+Endpoint Surat (`GET /api/v1/letters` lintas-proyek, `GET/POST
+/api/v1/projects/:id/letters`, `PATCH /api/v1/letters/:id`), permission
+`documents:manage` (PM punya) untuk KESELURUHAN — bukan permission surat
+sendiri (diverifikasi komentar route: "Surat adalah korespondensi
+dokumen, dan izin itu sudah ada"):
+- `GET /api/v1/letters?arah=&status=&project_id=` → `{ data:
+  SuratLintasProyek[], proyek: {id,name}[], ringkas: { jumlah, masuk,
+  keluar, kita_belum_menjawab, lawan_belum_menjawab, mendesak } }` —
+  dipakai halaman ringkas lintas-proyek (mis. "surat mana yang wajib
+  saya jawab hari ini", lintas semua proyek PM).
+  Field `batas: { keadaan: 'tak_perlu'|'tak_diatur'|'berjalan'|
+  'mendesak'|'lewat'|'tak_terbaca', sisaHari: number|null,
+  siapaYangDitunggu: 'kita'|'lawan'|null, pesan? }` (verified:
+  `evaluasiBatasBalas`, `lib/surat-korespondensi.ts:61`).
+- `POST /api/v1/projects/:id/letters` — Body: `nomor`, `perihal` (min 5
+  karakter), `arah` (`'masuk'|'keluar'`), `jenis?`, `ringkasan?`,
+  `dari_pihak`, `kepada_pihak` (wajib), `tanggal_kirim?`,
+  `tanggal_terima?`, `membalas_id?`, `butuh_balasan?`, `batas_balas?`,
+  `status?` (default `'draft'`), `dokumen_id?`.
+- `PATCH /api/v1/letters/:id` — Body WAJIB `project_id` (pola sama klaim
+  — tenancy lewat proyek), field lain merge di atas nilai lama.
+
+- [ ] **Step 1: Tulis tipe di `_bersama/tipe.ts`**
+
+```typescript
+export type KeadaanBatas = "tak_diatur" | "aman" | "berjalan" | "mendesak" | "terlambat" | "tak_terbaca"
+export interface BatasPemberitahuan {
+  keadaan: KeadaanBatas
+  sisaHari: number | null
+  hariTerpakai: number | null
+  pesan?: string
+}
+
+/** `contract_claims` + `batas_pemberitahuan` turunan. Bentuk dari `rantai-kontrak.ts` bagian klaim. */
+export interface KlaimKontraktual {
+  id: string
+  project_id: string
+  claim_number: string
+  claim_type: string
+  title: string
+  description: string | null
+  event_date: string
+  notified_at: string | null
+  notice_days_limit: number | null
+  amount_claimed: number | string
+  amount_approved: number | string | null
+  eot_id: string | null
+  status: "draft" | "diberitahukan" | "diajukan" | "disetujui" | "disetujui_sebagian" | "ditolak" | "gugur"
+  decision_note: string | null
+  decided_at: string | null
+  batas_pemberitahuan: BatasPemberitahuan
+}
+export interface RespKlaimKontraktual {
+  data: KlaimKontraktual[]
+  ringkas: { jumlah: number; total_diklaim: number; total_disetujui: number; berisiko_gugur: number; mendesak: number }
+}
+
+export type KeadaanBalas = "tak_perlu" | "tak_diatur" | "berjalan" | "mendesak" | "lewat" | "tak_terbaca"
+export interface BatasBalas {
+  keadaan: KeadaanBalas
+  sisaHari: number | null
+  siapaYangDitunggu: "kita" | "lawan" | null
+  pesan?: string
+}
+
+/** `project_letters`. Bentuk dari `surat.ts` (`BarisSurat` + `lengkapiBatas`). */
+export interface SuratProyek {
+  id: string
+  project_id: string
+  nomor: string
+  arah: "masuk" | "keluar"
+  jenis: string
+  perihal: string
+  ringkasan: string | null
+  dari_pihak: string
+  kepada_pihak: string
+  tanggal_kirim: string | null
+  tanggal_terima: string | null
+  membalas_id: string | null
+  butuh_balasan: boolean
+  batas_balas: string | null
+  status: "draft" | "terkirim" | "diterima" | "dibalas" | "selesai" | "kedaluwarsa"
+  dokumen_id: string | null
+  created_at: string
+  batas: BatasBalas
+  project_name?: string
+}
+export interface RespSuratLintasProyek {
+  data: SuratProyek[]
+  proyek: { id: string; name: string }[]
+  ringkas: { jumlah: number; masuk: number; keluar: number; kita_belum_menjawab: number; lawan_belum_menjawab: number; mendesak: number }
+}
+```
+
+- [ ] **Step 2: Tulis `kontrak-lengkap/klaim/page.tsx`**
+
+Pemilih proyek + `SegmentedTab` bila mau (atau daftar polos — klaim
+biasanya sedikit per proyek). Kartu ringkas 3 KPI di atas
+(`ringkas.total_diklaim`, `ringkas.berisiko_gugur`, `ringkas.mendesak`).
+Daftar klaim dengan `StatusBadge`, dan badge KEDUA untuk
+`batas_pemberitahuan.keadaan` (mendesak/terlambat = warna `--danger`,
+ditonjolkan di ATAS status utama — batas waktu adalah alasan modul ini
+ada, sesuai komentar route "klaim jarang gugur karena angkanya salah —
+ia gugur karena terlambat diberitahukan"). Tombol "+ Klaim Baru"
+(`BottomSheet`: nomor, judul min 10 karakter, tanggal peristiwa, nilai
+diklaim, tanggal pemberitahuan opsional, batas hari opsional). Untuk
+klaim berstatus `diajukan`/`diberitahukan`, tombol Putuskan
+(`BottomSheet` kedua: status disetujui/disetujui_sebagian/ditolak/gugur,
+nilai disetujui kalau relevan, catatan keputusan) — kirim `project_id`
+eksplisit di body sesuai kontrak endpoint.
+
+- [ ] **Step 3: Tulis `kontrak-lengkap/surat/page.tsx`**
+
+Pakai endpoint LINTAS-PROYEK (`GET /api/v1/letters`) sebagai default —
+ini yang menjawab "surat mana yang wajib saya jawab hari ini" lintas
+semua proyek PM, bukan per-proyek (beda dari pola pemilih-proyek halaman
+lain di Task 12-13, karena endpoint ini SENGAJA dirancang lintas-proyek —
+lihat komentar route). `SegmentedTab` 2 opsi (Masuk/Keluar) map ke
+`?arah=`. Banner ringkas (`ringkas.kita_belum_menjawab` ditonjolkan warna
+`--danger` — ini pekerjaan PM, `ringkas.lawan_belum_menjawab` warna
+netral — bahan penagihan, bukan pekerjaan PM hari ini, ikuti pembedaan
+eksplisit di komentar route). Kartu surat dengan `project_name`,
+`StatusBadge` utama + badge batas balas kalau `butuh_balasan`. Tombol
+"+ Surat Baru" perlu pemilih proyek DI DALAM `BottomSheet` (karena
+endpoint create per-proyek) — field nomor, perihal min 5 karakter, arah,
+dari/kepada pihak wajib, tanggal kirim/terima, butuh balasan (checkbox
+yang menampilkan field batas balas kalau dicentang).
+
+- [ ] **Step 4: Typecheck, lint, penjaga**
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add apps/web/app/pm-portal/kontrak-lengkap/klaim apps/web/app/pm-portal/kontrak-lengkap/surat apps/web/app/pm-portal/_bersama/tipe.ts
+git commit -m "feat(pm-portal): Klaim Kontraktual, Surat Masuk/Keluar — kelompok Kontrak bagian 3"
+```
+
+---
+
+### Task 15: Lengkapi Jadwal (Histogram, Method Statement) + Analisa Keterlambatan
+
+**Files:**
+- Modify: `apps/web/app/pm-portal/jadwal/page.tsx` (tambah 2 tab)
+- Create: `apps/web/app/pm-portal/kontrak-lengkap/keterlambatan/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Riset (Task 11 Step 1)**: `jd-histogram` (`/jadwal?bagian=histogram`)
+dan `jd-method` (`/jadwal?bagian=method`) TERNYATA sudah bagian dari
+PAYLOAD yang `pm-portal/jadwal/page.tsx` SUDAH FETCH
+(`GET /api/v1/jadwal-cpm/:projectId` memulangkan `{ proyek, kalender,
+cpm, histogram, methodStatement }` — dikonfirmasi baca
+`apps/api/src/routes/v1/jadwal-cpm.ts:128-143`) TAPI halaman existing
+HANYA merender `cpm` (tab "Jalur Kritis") dan panggilan terpisah untuk
+baseline. `histogram`+`methodStatement` sudah TERKIRIM tiap request,
+cuma tak ditampilkan — Task 15 menambah 2 tab TANPA endpoint baru.
+
+`jd-delay` (Analisa Keterlambatan, `/proyek/keterlambatan` di web) BENAR
+halaman terpisah — `GET /api/v1/analisa-keterlambatan?project_id=`,
+`projects:view`, murni baca (komentar route: "Angka yang bisa disunting
+berhenti jadi dasar apa pun — dan yang paling berkepentingan
+menyuntingnya adalah pihak yang sedang dituduh terlambat").
+
+`milestones:manage` dibutuhkan untuk POST dependensi/libur/sumber daya
+(`jadwal-cpm.ts:148,236,282`) — PM PUNYA permission ini, tapi ketiga POST
+itu adalah KONFIGURASI (menambah dependensi antar-milestone, hari libur,
+kebutuhan sumber daya per milestone) yang lebih pas dikerjakan di web
+(form kompleks, jarang dipakai harian) — Task 15 HANYA menampilkan
+histogram+method statement BACA SAJA plus PUTUSAN method statement
+(`disetujui`/`ditolak`, mirip pola submittal), bukan ketiga form
+konfigurasi itu. Endpoint keputusan method statement TIDAK ditemukan
+sebagai rute terpisah di `jadwal-cpm.ts` — **executor WAJIB grep ulang
+`method_statement` di `apps/api/src/routes/v1/*.ts` sebelum menulis
+tombol putuskan**; kalau memang tak ada rute PATCH-nya, tab Method
+Statement tetap BACA SAJA (tampilkan status+alasan_tolak) dan catat
+temuan itu di commit message, bukan memaksa membangun tombol ke endpoint
+yang tak ada.
+
+- [ ] **Step 1: Grep ulang endpoint keputusan method statement**
+
+```bash
+grep -rn "method_statement" apps/api/src/routes/v1/*.ts
+```
+
+Catat hasilnya di commit message Task 15 (ada/tidaknya rute PATCH
+menentukan apakah tab Method Statement dapat tombol aksi atau baca saja).
+
+- [ ] **Step 2: Tulis tipe di `_bersama/tipe.ts`**
+
+Bentuk `histogram` dari `histogramSumberDaya()` dan `methodStatement`
+dari `select` eksplisit di `jadwal-cpm.ts:66-68` (`id, milestone_id,
+nomor, judul, status, alasan_tolak, diputuskan_pada,
+pengendalian_risiko`) — yang kedua terverifikasi PERSIS dari kode,
+yang pertama (bentuk `Periode`) PERKIRAAN dan wajib dicocokkan ke
+`apps/api/src/lib/cpm.ts` sebelum dipakai:
+
+```typescript
+/** `methodStatement[]` dari `GET /api/v1/jadwal-cpm/:projectId` — select eksplisit jadwal-cpm.ts:66-68. */
+export interface MethodStatementItem {
+  id: string
+  milestone_id: string | null
+  nomor: string | null
+  judul: string
+  status: "diajukan" | "disetujui" | "ditolak"
+  alasan_tolak: string | null
+  diputuskan_pada: string | null
+  pengendalian_risiko: string | null
+}
+
+/**
+ * `histogram` dari `GET /api/v1/jadwal-cpm/:projectId` — bentuk PERKIRAAN
+ * dari `histogramSumberDaya()`, `lib/cpm.ts`. WAJIB dicocokkan ke fungsi
+ * itu sebelum dipakai (belum dibaca isinya saat breakdown ini ditulis).
+ */
+export interface HistogramSumberDaya {
+  periode: Array<{
+    minggu: string
+    sumberDaya: Array<{ nama: string; jenis: string; dibutuhkan: number; tersedia: number | null; kelebihan: number }>
+  }>
+}
+```
+
+- [ ] **Step 3: Tambah 2 tab di `jadwal/page.tsx`**
+
+`SegmentedTab` existing (`cpm`/`baseline`) diperluas jadi 4 opsi
+(`cpm`/`histogram`/`method`/`baseline`) — TIDAK mengubah dua tab lama,
+hanya menambah. `RespJadwalCpm` di file itu diperluas: tambah
+`histogram: HistogramSumberDaya` dan `methodStatement:
+MethodStatementItem[]` ke interface yang sudah ada (import dari
+`_bersama/tipe.ts` atau extend inline — ikuti gaya file, yang saat ini
+mendefinisikan `RespJadwalCpm` LOKAL di file, bukan di `_bersama/tipe.ts`,
+jadi field baru ditambah ke definisi lokal itu, BUKAN definisi terpisah
+di `tipe.ts` — perbedaan dari pola Task 12-14 karena tipe ini sudah ada
+sebagai tipe halaman, bukan tipe bersama).
+
+Tab Histogram: per periode/minggu, tampilkan kebutuhan vs tersedia per
+sumber daya sebagai bar chart sederhana (dua batang berdampingan, warna
+`--navy` untuk dibutuhkan dan `--info` untuk tersedia) atau daftar
+angka kalau chart dianggap berlebihan untuk mobile — **keputusan
+executor, catat alasannya di komentar kode** (§1 spec: modul kompleks
+disederhanakan, executor putuskan per halaman). Highlight periode dengan
+`kelebihan < 0` (kekurangan sumber daya) warna `--danger` (komentar route
+"yang dilaporkan PUNCAK, bukan rata-rata" — histogram jangan dirata-rata
+saat disederhanakan untuk mobile, itu justru menghilangkan sinyal yang
+dijaga backend).
+
+Tab Method Statement: kartu per item, `StatusBadge`
+(diajukan=pending/disetujui=approved/ditolak=rejected), tampilkan
+`pengendalian_risiko` (field K3 — kosongkan-merah kalau null, sesuai
+catatan `peta-menu.ts`: "Kolom pengendalian risiko K3 ditandai merah
+kalau kosong"). Tombol putuskan HANYA kalau Step 1 menemukan rute
+PATCH-nya.
+
+- [ ] **Step 4: Tulis `kontrak-lengkap/keterlambatan/page.tsx`**
+
+Baca saja (tak ada tombol aksi — endpoint ini murni turunan, sesuai
+riset). Pemilih proyek (atau semua proyek tanpa filter — endpoint
+mendukung tanpa `project_id`). Banner ringkas 4 KPI
+(`jumlah_berjalan_terlambat` warna `--danger` paling menonjol,
+`telat_terparah`, `total_estimasi_paparan` format Rupiah,
+`jumlah_proyek_denda_mati` sebagai catatan kecil — bukan KPI utama, tapi
+JANGAN dihilangkan: komentar lib eksplisit "Rp0 tak boleh terbaca sebagai
+tak ada risiko"). Daftar `BarisAnalisa` per milestone dengan
+`StatusBadge` mengikuti `StatusTelat` (tepat_waktu=approved,
+belum_jatuh_tempo=netral, selesai_terlambat=rejected,
+berjalan_terlambat=rejected, dimaafkan_eot=info — dimaafkan ditampilkan
+beda warna dari terlambat murni, sesuai prinsip modul "yang sudah
+dimaafkan EOT bukan keterlambatan"). Tampilkan `telat_efektif` bukan
+`telat_kotor` sebagai angka utama (kotor sebagai detail sekunder kalau
+beda dari efektif), dan `estimasi_paparan` per baris kalau tak null.
+
+- [ ] **Step 5: Typecheck, lint, penjaga**
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add apps/web/app/pm-portal/jadwal/page.tsx apps/web/app/pm-portal/kontrak-lengkap/keterlambatan apps/web/app/pm-portal/_bersama/tipe.ts
+git commit -m "feat(pm-portal): Histogram, Method Statement, Analisa Keterlambatan — kelompok Perencanaan"
+```
+
+---
+
+### Task 16: Navigasi kategori Kontrak+Perencanaan + Verifikasi akhir Tahap 2
+
+**Files:**
+- Modify: `apps/web/lib/pm-portal-kategori.ts`
+- Modify: `apps/web/app/pm-portal/kategori/[key]/page.tsx`
+
+- [ ] **Step 1: Aktifkan `g-kontrak` dan `g-jadwal` di `KATEGORI_AKTIF`**
+
+```typescript
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal"]; // Tahap 1-2
+```
+
+- [ ] **Step 2: Isi `PETA_HREF_PORTAL` untuk item yang dibangun Task 12-15**
+
+Tambahkan (memakai key `ItemMenu` PERSIS dari `peta-menu.ts` §"g-kontrak"/
+"g-jadwal", diverifikasi Task 11 riset):
+
+```typescript
+const PETA_HREF_PORTAL: Record<string, string> = {
+  // ...baris Tahap 1 yang sudah ada, TIDAK dihapus...
+  "kt-register": "/pm-portal/kontrak-lengkap/register",
+  "kt-asuransi": "/pm-portal/kontrak-lengkap/asuransi",
+  "kt-claims": "/pm-portal/kontrak-lengkap/klaim",
+  "kt-eot": "/pm-portal/kontrak-lengkap/eot-ld-bond",
+  "kt-ld": "/pm-portal/kontrak-lengkap/eot-ld-bond",
+  "kt-bond": "/pm-portal/kontrak-lengkap/eot-ld-bond",
+  "kt-rfi": "/pm-portal/inspeksi-rfi",
+  "kt-surat": "/pm-portal/kontrak-lengkap/surat",
+  "kt-termin": "/pm-portal/keuangan",
+  "kt-retensi": "/pm-portal/mandor-lengkap/retensi",
+  "kt-subkon": "/pm-portal/mandor-lengkap/penugasan",
+  "kt-co": "/pm-portal/kontrak",
+  "jd-cpm": "/pm-portal/jadwal",
+  "jd-histogram": "/pm-portal/jadwal",
+  "jd-method": "/pm-portal/jadwal",
+  "jd-baseline": "/pm-portal/jadwal",
+  "jd-milestone": "/pm-portal/jadwal",
+  "jd-delay": "/pm-portal/kontrak-lengkap/keterlambatan",
+};
+```
+
+⚠️ `kt-co` (Change Order), `jd-gantt`, `jd-kurva-s`, `jd-evm`,
+`jd-lookahead`, `jd-wbs` di web adalah `tabProyek` pada `/proyek/[id]`
+ADMIN (bukan endpoint berdiri sendiri) — **TIDAK dibangun Task 12-15**
+karena butuh hub tab PM (`pm-portal/proyek/[id]`) yang belum ada (lihat
+riset Task 13). Baris `kt-co` di atas menunjuk ke `pm-portal/kontrak`
+existing (Tahap 1, ringkasan nilai kontrak dari `ProyekPM` — BUKAN
+Change Order sungguhan, hanya fallback sementara supaya link tak mati)
+— **ini ditandai UTANG, bukan selesai**. Item PETA_MENU yang key-nya
+TIDAK muncul di `PETA_HREF_PORTAL` otomatis fallback ke `it.href` web
+asli (mekanisme sudah ada di `kategori/[key]/page.tsx`, baris 131) — PM
+tetap bisa menjangkaunya, hanya mendarat di halaman desktop.
+
+- [ ] **Step 3: Typecheck + lint navigasi**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+pnpm exec eslint lib/pm-portal-kategori.ts app/pm-portal/kategori/
+```
+
+- [ ] **Step 4: Manual click-through** (tak ada test otomatis untuk
+navigasi kategori) — buka `/pm-portal/lainnya`, klik kategori Kontrak
+dan Perencanaan, konfirmasi seluruh item Task 12-15 punya tautan yang
+membuka halaman baru (bukan 404), dan item yang sengaja fallback (`kt-co`
+dst) membuka halaman web dashboard dengan benar (bukan link mati).
+
+- [ ] **Step 5: Typecheck seluruh workspace + SEMUA penjaga CI**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+cd ../api && node scripts/jalankan-semua-penjaga.mjs
+```
+
+Tempel ringkasan lengkap, bandingkan terhadap baseline SEBELUM Tahap 2
+(dicatat di akhir Task 10 / awal Task 11).
+
+- [ ] **Step 6: Test integrasi terkait**
+
+```bash
+cd apps/api && npx vitest run kontrak klaim-kontraktual rfi surat asuransi baseline-jadwal
+```
+
+Backend TIDAK diubah Tahap 2 — seluruhnya harus tetap hijau.
+
+- [ ] **Step 7: Audit a11y runtime penuh**
+
+```bash
+cd apps/web
+export $(grep -E "^LAYAR_(EMAIL|SANDI|BASIS)=" .env.local | tr -d '\r' | xargs)
+node scripts/jalankan-a11y-lengkap.mjs
+```
+
+Jalankan di background, tempel hasil (jumlah halaman, jumlah
+pelanggaran, target 0).
+
+- [ ] **Step 8: Update JOURNAL.md + `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md`**
+
+Catat Tahap 2 selesai, jumlah halaman baru (5: register, asuransi,
+eot-ld-bond, klaim, surat, keterlambatan — plus 2 tab tambahan di
+jadwal existing), utang tercatat (`kt-co`/Gantt/Kurva-S/EVM/Look-Ahead/
+WBS butuh hub `proyek/[id]` PM, method statement mungkin baca-saja
+tergantung hasil Step 1 Task 15).
+
+- [ ] **Step 9: Commit dokumentasi**
+
+```bash
+git add docs/execution/JOURNAL.md docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md apps/web/lib/pm-portal-kategori.ts apps/web/app/pm-portal/kategori/
+git commit -m "feat(pm-portal): navigasi kategori Kontrak+Perencanaan, Tahap 2 selesai"
+```
+
+---
+
+## Tahap 3-7: Kerangka (detail digali saat eksekusi)
+
+> Pola task per tahap MENGIKUTI struktur Tahap 1-2 (Task riset → Task
+> halaman per sub-kelompok → Task navigasi/verifikasi). Detail kode TIDAK
+> ditulis di sini — spec §5 menegaskan tipe/endpoint WAJIB diverifikasi ke
+> kode nyata saat itu dieksekusi, menulis kodenya sekarang (jauh sebelum
+> eksekusi, tanpa membaca ulang kode yang mungkin sudah berubah) akan
+> jadi tebakan basi. Sebelum memulai tiap Tahap, buat task riset (pola
+> Task 5/11) lebih dulu, BARU susun task halaman detailnya — sesi
+> eksekusi tahap itu yang menulis breakdown lengkap ke plan ini (mengedit
+> file plan ini, menambah Task baru di bagian Tahap yang relevan), bukan
+> ditebak di muka.
+
+### Task 17: [Tahap 3] Budget & Cost Control — riset & breakdown
 
 - [ ] **Step 1: Riset endpoint+permission** modul `cecep` (estimasi/RAP/
 AHSP/WBS/markup) — modul PALING besar (19 permission, 10 halaman web,
@@ -1245,50 +2320,62 @@ termasuk `estimasi/rab` 1140 baris dan `master/ahsp` 950 baris). Baca
 `docs/KEPUTUSAN-SCOPE-ERP-AI.md` dan dokumen CECEP terkait (disebut
 memory project sebagai area sensitif dengan riwayat migrasi rumit) SEBELUM
 menulis breakdown — modul ini py lebih banyak jebakan sejarah dari modul
-lain manapun di plan ini.
-- [ ] **Step 2: Tulis breakdown Task 13-N**, pola sama, dengan perhatian
+lain manapun di plan ini. Perhatikan juga `jd-wbs`/`jd-gantt`/`jd-kurva-s`/
+`jd-evm`/`cc-rab`/`cc-etc`/`cc-bac` yang SEMUANYA `tabProyek` pada
+`/proyek/[id]` admin (pola sama Task 13 menemukan `kt-co`/`kt-eot`/
+`kt-ld`/`kt-bond`) — modul ini kemungkinan BESAR menjadi pendorong utama
+membangun hub `pm-portal/proyek/[id]` penuh (utang yang dicatat Task 16),
+bukan lagi bisa ditunda.
+- [ ] **Step 2: Tulis breakdown Task 18-N**, pola sama, dengan perhatian
 KHUSUS ke §1 spec "modul kompleks tetap dibangun, disederhanakan" — RAB/
 RAP 1000+ baris web PASTI butuh penyederhanaan signifikan untuk mobile
 (kemungkinan: list item RAB dengan filter/search, BottomSheet untuk edit
 satu item, BUKAN tabel spreadsheet-like yang jadi ciri halaman webnya).
 
-### Task 13: [Tahap 4] Pengadaan + Gudang & Material — riset & breakdown
+### Task 18: [Tahap 4] Pengadaan + Gudang & Material — riset & breakdown
 
 - [ ] **Step 1: Riset endpoint+permission** modul `procurement`, `gudang`
 — CATATAN: `pm-portal/procurement/page.tsx` SUDAH ADA (dibangun hari ini,
 Task 10 sesi sebelumnya) tapi BACA SAJA (ringkasan MR+PO). Tahap ini
 memperluas ke CREATE/EDIT (kalau PM py `procurement:*:manage`) dan modul
 gudang yang belum tersentuh sama sekali.
-- [ ] **Step 2: Tulis breakdown Task 14-N**, cek dulu apakah
+- [ ] **Step 2: Tulis breakdown Task 19-N**, cek dulu apakah
 `procurement/page.tsx` existing perlu DITULIS ULANG (kalau strukturnya
 tak cocok diperluas) atau cukup DITAMBAH (kalau strukturnya sudah
 modular) — keputusan ini masuk breakdown, jangan diasumsikan sekarang.
 
-### Task 14: [Tahap 5] Rencana & Uji Mutu + K3 lanjutan — riset & breakdown
+### Task 19: [Tahap 5] Rencana & Uji Mutu + K3 lanjutan — riset & breakdown
 
 - [ ] **Step 1: Riset endpoint+permission** modul `mutu`, `ncr`,
 `kepatuhan`, `izin`.
-- [ ] **Step 2: Tulis breakdown Task 15-N**. Tahap terkecil (7 modul, ~7
+- [ ] **Step 2: Tulis breakdown Task 20-N**. Tahap terkecil (7 modul, ~7
 halaman) — kemungkinan selesai dalam 2-3 task, bukan sebanyak Tahap 1.
 
-### Task 15: [Tahap 6] Keuangan — riset & breakdown
+### Task 20: [Tahap 6] Keuangan — riset & breakdown
 
 - [ ] **Step 1: Riset endpoint+permission** modul `finance`, `cash`,
 `gl`, `rekonsiliasi`. CATATAN: `pm-portal/keuangan/page.tsx` SUDAH ADA
 (kasbon, restyle hari ini) — cek overlap sebelum menulis breakdown, sama
-prinsipnya dengan catatan Task 6 Step 4.
+prinsipnya dengan catatan Task 6 Step 4. Perhatikan juga modul `klaim:*`
+(Klaim Perjalanan) yang ditemukan Task 14 — PM cuma py `klaim:setujui`/
+`klaim:bayar`, cek apakah itu sudah tercakup inbox approval terpusat
+sebelum menganggapnya modul terlewat.
 - [ ] **Step 2: Baca CLAUDE.md §6 baris soal "Uang lewat percakapan"**
 dan "audit-klaim-status-atomik.mjs" — modul keuangan py penjaga CI paling
 ketat di repo ini (approval satu pintu, status atomik). Breakdown Task
-16-N WAJIB menyebut penjaga mana yang relevan per halaman.
-- [ ] **Step 3: Tulis breakdown Task 16-N.**
+21-N WAJIB menyebut penjaga mana yang relevan per halaman.
+- [ ] **Step 3: Tulis breakdown Task 21-N.**
 
-### Task 16: [Tahap 7] Sisa — SDM, Aset, Risiko, Dokumen, Laporan — riset & breakdown
+### Task 21: [Tahap 7] Sisa — SDM, Aset, Risiko, Dokumen, Laporan — riset & breakdown
 
 - [ ] **Step 1: Riset endpoint+permission** modul `sdm`, `assets`,
 `risiko`, `documents`, `serah_terima`, `reports`, `clients`.
-- [ ] **Step 2: Tulis breakdown Task 17-N** — tahap terakhir, setelah ini
-seluruh 32 modul (§1 spec) tercakup dan Portal PM Lengkap selesai.
+- [ ] **Step 2: Tulis breakdown Task 22-N** — tahap terakhir, setelah ini
+seluruh 32 modul (§1 spec) tercakup dan Portal PM Lengkap selesai. Kalau
+Task 17 (CECEP) membangun hub `pm-portal/proyek/[id]`, breakdown ini
+WAJIB memeriksa apakah `kt-co`/`jd-gantt`/dst yang ditunda Task 16 bisa
+sekarang dipindah dari fallback web ke tab hub tersebut — jangan
+biarkan utang itu terlupakan begitu fondasinya sudah ada.
 - [ ] **Step 3: Verifikasi akhir MENYELURUH** (bukan cuma tahap ini) —
 ulangi Task 10 (Verifikasi akhir Tahap 1) tapi untuk SELURUH
 `pm-portal/*`: typecheck, semua penjaga CI, seluruh test backend terkait
@@ -1310,15 +2397,23 @@ menu yang berubah (CLAUDE.md §8a.4).
 - §5 (fondasi teknis: motion token, SwipeableCard, disiplin tipe) →
   Task 4 (komponen), diulang sebagai Global Constraint ✓
 - §6 (8 tahap) → Tahap 0 penuh (Task 1-4), Tahap 1 penuh (Task 5-10),
-  Tahap 2-7 kerangka riset+breakdown (Task 11-16) ✓
+  Tahap 2 penuh (Task 11-16: riset + 5 task kode lengkap), Tahap 3-7
+  kerangka riset+breakdown (Task 17-21) ✓
 - §7 (di luar scope) → tidak ada task yang menyentuh area itu ✓
 
-**2. Placeholder scan:** Tahap 2-7 (Task 11-16) SENGAJA berbentuk
+**2. Placeholder scan:** Tahap 3-7 (Task 17-21) SENGAJA berbentuk
 kerangka riset, bukan kode lengkap — ini BUKAN pelanggaran "No
 Placeholders" karena skill writing-plans mengizinkan keputusan yang
 genuinely tergantung riset lanjutan untuk didelegasikan sebagai task
-riset eksplisit (bukan diisi tebakan kode yang keliru). Tahap 0-1 (Task
-1-10) sepenuhnya lengkap tanpa placeholder — kode nyata, bukan deskripsi.
+riset eksplisit (bukan diisi tebakan kode yang keliru). Tahap 0-2 (Task
+1-16) sepenuhnya lengkap tanpa placeholder — kode nyata, bukan deskripsi,
+termasuk dua field bertanda "PERKIRAAN, wajib diverifikasi ulang saat
+eksekusi" (`PolisAsuransi.keadaan`/`hari_tersisa` di Task 12,
+`HistogramSumberDaya` di Task 15) yang EKSPLISIT menyuruh executor
+membaca fungsi lib sebelum memakainya — ini bukan tebakan yang disamarkan
+sebagai fakta, melainkan pengakuan jujur atas batas riset yang dilakukan
+(dua fungsi `lib/register-asuransi.ts` dan `lib/cpm.ts` tak sempat dibaca
+isinya, hanya signature endpoint pemanggilnya yang diverifikasi).
 
 **3. Type consistency:** `ambilMerek()` dipakai konsisten Task 1 (3
 tempat) dan Task 2 — signature sama. `SwipeableCard` props dipakai
@@ -1333,4 +2428,13 @@ sudah benar (1 sebelum 2). Task 5 (riset) sebelum Task 6-8 (implementasi)
 `PETA_HREF_PORTAL` di dalamnya mereferensikan halaman yang dibangun
 Task 6-8 — kalau dieksekusi lebih dulu, link-nya akan menunjuk halaman
 yang belum ada (fallback ke `it.href` web asli tetap aman, jadi urutan
-terbalik pun tak fatal, tapi urutan yang ditulis lebih baik).
+terbalik pun tak fatal, tapi urutan yang ditulis lebih baik). Pola sama
+berulang Tahap 2: Task 11 (riset) sebelum Task 12-15 (halaman) — benar,
+Task 12-15 sendiri TIDAK saling bergantung satu sama lain (masing-masing
+modul independen: Register Kontrak+Asuransi, EOT+LD+Bond, Klaim+Surat,
+Jadwal+Keterlambatan tak berbagi state atau tipe yang salah satu tulis
+duluan) SELAIN semuanya menulis ke `_bersama/tipe.ts` yang sama — risiko
+konflik edit kalau dijalankan paralel di worktree terpisah, aman kalau
+sekuensial di satu sesi seperti plan ini. Task 16 (navigasi) WAJIB
+SESUDAH Task 12-15 sama alasannya dengan Task 9 (referensi href ke
+halaman yang harus sudah ada), dan urutan di plan ini sudah benar.
