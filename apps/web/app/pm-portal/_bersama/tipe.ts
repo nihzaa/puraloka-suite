@@ -1150,6 +1150,106 @@ export interface RespBond {
 }
 
 /**
+ * Klaim kontraktual (tabel `contract_claims`, migrasi 184) — tuntutan biaya
+ * kontraktor ke pemberi kerja. Bentuk dari `GET /api/v1/projects/:id/claims`
+ * (`apps/api/src/routes/v1/rantai-kontrak.ts`): baris DB mentah (`select('*')`)
+ * disebar bersama `batas_pemberitahuan` turunan.
+ *
+ * ⚠️ Nama "klaim" bentrok modul `klaim-perjalanan.ts` (penggantian biaya
+ * karyawan, permission `klaim:*`) — ENTITAS LAIN SAMA SEKALI, di luar scope
+ * halaman ini. Lihat `task-14-brief.md` untuk penjelasan lengkap.
+ *
+ * `PATCH /api/v1/claims/:id/decide` mewarisi tenancy lewat `project_id` di
+ * BODY (bukan lewat id klaim sendiri) — pola sama `DokumenKontrak`/`Spk`.
+ * `validasiKeputusanKlaim` (`lib/klaim-kontraktual.ts`) menolak (422) bila
+ * status `disetujui` tapi `amount_approved !== amount_claimed` — nilai
+ * berbeda WAJIB pakai `disetujui_sebagian`.
+ */
+export type KeadaanBatasPemberitahuan =
+  | "tak_diatur" | "aman" | "berjalan" | "mendesak" | "terlambat" | "tak_terbaca"
+export interface BatasPemberitahuan {
+  keadaan: KeadaanBatasPemberitahuan
+  sisaHari: number | null
+  hariTerpakai: number | null
+  pesan?: string
+}
+
+export interface KlaimKontraktual {
+  id: string
+  project_id: string
+  claim_number: string
+  claim_type: string
+  title: string
+  description: string | null
+  event_date: string
+  notified_at: string | null
+  notice_days_limit: number | null
+  amount_claimed: number | string
+  amount_approved: number | string | null
+  eot_id: string | null
+  status: "draft" | "diberitahukan" | "diajukan" | "disetujui" | "disetujui_sebagian" | "ditolak" | "gugur"
+  decision_note: string | null
+  decided_at: string | null
+  batas_pemberitahuan: BatasPemberitahuan
+}
+export interface RespKlaimKontraktual {
+  data: KlaimKontraktual[]
+  ringkas: { jumlah: number; total_diklaim: number; total_disetujui: number; berisiko_gugur: number; mendesak: number }
+}
+
+/**
+ * Surat masuk/keluar (tabel `project_letters`, migrasi 185) — korespondensi
+ * proyek, izin `documents:manage` (surat adalah korespondensi dokumen, bukan
+ * permission tersendiri — lihat komentar `surat.ts`).
+ *
+ * Bentuk dari `GET /api/v1/letters` (LINTAS-PROYEK,
+ * `apps/api/src/routes/v1/surat.ts`) — dipakai halaman ini sebagai default,
+ * karena endpoint ini SENGAJA dirancang untuk pertanyaan "surat mana yang
+ * wajib saya jawab hari ini" lintas semua proyek PM (beda dari pola
+ * pemilih-proyek Task 12-13). `batas` (BUKAN `batas_pemberitahuan`) dihitung
+ * `evaluasiBatasBalas()` (`lib/surat-korespondensi.ts`) — ARAH menentukan
+ * tanggal acuan (kirim vs terima) dan siapa yang lalai (`siapaYangDitunggu`).
+ *
+ * `PATCH /api/v1/letters/:id` mewarisi tenancy lewat `project_id` di BODY,
+ * pola sama klaim.
+ */
+export type KeadaanBalas = "tak_perlu" | "tak_diatur" | "berjalan" | "mendesak" | "lewat" | "tak_terbaca"
+export interface BatasBalas {
+  keadaan: KeadaanBalas
+  sisaHari: number | null
+  siapaYangDitunggu: "kita" | "lawan" | null
+  pesan?: string
+}
+
+export interface SuratProyek {
+  id: string
+  project_id: string
+  nomor: string
+  arah: "masuk" | "keluar"
+  jenis: string
+  perihal: string
+  ringkasan: string | null
+  dari_pihak: string
+  kepada_pihak: string
+  tanggal_kirim: string | null
+  tanggal_terima: string | null
+  membalas_id: string | null
+  butuh_balasan: boolean
+  batas_balas: string | null
+  status: "draft" | "terkirim" | "diterima" | "dibalas" | "selesai" | "kedaluwarsa"
+  dokumen_id: string | null
+  created_at: string
+  batas: BatasBalas
+  /** Hanya di `GET /api/v1/letters` (lintas-proyek) — ditempel server dari peta id→nama. */
+  project_name?: string
+}
+export interface RespSuratLintasProyek {
+  data: SuratProyek[]
+  proyek: { id: string; name: string }[]
+  ringkas: { jumlah: number; masuk: number; keluar: number; kita_belum_menjawab: number; lawan_belum_menjawab: number; mendesak: number }
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
