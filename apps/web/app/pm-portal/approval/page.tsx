@@ -40,13 +40,31 @@
 // pemohon atau isi lengkap entitas. Detailnya diambil SAAT bottom sheet
 // dibuka:
 //
-//   · kasbon    — tak ada `GET /api/v1/kasbons/:id` (diverifikasi: 404).
-//     Detailnya diambil dari LIST `GET /api/v1/kasbons?status=pending`
-//     (mengembalikan `requester.name`, `project.name` dsb.), dicocokkan
-//     `id` di klien.
+//   · kasbon    — tak ada `GET /api/v1/kasbons/:id` (diverifikasi: 404;
+//     `kasbons.ts` hanya mendaftarkan `GET /api/v1/kasbons`, `POST`, dan
+//     `PATCH /:id/status`). Detailnya diambil dari LIST
+//     `GET /api/v1/kasbons?status=pending&limit=200` (mengembalikan
+//     `requester.name`, `project.name` dsb.), dicocokkan `id` di klien.
+//
+//     ⚠️ MITIGASI, BUKAN PERBAIKAN TUNTAS (fix round 1, review Important-1):
+//     list ini diurut `kasbon_date` DESC (`kasbons.ts:39` `.order('kasbon_date',
+//     {ascending:false})`) sedangkan inbox diurut TERLAMA DI ATAS
+//     (`approval-inbox.ts:274`) — arahnya BERLAWANAN. `limit=200` adalah cap
+//     maksimum endpoint ini (`kasbons.ts:19`
+//     `Math.min(Math.max(1, ...), 200)`), jadi kalau company PM ini kelak
+//     punya LEBIH dari 200 kasbon berstatus pending sekaligus, kasbon
+//     tertua — yang tampil paling atas di inbox, paling mungkin diklik
+//     duluan — masih bisa jatuh di luar halaman. `limit=200` menaikkan
+//     ambang dari 100→200, tapi TIDAK menghilangkan celahnya sepenuhnya
+//     tanpa endpoint detail per-id di backend (di luar cakupan task ini).
+//     Karena itu render fallback eksplisit di bawah untuk `!detailKasbon`
+//     WAJIB ada — itulah yang benar-benar menutup risiko "approve tanpa
+//     tahu siapa/proyek apa", bukan menaikkan limit saja.
 //   · submittal — tak ada `GET /api/v1/submittals/:id` (diverifikasi: 404).
 //     Diambil dari `GET /api/v1/projects/:projectId/submittals`
-//     (project_id sudah ada di baris inbox), dicocokkan `id` di klien.
+//     (project_id sudah ada di baris inbox) — daftar ini SELALU per-proyek
+//     (tak ada limit lintas-proyek yang bisa membuat satu submittal
+//     terlempar keluar halaman), dicocokkan `id` di klien.
 //
 // ── `jalur_ui` dari API menunjuk dashboard admin, bukan portal PM
 //
@@ -65,7 +83,7 @@
 // "Naik ke level berikutnya — belum final", BUKAN klaim "disetujui" generik.
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { Inbox, AlertTriangle, ArrowUpCircle, X } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
@@ -138,6 +156,19 @@ interface RespKeputusan {
   message?: string;
 }
 
+/**
+ * Gaya tombol nonaktif — swap `background`/`color` SOLID, bukan `opacity`.
+ * CLAUDE.md §"Aturan mengikat" (3): DILARANG `opacity` untuk teks; state
+ * disabled wajib tukar warna solid. Dipakai untuk Setujui/Tolak saat
+ * `detailGagal` (fix round 1, review Important-1) — kontras token ini sudah
+ * diverifikasi AA di kedua mode di tempat lain (StatusBadge varian netral).
+ */
+const GAYA_TOMBOL_NONAKTIF: CSSProperties = {
+  flex: 1, minHeight: 48, padding: "0 14px", borderRadius: "var(--portal-radius-pill)",
+  background: "var(--surface-subtle)", color: "var(--text-muted)", border: "1px solid var(--border)",
+  fontSize: 14, fontWeight: 700, cursor: "default",
+};
+
 function fmtTanggal(s: string | null | undefined): string {
   if (!s) return "—";
   return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
@@ -152,14 +183,17 @@ export default function PmApprovalPage() {
   const [hasilNaikLevel, setHasilNaikLevel] = useState<string | null>(null);
 
   // Detail entitas — diambil hanya saat bottom sheet terbuka, per jenis.
-  const urlDetailKasbon = dipilih?.jenis === "kasbon" ? "/api/v1/kasbons?status=pending" : null;
-  const { data: dataKasbon, memuat: memuatDetailKasbon } =
+  // `limit=200` = cap maksimum endpoint ini (lihat catatan mitigasi di atas
+  // berkas) — bukan jaminan lengkap, karena itu `detailKasbon` DIWAJIBKAN
+  // truthy sebelum tombol aksi aktif (lihat render fallback di bawah).
+  const urlDetailKasbon = dipilih?.jenis === "kasbon" ? "/api/v1/kasbons?status=pending&limit=200" : null;
+  const { data: dataKasbon, memuat: memuatDetailKasbon, galat: galatDetailKasbon } =
     useData<ResponsKasbonDetailInbox>(urlDetailKasbon);
 
   const urlDetailSubmittal = dipilih?.jenis === "submittal" && dipilih.project_id
     ? `/api/v1/projects/${dipilih.project_id}/submittals`
     : null;
-  const { data: dataSubmittal, memuat: memuatDetailSubmittal } =
+  const { data: dataSubmittal, memuat: memuatDetailSubmittal, galat: galatDetailSubmittal } =
     useData<ResponsSubmittalDetailInbox>(urlDetailSubmittal);
 
   const detailKasbon = useMemo(
@@ -173,6 +207,20 @@ export default function PmApprovalPage() {
   const memuatDetail = dipilih?.jenis === "kasbon" ? memuatDetailKasbon
     : dipilih?.jenis === "submittal" ? memuatDetailSubmittal
     : false;
+
+  // ⚠️ WAJIB (fix round 1, review Important-1): detail bisa HILANG SENYAP —
+  // request gagal (galat jaringan) ATAU baris tak ketemu di list (di luar
+  // `limit=200`, lihat catatan di atas berkas). Kedua kasus itu harus
+  // dianggap SAMA: "detail tak terverifikasi", dan tombol Setujui/Tolak
+  // WAJIB nonaktif — menyetujui pencairan uang tanpa tahu siapa pemohonnya
+  // dan untuk proyek apa tidak boleh mungkin dilakukan, bukan sekadar
+  // "tidak disarankan". Hanya berlaku untuk jenis yang PUNYA detail
+  // ter-fetch (kasbon/submittal) — jenis tak didukung sudah digerbang
+  // `konfigDipilih` terpisah, tak lewat sini.
+  const detailGagal = !memuatDetail && (
+    (dipilih?.jenis === "kasbon" && (Boolean(galatDetailKasbon) || !detailKasbon)) ||
+    (dipilih?.jenis === "submittal" && (Boolean(galatDetailSubmittal) || !detailSubmittal))
+  );
 
   const konfigDipilih = dipilih ? AKSI[dipilih.jenis] : undefined;
   const alasanValid = alasan.trim().length > 0;
@@ -349,6 +397,27 @@ export default function PmApprovalPage() {
               </div>
             )}
 
+            {/* Fallback EKSPLISIT — detail gagal dimuat ATAU tak ketemu di
+                list. Tombol Setujui/Tolak di bawah digerbang `detailGagal`
+                ini; blok ini yang membuat kegagalan itu TERLIHAT, bukan
+                senyap (fix round 1, review Important-1). */}
+            {detailGagal && (dipilih.jenis === "kasbon" || dipilih.jenis === "submittal") && (
+              <div
+                role="alert"
+                style={{
+                  display: "flex", alignItems: "flex-start", gap: 8, padding: 14, borderRadius: 14,
+                  background: "var(--danger-bg)", border: "1px solid var(--danger-border)",
+                }}
+              >
+                <AlertTriangle size={18} color="var(--on-danger-bg)" aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
+                <span style={{ fontSize: 13, fontWeight: 600, color: "var(--on-danger-bg)" }}>
+                  Detail pengajuan ini gagal dimuat — nama pemohon dan proyek tidak dapat
+                  diverifikasi. Setujui/Tolak dinonaktifkan sampai detailnya berhasil dimuat.
+                  Coba tutup dan buka lagi kartu ini.
+                </span>
+              </div>
+            )}
+
             <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
               {dipilih.level_selesai > 0
                 ? `Sudah disetujui sampai level ${dipilih.level_selesai} — keputusan Anda menentukan level berikutnya.`
@@ -398,11 +467,12 @@ export default function PmApprovalPage() {
                   <button
                     type="button"
                     onClick={() => putuskan("reject")}
-                    disabled={mengirim || dipilih.saya_pengajunya}
-                    style={{
+                    disabled={mengirim || dipilih.saya_pengajunya || detailGagal}
+                    style={detailGagal ? GAYA_TOMBOL_NONAKTIF : {
                       flex: 1, minHeight: 48, padding: "0 14px", borderRadius: "var(--portal-radius-pill)",
                       background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)",
-                      fontSize: 14, fontWeight: 700, cursor: mengirim || dipilih.saya_pengajunya ? "default" : "pointer",
+                      fontSize: 14, fontWeight: 700,
+                      cursor: mengirim || dipilih.saya_pengajunya ? "default" : "pointer",
                     }}
                   >
                     Tolak
@@ -410,11 +480,12 @@ export default function PmApprovalPage() {
                   <button
                     type="button"
                     onClick={() => putuskan("approve")}
-                    disabled={mengirim || dipilih.saya_pengajunya}
-                    style={{
+                    disabled={mengirim || dipilih.saya_pengajunya || detailGagal}
+                    style={detailGagal ? GAYA_TOMBOL_NONAKTIF : {
                       flex: 1, minHeight: 48, padding: "0 14px", borderRadius: "var(--portal-radius-pill)",
                       background: "var(--navy)", color: "var(--on-navy)", border: "none",
-                      fontSize: 14, fontWeight: 700, cursor: mengirim || dipilih.saya_pengajunya ? "default" : "pointer",
+                      fontSize: 14, fontWeight: 700,
+                      cursor: mengirim || dipilih.saya_pengajunya ? "default" : "pointer",
                     }}
                   >
                     {mengirim ? "Memproses…" : "Setujui"}
