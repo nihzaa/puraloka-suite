@@ -1,187 +1,169 @@
 "use client";
 
+// ============================================================================
+// Beranda Portal Klien — Task 11, direstyle total dari `lib/warna-ui` (C.*)
+// ke token + komponen portal.
+//
+// Diperkaya dari draf plan (yang cuma 2 KPI + list teks datar — "terlalu
+// longgar" persis keluhan founder di ARAH-VISUAL-2026.md §1a) mengikuti
+// pola BAKU tiga lapis di dokumen itu §5b: KEADAAN (KPI) → POLA (grafik
+// perbandingan) → DETAIL (kartu proyek, bukan baris teks polos).
+//
+// Endpoint sama persis dengan pm-portal (`GET /api/v1/projects`) — scope
+// klien otomatis di server (`projects.ts:34-43`, filter `client_id`),
+// jadi tak perlu filter `.pm` di sini seperti versi PM.
+// ============================================================================
+
 import Link from "next/link";
-import { getStoredUser } from "@/lib/api";
+import { FolderKanban, TrendingUp, AlertTriangle, ChevronRight, MapPin, Calendar } from "lucide-react";
 import { useData } from "@/lib/data-cache";
-import { MapPin, Calendar, ChevronRight, TrendingUp, AlertCircle } from "lucide-react";
+import KpiCard from "@/components/portal/KpiCard";
+import MiniChart from "@/components/portal/MiniChart";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import EmptyState from "@/components/portal/EmptyState";
+import type { GalatApi } from "./_bersama/tipe";
+import { pesanGalat } from "./_bersama/tipe";
 
-import { C } from "@/lib/warna-ui";
-import { namaSapaan } from "@/lib/nama-sapaan";
-
-interface Project {
+interface ProyekKlien {
   id: string;
   name: string;
-  location: string;
-  status: string;
-  contract_model: string;
-  contract_value: number;
-  start_date: string | null;
-  end_date: string | null;
-  progress_pct: number;
+  location?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  status?: string | null;
+  progress_pct?: number | null;
+  contract_value?: number | string | null;
 }
+interface RespProyek { total: number; projects: ProyekKlien[] }
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  planning:  { label: "Perencanaan", color: C.blue,   bg: C.blueBg   },
-  active:    { label: "Aktif",       color: C.green,  bg: C.greenBg  },
-  on_hold:   { label: "Ditunda",     color: C.yellow, bg: C.yellowBg },
-  completed: { label: "Selesai",     color: C.green,  bg: C.greenBg  },
-  cancelled: { label: "Dibatalkan",  color: C.red,    bg: C.redBg    },
-};
-
-function fmt(n: number) {
+function fmtRupiah(v: number | string | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const n = typeof v === "string" ? Number(v) : v;
+  if (!Number.isFinite(n)) return "—";
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 }
-
-function fmtDate(s: string | null) {
+function fmtDate(s: string | null | undefined): string {
   if (!s) return "—";
   return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-export default function PortalHomePage() {
-  const user = getStoredUser();
+const LABEL_STATUS: Record<string, string> = {
+  planning: "Perencanaan", active: "Aktif", on_hold: "Ditunda",
+  completed: "Selesai", cancelled: "Dibatalkan",
+};
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  planning: "info", active: "approved", on_hold: "pending",
+  completed: "approved", cancelled: "netral",
+};
 
-  /*
-    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
-
-    `useData` menggantikan useEffect+useState. Halaman ini dibuka KLIEN
-    (bukan orang dalam) — proyek yang dikembalikan sudah disaring server per
-    `request.db`, jadi tak ada saringan identitas tambahan yang perlu
-    ditambahkan di sini.
-  */
-  const { data, memuat: loading } = useData<{ projects: Project[] }>("/api/v1/projects");
-  const projects = data?.projects ?? [];
-
-  const activeCount = projects.filter((p) => p.status === "active").length;
-  const completedCount = projects.filter((p) => p.status === "completed").length;
-  const totalValue = projects.reduce((s, p) => s + (p.contract_value ?? 0), 0);
+export default function PortalKlienBerandaPage() {
+  const { data, memuat, galat } = useData<RespProyek>("/api/v1/projects");
+  const proyek = data?.projects ?? [];
+  const aktif = proyek.filter((p) => p.status === "active");
+  const telat = aktif.filter((p) => p.end_date && new Date(p.end_date) < new Date());
+  const nilaiTotal = proyek.reduce((s, p) => s + (Number(p.contract_value) || 0), 0);
 
   return (
-    <div style={{ maxWidth: 800, margin: "0 auto" }}>
-      {/* Greeting */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: 0 }}>
-          Halo, {namaSapaan(user?.name)} 👋
-        </h1>
-        <p style={{ fontSize: 13, color: C.mid, margin: "4px 0 0" }}>
-          Berikut status proyek Anda bersama Puraloka Persada
-        </p>
-      </div>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Proyek Saya
+      </h1>
 
-      {/* KPI cards */}
-      {!loading && projects.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 24 }}>
-          {[
-            { label: "Proyek Aktif", value: activeCount, color: C.green },
-            { label: "Selesai", value: completedCount, color: C.navy },
-            { label: "Total Nilai", value: fmt(totalValue), color: C.navy, small: true },
-          ].map((kpi) => (
-            <div key={kpi.label} style={{
-              background: C.surface, borderRadius: 10, padding: "16px",
-              border: `1px solid ${C.border}`,
-              boxShadow: "var(--naik-1)",
-            }}>
-              <div style={{ fontSize: 11, color: C.mid, fontWeight: 500, marginBottom: 6 }}>{kpi.label}</div>
-              <div style={{ fontSize: kpi.small ? 15 : 26, fontWeight: 700, color: kpi.color }}>{kpi.value}</div>
-            </div>
-          ))}
+      {/* LAPIS 1 — KEADAAN: empat KPI, bukan dua */}
+      {memuat ? (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <SkeletonCard tinggi={90} /><SkeletonCard tinggi={90} />
+          <SkeletonCard tinggi={90} /><SkeletonCard tinggi={90} />
+        </div>
+      ) : (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <KpiCard label="Proyek Aktif" nilai={String(aktif.length)} icon={FolderKanban} />
+          <KpiCard label="Total Proyek" nilai={String(proyek.length)} icon={FolderKanban} />
+          <KpiCard label="Nilai Kontrak" nilai={fmtRupiah(nilaiTotal)} icon={TrendingUp} />
+          <KpiCard label="Perlu Perhatian" nilai={String(telat.length)} icon={AlertTriangle} />
         </div>
       )}
 
-      {/* Project list */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {loading && (
-          <div style={{ textAlign: "center", padding: 60, color: C.mid }}>Memuat proyek...</div>
-        )}
+      {!memuat && galat && (
+        <EmptyState icon={AlertTriangle} judul="Gagal memuat proyek" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang halaman ini.")} />
+      )}
 
-        {!loading && projects.length === 0 && (
-          <div style={{
-            background: C.surface, borderRadius: 10, padding: 48,
-            border: `1px solid ${C.border}`, textAlign: "center",
-          }}>
-            <AlertCircle size={36} color={C.muted} style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Belum ada proyek</div>
-            <div style={{ fontSize: 13, color: C.mid, marginTop: 4 }}>
-              Hubungi tim Puraloka untuk informasi lebih lanjut
-            </div>
+      {/* LAPIS 2 — POLA: grafik perbandingan progres antar-proyek */}
+      {!memuat && !galat && aktif.length > 0 && (
+        <div style={{ background: "var(--surface)", borderRadius: "var(--portal-radius-card)", border: "1px solid var(--border)", padding: 18 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 12 }}>
+            Progres Proyek Aktif
           </div>
-        )}
+          <MiniChart
+            tipe="bar"
+            tinggi={110}
+            data={aktif.map((p) => ({ label: p.name, value: p.progress_pct ?? 0 }))}
+          />
+        </div>
+      )}
 
-        {projects.map((p) => {
-          const meta = STATUS_META[p.status] ?? STATUS_META.planning;
-          return (
-            <Link key={p.id} href={`/portal/proyek/${p.id}`} style={{ textDecoration: "none" }}>
-              <div style={{
-                background: C.surface, borderRadius: 10, padding: 20,
-                border: `1px solid ${C.border}`,
-                boxShadow: "var(--naik-1)",
-                transition: "box-shadow 0.15s, transform 0.15s",
-                cursor: "pointer",
-              }}
-                onMouseEnter={e => {
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px rgba(0,51,102,0.1)";
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(-1px)";
-                }}
-                onMouseLeave={e => {
-                  (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.05)";
-                  (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                      <h2 style={{ fontSize: 15, fontWeight: 700, color: C.text, margin: 0 }}>{p.name}</h2>
-                      <span style={{
-                        fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
-                        color: meta.color, background: meta.bg,
-                      }}>{meta.label}</span>
-                    </div>
+      {!memuat && !galat && proyek.length === 0 && (
+        <EmptyState icon={FolderKanban} judul="Belum ada proyek" deskripsi="Proyek Anda akan muncul di sini begitu kontrak berjalan." />
+      )}
 
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px" }}>
-                      {p.location && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.mid }}>
-                          <MapPin size={12} />
-                          {p.location}
-                        </div>
-                      )}
-                      {p.start_date && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.mid }}>
-                          <Calendar size={12} />
-                          {fmtDate(p.start_date)} – {fmtDate(p.end_date)}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Progress bar */}
-                    {p.status === "active" && (
-                      <div style={{ marginTop: 12 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: C.mid }}>
-                            <TrendingUp size={12} />
-                            Progress Fisik
-                          </div>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: C.navy }}>{p.progress_pct ?? 0}%</span>
-                        </div>
-                        <div style={{ height: 6, background: "var(--border)", borderRadius: 0, overflow: "hidden" }}>
-                          <div style={{
-                            height: "100%", borderRadius: 0,
-                            width: `${p.progress_pct ?? 0}%`,
-                            background: C.navy, transition: "width 0.5s ease",
-                          }} />
-                        </div>
+      {/* LAPIS 3 — DETAIL: kartu proyek informatif, bukan baris teks datar */}
+      {!memuat && !galat && proyek.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {proyek.map((p) => {
+            const terlambat = p.status === "active" && p.end_date && new Date(p.end_date) < new Date();
+            const progres = p.progress_pct ?? 0;
+            return (
+              <Link key={p.id} href={`/portal/proyek/${p.id}`} style={{ textDecoration: "none" }}>
+                <div style={{
+                  background: "var(--surface)", borderRadius: 16, padding: 16,
+                  border: `1px solid ${terlambat ? "var(--danger-border)" : "var(--border)"}`,
+                  display: "flex", flexDirection: "column", gap: 8,
+                }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{p.name}</span>
+                        <StatusBadge status={VARIAN_STATUS[p.status ?? ""] ?? "netral"} label={LABEL_STATUS[p.status ?? ""] ?? p.status ?? "—"} />
+                        {terlambat && <StatusBadge status="rejected" label="Terlambat" />}
                       </div>
-                    )}
-
-                    <div style={{ marginTop: 10, fontSize: 13, fontWeight: 600, color: C.navy }}>
-                      {fmt(p.contract_value ?? 0)}
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px" }}>
+                        {p.location && (
+                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--text-secondary)" }}>
+                            <MapPin size={12} aria-hidden="true" />{p.location}
+                          </span>
+                        )}
+                        {p.start_date && (
+                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--text-secondary)" }}>
+                            <Calendar size={12} aria-hidden="true" />{fmtDate(p.start_date)} – {fmtDate(p.end_date)}
+                          </span>
+                        )}
+                      </div>
                     </div>
+                    <ChevronRight size={18} color="var(--text-muted)" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
                   </div>
-                  <ChevronRight size={18} color={C.muted} style={{ flexShrink: 0, marginTop: 2 }} />
+
+                  {p.status === "active" && (
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Progres Fisik</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)", fontVariantNumeric: "tabular-nums" }}>{progres}%</span>
+                      </div>
+                      <div style={{ height: 6, background: "var(--surface-subtle)", borderRadius: 999, overflow: "hidden" }}>
+                        <div style={{
+                          height: "100%", borderRadius: 999, width: `${progres}%`,
+                          background: terlambat ? "var(--danger)" : "var(--grad-aksen)",
+                          transition: "width 0.5s",
+                        }} />
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
