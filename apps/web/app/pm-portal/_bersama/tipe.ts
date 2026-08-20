@@ -1250,6 +1250,109 @@ export interface RespSuratLintasProyek {
 }
 
 /**
+ * Baris katalog AHSP nasional. Bentuk PERSIS `GET /api/v1/cecep/assemblies`
+ * (`apps/api/src/routes/v1/ahsp.ts:285-345`) — diverifikasi ULANG langsung
+ * dari kode (bukan cuma dari brief) untuk Task 18. `edition`/`components`
+ * BERSARANG dari PostgREST embed (`edition:ahsp_editions!…`,
+ * `components:assembly_components(…, resource:resources(…))`).
+ */
+export interface AssemblyKatalog {
+  id: string
+  code: string
+  name: string
+  source: string
+  version_number: number
+  status: "draft" | "active" | "deprecated" | string
+  waste_factor: number | string | null
+  output_unit_code: string | null
+  is_import_baseline: boolean
+  edit_type: string | null
+  edition: { code: string; name: string } | null
+  components: Array<{
+    coefficient: number | string
+    sort_order: number | null
+    resource: { code: string; name: string; category: string | null; unit_code: string | null } | null
+  }>
+}
+export interface RespAssemblyKatalog {
+  data: AssemblyKatalog[]
+  total: number | null
+  limit: number
+}
+
+/**
+ * Baris price book. Bentuk PERSIS `GET /cecep/price-book`,
+ * `price-book.ts:63-69` (diverifikasi ulang Task 18) — `resource`
+ * BERSARANG dari PostgREST (`resource:resources(id, code, name, category,
+ * unit_code)`), BUKAN field flat `resource_code`/`resource_name`. `supplier`
+ * (BUKAN `source_note`) — field itu tak ada di endpoint ini sama sekali.
+ * `status` di sini adalah status HARGA (draft→verified→active→expired),
+ * BUKAN status assembly di atas — dua enum berbeda, jangan disatukan.
+ */
+export interface HargaSatuan {
+  id: string
+  amount: number | string
+  currency: string
+  version_number: number
+  effective_date: string
+  expired_date: string | null
+  location: string | null
+  supplier: string | null
+  confidence_level: string | null
+  status: "draft" | "verified" | "active" | "expired"
+  verified_at: string | null
+  created_at: string
+  resource: { id: string; code: string; name: string; category: string | null; unit_code: string | null } | null
+}
+export interface RespHargaSatuan {
+  data: HargaSatuan[]
+  total: number | null
+  limit: number
+}
+
+/**
+ * Baris ringkasan Template WBS. Bentuk PERSIS `RingkasTemplate`,
+ * `apps/api/src/lib/template-wbs.ts:203-211`, dikirim `GET /template-wbs`
+ * (`template-wbs.ts:33-77`) — field TAMBAHAN dari route (bukan dari
+ * `RingkasTemplate` lib) disertakan juga: `description`, `activated_at`,
+ * `created_at`, dan `milik_bersama` (turunan `company_id === null` —
+ * katalog `standard` lintas-tenant, tak bisa disunting tenant ini).
+ * Diverifikasi ulang Task 18 langsung ke kode (baris `.select(...)` di
+ * route dan `.map((t) => ({ ...t, milik_bersama: … }))`).
+ *
+ * Status BUKAN "draft"|"published"|"archived" — union ASLI dari
+ * `lib/template-wbs.ts:36`: "draft"|"active"|"superseded". "active" berarti
+ * SIAP DITERAPKAN ke proyek, "superseded" berarti sudah digantikan versi
+ * lebih baru (draf tak bisa kembali jadi aktif — trigger DB menegakkan alur
+ * maju saja).
+ *
+ * Permission list/detail: `cecep:cbs:view` (bukan `cecep:wbs:view` —
+ * dikoreksi saat verifikasi ulang Task 18; nama permission tak dipakai di
+ * kode klien manapun jadi tak mempengaruhi tipe/halaman, dicatat di sini
+ * saja supaya tak menyesatkan pembaca berikutnya).
+ */
+export interface TemplateWbsRingkas {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  source: string
+  version_number: number
+  status: "draft" | "active" | "superseded"
+  activated_at: string | null
+  created_at: string
+  jumlahNode: number
+  milik_bersama: boolean
+}
+/** Bentuk PERSIS `reply.send({ template: [...] })`, `template-wbs.ts:52,67`
+ * — kunci `template`, BUKAN `data`. Membaca `data?.data` pada respons asli
+ * SELALU jadi `[]` — halaman akan SELALU menampilkan "Belum ada template"
+ * walau datanya ada. */
+export interface RespTemplateWbsList {
+  template: TemplateWbsRingkas[]
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
