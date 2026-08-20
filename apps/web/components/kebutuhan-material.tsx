@@ -223,7 +223,17 @@ export function KebutuhanMaterial({ estimateVersionId }: { estimateVersionId: st
 
         <label style={{ fontSize: "var(--teks-delta)", color: C.mid, display: "flex", gap: 6, alignItems: "center" }}>
           Kategori
+          {/*
+            `aria-label` eksplisit, bukan mengandalkan pembungkus <label>.
+
+            Penjaga a11y menuduhnya "select tanpa nama", dan tuduhannya BENAR:
+            teks "Kategori" ada di dalam <label> yang sama, tapi tanpa `htmlFor`
+            atau `id` ia tak tersambung — pembaca layar menyebutnya "kotak
+            kombo" saja. Untuk saringan tabel, artinya kontrolnya tak bisa
+            dipakai sama sekali tanpa melihat layar.
+          */}
           <select
+            aria-label="Kategori sumber daya yang ditampilkan"
             value={kategori}
             onChange={(e) => setKategori(e.target.value)}
             style={{

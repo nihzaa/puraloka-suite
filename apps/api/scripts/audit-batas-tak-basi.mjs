@@ -128,6 +128,22 @@ const KLAIM = [
     frasa: /BELUM diperiksa:\s*SAMBUNGAN sekrup/i,
     fungsi: 'analisaSekrupBajaRingan',
   },
+  {
+    /*
+      "Momen kolom akibat portal belum dihitung" — `struktur-beban-kolom.ts`.
+
+      Didaftarkan di KLAIM (bukan TAK_BISA_BASI) karena batas ini MEMANG
+      bisa dicabut: begitu ada fungsi yang menghitung momen portal, catatan
+      itu jadi bohong. Penjaga ini yang akan merahkannya.
+
+      Nama fungsi yang ditunggu ditulis di sini supaya jelas apa syarat
+      pencabutannya — pola yang sama dengan peringatan GL di CLAUDE.md
+      §5.5: "kalau sebuah larangan punya syarat pencabutan, tulis cara
+      mengukur syaratnya".
+    */
+    frasa: /BELUM dihitung:\s*momen kolom akibat portal/i,
+    fungsi: 'analisaMomenPortal',
+  },
 ]
 
 const berkas = readdirSync(LIB).filter((f) => f.endsWith('.ts'))

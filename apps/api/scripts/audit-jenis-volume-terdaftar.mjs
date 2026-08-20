@@ -69,11 +69,46 @@ const tanpaVolume = new Set(
 /**
  * Pemetaan jenis → berkas modul, dibaca dari `switch` di `hitung()`.
  *
- * Contoh baris: `case 'sloof': return analisaSloof(dgnJumlah as never)`
+ * DUA bentuk cabang dikenali, dan itu bukan kelengkapan kosmetik:
+ *
+ *   case 'sloof': return analisaSloof(dgnJumlah as never)      <- satu baris
+ *   case 'balok': { … return analisaBalok({ … }) }             <- blok
+ *
+ * Bentuk BLOK dipakai jenis yang momennya bisa dihitung dari beban: ada
+ * cabang "kalau ada data beban, hitung dulu" sebelum memanggil analisanya.
+ * Itu tak muat di satu baris.
+ *
+ * Versi pertama penjaga ini hanya mengenali bentuk satu-baris, dan begitu
+ * balok/kolom/footplat berubah jadi blok ia melapor ketiganya "terdaftar di
+ * JENIS tetapi tak punya cabang di hitung()" — tuduhan yang SALAH, dan
+ * mengarahkan yang membacanya untuk menambahkannya ke TANPA_VOLUME. Itu
+ * justru akan membuat volume ketiganya berhenti dihitung.
+ *
+ * Penjaga yang membaca BENTUK kode selalu punya risiko ini. Yang bisa
+ * dilakukan: mengenali tiap bentuk yang memang dipakai, dan menuliskannya.
  */
 const petaFungsi = new Map()
+
+/* Bentuk 1: `case 'x': return fungsi(` */
 for (const m of isi.matchAll(/case '([a-z_]+)': return (\w+)\(/g)) {
   petaFungsi.set(m[1], m[2])
+}
+
+/*
+  Bentuk 2: `case 'x': {` … `return fungsi(` di dalamnya.
+
+  Yang diambil adalah pemanggilan `analisa*` PERTAMA di dalam bloknya —
+  blok beban memanggil `analisaBebanBalok` lebih dulu, tapi yang menentukan
+  volume adalah analisa elemennya sendiri. Karena itu yang dicari khusus
+  nama yang TIDAK diawali `analisaBeban`.
+*/
+for (const m of isi.matchAll(/case '([a-z_]+)': \{([\s\S]*?)\n    \}/g)) {
+  if (petaFungsi.has(m[1])) continue
+  const badan = m[2]
+  const fn = [...badan.matchAll(/\b(analisa[A-Z]\w*)\s*\(/g)]
+    .map((x) => x[1])
+    .find((nama) => !nama.startsWith('analisaBeban'))
+  if (fn) petaFungsi.set(m[1], fn)
 }
 
 /** Berkas mana yang mengekspor fungsi itu, dan apakah ia memulangkan volume. */
