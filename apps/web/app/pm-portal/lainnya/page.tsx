@@ -1,9 +1,11 @@
 "use client";
 
 // ============================================================================
-// Halaman "Lainnya" PM — grid modul lengkap. Bottom nav (PortalShell) hanya
-// mengurasi 4 item + tombol Lainnya; sisanya dipindah ke sini — pola sama
-// dengan `mandor-portal/lainnya/page.tsx`.
+// Halaman "Lainnya" PM — Task 9: grid ikon datar (bentuk lama, Task 6-8)
+// diganti navigasi berkategori. Tiap kartu kategori membuka
+// /pm-portal/kategori/[key] (Task 9 juga) yang mendaftar modul di dalamnya —
+// pola sama dengan Primavera/Odoo: menu = tempat kerja terorganisir, bukan
+// daftar fitur datar yang makin panjang tiap tahap menambah modul.
 //
 // ⚠️ `<h1>` di bawah WAJIB ada, sekalipun tampak mubazir. Penjaga
 // `uji-judul-halaman-ada.mjs` bisa lolos keliru karena menerima judul dari
@@ -11,38 +13,15 @@
 // `mandor-portal/lainnya/page.tsx`).
 // ============================================================================
 
-import {
-  ShieldAlert, ClipboardCheck, FileQuestion, FileStack, FileText,
-  Calendar, Landmark, ShoppingCart, HardHat, UserSquare2, Banknote, Ruler,
-  FileSignature, Gavel, Lock, Wrench, Users, Building2,
-} from "lucide-react";
-import ActionCard from "@/components/portal/ActionCard";
-
-const ITEMS = [
-  { href: "/pm-portal/k3", label: "K3", icon: ShieldAlert },
-  { href: "/pm-portal/punch-list", label: "Punch List", icon: ClipboardCheck },
-  { href: "/pm-portal/inspeksi-rfi", label: "Inspeksi & RFI", icon: FileQuestion },
-  { href: "/pm-portal/submittal", label: "Submittal", icon: FileStack },
-  { href: "/pm-portal/dokumen", label: "Dokumen", icon: FileText },
-  { href: "/pm-portal/jadwal", label: "Jadwal & Baseline", icon: Calendar },
-  { href: "/pm-portal/kontrak", label: "Kontrak", icon: Landmark },
-  { href: "/pm-portal/procurement", label: "Procurement", icon: ShoppingCart },
-  { href: "/pm-portal/mandor", label: "Mandor", icon: HardHat },
-  // Tahap 1, Task 6 — kelompok Mandor & Subkon bagian 1.
-  { href: "/pm-portal/mandor-lengkap/penugasan", label: "Penugasan Mandor", icon: UserSquare2 },
-  { href: "/pm-portal/mandor-lengkap/kasbon", label: "Kasbon Tukang", icon: Banknote },
-  { href: "/pm-portal/mandor-lengkap/opname", label: "Opname Bersama", icon: Ruler },
-  // Tahap 1, Task 7 — kelompok Mandor & Subkon bagian 2.
-  { href: "/pm-portal/mandor-lengkap/spk", label: "Surat Perintah Kerja", icon: FileSignature },
-  { href: "/pm-portal/mandor-lengkap/tender", label: "Tender Subkontraktor", icon: Gavel },
-  { href: "/pm-portal/mandor-lengkap/retensi", label: "Retensi Subkontraktor", icon: Lock },
-  { href: "/pm-portal/mandor-lengkap/backcharge", label: "Back-charge", icon: Wrench },
-  // Tahap 1, Task 8 — sisa kelompok Operasi Lapangan/Mandor & Subkon.
-  { href: "/pm-portal/mandor-lengkap/tukang", label: "Tukang", icon: Users },
-  { href: "/pm-portal/mandor-lengkap/mitra", label: "Mitra", icon: Building2 },
-];
+import Link from "next/link";
+import { ChevronRight, Folder } from "lucide-react";
+import * as Icons from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { kategoriUntukPm } from "@/lib/pm-portal-kategori";
 
 export default function PmLainnyaPage() {
+  const kategori = kategoriUntukPm();
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <h1
@@ -54,12 +33,47 @@ export default function PmLainnyaPage() {
           margin: 0,
         }}
       >
-        Menu Lainnya
+        Lainnya
       </h1>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-        {ITEMS.map((item) => (
-          <ActionCard key={item.href} {...item} />
-        ))}
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        {kategori.map((g) => {
+          const Ikon = (Icons as unknown as Record<string, LucideIcon>)[g.icon] ?? Folder;
+          return (
+            <Link
+              key={g.key}
+              href={`/pm-portal/kategori/${g.key}`}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                padding: 16,
+                borderRadius: 16,
+                background: "var(--surface)",
+                border: "1px solid var(--border)",
+                textDecoration: "none",
+              }}
+            >
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: "var(--info-bg)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <Ikon size={20} color="var(--navy)" aria-hidden="true" />
+              </div>
+              <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>
+                {g.label}
+              </span>
+              <ChevronRight size={18} color="var(--text-muted)" aria-hidden="true" />
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

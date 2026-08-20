@@ -149,10 +149,44 @@ for (const f of lainnyaPages) {
   }
 }
 
+// ── href dari halaman kategori portal PM (Task 9) ───────────────────────────
+//
+// Task 9 (2026-08-20) mengganti grid datar `pm-portal/lainnya/page.tsx`
+// dengan navigasi berkategori: kartu kategori menunjuk `/pm-portal/kategori/
+// [key]` (bukan lagi href modul langsung), dan href MODULNYA sendiri pindah
+// ke `PETA_HREF_PORTAL`/`EKSTRA_PORTAL` di dalam `kategori/[key]/page.tsx`.
+// Tanpa sumber ini, penjaga hanya melihat SATU href literal per halaman
+// (rute `/pm-portal/kategori/[key]` itu sendiri) dan melaporkan SEMBILAN
+// halaman portal PM yang sebenarnya terjangkau (lewat kategori → modul)
+// sebagai yatim. Dipersempit ke berkas bernama PERSIS `kategori/[key]/
+// page.tsx` dengan alasan sama seperti pembatasan `lainnya/page.tsx` di atas
+// — supaya penjaga tak jadi longgar dan menganggap href apa pun di halaman
+// mana pun sebagai tautan nav.
+const kategoriPages = execSync('find apps/web/app -path "*/kategori/*/page.tsx"', { cwd: AKAR, encoding: 'utf8' })
+  .trim().split('\n').filter(Boolean)
+
+// Dua bentuk literal dipindai di sini, bukan satu: `href: "/jalur"` (pola
+// `EKSTRA_PORTAL`, objek beratribut `href`) DAN `"key": "/jalur"` (pola
+// `PETA_HREF_PORTAL`, `Record<string,string>` — key-nya bukan literal kata
+// `href`, jadi regex `lainnya` di atas tak menangkapnya). Nilai yang tak
+// diawali `/` (bukan path) diabaikan supaya key non-href seperti label tak
+// ikut kebaca sebagai tautan.
+const kategori = new Map()
+for (const f of kategoriPages) {
+  const isi = readFileSync(join(AKAR, f), 'utf8')
+  for (const m of isi.matchAll(/href:\s*["'`]([^"'`]+)["'`]/g)) {
+    if (!kategori.has(m[1])) kategori.set(m[1], f)
+  }
+  for (const m of isi.matchAll(/["'`][\w-]+["'`]:\s*["'`](\/[^"'`]+)["'`]/g)) {
+    if (!kategori.has(m[1])) kategori.set(m[1], f)
+  }
+}
+
 const nav = new Set([
   ...sidebar,
   ...[...tab.keys()].map(tanpaQuery),
   ...[...lainnya.keys()].map(tanpaQuery),
+  ...[...kategori.keys()].map(tanpaQuery),
 ])
 
 // ── route nyata ─────────────────────────────────────────────────────────────
@@ -169,6 +203,7 @@ console.log(`  halaman (page.tsx)  : ${rute.length}`)
 console.log(`  href sidebar (DB)   : ${sidebar.size}`)
 console.log(`  href tab-bagian     : ${tab.size}`)
 console.log(`  href grid Lainnya   : ${lainnya.size}`)
+console.log(`  href kategori PM    : ${kategori.size}`)
 
 // ── 1. LINK MATI ────────────────────────────────────────────────────────────
 //
@@ -193,6 +228,7 @@ if (mati.length) {
   for (const h of mati) {
     const sumber = tab.has(h) ? 'tab: ' + tab.get(h)
       : lainnya.has(h) ? 'lainnya: ' + lainnya.get(h)
+      : kategori.has(h) ? 'kategori: ' + kategori.get(h)
       : 'sidebar/DB'
     console.log(`     ${h}   (${sumber})`)
   }
