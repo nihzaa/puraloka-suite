@@ -67,6 +67,9 @@ import {
   gambarPenampangKayu,
 } from '../../lib/struktur-gambar.js'
 import { bandingkan, kandidatDariVariasi } from '../../lib/struktur-banding.js'
+import {
+  dampakMutu, fcDesainDari, mutuBetonTerukur,
+} from '../../lib/struktur-mutu-nyata.js'
 import { catatRiwayat, inputBerbeda } from '../../lib/struktur-riwayat.js'
 import { susunLembar } from '../../lib/struktur-lembar.js'
 import { susunPdfLembar } from '../../lib/struktur-lembar-pdf.js'
@@ -759,6 +762,139 @@ export default async function strukturRoutes(app: FastifyInstance) {
         elemen: { kode: el.kode, jenis: el.jenis, jumlah: el.jumlah },
         sekarang: semua[0],
         data: semua.slice(1),
+      })
+    })
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    GET /projects/:projectId/struktur/mutu-nyata
+
+    Pertanyaan yang selama ini tak pernah diajukan siapa pun.
+
+    `uji_material` menyimpan kuat tekan NYATA dari laboratorium.
+    `struktur_elemen.input.mutu.fcMpa` menyimpan yang DIASUMSIKAN saat
+    menghitung. Diukur 2026-08-20: tak ada satu pun yang membandingkan
+    keduanya — `uji_material` hanya disentuh `mutu.ts`.
+
+    Data sungguhan yang sudah ada di basis ini:
+
+        Beton K-250 zona A lantai   231,0 / 250,0 kg/cm2  -> tidak_memenuhi
+
+    Sistem mencatatnya "tidak memenuhi", lalu BERHENTI. Lanjutannya —
+    "balok yang dihitung dengan fc 25 MPa, apakah masih aman pada mutu yang
+    benar-benar terpasang?" — adalah pertanyaan yang menentukan boleh
+    tidaknya lantai dibebani, dan jawabannya sudah bisa dihitung sejak lama.
+    Yang hilang cuma sambungannya.
+
+    ── TIDAK MENULIS apa pun
+
+    Hasil uji tak boleh menimpa input desain. Desain adalah KEPUTUSAN; hasil
+    uji adalah PENGUKURAN — menimpa yang satu dengan yang lain menghapus jejak
+    apa yang sebenarnya direncanakan, dan itu justru yang dicari saat proyek
+    disengketakan. Alasan lengkapnya di kepala `lib/struktur-mutu-nyata.ts`.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  app.get<{ Params: { projectId: string } }>(
+    '/api/v1/projects/:projectId/struktur/mutu-nyata',
+    { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },
+    async (request, reply) => {
+      if (!(await proyekMilikTenant(request, request.params.projectId))) {
+        return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
+      }
+
+      const { data: ujiMentah, error: eUji } = await request.db!
+        .viaProject('uji_material', request.params.projectId)
+        .select('id, objek, jenis_uji, nilai_hasil, nilai_syarat, satuan, tanggal_uji, kesimpulan')
+        .order('tanggal_uji', { ascending: false })
+        .limit(300)
+      if (eUji) {
+        request.log.error({ err: eUji, projectId: request.params.projectId },
+          'gagal memuat uji material untuk banding mutu')
+        return reply.status(500).send({ error: 'Gagal memuat hasil uji material' })
+      }
+
+      const terukur = mutuBetonTerukur((ujiMentah ?? []) as never)
+      if (!terukur.length) {
+        /*
+          Dibedakan dari "semua aman": proyek yang BELUM punya uji tekan beton
+          bukan proyek yang mutunya terbukti baik. Menyamakannya membuat
+          layar hijau untuk proyek yang sama sekali belum diperiksa.
+        */
+        return reply.send({
+          adaUji: false,
+          terukur: [],
+          data: [],
+          catatan: 'Belum ada hasil uji kuat tekan beton di proyek ini. '
+            + 'Ini BUKAN berarti mutunya sudah terbukti sesuai desain.',
+        })
+      }
+
+      const { data: elemen, error } = await supabase
+        .from('struktur_elemen')
+        .select('id, kode, nama, jenis, jumlah, input')
+        .eq('project_id', request.params.projectId)
+        .order('kode', { ascending: true })
+        .limit(500)
+      if (error) return reply.status(500).send({ error: error.message })
+
+      const hasil = []
+      for (const el of elemen ?? []) {
+        const input = el.input as Record<string, unknown>
+        const fcDesain = fcDesainDari(input)
+        /*
+          Elemen tanpa mutu beton (baja, kayu) DILEWATI — bukan dilaporkan
+          sebagai "aman". Melaporkannya aman berarti mengklaim sesuatu yang
+          tak diperiksa sama sekali.
+        */
+        if (fcDesain === null) continue
+
+        const dampak = dampakMutu(terukur, fcDesain)
+        if (!dampak) continue
+
+        /*
+          Dihitung ULANG pada mutu NYATA lewat dispatcher yang SAMA dengan
+          jalur simpan — bukan dengan menyetel ulang rasio secara kira-kira.
+        */
+        const inputNyata = structuredClone(input)
+        const mutu = inputNyata.mutu as Record<string, unknown> | undefined
+        if (mutu && typeof mutu === 'object') mutu.fcMpa = dampak.fcNyataMpa
+        else inputNyata.fcMpa = dampak.fcNyataMpa
+
+        const banding = bandingkan(
+          [
+            { label: 'Desain', input },
+            { label: 'Mutu nyata', input: inputNyata },
+          ],
+          el.jumlah ?? 1,
+          (i) => hitung(el.jenis as Jenis, i, el.jumlah ?? 1))
+
+        const [desain, nyata] = banding
+        hasil.push({
+          kode: el.kode,
+          nama: el.nama,
+          jenis: el.jenis,
+          fcDesainMpa: dampak.fcDesainMpa,
+          fcNyataMpa: dampak.fcNyataMpa,
+          selisihPersen: dampak.selisihPersen,
+          final: dampak.final,
+          amanDesain: desain?.aman ?? null,
+          amanNyata: nyata?.aman ?? null,
+          /*
+            Inilah temuan yang dicari: elemen yang tadinya lolos, TIDAK lagi
+            lolos pada mutu yang benar-benar terpasang.
+          */
+          berubahJadiTidakAman: desain?.aman === true && nyata?.aman === false,
+          gagalNyata: nyata?.gagalPeriksa ?? [],
+          terpakaiDesain: desain?.puncakPersen ?? null,
+          terpakaiNyata: nyata?.puncakPersen ?? null,
+        })
+      }
+
+      return reply.send({
+        adaUji: true,
+        terukur,
+        jumlahBerubah: hasil.filter((h) => h.berubahJadiTidakAman).length,
+        data: hasil,
       })
     })
 

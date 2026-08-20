@@ -47,7 +47,7 @@ import { GAYA_KARTU } from "@/components/ui-dasar";
 import { Isian, KotakIsian, PilihanIsian, TeksIsian } from "@/components/isian";
 import { formatAngka } from "@/lib/format";
 import {
-  AlertTriangle, Boxes, CheckCircle2, Eye, History, Info, Plus, RefreshCw, Ruler, Scale, Trash2, X,
+  AlertTriangle, Boxes, CheckCircle2, Eye, FlaskConical, History, Info, Plus, RefreshCw, Ruler, Scale, Trash2, X,
 } from "lucide-react";
 import { Modal, btnPrimary, btnGhost } from "../_bersama/kerangka";
 import { LayarKosong } from "../_bersama/layar-kosong";
@@ -126,6 +126,34 @@ interface PemeriksaanAwam {
   tingkat: "aman" | "mepet" | "bahaya";
   persenTerpakai: number;
   penjelasan: PenjelasanAwam | null;
+}
+
+interface BarisMutuNyata {
+  kode: string;
+  nama: string | null;
+  jenis: string;
+  fcDesainMpa: number;
+  fcNyataMpa: number;
+  selisihPersen: number;
+  final: boolean;
+  amanDesain: boolean | null;
+  amanNyata: boolean | null;
+  berubahJadiTidakAman: boolean;
+  gagalNyata: string[];
+  terpakaiDesain: number | null;
+  terpakaiNyata: number | null;
+}
+
+interface MutuNyataMuatan {
+  adaUji: boolean;
+  catatan?: string;
+  jumlahBerubah?: number;
+  terukur: Array<{
+    objek: string; fcNyataMpa: number; nilaiAsli: number;
+    satuanAsli: string; umurHari: number | null; final: boolean;
+    tanggalUji: string | null;
+  }>;
+  data: BarisMutuNyata[];
 }
 
 interface BarisBanding {
@@ -1417,6 +1445,8 @@ function StrukturLayar() {
         )}
       </div>
 
+      {projectId && <PanelMutuNyata projectId={projectId} />}
+
       {galat && (
         <div role="alert" style={{
           ...GAYA_KARTU, background: C.dangerBg, borderColor: C.dangerBorder,
@@ -2544,6 +2574,138 @@ function PanelDetail({ detail, onTutup }: { detail: MuatanDetail; onTutup: () =>
 
       <RiwayatElemen id={detail.elemen.id} />
     </div>
+  );
+}
+
+/**
+ * ══════════════════════════════════════════════════════════════════════════
+ * MUTU NYATA vs DESAIN — pertanyaan yang tak pernah ditanyakan
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * `uji_material` menyimpan kuat tekan NYATA dari laboratorium.
+ * `struktur_elemen.input.mutu.fcMpa` menyimpan yang DIASUMSIKAN saat
+ * menghitung. Sampai sekarang tak ada satu pun yang membandingkan keduanya.
+ *
+ * Data sungguhan yang sudah ada di basis ini:
+ *
+ *     Beton K-250 zona A lantai   231,0 / 250,0 kg/cm2  -> tidak_memenuhi
+ *
+ * Sistem mencatatnya "tidak memenuhi", lalu BERHENTI. Lanjutannya — "balok
+ * yang dihitung dengan fc 25 MPa, apakah masih aman pada mutu yang
+ * benar-benar terpasang?" — adalah pertanyaan yang menentukan boleh
+ * tidaknya lantai dibebani.
+ *
+ * ── Kenapa panel ini DIAM saat tak ada temuan
+ *
+ * Panel yang selalu tampil dengan "semua aman" melatih orang mengabaikannya,
+ * dan yang terlatih mengabaikan tak akan membaca saat akhirnya ada temuan.
+ * Yang tampil hanya: ada temuan, ATAU ada uji yang mutunya di bawah desain.
+ *
+ * Perkecualiannya "belum ada uji sama sekali" — itu TIDAK ditampilkan sebagai
+ * hijau, karena proyek yang belum diperiksa bukan proyek yang terbukti baik.
+ */
+function PanelMutuNyata({ projectId }: { projectId: string }) {
+  const { data, galat } = useData<MutuNyataMuatan>(
+    `/api/v1/projects/${projectId}/struktur/mutu-nyata`);
+
+  /*
+    Galat MUAT tak ditelan — tapi juga tak dijadikan spanduk merah: gagal
+    memuat pembanding mutu bukan temuan struktural, dan menampilkannya
+    semerah temuan sungguhan melatih orang mengabaikan warna merah.
+  */
+  if (galat) {
+    return (
+      <div role="alert" style={{
+        ...GAYA_KARTU, fontSize: "var(--teks-delta)", color: C.mid,
+      }}>
+        Pembanding mutu nyata gagal dimuat — ini BUKAN berarti mutunya sesuai desain.
+      </div>
+    );
+  }
+  if (!data?.adaUji) return null;
+
+  const berubah = data.data.filter((x) => x.berubahJadiTidakAman);
+  const dibawah = data.data.filter((x) => x.fcNyataMpa < x.fcDesainMpa);
+  if (!berubah.length && !dibawah.length) return null;
+
+  const genting = berubah.length > 0;
+  /*
+    Hasil BELUM final (umur < 28 hari) ditandai berbeda. Silinder 7 hari yang
+    jeblok itu normal — beton baru mencapai sekitar 65-70% kekuatannya, dan
+    memperlakukannya seperti hasil final memicu pembongkaran yang tak perlu.
+  */
+  const semuaBelumFinal = data.data.length > 0 && data.data.every((x) => !x.final);
+
+  return (
+    <section aria-label="Mutu beton nyata dibanding desain" style={{
+      ...GAYA_KARTU,
+      background: genting ? C.dangerBg : C.warningBg,
+      borderColor: genting ? C.dangerBorder : C.warningBorder,
+      color: genting ? C.onDangerBg : C.onWarningBg,
+      display: "grid", gap: 8,
+    }}>
+      <strong style={{ display: "flex", gap: 6, alignItems: "center", fontSize: "var(--teks-label)" }}>
+        <FlaskConical size={14} aria-hidden="true" />
+        {genting
+          ? `${berubah.length} elemen TIDAK lagi memenuhi syarat pada mutu beton yang terpasang`
+          : `Mutu beton terpasang di bawah yang dipakai saat menghitung`}
+      </strong>
+
+      <p style={{ margin: 0, fontSize: "var(--teks-delta)" }}>
+        {genting
+          ? "Elemen di bawah ini lolos saat dihitung dengan mutu rencana, tetapi TIDAK lolos "
+            + "bila dihitung ulang memakai kuat tekan hasil uji laboratorium. Perlu diperiksa "
+            + "insinyur sebelum dibebani."
+          : "Hasil uji lebih rendah dari mutu rencana, tetapi seluruh elemen masih memenuhi "
+            + "syarat pada mutu tersebut. Tetap perlu diketahui."}
+        {semuaBelumFinal && " Catatan: hasil uji yang ada BELUM berumur 28 hari, "
+          + "jadi angkanya belum final — beton umumnya baru mencapai sekitar 65-70% "
+          + "kekuatannya pada umur 7 hari."}
+      </p>
+
+      <Tabel
+        caption="Elemen yang terdampak mutu beton terpasang"
+        data={(genting ? berubah : dibawah).slice(0, 20)}
+        kunciBaris={(b) => (b as BarisMutuNyata).kode}
+        kolom={[
+          {
+            kunci: "kode", judul: "KODE", kepalaBaris: true,
+            render: (b) => (b as BarisMutuNyata).kode,
+          },
+          {
+            kunci: "fc", judul: "MUTU (MPa)",
+            render: (b) => {
+              const x = b as BarisMutuNyata;
+              return `${x.fcDesainMpa} → ${x.fcNyataMpa}`;
+            },
+          },
+          {
+            kunci: "selisih", judul: "SELISIH", rata: "kanan",
+            render: (b) => `${(b as BarisMutuNyata).selisihPersen}%`,
+          },
+          {
+            kunci: "terpakai", judul: "TERPAKAI", rata: "kanan",
+            render: (b) => {
+              const x = b as BarisMutuNyata;
+              if (x.terpakaiDesain === null || x.terpakaiNyata === null) return "—";
+              return `${x.terpakaiDesain}% → ${x.terpakaiNyata}%`;
+            },
+          },
+          {
+            kunci: "gagal", judul: "YANG TIDAK TERPENUHI",
+            render: (b) => {
+              const x = b as BarisMutuNyata;
+              return x.gagalNyata.length ? x.gagalNyata.join(", ") : "—";
+            },
+          },
+        ]}
+      />
+
+      <p style={{ margin: 0, fontSize: "var(--teks-delta)", opacity: 0.9 }}>
+        Angka desain TIDAK diubah oleh hasil uji — yang ditampilkan di sini hanya
+        perhitungan ulang. Menindaklanjutinya adalah keputusan insinyur.
+      </p>
+    </section>
   );
 }
 
