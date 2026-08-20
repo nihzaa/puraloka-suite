@@ -132,6 +132,8 @@ const CONTOH_ID = {
   '/pm-portal/kategori/[key]': 'g-subkon',
   // Portal PM Lengkap Tahap 3, Task 19 — detail RAB (estimate_versions.id).
   '/pm-portal/cecep/rab/[id]': process.env.LAYAR_ID_RAB,
+  // Portal PM Lengkap Tahap 3, Task 20 — detail RAP (rap_budget.id).
+  '/pm-portal/cecep/rap/[id]': process.env.LAYAR_ID_RAP,
 }
 
 function halamanDariBerkas() {

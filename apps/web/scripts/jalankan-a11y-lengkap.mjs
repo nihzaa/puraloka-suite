@@ -82,6 +82,8 @@ const PERTANYAAN = [
   ['LAYAR_KUNCI_MENU', "select key from menu_items where is_active and href is not null limit 1"],
   // Portal PM Lengkap Tahap 3, Task 19 — detail RAB (`/pm-portal/cecep/rab/[id]`).
   ['LAYAR_ID_RAB', 'select id from estimate_versions order by created_at desc limit 1'],
+  // Portal PM Lengkap Tahap 3, Task 20 — detail RAP (`/pm-portal/cecep/rap/[id]`).
+  ['LAYAR_ID_RAP', 'select id from rap_budget order by created_at desc limit 1'],
 ]
 
 const env = { ...process.env }

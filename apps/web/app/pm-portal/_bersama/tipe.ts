@@ -1478,6 +1478,126 @@ export interface RespCostCodeRingkas {
 }
 
 /**
+ * RAP (rencana anggaran pelaksanaan — pagu belanja internal). Bentuk PERSIS
+ * `GET /api/v1/rap/:id`, `apps/api/src/routes/v1/rap.ts:213-236` (diverifikasi
+ * langsung ke kode untuk Task 20, bukan cuma brief).
+ *
+ * RAB (estimate_*) = rencana JUAL ke klien (harga pasar). RAP = rencana
+ * BELANJA internal (harga supplier + borongan mandor) — dua entitas terpisah,
+ * selisihnya margin yang dikelola. `qty_ahsp` beku dari take-off RAB saat RAP
+ * diturunkan; `qty_adjusted` bisa disunting HANYA saat `status !== 'locked'`
+ * (ditegakkan backend, `rap.ts:246-250`) — sekali terkunci, TAK ADA jalur
+ * buka kunci, hanya `change-log` beralasan wajib.
+ */
+export interface RapRingkas {
+  id: string
+  name: string
+  status: "draft" | "locked" | string
+  notes: string | null
+  estimate_version_id: string
+  locked_at: string | null
+  created_at: string
+}
+/** Baris pagu material RAP. `resource_id` (rap.ts:215) ada di level atas,
+ * bukan cuma di dalam `resource` bersarang — disertakan meski tak dipakai
+ * halaman ini. */
+export interface RapMaterialLine {
+  id: string
+  resource_id: string
+  qty_ahsp: number
+  qty_adjusted: number
+  unit_code: string
+  supplier_price: number
+  supplier_id: string | null
+  pagu: number
+  notes: string | null
+  resource: { code: string; name: string } | null
+}
+export interface RapLaborLine {
+  id: string
+  description: string
+  borongan_value: number
+  notes: string | null
+  work_scope_id: string | null
+}
+export interface RespRapDetail {
+  data: RapRingkas
+  material: RapMaterialLine[]
+  labor: RapLaborLine[]
+  total: { material: number; labor: number; pagu: number }
+}
+export interface RapChangeLogEntry {
+  id: string
+  line_table: string
+  line_id: string
+  field_name: string | null
+  old_value: string | null
+  new_value: string | null
+  reason: string
+  changed_at: string
+}
+
+/**
+ * Satu periode markup TERSIMPAN. Bentuk PERSIS konstanta `SELECT`,
+ * `apps/api/src/routes/v1/markup.ts:34-38` — dibaca ULANG PENUH untuk Task 20
+ * langsung ke kode (bukan hanya brief), sesudah draf pertama Task 17 salah
+ * total (field `jenis`/`persentase`/`biaya_pokok` yang ditulis draf pertama
+ * TIDAK ADA di respons ini). Empat fraksi TERPISAH (bukan satu `persentase`)
+ * karena overhead, keuntungan, kontinjensi, dan BUK (biaya-umum-keuntungan,
+ * dikirim ke `computeAhsp`) adalah empat keputusan bisnis berbeda yang bisa
+ * disetujui terpisah. Read-only untuk PM (`cecep:markup:view` saja — PM TIDAK
+ * punya `cecep:markup:manage`, diverifikasi ke `role_permissions` langsung:
+ * hanya `admin`/`estimator`).
+ */
+export interface PeriodeMarkup {
+  id: string
+  /** `null` = berlaku UMUM (semua jenis pekerjaan yang tak punya baris sendiri). */
+  jenis_pekerjaan: string | null
+  berlaku_sejak: string
+  overhead_fraksi: number | string | null
+  keuntungan_fraksi: number | string | null
+  kontinjensi_fraksi: number | string | null
+  buk_fraksi: number | string | null
+  alasan: string | null
+  catatan: string | null
+  ditetapkan_oleh: string | null
+  created_at: string
+}
+/**
+ * Markup yang SUDAH DIPILIH untuk satu tanggal — bentuk PERSIS `MarkupBerlaku`,
+ * `apps/api/src/lib/markup.ts:39-50` (fungsi `pilihMarkup()`). Dinamai
+ * `MarkupTerpilih` di sini (bukan `MarkupBerlaku`) hanya sebagai alias sisi
+ * klien — field-nya identik. Angka SIAP PAKAI (bukan fraksi mentah), dan
+ * `dari_umum` menandai baris umum dipakai karena jenis ini tak punya baris
+ * sendiri.
+ */
+export interface MarkupTerpilih {
+  periode_id: string
+  jenis_pekerjaan: string | null
+  berlaku_sejak: string
+  overhead: number
+  keuntungan: number
+  kontinjensi: number
+  buk: number
+  dari_umum: boolean
+}
+/**
+ * Bentuk PERSIS `GET /api/v1/markup`, `markup.ts:68-76` — daftar SELURUH
+ * periode (`periode`), markup umum yang berlaku HARI INI (`berlaku`, bisa
+ * `null` — "belum ditetapkan" harus tampak, bukan ditutupi 0%), dan markup
+ * berlaku PER JENIS pekerjaan yang punya baris sendiri (`berlaku_per_jenis`).
+ * Ini endpoint LIST — `GET /markup/berlaku` menjawab SATU objek untuk SATU
+ * konteks tanggal+jenis (dipakai kalkulator penawaran), bukan daftar; tidak
+ * dipakai halaman ini.
+ */
+export interface RespMarkupList {
+  periode: PeriodeMarkup[]
+  berlaku: MarkupTerpilih | null
+  berlaku_per_jenis: Array<{ jenis_pekerjaan: string; markup: MarkupTerpilih | null }>
+  pada: string
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
