@@ -191,6 +191,72 @@ export interface KontrakRingkas {
 }
 
 /**
+ * Respons `GET /api/v1/kasbons` (`apps/api/src/routes/v1/kasbons.ts`).
+ *
+ * Dipakai approval inbox untuk mengambil DETAIL kasbon (nama pemohon, nama
+ * proyek) — `BarisInbox` sendiri tak membawanya. Tak ada `GET /:id` untuk
+ * kasbon (diverifikasi: hanya `GET /api/v1/kasbons`, `POST`, dan
+ * `PATCH /:id/status` yang terdaftar), jadi detail diambil dari LIST
+ * (`?status=pending`) lalu dicocokkan `id` di klien.
+ */
+export interface KasbonDetailInbox {
+  id: string
+  amount: number
+  fund_source: string | null
+  purpose: string | null
+  kasbon_date: string | null
+  status: string
+  notes: string | null
+  created_at: string | null
+  approved_at: string | null
+  project: { id: string; name: string } | null
+  work_scopes: { id: string; scope_name: string | null } | null
+  requester: { id: string; name: string } | null
+  approver: { id: string; name: string } | null
+  cash_account: { id: string; name: string; type: string | null } | null
+}
+
+export interface ResponsKasbonDetailInbox {
+  kasbons: KasbonDetailInbox[]
+}
+
+/**
+ * Satu baris dari `GET /api/v1/projects/:projectId/submittals`
+ * (`apps/api/src/routes/v1/submittal.ts`, `SUBMITTAL_SELECT`).
+ *
+ * Tak ada `GET /submittals/:id` berdiri sendiri (diverifikasi: 404) — detail
+ * diambil dari LIST per-proyek (`project_id` sudah ada di `BarisInbox`), lalu
+ * dicocokkan `id` di klien. Sama seperti kasbon di atas.
+ */
+export interface SubmittalDetailInbox {
+  id: string
+  project_id: string
+  nomor: string
+  judul: string
+  jenis: string
+  spesifikasi: string | null
+  referensi_spek: string | null
+  status: string
+  revisi: number
+  induk_id: string | null
+  ditujukan_ke: string | null
+  diajukan_pada: string | null
+  keputusan_diharapkan: string | null
+  diputuskan_pada: string | null
+  catatan_reviewer: string | null
+  diputuskan_oleh: string | null
+  menghentikan_pekerjaan: boolean
+  diajukan_oleh: string
+  created_at: string | null
+  pengaju: { id: string; name: string } | null
+  hari_menunggu: number | null
+}
+
+export interface ResponsSubmittalDetailInbox {
+  data: SubmittalDetailInbox[]
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
