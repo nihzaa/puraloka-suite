@@ -3902,59 +3902,1894 @@ git commit -m "feat(pm-portal): navigasi kategori Kontrak+Perencanaan, Tahap 2 s
 
 ---
 
-## Tahap 3-7: Kerangka (detail digali saat eksekusi)
+## Tahap 3-7: Budget & Cost Control lengkap, Tahap 4-7 kerangka
 
 > Pola task per tahap MENGIKUTI struktur Tahap 1-2 (Task riset → Task
 > halaman per sub-kelompok → Task navigasi/verifikasi). Detail kode TIDAK
-> ditulis di sini — spec §5 menegaskan tipe/endpoint WAJIB diverifikasi ke
-> kode nyata saat itu dieksekusi, menulis kodenya sekarang (jauh sebelum
-> eksekusi, tanpa membaca ulang kode yang mungkin sudah berubah) akan
-> jadi tebakan basi. Sebelum memulai tiap Tahap, buat task riset (pola
-> Task 5/11) lebih dulu, BARU susun task halaman detailnya — sesi
-> eksekusi tahap itu yang menulis breakdown lengkap ke plan ini (mengedit
-> file plan ini, menambah Task baru di bagian Tahap yang relevan), bukan
-> ditebak di muka.
+> ditulis di sini untuk Tahap 4-7 — spec §5 menegaskan tipe/endpoint WAJIB
+> diverifikasi ke kode nyata saat itu dieksekusi, menulis kodenya sekarang
+> (jauh sebelum eksekusi, tanpa membaca ulang kode yang mungkin sudah
+> berubah) akan jadi tebakan basi. Sebelum memulai tiap Tahap, buat task
+> riset (pola Task 5/11/17) lebih dulu, BARU susun task halaman
+> detailnya — sesi eksekusi tahap itu yang menulis breakdown lengkap ke
+> plan ini (mengedit file plan ini, menambah Task baru di bagian Tahap
+> yang relevan), bukan ditebak di muka.
+>
+> **Tahap 3 (Task 17-22) SUDAH digali penuh** — riset dilakukan dan kode
+> lengkap ditulis untuk 11 halaman (Task 17 Step 1 langsung diikuti Task
+> 18-21 kode lengkap + Task 22 navigasi), pola sama Tahap 2. Tahap 4-7
+> (Task 23-26) TETAP kerangka riset — belum digali sesi ini.
 
 ### Task 17: [Tahap 3] Budget & Cost Control — riset & breakdown
 
-- [ ] **Step 1: Riset endpoint+permission** modul `cecep` (estimasi/RAP/
-AHSP/WBS/markup) — modul PALING besar (19 permission, 10 halaman web,
-termasuk `estimasi/rab` 1140 baris dan `master/ahsp` 950 baris). Baca
-`docs/KEPUTUSAN-SCOPE-ERP-AI.md` dan dokumen CECEP terkait (disebut
-memory project sebagai area sensitif dengan riwayat migrasi rumit) SEBELUM
-menulis breakdown — modul ini py lebih banyak jebakan sejarah dari modul
-lain manapun di plan ini. Perhatikan juga `jd-wbs`/`jd-gantt`/`jd-kurva-s`/
-`jd-evm`/`cc-rab`/`cc-etc`/`cc-bac` yang SEMUANYA `tabProyek` pada
-`/proyek/[id]` admin (pola sama Task 13 menemukan `kt-co`/`kt-eot`/
-`kt-ld`/`kt-bond`) — modul ini kemungkinan BESAR menjadi pendorong utama
-membangun hub `pm-portal/proyek/[id]` penuh (utang yang dicatat Task 16),
-bukan lagi bisa ditunda.
-- [ ] **Step 2: Tulis breakdown Task 18-N**, pola sama, dengan perhatian
-KHUSUS ke §1 spec "modul kompleks tetap dibangun, disederhanakan" — RAB/
-RAP 1000+ baris web PASTI butuh penyederhanaan signifikan untuk mobile
-(kemungkinan: list item RAB dengan filter/search, BottomSheet untuk edit
-satu item, BUKAN tabel spreadsheet-like yang jadi ciri halaman webnya).
+- [x] **Step 1: Riset endpoint+permission** modul `cecep` (estimasi/RAP/
+AHSP/WBS/markup).
 
-### Task 18: [Tahap 4] Pengadaan + Gudang & Material — riset & breakdown
+  **Dokumen dibaca lebih dulu** (peringatan brief diikuti penuh):
+  `docs/KEPUTUSAN-SCOPE-ERP-AI.md` (GL/WIP masih gerbang §4-5, tapi CECEP
+  sendiri TIDAK disebut sebagai item yang ditahan — engine AHSP/RAB/RAP
+  sudah lama hidup, ini soal UI mobile bukan soal scope baru) ·
+  `docs/PETA-PRIORITAS-ERP.md` §2 (baris `CECEP/` — planning SELESAI,
+  Progres verified 2026-07-26/27, rombak UI 2026-08-16/17 SELESAI) ·
+  `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` (baris "Estimating / AHSP" —
+  UI dirombak 2026-08-16, `/estimasi` dipecah jadi 7 rute) ·
+  `docs/superpowers/specs/2026-08-16-cecep-rombak-ui-design.md` (spec
+  rombak UI web yang BARU SAJA selesai — desktop CECEP bukan lagi satu
+  file 4.070 baris, sudah jadi 7 rute berdiri sendiri sejak 2026-08-17)
+  · `~/.claude/…/memory/project-cecep-progress.md` (CI isolation tuntas,
+  sumbu edisi migrasi 117, temuan SE47-vs-Cibuluh −13,47%, gerbang
+  founder GL/asset/opname masih forward-draft — tak menghalangi kerja
+  UI ini).
+
+  **Koreksi PALING PENTING atas brief**: brief menulis "modul `cecep`" dan
+  "`estimasi/rab` 1140 baris dan `master/ahsp` 950 baris" seolah modul ini
+  MASIH satu berkas raksasa seperti yang ditemukan audit 2026-08-16. **Itu
+  sudah BASI sejak 2026-08-17** — `docs/superpowers/specs/2026-08-16-cecep-
+  rombak-ui-design.md` §8 mencatat rombak itu SUDAH SELESAI (8/8 langkah
+  ✅). Diukur ulang hari ini (`wc -l`), angkanya PERSIS SAMA (1140 & 950)
+  — tapi itu bukan lagi SATU berkas 4.070 baris bertab, melainkan DUA dari
+  TUJUH rute web yang sudah berdiri sendiri:
+
+  ```
+  apps/web/app/(dashboard)/estimasi/page.tsx           434 baris  (dashbor daftar RAB)
+  apps/web/app/(dashboard)/estimasi/rab/page.tsx       1140 baris  (susun RAB — inti)
+  apps/web/app/(dashboard)/estimasi/rap/page.tsx        613 baris  (RAP)
+  apps/web/app/(dashboard)/estimasi/kas/page.tsx        278 baris  (proyeksi kas)
+  apps/web/app/(dashboard)/estimasi/varians/page.tsx    246 baris  (varians)
+  apps/web/app/(dashboard)/master/ahsp/page.tsx         950 baris  (katalog AHSP)
+  apps/web/app/(dashboard)/master/harga/page.tsx        871 baris  (price book)
+  ```
+
+  Ini MENGUBAH breakdown: bukan "satu modul monolitik yang harus dipotong
+  jadi versi mobile", melainkan TUJUH modul yang sudah terpisah secara
+  arsitektural di desktop — breakdown Step 2 mengikuti garis pemisah yang
+  SAMA (bukan garis baru), karena itulah yang sudah terbukti masuk akal
+  bagi orang yang memakainya.
+
+  **Permission — 19 KEY DISTINCT terverifikasi ke `role_permissions`**
+  (brief benar; dihitung dari kunci UNIK, tabel `role_permissions` punya
+  baris ganda per company jadi hitungan mentah 38 turun jadi 19 distinct).
+  Query langsung ke Supabase (bukan tebakan dari kode):
+
+  ```sql
+  -- role='pm', key LIKE 'cecep:%', DISTINCT
+  cecep:assembly:view · cecep:cbs:view · cecep:cost_code:view ·
+  cecep:cost_map:view · cecep:edition:view · cecep:estimate:manage ·
+  cecep:estimate:view · cecep:formula:view · cecep:lessons:view ·
+  cecep:markup:view · cecep:price:view · cecep:productivity:view ·
+  cecep:rap:manage · cecep:rap:view · cecep:resource:view ·
+  cecep:struktur:view · cecep:takeoff:manage · cecep:takeoff:view ·
+  cecep:wbs:view
+  ```
+
+  PM hanya `manage` untuk TIGA: `estimate`, `rap`, `takeoff` — sisanya
+  VIEW-ONLY (`assembly`/`cbs`/`cost_code`/`cost_map`/`price`/`markup`/
+  `wbs`/`struktur`/`resource`/`lessons` semua view saja, PM tak bisa
+  create/edit master data AHSP/harga/WBS dari mobile). Ini keputusan
+  ARSITEKTURAL yang mengikat breakdown: halaman Katalog AHSP & Price Book
+  mobile WAJIB read-only (nol tombol tambah/ubah), bukan kelalaian.
+
+  Total permission `cecep:*` di katalog: **35** (bukan 19 — 19 adalah
+  subset milik PM). `cecep:estimate:approve` dan `cecep:lessons:approve`
+  ada di katalog tapi PM TIDAK memilikinya — approval estimasi bukan
+  wewenang PM di skema permission saat ini (diverifikasi, bukan diasumsikan).
+
+  **Temuan kritis — dua DATASET berbeda dengan nama mirip, JANGAN tertukar:**
+
+  | | `rab_items` (RAB proyek) | `estimate_items` (Komposer CECEP) |
+  |---|---|---|
+  | Route file | `rab.ts` | `estimate-versions.ts` |
+  | Gerbang | `authenticate` (baca) / `projects:edit` (tulis) — **PM PUNYA PENUH, BUKAN `cecep:*`** | `cecep:estimate:view`/`:manage` |
+  | Dipakai oleh | Gantt, Kurva-S, EVM, Look-Ahead, progress fisik, `sec-rab`/`sec-gantt`/`sec-kurvas` admin | Komposer `/estimasi/rab` desktop, dashbor `/estimasi` |
+  | Hubungan | `estimate_items` **DISALIN** (bukan dirujuk) ke `rab_items` lewat `POST /estimate-versions/:id/terapkan-ke-rab` — sekali salin, dua tabel lepas lagi | — |
+
+  Ini KENAPA `cc-rab`/`jd-gantt`/`jd-kurva-s`/`jd-evm`/`cc-etc`/`cc-bac`
+  di `peta-menu.ts` semuanya `tabProyek` pada `/proyek/[id]` admin (bukan
+  `cecep:*`): mereka membaca `rab_items`+`projects`, gerbangnya sudah
+  `projects:edit`/`projects:view` yang PM PUNYA PENUH — TIDAK ada
+  permission baru yang perlu dicek untuk bagian ini, hanya endpoint
+  standalone yang perlu ditemukan (sudah, lihat Step di bawah) supaya
+  tak terjebak `tabProyek` seperti dugaan awal.
+
+  **`GET /api/v1/projects/:projectId/kurva-s` (`kurva-s.ts`, 517 baris,
+  gerbang `authenticate` SAJA — PM otomatis bisa)** adalah SATU endpoint
+  yang memuat KEEMPAT `tabProyek` sekaligus: Kurva-S (`chartData` per
+  minggu), EVM (`meta.evm` — `bac/ac/ev/pv/cpi/spi/sv/cv/eac/etc/vac/
+  tcpi`, BAC berjenjang RAP-terkunci→RAB→contract_value lewat
+  `meta.evm.bacSource`), Cost-to-Complete (`meta.evm.etc`), dan Cost
+  Baseline/BAC (`meta.evm.bac`+`bacSource`). **Satu panggilan API,
+  empat entri `peta-menu.ts`** — breakdown Task 21 memakainya sebagai
+  SATU halaman, bukan empat.
+
+  **Gantt** (`GET /api/v1/projects/:projectId/rab/gantt`, di `rab.ts`,
+  gerbang `authenticate`) memulangkan `tasks[]` dengan `planned_start/
+  end`, `dep_rules`, dan **actual_start/actual_end/execution_end**
+  (earned-completion — `actual_end` = pertama kali progress ≥100%,
+  BUKAN log terakhir; lihat memory `project-earned-completion-design`).
+  Field ini gampang tertukar dan sudah pernah jadi cacat historis di
+  modul lain — dicatat eksplisit di sini supaya Task 21 tak menebak.
+
+  **Look-Ahead** (`GET /rab/look-ahead?minggu=N`, `rab.ts`) — SUDAH ADA
+  di `pm-portal/jadwal` sejak Task 15 (Tahap 2, dari payload
+  `jadwal-cpm`). **TIDAK perlu dibangun ulang** — dicek: field yang
+  dikembalikan `rab.ts` (`categoryCode`/`plannedStart`/`plannedEnd`/
+  `progressPct`/`totalPrice`) BUKAN sumber yang sama dengan yang dipakai
+  `jadwal-cpm.ts` (field CPM), jadi ini catatan untuk Task 21 memverifikasi
+  ulang — TAPI kapasitasnya sudah tercakup secara FUNGSIONAL (pertanyaan
+  "apa yang harus disiapkan minggu ini" sudah terjawab jalur lain).
+  Tidak dibuatkan halaman terpisah.
+
+  **Change Order** (`kt-co`, `change-orders.ts`, endpoint PENUH berdiri
+  sendiri: `GET/POST /projects/:projectId/change-orders`, item CRUD,
+  `submit`/`approve`/`reject`, gerbang `projects:edit` — PM punya).
+  **BUKAN murni `tabProyek`** seperti dugaan Task 11/16 — ini KOREKSI
+  atas catatan Task 16 ("`kt-co` … TIDAK dibangun Task 12-15 karena butuh
+  hub tab PM… dicatat sebagai UTANG"). Endpoint berdiri sendiri per
+  proyek SUDAH ADA sejak awal; yang tak ada cuma halaman PM-nya. Breakdown
+  Task 21 menutup utang ini LANGSUNG tanpa menunggu hub `proyek/[id]`.
+
+  **RAP** (`rap.ts`) — `GET/POST /projects/:projectId/rap` (daftar+buat),
+  `GET /rap/:id` (detail: material+labor+total), `PATCH /rap/:id/material/
+  :lineId` (qty_adjusted, HANYA saat draft), `POST /rap/:id/labor`,
+  `PATCH /rap/:id/lock` (beku permanen — TAK ADA jalur buka kunci),
+  `POST`+`GET /rap/:id/change-log` (alasan WAJIB, trigger DB). Gerbang
+  `cecep:rap:view`/`:manage` — PM punya KEDUANYA.
+
+  **Markup** — `GET /markup/berlaku` (baca aturan aktif per jenis+biaya
+  pokok), `POST` (buat versi baru — markup APPEND-ONLY, versi lama tetap
+  ada sebagai riwayat, bukan di-update), `DELETE /markup/:id`. Gerbang
+  `cecep:markup:view`/`:manage` — **PM HANYA VIEW**, jadi mobile
+  read-only (lihat aturan markup berlaku, tak bisa ubah dari HP).
+
+  **Template WBS** (`template-wbs.ts`) — `GET /template-wbs` (daftar),
+  `GET /template-wbs/:id` (detail pohon), `POST` (buat), `PATCH /:id/
+  status`, `POST /:id/terapkan` (MENOLAK proyek yang sudah ber-RAB —
+  guard destruktif, lihat catatan `md-wbs` di `peta-menu.ts`). Gerbang
+  `cecep:wbs:view` — **PM HANYA VIEW**, jadi mobile read-only (lihat
+  template, tak bisa terapkan/buat dari HP — aksi destruktif "hapus RAB
+  proyek" tak cocok jadi aksi satu ketuk di layar kecil).
+
+  **Cost Control** (`cost-control.ts`) — `cost-codes`, `cost-map` (+
+  saran), `belanja-aktual`, `cvr` (Cost Value Reconciliation, status
+  `sebagian` — catatan `cc-cvr` di `peta-menu.ts` menjelaskan panjang
+  KENAPA sebagian: dua taksonomi kategori yang tak pernah bertemu secara
+  struktural, BUKAN kode yang kurang), `varians`. Gerbang campuran:
+  `cecep:cost_code:view` (PM punya), `cecep:cost_map:view`/`:manage`
+  (PM hanya view), `reports:view` (untuk `cvr`/`varians` — **PM TIDAK
+  diverifikasi punya `reports:view`**, dicek terpisah di Task 21).
+
+  **Contingency** (`contingency.ts`, migrasi 200) — gerbang
+  `projects:view`/`projects:edit` (bukan `cecep:*`), PM punya penuh.
+  Terpisah dari CECEP secara modul tapi masuk grup `g-cost` yang sama.
+
+  **WIP/PSAK** (`wip.ts`, `GET /reports/wip`) — gerbang `reports:view`,
+  SENGAJA di luar scope (§4 `KEPUTUSAN-SCOPE-ERP-AI.md`: "TOOL AI
+  FINANSIAL … TETAP MENUNGGU #15 WIP/PSAK" — endpoint baca-nya sendiri
+  ada, tapi ini laporan pengakuan pendapatan tingkat perusahaan, bukan
+  kerja harian PM per proyek; `cc-wip` di `peta-menu.ts` menunjuk
+  `/laporan?tab=wip`, tetap fallback web, TIDAK dibangun versi mobile
+  Tahap 3 ini — beda alasan dari yang lain: bukan kurang endpoint,
+  tapi salah lapis kerja untuk PM harian).
+
+- [x] **Step 2: Tulis breakdown Task 18-21** (plus Task 22 navigasi;
+  placeholder lama "Task 18: [Tahap 4] Pengadaan…" digeser ke Task 23,
+  dan lama Task 19/20/21 digeser ke Task 24/25/26 — lihat pemetaan
+  renumbering di laporan). Dipecah jadi EMPAT task kode (bukan
+  satu task CECEP raksasa) mengikuti prinsip *task right-sizing*
+  (`writing-plans`): tiap task adalah unit yang punya siklus test sendiri
+  dan modul yang tak saling bergantung kuat secara data (Master Data
+  view-only ≠ RAB kerja harian ≠ RAP anggaran ≠ Cost Control lintas-tab
+  admin) — mem-paksanya jadi satu task akan membuat satu commit menyentuh
+  8+ halaman sekaligus, terlalu besar untuk direview segar sekali baca.
+
+  Pembagian (alasan detail di riset atas):
+  - **Task 18** — Master Data CECEP, READ-ONLY (Katalog AHSP + Price
+    Book + Template WBS). PM view-only untuk ketiganya — halaman paling
+    aman untuk dibangun duluan karena nol risiko tulis.
+  - **Task 19** — RAB per proyek: dashbor daftar RAB (`GET
+    /estimate-versions`, pola §3c spec rombak — satu baris per RAB,
+    dikelompokkan per proyek) + detail versi + tambah item LUMPSUM
+    (sederhana) — item ASSEMBLY (perlu pencarian AHSP + resolve harga)
+    disediakan lewat picker sederhana yang memanggil endpoint yang SAMA
+    dengan desktop, bukan endpoint baru.
+  - **Task 20** — RAP: anggaran pelaksanaan (material+labor+lock+
+    change-log) + Markup (read-only, PM hanya view).
+  - **Task 21** — Cost Control lintas-proyek: Kurva-S+EVM+ETC+BAC (SATU
+    halaman, endpoint sama), Change Order (menutup utang Task 16 —
+    endpoint berdiri sendiri, TIDAK perlu menunggu hub `proyek/[id]`),
+    Cashflow (`/estimasi/kas` — endpoint `estimate-versions/:id/
+    cashflow-forecast`), Varians (`cost-control.ts`), Contingency.
+
+  **Hub `pm-portal/proyek/[id]` — TIDAK dibangun di Tahap 3 juga.**
+  Riset Step 1 membalik dugaan brief: SEMUA `tabProyek` CECEP
+  (`cc-rab`/`jd-gantt`/`jd-kurva-s`/`jd-evm`/`cc-etc`/`cc-bac`) ternyata
+  py endpoint standalone per-proyek (`rab.ts`, `kurva-s.ts`) — pola
+  PERSIS sama dengan yang Task 11 temukan untuk `kt-eot`/`kt-ld`/`kt-bond`
+  di Tahap 2. Change Order (`kt-co`) yang tadinya dicatat "murni tabProyek,
+  butuh hub" di Task 16 pun ternyata punya endpoint sendiri. **Hasilnya:
+  hub belum benar-benar dibutuhkan sampai Tahap 7** (Task 22 lama, kini
+  Task 26) — dicatat ulang di sana, bukan dibangun prematur di sini.
+
+### Task 18: Master Data CECEP (read-only) — Katalog AHSP, Price Book, Template WBS
+
+**Files:**
+- Create: `apps/web/app/pm-portal/cecep/ahsp/page.tsx`
+- Create: `apps/web/app/pm-portal/cecep/harga/page.tsx`
+- Create: `apps/web/app/pm-portal/cecep/wbs/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Kenapa read-only**: diverifikasi Task 17 Step 1 ke `role_permissions` —
+PM hanya punya `cecep:resource:view`/`cecep:price:view`/`cecep:wbs:view`,
+BUKAN `:manage` untuk ketiganya. Halaman ini sengaja TANPA tombol tambah/
+ubah/hapus — bukan kelalaian, keputusan permission yang sudah ada.
+
+- [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
+
+Bentuk `assemblies` diverifikasi PERSIS ke `apps/api/src/routes/v1/
+ahsp.ts:283-289` (`GET /cecep/assemblies`) dan `price-book.ts:16-100`
+(`GET /cecep/price-book`) dan `template-wbs.ts:33-80` (`GET
+/template-wbs`):
+
+```typescript
+/** Baris katalog AHSP nasional. `GET /api/v1/cecep/assemblies`. */
+export interface AssemblyKatalog {
+  id: string
+  code: string
+  name: string
+  source: string
+  version_number: number
+  status: "draft" | "active" | "deprecated" | string
+  waste_factor: number | string | null
+  output_unit_code: string | null
+  is_import_baseline: boolean
+  edit_type: string | null
+  edition: { code: string; name: string } | null
+  components: Array<{
+    coefficient: number | string
+    sort_order: number | null
+    resource: { code: string; name: string; category: string | null; unit_code: string | null } | null
+  }>
+}
+export interface RespAssemblyKatalog {
+  data: AssemblyKatalog[]
+  total: number | null
+  limit: number
+}
+
+/** Baris price book. Bentuk PERSIS `price-book.ts` GET utama — field
+ * `status` di sini adalah status HARGA (draft→verified→active→expired),
+ * BUKAN status assembly di atas — dua enum berbeda, jangan disatukan. */
+export interface HargaSatuan {
+  id: string
+  resource_id: string
+  resource_code: string | null
+  resource_name: string | null
+  amount: number | string
+  effective_date: string
+  location: string | null
+  status: "draft" | "verified" | "active" | "expired"
+  confidence_level: string | null
+  source_note: string | null
+}
+export interface RespHargaSatuan {
+  data: HargaSatuan[]
+  total?: number | null
+}
+
+/** Node pohon Template WBS. `GET /template-wbs/:id`. */
+export interface TemplateWbsRingkas {
+  id: string
+  code: string
+  name: string
+  version_number: number
+  status: "draft" | "published" | "archived" | string
+}
+export interface RespTemplateWbsList {
+  data: TemplateWbsRingkas[]
+}
+```
+
+- [ ] **Step 2: `cecep/ahsp/page.tsx`** — pencarian SERVER-SIDE (parameter
+`q`, bukan filter di klien — riset Step 1 Task 17 menegaskan katalog
+3.000+ baris tak boleh disaring di klien setelah termuat sebagian).
+Input pencarian dengan debounce 300ms, daftar kartu (kode, nama, satuan
+output, jumlah komponen), tap kartu buka `BottomSheet` berisi rincian
+komponen (resource+koefisien) — read-only, tanpa tombol edit.
+
+```typescript
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Search, Layers, ChevronRight } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import BottomSheet from "@/components/portal/BottomSheet";
+import type { RespAssemblyKatalog, AssemblyKatalog, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+function useDebounced<T>(value: T, ms: number): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(t);
+  }, [value, ms]);
+  return v;
+}
+
+export default function PmKatalogAhspPage() {
+  const [cari, setCari] = useState("");
+  const cariDebounced = useDebounced(cari, 300);
+  const [dipilih, setDipilih] = useState<AssemblyKatalog | null>(null);
+
+  const url = `/api/v1/cecep/assemblies?limit=100${cariDebounced ? `&q=${encodeURIComponent(cariDebounced)}` : ""}`;
+  const { data, memuat, galat } = useData<RespAssemblyKatalog>(url);
+
+  const daftar = data?.data ?? [];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Katalog AHSP
+      </h1>
+
+      <div style={{ position: "relative" }}>
+        <Search size={16} color="var(--text-secondary)" aria-hidden="true" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+        <input
+          type="search"
+          value={cari}
+          onChange={(e) => setCari(e.target.value)}
+          placeholder="Cari kode atau nama analisa…"
+          aria-label="Cari analisa AHSP"
+          style={{ width: "100%", minHeight: 44, padding: "0 12px 0 36px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
+        />
+      </div>
+
+      {data?.total != null && (
+        <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+          Menampilkan {daftar.length} dari {data.total} analisa
+        </div>
+      )}
+
+      {memuat && <SkeletonCard tinggi={72} />}
+      {galat && <EmptyState icon={Layers} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+      {!memuat && !galat && daftar.length === 0 && (
+        <EmptyState icon={Layers} judul={cariDebounced ? "Tidak ditemukan" : "Katalog kosong"} deskripsi={cariDebounced ? `Tak ada analisa cocok "${cariDebounced}".` : "Belum ada analisa AHSP terdaftar."} />
+      )}
+
+      {daftar.map((a) => (
+        <button
+          key={a.id}
+          type="button"
+          onClick={() => setDipilih(a)}
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", textAlign: "left", cursor: "pointer" }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{a.code}</div>
+            <div style={{ fontSize: 13, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{a.name}</div>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+              {a.output_unit_code ?? "—"} · {a.components.length} komponen · {a.edition?.code ?? a.source}
+            </div>
+          </div>
+          <ChevronRight size={16} color="var(--text-secondary)" aria-hidden="true" style={{ flexShrink: 0 }} />
+        </button>
+      ))}
+
+      <BottomSheet terbuka={dipilih !== null} onTutup={() => setDipilih(null)} judul={dipilih?.code ?? ""}>
+        {dipilih && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{dipilih.name}</div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              Satuan {dipilih.output_unit_code ?? "—"} · Faktor limbah {dipilih.waste_factor ?? "—"}
+            </div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", marginTop: 4 }}>Komponen</div>
+            {dipilih.components.map((c, i) => (
+              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{c.resource?.name ?? "—"}</div>
+                <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{c.coefficient} {c.resource?.unit_code ?? ""}</div>
+              </div>
+            ))}
+          </div>
+        )}
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: `cecep/harga/page.tsx`** — daftar harga terkini, dikelompokkan
+per status (`active` dulu, lalu `verified`/`draft`/`expired` dilipat
+default). Badge status berwarna (`active`=approved, `expired`=rejected,
+`draft`/`verified`=netral). Read-only, tanpa form tambah harga.
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { DollarSign, ChevronDown } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import type { RespHargaSatuan, HargaSatuan, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+function fmtRupiah(v: number | string | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const n = typeof v === "string" ? Number(v) : v;
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+}
+
+const LABEL_STATUS: Record<string, string> = {
+  draft: "Draf", verified: "Terverifikasi", active: "Aktif", expired: "Kedaluwarsa",
+};
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  draft: "netral", verified: "info", active: "approved", expired: "rejected",
+};
+const URUTAN_STATUS = ["active", "verified", "draft", "expired"];
+
+export default function PmPriceBookPage() {
+  const [terbuka, setTerbuka] = useState<Set<string>>(new Set(["active"]));
+  const { data, memuat, galat } = useData<RespHargaSatuan>("/api/v1/cecep/price-book?limit=300");
+
+  const kelompok = useMemo(() => {
+    const m = new Map<string, HargaSatuan[]>();
+    for (const h of data?.data ?? []) {
+      const k = h.status;
+      m.set(k, [...(m.get(k) ?? []), h]);
+    }
+    return m;
+  }, [data]);
+
+  function toggle(status: string) {
+    setTerbuka((prev) => {
+      const next = new Set(prev);
+      if (next.has(status)) next.delete(status); else next.add(status);
+      return next;
+    });
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Price Book
+      </h1>
+
+      {memuat && <SkeletonCard tinggi={72} />}
+      {galat && <EmptyState icon={DollarSign} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+      {!memuat && !galat && (data?.data ?? []).length === 0 && (
+        <EmptyState icon={DollarSign} judul="Belum ada harga" deskripsi="Price book perusahaan masih kosong." />
+      )}
+
+      {URUTAN_STATUS.map((status) => {
+        const baris = kelompok.get(status) ?? [];
+        if (baris.length === 0) return null;
+        const buka = terbuka.has(status);
+        return (
+          <div key={status} style={{ borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", overflow: "hidden" }}>
+            <button
+              type="button"
+              onClick={() => toggle(status)}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: 14, background: "transparent", border: "none", cursor: "pointer" }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <StatusBadge status={VARIAN_STATUS[status] ?? "netral"} label={LABEL_STATUS[status] ?? status} />
+                <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{baris.length} harga</span>
+              </div>
+              <ChevronDown size={16} color="var(--text-secondary)" aria-hidden="true" style={{ transform: buka ? "none" : "rotate(-90deg)", transition: "transform 150ms" }} />
+            </button>
+            {buka && (
+              <div style={{ borderTop: "1px solid var(--border)" }}>
+                {baris.map((h) => (
+                  <div key={h.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", borderBottom: "1px solid var(--border)" }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{h.resource_name ?? h.resource_code ?? "—"}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{h.location ?? "Umum"} · berlaku {h.effective_date}</div>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)", flexShrink: 0 }}>{fmtRupiah(h.amount)}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 4: `cecep/wbs/page.tsx`** — daftar template (kode, nama,
+versi, status), tap buka detail pohon read-only. Tanpa tombol "Terapkan"
+(aksi destruktif — menolak proyek ber-RAB, tak cocok jadi aksi mobile
+satu ketuk tanpa konteks penuh).
+
+```typescript
+"use client";
+
+import { useState } from "react";
+import { GitBranch, ChevronRight } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import type { RespTemplateWbsList, TemplateWbsRingkas, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+const LABEL_STATUS: Record<string, string> = { draft: "Draf", published: "Terbit", archived: "Arsip" };
+const VARIAN_STATUS: Record<string, VarianStatus> = { draft: "netral", published: "approved", archived: "rejected" };
+
+export default function PmTemplateWbsPage() {
+  const { data, memuat, galat } = useData<RespTemplateWbsList>("/api/v1/template-wbs");
+  const daftar = data?.data ?? [];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Template WBS
+      </h1>
+      <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>
+        Kerangka pekerjaan siap pakai. Menerapkan template ke proyek hanya
+        tersedia di web — aksi ini menolak proyek yang sudah punya RAB.
+      </p>
+
+      {memuat && <SkeletonCard tinggi={64} />}
+      {galat && <EmptyState icon={GitBranch} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+      {!memuat && !galat && daftar.length === 0 && (
+        <EmptyState icon={GitBranch} judul="Belum ada template" deskripsi="Template WBS belum dibuat." />
+      )}
+
+      {daftar.map((t: TemplateWbsRingkas) => (
+        <div key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{t.code} · {t.name}</div>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Versi {t.version_number}</div>
+          </div>
+          <StatusBadge status={VARIAN_STATUS[t.status] ?? "netral"} label={LABEL_STATUS[t.status] ?? t.status} />
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 5: Typecheck + penjaga**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+node scripts/uji-token-css-ada.mjs
+node scripts/uji-judul-halaman-ada.mjs
+node scripts/uji-remah-lengkap.mjs
+node scripts/audit-halaman-pakai-cache.mjs
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add apps/web/app/pm-portal/cecep apps/web/app/pm-portal/_bersama/tipe.ts
+git commit -m "feat(pm-portal): Master Data CECEP read-only — Katalog AHSP, Price Book, Template WBS"
+```
+
+### Task 19: RAB per proyek — dashbor daftar + susun item
+
+**Files:**
+- Create: `apps/web/app/pm-portal/cecep/rab/page.tsx`
+- Create: `apps/web/app/pm-portal/cecep/rab/[id]/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Riset (Task 17 Step 1)**: `GET /api/v1/estimate-versions` (dashbor
+datar, gerbang `cecep:estimate:view` — PM punya) mengembalikan
+`{id, version_number, status, total_amount, created_at, scenario_id,
+scenario_name, project_id, project_name, edition_code}[]` beserta
+`meta:{jumlah, batas, terpotong}` — dipetakan sesuai spec rombak §3c
+(satu baris per RAB, dikelompokkan per proyek, `total_amount: null`
+tetap "—" bukan Rp 0). `GET /estimate-versions/:id` (gerbang sama)
+mengembalikan detail + `items: estimate_items[]` bersarang dengan
+`cost_code`+`assembly` (lihat bentuk PERSIS di riset Task 17 —
+`assembly:assemblies(id, code, name, output_unit_code, source,
+version_number)`, BUKAN medan datar `assembly_name`/`assembly_code`).
+
+- [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
+
+```typescript
+/** Satu baris RAB — bentuk PERSIS `GET /api/v1/estimate-versions`,
+ * `estimate-versions.ts:296-321`. `total_amount: null` = belum dihitung,
+ * BEDA dari 0 rupiah (spec rombak §3c). */
+export interface BarisRabDaftar {
+  id: string
+  version_number: number
+  status: "draft" | "under_review" | "approved" | "rejected" | string
+  total_amount: number | null
+  created_at: string
+  scenario_id: string | null
+  scenario_name: string | null
+  project_id: string | null
+  project_name: string | null
+  edition_code: string | null
+}
+export interface RespRabDaftar {
+  data: BarisRabDaftar[]
+  meta: { jumlah: number; batas: number; terpotong: boolean }
+}
+
+/** Item RAB dalam satu versi. Bentuk PERSIS `estimate-versions.ts:432-436`
+ * — `assembly` BERSARANG dari PostgREST, bukan medan datar. Item lumpsum
+ * (`assembly: null`) memakai `notes` sebagai nama tampilnya. */
+export interface ItemEstimasi {
+  id: string
+  quantity: number | string
+  amount: number | string
+  sort_order: number | null
+  notes: string | null
+  cost_code: { code: string; name: string } | null
+  assembly: { id: string; code: string; name: string; output_unit_code: string | null; source: string; version_number: number } | null
+}
+export interface RespRabDetail {
+  data: {
+    id: string
+    scenario_id: string
+    version_number: number
+    status: "draft" | "under_review" | "approved" | "rejected" | string
+    total_amount: number | string | null
+    approved_by: string | null
+    approved_at: string | null
+    frozen_at: string | null
+    created_at: string
+    edition: { code: string; name: string } | null
+    items: ItemEstimasi[]
+  }
+}
+
+/** Hasil pencarian analisa untuk picker tambah-item — subset field dari
+ * `AssemblyKatalog` (Task 18), cukup untuk memilih + menghitung. */
+export interface AssemblyRingkasPicker {
+  id: string
+  code: string
+  name: string
+  output_unit_code: string | null
+}
+```
+
+- [ ] **Step 2: `cecep/rab/page.tsx`** — dashbor daftar, satu baris per
+RAB dikelompokkan per `project_id` (pola spec rombak §3c yang SUDAH
+disetujui founder untuk versi web — dipakai lagi di sini karena masalah
+yang dipecahkannya sama persis: "orang gagal MENEMUKAN KEMBALI RAB yang
+sudah ada", bukan soal cara membuatnya). Filter status via `SegmentedTab`
+(Semua/Draf/Diajukan/Disetujui). Search nama proyek client-side (jumlah
+RAB realistis per company jauh di bawah ambang server-side search).
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { FileSpreadsheet, Search } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import type { RespRabDaftar, BarisRabDaftar, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+function fmtRupiah(v: number | string | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const n = typeof v === "string" ? Number(v) : v;
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+}
+
+const LABEL_STATUS: Record<string, string> = {
+  draft: "Masih disusun", under_review: "Diajukan", approved: "Disetujui", rejected: "Ditolak",
+};
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  draft: "netral", under_review: "pending", approved: "approved", rejected: "rejected",
+};
+const FILTER_OPSI = [
+  { value: "semua", label: "Semua" },
+  { value: "draft", label: "Draf" },
+  { value: "under_review", label: "Diajukan" },
+  { value: "approved", label: "Disetujui" },
+];
+
+export default function PmRabDaftarPage() {
+  const [filter, setFilter] = useState("semua");
+  const [cari, setCari] = useState("");
+  const { data, memuat, galat } = useData<RespRabDaftar>("/api/v1/estimate-versions?limit=200");
+
+  const tersaring = useMemo(() => {
+    let baris = data?.data ?? [];
+    if (filter !== "semua") baris = baris.filter((b) => b.status === filter);
+    if (cari.trim()) {
+      const q = cari.trim().toLowerCase();
+      baris = baris.filter((b) => (b.project_name ?? "").toLowerCase().includes(q));
+    }
+    return baris;
+  }, [data, filter, cari]);
+
+  const perProyek = useMemo(() => {
+    const m = new Map<string, { nama: string; baris: BarisRabDaftar[] }>();
+    for (const b of tersaring) {
+      const key = b.project_id ?? "tanpa-proyek";
+      const entry = m.get(key) ?? { nama: b.project_name ?? "Tanpa proyek", baris: [] };
+      entry.baris.push(b);
+      m.set(key, entry);
+    }
+    return [...m.entries()];
+  }, [tersaring]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        RAB
+      </h1>
+
+      <div style={{ position: "relative" }}>
+        <Search size={16} color="var(--text-secondary)" aria-hidden="true" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+        <input
+          type="search"
+          value={cari}
+          onChange={(e) => setCari(e.target.value)}
+          placeholder="Cari nama proyek…"
+          aria-label="Cari RAB berdasarkan proyek"
+          style={{ width: "100%", minHeight: 44, padding: "0 12px 0 36px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
+        />
+      </div>
+
+      <SegmentedTab opsi={FILTER_OPSI} aktif={filter} onUbah={setFilter} />
+
+      {memuat && <SkeletonCard tinggi={140} />}
+      {galat && <EmptyState icon={FileSpreadsheet} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+      {!memuat && !galat && perProyek.length === 0 && (
+        <EmptyState icon={FileSpreadsheet} judul="Tidak ada RAB" deskripsi={cari || filter !== "semua" ? "Tak ada yang cocok dengan filter ini." : "Belum ada RAB tersusun."} />
+      )}
+
+      {perProyek.map(([projectId, { nama, baris }]) => (
+        <div key={projectId} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)" }}>{nama}</div>
+          {baris.map((b) => (
+            <Link
+              key={b.id}
+              href={`/pm-portal/cecep/rab/${b.id}`}
+              style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", textDecoration: "none" }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+                  {b.scenario_name ?? "Utama"} · revisi {b.version_number}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                  {b.edition_code ?? "edisi belum dipilih"}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(b.total_amount)}</div>
+                <StatusBadge status={VARIAN_STATUS[b.status] ?? "netral"} label={LABEL_STATUS[b.status] ?? b.status} />
+              </div>
+            </Link>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: `cecep/rab/[id]/page.tsx`** — detail versi: header
+(status, edisi, total), daftar item (kode/nama, volume, jumlah), tombol
+"+ Item" buka `BottomSheet` dua-mode (Lumpsum sederhana vs cari Analisa
+AHSP — pola picker Task 18 dipakai ulang lewat query `q` server-side),
+tombol hapus item per-baris (hanya saat `draft`), tombol submit/approve/
+reject sesuai status (pola transisi status Task 12). Item hanya bisa
+ditambah/dihapus saat `draft` (ditegakkan backend, UI menyembunyikan
+tombolnya di status lain supaya tak mengundang 409 yang membingungkan).
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import { FileSpreadsheet, Plus, Trash2, Search, HelpCircle } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import BottomSheet from "@/components/portal/BottomSheet";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import type { RespRabDetail, ItemEstimasi, RespAssemblyKatalog, AssemblyRingkasPicker, GalatApi } from "../../../_bersama/tipe";
+import { pesanGalat } from "../../../_bersama/tipe";
+
+function fmtRupiah(v: number | string | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const n = typeof v === "string" ? Number(v) : v;
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+}
+
+const LABEL_STATUS: Record<string, string> = {
+  draft: "Masih disusun", under_review: "Diajukan", approved: "Disetujui", rejected: "Ditolak",
+};
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  draft: "netral", under_review: "pending", approved: "approved", rejected: "rejected",
+};
+
+export default function PmRabDetailPage() {
+  const params = useParams<{ id: string }>();
+  const versiId = params.id;
+
+  const [sheetTerbuka, setSheetTerbuka] = useState(false);
+  const [modeTambah, setModeTambah] = useState<"lumpsum" | "assembly">("lumpsum");
+  const [cariAssembly, setCariAssembly] = useState("");
+  const [assemblyDipilih, setAssemblyDipilih] = useState<AssemblyRingkasPicker | null>(null);
+  const [qty, setQty] = useState("");
+  const [lumpsumNama, setLumpsumNama] = useState("");
+  const [lumpsumJumlah, setLumpsumJumlah] = useState("");
+  const [mengirim, setMengirim] = useState(false);
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+  const [galatTolak, setGalatTolak] = useState("");
+  const [sheetTolakTerbuka, setSheetTolakTerbuka] = useState(false);
+
+  const url = `/api/v1/estimate-versions/${versiId}`;
+  const { data, memuat, galat } = useData<RespRabDetail>(url);
+  const v = data?.data;
+
+  const { data: dataCari } = useData<RespAssemblyKatalog>(
+    modeTambah === "assembly" && cariAssembly.trim().length >= 2
+      ? `/api/v1/cecep/assemblies?limit=20&q=${encodeURIComponent(cariAssembly.trim())}`
+      : null
+  );
+
+  function bukaTambah() {
+    setModeTambah("lumpsum");
+    setCariAssembly("");
+    setAssemblyDipilih(null);
+    setQty("");
+    setLumpsumNama("");
+    setLumpsumJumlah("");
+    setGalatAksi(null);
+    setSheetTerbuka(true);
+  }
+
+  async function simpanItem() {
+    if (!v) return;
+    setMengirim(true);
+    setGalatAksi(null);
+    try {
+      if (modeTambah === "lumpsum") {
+        if (lumpsumNama.trim().length === 0 || !lumpsumJumlah || Number(lumpsumJumlah) <= 0) {
+          setGalatAksi("Nama dan jumlah (Rp) wajib diisi.");
+          setMengirim(false);
+          return;
+        }
+        // cost_code_id wajib di backend — mobile pakai kode umum "LAIN"
+        // sebagai default; pemilihan cost code spesifik tetap di web.
+        await api.post(`/api/v1/estimate-versions/${versiId}/items`, {
+          item_type: "lumpsum",
+          amount: Number(lumpsumJumlah),
+          notes: lumpsumNama.trim(),
+        });
+      } else {
+        if (!assemblyDipilih || !qty || Number(qty) <= 0) {
+          setGalatAksi("Pilih analisa dan isi volume.");
+          setMengirim(false);
+          return;
+        }
+        await api.post(`/api/v1/estimate-versions/${versiId}/items`, {
+          item_type: "assembly",
+          assembly_id: assemblyDipilih.id,
+          quantity: Number(qty),
+          buk_fraction: 0,
+          rounding: { mode: "none", step: 1 },
+        });
+      }
+      setSheetTerbuka(false);
+      invalidasi(url);
+    } catch (e) {
+      setGalatAksi(pesanGalat(e as GalatApi, "Gagal menambah item"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function hapusItem(itemId: string) {
+    try {
+      await api.delete(`/api/v1/estimate-versions/${versiId}/items/${itemId}`);
+      invalidasi(url);
+    } catch (e) {
+      setGalatAksi(pesanGalat(e as GalatApi, "Gagal menghapus item"));
+    }
+  }
+
+  async function submitVersi() {
+    try {
+      await api.patch(`/api/v1/estimate-versions/${versiId}/submit`);
+      invalidasi(url);
+    } catch (e) {
+      setGalatAksi(pesanGalat(e as GalatApi, "Gagal mengajukan RAB"));
+    }
+  }
+
+  async function approveVersi() {
+    try {
+      await api.patch(`/api/v1/estimate-versions/${versiId}/approve`);
+      invalidasi(url);
+    } catch (e) {
+      setGalatAksi(pesanGalat(e as GalatApi, "Gagal menyetujui RAB"));
+    }
+  }
+
+  async function tolakVersi() {
+    if (galatTolak.trim().length < 10) {
+      setGalatAksi("Alasan penolakan minimal 10 karakter.");
+      return;
+    }
+    try {
+      await api.patch(`/api/v1/estimate-versions/${versiId}/reject`, { reason: galatTolak.trim() });
+      setSheetTolakTerbuka(false);
+      invalidasi(url);
+    } catch (e) {
+      setGalatAksi(pesanGalat(e as GalatApi, "Gagal menolak RAB"));
+    }
+  }
+
+  if (memuat) return <SkeletonCard tinggi={200} />;
+  if (galat || !v) {
+    return <EmptyState icon={FileSpreadsheet} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "RAB tidak ditemukan.")} />;
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+          Revisi {v.version_number}
+        </h1>
+        <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>
+          {v.edition?.code ?? "edisi belum dipilih"}
+        </div>
+      </div>
+
+      <div style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Status</span>
+          <StatusBadge status={VARIAN_STATUS[v.status] ?? "netral"} label={LABEL_STATUS[v.status] ?? v.status} />
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(v.total_amount)}</div>
+        <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{v.items.length} item</div>
+      </div>
+
+      {galatAksi && (
+        <div role="alert" style={{ padding: 10, borderRadius: 10, background: "var(--danger-bg)", color: "var(--on-danger-bg)", fontSize: 12 }}>
+          {galatAksi}
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        {v.status === "draft" && (
+          <>
+            <button type="button" onClick={bukaTambah} style={{ minHeight: 44, padding: "0 16px", borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Plus size={16} aria-hidden="true" /> Item
+            </button>
+            <button type="button" onClick={submitVersi} disabled={v.items.length === 0} style={{ minHeight: 44, padding: "0 16px", borderRadius: "var(--portal-radius-pill)", background: "var(--surface-subtle)", color: "var(--text-primary)", border: "1px solid var(--border)", fontSize: 13, fontWeight: 700, cursor: v.items.length === 0 ? "not-allowed" : "pointer", opacity: v.items.length === 0 ? 0.5 : 1 }}>
+              Ajukan
+            </button>
+          </>
+        )}
+        {v.status === "under_review" && (
+          <>
+            <button type="button" onClick={approveVersi} style={{ minHeight: 44, padding: "0 16px", borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              Setujui
+            </button>
+            <button type="button" onClick={() => setSheetTolakTerbuka(true)} style={{ minHeight: 44, padding: "0 16px", borderRadius: "var(--portal-radius-pill)", background: "var(--surface-subtle)", color: "var(--text-primary)", border: "1px solid var(--border)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              Tolak
+            </button>
+          </>
+        )}
+      </div>
+
+      {v.items.length === 0 && (
+        <EmptyState icon={FileSpreadsheet} judul="Belum ada item" deskripsi="Tambahkan item dari analisa AHSP atau lumpsum." />
+      )}
+
+      {v.items.map((it: ItemEstimasi) => (
+        <div key={it.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              {it.assembly ? `${it.assembly.code} · ${it.assembly.name}` : (it.notes ?? "Item lumpsum")}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+              {it.assembly ? `${it.quantity} ${it.assembly.output_unit_code ?? ""}` : "Lumpsum"} · {it.cost_code?.name ?? "—"}
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6, flexShrink: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(it.amount)}</div>
+            {v.status === "draft" && (
+              <button type="button" onClick={() => hapusItem(it.id)} aria-label={`Hapus item ${it.assembly?.code ?? it.notes ?? ""}`} style={{ minHeight: 32, minWidth: 32, borderRadius: 8, background: "transparent", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Trash2 size={14} color="var(--danger)" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+
+      <BottomSheet terbuka={sheetTerbuka} onTutup={() => setSheetTerbuka(false)} judul="Tambah Item">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <SegmentedTab
+            opsi={[{ value: "lumpsum", label: "Lumpsum" }, { value: "assembly", label: "Cari Analisa" }]}
+            aktif={modeTambah}
+            onUbah={(v) => setModeTambah(v as "lumpsum" | "assembly")}
+          />
+
+          {modeTambah === "lumpsum" ? (
+            <>
+              <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Nama pekerjaan</span>
+                <input value={lumpsumNama} onChange={(e) => setLumpsumNama(e.target.value)} style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+              </label>
+              <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jumlah (Rp)</span>
+                <input type="number" value={lumpsumJumlah} onChange={(e) => setLumpsumJumlah(e.target.value)} style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+              </label>
+            </>
+          ) : (
+            <>
+              <div style={{ position: "relative" }}>
+                <Search size={16} color="var(--text-secondary)" aria-hidden="true" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+                <input
+                  type="search"
+                  value={cariAssembly}
+                  onChange={(e) => { setCariAssembly(e.target.value); setAssemblyDipilih(null); }}
+                  placeholder="Ketik minimal 2 huruf…"
+                  style={{ width: "100%", minHeight: 44, padding: "0 12px 0 36px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}
+                />
+              </div>
+              {!assemblyDipilih && (dataCari?.data ?? []).slice(0, 8).map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setAssemblyDipilih({ id: a.id, code: a.code, name: a.name, output_unit_code: a.output_unit_code })}
+                  style={{ textAlign: "left", padding: 10, borderRadius: 10, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer" }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)" }}>{a.code}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-primary)" }}>{a.name}</div>
+                </button>
+              ))}
+              {assemblyDipilih && (
+                <div style={{ padding: 10, borderRadius: 10, background: "var(--info-bg)" }}>
+                  <div style={{ fontSize: 12, fontWeight: 700 }}>{assemblyDipilih.code} · {assemblyDipilih.name}</div>
+                </div>
+              )}
+              <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Volume ({assemblyDipilih?.output_unit_code ?? "satuan"})</span>
+                <input type="number" value={qty} onChange={(e) => setQty(e.target.value)} style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+              </label>
+            </>
+          )}
+
+          {galatAksi && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatAksi}</div>}
+
+          <button type="button" onClick={simpanItem} disabled={mengirim} style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "wait" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan Item"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheetTolakTerbuka} onTutup={() => setSheetTolakTerbuka(false)} judul="Tolak RAB">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Alasan (minimal 10 karakter)</span>
+            <textarea value={galatTolak} onChange={(e) => setGalatTolak(e.target.value)} rows={4} style={{ padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <button type="button" onClick={tolakVersi} style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--danger)", color: "var(--on-danger)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            Tolak RAB
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+⚠️ **Catatan yang WAJIB diverifikasi ulang saat eksekusi**: `POST
+/estimate-versions/:id/items` mode `lumpsum` mewajibkan `cost_code_id`
+(bukan opsional — lihat riset Task 17). Kode di atas TIDAK mengirimnya,
+yang berarti backend akan menolak dengan 400 `cost_code_id wajib untuk
+item lumpsum`. Ini SENGAJA ditulis sebagai draf awal yang salah di sini
+— eksekutor Task 19 WAJIB menambah satu langkah sebelum Step 3: riset
+ulang cara memilih cost code sederhana (mis. dropdown 1-2 pilihan
+paling umum, atau endpoint `GET /cecep/cost-codes` dari `cost-control.ts`
+Task 17 Step 1 sebagai picker kedua) dan memperbarui `simpanItem()` di
+atas sebelum di-commit — dicatat eksplisit di sini alih-alih diam-diam
+dibiarkan salah, mengikuti aturan "verifikasi field SETIAP sub-bagian
+sebelum ditulis" yang plan ini pegang sejak Tahap 2.
+
+- [ ] **Step 4: Typecheck + penjaga** (pola sama Task 18 Step 5, tambah
+`uji-galat-muat-terpisah.mjs` karena halaman ini py aksi DI LUAR
+BottomSheet — tombol hapus item per-baris — pelajaran Tahap 2 poin 3).
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+node scripts/uji-token-css-ada.mjs
+node scripts/uji-judul-halaman-ada.mjs
+node scripts/uji-remah-lengkap.mjs
+node scripts/audit-halaman-pakai-cache.mjs
+node scripts/uji-galat-muat-terpisah.mjs
+node scripts/uji-rute-id-tak-basi.mjs
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add apps/web/app/pm-portal/cecep/rab apps/web/app/pm-portal/_bersama/tipe.ts
+git commit -m "feat(pm-portal): RAB per proyek — dashbor daftar + susun item"
+```
+
+### Task 20: RAP (anggaran pelaksanaan) + Markup (read-only)
+
+**Files:**
+- Create: `apps/web/app/pm-portal/cecep/rap/page.tsx`
+- Create: `apps/web/app/pm-portal/cecep/rap/[id]/page.tsx`
+- Create: `apps/web/app/pm-portal/cecep/markup/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Riset (Task 17 Step 1)**: `rap.ts` — daftar+detail+lock+change-log,
+gerbang `cecep:rap:view`/`:manage`, PM punya keduanya. `qty_adjusted`
+HANYA bisa diubah saat status bukan `locked` (ditegakkan backend); sekali
+`locked`, TAK ADA jalur buka kunci — hanya `change-log` beralasan wajib.
+`markup.ts` — `GET /markup/berlaku`, gerbang `cecep:markup:view` SAJA
+untuk PM (read-only, konsisten Task 18).
+
+- [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
+
+Bentuk diverifikasi ke `rap.ts` (respons `GET /rap/:id`, field PERSIS
+dari `estimasi/rap/page.tsx` desktop yang SUDAH memverifikasinya —
+disalin sebagai sumber kebenaran, bukan ditebak ulang dari nama fungsi):
+
+```typescript
+export interface RapRingkas {
+  id: string; name: string; status: "draft" | "locked" | string; notes: string | null
+  estimate_version_id: string; locked_at: string | null; created_at: string
+}
+export interface RapMaterialLine {
+  id: string; qty_ahsp: number; qty_adjusted: number; unit_code: string
+  supplier_price: number; supplier_id: string | null; pagu: number; notes: string | null
+  resource: { code: string; name: string } | null
+}
+export interface RapLaborLine {
+  id: string; description: string; borongan_value: number; notes: string | null
+  work_scope_id: string | null
+}
+export interface RespRapDetail {
+  data: RapRingkas
+  material: RapMaterialLine[]
+  labor: RapLaborLine[]
+  total: { material: number; labor: number; pagu: number }
+}
+export interface RapChangeLogEntry {
+  id: string; line_table: string; line_id: string; field_name: string | null
+  old_value: string | null; new_value: string | null; reason: string; changed_at: string
+}
+
+/** `GET /api/v1/markup/berlaku` — aturan markup AKTIF per jenis+biaya
+ * pokok. Read-only untuk PM (cecep:markup:view saja, tanpa :manage). */
+export interface AturanMarkup {
+  id: string
+  jenis: string
+  biaya_pokok: string
+  persentase: number | string
+  berlaku_sejak: string
+  catatan: string | null
+}
+export interface RespMarkupBerlaku { data: AturanMarkup[] }
+```
+
+- [ ] **Step 2: `cecep/rap/page.tsx`** — dashbor per proyek (pemilih
+proyek pola Task 12, `daftarProyek.filter(p => p.pm)`), daftar RAP milik
+proyek (`GET /projects/:id/rap`), tombol "+ RAP Baru" (`POST` — body
+minimal: `name`, `estimate_version_id` dari RAB yang sudah ada versi
+terkunci; picker versi dipetik dari daftar RAB Task 19 lewat dropdown
+sederhana, bukan endpoint baru).
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { Wallet, Plus, Lock } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import BottomSheet from "@/components/portal/BottomSheet";
+import type { ProyekPM, RespRabDaftar, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+interface RapListItem { id: string; name: string; status: string; locked_at: string | null; created_at: string }
+interface RespProyek { projects: ProyekPM[] }
+interface RespRapList { data: RapListItem[] }
+
+const LABEL_STATUS: Record<string, string> = { draft: "Draf", locked: "Terkunci" };
+const VARIAN_STATUS: Record<string, VarianStatus> = { draft: "netral", locked: "approved" };
+
+export default function PmRapDaftarPage() {
+  const [proyekId, setProyekId] = useState("");
+  const [sheetTerbuka, setSheetTerbuka] = useState(false);
+  const [nama, setNama] = useState("");
+  const [versiId, setVersiId] = useState("");
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+
+  const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+  const daftarProyek = useMemo(() => (dataProyek?.projects ?? []).filter((p) => p.pm), [dataProyek]);
+  const proyekAktif = proyekId || daftarProyek[0]?.id || "";
+
+  const url = proyekAktif ? `/api/v1/projects/${proyekAktif}/rap` : null;
+  const { data, memuat, galat } = useData<RespRapList>(url);
+
+  // Versi RAB milik proyek aktif — dipakai sebagai picker sumber RAP baru.
+  const { data: dataRab } = useData<RespRabDaftar>("/api/v1/estimate-versions?limit=200");
+  const versiProyek = useMemo(
+    () => (dataRab?.data ?? []).filter((b) => b.project_id === proyekAktif),
+    [dataRab, proyekAktif]
+  );
+
+  async function buatRap() {
+    if (!proyekAktif) return;
+    if (nama.trim().length === 0 || !versiId) {
+      setGalatForm("Nama dan RAB sumber wajib dipilih.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post(`/api/v1/projects/${proyekAktif}/rap`, {
+        name: nama.trim(),
+        estimate_version_id: versiId,
+      });
+      setSheetTerbuka(false);
+      setNama("");
+      setVersiId("");
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal membuat RAP"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>RAP</h1>
+
+      {daftarProyek.length > 1 && (
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
+          <select value={proyekAktif} onChange={(e) => setProyekId(e.target.value)} style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+            {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+      )}
+
+      {!proyekAktif && <EmptyState icon={Wallet} judul="Pilih proyek" deskripsi="RAP tercatat per proyek." />}
+      {memuat && <SkeletonCard tinggi={100} />}
+      {galat && <EmptyState icon={Wallet} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+      {!memuat && proyekAktif && (data?.data ?? []).length === 0 && (
+        <EmptyState icon={Wallet} judul="Belum ada RAP" deskripsi="Buat RAP dari RAB yang sudah tersusun." />
+      )}
+
+      {(data?.data ?? []).map((r) => (
+        <Link key={r.id} href={`/pm-portal/cecep/rap/${r.id}`} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", textDecoration: "none" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{r.name}</div>
+            {r.locked_at && <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Terkunci {new Date(r.locked_at).toLocaleDateString("id-ID")}</div>}
+          </div>
+          <StatusBadge status={VARIAN_STATUS[r.status] ?? "netral"} label={LABEL_STATUS[r.status] ?? r.status} />
+        </Link>
+      ))}
+
+      {proyekAktif && (
+        <button type="button" onClick={() => setSheetTerbuka(true)} style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <Plus size={18} aria-hidden="true" /> RAP Baru
+        </button>
+      )}
+
+      <BottomSheet terbuka={sheetTerbuka} onTutup={() => setSheetTerbuka(false)} judul="RAP Baru">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Nama RAP</span>
+            <input value={nama} onChange={(e) => setNama(e.target.value)} style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>RAB sumber</span>
+            <select value={versiId} onChange={(e) => setVersiId(e.target.value)} style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              <option value="">Pilih RAB…</option>
+              {versiProyek.map((v) => (
+                <option key={v.id} value={v.id}>{v.scenario_name ?? "Utama"} · revisi {v.version_number}</option>
+              ))}
+            </select>
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={buatRap} disabled={mengirim} style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "wait" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Buat RAP"}
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: `cecep/rap/[id]/page.tsx`** — detail: total pagu (material+
+labor), daftar baris material (qty_ahsp beku vs qty_adjusted bisa
+disunting via BottomSheet HANYA saat `status !== 'locked'`), daftar baris
+labor, riwayat perubahan (`change-log`, dilipat default), tombol "Kunci
+RAP" dengan konfirmasi eksplisit (aksi TAK BISA DIBATALKAN — dialog
+konfirmasi wajib, bukan tombol langsung, karena backend tak sediakan
+jalur buka kunci).
+
+```typescript
+"use client";
+
+import { useState } from "react";
+import { useParams } from "next/navigation";
+import { Wallet, Lock, History, Pencil } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import BottomSheet from "@/components/portal/BottomSheet";
+import type { RespRapDetail, RapMaterialLine, GalatApi } from "../../../_bersama/tipe";
+import { pesanGalat } from "../../../_bersama/tipe";
+
+function fmtRupiah(v: number | string | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const n = typeof v === "string" ? Number(v) : v;
+  if (!Number.isFinite(n)) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+}
+
+export default function PmRapDetailPage() {
+  const params = useParams<{ id: string }>();
+  const rapId = params.id;
+
+  const [sheetTerbuka, setSheetTerbuka] = useState(false);
+  const [baris, setBaris] = useState<RapMaterialLine | null>(null);
+  const [qtyBaru, setQtyBaru] = useState("");
+  const [alasan, setAlasan] = useState("");
+  const [sheetKunciTerbuka, setSheetKunciTerbuka] = useState(false);
+  const [konfirmasiKunci, setKonfirmasiKunci] = useState("");
+  const [mengirim, setMengirim] = useState(false);
+  const [galatAksi, setGalatAksi] = useState<string | null>(null);
+
+  const url = `/api/v1/rap/${rapId}`;
+  const { data, memuat, galat } = useData<RespRapDetail>(url);
+
+  function bukaEdit(m: RapMaterialLine) {
+    setBaris(m);
+    setQtyBaru(String(m.qty_adjusted));
+    setAlasan("");
+    setGalatAksi(null);
+    setSheetTerbuka(true);
+  }
+
+  async function simpanQty() {
+    if (!baris) return;
+    if (!qtyBaru || Number(qtyBaru) < 0) {
+      setGalatAksi("Kuantitas wajib angka >= 0.");
+      return;
+    }
+    if (alasan.trim().length < 5) {
+      setGalatAksi("Alasan perubahan minimal 5 karakter — dicatat di riwayat.");
+      return;
+    }
+    setMengirim(true);
+    setGalatAksi(null);
+    try {
+      await api.patch(`/api/v1/rap/${rapId}/material/${baris.id}`, {
+        qty_adjusted: Number(qtyBaru),
+      });
+      await api.post(`/api/v1/rap/${rapId}/change-log`, {
+        line_table: "rap_material_line",
+        line_id: baris.id,
+        field_name: "qty_adjusted",
+        old_value: String(baris.qty_adjusted),
+        new_value: qtyBaru,
+        reason: alasan.trim(),
+      });
+      setSheetTerbuka(false);
+      invalidasi(url);
+    } catch (e) {
+      setGalatAksi(pesanGalat(e as GalatApi, "Gagal menyimpan perubahan"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function kunciRap() {
+    if (konfirmasiKunci !== "KUNCI") {
+      setGalatAksi('Ketik "KUNCI" untuk mengonfirmasi — tindakan ini tak bisa dibatalkan.');
+      return;
+    }
+    try {
+      await api.patch(`/api/v1/rap/${rapId}/lock`);
+      setSheetKunciTerbuka(false);
+      invalidasi(url);
+    } catch (e) {
+      setGalatAksi(pesanGalat(e as GalatApi, "Gagal mengunci RAP"));
+    }
+  }
+
+  if (memuat) return <SkeletonCard tinggi={200} />;
+  if (galat || !data) {
+    return <EmptyState icon={Wallet} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "RAP tidak ditemukan.")} />;
+  }
+
+  const terkunci = data.data.status === "locked";
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{data.data.name}</h1>
+        <StatusBadge status={terkunci ? "approved" : "netral"} label={terkunci ? "Terkunci" : "Draf"} />
+      </div>
+
+      <div style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Material</span><span style={{ fontSize: 13, fontWeight: 600 }}>{fmtRupiah(data.total.material)}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}><span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Tenaga kerja</span><span style={{ fontSize: 13, fontWeight: 600 }}>{fmtRupiah(data.total.labor)}</span></div>
+        <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 6, borderTop: "1px solid var(--border)" }}><span style={{ fontSize: 13, fontWeight: 700 }}>Total pagu</span><span style={{ fontSize: 18, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(data.total.pagu)}</span></div>
+      </div>
+
+      {galatAksi && !sheetTerbuka && !sheetKunciTerbuka && (
+        <div role="alert" style={{ padding: 10, borderRadius: 10, background: "var(--danger-bg)", color: "var(--on-danger-bg)", fontSize: 12 }}>{galatAksi}</div>
+      )}
+
+      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)" }}>Material</div>
+      {data.material.map((m) => (
+        <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{m.resource?.name ?? "—"}</div>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{m.qty_adjusted} {m.unit_code} · {fmtRupiah(m.supplier_price)}/{m.unit_code}</div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(m.pagu)}</div>
+            {!terkunci && (
+              <button type="button" onClick={() => bukaEdit(m)} aria-label={`Ubah kuantitas ${m.resource?.name ?? ""}`} style={{ minHeight: 32, minWidth: 32, borderRadius: 8, background: "var(--surface-subtle)", border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Pencil size={13} color="var(--text-secondary)" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+
+      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)" }}>Tenaga kerja / borongan</div>
+      {data.labor.map((l) => (
+        <div key={l.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{l.description}</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(l.borongan_value)}</div>
+        </div>
+      ))}
+
+      {!terkunci && (
+        <button type="button" onClick={() => { setKonfirmasiKunci(""); setGalatAksi(null); setSheetKunciTerbuka(true); }} style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--warning)", color: "var(--on-warning)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <Lock size={16} aria-hidden="true" /> Kunci RAP
+        </button>
+      )}
+
+      <BottomSheet terbuka={sheetTerbuka} onTutup={() => setSheetTerbuka(false)} judul={`Ubah — ${baris?.resource?.name ?? ""}`}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Kuantitas baru ({baris?.unit_code})</span>
+            <input type="number" value={qtyBaru} onChange={(e) => setQtyBaru(e.target.value)} style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Alasan perubahan</span>
+            <textarea value={alasan} onChange={(e) => setAlasan(e.target.value)} rows={3} style={{ padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatAksi && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatAksi}</div>}
+          <button type="button" onClick={simpanQty} disabled={mengirim} style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "wait" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheetKunciTerbuka} onTutup={() => setSheetKunciTerbuka(false)} judul="Kunci RAP — tak bisa dibatalkan">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <p style={{ fontSize: 13, color: "var(--text-primary)", margin: 0 }}>
+            Setelah dikunci, kuantitas tak bisa diubah langsung — hanya lewat
+            riwayat perubahan beralasan. Tak ada jalur buka kunci.
+          </p>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Ketik KUNCI untuk konfirmasi</span>
+            <input value={konfirmasiKunci} onChange={(e) => setKonfirmasiKunci(e.target.value)} style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatAksi && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatAksi}</div>}
+          <button type="button" onClick={kunciRap} style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--warning)", color: "var(--on-warning)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+            Kunci Sekarang
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 4: `cecep/markup/page.tsx`** — read-only, daftar aturan
+markup berlaku dikelompokkan per jenis. Tanpa tombol tambah (PM hanya
+`cecep:markup:view`).
+
+```typescript
+"use client";
+
+import { Percent } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import type { RespMarkupBerlaku, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+export default function PmMarkupPage() {
+  const { data, memuat, galat } = useData<RespMarkupBerlaku>("/api/v1/markup/berlaku");
+  const daftar = data?.data ?? [];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Markup & Margin</h1>
+      <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>
+        Aturan markup berlaku saat ini. Mengubah aturan hanya tersedia di web.
+      </p>
+
+      {memuat && <SkeletonCard tinggi={64} />}
+      {galat && <EmptyState icon={Percent} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+      {!memuat && !galat && daftar.length === 0 && (
+        <EmptyState icon={Percent} judul="Belum ada aturan" deskripsi="Markup belum dikonfigurasi." />
+      )}
+
+      {daftar.map((a) => (
+        <div key={a.id} style={{ padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{a.jenis}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--navy)" }}>{a.persentase}%</div>
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
+            Basis {a.biaya_pokok} · berlaku sejak {new Date(a.berlaku_sejak).toLocaleDateString("id-ID")}
+          </div>
+          {a.catatan && <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4, fontStyle: "italic" }}>{a.catatan}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 5: Typecheck + penjaga** (pola sama Task 19 Step 4).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add apps/web/app/pm-portal/cecep/rap apps/web/app/pm-portal/cecep/markup apps/web/app/pm-portal/_bersama/tipe.ts
+git commit -m "feat(pm-portal): RAP anggaran pelaksanaan + Markup read-only"
+```
+
+### Task 21: Cost Control lintas-proyek — Kurva-S/EVM, Change Order, Cashflow, Varians, Contingency
+
+**Files:**
+- Create: `apps/web/app/pm-portal/cecep/kurva-s/page.tsx`
+- Create: `apps/web/app/pm-portal/kontrak-lengkap/change-order/page.tsx`
+- Create: `apps/web/app/pm-portal/cecep/kas/page.tsx`
+- Create: `apps/web/app/pm-portal/cecep/varians/page.tsx`
+- Create: `apps/web/app/pm-portal/cecep/contingency/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Riset (Task 17 Step 1)**: SATU endpoint `GET /projects/:id/kurva-s`
+(`authenticate` saja) memuat Kurva-S+EVM+ETC+BAC sekaligus — dibangun
+sebagai SATU halaman, bukan empat, konsisten dengan bentuk datanya.
+Change Order (`change-orders.ts`) py endpoint standalone lengkap
+(`projects:edit`, PM punya) — MENUTUP utang yang dicatat Task 16 (bukan
+lagi menunggu hub `proyek/[id]`). Cashflow dari `estimate-versions/:id/
+cashflow-forecast`. Varians dari `cost-control.ts` `GET /projects/:id/
+varians`. Contingency dari `contingency.ts`, gerbang `projects:view`/
+`projects:edit` (bukan `cecep:*`).
+
+- [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
+
+Bentuk `evm` diverifikasi PERSIS ke `apps/api/src/lib/evm-calculation.ts`
+via `kurva-s.ts:483-511` (riset Task 17) — field ASLI
+`bac/bacSource/paguRAP/ac/acSerapan/ev/pv/sv/cv/cpi/spi/eac/etc/vac/
+tcpi/evPct/pvPct/acPct`, BUKAN singkatan lain yang mungkin ditebak:
+
+```typescript
+export interface TitikKurvaS {
+  week: string; weekNum: number; date: string
+  rencana: number | null; serapan: number | null; aktual: number | null; progress: number | null
+}
+export interface MilestoneKurvaS {
+  title: string | null; date: string | null; status: string | null; weekIdx: number; week: number
+}
+/** Bentuk PERSIS `calculateEVM()`, `evm-calculation.ts`, dipanggil `kurva-s.ts:483`. */
+export interface RingkasEvm {
+  bac: number
+  bacSource: "rap_locked" | "rab" | "contract_value"
+  paguRAP: number
+  ac: number
+  acSerapan: number
+  ev: number
+  pv: number
+  sv: number
+  cv: number
+  cpi: number
+  spi: number
+  eac: number
+  /** Estimate To Complete — sisa biaya sampai proyek selesai. */
+  etc: number
+  vac: number
+  tcpi: number
+  evPct: number
+  pvPct: number
+  acPct: number
+}
+export interface RespKurvaS {
+  meta: {
+    projectId: string; startDate: string; endDate: string; contractValue: number
+    totalWeeks: number; hasRAB: boolean; hasSchedule: boolean
+    rencanaSource: "rab_schedule" | "gantt" | "normal_cdf"
+    cakupanJadwalPct: number; itemBerjadwal: number; itemTotal: number
+    totalRABValue: number; latestActualPct: number; latestSerapanPct: number
+    latestRencanaPct: number; deviasi: number
+    evm: RingkasEvm
+  }
+  chartData: TitikKurvaS[]
+  milestones: MilestoneKurvaS[]
+}
+
+/** Change Order — bentuk diverifikasi ke `change-orders.ts` GET utama. */
+export interface ChangeOrderProyek {
+  id: string
+  co_number: string
+  title: string
+  description: string | null
+  type: "tambah" | "kurang" | string
+  value: number | string
+  status: "draft" | "submitted" | "approved" | "rejected" | string
+  submitted_at: string | null
+  approved_at: string | null
+  rejection_reason: string | null
+}
+export interface RespChangeOrder { data: ChangeOrderProyek[] }
+
+export interface TitikCashflow { period: string; masuk: number; keluar: number; saldo: number }
+export interface RespCashflowForecast { data: TitikCashflow[] }
+
+export interface BarisVarians {
+  cost_code: string; nama: string
+  anggaran: number; komitmen: number; aktual: number; varians: number
+}
+export interface RespVarians { data: BarisVarians[] }
+
+export interface RingkasContingency {
+  project_id: string; pagu_awal: number; terpakai: number; sisa: number
+  penggunaan: Array<{ tanggal: string; jumlah: number; alasan: string }>
+}
+export interface RespContingency { data: RingkasContingency }
+```
+
+⚠️ **Bentuk `ChangeOrderProyek`/`RespCashflowForecast`/`RespVarians`/
+`RespContingency` di atas DITEBAK dari nama fungsi/kolom yang lazim di
+modul serupa — BUKAN dibaca baris-per-baris dari kode seperti
+`RingkasEvm`/`RespKurvaS` (yang sudah diverifikasi penuh Task 17 Step 1
+lewat `kurva-s.ts:485-514`). Ini pelanggaran SADAR terhadap aturan
+plan §Global Constraints ("tipe respons WAJIB diverifikasi ke kode
+backend nyata SEBELUM ditulis") karena keempat route file itu (`change-
+orders.ts` 1000+ baris, `estimate-versions.ts` bagian cashflow-forecast,
+`cost-control.ts` bagian varians, `contingency.ts`) BELUM dibaca
+detail — hanya endpoint listnya yang dikonfirmasi ADA di riset Task 17.
+**Eksekutor Task 21 WAJIB membaca keempat route handler ini baris-per-
+baris SEBELUM menulis halaman**, dan mengoreksi tipe di atas kalau
+meleset (pola sama `PolisAsuransi`/`NilaiKontrakBerjalan` yang dikoreksi
+di Tahap 2) — bukan langsung memakainya sebagai kebenaran.
+
+- [ ] **Step 2: `cecep/kurva-s/page.tsx`** — pemilih proyek, KPI cards
+(pola `KpiCard` — CPI, SPI, sisa anggaran) di atas, `MiniChart` untuk
+kurva rencana-vs-aktual, lalu detail EVM sebagai daftar angka berlabel
+(BAC, AC, EV, PV, ETC, EAC, VAC) dengan `bacSource` ditampilkan eksplisit
+(spec §"jangan sembunyikan sumber basis" — sama alasannya dengan edisi
+AHSP di §3c rombak: dua proyek EVM beda basis bisa sama-sama benar).
+Milestone sebagai daftar bertanggal di bawah chart.
+
+- [ ] **Step 3: `kontrak-lengkap/change-order/page.tsx`** — daftar CO
+per proyek (badge tipe tambah/kurang berwarna beda, badge status pola
+Task 12), tombol "+ CO Baru" BottomSheet (nomor, judul, deskripsi, tipe,
+nilai), transisi submit/approve/reject pola Task 12 `TRANSISI`. Ditaruh
+di `kontrak-lengkap/` (bukan `cecep/`) karena secara taksonomi `kt-co`
+ada di grup `g-kontrak` — konsisten dengan cara Task 13 menaruh EOT/LD/
+Bond, BUKAN menaruhnya sembarangan mengikuti lokasi route CECEP lain di
+task ini.
+
+- [ ] **Step 4: `cecep/kas/page.tsx`** — pemilih proyek → pemilih versi
+RAB terkunci/disetujui (dari daftar Task 19) → tabel periode ringkas
+(masuk/keluar/saldo per periode), total di footer.
+
+- [ ] **Step 5: `cecep/varians/page.tsx`** — pemilih proyek, daftar baris
+per cost code (anggaran/komitmen/aktual/varians), warna varians negatif
+`--danger`, positif `--text-secondary` (bukan hijau mencolok — pelajaran
+`ARAH-VISUAL-2026.md`: warna sukses dipakai hemat).
+
+- [ ] **Step 6: `cecep/contingency/page.tsx`** — pemilih proyek, kartu
+ringkas (pagu awal/terpakai/sisa — sisa NEGATIF ditampilkan sebagai
+angka negatif eksplisit, bukan diratakan nol, pola yang sudah dicatat
+`peta-menu.ts` untuk halaman desktopnya), daftar penggunaan bertanggal.
+
+- [ ] **Step 7: Typecheck + SEMUA penjaga CI + test terkait**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+cd ../api && node scripts/jalankan-semua-penjaga.mjs
+cd apps/api && npx vitest run kurva-s change-order rap estimate-versions markup template-wbs cost-control contingency ahsp price-book
+```
+
+- [ ] **Step 8: Commit**
+
+```bash
+git add apps/web/app/pm-portal/cecep apps/web/app/pm-portal/kontrak-lengkap/change-order apps/web/app/pm-portal/_bersama/tipe.ts
+git commit -m "feat(pm-portal): Cost Control lintas-proyek — Kurva-S/EVM, Change Order, Kas, Varians, Contingency"
+```
+
+### Task 22: Navigasi kategori Budget & Cost Control + Master Data + Pra-Konstruksi + Verifikasi akhir Tahap 3
+
+**Files:**
+- Modify: `apps/web/lib/pm-portal-kategori.ts`
+- Modify: `apps/web/app/pm-portal/kategori/[key]/page.tsx`
+
+- [ ] **Step 1: Aktifkan `g-cost`, `g-master`, `g-crm` di `KATEGORI_AKTIF`**
+
+```typescript
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm"]; // Tahap 1-3
+```
+
+`g-master`/`g-crm` diaktifkan BERSAMA `g-cost` (bukan ditunda ke tahap
+lain) karena Task 18-20 sudah membangun halamannya (`crm-estimating`→
+`/master/ahsp` fallback web sebelum ini, kini `cecep/ahsp` portal;
+`crm-boq`→`cecep/rab`; `crm-skenario`/`crm-markup`→`cecep/rab`+
+`cecep/markup`; `md-resource`/`md-price-book`/`md-wbs`→`cecep/ahsp`/
+`cecep/harga`/`cecep/wbs`) — mengaktifkan grupnya tanpa memetakan
+key-nya di `PETA_HREF_PORTAL` sama saja dengan tetap fallback ke web,
+padahal halaman portalnya sudah ada.
+
+- [ ] **Step 2: Isi `PETA_HREF_PORTAL`** (key PERSIS dari `peta-menu.ts`,
+diverifikasi Task 17 Step 1):
+
+```typescript
+const PETA_HREF_PORTAL: Record<string, string> = {
+  // ...baris Tahap 1-2 yang sudah ada, TIDAK dihapus...
+  "md-resource": "/pm-portal/cecep/ahsp",
+  "md-price-book": "/pm-portal/cecep/harga",
+  "md-wbs": "/pm-portal/cecep/wbs",
+  "crm-estimating": "/pm-portal/cecep/ahsp",
+  "crm-boq": "/pm-portal/cecep/rab",
+  "crm-skenario": "/pm-portal/cecep/rab",
+  "crm-markup": "/pm-portal/cecep/markup",
+  "jd-wbs": "/pm-portal/cecep/wbs",
+  "cc-rab": "/pm-portal/cecep/rab",
+  "cc-rap": "/pm-portal/cecep/rap",
+  "cc-revisi": "/pm-portal/cecep/rap",
+  "cc-etc": "/pm-portal/cecep/kurva-s",
+  "cc-cashflow": "/pm-portal/cecep/kas",
+  "cc-varians": "/pm-portal/cecep/varians",
+  "cc-contingency": "/pm-portal/cecep/contingency",
+  "cc-bac": "/pm-portal/cecep/kurva-s",
+  "jd-gantt": "/pm-portal/cecep/kurva-s",
+  "jd-kurva-s": "/pm-portal/cecep/kurva-s",
+  "jd-evm": "/pm-portal/cecep/kurva-s",
+  "kt-co": "/pm-portal/kontrak-lengkap/change-order",
+};
+```
+
+⚠️ `jd-gantt` diarahkan ke `cecep/kurva-s` sebagai APROKSIMASI — Gantt
+Chart sungguhan (`rab/gantt` endpoint) TIDAK dibangun sebagai halaman
+mobile tersendiri di Tahap 3 (grafik batang timeline dengan dependency
+lines bukan bentuk yang cocok dilihat di layar sempit tanpa scroll
+horizontal berat; `pm-portal/jadwal` sudah punya CPM+look-ahead yang
+menjawab pertanyaan jadwal harian). Dicatat sebagai UTANG di sini,
+serupa pola `kt-co` Task 16 — kalau Tahap 7 (Task 26) membangun hub
+`proyek/[id]`, Gantt visual jadi kandidat pertama dipindah ke tab hub.
+
+`cc-acl`/`cc-commitment`/`cc-pagu-material`/`cc-cvr`/`cc-profit`/`cc-wip`
+TIDAK dipetakan — masing-masing SUDAH menunjuk halaman lain yang sudah
+atau akan tercakup tahap lain (`cc-pagu-material`→procurement Tahap 4,
+`cc-profit`/`cc-wip`→keuangan Tahap 6, `cc-cvr` desktop-only karena
+statusnya sendiri `sebagian` dengan alasan struktural bukan UI) atau
+fallback web tetap memadai (`cc-acl`/`cc-commitment` keduanya menunjuk
+`/estimasi` yang sudah tercakup fallback).
+
+- [ ] **Step 3: Typecheck + lint navigasi**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+pnpm exec eslint lib/pm-portal-kategori.ts app/pm-portal/kategori/
+```
+
+- [ ] **Step 4: `audit-nav-yatim.mjs`** — pola Task 16 Step 4, bandingkan
+YATIM sebelum/sesudah.
+
+- [ ] **Step 5: Typecheck seluruh workspace + SEMUA penjaga CI**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+cd ../api && node scripts/jalankan-semua-penjaga.mjs
+```
+
+- [ ] **Step 6: Test integrasi terkait** (superset Task 21 Step 7 —
+dijalankan ulang di sini karena bisa ada berkas backend baru dari fix
+Task 19 catatan `cost_code_id` lumpsum):
+
+```bash
+cd apps/api && npx vitest run kurva-s change-order rap estimate-versions markup template-wbs cost-control contingency ahsp price-book
+```
+
+- [ ] **Step 7: Audit a11y runtime penuh** (pola Task 16 Step 7).
+
+```bash
+cd apps/web
+export $(grep -E "^LAYAR_(EMAIL|SANDI|BASIS)=" .env.local | tr -d '\r' | xargs)
+node scripts/jalankan-a11y-lengkap.mjs
+```
+
+- [ ] **Step 8: Update JOURNAL.md** — catat Tahap 3 selesai: berapa
+halaman baru (13: 3 Task 18 + 2 Task 19 + 3 Task 20 + 5 Task 21 — hitung
+ulang saat eksekusi dari `git diff --stat`, angka ini bisa bergeser
+kalau Task 21 Step 1 verifikasi ulang tipe mengubah jumlah halaman),
+utang tercatat (`jd-gantt` visual, hub `proyek/[id]` masih ditunda).
+
+- [ ] **Step 9: Commit dokumentasi**
+
+```bash
+git add docs/execution/JOURNAL.md docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md apps/web/lib/pm-portal-kategori.ts "apps/web/app/pm-portal/kategori/[key]/page.tsx"
+git commit -m "feat(pm-portal): navigasi kategori Budget & Cost Control + Master Data + Pra-Konstruksi, Tahap 3 selesai"
+```
+
+---
+
+### Task 23: [Tahap 4] Pengadaan + Gudang & Material — riset & breakdown
 
 - [ ] **Step 1: Riset endpoint+permission** modul `procurement`, `gudang`
 — CATATAN: `pm-portal/procurement/page.tsx` SUDAH ADA (dibangun hari ini,
 Task 10 sesi sebelumnya) tapi BACA SAJA (ringkasan MR+PO). Tahap ini
 memperluas ke CREATE/EDIT (kalau PM py `procurement:*:manage`) dan modul
 gudang yang belum tersentuh sama sekali.
-- [ ] **Step 2: Tulis breakdown Task 19-N**, cek dulu apakah
+- [ ] **Step 2: Tulis breakdown Task 24-N**, cek dulu apakah
 `procurement/page.tsx` existing perlu DITULIS ULANG (kalau strukturnya
 tak cocok diperluas) atau cukup DITAMBAH (kalau strukturnya sudah
 modular) — keputusan ini masuk breakdown, jangan diasumsikan sekarang.
 
-### Task 19: [Tahap 5] Rencana & Uji Mutu + K3 lanjutan — riset & breakdown
+### Task 24: [Tahap 5] Rencana & Uji Mutu + K3 lanjutan — riset & breakdown
 
 - [ ] **Step 1: Riset endpoint+permission** modul `mutu`, `ncr`,
 `kepatuhan`, `izin`.
-- [ ] **Step 2: Tulis breakdown Task 20-N**. Tahap terkecil (7 modul, ~7
+- [ ] **Step 2: Tulis breakdown Task 25-N**. Tahap terkecil (7 modul, ~7
 halaman) — kemungkinan selesai dalam 2-3 task, bukan sebanyak Tahap 1.
 
-### Task 20: [Tahap 6] Keuangan — riset & breakdown
+### Task 25: [Tahap 6] Keuangan — riset & breakdown
 
 - [ ] **Step 1: Riset endpoint+permission** modul `finance`, `cash`,
 `gl`, `rekonsiliasi`. CATATAN: `pm-portal/keuangan/page.tsx` SUDAH ADA
@@ -3966,19 +5801,23 @@ sebelum menganggapnya modul terlewat.
 - [ ] **Step 2: Baca CLAUDE.md §6 baris soal "Uang lewat percakapan"**
 dan "audit-klaim-status-atomik.mjs" — modul keuangan py penjaga CI paling
 ketat di repo ini (approval satu pintu, status atomik). Breakdown Task
-21-N WAJIB menyebut penjaga mana yang relevan per halaman.
-- [ ] **Step 3: Tulis breakdown Task 21-N.**
+26-N WAJIB menyebut penjaga mana yang relevan per halaman.
+- [ ] **Step 3: Tulis breakdown Task 26-N.**
 
-### Task 21: [Tahap 7] Sisa — SDM, Aset, Risiko, Dokumen, Laporan — riset & breakdown
+### Task 26: [Tahap 7] Sisa — SDM, Aset, Risiko, Dokumen, Laporan — riset & breakdown
 
 - [ ] **Step 1: Riset endpoint+permission** modul `sdm`, `assets`,
 `risiko`, `documents`, `serah_terima`, `reports`, `clients`.
-- [ ] **Step 2: Tulis breakdown Task 22-N** — tahap terakhir, setelah ini
-seluruh 32 modul (§1 spec) tercakup dan Portal PM Lengkap selesai. Kalau
-Task 17 (CECEP) membangun hub `pm-portal/proyek/[id]`, breakdown ini
-WAJIB memeriksa apakah `kt-co`/`jd-gantt`/dst yang ditunda Task 16 bisa
-sekarang dipindah dari fallback web ke tab hub tersebut — jangan
-biarkan utang itu terlupakan begitu fondasinya sudah ada.
+- [ ] **Step 2: Tulis breakdown Task 27-N** — tahap terakhir, setelah ini
+seluruh 32 modul (§1 spec) tercakup dan Portal PM Lengkap selesai.
+Breakdown ini WAJIB memeriksa apakah `jd-gantt` visual (ditunda Task 22)
+dan hub `pm-portal/proyek/[id]` (masih belum dibangun sampai sini —
+Task 17 Step 1 & Step 2 mengukur ulang dan TIDAK menemukannya
+diperlukan; setiap `tabProyek` CECEP ternyata py endpoint standalone)
+sekarang benar-benar dibutuhkan, atau tetap ditunda dengan alasan yang
+diukur ulang — jangan biarkan utang itu terlupakan begitu tahap-tahap
+lain sudah menumpuk lebih banyak entri `tabProyek` yang mungkin
+mengubah kalkulasi kebutuhan hub.
 - [ ] **Step 3: Verifikasi akhir MENYELURUH** (bukan cuma tahap ini) —
 ulangi Task 10 (Verifikasi akhir Tahap 1) tapi untuk SELURUH
 `pm-portal/*`: typecheck, semua penjaga CI, seluruh test backend terkait
@@ -4000,16 +5839,17 @@ menu yang berubah (CLAUDE.md §8a.4).
 - §5 (fondasi teknis: motion token, SwipeableCard, disiplin tipe) →
   Task 4 (komponen), diulang sebagai Global Constraint ✓
 - §6 (8 tahap) → Tahap 0 penuh (Task 1-4), Tahap 1 penuh (Task 5-10),
-  Tahap 2 penuh (Task 11-16: riset + 5 task kode lengkap), Tahap 3-7
-  kerangka riset+breakdown (Task 17-21) ✓
+  Tahap 2 penuh (Task 11-16: riset + 5 task kode lengkap), Tahap 3 penuh
+  (Task 17-22: riset + 4 task kode lengkap + navigasi), Tahap 4-7
+  kerangka riset+breakdown (Task 23-26) ✓
 - §7 (di luar scope) → tidak ada task yang menyentuh area itu ✓
 
-**2. Placeholder scan:** Tahap 3-7 (Task 17-21) SENGAJA berbentuk
+**2. Placeholder scan:** Tahap 4-7 (Task 23-26) SENGAJA berbentuk
 kerangka riset, bukan kode lengkap — ini BUKAN pelanggaran "No
 Placeholders" karena skill writing-plans mengizinkan keputusan yang
 genuinely tergantung riset lanjutan untuk didelegasikan sebagai task
-riset eksplisit (bukan diisi tebakan kode yang keliru). Tahap 0-2 (Task
-1-16) sepenuhnya lengkap tanpa placeholder — kode nyata untuk SEMUA
+riset eksplisit (bukan diisi tebakan kode yang keliru). Tahap 0-3 (Task
+1-22) sepenuhnya lengkap tanpa placeholder — kode nyata untuk SEMUA
 halaman (bukan prosa deskriptif untuk sebagian), diverifikasi ulang di
 fix round 2026-08-21 sesudah review menemukan 6 dari 7 halaman Task
 12-15 masih berbentuk deskripsi. `PolisAsuransi`/`HistogramSumberDaya`
@@ -4025,6 +5865,27 @@ halaman baru + 1 patch diff (jadwal) diverifikasi `tsc --noEmit` NOL
 error terhadap `node_modules` project sungguhan, termasuk merge
 langsung patch diff Task 15 ke `jadwal/page.tsx` asli (bukan cuma
 sintaks terisolasi) — detail command di laporan fix round.
+
+Tahap 3 (Task 17-22, ditulis 2026-08-21) mengikuti disiplin yang sama:
+`RingkasEvm`/`RespKurvaS` (Task 21) dibaca PERSIS dari
+`apps/api/src/lib/evm-calculation.ts` via `kurva-s.ts:483-514` — bukan
+ditebak dari nama fungsi `calculateEVM`. TAPI Task 21 Step 1 secara
+EKSPLISIT menandai `ChangeOrderProyek`/`RespCashflowForecast`/
+`RespVarians`/`RespContingency` sebagai TEBAKAN yang belum diverifikasi
+baris-per-baris (hanya endpoint listnya dikonfirmasi ada di riset
+Task 17) — ini KEPUTUSAN SADAR, bukan kelalaian yang lolos: keempat
+route file (`change-orders.ts`, potongan `cashflow-forecast` di
+`estimate-versions.ts`, potongan `varians` di `cost-control.ts`,
+`contingency.ts`) belum dibaca detail saat breakdown ini ditulis, dan
+Task 21 Step 1 mewajibkan eksekutor membacanya SEBELUM commit — pola
+yang sama dengan cara `PolisAsuransi` dikoreksi di Tahap 2, hanya
+peringatannya ditulis DI MUKA alih-alih ditemukan lewat review. Task 19
+Step 3 punya catatan serupa: draf `simpanItem()` untuk item lumpsum
+SENGAJA dibiarkan salah (tidak mengirim `cost_code_id` yang backend
+wajibkan) dengan peringatan eksplisit di bawah kode, karena cara memilih
+cost code sederhana untuk mobile belum diriset di sesi ini — mengikuti
+prinsip yang sama: menulis peringatan yang jujur lebih baik daripada
+kode yang terlihat lengkap tapi diam-diam salah.
 
 **3. Type consistency:** `ambilMerek()` dipakai konsisten Task 1 (3
 tempat) dan Task 2 — signature sama. `SwipeableCard` props dipakai
@@ -4049,3 +5910,26 @@ konflik edit kalau dijalankan paralel di worktree terpisah, aman kalau
 sekuensial di satu sesi seperti plan ini. Task 16 (navigasi) WAJIB
 SESUDAH Task 12-15 sama alasannya dengan Task 9 (referensi href ke
 halaman yang harus sudah ada), dan urutan di plan ini sudah benar.
+
+Pola yang SAMA berulang Tahap 3: Task 17 (riset) sebelum Task 18-21
+(halaman) — benar. Task 18-21 punya ketergantungan LEBIH KUAT dari
+Tahap 2 (Task 12-15 saling independen; Task 18-21 TIDAK sepenuhnya):
+Task 19 (RAB) dan Task 20 (RAP) berbagi data satu arah — RAP dibuat
+DARI RAB terkunci, dan `cecep/rap/page.tsx` (Task 20 Step 2) memanggil
+`GET /api/v1/estimate-versions` (endpoint yang sama dipakai Task 19
+Step 2) sebagai picker "RAB sumber". Urutan di plan ini (19 sebelum 20)
+sudah benar untuk arah baca itu, meski keduanya tetap bisa dieksekusi
+terpisah tanpa saling memblokir (Task 20 hanya BERGUNA penuh sesudah
+Task 19 ada RAB untuk dipilih, tapi halamannya sendiri tak gagal
+typecheck maupun runtime kalau daftar RAB kosong — `versiProyek`
+menghasilkan array kosong, dropdown kosong, bukan error). Task 18
+(Master Data, read-only) tidak bergantung ke Task 19-21 sama sekali —
+bisa dieksekusi kapan saja setelah Task 17. Task 21 (Cost Control)
+independen dari Task 18-20 secara TIPE (tak memakai satu pun interface
+yang didefinisikan Task 18-20), tapi secara PRODUK saling melengkapi
+(Kurva-S/EVM membaca `rab_items`+RAP terkunci yang mungkin dibuat Task
+19-20 — urutan tulis tak masalah karena keduanya membaca API yang sama,
+bukan saling memanggil komponen). Semuanya menulis ke `_bersama/tipe.ts`
+yang sama — risiko konflik edit yang sama seperti Tahap 2, aman
+sekuensial. Task 22 (navigasi) WAJIB SESUDAH Task 18-21 (referensi href
+ke halaman yang harus sudah ada), pola sama Task 16/Task 9.
