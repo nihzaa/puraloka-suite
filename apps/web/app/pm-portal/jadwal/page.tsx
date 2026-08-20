@@ -20,12 +20,12 @@
 // ============================================================================
 
 import { useMemo, useState } from "react";
-import { CalendarDays, Flag, AlertTriangle } from "lucide-react";
+import { CalendarDays, Flag, AlertTriangle, ClipboardList, Users2 } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
-import StatusBadge from "@/components/portal/StatusBadge";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import BottomSheet from "@/components/portal/BottomSheet";
 import SegmentedTab from "@/components/portal/SegmentedTab";
 import type { ProyekPM, GalatApi } from "../_bersama/tipe";
@@ -39,10 +39,40 @@ interface PekerjaanCpm {
   mulaiPalingLambat: string | null; selesaiPalingLambat: string | null;
   float: number | null; kritis: boolean;
 }
+interface PeriodeSumberDaya {
+  minggu: string;
+  dibutuhkan: number;
+  tersedia: number | null;
+  kelebihan: number;
+}
+interface HistogramSumberDaya {
+  nama: string;
+  jenis: string;
+  periode: PeriodeSumberDaya[];
+  puncak: number;
+  mingguPuncak: string | null;
+  tersedia: number | null;
+  mingguKelebihan: string[];
+}
+interface MethodStatementItem {
+  id: string;
+  milestone_id: string | null;
+  nomor: string | null;
+  judul: string;
+  status: "diajukan" | "disetujui" | "ditolak";
+  alasan_tolak: string | null;
+  diputuskan_pada: string | null;
+  pengendalian_risiko: string | null;
+}
 interface RespJadwalCpm {
   proyek: { id: string; nama: string; mulai: string | null; akhir: string | null };
   cpm: { pekerjaan: PekerjaanCpm[]; jalurKritis: string[]; selesaiProyek: string | null; lingkaran: string[] };
+  histogram: HistogramSumberDaya[];
+  methodStatement: MethodStatementItem[];
 }
+
+const LABEL_METHOD: Record<string, string> = { diajukan: "Diajukan", disetujui: "Disetujui", ditolak: "Ditolak" };
+const VARIAN_METHOD: Record<string, VarianStatus> = { diajukan: "pending", disetujui: "approved", ditolak: "rejected" };
 
 interface BaselineRingkas { id: string; nomor: number; nama: string; aktif: boolean; ditetapkan_pada: string | null }
 interface RespBaselineList { baseline: BaselineRingkas[] }
@@ -73,7 +103,7 @@ function fmtTanggal(s: string | null): string {
 }
 
 export default function PmJadwalPage() {
-  const [tab, setTab] = useState<"cpm" | "baseline">("cpm");
+  const [tab, setTab] = useState<"cpm" | "histogram" | "method" | "baseline">("cpm");
   const [proyekId, setProyekId] = useState("");
   const [sheetTerbuka, setSheetTerbuka] = useState(false);
   const [namaBaseline, setNamaBaseline] = useState("");
@@ -146,7 +176,12 @@ export default function PmJadwalPage() {
       )}
 
       <SegmentedTab
-        opsi={[{ value: "cpm", label: "Jalur Kritis" }, { value: "baseline", label: "Baseline" }]}
+        opsi={[
+          { value: "cpm", label: "Jalur Kritis" },
+          { value: "histogram", label: "Sumber Daya" },
+          { value: "method", label: "Method Statement" },
+          { value: "baseline", label: "Baseline" },
+        ]}
         aktif={tab}
         onUbah={(v) => setTab(v as typeof tab)}
       />
@@ -172,6 +207,60 @@ export default function PmJadwalPage() {
               </div>
             </div>
           ))}
+        </>
+      )}
+
+      {proyekAktif && tab === "histogram" && (
+        <>
+          {memuatCpm && <SkeletonCard tinggi={100} />}
+          {!memuatCpm && (dataCpm?.histogram?.length ?? 0) === 0 && (
+            <EmptyState icon={Users2} judul="Belum ada kebutuhan sumber daya" deskripsi="Kebutuhan tenaga/alat per milestone belum diatur." />
+          )}
+          {!memuatCpm && dataCpm?.histogram.map((h) => (
+            <div key={`${h.jenis}-${h.nama}`} style={{ padding: "var(--pad-kartu)", borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{h.nama}</span>
+                <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Puncak {h.puncak}{h.tersedia !== null ? ` / tersedia ${h.tersedia}` : ""}</span>
+              </div>
+              {/* Daftar angka per minggu, BUKAN dirata-rata — puncak adalah sinyal yang dijaga backend, rata-rata menyembunyikannya. */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {h.periode.map((p) => (
+                  <div key={p.minggu} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "4px 0", borderTop: "1px solid var(--border)" }}>
+                    <span style={{ color: "var(--text-secondary)" }}>{p.minggu}</span>
+                    <span style={{ color: p.kelebihan > 0 ? "var(--danger)" : "var(--text-primary)", fontWeight: p.kelebihan > 0 ? 700 : 400 }}>
+                      {p.dibutuhkan}{p.tersedia !== null ? ` / ${p.tersedia}` : ""}
+                      {p.kelebihan > 0 && ` · kurang ${p.kelebihan}`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </>
+      )}
+
+      {proyekAktif && tab === "method" && (
+        <>
+          {memuatCpm && <SkeletonCard tinggi={100} />}
+          {!memuatCpm && (dataCpm?.methodStatement?.length ?? 0) === 0 && (
+            <EmptyState icon={ClipboardList} judul="Belum ada method statement" deskripsi="Cara kerja pekerjaan berisiko belum diajukan." />
+          )}
+          {!memuatCpm && dataCpm?.methodStatement.map((m) => (
+            <div key={m.id} style={{ padding: "var(--pad-kartu)", borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{m.nomor ?? m.judul}</span>
+                <StatusBadge status={VARIAN_METHOD[m.status] ?? "netral"} label={LABEL_METHOD[m.status] ?? m.status} />
+              </div>
+              {m.nomor && <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{m.judul}</div>}
+              <div style={{ fontSize: 12, padding: "6px 10px", borderRadius: 8, background: m.pengendalian_risiko ? "var(--surface-subtle)" : "var(--danger-bg)", color: m.pengendalian_risiko ? "var(--text-secondary)" : "var(--on-danger-bg)" }}>
+                {m.pengendalian_risiko ?? "Pengendalian risiko K3 belum diisi"}
+              </div>
+              {m.status === "ditolak" && m.alasan_tolak && (
+                <div style={{ fontSize: 12, color: "var(--danger)" }}>Alasan tolak: {m.alasan_tolak}</div>
+              )}
+            </div>
+          ))}
+          {/* Tanpa tombol putuskan — grep ulang `method_statement` di apps/api/src/routes/v1/*.ts mengonfirmasi tak ada rute PATCH untuk keputusan method statement (satu-satunya kemunculan adalah baca, jadwal-cpm.ts:66). */}
         </>
       )}
 
