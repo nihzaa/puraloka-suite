@@ -160,11 +160,20 @@ export interface DokumenProyek {
 /**
  * Ringkasan kontrak proyek.
  *
- * ⚠️ Tak ada tabel/endpoint `contracts` terpisah di API — diukur lewat
- * pencarian `contract_number`/`nomor_kontrak`/tabel `contracts` di seluruh
- * `apps/api/src/routes/v1`: NIHIL. Field kontrak (nilai, model, pajak,
- * tanggal, retensi, denda) hidup sebagai KOLOM LANGSUNG di tabel `projects`
- * (lihat `ProyekPM` di atas) — bukan entitas terpisah.
+ * ⚠️ KOREKSI (Task 12): kalimat di bawah semula menyatakan "tak ada
+ * tabel/endpoint `contracts` terpisah di API" — itu tetap benar untuk
+ * `projects.contract_value` (nilai kontrak yang BERLAKU, jalur uang: dibaca
+ * 104 tempat — invoice/PPN/retensi/EVM/kurva S/dsb). TAPI ada ENTITAS KEDUA
+ * yang ditemukan belakangan: tabel `kontrak` (migrasi 344,
+ * `apps/api/src/routes/v1/kontrak.ts`) — dokumen kontrak induk+addendum
+ * sebagai peristiwa tersendiri (apa yang DITANDATANGANI), DIBANDINGKAN
+ * (bukan menimpa) terhadap `projects.contract_value`. Lihat `DokumenKontrak`
+ * di bawah untuk entitas kedua itu.
+ *
+ * `KontrakRingkas` di sini TETAP BENAR untuk perannya sendiri (ringkasan
+ * nilai proyek yang BERLAKU) — field kontrak (nilai, model, pajak, tanggal,
+ * retensi, denda) tetap hidup sebagai KOLOM LANGSUNG di tabel `projects`
+ * (lihat `ProyekPM` di atas), bukan entitas terpisah.
  *
  * Tipe ini karena itu adalah SUBSET `ProyekPM`, bukan bentuk dari endpoint
  * lain. Ditulis terpisah supaya halaman ringkasan kontrak tak perlu
@@ -188,6 +197,129 @@ export interface KontrakRingkas {
   penalty_grace_days?: number | null
   start_date?: string | null
   end_date?: string | null
+}
+
+/**
+ * Kontrak sebagai DOKUMEN (induk/addendum) — tabel `kontrak`, migrasi 344.
+ * Beda dari `KontrakRingkas`/`ProyekPM`: yang itu nilai BERLAKU di
+ * `projects.contract_value` (jalur uang); ini nilai yang DITANDATANGANI,
+ * dibandingkan terhadapnya. Bentuk dari `SELECT_KONTRAK`, `kontrak.ts`.
+ */
+export interface DokumenKontrak {
+  id: string
+  jenis: "induk" | "addendum"
+  nomor: string
+  judul: string
+  tanggal_tanda_tangan: string
+  tanggal_mulai: string | null
+  tanggal_selesai: string | null
+  nilai: number | string
+  retensi_pct: number | string | null
+  syarat_pembayaran: string | null
+  lingkup: string | null
+  status: "draf" | "berlaku" | "selesai" | "dibatalkan"
+  alasan_batal: string | null
+  file_url: string | null
+  catatan: string | null
+  project_id: string
+  client_id: string | null
+  kontrak_induk_id: string | null
+  dibuat_pada: string
+  proyek?: { id: string; name: string; contract_value: number | string } | null
+  klien?: { id: string; company_name: string | null; contact_person: string | null } | null
+  induk?: { id: string; nomor: string; judul: string } | null
+}
+
+/**
+ * Bentuk `HasilNilai` — `hitungNilaiKontrak()`, `apps/api/src/lib/kontrak.ts:254-262`.
+ * `nilai` dari `GET /api/v1/kontrak/proyek/:id`. Field PERSIS diverifikasi
+ * ke kode: `awal` (BUKAN `induk`), `jumlahAddendum` disertakan (jumlah
+ * baris addendum yang ikut dihitung, bukan nilainya).
+ */
+export interface NilaiKontrakBerjalan {
+  /** Nilai kontrak INDUK yang berlaku — apa yang mula-mula ditandatangani. */
+  awal: number
+  /** Σ addendum berlaku. Bisa negatif (pengurangan lingkup). */
+  addendum: number
+  /** awal + addendum — nilai kontraktual berjalan. */
+  berjalan: number
+  jumlahAddendum: number
+}
+
+/**
+ * Bentuk `HasilBanding` — `bandingkanNilai()`, `apps/api/src/lib/kontrak.ts:306-314`.
+ * `banding` dari `GET /api/v1/kontrak/proyek/:id`. ⚠️ `cocok: true` berarti
+ * SESUAI (bukan "perlu perhatian") — logika kebalikan dari nama yang
+ * ditulis draf breakdown pertama (`perlu_perhatian`). Field asli:
+ * `menurutKontrak`, `menurutProyek`, `selisih`, `cocok`, `sebab` — TIDAK
+ * ada `keterangan`.
+ */
+export interface BandingNilaiKontrak {
+  /** Nilai menurut dokumen kontrak. */
+  menurutKontrak: number
+  /** Nilai yang dipakai jalur uang (`projects.contract_value`). */
+  menurutProyek: number
+  selisih: number
+  /** true = nilai dokumen cocok dengan nilai penagihan. false = ADA selisih yang perlu dilihat. */
+  cocok: boolean
+  sebab: string
+}
+
+export interface RespKontrakProyek {
+  proyek: { id: string; name: string; contract_value: number | string } | null
+  kontrak: DokumenKontrak[]
+  nilai: NilaiKontrakBerjalan
+  banding: BandingNilaiKontrak
+  co_belum_addendum: number
+}
+
+/**
+ * Polis asuransi + celah pertanggungan. Bentuk `PolisTerhitung`,
+ * `apps/api/src/lib/register-asuransi.ts:73-100` — dibaca LANGSUNG dari
+ * kode (bukan tebakan dari nama fungsi), dipanggil `asuransi.ts`.
+ *
+ * ⚠️ Field turunan bernama `status` (BUKAN `keadaan`) — dan field ini
+ * MENIMPA kolom `status` mentah dari tabel `polis_asuransi` di objek yang
+ * sama (lib membangun objek baru dari baris DB, kolom mentahnya tak ikut
+ * terbawa ke tipe ini). `sisa_hari` (BUKAN `hari_tersisa`) — negatif
+ * berarti sudah lewat, ditegaskan di komentar lib.
+ */
+export interface PolisAsuransi {
+  id: string
+  project_id: string
+  project_name: string
+  jenis: "car" | "tpl" | "jamsostek" | "car_tpl" | "lainnya"
+  /** Nama jenis siap-tampil; dipakai bila `jenis === 'lainnya'`. */
+  jenis_label: string
+  nomor_polis: string
+  penerbit: string
+  nilai_pertanggungan: number | null
+  periode_mulai: string
+  periode_selesai: string
+  /** Field TURUNAN (dihitung server) — bukan kolom mentah `status` dari DB. */
+  status: "aktif" | "kadaluarsa" | "belum_berlaku" | "segera_berakhir" | "dibatalkan"
+  /** Sisa hari sampai berakhir. Negatif = sudah lewat. */
+  sisa_hari: number
+  /** Hari masa proyek yang TIDAK tertanggung. null = tanggal proyek tak diketahui (BEDA dari 0). */
+  celah_hari: number | null
+  /** Polis mulai SESUDAH proyek jalan. */
+  celah_awal: number
+  /** Polis berakhir SEBELUM proyek usai. */
+  celah_akhir: number
+}
+
+/** Bentuk `HasilRegister`, `apps/api/src/lib/register-asuransi.ts:102-118`. */
+export interface RespAsuransi {
+  polis: PolisAsuransi[]
+  jumlah_aktif: number
+  jumlah_kadaluarsa: number
+  jumlah_segera_berakhir: number
+  jumlah_belum_berlaku: number
+  /** Polis yang meninggalkan hari proyek tanpa pertanggungan. */
+  jumlah_ada_celah: number
+  /** Proyek yang TIDAK punya satu polis pun — dinyatakan supaya "nol kadaluarsa" tak terbaca "semua aman". */
+  proyek_tanpa_polis: Array<{ project_id: string; project_name: string }>
+  total_nilai_pertanggungan: number
 }
 
 /**
