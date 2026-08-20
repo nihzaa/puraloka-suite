@@ -1598,6 +1598,305 @@ export interface RespMarkupList {
 }
 
 /**
+ * Bentuk PERSIS `calculateEVM()`, `apps/api/src/lib/evm-calculation.ts`,
+ * dipanggil `kurva-s.ts:483`. Diverifikasi ULANG Task 21 langsung ke kode
+ * (`kurva-s.ts:1-517` dibaca penuh) — field brief Task 17 SUDAH cocok
+ * persis, tidak ada koreksi.
+ */
+export interface TitikKurvaS {
+  week: string
+  weekNum: number
+  date: string
+  rencana: number | null
+  serapan: number | null
+  aktual: number | null
+  progress: number | null
+}
+export interface MilestoneKurvaS {
+  title: string | null
+  date: string | null
+  status: string | null
+  weekIdx: number
+  week: number
+}
+export interface RingkasEvm {
+  bac: number
+  bacSource: "rap_locked" | "rab" | "contract_value"
+  paguRAP: number
+  ac: number
+  acSerapan: number
+  ev: number
+  pv: number
+  sv: number
+  cv: number
+  cpi: number
+  spi: number
+  eac: number
+  /** Estimate To Complete — sisa biaya sampai proyek selesai. */
+  etc: number
+  vac: number
+  tcpi: number
+  evPct: number
+  pvPct: number
+  acPct: number
+}
+export interface RespKurvaS {
+  meta: {
+    projectId: string
+    startDate: string
+    endDate: string
+    contractValue: number
+    totalWeeks: number
+    hasRAB: boolean
+    hasSchedule: boolean
+    rencanaSource: "rab_schedule" | "gantt" | "normal_cdf"
+    cakupanJadwalPct: number
+    itemBerjadwal: number
+    itemTotal: number
+    totalRABValue: number
+    latestActualPct: number
+    latestSerapanPct: number
+    latestRencanaPct: number
+    deviasi: number
+    evm: RingkasEvm
+  }
+  chartData: TitikKurvaS[]
+  milestones: MilestoneKurvaS[]
+}
+
+/**
+ * Change Order — bentuk PERSIS `CO_SELECT`, `apps/api/src/routes/v1/
+ * change-orders.ts:11-40`, dibaca BARIS-PER-BARIS untuk Task 21 (brief
+ * hanya menebak `type`/`value`/tiga status — SALAH TOTAL, dikoreksi di sini).
+ *
+ * ⚠️ Bentuk asli JAUH lebih kaya dari dugaan brief:
+ *  - TIDAK ADA field `type`/`value`. CO tersusun dari `items` (tabel
+ *    `change_order_items`) — tiap item punya `item_type` sendiri
+ *    (`kerja_tambah|kerja_kurang|perubahan_volume|perubahan_spec`), dan
+ *    `total_amount_delta` di level CO adalah Σ `amount_delta` semua item,
+ *    DIHITUNG SERVER (`recalcTotalDelta()`) — bukan field yang diisi user.
+ *  - Status HANYA 4: `draft|submitted|approved|rejected` (brief menebak
+ *    3 tanpa `draft` eksplisit). CO **wajib** py minimal 1 item sebelum
+ *    bisa `submit`.
+ *  - `billing_mode` (`include_termin|separate_co|final_account`, nullable)
+ *    MENENTUKAN apakah approve menaikkan `projects.contract_value` — HANYA
+ *    `include_termin` yang menaikkan (`periksaPenyetujuanCo()`,
+ *    `lib/penagihan-co.ts`). Approve DITOLAK (422) bila `billing_mode` null.
+ *  - Approve BUKAN transisi satu langkah — lewat rantai approval berjenjang
+ *    (`evaluateEntityApproval`/`canParticipateInChain`, `utils/approval.ts`),
+ *    bisa multi-level; respons approve bisa `{ data: null, pending_next_level:
+ *    true }` bila BUKAN langkah terakhir. Gerbang permission APPROVE/REJECT
+ *    hanya `authenticate` (otoritas sesungguhnya dari config rantai, bukan
+ *    `requirePermission` tetap) — sedangkan CREATE/PUT/DELETE/items pakai
+ *    `projects:edit`, PM PUNYA (diverifikasi live 2026-08-21).
+ */
+export interface RabItemRefCo {
+  id: string
+  name: string
+  category_code: string | null
+  level: string
+}
+export interface ChangeOrderItem {
+  id: string
+  change_order_id?: string
+  item_type: "kerja_tambah" | "kerja_kurang" | "perubahan_volume" | "perubahan_spec"
+  rab_item_id: string | null
+  description: string
+  unit: string | null
+  volume_delta: number | null
+  unit_price: number | null
+  amount_delta: number
+  notes: string | null
+  sort_order: number
+  rab_item: RabItemRefCo | null
+}
+export interface ChangeOrderProyek {
+  id: string
+  project_id: string
+  co_number: string
+  title: string
+  description: string | null
+  status: "draft" | "submitted" | "approved" | "rejected"
+  billing_mode: "include_termin" | "separate_co" | "final_account" | null
+  total_amount_delta: number
+  baseline_contract_value: number | null
+  baseline_rab_total: number | null
+  submitted_at: string | null
+  submitted_by?: string | null
+  approved_at: string | null
+  approved_by?: string | null
+  rejected_at: string | null
+  rejected_by?: string | null
+  rejected_reason: string | null
+  created_by?: string | null
+  created_at: string
+  updated_at?: string
+  creator: { id: string; name: string } | null
+  approver: { id: string; name: string } | null
+  rejecter: { id: string; name: string } | null
+  items: ChangeOrderItem[]
+}
+export interface RespChangeOrder {
+  data: ChangeOrderProyek[]
+}
+/** Respons approve saat BUKAN langkah terakhir rantai approval berjenjang. */
+export interface RespApproveCo {
+  data: ChangeOrderProyek | null
+  pending_next_level?: boolean
+  message?: string
+}
+
+/**
+ * Proyeksi pencairan kas — bentuk PERSIS `GET /api/v1/estimate-versions/:id/
+ * cashflow-forecast` (`estimate-versions.ts:208-227`) + `CashflowPeriod`,
+ * `apps/api/src/lib/cashflow-forecast.ts:20-24`. Dibaca BARIS-PER-BARIS untuk
+ * Task 21 — brief menebak `{ period: string; masuk; keluar; saldo }` per
+ * PERIODE BERPASANGAN kas masuk/keluar; bentuk asli TOTAL BERBEDA: read-model
+ * SATU ARAH (proyeksi pencairan/pengeluaran dari nilai estimasi, BUKAN kas
+ * masuk vs keluar berpasangan — endpoint ini tak tahu apa-apa soal
+ * penerimaan/termin masuk), didistribusikan dari `total_amount` versi
+ * estimasi lewat kurva normal-CDF (pola sama kurva-S).
+ *
+ * Gerbang `cecep:estimate:view`, PM PUNYA (diverifikasi live 2026-08-21).
+ */
+export interface PeriodeCashflow {
+  /** 1-based. */
+  period: number
+  /** Pencairan pada periode ini (bukan kumulatif). */
+  disbursement: number
+  /** Kumulatif s/d periode ini — berakhir PERSIS di `baseline_total`. */
+  cumulative: number
+}
+export interface RespCashflowForecast {
+  estimate_version_id: string
+  status: string
+  baseline_total: number
+  periods: number
+  forecast: PeriodeCashflow[]
+}
+
+/**
+ * Varians per Cost Code — bentuk PERSIS `BarisVarians`,
+ * `apps/api/src/lib/varians-cost-code.ts:20-39`, dipulangkan `GET /projects/
+ * :projectId/varians` (`cost-control.ts:744-840`). Dibaca BARIS-PER-BARIS
+ * untuk Task 21 — brief menebak `{ cost_code; nama; anggaran; komitmen;
+ * aktual; varians }`; bentuk asli beda nama DAN makna field:
+ *  - `code`/`name` (BUKAN `cost_code`/`nama`), `pagu` (BUKAN `anggaran`),
+ *    `commitment` dilaporkan TOTAL PROYEK (bukan per-baris — jembatan
+ *    material↔cost_code belum ada, lihat `meta.batas`), `exposure` = Σ
+ *    commitment+actual, dan `variance` (BUKAN `varians`) — **`null` saat
+ *    pagu tak diketahui, BUKAN 0** (RAP belum bisa memasok pagu per cost
+ *    code — jembatan resource↔cost_code belum ada). Baris tanpa pemetaan
+ *    kategori→cost code muncul sebagai `cost_code_id: null, code: '—'`,
+ *    TIDAK dibuang.
+ *  - Gerbang `cecep:cost_map:view` (BUKAN `cecep:cost_code:view` yang
+ *    dipakai `CostCodeRingkas` di atas — dua permission berbeda), PM PUNYA
+ *    (diverifikasi live 2026-08-21).
+ */
+export interface BarisVarians {
+  cost_code_id: string | null
+  code: string
+  name: string
+  status: string
+  /** Pagu per cost code. 0 = benar-benar nol; lihat `variance` untuk "belum diketahui". */
+  pagu: number
+  /** SELALU sama untuk semua baris — commitment dilaporkan sebagai TOTAL PROYEK, lihat `meta`. */
+  commitment: number
+  actual: number
+  exposure: number
+  /** `pagu − exposure`. `null` saat pagu tak diketahui, BUKAN 0. */
+  variance: number | null
+  serapan_pct: number | null
+  jumlah_kategori: number
+}
+export interface RespVarians {
+  data: BarisVarians[]
+  meta: {
+    total_actual: number
+    commitment_total: number
+    exposure_total: number
+    jumlah_po_mengikat: number
+    kategori_total: number
+    kategori_dipetakan: number
+    actual_belum_dipetakan: number
+    batas: { pagu_per_cost_code: string; commitment_per_cost_code: string }
+  }
+}
+
+/**
+ * Contingency — bentuk PERSIS `PosTerhitung`/`HasilContingency`,
+ * `apps/api/src/lib/contingency.ts:68-109`, dipulangkan `GET /api/v1/
+ * contingency?project_id=`. Dibaca BARIS-PER-BARIS untuk Task 21 — brief
+ * menebak `{ project_id; pagu_awal; terpakai; sisa; penggunaan: [{ tanggal;
+ * jumlah; alasan }] }` sebagai objek TUNGGAL per proyek; bentuk asli adalah
+ * DAFTAR POS (satu proyek bisa punya BEBERAPA pos cadangan bernama, mis.
+ * "Risiko cuaca", "Eskalasi harga material" — bukan satu angka gabungan),
+ * dan field-nya beda nama total: `nilai` (BUKAN `pagu_awal`), status turunan
+ * `aman|menipis|kritis|terlampaui|ditutup` (server MENGHITUNG status dari
+ * ambang 60%/90%, bukan disimpan), `sisa` boleh NEGATIF (tak di-floor ke 0 —
+ * "terlampaui" adalah keadaan nyata yang harus terlihat).
+ *
+ * Penggunaan (baris penarikan) BUKAN bagian objek pos — endpoint list
+ * `GET /contingency` HANYA memulangkan ringkasan teragregasi per pos
+ * (`jumlah_penarikan`, `penarikan_terakhir`), TIDAK daftar penggunaan
+ * mentah per baris. Detail penggunaan (tanggal/alasan/CO sumber) hanya
+ * tersedia lewat rakitan internal `hitungContingency()` — endpoint list
+ * ini tidak mengembalikannya sebagai array terpisah, jadi halaman ini
+ * hanya menampilkan ringkasan per pos (bukan riwayat penarikan baris-demi-
+ * baris, yang butuh endpoint baru di luar scope Task 21).
+ *
+ * Gerbang: GET `projects:view`, POST pos & POST penarikan `projects:contract`
+ * — PM PUNYA keduanya (diverifikasi live 2026-08-21).
+ */
+export type StatusContingency = "aman" | "menipis" | "kritis" | "terlampaui" | "ditutup"
+export interface PosContingency {
+  id: string
+  project_id: string
+  project_name: string
+  nama: string
+  nilai: number
+  terpakai: number
+  /** `nilai − terpakai`. NEGATIF bila terlampaui — tidak di-floor ke 0. */
+  sisa: number
+  terpakai_pct: number
+  /** Porsi cadangan terhadap nilai kontrak (%). `null` = nilai kontrak tak diketahui — beda dari 0. */
+  porsi_kontrak_pct: number | null
+  status: StatusContingency
+  jumlah_penarikan: number
+  penarikan_terakhir: string | null
+}
+export interface RespContingency {
+  pos: PosContingency[]
+  total_cadangan: number
+  total_terpakai: number
+  /** `total_cadangan − total_terpakai`. Bisa negatif. */
+  total_sisa: number
+  jumlah_aman: number
+  jumlah_menipis: number
+  jumlah_kritis: number
+  jumlah_terlampaui: number
+  /** Proyek TANPA satu pun pos cadangan — dinyatakan, bukan hilang senyap. */
+  proyek_tanpa_pos: Array<{ project_id: string; project_name: string }>
+}
+/** Bentuk `POST /api/v1/contingency` — `pos` (BUKAN `data`), hanya 3 field. */
+export interface RespContingencyBuatPos {
+  pos: { id: string; nama: string; nilai: number }
+}
+/** Change order yang layak jadi DASAR penarikan — `GET /contingency/co-sumber?project_id=`. */
+export interface CoLayakSumber {
+  id: string
+  co_number: string
+  status: string
+  judul: string | null
+  nilai: number | null
+}
+export interface RespCoSumberContingency {
+  layak: CoLayakSumber[]
+  tak_layak: number
+  jumlah_co: number
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
