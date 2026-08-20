@@ -5,6 +5,53 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-21 (Portal PM Lengkap, Tahap 3) — Task 22 lanjutan: audit a11y runtime TAK PERNAH mencakup `pm-portal` sama sekali (bukan cuma 3 rute dinamis)
+
+Sesudah commit `d9f79e46` (entri di bawah), audit a11y runtime
+`jalankan-a11y-lengkap.mjs` dijalankan sungguhan (bukan cuma
+diklaim "masih berjalan") terhadap instance terisolasi worktree ini
+(port 3017 API / 3020 web, karena port kanonik 3007/3000 dipakai
+proses checkout `E:\Project\puraloka-suite` lain — tak dihentikan
+sesuai §8a.1).
+
+**Hasil mode terang: 155 halaman dipindai, 69 dialihkan, 0
+pelanggaran.** Tapi diperiksa langsung isi `.a11y-terang.json`: **NOL**
+URL `/pm-portal/*` ada di 155 yang dipindai — bukan cuma 11 halaman
+CECEP baru, SELURUH pohon portal PM (30+ halaman, sejak Task 6).
+Sebabnya: akun uji `LAYAR_EMAIL` berperan `admin`, dan
+`pm-portal/layout.tsx` baris 26 mengalihkan `admin` ke `/dashboard`
+SEBELUM render apa pun — jadi seluruh `pm-portal` masuk kelompok "69
+dialihkan", bukan "155 dipindai".
+
+Catatan lama di kepala `jalankan-a11y-lengkap.mjs` ("Diukur
+2026-08-13... `/pm-portal/proyek/[id]` -> /dashboard") BENAR untuk
+ketiga rute yang disebutnya, tapi MENYIRATKAN cakupan yang salah:
+seolah hanya 3 rute dinamis yang terlewat, padahal kenyataannya
+(diukur di sini, 2026-08-21) SELURUH portal PM tak tersentuh skrip
+ini dengan akun admin — termasuk halaman STATIS seperti 11 CECEP baru
+Task 18-21, yang bahkan tak butuh id dinamis untuk dicoba. Redirect
+terjadi di root layout portal, bukan per-halaman, jadi tak ada
+kombinasi id yang bisa menembusnya — hanya akun ber-role `pm` yang
+bisa.
+
+**Tak ada akun uji ber-role `pm` di `apps/web/.env.local`** (dicek
+eksplisit: hanya `LAYAR_EMAIL` admin). Membuatnya adalah keputusan
+data uji di luar scope Task 22, sama seperti pola tiga rute dinamis
+yang sudah dicatat 2026-08-13 — tapi cakupannya ternyata jauh lebih
+luas dari yang tercatat saat itu.
+
+**Klaim "0 pelanggaran" a11y hasil 2026-08-21 ini TIDAK BOLEH dibaca
+sebagai "portal PM/CECEP lolos WCAG 2.1 AA runtime".** Yang terbukti
+hanya: permukaan admin/desktop tetap 0 pelanggaran (nol regresi dari
+Task 22, yang memang cuma berkas navigasi). Portal PM — seluruhnya,
+bukan hanya CECEP — masih TAK TERAUDIT runtime sampai ada akun uji
+`pm`. Dicatat di sini supaya angka "0 pelanggaran" tak terbaca lebih
+luas dari cakupan sebenarnya, kelas cacat yang sama dengan yang
+diperingatkan dokumen ini sendiri di §0 (fakta yang bisa basi/salah
+baca menyesatkan sesi berikutnya).
+
+---
+
 ## 2026-08-21 (Portal PM Lengkap, Tahap 3) — Task 22 tuntas: navigasi kategori Budget & Cost Control tersambung, TAHAP 3 SELESAI
 
 Worktree `pm-lengkap-tahap2` (`feat/pm-lengkap-tahap2`), plan
