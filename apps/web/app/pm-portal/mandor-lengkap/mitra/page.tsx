@@ -300,9 +300,12 @@ export default function PmMitraPage() {
               onChange={(e) => setForm((f) => ({ ...f, bentuk: e.target.value as "orang" | "badan_usaha" }))}
               style={{
                 width: "100%", minHeight: 44, padding: "0 12px", borderRadius: 12,
-                border: "1px solid var(--border)", fontSize: 14, color: "var(--text-primary)",
-                background: "var(--surface)", boxSizing: "border-box",
-                opacity: editMitra ? 0.6 : 1,
+                border: "1px solid var(--border)", fontSize: 14, boxSizing: "border-box",
+                // Disabled-state: token warna SOLID, bukan opacity — swap
+                // sama seperti tombol submit disabled di berkas ini
+                // (background surface-hover + teks text-muted).
+                background: editMitra ? "var(--surface-hover)" : "var(--surface)",
+                color: editMitra ? "var(--text-muted)" : "var(--text-primary)",
               }}
             >
               <option value="orang">Orang — mandor borongan, tukang</option>

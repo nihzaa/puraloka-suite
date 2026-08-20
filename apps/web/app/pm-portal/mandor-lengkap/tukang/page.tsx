@@ -472,7 +472,7 @@ export default function PmTukangPage() {
                   fontSize: 13, fontWeight: 700, cursor: "default",
                 } : {
                   flex: 1, minHeight: 44, padding: "0 12px", borderRadius: "var(--portal-radius-pill)",
-                  border: "none", background: "var(--danger)", color: "#fff",
+                  border: "none", background: "var(--danger)", color: "var(--on-aksen)",
                   fontSize: 13, fontWeight: 700, cursor: "pointer",
                 }}
               >
