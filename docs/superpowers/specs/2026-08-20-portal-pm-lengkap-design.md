@@ -132,21 +132,47 @@ untuk pola interaksi & struktur, bukan skin baru.
 ## 4. Fondasi PWA (Tahap 0, sebelum modul apa pun)
 
 **Keadaan hari ini**: `public/sw.js` sudah ada tapi HANYA untuk web push
-notification (58 baris, tanpa strategi cache) — bukan service worker PWA.
-`manifest.json` **tidak ada sama sekali**. Ikon yang direferensikan
-`sw.js` sendiri (`/icon-192.png`, `/icon-72.png`) **tidak ada di disk**
-(diverifikasi: `ls public/*.png` kosong).
+notification (58 baris, tanpa strategi cache), dan HANYA didaftarkan saat
+user opt-in push (`lib/webpush.ts:48`, dipanggil dari `subscribeToPush()`)
+— bukan otomatis saat app dibuka. `manifest.json` **tidak ada sama
+sekali**.
+
+**⚠ Temuan yang mengubah rencana ikon**: aplikasi ini **sudah multi-tenant**
+dan favicon-nya BUKAN file statis — `app/icon.tsx` men-generate ikon
+on-the-fly lewat `next/og` `ImageResponse`, mengambil `logo_url` per
+company dari `GET /api/v1/public/merek`, jatuh ke inisial+navy kalau logo
+tak ada (lihat komentar lengkap di file itu — keputusan founder 2026-08-09,
+"favicon nya ganti dengan logo yg diupload perusahaan"). Ikon
+`/icon-192.png`/`/icon-72.png` yang direferensikan `sw.js` **tidak ada di
+disk** (`ls public/*.png` kosong) — push notification yang sudah jalan pun
+sebenarnya mengirim path ikon yang 404.
+
+Ikon PWA (untuk "Add to Home Screen") **WAJIB ikut pola dinamis yang
+sama** — bukan file statis dari brand Puraloka. Menaruh logo Puraloka
+statis akan membuat SEMUA tenant (termasuk yang akan datang) melihat ikon
+perusahaan lain di homescreen mereka sendiri — cacat arsitektur yang sama
+persis dengan yang favicon sudah selesaikan setahun lalu, diperkenalkan
+ulang lewat jalur berbeda.
 
 **Yang dibangun**:
 
-- `manifest.json`: nama app, ikon 192/512/maskable, `theme-color`
-  `#003366` (navy, samakan dengan `ARAH-VISUAL-2026.md`), `display:
-  standalone`, `start_url` mengarah ke rute yang benar tergantung sesi
-  (login kalau belum masuk, `/pm-portal` kalau sudah — perlu diverifikasi
-  ke pola redirect yang sudah ada di `pm-portal/layout.tsx`).
-- Ikon: digenerate dari identitas visual yang sudah ada (navy + elemen
-  brand Puraloka — bukan logo baru, bukan menunggu aset dari desainer).
-  Ukuran sesuai spesifikasi PWA standar (192, 512, maskable variant).
+- `app/manifest.ts` (Next.js App Router route handler, BUKAN
+  `public/manifest.json` statis — didukung sejak Next 13, project ini di
+  Next 16): nama app dari `ambilMerek()` (fungsi yang sama dipakai
+  `app/icon.tsx`, diekspor ulang atau dipindah ke `lib/` supaya dipakai
+  bersama), ikon 192/512/maskable **dihasilkan lewat rute serupa
+  `app/icon.tsx`** tapi berukuran PWA-standar (bukan 64×64 favicon),
+  `theme-color` `#003366` (navy, dari `lib/warna-merek.ts` — TIDAK ditulis
+  hex baru, ikuti pola larangan hex mentah yang sudah dijaga
+  `hex-ratchet`), `display: standalone`, `start_url` mengarah ke rute yang
+  benar tergantung sesi (perlu diverifikasi ke pola redirect
+  `pm-portal/layout.tsx` saat eksekusi).
+- Rute ikon PWA baru (mis. `app/icon-192.tsx`, `app/icon-512.tsx`, atau
+  satu rute dinamis `app/icon/[size]/route.tsx`) yang MEMANGGIL ULANG
+  logika `ambilMerek()` dari `app/icon.tsx` — jangan duplikasi fetch+fallback
+  logic, ekstrak ke `lib/` yang dipakai kedua rute. `runtime = "nodejs"`,
+  `revalidate = 3600` (sama seperti favicon — logo jarang berubah, satu
+  jam cukup).
 - `sw.js` **diperluas, bukan diganti** — push notification yang sudah
   jalan TIDAK disentuh. Ditambahkan strategi cache MINIMAL: app-shell
   (layout, CSS, JS inti) di-cache supaya app **terbuka** saat offline
@@ -154,9 +180,14 @@ notification (58 baris, tanpa strategi cache) — bukan service worker PWA.
   "Tidak ada koneksi" yang jelas — **bukan** caching data transaksional
   (approval, proyek, dsb.). Keputusan founder eksplisit: offline penuh
   ditunda, risiko data basi/konflik terlalu besar untuk fase ini.
-- Halaman `pm-portal/layout.tsx` mendaftarkan service worker (kalau belum)
-  dan menyediakan prompt "Install App" non-mengganggu (satu kali, bisa
-  ditutup, tidak muncul ulang tiap sesi).
+- Registrasi service worker dipindah dari "hanya saat opt-in push"
+  (`lib/webpush.ts`) ke **selalu saat app dibuka** — app-shell caching
+  harus aktif dari awal, bukan menunggu user menyalakan notifikasi.
+  `lib/webpush.ts` tetap dipertahankan untuk logic push-subscribe-nya,
+  tapi register service worker-nya disatukan supaya tak register dua kali
+  dengan scope yang sama.
+- Halaman `pm-portal/layout.tsx` menyediakan prompt "Install App"
+  non-mengganggu (satu kali, bisa ditutup, tidak muncul ulang tiap sesi).
 
 ## 5. Fondasi teknis tambahan
 
