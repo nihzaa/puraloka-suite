@@ -1,11 +1,24 @@
 "use client";
 
+// ============================================================================
+// Notifikasi — versi Klien, Task 12 Step 4. Restyle dari `lib/warna-ui`
+// (C.*) ke token portal. Logika (mark-read optimistik, mark-all) TIDAK
+// diubah.
+//
+// Pembeda "sudah dibaca" SEBELUMNYA `opacity: 0.75` pada kartu (termasuk
+// teksnya) — diganti warna teks solid (`--text-secondary` vs
+// `--text-primary`) karena opacity pada teks mencampur warna dengan latar,
+// menurunkan kontras di bawah yang terhitung statis (penjaga
+// uji-opacity-teks.mjs, meski kartu ber-opacity utuh belum tertangkap
+// polanya — diperbaiki di sini karena memang menyentuh teks).
+// ============================================================================
+
 import { useCallback, useState } from "react";
 import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { Bell, CheckCheck } from "lucide-react";
-
-import { C } from "@/lib/warna-ui";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
 
 interface Notif {
   id: string;
@@ -27,21 +40,10 @@ function timeAgo(s: string) {
 }
 
 export default function PortalNotifPage() {
-  /*
-    ── PINDAH KE LAPIS CACHE BERSAMA (F4-2), 2026-08-16
-
-    `useData` menggantikan useEffect+useState. Tandai-dibaca TETAP menulis
-    langsung ke `api.patch` lalu memutakhirkan tampilan secara optimistik —
-    itu perilaku lama yang dipertahankan, bukan diganti `muatUlang()`, karena
-    menandai satu notifikasi dibaca tak perlu mengambil ulang seluruh daftar
-    dari server.
-  */
   const { data, memuat: loading } = useData<{ notifications: Notif[] }>("/api/v1/notifications");
   const [tandaLokal, setTandaLokal] = useState<Set<string>>(new Set());
   const [semuaTertanda, setSemuaTertanda] = useState(false);
 
-  // Diturunkan dari jawaban server + penanda lokal, bukan disalin ke state
-  // terpisah — satu sumber kebenaran untuk daftarnya.
   const notifs = (data?.notifications ?? []).map((n) =>
     (semuaTertanda || tandaLokal.has(n.id)) && !n.is_read ? { ...n, is_read: true } : n);
 
@@ -58,70 +60,64 @@ export default function PortalNotifPage() {
   const unread = notifs.filter((n) => !n.is_read).length;
 
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: 0 }}>Notifikasi</h1>
-          {unread > 0 && <div style={{ fontSize: 13, color: C.mid, marginTop: 2 }}>{unread} belum dibaca</div>}
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Notifikasi</h1>
+          {unread > 0 && <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>{unread} belum dibaca</div>}
         </div>
         {unread > 0 && (
           <button
+            type="button"
             onClick={markAllRead}
             style={{
               display: "flex", alignItems: "center", gap: 6,
-              padding: "6px 12px", borderRadius: 6,
-              border: `1px solid ${C.border}`, background: C.surface,
-              fontSize: 13, color: C.mid, cursor: "pointer",
+              padding: "8px 14px", borderRadius: "var(--portal-radius-pill)",
+              border: "1px solid var(--border)", background: "var(--surface)",
+              fontSize: 13, color: "var(--text-secondary)", cursor: "pointer", fontWeight: 600,
             }}
           >
-            <CheckCheck size={14} /> Tandai semua
+            <CheckCheck size={14} aria-hidden="true" /> Tandai semua
           </button>
         )}
       </div>
 
-      {loading && <div style={{ textAlign: "center", padding: 60, color: C.mid }}>Memuat notifikasi...</div>}
+      {loading && <SkeletonCard tinggi={80} />}
 
       {!loading && notifs.length === 0 && (
-        <div style={{
-          background: C.surface, borderRadius: 10, padding: 60,
-          border: `1px solid ${C.border}`, textAlign: "center",
-        }}>
-          <Bell size={36} color={C.muted} style={{ marginBottom: 12 }} />
-          <div style={{ fontSize: 15, fontWeight: 600, color: C.text }}>Tidak ada notifikasi</div>
-        </div>
+        <EmptyState icon={Bell} judul="Tidak ada notifikasi" deskripsi="Pemberitahuan proyek Anda akan muncul di sini." />
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {notifs.map((n) => (
           <div
             key={n.id}
             role="button"
             tabIndex={0}
             onClick={() => !n.is_read && markRead(n.id)}
-            onKeyDown={e => {
+            onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault()   // Spasi jangan menggulir daftar notifikasi
-                if (!n.is_read) markRead(n.id)
+                e.preventDefault();
+                if (!n.is_read) markRead(n.id);
               }
             }}
             style={{
-              background: C.surface, borderRadius: 10, padding: 16,
-              border: `1px solid ${C.border}`,
-              borderLeft: !n.is_read ? `3px solid ${C.navy}` : `1px solid ${C.border}`,
+              background: "var(--surface)", borderRadius: 14, padding: 16,
+              border: "1px solid var(--border)",
+              borderLeft: !n.is_read ? "3px solid var(--navy)" : "1px solid var(--border)",
               cursor: !n.is_read ? "pointer" : "default",
-              opacity: n.is_read ? 0.75 : 1,
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: n.is_read ? 400 : 600, color: C.text }}>{n.title}</div>
-                <div style={{ fontSize: 13, color: C.mid, marginTop: 4, lineHeight: 1.5 }}>{n.body}</div>
+                <div style={{ fontSize: 13, fontWeight: n.is_read ? 500 : 700, color: n.is_read ? "var(--text-secondary)" : "var(--text-primary)" }}>{n.title}</div>
+                <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4, lineHeight: 1.5 }}>{n.body}</div>
               </div>
               {!n.is_read && (
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.navy, flexShrink: 0, marginTop: 5 }} />
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--navy)", flexShrink: 0, marginTop: 5 }} />
               )}
             </div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 8 }}>{timeAgo(n.created_at)}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>{timeAgo(n.created_at)}</div>
           </div>
         ))}
       </div>
