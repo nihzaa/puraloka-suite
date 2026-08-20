@@ -1115,14 +1115,33 @@ export interface BondProyek {
   notes: string | null;
 }
 
+/**
+ * Bentuk `BarisBond` — bentuk INTERNAL lib (BUKAN kolom DB mentah), dipakai
+ * `ringkasBond()`, `apps/api/src/lib/rantai-kontrak.ts:255-262`. Route
+ * `GET /api/v1/bonds` (`rantai-kontrak.ts:252-286`) mem-map baris DB ke
+ * bentuk ini (`untukLib = baris.map(...)`) SEBELUM memanggil `ringkasBond()`
+ * — jadi field-nya beda nama dari `BondProyek`: `jenis` (bukan `bond_type`),
+ * `nilai` (bukan `amount`), `tanggalTerbit`/`tanggalKadaluarsa` (bukan
+ * `issued_date`/`expiry_date`). Objek di `RingkasBond.segeraKadaluarsa`/
+ * `telatDiperbarui` di bawah berbentuk INI, bukan `BondProyek`.
+ */
+export interface BarisBondRingkas {
+  id?: string;
+  jenis: "penawaran" | "pelaksanaan" | "uang_muka" | "pemeliharaan";
+  nilai: number;
+  tanggalTerbit: string;
+  tanggalKadaluarsa: string;
+  status: "aktif" | "dikembalikan" | "dicairkan" | "kadaluarsa";
+}
+
 /** Bentuk `RingkasBond`, `apps/api/src/lib/rantai-kontrak.ts:264-271` (`ringkasBond()`). */
 export interface RingkasBond {
   totalAktif: number;
   jumlahAktif: number;
   /** Jaminan yang kadaluarsa ≤ N hari — uang yang bisa hangus bila terlewat. */
-  segeraKadaluarsa: Array<BondProyek & { sisaHari: number }>;
+  segeraKadaluarsa: Array<BarisBondRingkas & { sisaHari: number }>;
   /** Sudah lewat tanggal tapi statusnya masih 'aktif' — data yang perlu dirapikan. */
-  telatDiperbarui: BondProyek[];
+  telatDiperbarui: BarisBondRingkas[];
 }
 
 export interface RespBond {
