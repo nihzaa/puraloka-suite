@@ -1353,6 +1353,131 @@ export interface RespTemplateWbsList {
 }
 
 /**
+ * Satu baris RAB — bentuk PERSIS `GET /api/v1/estimate-versions`
+ * (`apps/api/src/routes/v1/estimate-versions.ts:251-336`, diverifikasi ulang
+ * Task 19 langsung ke kode, bukan cuma brief). `total_amount: null` = belum
+ * dihitung, BEDA dari 0 rupiah (spec rombak §3c).
+ *
+ * ⚠️ `status` di sini HANYA `draft | under_review | approved` yang realistis
+ * muncul dari endpoint ini — `frozen`/`superseded` termasuk union tapi jarang
+ * relevan untuk dashbor PM. `rejected` SENGAJA TIDAK ADA (lihat komentar
+ * `RespRabDetail` di bawah — itu bukan status yang pernah tersimpan).
+ *
+ * Saat `skenarioIdsTenant` kosong, endpoint memulangkan `{ data: [] }` TANPA
+ * `meta` — karena itu `meta` di sini tak dibaca oleh halaman manapun,
+ * hanya `data.data`.
+ */
+export interface BarisRabDaftar {
+  id: string
+  version_number: number
+  status: "draft" | "under_review" | "approved" | "frozen" | "superseded" | string
+  total_amount: number | null
+  created_at: string
+  scenario_id: string | null
+  scenario_name: string | null
+  project_id: string | null
+  project_name: string | null
+  edition_code: string | null
+}
+export interface RespRabDaftar {
+  data: BarisRabDaftar[]
+  meta?: { jumlah: number; batas: number; terpotong: boolean }
+}
+
+/** Item RAB dalam satu versi. Bentuk PERSIS `estimate-versions.ts:434-436`
+ * (GET /estimate-versions/:id, `items:estimate_items(...)`) — `assembly` dan
+ * `cost_code` BERSARANG dari PostgREST (FK many-to-one → objek, BUKAN array;
+ * dikonfirmasi lewat pola sama di `AssemblyKatalog.edition`, Task 18). Item
+ * lumpsum (`assembly: null`) memakai `notes` sebagai nama tampilnya.
+ * `quantity`/`amount` numeric — datang sebagai STRING dari PostgREST di
+ * endpoint ini (beda dari list yang sudah dikonversi server), jadi `fmtRupiah`
+ * dan pembacanya wajib menoleransi keduanya. */
+export interface ItemEstimasi {
+  id: string
+  quantity: number | string
+  amount: number | string
+  sort_order: number | null
+  notes: string | null
+  cost_code: { code: string; name: string } | null
+  assembly: { id: string; code: string; name: string; output_unit_code: string | null; source: string; version_number: number } | null
+}
+
+/**
+ * Detail satu versi RAB. Bentuk PERSIS `GET /estimate-versions/:id`
+ * (`estimate-versions.ts:423-442`, `reply.send({ data: v })` — `v` adalah
+ * baris Supabase MENTAH, bukan dipetakan ulang seperti daftar).
+ *
+ * ⚠️ **`status` TIDAK PERNAH `"rejected"`** — diverifikasi ulang Task 19 ke
+ * TIGA sumber sekaligus: CHECK constraint (`110_cecep_estimate_chain.sql:72`,
+ * `CHECK (status IN ('draft','under_review','approved','frozen',
+ * 'superseded'))` — `rejected` tak ada di enumnya sama sekali), trigger
+ * transisi (`111_cecep_estimate_approval.sql:57-62`, satu-satunya jalur
+ * mundur adalah `under_review → draft`, dipetakan komentar kepala
+ * `estimate-versions.ts:30-34` sebagai jalur *reject*), dan rute `PATCH
+ * .../reject` sendiri (`estimate-versions.ts:1533-1534`,
+ * `.update({ status: 'draft', ... })`).
+ *
+ * Draf awal task ini (breakdown plan) menulis union bertipe `"rejected"` di
+ * sini — SALAH, dan diperbaiki di sini. Alasan yang benar-benar ditolak
+ * hanya tersimpan di audit log (`newValues.reason`), TIDAK di kolom manapun
+ * pada `estimate_versions` — jadi UI tak bisa menampilkan lencana "Ditolak"
+ * yang bertahan; sesudah ditolak, versi kembali terlihat identik dengan versi
+ * yang memang belum pernah diajukan (`draft`). Halaman detail menampilkan
+ * pesan sekali-lihat (toast/banner sesaat) saat aksi tolak berhasil, bukan
+ * badge permanen yang bergantung pada `status === 'rejected'` yang mustahil.
+ */
+export interface RespRabDetail {
+  data: {
+    id: string
+    scenario_id: string
+    version_number: number
+    status: "draft" | "under_review" | "approved" | "frozen" | "superseded" | string
+    total_amount: number | string | null
+    approved_by: string | null
+    approved_at: string | null
+    frozen_at: string | null
+    created_at: string
+    edition: { code: string; name: string } | null
+    items: ItemEstimasi[]
+  }
+}
+
+/** Hasil pencarian analisa untuk picker tambah-item — subset field dari
+ * `AssemblyKatalog` (Task 18), cukup untuk memilih + menghitung. */
+export interface AssemblyRingkasPicker {
+  id: string
+  code: string
+  name: string
+  output_unit_code: string | null
+}
+
+/**
+ * Cost code untuk picker item lumpsum. Bentuk PERSIS `GET /api/v1/cost-codes`
+ * (`apps/api/src/routes/v1/cost-control.ts:209-227`), gerbang
+ * `cecep:cost_code:view` — PM PUNYA (migrasi 102, `role.name IN
+ * ('admin','pm')`). Endpoint SENGAJA menyertakan draft (komentar rute: "43
+ * dari 44 cost code di dev masih draft, menyembunyikannya membuat halaman
+ * pemetaan tampak kosong tanpa sebab") — picker di sini mengikuti alasan yang
+ * sama, tidak menyaring `status`.
+ *
+ * Ditambahkan Task 19 untuk memperbaiki cacat yang DITANDAI EKSPLISIT di
+ * breakdown plan: form lumpsum draf awal tidak mengirim `cost_code_id`, yang
+ * backend WAJIBKAN untuk item lumpsum (`estimate-versions.ts:1120`,
+ * `400 'cost_code_id wajib untuk item lumpsum'`).
+ */
+export interface CostCodeRingkas {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  category: string | null
+  status: string
+}
+export interface RespCostCodeRingkas {
+  data: CostCodeRingkas[]
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {

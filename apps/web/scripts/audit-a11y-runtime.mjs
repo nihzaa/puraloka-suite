@@ -130,6 +130,8 @@ const CONTOH_ID = {
   // `key` BUKAN id dari DB — nilai literal tetap dari KATEGORI_AKTIF di
   // lib/pm-portal-kategori.ts ("g-subkon" | "g-lapangan"). Tak butuh env var.
   '/pm-portal/kategori/[key]': 'g-subkon',
+  // Portal PM Lengkap Tahap 3, Task 19 — detail RAB (estimate_versions.id).
+  '/pm-portal/cecep/rab/[id]': process.env.LAYAR_ID_RAB,
 }
 
 function halamanDariBerkas() {
