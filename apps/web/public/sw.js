@@ -1,12 +1,35 @@
-// Puraloka Suite — Service Worker for Web Push Notifications
-// Version: 1.0.0
+// Puraloka Suite — Service Worker: push notifications + app-shell cache
+// Version: 2.0.0 (app-shell caching ditambahkan — push notification TIDAK diubah)
 
-self.addEventListener('install', () => {
+const CACHE_NAME = 'puraloka-shell-v1'
+// Hanya app-shell (route Next.js menangani asetnya sendiri lewat build
+// hash) — TIDAK ada data API di sini. Offline penuh (cache data
+// transaksional) sengaja TIDAK dibangun — risiko data basi/konflik,
+// keputusan founder di spec 2026-08-20-portal-pm-lengkap-design.md §4.
+const SHELL_URLS = ['/pm-portal', '/login']
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS))
+  )
   self.skipWaiting()
 })
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim())
+})
+
+self.addEventListener('fetch', (event) => {
+  // Hanya navigasi (buka halaman), BUKAN request API — panggilan
+  // /api/v1/* harus tetap live-fail dengan pesan jelas, bukan diam-diam
+  // menyajikan data cache basi.
+  if (event.request.mode !== 'navigate') return
+
+  event.respondWith(
+    fetch(event.request).catch(() =>
+      caches.match(event.request).then((cached) => cached || caches.match('/pm-portal'))
+    )
+  )
 })
 
 self.addEventListener('push', (event) => {

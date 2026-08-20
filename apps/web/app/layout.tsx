@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { JudulHalaman } from "@/components/judul-halaman";
+import PendaftarServiceWorker from "@/components/pendaftar-sw";
 import { NAVY, GELAP } from "@/lib/warna-merek";
 
 const display = Bricolage_Grotesque({
@@ -59,6 +60,7 @@ export default function RootLayout({
           {/* Di root, bukan di (dashboard): portal klien dan portal mandor
               juga butuh judul yang jelas. */}
           <JudulHalaman />
+          <PendaftarServiceWorker />
           {children}
         </ThemeProvider>
       </body>

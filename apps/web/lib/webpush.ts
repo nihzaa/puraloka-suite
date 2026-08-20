@@ -45,6 +45,16 @@ export async function subscribeToPush(): Promise<boolean> {
     if (permission !== 'granted') return false
 
     // 2. Daftar service worker
+    //
+    // Sejak Task 3 (app-shell cache), `lib/register-sw.ts` sudah mendaftarkan
+    // '/sw.js' di scope '/' lebih dulu lewat root layout — SEBELUM fungsi ini
+    // sempat dipanggil (yang butuh opt-in user). Baris di bawah TETAP aman
+    // dibiarkan tanpa mengecek registrasi yang ada lebih dulu:
+    // `ServiceWorkerContainer.register()` (MDN) idempoten untuk URL+scope yang
+    // sama — browser mencocokkan registrasi yang sudah ada alih-alih membuat
+    // duplikat, dan Promise-nya resolve dengan `ServiceWorkerRegistration`
+    // yang SAMA (bukan instance baru). Tak ada registrasi ganda, tak ada
+    // race, tak ada re-download sw.js kalau isinya tak berubah.
     const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
     await navigator.serviceWorker.ready
 

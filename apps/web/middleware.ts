@@ -209,8 +209,20 @@ export const config = {
     ikut meloloskan `/icon-192` dan `/icon-512` (substring match tanpa batas
     segmen di negative lookahead), tapi tidak "manifest" karena kata itu tak
     pernah ditambahkan.
+
+    `sw.js` DIKECUALIKAN dengan alasan yang sama, ditemukan saat menguji
+    Task 3 (2026-08-20, app-shell cache PWA): `lib/register-sw.ts` sekarang
+    dipanggil dari ROOT layout, jadi `navigator.serviceWorker.register('/sw.js')`
+    berjalan bahkan di halaman `/login` — sebelum ada sesi. Tanpa pengecualian
+    ini, `GET /sw.js` ikut redirect 307 ke /login, peramban menerima HTML
+    alih-alih JavaScript, dan `register()` gagal dengan
+      "The script has an unsupported MIME type ('text/html')."
+    — app-shell cache tak pernah aktif untuk siapa pun yang belum login.
+    Diukur: `curl /sw.js` membalas `307 → /login` sebelum baris ini
+    ditambahkan. Aman dibuka: sw.js adalah berkas statis dari `public/`,
+    isinya kode klien yang sudah bisa dibaca siapa pun lewat DevTools.
   */
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|manifest|api).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|manifest|sw\\.js|api).*)",
   ],
 };
