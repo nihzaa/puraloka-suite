@@ -43,6 +43,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import type { VolumeElemen } from './struktur-beton'
+import { labelK } from './struktur-mutu-nyata.js'
 import {
   konversiBesiBeton, konversiBajaProfil, type SatuanBeli,
 } from './satuan-beli.js'
@@ -219,7 +220,68 @@ export function polaBeton(fcMpa?: number): string[] {
     ════════════════════════════════════════════════════════════════════════
   */
   const angka = String(fcMpa).replace('.', ',')
-  return [`~f'c ${angka} mpa`, `~f'c ${fcMpa} mpa`]
+
+  /*
+    ════════════════════════════════════════════════════════════════════════
+    CADANGAN BER-K — dan kenapa hanya SEBAGIAN yang boleh dipakai
+    ════════════════════════════════════════════════════════════════════════
+
+    Katalog ini memakai dua bahasa. Diukur 2026-08-20 pada 90 AHSP beton
+    bersatuan m3: 26 memakai f'c, 44 memakai K. Yang ber-K sebelumnya TAK
+    PERNAH terjangkau, karena pola di sini hanya mencari frasa f'c.
+
+    Tapi yang ber-K TIDAK boleh dipakai semuanya. Dari 45 yang bersatuan m3:
+
+        13 BETON MURNI   "1 M3 BETON SITE MIX MUTU ( K-300 )"
+        32 PAKET         "1 M3 BALOK STRUKTUR, 20/30 ( BETON SITE MIX K-250
+                          TULANGAN BESI 16= 5 BUAH  SENGKANG BESI …)"
+
+    Yang PAKET sudah memuat tulangan DAN bekisting. Modul ini mengirim
+    ketiganya sebagai baris TERPISAH (beton, bekisting, pembesian), jadi
+    memasangkan paket ke baris beton membuat tulangan dan bekisting
+    terhitung DUA KALI — dan RAB-nya tetap terlihat wajar, karena tiap
+    barisnya masuk akal sendiri-sendiri.
+
+    Karena itu polanya berbentuk FRASA (awalan `~`), bukan daftar kata.
+
+    Ini bukan detail gaya. `assemblyCocok` tanpa `~` mencocokkan daftar KATA
+    dalam urutan BEBAS — dan nama paket memuat SELURUH kata tersebut:
+
+        pola kata-lepas: beton · site · mix · k-250
+        nama paket    : "1 M3 BALOK STRUKTUR, 20/30 ( BETON SITE MIX K-250
+                         TULANGAN BESI 16= 5 BUAH …)"   -> COCOK. Salah.
+
+    Frasa `~beton site mix mutu ( k-300 )` hanya cocok pada nama beton
+    murni, karena paket menyisipkan kata lain di antara frasanya.
+
+    ⚠ Urutannya penting: f'c DULU. Padanan K adalah konvensi pemesanan,
+    bukan kesetaraan presisi — kalau AHSP ber-f'c yang tepat ADA, itu yang
+    harus menang.
+  */
+  const kelasK = K_PADANAN[fcMpa]
+  const cadanganK = kelasK
+    ? [`~beton site mix ( k-${kelasK} )`,
+       `~beton site mix mutu ( k-${kelasK} )`]
+    : []
+
+  return [`~f'c ${angka} mpa`, `~f'c ${fcMpa} mpa`, ...cadanganK]
+}
+
+/*
+  Padanan f'c -> kelas K, HANYA untuk mencari AHSP cadangan.
+
+  Didaftar, bukan dihitung: fc 20/25/30/35 adalah kelas silinder baku SNI
+  yang sudah punya padanan K konvensional. Menghitung balik menghasilkan
+  angka yang tak ada di katalog mana pun (fc 30 -> K-369).
+
+  Hanya kelas yang BENAR-BENAR ada sebagai beton MURNI di katalog yang
+  didaftar (K-100 s.d. K-350) — menambah yang tak ada cuma memperlebar pola
+  tanpa menambah satu pun kecocokan.
+*/
+const K_PADANAN: Record<number, number> = {
+  7.5: 100, 10: 125, 12.5: 150, 15: 175,
+  17: 200, 17.5: 200, 19: 225, 20: 250, 21: 250,
+  22.5: 275, 25: 300, 27.5: 325, 28: 350, 30: 350,
 }
 
 /**
@@ -302,6 +364,19 @@ export interface ElemenTerhitung {
  * tiang pancang precast tak punya bekisting, dan itu sudah dinyatakan di
  * `catatan` modulnya, bukan disembunyikan di sini.
  */
+/**
+ * Imbuhan mutu untuk uraian RAB: `" - f'c 25 MPa (K-300)"`.
+ *
+ * Memulangkan string KOSONG bila elemennya tak bermutu beton (baja, kayu).
+ * Menambahkan "(mutu tak diketahui)" di sana justru menakut-nakuti tanpa
+ * sebab — baja memang tak punya mutu beton.
+ */
+function imbuhanMutu(fcMpa?: number): string {
+  if (!fcMpa || !(fcMpa > 0)) return ''
+  const k = labelK(fcMpa)
+  return k ? ` f'c ${fcMpa} MPa (${k})` : ` f'c ${fcMpa} MPa`
+}
+
 export function usulanDariElemen(el: ElemenTerhitung): UsulanItemRab[] {
   const usulan: UsulanItemRab[] = []
   const asal = { kodeElemen: el.kode, jenisElemen: el.jenis }
@@ -320,9 +395,28 @@ export function usulanDariElemen(el: ElemenTerhitung): UsulanItemRab[] {
         akan dihargai sebagai beton.
       */
       jenis: el.jenis === 'kuda_kuda_kayu' ? 'kayu' : 'beton',
+      /*
+        MUTUNYA IKUT DI URAIAN — dalam dua bahasa sekaligus.
+
+        Baris inilah yang dibaca orang yang MEMESAN betonnya, dan sebelumnya
+        ia berbunyi "Beton Balok B1" saja: tanpa MPa, tanpa K. Mutu hanya
+        hidup di dalam pencocokan AHSP, tempat yang tak dilihat siapa pun
+        saat menyusun pesanan.
+
+        f'c di depan (itu yang dipakai menghitung dan tertulis di lembar
+        bertanda tangan), K di kurung (itu yang dipakai memesan).
+
+        Mutu ditaruh SEBELUM kode elemen, bukan sesudahnya: `gabungUsulan`
+        membuang TOKEN TERAKHIR untuk melepas kode ("Beton balok B1" ->
+        "Beton balok"). Dengan mutu di belakang, yang termakan justru
+        "(K-300)" — dan sisanya masih terlihat wajar, jadi cacatnya tak
+        berteriak. Ketahuan dari MENJALANKAN rutenya.
+
+        Elemen tanpa mutu beton — baja, kayu — tak mendapat tambahan apa pun.
+      */
       uraian: el.jenis === 'kuda_kuda_kayu'
         ? `Konstruksi kayu ${el.kode}`
-        : `Beton ${namaElemen(el.jenis)} ${el.kode}`,
+        : `Beton ${namaElemen(el.jenis)}${imbuhanMutu(el.fcMpa)} ${el.kode}`,
       kuantitas: el.volume.betonM3,
       satuan: 'm3',
       assemblyPola: el.jenis === 'kuda_kuda_kayu'
