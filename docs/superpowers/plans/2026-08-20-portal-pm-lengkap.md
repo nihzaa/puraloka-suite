@@ -3362,6 +3362,12 @@ MethodStatementItem[]`. Potongan diff dari file existing (baris
 ```typescript
 // ...import tambahan di atas import existing...
 import { ClipboardList, Users2 } from "lucide-react";
+// ⚠️ Baris import StatusBadge existing (jadwal/page.tsx:28) WAJIB diubah —
+// aslinya `import StatusBadge from "@/components/portal/StatusBadge";`
+// TANPA named type `VarianStatus`, tapi VARIAN_METHOD di bawah butuh tipe
+// itu. Ganti baris import existing itu jadi:
+// import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+// Tanpa perubahan ini, tab Method Statement gagal compile: "Cannot find name 'VarianStatus'".
 
 // ...RespJadwalCpm existing diperluas (baris ~42-45 file existing)...
 interface RespJadwalCpm {
@@ -3473,9 +3479,14 @@ const [tab, setTab] = useState<"cpm" | "histogram" | "method" | "baseline">("cpm
 {/* ...blok existing proyekAktif && tab === "baseline" tetap sama... */}
 ```
 
-Ikuti gaya file existing untuk `StatusBadge`/`SkeletonCard`/`EmptyState`
-(sudah diimpor di file), tambahkan import `ClipboardList`/`Users2` dari
-`lucide-react` di baris import existing.
+Ikuti gaya file existing untuk `SkeletonCard`/`EmptyState` (sudah
+diimpor di file, tak perlu diubah), tambahkan import
+`ClipboardList`/`Users2` dari `lucide-react` di baris import existing.
+**`StatusBadge` BUKAN "sudah diimpor lengkap"** — baris importnya WAJIB
+diubah untuk menyertakan `type VarianStatus` (lihat catatan ⚠️ di awal
+blok kode Step 3 di atas), karena `VARIAN_METHOD` yang ditambah Step 3
+memakai tipe itu dan file existing sebelumnya hanya mengimpor default
+export `StatusBadge` saja.
 
 - [ ] **Step 4: Tulis `kontrak-lengkap/keterlambatan/page.tsx`**
 
