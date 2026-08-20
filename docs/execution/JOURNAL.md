@@ -5,6 +5,121 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-20 — empat fitur struktur, dan lima kebohongan alat ukur saya sendiri
+
+**Ringkasan run (apps/api):**
+
+```
+vitest run struktur    43 berkas · 1211 test · LULUS · exit 0
+tsc --noEmit           api & web · exit 0 · TANPA disaring
+```
+
+**Yang dibangun** — empat commit, masing-masing menutup satu hal yang
+menggantung:
+
+| Commit | Yang tadinya menggantung |
+|---|---|
+| `e4170124` lembar PDF | modul mengaku "membantu insinyur", tapi insinyur tak punya LEMBAR untuk ditandatangani |
+| `0e20def8` riwayat revisi | hitung ulang menimpa satu-satunya salinan; "kenapa dulu 300×500?" tak terjawab |
+| `3e5cf20b` banding alternatif | "kalau 450 saja masih kuat?" dijawab dengan ubah→hitung→kembalikan |
+| `1d6954c4` mutu nyata vs desain | `uji_material` mencatat "tidak memenuhi" lalu BERHENTI |
+
+Yang terakhir memakai data yang sudah ada di basis: K-250 zona A datang
+**231 dari 250**. Sistem mencatatnya, tapi tak pernah bertanya apakah balok
+yang dihitung dengan fc 25 MPa masih aman pada mutu itu.
+
+**Migrasi:** 470 `struktur_riwayat` — diterapkan, blok verifikasi lulus,
+jalan KEDUA juga lulus (idempoten). Buku migrasi TIDAK disentuh (G-2).
+
+---
+
+### Yang sebenarnya menemukan cacat di sesi ini
+
+Bukan test. Urutan yang produktif, sama seperti sesi sebelumnya:
+
+**jalankan rutenya → LIHAT hasilnya → mutasi → baru test.**
+
+Empat cacat lolos dari `tsc --noEmit` yang **exit 0**, dan dua mutasi lolos
+dari pengujinya sendiri.
+
+**1. `as never` mematikan pemeriksaan persis di tempat yang perlu diperiksa.**
+`ambilElemen()` tak mengambil `company_id`; insert riwayat masuk dengan
+`undefined` dan ditolak RLS. Penyuntingan tetap berhasil, layar tetap normal,
+riwayat diam-diam kosong SELAMANYA. tsc exit 0.
+
+**2. Mutasi lolos karena FIXTURE-nya tak pernah memicunya.** Mutasi "simpan
+kandidat aman ke basis" lolos — bukan karena pengujinya buruk, tapi karena
+seluruh kandidat variasi tinggi tetap tidak aman (balok contoh gagal di
+selimut api), jadi `find(x => x.aman)` tak menemukan apa pun. **Jaminan yang
+tak pernah benar-benar diuji adalah hiasan.**
+
+**3. Ambang longgar = pemeriksa yang berpura-pura memeriksa.** Uji hidup
+menuntut `fcNyata < 15`. Mutasi yang mematikan faktor kubus→silinder
+(0,83 → 1,0) menghasilkan **11,77 MPa** — lolos ambang itu dengan mulus.
+Diganti ke nilai hitungan tangan ±0,1.
+
+**4. Probe saya sendiri berbohong.** Saya mengukur karakter mana yang bisa
+dicetak WinAnsi, lalu membaca "hasil tidak kosong" sebagai "BISA". Untuk
+`—` hasilnya justru string KOSONG — tanda ia DIBUANG. Saya lalu mengeluarkan
+em-dash dari alihaksara dan merusak **17 kalimat** di lembar bertanda tangan
+("SNI 2847:2019  Persyaratan"). Ketahuan dari MELIHAT PDF-nya, karena
+pemeriksa rumus tak menyentuh prosa.
+
+**5. Asersi yang menuntut temuan yang seharusnya TAK ADA.** Pada 9,77 MPa
+balok itu masih lolos (95%), jadi `berubahJadiTidakAman: false` **benar**.
+Yang salah tuntutannya. Menuntut temuan palsu sama buruknya dengan
+melewatkan yang nyata — keduanya membuat pemeriksa berbohong.
+
+---
+
+### Kebocoran ke basis SUNGGUHAN: tiga kali, satu sebab
+
+Ketiganya dari **penguraian id jawaban**, dan ketiganya melapor BERHASIL:
+
+| # | Sebab | Akibat |
+|---|---|---|
+| 1 | rute struktur memulangkan `{ id }`, saya urai `.data.id` | 3 baris di proyek sungguhan |
+| 2 | jalur `_koneksi.mjs` salah hitung tingkat (worktree bersarang 2 tingkat di bawah `.claude/`) | 2 baris `uji_material` |
+| 3 | rute uji-material memulangkan `{ uji: data }` | 3 baris, skrip exit 0 |
+
+**Aturannya:** pembersihan tak boleh bergantung pada penguraian jawaban
+berhasil. Yang dipakai sekarang KODE/NOMOR — yang sudah kita tentukan sendiri
+SEBELUM permintaan dikirim — dan `finally` menyapu berdasarkan itu.
+Jalur berkas diturunkan dari `import.meta.url`, bukan dihitung tangan.
+
+Basis diperiksa sesudah tiap jalan: `struktur_elemen` 0, `struktur_riwayat` 0,
+`uji_material` 5 (kembali ke jumlah aslinya).
+
+---
+
+### Penjaga yang merah, dan yang BUKAN dari sini
+
+`uji-tabel-terbaca` merah oleh `kas`/`rab`/`varians`. Diukur dengan
+**mencabut edit saya lalu menjalankannya ulang**: angkanya SAMA (0→3, 3→6).
+`audit-migrasi-skema-dipaku` merah oleh 9 migrasi lama (371/372/437) — ia
+memeriksa `CREATE OR REPLACE FUNCTION public.`, dan migrasi 470 membuat
+TABEL, bukan fungsi.
+
+Penjaga yang dijalankan dan HIJAU: tenancy · catch-senyap · kegagalan-senyap ·
+tulis-tanpa-periksa · baca-tak-terpotong · izin-benar-ada ·
+halaman-pakai-cache · galat-muat-terpisah · rute-id-tak-basi ·
+judul-halaman-ada.
+
+---
+
+### Keputusan yang SENGAJA tidak diambil
+
+- **Optimasi biaya di banding** — harga lahir dari AHSP × price book pada
+  TANGGAL tertentu. Jalur kedua yang menghitung harga sendiri berarti dua
+  rumus harga di satu aplikasi.
+- **Hasil uji menimpa input desain** — desain adalah KEPUTUSAN, hasil uji
+  adalah PENGUKURAN. Menimpanya menghapus jejak apa yang direncanakan, dan
+  itu justru yang dicari saat proyek disengketakan.
+- **Banding menulis ke basis** — mencoba-coba bukan keputusan; riwayat yang
+  penuh percobaan menenggelamkan perubahan yang sungguhan.
+
+---
+
 ## 2026-08-20 — enam batas struktur ditutup, dan tiga penjaga yang menuduh hal yang BENAR
 
 **Ringkasan run:**
