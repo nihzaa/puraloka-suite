@@ -257,6 +257,178 @@ export interface ResponsSubmittalDetailInbox {
 }
 
 /**
+ * K3/Punch/Inspeksi/RFI/Submittal — bentuk IDENTIK dengan
+ * `mandor-portal/_bersama/tipe.ts` (sama-sama dari API yang sama), disalin
+ * (bukan diimpor lintas-portal) mengikuti pola isolasi struktural per-portal
+ * yang sudah dipakai `GalatApi`/`pesanGalat` di berkas ini.
+ */
+export interface InsidenK3 {
+  id: string
+  project_id?: string | null
+  nomor?: string | null
+  jenis?: string | null
+  tanggal?: string | null
+  waktu?: string | null
+  lokasi?: string | null
+  kronologi?: string | null
+  supplier_id?: string | null
+  mandor_id?: string | null
+  korban_nama?: string | null
+  korban_worker_id?: string | null
+  melukai?: boolean | null
+  hari_kerja_hilang?: number | null
+  cedera_uraian?: string | null
+  penyebab_langsung?: string | null
+  penyebab_dasar?: string | null
+  tindakan_korektif?: string | null
+  jsa_id?: string | null
+  izin_kerja_id?: string | null
+  status?: string | null
+  ditutup_pada?: string | null
+  created_at?: string | null
+}
+
+export interface JsaK3 {
+  id: string
+  company_id?: string | null
+  project_id?: string | null
+  kode?: string | null
+  jenis_pekerjaan?: string | null
+  uraian?: string | null
+  disetujui_pada?: string | null
+  berlaku?: boolean | null
+  catatan?: string | null
+  created_at?: string | null
+  penyusun?: { id: string; name: string } | null
+}
+
+/**
+ * Inspeksi K3 rutin (bagian dari `GET /proyek/:id/k3`, BUKAN endpoint
+ * inspeksi terpisah).
+ */
+export interface InspeksiK3 {
+  id: string
+  nomor?: string | null
+  tanggal?: string | null
+  area?: string | null
+  pemeriksa_nama?: string | null
+  ringkasan?: string | null
+}
+
+/** Item punch list (temuan cacat/kekurangan pekerjaan). Bentuk dari `PUNCH_SELECT`. */
+export interface PunchItem {
+  id: string
+  project_id?: string | null
+  nomor?: string | null
+  judul?: string | null
+  deskripsi?: string | null
+  lokasi?: string | null
+  severity?: string | null
+  status?: string | null
+  rab_item_id?: string | null
+  work_scope_id?: string | null
+  ditemukan_oleh?: string | null
+  ditugaskan_ke?: string | null
+  diverifikasi_oleh?: string | null
+  diverifikasi_pada?: string | null
+  alasan_penolakan?: string | null
+  target_selesai?: string | null
+  ditutup_pada?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  penemu?: { id: string; name: string } | null
+  petugas?: { id: string; name: string } | null
+  verifikator?: { id: string; name: string } | null
+  rab_item?: { id: string; name: string; category_code: string | null; level: string | null } | null
+  work_scope?: { id: string; scope_name: string } | null
+}
+
+/**
+ * Permintaan inspeksi (izin cor/izin tutup). Bentuk dari `INSPEKSI_SELECT`
+ * di `inspeksi.ts`. Beda modul dari `InspeksiK3` di atas — ini tabel
+ * `inspection_requests`, ber-workflow.
+ */
+export interface Inspeksi {
+  id: string
+  project_id?: string | null
+  nomor?: string | null
+  judul?: string | null
+  lokasi?: string | null
+  catatan?: string | null
+  pekerjaan_lanjutan?: string | null
+  status?: string | null
+  rab_item_id?: string | null
+  work_scope_id?: string | null
+  diminta_oleh?: string | null
+  diminta_untuk?: string | null
+  diperiksa_oleh?: string | null
+  diperiksa_pada?: string | null
+  hasil_catatan?: string | null
+  punch_item_id?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  pemohon?: { id: string; name: string } | null
+  pemeriksa?: { id: string; name: string } | null
+  rab_item?: { id: string; name: string; category_code: string | null } | null
+  temuan?: { id: string; nomor: string; judul: string; status: string } | null
+  terlambat?: boolean
+}
+
+/** Request for Information ke konsultan/pemberi kerja. Bentuk dari `RFI_SELECT` di `rfi.ts`. */
+export interface Rfi {
+  id: string
+  project_id?: string | null
+  nomor?: string | null
+  perihal?: string | null
+  pertanyaan?: string | null
+  ditujukan_ke?: string | null
+  referensi_gambar?: string | null
+  status?: string | null
+  dikirim_pada?: string | null
+  jawaban_diharapkan?: string | null
+  dijawab_pada?: string | null
+  jawaban?: string | null
+  dijawab_oleh?: string | null
+  menghentikan_pekerjaan?: boolean | null
+  pekerjaan_terdampak?: string | null
+  eot_id?: string | null
+  diajukan_oleh?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  pengaju?: { id: string; name: string } | null
+}
+
+/** Submittal versi lengkap (list per-proyek untuk kelola PM). Bentuk dari `SUBMITTAL_SELECT`. */
+export interface Submittal {
+  id: string
+  project_id?: string | null
+  nomor?: string | null
+  judul?: string | null
+  jenis?: string | null
+  spesifikasi?: string | null
+  referensi_spek?: string | null
+  status?: string | null
+  revisi?: number | null
+  induk_id?: string | null
+  ditujukan_ke?: string | null
+  diajukan_pada?: string | null
+  keputusan_diharapkan?: string | null
+  diputuskan_pada?: string | null
+  catatan_reviewer?: string | null
+  diputuskan_oleh?: string | null
+  rab_item_id?: string | null
+  material_id?: string | null
+  menghentikan_pekerjaan?: boolean | null
+  diajukan_oleh?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  pengaju?: { id: string; name: string } | null
+  rab_item?: { id: string; name: string; category_code: string | null } | null
+  material?: { id: string; name: string; code: string | null; unit: string | null } | null
+  hari_menunggu?: number | null
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
