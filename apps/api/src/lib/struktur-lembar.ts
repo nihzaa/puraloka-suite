@@ -49,6 +49,7 @@
 
 import type { Periksa } from './struktur-beton.js'
 import { jelaskan, ringkasanAwam, tingkatBahaya, apakahBiner } from './struktur-awam.js'
+import { labelK } from './struktur-mutu-nyata.js'
 
 /** Satu baris pemeriksaan pada lembar. */
 export interface BarisLembar {
@@ -305,7 +306,25 @@ export function ratakanInput(
       hasil.push({ medan: n.label, kunci: nama, satuan: null, nilai: `${v.length} baris` })
     } else {
       const n = namaMedan(nama)
-      hasil.push({ medan: n.label, kunci: nama, satuan: n.satuan, nilai: angka(v) })
+      /*
+        Mutu BETON membawa padanan K-nya ke lembar.
+
+        Lembar ini dibaca dua pihak: insinyur yang memeriksa rumusnya
+        (butuh f'c MPa, itu yang masuk SNI 2847) dan orang lapangan yang
+        memesan betonnya (butuh K). Menulis salah satu saja memaksa yang
+        lain mengonversi di kepala — dan konversi di kepala pada angka
+        yang menentukan kekuatan adalah tempat kesalahan lahir.
+
+        Hanya untuk mutu beton (`fc`), bukan baja (`fy`): baja tak punya
+        padanan K, dan menampilkannya di sana mengarang satuan yang tak ada.
+      */
+      const kMutu = /(^|\.)fc[A-Z]/.test(nama) ? labelK(Number(v)) : null
+      hasil.push({
+        medan: n.label,
+        kunci: nama,
+        satuan: kMutu ? `${n.satuan ?? ''} (${kMutu})`.trim() : n.satuan,
+        nilai: angka(v),
+      })
     }
   }
   return hasil

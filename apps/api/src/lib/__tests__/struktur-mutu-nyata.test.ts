@@ -8,7 +8,8 @@
  */
 import { describe, it, expect } from 'vitest'
 import {
-  dampakMutu, fcDesainDari, kubusKeSilinderMpa, mutuBetonTerukur, umurDariJenis,
+  dampakMutu, fcDesainDari, kubusKeSilinderMpa, labelK, mutuBetonTerukur,
+  silinderKeKubusKgCm2, tampilMutuBeton, umurDariJenis,
 } from '../struktur-mutu-nyata.js'
 
 describe('kubusKeSilinderMpa — K (kg/cm², kubus) → f\'c (MPa, silinder)', () => {
@@ -37,6 +38,74 @@ describe('kubusKeSilinderMpa — K (kg/cm², kubus) → f\'c (MPa, silinder)', (
   })
 })
 
+describe('labelK & tampilMutuBeton — bahasa lapangan di samping bahasa SNI', () => {
+  it('kelas baku SNI memakai padanan pemesanan, TANPA tanda ~', () => {
+    /*
+      Versi pertama fungsi ini hanya membagi balik lalu mencari kelas
+      terdekat. Pada nilai yang PALING SERING dipakai aplikasi ini
+      (fc 30 muncul 8x di CONTOH UI, fc 25 muncul 6x) hasilnya:
+
+          fc 30 -> ~K-369       fc 35 -> ~K-430
+
+      Aritmetiknya benar, tapi angka itu tak bisa dipesan ke batching plant
+      mana pun — dan angka yang tak bisa dipesan lebih buruk daripada tak
+      ada angka: ia terlihat seperti spesifikasi.
+    */
+    expect(labelK(20)).toBe('K-250')
+    expect(labelK(25)).toBe('K-300')
+    expect(labelK(30)).toBe('K-350')
+    expect(labelK(35)).toBe('K-400')
+  })
+
+  it('nilai di LUAR kelas baku ditandai ~', () => {
+    /*
+      Tanda ~ memberi tahu pembacanya bahwa angka itu TURUNAN, bukan kelas
+      yang tertulis di dokumen pesanan. Menghilangkannya membuat hasil uji
+      laboratorium terbaca seperti spesifikasi pemesanan.
+    */
+    expect(labelK(18.8)).toMatch(/^~K-/)
+    expect(labelK(9.77)).toMatch(/^~K-/)
+  })
+
+  it('MPa tetap di DEPAN, K di dalam kurung', () => {
+    /*
+      f'c MPa adalah angka yang BENAR-BENAR masuk rumus (SNI 2847) dan yang
+      tertulis di lembar bertanda tangan. Menaruh K di depan membuat orang
+      mengira K yang masuk rumus, lalu mengetik 300 ke medan f'c — beton
+      dianggap hampir 15x lebih kuat.
+    */
+    expect(tampilMutuBeton(25)).toBe('25 MPa (K-300)')
+    expect(tampilMutuBeton(25).indexOf('MPa')).toBeLessThan(tampilMutuBeton(25).indexOf('K-'))
+  })
+
+  it('bolak-balik konsisten: K -> MPa -> K', () => {
+    /*
+      Dua fungsi konversi yang menyimpang membuat angka K di layar tak lagi
+      cocok dengan f'c yang dipakai menghitung. Keduanya memakai konstanta
+      yang sama, dan test ini yang menahannya tetap begitu.
+    */
+    for (const k of [250, 300, 350]) {
+      const mpa = kubusKeSilinderMpa(k)
+      expect(silinderKeKubusKgCm2(mpa)).toBeCloseTo(k, 6)
+    }
+  })
+
+  it('nilai tak masuk akal TIDAK dipaksa jadi label', () => {
+    expect(labelK(0)).toBeNull()
+    expect(labelK(-5)).toBeNull()
+    expect(labelK(Number.NaN)).toBeNull()
+  })
+
+  it('tampilMutuBeton tak pernah memulangkan "null" sebagai teks', () => {
+    /*
+      Layar yang menampilkan "0 MPa (null)" lebih buruk daripada menampilkan
+      angkanya saja — ia terbaca seperti cacat data, padahal cuma cacat
+      penampilan.
+    */
+    expect(tampilMutuBeton(0)).not.toContain('null')
+    expect(tampilMutuBeton(Number.NaN)).not.toContain('null')
+  })
+})
 describe('umurDariJenis', () => {
   it('membaca umur dari teks bebas', () => {
     expect(umurDariJenis('Kuat tekan 28 hari')).toBe(28)

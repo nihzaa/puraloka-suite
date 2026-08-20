@@ -46,6 +46,7 @@ import { Tabel } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { Isian, KotakIsian, PilihanIsian, TeksIsian } from "@/components/isian";
 import { formatAngka } from "@/lib/format";
+import { labelK, tampilMutuBeton } from "@/lib/mutu-beton";
 import {
   AlertTriangle, Boxes, CheckCircle2, Eye, FlaskConical, History, Info, Plus, RefreshCw, Ruler, Scale, Trash2, X,
 } from "lucide-react";
@@ -348,10 +349,21 @@ const KELOMPOK_JENIS: { label: string; jenis: Jenis[] }[] = [
  * tempat yang bisa menyimpang dari kontrak API, dan yang menyimpang tak
  * ketahuan sampai ada yang mencoba menyimpannya.
  */
-interface Medan { kunci: string; label: string; satuan?: string }
+interface Medan {
+  kunci: string;
+  label: string;
+  satuan?: string;
+  /*
+    Tampilkan padanan K di bawah medan ini.
+
+    Hanya untuk mutu BETON. Mutu baja (fy) tak punya padanan K, dan
+    menampilkannya di sana berarti mengarang satuan yang tak ada.
+  */
+  bantuanK?: boolean;
+}
 
 const MEDAN_MUTU: Medan[] = [
-  { kunci: "mutu.fcMpa", label: "Mutu beton f'c", satuan: "MPa" },
+  { kunci: "mutu.fcMpa", label: "Mutu beton f'c", satuan: "MPa", bantuanK: true },
   { kunci: "mutu.fyMpa", label: "Mutu baja fy", satuan: "MPa" },
 ];
 
@@ -409,7 +421,7 @@ const MEDAN: Record<Jenis, Medan[]> = {
     { kunci: "panjangTekukM", label: "Panjang tekuk", satuan: "m" },
     { kunci: "asTulanganMm2", label: "Luas tulangan longitudinal", satuan: "mm²" },
     { kunci: "mutuBaja.fyMpa", label: "Mutu baja fy", satuan: "MPa" },
-    { kunci: "mutuBeton.fcMpa", label: "Mutu beton f'c", satuan: "MPa" },
+    { kunci: "mutuBeton.fcMpa", label: "Mutu beton f'c", satuan: "MPa", bantuanK: true },
     { kunci: "mutuTulangan.fyMpa", label: "Mutu tulangan fy", satuan: "MPa" },
     { kunci: "puKn", label: "Gaya aksial Pu", satuan: "kN" },
   ],
@@ -421,7 +433,7 @@ const MEDAN: Record<Jenis, Medan[]> = {
     { kunci: "asBondekMm2PerM", label: "Luas bondek per m lebar", satuan: "mm²/m" },
     { kunci: "inersiaBondekMm4PerM", label: "Inersia bondek per m", satuan: "mm⁴/m" },
     { kunci: "mutuBondek.fyMpa", label: "Mutu bondek fy", satuan: "MPa" },
-    { kunci: "mutuBeton.fcMpa", label: "Mutu beton f'c", satuan: "MPa" },
+    { kunci: "mutuBeton.fcMpa", label: "Mutu beton f'c", satuan: "MPa", bantuanK: true },
     { kunci: "bebanHidupKpa", label: "Beban hidup", satuan: "kPa" },
     { kunci: "bebanMatiTambahanKpa", label: "Beban mati tambahan", satuan: "kPa" },
     { kunci: "luasM2", label: "Luas pelat", satuan: "m²" },
@@ -715,7 +727,7 @@ const MEDAN: Record<Jenis, Medan[]> = {
   tiang: [
     { kunci: "diameterM", label: "Diameter tiang", satuan: "m" },
     { kunci: "panjangM", label: "Panjang tiang", satuan: "m" },
-    { kunci: "fcMpa", label: "Mutu beton f'c", satuan: "MPa" },
+    { kunci: "fcMpa", label: "Mutu beton f'c", satuan: "MPa", bantuanK: true },
     { kunci: "bebanRencanaKn", label: "Beban rencana", satuan: "kN" },
   ],
 
@@ -1104,6 +1116,20 @@ const CONTOH: Record<Jenis, Record<string, unknown>> = {
     panjangM: 3.5, faktorK: 1.0, puKn: 100, muxKnm: 10,
   },
 };
+
+/**
+ * Keterangan padanan K untuk medan mutu beton, mis. "setara K-300".
+ *
+ * Memulangkan `undefined` bila angkanya belum bisa ditafsirkan — medan yang
+ * masih kosong atau setengah diketik ("2", "2.") tak boleh memunculkan
+ * keterangan yang berkedip-kedip dan menyesatkan.
+ */
+function bantuanMutuK(nilai: string): string | undefined {
+  const n = Number(nilai)
+  if (!Number.isFinite(n) || n <= 0) return undefined
+  const k = labelK(n)
+  return k ? `setara ${k} (mutu kubus, untuk pemesanan)` : undefined
+}
 
 /** Baca medan bersarang ("mutu.fcMpa") dari objek input. */
 function bacaMedan(obj: Record<string, unknown>, kunci: string): string {
@@ -2130,7 +2156,17 @@ function StrukturLayar() {
             <div style={{ display: "grid", gap: 10, gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}>
               {MEDAN[jenis].map((m) => (
                 <Isian key={m.kunci} id={`f-${m.kunci}`}
-                  label={m.satuan ? `${m.label} (${m.satuan})` : m.label}>
+                  label={m.satuan ? `${m.label} (${m.satuan})` : m.label}
+                  /*
+                    Padanan K ditampilkan HIDUP di bawah medannya, mengikuti
+                    angka yang sedang diketik.
+
+                    Yang diketik TETAP MPa. Membuat medannya menerima K
+                    berarti dua satuan masuk ke kolom yang sama, dan yang
+                    salah baca tak ketahuan sampai hasilnya aneh — sementara
+                    selisihnya besar: K-300 vs f'c 300 MPa beda hampir 15x.
+                  */
+                  bantuan={m.bantuanK ? bantuanMutuK(bacaMedan(input, m.kunci)) : undefined}>
                   <KotakIsian
                     id={`f-${m.kunci}`}
                     type="number"
@@ -2673,10 +2709,15 @@ function PanelMutuNyata({ projectId }: { projectId: string }) {
             render: (b) => (b as BarisMutuNyata).kode,
           },
           {
-            kunci: "fc", judul: "MUTU (MPa)",
+            kunci: "fc", judul: "MUTU BETON",
             render: (b) => {
               const x = b as BarisMutuNyata;
-              return `${x.fcDesainMpa} → ${x.fcNyataMpa}`;
+              /*
+                Dua-duanya dengan padanan K: yang membaca panel ini sering
+                orang lapangan yang memesan betonnya, dan "25 → 3,26" tanpa
+                K tak memberi tahu kelas apa yang sebenarnya datang.
+              */
+              return `${tampilMutuBeton(x.fcDesainMpa)} → ${tampilMutuBeton(x.fcNyataMpa)}`;
             },
           },
           {

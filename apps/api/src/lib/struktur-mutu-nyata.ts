@@ -75,6 +75,93 @@ export function kubusKeSilinderMpa(kgCm2: number): number {
   return (kgCm2 / KG_CM2_PER_MPA) * FAKTOR_KUBUS_KE_SILINDER
 }
 
+/**
+ * MPa (silinder) → kg/cm² (kubus) — kebalikan `kubusKeSilinderMpa`.
+ *
+ * Ditaruh BERDAMPINGAN dengan arah majunya, memakai konstanta yang SAMA.
+ * Dua fungsi konversi yang hidup di berkas berbeda akan menyimpang diam-diam
+ * begitu salah satu faktornya disesuaikan — dan yang menyimpang di sini
+ * berarti angka K di layar tak lagi cocok dengan f'c yang dipakai menghitung.
+ */
+export function silinderKeKubusKgCm2(mpa: number): number {
+  return (mpa * KG_CM2_PER_MPA) / FAKTOR_KUBUS_KE_SILINDER
+}
+
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  KELAS K YANG DIPESAN — dan kenapa ini BUKAN sekadar hasil pembagian
+  ══════════════════════════════════════════════════════════════════════════
+
+  Versi pertama fungsi ini hanya membagi balik lalu mencari kelas terdekat.
+  Hasilnya diukur, dan justru pada nilai yang PALING SERING dipakai aplikasi
+  ini (diukur dari `CONTOH` di halaman UI: fc 30 muncul 8x, fc 25 muncul 6x)
+  ia memulangkan angka yang tak bisa dipesan ke batching plant mana pun:
+
+      fc 30 MPa  ->  ~K-369        fc 35 MPa  ->  ~K-430
+
+  Sebabnya bukan aritmetiknya salah — 30 x 10,197 / 0,83 memang 368,6.
+  Sebabnya fc 20/25/30/35 BUKAN hasil konversi dari K sama sekali: itu
+  kelas SILINDER baku SNI 2847, yang di lapangan Indonesia sudah punya
+  padanan K konvensional sendiri.
+
+  Jadi padanan bakunya didaftar, dan hitungan hanya dipakai untuk nilai di
+  luar daftar (mis. hasil uji laboratorium 18,8 MPa).
+
+  ⚠ Padanan ini KONVENSI PEMESANAN, bukan kesetaraan mutu yang presisi.
+  Karena itu yang dipakai menghitung TETAP f'c MPa — lihat `tampilMutuBeton`.
+*/
+const PADANAN_SNI: ReadonlyArray<readonly [number, number]> = [
+  [15, 175], [17.5, 200], [20, 250], [25, 300], [30, 350], [35, 400], [40, 450],
+]
+
+/** Kelas K yang lazim dipesan, untuk nilai di luar padanan baku. */
+const KELAS_K = [100, 125, 150, 175, 200, 225, 250, 275, 300, 350, 400, 450, 500]
+
+/**
+ * f'c (MPa) → label mutu K yang bisa dibaca orang lapangan.
+ *
+ * `"K-350"` untuk kelas baku SNI, `"~K-230"` untuk nilai di luar daftar.
+ * Tanda ~ itu penting: ia memberi tahu pembacanya bahwa angka itu TURUNAN,
+ * bukan kelas yang tertulis di dokumen pesanan.
+ */
+export function labelK(fcMpa: number): string | null {
+  if (!Number.isFinite(fcMpa) || fcMpa <= 0) return null
+
+  /* Padanan baku menang — inilah yang tertulis di dokumen pemesanan. */
+  for (const [fc, k] of PADANAN_SNI) {
+    if (Math.abs(fcMpa - fc) < 0.05) return `K-${k}`
+  }
+
+  /*
+    Di luar daftar: hitung balik, lalu bulatkan ke kelas terdekat HANYA bila
+    benar-benar dekat (4%). Kalau tidak, angka persisnya dengan tanda ~.
+
+    Ambang 4% cukup ketat supaya K-300 tak dipakai untuk beton yang
+    sebenarnya K-275, cukup longgar supaya pembulatan wajar tetap terbaca.
+  */
+  const k = silinderKeKubusKgCm2(fcMpa)
+  const dekat = KELAS_K.reduce((a, b) => (Math.abs(b - k) < Math.abs(a - k) ? b : a))
+  if (Math.abs(dekat - k) / dekat <= 0.04) return `~K-${dekat}`
+  return `~K-${Math.round(k)}`
+}
+/**
+ * Tampilan mutu beton lengkap: `"25 MPa (K-300)"`.
+ *
+ * ── Kenapa MPa tetap di DEPAN, bukan K
+ *
+ * f'c MPa adalah angka yang BENAR-BENAR dipakai menghitung (SNI 2847), dan
+ * yang tertulis di lembar perhitungan bertanda tangan. K adalah bahasa
+ * pemesanan. Menaruh K di depan membuat orang mengira K yang masuk ke rumus,
+ * lalu memasukkan 300 ke medan f'c — kesalahan yang membuat beton dianggap
+ * hampir 15x lebih kuat.
+ */
+export function tampilMutuBeton(fcMpa: number): string {
+  if (!Number.isFinite(fcMpa) || fcMpa <= 0) return String(fcMpa)
+  const k = labelK(fcMpa)
+  const angka = Math.round(fcMpa * 100) / 100
+  return k ? `${angka} MPa (${k})` : `${angka} MPa`
+}
+
 /** Baris uji material yang relevan bagi struktur. */
 export interface BarisUji {
   id: string

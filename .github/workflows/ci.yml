@@ -630,6 +630,24 @@ jobs:
       - name: Jenis tulis punya label UI
         run: node scripts/audit-jenis-tulis-punya-label.mjs
 
+      # Padanan mutu beton K <-> f'c wajib SAMA di sisi API dan sisi WEB.
+      #
+      # Tabelnya hidup di DUA berkas karena `apps/web` tak boleh mengimpor
+      # dari `apps/api`, dan `packages/shared` masih kosong:
+      #
+      #   apps/api/src/lib/struktur-mutu-nyata.ts   (lembar PDF, rute)
+      #   apps/web/lib/mutu-beton.ts                (label isian, panel)
+      #
+      # Kalau menyimpang, angka K di LAYAR tak lagi cocok dengan f'c yang
+      # dipakai MENGHITUNG — yang membaca layar memesan beton kelas yang
+      # salah, dan tak ada satu pun gejala: dua-duanya menampilkan angka
+      # yang terlihat wajar, hanya berbeda.
+      #
+      # Bukti merah (2026-08-20): faktor web 0,83 -> 0,85 => exit 1;
+      # padanan fc25 K-300 -> K-325 => exit 1; keduanya pulih => exit 0.
+      - name: Padanan mutu beton K sepakat (API vs WEB)
+        run: node scripts/audit-mutu-beton-sepakat.mjs
+
       # Katalog tool asisten tak boleh membengkak diam-diam.
       #
       # Skema tool dikirim ULANG tiap ronde. Diukur 2026-08-16: 40 tool =
