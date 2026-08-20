@@ -6,7 +6,19 @@ const CACHE_NAME = 'puraloka-shell-v1'
 // hash) — TIDAK ada data API di sini. Offline penuh (cache data
 // transaksional) sengaja TIDAK dibangun — risiko data basi/konflik,
 // keputusan founder di spec 2026-08-20-portal-pm-lengkap-design.md §4.
-const SHELL_URLS = ['/pm-portal', '/login']
+//
+// `/pm-portal` SENGAJA TIDAK di sini (bukan lupa). Registrasi service
+// worker sekarang selalu-aktif (Task 3, 2026-08-20) — install bisa
+// terjadi SEBELUM user login, dan `/pm-portal` di keadaan itu dialihkan
+// middleware.ts ke /login dengan status 307. `cache.addAll` mengikuti
+// redirect secara transparan lalu menyimpan BODY HASIL AKHIR (halaman
+// login) di bawah KEY `/pm-portal` — pengunjung pertama yang belum
+// sempat login lalu offline akan disajikan shell login yang menyamar
+// sebagai shell portal PM. `/login` sendiri aman diprecache di sini
+// karena tak pernah redirect. `/pm-portal` di-cache RUNTIME sebagai
+// gantinya lewat listener `fetch` di bawah — satu-satunya momen ia bisa
+// bernilai 200 asli adalah sesudah user benar-benar login.
+const SHELL_URLS = ['/login']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -26,9 +38,25 @@ self.addEventListener('fetch', (event) => {
   if (event.request.mode !== 'navigate') return
 
   event.respondWith(
-    fetch(event.request).catch(() =>
-      caches.match(event.request).then((cached) => cached || caches.match('/pm-portal'))
-    )
+    fetch(event.request)
+      .then((response) => {
+        // Simpan HANYA respons sukses non-redirect di bawah key request
+        // ASLI (mis. buka /pm-portal sesudah login → status 200 →
+        // cache.put mengisi key '/pm-portal' dengan shell yang benar).
+        // `response.redirected` menandai fetch ini pernah mengikuti
+        // redirect — kalau iya, body-nya BUKAN milik URL yang diminta,
+        // jadi jangan ikut ditulis ke key aslinya (persis cacat yang
+        // sama dengan cache.addAll di atas, cukup dihindari di titik
+        // tulisnya).
+        if (response.ok && !response.redirected) {
+          const copy = response.clone()
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy))
+        }
+        return response
+      })
+      .catch(() =>
+        caches.match(event.request).then((cached) => cached || caches.match('/login'))
+      )
   )
 })
 
