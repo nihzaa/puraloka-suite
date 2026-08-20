@@ -29,11 +29,11 @@
 // BERSARANG dari PostgREST (FK many-to-one → objek).
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { useParams } from "next/navigation";
 import { FileSpreadsheet, Plus, Trash2, Search } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
-import { api } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
@@ -76,9 +76,25 @@ const VARIAN_STATUS: Record<string, VarianStatus> = {
   superseded: "netral",
 };
 
+// `langganan`: dipakai `useSyncExternalStore` supaya perubahan permission
+// (login/switch company) tercermin tanpa reload — pola sama dengan
+// `pm-portal/mandor-lengkap/spk/page.tsx` dan `.../penugasan/page.tsx`.
+const langganan = (cb: () => void) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); };
+
 export default function PmRabDetailPage() {
   const params = useParams<{ id: string }>();
   const versiId = params.id;
+
+  // `cecep:estimate:approve` HANYA di-seed ke role `admin`
+  // (`db/migrations/111_cecep_estimate_approval.sql:27-29`) — PM cuma punya
+  // `cecep:estimate:manage` (submit). Tanpa gerbang ini, tombol Setujui/Tolak
+  // tampil LIVE untuk PM yang membuka versi under_review, dan pasti 403 saat
+  // diklik — pola "409/403 membingungkan" persis yang dihindari brief untuk
+  // tombol tambah/hapus item di halaman yang sama. Tombolnya TIDAK DIRENDER
+  // sama sekali (bukan disabled) saat izin tak ada, konsisten pola
+  // `bolehKelola` di spk/page.tsx.
+  const bolehApprove = useSyncExternalStore(
+    langganan, () => hasPermission("cecep:estimate:approve"), () => false);
 
   const [sheetTerbuka, setSheetTerbuka] = useState(false);
   const [modeTambah, setModeTambah] = useState<"lumpsum" | "assembly">("lumpsum");
@@ -315,7 +331,7 @@ export default function PmRabDetailPage() {
             </button>
           </>
         )}
-        {v.status === "under_review" && (
+        {v.status === "under_review" && bolehApprove && (
           <>
             <button
               type="button"
