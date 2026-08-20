@@ -196,6 +196,21 @@ export const config = {
     Diukur: `curl /icon` membalas `307 → /login`. Aman dibuka: yang
     diterbitkannya hanya logo dan nama perusahaan — keduanya sudah tampil di
     situs publik dan di setiap invoice.
+
+    `manifest` DIKECUALIKAN dengan alasan yang sama, satu lapis lebih penting:
+    peramban mengambil `app/manifest.ts` (disajikan di `/manifest.webmanifest`)
+    untuk menawarkan "Add to Home Screen" SEBELUM ada sesi — prompt install PWA
+    justru paling berguna di layar login. Tanpa pengecualian ini, manifest ikut
+    redirect ke /login dan peramban menerima HTML alih-alih JSON manifest,
+    sehingga PWA tak pernah dianggap installable.
+
+    Ditemukan lewat `curl /manifest.webmanifest` yang membalas `307 → /login`
+    saat menguji Task 2 (2026-08-20) — kata "icon" di matcher lama KEBETULAN
+    ikut meloloskan `/icon-192` dan `/icon-512` (substring match tanpa batas
+    segmen di negative lookahead), tapi tidak "manifest" karena kata itu tak
+    pernah ditambahkan.
   */
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|api).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|manifest|api).*)",
+  ],
 };
