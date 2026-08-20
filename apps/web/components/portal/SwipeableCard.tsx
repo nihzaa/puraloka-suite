@@ -11,10 +11,10 @@
 // menambah lapisan swipe di atasnya, tidak menggantikan tombol yang
 // sudah ada di tiap halaman.
 //
-// prefers-reduced-motion: swipe tetap berfungsi (drag masih menggerakkan
-// elemen mengikuti jari — itu respons langsung, bukan animasi terpisah),
-// tapi animasi SNAP-BACK saat dilepas tanpa melewati threshold dipercepat
-// ke instan.
+// prefers-reduced-motion: swipe gesture dimatikan sepenuhnya. Browser yang
+// mendeteksi preferensi motion-reduce akan render kartu polos tanpa drag
+// interaktif — tombol children (disediakan pemanggil) tetap menjadi satu-satunya
+// jalur aksi. Ini terpenuhi per spec (gesture opsional, bukan wajib).
 // ============================================================================
 
 import { useRef, useState } from "react";
@@ -60,9 +60,10 @@ export default function SwipeableCard({
     return <div>{children}</div>;
   }
 
-  function mulai(clientX: number) {
+  function mulai(clientX: number, e: React.PointerEvent) {
     mulaiX.current = clientX;
     setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
   }
   function gerak(clientX: number) {
     if (!dragging) return;
@@ -108,7 +109,7 @@ export default function SwipeableCard({
         </div>
       )}
       <div
-        onPointerDown={(e) => mulai(e.clientX)}
+        onPointerDown={(e) => mulai(e.clientX, e)}
         onPointerMove={(e) => gerak(e.clientX)}
         onPointerUp={lepas}
         onPointerCancel={lepas}
