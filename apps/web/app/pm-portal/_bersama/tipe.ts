@@ -1031,6 +1031,106 @@ export interface ResponsMitra {
 }
 
 /**
+ * EOT (Extension of Time) — tabel `contract_eot` (migrasi 152). Bentuk dari
+ * `GET /api/v1/projects/:id/eot` (`apps/api/src/routes/v1/rantai-kontrak.ts`),
+ * kolom `select` eksplisit di route.
+ */
+export interface EotProyek {
+  id: string;
+  eot_number: string | null;
+  days_requested: number;
+  days_approved: number | null;
+  reason: string;
+  status: "diajukan" | "disetujui" | "ditolak";
+  submitted_at: string;
+  decided_at: string | null;
+  decision_note: string | null;
+  created_at: string;
+}
+
+/**
+ * Bentuk `HasilTanggalEfektif`, `apps/api/src/lib/rantai-kontrak.ts:53-62`
+ * (`tanggalSelesaiEfektif()`). `meta` dari `GET .../eot`.
+ */
+export interface TanggalEfektifKontrak {
+  /** Tanggal kontrak asli, tak pernah berubah. */
+  tanggalAsli: string;
+  /** Tanggal setelah seluruh EOT yang DISETUJUI. */
+  tanggalEfektif: string;
+  /** Total hari yang ditambahkan oleh EOT disetujui. */
+  totalHariEOT: number;
+  /** Berapa pengajuan yang masih menggantung — penting ditampilkan bersama LD. */
+  eotMenggantung: number;
+}
+
+export interface RespEot {
+  data: EotProyek[];
+  meta: TanggalEfektifKontrak;
+}
+
+/**
+ * Bentuk `HasilLD`, `apps/api/src/lib/rantai-kontrak.ts:161-178` (`hitungLD()`).
+ * `data` dari `GET /api/v1/projects/:id/liquidated-damages` — endpoint
+ * sesungguhnya memulangkan `HasilLDProyek` (superset dengan `otoritatif` +
+ * `syarat`, `apps/api/src/utils/rantai-kontrak.ts:84-88`), tapi halaman ini
+ * hanya memakai field dasar `HasilLD` sehingga tipe di sini cukup sebagai
+ * subset yang aman.
+ */
+export interface HasilLD {
+  /** `true` bila ada denda yang benar-benar terhitung. */
+  adaDenda: boolean;
+  hariTelat: number;
+  dasarPerhitungan: number;
+  dendaSebelumBatas: number;
+  batasNominal: number;
+  denda: number;
+  /** `true` bila denda menyentuh batas — sinyal kontrak layak diputus. */
+  kenaBatas: boolean;
+  tanggal: TanggalEfektifKontrak;
+  /** Kenapa dendanya nol / tak dihitung — supaya "0" tak ambigu. */
+  alasan: string | null;
+}
+
+export interface RespLd {
+  data: HasilLD;
+  meta: { label: string; peringatan: string | null };
+}
+
+/**
+ * Register jaminan — tabel `contract_bonds` (migrasi 152). Bentuk dari
+ * `GET /api/v1/bonds` (`select` eksplisit route).
+ */
+export interface BondProyek {
+  id: string;
+  project_id: string | null;
+  bid_id: string | null;
+  bond_type: "penawaran" | "pelaksanaan" | "uang_muka" | "pemeliharaan";
+  bond_number: string | null;
+  issuer: string | null;
+  amount: number | string;
+  issued_date: string;
+  expiry_date: string;
+  status: "aktif" | "dikembalikan" | "dicairkan" | "kadaluarsa";
+  released_at: string | null;
+  notes: string | null;
+}
+
+/** Bentuk `RingkasBond`, `apps/api/src/lib/rantai-kontrak.ts:264-271` (`ringkasBond()`). */
+export interface RingkasBond {
+  totalAktif: number;
+  jumlahAktif: number;
+  /** Jaminan yang kadaluarsa ≤ N hari — uang yang bisa hangus bila terlewat. */
+  segeraKadaluarsa: Array<BondProyek & { sisaHari: number }>;
+  /** Sudah lewat tanggal tapi statusnya masih 'aktif' — data yang perlu dirapikan. */
+  telatDiperbarui: BondProyek[];
+}
+
+export interface RespBond {
+  data: BondProyek[];
+  meta: RingkasBond;
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
