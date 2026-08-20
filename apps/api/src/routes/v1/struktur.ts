@@ -296,8 +296,22 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
       */
       const asal = beban.rincianMati
         .map((x) => `${x.nama} = ${Math.round(x.knM * 100) / 100} kN/m`).join(' · ')
+
+      /*
+        Angka bebannya ditaruh di `antara` supaya lembar PDF bisa MENGGAMBAR
+        ULANG diagramnya. Tanpa ini lembar tak punya bentuk untuk digambar,
+        dan diagramnya diam-diam tak pernah terbit di dokumen bertanda tangan.
+      */
+      const antaraLama = (hasil as { antara?: Record<string, unknown> }).antara ?? {}
       return {
         ...hasil,
+        antara: {
+          ...antaraLama,
+          muKnm: beban.muKnm,
+          vuKn: beban.vuKn,
+          quKnM: beban.quKnM,
+          skema: beban.skema,
+        },
         catatan: [
           ...(hasil.catatan ?? []),
           `Mu ${Math.round(beban.muKnm * 100) / 100} kNm dan Vu `
@@ -309,7 +323,65 @@ function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
       }
     }
     case 'plat': return analisaPlat(dgnJumlah as never)
-    case 'footplat': return analisaFootplat(dgnJumlah as never)
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      FOOTPLAT: `pukKn` adalah KELUARAN hitungan beban kolom
+
+      Pondasi memikul apa yang kolom teruskan. Jadi bila input memuat data
+      beban lantai yang sama (luas tributari + jumlah lantai + fungsi ruang),
+      `pukKn` dihitung dari situ alih-alih diketik.
+
+      Ini menutup celah yang paling mudah luput: kolom dihitung ulang dengan
+      beban baru, pondasinya TIDAK — dan `pukKn` lama tetap terlihat wajar.
+      Pondasi yang kurang besar tak menimbulkan galat apa pun; ia menurun
+      perlahan, dan gejalanya muncul sesudah bangunan berdiri.
+
+      ⚠ Berat sendiri pondasi dan tanah di atasnya TIDAK ditambahkan di
+      sini — `analisaFootplat` sudah menghitungnya dari `hM`, `zM`, dan
+      `gammaTanahKnM3`. Menambahkannya lagi berarti dua kali.
+      ══════════════════════════════════════════════════════════════════════
+    */
+    case 'footplat': {
+      const i = dgnJumlah as Record<string, unknown>
+      if (!punyaDataBebanKolom(i)) return analisaFootplat(dgnJumlah as never)
+
+      const beban = analisaBebanKolom({
+        luasTributariM2: Number(i.luasTributariM2),
+        jumlahLantai: Number(i.jumlahLantai),
+        tinggiLantaiM: Number(i.tinggiLantaiM ?? 3),
+        /*
+          Ukuran KOLOM yang ditumpu, bukan ukuran pondasinya — yang
+          diteruskan ke tanah adalah berat kolom, dan `bxM`/`byM` memang
+          lebar kolom di input footplat.
+        */
+        bMm: Number(i.bxM ?? 0.4) * 1000,
+        hMm: Number(i.byM ?? 0.4) * 1000,
+        tebalPelatMm: Number(i.tebalPelatMm ?? 0),
+        lapisMati: i.lapisMati as never,
+        bebanMatiTambahan: i.bebanMatiTambahan as never,
+        bebanHidupKnM2: i.bebanHidupKnM2 as never,
+        fungsiRuangKunci: i.fungsiRuangKunci as never,
+        pakaiReduksi: i.pakaiReduksi as never,
+      })
+      const hasil = analisaFootplat({
+        ...(dgnJumlah as object),
+        pukKn: beban.puKn,
+      } as never) as { catatan?: string[] }
+
+      return {
+        ...hasil,
+        catatan: [
+          ...(hasil.catatan ?? []),
+          `Beban kolom Pu ${Math.round(beban.puKn * 10) / 10} kN DIHITUNG dari `
+            + `${i.jumlahLantai} lantai × ${i.luasTributariM2} m² tributari, `
+            + 'bukan diketik.',
+          'Berat sendiri pondasi dan tanah di atasnya dihitung terpisah oleh '
+            + 'modul footplat dari tebal dan kedalamannya — tidak termasuk '
+            + 'dalam angka Pu di atas.',
+          ...beban.catatan,
+        ],
+      }
+    }
     case 'pilecap': return analisaPilecap(dgnJumlah as never)
     case 'tiang': return analisaTiang(dgnJumlah as never)
     /*

@@ -378,6 +378,104 @@ interface Tata {
 }
 
 /** Gambar satu bagian elemen. */
+/**
+ * Diagram momen & gaya lintang, digambar LANGSUNG dengan pdfkit.
+ *
+ * ── Kenapa digambar ulang, bukan menanam SVG-nya
+ *
+ * Kepala berkas ini menyatakan alasannya: pdfkit tak bisa merender SVG tanpa
+ * pustaka tambahan, dan menambah dependensi berarti satu lagi hal yang bisa
+ * rusak saat dipasang di mesin lain.
+ *
+ * Tapi diagram beban TIDAK butuh SVG — ia cuma garis, kurva, dan teks, dan
+ * pdfkit menggambar ketiganya secara asli. Jadi yang ditanam bukan berkasnya,
+ * melainkan bentuknya.
+ *
+ * ── Kenapa ini penting untuk lembar BERTANDA TANGAN
+ *
+ * Yang menandatangani memeriksa dua hal yang tak terlihat dari angka:
+ * di mana momen memuncak, dan di sisi mana serat tariknya. Kantilever yang
+ * dihitung sebagai balok sederhana punya angka yang sama wajarnya — yang
+ * membedakan hanya bentuknya.
+ */
+function gambarDiagramKeLembar(
+  doc: Doc, t: Tata,
+  d: { muKnm: number; vuKn: number; skema: string; bentangM: number; quKnM: number },
+): void {
+  const kantilever = d.skema === 'kantilever'
+  const M = 42
+  const L = 240          // lebar diagram, pt
+  const tinggi = 26
+
+  /* Dua panel berdampingan supaya hemat tinggi halaman. */
+  /*
+    Ruang 130 pt, bukan 96 — hasil MELIHAT PDF-nya, bukan hitungan.
+
+    Pada 96 pt kurva momen terpotong di batas bawah dan garis gaya lintang
+    keluar dari areanya sendiri. Keduanya PDF yang sah, dan angkanya tetap
+    benar — hanya bentuknya yang tak bisa dibaca. Padahal justru BENTUK itu
+    alasan diagram ini ada di lembar bertanda tangan.
+  */
+  t.ruang(130)
+  const y0 = t.getY() + 16
+
+  doc.font('Helvetica-Bold').fontSize(7).fillColor(ABU)
+    .text(amanUntukPdf('DIAGRAM MOMEN (kNm)'), M, y0 - 9, { width: L })
+
+  /* Sumbu. */
+  doc.strokeColor('#9aa3ad').lineWidth(0.5)
+    .moveTo(M, y0 + tinggi).lineTo(M + L, y0 + tinggi).stroke()
+
+  /*
+    Momen digambar di sisi SERAT TARIK (konvensi teknik sipil):
+    sederhana -> positif -> ke BAWAH sumbu; kantilever -> ke ATAS.
+  */
+  doc.strokeColor('#dc2626').lineWidth(1)
+  const N = 28
+  for (let i = 0; i <= N; i++) {
+    const x = i / N
+    const rasio = kantilever ? (1 - x) ** 2 : 4 * x * (1 - x)
+    const px = M + x * L
+    const py = y0 + tinggi + (kantilever ? -1 : 1) * rasio * tinggi
+    if (i === 0) doc.moveTo(px, py)
+    else doc.lineTo(px, py)
+  }
+  doc.stroke()
+
+  doc.font('Helvetica').fontSize(6.5).fillColor('#dc2626')
+    .text(amanUntukPdf(
+      `Mu ${num(d.muKnm)} kNm - tarik di ${kantilever ? 'ATAS' : 'BAWAH'}`),
+      M, y0 + tinggi + (kantilever ? -tinggi - 12 : tinggi + 3), { width: L })
+
+  /* ── Panel geser, di sebelah kanan ── */
+  const M2 = M + L + 22
+  const L2 = 190
+  doc.font('Helvetica-Bold').fontSize(7).fillColor(ABU)
+    .text(amanUntukPdf('GAYA LINTANG (kN)'), M2, y0 - 9, { width: L2 })
+  doc.strokeColor('#9aa3ad').lineWidth(0.5)
+    .moveTo(M2, y0 + tinggi).lineTo(M2 + L2, y0 + tinggi).stroke()
+
+  doc.strokeColor('#059669').lineWidth(1)
+  if (kantilever) {
+    doc.moveTo(M2, y0 + tinggi - tinggi).lineTo(M2 + L2, y0 + tinggi).stroke()
+  } else {
+    doc.moveTo(M2, y0 + tinggi - tinggi)
+      .lineTo(M2 + L2 / 2, y0 + tinggi)
+      .lineTo(M2 + L2, y0 + tinggi + tinggi).stroke()
+  }
+  doc.font('Helvetica').fontSize(6.5).fillColor('#059669')
+    .text(amanUntukPdf(`Vu ${num(d.vuKn)} kN`),
+      M2, y0 + tinggi + tinggi + 3, { width: L2 })
+
+  /* Keterangan bebannya — supaya angkanya bisa diperiksa dari lembar ini. */
+  doc.font('Helvetica').fontSize(6).fillColor(ABU)
+    .text(amanUntukPdf(
+      `qu ${num(d.quKnM)} kN/m - bentang ${d.bentangM} m - skema ${d.skema}`),
+      M, y0 + tinggi * 2 + 14, { width: 460 })
+
+  t.setY(y0 + tinggi * 2 + 26)
+}
+
 function gambarBagian(doc: Doc, b: BagianElemen, nomor: number, t: Tata): void {
   t.judulBagian(`${nomor}. ${b.kode}${b.nama ? ` — ${b.nama}` : ''}  (${b.jenis})`)
 
@@ -524,6 +622,16 @@ function gambarBagian(doc: Doc, b: BagianElemen, nomor: number, t: Tata): void {
     }
     t.setY(t.getY() + 4)
   }
+
+  /*
+    ── DIAGRAM momen & geser: DIGAMBAR, bukan cuma dinyatakan
+
+    Hanya untuk elemen yang momennya DIHITUNG dari beban. Elemen yang
+    momennya diketik langsung tak punya bentuk yang pernah dihitung siapa
+    pun — menggambarnya berarti mengarang bentuk di dokumen bertanda
+    tangan.
+  */
+  if (b.diagram) gambarDiagramKeLembar(doc, t, b.diagram)
 
   /* ── GAMBAR: dinyatakan ada, tidak ditanam ──────────────────────────────── */
   if (b.gambar.length) {

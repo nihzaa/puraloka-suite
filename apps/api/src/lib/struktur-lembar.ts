@@ -87,6 +87,22 @@ export interface BagianElemen {
   volume: Array<{ uraian: string; nilai: number; satuan: string }>
   /** SVG gambar kerja, bila ada. */
   gambar: Array<{ judul: string; svg: string }>
+  /*
+    Data untuk MENGGAMBAR ULANG diagram momen/geser di PDF.
+
+    SVG-nya tak bisa ditanam (pdfkit butuh pustaka tambahan — lihat kepala
+    `struktur-lembar-pdf.ts`), tapi diagram beban cuma garis dan kurva:
+    pdfkit menggambar keduanya secara asli. Jadi yang dibawa ke sini
+    ANGKANYA, dan bentuknya digambar ulang di sana.
+
+    `null` bila elemennya tak dihitung dari beban — dan itu benar: lembar
+    tak boleh menggambar diagram untuk momen yang diketik langsung, karena
+    bentuknya tak pernah dihitung siapa pun.
+  */
+  diagram: {
+    muKnm: number; vuKn: number; skema: string
+    bentangM: number; quKnM: number
+  } | null
 }
 
 export interface LembarPerhitungan {
@@ -387,6 +403,21 @@ export function susunBagian(el: ElemenLembar): BagianElemen {
     denah: 'Denah', tampak: 'Tampak', pola: 'Pola sambungan',
     diagramBeban: 'Beban, momen & gaya lintang',
   }
+  /*
+    Diagram diambil dari `antara` hasil hitung bila ada — di situlah
+    `analisaBebanBalok` menaruh momen, geser, dan skemanya.
+  */
+  const h = el.hasil as { antara?: Record<string, unknown> } | null
+  const a = h?.antara ?? {}
+  const inp = (el.input ?? {}) as Record<string, unknown>
+  const diagram = Number.isFinite(Number(a.muKnm)) && Number.isFinite(Number(inp.bentangM))
+    ? {
+      muKnm: Number(a.muKnm), vuKn: Number(a.vuKn),
+      skema: String(a.skema ?? 'sederhana'),
+      bentangM: Number(inp.bentangM), quKnM: Number(a.quKnM ?? 0),
+    }
+    : null
+
   const gambar = Object.entries(el.gambar ?? {})
     .filter(([k, sv]) => !k.endsWith('Gagal') && k !== 'meteran'
       && typeof sv === 'string' && sv.includes('<svg'))
@@ -400,6 +431,7 @@ export function susunBagian(el: ElemenLembar): BagianElemen {
     ringkasanAwam: ringkas.kalimat,
     tingkat: ringkas.tingkat,
     input: ratakanInput(el.input ?? {}),
+    diagram,
     periksa,
     catatan: el.hasil?.catatan ?? [],
     volume,
