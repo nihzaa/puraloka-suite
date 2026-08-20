@@ -67,6 +67,8 @@ import {
   gambarPenampangKayu,
 } from '../../lib/struktur-gambar.js'
 import { bandingkan, kandidatDariVariasi } from '../../lib/struktur-banding.js'
+import { analisaBebanBalok } from '../../lib/struktur-beban-balok.js'
+import { gambarDiagramBeban } from '../../lib/struktur-gambar-beban.js'
 import {
   dampakMutu, fcDesainDari, mutuBetonTerukur,
 } from '../../lib/struktur-mutu-nyata.js'
@@ -684,6 +686,61 @@ export default async function strukturRoutes(app: FastifyInstance) {
     seberapa terpakai kapasitasnya, dan volume bahannya.
     ══════════════════════════════════════════════════════════════════════════
   */
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    POST /struktur/beban-balok — momen & gaya lintang DARI BEBAN, bukan diketik
+
+    `analisaBalok` menerima `muKnm` dan `vuKn` sebagai ANGKA JADI: momen
+    rencana harus dihitung sendiri di kertas lalu diketik. Itu persis yang
+    modul SLOOF sengaja hindari, dan alasannya sudah tertulis di halaman
+    UI-nya:
+
+        "Estimator yang harus menghitung momen sloof sendiri di kertas akan
+         salah, dan salahnya tak terlihat karena angka momen tak punya
+         'rasa benar' seperti dimensi."
+
+    Dimensi salah ketik TERLIHAT (balok 3000 mm jelas keliru). Momen salah
+    TIDAK: 120 kNm dan 210 kNm sama-sama wajar, dan yang salah menghasilkan
+    balok yang LOLOS pemeriksaan tapi tak kuat.
+
+    ── TIDAK MENULIS apa pun
+
+    Rute ini murni menghitung. POST dipilih karena badan permintaannya
+    memuat daftar beban mati, bukan karena ada yang berubah di basis.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  app.post<{
+    Body: {
+      bentangM?: number; lebarPikulM?: number
+      bMm?: number; hMm?: number; tebalPelatMm?: number
+      bebanMatiTambahan?: Array<{ nama?: string; nilai?: number }>
+      bebanHidupKnM2?: number; bebanDindingKnM?: number
+      bebanTerpusatKn?: number; skema?: string
+      gambar?: boolean
+    }
+  }>(
+    '/api/v1/struktur/beban-balok',
+    { preHandler: [authenticate, requirePermission('cecep:struktur:view')] },
+    async (request, reply) => {
+      try {
+        const hasil = analisaBebanBalok(request.body as never)
+        /*
+          Gambarnya OPSIONAL — SVG tiga panel ~6 KB, dan pemanggil yang cuma
+          butuh angkanya (mis. mengisi form) tak perlu menanggungnya.
+        */
+        const gambar = request.body?.gambar === false
+          ? undefined
+          : gambarDiagramBeban(hasil, Number(request.body?.bentangM))
+        return reply.send({ hasil, gambar })
+      } catch (e) {
+        /*
+          400, bukan 500: yang salah adalah masukannya, dan pesannya sudah
+          menjelaskan medan mana. Membalas 500 membuat kesalahan isi form
+          terbaca seperti kerusakan server.
+        */
+        return reply.status(400).send({ error: (e as Error).message })
+      }
+    })
   app.post<{
     Params: { id: string }
     Body: {
