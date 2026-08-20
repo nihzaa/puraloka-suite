@@ -575,6 +575,249 @@ export interface ResponsKesiapanOpname {
 }
 
 /**
+ * Surat Perintah Kerja (tabel `surat_perintah_kerja`). Bentuk dari
+ * `GET /api/v1/spk` (`apps/api/src/routes/v1/spk.ts`), dicocokkan ke
+ * `(dashboard)/mandor/spk/page.tsx`.
+ *
+ * ⚠️ PM PUNYA `mandor:view` (list/pdf/addendum) + `spk:kelola`
+ * (terbitkan/transisi status/addendum), TAPI TIDAK PUNYA `spk:tandatangan` —
+ * SoD eksplisit (`db/migrations/328_surat_perintah_kerja.sql` L219-227):
+ * hanya admin/direktur boleh membubuhkan TANDA TANGAN PIHAK PENERBIT
+ * (`PATCH /spk/:id/status` dengan body `{ ttd_url, pihak: 'penerbit' }`,
+ * dicek in-handler `spk.ts` L286, khusus cabang itu — BUKAN preHandler).
+ * Tanda tangan `pihak === 'pelaksana'` tidak butuh izin khusus.
+ *
+ * `denda` DIHITUNG server tiap request (`hitungDendaKeterlambatan()`),
+ * bukan kolom tersimpan — `null` kalau status bukan `ditandatangani`.
+ */
+export interface DendaSpk {
+  hariTerlambat: number
+  dendaKotor: number
+  dendaTerbatas: number
+  terkenaBatas: boolean
+}
+
+export interface Spk {
+  id: string
+  nomor: string
+  tanggal_terbit: string
+  lingkup_kerja: string
+  nilai_kontrak: number | string
+  tanggal_mulai: string
+  tanggal_selesai: string
+  denda_per_hari: number | string | null
+  denda_maks_pct: number | string | null
+  syarat_khusus: string | null
+  status: "draf" | "diterbitkan" | "ditandatangani" | "dibatalkan"
+  alasan_batal: string | null
+  pdf_url?: string | null
+  ttd_penerbit_url: string | null
+  ttd_penerbit_pada?: string | null
+  ttd_pelaksana_url: string | null
+  ttd_pelaksana_pada?: string | null
+  project_id?: string | null
+  work_scope_id: string
+  tender_id?: string | null
+  penawaran_id?: string | null
+  dibuat_pada?: string | null
+  penerbit?: { id: string; name: string } | null
+  scope?: { id: string; scope_name: string; payment_system: string } | null
+  /** Dihitung server saat baca — bukan kolom. */
+  denda: DendaSpk | null
+}
+
+export interface ResponsSpk {
+  spk: Spk[]
+}
+
+/**
+ * Addendum SPK (tabel `spk_addendum`). Bentuk dari
+ * `GET /api/v1/spk/:id/addendum` (`apps/api/src/routes/v1/spk.ts`).
+ *
+ * Nilai/tanggal EFEKTIF dihitung server (delta dari seluruh addendum
+ * `berlaku`, yaitu bukan `dibatalkan`) — bukan kolom tersimpan di SPK induk.
+ */
+export interface SpkAddendum {
+  id: string
+  urutan: number
+  nomor: string
+  tanggal: string
+  alasan: string
+  lingkup_tambahan: string | null
+  nilai_delta: number | string
+  hari_delta: number
+  status: "draf" | "diterbitkan" | "ditandatangani" | "dibatalkan"
+  ttd_penerbit_pada?: string | null
+  ttd_pelaksana_pada?: string | null
+}
+
+export interface ResponsSpkAddendum {
+  spk: { id: string; nomor: string; status: string; nilai_induk: number; tanggal_selesai_induk: string }
+  addendum: SpkAddendum[]
+  efektif: {
+    nilai: number
+    delta_nilai: number
+    tanggal_selesai: string
+    delta_hari: number
+    jumlah_berlaku: number
+  }
+}
+
+/**
+ * Tender subkontraktor (tabel `tender_subkon`). Bentuk dari
+ * `GET /api/v1/tender-subkon` (`apps/api/src/routes/v1/tender-subkon.ts`),
+ * dicocokkan ke `(dashboard)/mandor/tender/page.tsx`.
+ *
+ * ⚠️ BEDA dari dugaan awal brief: modul ini TIDAK memakai permission
+ * `mandor:*` sama sekali — endpoint tender memakai `projects:view` (baca)
+ * dan `projects:contract` (tulis: buat tender, ajukan penawaran, tetapkan
+ * pemenang, tutup tender). Diverifikasi langsung dari kode
+ * (`requirePermission('projects:view'|'projects:contract')` di kelima
+ * endpoint), BUKAN riset Task 5 (modul ini tak termasuk cakupannya).
+ * Keduanya TIDAK ada di denylist migrasi 050 → PM punya penuh, tanpa SoD.
+ *
+ * `penawaran_subkon` di list adalah bentuk PostgREST `[{ count }]` — dipakai
+ * lewat helper `jumlahPenawaran()` di halaman.
+ */
+export interface TenderSubkon {
+  id: string
+  nomor: string
+  judul: string
+  lingkup_kerja: string | null
+  nilai_perkiraan: number | string | null
+  tanggal: string | null
+  batas_masuk: string | null
+  status: "draft" | "terkirim" | "selesai" | "batal"
+  alasan_pilih: string | null
+  catatan?: string | null
+  project_id?: string | null
+  work_scope_id?: string | null
+  created_at?: string | null
+  proyek: { id: string; name: string } | null
+  pembuat?: { id: string; name: string } | null
+  penawaran_subkon?: Array<{ count: number }>
+}
+
+export interface ResponsTenderSubkon {
+  tender: TenderSubkon[]
+  total: number
+}
+
+/** Satu baris penawaran dalam perbandingan tender — bentuk dari
+ * `susunTender()`, dipulangkan `GET /api/v1/tender-subkon/:id`. */
+export interface PenawaranTenderBanding {
+  id: string
+  worker_id: string
+  worker_name: string | null
+  /** `null` bila `tidak_menawar` — BUKAN 0. */
+  nilai: number | null
+  waktu_kerja_hari: number | null
+  status: "diajukan" | "menang" | "kalah" | "gugur"
+  selisih_termurah_pct: number | null
+  selisih_perkiraan_pct: number | null
+  penilaian: "termurah" | "wajar" | "terlalu_rendah" | "terlalu_tinggi" | "tidak_menawar"
+  menang: boolean
+  catatan: string | null
+}
+
+export interface PerbandinganTender {
+  penawaran: PenawaranTenderBanding[]
+  nilai_termurah: number | null
+  nilai_tertinggi: number | null
+  rentang_pct: number | null
+  jumlah_menawar: number
+  jumlah_tidak_menawar: number
+  jumlah_terlalu_rendah: number
+  pemenang: PenawaranTenderBanding | null
+  pemenang_bukan_termurah: boolean
+  selisih_pemenang_termurah: number
+}
+
+export interface ResponsTenderDetail {
+  tender: TenderSubkon & { lingkup_kerja: string | null }
+  perbandingan: PerbandinganTender
+  /** `null` = dibandingkan per-total saja, bukan "ada rincian tapi kosong". */
+  perbandingan_item: unknown | null
+}
+
+/**
+ * Register retensi subkontraktor per lingkup kerja. Bentuk dari
+ * `GET /api/v1/mandor/retensi-register` (`apps/api/src/routes/v1/mandor.ts`,
+ * dikonfirmasi Task 5 §Temuan angka L2643), dicocokkan ke
+ * `(dashboard)/mandor/retensi/page.tsx`.
+ *
+ * ⚠️ List endpoint HANYA `authenticate` (tanpa gerbang permission granular
+ * sama sekali — bukan `mandor:view`). Pencairan (`POST .../retensi-releases`)
+ * butuh `mandor:kasbon:approve`, PM PUNYA (Task 5, modul `mandor`).
+ *
+ * `ditahan`/`dicairkan`/`outstanding` DIHITUNG server tiap request dari
+ * `progress_payments` (status `approved` saja) dan
+ * `subcontract_retention_releases` — bukan kolom tersimpan.
+ */
+export interface RetensiScope {
+  work_scope_id: string
+  scope_name: string | null
+  status: string | null
+  retensi_pct: number | string | null
+  mandor: { id: string; name: string } | null
+  project: { id: string; name: string } | null
+  ditahan: number
+  dicairkan: number
+  outstanding: number
+}
+
+export interface ResponsRetensiRegister {
+  scopes: RetensiScope[]
+  total_ditahan: number
+  total_dicairkan: number
+  total_outstanding: number
+}
+
+/**
+ * Potongan back-charge subkontraktor (tabel `back_charge`). Bentuk dari
+ * `GET /api/v1/back-charge` (`apps/api/src/routes/v1/back-charge.ts`,
+ * dikonfirmasi Task 5).
+ *
+ * ⚠️ List butuh `mandor:view` (BUKAN `backcharge:view` — key itu tak ada di
+ * katalog). PM PUNYA `mandor:view` + `backcharge:kelola` (ajukan), TAPI
+ * TIDAK PUNYA `backcharge:setujui` — SoD eksplisit (komentar `back-charge.ts`
+ * L27-31): "PM mengajukan dari lapangan, TIDAK menyetujui." Tombol putuskan
+ * (setuju/batal) TIDAK BOLEH ADA di portal PM.
+ *
+ * `ringkasan` dihitung server (`ringkasBackCharge()`) — bentuknya longgar
+ * (`Record<string, number>`) karena tak dipakai halaman ini (kartu per-baris
+ * sudah cukup untuk versi mobile disederhanakan).
+ */
+export interface BackCharge {
+  id: string
+  nomor: string
+  tanggal: string
+  uraian: string
+  kategori: string
+  nilai: number | string
+  status: "diajukan" | "disetujui" | "dibatalkan"
+  bukti_url: string[]
+  project_id?: string | null
+  work_scope_id: string
+  punch_item_id?: string | null
+  diajukan_oleh?: string | null
+  disetujui_oleh?: string | null
+  disetujui_pada?: string | null
+  alasan_batal?: string | null
+  progress_payment_id?: string | null
+  dipotong_pada?: string | null
+  dibuat_pada?: string | null
+  pengaju: { id: string; name: string } | null
+  penyetuju: { id: string; name: string } | null
+  scope: { id: string; scope_name: string } | null
+}
+
+export interface ResponsBackCharge {
+  back_charge: BackCharge[]
+  ringkasan: Record<string, number>
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
