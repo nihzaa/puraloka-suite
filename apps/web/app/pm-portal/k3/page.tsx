@@ -292,7 +292,7 @@ export default function PmK3Page() {
                 border: "1px solid var(--border)", fontSize: 14, fontWeight: 700, cursor: "default",
               } : {
                 padding: 14, borderRadius: "var(--portal-radius-pill)",
-                background: "var(--navy)", color: "var(--on-navy)", border: "none",
+                background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none",
                 fontSize: 14, fontWeight: 700, cursor: "pointer",
               }}
             >

@@ -301,7 +301,7 @@ export default function PmJadwalPage() {
             disabled={mengirim}
             style={{
               padding: 14, borderRadius: "var(--portal-radius-pill)",
-              background: "var(--navy)", color: "var(--on-navy)", border: "none",
+              background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none",
               fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer",
             }}
           >

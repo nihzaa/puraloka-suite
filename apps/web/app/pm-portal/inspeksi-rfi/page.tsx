@@ -204,7 +204,7 @@ export default function PmInspeksiRfiPage() {
                 <button
                   type="button"
                   onClick={() => kirimRfi(item)}
-                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 40, padding: "0 14px", borderRadius: "var(--portal-radius-pill)", background: "var(--navy)", color: "var(--on-navy)", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                  style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 40, padding: "0 14px", borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
                 >
                   <Send size={14} aria-hidden="true" /> Kirim RFI
                 </button>
@@ -245,7 +245,7 @@ export default function PmInspeksiRfiPage() {
               <button type="button" onClick={() => putuskanInspeksi("tidak_lolos")} disabled={mengirim} style={{ flex: 1, minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
                 Tidak Lolos
               </button>
-              <button type="button" onClick={() => putuskanInspeksi("lolos")} disabled={mengirim} style={{ flex: 1, minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--navy)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+              <button type="button" onClick={() => putuskanInspeksi("lolos")} disabled={mengirim} style={{ flex: 1, minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
                 {mengirim ? "Memproses…" : "Lolos"}
               </button>
             </div>
@@ -272,7 +272,7 @@ export default function PmInspeksiRfiPage() {
                 {galatForm}
               </div>
             )}
-            <button type="button" onClick={kirimJawabanRfi} disabled={mengirim} style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--navy)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            <button type="button" onClick={kirimJawabanRfi} disabled={mengirim} style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
               {mengirim ? "Mengirim…" : "Simpan Jawaban"}
             </button>
           </div>

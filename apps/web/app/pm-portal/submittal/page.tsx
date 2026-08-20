@@ -173,7 +173,7 @@ export default function PmSubmittalPage() {
               <button type="button" onClick={() => putuskan("ditolak")} disabled={mengirim} style={{ flex: 1, minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
                 Tolak
               </button>
-              <button type="button" onClick={() => putuskan("disetujui")} disabled={mengirim} style={{ flex: 1, minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--navy)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+              <button type="button" onClick={() => putuskan("disetujui")} disabled={mengirim} style={{ flex: 1, minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
                 {mengirim ? "Memproses…" : "Setujui"}
               </button>
             </div>
