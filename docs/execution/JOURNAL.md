@@ -5,6 +5,95 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-21 (Portal PM Lengkap, Tahap 2) — Task 16 tuntas: navigasi kategori Kontrak+Perencanaan tersambung, 6 halaman yatim jadi 0
+
+Worktree `pm-lengkap-tahap2` (`feat/pm-lengkap-tahap2`), plan
+`docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md` Tahap 2
+(Task 11-16). Task 11-15 (riset + 6 halaman baru: register, asuransi,
+klaim, EOT/LD/Bond, surat, keterlambatan — plus 2 tab baru di `jadwal`
+existing) sudah selesai dan tercommit sebelum sesi ini; disengaja
+YATIM (tanpa link nav) sampai Task 16 menyambungkannya sekaligus.
+
+**Task 16 — navigasi + verifikasi akhir Tahap 2:**
+
+- `apps/web/lib/pm-portal-kategori.ts`: `KATEGORI_AKTIF` bertambah
+  `"g-kontrak"`, `"g-jadwal"` (dari `["g-subkon","g-lapangan"]`).
+- `apps/web/app/pm-portal/kategori/[key]/page.tsx`: `PETA_HREF_PORTAL`
+  bertambah 17 entri (`kt-register`, `kt-asuransi`, `kt-claims`,
+  `kt-eot`/`kt-ld`/`kt-bond` → satu halaman gabungan, `kt-rfi` →
+  `inspeksi-rfi` existing, `kt-surat`, `kt-termin`/`kt-retensi`/
+  `kt-subkon` → halaman Tahap 1 existing, `kt-co` → fallback UTANG,
+  `jd-cpm`/`jd-histogram`/`jd-method`/`jd-milestone` → `jadwal`
+  existing (satu halaman, tab internal), `jd-delay` → `keterlambatan`).
+  `jd-baseline` SENGAJA tak dipetakan — key itu tak punya `href` sama
+  sekali di `peta-menu.ts` (hanya rute dinamis admin
+  `/proyek/[id]/baseline`), jadi fallback tetap `"#"` seperti sebelum
+  Task 16, bukan regresi.
+  `EKSTRA_PORTAL["g-lapangan"]` kehilangan 2 baris sintetis
+  (`px-jadwal`, `px-kontrak`) yang jadi DUPLIKAT persis begitu
+  `g-kontrak`/`g-jadwal` aktif dengan target URL yang sama — dihapus
+  sesuai instruksi komentar berkas itu sendiri. Import
+  `Calendar`/`Landmark` dari `lucide-react` ikut dihapus (tak terpakai).
+
+**Bukti klik-tembus — `audit-nav-yatim.mjs`:** SEBELUM Task 16, 6
+halaman `pm-portal/kontrak-lengkap/*` YATIM (diukur langsung, bukan
+diasumsikan dari brief yang menyebut "5"). SESUDAH: bagian YATIM
+kosong total — 0 dari kategori PM. `href kategori PM` di ringkasan
+skrip naik dari 18 ke 25 entri (7 hilang dari `EKSTRA_PORTAL` yang
+dihapus + 17 baru masuk − beberapa duplikat map ke href sama = net
++7 unik dari sisi kode, cocok dengan 6 halaman + 1 tambahan `jadwal`).
+
+**Verifikasi menyeluruh:**
+
+- `tsc --noEmit` (seluruh workspace web): bersih, exit 0.
+- `eslint lib/pm-portal-kategori.ts app/pm-portal/kategori/`: bersih,
+  exit 0.
+- `node scripts/jalankan-semua-penjaga.mjs`: 130 hijau · 41 MERAH ·
+  2 tak ketemu. **Nol dari 41 kegagalan menyebut kedua berkas yang
+  diubah Task 16** (dicek `grep` langsung atas keluaran lengkap).
+  Sampel diverifikasi manual: `audit-nav-yatim.mjs` (hanya
+  `/estimasi/struktur`, pra-eksisting di luar scope Kontrak/
+  Perencanaan), `audit-peta-menu-vs-db.mjs` (drift DB `menu_items`,
+  task ini tak menyentuh `peta-menu.ts`/DB), `uji-endpoint-ada.mjs`
+  (16 "path tak ada" semuanya template-literal di halaman lain,
+  dijalankan ulang manual dari akar repo karena runner memanggilnya
+  dari cwd salah), `audit-akhir-baris.mjs` (kedua berkas Task 16
+  dikonfirmasi tetap LF, tak ada LF→CRLF).
+- **Test integrasi (`kontrak klaim-kontraktual rfi surat asuransi
+  baseline-jadwal`): 15 GAGAL, 325 lulus (340 total) — DUA KALI
+  DIJALANKAN, hasil identik** (run pertama sempat tumpang tindih
+  dengan `vitest run struktur` dari worktree lain yang teramati aktif
+  lewat `wmic process`; run kedua diulang SESUDAH proses itu
+  dikonfirmasi selesai — hasil PERSIS SAMA, 15 gagal). Ini
+  MENYINGKIRKAN interferensi vitest paralel sebagai penyebab tunggal.
+  **BUKAN regresi Task 16**: `git diff --stat main...HEAD --
+  apps/api/src` KOSONG — Tahap 2 tak pernah menyentuh backend. Dugaan
+  penyebab: `kontrak.test.ts` memakai `TANDA = 'UJI-KTR'` (literal
+  statis tanpa suffix unik per-run, pola yang SAMA dengan cacat "LIMIT
+  1 tanpa ORDER BY" yang diperbaiki commit `456609fe` untuk 7 berkas
+  lain — berkas ini kelihatannya belum ikut diperbaiki) dan
+  `otomasi-asuransi.test.ts` menghitung baris lintas-tabel yang rentan
+  ke state basis dev yang terakumulasi. **Dilaporkan sebagai concern
+  ke controller untuk ditindaklanjuti terpisah — bukan diklaim hijau,
+  bukan disembunyikan, dan bukan diperbaiki sendiri** (di luar batasan
+  eksplisit Task 16: "kalau menemukan bug di halaman Task 12-15 atau
+  test lain, laporkan, jangan perbaiki sendiri").
+- **Audit a11y runtime penuh (mode terang, akun admin): 155 halaman
+  dipindai · 56 dialihkan · 0 pelanggaran.** Naik dari 137 (Task 10).
+  56 dialihkan mencakup kemungkinan besar 6 halaman baru
+  `kontrak-lengkap/*` — gap SUDAH tercatat item QUEUE `A11Y-PM-PORTAL`
+  sejak Task 10 (akun admin dialihkan `middleware.ts` dari prefix
+  `/pm-portal` sebelum axe-core sempat memindai), bukan temuan baru.
+  "0 pelanggaran" karena itu TIDAK membuktikan halaman Task 12-15
+  bebas cacat a11y — hanya 155 halaman lain yang berhasil dipindai.
+
+**Utang tercatat, belum dikerjakan:** `kt-co` (Change Order sungguhan),
+Gantt, Kurva-S, EVM, Look-Ahead 3 Minggu, WBS proyek — semuanya butuh
+hub tab PM (`pm-portal/proyek/[id]`, saat ini cuma `router.replace` ke
+admin, 16 baris) yang BELUM dibangun; `jd-baseline` juga tak
+terjangkau dari portal PM sampai hub itu ada. Ditandai di komentar
+kode dan di plan, bukan cuma di sini.
+
 ## 2026-08-20 (Portal PM Lengkap, Tahap 1) — Task 1-10 tuntas, dua regresi ditemukan & diperbaiki di verifikasi akhir
 
 Worktree `portal-mobile` (`feat/portal-mobile-rombak`), plan

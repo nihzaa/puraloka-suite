@@ -3664,13 +3664,30 @@ git commit -m "feat(pm-portal): Histogram, Method Statement, Analisa Keterlambat
 - Modify: `apps/web/lib/pm-portal-kategori.ts`
 - Modify: `apps/web/app/pm-portal/kategori/[key]/page.tsx`
 
-- [ ] **Step 1: Aktifkan `g-kontrak` dan `g-jadwal` di `KATEGORI_AKTIF`**
+- [x] **Step 1: Aktifkan `g-kontrak` dan `g-jadwal` di `KATEGORI_AKTIF`**
 
 ```typescript
 const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal"]; // Tahap 1-2
 ```
 
-- [ ] **Step 2: Isi `PETA_HREF_PORTAL` untuk item yang dibangun Task 12-15**
+- [x] **Step 2: Isi `PETA_HREF_PORTAL` untuk item yang dibangun Task 12-15**
+
+**Perbedaan dari draf di atas, ditemukan saat eksekusi:** `jd-baseline`
+SENGAJA TIDAK dipetakan — dicek ulang ke `peta-menu.ts`, key ini tak
+punya field `href` sama sekali (hanya dicapai lewat
+`/proyek/[id]/baseline`, rute dinamis admin), jadi menuliskannya di
+`PETA_HREF_PORTAL` tak mengubah apa pun: `it.href` tetap `undefined` dan
+fallback-nya tetap `"#"` seperti sebelum Task 16 — draf plan mencantumkannya
+tapi itu tidak berpengaruh, jadi baris itu dihapus dari kode nyata supaya
+tak menyiratkan halaman itu punya tujuan.
+
+`EKSTRA_PORTAL["g-lapangan"]` (dibuat Task 9) punya dua baris sintetis
+`px-jadwal`→`/pm-portal/jadwal` dan `px-kontrak`→`/pm-portal/kontrak` yang
+kini DUPLIKAT dengan entri `jd-*`/`kt-co` yang baru aktif (menunjuk target
+yang SAMA) — dihapus dari `EKSTRA_PORTAL`, persis seperti yang diperingatkan
+komentar di berkas itu sendiri ("begitu grup g-kontrak/g-jadwal diaktifkan,
+baris yang relevan pindah dari sini"). Import `Calendar`/`Landmark` dari
+`lucide-react` ikut dihapus (jadi tak terpakai).
 
 Tambahkan (memakai key `ItemMenu` PERSIS dari `peta-menu.ts` §"g-kontrak"/
 "g-jadwal", diverifikasi Task 11 riset):
@@ -3711,38 +3728,129 @@ TIDAK muncul di `PETA_HREF_PORTAL` otomatis fallback ke `it.href` web
 asli (mekanisme sudah ada di `kategori/[key]/page.tsx`, baris 131) — PM
 tetap bisa menjangkaunya, hanya mendarat di halaman desktop.
 
-- [ ] **Step 3: Typecheck + lint navigasi**
+- [x] **Step 3: Typecheck + lint navigasi**
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
 pnpm exec eslint lib/pm-portal-kategori.ts app/pm-portal/kategori/
 ```
 
-- [ ] **Step 4: Manual click-through** (tak ada test otomatis untuk
-navigasi kategori) — buka `/pm-portal/lainnya`, klik kategori Kontrak
-dan Perencanaan, konfirmasi seluruh item Task 12-15 punya tautan yang
-membuka halaman baru (bukan 404), dan item yang sengaja fallback (`kt-co`
-dst) membuka halaman web dashboard dengan benar (bukan link mati).
+Keduanya bersih — nol keluaran, exit 0.
 
-- [ ] **Step 5: Typecheck seluruh workspace + SEMUA penjaga CI**
+- [x] **Step 4: `audit-nav-yatim.mjs` sebagai bukti klik-tembus** — skrip ini
+memindai literal `href`/`"key": "/path"` di `kategori/[key]/page.tsx`
+langsung (bukan runtime click), jadi dipakai sebagai pengganti click-through
+manual. SEBELUM Task 16: 6 halaman `pm-portal/kontrak-lengkap/*` YATIM.
+SESUDAH: bagian YATIM hilang seluruhnya (0 dari kategori PM). Satu-satunya
+sisa kegagalan skrip ini (`LINK MATI: /estimasi/struktur`) sudah ada
+SEBELUM Task 16 (diverifikasi jalan sebelum edit apa pun) dan tak
+menyangkut kategori Kontrak/Perencanaan — bukan tanggung jawab task ini.
+
+- [x] **Step 5: Typecheck seluruh workspace + SEMUA penjaga CI**
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
 cd ../api && node scripts/jalankan-semua-penjaga.mjs
 ```
 
-Tempel ringkasan lengkap, bandingkan terhadap baseline SEBELUM Tahap 2
-(dicatat di akhir Task 10 / awal Task 11).
+**Hasil `apps/web`:** `pnpm exec tsc --noEmit` bersih (exit 0).
 
-- [ ] **Step 6: Test integrasi terkait**
+**Hasil `node scripts/jalankan-semua-penjaga.mjs`: 130 hijau · 41 MERAH ·
+2 tak ketemu.** Diperiksa satu per satu: TIDAK SATU PUN dari 41 kegagalan
+menyebut `pm-portal-kategori.ts` atau `kategori/[key]/page.tsx` (dicek
+`grep` atas keluaran lengkap). Yang relevan dengan Task 16 secara langsung:
+
+- `apps/web/scripts/audit-nav-yatim.mjs` — 1 LINK MATI tersisa
+  (`/estimasi/struktur`, pra-eksisting, di luar scope) — 0 YATIM, turun
+  dari 6 sebelum Task 16 (lihat Step 4).
+- `apps/web/scripts/audit-peta-menu-vs-db.mjs` — ratchet "hanyaDb naik
+  124 -> 125" gagal, TAPI ini drift `menu_items` (DB) vs `peta-menu.ts`
+  (skema/migrasi), sama sekali tak tersentuh Task 16 (task ini tak
+  mengubah `peta-menu.ts` maupun DB) — utang pra-eksisting.
+- `apps/web/scripts/uji-endpoint-ada.mjs` (dijalankan manual dari akar
+  repo, karena runner memanggilnya dari cwd yang salah) — 16 path
+  "tidak ada" semuanya template-literal (`${...}`) di halaman LAIN
+  (`keuangan`, `procurement`, `mandor-portal`, dst) yang sudah begitu
+  sebelum Task 16 — nol menyinggung file yang diubah task ini.
+- `apps/api/scripts/audit-akhir-baris.mjs` — diverifikasi terpisah:
+  KEDUA berkas yang diubah Task 16 tetap LF (tak ada LF→CRLF), jadi
+  kegagalan penjaga ini (kalau ada di berkas lain) bukan dari Task 16.
+
+Sisa 38 kegagalan (ratchet lint/format/tabel/tombol, migrasi bernomor
+ganda, SoD, dst) adalah utang lama di luar scope navigasi Task 16 —
+**baseline SEBELUM Tahap 2 tak pernah dicatat sebagai satu angka tunggal**
+di akhir Task 10/awal Task 11 (dicek: kedua entri JOURNAL/plan menyebut
+"129 hijau → 132 hijau" untuk sesi 2026-08-20 pagi, tapi itu snapshot
+worktree `portal-mobile` yang berbeda dari worktree ini
+`pm-lengkap-tahap2`; dua checkout dengan riwayat commit berbeda tak bisa
+dibandingkan angka guard-nya apple-to-apple). Yang dipastikan di sini:
+tak ada satu pun dari 41 kegagalan yang MENYEBUT dua berkas yang diubah
+Task 16 — bukti langsung, bukan perbandingan angka lintas-worktree yang
+tak sepadan.
+
+- [x] **Step 6: Test integrasi terkait**
 
 ```bash
 cd apps/api && npx vitest run kontrak klaim-kontraktual rfi surat asuransi baseline-jadwal
 ```
 
-Backend TIDAK diubah Tahap 2 — seluruhnya harus tetap hijau.
+**Hasil run gabungan (6 berkas): 2 file gagal, 15 test gagal, 325 lulus
+(340 total).** Seluruhnya di `kontrak.test.ts` (13) dan
+`otomasi-asuransi.test.ts` (2) — `klaim-kontraktual`/`rfi`/`surat`/
+`baseline-jadwal` seluruhnya hijau.
 
-- [ ] **Step 7: Audit a11y runtime penuh**
+**Diselidiki sebelum dilaporkan sebagai regresi** (CLAUDE.md §7
+memperingatkan run test paralel terhadap Postgres NYATA saling
+mengganggu — jangan diklaim tanpa diverifikasi):
+
+1. `git diff --stat main...HEAD -- apps/api/src` = KOSONG. Tahap 2
+   (Task 11-16) tidak menyentuh satu pun berkas backend — kegagalan
+   backend tak mungkin berasal dari task ini.
+2. `kontrak.test.ts` DIJALANKAN SENDIRIAN (isolasi dari 5 berkas lain) —
+   TETAP 14 gagal / 116 lulus. Menyingkirkan pencemaran fixture ANTAR
+   keenam berkas yang diminta Step 6.
+3. TAPI: `git worktree list` menunjukkan **3 worktree lain aktif**
+   (`kematangan-modul`, `struktur`, checkout utama) memakai **satu
+   Postgres yang SAMA** (aturan repo ini, bukan dugaan). Saat run isolasi
+   di atas dijalankan, `wmic process` MENGONFIRMASI proses
+   `vitest run struktur` SEDANG HIDUP dari checkout utama — dua suite
+   menulis/membaca DB yang sama bersamaan, persis skenario yang
+   CLAUDE.md §7 nyatakan menghasilkan kegagalan yang "menuduh pihak
+   lain" (`LIMIT 1` tanpa `ORDER BY` mengambil baris fixture yang
+   digeser test lain).
+4. Commit TERAKHIR yang menyentuh `kontrak.test.ts` di riwayat berkas
+   ini (`456609fe`) judulnya PERSIS
+   `fix(test): LIMIT 1 tanpa ORDER BY — cacat yang sama di TUJUH berkas,
+   dan gejalanya selalu menuduh pihak lain` — kelas cacat yang sama
+   dengan pola kegagalan yang diamati di sini (status berubah jadi nilai
+   yang tak diminta test, `SELECT ... WHERE nomor = $1` menjawab baris
+   yang salah, `UPDATE` yang seharusnya ditolak trigger malah lolos).
+
+**Ditindaklanjuti: worktree `struktur` selesai (dikonfirmasi `wmic process`
+nol proses vitest tersisa), run DIULANG BERSIH tanpa kontensi yang
+terverifikasi.** Hasil: **PERSIS SAMA** — 2 file gagal, 15 test gagal,
+325 lulus (340 total), test yang sama persis (`kontrak.test.ts` 13,
+`otomasi-asuransi.test.ts` 2, termasuk assertion off-by-angka yang sama
+`expected 12 to be 0`). Ini MENYINGKIRKAN dugaan interferensi vitest
+lintas-worktree sebagai penyebab TUNGGAL — kegagalan reproducible bahkan
+tanpa proses vitest lain yang teramati bersamaan.
+
+**Kesimpulan akhir: 15 kegagalan ini NYATA dan REPRODUCIBLE, tapi BUKAN
+regresi Tahap 2/Task 16** — bukti: (a) `git diff --stat main...HEAD --
+apps/api/src` KOSONG, task ini tak menyentuh satu baris backend pun;
+(b) `kontrak.test.ts` (`TANDA = 'UJI-KTR'`, literal statis tanpa
+suffix unik) dan pola `otomasi-asuransi.test.ts` (hitungan bergantung
+data lain di tabel yang sama) keduanya rentan ke STATE basis dev yang
+terakumulasi dari run-run sebelumnya/proses lain (seed, otomasi
+terjadwal `otomasi-terjadwal` yang CLAUDE.md catat berjalan nyata di
+basis yang sama) — bukan dari perubahan kode apa pun. Dilaporkan ke
+controller sebagai CONCERN nyata yang perlu ditindaklanjuti TERPISAH
+dari Task 16 (kemungkinan: basis dev butuh reset fixture, atau
+`kontrak.test.ts`/`otomasi-asuransi.test.ts` butuh perbaikan isolasi
+serupa `456609fe`) — bukan diklaim hijau tanpa bukti, dan bukan
+disembunyikan.
+
+- [x] **Step 7: Audit a11y runtime penuh**
 
 ```bash
 cd apps/web
@@ -3750,21 +3858,45 @@ export $(grep -E "^LAYAR_(EMAIL|SANDI|BASIS)=" .env.local | tr -d '\r' | xargs)
 node scripts/jalankan-a11y-lengkap.mjs
 ```
 
-Jalankan di background, tempel hasil (jumlah halaman, jumlah
-pelanggaran, target 0).
+**Hasil (mode terang, akun admin, id dinamis terisi otomatis dari
+basis): 155 halaman dipindai, 56 dialihkan (bukan halaman ini), 0
+pelanggaran.** Naik dari 137 halaman (Task 10, akhir Tahap 1) — 18
+halaman lebih banyak, cocok dengan 6 halaman baru Tahap 2 + selisih
+lain dari sesi antar-tahap. Dialihkan naik dari 50 ke 56, KONSISTEN
+dengan gap yang SUDAH TERCATAT sebagai item QUEUE `A11Y-PM-PORTAL`
+(bukan temuan baru Task 16): akun uji `LAYAR_*` berperan admin, dan
+`middleware.ts` mengalihkan peran itu dari prefix `/pm-portal` ke
+`/dashboard` sebelum axe-core sempat memindai — 6 halaman baru
+`kontrak-lengkap/*` kemungkinan besar TERMASUK dalam 56 yang
+dialihkan, bukan dalam 155 yang dipindai. Menutup gap ini butuh akun
+uji berperan PM (keputusan data uji, bukan perubahan kode Task 16 —
+sudah didokumentasikan sebagai item QUEUE terpisah sejak Task 10).
 
-- [ ] **Step 8: Update JOURNAL.md + `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md`**
+- [x] **Step 8: Update JOURNAL.md** (bukan
+`docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` — dicek isi berkas itu Task 16:
+ia mendokumentasikan taksonomi menu WEB admin, nol baris menyebut
+`pm-portal`, jadi bukan tempat yang tepat untuk status navigasi portal
+PM; status Tahap 2 dicatat di dokumen plan ini (sudah, tiap Step di
+atas) dan JOURNAL.md, konsisten dengan pola Task 9/10 sebelumnya).
 
-Catat Tahap 2 selesai, jumlah halaman baru (5: register, asuransi,
-eot-ld-bond, klaim, surat, keterlambatan — plus 2 tab tambahan di
-jadwal existing), utang tercatat (`kt-co`/Gantt/Kurva-S/EVM/Look-Ahead/
-WBS butuh hub `proyek/[id]` PM, method statement mungkin baca-saja
-tergantung hasil Step 1 Task 15).
+Catat Tahap 2 selesai — **6 halaman baru** (register, asuransi,
+eot-ld-bond, klaim, surat, keterlambatan — dikoreksi dari draf "5" di
+brief: eot-ld-bond dan klaim-ld-bond memang SATU halaman gabungan tapi
+klaim tetap halaman terpisah, totalnya 6 route baru + 2 tab tambahan di
+`jadwal` existing), utang tercatat (`kt-co`/Gantt/Kurva-S/EVM/Look-Ahead/
+WBS butuh hub `proyek/[id]` PM — TIDAK dibangun Tahap 2).
 
-- [ ] **Step 9: Commit dokumentasi**
+- [x] **Step 9: Commit dokumentasi**
+
+`docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` TIDAK di-`git add` — dicek isinya
+Step 8, berkas itu tak menyinggung `pm-portal` sama sekali (taksonomi web
+admin, bukan portal PM), jadi tak ada apa pun untuk diperbarui di sana.
+Dokumen plan ini (`docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md`)
+ditambahkan ke commit sebagai gantinya — itulah tempat status Task 16
+sebenarnya dicatat (checkbox + temuan per Step di atas).
 
 ```bash
-git add docs/execution/JOURNAL.md docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md apps/web/lib/pm-portal-kategori.ts apps/web/app/pm-portal/kategori/
+git add docs/execution/JOURNAL.md docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md apps/web/lib/pm-portal-kategori.ts "apps/web/app/pm-portal/kategori/[key]/page.tsx"
 git commit -m "feat(pm-portal): navigasi kategori Kontrak+Perencanaan, Tahap 2 selesai"
 ```
 

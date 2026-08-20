@@ -10,7 +10,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Building2, ShieldAlert,
-  FileText, Calendar, Landmark, ShoppingCart,
+  FileText, ShoppingCart,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { PETA_MENU } from "@/lib/peta-menu";
@@ -41,6 +41,32 @@ import { Folder } from "lucide-react";
  *   sesudah grid datar diganti navigasi kategori.
  *   Mitra (Task 8) TIDAK di sini — key PETA_MENU-nya `md-subkon` tinggal di
  *   grup g-master (lihat EKSTRA_PORTAL di bawah untuk alasannya).
+ *
+ * Tahap 2 (Task 11-16, grup g-kontrak/g-jadwal, key persis dari
+ * `lib/peta-menu.ts`, diverifikasi Task 11 riset + baca ulang saat Task 16):
+ *   Task 12 — kt-register (register kontrak), kt-asuransi (register asuransi)
+ *   Task 13 — kt-claims (klaim kontraktual), kt-eot/kt-ld/kt-bond (EOT, denda
+ *             keterlambatan, register jaminan — satu halaman gabungan)
+ *   Task 14 — kt-surat (surat masuk/keluar)
+ *   Task 15 — jd-delay (analisa keterlambatan, halaman berdiri sendiri) dan
+ *             dua tab BARU (histogram sumber daya, method statement) yang
+ *             ditempel ke halaman `jadwal` yang SUDAH ADA sejak Tahap 1
+ *             (jd-cpm/jd-histogram/jd-method/jd-milestone semua satu halaman,
+ *             berbeda tab lewat SegmentedTab internal — bukan query string)
+ *   kt-rfi TIDAK dibangun Task 12-15 — dipetakan ke `lp-rfi` yang sudah ada
+ *   (Task 8/sebelum plan ini): RFI kontraktual (kt-rfi, ke konsultan) dan RFI
+ *   lapangan (lp-rfi) beda modul di admin (lihat catatan kt-rfi di
+ *   peta-menu.ts) tapi portal PM baru punya SATU halaman inspeksi/RFI —
+ *   ditandai di sini, bukan diam-diam disamakan.
+ *   kt-termin/kt-retensi/kt-subkon menunjuk halaman Tahap 1 yang SUDAH ADA
+ *   (keuangan, retensi mandor-lengkap, penugasan) — bukan halaman baru
+ *   Task 12-15, tapi key-nya baru aktif sekarang karena g-kontrak baru
+ *   dinyalakan di KATEGORI_AKTIF.
+ *   kt-co: UTANG, bukan selesai — lihat komentar di baris itu di bawah.
+ *   jd-baseline SENGAJA TIDAK dipetakan: di peta-menu.ts key ini tak
+ *   punya `href` sama sekali (hanya dicapai lewat /proyek/[id]/baseline,
+ *   rute dinamis admin) — portal PM belum punya versi Tahap 2 ini, jadi
+ *   fallback `it.href` jatuh ke `"#"` sebagaimana adanya sebelum Task 16.
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "sk-paket": "/pm-portal/mandor-lengkap/penugasan",
@@ -55,26 +81,54 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "lp-punch": "/pm-portal/punch-list",
   "lp-rfi": "/pm-portal/inspeksi-rfi",
   "lp-submittal": "/pm-portal/submittal",
+  // Tahap 2 (Task 16) — grup g-kontrak / g-jadwal.
+  "kt-register": "/pm-portal/kontrak-lengkap/register",
+  "kt-asuransi": "/pm-portal/kontrak-lengkap/asuransi",
+  "kt-claims": "/pm-portal/kontrak-lengkap/klaim",
+  "kt-eot": "/pm-portal/kontrak-lengkap/eot-ld-bond",
+  "kt-ld": "/pm-portal/kontrak-lengkap/eot-ld-bond",
+  "kt-bond": "/pm-portal/kontrak-lengkap/eot-ld-bond",
+  "kt-rfi": "/pm-portal/inspeksi-rfi",
+  "kt-surat": "/pm-portal/kontrak-lengkap/surat",
+  "kt-termin": "/pm-portal/keuangan",
+  "kt-retensi": "/pm-portal/mandor-lengkap/retensi",
+  "kt-subkon": "/pm-portal/mandor-lengkap/penugasan",
+  // kt-co: BELUM ada hub tab PM (`pm-portal/proyek/[id]`) — lihat komentar
+  // di bawah. Menunjuk ringkasan kontrak Tahap 1 sebagai fallback sementara,
+  // BUKAN Change Order sungguhan. Ditandai UTANG, bukan selesai.
+  "kt-co": "/pm-portal/kontrak",
+  "jd-cpm": "/pm-portal/jadwal",
+  "jd-histogram": "/pm-portal/jadwal",
+  "jd-method": "/pm-portal/jadwal",
+  "jd-milestone": "/pm-portal/jadwal",
+  "jd-delay": "/pm-portal/kontrak-lengkap/keterlambatan",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 
 /**
  * Modul portal PM yang SUDAH ADA tapi key `ItemMenu`-nya tinggal di grup
- * PETA_MENU yang BELUM aktif di `kategoriUntukPm()` (Tahap 1 hanya g-subkon
- * + g-lapangan): Mitra (`md-subkon`, grup g-master), K3 (`hse-inspeksi`,
- * grup g-hse), Dokumen/Jadwal/Kontrak/Procurement (halaman agregat lintas-
- * modul di portal PM, tak dipetakan satu-ke-satu ke satu key PETA_MENU —
- * lihat komentar tiap halamannya di `app/pm-portal/{dokumen,jadwal,kontrak,
- * procurement}/page.tsx`). Tanpa baris ini, keenamnya jadi TAK TERJANGKAU
- * dari navigasi kategori — persis cacat yang ingin dihindari Task 9
- * ("halaman yang sudah ada jangan sampai jadi tak terjangkau setelah
- * struktur navigasi diganti"). Ditempel ke "Operasi Lapangan"/"Mandor &
- * Subkon" karena itulah tempat PM mencarinya sehari-hari di lapangan — sama
- * seperti `lainnya/page.tsx` versi lama yang menaruh semuanya berdampingan
- * di satu grid. TIDAK mengubah `PETA_MENU`/`KATEGORI_AKTIF` — ekstensi
- * lokal ke halaman ini saja, dan TIDAK dimaksudkan permanen: begitu grup
- * g-hse/g-kontrak/g-procurement diaktifkan di tahap berikutnya, baris yang
- * relevan pindah dari sini ke PETA_HREF_PORTAL/KATEGORI_AKTIF yang semestinya.
+ * PETA_MENU yang BELUM aktif di `kategoriUntukPm()`: Mitra (`md-subkon`,
+ * grup g-master), K3 (`hse-inspeksi`, grup g-hse), Dokumen/Procurement
+ * (halaman agregat lintas-modul di portal PM, tak dipetakan satu-ke-satu ke
+ * satu key PETA_MENU — lihat komentar tiap halamannya di
+ * `app/pm-portal/{dokumen,procurement}/page.tsx`). Tanpa baris ini,
+ * keempatnya jadi TAK TERJANGKAU dari navigasi kategori — persis cacat yang
+ * ingin dihindari Task 9 ("halaman yang sudah ada jangan sampai jadi tak
+ * terjangkau setelah struktur navigasi diganti"). Ditempel ke "Operasi
+ * Lapangan"/"Mandor & Subkon" karena itulah tempat PM mencarinya
+ * sehari-hari di lapangan — sama seperti `lainnya/page.tsx` versi lama yang
+ * menaruh semuanya berdampingan di satu grid. TIDAK mengubah
+ * `PETA_MENU`/`KATEGORI_AKTIF` — ekstensi lokal ke halaman ini saja, dan
+ * TIDAK dimaksudkan permanen: begitu grup g-hse/g-procurement diaktifkan di
+ * tahap berikutnya, baris yang relevan pindah dari sini ke
+ * PETA_HREF_PORTAL/KATEGORI_AKTIF yang semestinya.
+ *
+ * `px-jadwal` ("Jadwal & Baseline") dan `px-kontrak` ("Kontrak") DIHAPUS
+ * dari sini Task 16 — g-kontrak/g-jadwal kini aktif dan PETA_HREF_PORTAL
+ * di atas sudah menunjuk ke halaman yang SAMA (`jd-cpm` dkk. dan `kt-co`
+ * keduanya → `/pm-portal/jadwal` dan `/pm-portal/kontrak`), jadi
+ * mempertahankan baris ini akan menampilkan dua tautan kembar ke tujuan
+ * yang sama pada kategori "Operasi Lapangan".
  */
 const EKSTRA_PORTAL: Record<string, { key: string; label: string; href: string; icon: LucideIcon }[]> = {
   "g-subkon": [
@@ -83,8 +137,6 @@ const EKSTRA_PORTAL: Record<string, { key: string; label: string; href: string; 
   "g-lapangan": [
     { key: "hse-inspeksi", label: "K3", href: "/pm-portal/k3", icon: ShieldAlert },
     { key: "px-dokumen", label: "Dokumen", href: "/pm-portal/dokumen", icon: FileText },
-    { key: "px-jadwal", label: "Jadwal & Baseline", href: "/pm-portal/jadwal", icon: Calendar },
-    { key: "px-kontrak", label: "Kontrak", href: "/pm-portal/kontrak", icon: Landmark },
     { key: "px-procurement", label: "Procurement", href: "/pm-portal/procurement", icon: ShoppingCart },
   ],
 };

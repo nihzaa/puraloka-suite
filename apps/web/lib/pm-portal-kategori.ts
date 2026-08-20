@@ -28,12 +28,18 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * Tahap 1 (Task 6-9): dua kelompok sudah punya halaman portal PM —
  * "Mandor & Subkon" (g-subkon, Task 6-8) dan "Operasi Lapangan"
  * (g-lapangan, dibangun sesi SEBELUM plan Portal PM Lengkap ini: K3,
- * Punch List, Inspeksi/RFI, Submittal). Kategori lain (Kontrak, Budget,
- * dst) BELUM dibangun di portal PM — JANGAN ditambahkan ke daftar ini
- * sampai tahap yang membangunnya selesai, supaya kategori kosong/
- * setengah-jadi tak pernah tampil ke PM di HP.
+ * Punch List, Inspeksi/RFI, Submittal).
+ *
+ * Tahap 2 (Task 11-16): dua kelompok lagi ditambahkan — "Kontrak"
+ * (g-kontrak, Task 12-14: register, asuransi, klaim, EOT/LD/bond, surat)
+ * dan "Perencanaan" (g-jadwal, Task 15: dua tab tambahan — histogram &
+ * method statement — ditempel ke halaman `jadwal` yang sudah ada sejak
+ * Tahap 1, plus analisa keterlambatan). Kategori lain (Budget, dst) BELUM
+ * dibangun di portal PM — JANGAN ditambahkan ke daftar ini sampai tahap
+ * yang membangunnya selesai, supaya kategori kosong/setengah-jadi tak
+ * pernah tampil ke PM di HP.
  */
-const KATEGORI_AKTIF = ["g-subkon", "g-lapangan"]; // Tahap 1 — tambah tiap tahap
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal"]; // Tahap 1-2
 
 export function kategoriUntukPm(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));
