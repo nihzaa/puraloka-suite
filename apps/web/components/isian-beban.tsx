@@ -71,14 +71,25 @@ export interface NilaiBeban {
   lapisMati?: string[];
   jenisDinding?: string;
   tinggiDindingM?: number;
+  /* Khusus KOLOM — beban aksial menumpuk dari lantai di atasnya. */
+  luasTributariM2?: number;
+  jumlahLantai?: number;
+  tinggiLantaiM?: number;
 }
 
 export function IsianBeban({
-  nilai, onUbah, nonaktif = false,
+  nilai, onUbah, nonaktif = false, mode = "balok",
 }: {
   nilai: NilaiBeban;
   onUbah: (baru: NilaiBeban) => void;
   nonaktif?: boolean;
+  /*
+    Balok memikul beban LUASAN sepanjang bentangnya; kolom memikul beban
+    TITIK yang menumpuk dari tiap lantai. Medannya karena itu berbeda —
+    menyatukannya berarti menampilkan isian yang tak dipakai, dan isian yang
+    tak dipakai tetap diisi orang.
+  */
+  mode?: "balok" | "kolom";
 }) {
   const { data, galat } = useData<Katalog>("/api/v1/struktur/katalog-beban");
 
@@ -135,10 +146,43 @@ export function IsianBeban({
       </strong>
 
       <p style={{ margin: 0, fontSize: "var(--teks-delta)", color: C.mid }}>
-        Bila diisi, momen dan gaya lintang DIHITUNG dari beban — tak perlu
-        mengetik Mu/Vu sendiri. Berat sendiri balok dan pelat sudah dihitung
-        otomatis dari ukurannya, jadi tak perlu dimasukkan lagi di sini.
+        {mode === "kolom"
+          ? "Bila diisi, beban aksial Pu DIHITUNG dari lantai yang dipikul kolom ini "
+            + "— termasuk berat sendiri kolom, dan dengan reduksi beban hidup SNI "
+            + "1727 §4.7. Momen kolom tetap diketik: ia lahir dari kekakuan portal, "
+            + "bukan dari beban lantai."
+          : "Bila diisi, momen dan gaya lintang DIHITUNG dari beban — tak perlu "
+            + "mengetik Mu/Vu sendiri. Berat sendiri balok dan pelat sudah dihitung "
+            + "otomatis dari ukurannya, jadi tak perlu dimasukkan lagi di sini."}
       </p>
+
+      {mode === "kolom" && (
+        <div style={{ display: "grid", gap: 10, gridTemplateColumns: "1fr 1fr 1fr" }}>
+          <Isian id="beban-tributari" label="Luas dipikul per lantai (m²)"
+            bantuan="Kira-kira ¼ luas antar-4 kolom di sekitarnya.">
+            <KotakIsian id="beban-tributari" type="number" step="any"
+              value={nilai.luasTributariM2 ?? ""} disabled={nonaktif}
+              onChange={(e) => onUbah({ ...nilai,
+                luasTributariM2: e.target.value === "" ? undefined : Number(e.target.value) })}
+              style={{ width: "100%" }} />
+          </Isian>
+          <Isian id="beban-lantai" label="Jumlah lantai dipikul"
+            bantuan="Termasuk atap. Kolom lantai dasar memikul semuanya.">
+            <KotakIsian id="beban-lantai" type="number" step="1"
+              value={nilai.jumlahLantai ?? ""} disabled={nonaktif}
+              onChange={(e) => onUbah({ ...nilai,
+                jumlahLantai: e.target.value === "" ? undefined : Number(e.target.value) })}
+              style={{ width: "100%" }} />
+          </Isian>
+          <Isian id="beban-tinggi-lantai" label="Tinggi antar-lantai (m)">
+            <KotakIsian id="beban-tinggi-lantai" type="number" step="any"
+              value={nilai.tinggiLantaiM ?? ""} disabled={nonaktif}
+              onChange={(e) => onUbah({ ...nilai,
+                tinggiLantaiM: e.target.value === "" ? undefined : Number(e.target.value) })}
+              style={{ width: "100%" }} />
+          </Isian>
+        </div>
+      )}
 
       {/* ── Beban hidup: fungsi ruang ─────────────────────────────────── */}
       <Isian
@@ -218,6 +262,12 @@ export function IsianBeban({
         </div>
       </fieldset>
 
+      {/*
+        Dinding hanya untuk BALOK: ia beban GARIS di atas baloknya. Beban
+        dinding pada kolom sampai lewat balok, jadi menghitungnya lagi di
+        sini akan menghitungnya dua kali.
+      */}
+      {mode === "balok" && (<>
       {/* ── Dinding di atas balok ─────────────────────────────────────── */}
       <div style={{ display: "grid", gap: 10, gridTemplateColumns: "2fr 1fr" }}>
         <Isian id="beban-dinding" label="Dinding di atas balok">
@@ -251,6 +301,8 @@ export function IsianBeban({
           />
         </Isian>
       </div>
+
+      </>)}
 
       <p style={{
         margin: 0, display: "flex", gap: 6, alignItems: "flex-start",

@@ -127,19 +127,59 @@ try {
   await page.waitForTimeout(400)
   await page.screenshot({ path: join(KELUAR, 'isian-beban.png'), fullPage: false })
 
-  // ── (2) TIDAK muncul untuk kolom ─────────────────────────────────────────
-  /* , bukan select PERTAMA — yang pertama pemilih PROYEK di
-     bilah atas, dan skrip yang memakainya menuduh produk atas kesalahannya
-     sendiri. */
+  // ── (2) KOLOM: muncul, tapi dengan medan yang BERBEDA ────────────────────
+  /*
+    Dulu pemeriksa ini menuntut isian beban TIDAK muncul untuk kolom, dan
+    itu benar SAAT ITU — beban kolom belum dihitung sama sekali.
+
+    Sekarang sudah ada (`analisaBebanKolom`), jadi tuntutannya berubah:
+    isian tetap muncul, tapi medannya HARUS berbeda. Balok memikul beban
+    luasan sepanjang bentangnya; kolom memikul beban titik yang menumpuk
+    dari tiap lantai.
+
+    Pemeriksa yang tak ikut diperbarui akan menuduh produk atas perubahan
+    yang disengaja — dan yang membacanya besok tak tahu mana yang benar.
+  */
   const pemilihJenis = page.locator('#f-jenis')
   await pemilihJenis.selectOption('kolom')
-  await page.waitForTimeout(900)
-  if (await page.locator('#beban-fungsi').count()) {
-    console.error('❌ isian beban MUNCUL untuk kolom — beban kolom aksial, hitungannya berbeda')
-    console.error('   Menampilkannya berarti menjanjikan sesuatu yang tak dihitung siapa pun.')
-    gagal++
-  } else console.log('✓ isian beban TIDAK muncul untuk kolom')
+  await page.waitForTimeout(1200)
 
+  if (!(await page.locator('#beban-fungsi').count())) {
+    console.error('❌ isian beban TAK muncul untuk kolom — padahal Pu bisa dihitung')
+    gagal++
+  } else {
+    console.log('✓ isian beban muncul untuk kolom')
+
+    /* Medan KHUSUS kolom wajib ada. */
+    for (const [id, nama] of [['#beban-tributari', 'luas tributari'], ['#beban-lantai', 'jumlah lantai']]) {
+      if (!(await page.locator(id).count())) {
+        console.error(`❌ medan ${nama} tak ada di mode kolom`)
+        gagal++
+      }
+    }
+    console.log('✓ medan khusus kolom (tributari, jumlah lantai) tersedia')
+
+    /*
+      Dinding TIDAK boleh muncul untuk kolom: beban dinding sampai ke kolom
+      LEWAT balok, jadi menghitungnya lagi di sini berarti dua kali.
+    */
+    if (await page.locator('#beban-dinding').count()) {
+      console.error('❌ isian dinding muncul untuk kolom — bebannya akan terhitung DUA KALI')
+      gagal++
+    } else console.log('✓ isian dinding TIDAK muncul untuk kolom')
+
+    /* Keterangan pembukanya menyebut momen tetap diketik. */
+    const teksKolom = await page.locator('body').innerText()
+    if (!/[Mm]omen kolom tetap diketik/.test(teksKolom)) {
+      console.error('❌ layar tak menyatakan momen kolom tetap diketik')
+      console.error('   Membiarkan pembacanya mengira momennya ikut terhitung adalah kelalaian.')
+      gagal++
+    } else console.log('✓ layar menyatakan momen kolom tetap diketik')
+
+    await page.locator('#beban-tributari').scrollIntoViewIfNeeded()
+    await page.waitForTimeout(400)
+    await page.screenshot({ path: join(KELUAR, 'isian-beban-kolom.png'), fullPage: false })
+  }
   await ctx.close()
   await browser.close()
 

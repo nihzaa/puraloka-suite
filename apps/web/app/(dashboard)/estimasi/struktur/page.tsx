@@ -2223,14 +2223,18 @@ function StrukturLayar() {
               tak terlihat di sana tak bisa diperbaiki pengguna.
               ══════════════════════════════════════════════════════════════
             */}
-            {(jenis === "balok" || jenis === "sloof") && (
+            {(jenis === "balok" || jenis === "sloof" || jenis === "kolom") && (
               <IsianBeban
+                mode={jenis === "kolom" ? "kolom" : "balok"}
                 nonaktif={sibuk}
                 nilai={{
                   fungsiRuangKunci: input.fungsiRuangKunci as string | undefined,
                   lapisMati: input.lapisMati as string[] | undefined,
                   jenisDinding: input.jenisDinding as string | undefined,
                   tinggiDindingM: input.tinggiDindingM as number | undefined,
+                  luasTributariM2: input.luasTributariM2 as number | undefined,
+                  jumlahLantai: input.jumlahLantai as number | undefined,
+                  tinggiLantaiM: input.tinggiLantaiM as number | undefined,
                 }}
                 onUbah={(b: NilaiBeban) => {
                   /*

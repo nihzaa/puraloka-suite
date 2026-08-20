@@ -68,6 +68,7 @@ import {
 } from '../../lib/struktur-gambar.js'
 import { bandingkan, kandidatDariVariasi } from '../../lib/struktur-banding.js'
 import { analisaBebanBalok } from '../../lib/struktur-beban-balok.js'
+import { analisaBebanKolom } from '../../lib/struktur-beban-kolom.js'
 import {
   FUNGSI_RUANG, JENIS_DINDING, LAPIS_MATI,
 } from '../../lib/struktur-katalog-beban.js'
@@ -169,13 +170,78 @@ function punyaDataBeban(input: Record<string, unknown>): boolean {
     || Array.isArray(input.lapisMati)
   return adaBentang && adaHidup && adaMati
 }
+/**
+ * Apakah input KOLOM memuat data beban aksial yang cukup?
+ *
+ * Syaratnya BERBEDA dari balok: kolom butuh luas tributari dan jumlah
+ * lantai, bukan bentang. Memakai satu syarat untuk keduanya membuat salah
+ * satunya diam-diam dilewati — kegagalan yang sudah terjadi sekali di sesi
+ * ini (katalog beban tak dikenali karena syaratnya menuntut bentuk lama).
+ */
+function punyaDataBebanKolom(input: Record<string, unknown>): boolean {
+  const adaLuas = Number.isFinite(Number(input.luasTributariM2))
+  const adaLantai = Number.isFinite(Number(input.jumlahLantai))
+  const adaHidup = Number.isFinite(Number(input.bebanHidupKnM2))
+    || typeof input.fungsiRuangKunci === 'string'
+  const adaMati = Array.isArray(input.bebanMatiTambahan)
+    || Array.isArray(input.lapisMati)
+  return adaLuas && adaLantai && adaHidup && adaMati
+}
+
 function hitung(jenis: Jenis, input: Record<string, unknown>, jumlah: number) {
   const dgnJumlah = { ...input, jumlah }
   switch (jenis) {
     // Kolom memakai varian LENGKAP — verdict-nya termasuk diagram P-M penuh.
     // Memakai `analisaKolom` polos di sini akan mengembalikan batas Fase 1
     // yang sudah ditutup Fase 2: kolom bermomen besar lolos dengan "aman".
-    case 'kolom': return analisaKolomLengkap(dgnJumlah as never)
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      KOLOM: beban AKSIAL dihitung dari lantai yang dipikulnya
+
+      Bedanya dengan balok bukan cuma rumus. Balok memikul beban luasan di
+      sepanjang bentangnya; kolom memikul beban TITIK yang menumpuk dari
+      setiap lantai di atasnya — dan angkanya bertambah ke bawah.
+
+      Yang TETAP diketik: `muKnm`. Momen kolom lahir dari kekakuan
+      balok-kolom dan goyangan portal, dan itu pekerjaan pemodelan rangka.
+      Menghitungnya di sini berarti mengarang angka yang terlihat sah.
+      ══════════════════════════════════════════════════════════════════════
+    */
+    case 'kolom': {
+      const i = dgnJumlah as Record<string, unknown>
+      if (!punyaDataBebanKolom(i)) return analisaKolomLengkap(dgnJumlah as never)
+
+      const beban = analisaBebanKolom({
+        luasTributariM2: Number(i.luasTributariM2),
+        jumlahLantai: Number(i.jumlahLantai),
+        tinggiLantaiM: Number(i.tinggiLantaiM ?? i.tinggiM ?? 3),
+        bMm: Number(i.bMm), hMm: Number(i.hMm),
+        tebalPelatMm: Number(i.tebalPelatMm ?? 0),
+        lapisMati: i.lapisMati as never,
+        bebanMatiTambahan: i.bebanMatiTambahan as never,
+        bebanHidupKnM2: i.bebanHidupKnM2 as never,
+        fungsiRuangKunci: i.fungsiRuangKunci as never,
+        bebanDindingKnM2: Number(i.bebanDindingKnM2 ?? 0),
+        pakaiReduksi: i.pakaiReduksi as never,
+      })
+      const hasil = analisaKolomLengkap({
+        ...(dgnJumlah as object),
+        puKn: beban.puKn,
+      } as never) as { catatan?: string[] }
+
+      const asal = beban.rincian
+        .map((x) => `${x.nama} = ${Math.round(x.kn * 10) / 10} kN`).join(' · ')
+      return {
+        ...hasil,
+        catatan: [
+          ...(hasil.catatan ?? []),
+          `Pu ${Math.round(beban.puKn * 10) / 10} kN DIHITUNG dari beban lantai, `
+            + 'bukan diketik.',
+          `Beban mati: ${asal}.`,
+          ...beban.catatan,
+        ],
+      }
+    }
     case 'kolom_bulat': return analisaKolomBulatLengkap(dgnJumlah as never)
     /*
       ══════════════════════════════════════════════════════════════════════
