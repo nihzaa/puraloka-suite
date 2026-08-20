@@ -4146,9 +4146,14 @@ ubah/hapus — bukan kelalaian, keputusan permission yang sudah ada.
 - [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
 
 Bentuk `assemblies` diverifikasi PERSIS ke `apps/api/src/routes/v1/
-ahsp.ts:283-289` (`GET /cecep/assemblies`) dan `price-book.ts:16-100`
-(`GET /cecep/price-book`) dan `template-wbs.ts:33-80` (`GET
-/template-wbs`):
+ahsp.ts:283-289` (`GET /cecep/assemblies`). **Price Book dan Template
+WBS dikoreksi ULANG 2026-08-21** — draf pertama menebak dua bentuk
+salah (fields flat yang ternyata bersarang, kunci `data` yang ternyata
+`template`); koreksi ini dibaca baris-per-baris LANGSUNG dari
+`price-book.ts` (baris 63-69, SELECT utama) dan `template-wbs.ts`
+(baris 33-77, endpoint list) + `lib/template-wbs.ts` (baris 36,
+`StatusTemplate`; baris 203-211, `RingkasTemplate`) — bukan ditebak
+dari nama field yang lazim.
 
 ```typescript
 /** Baris katalog AHSP nasional. `GET /api/v1/cecep/assemblies`. */
@@ -4176,36 +4181,72 @@ export interface RespAssemblyKatalog {
   limit: number
 }
 
-/** Baris price book. Bentuk PERSIS `price-book.ts` GET utama — field
- * `status` di sini adalah status HARGA (draft→verified→active→expired),
- * BUKAN status assembly di atas — dua enum berbeda, jangan disatukan. */
+/**
+ * Baris price book. Bentuk PERSIS `GET /cecep/price-book`,
+ * `price-book.ts:63-69` — `resource` BERSARANG dari PostgREST
+ * (`resource:resources(id, code, name, category, unit_code)`), BUKAN
+ * field flat `resource_code`/`resource_name` seperti draf pertama.
+ * `supplier` (BUKAN `source_note`) — field itu tak ada di endpoint ini
+ * sama sekali. `status` di sini adalah status HARGA
+ * (draft→verified→active→expired), BUKAN status assembly di atas — dua
+ * enum berbeda, jangan disatukan.
+ */
 export interface HargaSatuan {
   id: string
-  resource_id: string
-  resource_code: string | null
-  resource_name: string | null
   amount: number | string
+  currency: string
+  version_number: number
   effective_date: string
+  expired_date: string | null
   location: string | null
-  status: "draft" | "verified" | "active" | "expired"
+  supplier: string | null
   confidence_level: string | null
-  source_note: string | null
+  status: "draft" | "verified" | "active" | "expired"
+  verified_at: string | null
+  created_at: string
+  resource: { id: string; code: string; name: string; category: string | null; unit_code: string | null } | null
 }
 export interface RespHargaSatuan {
   data: HargaSatuan[]
-  total?: number | null
+  total: number | null
+  limit: number
 }
 
-/** Node pohon Template WBS. `GET /template-wbs/:id`. */
+/**
+ * Baris ringkasan Template WBS. Bentuk PERSIS `RingkasTemplate`,
+ * `apps/api/src/lib/template-wbs.ts:203-211`, dikirim `GET /template-
+ * wbs` (`template-wbs.ts:67-76`) — field TAMBAHAN dari route (bukan
+ * dari `RingkasTemplate` lib) disertakan juga: `description`,
+ * `activated_at`, `created_at`, dan `milik_bersama` (turunan
+ * `company_id === null` — katalog `standard` lintas-tenant, tak bisa
+ * disunting tenant ini).
+ *
+ * ⚠️ Status BUKAN "draft"|"published"|"archived" (tebakan draf
+ * pertama) — union ASLI dari `lib/template-wbs.ts:36`:
+ * "draft"|"active"|"superseded". "active" berarti SIAP DITERAPKAN ke
+ * proyek, "superseded" berarti sudah digantikan versi lebih baru
+ * (draf tak bisa kembali jadi aktif — trigger DB menegakkan alur maju
+ * saja, lihat `template-wbs.ts:241-246`).
+ */
 export interface TemplateWbsRingkas {
   id: string
   code: string
   name: string
+  description: string | null
+  source: string
   version_number: number
-  status: "draft" | "published" | "archived" | string
+  status: "draft" | "active" | "superseded"
+  activated_at: string | null
+  created_at: string
+  jumlahNode: number
+  milik_bersama: boolean
 }
+/** Bentuk PERSIS `reply.send({ template: [...] })`, `template-wbs.ts:52,67`
+ * — kunci `template`, BUKAN `data` seperti draf pertama. Membaca
+ * `data?.data` pada respons asli SELALU jadi `[]` — halaman akan
+ * SELALU menampilkan "Belum ada template" walau datanya ada. */
 export interface RespTemplateWbsList {
-  data: TemplateWbsRingkas[]
+  template: TemplateWbsRingkas[]
 }
 ```
 
@@ -4320,7 +4361,12 @@ export default function PmKatalogAhspPage() {
 - [ ] **Step 3: `cecep/harga/page.tsx`** — daftar harga terkini, dikelompokkan
 per status (`active` dulu, lalu `verified`/`draft`/`expired` dilipat
 default). Badge status berwarna (`active`=approved, `expired`=rejected,
-`draft`/`verified`=netral). Read-only, tanpa form tambah harga.
+`draft`/`verified`=netral). Read-only, tanpa form tambah harga. **Dikoreksi
+2026-08-21**: nama resource dibaca dari `h.resource?.name`/`h.resource?.code`
+(objek bersarang), bukan `h.resource_name`/`h.resource_code` flat — draf
+pertama salah bentuk dan SETIAP baris akan jatuh ke fallback "—" secara
+senyap. Baris "sumber" memakai `h.supplier`, bukan `h.source_note` (field
+itu tak ada di respons endpoint ini).
 
 ```typescript
 "use client";
@@ -4404,8 +4450,11 @@ export default function PmPriceBookPage() {
                 {baris.map((h) => (
                   <div key={h.id} style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", borderBottom: "1px solid var(--border)" }}>
                     <div style={{ minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{h.resource_name ?? h.resource_code ?? "—"}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{h.location ?? "Umum"} · berlaku {h.effective_date}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{h.resource?.name ?? h.resource?.code ?? "—"}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                        {h.location ?? "Umum"} · berlaku {h.effective_date}
+                        {h.supplier ? ` · ${h.supplier}` : ""}
+                      </div>
                     </div>
                     <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)", flexShrink: 0 }}>{fmtRupiah(h.amount)}</div>
                   </div>
@@ -4421,9 +4470,14 @@ export default function PmPriceBookPage() {
 ```
 
 - [ ] **Step 4: `cecep/wbs/page.tsx`** — daftar template (kode, nama,
-versi, status), tap buka detail pohon read-only. Tanpa tombol "Terapkan"
-(aksi destruktif — menolak proyek ber-RAB, tak cocok jadi aksi mobile
-satu ketuk tanpa konteks penuh).
+jumlah baris struktur, versi, status), tap buka detail pohon read-only.
+Tanpa tombol "Terapkan" (aksi destruktif — menolak proyek ber-RAB, tak
+cocok jadi aksi mobile satu ketuk tanpa konteks penuh). **Dikoreksi
+2026-08-21**: dibaca `data?.template` (bukan `data?.data`), status
+`draft|active|superseded` (bukan `draft|published|archived`), dan
+`jumlahNode` ditampilkan — field ini yang dicatat komentar backend
+sebagai "angka paling menentukan di layar" (template tanpa baris
+struktur terlihat sama dengan yang berisi 40 baris sampai dibuka).
 
 ```typescript
 "use client";
@@ -4437,12 +4491,12 @@ import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge"
 import type { RespTemplateWbsList, TemplateWbsRingkas, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
 
-const LABEL_STATUS: Record<string, string> = { draft: "Draf", published: "Terbit", archived: "Arsip" };
-const VARIAN_STATUS: Record<string, VarianStatus> = { draft: "netral", published: "approved", archived: "rejected" };
+const LABEL_STATUS: Record<string, string> = { draft: "Draf", active: "Aktif", superseded: "Tergantikan" };
+const VARIAN_STATUS: Record<string, VarianStatus> = { draft: "netral", active: "approved", superseded: "rejected" };
 
 export default function PmTemplateWbsPage() {
   const { data, memuat, galat } = useData<RespTemplateWbsList>("/api/v1/template-wbs");
-  const daftar = data?.data ?? [];
+  const daftar = data?.template ?? [];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -4463,8 +4517,15 @@ export default function PmTemplateWbsPage() {
       {daftar.map((t: TemplateWbsRingkas) => (
         <div key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{t.code} · {t.name}</div>
-            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Versi {t.version_number}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
+              {t.code} · {t.name}
+              {t.milik_bersama && (
+                <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: "var(--text-secondary)" }}>· Katalog bersama</span>
+              )}
+            </div>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+              Versi {t.version_number} · {t.jumlahNode} baris struktur
+            </div>
           </div>
           <StatusBadge status={VARIAN_STATUS[t.status] ?? "netral"} label={LABEL_STATUS[t.status] ?? t.status} />
         </div>
@@ -5056,8 +5117,34 @@ git commit -m "feat(pm-portal): RAB per proyek — dashbor daftar + susun item"
 gerbang `cecep:rap:view`/`:manage`, PM punya keduanya. `qty_adjusted`
 HANYA bisa diubah saat status bukan `locked` (ditegakkan backend); sekali
 `locked`, TAK ADA jalur buka kunci — hanya `change-log` beralasan wajib.
-`markup.ts` — `GET /markup/berlaku`, gerbang `cecep:markup:view` SAJA
-untuk PM (read-only, konsisten Task 18).
+
+**Markup — riset DIBACA ULANG PENUH 2026-08-21** (review menemukan draf
+pertama salah bentuk data secara mendasar — bukan tebakan field yang
+meleset sedikit, tapi salah ASUMSI seluruh bentuk respons). `markup.ts`
+punya DUA endpoint GET berbeda, bukan satu:
+
+- **`GET /api/v1/markup`** (`markup.ts:46-78`) — daftar SELURUH periode
+  markup (`SELECT` konstan: `id, jenis_pekerjaan, berlaku_sejak,
+  overhead_fraksi, keuntungan_fraksi, kontinjensi_fraksi, buk_fraksi,
+  alasan, catatan, ditetapkan_oleh, created_at`), PLUS `berlaku` (markup
+  yang aktif HARI INI, umum) dan `berlaku_per_jenis` (array per jenis
+  pekerjaan yang punya barisnya sendiri). **Inilah endpoint yang cocok
+  untuk halaman "daftar aturan markup"** — draf pertama malah memakai
+  `/markup/berlaku` untuk kebutuhan ini, endpoint yang salah tujuan.
+- **`GET /api/v1/markup/berlaku?pada=&jenis=&biaya_pokok=`**
+  (`markup.ts:81-130`) — menjawab SATU markup yang berlaku untuk SATU
+  konteks (tanggal+jenis), mengembalikan **satu objek** `{ markup, pada,
+  rincian, margin_persen }` — BUKAN daftar. `markup` bisa `null` (sengaja
+  — "belum ditetapkan" harus terlihat, bukan ditutupi angka 0%).
+  `biaya_pokok` adalah QUERY PARAM opsional untuk fitur kalkulator
+  penawaran di endpoint yang SAMA, bukan field yang pernah muncul di
+  respons list — draf pertama menaruhnya sebagai field tipe `AturanMarkup`,
+  itu salah total.
+
+Field markup JUGA berbeda dari draf pertama: `jenis_pekerjaan` (bukan
+`jenis`), EMPAT fraksi terpisah `overhead_fraksi`/`keuntungan_fraksi`/
+`kontinjensi_fraksi`/`buk_fraksi` (bukan satu `persentase`). Gerbang GET
+`cecep:markup:view` SAJA untuk PM (read-only, konsisten Task 18).
 
 - [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
 
@@ -5071,7 +5158,12 @@ export interface RapRingkas {
   estimate_version_id: string; locked_at: string | null; created_at: string
 }
 export interface RapMaterialLine {
-  id: string; qty_ahsp: number; qty_adjusted: number; unit_code: string
+  id: string
+  /** Diverifikasi ulang 2026-08-21: SELECT `rap.ts:215` menyertakan
+   * `resource_id` di level atas (bukan cuma di dalam `resource` bersarang) —
+   * ditambahkan untuk kelengkapan meski tak dipakai halaman ini. */
+  resource_id: string
+  qty_ahsp: number; qty_adjusted: number; unit_code: string
   supplier_price: number; supplier_id: string | null; pagu: number; notes: string | null
   resource: { code: string; name: string } | null
 }
@@ -5090,17 +5182,61 @@ export interface RapChangeLogEntry {
   old_value: string | null; new_value: string | null; reason: string; changed_at: string
 }
 
-/** `GET /api/v1/markup/berlaku` — aturan markup AKTIF per jenis+biaya
- * pokok. Read-only untuk PM (cecep:markup:view saja, tanpa :manage). */
-export interface AturanMarkup {
+/**
+ * Satu periode markup TERSIMPAN. Bentuk PERSIS konstanta `SELECT`,
+ * `apps/api/src/routes/v1/markup.ts:34-38` — dibaca ULANG PENUH
+ * 2026-08-21 sesudah draf pertama salah total (field `jenis`/
+ * `persentase`/`biaya_pokok` yang ditulis draf pertama TIDAK ADA di
+ * respons ini). Empat fraksi TERPISAH (bukan satu `persentase`) karena
+ * overhead, keuntungan, kontinjensi, dan BUK (biaya-umum-keuntungan,
+ * dikirim ke `computeAhsp`) adalah empat keputusan bisnis berbeda yang
+ * bisa disetujui terpisah. Read-only untuk PM (cecep:markup:view saja).
+ */
+export interface PeriodeMarkup {
   id: string
-  jenis: string
-  biaya_pokok: string
-  persentase: number | string
+  /** `null` = berlaku UMUM (semua jenis pekerjaan yang tak punya baris sendiri). */
+  jenis_pekerjaan: string | null
   berlaku_sejak: string
+  overhead_fraksi: number | string | null
+  keuntungan_fraksi: number | string | null
+  kontinjensi_fraksi: number | string | null
+  buk_fraksi: number | string | null
+  alasan: string | null
   catatan: string | null
+  ditetapkan_oleh: string | null
+  created_at: string
 }
-export interface RespMarkupBerlaku { data: AturanMarkup[] }
+/**
+ * Markup yang SUDAH DIPILIH untuk satu tanggal (fungsi `pilihMarkup()`,
+ * `apps/api/src/lib/markup.ts:39-50`) — angka SIAP PAKAI (bukan fraksi
+ * mentah), dan `dari_umum` menandai baris umum dipakai karena jenis ini
+ * tak punya baris sendiri.
+ */
+export interface MarkupTerpilih {
+  periode_id: string
+  jenis_pekerjaan: string | null
+  berlaku_sejak: string
+  overhead: number
+  keuntungan: number
+  kontinjensi: number
+  buk: number
+  dari_umum: boolean
+}
+/**
+ * Bentuk PERSIS `GET /api/v1/markup`, `markup.ts:68-76` — daftar SELURUH
+ * periode (`periode`), markup umum yang berlaku HARI INI (`berlaku`,
+ * bisa `null` — "belum ditetapkan" harus tampak, bukan ditutupi 0%), dan
+ * markup berlaku PER JENIS pekerjaan yang punya baris sendiri
+ * (`berlaku_per_jenis`). Ini endpoint LIST — `GET /markup/berlaku`
+ * (dipakai draf pertama secara keliru) menjawab SATU objek untuk SATU
+ * konteks tanggal+jenis, bukan daftar; tidak dipakai halaman ini.
+ */
+export interface RespMarkupList {
+  periode: PeriodeMarkup[]
+  berlaku: MarkupTerpilih | null
+  berlaku_per_jenis: Array<{ jenis_pekerjaan: string; markup: MarkupTerpilih | null }>
+  pada: string
+}
 ```
 
 - [ ] **Step 2: `cecep/rap/page.tsx`** — dashbor per proyek (pemilih
@@ -5435,49 +5571,127 @@ export default function PmRapDetailPage() {
 }
 ```
 
-- [ ] **Step 4: `cecep/markup/page.tsx`** — read-only, daftar aturan
-markup berlaku dikelompokkan per jenis. Tanpa tombol tambah (PM hanya
-`cecep:markup:view`).
+- [ ] **Step 4: `cecep/markup/page.tsx`** — DITULIS ULANG 2026-08-21
+(draf pertama mengasumsikan endpoint list markup ber-field
+`jenis`/`persentase`/`biaya_pokok` yang tidak pernah ada; ditulis ulang
+dari struktur data sesungguhnya, bukan ditambal). Read-only, tanpa
+tombol tambah (PM hanya `cecep:markup:view`). Memakai `GET
+/api/v1/markup` (endpoint LIST, bukan `/markup/berlaku` yang menjawab
+satu konteks) — respons berisi seluruh periode (`periode`) DAN markup
+yang sudah dipilih untuk hari ini (`berlaku` umum + `berlaku_per_jenis`).
+Bentuk halaman: kartu ringkasan "berlaku hari ini" di atas (umum, lalu
+per jenis yang punya baris sendiri — pola yang sama dengan cara backend
+sendiri membedakan keduanya), lalu daftar SELURUH periode di bawah
+dikelompokkan per `jenis_pekerjaan` (`null` → kelompok "Umum"),
+diurutkan `berlaku_sejak` terbaru dulu. Empat fraksi ditampilkan sebagai
+persen (dikali 100), BUK diberi penekanan visual (baris yang dikirim ke
+`computeAhsp`, angka yang benar-benar dipakai menghitung penawaran).
 
 ```typescript
 "use client";
 
+import { useMemo } from "react";
 import { Percent } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
-import type { RespMarkupBerlaku, GalatApi } from "../../_bersama/tipe";
+import type { RespMarkupList, PeriodeMarkup, MarkupTerpilih, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
 
+function fmtPct(v: number | string | null | undefined): string {
+  if (v === null || v === undefined) return "—";
+  const n = typeof v === "string" ? Number(v) : v;
+  if (!Number.isFinite(n)) return "—";
+  return `${(n * 100).toFixed(1)}%`;
+}
+function fmtTanggal(s: string): string {
+  return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function KartuBerlaku({ label, m }: { label: string; m: MarkupTerpilih | null }) {
+  if (!m) {
+    return (
+      <div style={{ padding: 14, borderRadius: 14, background: "var(--warning-bg)", border: "1px solid var(--warning-border)" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--on-warning-bg)" }}>{label}</div>
+        <div style={{ fontSize: 12, color: "var(--on-warning-bg)", marginTop: 2 }}>Belum ditetapkan.</div>
+      </div>
+    );
+  }
+  return (
+    <div style={{ padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)" }}>{label}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "var(--navy)" }}>{fmtPct(m.buk)}</div>
+      </div>
+      <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
+        Overhead {fmtPct(m.overhead)} · Keuntungan {fmtPct(m.keuntungan)} · Kontinjensi {fmtPct(m.kontinjensi)}
+        {m.dari_umum ? " · dari aturan umum" : ""}
+      </div>
+    </div>
+  );
+}
+
 export default function PmMarkupPage() {
-  const { data, memuat, galat } = useData<RespMarkupBerlaku>("/api/v1/markup/berlaku");
-  const daftar = data?.data ?? [];
+  const { data, memuat, galat } = useData<RespMarkupList>("/api/v1/markup");
+
+  const kelompok = useMemo(() => {
+    const m = new Map<string, PeriodeMarkup[]>();
+    for (const p of data?.periode ?? []) {
+      const k = p.jenis_pekerjaan ?? "(umum)";
+      m.set(k, [...(m.get(k) ?? []), p]);
+    }
+    return [...m.entries()].sort(([a], [b]) => (a === "(umum)" ? -1 : b === "(umum)" ? 1 : a.localeCompare(b)));
+  }, [data]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Markup & Margin</h1>
       <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>
-        Aturan markup berlaku saat ini. Mengubah aturan hanya tersedia di web.
+        Angka yang menentukan laba tiap penawaran. Mengubah aturan hanya tersedia di web.
       </p>
 
-      {memuat && <SkeletonCard tinggi={64} />}
+      {memuat && <SkeletonCard tinggi={72} />}
       {galat && <EmptyState icon={Percent} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
-      {!memuat && !galat && daftar.length === 0 && (
-        <EmptyState icon={Percent} judul="Belum ada aturan" deskripsi="Markup belum dikonfigurasi." />
+
+      {!memuat && !galat && (
+        <>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)" }}>Berlaku hari ini</div>
+          <KartuBerlaku label="Umum" m={data?.berlaku ?? null} />
+          {(data?.berlaku_per_jenis ?? []).map((b) => (
+            <KartuBerlaku key={b.jenis_pekerjaan} label={b.jenis_pekerjaan} m={b.markup} />
+          ))}
+        </>
       )}
 
-      {daftar.map((a) => (
-        <div key={a.id} style={{ padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{a.jenis}</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "var(--navy)" }}>{a.persentase}%</div>
-          </div>
-          <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
-            Basis {a.biaya_pokok} · berlaku sejak {new Date(a.berlaku_sejak).toLocaleDateString("id-ID")}
-          </div>
-          {a.catatan && <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4, fontStyle: "italic" }}>{a.catatan}</div>}
-        </div>
-      ))}
+      {!memuat && !galat && (data?.periode ?? []).length === 0 && (
+        <EmptyState icon={Percent} judul="Belum ada periode" deskripsi="Markup belum pernah ditetapkan." />
+      )}
+
+      {!memuat && !galat && kelompok.length > 0 && (
+        <>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-secondary)", marginTop: 8 }}>Riwayat periode</div>
+          {kelompok.map(([jenis, daftar]) => (
+            <div key={jenis} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>{jenis}</div>
+              {daftar
+                .slice()
+                .sort((a, b) => b.berlaku_sejak.localeCompare(a.berlaku_sejak))
+                .map((p) => (
+                  <div key={p.id} style={{ padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Berlaku sejak {fmtTanggal(p.berlaku_sejak)}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: "var(--navy)" }}>BUK {fmtPct(p.buk_fraksi)}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 2 }}>
+                      Overhead {fmtPct(p.overhead_fraksi)} · Keuntungan {fmtPct(p.keuntungan_fraksi)} · Kontinjensi {fmtPct(p.kontinjensi_fraksi)}
+                    </div>
+                    {p.alasan && <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4, fontStyle: "italic" }}>{p.alasan}</div>}
+                  </div>
+                ))}
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }
