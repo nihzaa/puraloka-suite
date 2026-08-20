@@ -21,8 +21,8 @@
 // pihak lain.
 // ============================================================================
 
-import { useState } from "react";
-import { api } from "@/lib/api";
+import { useState, useSyncExternalStore } from "react";
+import { api, hasPermission } from "@/lib/api";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { Building2, User, Plus, Edit2, Search, Ban, Phone, Info } from "lucide-react";
 import BottomSheet from "@/components/portal/BottomSheet";
@@ -42,9 +42,16 @@ function statusMitra(m: Mitra): { varian: VarianStatus; label: string } {
   return { varian: "approved", label: "Layak" };
 }
 
+// `langganan`: dipakai `useSyncExternalStore` supaya perubahan permission
+// (login/switch company) tercermin tanpa reload — pola sama dengan
+// `pm-portal/mandor-lengkap/penugasan/page.tsx`.
+const langganan = (cb: () => void) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); };
+
 export default function PmMitraPage() {
   const [cari, setCari] = useState("");
   const [bentukFilter, setBentukFilter] = useState<"all" | "orang" | "badan_usaha">("all");
+  const bolehKelola = useSyncExternalStore(
+    langganan, () => hasPermission("mitra:manage"), () => false);
 
   const [sheetTerbuka, setSheetTerbuka] = useState(false);
   const [editMitra, setEditMitra] = useState<Mitra | null>(null);
@@ -141,18 +148,20 @@ export default function PmMitraPage() {
             {r ? `${r.total} mitra · ${r.orang} orang · ${r.badan_usaha} badan usaha` : "Tukang, pemasok, dan penawar tender"}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openAdd}
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            minHeight: 44, padding: "0 16px", borderRadius: "var(--portal-radius-pill)",
-            border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)",
-            fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0,
-          }}
-        >
-          <Plus size={16} aria-hidden="true" /> Mitra baru
-        </button>
+        {bolehKelola && (
+          <button
+            type="button"
+            onClick={openAdd}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              minHeight: 44, padding: "0 16px", borderRadius: "var(--portal-radius-pill)",
+              border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)",
+              fontSize: 13, fontWeight: 700, cursor: "pointer", flexShrink: 0,
+            }}
+          >
+            <Plus size={16} aria-hidden="true" /> Mitra baru
+          </button>
+        )}
       </div>
 
       {/* Kenapa layar ini ada, dinyatakan di layar — bukan cuma di kode. */}
@@ -261,18 +270,20 @@ export default function PmMitraPage() {
                       </div>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    aria-label={`Ubah data ${m.nama}`}
-                    onClick={() => openEdit(m)}
-                    style={{
-                      width: 44, height: 44, borderRadius: 12, border: "1px solid var(--border)",
-                      background: "var(--surface)", cursor: "pointer", display: "flex",
-                      alignItems: "center", justifyContent: "center", flexShrink: 0,
-                    }}
-                  >
-                    <Edit2 size={16} color="var(--text-secondary)" aria-hidden="true" />
-                  </button>
+                  {bolehKelola && (
+                    <button
+                      type="button"
+                      aria-label={`Ubah data ${m.nama}`}
+                      onClick={() => openEdit(m)}
+                      style={{
+                        width: 44, height: 44, borderRadius: 12, border: "1px solid var(--border)",
+                        background: "var(--surface)", cursor: "pointer", display: "flex",
+                        alignItems: "center", justifyContent: "center", flexShrink: 0,
+                      }}
+                    >
+                      <Edit2 size={16} color="var(--text-secondary)" aria-hidden="true" />
+                    </button>
+                  )}
                 </div>
               </div>
             );

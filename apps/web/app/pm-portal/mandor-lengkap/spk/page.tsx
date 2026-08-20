@@ -34,10 +34,10 @@
 //   PATCH /api/v1/spk/addendum/:id/status    — ubah status addendum, spk:kelola
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { FileSignature, Plus, Download, Lock, Clock, FilePlus2 } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
-import { api } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
@@ -69,10 +69,17 @@ const VARIAN_STATUS: Record<Spk["status"], VarianStatus> = {
   draf: "netral", diterbitkan: "pending", ditandatangani: "approved", dibatalkan: "rejected",
 };
 
+// `langganan`: dipakai `useSyncExternalStore` supaya perubahan permission
+// (login/switch company) tercermin tanpa reload — pola sama dengan
+// `pm-portal/mandor-lengkap/penugasan/page.tsx`.
+const langganan = (cb: () => void) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); };
+
 export default function PmSpkPage() {
   const [filter, setFilter] = useState<"semua" | Spk["status"]>("semua");
   const [showForm, setShowForm] = useState(false);
   const [detailSpk, setDetailSpk] = useState<Spk | null>(null);
+  const bolehKelola = useSyncExternalStore(
+    langganan, () => hasPermission("spk:kelola"), () => false);
 
   const { data, memuat, galat, muatUlang } = useData<ResponsSpk>("/api/v1/spk");
   const daftar = useMemo(() => data?.spk ?? [], [data]);
@@ -91,17 +98,19 @@ export default function PmSpkPage() {
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
           Surat Perintah Kerja
         </h1>
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
-            padding: "0 16px", borderRadius: "var(--portal-radius-pill)", fontSize: 13, fontWeight: 700,
-            border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", cursor: "pointer",
-          }}
-        >
-          <Plus size={15} aria-hidden="true" /> Terbitkan
-        </button>
+        {bolehKelola && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
+              padding: "0 16px", borderRadius: "var(--portal-radius-pill)", fontSize: 13, fontWeight: 700,
+              border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", cursor: "pointer",
+            }}
+          >
+            <Plus size={15} aria-hidden="true" /> Terbitkan
+          </button>
+        )}
       </div>
 
       {terlambat.length > 0 && (
@@ -137,7 +146,9 @@ export default function PmSpkPage() {
         <EmptyState
           icon={FileSignature}
           judul="Belum ada surat perintah kerja"
-          deskripsi="SPK adalah perintah kerja resmi ke subkontraktor: lingkup, nilai, jangka waktu, dan sanksi keterlambatan — tertulis, bukan hanya diingat."
+          deskripsi={bolehKelola
+            ? "SPK adalah perintah kerja resmi ke subkontraktor: lingkup, nilai, jangka waktu, dan sanksi keterlambatan — tertulis, bukan hanya diingat."
+            : "SPK adalah perintah kerja resmi ke subkontraktor. Belum ada yang tercatat untuk lingkup kerja Anda."}
         />
       )}
 
@@ -186,6 +197,7 @@ export default function PmSpkPage() {
         {detailSpk && (
           <DetailSpk
             spk={detailSpk}
+            bolehKelola={bolehKelola}
             onUbah={() => void muatUlang()}
           />
         )}
@@ -194,7 +206,7 @@ export default function PmSpkPage() {
   );
 }
 
-function DetailSpk({ spk: s, onUbah }: { spk: Spk; onUbah: () => void }) {
+function DetailSpk({ spk: s, bolehKelola, onUbah }: { spk: Spk; bolehKelola: boolean; onUbah: () => void }) {
   const [mengirim, setMengirim] = useState(false);
   const [galatAksi, setGalatAksi] = useState<string | null>(null);
 
@@ -299,7 +311,7 @@ function DetailSpk({ spk: s, onUbah }: { spk: Spk; onUbah: () => void }) {
         </div>
       )}
 
-      {s.status === "draf" && (
+      {bolehKelola && s.status === "draf" && (
         <button
           type="button" onClick={() => void ubahStatus("diterbitkan")} disabled={mengirim}
           style={mengirim ? {
@@ -316,7 +328,7 @@ function DetailSpk({ spk: s, onUbah }: { spk: Spk; onUbah: () => void }) {
         </button>
       )}
 
-      {s.status === "diterbitkan" && (
+      {bolehKelola && s.status === "diterbitkan" && (
         <button
           type="button" onClick={() => void ubahStatus("ditandatangani")}
           disabled={mengirim || !s.ttd_penerbit_url || !s.ttd_pelaksana_url}
@@ -338,14 +350,14 @@ function DetailSpk({ spk: s, onUbah }: { spk: Spk; onUbah: () => void }) {
           <div style={{ fontSize: 12, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 6 }}>
             <Lock size={12} aria-hidden="true" /> Nilai, lingkup, dan denda terkunci. Ajukan addendum bila lingkupnya berubah.
           </div>
-          <FormAddendum spkId={s.id} addendum={dataAddendum?.addendum ?? []} onSukses={() => void muatUlangAddendum()} />
+          <FormAddendum spkId={s.id} addendum={dataAddendum?.addendum ?? []} bolehKelola={bolehKelola} onSukses={() => void muatUlangAddendum()} />
         </div>
       )}
     </div>
   );
 }
 
-function FormAddendum({ spkId, addendum, onSukses }: { spkId: string; addendum: SpkAddendum[]; onSukses: () => void }) {
+function FormAddendum({ spkId, addendum, bolehKelola, onSukses }: { spkId: string; addendum: SpkAddendum[]; bolehKelola: boolean; onSukses: () => void }) {
   const [showForm, setShowForm] = useState(false);
   const [alasan, setAlasan] = useState("");
   const [lingkup, setLingkup] = useState("");
@@ -400,16 +412,18 @@ function FormAddendum({ spkId, addendum, onSukses }: { spkId: string; addendum: 
       )}
 
       {!showForm ? (
-        <button
-          type="button" onClick={() => setShowForm(true)}
-          style={{
-            display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 40,
-            padding: "0 14px", borderRadius: "var(--portal-radius-pill)", border: "1px dashed var(--border)",
-            background: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, cursor: "pointer",
-          }}
-        >
-          <FilePlus2 size={13} aria-hidden="true" /> Ajukan addendum
-        </button>
+        bolehKelola && (
+          <button
+            type="button" onClick={() => setShowForm(true)}
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, minHeight: 40,
+              padding: "0 14px", borderRadius: "var(--portal-radius-pill)", border: "1px dashed var(--border)",
+              background: "transparent", color: "var(--text-secondary)", fontSize: 12, fontWeight: 700, cursor: "pointer",
+            }}
+          >
+            <FilePlus2 size={13} aria-hidden="true" /> Ajukan addendum
+          </button>
+        )
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10, border: "1px solid var(--border)", borderRadius: 12, padding: "var(--pad-kartu)" }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>

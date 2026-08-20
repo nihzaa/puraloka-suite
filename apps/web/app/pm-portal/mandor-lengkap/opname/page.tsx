@@ -20,10 +20,10 @@
 //   GET  /api/v1/opname/kesiapan   — kesiapan tagih per scope, butuh mandor:view
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { ClipboardCheck, Plus, Ruler, Trash2 } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
-import { api } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
@@ -62,9 +62,16 @@ function itemKosong(): ItemForm {
   return { uraian: "", satuan: "", volume_rencana: "", volume_terukur: "", pct_selesai: "", catatan: "" };
 }
 
+// `langganan`: dipakai `useSyncExternalStore` supaya perubahan permission
+// (login/switch company) tercermin tanpa reload — pola sama dengan
+// `pm-portal/mandor-lengkap/penugasan/page.tsx`.
+const langganan = (cb: () => void) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); };
+
 export default function PmOpnamePage() {
   const [filter, setFilter] = useState<"semua" | "diajukan" | "diverifikasi" | "disengketakan">("semua");
   const [showForm, setShowForm] = useState(false);
+  const bolehAjukan = useSyncExternalStore(
+    langganan, () => hasPermission("opname:kelola"), () => false);
 
   const { data, memuat, galat, muatUlang } = useData<ResponsOpnameBersama>("/api/v1/opname");
   const { data: dataKesiapan } = useData<ResponsKesiapanOpname>("/api/v1/opname/kesiapan");
@@ -85,17 +92,19 @@ export default function PmOpnamePage() {
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
           Opname Bersama
         </h1>
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
-            padding: "0 16px", borderRadius: "var(--portal-radius-pill)", fontSize: 13, fontWeight: 700,
-            border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", cursor: "pointer",
-          }}
-        >
-          <Plus size={15} aria-hidden="true" /> Ajukan
-        </button>
+        {bolehAjukan && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
+              padding: "0 16px", borderRadius: "var(--portal-radius-pill)", fontSize: 13, fontWeight: 700,
+              border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", cursor: "pointer",
+            }}
+          >
+            <Plus size={15} aria-hidden="true" /> Ajukan
+          </button>
+        )}
       </div>
 
       {menunggu > 0 && (
@@ -136,7 +145,9 @@ export default function PmOpnamePage() {
         <EmptyState
           icon={Ruler}
           judul="Belum ada berita acara opname"
-          deskripsi="Opname adalah pengukuran volume terpasang yang disaksikan dua pihak. Selama belum ada yang terverifikasi, pembayaran borongan dan progres untuk lingkup kerja itu tertahan."
+          deskripsi={bolehAjukan
+            ? "Opname adalah pengukuran volume terpasang yang disaksikan dua pihak. Selama belum ada yang terverifikasi, pembayaran borongan dan progres untuk lingkup kerja itu tertahan."
+            : "Opname adalah pengukuran volume terpasang yang disaksikan dua pihak. Belum ada yang tercatat untuk lingkup kerja Anda."}
         />
       )}
 

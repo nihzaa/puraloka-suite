@@ -28,10 +28,10 @@
 //   PATCH /api/v1/tender-subkon/:id/tutup            — tutup tender, projects:contract
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { Gavel, Plus, Trophy, TriangleAlert, Lock } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
-import { api } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
@@ -62,10 +62,17 @@ const VARIAN_STATUS: Record<TenderSubkon["status"], VarianStatus> = {
   draft: "netral", terkirim: "pending", selesai: "approved", batal: "rejected",
 };
 
+// `langganan`: dipakai `useSyncExternalStore` supaya perubahan permission
+// (login/switch company) tercermin tanpa reload — pola sama dengan
+// `pm-portal/mandor-lengkap/penugasan/page.tsx`.
+const langganan = (cb: () => void) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); };
+
 export default function PmTenderPage() {
   const [filter, setFilter] = useState<"semua" | TenderSubkon["status"]>("semua");
   const [showForm, setShowForm] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const bolehKontrak = useSyncExternalStore(
+    langganan, () => hasPermission("projects:contract"), () => false);
 
   const { data, memuat, galat, muatUlang } = useData<ResponsTenderSubkon>("/api/v1/tender-subkon");
   const daftar = useMemo(() => data?.tender ?? [], [data]);
@@ -81,17 +88,19 @@ export default function PmTenderPage() {
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
           Tender Subkontraktor
         </h1>
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
-            padding: "0 16px", borderRadius: "var(--portal-radius-pill)", fontSize: 13, fontWeight: 700,
-            border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", cursor: "pointer",
-          }}
-        >
-          <Plus size={15} aria-hidden="true" /> Buka Tender
-        </button>
+        {bolehKontrak && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
+              padding: "0 16px", borderRadius: "var(--portal-radius-pill)", fontSize: 13, fontWeight: 700,
+              border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", cursor: "pointer",
+            }}
+          >
+            <Plus size={15} aria-hidden="true" /> Buka Tender
+          </button>
+        )}
       </div>
 
       <SegmentedTab
@@ -120,7 +129,9 @@ export default function PmTenderPage() {
         <EmptyState
           icon={Gavel}
           judul="Belum ada tender subkontraktor"
-          deskripsi="Tender mencatat siapa yang diundang menawar, berapa penawarannya, dan kenapa satu di antaranya dipilih — jejak yang dicari saat borongan dipersoalkan."
+          deskripsi={bolehKontrak
+            ? "Tender mencatat siapa yang diundang menawar, berapa penawarannya, dan kenapa satu di antaranya dipilih — jejak yang dicari saat borongan dipersoalkan."
+            : "Tender mencatat siapa yang diundang menawar dan kenapa satu di antaranya dipilih. Belum ada yang tercatat untuk proyek Anda."}
         />
       )}
 
@@ -167,6 +178,7 @@ export default function PmTenderPage() {
         {detailId && (
           <DetailTender
             id={detailId}
+            bolehKontrak={bolehKontrak}
             onUbah={() => { void muatUlang(); }}
           />
         )}
@@ -175,7 +187,7 @@ export default function PmTenderPage() {
   );
 }
 
-function DetailTender({ id, onUbah }: { id: string; onUbah: () => void }) {
+function DetailTender({ id, bolehKontrak, onUbah }: { id: string; bolehKontrak: boolean; onUbah: () => void }) {
   const { data, memuat, galat, muatUlang } = useData<ResponsTenderDetail>(`/api/v1/tender-subkon/${id}`);
   const [calon, setCalon] = useState<PenawaranTenderBanding | null>(null);
 
@@ -242,7 +254,7 @@ function DetailTender({ id, onUbah }: { id: string; onUbah: () => void }) {
             </div>
             {p.catatan && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 3 }}>{p.catatan}</div>}
 
-            {tender.status === "terkirim" && !p.menang && p.nilai !== null && p.status !== "gugur" && (
+            {bolehKontrak && tender.status === "terkirim" && !p.menang && p.nilai !== null && p.status !== "gugur" && (
               <button
                 type="button" onClick={() => setCalon(p)}
                 style={{
@@ -258,7 +270,7 @@ function DetailTender({ id, onUbah }: { id: string; onUbah: () => void }) {
         ))}
       </div>
 
-      {tender.status === "terkirim" && b.pemenang && (
+      {bolehKontrak && tender.status === "terkirim" && b.pemenang && (
         <TutupTenderAksi id={id} onUbah={() => { void muatUlang(); onUbah(); }} />
       )}
 

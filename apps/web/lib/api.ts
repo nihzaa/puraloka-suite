@@ -223,6 +223,13 @@ export function logout() {
     localStorage.removeItem(MENU_CACHE_KEY);
     localStorage.removeItem(MENU_ETAG_KEY);
     document.cookie = "puraloka_role=;path=/;max-age=0";
+    // Cache app-shell service worker ikut dibuang — kalau tidak, orang
+    // berikutnya yang login di perangkat ini bisa mendapat fallback shell
+    // offline milik tenant/sesi sebelumnya sampai SW berikutnya `activate`
+    // (lihat sw.js — sweep versi lama baru jalan di titik itu, bukan di sini).
+    if ("caches" in window) {
+      caches.delete("puraloka-shell-v1").catch(() => {});
+    }
   }
 }
 

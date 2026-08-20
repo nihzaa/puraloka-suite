@@ -22,10 +22,10 @@
 //   POST /api/v1/back-charge   — ajukan, butuh backcharge:kelola
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { Wrench, Plus } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
-import { api } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
@@ -59,9 +59,16 @@ const VARIAN_STATUS: Record<BackCharge["status"], VarianStatus> = {
   diajukan: "pending", disetujui: "approved", dibatalkan: "rejected",
 };
 
+// `langganan`: dipakai `useSyncExternalStore` supaya perubahan permission
+// (login/switch company) tercermin tanpa reload — pola sama dengan
+// `pm-portal/mandor-lengkap/penugasan/page.tsx`.
+const langganan = (cb: () => void) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); };
+
 export default function PmBackChargePage() {
   const [filter, setFilter] = useState<"semua" | BackCharge["status"]>("semua");
   const [showForm, setShowForm] = useState(false);
+  const bolehCatat = useSyncExternalStore(
+    langganan, () => hasPermission("backcharge:kelola"), () => false);
 
   const { data, memuat, galat, muatUlang } = useData<ResponsBackCharge>("/api/v1/back-charge");
   const daftar = useMemo(() => data?.back_charge ?? [], [data]);
@@ -80,17 +87,19 @@ export default function PmBackChargePage() {
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
           Back-charge
         </h1>
-        <button
-          type="button"
-          onClick={() => setShowForm(true)}
-          style={{
-            display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
-            padding: "0 16px", borderRadius: "var(--portal-radius-pill)", fontSize: 13, fontWeight: 700,
-            border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", cursor: "pointer",
-          }}
-        >
-          <Plus size={15} aria-hidden="true" /> Catat
-        </button>
+        {bolehCatat && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6, minHeight: 44,
+              padding: "0 16px", borderRadius: "var(--portal-radius-pill)", fontSize: 13, fontWeight: 700,
+              border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", cursor: "pointer",
+            }}
+          >
+            <Plus size={15} aria-hidden="true" /> Catat
+          </button>
+        )}
       </div>
 
       {menunggu > 0 && (
@@ -125,7 +134,9 @@ export default function PmBackChargePage() {
         <EmptyState
           icon={Wrench}
           judul="Belum ada back-charge tercatat"
-          deskripsi="Back-charge adalah biaya yang seharusnya ditanggung subkon — perbaikan cacat, material yang dibeli ulang, sewa alat — dipotong dari tagihannya, bukan ditanggung proyek."
+          deskripsi={bolehCatat
+            ? "Back-charge adalah biaya yang seharusnya ditanggung subkon — perbaikan cacat, material yang dibeli ulang, sewa alat — dipotong dari tagihannya, bukan ditanggung proyek."
+            : "Back-charge adalah biaya yang seharusnya ditanggung subkon. Belum ada yang tercatat untuk lingkup kerja Anda."}
         />
       )}
 
