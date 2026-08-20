@@ -34,12 +34,26 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * (g-kontrak, Task 12-14: register, asuransi, klaim, EOT/LD/bond, surat)
  * dan "Perencanaan" (g-jadwal, Task 15: dua tab tambahan — histogram &
  * method statement — ditempel ke halaman `jadwal` yang sudah ada sejak
- * Tahap 1, plus analisa keterlambatan). Kategori lain (Budget, dst) BELUM
- * dibangun di portal PM — JANGAN ditambahkan ke daftar ini sampai tahap
- * yang membangunnya selesai, supaya kategori kosong/setengah-jadi tak
- * pernah tampil ke PM di HP.
+ * Tahap 1, plus analisa keterlambatan).
+ *
+ * Tahap 3 (Task 18-22): tiga kelompok lagi — "Budget & Cost Control"
+ * (g-cost, Task 18-21: RAB, RAP, Markup, Kurva-S/EVM, Change Order,
+ * Cashflow Forecast, Varians, Contingency), "Master Data" (g-master,
+ * Task 18-19: AHSP/Master Resource, Price Book, Template WBS) dan
+ * "Pra-Konstruksi" (g-crm, key `crm-*` menunjuk halaman g-cost/g-master
+ * yang sama — estimating/BOQ/skenario/markup semuanya satu alur dengan
+ * RAB & AHSP). Ketiganya diaktifkan BERSAMA karena key `md-*`/`crm-*`
+ * menunjuk halaman portal yang sama dengan `cc-*` (lihat `PETA_HREF_PORTAL`
+ * di `app/pm-portal/kategori/[key]/page.tsx`) — mengaktifkan `g-cost` saja
+ * akan menyisakan `md-*`/`crm-*` fallback ke web padahal versi portalnya
+ * sudah ada.
+ *
+ * Kategori lain (Keuangan lanjutan, Procurement, HSE, dst) BELUM dibangun
+ * di portal PM — JANGAN ditambahkan ke daftar ini sampai tahap yang
+ * membangunnya selesai, supaya kategori kosong/setengah-jadi tak pernah
+ * tampil ke PM di HP.
  */
-const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal"]; // Tahap 1-2
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm"]; // Tahap 1-3
 
 export function kategoriUntukPm(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));

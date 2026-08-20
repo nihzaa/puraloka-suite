@@ -5,6 +5,125 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-21 (Portal PM Lengkap, Tahap 3) — Task 22 tuntas: navigasi kategori Budget & Cost Control tersambung, TAHAP 3 SELESAI
+
+Worktree `pm-lengkap-tahap2` (`feat/pm-lengkap-tahap2`), plan
+`docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md` Tahap 3
+(Task 17-22). Task 17 (riset) dan Task 18-21 (11 halaman baru: RAB,
+RAP, Markup, Kurva-S/EVM, Change Order, Proyeksi Kas, Varians,
+Contingency, AHSP/Master Resource, Price Book, Template WBS — 13
+berkas `page.tsx`, RAB & RAP masing-masing punya halaman daftar +
+`[id]`) sudah selesai dan tercommit sebelum sesi ini; disengaja YATIM
+sampai Task 22 menyambungkannya sekaligus (pola sama Task 16).
+
+**Task 22 — navigasi + verifikasi akhir Tahap 3:**
+
+- `apps/web/lib/pm-portal-kategori.ts`: `KATEGORI_AKTIF` bertambah
+  `"g-cost"`, `"g-master"`, `"g-crm"` (dari 4 jadi 7 kategori aktif).
+  Ketiganya diaktifkan BERSAMA (bukan `g-cost` saja) karena key
+  `md-*`/`crm-*` menunjuk halaman portal yang SAMA dengan `cc-*`
+  (mis. `crm-boq`/`crm-skenario` → `cecep/rab`, sama dengan `cc-rab`).
+- `apps/web/app/pm-portal/kategori/[key]/page.tsx`: `PETA_HREF_PORTAL`
+  bertambah 19 entri baru + 1 diubah (`kt-co`). Key baru:
+  `md-resource`/`crm-estimating` → `cecep/ahsp`, `md-price-book` →
+  `cecep/harga`, `md-wbs`/`jd-wbs` → `cecep/wbs` (BUKAN lagi
+  `/master/wbs` web — versi portal read-only Task 18 sudah ada dan
+  PM punya `cecep:cbs:view`), `crm-boq`/`crm-skenario`/`cc-rab` →
+  `cecep/rab`, `crm-markup` → `cecep/markup`, `cc-rap`/`cc-revisi` →
+  `cecep/rap`, `cc-etc`/`cc-bac`/`jd-gantt`/`jd-kurva-s`/`jd-evm` →
+  `cecep/kurva-s` (jd-gantt APROKSIMASI, dicatat UTANG — Gantt visual
+  sungguhan tak dibangun Tahap 3, lihat komentar berkas), `cc-cashflow`
+  → `cecep/kas`, `cc-varians` → `cecep/varians`, `cc-contingency` →
+  `cecep/contingency`. `kt-co` DIUBAH dari fallback `/pm-portal/kontrak`
+  (UTANG Task 16) ke `/pm-portal/kontrak-lengkap/change-order` (halaman
+  Change Order sungguhan, dibangun Task 21) — UTANG Task 16 LUNAS.
+  `cc-acl`/`cc-commitment`/`cc-pagu-material`/`cc-cvr`/`cc-profit`/
+  `cc-wip` SENGAJA tak dipetakan (tahap lain atau fallback web memadai
+  — lihat komentar berkas).
+
+**Efek samping ditemukan & diperbaiki SAAT verifikasi (bukan diabaikan):**
+mengubah `kt-co` menjadikan `/pm-portal/kontrak` (ringkasan BACA SAJA
+nilai/model/pajak/retensi/denda dari kolom `projects`, halaman yang
+BERBEDA dari `kontrak-lengkap/register`) YATIM — sebelumnya hanya
+tercapai lewat fallback `kt-co` yang kini benar menunjuk tempat lain.
+Tak ada key `g-kontrak` yang cocok maknanya untuk ringkasan ini
+(dicek satu-satu; `kt-termin` soal jadwal tagihan bukan nilai kontrak),
+jadi didaftarkan ke `WAJAR` di `audit-nav-yatim.mjs` dengan alasan
+tertulis lengkap, bukan dipetakan paksa ke key yang salah makna.
+Dicatat sebagai utang navigasi utk tahap berikutnya (key baru
+"Ringkasan Kontrak", atau tab hub `proyek/[id]` Task 26).
+
+**Bukti klik-tembus — `audit-nav-yatim.mjs`:** SEBELUM Task 22, 11
+halaman `pm-portal/cecep/*` + `kontrak-lengkap/change-order` YATIM
+(diukur langsung dengan `git stash`, bukan diasumsikan dari brief).
+SESUDAH: bagian YATIM kosong total — 0 dari kelompok CECEP/Master/
+Pra-Konstruksi. `href kategori PM` naik dari 25 ke 35 entri. Satu-
+satunya sisa merah di `audit-nav-yatim.mjs` adalah `/estimasi/struktur`
+(LINK MATI, sidebar/DB) — dibuktikan PRA-EKSISTING dan di luar scope
+Task 22 (muncul identik di baseline `git stash`, tak tersentuh
+perubahan berkas ini).
+
+**Bug tersembunyi ditemukan saat mengedit — CRLF:** dua berkas yang
+disunting (`pm-portal-kategori.ts`, `kategori/[key]/page.tsx`) sempat
+tertulis ulang dengan akhir baris CRLF (bukan LF seperti HEAD) —
+`audit-akhir-baris.mjs` menangkapnya (satu kegagalan BARU dibanding
+baseline 40 merah). Diperbaiki dengan skrip normalisasi CRLF→LF yang
+disarankan penjaga itu sendiri; diverifikasi ulang hijau.
+
+**Verifikasi menyeluruh:**
+
+- `tsc --noEmit` (seluruh workspace web): bersih, exit 0.
+- `eslint lib/pm-portal-kategori.ts app/pm-portal/kategori/
+  scripts/audit-nav-yatim.mjs`: bersih, exit 0.
+- `node scripts/jalankan-semua-penjaga.mjs`: **131 hijau · 40 MERAH ·
+  2 tak ketemu — IDENTIK dengan baseline** (diukur dengan `git stash`
+  sebelum/sesudah). Task 22 menambah NOL kegagalan penjaga baru (CRLF
+  yang sempat muncul sudah diperbaiki sebelum angka akhir ini).
+- Test terarah (`kurva-s change-order rap estimate-versions markup
+  template-wbs cost-control contingency ahsp price-book`): 238 lulus,
+  6 gagal, 2 dari 20 berkas test. **6 kegagalan ini BUKAN soal
+  navigasi** — `price-book-triase.test.ts` (4 gagal, penggolongan
+  draft tak menemukan baris resource yang diharapkan) dan
+  `terapkan-ke-rab.test.ts` (2 gagal, "Estimate Version tidak
+  ditemukan" 404 alih-alih 201). Direproduksi ulang terisolasi (dua
+  berkas saja) — hasil sama, bukan kontaminasi fixture paralel.
+  Task 22 TIDAK menyentuh kode API sama sekali (hanya 2 berkas web +
+  1 skrip penjaga) — kegagalan ini pra-eksisting dari Task 18-21,
+  **DILAPORKAN sebagai concern, TIDAK diperbaiki** sesuai batasan
+  eksplisit Task 22.
+- Audit a11y runtime (`jalankan-a11y-lengkap.mjs`): dijalankan
+  terhadap instance API+web TERISOLASI (port 3017/3020, kode
+  worktree INI) karena port kanonik 3007/3000 sedang dipakai proses
+  checkout `E:\Project\puraloka-suite` lain (bukan worktree ini) —
+  hasil ditulis di laporan Task 22 terpisah, JANGAN diklaim di sini
+  tanpa ringkasan run sungguhan.
+
+**Soal `project_manager_senior` (concern dari review Task 21):**
+DIVERIFIKASI RELEVAN. `apps/web/app/pm-portal/layout.tsx` HANYA
+mengecualikan `u.role === "admin"` dan `u.role === "client"` (plus
+verifikasi ASYNC khusus untuk `mandor`) — role apa pun yang lain,
+TERMASUK `project_manager_senior`, LOLOS masuk `/pm-portal`. Diukur
+ke `db/migrations/364_katalog_role_konstruksi.sql`: dari 31 baris
+grant untuk `project_manager_senior`, **NOL** berawalan `cecep:` —
+role ini TIDAK punya satu pun dari `cecep:estimate:view`,
+`cecep:cost_map:view`, `cecep:rap:view`, `cecep:price:view`, dst
+(diverifikasi lewat test yang menuliskan role pemegang izin: hanya
+`admin`/`pm`, kadang `estimator` untuk `:manage`). Akibatnya: SEMUA
+11 halaman CECEP yang baru disambungkan Task 22 akan 403 total untuk
+user ber-role `project_manager_senior`, bukan cuma Kas/Varians yang
+disebut reviewer Task 21. Ini BUG PRA-EKSISTING di skema izin (Task
+16-21 area, bukan navigasi), DILAPORKAN sebagai concern — TIDAK
+diperbaiki di sini sesuai batasan eksplisit Task 22 (bukan bug
+navigasi).
+
+**TAHAP 3 (Budget & Cost Control / CECEP) SELESAI.** 11 halaman baru
+(Task 18-21) + navigasi (Task 22) tersambung, penjaga CI di lantai
+yang sama dengan sebelum Tahap 3 dimulai (nol regresi baru), dua
+temuan dilaporkan sebagai utang/concern (ringkasan kontrak Tahap 1
+YATIM tercatat WAJAR, izin `project_manager_senior` vs `cecep:*`).
+
+---
+
 ## 2026-08-21 (Portal PM Lengkap, Tahap 2) — Task 16 tuntas: navigasi kategori Kontrak+Perencanaan tersambung, 6 halaman yatim jadi 0
 
 Worktree `pm-lengkap-tahap2` (`feat/pm-lengkap-tahap2`), plan

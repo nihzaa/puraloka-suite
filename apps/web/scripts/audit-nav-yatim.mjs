@@ -64,6 +64,8 @@ const WAJAR = new Map([
   ['/mandor-portal/laporan', 'subhalaman portal, dicapai dari badan halaman'],
   ['/kalender',
    'kalender lintas-proyek; jalan masuknya dari dashboard (SectionHeader "Milestone \n    Mendatang", kartu, dan spanduk tenggat) — dashboard/page.tsx:593,611,812. Menu \n    `md-kalender` sengaja menunjuk /jadwal: yang dicari orang dari sidebar adalah \n    kalender HARI KERJA & libur (dasar hitungan CPM), bukan agenda milestone.'],
+  ['/pm-portal/kontrak',
+   'ringkasan BACA SAJA nilai/model/pajak/retensi/denda kontrak (subset kolom \n    `projects`, TANPA endpoint sendiri — lihat komentar di berkasnya). Task 16 \n    sempat menaut `kt-co` ke sini sebagai FALLBACK sementara Change Order \n    sungguhan belum ada; Task 21/22 membangun halaman Change Order asli \n    (`kontrak-lengkap/change-order`) dan `kt-co` kini menunjuk ke sana — benar, \n    karena keduanya BUKAN halaman yang sama (lihat komentar `kontrak-lengkap/\n    register/page.tsx` yang membedakan `kontrak/page.tsx` dari dokumen kontrak \n    `kontrak` tabel). Tak ada key `g-kontrak` lain yang cocok untuk ringkasan \n    nilai/pajak/model ini — mengarahkan key yang salah makna (mis. kt-termin, \n    tentang jadwal tagihan bukan nilai kontrak) lebih menyesatkan daripada \n    membiarkannya di sini sebagai utang navigasi tercatat, bukan disembunyikan \n    diam-diam. Kandidat pemetaan berikutnya: key baru g-kontrak "Ringkasan \n    Kontrak", atau tab di hub `proyek/[id]` (Task 26).'],
 ])
 
 async function hrefDariDb() {

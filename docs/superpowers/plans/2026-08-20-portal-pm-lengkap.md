@@ -5875,7 +5875,7 @@ git commit -m "feat(pm-portal): Cost Control lintas-proyek — Kurva-S/EVM, Chan
 - Modify: `apps/web/lib/pm-portal-kategori.ts`
 - Modify: `apps/web/app/pm-portal/kategori/[key]/page.tsx`
 
-- [ ] **Step 1: Aktifkan `g-cost`, `g-master`, `g-crm` di `KATEGORI_AKTIF`**
+- [x] **Step 1: Aktifkan `g-cost`, `g-master`, `g-crm` di `KATEGORI_AKTIF`**
 
 ```typescript
 const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm"]; // Tahap 1-3
@@ -5890,8 +5890,28 @@ lain) karena Task 18-20 sudah membangun halamannya (`crm-estimating`→
 key-nya di `PETA_HREF_PORTAL` sama saja dengan tetap fallback ke web,
 padahal halaman portalnya sudah ada.
 
-- [ ] **Step 2: Isi `PETA_HREF_PORTAL`** (key PERSIS dari `peta-menu.ts`,
+- [x] **Step 2: Isi `PETA_HREF_PORTAL`** (key PERSIS dari `peta-menu.ts`,
 diverifikasi Task 17 Step 1):
+
+**Perbedaan dari draf di atas, ditemukan saat eksekusi:** setelah
+menerapkan draf apa adanya, `audit-nav-yatim.mjs` melaporkan
+`/pm-portal/cecep/wbs` masih YATIM — draf ini menyebut `md-wbs`/
+`jd-wbs`→`cecep/wbs` di PROSA (paragraf Step 1 di atas) tapi baris
+itu HILANG dari blok kode `PETA_HREF_PORTAL` di bawah (hanya
+`md-resource`/`md-price-book` yang tertulis). Ditambahkan
+`"md-wbs": "/pm-portal/cecep/wbs"` dan `"jd-wbs": "/pm-portal/cecep/wbs"`
+— MENGGANTI, bukan menambah di samping, mapping lama `md-wbs`→
+`/master/wbs` web (halaman portal read-only Task 18 sudah ada dan PM
+punya `cecep:cbs:view`). Efek samping KEDUA: mengubah `kt-co` dari
+`/pm-portal/kontrak` (fallback Task 16) ke
+`/pm-portal/kontrak-lengkap/change-order` membuat `/pm-portal/kontrak`
+sendiri (ringkasan BACA SAJA nilai/model/pajak/retensi/denda kontrak
+dari kolom `projects` — halaman BEDA dari `kontrak-lengkap/register`)
+jadi YATIM. Tak ada key `g-kontrak` lain yang cocok maknanya untuk
+ringkasan itu (dicek satu-satu) — didaftarkan ke `WAJAR` di
+`audit-nav-yatim.mjs` dengan alasan tertulis, bukan dipaksakan ke key
+yang salah makna. Dicatat sebagai utang navigasi kandidat Task 26
+(hub `proyek/[id]`) di JOURNAL.
 
 ```typescript
 const PETA_HREF_PORTAL: Record<string, string> = {
@@ -5936,32 +5956,45 @@ statusnya sendiri `sebagian` dengan alasan struktural bukan UI) atau
 fallback web tetap memadai (`cc-acl`/`cc-commitment` keduanya menunjuk
 `/estimasi` yang sudah tercakup fallback).
 
-- [ ] **Step 3: Typecheck + lint navigasi**
+- [x] **Step 3: Typecheck + lint navigasi** — bersih, exit 0 keduanya.
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
 pnpm exec eslint lib/pm-portal-kategori.ts app/pm-portal/kategori/
 ```
 
-- [ ] **Step 4: `audit-nav-yatim.mjs`** — pola Task 16 Step 4, bandingkan
-YATIM sebelum/sesudah.
+- [x] **Step 4: `audit-nav-yatim.mjs`** — pola Task 16 Step 4, dibandingkan
+YATIM sebelum/sesudah lewat `git stash`. SEBELUM: 11 halaman
+`pm-portal/cecep/*` + `kontrak-lengkap/change-order` YATIM. SESUDAH:
+0 YATIM dari kelompok CECEP/Master/Pra-Konstruksi. Sisa satu-satunya
+merah (`/estimasi/struktur` LINK MATI) dibuktikan pra-eksisting
+(identik di baseline `git stash`, di luar scope Task 22).
 
-- [ ] **Step 5: Typecheck seluruh workspace + SEMUA penjaga CI**
+- [x] **Step 5: Typecheck seluruh workspace + SEMUA penjaga CI** — hasil
+131 hijau/40 merah/2 tak ketemu, IDENTIK dengan baseline (diukur
+`git stash` sebelum/sesudah) — nol regresi baru dari Task 22.
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
 cd ../api && node scripts/jalankan-semua-penjaga.mjs
 ```
 
-- [ ] **Step 6: Test integrasi terkait** (superset Task 21 Step 7 —
+- [x] **Step 6: Test integrasi terkait** (superset Task 21 Step 7 —
 dijalankan ulang di sini karena bisa ada berkas backend baru dari fix
-Task 19 catatan `cost_code_id` lumpsum):
+Task 19 catatan `cost_code_id` lumpsum): 238 lulus, 6 gagal (2 berkas:
+`price-book-triase.test.ts`, `terapkan-ke-rab.test.ts`) — kegagalan
+BUKAN soal navigasi, direproduksi terisolasi, DILAPORKAN sebagai
+concern (Task 22 tak menyentuh kode API sama sekali), tidak diperbaiki
+di sini sesuai batasan tugas.
 
 ```bash
 cd apps/api && npx vitest run kurva-s change-order rap estimate-versions markup template-wbs cost-control contingency ahsp price-book
 ```
 
-- [ ] **Step 7: Audit a11y runtime penuh** (pola Task 16 Step 7).
+- [x] **Step 7: Audit a11y runtime penuh** (pola Task 16 Step 7) —
+dijalankan terhadap instance API+web terisolasi (port 3017/3020, kode
+worktree ini) karena port kanonik 3007/3000 dipakai proses checkout
+lain. Hasil di laporan Task 22 terpisah.
 
 ```bash
 cd apps/web
@@ -5969,13 +6002,13 @@ export $(grep -E "^LAYAR_(EMAIL|SANDI|BASIS)=" .env.local | tr -d '\r' | xargs)
 node scripts/jalankan-a11y-lengkap.mjs
 ```
 
-- [ ] **Step 8: Update JOURNAL.md** — catat Tahap 3 selesai: berapa
-halaman baru (13: 3 Task 18 + 2 Task 19 + 3 Task 20 + 5 Task 21 — hitung
-ulang saat eksekusi dari `git diff --stat`, angka ini bisa bergeser
-kalau Task 21 Step 1 verifikasi ulang tipe mengubah jumlah halaman),
-utang tercatat (`jd-gantt` visual, hub `proyek/[id]` masih ditunda).
+- [x] **Step 8: Update JOURNAL.md** — catat Tahap 3 selesai: 11 halaman
+baru (13 berkas `page.tsx` — RAB & RAP masing-masing daftar + `[id]`),
+utang tercatat (`jd-gantt` visual, hub `proyek/[id]` masih ditunda,
+`/pm-portal/kontrak` masuk WAJAR), plus temuan `project_manager_senior`
+(TERKONFIRMASI RELEVAN — lihat JOURNAL untuk detail izin).
 
-- [ ] **Step 9: Commit dokumentasi**
+- [x] **Step 9: Commit dokumentasi**
 
 ```bash
 git add docs/execution/JOURNAL.md docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md apps/web/lib/pm-portal-kategori.ts "apps/web/app/pm-portal/kategori/[key]/page.tsx"

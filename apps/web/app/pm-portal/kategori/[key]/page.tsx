@@ -67,6 +67,31 @@ import { Folder } from "lucide-react";
  *   punya `href` sama sekali (hanya dicapai lewat /proyek/[id]/baseline,
  *   rute dinamis admin) — portal PM belum punya versi Tahap 2 ini, jadi
  *   fallback `it.href` jatuh ke `"#"` sebagaimana adanya sebelum Task 16.
+ *
+ * Tahap 3 (Task 18-22, grup g-cost/g-master/g-crm, key persis dari
+ * `lib/peta-menu.ts`, diverifikasi baca ulang saat Task 22):
+ *   Task 18 — cc-rab/crm-boq/crm-skenario/jd-wbs-terkait (RAB) ke
+ *             cecep/rab, cc-rap/cc-revisi (RAP) ke cecep/rap
+ *   Task 19 — md-resource/crm-estimating (AHSP/Master Resource) ke
+ *             cecep/ahsp, md-price-book (Price Book) ke cecep/harga
+ *   Task 20 — md-wbs/jd-wbs (Template WBS, dua key kembar yang sama-sama
+ *             menunjuk /master/wbs di web) DIALIHKAN ke cecep/wbs, versi
+ *             portal read-only Task 18 (PM punya cecep:cbs:view tapi bukan
+ *             :manage — tombol "Terapkan" sengaja tak ada di sana),
+ *             crm-markup (Markup & Margin) ke cecep/markup
+ *   Task 21 — cc-etc/cc-bac/jd-gantt/jd-kurva-s/jd-evm (Kurva-S/EVM) ke
+ *             cecep/kurva-s, cc-cashflow (Proyeksi Kas) ke cecep/kas,
+ *             cc-varians (Analisa Varians) ke cecep/varians,
+ *             cc-contingency (Contingency) ke cecep/contingency
+ *   kt-co: UTANG Task 16 SEKARANG DILUNASI — Change Order sungguhan
+ *          dibangun Task 21 di kontrak-lengkap/change-order (bukan hub
+ *          `proyek/[id]` yang masih ditunda ke Task 26). Diarahkan ke
+ *          sana, MENGGANTIKAN fallback `/pm-portal/kontrak` lama.
+ *   jd-gantt diarahkan ke cecep/kurva-s sebagai APROKSIMASI, bukan Gantt
+ *   visual sungguhan — dicatat UTANG di komentar `PETA_HREF_PORTAL`.
+ *   cc-acl/cc-commitment/cc-pagu-material/cc-cvr/cc-profit/cc-wip TIDAK
+ *   dipetakan — lihat komentar di baris masing-masing key di bawah untuk
+ *   alasannya (tahap lain, atau fallback web tetap memadai).
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "sk-paket": "/pm-portal/mandor-lengkap/penugasan",
@@ -93,15 +118,35 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "kt-termin": "/pm-portal/keuangan",
   "kt-retensi": "/pm-portal/mandor-lengkap/retensi",
   "kt-subkon": "/pm-portal/mandor-lengkap/penugasan",
-  // kt-co: BELUM ada hub tab PM (`pm-portal/proyek/[id]`) — lihat komentar
-  // di bawah. Menunjuk ringkasan kontrak Tahap 1 sebagai fallback sementara,
-  // BUKAN Change Order sungguhan. Ditandai UTANG, bukan selesai.
-  "kt-co": "/pm-portal/kontrak",
+  // kt-co: UTANG Task 16 DILUNASI Task 21/22 — Change Order sungguhan kini
+  // punya halaman portal sendiri (kontrak-lengkap/change-order), bukan lagi
+  // fallback ringkasan kontrak Tahap 1.
+  "kt-co": "/pm-portal/kontrak-lengkap/change-order",
   "jd-cpm": "/pm-portal/jadwal",
   "jd-histogram": "/pm-portal/jadwal",
   "jd-method": "/pm-portal/jadwal",
   "jd-milestone": "/pm-portal/jadwal",
   "jd-delay": "/pm-portal/kontrak-lengkap/keterlambatan",
+  // Tahap 3 (Task 18-22) — grup g-cost / g-master / g-crm.
+  "md-resource": "/pm-portal/cecep/ahsp",
+  "md-price-book": "/pm-portal/cecep/harga",
+  "md-wbs": "/pm-portal/cecep/wbs",
+  "jd-wbs": "/pm-portal/cecep/wbs",
+  "crm-estimating": "/pm-portal/cecep/ahsp",
+  "crm-boq": "/pm-portal/cecep/rab",
+  "crm-skenario": "/pm-portal/cecep/rab",
+  "crm-markup": "/pm-portal/cecep/markup",
+  "cc-rab": "/pm-portal/cecep/rab",
+  "cc-rap": "/pm-portal/cecep/rap",
+  "cc-revisi": "/pm-portal/cecep/rap",
+  "cc-etc": "/pm-portal/cecep/kurva-s",
+  "cc-cashflow": "/pm-portal/cecep/kas",
+  "cc-varians": "/pm-portal/cecep/varians",
+  "cc-contingency": "/pm-portal/cecep/contingency",
+  "cc-bac": "/pm-portal/cecep/kurva-s",
+  "jd-gantt": "/pm-portal/cecep/kurva-s",
+  "jd-kurva-s": "/pm-portal/cecep/kurva-s",
+  "jd-evm": "/pm-portal/cecep/kurva-s",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 
