@@ -102,12 +102,21 @@ export default function PmKurvaSPage() {
   // MiniChart butuh SATU seri; rencana-vs-aktual ditampilkan sebagai dua
   // sparkline berdampingan (sama pola KpiCard) supaya tetap dekoratif +
   // ringkas, sesuai komponen yang sudah ada — bukan chart baru.
+  //
+  // `?? 0` DIHAPUS (fix review): backend `kurva-s.ts:365-372` SENGAJA
+  // mengirim `null` untuk minggu yang belum lewat ("Tampilkan null untuk
+  // minggu yang belum lewat (future weeks)") — beda dari 0 rupiah/persen.
+  // Memaksanya jadi 0 membuat kurva 52-minggu di minggu ke-10 naik ke 18%
+  // lalu TERJUN ke 0 dan datar 42 minggu — terbaca seperti proyek berhenti
+  // total, padahal cuma minggu depan yang belum terjadi. `null` diteruskan
+  // apa adanya; `MiniChart`/Recharts `type="monotone"` melompatinya, bukan
+  // menariknya ke nol.
   const seriRencana = useMemo(
-    () => (data?.chartData ?? []).map((t) => ({ label: t.week, value: t.rencana ?? 0 })),
+    () => (data?.chartData ?? []).map((t) => ({ label: t.week, value: t.rencana })),
     [data]
   );
   const seriAktual = useMemo(
-    () => (data?.chartData ?? []).map((t) => ({ label: t.week, value: t.aktual ?? 0 })),
+    () => (data?.chartData ?? []).map((t) => ({ label: t.week, value: t.aktual })),
     [data]
   );
 
@@ -146,7 +155,7 @@ export default function PmKurvaSPage() {
 
       {!memuat && !galat && data && evm && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--gap-kartu)" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--gap-grid)" }}>
             <KpiCard label="CPI (biaya)" nilai={fmtAngka(evm.cpi)} icon={Gauge} />
             <KpiCard label="SPI (jadwal)" nilai={fmtAngka(evm.spi)} icon={Gauge} />
           </div>

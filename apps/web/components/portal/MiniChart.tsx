@@ -11,12 +11,21 @@
 // `isAnimationActive={false}` dipasang eksplisit — animasi masuk recharts
 // adalah animasi JS, bukan CSS, jadi `prefers-reduced-motion` di OS tidak
 // otomatis mematikannya. Ini menghormati preferensi pengurangan gerak.
+//
+// `value: number | null` (Task 21 fix) — beberapa sumber data (mis. kurva
+// aktual `kurva-s.ts:365-372`) SENGAJA mengirim `null` untuk titik yang
+// belum punya data (minggu yang belum lewat), beda dari 0 (nilai aktual
+// nol). Memaksanya jadi 0 di pemanggil membuat kurva terjun ke nol dan
+// datar untuk sisa periode — terbaca seperti proyek berhenti, padahal cuma
+// belum terjadi. Recharts `type="monotone"` menangani `null` dengan benar
+// (melompatinya, bukan menariknya ke 0), jadi tipe di sini WAJIB
+// meneruskan null apa adanya, bukan menormalkannya.
 // ============================================================================
 
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar } from "recharts";
 
 export interface MiniChartProps {
-  data: Array<{ label: string; value: number }>;
+  data: Array<{ label: string; value: number | null }>;
   tipe: "area" | "bar";
   warna?: string;
   tinggi?: number;

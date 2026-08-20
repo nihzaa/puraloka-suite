@@ -27,19 +27,32 @@
 //    minta >1 level. Respons bisa `pending_next_level: true` (bukan galat,
 //    bukan sukses penuh) — ditampilkan sebagai info, bukan disamakan
 //    dengan "disetujui".
-//  - Gerbang: create/edit/hapus/items pakai `projects:edit`; approve/reject
-//    hanya `authenticate` + rantai approval (otoritas dari config, bukan
-//    permission tetap). PM PUNYA `projects:edit` (diverifikasi live
-//    2026-08-21) — form + item CRUD dirender tanpa gerbang `hasPermission`.
-//    Tombol approve/reject TETAP dirender (siapa pun ber-`authenticate`
-//    boleh MENCOBA; backend yang memutuskan lewat rantai) — kegagalan 403
-//    ditangkap sebagai galat aksi biasa, pola sama `rab/[id]/page.tsx`.
+//  - Gerbang: create/edit/hapus/items pakai `projects:edit`, PM PUNYA
+//    (diverifikasi live 2026-08-21) — form + item CRUD dirender tanpa
+//    gerbang `hasPermission` tambahan.
+//
+//    ── Approve/reject: rute HANYA `authenticate`, tapi OTORITAS SESUNGGUHNYA
+//    hidup di tabel `approval_chains`/`approval_steps` (config), bukan di
+//    dekorator rute — persis pola yang membuat Task 19 keliru pertama kali
+//    untuk `cecep:estimate:approve` (lihat komentar `rab/[id]/page.tsx`).
+//    Diverifikasi LANGSUNG ke DB (query live 2026-08-21, bukan ditebak):
+//    rantai `change_order` (`approval_chains`) cuma py SATU langkah
+//    (level 1, `approval_steps.required_permission = 'change_order:approve'`),
+//    dan permission itu HANYA di-grant ke role `admin` + `project_manager_
+//    senior` — role `pm` NOL baris di `role_permissions`. Artinya
+//    `canParticipateInChain()` (`apps/api/src/utils/approval.ts:193-203`)
+//    MENOLAK 403 SECARA DETERMINISTIK untuk PM di setiap CO, sebelum
+//    entitasnya bahkan di-fetch. Tombol approve/reject karena itu digerbang
+//    `hasPermission("change_order:approve")` + `useSyncExternalStore`, pola
+//    PERSIS `rab/[id]/page.tsx:88-97` — TIDAK DIRENDER (bukan disabled)
+//    saat PM tak punya izin, supaya tak ada tombol yang pasti gagal 403
+//    kalau diklik.
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import { FileEdit, Plus, Send, CheckCircle2, XCircle } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
-import { api } from "@/lib/api";
+import { api, hasPermission } from "@/lib/api";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
@@ -50,6 +63,11 @@ import { pesanGalat } from "../../_bersama/tipe";
 interface RespProyek {
   projects: ProyekPM[];
 }
+
+// `langganan`: dipakai `useSyncExternalStore` supaya perubahan permission
+// (login/switch company) tercermin tanpa reload — pola sama dengan
+// `pm-portal/cecep/rab/[id]/page.tsx` dan `mandor-lengkap/spk/page.tsx`.
+const langganan = (cb: () => void) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); };
 
 const LABEL_STATUS: Record<string, string> = {
   draft: "Draf",
@@ -86,6 +104,13 @@ function fmtDelta(n: number): string {
 }
 
 export default function PmChangeOrderPage() {
+  // `change_order:approve` HANYA di-grant ke `admin`/`project_manager_senior`
+  // (diverifikasi live ke `role_permissions` + `approval_steps` 2026-08-21) —
+  // PM NOL baris. Tombol Setujui/Tolak TIDAK DIRENDER (bukan disabled) saat
+  // izin tak ada, pola sama `bolehApprove` di `cecep/rab/[id]/page.tsx`.
+  const bolehApprove = useSyncExternalStore(
+    langganan, () => hasPermission("change_order:approve"), () => false);
+
   const [proyekId, setProyekId] = useState("");
   const [sheetBaruTerbuka, setSheetBaruTerbuka] = useState(false);
   const [judulBaru, setJudulBaru] = useState("");
@@ -396,7 +421,12 @@ export default function PmChangeOrderPage() {
                   </button>
                 </>
               )}
-              {co.status === "submitted" && (
+              {/* `change_order:approve` — PM tak punya (lihat komentar kepala
+                  berkas). Reject ikut rantai otoritas yang sama dengan approve
+                  (`change-orders.ts` komentar rute reject: "siapa pun yang
+                  berhak menyetujui di level mana pun boleh menolak"), jadi
+                  KEDUA tombol digerbang izin yang sama — bukan cuma approve. */}
+              {co.status === "submitted" && bolehApprove && (
                 <>
                   <button
                     type="button"
