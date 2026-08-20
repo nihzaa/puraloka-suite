@@ -13,7 +13,7 @@
 
 import {
   ShieldAlert, ClipboardCheck, FileQuestion, FileStack, FileText,
-  Calendar, Landmark, ShoppingCart, HardHat,
+  Calendar, Landmark, ShoppingCart, HardHat, UserSquare2, Banknote, Ruler,
 } from "lucide-react";
 import ActionCard from "@/components/portal/ActionCard";
 
@@ -27,6 +27,10 @@ const ITEMS = [
   { href: "/pm-portal/kontrak", label: "Kontrak", icon: Landmark },
   { href: "/pm-portal/procurement", label: "Procurement", icon: ShoppingCart },
   { href: "/pm-portal/mandor", label: "Mandor", icon: HardHat },
+  // Tahap 1, Task 6 — kelompok Mandor & Subkon bagian 1.
+  { href: "/pm-portal/mandor-lengkap/penugasan", label: "Penugasan Mandor", icon: UserSquare2 },
+  { href: "/pm-portal/mandor-lengkap/kasbon", label: "Kasbon Tukang", icon: Banknote },
+  { href: "/pm-portal/mandor-lengkap/opname", label: "Opname Bersama", icon: Ruler },
 ];
 
 export default function PmLainnyaPage() {

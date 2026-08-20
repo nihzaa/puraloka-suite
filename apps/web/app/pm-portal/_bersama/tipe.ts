@@ -429,6 +429,152 @@ export interface Submittal {
 }
 
 /**
+ * Penugasan mandor ke proyek (tabel `mandor_assignments`). Bentuk dari
+ * `GET /api/v1/mandor/assignments` (`apps/api/src/routes/v1/mandor.ts`,
+ * dicocokkan ke `(dashboard)/mandor/penugasan/page.tsx`).
+ *
+ * ⚠️ Endpoint list ini TANPA gerbang permission (cuma `authenticate`) —
+ * dikonfirmasi Task 5. `POST`/`PATCH` butuh `mandor:assign`, yang PM
+ * PUNYA (migrasi 050: semua permission kecuali 10 key denylist, `mandor:*`
+ * tak masuk situ).
+ *
+ * `work_scopes` di sini SUDAH diperkaya server dengan field turunan
+ * (`contract_value`, `total_kasbon`, `total_progress_paid`, `financial_pct`,
+ * `paid_pct`, `settlement`) — lihat baris pengayaan di `mandor.ts` GET
+ * assignments. Field itu BUKAN kolom tabel.
+ */
+export interface PenugasanMandor {
+  id: string
+  status: string | null
+  notes: string | null
+  assigned_at: string | null
+  created_at: string | null
+  project: { id: string; name: string; location: string | null } | null
+  mandor: { id: string; name: string; phone: string | null } | null
+  assigner: { id: string; name: string } | null
+  work_scopes: Array<{
+    id: string
+    scope_name: string
+    payment_system: string
+    status: string
+    borongan_value: number | string | null
+    borongan_value_override?: number | string | null
+    progress_pct_done: number
+    contract_value?: number | string | null
+    total_kasbon?: number
+    total_progress_paid?: number
+    financial_pct?: number
+    paid_pct?: number
+    settlement?: { id: string; net_payment: number; borongan_value: number; total_kasbon: number } | null
+  }>
+}
+
+export interface ResponsPenugasanMandor {
+  assignments: PenugasanMandor[]
+}
+
+/**
+ * Kasbon TUKANG (tabel `worker_kasbons`, BUKAN `kasbons` — beda entitas
+ * dari `KasbonPM` di atas). Uang muka yang diteruskan MANDOR ke tukangnya
+ * sendiri; TAK PUNYA status approval — hanya dicicil sampai lunas.
+ * Bentuk dari `GET /api/v1/mandor/worker-kasbons`
+ * (`apps/api/src/routes/v1/mandor.ts`), dicocokkan ke
+ * `(dashboard)/mandor/kasbon/page.tsx`.
+ *
+ * ⚠️ TIDAK duplikat `pm-portal/keuangan/page.tsx` (yang membaca tabel
+ * `kasbons` lewat `/api/v1/finance/kasbons`, ber-approve/reject). Modul
+ * ini entitas berbeda: piutang mandor→tukang, dipotong dari upah, bukan
+ * biaya proyek yang perlu persetujuan PM.
+ */
+export interface KasbonTukang {
+  id: string
+  amount: number
+  purpose: string | null
+  kasbon_date: string | null
+  notes: string | null
+  amount_settled: number
+  is_settled: boolean
+  created_at: string | null
+  worker: { id: string; name: string; phone: string | null } | null
+  mandor: { id: string; name: string } | null
+  project: { id: string; name: string } | null
+  scope: { id: string; scope_name: string } | null
+}
+
+export interface ResponsKasbonTukang {
+  kasbons: KasbonTukang[]
+}
+
+/**
+ * Berita acara opname bersama (tabel `opname_bersama`). Bentuk dari
+ * `GET /api/v1/opname` (`apps/api/src/routes/v1/opname-bersama.ts`),
+ * dicocokkan ke `(dashboard)/mandor/opname/page.tsx`.
+ *
+ * ⚠️ PM PUNYA `mandor:view` + `opname:kelola` (list, kesiapan, ajukan)
+ * TAPI TIDAK PUNYA `opname:verifikasi` (SoD eksplisit: PM mengukur di
+ * lapangan, tidak memverifikasi). Halaman portal PM TAK BOLEH merender
+ * tombol Verifikasi/Sengketakan sama sekali.
+ *
+ * `pct_selesai`/`dasar_pct` DIHITUNG server tiap request (`pctOpname()`),
+ * bukan kolom tersimpan.
+ */
+export interface OpnameBersama {
+  id: string
+  nomor: string
+  tanggal_opname: string
+  status: "diajukan" | "diverifikasi" | "disengketakan"
+  catatan: string | null
+  alasan_sengketa: string | null
+  foto_url: string[]
+  project_id: string
+  work_scope_id: string
+  diukur_oleh: string
+  diverifikasi_oleh: string | null
+  diverifikasi_pada: string | null
+  dibuat_pada?: string | null
+  pengukur: { id: string; name: string } | null
+  penyetuju: { id: string; name: string } | null
+  opname_bersama_item: Array<{
+    id: string
+    uraian: string
+    satuan: string
+    volume_rencana: number | string | null
+    volume_terukur: number | string
+    pct_selesai: number | string
+    catatan: string | null
+    urutan: number
+  }>
+  pct_selesai: number | null
+  dasar_pct: "nilai" | "volume" | "rata"
+}
+
+export interface ResponsOpnameBersama {
+  opname: OpnameBersama[]
+}
+
+/**
+ * Kesiapan tagih per lingkup kerja. Bentuk dari `GET /api/v1/opname/kesiapan`
+ * (`apps/api/src/routes/v1/opname-bersama.ts`).
+ */
+export interface KesiapanOpname {
+  work_scope_id: string
+  scope_name: string
+  payment_system: string
+  wajib_opname: boolean
+  opname_terverifikasi: number
+  opname_menunggu: number
+  opname_disengketakan: number
+  pct_opname: number | null
+  pct_sudah_ditagih: number
+  pct_sisa: number | null
+  sebab: string
+}
+
+export interface ResponsKesiapanOpname {
+  kesiapan: KesiapanOpname[]
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
