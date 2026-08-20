@@ -229,12 +229,28 @@ async function main() {
     ]
 
     for (const spec of kasbonSpecs) {
+      // ⚠️ Syarat idempotensi WAJIB menyertakan `status = 'pending'`.
+      //
+      // Versi pertama skrip ini hanya mencocokkan `purpose` + `requested_by`.
+      // Akibatnya, begitu seseorang menguji tombol Setujui/Tolak di portal PM,
+      // barisnya berubah jadi approved/rejected — dan menjalankan ulang seed
+      // ini melaporkan "sudah ada" lalu TIDAK melengkapi apa pun. Inbox tetap
+      // kosong, dan itu terbaca seperti bug UI padahal cuma kehabisan bahan uji.
+      //
+      // Terjadi sungguhan 2026-08-20: verifikasi Task 9 menemukan 1 kartu di
+      // layar padahal seed melaporkan 6 entitas; ternyata 5 di antaranya sudah
+      // dipakai habis oleh pengujian klik sebelumnya.
+      //
+      // Dengan syarat status, seed jadi "pastikan ADA yang pending" — bukan
+      // "pastikan pernah dibuat". Baris lama TIDAK disentuh (tak ada UPDATE);
+      // yang ditambah hanyalah baris pending baru.
       const { rows: existing } = await client.query(
-        `SELECT id FROM kasbons WHERE purpose = $1 AND requested_by = $2`,
+        `SELECT id FROM kasbons
+          WHERE purpose = $1 AND requested_by = $2 AND status = 'pending'`,
         [spec.purpose, spec.requestedBy],
       )
       if (existing.length > 0) {
-        console.log(`  = kasbon sudah ada: "${spec.purpose}" (${existing[0].id})`)
+        console.log(`  = kasbon pending sudah ada: "${spec.purpose}" (${existing[0].id})`)
         continue
       }
       const { rows: inserted } = await client.query(
@@ -311,12 +327,24 @@ async function main() {
         console.log(`  ! jenis '${spec.jenis}' tidak ada di enum submittal_jenis — dilewati.`)
         continue
       }
+      // Sama seperti kasbon di atas: yang dijamin adalah "ADA yang berstatus
+      // `diajukan`", bukan "pernah dibuat". Bedanya, `nomor` submittal unik,
+      // jadi baris pengganti tak bisa memakai nomor yang sama — diberi akhiran
+      // urut. Baris lama tetap TIDAK disentuh.
       const { rows: existing } = await client.query(
-        `SELECT id FROM submittals WHERE nomor = $1 AND project_id = $2`,
-        [spec.nomor, spec.project.id],
+        `SELECT id FROM submittals
+          WHERE nomor LIKE $1 AND project_id = $2 AND status = 'diajukan'`,
+        [`${spec.nomor}%`, spec.project.id],
       )
+      if (existing.length === 0) {
+        const { rows: terpakai } = await client.query(
+          `SELECT count(*)::int AS n FROM submittals WHERE nomor LIKE $1`,
+          [`${spec.nomor}%`],
+        )
+        if (terpakai[0].n > 0) spec.nomor = `${spec.nomor}-${terpakai[0].n + 1}`
+      }
       if (existing.length > 0) {
-        console.log(`  = submittal sudah ada: "${spec.judul}" (${existing[0].id})`)
+        console.log(`  = submittal diajukan sudah ada: "${spec.judul}" (${existing[0].id})`)
         continue
       }
       const { rows: inserted } = await client.query(
