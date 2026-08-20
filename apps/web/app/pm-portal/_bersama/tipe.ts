@@ -818,6 +818,87 @@ export interface ResponsBackCharge {
 }
 
 /**
+ * Tukang (tabel `workers`, registry global). Bentuk dari
+ * `GET /api/v1/mandor/workers` (`apps/api/src/routes/v1/mandor.ts`,
+ * dikonfirmasi Task 5), dicocokkan ke `(dashboard)/mandor/tukang/page.tsx`.
+ *
+ * ⚠️ List/tambah/riwayat TANPA gerbang permission (cuma `authenticate`).
+ * PATCH/DELETE juga tanpa gerbang IZIN, tapi ada ownership check LITERAL
+ * `user.role === 'mandor'` di `mandor.ts` (mandor cuma boleh ubah tukang
+ * miliknya). **PM (`role !== 'mandor'`) TIDAK KENA check itu** — bisa
+ * edit/hapus tukang siapa pun di tenant. Karena itu portal PM di sini
+ * TIDAK menyembunyikan satu pun tombol CRUD.
+ *
+ * `mandor_terakhir`/`total_laporan` DIHITUNG server tiap request dari
+ * `wage_items` — bukan kolom tersimpan.
+ */
+export interface Worker {
+  id: string
+  name: string
+  phone: string | null
+  notes: string | null
+  tipe: "tukang" | "laden" | "kenek" | null
+  skills: string[] | null
+  is_active: boolean
+  created_at: string | null
+  mandor: { id: string; name: string } | null
+  mandor_terakhir?: string | null
+  total_laporan?: number
+}
+
+export interface ResponsWorker {
+  workers: Worker[]
+}
+
+export const TIPE_WORKER_LABELS: Record<string, string> = {
+  tukang: "Tukang", laden: "Laden", kenek: "Kenek",
+}
+
+/**
+ * Mitra — satu identitas, dua bentuk (`orang`/`badan_usaha`). Bentuk dari
+ * `GET /api/v1/mitra` (`apps/api/src/routes/v1/mitra.ts`).
+ *
+ * ⚠️ TIDAK ada field `status_kelayakan` enum — kelayakan DIHITUNG server
+ * (`periksaKelayakan()` di `lib/gerbang-kelayakan.ts`) dari kombinasi
+ * `daftar_hitam` + `aktif`, dipulangkan hanya di `GET /:id` (bukan di list).
+ * Halaman list di sini menurunkan status yang sama di klien langsung dari
+ * `daftar_hitam`/`aktif` — sama persis urutan prioritasnya (hitam menang
+ * atas tak aktif) — supaya tak perlu N+1 fetch detail per baris.
+ *
+ * PM PUNYA `mitra:view` + `mitra:manage` (list, tambah, edit), TIDAK
+ * PUNYA `mitra:daftar_hitam` (SoD eksplisit migrasi 462) — tombol
+ * masuk/keluar daftar hitam TIDAK ADA di halaman PM.
+ */
+export interface Mitra {
+  id: string
+  bentuk: "orang" | "badan_usaha"
+  nama: string
+  npwp: string | null
+  bentuk_badan: string | null
+  telepon: string | null
+  email: string | null
+  alamat: string | null
+  catatan: string | null
+  daftar_hitam: boolean
+  alasan_daftar_hitam: string | null
+  daftar_hitam_sejak: string | null
+  aktif: boolean
+  created_at?: string | null
+}
+
+export interface RingkasanMitra {
+  total: number
+  orang: number
+  badan_usaha: number
+  daftar_hitam: number
+}
+
+export interface ResponsMitra {
+  mitra: Mitra[]
+  ringkasan: RingkasanMitra
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {

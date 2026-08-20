@@ -14,7 +14,7 @@
 import {
   ShieldAlert, ClipboardCheck, FileQuestion, FileStack, FileText,
   Calendar, Landmark, ShoppingCart, HardHat, UserSquare2, Banknote, Ruler,
-  FileSignature, Gavel, Lock, Wrench,
+  FileSignature, Gavel, Lock, Wrench, Users, Building2,
 } from "lucide-react";
 import ActionCard from "@/components/portal/ActionCard";
 
@@ -37,6 +37,9 @@ const ITEMS = [
   { href: "/pm-portal/mandor-lengkap/tender", label: "Tender Subkontraktor", icon: Gavel },
   { href: "/pm-portal/mandor-lengkap/retensi", label: "Retensi Subkontraktor", icon: Lock },
   { href: "/pm-portal/mandor-lengkap/backcharge", label: "Back-charge", icon: Wrench },
+  // Tahap 1, Task 8 — sisa kelompok Operasi Lapangan/Mandor & Subkon.
+  { href: "/pm-portal/mandor-lengkap/tukang", label: "Tukang", icon: Users },
+  { href: "/pm-portal/mandor-lengkap/mitra", label: "Mitra", icon: Building2 },
 ];
 
 export default function PmLainnyaPage() {
