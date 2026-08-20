@@ -65,6 +65,19 @@ export default function PmRegisterKontrakPage() {
   const [mengirim, setMengirim] = useState(false);
   const [galatForm, setGalatForm] = useState<string | null>(null);
 
+  // Galat aksi di level HALAMAN — dipakai transisi status yang dipicu dari
+  // tombol di kartu (di LUAR BottomSheet), supaya kegagalan (mis. 409 alasan
+  // pembatalan kosong) tidak diam-diam tak terlihat user (Critical #2 review).
+  const [galatHalaman, setGalatHalaman] = useState<string | null>(null);
+
+  // Pembatalan WAJIB alasan (`periksaTransisiKontrak`, `apps/api/src/lib/
+  // kontrak.ts`) — tanpa field ini setiap klik "→ Dibatalkan" pasti 409
+  // (Critical #1 review). BottomSheet TERPISAH dari form create/addendum.
+  const [batalTarget, setBatalTarget] = useState<DokumenKontrak | null>(null);
+  const [alasanBatal, setAlasanBatal] = useState("");
+  const [mengirimBatal, setMengirimBatal] = useState(false);
+  const [galatBatal, setGalatBatal] = useState<string | null>(null);
+
   const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
   const daftarProyek = useMemo(() => (dataProyek?.projects ?? []).filter((p) => p.pm), [dataProyek]);
   const proyekAktif = proyekId || daftarProyek[0]?.id || "";
@@ -120,11 +133,42 @@ export default function PmRegisterKontrakPage() {
   }
 
   async function ubahStatus(k: DokumenKontrak, status: string) {
+    // `dibatalkan` WAJIB alasan (backend menolak 409 tanpanya) — dialihkan ke
+    // BottomSheet konfirmasi terpisah, bukan langsung PATCH.
+    if (status === "dibatalkan") {
+      setBatalTarget(k);
+      setAlasanBatal("");
+      setGalatBatal(null);
+      return;
+    }
+    setGalatHalaman(null);
     try {
       await api.patch(`/api/v1/kontrak/${k.id}/status`, { status });
       invalidasi(url ?? "");
     } catch (e) {
-      setGalatForm(pesanGalat(e as GalatApi, "Gagal mengubah status kontrak"));
+      setGalatHalaman(pesanGalat(e as GalatApi, "Gagal mengubah status kontrak"));
+    }
+  }
+
+  async function konfirmasiBatal() {
+    if (!batalTarget) return;
+    if (alasanBatal.trim().length === 0) {
+      setGalatBatal("Alasan pembatalan wajib diisi.");
+      return;
+    }
+    setMengirimBatal(true);
+    setGalatBatal(null);
+    try {
+      await api.patch(`/api/v1/kontrak/${batalTarget.id}/status`, {
+        status: "dibatalkan",
+        alasan: alasanBatal.trim(),
+      });
+      setBatalTarget(null);
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatBatal(pesanGalat(e as GalatApi, "Gagal membatalkan kontrak"));
+    } finally {
+      setMengirimBatal(false);
     }
   }
 
@@ -151,6 +195,14 @@ export default function PmRegisterKontrakPage() {
       {memuat && <SkeletonCard tinggi={160} />}
       {galat && <EmptyState icon={FileSignature} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
 
+      {/* Galat aksi level halaman — dipakai transisi status dari tombol di
+          kartu (di LUAR BottomSheet manapun), supaya kegagalan tetap terlihat. */}
+      {galatHalaman && (
+        <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+          {galatHalaman}
+        </div>
+      )}
+
       {/* cocok: true = SESUAI — banner tampil saat cocok FALSE (ada selisih), bukan sebaliknya */}
       {!memuat && data?.banding && !data.banding.cocok && (
         <div role="alert" style={{ display: "flex", alignItems: "flex-start", gap: 8, padding: "var(--pad-kartu)", borderRadius: 12, background: "var(--warning-bg)", border: "1px solid var(--warning-border)" }}>
@@ -176,8 +228,14 @@ export default function PmRegisterKontrakPage() {
             <StatusBadge status={VARIAN_STATUS[k.status] ?? "netral"} label={LABEL_STATUS[k.status] ?? k.status} />
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(k.nilai)}</div>
+          {/* Retensi TIDAK ditampilkan di sini: GET /api/v1/kontrak/proyek/:id
+              (endpoint yang dipakai halaman ini) memakai SELECT manual yang
+              TIDAK menyertakan retensi_pct (beda dari SELECT_KONTRAK di
+              endpoint lain) — menampilkannya akan selalu "—%" walau
+              kontraknya benar-benar punya nilai retensi tersimpan. Lihat
+              catatan Important #3, task-12-report.md. */}
           <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-            TTD {fmtTanggal(k.tanggal_tanda_tangan)} · Retensi {k.retensi_pct ?? "—"}%
+            TTD {fmtTanggal(k.tanggal_tanda_tangan)}
           </div>
 
           {(addendumPerInduk.get(k.id) ?? []).map((a) => (
@@ -265,6 +323,45 @@ export default function PmRegisterKontrakPage() {
             style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
             {mengirim ? "Menyimpan…" : "Simpan"}
           </button>
+        </div>
+      </BottomSheet>
+
+      {/* Pembatalan wajib alasan (periksaTransisiKontrak) — BottomSheet
+          terpisah dari form create/addendum. */}
+      <BottomSheet terbuka={!!batalTarget} onTutup={() => setBatalTarget(null)} judul={`Batalkan — ${batalTarget?.nomor ?? ""}`}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
+            {batalTarget?.judul} akan ditandai <strong>Dibatalkan</strong>. Tindakan ini
+            butuh alasan — pihak yang menandatangani berhak tahu kenapa kontraknya ditarik.
+          </p>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Alasan pembatalan
+            <textarea
+              value={alasanBatal}
+              onChange={(e) => setAlasanBatal(e.target.value)}
+              rows={3}
+              style={{ width: "100%", marginTop: 6, padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }}
+            />
+          </label>
+          {galatBatal && (
+            <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+              {galatBatal}
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button" onClick={() => setBatalTarget(null)} disabled={mengirimBatal}
+              style={{ flex: 1, minHeight: 48, padding: "0 14px", borderRadius: "var(--portal-radius-pill)", background: "var(--surface-subtle)", color: "var(--text-secondary)", border: "1px solid var(--border)", fontSize: 14, fontWeight: 700, cursor: mengirimBatal ? "default" : "pointer" }}
+            >
+              Batal
+            </button>
+            <button
+              type="button" onClick={() => void konfirmasiBatal()} disabled={mengirimBatal}
+              style={{ flex: 1, minHeight: 48, padding: "0 14px", borderRadius: "var(--portal-radius-pill)", background: "var(--danger)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirimBatal ? "default" : "pointer" }}
+            >
+              {mengirimBatal ? "Membatalkan…" : "Ya, Batalkan Kontrak"}
+            </button>
+          </div>
         </div>
       </BottomSheet>
     </div>
