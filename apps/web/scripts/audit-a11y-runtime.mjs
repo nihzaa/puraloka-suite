@@ -126,6 +126,10 @@ const CONTOH_ID = {
   // G6b — baseline jadwal. Memakai id proyek yang sama: halamannya sub-rute
   // proyek, jadi tak butuh id tersendiri.
   '/proyek/[id]/baseline': process.env.LAYAR_ID_PROYEK,
+  // Portal PM Lengkap Tahap 1, Task 9 — kategori "Lainnya" berjenjang.
+  // `key` BUKAN id dari DB — nilai literal tetap dari KATEGORI_AKTIF di
+  // lib/pm-portal-kategori.ts ("g-subkon" | "g-lapangan"). Tak butuh env var.
+  '/pm-portal/kategori/[key]': 'g-subkon',
 }
 
 function halamanDariBerkas() {

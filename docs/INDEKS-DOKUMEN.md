@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 290 dokumen** — antrean 13 · acuan 210 · riwayat 67.
+**Total 293 dokumen** — antrean 15 · acuan 211 · riwayat 67.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -125,6 +125,8 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [2026-07-15-warm-clay-design-system](superpowers/plans/2026-07-15-warm-clay-design-system.md) | acuan | ✓ | Warm Clay Design System (Phase 1) Implementation Plan |
 | [2026-08-06-sumbu-ui-roadmap](superpowers/plans/2026-08-06-sumbu-ui-roadmap.md) | antrean | ✓ | Sumbu UI/UX + Penjaga Status — Implementation Plan |
 | [2026-08-07-landing-publik-tahap-1](superpowers/plans/2026-08-07-landing-publik-tahap-1.md) | antrean | ✓ | Landing Publik Tahap 1 — Implementation Plan |
+| [2026-08-19-portal-mobile-rombak](superpowers/plans/2026-08-19-portal-mobile-rombak.md) | antrean | ✓ | Rombak Portal Mandor, PM, Klien — Gaya Aplikasi Mobile — Implementation Plan |
+| [2026-08-20-portal-pm-lengkap](superpowers/plans/2026-08-20-portal-pm-lengkap.md) | antrean | ✓ | Portal PM Lengkap Implementation Plan |
 
 ### `docs/superpowers/specs`
 
@@ -136,6 +138,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [2026-08-09-lapisan-ai-dan-platform-design](superpowers/specs/2026-08-09-lapisan-ai-dan-platform-design.md) | acuan |  | Lapisan AI & Platform — mengambil dari TJS Command Center, membangun lebih bai |
 | [2026-08-16-cecep-rombak-ui-design](superpowers/specs/2026-08-16-cecep-rombak-ui-design.md) | riwayat |  | CECEP — Rombak UI & Alur Kerja (Estimasi/RAB/RAP) |
 | [2026-08-19-portal-mobile-rombak-design](superpowers/specs/2026-08-19-portal-mobile-rombak-design.md) | acuan |  | Rombak Portal Mandor, PM, dan Klien — Gaya Aplikasi Mobile |
+| [2026-08-20-portal-pm-lengkap-design](superpowers/specs/2026-08-20-portal-pm-lengkap-design.md) | acuan |  | Portal PM Lengkap — Design Spec |
 
 ### `docs/superpowers/specs/2026-07-18-enterprise-architecture`
 

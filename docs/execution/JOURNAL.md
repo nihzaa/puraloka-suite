@@ -5,6 +5,106 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-20 (Portal PM Lengkap, Tahap 1) — Task 1-10 tuntas, dua regresi ditemukan & diperbaiki di verifikasi akhir
+
+Worktree `portal-mobile` (`feat/portal-mobile-rombak`), plan
+`docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md` (Tahap 1 dari
+7 — bukan plan yang sama dengan entri "Task 9/Task 10" di bawah, yang
+melanjutkan plan `2026-08-19-portal-mobile-rombak.md` — nama task
+kebetulan sama, plan-nya berbeda; **kedua plan baru didaftarkan ke
+`docs/ROADMAP.md` di sesi ini**, sebelumnya keduanya terlantar).
+
+**Tahap 1 — "Operasi Lapangan + Mandor & Subkon" — SELESAI, Task 1-10:**
+
+- **Task 1-4 (fondasi PWA):** ikon dinamis per-tenant, `manifest.json`,
+  service worker offline app-shell caching, komponen `SwipeableCard` +
+  token motion bersama.
+- **Task 5:** riset endpoint+permission 7 modul (murni riset, tanpa commit).
+- **Task 6-8 (9 halaman baru):** Penugasan, Kasbon (`worker_kasbons` —
+  BUKAN duplikat kasbon lama, tabel berbeda), Opname, SPK, Tender,
+  Retensi, Back-charge, Tukang, Mitra — semua di
+  `apps/web/app/pm-portal/mandor-lengkap/*`.
+- **Task 9 (navigasi):** halaman "Lainnya" ditulis ulang jadi 2 kartu
+  kategori (Mandor & Subkon, Operasi Lapangan) via rute dinamis baru
+  `pm-portal/kategori/[key]`, mencakup 18 halaman portal PM total (nol
+  regresi jangkauan dari grid datar lama).
+- **Task 10 (verifikasi akhir — task ini):** typecheck bersih, semua
+  penjaga CI, test backend terkait (269/269 lulus, backend memang tak
+  disentuh), audit a11y runtime penuh, JOURNAL + ROADMAP diperbarui.
+
+**Dua regresi NYATA ditemukan di Task 10, keduanya dari Task 1-9,
+keduanya diperbaiki di task yang sama:**
+
+1. `apps/web/scripts/audit-a11y-runtime.mjs` belum punya `CONTOH_ID`
+   untuk rute dinamis baru `/pm-portal/kategori/[key]` (dibuat Task 9) —
+   tanpa fix ini, audit a11y akan melewati halaman itu SECARA DIAM-DIAM
+   dan tetap melaporkan "0 pelanggaran" yang menyesatkan (pola persis
+   yang diperingatkan CLAUDE.md §8a.3, "audit yang melewati halaman tetap
+   melaporkan 0 pelanggaran, dibaca sebagai cakupan penuh"). `key`
+   halaman ini bukan id dari DB — nilainya literal tetap
+   (`"g-subkon"`/`"g-lapangan"` dari `KATEGORI_AKTIF`) — ditambahkan
+   sebagai contoh id statis, tak perlu env var baru.
+2. `docs/ROADMAP.md` belum mendaftarkan plan
+   `2026-08-19-portal-mobile-rombak.md` maupun
+   `2026-08-20-portal-pm-lengkap.md` — `audit-docs-vs-roadmap.mjs`
+   melaporkan "2 RENCANA TERLANTAR". Ditambahkan 2 baris referensi,
+   `docs/INDEKS-DOKUMEN.md` diregenerasi mengikuti.
+
+Efek samping ditemukan sendiri sesudah kedua fix: tool Edit menulis CRLF
+ke 2 file yang aslinya LF (`audit-a11y-runtime.mjs`, `ROADMAP.md`),
+membuat `audit-akhir-baris.mjs` sempat merah. Diperbaiki dengan skrip
+konversi yang disediakan pesan galat penjaga itu sendiri, seluruh
+penjaga dijalankan ulang untuk memastikan bersih.
+
+**Penjaga CI: 129 hijau → 132 hijau (39 MERAH tersisa, semuanya
+diverifikasi hutang lama).** Metodologi: untuk tiap penjaga merah, file
+yang disebutnya dicek `git diff --stat cb0875e5^..ec59fed4 --name-only`
+(rentang commit Task 1-9) — kalau file itu TAK ADA di diff, itu hutang
+lama, bukan regresi sesi ini. Diff Task 1-9 murni `apps/web/` (halaman,
+komponen, PWA), **nol file `db/`** — jadi klaim seperti
+`audit-peta-menu-vs-db.mjs` ("hanyaDb naik 124→125") bisa dipastikan
+BUKAN dari Task 1-9 tanpa perlu menebak. Sampel lain yang diverifikasi
+eksplisit: `uji-endpoint-ada.mjs` (16 "rute tak ada") ternyata seluruhnya
+false-positive template-literal, dikonfirmasi `/api/v1/mitra` BENAR ADA
+di `apps/api/src/routes/v1/mitra.ts:48`; `uji-tombol-primer-seragam.mjs`
+(11 tombol navy) seluruhnya file `mandor-portal/*`/`pm-portal/approval`
+dari sesi SEBELUM plan ini, nol `mandor-lengkap`.
+
+**Audit a11y runtime: 155 halaman dipindai, 0 pelanggaran — TAPI tidak
+mencakup 25 halaman `pm-portal/*`.** Baris `dialihkan: 50` bukan gejala
+kegagalan — dikonfirmasi `middleware.ts:177-182`: akun uji berperan
+admin/custom diblokir eksplisit dari prefix `/pm-portal`, dialihkan ke
+`/dashboard` sebelum sempat dipindai axe-core. `find app -name page.tsx`
+= 205 = 155 + 50 persis; `find app/pm-portal` = 25, mendekati porsi
+terbesar dari 50 yang dialihkan bersama portal klien/mandor. Fix
+`CONTOH_ID` di atas membuat rute itu **dicoba** (tak lagi di-skip di
+level enumerasi), tapi tak mengubah bahwa ia tetap dialihkan begitu
+dicoba — dua masalah berbeda, hanya satu yang bisa diperbaiki tanpa akun
+uji baru. **Menutup cakupan 25 halaman `pm-portal/*` (termasuk 9 halaman
+baru Task 1-9 — fokus utama Tahap 1 ini) butuh akun uji berperan PM,
+keputusan data uji untuk sesi berikutnya, bukan perubahan kode.**
+
+**Audit a11y sempat gagal dua kali sebelum berhasil di percobaan ketiga**
+— catatan proses, bukan cacat kode. Run 1 dihentikan sengaja (dimulai
+sebelum fix `CONTOH_ID` selesai). Run 2 ternyata **`[killed]`**
+(dikonfirmasi baca literal task output, BUKAN disimpulkan dari hilangnya
+proses browser — sempat nyaris salah simpul sebelum koordinator
+mengingatkan untuk memverifikasi lebih dulu), penyebab pasti tak
+diketahui, tanpa jejak galat di log. Run 3 berhasil sesudah baris
+`EXIT:$?` di-append eksplisit ke file log yang sama (bukan hanya
+tercetak ke stdout tool) supaya penanda selesai bisa diverifikasi
+langsung dari isi file.
+
+**File yang diubah Task 10** (4 file, semuanya kecil):
+`apps/web/app/pm-portal/mandor-lengkap/kasbon/page.tsx` (+kata kunci
+`best-effort:` di komentar catch — bukan perubahan perilaku, hanya
+supaya `catch-senyap-ratchet.mjs` mengenali alasan diam yang sudah ada),
+`apps/web/scripts/audit-a11y-runtime.mjs`, `docs/ROADMAP.md`,
+`docs/INDEKS-DOKUMEN.md`. Migrasi `db/migrations/335_*.sql`/`336_*.sql`
+tetap untracked, dikonfirmasi bukan bagian task manapun di plan ini.
+
+---
+
 ## 2026-08-20 — Task 9 tuntas terverifikasi, Task 10 (modul PM lanjutan) selesai
 
 Worktree `portal-mobile` (`feat/portal-mobile-rombak`), melanjutkan plan

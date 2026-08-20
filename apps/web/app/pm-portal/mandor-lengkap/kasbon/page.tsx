@@ -197,7 +197,7 @@ function FormKasbon({ onBatal, onSukses }: { onBatal: () => void; onSukses: () =
     try {
       const r = await api.get<RespWorkers>(`/api/v1/mandor/workers?mandor_id=${asg.mandor.id}`);
       setWorkers(r.data.workers);
-    } catch { /* daftar tukang kosong bila gagal — form tetap bisa dibatalkan */ }
+    } catch { /* best-effort: daftar tukang kosong bila gagal — form tetap bisa dibatalkan */ }
   }
 
   async function simpan() {
