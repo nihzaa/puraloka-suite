@@ -14353,11 +14353,11 @@ SELECT DISTINCT p.key FROM role_permissions rp
   SEBENARNYA bergerbang `notifications:milestone:check`, yang PM
   **TIDAK PUNYA** (endpoint ini dipicu PENJADWAL terjadwal, bukan aksi
   manual pengguna — lihat komentar kepala endpoint itu). Klaim yang
-  BENAR: **hanya ENAM endpoint tulis** yang bergerbang `documents:manage`
+  BENAR: **hanya TUJUH endpoint tulis** yang bergerbang `documents:manage`
   (PM PUNYA) — `POST .../gambar`, `POST .../transmittal`, `PATCH
   .../transmittal/:id/kirim`, `PATCH .../transmittal/:id/terima`, `POST
   .../notulen`, `POST .../tanda-tangan`, `POST
-  .../tanda-tangan/verifikasi` (tujuh, bukan enam — dihitung ulang).
+  .../tanda-tangan/verifikasi`.
   `kirim-laporan` TIDAK dipanggil Task 42 (halaman hanya menampilkan
   `jadwalLaporan` sebagai INFORMASI dari respons GET utama, tak pernah
   memanggil endpoint kirim-laporan itu sendiri) — dampaknya TERKONTROL
