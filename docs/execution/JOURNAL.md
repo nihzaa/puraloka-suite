@@ -5,6 +5,35 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-21 (Portal PM Lengkap, Tahap 6) — Koreksi Minor dari review Task 37: kutipan lokasi trigger periode-tertutup salah
+
+Review coordinator atas entri Task 37 di bawah (commit `60adb1a4`) menemukan
+satu Minor: kalimat "Rekomendasi konkret (Task 34)... trigger periode
+(`gl.ts:279`) hanya memeriksa transisi KE `posted`, bukan ke `void`" mengutip
+lokasi file yang SALAH. Diverifikasi ulang langsung ke kode: `gl.ts:279`
+adalah baris `void logAuditEvent(...)` di dalam handler `post` — sama
+sekali bukan pemeriksaan periode.
+
+Lokasi yang BENAR: `db/migrations/294_periode_akuntansi_tutup_buku.sql:279`,
+fungsi `fn_gl_hormati_periode_tertutup()`, baris `IF NEW.status <> 'posted'
+THEN` — persis perilaku yang dimaksud (early-return untuk transisi apa pun
+SELAIN ke `posted`, jadi transisi ke `void` lolos tanpa pemeriksaan periode
+sama sekali).
+
+**Substansi klaim BENAR** — void memang menembus gerbang periode-tertutup,
+diverifikasi ulang dan dikonfirmasi. Hanya kutipan file-nya yang keliru
+(disalin dari ingatan konteks Task 34 tanpa membuka ulang kodenya saat
+menulis JOURNAL). Kelas kesalahan yang sama dengan "citation drift" yang
+CLAUDE.md peringatkan berulang kali (§0, §7) — kutipan lokasi yang salah,
+kalau dipakai sebagai acuan tiket perbaikan backend GL nanti, akan mengirim
+orang ke `gl.ts` padahal fix sesungguhnya ada di migrasi SQL trigger.
+
+Tidak ada perubahan kode — murni koreksi kutipan dokumentasi. Entri Task 37
+di bawah TIDAK diedit sesuai konvensi append-only §0 dokumen ini; koreksi
+dicatat di sini sebagai entri terpisah.
+
+---
+
 ## 2026-08-21 (Portal PM Lengkap, Tahap 6) — Task 37 tuntas: navigasi kategori Keuangan tersambung, TAHAP 6 (Keuangan) SELESAI
 
 Task TERAKHIR Tahap 6 — dan modul paling sensitif finansial di seluruh plan.

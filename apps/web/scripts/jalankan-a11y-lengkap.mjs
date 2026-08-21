@@ -91,6 +91,20 @@ const PERTANYAAN = [
   // Portal PM Lengkap Tahap 5, Task 30 — detail Rencana Mutu Proyek
   // (`/pm-portal/mutu/rencana/[id]`).
   ['LAYAR_ID_RMP', 'select id from rencana_mutu order by created_at desc limit 1'],
+  // Portal PM Lengkap Tahap 5, Task 29 — detail NCR (`/pm-portal/mutu/ncr/[id]`).
+  // Gap PRA-EKSISTING ditemukan saat verifikasi akhir Task 37: `CONTOH_ID`
+  // di audit-a11y-runtime.mjs sudah mendukung LAYAR_ID_NCR sejak Task 29,
+  // tapi query untuk mengisinya otomatis tak pernah ditambahkan di sini —
+  // rutenya karena itu SELALU "TERLEWAT" walau mekanismenya sudah ada.
+  ['LAYAR_ID_NCR', 'select id from ncr_items order by created_at desc limit 1'],
+  // Portal PM Lengkap Tahap 6, Task 33 — detail Akun Kas (`/pm-portal/keuangan/kas/[id]`).
+  ['LAYAR_ID_CASH_ACCOUNT', 'select id from cash_accounts order by created_at desc limit 1'],
+  // Portal PM Lengkap Tahap 6, Task 34 — detail Jurnal GL
+  // (`/pm-portal/keuangan/gl/jurnal/[id]`).
+  ['LAYAR_ID_JOURNAL', 'select id from journal_entries order by created_at desc limit 1'],
+  // Portal PM Lengkap Tahap 6, Task 35 — detail Rekening Koran
+  // (`/pm-portal/keuangan/rekonsiliasi-bank/[id]`).
+  ['LAYAR_ID_REKENING_KORAN', 'select id from rekening_koran order by created_at desc limit 1'],
 ]
 
 const env = { ...process.env }

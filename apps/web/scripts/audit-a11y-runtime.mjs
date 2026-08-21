@@ -152,6 +152,15 @@ const CONTOH_ID = {
   // `GET /rencana-mutu/:id` tak memakai project_id dari query, tenancy
   // dijamin server lewat projectIds() (lihat komentar `[id]/page.tsx`).
   '/pm-portal/mutu/rencana/[id]': process.env.LAYAR_ID_RMP,
+  // Portal PM Lengkap Tahap 6, Task 33/34/35 — tiga rute dinamis ditemukan
+  // TERLEWAT saat verifikasi akhir Task 37 (uji-rute-dinamis-teraudit.mjs
+  // sudah merah SEBELUM Task 37, gap ditinggalkan Task 33-35 yang membangun
+  // halamannya tanpa menambah entri di sini). Semua tiga memakai `useParams`
+  // polos, tak butuh query string tambahan (dikonfirmasi baca `[id]/page.tsx`
+  // masing-masing).
+  '/pm-portal/keuangan/kas/[id]': process.env.LAYAR_ID_CASH_ACCOUNT,
+  '/pm-portal/keuangan/gl/jurnal/[id]': process.env.LAYAR_ID_JOURNAL,
+  '/pm-portal/keuangan/rekonsiliasi-bank/[id]': process.env.LAYAR_ID_REKENING_KORAN,
 }
 
 function halamanDariBerkas() {
