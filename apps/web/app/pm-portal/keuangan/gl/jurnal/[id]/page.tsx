@@ -130,12 +130,13 @@ export default function PmDetailJurnalPage() {
       </div>
 
       <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 420 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 420, fontVariantNumeric: "tabular-nums" }}>
+          <caption className="sr-only">Baris jurnal {j.entry_number}: akun, debit, dan kredit per baris.</caption>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--border)" }}>
-              <th style={{ textAlign: "left", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Akun</th>
-              <th style={{ textAlign: "right", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Debit</th>
-              <th style={{ textAlign: "right", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Kredit</th>
+              <th scope="col" style={{ textAlign: "left", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Akun</th>
+              <th scope="col" style={{ textAlign: "right", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Debit</th>
+              <th scope="col" style={{ textAlign: "right", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Kredit</th>
             </tr>
           </thead>
           <tbody>
@@ -145,13 +146,13 @@ export default function PmDetailJurnalPage() {
                     yang gagal resolve (`?? {}`), beda dari endpoint sibling
                     `/gl/ledger`/`/gl/trial-balance`. Akses WAJIB pakai `?.`,
                     bukan langsung — akses tanpa guard TypeError runtime. */}
-                <td style={{ padding: "var(--pad-baris)" }}>
+                <th scope="row" style={{ padding: "var(--pad-baris)", textAlign: "left", fontWeight: 400 }}>
                   {l.accounts?.code ?? "—"} · {l.accounts?.name ?? "Akun tak dikenal"}
-                </td>
-                <td style={{ padding: "var(--pad-baris)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                </th>
+                <td style={{ padding: "var(--pad-baris)", textAlign: "right" }}>
                   {Number(l.debit) > 0 ? fmtRupiah(l.debit) : "—"}
                 </td>
-                <td style={{ padding: "var(--pad-baris)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                <td style={{ padding: "var(--pad-baris)", textAlign: "right" }}>
                   {Number(l.credit) > 0 ? fmtRupiah(l.credit) : "—"}
                 </td>
               </tr>

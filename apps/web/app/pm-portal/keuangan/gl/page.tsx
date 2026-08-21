@@ -327,24 +327,25 @@ export default function PmGlPage() {
                 </div>
               )}
               <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 480 }}>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 480, fontVariantNumeric: "tabular-nums" }}>
+                  <caption className="sr-only">Buku besar: baris jurnal terposting per tanggal dan akun, dengan debit dan kredit.</caption>
                   <thead>
                     <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                      <th style={{ textAlign: "left", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Tanggal</th>
-                      <th style={{ textAlign: "left", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Akun</th>
-                      <th style={{ textAlign: "right", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Debit</th>
-                      <th style={{ textAlign: "right", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Kredit</th>
+                      <th scope="col" style={{ textAlign: "left", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Tanggal</th>
+                      <th scope="col" style={{ textAlign: "left", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Akun</th>
+                      <th scope="col" style={{ textAlign: "right", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Debit</th>
+                      <th scope="col" style={{ textAlign: "right", padding: "var(--pad-baris)", color: "var(--text-secondary)" }}>Kredit</th>
                     </tr>
                   </thead>
                   <tbody>
                     {dataLedger.data.map((b, i) => (
                       <tr key={`${b.entry_id}-${i}`} style={{ borderBottom: "1px solid var(--border)" }}>
                         <td style={{ padding: "var(--pad-baris)" }}>{fmtTanggal(b.entry_date)}</td>
-                        <td style={{ padding: "var(--pad-baris)" }}>{b.code} · {b.name}</td>
-                        <td style={{ padding: "var(--pad-baris)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                        <th scope="row" style={{ padding: "var(--pad-baris)", textAlign: "left", fontWeight: 400 }}>{b.code} · {b.name}</th>
+                        <td style={{ padding: "var(--pad-baris)", textAlign: "right" }}>
                           {b.debit > 0 ? fmtRupiah(b.debit) : "—"}
                         </td>
-                        <td style={{ padding: "var(--pad-baris)", textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
+                        <td style={{ padding: "var(--pad-baris)", textAlign: "right" }}>
                           {b.credit > 0 ? fmtRupiah(b.credit) : "—"}
                         </td>
                       </tr>

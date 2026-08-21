@@ -143,15 +143,15 @@ export default function PmCashflowPage() {
               <caption className="sr-only">Proyeksi pencairan kas per periode dan kumulatifnya.</caption>
               <thead>
                 <tr style={{ background: "var(--surface-subtle)" }}>
-                  <th style={{ padding: "8px 8px", textAlign: "left", fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Periode</th>
-                  <th style={{ padding: "8px 8px", textAlign: "right", fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Pencairan</th>
-                  <th style={{ padding: "8px 8px", textAlign: "right", fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Kumulatif</th>
+                  <th scope="col" style={{ padding: "8px 8px", textAlign: "left", fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Periode</th>
+                  <th scope="col" style={{ padding: "8px 8px", textAlign: "right", fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Pencairan</th>
+                  <th scope="col" style={{ padding: "8px 8px", textAlign: "right", fontSize: 10, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", borderBottom: "1px solid var(--border)" }}>Kumulatif</th>
                 </tr>
               </thead>
               <tbody>
                 {data.forecast.map((p) => (
                   <tr key={p.period} style={{ borderBottom: "1px solid var(--border)" }}>
-                    <td style={{ padding: "8px 8px", color: "var(--text-primary)" }}>M{p.period}</td>
+                    <th scope="row" style={{ padding: "8px 8px", textAlign: "left", fontWeight: 400, color: "var(--text-primary)" }}>M{p.period}</th>
                     <td style={{ padding: "8px 8px", textAlign: "right", color: "var(--text-primary)" }}>{fmtRupiah(p.disbursement)}</td>
                     <td style={{ padding: "8px 8px", textAlign: "right", fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(p.cumulative)}</td>
                   </tr>
