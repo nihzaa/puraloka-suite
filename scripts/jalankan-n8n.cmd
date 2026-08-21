@@ -50,6 +50,19 @@ REM  Tanpa ini, pengingat invoice jatuh tempo terkirim pukul 15:00 WIB.
 set "GENERIC_TIMEZONE=Asia/Jakarta"
 set "TZ=Asia/Jakarta"
 
+REM  Retensi eksekusi — DIPUTUSKAN spec 2026-08-22 §7.1.
+REM
+REM  Payload webhook sekarang membawa kredensial WA tenant (lihat
+REM  terbit-peristiwa.ts, muatanWaPeristiwa()). Eksekusi SUKSES tak perlu
+REM  disimpan sama sekali — otomasi_jalan di sisi Puraloka sudah jadi
+REM  jejak UI utama dan TIDAK menyimpan payload rahasia (hanya status/
+REM  durasi/pesan galat terpotong 300 karakter). Eksekusi GAGAL tetap
+REM  disimpan penuh untuk didebug, tapi dipangkas otomatis lewat prune.
+set "EXECUTIONS_DATA_SAVE_ON_SUCCESS=none"
+set "EXECUTIONS_DATA_SAVE_ON_ERROR=all"
+set "EXECUTIONS_DATA_PRUNE=true"
+set "EXECUTIONS_DATA_MAX_AGE=72"
+
 if not exist "%N8N_USER_FOLDER%" mkdir "%N8N_USER_FOLDER%"
 
 echo.
