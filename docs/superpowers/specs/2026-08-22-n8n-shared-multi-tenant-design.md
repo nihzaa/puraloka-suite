@@ -326,6 +326,26 @@ yang **sudah dibaca aplikasi sebelum memanggil**, memakai
 `ambilKredensialTanpaRequest()` yang SUDAH diimpor di berkas itu (baris
 51):
 
+**Temuan tambahan yang mengoreksi asumsi awal**: `nomorTujuan` BUKAN
+diresolusi per-user lewat `resolveRecipients()` — diukur langsung dari
+`bangun-alur.mjs` (baris 285, 394, 479): kelima node "Kirim WhatsApp"
+peristiwa hari ini mengirim ke **SATU nomor tetap per tenant**
+(`cfg.nomorTujuan`, dari `process.env.WA_TUJUAN`, dipatok saat build —
+persis cacat yang sama dengan kredensial WA lainnya). Ini bukan
+kredensial rahasia (nomor tujuan, bukan token), tetapi **hari ini bukan
+kredensial tenant SAMA SEKALI** — hanya variabel env skrip build-time,
+tak pernah masuk `KATALOG_KREDENSIAL` (diverifikasi: nol match `WA_TUJUAN`
+di `apps/api/src`). Tanpa memperbaiki ini, migrasi ke payload-driven
+tidak punya sumber nilai valid untuk `nomorTujuan` per tenant.
+
+**Keputusan susulan**: tambahkan `WA_NOMOR_NOTIFIKASI` ke
+`KATALOG_KREDENSIAL` (`kredensial.ts`), grup `WhatsApp`, pola PERSIS
+sama dengan `WA_BASE_URL`/`WA_API_KEY`/`WA_INSTANCE` di atasnya (tanpa
+`env:` fallback — nomor tujuan adalah identitas per-tenant, sama
+alasannya dengan `EMAIL_FROM`: tenant tanpa nomor sendiri semestinya
+tak diam-diam memakai nomor operator). Ini satu field baru di UI
+Kredensial, bukan perubahan struktural.
+
 ```ts
 // terbit-peristiwa.ts — di dalam terbitkanPeristiwa(), SEBELUM
 // jalankanAlur() dipanggil (menggantikan blok baris ~194-209 saat ini).
@@ -335,10 +355,14 @@ const wa = {
   url: await ambilKredensialTanpaRequest(companyId, 'WA_BASE_URL'),
   apiKey: await ambilKredensialTanpaRequest(companyId, 'WA_API_KEY'),
   instance: await ambilKredensialTanpaRequest(companyId, 'WA_INSTANCE'),
+  nomorTujuan: await ambilKredensialTanpaRequest(companyId, 'WA_NOMOR_NOTIFIKASI'), // BARU
 }
-// nomor tujuan BUKAN kredensial — sudah ada di alur resolveRecipients()
-// yang dipanggil createNotifications() sebelum terbitkanPeristiwa();
-// diteruskan sebagai parameter tambahan fungsi ini kalau belum ada.
+// Kalau nomorTujuan null (belum diisi tenant), jalankanAlur() tetap
+// dipanggil — n8n menerima wa.nomorTujuan: null dan node "Kirim
+// WhatsApp" gagal dengan pesan yang jelas ("nomor tujuan kosong"),
+// tercatat ke otomasi_jalan seperti kegagalan lain. TIDAK di-skip diam
+// -diam di sisi aplikasi: skip senyap berarti alur "sehat" padahal
+// tak pernah mengirim, kelas cacat yang sudah berulang di repo ini.
 
 const hasil = await jalankanAlur({
   db: createTenantDb(companyId),
