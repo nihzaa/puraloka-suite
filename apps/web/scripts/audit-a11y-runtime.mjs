@@ -130,6 +130,12 @@ const CONTOH_ID = {
   // `key` BUKAN id dari DB — nilai literal tetap dari KATEGORI_AKTIF di
   // lib/pm-portal-kategori.ts ("g-subkon" | "g-lapangan"). Tak butuh env var.
   '/pm-portal/kategori/[key]': 'g-subkon',
+  // Portal Admin/Direktur Tahap 0, Task 1 — sama pola persis baris di atas.
+  // `KATEGORI_AKTIF` di lib/admin-portal-kategori.ts KOSONG di Tahap 0, jadi
+  // `key` apa pun (termasuk `g-master`, grup nyata di PETA_MENU) akan
+  // merender cabang "Kategori tidak ditemukan" — itu tetap halaman sungguhan
+  // yang sah diaudit a11y-nya (EmptyState), bukan alasan melewati rute ini.
+  '/admin-portal/kategori/[key]': 'g-master',
   // Portal PM Lengkap Tahap 3, Task 19 — detail RAB (estimate_versions.id).
   '/pm-portal/cecep/rab/[id]': process.env.LAYAR_ID_RAB,
   // Portal PM Lengkap Tahap 3, Task 20 — detail RAP (rap_budget.id).

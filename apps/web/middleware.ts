@@ -110,7 +110,14 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // menyimpulkan modulnya belum jadi, padahal sudah. Itu kelas cacat yang
   // sama dengan titik kesiapan yang basi (migrasi 439/440) — hanya saja yang
   // ini menutup aksesnya, bukan sekadar menyesatkan tampilannya.
-  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/risiko", "/k3", "/m", "/master", "/peta-modul"],
+  // `/admin-portal` — Portal Admin/Direktur (Task 1, 2026-08-22). Tanpa baris
+  // ini admin akan di-redirect SENYAP ke /dashboard sebelum layout React
+  // admin-portal sempat jalan sama sekali — bug class yang sudah 2x terjadi
+  // di repo ini (PM 2026-08-02, Master Data 2026-08-17), TANPA satu pun
+  // error. Layout admin-portal sendiri (app/admin-portal/layout.tsx) sudah
+  // menjaga whitelist role admin+direktur; baris ini hanya membuka pintu
+  // middleware supaya layout itu sempat dimuat.
+  admin:   ["/dashboard", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/keuangan", "/akuntansi", "/mandor", "/laporan", "/notifications", "/kas", "/users", "/klien", "/procurement", "/pengaturan", "/kalender", "/audit", "/sistem", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/gudang", "/approval-inbox", "/otomasi", "/sdm", "/risiko", "/k3", "/m", "/master", "/peta-modul", "/admin-portal"],
 };
 
 /**
@@ -176,6 +183,15 @@ export function middleware(request: NextRequest) {
     }
   } else if (token && role && !ROLE_ALLOWED[role]) {
     // Custom role: akses bebas ke /dashboard dan /proyek, blokir portal khusus role lain
+    //
+    // `direktur` (Task 1, Portal Admin/Direktur) JATUH KE CABANG INI — tak
+    // ada entri `direktur` di ROLE_ALLOWED, jadi `role` sengaja dibiarkan
+    // "custom role" (data konfigurasi per-tenant, ADR-004 §5.1 CLAUDE.md,
+    // bukan konstanta literal di sini). `/admin-portal` SENGAJA TIDAK
+    // ditambahkan ke `blockedPrefixes` di bawah — kalau ditambahkan,
+    // direktur ikut ter-redirect ke /dashboard sebelum layout React
+    // admin-portal sempat memverifikasi role-nya sendiri (layout itu
+    // whitelist admin+direktur, lihat app/admin-portal/layout.tsx).
     const blockedPrefixes = ["/portal", "/mandor-portal", "/pm-portal"];
     if (blockedPrefixes.some((p) => cocokRute(pathname, p))) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
