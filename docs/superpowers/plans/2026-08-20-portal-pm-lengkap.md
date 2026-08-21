@@ -14296,6 +14296,3914 @@ ulangi Task 10 (Verifikasi akhir Tahap 1) tapi untuk SELURUH
 plan ini. Update `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` kalau ada status
 menu yang berubah (CLAUDE.md §8a.4).
 
+**Riset (Task 38 Step 1) — permission PM per modul, diukur langsung ke
+`role_permissions`/`permissions` (bukan ditebak):**
+
+```sql
+SELECT DISTINCT p.key FROM role_permissions rp
+  JOIN roles r ON r.id = rp.role_id
+  JOIN permissions p ON p.id = rp.permission_id
+ WHERE r.name = 'pm' ORDER BY p.key;
+```
+
+- **SDM (`g-hr`)**: PM punya `sdm:timesheet:view`+`:manage` (isi timesheet
+  SENDIRI, TIDAK `:approve`), `sdm:cuti:view`+`:manage` (ajukan/batalkan
+  cuti SENDIRI, TIDAK `:approve`/`:hak`), `sdm:sertifikat:view` (baca SAJA,
+  TIDAK `:manage`), `sdm:rekrutmen:view` (baca SAJA, TIDAK `:manage`). PM
+  **TIDAK PUNYA** `sdm:pegawai:*` (Data Karyawan), `sdm:kinerja:*`
+  (Penilaian Kinerja — sama sekali tak ada, bukan cuma view), atau
+  `payroll:*` (Payroll Staf, Tarif Payroll/PPh21/BPJS). `hr-upah` (Upah
+  Harian Lapangan) sudah tercakup Tahap 1 (`mandor:wage:*`) — TIDAK
+  diulang di sini.
+- **Aset (`g-aset`)**: PM punya `assets:view`+`:manage` PENUH (register,
+  mutasi antar-proyek, sewa, catat pemakaian/servis/biaya operasional).
+  PM **TIDAK PUNYA** `gl:manage` — tombol "Jurnalkan Penyusutan"
+  (`as-gl`, `POST /alat-operasional/penyusutan/jurnalkan`) TIDAK dibangun
+  untuk PM, sama alasannya dengan Task 23 menunda `payment:manage` AP:
+  yang dihasilkan endpoint itu adalah JURNAL yang mengubah laporan
+  keuangan, dan `assets:manage` diberikan jauh lebih luas dari `gl:manage`
+  secara sengaja (komentar kepala `alat-operasional.ts:387-391`).
+- **Risiko & Kepatuhan (`g-risiko`)**: PM punya `risiko:view`+`:manage`
+  (Register Risiko + Mitigasi, tabProyek) dan `izin:view`+`:manage`
+  (Perizinan proyek, tabProyek). PM **TIDAK PUNYA** `sengketa:view`
+  ATAU `:manage` SAMA SEKALI — modul Sengketa & Klaim (`rk-sengketa`)
+  di luar jangkauan PM, TIDAK dibangun. `rk-kepatuhan` (Kepatuhan
+  Regulasi) sudah tercakup Tahap 5 (`kepatuhan/page.tsx`, Task 27-30,
+  endpoint `kepatuhan-k3.ts`) — menu ini `is_active=false` di DB dan
+  menunjuk halaman yang SAMA (aturan 232), TIDAK diulang di sini.
+- **Dokumen (`g-dokumen`)**: GET utama (`/kendali-dokumen`) bergerbang
+  `projects:view` (PM pasti punya). Seluruh tulis (gambar, transmittal,
+  kirim/terima, notulen, tanda tangan, verifikasi) bergerbang
+  `documents:manage` — PM PUNYA. `dk-register` (Register Dokumen) sudah
+  tercakup PENUH sebelum Portal PM Lengkap dimulai
+  (`pm-portal/dokumen/page.tsx`, verified: hanya `GET
+  /projects/:id/documents`, TIDAK menyentuh `kendali-dokumen.ts` sama
+  sekali) — TIDAK ditumpuk ulang, hanya modul KENDALI (transmittal,
+  gambar, notulen, distribusi, ttd, jadwal laporan) yang baru di sini.
+  `dk-approval` (`/pengaturan/approval`) di luar scope — administrasi
+  approval chain, bukan operasional. `dk-esign`/`dk-verifikasi-ttd`
+  SUDAH endpoint yang sama (`documents:manage`) — DIGABUNG ke halaman
+  yang sama, bukan halaman terpisah (satu-satunya cara menandatangani
+  di modul ini).
+- **Laporan & BI (`g-laporan`)**: PM punya `reports:view` (financial,
+  cashflow, kpi-perusahaan, export-pdf), `reports:progress`,
+  `reports:susun` (Report Builder — gerbang KEDUA per-sumber tetap
+  berlaku, lihat Step di bawah), `reports:export`. `bi-eksekutif`
+  (`/dashboard`) dan `bi-proyek` (`/proyek`) TIDAK dibangun ulang di
+  sini — keduanya SUDAH ADA sebagai halaman lain (dashboard admin/detail
+  proyek), bukan bagian grup `g-laporan` yang butuh breakdown portal
+  baru. `bi-biaya` (`/procurement/laporan`) sudah tercakup Task 24
+  Tahap 4. `bi-arus-kas` (`/keuangan/arus-kas`) TUMPANG TINDIH dengan
+  `GET /reports/cashflow` — dibangun SEBAGAI SATU halaman
+  `keuangan/dashboard` yang sudah ada (Task 32) TIDAK diubah; laporan
+  cashflow PERIODE (bukan snapshot real-time) dibangun terpisah di sini
+  sebagai tab. `bi-kpi` → `laporan/kpi-perusahaan/page.tsx` (baru).
+  `bi-export`/`lap-susun` → `laporan/susun/page.tsx` (baru, Report
+  Builder). `bi-terjadwal` (`status: 'sebagian'`, bukan `'hidup'`) DI
+  LUAR SCOPE (§1 spec — hanya modul `hidup` yang direplikasi).
+- **Klien (`md-klien`, grup `g-master` — SUDAH aktif di
+  `KATEGORI_AKTIF`)**: `GET /clients`+`GET /clients/:id` bergerbang
+  `authenticate` SAJA (semua role login bisa baca — TIDAK ada
+  `requirePermission` khusus baca). PM **TIDAK PUNYA** `clients:manage`
+  (hanya `clients:view` menurut tabel permission, dan endpoint tulis
+  `clients.ts` bergerbang `clients:manage` untuk POST/PATCH/toggle-active)
+  — halaman portal PM untuk klien HARUS read-only, TANPA tombol
+  tambah/edit/nonaktifkan. `md-klien` belum dipetakan di
+  `PETA_HREF_PORTAL` sama sekali (diverifikasi: nol match), jadi masih
+  fallback ke `/klien` web. Fungsi pure `medanKurang`/`identitasPajakTerisi`
+  (`apps/web/lib/ringkasan-klien.ts`) dipakai ulang APA ADANYA — sudah
+  teruji, bukan ditulis ulang.
+- **⚠️ Temuan navigasi di luar 7 modul brief**: `g-hse` (K3 & Lingkungan,
+  `hse-rk3k`/`hse-jsa`/`hse-induksi`/`hse-apd`/`hse-inspeksi`/
+  `hse-insiden`/`hse-lingkungan`) **BELUM ADA** di `KATEGORI_AKTIF`
+  (diverifikasi: string `g-hse` nol match di daftar array), padahal
+  SELURUH item grup itu sudah `href: '/k3...'` — halaman `/pm-portal/k3`
+  SUDAH DIBANGUN Tahap 1 (Task 6-8). Ini bukan modul baru yang butuh
+  breakdown kode — hanya SATU baris yang lupa ditambahkan ke
+  `KATEGORI_AKTIF` saat Tahap 1 (atau tahap mana pun) diaktifkan.
+  Diperbaiki di Task 44 Step 1 bersama grup Tahap 7, supaya utang ini
+  tak terus menumpuk sampai tahap berikutnya.
+
+- [ ] **Step 4 (Task 38): keputusan RFQ + vendor-kualifikasi** — brief
+  meminta verifikasi ulang permission PM untuk `rfq.ts` (`pr-rfq`,
+  `pr-tabulasi`) dan `vendor-kualifikasi.ts` sebelum memutuskan breakdown.
+  Diukur ke daftar permission PM lengkap di atas: **PM TIDAK PUNYA**
+  `procurement:rfq:*` ATAU `procurement:vendor:*` dalam bentuk apa pun —
+  kedua kunci itu SAMA SEKALI TIDAK MUNCUL di 89 permission unik yang
+  dimiliki role `pm` (daftar lengkap diverifikasi 2026-08-21). PM punya
+  `procurement:supplier:manage` (beda modul — data master supplier, bukan
+  RFQ/kualifikasi vendor) dan `procurement:po:manage`/`procurement:mr:manage`
+  yang SUDAH tercakup penuh Task 24 (Tahap 4). **Keputusan: RFQ + tabulasi
+  penawaran vendor DAN vendor-kualifikasi TETAP DI LUAR SCOPE seluruh plan
+  ini** — bukan karena terlupa, tapi karena PM benar-benar tidak diberi
+  izin membaca maupun menulis modul itu di backend. Membangun halaman
+  portal untuk permission yang tak dimiliki menghasilkan tombol yang
+  selalu 403 — pelanggaran prinsip yang sama dengan Task 26 menunda
+  `fn-ap` dan Task 31 menunda `gl-peta-akun`/`gl-jurnalkan`. Kalau PM
+  suatu saat diberi izin ini (keputusan founder), breakdown-nya adalah
+  pekerjaan BARU, bukan pekerjaan yang tertunda dari sini.
+
+- [ ] **Step 5 (Task 38): keputusan hub `pm-portal/proyek/[id]`** — brief
+  meminta pengukuran ulang apakah hub proyek sekarang dibutuhkan. Dibaca
+  langsung: `apps/web/app/pm-portal/proyek/[id]/page.tsx` (16 baris) HANYA
+  me-redirect ke `/proyek/[id]` (halaman ADMIN desktop penuh) — tidak
+  berubah sejak Task 17/23 mengukurnya. Modul Tahap 7 yang SECARA ALAMI
+  ber-scope proyek (Risiko, Perizinan) TIDAK menambah tekanan ke hub itu:
+  keduanya dibangun sebagai halaman STANDALONE dengan dropdown pemilih
+  proyek (pola identik `mutu/rencana/page.tsx` Tahap 5 dan
+  `keuangan/ipc/page.tsx` Tahap 6 — BUKAN sebagai tab baru di dalam hub
+  yang tak ada), persis pola yang sudah dipakai SETIAP modul tabProyek
+  sejak Tahap 2. **Keputusan: hub TETAP DITUNDA** — Tahap 7 tidak
+  mengubah kalkulasi kebutuhannya. Redirect ke `/proyek/[id]` tetap aman
+  karena PM punya akses penuh ke halaman itu (komentar existing di
+  `page.tsx`). Utang ini dicatat SEKALI LAGI di Task 45 (verifikasi akhir)
+  supaya tak hilang begitu plan ini selesai — kalau ada tahap ke-9 nanti,
+  keputusan ini harus diukur ulang, bukan diwarisi begitu saja.
+
+---
+
+### Task 39: SDM — Timesheet, Cuti, Kompetensi & Rekrutmen — halaman baru
+
+**Penjaga CI relevan**: `uji-galat-muat-terpisah.mjs`, `uji-token-css-ada.mjs`,
+`uji-judul-halaman-ada.mjs`, `uji-remah-lengkap.mjs`,
+`audit-halaman-pakai-cache.mjs`.
+
+**Files:**
+- Create: `apps/web/app/pm-portal/sdm/timesheet/page.tsx`
+- Create: `apps/web/app/pm-portal/sdm/kompetensi/page.tsx`
+- Create: `apps/web/app/pm-portal/sdm/cuti/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Riset (Task 38 Step 1)** — bentuk respons diverifikasi baris-per-baris:
+
+- `GET /api/v1/sdm/pegawai` (`sdm:timesheet:view`) → `{ pegawai:
+  (Pegawai)[] }`, `Pegawai = { id, user_id, nomor_induk, jabatan,
+  departemen, tanggal_masuk, tanggal_keluar, jam_standar, status_ptkp,
+  kategori_ter, created_at, orang: {id,name,email} }`
+  (`timesheet-staf.ts:30-34`). Endpoint ini SENGAJA tidak mengirim gaji
+  pokok (komentar baris 56-58) — dibuka untuk memilih siapa timesheet-nya
+  dilihat, bukan untuk melihat gaji.
+- `GET /api/v1/sdm/pegawai/:id/timesheet?bulan=YYYY-MM`
+  (`sdm:timesheet:view`) → `{ pegawai: Pegawai, bulan, rentang:
+  {awal,akhir}, ringkasan: RingkasanTimesheet, pengajuan: {boleh,
+  penghalang: PenghalangAjukan[], peringatan: PenghalangAjukan[]} }`.
+  `RingkasanTimesheet` (`lib/timesheet-staf.ts:83-102`): `{ baris:
+  BarisDinilai[], total_jam_kerja, total_jam_lembur, hari_terisi,
+  hari_kosong: string[], per_status: {draf,diajukan,disetujui,ditolak},
+  per_proyek: {project_id,jam,lembur}[], perlu_ditanya: BarisDinilai[] }`.
+  `BarisDinilai extends BarisTimesheet` (`:44-54,67-81`): `{ id, tanggal,
+  jam_kerja: number|string, jam_lembur: number|string, project_id:
+  string|null, kegiatan: string|null, status:
+  'draf'|'diajukan'|'disetujui'|'ditolak', alasan_tolak: string|null,
+  jam_kerja_n, jam_lembur_n, total, melebihi_standar, di_bawah_standar }`.
+- `POST /api/v1/sdm/pegawai/:id/timesheet` (`sdm:timesheet:manage`) — body
+  `tanggal` (wajib, YYYY-MM-DD), `jam_kerja?`, `jam_lembur?`, `project_id?`,
+  `kegiatan?`, `catatan?`. MENGISI ULANG hari yang sama MEMPERBARUI baris
+  (constraint unik per hari) — bukan menambah baris kedua. Baris berstatus
+  `disetujui` MENOLAK perubahan (409).
+- `POST /api/v1/sdm/pegawai/:id/timesheet/ajukan?bulan=YYYY-MM`
+  (`sdm:timesheet:manage`) → `{ diajukan: number, bulan }`. Hanya
+  memindahkan baris `draf` → `diajukan` pada bulan itu; 409 bila nol baris
+  draf.
+- `GET /api/v1/sdm/pegawai/:id/kompetensi?pada=&ambang=`
+  (`sdm:sertifikat:view`) → `{ pegawai: Pegawai, pada, sertifikat:
+  RingkasanSertifikat, penilaian: Penilaian[], kinerja: RingkasanKinerja }`.
+  `RingkasanSertifikat` (`lib/kompetensi-sdm.ts:116-123`): `{ baris:
+  SertifikatDinilai[], berlaku, akan_habis, kedaluwarsa, perlu_tindakan:
+  SertifikatDinilai[] }`. `SertifikatDinilai extends Sertifikat`
+  (`:37-56,60-64`): `{ id, jenis, nama, nomor: string|null, penerbit:
+  string|null, klasifikasi: string|null, kualifikasi: string|null,
+  tanggal_terbit: string|null, berlaku_sampai: string|null, berjangka:
+  boolean, status: 'berlaku'|'akan_habis'|'kedaluwarsa', sisa_hari:
+  number|null }`. `RingkasanKinerja` (`:243-250`): `{ tren:
+  {periode,persen:number|null,status:'draf'|'final'}[], rata_final:
+  number|null, jumlah_final, jumlah_draf }` — `persen` SUDAH dinormalkan
+  ke 0-100 (skala mentah bisa 1-5 atau 1-100 antar-periode, jangan
+  dirender mentah).
+- `POST /api/v1/sdm/pegawai/:id/sertifikat` (`sdm:sertifikat:manage`) —
+  **PM TIDAK PUNYA izin ini**, TIDAK dibangun tombolnya.
+- `GET /api/v1/sdm/lamaran` (`sdm:rekrutmen:view`) → `{ lamaran:
+  Lamaran[] }`, `Lamaran = { id, nama, email, telepon, posisi, sumber,
+  tahap: TahapLamaran, catatan_tahap, path_cv, catatan, pegawai_id,
+  created_at, updated_at }` (`kompetensi-sdm.ts:47-50`). `POST
+  /sdm/lamaran` dan `POST /sdm/lamaran/:id/tahap` bergerbang
+  `sdm:rekrutmen:manage` — **PM TIDAK PUNYA**, TIDAK dibangun tombolnya.
+
+- [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
+
+```typescript
+/** Bentuk PERSIS `GET /sdm/pegawai/:id`, `timesheet-staf.ts:30-34`. */
+export interface PegawaiSdm {
+  id: string
+  user_id: string | null
+  nomor_induk: string | null
+  jabatan: string | null
+  departemen: string | null
+  tanggal_masuk: string | null
+  tanggal_keluar: string | null
+  jam_standar: number | string | null
+  status_ptkp: string | null
+  kategori_ter: string | null
+  created_at: string
+  orang: { id: string; name: string; email: string | null } | null
+}
+export interface RespDaftarPegawai { pegawai: PegawaiSdm[] }
+
+/** Bentuk PERSIS `BarisDinilai`, `lib/timesheet-staf.ts:44-54,67-81`. */
+export type StatusTimesheetPM = "draf" | "diajukan" | "disetujui" | "ditolak"
+export interface BarisTimesheetPM {
+  id: string
+  tanggal: string
+  jam_kerja: number | string
+  jam_lembur: number | string
+  project_id: string | null
+  kegiatan: string | null
+  status: StatusTimesheetPM
+  alasan_tolak: string | null
+  jam_kerja_n: number
+  jam_lembur_n: number
+  total: number
+  melebihi_standar: boolean
+  di_bawah_standar: boolean
+}
+/** Bentuk PERSIS `RingkasanTimesheet`, `lib/timesheet-staf.ts:83-102`. */
+export interface RingkasanTimesheetPM {
+  baris: BarisTimesheetPM[]
+  total_jam_kerja: number
+  total_jam_lembur: number
+  hari_terisi: number
+  hari_kosong: string[]
+  per_status: Record<StatusTimesheetPM, number>
+  per_proyek: Array<{ project_id: string | null; jam: number; lembur: number }>
+  perlu_ditanya: BarisTimesheetPM[]
+}
+export interface PenghalangAjukanPM {
+  kode: "kosong" | "sudah-diajukan" | "ada-hari-kosong"
+  pesan: string
+  tanggal?: string[]
+}
+export interface RespTimesheetPegawai {
+  pegawai: PegawaiSdm
+  bulan: string
+  rentang: { awal: string; akhir: string }
+  ringkasan: RingkasanTimesheetPM
+  pengajuan: { boleh: boolean; penghalang: PenghalangAjukanPM[]; peringatan: PenghalangAjukanPM[] }
+}
+
+/** Bentuk PERSIS `SertifikatDinilai`, `lib/kompetensi-sdm.ts:37-56,60-64`. */
+export type StatusSertifikatPM = "berlaku" | "akan_habis" | "kedaluwarsa"
+export interface SertifikatPM {
+  id: string
+  jenis: string
+  nama: string
+  nomor: string | null
+  penerbit: string | null
+  klasifikasi: string | null
+  kualifikasi: string | null
+  tanggal_terbit: string | null
+  berlaku_sampai: string | null
+  berjangka: boolean
+  status: StatusSertifikatPM
+  sisa_hari: number | null
+}
+export interface RingkasanSertifikatPM {
+  baris: SertifikatPM[]
+  berlaku: number
+  akan_habis: number
+  kedaluwarsa: number
+  perlu_tindakan: SertifikatPM[]
+}
+/** Bentuk PERSIS `Penilaian`, `lib/kompetensi-sdm.ts:224-230`. */
+export interface PenilaianKinerjaPM {
+  id: string
+  periode: string
+  skala_maks: number | string
+  skor: number | string | null
+  status: "draf" | "final"
+}
+/** Bentuk PERSIS `RingkasanKinerja`, `lib/kompetensi-sdm.ts:243-250` — `persen` SUDAH dinormalkan 0-100. */
+export interface RingkasanKinerjaPM {
+  tren: Array<{ periode: string; persen: number | null; status: "draf" | "final" }>
+  rata_final: number | null
+  jumlah_final: number
+  jumlah_draf: number
+}
+export interface RespKompetensiPegawai {
+  pegawai: PegawaiSdm
+  pada: string
+  sertifikat: RingkasanSertifikatPM
+  penilaian: PenilaianKinerjaPM[]
+  kinerja: RingkasanKinerjaPM
+}
+
+/** Bentuk PERSIS `Lamaran`, `kompetensi-sdm.ts:47-50`. */
+export type TahapLamaranPM = "masuk" | "seleksi_berkas" | "wawancara" | "tawaran" | "diterima" | "ditolak"
+export interface LamaranKerjaPM {
+  id: string
+  nama: string
+  email: string | null
+  telepon: string | null
+  posisi: string
+  sumber: string | null
+  tahap: TahapLamaranPM
+  catatan_tahap: string | null
+  path_cv: string | null
+  catatan: string | null
+  pegawai_id: string | null
+  created_at: string
+  updated_at: string
+}
+export interface RespDaftarLamaran { lamaran: LamaranKerjaPM[] }
+```
+
+- [ ] **Step 2: `sdm/timesheet/page.tsx`** — picker pegawai (dropdown, dari
+`GET /sdm/pegawai` — PM memilih DIRINYA SENDIRI di daftar bila terdaftar
+sebagai pegawai; endpoint tak menyaring "hanya diri sendiri", jadi seluruh
+pegawai aktif tampil, sama seperti versi web `/sdm/timesheet`) + picker
+bulan + ringkasan bulan (total jam, hari kosong, per-proyek) + daftar
+baris + form isi hari + tombol "Ajukan Bulan Ini".
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { CalendarClock, AlertTriangle, Send } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import BottomSheet from "@/components/portal/BottomSheet";
+import type { RespDaftarPegawai, RespTimesheetPegawai, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+function bulanIni(): string {
+  return new Date().toISOString().slice(0, 7);
+}
+function fmtTanggal(s: string): string {
+  return new Date(s + "T00:00:00").toLocaleDateString("id-ID", { day: "2-digit", month: "short" });
+}
+const LABEL_STATUS: Record<string, string> = {
+  draf: "Draf", diajukan: "Diajukan", disetujui: "Disetujui", ditolak: "Ditolak",
+};
+
+export default function PmTimesheetPage() {
+  const [pegawaiId, setPegawaiId] = useState("");
+  const [bulan, setBulan] = useState(bulanIni());
+  const [sheetIsi, setSheetIsi] = useState<string | null>(null); // tanggal yang diisi
+  const [form, setForm] = useState({ jam_kerja: "8", jam_lembur: "0", kegiatan: "" });
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+  const [mengajukan, setMengajukan] = useState(false);
+
+  const { data: dataPegawai, memuat: memuatPegawai } = useData<RespDaftarPegawai>("/api/v1/sdm/pegawai");
+  const daftarPegawai = useMemo(() => dataPegawai?.pegawai ?? [], [dataPegawai]);
+  const pegawaiAktif = pegawaiId || daftarPegawai[0]?.id || "";
+
+  const url = pegawaiAktif ? `/api/v1/sdm/pegawai/${pegawaiAktif}/timesheet?bulan=${bulan}` : null;
+  const { data, memuat, galat } = useData<RespTimesheetPegawai>(url);
+
+  async function simpanHari() {
+    if (!sheetIsi || !pegawaiAktif) return;
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post(`/api/v1/sdm/pegawai/${pegawaiAktif}/timesheet`, {
+        tanggal: sheetIsi,
+        jam_kerja: Number(form.jam_kerja) || 0,
+        jam_lembur: Number(form.jam_lembur) || 0,
+        kegiatan: form.kegiatan.trim() || undefined,
+      });
+      setSheetIsi(null);
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menyimpan timesheet"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function ajukanBulan() {
+    if (!pegawaiAktif) return;
+    setMengajukan(true);
+    try {
+      await api.post(`/api/v1/sdm/pegawai/${pegawaiAktif}/timesheet/ajukan?bulan=${bulan}`);
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal mengajukan timesheet"));
+    } finally {
+      setMengajukan(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Timesheet
+      </h1>
+
+      {memuatPegawai && <SkeletonCard tinggi={44} />}
+      {!memuatPegawai && daftarPegawai.length === 0 && (
+        <EmptyState icon={CalendarClock} judul="Belum ada data pegawai" deskripsi="Daftar pegawai kosong." />
+      )}
+
+      {daftarPegawai.length > 0 && (
+        <div style={{ display: "flex", gap: 8 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Pegawai</span>
+            <select value={pegawaiAktif} onChange={(e) => setPegawaiId(e.target.value)}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
+              {daftarPegawai.map((p) => <option key={p.id} value={p.id}>{p.orang?.name ?? p.nomor_induk ?? p.id}</option>)}
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6, width: 130 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Bulan</span>
+            <input type="month" value={bulan} onChange={(e) => setBulan(e.target.value)}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+        </div>
+      )}
+
+      {memuat && <SkeletonCard tinggi={140} />}
+      {galat && (
+        <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />
+      )}
+
+      {!memuat && data && (
+        <>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 120px" }}>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Jam Kerja</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{data.ringkasan.total_jam_kerja}</div>
+            </div>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 120px" }}>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Jam Lembur</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{data.ringkasan.total_jam_lembur}</div>
+            </div>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 120px" }}>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Hari Terisi</div>
+              <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{data.ringkasan.hari_terisi}</div>
+            </div>
+          </div>
+
+          {data.ringkasan.hari_kosong.length > 0 && (
+            <div style={{ fontSize: 12, color: "var(--on-warning-bg)", background: "var(--warning-bg)", borderRadius: 10, padding: 10 }}>
+              {data.ringkasan.hari_kosong.length} hari kerja belum diisi: {data.ringkasan.hari_kosong.slice(0, 5).map(fmtTanggal).join(", ")}
+              {data.ringkasan.hari_kosong.length > 5 ? "…" : ""}
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {data.ringkasan.baris.map((b) => (
+              <button key={b.id} type="button" onClick={() => {
+                setSheetIsi(b.tanggal);
+                setForm({ jam_kerja: String(b.jam_kerja_n), jam_lembur: String(b.jam_lembur_n), kegiatan: b.kegiatan ?? "" });
+              }}
+                disabled={b.status === "disetujui"}
+                style={{
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: 12, borderRadius: 12, border: "1px solid var(--border)",
+                  background: "var(--surface)", textAlign: "left", cursor: b.status === "disetujui" ? "default" : "pointer",
+                }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{fmtTanggal(b.tanggal)}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{LABEL_STATUS[b.status]}{b.melebihi_standar ? " · melebihi standar" : ""}</div>
+                </div>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
+                  {b.jam_kerja_n}j{b.jam_lembur_n > 0 ? ` +${b.jam_lembur_n}j lembur` : ""}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <button type="button" onClick={() => void ajukanBulan()} disabled={mengajukan || !data.pengajuan.boleh}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none",
+              background: mengajukan || !data.pengajuan.boleh ? "var(--surface-subtle)" : "var(--grad-aksen)",
+              color: mengajukan || !data.pengajuan.boleh ? "var(--text-muted)" : "var(--on-navy)",
+              fontSize: 14, fontWeight: 700, cursor: mengajukan || !data.pengajuan.boleh ? "default" : "pointer",
+            }}>
+            <Send size={16} aria-hidden="true" /> {mengajukan ? "Mengajukan…" : "Ajukan Bulan Ini"}
+          </button>
+          {!data.pengajuan.boleh && data.pengajuan.penghalang.map((p) => (
+            <div key={p.kode} style={{ fontSize: 12, color: "var(--text-secondary)" }}>{p.pesan}</div>
+          ))}
+        </>
+      )}
+
+      <BottomSheet terbuka={!!sheetIsi} onTutup={() => setSheetIsi(null)} judul={sheetIsi ? fmtTanggal(sheetIsi) : "Isi Hari"}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jam Kerja</span>
+            <input type="number" min={0} max={24} value={form.jam_kerja} onChange={(e) => setForm((f) => ({ ...f, jam_kerja: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jam Lembur</span>
+            <input type="number" min={0} max={24} value={form.jam_lembur} onChange={(e) => setForm((f) => ({ ...f, jam_lembur: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Kegiatan</span>
+            <input value={form.kegiatan} onChange={(e) => setForm((f) => ({ ...f, kegiatan: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void simpanHari()} disabled={mengirim}
+            style={{
+              minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none",
+              background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)",
+              color: mengirim ? "var(--text-muted)" : "var(--on-navy)",
+              fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer",
+            }}>
+            {mengirim ? "Menyimpan…" : "Simpan"}
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: `sdm/kompetensi/page.tsx`** — picker pegawai + 3
+`SegmentedTab` (Sertifikat / Kinerja / Lamaran). READ-ONLY penuh — PM
+tidak punya `sdm:sertifikat:manage`/`sdm:kinerja:manage`/
+`sdm:rekrutmen:manage`, jadi TANPA tombol tambah/edit di ketiganya.
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { Award, AlertTriangle, TrendingUp, UserPlus } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import type { RespDaftarPegawai, RespKompetensiPegawai, RespDaftarLamaran, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+const VARIAN_SERTIFIKAT: Record<string, VarianStatus> = { berlaku: "approved", akan_habis: "pending", kedaluwarsa: "rejected" };
+const LABEL_SERTIFIKAT: Record<string, string> = { berlaku: "Berlaku", akan_habis: "Akan Habis", kedaluwarsa: "Kedaluwarsa" };
+const LABEL_TAHAP: Record<string, string> = {
+  masuk: "Masuk", seleksi_berkas: "Seleksi Berkas", wawancara: "Wawancara",
+  tawaran: "Tawaran", diterima: "Diterima", ditolak: "Ditolak",
+};
+const VARIAN_TAHAP: Record<string, VarianStatus> = {
+  masuk: "info", seleksi_berkas: "info", wawancara: "pending",
+  tawaran: "pending", diterima: "approved", ditolak: "rejected",
+};
+
+type Tab = "sertifikat" | "kinerja" | "lamaran";
+
+export default function PmKompetensiSdmPage() {
+  const [pegawaiId, setPegawaiId] = useState("");
+  const [tab, setTab] = useState<Tab>("sertifikat");
+
+  const { data: dataPegawai } = useData<RespDaftarPegawai>("/api/v1/sdm/pegawai");
+  const daftarPegawai = useMemo(() => dataPegawai?.pegawai ?? [], [dataPegawai]);
+  const pegawaiAktif = pegawaiId || daftarPegawai[0]?.id || "";
+
+  const url = pegawaiAktif ? `/api/v1/sdm/pegawai/${pegawaiAktif}/kompetensi` : null;
+  const { data, memuat, galat } = useData<RespKompetensiPegawai>(tab !== "lamaran" ? url : null);
+  const { data: dataLamaran, memuat: memuatLamaran, galat: galatLamaran } =
+    useData<RespDaftarLamaran>(tab === "lamaran" ? "/api/v1/sdm/lamaran" : null);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Kompetensi & Rekrutmen
+      </h1>
+
+      <SegmentedTab
+        opsi={[
+          { value: "sertifikat", label: "Sertifikat" },
+          { value: "kinerja", label: "Kinerja" },
+          { value: "lamaran", label: "Rekrutmen" },
+        ]}
+        aktif={tab}
+        onUbah={(v) => setTab(v as Tab)}
+      />
+
+      {tab !== "lamaran" && daftarPegawai.length > 0 && (
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Pegawai</span>
+          <select value={pegawaiAktif} onChange={(e) => setPegawaiId(e.target.value)}
+            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
+            {daftarPegawai.map((p) => <option key={p.id} value={p.id}>{p.orang?.name ?? p.nomor_induk ?? p.id}</option>)}
+          </select>
+        </label>
+      )}
+
+      {tab === "sertifikat" && (
+        <>
+          {memuat && <SkeletonCard tinggi={120} />}
+          {galat && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba lagi.")} />}
+          {!memuat && data && data.sertifikat.baris.length === 0 && (
+            <EmptyState icon={Award} judul="Belum ada sertifikat" deskripsi="SKA/SKT tenaga ahli akan muncul di sini." />
+          )}
+          {!memuat && data && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {data.sertifikat.baris.map((s) => (
+                <div key={s.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: "1px solid var(--border)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{s.nama}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{s.jenis}{s.kualifikasi ? ` · ${s.kualifikasi}` : ""}</div>
+                    </div>
+                    <StatusBadge status={VARIAN_SERTIFIKAT[s.status]} label={LABEL_SERTIFIKAT[s.status]} />
+                  </div>
+                  {s.sisa_hari !== null && (
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>
+                      {s.sisa_hari < 0 ? `Kedaluwarsa ${Math.abs(s.sisa_hari)} hari lalu` : `Sisa ${s.sisa_hari} hari`}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {tab === "kinerja" && (
+        <>
+          {memuat && <SkeletonCard tinggi={100} />}
+          {galat && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba lagi.")} />}
+          {!memuat && data && data.kinerja.tren.length === 0 && (
+            <EmptyState icon={TrendingUp} judul="Belum ada penilaian" deskripsi="Penilaian kinerja berkala akan muncul di sini." />
+          )}
+          {!memuat && data && data.kinerja.tren.length > 0 && (
+            <>
+              <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Rata-rata (final)</div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>
+                  {data.kinerja.rata_final !== null ? `${data.kinerja.rata_final}%` : "—"}
+                </div>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {data.kinerja.tren.map((t) => (
+                  <div key={t.periode} style={{ display: "flex", justifyContent: "space-between", padding: 10, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                    <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t.periode}{t.status === "draf" ? " (draf)" : ""}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{t.persen !== null ? `${t.persen}%` : "—"}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {tab === "lamaran" && (
+        <>
+          {memuatLamaran && <SkeletonCard tinggi={120} />}
+          {galatLamaran && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galatLamaran as GalatApi, "Coba lagi.")} />}
+          {!memuatLamaran && (dataLamaran?.lamaran.length ?? 0) === 0 && (
+            <EmptyState icon={UserPlus} judul="Belum ada lamaran" deskripsi="Lamaran kerja yang masuk akan tercatat di sini." />
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {(dataLamaran?.lamaran ?? []).map((l) => (
+              <div key={l.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{l.nama}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{l.posisi}</div>
+                  </div>
+                  <StatusBadge status={VARIAN_TAHAP[l.tahap]} label={LABEL_TAHAP[l.tahap]} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 4: `sdm/cuti/page.tsx`** — picker pegawai + picker tahun +
+kartu saldo + daftar pengajuan + form ajukan cuti + tombol batalkan.
+READ+MANAGE (PM punya `sdm:cuti:manage`, ajukan/batalkan cuti SENDIRI)
+— TANPA tombol setujui/tolak (`sdm:cuti:approve` tak dimiliki PM) dan
+TANPA form koreksi jatah (`sdm:cuti:hak` tak dimiliki PM).
+
+**Riset tambahan** — `GET /sdm/pegawai/:id/cuti?tahun=YYYY`
+(`sdm:cuti:view`) → `{ pegawai: Pegawai, tahun, hak: BarisHak[], ambil:
+BarisAmbil[], saldo: SaldoCuti }`. `BarisHak` (`lib/cuti-karyawan.ts:45-52`):
+`{ id, tahun, jumlah_hari: number|string, alasan, berlaku_sampai }`.
+`BarisAmbil` (`:54-64`): `{ id, jenis: JenisCuti, tanggal_mulai,
+tanggal_selesai, jumlah_hari: number|string, status: StatusCuti,
+alasan: string|null, alasan_tolak: string|null, hari_dilewati:
+string|null }`, `JenisCuti = 'tahunan'|'sakit'|'melahirkan'|'penting'|
+'besar'|'tanpa_gaji'`, `StatusCuti = 'diajukan'|'disetujui'|'ditolak'|
+'dibatalkan'`. `SaldoCuti` (`:158-166`): `{ tahun, hak, terpakai,
+tertahan, sisa }` — `sisa` BISA NEGATIF (jatah terlanjur terpakai
+lebih, TIDAK dipotong ke nol, lihat komentar `hitungSaldo`). `POST
+/sdm/pegawai/:id/cuti` (`sdm:cuti:manage`) — body `jenis`, `tanggal_mulai`,
+`tanggal_selesai`, `alasan?`; respons 422 dengan `{ error, penghalang:
+PenghalangCuti[] }` bila ditolak (`kode: 'saldo-kurang'|'tumpang-
+tindih'|'nol-hari'|'rentang-terbalik'`). `POST /sdm/cuti/:id/batal`
+(`sdm:cuti:manage`) — tanpa body, membatalkan `diajukan`/`disetujui`.
+
+```typescript
+/** Tambahan di `_bersama/tipe.ts` — bentuk PERSIS `lib/cuti-karyawan.ts:45-64,158-166`. */
+export type JenisCutiPM = "tahunan" | "sakit" | "melahirkan" | "penting" | "besar" | "tanpa_gaji"
+export type StatusCutiPM = "diajukan" | "disetujui" | "ditolak" | "dibatalkan"
+export interface BarisHakPM {
+  id: string
+  tahun: number
+  jumlah_hari: number | string
+  alasan: string
+  berlaku_sampai: string | null
+}
+export interface BarisAmbilPM {
+  id: string
+  jenis: JenisCutiPM
+  tanggal_mulai: string
+  tanggal_selesai: string
+  jumlah_hari: number | string
+  status: StatusCutiPM
+  alasan: string | null
+  alasan_tolak: string | null
+  hari_dilewati: string | null
+}
+export interface SaldoCutiPM { tahun: number; hak: number; terpakai: number; tertahan: number; sisa: number }
+export interface PenghalangCutiPM {
+  kode: "saldo-kurang" | "tumpang-tindih" | "nol-hari" | "rentang-terbalik"
+  pesan: string
+  bentrok?: BarisAmbilPM[]
+}
+export interface RespCutiPegawai {
+  pegawai: PegawaiSdm
+  tahun: number
+  hak: BarisHakPM[]
+  ambil: BarisAmbilPM[]
+  saldo: SaldoCutiPM
+}
+```
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { Plane, AlertTriangle, Plus } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import BottomSheet from "@/components/portal/BottomSheet";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import type { RespDaftarPegawai, RespCutiPegawai, JenisCutiPM, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+const LABEL_JENIS: Record<JenisCutiPM, string> = {
+  tahunan: "Tahunan", sakit: "Sakit", melahirkan: "Melahirkan",
+  penting: "Penting", besar: "Besar", tanpa_gaji: "Tanpa Gaji",
+};
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  diajukan: "pending", disetujui: "approved", ditolak: "rejected", dibatalkan: "netral",
+};
+const LABEL_STATUS: Record<string, string> = {
+  diajukan: "Diajukan", disetujui: "Disetujui", ditolak: "Ditolak", dibatalkan: "Dibatalkan",
+};
+
+export default function PmCutiPage() {
+  const [pegawaiId, setPegawaiId] = useState("");
+  const [tahun, setTahun] = useState(new Date().getFullYear());
+  const [sheetAjukan, setSheetAjukan] = useState(false);
+  const [form, setForm] = useState({ jenis: "tahunan" as JenisCutiPM, tanggal_mulai: "", tanggal_selesai: "", alasan: "" });
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+  const [membatalkan, setMembatalkan] = useState<string | null>(null);
+
+  const { data: dataPegawai } = useData<RespDaftarPegawai>("/api/v1/sdm/pegawai");
+  const daftarPegawai = useMemo(() => dataPegawai?.pegawai ?? [], [dataPegawai]);
+  const pegawaiAktif = pegawaiId || daftarPegawai[0]?.id || "";
+
+  const url = pegawaiAktif ? `/api/v1/sdm/pegawai/${pegawaiAktif}/cuti?tahun=${tahun}` : null;
+  const { data, memuat, galat } = useData<RespCutiPegawai>(url);
+
+  async function ajukan() {
+    if (!pegawaiAktif) return;
+    if (!form.tanggal_mulai || !form.tanggal_selesai) {
+      setGalatForm("Tanggal mulai dan selesai wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post(`/api/v1/sdm/pegawai/${pegawaiAktif}/cuti`, {
+        jenis: form.jenis,
+        tanggal_mulai: form.tanggal_mulai,
+        tanggal_selesai: form.tanggal_selesai,
+        alasan: form.alasan.trim() || undefined,
+      });
+      setSheetAjukan(false);
+      setForm({ jenis: "tahunan", tanggal_mulai: "", tanggal_selesai: "", alasan: "" });
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Pengajuan cuti ditolak"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function batalkan(id: string) {
+    setMembatalkan(id);
+    try {
+      await api.post(`/api/v1/sdm/cuti/${id}/batal`, {});
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal membatalkan cuti"));
+    } finally {
+      setMembatalkan(null);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+          Cuti & Izin
+        </h1>
+        <button type="button" onClick={() => setSheetAjukan(true)} disabled={!pegawaiAktif}
+          style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 700, cursor: pegawaiAktif ? "pointer" : "default", minHeight: 40 }}>
+          <Plus size={16} aria-hidden="true" /> Ajukan
+        </button>
+      </div>
+
+      {daftarPegawai.length > 0 && (
+        <div style={{ display: "flex", gap: 8 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Pegawai</span>
+            <select value={pegawaiAktif} onChange={(e) => setPegawaiId(e.target.value)}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
+              {daftarPegawai.map((p) => <option key={p.id} value={p.id}>{p.orang?.name ?? p.nomor_induk ?? p.id}</option>)}
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6, width: 100 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Tahun</span>
+            <input type="number" value={tahun} onChange={(e) => setTahun(Number(e.target.value) || tahun)}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+        </div>
+      )}
+
+      {memuat && <SkeletonCard tinggi={100} />}
+      {galat && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+
+      {!memuat && data && (
+        <>
+          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Hak {tahun}</span>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>{data.saldo.hak} hari</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Terpakai</span>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>{data.saldo.terpakai} hari</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Menunggu putusan</span>
+              <span style={{ fontSize: 13, fontWeight: 700 }}>{data.saldo.tertahan} hari</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, paddingTop: 6, borderTop: "1px solid var(--border)" }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Sisa</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: data.saldo.sisa < 0 ? "var(--danger)" : "var(--text-primary)" }}>{data.saldo.sisa} hari</span>
+            </div>
+          </div>
+
+          {data.ambil.length === 0 && (
+            <EmptyState icon={Plane} judul="Belum ada pengajuan" deskripsi="Cuti/izin yang diajukan akan muncul di sini." />
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {data.ambil.map((a) => (
+              <div key={a.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{LABEL_JENIS[a.jenis]} · {a.jumlah_hari} hari</div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{a.tanggal_mulai} — {a.tanggal_selesai}</div>
+                  </div>
+                  <StatusBadge status={VARIAN_STATUS[a.status]} label={LABEL_STATUS[a.status]} />
+                </div>
+                {a.alasan_tolak && <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>Ditolak: {a.alasan_tolak}</div>}
+                {(a.status === "diajukan" || a.status === "disetujui") && (
+                  <button type="button" onClick={() => void batalkan(a.id)} disabled={membatalkan === a.id}
+                    style={{ marginTop: 8, fontSize: 12, color: "var(--danger)", background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+                    {membatalkan === a.id ? "Membatalkan…" : "Batalkan"}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      <BottomSheet terbuka={sheetAjukan} onTutup={() => setSheetAjukan(false)} judul="Ajukan Cuti">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis</span>
+            <select value={form.jenis} onChange={(e) => setForm((f) => ({ ...f, jenis: e.target.value as JenisCutiPM }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              {(Object.keys(LABEL_JENIS) as JenisCutiPM[]).map((j) => <option key={j} value={j}>{LABEL_JENIS[j]}</option>)}
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Tanggal Mulai</span>
+            <input type="date" value={form.tanggal_mulai} onChange={(e) => setForm((f) => ({ ...f, tanggal_mulai: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Tanggal Selesai</span>
+            <input type="date" value={form.tanggal_selesai} onChange={(e) => setForm((f) => ({ ...f, tanggal_selesai: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Alasan</span>
+            <input value={form.alasan} onChange={(e) => setForm((f) => ({ ...f, alasan: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void ajukan()} disabled={mengirim}
+            style={{
+              minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none",
+              background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)",
+              color: mengirim ? "var(--text-muted)" : "var(--on-navy)",
+              fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer",
+            }}>
+            {mengirim ? "Mengajukan…" : "Ajukan Cuti"}
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 5: Typecheck**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add apps/web/app/pm-portal/sdm apps/web/app/pm-portal/_bersama/tipe.ts \
+  docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md
+git commit -m "feat(pm-portal): SDM — timesheet, cuti, kompetensi & rekrutmen (Tahap 7)"
+```
+
+---
+
+### Task 40: Aset & Alat — Register, Mutasi, Sewa, Operasional — halaman baru
+
+**Penjaga CI relevan**: `audit-jenis-tulis-punya-label.mjs` (status
+aset/sewa wajib berlabel manusia), `uji-galat-muat-terpisah.mjs`,
+`uji-token-css-ada.mjs`, `uji-judul-halaman-ada.mjs`,
+`uji-remah-lengkap.mjs`, `audit-halaman-pakai-cache.mjs`.
+
+**Files:**
+- Create: `apps/web/app/pm-portal/aset/page.tsx`
+- Create: `apps/web/app/pm-portal/aset/[id]/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Riset (Task 38 Step 1)** — bentuk respons diverifikasi baris-per-baris:
+
+- `GET /api/v1/assets?status=&category=&ownership=&project_id=`
+  (`assets:view`) → `{ data: AsetPM[], meta: { total, milik, sewa,
+  nilai_perolehan, nilai_buku, dipakai, perawatan } }` (`assets.ts:74-181`).
+  `AsetPM` (baris 83-85 + tambahan turunan 157-166): `{ id, asset_code,
+  name, category, ownership: 'milik'|'sewa', brand, model,
+  serial_number, purchase_date, purchase_price, residual_value,
+  useful_life_months, depreciation_method, current_project_id, status,
+  condition, photo_url, notes, created_at, akumulasi_penyusutan:
+  number, nilai_buku: number, sudah_disusutkan: boolean }`.
+- `POST /api/v1/assets` (`assets:manage`) — body `asset_code` (wajib,
+  unik), `name` (wajib), `category?`, `ownership?` (default `milik`),
+  `brand?`, `model?`, `serial_number?`, `purchase_date?`,
+  `purchase_price?`, `residual_value?`, `useful_life_months?` (default
+  60), `depreciation_method?` (default `garis_lurus`), `status?`
+  (default `tersedia`), `condition?` (default `baik`), `notes?`. 409
+  bila `asset_code` bentrok; 400 bila `residual_value > purchase_price`.
+- `PATCH /api/v1/assets/:id` (`assets:manage`) — patch parsial field yang
+  sama.
+- `POST /api/v1/assets/:id/movements` (`assets:manage`) — body
+  `to_project_id?`, `movement_type?` (turunan otomatis dari
+  `to_project_id` bila kosong: `pindah`/`kembali`), `condition_after?`,
+  `return_expected_at?`, `notes?`. Status & lokasi aset ikut berubah
+  otomatis (`tersedia`/`dipakai`/`perawatan`/`dilepas`).
+- `GET /api/v1/assets/:id/movements` (`assets:view`) → `{ data:
+  MutasiAsetPM[], meta: { utilisasi_12_bulan: HasilUtilisasi } }`.
+- `GET /api/v1/assets/:id/depreciation` (`assets:view`) → `{ data: {
+  tercatat: LogPenyusutanPM[], proyeksi: BarisProyeksiSusutPM[] }, meta:
+  { dapat_disusutkan: boolean, alasan?: string, nilai_buku_kini?: number,
+  beban_bulan_ini?: number, catatan?: string } }` — **TIDAK ada tombol
+  "Catat Penyusutan" (`POST .../depreciation`) atau "Jurnalkan" di
+  halaman PM**: yang pertama izinnya `assets:manage` (PM PUNYA, TAPI
+  hasil endpoint itu hanya baris `asset_depreciation_logs` MENTAH tanpa
+  jurnal — mencatatnya tanpa menjurnalkannya membuat neraca dan register
+  aset saling menyimpang, risiko yang sama dengan kenapa `as-gl`
+  ditunda), yang kedua `gl:manage` (PM TIDAK PUNYA). Halaman PM
+  HANYA MENAMPILKAN proyeksi+tercatat sebagai INFORMASI.
+- `GET /api/v1/asset-rentals?status=&project_id=` (`assets:view`) → `{
+  data: SewaAsetPM[], meta: { total, berjalan, biaya_berjalan,
+  biaya_total } }` (`assets.ts:539-577`). `SewaAsetPM` (baris 545-546 +
+  turunan 555-565): `{ id, asset_id, item_name, supplier_id, project_id,
+  rate: number, rate_unit: 'hari'|'minggu'|'bulan', start_date,
+  end_date: string|null, status, notes, created_at, biaya_sampai_kini:
+  number }`.
+- `POST /api/v1/asset-rentals` (`assets:manage`) — body `item_name`
+  (wajib), `start_date` (wajib), `rate` (wajib, ≥0), `asset_id?`,
+  `supplier_id?`, `project_id?`, `rate_unit?` (default `hari`),
+  `end_date?`, `status?` (default `berjalan`), `notes?`.
+- `PATCH /api/v1/asset-rentals/:id` (`assets:manage`) — patch parsial.
+- `GET /api/v1/alat-operasional` (`assets:view`) → `{ alat: AlatOpsPM[],
+  total, tanggal }` (`alat-operasional.ts:45-188`). `AlatOpsPM`
+  (baris 138-184): seluruh kolom `assets` + `{ meter: number|null,
+  jamOperasi: number, hariDipakai: number, perawatan:
+  (JadwalPerawatanPM & { jatuhTempo: HasilJatuhTempoPM })[],
+  palingMendesak: (JadwalPerawatanPM & { jatuhTempo:
+  HasilJatuhTempoPM }) | null, biaya: HasilBiayaAlatPM, kesehatan:
+  HasilKesehatanAlatPM, riwayat: RiwayatPerawatanPM[], penyusutan:
+  (LogPenyusutanPM & { jurnal_status: string|null; jurnal_nomor:
+  string|null })[] }`. `HasilJatuhTempoPM` (`lib/alat-operasional.ts:52-65`):
+  `{ status: 'aman'|'segera'|'jatuh_tempo'|'belum_ada_acuan', sisaJam:
+  number|null, sisaHari: number|null, pemicu: 'jam'|'hari'|null }`.
+  `HasilBiayaAlatPM` (`:145-169`): `{ total, perJenis:
+  Record<string,number>, perJam: number|null, bbmPerJam: number|null }`.
+  `HasilKesehatanAlatPM` (`:216-228`): `{ servisTerjadwal,
+  servisMendadak, rasioMendadak: number|null, preventifGagal: boolean }`.
+- `POST /api/v1/alat-operasional/pemakaian` (`assets:manage`) — body
+  `asset_id` (wajib), `tanggal?`, `jam_mulai?`, `jam_selesai?`,
+  `project_id?`, `keperluan?`, `catatan?`. 409 bila hari sudah tercatat;
+  422 bila `jam_selesai < jam_mulai`.
+- `POST /api/v1/alat-operasional/perawatan` (`assets:manage`) — body
+  `asset_id` (wajib), `jadwal_id?`, `tanggal?`, `biaya?`, `jam_meter?`,
+  `bengkel?`, `uraian?`, `tak_terjadwal?` (default `false`).
+- `POST /api/v1/alat-operasional/biaya` (`assets:manage`) — body
+  `asset_id` (wajib), `jenis` (wajib), `tanggal?`, `jumlah?`,
+  `kuantitas?`, `satuan?`, `project_id?`, `uraian?`.
+- `POST /alat-operasional/penyusutan/jurnalkan` (`gl:manage`) — **PM
+  TIDAK PUNYA**, TIDAK dibangun.
+
+- [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
+
+```typescript
+/** Bentuk PERSIS `GET /assets`, `assets.ts:74-181` (turunan penyusutan disatukan). */
+export interface AsetPM {
+  id: string
+  asset_code: string
+  name: string
+  category: string
+  ownership: "milik" | "sewa"
+  brand: string | null
+  model: string | null
+  serial_number: string | null
+  purchase_date: string | null
+  purchase_price: number | null
+  residual_value: number | null
+  useful_life_months: number | null
+  depreciation_method: string
+  current_project_id: string | null
+  status: string
+  condition: string
+  photo_url: string | null
+  notes: string | null
+  created_at: string
+  akumulasi_penyusutan: number
+  nilai_buku: number
+  sudah_disusutkan: boolean
+}
+export interface RespDaftarAset {
+  data: AsetPM[]
+  meta: { total: number; milik: number; sewa: number; nilai_perolehan: number; nilai_buku: number; dipakai: number; perawatan: number }
+}
+
+/** Bentuk PERSIS `GET /assets/:id/movements`, `assets.ts:353-393`. */
+export interface MutasiAsetPM {
+  id: string
+  from_project_id: string | null
+  to_project_id: string | null
+  movement_type: string
+  moved_at: string
+  condition_before: string | null
+  condition_after: string | null
+  return_expected_at: string | null
+  returned_at: string | null
+  notes: string | null
+}
+export interface RespMutasiAset {
+  data: MutasiAsetPM[]
+  meta: { utilisasi_12_bulan: { persentase: number | null; jamDipakai: number; jamTersedia: number } }
+}
+
+/** Bentuk PERSIS `GET /assets/:id/depreciation`, `assets.ts:397-460`. */
+export interface LogPenyusutanPM {
+  id: string
+  period_year: number
+  period_month: number
+  depreciation_amount: number
+  book_value_after: number
+  depreciation_method: string
+  project_id: string | null
+  journal_entry_id: string | null
+}
+export interface RespPenyusutanAset {
+  data: { tercatat: LogPenyusutanPM[]; proyeksi: Array<{ tahun: number; bulan: number; beban: number; akumulasi: number; nilaiBuku: number }> }
+  meta: { dapat_disusutkan: boolean; alasan?: string; nilai_buku_kini?: number; beban_bulan_ini?: number; catatan?: string }
+}
+
+/** Bentuk PERSIS `GET /asset-rentals`, `assets.ts:539-577`. */
+export interface SewaAsetPM {
+  id: string
+  asset_id: string | null
+  item_name: string
+  supplier_id: string | null
+  project_id: string | null
+  rate: number
+  rate_unit: "hari" | "minggu" | "bulan"
+  start_date: string
+  end_date: string | null
+  status: string
+  notes: string | null
+  created_at: string
+  biaya_sampai_kini: number
+}
+export interface RespDaftarSewa {
+  data: SewaAsetPM[]
+  meta: { total: number; berjalan: number; biaya_berjalan: number; biaya_total: number }
+}
+
+/** Bentuk PERSIS `lib/alat-operasional.ts:31-247`. */
+export type StatusPerawatanPM = "aman" | "segera" | "jatuh_tempo" | "belum_ada_acuan"
+export interface HasilJatuhTempoPM {
+  status: StatusPerawatanPM
+  sisaJam: number | null
+  sisaHari: number | null
+  pemicu: "jam" | "hari" | null
+}
+export interface JadwalPerawatanPM {
+  id: string
+  nama: string
+  jenis: string | null
+  setiap_jam: number | string | null
+  setiap_hari: number | string | null
+  jam_terakhir: number | string | null
+  tanggal_terakhir: string | null
+  aktif: boolean | null
+  jatuhTempo: HasilJatuhTempoPM
+}
+export interface HasilBiayaAlatPM {
+  total: number
+  perJenis: Record<string, number>
+  perJam: number | null
+  bbmPerJam: number | null
+}
+export interface HasilKesehatanAlatPM {
+  servisTerjadwal: number
+  servisMendadak: number
+  rasioMendadak: number | null
+  preventifGagal: boolean
+}
+export interface RiwayatPerawatanPM {
+  id: string
+  tanggal: string
+  biaya: number | string
+  bengkel: string | null
+  uraian: string | null
+  tak_terjadwal: boolean | null
+}
+export interface AlatOpsPM extends AsetPM {
+  meter: number | null
+  jamOperasi: number
+  hariDipakai: number
+  perawatan: JadwalPerawatanPM[]
+  palingMendesak: JadwalPerawatanPM | null
+  biaya: HasilBiayaAlatPM
+  kesehatan: HasilKesehatanAlatPM
+  riwayat: RiwayatPerawatanPM[]
+  penyusutan: Array<LogPenyusutanPM & { jurnal_status: string | null; jurnal_nomor: string | null }>
+}
+export interface RespAlatOperasional { alat: AlatOpsPM[]; total: number; tanggal: string }
+```
+
+- [ ] **Step 2: `aset/page.tsx`** — KPI ringkas (total, nilai buku,
+dipakai, perawatan) + `SegmentedTab` (Register / Sewa / Perawatan
+Mendesak) + saringan status/kategori/kepemilikan + tombol "+ Aset".
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { Truck, Plus, AlertTriangle, Wrench } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import Link from "next/link";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import BottomSheet from "@/components/portal/BottomSheet";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import type { RespDaftarAset, RespDaftarSewa, RespAlatOperasional, GalatApi } from "../_bersama/tipe";
+import { pesanGalat } from "../_bersama/tipe";
+
+function fmtRupiah(v: number | null | undefined): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
+}
+const VARIAN_STATUS: Record<string, VarianStatus> = {
+  tersedia: "approved", dipakai: "info", perawatan: "pending", dilepas: "netral",
+};
+const LABEL_STATUS: Record<string, string> = {
+  tersedia: "Tersedia", dipakai: "Dipakai", perawatan: "Perawatan", dilepas: "Dilepas",
+};
+
+type Tab = "register" | "sewa" | "mendesak";
+
+export default function PmAsetPage() {
+  const [tab, setTab] = useState<Tab>("register");
+  const [sheetBaru, setSheetBaru] = useState(false);
+  const [form, setForm] = useState({ asset_code: "", name: "", category: "alat_berat", ownership: "milik" as "milik" | "sewa" });
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+
+  const { data: dataAset, memuat: memuatAset, galat: galatAset } =
+    useData<RespDaftarAset>(tab === "register" ? "/api/v1/assets" : null);
+  const { data: dataSewa, memuat: memuatSewa, galat: galatSewa } =
+    useData<RespDaftarSewa>(tab === "sewa" ? "/api/v1/asset-rentals" : null);
+  const { data: dataOps, memuat: memuatOps, galat: galatOps } =
+    useData<RespAlatOperasional>(tab === "mendesak" ? "/api/v1/alat-operasional" : null);
+
+  const mendesak = useMemo(
+    () => (dataOps?.alat ?? []).filter((a) => a.palingMendesak && (a.palingMendesak.jatuhTempo.status === "jatuh_tempo" || a.palingMendesak.jatuhTempo.status === "segera")),
+    [dataOps],
+  );
+
+  async function buatAset() {
+    if (!form.asset_code.trim() || !form.name.trim()) {
+      setGalatForm("Kode dan nama aset wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post("/api/v1/assets", form);
+      setSheetBaru(false);
+      setForm({ asset_code: "", name: "", category: "alat_berat", ownership: "milik" });
+      invalidasi("/api/v1/assets");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menyimpan aset"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+          Alat & Aset
+        </h1>
+        <button type="button" onClick={() => setSheetBaru(true)}
+          style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 40 }}>
+          <Plus size={16} aria-hidden="true" /> Aset
+        </button>
+      </div>
+
+      {dataAset && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Total</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{dataAset.meta.total}</div>
+          </div>
+          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Nilai Buku</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{fmtRupiah(dataAset.meta.nilai_buku)}</div>
+          </div>
+          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Perawatan</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: "var(--on-warning-bg)" }}>{dataAset.meta.perawatan}</div>
+          </div>
+        </div>
+      )}
+
+      <SegmentedTab
+        opsi={[
+          { value: "register", label: "Register" },
+          { value: "sewa", label: "Sewa" },
+          { value: "mendesak", label: "Perawatan" },
+        ]}
+        aktif={tab}
+        onUbah={(v) => setTab(v as Tab)}
+      />
+
+      {tab === "register" && (
+        <>
+          {memuatAset && <SkeletonCard tinggi={120} />}
+          {galatAset && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galatAset as GalatApi, "Coba lagi.")} />}
+          {!memuatAset && (dataAset?.data.length ?? 0) === 0 && (
+            <EmptyState icon={Truck} judul="Belum ada aset" deskripsi="Register alat perusahaan akan muncul di sini." />
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {(dataAset?.data ?? []).map((a) => (
+              <Link key={a.id} href={`/pm-portal/aset/${a.id}`}
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", textDecoration: "none" }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{a.name}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{a.asset_code} · {a.ownership === "milik" ? "Milik" : "Sewa"}</div>
+                </div>
+                <StatusBadge status={VARIAN_STATUS[a.status] ?? "netral"} label={LABEL_STATUS[a.status] ?? a.status} />
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tab === "sewa" && (
+        <>
+          {memuatSewa && <SkeletonCard tinggi={100} />}
+          {galatSewa && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galatSewa as GalatApi, "Coba lagi.")} />}
+          {!memuatSewa && (dataSewa?.data.length ?? 0) === 0 && (
+            <EmptyState icon={Truck} judul="Belum ada sewa" deskripsi="Alat yang disewa akan muncul di sini." />
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {(dataSewa?.data ?? []).map((s) => (
+              <div key={s.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{s.item_name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{fmtRupiah(s.biaya_sampai_kini)}</span>
+                </div>
+                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                  {fmtRupiah(s.rate)}/{s.rate_unit} · sejak {s.start_date}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tab === "mendesak" && (
+        <>
+          {memuatOps && <SkeletonCard tinggi={100} />}
+          {galatOps && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galatOps as GalatApi, "Coba lagi.")} />}
+          {!memuatOps && mendesak.length === 0 && (
+            <EmptyState icon={Wrench} judul="Tidak ada yang mendesak" deskripsi="Semua jadwal perawatan masih aman." />
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {mendesak.map((a) => (
+              <Link key={a.id} href={`/pm-portal/aset/${a.id}`}
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, borderRadius: 12, background: "var(--surface)", border: `1px solid ${a.palingMendesak!.jatuhTempo.status === "jatuh_tempo" ? "var(--danger-border)" : "var(--warning-border)"}`, textDecoration: "none" }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{a.name}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{a.palingMendesak!.nama}</div>
+                </div>
+                <StatusBadge status={a.palingMendesak!.jatuhTempo.status === "jatuh_tempo" ? "rejected" : "pending"}
+                  label={a.palingMendesak!.jatuhTempo.status === "jatuh_tempo" ? "Jatuh Tempo" : "Segera"} />
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      <BottomSheet terbuka={sheetBaru} onTutup={() => setSheetBaru(false)} judul="Tambah Aset">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Kode Aset *</span>
+            <input value={form.asset_code} onChange={(e) => setForm((f) => ({ ...f, asset_code: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Nama *</span>
+            <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Kepemilikan</span>
+            <select value={form.ownership} onChange={(e) => setForm((f) => ({ ...f, ownership: e.target.value as "milik" | "sewa" }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              <option value="milik">Milik</option>
+              <option value="sewa">Sewa</option>
+            </select>
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void buatAset()} disabled={mengirim}
+            style={{
+              minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none",
+              background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)",
+              color: mengirim ? "var(--text-muted)" : "var(--on-navy)",
+              fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer",
+            }}>
+            {mengirim ? "Menyimpan…" : "Simpan Aset"}
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: `aset/[id]/page.tsx`** — detail aset: kartu kondisi +
+meter + kesehatan perawatan + biaya + tombol catat pemakaian/servis/biaya
++ tombol mutasi antar-proyek. Penyusutan HANYA ditampilkan sebagai
+informasi (lihat riset — TANPA tombol catat/jurnalkan).
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { useParams } from "next/navigation";
+import { Truck, AlertTriangle, Wrench, Fuel, ArrowLeftRight } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import BottomSheet from "@/components/portal/BottomSheet";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import type { RespAlatOperasional, RespPenyusutanAset, ProyekPM, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+interface RespProyek { projects: ProyekPM[] }
+
+function fmtRupiah(v: number | null | undefined): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
+}
+const LABEL_JATUH_TEMPO: Record<string, string> = {
+  aman: "Aman", segera: "Segera", jatuh_tempo: "Jatuh Tempo", belum_ada_acuan: "Belum Ada Acuan",
+};
+
+type SheetAksi = "pemakaian" | "servis" | "biaya" | "mutasi" | null;
+
+export default function PmAsetDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const [tab, setTab] = useState<"ringkas" | "susut">("ringkas");
+  const [sheet, setSheet] = useState<SheetAksi>(null);
+  const [form, setForm] = useState({ jam_mulai: "", jam_selesai: "", biaya: "", uraian: "", jenis: "bbm", jumlah: "", to_project_id: "" });
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+
+  const { data: dataOps, memuat, galat } = useData<RespAlatOperasional>("/api/v1/alat-operasional");
+  const aset = useMemo(() => dataOps?.alat.find((a) => a.id === id) ?? null, [dataOps, id]);
+
+  const urlSusut = `/api/v1/assets/${id}/depreciation`;
+  const { data: dataSusut } = useData<RespPenyusutanAset>(tab === "susut" ? urlSusut : null);
+  const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+  const daftarProyek = useMemo(() => dataProyek?.projects ?? [], [dataProyek]);
+
+  async function kirimAksi() {
+    if (!sheet || !id) return;
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      if (sheet === "pemakaian") {
+        await api.post("/api/v1/alat-operasional/pemakaian", {
+          asset_id: id, jam_mulai: Number(form.jam_mulai) || undefined, jam_selesai: Number(form.jam_selesai) || undefined,
+        });
+      } else if (sheet === "servis") {
+        await api.post("/api/v1/alat-operasional/perawatan", {
+          asset_id: id, biaya: Number(form.biaya) || 0, uraian: form.uraian.trim() || undefined, tak_terjadwal: true,
+        });
+      } else if (sheet === "biaya") {
+        await api.post("/api/v1/alat-operasional/biaya", {
+          asset_id: id, jenis: form.jenis, jumlah: Number(form.jumlah) || 0, uraian: form.uraian.trim() || undefined,
+        });
+      } else if (sheet === "mutasi") {
+        await api.post(`/api/v1/assets/${id}/movements`, { to_project_id: form.to_project_id || null });
+      }
+      setSheet(null);
+      setForm({ jam_mulai: "", jam_selesai: "", biaya: "", uraian: "", jenis: "bbm", jumlah: "", to_project_id: "" });
+      invalidasi("/api/v1/alat-operasional");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menyimpan"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  if (memuat) return <SkeletonCard tinggi={200} />;
+  if (galat) return <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />;
+  if (!aset) return <EmptyState icon={Truck} judul="Aset tidak ditemukan" deskripsi="Aset ini mungkin sudah dihapus." />;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{aset.name}</h1>
+      <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{aset.asset_code} · {aset.condition}</div>
+
+      <SegmentedTab
+        opsi={[{ value: "ringkas", label: "Ringkas" }, { value: "susut", label: "Penyusutan" }]}
+        aktif={tab}
+        onUbah={(v) => setTab(v as "ringkas" | "susut")}
+      />
+
+      {tab === "ringkas" && (
+        <>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Meter</div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{aset.meter ?? "—"}</div>
+            </div>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Biaya/Jam</div>
+              <div style={{ fontSize: 15, fontWeight: 700 }}>{aset.biaya.perJam !== null ? fmtRupiah(aset.biaya.perJam) : "—"}</div>
+            </div>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Servis Mendadak</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: aset.kesehatan.preventifGagal ? "var(--danger)" : "var(--text-primary)" }}>
+                {aset.kesehatan.rasioMendadak !== null ? `${aset.kesehatan.rasioMendadak}%` : "—"}
+              </div>
+            </div>
+          </div>
+
+          {aset.perawatan.length === 0 && (
+            <EmptyState icon={Wrench} judul="Belum ada jadwal perawatan" deskripsi="Jadwal servis berkala belum diatur." />
+          )}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {aset.perawatan.map((p) => (
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: 10, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{p.nama}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: p.jatuhTempo.status === "jatuh_tempo" ? "var(--danger)" : p.jatuhTempo.status === "segera" ? "var(--on-warning-bg)" : "var(--text-primary)" }}>
+                  {LABEL_JATUH_TEMPO[p.jatuhTempo.status]}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" onClick={() => setSheet("pemakaian")}
+              style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 12px", borderRadius: "var(--portal-radius-pill)", border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 40 }}>
+              Catat Pemakaian
+            </button>
+            <button type="button" onClick={() => setSheet("servis")}
+              style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 12px", borderRadius: "var(--portal-radius-pill)", border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 40 }}>
+              <Wrench size={14} aria-hidden="true" /> Catat Servis
+            </button>
+            <button type="button" onClick={() => setSheet("biaya")}
+              style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 12px", borderRadius: "var(--portal-radius-pill)", border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 40 }}>
+              <Fuel size={14} aria-hidden="true" /> Catat Biaya
+            </button>
+            <button type="button" onClick={() => setSheet("mutasi")}
+              style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 12px", borderRadius: "var(--portal-radius-pill)", border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 40 }}>
+              <ArrowLeftRight size={14} aria-hidden="true" /> Mutasi
+            </button>
+          </div>
+        </>
+      )}
+
+      {tab === "susut" && dataSusut && (
+        <>
+          {!dataSusut.meta.dapat_disusutkan && (
+            <EmptyState icon={AlertTriangle} judul="Belum bisa disusutkan" deskripsi={dataSusut.meta.alasan ?? "—"} />
+          )}
+          {dataSusut.meta.dapat_disusutkan && (
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Nilai Buku Kini</span>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>{fmtRupiah(dataSusut.meta.nilai_buku_kini)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Beban Bulan Ini</span>
+                <span style={{ fontSize: 13, fontWeight: 700 }}>{fmtRupiah(dataSusut.meta.beban_bulan_ini)}</span>
+              </div>
+              {dataSusut.meta.catatan && <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 8 }}>{dataSusut.meta.catatan}</div>}
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            {dataSusut.data.tercatat.length} periode tercatat. Untuk menjurnalkan penyusutan, gunakan menu Keuangan → GL di web desktop (izin `gl:manage`).
+          </div>
+        </>
+      )}
+
+      <BottomSheet terbuka={sheet === "pemakaian"} onTutup={() => setSheet(null)} judul="Catat Pemakaian">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jam Mulai</span>
+            <input type="number" value={form.jam_mulai} onChange={(e) => setForm((f) => ({ ...f, jam_mulai: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jam Selesai</span>
+            <input type="number" value={form.jam_selesai} onChange={(e) => setForm((f) => ({ ...f, jam_selesai: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void kirimAksi()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheet === "servis"} onTutup={() => setSheet(null)} judul="Catat Servis">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Biaya</span>
+            <input type="number" value={form.biaya} onChange={(e) => setForm((f) => ({ ...f, biaya: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Uraian</span>
+            <input value={form.uraian} onChange={(e) => setForm((f) => ({ ...f, uraian: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void kirimAksi()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheet === "biaya"} onTutup={() => setSheet(null)} judul="Catat Biaya Operasional">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis</span>
+            <select value={form.jenis} onChange={(e) => setForm((f) => ({ ...f, jenis: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              <option value="bbm">BBM</option>
+              <option value="operator">Operator</option>
+              <option value="suku_cadang">Suku Cadang</option>
+              <option value="lainnya">Lainnya</option>
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jumlah</span>
+            <input type="number" value={form.jumlah} onChange={(e) => setForm((f) => ({ ...f, jumlah: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void kirimAksi()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheet === "mutasi"} onTutup={() => setSheet(null)} judul="Mutasi Antar-Proyek">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek Tujuan (kosong = kembali ke gudang)</span>
+            <select value={form.to_project_id} onChange={(e) => setForm((f) => ({ ...f, to_project_id: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              <option value="">— Kembali ke gudang —</option>
+              {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void kirimAksi()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Memindahkan…" : "Pindahkan"}
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 4: Typecheck**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add apps/web/app/pm-portal/aset apps/web/app/pm-portal/_bersama/tipe.ts \
+  docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md
+git commit -m "feat(pm-portal): Alat & Aset — register, mutasi, sewa, operasional (Tahap 7)"
+```
+
+---
+
+### Task 41: Risiko, Perizinan & Klien — halaman baru
+
+**Penjaga CI relevan**: `audit-jenis-tulis-punya-label.mjs` (status
+risiko/izin wajib berlabel manusia), `uji-galat-muat-terpisah.mjs`,
+`uji-token-css-ada.mjs`, `uji-judul-halaman-ada.mjs`,
+`uji-remah-lengkap.mjs`, `audit-halaman-pakai-cache.mjs`.
+
+**Files:**
+- Create: `apps/web/app/pm-portal/risiko/page.tsx`
+- Create: `apps/web/app/pm-portal/klien/page.tsx`
+- Create: `apps/web/app/pm-portal/klien/[id]/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Riset (Task 38 Step 1)** — bentuk respons diverifikasi baris-per-baris:
+
+- `GET /api/v1/proyek/:id/risiko?pada=` (`risiko:view`) → `{ proyek: {
+  id, name, end_date }, pada, risiko: RisikoDinilaiPM[], ringkas:
+  RingkasRegisterPM }` (`risiko-proyek.ts:94-170`). `RisikoDinilaiPM`
+  extends `Risiko` (`lib/risiko-proyek.ts:79-114`): `{ id, kode:
+  string|null, judul, kategori, dampak: number, kemungkinan: number,
+  skor: number (kolom TERHITUNG di DB), strategi, dampak_sisa:
+  number|null, kemungkinan_sisa: number|null, status:
+  'terpantau'|'terjadi'|'tertutup', tenggat_tinjau: string|null,
+  pemilik_id: string|null, tindakan: TindakanMitigasiPM[], tingkat:
+  'rendah'|'sedang'|'tinggi'|'ekstrem', skor_sisa: number|null,
+  tingkat_sisa: string|null, penurunan: number|null, mendesak: boolean,
+  alasan_mendesak: string[] }`. `RingkasRegisterPM` (`:226-241`): `{
+  total, terpantau, terjadi, tertutup, per_tingkat: Record<tingkat,
+  number>, mendesak, penurunan_rata: number|null, dinilai_ulang }`.
+- `POST /api/v1/proyek/:id/risiko` (`risiko:manage`) — body `judul`
+  (wajib), `kategori` (wajib, salah satu dari 8), `dampak`+`kemungkinan`
+  (wajib, integer 1-5), `strategi?` (default `kurangi`), `uraian?`,
+  `penyebab?`, `dampak_uraian?`, `pemilik_id?`, `tenggat_tinjau?`,
+  `catatan?`.
+- `PATCH /api/v1/risiko/:id` (`risiko:manage`) — patch parsial +
+  `dampak_sisa`/`kemungkinan_sisa` (skor sesudah mitigasi) + `status`
+  (menutup WAJIB `alasan_tutup` ≥10 huruf).
+- `POST /api/v1/risiko/:id/mitigasi` (`risiko:manage`) — body `tindakan`
+  (wajib), `penanggung_id?`, `tenggat?`, `biaya_estimasi?`, `catatan?`.
+- `PATCH /api/v1/mitigasi/:id` (`risiko:manage`) — patch `status`
+  (`rencana`/`berjalan`/`selesai`/`batal`), `tenggat`, `penanggung_id`,
+  `catatan`.
+- `GET /api/v1/proyek/:id/izin?pada=&ambang=` (`izin:view`) → `{ proyek,
+  pada, izin: IzinDinilaiPM[], kesiapan: KesiapanIzinPM }`
+  (`risiko-proyek.ts:538-580`). `IzinDinilaiPM` extends `IzinProyek`
+  (`lib/risiko-proyek.ts:277-313`): `{ id, jenis, nomor: string|null,
+  status: 'rencana'|'diajukan'|'terbit'|'ditolak'|'dicabut',
+  berlaku_dari: string|null, berlaku_sampai: string|null,
+  menghalangi_mulai: boolean, masa:
+  'belum_terbit'|'berlaku'|'akan_habis'|'kedaluwarsa'|'ditolak'|
+  'dicabut', sisa_hari: number|null, memblokir: boolean }`.
+  `KesiapanIzinPM` (`:369-375`): `{ boleh_jalan: boolean|null, memblokir:
+  IzinDinilaiPM[], perlu_diurus: IzinDinilaiPM[], total }` —
+  `boleh_jalan: null` berarti NOL izin tercatat (BUKAN "boleh jalan").
+- `POST /api/v1/proyek/:id/izin` (`izin:manage`) — body `jenis` (wajib),
+  `status?` (default `rencana`; `terbit` WAJIB `nomor`+`berlaku_dari`),
+  `nomor?`, `penerbit?`, `diajukan_pada?`, `berlaku_dari?`,
+  `berlaku_sampai?`, `biaya?`, `menghalangi_mulai?`, `catatan?`.
+- `PATCH /api/v1/izin-proyek/:id` (`izin:manage`) — patch parsial + sama
+  aturan `terbit` di atas.
+- **`sengketa:*` — PM TIDAK PUNYA sama sekali**, modul Sengketa & Klaim
+  TIDAK dibangun (lihat Task 38 Step 4/keputusan di atas).
+- `GET /api/v1/clients?search=` (`authenticate` saja) → `{ clients:
+  KlienPM[] }` (`clients.ts:14-38`). `KlienPM` (`CLIENT_SELECT`, baris
+  5-8): `{ id, company_name: string|null, contact_person, phone, email:
+  string|null, address: string|null, npwp: string|null, id_number:
+  string|null, client_type: 'perorangan'|'perusahaan', notes:
+  string|null, is_active, created_at, updated_at }`.
+- `GET /api/v1/clients/:id` (`authenticate` saja) → `{ client: KlienPM,
+  projects: ProyekKlienPM[], summary: { total_projects,
+  total_contract_value, invoice_total, invoice_outstanding,
+  invoice_overdue, invoice_paid } }` (`clients.ts:41-98`).
+- `POST/PATCH /clients` dan `PATCH /clients/:id/toggle-active`
+  bergerbang `clients:manage` — **PM TIDAK PUNYA** (hanya `clients:view`
+  di tabel permission), halaman PM HARUS read-only, TANPA tombol
+  tambah/edit/nonaktifkan (beda dari `/klien` web yang membuka form
+  untuk admin).
+
+- [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
+
+```typescript
+/** Bentuk PERSIS `lib/risiko-proyek.ts:61-114,226-241`. */
+export type KategoriRisikoPM = "teknis" | "keuangan" | "jadwal" | "k3" | "lingkungan" | "hukum" | "pengadaan" | "eksternal"
+export type StatusRisikoPM = "terpantau" | "terjadi" | "tertutup"
+export type StrategiRisikoPM = "hindari" | "kurangi" | "alihkan" | "terima"
+export type StatusTindakanPM = "rencana" | "berjalan" | "selesai" | "batal"
+export type TingkatRisikoPM = "rendah" | "sedang" | "tinggi" | "ekstrem"
+export interface TindakanMitigasiPM {
+  id: string
+  tindakan: string
+  status: StatusTindakanPM
+  tenggat: string | null
+  selesai_pada: string | null
+  penanggung_id: string | null
+  penanggung?: { id: string; name: string } | null
+}
+export interface RisikoDinilaiPM {
+  id: string
+  kode: string | null
+  judul: string
+  kategori: KategoriRisikoPM
+  dampak: number
+  kemungkinan: number
+  skor: number
+  strategi: StrategiRisikoPM
+  dampak_sisa: number | null
+  kemungkinan_sisa: number | null
+  status: StatusRisikoPM
+  tenggat_tinjau: string | null
+  pemilik_id: string | null
+  pemilik?: { id: string; name: string } | null
+  tindakan: TindakanMitigasiPM[]
+  tingkat: TingkatRisikoPM
+  skor_sisa: number | null
+  tingkat_sisa: TingkatRisikoPM | null
+  penurunan: number | null
+  mendesak: boolean
+  alasan_mendesak: string[]
+}
+export interface RingkasRegisterPM {
+  total: number
+  terpantau: number
+  terjadi: number
+  tertutup: number
+  per_tingkat: Record<TingkatRisikoPM, number>
+  mendesak: number
+  penurunan_rata: number | null
+  dinilai_ulang: number
+}
+export interface RespRisikoProyek {
+  proyek: { id: string; name: string; end_date: string | null }
+  pada: string
+  risiko: RisikoDinilaiPM[]
+  ringkas: RingkasRegisterPM
+}
+
+/** Bentuk PERSIS `lib/risiko-proyek.ts:275-375`. */
+export type StatusIzinProyekPM = "rencana" | "diajukan" | "terbit" | "ditolak" | "dicabut"
+export type StatusMasaIzinPM = "belum_terbit" | "berlaku" | "akan_habis" | "kedaluwarsa" | "ditolak" | "dicabut"
+export interface IzinDinilaiPM {
+  id: string
+  jenis: string
+  nomor: string | null
+  status: StatusIzinProyekPM
+  berlaku_dari: string | null
+  berlaku_sampai: string | null
+  menghalangi_mulai: boolean
+  masa: StatusMasaIzinPM
+  sisa_hari: number | null
+  memblokir: boolean
+}
+export interface KesiapanIzinPM {
+  boleh_jalan: boolean | null
+  memblokir: IzinDinilaiPM[]
+  perlu_diurus: IzinDinilaiPM[]
+  total: number
+}
+export interface RespIzinProyek {
+  proyek: { id: string; name: string; start_date: string | null; end_date: string | null; status: string }
+  pada: string
+  izin: IzinDinilaiPM[]
+  kesiapan: KesiapanIzinPM
+}
+
+/** Bentuk PERSIS `CLIENT_SELECT`, `clients.ts:5-8`. */
+export interface KlienPM {
+  id: string
+  company_name: string | null
+  contact_person: string
+  phone: string
+  email: string | null
+  address: string | null
+  npwp: string | null
+  id_number: string | null
+  client_type: "perorangan" | "perusahaan"
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+export interface RespDaftarKlien { clients: KlienPM[] }
+export interface ProyekKlienPM {
+  id: string
+  name: string
+  status: string
+  contract_value: number | string | null
+  start_date: string | null
+  end_date: string | null
+  progress_pct: number | null
+}
+export interface RespDetailKlien {
+  client: KlienPM
+  projects: ProyekKlienPM[]
+  summary: {
+    total_projects: number
+    total_contract_value: number
+    invoice_total: number
+    invoice_outstanding: number
+    invoice_overdue: number
+    invoice_paid: number
+  }
+}
+```
+
+- [ ] **Step 2: `risiko/page.tsx`** — picker proyek + `SegmentedTab`
+(Risiko / Perizinan) + KPI ringkas + daftar + form tambah + form
+mitigasi/perpanjang.
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { AlertTriangle, ShieldAlert, Plus, FileCheck } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import BottomSheet from "@/components/portal/BottomSheet";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import type { ProyekPM, RespRisikoProyek, RespIzinProyek, KategoriRisikoPM, GalatApi } from "../_bersama/tipe";
+import { pesanGalat } from "../_bersama/tipe";
+
+interface RespProyek { projects: ProyekPM[] }
+
+const LABEL_KATEGORI: Record<KategoriRisikoPM, string> = {
+  teknis: "Teknis", keuangan: "Keuangan", jadwal: "Jadwal", k3: "K3",
+  lingkungan: "Lingkungan", hukum: "Hukum", pengadaan: "Pengadaan", eksternal: "Eksternal",
+};
+const VARIAN_TINGKAT: Record<string, VarianStatus> = {
+  rendah: "approved", sedang: "info", tinggi: "pending", ekstrem: "rejected",
+};
+const LABEL_TINGKAT: Record<string, string> = {
+  rendah: "Rendah", sedang: "Sedang", tinggi: "Tinggi", ekstrem: "Ekstrem",
+};
+const LABEL_MASA_IZIN: Record<string, string> = {
+  belum_terbit: "Belum Terbit", berlaku: "Berlaku", akan_habis: "Akan Habis",
+  kedaluwarsa: "Kedaluwarsa", ditolak: "Ditolak", dicabut: "Dicabut",
+};
+const VARIAN_MASA_IZIN: Record<string, VarianStatus> = {
+  belum_terbit: "netral", berlaku: "approved", akan_habis: "pending",
+  kedaluwarsa: "rejected", ditolak: "rejected", dicabut: "rejected",
+};
+
+type Tab = "risiko" | "izin";
+
+export default function PmRisikoPage() {
+  const [proyekId, setProyekId] = useState("");
+  const [tab, setTab] = useState<Tab>("risiko");
+  const [sheetRisiko, setSheetRisiko] = useState(false);
+  const [sheetIzin, setSheetIzin] = useState(false);
+  const [formRisiko, setFormRisiko] = useState({ judul: "", kategori: "teknis" as KategoriRisikoPM, dampak: "3", kemungkinan: "3" });
+  const [formIzin, setFormIzin] = useState({ jenis: "", nomor: "", berlaku_dari: "", berlaku_sampai: "" });
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+
+  const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+  const daftarProyek = useMemo(() => (dataProyek?.projects ?? []).filter((p) => p.pm), [dataProyek]);
+  const proyekAktif = proyekId || daftarProyek[0]?.id || "";
+
+  const urlRisiko = proyekAktif ? `/api/v1/proyek/${proyekAktif}/risiko` : null;
+  const urlIzin = proyekAktif ? `/api/v1/proyek/${proyekAktif}/izin` : null;
+  const { data: dataRisiko, memuat: memuatRisiko, galat: galatRisiko } = useData<RespRisikoProyek>(tab === "risiko" ? urlRisiko : null);
+  const { data: dataIzin, memuat: memuatIzin, galat: galatIzin } = useData<RespIzinProyek>(tab === "izin" ? urlIzin : null);
+
+  async function tambahRisiko() {
+    if (!proyekAktif || !formRisiko.judul.trim()) {
+      setGalatForm("Judul risiko wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post(`/api/v1/proyek/${proyekAktif}/risiko`, {
+        judul: formRisiko.judul.trim(), kategori: formRisiko.kategori,
+        dampak: Number(formRisiko.dampak), kemungkinan: Number(formRisiko.kemungkinan),
+      });
+      setSheetRisiko(false);
+      setFormRisiko({ judul: "", kategori: "teknis", dampak: "3", kemungkinan: "3" });
+      invalidasi(urlRisiko ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menambah risiko"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function tambahIzin() {
+    if (!proyekAktif || !formIzin.jenis.trim()) {
+      setGalatForm("Jenis izin wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post(`/api/v1/proyek/${proyekAktif}/izin`, {
+        jenis: formIzin.jenis.trim(),
+        nomor: formIzin.nomor.trim() || undefined,
+        berlaku_dari: formIzin.berlaku_dari || undefined,
+        berlaku_sampai: formIzin.berlaku_sampai || undefined,
+        status: formIzin.nomor.trim() ? "terbit" : "rencana",
+      });
+      setSheetIzin(false);
+      setFormIzin({ jenis: "", nomor: "", berlaku_dari: "", berlaku_sampai: "" });
+      invalidasi(urlIzin ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menambah izin"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Risiko & Perizinan
+      </h1>
+
+      {daftarProyek.length > 1 && (
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
+          <select value={proyekAktif} onChange={(e) => setProyekId(e.target.value)}
+            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
+            {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+      )}
+
+      {!proyekAktif && <EmptyState icon={ShieldAlert} judul="Pilih proyek" deskripsi="Register risiko & perizinan tercatat per proyek." />}
+
+      {proyekAktif && (
+        <>
+          <SegmentedTab opsi={[{ value: "risiko", label: "Risiko" }, { value: "izin", label: "Perizinan" }]} aktif={tab} onUbah={(v) => setTab(v as Tab)} />
+
+          {tab === "risiko" && (
+            <>
+              <button type="button" onClick={() => setSheetRisiko(true)}
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 40, alignSelf: "flex-start" }}>
+                <Plus size={16} aria-hidden="true" /> Risiko
+              </button>
+              {memuatRisiko && <SkeletonCard tinggi={120} />}
+              {galatRisiko && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galatRisiko as GalatApi, "Coba lagi.")} />}
+              {!memuatRisiko && dataRisiko && (
+                <>
+                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                    <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Total</div>
+                      <div style={{ fontSize: 17, fontWeight: 700 }}>{dataRisiko.ringkas.total}</div>
+                    </div>
+                    <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Mendesak</div>
+                      <div style={{ fontSize: 17, fontWeight: 700, color: dataRisiko.ringkas.mendesak > 0 ? "var(--danger)" : "var(--text-primary)" }}>{dataRisiko.ringkas.mendesak}</div>
+                    </div>
+                    <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Ekstrem</div>
+                      <div style={{ fontSize: 17, fontWeight: 700, color: dataRisiko.ringkas.per_tingkat.ekstrem > 0 ? "var(--danger)" : "var(--text-primary)" }}>{dataRisiko.ringkas.per_tingkat.ekstrem}</div>
+                    </div>
+                  </div>
+                  {dataRisiko.risiko.length === 0 && (
+                    <EmptyState icon={ShieldAlert} judul="Belum ada risiko" deskripsi="Daftar risiko proyek akan muncul di sini." />
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {dataRisiko.risiko.map((r) => (
+                      <div key={r.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: `1px solid ${r.mendesak ? "var(--danger-border)" : "var(--border)"}` }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{r.judul}</div>
+                            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{LABEL_KATEGORI[r.kategori]} · Skor {r.skor}</div>
+                          </div>
+                          <StatusBadge status={VARIAN_TINGKAT[r.tingkat]} label={LABEL_TINGKAT[r.tingkat]} />
+                        </div>
+                        {r.mendesak && (
+                          <div style={{ fontSize: 11, color: "var(--danger)", marginTop: 6 }}>{r.alasan_mendesak.join(" · ")}</div>
+                        )}
+                        {r.tindakan.length > 0 && (
+                          <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 6 }}>{r.tindakan.length} tindakan mitigasi</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {tab === "izin" && (
+            <>
+              <button type="button" onClick={() => setSheetIzin(true)}
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 40, alignSelf: "flex-start" }}>
+                <Plus size={16} aria-hidden="true" /> Izin
+              </button>
+              {memuatIzin && <SkeletonCard tinggi={120} />}
+              {galatIzin && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galatIzin as GalatApi, "Coba lagi.")} />}
+              {!memuatIzin && dataIzin && (
+                <>
+                  {dataIzin.kesiapan.boleh_jalan === false && (
+                    <div style={{ fontSize: 12, color: "var(--on-danger-bg)", background: "var(--danger-bg)", borderRadius: 10, padding: 10 }}>
+                      Ada izin yang MEMBLOKIR pekerjaan: {dataIzin.kesiapan.memblokir.map((i) => i.jenis).join(", ")}
+                    </div>
+                  )}
+                  {dataIzin.izin.length === 0 && (
+                    <EmptyState icon={FileCheck} judul="Belum ada izin" deskripsi="Daftar perizinan proyek akan muncul di sini." />
+                  )}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {dataIzin.izin.map((i) => (
+                      <div key={i.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: `1px solid ${i.memblokir ? "var(--danger-border)" : "var(--border)"}` }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{i.jenis}</div>
+                            <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{i.nomor ?? "Belum bernomor"}</div>
+                          </div>
+                          <StatusBadge status={VARIAN_MASA_IZIN[i.masa]} label={LABEL_MASA_IZIN[i.masa]} />
+                        </div>
+                        {i.sisa_hari !== null && (
+                          <div style={{ fontSize: 11, color: i.sisa_hari < 0 ? "var(--danger)" : "var(--text-secondary)", marginTop: 6 }}>
+                            {i.sisa_hari < 0 ? `Kedaluwarsa ${Math.abs(i.sisa_hari)} hari lalu` : `Sisa ${i.sisa_hari} hari`}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      <BottomSheet terbuka={sheetRisiko} onTutup={() => setSheetRisiko(false)} judul="Tambah Risiko">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Judul *</span>
+            <input value={formRisiko.judul} onChange={(e) => setFormRisiko((f) => ({ ...f, judul: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Kategori</span>
+            <select value={formRisiko.kategori} onChange={(e) => setFormRisiko((f) => ({ ...f, kategori: e.target.value as KategoriRisikoPM }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              {(Object.keys(LABEL_KATEGORI) as KategoriRisikoPM[]).map((k) => <option key={k} value={k}>{LABEL_KATEGORI[k]}</option>)}
+            </select>
+          </label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Dampak (1-5)</span>
+              <input type="number" min={1} max={5} value={formRisiko.dampak} onChange={(e) => setFormRisiko((f) => ({ ...f, dampak: e.target.value }))}
+                style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+            </label>
+            <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Kemungkinan (1-5)</span>
+              <input type="number" min={1} max={5} value={formRisiko.kemungkinan} onChange={(e) => setFormRisiko((f) => ({ ...f, kemungkinan: e.target.value }))}
+                style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+            </label>
+          </div>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void tambahRisiko()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan Risiko"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheetIzin} onTutup={() => setSheetIzin(false)} judul="Tambah Izin">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis Izin *</span>
+            <input value={formIzin.jenis} onChange={(e) => setFormIzin((f) => ({ ...f, jenis: e.target.value }))}
+              placeholder="mis. PBG, Izin Lingkungan"
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Nomor (kosong = masih diurus)</span>
+            <input value={formIzin.nomor} onChange={(e) => setFormIzin((f) => ({ ...f, nomor: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Berlaku Dari</span>
+            <input type="date" value={formIzin.berlaku_dari} onChange={(e) => setFormIzin((f) => ({ ...f, berlaku_dari: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Berlaku Sampai</span>
+            <input type="date" value={formIzin.berlaku_sampai} onChange={(e) => setFormIzin((f) => ({ ...f, berlaku_sampai: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void tambahIzin()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan Izin"}
+          </button>
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: `klien/page.tsx`** — daftar klien READ-ONLY (search +
+saringan tipe), TANPA tombol tambah/edit (PM tak punya `clients:manage`).
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import Link from "next/link";
+import { Users, Search, AlertCircle } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import type { RespDaftarKlien, GalatApi } from "../_bersama/tipe";
+import { pesanGalat } from "../_bersama/tipe";
+import { medanKurang } from "@/lib/ringkasan-klien";
+
+type FilterTipe = "all" | "perorangan" | "perusahaan";
+
+export default function PmKlienPage() {
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<FilterTipe>("all");
+
+  const { data, memuat, galat } = useData<RespDaftarKlien>("/api/v1/clients");
+
+  const tersaring = useMemo(() => {
+    let hasil = data?.clients ?? [];
+    if (filter !== "all") hasil = hasil.filter((c) => c.client_type === filter);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      hasil = hasil.filter((c) => c.contact_person.toLowerCase().includes(q) || (c.company_name ?? "").toLowerCase().includes(q));
+    }
+    return hasil;
+  }, [data, filter, search]);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Klien
+      </h1>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", minHeight: 44 }}>
+        <Search size={16} color="var(--text-secondary)" aria-hidden="true" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari nama/perusahaan…"
+          aria-label="Cari klien"
+          style={{ flex: 1, border: "none", outline: "none", fontSize: 14, background: "transparent", color: "var(--text-primary)" }}
+        />
+      </div>
+
+      <SegmentedTab
+        opsi={[{ value: "all", label: "Semua" }, { value: "perorangan", label: "Perorangan" }, { value: "perusahaan", label: "Perusahaan" }]}
+        aktif={filter}
+        onUbah={(v) => setFilter(v as FilterTipe)}
+      />
+
+      {memuat && <SkeletonCard tinggi={120} />}
+      {galat && <EmptyState icon={AlertCircle} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba lagi.")} />}
+      {!memuat && tersaring.length === 0 && (
+        <EmptyState icon={Users} judul="Tidak ada klien" deskripsi="Belum ada klien yang cocok dengan pencarian ini." />
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {tersaring.map((c) => {
+          const kurang = medanKurang(c);
+          return (
+            <Link key={c.id} href={`/pm-portal/klien/${c.id}`}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", textDecoration: "none" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{c.company_name ?? c.contact_person}</div>
+                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{c.contact_person} · {c.phone}</div>
+                {kurang.length > 0 && (
+                  <div style={{ fontSize: 11, color: "var(--on-warning-bg)", marginTop: 2 }}>Data kurang: {kurang.join(", ")}</div>
+                )}
+              </div>
+              {!c.is_active && (
+                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)" }}>Nonaktif</span>
+              )}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 4: `klien/[id]/page.tsx`** — detail klien read-only:
+kontak, ringkasan proyek, ringkasan invoice.
+
+```typescript
+"use client";
+
+import { useParams } from "next/navigation";
+import { Users, AlertCircle, Building2, Landmark } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import type { RespDetailKlien, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+function fmtRupiah(v: number | null | undefined): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
+}
+
+export default function PmKlienDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const { data, memuat, galat } = useData<RespDetailKlien>(id ? `/api/v1/clients/${id}` : null);
+
+  if (memuat) return <SkeletonCard tinggi={200} />;
+  if (galat) return <EmptyState icon={AlertCircle} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />;
+  if (!data) return <EmptyState icon={Users} judul="Klien tidak ditemukan" deskripsi="Klien ini mungkin sudah dihapus." />;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        {data.client.company_name ?? data.client.contact_person}
+      </h1>
+
+      <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+          <Building2 size={16} color="var(--text-secondary)" aria-hidden="true" />
+          <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{data.client.contact_person}</span>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{data.client.phone}{data.client.email ? ` · ${data.client.email}` : ""}</div>
+        {data.client.address && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{data.client.address}</div>}
+      </div>
+
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+          <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Proyek</div>
+          <div style={{ fontSize: 17, fontWeight: 700 }}>{data.summary.total_projects}</div>
+        </div>
+        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+          <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Nilai Kontrak</div>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>{fmtRupiah(data.summary.total_contract_value)}</div>
+        </div>
+      </div>
+
+      <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+          <Landmark size={16} color="var(--navy)" aria-hidden="true" />
+          <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Ringkasan Invoice</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+          <span style={{ color: "var(--text-secondary)" }}>Terbayar</span>
+          <span style={{ fontWeight: 600 }}>{fmtRupiah(data.summary.invoice_paid)}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+          <span style={{ color: "var(--text-secondary)" }}>Belum Terbayar</span>
+          <span style={{ fontWeight: 600, color: data.summary.invoice_outstanding > 0 ? "var(--on-warning-bg)" : "var(--text-primary)" }}>{fmtRupiah(data.summary.invoice_outstanding)}</span>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
+          <span style={{ color: "var(--text-secondary)" }}>Lewat Tempo</span>
+          <span style={{ fontWeight: 600, color: data.summary.invoice_overdue > 0 ? "var(--danger)" : "var(--text-primary)" }}>{fmtRupiah(data.summary.invoice_overdue)}</span>
+        </div>
+      </div>
+
+      {data.projects.length === 0 && (
+        <EmptyState icon={Users} judul="Belum ada proyek" deskripsi="Klien ini belum punya proyek tercatat." />
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {data.projects.map((p) => (
+          <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{p.name}</span>
+            <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{p.progress_pct ?? 0}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 5: Typecheck**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+```
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add apps/web/app/pm-portal/risiko apps/web/app/pm-portal/klien \
+  apps/web/app/pm-portal/_bersama/tipe.ts docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md
+git commit -m "feat(pm-portal): Risiko, Perizinan & Klien (Tahap 7)"
+```
+
+---
+
+### Task 42: Dokumen Kendali — Transmittal, Gambar, Notulen, Tanda Tangan — halaman baru
+
+**Penjaga CI relevan**: `audit-jenis-tulis-punya-label.mjs`,
+`uji-galat-muat-terpisah.mjs`, `uji-token-css-ada.mjs`,
+`uji-judul-halaman-ada.mjs`, `uji-remah-lengkap.mjs`,
+`audit-halaman-pakai-cache.mjs`.
+
+**Files:**
+- Create: `apps/web/app/pm-portal/dokumen-kendali/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Catatan overlap**: `pm-portal/dokumen/page.tsx` (Register Dokumen,
+`dk-register`) SUDAH ADA sejak sebelum Portal PM Lengkap dimulai —
+diverifikasi HANYA memanggil `GET /projects/:id/documents`, TIDAK
+menyentuh `kendali-dokumen.ts` sama sekali. Halaman BARU di sini
+(`dokumen-kendali`) adalah modul TERPISAH — transmittal, register
+gambar, notulen rapat, distribusi, tanda tangan elektronik — route baru
+supaya tidak menimpa halaman existing.
+
+**Riset (Task 38 Step 1)** — bentuk respons diverifikasi baris-per-baris:
+
+- `GET /api/v1/kendali-dokumen?project_id=` (`projects:view`) — SATU
+  panggilan mengembalikan SEMUA sub-modul (`kendali-dokumen.ts:41-148`):
+  `{ tanggal, gambar: RingkasGambarPM, transmittal: RingkasTransmittalPM,
+  notulen: NotulenRapatPM[], tindakan: RingkasTindakanPM, distribusi:
+  MatriksDistribusiPM[], jadwalLaporan: { jadwal: HasilJadwalLaporanPM[];
+  aktif: number; macet: number }, tandaTangan: TandaTanganPM[] }`.
+  `RingkasGambarPM` (`lib/kendali-dokumen.ts:67-76`): `{ gambar:
+  HasilGambarPM[], total, jumlahJudul, usang, gantungTanpaPengganti }`.
+  `HasilGambarPM extends Gambar` (`:42-56`): `{ id, nomor, judul:
+  string|null, revisi: number|string, status, disiplin: string|null,
+  tahap: string|null, digantikan_oleh: string|null, tanggal_terbit:
+  string|null, revisiTertinggi: number, usang: boolean }` — `usang: true`
+  bila status `berlaku` TAPI revisi bukan yang tertinggi (kolom
+  `status` sendiri BISA salah — dihitung ulang tiap baca, bukan dipercaya
+  mentah). `RingkasTransmittalPM` (`:139-146`): `{ transmittal:
+  HasilTransmittalPM[], terkirim, diterima, menggantung, rasioDiterima:
+  number|null }`. `HasilTransmittalPM extends Transmittal` (`:115-121,
+  126-136`): `{ id, nomor, status, dikirim_pada: string|null,
+  diterima_pada: string|null, umurHari: number|null, menggantung:
+  boolean }` — `menggantung` = dikirim ≥7 hari TANPA konfirmasi terima.
+  `RingkasTindakanPM` (`:196-211`): `{ tindakan: HasilTindakanPM[],
+  terbuka, selesai, lewatTenggat, tanpaTenggat, persenSelesai:
+  number|null }`. `HasilTindakanPM extends Tindakan` (`:181-188,190-194`):
+  `{ id, uraian: string|null, status, tenggat: string|null, selesai_pada:
+  string|null, pj_nama: string|null, sisaHari: number|null,
+  lewatTenggat: boolean }` — **TIDAK ADA endpoint untuk mengubah status
+  tindakan** (diverifikasi: nol PATCH/POST untuk `notulen_tindakan` di
+  seluruh `kendali-dokumen.ts`), jadi kartu tindakan di halaman ini
+  READ-ONLY, tanpa tombol "Selesaikan". `HasilJadwalLaporanPM extends
+  JadwalLaporan` (`:243-251,256-268`): `{ id, nama, irama, hari_ke:
+  number|string|null, aktif, terakhir_dikirim: string|null,
+  gagal_berturut: number|string|null, umurKirimHari: number|null, macet:
+  boolean }` — ditampilkan INFORMASI SAJA (jadwal ini dikelola lewat
+  penjadwal terjadwal, `notifications:milestone:check`, bukan tulis
+  manual PM).
+- `POST /api/v1/kendali-dokumen/gambar` (`documents:manage`) — body
+  `project_id`+`nomor`+`judul` (wajib), `disiplin?` (default
+  `arsitektur`), `revisi?` (default 0), `tahap?` (default `IFR`),
+  `file_url?`, `tanggal_terbit?`, `catatan?`. Revisi baru OTOMATIS
+  menandai revisi lama `digantikan` (nomor+proyek sama).
+- `POST /api/v1/kendali-dokumen/transmittal` (`documents:manage`) — body
+  `project_id`+`nomor`+`perihal`+`tujuan_nama` (wajib), `items` (wajib,
+  minimal 1: `{gambar_id?, document_id?, uraian?, jumlah_lembar?}`),
+  `tujuan_organisasi?`, `maksud?` (default `untuk_informasi`),
+  `catatan?`.
+- `PATCH /api/v1/kendali-dokumen/transmittal/:id/kirim`
+  (`documents:manage`) — tanpa body, `status` → `dikirim`.
+- `PATCH /api/v1/kendali-dokumen/transmittal/:id/terima`
+  (`documents:manage`) — body `diterima_oleh?`, `status` → `diterima`;
+  422 bila belum pernah dikirim.
+- `POST /api/v1/kendali-dokumen/notulen` (`documents:manage`) — body
+  `project_id`+`nomor`+`judul` (wajib), `tanggal?` (default hari ini),
+  `jenis?` (default `mingguan`), `tempat?`, `hadir?`, `pembahasan?`,
+  `tindakan?` (array `{uraian?, pj_nama?, pj_user_id?, tenggat?}`,
+  disimpan bersamaan — notulen tetap tersimpan meski butir tindakan
+  ditolak validasi, tapi 422 dengan `notulen` di body respons).
+- `POST /api/v1/kendali-dokumen/tanda-tangan` (`documents:manage`) —
+  body `jenis_objek`+`objek_id`+`isi` (wajib, TEKS MENTAH yang disusun
+  KLIEN — sidik SHA-256 dihitung SERVER dari `isi`), `peran_penanda?`,
+  `alasan?`. 409 bila user sudah menandatangani objek yang sama.
+- `POST /api/v1/kendali-dokumen/tanda-tangan/verifikasi`
+  (`documents:manage`) — body sama (`jenis_objek`+`objek_id`+`isi`) →
+  `{ keadaan: 'belum_ditandatangani'|'utuh'|'berubah', sidik_sekarang,
+  tanda_tangan: {id,penanda_tangan,peran_penanda,ditandatangani_pada,
+  alasan,cocok}[], pesan }`. TIGA keadaan dibedakan — `belum_ditandatangani`
+  BUKAN "tidak sah".
+
+- [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
+
+```typescript
+/** Bentuk PERSIS `lib/kendali-dokumen.ts:42-284`. */
+export interface HasilGambarPM {
+  id: string
+  nomor: string
+  judul: string | null
+  revisi: number | string
+  status: string
+  disiplin: string | null
+  tahap: string | null
+  digantikan_oleh: string | null
+  tanggal_terbit: string | null
+  revisiTertinggi: number
+  usang: boolean
+}
+export interface RingkasGambarPM {
+  gambar: HasilGambarPM[]
+  total: number
+  jumlahJudul: number
+  usang: number
+  gantungTanpaPengganti: number
+}
+export interface HasilTransmittalPM {
+  id: string
+  nomor: string
+  status: string
+  dikirim_pada: string | null
+  diterima_pada: string | null
+  diterima_oleh?: string | null
+  tujuan_nama?: string
+  tujuan_organisasi?: string | null
+  perihal?: string
+  umurHari: number | null
+  menggantung: boolean
+}
+export interface RingkasTransmittalPM {
+  transmittal: HasilTransmittalPM[]
+  terkirim: number
+  diterima: number
+  menggantung: number
+  rasioDiterima: number | null
+}
+export interface NotulenRapatPM {
+  id: string
+  project_id: string | null
+  nomor: string
+  judul: string
+  tanggal: string
+  jenis: string
+  status: string
+  tempat: string | null
+  disahkan_pada: string | null
+}
+export interface HasilTindakanPM {
+  id: string
+  notulen_id?: string
+  uraian: string | null
+  status: string
+  tenggat: string | null
+  selesai_pada: string | null
+  pj_nama: string | null
+  sisaHari: number | null
+  lewatTenggat: boolean
+}
+export interface RingkasTindakanPM {
+  tindakan: HasilTindakanPM[]
+  terbuka: number
+  selesai: number
+  lewatTenggat: number
+  tanpaTenggat: number
+  persenSelesai: number | null
+}
+export interface MatriksDistribusiPM {
+  id: string
+  project_id: string | null
+  jenis_dokumen: string
+  penerima_nama: string
+  penerima_email: string | null
+  organisasi: string | null
+  peran: string | null
+  aktif: boolean
+}
+export interface HasilJadwalLaporanPM {
+  id: string
+  nama: string
+  irama: string
+  hari_ke: number | string | null
+  aktif: boolean
+  terakhir_dikirim: string | null
+  gagal_berturut: number | string | null
+  umurKirimHari: number | null
+  macet: boolean
+}
+export interface TandaTanganPM {
+  id: string
+  jenis_objek: string
+  objek_id: string
+  penanda_tangan: string
+  peran_penanda: string | null
+  ditandatangani_pada: string
+}
+export interface RespKendaliDokumen {
+  tanggal: string
+  gambar: RingkasGambarPM
+  transmittal: RingkasTransmittalPM
+  notulen: NotulenRapatPM[]
+  tindakan: RingkasTindakanPM
+  distribusi: MatriksDistribusiPM[]
+  jadwalLaporan: { jadwal: HasilJadwalLaporanPM[]; aktif: number; macet: number }
+  tandaTangan: TandaTanganPM[]
+}
+export interface RespVerifikasiTtd {
+  keadaan: "belum_ditandatangani" | "utuh" | "berubah"
+  sidik_sekarang: string
+  tanda_tangan: Array<{ id: string; penanda_tangan: string; peran_penanda: string | null; ditandatangani_pada: string; alasan: string | null; cocok: boolean }>
+  pesan: string
+}
+```
+
+- [ ] **Step 2: `dokumen-kendali/page.tsx`** — picker proyek + 4
+`SegmentedTab` (Gambar / Transmittal / Notulen / Tanda Tangan). Notulen
+diperlihatkan sebagai daftar tindakan gabungan (bukan per-notulen,
+lebih berguna untuk PM yang mengejar tenggat) — READ-ONLY untuk butir
+tindakan (tak ada endpoint ubah status, lihat riset), form tambah untuk
+gambar/transmittal/notulen, tombol kirim/terima untuk transmittal,
+form tanda-tangan+verifikasi.
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { FileImage, Send, ClipboardList, PenTool, Plus, AlertTriangle } from "lucide-react";
+import { useData, invalidasi } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import BottomSheet from "@/components/portal/BottomSheet";
+import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import type { ProyekPM, RespKendaliDokumen, RespVerifikasiTtd, GalatApi } from "../_bersama/tipe";
+import { pesanGalat } from "../_bersama/tipe";
+
+interface RespProyek { projects: ProyekPM[] }
+
+type Tab = "gambar" | "transmittal" | "notulen" | "ttd";
+type Sheet = "gambar" | "transmittal" | "notulen" | "ttd-buat" | "ttd-verifikasi" | null;
+
+export default function PmDokumenKendaliPage() {
+  const [proyekId, setProyekId] = useState("");
+  const [tab, setTab] = useState<Tab>("gambar");
+  const [sheet, setSheet] = useState<Sheet>(null);
+  const [formGambar, setFormGambar] = useState({ nomor: "", judul: "", disiplin: "arsitektur", revisi: "0" });
+  const [formTransmittal, setFormTransmittal] = useState({ nomor: "", perihal: "", tujuan_nama: "", uraianItem: "" });
+  const [formNotulen, setFormNotulen] = useState({ nomor: "", judul: "", jenis: "mingguan" });
+  const [formTtd, setFormTtd] = useState({ jenis_objek: "notulen", objek_id: "", isi: "" });
+  const [hasilVerifikasi, setHasilVerifikasi] = useState<RespVerifikasiTtd | null>(null);
+  const [mengirim, setMengirim] = useState(false);
+  const [galatForm, setGalatForm] = useState<string | null>(null);
+
+  const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+  const daftarProyek = useMemo(() => (dataProyek?.projects ?? []).filter((p) => p.pm), [dataProyek]);
+  const proyekAktif = proyekId || daftarProyek[0]?.id || "";
+
+  const url = proyekAktif ? `/api/v1/kendali-dokumen?project_id=${proyekAktif}` : null;
+  const { data, memuat, galat } = useData<RespKendaliDokumen>(url);
+
+  async function buatGambar() {
+    if (!proyekAktif || !formGambar.nomor.trim() || !formGambar.judul.trim()) {
+      setGalatForm("Nomor dan judul gambar wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post("/api/v1/kendali-dokumen/gambar", {
+        project_id: proyekAktif, nomor: formGambar.nomor.trim(), judul: formGambar.judul.trim(),
+        disiplin: formGambar.disiplin, revisi: Number(formGambar.revisi) || 0,
+      });
+      setSheet(null);
+      setFormGambar({ nomor: "", judul: "", disiplin: "arsitektur", revisi: "0" });
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menyimpan gambar"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function buatTransmittal() {
+    if (!proyekAktif || !formTransmittal.nomor.trim() || !formTransmittal.perihal.trim() || !formTransmittal.tujuan_nama.trim()) {
+      setGalatForm("Nomor, perihal, dan tujuan wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post("/api/v1/kendali-dokumen/transmittal", {
+        project_id: proyekAktif, nomor: formTransmittal.nomor.trim(), perihal: formTransmittal.perihal.trim(),
+        tujuan_nama: formTransmittal.tujuan_nama.trim(),
+        items: [{ uraian: formTransmittal.uraianItem.trim() || "Dokumen terlampir" }],
+      });
+      setSheet(null);
+      setFormTransmittal({ nomor: "", perihal: "", tujuan_nama: "", uraianItem: "" });
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menyimpan transmittal"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function kirimTransmittal(id: string) {
+    try {
+      await api.patch(`/api/v1/kendali-dokumen/transmittal/${id}/kirim`, {});
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menandai terkirim"));
+    }
+  }
+  async function terimaTransmittal(id: string) {
+    try {
+      await api.patch(`/api/v1/kendali-dokumen/transmittal/${id}/terima`, {});
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menandai diterima"));
+    }
+  }
+
+  async function buatNotulen() {
+    if (!proyekAktif || !formNotulen.nomor.trim() || !formNotulen.judul.trim()) {
+      setGalatForm("Nomor dan judul notulen wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post("/api/v1/kendali-dokumen/notulen", {
+        project_id: proyekAktif, nomor: formNotulen.nomor.trim(), judul: formNotulen.judul.trim(), jenis: formNotulen.jenis,
+      });
+      setSheet(null);
+      setFormNotulen({ nomor: "", judul: "", jenis: "mingguan" });
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menyimpan notulen"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function tandaTangani() {
+    if (!formTtd.objek_id.trim() || !formTtd.isi.trim()) {
+      setGalatForm("Objek dan isi wajib diisi.");
+      return;
+    }
+    setMengirim(true);
+    setGalatForm(null);
+    try {
+      await api.post("/api/v1/kendali-dokumen/tanda-tangan", formTtd);
+      setSheet(null);
+      setFormTtd({ jenis_objek: "notulen", objek_id: "", isi: "" });
+      invalidasi(url ?? "");
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal menandatangani"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  async function verifikasiTtd() {
+    setMengirim(true);
+    setGalatForm(null);
+    setHasilVerifikasi(null);
+    try {
+      const resp = await api.post<RespVerifikasiTtd>("/api/v1/kendali-dokumen/tanda-tangan/verifikasi", formTtd);
+      setHasilVerifikasi(resp.data);
+    } catch (e) {
+      setGalatForm(pesanGalat(e as GalatApi, "Gagal memverifikasi"));
+    } finally {
+      setMengirim(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Kendali Dokumen
+      </h1>
+
+      {daftarProyek.length > 1 && (
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
+          <select value={proyekAktif} onChange={(e) => setProyekId(e.target.value)}
+            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
+            {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+      )}
+
+      {!proyekAktif && <EmptyState icon={FileImage} judul="Pilih proyek" deskripsi="Kendali dokumen tercatat per proyek." />}
+
+      {proyekAktif && (
+        <>
+          <SegmentedTab
+            opsi={[
+              { value: "gambar", label: "Gambar" },
+              { value: "transmittal", label: "Transmittal" },
+              { value: "notulen", label: "Tindakan" },
+              { value: "ttd", label: "Tanda Tangan" },
+            ]}
+            aktif={tab}
+            onUbah={(v) => setTab(v as Tab)}
+          />
+
+          {memuat && <SkeletonCard tinggi={140} />}
+          {galat && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+
+          {!memuat && data && tab === "gambar" && (
+            <>
+              <button type="button" onClick={() => setSheet("gambar")}
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 40, alignSelf: "flex-start" }}>
+                <Plus size={16} aria-hidden="true" /> Gambar
+              </button>
+              <div style={{ display: "flex", gap: 10 }}>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: 1 }}>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Judul Unik</div>
+                  <div style={{ fontSize: 17, fontWeight: 700 }}>{data.gambar.jumlahJudul}</div>
+                </div>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: 1 }}>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Usang</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: data.gambar.usang > 0 ? "var(--danger)" : "var(--text-primary)" }}>{data.gambar.usang}</div>
+                </div>
+              </div>
+              {data.gambar.gambar.length === 0 && <EmptyState icon={FileImage} judul="Belum ada gambar" deskripsi="Register gambar kerja akan muncul di sini." />}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {data.gambar.gambar.map((g) => (
+                  <div key={g.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: `1px solid ${g.usang ? "var(--danger-border)" : "var(--border)"}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{g.nomor} — {g.judul ?? "—"}</span>
+                      {g.usang && <StatusBadge status="rejected" label="Usang" />}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Rev.{g.revisi} (tertinggi: {g.revisiTertinggi}) · {g.disiplin ?? "—"}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {!memuat && data && tab === "transmittal" && (
+            <>
+              <button type="button" onClick={() => setSheet("transmittal")}
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 40, alignSelf: "flex-start" }}>
+                <Plus size={16} aria-hidden="true" /> Transmittal
+              </button>
+              {data.transmittal.menggantung > 0 && (
+                <div style={{ fontSize: 12, color: "var(--on-warning-bg)", background: "var(--warning-bg)", borderRadius: 10, padding: 10 }}>
+                  {data.transmittal.menggantung} transmittal menggantung (dikirim ≥7 hari tanpa konfirmasi terima).
+                </div>
+              )}
+              {data.transmittal.transmittal.length === 0 && <EmptyState icon={Send} judul="Belum ada transmittal" deskripsi="Bukti serah dokumen antar pihak akan muncul di sini." />}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {data.transmittal.transmittal.map((t) => (
+                  <div key={t.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: `1px solid ${t.menggantung ? "var(--warning-border)" : "var(--border)"}` }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{t.nomor}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t.status}{t.umurHari !== null ? ` · ${t.umurHari} hari` : ""}</div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                      {t.status === "draf" && (
+                        <button type="button" onClick={() => void kirimTransmittal(t.id)}
+                          style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)", background: "none", border: "none", padding: 0, cursor: "pointer" }}>Kirim</button>
+                      )}
+                      {t.status === "dikirim" && (
+                        <button type="button" onClick={() => void terimaTransmittal(t.id)}
+                          style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", background: "none", border: "none", padding: 0, cursor: "pointer" }}>Tandai Diterima</button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {!memuat && data && tab === "notulen" && (
+            <>
+              <button type="button" onClick={() => setSheet("notulen")}
+                style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 40, alignSelf: "flex-start" }}>
+                <Plus size={16} aria-hidden="true" /> Notulen
+              </button>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                {data.tindakan.persenSelesai !== null ? `${data.tindakan.persenSelesai}% selesai` : "Belum ada butir"} · {data.tindakan.lewatTenggat} lewat tenggat
+              </div>
+              {data.tindakan.tindakan.length === 0 && <EmptyState icon={ClipboardList} judul="Belum ada butir tindakan" deskripsi="Tindak lanjut rapat akan muncul di sini." />}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {data.tindakan.tindakan.map((t) => (
+                  <div key={t.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: `1px solid ${t.lewatTenggat ? "var(--danger-border)" : "var(--border)"}` }}>
+                    <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{t.uraian ?? "—"}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t.pj_nama ?? "Belum ada PJ"}{t.tenggat ? ` · tenggat ${t.tenggat}` : ""}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {!memuat && data && tab === "ttd" && (
+            <>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button type="button" onClick={() => { setSheet("ttd-buat"); setHasilVerifikasi(null); }}
+                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 40 }}>
+                  <PenTool size={14} aria-hidden="true" /> Tanda Tangani
+                </button>
+                <button type="button" onClick={() => { setSheet("ttd-verifikasi"); setHasilVerifikasi(null); }}
+                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", border: "1px solid var(--border)", background: "var(--surface)", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 40 }}>
+                  Verifikasi
+                </button>
+              </div>
+              {data.tandaTangan.length === 0 && <EmptyState icon={PenTool} judul="Belum ada tanda tangan" deskripsi="Dokumen yang ditandatangani elektronik akan muncul di sini." />}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {data.tandaTangan.map((t) => (
+                  <div key={t.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: "1px solid var(--border)" }}>
+                    <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{t.jenis_objek}: {t.objek_id.slice(0, 8)}…</div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{t.peran_penanda ?? "—"} · {new Date(t.ditandatangani_pada).toLocaleString("id-ID")}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      <BottomSheet terbuka={sheet === "gambar"} onTutup={() => setSheet(null)} judul="Tambah Gambar">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Nomor Gambar *</span>
+            <input value={formGambar.nomor} onChange={(e) => setFormGambar((f) => ({ ...f, nomor: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Judul *</span>
+            <input value={formGambar.judul} onChange={(e) => setFormGambar((f) => ({ ...f, judul: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Revisi</span>
+            <input type="number" min={0} value={formGambar.revisi} onChange={(e) => setFormGambar((f) => ({ ...f, revisi: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void buatGambar()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan Gambar"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheet === "transmittal"} onTutup={() => setSheet(null)} judul="Buat Transmittal">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Nomor *</span>
+            <input value={formTransmittal.nomor} onChange={(e) => setFormTransmittal((f) => ({ ...f, nomor: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Perihal *</span>
+            <input value={formTransmittal.perihal} onChange={(e) => setFormTransmittal((f) => ({ ...f, perihal: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Tujuan *</span>
+            <input value={formTransmittal.tujuan_nama} onChange={(e) => setFormTransmittal((f) => ({ ...f, tujuan_nama: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Isi (uraian item)</span>
+            <input value={formTransmittal.uraianItem} onChange={(e) => setFormTransmittal((f) => ({ ...f, uraianItem: e.target.value }))}
+              placeholder="mis. Gambar arsitektur rev.2"
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void buatTransmittal()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan Transmittal"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheet === "notulen"} onTutup={() => setSheet(null)} judul="Buat Notulen">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Nomor *</span>
+            <input value={formNotulen.nomor} onChange={(e) => setFormNotulen((f) => ({ ...f, nomor: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Judul *</span>
+            <input value={formNotulen.judul} onChange={(e) => setFormNotulen((f) => ({ ...f, judul: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis</span>
+            <select value={formNotulen.jenis} onChange={(e) => setFormNotulen((f) => ({ ...f, jenis: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              <option value="mingguan">Mingguan</option>
+              <option value="koordinasi">Koordinasi</option>
+              <option value="khusus">Khusus</option>
+            </select>
+          </label>
+          <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
+            Butir tindakan ditambahkan lewat versi web (`/dokumen/kendali`) — form
+            mobile menyederhanakan ke kepala notulen saja.
+          </p>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void buatNotulen()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan Notulen"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheet === "ttd-buat"} onTutup={() => setSheet(null)} judul="Tanda Tangani Dokumen">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis Objek</span>
+            <select value={formTtd.jenis_objek} onChange={(e) => setFormTtd((f) => ({ ...f, jenis_objek: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              <option value="notulen">Notulen</option>
+              <option value="transmittal">Transmittal</option>
+              <option value="berita_acara">Berita Acara</option>
+              <option value="kontrak">Kontrak</option>
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>ID Objek *</span>
+            <input value={formTtd.objek_id} onChange={(e) => setFormTtd((f) => ({ ...f, objek_id: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Isi Dokumen (teks yang ditandatangani) *</span>
+            <textarea value={formTtd.isi} onChange={(e) => setFormTtd((f) => ({ ...f, isi: e.target.value }))} rows={4}
+              style={{ padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, resize: "vertical" }} />
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void tandaTangani()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menandatangani…" : "Tanda Tangani"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheet === "ttd-verifikasi"} onTutup={() => setSheet(null)} judul="Verifikasi Tanda Tangan">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Jenis Objek</span>
+            <select value={formTtd.jenis_objek} onChange={(e) => setFormTtd((f) => ({ ...f, jenis_objek: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
+              <option value="notulen">Notulen</option>
+              <option value="transmittal">Transmittal</option>
+              <option value="berita_acara">Berita Acara</option>
+              <option value="kontrak">Kontrak</option>
+            </select>
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>ID Objek *</span>
+            <input value={formTtd.objek_id} onChange={(e) => setFormTtd((f) => ({ ...f, objek_id: e.target.value }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Isi Dokumen (untuk diperiksa ulang) *</span>
+            <textarea value={formTtd.isi} onChange={(e) => setFormTtd((f) => ({ ...f, isi: e.target.value }))} rows={4}
+              style={{ padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, resize: "vertical" }} />
+          </label>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void verifikasiTtd()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Memeriksa…" : "Verifikasi"}
+          </button>
+          {hasilVerifikasi && (
+            <div style={{
+              padding: 12, borderRadius: 12, fontSize: 13,
+              background: hasilVerifikasi.keadaan === "utuh" ? "var(--success-bg)" : hasilVerifikasi.keadaan === "berubah" ? "var(--danger-bg)" : "var(--surface-subtle)",
+              color: hasilVerifikasi.keadaan === "utuh" ? "var(--on-success-bg)" : hasilVerifikasi.keadaan === "berubah" ? "var(--on-danger-bg)" : "var(--text-secondary)",
+            }}>
+              {hasilVerifikasi.pesan}
+            </div>
+          )}
+        </div>
+      </BottomSheet>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: Typecheck**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+```
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add apps/web/app/pm-portal/dokumen-kendali apps/web/app/pm-portal/_bersama/tipe.ts \
+  docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md
+git commit -m "feat(pm-portal): Dokumen Kendali — transmittal, gambar, notulen, tanda tangan (Tahap 7)"
+```
+
+---
+
+### Task 43: Laporan & BI — KPI Perusahaan, Arus Kas, Susun Laporan — halaman baru
+
+**Penjaga CI relevan**: `uji-galat-muat-terpisah.mjs`,
+`uji-token-css-ada.mjs`, `uji-judul-halaman-ada.mjs`,
+`uji-remah-lengkap.mjs`, `audit-halaman-pakai-cache.mjs`,
+`uji-tabel-seragam.mjs`.
+
+**Files:**
+- Create: `apps/web/app/pm-portal/laporan/page.tsx`
+- Create: `apps/web/app/pm-portal/laporan/susun/page.tsx`
+- Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
+
+**Catatan cakupan** — lihat Task 38 Step 1: `bi-eksekutif`/`bi-proyek`
+TIDAK dibangun ulang (halaman lain sudah ada), `bi-biaya` sudah tercakup
+Task 24 (Tahap 4), `bi-arus-kas` dibangun DI SINI sebagai laporan
+PERIODE (beda dari Dashboard Keuangan Task 32 yang snapshot real-time),
+`bi-terjadwal` (`status: 'sebagian'`) di luar scope §1.
+
+**Riset (Task 38 Step 1)** — bentuk respons diverifikasi baris-per-baris:
+
+- `GET /api/v1/reports/kpi-perusahaan` (`reports:view`) → `{ tanggal,
+  evm: { cpi: number|null, spi: number|null, proyekDihitung, proyekTotal,
+  cpiTerendah: KpiProyekPM|null, spiTerendah: KpiProyekPM|null, totalBac,
+  totalAc, perProyek: KpiProyekPM[], statusCpi: StatusKpiPM, statusSpi:
+  StatusKpiPM, dasar_bac: string, dasar_pv: string }, piutang:
+  AgingSummaryPM, backlog: RingkasanBidPM }` (`reports.ts:1505-1658`).
+  `KpiProyekPM` (`lib/kpi-perusahaan.ts:43-50`): `{ id, name, cpi:
+  number|null, spi: number|null, bac, ac }`. `StatusKpiPM` (`:140-145`):
+  `{ keadaan: 'baik'|'perhatian'|'buruk'|'tak_ada_data', arti: string }` —
+  kalimat SIAP TAMPIL, tak perlu diterjemahkan lagi di frontend.
+  `AgingSummaryPM` (`lib/ar-register.ts:57-62`): `{ buckets:
+  Record<'current'|'d1_30'|'d31_60'|'d61_90'|'d90_plus', number>, total,
+  count, rows: AgingRowPM[] }`. `RingkasanBidPM` — dibaca dari
+  `lib/bid-backlog.ts:24+` (field lengkap diverifikasi saat implementasi,
+  ditandai TEBAKAN belum diverifikasi baris-per-baris — pola sama Task
+  21 Tahap 3, hanya bentuk KPI/aging yang diverifikasi penuh di sini).
+- `GET /api/v1/reports/cashflow?date_from=&date_to=&project_id=`
+  (`reports:view`) → `{ period: {dateFrom,dateTo}, summary: {totalIn,
+  totalExpense, totalWage, totalKasbon, totalOut, netFlow}, byMonth:
+  {period,label,masuk,keluar,net}[], payments: unknown[], expenses:
+  unknown[], wages: unknown[], kasbons: unknown[] }` (`reports.ts:371-475`).
+  Baris detail (`payments`/`expenses`/`wages`/`kasbons`) TIDAK ditipekan
+  penuh untuk halaman ringkas ini — hanya `summary`+`byMonth` dipakai
+  (grafik batang masuk-vs-keluar per bulan, sama pola dengan Dashboard
+  Keuangan Task 32).
+- `GET /api/v1/laporan/sumber` (`reports:susun`) → `{ sumber: {kunci,
+  label, keterangan, kolom: {kunci,label,jenis}[]}[], operator: string[],
+  batas_maks: number }` — HANYA sumber yang `hasPermission` PM yang
+  dikirim (gerbang kedua sudah diterapkan SERVER, frontend tak perlu
+  menyaring ulang).
+- `POST /api/v1/laporan/susun` (`reports:susun`) — body `{ sumber:
+  string, kolom: string[], saringan?: {kolom,operator,nilai}[], urut?:
+  {kolom,arah}, batas?: number, project_id?: string }` → `{ sumber:
+  {kunci,label}, kolom: SumberKolomPM[], baris:
+  Record<string,unknown>[], jumlah, terpotong: boolean, batas }`.
+
+- [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
+
+```typescript
+/** Bentuk PERSIS `lib/kpi-perusahaan.ts:43-50,140-145`. */
+export interface KpiProyekPM { id: string; name: string; cpi: number | null; spi: number | null; bac: number; ac: number }
+export interface StatusKpiPM { keadaan: "baik" | "perhatian" | "buruk" | "tak_ada_data"; arti: string }
+/** Bentuk PERSIS `lib/ar-register.ts:49-62`. */
+export interface AgingRowPM {
+  id: string
+  due_date: string
+  amount_due: number
+  days_past_due: number
+}
+export interface AgingSummaryPM {
+  buckets: Record<"current" | "d1_30" | "d31_60" | "d61_90" | "d90_plus", number>
+  total: number
+  count: number
+  rows: AgingRowPM[]
+}
+/** `lib/bid-backlog.ts` — bentuk TEBAKAN belum diverifikasi baris-per-baris, verifikasi saat implementasi. */
+export interface RingkasanBidPM {
+  backlogNilai: number
+  backlogJumlah: number
+  pipelineNilai: number
+  pipelineJumlah: number
+  menang: number
+  kalah: number
+}
+export interface RespKpiPerusahaan {
+  tanggal: string
+  evm: {
+    cpi: number | null
+    spi: number | null
+    proyekDihitung: number
+    proyekTotal: number
+    cpiTerendah: KpiProyekPM | null
+    spiTerendah: KpiProyekPM | null
+    totalBac: number
+    totalAc: number
+    perProyek: KpiProyekPM[]
+    statusCpi: StatusKpiPM
+    statusSpi: StatusKpiPM
+    dasar_bac: string
+    dasar_pv: string
+  }
+  piutang: AgingSummaryPM
+  backlog: RingkasanBidPM
+}
+
+/** Bentuk PERSIS `GET /reports/cashflow`, `reports.ts:466-475` (`summary`+`byMonth` saja). */
+export interface RespCashflowLaporan {
+  period: { dateFrom: string; dateTo: string }
+  summary: { totalIn: number; totalExpense: number; totalWage: number; totalKasbon: number; totalOut: number; netFlow: number }
+  byMonth: Array<{ period: string; label: string; masuk: number; keluar: number; net: number }>
+}
+
+/** Bentuk PERSIS `laporan-susun.ts`/`lib/laporan-susun.ts`. */
+export interface SumberLaporanPM {
+  kunci: string
+  label: string
+  keterangan: string
+  kolom: Array<{ kunci: string; label: string; jenis: string }>
+}
+export interface RespSumberLaporan { sumber: SumberLaporanPM[]; operator: string[]; batas_maks: number }
+export interface RespHasilLaporanSusun {
+  sumber: { kunci: string; label: string }
+  kolom: Array<{ kunci: string; label: string; jenis: string }>
+  baris: Array<Record<string, unknown>>
+  jumlah: number
+  terpotong: boolean
+  batas: number
+}
+```
+
+- [ ] **Step 2: `laporan/page.tsx`** — `SegmentedTab` (KPI Perusahaan /
+Arus Kas) + picker periode untuk Arus Kas.
+
+```typescript
+"use client";
+
+import { useState } from "react";
+import { TrendingUp, AlertTriangle, Landmark } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import SegmentedTab from "@/components/portal/SegmentedTab";
+import type { RespKpiPerusahaan, RespCashflowLaporan, GalatApi } from "../_bersama/tipe";
+import { pesanGalat } from "../_bersama/tipe";
+
+function fmtRupiahRingkas(v: number | null | undefined): string {
+  const n = v ?? 0;
+  if (!Number.isFinite(n)) return "—";
+  if (Math.abs(n) >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)} M`;
+  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(0)} jt`;
+  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+}
+const WARNA_KEADAAN: Record<string, string> = {
+  baik: "var(--success)", perhatian: "var(--on-warning-bg)", buruk: "var(--danger)", tak_ada_data: "var(--text-secondary)",
+};
+
+type Tab = "kpi" | "cashflow";
+
+function tahunIni(): { dari: string; sampai: string } {
+  const y = new Date().getFullYear();
+  return { dari: `${y}-01-01`, sampai: new Date().toISOString().slice(0, 10) };
+}
+
+export default function PmLaporanPage() {
+  const [tab, setTab] = useState<Tab>("kpi");
+  const [periode] = useState(tahunIni());
+
+  const { data: dataKpi, memuat: memuatKpi, galat: galatKpi } =
+    useData<RespKpiPerusahaan>(tab === "kpi" ? "/api/v1/reports/kpi-perusahaan" : null);
+  const { data: dataCf, memuat: memuatCf, galat: galatCf } =
+    useData<RespCashflowLaporan>(tab === "cashflow" ? `/api/v1/reports/cashflow?date_from=${periode.dari}&date_to=${periode.sampai}` : null);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Laporan & BI
+      </h1>
+
+      <SegmentedTab opsi={[{ value: "kpi", label: "KPI Perusahaan" }, { value: "cashflow", label: "Arus Kas" }]} aktif={tab} onUbah={(v) => setTab(v as Tab)} />
+
+      {tab === "kpi" && (
+        <>
+          {memuatKpi && <SkeletonCard tinggi={160} />}
+          {galatKpi && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galatKpi as GalatApi, "Coba lagi.")} />}
+          {!memuatKpi && dataKpi && (
+            <>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>CPI Perusahaan</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: WARNA_KEADAAN[dataKpi.evm.statusCpi.keadaan] }}>{dataKpi.evm.cpi?.toFixed(2) ?? "—"}</div>
+                </div>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>SPI Perusahaan</div>
+                  <div style={{ fontSize: 17, fontWeight: 700, color: WARNA_KEADAAN[dataKpi.evm.statusSpi.keadaan] }}>{dataKpi.evm.spi?.toFixed(2) ?? "—"}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{dataKpi.evm.statusCpi.arti}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{dataKpi.evm.statusSpi.arti}</div>
+
+              {dataKpi.evm.cpiTerendah && (
+                <div style={{ background: "var(--danger-bg)", borderRadius: 12, padding: 12 }}>
+                  <div style={{ fontSize: 12, color: "var(--on-danger-bg)" }}>CPI terendah: {dataKpi.evm.cpiTerendah.name}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--on-danger-bg)" }}>{dataKpi.evm.cpiTerendah.cpi?.toFixed(2)}</div>
+                </div>
+              )}
+
+              <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                  <Landmark size={16} color="var(--navy)" aria-hidden="true" />
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Umur Piutang</span>
+                </div>
+                <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Total {fmtRupiahRingkas(dataKpi.piutang.total)} ({dataKpi.piutang.count} invoice)</div>
+              </div>
+
+              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                Backlog: {fmtRupiahRingkas(dataKpi.backlog.backlogNilai)} ({dataKpi.backlog.backlogJumlah} proyek dimenangkan belum selesai)
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {tab === "cashflow" && (
+        <>
+          {memuatCf && <SkeletonCard tinggi={160} />}
+          {galatCf && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galatCf as GalatApi, "Coba lagi.")} />}
+          {!memuatCf && dataCf && (
+            <>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Masuk</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--success)" }}>{fmtRupiahRingkas(dataCf.summary.totalIn)}</div>
+                </div>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Keluar</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "var(--danger)" }}>{fmtRupiahRingkas(dataCf.summary.totalOut)}</div>
+                </div>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Net</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: dataCf.summary.netFlow >= 0 ? "var(--success)" : "var(--danger)" }}>{fmtRupiahRingkas(dataCf.summary.netFlow)}</div>
+                </div>
+              </div>
+
+              {dataCf.byMonth.length === 0 && <EmptyState icon={TrendingUp} judul="Belum ada data" deskripsi="Belum ada arus kas tercatat tahun ini." />}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {dataCf.byMonth.map((b) => (
+                  <div key={b.period} style={{ display: "flex", justifyContent: "space-between", padding: 10, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                    <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{b.label}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: b.net >= 0 ? "var(--success)" : "var(--danger)" }}>{fmtRupiahRingkas(b.net)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: `laporan/susun/page.tsx`** — picker sumber (dari `GET
+/laporan/sumber`, sudah tersaring server) + picker kolom + tombol
+jalankan + tabel hasil ringkas.
+
+```typescript
+"use client";
+
+import { useMemo, useState } from "react";
+import { FileBarChart, AlertTriangle, Play } from "lucide-react";
+import { useData } from "@/lib/data-cache";
+import { api } from "@/lib/api";
+import EmptyState from "@/components/portal/EmptyState";
+import SkeletonCard from "@/components/portal/SkeletonCard";
+import type { RespSumberLaporan, RespHasilLaporanSusun, GalatApi } from "../../_bersama/tipe";
+import { pesanGalat } from "../../_bersama/tipe";
+
+export default function PmSusunLaporanPage() {
+  const [sumberKunci, setSumberKunci] = useState("");
+  const [kolomDipilih, setKolomDipilih] = useState<string[]>([]);
+  const [hasil, setHasil] = useState<RespHasilLaporanSusun | null>(null);
+  const [menjalankan, setMenjalankan] = useState(false);
+  const [galatJalan, setGalatJalan] = useState<string | null>(null);
+
+  const { data, memuat, galat } = useData<RespSumberLaporan>("/api/v1/laporan/sumber");
+  const sumberAktif = useMemo(() => data?.sumber.find((s) => s.kunci === sumberKunci) ?? null, [data, sumberKunci]);
+
+  function pilihSumber(kunci: string) {
+    setSumberKunci(kunci);
+    const s = data?.sumber.find((x) => x.kunci === kunci);
+    setKolomDipilih(s ? s.kolom.slice(0, 5).map((k) => k.kunci) : []);
+    setHasil(null);
+  }
+
+  function toggleKolom(kunci: string) {
+    setKolomDipilih((prev) => (prev.includes(kunci) ? prev.filter((k) => k !== kunci) : [...prev, kunci]));
+  }
+
+  async function jalankan() {
+    if (!sumberAktif || kolomDipilih.length === 0) {
+      setGalatJalan("Pilih sumber dan minimal satu kolom.");
+      return;
+    }
+    setMenjalankan(true);
+    setGalatJalan(null);
+    try {
+      const resp = await api.post<RespHasilLaporanSusun>("/api/v1/laporan/susun", {
+        sumber: sumberAktif.kunci, kolom: kolomDipilih, batas: 100,
+      });
+      setHasil(resp.data);
+    } catch (e) {
+      setGalatJalan(pesanGalat(e as GalatApi, "Gagal menjalankan laporan"));
+    } finally {
+      setMenjalankan(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        Susun Laporan
+      </h1>
+
+      {memuat && <SkeletonCard tinggi={100} />}
+      {galat && <EmptyState icon={AlertTriangle} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba lagi.")} />}
+      {!memuat && (data?.sumber.length ?? 0) === 0 && (
+        <EmptyState icon={FileBarChart} judul="Tidak ada sumber tersedia" deskripsi="Anda belum punya izin membaca sumber laporan mana pun." />
+      )}
+
+      {!memuat && data && data.sumber.length > 0 && (
+        <>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Sumber Data</span>
+            <select value={sumberKunci} onChange={(e) => pilihSumber(e.target.value)}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
+              <option value="">— Pilih sumber —</option>
+              {data.sumber.map((s) => <option key={s.kunci} value={s.kunci}>{s.label}</option>)}
+            </select>
+          </label>
+
+          {sumberAktif && (
+            <>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{sumberAktif.keterangan}</div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {sumberAktif.kolom.map((k) => {
+                  const dipilih = kolomDipilih.includes(k.kunci);
+                  return (
+                    <button key={k.kunci} type="button" onClick={() => toggleKolom(k.kunci)}
+                      style={{
+                        padding: "6px 12px", borderRadius: "var(--portal-radius-pill)", fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 36,
+                        border: `1px solid ${dipilih ? "var(--navy)" : "var(--border)"}`,
+                        background: dipilih ? "var(--info-bg)" : "var(--surface)",
+                        color: dipilih ? "var(--navy)" : "var(--text-secondary)",
+                      }}>
+                      {k.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {galatJalan && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatJalan}</div>}
+              <button type="button" onClick={() => void jalankan()} disabled={menjalankan}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                  minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none",
+                  background: menjalankan ? "var(--surface-subtle)" : "var(--grad-aksen)",
+                  color: menjalankan ? "var(--text-muted)" : "var(--on-navy)",
+                  fontSize: 14, fontWeight: 700, cursor: menjalankan ? "default" : "pointer",
+                }}>
+                <Play size={16} aria-hidden="true" /> {menjalankan ? "Menjalankan…" : "Jalankan"}
+              </button>
+            </>
+          )}
+        </>
+      )}
+
+      {hasil && (
+        <div style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: "1px solid var(--border)", overflowX: "auto" }}>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>
+            {hasil.jumlah} baris{hasil.terpotong ? ` (dipotong batas ${hasil.batas})` : ""}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 280 }}>
+            {hasil.baris.map((baris, i) => (
+              <div key={i} style={{ padding: 10, borderRadius: 10, background: "var(--surface-subtle)", fontSize: 12 }}>
+                {hasil.kolom.map((k) => (
+                  <div key={k.kunci} style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-secondary)" }}>{k.label}</span>
+                    <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{String(baris[k.kunci] ?? "—")}</span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 4: Typecheck**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add apps/web/app/pm-portal/laporan apps/web/app/pm-portal/_bersama/tipe.ts \
+  docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md
+git commit -m "feat(pm-portal): Laporan & BI — KPI Perusahaan, Arus Kas, Susun Laporan (Tahap 7)"
+```
+
+---
+
+### Task 44: Navigasi kategori Tahap 7 + perbaikan `g-hse` yatim
+
+**Files:**
+- Modify: `apps/web/lib/pm-portal-kategori.ts`
+- Modify: `apps/web/app/pm-portal/kategori/[key]/page.tsx`
+- Modify: `docs/execution/JOURNAL.md`
+
+**Riset navigasi (dari `peta-menu.ts`, dibaca lengkap grup `g-hr` baris
+263-277, `g-aset` 279-290, `g-dokumen` 329-340, `g-risiko` 342-350,
+`g-laporan` 352-364)**:
+
+Grup `g-hr` (SDM & Payroll, `hr-*`) — yang PETA HREF-nya diarahkan ke
+halaman portal BARU (Task 39):
+
+```
+hr-absensi     → /pm-portal/sdm/timesheet   (Task 39, tab Timesheet)
+hr-cuti        → /pm-portal/sdm/cuti        (Task 39)
+hr-sertifikasi → /pm-portal/sdm/kompetensi  (Task 39, tab Sertifikat)
+hr-kinerja     → /pm-portal/sdm/kompetensi  (Task 39, tab Kinerja — READ-ONLY, PM tak punya sdm:kinerja:manage)
+hr-rekrutmen   → /pm-portal/sdm/kompetensi  (Task 39, tab Rekrutmen — READ-ONLY, PM tak punya sdm:rekrutmen:manage)
+```
+
+Yang SENGAJA TIDAK diisi (fallback web, alasan tertulis di
+`PETA_HREF_PORTAL`):
+
+```
+hr-karyawan  → PM TIDAK PUNYA sdm:pegawai:*. Fallback web (/users).
+hr-payroll   → PM TIDAK PUNYA payroll:*. Fallback web (/sdm/payroll).
+hr-upah      → SUDAH tercakup Tahap 1 (mandor:wage:*, halaman mandor-lengkap). TIDAK diulang.
+hr-bpjs      → PM TIDAK PUNYA payroll:tarif:*. Fallback web.
+hr-pph21     → sama alasan hr-bpjs.
+hr-reimburse → PM TIDAK PUNYA klaim:view/:kelola untuk klaim perjalanan
+               SENDIRI (Task 31 Temuan #1, Tahap 6) — akses PM HANYA
+               lewat inbox approval (Task 36). Fallback web.
+```
+
+Grup `g-aset` (Alat & Aset, `as-*`) — SEMUA diarahkan ke halaman portal
+BARU (Task 40):
+
+```
+as-register    → /pm-portal/aset            (Task 40, tab Register)
+as-mutasi      → /pm-portal/aset/[id]        (Task 40, tombol Mutasi di detail)
+as-penyusutan  → /pm-portal/aset/[id]        (Task 40, tab Penyusutan — READ-ONLY)
+as-sewa        → /pm-portal/aset             (Task 40, tab Sewa)
+as-utilisasi   → /pm-portal/aset/[id]        (Task 40, riwayat mutasi + utilisasi 12 bulan)
+as-maintenance → /pm-portal/aset             (Task 40, tab Perawatan Mendesak)
+as-opex        → /pm-portal/aset/[id]        (Task 40, kartu Biaya/Jam)
+```
+
+Yang SENGAJA TIDAK diisi:
+
+```
+as-gl → PM TIDAK PUNYA gl:manage (Task 38 Step 1). Fallback web (/aset/operasional).
+```
+
+Grup `g-risiko` (Risiko & Kepatuhan, `rk-*`):
+
+```
+rk-register  → /pm-portal/risiko  (Task 41, tab Risiko)
+rk-mitigasi  → /pm-portal/risiko  (Task 41, tab Risiko — mitigasi tampil per-baris risiko)
+rk-perizinan → /pm-portal/risiko  (Task 41, tab Perizinan)
+```
+
+Yang SUDAH ada dari Tahap 5, TIDAK diulang:
+
+```
+rk-kepatuhan → /pm-portal/kepatuhan (Task 27-30, `is_active=false` di
+               DB, menunjuk halaman yang SAMA dengan kep-dokumen — aturan 232)
+```
+
+Yang SENGAJA TIDAK diisi:
+
+```
+rk-sengketa → PM TIDAK PUNYA sengketa:view/:manage SAMA SEKALI (Task 38
+              Step 1). Fallback web (/risiko/sengketa).
+```
+
+Grup `g-dokumen` (Dokumen, `dk-*`):
+
+```
+dk-transmittal → /pm-portal/dokumen-kendali (Task 42, tab Transmittal)
+dk-gambar      → /pm-portal/dokumen-kendali (Task 42, tab Gambar)
+dk-notulen     → /pm-portal/dokumen-kendali (Task 42, tab Tindakan)
+dk-distribusi  → /pm-portal/dokumen-kendali (Task 42 mengirim `distribusi`
+                 di respons TAPI halaman TIDAK punya tab terpisah untuk
+                 itu — ditinjau di Task 45 apakah perlu tab kelima;
+                 diarahkan ke halaman yang sama karena datanya sudah ada)
+dk-esign             → /pm-portal/dokumen-kendali (Task 42, tab Tanda Tangan)
+dk-verifikasi-ttd    → /pm-portal/dokumen-kendali (Task 42, tab Tanda Tangan, tombol Verifikasi)
+```
+
+Yang SUDAH ada dari sebelum Portal PM Lengkap, TIDAK diulang:
+
+```
+dk-register → /pm-portal/dokumen (existing, HANYA GET /projects/:id/documents)
+```
+
+Yang SENGAJA TIDAK diisi:
+
+```
+dk-approval → Approval Dokumen (`/pengaturan/approval`) — administrasi
+              rantai persetujuan, bukan operasional. Fallback web.
+```
+
+Grup `g-laporan` (Laporan & BI, `bi-*`/`lap-*`):
+
+```
+bi-kpi     → /pm-portal/laporan        (Task 43, tab KPI Perusahaan)
+bi-arus-kas → /pm-portal/laporan       (Task 43, tab Arus Kas)
+lap-susun  → /pm-portal/laporan/susun  (Task 43)
+bi-export  → /pm-portal/laporan/susun  (Task 43 — Susun Laporan adalah
+             satu-satunya jalur ekspor portabel untuk mobile; ekspor
+             Excel/PDF penuh `/laporan` tetap fallback web untuk berkas
+             yang butuh diunduh ke perangkat)
+```
+
+Yang SUDAH ada di halaman lain, TIDAK diulang:
+
+```
+bi-eksekutif → dashboard admin (di luar scope portal PM sebagai modul terpisah)
+bi-proyek    → /proyek/[id] (halaman detail proyek, di luar scope breakdown ini)
+bi-biaya     → sudah tercakup Task 24 (Tahap 4, procurement/laporan)
+```
+
+Yang SENGAJA TIDAK diisi:
+
+```
+bi-terjadwal → status 'sebagian' (bukan 'hidup'), di luar §1 spec. Fallback web.
+```
+
+- [ ] **Step 1: Aktifkan `g-hr`, `g-aset`, `g-dokumen`, `g-risiko`,
+`g-laporan` DAN `g-hse` (temuan Task 38 Step 1 — belum aktif meski
+seluruh halamannya sudah ada sejak Tahap 1) di `KATEGORI_AKTIF`**
+
+⚠️ Format SATU BARIS, sama peringatan Task 9/16/22/26/30/37:
+
+```typescript
+// pm-portal-kategori.ts — baris tunggal
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc", "g-hse", "g-keuangan", "g-tagih", "g-hr", "g-aset", "g-dokumen", "g-risiko", "g-laporan"]; // Tahap 1-7
+```
+
+⚠️ **VERIFIKASI ULANG SEBELUM IMPLEMENTASI**: cek apakah `g-hse` benar
+BELUM di array (kemungkinan besar TIDAK, berdasarkan grep Task 38 Step 1,
+tapi array bisa berubah antara riset dan implementasi kalau task lain
+menyentuhnya lebih dulu). Jangan menambah duplikat.
+
+- [ ] **Step 2: Perbarui `PETA_HREF_PORTAL`** — sesuai pemetaan riset di
+atas.
+
+```typescript
+const PETA_HREF_PORTAL: Record<string, string> = {
+  // ...seluruh baris Tahap 1-6 yang sudah ada, TIDAK dihapus...
+
+  // ── Tahap 7 (Task 44) — grup g-hr. ─────────────────────────────────────
+  "hr-absensi": "/pm-portal/sdm/timesheet",
+  "hr-cuti": "/pm-portal/sdm/cuti",
+  "hr-sertifikasi": "/pm-portal/sdm/kompetensi",
+  "hr-kinerja": "/pm-portal/sdm/kompetensi",
+  "hr-rekrutmen": "/pm-portal/sdm/kompetensi",
+  // hr-karyawan/hr-payroll/hr-bpjs/hr-pph21 SENGAJA TIDAK diisi — PM tak
+  // punya sdm:pegawai:*/payroll:*. Fallback web.
+  // hr-upah SUDAH tercakup Tahap 1 (mandor:wage:*). TIDAK diulang.
+  // hr-reimburse SENGAJA TIDAK diisi — Task 31 Temuan #1, PM tak punya
+  // klaim:view/:kelola sendiri, hanya lewat inbox approval.
+
+  // ── Tahap 7 (Task 44) — grup g-aset (semua PM punya assets:manage). ────
+  "as-register": "/pm-portal/aset",
+  "as-sewa": "/pm-portal/aset",
+  "as-maintenance": "/pm-portal/aset",
+  // as-mutasi/as-penyusutan/as-utilisasi/as-opex mengarah ke DETAIL,
+  // href statis tak berlaku untuk rute [id] — dibiarkan tanpa entri,
+  // ditinjau di Task 45 apakah PETA_HREF_PORTAL punya pola untuk itu.
+  // as-gl SENGAJA TIDAK diisi — PM tak punya gl:manage. Fallback web.
+
+  // ── Tahap 7 (Task 44) — grup g-risiko. ─────────────────────────────────
+  "rk-register": "/pm-portal/risiko",
+  "rk-mitigasi": "/pm-portal/risiko",
+  "rk-perizinan": "/pm-portal/risiko",
+  // rk-kepatuhan SUDAH ada (Task 27-30, is_active=false). TIDAK diulang.
+  // rk-sengketa SENGAJA TIDAK diisi — PM tak punya sengketa:*. Fallback web.
+
+  // ── Tahap 7 (Task 44) — grup g-dokumen. ────────────────────────────────
+  "dk-transmittal": "/pm-portal/dokumen-kendali",
+  "dk-gambar": "/pm-portal/dokumen-kendali",
+  "dk-notulen": "/pm-portal/dokumen-kendali",
+  "dk-distribusi": "/pm-portal/dokumen-kendali",
+  "dk-esign": "/pm-portal/dokumen-kendali",
+  "dk-verifikasi-ttd": "/pm-portal/dokumen-kendali",
+  // dk-register SUDAH ada (existing sebelum Portal PM Lengkap). TIDAK diulang.
+  // dk-approval SENGAJA TIDAK diisi — administrasi, bukan operasional. Fallback web.
+
+  // ── Tahap 7 (Task 44) — grup g-laporan. ────────────────────────────────
+  "bi-kpi": "/pm-portal/laporan",
+  "bi-arus-kas": "/pm-portal/laporan",
+  "lap-susun": "/pm-portal/laporan/susun",
+  "bi-export": "/pm-portal/laporan/susun",
+  // bi-eksekutif/bi-proyek/bi-biaya SUDAH ada di halaman lain. TIDAK diulang.
+  // bi-terjadwal SENGAJA TIDAK diisi — status 'sebagian', di luar §1. Fallback web.
+};
+```
+
+- [ ] **Step 3: Klarifikasi rute berbasis `[id]`** — beberapa item
+(`as-mutasi`, `as-penyusutan`, `as-utilisasi`, `as-opex`) secara ALAMI
+menunjuk ke DETAIL aset (`/pm-portal/aset/[id]`), bukan satu href
+statis. Verifikasi bagaimana `PETA_HREF_PORTAL`/`EKSTRA_PORTAL`
+menangani kasus serupa di tahap-tahap sebelumnya (mis. `as-mutasi` di
+Tahap 4 gudang atau kontrak-lengkap) sebelum memutuskan: kemungkinan
+polanya adalah mengarahkan KEEMPATNYA ke `/pm-portal/aset` (halaman
+register) sebagai titik masuk, karena detail per-alat baru relevan
+setelah memilih SATU aset — pola yang sama dengan `keuangan/ipc` yang
+tak punya href detail per-sertifikat langsung dari kategori.
+
+- [ ] **Step 4: Typecheck + lint navigasi**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+pnpm exec eslint lib/pm-portal-kategori.ts "app/pm-portal/kategori/" app/pm-portal/sdm/ \
+  app/pm-portal/aset/ app/pm-portal/risiko/ app/pm-portal/klien/ app/pm-portal/dokumen-kendali/ app/pm-portal/laporan/
+```
+
+- [ ] **Step 5: `audit-nav-yatim.mjs`** — pola Task 16/22/26/30/37.
+Bandingkan angka YATIM/LINK MATI ke baseline Task 37 (Tahap 6) — laporkan
+hasil BARU, jangan asumsikan sama. Perhatikan KHUSUS bahwa mengaktifkan
+`g-hse` bisa mengubah angka baseline TANPA satu baris kode Tahap 7
+disentuh (item lama yang tiba-tiba terjangkau) — bedakan itu dari
+perubahan yang disebabkan Task 39-43.
+
+```bash
+cd apps/web && node scripts/audit-nav-yatim.mjs
+```
+
+- [ ] **Step 6: Typecheck seluruh workspace + SEMUA penjaga CI**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+cd ../api && node scripts/jalankan-semua-penjaga.mjs
+```
+
+Bandingkan ke baseline Task 37 (angka hijau/MERAH/tak-ketemu terakhir).
+Perhatikan KHUSUS `audit-jenis-tulis-punya-label.mjs` (status
+aset/risiko/izin/sewa BARU dipakai Task 39-42).
+
+- [ ] **Step 7: Test integrasi terkait**
+
+```bash
+cd apps/api && npx vitest run timesheet-staf cuti-karyawan kompetensi-sdm \
+  assets alat-operasional risiko-proyek serah-terima kendali-dokumen \
+  clients reports laporan-susun
+```
+
+- [ ] **Step 8: Audit a11y runtime penuh** — pola Task 22/26/30/37, catat
+batasan yang SUDAH DIKETAHUI (akun uji `LAYAR_EMAIL` berperan `admin`,
+`pm-portal/layout.tsx:26` mengalihkan admin ke `/dashboard` SEBELUM
+render — seluruh `pm-portal` TETAP TAK TERAUDIT runtime axe dengan
+kredensial yang tersedia). Smoke-check manual per halaman baru:
+
+```bash
+node apps/web/scripts/audit-a11y-runtime.mjs --url "/pm-portal/sdm/timesheet"
+node apps/web/scripts/audit-a11y-runtime.mjs --url "/pm-portal/aset"
+node apps/web/scripts/audit-a11y-runtime.mjs --url "/pm-portal/risiko"
+node apps/web/scripts/audit-a11y-runtime.mjs --url "/pm-portal/dokumen-kendali"
+node apps/web/scripts/audit-a11y-runtime.mjs --url "/pm-portal/laporan"
+```
+
+- [ ] **Step 9: Update JOURNAL.md** — catat Tahap 7 selesai: halaman
+baru (SDM: timesheet+cuti+kompetensi = Task 39 tiga halaman; Aset:
+register+detail = Task 40 dua halaman; Risiko+Klien = Task 41 tiga
+halaman; Dokumen Kendali = Task 42 satu halaman; Laporan & BI = Task 43
+dua halaman — TOTAL SEBELAS halaman), utang/concern tertulis (Sengketa
+& Klaim di luar scope PM sepenuhnya; hub `pm-portal/proyek/[id]` tetap
+redirect; RFQ/vendor-kualifikasi di luar scope PM; butir tindakan
+notulen read-only, tak ada endpoint ubah status; distribusi dokumen
+tanpa tab sendiri), temuan `g-hse` yatim yang diperbaiki bersamaan.
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add apps/web/lib/pm-portal-kategori.ts "apps/web/app/pm-portal/kategori/[key]/page.tsx" \
+  docs/execution/JOURNAL.md docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md
+git commit -m "feat(pm-portal): navigasi kategori Tahap 7, perbaikan g-hse yatim, Tahap 7 selesai"
+```
+
+---
+
+### Task 45: Verifikasi akhir MENYELURUH — seluruh Portal PM Lengkap
+
+**Ini task TERAKHIR dari seluruh plan Portal PM Lengkap** (32 modul, 8
+tahap, Task 1-44). Scope-nya BUKAN hanya Tahap 7 — mengulang pola Task
+10/22/26/30/37 (verifikasi akhir per-tahap) tapi untuk SELURUH
+`pm-portal/*` yang dibangun sepanjang plan ini.
+
+- [ ] **Step 1: Typecheck seluruh workspace**
+
+```bash
+cd apps/web && pnpm exec tsc --noEmit
+```
+
+Laporkan exit code dan jumlah error (harus 0). Bandingkan ke baseline
+Task 37/44 — kalau ada regresi, PERBAIKI sebelum lanjut, jangan
+dilaporkan sebagai "pra-eksisting" tanpa bukti `git log` yang menunjuk
+commit sebelum Task 39.
+
+- [ ] **Step 2: `pnpm build`** — build produksi PENUH, bukan cuma
+typecheck. Next.js App Router bisa lolos `tsc --noEmit` tapi gagal build
+karena masalah lain (`useSearchParams` tanpa `<Suspense>`, import
+server-only di client component, dst).
+
+```bash
+cd apps/web && pnpm build
+```
+
+Verifikasi KHUSUS: apakah ada halaman baru Tahap 1-7 yang memakai
+`useSearchParams` TANPA `<Suspense>` boundary (Global Constraint #6) —
+`pnpm build` akan melempar error build untuk kasus ini, bukan sekadar
+warning; ini kesempatan TERAKHIR menangkapnya sebelum plan ditutup.
+
+- [ ] **Step 3: SEMUA penjaga CI** — jalankan skrip yang menjalankan
+SELURUH penjaga (CLAUDE.md §7: CI menjalankan 167, jangan memilih
+sendiri "yang relevan").
+
+```bash
+cd apps/api && node scripts/jalankan-semua-penjaga.mjs
+```
+
+Bandingkan angka hijau/MERAH/tak-ketemu ke baseline Task 37 (Tahap 6,
+angka terakhir sebelum Tahap 7 dimulai). Laporkan angka BARU dan
+DIFF-nya (skrip mana yang berubah status), bukan cuma total. Perhatikan
+KHUSUS:
+- `audit-jenis-tulis-punya-label.mjs` — status baru dari Tahap 7
+  (aset/sewa/risiko/izin/gambar/transmittal/notulen/klien) harus semua
+  berlabel.
+- `audit-nav-yatim.mjs` — 0 YATIM untuk SELURUH 32 modul, bukan cuma
+  Tahap 7.
+- `uji-tombol-primer-seragam.mjs`/`kerapatan-ratchet.mjs`/
+  `uji-token-css-ada.mjs` — ratchet, angka tak boleh naik dari baseline
+  Task 37.
+- `audit-halaman-pakai-cache.mjs` — SEMUA halaman baru Task 39-43 wajib
+  lewat `useData()`.
+
+- [ ] **Step 4: SEMUA test backend terkait 32 modul** — bukan hanya
+Tahap 7, seluruh modul yang disentuh Task 1-44.
+
+```bash
+cd apps/api && npx vitest run
+```
+
+Test SUITE PENUH, dijalankan SENDIRIAN (⚠️ CLAUDE.md §7 — JANGAN
+menjalankan dua suite bersamaan, worktree lain mungkin sedang
+menjalankan test yang sama terhadap Postgres yang sama). Laporkan
+ringkasan lulus/gagal SEBENARNYA yang ditempel, bukan diklaim. Kalau ada
+kegagalan, VERIFIKASI apakah disebabkan Task 39-44 (nol baris backend
+disentuh sepanjang Tahap 7 — SELURUH task Tahap 7 murni frontend +
+breakdown, tak ada migrasi/route baru) — kemungkinan besar kegagalan
+apa pun BUKAN regresi dari plan ini, tapi WAJIB dibuktikan (jalankan
+berkas yang gagal SENDIRIAN, bandingkan ke baseline Task 37).
+
+- [ ] **Step 5: SATU run a11y penuh TERAKHIR** — mencakup SELURUH
+halaman baru sepanjang plan ini (Tahap 0-7), bukan cuma Tahap 7. Jalankan
+di BACKGROUND (`run_in_background: true`) karena makan ~50-70 menit
+untuk ratusan halaman — lanjutkan Step 6-8 sambil menunggu.
+
+```bash
+cd apps/web
+export $(grep -E "^LAYAR_(EMAIL|SANDI|BASIS)=" .env.local | tr -d '\r' | xargs)
+node scripts/jalankan-a11y-lengkap.mjs
+```
+
+⚠️ Batasan yang SUDAH DIKETAHUI (Task 22/30/37): akun uji `LAYAR_EMAIL`
+berperan `admin`, dan `pm-portal/layout.tsx:26` mengalihkan `admin` ke
+`/dashboard` SEBELUM render — kemungkinan besar SELURUH `pm-portal`
+tetap TAK TERAUDIT runtime axe dengan kredensial yang tersedia, sama
+seperti Tahap 3/4/6. Laporkan hasil SEBENARNYA (termasuk kalau nol
+halaman ter-cover) — JANGAN melaporkan "0 pelanggaran" tanpa menyebut
+berapa halaman yang benar-benar dipindai. Smoke-check manual per
+halaman kunci sebagai gantinya, `MSYS_NO_PATHCONV=1` (jebakan Git
+Bash argumen `/`):
+
+```bash
+MSYS_NO_PATHCONV=1 LAYAR_EMAIL=… LAYAR_SANDI=… \
+  node apps/web/scripts/audit-a11y-runtime.mjs --url "/pm-portal/kategori/g-hr"
+```
+
+- [ ] **Step 6: Verifikasi keputusan Task 38 Step 4/5 tak basi** —
+ukur ULANG (bukan diwarisi dari Task 38) apakah:
+  a. PM masih tanpa `procurement:rfq:*`/`procurement:vendor:*` (RFQ +
+     vendor-kualifikasi tetap di luar scope).
+  b. Hub `pm-portal/proyek/[id]` masih murni redirect — dan apakah
+     Task 39-43 menambah `tabProyek` baru yang mengubah kalkulasi
+     kebutuhan hub (Risiko/Izin di Task 41 dibangun STANDALONE, bukan
+     tabProyek — pastikan itu masih benar sesudah implementasi, bukan
+     cuma niat breakdown).
+  c. `g-hse` benar sudah aktif di `KATEGORI_AKTIF` sesudah Task 44
+     (bukan cuma direncanakan).
+
+Catat hasil pengukuran ulang di laporan Task 45 — kalau salah satu
+sudah berubah, tulis keputusan BARU dengan alasannya, jangan biarkan
+warisan Task 38 terbaca seolah masih berlaku.
+
+- [ ] **Step 7: Verifikasi §1 spec — 32 modul TERKONFIRMASI tercakup**
+— buat tabel akhir: 32 baris (satu per grup permission §1), kolom Tahap,
+Task, dan status (dibangun standalone / tabProyek existing / sudah ada
+sebelum plan / fallback web dengan alasan / di luar scope dengan
+alasan). Ini BUKAN mengulang tabel §6 spec — itu perkiraan SEBELUM
+implementasi; tabel ini adalah VERDICT SESUDAH Task 1-44 selesai,
+harus bisa ditelusuri ke Task spesifik untuk tiap baris.
+
+- [ ] **Step 8: Update `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md`** — kalau
+ada status menu yang berubah (mis. entri `g-hr`/`g-aset`/`g-risiko`/
+`g-dokumen`/`g-laporan` di taksonomi menu perlu mencatat portal PM
+sekarang menjangkaunya, atau item yang statusnya berubah dari
+"belum di portal" ke "sudah di portal"), sesuai CLAUDE.md §8a.4.
+
+- [ ] **Step 9: Update JOURNAL.md** — catat PLAN INI SELESAI: total
+halaman portal PM baru sepanjang Tahap 0-7 (jumlahkan dari laporan tiap
+tahap), modul yang DI LUAR SCOPE dengan alasan permanennya (settings, ai,
+sengketa, RFQ/vendor-kualifikasi, payroll, data karyawan), utang yang
+TERCATAT SADAR (hub proyek, distribusi dokumen, notulen tindakan
+read-only, a11y runtime pm-portal tak teraudit kredensial admin).
+
+- [ ] **Step 10: Commit**
+
+```bash
+git add docs/execution/JOURNAL.md docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md \
+  docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md
+git commit -m "docs(pm-portal): verifikasi akhir menyeluruh — Portal PM Lengkap selesai (32 modul, 8 tahap)"
+```
+
 ---
 
 ## Self-Review
@@ -14315,17 +18223,41 @@ menu yang berubah (CLAUDE.md §8a.4).
   (Task 23-26: riset + 2 task kode lengkap + navigasi), Tahap 5 penuh
   (Task 27-30: riset + 3 task kode lengkap + navigasi, digali 2026-08-21),
   Tahap 6 penuh (Task 31-37: riset + 5 task kode lengkap + navigasi,
-  digali 2026-08-21 sesudah Tahap 5), Tahap 7 kerangka riset+breakdown
-  (Task 38) ✓
+  digali 2026-08-21 sesudah Tahap 5), Tahap 7 SEKARANG PENUH (Task 38
+  riset+keputusan cakupan, Task 39-43: 5 task kode lengkap — SDM,
+  Aset & Alat, Risiko+Perizinan+Klien, Dokumen Kendali, Laporan & BI —
+  Task 44 navigasi + perbaikan `g-hse` yatim, Task 45 verifikasi akhir
+  MENYELURUH seluruh plan, digali 2026-08-21 sesudah Tahap 6) ✓ —
+  **PLAN INI SEKARANG LENGKAP, seluruh 8 tahap punya breakdown kode.**
 - §7 (di luar scope) → tidak ada task yang menyentuh area itu ✓
 
-**2. Placeholder scan:** Tahap 7 (Task 38) SENGAJA berbentuk kerangka
-riset, bukan kode lengkap — ini BUKAN pelanggaran "No Placeholders"
-karena skill writing-plans mengizinkan keputusan yang genuinely
-tergantung riset lanjutan untuk didelegasikan sebagai task riset
-eksplisit (bukan diisi tebakan kode yang keliru). Tahap 0-6 (Task 1-37)
-sepenuhnya lengkap tanpa placeholder — kode nyata untuk SEMUA
-halaman (bukan prosa deskriptif untuk sebagian), diverifikasi ulang di
+**2. Placeholder scan:** ⚠️ **Koreksi (Task 38, 2026-08-21)**: paragraf
+ini sebelumnya menyatakan Tahap 7 SENGAJA berbentuk kerangka riset —
+itu benar HANYA sampai Task 38 selesai (kerangka+keputusan cakupan
+diverifikasi ke permission nyata). Task 39-43 (ditulis SEGERA sesudah
+Task 38 di sesi yang sama) mengisi kerangka itu dengan kode LENGKAP
+untuk KESEBELAS halaman (SDM: `sdm/timesheet`+`sdm/cuti`+
+`sdm/kompetensi` = Task 39 tiga halaman; Aset: `aset`+`aset/[id]` =
+Task 40 dua halaman; `risiko`+`klien`+`klien/[id]` = Task 41 tiga
+halaman; `dokumen-kendali` = Task 42 satu halaman; `laporan`+
+`laporan/susun` = Task 43 dua halaman) — mengikuti disiplin yang sama
+persis dengan Tahap 3-6 sesudah pelajaran Task 11: kode TypeScript/React
+lengkap, bukan prosa deskriptif. Tipe INTI (`RingkasanTimesheetPM`,
+`SaldoCutiPM`, `AlatOpsPM`, `RisikoDinilaiPM`, `IzinDinilaiPM`,
+`RingkasGambarPM`, `RingkasTransmittalPM`, `KpiProyekPM`) diverifikasi
+baris-per-baris ke `lib/*.ts` nyata (`timesheet-staf.ts`,
+`cuti-karyawan.ts`, `alat-operasional.ts`, `risiko-proyek.ts`,
+`kendali-dokumen.ts`, `kpi-perusahaan.ts`), pola sama Tahap 4-6. **Satu
+pengecualian jujur, ditandai eksplisit di Task 43**: `RingkasanBidPM`
+(`lib/bid-backlog.ts`) TIDAK diverifikasi baris-per-baris — hanya
+endpoint listnya dikonfirmasi ada di riset Task 38 — mengikuti pola
+yang sama dengan Task 21 (Tahap 3) menandai 4 interface belum
+diverifikasi karena keterbatasan anggaran riset: peringatan yang jujur
+lebih baik daripada kode yang terlihat lengkap tapi diam-diam salah.
+
+Tahap 0-6 (Task 1-37) sepenuhnya lengkap tanpa placeholder — kode nyata
+untuk SEMUA halaman (bukan prosa deskriptif untuk sebagian), diverifikasi
+ulang di
 fix round 2026-08-21 sesudah review menemukan 6 dari 7 halaman Task
 12-15 masih berbentuk deskripsi. `PolisAsuransi`/`HistogramSumberDaya`
 (sempat ditandai "PERKIRAAN" di draf pertama) SUDAH dikoreksi ke bentuk
@@ -14552,3 +18484,76 @@ per-panggilan seperti ditulis draf memang WAJIB, bukan opsional) dan di
 Task 36 Step 2 (`supplier_id` sebagai input teks polos, wajib diganti
 dropdown picker saat implementasi — daftar supplier belum diriset ulang
 Task 31).
+
+Pola yang SAMA berulang Tahap 7: Task 38 (riset+keputusan cakupan)
+sebelum Task 39-43 (halaman) — benar. Task 39-43 LEBIH INDEPENDEN dari
+tahap-tahap sebelumnya (masing-masing modul berdiri sendiri: SDM, Aset,
+Risiko+Perizinan+Klien, Dokumen Kendali, Laporan & BI tak berbagi state
+atau komponen satu sama lain), SELAIN semuanya menulis ke
+`_bersama/tipe.ts` yang sama (risiko konflik edit sekuensial, pola sama
+tahap-tahap lain — aman karena dieksekusi dalam satu sesi berurutan,
+bukan paralel). **Satu titik sambung nyata**: `klien/page.tsx` (Task 41)
+mengimpor `medanKurang`/`identitasPajakTerisi` dari
+`apps/web/lib/ringkasan-klien.ts` — fungsi PURE yang SUDAH ADA (dipakai
+`(dashboard)/klien/page.tsx` web), bukan ditulis ulang; ini pola BARU
+dibanding tahap-tahap lain (biasanya semua tipe/fungsi ditulis khusus
+portal), dan sengaja: menulis ulang logika kelengkapan kontak akan
+membuat dua definisi "klien lengkap" yang bisa menyimpang. Task 44
+(navigasi) WAJIB SESUDAH Task 39-43 (referensi href ke halaman yang
+harus sudah ada), pola sama Task 37/30/26/22/16/9 — DENGAN TAMBAHAN
+Task 44 juga memperbaiki `g-hse` yang ternyata YATIM sejak Tahap 1
+(ditemukan Task 38 Step 1, bukan Task 39-43 — grup itu tak disentuh
+kode apa pun di Tahap 7, hanya baris `KATEGORI_AKTIF` yang diperbaiki).
+Task 45 (verifikasi akhir MENYELURUH) WAJIB TERAKHIR dari SELURUH
+plan — bukan hanya sesudah Task 44, tapi sesudah SEMUA 44 task
+sebelumnya, karena scope-nya eksplisit "32 modul, bukan cuma Tahap 7".
+
+**8. Placeholder scan Tahap 7 (Task 39-43):** kode nyata untuk
+KESEBELAS halaman (`sdm/timesheet`, `sdm/kompetensi`, `sdm/cuti` = Task
+39 tiga halaman; `aset/page.tsx` + `aset/[id]/page.tsx` = Task 40 dua
+halaman; `risiko/page.tsx` + `klien/page.tsx` + `klien/[id]/page.tsx` =
+Task 41 tiga halaman; `dokumen-kendali/page.tsx` = Task 42 satu halaman;
+`laporan/page.tsx` + `laporan/susun/page.tsx` = Task 43 dua halaman) —
+bukan sebagian prosa, mengikuti disiplin yang sama persis dengan
+Tahap 2-6 sesudah pelajaran Task 11/17. Tipe INTI (`RingkasanTimesheetPM`,
+`SaldoCutiPM`, `RingkasanSertifikatPM`, `RingkasanKinerjaPM`, `AsetPM`,
+`AlatOpsPM`, `RisikoDinilaiPM`, `RingkasRegisterPM`, `IzinDinilaiPM`,
+`KesiapanIzinPM`, `KlienPM`, `RingkasGambarPM`, `RingkasTransmittalPM`,
+`RingkasTindakanPM`, `RespKpiPerusahaan`, `RespCashflowLaporan`,
+`RespSumberLaporan`) SEMUANYA diverifikasi baris-per-baris ke
+SELECT/interface route nyata (`timesheet-staf.ts`/`cuti-karyawan.ts`/
+`kompetensi-sdm.ts`/`assets.ts`/`alat-operasional.ts`/
+`risiko-proyek.ts`/`clients.ts`/`kendali-dokumen.ts`/`reports.ts`/
+`laporan-susun.ts` dan `lib/` masing-masing) saat Task 38 Step 1 —
+**SATU pengecualian jujur ditandai eksplisit**: `RingkasanBidPM`
+(`lib/bid-backlog.ts`, dipakai Task 43 untuk backlog KPI Perusahaan)
+TIDAK diverifikasi baris-per-baris — hanya keberadaan endpointnya
+dikonfirmasi Task 38 Step 1, field lengkapnya ditandai "verifikasi saat
+implementasi" di komentar tipe — pola sama Task 21 (Tahap 3) dan Task 28
+(Tahap 5): mengakui batas anggaran riset alih-alih menebak bentuk yang
+mungkin salah.
+
+**Tiga konsekuensi otorisasi yang breakdown-nya SENGAJA membentuk UI
+berbeda, bukan sekadar sembunyi tombol** (pola sama Tahap 6):
+1. `sdm/kompetensi/page.tsx` (Task 39) READ-ONLY penuh untuk ketiga
+   tab-nya — PM punya `sdm:sertifikat:view`/`sdm:rekrutmen:view` TAPI
+   BUKAN `:manage`, dan `sdm:kinerja:manage` TIDAK DIMILIKI SAMA
+   SEKALI (bukan cuma view-only, PM tak bisa menilai kinerja siapa pun).
+2. `klien/page.tsx`+`klien/[id]/page.tsx` (Task 41) READ-ONLY penuh —
+   PM hanya `clients:view`, endpoint tulis (`POST`/`PATCH`/
+   `toggle-active`) bergerbang `clients:manage` yang TIDAK DIMILIKI.
+3. `aset/[id]/page.tsx` tab Penyusutan (Task 40) INFORMASI SAJA, TANPA
+   tombol catat/jurnalkan — `POST .../depreciation` PM PUNYA izinnya
+   (`assets:manage`) TAPI sengaja tak dibangun tombolnya: mencatat baris
+   penyusutan tanpa menjurnalkannya (`gl:manage`, TIDAK DIMILIKI PM)
+   membuat neraca dan register aset saling menyimpang — risiko yang
+   sama dengan alasan Task 31 menunda `gl-peta-akun`/`gl-jurnalkan`.
+
+**Satu keterbatasan struktural ditandai eksplisit, bukan disembunyikan**:
+`dokumen-kendali/page.tsx` tab Tindakan (Task 42) menampilkan butir
+tindakan notulen READ-ONLY — diverifikasi NOL endpoint PATCH/POST untuk
+mengubah status `notulen_tindakan` di seluruh `kendali-dokumen.ts`, jadi
+tak ada tombol "Selesaikan" yang bisa dibangun jujur. Ini BUKAN
+kelalaian breakdown — endpoint-nya memang tidak ada di backend, dan
+membangun tombol yang memanggil endpoint fiktif akan menghasilkan 404
+yang terbaca sebagai bug frontend, padahal gapnya ada di layer API.
