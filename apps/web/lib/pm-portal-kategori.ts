@@ -122,12 +122,35 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * diarahkan ke `/pm-portal/aset` sebagai pintu masuk, sama seperti
  * `iv-gudang`/`md-gudang` Tahap 4 yang menunjuk ikhtisar dulu sebelum detail.
  *
+ * Tahap 7 (Task 41): "Risiko & Kepatuhan" (g-risiko) diaktifkan — SATU
+ * halaman baru dibangun (`/pm-portal/risiko`, dua tab: Register Risiko +
+ * Perizinan), dipetakan lewat `rk-register`/`rk-mitigasi`/`rk-perizinan` di
+ * `PETA_HREF_PORTAL` (ketiganya menunjuk satu halaman — mitigasi adalah tab
+ * DI DALAM tab Risiko per baris, bukan halaman sendiri, sama pola
+ * `qc-rencana`/`qc-itp` Tahap 5). `rk-kepatuhan` DAN `rk-sengketa` SENGAJA
+ * TIDAK dipetakan: `rk-kepatuhan` sudah menunjuk `/kepatuhan?bagian=dokumen`
+ * yang SAMA dengan `kep-dokumen` (fallback web memadai, modul ini bukan
+ * scope Task 41). `rk-sengketa` TIDAK BOLEH dipetakan sama sekali — riset
+ * Task 38 dikonfirmasi ULANG lewat query live `role_permissions`: KEDUA
+ * baris role `pm` (global + tenant) NOL baris grant untuk `sengketa:view`
+ * MAUPUN `sengketa:manage`. PM genuinely tak punya izin modul itu; fallback
+ * web-nya (`/risiko/sengketa`) akan selalu 403 bagi PM, sama seperti klik
+ * mengetik URL langsung — bukan cacat navigasi Task 41, karena modul itu
+ * tetap `it.href` apa adanya (tak dihapus dari `peta-menu.ts`, hanya tak
+ * ditambah entri portal untuknya).
+ *
+ * Tahap 7 (Task 41) juga menambahkan `md-klien` (grup `g-master`, SUDAH
+ * aktif sejak awal) ke `PETA_HREF_PORTAL` → `/pm-portal/klien` (list +
+ * detail, READ-ONLY: PM punya `clients:view` tapi bukan `clients:manage`).
+ * Sebelumnya key ini fallback ke `it.href` web (`/klien`, form admin) —
+ * sekarang menunjuk versi portal PM yang tanpa tombol tambah/edit.
+ *
  * Kategori lain (Audit Trail lintas-modul, dst) BELUM dibangun di portal
  * PM — JANGAN ditambahkan ke daftar ini sampai tahap yang membangunnya
  * selesai, supaya kategori kosong/setengah-jadi tak pernah tampil ke PM
  * di HP.
  */
-const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc", "g-keuangan", "g-tagih", "g-hr", "g-aset"]; // Tahap 1-7
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc", "g-keuangan", "g-tagih", "g-hr", "g-aset", "g-risiko"]; // Tahap 1-7
 
 export function kategoriUntukPm(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));

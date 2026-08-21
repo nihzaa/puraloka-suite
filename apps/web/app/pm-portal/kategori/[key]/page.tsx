@@ -285,6 +285,25 @@ import { Folder } from "lucide-react";
  *   TIDAK diisi — di luar tiga halaman Task 39, fallback `it.href` web
  *   (`/users`, `/sdm/payroll`, `/mandor/upah`, `/pengaturan/tarif-payroll`
  *   ×2, `/sdm/klaim-perjalanan`).
+ *
+ * Tahap 7 (Task 41, grup `g-risiko` "Risiko & Kepatuhan" BARU diaktifkan
+ * `KATEGORI_AKTIF`; key persis dari `lib/peta-menu.ts` §g-risiko baris
+ * 341-349): rk-register/rk-mitigasi/rk-perizinan → `/pm-portal/risiko`
+ * (Task 41 — SATU halaman dua tab: Register Risiko + Perizinan; mitigasi
+ * adalah ringkasan DI DALAM baris risiko pada tab Risiko, bukan halaman
+ * sendiri, sama pola `rk-mitigasi` di web sendiri yang `is_active=false`).
+ * rk-kepatuhan SENGAJA TIDAK diisi — sudah `href: '/kepatuhan?bagian=dokumen'`
+ * di peta-menu.ts, sama dengan `kep-dokumen`; di luar scope Task 41.
+ * rk-sengketa SENGAJA TIDAK diisi DAN TIDAK BOLEH diisi — dikonfirmasi
+ * ULANG lewat query live `role_permissions`: KEDUA baris role `pm` (global +
+ * tenant) NOL baris grant untuk `sengketa:view` maupun `sengketa:manage`.
+ * Fallback `it.href` web (`/risiko/sengketa`) akan selalu 403 bagi PM —
+ * dibiarkan apa adanya (bukan dihapus dari `peta-menu.ts`), sama pola
+ * `fn-ap`/`gl-peta-akun` (Tahap 6) yang PM juga tak berwenang.
+ * md-klien (grup `g-master`, SUDAH aktif) → `/pm-portal/klien` (Task 41 —
+ * list + detail, READ-ONLY: PM py `clients:view` tanpa `clients:manage`,
+ * dikonfirmasi query live `role_permissions`). Sebelumnya fallback
+ * `it.href` web (`/klien`, form admin lengkap).
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "sk-paket": "/pm-portal/mandor-lengkap/penugasan",
@@ -433,6 +452,17 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "as-maintenance": "/pm-portal/aset",
   "as-opex": "/pm-portal/aset",
   "as-gl": "/pm-portal/aset",
+  // Tahap 7 (Task 41) — grup g-risiko "Risiko & Kepatuhan" (baru diaktifkan).
+  // rk-kepatuhan/rk-sengketa SENGAJA TIDAK diisi — lihat catatan panjang di
+  // atas untuk alasan masing-masing (fallback web memadai untuk yang
+  // pertama; PM genuinely nol izin untuk yang kedua).
+  "rk-register": "/pm-portal/risiko",
+  "rk-mitigasi": "/pm-portal/risiko",
+  "rk-perizinan": "/pm-portal/risiko",
+  // Tahap 7 (Task 41) — md-klien (grup g-master, sudah aktif sejak Tahap 3),
+  // koreksi dari fallback web (/klien, form admin) ke versi portal PM
+  // read-only.
+  "md-klien": "/pm-portal/klien",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 

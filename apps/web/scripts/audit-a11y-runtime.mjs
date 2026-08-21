@@ -163,6 +163,8 @@ const CONTOH_ID = {
   '/pm-portal/keuangan/kas/[id]': process.env.LAYAR_ID_CASH_ACCOUNT,
   '/pm-portal/keuangan/gl/jurnal/[id]': process.env.LAYAR_ID_JOURNAL,
   '/pm-portal/keuangan/rekonsiliasi-bank/[id]': process.env.LAYAR_ID_REKENING_KORAN,
+  // Portal PM Lengkap Tahap 7, Task 41 — detail Klien (clients.id).
+  '/pm-portal/klien/[id]': process.env.LAYAR_ID_KLIEN,
 }
 
 function halamanDariBerkas() {

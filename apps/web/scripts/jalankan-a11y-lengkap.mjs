@@ -107,6 +107,8 @@ const PERTANYAAN = [
   ['LAYAR_ID_REKENING_KORAN', 'select id from rekening_koran order by created_at desc limit 1'],
   // Portal PM Lengkap Tahap 7, Task 40 — detail Aset & Alat (`/pm-portal/aset/[id]`).
   ['LAYAR_ID_ASET', 'select id from assets order by created_at desc limit 1'],
+  // Portal PM Lengkap Tahap 7, Task 41 — detail Klien (`/pm-portal/klien/[id]`).
+  ['LAYAR_ID_KLIEN', 'select id from clients order by created_at desc limit 1'],
 ]
 
 const env = { ...process.env }

@@ -3482,6 +3482,171 @@ export interface AlatOpsPM extends AsetPM {
 export interface RespAlatOperasional { alat: AlatOpsPM[]; total: number; tanggal: string }
 
 /**
+ * Register Risiko + Mitigasi + Perizinan Proyek (Task 41, Tahap 7).
+ *
+ * Bentuk PERSIS `lib/risiko-proyek.ts:61-114,226-241,275-375` dan endpoint
+ * `routes/v1/risiko-proyek.ts` — dicek baris-per-baris terhadap kode nyata,
+ * bukan ditebak dari nama (Task 38 Step 1).
+ *
+ * ⚠️ Modul `sengketa` (`GET/POST /proyek/:id/sengketa`, `PATCH
+ * /sengketa/:id/tahap`) SENGAJA TIDAK punya tipe di sini dan TIDAK dibangun
+ * halamannya di portal PM. Dikonfirmasi LANGSUNG lewat query live
+ * `role_permissions`: KEDUA baris role `pm` (global + tenant) NOL baris untuk
+ * `sengketa:view` maupun `sengketa:manage` — bukan `allowed=false`, baris
+ * grant-nya memang tidak ada. PM genuinely tak punya izin modul ini sama
+ * sekali; halaman yang menampilkannya akan selalu gagal dengan 403.
+ */
+export type KategoriRisikoPM =
+  | "teknis" | "keuangan" | "jadwal" | "k3"
+  | "lingkungan" | "hukum" | "pengadaan" | "eksternal"
+export type StatusRisikoPM = "terpantau" | "terjadi" | "tertutup"
+export type StrategiRisikoPM = "hindari" | "kurangi" | "alihkan" | "terima"
+export type StatusTindakanPM = "rencana" | "berjalan" | "selesai" | "batal"
+export type TingkatRisikoPM = "rendah" | "sedang" | "tinggi" | "ekstrem"
+
+export interface TindakanMitigasiPM {
+  id: string
+  tindakan: string
+  status: StatusTindakanPM
+  tenggat: string | null
+  selesai_pada: string | null
+  penanggung_id: string | null
+  penanggung?: { id: string; name: string } | null
+}
+
+export interface RisikoDinilaiPM {
+  id: string
+  kode: string | null
+  judul: string
+  kategori: KategoriRisikoPM
+  dampak: number
+  kemungkinan: number
+  /** Kolom TERHITUNG di DB (`dampak * kemungkinan`). */
+  skor: number
+  strategi: StrategiRisikoPM
+  dampak_sisa: number | null
+  kemungkinan_sisa: number | null
+  status: StatusRisikoPM
+  tenggat_tinjau: string | null
+  pemilik_id: string | null
+  pemilik?: { id: string; name: string } | null
+  tindakan: TindakanMitigasiPM[]
+  tingkat: TingkatRisikoPM
+  /** Skor sesudah mitigasi. `null` bila belum dinilai ulang. */
+  skor_sisa: number | null
+  tingkat_sisa: TingkatRisikoPM | null
+  /** Berapa turun berkat mitigasi. `null` (BUKAN 0) bila belum dinilai ulang. */
+  penurunan: number | null
+  mendesak: boolean
+  alasan_mendesak: string[]
+}
+
+export interface RingkasRegisterPM {
+  total: number
+  terpantau: number
+  terjadi: number
+  tertutup: number
+  /** Hanya yang BELUM tertutup. */
+  per_tingkat: Record<TingkatRisikoPM, number>
+  mendesak: number
+  /** `null` bila belum ada satu pun yang dinilai ulang — bukan 0. */
+  penurunan_rata: number | null
+  dinilai_ulang: number
+}
+
+export interface RespRisikoProyek {
+  proyek: { id: string; name: string; end_date: string | null }
+  pada: string
+  risiko: RisikoDinilaiPM[]
+  ringkas: RingkasRegisterPM
+}
+
+export type StatusIzinProyekPM = "rencana" | "diajukan" | "terbit" | "ditolak" | "dicabut"
+export type StatusMasaIzinPM =
+  | "belum_terbit" | "berlaku" | "akan_habis" | "kedaluwarsa" | "ditolak" | "dicabut"
+
+export interface IzinDinilaiPM {
+  id: string
+  jenis: string
+  nomor: string | null
+  status: StatusIzinProyekPM
+  berlaku_dari: string | null
+  berlaku_sampai: string | null
+  /** Izin yang tanpanya pekerjaan tak boleh dimulai (PBG, bukan izin reklame). */
+  menghalangi_mulai: boolean
+  masa: StatusMasaIzinPM
+  /** Negatif = sudah lewat. `null` bila tanpa batas waktu / belum terbit. */
+  sisa_hari: number | null
+  memblokir: boolean
+}
+
+export interface KesiapanIzinPM {
+  /** `null` berarti NOL izin tercatat — BUKAN "boleh jalan". */
+  boleh_jalan: boolean | null
+  memblokir: IzinDinilaiPM[]
+  perlu_diurus: IzinDinilaiPM[]
+  total: number
+}
+
+export interface RespIzinProyek {
+  proyek: { id: string; name: string; start_date: string | null; end_date: string | null; status: string }
+  pada: string
+  izin: IzinDinilaiPM[]
+  kesiapan: KesiapanIzinPM
+}
+
+/**
+ * Klien (Task 41, Tahap 7) — bentuk PERSIS `CLIENT_SELECT`,
+ * `apps/api/src/routes/v1/clients.ts:5-8`.
+ *
+ * ⚠️ `GET /clients` dan `GET /clients/:id` HANYA bergerbang `authenticate`
+ * (nol `requirePermission`) — dikonfirmasi baca langsung kode route. PM PUNYA
+ * `clients:view` (query live `role_permissions`) tapi TIDAK `clients:manage`
+ * (POST/PATCH/toggle-active, ketiganya bergerbang `clients:manage`) — halaman
+ * PM di sini karena itu READ-ONLY, tanpa tombol tambah/edit/nonaktifkan.
+ */
+export interface KlienPM {
+  id: string
+  company_name: string | null
+  contact_person: string
+  phone: string
+  email: string | null
+  address: string | null
+  npwp: string | null
+  id_number: string | null
+  client_type: "perorangan" | "perusahaan"
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+export interface RespDaftarKlien { clients: KlienPM[] }
+
+/** Proyek ringkas milik satu klien — subset kolom `projects`, `clients.ts:50`. */
+export interface ProyekKlienPM {
+  id: string
+  name: string
+  status: string
+  contract_value: number | string | null
+  start_date: string | null
+  end_date: string | null
+  progress_pct: number | null
+}
+
+export interface RespDetailKlien {
+  client: KlienPM
+  projects: ProyekKlienPM[]
+  summary: {
+    total_projects: number
+    total_contract_value: number
+    invoice_total: number
+    invoice_outstanding: number
+    invoice_overdue: number
+    invoice_paid: number
+  }
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
