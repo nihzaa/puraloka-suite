@@ -10907,12 +10907,19 @@ git commit -m "feat(pm-portal): navigasi kategori Rencana & Uji Mutu + K3 lanjut
      `audit-jenis-tulis-punya-label.mjs` (semua Task — tiap status/jenis
      baru di UI wajib berlabel manusia, bukan kunci mentah),
      `uji-galat-muat-terpisah.mjs` (semua Task ber-`useData`+aksi tulis),
-     `uji-rute-id-tak-basi.mjs` (tak ada halaman `[id]` baru di breakdown
-     ini — seluruh Task 32-36 memakai query param `?tab=`/state lokal,
-     bukan dynamic route, jadi penjaga ini TIDAK relevan di sini, dicatat
-     supaya tak dikira terlewat), `uji-token-css-ada.mjs`/
-     `uji-judul-halaman-ada.mjs`/`uji-tabel-seragam.mjs`/
-     `uji-remah-lengkap.mjs` (semua halaman baru).
+     `uji-rute-id-tak-basi.mjs` — **KOREKSI (review Important-6,
+     2026-08-21): draf pertama baris ini SALAH mengklaim "tak ada halaman
+     `[id]` baru di breakdown ini".** Task 32-36 MEMBUAT TIGA halaman
+     `[id]`: `keuangan/kas/[id]` (Task 33 Step 3, detail akun kas),
+     `keuangan/gl/jurnal/[id]` (Task 34 Step 3, detail jurnal),
+     `keuangan/rekonsiliasi-bank/[id]` (Task 35 Step 3, detail koran).
+     Penjaga ini RELEVAN untuk ketiganya — eksekutor Task 33/34/35 WAJIB
+     memverifikasi `useData` di masing-masing halaman mencocokkan
+     identitas `id` dari `useParams()` (pola sama `mandor/[id]`/
+     `proyek/[id]/baseline`, lihat komentar `lib/data-cache.ts`), BUKAN
+     mengasumsikan aman karena data sudah "diikat ke URL-nya" secara
+     bawaan. `uji-token-css-ada.mjs`/`uji-judul-halaman-ada.mjs`/
+     `uji-tabel-seragam.mjs`/`uji-remah-lengkap.mjs` (semua halaman baru).
 
 - [x] **Step 3: Tulis breakdown Task 32-37** (di bawah).
 
@@ -11087,7 +11094,7 @@ export interface SertifikatIpc {
   invoice_id: string | null
   created_at: string
   proyek: { id: string; name: string } | null
-  termin: { id: string; termin_number: number; label: string; amount: number } | null
+  termin: { id: string; termin_number: number; label: string; amount: number | string } | null
   penyetuju: { id: string; name: string } | null
   hitung: HasilIpc
 }
@@ -11719,7 +11726,15 @@ ke `cash.ts`:
 - `POST /api/v1/cash/transfers` — `cash:transfer:create`, PM PUNYA. Body
   `from_account_id`, `to_account_id`, `amount`, `transfer_date?`,
   `status?` (`'pending'|'confirmed'`, default `pending`), `ref_number?`,
-  `notes?`.
+  `notes?`. Endpoint dijaga `gerbangIdempotensi(request, reply,
+  'cash:transfer:create')` (`cash.ts:221`) — TAPI draf Step 2 di bawah
+  TIDAK mengirim idempotency key dari klien (pola yang sama juga TAK
+  ADA di halaman kasbon existing manapun di repo ini, diverifikasi grep
+  `lib/api.ts`/`keuangan/page.tsx` — bukan regresi baru, kesenjangan yang
+  sudah ada). Tanpa key, endpoint tetap berjalan normal (gerbang
+  mengizinkan request tanpa key lewat) — TAPI proteksi ganda-klik-submit
+  yang seharusnya dijamin gerbang ini tidak aktif. Peluang hardening yang
+  layak dipertimbangkan task lanjutan, BUKAN blocker Task 33.
 - `PATCH /api/v1/cash/transfers/:id/confirm` — `cash:transfer:confirm`,
   PM PUNYA.
 - `PATCH /api/v1/cash/transfers/:id/cancel` — `cash:account:manage`, **PM
@@ -12137,11 +12152,13 @@ export default function PmKasPage() {
 }
 ```
 
-⚠️ **Catatan implementasi**: `api.post` dengan `FormData` di atas WAJIB
-diverifikasi terhadap wrapper `lib/api.ts` saat implementasi — pola
-multipart yang sudah terbukti di portal PM ada di `mandor-portal` (cek
-`lib/api.ts` menyetel `Content-Type` otomatis untuk `FormData` atau perlu
-header eksplisit seperti ditulis di atas).
+⚠️ **Verifikasi terkonfirmasi (Task 31 lanjutan)**: `lib/api.ts:5` MEMAKU
+`headers: { "Content-Type": "application/json" }` di instance axios —
+BUKAN diset otomatis per-request. Override header eksplisit untuk
+`FormData` seperti ditulis di kode `api.post(..., { headers:
+{ "Content-Type": "multipart/form-data" } })` di atas karena itu memang
+**WAJIB**, bukan opsional — tanpanya request multipart akan terkirim
+dengan header JSON yang salah dan backend gagal mem-parsing `request.parts()`.
 
 - [ ] **Step 3: `keuangan/kas/[id]/page.tsx`** — detail akun kas: saldo +
 riwayat transfer (masuk/keluar) + riwayat pengeluaran dari akun ini +
@@ -12341,7 +12358,12 @@ ke `gl.ts` + `lib/laporan-keuangan.ts`:
   → `{ data: {entry_id,entry_number,entry_date,description,account_id,
   code,name,debit,credit,project_id}[], meta:
   {total_debit,total_credit,selisih,jumlah_baris} }` (maks 500 jurnal
-  posted, diratakan jadi baris buku besar).
+  posted, diratakan jadi baris buku besar). **CATATAN**: endpoint ini
+  TIDAK punya flag `terpotong` sama sekali (beda dari `/gl/laporan` di
+  bawah) — kalau `jumlah_baris` mendekati 500, halaman TIDAK BISA
+  membedakan "memang cuma segitu" dari "terpotong diam-diam". Ini
+  keterbatasan BACKEND, bukan sesuatu yang bisa ditambal di frontend;
+  dicatat sebagai concern laporan, bukan diperbaiki di sini.
 - `GET /api/v1/gl/trial-balance?from=&to=` (`gl:view`) → `{ data:
   {account_id,code,name,type,debit,credit,saldo}[], meta:
   {total_debit,total_credit,selisih} }`.
@@ -12397,7 +12419,15 @@ export interface BarisJurnalGl {
   project_id: string | null
   description: string | null
   line_order: number
-  accounts: { code: string; name: string; type: string }
+  /**
+   * NULLABLE — `gl.ts:157` (`GET /journal-entries/:id`) TIDAK
+   * menormalisasi embed yang gagal resolve (`?? {}`), berbeda dari
+   * endpoint sibling `/gl/ledger` (`gl.ts:358`) dan `/gl/trial-balance`
+   * (`gl.ts:426`) yang eksplisit `(l.accounts ?? {})`. Rendering di Step
+   * 3 WAJIB pakai `l.accounts?.code ?? "—"`, bukan akses langsung — akses
+   * tanpa guard akan `TypeError` runtime kalau join akun gagal.
+   */
+  accounts: { code: string; name: string; type: string } | null
 }
 export interface RespJurnalDetail { data: JurnalGl & { ref_type?: string | null; ref_id?: string | null; lines: BarisJurnalGl[] } }
 
@@ -12412,6 +12442,16 @@ export interface RespBukuBesar {
   meta: { total_debit: number; total_credit: number; selisih: number; jumlah_baris: number }
 }
 
+/**
+ * Bentuk `GET /gl/trial-balance` — endpoint NYATA (`gl.ts:406-461`), tapi
+ * TIDAK di-fetch halaman manapun di Task 34 (tab "Buku Besar" memakai
+ * `/gl/ledger`, tab "Laporan" memakai `/gl/laporan` — keduanya sudah
+ * mencakup kebutuhan saldo per akun). Tipe ini dideklarasikan untuk
+ * KELENGKAPAN referensi (endpoint-nya ada dan bisa dipakai task lanjutan),
+ * TAPI JANGAN di-import di halaman manapun sampai benar-benar dipakai —
+ * import tanpa pemakaian adalah dead code yang lolos `tsc` tapi ditandai
+ * linter.
+ */
 export interface BarisSaldoAkun { account_id: string; code: string; name: string; type: string; debit: number; credit: number; saldo: number }
 export interface RespTrialBalance {
   data: BarisSaldoAkun[]
@@ -12456,7 +12496,7 @@ import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import BottomSheet from "@/components/portal/BottomSheet";
 import type {
-  AkunGl, RespAkunGl, RespJurnalDaftar, RespBukuBesar, RespTrialBalance, RespLaporanGl,
+  AkunGl, RespAkunGl, RespJurnalDaftar, RespBukuBesar, RespLaporanGl,
   GalatApi,
 } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
@@ -12669,6 +12709,11 @@ export default function PmGlPage() {
               {!dataLaporan.neraca.seimbang && (
                 <div role="alert" style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 12, padding: 12, fontSize: 12, color: "var(--on-danger-bg)" }}>
                   Neraca TIDAK seimbang — selisih {fmtRupiah(dataLaporan.neraca.selisih)}. Ada jurnal yang tak seimbang tersimpan.
+                </div>
+              )}
+              {dataLaporan.meta.terpotong && (
+                <div role="status" style={{ background: "var(--warning-bg)", border: "1px solid var(--warning-border)", borderRadius: 12, padding: 12, fontSize: 12, color: "var(--on-warning-bg)" }}>
+                  Laporan ini dipotong pada 1000 jurnal — angka di bawah BELUM tentu mencakup seluruh periode. Persempit rentang tanggal untuk memastikan seluruh jurnal terhitung.
                 </div>
               )}
               <div style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: "1px solid var(--border)" }}>
@@ -12901,7 +12946,7 @@ export default function PmDetailJurnalPage() {
           <tbody>
             {j.lines.map((l) => (
               <tr key={l.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                <td style={{ padding: 8 }}>{l.accounts.code} · {l.accounts.name}</td>
+                <td style={{ padding: 8 }}>{l.accounts?.code ?? "—"} · {l.accounts?.name ?? "Akun tak dikenal"}</td>
                 <td style={{ padding: 8, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{Number(l.debit) > 0 ? fmtRupiah(l.debit) : "—"}</td>
                 <td style={{ padding: 8, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{Number(l.credit) > 0 ? fmtRupiah(l.credit) : "—"}</td>
               </tr>
@@ -12965,23 +13010,37 @@ git add apps/web/app/pm-portal/keuangan/gl apps/web/app/pm-portal/_bersama/tipe.
 git commit -m "feat(pm-portal): General Ledger — akun, jurnal, buku besar, neraca+laba-rugi"
 ```
 
-### Task 35: Rekonsiliasi Bank + Rekonsiliasi Material — halaman baru
+### Task 35: Rekonsiliasi Bank — halaman baru
+
+⚠️ **KOREKSI (review Critical-2, 2026-08-21)**: draf pertama task ini
+membangun `keuangan/rekonsiliasi-material/page.tsx` sebagai halaman
+BARU — itu SALAH. `apps/web/app/pm-portal/gudang/rekonsiliasi/page.tsx`
+(Task 25, Tahap 4) SUDAH mengonsumsi endpoint yang SAMA PERSIS
+(`GET /projects/:projectId/rekonsiliasi-material`), sudah memakai
+`status` yang benar (`belum_dibeli`, BUKAN `belum_ada_transaksi` yang
+sempat ditulis draf pertama di sini — typo yang akan membuat filter
+status tak pernah match dan baris berlabel `undefined`), dan tipenya
+(`BarisRekonsiliasi`/`RespRekonsiliasi`) SUDAH terdeklarasi benar di
+`_bersama/tipe.ts:2159-2174`. Task 35 karena itu **HANYA membangun
+Rekonsiliasi Bank** — Rekonsiliasi Material dihapus dari scope task ini
+seluruhnya (tak ada halaman baru, tak ada tipe baru; navigasi kategori
+Keuangan Task 37 diarahkan ke halaman `gudang/rekonsiliasi` yang SUDAH
+ADA, bukan membangun duplikat).
 
 **Penjaga CI relevan**: `audit-jenis-tulis-punya-label.mjs` (status
-`terbuka`/`dikunci` dan `StatusRekonsiliasi` material wajib berlabel
-manusia — lima nilai, bukan cuma yang "buruk"), `uji-galat-muat-
+`terbuka`/`dikunci` wajib berlabel manusia), `uji-galat-muat-
 terpisah.mjs`, `uji-token-css-ada.mjs`, `uji-judul-halaman-ada.mjs`,
 `uji-tabel-seragam.mjs`, `uji-remah-lengkap.mjs`.
 
 **Files:**
 - Create: `apps/web/app/pm-portal/keuangan/rekonsiliasi-bank/page.tsx`
 - Create: `apps/web/app/pm-portal/keuangan/rekonsiliasi-bank/[id]/page.tsx`
-- Create: `apps/web/app/pm-portal/keuangan/rekonsiliasi-material/page.tsx`
 - Modify: `apps/web/app/pm-portal/_bersama/tipe.ts`
 
 **Riset (Task 31 Step 1)** — bentuk respons diverifikasi baris-per-baris
-ke `rekonsiliasi-bank.ts` + `lib/rekonsiliasi-bank.ts` +
-`rekonsiliasi-material.ts` + `lib/rekonsiliasi-material.ts`:
+ke `rekonsiliasi-bank.ts` + `lib/rekonsiliasi-bank.ts`. (Rekonsiliasi
+material TIDAK diriset ulang di sini — Task 25 sudah menutupnya penuh,
+lihat koreksi di atas.)
 
 - `GET /api/v1/rekonsiliasi` (`rekonsiliasi:view`, PM punya) → `{ koran:
   ({id,cash_account_id,periode_dari,periode_sampai,saldo_awal,
@@ -13013,15 +13072,18 @@ ke `rekonsiliasi-bank.ts` + `lib/rekonsiliasi-bank.ts` +
   (`rekonsiliasi:manage`).
 - `POST /api/v1/rekonsiliasi/:id/penyesuaian` (`rekonsiliasi:manage`) —
   body `jenis`, `keterangan`, `nominal` (bisa negatif, tak boleh nol).
+  `jenis` diverifikasi ke CHECK constraint DB nyata
+  (`db/migrations/234_rekonsiliasi_bank.sql`, `penyesuaian_jenis_sah`):
+  **LIMA** nilai sah — `biaya_admin`, `jasa_giro`, `pajak_bunga`,
+  `koreksi_bank`, `lainnya` (draf pertama Step 3 SEMPAT hanya menulis
+  empat, melewatkan `pajak_bunga` — sudah dikoreksi). `lainnya` WAJIB
+  `keterangan` minimal 10 karakter (`penyesuaian_lainnya_berketerangan`)
+  — form Step 3 tidak menegakkan panjang minimum ini secara khusus untuk
+  `lainnya`, mengandalkan pesan galat backend (400) yang diteruskan apa
+  adanya lewat `pesanGalat()`.
 - `POST /api/v1/rekonsiliasi/:id/kunci` (`rekonsiliasi:lock`, PM PUNYA
   — permission TERPISAH dari `manage`, PM py keduanya jadi tak
   dibedakan di UI, tapi backend membedakannya).
-- `GET /api/v1/projects/:projectId/rekonsiliasi-material?ambang_susut=&
-  ambang_lebih_beli=` (`procurement:view`, PM punya, PER-PROYEK) →
-  `HasilRekonsiliasi & { ambang: {susut_pct,lebih_beli_pct},
-  gr_belum_dikonfirmasi: number }` — READ-ONLY, tak ada endpoint tulis
-  (lihat kepala berkas `rekonsiliasi-material.ts:1-31` — angka susut yang
-  bisa disunting berhenti jadi bukti).
 
 - [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
 
@@ -13048,6 +13110,10 @@ export interface LaporanRekBank {
   baris_belum_cocok: number; transaksi_belum_cocok: number
 }
 
+/**
+ * `koran` di konteks DAFTAR (`GET /rekonsiliasi`) — dengan progres
+ * pencocokan yang DIHITUNG lapis rute (`rekonsiliasi-bank.ts:92-108`).
+ */
 export interface KoranRekening {
   id: string; cash_account_id: string
   periode_dari: string; periode_sampai: string
@@ -13060,34 +13126,31 @@ export interface RespRekonsiliasiDaftar {
   koran: KoranRekening[]
   akun: { id: string; name: string; type: string; balance: number | string }[]
 }
+
+/**
+ * `koran` di konteks DETAIL (`GET /rekonsiliasi/:id`) — BUKAN `KoranRekening`.
+ * Endpoint detail (`rekonsiliasi-bank.ts:249-250`, `return { koran: { ...k,
+ * nama_akun }, ... }`) menyebar baris `rekening_koran` MENTAH + `nama_akun`
+ * SAJA — TIDAK menghitung `jumlah_baris`/`jumlah_cocok`/`belum_cocok` seperti
+ * endpoint daftar. Menyamakan keduanya membuat kode baca field yang tak
+ * pernah dikirim endpoint ini (`undefined` senyap, bukan galat).
+ */
+export interface KoranRekeningDetail {
+  id: string; cash_account_id: string
+  periode_dari: string; periode_sampai: string
+  saldo_awal: number | string; saldo_akhir: number | string
+  status: "terbuka" | "dikunci"
+  dikunci_pada: string | null; nama_berkas: string | null; created_at: string
+  nama_akun: string
+}
 export interface RespRekonsiliasiDetail {
-  koran: KoranRekening
+  koran: KoranRekeningDetail
   baris: BarisKoranRek[]
   buku: TransaksiBukuRek[]
   pencocokan: { id: string; baris_id: string; sumber_tabel: string; sumber_id: string; jenis: string }[]
   penyesuaian: { id: string; jenis: string; keterangan: string; nominal: number | string }[]
   usul: UsulCocokRek[]
   laporan: LaporanRekBank
-}
-
-/** Bentuk PERSIS `lib/rekonsiliasi-material.ts:94-204`. */
-export type StatusRekonsiliasiMaterial = "wajar" | "susut_tinggi" | "lebih_beli" | "belum_lengkap" | "belum_ada_transaksi"
-export interface BarisRekonsiliasiMaterial {
-  material_id: string; material_name: string; unit: string | null
-  teoritis: number; dibeli: number; dipakai: number; sisa: number
-  transfer_keluar: number; dari_klien: number; selisih: number
-  susut_pct: number | null; lebih_beli: number
-  status: StatusRekonsiliasiMaterial
-}
-export interface RespRekonsiliasiMaterial {
-  baris: BarisRekonsiliasiMaterial[]
-  total_dibeli: number; total_dipakai: number; total_sisa: number; total_selisih: number
-  total_transfer_keluar: number; total_dari_klien: number
-  susut_pct_keseluruhan: number | null
-  jumlah_susut_tinggi: number; jumlah_lebih_beli: number
-  jumlah_belum_lengkap: number; jumlah_belum_dibeli: number
-  ambang: { susut_pct: number; lebih_beli_pct: number }
-  gr_belum_dikonfirmasi: number
 }
 ```
 
@@ -13346,6 +13409,7 @@ export default function PmDetailRekonsiliasiBankPage() {
               style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
               <option value="biaya_admin">Biaya Admin</option>
               <option value="jasa_giro">Jasa Giro</option>
+              <option value="pajak_bunga">Pajak Bunga</option>
               <option value="koreksi_bank">Koreksi Bank</option>
               <option value="lainnya">Lainnya</option>
             </select>
@@ -13372,160 +13436,18 @@ export default function PmDetailRekonsiliasiBankPage() {
 }
 ```
 
-- [ ] **Step 4: `keuangan/rekonsiliasi-material/page.tsx`** — per proyek,
-tabel material dengan status susut. Read-only.
-
-```typescript
-"use client";
-
-import { useMemo, useState } from "react";
-import { Boxes, AlertTriangle } from "lucide-react";
-import { useData } from "@/lib/data-cache";
-import EmptyState from "@/components/portal/EmptyState";
-import SkeletonCard from "@/components/portal/SkeletonCard";
-import type { ProyekPM, RespRekonsiliasiMaterial, GalatApi } from "../../_bersama/tipe";
-import { pesanGalat } from "../../_bersama/tipe";
-
-interface RespProyek { projects: ProyekPM[] }
-
-function fmtAngka(v: number | null | undefined): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
-  return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(v);
-}
-const LABEL_STATUS: Record<string, string> = {
-  wajar: "Wajar", susut_tinggi: "Susut Tinggi", lebih_beli: "Lebih Beli",
-  belum_lengkap: "Belum Lengkap", belum_ada_transaksi: "Belum Ada Transaksi",
-};
-const WARNA_STATUS: Record<string, string> = {
-  wajar: "var(--success)", susut_tinggi: "var(--danger)", lebih_beli: "var(--on-warning-bg)",
-  belum_lengkap: "var(--on-warning-bg)", belum_ada_transaksi: "var(--text-muted)",
-};
-
-export default function PmRekonsiliasiMaterialPage() {
-  const [proyekId, setProyekId] = useState("");
-
-  const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
-  const daftarProyek = useMemo(() => (dataProyek?.projects ?? []).filter((p) => p.pm), [dataProyek]);
-  const proyekAktif = proyekId || daftarProyek[0]?.id || "";
-
-  const url = proyekAktif ? `/api/v1/projects/${proyekAktif}/rekonsiliasi-material` : null;
-  const { data, memuat, galat } = useData<RespRekonsiliasiMaterial>(url);
-
-  const barisBermasalah = (data?.baris ?? []).filter((b) => b.status !== "wajar" && b.status !== "belum_ada_transaksi");
-  const barisLain = (data?.baris ?? []).filter((b) => b.status === "wajar" || b.status === "belum_ada_transaksi");
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Rekonsiliasi Material
-      </h1>
-
-      {daftarProyek.length > 1 && (
-        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
-          <select value={proyekAktif} onChange={(e) => setProyekId(e.target.value)}
-            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }}>
-            {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </label>
-      )}
-
-      {!proyekAktif && <EmptyState icon={Boxes} judul="Pilih proyek" deskripsi="Rekonsiliasi material dihitung per proyek." />}
-      {memuat && <SkeletonCard tinggi={140} />}
-      {galat && <EmptyState icon={Boxes} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
-
-      {!memuat && data && (
-        <>
-          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <div style={{ background: "var(--surface)", borderRadius: 16, padding: 14, border: "1px solid var(--border)", flex: "1 1 120px" }}>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Susut Keseluruhan</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{data.susut_pct_keseluruhan !== null ? `${data.susut_pct_keseluruhan.toFixed(1)}%` : "—"}</div>
-            </div>
-            <div style={{ background: "var(--surface)", borderRadius: 16, padding: 14, border: "1px solid var(--border)", flex: "1 1 120px" }}>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Susut Tinggi</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: data.jumlah_susut_tinggi > 0 ? "var(--danger)" : "var(--text-primary)" }}>{data.jumlah_susut_tinggi}</div>
-            </div>
-            <div style={{ background: "var(--surface)", borderRadius: 16, padding: 14, border: "1px solid var(--border)", flex: "1 1 120px" }}>
-              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Lebih Beli</div>
-              <div style={{ fontSize: 17, fontWeight: 700, color: data.jumlah_lebih_beli > 0 ? "var(--on-warning-bg)" : "var(--text-primary)" }}>{data.jumlah_lebih_beli}</div>
-            </div>
-          </div>
-
-          {data.gr_belum_dikonfirmasi > 0 && (
-            <div role="status" style={{ background: "var(--warning-bg)", border: "1px solid var(--warning-border)", borderRadius: 12, padding: "10px 14px", fontSize: 12, color: "var(--on-warning-bg)", display: "flex", alignItems: "center", gap: 6 }}>
-              <AlertTriangle size={14} aria-hidden="true" /> {data.gr_belum_dikonfirmasi} penerimaan barang belum dikonfirmasi — belum terhitung sebagai "dibeli".
-            </div>
-          )}
-
-          {barisBermasalah.length > 0 && (
-            <div>
-              <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 10px" }}>Perlu Perhatian</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {barisBermasalah.map((b) => (
-                  <div key={b.material_id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: `1px solid ${WARNA_STATUS[b.status]}` }}>
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{b.material_name}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: WARNA_STATUS[b.status] }}>{LABEL_STATUS[b.status]}</span>
-                    </div>
-                    <div style={{ display: "flex", gap: 12, marginTop: 4, fontSize: 11, color: "var(--text-secondary)" }}>
-                      <span>RAB {fmtAngka(b.teoritis)} {b.unit}</span>
-                      <span>Dibeli {fmtAngka(b.dibeli)}</span>
-                      <span>Dipakai {fmtAngka(b.dipakai)}</span>
-                      <span>Sisa {fmtAngka(b.sisa)}</span>
-                    </div>
-                    <div style={{ fontSize: 12, fontWeight: 700, marginTop: 4, color: WARNA_STATUS[b.status] }}>
-                      Selisih {fmtAngka(b.selisih)} {b.unit} {b.susut_pct !== null ? `(${b.susut_pct.toFixed(1)}%)` : ""}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div>
-            <h2 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 10px" }}>Material Lain ({barisLain.length})</h2>
-            <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 440 }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                    <th style={{ textAlign: "left", padding: 8, color: "var(--text-secondary)" }}>Material</th>
-                    <th style={{ textAlign: "right", padding: 8, color: "var(--text-secondary)" }}>Dibeli</th>
-                    <th style={{ textAlign: "right", padding: 8, color: "var(--text-secondary)" }}>Dipakai</th>
-                    <th style={{ textAlign: "right", padding: 8, color: "var(--text-secondary)" }}>Sisa</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {barisLain.map((b) => (
-                    <tr key={b.material_id} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td style={{ padding: 8 }}>{b.material_name}</td>
-                      <td style={{ padding: 8, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtAngka(b.dibeli)}</td>
-                      <td style={{ padding: 8, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtAngka(b.dipakai)}</td>
-                      <td style={{ padding: 8, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{fmtAngka(b.sisa)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-```
-
-- [ ] **Step 5: Typecheck**
+- [ ] **Step 4: Typecheck**
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
 ```
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add apps/web/app/pm-portal/keuangan/rekonsiliasi-bank apps/web/app/pm-portal/keuangan/rekonsiliasi-material \
+git add apps/web/app/pm-portal/keuangan/rekonsiliasi-bank \
   apps/web/app/pm-portal/_bersama/tipe.ts docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md
-git commit -m "feat(pm-portal): Rekonsiliasi Bank + Rekonsiliasi Material"
+git commit -m "feat(pm-portal): Rekonsiliasi Bank"
 ```
 
 ### Task 36: Kontrak Payung + Expediting + Nota Kredit — halaman baru + inbox `klaim_perjalanan`/`project_expense`
@@ -14120,7 +14042,7 @@ SUDAH tercakup Task 6 dasar `/keuangan` existing atau di luar scope
 finance sempit):
 
 ```
-tg-ipc           → /pm-portal/keuangan/ipc              (Task 32 — SUDAH match, hidup)
+tg-ipc           → /pm-portal/keuangan/ipc              (BARU — belum ada di PETA_HREF_PORTAL sama sekali, ditambahkan Step 2 di bawah; hrefnya di peta-menu.ts SUDAH menunjuk /keuangan/ipc web, jadi Step 2 mengarahkan portal ke halaman padanan yang baru dibangun Task 32)
 tg-nota-kredit   → /pm-portal/keuangan/pengadaan-lanjutan (Task 36, tab Nota Kredit)
 ```
 
@@ -14164,19 +14086,39 @@ Akses PM ke `klaim_perjalanan` TETAP HANYA lewat inbox approval (Task 36).
 
 - [ ] **Step 1: Aktifkan `g-keuangan` di `KATEGORI_AKTIF`**
 
+⚠️ **Perhatikan formatnya**: deklarasi NYATA di `pm-portal-kategori.ts:90`
+adalah SATU BARIS (`const KATEGORI_AKTIF = [...]; // Tahap 1-5`), sama
+seperti setiap versi sebelumnya di Task 9/16/22/26/30 — bukan
+multi-baris. Kalau `old_string` untuk Edit tool ditulis multi-baris
+seperti draf awal breakdown ini pernah tertulis, ia TIDAK AKAN MATCH.
+Baris SATU-nya:
+
 ```typescript
-// pm-portal-kategori.ts
-const KATEGORI_AKTIF = [
-  "g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master",
-  "g-crm", "g-inventory", "g-procurement", "g-qaqc",
-  "g-keuangan", // Tahap 6 (Task 37) — BARU
-];
+// pm-portal-kategori.ts — baris tunggal, cocok dengan deklarasi nyata di file
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc", "g-keuangan"]; // Tahap 1-6
 ```
 
-Perbarui juga komentar `pr-blanket`/`pr-expediting` di blok dokumentasi
-atas fungsi ini (baris 65-72 versi Task 26) — tambahkan catatan bahwa
-KEDUANYA sekarang py halaman portal sejak Task 36, supaya tak terbaca
-sebagai keputusan yang masih berlaku.
+⚠️ **Komentar basi ada di DUA FILE, bukan satu** (review Important-9,
+2026-08-21) — perbarui KEDUANYA supaya tak terbaca sebagai keputusan
+yang masih berlaku:
+
+1. `pm-portal-kategori.ts` — blok dokumentasi atas fungsi ini (baris
+   65-66 versi Task 26, menyebut `pr-blanket`/`pr-expediting` sebagai
+   bagian daftar fallback sengaja).
+2. `apps/web/app/pm-portal/kategori/[key]/page.tsx` — **DUA lokasi**:
+   blok komentar dokumentasi `PETA_HREF_PORTAL` (baris 152-164, kalimat
+   lengkap "`pr-blanket` (Kontrak Payung)... Kontrak Payung+Expediting
+   DITUNDA ke Tahap 6 supaya ditinjau bersama modul Keuangan..." — ironis,
+   komentar ini SUDAH menjanjikan penyelesaian Tahap 6 secara eksplisit,
+   jadi justru paling penting diperbarui) DAN komentar inline tepat di
+   atas entri `pr-mr`/`pr-po`/dst. (baris 291-294, `// pr-rfq/pr-tabulasi/
+   pr-blanket/pr-evaluasi/pr-expediting`).
+
+Tambahkan catatan di ketiga lokasi bahwa `pr-blanket`/`pr-expediting`
+SEKARANG py halaman portal (`/pm-portal/keuangan/pengadaan-lanjutan`,
+Task 36) — HANYA `pr-rfq`/`pr-tabulasi`/`pr-evaluasi` (RFQ+tabulasi+
+evaluasi vendor) yang TETAP fallback web dengan alasan lama (tabel lebar
+multi-vendor tak cocok kartu mobile).
 
 ⚠️ **Verifikasi WAJIB sebelum implementasi**: cek apakah `g-tagih` SUDAH
 ada di `KATEGORI_AKTIF` (kemungkinan TIDAK — grup itu tak disebut di
@@ -14281,12 +14223,13 @@ node scripts/jalankan-a11y-lengkap.mjs
 - [ ] **Step 8: Update JOURNAL.md** — catat Tahap 6 selesai: halaman
 baru (Dashboard Keuangan, Register Piutang, Sertifikat IPC = Task 32 tiga
 halaman; Kas & Pengeluaran + detail akun = Task 33 dua halaman; GL +
-detail jurnal = Task 34 dua halaman; Rekonsiliasi Bank + detail +
-Rekonsiliasi Material = Task 35 tiga halaman; Kontrak Payung/Expediting/
-Nota Kredit = Task 36 satu halaman — TOTAL 11 halaman + 1 modifikasi
-inbox approval), dua utang/concern TERTULIS (Task 31 Temuan #1: PM tak
-bisa lihat rincian klaim perjalanan sendiri, hanya keputusan lewat
-inbox generik; Task 35 Step 2: impor koran rekonsiliasi bank TIDAK
+detail jurnal = Task 34 dua halaman; Rekonsiliasi Bank + detail = Task 35
+DUA halaman — Rekonsiliasi Material DIHAPUS dari scope task ini, sudah
+dibangun Task 25 Tahap 4, koreksi review Critical-2; Kontrak Payung/
+Expediting/Nota Kredit = Task 36 satu halaman — TOTAL SEPULUH halaman +
+1 modifikasi inbox approval), dua utang/concern TERTULIS (Task 31 Temuan
+#1: PM tak bisa lihat rincian klaim perjalanan sendiri, hanya keputusan
+lewat inbox generik; Task 35 Step 2: impor koran rekonsiliasi bank TIDAK
 dibangun, tetap lewat web/desktop), dua tombol yang SENGAJA disembunyikan
 (nota kredit putuskan/terapkan untuk PM, Task 36 Temuan #4).
 
@@ -14539,25 +14482,32 @@ di satu sesi (pola sama risiko `_bersama/tipe.ts`). Task 37 (navigasi)
 WAJIB SESUDAH Task 32-36 (referensi href ke halaman yang harus sudah
 ada), pola sama Task 30/Task 26/Task 22/Task 16/Task 9.
 
-**7. Placeholder scan Tahap 6 (Task 32-37):** kode nyata untuk KESEBELAS
+**7. Placeholder scan Tahap 6 (Task 32-37):** kode nyata untuk KESEPULUH
 halaman (`keuangan/dashboard`, `keuangan/piutang`, `keuangan/ipc` = Task
 32 tiga halaman; `keuangan/kas` + `keuangan/kas/[id]` = Task 33 dua
 halaman; `keuangan/gl` + `keuangan/gl/jurnal/[id]` = Task 34 dua halaman;
-`keuangan/rekonsiliasi-bank` + `[id]` + `keuangan/rekonsiliasi-material`
-= Task 35 tiga halaman; `keuangan/pengadaan-lanjutan` = Task 36 satu
-halaman) + 1 modifikasi (`approval/page.tsx` tambah dua entri inbox) —
-bukan sebagian prosa. Tipe INTI (`RespKeuanganIkhtisar`, `BarisArAging`/
-`BarisRetensi`/`BarisDp`, `HasilIpc`/`SertifikatIpc`, `CashAccount`/
-`CashTransfer`/`ProjectExpense`, `AkunGl`/`JurnalGl`/`NeracaGl`/
-`LabaRugiGl`, `BarisKoranRek`/`LaporanRekBank`/`BarisRekonsiliasiMaterial`,
+`keuangan/rekonsiliasi-bank` + `[id]` = Task 35 DUA halaman
+(Rekonsiliasi Material DIHAPUS dari scope Task 35 — koreksi review
+Critical-2, lihat catatan kepala Task 35); `keuangan/pengadaan-lanjutan`
+= Task 36 satu halaman) + 1 modifikasi (`approval/page.tsx` tambah dua
+entri inbox) — bukan sebagian prosa. Tipe INTI (`RespKeuanganIkhtisar`,
+`BarisArAging`/`BarisRetensi`/`BarisDp`, `HasilIpc`/`SertifikatIpc`,
+`CashAccount`/`CashTransfer`/`ProjectExpense`, `AkunGl`/`JurnalGl`/
+`NeracaGl`/`LabaRugiGl`, `BarisKoranRek`/`LaporanRekBank`,
 `HasilPayung`/`HasilExpediting`/`HasilNotaKredit`) SEMUANYA diverifikasi
 baris-per-baris ke SELECT/interface route nyata (`finance.ts`/`keuangan-
 ikhtisar.ts`/`sertifikat-ipc.ts`/`cash.ts`/`gl.ts`/`lib/laporan-
-keuangan.ts`/`rekonsiliasi-bank.ts`/`lib/rekonsiliasi-bank.ts`/
-`rekonsiliasi-material.ts`/`lib/rekonsiliasi-material.ts`/`pengadaan-
+keuangan.ts`/`rekonsiliasi-bank.ts`/`lib/rekonsiliasi-bank.ts`/`pengadaan-
 lanjutan.ts`/`lib/pengadaan-lanjutan.ts`) saat Task 31 Step 1 — TIDAK
 ada penandaan "TEBAKAN belum diverifikasi" tersisa di Tahap 6, mengikuti
-disiplin Tahap 4-5. **Perbedaan jujur dari tahap-tahap sebelumnya**:
+disiplin Tahap 4-5. Rekonsiliasi material TIDAK diriset ulang Tahap 6 —
+Task 25 (Tahap 4) sudah menutupnya penuh (`gudang/rekonsiliasi/page.tsx`,
+tipe `BarisRekonsiliasi`/`RespRekonsiliasi` sudah benar di
+`_bersama/tipe.ts`), dan draf pertama Task 35 SEMPAT membangun halaman
+duplikat dengan enum status SALAH (`belum_ada_transaksi`, seharusnya
+`belum_dibeli` — typo yang lolos meski Task 35 sendiri mengklaim "Bentuk
+PERSIS") sebelum dikoreksi review. **Perbedaan jujur dari tahap-tahap
+sebelumnya**:
 Tahap 6 punya DUA konsekuensi otorisasi yang breakdown-nya SENGAJA
 mengubah bentuk UI, bukan sekadar menyembunyikan tombol — Temuan #1
 (PM tak bisa fetch detail `klaim_perjalanan` karena `klaim:view` tak
