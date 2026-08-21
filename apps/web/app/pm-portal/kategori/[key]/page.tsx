@@ -267,6 +267,24 @@ import { Folder } from "lucide-react";
  *   `gl:periode:*` (Task 31 Temuan #3). Fallback web.
  *   set-api-key/set-markup SENGAJA TIDAK diisi — di luar scope Keuangan
  *   sepenuhnya (Pengaturan/Master Data-Estimasi), tak disentuh Task 37.
+ *
+ * Tahap 7 (Task 39, grup `g-hr` "SDM & Payroll" BARU diaktifkan
+ * `KATEGORI_AKTIF`; key persis dari `lib/peta-menu.ts` §g-hr baris 262-276):
+ *   hr-absensi → `/pm-portal/sdm/timesheet` (Task 39 — timesheet staf kantor,
+ *   PM py `sdm:timesheet:view`+`:manage` penuh, isi hari + ajukan bulan).
+ *   hr-sertifikasi/hr-rekrutmen/hr-kinerja → SAMA
+ *   `/pm-portal/sdm/kompetensi` (Task 39 — satu halaman tiga
+ *   SegmentedTab: Sertifikat/Kinerja/Rekrutmen, READ-ONLY PENUH karena PM
+ *   py `sdm:sertifikat:view`+`sdm:rekrutmen:view` TANPA satu pun `:manage`
+ *   — diverifikasi LANGSUNG ke `role_permissions` tenant nyata, bukan cuma
+ *   katalog `permissions`).
+ *   hr-cuti → `/pm-portal/sdm/cuti` (Task 39 — PM py `sdm:cuti:view`+
+ *   `:manage` untuk ajukan/batalkan cuti SENDIRI, TANPA `:approve`
+ *   (setuju/tolak) atau `:hak` (koreksi jatah) — tombol keduanya TIDAK ADA).
+ *   hr-karyawan/hr-payroll/hr-upah/hr-bpjs/hr-pph21/hr-reimburse SENGAJA
+ *   TIDAK diisi — di luar tiga halaman Task 39, fallback `it.href` web
+ *   (`/users`, `/sdm/payroll`, `/mandor/upah`, `/pengaturan/tarif-payroll`
+ *   ×2, `/sdm/klaim-perjalanan`).
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "sk-paket": "/pm-portal/mandor-lengkap/penugasan",
@@ -386,6 +404,14 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   // atas kepala PETA_HREF_PORTAL ini dan di atas entri pr-mr/pr-po/pr-grn).
   "pr-blanket": "/pm-portal/keuangan/pengadaan-lanjutan",
   "pr-expediting": "/pm-portal/keuangan/pengadaan-lanjutan",
+  // Tahap 7 (Task 39) — grup g-hr (baru diaktifkan). Lihat catatan panjang
+  // di atas untuk alasan lengkap tiap key, termasuk yang SENGAJA tak
+  // dipetakan (hr-karyawan/hr-payroll/hr-upah/hr-bpjs/hr-pph21/hr-reimburse).
+  "hr-absensi": "/pm-portal/sdm/timesheet",
+  "hr-cuti": "/pm-portal/sdm/cuti",
+  "hr-sertifikasi": "/pm-portal/sdm/kompetensi",
+  "hr-rekrutmen": "/pm-portal/sdm/kompetensi",
+  "hr-kinerja": "/pm-portal/sdm/kompetensi",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 

@@ -3121,6 +3121,202 @@ export interface RespPengadaanLanjutan {
 // `GET /api/v1/procurement/suppliers`) — TIDAK diduplikasi di sini.
 
 /**
+ * SDM — Timesheet, Kompetensi & Rekrutmen, Cuti (Task 39, Tahap 7).
+ *
+ * ⚠️ Permission diverifikasi LANGSUNG ke DB (`role_permissions` tenant nyata,
+ * bukan cuma katalog `permissions`): PM punya `sdm:timesheet:view` +
+ * `sdm:timesheet:manage` (timesheet penuh), `sdm:sertifikat:view` TANPA
+ * `:manage` (kompetensi READ-ONLY), `sdm:rekrutmen:view` TANPA `:manage`
+ * (rekrutmen READ-ONLY), `sdm:cuti:view` + `sdm:cuti:manage` TANPA
+ * `:approve`/`:hak` (cuti ajukan+batalkan SENDIRI, TANPA setujui/tolak
+ * TANPA koreksi jatah). Tak ada permission `sdm:kinerja:view` terpisah —
+ * tab Kinerja ikut terbuka lewat `sdm:sertifikat:view` karena satu endpoint
+ * `GET /sdm/pegawai/:id/kompetensi` memulangkan ketiganya (sertifikat,
+ * penilaian, kinerja) sekaligus.
+ */
+
+/** Bentuk PERSIS `GET /sdm/pegawai`, `PEGAWAI_SELECT`, `timesheet-staf.ts:30-34`. */
+export interface PegawaiSdm {
+  id: string
+  user_id: string | null
+  nomor_induk: string | null
+  jabatan: string | null
+  departemen: string | null
+  tanggal_masuk: string | null
+  tanggal_keluar: string | null
+  jam_standar: number | string | null
+  status_ptkp: string | null
+  kategori_ter: string | null
+  created_at: string
+  orang: { id: string; name: string; email: string | null } | null
+}
+export interface RespDaftarPegawai { pegawai: PegawaiSdm[] }
+
+/**
+ * Bentuk pegawai SUBSET yang dipulangkan `GET /sdm/pegawai/:id/kompetensi`
+ * (`kompetensi-sdm.ts:74`) dan `GET /sdm/pegawai/:id/cuti`
+ * (`cuti-karyawan.ts:60`) — KEDUANYA `select('id, nomor_induk, jabatan,
+ * orang:users ( id, name )')`, BUKAN `PEGAWAI_SELECT` penuh dipakai
+ * `/timesheet`. Field lain (`user_id`, `departemen`, `jam_standar`, dst)
+ * TAK ADA di respons ini — memakai `PegawaiSdm` penuh di sini akan
+ * menyatakan field yang sebenarnya `undefined`.
+ */
+export interface PegawaiSdmRingkas {
+  id: string
+  nomor_induk: string | null
+  jabatan: string | null
+  orang: { id: string; name: string } | null
+}
+
+/** Bentuk PERSIS `BarisDinilai`, `lib/timesheet-staf.ts:44-54,67-81`. */
+export type StatusTimesheetPM = "draf" | "diajukan" | "disetujui" | "ditolak"
+export interface BarisTimesheetPM {
+  id: string
+  tanggal: string
+  jam_kerja: number | string
+  jam_lembur: number | string
+  project_id: string | null
+  kegiatan: string | null
+  status: StatusTimesheetPM
+  alasan_tolak: string | null
+  jam_kerja_n: number
+  jam_lembur_n: number
+  total: number
+  melebihi_standar: boolean
+  di_bawah_standar: boolean
+}
+/** Bentuk PERSIS `RingkasanTimesheet`, `lib/timesheet-staf.ts:83-102`. */
+export interface RingkasanTimesheetPM {
+  baris: BarisTimesheetPM[]
+  total_jam_kerja: number
+  total_jam_lembur: number
+  hari_terisi: number
+  hari_kosong: string[]
+  per_status: Record<StatusTimesheetPM, number>
+  per_proyek: Array<{ project_id: string | null; jam: number; lembur: number }>
+  perlu_ditanya: BarisTimesheetPM[]
+}
+export interface PenghalangAjukanPM {
+  kode: "kosong" | "sudah-diajukan" | "ada-hari-kosong"
+  pesan: string
+  tanggal?: string[]
+}
+/** `GET /sdm/pegawai/:id/timesheet?bulan=YYYY-MM` — `pegawai` PENUH (`PEGAWAI_SELECT`). */
+export interface RespTimesheetPegawai {
+  pegawai: PegawaiSdm
+  bulan: string
+  rentang: { awal: string; akhir: string }
+  ringkasan: RingkasanTimesheetPM
+  pengajuan: { boleh: boolean; penghalang: PenghalangAjukanPM[]; peringatan: PenghalangAjukanPM[] }
+}
+
+/** Bentuk PERSIS `SertifikatDinilai`, `lib/kompetensi-sdm.ts:37-56,60-64`. */
+export type StatusSertifikatPM = "berlaku" | "akan_habis" | "kedaluwarsa"
+export interface SertifikatPM {
+  id: string
+  jenis: string
+  nama: string
+  nomor: string | null
+  penerbit: string | null
+  klasifikasi: string | null
+  kualifikasi: string | null
+  tanggal_terbit: string | null
+  berlaku_sampai: string | null
+  berjangka: boolean
+  status: StatusSertifikatPM
+  sisa_hari: number | null
+}
+export interface RingkasanSertifikatPM {
+  baris: SertifikatPM[]
+  berlaku: number
+  akan_habis: number
+  kedaluwarsa: number
+  perlu_tindakan: SertifikatPM[]
+}
+/** Bentuk PERSIS `Penilaian`, `lib/kompetensi-sdm.ts:224-230`. */
+export interface PenilaianKinerjaPM {
+  id: string
+  periode: string
+  skala_maks: number | string
+  skor: number | string | null
+  status: "draf" | "final"
+}
+/** Bentuk PERSIS `RingkasanKinerja`, `lib/kompetensi-sdm.ts:243-250` — `persen` SUDAH dinormalkan 0-100. */
+export interface RingkasanKinerjaPM {
+  tren: Array<{ periode: string; persen: number | null; status: "draf" | "final" }>
+  rata_final: number | null
+  jumlah_final: number
+  jumlah_draf: number
+}
+/** `GET /sdm/pegawai/:id/kompetensi?pada=&ambang=` — `pegawai` SUBSET (lihat `PegawaiSdmRingkas`). */
+export interface RespKompetensiPegawai {
+  pegawai: PegawaiSdmRingkas
+  pada: string
+  sertifikat: RingkasanSertifikatPM
+  penilaian: PenilaianKinerjaPM[]
+  kinerja: RingkasanKinerjaPM
+}
+
+/** Bentuk PERSIS `Lamaran`, `LAMARAN_SELECT`, `kompetensi-sdm.ts:47-50`. */
+export type TahapLamaranPM = "masuk" | "seleksi_berkas" | "wawancara" | "tawaran" | "diterima" | "ditolak"
+export interface LamaranKerjaPM {
+  id: string
+  nama: string
+  email: string | null
+  telepon: string | null
+  posisi: string
+  sumber: string | null
+  tahap: TahapLamaranPM
+  catatan_tahap: string | null
+  path_cv: string | null
+  catatan: string | null
+  pegawai_id: string | null
+  created_at: string
+  updated_at: string
+}
+export interface RespDaftarLamaran { lamaran: LamaranKerjaPM[] }
+
+/** Bentuk PERSIS `lib/cuti-karyawan.ts:38-40`. */
+export type JenisCutiPM = "tahunan" | "sakit" | "melahirkan" | "penting" | "besar" | "tanpa_gaji"
+export type StatusCutiPM = "diajukan" | "disetujui" | "ditolak" | "dibatalkan"
+/** Bentuk PERSIS `BarisHak`, `lib/cuti-karyawan.ts:45-52`. */
+export interface BarisHakPM {
+  id: string
+  tahun: number
+  jumlah_hari: number | string
+  alasan: string
+  berlaku_sampai: string | null
+}
+/** Bentuk PERSIS `BarisAmbil`, `lib/cuti-karyawan.ts:54-64`. */
+export interface BarisAmbilPM {
+  id: string
+  jenis: JenisCutiPM
+  tanggal_mulai: string
+  tanggal_selesai: string
+  jumlah_hari: number | string
+  status: StatusCutiPM
+  alasan: string | null
+  alasan_tolak: string | null
+  hari_dilewati: string | null
+}
+/** Bentuk PERSIS `SaldoCuti`, `lib/cuti-karyawan.ts:158-166` — `sisa` BISA NEGATIF. */
+export interface SaldoCutiPM { tahun: number; hak: number; terpakai: number; tertahan: number; sisa: number }
+/** Bentuk PERSIS `PenghalangCuti`, `lib/cuti-karyawan.ts:212-217`. */
+export interface PenghalangCutiPM {
+  kode: "saldo-kurang" | "tumpang-tindih" | "nol-hari" | "rentang-terbalik"
+  pesan: string
+  bentrok?: BarisAmbilPM[]
+}
+/** `GET /sdm/pegawai/:id/cuti?tahun=YYYY` — `pegawai` SUBSET (lihat `PegawaiSdmRingkas`). */
+export interface RespCutiPegawai {
+  pegawai: PegawaiSdmRingkas
+  tahun: number
+  hak: BarisHakPM[]
+  ambil: BarisAmbilPM[]
+  saldo: SaldoCutiPM
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {

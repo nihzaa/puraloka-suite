@@ -96,12 +96,22 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * TETAP fallback web dengan alasan lama (tabel lebar multi-vendor tak cocok
  * kartu mobile).
  *
+ * Tahap 7 (Task 39): "SDM & Payroll" (g-hr) diaktifkan — TIGA halaman baru
+ * dibangun (Timesheet, Kompetensi & Rekrutmen dengan tiga tab, Cuti & Izin),
+ * dipetakan lewat `hr-absensi`/`hr-cuti`/`hr-sertifikasi`/`hr-rekrutmen`/
+ * `hr-kinerja` di `PETA_HREF_PORTAL` (`kategori/[key]/page.tsx`). Enam key
+ * `g-hr` LAIN (`hr-karyawan`, `hr-payroll`, `hr-upah`, `hr-bpjs`, `hr-pph21`,
+ * `hr-reimburse`) TIDAK dibangun Task 39 — TIDAK dipetakan, jatuh ke fallback
+ * `it.href` web (`/users`, `/sdm/payroll`, `/mandor/upah`,
+ * `/pengaturan/tarif-payroll` ×2, `/sdm/klaim-perjalanan`), pola sama dengan
+ * key belum-dipetakan di kategori lain (lihat catatan Tahap 1-6 di atas).
+ *
  * Kategori lain (Aset Tetap lintas-neraca, Audit Trail lintas-modul, dst)
  * BELUM dibangun di portal PM — JANGAN ditambahkan ke daftar ini sampai
  * tahap yang membangunnya selesai, supaya kategori kosong/setengah-jadi tak
  * pernah tampil ke PM di HP.
  */
-const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc", "g-keuangan", "g-tagih"]; // Tahap 1-6
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc", "g-keuangan", "g-tagih", "g-hr"]; // Tahap 1-7
 
 export function kategoriUntukPm(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));
