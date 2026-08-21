@@ -25,11 +25,16 @@ direktur sekaligus**. Riset sebelum brainstorming ini menemukan:
   PT sekaligus dalam satu layar**. Fitur rollup lintas-company itu **belum
   ada**, dan migrasi 137 eksplisit mencatat alasan kenapa itu ditolak saat
   itu (mengubah model akses data/RLS yang tidak diminta).
-- **`direktur` adalah role terpisah dari `admin`**, bukan alias — overlap
-  permission besar di banyak domain (payroll, custom field, back charge,
-  opname bersama), tapi beberapa permission murni eksklusif satu arah
-  (`gl:periode:reopen` hanya `direktur`; `settings:credentials:*` dan
-  `approval:override_sod` hanya `admin`).
+- **`direktur` adalah role terpisah dari `admin`**, bukan alias — TAPI
+  diukur ulang lewat live query (2026-08-22, riset Task 1): permission
+  `direktur` (143) adalah **SUBSET MURNI** dari `admin` (227), bukan overlap
+  dua-arah seperti dugaan awal. `gl:periode:reopen` ternyata dipegang
+  **admin DAN direktur** (bukan direktur-eksklusif seperti tercatat semula).
+  `approval:override_sod` ada di katalog permission tapi **NOL role
+  memilikinya saat ini** (termasuk admin) — bukan admin-eksklusif, sekadar
+  belum digrant ke siapa pun. Yang terkonfirmasi BENAR admin-only:
+  `settings:credentials:*` (direktur nol baris). **0 user aktif berperan
+  direktur** saat ini (dikonfirmasi live, sama seperti catatan migrasi 295).
 
 **Keputusan pembagian kerja (brainstorming 2026-08-22):**
 
