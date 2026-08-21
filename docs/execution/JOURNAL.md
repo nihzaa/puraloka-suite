@@ -5,6 +5,59 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-21 (Portal PM Lengkap, Tahap 5) — Koreksi Minor dari review Task 30: angka penjaga CI di entri Task 30 sudah basi
+
+Review coordinator atas entri Task 30 di bawah (commit `0b7009ae`) menemukan
+satu Minor: baris "Penjaga CI penuh" entri itu mencatat **"129 hijau · 42
+MERAH · 2 tak ketemu"** dan hanya menarasikan SATU perbaikan
+(`uji-rute-dinamis-teraudit.mjs`, 128→129 hijau). Angka itu BASI — bukan
+salah tulis, melainkan tertinggal satu langkah: sesudah entri itu ditulis,
+perbaikan KEDUA dilakukan (normalisasi CRLF→LF lima berkas, dijaga
+`audit-akhir-baris.mjs`) yang menaikkan hasilnya lagi. Angka FINAL yang
+benar — dikonfirmasi `task-30-report.md` §6d dan direproduksi ulang
+reviewer secara independen — adalah:
+
+**130 hijau · 41 MERAH · 2 tak ketemu** (PERSIS SAMA dengan baseline Task
+26 yang dikutip brief 130/41/2, bukan 129/42 seperti tertulis di entri di
+bawah).
+
+Kronologi lengkap dua perbaikan (untuk rekaman, entri di bawah TIDAK
+diedit sesuai konvensi append-only §0 dokumen ini):
+
+1. Run pertama sesudah kode Task 30 selesai: **128 hijau · 43 MERAH · 2
+   tak ketemu**.
+2. Fix #1 — `uji-rute-dinamis-teraudit.mjs` menandai
+   `/pm-portal/mutu/rencana/[id]` (rute dinamis baru) tak punya contoh id
+   untuk audit a11y. Diperbaiki: `LAYAR_ID_RMP` ditambah ke `CONTOH_ID`
+   (`audit-a11y-runtime.mjs`) + `PERTANYAAN`
+   (`jalankan-a11y-lengkap.mjs`). Hasil naik ke **129 hijau · 42 MERAH**
+   — angka INI yang (keliru) tercatat sebagai FINAL di entri Task 30 di
+   bawah.
+3. Fix #2 — `audit-akhir-baris.mjs` menandai 5 berkas (`_bersama/tipe.ts`,
+   `approval/page.tsx`, `k3/page.tsx`, `audit-a11y-runtime.mjs`,
+   `jalankan-a11y-lengkap.mjs`) berubah dari LF (HEAD) jadi CRLF di pohon
+   kerja — akibat proses penyuntingan, isi tak berubah. Diperbaiki dengan
+   skrip pemulihan yang disediakan penjaga itu sendiri
+   (`\r\n` → `\n`). Hasil naik ke **130 hijau · 41 MERAH** — angka FINAL
+   sebenarnya, tapi entri Task 30 di bawah SUDAH ditulis sebelum fix ini
+   dijalankan ulang, jadi tak pernah dinarasikan di JOURNAL (hanya ada di
+   `task-30-report.md`).
+
+**Kenapa ini penting ditulis eksplisit**: JOURNAL.md adalah rekaman
+KANONIK (CLAUDE.md §0/§8a.4) — lebih dipercaya daripada skrip sekali-pakai
+atau laporan task individual. Angka "129/42" yang dibiarkan basi di sana
+berisiko dibaca sesi berikutnya sebagai "guard suite regresi dari 130 ke
+129", padahal regresi itu TIDAK PERNAH terjadi — baseline Task 26 dan
+hasil akhir Task 30 identik. Kelas kesalahan yang sama dengan yang
+diperingatkan §0 dokumen ini sendiri ("kalau kenyataan tidak cocok dengan
+dokumen, kenyataan yang menang").
+
+Tidak ada perubahan kode — murni koreksi dokumentasi. `tsc`/`eslint`/guard
+suite TIDAK dijalankan ulang untuk perbaikan ini (angka sudah terverifikasi
+di `task-30-report.md` dan direproduksi reviewer).
+
+---
+
 ## 2026-08-21 (Portal PM Lengkap, Tahap 5) — Task 30 tuntas: Rencana Mutu/ITP + Uji Material + JSA lanjutan + navigasi g-qaqc tersambung, TAHAP 5 (Rencana & Uji Mutu + K3 lanjutan) SELESAI
 
 Task TERAKHIR Tahap 5. Membangun 3 halaman baru + 2 modifikasi + navigasi
