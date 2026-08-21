@@ -132,16 +132,16 @@ plan_features                            -- katalog kapabilitas yang bisa di-tog
   value_type TEXT CHECK (value_type IN ('boolean','integer','text'))
 
 plan_feature_values                      -- apa yang didapat tiap plan, per fitur
-  id UUID PK, plan_id UUID FK, feature_key TEXT FK(plan_features.key)
+  id UUID PK, plan_id UUID FK plans, feature_id UUID FK plan_features(id)
   value_boolean BOOLEAN, value_integer INTEGER, value_text TEXT   -- hanya salah satu terisi sesuai value_type
-  UNIQUE(plan_id, feature_key)
+  UNIQUE(plan_id, feature_id)
 
 tenant_feature_overrides                 -- pengecualian per-tenant (mis. kuota AI 2x utk 1 pelanggan sbg retensi)
-  id UUID PK, company_id UUID FK companies, feature_key TEXT FK(plan_features.key)
+  id UUID PK, company_id UUID FK companies, feature_id UUID FK plan_features(id)
   value_boolean BOOLEAN, value_integer INTEGER, value_text TEXT
   reason TEXT NOT NULL                   -- WAJIB: override tanpa alasan tercatat = keputusan tak terlacak
   created_by UUID FK admin_saas_users, created_at, expires_at TIMESTAMPTZ NULL
-  UNIQUE(company_id, feature_key)
+  UNIQUE(company_id, feature_id)
 
 subscriptions                            -- satu baris = langganan aktif tenant saat ini
   id UUID PK, company_id UUID FK companies UNIQUE
@@ -154,7 +154,7 @@ subscriptions                            -- satu baris = langganan aktif tenant 
   created_at, updated_at TIMESTAMPTZ
 
 tenant_usage_counters                    -- kuota TERPAKAI, terpisah dari definisi kuota (plan_feature_values)
-  company_id UUID FK companies, feature_key TEXT FK(plan_features.key)
+  company_id UUID FK companies, feature_key TEXT FK plan_features(key)  -- TEXT sengaja, lihat catatan di bawah
   period_start DATE, period_end DATE     -- selaras current_period_start/end subscription, BUKAN kalender 1-31
   used_count INTEGER NOT NULL DEFAULT 0
   PRIMARY KEY (company_id, feature_key, period_start)
@@ -179,6 +179,23 @@ tidak ada risiko cron reset gagal senyap.
 langganan, bukan tanggal 1 kalender**: tenant yang daftar tanggal 15
 punya periode billing 15→14, bukan 1→31 — hardcode kalender adalah bug
 umum yang disebut eksplisit oleh riset.
+
+**Kenapa `plan_feature_values`/`tenant_feature_overrides` FK ke
+`plan_features.id` (UUID) tapi `tenant_usage_counters` FK ke
+`plan_features.key` (TEXT) — dua pola berbeda, disengaja bukan
+inkonsisten**: celah yang ketahuan saat ditinjau ulang — draft pertama
+memakai `feature_key TEXT` di ketiganya, padahal itu satu-satunya pola
+FK-ke-kolom-TEXT-unik di seluruh skema (`050_rbac_foundation.sql` dkk.
+selalu FK ke UUID PK). Dua tabel pertama diperbaiki ke `feature_id
+UUID` supaya konsisten dengan konvensi. `tenant_usage_counters` sengaja
+DIPERTAHANKAN `feature_key TEXT`: baris ini akan paling sering ditulis
+oleh kode enforcement kuota (mis. sesi integrasi AI nanti) yang wajar
+memakai konstanta string (`'ai_monthly_quota'`) langsung tanpa lookup
+UUID lebih dulu di jalur panas (hot path) permintaan AI — mengharuskan
+join ke `plan_features` demi UUID di titik yang paling sering dieksekusi
+adalah biaya nyata untuk manfaat semu (kedua kolom sama-sama unik &
+stabil). `plan_features.key` tetap `UNIQUE`, jadi integritasnya tetap
+terjaga lewat FK biasa ke kolom itu.
 
 **Pola enforcement kuota (catatan implementasi untuk sesi integrasi AI
 nanti, BUKAN dibangun di sini)**: check-then-increment sinkron saat
@@ -237,6 +254,21 @@ melompati grace period. Dua kolom ini bisa berbeda kombinasi:
 `suspended`+`read_only` (masa tenggang) vs `suspended`+`blocked`
 (setelah tenggang habis atau pelanggaran).
 
+**`read_only` WAJIB tetap mengizinkan tenant membayar sendiri** — celah
+yang ketahuan saat ditinjau ulang: definisi "read_only = semua tulis
+diblokir" tanpa pengecualian berarti tenant yang sedang tenggang bayar
+justru **tidak bisa membayar sendiri** (halaman pembayaran/langganan
+mereka sendiri butuh menulis: konfirmasi metode bayar, submit bukti
+transfer, dsb) — bertentangan langsung dengan tujuan masa tenggang itu
+sendiri (beri kesempatan bayar sebelum hard-lock). `read_only` berarti
+diblokir dari **operasi bisnis tenant** (PO baru, approval baru, invoice
+baru ke klien mereka) — bukan dari **halaman langganan/billing mereka
+sendiri**, yang harus tetap bisa diakses & ditulis penuh berapa pun
+`access_mode`-nya (kecuali `blocked`, yang memang mengganti seluruh UI
+jadi layar "hubungi billing"). Titik baca `access_mode` (§ di atas,
+"satu titik pembacaan") harus tahu perbedaan ini — bukan blokir generik
+di level request, tapi blokir di level *jenis operasi*.
+
 **Retensi data**: `scheduled_deletion_at` diisi **90 hari** setelah
 `canceled_at` (bukan 30) — riset merekomendasikan ini untuk vertical
 SaaS konstruksi, karena data proyek/kontrak punya relevansi
@@ -258,7 +290,8 @@ keputusan implementasi untuk plan, dicatat di sini sebagai requirement:
 
 ```sql
 saas_invoices
-  id UUID PK, company_id UUID FK companies, subscription_id UUID FK subscriptions
+  id UUID PK, company_id UUID FK companies ON DELETE SET NULL
+  subscription_id UUID FK subscriptions ON DELETE SET NULL
   invoice_number TEXT UNIQUE
   period_start DATE, period_end DATE
   amount NUMERIC NOT NULL, currency TEXT DEFAULT 'IDR'
@@ -284,6 +317,17 @@ CMS compro yang sudah ada.
 Detail integrasi payment gateway (Midtrans/Xendit/dll) **tidak**
 dirancang di sini — `payment_reference` adalah kolom pass-through yang
 cukup untuk plan berikutnya merancang integrasinya tanpa migrasi ulang.
+
+**`ON DELETE SET NULL`, BUKAN `CASCADE`, ke `companies`/`subscriptions`**
+— celah yang ketahuan saat ditinjau ulang: job hard-delete pasca-90-hari
+(§4.2, `scheduled_deletion_at`) menghapus baris `companies`. Kalau FK-nya
+`CASCADE`, riwayat tagihan vendor (`saas_invoices`) ikut lenyap bersama
+tenant yang dihapus. Itu keliru — invoice yang sudah `paid`/`sent` adalah
+**dokumen keuangan milik vendor sendiri** (butuh untuk pembukuan/pajak
+vendor), bukan data tenant yang boleh ikut hilang saat retensi tenant
+habis. `SET NULL` mempertahankan baris invoice-nya (dengan
+`invoice_number`, `amount`, `paid_at` tetap utuh untuk laporan), hanya
+melepas rujukannya ke tenant yang sudah tak ada.
 
 ### 4.4 Auth & RBAC internal admin-saas
 
@@ -336,6 +380,50 @@ governance-nya dimiliki repo lain. `reason` wajib untuk aksi berisiko —
 riset menegaskan ini konvensi hampir universal untuk impersonation
 khususnya (time-boxed + alasan wajib sebelum aktivasi).
 
+**Satu orang bisa punya DUA baris (`company_members` DAN
+`admin_saas_users`) — ini SAH, bukan bug.** Celah yang ketahuan saat
+ditinjau ulang: §8 menyebut kebutuhan nyata "satu orang bisa jadi staf
+admin-saas SEKALIGUS user tenant Puraloka Persada sendiri" tapi §4.4
+tidak menjelaskan implikasinya secara eksplisit. Karena `auth.users`
+adalah satu project Supabase yang sama (keputusan §1), satu
+`auth_user_id` bisa punya baris di `company_members` (identitasnya
+sebagai *karyawan Puraloka Persada, tenant biasa*) DAN baris di
+`admin_saas_users` (identitasnya sebagai *staf vendor*) — dua konteks
+otorisasi yang sepenuhnya independen, tak saling mewarisi permission.
+Middleware admin-saas HANYA pernah membaca `admin_saas_users`+
+`admin_saas_role_permissions`; middleware `puraloka-suite` HANYA pernah
+membaca `company_members`+`roles`. Tidak ada jalur kode yang membaca
+keduanya sekaligus untuk satu keputusan otorisasi — kalau nanti ada,
+itu pelanggaran terhadap batas §1 poin 2 (auth terpisah total) dan
+harus ditolak saat code review.
+
+**`value_type` di `plan_feature_values`/`tenant_feature_overrides`
+belum ditegakkan lewat constraint, baru komentar SQL** — celah lain
+yang ketahuan saat ditinjau ulang. Komentar `-- hanya salah satu terisi
+sesuai value_type` di §4.1 adalah niat, bukan penegakan; tanpa
+constraint, admin bisa mengisi `value_integer` untuk fitur yang
+`value_type='boolean'` dan kode pembaca kuota akan salah baca kolom
+mana yang otoritatif. Wajib ditambahkan saat migrasi ditulis:
+
+```sql
+-- Berlaku sama untuk plan_feature_values DAN tenant_feature_overrides
+CONSTRAINT chk_value_matches_type CHECK (
+  (SELECT value_type FROM plan_features WHERE id = feature_id) = 'boolean'
+    AND value_integer IS NULL AND value_text IS NULL
+  OR ... value_type = 'integer' AND value_boolean IS NULL AND value_text IS NULL
+  OR ... value_type = 'text'    AND value_boolean IS NULL AND value_integer IS NULL
+)
+```
+
+CHECK constraint dengan subquery tidak didukung Postgres secara
+langsung (CHECK harus immutable per-baris) — jalur yang benar adalah
+**trigger `BEFORE INSERT OR UPDATE`** yang membaca `value_type` dari
+`plan_features` dan menolak kalau kolom yang terisi tidak cocok. Ini
+detail migrasi (bukan didetailkan lagi di sini), tapi dicatat sebagai
+**requirement mengikat**: migrasi yang membuat kedua tabel ini TIDAK
+boleh dianggap selesai tanpa trigger validasi ini terpasang & teruji
+lewat mutasi sengaja (pola pembuktian penjaga di `CLAUDE.md` §8a.2).
+
 ## 5. Fitur & menu admin-saas (poin 1)
 
 IA mengikuti pola "search-first" yang riset konfirmasi sebagai konvensi
@@ -348,9 +436,50 @@ horizontal (bukan sidebar bersarang).
 - Detail (tab): Overview · Billing · Users · Usage · Feature Flags · Audit
 - Provisioning tenant baru: form → INSERT `companies`+`company_members`+
   `auth.users`(admin pertama)+`subscriptions`(trial) dalam satu alur (§1,
-  keputusan founder)
+  keputusan founder) — **urutan & penanganan-gagal wajib seperti §5.1a**
 - Suspend/reaktivasi: set `company_saas_meta.lifecycle_status`+
   `access_mode`, WAJIB isi `suspended_reason`
+
+#### 5.1a Provisioning bukan satu transaksi — urutan wajib & pemulihan gagal-tengah-jalan
+
+Celah yang ketahuan saat ditinjau ulang: "INSERT langsung dalam satu
+alur" (§1) terdengar seperti satu transaksi atomik, padahal secara
+teknis **tidak bisa** — `auth.users` dibuat lewat Supabase Auth Admin
+API (panggilan HTTP terpisah), bukan `INSERT` SQL biasa yang ikut serta
+dalam transaksi Postgres bersama `companies`/`company_members`/
+`subscriptions`. Kalau urutannya sembarang dan gagal di tengah,
+hasilnya tenant "setengah jadi" — mis. `auth.users` berhasil dibuat tapi
+`companies` gagal (constraint `companies_code_format` menolak slug),
+menyisakan akun login yang menganggur tanpa company, atau sebaliknya
+`companies` berhasil tapi `auth.users` gagal, menyisakan tenant tanpa
+admin yang bisa login sama sekali.
+
+Urutan wajib (untuk meminimalkan state rusak, bukan menghilangkannya
+sepenuhnya — itu batas nyata dari punya 2 sistem berbeda):
+
+1. **Transaksi Postgres SATU**: `INSERT companies` → `INSERT
+   subscriptions` (status `trialing`) → `INSERT company_saas_meta`
+   (status `provisioning`). Kalau salah satu gagal, semuanya rollback
+   otomatis (satu transaksi) — belum ada `auth.users` yang dibuat sama
+   sekali, jadi tak ada sampah tersisa.
+2. **Baru setelah transaksi di langkah 1 COMMIT**: panggil Supabase Auth
+   Admin API untuk buat `auth.users` admin pertama + `INSERT
+   company_members` (transaksi Postgres kedua, terpisah).
+3. Kalau langkah 2 gagal (mis. email sudah terdaftar): `companies` dari
+   langkah 1 **tetap ada** tapi `company_saas_meta.lifecycle_status`
+   tetap `'provisioning'` — UI admin-saas HARUS menampilkan tenant ini
+   sebagai "provisioning gagal, admin belum dibuat" (bukan hilang
+   senyap), dengan tombol retry yang mengulangi HANYA langkah 2 (pakai
+   `company_id` yang sudah ada, bukan bikin `companies` baru lagi).
+
+Prinsip yang mengikat: **`lifecycle_status='provisioning'` yang
+bertahan lebih dari beberapa menit adalah sinyal gagal-tengah-jalan**,
+bukan status transisi normal — halaman list tenant (§5.1) wajib
+menyorot tenant begini secara berbeda dari tenant `active` biasa. Ini
+persis pola yang sudah terbukti di `otomasi_jalan` milik
+`puraloka-suite` (§7): catat state SEBELUM memanggil sistem eksternal
+yang tak transaksional, supaya kegagalan punya jejak yang terlihat,
+bukan menggantung senyap.
 
 ### 5.2 Billing & Subscription (wajib, poin 1)
 - Daftar `saas_invoices`, status pembayaran, kirim reminder manual
@@ -403,6 +532,30 @@ horizontal (bukan sidebar bersarang).
   sementara vs token khusus) adalah keputusan level plan implementasi,
   bukan didetailkan di sini — yang mengikat di spec ini hanya: **wajib
   audit trail + wajib alasan + wajib time-box**.
+- **Jejak di sisi TENANT wajib jujur, bukan menyamar** — celah yang
+  ketahuan saat ditinjau ulang: kalau staf admin-saas login-as lalu
+  melakukan aksi yang tercatat di `audit_logs` MILIK TENANT (mis.
+  approve invoice, ubah data proyek), `user_id` di baris audit tenant
+  itu **tidak boleh** tercatat seolah-olah itu admin tenant asli yang
+  melakukannya — itu memalsukan jejak audit tenant, dan tenant tak
+  pernah tahu aksinya sebenarnya dilakukan staf vendor. `audit_logs`
+  ber-Ember-[C] (immutable, `CLAUDE.md` §5.3) justru menegaskan ini
+  serius: sekali tercatat salah, tak bisa dikoreksi.
+  Requirement mengikat untuk plan implementasi: sesi impersonation
+  HARUS membuat baris `audit_logs` tenant tetap ber-`user_id` = admin
+  tenant yang di-impersonate (supaya alur approval/permission tenant
+  tetap konsisten), TAPI setiap baris yang ditulis selama sesi
+  impersonation aktif wajib menyertakan penanda tambahan yang merujuk
+  balik ke `admin_saas_audit_log` (mis. kolom `impersonated_by_admin_saas_log_id`
+  di `audit_logs`, atau tabel jembatan terpisah) — sehingga siapa pun
+  yang membaca jejak tenant nanti bisa menelusuri "aksi ini sebenarnya
+  dilakukan staf vendor X, alasan Y" tanpa tenant kehilangan
+  konsistensi peran di audit log-nya sendiri. Detail kolom persisnya
+  adalah keputusan migrasi saat plan implementasi ditulis (kemungkinan
+  butuh 1 migrasi kecil ADDITIVE di `puraloka-suite` untuk kolom
+  penanda ini) — yang mengikat di sini hanya: **tak boleh ada aksi
+  impersonation yang tercatat di audit tenant tanpa jejak balik ke
+  admin-saas**.
 
 ## 6. Kontrak API publik untuk marketing-saas (poin 1)
 
