@@ -36,8 +36,9 @@
 // digerbang eksplisit di `rab/[id]/page.tsx`.
 //
 // `AKSI` sekarang berisi `kasbon`, `submittal`, `material_request`,
-// `purchase_order`, `rencana_mutu` — semuanya diverifikasi ke kode nyata
-// (lihat komentar per-entri). Jenis lain yang mungkin punya baris pending di
+// `purchase_order`, `rencana_mutu`, `klaim_perjalanan`, `project_expense` —
+// semuanya diverifikasi ke kode nyata (lihat komentar per-entri). Jenis lain
+// yang mungkin punya baris pending di
 // company LAIN (change_order, dst) akan tetap TAMPIL sebagai kartu (tak
 // disembunyikan — menyembunyikan pekerjaan yang menunggu lebih buruk
 // daripada menampilkannya tanpa tombol aksi), tapi diarahkan ke halaman
@@ -66,6 +67,39 @@
 // komponen ini dipakai apa adanya bila kelak role lain (qhse_manager,
 // direktur) memakai layar serupa, dan menaruh entrinya sekarang mencegah
 // riset ulang dari nol.
+//
+// ── `klaim_perjalanan` & `project_expense` (Task 36, Tahap 6)
+//
+// Keduanya SUDAH terdaftar di katalog backend `lib/inbox-approval.ts` sejak
+// sebelum Task 31 (baris pengukuran live di atas: "klaim_perjalanan":0 —
+// company uji itu memang belum punya klaim pending saat diukur, BUKAN PM tak
+// berwenang). Task 36 menambahkan keduanya ke `AKSI` frontend:
+//
+//   klaim_perjalanan — `klaim:setujui` (PM punya). Rantai bisa BERTINGKAT
+//   (migrasi 339) — ditangani generik oleh pemeriksaan `pending_next_level`
+//   di `putuskan()`, tak perlu kode khusus. TIDAK ADA detail-fetch: `GET
+//   /klaim-perjalanan/:id` bergerbang `klaim:view`, dan PM TIDAK PUNYA
+//   permission itu (PM cuma `klaim:setujui`/`klaim:bayar`) — gate mismatch
+//   yang dikonfirmasi Task 31 sebagai concern arsitektural, BUKAN sesuatu
+//   yang diperbaiki di modul frontend ini. Kartu bottom sheet karena itu
+//   HANYA menampilkan field baris inbox generik (nomor, keperluan, nominal,
+//   tanggal dari `BarisInbox`) — pola SAMA seperti kartu-kartu sebelum Task
+//   24 menambahkan detail MR/PO, bukan regresi.
+//
+//   project_expense — rantai approval berbasis konfigurasi per-tenant
+//   (ADR-007, `canParticipateInChain`/`evaluateEntityApproval`); seed dasar
+//   `cash:expense:approve`, TAPI bisa berbeda per company. Tombol ini BISA
+//   403 di sebagian tenant — itu keputusan otorisasi SERVER yang benar,
+//   bukan cacat UI (dicatat di komentar `AKSI.project_expense` sendiri).
+//   TIDAK ADA `GET /:id` untuk `project_expenses` (diverifikasi: `cash.ts`
+//   hanya mendaftarkan list, POST, dan PATCH status) — kartu sama pola
+//   generik seperti klaim_perjalanan di atas.
+//
+// Kedua jenis ini TIDAK ditambahkan ke `memuatDetail`/`detailGagal` — jenis
+// tanpa detail-fetch tak boleh menunggu `memuatDetail` yang tak pernah jadi
+// `true`, dan tak boleh dianggap "detail gagal dimuat" karena memang tak
+// pernah mencoba memuatnya. Tombol Setujui/Tolak aktif LANGSUNG dari data
+// baris inbox (`dipilih`), sama seperti kasbon/submittal sebelum Task 24.
 //
 // ── Kartu inbox tak membawa detail (spec §2.4 poin 2)
 //
@@ -147,6 +181,12 @@ const JALUR_PM: Record<string, string> = {
   material_request: "/pm-portal/procurement",
   purchase_order: "/pm-portal/procurement",
   rencana_mutu: "/pm-portal/mutu/rencana",
+  // Task 36 (Tahap 6) — belum ada halaman klaim perjalanan / pengeluaran
+  // proyek tersendiri di portal PM (PM tak punya `klaim:view`, lihat
+  // komentar `AKSI.klaim_perjalanan` di bawah), diarahkan ke halaman
+  // Keuangan/Kas yang paling dekat kaitannya.
+  klaim_perjalanan: "/pm-portal/keuangan/kas",
+  project_expense: "/pm-portal/keuangan/kas",
 };
 
 interface KonfigAksi {
@@ -239,6 +279,56 @@ const AKSI: Record<string, KonfigAksi> = {
     approveBody: () => ({}),
     rejectUrl: (id) => `/api/v1/rencana-mutu/${id}/setujui`,
     rejectBody: () => ({}), // no-op aman, TIDAK dipanggil — tombol Tolak selalu nonaktif
+  },
+  // Task 36 (Tahap 6) — `PATCH /api/v1/klaim-perjalanan/:id/putuskan`
+  // (`apps/api/src/routes/v1/klaim-perjalanan.ts:283`). Body:
+  // { setujui: boolean, total_disetujui?, alasan? }. Rantai approval
+  // `klaim_perjalanan` bisa BERTINGKAT (migrasi 339,
+  // `evaluateEntityApproval`) — sama seperti kasbon/submittal, endpoint bisa
+  // membalas `pending_next_level: true`, dan itu SUDAH ditangani generik oleh
+  // `putuskan()` di atas (tak perlu kode tambahan di sini).
+  //
+  // ⚠️ TIDAK ADA detail-fetch terpisah untuk jenis ini: `GET
+  // /klaim-perjalanan/:id` bergerbang `klaim:view`, dan PM TIDAK PUNYA
+  // permission itu (PM cuma `klaim:setujui`/`klaim:bayar` — gate mismatch
+  // yang dikonfirmasi live Task 31, BUKAN sesuatu yang diperbaiki di sini).
+  // Kartu bottom sheet karena itu HANYA menampilkan field baris inbox
+  // generik (nomor, keperluan, nominal, tanggal dari `BarisInbox`), tanpa
+  // rincian item per jenis pengeluaran — lihat cabang render generik di
+  // bawah, dan `detailGagal` yang SENGAJA tidak menyertakan jenis ini
+  // (tombol aksi aktif langsung dari `dipilih`, tak menunggu fetch detail
+  // yang memang tak pernah dicoba).
+  klaim_perjalanan: {
+    metode: "patch",
+    approveUrl: (id) => `/api/v1/klaim-perjalanan/${id}/putuskan`,
+    approveBody: () => ({ setujui: true }),
+    rejectUrl: (id) => `/api/v1/klaim-perjalanan/${id}/putuskan`,
+    rejectBody: (alasan) => ({ setujui: false, alasan }),
+  },
+  // Task 36 (Tahap 6) — `PATCH /api/v1/cash/expenses/:id/status`
+  // (`apps/api/src/routes/v1/cash.ts:607`). Body:
+  // { status: 'approved'|'rejected', notes? }. Rantai approval
+  // `project_expense` (ADR-007) — gerbang KASAR (`canParticipateInChain`)
+  // memeriksa apakah PM punya SALAH SATU permission dari langkah manapun
+  // yang berlaku di company ini. Seed dasar = `cash:expense:approve`, tapi
+  // ini KONFIGURASI PER-TENANT — tombol ini BISA 403 untuk sebagian tenant.
+  // Itu benar secara otorisasi (bukan bug UI): inbox menampilkan barisnya
+  // karena entity type-nya terdaftar di katalog (`lib/inbox-approval.ts`),
+  // tapi keputusan sesungguhnya tetap digerbang server per-tenant — sama
+  // pola dengan endpoint lain di berkas ini yang mengandalkan validasi
+  // server, bukan gerbang klien tambahan.
+  //
+  // ⚠️ TIDAK ADA detail-fetch terpisah: `project_expenses` tak punya
+  // `GET /:id` berdiri sendiri (diverifikasi: `cash.ts` hanya mendaftarkan
+  // `GET /api/v1/cash/expenses` list, `POST`, dan `PATCH /:id/status` — tak
+  // ada rute `GET /:id`). Kartu bottom sheet HANYA menampilkan field baris
+  // inbox generik, sama pola `klaim_perjalanan` di atas.
+  project_expense: {
+    metode: "patch",
+    approveUrl: (id) => `/api/v1/cash/expenses/${id}/status`,
+    approveBody: () => ({ status: "approved" }),
+    rejectUrl: (id) => `/api/v1/cash/expenses/${id}/status`,
+    rejectBody: (alasan) => ({ status: "rejected", notes: alasan }),
   },
 };
 
@@ -575,6 +665,27 @@ export default function PmApprovalPage() {
               </div>
             )}
 
+            {/* Task 36 — `klaim_perjalanan`/`project_expense` TAK PUNYA
+                detail-fetch (lihat komentar `AKSI.klaim_perjalanan`/
+                `AKSI.project_expense` di atas): render APA ADANYA dari baris
+                inbox generik (`dipilih`/`BarisInbox`), bukan dari objek
+                detail per-jenis seperti kasbon/submittal/MR/PO/RMP di atas. */}
+            {(dipilih.jenis === "klaim_perjalanan" || dipilih.jenis === "project_expense") && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface-subtle)" }}>
+                <Baris label="Nomor" nilai={dipilih.nomor ?? "—"} />
+                <Baris label="Keperluan" nilai={dipilih.judul ?? "—"} />
+                <Baris
+                  label="Nominal"
+                  nilai={dipilih.nominal !== null ? `Rp ${dipilih.nominal.toLocaleString("id-ID")}` : "—"}
+                />
+                <Baris label="Diajukan" nilai={fmtTanggal(dipilih.dibuat_pada)} />
+                <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
+                  Rincian lengkap (nama pemohon, item/kategori) tidak tersedia dari layar ini —
+                  keputusan didasarkan pada ringkasan di atas.
+                </div>
+              </div>
+            )}
+
             {/* Fallback EKSPLISIT — detail gagal dimuat ATAU tak ketemu di
                 list. Tombol Setujui/Tolak di bawah digerbang `detailGagal`
                 ini; blok ini yang membuat kegagalan itu TERLIHAT, bukan
@@ -686,6 +797,14 @@ export default function PmApprovalPage() {
                     Rencana mutu tidak punya aksi tolak dari sini. Persetujuan RMP hanya wewenang
                     admin/direktur — bila tombol Setujui di atas ditekan, server akan menolaknya
                     (403) karena Anda tidak memegang izin `mutu:rmp:approve`.
+                  </div>
+                )}
+
+                {dipilih.jenis === "project_expense" && (
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    Wewenang menyetujui pengeluaran proyek diatur per-perusahaan — bila tombol
+                    di atas ditolak server, hubungi admin untuk memeriksa konfigurasi rantai
+                    persetujuannya.
                   </div>
                 )}
 

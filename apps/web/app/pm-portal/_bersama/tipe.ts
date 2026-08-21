@@ -3053,6 +3053,74 @@ export interface RespRekonsiliasiDetail {
 }
 
 /**
+ * Kontrak Payung / Expediting / Nota Kredit (Task 36). Bentuk PERSIS
+ * `apps/api/src/lib/pengadaan-lanjutan.ts` + rute
+ * `apps/api/src/routes/v1/pengadaan-lanjutan.ts`, diverifikasi baris-per-baris
+ * (Task 31 Step 1, Temuan #1/#4) — SATU endpoint `GET /pengadaan-lanjutan`,
+ * TIGA sub-modul (pola sama `kurva-s.ts`).
+ *
+ * ⚠️ PM boleh MEMBUAT kontrak payung/nota kredit dan mencatat expediting
+ * (`procurement:po:manage`, PM punya) TAPI TIDAK BERWENANG memutuskan/
+ * menerapkan nota kredit (`procurement:payment:manage`, PM TIDAK punya —
+ * diverifikasi langsung ke `pengadaan-lanjutan.ts` baris 561/637). Tombol
+ * putuskan/terapkan SENGAJA TIDAK ADA di halaman PM, bukan cuma disabled.
+ */
+export interface ItemPayungPM {
+  id: string; uraian: string; satuan: string
+  harga_satuan: number | string; kuota: number | string; terpakai?: number | string | null
+  sisa: number; persenTerpakai: number; habis: boolean; hampirHabis: boolean; nilaiTerpakai: number
+}
+export type StatusPayungPM =
+  | "aktif" | "kuota_habis" | "segera_berakhir" | "kedaluwarsa" | "belum_mulai" | "tak_aktif"
+export interface HasilPayungPM {
+  id: string; nomor: string; judul?: string | null; supplier_id?: string | null; pemasok_nama?: string | null
+  berlaku_dari: string; berlaku_sampai: string; pagu_nilai?: number | string | null; status: string
+  statusNyata: StatusPayungPM; sisaHari: number | null
+  itemDinilai: ItemPayungPM[]; nilaiTerpakai: number; sisaPagu: number | null
+  aktifTapiTakBisaDipakai: boolean
+}
+export interface RespKontrakPayungPM {
+  kontrak: HasilPayungPM[]; aktif: number; kuotaHabis: number; segeraBerakhir: number
+  aktifTapiTakBisaDipakai: number
+}
+
+export interface HasilExpeditingPM {
+  id: string; po_id: string; po_number?: string | null; pemasok_nama?: string | null
+  status: string; butuh_tanggal?: string | null; janji_vendor?: string | null
+  perkiraan_tiba?: string | null; tiba_aktual?: string | null; lokasi_terkini?: string | null
+  sebab_tertahan?: string | null
+  telatHari: number | null; telatDariJanji: number | null; janjiSudahTelat: boolean
+  kritis: boolean; sudahTiba: boolean
+}
+export interface RespExpeditingPM {
+  kiriman: HasilExpeditingPM[]; telat: number; kritis: number; tertahan: number
+  janjiSudahTelat: number; telatTerparah: number | null
+}
+
+export interface HasilNotaKreditPM {
+  id: string; nomor: string; tanggal?: string | null; jenis: string; jumlah: number | string
+  status: "draft" | "diajukan" | "disetujui" | "ditolak" | "diterapkan"
+  supplier_id?: string | null; pemasok_nama?: string | null; supplier_invoice_id?: string | null
+  diputuskan_pada?: string | null; diterapkan_pada?: string | null
+  jumlahAngka: number; umurSetujuHari: number | null; menggantung: boolean
+}
+export interface RespNotaKreditPM {
+  nota: HasilNotaKreditPM[]; totalDisetujui: number; totalDiterapkan: number
+  nilaiMenggantung: number; menggantung: number
+}
+
+export interface RespPengadaanLanjutan {
+  tanggal: string
+  kontrakPayung: RespKontrakPayungPM
+  expediting: RespExpeditingPM
+  notaKredit: RespNotaKreditPM
+}
+
+// Dropdown pemilih supplier di form kontrak payung/nota kredit memakai
+// `SupplierRingkas`/`RespSupplierDaftar` YANG SUDAH ADA di atas (Task 24,
+// `GET /api/v1/procurement/suppliers`) — TIDAK diduplikasi di sini.
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
