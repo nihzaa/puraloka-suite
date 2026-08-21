@@ -2174,6 +2174,209 @@ export interface RespRekonsiliasi {
 }
 
 /**
+ * Kepatuhan & Izin Kerja (Task 28). Bentuk diverifikasi baris-per-baris ke
+ * `apps/api/src/lib/kepatuhan-k3.ts` (fungsi pure) DAN
+ * `apps/api/src/routes/v1/kepatuhan-k3.ts` (route yang memanggilnya) —
+ * bukan ditebak dari nama kolom tabel. Brief awal Task 28 menandai beberapa
+ * field ini "verifikasi saat implementasi"; koreksi dari bacaan lib nyata
+ * dicatat di tiap komentar di bawah (detail lengkap: task-28-report.md).
+ */
+
+/** Baris mentah tabel `dokumen_kepatuhan`, sebelum dinilai `nilaiKepatuhan()`. */
+export interface DokumenKepatuhanRaw {
+  id: string
+  supplier_id: string | null
+  pihak_nama: string | null
+  jenis: string
+  nomor: string | null
+  penerbit: string | null
+  berlaku_dari: string | null
+  berlaku_sampai: string | null
+  nilai_pertanggungan: number | string | null
+  terverifikasi: boolean
+  file_url: string | null
+}
+
+/**
+ * Hasil `nilaiKepatuhan()` (`lib/kepatuhan-k3.ts:90-102`, tipe `HasilDokumen`).
+ *
+ * ⚠️ KOREKSI dari brief: union `status` PERSIS lima nilai (bukan `| string`
+ * longgar) — `'berlaku' | 'segera_habis' | 'kedaluwarsa' | 'tanpa_masa' |
+ * 'belum_diverifikasi'`. Brief menghilangkan `'tanpa_masa'` (dokumen tanpa
+ * masa berlaku, mis. NPWP, yang SUDAH diverifikasi). Field `hijauTapiMati`
+ * (dokumen `terverifikasi=true` TAPI sudah lewat tanggal — "centang hijau
+ * atas dokumen yang tak berlaku") tidak ada sama sekali di brief, padahal
+ * ini keadaan yang PALING ditekankan komentar lib (empat hal yang modul
+ * menolak tampilkan sebagai kabar baik, poin 1).
+ */
+export interface DokumenDinilai extends DokumenKepatuhanRaw {
+  status: "berlaku" | "segera_habis" | "kedaluwarsa" | "tanpa_masa" | "belum_diverifikasi"
+  sisaHari: number | null
+  hijauTapiMati: boolean
+}
+
+/**
+ * Hasil `nilaiKepatuhan()` UTUH (`lib/kepatuhan-k3.ts:104-111`, tipe
+ * `RingkasKepatuhan`) — dipulangkan APA ADANYA sebagai field `dokumen` di
+ * `GET /api/v1/kepatuhan` (`kepatuhan-k3.ts:68-69,96`).
+ *
+ * ⚠️ KOREKSI dari brief: brief menulis `RingkasDokumen { dokumen: [...] }`
+ * dengan komentar "ringkasan tambahan ikut sesuai bentuk asli, jangan
+ * menebak nama field". Bentuk asli SUDAH dibaca — lib mengembalikan EMPAT
+ * angka ringkasan bernama, bukan struktur longgar: `total`, `kedaluwarsa`,
+ * `segeraHabis`, `belumDiverifikasi`, `hijauTapiMati`.
+ */
+export interface RingkasDokumen {
+  dokumen: DokumenDinilai[]
+  total: number
+  kedaluwarsa: number
+  segeraHabis: number
+  belumDiverifikasi: number
+  hijauTapiMati: number
+}
+
+export interface EvaluasiSubkonRaw {
+  id: string
+  project_id: string | null
+  supplier_id: string | null
+  pihak_nama: string | null
+  periode: string
+  skor_mutu: number | string
+  skor_waktu: number | string
+  skor_k3: number | string
+  skor_kepatuhan: number | string
+  skor_kerjasama: number | string
+  jumlah_kecelakaan: number
+  jumlah_pelanggaran_k3: number
+  masuk_daftar_hitam: boolean
+  alasan_daftar_hitam: string | null
+  catatan: string | null
+}
+
+/**
+ * Hasil `nilaiEvaluasiSubkon()` (`lib/kepatuhan-k3.ts:178-195`, tipe
+ * `HasilEvaluasiSubkon`).
+ *
+ * ⚠️ KOREKSI dari brief: brief menebak "skor_gabungan / label dsb." sebagai
+ * PLACEHOLDER eksplisit. Field asli sama sekali beda nama: `skor` (angka
+ * berbobot 0-100, K3 25% + kepatuhan 20% seperti disebut brief, TAPI nama
+ * fieldnya `skor` bukan `skor_gabungan`), `rataPolos` (rata-rata polos —
+ * lib menyebut "dibawa hanya untuk dibandingkan, BUKAN dipakai" — jangan
+ * jadikan angka utama di UI), `titikLemah: string[]` (label dimensi di
+ * bawah ambang 60), `bolehDipakai: boolean` (false bila daftar hitam ATAU
+ * ADA kecelakaan — kecelakaan MENGGUGURKAN skor, bukan mengurangi rata-rata),
+ * `alasanTakBolehDipakai: string[]` (alasan siap-tampil, supaya UI tak perlu
+ * menyimpulkan sendiri dari kombinasi field lain).
+ */
+export interface EvaluasiDinilai extends EvaluasiSubkonRaw {
+  skor: number
+  rataPolos: number
+  titikLemah: string[]
+  bolehDipakai: boolean
+  alasanTakBolehDipakai: string[]
+}
+
+/**
+ * Hasil `nilaiKesiapanPihak()` (`lib/kepatuhan-k3.ts:318-335`, tipe
+ * `KesiapanPihak`) — dipulangkan APA ADANYA sebagai field `kesiapan` di
+ * `GET /api/v1/kepatuhan` (`kepatuhan-k3.ts:75,98`), TANPA transformasi.
+ *
+ * ⚠️ KOREKSI PENTING dari brief: brief menulis field `pihak_nama` — field
+ * SESUNGGUHNYA bernama `nama` (BUKAN `pihak_nama`). Salah salin nama ini di
+ * frontend berarti kartu kesiapan tampil kosong untuk SETIAP pihak (field
+ * `undefined`), cacat yang brief sendiri peringatkan lewat pola "Task 24
+ * field bersarang harus diverifikasi, bukan ditebak". Field lain yang brief
+ * tandai "verifikasi saat implementasi" juga hilang total dari draf brief:
+ * `dokumenKedaluwarsa`, `dokumenSegeraHabis` (jumlah dokumen bermasalah
+ * pihak ini), `skorTerakhir: number | null` (evaluasi TERBARU yang
+ * menentukan, bukan rata-rata sepanjang masa — `null` bila belum pernah
+ * dinilai, BUKAN 0), dan `alasan: string[]` (gabungan alasan dokumen +
+ * evaluasi kenapa `bolehBekerja` false).
+ *
+ * Urutan array SUDAH ditentukan `nilaiKesiapanPihak()` sendiri (tak-boleh-
+ * bekerja naik ke atas, lalu skor tertinggi lebih dulu) — JANGAN diurutkan
+ * ulang di frontend, lihat komentar `kepatuhan-k3.ts:77-83` soal dua tempat
+ * mengurutkan hal yang sama saling menimpa diam-diam.
+ */
+export interface KesiapanPihak {
+  nama: string
+  supplier_id: string | null
+  dokumenKedaluwarsa: number
+  dokumenSegeraHabis: number
+  skorTerakhir: number | null
+  bolehBekerja: boolean
+  alasan: string[]
+}
+
+/** Bentuk PERSIS `GET /api/v1/kepatuhan`, `kepatuhan-k3.ts:94-99`. */
+export interface RespKepatuhan {
+  tanggal: string
+  dokumen: RingkasDokumen
+  evaluasi: EvaluasiDinilai[]
+  kesiapan: KesiapanPihak[]
+}
+
+/** Baris mentah `izin_kerja`, dipilih `kepatuhan-k3.ts:111`. */
+export interface IzinKerjaRaw {
+  id: string
+  project_id: string
+  nomor: string
+  jenis: string
+  uraian_pekerjaan: string
+  lokasi: string | null
+  berlaku_dari: string
+  berlaku_sampai: string
+  pengendalian_risiko: string | null
+  apd_wajib: string | null
+  status: "draft" | "diajukan" | "disetujui" | "ditolak"
+  diajukan_oleh: string | null
+  diajukan_pada: string | null
+  diputuskan_oleh: string | null
+  diputuskan_pada: string | null
+  alasan_tolak: string | null
+}
+
+/**
+ * Hasil `nilaiIzinKerja()` (`lib/kepatuhan-k3.ts:282-314`, tipe `HasilIzin`).
+ *
+ * ⚠️ KOREKSI dari brief: `statusNyata` bukan sembarang string — union PERSIS
+ * lima nilai: `'aktif' | 'belum_mulai' | 'kedaluwarsa' | 'menunggu' |
+ * 'tak_berlaku'`. Brief hanya menyebut tiga (`menunggu | aktif |
+ * kedaluwarsa`) dan melewatkan `'belum_mulai'` (disetujui, tapi jendelanya
+ * belum mulai) dan `'tak_berlaku'` (ditolak/ditutup/draft). Field `sisaJam`
+ * (BUKAN `sisaHari` — izin kerja dihitung per JAM, beda dari dokumen
+ * kepatuhan yang per hari) juga tak disebut brief sama sekali.
+ */
+export interface IzinKerjaDinilai extends IzinKerjaRaw {
+  statusNyata: "aktif" | "belum_mulai" | "kedaluwarsa" | "menunggu" | "tak_berlaku"
+  sisaJam: number | null
+  disetujuiTapiLewat: boolean
+}
+
+/** Bentuk hasil `nilaiIzinKerja()`, `GET /api/v1/kepatuhan/izin-kerja`. */
+export interface RespIzinKerja {
+  izin: IzinKerjaDinilai[]
+}
+
+/** Bentuk PERSIS `GET /api/v1/mutu/ikhtisar`, `mutu-ikhtisar.ts:143-192` —
+ * dipakai kartu ringkas puncak halaman kepatuhan (Task 27 Temuan #5).
+ * Diverifikasi ulang saat Task 28: cocok persis draf brief, tak ada koreksi. */
+export interface RespIkhtisarMutu {
+  ncr: {
+    total: number; terbuka: number; berat: number
+    daftar: Array<{ nomor: string; judul: string; severity: string; status: string; sisa_hari: number | null }>
+  }
+  inspeksi: { total: number; menunggu: number }
+  punch: { total: number; terbuka: number }
+  dokumen: {
+    total: number; belum_terverifikasi: number; kedaluwarsa: number; segera_habis: number
+    daftar: Array<{ pihak: string; jenis: string; sisa_hari: number | null }>
+  }
+  izin_kerja: { total: number; aktif: number; menunggu: number }
+  k3: { kecelakaan: number; daftar_hitam: number; skor_k3_terendah: number | null }
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
