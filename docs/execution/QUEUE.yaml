@@ -3341,6 +3341,34 @@ items:
       (lihat kerapatan-lantai.json._catatan). Dicatat di sini supaya tidak
       hilang, bukan diselesaikan di sini.
 
+  - id: AMBANG-TABEL-BASI
+    fase: null
+    judul: "ambang-tabel.json (uji-tabel-terbaca.mjs) basi terhadap kenyataan main — tanpaScope tercatat 3, kenyataan 6"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "ambang-tabel.json diukur ulang terhadap kode nyata (bukan diwarisi dari commit lama), field tanpaScope/tanpaCaption disesuaikan ke angka nyata dengan catatan alasan perubahan"
+      - "Enam pelanggar yang sudah diketahui (estimasi/kas, estimasi/rab, estimasi/varians, mandor/tender, keuangan/invoice, components/buku-besar.tsx) ditinjau: migrasi ke scope=\"row\"/caption ATAU lantai dinaikkan sadar dengan pengakuan eksplisit"
+    cara_verifikasi: "node apps/web/scripts/uji-tabel-terbaca.mjs — bandingkan exit code & daftar pelanggar dengan ambang-tabel.json"
+    bobot: S
+    status: menunggu
+    catatan_kemajuan: >-
+      Ditemukan re-review fix dispatch final whole-branch review branch
+      feat/pm-lengkap-tahap2 (2026-08-22). uji-tabel-terbaca.mjs sudah
+      exit 1 di main SEBELUM branch ini (bukan cacat baru) — TAPI
+      ambang-tabel.json sendiri sudah basi terhadap main: field
+      tanpaScope tertulis 3, sedangkan pengukuran nyata (baik di main
+      maupun HEAD branch ini, byte-identik) menunjukkan 6 file
+      pelanggar (estimasi/kas, estimasi/rab, estimasi/varians,
+      mandor/tender, keuangan/invoice, components/buku-besar.tsx).
+      Branch feat/pm-lengkap-tahap2 menambah NOL pelanggaran baru pada
+      guard ini — tiga tabel baru portal PM (keuangan/gl/page.tsx,
+      keuangan/gl/jurnal/[id]/page.tsx, cecep/kas/page.tsx) sudah
+      diperbaiki (caption+scope="row") di fix dispatch final review.
+      Tidak diperbaiki di sana karena menaikkan/mengoreksi ambang
+      adalah menyentuh konfigurasi penjaga CI (G-5), di luar mandat
+      fix dispatch mekanis untuk branch tunggal — butuh audit terpisah
+      kenapa baseline ambang sudah salah sejak sebelum branch ini ada.
+
   - id: MINSTOK-GUDANG-STOK-READONLY
     fase: 4
     judul: "gudang/stok (Portal PM) tak menampilkan ambang min_stock — PM tak punya tempat MELIHAT peringatan stok minimum di HP"
