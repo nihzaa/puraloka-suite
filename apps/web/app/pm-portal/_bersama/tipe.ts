@@ -3784,6 +3784,102 @@ export interface RespVerifikasiTtd {
 }
 
 /**
+ * Laporan & BI (Task 43, Tahap 7) — KPI Perusahaan, Arus Kas, Susun Laporan.
+ *
+ * `KpiProyekPM`/`StatusKpiPM` — bentuk PERSIS `lib/kpi-perusahaan.ts:43-50,140-145`
+ * (interface `KpiProyek`/`StatusKpi` di sana, disalin dengan akhiran `PM`
+ * mengikuti pola isolasi struktural berkas ini).
+ */
+export interface KpiProyekPM { id: string; name: string; cpi: number | null; spi: number | null; bac: number; ac: number }
+export interface StatusKpiPM { keadaan: "baik" | "perhatian" | "buruk" | "tak_ada_data"; arti: string }
+
+/** Bentuk PERSIS `lib/ar-register.ts:49-62` (interface `AgingRow`/`AgingSummary`). */
+export interface AgingRowPM {
+  id: string
+  due_date: string
+  amount_due: number
+  days_past_due: number
+}
+export interface AgingSummaryPM {
+  buckets: Record<"current" | "d1_30" | "d31_60" | "d61_90" | "d90_plus", number>
+  total: number
+  count: number
+  rows: AgingRowPM[]
+}
+
+/**
+ * Bentuk PERSIS `lib/bid-backlog.ts:24-48` (interface `RingkasanBid`).
+ *
+ * ⚠️ Task 38 Step 1 menandai ini TEBAKAN belum diverifikasi — diverifikasi
+ * saat implementasi Task 43: bentuk dugaan brief (4 field) HILANG empat field
+ * yang benar-benar dipulangkan `hitungBacklog()` dan dikirim APA ADANYA oleh
+ * `GET /reports/kpi-perusahaan` (`reports.ts:1656`, `backlog,` tanpa
+ * penyaringan field). `winRatePct`/`selisihHargaRataPct` bisa `null` — lihat
+ * komentar lib: "belum ada tender yang diputuskan" (win rate) atau "kalah
+ * tanpa nilai pemenang diketahui" (selisih harga), BUKAN 0.
+ */
+export interface RingkasanBidPM {
+  backlogNilai: number
+  backlogJumlah: number
+  pipelineNilai: number
+  pipelineJumlah: number
+  menang: number
+  kalah: number
+  winRatePct: number | null
+  selisihHargaRataPct: number | null
+  kalahDenganPembanding: number
+}
+
+/** Bentuk PERSIS `GET /api/v1/reports/kpi-perusahaan` (`reports.ts:1505-1658`). */
+export interface RespKpiPerusahaan {
+  tanggal: string
+  evm: {
+    cpi: number | null
+    spi: number | null
+    proyekDihitung: number
+    proyekTotal: number
+    cpiTerendah: KpiProyekPM | null
+    spiTerendah: KpiProyekPM | null
+    totalBac: number
+    totalAc: number
+    perProyek: KpiProyekPM[]
+    statusCpi: StatusKpiPM
+    statusSpi: StatusKpiPM
+    dasar_bac: string
+    dasar_pv: string
+  }
+  piutang: AgingSummaryPM
+  backlog: RingkasanBidPM
+}
+
+/** Bentuk PERSIS `GET /reports/cashflow`, `reports.ts:466-475` (`summary`+`byMonth` saja — `payments`/`expenses`/`wages`/`kasbons` TIDAK ditipekan, tak dipakai halaman ringkas ini). */
+export interface RespCashflowLaporan {
+  period: { dateFrom: string; dateTo: string }
+  summary: { totalIn: number; totalExpense: number; totalWage: number; totalKasbon: number; totalOut: number; netFlow: number }
+  byMonth: Array<{ period: string; label: string; masuk: number; keluar: number; net: number }>
+}
+
+/**
+ * Bentuk PERSIS `laporan-susun.ts` (`GET /laporan/sumber`, `POST /laporan/susun`)
+ * dan `lib/laporan-susun.ts` (`SumberData`/`Kolom`).
+ */
+export interface SumberLaporanPM {
+  kunci: string
+  label: string
+  keterangan: string
+  kolom: Array<{ kunci: string; label: string; jenis: string }>
+}
+export interface RespSumberLaporan { sumber: SumberLaporanPM[]; operator: string[]; batas_maks: number }
+export interface RespHasilLaporanSusun {
+  sumber: { kunci: string; label: string }
+  kolom: Array<{ kunci: string; label: string; jenis: string }>
+  baris: Array<Record<string, unknown>>
+  jumlah: number
+  terpotong: boolean
+  batas: number
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
