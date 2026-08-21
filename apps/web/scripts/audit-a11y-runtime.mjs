@@ -138,6 +138,15 @@ const CONTOH_ID = {
   // dan detail Purchase Order (purchase_orders.id).
   '/pm-portal/procurement/mr/[id]': process.env.LAYAR_ID_MR,
   '/pm-portal/procurement/po/[id]': process.env.LAYAR_ID_PO,
+  // Portal PM Lengkap Tahap 5, Task 29 — detail NCR (ncr_items.id). Halaman
+  // ini juga butuh `?proyek=<id>` (lihat komentar `[id]/page.tsx`) — tanpanya
+  // ia jatuh ke EmptyState "tautan tidak lengkap" yang tetap terpindai axe
+  // secara sah, tapi tak menguji isi sungguhan. `LAYAR_ID_PROYEK` dipakai
+  // ulang untuk query string supaya tak menambah env var baru hanya untuk
+  // satu parameter tambahan.
+  '/pm-portal/mutu/ncr/[id]': process.env.LAYAR_ID_NCR
+    ? `${process.env.LAYAR_ID_NCR}?proyek=${process.env.LAYAR_ID_PROYEK ?? ''}`
+    : undefined,
 }
 
 function halamanDariBerkas() {

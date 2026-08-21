@@ -184,6 +184,19 @@ import { Folder } from "lucide-react";
  *   sini: menampilkan peringatan (read-only) di `gudang/stok` adalah
  *   perubahan Task 25 punya wilayah (halaman itu), dan mengubah ambang
  *   tetap fallback web sebagaimana keputusan di atas.
+ *
+ * Tahap 5 (Task 29, grup g-lapangan — kategori sudah aktif sejak Tahap 1,
+ * hanya key `lp-ncr` yang baru dipetakan): register NCR dapat halaman
+ * portal PM sendiri (`/pm-portal/mutu/ncr` + `[id]`), menggantikan fallback
+ * ke `/mutu/ncr` (web admin) yang sebelumnya dipakai `it.href`.
+ * `audit-nav-yatim.mjs` menandai `/pm-portal/mutu/ncr` yatim sebelum baris
+ * ini ditambahkan — diperbaiki di sini, bukan didaftarkan ke WAJAR skrip
+ * itu, karena modul ini memang punya tempatnya sendiri di kategori yang
+ * sudah aktif (beda dari `sk-kepatuhan`/`lp-permit`/`sk-evaluasi`, Task 28,
+ * yang TETAP tak dipetakan di sini — bukan bagian Task 29, tak disentuh).
+ * `qc-ncr` (grup `g-qaqc`) TIDAK ikut dipetakan — kategori itu belum aktif
+ * di `KATEGORI_AKTIF` (`lib/pm-portal-kategori.ts`), jadi key-nya tak
+ * pernah dirender navigasi PM sampai grupnya diaktifkan tahap lain.
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "sk-paket": "/pm-portal/mandor-lengkap/penugasan",
@@ -263,6 +276,8 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   // "iv-minstok" (g-inventory) SENGAJA TETAP TIDAK diisi — keputusan Task 26,
   // lihat catatan panjang di atas kepala PETA_HREF_PORTAL ini. Fallback ke
   // `it.href` web (/procurement/material), pola sama dengan cc-pagu-material.
+  // Tahap 5 (Task 29) — grup g-lapangan, satu key baru.
+  "lp-ncr": "/pm-portal/mutu/ncr",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 

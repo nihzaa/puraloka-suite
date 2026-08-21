@@ -2377,6 +2377,107 @@ export interface RespIkhtisarMutu {
 }
 
 /**
+ * NCR (Non-Conformance Report) — tabel `ncr_items` (migrasi 189). Bentuk
+ * PERSIS `NCR_SELECT`, `apps/api/src/routes/v1/ncr.ts:25-59` — dipakai
+ * IDENTIK untuk list, detail (tak ada endpoint detail terpisah — lihat
+ * `RespNcrDaftar` di bawah), create, update, disposisi, dan status. Satu
+ * bentuk untuk semua operasi, diverifikasi baris-per-baris ke kode nyata
+ * (Task 29), bukan disalin dari brief tanpa dicek.
+ */
+export interface NcrItem {
+  id: string
+  project_id: string
+  nomor: string
+  judul: string
+  deskripsi: string | null
+  lokasi: string | null
+  acuan: string | null
+  severity: "minor" | "major" | "kritis" | string
+  status: "terbuka" | "disposisi" | "perbaikan" | "verifikasi" | "ditutup" | "dibatalkan" | string
+  rab_item_id: string | null
+  work_scope_id: string | null
+  inspection_request_id: string | null
+  dilaporkan_oleh: string | null
+  ditugaskan_ke: string | null
+  diverifikasi_oleh: string | null
+  diverifikasi_pada: string | null
+  disposisi: "perbaiki" | "terima" | "bongkar" | "ubah_spek" | null
+  disposisi_oleh: string | null
+  disposisi_pada: string | null
+  disposisi_catatan: string | null
+  tindakan_perbaikan: string | null
+  akar_masalah: string | null
+  biaya_dampak: number | string | null
+  target_selesai: string | null
+  ditutup_pada: string | null
+  created_at: string
+  updated_at: string
+  pelapor: { id: string; name: string } | null
+  petugas: { id: string; name: string } | null
+  verifikator: { id: string; name: string } | null
+  pemutus: { id: string; name: string } | null
+  rab_item: { id: string; name: string; category_code: string | null; level: number | null } | null
+  work_scope: { id: string; scope_name: string } | null
+}
+
+/**
+ * Bentuk PERSIS `GET /api/v1/projects/:projectId/ncr`, `ncr.ts:233-249`.
+ * Tak ada `GET /ncr/:id` berdiri sendiri (diverifikasi: hanya list, POST,
+ * dan tiga PATCH terdaftar di `ncr.ts`) — halaman detail mencari `id` dari
+ * hasil list ini, sama pola `SubmittalDetailInbox`/`KasbonDetailInbox` di
+ * atas.
+ */
+export interface RespNcrDaftar {
+  data: NcrItem[]
+  meta: {
+    per_status: Record<string, number>
+    per_severity: Record<string, number>
+    total: number
+    belum_selesai: number
+    kritis_terbuka: number
+    biaya_dampak_total: number
+    rekap_lengkap: boolean
+  }
+}
+
+/**
+ * Bentuk `RingkasanKandidat` + `jumlah_inspeksi`, `GET
+ * /api/v1/projects/:projectId/ncr/kandidat` (`ncr.ts:128-183`, membungkus
+ * `ringkasKandidatNcr()` di `apps/api/src/lib/inspeksi-ke-ncr.ts:177-195`).
+ * Diverifikasi ke kode nyata (Task 29): fungsi lib memulangkan
+ * `{ kandidat, sudah_ber_ncr, jumlah_diperiksa }`, dan rute menambah
+ * `jumlah_inspeksi` di lapis atasnya — BUKAN field longgar seperti dugaan
+ * awal brief.
+ *
+ * TIDAK DIPAKAI di Step 2/3 (lihat catatan lingkup di komponen) — alur
+ * "usul dari inspeksi gagal" ditunda, tipe ini disediakan supaya
+ * perluasannya tak perlu riset ulang.
+ */
+export interface UsulNcr {
+  inspection_request_id: string
+  nomor_inspeksi: string
+  judul: string
+  deskripsi: string
+  lokasi: string | null
+  rab_item_id: string | null
+  work_scope_id: string | null
+  /** SELALU null — severity tak boleh ditebak mesin (komentar lib). */
+  severity: null
+  diperiksa_pada: string | null
+}
+export interface RespKandidatNcr {
+  kandidat: UsulNcr[]
+  /** Sudah punya NCR — dihitung supaya daftarnya tak terlihat menyusut. */
+  sudah_ber_ncr: number
+  /** Berapa inspeksi yang diperiksa seluruhnya (penyebut BAGIAN dari kandidat). */
+  jumlah_diperiksa: number
+  /** Penyebut TOTAL — ditambahkan lapis rute, di luar `jumlah_diperiksa`. */
+  jumlah_inspeksi: number
+}
+
+export interface RespNcrSatu { data: NcrItem }
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
