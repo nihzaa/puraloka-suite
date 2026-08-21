@@ -185,7 +185,7 @@ export default function PmSusunLaporanPage() {
 
       <div aria-live="polite">
         {hasil && (
-          <div style={{ background: "var(--surface)", borderRadius: "var(--portal-radius-card)", padding: "var(--pad-kartu)", border: "1px solid var(--border)", overflowX: "auto" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)", border: "1px solid var(--border)", overflowX: "auto" }}>
             <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>
               {hasil.jumlah} baris{hasil.terpotong ? ` (dipotong batas ${hasil.batas})` : ""}
             </div>

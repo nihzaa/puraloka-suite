@@ -3255,6 +3255,46 @@ items:
       redirect yang sama. Status TETAP `menunggu` — bukan diklaim
       selesai.
 
+  - id: JUDUL-RATCHET-PORTAL-MOBILE
+    fase: null
+    judul: "judul-ratchet.mjs basi terhadap seluruh portal mobile — 66 dari 77 halaman pm-portal sudah melanggar lantai sebelum Tahap 7, +11 lagi dari Task 39-45"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "Keputusan founder diambil: (a) bangun komponen KepalaHalamanPortal khusus shell mobile lalu daftarkan exception resmi di judul-ratchet.mjs, ATAU (b) naikkan lantai judul-lantai.json ke nilai terkini dengan pengakuan eksplisit portal mobile sengaja tak memakai KepalaHalaman"
+      - "Kalau opsi (a): seluruh halaman pm-portal/* memakai KepalaHalamanPortal, judul-ratchet.mjs hijau tanpa exception ad-hoc"
+      - "Kalau opsi (b): scripts/judul-lantai.json._catatan menyebut eksplisit alasan portal mobile dikecualikan, bukan sekadar angka baru"
+    cara_verifikasi: "node apps/web/scripts/judul-ratchet.mjs — exit 0"
+    bobot: M
+    status: menunggu
+    catatan_kemajuan: >-
+      Ditemukan Task 45 (2026-08-22, verifikasi akhir menyeluruh Portal
+      PM Lengkap). judul-ratchet.mjs menegakkan lantai 27 (`<h1>` ditulis
+      sendiri, bukan lewat KepalaHalaman) yang ternyata SUDAH BASI jauh
+      sebelum Tahap 7: diukur ke commit 433d3c3a (sebelum Task 39
+      dimulai), 66 dari 77 halaman pm-portal/* yang ADA SEBELUM Task 39
+      SUDAH melanggar lantai ini (97 pelanggaran vs lantai 27). Task
+      39-45 menambah 11 lagi (97→108), mengikuti pola <h1 style={{
+      fontSize: 20, fontWeight: 700 }}> yang IDENTIK di seluruh 77
+      halaman sebelumnya — bukan variasi liar yang jadi alasan penjaga
+      ini dibuat (UIR-2 aslinya menegur 27 varian gaya <h1> berbeda;
+      pm-portal justru SATU gaya konsisten).
+      TIDAK diperbaiki di Task 45 karena dua alasan: (1) KepalaHalaman
+      (components/dasar.tsx) memakai token shell DASHBOARD ADMIN
+      (--r3/--r4/--rad-sedang), BUKAN token shell portal mobile
+      (--gap-bagian/--pad-kartu/--portal-radius-card) — memaksanya ke
+      88 halaman pm-portal butuh verifikasi visual menyeluruh di luar
+      scope task verifikasi; (2) menaikkan lantai judul-lantai.json
+      adalah mengubah KONFIGURASI penjaga CI, sensitif G-5 (CLAUDE.md
+      §6, "penjaga tak boleh dilemahkan tanpa ratifikasi"), di luar
+      wewenang implementer task verifikasi.
+      Whole-branch reviewer (2026-08-22) mengonfirmasi keputusan TIDAK
+      memperbaiki 88 halaman KepalaHalaman dan TIDAK menaikkan lantai
+      sendiri sudah BENAR — merekomendasikan controller menerimanya apa
+      adanya, dan merekomendasikan item QUEUE ini dibuat supaya
+      keputusan founder tak hilang begitu JOURNAL bertambah panjang.
+      Menutupnya BUKAN perubahan kode kecil — salah satu dari dua opsi
+      di kriteria_selesai perlu keputusan sadar founder lebih dulu.
+
   - id: MINSTOK-GUDANG-STOK-READONLY
     fase: 4
     judul: "gudang/stok (Portal PM) tak menampilkan ambang min_stock — PM tak punya tempat MELIHAT peringatan stok minimum di HP"
