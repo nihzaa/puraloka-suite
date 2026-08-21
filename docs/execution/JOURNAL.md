@@ -5,6 +5,101 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-22 (Portal Admin/Direktur Lengkap, Task 5) — Tahap 1 SELESAI: navigasi kategori + verifikasi akhir tahap
+
+Task 5 adalah task TERAKHIR Tahap 1 (Task 3: Dashboard Eksekutif, Task 4:
+Approval Inbox) — bukan fitur baru, mengisi `KATEGORI_AKTIF` level GRUP
+(`lib/admin-portal-kategori.ts`) dengan `["g-laporan", "g-sistem"]` dan
+`PETA_HREF_PORTAL` level ITEM inline di `admin-portal/kategori/[key]/
+page.tsx` (`bi-eksekutif` → `/admin-portal`, `sy-inbox-approval` →
+`/admin-portal/inbox`), lalu verifikasi menyeluruh Tahap 1. Detail lengkap:
+`.superpowers/sdd/2026-08-22-portal-admin-direktur-lengkap/task-5-report.md`.
+
+**Koreksi mekanisme dari riset Task 2 dikonfirmasi BENAR sebelum implementasi**
+(brief Task 5 sudah menandainya): `KATEGORI_AKTIF` disaring level GRUP
+(`PETA_MENU.filter(g => KATEGORI_AKTIF.includes(g.key))`), bukan level item —
+draf lama yang mengisi kunci ITEM di sana akan membuat halaman kategori
+kosong selamanya tanpa galat. Diverifikasi ulang ke `peta-menu.ts` nyata:
+`bi-eksekutif` di `g-laporan` (baris 354), `sy-inbox-approval` di `g-sistem`
+(baris 373) — tak berubah dari riset sebelumnya.
+
+**Efek samping yang DISENGAJA, bukan cacat**: mengaktifkan `g-laporan`/
+`g-sistem` level grup membuat SEMUA item `status: 'hidup'` lain di kedua
+grup itu (bi-proyek, bi-biaya, bi-arus-kas, bi-portofolio, bi-kpi,
+lap-susun, bi-export · sys-impor, sy-user, sy-permission, sy-approval,
+sy-notifikasi, sy-kredensial, ai-*, sy-audit, dst.) ikut tampil di
+`/admin-portal/kategori/{g-laporan,g-sistem}` — tapi TANPA entri di
+`PETA_HREF_PORTAL`, jadi fallback ke `it.href` web (pola sama persis
+Portal PM). Diverifikasi baca kode: fallback `href={PETA_HREF_PORTAL[it.key]
+?? it.href ?? "#"}` tak pernah crash, tak pernah 404 dari sisi navigasi.
+
+**Typecheck**: 0 error (`tsc --noEmit`).
+
+**Build produksi**: `pnpm build` exit 0, 248 halaman ter-generate termasuk
+`/admin-portal/kategori/[key]`.
+
+**Guard CI dibandingkan ke baseline `a0df4762` (commit sebelum Task 3)**
+lewat worktree terpisah (`git worktree add --detach`) menjalankan skrip
+yang SAMA persis, diff NAMA SKRIP (bukan cuma angka total): **128 hijau ·
+43 MERAH · 2 tak ketemu di KEDUA sisi** — himpunan skrip merah identik,
+nol regresi baru dari Tahap 1. Hanya tiga angka numerik berbeda:
+
+| Guard | Baseline (a0df4762) | Sekarang | Delta |
+|---|---|---|---|
+| `kerapatan-ratchet.mjs` | 289 (lantai 181) | 291 | +2 (dari Task 3/4, BUKAN Task 5 — diff Task 5 sendiri nol padding baru) |
+| `judul-ratchet.mjs` | 111 (lantai 27) | 112 | +1 (satu `<h1>` di `kategori/[key]/page.tsx` dari Task 1, bukan Task 3/4/5) |
+| `uji-tombol-primer-seragam.mjs` | 12 (lantai 4) | 11 | **membaik** −1, bukan drift |
+
+Kedua drift (+2/+1) sudah pra-eksisting SEBELUM Task 3 dimulai (289/111 di
+baseline, jauh di atas lantai 181/27) — Tahap 1 menambah sedikit di atas
+utang yang sudah ada, pola identik JUDUL-RATCHET-PORTAL-MOBILE/
+FORMAT-RATCHET-PORTAL-MOBILE dari Portal PM. Dicatat sebagai item QUEUE
+baru `RATCHET-DRIFT-ADMIN-PORTAL-TAHAP1` (bukan diperbaiki di Task 5 —
+scope task ini murni dua array pemetaan, dan menaikkan/menurunkan lantai
+adalah keputusan founder terpisah).
+
+`audit-halaman-pakai-cache.mjs` (path benar: `apps/api/scripts/`, BUKAN
+`apps/web/scripts/` seperti tertulis di brief Step 4 — dikoreksi saat
+eksekusi): 24/261 (baseline) → 24/262 (sekarang), lantai 24 tak bergerak.
+
+**a11y runtime**: server worktree ini dijalankan di port non-bentrok
+(API 3017, web 3099 — port 3000/3007 baku sudah dipakai proses live LAIN
+di checkout `E:\Project\puraloka-suite` root, bukan worktree ini, jadi
+TIDAK diganggu sesuai aturan §8a.1). `jalankan-a11y-lengkap.mjs` dipicu
+dengan `LAYAR_BASIS=http://localhost:3099` — **run PERTAMA selesai
+lengkap** (159 halaman dipindai mode terang, exit 0) dan menemukan cacat
+NYATA: 4 pelanggaran `aria-hidden-focus` (serious) di `/admin-portal`,
+satu per instance `MiniChart` — SVG Recharts memasang `tabIndex` fokus
+keyboard sendiri (accessibilityLayer default TRUE di Recharts 3) di dalam
+kontainer `aria-hidden="true"`, jadi pengguna keyboard bisa Tab masuk ke
+chart yang sengaja disembunyikan dari assistive tech (datanya sudah ada
+sebagai teks di `KpiCard`) lalu terjebak tanpa satu pun konten terumumkan.
+**DIPERBAIKI**: `accessibilityLayer={false}` ditambahkan ke `AreaChart`/
+`BarChart` di `components/portal/MiniChart.tsx`. `tsc --noEmit` dan
+`pnpm build` sesudah fix keduanya bersih.
+**Run KEDUA (verifikasi fix) TIDAK SEMPAT SELESAI** — dua percobaan
+dihentikan (satu pulang hasil ganjil hanya berisi dump env tanpa bagian
+hasil dalam waktu jauh lebih singkat dari run pertama, mengindikasikan
+proses berhenti dini bukan selesai wajar; satu lagi masih berjalan >9
+menit saat dihentikan atas instruksi eksplisit supaya task ini tak
+berlarut). **Dicatat JUJUR**: perbaikan `accessibilityLayer={false}` benar
+secara kode (didukung `tsc`+`build` bersih dan pembacaan API Recharts 3
+langsung dari source paket terpasang), TAPI belum dikonfirmasi ulang lewat
+axe-core runtime sesudah perubahan — bukan diklaim "sudah tercakup"
+(pelajaran Task 30 Portal PM). Mode gelap TIDAK sempat dijalankan sama
+sekali (run pertama hanya mode terang). `/admin-portal/inbox` dan
+`/admin-portal/kategori*` (termasuk `g-master`) SUDAH terkonfirmasi 0
+pelanggaran dari run pertama, sebelum fix MiniChart — tak terpengaruh
+perubahan ini karena chart hanya dipakai di Beranda `/admin-portal`.
+
+**Dokumen diperbarui**: `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` (§18 Laporan
+& BI, §19 Administrasi Sistem — catatan Portal Admin/Direktur menyusul
+pola catatan Portal PM yang sudah ada di dokumen yang sama), `docs/
+INDEKS-DOKUMEN.md` diregenerasi (`gen-indeks-docs.mjs`, guard ini pra-eksisting
+merah di baseline karena isi `docs/` berubah lebih dulu — regenerasi
+membuatnya hijau, bukan bagian scope wajib Task 5 tapi tak berbiaya
+tambahan karena docs sudah disentuh).
+
 ## 2026-08-22 (Portal PM Lengkap, Task 45) — Verifikasi akhir MENYELURUH: PLAN SELESAI (32 modul, 8 tahap, 78 halaman pm-portal)
 
 Task 45 adalah task TERAKHIR dari plan 45-task "Portal PM Lengkap". Bukan

@@ -22,9 +22,18 @@ import { Folder } from "lucide-react";
  * tapi tautannya ke path web asli sebagai fallback sampai versi portalnya
  * dibangun — pola persis `PETA_HREF_PORTAL` di pm-portal.
  *
- * Tahap 0 (Task 1): KOSONG — belum ada halaman portal admin yang dibangun.
+ * Tahap 1 (Task 3-4): bi-eksekutif (Dashboard Eksekutif, grup g-laporan) →
+ * Beranda admin-portal sendiri (Task 3 mengganti placeholder Task 1 di
+ * halaman itu, BUKAN halaman terpisah — href yang sama dengan Beranda).
+ * sy-inbox-approval (Menunggu Persetujuan, grup g-sistem) → halaman inbox
+ * Task 4. Grup `g-laporan`/`g-sistem` diaktifkan PENUH di
+ * `admin-portal-kategori.ts` (level grup) — item lain kedua grup itu yang
+ * key-nya TAK ADA di bawah ini (bi-proyek, bi-biaya, sys-impor, sy-audit,
+ * dst) sengaja jatuh ke fallback `it.href` web, pola sama persis pm-portal.
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
+  "bi-eksekutif": "/admin-portal",
+  "sy-inbox-approval": "/admin-portal/inbox",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 

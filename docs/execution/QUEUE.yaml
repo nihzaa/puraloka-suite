@@ -3403,3 +3403,47 @@ items:
       item QUEUE.yaml eksplisit supaya tak bergantung pada seseorang
       membaca komentar kode untuk menemukannya lagi — pola sama dengan
       A11Y-PM-PORTAL di atas.
+
+  - id: RATCHET-DRIFT-ADMIN-PORTAL-TAHAP1
+    fase: null
+    judul: "kerapatan-ratchet.mjs dan judul-ratchet.mjs sudah RED di main sebelum Portal Admin/Direktur dimulai — Tahap 1 menambah +2/+1 di atasnya, bukan penyebab aslinya"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "Keputusan founder diambil untuk kerapatan-ratchet.mjs: (a) migrasi halaman pelanggar ke token --pad-kartu/--pad-kartu-lega/--gap-grid/--gap-bagian lalu turunkan kerapatan-lantai.json, ATAU (b) naikkan lantai dengan pengakuan eksplisit drift pra-eksisting"
+      - "Keputusan founder diambil untuk judul-ratchet.mjs: (a) migrasi <h1> mentah ke <KepalaHalaman> (atau padanan shell portal, lihat JUDUL-RATCHET-PORTAL-MOBILE untuk masalah serupa di Portal PM) lalu turunkan judul-lantai.json, ATAU (b) naikkan lantai dengan pengakuan eksplisit"
+      - "Kalau opsi (a) dipilih untuk salah satu: node apps/web/scripts/kerapatan-ratchet.mjs / judul-ratchet.mjs — exit 0 pada lantai yang sudah diturunkan"
+    cara_verifikasi: "node apps/web/scripts/kerapatan-ratchet.mjs && node apps/web/scripts/judul-ratchet.mjs — bandingkan angka dengan catatan_kemajuan di bawah"
+    bobot: M
+    status: menunggu
+    catatan_kemajuan: >-
+      Ditemukan Task 5 (2026-08-22, verifikasi akhir Tahap 1 Portal
+      Admin/Direktur Lengkap). Dibandingkan lewat worktree terpisah
+      (`git worktree add --detach` pada commit a0df4762, commit SEBELUM
+      Task 3 dimulai) menjalankan skrip yang SAMA persis:
+      kerapatan-ratchet.mjs sudah 289 (vs lantai 181, BERTAMBAH 108) DAN
+      judul-ratchet.mjs sudah 111 (vs lantai 27, BERTAMBAH 84) di baseline
+      itu — SEBELUM satu baris kode Portal Admin/Direktur pun ditulis.
+      Task 3 (Dashboard Eksekutif) + Task 4 (Approval Inbox) menambah
+      kerapatan-ratchet 289→291 (+2, halaman baru mengulang pola padding
+      dipaku yang sudah menyebar di seluruh dashboard admin) dan
+      judul-ratchet 111→112 (+1, satu <h1> mentah di
+      admin-portal/kategori/[key]/page.tsx yang dibangun Task 1 — bukan
+      Task 3/4 — dan tak tersentuh Task 5). Task 5 sendiri (dua file,
+      admin-portal-kategori.ts + kategori/[key]/page.tsx) TIDAK menambah
+      satu padding/gap dipaku maupun satu <h1> baru — diff Task 5 murni
+      isian array string dan komentar.
+      Pola dan akar masalah IDENTIK dengan JUDUL-RATCHET-PORTAL-MOBILE /
+      FORMAT-RATCHET-PORTAL-MOBILE (Portal PM, ditemukan Task 45 branch
+      lain): kedua penjaga menegakkan lantai yang sudah basi terhadap
+      `main` jauh sebelum plan Portal Admin/Direktur ini ada — modul admin
+      lama (dashboard, dst.) sudah menyalin pola <h1>/padding-dipaku yang
+      sama sebelum KepalaHalaman/token kerapatan konsisten dipakai semua
+      halaman. Bukan cacat baru cabang ini; dicatat di sini SUPAYA
+      keputusan menaikkan lantai (atau memigrasi backlog-nya) jadi
+      keputusan founder terpisah, bukan diputuskan sendiri di tengah task
+      navigasi yang scope-nya cuma dua array pemetaan.
+      uji-tombol-primer-seragam.mjs (guard lain yang disebut brief Task 5)
+      justru MEMBAIK selama rentang yang sama: 12 → 11 (masih di atas
+      lantai 4, tapi bukan drift baru — arahnya turun, bukan naik) —
+      dicatat di sini untuk konteks, TIDAK butuh item QUEUE terpisah
+      karena tidak memburuk.

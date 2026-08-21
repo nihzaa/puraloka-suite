@@ -430,6 +430,19 @@ gerbang izin sama dengan `/laporan/susun` web). `bi-eksekutif`/`bi-proyek`
 TIDAK direplikasi (sudah ada sebagai halaman lain); `bi-terjadwal`
 (`status: 'sebagian'`) di luar scope §1 spec (hanya modul `hidup`).
 
+**Portal Admin/Direktur (`admin-portal/*`)** — Tahap 1 selesai (Task 3-5,
+2026-08-22): `bi-eksekutif` (Dashboard Eksekutif) kini JUGA Beranda
+`/admin-portal` sendiri, bukan sekadar tautan ke `/dashboard` web — halaman
+yang sama company-wide dibangun ulang sebagai shell mobile Task 3. Grup
+`g-laporan` ("Laporan & BI") diaktifkan PENUH di
+`kategoriUntukAdmin()` (level grup, `lib/admin-portal-kategori.ts`); item
+lain grup ini (`bi-proyek`, `bi-biaya`, `bi-arus-kas`, `bi-portofolio`,
+`bi-kpi`, `lap-susun`, `bi-export`) TAMPIL di `/admin-portal/kategori/g-laporan`
+tapi fallback ke href web `it.href` (belum punya versi portal admin
+tersendiri) — pola sama persis Portal PM, lihat `PETA_HREF_PORTAL` di
+`admin-portal/kategori/[key]/page.tsx`. `bi-terjadwal` (`status: 'sebagian'`)
+tetap tak tampil (filter `itemHidup` menyaring `status === 'hidup'`).
+
 ---
 
 ## 19. ADMINISTRASI SISTEM
@@ -448,6 +461,18 @@ TIDAK direplikasi (sudah ada sebagai halaman lain); `bi-terjadwal`
 | Multi-bahasa (i18n) | ⛔ | Dicoret owner — UI Bahasa Indonesia |
 | SSO / SAML | ⛔ | Dicoret owner |
 | Multi-tenant | 🟡 | **Naik dari 🔴 2026-08-04 — diukur, bukan ditaksir.** Isolasi datanya HIDUP: 45/123 tabel ber-`company_id`, sisanya lewat rantai FK (klasifikasi F2-2), RLS aktif 123/123. Fase 2 menutup **lima kebocoran lintas-tenant nyata** (`audit_logs` 13.691 baris · `permission_scopes` · 3 bucket storage). ADR-010 memutuskan bentuk grup/holding. Yang BELUM: penyediaan tenant, onboarding, langganan, batas paket — itu F7-1, dan gerbangnya tetap pelanggan eksternal committed |
+
+**Portal Admin/Direktur (`admin-portal/*`)** — Tahap 1 selesai (Task 4-5,
+2026-08-22): `sy-inbox-approval` (Menunggu Persetujuan) kini punya halaman
+sendiri `/admin-portal/inbox` — antrean approval lintas modul company-wide
+(bukan per-proyek seperti Portal PM), memakai mesin inbox terpusat yang sama
+dengan `/approval-inbox` web (`utils/approval.ts`, "satu pintu"). Grup
+`g-sistem` ("Administrasi") diaktifkan PENUH di `kategoriUntukAdmin()`
+(level grup) — item lain grup ini (`sys-impor`, `sy-user`, `sy-permission`,
+`sy-approval`, `sy-notifikasi`, `sy-kredensial`, `ai-*`, `sy-audit`, dst.)
+TAMPIL di `/admin-portal/kategori/g-sistem` tapi fallback ke href web
+`it.href` (belum punya versi portal admin tersendiri) — pola sama persis
+Portal PM, lihat `PETA_HREF_PORTAL` di `admin-portal/kategori/[key]/page.tsx`.
 
 ---
 
