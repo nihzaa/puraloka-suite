@@ -8026,7 +8026,7 @@ git commit -m "feat(pm-portal): Gudang & Material — ikhtisar, kelola lokasi, k
 > pantas fallback ke web (halaman `/procurement/material` sudah ada di
 > web, py kolom `min_stock`), atau butuh tampilan tersendiri di portal PM.
 
-- [ ] **Step 1: Aktifkan `g-procurement` di `KATEGORI_AKTIF`** (`g-inventory`
+- [x] **Step 1: Aktifkan `g-procurement` di `KATEGORI_AKTIF`** (`g-inventory`
 SUDAH aktif sejak Task 25 — lihat catatan di atas, JANGAN ditambahkan lagi,
 cukup pastikan masih ada di array saat menambahkan `g-procurement`):
 
@@ -8034,11 +8034,21 @@ cukup pastikan masih ada di array saat menambahkan `g-procurement`):
 const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement"]; // Tahap 1-4
 ```
 
-- [ ] **Step 2: Isi entri `pr-*` di `PETA_HREF_PORTAL`** (key PERSIS dari
+- [x] **Step 2: Isi entri `pr-*` di `PETA_HREF_PORTAL`** (key PERSIS dari
 `peta-menu.ts`, diverifikasi Task 23 Step 1). Entri `iv-*`/`md-gudang` di
 bawah **SUDAH ADA sejak Task 25** — ditampilkan di sini HANYA sebagai
 konteks (bentuk aktualnya, untuk dibandingkan dengan draf lama), **JANGAN
 ditulis ulang/ditimpa**, cukup tambahkan baris `pr-*` yang baru:
+
+> ⚠️ **KOREKSI review Task 26 (2026-08-21, Critical)**: draf di bawah SALAH
+> memetakan `pr-3way`/`pr-jadwal-bayar` ke `/pm-portal/procurement`.
+> Diverifikasi grep menyeluruh `apps/web/app/pm-portal/procurement/` untuk
+> `3-way|3way|match|jatuh_tempo|due_date|payment|jadwal` — NOL hasil.
+> Halaman itu hanya punya tab MR/PO/GR; tak ada UI pencocokan PO↔GR↔tagihan
+> atau daftar jatuh tempo vendor di mana pun. Implementasi AKTUAL (bukan
+> contoh di bawah) hanya memetakan `pr-mr`/`pr-po`/`pr-grn` — `pr-3way` dan
+> `pr-jadwal-bayar` fallback ke web (`it.href` = `/procurement`), sama
+> seperti `pr-rfq`/`pr-blanket`/dst.
 
 ```typescript
 const PETA_HREF_PORTAL: Record<string, string> = {
@@ -8054,8 +8064,8 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "pr-mr": "/pm-portal/procurement",
   "pr-po": "/pm-portal/procurement",
   "pr-grn": "/pm-portal/procurement",
-  "pr-3way": "/pm-portal/procurement",
-  "pr-jadwal-bayar": "/pm-portal/procurement",
+  // pr-3way DAN pr-jadwal-bayar SENGAJA TIDAK diisi — lihat koreksi review
+  // di atas. Fallback ke `it.href` web (/procurement).
   // "iv-minstok" SENGAJA belum diisi di sini — lihat catatan panjang di
   // atas kepala Task 26: draf lama menunjuknya ke gudang/stok, TAPI itu
   // salah makna. Putuskan tujuan yang benar sebagai bagian Step 2 ini
@@ -8072,6 +8082,7 @@ bukan transaksi harian, dan versi mobilenya di luar cakupan Tahap 4
 
 `pr-rfq`/`pr-tabulasi` (RFQ + Perbandingan Penawaran), `pr-blanket`
 (Kontrak Payung), `pr-evaluasi` (Evaluasi Vendor), `pr-expediting`,
+`pr-3way` (3-Way Match), `pr-jadwal-bayar` (Jadwal Bayar Vendor),
 `tg-nota-kredit` (grup `g-finance`, Tahap 6) **TIDAK dipetakan** —
 fallback web tetap berlaku. Alasan per modul:
 
@@ -8081,6 +8092,14 @@ fallback web tetap berlaku. Alasan per modul:
   mobile tanpa scroll horizontal berat, pola yang sama dengan alasan
   Gantt Chart ditunda di Task 22. Dicatat sebagai UTANG kandidat Task
   27 (hub `proyek/[id]`, kalau dibangun) — TIDAK diselesaikan di sini.
+- **3-Way Match + Jadwal Bayar Vendor**: KOREKSI review Task 26
+  (2026-08-21, Critical) — draf awal task ini SALAH memetakan keduanya
+  ke `/pm-portal/procurement`. Diverifikasi grep menyeluruh: halaman itu
+  TIDAK memuat UI pencocokan PO↔GR↔tagihan maupun daftar jatuh tempo
+  vendor sama sekali (hanya tab MR/PO/GR dengan status/total/tanggal
+  kirim). Fallback web (`/procurement`) sampai ada halaman portal PM
+  yang benar-benar menjawab kedua konsep ini — dicatat UTANG kandidat
+  Task 27 bersama RFQ/Tabulasi/Evaluasi Vendor.
 - **Kontrak Payung+Expediting+Nota Kredit**: `GET /pengadaan-lanjutan`
   SUDAH terverifikasi lengkap (Step 1 Temuan #3), TAPI py TIGA
   entitas dengan wewenang PM YANG BERBEDA-BEDA per aksi (buat kontrak
@@ -8100,34 +8119,61 @@ fallback web tetap berlaku. Alasan per modul:
   cacat backend itu diperbaiki (di luar wewenang task ini, dicatat di
   laporan sebagai concern untuk ratifikasi/perbaikan terpisah).
 
-- [ ] **Step 3: Typecheck + lint navigasi**
+- [x] **Step 3: Typecheck + lint navigasi**
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
 pnpm exec eslint lib/pm-portal-kategori.ts app/pm-portal/kategori/
 ```
 
-- [ ] **Step 4: `audit-nav-yatim.mjs`** — pola Task 16/22, bandingkan
+- [x] **Step 4: `audit-nav-yatim.mjs`** — pola Task 16/22, bandingkan
 sebelum/sesudah lewat `git stash`. Laporkan hasil di laporan Task 26.
 
 ```bash
 cd apps/web && node scripts/audit-nav-yatim.mjs
 ```
 
-- [ ] **Step 5: Typecheck seluruh workspace + SEMUA penjaga CI**
+- [x] **Step 5: Typecheck seluruh workspace + SEMUA penjaga CI**
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
 cd ../api && node scripts/jalankan-semua-penjaga.mjs
 ```
 
-- [ ] **Step 6: Test integrasi terkait**
+Angka BENAR (diverifikasi ulang review Important, 2026-08-21, tiga run
+independen konsisten): **130 hijau · 41 MERAH · 2 tak ketemu** — bukan
+131/40 seperti klaim laporan draf pertama Task 26 (kesalahan verifikasi,
+lihat koreksi di `task-26-report.md`). Selisihnya `schema-fingerprint.mjs`
+tercetak DUA KALI: skrip `jalankan-semua-penjaga.mjs` mem-parse `ci.yml`
+dengan regex yang tak membedakan `run:` sungguhan dari CONTOH PERINTAH DI
+DALAM KOMENTAR (baris `# node scripts/schema-fingerprint.mjs emit > ...`
+di `ci.yml`), jadi ia dihitung sebagai perintah kedua yang terpisah dari
+`run: node scripts/schema-fingerprint.mjs compare ...` yang sungguhan.
+Keduanya gagal karena `CI_DIRECT_URL`/`FP_URL` kosong secara lokal — sama
+sekali bukan disebabkan perubahan Task 26 (dikonfirmasi: 130/41 identik
+baik pada state sebelum maupun sesudah perubahan Task 26 lewat
+`git stash`, dan `ci.yml`/`jalankan-semua-penjaga.mjs` sendiri tak
+tersentuh commit mana pun terkait task ini).
+
+- [x] **Step 6: Test integrasi terkait**
 
 ```bash
 cd apps/api && npx vitest run procurement pengadaan-lanjutan rfq transfer-stok material-klien gudang rekonsiliasi-material susut-material vendor-kualifikasi
 ```
 
-- [ ] **Step 7: Audit a11y runtime penuh**
+11 berkas, 214 test, semua lulus.
+
+- [ ] **Step 7: Audit a11y runtime penuh** — **TIDAK TUNTAS**, timeout
+lingkungan (>9 menit, suite penuh ~150+ halaman × 2 mode). Perubahan
+Task 26 murni data (lima/tiga baris `Record<string,string>` + komentar,
+tanpa markup baru), dan akun uji `LAYAR_EMAIL` (role `admin`) dialihkan
+dari SELURUH `pm-portal/*` sebelum render apa pun (dicatat sejak entri
+JOURNAL Task 22, 2026-08-21) — jadi audit penuh sekalipun tuntas TAK AKAN
+memeriksa halaman yang baru terjangkau Task 26. Smoke-check manual (curl)
+dilakukan sebagai gantinya: 307 redirect-login, tak ada crash. Item
+"akun uji ber-role `pm`" tetap utang terbuka lintas-task, bukan utang
+baru Task 26 — TIDAK dicentang selesai di sini supaya tak terbaca sebagai
+sudah tuntas.
 
 ```bash
 cd apps/web
@@ -8135,12 +8181,12 @@ export $(grep -E "^LAYAR_(EMAIL|SANDI|BASIS)=" .env.local | tr -d '\r' | xargs)
 node scripts/jalankan-a11y-lengkap.mjs
 ```
 
-- [ ] **Step 8: Update JOURNAL.md** — catat Tahap 4 selesai: halaman
+- [x] **Step 8: Update JOURNAL.md** — catat Tahap 4 selesai: halaman
 baru (Procurement 3 berkas, Gudang 5 berkas), integrasi approval
 terpusat MR+PO, utang tercatat (RFQ/Kontrak Payung/Nota Kredit/Stock
 Opname ditunda dengan alasan tertulis).
 
-- [ ] **Step 9: Commit dokumentasi**
+- [x] **Step 9: Commit dokumentasi**
 
 ```bash
 git add docs/execution/JOURNAL.md docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md apps/web/lib/pm-portal-kategori.ts "apps/web/app/pm-portal/kategori/[key]/page.tsx"

@@ -63,9 +63,13 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * `PETA_HREF_PORTAL` di `kategori/[key]/page.tsx` untuk yang mana dipetakan
  * dan yang mana sengaja dibiarkan fallback ke web (`iv-opname`/`iv-minstok`/
  * `gd-susut` dari Tahap 4 g-inventory; `pr-rfq`/`pr-tabulasi`/`pr-blanket`/
- * `pr-evaluasi`/`pr-expediting` dari g-procurement — semua dicatat sebagai
- * keputusan sengaja dengan alasan tertulis, bukan kelalaian, di
- * `PETA_HREF_PORTAL`).
+ * `pr-evaluasi`/`pr-expediting`/`pr-3way`/`pr-jadwal-bayar` dari
+ * g-procurement — semua dicatat sebagai keputusan sengaja dengan alasan
+ * tertulis, bukan kelalaian, di `PETA_HREF_PORTAL`. `pr-3way`/
+ * `pr-jadwal-bayar` KHUSUSNYA ditambahkan ke daftar fallback ini sesudah
+ * koreksi review Task 26 [Critical] — draf awal SALAH memetakan keduanya
+ * ke `/pm-portal/procurement`, halaman yang TIDAK memuat kedua konsep itu
+ * sama sekali, diverifikasi grep menyeluruh tanpa hasil).
  *
  * Kategori lain (Keuangan lanjutan, HSE, dst) BELUM dibangun di portal PM —
  * JANGAN ditambahkan ke daftar ini sampai tahap yang membangunnya selesai,

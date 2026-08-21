@@ -5,6 +5,72 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-21 (Portal PM Lengkap, Tahap 4) — Task 26 fix round: koreksi 1 Critical + 1 Important + 1 Minor dari review
+
+Review coordinator atas entri di bawah (commit `7ad81b54`) menemukan tiga
+cacat. Diperbaiki di commit terpisah, sama worktree/branch.
+
+**Critical — `pr-3way`/`pr-jadwal-bayar` dipetakan ke halaman yang tak
+menjawab konsepnya.** Entri di bawah mengklaim kedua key ini "turunan/
+tampilan dari data PO+GR yang sama" di `/pm-portal/procurement`, dianalogikan
+ke preseden `iv-rekonsiliasi`/`iv-waste`. KLAIM ITU SALAH — reviewer grep
+menyeluruh `apps/web/app/pm-portal/procurement/` untuk
+`3-way|3way|match|jatuh_tempo|due_date|payment|jadwal`: NOL hasil,
+dikonfirmasi ulang sendiri dengan grep yang sama. Halaman itu hanya
+menampilkan status/total/tanggal kirim PO+GR — tak ada UI pencocokan
+PO↔GR↔tagihan atau jadwal jatuh tempo vendor di mana pun. Preseden
+`iv-rekonsiliasi`/`iv-waste` yang dijadikan analogi ternyata VALID (kedua
+konsep itu BENAR-BENAR terlihat di satu halaman), sedangkan kasus ini
+kedua konsep TIDAK terlihat sama sekali — analogi yang keliru. Diperbaiki:
+kedua entri dihapus dari `PETA_HREF_PORTAL`, fallback ke `it.href` web asli
+(`/procurement`). `audit-nav-yatim.mjs` dijalankan ulang, hasil identik
+(0 halaman jadi yatim akibat penghapusan).
+
+**Important — klaim "131 hijau/40 merah, identik baseline" TERBUKTI SALAH
+saat direproduksi.** Angka benar (diverifikasi 3+ run independen, stabil):
+**130 hijau · 41 MERAH · 2 tak ketemu** — sama baik sebelum maupun sesudah
+Task 26. Akar selisihnya ditemukan: `jalankan-semua-penjaga.mjs` mem-parse
+`ci.yml` dengan regex yang tak membedakan `run:` sungguhan dari CONTOH
+PERINTAH DI DALAM KOMENTAR — baris komentar
+`# node scripts/schema-fingerprint.mjs emit > ...` di `ci.yml:1458` ikut
+tersapu sebagai command terpisah dari `run:` sungguhan di baris 1466, jadi
+`schema-fingerprint.mjs` tercetak/dihitung DUA KALI dalam daftar merah.
+Bukan guard tambahan sungguhan (CI hanya punya SATU step untuk skrip itu),
+murni artefak parsing regex — pra-eksisting, tak tersentuh commit Task 26
+mana pun. **Pelajaran ditulis eksplisit karena ini pelanggaran disiplin
+kejujuran verifikasi (CLAUDE.md §8)**: klaim "identik baseline" ditulis dari
+SATU run tanpa reproduksi ulang — seharusnya dijalankan ≥2× sebelum
+diklaim "identik", terutama untuk angka yang jadi dasar keputusan "tidak
+ada regresi".
+
+**Minor — `plan.md` tak ikut commit, checkbox Task 26 masih `[ ]`.**
+Diperbaiki: `docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md`
+checkbox Step 1-6/8/9 → `[x]`, Step 7 (a11y penuh) SENGAJA dibiarkan
+`[ ]` dengan catatan kenapa (timeout lingkungan, lihat entri di bawah).
+Kini ikut ter-commit.
+
+**Item QUEUE.yaml baru ditambahkan** (diminta reviewer, bukan opsional):
+`MINSTOK-GUDANG-STOK-READONLY` (fase 4, bobot S) — `gudang/stok` (Task 25)
+tak menampilkan `min_stock`, PM tak punya tempat MELIHAT peringatan stok
+minimum di HP. Sudah dicatat di komentar kode + JOURNAL sebelumnya, tapi
+belum jadi item QUEUE eksplisit — sekarang ada, format sama dengan
+`A11Y-PM-PORTAL`.
+
+Verifikasi ulang lengkap: `tsc --noEmit` bersih, eslint bersih,
+`uji-token-css-ada.mjs` 0 token hantu, `audit-nav-yatim.mjs` identik
+(1 link mati pra-eksisting tak terkait, 0 yatim), guard suite **130
+hijau/41 merah** stabil 2 run berturut sesudah perbaikan.
+
+**Catatan operasional tambahan**: selama fix round, `audit-akhir-baris.mjs`
+sempat merah SEKALI di tengah proses (129 hijau/42 merah) meski dicek
+standalone langsung sesudahnya hijau — file yang disunting Edit tool
+sempat berakhir CRLF di disk pada mesin Windows ini (`core.autocrlf=true`).
+Dinormalkan eksplisit ke LF via skrip Node (bukan git), diverifikasi ulang
+2× stabil di 130/41. Bukan regresi guard, quirk lingkungan — dicatat
+supaya sesi berikutnya tak bingung menemukan pola serupa.
+
+---
+
 ## 2026-08-21 (Portal PM Lengkap, Tahap 4) — Task 26 tuntas: navigasi kategori Pengadaan tersambung, TAHAP 4 (Pengadaan + Gudang/Material) SELESAI
 
 Worktree `pm-lengkap-tahap2` (`feat/pm-lengkap-tahap2`), plan

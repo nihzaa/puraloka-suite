@@ -3243,3 +3243,38 @@ items:
       Menutupnya BUKAN perubahan kode — murni provisioning akun uji baru
       berperan pm (dan idealnya juga mandor/client kalau portal itu
       punya gap serupa, belum diukur terpisah).
+
+  - id: MINSTOK-GUDANG-STOK-READONLY
+    fase: 4
+    judul: "gudang/stok (Portal PM) tak menampilkan ambang min_stock — PM tak punya tempat MELIHAT peringatan stok minimum di HP"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "GET /api/v1/procurement/stocks (atau endpoint turunannya) menyertakan min_stock per material dalam responsnya"
+      - "apps/web/app/pm-portal/gudang/stok/page.tsx menampilkan indikator/badge saat qty on-hand <= min_stock, read-only (tak perlu form edit)"
+    cara_verifikasi: "Buka /pm-portal/gudang/stok sebagai PM untuk proyek dengan material qty <= min_stock — badge/warna peringatan harus terlihat tanpa membuka /procurement/material (web)"
+    bobot: S
+    status: menunggu
+    catatan_kemajuan: >-
+      Ditemukan 2026-08-21 (Task 26, saat memutuskan fallback iv-minstok ke
+      web). Dicek langsung isi apps/web/app/pm-portal/gudang/stok/page.tsx
+      (Task 25, key iv-mutasi): halaman itu HANYA menampilkan qty on-hand
+      per proyek, TIDAK menampilkan materials.min_stock sama sekali.
+      Konsekuensinya: PM di HP TAK PUNYA satu pun tempat MELIHAT peringatan
+      stok minimum hari ini — bukan cuma tak bisa MENGUBAH ambangnya
+      (mengubah ambang tetap sah fallback ke web /procurement/material,
+      pola sama dengan cc-pagu-material Tahap 3, karena itu tindakan
+      jarang/sekali-setel per material, bukan kerja harian lapangan).
+      MELIHAT peringatan stok rendah beda sifatnya — itu justru kerja
+      harian PM di lapangan, dan saat ini nol tempat menjawabnya di
+      mobile.
+      TIDAK diperbaiki di Task 26: task itu murni navigasi (aktivasi
+      kategori + entri PETA_HREF_PORTAL), tidak membangun/mengubah
+      halaman. Perbaikan sebenarnya 2-sisi: backend (tambah min_stock ke
+      payload GET /procurement/stocks atau endpoint sejenis) + frontend
+      (badge peringatan di gudang/stok/page.tsx) — di luar scope
+      navigasi-only, kandidat Task 25 lanjutan atau task terpisah.
+      Reviewer Task 26 mengonfirmasi temuan ini sudah didokumentasikan
+      baik di komentar kode + JOURNAL + task-26-report.md, tapi meminta
+      item QUEUE.yaml eksplisit supaya tak bergantung pada seseorang
+      membaca komentar kode untuk menemukannya lagi — pola sama dengan
+      A11Y-PM-PORTAL di atas.

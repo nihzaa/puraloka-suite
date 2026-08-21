@@ -129,16 +129,26 @@ import { Folder } from "lucide-react";
  * Tahap 4 (Task 26, grup g-procurement "Pengadaan" BARU diaktifkan
  * `KATEGORI_AKTIF`; key persis dari `lib/peta-menu.ts` §g-procurement):
  *   pr-mr (Material Request), pr-po (Purchase Order), pr-grn (Goods
- *   Receipt), pr-3way (3-Way Match), pr-jadwal-bayar (Jadwal Bayar Vendor)
- *   SEMUA diarahkan ke `/pm-portal/procurement` — satu halaman Task 24
- *   ber-tab (MR/PO/GR) yang SUDAH memuat kelima konsep ini: 3-way match
- *   dan jadwal bayar bukan tab terpisah, melainkan turunan/tampilan dari
- *   data PO+GR yang sama yang sudah ada di tab PO (match dicek saat GR
- *   dikonfirmasi; jadwal bayar adalah daftar PO dengan jatuh tempo,
- *   ditampilkan di tab yang sama) — bukan kekurangan, sudah dicek isi
- *   `pm-portal/procurement/page.tsx` sebelum memutuskan lima key menunjuk
- *   satu href yang sama, pola identik dengan `iv-rekonsiliasi`/`iv-waste`
- *   Task 25 yang juga lima-ke-satu.
+ *   Receipt) diarahkan ke `/pm-portal/procurement` — satu halaman Task 24
+ *   ber-tab (MR/PO/GR) yang memang memuat ketiga konsep ini masing-masing
+ *   sebagai tab sendiri.
+ *   ⚠ pr-3way (3-Way Match) DAN pr-jadwal-bayar (Jadwal Bayar Vendor)
+ *   SENGAJA TIDAK dipetakan ke `/pm-portal/procurement` — koreksi review
+ *   Task 26 (2026-08-21, Critical): draf awal task ini SALAH mengklaim
+ *   kedua konsep itu "turunan/tampilan dari data PO+GR yang sama" di
+ *   halaman itu. DIPERIKSA ULANG dengan grep menyeluruh direktori
+ *   `apps/web/app/pm-portal/procurement/` untuk pola
+ *   `3-way|3way|match|jatuh_tempo|due_date|payment|jadwal` — NOL hasil.
+ *   Halaman procurement/PO hanya menampilkan status, total, tanggal
+ *   KIRIM (bukan tanggal BAYAR), dan daftar item — tak ada UI pencocokan
+ *   PO↔GR↔tagihan atau daftar jatuh tempo vendor DI MANA PUN di portal
+ *   PM. Memetakan keduanya ke halaman itu bukan 404 (jadi
+ *   `audit-nav-yatim.mjs` tak mendeteksinya) tapi menyesatkan secara
+ *   produk: PM membuka menu berlabel "3-Way Match"/"Jadwal Bayar Vendor"
+ *   dan mendarat di halaman yang sama sekali tak menjawab label itu.
+ *   Keduanya sekarang fallback ke `it.href` web (`/procurement`, item-level
+ *   href key-nya sendiri di `peta-menu.ts`) sampai ada halaman portal PM
+ *   yang benar-benar menjawabnya.
  *   pr-rfq, pr-tabulasi (satu layar sama di web, lihat catatan key-nya
  *   sendiri di `peta-menu.ts`), pr-blanket (Kontrak Payung), pr-evaluasi
  *   (Evaluasi Vendor), pr-expediting SENGAJA TIDAK dipetakan — RFQ/Tabulasi/
@@ -148,9 +158,10 @@ import { Folder } from "lucide-react";
  *   Task 22); Kontrak Payung+Expediting DITUNDA ke Tahap 6 supaya ditinjau
  *   bersama modul Keuangan yang punya pola wewenang PM sebagian serupa
  *   (PM boleh membuat kontrak payung tapi tak berwenang atas nota kredit
- *   terkait — bentuk approval sama rumitnya dengan `klaim:*`). Keempatnya
- *   jatuh ke fallback `it.href` (web) — lihat `task-26-brief.md` untuk
- *   rincian per modul.
+ *   terkait — bentuk approval sama rumitnya dengan `klaim:*`). Bersama
+ *   pr-3way/pr-jadwal-bayar di atas, KEENAMNYA jatuh ke fallback `it.href`
+ *   (web) — lihat `task-26-brief.md`/`task-26-report.md` untuk rincian
+ *   per modul.
  *   iv-minstok (grup g-inventory, BUKAN g-procurement, tapi diputuskan di
  *   sini karena Task 26 yang menuntaskannya): TETAP TIDAK dipetakan ke
  *   PETA_HREF_PORTAL — fallback ke `it.href` web (`/procurement/material`,
@@ -238,13 +249,17 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "iv-rekonsiliasi": "/pm-portal/gudang/rekonsiliasi",
   "iv-waste": "/pm-portal/gudang/rekonsiliasi",
   // Tahap 4 (Task 26) — grup g-procurement (baru diaktifkan). Lihat catatan
-  // panjang di atas untuk alasan lima-ke-satu dan key yang SENGAJA tak
-  // dipetakan (pr-rfq/pr-tabulasi/pr-blanket/pr-evaluasi/pr-expediting).
+  // panjang di atas untuk alasan key yang SENGAJA tak dipetakan
+  // (pr-3way/pr-jadwal-bayar — koreksi review Critical — dan
+  // pr-rfq/pr-tabulasi/pr-blanket/pr-evaluasi/pr-expediting).
   "pr-mr": "/pm-portal/procurement",
   "pr-po": "/pm-portal/procurement",
   "pr-grn": "/pm-portal/procurement",
-  "pr-3way": "/pm-portal/procurement",
-  "pr-jadwal-bayar": "/pm-portal/procurement",
+  // pr-3way DAN pr-jadwal-bayar SENGAJA TIDAK diisi di sini — halaman
+  // /pm-portal/procurement TIDAK memuat konsep keduanya (diverifikasi grep
+  // menyeluruh, nol hasil untuk "3-way|3way|match|jatuh_tempo|due_date|
+  // payment|jadwal" di direktori itu). Fallback ke `it.href` web
+  // (/procurement, item-level href masing-masing key di peta-menu.ts).
   // "iv-minstok" (g-inventory) SENGAJA TETAP TIDAK diisi — keputusan Task 26,
   // lihat catatan panjang di atas kepala PETA_HREF_PORTAL ini. Fallback ke
   // `it.href` web (/procurement/material), pola sama dengan cc-pagu-material.
