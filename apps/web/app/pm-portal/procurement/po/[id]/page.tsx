@@ -147,6 +147,37 @@ function SheetBuatGr({ terbuka, onTutup, po, onSukses }: { terbuka: boolean; onT
   const [mengirim, setMengirim] = useState(false);
   const [galat, setGalat] = useState<string | null>(null);
 
+  // ── Kenapa create LANGSUNG diikuti confirm, bukan tombol terpisah ─────────
+  //
+  // `POST /goods-receipts` HANYA membuat baris berstatus `draft` — trigger
+  // `sync_po_receipt_status` yang benar-benar menambah `qty_received` PO,
+  // menambah stok, dan membuat `supplier_invoices` HANYA berjalan saat GR
+  // berstatus `confirmed` (`db/migrations/041_procurement_workflow.sql:186`,
+  // `AFTER UPDATE ... WHEN NEW.status='confirmed'`), lewat endpoint TERPISAH
+  // `PATCH /goods-receipts/:id/confirm`.
+  //
+  // Tanpa memanggil endpoint kedua ini, "Simpan Penerimaan" terlihat sukses
+  // di UI tapi TAK BEREFEK NYATA: GR selamanya `draft`, `adaSisaTerima` di
+  // halaman PO tetap true selamanya, stok tak pernah bertambah, tagihan
+  // supplier tak pernah terbentuk — silent failure, bukan sekadar bug kecil.
+  //
+  // Dipilih memanggil `confirm` LANGSUNG sesudah `create` sukses (bukan
+  // tombol "Konfirmasi" terpisah) karena:
+  //   1. `confirm` tak butuh input tambahan apa pun (body kosong, hanya id
+  //      dari URL) — tak ada data baru yang perlu diisi PM di antara kedua
+  //      langkah, jadi tahap draft terpisah tak menambah nilai di alur ini.
+  //   2. Permission-nya SAMA (`procurement:po:manage`) dengan yang dipakai
+  //      create GR — PM yang boleh membuat GR otomatis boleh mengonfirmasinya.
+  //   3. Qty yang diinput PM di form ini sudah final dari sudut pandang
+  //      mobile (tak ada langkah "cek dulu oleh orang lain" yang tersirat di
+  //      brief atau backend) — draft terpisah di sini hanya berguna sebagai
+  //      antar-request race guard (dua GR draft utk PO sama, backend
+  //      memvalidasi ulang over-receipt persis untuk itu saat confirm), bukan
+  //      sebagai jeda tinjau bagi manusia.
+  // Kalau `confirm` gagal SESUDAH `create` sukses, GR tetap tersimpan
+  // (draft) — galat dilaporkan eksplisit dan TIDAK diklaim sebagai sukses,
+  // supaya PM tahu perlu mencoba konfirmasi ulang (bukan gagal senyap ke
+  // arah sebaliknya: GR ada tapi dikira sudah "beres").
   async function simpan() {
     const items = po.items
       .map((it) => ({ po_item_id: it.id, qty_received: Number(qty[it.id] ?? 0), sisa: Number(it.qty_ordered) - Number(it.qty_received ?? 0) }))
@@ -156,15 +187,30 @@ function SheetBuatGr({ terbuka, onTutup, po, onSukses }: { terbuka: boolean; onT
     if (lebih) { setGalat(`Qty diterima melebihi sisa PO (sisa ${lebih.sisa}).`); return; }
 
     setMengirim(true); setGalat(null);
+    let grId: string | null = null;
     try {
-      await api.post("/api/v1/procurement/goods-receipts", {
-        po_id: po.id, receipt_date: tanggal, delivery_note_number: suratJalan.trim() || undefined,
-        items: items.map((it) => ({ po_item_id: it.po_item_id, qty_received: it.qty_received })),
-      });
+      const res = await api.post<{ goods_receipt: { id: string; gr_number: string } }>(
+        "/api/v1/procurement/goods-receipts",
+        {
+          po_id: po.id, receipt_date: tanggal, delivery_note_number: suratJalan.trim() || undefined,
+          items: items.map((it) => ({ po_item_id: it.po_item_id, qty_received: it.qty_received })),
+        },
+      );
+      grId = res.data.goods_receipt.id;
+
+      // Langkah kedua WAJIB — lihat catatan di atas fungsi ini. Galat di sini
+      // dilempar ulang lewat catch bawah dengan pesan yang menyebut GR SUDAH
+      // tersimpan (bukan pesan generik "gagal membuat penerimaan").
+      await api.patch(`/api/v1/procurement/goods-receipts/${grId}/confirm`);
+
       invalidasi(`/api/v1/procurement/goods-receipts?project_id=${po.project?.id}`);
       onSukses(); setQty({}); setSuratJalan(""); onTutup();
     } catch (e) {
-      setGalat(pesanGalat(e as GalatApi, "Gagal membuat penerimaan"));
+      setGalat(
+        grId
+          ? `Penerimaan tersimpan (belum terkonfirmasi) tapi konfirmasi gagal: ${pesanGalat(e as GalatApi, "coba lagi")}. Stok & tagihan supplier BELUM terbentuk — buka lagi sheet ini atau hubungi admin untuk mengonfirmasi GR ini secara manual.`
+          : pesanGalat(e as GalatApi, "Gagal membuat penerimaan"),
+      );
     } finally { setMengirim(false); }
   }
 

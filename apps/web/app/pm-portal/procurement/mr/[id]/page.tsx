@@ -129,11 +129,21 @@ export default function PmMrDetailPage() {
           {dataKuota && !dataKuota.lolos && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--danger)" }}>Melebihi kuota RAB</div>
+              {/* Field PERSIS dari `BarisPelanggaran` backend (koreksi review
+                  2026-08-21) — TIDAK ADA field `sisa`; yang ada `total` (sudah
+                  dipesan + diminta sekarang) dibandingkan `rab_quantity`
+                  (batas), dan `kelebihan` = selisihnya. */}
               {dataKuota.pelanggaran.map((p, i) => (
                 <div key={i} style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-                  {p.material_name ?? p.material_id}: diminta {p.diminta}, sisa kuota {p.sisa}
+                  {p.material_name}: diminta {p.diminta} {p.unit ?? ""} (total dipesan {p.total} dari kuota {p.rab_quantity} {p.unit ?? ""})
+                  — kelebihan {p.kelebihan} {p.unit ?? ""}
                 </div>
               ))}
+              {dataKuota.tanpa_kuota.length > 0 && (
+                <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                  {dataKuota.tanpa_kuota.length} material diminta tanpa baris kuota RAB — tak diblokir, tapi belum terpantau.
+                </div>
+              )}
               {!dataKuota.bisa_override && (
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                   Anda tidak punya wewenang melampaui kuota RAB — kurangi volume atau minta admin.

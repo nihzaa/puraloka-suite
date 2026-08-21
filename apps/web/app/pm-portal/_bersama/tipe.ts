@@ -1935,7 +1935,20 @@ export interface MrDetail extends MrRingkas {
 export interface RespMrDetail { material_request: MrDetail }
 
 /**
- * Bentuk PERSIS `GET /material-requests/:id/quota-check`, `procurement.ts:593-610`.
+ * Bentuk PERSIS `GET /material-requests/:id/quota-check`, `procurement.ts:593-610`
+ * — route memulangkan `{ mr_number, ...hasil, bisa_override }` dengan `hasil`
+ * SPREAD LANGSUNG dari `periksaKuota()` (`lib/kuota-rab-material.ts:39-44,
+ * 115-119`), tanpa transformasi. Field `pelanggaran` KOREKSI dari dugaan
+ * sebelumnya (review Important-adjacent, 2026-08-21): bentuk asli
+ * `BarisPelanggaran` (`kuota-rab-material.ts:24-37`) TIDAK punya field
+ * `sisa` sama sekali — field aslinya `unit`, `rab_quantity`, `sudah_di_mr`,
+ * `total`, `kelebihan`. Dugaan sebelumnya menulis `sisa: number` yang tak
+ * pernah ada di backend, sehingga `p.sisa` di `mr/[id]/page.tsx` selalu
+ * `undefined` di layar — diperbaiki bersamaan dengan render-nya.
+ * `tanpa_kuota` juga DIKOREKSI: `string[]` (array id material MENTAH), BUKAN
+ * array objek — dugaan sebelumnya menulis `Array<{material_id,
+ * material_name?}>` yang tak cocok bentuk backend sama sekali.
+ *
  * `bisa_override` HAMPIR SELALU `false` untuk PM — diverifikasi LIVE
  * 2026-08-21: PM tidak memegang `procurement:mr:override_quota` (query
  * `role_permissions` untuk role `pm`, nol baris). Ditampilkan tetap, bukan
@@ -1944,8 +1957,22 @@ export interface RespMrDetail { material_request: MrDetail }
 export interface RespQuotaCheck {
   mr_number: string | null
   lolos: boolean
-  pelanggaran: Array<{ material_id: string; material_name?: string; diminta: number; sisa: number }>
-  tanpa_kuota: Array<{ material_id: string; material_name?: string }>
+  pelanggaran: Array<{
+    material_id: string
+    material_name: string
+    unit: string | null
+    rab_quantity: number
+    /** Sudah dipesan lewat MR lain yang masih hidup (draft tidak dihitung). */
+    sudah_di_mr: number
+    /** Diminta oleh MR yang sedang diperiksa (SETELAH dijumlahkan per material). */
+    diminta: number
+    /** sudah_di_mr + diminta. */
+    total: number
+    /** total − rab_quantity, selalu > 0 pada baris pelanggaran. */
+    kelebihan: number
+  }>
+  /** Array id material MENTAH — material yang diminta tapi tak punya baris kuota RAB sama sekali. */
+  tanpa_kuota: string[]
   bisa_override: boolean
 }
 
