@@ -33,11 +33,15 @@ import type { RespKpiPerusahaan, RespCashflowLaporan, GalatApi } from "../_bersa
 import { pesanGalat } from "../_bersama/tipe";
 
 function fmtRupiahRingkas(v: number | null | undefined): string {
-  const n = v ?? 0;
-  if (!Number.isFinite(n)) return "—";
-  if (Math.abs(n) >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)} M`;
-  if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(0)} jt`;
-  return formatRupiah(n);
+  // BUKAN `v ?? 0`: null/undefined harus tetap KOSONG ("—"), bukan
+  // dirender sebagai "Rp 0" — nol adalah FAKTA (nilainya memang 0),
+  // tak-ada-data adalah keadaan lain (lib/format.ts, kepala berkas).
+  // `formatRupiah(n)` di bawah tetap menangani kasus `< 1jt` (Task 45).
+  if (v === null || v === undefined) return "—";
+  if (!Number.isFinite(v)) return "—";
+  if (Math.abs(v) >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(1)} M`;
+  if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(0)} jt`;
+  return formatRupiah(v);
 }
 
 const WARNA_KEADAAN: Record<string, string> = {

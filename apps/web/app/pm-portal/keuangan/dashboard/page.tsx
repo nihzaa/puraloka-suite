@@ -39,7 +39,11 @@ function fmtRupiah(v: string | number | null | undefined): string {
   return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
 }
 function fmtRupiahRingkas(v: string | number | null | undefined): string {
-  const n = typeof v === "string" ? Number(v) : v ?? 0;
+  // BUKAN `v ?? 0`: null/undefined harus tetap KOSONG ("—"), bukan
+  // dirender sebagai "Rp 0" — nol adalah FAKTA (nilainya memang 0),
+  // tak-ada-data adalah keadaan lain (lib/format.ts, kepala berkas).
+  if (v === null || v === undefined) return "—";
+  const n = typeof v === "string" ? Number(v) : v;
   if (!Number.isFinite(n)) return "—";
   if (Math.abs(n) >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)} M`;
   if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(0)} jt`;
