@@ -2981,6 +2981,78 @@ export interface RespLaporanGl {
 }
 
 /**
+ * Rekonsiliasi Bank (Task 35). Bentuk PERSIS `apps/api/src/lib/
+ * rekonsiliasi-bank.ts:38-86` + rute `apps/api/src/routes/v1/
+ * rekonsiliasi-bank.ts`, diverifikasi baris-per-baris — BUKAN Rekonsiliasi
+ * Material (`BarisRekonsiliasi`/`RespRekonsiliasi` di atas, Task 25), yang
+ * sudah punya halamannya sendiri di `gudang/rekonsiliasi/page.tsx` dan
+ * TIDAK diduplikasi di sini.
+ */
+export interface BarisKoranRek {
+  id: string; tanggal: string; keterangan: string
+  debit: number | string; kredit: number | string
+  sudah_cocok?: boolean
+}
+export interface TransaksiBukuRek {
+  id: string; sumber: "payments" | "supplier_payments" | "cash_transfers"
+  tanggal: string; nominal: number | string; keterangan: string
+  sudah_cocok?: boolean
+}
+export interface UsulCocokRek {
+  baris_id: string; sumber: TransaksiBukuRek["sumber"]; sumber_id: string
+  keyakinan: "persis" | "dekat"; selisih_hari: number
+}
+export interface LaporanRekBank {
+  saldo_bank: number; setoran_dalam_perjalanan: number; cek_beredar: number
+  penyesuaian: number; saldo_buku_seharusnya: number; saldo_buku: number
+  selisih: number; tuntas: boolean
+  baris_belum_cocok: number; transaksi_belum_cocok: number
+}
+
+/**
+ * `koran` di konteks DAFTAR (`GET /rekonsiliasi`) — dengan progres
+ * pencocokan yang DIHITUNG lapis rute (`rekonsiliasi-bank.ts:92-108`).
+ */
+export interface KoranRekening {
+  id: string; cash_account_id: string
+  periode_dari: string; periode_sampai: string
+  saldo_awal: number | string; saldo_akhir: number | string
+  status: "terbuka" | "dikunci"
+  dikunci_pada: string | null; nama_berkas: string | null; created_at: string
+  nama_akun: string; jumlah_baris: number; jumlah_cocok: number; belum_cocok: number
+}
+export interface RespRekonsiliasiDaftar {
+  koran: KoranRekening[]
+  akun: { id: string; name: string; type: string; balance: number | string }[]
+}
+
+/**
+ * `koran` di konteks DETAIL (`GET /rekonsiliasi/:id`) — BUKAN `KoranRekening`.
+ * Endpoint detail (`rekonsiliasi-bank.ts:249-250`, `return { koran: { ...k,
+ * nama_akun }, ... }`) menyebar baris `rekening_koran` MENTAH + `nama_akun`
+ * SAJA — TIDAK menghitung `jumlah_baris`/`jumlah_cocok`/`belum_cocok` seperti
+ * endpoint daftar. Menyamakan keduanya membuat kode baca field yang tak
+ * pernah dikirim endpoint ini (`undefined` senyap, bukan galat).
+ */
+export interface KoranRekeningDetail {
+  id: string; cash_account_id: string
+  periode_dari: string; periode_sampai: string
+  saldo_awal: number | string; saldo_akhir: number | string
+  status: "terbuka" | "dikunci"
+  dikunci_pada: string | null; nama_berkas: string | null; created_at: string
+  nama_akun: string
+}
+export interface RespRekonsiliasiDetail {
+  koran: KoranRekeningDetail
+  baris: BarisKoranRek[]
+  buku: TransaksiBukuRek[]
+  pencocokan: { id: string; baris_id: string; sumber_tabel: string; sumber_id: string; jenis: string }[]
+  penyesuaian: { id: string; jenis: string; keterangan: string; nominal: number | string }[]
+  usul: UsulCocokRek[]
+  laporan: LaporanRekBank
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
