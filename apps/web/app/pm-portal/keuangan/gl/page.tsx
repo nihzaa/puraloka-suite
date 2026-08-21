@@ -201,6 +201,18 @@ export default function PmGlPage() {
         </div>
       </div>
 
+      {/*
+        Tab ditulis tangan (BUKAN `SegmentedTab` bersama, `components/portal/
+        SegmentedTab.tsx`) karena komponen itu me-render `flex: 1` per opsi
+        TANPA wrap — cocok untuk 2 opsi pendek (pola Task 33 `keuangan/kas`),
+        tapi 4 opsi di sini termasuk label sepanjang "Neraca & Laba-Rugi"
+        akan terpaksa berbagi lebar sama rata dalam satu baris tak melipat,
+        dan di layar 360px itu memotong/menyempitkan label secara nyata.
+        Reviewer Task 34 menandai `minHeight: 32` di sini di bawah target
+        sentuh 44px portal — dinaikkan ke 44px di bawah, TANPA memaksa
+        struktur `SegmentedTab` yang belum diuji untuk kasus 4-opsi
+        ber-wrap.
+      */}
       <div role="tablist" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {([
           { key: "jurnal", label: "Jurnal" },
@@ -211,7 +223,7 @@ export default function PmGlPage() {
           <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
             style={{
               padding: "6px 14px", borderRadius: "var(--portal-radius-pill)", fontSize: 12, fontWeight: 600,
-              cursor: "pointer", minHeight: 32,
+              cursor: "pointer", minHeight: 44,
               border: `1px solid ${tab === t.key ? "var(--navy)" : "var(--border)"}`,
               background: tab === t.key ? "var(--info-bg)" : "var(--surface)",
               color: tab === t.key ? "var(--navy)" : "var(--text-secondary)",
