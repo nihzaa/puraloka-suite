@@ -62,6 +62,8 @@ const WAJAR = new Map([
   ['/uji-gulir', 'halaman uji internal, sengaja tak dipasarkan'],
   ['/mandor-portal/progress', 'subhalaman portal, dicapai dari badan halaman'],
   ['/mandor-portal/laporan', 'subhalaman portal, dicapai dari badan halaman'],
+  ['/pm-portal/gudang/lokasi',
+   'subhalaman portal, dicapai dari badan halaman `/pm-portal/gudang` (tautan \n    "Kelola Lokasi" di header ikhtisar, Task 25 Step 2/3) — pola sama dengan \n    mandor-portal/progress dan mandor-portal/laporan di atas. `md-gudang` di \n    PETA_HREF_PORTAL sengaja menunjuk ikhtisar dulu, bukan langsung ke lokasi, \n    supaya PM melihat ringkasan lintas-gudang sebelum masuk mode kelola.'],
   ['/kalender',
    'kalender lintas-proyek; jalan masuknya dari dashboard (SectionHeader "Milestone \n    Mendatang", kartu, dan spanduk tenggat) — dashboard/page.tsx:593,611,812. Menu \n    `md-kalender` sengaja menunjuk /jadwal: yang dicari orang dari sidebar adalah \n    kalender HARI KERJA & libur (dasar hitungan CPM), bukan agenda milestone.'],
   ['/pm-portal/kontrak',

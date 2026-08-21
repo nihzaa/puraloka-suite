@@ -92,6 +92,37 @@ import { Folder } from "lucide-react";
  *   cc-acl/cc-commitment/cc-pagu-material/cc-cvr/cc-profit/cc-wip TIDAK
  *   dipetakan — lihat komentar di baris masing-masing key di bawah untuk
  *   alasannya (tahap lain, atau fallback web tetap memadai).
+ *
+ * Tahap 4 (Task 25, grup g-inventory "Gudang & Material" BARU diaktifkan
+ * `KATEGORI_AKTIF`; key persis dari `lib/peta-menu.ts`, diverifikasi baca
+ * ulang saat Task 25):
+ *   iv-gudang (Gudang Proyek) DAN md-gudang (grup g-master, "Gudang &
+ *   Lokasi") SAMA-SAMA diarahkan ke halaman ikhtisar `gudang` — dua key
+ *   PETA_MENU berbeda yang menunjuk satu konsep (ikhtisar lintas-gudang +
+ *   tautan "Kelola Lokasi" di dalamnya), sama seperti pola cc-/crm-/md-
+ *   yang saling tumpang tindih di Tahap 3. md-gudang TIDAK dipetakan
+ *   langsung ke /gudang/lokasi — ikhtisar dulu, lokasi satu tap lagi
+ *   (mengikuti struktur halaman Task 25 Step 2 yang punya link "Kelola
+ *   Lokasi" sendiri, bukan duplikasi entri menu).
+ *   iv-mutasi (Stok Masuk & Keluar) → gudang/stok (kartu stok + catat
+ *   pemakaian/retur — lihat catatan cacat gerbang stocks/usage di halaman
+ *   itu sendiri).
+ *   iv-transfer → gudang/transfer (SUDAH ADA di `lib/peta-menu.ts` sebagai
+ *   href langsung `/gudang/transfer` untuk web; portal PM Task 25
+ *   membangun versi mobile terpisah di path yang sama polanya).
+ *   iv-rekonsiliasi DAN iv-waste sama-sama → gudang/rekonsiliasi (satu
+ *   halaman menjawab dua key PETA_MENU — keduanya memang menunjuk
+ *   `lib/rekonsiliasi-material.ts` yang sama, dicatat eksplisit di
+ *   `peta-menu.ts` sendiri: "susut tinggi" DIHITUNG dari fungsi yang sama
+ *   dengan rekonsiliasi, bukan modul terpisah).
+ *   iv-opname, iv-minstok, gd-susut SENGAJA TIDAK dipetakan — Task 25
+ *   brief mencatat eksplisit: `iv-opname`/`stocks/opname` di luar scope
+ *   (Task 26, gerbang cacat sama seperti stocks/usage), `iv-minstok` halaman
+ *   terpisah di luar scope, `gd-susut` adalah CRUD data referensi tingkat
+ *   perusahaan (peta resource↔material, rencana target %) yang SENGAJA
+ *   tidak dibangun versi mobile-nya — jarang berubah, dikelola dari desktop,
+ *   bukan kerja harian PM lapangan (lihat kepala `task-25-brief.md`).
+ *   Ketiganya jatuh ke fallback `it.href` (web) sebagaimana pola existing.
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "sk-paket": "/pm-portal/mandor-lengkap/penugasan",
@@ -147,6 +178,15 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "jd-gantt": "/pm-portal/cecep/kurva-s",
   "jd-kurva-s": "/pm-portal/cecep/kurva-s",
   "jd-evm": "/pm-portal/cecep/kurva-s",
+  // Tahap 4 (Task 25) — grup g-inventory (baru diaktifkan) + md-gudang
+  // (g-master, sudah aktif sejak Tahap 3 tapi baru sekarang punya halaman
+  // portal PM). Lihat catatan panjang di atas untuk alasan pemetaannya.
+  "iv-gudang": "/pm-portal/gudang",
+  "md-gudang": "/pm-portal/gudang",
+  "iv-mutasi": "/pm-portal/gudang/stok",
+  "iv-transfer": "/pm-portal/gudang/transfer",
+  "iv-rekonsiliasi": "/pm-portal/gudang/rekonsiliasi",
+  "iv-waste": "/pm-portal/gudang/rekonsiliasi",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 

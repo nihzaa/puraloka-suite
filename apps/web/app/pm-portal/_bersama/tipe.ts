@@ -2079,6 +2079,101 @@ export interface KuotaRabMaterial {
 export interface RespKuotaRab { data: KuotaRabMaterial[] }
 
 /**
+ * GUDANG & MATERIAL — Task 25. Bentuk PERSIS diverifikasi ke kode nyata
+ * (bukan brief mentah): `gudang-ikhtisar.ts`, `gudang-kelola.ts`,
+ * `transfer-stok.ts`, `procurement.ts` (stocks/movements/usage),
+ * `rekonsiliasi-material.ts` + `lib/rekonsiliasi-material.ts`.
+ */
+
+/** Bentuk PERSIS `GET /api/v1/gudang/ikhtisar`, `gudang-ikhtisar.ts:190-265`. */
+export interface RespGudangIkhtisar {
+  kpi: {
+    total_aset: number; di_gudang: number; di_lapangan: number; perlu_perhatian: number
+    jenis_material_gudang: number; proyek_belum_ditarik: number
+    nilai_perolehan: string; nilai_buku: string; akumulasi_susut: string
+  }
+  gudang: Array<{ id: string; kode: string; nama: string; alamat: string | null; jumlah_aset: number; jenis_material: number }>
+  aset_per_kategori: Array<{ nama: string; jml: number }>
+  aset_per_kondisi: Array<{ nama: string; jml: number }>
+  isi_gudang: Array<{ id: string; kode: string; nama: string; kategori: string; kondisi: string; status: string; gudang: string | null }>
+  pergerakan: Array<{
+    id: string; jenis: string; tanggal: string | null; hari_lalu: number | null
+    dari: string | null; ke: string | null
+    kondisi_sebelum: string | null; kondisi_sesudah: string | null; memburuk: boolean
+  }>
+  material_gudang: Array<{ id: string; material_id: string; qty: string; asal: string | null }>
+  belum_ditarik: Array<{ proyek: string; jenis: number; qty: string }>
+}
+
+/** Bentuk PERSIS `GET /api/v1/gudang`, `gudang-kelola.ts:37-75` — field
+ * TAMBAHAN (`jenis_material`/`total_qty`) DIHITUNG SERVER dari
+ * `gudang_stok`, bukan bagian kolom tabel `gudang` asli. */
+export interface GudangLokasi {
+  id: string; kode: string; nama: string; alamat: string | null; aktif: boolean
+  catatan: string | null; penjaga_id: string | null; created_at: string
+  penjaga: { id: string; name: string } | null
+  jenis_material: number; total_qty: number
+}
+export interface RespGudangDaftar { gudang: GudangLokasi[] }
+
+/**
+ * Bentuk PERSIS `GET /api/v1/procurement/stocks`, `procurement.ts:1644-1661`.
+ * ⚠️ Endpoint ini HANYA `authenticate` — tanpa `requirePermission` sama
+ * sekali (dikonfirmasi baca kode, bukan diasumsikan dari brief).
+ */
+export interface StokRingkas {
+  id: string; qty_on_hand: number | string; qty_reserved: number | string | null; last_updated_at: string | null
+  project: { id: string; name: string } | null
+  material: { id: string; name: string; unit: string; category: { name: string } | null } | null
+}
+export interface RespStokDaftar { stocks: StokRingkas[] }
+
+/** Bentuk PERSIS `GET /procurement/stocks/:project_id/movements`,
+ * `procurement.ts:1664-1683`. Sama seperti di atas — hanya `authenticate`. */
+export interface MutasiStok {
+  id: string; movement_type: string; qty: number | string; qty_before: number | string; qty_after: number | string
+  reference_type: string | null; reference_id: string | null; notes: string | null; created_at: string
+  material: { id: string; name: string; unit: string } | null
+  created_by: { id: string; name: string } | null
+}
+export interface RespMutasiDaftar { movements: MutasiStok[] }
+
+/** Bentuk PERSIS `GET /api/v1/transfer-stok`, `transfer-stok.ts:62-89`. */
+export interface TransferStok {
+  id: string; qty: number | string; tanggal: string; alasan: string | null; created_at: string
+  material: { id: string; name: string; unit: string } | null
+  asal: { id: string; name: string } | null
+  tujuan: { id: string; name: string } | null
+  pembuat: { id: string; name: string } | null
+}
+export interface RespTransferDaftar { transfers: TransferStok[]; total: number }
+
+/**
+ * Bentuk PERSIS `GET /projects/:projectId/rekonsiliasi-material`,
+ * `rekonsiliasi-material.ts` + `lib/rekonsiliasi-material.ts:120-204`.
+ * `status` MENENTUKAN warna badge — LIMA status, bukan biner baik/buruk:
+ * `belum_dibeli` BUKAN `wajar`, keduanya "tak ada masalah" secara visual
+ * tapi beda makna (lihat komentar lib — baris RAB yang belum tersentuh vs
+ * yang sudah diperiksa dan beres).
+ */
+export interface BarisRekonsiliasi {
+  material_id: string; material_name: string; unit: string | null
+  teoritis: number; dibeli: number; dipakai: number; sisa: number
+  transfer_keluar: number; dari_klien: number; selisih: number
+  susut_pct: number | null; lebih_beli: number
+  status: "wajar" | "susut_tinggi" | "lebih_beli" | "belum_lengkap" | "belum_dibeli"
+}
+export interface RespRekonsiliasi {
+  baris: BarisRekonsiliasi[]
+  total_dibeli: number; total_dipakai: number; total_sisa: number; total_selisih: number
+  total_transfer_keluar: number; total_dari_klien: number
+  susut_pct_keseluruhan: number | null
+  jumlah_susut_tinggi: number; jumlah_lebih_beli: number; jumlah_belum_lengkap: number; jumlah_belum_dibeli: number
+  ambang: { susut_pct: number; lebih_beli_pct: number }
+  gr_belum_dikonfirmasi: number
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {

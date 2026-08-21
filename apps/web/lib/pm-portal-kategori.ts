@@ -48,12 +48,22 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * akan menyisakan `md-*`/`crm-*` fallback ke web padahal versi portalnya
  * sudah ada.
  *
- * Kategori lain (Keuangan lanjutan, Procurement, HSE, dst) BELUM dibangun
- * di portal PM — JANGAN ditambahkan ke daftar ini sampai tahap yang
- * membangunnya selesai, supaya kategori kosong/setengah-jadi tak pernah
- * tampil ke PM di HP.
+ * Tahap 4 (Task 24-25): "Pengadaan" sudah punya halaman lewat
+ * `EKSTRA_PORTAL["g-lapangan"].px-procurement` (Task 24, sebelum kategori
+ * pengadaan resminya sendiri diaktifkan) — TETAP di sana, tidak dipindah.
+ * "Gudang & Material" (g-inventory, Task 25: ikhtisar, kelola lokasi, kartu
+ * stok, transfer, rekonsiliasi) BARU diaktifkan di sini. Bukan seluruh 8 key
+ * `g-inventory` punya halaman portal PM — lihat `PETA_HREF_PORTAL` di
+ * `kategori/[key]/page.tsx` untuk yang mana dipetakan dan yang mana sengaja
+ * dibiarkan fallback ke web (`iv-opname`/`iv-minstok`/`gd-susut`, di luar
+ * scope Task 25 — dicatat sebagai keputusan sengaja, bukan kelalaian, di
+ * kepala `task-25-brief.md`).
+ *
+ * Kategori lain (Keuangan lanjutan, HSE, dst) BELUM dibangun di portal PM —
+ * JANGAN ditambahkan ke daftar ini sampai tahap yang membangunnya selesai,
+ * supaya kategori kosong/setengah-jadi tak pernah tampil ke PM di HP.
  */
-const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm"]; // Tahap 1-3
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory"]; // Tahap 1-4
 
 export function kategoriUntukPm(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));
