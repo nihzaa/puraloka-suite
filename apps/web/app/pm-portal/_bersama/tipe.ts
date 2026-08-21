@@ -3317,6 +3317,171 @@ export interface RespCutiPegawai {
 }
 
 /**
+ * Aset & Alat — register, mutasi, sewa, operasional (Task 40, Tahap 7).
+ *
+ * Bentuk PERSIS `GET /assets`, `apps/api/src/routes/v1/assets.ts:74-181`
+ * (turunan penyusutan `akumulasi_penyusutan`/`nilai_buku`/`sudah_disusutkan`
+ * disatukan ke objek yang sama, bukan field terpisah — lihat baris 157-166
+ * di route: `{ ...a, akumulasi_penyusutan, nilai_buku, sudah_disusutkan }`).
+ */
+export interface AsetPM {
+  id: string
+  asset_code: string
+  name: string
+  category: string
+  ownership: "milik" | "sewa"
+  brand: string | null
+  model: string | null
+  serial_number: string | null
+  purchase_date: string | null
+  purchase_price: number | null
+  residual_value: number | null
+  useful_life_months: number | null
+  depreciation_method: string
+  current_project_id: string | null
+  status: string
+  condition: string
+  photo_url: string | null
+  notes: string | null
+  created_at: string
+  akumulasi_penyusutan: number
+  nilai_buku: number
+  sudah_disusutkan: boolean
+}
+export interface RespDaftarAset {
+  data: AsetPM[]
+  meta: { total: number; milik: number; sewa: number; nilai_perolehan: number; nilai_buku: number; dipakai: number; perawatan: number }
+}
+
+/** Bentuk PERSIS `GET /assets/:id/movements`, `assets.ts:353-393`. */
+export interface MutasiAsetPM {
+  id: string
+  from_project_id: string | null
+  to_project_id: string | null
+  movement_type: string
+  moved_at: string
+  condition_before: string | null
+  condition_after: string | null
+  return_expected_at: string | null
+  returned_at: string | null
+  notes: string | null
+}
+export interface RespMutasiAset {
+  data: MutasiAsetPM[]
+  meta: { utilisasi_12_bulan: { persentase: number | null; jamDipakai: number; jamTersedia: number } }
+}
+
+/** Bentuk PERSIS `GET /assets/:id/depreciation`, `assets.ts:397-460`. */
+export interface LogPenyusutanPM {
+  id: string
+  period_year: number
+  period_month: number
+  depreciation_amount: number
+  book_value_after: number
+  depreciation_method: string
+  project_id: string | null
+  journal_entry_id: string | null
+}
+export interface RespPenyusutanAset {
+  data: { tercatat: LogPenyusutanPM[]; proyeksi: Array<{ tahun: number; bulan: number; beban: number; akumulasi: number; nilaiBuku: number }> }
+  meta: { dapat_disusutkan: boolean; alasan?: string; nilai_buku_kini?: number; beban_bulan_ini?: number; catatan?: string }
+}
+
+/** Bentuk PERSIS `GET /asset-rentals`, `assets.ts:539-577`. */
+export interface SewaAsetPM {
+  id: string
+  asset_id: string | null
+  item_name: string
+  supplier_id: string | null
+  project_id: string | null
+  rate: number
+  rate_unit: "hari" | "minggu" | "bulan"
+  start_date: string
+  end_date: string | null
+  status: string
+  notes: string | null
+  created_at: string
+  biaya_sampai_kini: number
+}
+export interface RespDaftarSewa {
+  data: SewaAsetPM[]
+  meta: { total: number; berjalan: number; biaya_berjalan: number; biaya_total: number }
+}
+
+/**
+ * Bentuk PERSIS `lib/alat-operasional.ts:31-247` + response
+ * `GET /alat-operasional` (`apps/api/src/routes/v1/alat-operasional.ts:45-188`).
+ *
+ * ⚠️ `penyusutan` di `AlatOpsPM` punya bentuk BEDA dari `LogPenyusutanPM` di
+ * atas: field mentahnya `asset_id, periode, nilai, akumulasi,
+ * journal_entry_id` (tabel `penyusutan_alat`, BUKAN `asset_depreciation_logs`
+ * yang dipakai `GET /assets/:id/depreciation`) — dua tabel penyusutan
+ * berbeda untuk dua modul berbeda (register aset vs operasional alat), server
+ * TIDAK menyatukannya. Ditambah `jurnal_status`/`jurnal_nomor` turunan
+ * (baris 179-183 route) dari `journal_entries` yang ditunjuk
+ * `journal_entry_id`.
+ */
+export type StatusPerawatanPM = "aman" | "segera" | "jatuh_tempo" | "belum_ada_acuan"
+export interface HasilJatuhTempoPM {
+  status: StatusPerawatanPM
+  sisaJam: number | null
+  sisaHari: number | null
+  pemicu: "jam" | "hari" | null
+}
+export interface JadwalPerawatanPM {
+  id: string
+  nama: string
+  jenis: string | null
+  setiap_jam: number | string | null
+  setiap_hari: number | string | null
+  jam_terakhir: number | string | null
+  tanggal_terakhir: string | null
+  aktif: boolean | null
+  jatuhTempo: HasilJatuhTempoPM
+}
+export interface HasilBiayaAlatPM {
+  total: number
+  perJenis: Record<string, number>
+  perJam: number | null
+  bbmPerJam: number | null
+}
+export interface HasilKesehatanAlatPM {
+  servisTerjadwal: number
+  servisMendadak: number
+  rasioMendadak: number | null
+  preventifGagal: boolean
+}
+export interface RiwayatPerawatanPM {
+  id: string
+  tanggal: string
+  biaya: number | string
+  bengkel: string | null
+  uraian: string | null
+  tak_terjadwal: boolean | null
+}
+export interface PenyusutanAlatOpsPM {
+  asset_id: string
+  periode: string
+  nilai: number | string
+  akumulasi: number | string
+  journal_entry_id: string | null
+  jurnal_status: string | null
+  jurnal_nomor: string | null
+}
+export interface AlatOpsPM extends AsetPM {
+  meter: number | null
+  jamOperasi: number
+  hariDipakai: number
+  perawatan: JadwalPerawatanPM[]
+  palingMendesak: JadwalPerawatanPM | null
+  biaya: HasilBiayaAlatPM
+  kesehatan: HasilKesehatanAlatPM
+  riwayat: RiwayatPerawatanPM[]
+  penyusutan: PenyusutanAlatOpsPM[]
+}
+export interface RespAlatOperasional { alat: AlatOpsPM[]; total: number; tanggal: string }
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {

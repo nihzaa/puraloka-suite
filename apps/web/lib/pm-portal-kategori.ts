@@ -106,12 +106,28 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * `/pengaturan/tarif-payroll` ×2, `/sdm/klaim-perjalanan`), pola sama dengan
  * key belum-dipetakan di kategori lain (lihat catatan Tahap 1-6 di atas).
  *
- * Kategori lain (Aset Tetap lintas-neraca, Audit Trail lintas-modul, dst)
- * BELUM dibangun di portal PM — JANGAN ditambahkan ke daftar ini sampai
- * tahap yang membangunnya selesai, supaya kategori kosong/setengah-jadi tak
- * pernah tampil ke PM di HP.
+ * Tahap 7 (Task 40): "Alat & Aset" (g-aset) diaktifkan — DUA halaman baru
+ * dibangun (register 3-tab: Register/Sewa/Perawatan Mendesak, dan detail
+ * 2-tab: Ringkas/Penyusutan), dipetakan lewat `as-register`/`as-mutasi`/
+ * `as-penyusutan`/`as-sewa`/`as-utilisasi`/`as-maintenance`/`as-opex`/
+ * `as-gl` di `PETA_HREF_PORTAL` (`kategori/[key]/page.tsx`) — kedelapan key
+ * grup ini SEMUA menunjuk `/pm-portal/aset` (satu halaman register yang
+ * memuat register+mutasi+penyusutan+sewa+utilisasi sebagai tab/aksi di
+ * dalamnya, sama pola `md-resource`/`crm-estimating` Tahap 3 yang
+ * sama-sama menunjuk satu halaman `cecep/ahsp`), KECUALI `as-sewa` yang
+ * menunjuk `/pm-portal/aset?tab=sewa` (langsung membuka tab Sewa, mengikuti
+ * `href` aslinya di `lib/peta-menu.ts` baris 284) dan `as-maintenance`/
+ * `as-opex`/`as-gl` yang menunjuk `/pm-portal/aset/[id]` TIDAK BISA
+ * langsung dari daftar kategori (butuh memilih aset dulu) — ketiganya tetap
+ * diarahkan ke `/pm-portal/aset` sebagai pintu masuk, sama seperti
+ * `iv-gudang`/`md-gudang` Tahap 4 yang menunjuk ikhtisar dulu sebelum detail.
+ *
+ * Kategori lain (Audit Trail lintas-modul, dst) BELUM dibangun di portal
+ * PM — JANGAN ditambahkan ke daftar ini sampai tahap yang membangunnya
+ * selesai, supaya kategori kosong/setengah-jadi tak pernah tampil ke PM
+ * di HP.
  */
-const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc", "g-keuangan", "g-tagih", "g-hr"]; // Tahap 1-7
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc", "g-keuangan", "g-tagih", "g-hr", "g-aset"]; // Tahap 1-7
 
 export function kategoriUntukPm(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));

@@ -412,6 +412,27 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "hr-sertifikasi": "/pm-portal/sdm/kompetensi",
   "hr-rekrutmen": "/pm-portal/sdm/kompetensi",
   "hr-kinerja": "/pm-portal/sdm/kompetensi",
+  // Tahap 7 (Task 40) — grup g-aset "Alat & Aset" (baru diaktifkan). Delapan
+  // key persis dari `lib/peta-menu.ts` §g-aset (as-register/as-mutasi/
+  // as-penyusutan/as-sewa/as-utilisasi/as-maintenance/as-opex/as-gl) semuanya
+  // menunjuk satu halaman register `/pm-portal/aset` (mutasi/penyusutan/
+  // servis/biaya adalah tombol/tab DI DALAM detail aset, bukan halaman
+  // terpisah) — pola sama `md-resource`/`crm-estimating` (Tahap 3) yang
+  // sama-sama menunjuk satu halaman `cecep/ahsp`. as-sewa dikecualikan ke
+  // `?tab=sewa` mengikuti `href` aslinya di peta-menu.ts (langsung membuka
+  // tab Sewa). as-gl (tombol "Jurnalkan Periode Ini") KINI dipetakan —
+  // koreksi review 2026-08-21: draf pertama brief menulis "PM TIDAK PUNYA
+  // gl:manage" dan berencana membiarkannya fallback web; query live
+  // `role_permissions` membuktikan itu SALAH, PM PUNYA `gl:manage` penuh
+  // pada kedua baris role `pm` (global + tenant).
+  "as-register": "/pm-portal/aset",
+  "as-mutasi": "/pm-portal/aset",
+  "as-penyusutan": "/pm-portal/aset",
+  "as-sewa": "/pm-portal/aset?tab=sewa",
+  "as-utilisasi": "/pm-portal/aset",
+  "as-maintenance": "/pm-portal/aset",
+  "as-opex": "/pm-portal/aset",
+  "as-gl": "/pm-portal/aset",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 

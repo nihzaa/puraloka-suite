@@ -138,6 +138,8 @@ const CONTOH_ID = {
   // dan detail Purchase Order (purchase_orders.id).
   '/pm-portal/procurement/mr/[id]': process.env.LAYAR_ID_MR,
   '/pm-portal/procurement/po/[id]': process.env.LAYAR_ID_PO,
+  // Portal PM Lengkap Tahap 7, Task 40 — detail Aset & Alat (assets.id).
+  '/pm-portal/aset/[id]': process.env.LAYAR_ID_ASET,
   // Portal PM Lengkap Tahap 5, Task 29 — detail NCR (ncr_items.id). Halaman
   // ini juga butuh `?proyek=<id>` (lihat komentar `[id]/page.tsx`) — tanpanya
   // ia jatuh ke EmptyState "tautan tidak lengkap" yang tetap terpindai axe

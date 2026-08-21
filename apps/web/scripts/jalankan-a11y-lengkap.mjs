@@ -105,6 +105,8 @@ const PERTANYAAN = [
   // Portal PM Lengkap Tahap 6, Task 35 — detail Rekening Koran
   // (`/pm-portal/keuangan/rekonsiliasi-bank/[id]`).
   ['LAYAR_ID_REKENING_KORAN', 'select id from rekening_koran order by created_at desc limit 1'],
+  // Portal PM Lengkap Tahap 7, Task 40 — detail Aset & Alat (`/pm-portal/aset/[id]`).
+  ['LAYAR_ID_ASET', 'select id from assets order by created_at desc limit 1'],
 ]
 
 const env = { ...process.env }
