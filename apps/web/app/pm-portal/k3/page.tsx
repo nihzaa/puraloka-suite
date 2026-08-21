@@ -14,14 +14,20 @@
 // dipakai keduanya untuk field yang sama, `:view` untuk list):
 //   · Insiden   → GET  /api/v1/k3/insiden?proyek=<id>
 //                 PATCH /api/v1/k3/insiden/:id  { status, tindakan_korektif, ... }
-//   · JSA       → GET  /api/v1/k3/jsa  (read-only di halaman ini — kelola JSA
-//                 penuh di luar cakupan Task 10 Step 1, spec hanya minta
-//                 "manage/verify" untuk insiden & inspeksi)
+//   · JSA       → GET  /api/v1/k3/jsa
+//                 POST /api/v1/k3/jsa  { jenis_pekerjaan, kode?, uraian?,
+//                 project_id?, catatan? } — Task 30 Step 5 (K3 lanjutan,
+//                 Task 27 keputusan scope: HANYA header JSA). Butuh
+//                 `k3:jsa:manage`, PM PUNYA (migrasi 293). Langkah bahaya/
+//                 pengendalian (`POST /k3/jsa/:id/langkah`) TIDAK ditambah
+//                 di sini — CRUD tingkat kedua yang lebih pas sebagai
+//                 halaman detail JSA tersendiri, di luar scope Task 30
+//                 (dicatat utang di JOURNAL.md).
 //   · Inspeksi  → bagian payload GET /api/v1/proyek/:id/k3 (field `inspeksi`)
 // ============================================================================
 
 import { useMemo, useState } from "react";
-import { ShieldAlert, HardHat, ClipboardCheck } from "lucide-react";
+import { ShieldAlert, HardHat, ClipboardCheck, Plus } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import SegmentedTab from "@/components/portal/SegmentedTab";
@@ -76,6 +82,7 @@ export default function PmK3Page() {
   const [tindakanKorektif, setTindakanKorektif] = useState("");
   const [mengirim, setMengirim] = useState(false);
   const [galatForm, setGalatForm] = useState<string | null>(null);
+  const [sheetBuatJsa, setSheetBuatJsa] = useState(false);
 
   const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
   const daftarProyek = useMemo(
@@ -204,6 +211,12 @@ export default function PmK3Page() {
 
       {tab === "jsa" && (
         <>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <button type="button" onClick={() => setSheetBuatJsa(true)} aria-label="Buat JSA baru"
+              style={{ minHeight: 36, padding: "0 12px", borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+              <Plus size={14} aria-hidden="true" /> JSA
+            </button>
+          </div>
           {memuatJsa && <SkeletonCard tinggi={80} />}
           {galatJsa && (
             <EmptyState icon={HardHat} judul="Gagal memuat JSA" deskripsi={pesanGalat(galatJsa as GalatApi, "Coba muat ulang halaman ini.")} />
@@ -301,6 +314,73 @@ export default function PmK3Page() {
           </div>
         )}
       </BottomSheet>
+
+      <BottomSheet terbuka={sheetBuatJsa} onTutup={() => setSheetBuatJsa(false)} judul="Job Safety Analysis Baru">
+        <SheetBuatJsa
+          proyekId={proyekAktif}
+          onSelesai={() => { setSheetBuatJsa(false); invalidasi("/api/v1/k3/jsa"); }}
+        />
+      </BottomSheet>
+    </div>
+  );
+}
+
+/**
+ * Form header JSA saja (`jenis_pekerjaan`, `kode`, `uraian`) — TANPA langkah
+ * bahaya/pengendalian, sengaja (Task 30 Step 5). Langkah adalah CRUD tingkat
+ * kedua (`POST /k3/jsa/:id/langkah`) yang lebih pas jadi halaman detail JSA
+ * tersendiri, di luar scope task ini.
+ */
+function SheetBuatJsa({ proyekId, onSelesai }: { proyekId: string; onSelesai: () => void }) {
+  const [jenisPekerjaan, setJenisPekerjaan] = useState("");
+  const [kode, setKode] = useState("");
+  const [uraian, setUraian] = useState("");
+  const [mengirim, setMengirim] = useState(false);
+  const [galat, setGalat] = useState<string | null>(null);
+
+  async function simpan() {
+    if (!jenisPekerjaan.trim()) { setGalat("Jenis pekerjaan wajib diisi."); return; }
+    setMengirim(true); setGalat(null);
+    try {
+      await api.post("/api/v1/k3/jsa", {
+        jenis_pekerjaan: jenisPekerjaan.trim(),
+        kode: kode.trim() || undefined,
+        uraian: uraian.trim() || undefined,
+        project_id: proyekId || undefined,
+      });
+      setJenisPekerjaan(""); setKode(""); setUraian("");
+      onSelesai();
+    } catch (e) {
+      setGalat(pesanGalat(e as GalatApi, "Gagal membuat JSA"));
+    } finally { setMengirim(false); }
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+        Jenis pekerjaan
+        <input value={jenisPekerjaan} onChange={(e) => setJenisPekerjaan(e.target.value)} placeholder="mis. Pengecoran kolom lantai 2"
+          style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+      </label>
+      <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+        Kode (opsional)
+        <input value={kode} onChange={(e) => setKode(e.target.value)}
+          style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+      </label>
+      <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+        Uraian
+        <textarea value={uraian} onChange={(e) => setUraian(e.target.value)} rows={3}
+          style={{ width: "100%", marginTop: 6, padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, fontFamily: "inherit" }} />
+      </label>
+      {galat && (
+        <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+          {galat}
+        </div>
+      )}
+      <button type="button" onClick={simpan} disabled={mengirim}
+        style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+        {mengirim ? "Menyimpan…" : "Buat JSA"}
+      </button>
     </div>
   );
 }

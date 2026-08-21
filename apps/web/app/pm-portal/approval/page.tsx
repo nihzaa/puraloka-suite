@@ -36,15 +36,36 @@
 // digerbang eksplisit di `rab/[id]/page.tsx`.
 //
 // `AKSI` sekarang berisi `kasbon`, `submittal`, `material_request`,
-// `purchase_order` — semuanya diverifikasi ke kode nyata (lihat komentar
-// per-entri). Jenis lain yang mungkin punya baris pending di company LAIN
-// (change_order, dst) akan tetap TAMPIL sebagai kartu (tak disembunyikan —
-// menyembunyikan pekerjaan yang menunggu lebih buruk daripada menampilkannya
-// tanpa tombol aksi), tapi diarahkan ke halaman detail lewat `JALUR_PM`,
-// BUKAN diberi tombol setujui/tolak yang endpoint-nya belum diverifikasi di
-// sini. PM juga tidak berwenang menyetujui change_order/opname_bersama/
-// back_charge (lihat Global Constraints task) — jenis-jenis itu memang
-// sengaja tak pernah diberi tombol aksi di portal PM.
+// `purchase_order`, `rencana_mutu` — semuanya diverifikasi ke kode nyata
+// (lihat komentar per-entri). Jenis lain yang mungkin punya baris pending di
+// company LAIN (change_order, dst) akan tetap TAMPIL sebagai kartu (tak
+// disembunyikan — menyembunyikan pekerjaan yang menunggu lebih buruk
+// daripada menampilkannya tanpa tombol aksi), tapi diarahkan ke halaman
+// detail lewat `JALUR_PM`, BUKAN diberi tombol setujui/tolak yang
+// endpoint-nya belum diverifikasi di sini. PM juga tidak berwenang
+// menyetujui change_order/opname_bersama/back_charge (lihat Global
+// Constraints task) — jenis-jenis itu memang sengaja tak pernah diberi
+// tombol aksi di portal PM.
+//
+// ── `rencana_mutu` (Task 30 Step 6/8, Task 27 Temuan #1)
+//
+// Rantai approval `rencana_mutu`: SATU langkah, `required_permission` =
+// `mutu:rmp:approve` (migrasi 280/282, diverifikasi LIVE Task 30 Step 8
+// lewat query `role_permissions` join `roles`/`permissions`). PM punya
+// `mutu:rmp:view`+`mutu:rmp:manage` (bisa membuat & mengajukan RMP dari
+// `pm-portal/mutu/rencana`) TAPI **nol baris** untuk `mutu:rmp:approve` —
+// permission itu HANYA `admin`/`direktur`.
+//
+// `canParticipateInChain()` (`utils/approval.ts:193-203`) memutuskan
+// keikutsertaan lewat `steps.some(s => perms.has(s.required_permission))` —
+// karena rantainya cuma satu langkah dan syaratnya persis permission yang
+// PM tak punya, baris `rencana_mutu` TAK AKAN PERNAH muncul di
+// `GET /api/v1/approval/inbox` untuk PM. `AKSI.rencana_mutu` di bawah karena
+// itu adalah kode MATI untuk PM (tak pernah dieksekusi, entitasnya tak
+// pernah tampil sebagai kartu) — tapi BENAR untuk kelengkapan katalog:
+// komponen ini dipakai apa adanya bila kelak role lain (qhse_manager,
+// direktur) memakai layar serupa, dan menaruh entrinya sekarang mencegah
+// riset ulang dari nol.
 //
 // ── Kartu inbox tak membawa detail (spec §2.4 poin 2)
 //
@@ -111,7 +132,7 @@ import SkeletonCard from "@/components/portal/SkeletonCard";
 import type {
   BarisInbox, ResponsInbox, GalatApi,
   ResponsKasbonDetailInbox, ResponsSubmittalDetailInbox,
-  RespMrDetail, RespPoDetail,
+  RespMrDetail, RespPoDetail, RespRencanaMutuSatu,
 } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
 
@@ -125,6 +146,7 @@ const JALUR_PM: Record<string, string> = {
   submittal: "/pm-portal/lainnya", // belum ada halaman submittal PM tersendiri
   material_request: "/pm-portal/procurement",
   purchase_order: "/pm-portal/procurement",
+  rencana_mutu: "/pm-portal/mutu/rencana",
 };
 
 interface KonfigAksi {
@@ -197,6 +219,27 @@ const AKSI: Record<string, KonfigAksi> = {
     rejectUrl: (id) => `/api/v1/procurement/purchase-orders/${id}/status`,
     rejectBody: () => ({ status: "draft" }), // no-op aman: draft→draft, TIDAK dipanggil
   },
+  // `POST /api/v1/rencana-mutu/:id/setujui` — apps/api/src/routes/v1/rencana-mutu.ts:411.
+  // Tak menerima body approve (amount selalu null, RMP tak bernominal).
+  // TIDAK ADA endpoint tolak eksplisit untuk RMP (diverifikasi: rute hanya
+  // `ajukan` dan `setujui`, tak ada `tolak`/`reject`) — sama pola PO,
+  // tombol Tolak untuk jenis ini DINONAKTIFKAN di render bawah.
+  // `rejectBody` TIDAK PERNAH dipanggil (tombol nonaktif), disimpan hanya
+  // supaya `KonfigAksi` tetap lengkap bentuknya.
+  //
+  // ⚠️ KODE MATI UNTUK PM (Task 30 Step 8): rantai approval `rencana_mutu`
+  // syaratnya `mutu:rmp:approve`, PM nol baris untuk permission itu
+  // (diverifikasi LIVE) — baris ini tak akan pernah tampil di inbox PM,
+  // jadi tombol ini tak pernah tereksekusi PM. Ditaruh untuk kelengkapan
+  // katalog bila layar ini dipakai role lain kelak (lihat komentar kepala
+  // berkas).
+  rencana_mutu: {
+    metode: "post",
+    approveUrl: (id) => `/api/v1/rencana-mutu/${id}/setujui`,
+    approveBody: () => ({}),
+    rejectUrl: (id) => `/api/v1/rencana-mutu/${id}/setujui`,
+    rejectBody: () => ({}), // no-op aman, TIDAK dipanggil — tombol Tolak selalu nonaktif
+  },
 };
 
 interface RespKeputusan {
@@ -266,6 +309,13 @@ export default function PmApprovalPage() {
   const { data: dataPo, memuat: memuatDetailPo, galat: galatDetailPo } =
     useData<RespPoDetail>(urlDetailPo);
 
+  // rencana_mutu (Task 30 Step 6) — PUNYA `GET /:id` sendiri, sama pola
+  // MR/PO: diambil LANGSUNG lewat id, tak perlu cocokkan-dari-list.
+  const urlDetailRmp = dipilih?.jenis === "rencana_mutu"
+    ? `/api/v1/rencana-mutu/${dipilih.id}` : null;
+  const { data: dataRmp, memuat: memuatDetailRmp, galat: galatDetailRmp } =
+    useData<RespRencanaMutuSatu>(urlDetailRmp);
+
   const detailKasbon = useMemo(
     () => dataKasbon?.kasbons?.find((k) => k.id === dipilih?.id) ?? null,
     [dataKasbon, dipilih],
@@ -276,11 +326,13 @@ export default function PmApprovalPage() {
   );
   const detailMr = dataMr?.material_request ?? null;
   const detailPo = dataPo?.purchase_order ?? null;
+  const detailRmp = dataRmp?.rencana ?? null;
 
   const memuatDetail = dipilih?.jenis === "kasbon" ? memuatDetailKasbon
     : dipilih?.jenis === "submittal" ? memuatDetailSubmittal
     : dipilih?.jenis === "material_request" ? memuatDetailMr
     : dipilih?.jenis === "purchase_order" ? memuatDetailPo
+    : dipilih?.jenis === "rencana_mutu" ? memuatDetailRmp
     : false;
 
   // ⚠️ WAJIB (fix round 1, review Important-1): detail bisa HILANG SENYAP —
@@ -296,15 +348,17 @@ export default function PmApprovalPage() {
     (dipilih?.jenis === "kasbon" && (Boolean(galatDetailKasbon) || !detailKasbon)) ||
     (dipilih?.jenis === "submittal" && (Boolean(galatDetailSubmittal) || !detailSubmittal)) ||
     (dipilih?.jenis === "material_request" && (Boolean(galatDetailMr) || !detailMr)) ||
-    (dipilih?.jenis === "purchase_order" && (Boolean(galatDetailPo) || !detailPo))
+    (dipilih?.jenis === "purchase_order" && (Boolean(galatDetailPo) || !detailPo)) ||
+    (dipilih?.jenis === "rencana_mutu" && (Boolean(galatDetailRmp) || !detailRmp))
   );
 
   const konfigDipilih = dipilih ? AKSI[dipilih.jenis] : undefined;
   const alasanValid = alasan.trim().length > 0;
-  // Deviasi Step 5: PO tak punya jalur "tolak" yang aman secara semantik
-  // (lihat komentar `AKSI.purchase_order` di atas) — tombol Tolak untuk
-  // jenis ini SELALU nonaktif, terlepas dari `detailGagal`.
-  const tolakDinonaktifkan = dipilih?.jenis === "purchase_order"
+  // Deviasi Step 5/6: PO dan RMP tak punya jalur "tolak" yang aman secara
+  // semantik (lihat komentar `AKSI.purchase_order`/`AKSI.rencana_mutu` di
+  // atas) — tombol Tolak untuk kedua jenis ini SELALU nonaktif, terlepas
+  // dari `detailGagal`.
+  const tolakDinonaktifkan = dipilih?.jenis === "purchase_order" || dipilih?.jenis === "rencana_mutu"
     ? true
     : mengirim || dipilih?.saya_pengajunya || detailGagal;
 
@@ -322,12 +376,16 @@ export default function PmApprovalPage() {
       setGalatAksi("Jenis approval ini belum didukung tombol aksinya di portal PM.");
       return;
     }
-    // Guard KERAS, bukan cuma `disabled` tombol — `purchase_order` tak punya
-    // jalur tolak yang aman (lihat komentar `AKSI.purchase_order`). Kalaupun
-    // `putuskan("reject")` terpanggil lewat jalur lain, ini menahannya
-    // sebelum request terkirim.
+    // Guard KERAS, bukan cuma `disabled` tombol — `purchase_order`/
+    // `rencana_mutu` tak punya jalur tolak yang aman (lihat komentar
+    // `AKSI.purchase_order`/`AKSI.rencana_mutu`). Kalaupun `putuskan("reject")`
+    // terpanggil lewat jalur lain, ini menahannya sebelum request terkirim.
     if (keputusan === "reject" && dipilih.jenis === "purchase_order") {
       setGalatAksi("PO tidak punya aksi tolak dari inbox ini — biarkan tetap draf atau batalkan dari halaman detail PO.");
+      return;
+    }
+    if (keputusan === "reject" && dipilih.jenis === "rencana_mutu") {
+      setGalatAksi("Rencana mutu tidak punya aksi tolak dari inbox ini — dan PM tidak berwenang menyetujuinya (lihat catatan di kartu ini).");
       return;
     }
     if (keputusan === "reject" && !alasanValid) {
@@ -508,6 +566,15 @@ export default function PmApprovalPage() {
               </div>
             )}
 
+            {!memuatDetail && dipilih.jenis === "rencana_mutu" && detailRmp && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface-subtle)" }}>
+                <Baris label="Nomor" nilai={detailRmp.nomor} />
+                <Baris label="Judul" nilai={`${detailRmp.judul} · Rev.${detailRmp.revisi}`} />
+                <Baris label="Penanggung jawab" nilai={detailRmp.pj?.name ?? "—"} />
+                {detailRmp.standar_acuan && <Baris label="Standar acuan" nilai={detailRmp.standar_acuan} />}
+              </div>
+            )}
+
             {/* Fallback EKSPLISIT — detail gagal dimuat ATAU tak ketemu di
                 list. Tombol Setujui/Tolak di bawah digerbang `detailGagal`
                 ini; blok ini yang membuat kegagalan itu TERLIHAT, bukan
@@ -515,6 +582,7 @@ export default function PmApprovalPage() {
             {detailGagal && (
               dipilih.jenis === "kasbon" || dipilih.jenis === "submittal"
               || dipilih.jenis === "material_request" || dipilih.jenis === "purchase_order"
+              || dipilih.jenis === "rencana_mutu"
             ) && (
               <div
                 role="alert"
@@ -582,7 +650,7 @@ export default function PmApprovalPage() {
                     type="button"
                     onClick={() => putuskan("reject")}
                     disabled={tolakDinonaktifkan}
-                    style={(detailGagal || dipilih.jenis === "purchase_order") ? GAYA_TOMBOL_NONAKTIF : {
+                    style={(detailGagal || dipilih.jenis === "purchase_order" || dipilih.jenis === "rencana_mutu") ? GAYA_TOMBOL_NONAKTIF : {
                       flex: 1, minHeight: 48, padding: "0 14px", borderRadius: "var(--portal-radius-pill)",
                       background: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger-border)",
                       fontSize: 14, fontWeight: 700,
@@ -610,6 +678,14 @@ export default function PmApprovalPage() {
                   <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
                     PO tidak punya aksi tolak dari sini — biarkan tetap draf, atau batalkan lewat
                     halaman detail PO bila memang tidak jadi dipesan.
+                  </div>
+                )}
+
+                {dipilih.jenis === "rencana_mutu" && (
+                  <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                    Rencana mutu tidak punya aksi tolak dari sini. Persetujuan RMP hanya wewenang
+                    admin/direktur — bila tombol Setujui di atas ditekan, server akan menolaknya
+                    (403) karena Anda tidak memegang izin `mutu:rmp:approve`.
                   </div>
                 )}
 

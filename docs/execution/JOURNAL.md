@@ -5,6 +5,156 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-21 (Portal PM Lengkap, Tahap 5) — Task 30 tuntas: Rencana Mutu/ITP + Uji Material + JSA lanjutan + navigasi g-qaqc tersambung, TAHAP 5 (Rencana & Uji Mutu + K3 lanjutan) SELESAI
+
+Task TERAKHIR Tahap 5. Membangun 3 halaman baru + 2 modifikasi + navigasi
+kategori `g-qaqc`. Tahap 5 sekarang lengkap 7 halaman: Kepatuhan+Izin (Task
+28, 1 halaman), NCR (Task 29, 2 halaman — list + detail), Rencana Mutu+ITP
+(Task 30, 2 halaman — list + detail gabungan RMP+ITP), Uji Material (Task
+30, 1 halaman), K3 JSA lanjutan (Task 30, modifikasi halaman existing).
+
+**Halaman baru:**
+- `pm-portal/mutu/rencana/page.tsx` — list RMP per proyek, revisi terbaru
+  dulu, tombol "+ RMP" (gerbang `ncr:manage`, PM punya).
+- `pm-portal/mutu/rencana/[id]/page.tsx` — detail RMP dibuka dengan VERDICT
+  ("boleh lanjut" / "ada yang menahan" / "ITP kosong, belum menyatakan apa
+  pun" — tiga keadaan `ringkasan.boleh_lanjut`, bukan boolean biner), daftar
+  titik ITP menahan (`ringkasan.menahan`) dan menunggu saksi
+  (`ringkasan.menunggu_saksi`) ditampilkan EKSPLISIT sebagai baris, bukan
+  cuma angka. Tambah titik ITP, isi hasil periksa (lolos/tidak dengan
+  catatan wajib bila tidak lolos), tombol "Ajukan" — TIDAK ADA tombol
+  "Setujui" (lihat temuan di bawah).
+- `pm-portal/mutu/uji-material/page.tsx` — list hasil uji per proyek + form
+  create. Kesimpulan lewat tiga tombol pilihan (`memenuhi`/`tidak_memenuhi`/
+  `perlu_uji_ulang`), BUKAN input teks bebas — enum backend PERSIS tiga
+  nilai. Baris yang angkanya bertentangan dengan kesimpulan manusia
+  ditandai badge terpisah (server sudah menaikkannya ke atas urutan).
+
+**Modifikasi:**
+- `pm-portal/k3/page.tsx` — tab JSA (baca-saja sebelumnya) dapat tombol
+  "+ JSA" yang membuka BottomSheet form header (`jenis_pekerjaan`, `kode`,
+  `uraian`) lewat `POST /k3/jsa` (`k3:jsa:manage`, PM punya). Langkah
+  bahaya/pengendalian SENGAJA TIDAK ditambahkan — CRUD tingkat kedua yang
+  lebih pas jadi halaman detail JSA tersendiri, dicatat UTANG di bawah.
+- `pm-portal/approval/page.tsx` — `rencana_mutu` ditambahkan ke katalog
+  `JALUR_PM`/`AKSI` untuk kelengkapan (pola Task 24), TAPI lihat temuan
+  di bawah — ini KODE MATI untuk PM, dibuktikan empiris bukan diasumsikan.
+
+**Temuan yang paling penting sesi ini — dan cara memverifikasinya, karena
+angka ini gampang dikutip salah nanti:**
+
+Brief mewanti-wanti PM TIDAK punya `mutu:rmp:approve` (temuan Task 27).
+Diverifikasi ULANG live (bukan dipercaya dari brief) lewat query SQL
+langsung ke basis dev:
+
+```sql
+SELECT p.key FROM role_permissions rp
+JOIN roles r ON r.id = rp.role_id
+JOIN permissions p ON p.id = rp.permission_id
+WHERE r.name = 'pm' AND p.key = 'mutu:rmp:approve';
+-- 0 baris
+
+SELECT ac.entity_type, aps.level, aps.required_permission
+FROM approval_steps aps JOIN approval_chains ac ON ac.id = aps.chain_id
+WHERE ac.entity_type = 'rencana_mutu';
+-- 1 baris: level 1, required_permission = 'mutu:rmp:approve'
+```
+
+Rantai approval `rencana_mutu` cuma SATU langkah, syaratnya PERSIS
+permission yang PM tak punya. `canParticipateInChain()`
+(`utils/approval.ts:193-203`, `steps.some(s => perms.has(s.required_permission))`)
+karena itu memulangkan `false` untuk PM — baris `rencana_mutu` TAK AKAN
+PERNAH muncul di `GET /api/v1/approval/inbox` untuk peran PM. `AKSI.rencana_mutu`
+yang ditambahkan ke `approval/page.tsx` karena itu adalah kode MATI untuk
+PM (aman, tak pernah tereksekusi) tapi BENAR untuk kelengkapan katalog bila
+role lain (qhse_manager/direktur) kelak memakai komponen serupa. Migrasi
+280 mengonfirmasi desain ini disengaja: `mutu:rmp:view`+`mutu:rmp:manage`
+diberikan ke `admin, direktur, pm`, tapi `mutu:rmp:approve` HANYA
+`admin, direktur` — PM sengaja bisa menyusun & mengajukan RMP tapi tak bisa
+menandatangani persetujuannya sendiri.
+
+**Koreksi bentuk respons API dari riset ulang lib nyata (brief menandai
+"verify at implementation"):**
+
+1. `RingkasanItp` (`GET /rencana-mutu/:id`, field `ringkasan`) brief menulis
+   bentuk longgar `{total,lolos,gagal,belum,pct_lolos,pct_selesai,boleh_lanjut}`.
+   Bentuk ASLI `ringkasItp()` (`lib/rencana-mutu.ts:66-94`) JUGA membawa
+   `menahan: TitikItp[]` dan `menunggu_saksi: TitikItp[]` — array objek
+   titik, bukan cuma angka. Halaman detail memakainya untuk menyebut titik
+   mana yang menahan secara eksplisit.
+2. `RespUjiMaterial` (`GET /projects/:id/uji-material`) brief menulis
+   `{ data: UjiMaterial[], jumlah_uji }`. Bentuk ASLI (`mutu.ts:212-218`,
+   `{ ...ringkasUji(baris), jumlah_uji }`) memakai field **`baris`**, BUKAN
+   `data`, dan tiap elemennya `HasilNilaiUji` (extends dengan
+   `selisih`/`angka_memadai`/`bertentangan`/`perlu_kesimpulan`), sudah
+   diurutkan server (bertentangan naik ke atas dulu). `kesimpulan` union
+   PERSIS tiga nilai (`memenuhi|tidak_memenuhi|perlu_uji_ulang`), bukan teks
+   bebas — form create karena itu memakai tiga tombol pilihan, sama pola
+   `jenis_titik` di halaman RMP.
+3. `uji-material`/`k3:jsa` PUNYA permission modul sendiri (`mutu:uji:view`/
+   `:manage`, `k3:jsa:view`/`:manage`) — BUKAN `ncr:view`/`ncr:manage` yang
+   dipakai RMP. Diverifikasi PM punya keduanya (migrasi 279, 293).
+
+**Utang tercatat** (semua dengan alasan tertulis, sama pola Task 27
+Temuan #4/#6):
+- Audit Mutu (`qc-audit`), Pelajaran Proyek (`mutu-pelajaran`), Tindakan
+  Korektif (`qc-capa`) — di luar 4 modul brief Task 27/30, ranah CECEP
+  bukan Mutu&K3 untuk yang terakhir. Fallback web.
+- Checklist Inspeksi (`qc-checklist`) — CRUD level-tiga (inspeksi → checklist
+  → butir), di luar scope. Fallback web (`/lapangan/inspeksi`).
+- K3 inspeksi rutin/induksi/lingkungan/APD tetap TAB baca-saja di
+  `pm-portal/k3` (Task-dasar sebelum plan ini) — HANYA JSA yang dapat
+  create di Task 30, sesuai keputusan scope Task 27 Step 1.
+- Langkah bahaya/pengendalian JSA (`POST /k3/jsa/:id/langkah`) — CRUD
+  tingkat kedua, lebih pas jadi halaman detail JSA tersendiri.
+
+**Navigasi:** `g-qaqc` diaktifkan `KATEGORI_AKTIF`
+(`lib/pm-portal-kategori.ts`). `PETA_HREF_PORTAL` (`kategori/[key]/page.tsx`)
+diisi: `qc-rencana`+`qc-itp` → `/pm-portal/mutu/rencana` (satu halaman
+gabungan, pola `cc-rab`/`crm-boq`), `qc-uji` → `/pm-portal/mutu/uji-material`.
+Tiga entri grup AKTIF LAMA diperbarui dari fallback web ke halaman portal
+Task 28: `lp-permit`/`sk-kepatuhan`/`sk-evaluasi` → `/pm-portal/kepatuhan`.
+
+**Verifikasi:**
+- `tsc --noEmit` bersih (setelah 2 galat `EmptyState` kurang prop `icon`
+  diperbaiki).
+- `pnpm build` LULUS — Suspense boundary untuk `useSearchParams` di
+  `mutu/rencana/[id]/page.tsx` terbukti perlu (pola Task 29): tanpanya
+  build gagal saat prerender.
+- `eslint` bersih di semua berkas tersentuh.
+- `uji-token-css-ada.mjs`: 0 token hantu dari 489 berkas.
+- `audit-nav-yatim.mjs`: 3 halaman YATIM di baseline HEAD
+  (`/pm-portal/kepatuhan`, `/pm-portal/mutu/rencana`,
+  `/pm-portal/mutu/uji-material`) → 0 sesudah perubahan (dibandingkan lewat
+  `git show HEAD:<path>` ke berkas sementara, BUKAN `git stash` — dilarang
+  di worktree ini). `/estimasi/struktur` tetap link mati — PRA-EXISTING di
+  baseline, dikonfirmasi dengan audit yang sama sebelum perubahan Task 30.
+- Penjaga CI penuh: **129 hijau · 42 MERAH · 2 tak ketemu**. SEMUA 42 merah
+  diperiksa satu-satu — nol yang disebabkan Task 30 KECUALI satu yang
+  ditemukan dan LANGSUNG diperbaiki: `uji-rute-dinamis-teraudit.mjs`
+  menandai `/pm-portal/mutu/rencana/[id]` tak bisa dipindai audit a11y
+  (rute dinamis baru tanpa contoh id) — diperbaiki dengan menambah
+  `LAYAR_ID_RMP` ke `CONTOH_ID` (`audit-a11y-runtime.mjs`) dan
+  `PERTANYAAN` (`jalankan-a11y-lengkap.mjs`), naik dari 128 hijau ke 129.
+  Sisa 42 merah: seluruhnya di area backend/dokumen/berkas yang TIDAK
+  disentuh Task 30 (migrasi, skema, format ratchet, tab component bersama,
+  dsb) — diperiksa file-by-file, bukan diasumsikan. Detail per-guard di
+  `task-30-report.md`.
+- `npx vitest run ncr mutu rencana-mutu audit-mutu kepatuhan k3-lapangan
+  otomasi-k3-stok-mutu otomasi-kepatuhan otomasi-sertifikat-k3
+  otomasi-izin-risiko rfi-aturan punch-list-aturan submittal-aturan`:
+  **356 lulus / 357** (18 berkas). Satu gagal —
+  `submittal-aturan.test.ts` "rantai approval submittal ADA untuk tiap
+  company" (2 company tanpa seed rantai submittal) — PRA-EXISTING, tak ada
+  hubungan dengan entitas apa pun yang disentuh Task 30 (rencana_mutu/
+  uji_material/jsa), direproduksi ulang terisolasi, dilaporkan sebagai
+  concern ke controller bukan diperbaiki sendiri.
+- Audit a11y runtime penuh (`jalankan-a11y-lengkap.mjs`): hasil di
+  `task-30-report.md` (jalan lama, bisa TIDAK TUNTAS karena timeout
+  lingkungan — dicatat jelas kalau begitu, bukan diklaim selesai).
+
+---
+
 ## 2026-08-21 (Portal PM Lengkap, Tahap 4) — Task 26 fix round: koreksi 1 Critical + 1 Important + 1 Minor dari review
 
 Review coordinator atas entri di bawah (commit `7ad81b54`) menemukan tiga

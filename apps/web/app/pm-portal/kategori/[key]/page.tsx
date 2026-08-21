@@ -192,11 +192,38 @@ import { Folder } from "lucide-react";
  * `audit-nav-yatim.mjs` menandai `/pm-portal/mutu/ncr` yatim sebelum baris
  * ini ditambahkan — diperbaiki di sini, bukan didaftarkan ke WAJAR skrip
  * itu, karena modul ini memang punya tempatnya sendiri di kategori yang
- * sudah aktif (beda dari `sk-kepatuhan`/`lp-permit`/`sk-evaluasi`, Task 28,
- * yang TETAP tak dipetakan di sini — bukan bagian Task 29, tak disentuh).
- * `qc-ncr` (grup `g-qaqc`) TIDAK ikut dipetakan — kategori itu belum aktif
- * di `KATEGORI_AKTIF` (`lib/pm-portal-kategori.ts`), jadi key-nya tak
- * pernah dirender navigasi PM sampai grupnya diaktifkan tahap lain.
+ * sudah aktif.
+ *
+ * Tahap 5 (Task 30, grup `g-qaqc` BARU diaktifkan `KATEGORI_AKTIF`; key
+ * persis dari `lib/peta-menu.ts` §g-qaqc, diverifikasi ulang saat Task 30):
+ *   qc-rencana DAN qc-itp → `/pm-portal/mutu/rencana` — SATU halaman
+ *   gabungan (list RMP + detail per-RMP menampilkan ITP-nya, Task 30 Step
+ *   2-3), sama pola `cc-rab`/`crm-boq` yang berbagi satu halaman Tahap 3.
+ *   qc-uji → `/pm-portal/mutu/uji-material` (Task 30 Step 4).
+ *   qc-ncr TETAP `/pm-portal/mutu/ncr` (Task 29, tak berubah — baris di
+ *   bawah HANYA dipertahankan, bukan ditulis ulang, supaya key `g-lapangan`
+ *   `lp-ncr` dan key `g-qaqc` `qc-ncr` konsisten menunjuk halaman yang sama).
+ *   qc-checklist TETAP fallback ke web (`/lapangan/inspeksi`) — checklist
+ *   inspeksi (`inspeksi_checklist`, `mutu.ts:44-190`) adalah CRUD level-KE-
+ *   TIGA (inspeksi → checklist → tiap butir) yang bahkan desktop
+ *   menempelkannya sebagai komponen KECIL di kartu inspeksi (`checklist-
+ *   inspeksi.tsx`, dilipat) — di luar scope Task 30 (tak disebut brief, dan
+ *   `/lapangan/inspeksi-rfi` portal SUDAH ada Task-dasar untuk RFI, BUKAN
+ *   checklist yang sama; verifikasi ulang overlap sebelum mengerjakan kalau
+ *   tahap lanjutan membutuhkannya).
+ *   qc-capa/mutu-pelajaran SENGAJA TIDAK diisi — Task 27 Temuan #6, ranah
+ *   CECEP bukan Mutu&K3, PM cuma `cecep:lessons:view`. Fallback web.
+ *   qc-audit SENGAJA TIDAK diisi — Task 27 Temuan #4, di luar 4 modul
+ *   brief (RMP/ITP/Uji Material/JSA lanjutan). Fallback web (`/mutu/audit`).
+ *
+ * Tahap 5 (Task 30, koreksi 3 entri grup AKTIF LAMA — g-lapangan/g-subkon
+ * sudah aktif sejak Tahap 1, tapi ketiga key ini baru sekarang punya halaman
+ * portal PM sendiri, Task 28 "Kepatuhan & Izin Kerja"): `lp-permit` (grup
+ * `g-lapangan`) dan `sk-kepatuhan`/`sk-evaluasi` (grup `g-subkon`) diarahkan
+ * ke `/pm-portal/kepatuhan` — sebelumnya TAK dipetakan sama sekali di sini
+ * (fallback `it.href` web `/kepatuhan?bagian=...`, lihat catatan Tahap 4
+ * `iv-minstok` untuk pola serupa "sengaja ditunda"), sekarang halaman
+ * portalnya sudah ada (Task 28) jadi dipetakan sebagaimana mestinya.
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "sk-paket": "/pm-portal/mandor-lengkap/penugasan",
@@ -278,6 +305,18 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   // `it.href` web (/procurement/material), pola sama dengan cc-pagu-material.
   // Tahap 5 (Task 29) — grup g-lapangan, satu key baru.
   "lp-ncr": "/pm-portal/mutu/ncr",
+  // Tahap 5 (Task 30) — grup g-qaqc (baru diaktifkan). Lihat catatan
+  // panjang di atas untuk alasan qc-checklist/qc-capa/mutu-pelajaran/
+  // qc-audit yang SENGAJA tak dipetakan.
+  "qc-rencana": "/pm-portal/mutu/rencana",
+  "qc-itp": "/pm-portal/mutu/rencana",
+  "qc-uji": "/pm-portal/mutu/uji-material",
+  "qc-ncr": "/pm-portal/mutu/ncr",
+  // Tahap 5 (Task 30) — koreksi 3 entri grup AKTIF lama, sekarang py halaman
+  // portal (Task 28 "Kepatuhan & Izin Kerja"). Lihat catatan panjang di atas.
+  "lp-permit": "/pm-portal/kepatuhan",
+  "sk-kepatuhan": "/pm-portal/kepatuhan",
+  "sk-evaluasi": "/pm-portal/kepatuhan",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 

@@ -2478,6 +2478,178 @@ export interface RespKandidatNcr {
 export interface RespNcrSatu { data: NcrItem }
 
 /**
+ * Rencana Mutu Proyek (RMP) + Inspection & Test Plan (ITP) — Task 30.
+ * Bentuk diverifikasi baris-per-baris ke `apps/api/src/routes/v1/rencana-mutu.ts`
+ * (`RMP_SELECT`/`ITP_SELECT`, handler GET satu-dokumen) DAN
+ * `apps/api/src/lib/rencana-mutu.ts` (`ringkasItp`/`cacatRencanaMutu`/
+ * `bolehDisetujui`) — bukan ditebak dari nama fungsi.
+ *
+ * ⚠️ KOREKSI dari brief: brief menulis `RingkasanItp` sebagai bentuk longgar
+ * `{ total, lolos, gagal, belum, pct_lolos, pct_selesai, boleh_lanjut, [k:
+ * string]: unknown }`. Bentuk ASLI `ringkasItp()` (`lib/rencana-mutu.ts:66-94,
+ * 109-139`) juga membawa dua ARRAY OBJEK TitikItp: `menahan` (titik HOLD
+ * yang belum lolos — INILAH yang menahan pekerjaan, `null` DAN `false`
+ * sama-sama masuk sini) dan `menunggu_saksi` (titik WITNESS yang belum
+ * lolos, wajib diberitahukan TAPI TIDAK menahan). Keduanya dipakai halaman
+ * detail untuk menyebut SECARA EKSPLISIT titik mana yang menahan, bukan
+ * cuma angka `ringkasan.gagal`.
+ */
+export interface RencanaMutu {
+  id: string
+  project_id: string
+  nomor: string
+  judul: string
+  revisi: number
+  status: "draf" | "diajukan" | "disetujui" | "kedaluwarsa" | string
+  standar_acuan: string | null
+  sasaran_mutu: string | null
+  catatan: string | null
+  penanggung_jawab: string | null
+  disetujui_oleh: string | null
+  disetujui_pada: string | null
+  created_at: string
+  updated_at: string
+  pj: { id: string; name: string } | null
+  penyetuju: { id: string; name: string } | null
+}
+
+/** Bentuk PERSIS `ITP_SELECT`, `rencana-mutu.ts:42-47`. */
+export interface TitikItp {
+  id: string
+  rencana_mutu_id: string
+  urutan: number
+  kode: string | null
+  tahap_pekerjaan: string
+  uraian: string
+  jenis_titik: "hold" | "witness" | "review"
+  kriteria: string | null
+  acuan: string | null
+  metode_verifikasi: string | null
+  pihak_verifikasi: string | null
+  rab_item_id: string | null
+  /** `null` = belum diperiksa — DIBEDAKAN dari `false` (ditolak). Jangan
+   * dirender sebagai boolean langsung. */
+  lolos: boolean | null
+  diperiksa_oleh: string | null
+  diperiksa_pada: string | null
+  catatan_hasil: string | null
+  pemeriksa: { id: string; name: string } | null
+}
+
+/**
+ * Bentuk PERSIS `ringkasItp()`, `lib/rencana-mutu.ts:66-94`. `menahan`/
+ * `menunggu_saksi` DIPULANGKAN sebagai array `TitikItp` (yang dilihat rute
+ * `GET /rencana-mutu/:id` — bentuk ITP_SELECT tanpa `inspection_id`, field
+ * itu opsional di lib dan tak pernah diisi rute), BUKAN cuma jumlah.
+ */
+export interface RingkasanItp {
+  total: number
+  lolos: number
+  gagal: number
+  belum: number
+  /** Titik HOLD yang belum lolos (null ATAU false) — yang MENAHAN pekerjaan. */
+  menahan: TitikItp[]
+  /** Titik WITNESS yang belum lolos — wajib diberitahukan, TIDAK menahan. */
+  menunggu_saksi: TitikItp[]
+  pct_lolos: number | null
+  pct_selesai: number
+  /** `null` = ITP kosong (belum menyatakan apa pun) — BUKAN "boleh lanjut". */
+  boleh_lanjut: boolean | null
+}
+export interface CacatRmp {
+  kode: "tanpa-acuan" | "tanpa-sasaran" | "tanpa-titik" | "tanpa-hold" | "titik-tanpa-kriteria"
+  pesan: string
+  /** Titik yang bermasalah — hanya terisi untuk `titik-tanpa-kriteria`. */
+  titik?: TitikItp[]
+}
+export interface RespRencanaMutuSatu {
+  rencana: RencanaMutu
+  titik: TitikItp[]
+  ringkasan: RingkasanItp
+  cacat: CacatRmp[]
+  persetujuan: { boleh: boolean; penghalang: CacatRmp[] }
+}
+export interface RespRencanaMutuDaftar { rencana: RencanaMutu[] }
+
+/**
+ * Hasil Uji Material — Task 30. Bentuk diverifikasi baris-per-baris ke
+ * `apps/api/src/routes/v1/mutu.ts` (`UJI_SELECT`, handler GET) DAN
+ * `apps/api/src/lib/mutu-checklist.ts` (`nilaiUji`/`ringkasUji`).
+ *
+ * ⚠️ KOREKSI PENTING dari brief: brief menulis respons list sebagai
+ * `{ data: UjiMaterial[], jumlah_uji, [k: string]: unknown }`. Bentuk ASLI
+ * (`mutu.ts:212-218`) adalah `{ ...ringkasUji(baris), jumlah_uji }` — field
+ * array bernama **`baris`**, BUKAN `data`, dan tiap elemennya bukan
+ * `UjiMaterial` polos melainkan `HasilNilaiUji` (extends `UjiMaterial`
+ * dengan `selisih`/`angka_memadai`/`bertentangan`/`perlu_kesimpulan` DAN
+ * sudah diurutkan server: yang BERTENTANGAN naik ke atas dulu, lalu
+ * tidak_memenuhi/perlu_uji_ulang/belum/memenuhi). `kesimpulan` juga BUKAN
+ * teks bebas — union PERSIS tiga nilai (`memenuhi | tidak_memenuhi |
+ * perlu_uji_ulang`), form create WAJIB dropdown tiga opsi ini, bukan input
+ * teks (`lib/mutu-checklist.ts:99` `KesimpulanUji`; backend TIDAK
+ * memvalidasi enum-nya di route, tapi field ini dipakai `nilaiUji()` untuk
+ * menentukan `bertentangan` — nilai lain akan lolos simpan tapi tak pernah
+ * ditandai bertentangan).
+ */
+export type KesimpulanUji = "memenuhi" | "tidak_memenuhi" | "perlu_uji_ulang"
+
+/** Bentuk PERSIS `UJI_SELECT`, `mutu.ts:36-42` — baris MENTAH sebelum `nilaiUji()`. */
+export interface UjiMaterial {
+  id: string
+  project_id: string
+  nomor: string
+  objek: string
+  jenis_uji: string
+  lembaga_uji: string | null
+  nomor_sertifikat: string | null
+  tanggal_uji: string
+  /** `numeric` Postgres tiba sebagai string — dan bisa NaN (lib `angka()` menyaringnya). */
+  nilai_hasil: number | string | null
+  nilai_syarat: number | string | null
+  satuan: string | null
+  kesimpulan: KesimpulanUji | null
+  catatan: string | null
+  material_id: string | null
+  ncr_id: string | null
+  dicatat_oleh: string | null
+  created_at: string
+  material: { id: string; name: string; unit: string } | null
+  ncr: { id: string; nomor: string; judul: string } | null
+}
+
+/**
+ * Bentuk `nilaiUji()`, `lib/mutu-checklist.ts:115-130,155-178` — baris
+ * SESUDAH dibandingkan dengan syaratnya. Ini yang SUNGGUH dipulangkan array
+ * `baris` di `GET /projects/:id/uji-material`, bukan `UjiMaterial` polos.
+ */
+export interface HasilNilaiUji extends UjiMaterial {
+  /** `nilai_hasil − nilai_syarat`. `null` bila salah satu tak terbaca. */
+  selisih: number | null
+  /** Apakah ANGKANYA memadai (`hasil >= syarat`). `null` bila tak bisa dibandingkan. */
+  angka_memadai: boolean | null
+  /** Angka dan kesimpulan manusia TIDAK SEJALAN — BUKAN berarti salah (uji
+   * terbalik/toleransi/penilaian ahli semuanya sah), tapi selisih pendapat
+   * yang layak ditanyakan. `perlu_uji_ulang` tak pernah ikut dihitung ini. */
+  bertentangan: boolean
+  /** Ada angka hasil tapi belum disimpulkan manusia. */
+  perlu_kesimpulan: boolean
+}
+
+/** Bentuk PERSIS `GET /projects/:projectId/uji-material`, `mutu.ts:212-218`
+ * (`{ ...ringkasUji(baris), jumlah_uji }`). */
+export interface RespUjiMaterial {
+  baris: HasilNilaiUji[]
+  memenuhi: number
+  tidak_memenuhi: number
+  perlu_uji_ulang: number
+  belum_disimpulkan: number
+  /** Berapa baris yang angkanya tak sejalan dengan kesimpulan manusia. */
+  bertentangan: number
+  /** Penyebut TOTAL, ditambahkan lapis rute di luar `ringkasUji()`. */
+  jumlah_uji: number
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {

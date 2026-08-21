@@ -71,11 +71,23 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * ke `/pm-portal/procurement`, halaman yang TIDAK memuat kedua konsep itu
  * sama sekali, diverifikasi grep menyeluruh tanpa hasil).
  *
- * Kategori lain (Keuangan lanjutan, HSE, dst) BELUM dibangun di portal PM —
+ * Tahap 5 (Task 28-30): "Rencana & Uji Mutu" (g-qaqc, BARU diaktifkan Task
+ * 30) — `qc-rencana`/`qc-itp` ke halaman RMP+ITP gabungan (Task 30 Step 2-3),
+ * `qc-uji` ke Hasil Uji Material (Task 30 Step 4), `qc-ncr` sudah dipetakan
+ * Task 29. `qc-checklist`/`qc-capa`/`mutu-pelajaran`/`qc-audit` SENGAJA TIDAK
+ * dipetakan — lihat catatan panjang di `PETA_HREF_PORTAL` (`kategori/[key]/
+ * page.tsx`) untuk alasan masing-masing (checklist CRUD level-tiga di luar
+ * scope, capa/pelajaran ranah CECEP bukan Mutu&K3 — Task 27 Temuan #6, audit
+ * di luar 4 modul brief — Task 27 Temuan #4). Tiga entri grup AKTIF lama
+ * (`lp-permit`/`sk-kepatuhan`/`sk-evaluasi`) juga diperbarui Task 30 dari
+ * fallback web ke halaman portal Kepatuhan (Task 28), dan `lp-ncr` ke
+ * `/pm-portal/mutu/ncr` (sudah dipetakan Task 29, tak berubah).
+ *
+ * Kategori lain (Keuangan lanjutan, dst) BELUM dibangun di portal PM —
  * JANGAN ditambahkan ke daftar ini sampai tahap yang membangunnya selesai,
  * supaya kategori kosong/setengah-jadi tak pernah tampil ke PM di HP.
  */
-const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement"]; // Tahap 1-4
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc"]; // Tahap 1-5
 
 export function kategoriUntukPm(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));

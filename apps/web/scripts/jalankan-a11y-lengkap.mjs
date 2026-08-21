@@ -88,6 +88,9 @@ const PERTANYAAN = [
   // (`/pm-portal/procurement/mr/[id]`, `/pm-portal/procurement/po/[id]`).
   ['LAYAR_ID_MR', 'select id from material_requests order by created_at desc limit 1'],
   ['LAYAR_ID_PO', 'select id from purchase_orders order by created_at desc limit 1'],
+  // Portal PM Lengkap Tahap 5, Task 30 — detail Rencana Mutu Proyek
+  // (`/pm-portal/mutu/rencana/[id]`).
+  ['LAYAR_ID_RMP', 'select id from rencana_mutu order by created_at desc limit 1'],
 ]
 
 const env = { ...process.env }

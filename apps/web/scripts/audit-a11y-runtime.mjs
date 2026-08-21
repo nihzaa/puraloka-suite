@@ -147,6 +147,11 @@ const CONTOH_ID = {
   '/pm-portal/mutu/ncr/[id]': process.env.LAYAR_ID_NCR
     ? `${process.env.LAYAR_ID_NCR}?proyek=${process.env.LAYAR_ID_PROYEK ?? ''}`
     : undefined,
+  // Portal PM Lengkap Tahap 5, Task 30 — detail Rencana Mutu Proyek
+  // (rencana_mutu.id). Halaman ini TIDAK butuh `?proyek=` — endpoint
+  // `GET /rencana-mutu/:id` tak memakai project_id dari query, tenancy
+  // dijamin server lewat projectIds() (lihat komentar `[id]/page.tsx`).
+  '/pm-portal/mutu/rencana/[id]': process.env.LAYAR_ID_RMP,
 }
 
 function halamanDariBerkas() {

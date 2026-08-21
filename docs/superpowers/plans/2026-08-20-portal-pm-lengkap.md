@@ -9778,7 +9778,7 @@ git commit -m "feat(pm-portal): halaman NCR lengkap — register, disposisi, tra
 - Modify: `apps/web/lib/pm-portal-kategori.ts`
 - Modify: `apps/web/app/pm-portal/kategori/[key]/page.tsx`
 
-- [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
+- [x] **Step 1: Tipe di `_bersama/tipe.ts`**
 
 Bentuk diverifikasi baris-per-baris ke `rencana-mutu.ts` dan `mutu.ts`
 (Task 27 Step 1) — `RMP_SELECT`/`ITP_SELECT`/`UJI_SELECT`.
@@ -9892,7 +9892,7 @@ export interface RespUjiMaterial {
 }
 ```
 
-- [ ] **Step 2: `mutu/rencana/page.tsx`** — list RMP per proyek (revisi
+- [x] **Step 2: `mutu/rencana/page.tsx`** — list RMP per proyek (revisi
 terbaru dulu) + tombol "+ Buat" (bergerbang `ncr:manage`, PM punya —
 selalu tampil).
 
@@ -10052,7 +10052,7 @@ function SheetBuatRmp({ terbuka, onTutup, proyekId, urlList }: { terbuka: boolea
 }
 ```
 
-- [ ] **Step 3: `mutu/rencana/[id]/page.tsx`** — verdict "boleh lanjut atau
+- [x] **Step 3: `mutu/rencana/[id]/page.tsx`** — verdict "boleh lanjut atau
 tidak" di puncak (pola desktop, Task 27 Step 1 sudah membaca
 `(dashboard)/mutu/rencana/page.tsx`), daftar titik ITP dengan tiga keadaan
 lolos (`null`/`true`/`false`, BUKAN dua), tambah titik ITP, isi hasil
@@ -10321,7 +10321,7 @@ function SheetHasilTitik({ titik, onSelesai }: { titik: TitikItp; onSelesai: () 
 }
 ```
 
-- [ ] **Step 4: `mutu/uji-material/page.tsx`** — list hasil uji per proyek
+- [x] **Step 4: `mutu/uji-material/page.tsx`** — list hasil uji per proyek
 + create.
 
 ```typescript
@@ -10507,7 +10507,7 @@ function SheetBuatUji({ terbuka, onTutup, proyekId, urlList }: { terbuka: boolea
 }
 ```
 
-- [ ] **Step 5: K3 lanjutan — tambah create JSA ke `k3/page.tsx` existing**
+- [x] **Step 5: K3 lanjutan — tambah create JSA ke `k3/page.tsx` existing**
 (Task 27 keputusan scope: HANYA JSA, lihat kepala Task 27 Step 1). Tab
 "JSA" yang sudah ada (baca-saja) MENDAPAT tombol "+ JSA" yang membuka
 BottomSheet form header (`jenis_pekerjaan`, `kode`, `uraian`) — TANPA
@@ -10518,7 +10518,7 @@ Step 1). Modifikasi MINIMAL ke file existing 306 baris: tambah state
 `sheetBuatJsa`, tombol di header tab JSA, dan komponen `SheetBuatJsa`
 serupa pola sheet-sheet di atas — TIDAK menulis ulang seluruh file.
 
-- [ ] **Step 6: Tambah `rencana_mutu` ke inbox approval** (Task 27
+- [x] **Step 6: Tambah `rencana_mutu` ke inbox approval** (Task 27
 Temuan #1) — `pm-portal/approval/page.tsx`. Backend SUDAH siap
 (`SUMBER_INBOX` py entri `rencana_mutu`, Task 27 Temuan #1); yang
 ditambah HANYA sisi frontend, pola PERSIS `material_request`/
@@ -10542,7 +10542,7 @@ ditambah HANYA sisi frontend, pola PERSIS `material_request`/
     memakai komponen sama nanti) — TETAP tambahkan detail-fetch dan
     label untuk KELENGKAPAN katalog, verifikasi empiris di Step 8.
 
-- [ ] **Step 7: Navigasi kategori `g-qaqc` + entri terkait `g-hse`/
+- [x] **Step 7: Navigasi kategori `g-qaqc` + entri terkait `g-hse`/
 `g-subkon`.** Aktifkan `g-qaqc` di `KATEGORI_AKTIF`:
 
 ```typescript
@@ -10595,7 +10595,7 @@ BARU (sebelumnya fallback web `/kepatuhan?bagian=...`):
 `/pm-portal/k3`, Task-dasar) TIDAK diubah — JSA lanjutan (Step 5) adalah
 TAB di halaman yang sama, bukan rute baru.
 
-- [ ] **Step 8: Verifikasi empiris `canParticipateInChain` untuk
+- [x] **Step 8: Verifikasi empiris `canParticipateInChain` untuk
 `rencana_mutu` + PM tanpa `mutu:rmp:approve`** — jalankan query LIVE
 (pola Task 24 Step 1) untuk memastikan asumsi Step 6 benar SEBELUM
 mengklaim di laporan:
@@ -10614,14 +10614,14 @@ WHERE r.name = 'pm' AND p.key = 'mutu:rmp:approve';
 -- bagaimana ia memutuskan (baca implementasinya, jangan tebak dari nama).
 ```
 
-- [ ] **Step 9: Typecheck + lint navigasi**
+- [x] **Step 9: Typecheck + lint navigasi**
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
 pnpm exec eslint lib/pm-portal-kategori.ts "app/pm-portal/kategori/" app/pm-portal/mutu/ app/pm-portal/kepatuhan/ app/pm-portal/k3/ app/pm-portal/approval/
 ```
 
-- [ ] **Step 10: `audit-nav-yatim.mjs`** — pola Task 16/22/26, bandingkan
+- [x] **Step 10: `audit-nav-yatim.mjs`** — pola Task 16/22/26, bandingkan
 sebelum/sesudah lewat `git show HEAD:<path>` ke berkas sementara (BUKAN
 `git stash` — dilarang di worktree ini, Global Constraints).
 
@@ -10629,7 +10629,7 @@ sebelum/sesudah lewat `git show HEAD:<path>` ke berkas sementara (BUKAN
 cd apps/web && node scripts/audit-nav-yatim.mjs
 ```
 
-- [ ] **Step 11: Typecheck seluruh workspace + SEMUA penjaga CI**
+- [x] **Step 11: Typecheck seluruh workspace + SEMUA penjaga CI**
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
@@ -10640,16 +10640,29 @@ Bandingkan hasilnya ke baseline Task 26 (130 hijau · 41 MERAH · 2 tak
 ketemu, dikonfirmasi bukan disebabkan perubahan Task 26) — laporkan angka
 BARU di laporan Task 30, jangan asumsikan sama.
 
-- [ ] **Step 12: Test integrasi terkait**
+- [x] **Step 12: Test integrasi terkait**
 
 ```bash
 cd apps/api && npx vitest run ncr mutu rencana-mutu audit-mutu kepatuhan k3-lapangan otomasi-k3-stok-mutu otomasi-kepatuhan otomasi-sertifikat-k3 otomasi-izin-risiko rfi-aturan punch-list-aturan submittal-aturan
 ```
 
-- [ ] **Step 13: Audit a11y runtime penuh** — jalankan di background
+- [x] **Step 13: Audit a11y runtime penuh** — jalankan di background
 (Global Constraints), pola Task 26 (bisa TIDAK TUNTAS karena timeout
 lingkungan — kalau begitu, smoke-check manual sebagai gantinya dan catat
 JELAS "TIDAK TUNTAS" di laporan, jangan diklaim selesai).
+
+⚠️ Dijalankan, TAPI batasan yang SUDAH DITEMUKAN Task 22 tetap berlaku dan
+diverifikasi ulang di sini: `LAYAR_EMAIL` satu-satunya akun uji berperan
+`admin`, dan `pm-portal/layout.tsx:26` mengalihkan `admin` ke `/dashboard`
+SEBELUM render — jadi SELURUH `pm-portal` (termasuk 3 halaman baru Task 30)
+TETAP TAK TERAUDIT runtime axe dengan kredensial yang tersedia, bukan cuma
+Task 30. Dikonfirmasi ulang lewat smoke-check langsung
+`node apps/web/scripts/audit-a11y-runtime.mjs --url "/pm-portal/mutu/rencana"`
+(dari akar repo, `MSYS_NO_PATHCONV=1`): "0 dari 1 halaman terpindai (1
+dialihkan)" — cakupan runtu persis seperti temuan Task 22. Membuat akun uji
+ber-role `pm` tetap keputusan data uji di luar scope Task 30 (sama seperti
+dicatat Task 22/26). Hasil lengkap & status TUNTAS/TIDAK TUNTAS run
+background penuh ada di `task-30-report.md`.
 
 ```bash
 cd apps/web
@@ -10657,14 +10670,14 @@ export $(grep -E "^LAYAR_(EMAIL|SANDI|BASIS)=" .env.local | tr -d '\r' | xargs)
 node scripts/jalankan-a11y-lengkap.mjs
 ```
 
-- [ ] **Step 14: Update JOURNAL.md** — catat Tahap 5 selesai: halaman
+- [x] **Step 14: Update JOURNAL.md** — catat Tahap 5 selesai: halaman
 baru (Kepatuhan+Izin 1, NCR 2, Rencana Mutu 2, Uji Material 1 = 6 halaman
 + 1 modifikasi K3 JSA), utang tercatat (Audit Mutu/Pelajaran Proyek/
 Checklist Inspeksi/K3 inspeksi-induksi-lingkungan-APD ditunda dengan
 alasan tertulis — Task 27 Temuan #4/#6 dan Step 1 "K3 lanjutan"),
 verifikasi `rencana_mutu` inbox (Step 8).
 
-- [ ] **Step 15: Commit**
+- [x] **Step 15: Commit**
 
 ```bash
 git add apps/web/app/pm-portal/mutu apps/web/app/pm-portal/k3/page.tsx \
