@@ -10,7 +10,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Building2, ShieldAlert,
-  FileText, ShoppingCart,
+  FileText, ShoppingCart, LayoutDashboard,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { PETA_MENU } from "@/lib/peta-menu";
@@ -162,6 +162,12 @@ import { Folder } from "lucide-react";
  *   pr-3way/pr-jadwal-bayar di atas, KEENAMNYA jatuh ke fallback `it.href`
  *   (web) — lihat `task-26-brief.md`/`task-26-report.md` untuk rincian
  *   per modul.
+ *   ⚠ Koreksi Tahap 6 (Task 37): pr-blanket/pr-expediting SEKARANG py
+ *   halaman portal sendiri (`/pm-portal/keuangan/pengadaan-lanjutan`, Task
+ *   36) — paragraf di atas BENAR saat Task 26 ditulis (Tahap 4, sebelum
+ *   Tahap 6 ada) tapi SALAH sesudahnya. Lihat entri PETA_HREF_PORTAL di
+ *   bawah. HANYA pr-rfq/pr-tabulasi/pr-evaluasi yang TETAP fallback web
+ *   dengan alasan lama (tabel lebar multi-vendor tak cocok kartu mobile).
  *   iv-minstok (grup g-inventory, BUKAN g-procurement, tapi diputuskan di
  *   sini karena Task 26 yang menuntaskannya): TETAP TIDAK dipetakan ke
  *   PETA_HREF_PORTAL — fallback ke `it.href` web (`/procurement/material`,
@@ -224,6 +230,43 @@ import { Folder } from "lucide-react";
  * (fallback `it.href` web `/kepatuhan?bagian=...`, lihat catatan Tahap 4
  * `iv-minstok` untuk pola serupa "sengaja ditunda"), sekarang halaman
  * portalnya sudah ada (Task 28) jadi dipetakan sebagaimana mestinya.
+ *
+ * Tahap 6 (Task 37, grup `g-keuangan`/`g-tagih` BARU diaktifkan
+ * `KATEGORI_AKTIF`; key persis dari `lib/peta-menu.ts` §g-keuangan
+ * baris 291-313 dan §g-tagih baris 314-327, diverifikasi baca ulang saat
+ * Task 37): sepuluh halaman baru Task 32-36 disambungkan sekaligus.
+ *   fn-gl/fn-jurnal → `/pm-portal/keuangan/gl` (Task 34, Buku Besar + tab
+ *   Jurnal Umum manual, satu halaman).
+ *   fn-laporan → SAMA `/pm-portal/keuangan/gl` (tab Neraca & Laba-Rugi,
+ *   endpoint `GET /gl/laporan` yang sama).
+ *   fn-ar → `/pm-portal/keuangan/piutang` (Task 32, tab Aging).
+ *   tg-retensi/tg-uangmuka → SAMA `/pm-portal/keuangan/piutang` (tab
+ *   Retensi & tab DP — Register Piutang Task 32 menyerap ketiga konsep ini
+ *   sebagai tab, bukan tiga halaman terpisah).
+ *   fn-kas/fn-petty → `/pm-portal/keuangan/kas` (Task 33) — kas kecil
+ *   BUKAN modul terpisah, satu jenis akun kas di halaman yang sama.
+ *   fn-rekonsiliasi → `/pm-portal/keuangan/rekonsiliasi-bank` (Task 35).
+ *   tg-ipc → `/pm-portal/keuangan/ipc` (Task 32) — BARU ditambahkan di sini
+ *   (tak ada di PETA_HREF_PORTAL sama sekali sebelum Task 37), padanan
+ *   portal dari `/keuangan/ipc` web.
+ *   tg-nota-kredit/pr-blanket/pr-expediting → SAMA
+ *   `/pm-portal/keuangan/pengadaan-lanjutan` (Task 36, tab Nota Kredit/
+ *   Kontrak Payung/Expediting — satu halaman ber-tab untuk ketiga konsep,
+ *   koreksi terhadap Tahap 4 yang menyisakan pr-blanket/pr-expediting
+ *   fallback web "ditunda ke Tahap 6", lihat koreksi di komentar
+ *   `pr-mr`/`pr-po`/`pr-grn` di bawah).
+ *   fn-pajak/fn-efaktur SENGAJA TIDAK diisi — di luar riset Task 31,
+ *   fallback web (`/laporan?tab=pajak`).
+ *   gl-peta-akun/gl-jurnalkan SENGAJA TIDAK diisi — Task 31 Temuan #3, PM
+ *   tak punya `gl:peta-akun:*`/`gl:jurnalkan`. Fallback web
+ *   (`/akuntansi/peta-akun`, `/akuntansi/jurnalkan`).
+ *   fn-ap SENGAJA TIDAK diisi — sama alasan Task 23/31, PM tak punya
+ *   `procurement:payment:manage`. Fallback web (`/procurement/hutang`).
+ *   fn-aset-tetap/fn-tutup-buku/fn-audit SENGAJA TIDAK diisi — di luar 4
+ *   modul riset Task 31 (finance/cash/gl/rekonsiliasi), atau PM tak punya
+ *   `gl:periode:*` (Task 31 Temuan #3). Fallback web.
+ *   set-api-key/set-markup SENGAJA TIDAK diisi — di luar scope Keuangan
+ *   sepenuhnya (Pengaturan/Master Data-Estimasi), tak disentuh Task 37.
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "sk-paket": "/pm-portal/mandor-lengkap/penugasan",
@@ -291,7 +334,9 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   // Tahap 4 (Task 26) — grup g-procurement (baru diaktifkan). Lihat catatan
   // panjang di atas untuk alasan key yang SENGAJA tak dipetakan
   // (pr-3way/pr-jadwal-bayar — koreksi review Critical — dan
-  // pr-rfq/pr-tabulasi/pr-blanket/pr-evaluasi/pr-expediting).
+  // pr-rfq/pr-tabulasi/pr-evaluasi). pr-blanket/pr-expediting DIKOREKSI
+  // Tahap 6 (Task 37) — lihat entri masing-masing di bawah, SEKARANG py
+  // halaman portal sendiri, bukan lagi fallback web.
   "pr-mr": "/pm-portal/procurement",
   "pr-po": "/pm-portal/procurement",
   "pr-grn": "/pm-portal/procurement",
@@ -317,6 +362,30 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "lp-permit": "/pm-portal/kepatuhan",
   "sk-kepatuhan": "/pm-portal/kepatuhan",
   "sk-evaluasi": "/pm-portal/kepatuhan",
+  // Tahap 6 (Task 37) — grup g-keuangan (baru diaktifkan). Lihat catatan
+  // panjang di atas untuk alasan lengkap tiap key, termasuk yang SENGAJA
+  // tak dipetakan (fn-pajak/fn-efaktur/gl-peta-akun/gl-jurnalkan/fn-ap/
+  // fn-aset-tetap/fn-tutup-buku/fn-audit/set-api-key/set-markup).
+  "fn-gl": "/pm-portal/keuangan/gl",
+  "fn-jurnal": "/pm-portal/keuangan/gl",
+  "fn-ar": "/pm-portal/keuangan/piutang",
+  "fn-kas": "/pm-portal/keuangan/kas",
+  "fn-petty": "/pm-portal/keuangan/kas",
+  "fn-rekonsiliasi": "/pm-portal/keuangan/rekonsiliasi-bank",
+  "fn-laporan": "/pm-portal/keuangan/gl",
+  // Tahap 6 (Task 37) — grup g-tagih (baru diaktifkan). tg-progress/
+  // tg-termin/tg-tambah/tg-invoice/tg-followup TIDAK diubah — semuanya
+  // sudah `href: '/keuangan'`/`/keuangan/invoice`/`/piutang` web, dan
+  // breakdown Tahap 6 ini TIDAK membangun invoice CRUD/termin baru.
+  "tg-ipc": "/pm-portal/keuangan/ipc",
+  "tg-nota-kredit": "/pm-portal/keuangan/pengadaan-lanjutan",
+  "tg-retensi": "/pm-portal/keuangan/piutang",
+  "tg-uangmuka": "/pm-portal/keuangan/piutang",
+  // Tahap 6 (Task 37) — koreksi 2 entri grup g-procurement (fallback web
+  // sejak Task 26, SEKARANG py halaman portal — lihat koreksi komentar di
+  // atas kepala PETA_HREF_PORTAL ini dan di atas entri pr-mr/pr-po/pr-grn).
+  "pr-blanket": "/pm-portal/keuangan/pengadaan-lanjutan",
+  "pr-expediting": "/pm-portal/keuangan/pengadaan-lanjutan",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 
@@ -344,6 +413,16 @@ const PETA_HREF_PORTAL: Record<string, string> = {
  * keduanya → `/pm-portal/jadwal` dan `/pm-portal/kontrak`), jadi
  * mempertahankan baris ini akan menampilkan dua tautan kembar ke tujuan
  * yang sama pada kategori "Operasi Lapangan".
+ *
+ * Tahap 6 (Task 37) menambah `g-keuangan`: `/pm-portal/keuangan/dashboard`
+ * (Task 32) adalah PINTU MASUK modul Keuangan (KPI + grafik tagih-vs-bayar +
+ * umur piutang + tabel per-proyek, lihat komentar kepala halamannya) tapi
+ * TAK PUNYA key `ItemMenu` sendiri di `lib/peta-menu.ts` — `fn-gl`/
+ * `fn-laporan` menunjuk `/gl`, bukan `/dashboard`. Tanpa baris ini halaman
+ * itu YATIM (dikonfirmasi `audit-nav-yatim.mjs`, satu-satunya dari sepuluh
+ * halaman Task 32-36 yang tak tercakup PETA_HREF_PORTAL manapun) — pola
+ * persis sama dengan Mitra/K3/Dokumen/Procurement di atas: halaman ada,
+ * key resminya tak ada, jadi ditempel di sini sebagai entri ekstra.
  */
 const EKSTRA_PORTAL: Record<string, { key: string; label: string; href: string; icon: LucideIcon }[]> = {
   "g-subkon": [
@@ -353,6 +432,9 @@ const EKSTRA_PORTAL: Record<string, { key: string; label: string; href: string; 
     { key: "hse-inspeksi", label: "K3", href: "/pm-portal/k3", icon: ShieldAlert },
     { key: "px-dokumen", label: "Dokumen", href: "/pm-portal/dokumen", icon: FileText },
     { key: "px-procurement", label: "Procurement", href: "/pm-portal/procurement", icon: ShoppingCart },
+  ],
+  "g-keuangan": [
+    { key: "fn-dashboard", label: "Dashboard Keuangan", href: "/pm-portal/keuangan/dashboard", icon: LayoutDashboard },
   ],
 };
 

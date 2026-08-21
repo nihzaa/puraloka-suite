@@ -5,6 +5,195 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-21 (Portal PM Lengkap, Tahap 6) — Task 37 tuntas: navigasi kategori Keuangan tersambung, TAHAP 6 (Keuangan) SELESAI
+
+Task TERAKHIR Tahap 6 — dan modul paling sensitif finansial di seluruh plan.
+Tugasnya navigasi-only: menyambungkan SEPULUH halaman Task 32-36 (sebelumnya
+yatim total, pola sama Tahap 2-5) ke navigasi kategori PM. Tidak ada halaman
+baru dibangun, tidak ada backend disentuh.
+
+**Halaman yang disambungkan (10 total, semuanya sudah ada dari Task 32-36):**
+Dashboard Keuangan, Register Piutang, Sertifikat IPC (Task 32, tiga halaman);
+Kas & Pengeluaran + detail akun (Task 33, dua halaman); Buku Besar + detail
+jurnal (Task 34, dua halaman); Rekonsiliasi Bank + detail (Task 35, dua
+halaman — Rekonsiliasi Material TIDAK termasuk, sudah dibangun Task 25 Tahap
+4); Kontrak Payung/Expediting/Nota Kredit (Task 36, satu halaman ber-tab).
+
+**Perubahan:**
+1. `apps/web/lib/pm-portal-kategori.ts` — `KATEGORI_AKTIF` menambah
+   `g-keuangan` DAN `g-tagih` (grup kedua ini SEBELUMNYA TIDAK ADA di daftar
+   sama sekali — dikonfirmasi dulu lewat grep sebelum implementasi, sesuai
+   peringatan brief bahwa ini "kemungkinan belum diaktifkan").
+2. `apps/web/app/pm-portal/kategori/[key]/page.tsx` — `PETA_HREF_PORTAL`
+   menambah 13 entri: `fn-gl`/`fn-jurnal`/`fn-laporan` → `/keuangan/gl`;
+   `fn-ar`/`tg-retensi`/`tg-uangmuka` → `/keuangan/piutang`;
+   `fn-kas`/`fn-petty` → `/keuangan/kas`; `fn-rekonsiliasi` →
+   `/keuangan/rekonsiliasi-bank`; `tg-ipc` → `/keuangan/ipc` (BARU — key ini
+   tak pernah dipetakan di portal sebelumnya); `tg-nota-kredit`/`pr-blanket`/
+   `pr-expediting` → `/keuangan/pengadaan-lanjutan`. `fn-pajak`/`fn-efaktur`/
+   `gl-peta-akun`/`gl-jurnalkan`/`fn-ap`/`fn-aset-tetap`/`fn-tutup-buku`/
+   `fn-audit`/`set-api-key`/`set-markup` SENGAJA TIDAK dipetakan (di luar
+   riset Task 31, atau PM tak punya permission-nya — alasan tertulis di
+   komentar `PETA_HREF_PORTAL`).
+3. Koreksi komentar basi di DUA FILE (ditemukan review Task 37 brief,
+   sebelum kode ditulis): catatan Task 26 yang menyebut `pr-blanket`/
+   `pr-expediting` sebagai "keputusan sengaja tetap fallback" sudah SALAH
+   sejak Task 36 membangun halaman portalnya — diperbaiki di tiga lokasi
+   (blok dokumentasi `pm-portal-kategori.ts`, blok dokumentasi
+   `PETA_HREF_PORTAL`, dan komentar inline dekat `pr-mr`/`pr-po`/`pr-grn`).
+
+**Temuan navigasi yang TIDAK ada di brief — halaman ke-11 yang yatim:**
+`audit-nav-yatim.mjs` dijalankan SEBELUM menganggap Step 1-2 brief cukup, dan
+menemukan `/pm-portal/keuangan/dashboard` (Task 32, PINTU MASUK modul
+Keuangan) TETAP YATIM sesudah 7 entri di atas ditambahkan — tak ada key
+`ItemMenu` mana pun di `peta-menu.ts` yang menunjuknya (`fn-gl`/`fn-laporan`
+menunjuk `/gl`, bukan `/dashboard`). Pola ini PERSIS sama dengan Mitra/K3/
+Dokumen/Procurement di Tahap 1/4 — halaman ada, key resmi tak ada. Ditutup
+dengan menambah `EKSTRA_PORTAL["g-keuangan"]` (bukan `PETA_HREF_PORTAL`,
+karena tak ada key `ItemMenu` yang bisa dipakai), pola yang sudah ada sejak
+Task 9. Tanpa perbaikan ini Tahap 6 akan SELESAI kodenya tapi salah satu dari
+sepuluh halamannya tetap tak terjangkau — persis kelas cacat yang jadi alasan
+`audit-nav-yatim.mjs` ada (lihat kepala skripnya).
+
+**Verifikasi menyeluruh Tahap 6 — SEBELUM/SESUDAH `audit-nav-yatim.mjs`:**
+
+Sebelum (baseline, kode Task 32-36 tanpa navigasi Task 37):
+```
+❌ LINK MATI: 1     /estimasi/struktur   (PRA-EKSISTING, di luar scope)
+❌ YATIM: 7         /pm-portal/keuangan/dashboard
+                    /pm-portal/keuangan/gl
+                    /pm-portal/keuangan/ipc
+                    /pm-portal/keuangan/kas
+                    /pm-portal/keuangan/pengadaan-lanjutan
+                    /pm-portal/keuangan/piutang
+                    /pm-portal/keuangan/rekonsiliasi-bank
+```
+
+Sesudah Step 1-2 brief (TANPA `EKSTRA_PORTAL`): 6/7 halaman fixed, HANYA
+`/pm-portal/keuangan/dashboard` masih yatim (temuan di atas).
+
+Sesudah `EKSTRA_PORTAL["g-keuangan"]` ditambahkan (FINAL):
+```
+❌ LINK MATI: 1     /estimasi/struktur   (PRA-EKSISTING, tak disentuh Task 37 —
+                    dikonfirmasi via git stash: identik dengan baseline SEBELUM
+                    kode Task 37 ada, jadi bukan regresi. Sudah dicatat basi di
+                    JOURNAL entri Task 26/30 juga.)
+✅ YATIM: 0
+```
+
+Kesepuluh halaman Keuangan sekarang SEMUANYA terjangkau dari navigasi 2-level
+`/pm-portal/kategori/g-keuangan` dan `/pm-portal/kategori/g-tagih`.
+
+**Verifikasi menyeluruh lain:**
+- `tsc --noEmit` (workspace `apps/web`): bersih, exit 0.
+- `eslint` (file navigasi + `keuangan/`+`approval/`): 0 error, 2 warning
+  pra-eksisting (`any` implisit di `keuangan/page.tsx`, dari Task 10, tak
+  disentuh Task 37).
+- `pnpm build` (`apps/web`): sukses, exit 0, seluruh 11 rute Keuangan (10 +
+  dashboard) muncul di daftar rute build.
+- Penjaga CI penuh (`jalankan-semua-penjaga.mjs`, `apps/api`): **128 hijau ·
+  43 MERAH · 2 tak ketemu** — DIBANDINGKAN LANGSUNG ke baseline (`git stash`
+  kode Task 37, jalankan ulang, `git stash pop`): baseline JUGA **128/43/2**,
+  dan **himpunan skrip yang MERAH identik persis** (diverifikasi `diff` set
+  nama skrip, bukan cuma angka total) — nol regresi, nol perbaikan tak
+  disengaja. `audit-approval-satu-pintu.mjs` dan `audit-inbox-lengkap.mjs`
+  (yang brief minta diperhatikan khusus, terkait Task 36) HIJAU di kedua
+  run.
+- **Satu regresi ditemukan dan diperbaiki SENDIRI sebelum lapor**: run
+  pertama sesudah kode Task 37 sempat **127 hijau · 44 MERAH** —
+  `audit-akhir-baris.mjs` (LF→CRLF) merah karena Edit tool menulis kedua
+  berkas yang disentuh sebagai CRLF, sementara HEAD-nya LF (persis pola yang
+  sudah dicatat di JOURNAL Task 30, sesi lalu). Diperbaiki dengan normalisasi
+  `\r\n`→`\n` sebelum lapor — bukan didiamkan sebagai "1 MERAH tambahan yang
+  tak masalah".
+
+**Test integrasi backend terkait (`apps/api`, Postgres nyata):**
+```
+finance cash gl rekonsiliasi-bank rekonsiliasi-material klaim-perjalanan
+pengadaan-lanjutan sertifikat-ipc keuangan-ikhtisar
+→ Test Files: 1 failed | 12 passed (13)
+→ Tests:      9 failed | 244 passed (253)
+```
+Kesembilan yang gagal SEMUANYA di SATU berkas: `klaim-perjalanan.test.ts`.
+Diverifikasi BUKAN disebabkan Task 37 (yang cuma menyentuh 2 berkas frontend
+navigasi, nol baris backend) — direproduksi ulang menjalankan berkas itu
+SENDIRIAN, tanpa proses lain menyentuh basis, hasilnya identik. Root cause
+dari pesan galatnya sendiri: fixture test memilih pegawai/akun kas lewat
+`SELECT ... LIMIT 1` TANPA `ORDER BY` (`klaim-perjalanan.test.ts:84-135`) —
+persis kelas cacat "LIMIT tanpa ORDER BY" yang CLAUDE.md §7 sudah
+dokumentasikan untuk kasus lain (dua run tumpang tindih 2026-08-19). Di sini
+penyebabnya beda (bukan dua run bersamaan, karena direproduksi SENDIRIAN)
+tapi bentuknya sama: baris mana yang terpilih bergantung pada isi basis DEV
+saat ini (data dummy, CLAUDE.md §8a.5 — boleh berubah), dan fixture yang
+tak eksplisit ORDER BY tak menjamin baris yang sama terpilih dari waktu ke
+waktu. **Dilaporkan sebagai concern, TIDAK diperbaiki** — di luar scope
+Task 37 (navigasi-only) dan brief eksplisit melarang memperbaiki bug baru
+yang ditemukan saat verifikasi menyeluruh.
+
+**Audit a11y runtime — TIDAK TUNTAS** (dicatat jelas, bukan diklaim
+selesai). Smoke-check manual dua halaman (`audit-a11y-runtime.mjs --url`)
+untuk `/pm-portal/keuangan/dashboard` dan `/pm-portal/keuangan/gl`: keduanya
+"0 dari 1 halaman terpindai (1 dialihkan)" — batasan yang SAMA PERSIS sudah
+didokumentasikan Task 22/30: `LAYAR_EMAIL` satu-satunya akun uji berperan
+`admin`, dan `pm-portal/layout.tsx:26` mengalihkan `admin` ke `/dashboard`
+SEBELUM render. Seluruh `pm-portal` (termasuk semua halaman Task 32-37) TETAP
+TAK TERAUDIT runtime axe dengan kredensial yang tersedia — bukan cacat Task
+37, utang lama yang butuh akun uji ber-peran `pm` untuk ditutup.
+
+**Konfirmasi eksplisit batas backend (diminta brief):** `apps/api/src/lib/
+tulis-klaim.ts` dan kolom `cash_account_id` TIDAK PERNAH disentuh di seluruh
+Tahap 6 (Task 32-37) — dikonfirmasi `git diff main...HEAD -- apps/api/src/lib/
+tulis-klaim.ts` kosong. Task 37 sendiri nol perubahan `apps/api` sama sekali
+(hanya 2 berkas frontend + JOURNAL + plan doc).
+
+**Catatan konsolidasi GL void — backend, BUKAN scope Task 37, hanya
+diketahui dan diteruskan** (dari Task 34, ditegaskan lagi di sini supaya tak
+hilang sebelum task backend berikutnya menanganinya): `PATCH /journal-entries/
+:id/void` (`gl.ts:287-321`) TIDAK atomik — WHERE-nya tak menyertakan status
+lama (`posted`), berbeda dari `post` yang sudah benar. Tiga akibat konkret:
+(1) race dua permintaan void bersamaan pada baris yang sama saling menimpa
+kolom `notes` read-modify-write — alasan void yang KALAH hilang total, bukan
+terduplikasi; (2) trigger `168_gl_penegak_invarian.sql:96-98` early-return
+untuk SEMUA transisi ke `void`, jadi tak mencegah double-void sama sekali
+(mitigasi tak sengaja: baca neraca/laba-rugi/buku besar sudah menyaring
+`status='posted'`, jadi angka finansial tetap idempoten meski baris
+di-void berkali-kali); (3) void menembus gerbang PERIODE TERTUTUP — trigger
+periode (`gl.ts:279`) hanya memeriksa transisi KE `posted`, bukan ke `void`,
+jadi jurnal yang sudah posted di periode tertutup bisa di-void kapan saja.
+Rekomendasi konkret (Task 34): tambahkan `.eq('status', 'posted')` ke WHERE
+void (pola identik `post`), pindahkan read-modify-write `notes` ke RPC
+atomik, dan putuskan sengaja apakah void di periode tertutup butuh gerbang
+sendiri. **Task backend terpisah, bukan navigasi — tidak disentuh di sini.**
+
+**Dua utang/concern tertulis (diteruskan dari Task 31/35/36, TETAP terbuka):**
+1. Task 31 Temuan #1 — PM tak bisa lihat rincian klaim perjalanan miliknya
+   sendiri secara langsung, hanya keputusan lewat inbox approval generik
+   (PM tak punya `klaim:view`/`klaim:kelola` untuk halaman klaim perjalanan
+   itu sendiri).
+2. Task 35 Step 2 — impor koran rekonsiliasi bank TIDAK dibangun di portal
+   PM, tetap lewat web/desktop.
+
+**Dua tombol yang SENGAJA disembunyikan** (Task 36 Temuan #4): "Putuskan"
+dan "Terapkan" untuk Nota Kredit tak muncul sama sekali di portal PM — PM
+bisa MENGAJUKAN nota kredit tapi keputusannya (`procurement:payment:manage`)
+bukan permission yang PM punya, jadi nota kredit yang PM ajukan hanya bisa
+DILIHAT dari sini, tak pernah diputuskan.
+
+**Konfirmasi CI guard — nol penjaga dilemahkan.** Tak ada satu pun ambang
+guard yang diturunkan atau exception baru ditambahkan ke skrip CI manapun
+untuk Task 37 (kecuali `EKSTRA_PORTAL` yang memang pola resmi Task 9, bukan
+pelemahan penjaga).
+
+Commit: lihat log — pesan `feat(pm-portal): navigasi kategori Keuangan,
+Tahap 6 selesai`.
+
+**TAHAP 6 (Keuangan) SEKARANG SELESAI.** Sepuluh halaman Task 32-36 semuanya
+terjangkau navigasi, nol regresi guard CI, nol backend disentuh. Tahap
+berikutnya: Tahap 7 (Task 38+, SDM/Aset/Risiko/Dokumen/Laporan — riset masih
+kerangka, belum digali).
+
+---
+
 ## 2026-08-21 (Portal PM Lengkap, Tahap 5) — Koreksi Minor dari review Task 30: angka penjaga CI di entri Task 30 sudah basi
 
 Review coordinator atas entri Task 30 di bawah (commit `0b7009ae`) menemukan

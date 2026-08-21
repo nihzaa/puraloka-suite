@@ -83,11 +83,25 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * fallback web ke halaman portal Kepatuhan (Task 28), dan `lp-ncr` ke
  * `/pm-portal/mutu/ncr` (sudah dipetakan Task 29, tak berubah).
  *
- * Kategori lain (Keuangan lanjutan, dst) BELUM dibangun di portal PM —
- * JANGAN ditambahkan ke daftar ini sampai tahap yang membangunnya selesai,
- * supaya kategori kosong/setengah-jadi tak pernah tampil ke PM di HP.
+ * Tahap 6 (Task 37): dua kelompok lagi ditambahkan — "Keuangan" (g-keuangan,
+ * Task 32-36: Dashboard Keuangan, Register Piutang, Sertifikat IPC, Kas &
+ * Pengeluaran, Buku Besar/Jurnal, Rekonsiliasi Bank) dan "Penagihan"
+ * (g-tagih, key `tg-ipc`/`tg-nota-kredit`/`tg-retensi`/`tg-uangmuka` menunjuk
+ * halaman portal yang sama dengan sebagian `g-keuangan` — lihat
+ * `PETA_HREF_PORTAL` di `app/pm-portal/kategori/[key]/page.tsx`). Koreksi
+ * juga terhadap catatan Tahap 4 di atas: `pr-blanket`/`pr-expediting`
+ * (g-procurement) SEKARANG py halaman portal sendiri
+ * (`/pm-portal/keuangan/pengadaan-lanjutan`, Task 36) — bukan lagi bagian
+ * daftar fallback sengaja. HANYA `pr-rfq`/`pr-tabulasi`/`pr-evaluasi` yang
+ * TETAP fallback web dengan alasan lama (tabel lebar multi-vendor tak cocok
+ * kartu mobile).
+ *
+ * Kategori lain (Aset Tetap lintas-neraca, Audit Trail lintas-modul, dst)
+ * BELUM dibangun di portal PM — JANGAN ditambahkan ke daftar ini sampai
+ * tahap yang membangunnya selesai, supaya kategori kosong/setengah-jadi tak
+ * pernah tampil ke PM di HP.
  */
-const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc"]; // Tahap 1-5
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc", "g-keuangan", "g-tagih"]; // Tahap 1-6
 
 export function kategoriUntukPm(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));

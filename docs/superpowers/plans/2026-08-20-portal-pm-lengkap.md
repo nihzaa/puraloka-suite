@@ -14084,7 +14084,7 @@ untuk membuka halaman klaim perjalanan miliknya sendiri (Task 31 Temuan
 #1), jadi tak ada halaman portal PM untuk `hr-reimburse` yang bisa dituju.
 Akses PM ke `klaim_perjalanan` TETAP HANYA lewat inbox approval (Task 36).
 
-- [ ] **Step 1: Aktifkan `g-keuangan` di `KATEGORI_AKTIF`**
+- [x] **Step 1: Aktifkan `g-keuangan` di `KATEGORI_AKTIF`**
 
 ⚠️ **Perhatikan formatnya**: deklarasi NYATA di `pm-portal-kategori.ts:90`
 adalah SATU BARIS (`const KATEGORI_AKTIF = [...]; // Tahap 1-5`), sama
@@ -14128,7 +14128,12 @@ portal benar-benar MUNCUL di navigasi 2-level — mengubah `PETA_HREF_PORTAL`
 tanpa mengaktifkan grupnya membuat entri itu tak pernah terlihat PM,
 sama sekali tak berbeda dari tak diubah.
 
-- [ ] **Step 2: Perbarui `PETA_HREF_PORTAL`**
+- [x] **Step 2: Perbarui `PETA_HREF_PORTAL`** — plus satu tambahan di luar
+  brief: `EKSTRA_PORTAL["g-keuangan"]` untuk `/pm-portal/keuangan/dashboard`
+  (`fn-dashboard`), yang tak punya key `ItemMenu` sendiri di `peta-menu.ts`
+  dan tetap YATIM sesudah 13 entri di bawah ditambahkan — ditemukan lewat
+  `audit-nav-yatim.mjs`, bukan dari daftar brief. Lihat JOURNAL.md untuk
+  detail.
 
 ```typescript
 const PETA_HREF_PORTAL: Record<string, string> = {
@@ -14165,20 +14170,31 @@ const PETA_HREF_PORTAL: Record<string, string> = {
 };
 ```
 
-- [ ] **Step 3: Typecheck + lint navigasi**
+- [x] **Step 3: Typecheck + lint navigasi** — `tsc --noEmit` bersih exit 0;
+  eslint 0 error (2 warning pra-eksisting `keuangan/page.tsx`, Task 10, tak
+  disentuh Task 37).
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
 pnpm exec eslint lib/pm-portal-kategori.ts "app/pm-portal/kategori/" app/pm-portal/keuangan/ app/pm-portal/approval/
 ```
 
-- [ ] **Step 4: `audit-nav-yatim.mjs`** — pola Task 16/22/26/30.
+- [x] **Step 4: `audit-nav-yatim.mjs`** — pola Task 16/22/26/30. FINAL: 0
+  YATIM (10/10 halaman Keuangan terjangkau), 1 LINK MATI pra-eksisting
+  (`/estimasi/struktur`, tak disentuh Task 37, dikonfirmasi identik dengan
+  baseline via `git stash`).
 
 ```bash
 cd apps/web && node scripts/audit-nav-yatim.mjs
 ```
 
-- [ ] **Step 5: Typecheck seluruh workspace + SEMUA penjaga CI**
+- [x] **Step 5: Typecheck seluruh workspace + SEMUA penjaga CI** — FINAL:
+  **128 hijau · 43 MERAH · 2 tak ketemu**, IDENTIK dengan baseline (`git
+  stash` kode Task 37 lalu jalankan ulang) — himpunan skrip yang MERAH sama
+  persis (diff, bukan cuma angka), nol regresi. Satu regresi SEMPAT muncul
+  (127/44, `audit-akhir-baris.mjs` CRLF) dan diperbaiki sebelum lapor — lihat
+  JOURNAL.md. `audit-approval-satu-pintu.mjs`/`audit-inbox-lengkap.mjs`
+  HIJAU di kedua run.
 
 ```bash
 cd apps/web && pnpm exec tsc --noEmit
@@ -14190,17 +14206,21 @@ terakhir yang dilaporkan) — laporkan angka BARU di laporan Task 37,
 jangan asumsikan sama. Perhatikan KHUSUS `audit-approval-satu-pintu.mjs`
 dan `audit-inbox-lengkap.mjs` (langsung terkait perubahan Task 36).
 
-- [ ] **Step 6: Test integrasi terkait**
+- [x] **Step 6: Test integrasi terkait** — 244 lulus / 9 gagal (253 total),
+  SEMUA 9 kegagalan di SATU berkas (`klaim-perjalanan.test.ts`), diverifikasi
+  BUKAN disebabkan Task 37 (nol baris backend disentuh, direproduksi identik
+  saat dijalankan sendirian). Root cause: fixture `LIMIT 1` tanpa `ORDER BY`
+  — dilaporkan sebagai concern, TIDAK diperbaiki (di luar scope navigasi).
 
 ```bash
 cd apps/api && npx vitest run finance cash gl rekonsiliasi-bank rekonsiliasi-material \
   klaim-perjalanan pengadaan-lanjutan sertifikat-ipc keuangan-ikhtisar
 ```
 
-- [ ] **Step 7: Audit a11y runtime penuh** — jalankan di background
-(Global Constraints), pola Task 26/30 (bisa TIDAK TUNTAS karena timeout
-lingkungan — kalau begitu, smoke-check manual sebagai gantinya dan catat
-JELAS "TIDAK TUNTAS" di laporan).
+- [x] **Step 7: Audit a11y runtime penuh** — TIDAK TUNTAS (dicatat jelas,
+pola Task 22/26/30): `jalankan-a11y-lengkap.mjs` tak bisa memindai
+`pm-portal` sama sekali dengan kredensial yang tersedia, lihat batasan di
+bawah. Smoke-check manual dijalankan sebagai gantinya.
 
 ⚠️ Batasan yang SUDAH DITEMUKAN Task 22/30 tetap berlaku: `LAYAR_EMAIL`
 satu-satunya akun uji berperan `admin`, dan `pm-portal/layout.tsx:26`
@@ -14220,7 +14240,7 @@ export $(grep -E "^LAYAR_(EMAIL|SANDI|BASIS)=" .env.local | tr -d '\r' | xargs)
 node scripts/jalankan-a11y-lengkap.mjs
 ```
 
-- [ ] **Step 8: Update JOURNAL.md** — catat Tahap 6 selesai: halaman
+- [x] **Step 8: Update JOURNAL.md** — catat Tahap 6 selesai: halaman
 baru (Dashboard Keuangan, Register Piutang, Sertifikat IPC = Task 32 tiga
 halaman; Kas & Pengeluaran + detail akun = Task 33 dua halaman; GL +
 detail jurnal = Task 34 dua halaman; Rekonsiliasi Bank + detail = Task 35
@@ -14233,7 +14253,7 @@ lewat inbox generik; Task 35 Step 2: impor koran rekonsiliasi bank TIDAK
 dibangun, tetap lewat web/desktop), dua tombol yang SENGAJA disembunyikan
 (nota kredit putuskan/terapkan untuk PM, Task 36 Temuan #4).
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add apps/web/lib/pm-portal-kategori.ts "apps/web/app/pm-portal/kategori/[key]/page.tsx" \
