@@ -469,7 +469,7 @@ export default function PmPengadaanLanjutanPage() {
             disabled={mengirim}
             style={{
               minHeight: 48, borderRadius: "var(--portal-radius-pill)", fontSize: 14, fontWeight: 700, border: "none",
-              background: mengirim ? "var(--surface-subtle)" : "var(--navy)",
+              background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)",
               color: mengirim ? "var(--text-muted)" : "var(--on-navy)",
               cursor: mengirim ? "default" : "pointer",
             }}
@@ -524,7 +524,7 @@ export default function PmPengadaanLanjutanPage() {
             disabled={mengirim}
             style={{
               minHeight: 48, borderRadius: "var(--portal-radius-pill)", fontSize: 14, fontWeight: 700, border: "none",
-              background: mengirim ? "var(--surface-subtle)" : "var(--navy)",
+              background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)",
               color: mengirim ? "var(--text-muted)" : "var(--on-navy)",
               cursor: mengirim ? "default" : "pointer",
             }}
