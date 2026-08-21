@@ -350,6 +350,654 @@ Tahap 0) — tidak diulang.
   git commit -m "docs(plan): breakdown Tahap 1 — Approval Inbox + Dashboard Eksekutif"
   ```
 
+### Hasil riset Task 2 (2026-08-22) — ringkasan sebelum Task 3/4/5
+
+**Dashboard Eksekutif** — `GET /api/v1/dashboard?period=…` (`apps/api/src/
+routes/v1/dashboard.ts:38`) TIDAK punya `requirePermission` sendiri — hanya
+`authenticate`. Company-wide penuh lewat `request.db` (sadar tenant, T4c).
+Field KPI yang dipakai beranda web: `kpis.active_projects`,
+`kpis.total_contract_value`, `kpis.invoice_outstanding`,
+`kpis.net_cash_estimate`, `kpis.kasbon_active_total`, plus `alerts.
+{kasbon_pending,invoice_overdue,milestone_late}`. Ada juga
+`GET /api/v1/dashboard/deret` (riwayat 8 bulan per metrik, untuk sparkline)
+dan `GET /api/v1/dashboard/fokus` (ringkas "berapa lewat tenggat vs
+menunggu" — juga tanpa `requirePermission`, company-wide). **Tak perlu
+endpoint baru** — ketiganya sudah company-wide dan cukup untuk KPI ringkas
+admin-portal.
+
+**Approval Inbox** — `GET /api/v1/approval/inbox`
+(`apps/api/src/routes/v1/approval-inbox.ts`) juga TIDAK punya
+`requirePermission` sendiri; siapa boleh melihat baris jenis tertentu
+ditentukan `canParticipateInChain()` (`apps/api/src/utils/approval.ts:193`)
+per jenis — kalau user (lewat role-nya) memegang salah satu
+`required_permission` dari langkah rantai jenis itu, baris jenis itu
+tampil. `admin`/`direktur` BUKAN role `pm`, jadi `pmProjectIds === null` →
+tidak ada penyempitan proyek — inbox admin/direktur sungguh company-wide
+(beda dari PM yang disaring `project.pm_id`).
+
+⚠ **TEMUAN PENTING — inbox TIDAK punya approve/reject inline.** Halaman web
+`(dashboard)/approval-inbox/page.tsx` HANYA me-list + link keluar
+(`jalur_ui`) ke halaman MODUL (`/mandor/kasbon`, `/kas`,
+`/procurement/permintaan`, dst — bukan halaman detail per-item). Keputusan
+approve/reject sesungguhnya terjadi di endpoint MASING-MASING entity type
+lewat rute berbeda-beda (13 jenis terdaftar di `SUMBER_INBOX`
+(`apps/api/src/lib/inbox-approval.ts`), masing-masing method HTTP + body +
+field nominal/judul yang BERBEDA — tak ada satu endpoint generik "putuskan
+entitas apa pun"). **Portal PM SUDAH memecahkan ini** di
+`apps/web/app/pm-portal/approval/page.tsx`: bottom-sheet tap-to-open (BUKAN
+swipe) dengan katalog `AKSI: Record<string, KonfigAksi>` berisi
+`approveUrl`/`approveBody`/`rejectUrl`/`rejectBody` PER JENIS, plus
+detail-fetch per jenis (sebagian jenis punya `GET /:id` sendiri — MR/PO/RMP
+— sebagian tidak dan harus dicocokkan dari list, sebagian lagi tak punya
+detail-fetch sama sekali dan tampil generik dari `BarisInbox`). **Pola ini
+WAJIB disalin, bukan ditulis ulang** — 7 dari 13 jenis (`kasbon`,
+`submittal`, `material_request`, `purchase_order`, `rencana_mutu`,
+`klaim_perjalanan`, `project_expense`) sudah punya `KonfigAksi` teruji di
+sana; Task 4 menyalinnya dan menambah field bila perlu, BUKAN meriset ulang
+dari nol.
+
+⚠ **`SwipeableCard` TIDAK dipakai PM Portal untuk approval inbox sama
+sekali** — kontradiksi dengan asumsi brief. PM memilih tap→BottomSheet
+karena keputusan approve/reject punya SYARAT (alasan wajib saat tolak,
+deteksi `pending_next_level`, deteksi `saya_pengajunya`/SoD, deteksi
+`detailGagal`) yang tak cocok dengan gestur sekali-swipe tanpa konfirmasi —
+menyetujui pencairan uang lewat swipe tanpa melihat nama pemohon adalah
+risiko yang sama persis yang dicegah `detailGagal` guard di PM Portal.
+Task 4 mengikuti pola PM (tap→BottomSheet), BUKAN memaksakan
+`SwipeableCard` — swipe hanya cocok untuk aksi tanpa syarat/konfirmasi
+(bandingkan pola aslinya di punch-list PM Portal, bukan approval).
+
+**Permission admin vs direktur — LIVE query 2026-08-22** (pisah per
+role_id, `roles.name IN ('admin','direktur')`, masing-masing 2 baris
+global+tenant, company uji `48befb54-…d8a0`):
+
+```
+admin    (global company_id=null):        227 permission
+admin    (tenant company_id=48befb54…):    227 permission
+direktur (global company_id=null):         143 permission
+direktur (tenant company_id=48befb54…):    143 permission
+```
+
+`required_permission` tiap langkah `approval_steps` (13 entity type, semua
+SATU langkah pada data uji ini) dibanding kepemilikan admin/direktur:
+
+| entity_type | required_permission | admin | direktur |
+|---|---|---|---|
+| kasbon | `mandor:kasbon:approve` | ✅ | ✅ |
+| material_request | `procurement:mr:manage` | ✅ | ✅ |
+| purchase_order | `procurement:po:manage` | ✅ | ✅ |
+| opname_bersama | `opname:verifikasi` | ✅ | ✅ |
+| back_charge | `backcharge:setujui` | ✅ | ✅ |
+| klaim_perjalanan | `klaim:setujui` | ✅ | ✅ |
+| cuti_karyawan | `sdm:cuti:approve` | ✅ | ✅ |
+| project_expense | `cash:expense:approve` | ✅ | ✅ |
+| submittal | `submittal:decide` | ✅ | ✅ |
+| rencana_mutu | `mutu:rmp:approve` | ✅ | ✅ |
+| estimate_version | `cecep:estimate:approve` | ✅ | ❌ |
+| change_order | `change_order:approve` | ✅ | ❌ |
+| lessons_learned | `cecep:lessons:approve` | ✅ | ❌ |
+
+⚠ **Koreksi atas asumsi "direktur subset murni, tak pernah perlu exclude
+eksplisit" dari Global Constraints plan ini — BENAR untuk gerbang
+`hasPermission()` UI, TAPI perlu dicatat presisi untuk approval:** direktur
+TIDAK memegang 3 dari 13 `required_permission` approval (`estimate_version`,
+`change_order`, `lessons_learned`). Ini BUKAN kontradiksi terhadap "direktur
+subset murni admin" (143 vs 227 tetap benar, direktur nol permission yang
+admin tidak punya) — konsekuensinya justru SEARAH: karena rantai
+ketiganya cuma 1 langkah dan syaratnya persis permission yang direktur tak
+punya, `canParticipateInChain()` mengembalikan `false` untuk direktur pada
+ketiga jenis itu, dan baris jenis itu **otomatis tak pernah muncul** di
+`GET /api/v1/approval/inbox` milik user direktur — inbox-nya company-wide
+tapi jenisnya lebih sedikit dari admin. Tak perlu exclude manual di
+frontend; ini sepenuhnya ditentukan server. Task 4 TIDAK perlu menyaring
+apa pun berdasar role — `AKSI` di klien tetap sama untuk admin/direktur,
+bedanya murni apa yang SERVER kirim di `data[]`.
+
+**Komponen portal yang dipakai ulang** (dari Portal PM, semua generik/tanpa
+asumsi role): `KpiCard`+`MiniChart` (`components/portal/{KpiCard,MiniChart}.tsx`)
+untuk kartu KPI beranda, `BottomSheet`/`StatusBadge`/`EmptyState`/
+`SkeletonCard` untuk approval inbox. `formatRupiahSingkat()`
+(`apps/web/lib/format.ts:105`) sudah ada untuk notasi ringkas "Rp 1,25 jt" —
+dipakai di kartu KPI, bukan menulis ulang `fmtShort` seperti di
+`(dashboard)/dashboard/page.tsx`.
+
+---
+
+## Tahap 1 lanjutan: Task 3-5
+
+### Task 3: Dashboard Eksekutif — Beranda admin-portal sesungguhnya
+
+**Files:**
+- Modify: `apps/web/app/admin-portal/page.tsx` (ganti placeholder Task 1
+  Step 6 dengan KPI company-wide sungguhan)
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah tipe respons
+  `/api/v1/dashboard`, `/api/v1/dashboard/deret`, `/api/v1/dashboard/fokus`
+  — HANYA field yang benar-benar dipakai halaman ini, disalin dari
+  interface nyata `apps/api/src/routes/v1/dashboard.ts`, bukan seluruh
+  bentuk respons)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/dashboard?period=last_30_days` (default portal:
+  30 hari, HP dibuka untuk cek cepat — beda dari default web `last_3_
+  months` yang dibuka di desktop untuk analisis), `GET /api/v1/dashboard/
+  deret` (sparkline opsional), `GET /api/v1/dashboard/fokus` (badge
+  "X lewat tenggat" bila > 0).
+- Produces: Beranda admin-portal dengan KPI grid 2 kolom (pola
+  `pm-portal/page.tsx`), pintasan ke Approval Inbox bila ada yang menunggu.
+
+- [ ] **Step 1: Baca ulang bentuk respons PERSIS sebelum menulis tipe**
+
+  Baca ulang `apps/api/src/routes/v1/dashboard.ts` baris 253-291 (bentuk
+  `kpis`/`alerts` yang dikembalikan `GET /api/v1/dashboard`) dan baris
+  546-556 (bentuk `deret` dari `GET /api/v1/dashboard/deret`). Field
+  `kpis.active_projects`, `total_contract_value`, `invoice_outstanding`,
+  `net_cash_estimate`, `kasbon_active_total` semuanya `number` (dihitung
+  server dari `Number(...)`, bukan string mentah dari Postgres). Field
+  `alerts.kasbon_pending`/`invoice_overdue`/`milestone_late` juga `number`.
+
+- [ ] **Step 2: Tambah tipe ke `_bersama/tipe.ts`**
+
+  ```ts
+  // Tipe bersama Portal Admin/Direktur — SATU interface per bentuk respons
+  // API nyata, diverifikasi ke kode backend (route handler + SELECT/
+  // interface aslinya) SEBELUM ditulis. Jangan menebak dari nama field.
+  // Diisi progresif per Tahap (lihat docs/superpowers/plans/
+  // 2026-08-22-portal-admin-direktur-lengkap.md).
+
+  /**
+   * KPI ringkas dari `GET /api/v1/dashboard` — HANYA field yang dipakai
+   * Beranda admin-portal (bentuk lengkap di
+   * `apps/api/src/routes/v1/dashboard.ts:253-291` jauh lebih besar; field
+   * lain seperti `active_progress`/`outstanding_invoices`/`pending_kasbons`
+   * TIDAK diambil di sini — Tahap 2 (Proyek) dan Tahap 3 (Keuangan) yang
+   * akan menambah tipe untuk field itu saat modulnya dibangun).
+   */
+  export interface DashboardEksekutif {
+    kpis: {
+      active_projects: number;
+      total_contract_value: number;
+      invoice_outstanding: number;
+      income_this_month: number;
+      kasbon_active_total: number;
+      net_cash_estimate: number;
+    };
+    alerts: {
+      kasbon_pending: number;
+      invoice_overdue: number;
+      milestone_late: number;
+    };
+  }
+
+  /** `GET /api/v1/dashboard/fokus` — ringkasan lintas-modul (dashboard.ts:417-431). */
+  export interface DashboardFokus {
+    lewat: number;
+    menunggu: number;
+    tautan: string;
+    rincian: {
+      invoice_jatuh_tempo: number;
+      klaim_lewat_batas: number;
+      instruksi_belum_dikonfirmasi: number;
+      kasbon_menunggu: number;
+      penagihan_menunggu: number;
+    };
+  }
+  ```
+
+  ⚠ Tempatkan setelah baris `export {};` yang ada — HAPUS baris `export {}`
+  itu begitu ada isi nyata (dulu placeholder Tahap 0 supaya file bukan
+  modul kosong).
+
+- [ ] **Step 3: `admin-portal/page.tsx` — KPI grid + pintasan approval**
+
+  Pola KpiCard 2 kolom seperti `pm-portal/page.tsx`, TAPI 4 kartu (bukan 2 —
+  admin butuh lebih banyak angka company-wide sekaligus: proyek aktif, nilai
+  kontrak, invoice belum lunas, kasbon beredar):
+
+  ```tsx
+  "use client";
+
+  import Link from "next/link";
+  import { getStoredUser } from "@/lib/api";
+  import { useData } from "@/lib/data-cache";
+  import { formatRupiahSingkat } from "@/lib/format";
+  import { namaSapaan } from "@/lib/nama-sapaan";
+  import {
+    Inbox, Building2, TrendingUp, FileText, Coins,
+    ChevronRight, AlertTriangle,
+  } from "lucide-react";
+  import KpiCard from "@/components/portal/KpiCard";
+  import SkeletonCard from "@/components/portal/SkeletonCard";
+  import type { DashboardEksekutif, DashboardFokus, ResponsInbox, GalatApi } from "./_bersama/tipe";
+  import { pesanGalat } from "./_bersama/tipe";
+
+  export default function AdminBerandaPage() {
+    const user = getStoredUser();
+
+    // Default 30 hari — portal dibuka di HP untuk cek cepat, bukan analisis
+    // mendalam (beda dari default web `last_3_months`, dibuka di desktop).
+    const { data, memuat, galat } =
+      useData<DashboardEksekutif>("/api/v1/dashboard?period=last_30_days");
+    const { data: fokus } = useData<DashboardFokus>("/api/v1/dashboard/fokus");
+    const { data: inbox } = useData<ResponsInbox>("/api/v1/approval/inbox");
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+          Halo, {namaSapaan(user?.name)}
+        </h1>
+
+        {!memuat && galat && (
+          <div
+            role="alert"
+            style={{
+              display: "flex", alignItems: "center", gap: 8, padding: 14,
+              borderRadius: "var(--portal-radius-card)", background: "var(--danger-bg)",
+              border: "1px solid var(--danger-border)",
+            }}
+          >
+            <AlertTriangle size={18} color="var(--on-danger-bg)" aria-hidden="true" style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--on-danger-bg)" }}>
+              {pesanGalat(galat as GalatApi, "Gagal memuat ringkasan. Pastikan API server berjalan.")}
+            </span>
+          </div>
+        )}
+
+        {memuat ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <SkeletonCard tinggi={110} />
+            <SkeletonCard tinggi={110} />
+            <SkeletonCard tinggi={110} />
+            <SkeletonCard tinggi={110} />
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <KpiCard
+              label="Proyek Aktif"
+              nilai={String(data?.kpis.active_projects ?? 0)}
+              icon={Building2}
+            />
+            <KpiCard
+              label="Nilai Kontrak"
+              nilai={formatRupiahSingkat(data?.kpis.total_contract_value ?? 0)}
+              icon={TrendingUp}
+            />
+            <KpiCard
+              label="Invoice Belum Lunas"
+              nilai={formatRupiahSingkat(data?.kpis.invoice_outstanding ?? 0)}
+              icon={FileText}
+            />
+            <KpiCard
+              label="Kasbon Beredar"
+              nilai={formatRupiahSingkat(data?.kpis.kasbon_active_total ?? 0)}
+              icon={Coins}
+            />
+          </div>
+        )}
+
+        {!memuat && (inbox?.total ?? 0) > 0 && (
+          <Link
+            href="/admin-portal/inbox"
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+              padding: 16, borderRadius: "var(--portal-radius-card)", background: "var(--warning-bg)",
+              border: "1px solid var(--warning-border)", textDecoration: "none", minHeight: 44,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Inbox size={20} color="var(--on-warning-bg)" aria-hidden="true" />
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--on-warning-bg)" }}>
+                {inbox?.total} pengajuan menunggu keputusan Anda
+              </span>
+            </div>
+            <ChevronRight size={18} color="var(--on-warning-bg)" aria-hidden="true" />
+          </Link>
+        )}
+
+        {!memuat && (fokus?.lewat ?? 0) > 0 && (
+          <Link
+            href={fokus!.tautan}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+              padding: 16, borderRadius: "var(--portal-radius-card)", background: "var(--danger-bg)",
+              border: "1px solid var(--danger-border)", textDecoration: "none", minHeight: 44,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <AlertTriangle size={20} color="var(--on-danger-bg)" aria-hidden="true" />
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--on-danger-bg)" }}>
+                {fokus!.lewat} hal sudah lewat tenggat
+              </span>
+            </div>
+            <ChevronRight size={18} color="var(--on-danger-bg)" aria-hidden="true" />
+          </Link>
+        )}
+      </div>
+    );
+  }
+  ```
+
+  ⚠ **Verifikasi props `KpiCard`/`SkeletonCard` PERSIS** sebelum commit —
+  kerangka di atas ditulis dari baca `components/portal/KpiCard.tsx` nyata
+  (Step 1 riset task ini), tapi selalu cek ulang signature sebelum commit,
+  bukan asumsi dari sini.
+
+  ⚠ **`pesanGalat`/`GalatApi` HARUS didefinisikan di `_bersama/tipe.ts`**
+  (pola sama pm-portal — lihat `apps/web/app/pm-portal/_bersama/tipe.ts:
+  3885-3891`, DIDUPLIKASI per portal, bukan diimpor lintas portal). Task ini
+  menambahkannya ke `admin-portal/_bersama/tipe.ts` sekali di Step 2 kalau
+  belum ada dari Task 1.
+
+- [ ] **Step 4: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 5: Verifikasi manual dengan API hidup (kalau memungkinkan)**
+
+  ```bash
+  UJI_EMAIL=… UJI_SANDI=… curl -s http://127.0.0.1:<port-terukur>/api/v1/dashboard?period=last_30_days
+  ```
+
+  Cocokkan bentuk respons ke tipe yang ditulis Step 2 — pastikan tak ada
+  field yang berbeda dari yang diasumsikan.
+
+- [ ] **Step 6: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/page.tsx apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): dashboard eksekutif company-wide — Tahap 1"
+  ```
+
+### Task 4: Approval Inbox — list + bottom-sheet putuskan (pola Portal PM)
+
+**Files:**
+- Create: `apps/web/app/admin-portal/inbox/page.tsx`
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah `BarisInbox`/
+  `ResponsInbox` — SAMA PERSIS bentuknya dengan pm-portal, disalin dari
+  `apps/api/src/routes/v1/approval-inbox.ts`, BUKAN diimpor lintas portal —
+  ikuti pola duplikasi yang sudah dipakai 3 portal lain)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/approval/inbox` (company-wide untuk admin/direktur
+  — TIDAK disaring `pm_id` karena role bukan `pm`), lalu endpoint keputusan
+  PER JENIS (13 kemungkinan, tabel `AKSI` di bawah menyalin 7 yang sudah
+  diverifikasi PM Portal + TIDAK menambah jenis baru yang belum
+  diverifikasi — jenis lain tampil sebagai kartu "lihat detail" seperti pola
+  PM untuk jenis yang belum punya `AKSI`).
+- Produces: Halaman list approval + BottomSheet putuskan, `/admin-portal/
+  inbox` masuk `NAV_ITEMS` Task 1 (sudah ada di kerangka Task 1 Step 2 —
+  `{ href: "/admin-portal/inbox", label: "Approval", icon: Inbox }`).
+
+⚠ **TIDAK memakai `SwipeableCard`** (lihat temuan riset Task 2 di atas) —
+mengikuti pola PM Portal APA ADANYA: tap kartu → BottomSheet → tombol
+Setujui/Tolak eksplisit. Alasan sama persis: approve/reject di sini
+menyentuh uang dan/atau berjenjang, dan swipe tanpa konfirmasi menghapus
+kesempatan melihat detail sebelum memutuskan (guard `detailGagal`
+membutuhkan bentuk tap-buka-sheet, bukan gestur sekali jalan).
+
+- [ ] **Step 1: Salin tipe `BarisInbox`/`ResponsInbox` ke `_bersama/tipe.ts`**
+
+  Identik `apps/web/app/pm-portal/_bersama/tipe.ts:17-41` (sudah
+  diverifikasi field-nya cocok dengan `apps/api/src/routes/v1/
+  approval-inbox.ts` interface `BarisInbox`) — salin apa adanya, JANGAN
+  menulis ulang dari nol:
+
+  ```ts
+  /**
+   * Satu baris di approval inbox — bentuk dari `GET /api/v1/approval/inbox`
+   * (`apps/api/src/routes/v1/approval-inbox.ts`, interface `BarisInbox`).
+   * Identik salinan pm-portal (`_bersama/tipe.ts:17-33`) — portal ini
+   * memakai endpoint yang SAMA PERSIS, company-wide (bukan disaring pm_id
+   * karena admin/direktur bukan role `pm`).
+   */
+  export interface BarisInbox {
+    jenis: string;
+    label: string;
+    id: string;
+    judul: string | null;
+    nomor: string | null;
+    nominal: number | null;
+    pengaju_id: string | null;
+    dibuat_pada: string | null;
+    project_id: string | null;
+    level_selesai: number;
+    jalur_ui: string;
+    saya_pengajunya: boolean;
+  }
+
+  export interface ResponsInbox {
+    data: BarisInbox[];
+    total: number;
+    ringkas: Record<string, number>;
+    dilewati: Array<{ jenis: string; sebab: string }>;
+  }
+
+  export interface GalatApi {
+    error?: string;
+    message?: string;
+  }
+
+  export function pesanGalat(e: unknown, bawaan: string): string {
+    const g = e as GalatApi;
+    return g?.error ?? g?.message ?? bawaan;
+  }
+  ```
+
+  ⚠ Kalau Task 3 sudah menulis `GalatApi`/`pesanGalat` lebih dulu, JANGAN
+  duplikasi — tambahkan hanya `BarisInbox`/`ResponsInbox` yang belum ada.
+
+- [ ] **Step 2: `admin-portal/inbox/page.tsx` — salin kerangka `pm-portal/
+  approval/page.tsx` APA ADANYA, sesuaikan 3 hal**
+
+  Baca ULANG `apps/web/app/pm-portal/approval/page.tsx` PENUH (848 baris)
+  sebelum menulis — kerangka di bawah HANYA menandai apa yang BERBEDA dari
+  file itu, bukan menyalin ulang bagian yang sama:
+
+  1. **`JALUR_PM` → HAPUS SELURUHNYA.** Portal PM butuh mapping ke halaman
+     PM sendiri karena `jalur_ui` dari API menunjuk dashboard admin. Portal
+     ADMIN **memakai `jalur_ui` API APA ADANYA** — admin-portal dan
+     dashboard admin sama-sama berhak membuka `/mandor/kasbon`, `/kas`, dst
+     (halaman itu sendiri sudah digerbang `hasPermission()` masing-masing).
+     Untuk jenis yang belum punya `AKSI` (tak didukung tombol), tombol
+     "Lihat detail" memakai `<a href={jalurUi}>` biasa (bukan Next `<Link>`
+     — `jalur_ui` menuju rute DASHBOARD WEB `(dashboard)/*`, bukan rute
+     admin-portal, jadi ini navigasi LINTAS APLIKASI Next yang benar
+     lewat anchor tag, bukan client-side route Next yang tak mengenal
+     segmen itu).
+
+  2. **`AKSI` — SALIN 7 entri yang sudah diverifikasi (`kasbon`,
+     `submittal`, `material_request`, `purchase_order`, `rencana_mutu`,
+     `klaim_perjalanan`, `project_expense`) APA ADANYA** dari
+     `pm-portal/approval/page.tsx:210-333` — endpoint/body/method sama
+     PERSIS, karena backend tak beda per role pemanggil. JANGAN menambah
+     jenis baru (`back_charge`, `opname_bersama`, `cuti_karyawan`, dst) di
+     task ini tanpa riset endpoint terpisah — di luar cakupan breakdown
+     yang sudah diriset Task 2. Komentar per-entri (nomor baris kode
+     backend, catatan tombol Tolak nonaktif untuk PO/RMP) ikut disalin —
+     itu bukti riset, bukan hiasan.
+
+     ⚠ Perbedaan permission admin/direktur (temuan Task 2 tabel di atas)
+     TIDAK mengubah `AKSI` sama sekali — 7 jenis di `AKSI` semuanya jenis
+     yang admin DAN direktur sama-sama pegang permission-nya
+     (`mandor:kasbon:approve`, `submittal:decide`, `procurement:mr:manage`,
+     `procurement:po:manage`, `mutu:rmp:approve`, `klaim:setujui`,
+     `cash:expense:approve` — cek tabel Step riset di atas, semuanya ✅/✅).
+     Ketiga jenis yang direktur TIDAK pegang (`estimate_version`,
+     `change_order`, `lessons_learned`) memang TIDAK ada di `AKSI` PM
+     Portal sama sekali (belum pernah diriset endpoint-nya untuk portal
+     manapun) — konsisten, bukan kebetulan.
+
+  3. **Judul halaman & `<h1>`** — "Approval" cukup (sama pm-portal), TAPI
+     tambahkan `<h1>` eksplisit kalau kerangka PM memakainya sebagai teks
+     biasa (cek ulang — `pm-portal/approval/page.tsx:526` sudah pakai
+     `<h1>`, jadi kemungkinan besar tinggal salin apa adanya).
+
+  Detail-fetch (kasbon dari list `?status=pending&limit=200`, submittal
+  dari list per-proyek, MR/PO/RMP dari `GET /:id` masing-masing),
+  `detailGagal` guard, `pending_next_level` handling, SoD (`saya_
+  pengajunya`) — SEMUA disalin apa adanya, tak ada logic baru. Ini
+  konsumsi ulang murni, bukan implementasi baru.
+
+- [ ] **Step 3: Tambahkan komentar kepala berkas menjelaskan riset company-
+  wide (bukan disalin dari PM)**
+
+  ```tsx
+  // ============================================================================
+  // Approval Inbox — Portal Admin/Direktur (Task 4).
+  //
+  // Kerangka SALINAN `pm-portal/approval/page.tsx` (komentar detail di
+  // sana tetap berlaku) dengan DUA beda:
+  //   1. Company-wide, bukan disaring `pm_id` — admin/direktur bukan role
+  //      `pm`, jadi `GET /api/v1/approval/inbox` mengembalikan SELURUH
+  //      baris company (`approval-inbox.ts:117-128` — `pmProjectIds` hanya
+  //      diisi untuk `user.role === 'pm'`).
+  //   2. `jalur_ui` dipakai APA ADANYA (bukan `JALUR_PM` lokal) — admin
+  //      berhak membuka halaman dashboard web yang ditunjuknya.
+  //
+  // `AKSI` (7 jenis: kasbon/submittal/material_request/purchase_order/
+  // rencana_mutu/klaim_perjalanan/project_expense) disalin APA ADANYA dari
+  // pm-portal — endpoint backend tak beda per role pemanggil. Permission
+  // ketujuh jenis ini dipegang admin DAN direktur (live 2026-08-22,
+  // docs/superpowers/plans/2026-08-22-portal-admin-direktur-lengkap.md
+  // Task 2). 6 jenis lain (back_charge, opname_bersama, cuti_karyawan,
+  // change_order, estimate_version, lessons_learned) TAMPIL sebagai kartu
+  // tanpa tombol aksi (link ke `jalur_ui`) — belum diriset endpoint
+  // keputusannya untuk portal manapun, di luar cakupan Tahap 1.
+  // ============================================================================
+  ```
+
+- [ ] **Step 4: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && node scripts/uji-tombol-primer-seragam.mjs
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 5: Verifikasi manual — admin melihat SEMUA jenis, bukan
+  hanya yang bisa diputuskan**
+
+  Kalau API/web hidup dengan akun admin uji: buka `/admin-portal/inbox`,
+  konfirmasi baris untuk jenis TANPA `AKSI` (mis. `back_charge` bila ada
+  data pending di company uji) tetap TAMPIL dengan link "Lihat detail" ke
+  `jalur_ui`, bukan hilang senyap.
+
+- [ ] **Step 6: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/inbox apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): approval inbox company-wide — pola Portal PM, Tahap 1"
+  ```
+
+### Task 5: Navigasi kategori Tahap 1 + verifikasi akhir tahap
+
+**Files:**
+- Modify: `apps/web/lib/admin-portal-kategori.ts` (isi `KATEGORI_AKTIF` +
+  `PETA_HREF_PORTAL` untuk grup Tahap 1)
+
+**Interfaces:**
+- Consumes: hasil Task 3 (dashboard) + Task 4 (inbox) berfungsi.
+- Produces: kategori `bi-eksekutif` (Dashboard Eksekutif) dan
+  `sy-inbox-approval` (Menunggu Persetujuan) — KUNCI PERSIS dari
+  `apps/web/lib/peta-menu.ts:354` dan `:373` — muncul di halaman
+  `/admin-portal/kategori` sebagai AKTIF, bukan lagi placeholder kosong.
+
+- [ ] **Step 1: Baca ulang `PETA_HREF_PORTAL`/`KATEGORI_AKTIF` di
+  `pm-portal-kategori.ts` untuk bentuk PERSIS objek/array sebelum mengedit**
+
+  JANGAN menebak bentuknya dari nama variabel — baca file itu penuh
+  (168 baris) untuk tahu apakah `PETA_HREF_PORTAL` map ke satu href atau ke
+  objek `{ href, label }`, dan apakah `KATEGORI_AKTIF` berisi `key` grup
+  (`bi-eksekutif`) atau sesuatu yang lain.
+
+- [ ] **Step 2: Update `admin-portal-kategori.ts`**
+
+  ```ts
+  // Kategori yang SUDAH punya halaman portal admin dibangun.
+  // Diisi manual satu-per-satu tiap Tahap selesai membangun grup itu —
+  // BUKAN dihitung dari permission live (lib/peta-menu.ts tidak
+  // menyimpan field permission per grup). Pola identik
+  // pm-portal-kategori.ts, jangan didesain ulang.
+  export const KATEGORI_AKTIF: string[] = [
+    "bi-eksekutif",       // Task 3 — Dashboard Eksekutif (Beranda admin-portal)
+    "sy-inbox-approval",  // Task 4 — Menunggu Persetujuan
+  ];
+
+  // Kunci grup → href admin-portal. Diverifikasi PERSIS ke
+  // `apps/web/lib/peta-menu.ts` (`key` field tiap grup), BUKAN ditebak dari
+  // label.
+  export const PETA_HREF_PORTAL: Record<string, string> = {
+    "bi-eksekutif": "/admin-portal",
+    "sy-inbox-approval": "/admin-portal/inbox",
+  };
+  ```
+
+  ⚠ Bentuk objek di atas KERANGKA — sesuaikan PERSIS ke bentuk nyata yang
+  dibaca Step 1 (mis. kalau `PETA_HREF_PORTAL` pm-portal ternyata map ke
+  objek `{href, label}` bukan `string`, ikuti bentuk itu, bukan yang
+  dituliskan di sini).
+
+- [ ] **Step 3: Verifikasi lantai penjaga ratchet TIDAK naik dari baseline
+  Task 1**
+
+  ```bash
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && node scripts/format-ratchet.mjs
+  cd apps/web && node scripts/audit-halaman-pakai-cache.mjs
+  ```
+
+  Bandingkan angka ke commit `ab10f5f0` (Task 1) — laporkan SELISIH, bukan
+  cuma exit code.
+
+- [ ] **Step 4: typecheck + build + guard lengkap**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && pnpm build
+  cd apps/api && node scripts/jalankan-semua-penjaga.mjs
+  ```
+
+  Tempel ringkasan run sungguhan (CHARTER §7) — SEMUA penjaga, bukan
+  subset yang "dirasa relevan" (pelajaran §7 CLAUDE.md 2026-08-18).
+
+- [ ] **Step 5: a11y runtime penuh (akun admin)**
+
+  ```bash
+  LAYAR_EMAIL=$(grep '^LAYAR_EMAIL' apps/web/.env.local|cut -d= -f2-|tr -d '"\r') \
+  LAYAR_SANDI=$(grep '^LAYAR_SANDI' apps/web/.env.local|cut -d= -f2-|tr -d '"\r') \
+    node apps/web/scripts/jalankan-a11y-lengkap.mjs
+  ```
+
+  Cek `/admin-portal` dan `/admin-portal/inbox` termasuk yang di-scan.
+  Catat di JOURNAL kalau ada jalur direktur-spesifik yang MATERIAL berbeda
+  dari admin dan perlu akun uji terpisah (0 user aktif direktur saat plan
+  ini ditulis — lihat Global Constraints).
+
+- [ ] **Step 6: Update dokumen**
+
+  - `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` — tandai `bi-eksekutif` dan
+    `sy-inbox-approval` sebagai punya halaman admin-portal (bukan hanya
+    dashboard web).
+  - `docs/execution/JOURNAL.md` — entri ringkas Tahap 1 selesai.
+
+- [ ] **Step 7: Commit**
+
+  ```bash
+  git add apps/web/lib/admin-portal-kategori.ts docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md docs/execution/JOURNAL.md
+  git commit -m "feat(admin-portal): navigasi kategori Tahap 1 + verifikasi akhir tahap"
+  ```
+
 ---
 
 ## Tahap 2-7: Belum di-breakdown
