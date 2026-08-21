@@ -292,15 +292,19 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
     kunci: 'N8N_BASE_URL',
     label: 'n8n — alamat server',
     keterangan:
-      'Alamat server n8n Anda, mis. http://localhost:5680. Tanpa garis miring di akhir.',
+      'Sejak migrasi ke instance shared (2026-08-22), n8n dikelola operator ' +
+      'Puraloka — mengisi kotak ini di sini TIDAK berpengaruh untuk tenant ' +
+      'selain operator. Dibiarkan tampil untuk keterlihatan konfigurasi, ' +
+      'bukan untuk diisi.',
     grup: 'Otomasi (n8n)',
   },
   {
     kunci: 'N8N_API_KEY',
     label: 'n8n — kunci API',
     keterangan:
-      'Dari n8n: Settings → n8n API → Create an API key. Boleh dikosongkan bila ' +
-      'instance-nya tak menuntut autentikasi API.',
+      'Sejak migrasi ke instance shared (2026-08-22), kunci ini dikelola ' +
+      'operator Puraloka — mengisi kotak ini di sini TIDAK berpengaruh untuk ' +
+      'tenant selain operator.',
     grup: 'Otomasi (n8n)',
   },
 ]
