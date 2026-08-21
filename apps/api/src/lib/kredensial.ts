@@ -124,6 +124,25 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
     grup: 'WhatsApp',
   },
   {
+    /*
+     * ── NOMOR TUJUAN NOTIFIKASI — sebelumnya env build-time, sekarang kredensial tenant
+     *
+     * Sampai migrasi n8n shared (2026-08-22), nomor ini dipatok lewat
+     * `WA_TUJUAN` di environment SAAT `scripts/n8n/bangun-alur.mjs`
+     * dijalankan — bukan kredensial tenant sama sekali. Setiap tenant baru
+     * akan butuh workflow n8n dibangun ulang dengan env berbeda, yang
+     * bertentangan langsung dengan tujuan instance shared.
+     *
+     * Sekarang dibaca `terbitkanPeristiwa()` per-tenant lewat jalur
+     * kredensial yang sama dengan WA_BASE_URL dkk, dan disertakan di
+     * payload webhook ke n8n — bukan dipatok ke node workflow.
+     */
+    kunci: 'WA_NOMOR_NOTIFIKASI',
+    label: 'WhatsApp — nomor tujuan notifikasi',
+    keterangan: 'Nomor yang menerima notifikasi otomatis (kasbon diajukan, invoice dibayar, dst), format 62xxxxxxxxxx tanpa +. Kosong = notifikasi otomatis tidak terkirim.',
+    grup: 'WhatsApp',
+  },
+  {
     kunci: 'ANTHROPIC_API_KEY',
     label: 'Anthropic (Claude)',
     keterangan: 'Dipakai asisten AI dan ringkasan dasbor.',
