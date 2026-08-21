@@ -3295,6 +3295,52 @@ items:
       Menutupnya BUKAN perubahan kode kecil — salah satu dari dua opsi
       di kriteria_selesai perlu keputusan sadar founder lebih dulu.
 
+  - id: FORMAT-RATCHET-PORTAL-MOBILE
+    fase: null
+    judul: "format-ratchet.mjs basi terhadap seluruh portal mobile — 40 halaman pm-portal menulis Intl/toLocaleString langsung, lantai dinaikkan sementara 116 → 215"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "40 halaman pm-portal/* (lihat catatan_kemajuan untuk daftar lengkap) dimigrasi memakai formatRupiah/formatRupiahSingkat/formatAngka/formatTanggal dari @/lib/format, bukan Intl.NumberFormat/toLocaleString langsung"
+      - "format-lantai.json._catatan menyebut eksplisit migrasi selesai, bukan sekadar angka baru"
+      - "Lantai format-lantai.json diturunkan kembali ke angka nyata sesudah migrasi (bukan dibiarkan di 215)"
+    cara_verifikasi: "node apps/web/scripts/format-ratchet.mjs — exit 0 pada lantai yang sudah diturunkan"
+    bobot: M
+    status: menunggu
+    catatan_kemajuan: >-
+      Ditemukan whole-branch review final (2026-08-22, review menyeluruh 56
+      commit branch feat/pm-lengkap-tahap2 sebelum merge ke main). Diukur:
+      format-ratchet.mjs sudah RED di main SEBELUM branch ini dimulai (185
+      vs lantai 116) — bukan cacat baru branch ini, tapi branch ini
+      MENAMBAH 30 pelanggaran (185 → 215) karena 40 halaman pm-portal/*
+      (Tahap 3-8) menulis `new Intl.NumberFormat("id-ID", {...})` atau
+      `.toLocaleString("id-ID")` langsung di dalam komponen, bukan
+      memanggil lib/format.ts yang sudah dibuat justru untuk mencegah pola
+      ini menyebar (lihat kepala berkas lib/format.ts).
+      Pelanggar terbanyak: approval/page.tsx (3×), cecep/rab/[id]/page.tsx
+      (2×), mandor-lengkap/spk/page.tsx (2×); 37 halaman lain 1× masing-
+      masing (daftar lengkap: jalankan format-ratchet.mjs dan lihat semua
+      berkas ber-path pm-portal/).
+      TIDAK dimigrasi di fix dispatch final review (2026-08-22) karena
+      migrasi 40 berkas adalah pekerjaan besar (tiap pemanggilan perlu
+      diperiksa: rupiah? tanggal? kuantitas? — bukan penggantian teks
+      buta) yang di luar scope satu dispatch mekanis. Lantai dinaikkan
+      SENGAJA 116 → 215 sebagai keputusan pragmatis gerbang akhir branch
+      besar (bukan preferensi desain, bukan diam-diam — dicatat di
+      format-lantai.json._catatan, di pesan commit, dan di sini) supaya
+      CI tidak merah untuk pelanggaran yang sudah lama ada dan diketahui,
+      sambil tetap membiarkan ratchet menahan pelanggaran BARU di atas
+      215 mulai sekarang.
+      Pola identik dengan JUDUL-RATCHET-PORTAL-MOBILE tepat di atas: kedua
+      penjaga (judul-ratchet, format-ratchet) sama-sama basi terhadap
+      seluruh shell portal mobile karena portal itu dibangun sebelum
+      penjaganya sempat menjangkau paritas lib/format.ts + KepalaHalaman.
+      kerapatan-ratchet.mjs (padding/gap dipaku) JUGA red serupa (248 →
+      282 akibat branch ini) tapi TIDAK termasuk keputusan menaikkan
+      lantai di sini — itu ratchet terpisah, di luar mandat fix dispatch
+      ini, dan floornya sendiri sudah tercatat basi sejak 2026-08-13
+      (lihat kerapatan-lantai.json._catatan). Dicatat di sini supaya tidak
+      hilang, bukan diselesaikan di sini.
+
   - id: MINSTOK-GUDANG-STOK-READONLY
     fase: 4
     judul: "gudang/stok (Portal PM) tak menampilkan ambang min_stock — PM tak punya tempat MELIHAT peringatan stok minimum di HP"

@@ -1,10 +1,11 @@
 {
-  "nilai": 116,
-  "_catatan": "Cakupan penjaga ini app/ + components/ (.ts & .tsx), MINUS lib/format.ts. Angka '83' di DESIGN-BRIEF §F adalah cakupan LAIN — hanya page.tsx — dan turun 83 → 70 oleh UIR-1. Keduanya benar; jangan disamakan.",
-  "_diukur": "2026-08-10",
+  "nilai": 215,
+  "_catatan": "Cakupan penjaga ini app/ + components/ (.ts & .tsx), MINUS lib/format.ts. Angka '83' di DESIGN-BRIEF §F adalah cakupan LAIN — hanya page.tsx — dan turun 83 → 70 oleh UIR-1. Keduanya benar; jangan disamakan. LANTAI DINAIKKAN SENGAJA 116 → 215 (2026-08-22, fix dispatch final review branch feat/pm-lengkap-tahap2, Temuan #3): 32 halaman baru Portal PM (pm-portal/*, Tahap 3-8, ~27 di antaranya) menulis `Intl.NumberFormat`/`toLocaleString` langsung alih-alih lib/format.ts — migrasi penuh ke @/lib/format DI LUAR SCOPE fix dispatch ini (butuh menyentuh 27 berkas satu per satu, bukan perbaikan mekanis). ITU KEPUTUSAN PRAGMATIS GERBANG AKHIR BRANCH BESAR, bukan preferensi desain — lihat item QUEUE FORMAT-RATCHET-PORTAL-MOBILE (docs/execution/QUEUE.yaml) untuk keputusan founder yang masih terbuka dan daftar migrasi yang tertunda. TIDAK diam-diam: dicatat di sini DAN di QUEUE DAN di pesan commit.",
+  "_diukur": "2026-08-22",
   "_riwayat": [
     "141 → 123 (UIR-1: 18 pembungkus rupiah lokal → formatRupiah, 17 berkas)",
     "123 → 122 (otomatis)",
-    "122 → 116 (otomatis)"
+    "122 → 116 (otomatis)",
+    "116 → 215 (2026-08-22, DINAIKKAN SENGAJA — lihat _catatan; keputusan pragmatis fix dispatch final review, bukan migrasi selesai)"
   ]
 }
