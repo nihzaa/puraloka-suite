@@ -7983,29 +7983,83 @@ git commit -m "feat(pm-portal): Gudang & Material — ikhtisar, kelola lokasi, k
 - Modify: `apps/web/lib/pm-portal-kategori.ts`
 - Modify: `apps/web/app/pm-portal/kategori/[key]/page.tsx`
 
-- [ ] **Step 1: Aktifkan `g-procurement`, `g-inventory` di `KATEGORI_AKTIF`**
+> ⚠️ **SEBAGIAN Step 1-2 SUDAH DIKERJAKAN Task 25 — JANGAN DIULANG.**
+> Task 25 (`gudang/page.tsx` dkk.) menemukan bahwa kelima halaman baru
+> Gudang & Material yang dibangunnya jadi TAK TERJANGKAU tanpa aktivasi
+> navigasi — jadi Task 25 sudah mengerjakan BAGIAN `g-inventory` dari
+> scope Task 26 ini (di luar breakdown aslinya, sebagai bagian dari
+> membuat halamannya benar-benar selesai, bukan cuma jadi lalu tak
+> terpakai). Diverifikasi review 2026-08-21. Rinciannya:
+>
+> 1. **`g-inventory` di `KATEGORI_AKTIF`** — SUDAH aktif
+>    (`apps/web/lib/pm-portal-kategori.ts`). `g-procurement` **BELUM**
+>    (masih scope Task 26 GENUINE — cek dulu apakah Task 24 sudah
+>    menyentuhnya sebelum mengerjakan ulang; kalau belum, ini tetap PR
+>    Task 26).
+> 2. **5 dari 6 href mapping** SUDAH dipetakan
+>    (`apps/web/app/pm-portal/kategori/[key]/page.tsx`, `PETA_HREF_PORTAL`):
+>    `iv-gudang`, `iv-mutasi`, `iv-transfer`, `iv-rekonsiliasi`,
+>    `iv-waste` — SEMUA ke halaman Task 25 (lihat isi aktual di bawah,
+>    beda dari draf breakdown asli yang menunjuk `iv-minstok` ke
+>    `gudang/stok` juga — Task 25 SENGAJA TIDAK memetakan `iv-minstok`,
+>    lihat poin 4).
+> 3. **`md-gudang`** (grup `g-master`) → `/pm-portal/gudang` juga SUDAH
+>    dipetakan — ini INISIATIF Task 25, TIDAK disebut breakdown asli di
+>    bawah. Jangan menganggapnya hilang atau butuh ditambahkan lagi.
+> 4. **Sisa scope GENUINE Task 26** yang MASIH perlu dikerjakan:
+>    `g-procurement` di `KATEGORI_AKTIF` + entri `pr-*` di
+>    `PETA_HREF_PORTAL` (cek dulu status Task 24 — lihat catatan di
+>    `apps/web/app/pm-portal/kategori/[key]/page.tsx` sendiri, grup
+>    `g-lapangan` sudah punya `px-procurement` via `EKSTRA_PORTAL` sejak
+>    Task 24, jadi mungkin sebagian `g-procurement` juga sudah tumpang
+>    tindih — VERIFIKASI, jangan asumsikan kosong maupun penuh),
+>    `iv-minstok` (BELUM dipetakan siapa pun — scope nyata Task 26), dan
+>    seluruh Step 3-9 asli di bawah (typecheck, `audit-nav-yatim.mjs`,
+>    suite penjaga CI penuh, test integrasi, audit a11y runtime, update
+>    `JOURNAL.md`, commit) — TAK SATU PUN dari Step 3-9 disentuh Task 25.
+>
+> Task 25 TIDAK memetakan `iv-minstok` sama sekali (baik ke `gudang/stok`
+> maupun halaman lain) — draf breakdown Task 26 di bawah pernah
+> menunjuknya ke `gudang/stok`, tapi itu KELIRU secara makna (kartu stok
+> menampilkan qty on-hand per proyek, bukan ambang minimum lintas-proyek)
+> dan TETAP UTANG NYATA Task 26: putuskan apakah `iv-minstok` memang
+> pantas fallback ke web (halaman `/procurement/material` sudah ada di
+> web, py kolom `min_stock`), atau butuh tampilan tersendiri di portal PM.
+
+- [ ] **Step 1: Aktifkan `g-procurement` di `KATEGORI_AKTIF`** (`g-inventory`
+SUDAH aktif sejak Task 25 — lihat catatan di atas, JANGAN ditambahkan lagi,
+cukup pastikan masih ada di array saat menambahkan `g-procurement`):
 
 ```typescript
-const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-procurement", "g-inventory"]; // Tahap 1-4
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement"]; // Tahap 1-4
 ```
 
-- [ ] **Step 2: Isi `PETA_HREF_PORTAL`** (key PERSIS dari `peta-menu.ts`,
-diverifikasi Task 23 Step 1):
+- [ ] **Step 2: Isi entri `pr-*` di `PETA_HREF_PORTAL`** (key PERSIS dari
+`peta-menu.ts`, diverifikasi Task 23 Step 1). Entri `iv-*`/`md-gudang` di
+bawah **SUDAH ADA sejak Task 25** — ditampilkan di sini HANYA sebagai
+konteks (bentuk aktualnya, untuk dibandingkan dengan draf lama), **JANGAN
+ditulis ulang/ditimpa**, cukup tambahkan baris `pr-*` yang baru:
 
 ```typescript
 const PETA_HREF_PORTAL: Record<string, string> = {
   // ...baris Tahap 1-3 yang sudah ada, TIDAK dihapus...
+  // ── Tahap 4 (Task 25, SUDAH ADA — jangan ditulis ulang) ──────────────
+  "iv-gudang": "/pm-portal/gudang",
+  "md-gudang": "/pm-portal/gudang",
+  "iv-mutasi": "/pm-portal/gudang/stok",
+  "iv-transfer": "/pm-portal/gudang/transfer",
+  "iv-rekonsiliasi": "/pm-portal/gudang/rekonsiliasi",
+  "iv-waste": "/pm-portal/gudang/rekonsiliasi",
+  // ── Tahap 4 (Task 26, BARU — yang benar-benar dikerjakan task ini) ───
   "pr-mr": "/pm-portal/procurement",
   "pr-po": "/pm-portal/procurement",
   "pr-grn": "/pm-portal/procurement",
   "pr-3way": "/pm-portal/procurement",
   "pr-jadwal-bayar": "/pm-portal/procurement",
-  "iv-gudang": "/pm-portal/gudang",
-  "iv-mutasi": "/pm-portal/gudang/stok",
-  "iv-transfer": "/pm-portal/gudang/transfer",
-  "iv-minstok": "/pm-portal/gudang/stok",
-  "iv-rekonsiliasi": "/pm-portal/gudang/rekonsiliasi",
-  "iv-waste": "/pm-portal/gudang/rekonsiliasi",
+  // "iv-minstok" SENGAJA belum diisi di sini — lihat catatan panjang di
+  // atas kepala Task 26: draf lama menunjuknya ke gudang/stok, TAPI itu
+  // salah makna. Putuskan tujuan yang benar sebagai bagian Step 2 ini
+  // (fallback web, atau bangun tampilan baru), baru isi barisnya.
 };
 ```
 
@@ -8037,8 +8091,8 @@ fallback web tetap berlaku. Alasan per modul:
   sebagian serupa (`klaim:*` — PM cuma setuju/bayar, bukan ajukan),
   bukan diputuskan terpisah di sini dengan risiko pola approval yang
   tak konsisten antar dua tahap.
-- **`iv-opname` (Stock Opname)**: TIDAK dipetakan sama sekali —
-  endpoint `POST /procurement/stocks/opname` py cacat gerbang
+- **`iv-opname` (Stock Opname)**: TIDAK dipetakan sama sekali, oleh
+  Task 25 MAUPUN Task 26 — endpoint `POST /procurement/stocks/opname` py cacat gerbang
   (`procurement:view` untuk aksi TULIS massal, Temuan #2) yang BELUM
   diperbaiki. Memetakannya ke portal PM berarti mengekspos jalur
   tulis-massal berpermission-baca ke lebih banyak pengguna (PM,
