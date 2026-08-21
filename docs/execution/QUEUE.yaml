@@ -3447,3 +3447,34 @@ items:
       lantai 4, tapi bukan drift baru — arahnya turun, bukan naik) —
       dicatat di sini untuk konteks, TIDAK butuh item QUEUE terpisah
       karena tidak memburuk.
+
+  - id: A11Y-RECONFIRM-MINICHART-ADMIN-PORTAL
+    fase: null
+    judul: "Fix aria-hidden-focus MiniChart (admin-portal) belum dikonfirmasi ulang runtime axe-core, mode gelap belum pernah dijalankan"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "jalankan-a11y-lengkap.mjs dijalankan penuh mode TERANG terhadap /admin-portal (dan idealnya seluruh admin-portal/*) sesudah fix accessibilityLayer={false} — 0 pelanggaran aria-hidden-focus dikonfirmasi hilang (bukan diasumsikan dari pembacaan source Recharts)"
+      - "jalankan-a11y-lengkap.mjs --gelap dijalankan MINIMAL sekali untuk admin-portal — belum pernah sama sekali sejak portal ini dimulai"
+    cara_verifikasi: "LAYAR_EMAIL=… LAYAR_SANDI=… node apps/web/scripts/jalankan-a11y-lengkap.mjs (lalu --gelap) — filter hasil JSON untuk url yang mengandung admin-portal, laporkan JUMLAH halaman admin-portal yang benar-benar ter-scan (bukan cuma total keseluruhan)"
+    bobot: S
+    status: menunggu
+    catatan_kemajuan: >-
+      Ditemukan Task 5 (2026-08-22, verifikasi akhir Tahap 1 Portal
+      Admin/Direktur Lengkap). Run a11y mode terang PERTAMA (159 halaman)
+      menemukan 4 pelanggaran aria-hidden-focus (serious) di /admin-portal
+      — kontainer aria-hidden="true" di sekitar chart Recharts yang
+      accessibilityLayer default true memasang tabIndex=0 fokusable pada
+      SVG (dikonfirmasi independen sampai baris kode Recharts 3.8.1 exact
+      yang menyetel tabIndex — bukan dugaan). Diperbaiki:
+      accessibilityLayer={false} pada <AreaChart>/<BarChart> di
+      MiniChart.tsx. tsc/build bersih sesudah fix, TAPI dua percobaan
+      re-scan axe-core runtime dihentikan (satu tak selesai wajar, satu
+      dihentikan atas instruksi eksplisit koordinator supaya task tak
+      berlarut) — jadi perbaikan BELUM dikonfirmasi ulang di runtime
+      sungguhan. Mode gelap TIDAK PERNAH dijalankan sama sekali untuk
+      admin-portal dalam sesi ini. Reviewer independen (Task 5) menilai
+      Approved TANPA menunggu ini (mekanisme fix dikonfirmasi solid sampai
+      source code, disclosure jujur bukan overclaim — beda dari insiden
+      Task 30 Portal PM), tapi merekomendasikan item QUEUE ini dibuat
+      supaya konfirmasi runtime tak hilang begitu JOURNAL/plan bertambah
+      panjang.
