@@ -2769,6 +2769,95 @@ export interface SertifikatIpc {
 export interface RespSertifikatDaftar { sertifikat: SertifikatIpc[]; total: number }
 
 /**
+ * Cash Management — Task 33. Bentuk diverifikasi baris-per-baris ke
+ * `apps/api/src/routes/v1/cash.ts` (bukan disalin dari dugaan brief mentah):
+ * `GET /cash/summary` (`cash.ts:801-852`), `GET /cash/accounts`
+ * (`cash.ts:20-42`), `GET /cash/accounts/:id` (`cash.ts:45-106`),
+ * `GET /cash/transfers` (`cash.ts:184-212`), `GET /cash/expenses`
+ * (`cash.ts:386-409`), `GET /cash/categories` (`cash.ts:857-` dst).
+ */
+
+/** Bentuk PERSIS `GET /api/v1/cash/summary`, `cash.ts:841-851`. SEMUA number. */
+export interface RespCashSummary {
+  totalBalance: number
+  mainBalance: number
+  collectorBalance: number
+  pettyBalance: number
+  pendingTransferCount: number
+  pendingTransferAmount: number
+  pendingExpenseCount: number
+  pendingExpenseAmount: number
+  expensesThisMonth: number
+}
+
+/** Bentuk PERSIS `SELECT` akun kas, `cash.ts:27-31`. */
+export interface CashAccount {
+  id: string
+  name: string
+  type: "main" | "collector" | "petty_cash"
+  balance: number | string
+  currency: string
+  notes: string | null
+  is_active: boolean
+  created_at: string
+  owner: { id: string; name: string } | null
+  projects: { id: string; name: string } | null
+}
+export interface RespCashAccounts { accounts: CashAccount[] }
+
+/** Bentuk PERSIS `SELECT` transfer, `cash.ts:66-71`/`193-200`. */
+export interface CashTransfer {
+  id: string
+  amount: number | string
+  transfer_date: string
+  status: "pending" | "confirmed" | "cancelled"
+  ref_number: string | null
+  notes: string | null
+  proof_url: string | null
+  confirmed_at?: string | null
+  created_at: string
+  from_account: { id: string; name: string; type: string }
+  to_account: { id: string; name: string; type: string }
+  creator: { id: string; name: string } | null
+  confirmer?: { id: string; name: string } | null
+}
+export interface RespCashTransfers { transfers: CashTransfer[] }
+
+/** Bentuk PERSIS `GET /cash/accounts/:id`, `cash.ts:101-105`. */
+export interface RespCashAccountDetail {
+  account: CashAccount
+  transfers: CashTransfer[]
+  expenses: { id: string; description: string; total_amount: number | string; expense_date: string; status: string; projects: { id: string; name: string } | null }[]
+}
+
+/** Bentuk PERSIS `SELECT` pengeluaran, `cash.ts:398-408`. */
+export interface ProjectExpense {
+  id: string
+  description: string
+  qty: number | string
+  unit: string | null
+  unit_price: number | string
+  total_amount: number | string
+  expense_date: string
+  expense_source: "petty_cash" | "main_cash" | "personal"
+  vendor_name: string | null
+  receipt_url: string | null
+  notes: string | null
+  status: "submitted" | "approved" | "rejected"
+  created_at: string
+  projects: { id: string; name: string; location: string | null } | null
+  category: { id: string; name: string; type: string } | null
+  petty_cash: { id: string; name: string; type: string } | null
+  main_cash: { id: string; name: string; type: string } | null
+  submitter: { id: string; name: string } | null
+  reviewer: { id: string; name: string } | null
+}
+export interface RespCashExpenses { expenses: ProjectExpense[] }
+
+export interface KategoriPengeluaran { id: string; name: string; type: string; parent_id: string | null; sort_order: number }
+export interface RespKategoriPengeluaran { categories: KategoriPengeluaran[]; source: "project" | "template" }
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
