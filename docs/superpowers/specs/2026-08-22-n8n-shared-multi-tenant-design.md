@@ -5,6 +5,75 @@
 > kuota) dan C (pola umum pihak ketiga lain) menyusul di spec terpisah —
 > **tidak dibahas di sini**.
 
+## 0. Koreksi — saya salah soal cakupan "otomasi jadwal" (dicatat, bukan disembunyikan)
+
+Draf pertama spec ini (§3.3 lama) menyimpulkan bahwa **seluruh** otomasi
+terjadwal ERP mengirim WhatsApp lewat n8n, dan bahwa 8 resep di
+`scripts/n8n/bangun-alur.mjs` (`eskalasi-invoice-terlambat`, dst.) adalah
+representasi otomasi jadwal yang hidup. **Itu salah**, ditemukan lewat
+agent Explore yang membaca `otomasi-terjadwal.ts` (516KB, ~62 rute) secara
+langsung setelah spec pertama ditulis dari sampel yang lebih kecil.
+
+Kenyataan yang diukur:
+
+- `apps/api/src/routes/v1/otomasi-terjadwal.ts` berisi **~62 rute**
+  `/api/v1/otomasi/jalankan/<kode>` — jauh lebih banyak dari 8 resep di
+  `bangun-alur.mjs`, dan **namanya TIDAK BERTUMPANG TINDIH SAMA SEKALI**
+  dengan 13 `kode` di `bangun-alur.mjs` (diverifikasi: `comm -12` dua
+  daftar terurut, hasil kosong).
+- Setiap rute di `otomasi-terjadwal.ts` berhenti di `createNotification()`
+  — menulis ke tabel `notifications`. **Tidak satu pun memanggil
+  `jalankanAlur()` atau `konfigurasiN8n()`.**
+- Jembatan ke WhatsApp untuk notifikasi ini adalah `terbitkanPeristiwa()`
+  (`utils/terbit-peristiwa.ts`), dipanggil otomatis dari
+  `createNotifications()` (jamak) untuk **SETIAP** `type` notifikasi —
+  tetapi hanya diteruskan ke n8n kalau `type`-nya ada di `PETA_PERISTIWA`.
+  **`PETA_PERISTIWA` hanya berisi 5 entri**
+  (`kasbon_submitted`, `wage_report_submitted`, `invoice_paid`,
+  `project_status_changed`, `stok_menipis`) — tak satu pun dari ~62 tipe
+  notifikasi terjadwal ada di sana. Jadi hari ini, **otomasi terjadwal
+  TIDAK mengirim WhatsApp sama sekali** — hanya notifikasi in-app.
+- `bangun-alur.mjs` (13 resep: 8 "jadwal" ber-cron-n8n + Ambil-umpan, 5
+  "peristiwa" 3-node) adalah mekanisme **generasi lebih lama**, terpisah,
+  memakai `otomasi-umpan.ts` (endpoint `/api/v1/otomasi/umpan/:jenis`,
+  hanya 7 jenis) — bukan representasi dari 62 automation yang didaftarkan
+  `katalog-otomasi.ts`.
+- Ditemukan juga: `apps/api/src/lib/wa-kirim.ts` — abstraksi pengiriman WA
+  LANGSUNG (registry adaptor Evolution/Fonnte/Meta Cloud, idempoten,
+  tercatat ke `wa_pesan_log`, sudah tenant-scoped lewat
+  `konfigurasiKanal()`) yang **sama sekali tidak melalui n8n**. Ini jalur
+  yang lebih pendek dan sudah ada untuk "baca data → susun teks → kirim
+  WA" — dan TIDAK dipakai satu pun dari ~62 rute otomasi terjadwal hari
+  ini.
+
+**Keputusan susulan** (diputuskan lewat riset kode sendiri, bukan
+ditanyakan — sesuai arahan founder 2026-08-22 mode "serahkan semuanya"):
+
+Otomasi terjadwal yang PERLU mengirim WhatsApp memakai **`kirimWa()`
+langsung**, BUKAN `jalankanAlur()`/n8n. Alasan:
+1. Nol infrastruktur baru — `wa-kirim.ts` sudah tenant-scoped, idempoten,
+   dan tercatat.
+2. Menghindari SELURUH masalah "rahasia transit lewat payload n8n"
+   (§5.2/§7.1 lama) untuk jalur ini — tak ada rahasia yang perlu
+   transit ke sistem pihak ketiga sama sekali.
+3. Konsisten dengan pelajaran TJS yang sudah ditulis di kepala
+   `wa-kirim.ts` sendiri: format pesan yang tersebar (di n8n, di luar
+   kendali versi API) adalah persis cacat yang membuat alert TJS gagal
+   terkirim tanpa gejala.
+
+**Yang TIDAK berubah dari keputusan ini**: scope inti spec — migrasi n8n
+ke instance shared — **tetap valid dan tetap dibutuhkan**, karena jalur
+`terbitkanPeristiwa()`/`PETA_PERISTIWA` (5 event notification, dipakai
+`kasbon_submitted` dkk.) **sungguhan memakai n8n hari ini** dan sungguhan
+mengalami masalah "1 workflow per tenant yang kebetulan bernama sama"
+yang didesain ulang di §5. Yang berubah hanya **cakupannya**: migrasi ini
+mencakup 5 alur peristiwa yang sudah hidup, BUKAN 8 resep jadwal
+`bangun-alur.mjs` yang generasi lama — 8 resep itu **dipensiunkan**
+sebagai bagian dari pekerjaan ini (§5.5, baru).
+
+Detail lengkap arsitektur `otomasi-terjadwal.ts`/`jadwal.ts` (dispatcher,
+`KATALOG_TUGAS`, audit CI terkait) ada di §3.6 (baru, di bawah).
+
 ## 1. Konteks & Masalah
 
 Puraloka Suite bertransformasi jadi ERP konstruksi SaaS multi-tenant.
@@ -43,6 +112,10 @@ antar tenant.
    (`sapa-proaktif`, dll). n8n berhenti berperan sebagai scheduler atau
    pengambil data (menghapus node "Ambil umpan"), dan hanya jadi lapis
    pengiriman (WhatsApp, dst.) + riwayat eksekusi/observability.
+   ⚠ Direalisasikan lewat **pensiun** 8 resep jadwal lama, bukan migrasi
+   — lihat koreksi §0 dan detail §5.5. `jadwal_tugas` itu sendiri sudah
+   dipakai penuh oleh ~62 automation lain sejak sebelum spec ini ditulis
+   (§3.6); tak ada "pemindahan" yang perlu terjadi di sana.
 
 ## 3. Temuan dari Eksplorasi Kode & Riset (fakta, bukan asumsi)
 
@@ -126,9 +199,62 @@ Temuan yang menentukan desain:
 `terakhir_jalan`/`terakhir_status`/`terakhir_galat`/`jumlah_jalan`,
 dicatat saat **mulai** (bukan saat berhasil) supaya tugas gagal tidak
 diulang tiap tick. Sudah dipakai `sapa-proaktif` dan otomasi lain di
-produksi. **Tidak perlu infrastruktur scheduler baru** untuk memindah
-cron dari n8n ke aplikasi — tinggal menambah baris `jadwal_tugas` untuk
-tiap resep yang sebelumnya dijadwalkan n8n.
+produksi — mekanisme ini sudah lengkap dan tidak butuh perubahan.
+
+### 3.6 Mekanisme dispatcher `jadwal_tugas` — lengkap, tiga berkas
+
+Ditemukan lewat pembacaan agent Explore atas `otomasi-terjadwal.ts` dan
+`jadwal.ts` (§0). Rantainya TIGA berkas, bukan satu dispatcher tunggal:
+
+1. **`otomasi-terjadwal.ts`** — bukan dispatcher; berisi ~62 registrasi
+   `app.get('/api/v1/otomasi/jalankan/<kode>', ...)` independen, satu
+   fungsi Fastify per automation. Tiap handler baca data via
+   `request.db` (tenant-scoped otomatis), tentukan penerima lewat
+   `resolveRecipients(eventType, { companyId, projectId })`
+   (`utils/notification-routing.ts`), lalu `createNotification()` per
+   penerima. Dedup memakai `pembuatDedup()` (didefinisikan di berkas
+   yang sama) yang membaca tabel `notifications` sendiri sebagai ledger
+   dedup — TIDAK ada tabel dedup terpisah.
+2. **`apps/api/src/routes/v1/jadwal.ts`** — dispatcher SUNGGUHAN:
+   - `KATALOG_TUGAS: Record<string, {label, keterangan, jalur}>` —
+     peta `tugas` (nama di baris `jadwal_tugas`) → path rute HTTP.
+     Tugas yang tak ada di peta ini ditandai `'tak-dikenal'` dan
+     dilewati SELAMANYA — tanpa galat, tanpa gejala (persis kelas
+     cacat yang riwayat berkasnya sendiri catat berulang).
+   - `POST /api/v1/jadwal/jalankan` — dipanggil cron GitHub Actions
+     (bukan n8n). Diautentikasi `x-scheduler-secret`
+     (`timingSafeEqual`). Membuat token akun layanan SEKALI per run,
+     lalu iterasi SEMUA baris `jadwal_tugas` aktif lintas tenant.
+   - Klaim atomik: `UPDATE jadwal_tugas SET terakhir_jalan = now(), ...
+     WHERE id = ... AND terakhir_jalan = <nilai lama>` — mencegah dua
+     tick cron menjalankan tugas yang sama dua kali.
+   - Eksekusi: `request.server.inject({ method: 'GET', url:
+     meta.jalur, headers: { authorization: 'Bearer <token>',
+     'x-company-id': companyId } })` — panggilan HTTP INTERNAL
+     (bukan jaringan), menyamar sebagai akun layanan, disaring ke SATU
+     company per panggilan.
+   - `terakhir_status`/`terakhir_galat`/`terakhir_durasi_ms` ditulis
+     balik oleh `jadwal.ts` sesudah `inject()` selesai — BUKAN oleh
+     handler di `otomasi-terjadwal.ts`.
+3. **`apps/api/src/lib/katalog-otomasi.ts`** — katalog deskriptif untuk
+   UI (`KATALOG_OTOMASI`), disilangkan CI (`audit-katalog-otomasi-nyata.mjs`)
+   terhadap rute yang benar-benar terdaftar. Tidak ikut dispatch.
+
+**Penjaga CI yang mengunci arah kedua peta ini** (wajib tetap hijau
+sesudah pekerjaan ini):
+- `audit-tugas-punya-rute.mjs` — tiap `KATALOG_TUGAS[...].jalur` wajib
+  cocok rute yang benar-benar terdaftar DAN berkasnya ter-register di
+  `index.ts`.
+- `audit-rute-penjadwal-punya-tugas.mjs` — arah sebaliknya: tiap rute
+  berprefiks `/api/v1/otomasi/jalankan/` (atau berkomentar
+  "dijalankan PENJADWAL") wajib punya entri `KATALOG_TUGAS` yang
+  menunjuknya. Ambang NOL, bukan ratchet.
+- `audit-peristiwa-punya-alur.mjs` — KHUSUS jalur peristiwa (§3.3),
+  membaca `bangun-alur.mjs` sebagai TEKS (regex `kode:\s*'([^']+)'`),
+  bukan meng-impor-nya. **Konsekuensi mengikat untuk §5**: bentuk
+  resep di `bangun-alur.mjs` HARUS tetap punya literal `kode: '...'`
+  per entri — redesain apa pun pada berkas itu tidak boleh mengubah
+  pola tekstual ini, atau penjaga ini berhenti bisa membacanya.
 
 ## 4. Pendekatan yang Dipertimbangkan
 
@@ -149,69 +275,94 @@ dengan resep peristiwa, bukan menciptakan pola ketiga.
 
 ## 5. Desain
 
-### 5.1 Bentuk workflow baru — seragam untuk semua resep
+> ⚠ Cakupan bagian ini DIPERBAIKI oleh §0: hanya mencakup **5 resep
+> peristiwa** (`RESEP_PERISTIWA` di `bangun-alur.mjs` — `kasbon_submitted`
+> dkk.) yang benar-benar dipakai `terbitkanPeristiwa()` hari ini. 8 resep
+> "jadwal" generasi lama **dipensiunkan**, bukan dimigrasikan — lihat §5.5.
 
-Satu bentuk untuk seluruh resep (jadwal maupun peristiwa), turun dari
-4 node (jadwal) + 3 node (peristiwa) yang berbeda hari ini menjadi satu
-bentuk:
+### 5.1 Bentuk workflow — dipertahankan, DIPERKUAT tag tenant
+
+5 resep peristiwa yang ada HARI INI sudah berbentuk 3-node yang benar
+(Webhook → Susun pesan → Kirim WhatsApp) — TIDAK perlu redesain
+struktural. Yang diperkuat:
 
 ```
-Webhook (path = resep.kode, SATU untuk semua tenant, tidak berubah)
-  → Susun pesan (Code node — baca $json.teks yang sudah disusun
-     aplikasi; TIDAK ada panggilan balik ke API dari node ini)
-  → Kirim WhatsApp (HTTP Request — url/apikey/instance/nomor SEMUA
-     dibaca dari $json.wa.*, tidak ada satu pun dipatok ke parameter
-     node)
+Webhook (path = resep.kode, SATU per resep, dipakai bersama SEMUA
+  tenant setelah migrasi §5.4 — hari ini masih 1:1 ke Puraloka karena
+  baru satu tenant yang ada)
+  → Susun pesan (Code node — baca $json.judul/$json.pesan yang sudah
+     disusun aplikasi, TIDAK berubah dari hari ini)
+  → Kirim WhatsApp (HTTP Request — url/apikey/instance/nomor tujuan
+     SEMUA dibaca dari $json.wa.*, BARU — hari ini dipatok ke
+     parameter node saat build, lihat §3.3)
 ```
 
-Perubahan konkret dari bentuk hari ini (§3.3):
-- Node **"Ambil umpan" dihapus** dari resep jadwal. Logika "cari data →
-  susun kalimat" (yang sekarang di node Code n8n dan endpoint umpan)
-  pindah sepenuhnya ke handler aplikasi yang dipicu `jadwal_tugas` —
-  memakai **kode TypeScript yang sama** dengan yang sudah ada
-  (`LANGKAH_KIRIM` di `katalog-otomasi.ts` sudah mendeskripsikan urutan
-  ini: lewati yang sudah dikirim hari ini → tentukan penerima → susun
-  kalimat; hanya langkah terakhir "kirim lewat WhatsApp" yang pindah
-  tujuan panggilannya dari notifikasi in-app ke webhook n8n).
-- **`X-API-Key` per-tenant di n8n dihapus total.** n8n tidak lagi
-  memanggil balik API Puraloka untuk data apa pun — payload webhook yang
-  diterima sudah lengkap.
-- **Cron `scheduleTrigger` di n8n dihapus** bersamaan dengan node "Ambil
-  umpan" — jadwalnya sepenuhnya pindah ke `jadwal_tugas`.
-- Webhook trigger (`httpMethod: POST`, `responseMode: onReceived`) yang
-  sudah ada **dipertahankan** — pola `onReceived` (bukan `lastNode`)
-  sudah benar untuk kasus alur yang berhenti sebelum node terakhir
-  (mis. "tidak ada data hari ini").
+Perubahan konkret dari bentuk hari ini:
+- **Node "Kirim WhatsApp" diubah**: `cfg.waUrl`/`cfg.waApiKey`/
+  `cfg.waInstance`/`cfg.nomorTujuan` yang dipatok saat build (§3.3)
+  diganti pembacaan `$json.wa.url`/`$json.wa.apiKey`/`$json.wa.instance`/
+  `$json.wa.nomorTujuan` — nilai datang dari payload webhook, disuplai
+  `terbitkanPeristiwa()` (§5.2).
+- **Tag `tenant_id`** ditambahkan sebagai field pertama yang dibaca node
+  "Susun pesan" dari `$json.companyId` (sudah ada di payload hari ini
+  secara implisit lewat parameter fungsi, kini eksplisit di body) —
+  memenuhi rekomendasi riset §3.4.2, dan jadi dasar filter saat
+  memeriksa riwayat eksekusi n8n per tenant kalau dibutuhkan.
+- **Tidak ada perubahan pada webhook trigger** (`httpMethod: POST`,
+  `responseMode: onReceived`) — bentuknya sudah benar.
+- **Tidak ada cron/scheduleTrigger untuk dihapus** — 5 resep peristiwa
+  ini TIDAK PERNAH punya cron; pemicunya murni webhook dari
+  `terbitkanPeristiwa()`. (Cron hanya ada di 8 resep jadwal yang
+  dipensiunkan, §5.5.)
 
-### 5.2 `jalankanAlur()` — kontrak tak berubah, payload diperluas
+### 5.2 `jalankanAlur()` — kontrak tak berubah, `terbitkanPeristiwa()` diperluas
 
-`otomasi-n8n.ts` **tidak direstrukturisasi**. `opsi.muatan` yang sudah
-ada sekarang membawa field bisnis (`jenis`, `kode`, `judul`, `pesan`,
-dst) — diperluas pemanggil untuk menyertakan kredensial WA yang **sudah
-dibaca aplikasi sebelum memanggil**:
+`otomasi-n8n.ts` **tidak direstrukturisasi** — `jalankanAlur()` dan
+`konfigurasiN8n()` sudah punya bentuk yang benar (§3.1). Satu-satunya
+pemanggil produksi yang perlu diubah adalah `terbitkanPeristiwa()`
+(`utils/terbit-peristiwa.ts:91-209`, §3.3 lama/kutipan Q2 laporan
+Explore) — `opsi.muatan`-nya diperluas untuk menyertakan kredensial WA
+yang **sudah dibaca aplikasi sebelum memanggil**, memakai
+`ambilKredensialTanpaRequest()` yang SUDAH diimpor di berkas itu (baris
+51):
 
 ```ts
-// Pemanggil (terbit-peristiwa.ts untuk peristiwa, handler baru untuk
-// jadwal_tugas untuk resep yang sebelumnya dijadwalkan n8n) membaca
-// kredensial WA lewat jalur yang SUDAH ADA — ambilKredensial() atau
-// ambilKredensialTanpaRequest() — sebelum memanggil jalankanAlur().
+// terbit-peristiwa.ts — di dalam terbitkanPeristiwa(), SEBELUM
+// jalankanAlur() dipanggil (menggantikan blok baris ~194-209 saat ini).
+// ambilKredensialTanpaRequest sudah diimpor (baris 51); WA_* dibaca
+// dengan companyId yang sudah jadi parameter fungsi ini.
 const wa = {
-  url: await bacaKredensial('WA_BASE_URL'),
-  apiKey: await bacaKredensial('WA_API_KEY'),
-  instance: await bacaKredensial('WA_INSTANCE'),
-  nomorTujuan: /* nomor penerima notifikasi, bukan kredensial —
-                  ditentukan logika resolveRecipients() yang sudah ada */,
+  url: await ambilKredensialTanpaRequest(companyId, 'WA_BASE_URL'),
+  apiKey: await ambilKredensialTanpaRequest(companyId, 'WA_API_KEY'),
+  instance: await ambilKredensialTanpaRequest(companyId, 'WA_INSTANCE'),
 }
+// nomor tujuan BUKAN kredensial — sudah ada di alur resolveRecipients()
+// yang dipanggil createNotifications() sebelum terbitkanPeristiwa();
+// diteruskan sebagai parameter tambahan fungsi ini kalau belum ada.
 
-await jalankanAlur({
-  db, companyId, cfg, alur, sumber, oleh,
+const hasil = await jalankanAlur({
+  db: createTenantDb(companyId),
+  companyId,
+  cfg,
+  alur: alurRow as never,
+  sumber: 'peristiwa',
+  oleh: null,
   muatan: {
-    companyId,   // eksplisit di payload, untuk tag tenant_id di n8n (§3.4.2)
-    teks,        // pesan yang sudah disusun aplikasi
+    companyId,   // BARU, eksplisit — untuk tag tenant_id di n8n (§5.1)
+    jenis, kode, judul: contoh.title, pesan: contoh.message,
+    proyek_id: contoh.project_id ?? null, penerima: jumlahPenerima,
     wa,          // BARU
   },
 })
 ```
+
+Komentar kepala berkas `terbit-peristiwa.ts` baris 44-49 ("Kenapa
+muatannya tipis") menyebut alasan lama: *"n8n punya kunci API untuk
+mengambil sendiri apa yang ia butuhkan lewat `/api/v1/otomasi/umpan/*`"*
+— alasan itu **basi** setelah perubahan ini (n8n tak lagi memanggil
+balik apa pun) dan HARUS diperbarui di commit yang sama, atau ia
+menyesatkan pembaca berikutnya persis seperti peringatan basi yang
+dikeluhkan `CLAUDE.md` di bagian pembukanya sendiri.
 
 Prinsip "satu pintu baca kredensial" **tidak dilanggar**: n8n tidak
 pernah membaca `app_credentials` sendiri. Nilai yang diterimanya sudah
@@ -228,63 +379,124 @@ kini transit dalam body HTTP request ke n8n. Mitigasi:
 
 ### 5.3 Provisioning tenant baru
 
-**Bukan** clone-workflow-per-tenant, **bukan** juga "1 workflow
-parameterized yang dipanggil beda cara per tenant" — workflow-nya sudah
-generik sejak resep pertama dibangun (§5.1). Menambah tenant baru jadi
-migrasi data biasa, bukan operasi n8n:
+**Bukan** clone-workflow-per-tenant — workflow 5 resep peristiwa sudah
+generik sejak dibangun (tak pernah membawa kredensial tenant di
+node-nya sendiri kecuali "Kirim WhatsApp" yang diperbaiki §5.1).
+Menambah tenant baru jadi migrasi data biasa, bukan operasi n8n:
 
 ```sql
 INSERT INTO otomasi_alur (company_id, kode, nama, n8n_id, jalur_webhook, ...)
 SELECT :tenant_baru, kode, nama, n8n_id, jalur_webhook, ...
 FROM otomasi_alur
-WHERE company_id = :tenant_existing_mana_pun;
+WHERE company_id = :tenant_existing_mana_pun
+  AND kode IN ('teruskan-kasbon-diajukan', 'teruskan-laporan-upah',
+               'konfirmasi-invoice-dibayar', 'lapor-status-proyek-berubah',
+               'peringatan-stok-menipis');
 ```
 
-`scripts/n8n/bangun-alur.mjs` berubah peran: dari "build workflow per
-company" menjadi "build/update workflow SEKALI secara global, lalu
-pastikan tiap tenant yang butuh resep ini punya baris `otomasi_alur`
-yang menunjuk ke situ". Dijalankan ulang hanya saat ada resep BARU atau
-bentuk node berubah — **bukan** langkah onboarding tenant baru.
+`scripts/n8n/bangun-alur.mjs` (bagian `RESEP_PERISTIWA`) berubah peran:
+dari "build 5 workflow untuk SATU company (`LIMIT 1`, §3.3)" menjadi
+"build/update 5 workflow SEKALI secara global (tanpa parameter company
+sama sekali — node-nya sudah tak berisi kredensial tenant apa pun sejak
+§5.1), lalu tiap tenant yang perlu dapat baris `otomasi_alur` lewat
+query di atas". Dijalankan ulang hanya saat bentuk node berubah —
+**bukan** langkah onboarding tenant baru.
 
 ### 5.4 Rencana migrasi tanpa downtime
 
 Karena instance `:5680` **menjadi** instance shared (bukan berpindah
 server) dan Puraloka adalah satu-satunya tenant hari ini, migrasi ini
-murni mengubah bentuk workflow yang sudah ada, di tempat yang sama:
+murni mengubah SATU node ("Kirim WhatsApp") di 5 workflow yang sudah
+ada, di tempat yang sama — jauh lebih kecil dari draf pertama spec ini
+mengira (yang menghitung 8 workflow jadwal yang ternyata tak perlu
+disentuh, §5.5):
 
-1. **Tulis workflow baru** (bentuk seragam §5.1) di samping workflow
-   lama, berstatus nonaktif. Uji dengan payload sintetis (curl langsung
-   ke webhook n8n) sebelum disambungkan ke apa pun.
-2. **Alihkan satu resep dulu** — rekomendasi mulai dari yang paling
-   jarang jalan (mis. `sertifikat-berakhir`, jadwal bulanan). Update
-   baris `otomasi_alur` Puraloka untuk resep itu agar menunjuk workflow
-   baru, aktifkan, matikan node/workflow lama untuk resep itu saja.
-   Amati minimal satu siklus jadwal penuh.
-3. **Ulangi per resep.** `otomasi_jalan` (jejak eksekusi yang sudah ada)
-   jadi bukti tiap langkah — kalau `kesehatan` alur itu jatuh ke
-   `'gagal'` pasca migrasi, itu sinyal berhenti dan revert baris
-   `otomasi_alur` resep tersebut saja, bukan seluruh migrasi.
-4. **Hapus workflow lama & X-API-Key n8n lama** setelah SEMUA resep
-   berhasil pindah dan diamati minimal satu siklus penuh masing-masing
-   (harian penuh untuk resep harian, dst).
-5. Cron di sisi n8n untuk satu resep dinonaktifkan **bersamaan** dengan
-   node "Ambil umpan"-nya dihapus dan `jadwal_tugas` untuk resep itu
-   diaktifkan — satu langkah atomik per resep, bukan fase terpisah untuk
-   "matikan cron n8n" vs "nyalakan jadwal_tugas".
+1. **Ubah node "Kirim WhatsApp"** di satu workflow peristiwa dulu
+   (rekomendasi: `peringatan-stok-menipis` — volume rendah, dampak
+   kecil bila salah) supaya membaca `$json.wa.*`, sambil workflow tetap
+   AKTIF. Uji dengan payload sintetis (curl langsung ke webhook n8n,
+   menyertakan `wa: {...}` palsu) sebelum menyentuh kode aplikasi.
+2. **Ubah `terbitkanPeristiwa()`** (§5.2) untuk menyertakan `wa: {...}`
+   di `muatan` — HANYA untuk `kode === 'peringatan-stok-menipis'`
+   dulu kalau ingin bertahap, atau langsung untuk kelimanya sekaligus
+   karena perubahannya satu blok kode yang sama untuk semua kode alur
+   (lebih sederhana, dan kelima alur toh berbagi fungsi yang sama).
+3. **Amati `otomasi_jalan`** (jejak eksekusi yang sudah ada) untuk
+   kode itu sesudah satu peristiwa asli terjadi (mis. picu manual lewat
+   UI Alur Otomasi). `kesehatan` harus tetap `'sehat'`.
+4. **Ulangi untuk 4 kode sisanya** kalau dipilih jalur bertahap di
+   langkah 2 — masing-masing independen, `otomasi_jalan` per-kode jadi
+   bukti tiap langkah.
+5. **Hapus X-API-Key/kredensial WA lama yang dipatok** dari kelima
+   node n8n setelah SEMUA kode diamati sehat minimal sekali — ini
+   membuat node-nya benar-benar tak lagi menyimpan rahasia tenant.
 
-Tidak ada big-bang cutover — tiap resep berpindah independen, dan
-`otomasi_jalan` yang sudah ada menjadi instrumen verifikasi tiap langkah
-tanpa alat baru yang perlu dibangun.
+Tidak ada big-bang cutover, dan tidak ada downtime untuk `jadwal_tugas`
+sama sekali karena mekanisme itu **tidak disentuh** — perubahan §5.4
+murni pada jalur peristiwa.
+
+### 5.5 Pensiunkan 8 resep "jadwal" generasi lama (BARU, dari §0)
+
+8 resep di `RESEP` (`bangun-alur.mjs`) — `eskalasi-invoice-terlambat`,
+`ingatkan-persetujuan-tertahan`, `eskalasi-ncr-belum-ditutup`,
+`eskalasi-milestone-terlambat`, `ringkasan-harian-pemilik`,
+`tagih-invoice-jatuh-tempo`, `peringatan-milestone-mendekat`,
+`laporan-mingguan-klien` — TIDAK dimigrasikan. Diukur (§0): namanya tak
+tumpang tindih dengan satu pun dari ~62 automation aktif di
+`otomasi-terjadwal.ts`, dan mekanismenya (cron n8n + `X-API-Key` +
+`/api/v1/otomasi/umpan/:jenis`) adalah generasi arsitektur yang lebih
+tua dari `jadwal_tugas`/`terbitkanPeristiwa()` yang sekarang jadi jalur
+utama.
+
+**Keputusan: pensiunkan, jangan migrasikan.** Alasan:
+- Memigrasikannya berarti membangun ULANG 8 handler tenant-scoped di
+  `otomasi-terjadwal.ts` (baca data → format pesan) yang FUNGSINYA
+  kemungkinan besar sudah tercakup otomasi lain di 62 rute yang ada
+  (mis. `invoice-terlambat`/`invoice-jatuh-tempo` overlap konsep dengan
+  automation yang sudah didaftarkan `katalog-otomasi.ts`) — investasi
+  besar untuk kemungkinan duplikasi.
+- Mempertahankannya sebagai mekanisme paralel berarti DUA pola berbeda
+  untuk hal yang sama hidup bersamaan tanpa alasan, dan salah satu akan
+  membusuk diam-diam (persis kelas cacat yang CLAUDE.md §1 sudah
+  peringatkan berulang kali di repo ini).
+
+**Langkah pensiun** (bagian dari scope implementasi ini, BUKAN
+penghapusan liar):
+1. Verifikasi dulu (bukan tebak) apakah 8 kode ini PUNYA baris
+   `otomasi_alur` aktif di basis produksi dan pernah tereksekusi
+   (`otomasi_jalan` count > 0) — kalau nol eksekusi, memensiunkannya
+   aman tanpa notifikasi ke siapa pun. Kalau ada eksekusi hidup,
+   informasikan founder SEBELUM menonaktifkan (bukan Gerbang Keras,
+   tapi berdampak pada perilaku produksi — CLAUDE.md §8a.1 butir 4
+   relevan kalau ternyata dipakai).
+2. Nonaktifkan workflow-nya di n8n (jangan hapus dulu — bisa diperiksa
+   ulang bila ternyata masih dipakai).
+3. Hapus 8 entri `RESEP` (bukan `RESEP_PERISTIWA`) dari
+   `bangun-alur.mjs`, dan hapus 7 jenis dari `JENIS_TERSEDIA` di
+   `otomasi-umpan.ts` SERTA fungsi `bangunUmpan()`-nya — kalau
+   dikonfirmasi tak dipakai. Endpoint `/api/v1/otomasi/umpan/*` itu
+   sendiri TETAP ADA (dipakai `requireApiKey('otomasi:umpan:baca')`,
+   masih valid sebagai mekanisme untuk masa depan) — hanya isi
+   `JENIS_TERSEDIA` yang dikosongkan atau dikurangi.
+4. Setelah workflow dihapus permanen di n8n, hapus baris `otomasi_alur`
+   yang menunjuk 8 `kode` itu.
 
 ## 6. Yang Tidak Berubah (batas scope eksplisit)
 
 - Skema tabel `otomasi_alur`/`otomasi_jalan` — tidak berubah.
 - Kontrak fungsi `jalankanAlur()`/`konfigurasiN8n()` — tidak berubah,
-  hanya isi `muatan` yang diperluas oleh pemanggil.
+  hanya isi `muatan` yang diperluas oleh pemanggil (§5.2).
+- `jadwal_tugas`, `KATALOG_TUGAS`, dan seluruh dispatcher di `jadwal.ts`
+  (§3.6) — TIDAK disentuh sama sekali oleh spec ini. ~62 automation di
+  `otomasi-terjadwal.ts` tetap berhenti di `createNotification()`;
+  apakah dan bagaimana mereka nanti mengirim WhatsApp (via `kirimWa()`
+  langsung, per keputusan §0) adalah scope TERPISAH, bukan bagian dari
+  migrasi n8n ini.
 - Registry adaptor WhatsApp (`wa-kirim.ts`, `AdaptorWa`) — tidak
-  disentuh. Node "Kirim WhatsApp" di n8n tetap bicara langsung ke
-  Evolution/Fonnte HTTP API seperti sekarang; hanya sumber
-  kredensialnya yang berubah dari dipatok jadi dari payload.
+  disentuh, dan TIDAK berhubungan dengan n8n sama sekali (dikoreksi
+  §0: ini jalur pengiriman WA LANGSUNG, terpisah total dari node "Kirim
+  WhatsApp" di workflow n8n yang memanggil Evolution/Fonnte lewat HTTP
+  Request node-nya sendiri, bukan lewat `wa-kirim.ts`).
 - Kredensial `N8N_BASE_URL`/`N8N_API_KEY` tetap ada sebagai baris per
   tenant di skema `app_credentials` — secara praktik hanya baris tenant
   operator (Puraloka) yang benar-benar relevan karena instance-nya
@@ -375,3 +587,9 @@ menulis spec.
   pastikan pesan yang terkirim ke masing-masing nomor sesuai
   company-nya (tidak tertukar) — ini bukti langsung bahwa payload-driven
   benar-benar mengisolasi, bukan asumsi dari desain di atas kertas.
+- Sebelum memensiunkan 8 resep jadwal lama (§5.5): ukur `otomasi_jalan`
+  count untuk kedelapan `kode`-nya di basis produksi
+  (`SELECT alur_id, count(*) FROM otomasi_jalan oj JOIN otomasi_alur oa
+  ON oa.id = oj.alur_id WHERE oa.kode IN (...) GROUP BY alur_id`) —
+  angka ini yang menentukan apakah langkah 1 di §5.5 perlu melibatkan
+  founder atau aman dijalankan langsung.
