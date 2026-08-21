@@ -17,9 +17,20 @@ company-wide by default (bukan project-picker-first seperti PM), dengan
 project-picker inline hanya untuk modul yang genuinely per-proyek. Tiap
 tahap: riset endpoint+permission dari kode backend nyata dulu, tulis tipe
 `_bersama/tipe.ts` diverifikasi ke bentuk respons asli, tulis halaman pakai
-`useData`+komponen portal bersama (`PortalShell`, `SwipeableCard`,
+`useData`+komponen portal bersama (`PortalShell`, `KpiCard`, `BottomSheet`,
 `lib/motion.ts` — semua sudah ada dari Portal PM), verifikasi (typecheck,
 lint, penjaga CI, a11y) sebelum commit.
+
+⚠ **Koreksi (Task 2, riset live):** `SwipeableCard` yang disebut di sini
+saat ditulis Task 1 TERNYATA dead code untuk approval — Portal PM
+(`pm-portal/approval/page.tsx`) TIDAK memakainya sama sekali untuk approve/
+reject, dan memilih pola tap→`BottomSheet` dengan tombol eksplisit karena
+keputusan approval punya syarat (alasan wajib saat tolak, deteksi SoD,
+`pending_next_level`, guard `detailGagal`) yang tak cocok gestur sekali-
+swipe tanpa konfirmasi. `SwipeableCard` tetap ADA dan valid untuk aksi lain
+tanpa syarat/konfirmasi (dipakai tempat lain di Portal PM, mis. punch-list)
+— jangan asumsikan ia komponen approval bersama di tahap-tahap berikutnya
+plan ini; lihat detail Task 2 di bawah.
 
 **Tech Stack:** Next.js 16 App Router, TypeScript, Fastify API (existing).
 PWA/manifest/service-worker/motion-token infrastruktur SUDAH ADA (Portal PM
@@ -418,8 +429,11 @@ direktur (global company_id=null):         143 permission
 direktur (tenant company_id=48befb54…):    143 permission
 ```
 
-`required_permission` tiap langkah `approval_steps` (13 entity type, semua
-SATU langkah pada data uji ini) dibanding kepemilikan admin/direktur:
+`required_permission` tiap langkah, per `entity_type` (13 jenis, semua SATU
+langkah pada data uji ini) — skema PERSIS: `entity_type` hidup di
+`approval_chains`, `required_permission` di `approval_steps`, dijoin lewat
+`approval_steps.chain_id = approval_chains.id` (bukan `entity_type` langsung
+di `approval_steps`). Dibanding kepemilikan admin/direktur:
 
 | entity_type | required_permission | admin | direktur |
 |---|---|---|---|
@@ -541,6 +555,25 @@ dipakai di kartu KPI, bukan menulis ulang `fmtShort` seperti di
       penagihan_menunggu: number;
     };
   }
+
+  /**
+   * `GET /api/v1/dashboard/deret` — riwayat BULANAN per metrik untuk
+   * sparkline KPI (`apps/api/src/routes/v1/dashboard.ts:546-556`). Tiap
+   * array bisa LEBIH PENDEK dari `bulan` — bulan kosong di UJUNG dibuang
+   * server (`rataUrut()`, dashboard.ts:495-504), jadi array `[]` berarti
+   * "belum ada riwayat", BUKAN error. Jangan asumsikan panjang tetap 8.
+   */
+  export interface DashboardDeret {
+    bulan: number;
+    mulai: string;
+    deret: {
+      proyek_aktif: number[];
+      nilai_kontrak: number[];
+      invoice_belum_lunas: number[];
+      kas_masuk: number[];
+      kasbon: number[];
+    };
+  }
   ```
 
   ⚠ Tempatkan setelah baris `export {};` yang ada — HAPUS baris `export {}`
@@ -567,7 +600,7 @@ dipakai di kartu KPI, bukan menulis ulang `fmtShort` seperti di
   } from "lucide-react";
   import KpiCard from "@/components/portal/KpiCard";
   import SkeletonCard from "@/components/portal/SkeletonCard";
-  import type { DashboardEksekutif, DashboardFokus, ResponsInbox, GalatApi } from "./_bersama/tipe";
+  import type { DashboardEksekutif, DashboardFokus, DashboardDeret, ResponsInbox, GalatApi } from "./_bersama/tipe";
   import { pesanGalat } from "./_bersama/tipe";
 
   export default function AdminBerandaPage() {
@@ -579,6 +612,12 @@ dipakai di kartu KPI, bukan menulis ulang `fmtShort` seperti di
       useData<DashboardEksekutif>("/api/v1/dashboard?period=last_30_days");
     const { data: fokus } = useData<DashboardFokus>("/api/v1/dashboard/fokus");
     const { data: inbox } = useData<ResponsInbox>("/api/v1/approval/inbox");
+    // Sparkline KPI — pelengkap, kegagalannya TAK BOLEH menjatuhkan KPI utama
+    // (pola sama `(dashboard)/dashboard/page.tsx`, `galat` dari hook ini
+    // sengaja tak dibaca). Array bisa `[]` — KpiCard sudah menangani panjang
+    // < 2 dengan tak merender sparkline (lihat `KpiCard.tsx` syarat
+    // `sparklineData.length > 1`).
+    const { data: deret } = useData<DashboardDeret>("/api/v1/dashboard/deret");
 
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -615,21 +654,25 @@ dipakai di kartu KPI, bukan menulis ulang `fmtShort` seperti di
               label="Proyek Aktif"
               nilai={String(data?.kpis.active_projects ?? 0)}
               icon={Building2}
+              sparklineData={deret?.deret.proyek_aktif}
             />
             <KpiCard
               label="Nilai Kontrak"
               nilai={formatRupiahSingkat(data?.kpis.total_contract_value ?? 0)}
               icon={TrendingUp}
+              sparklineData={deret?.deret.nilai_kontrak}
             />
             <KpiCard
               label="Invoice Belum Lunas"
               nilai={formatRupiahSingkat(data?.kpis.invoice_outstanding ?? 0)}
               icon={FileText}
+              sparklineData={deret?.deret.invoice_belum_lunas}
             />
             <KpiCard
               label="Kasbon Beredar"
               nilai={formatRupiahSingkat(data?.kpis.kasbon_active_total ?? 0)}
               icon={Coins}
+              sparklineData={deret?.deret.kasbon}
             />
           </div>
         )}
@@ -828,10 +871,37 @@ membutuhkan bentuk tap-buka-sheet, bukan gestur sekali jalan).
      (`mandor:kasbon:approve`, `submittal:decide`, `procurement:mr:manage`,
      `procurement:po:manage`, `mutu:rmp:approve`, `klaim:setujui`,
      `cash:expense:approve` — cek tabel Step riset di atas, semuanya ✅/✅).
-     Ketiga jenis yang direktur TIDAK pegang (`estimate_version`,
-     `change_order`, `lessons_learned`) memang TIDAK ada di `AKSI` PM
-     Portal sama sekali (belum pernah diriset endpoint-nya untuk portal
-     manapun) — konsisten, bukan kebetulan.
+
+     ⚠ **Koreksi review Task 2 — 5 dari 6 jenis TERSISA SUDAH punya UI
+     keputusan nyata, hanya di TEMPAT LAIN, bukan "belum pernah diriset".**
+     Verifikasi ulang (review Task 2, dikonfirmasi baca kode langsung):
+     `back_charge` → `(dashboard)/mandor/penagihan/page.tsx` (`PanelBackCharge`,
+     gerbang `useIzin("backcharge:setujui")`); `opname_bersama` →
+     `(dashboard)/mandor/opname/page.tsx` (`PATCH /api/v1/opname/:id/
+     verifikasi`, gerbang `opname:verifikasi`); `cuti_karyawan` →
+     `(dashboard)/sdm/cuti/page.tsx` (`POST /api/v1/sdm/cuti/:id/putuskan`);
+     `change_order` → `components/change-order-section.tsx` (dipakai
+     `(dashboard)/proyek/[id]/page.tsx`, `PATCH /api/v1/change-orders/:id/
+     {approve,reject}`) DAN `pm-portal/kontrak-lengkap/change-order/
+     page.tsx` (gerbang `hasPermission("change_order:approve")`);
+     `estimate_version` → `pm-portal/cecep/rab/[id]/page.tsx` (`PATCH
+     /api/v1/estimate-versions/:id/approve`, gerbang
+     `hasPermission("cecep:estimate:approve")`). **HANYA `lessons_learned`
+     yang genuinely nol UI keputusan di mana pun** (dicek: hanya muncul di
+     komentar fallback `kategori/[key]/page.tsx` dan label
+     `shell/rail-asisten.tsx`, tak ada satu halaman pun dengan tombol
+     approve/reject).
+
+     Keputusan scope Tahap 1 TETAP: `AKSI` di admin-portal HANYA 7 jenis di
+     atas (yang endpoint/gate-nya sudah diverifikasi PM Portal) — 5 jenis
+     dengan UI di tempat lain BOLEH ditautkan langsung ke halaman
+     existing-nya via `jalur_ui` (bukan "lihat detail" generik tanpa makna,
+     karena halamannya SUDAH punya tombol keputusan sungguhan di sana) kalau
+     ringan menambahkannya; kalau perlu riset field-mapping tambahan untuk
+     `AKSI` inline di admin-portal sendiri, catat sebagai utang Tahap
+     berikutnya — BUKAN klaim "belum pernah diriset di portal manapun" untuk
+     lima jenis ini, karena itu keliru dan bisa membuat task berikutnya
+     meriset ulang dari nol sesuatu yang sudah ada.
 
   3. **Judul halaman & `<h1>`** — "Approval" cukup (sama pm-portal), TAPI
      tambahkan `<h1>` eksplisit kalau kerangka PM memakainya sebagai teks
@@ -865,10 +935,17 @@ membutuhkan bentuk tap-buka-sheet, bukan gestur sekali jalan).
   // pm-portal — endpoint backend tak beda per role pemanggil. Permission
   // ketujuh jenis ini dipegang admin DAN direktur (live 2026-08-22,
   // docs/superpowers/plans/2026-08-22-portal-admin-direktur-lengkap.md
-  // Task 2). 6 jenis lain (back_charge, opname_bersama, cuti_karyawan,
-  // change_order, estimate_version, lessons_learned) TAMPIL sebagai kartu
-  // tanpa tombol aksi (link ke `jalur_ui`) — belum diriset endpoint
-  // keputusannya untuk portal manapun, di luar cakupan Tahap 1.
+  // Task 2).
+  //
+  // 6 jenis lain TAMPIL sebagai kartu tanpa tombol aksi INLINE di sini
+  // (link `jalur_ui` apa adanya) — TAPI koreksi review Task 2: 5 dari 6
+  // (back_charge, opname_bersama, cuti_karyawan, change_order,
+  // estimate_version) SUDAH punya UI keputusan nyata di tempat lain
+  // (dashboard admin dan/atau PM Portal — lihat rincian per-jenis di plan,
+  // Task 4 Step 2 poin 2), jadi `jalur_ui` di sini membawa admin ke halaman
+  // yang BENAR-BENAR bisa memutuskan, bukan halaman baca-saja. HANYA
+  // `lessons_learned` genuinely nol UI keputusan di mana pun (diverifikasi:
+  // tak ada satu halaman pun dengan tombol approve/reject untuk jenis ini).
   // ============================================================================
   ```
 
@@ -903,25 +980,73 @@ membutuhkan bentuk tap-buka-sheet, bukan gestur sekali jalan).
 ### Task 5: Navigasi kategori Tahap 1 + verifikasi akhir tahap
 
 **Files:**
-- Modify: `apps/web/lib/admin-portal-kategori.ts` (isi `KATEGORI_AKTIF` +
-  `PETA_HREF_PORTAL` untuk grup Tahap 1)
+- Modify: `apps/web/lib/admin-portal-kategori.ts` (isi `KATEGORI_AKTIF` —
+  LEVEL GRUP, lihat koreksi mekanisme di bawah)
+- Modify: `apps/web/app/admin-portal/kategori/[key]/page.tsx` (isi
+  `PETA_HREF_PORTAL` inline — LEVEL ITEM, file BERBEDA dari yang berisi
+  `KATEGORI_AKTIF`)
 
 **Interfaces:**
 - Consumes: hasil Task 3 (dashboard) + Task 4 (inbox) berfungsi.
 - Produces: kategori `bi-eksekutif` (Dashboard Eksekutif) dan
-  `sy-inbox-approval` (Menunggu Persetujuan) — KUNCI PERSIS dari
+  `sy-inbox-approval` (Menunggu Persetujuan) — KUNCI ITEM PERSIS dari
   `apps/web/lib/peta-menu.ts:354` dan `:373` — muncul di halaman
   `/admin-portal/kategori` sebagai AKTIF, bukan lagi placeholder kosong.
 
-- [ ] **Step 1: Baca ulang `PETA_HREF_PORTAL`/`KATEGORI_AKTIF` di
-  `pm-portal-kategori.ts` untuk bentuk PERSIS objek/array sebelum mengedit**
+⚠ **KOREKSI MEKANISME (review — bug nyata di draf sebelumnya).** Riset awal
+Task 2 salah mengasumsikan `KATEGORI_AKTIF` disaring level ITEM. Dibaca
+ulang kode nyata Task 1 (`apps/web/lib/admin-portal-kategori.ts` +
+`apps/web/app/admin-portal/kategori/[key]/page.tsx`, PERSIS pola
+`pm-portal-kategori.ts`/`pm-portal/kategori/[key]/page.tsx`):
 
-  JANGAN menebak bentuknya dari nama variabel — baca file itu penuh
-  (168 baris) untuk tahu apakah `PETA_HREF_PORTAL` map ke satu href atau ke
-  objek `{ href, label }`, dan apakah `KATEGORI_AKTIF` berisi `key` grup
-  (`bi-eksekutif`) atau sesuatu yang lain.
+```ts
+// admin-portal-kategori.ts — KATEGORI_AKTIF module-private, disaring level GRUP
+const KATEGORI_AKTIF: string[] = [];
+export function kategoriUntukAdmin(): GrupMenu[] {
+  return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));
+}
+```
 
-- [ ] **Step 2: Update `admin-portal-kategori.ts`**
+`g.key` di sini adalah kunci GRUP (`g-laporan`, `g-sistem`, dst — lihat
+`peta-menu.ts:79-432`), BUKAN kunci item (`bi-eksekutif`, `sy-inbox-
+approval`). Mengisi `KATEGORI_AKTIF` dengan kunci ITEM (draf sebelumnya)
+membuat `filter()` TIDAK PERNAH cocok dengan `g.key` grup mana pun —
+halaman `/admin-portal/kategori` akan tampil KOSONG selamanya meski Task 3
+dan Task 4 sudah selesai, tanpa satu pun error (gejalanya identik "belum
+ada modul dibangun", padahal modulnya sudah ada).
+
+`PETA_HREF_PORTAL` TETAP level ITEM seperti draf sebelumnya (itu sudah
+benar) — tapi hidup di file BERBEDA: inline di
+`admin-portal/kategori/[key]/page.tsx` (bukan di
+`admin-portal-kategori.ts`), persis pola pm-portal
+(`PETA_HREF_PORTAL` ada di `pm-portal/kategori/[key]/page.tsx`, bukan di
+`pm-portal-kategori.ts`).
+
+- [ ] **Step 1: Konfirmasi grup yang menaungi `bi-eksekutif`/
+  `sy-inbox-approval`**
+
+  Sudah dikonfirmasi baca `apps/web/lib/peta-menu.ts` langsung:
+  `bi-eksekutif` (Dashboard Eksekutif) ada di grup `key: 'g-laporan'`
+  (baris 352, label "Laporan & BI"); `sy-inbox-approval` (Menunggu
+  Persetujuan) ada di grup `key: 'g-sistem'` (baris 366, label
+  "Administrasi"). Verifikasi ULANG ke file nyata sebelum menulis — jangan
+  percaya nomor baris ini kalau `peta-menu.ts` sempat berubah antara riset
+  ini dan implementasi Task 5.
+
+  ⚠ Mengaktifkan grup `g-laporan`/`g-sistem` berarti SEMUA item `status:
+  'hidup'` lain di kedua grup itu (bukan hanya `bi-eksekutif`/
+  `sy-inbox-approval`) ikut tampil di halaman kategori — `itemHidup =
+  grup.items.filter((it) => it.status === "hidup")` di
+  `kategori/[key]/page.tsx` menyaring per STATUS item, bukan per item yang
+  sudah punya `PETA_HREF_PORTAL`. Item lain di kedua grup itu yang belum
+  punya baris di `PETA_HREF_PORTAL` akan tetap TAMPIL tapi tautannya
+  fallback ke `it.href` web (pola sama persis pm-portal — "item ada tapi
+  belum punya versi portal" bukan cacat, itu perilaku yang disengaja
+  dijelaskan di komentar `pm-portal/kategori/[key]/page.tsx:21-28`). Baca
+  ulang isi grup `g-laporan`/`g-sistem` PENUH di `peta-menu.ts` sebelum
+  commit supaya tak kaget item lain ikut muncul.
+
+- [ ] **Step 2: Update `admin-portal-kategori.ts` — level GRUP**
 
   ```ts
   // Kategori yang SUDAH punya halaman portal admin dibangun.
@@ -929,26 +1054,45 @@ membutuhkan bentuk tap-buka-sheet, bukan gestur sekali jalan).
   // BUKAN dihitung dari permission live (lib/peta-menu.ts tidak
   // menyimpan field permission per grup). Pola identik
   // pm-portal-kategori.ts, jangan didesain ulang.
-  export const KATEGORI_AKTIF: string[] = [
-    "bi-eksekutif",       // Task 3 — Dashboard Eksekutif (Beranda admin-portal)
-    "sy-inbox-approval",  // Task 4 — Menunggu Persetujuan
-  ];
+  //
+  // Tahap 1 (Task 3-4): "Laporan & BI" (g-laporan, item bi-eksekutif —
+  // Dashboard Eksekutif jadi Beranda admin-portal) dan "Administrasi"
+  // (g-sistem, item sy-inbox-approval — Menunggu Persetujuan) — KEDUA
+  // GRUP diaktifkan meski Task 3/4 baru membangun SATU item di
+  // masing-masing; item lain grup itu yang statusnya 'hidup' akan ikut
+  // tampil dengan fallback href web (lihat Task 5 Step 1).
+  const KATEGORI_AKTIF: string[] = ["g-laporan", "g-sistem"]; // Tahap 1
+  ```
 
-  // Kunci grup → href admin-portal. Diverifikasi PERSIS ke
-  // `apps/web/lib/peta-menu.ts` (`key` field tiap grup), BUKAN ditebak dari
-  // label.
-  export const PETA_HREF_PORTAL: Record<string, string> = {
+  ⚠ `KATEGORI_AKTIF` di file ini TIDAK diekspor (module-private,
+  `kategoriUntukAdmin()` yang diekspor) — JANGAN tambahkan `export` di
+  depannya, ikuti bentuk asli Task 1 apa adanya.
+
+- [ ] **Step 3: Update `PETA_HREF_PORTAL` inline di
+  `kategori/[key]/page.tsx` — level ITEM**
+
+  ```ts
+  /**
+   * Peta href web (key `ItemMenu` di `lib/peta-menu.ts`) ke href portal
+   * Admin/Direktur — DIISI PROGRESIF tiap Task menambah halaman baru.
+   *
+   * Tahap 1 (Task 3-4): bi-eksekutif (Dashboard Eksekutif, grup
+   * g-laporan) → Beranda admin-portal sendiri (Task 3 mengganti
+   * placeholder Task 1 di halaman itu, BUKAN halaman terpisah — href
+   * yang sama dengan Beranda). sy-inbox-approval (Menunggu Persetujuan,
+   * grup g-sistem) → halaman inbox Task 4.
+   */
+  const PETA_HREF_PORTAL: Record<string, string> = {
     "bi-eksekutif": "/admin-portal",
     "sy-inbox-approval": "/admin-portal/inbox",
   };
   ```
 
-  ⚠ Bentuk objek di atas KERANGKA — sesuaikan PERSIS ke bentuk nyata yang
-  dibaca Step 1 (mis. kalau `PETA_HREF_PORTAL` pm-portal ternyata map ke
-  objek `{href, label}` bukan `string`, ikuti bentuk itu, bukan yang
-  dituliskan di sini).
+  ⚠ File ini SUDAH ADA dari Task 1 dengan `PETA_HREF_PORTAL` kosong
+  (`{}`) — tambahkan kedua baris ke objek yang sudah ada, JANGAN menulis
+  ulang seluruh file atau membuat deklarasi kedua.
 
-- [ ] **Step 3: Verifikasi lantai penjaga ratchet TIDAK naik dari baseline
+- [ ] **Step 4: Verifikasi lantai penjaga ratchet TIDAK naik dari baseline
   Task 1**
 
   ```bash
@@ -960,7 +1104,7 @@ membutuhkan bentuk tap-buka-sheet, bukan gestur sekali jalan).
   Bandingkan angka ke commit `ab10f5f0` (Task 1) — laporkan SELISIH, bukan
   cuma exit code.
 
-- [ ] **Step 4: typecheck + build + guard lengkap**
+- [ ] **Step 5: typecheck + build + guard lengkap**
 
   ```bash
   cd apps/web && pnpm exec tsc --noEmit
@@ -971,7 +1115,7 @@ membutuhkan bentuk tap-buka-sheet, bukan gestur sekali jalan).
   Tempel ringkasan run sungguhan (CHARTER §7) — SEMUA penjaga, bukan
   subset yang "dirasa relevan" (pelajaran §7 CLAUDE.md 2026-08-18).
 
-- [ ] **Step 5: a11y runtime penuh (akun admin)**
+- [ ] **Step 6: a11y runtime penuh (akun admin)**
 
   ```bash
   LAYAR_EMAIL=$(grep '^LAYAR_EMAIL' apps/web/.env.local|cut -d= -f2-|tr -d '"\r') \
@@ -984,17 +1128,17 @@ membutuhkan bentuk tap-buka-sheet, bukan gestur sekali jalan).
   dari admin dan perlu akun uji terpisah (0 user aktif direktur saat plan
   ini ditulis — lihat Global Constraints).
 
-- [ ] **Step 6: Update dokumen**
+- [ ] **Step 7: Update dokumen**
 
   - `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` — tandai `bi-eksekutif` dan
     `sy-inbox-approval` sebagai punya halaman admin-portal (bukan hanya
     dashboard web).
   - `docs/execution/JOURNAL.md` — entri ringkas Tahap 1 selesai.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
   ```bash
-  git add apps/web/lib/admin-portal-kategori.ts docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md docs/execution/JOURNAL.md
+  git add apps/web/lib/admin-portal-kategori.ts apps/web/app/admin-portal/kategori/\[key\]/page.tsx docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md docs/execution/JOURNAL.md
   git commit -m "feat(admin-portal): navigasi kategori Tahap 1 + verifikasi akhir tahap"
   ```
 
