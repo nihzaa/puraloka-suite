@@ -30,6 +30,7 @@ import { useSearchParams } from "next/navigation";
 import { Truck, Plus, AlertTriangle, Wrench } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
+import { formatRupiah as fmtRupiah } from "@/lib/format";
 import Link from "next/link";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
@@ -38,11 +39,6 @@ import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import type { RespDaftarAset, RespDaftarSewa, RespAlatOperasional, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
-
-function fmtRupiah(v: number | null | undefined): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
-}
 const VARIAN_STATUS: Record<string, VarianStatus> = {
   tersedia: "approved", dipakai: "info", perawatan: "pending", dilepas: "netral",
 };
@@ -101,7 +97,7 @@ function IsiAsetPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
           Alat & Aset

@@ -267,6 +267,16 @@ integrasi pelaporan Disnaker untuk insiden fatal.
 | Penilaian kinerja | ✅ | **G2e SELESAI 2026-08-11** — migrasi 290 `penilaian_kinerja`, tab di `/sdm/kompetensi` (satu route = satu link, aturan 232). Dibangun untuk MENCATAT, bukan menghitung skor gabungan: formula pembobotan adalah kebijakan yang belum diputuskan founder, dan menebaknya berarti membangun yang pasti dibongkar. Skala DISIMPAN bersama skornya — skala berubah antar-periode (1–5 lalu 1–100), dan skor 4 tanpa skalanya bisa berarti bagus atau buruk; ringkasan menormalkan ke persen supaya sebanding, tapi angka mentahnya tetap terlihat agar cocok dengan lembar penilaian di kertas. Rata-rata `null` saat nol final, BUKAN 0 (nol berarti "dinilai buruk"). Yang FINAL tak bisa diubah — penilaian yang sudah disampaikan adalah dasar keputusan tentang orang. Ada kolom `tanggapan_pegawai`: penilaian tanpa hak jawab adalah vonis. |
 | Klaim perjalanan & reimburse | 🟡 | Via `project_expenses` |
 
+**Portal PM (mobile, `pm-portal/*`)** — ditambahkan Task 39, Tahap 7 Portal
+PM Lengkap (2026-08-22): Timesheet + Cuti + Kompetensi/Rekrutmen/Penilaian
+Kinerja READ-ONLY-sebagian tersedia di `pm-portal/sdm/*` (PM punya
+`sdm:timesheet:manage`+`sdm:cuti:manage` untuk data SENDIRI, tapi HANYA
+`sdm:sertifikat:view`+`sdm:rekrutmen:view` — read-only penuh untuk
+Kompetensi, dan PM sama sekali TIDAK PUNYA `sdm:kinerja:manage`, bukan cuma
+view-only). Master karyawan, Payroll staf, dan tarif statutori (BPJS/PPh21)
+TIDAK direplikasi ke portal — di luar scope §1 spec Portal PM Lengkap
+(administrasi, bukan kerja proyek harian PM).
+
 ---
 
 ## 13. ALAT BERAT & ASET
@@ -288,6 +298,14 @@ migrasi 149/150/151).
 ⚠️ Forward-draft **045 TIDAK dipakai apa adanya**: ditulis sebelum multi-tenant
 (nol `company_id`, nol RLS, `asset_code UNIQUE` global). 149 menulis ulang
 sebagai kategori B/C. 045 dibiarkan di tempatnya — riwayat tak diubah.
+
+**Portal PM (mobile, `pm-portal/*`)** — ditambahkan Task 40, Tahap 7 Portal
+PM Lengkap (2026-08-22): `pm-portal/aset` + `pm-portal/aset/[id]` — Register,
+Mutasi antar-proyek, Sewa, Operasional, DAN tombol "Jurnalkan Penyusutan"
+(PM punya `assets:manage` PENUH + keempat kunci `gl:*`, diverifikasi LIVE ke
+`role_permissions`). Tab Penyusutan di detail aset sengaja INFORMASI SAJA
+tanpa tombol catat/jurnalkan dari tab itu — mencatat baris penyusutan tanpa
+menjurnalkannya membuat neraca dan register aset saling menyimpang.
 
 ---
 
@@ -343,6 +361,18 @@ sebagai kategori B/C. 045 dibiarkan di tempatnya — riwayat tak diubah.
 | Matriks distribusi | ✅ | Migrasi 215 · `matriks_distribusi` · `/dokumen/kendali`. Penerima WAJIB bisa dihubungi: akun sistem ATAU surel ber-@ (constraint DB). Penerima yang tak bisa dihubungi bukan penerima |
 | Tanda tangan elektronik | 🟡 | Migrasi 215 · `tanda_tangan_elektronik` · `/dokumen/kendali`. Yang disimpan **sidik SHA-256** isi dokumen saat ditandatangani, dihitung DI SERVER (klien tak bisa mengirim hash dokumen lain) — bisa dibuktikan dokumennya tak berubah sesudahnya. e-meterai tersertifikasi Peruri BELUM; itu yang menjadikannya sebagian |
 
+**Portal PM (mobile, `pm-portal/*`)** — ditambahkan Task 42/45, Tahap 7
+Portal PM Lengkap (2026-08-22): `pm-portal/dokumen-kendali` — lima tab
+(Gambar, Transmittal, Tindakan, Tanda Tangan, Distribusi). Tab Tindakan
+READ-ONLY (nol endpoint PATCH/POST untuk `notulen_tindakan` di seluruh
+`kendali-dokumen.ts` — tak ada tombol "Selesaikan" yang bisa dibangun
+jujur). Tab Distribusi (ditambahkan Task 45, sebelumnya utang Task 44)
+juga READ-ONLY — nol endpoint tulis untuk `matriks_distribusi`.
+⚠️ **Keterbatasan backend belum diperbaiki** (di luar scope frontend-only
+plan ini): endpoint `GET /kendali-dokumen` tidak menyaring `tindakan` dan
+`tandaTangan` ke `project_id` yang dipilih — keduanya selalu mengembalikan
+data SELURUH tenant. Dicatat sebagai temuan Task 45 di `JOURNAL.md`.
+
 ---
 
 ## 17. RISIKO & KEPATUHAN
@@ -369,6 +399,15 @@ lintas proyek, dan sambungan register risiko → izin kerja K3 (`izin_kerja_id`
 ada di skema, pemilihnya menunggu G4 karena JSA ↔ izin kerja akan mengubah
 bentuknya — syarat pencabutan tertulis di `kolom-tersambung-lantai.json`).
 
+**Portal PM (mobile, `pm-portal/*`)** — ditambahkan Task 41, Tahap 7 Portal
+PM Lengkap (2026-08-22): `pm-portal/risiko` (Register Risiko + Mitigasi,
+tabProyek) dan `pm-portal/klien`+`pm-portal/klien/[id]` (grup `g-master`,
+key `md-klien`). Perizinan sudah tercakup sebelumnya di `pm-portal/risiko/
+izin` (Task 8, Tahap 1). Klien READ-ONLY penuh — PM hanya `clients:view`,
+endpoint tulis (`POST`/`PATCH`/`toggle-active`) bergerbang `clients:manage`
+yang TIDAK DIMILIKI. Sengketa & Klaim (`rk-sengketa`) TIDAK dibangun ke
+portal — PM TIDAK PUNYA `sengketa:view` ATAU `:manage` sama sekali.
+
 ---
 
 ## 18. PELAPORAN & BUSINESS INTELLIGENCE
@@ -383,6 +422,13 @@ bentuknya — syarat pencabutan tertulis di `kolom-tersambung-lantai.json`).
 | Report builder | ✅ | **G6d SELESAI 2026-08-12** — `lib/laporan-susun.ts` (36 test, 15/15 mutasi MERAH) · `routes/v1/laporan-susun.ts` · migrasi 308 (izin `reports:susun`) & 309 (menu) · `/laporan/susun`. Peringatan lama **"membangun Excel di dalam ERP" DIPATUHI sebagai batas bentuk**: yang dibangun bukan layar tempat orang mengetik kondisi, melainkan pemilihan dari **sumber data terdaftar di kode**. Dua sebabnya — (1) kondisi yang diketik adalah teks yang berakhir di query, dan tiap penyaring hanyalah tebakan tentang apa yang berbahaya; (2) lebih halus dan lebih mahal, query bebas melewati `request.db` yang sadar-tenant, dan satu JOIN ke tabel tanpa `company_id` sudah cukup menarik data perusahaan lain — hasilnya terlihat seperti laporan yang wajar, nol galat, nol gejala. **TIGA lapis penjagaan**: tsc menolak tabel di luar peta tenancy (`tabel: TabelTerklasifikasi`, dan `.unsafe()` memang menuntut tipe itu — memaksanya lewat `as` membuat sumber yang lupa didaftarkan lolos diam-diam), `audit-sumber-laporan-nyata.mjs` mencocokkan tiap tabel & kolom dengan `information_schema` DAN memeriksa kolom penyaring tenant-nya (ambang NOL, terbukti MERAH pada 3 mutasi termasuk "invoices tenancy company"), lalu 36 test. Penjaga itu lahir dari cacat nyata: `project_expenses.amount` yang saya daftarkan tak ada — kolom karangan LOLOS seluruh pemeriksaan pustaka karena ia ada di daftar, lalu gagal di basis dengan pesan yang menunjuk query. **Dua gerbang izin**: `reports:susun` untuk fiturnya, izin milik tiap sumber untuk sumbernya. Saringan bernilai kosong DITOLAK (dibuktikan lewat UI nyata), batas maks 5.000 baris, `terpotong` dinyatakan, nilai enum diterjemahkan ke bahasa manusia di layar DAN di ekspor Excel — angka/tanggal dibiarkan mentah supaya kolomnya masih bisa dijumlah di Excel |
 | Export Excel / PDF | ✅ | Keduanya ada (XLSX + `reports/export-pdf` + invoice PDF) |
 | Distribusi laporan terjadwal | 🟡 | Migrasi 215 · `jadwal_distribusi_laporan` · `/dokumen/kendali`. Jadwal + deteksi **MACET** hidup: gagal 3× berturut ATAU telat >2× iramanya sendiri meski nol galat tercatat (proses penjadwal yang mati tak meninggalkan galat). Pengiriman surel otomatisnya sendiri belum dijalankan |
+
+**Portal PM (mobile, `pm-portal/*`)** — ditambahkan Task 43, Tahap 7 Portal
+PM Lengkap (2026-08-22): `pm-portal/laporan` (tab KPI Perusahaan + Arus Kas
+periode) dan `pm-portal/laporan/susun` (Report Builder mobile, sumber &
+gerbang izin sama dengan `/laporan/susun` web). `bi-eksekutif`/`bi-proyek`
+TIDAK direplikasi (sudah ada sebagai halaman lain); `bi-terjadwal`
+(`status: 'sebagian'`) di luar scope §1 spec (hanya modul `hidup`).
 
 ---
 

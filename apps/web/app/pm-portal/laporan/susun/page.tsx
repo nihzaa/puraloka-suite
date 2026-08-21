@@ -70,7 +70,7 @@ export default function PmSusunLaporanPage() {
   const galat = galatJalan ?? (galatMuat ? pesanGalat(galatMuat as GalatApi, "Gagal memuat sumber laporan") : null);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
         Susun Laporan
       </h1>
@@ -185,7 +185,7 @@ export default function PmSusunLaporanPage() {
 
       <div aria-live="polite">
         {hasil && (
-          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: "1px solid var(--border)", overflowX: "auto" }}>
+          <div style={{ background: "var(--surface)", borderRadius: "var(--portal-radius-card)", padding: "var(--pad-kartu)", border: "1px solid var(--border)", overflowX: "auto" }}>
             <div style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 8 }}>
               {hasil.jumlah} baris{hasil.terpotong ? ` (dipotong batas ${hasil.batas})` : ""}
             </div>

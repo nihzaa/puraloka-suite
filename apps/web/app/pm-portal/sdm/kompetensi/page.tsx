@@ -52,7 +52,7 @@ export default function PmKompetensiSdmPage() {
     useData<RespDaftarLamaran>(tab === "lamaran" ? "/api/v1/sdm/lamaran" : null);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
         Kompetensi & Rekrutmen
       </h1>

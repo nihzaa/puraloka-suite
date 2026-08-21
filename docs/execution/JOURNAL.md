@@ -5,6 +5,156 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-22 (Portal PM Lengkap, Task 45) — Verifikasi akhir MENYELURUH: PLAN SELESAI (32 modul, 8 tahap, 78 halaman pm-portal)
+
+Task 45 adalah task TERAKHIR dari plan 45-task "Portal PM Lengkap". Bukan
+implementasi fitur baru — verifikasi menyeluruh seluruh `pm-portal/*`
+(Tahap 0-7), bukan hanya Tahap 7. Detail lengkap:
+`.superpowers/sdd/2026-08-20-portal-pm-lengkap/task-45-report.md`.
+
+**Typecheck**: 0 error (`tsc --noEmit`, dijalankan 3× sepanjang sesi).
+
+**Build produksi**: `pnpm build` exit 0, 245 halaman ter-generate termasuk
+seluruh route `pm-portal/*`. Nol error `useSearchParams` tanpa `<Suspense>`.
+
+**Penjaga CI**: 131 hijau · 40 MERAH · 2 tak ketemu (baseline sebelum
+Task 39: 130/41/2). **Nol regresi dari kode Task 39-45** — dibuktikan
+dengan diff NAMA SKRIP (bukan cuma angka total) terhadap worktree
+terpisah pada commit `433d3c3a` (sebelum kode Tahap 7 ditulis): himpunan
+skrip merah sekarang adalah SUBSET PERSIS baseline, satu skrip membaik
+(`gen-indeks-docs.mjs`).
+
+Tiga ratchet (`kerapatan-ratchet`, `format-ratchet`, `uji-tombol-primer-
+seragam`) SEMPAT naik dari Tahap 7 (11 halaman baru menulis `gap: 16`
+dipaku dan `Intl.NumberFormat`/`toLocaleString` langsung alih-alih token
+resmi) — **DIPERBAIKI ke kode nyata** (bukan menaikkan lantai): `gap:
+"var(--gap-bagian)"`, `formatRupiah()`/`formatTanggalJam()` dari
+`lib/format.ts` di 11 file (`aset`, `aset/[id]`, `dokumen-kendali`,
+`klien`, `klien/[id]`, `laporan`, `laporan/susun`, `risiko`,
+`sdm/cuti`, `sdm/kompetensi`, `sdm/timesheet`). Delta murni Task 39-45
+sekarang NOL untuk ketiga penjaga itu, diverifikasi file-per-file.
+
+**Temuan baru, TIDAK diperbaiki — dilaporkan jujur**: `judul-ratchet.mjs`
+(lantai `<h1>` ditulis sendiri) ternyata **sudah basi jauh sebelum
+Tahap 7** — 66 dari 77 halaman pm-portal yang ADA SEBELUM Task 39 SUDAH
+melanggarnya (97 pelanggaran vs lantai 27), bukan cuma Tahap 7. Task
+39-45 menambah 11 lagi (97→108) mengikuti pola `<h1>` yang IDENTIK di
+seluruh 77 halaman sebelumnya — bukan variasi liar (justru alasan asli
+UIR-2 penjaga ini dibuat). Tidak diperbaiki karena: (1) `KepalaHalaman`
+memakai token shell DASHBOARD ADMIN, bukan token shell portal mobile —
+memaksanya butuh verifikasi visual besar di luar scope; (2) menaikkan
+lantai adalah mengubah KONFIGURASI penjaga, sensitif G-5, di luar
+wewenang task verifikasi. **Butuh keputusan founder**: bangun komponen
+`KepalaHalamanPortal` khusus shell mobile, atau naikkan lantai dengan
+pengakuan eksplisit.
+
+**Test backend penuh**: `npx vitest run` → **32 berkas gagal, 96 test
+gagal, 5942 lulus, 19 skip (6057 total)**, dijalankan SENDIRIAN (~29
+menit). Jauh melebihi perkiraan awal ("kemungkinan cuma
+`klaim-perjalanan.test.ts`, 9 test") — diselidiki TUNTAS, bukan
+diasumsikan: **nol dari 31 file yang gagal pernah disentuh satu commit
+pun di branch ini** (`git log bc347424..HEAD -- apps/api/<path>` kosong
+untuk SEMUA 31 file, diperiksa satu-per-satu). Dua kasus digali sampai
+akar sebab: `struktur-endpoint.test.ts` (15/19 gagal, modul di luar plan
+ini sepenuhnya, riwayatnya dari `feat/struktur-analisa` di worktree lain)
+— bug fixture `LIMIT 1` tanpa `ORDER BY` memilih proyek dari company
+yang BUKAN default membership admin uji, sehingga `proyekMilikTenant()`
+menolak (404). `estimate-flow.test.ts`/`menu-etag.test.ts` — dijalankan
+terisolasi (bukan cuma dalam full-suite), tetap gagal sendirian, pola
+konsisten dengan drift data `users`/`company_members` di DB SHARED
+(dipakai beberapa worktree paralel), bukan race antar-run vitest (nol
+proses vitest lain terkonfirmasi berjalan). **Angka 32 berkas gagal
+identik dengan baseline "SAH" yang JOURNAL ini catat sejak
+2026-08-18/19** (32 berkas/95 test gagal saat itu) — bukti tambahan
+populasi kegagalan ini stabil/pra-eksisting, bukan sesuatu yang berubah
+karena plan ini. `klaim-perjalanan.test.ts` tetap 9/25 gagal sesuai
+pola Task 37.
+
+**Nol test PM-portal spesifik yang gagal** — modul yang dipakai Task
+39-43 (timesheet, cuti, kompetensi, assets, alat-operasional,
+risiko-proyek, clients, kendali-dokumen, reports, laporan-susun) tidak
+muncul di 31 file yang gagal.
+
+**Audit a11y runtime**: dijalankan server produksi worktree ini sendiri
+(`next build` + `next start -p 3091`, terpisah dari server worktree lain
+yang sudah listen di :3000/:3098/:3007). Hasil: **155 halaman dipindai, 0
+pelanggaran** — TAPI **NOL dari 78 halaman `pm-portal/*`** masuk cakupan
+itu (dikonfirmasi memfilter `.a11y-terang.json`, array kosong untuk
+`url.includes('pm-portal')`). Sama persis batasan Task 22/30/37:
+`LAYAR_EMAIL` berperan admin, `pm-portal/layout.tsx:26` mengalihkan ke
+`/dashboard` sebelum axe sempat memindai. Smoke-check manual 2 halaman
+Tahap 7 (`sdm/timesheet`, `dokumen-kendali`) mengonfirmasi redirect
+sama. **A11Y-PM-PORTAL TETAP `menunggu`** di QUEUE.yaml (diperbarui
+angka basi "25 halaman" → 78 halaman aktual) — bukan diklaim selesai.
+
+**Verifikasi keputusan Task 38 diukur ULANG, bukan diwarisi**:
+- RFQ/Tabulasi/Vendor-kualifikasi TETAP di luar scope, alasan UI-fit
+  MASIH BERLAKU (diukur ulang: hanya 6 dari 200+ halaman pm-portal
+  memakai pola tabel lebar, semuanya tabel kecil bukan perbandingan
+  multi-vendor — pola kartu mobile tetap dominan).
+- Hub `pm-portal/proyek/[id]` MASIH murni redirect (16 baris, tak
+  berubah). Task 39-43 semuanya standalone dengan dropdown proyek,
+  BUKAN `tabProyek` baru.
+- `g-hse` TERKONFIRMASI aktif di `KATEGORI_AKTIF` (18 grup).
+
+**Verdict 32 modul** — tabel lengkap di laporan Task 45, satu baris per
+modul dengan Tahap/Task/Status yang bisa ditelusuri, dikoreksi dari draf
+pertama yang salah menaruh Perizinan Proyek di Tahap 1 (nyatanya tab
+"Perizinan" di `risiko/page.tsx`, Task 41, Tahap 7).
+
+**Satu tab UI ditambahkan** (bukan cuma dokumentasi): `dk-distribusi` di
+`pm-portal/dokumen-kendali/page.tsx` — utang eksplisit dari Task 44/42.
+Data `distribusi: MatriksDistribusiPM[]` sudah lengkap sejak Task 42;
+diukur RINGAN (read-only, pola identik tab Tindakan) sehingga
+ditambahkan langsung alih-alih dibiarkan sebagai utang lagi.
+
+**Kebocoran data lintas-proyek di `kendali-dokumen.ts` (Task 42) —
+dikonfirmasi ULANG masih ada**: query `notulen_tindakan` dan
+`tanda_tangan_elektronik` (`kendali-dokumen.ts:70-81`) hanya
+`.eq('company_id', cid)`, TANPA `project_id` — tab Tindakan dan Tanda
+Tangan di `dokumen-kendali/page.tsx` menampilkan data SELURUH tenant,
+bukan hanya proyek yang dipilih. Sudah tercatat di komentar kode dan
+laporan Task 42 sejak sebelumnya, TAPI belum pernah masuk JOURNAL.md
+sebagai temuan lintas-task — **sekarang dicatat di sini secara
+eksplisit** sesuai permintaan brief. Backend fix di luar scope
+frontend-only, tidak dieksekusi.
+
+**GL void non-atomicity (Task 34)** — catatan konsolidasi sebelumnya di
+JOURNAL ini MASIH AKURAT, diverifikasi ulang langsung ke kode
+(`gl.ts:287-321` masih `.eq('id', ...)` saja tanpa
+`.eq('status', 'posted')`). Tidak disentuh.
+
+**MINSTOK-GUDANG-STOK-READONLY** — status `menunggu` di QUEUE.yaml
+MASIH AKURAT, diverifikasi ulang (`gudang/stok/page.tsx` masih tak
+menyebut `min_stock`). Tidak diperbaiki (di luar scope).
+
+**Dokumentasi**: `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` ditambahkan
+catatan "Portal PM (mobile)" di lima section (§12 HR, §13 Aset, §16
+Dokumen, §17 Risiko, §18 Laporan) — status simbol modul backend/web
+TIDAK diubah (sudah ✅ sebelum plan ini), murni catatan ketersediaan
+mobile + batasan permission.
+
+**PLAN PORTAL PM LENGKAP SEKARANG SELESAI.** Total 78 halaman `page.tsx`
+di `app/pm-portal/*` sepanjang Tahap 0-7 (dihitung `find`, bukan
+diklaim), 32 modul dalam scope semuanya tercakup (standalone/tabProyek/
+existing/fallback web, dengan alasan tiap keputusan luar-scope
+tertelusur ke permission nyata). Modul di luar scope dengan alasan
+permanen: `settings`+`ai` (administrasi, keputusan founder §1 spec),
+RFQ/Tabulasi/vendor-kualifikasi (UI-fit, bukan otorisasi), Penilaian
+Kinerja & Data Karyawan/Payroll (PM tak punya permission-nya),
+Sengketa & Klaim (PM tak punya `sengketa:*` sama sekali). Utang yang
+TERCATAT SADAR dan tetap terbuka: hub proyek (redirect, ditunda sejak
+Task 17/23/38), kebocoran lintas-proyek kendali-dokumen (backend, Task
+42→45), a11y runtime pm-portal (78 halaman tak teraudit, butuh akun uji
+peran `pm`), GL void non-atomicity (backend, Task 34), 32 berkas test
+backend pra-eksisting di luar plan ini (tak pernah disentuh branch ini),
+MINSTOK-GUDANG-STOK-READONLY (frontend, Task 26).
+
+Commit: lihat log — pesan `docs(pm-portal): verifikasi akhir menyeluruh
+— Portal PM Lengkap selesai (32 modul, 8 tahap)`.
+
+---
+
 ## 2026-08-21 (Portal PM Lengkap, Tahap 6) — Koreksi Minor dari review Task 37: kutipan lokasi trigger periode-tertutup salah
 
 Review coordinator atas entri Task 37 di bawah (commit `60adb1a4`) menemukan

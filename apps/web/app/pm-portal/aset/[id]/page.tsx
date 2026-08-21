@@ -37,6 +37,7 @@ import { useParams } from "next/navigation";
 import { Truck, AlertTriangle, Wrench, Fuel, ArrowLeftRight } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
+import { formatRupiah as fmtRupiah } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import BottomSheet from "@/components/portal/BottomSheet";
@@ -45,11 +46,6 @@ import type { RespAlatOperasional, RespPenyusutanAset, ProyekPM, GalatApi } from
 import { pesanGalat } from "../../_bersama/tipe";
 
 interface RespProyek { projects: ProyekPM[] }
-
-function fmtRupiah(v: number | null | undefined): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
-}
 const LABEL_JATUH_TEMPO: Record<string, string> = {
   aman: "Aman", segera: "Segera", jatuh_tempo: "Jatuh Tempo", belum_ada_acuan: "Belum Ada Acuan",
 };
@@ -127,7 +123,7 @@ export default function PmAsetDetailPage() {
   if (!aset) return <EmptyState icon={Truck} judul="Aset tidak ditemukan" deskripsi="Aset ini mungkin sudah dihapus." />;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{aset.name}</h1>
       <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{aset.asset_code} · {aset.condition}</div>
 

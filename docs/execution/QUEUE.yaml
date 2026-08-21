@@ -3217,7 +3217,7 @@ items:
 
   - id: A11Y-PM-PORTAL
     fase: null
-    judul: "Audit a11y runtime portal PM/mandor/klien — 25+ halaman pm-portal/* tak pernah terpindai"
+    judul: "Audit a11y runtime portal PM/mandor/klien — 78 halaman pm-portal/* tak pernah terpindai"
     blokir_oleh: []
     kriteria_selesai:
       - "Akun uji berperan pm (bukan admin) tersedia di apps/web/.env.local"
@@ -3243,6 +3243,17 @@ items:
       Menutupnya BUKAN perubahan kode — murni provisioning akun uji baru
       berperan pm (dan idealnya juga mandor/client kalau portal itu
       punya gap serupa, belum diukur terpisah).
+
+      **Diukur ULANG Task 45 (2026-08-22, verifikasi akhir MENYELURUH
+      seluruh plan)**: angka "25 halaman" di atas sudah BASI — plan
+      selesai dengan 78 halaman `page.tsx` di `app/pm-portal/*`
+      (dihitung `find`, bukan diklaim). Run a11y penuh sesi ini (155
+      halaman dipindai, 0 pelanggaran) dikonfirmasi LAGI mencakup NOL
+      dari 78 halaman itu (filter langsung ke `.a11y-terang.json`, array
+      kosong untuk `url.includes('pm-portal')`). Smoke-check manual 2
+      halaman Tahap 7 (`sdm/timesheet`, `dokumen-kendali`) mengonfirmasi
+      redirect yang sama. Status TETAP `menunggu` — bukan diklaim
+      selesai.
 
   - id: MINSTOK-GUDANG-STOK-READONLY
     fase: 4

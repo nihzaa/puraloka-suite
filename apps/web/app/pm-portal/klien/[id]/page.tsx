@@ -15,17 +15,11 @@
 import { useParams } from "next/navigation";
 import { Users, AlertCircle, Building2, Landmark } from "lucide-react";
 import { useData } from "@/lib/data-cache";
+import { formatRupiah as fmtRupiah } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { RespDetailKlien, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
-
-function fmtRupiah(v: number | string | null | undefined): string {
-  if (v === null || v === undefined) return "—";
-  const n = typeof v === "string" ? Number(v) : v;
-  if (!Number.isFinite(n)) return "—";
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
-}
 
 export default function PmKlienDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,7 +38,7 @@ export default function PmKlienDetailPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
         {data.client.company_name ?? data.client.contact_person}
       </h1>

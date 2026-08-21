@@ -25,6 +25,7 @@
 import { useState } from "react";
 import { TrendingUp, AlertTriangle, Landmark, Briefcase } from "lucide-react";
 import { useData } from "@/lib/data-cache";
+import { formatRupiah } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
@@ -36,7 +37,7 @@ function fmtRupiahRingkas(v: number | null | undefined): string {
   if (!Number.isFinite(n)) return "—";
   if (Math.abs(n) >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)} M`;
   if (Math.abs(n) >= 1_000_000) return `${(n / 1_000_000).toFixed(0)} jt`;
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+  return formatRupiah(n);
 }
 
 const WARNA_KEADAAN: Record<string, string> = {
@@ -65,7 +66,7 @@ export default function PmLaporanPage() {
     );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
         Laporan &amp; BI
       </h1>

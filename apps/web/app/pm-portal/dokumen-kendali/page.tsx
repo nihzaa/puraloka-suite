@@ -3,10 +3,20 @@
 // ============================================================================
 // Kendali Dokumen — Portal PM (Task 42, Tahap 7).
 //
-// Empat tab: Gambar (register + revisi usang), Transmittal (bukti serah
+// Lima tab: Gambar (register + revisi usang), Transmittal (bukti serah
 // dokumen + kirim/terima), Tindakan (butir notulen rapat gabungan, BUKAN
-// per-notulen — lebih berguna untuk PM yang mengejar tenggat), dan Tanda
-// Tangan (elektronik + verifikasi keutuhan isi).
+// per-notulen — lebih berguna untuk PM yang mengejar tenggat), Tanda
+// Tangan (elektronik + verifikasi keutuhan isi), dan Distribusi (matriks
+// penerima per jenis dokumen, READ-ONLY — nol endpoint tulis untuk
+// `matriks_distribusi` di seluruh `kendali-dokumen.ts`, dikonfirmasi grep:
+// kedua pemakaiannya SELECT, satu di sini dan satu di `kirim-laporan`).
+//
+// Tab Distribusi DITAMBAHKAN Task 45 (verifikasi akhir) — utang eksplisit
+// dari Task 44: data `distribusi: MatriksDistribusiPM[]` sudah dikirim
+// `RespKendaliDokumen` sejak Task 42, tapi UI-nya belum menampilkannya
+// sebagai tab. Diukur ringan (tipe sudah lengkap, read-only, pola sama
+// tab Tindakan) sehingga ditambahkan sekarang alih-alih dibiarkan sebagai
+// utang lebih lanjut.
 //
 // SATU panggilan `GET /api/v1/kendali-dokumen?project_id=` mengembalikan
 // seluruh sub-modul sekaligus (`lib/kendali-dokumen.ts:41-148`) — dipecah jadi
@@ -48,9 +58,10 @@
 // ============================================================================
 
 import { useMemo, useState } from "react";
-import { FileImage, Send, ClipboardList, PenTool, Plus, AlertTriangle } from "lucide-react";
+import { FileImage, Send, ClipboardList, PenTool, Plus, AlertTriangle, Users } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
+import { formatTanggalJam } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
@@ -61,7 +72,7 @@ import { pesanGalat } from "../_bersama/tipe";
 
 interface RespProyek { projects: ProyekPM[] }
 
-type Tab = "gambar" | "transmittal" | "notulen" | "ttd";
+type Tab = "gambar" | "transmittal" | "notulen" | "ttd" | "distribusi";
 type Sheet = "gambar" | "transmittal" | "notulen" | "ttd-buat" | "ttd-verifikasi" | null;
 
 export default function PmDokumenKendaliPage() {
@@ -217,7 +228,7 @@ export default function PmDokumenKendaliPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
         Kendali Dokumen
       </h1>
@@ -247,6 +258,7 @@ export default function PmDokumenKendaliPage() {
               { value: "transmittal", label: "Transmittal" },
               { value: "notulen", label: "Tindakan" },
               { value: "ttd", label: "Tanda Tangan" },
+              { value: "distribusi", label: "Distribusi" },
             ]}
             aktif={tab}
             onUbah={(v) => setTab(v as Tab)}
@@ -410,8 +422,35 @@ export default function PmDokumenKendaliPage() {
                   <div key={t.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: "1px solid var(--border)" }}>
                     <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{t.jenis_objek}: {t.objek_id.slice(0, 8)}…</div>
                     <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                      {t.peran_penanda ?? "—"} · {new Date(t.ditandatangani_pada).toLocaleString("id-ID")}
+                      {t.peran_penanda ?? "—"} · {formatTanggalJam(t.ditandatangani_pada)}
                     </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {!memuat && !galat && data && tab === "distribusi" && (
+            <>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                {data.distribusi.length} penerima terdaftar. Read-only — kelola dari halaman web.
+              </div>
+              {data.distribusi.length === 0 && (
+                <EmptyState icon={Users} judul="Belum ada matriks distribusi" deskripsi="Daftar penerima per jenis dokumen akan muncul di sini." />
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {data.distribusi.map((d) => (
+                  <div key={d.id} style={{ background: "var(--surface)", borderRadius: 12, padding: 12, border: "1px solid var(--border)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                      <div style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 600 }}>{d.penerima_nama}</div>
+                      {!d.aktif && <StatusBadge status="netral" label="Nonaktif" />}
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
+                      {d.jenis_dokumen}{d.organisasi ? ` · ${d.organisasi}` : ""}{d.peran ? ` · ${d.peran}` : ""}
+                    </div>
+                    {d.penerima_email && (
+                      <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{d.penerima_email}</div>
+                    )}
                   </div>
                 ))}
               </div>
