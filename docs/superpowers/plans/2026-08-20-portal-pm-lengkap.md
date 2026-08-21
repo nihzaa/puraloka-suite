@@ -14317,12 +14317,26 @@ SELECT DISTINCT p.key FROM role_permissions rp
   diulang di sini.
 - **Aset (`g-aset`)**: PM punya `assets:view`+`:manage` PENUH (register,
   mutasi antar-proyek, sewa, catat pemakaian/servis/biaya operasional).
-  PM **TIDAK PUNYA** `gl:manage` — tombol "Jurnalkan Penyusutan"
-  (`as-gl`, `POST /alat-operasional/penyusutan/jurnalkan`) TIDAK dibangun
-  untuk PM, sama alasannya dengan Task 23 menunda `payment:manage` AP:
-  yang dihasilkan endpoint itu adalah JURNAL yang mengubah laporan
-  keuangan, dan `assets:manage` diberikan jauh lebih luas dari `gl:manage`
-  secara sengaja (komentar kepala `alat-operasional.ts:387-391`).
+  ⚠️ **Koreksi (fix round, review 2026-08-21)**: draf pertama Task 38
+  menulis "PM TIDAK PUNYA `gl:manage`" — itu SALAH, dan KONTRADIKSI
+  dengan riset Task 31 di plan yang SAMA (baris ~10836-10850, "Temuan
+  kritis #3 — GL diberikan PENUH ke PM... diverifikasi LIVE"). Query
+  ulang (136 permission unik, bukan 89 yang diklaim draf pertama —
+  undercount 47 permission dari filter yang salah) mengonfirmasi: **PM
+  PUNYA keempatnya** — `gl:view`, `gl:manage`, `gl:post`, `gl:void`.
+  **Keputusan yang benar**: tombol "Jurnalkan Penyusutan" (`as-gl`,
+  `POST /alat-operasional/penyusutan/jurnalkan`, gerbang `gl:manage`)
+  DIBANGUN untuk PM di Task 40 — bukan dikecualikan. Endpoint ini
+  SEDERHANA untuk mobile (hanya butuh satu field `periode`, akun lawan
+  sudah dipatok konstanta `AKUN_BEBAN_PENYUSUTAN`/
+  `AKUN_AKUMULASI_PENYUSUTAN` di server — tak ada pemilihan akun manual
+  yang butuh UI kompleks), jadi tak ada alasan UI-fit yang menjustifikasi
+  pengecualian. Ini BEDA dari `gl-peta-akun`/`gl-jurnalkan`/
+  `fn-tutup-buku` (grup `g-keuangan`, Task 31 Temuan #3) yang MEMANG PM
+  tak punya (`gl:peta-akun:*`/`gl:jurnalkan`/`gl:periode:*` — kunci
+  BERBEDA dari `gl:manage`, diverifikasi ulang: PM hanya punya 4 kunci
+  `gl:*` di atas, bukan `gl:jurnalkan`/`gl:peta-akun:*`/`gl:periode:*`) —
+  keputusan Task 31 untuk ketiga itu TETAP BENAR, tidak diubah.
 - **Risiko & Kepatuhan (`g-risiko`)**: PM punya `risiko:view`+`:manage`
   (Register Risiko + Mitigasi, tabProyek) dan `izin:view`+`:manage`
   (Perizinan proyek, tabProyek). PM **TIDAK PUNYA** `sengketa:view`
@@ -14332,19 +14346,33 @@ SELECT DISTINCT p.key FROM role_permissions rp
   endpoint `kepatuhan-k3.ts`) — menu ini `is_active=false` di DB dan
   menunjuk halaman yang SAMA (aturan 232), TIDAK diulang di sini.
 - **Dokumen (`g-dokumen`)**: GET utama (`/kendali-dokumen`) bergerbang
-  `projects:view` (PM pasti punya). Seluruh tulis (gambar, transmittal,
-  kirim/terima, notulen, tanda tangan, verifikasi) bergerbang
-  `documents:manage` — PM PUNYA. `dk-register` (Register Dokumen) sudah
-  tercakup PENUH sebelum Portal PM Lengkap dimulai
-  (`pm-portal/dokumen/page.tsx`, verified: hanya `GET
-  /projects/:id/documents`, TIDAK menyentuh `kendali-dokumen.ts` sama
-  sekali) — TIDAK ditumpuk ulang, hanya modul KENDALI (transmittal,
-  gambar, notulen, distribusi, ttd, jadwal laporan) yang baru di sini.
-  `dk-approval` (`/pengaturan/approval`) di luar scope — administrasi
-  approval chain, bukan operasional. `dk-esign`/`dk-verifikasi-ttd`
-  SUDAH endpoint yang sama (`documents:manage`) — DIGABUNG ke halaman
-  yang sama, bukan halaman terpisah (satu-satunya cara menandatangani
-  di modul ini).
+  `projects:view` (PM pasti punya). ⚠️ **Koreksi presisi (fix round,
+  review 2026-08-21)**: draf pertama menulis "SELURUH tulis bergerbang
+  `documents:manage`" — itu terlalu luas. Reviewer memverifikasi
+  `kendali-dokumen.ts:650` (`GET /kendali-dokumen/kirim-laporan`)
+  SEBENARNYA bergerbang `notifications:milestone:check`, yang PM
+  **TIDAK PUNYA** (endpoint ini dipicu PENJADWAL terjadwal, bukan aksi
+  manual pengguna — lihat komentar kepala endpoint itu). Klaim yang
+  BENAR: **hanya ENAM endpoint tulis** yang bergerbang `documents:manage`
+  (PM PUNYA) — `POST .../gambar`, `POST .../transmittal`, `PATCH
+  .../transmittal/:id/kirim`, `PATCH .../transmittal/:id/terima`, `POST
+  .../notulen`, `POST .../tanda-tangan`, `POST
+  .../tanda-tangan/verifikasi` (tujuh, bukan enam — dihitung ulang).
+  `kirim-laporan` TIDAK dipanggil Task 42 (halaman hanya menampilkan
+  `jadwalLaporan` sebagai INFORMASI dari respons GET utama, tak pernah
+  memanggil endpoint kirim-laporan itu sendiri) — dampaknya TERKONTROL
+  sekarang, tapi klaim presisi ini WAJIB dijaga supaya task masa depan
+  yang menambah fitur "kirim sekarang" tidak salah asumsi PM bisa
+  memanggilnya. `dk-register` (Register Dokumen) sudah tercakup PENUH
+  sebelum Portal PM Lengkap dimulai (`pm-portal/dokumen/page.tsx`,
+  verified: hanya `GET /projects/:id/documents`, TIDAK menyentuh
+  `kendali-dokumen.ts` sama sekali) — TIDAK ditumpuk ulang, hanya modul
+  KENDALI (transmittal, gambar, notulen, distribusi, ttd, jadwal
+  laporan) yang baru di sini. `dk-approval` (`/pengaturan/approval`) di
+  luar scope — administrasi approval chain, bukan operasional.
+  `dk-esign`/`dk-verifikasi-ttd` SUDAH endpoint yang sama
+  (`documents:manage`) — DIGABUNG ke halaman yang sama, bukan halaman
+  terpisah (satu-satunya cara menandatangani di modul ini).
 - **Laporan & BI (`g-laporan`)**: PM punya `reports:view` (financial,
   cashflow, kpi-perusahaan, export-pdf), `reports:progress`,
   `reports:susun` (Report Builder — gerbang KEDUA per-sumber tetap
@@ -14387,21 +14415,39 @@ SELECT DISTINCT p.key FROM role_permissions rp
 - [ ] **Step 4 (Task 38): keputusan RFQ + vendor-kualifikasi** — brief
   meminta verifikasi ulang permission PM untuk `rfq.ts` (`pr-rfq`,
   `pr-tabulasi`) dan `vendor-kualifikasi.ts` sebelum memutuskan breakdown.
-  Diukur ke daftar permission PM lengkap di atas: **PM TIDAK PUNYA**
-  `procurement:rfq:*` ATAU `procurement:vendor:*` dalam bentuk apa pun —
-  kedua kunci itu SAMA SEKALI TIDAK MUNCUL di 89 permission unik yang
-  dimiliki role `pm` (daftar lengkap diverifikasi 2026-08-21). PM punya
-  `procurement:supplier:manage` (beda modul — data master supplier, bukan
-  RFQ/kualifikasi vendor) dan `procurement:po:manage`/`procurement:mr:manage`
-  yang SUDAH tercakup penuh Task 24 (Tahap 4). **Keputusan: RFQ + tabulasi
-  penawaran vendor DAN vendor-kualifikasi TETAP DI LUAR SCOPE seluruh plan
-  ini** — bukan karena terlupa, tapi karena PM benar-benar tidak diberi
-  izin membaca maupun menulis modul itu di backend. Membangun halaman
-  portal untuk permission yang tak dimiliki menghasilkan tombol yang
-  selalu 403 — pelanggaran prinsip yang sama dengan Task 26 menunda
-  `fn-ap` dan Task 31 menunda `gl-peta-akun`/`gl-jurnalkan`. Kalau PM
-  suatu saat diberi izin ini (keputusan founder), breakdown-nya adalah
-  pekerjaan BARU, bukan pekerjaan yang tertunda dari sini.
+
+  ⚠️ **Koreksi (fix round, review 2026-08-21)**: draf pertama Step 4 ini
+  menulis "PM TIDAK PUNYA `procurement:rfq:*`/`procurement:vendor:*`...
+  kedua kunci itu SAMA SEKALI TIDAK MUNCUL" dan menyimpulkan PM "tidak
+  diberi izin membaca maupun menulis modul itu di backend" — kesimpulan
+  itu SALAH. `procurement:rfq:*`/`procurement:vendor:*` memang tidak
+  ada di tabel `permissions` SAMA SEKALI (bukan cuma PM yang tak
+  punya — kuncinya sendiri tak pernah dibuat, jadi tak ada role
+  manapun yang bisa "memilikinya"). Draf pertama salah menyimpulkan
+  "PM tak berwenang" dari "kunci yang saya TEBAK tak ada", padahal
+  endpoint SUNGGUHAN bergerbang kunci LAIN yang PM justru punya:
+  diverifikasi langsung `rfq.ts:116,171,211` → `procurement:view` (PM
+  PUNYA), `rfq.ts:251,321,440` → `procurement:po:manage` (PM PUNYA);
+  `vendor-kualifikasi.ts:35,68` → `procurement:view`, `:95` →
+  `procurement:po:manage` (PM PUNYA keduanya). **PM SECARA OTORISASI
+  BOLEH membaca dan menulis RFQ/tabulasi/vendor-kualifikasi** — draf
+  pertama menimpa keputusan yang SUDAH BENAR dari Tahap 4 (Task 23,
+  baris ~8094-8098) dengan alasan permission yang keliru.
+
+  **Keputusan yang benar (dikembalikan ke alasan asli Tahap 4)**: RFQ +
+  Tabulasi + Evaluasi Vendor + vendor-kualifikasi **TETAP DI LUAR SCOPE
+  Portal PM Lengkap** — TAPI alasannya UI-FIT, BUKAN otorisasi: "alur
+  multi-vendor dengan perbandingan tabel lebar (banyak kolom harga
+  berdampingan per vendor) — bentuk data ini secara struktural tak
+  cocok jadi kartu mobile tanpa scroll horizontal berat, pola yang sama
+  dengan alasan Gantt Chart ditunda di Task 22" (kutipan persis Task 23,
+  Tahap 4). Dicatat SEBAGAI UTANG kandidat hub `proyek/[id]` (kalau
+  suatu saat dibangun, lihat Step 5 di bawah) — bukan ditolak
+  permanen karena PM tak berwenang, sebab PM MEMANG berwenang.
+  `procurement:supplier:manage` (data master supplier, modul beda) dan
+  `procurement:po:manage`/`procurement:mr:manage` SUDAH tercakup penuh
+  Task 24 (Tahap 4) — tidak diulang di sini, tapi keduanya BUKAN alasan
+  RFQ dikecualikan.
 
 - [ ] **Step 5 (Task 38): keputusan hub `pm-portal/proyek/[id]`** — brief
   meminta pengukuran ulang apakah hub proyek sekarang dibutuhkan. Dibaca
@@ -14437,12 +14483,14 @@ SELECT DISTINCT p.key FROM role_permissions rp
 **Riset (Task 38 Step 1)** — bentuk respons diverifikasi baris-per-baris:
 
 - `GET /api/v1/sdm/pegawai` (`sdm:timesheet:view`) → `{ pegawai:
-  (Pegawai)[] }`, `Pegawai = { id, user_id, nomor_induk, jabatan,
+  (Pegawai)[] }`, bentuk `Pegawai` diturunkan dari SELECT constant
+  `PEGAWAI_SELECT` (`timesheet-staf.ts:30-34` — bukan `interface`
+  TypeScript, ini string kolom Supabase; backend tak mendeklarasikan
+  tipe untuk bentuk ini): `{ id, user_id, nomor_induk, jabatan,
   departemen, tanggal_masuk, tanggal_keluar, jam_standar, status_ptkp,
-  kategori_ter, created_at, orang: {id,name,email} }`
-  (`timesheet-staf.ts:30-34`). Endpoint ini SENGAJA tidak mengirim gaji
-  pokok (komentar baris 56-58) — dibuka untuk memilih siapa timesheet-nya
-  dilihat, bukan untuk melihat gaji.
+  kategori_ter, created_at, orang: {id,name,email} }`. Endpoint ini
+  SENGAJA tidak mengirim gaji pokok (komentar baris 56-58) — dibuka
+  untuk memilih siapa timesheet-nya dilihat, bukan untuk melihat gaji.
 - `GET /api/v1/sdm/pegawai/:id/timesheet?bulan=YYYY-MM`
   (`sdm:timesheet:view`) → `{ pegawai: Pegawai, bulan, rentang:
   {awal,akhir}, ringkasan: RingkasanTimesheet, pengajuan: {boleh,
@@ -14483,11 +14531,13 @@ SELECT DISTINCT p.key FROM role_permissions rp
 - `POST /api/v1/sdm/pegawai/:id/sertifikat` (`sdm:sertifikat:manage`) —
   **PM TIDAK PUNYA izin ini**, TIDAK dibangun tombolnya.
 - `GET /api/v1/sdm/lamaran` (`sdm:rekrutmen:view`) → `{ lamaran:
-  Lamaran[] }`, `Lamaran = { id, nama, email, telepon, posisi, sumber,
-  tahap: TahapLamaran, catatan_tahap, path_cv, catatan, pegawai_id,
-  created_at, updated_at }` (`kompetensi-sdm.ts:47-50`). `POST
-  /sdm/lamaran` dan `POST /sdm/lamaran/:id/tahap` bergerbang
-  `sdm:rekrutmen:manage` — **PM TIDAK PUNYA**, TIDAK dibangun tombolnya.
+  Lamaran[] }`, bentuk `Lamaran` diturunkan dari SELECT constant
+  `LAMARAN_SELECT` (`kompetensi-sdm.ts:47-50` — bukan `interface`
+  TypeScript): `{ id, nama, email, telepon, posisi, sumber, tahap:
+  TahapLamaran, catatan_tahap, path_cv, catatan, pegawai_id, created_at,
+  updated_at }`. `POST /sdm/lamaran` dan `POST /sdm/lamaran/:id/tahap`
+  bergerbang `sdm:rekrutmen:manage` — **PM TIDAK PUNYA**, TIDAK dibangun
+  tombolnya.
 
 - [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
 
@@ -15297,14 +15347,24 @@ aset/sewa wajib berlabel manusia), `uji-galat-muat-terpisah.mjs`,
 - `GET /api/v1/assets/:id/depreciation` (`assets:view`) → `{ data: {
   tercatat: LogPenyusutanPM[], proyeksi: BarisProyeksiSusutPM[] }, meta:
   { dapat_disusutkan: boolean, alasan?: string, nilai_buku_kini?: number,
-  beban_bulan_ini?: number, catatan?: string } }` — **TIDAK ada tombol
-  "Catat Penyusutan" (`POST .../depreciation`) atau "Jurnalkan" di
-  halaman PM**: yang pertama izinnya `assets:manage` (PM PUNYA, TAPI
-  hasil endpoint itu hanya baris `asset_depreciation_logs` MENTAH tanpa
-  jurnal — mencatatnya tanpa menjurnalkannya membuat neraca dan register
-  aset saling menyimpang, risiko yang sama dengan kenapa `as-gl`
-  ditunda), yang kedua `gl:manage` (PM TIDAK PUNYA). Halaman PM
-  HANYA MENAMPILKAN proyeksi+tercatat sebagai INFORMASI.
+  beban_bulan_ini?: number, catatan?: string } }`.
+- ⚠️ **Koreksi (fix round, review 2026-08-21)**: draf pertama menulis
+  "PM TIDAK PUNYA `gl:manage`" dan karena itu TIDAK membangun tombol
+  "Jurnalkan" — itu SALAH. Query ulang (136 permission, bukan 89)
+  mengonfirmasi PM PUNYA `gl:manage` PENUH (sama seperti `gl:view`/
+  `gl:post`/`gl:void`, dikonfirmasi Task 31 Temuan #3 di plan yang sama).
+  **Keputusan yang benar**: `POST /alat-operasional/penyusutan/jurnalkan`
+  (`gl:manage`) DIBANGUN sebagai tombol "Jurnalkan Periode Ini" di tab
+  Penyusutan (Step 3) — endpoint ini SEDERHANA untuk mobile (hanya
+  butuh field `periode`, akun lawan sudah dipatok konstanta
+  `AKUN_BEBAN_PENYUSUTAN`/`AKUN_AKUMULASI_PENYUSUTAN` di server, tak
+  ada pemilihan akun manual). `POST .../depreciation` (Catat Penyusutan
+  satu periode, `assets:manage`, PM PUNYA) JUGA dibangun — sebelumnya
+  ditunda dengan alasan "mencatat tanpa menjurnalkan membuat neraca dan
+  register saling menyimpang", tapi alasan itu tidak lagi berlaku
+  karena tombol Jurnalkan SEKARANG ada di halaman yang sama: PM bisa
+  mencatat lalu langsung menjurnalkan, urutan yang sama dengan alur web
+  desktop (`/aset/operasional`).
 - `GET /api/v1/asset-rentals?status=&project_id=` (`assets:view`) → `{
   data: SewaAsetPM[], meta: { total, berjalan, biaya_berjalan,
   biaya_total } }` (`assets.ts:539-577`). `SewaAsetPM` (baris 545-546 +
@@ -15321,10 +15381,9 @@ aset/sewa wajib berlabel manusia), `uji-galat-muat-terpisah.mjs`,
   total, tanggal }` (`alat-operasional.ts:45-188`). `AlatOpsPM`
   (baris 138-184): seluruh kolom `assets` + `{ meter: number|null,
   jamOperasi: number, hariDipakai: number, perawatan:
-  (JadwalPerawatanPM & { jatuhTempo: HasilJatuhTempoPM })[],
-  palingMendesak: (JadwalPerawatanPM & { jatuhTempo:
-  HasilJatuhTempoPM }) | null, biaya: HasilBiayaAlatPM, kesehatan:
-  HasilKesehatanAlatPM, riwayat: RiwayatPerawatanPM[], penyusutan:
+  JadwalPerawatanPM[], palingMendesak: JadwalPerawatanPM | null, biaya:
+  HasilBiayaAlatPM, kesehatan: HasilKesehatanAlatPM, riwayat:
+  RiwayatPerawatanPM[], penyusutan:
   (LogPenyusutanPM & { jurnal_status: string|null; jurnal_nomor:
   string|null })[] }`. `HasilJatuhTempoPM` (`lib/alat-operasional.ts:52-65`):
   `{ status: 'aman'|'segera'|'jatuh_tempo'|'belum_ada_acuan', sisaJam:
@@ -15344,7 +15403,12 @@ aset/sewa wajib berlabel manusia), `uji-galat-muat-terpisah.mjs`,
   `asset_id` (wajib), `jenis` (wajib), `tanggal?`, `jumlah?`,
   `kuantitas?`, `satuan?`, `project_id?`, `uraian?`.
 - `POST /alat-operasional/penyusutan/jurnalkan` (`gl:manage`) — **PM
-  TIDAK PUNYA**, TIDAK dibangun.
+  PUNYA** (koreksi di atas). Body `periode` (wajib, `YYYY-MM-DD`).
+  Idempoten by design: hanya baris `penyusutan_alat` yang BELUM
+  dijurnalkan (`journal_entry_id IS NULL`) pada periode itu yang
+  diproses (`.is('journal_entry_id', null)`, `alat-operasional.ts:414`)
+  — memanggil ulang untuk periode yang sama menghasilkan 404 ("Tak ada
+  penyusutan periode … yang belum dijurnalkan"), bukan jurnal ganda.
 
 - [ ] **Step 1: Tipe di `_bersama/tipe.ts`**
 
@@ -15704,8 +15768,11 @@ export default function PmAsetPage() {
 
 - [ ] **Step 3: `aset/[id]/page.tsx`** — detail aset: kartu kondisi +
 meter + kesehatan perawatan + biaya + tombol catat pemakaian/servis/biaya
-+ tombol mutasi antar-proyek. Penyusutan HANYA ditampilkan sebagai
-informasi (lihat riset — TANPA tombol catat/jurnalkan).
++ tombol mutasi antar-proyek + tab Penyusutan dengan tombol "Catat
+Penyusutan" dan "Jurnalkan Periode Ini" (⚠️ koreksi fix round
+2026-08-21 — draf pertama menulis tab ini TANPA tombol dengan alasan
+"PM TIDAK PUNYA gl:manage", itu SALAH; PM PUNYA `gl:manage` penuh,
+lihat riset di atas).
 
 ```typescript
 "use client";
@@ -15732,15 +15799,20 @@ const LABEL_JATUH_TEMPO: Record<string, string> = {
   aman: "Aman", segera: "Segera", jatuh_tempo: "Jatuh Tempo", belum_ada_acuan: "Belum Ada Acuan",
 };
 
-type SheetAksi = "pemakaian" | "servis" | "biaya" | "mutasi" | null;
+type SheetAksi = "pemakaian" | "servis" | "biaya" | "mutasi" | "catat-susut" | "jurnalkan" | null;
+
+function bulanIni(): string {
+  return new Date().toISOString().slice(0, 7) + "-01";
+}
 
 export default function PmAsetDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [tab, setTab] = useState<"ringkas" | "susut">("ringkas");
   const [sheet, setSheet] = useState<SheetAksi>(null);
-  const [form, setForm] = useState({ jam_mulai: "", jam_selesai: "", biaya: "", uraian: "", jenis: "bbm", jumlah: "", to_project_id: "" });
+  const [form, setForm] = useState({ jam_mulai: "", jam_selesai: "", biaya: "", uraian: "", jenis: "bbm", jumlah: "", to_project_id: "", periode: bulanIni() });
   const [mengirim, setMengirim] = useState(false);
   const [galatForm, setGalatForm] = useState<string | null>(null);
+  const [pesanSukses, setPesanSukses] = useState<string | null>(null);
 
   const { data: dataOps, memuat, galat } = useData<RespAlatOperasional>("/api/v1/alat-operasional");
   const aset = useMemo(() => dataOps?.alat.find((a) => a.id === id) ?? null, [dataOps, id]);
@@ -15754,6 +15826,7 @@ export default function PmAsetDetailPage() {
     if (!sheet || !id) return;
     setMengirim(true);
     setGalatForm(null);
+    setPesanSukses(null);
     try {
       if (sheet === "pemakaian") {
         await api.post("/api/v1/alat-operasional/pemakaian", {
@@ -15769,9 +15842,17 @@ export default function PmAsetDetailPage() {
         });
       } else if (sheet === "mutasi") {
         await api.post(`/api/v1/assets/${id}/movements`, { to_project_id: form.to_project_id || null });
+      } else if (sheet === "catat-susut") {
+        const [tahun, bulan] = form.periode.slice(0, 7).split("-").map(Number);
+        await api.post(`/api/v1/assets/${id}/depreciation`, { period_year: tahun, period_month: bulan });
+        invalidasi(urlSusut);
+      } else if (sheet === "jurnalkan") {
+        await api.post("/api/v1/alat-operasional/penyusutan/jurnalkan", { periode: form.periode });
+        setPesanSukses("Penyusutan periode ini berhasil dijurnalkan.");
+        invalidasi(urlSusut);
       }
-      setSheet(null);
-      setForm({ jam_mulai: "", jam_selesai: "", biaya: "", uraian: "", jenis: "bbm", jumlah: "", to_project_id: "" });
+      if (sheet !== "jurnalkan") setSheet(null);
+      setForm((f) => ({ ...f, jam_mulai: "", jam_selesai: "", biaya: "", uraian: "", jenis: "bbm", jumlah: "", to_project_id: "" }));
       invalidasi("/api/v1/alat-operasional");
     } catch (e) {
       setGalatForm(pesanGalat(e as GalatApi, "Gagal menyimpan"));
@@ -15855,20 +15936,42 @@ export default function PmAsetDetailPage() {
             <EmptyState icon={AlertTriangle} judul="Belum bisa disusutkan" deskripsi={dataSusut.meta.alasan ?? "—"} />
           )}
           {dataSusut.meta.dapat_disusutkan && (
-            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Nilai Buku Kini</span>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>{fmtRupiah(dataSusut.meta.nilai_buku_kini)}</span>
+            <>
+              <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Nilai Buku Kini</span>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{fmtRupiah(dataSusut.meta.nilai_buku_kini)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Beban Bulan Ini</span>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{fmtRupiah(dataSusut.meta.beban_bulan_ini)}</span>
+                </div>
+                {dataSusut.meta.catatan && <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 8 }}>{dataSusut.meta.catatan}</div>}
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Beban Bulan Ini</span>
-                <span style={{ fontSize: 13, fontWeight: 700 }}>{fmtRupiah(dataSusut.meta.beban_bulan_ini)}</span>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button type="button" onClick={() => { setSheet("catat-susut"); setGalatForm(null); }}
+                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 12px", borderRadius: "var(--portal-radius-pill)", border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, fontWeight: 600, cursor: "pointer", minHeight: 40 }}>
+                  Catat Penyusutan
+                </button>
+                <button type="button" onClick={() => { setSheet("jurnalkan"); setGalatForm(null); setPesanSukses(null); }}
+                  style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 12px", borderRadius: "var(--portal-radius-pill)", border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 12, fontWeight: 700, cursor: "pointer", minHeight: 40 }}>
+                  Jurnalkan Periode Ini
+                </button>
               </div>
-              {dataSusut.meta.catatan && <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 8 }}>{dataSusut.meta.catatan}</div>}
-            </div>
+            </>
           )}
           <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-            {dataSusut.data.tercatat.length} periode tercatat. Untuk menjurnalkan penyusutan, gunakan menu Keuangan → GL di web desktop (izin `gl:manage`).
+            {dataSusut.data.tercatat.length} periode tercatat.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {dataSusut.data.tercatat.map((l) => (
+              <div key={l.id} style={{ display: "flex", justifyContent: "space-between", padding: 10, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{l.period_month}/{l.period_year}</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: l.journal_entry_id ? "var(--success)" : "var(--on-warning-bg)" }}>
+                  {fmtRupiah(l.depreciation_amount)} {l.journal_entry_id ? "· Terjurnal" : "· Belum Dijurnalkan"}
+                </span>
+              </div>
+            ))}
           </div>
         </>
       )}
@@ -15955,6 +16058,48 @@ export default function PmAsetDetailPage() {
           </button>
         </div>
       </BottomSheet>
+
+      <BottomSheet terbuka={sheet === "catat-susut"} onTutup={() => setSheet(null)} judul="Catat Penyusutan">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Periode (bulan)</span>
+            <input type="month" value={form.periode.slice(0, 7)} onChange={(e) => setForm((f) => ({ ...f, periode: e.target.value + "-01" }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
+            Mencatat baris penyusutan periode ini (belum menjurnalkan). Menyimpan
+            dua kali untuk periode yang sama akan ditolak — satu periode, satu baris.
+          </p>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          <button type="button" onClick={() => void kirimAksi()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menyimpan…" : "Simpan"}
+          </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet terbuka={sheet === "jurnalkan"} onTutup={() => setSheet(null)} judul="Jurnalkan Penyusutan">
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Periode (bulan)</span>
+            <input type="month" value={form.periode.slice(0, 7)} onChange={(e) => setForm((f) => ({ ...f, periode: e.target.value + "-01" }))}
+              style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+          <p style={{ fontSize: 11, color: "var(--text-secondary)", margin: 0 }}>
+            Menjurnalkan SELURUH baris penyusutan periode ini yang belum
+            dijurnalkan (semua aset tenant, bukan cuma aset ini) ke buku besar.
+            Idempoten — memanggil ulang untuk periode yang sama tidak
+            menggandakan jurnal (server hanya memproses baris yang belum
+            tertaut jurnal).
+          </p>
+          {galatForm && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatForm}</div>}
+          {pesanSukses && <div style={{ fontSize: 12, color: "var(--on-success-bg)", background: "var(--success-bg)", borderRadius: 10, padding: 10 }}>{pesanSukses}</div>}
+          <button type="button" onClick={() => void kirimAksi()} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "none", background: mengirim ? "var(--surface-subtle)" : "var(--grad-aksen)", color: mengirim ? "var(--text-muted)" : "var(--on-navy)", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+            {mengirim ? "Menjurnalkan…" : "Jurnalkan"}
+          </button>
+        </div>
+      </BottomSheet>
     </div>
   );
 }
@@ -15971,7 +16116,7 @@ cd apps/web && pnpm exec tsc --noEmit
 ```bash
 git add apps/web/app/pm-portal/aset apps/web/app/pm-portal/_bersama/tipe.ts \
   docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md
-git commit -m "feat(pm-portal): Alat & Aset — register, mutasi, sewa, operasional (Tahap 7)"
+git commit -m "feat(pm-portal): Alat & Aset — register, mutasi, sewa, operasional, jurnalkan penyusutan (Tahap 7)"
 ```
 
 ---
@@ -16715,13 +16860,42 @@ supaya tidak menimpa halaman existing.
   lewatTenggat: boolean }` — **TIDAK ADA endpoint untuk mengubah status
   tindakan** (diverifikasi: nol PATCH/POST untuk `notulen_tindakan` di
   seluruh `kendali-dokumen.ts`), jadi kartu tindakan di halaman ini
-  READ-ONLY, tanpa tombol "Selesaikan". `HasilJadwalLaporanPM extends
+  READ-ONLY, tanpa tombol "Selesaikan".
+
+  ⚠️ **Keterbatasan backend TERTULIS EKSPLISIT (ditemukan review
+  2026-08-21, bukan bug frontend)**: `kendali-dokumen.ts:96-98`
+  mendefinisikan `saring()` — fungsi yang menyaring baris ke
+  `project_id` yang dipilih — dan menerapkannya ke `gambar`/
+  `transmittal`/`notulen`/`distribusi`/`jadwal`, TAPI **TIDAK** ke
+  `tindakan` (baris 113-114, `nilaiTindakan((tindakan.data ?? [])…)`
+  langsung tanpa `saring()`) maupun `tandaTangan` (baris ~146, `ttd.data
+  ?? []` langsung). Penyebabnya: `notulen_tindakan` tak punya kolom
+  `project_id` sendiri (relasinya lewat `notulen_id` → `notulen_rapat`,
+  yang PUNYA `project_id`, tapi joinnya tak dilakukan di endpoint ini).
+  **Dampak untuk halaman ini**: saat PM memilih SATU proyek di dropdown,
+  tab "Tindakan" dan tab "Tanda Tangan" tetap menampilkan
+  tindakan/tanda-tangan dari SEMUA proyek tenant, bukan cuma proyek
+  yang dipilih — tanpa galat apa pun yang menandakannya. Ini keterbatasan
+  BACKEND, bukan sesuatu yang bisa diperbaiki di breakdown frontend ini
+  (memfilter di klien butuh field `project_id` yang tak dikirim
+  respons). Dicatat sebagai UTANG di Task 45 (verifikasi akhir) — bukan
+  diperbaiki di Task 42, karena memperbaikinya berarti mengubah
+  `kendali-dokumen.ts` (kode backend), di luar scope task frontend ini.
+  `HasilJadwalLaporanPM extends
   JadwalLaporan` (`:243-251,256-268`): `{ id, nama, irama, hari_ke:
   number|string|null, aktif, terakhir_dikirim: string|null,
   gagal_berturut: number|string|null, umurKirimHari: number|null, macet:
-  boolean }` — ditampilkan INFORMASI SAJA (jadwal ini dikelola lewat
-  penjadwal terjadwal, `notifications:milestone:check`, bukan tulis
-  manual PM).
+  boolean }` — ditampilkan INFORMASI SAJA. `GET
+  /kendali-dokumen/kirim-laporan` (endpoint yang MENGIRIM laporan
+  sungguhan, `kendali-dokumen.ts:650`) bergerbang
+  `notifications:milestone:check` — **PM TIDAK PUNYA** kunci itu
+  (diverifikasi ke DB), jadi TIDAK ADA tombol "Kirim Sekarang" yang bisa
+  dibangun jujur. Ini BEDA dari ketujuh endpoint tulis lain di berkas
+  yang sama (`gambar`/`transmittal`/`kirim`/`terima`/`notulen`/
+  `tanda-tangan`/`verifikasi`) yang SEMUANYA bergerbang `documents:manage`
+  (PM PUNYA) — satu berkas route bisa punya gerbang permission BERBEDA
+  per-endpoint, dan menyamaratakannya "seluruh tulis di berkas ini"
+  adalah generalisasi yang salah (koreksi fix round 2026-08-21).
 - `POST /api/v1/kendali-dokumen/gambar` (`documents:manage`) — body
   `project_id`+`nomor`+`judul` (wajib), `disiplin?` (default
   `arsitektur`), `revisi?` (default 0), `tahap?` (default `IFR`),
@@ -17813,24 +17987,28 @@ hr-reimburse → PM TIDAK PUNYA klaim:view/:kelola untuk klaim perjalanan
                lewat inbox approval (Task 36). Fallback web.
 ```
 
-Grup `g-aset` (Alat & Aset, `as-*`) — SEMUA diarahkan ke halaman portal
-BARU (Task 40):
+Grup `g-aset` (Alat & Aset, `as-*`) — SEMUA (termasuk `as-gl`) diarahkan
+ke halaman portal BARU (Task 40):
 
 ```
 as-register    → /pm-portal/aset            (Task 40, tab Register)
 as-mutasi      → /pm-portal/aset/[id]        (Task 40, tombol Mutasi di detail)
-as-penyusutan  → /pm-portal/aset/[id]        (Task 40, tab Penyusutan — READ-ONLY)
+as-penyusutan  → /pm-portal/aset/[id]        (Task 40, tab Penyusutan)
 as-sewa        → /pm-portal/aset             (Task 40, tab Sewa)
 as-utilisasi   → /pm-portal/aset/[id]        (Task 40, riwayat mutasi + utilisasi 12 bulan)
 as-maintenance → /pm-portal/aset             (Task 40, tab Perawatan Mendesak)
 as-opex        → /pm-portal/aset/[id]        (Task 40, kartu Biaya/Jam)
+as-gl          → /pm-portal/aset/[id]        (Task 40, tab Penyusutan, tombol Jurnalkan)
 ```
 
-Yang SENGAJA TIDAK diisi:
-
-```
-as-gl → PM TIDAK PUNYA gl:manage (Task 38 Step 1). Fallback web (/aset/operasional).
-```
+⚠️ **Koreksi (fix round, review 2026-08-21)**: draf pertama menulis
+`as-gl` "PM TIDAK PUNYA gl:manage" dan mengarahkannya fallback web —
+itu SALAH (lihat koreksi Task 38 Step 1: PM PUNYA `gl:manage` penuh,
+undercount 89 vs 136 permission di riset awal). `as-gl` SEKARANG
+diarahkan ke halaman portal yang SAMA dengan `as-penyusutan`
+(`/pm-portal/aset/[id]`, tab Penyusutan) — bukan halaman terpisah,
+karena kedua item menu itu pada dasarnya SATU fitur (lihat Task 40
+Step 3, tab Penyusutan sekarang punya tombol "Jurnalkan Periode Ini").
 
 Grup `g-risiko` (Risiko & Kepatuhan, `rk-*`):
 
@@ -17946,10 +18124,14 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "as-register": "/pm-portal/aset",
   "as-sewa": "/pm-portal/aset",
   "as-maintenance": "/pm-portal/aset",
-  // as-mutasi/as-penyusutan/as-utilisasi/as-opex mengarah ke DETAIL,
+  // as-mutasi/as-penyusutan/as-utilisasi/as-opex/as-gl mengarah ke DETAIL,
   // href statis tak berlaku untuk rute [id] — dibiarkan tanpa entri,
   // ditinjau di Task 45 apakah PETA_HREF_PORTAL punya pola untuk itu.
-  // as-gl SENGAJA TIDAK diisi — PM tak punya gl:manage. Fallback web.
+  // ⚠️ Koreksi (fix round 2026-08-21): as-gl SEBELUMNYA ditandai "PM tak
+  // punya gl:manage, fallback web" — itu SALAH (PM PUNYA gl:manage
+  // penuh, lihat Task 38 Step 1 koreksi). as-gl SEKARANG di kelompok
+  // yang sama dengan as-mutasi/as-penyusutan (menunjuk DETAIL aset,
+  // tombol Jurnalkan ada di tab Penyusutan Task 40), bukan fallback web.
 
   // ── Tahap 7 (Task 44) — grup g-risiko. ─────────────────────────────────
   "rk-register": "/pm-portal/risiko",
@@ -18161,8 +18343,17 @@ MSYS_NO_PATHCONV=1 LAYAR_EMAIL=… LAYAR_SANDI=… \
 
 - [ ] **Step 6: Verifikasi keputusan Task 38 Step 4/5 tak basi** —
 ukur ULANG (bukan diwarisi dari Task 38) apakah:
-  a. PM masih tanpa `procurement:rfq:*`/`procurement:vendor:*` (RFQ +
-     vendor-kualifikasi tetap di luar scope).
+  a. Alasan RFQ+Tabulasi+Evaluasi Vendor+vendor-kualifikasi tetap di
+     luar scope MASIH UI-FIT (⚠️ **BUKAN permission** — koreksi fix
+     round 2026-08-21: PM SECARA OTORISASI PUNYA akses RFQ/vendor-
+     kualifikasi lewat `procurement:view`+`procurement:po:manage`, jadi
+     JANGAN ukur ulang dengan mencari kunci `procurement:rfq:*`/
+     `procurement:vendor:*` — kunci itu tak pernah ada di tabel
+     `permissions` sama sekali dan mencarinya lagi akan mengulang
+     kesalahan yang sama. Yang perlu diukur ulang: apakah bentuk tabel
+     lebar multi-vendor RFQ/tabulasi MASIH tak cocok kartu mobile —
+     kalau desain UI portal berubah signifikan di tahap-tahap mendatang,
+     verifikasi ulang alasan ini, bukan permissionnya).
   b. Hub `pm-portal/proyek/[id]` masih murni redirect — dan apakah
      Task 39-43 menambah `tabProyek` baru yang mengubah kalkulasi
      kebutuhan hub (Risiko/Izin di Task 41 dibangun STANDALONE, bukan
