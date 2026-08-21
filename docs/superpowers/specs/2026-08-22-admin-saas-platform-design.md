@@ -114,6 +114,18 @@ DDL. Kalau admin-saas butuh kolom baru, itu jadi migrasi bernomor di
 `puraloka-suite`, dikerjakan lewat sesi/PR di repo itu — persis pola
 yang sudah berjalan untuk fitur lain di sana.
 
+**Risiko yang diketahui & diterima, bukan dipecahkan di sini** — celah
+yang ketahuan lewat review independen: kebijakan "admin-saas tak pernah
+DDL" adalah precedent BARU (governance lintas-repo satu-DB belum pernah
+diuji di proyek ini) dan ditegakkan murni lewat disiplin proses (PR
+review), BUKAN mekanisme teknis — tak ada Gerbang Keras CHARTER yang
+mencegah seseorang membuka SQL editor Supabase langsung dan menjalankan
+`ALTER TABLE` di luar kedua repo. Ini bukan cacat yang harus diselesaikan
+spec ini (mustahil dicegah murni teknis untuk pengaturan "satu DB, dua
+repo"), tapi dicatat eksplisit sebagai risiko operasional: akses SQL
+editor Supabase langsung sebaiknya dibatasi ke sesedikit mungkin orang
+dan aktivitasnya idealnya ter-log terpisah dari kedua repo.
+
 ## 4. Data model
 
 ### 4.1 Plan, subscription, feature flags & kuota (poin 2)
@@ -157,6 +169,7 @@ tenant_usage_counters                    -- kuota TERPAKAI, terpisah dari defini
   company_id UUID FK companies, feature_key TEXT FK plan_features(key)  -- TEXT sengaja, lihat catatan di bawah
   period_start DATE, period_end DATE     -- selaras current_period_start/end subscription, BUKAN kalender 1-31
   used_count INTEGER NOT NULL DEFAULT 0
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()   -- kapan terakhir increment; lihat catatan di bawah
   PRIMARY KEY (company_id, feature_key, period_start)
 ```
 
@@ -200,10 +213,17 @@ terjaga lewat FK biasa ke kolom itu.
 **Pola enforcement kuota (catatan implementasi untuk sesi integrasi AI
 nanti, BUKAN dibangun di sini)**: check-then-increment sinkron saat
 request, race-safe lewat
-`UPDATE tenant_usage_counters SET used_count = used_count + 1 WHERE company_id=? AND feature_key=? AND period_start=? AND used_count < <limit> RETURNING used_count`
+`UPDATE tenant_usage_counters SET used_count = used_count + 1, updated_at = now() WHERE company_id=? AND feature_key=? AND period_start=? AND used_count < <limit> RETURNING used_count`
 — kalau affected rows = 0, kuota habis, tolak sebelum panggilan AI yang
 mahal dijalankan. Dicatat di sini karena bentuk tabelnya (§ ini) harus
 mendukung pola ini sejak awal, meski pemanggilnya dibangun di sesi lain.
+
+**`updated_at` ditambahkan — celah minor dari review independen**:
+tanpa jejak kapan counter terakhir naik, dashboard §5.5 dan alert §7
+(#8/#9) tak bisa membedakan "tenant memang tak pakai fitur ini periode
+ini" dari "counter macet karena bug di kode enforcement" — dua
+penyebab angka rendah yang butuh respons berbeda (yang pertama normal,
+yang kedua bug produksi).
 
 **`tenant_feature_overrides` wajib `reason`**: kebutuhan nyata yang
 disebut riset ("beri tenant ini 2x kuota AI sbg retensi") tidak boleh
@@ -269,6 +289,34 @@ jadi layar "hubungi billing"). Titik baca `access_mode` (§ di atas,
 "satu titik pembacaan") harus tahu perbedaan ini — bukan blokir generik
 di level request, tapi blokir di level *jenis operasi*.
 
+**Transisi `suspended → active` (unsuspend pasca-bayar) — celah yang
+ketahuan lewat review independen**: draft sebelumnya menjelaskan rinci
+pemicu suspend (§4.1, §5.1) tapi TIDAK PERNAH menjelaskan pemicu
+baliknya. Ini penting karena §7 automasi #25 ("tenant bayar setelah
+suspend → email welcome-back") secara implisit mengasumsikan reaktivasi
+terjadi OTOMATIS begitu tenant bayar — padahal §5.1 membingkai
+suspend/reaktivasi sebagai aksi manual staf ("set
+`company_saas_meta.lifecycle_status`+`access_mode`"). Dibiarkan
+ambigu, tenant yang sudah transfer bisa tertahan `blocked` berjam-jam
+menunggu staf sadar — bertentangan dengan filosofi `read_only` di atas
+(beri kesempatan bayar sendiri) kalau reaktivasinya sendiri lambat.
+
+**Keputusan mengikat**: reaktivasi **manual oleh staf, TIDAK otomatis**
+— alasannya sama dengan kenapa suspend sendiri manual (§5.1: "WAJIB isi
+`suspended_reason`", keputusan sadar bukan tebakan sistem). Otomatis
+mensyaratkan admin-saas mendengarkan event pembayaran dari payment
+gateway — integrasi yang eksplisit di luar scope spec ini (§9). Tapi
+"manual" tidak boleh berarti "tak terjadwal": begitu `subscriptions`
+tenant `suspended` berubah `status` jadi `active` (lunas — via mana
+pun payment tercatat, di luar scope di sini), **itulah pemicu** yang
+harus memunculkan tenant ini di antrean "menunggu reaktivasi" (bagian
+dari §5.2 dashboard dunning) — bukan staf harus mencari sendiri secara
+proaktif. Otomasi #25 (§7) direvisi maknanya di sini: bukan "sistem
+otomatis unsuspend", tapi "begitu pembayaran tercatat lunas, KIRIM
+ALERT ke staf + tampilkan di antrean prioritas" — reaktivasi
+sesungguhnya (klik tombol, `company_saas_meta` berubah) tetap aksi
+staf, tapi *tak boleh menunggu staf menyadari secara pasif*.
+
 **Retensi data**: `scheduled_deletion_at` diisi **90 hari** setelah
 `canceled_at` (bukan 30) — riset merekomendasikan ini untuk vertical
 SaaS konstruksi, karena data proyek/kontrak punya relevansi
@@ -294,7 +342,7 @@ saas_invoices
   subscription_id UUID FK subscriptions ON DELETE SET NULL
   invoice_number TEXT UNIQUE
   period_start DATE, period_end DATE
-  amount NUMERIC NOT NULL, currency TEXT DEFAULT 'IDR'
+  amount NUMERIC NOT NULL, currency TEXT NOT NULL DEFAULT 'IDR' CHECK (currency = 'IDR')
   status TEXT CHECK (status IN ('draft','sent','paid','overdue','void'))
   due_date DATE, paid_at TIMESTAMPTZ NULL
   payment_reference TEXT NULL            -- id transaksi payment gateway (di luar scope sesi ini)
@@ -317,6 +365,18 @@ CMS compro yang sudah ada.
 Detail integrasi payment gateway (Midtrans/Xendit/dll) **tidak**
 dirancang di sini — `payment_reference` adalah kolom pass-through yang
 cukup untuk plan berikutnya merancang integrasinya tanpa migrasi ulang.
+
+**`currency` dikunci `CHECK (currency = 'IDR')` secara sengaja** — celah
+minor yang ketahuan lewat review independen: draft sebelumnya
+membiarkan kolom ini longgar (TEXT tanpa CHECK), ambigu apakah sengaja
+disiapkan untuk ekspansi internasional atau sekadar lupa dikunci —
+tidak konsisten dengan gaya spec ini yang di tempat lain sangat ketat
+(`value_type`, `access_mode`, `lifecycle_status` semua CHECK eksplisit).
+Proyek ini IDR-only by design (`KEPUTUSAN-SCOPE-ERP-AI.md`: multi-currency
+dicoret dari scope), jadi dikunci eksplisit — bukan dibiarkan terbuka
+untuk masa depan yang belum diputuskan. Kalau nanti multi-currency
+benar-benar masuk scope, itu perubahan sadar (drop constraint + migrasi
+baru), bukan sesuatu yang diam-diam sudah "didukung" sejak awal.
 
 **`ON DELETE SET NULL`, BUKAN `CASCADE`, ke `companies`/`subscriptions`**
 — celah yang ketahuan saat ditinjau ulang: job hard-delete pasca-90-hari
@@ -344,9 +404,8 @@ admin_saas_roles           -- KECIL & tetap: tak perlu fleksibilitas RBAC tenant
   id UUID PK, name TEXT UNIQUE, label TEXT, is_builtin BOOLEAN
   -- seed: 'super_admin', 'billing_ops', 'support', 'sales' (lihat §5.6 IA)
 
-admin_saas_permissions
-  id UUID PK, key TEXT UNIQUE            -- 'tenants:manage', 'billing:manage', 'billing:view',
-                                          -- 'support:manage', 'marketing_content:manage', 'audit:view', ...
+admin_saas_permissions                   -- katalog LENGKAP + matrix role di §5.8, bukan contoh
+  id UUID PK, key TEXT UNIQUE
   label TEXT
 
 admin_saas_role_permissions
@@ -424,6 +483,73 @@ detail migrasi (bukan didetailkan lagi di sini), tapi dicatat sebagai
 boleh dianggap selesai tanpa trigger validasi ini terpasang & teruji
 lewat mutasi sengaja (pola pembuktian penjaga di `CLAUDE.md` §8a.2).
 
+### 4.5 Marketing content (poin 1, backing untuk §5.4 & §6)
+
+**Celah yang ketahuan dari review independen**: §5.4 (menu Marketing
+Content) dan §6 (kontrak API) sudah mengasumsikan bentuk data ini,
+tapi draft sebelumnya tak pernah menuliskan DDL-nya — beda dari §4.1–
+§4.4 yang semuanya punya definisi tabel eksplisit. Ini bukan hal yang
+sengaja di-defer (§9 hanya men-defer *desain visual* dan *marketing-saas
+sebagai proyek*, bukan skema tabel yang justru dipakai kontrak §6).
+
+```sql
+marketing_pages
+  id UUID PK, slug TEXT UNIQUE, title TEXT, meta_description TEXT
+  is_published BOOLEAN NOT NULL DEFAULT false
+  created_at, updated_at TIMESTAMPTZ
+
+marketing_sections                       -- blok berurut di dalam satu halaman
+  id UUID PK, page_id UUID FK marketing_pages ON DELETE CASCADE
+  section_type TEXT CHECK (section_type IN
+    ('hero','features','pricing_table','testimonials','faq','cta'))
+  sort_order INT NOT NULL DEFAULT 0
+  content JSONB NOT NULL                 -- bentuk per section_type, lihat catatan di bawah
+  created_at, updated_at TIMESTAMPTZ
+
+marketing_pricing_plans                  -- kartu harga TAMPILAN, bukan data billing
+  id UUID PK, plan_id UUID NULL FK plans ON DELETE SET NULL
+  headline TEXT, price_label TEXT, features_list JSONB NOT NULL DEFAULT '[]'
+  is_featured BOOLEAN NOT NULL DEFAULT false, sort_order INT NOT NULL DEFAULT 0
+  is_published BOOLEAN NOT NULL DEFAULT true
+  created_at, updated_at TIMESTAMPTZ
+
+marketing_testimonials
+  id UUID PK, author_name TEXT NOT NULL, author_role TEXT, company_name TEXT
+  quote TEXT NOT NULL, avatar_url TEXT
+  is_published BOOLEAN NOT NULL DEFAULT true, sort_order INT NOT NULL DEFAULT 0
+  created_at, updated_at TIMESTAMPTZ
+
+marketing_faqs
+  id UUID PK, question TEXT NOT NULL, answer TEXT NOT NULL
+  is_published BOOLEAN NOT NULL DEFAULT true, sort_order INT NOT NULL DEFAULT 0
+  created_at, updated_at TIMESTAMPTZ
+```
+
+**`marketing_sections.content` JSONB polymorphic, bukan tabel terpisah
+per jenis section**: dipilih karena jumlah `section_type` kecil (6 jenis)
+dan bentuknya murni tampilan (tak pernah dijadikan syarat query/filter
+lintas section — beda dari `plan_feature_values` yang memang butuh
+di-JOIN dan di-filter per fitur). Validasi bentuk JSON per
+`section_type` (mis. `hero` wajib punya `headline`+`subheadline`,
+`pricing_table` wajib array id yang merujuk `marketing_pricing_plans`)
+dilakukan di app-layer admin-saas (schema Zod/sejenis per tipe), bukan
+di database — konsisten dengan filosofi "config dari admin, DB tidak
+perlu tahu bentuk detail tiap jenis konten".
+
+**`marketing_pricing_plans.plan_id` nullable, `ON DELETE SET NULL`**:
+kartu harga tampilan boleh berdiri sendiri tanpa tertaut ke `plans`
+sungguhan (mis. kartu "Enterprise — Hubungi Kami" yang memang tak
+pernah jadi baris `plans` konkret), dan kalau `plans` yang ditaut
+dihapus, kartu tampilannya TIDAK ikut hilang (SET NULL) — editor
+marketing tak boleh kehilangan draft yang sudah ditulis susah payah
+hanya karena admin lain menghapus plan di bagian lain admin-saas;
+mereka cukup diberi tahu tautannya putus (`plan_id IS NULL` terdeteksi
+di UI) dan menaut ulang.
+
+**Migrasi § kepemilikan**: sama seperti §4.1–§4.4, tabel-tabel ini
+ditulis lewat migrasi bernomor di `puraloka-suite/db/migrations/`
+(§3) — bukan sistem migrasi terpisah admin-saas.
+
 ## 5. Fitur & menu admin-saas (poin 1)
 
 IA mengikuti pola "search-first" yang riset konfirmasi sebagai konvensi
@@ -435,8 +561,11 @@ horizontal (bukan sidebar bersarang).
 - List: cari/filter by nama, plan, status, MRR, tanggal daftar
 - Detail (tab): Overview · Billing · Users · Usage · Feature Flags · Audit
 - Provisioning tenant baru: form → INSERT `companies`+`company_members`+
-  `auth.users`(admin pertama)+`subscriptions`(trial) dalam satu alur (§1,
-  keputusan founder) — **urutan & penanganan-gagal wajib seperti §5.1a**
+  `auth.users`(admin pertama)+`subscriptions`(trial), admin-saas yang
+  mengerjakan langsung (§1, keputusan founder — bukan lewat API
+  `puraloka-suite`) — **tapi BUKAN satu transaksi tunggal secara teknis
+  (auth.users lewat API terpisah); urutan & penanganan-gagal wajib
+  seperti §5.1a**
 - Suspend/reaktivasi: set `company_saas_meta.lifecycle_status`+
   `access_mode`, WAJIB isi `suspended_reason`
 
@@ -459,18 +588,85 @@ sepenuhnya — itu batas nyata dari punya 2 sistem berbeda):
 
 1. **Transaksi Postgres SATU**: `INSERT companies` → `INSERT
    subscriptions` (status `trialing`) → `INSERT company_saas_meta`
-   (status `provisioning`). Kalau salah satu gagal, semuanya rollback
-   otomatis (satu transaksi) — belum ada `auth.users` yang dibuat sama
-   sekali, jadi tak ada sampah tersisa.
-2. **Baru setelah transaksi di langkah 1 COMMIT**: panggil Supabase Auth
-   Admin API untuk buat `auth.users` admin pertama + `INSERT
-   company_members` (transaksi Postgres kedua, terpisah).
-3. Kalau langkah 2 gagal (mis. email sudah terdaftar): `companies` dari
-   langkah 1 **tetap ada** tapi `company_saas_meta.lifecycle_status`
-   tetap `'provisioning'` — UI admin-saas HARUS menampilkan tenant ini
-   sebagai "provisioning gagal, admin belum dibuat" (bukan hilang
-   senyap), dengan tombol retry yang mengulangi HANYA langkah 2 (pakai
-   `company_id` yang sudah ada, bukan bikin `companies` baru lagi).
+   (status `provisioning`) → **`INSERT roles` + `INSERT role_permissions`
+   untuk company baru ini, disalin dari role template** (lihat catatan
+   "instantiate role" di bawah — **wajib**, bukan opsional). Kalau salah
+   satu gagal (termasuk slug/`companies.code` bentrok dengan tenant lain
+   yang sudah ada — `companies_code_unique`), semuanya rollback otomatis
+   (satu transaksi) — belum ada `auth.users` yang dibuat sama sekali,
+   jadi tak ada sampah tersisa. UI HARUS membedakan pesan galat ini
+   ("nama/kode sudah dipakai tenant lain, coba nama lain") dari
+   kegagalan langkah 2 di bawah — dua akar masalah yang beda, jangan
+   ditampilkan sebagai galat generik yang sama.
+2. **Baru setelah transaksi di langkah 1 COMMIT**, dua langkah
+   BERURUTAN dan MASING-MASING idempoten sendiri (lihat "kenapa dipecah
+   2a/2b" di bawah):
+   - **2a — buat/temukan `auth.users` admin pertama**: panggil Supabase
+     Auth Admin API. Kalau API menjawab "email sudah terdaftar", JANGAN
+     langsung anggap gagal — cek dulu apakah `auth.users` dengan email
+     itu sudah ada TAPI belum py baris `company_members` untuk
+     `company_id` yang baru dibuat (indikasi retry dari percobaan
+     sebelumnya yang gagal persis di 2b). Kalau begitu, treat sebagai
+     "2a sudah pernah sukses, lanjut ke 2b" — bukan error ke staf.
+     Hanya kalau email itu SUDAH terhubung ke company LAIN (atau
+     company ini juga tapi row company_members-nya utuh) baru
+     benar-benar error "email dipakai akun lain".
+   - **2b — `INSERT company_members`**: idempoten lewat
+     `ON CONFLICT (company_id, user_id) DO UPDATE` (bukan `DO NOTHING`
+     — supaya retry yang mengubah `role_id` tetap kepakai), memakai
+     `role_id` dari role admin yang sudah di-instantiate di langkah 1.
+3. Kalau 2a ATAU 2b gagal untuk alasan lain (jaringan, dsb):
+   `companies` dari langkah 1 **tetap ada** tapi
+   `company_saas_meta.lifecycle_status` tetap `'provisioning'` — UI
+   admin-saas HARUS menampilkan tenant ini sebagai "provisioning gagal,
+   admin belum dibuat" (bukan hilang senyap), dengan tombol retry yang
+   mengulangi HANYA langkah 2 (2a lalu 2b, keduanya idempoten seperti
+   dijelaskan di atas — bukan bikin `companies` baru lagi).
+
+**Kenapa "instantiate role" wajib, ditemukan lewat review independen**:
+`company_members.role_id` adalah `NOT NULL REFERENCES roles(id) ON
+DELETE RESTRICT` (`126_multitenant_core.sql`), dan sejak migrasi 363
+`roles` bersifat **per-tenant** (bukan katalog global) — tenant baru
+TIDAK otomatis punya baris `roles` apa pun. Migrasi 365 (yang menyalin
+21 role dari template ke tenant existing yang sudah py anggota) secara
+eksplisit menyatakan di komentarnya: *"tenant BARU yang dibuat sesudah
+ini mendapat rolenya lewat jalur provisioning, bukan lewat migrasi yang
+harus dijalankan ulang"* — **admin-saas adalah jalur provisioning itu**.
+Tanpa langkah ini, langkah 2b (`INSERT company_members`) akan gagal
+NOT NULL/FK constraint di **setiap** provisioning, bukan kasus langka —
+karena tidak ada `role_id` valid untuk company yang baru dibuat.
+Bentuk salinannya mengikuti pola migrasi 365 persis:
+
+```sql
+INSERT INTO roles (company_id, name, label, description, is_builtin, is_template, portal, color, sort_order)
+SELECT <company_id_baru>, t.name, t.label, t.description, t.is_builtin, false, t.portal, t.color, t.sort_order
+  FROM roles t WHERE t.company_id IS NULL AND t.is_template;
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT rt.id, rp.permission_id
+  FROM roles rt
+  JOIN roles tmpl ON tmpl.company_id IS NULL AND tmpl.is_template AND tmpl.name = rt.name
+  JOIN role_permissions rp ON rp.role_id = tmpl.id
+ WHERE rt.company_id = <company_id_baru>;
+```
+
+Role admin pertama tenant (dipakai di langkah 2b) diambil dari baris
+`roles` hasil salinan ini yang `name` cocok dengan role admin
+(`is_builtin=true`, nama sesuai konvensi `puraloka-suite`, mis.
+`'admin'`).
+
+**Kenapa langkah 2 dipecah 2a/2b, ditemukan lewat review independen**:
+draft sebelumnya menyebut retry "mengulangi HANYA langkah 2" tanpa
+merinci bahwa langkah 2 itu sendiri terdiri dari dua operasi berurutan
+(panggilan Auth Admin API lalu INSERT SQL). Retry naif yang mencoba
+membuat `auth.users` LAGI dengan email yang sama akan ditolak Supabase
+("email already registered") — dan staf admin-saas bisa salah membaca
+pesan itu sebagai "provisioning ini duplikat" lalu membatalkan,
+meninggalkan `auth.users` yatim permanen (bisa login, tak pernah masuk
+company manapun) tanpa jalur pemulihan. Memecah jadi 2a (idempoten:
+cek-lalu-buat) dan 2b (idempoten: upsert) membuat retry aman dipanggil
+berkali-kali tanpa mengetahui state persis di mana ia berhenti
+sebelumnya.
 
 Prinsip yang mengikat: **`lifecycle_status='provisioning'` yang
 bertahan lebih dari beberapa menit adalah sinyal gagal-tengah-jalan**,
@@ -480,6 +676,60 @@ persis pola yang sudah terbukti di `otomasi_jalan` milik
 `puraloka-suite` (§7): catat state SEBELUM memanggil sistem eksternal
 yang tak transaksional, supaya kegagalan punya jejak yang terlihat,
 bukan menggantung senyap.
+
+#### 5.1b Penjaga aksi berisiko: salah-sasaran tenant & race antar-staf
+
+Dua celah yang ditemukan lewat review independen, keduanya soal
+integritas operasi TULIS admin-saas — bukan spesifik provisioning,
+tapi berlaku ke semua aksi berisiko (suspend, override kuota, ubah
+plan) sehingga dikumpulkan di sini sebagai requirement lintas-§5.
+
+**1. Tidak ada penjaga terhadap `company_id` salah-sasaran.** Karena
+admin-saas bypass RLS total (§2) dan tidak ada RLS sebagai jaring
+pengaman kedua — beda dari `puraloka-suite` sendiri yang justru
+double-defense (`requirePermission` DI DEPAN, RLS DI BELAKANG) —
+satu-satunya penahan "staf bermaksud suspend tenant X tapi
+`company_id` yang terkirim ternyata tenant Y" adalah app-layer/UI
+semata. Ini bukan soal kebocoran baca (admin-saas memang dirancang
+lintas-tenant), tapi soal **penulisan salah sasaran**: `company_id`
+yang salah tetap `company_id` yang sah, jadi tidak ada anomali yang
+terdeteksi otomatis di level DB.
+
+**Skenario konkret**: dua tab browser admin-saas terbuka (tenant A dan
+tenant B). Staf salah tab, submit form suspend yang ternyata membawa
+`company_id` tenant B (bug state client-side yang umum terjadi).
+`company_saas_meta` tenant B berubah, `admin_saas_audit_log` mencatat
+`target_id`=B "dengan akurat" (memang itu yang dikirim) — tapi
+keputusan bisnisnya salah sasaran, dan tak ada apa pun yang menandai
+ini sebagai anomali.
+
+**Requirement mengikat**: endpoint aksi berisiko (suspend, reaktivasi,
+override kuota, ubah plan) WAJIB meminta client mengirim balik
+`company.code`/`name` yang di-render staf di layar, dicocokkan
+server-side terhadap `company_id` yang dikirim di request yang sama —
+kalau tak cocok, tolak dengan pesan eksplisit ("tenant yang
+ditampilkan tak cocok dengan target aksi, muat ulang halaman"). Ini
+defense sederhana level app, tapi wajib ada di plan implementasi.
+
+**2. Race antar-staf pada aksi manual (suspend/reaktivasi) tidak
+dijaga.** §4.1 sudah menjaga race kuota lewat
+`UPDATE ... WHERE used_count < limit`, tapi `company_saas_meta` —
+tabel yang paling sering ditulis MANUAL oleh staf berbeda secara
+paralel (satu staf support men-suspend karena laporan abuse, staf
+billing lain mereaktivasi karena baru lihat bukti transfer masuk,
+bersamaan) — tidak py mekanisme serupa. Dua UPDATE konkuren akan
+sama-sama commit tanpa error; hasil akhirnya last-write-wins senyap,
+dan `admin_saas_audit_log` mencatat kedua aksi sebagai valid tanpa
+menandai keduanya saling bentrok.
+
+**Requirement mengikat**: tulis ke `company_saas_meta.lifecycle_status`/
+`access_mode` WAJIB memakai pola yang sudah jadi konvensi wajib di
+`puraloka-suite` sendiri (penjaga CI `audit-klaim-status-atomik.mjs`:
+status LAMA ikut di klausa `WHERE`) —
+`UPDATE company_saas_meta SET lifecycle_status=<baru> WHERE company_id=? AND lifecycle_status=<status_lama_yang_diharapkan>`.
+Affected rows 0 berarti status sudah berubah sejak staf ini membuka
+halaman — tampilkan konflik ("status tenant sudah berubah, muat ulang
+sebelum lanjut"), jangan overwrite senyap.
 
 ### 5.2 Billing & Subscription (wajib, poin 1)
 - Daftar `saas_invoices`, status pembayaran, kirim reminder manual
@@ -516,13 +766,44 @@ bukan menggantung senyap.
 
 ### 5.8 Team (internal admin-saas, bukan tenant)
 - CRUD `admin_saas_users` + assign `admin_saas_roles`
-- Role bawaan (seed awal, boleh diperluas dari UI):
-  - `super_admin` — semua permission
-  - `billing_ops` — billing+subscription+plans, TANPA suspend/impersonate
-  - `support` — tenants:view + support + audit:view (readonly billing) —
-    riset eksplisit: staf support TAK SELALU boleh lihat MRR
-  - `sales` — tenants:view + marketing_content + usage:view (buat
-    keperluan upsell)
+- Role bawaan (seed awal, boleh diperluas dari UI)
+
+**Katalog `admin_saas_permissions` lengkap + matrix role — celah yang
+ketahuan lewat review independen**: draft sebelumnya menyebut contoh
+key permission dengan elipsis (`...`) di §4.4, lalu §5.8 mendeskripsikan
+role dengan bahasa naratif ("billing+subscription+plans") yang tak
+memetakan bersih ke key konkret — sesi implementasi berikutnya harus
+menebak granularitas view/manage. Katalog & matrix di bawah ini
+**mengikat** (bukan contoh):
+
+| Key permission | `super_admin` | `billing_ops` | `support` | `sales` |
+|---|---|---|---|---|
+| `tenants:view` | ✅ | ✅ | ✅ | ✅ |
+| `tenants:manage` (edit, provisioning) | ✅ | – | – | – |
+| `tenants:suspend` (suspend/reaktivasi — terpisah dari `manage` karena berisiko lebih tinggi) | ✅ | – | – | – |
+| `billing:view` | ✅ | ✅ | ✅ | – |
+| `billing:manage` (ubah plan, kredit/diskon, invoice) | ✅ | ✅ | – | – |
+| `plans:manage` (CRUD `plans`+`plan_feature_values`) | ✅ | ✅ | – | – |
+| `feature_overrides:manage` (`tenant_feature_overrides`) | ✅ | ✅ | – | – |
+| `usage:view` (`tenant_usage_counters`, dashboard §5.5) | ✅ | ✅ | ✅ | ✅ |
+| `marketing_content:manage` | ✅ | – | – | ✅ |
+| `support:view` | ✅ | – | ✅ | – |
+| `support:manage` (assign tiket, balas) | ✅ | – | ✅ | – |
+| `audit:view` | ✅ | ✅ | ✅ | – |
+| `team:manage` (`admin_saas_users`/`admin_saas_roles`) | ✅ | – | – | – |
+| `impersonate` (§5.9 — terpisah, PALING sensitif) | ✅ | – | – | – |
+
+Prinsip granularitas: `view` vs `manage` dipisah di SETIAP domain yang
+py data sensitif (billing, tenants, support) — konsisten dengan yang
+sudah diisyaratkan §5.8 sebelumnya ("staf support TAK SELALU boleh
+lihat MRR": `support` role py `billing:view` tapi bukan `billing:manage`,
+dan bahkan `billing:view` di sini perlu ditinjau lagi saat implementasi
+apakah MRR spesifik butuh key terpisah dari status invoice biasa —
+dicatat sebagai keputusan halus yang boleh diperjelas di level plan,
+bukan blocker spec ini). `tenants:suspend` dan `impersonate` sengaja
+dipisah dari `tenants:manage` — dua aksi paling berisiko (mengubah
+akses tenant, menyamar sebagai tenant) tidak boleh otomatis ikut
+ter-grant hanya karena role py hak edit data tenant biasa.
 
 ### 5.9 Impersonation ("Login as tenant")
 - Dari halaman detail tenant → generate sesi terbatas-waktu sebagai
@@ -611,7 +892,7 @@ dibangun sekaligus):
 | 22 | Deteksi pemakaian mencurigakan/abuse | Lonjakan anomali → Slack ke security/eng |
 | 23 | Sinyal referral/ekspansi | Tenant undang tim tak wajar banyak / bikin >1 company → Slack ke sales |
 | 24 | Pelacakan permintaan ekspor data | Tenant minta ekspor (pra-cancel) → tugas ops konfirmasi terkirim |
-| 25 | Win-back pasca-suspend | Tenant bayar setelah suspend → email welcome-back + Slack ke CS |
+| 25 | Alert reaktivasi pasca-suspend | `subscriptions.status` tenant `suspended` jadi `active` (lunas) → Slack+antrean prioritas ke staf billing (reaktivasi TETAP aksi manual staf, lihat §4.2 — bukan otomatis; automasi ini memastikan staf TAK PERLU mencari sendiri) + email welcome-back ke tenant setelah staf reaktivasi |
 
 Rekomendasi pemilihan awal (bukan keputusan final, founder yang
 memilih): **#1 dunning, #5 onboarding, #15 support (dari brief), #7
