@@ -3647,6 +3647,143 @@ export interface RespDetailKlien {
 }
 
 /**
+ * Kendali Dokumen — transmittal, register gambar, notulen rapat, distribusi,
+ * tanda tangan elektronik. Bentuk PERSIS `apps/api/src/lib/kendali-dokumen.ts:42-284`
+ * dan `apps/api/src/routes/v1/kendali-dokumen.ts` (Task 42, Tahap 7).
+ *
+ * ⚠️ Modul TERPISAH dari `DokumenProyek`/`pm-portal/dokumen/page.tsx` (Register
+ * Dokumen, `dk-register`) yang sudah ada sebelumnya — itu hanya memanggil
+ * `GET /projects/:id/documents`, sama sekali tak menyentuh `kendali-dokumen.ts`.
+ *
+ * ⚠️ KETERBATASAN BACKEND (ditemukan review 2026-08-21, bukan cacat tipe ini):
+ * `tindakan` dan `tandaTangan` di `RespKendaliDokumen` TIDAK disaring
+ * `project_id` di endpoint — keduanya selalu berisi data SELURUH tenant, tak
+ * peduli `project_id` mana yang dipilih di query. `notulen_tindakan` tak
+ * punya kolom `project_id` sendiri (relasinya lewat `notulen_id`, joinnya tak
+ * dilakukan di endpoint), dan `tanda_tangan_elektronik` sama sekali tak
+ * disaring. Field `project_id` tak dikirim di kedua bentuk baris ini, jadi
+ * tak bisa disaring ulang di klien. Dicatat sebagai utang Task 45.
+ */
+export interface HasilGambarPM {
+  id: string
+  nomor: string
+  judul: string | null
+  revisi: number | string
+  status: string
+  disiplin: string | null
+  tahap: string | null
+  digantikan_oleh: string | null
+  tanggal_terbit: string | null
+  revisiTertinggi: number
+  usang: boolean
+}
+export interface RingkasGambarPM {
+  gambar: HasilGambarPM[]
+  total: number
+  jumlahJudul: number
+  usang: number
+  gantungTanpaPengganti: number
+}
+export interface HasilTransmittalPM {
+  id: string
+  nomor: string
+  status: string
+  dikirim_pada: string | null
+  diterima_pada: string | null
+  diterima_oleh?: string | null
+  tujuan_nama?: string
+  tujuan_organisasi?: string | null
+  perihal?: string
+  umurHari: number | null
+  menggantung: boolean
+}
+export interface RingkasTransmittalPM {
+  transmittal: HasilTransmittalPM[]
+  terkirim: number
+  diterima: number
+  menggantung: number
+  rasioDiterima: number | null
+}
+export interface NotulenRapatPM {
+  id: string
+  project_id: string | null
+  nomor: string
+  judul: string
+  tanggal: string
+  jenis: string
+  status: string
+  tempat: string | null
+  disahkan_pada: string | null
+}
+/** ⚠️ TIDAK ADA `project_id` di bentuk ini — lihat catatan keterbatasan di atas. */
+export interface HasilTindakanPM {
+  id: string
+  notulen_id?: string
+  uraian: string | null
+  status: string
+  tenggat: string | null
+  selesai_pada: string | null
+  pj_nama: string | null
+  sisaHari: number | null
+  lewatTenggat: boolean
+}
+export interface RingkasTindakanPM {
+  tindakan: HasilTindakanPM[]
+  terbuka: number
+  selesai: number
+  lewatTenggat: number
+  tanpaTenggat: number
+  persenSelesai: number | null
+}
+export interface MatriksDistribusiPM {
+  id: string
+  project_id: string | null
+  jenis_dokumen: string
+  penerima_nama: string
+  penerima_email: string | null
+  organisasi: string | null
+  peran: string | null
+  aktif: boolean
+}
+export interface HasilJadwalLaporanPM {
+  id: string
+  nama: string
+  irama: string
+  hari_ke: number | string | null
+  aktif: boolean
+  terakhir_dikirim: string | null
+  gagal_berturut: number | string | null
+  umurKirimHari: number | null
+  macet: boolean
+}
+/** ⚠️ TIDAK ADA `project_id` di bentuk ini — lihat catatan keterbatasan di atas. */
+export interface TandaTanganPM {
+  id: string
+  jenis_objek: string
+  objek_id: string
+  penanda_tangan: string
+  peran_penanda: string | null
+  ditandatangani_pada: string
+}
+export interface RespKendaliDokumen {
+  tanggal: string
+  gambar: RingkasGambarPM
+  transmittal: RingkasTransmittalPM
+  notulen: NotulenRapatPM[]
+  tindakan: RingkasTindakanPM
+  distribusi: MatriksDistribusiPM[]
+  jadwalLaporan: { jadwal: HasilJadwalLaporanPM[]; aktif: number; macet: number }
+  tandaTangan: TandaTanganPM[]
+}
+/** Bentuk `POST /api/v1/kendali-dokumen/tanda-tangan/verifikasi`. */
+export interface RespVerifikasiTtd {
+  keadaan: "belum_ditandatangani" | "utuh" | "berubah"
+  sidik_sekarang: string
+  tanda_tangan: Array<{ id: string; penanda_tangan: string; peran_penanda: string | null; ditandatangani_pada: string; alasan: string | null; cocok: boolean }>
+  pesan: string
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
