@@ -46,26 +46,6 @@ import { buatClient } from './_koneksi.mjs'
 const ALUR = [
   // ── Keuangan: paling cepat terasa, karena menyangkut uang masuk ──────────
   {
-    kode: 'tagih-invoice-jatuh-tempo',
-    nama: 'Pengingat invoice jatuh tempo',
-    keterangan:
-      'H-3, H-1, dan hari-H: kirim WhatsApp ke PIC klien beserta nomor invoice dan nominalnya. '
-      + 'Sumber: notification_rules invoice_due. Ini yang paling cepat berbuah — uang masuk lebih awal '
-      + 'tanpa siapa pun harus mengingat tanggal.',
-    pemicu: 'jadwal', jadwal_cron: '0 8 * * 1-6', kategori: 'keuangan',
-    jalur_webhook: null,
-  },
-  {
-    kode: 'eskalasi-invoice-terlambat',
-    nama: 'Eskalasi invoice terlambat',
-    keterangan:
-      'Lewat jatuh tempo: hari ke-3 ingatkan PIC, ke-7 naik ke manajer proyek, ke-14 ke direktur. '
-      + 'Sumber: notification_rules invoice_overdue. Yang dijaga bukan pesannya — tetapi bahwa '
-      + 'keterlambatan TIDAK berhenti di satu orang yang kebetulan sedang sibuk.',
-    pemicu: 'jadwal', jadwal_cron: '0 9 * * 1-6', kategori: 'keuangan',
-    jalur_webhook: null,
-  },
-  {
     kode: 'konfirmasi-invoice-dibayar',
     nama: 'Konfirmasi pembayaran diterima',
     keterangan:
@@ -77,34 +57,6 @@ const ALUR = [
 
   // ── Proyek ───────────────────────────────────────────────────────────────
   {
-    kode: 'ringkasan-harian-pemilik',
-    nama: 'Ringkasan harian ke pemilik',
-    keterangan:
-      'Sore hari: progres, absensi, temuan mutu, dan pengeluaran hari itu dalam SATU pesan. '
-      + 'Menggantikan kebiasaan membuka lima halaman untuk tahu keadaan. Sumber: data progress_logs, '
-      + 'absensi, punch_items, project_expenses.',
-    pemicu: 'jadwal', jadwal_cron: '0 18 * * 1-6', kategori: 'proyek',
-    jalur_webhook: null,
-  },
-  {
-    kode: 'peringatan-milestone-mendekat',
-    nama: 'Peringatan milestone mendekat',
-    keterangan:
-      'H-7 dan H-3 sebelum tenggat milestone, ke PM dan mandor terkait. Sumber: notification_rules '
-      + 'milestone_approaching + jadwal_tugas cek-milestone yang sudah jalan 07:05.',
-    pemicu: 'jadwal', jadwal_cron: '10 7 * * *', kategori: 'proyek',
-    jalur_webhook: null,
-  },
-  {
-    kode: 'eskalasi-milestone-terlambat',
-    nama: 'Eskalasi milestone terlambat',
-    keterangan:
-      'Milestone lewat tenggat dan belum 100%: naik ke PM, lalu direktur setelah 3 hari. '
-      + 'Sumber: notification_rules milestone_overdue.',
-    pemicu: 'jadwal', jadwal_cron: '15 7 * * *', kategori: 'proyek',
-    jalur_webhook: null,
-  },
-  {
     kode: 'lapor-status-proyek-berubah',
     nama: 'Kabar perubahan status proyek',
     keterangan:
@@ -114,17 +66,6 @@ const ALUR = [
   },
 
   // ── Persetujuan: yang menunggu keputusan paling mahal kalau diam ─────────
-  {
-    kode: 'ingatkan-persetujuan-tertahan',
-    nama: 'Pengingat persetujuan tertahan',
-    keterangan:
-      'Kasbon, material request, dan change order yang menunggu putusan lebih dari 2 hari kerja: '
-      + 'ingatkan penyetujunya, sebutkan sudah berapa lama tertahan. Sumber: notification_rules '
-      + 'kasbon_pending, material_request_submitted, change_order_submitted. Yang tertahan diam '
-      + 'adalah biaya yang tak pernah muncul di laporan mana pun.',
-    pemicu: 'jadwal', jadwal_cron: '0 10 * * 1-5', kategori: 'proyek',
-    jalur_webhook: null,
-  },
   {
     kode: 'teruskan-kasbon-diajukan',
     nama: 'Teruskan kasbon yang baru diajukan',
@@ -152,15 +93,6 @@ const ALUR = [
       + 'orang di lapangan.',
     pemicu: 'webhook', jalur_webhook: 'puraloka/stok-menipis', kategori: 'gudang',
   },
-  {
-    kode: 'eskalasi-ncr-belum-ditutup',
-    nama: 'Eskalasi NCR yang belum ditutup',
-    keterangan:
-      'Temuan ketidaksesuaian lewat tenggat penutupan: naik ke PM setelah 3 hari, ke direktur '
-      + 'setelah 7. Mutu yang dibiarkan menumpuk jadi pekerjaan ulang yang dibayar dua kali.',
-    pemicu: 'jadwal', jadwal_cron: '30 9 * * 1-6', kategori: 'mutu',
-    jalur_webhook: null,
-  },
 
   // ── Administrasi ─────────────────────────────────────────────────────────
   {
@@ -171,16 +103,6 @@ const ALUR = [
       + 'Bukan pengganti backup basis — ini supaya dokumen yang mengikat secara hukum punya '
       + 'salinan yang tak ikut hilang kalau satu sistem bermasalah.',
     pemicu: 'webhook', jalur_webhook: 'puraloka/dokumen-final', kategori: 'dokumen',
-  },
-  {
-    kode: 'laporan-mingguan-klien',
-    nama: 'Laporan mingguan ke klien',
-    keterangan:
-      'Setiap Sabtu: progres per proyek, foto lapangan terbaru, dan milestone terdekat, dikirim ke '
-      + 'PIC klien. Yang dijaga adalah klien tak perlu BERTANYA untuk tahu — pertanyaan "gimana '
-      + 'progresnya?" hampir selalu datang setelah kepercayaan mulai turun.',
-    pemicu: 'jadwal', jadwal_cron: '0 16 * * 6', kategori: 'proyek',
-    jalur_webhook: null,
   },
 ]
 

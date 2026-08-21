@@ -106,7 +106,8 @@ const RESEP_PERISTIWA = [
  * untuk kejadian yang sama — satu di lonceng notifikasi, satu di WhatsApp.
  */
 function simpulPeristiwa(resep, cfg) {
-  // cfg tak lagi dipakai di sini — dipertahankan agar tanda tangan tetap sama dengan simpul()
+  // cfg tak lagi dipakai di sini — parameter dipertahankan agar tanda tangan
+  // tetap stabil untuk pemanggilnya.
   return [
     {
       parameters: {
@@ -126,11 +127,13 @@ function simpulPeristiwa(resep, cfg) {
       parameters: {
         jsCode: `
 const d = $input.first().json;
+const isi = d.body || d;
+if (!isi || !isi.pesan) { return []; }
 // Tag tenant_id eksplisit untuk audit lintas eksekusi (spec §5.1/§3.4.2).
-const tenantId = d.companyId || 'tak-diketahui';
-const teks = '*${resep.judul}*\\n\\n' + (d.pesan || '(tanpa pesan)') +
+const tenantId = isi.companyId || 'tak-diketahui';
+const teks = '*${resep.judul}*\\n\\n' + isi.pesan +
   '\\n\\n_Puraloka Suite · ${resep.kode} · tenant:' + tenantId + '_';
-return [{ json: { teks, wa: d.wa || {}, companyId: tenantId } }];
+return [{ json: { teks, wa: isi.wa || {}, companyId: tenantId } }];
 `.trim(),
       },
       id: 'susun',
@@ -193,46 +196,11 @@ if (!companyId) throw new Error('tak ada company beranggota')
 const cfg = {
   n8nUrl: (process.env.N8N_URL || 'http://localhost:5680').replace(/\/$/, ''),
   n8nKey: process.env.N8N_KEY || '',
-  /*
-    `127.0.0.1`, BUKAN `localhost` — dan ini bukan gaya penulisan.
-
-    ── Diukur 2026-08-14, sesudah alur pertama gagal
-
-    Alur berjalan, lalu simpul "Ambil umpan" membalas *"The service refused
-    the connection - perhaps it is offline"* — padahal API-nya hidup dan
-    `curl` dari shell yang sama membalas 200.
-
-    Sebabnya terlihat begitu interface-nya diperiksa:
-
-        API  0.0.0.0:3007          ← IPv4 saja
-        n8n  0.0.0.0:5680 + [::]   ← ikut IPv6
-
-    n8n me-resolve `localhost` ke `::1` lebih dulu, dan di sana port 3007
-    memang kosong. Dibuktikan langsung:
-
-        http://127.0.0.1:3007/... = 200
-        http://[::1]:3007/...     = 000 (gagal)
-
-    Galat "refused" tak menyebut IPv6 sama sekali, jadi tebakan pertama
-    selalu salah alamat: server dikira mati, port dikira salah, kredensial
-    dikira kedaluwarsa. Menulis alamat IPv4 secara eksplisit menutup seluruh
-    kelas kekeliruan itu.
-
-    `WA_URL` di bawah dibiarkan memakai default `localhost` karena Evolution
-    mendengarkan di keduanya — tapi kalau ia pernah gagal dengan pesan yang
-    sama, ini tempat pertama yang harus diperiksa.
-  */
-  apiUrl: (process.env.PURALOKA_API_URL || 'http://127.0.0.1:3007').replace(/\/$/, ''),
-  apiKey: process.env.PURALOKA_API_KEY || '',
-  waUrl: (process.env.WA_URL || 'http://localhost:8081').replace(/\/$/, ''),
-  waApiKey: process.env.WA_KEY || '',
-  waInstance: process.env.WA_INSTANCE || 'puraloka-bot',
-  nomorTujuan: process.env.WA_TUJUAN || '',
 }
-for (const k of ['n8nKey', 'apiKey', 'waApiKey', 'nomorTujuan']) {
+for (const k of ['n8nKey']) {
   if (!cfg[k]) {
     console.error(`[x] ${k} kosong. Setel lewat env sebelum menjalankan skrip ini.`)
-    console.error('    N8N_KEY, PURALOKA_API_KEY, WA_KEY, WA_TUJUAN')
+    console.error('    N8N_KEY')
     process.exit(2)
   }
 }
