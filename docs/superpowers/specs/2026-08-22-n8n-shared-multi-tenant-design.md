@@ -462,13 +462,16 @@ utama.
 
 **Langkah pensiun** (bagian dari scope implementasi ini, BUKAN
 penghapusan liar):
-1. Verifikasi dulu (bukan tebak) apakah 8 kode ini PUNYA baris
-   `otomasi_alur` aktif di basis produksi dan pernah tereksekusi
-   (`otomasi_jalan` count > 0) — kalau nol eksekusi, memensiunkannya
-   aman tanpa notifikasi ke siapa pun. Kalau ada eksekusi hidup,
-   informasikan founder SEBELUM menonaktifkan (bukan Gerbang Keras,
-   tapi berdampak pada perilaku produksi — CLAUDE.md §8a.1 butir 4
-   relevan kalau ternyata dipakai).
+1. ✅ **DIUKUR 2026-08-22** (query langsung ke `otomasi_alur`/
+   `otomasi_jalan`, bukan ditebak): kedelapan kode PUNYA baris
+   `otomasi_alur` aktif (6 dari 8 `aktif=true`, 2 — `peringatan-milestone-mendekat`
+   dan `tagih-invoice-jatuh-tempo` — sudah `aktif=false`), dan
+   **6 dari 8 punya NOL eksekusi seumur hidup**. Dua sisanya
+   (`eskalasi-ncr-belum-ditutup`, `laporan-mingguan-klien`) masing-masing
+   tereksekusi TEPAT SEKALI, keduanya 2026-08-10/13 — bukan pola
+   pemakaian berkelanjutan, terbaca sebagai uji-coba saat resepnya
+   dibuat. **Kesimpulan: aman dipensiunkan tanpa perlu melibatkan
+   founder lebih dulu** — tak ada eksekusi hidup yang akan terputus.
 2. Nonaktifkan workflow-nya di n8n (jangan hapus dulu — bisa diperiksa
    ulang bila ternyata masih dipakai).
 3. Hapus 8 entri `RESEP` (bukan `RESEP_PERISTIWA`) dari
@@ -587,9 +590,7 @@ menulis spec.
   pastikan pesan yang terkirim ke masing-masing nomor sesuai
   company-nya (tidak tertukar) — ini bukti langsung bahwa payload-driven
   benar-benar mengisolasi, bukan asumsi dari desain di atas kertas.
-- Sebelum memensiunkan 8 resep jadwal lama (§5.5): ukur `otomasi_jalan`
-  count untuk kedelapan `kode`-nya di basis produksi
-  (`SELECT alur_id, count(*) FROM otomasi_jalan oj JOIN otomasi_alur oa
-  ON oa.id = oj.alur_id WHERE oa.kode IN (...) GROUP BY alur_id`) —
-  angka ini yang menentukan apakah langkah 1 di §5.5 perlu melibatkan
-  founder atau aman dijalankan langsung.
+- ✅ Sudah diukur (§5.5 langkah 1, 2026-08-22): 6/8 resep jadwal lama
+  nol eksekusi seumur hidup, 2/8 tepat sekali di 2026-08-10/13. Aman
+  dipensiunkan langsung — tak perlu diulang saat implementasi kecuali
+  ada keraguan angkanya sudah basi (query ulang murah, lihat §5.5).
