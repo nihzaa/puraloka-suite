@@ -219,13 +219,12 @@ melalui jalur yang diaudit CI (`audit-kredensial-tak-bocor.mjs`,
 K-4) di sisi aplikasi.
 
 ⚠ **Konsekuensi keamanan yang diterima secara sadar**: rahasia WA tenant
-kini transit dalam body HTTP request ke n8n. Mitigasi wajib (lihat §7
-untuk status masing-masing):
+kini transit dalam body HTTP request ke n8n. Mitigasi:
 - Koneksi API→n8n tetap di jaringan tepercaya/localhost (sudah begitu
   hari ini, tidak berubah).
-- Kebijakan retensi log eksekusi n8n harus eksplisit diperiksa/disetel
-  supaya body berisi rahasia tidak menumpuk selamanya di database n8n
-  (`EXECUTIONS_DATA_SAVE_ON_SUCCESS` dkk.) — item terbuka, §7.1.
+- Kebijakan retensi log eksekusi n8n — DIPUTUSKAN di §7.1
+  (`EXECUTIONS_DATA_SAVE_ON_SUCCESS=none` + prune 72 jam), supaya body
+  berisi rahasia tidak menumpuk selamanya di database n8n.
 
 ### 5.3 Provisioning tenant baru
 
@@ -289,35 +288,69 @@ tanpa alat baru yang perlu dibangun.
 - Kredensial `N8N_BASE_URL`/`N8N_API_KEY` tetap ada sebagai baris per
   tenant di skema `app_credentials` — secara praktik hanya baris tenant
   operator (Puraloka) yang benar-benar relevan karena instance-nya
-  shared. Keputusan UI (sembunyikan dari tenant biasa vs biarkan dengan
-  keterangan diperbarui) **tidak diputuskan di sini** — item terbuka §7.2.
+  shared. Keputusan UI — DIPUTUSKAN §7.2: perbarui teks `keterangan`,
+  kotaknya tetap tampil.
 
-## 7. Item Terbuka (untuk diputuskan saat implementasi, dicatat eksplisit — bukan diputuskan diam-diam)
+## 7. Keputusan Susulan (diputuskan lewat riset, founder menyerahkan ke agen — dicatat di sini, bukan diam-diam)
 
-### 7.1 Retensi log eksekusi n8n
+> Founder 2026-08-22: *"saya serahkan ke kamu semuanya... kalo semuanya
+> pertanyaan teknis silahkan kamu riset aja mana yg terbaik"*. Ketiga
+> item berikut tadinya "terbuka" di draf pertama spec ini; diputuskan
+> lewat riset di bawah, bukan ditinggal sebagai TBD.
 
-Karena payload sekarang membawa rahasia WA tenant, perlu kebijakan
-eksplisit soal berapa lama n8n menyimpan body eksekusi
-(`EXECUTIONS_DATA_SAVE_ON_SUCCESS`, `EXECUTIONS_DATA_PRUNE`, dst.) —
-`otomasi_jalan` di sisi Puraloka tetap jadi jejak utama untuk UI
-(`kesehatan`, `jalan_terakhir`, dst.), sehingga riwayat n8n bisa
-dipangkas agresif tanpa kehilangan observability yang dipakai pengguna.
+### 7.1 Retensi log eksekusi n8n — DIPUTUSKAN
 
-### 7.2 Kotak kredensial N8N_BASE_URL/N8N_API_KEY di halaman tenant biasa
+Riset (dokumentasi resmi n8n + komunitas, 2026): pola yang direkomendasikan
+untuk workflow yang membawa data sensitif adalah memisah kebijakan sukses
+vs gagal, bukan satu angka retensi untuk keduanya.
 
-Apakah disembunyikan dari tenant non-operator begitu instance-nya
-shared (karena mengisinya tidak berpengaruh apa pun lagi), atau
-dibiarkan dengan keterangan yang diperbarui menjelaskan bahwa instance
-n8n adalah milik operator/shared. Keputusan UI, tidak mengubah
-arsitektur — bisa diputuskan saat implementasi tanpa memengaruhi desain
-ini.
+**Ditetapkan:**
+- `EXECUTIONS_DATA_SAVE_ON_SUCCESS=none` — eksekusi sukses (mayoritas
+  volume, dan rahasia WA di dalamnya sudah "selesai tugas" begitu
+  terkirim) tidak disimpan sama sekali.
+- `EXECUTIONS_DATA_SAVE_ON_ERROR=all` — eksekusi gagal tetap disimpan
+  penuh, karena itu satu-satunya kasus yang butuh payload utuh untuk
+  didebug.
+- `EXECUTIONS_DATA_PRUNE=true` dengan `EXECUTIONS_DATA_MAX_AGE=72`
+  (jam) — lebih ketat dari default umum "produksi tipikal" 168 jam
+  (dokumentasi n8n), karena payload di sini membawa kredensial hidup,
+  bukan sekadar data bisnis. Kegagalan yang perlu didebug lebih dari
+  3 hari sudah cukup lama untuk direkonstruksi dari `otomasi_jalan` +
+  log aplikasi, bukan dari body eksekusi n8n.
+- `otomasi_jalan` (sudah ada, tidak menyimpan payload rahasia — hanya
+  status/durasi/pesan galat terpotong 300 karakter, lihat
+  `otomasi-n8n.ts`) tetap jadi jejak UI utama dan TIDAK bergantung pada
+  retensi n8n di atas.
 
-### 7.3 Sub-project B & C
+Diterapkan sebagai variabel environment di `scripts/jalankan-n8n.cmd`
+(bagian implementasi, §Implementasi Sub-Langkah D di rencana kerja).
+
+### 7.2 Kotak kredensial N8N_BASE_URL/N8N_API_KEY di halaman tenant biasa — DIPUTUSKAN
+
+**Ditetapkan: perbarui teks `keterangan`, JANGAN sembunyikan kotaknya.**
+
+Alasan menolak opsi "sembunyikan": itu berarti cabang UI baru yang
+bergantung pada "apakah tenant ini operator" — kategori keputusan yang
+mudah dilupakan dan tak diuji (persis pola `EVOLUTION_*` yang sudah
+dibersihkan dari katalog karena dua kotak untuk satu nilai, satu di
+antaranya bohong — lihat komentar `kredensial.ts` baris ~167-193).
+Cukup ikuti pola yang SUDAH ada di berkas yang sama: tulis kejujurannya
+di `keterangan`, seperti yang sudah dilakukan untuk `EMAIL_FROM`.
+
+Teks baru untuk kedua entri (diterapkan di `KATALOG_KREDENSIAL`,
+`kredensial.ts`): jelaskan bahwa instance n8n adalah milik
+operator/shared sejak migrasi ini, dan mengisi kotak ini di tenant
+bukan-operator tidak berpengaruh apa pun. Tidak ada logika baru, tidak
+ada permission baru — murni perubahan salinan teks.
+
+### 7.3 Sub-project B & C — tetap di luar scope
 
 AI shared-key + kuota (sub-project B) dan pola umum integrasi pihak
 ketiga lain — WA/Fonnte, email, storage (sub-project C) — sengaja tidak
 dibahas di spec ini, menyusul di spec terpisah sesuai keputusan founder
-di awal brainstorming.
+di awal brainstorming. Bukan item yang perlu diriset di sini karena
+sudah eksplisit di-declare dari awal, bukan ambiguitas yang muncul saat
+menulis spec.
 
 ## 8. Penguatan Lanjutan (di luar scope, dicatat sebagai kandidat masa depan)
 
