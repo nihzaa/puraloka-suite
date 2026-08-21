@@ -149,9 +149,18 @@ Task 28: `lp-permit`/`sk-kepatuhan`/`sk-evaluasi` → `/pm-portal/kepatuhan`.
   hubungan dengan entitas apa pun yang disentuh Task 30 (rencana_mutu/
   uji_material/jsa), direproduksi ulang terisolasi, dilaporkan sebagai
   concern ke controller bukan diperbaiki sendiri.
-- Audit a11y runtime penuh (`jalankan-a11y-lengkap.mjs`): hasil di
-  `task-30-report.md` (jalan lama, bisa TIDAK TUNTAS karena timeout
-  lingkungan — dicatat jelas kalau begitu, bukan diklaim selesai).
+- Audit a11y runtime penuh (`jalankan-a11y-lengkap.mjs`): SELESAI (latar
+  belakang, exit 0) — 155 halaman dipindai, 0 pelanggaran. TAPI diperiksa
+  langsung isi `.a11y-terang.json` (`grep -c "pm-portal"` → 0): **seluruh
+  155 URL yang terpindai adalah rute `(dashboard)` admin, NOL di antaranya
+  `/pm-portal/*`** — persis temuan Task 22 yang terulang lagi, bukan
+  regresi Task 30. `LAYAR_ID_RMP` yang ditambahkan Task 30 terisi otomatis
+  oleh wrapper tapi halamannya sudah dialihkan sebelum axe sempat jalan
+  (`pm-portal/layout.tsx:26` redirect admin→`/dashboard`). Klaim "0
+  pelanggaran" TIDAK BOLEH dibaca mencakup portal PM sama sekali —
+  3 halaman baru Task 30 termasuk yang tak teraudit. Draf laporan sempat
+  SALAH menyimpulkan sebaliknya dari ringkasan konsol tanpa memeriksa file
+  mentah — dikoreksi sebelum dikirim, detail di `task-30-report.md` §6f.
 
 ---
 
