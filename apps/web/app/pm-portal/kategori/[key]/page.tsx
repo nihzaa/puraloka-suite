@@ -117,12 +117,62 @@ import { Folder } from "lucide-react";
  *   dengan rekonsiliasi, bukan modul terpisah).
  *   iv-opname, iv-minstok, gd-susut SENGAJA TIDAK dipetakan — Task 25
  *   brief mencatat eksplisit: `iv-opname`/`stocks/opname` di luar scope
- *   (Task 26, gerbang cacat sama seperti stocks/usage), `iv-minstok` halaman
- *   terpisah di luar scope, `gd-susut` adalah CRUD data referensi tingkat
+ *   (Task 26, gerbang cacat sama seperti stocks/usage — lihat catatan
+ *   Task 26 di bawah, keputusan ini DIKONFIRMASI ULANG bukan diselesaikan),
+ *   `iv-minstok` halaman terpisah di luar scope Task 25 (Task 26 memutuskan
+ *   di bawah), `gd-susut` adalah CRUD data referensi tingkat
  *   perusahaan (peta resource↔material, rencana target %) yang SENGAJA
  *   tidak dibangun versi mobile-nya — jarang berubah, dikelola dari desktop,
  *   bukan kerja harian PM lapangan (lihat kepala `task-25-brief.md`).
  *   Ketiganya jatuh ke fallback `it.href` (web) sebagaimana pola existing.
+ *
+ * Tahap 4 (Task 26, grup g-procurement "Pengadaan" BARU diaktifkan
+ * `KATEGORI_AKTIF`; key persis dari `lib/peta-menu.ts` §g-procurement):
+ *   pr-mr (Material Request), pr-po (Purchase Order), pr-grn (Goods
+ *   Receipt), pr-3way (3-Way Match), pr-jadwal-bayar (Jadwal Bayar Vendor)
+ *   SEMUA diarahkan ke `/pm-portal/procurement` — satu halaman Task 24
+ *   ber-tab (MR/PO/GR) yang SUDAH memuat kelima konsep ini: 3-way match
+ *   dan jadwal bayar bukan tab terpisah, melainkan turunan/tampilan dari
+ *   data PO+GR yang sama yang sudah ada di tab PO (match dicek saat GR
+ *   dikonfirmasi; jadwal bayar adalah daftar PO dengan jatuh tempo,
+ *   ditampilkan di tab yang sama) — bukan kekurangan, sudah dicek isi
+ *   `pm-portal/procurement/page.tsx` sebelum memutuskan lima key menunjuk
+ *   satu href yang sama, pola identik dengan `iv-rekonsiliasi`/`iv-waste`
+ *   Task 25 yang juga lima-ke-satu.
+ *   pr-rfq, pr-tabulasi (satu layar sama di web, lihat catatan key-nya
+ *   sendiri di `peta-menu.ts`), pr-blanket (Kontrak Payung), pr-evaluasi
+ *   (Evaluasi Vendor), pr-expediting SENGAJA TIDAK dipetakan — RFQ/Tabulasi/
+ *   Evaluasi Vendor berbentuk tabel perbandingan multi-vendor lebar (banyak
+ *   kolom harga berdampingan) yang secara struktural tak cocok jadi kartu
+ *   mobile tanpa scroll horizontal berat (pola sama dengan Gantt Chart
+ *   Task 22); Kontrak Payung+Expediting DITUNDA ke Tahap 6 supaya ditinjau
+ *   bersama modul Keuangan yang punya pola wewenang PM sebagian serupa
+ *   (PM boleh membuat kontrak payung tapi tak berwenang atas nota kredit
+ *   terkait — bentuk approval sama rumitnya dengan `klaim:*`). Keempatnya
+ *   jatuh ke fallback `it.href` (web) — lihat `task-26-brief.md` untuk
+ *   rincian per modul.
+ *   iv-minstok (grup g-inventory, BUKAN g-procurement, tapi diputuskan di
+ *   sini karena Task 26 yang menuntaskannya): TETAP TIDAK dipetakan ke
+ *   PETA_HREF_PORTAL — fallback ke `it.href` web (`/procurement/material`,
+ *   sudah tertulis di key-nya sendiri di `peta-menu.ts`) adalah keputusan
+ *   SENGAJA, bukan utang yang lupa diselesaikan. Alasannya sama persis
+ *   dengan `cc-pagu-material` (Tahap 3, Task 22): `/procurement/material`
+ *   adalah tabel MASTER DATA (nama/satuan/kategori/harga/`min_stock` per
+ *   material, form create/edit penuh, gerbang `procurement:material:manage`)
+ *   bukan layar transaksi harian — mengubah ambang minimum adalah tindakan
+ *   jarang/sekali-setel per material, bukan sesuatu yang PM lakukan berkali-
+ *   kali dari lapangan lewat HP. Membangun kartu mobile khusus untuk CRUD
+ *   master data ini akan mendupliksi UI form desktop tanpa alasan kerja
+ *   lapangan yang nyata.
+ *   ⚠ DIPERIKSA, BUKAN DIASUMSIKAN: `/pm-portal/gudang/stok` (iv-mutasi,
+ *   Task 25) TIDAK menampilkan `min_stock` sama sekali — hanya qty
+ *   on-hand per proyek (dicek isi `gudang/stok/page.tsx` langsung). Jadi
+ *   PM di HP TAK PUNYA satu pun tempat melihat peringatan stok minimum
+ *   hari ini — bukan cuma tak bisa MENGUBAH ambangnya. Ini UTANG nyata,
+ *   dicatat sebagai concern di `task-26-report.md`, bukan diselesaikan di
+ *   sini: menampilkan peringatan (read-only) di `gudang/stok` adalah
+ *   perubahan Task 25 punya wilayah (halaman itu), dan mengubah ambang
+ *   tetap fallback web sebagaimana keputusan di atas.
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "sk-paket": "/pm-portal/mandor-lengkap/penugasan",
@@ -187,6 +237,17 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "iv-transfer": "/pm-portal/gudang/transfer",
   "iv-rekonsiliasi": "/pm-portal/gudang/rekonsiliasi",
   "iv-waste": "/pm-portal/gudang/rekonsiliasi",
+  // Tahap 4 (Task 26) — grup g-procurement (baru diaktifkan). Lihat catatan
+  // panjang di atas untuk alasan lima-ke-satu dan key yang SENGAJA tak
+  // dipetakan (pr-rfq/pr-tabulasi/pr-blanket/pr-evaluasi/pr-expediting).
+  "pr-mr": "/pm-portal/procurement",
+  "pr-po": "/pm-portal/procurement",
+  "pr-grn": "/pm-portal/procurement",
+  "pr-3way": "/pm-portal/procurement",
+  "pr-jadwal-bayar": "/pm-portal/procurement",
+  // "iv-minstok" (g-inventory) SENGAJA TETAP TIDAK diisi — keputusan Task 26,
+  // lihat catatan panjang di atas kepala PETA_HREF_PORTAL ini. Fallback ke
+  // `it.href` web (/procurement/material), pola sama dengan cc-pagu-material.
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 

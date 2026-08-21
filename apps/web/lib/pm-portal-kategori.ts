@@ -48,22 +48,30 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * akan menyisakan `md-*`/`crm-*` fallback ke web padahal versi portalnya
  * sudah ada.
  *
- * Tahap 4 (Task 24-25): "Pengadaan" sudah punya halaman lewat
- * `EKSTRA_PORTAL["g-lapangan"].px-procurement` (Task 24, sebelum kategori
- * pengadaan resminya sendiri diaktifkan) — TETAP di sana, tidak dipindah.
+ * Tahap 4 (Task 24-26): "Pengadaan" (g-procurement, Task 24 membangun
+ * halamannya di `EKSTRA_PORTAL["g-lapangan"].px-procurement`, Task 26
+ * MENGAKTIFKAN kategori resminya sendiri di sini supaya sembilan key `pr-*`
+ * — MR, RFQ, tabulasi, PO, kontrak payung, GR, 3-way match, evaluasi vendor,
+ * jadwal bayar, expediting — muncul di navigasi 2-level yang sama seperti
+ * grup lain, bukan cuma lewat pintu belakang `px-procurement` di "Operasi
+ * Lapangan"). `px-procurement` TETAP ada (tak dihapus — dua pintu ke
+ * halaman yang sama bukan masalah, pola sama dengan `md-gudang`/`iv-gudang`
+ * di Tahap 4 Task 25 dan `cc-*`/`crm-*`/`md-*` kembar di Tahap 3).
  * "Gudang & Material" (g-inventory, Task 25: ikhtisar, kelola lokasi, kartu
- * stok, transfer, rekonsiliasi) BARU diaktifkan di sini. Bukan seluruh 8 key
- * `g-inventory` punya halaman portal PM — lihat `PETA_HREF_PORTAL` di
- * `kategori/[key]/page.tsx` untuk yang mana dipetakan dan yang mana sengaja
- * dibiarkan fallback ke web (`iv-opname`/`iv-minstok`/`gd-susut`, di luar
- * scope Task 25 — dicatat sebagai keputusan sengaja, bukan kelalaian, di
- * kepala `task-25-brief.md`).
+ * stok, transfer, rekonsiliasi) diaktifkan Task 25. Bukan seluruh key
+ * `g-inventory`/`g-procurement` punya halaman portal PM tersendiri — lihat
+ * `PETA_HREF_PORTAL` di `kategori/[key]/page.tsx` untuk yang mana dipetakan
+ * dan yang mana sengaja dibiarkan fallback ke web (`iv-opname`/`iv-minstok`/
+ * `gd-susut` dari Tahap 4 g-inventory; `pr-rfq`/`pr-tabulasi`/`pr-blanket`/
+ * `pr-evaluasi`/`pr-expediting` dari g-procurement — semua dicatat sebagai
+ * keputusan sengaja dengan alasan tertulis, bukan kelalaian, di
+ * `PETA_HREF_PORTAL`).
  *
  * Kategori lain (Keuangan lanjutan, HSE, dst) BELUM dibangun di portal PM —
  * JANGAN ditambahkan ke daftar ini sampai tahap yang membangunnya selesai,
  * supaya kategori kosong/setengah-jadi tak pernah tampil ke PM di HP.
  */
-const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory"]; // Tahap 1-4
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement"]; // Tahap 1-4
 
 export function kategoriUntukPm(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));

@@ -5,6 +5,114 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-21 (Portal PM Lengkap, Tahap 4) — Task 26 tuntas: navigasi kategori Pengadaan tersambung, TAHAP 4 (Pengadaan + Gudang/Material) SELESAI
+
+Worktree `pm-lengkap-tahap2` (`feat/pm-lengkap-tahap2`), plan
+`docs/superpowers/plans/2026-08-20-portal-pm-lengkap.md` Tahap 4
+(Task 24-26), task TERAKHIR tahap ini. Task 24 (procurement, tulis
+ulang penuh) dan Task 25 (Gudang & Material, 5 halaman baru) sudah
+selesai sebelumnya. Task 26 murni navigasi + verifikasi akhir —
+**tidak membangun halaman baru**.
+
+**Overlap dengan Task 25 dikonfirmasi seperti dicatat di brief**: Task
+25 sudah mengaktifkan `g-inventory` di `KATEGORI_AKTIF` dan memetakan
+5 dari 6 key `iv-*` (plus `md-gudang`) di `PETA_HREF_PORTAL`
+(`apps/web/app/pm-portal/kategori/[key]/page.tsx`). Task 26 TIDAK
+mengulang bagian itu — hanya menambahkan:
+
+1. `g-procurement` di `KATEGORI_AKTIF`
+   (`apps/web/lib/pm-portal-kategori.ts`).
+2. Lima entri `pr-*` di `PETA_HREF_PORTAL`: `pr-mr`, `pr-po`,
+   `pr-grn`, `pr-3way`, `pr-jadwal-bayar` — SEMUA menunjuk
+   `/pm-portal/procurement` (halaman Task 24 ber-tab MR/PO/GR yang
+   sudah memuat lima konsep ini; 3-way match & jadwal bayar adalah
+   turunan dari data PO/GR yang sama, bukan tab terpisah, dicek isi
+   halamannya sebelum diputuskan lima-ke-satu — pola sama dengan
+   `iv-rekonsiliasi`/`iv-waste` Task 25).
+3. Keputusan `iv-minstok` (utang terbuka dari Task 25): **fallback ke
+   web** (`/procurement/material`, sudah tertulis sebagai `href`
+   item-level `iv-minstok` sendiri di `peta-menu.ts`), BUKAN dibangun
+   view portal khusus. Alasan: halaman itu adalah tabel MASTER DATA
+   (form create/edit `min_stock` per material, gerbang
+   `procurement:material:manage`) — tindakan jarang/sekali-setel per
+   material, bukan kerja transaksi harian PM di lapangan. Pola identik
+   dengan `cc-pagu-material` (Tahap 3, Task 22) yang sudah fallback
+   web dengan alasan sama. **Dicatat sebagai UTANG terpisah**: dicek
+   langsung isi `gudang/stok/page.tsx` (Task 25) — halaman itu HANYA
+   menampilkan qty on-hand per proyek, TIDAK menampilkan `min_stock`
+   sama sekali. Jadi PM di HP saat ini TAK PUNYA satu pun tempat
+   MELIHAT peringatan stok minimum (bukan cuma tak bisa mengubah
+   ambangnya) — kandidat kerja Task 25/lanjutan, bukan diselesaikan
+   di sini.
+   `pr-rfq`/`pr-tabulasi` (tabel perbandingan vendor lebar, pola sama
+   dengan Gantt Chart Task 22), `pr-blanket`/`pr-evaluasi`/
+   `pr-expediting` (DITUNDA ke Tahap 6 supaya ditinjau bersama modul
+   Keuangan yang polanya serupa) TETAP tidak dipetakan, sesuai brief.
+
+**Dua cacat gerbang pra-eksisting (concern founder, sudah tercatat
+Task 25, DIKONFIRMASI ULANG bukan diperbaiki di sini)**:
+`POST /procurement/stocks/usage` DAN `stocks/opname` sama-sama
+bergerbang `procurement:view` (permission BACA) untuk aksi TULIS
+massal. `iv-opname` karena itu TETAP tidak dipetakan ke portal PM.
+
+**Verifikasi menyeluruh dijalankan** (dari akar masing-masing
+workspace):
+
+- `pnpm exec tsc --noEmit` (apps/web) — bersih, 0 galat.
+- `pnpm exec eslint lib/pm-portal-kategori.ts app/pm-portal/kategori/`
+  — bersih, 0 galat/peringatan.
+- `node scripts/audit-nav-yatim.mjs` (apps/web) — dibandingkan
+  sebelum/sesudah via `git stash`: **identik**, 1 LINK MATI
+  (`/estimasi/struktur`, sidebar/DB) yang PRA-EKSISTING dan TAK
+  TERKAIT Task 26 (dikonfirmasi juga merah di baseline sebelum
+  perubahan disunting). **0 halaman YATIM** — seluruh kelompok
+  Pengadaan (g-procurement) dan Gudang & Material (g-inventory)
+  terjangkau dari navigasi kategori, tak ada satu pun yang terisolasi.
+- `node scripts/jalankan-semua-penjaga.mjs` (apps/api) — **131
+  hijau · 40 merah · 2 tak ketemu, IDENTIK dengan baseline** (diukur
+  via `git stash` sebelum/sesudah). Nol penjaga baru merah akibat
+  Task 26. Catatan operasional: `git stash`/`git stash pop` di mesin
+  ini (autocrlf=true) sempat menulis working tree CRLF pada dua
+  berkas yang disunting, sempat memicu `audit-akhir-baris.mjs` merah
+  sesaat — dinormalisasi balik ke LF sebelum commit (diverifikasi
+  guard itu sendiri kembali hijau, bukan ditebak).
+- Test integrasi (`cd apps/api && npx vitest run procurement
+  pengadaan-lanjutan rfq transfer-stok material-klien gudang
+  rekonsiliasi-material susut-material vendor-kualifikasi`): **11
+  berkas, 214 test, semua lulus** (rfq-putusan, susut-material-*,
+  procurement, gudang-ikhtisar, gudang-kelola, rfq-mr-layak,
+  putusan-rfq, rekonsiliasi-material, pengadaan-lanjutan,
+  susut-material, mr-layak-rfq).
+- Audit a11y runtime penuh (`jalankan-a11y-lengkap.mjs`) **TIDAK
+  tuntas di sesi ini** — timeout lingkungan (>9 menit, ~150+ halaman).
+  Perubahan Task 26 murni data (lima baris `Record<string,string>` +
+  komentar), TIDAK menambah markup/DOM baru — `Link` yang dipakai
+  identik dengan kode existing yang sudah diaudit. Dan sesuai entri
+  jurnal Task 22 di atas: akun uji `LAYAR_EMAIL` berperan `admin`
+  dialihkan dari SELURUH `pm-portal/*` ke `/dashboard` di layout root
+  portal, jadi audit penuh dengan akun ini TAK AKAN memeriksa halaman
+  `pm-portal/kategori/g-procurement` yang baru terjangkau sekalipun
+  dijalankan sampai selesai — utang akun uji ber-role `pm` yang sama
+  dicatat Task 22, bukan utang baru Task 26. Smoke-check manual
+  (curl ke `/pm-portal/kategori/g-procurement` dan `/pm-portal/
+  procurement`, web+API sudah hidup di :3000/:3007): keduanya
+  menjawab 307 (redirect login, wajar tanpa sesi), tak ada crash.
+
+**Tahap 4 (Task 24-26) SELESAI.** Halaman baru tahap ini: Procurement
+3 berkas (Task 24: page.tsx + mr/[id] + po/[id]), Gudang & Material 5
+berkas (Task 25: gudang/page.tsx, stok, transfer, rekonsiliasi,
+lokasi). Integrasi approval terpusat MR+PO sudah lewat Task 24. Utang
+tercatat, bukan diselesaikan: RFQ/Tabulasi/Evaluasi Vendor (bentuk
+tabel lebar, ditunda ke hub `proyek/[id]` kalau dibangun), Kontrak
+Payung/Expediting/Nota Kredit (ditunda Tahap 6, ditinjau bersama
+Keuangan), Stock Opname & catat-pemakaian (gerbang `procurement:view`
+untuk aksi tulis, backend, di luar wewenang portal PM), peringatan
+stok minimum read-only di `gudang/stok` (belum dibangun, kandidat
+Task 25/lanjutan), akun uji `pm` untuk audit a11y runtime portal PM
+(data uji, dicatat sejak Task 22).
+
+---
+
 ## 2026-08-21 (Portal PM Lengkap, Tahap 3) — Task 22 lanjutan: audit a11y runtime TAK PERNAH mencakup `pm-portal` sama sekali (bukan cuma 3 rute dinamis)
 
 Sesudah commit `d9f79e46` (entri di bawah), audit a11y runtime
