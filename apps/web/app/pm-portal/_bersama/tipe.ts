@@ -2858,6 +2858,129 @@ export interface KategoriPengeluaran { id: string; name: string; type: string; p
 export interface RespKategoriPengeluaran { categories: KategoriPengeluaran[]; source: "project" | "template" }
 
 /**
+ * General Ledger — Chart of Accounts, jurnal, buku besar, laporan. Task 34.
+ * Bentuk DIVERIFIKASI baris-per-baris ke `apps/api/src/routes/v1/gl.ts` +
+ * `apps/api/src/lib/laporan-keuangan.ts` (dibaca lengkap saat Task 34, bukan
+ * hanya disalin dari brief).
+ */
+
+/** Bentuk PERSIS `SELECT` akun, `gl.ts:60-62`. */
+export interface AkunGl {
+  id: string
+  code: string
+  name: string
+  type: "asset" | "liability" | "equity" | "revenue" | "expense"
+  parent_id: string | null
+  is_active: boolean
+  description: string | null
+}
+export interface RespAkunGl { data: AkunGl[] }
+
+/** Bentuk PERSIS kepala jurnal, `gl.ts:125`. */
+export interface JurnalGl {
+  id: string
+  entry_number: string
+  entry_date: string
+  description: string
+  source: string | null
+  status: "draft" | "posted" | "void"
+  posted_at: string | null
+  notes: string | null
+}
+export interface RespJurnalDaftar { data: JurnalGl[] }
+
+export interface BarisJurnalGl {
+  id: string
+  account_id: string
+  debit: number | string
+  credit: number | string
+  project_id: string | null
+  description: string | null
+  line_order: number
+  /**
+   * NULLABLE — `gl.ts:157` (`GET /journal-entries/:id`) TIDAK menormalisasi
+   * embed yang gagal resolve (`?? {}`), berbeda dari endpoint sibling
+   * `/gl/ledger` (`gl.ts:358`) dan `/gl/trial-balance` (`gl.ts:426`) yang
+   * eksplisit `(l.accounts ?? {})`. Pembacanya WAJIB pakai
+   * `l.accounts?.code ?? "—"`, bukan akses langsung — akses tanpa guard akan
+   * `TypeError` runtime kalau join akun gagal.
+   */
+  accounts: { code: string; name: string; type: string } | null
+}
+export interface RespJurnalDetail {
+  data: JurnalGl & { ref_type?: string | null; ref_id?: string | null; lines: BarisJurnalGl[] }
+}
+
+/** Bentuk PERSIS baris buku besar, `gl.ts:347-372`. */
+export interface BarisBukuBesar {
+  entry_id: string
+  entry_number: string
+  entry_date: string
+  description: string
+  account_id: string
+  code: string
+  name: string
+  debit: number
+  credit: number
+  project_id: string | null
+}
+export interface RespBukuBesar {
+  data: BarisBukuBesar[]
+  /**
+   * ⚠️ TANPA flag `terpotong` — beda dari `/gl/laporan` di bawah. Batas 500
+   * jurnal posted dibaca sekali panggil (`gl.ts:338`); kalau `jumlah_baris`
+   * mendekati 500, TIDAK BISA dibedakan "memang cuma segitu" dari "terpotong
+   * diam-diam". Keterbatasan backend, dicatat sebagai concern laporan
+   * (task-34-report.md), bukan ditambal di klien.
+   */
+  meta: { total_debit: number; total_credit: number; selisih: number; jumlah_baris: number }
+}
+
+/**
+ * Bentuk `GET /gl/trial-balance` — endpoint NYATA (`gl.ts:406-461`), tapi
+ * TIDAK di-fetch halaman manapun di Task 34 (tab "Buku Besar" memakai
+ * `/gl/ledger`, tab "Laporan" memakai `/gl/laporan` — keduanya sudah
+ * mencakup kebutuhan saldo per akun). Dideklarasikan untuk KELENGKAPAN
+ * referensi (endpoint-nya ada dan bisa dipakai task lanjutan), TAPI JANGAN
+ * di-import di halaman manapun sampai benar-benar dipakai — import tanpa
+ * pemakaian adalah dead code yang lolos `tsc` tapi ditandai linter.
+ */
+export interface BarisSaldoAkun { account_id: string; code: string; name: string; type: string; debit: number; credit: number; saldo: number }
+export interface RespTrialBalance {
+  data: BarisSaldoAkun[]
+  meta: { total_debit: number; total_credit: number; selisih: number }
+}
+
+/** Bentuk PERSIS `lib/laporan-keuangan.ts:30-56`. */
+export interface KelompokLaporanGl {
+  label: string
+  akun: { account_id: string; code: string; name: string; saldo: number }[]
+  total: number
+}
+export interface NeracaGl {
+  aset: KelompokLaporanGl
+  liabilitas: KelompokLaporanGl
+  ekuitas: KelompokLaporanGl
+  labaBerjalan: number
+  totalEkuitasDenganLaba: number
+  selisih: number
+  seimbang: boolean
+}
+export interface LabaRugiGl {
+  pendapatan: KelompokLaporanGl
+  beban: KelompokLaporanGl
+  labaKotor: number
+  labaBersih: number
+  marginPct: number | null
+}
+export interface RespLaporanGl {
+  periode: { dari: string | null; sampai: string | null }
+  neraca: NeracaGl
+  labaRugi: LabaRugiGl
+  meta: { jumlah_akun: number; terpotong: boolean }
+}
+
+/**
  * Bentuk galat dari `api` (axios) — sama dengan mandor-portal.
  */
 export interface GalatApi {
