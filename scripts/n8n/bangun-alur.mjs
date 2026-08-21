@@ -406,7 +406,7 @@ return [{ json: { teks, wa: d.wa || {}, companyId: tenantId } }];
 }
 
 const SAMBUNG_PERISTIWA = {
-  Peristiwa: { main: [[{ node: 'Susun pesan', type: 'main', index: 0 }]] },
+  'Pemicu peristiwa': { main: [[{ node: 'Susun pesan', type: 'main', index: 0 }]] },
   'Susun pesan': { main: [[{ node: 'Kirim WhatsApp', type: 'main', index: 0 }]] },
 }
 
