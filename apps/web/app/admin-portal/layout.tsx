@@ -17,18 +17,27 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredUser, logout, type PuralokaUser } from "@/lib/api";
 import PortalShell, { type NavItem } from "@/components/portal/PortalShell";
-import { LayoutGrid, MoreHorizontal } from "lucide-react";
+import { LayoutGrid, Inbox, MoreHorizontal } from "lucide-react";
 
-// Tahap 0 (Task 1): HANYA Beranda + Lainnya — Approval/Proyek/Keuangan BELUM
-// dibangun (menyusul Tahap 1+ sesudah Task 2 riset). Menaruh entri nav untuk
-// halaman yang belum ada membuat LINK MATI (404 di depan pengguna) — dijaga
-// `audit-nav-yatim.mjs`. Pola PERSIS pm-portal/layout.tsx: array `navItems`
-// berisi SEMUA entri termasuk item ke-5 "Lainnya" (bukan hanya lewat prop
-// PortalShell terpisah) — `audit-nav-yatim.mjs` memindai bentuk objek
-// literal di berkas layout untuk tahu tujuan mana yang terjangkau, dan
-// tujuan yang cuma disebut lewat nama prop lain tak ikut terbaca.
+// Tahap 1 (Task 4): "Approval" ditambahkan — halaman `/admin-portal/inbox`
+// sudah dibangun (review Task 4: sempat YATIM di `audit-nav-yatim.mjs`
+// karena entri ini belum ditambahkan meski brief Task 1 sudah
+// menspesifikasikannya; satu-satunya jalur sebelumnya adalah banner
+// kondisional di Beranda yang hanya muncul saat ada antrean, jadi admin/
+// direktur tak punya cara membuka halaman ini saat inbox kosong).
+//
+// Pola PERSIS pm-portal/layout.tsx (`Beranda, Approval, Proyek, Keuangan,
+// Lainnya`): "Approval" masuk slot ke-2, TEPAT SESUDAH Beranda — array
+// `navItems` berisi SEMUA entri termasuk "Lainnya" di posisi TERAKHIR
+// (bukan hanya lewat prop PortalShell terpisah) — `audit-nav-yatim.mjs`
+// memindai bentuk objek literal di berkas layout untuk tahu tujuan mana
+// yang terjangkau, dan tujuan yang cuma disebut lewat nama prop lain tak
+// ikut terbaca. `PortalShell` menampilkan 4 item PERTAMA di bottom nav
+// (`primaryItems = navItems.slice(0, 4)`) — 3 entri di sini semuanya masuk
+// slot itu, jadi "Lainnya" tetap terlihat di bottom nav juga.
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin-portal", label: "Beranda", icon: LayoutGrid, exact: true },
+  { href: "/admin-portal/inbox", label: "Approval", icon: Inbox },
   { href: "/admin-portal/kategori", label: "Lainnya", icon: MoreHorizontal },
 ];
 

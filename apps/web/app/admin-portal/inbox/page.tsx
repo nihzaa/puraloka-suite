@@ -10,7 +10,10 @@
 //      baris company (`approval-inbox.ts:117-128` — `pmProjectIds` hanya
 //      diisi untuk `user.role === 'pm'`).
 //   2. `jalur_ui` dipakai APA ADANYA (bukan `JALUR_PM` lokal) — admin
-//      berhak membuka halaman dashboard web yang ditunjuknya.
+//      berhak membuka halaman dashboard web yang ditunjuknya. SATU
+//      pengecualian: `OVERRIDE_JALUR_UI` (lihat di bawah) — katalog
+//      backend untuk `back_charge` menunjuk halaman yang tak ada
+//      (review Task 4, poin Important), diperbaiki di FRONTEND saja.
 //
 // `AKSI` (7 jenis: kasbon/submittal/material_request/purchase_order/
 // rencana_mutu/klaim_perjalanan/project_expense) disalin APA ADANYA dari
@@ -20,20 +23,30 @@
 // Task 2).
 //
 // 6 jenis lain TAMPIL sebagai kartu tanpa tombol aksi INLINE di sini
-// (link `jalur_ui` apa adanya) — TAPI koreksi review Task 2: 5 dari 6
-// (back_charge, opname_bersama, cuti_karyawan, change_order,
+// (link `jalur_ui`, DIPERBAIKI lewat `hrefJalurUi()` untuk `back_charge`
+// — lihat komentar `OVERRIDE_JALUR_UI`) — TAPI koreksi review Task 2: 5
+// dari 6 (back_charge, opname_bersama, cuti_karyawan, change_order,
 // estimate_version) SUDAH punya UI keputusan nyata di tempat lain
 // (dashboard admin dan/atau PM Portal — lihat rincian per-jenis di plan,
 // Task 4 Step 2 poin 2), jadi `jalur_ui` di sini membawa admin ke halaman
 // yang BENAR-BENAR bisa memutuskan, bukan halaman baca-saja. HANYA
 // `lessons_learned` genuinely nol UI keputusan di mana pun (diverifikasi:
 // tak ada satu halaman pun dengan tombol approve/reject untuk jenis ini).
+//
+// ⚠️ Review Task 4 (poin Important): kelima link-only lain diverifikasi
+// TIDAK punya masalah serupa — `opname_bersama` → `/mandor/opname` (ada),
+// `cuti_karyawan` → `/sdm/cuti` (ada), `change_order` → `/proyek`
+// (halaman daftar, tradeoff didokumentasikan di `inbox-approval.ts:199-217`
+// — bukan link mati, hanya belum langsung ke id), `estimate_version` →
+// `/estimasi` (ada), `lessons_learned` → `/mutu/pelajaran` (ada). HANYA
+// `back_charge` yang genuinely salah sasaran.
 // ============================================================================
 
 import { useMemo, useState, type CSSProperties } from "react";
 import { Inbox, AlertTriangle, ArrowUpCircle, X } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
+import { formatRupiah } from "@/lib/format";
 import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
@@ -125,9 +138,13 @@ const AKSI: Record<string, KonfigAksi> = {
   // `rejectBody` TIDAK PERNAH dipanggil (tombol nonaktif), disimpan hanya
   // supaya `KonfigAksi` tetap lengkap bentuknya.
   //
-  // ⚠️ Beda dari pm-portal: rantai approval `rencana_mutu` syaratnya
-  // `mutu:rmp:approve` — admin/direktur MEMEGANG permission itu (beda dari
-  // PM yang nol baris), jadi tombol ini BUKAN kode mati di portal ini.
+  // ⚠️ Beda dari pm-portal: gate SUNGGUHAN endpoint `setujui` adalah
+  // `requirePermission('ncr:manage')` (`rencana-mutu.ts:413` — DIKOREKSI
+  // review Task 4 poin Minor; versi sebelumnya keliru menulis
+  // `mutu:rmp:approve`, kunci yang tak dipakai gate ini sama sekali).
+  // Admin/direktur MEMEGANG `ncr:manage` (beda dari PM yang tidak), jadi
+  // tombol ini BUKAN kode mati di portal ini — kesimpulan fungsional tak
+  // berubah, hanya nama permission-nya yang diperbaiki.
   rencana_mutu: {
     metode: "post",
     approveUrl: (id) => `/api/v1/rencana-mutu/${id}/setujui`,
@@ -189,6 +206,27 @@ interface RespKeputusan {
 }
 
 /**
+ * Override KHUSUS untuk satu jenis — bukan mapping menyeluruh `JALUR_PM`
+ * yang dihapus (lihat komentar kepala berkas). `back_charge` di katalog
+ * backend (`apps/api/src/lib/inbox-approval.ts:166`) menunjuk
+ * `/mandor/back-charge` — halaman itu TIDAK ADA. Next.js meng-resolve path
+ * itu ke rute DINAMIS `/mandor/[id]/page.tsx`, memperlakukan string
+ * "back-charge" sebagai id mandor (bukan 404, mendarat di halaman detail
+ * mandor yang salah/kosong — bug class sama seperti Task 26 Portal PM:
+ * link yang "ada" tapi berbohong soal tujuannya). UI keputusan back_charge
+ * yang SUNGGUHAN (`PanelBackCharge`, gate `backcharge:setujui`) ada di
+ * `/mandor/penagihan`. Diperbaiki di FRONTEND (bukan mengubah katalog
+ * backend — itu dipakai bersama portal lain, di luar scope Task 4).
+ */
+const OVERRIDE_JALUR_UI: Record<string, string> = {
+  back_charge: "/mandor/penagihan",
+};
+
+function hrefJalurUi(baris: BarisInbox): string {
+  return OVERRIDE_JALUR_UI[baris.jenis] ?? baris.jalur_ui;
+}
+
+/**
  * Gaya tombol nonaktif — swap `background`/`color` SOLID, bukan `opacity`.
  * CLAUDE.md §"Aturan mengikat" (3): DILARANG `opacity` untuk teks; state
  * disabled wajib tukar warna solid. Dipakai untuk Setujui/Tolak saat
@@ -206,13 +244,6 @@ function fmtTanggal(s: string | null | undefined): string {
   return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
 }
 
-/** Dipakai HANYA untuk baris detail PO di bottom sheet ini (bukan kartu utama). */
-function fmtRupiahRingkas(v: number | string | null | undefined): string {
-  if (v === null || v === undefined) return "—";
-  const n = typeof v === "string" ? Number(v) : v;
-  if (!Number.isFinite(n)) return "—";
-  return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
-}
 
 export default function AdminApprovalInboxPage() {
   const { data, memuat, galat } = useData<ResponsInbox>("/api/v1/approval/inbox");
@@ -437,7 +468,7 @@ export default function AdminApprovalInboxPage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 8 }}>
               {baris.nominal !== null ? (
                 <span style={{ fontSize: 18, fontWeight: 800, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
-                  Rp {baris.nominal.toLocaleString("id-ID")}
+                  {formatRupiah(baris.nominal)}
                 </span>
               ) : (
                 <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>
@@ -500,7 +531,7 @@ export default function AdminApprovalInboxPage() {
                 <Baris label="Supplier" nilai={detailPo.supplier?.name ?? "—"} />
                 <Baris label="Proyek" nilai={detailPo.project?.name ?? "—"} />
                 <Baris label="Jumlah item" nilai={String(detailPo.items.length)} />
-                <Baris label="Total nilai" nilai={fmtRupiahRingkas(detailPo.total_amount)} />
+                <Baris label="Total nilai" nilai={formatRupiah(detailPo.total_amount)} />
                 {detailPo.expected_delivery_date && <Baris label="Estimasi kirim" nilai={fmtTanggal(detailPo.expected_delivery_date)} />}
               </div>
             )}
@@ -525,7 +556,7 @@ export default function AdminApprovalInboxPage() {
                 <Baris label="Keperluan" nilai={dipilih.judul ?? "—"} />
                 <Baris
                   label="Nominal"
-                  nilai={dipilih.nominal !== null ? `Rp ${dipilih.nominal.toLocaleString("id-ID")}` : "—"}
+                  nilai={formatRupiah(dipilih.nominal)}
                 />
                 <Baris label="Diajukan" nilai={fmtTanggal(dipilih.dibuat_pada)} />
                 <div style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 4 }}>
@@ -571,7 +602,7 @@ export default function AdminApprovalInboxPage() {
                 Jenis approval ini belum didukung tombol setujui/tolak di portal ini.
                 {" "}
                 <a
-                  href={dipilih.jalur_ui}
+                  href={hrefJalurUi(dipilih)}
                   style={{ color: "var(--on-info-bg)", fontWeight: 700, textDecoration: "underline" }}
                 >
                   Buka halaman terkait
