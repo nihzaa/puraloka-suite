@@ -28281,3 +28281,74 @@ perubahan kode Task 44.
 **Tahap 7 SELESAI** — sebelas halaman baru (Task 39-43) semua tersambung
 navigasi, plus satu cacat lama (`g-hse`) diperbaiki bersamaan. Semua enam
 tahap kini punya kategori portal PM yang aktif dan halaman yang terjangkau.
+
+## 2026-08-22 (lanjutan) — n8n shared multi-tenant: 7/8 task selesai, deploy live tertunda
+
+Brainstorming → spec → plan → implementasi (subagent-driven-development,
+worktree `.claude/worktrees/n8n-shared-multi-tenant`) untuk migrasi n8n ke
+instance shared multi-tenant. Spec sempat salah di draf pertama (mengira
+SEMUA otomasi terjadwal lewat n8n) — dikoreksi 3x lewat pembacaan kode
+langsung sebelum plan ditulis; detail koreksi ada di §0
+`docs/superpowers/specs/2026-08-22-n8n-shared-multi-tenant-design.md`.
+
+### Yang selesai (7 dari 8 task, semua review bersih)
+
+1. `WA_NOMOR_NOTIFIKASI` ditambahkan ke `KATALOG_KREDENSIAL` — nomor
+   tujuan notifikasi kini kredensial tenant, bukan env build-time skrip.
+2. `terbitkanPeristiwa()` menyertakan kredensial WA (url/apiKey/instance/
+   nomorTujuan) di payload `jalankanAlur()` — via `muatanWaPeristiwa()`
+   baru, diekspor terpisah supaya testable tanpa melanggar pagar
+   `NODE_ENV==='test'` yang mencegah CI mengirim WA sungguhan.
+3. Node "Kirim WhatsApp" di 5 workflow peristiwa n8n dibaca ulang dari
+   `$json.wa.*` (payload), bukan dipatok `cfg.*` saat build — plus tag
+   `tenant_id`. Satu bug kritis ditemukan review (rename node webhook tak
+   diikuti update `SAMBUNG_PERISTIWA`) dan diperbaiki round 1 fix-loop.
+4. **Deploy ke n8n live — TERTUNDA**, lihat di bawah.
+5. 8 resep "jadwal" n8n generasi lama (cron + Ambil-umpan + X-API-Key
+   dipatok) dipensiunkan — diukur produksi (§5.5 spec): 6/8 nol eksekusi
+   seumur hidup, 2/8 tepat sekali >seminggu lalu. `JENIS_TERSEDIA` di
+   `otomasi-umpan.ts` dikosongkan, test file (255→152 baris) ditulis
+   ulang karena `ringkasan-harian` ternyata jadi fixture tak-terkait untuk
+   3 test gerbang auth — bukan cuma "tambah satu test negatif" seperti
+   draf plan pertama kira.
+6. Teks kredensial `N8N_BASE_URL`/`N8N_API_KEY` diperbarui — kotak tetap
+   tampil, tapi jujur bahwa mengisinya tak berpengaruh untuk tenant
+   non-operator sejak instance-nya shared.
+7. Retensi eksekusi n8n: `EXECUTIONS_DATA_SAVE_ON_SUCCESS=none` +
+   `..._ON_ERROR=all` + prune 72 jam (payload kini bawa kredensial hidup).
+
+### Yang TERTUNDA — n8n tidak hidup saat implementasi
+
+n8n (`http://localhost:5680`) tak terjangkau (curl exit 7) selama seluruh
+sesi implementasi. Task 4 (deploy 5 workflow ke n8n + uji end-to-end kirim
+WA sungguhan) di-skip total — menyalakan layanan lokal bersama di luar
+worktree ini butuh keputusan yang bukan milik agent untuk diambil sendiri.
+Task 5 & 7 punya langkah yang sama-sama butuh n8n hidup (nonaktifkan/hapus
+8 workflow lama, restart n8n untuk verifikasi retensi) — juga ditunda.
+
+**Sebelum tenant KEDUA masuk produksi, WAJIB:**
+1. Nyalakan n8n (`scripts\jalankan-n8n.cmd`).
+2. Jalankan Task 4 lengkap: push 5 workflow, uji kirim WA sungguhan
+   (positif DAN negatif — kunci salah harus tercatat `gagal` di
+   `otomasi_jalan`, bukan senyap), verifikasi isolasi 2 tenant dummy.
+3. Task 5 sisa: nonaktifkan lalu (setelah observasi) hapus 8 workflow
+   lama di UI n8n, jalankan `--daftar` versi live untuk konfirmasi,
+   DELETE baris `otomasi_alur` untuk 8 kode yang dipensiunkan.
+4. Task 7 sisa: restart n8n, verifikasi retensi asimetris jalan sesuai
+   rencana (eksekusi sukses tak tersimpan, gagal tersimpan penuh).
+
+### Yang MERAH dan bukan milik saya
+
+`node scripts/jalankan-semua-penjaga.mjs`: ~30 penjaga merah. Diperiksa:
+hanya SATU yang menyebut salah satu dari 7 berkas yang disentuh task ini
+(`audit-webhook-bergerbang.mjs` G-1 menuduh `otomasi-umpan.ts` tanpa
+gerbang) — dan itu PUN pre-existing: `requireApiKey` sudah ada di berkas
+itu SEBELUM task ini (`git show` commit dasar plan mengonfirmasi), guard-nya
+sendiri hanya mengenali pola `authenticate`/`_SECRET` sebagai gerbang sah,
+tak mengenali `requireApiKey` — gap penjaga itu sendiri, bukan regresi.
+Sisa ~29 merah lainnya (coverage, schema-fingerprint, CI_DIRECT_URL,
+berbagai ratchet apps/web) tak menyebut satu pun dari 7 berkas yang
+disentuh, konsisten dengan gap lingkungan lokal-vs-CI (env var CI-only
+hilang, artefak coverage belum ada) — bukan regresi task ini.
+
+Test scoped (5 berkas yang disentuh/ditambah task ini): **43 lulus / 43**.
