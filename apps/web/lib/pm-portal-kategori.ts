@@ -145,12 +145,27 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * Sebelumnya key ini fallback ke `it.href` web (`/klien`, form admin) —
  * sekarang menunjuk versi portal PM yang tanpa tombol tambah/edit.
  *
+ * Tahap 7 (Task 44): "Dokumen" (g-dokumen) dan "Laporan & BI" (g-laporan)
+ * diaktifkan — keduanya PASTI belum disambungkan sebelum task ini karena
+ * brief Task 42/43 eksplisit MELARANG kedua task itu menyentuh file
+ * navigasi (dipetakan lewat `PETA_HREF_PORTAL`, lihat catatan di
+ * `kategori/[key]/page.tsx`). Task 44 JUGA memperbaiki `g-hse` ("K3 &
+ * Lingkungan") yang orphan SEJAK TAHAP 1 — bukan cacat baru dari Tahap 7:
+ * ketujuh halamannya (RK3K, JSA, Induksi, APD, Inspeksi, Insiden,
+ * Lingkungan) semua `status: 'hidup'` sejak lama dan sudah bisa dibuka
+ * dari kategori "Operasi Lapangan" via `EKSTRA_PORTAL['hse-inspeksi']`
+ * (Task 9), TAPI kategori resminya sendiri (`g-hse`) tak pernah masuk
+ * `KATEGORI_AKTIF` — jadi grup "K3 & Lingkungan" sebagai kategori mandiri
+ * tak pernah tampil di navigasi 2-level, meski salah satu itemnya bisa
+ * dijangkau lewat pintu lain. Ditemukan Task 38 Step 1, diperbaiki di sini
+ * karena Task 44 adalah task navigasi TERAKHIR dalam plan ini.
+ *
  * Kategori lain (Audit Trail lintas-modul, dst) BELUM dibangun di portal
  * PM — JANGAN ditambahkan ke daftar ini sampai tahap yang membangunnya
  * selesai, supaya kategori kosong/setengah-jadi tak pernah tampil ke PM
  * di HP.
  */
-const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc", "g-keuangan", "g-tagih", "g-hr", "g-aset", "g-risiko"]; // Tahap 1-7
+const KATEGORI_AKTIF = ["g-subkon", "g-lapangan", "g-kontrak", "g-jadwal", "g-cost", "g-master", "g-crm", "g-inventory", "g-procurement", "g-qaqc", "g-hse", "g-keuangan", "g-tagih", "g-hr", "g-aset", "g-dokumen", "g-risiko", "g-laporan"]; // Tahap 1-7
 
 export function kategoriUntukPm(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));

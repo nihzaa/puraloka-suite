@@ -304,6 +304,55 @@ import { Folder } from "lucide-react";
  * list + detail, READ-ONLY: PM py `clients:view` tanpa `clients:manage`,
  * dikonfirmasi query live `role_permissions`). Sebelumnya fallback
  * `it.href` web (`/klien`, form admin lengkap).
+ *
+ * Tahap 7 (Task 44, grup `g-dokumen` "Dokumen" dan `g-laporan` "Laporan &
+ * BI" BARU diaktifkan `KATEGORI_AKTIF`; key persis dari `lib/peta-menu.ts`
+ * §g-dokumen baris 329-340 dan §g-laporan baris 352-364): kedua grup ini
+ * PASTI belum disambungkan sebelum Task 44 karena brief Task 42 dan Task 43
+ * eksplisit MELARANG kedua task itu menyentuh file navigasi (dikonfirmasi
+ * `audit-nav-yatim.mjs` sebelum perubahan: `/pm-portal/dokumen-kendali`,
+ * `/pm-portal/laporan`, `/pm-portal/laporan/susun` ketiganya YATIM).
+ *   dk-transmittal/dk-gambar/dk-notulen/dk-distribusi/dk-esign/
+ *   dk-verifikasi-ttd → `/pm-portal/dokumen-kendali` (Task 42, satu halaman
+ *   ber-tab: Transmittal/Gambar/Tindakan/Tanda-Tangan). dk-distribusi TIDAK
+ *   punya tab terpisah di halaman itu — Task 42 mengirim `distribusi` di
+ *   respons API tapi UI belum punya tab kelima untuk itu; ditinjau Task 45
+ *   apakah perlu ditambah, untuk saat ini diarahkan ke halaman yang sama
+ *   karena datanya sudah ada di respons. dk-esign berstatus `sebagian` di
+ *   `peta-menu.ts` sehingga TAK PERNAH tampil di navigasi (filter
+ *   `itemHidup` di bawah menyaring `status === 'hidup'`) — entrinya tetap
+ *   ditulis untuk konsistensi kalau statusnya naik nanti. dk-register SUDAH
+ *   ada (existing sebelum Portal PM Lengkap, TIDAK diulang). dk-approval
+ *   SENGAJA TIDAK diisi — administrasi rantai persetujuan
+ *   (`/pengaturan/approval`), bukan operasional harian PM. Fallback web.
+ *   bi-kpi/bi-arus-kas → `/pm-portal/laporan` (Task 43, tab KPI Perusahaan +
+ *   Arus Kas). lap-susun/bi-export → `/pm-portal/laporan/susun` (Task 43 —
+ *   Susun Laporan adalah satu-satunya jalur ekspor portabel untuk mobile;
+ *   ekspor Excel/PDF penuh `/laporan` tetap fallback web karena berkasnya
+ *   perlu diunduh ke perangkat, bukan dilihat di layar HP). bi-eksekutif
+ *   (dashboard admin, modul terpisah di luar scope portal PM), bi-proyek
+ *   (`/proyek/[id]`, di luar scope breakdown Laporan & BI), bi-biaya (sudah
+ *   tercakup Task 24 Tahap 4 procurement/laporan) SUDAH ada di tempat lain —
+ *   TIDAK diulang. bi-portofolio SENGAJA TIDAK diisi — di luar empat modul
+ *   riset Task 43. bi-terjadwal SENGAJA TIDAK diisi — status `sebagian`
+ *   (bukan `hidup`), di luar §1 spec. Keduanya fallback web.
+ *
+ * Tahap 7 (Task 44) juga mengaktifkan `g-hse` ("K3 & Lingkungan") di
+ * `KATEGORI_AKTIF` — temuan Task 38 Step 1: kategori ini ORPHAN SEJAK TAHAP
+ * 1, bukan cacat baru dari Tahap 7. Ketujuh key-nya (hse-rk3k/hse-jsa/
+ * hse-induksi/hse-apd/hse-inspeksi/hse-insiden/hse-lingkungan) semua
+ * `status: 'hidup'` dengan `href` web sejak lama dan TIDAK butuh baris baru
+ * di `PETA_HREF_PORTAL` (tak ada halaman portal PM khusus K3 — item-itemnya
+ * fallback ke `it.href` web `/k3*` sebagaimana adanya, sama pola modul lain
+ * yang belum punya versi mobile tersendiri). Yang diperbaiki HANYA
+ * `KATEGORI_AKTIF` supaya grup ini muncul sebagai kategori mandiri di
+ * navigasi 2-level — sebelumnya salah satu itemnya (`hse-inspeksi`) hanya
+ * terjangkau lewat pintu belakang `EKSTRA_PORTAL['g-lapangan']` (Task 9),
+ * dan keenam item lain grup ini TIDAK terjangkau sama sekali dari kategori
+ * manapun sebelum Task 44 (dikonfirmasi ulang di riset Task 44 sebelum
+ * implementasi — array `KATEGORI_AKTIF` bisa berubah antara riset dan
+ * implementasi kalau task lain menyentuhnya lebih dulu; diverifikasi TIDAK
+ * berubah).
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "sk-paket": "/pm-portal/mandor-lengkap/penugasan",
@@ -463,6 +512,42 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   // koreksi dari fallback web (/klien, form admin) ke versi portal PM
   // read-only.
   "md-klien": "/pm-portal/klien",
+  // Tahap 7 (Task 44) — grup g-dokumen "Dokumen" (baru diaktifkan). Enam key
+  // persis dari `lib/peta-menu.ts` §g-dokumen (dk-transmittal/dk-gambar/
+  // dk-notulen/dk-distribusi/dk-esign/dk-verifikasi-ttd) menunjuk satu
+  // halaman ber-tab `/pm-portal/dokumen-kendali` (Task 42) — dk-distribusi
+  // TIDAK punya tab terpisah di halaman itu (Task 42 mengirim `distribusi`
+  // di respons tapi UI-nya belum ada tab kelima; ditinjau Task 45), dk-esign
+  // status `sebagian` di peta-menu.ts jadi TAK PERNAH tampil di navigasi
+  // (filter `status === 'hidup'` di bawah) — entrinya tetap ditulis di sini
+  // untuk konsistensi kalau statusnya naik ke 'hidup' nanti, tanpa efek saat
+  // ini. dk-register SUDAH ada (existing sebelum Portal PM Lengkap, baris
+  // di atas grup Tahap 1). dk-approval SENGAJA TIDAK diisi — administrasi
+  // rantai persetujuan (/pengaturan/approval), bukan operasional. Fallback
+  // web.
+  "dk-transmittal": "/pm-portal/dokumen-kendali",
+  "dk-gambar": "/pm-portal/dokumen-kendali",
+  "dk-notulen": "/pm-portal/dokumen-kendali",
+  "dk-distribusi": "/pm-portal/dokumen-kendali",
+  "dk-esign": "/pm-portal/dokumen-kendali",
+  "dk-verifikasi-ttd": "/pm-portal/dokumen-kendali",
+  // Tahap 7 (Task 44) — grup g-laporan "Laporan & BI" (baru diaktifkan).
+  // bi-kpi/bi-arus-kas → `/pm-portal/laporan` (Task 43, tab KPI Perusahaan +
+  // Arus Kas). lap-susun/bi-export → `/pm-portal/laporan/susun` (Task 43 —
+  // Susun Laporan adalah satu-satunya jalur ekspor portabel untuk mobile;
+  // ekspor Excel/PDF penuh `/laporan` tetap fallback web untuk berkas yang
+  // butuh diunduh ke perangkat). bi-eksekutif (dashboard admin, di luar
+  // scope portal PM sebagai modul terpisah), bi-proyek (halaman detail
+  // proyek `/proyek/[id]`, di luar scope breakdown ini), bi-biaya (sudah
+  // tercakup Task 24, Tahap 4 procurement/laporan) SUDAH ada di halaman
+  // lain — TIDAK diulang di sini. bi-portofolio SENGAJA TIDAK diisi — di
+  // luar empat modul riset Task 43 (KPI/arus-kas/susun-laporan/ekspor).
+  // bi-terjadwal SENGAJA TIDAK diisi — status 'sebagian' (bukan 'hidup'),
+  // di luar §1 spec. Fallback web.
+  "bi-kpi": "/pm-portal/laporan",
+  "bi-arus-kas": "/pm-portal/laporan",
+  "lap-susun": "/pm-portal/laporan/susun",
+  "bi-export": "/pm-portal/laporan/susun",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 

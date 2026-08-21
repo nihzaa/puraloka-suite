@@ -28036,3 +28036,98 @@ lain; saya tak menyentuh satu berkas `apps/web` pun.
 466 dan 467 **belum dicatat** di `supabase_migrations.schema_migrations`.
 Artefak fisiknya terbukti ada — blok verifikasi keduanya lulus di basis dev —
 tetapi menulis ke buku migrasi adalah Gerbang Keras G-2.
+
+## 2026-08-22 — Task 44: navigasi Tahap 7 disambungkan, `g-hse` orphan sejak Tahap 1 diperbaiki, Tahap 7 SELESAI
+
+Task terakhir plan "Portal PM Lengkap" yang menyentuh navigasi kategori
+(Task 45 sesudahnya read-only/audit menyeluruh, tidak membangun fitur).
+Task 39-41 (SDM, Aset, Risiko/Klien) sudah menyambungkan navigasinya sendiri
+secara proaktif — diverifikasi lebih dulu sebelum menyentuh apa pun: `g-hr`,
+`g-aset`, `g-risiko` SUDAH ada di `KATEGORI_AKTIF`, dan seluruh key `hr-*`/
+`as-*`/`rk-register`/`rk-mitigasi`/`rk-perizinan`/`md-klien` SUDAH ada di
+`PETA_HREF_PORTAL`. Tidak diulang.
+
+Yang PASTI belum tersambung (brief Task 42/43 eksplisit melarang kedua task
+itu menyentuh file navigasi): grup `g-dokumen` (enam key `dk-*`, ke
+`/pm-portal/dokumen-kendali`) dan `g-laporan` (empat key `bi-kpi`/
+`bi-arus-kas`/`lap-susun`/`bi-export`, ke `/pm-portal/laporan` dan
+`/pm-portal/laporan/susun`). Ditambahkan ke `KATEGORI_AKTIF` dan
+`PETA_HREF_PORTAL` sesuai brief.
+
+Juga diperbaiki: `g-hse` ("K3 & Lingkungan") — temuan Task 38 Step 1, orphan
+**sejak Tahap 1**, bukan cacat baru Tahap 7. Ketujuh halamannya (RK3K, JSA,
+Induksi, APD, Inspeksi, Insiden, Lingkungan) sudah `status: 'hidup'` lama dan
+salah satu itemnya (`hse-inspeksi`) sudah terjangkau lewat pintu belakang
+`EKSTRA_PORTAL['g-lapangan']` sejak Task 9 — tapi kategori mandiri "K3 &
+Lingkungan" sendiri tak pernah tampil di navigasi 2-level. Diperbaiki HANYA
+dengan menambah `g-hse` ke `KATEGORI_AKTIF`; tidak ada baris baru di
+`PETA_HREF_PORTAL` untuk ini (item-itemnya fallback ke `it.href` web `/k3*`
+apa adanya, tidak ada halaman portal PM khusus K3).
+
+### Bukti
+
+- `audit-nav-yatim.mjs` SEBELUM: 3 halaman YATIM (`/pm-portal/dokumen-kendali`,
+  `/pm-portal/laporan`, `/pm-portal/laporan/susun`) + 1 LINK MATI pre-existing
+  tak terkait (`/estimasi/struktur`).
+- `audit-nav-yatim.mjs` SESUDAH: 0 YATIM. LINK MATI `/estimasi/struktur`
+  tetap ada — pre-existing, di luar scope Task 44 (menu sidebar/DB, bukan
+  `PETA_HREF_PORTAL`/`KATEGORI_AKTIF`).
+- `tsc --noEmit` (apps/web): exit 0, tanpa filter.
+- `eslint` pada `lib/pm-portal-kategori.ts`, `app/pm-portal/kategori/`, dan
+  enam direktori halaman Tahap 7: 0 pelanggaran.
+- `npx vitest run timesheet-staf cuti-karyawan kompetensi-sdm assets
+  alat-operasional risiko-proyek serah-terima kendali-dokumen clients
+  reports laporan-susun`: **383 lulus / 1 gagal (384 total)**. Satu-satunya
+  gagal (`sengketa > DUA perpindahan BERSAMAAN`) adalah race-condition test
+  yang FLAKY di run penuh — diulang SENDIRIAN, **lulus** (900ms). Tidak
+  terkait perubahan navigasi frontend.
+
+### Yang MERAH dan bukan milik saya
+
+`jalankan-semua-penjaga.mjs`: 130 hijau, 41 merah. Diperiksa satu per satu
+yang berpotensi tumpang tindih dengan file yang disentuh task ini
+(`audit-peta-menu-vs-db.mjs`, `audit-menu-punya-halaman.mjs`,
+`audit-tab-seragam.mjs`) — ketiganya menuduh berkas/data yang BUKAN
+`PETA_HREF_PORTAL`/`KATEGORI_AKTIF`: `audit-peta-menu-vs-db` ratchet
+`hanyaDb` 124→125 dari drift `menu_items` DB vs `peta-menu.ts` (berkas yang
+tak disentuh task ini sama sekali); `audit-menu-punya-halaman` menuduh
+`/estimasi/struktur` (`cc-struktur`) — sama dengan LINK MATI pre-existing di
+atas; `audit-tab-seragam` menuduh `keuangan/gl`, `keuangan/pengadaan-lanjutan`,
+`SegmentedTab.tsx` — utang Tahap 6 (Task 34/36), bukan berkas Task 44. Sisa
+38 penjaga merah lainnya (lint-ratchet, format-ratchet, coverage,
+schema-fingerprint, migrasi-pertenant, dst.) jelas tak terkait navigasi
+frontend PM — hanya 2 berkas disentuh (`git status` dikonfirmasi), keduanya
+`apps/web/lib/pm-portal-kategori.ts` dan
+`apps/web/app/pm-portal/kategori/[key]/page.tsx`.
+
+### Audit a11y — batasan sudah diketahui, bukan cacat baru
+
+Smoke-check `audit-a11y-runtime.mjs --url "/pm-portal/dokumen-kendali"` (web
++ API hidup, port diukur: web 3000, API 3007) memulangkan "CAKUPAN RUNTUH:
+0 dari 1 halaman terpindai (1 dialihkan)" — akun uji `LAYAR_EMAIL` berperan
+`admin`, dan `pm-portal/layout.tsx:26` mengalihkan admin ke `/dashboard`
+SEBELUM render axe sempat jalan. Ini batasan yang SUDAH tercatat di
+CLAUDE.md §8a.3 sejak sebelum task ini ("seluruh `pm-portal` TETAP TAK
+TERAUDIT runtime axe dengan kredensial yang tersedia") — bukan sesuatu yang
+diperbaiki atau diperparah di sini. Empat URL sisanya (`aset`, `risiko`,
+`dokumen-kendali`, `laporan`) tidak dijalankan berulang karena hasilnya
+dijamin sama (redirect terjadi di layout, sebelum routing per-halaman).
+Menutupnya butuh akun uji berperan `pm` — keputusan data uji, bukan
+perubahan kode Task 44.
+
+### Utang/concern yang diwariskan ke Task 45 (verifikasi akhir)
+
+- `dk-distribusi` diarahkan ke `/pm-portal/dokumen-kendali` tapi halaman itu
+  TIDAK punya tab kelima untuk data `distribusi` yang sudah dikirim API sejak
+  Task 42 — ditinjau Task 45 apakah perlu ditambah.
+- Sengketa & Klaim Perjalanan tetap di luar scope PM sepenuhnya (nol izin).
+- Hub `pm-portal/proyek/[id]` tetap redirect (utang lama, tak disentuh).
+- RFQ/Tabulasi/Evaluasi Vendor tetap di luar scope PM (tabel lebar multi-vendor).
+- Butir tindakan notulen (`dk-notulen`) read-only — tak ada endpoint ubah
+  status dari portal PM.
+- Empat rute `pm-portal/*` (termasuk dua halaman Tahap 7) tetap TAK
+  TERAUDIT axe runtime — butuh akun uji peran `pm`.
+
+**Tahap 7 SELESAI** — sebelas halaman baru (Task 39-43) semua tersambung
+navigasi, plus satu cacat lama (`g-hse`) diperbaiki bersamaan. Semua enam
+tahap kini punya kategori portal PM yang aktif dan halaman yang terjangkau.
