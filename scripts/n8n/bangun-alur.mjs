@@ -347,36 +347,33 @@ const RESEP_PERISTIWA = [
  * untuk kejadian yang sama — satu di lonceng notifikasi, satu di WhatsApp.
  */
 function simpulPeristiwa(resep, cfg) {
-  const kodeSusun = `
-const d = $input.first().json;
-const isi = d.body || d;
-if (!isi || !isi.pesan) { return []; }
-const teks = '*${resep.judul}*\\n\\n' + isi.pesan +
-  (isi.judul ? '\\n\\n_' + isi.judul + '_' : '') +
-  '\\n\\n_Puraloka Suite · ${resep.kode}_';
-return [{ json: { teks } }];
-`.trim()
-
+  // cfg tak lagi dipakai di sini — dipertahankan agar tanda tangan tetap sama dengan simpul()
   return [
     {
       parameters: {
         httpMethod: 'POST',
         path: resep.kode,
-        // `onReceived`: aplikasi yang memanggil ini TIDAK menunggu hasilnya
-        // (fire-and-forget), jadi membalas cepat lebih benar daripada
-        // membalas lengkap. Lihat catatan yang sama di alur jadwal.
         responseMode: 'onReceived',
         options: {},
       },
       id: 'pemicu',
-      name: 'Peristiwa',
+      name: 'Pemicu peristiwa',
       type: 'n8n-nodes-base.webhook',
       typeVersion: 2,
       position: [0, 0],
       webhookId: resep.kode,
     },
     {
-      parameters: { jsCode: kodeSusun },
+      parameters: {
+        jsCode: `
+const d = $input.first().json;
+// Tag tenant_id eksplisit untuk audit lintas eksekusi (spec §5.1/§3.4.2).
+const tenantId = d.companyId || 'tak-diketahui';
+const teks = '*${resep.judul}*\\n\\n' + (d.pesan || '(tanpa pesan)') +
+  '\\n\\n_Puraloka Suite · ${resep.kode} · tenant:' + tenantId + '_';
+return [{ json: { teks, wa: d.wa || {}, companyId: tenantId } }];
+`.trim(),
+      },
       id: 'susun',
       name: 'Susun pesan',
       type: 'n8n-nodes-base.code',
@@ -386,12 +383,17 @@ return [{ json: { teks } }];
     {
       parameters: {
         method: 'POST',
-        url: `${cfg.waUrl}/message/sendText/${cfg.waInstance}`,
+        // BUKAN dipatok — $json.wa.* datang dari payload webhook,
+        // dibaca aplikasi lewat ambilKredensialTanpaRequest() per tenant
+        // (lihat terbit-peristiwa.ts, muatanWaPeristiwa()).
+        url: '={{ $json.wa.url }}/message/sendText/{{ $json.wa.instance }}',
         sendHeaders: true,
-        headerParameters: { parameters: [{ name: 'apikey', value: cfg.waApiKey }] },
+        headerParameters: {
+          parameters: [{ name: 'apikey', value: '={{ $json.wa.apiKey }}' }],
+        },
         sendBody: true,
         specifyBody: 'json',
-        jsonBody: `={{ JSON.stringify({ number: "${cfg.nomorTujuan}", text: $json.teks }) }}`,
+        jsonBody: '={{ JSON.stringify({ number: $json.wa.nomorTujuan, text: $json.teks }) }}',
         options: { timeout: 30000 },
       },
       id: 'kirim',
