@@ -34,11 +34,17 @@
 // dari sini karena `g-keuangan`/`g-tagih` belum diaktifkan di kategori
 // "Lainnya". Gerbang `gl:manage`/`gl:post`/`gl:void` (admin-only, direktur
 // TIDAK) hidup di halaman GL itu sendiri — lihat komentar kepala berkasnya.
+//
+// Task 16 (Tahap 3) menambah tautan keempat: Rekonsiliasi Bank
+// (`/admin-portal/keuangan/rekonsiliasi-bank`) — pola sama. Gerbang
+// `rekonsiliasi:manage`/`rekonsiliasi:lock` (admin-only, direktur TIDAK)
+// hidup di halaman DETAIL koran, bukan di daftar (daftar tak punya tombol
+// tulis sama sekali, warisan keputusan PM Task 35).
 // ============================================================================
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Wallet, TrendingUp, AlertTriangle, Clock, Landmark, FileCheck2, BookOpen, ChevronRight } from "lucide-react";
+import { Wallet, TrendingUp, AlertTriangle, Clock, Landmark, FileCheck2, BookOpen, Scale, ChevronRight } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { Tabel } from "@/components/dasar";
 import { formatRupiah, formatRupiahSingkat } from "@/lib/format";
@@ -120,6 +126,21 @@ export default function AdminDashboardKeuanganPage() {
           <BookOpen size={18} color="var(--navy)" aria-hidden="true" />
           <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
             General Ledger
+          </span>
+          <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
+        </Link>
+
+        <Link
+          href="/admin-portal/keuangan/rekonsiliasi-bank"
+          style={{
+            display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu)",
+            borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
+            textDecoration: "none",
+          }}
+        >
+          <Scale size={18} color="var(--navy)" aria-hidden="true" />
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Rekonsiliasi Bank
           </span>
           <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
         </Link>
