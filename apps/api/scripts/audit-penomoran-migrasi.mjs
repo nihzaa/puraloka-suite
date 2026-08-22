@@ -47,6 +47,41 @@ const LOMPATAN_LAMA = {
   30: 'nomor tak pernah dipakai; tak ada berkas 030_* di histori git mana pun',
   59: 'dipakai `db/seeds/seed_dummy_data.sql` — tercatat di schema_migrations sebagai versi 059, tetapi memang SEED, bukan migrasi',
   64: 'nomor tak pernah dipakai; tak ada berkas 064_* di histori git mana pun',
+  // 471-501: dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren
+  // memegang nomor-nomor ini di database hidup saat migrasi cabang ini
+  // didispatch, jadi penomoran ulang dinamis melompatinya untuk menghindari
+  // tabrakan. Praktik yang disengaja & sudah disetujui, bukan kecelakaan.
+  471: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  472: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  473: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  474: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  475: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  476: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  477: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  478: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  479: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  480: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  481: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  482: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  483: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  484: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  485: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  486: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  487: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  488: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  489: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  490: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  491: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  492: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  493: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  494: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  495: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  496: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  497: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  498: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  499: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  500: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
+  501: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
 }
 
 if (!existsSync(MIGRASI)) {
