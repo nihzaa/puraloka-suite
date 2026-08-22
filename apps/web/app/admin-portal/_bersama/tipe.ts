@@ -759,3 +759,138 @@ export interface RespApproveCo {
   pending_next_level?: boolean
   message?: string
 }
+
+// ============================================================================
+// Keuangan — Dashboard + Piutang + IPC (Task 14, awal Tahap 3). Disalin
+// PERSIS dari `pm-portal/_bersama/tipe.ts:2657-2769` (diverifikasi
+// baris-per-baris ke backend untuk Task 32 PM, bentuk endpoint sama —
+// backend tak beda per role pemanggil).
+//
+// ⚠️ `RespKeuanganIkhtisar` (nominal STRING, `.toFixed(2)` backend) BEDA
+// KONVENSI dari `RespArAging`/`RespRetensi`/`RespDp` (nominal NUMBER) — dua
+// endpoint berbeda dengan serialisasi berbeda. JANGAN diseragamkan.
+//
+// ⚠️ Gerbang `finance:view:all` (ikhtisar/ar-aging/retention-register/
+// dp-register) BUKAN dipegang direktur — beda dari pola dominan plan ini
+// (direktur selalu tetap bisa BACA). Halaman dashboard & piutang portal ini
+// menangani 403 dari gerbang ini secara eksplisit. `finance:view`/
+// `finance:invoice:create` (sertifikat-ipc) admin+direktur SAMA-SAMA punya.
+// ============================================================================
+
+/**
+ * Bentuk PERSIS `GET /api/v1/keuangan/ikhtisar`, `keuangan-ikhtisar.ts:296-313`.
+ * SEMUA nominal string (`.toFixed(2)`), bukan number — jangan render langsung.
+ */
+export interface RespKeuanganIkhtisar {
+  kpi: {
+    nilai_kontrak: string; tertagih: string; terbayar: string; piutang: string
+    kasbon_beredar: string; invoice_lewat_tempo: number; proyek_aktif: number
+  }
+  bulanan: { bulan: string; tagih: string; bayar: string }[]
+  komposisi_kasbon: { kunci: string; nama: string; nilai: string; jumlah: number }[]
+  umur_piutang: { nama: string; nilai: string; jumlah: number }[]
+  per_proyek: {
+    id: string; nama: string; status: string
+    kontrak: string; tertagih: string; terbayar: string; piutang: string
+    pct_tertagih: number; progres: number
+  }[]
+  invoice_tertunggak: {
+    id: string; nomor: string; proyek: string | null
+    jatuh_tempo: string; hari_lewat: number; sisa: string
+  }[]
+}
+
+/** Bentuk PERSIS baris `ar-aging`, `finance.ts:262-296`. Semua nominal NUMBER
+ * (bukan string) — beda dari `RespKeuanganIkhtisar` di atas, endpoint berbeda. */
+export interface BarisArAging {
+  id: string
+  invoice_number: string
+  invoice_type: string
+  issued_date: string
+  due_date: string
+  total_amount: number
+  amount_due: number
+  status: string
+  days_past_due: number
+  bucket: string
+  project: { id: string; name: string } | null
+  client: { id: string; name: string } | null
+}
+export interface RespArAging {
+  as_of: string
+  buckets: Record<string, unknown>
+  total_outstanding: number
+  invoice_count: number
+  truncated: boolean
+  rows: BarisArAging[]
+}
+
+/** Bentuk PERSIS baris `retention-register`, `finance.ts:345-376`. */
+export interface BarisRetensi {
+  project: { id: string; name: string; status: string; end_date: string | null }
+  client: { id: string; name: string } | null
+  retention_pct: number | null
+  contract_retention_amount: number | null
+  withheld: number
+  released: number
+  outstanding: number
+  on_retention_termins: { id: string; label: string; amount: number; pct_of_contract: number; status: string; due_days: number | null }[]
+  estimated_release_due: string | null
+  is_due_estimate: boolean
+}
+export interface RespRetensi {
+  as_of: string
+  total_outstanding: number
+  rows: BarisRetensi[]
+}
+
+/** Bentuk PERSIS baris `dp-register`, `finance.ts:419-432`. */
+export interface BarisDp {
+  project: { id: string; name: string; status: string; contract_value: number }
+  client: { id: string; name: string } | null
+  dp_billed: number
+  dp_paid: number
+  recouped: number
+  remaining_to_recoup: number
+}
+export interface RespDp {
+  total_remaining_to_recoup: number
+  rows: BarisDp[]
+}
+
+/** Bentuk PERSIS `HasilIpc`, `lib/sertifikat-ipc.ts:74-96` — dihitung
+ * ulang tiap baca, TIDAK disimpan (lihat komentar kepala `sertifikat-ipc.ts`). */
+export interface HasilIpc {
+  nilai_prestasi: number
+  nilai_periode: number
+  retensi: number
+  potongan_dp: number
+  potongan_lain: number
+  nilai_bersih: number
+  retensi_kumulatif_estimasi: number
+  peringatan: Array<"periode_negatif" | "potongan_melebihi_hak" | "prestasi_penuh" | "tak_ada_yang_ditagih">
+  layak_diajukan: boolean
+}
+/** Bentuk PERSIS `SELECT` sertifikat_ipc, `sertifikat-ipc.ts:52-58`. */
+export interface SertifikatIpc {
+  id: string
+  nomor: string
+  tanggal: string
+  status: "draft" | "disetujui" | string
+  progres_diakui_pct: number | string
+  nilai_kontrak: number | string
+  retensi_pct: number | string | null
+  kumulatif_sebelumnya: number | string | null
+  potongan_dp: number | string | null
+  potongan_lain: number | string | null
+  potongan_lain_alasan: string | null
+  catatan: string | null
+  disetujui_pada: string | null
+  invoice_id: string | null
+  created_at: string
+  proyek: { id: string; name: string } | null
+  termin: { id: string; termin_number: number; label: string; amount: number | string } | null
+  penyetuju: { id: string; name: string } | null
+  hitung: HasilIpc
+}
+export interface RespSertifikatDaftar { sertifikat: SertifikatIpc[]; total: number }

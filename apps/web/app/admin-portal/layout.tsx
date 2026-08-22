@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredUser, logout, type PuralokaUser } from "@/lib/api";
 import PortalShell, { type NavItem } from "@/components/portal/PortalShell";
-import { LayoutGrid, Inbox, FolderKanban, FileSignature, MoreHorizontal } from "lucide-react";
+import { LayoutGrid, Inbox, FolderKanban, FileSignature, MoreHorizontal, Wallet } from "lucide-react";
 
 // Tahap 1 (Task 4): "Approval" ditambahkan — halaman `/admin-portal/inbox`
 // sudah dibangun (review Task 4: sempat YATIM di `audit-nav-yatim.mjs`
@@ -80,12 +80,27 @@ import { LayoutGrid, Inbox, FolderKanban, FileSignature, MoreHorizontal } from "
 // NAV_ITEMS sendiri, dijangkau lewat tautan di badan halaman Register
 // Kontrak, didaftarkan WAJAR di `audit-nav-yatim.mjs` persis seperti
 // asuransi di atas.
+//
+// Tahap 3 (Task 14): "Keuangan" ditambahkan (menunjuk /keuangan, Dashboard
+// modul) — pola IDENTIK "Kontrak" di atas: brief Task 14 mengaitkan
+// `/admin-portal/keuangan/*` ke kategori `g-keuangan`/`g-tagih` yang BELUM
+// diaktifkan di `KATEGORI_AKTIF` (`lib/admin-portal-kategori.ts` masih
+// `["g-laporan","g-sistem","g-kontrak","g-jadwal"]` — dua grup itu bahkan
+// belum jadi key di `peta-menu.ts`). Menunggu aktivasinya berarti tiga
+// halaman baru YATIM sampai tahap itu tiba, cacat yang sama dengan
+// "Proyek"/"Kontrak" sebelum diperbaiki. Diperbaiki cara yang sama: entri
+// NAV_ITEMS langsung. Ditaruh slot TERAKHIR (sesudah "Kontrak") — bottom nav
+// (`primaryItems = navItems.slice(0, 4)`) tetap Beranda/Approval/Proyek/
+// Lainnya, tak berubah. `/admin-portal/keuangan/piutang` dan `.../ipc` TIDAK
+// dapat entri NAV_ITEMS sendiri — dijangkau lewat tautan di badan halaman
+// Dashboard Keuangan, pola sama lima tautan kontrak/jadwal di atas.
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin-portal", label: "Beranda", icon: LayoutGrid, exact: true },
   { href: "/admin-portal/inbox", label: "Approval", icon: Inbox },
   { href: "/admin-portal/proyek", label: "Proyek", icon: FolderKanban },
   { href: "/admin-portal/kategori", label: "Lainnya", icon: MoreHorizontal },
   { href: "/admin-portal/kontrak/register", label: "Kontrak", icon: FileSignature },
+  { href: "/admin-portal/keuangan", label: "Keuangan", icon: Wallet },
 ];
 
 export default function AdminPortalLayout({
