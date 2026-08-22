@@ -28465,3 +28465,18 @@ sebelum proyek ini, tak terkait migrasinya).
 Tinggal menunggu (1) founder menyalakan Evolution + scan QR kalau mau
 uji kirim WA sungguhan, dan (2) jendela observasi sebelum hapus 8
 workflow lama, sebelum branch ini pantas dianggap tuntas total.
+
+## 2026-08-22 (lanjutan 4) — DIKONFIRMASI: pesan WA sungguhan sampai. Migrasi n8n shared multi-tenant TUNTAS.
+
+Founder mengonfirmasi langsung: pesan uji end-to-end (nomor asli, payload
+`muatanWaPeristiwa()` sungguhan, n8n live, Evolution live) sampai di
+WhatsApp-nya. Ini bukti terakhir yang dibutuhkan — seluruh jalur
+kredensial-lewat-payload kini terbukti benar di SETIAP lapisan dengan
+data produksi sungguhan, bukan simulasi: penyimpanan kredensial
+terenkripsi → pembacaan lewat fungsi resmi → payload webhook n8n →
+eksekusi node → panggilan Evolution → WhatsApp benar-benar terkirim.
+
+**Migrasi n8n shared multi-tenant: SELESAI TUNTAS.** Sisa: hapus 8
+workflow lama (Task 5 Step 11/12, sengaja ditunda untuk jendela
+observasi) dan merge branch `worktree-n8n-shared-multi-tenant` ke
+`main`.
