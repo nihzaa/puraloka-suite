@@ -40,6 +40,12 @@
 // `rekonsiliasi:manage`/`rekonsiliasi:lock` (admin-only, direktur TIDAK)
 // hidup di halaman DETAIL koran, bukan di daftar (daftar tak punya tombol
 // tulis sama sekali, warisan keputusan PM Task 35).
+//
+// Task 17 (Tahap 3) menambah tautan kelima: Kas & Pengeluaran
+// (`/admin-portal/keuangan/kas`) — pola sama. BEDA dari GL/Rekonsiliasi:
+// gerbang `cash:account:manage` (tombol "Batalkan" transfer) admin+direktur
+// SAMA-SAMA punya (dikonfirmasi live query Task 13), bukan admin-only — lihat
+// komentar kepala `kas/[id]/page.tsx`.
 // ============================================================================
 
 import { useMemo } from "react";
@@ -141,6 +147,21 @@ export default function AdminDashboardKeuanganPage() {
           <Scale size={18} color="var(--navy)" aria-hidden="true" />
           <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
             Rekonsiliasi Bank
+          </span>
+          <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
+        </Link>
+
+        <Link
+          href="/admin-portal/keuangan/kas"
+          style={{
+            display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu)",
+            borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
+            textDecoration: "none",
+          }}
+        >
+          <Wallet size={18} color="var(--navy)" aria-hidden="true" />
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Kas & Pengeluaran
           </span>
           <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
         </Link>
