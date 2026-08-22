@@ -23,7 +23,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FileSignature, ShieldCheck, ChevronRight, Plus, CalendarClock, Scale } from "lucide-react";
+import { FileSignature, ShieldCheck, ChevronRight, Plus, CalendarClock, Scale, Mail, FileEdit } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import { formatRupiah, formatTanggal } from "@/lib/format";
@@ -173,10 +173,10 @@ export default function AdminRegisterKontrakPage() {
       </h1>
 
       {/* Tautan ke modul terkait erat (asuransi menyertai tiap kontrak
-          proyek; EOT/LD/Bond dan klaim kontraktual per-proyek — Task 9) —
-          ketiganya bukan bagian NAV_ITEMS bottom nav (grup g-kontrak belum
-          diaktifkan di kategori "Lainnya", lihat layout.tsx), jadi jalur
-          masuk utamanya dari sini. */}
+          proyek; EOT/LD/Bond dan klaim kontraktual per-proyek — Task 9;
+          surat dan change order — Task 10) — kelimanya bukan bagian
+          NAV_ITEMS bottom nav (grup g-kontrak belum diaktifkan di kategori
+          "Lainnya", lihat layout.tsx), jadi jalur masuk utamanya dari sini. */}
       <Link
         href="/admin-portal/kontrak/asuransi"
         style={{
@@ -218,6 +218,36 @@ export default function AdminRegisterKontrakPage() {
         <Scale size={18} color="var(--navy)" aria-hidden="true" />
         <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Klaim Kontraktual
+        </span>
+        <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
+      </Link>
+
+      <Link
+        href="/admin-portal/kontrak/surat"
+        style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu)",
+          borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
+          textDecoration: "none",
+        }}
+      >
+        <Mail size={18} color="var(--navy)" aria-hidden="true" />
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+          Surat Masuk &amp; Keluar
+        </span>
+        <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
+      </Link>
+
+      <Link
+        href="/admin-portal/kontrak/change-order"
+        style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu)",
+          borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
+          textDecoration: "none",
+        }}
+      >
+        <FileEdit size={18} color="var(--navy)" aria-hidden="true" />
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+          Change Order
         </span>
         <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
       </Link>

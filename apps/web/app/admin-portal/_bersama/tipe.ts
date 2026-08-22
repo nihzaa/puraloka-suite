@@ -656,3 +656,106 @@ export interface RespKlaimKontraktual {
   data: KlaimKontraktual[]
   ringkas: { jumlah: number; total_diklaim: number; total_disetujui: number; berisiko_gugur: number; mendesak: number }
 }
+
+// ============================================================================
+// Surat Masuk & Keluar (Task 10, Tahap 2) — disalin PERSIS dari
+// `pm-portal/_bersama/tipe.ts:1216-1250`.
+// ============================================================================
+
+/**
+ * Surat masuk/keluar (tabel `project_letters`, migrasi 185) — korespondensi
+ * proyek, izin `documents:manage` (surat adalah korespondensi dokumen, bukan
+ * permission tersendiri — lihat komentar `surat.ts`).
+ *
+ * Bentuk dari `GET /api/v1/letters` (LINTAS-PROYEK,
+ * `apps/api/src/routes/v1/surat.ts`) — dipakai halaman ini sebagai default,
+ * karena endpoint ini SENGAJA dirancang untuk pertanyaan "surat mana yang
+ * wajib saya jawab hari ini" lintas semua proyek (beda dari pola
+ * pemilih-proyek Task 8/9). `batas` (BUKAN `batas_pemberitahuan`) dihitung
+ * `evaluasiBatasBalas()` (`lib/surat-korespondensi.ts`) — ARAH menentukan
+ * tanggal acuan (kirim vs terima) dan siapa yang lalai (`siapaYangDitunggu`).
+ *
+ * `PATCH /api/v1/letters/:id` mewarisi tenancy lewat `project_id` di BODY,
+ * pola sama klaim.
+ */
+export type KeadaanBalas = "tak_perlu" | "tak_diatur" | "berjalan" | "mendesak" | "lewat" | "tak_terbaca"
+export interface BatasBalas {
+  keadaan: KeadaanBalas
+  sisaHari: number | null
+  siapaYangDitunggu: "kita" | "lawan" | null
+  pesan?: string
+}
+
+export interface SuratProyek {
+  id: string
+  project_id: string
+  nomor: string
+  arah: "masuk" | "keluar"
+  jenis: string
+  perihal: string
+  ringkasan: string | null
+  dari_pihak: string
+  kepada_pihak: string
+  tanggal_kirim: string | null
+  tanggal_terima: string | null
+  membalas_id: string | null
+  butuh_balasan: boolean
+  batas_balas: string | null
+  status: "draft" | "terkirim" | "diterima" | "dibalas" | "selesai" | "kedaluwarsa"
+  dokumen_id: string | null
+  created_at: string
+  batas: BatasBalas
+  /** Hanya di `GET /api/v1/letters` (lintas-proyek) — ditempel server dari peta id→nama. */
+  project_name?: string
+}
+export interface RespSuratLintasProyek {
+  data: SuratProyek[]
+  proyek: { id: string; name: string }[]
+  ringkas: { jumlah: number; masuk: number; keluar: number; kita_belum_menjawab: number; lawan_belum_menjawab: number; mendesak: number }
+}
+
+// ============================================================================
+// Change Order (Task 10, Tahap 2) — disalin PERSIS dari
+// `pm-portal/kontrak-lengkap/change-order/page.tsx` (Task 21 PM, bentuk
+// diverifikasi langsung ke `apps/api/src/routes/v1/change-orders.ts`, 1017
+// baris — TAK ADA field `type`/`value` di level CO, delta dihitung server
+// dari Σ item lewat `recalcTotalDelta()`).
+//
+// ⚠️ Gerbang `change_order:approve` — otoritas SESUNGGUHNYA hidup di
+// `approval_chains`/`approval_steps` (`required_permission =
+// 'change_order:approve'`), BUKAN di dekorator rute. Permission itu HANYA
+// di-grant ke role `admin` (live 2026-08-22) — direktur TIDAK. Untuk portal
+// admin/direktur ini berarti admin LOLOS gerbang, direktur TIDAK — SATU-
+// SATUNYA tempat di Tahap 2 di mana kapabilitas direktur genuinely BEDA dari
+// admin (bukan subset penuh). Tombol Setujui/Tolak WAJIB digerbang
+// `hasPermission("change_order:approve")` + `useSyncExternalStore`, TIDAK
+// DIRENDER (bukan disabled) untuk direktur.
+// ============================================================================
+
+export interface ChangeOrderItem {
+  id: string
+  item_type: "kerja_tambah" | "kerja_kurang" | "perubahan_volume" | "perubahan_spec"
+  description: string
+  amount_delta: number
+}
+
+export interface ChangeOrderProyek {
+  id: string
+  project_id: string
+  co_number: string
+  title: string
+  description: string | null
+  status: "draft" | "submitted" | "approved" | "rejected"
+  billing_mode: "include_termin" | "separate_co" | "final_account" | null
+  total_amount_delta: number
+  baseline_contract_value: number | null
+  rejected_reason: string | null
+  items: ChangeOrderItem[]
+}
+export interface RespChangeOrder {
+  data: ChangeOrderProyek[]
+}
+export interface RespApproveCo {
+  pending_next_level?: boolean
+  message?: string
+}
