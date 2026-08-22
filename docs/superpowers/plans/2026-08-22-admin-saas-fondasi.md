@@ -1787,6 +1787,25 @@ export async function provisionTenantStep2(input: {
   // untuk kasus ini — cek dulu, lalu insert/update eksplisit).
   // user_id DI SINI adalah publicUserId (users.id), BUKAN authUserId
   // (auth.users.id) — lihat catatan 2a-bis di atas.
+  //
+  // is_default TIDAK SELALU true — celah yang ketahuan saat eksekusi Task
+  // D4 (bukan draft awal): idx_company_members_one_default adalah UNIQUE
+  // INDEX partial "satu is_default=true per user_id" (126_multitenant_core.sql:100-101).
+  // Kalau auth user yang di-provisioning KEBETULAN sudah jadi admin default
+  // di tenant LAIN (skenario produksi yang sah — satu orang bisa di-invite
+  // jadi admin >1 tenant), memaksa is_default:true di sini akan GAGAL
+  // unique_violation. Wajib dicek dulu: hanya set true kalau user ITU belum
+  // punya default company sama sekali; kalau sudah, keanggotaan baru dibuat
+  // is_default:false (user tetap login ke company default lamanya, dan bisa
+  // berpindah company lewat company-switcher yang sudah ada).
+  const { data: existingDefault } = await supabaseAdmin
+    .from('company_members')
+    .select('id')
+    .eq('user_id', publicUserId)
+    .eq('is_default', true)
+    .maybeSingle()
+  const shouldBeDefault = !existingDefault
+
   const { data: existingMember } = await supabaseAdmin
     .from('company_members')
     .select('id')
@@ -1797,7 +1816,7 @@ export async function provisionTenantStep2(input: {
   if (existingMember) {
     const { error: updateError } = await supabaseAdmin
       .from('company_members')
-      .update({ role_id: input.adminRoleId, is_default: true, is_active: true })
+      .update({ role_id: input.adminRoleId, is_active: true })
       .eq('id', existingMember.id)
     if (updateError) {
       return { error: `Gagal memperbarui keanggotaan: ${updateError.message}` }
@@ -1807,7 +1826,7 @@ export async function provisionTenantStep2(input: {
       company_id: input.companyId,
       user_id: publicUserId,
       role_id: input.adminRoleId,
-      is_default: true,
+      is_default: shouldBeDefault,
       is_active: true,
     })
     if (insertError) {
