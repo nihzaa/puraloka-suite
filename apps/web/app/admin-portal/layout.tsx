@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredUser, logout, type PuralokaUser } from "@/lib/api";
 import PortalShell, { type NavItem } from "@/components/portal/PortalShell";
-import { LayoutGrid, Inbox, MoreHorizontal } from "lucide-react";
+import { LayoutGrid, Inbox, FolderKanban, MoreHorizontal } from "lucide-react";
 
 // Tahap 1 (Task 4): "Approval" ditambahkan — halaman `/admin-portal/inbox`
 // sudah dibangun (review Task 4: sempat YATIM di `audit-nav-yatim.mjs`
@@ -33,11 +33,21 @@ import { LayoutGrid, Inbox, MoreHorizontal } from "lucide-react";
 // memindai bentuk objek literal di berkas layout untuk tahu tujuan mana
 // yang terjangkau, dan tujuan yang cuma disebut lewat nama prop lain tak
 // ikut terbaca. `PortalShell` menampilkan 4 item PERTAMA di bottom nav
-// (`primaryItems = navItems.slice(0, 4)`) — 3 entri di sini semuanya masuk
-// slot itu, jadi "Lainnya" tetap terlihat di bottom nav juga.
+// (`primaryItems = navItems.slice(0, 4)`).
+//
+// Tahap 2 (Task 7): "Proyek" ditambahkan — halaman `/admin-portal/proyek`
+// dibangun tapi TIDAK ditautkan dari mana pun (brief Task 7 salah menyatakan
+// "sudah ada di NAV_ITEMS Task 1 Step 2" — diverifikasi TIDAK BENAR, layout
+// ini sebelum Task 7 hanya berisi Beranda/Approval/Lainnya).
+// `audit-nav-yatim.mjs` menangkapnya sebagai YATIM sebelum entri ini
+// ditambahkan — kelas cacat yang sama dengan orphan "Approval" di Task 4.
+// Slot ke-3, TEPAT SESUDAH Approval, meniru urutan pm-portal persis. Kini 4
+// entri: semuanya masuk 4 item PERTAMA yang ditampilkan `PortalShell` di
+// bottom nav, jadi "Lainnya" tetap terlihat di sana juga (belum melebihi 4).
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin-portal", label: "Beranda", icon: LayoutGrid, exact: true },
   { href: "/admin-portal/inbox", label: "Approval", icon: Inbox },
+  { href: "/admin-portal/proyek", label: "Proyek", icon: FolderKanban },
   { href: "/admin-portal/kategori", label: "Lainnya", icon: MoreHorizontal },
 ];
 

@@ -309,3 +309,50 @@ export interface RespRencanaMutuSatu {
   cacat: CacatRmp[];
   persetujuan: { boleh: boolean; penghalang: CacatRmp[] };
 }
+
+// ============================================================================
+// Proyek (Task 7, Tahap 2) — disalin PERSIS dari `pm-portal/_bersama/tipe.ts:58-84`.
+// ============================================================================
+
+/**
+ * Proyek company-wide. Bentuk dari `GET /api/v1/projects`
+ * (`apps/api/src/routes/v1/projects.ts`).
+ *
+ * ⚠️ Beda dari dugaan awal task ini: brief menebak field minimal
+ * (`id, name, location?, pm_id?, status?, progress_pct?`). API sungguhan
+ * memulangkan jauh lebih banyak, dan halaman `pm-portal/proyek/page.tsx`
+ * yang SUDAH ADA (sebelum task ini) memakai `contract_value`, `start_date`,
+ * `end_date`, dan `client.name` — field yang hilang dari dugaan brief.
+ *
+ * Embed klien bernama `clients` (JAMAK, sesuai nama tabel) di response API,
+ * TAPI halaman existing membaca `p.client?.name` (TUNGGAL) — itu bug lama
+ * di halaman itu (selalu `undefined`), bukan bentuk field yang benar. Tipe
+ * di sini mengikuti API, bukan bug pembacanya: field bernama `clients`.
+ */
+export interface ProyekPM {
+  id: string
+  name: string
+  description?: string | null
+  location?: string | null
+  contract_model?: string | null
+  tax_scheme?: string | null
+  contract_value?: number | string | null
+  commission_pct?: number | string | null
+  retention_pct?: number | string | null
+  retention_amount?: number | string | null
+  penalty_enabled?: boolean | null
+  penalty_basis?: string | null
+  penalty_rate_per_day?: number | string | null
+  penalty_cap_pct?: number | string | null
+  penalty_grace_days?: number | null
+  start_date?: string | null
+  end_date?: string | null
+  actual_end_date?: string | null
+  status?: string | null
+  progress_pct?: number | null
+  notes?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  clients?: { id: string; contact_person: string | null; phone: string | null; client_type: string | null; user_id: string | null } | null
+  pm?: { id: string; name: string; email: string | null; phone: string | null } | null
+}
