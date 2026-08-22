@@ -1167,3 +1167,81 @@ export interface RespCashExpenses { expenses: ProjectExpense[] }
 
 export interface KategoriPengeluaran { id: string; name: string; type: string; parent_id: string | null; sort_order: number }
 export interface RespKategoriPengeluaran { categories: KategoriPengeluaran[]; source: "project" | "template" }
+
+/** Bentuk PERSIS `GET /api/v1/procurement/suppliers`, `procurement.ts:181-185`. */
+export interface SupplierRingkas {
+  id: string; code: string | null; name: string
+  contact_person: string | null; phone: string | null; email: string | null
+  payment_terms: string | null; is_active: boolean
+}
+export interface RespSupplierDaftar { suppliers: SupplierRingkas[] }
+
+/**
+ * Kontrak Payung / Expediting / Nota Kredit (Task 18, Tahap 3). Salinan
+ * PERSIS `pm-portal/_bersama/tipe.ts:3068-3117` (Task 36 PM) — bentuk
+ * respons SAMA, diverifikasi baris-per-baris ke `apps/api/src/lib/
+ * pengadaan-lanjutan.ts` + rute `apps/api/src/routes/v1/
+ * pengadaan-lanjutan.ts` — SATU endpoint `GET /pengadaan-lanjutan`, TIGA
+ * sub-modul (pola sama `kurva-s.ts`).
+ *
+ * ⚠️ BERBEDA dari versi PM di satu titik: PM boleh MEMBUAT kontrak payung/
+ * nota kredit dan mencatat expediting (`procurement:po:manage`, PM punya)
+ * TAPI TIDAK BERWENANG memutuskan/menerapkan nota kredit
+ * (`procurement:payment:manage`, PM TIDAK punya). Admin DAN direktur
+ * SAMA-SAMA punya `procurement:payment:manage` (diverifikasi langsung ke
+ * `pengadaan-lanjutan.ts` baris 561-673) — arah TERBALIK dari Task 15/16
+ * (yang MENGURANGI tombol PM untuk direktur): di sini KEDUA role admin
+ * dapat tombol yang PM tak pernah punya. Lihat halaman
+ * `keuangan/pengadaan-lanjutan/page.tsx` untuk tombol Setujui/Tolak/
+ * Terapkan nota kredit.
+ */
+export interface ItemPayungPM {
+  id: string; uraian: string; satuan: string
+  harga_satuan: number | string; kuota: number | string; terpakai?: number | string | null
+  sisa: number; persenTerpakai: number; habis: boolean; hampirHabis: boolean; nilaiTerpakai: number
+}
+export type StatusPayungPM =
+  | "aktif" | "kuota_habis" | "segera_berakhir" | "kedaluwarsa" | "belum_mulai" | "tak_aktif"
+export interface HasilPayungPM {
+  id: string; nomor: string; judul?: string | null; supplier_id?: string | null; pemasok_nama?: string | null
+  berlaku_dari: string; berlaku_sampai: string; pagu_nilai?: number | string | null; status: string
+  statusNyata: StatusPayungPM; sisaHari: number | null
+  itemDinilai: ItemPayungPM[]; nilaiTerpakai: number; sisaPagu: number | null
+  aktifTapiTakBisaDipakai: boolean
+}
+export interface RespKontrakPayungPM {
+  kontrak: HasilPayungPM[]; aktif: number; kuotaHabis: number; segeraBerakhir: number
+  aktifTapiTakBisaDipakai: number
+}
+
+export interface HasilExpeditingPM {
+  id: string; po_id: string; po_number?: string | null; pemasok_nama?: string | null
+  status: string; butuh_tanggal?: string | null; janji_vendor?: string | null
+  perkiraan_tiba?: string | null; tiba_aktual?: string | null; lokasi_terkini?: string | null
+  sebab_tertahan?: string | null
+  telatHari: number | null; telatDariJanji: number | null; janjiSudahTelat: boolean
+  kritis: boolean; sudahTiba: boolean
+}
+export interface RespExpeditingPM {
+  kiriman: HasilExpeditingPM[]; telat: number; kritis: number; tertahan: number
+  janjiSudahTelat: number; telatTerparah: number | null
+}
+
+export interface HasilNotaKreditPM {
+  id: string; nomor: string; tanggal?: string | null; jenis: string; jumlah: number | string
+  status: "draft" | "diajukan" | "disetujui" | "ditolak" | "diterapkan"
+  supplier_id?: string | null; pemasok_nama?: string | null; supplier_invoice_id?: string | null
+  diputuskan_pada?: string | null; diterapkan_pada?: string | null
+  jumlahAngka: number; umurSetujuHari: number | null; menggantung: boolean
+}
+export interface RespNotaKreditPM {
+  nota: HasilNotaKreditPM[]; totalDisetujui: number; totalDiterapkan: number
+  nilaiMenggantung: number; menggantung: number
+}
+
+export interface RespPengadaanLanjutan {
+  tanggal: string
+  kontrakPayung: RespKontrakPayungPM
+  expediting: RespExpeditingPM
+  notaKredit: RespNotaKreditPM
+}

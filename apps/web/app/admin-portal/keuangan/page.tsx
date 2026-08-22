@@ -46,11 +46,19 @@
 // gerbang `cash:account:manage` (tombol "Batalkan" transfer) admin+direktur
 // SAMA-SAMA punya (dikonfirmasi live query Task 13), bukan admin-only — lihat
 // komentar kepala `kas/[id]/page.tsx`.
+//
+// Task 18 (Tahap 3, TERAKHIR fitur Tahap 3) menambah tautan keenam: Kontrak
+// Payung & Pengadaan Lanjutan (`/admin-portal/keuangan/pengadaan-lanjutan`)
+// — pola sama. BEDA dari GL/Rekonsiliasi (admin-only) dan SAMA dengan Kas:
+// gerbang `procurement:payment:manage` (tombol Setujui/Tolak/Terapkan nota
+// kredit) admin+direktur SAMA-SAMA punya, PM Portal TIDAK PUNYA sama sekali
+// — arah TERBALIK dari Task 15/16 (yang MENGURANGI tombol PM untuk
+// direktur). Lihat komentar kepala halamannya.
 // ============================================================================
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Wallet, TrendingUp, AlertTriangle, Clock, Landmark, FileCheck2, BookOpen, Scale, ChevronRight } from "lucide-react";
+import { Wallet, TrendingUp, AlertTriangle, Clock, Landmark, FileCheck2, BookOpen, Scale, ChevronRight, ReceiptText } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { Tabel } from "@/components/dasar";
 import { formatRupiah, formatRupiahSingkat } from "@/lib/format";
@@ -162,6 +170,21 @@ export default function AdminDashboardKeuanganPage() {
           <Wallet size={18} color="var(--navy)" aria-hidden="true" />
           <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
             Kas & Pengeluaran
+          </span>
+          <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
+        </Link>
+
+        <Link
+          href="/admin-portal/keuangan/pengadaan-lanjutan"
+          style={{
+            display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu)",
+            borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
+            textDecoration: "none",
+          }}
+        >
+          <ReceiptText size={18} color="var(--navy)" aria-hidden="true" />
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Kontrak Payung & Pengadaan Lanjutan
           </span>
           <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
         </Link>
