@@ -360,6 +360,29 @@ menjurnalkannya membuat neraca dan register aset saling menyimpang.
 | **Penjurnalan otomatis** (invoice/pembayaran → GL) | ✅ | **R-012 SELESAI 2026-08-12** — migrasi 297–300 · `peta_akun_jurnal` + akun `2131 PPN Keluaran` & `5950 Beban PPh Final` · `lib/penjurnalan-otomatis.ts` (39 test, 23/24 mutasi MERAH) · `routes/v1/penjurnalan-otomatis.ts` (22 test Postgres nyata, 15/15 mutasi MERAH) · `/akuntansi/peta-akun` + `/akuntansi/jurnalkan`. **Keempat pertanyaan yang dulu tercatat "tak boleh saya tebak" SUDAH DIJAWAB** — dan pemeriksaannya menunjukkan tiga di antaranya sebenarnya "belum saya cari", bukan "tak boleh ditebak": (1) akrual PSAK 72, dasar yang SAMA dengan `lib/wip-psak.ts` yang sudah berjalan — memilih basis kas membuat dua laporan bercerita berbeda tentang bulan yang sama; (2) retensi → `1124` **aset**, karena pekerjaannya selesai dan pendapatannya diakui penuh, yang tertunda adalah hak menagih; (3) uang muka → `2150` **liabilitas** kontrak, mencatatnya sebagai pendapatan membuat laba melonjak lalu rugi saat dikerjakan; (4) pertanyaan PPN **salah sasaran** — diukur 16/16 proyek `pph_final`, dan bedanya PPh final = BEBAN vs PPN = UTANG titipan. **Nol baris ter-seed**: migrasi 297 GAGAL bila ada satu baris pun tertanam — peta akun menentukan bentuk seluruh laporan keuangan, dan bawaan yang terisi sendiri tak pernah ditanyakan siapa pun karena hasilnya terlihat wajar. Layar MENAWARKAN usulan beserta dasar PSAK-nya; founder yang menekan simpan. Jurnal dibuat **draft** (tafsir bisa salah; draft menangkap peta keliru sebelum masuk neraca). Satu invoice = satu jurnal, dijaga `uq_jurnal_satu_per_rujukan` di BASIS bukan aplikasi: dua permintaan bersamaan lolos pemeriksaan aplikasi, dan jurnal gandanya **tetap seimbang** sehingga tak ada invariant pembukuan yang menangkapnya. **Yang tetap manual**: penyusutan, koreksi audit, jurnal penutup — otomatisasi berhenti di tempat yang jawabannya tunggal |
 | Audit trail | ✅ | + correlation_id + severity + diff + **append-only AKTIF**. ~~Gap: trigger 073 dorman~~ **KELIRU, dikoreksi 2026-08-01**: `trg_audit_logs_no_update` & `trg_audit_logs_no_delete` `tgenabled='O'` di DB — di-apply via PR #13 (`d9ea114`) setelah founder menyetujui. Klaim "dorman" berasal dari komentar di berkas migrasi 073 yang tak pernah diperbarui setelah gerbangnya dibuka |
 
+**Portal Admin/Direktur (`admin-portal/*`)** — Tahap 3 selesai (Task 14-19,
+2026-08-22): 11 dari 18 item grup `g-keuangan` kini punya halaman
+admin-portal sendiri. `fn-gl` (Buku Besar), `fn-jurnal` (Jurnal Umum),
+`gl-peta-akun` (Peta Akun Jurnal), `gl-jurnalkan` (Jurnalkan Invoice),
+`fn-laporan` (Laporan Keuangan), `fn-wip` (Pengakuan Pendapatan), dan
+`fn-tutup-buku` (Tutup Buku) SEMUANYA menunjuk SATU halaman
+`/admin-portal/keuangan/gl` ber-SegmentedTab 4-arah (Task 15) — pola
+identik `jd-cpm`/`jd-histogram`/`jd-method`/`jd-baseline` di Tahap 2; yang
+di web desktop punya halaman terpisah (`/akuntansi/peta-akun`, dst) sengaja
+digabung ke satu tab admin-portal karena layar HP tak punya ruang untuk
+memisahkan konfigurasi jarang-diakses dari operasional harian. `fn-ar`
+(`/admin-portal/keuangan/piutang`, Task 14), `fn-kas`/`fn-petty`
+(`/admin-portal/keuangan/kas`, Task 17, gerbang batalkan transfer
+admin-only), `fn-rekonsiliasi` (`/admin-portal/keuangan/rekonsiliasi-bank`,
+Task 16, gerbang manage/lock admin-only). Sisa 7 item (`set-api-key`,
+`set-markup`, `fn-ap`, `fn-aset-tetap`, `fn-pajak`, `fn-efaktur`,
+`fn-audit`) di luar scope Task 14-18, TAMPIL di
+`/admin-portal/kategori/g-keuangan` tapi fallback ke href web.
+`fn-ap`/`fn-aset-tetap`/`fn-pajak`/`fn-efaktur`/`fn-audit`/`set-api-key`/
+`set-markup` ikut tampil dengan fallback href web sejak `g-keuangan`
+diaktifkan Task 19 — pola sama Tahap 1-2 (lihat `PETA_HREF_PORTAL` di
+`admin-portal/kategori/[key]/page.tsx`).
+
 ---
 
 ## 15. PENAGIHAN & PENDAPATAN
@@ -375,6 +398,22 @@ menjurnalkannya membuat neraca dan register aset saling menyimpang.
 | Invoice & faktur pajak | ✅ | + PDF + QR verifikasi publik (`/verify/invoice/[id]`) |
 | Follow-up penagihan | ✅ | Koreksi dari 🟡 (2026-07-28): notif + email overdue + AR aging bucket 30/60/90 di `/piutang` |
 | Nota kredit | ✅ | Migrasi 219 · `nota_kredit` · `/procurement/lanjutan`. Pemutus WAJIB berbeda dari pengaju (constraint DB, pola sama dengan izin kerja 218). `disetujui` dan `diterapkan` adalah **dua kejadian terpisah** — constraint menolak `diterapkan` tanpa `diputuskan_pada`, dan jarak di antaranya ditandai: potongan yang disepakati tapi belum mengurangi tagihan adalah uang hilang dengan persetujuan lengkap |
+
+**Portal Admin/Direktur (`admin-portal/*`)** — Tahap 3 selesai (Task 14-19,
+2026-08-22): 8 dari **9** item grup `g-tagih` punya halaman admin-portal
+(peta-menu.ts baris 316-326 punya 9 item, bukan 8 — koreksi terhadap
+breakdown Task 19 yang salah hitung, lihat JOURNAL 2026-08-22). `tg-progress`
+(Progress Billing), `tg-termin` (Termin), dan `tg-tambah` (Tagihan Pekerjaan
+Tambah) menunjuk Beranda Dashboard Keuangan `/admin-portal/keuangan`
+(Task 14) — bukan modul CRUD tersendiri, karena ketiganya tampil di
+ringkasan beranda itu. `tg-ipc` (`/admin-portal/keuangan/ipc`, Task 14).
+`tg-retensi`/`tg-uangmuka`/`tg-followup` (`/admin-portal/keuangan/piutang`,
+Task 14). `tg-nota-kredit` (`/admin-portal/keuangan/pengadaan-lanjutan`,
+Task 18 — SATU-SATUNYA modul di plan ini yang MENAMBAH kapabilitas
+admin+direktur di atas PM: tombol Setujui/Tolak/Terapkan Potongan digerbang
+`procurement:payment:manage`, yang PM tidak punya). `tg-invoice` (Invoice &
+Faktur Pajak) SENGAJA TIDAK dipetakan — Task 14-18 tak membangun invoice
+CRUD di admin-portal, fallback ke `/keuangan/invoice` web.
 
 ---
 

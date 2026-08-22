@@ -39,6 +39,30 @@ import { Folder } from "lucide-react";
  * kt-subkon; jd-wbs/jd-gantt/jd-kurva-s/jd-lookahead/jd-milestone/jd-evm)
  * di luar scope Tahap 2, jatuh ke fallback `it.href` web — perilaku
  * disengaja, sama seperti item Tahap 1 yang belum dibangun.
+ *
+ * Tahap 3 (Task 14-18, diaktifkan Task 19): grup `g-keuangan`/`g-tagih`
+ * (Keuangan & Penagihan). 11 dari 18 item g-keuangan dan 8 dari 9 item
+ * g-tagih punya halaman admin-portal sungguhan (diverifikasi ke
+ * `find apps/web/app/admin-portal/keuangan -name page.tsx`). fn-gl/
+ * fn-jurnal/gl-peta-akun/gl-jurnalkan/fn-laporan/fn-wip/fn-tutup-buku
+ * menunjuk SATU halaman `/admin-portal/keuangan/gl` ber-SegmentedTab
+ * 4-arah (Task 15) — pola identik jd-cpm/jd-histogram/jd-method/
+ * jd-baseline di atas; peta-akun/jurnalkan/periode yang di web desktop
+ * punya halaman terpisah (`/akuntansi/peta-akun`, dst) sengaja digabung
+ * ke satu tab di layar HP. tg-progress/tg-termin/tg-tambah menunjuk
+ * Beranda Dashboard Keuangan `/admin-portal/keuangan` (Task 14) — bukan
+ * halaman terpisah, karena Progress Billing/Termin/Tagihan Pekerjaan
+ * Tambah semuanya tampil di ringkasan beranda itu, bukan modul CRUD
+ * tersendiri. Sisanya di g-keuangan (set-api-key, set-markup, fn-ap,
+ * fn-aset-tetap, fn-pajak, fn-efaktur, fn-audit) di luar scope Task
+ * 14-18, jatuh ke fallback `it.href` web. `tg-invoice` di g-tagih JUGA
+ * TAK dipetakan — Task 14-18 tak membangun invoice CRUD di admin-portal
+ * (hanya IPC, piutang, GL, rekonsiliasi, kas, pengadaan lanjutan) —
+ * catatan brief Task 19 yang menyebut g-tagih "8 dari 8, SELURUHNYA
+ * tercakup" keliru menghitung total item grup itu (9, bukan 8);
+ * `tg-invoice` jatuh fallback ke `/keuangan/invoice` web, pola identik
+ * `pm-portal/kategori/[key]/page.tsx` yang mengecualikan key yang sama
+ * dengan alasan yang sama.
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "bi-eksekutif": "/admin-portal",
@@ -61,6 +85,29 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "jd-method": "/admin-portal/jadwal",
   "jd-baseline": "/admin-portal/jadwal",
   "jd-delay": "/admin-portal/jadwal/keterlambatan",
+  // Tahap 3 — Keuangan (g-keuangan). Tujuh key di bawah menunjuk SATU
+  // halaman ber-SegmentedTab 4-arah (Task 15) — pola identik jd-cpm dkk.
+  "fn-gl": "/admin-portal/keuangan/gl",
+  "fn-jurnal": "/admin-portal/keuangan/gl",
+  "gl-peta-akun": "/admin-portal/keuangan/gl",
+  "gl-jurnalkan": "/admin-portal/keuangan/gl",
+  "fn-laporan": "/admin-portal/keuangan/gl",
+  "fn-wip": "/admin-portal/keuangan/gl",
+  "fn-tutup-buku": "/admin-portal/keuangan/gl",
+  "fn-ar": "/admin-portal/keuangan/piutang",
+  "fn-kas": "/admin-portal/keuangan/kas",
+  "fn-rekonsiliasi": "/admin-portal/keuangan/rekonsiliasi-bank",
+  "fn-petty": "/admin-portal/keuangan/kas",
+  // Tahap 3 — Penagihan (g-tagih). tg-invoice SENGAJA tak dipetakan —
+  // lihat catatan panjang di atas.
+  "tg-progress": "/admin-portal/keuangan",
+  "tg-termin": "/admin-portal/keuangan",
+  "tg-ipc": "/admin-portal/keuangan/ipc",
+  "tg-retensi": "/admin-portal/keuangan/piutang",
+  "tg-uangmuka": "/admin-portal/keuangan/piutang",
+  "tg-tambah": "/admin-portal/keuangan",
+  "tg-followup": "/admin-portal/keuangan/piutang",
+  "tg-nota-kredit": "/admin-portal/keuangan/pengadaan-lanjutan",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 

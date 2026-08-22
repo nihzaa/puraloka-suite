@@ -93,11 +93,25 @@ export default function AdminDashboardKeuanganPage() {
         Dashboard Keuangan
       </h1>
 
-      {/* Tautan ke Piutang, IPC, dan General Ledger — ketiganya bukan bagian
-          NAV_ITEMS bottom nav (grup g-keuangan/g-tagih belum diaktifkan di
-          kategori "Lainnya", lihat layout.tsx), jadi jalur masuk utamanya
-          dari sini, pola sama lima tautan kontrak/jadwal di
-          `kontrak/register/page.tsx`. GL ditambahkan Task 15 (Tahap 3). */}
+      {/* Tautan ke Piutang, IPC, GL, Rekonsiliasi Bank, Kas, dan Pengadaan
+          Lanjutan — keenamnya bukan bagian NAV_ITEMS bottom nav (bottom nav
+          hanya berhenti di "Keuangan" beranda ini, lihat layout.tsx), jadi
+          jalur masuk utamanya dari sini, pola sama lima tautan
+          kontrak/jadwal di `kontrak/register/page.tsx`. GL ditambahkan Task
+          15, Rekonsiliasi Bank Task 16, Kas Task 17, Pengadaan Lanjutan
+          Task 18 (semua Tahap 3).
+          Task 19 mengaktifkan `g-keuangan`/`g-tagih` di kategori "Lainnya"
+          (lib/admin-portal-kategori.ts), jadi sejak itu keenam halaman ini
+          punya DUA jalur: cross-link di sini, DAN grid kategori → Keuangan/
+          Penagihan → fn-ar/fn-kas/fn-rekonsiliasi/tg-ipc/tg-nota-kredit di
+          PETA_HREF_PORTAL (kategori/[key]/page.tsx). Cross-link di bawah
+          DIPERTAHANKAN sebagai pintasan — pola identik lima tautan
+          kontrak/jadwal yang dipertahankan Task 12 sesudah `g-kontrak`/
+          `g-jadwal` diaktifkan (lihat WAJAR di scripts/audit-nav-yatim.mjs).
+          `/admin-portal/keuangan/gl/jurnal/[id]` dan `/rekonsiliasi-bank/
+          [id]` dan `/kas/[id]` TIDAK dapat tautan di sini — dicapai dari
+          badan halaman induknya masing-masing (baris tabel), bukan dari
+          Beranda Dashboard Keuangan. */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <Link
           href="/admin-portal/keuangan/piutang"

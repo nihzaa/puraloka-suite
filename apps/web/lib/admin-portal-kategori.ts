@@ -52,8 +52,28 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * TIDAK di sini — bukan grup `peta-menu.ts` tersendiri, diakses lewat
  * NAV_ITEMS langsung (`admin-portal/layout.tsx`, href
  * /admin-portal/proyek).
+ *
+ * Tahap 3 (Task 14-18): "Keuangan" (g-keuangan, 18 item di `peta-menu.ts`
+ * baris 292-311 — 11 punya halaman admin-portal sungguhan: fn-gl,
+ * fn-jurnal, gl-peta-akun, gl-jurnalkan, fn-laporan, fn-wip,
+ * fn-tutup-buku SEMUANYA menunjuk SATU halaman `/admin-portal/keuangan/gl`
+ * ber-SegmentedTab 4-arah [Task 15, pola identik jd-cpm/jd-histogram
+ * Tahap 2]; fn-ar → `/piutang`; fn-kas & fn-petty → `/kas`;
+ * fn-rekonsiliasi → `/rekonsiliasi-bank`. 7 sisanya — set-api-key,
+ * set-markup, fn-ap, fn-aset-tetap, fn-pajak, fn-efaktur, fn-audit — di
+ * luar scope Task 14-18, jatuh ke fallback href web) dan "Penagihan"
+ * (g-tagih, 9 item di `peta-menu.ts` baris 316-326 — 8 punya halaman
+ * admin-portal: tg-progress/tg-termin/tg-tambah → Beranda Dashboard
+ * Keuangan `/admin-portal/keuangan` [Task 14, bukan halaman terpisah];
+ * tg-ipc → `/admin-portal/keuangan/ipc`; tg-retensi/tg-uangmuka/
+ * tg-followup → `/admin-portal/keuangan/piutang`; tg-nota-kredit →
+ * `/admin-portal/keuangan/pengadaan-lanjutan`. `tg-invoice` TIDAK
+ * dipetakan — Task 14-18 tak membangun invoice CRUD di admin-portal,
+ * jatuh ke fallback href web `/keuangan/invoice`, pola identik
+ * `pm-portal/kategori/[key]/page.tsx` yang mengecualikan key yang sama
+ * dengan alasan yang sama).
  */
-const KATEGORI_AKTIF: string[] = ["g-laporan", "g-sistem", "g-kontrak", "g-jadwal"]; // Tahap 1-2
+const KATEGORI_AKTIF: string[] = ["g-laporan", "g-sistem", "g-kontrak", "g-jadwal", "g-keuangan", "g-tagih"]; // Tahap 1-3
 
 export function kategoriUntukAdmin(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));
