@@ -27,13 +27,16 @@
 // beda dari `DokumenKontrak`/`EotProyek`/dst yang dipakai lintas beberapa
 // file portal. Deviasi terdokumentasi, bukan inkonsistensi tersembunyi.
 //
-// ⚠️ DUA DEVIASI dari "salin APA ADANYA" (dilaporkan jujur, bukan diklaim
+// ⚠️ DEVIASI dari "salin APA ADANYA" (dilaporkan jujur, bukan diklaim
 // persis): (1) `fmtTanggal()` lokal versi PM diganti `formatTanggal()` dari
 // `@/lib/format` — pola wajib repo ini (lihat peringatan format function di
 // task ini), PM sendiri belum memakainya di halaman ini. (2) dua `gap: 16`
 // dipaku (baris pembuka & baris ringkasan KPI baseline) diganti
-// `var(--gap-bagian)` supaya `kerapatan-ratchet.mjs` tidak naik — nilainya
-// SAMA PERSIS (16px), token bukan desain baru.
+// `var(--gap-bagian)`, dan (3) `padding: 16` dipaku di kartu ringkasan
+// baseline (co-located dengan salah satu `gap: 16` di atas, sempat terlewat
+// review pertama) diganti `var(--pad-kartu-lega)` — supaya
+// `kerapatan-ratchet.mjs` tidak naik. Ketiganya nilainya SAMA PERSIS (16px),
+// token bukan desain baru.
 // ============================================================================
 
 import { useMemo, useState } from "react";
@@ -292,7 +295,7 @@ export default function AdminJadwalPage() {
           )}
 
           {!memuatPergeseran && dataPergeseran?.baseline && (
-            <div style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>
                   #{dataPergeseran.baseline.nomor} {dataPergeseran.baseline.nama}
