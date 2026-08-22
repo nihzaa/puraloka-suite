@@ -73,6 +73,13 @@ import { LayoutGrid, Inbox, FolderKanban, FileSignature, MoreHorizontal } from "
 // bottom nav begitu urutan array diprioritaskan ulang di tahap berikutnya
 // (Task 12 mengaktifkan `g-kontrak`), tanpa perlu menyentuh dua halaman
 // kontrak itu sendiri.
+//
+// Tahap 2 (Task 9): "EOT, Denda & Jaminan" (`/kontrak/eot-ld-bond`) dan
+// "Klaim Kontraktual" (`/kontrak/klaim`) dibangun — pola cacat yang SAMA
+// diantisipasi dari awal: keduanya PER-PROYEK murni, tak dapat entri
+// NAV_ITEMS sendiri, dijangkau lewat tautan di badan halaman Register
+// Kontrak, didaftarkan WAJAR di `audit-nav-yatim.mjs` persis seperti
+// asuransi di atas.
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin-portal", label: "Beranda", icon: LayoutGrid, exact: true },
   { href: "/admin-portal/inbox", label: "Approval", icon: Inbox },

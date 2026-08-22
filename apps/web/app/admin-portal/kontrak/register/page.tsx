@@ -23,7 +23,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FileSignature, ShieldCheck, ChevronRight, Plus } from "lucide-react";
+import { FileSignature, ShieldCheck, ChevronRight, Plus, CalendarClock, Scale } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import { formatRupiah, formatTanggal } from "@/lib/format";
@@ -173,9 +173,10 @@ export default function AdminRegisterKontrakPage() {
       </h1>
 
       {/* Tautan ke modul terkait erat (asuransi menyertai tiap kontrak
-          proyek) — `/admin-portal/kontrak/asuransi` bukan bagian NAV_ITEMS
-          bottom nav (grup g-kontrak belum diaktifkan di kategori "Lainnya",
-          lihat layout.tsx), jadi jalur masuk utamanya dari sini. */}
+          proyek; EOT/LD/Bond dan klaim kontraktual per-proyek — Task 9) —
+          ketiganya bukan bagian NAV_ITEMS bottom nav (grup g-kontrak belum
+          diaktifkan di kategori "Lainnya", lihat layout.tsx), jadi jalur
+          masuk utamanya dari sini. */}
       <Link
         href="/admin-portal/kontrak/asuransi"
         style={{
@@ -187,6 +188,36 @@ export default function AdminRegisterKontrakPage() {
         <ShieldCheck size={18} color="var(--navy)" aria-hidden="true" />
         <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Register Asuransi
+        </span>
+        <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
+      </Link>
+
+      <Link
+        href="/admin-portal/kontrak/eot-ld-bond"
+        style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu)",
+          borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
+          textDecoration: "none",
+        }}
+      >
+        <CalendarClock size={18} color="var(--navy)" aria-hidden="true" />
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+          EOT, Denda &amp; Jaminan
+        </span>
+        <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
+      </Link>
+
+      <Link
+        href="/admin-portal/kontrak/klaim"
+        style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu)",
+          borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
+          textDecoration: "none",
+        }}
+      >
+        <Scale size={18} color="var(--navy)" aria-hidden="true" />
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+          Klaim Kontraktual
         </span>
         <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
       </Link>

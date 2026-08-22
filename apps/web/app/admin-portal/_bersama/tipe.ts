@@ -484,3 +484,175 @@ export interface RespAsuransi {
   proyek_tanpa_polis: Array<{ project_id: string; project_name: string }>
   total_nilai_pertanggungan: number
 }
+
+// ============================================================================
+// EOT + Denda Keterlambatan + Register Jaminan + Klaim Kontraktual
+// (Task 9, Tahap 2) — disalin PERSIS dari `pm-portal/_bersama/tipe.ts:1038-1198`.
+// ============================================================================
+
+/**
+ * EOT (Extension of Time) — tabel `contract_eot` (migrasi 152). Bentuk dari
+ * `GET /api/v1/projects/:id/eot` (`apps/api/src/routes/v1/rantai-kontrak.ts`),
+ * kolom `select` eksplisit di route.
+ */
+export interface EotProyek {
+  id: string;
+  eot_number: string | null;
+  days_requested: number;
+  days_approved: number | null;
+  reason: string;
+  status: "diajukan" | "disetujui" | "ditolak";
+  submitted_at: string;
+  decided_at: string | null;
+  decision_note: string | null;
+  created_at: string;
+}
+
+/**
+ * Bentuk `HasilTanggalEfektif`, `apps/api/src/lib/rantai-kontrak.ts:53-62`
+ * (`tanggalSelesaiEfektif()`). `meta` dari `GET .../eot`.
+ */
+export interface TanggalEfektifKontrak {
+  /** Tanggal kontrak asli, tak pernah berubah. */
+  tanggalAsli: string;
+  /** Tanggal setelah seluruh EOT yang DISETUJUI. */
+  tanggalEfektif: string;
+  /** Total hari yang ditambahkan oleh EOT disetujui. */
+  totalHariEOT: number;
+  /** Berapa pengajuan yang masih menggantung — penting ditampilkan bersama LD. */
+  eotMenggantung: number;
+}
+
+export interface RespEot {
+  data: EotProyek[];
+  meta: TanggalEfektifKontrak;
+}
+
+/**
+ * Bentuk `HasilLD`, `apps/api/src/lib/rantai-kontrak.ts:161-178` (`hitungLD()`).
+ * `data` dari `GET /api/v1/projects/:id/liquidated-damages` — endpoint
+ * sesungguhnya memulangkan `HasilLDProyek` (superset dengan `otoritatif` +
+ * `syarat`, `apps/api/src/utils/rantai-kontrak.ts:84-88`), tapi halaman ini
+ * hanya memakai field dasar `HasilLD` sehingga tipe di sini cukup sebagai
+ * subset yang aman.
+ */
+export interface HasilLD {
+  /** `true` bila ada denda yang benar-benar terhitung. */
+  adaDenda: boolean;
+  hariTelat: number;
+  dasarPerhitungan: number;
+  dendaSebelumBatas: number;
+  batasNominal: number;
+  denda: number;
+  /** `true` bila denda menyentuh batas — sinyal kontrak layak diputus. */
+  kenaBatas: boolean;
+  tanggal: TanggalEfektifKontrak;
+  /** Kenapa dendanya nol / tak dihitung — supaya "0" tak ambigu. */
+  alasan: string | null;
+}
+
+export interface RespLd {
+  data: HasilLD;
+  meta: { label: string; peringatan: string | null };
+}
+
+/**
+ * Register jaminan — tabel `contract_bonds` (migrasi 152). Bentuk dari
+ * `GET /api/v1/bonds` (`select` eksplisit route).
+ */
+export interface BondProyek {
+  id: string;
+  project_id: string | null;
+  bid_id: string | null;
+  bond_type: "penawaran" | "pelaksanaan" | "uang_muka" | "pemeliharaan";
+  bond_number: string | null;
+  issuer: string | null;
+  amount: number | string;
+  issued_date: string;
+  expiry_date: string;
+  status: "aktif" | "dikembalikan" | "dicairkan" | "kadaluarsa";
+  released_at: string | null;
+  notes: string | null;
+}
+
+/**
+ * Bentuk `BarisBond` — bentuk INTERNAL lib (BUKAN kolom DB mentah), dipakai
+ * `ringkasBond()`, `apps/api/src/lib/rantai-kontrak.ts:255-262`. Route
+ * `GET /api/v1/bonds` (`rantai-kontrak.ts:252-286`) mem-map baris DB ke
+ * bentuk ini (`untukLib = baris.map(...)`) SEBELUM memanggil `ringkasBond()`
+ * — jadi field-nya beda nama dari `BondProyek`: `jenis` (bukan `bond_type`),
+ * `nilai` (bukan `amount`), `tanggalTerbit`/`tanggalKadaluarsa` (bukan
+ * `issued_date`/`expiry_date`). Objek di `RingkasBond.segeraKadaluarsa`/
+ * `telatDiperbarui` di bawah berbentuk INI, bukan `BondProyek`.
+ */
+export interface BarisBondRingkas {
+  id?: string;
+  jenis: "penawaran" | "pelaksanaan" | "uang_muka" | "pemeliharaan";
+  nilai: number;
+  tanggalTerbit: string;
+  tanggalKadaluarsa: string;
+  status: "aktif" | "dikembalikan" | "dicairkan" | "kadaluarsa";
+}
+
+/** Bentuk `RingkasBond`, `apps/api/src/lib/rantai-kontrak.ts:264-271` (`ringkasBond()`). */
+export interface RingkasBond {
+  totalAktif: number;
+  jumlahAktif: number;
+  /** Jaminan yang kadaluarsa ≤ N hari — uang yang bisa hangus bila terlewat. */
+  segeraKadaluarsa: Array<BarisBondRingkas & { sisaHari: number }>;
+  /** Sudah lewat tanggal tapi statusnya masih 'aktif' — data yang perlu dirapikan. */
+  telatDiperbarui: BarisBondRingkas[];
+}
+
+export interface RespBond {
+  data: BondProyek[];
+  meta: RingkasBond;
+}
+
+/**
+ * Klaim kontraktual (tabel `contract_claims`, migrasi 184) — tuntutan biaya
+ * kontraktor ke pemberi kerja. Bentuk dari `GET /api/v1/projects/:id/claims`
+ * (`apps/api/src/routes/v1/rantai-kontrak.ts`): baris DB mentah (`select('*')`)
+ * disebar bersama `batas_pemberitahuan` turunan.
+ *
+ * ⚠️ Nama "klaim" bentrok modul `klaim-perjalanan.ts` (penggantian biaya
+ * karyawan, permission `klaim:*`) — ENTITAS LAIN SAMA SEKALI, di luar scope
+ * halaman ini.
+ *
+ * `PATCH /api/v1/claims/:id/decide` mewarisi tenancy lewat `project_id` di
+ * BODY (bukan lewat id klaim sendiri) — pola sama `DokumenKontrak`/`Spk`.
+ * `validasiKeputusanKlaim` (`lib/klaim-kontraktual.ts`) menolak (422) bila
+ * status `disetujui` tapi `amount_approved !== amount_claimed` — nilai
+ * berbeda WAJIB pakai `disetujui_sebagian`.
+ */
+export type KeadaanBatasPemberitahuan =
+  | "tak_diatur" | "aman" | "berjalan" | "mendesak" | "terlambat" | "tak_terbaca"
+export interface BatasPemberitahuan {
+  keadaan: KeadaanBatasPemberitahuan
+  sisaHari: number | null
+  hariTerpakai: number | null
+  pesan?: string
+}
+
+export interface KlaimKontraktual {
+  id: string
+  project_id: string
+  claim_number: string
+  claim_type: string
+  title: string
+  description: string | null
+  event_date: string
+  notified_at: string | null
+  notice_days_limit: number | null
+  amount_claimed: number | string
+  amount_approved: number | string | null
+  eot_id: string | null
+  status: "draft" | "diberitahukan" | "diajukan" | "disetujui" | "disetujui_sebagian" | "ditolak" | "gugur"
+  decision_note: string | null
+  decided_at: string | null
+  batas_pemberitahuan: BatasPemberitahuan
+}
+export interface RespKlaimKontraktual {
+  data: KlaimKontraktual[]
+  ringkas: { jumlah: number; total_diklaim: number; total_disetujui: number; berisiko_gugur: number; mendesak: number }
+}
