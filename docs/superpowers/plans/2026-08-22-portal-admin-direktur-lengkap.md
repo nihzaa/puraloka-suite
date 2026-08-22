@@ -1144,14 +1144,77 @@ benar) — tapi hidup di file BERBEDA: inline di
 
 ---
 
-## Tahap 2-7: Belum di-breakdown
+## Tahap 2: Proyek + Kontrak + Jadwal
 
-Mengikuti pola Portal PM: setiap Tahap (2: Proyek+Kontrak+Jadwal, 3:
-Keuangan+Akuntansi, 4: Procurement+Gudang+Aset, 5: Mutu/K3+Risiko+Dokumen+
-Kepatuhan, 6: SDM+Klien+Tender, 7: Sistem/Settings/AI [read-only]+Audit+
-Users/Roles+Master+sisa) dimulai dengan SATU task "riset & breakdown" yang
-menulis task-task konkret ke dokumen ini begitu tahap sebelumnya selesai —
-BUKAN ditulis sekaligus di awal (perkiraan skala terlalu tak pasti untuk
+### Task 6: Riset & breakdown — Proyek (company-wide) + Kontrak + Jadwal (Tahap 2)
+
+**Files:**
+- Modify (dokumen ini): tambah Task 7+ dengan breakdown lengkap Tahap 2
+  berdasar riset task ini.
+
+**Interfaces:**
+- Consumes: hasil Tahap 1 (shell+layout+gerbang+Dashboard+Inbox berfungsi,
+  pola `useData`/`hasPermission`/token kerapatan established).
+- Produces: daftar Task konkret bernomor untuk Tahap 2, ditulis LANGSUNG
+  ke dokumen plan ini (pola sama Task 2).
+
+- [ ] **Step 1: Baca halaman web yang sudah ada untuk Proyek, Kontrak, Jadwal**
+
+  Baca `apps/web/app/(dashboard)/proyek/page.tsx` (list company-wide) dan
+  `proyek/[id]/page.tsx` (detail + tab-tab-nya — kemungkinan CPM/Gantt/
+  Kurva-S/dst sebagai tab, BUKAN halaman terpisah, verifikasi ke kode
+  bukan ditebak). Baca modul Kontrak (`kontrak.ts`, `asuransi.ts`,
+  `rantai-kontrak.ts` di backend — lihat pola sudah dipetakan Portal PM
+  Task 11 sebagai rujukan, TAPI verifikasi ULANG untuk konteks admin:
+  apakah endpoint sama tapi tanpa filter `pm_id`, atau ada endpoint
+  company-wide terpisah). Baca Jadwal (`jadwal-cpm.ts` atau sejenis).
+
+- [ ] **Step 2: Live query permission admin+direktur untuk ketiga modul**
+
+  Pisah per role_id (2 baris masing-masing). Catat permission APA yang
+  menggerbangi create/edit vs view-only untuk Kontrak (Register Kontrak,
+  Asuransi, EOT/Denda/Jaminan, Klaim Kontraktual, Surat) dan Jadwal (CPM,
+  Analisa Keterlambatan).
+
+- [ ] **Step 3: Tentukan pola company-wide vs project-picker untuk tiap sub-modul**
+
+  Proyek List → company-wide (tanpa picker, halaman list itu sendiri).
+  Proyek Detail → perlu memilih SATU proyek (inherent ke konsepnya,
+  bukan project-picker tambahan — user tap dari list). Kontrak/Jadwal →
+  tentukan dari kode: apakah datanya company-wide (list semua kontrak
+  lintas proyek) atau per-proyek (`proyek/[id]` tab)? Verifikasi ke
+  endpoint API, jangan asumsikan dari nama modul.
+
+- [ ] **Step 4: Tulis Task 7+ ke dokumen ini**
+
+  Berdasar riset Step 1-3, tulis task-task konkret dengan kode LENGKAP
+  untuk: Proyek List (company-wide), Proyek Detail (kalau perlu halaman
+  admin-portal sendiri, atau cukup deep-link ke rute existing kalau
+  sudah company-wide-friendly — verifikasi dulu, jangan bangun ulang
+  yang sudah ada), Kontrak (Register+Asuransi+EOT dst — bisa dipecah
+  multi-task seperti Portal PM Task 12-14), Jadwal (CPM+Analisa
+  Keterlambatan), lalu satu task navigasi+verifikasi akhir Tahap 2
+  (pola sama Task 5, termasuk cek ulang `KATEGORI_AKTIF` grup yang
+  relevan: kemungkinan `g-kontrak`, `g-jadwal`, dan grup Proyek kalau
+  ada grup tersendiri — verifikasi ke `peta-menu.ts`).
+
+- [ ] **Step 5: Commit breakdown**
+
+  ```bash
+  git add docs/superpowers/plans/2026-08-22-portal-admin-direktur-lengkap.md
+  git commit -m "docs(plan): breakdown Tahap 2 — Proyek + Kontrak + Jadwal"
+  ```
+
+---
+
+## Tahap 3-7: Belum di-breakdown
+
+Mengikuti pola Portal PM: setiap Tahap (3: Keuangan+Akuntansi, 4:
+Procurement+Gudang+Aset, 5: Mutu/K3+Risiko+Dokumen+Kepatuhan, 6:
+SDM+Klien+Tender, 7: Sistem/Settings/AI [read-only]+Audit+Users/Roles+
+Master+sisa) dimulai dengan SATU task "riset & breakdown" yang menulis
+task-task konkret ke dokumen ini begitu tahap sebelumnya selesai — BUKAN
+ditulis sekaligus di awal (perkiraan skala terlalu tak pasti untuk
 menulis kode konkret sebelum tahap sebelumnya membuktikan pola yang
 sesungguhnya berlaku, persis alasan yang sama kenapa Portal PM
 membengkak 32→78 halaman).
