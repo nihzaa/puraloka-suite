@@ -1636,8 +1636,8 @@ git commit -m "feat: provisionTenantStep1 — transaksi 1 provisioning tenant (s
 - Modify: `E:\Project\admin-saas\lib/provisioning.test.ts`
 
 **Interfaces:**
-- Consumes: `supabaseAdmin.auth.admin` (Supabase Auth Admin API), `companyId`+`adminRoleId` dari `provisionTenantStep1`.
-- Produces: `provisionTenantStep2(input: { companyId: string; adminRoleId: string; adminEmail: string }): Promise<{ authUserId: string } | { error: string }>` — implementasi spec §5.1a langkah 2a (cek-lalu-buat `auth.users`, idempoten) + 2b (upsert `company_members`, idempoten).
+- Consumes: `supabaseAdmin.auth.admin` (Supabase Auth Admin API), `companyId`+`adminRoleId` dari `provisionTenantStep1`, tabel `public.users` (perantara wajib — lihat catatan "celah yang ketahuan saat eksekusi" di Step 3).
+- Produces: `provisionTenantStep2(input: { companyId: string; adminRoleId: string; adminEmail: string; adminName: string }): Promise<{ authUserId: string } | { error: string }>` — implementasi spec §5.1a langkah 2a (cek-lalu-buat `auth.users`, idempoten) + 2a-bis (cek-lalu-buat `public.users`, idempoten — WAJIB, ditemukan saat eksekusi, bukan di draft awal) + 2b (upsert `company_members` dgn `user_id` = `public.users.id`, idempoten). `adminName` WAJIB (`users.name` bertipe `NOT NULL`).
 
 - [ ] **Step 1: Tulis test — sukses, dan idempotency saat dipanggil dua kali**
 
@@ -1744,20 +1744,79 @@ export async function provisionTenantStep2(input: {
     authUserId = created.user.id
   }
 
+  // 2a-bis — public.users adalah tabel PERANTARA, WAJIB, ditemukan saat
+  // eksekusi (bukan diasumsikan dari desain awal): `company_members.user_id`
+  // FK ke `users(id)` — TABEL `public.users` milik puraloka-suite, BUKAN
+  // langsung ke `auth.users(id)`. `public.users` py PK sendiri + kolom
+  // `auth_id` yang menaut ke `auth.users.id`, dan `role_id NOT NULL` (peran
+  // GLOBAL lama, fallback TERAKHIR — bukan peran per-tenant, itu tetap di
+  // `company_members.role_id`). Pola pembuatannya sudah ada persis di
+  // `apps/api/src/routes/v1/auth.ts` (rute register): sesudah
+  // `auth.admin.createUser()`, INSERT `users` dgn `auth_id` menaut ke user
+  // Auth yang baru dibuat.
+  //
+  // Idempoten sama seperti 2a: cek dulu by `auth_id`, insert kalau belum ada.
+  const { data: existingPublicUser } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('auth_id', authUserId)
+    .maybeSingle()
+
+  let publicUserId: string
+  if (existingPublicUser) {
+    publicUserId = existingPublicUser.id
+  } else {
+    const { data: createdPublicUser, error: publicUserError } = await supabaseAdmin
+      .from('users')
+      .insert({
+        auth_id: authUserId,
+        name: input.adminName,
+        email: input.adminEmail,
+        role_id: input.adminRoleId, // fallback global — peran sesungguhnya di company_members.role_id (2b)
+      })
+      .select('id')
+      .single()
+    if (publicUserError || !createdPublicUser) {
+      return { error: `Gagal membuat baris users: ${publicUserError?.message ?? 'unknown'}` }
+    }
+    publicUserId = createdPublicUser.id
+  }
+
   // 2b — upsert company_members (DO UPDATE semantics via delete+insert,
   // supaBase-js belum punya native upsert dgn composite unique yg presisi
   // untuk kasus ini — cek dulu, lalu insert/update eksplisit).
+  // user_id DI SINI adalah publicUserId (users.id), BUKAN authUserId
+  // (auth.users.id) — lihat catatan 2a-bis di atas.
+  //
+  // is_default TIDAK SELALU true — celah yang ketahuan saat eksekusi Task
+  // D4 (bukan draft awal): idx_company_members_one_default adalah UNIQUE
+  // INDEX partial "satu is_default=true per user_id" (126_multitenant_core.sql:100-101).
+  // Kalau auth user yang di-provisioning KEBETULAN sudah jadi admin default
+  // di tenant LAIN (skenario produksi yang sah — satu orang bisa di-invite
+  // jadi admin >1 tenant), memaksa is_default:true di sini akan GAGAL
+  // unique_violation. Wajib dicek dulu: hanya set true kalau user ITU belum
+  // punya default company sama sekali; kalau sudah, keanggotaan baru dibuat
+  // is_default:false (user tetap login ke company default lamanya, dan bisa
+  // berpindah company lewat company-switcher yang sudah ada).
+  const { data: existingDefault } = await supabaseAdmin
+    .from('company_members')
+    .select('id')
+    .eq('user_id', publicUserId)
+    .eq('is_default', true)
+    .maybeSingle()
+  const shouldBeDefault = !existingDefault
+
   const { data: existingMember } = await supabaseAdmin
     .from('company_members')
     .select('id')
     .eq('company_id', input.companyId)
-    .eq('user_id', authUserId)
+    .eq('user_id', publicUserId)
     .maybeSingle()
 
   if (existingMember) {
     const { error: updateError } = await supabaseAdmin
       .from('company_members')
-      .update({ role_id: input.adminRoleId, is_default: true, is_active: true })
+      .update({ role_id: input.adminRoleId, is_active: true })
       .eq('id', existingMember.id)
     if (updateError) {
       return { error: `Gagal memperbarui keanggotaan: ${updateError.message}` }
@@ -1765,9 +1824,9 @@ export async function provisionTenantStep2(input: {
   } else {
     const { error: insertError } = await supabaseAdmin.from('company_members').insert({
       company_id: input.companyId,
-      user_id: authUserId,
+      user_id: publicUserId,
       role_id: input.adminRoleId,
-      is_default: true,
+      is_default: shouldBeDefault,
       is_active: true,
     })
     if (insertError) {
@@ -1779,6 +1838,21 @@ export async function provisionTenantStep2(input: {
 }
 ```
 
+**Celah yang ketahuan SAAT EKSEKUSI (bukan review dokumen)**: draft pertama
+task ini mengasumsikan `company_members.user_id` FK langsung ke
+`auth.users.id` — keliru, terbukti oleh implementer yang menjalankan test
+sungguhan dan mendapat FK violation `company_members_user_id_fkey`.
+Verifikasi silang: `db/migrations/126_multitenant_core.sql:86` —
+`user_id UUID NOT NULL REFERENCES users(id)`, dan `public.users` adalah
+tabel employee/staff puraloka-suite sendiri (py `auth_id`, `role_id NOT
+NULL`, dst), bukan alias `auth.users`. Pola pembuatannya SUDAH ADA di
+`apps/api/src/routes/v1/auth.ts` rute register — diikuti persis di atas,
+bukan ditebak. `input.adminName` ditambahkan ke parameter fungsi (Interfaces
+block di atas WAJIB diperbarui: `provisionTenantStep2(input: { companyId:
+string; adminRoleId: string; adminEmail: string; adminName: string })`) —
+`users.name` bertipe `NOT NULL`, jadi provisioning butuh nama admin, bukan
+cuma email.
+
 - [ ] **Step 4: Jalankan test, pastikan lulus**
 
 Run: `npx vitest run lib/provisioning.test.ts`
@@ -1788,7 +1862,7 @@ Expected: PASS — semua test (Step1 + Step2 termasuk idempotency) lulus.
 
 ```bash
 git add lib/provisioning.ts lib/provisioning.test.ts
-git commit -m "feat: provisionTenantStep2 — auth.users+company_members idempoten (spec §5.1a 2a/2b)"
+git commit -m "feat: provisionTenantStep2 — auth.users+public.users+company_members idempoten (spec §5.1a 2a/2b)"
 ```
 
 ---
@@ -1811,24 +1885,35 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { supabaseAdmin } from './supabase'
 import { validateTenantTarget } from './validate-tenant-target'
 
+// TEST_CODE tetap (bukan literal berulang di tiap assertion) supaya jelas
+// satu-satunya nilai yang harus dibebaskan saat afterAll.
+const TEST_CODE = 'uji-validate-target'
 let companyId: string
 
 beforeAll(async () => {
   const { data } = await supabaseAdmin
     .from('companies')
-    .insert({ code: 'uji-validate-target', name: 'PT Uji Validate' })
+    .insert({ code: TEST_CODE, name: 'PT Uji Validate' })
     .select('id')
     .single()
   companyId = data!.id
 })
 
 afterAll(async () => {
-  await supabaseAdmin.from('companies').update({ is_active: false }).eq('id', companyId)
+  // companies.code UNIQUE + companies tak bisa hard-delete (trigger
+  // anti-hapus-kasual) — is_active=false SAJA tak membebaskan TEST_CODE
+  // untuk run berikutnya (bug kelas sama ditemukan & diperbaiki di
+  // provisioning.test.ts, Task D1 fix round 1). Ganti code JUGA supaya
+  // suite ini bisa dijalankan ulang tanpa unique_violation.
+  await supabaseAdmin
+    .from('companies')
+    .update({ is_active: false, code: `retired-${companyId.slice(0, 8)}` })
+    .eq('id', companyId)
 })
 
 describe('validateTenantTarget', () => {
   it('valid=true kalau code yang dikirim client cocok dgn company_id', async () => {
-    const result = await validateTenantTarget(companyId, 'uji-validate-target')
+    const result = await validateTenantTarget(companyId, TEST_CODE)
     expect(result.valid).toBe(true)
   })
 
@@ -1926,13 +2011,15 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { supabaseAdmin } from './supabase'
 import { suspendTenant } from './suspend-tenant'
 
+// TEST_CODE tetap — lihat catatan afterAll soal kenapa harus dibebaskan.
+const TEST_CODE = 'uji-suspend-d4'
 let companyId: string
 let adminUserId: string
 
 beforeAll(async () => {
   const { data: company } = await supabaseAdmin
     .from('companies')
-    .insert({ code: 'uji-suspend-d4', name: 'PT Uji Suspend' })
+    .insert({ code: TEST_CODE, name: 'PT Uji Suspend' })
     .select('id')
     .single()
   companyId = company!.id
@@ -1963,14 +2050,21 @@ beforeAll(async () => {
 afterAll(async () => {
   await supabaseAdmin.from('admin_saas_users').delete().eq('id', adminUserId)
   await supabaseAdmin.from('company_saas_meta').delete().eq('company_id', companyId)
-  await supabaseAdmin.from('companies').update({ is_active: false }).eq('id', companyId)
+  // is_active SAJA tak membebaskan TEST_CODE untuk run berikutnya —
+  // companies.code UNIQUE + tak bisa hard-delete (bug kelas sama
+  // ditemukan & diperbaiki di provisioning.test.ts, Task D1 fix round 1;
+  // diulang lagi di validate-tenant-target.test.ts, Task D3 fix round 1).
+  await supabaseAdmin
+    .from('companies')
+    .update({ is_active: false, code: `retired-${companyId.slice(0, 8)}` })
+    .eq('id', companyId)
 })
 
 describe('suspendTenant', () => {
   it('mengubah lifecycle_status+access_mode kalau code cocok & status lama sesuai', async () => {
     const result = await suspendTenant({
       companyId,
-      expectedCode: 'uji-suspend-d4',
+      expectedCode: TEST_CODE,
       expectedCurrentStatus: 'active',
       reason: 'Uji suspend otomatis',
       accessMode: 'read_only',
@@ -2004,7 +2098,7 @@ describe('suspendTenant', () => {
     // Status sekarang 'suspended' (dari test pertama), tapi kita klaim 'active'.
     const result = await suspendTenant({
       companyId,
-      expectedCode: 'uji-suspend-d4',
+      expectedCode: TEST_CODE,
       expectedCurrentStatus: 'active', // SALAH — sudah suspended
       reason: 'Staf kedua yang telat sadar',
       accessMode: 'blocked',
@@ -2113,12 +2207,13 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { supabaseAdmin } from './supabase'
 import { listTenants } from './list-tenants'
 
+const TEST_CODE = 'uji-list-tenants-d5'
 let companyId: string
 
 beforeAll(async () => {
   const { data } = await supabaseAdmin
     .from('companies')
-    .insert({ code: 'uji-list-tenants-d5', name: 'PT Uji List Tenants' })
+    .insert({ code: TEST_CODE, name: 'PT Uji List Tenants' })
     .select('id')
     .single()
   companyId = data!.id
@@ -2129,7 +2224,13 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await supabaseAdmin.from('company_saas_meta').delete().eq('company_id', companyId)
-  await supabaseAdmin.from('companies').update({ is_active: false }).eq('id', companyId)
+  // is_active SAJA tak membebaskan TEST_CODE untuk run berikutnya — lihat
+  // catatan sama di provisioning.test.ts (Task D1 fix round 1) dan
+  // validate-tenant-target.test.ts (Task D3 fix round 1).
+  await supabaseAdmin
+    .from('companies')
+    .update({ is_active: false, code: `retired-${companyId.slice(0, 8)}` })
+    .eq('id', companyId)
 })
 
 describe('listTenants', () => {

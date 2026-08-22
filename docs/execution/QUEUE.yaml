@@ -3403,3 +3403,61 @@ items:
       item QUEUE.yaml eksplisit supaya tak bergantung pada seseorang
       membaca komentar kode untuk menemukannya lagi — pola sama dengan
       A11Y-PM-PORTAL di atas.
+
+  - id: TRG-PROTECT-BUILTIN-ROLES-TENANT-SCOPE
+    fase: 3
+    judul: "trg_protect_builtin_roles (migrasi 050) menolak DELETE atas role is_builtin=true TANPA memandang company_id — tenant asli tak bisa hapus role hasil salinan"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "trigger fn_protect_builtin_roles hanya menolak DELETE saat company_id IS NULL (baris template global), bukan salinan per-tenant"
+      - "tenant admin bisa DELETE role miliknya sendiri yang is_builtin=true (hasil salinan provisioning), role TEMPLATE global tetap terlindungi seperti semula"
+    cara_verifikasi: "sebagai admin tenant, coba hapus salah satu role bawaan hasil provisioning (mis. 'mandor') — harus berhasil; coba hapus role TEMPLATE (company_id NULL) — harus tetap ditolak"
+    bobot: S
+    status: menunggu
+    catatan_kemajuan: >-
+      Ditemukan 2026-08-22 saat implementasi Admin SaaS Task A7
+      (db/migrations/506_admin_saas_fn_instantiate_roles.sql — fungsi
+      fn_instantiate_tenant_roles). Trigger trg_protect_builtin_roles
+      ditulis migrasi 050 (SEBELUM multi-tenant/363 ada) dan menolak
+      DELETE untuk baris apa pun ber-is_builtin=true, tak peduli
+      company_id. fn_instantiate_tenant_roles menyalin is_builtin APA
+      ADANYA dari template (pola sama dgn migrasi 365, 20 dari 21 role
+      template ber-is_builtin=true) — jadi baris HASIL SALINAN ke tenant
+      pun ikut terkunci trigger yang sama, seolah ia role sistem global.
+      Task A7 sendiri hanya kena ini di data uji migrasinya sendiri
+      (di-workaround lokal, DIDOKUMENTASIKAN di komentar migrasi 506 —
+      tidak menyentuh fungsi/trigger produksi), TAPI implikasinya nyata
+      untuk tenant sungguhan: begitu admin-saas mulai men-provision
+      tenant lewat fn_instantiate_tenant_roles, admin tenant tsb TAK
+      AKAN PERNAH bisa menghapus 20 dari 21 role bawaannya sendiri —
+      bukan skenario langka, itu perilaku default provisioning.
+      Reviewer Task A7 menandai ini finding Important (bukan Critical —
+      tak merusak fungsi yang dibangun task ini, dan bukan Ember [C]
+      yang boleh diubah sembarangan) yang butuh item QUEUE eksplisit
+      supaya tak hilang di komentar migrasi semata — pola sama dengan
+      MINSTOK-GUDANG-STOK-READONLY dan A11Y-PM-PORTAL di atas. Diberi
+      fase 3 karena ADR-004 (permission bukan role) juga fase 3, dan
+      perbaikan ini pada dasarnya penyempurnaan trigger dari era
+      pra-multi-tenant — cocok dikerjakan bersamaan sapuan literal-role.
+
+      Kejadian KEDUA 2026-08-22 (Task D1a, migrasi 507 —
+      fn_provision_tenant_step1): pola identik terulang persis, ditangani
+      dgn workaround lokal yang sama (bukti trigger yang sama menghambat
+      pekerjaan berulang, bukan cuma sekali).
+
+      Kejadian KETIGA 2026-08-22 (Task D1b, lib/provisioning.test.ts di
+      repo admin-saas): `afterEach`-nya sendiri (ditulis verbatim sesuai
+      brief plan, tak diubah implementer) mencoba `roles.delete()` saat
+      cleanup — GAGAL SENYAP karena trigger yang sama, tapi supabase-js
+      tak throw (mengembalikan `{data,error}`), dan test tak pernah
+      mengecek `.error` pemanggilan itu. Akibatnya: setiap kali test
+      provisioning dijalankan, baris `roles`+`role_permissions` milik
+      company uji BOCOR selamanya (company-nya sendiri berhasil di-retire
+      lewat rename `code`, tapi role hasil salinannya tak pernah hilang).
+      Reviewer Task D1 menilai ini Minor (tak merusak assertion apa pun
+      hari ini, tak ada test yang bergantung pada role benar-benar
+      terhapus) dan di luar scope ruling controller soal `code` reuse —
+      dicatat di sini, bukan diperbaiki, karena akar masalahnya SAMA
+      dengan item ini: begitu trigger diperbaiki (scope company_id),
+      DELETE role tenant akan berhasil dan kebocoran baris uji ini pun
+      otomatis berhenti tanpa perlu sentuhan terpisah ke test-nya.
