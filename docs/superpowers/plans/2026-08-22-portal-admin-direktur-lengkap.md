@@ -3723,16 +3723,84 @@ pola sama Task 5/12.
 
 ---
 
-## Tahap 4-7: Belum di-breakdown
+## Tahap 4: Procurement + Gudang + Aset
 
-Mengikuti pola Portal PM: setiap Tahap (4: Procurement+Gudang+Aset, 5:
-Mutu/K3+Risiko+Dokumen+Kepatuhan, 6: SDM+Klien+Tender, 7: Sistem/Settings/
-AI [read-only]+Audit+Users/Roles+Master+sisa) dimulai dengan SATU task
-"riset & breakdown" yang menulis task-task konkret ke dokumen ini begitu
-tahap sebelumnya selesai — BUKAN ditulis sekaligus di awal (perkiraan
-skala terlalu tak pasti untuk menulis kode konkret sebelum tahap
-sebelumnya membuktikan pola yang sesungguhnya berlaku, persis alasan yang
-sama kenapa Portal PM membengkak 32→78 halaman).
+### Task 20: Riset & breakdown — Procurement + Gudang + Aset (Tahap 4)
+
+**Files:**
+- Modify (dokumen ini): tambah Task 21+ dengan breakdown lengkap Tahap 4
+  berdasar riset task ini.
+
+**Interfaces:**
+- Consumes: hasil Tahap 1-3 (shell+layout+gerbang+Dashboard+Inbox+Proyek+
+  Kontrak+Jadwal+Keuangan berfungsi, pola `useData`/`hasPermission`/token
+  kerapatan/`formatRupiah`/`formatTanggal`/cross-link+WAJAR/render-gate
+  `useSyncExternalStore` established dan terbukti di modul finansial
+  paling sensitif).
+- Produces: daftar Task konkret bernomor untuk Tahap 4, ditulis LANGSUNG
+  ke dokumen plan ini (pola sama Task 2/6/13).
+
+- [ ] **Step 1: Baca halaman web yang sudah ada untuk Procurement + Gudang + Aset**
+
+  Baca `apps/web/app/(dashboard)/procurement/*` (verifikasi struktur
+  PERSIS ke `lib/peta-menu.ts` grup `g-procurement`, JANGAN tebak dari
+  nama folder), `gudang/*` (grup `g-inventory`), dan modul Aset (cari
+  grup yang benar — mungkin `g-aset` tersendiri, verifikasi).
+
+- [ ] **Step 2: Baca endpoint backend**
+
+  `apps/api/src/routes/v1/procurement.ts`, `gudang-ikhtisar.ts`,
+  `gudang-kelola.ts`, `transfer-stok.ts`, `rekonsiliasi-material.ts`,
+  `alat-operasional.ts`, `assets.ts` (atau nama sebenarnya — verifikasi
+  ke kode). Rujuk Portal PM Tahap 4 (`docs/superpowers/plans/
+  2026-08-20-portal-pm-lengkap.md`, Task 24-26) DAN Tahap 7 (Task 40,
+  Alat & Aset) sebagai peta AWAL, TAPI verifikasi ULANG semua endpoint/
+  field/permission untuk konteks admin — pola sama Task 6/13 (jangan
+  asumsikan sama persis, PM shape sering company-wide vs per-proyek
+  berbeda, atau PM kurang permission yang admin/direktur punya).
+
+- [ ] **Step 3: Live query permission admin+direktur untuk SEMUA sub-modul**
+
+  Pisah per role_id (2 baris masing-masing, KONSISTEN pola 7 task
+  sebelumnya). Fokus permission approve PO/MR, kelola gudang, transfer
+  stok, kelola aset/alat — catat mana yang direktur BEDA dari admin
+  (pola Task 15/16 GL/Rekon) vs mana yang admin+direktur SAMA (pola
+  Task 17/18 Kas/Pengadaan) vs mana yang company-wide read (pola Task 14
+  Dashboard Keuangan).
+
+- [ ] **Step 4: Tentukan company-wide vs per-proyek per sub-modul**
+
+  Procurement (MR/PO) kemungkinan per-proyek (material dipesan untuk
+  proyek tertentu) tapi APPROVAL bisa company-wide (admin/direktur
+  approve lintas proyek). Gudang bisa company-wide (gudang pusat) atau
+  per-proyek (gudang lapangan) — verifikasi ke skema/endpoint. Aset/alat
+  operasional kemungkinan company-wide (alat berat dipakai bergantian
+  antar proyek).
+
+- [ ] **Step 5: Tulis Task 21+ ke dokumen ini**
+
+  Kode LENGKAP untuk: Procurement (MR/PO, approval-gate kalau ada beda
+  admin/direktur), Gudang & Material (lokasi/stok/transfer/rekonsiliasi),
+  Aset & Alat Operasional (register/mutasi/sewa/penyusutan — rujuk Portal
+  PM Task 40 sbg peta field kalau relevan). Sertakan task navigasi+
+  verifikasi akhir Tahap 4 di akhir (pola sama Task 5/12/19).
+
+- [ ] **Step 6: Commit breakdown**
+
+  ```bash
+  git add docs/superpowers/plans/2026-08-22-portal-admin-direktur-lengkap.md
+  git commit -m "docs(plan): breakdown Tahap 4 — Procurement + Gudang + Aset"
+  ```
+
+---
+
+## Tahap 5-7: Belum di-breakdown
+
+Mengikuti pola Portal PM: setiap Tahap (5: Mutu/K3+Risiko+Dokumen+
+Kepatuhan, 6: SDM+Klien+Tender, 7: Sistem/Settings/AI [read-only]+Audit+
+Users/Roles+Master+sisa) dimulai dengan SATU task "riset & breakdown" yang
+menulis task-task konkret ke dokumen ini begitu tahap sebelumnya selesai —
+BUKAN ditulis sekaligus di awal.
 
 **Final**: task terakhir plan ini adalah verifikasi menyeluruh SELURUH
 portal admin/direktur (typecheck, build, SEMUA penjaga CI, test backend
