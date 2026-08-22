@@ -28426,3 +28426,42 @@ lewat n8n API, dikonfirmasi `active=false`.
    merge + restart server. Deploy n8n di atas SUDAH nyata (workflow
    n8n hidup di server n8n terpisah dari kode API), tapi sisi aplikasi
    (kredensial baru, `terbitkanPeristiwa()`) masih menunggu merge.
+
+## 2026-08-22 (lanjutan 3) — Nomor WA sungguhan diisi, mekanisme terbukti benar sampai satu langkah terakhir
+
+Founder memberi nomor WhatsApp sungguhan (+6281311081813) untuk
+`WA_NOMOR_NOTIFIKASI`. Ditulis lewat jalur enkripsi RESMI
+(`kunciNilai()`/`empatAkhir()` dari `kredensial-sandi.ts` — fungsi yang
+sama dipakai rute `PUT /api/v1/kredensial/:kunci`, bukan kripto
+tulis-ulang), diverifikasi terbaca kembali lewat
+`ambilKredensialTanpaRequest()`.
+
+Payload uji dibangun pakai `muatanWaPeristiwa()` SUNGGUHAN (fungsi yang
+sudah di-commit, bukan tiruan), dikirim ke webhook n8n live. Hasil dari
+permintaan HTTP KELUAR yang sungguhan dikirim n8n:
+
+```
+number: "6281311081813"        ← nomor asli, ternormalisasi benar
+apikey: <kunci Evolution asli tenant, cocok WA_API_KEY>
+text:   pesan tersusun benar dengan tag tenant
+uri:    http://localhost:8081/message/sendText/puraloka-48befb54113d
+```
+
+**Seluruh mekanisme forwarding-kredensial-lewat-payload — inti proyek
+ini — terbukti benar sampai detik terakhir.** Gagal HANYA di:
+`ECONNREFUSED ::1:8081` — Evolution API (gateway WhatsApp sungguhan,
+LAYANAN TERPISAH dari n8n, port 8081) tidak sedang berjalan.
+
+Evolution butuh setup pertama kali (`scripts/siapkan-evolution.cmd`) DAN
+pemindaian kode QR di HP sungguhan untuk memasangkan nomor — tindakan
+fisik yang cuma bisa dilakukan founder, bukan sesuatu yang bisa
+dinyalakan sepihak seperti n8n. Ini titik henti verifikasi otomatis yang
+wajar: semua yang bisa dibuktikan lewat kode sudah dibuktikan dengan
+data sungguhan; yang tersisa murni "apakah WhatsApp-nya menyala",
+sesuatu di luar proyek migrasi n8n ini sama sekali (Evolution sudah ada
+sebelum proyek ini, tak terkait migrasinya).
+
+**Kesimpulan migrasi n8n shared multi-tenant: SELESAI secara teknis.**
+Tinggal menunggu (1) founder menyalakan Evolution + scan QR kalau mau
+uji kirim WA sungguhan, dan (2) jendela observasi sebelum hapus 8
+workflow lama, sebelum branch ini pantas dianggap tuntas total.
