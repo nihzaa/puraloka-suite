@@ -19,11 +19,17 @@
 // ⚠️ `banding.cocok: true` = SESUAI — field itu hanya relevan saat membanding
 // PER-PROYEK (endpoint `/kontrak/proyek/:id`, TIDAK dipanggil halaman ini);
 // list company-wide di sini menampilkan status & nilai per baris tanpa banding.
+//
+// Task 11 (Tahap 2): tautan ke `/admin-portal/jadwal` (CPM/Histogram/Method
+// Statement/Baseline, per-proyek) dan `/admin-portal/jadwal/keterlambatan`
+// (Analisa Keterlambatan, company-wide) ditambahkan di bawah — bukan modul
+// dokumen kontrak, tapi menunggu aktivasi grup navigasi yang sama (Task 12),
+// jadi jalur masuknya lewat halaman ini juga, pola identik lima tautan lain.
 // ============================================================================
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { FileSignature, ShieldCheck, ChevronRight, Plus, CalendarClock, Scale, Mail, FileEdit } from "lucide-react";
+import { FileSignature, ShieldCheck, ChevronRight, Plus, CalendarClock, Scale, Mail, FileEdit, CalendarRange, AlarmClock } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import { formatRupiah, formatTanggal } from "@/lib/format";
@@ -248,6 +254,40 @@ export default function AdminRegisterKontrakPage() {
         <FileEdit size={18} color="var(--navy)" aria-hidden="true" />
         <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Change Order
+        </span>
+        <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
+      </Link>
+
+      {/* Jadwal/Baseline dan Analisa Keterlambatan (Task 11) — bukan bagian
+          "dokumen kontrak" secara ketat, tapi sama-sama menunggu aktivasi
+          `g-jadwal`/`g-kontrak` (Task 12), jadi jalur masuknya dari sini
+          juga, pola identik lima tautan di atas. */}
+      <Link
+        href="/admin-portal/jadwal"
+        style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu)",
+          borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
+          textDecoration: "none",
+        }}
+      >
+        <CalendarRange size={18} color="var(--navy)" aria-hidden="true" />
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+          Jadwal &amp; Baseline
+        </span>
+        <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
+      </Link>
+
+      <Link
+        href="/admin-portal/jadwal/keterlambatan"
+        style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu)",
+          borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
+          textDecoration: "none",
+        }}
+      >
+        <AlarmClock size={18} color="var(--navy)" aria-hidden="true" />
+        <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+          Analisa Keterlambatan
         </span>
         <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
       </Link>
