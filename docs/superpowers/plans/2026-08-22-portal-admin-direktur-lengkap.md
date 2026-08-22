@@ -2735,9 +2735,10 @@ sumber PM-nya. Ini kebalikan pola Task 10 (di mana PM SUDAH gerbang dan
 admin-portal tinggal menyalin) — di sini admin-portal MENAMBAH gerbang baru.
 
 **Live query permission admin vs direktur 2026-08-22** (pisah per role_id,
-tenant uji `48befb54-…d8a0`, dikonfirmasi juga IDENTIK di seluruh 53
-company_id tenant yang ada — satu SET permission unik per role, bukan
-kebetulan company uji ini):
+tenant uji `48befb54-…d8a0`, dikonfirmasi juga IDENTIK di seluruh 53 tenant
+yang PUNYA peran admin/direktur (dari 1.018 company total di basis —
+mayoritas tenant tak punya kedua role ini sama sekali) — satu SET
+permission unik per role di antara 53 itu, bukan kebetulan company uji ini):
 
 | permission | admin | direktur | menggerbangi |
 |---|---|---|---|
@@ -2757,7 +2758,7 @@ kebetulan company uji ini):
 | `gl:void` | ✅ | ❌ | `PATCH /gl/journal-entries/:id/void` |
 | `gl:periode:view` | ✅ | ✅ | `GET /gl/periode`, `/kesiapan`, `/riwayat` |
 | `gl:periode:manage` | ✅ | ✅ | `POST /gl/periode` (buat), `POST /gl/periode/:id/tutup` |
-| `gl:periode:reopen` | ✅ | ✅ | `POST /gl/periode/:id/buka` — **koreksi Task 6 TERKONFIRMASI ULANG akurat**: BUKAN direktur-eksklusif seperti komentar kepala `tutup-buku.ts` ("hanya peran direktur"), admin JUGA punya. Komentar kode itu SENDIRI basi — dicatat sebagai temuan, TIDAK diperbaiki (backend di luar scope). |
+| `gl:periode:reopen` | ✅ | ✅ | `POST /gl/periode/:id/buka` — **koreksi Task 6 TERKONFIRMASI ULANG akurat**: BUKAN direktur-eksklusif seperti komentar kepala `tutup-buku.ts` ("hanya peran direktur"), admin JUGA punya. Komentar basi itu ADA DI DUA TEMPAT — baris ~24 (kepala berkas, "Membuka kembali... yang menandatanganinya direktur (`gl:periode:reopen`, hanya peran `direktur`)") DAN baris ~390 (di atas registrasi rute `POST /gl/periode/:id/buka`, "Capability TERPISAH (`gl:periode:reopen`, hanya direktur). Lihat kepala berkas.") — dicatat sebagai temuan, TIDAK diperbaiki keduanya (backend di luar scope). |
 | `rekonsiliasi:view` | ✅ | ✅ | `GET /rekonsiliasi`, `/:id` |
 | `rekonsiliasi:manage` | ✅ | ❌ | `POST /rekonsiliasi` (impor), `/cocokkan`, `/penyesuaian`, `DELETE /cocokkan/:id` |
 | `rekonsiliasi:lock` | ✅ | ❌ | `POST /rekonsiliasi/:id/kunci` |
@@ -2910,27 +2911,40 @@ punya) — halaman itu render normal untuk kedua role.
 
   ```tsx
   // Tambahan di atas render normal, sebelum blok `{!memuat && data && (...)}`
-  // yang disalin dari PM:
-  {!memuat && galat && (galat as GalatApi)?.error?.includes("izin") && (
+  // yang disalin dari PM. Deteksi lewat STATUS CODE (403), BUKAN isi pesan
+  // — pesan asli `requirePermission` (`apps/api/src/plugins/auth.ts:221-223`)
+  // berbunyi `Akses ditolak. Butuh permission: ${permissionKey}`, TIDAK
+  // PERNAH mengandung kata "izin". Cek string sempat ditulis sebagai
+  // `.includes("izin")` di draf awal Task 14 — SELALU false terhadap pesan
+  // asli, direktur akan jatuh ke cabang galat generik "Gagal memuat" alih-
+  // alih pesan yang menjelaskan gerbangnya (bahaya tersembunyi: halaman tak
+  // crash, jadi terlihat berfungsi normal sampai diuji dengan akun direktur
+  // sungguhan). `GalatApi` (`_bersama/tipe.ts:107-110`) SUDAH punya
+  // `response.status` — tak perlu field baru:
+  {!memuat && galat && (galat as GalatApi)?.response?.status === 403 && (
     <EmptyState
       icon={AlertTriangle}
       judul="Akses terbatas"
       deskripsi="Dashboard Keuangan memerlukan izin finance:view:all. Peran Anda saat ini tidak memilikinya — hubungi admin bila ini keliru."
     />
   )}
-  {!memuat && galat && !(galat as GalatApi)?.error?.includes("izin") && (
+  {!memuat && galat && (galat as GalatApi)?.response?.status !== 403 && (
     <EmptyState icon={AlertTriangle} judul="Gagal memuat"
       deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")}
       aksi={{ label: "Muat ulang", onClick: () => void muatUlang() }} />
   )}
   ```
 
-  ⚠ **Verifikasi PERSIS pesan galat 403 yang dikembalikan `requirePermission`**
-  sebelum commit — baca `apps/api/src/plugins/auth.ts` fungsi
-  `requirePermission` untuk bentuk pesan sesungguhnya (kemungkinan
-  `{ error: "Izin tidak mencukupi" }` atau serupa, BUKAN ditebak dari nama
-  variabel `galat.error?.includes("izin")` di atas — sesuaikan string
-  pencarian ke pesan asli sebelum commit, kerangka ini adalah TEMPLATE).
+  ⚠ **Bentuk `galat` SUDAH diverifikasi ke `apps/web/lib/data-cache.ts`**
+  (riset review Task 13): `useData` menyimpan `e as Error` dari `catch (e)`
+  TANPA membungkus ulang (`jalankan()`, baris ~211-221), dan `ambilData()`
+  memanggil `api.get()` (instance axios) — jadi `galat` yang diterima
+  komponen adalah error axios ASLI dengan `response.status`/
+  `response.data.error`, cocok `GalatApi` apa adanya. `.response.status ===
+  403` di atas AMAN dipakai langsung, TIDAK perlu verifikasi ulang saat
+  implementasi — tapi tetap baca ulang `data-cache.ts` sekali sebelum
+  commit untuk memastikan tak ada perubahan di antara riset ini dan
+  implementasi Task 14.
 
 - [ ] **Step 4: `admin-portal/keuangan/piutang/page.tsx` — salin `pm-portal/
   keuangan/piutang/page.tsx` APA ADANYA**
@@ -3694,8 +3708,11 @@ pola sama Task 5/12.
     dan Rekonsiliasi terbelah admin-vs-direktur untuk AKSI TULIS; (c)
     Pengadaan Lanjutan justru MENAMBAH kapabilitas admin+direktur di atas
     PM; (d) komentar basi `tutup-buku.ts` ("gl:periode:reopen hanya
-    direktur") — TIDAK diperbaiki (backend di luar scope), tapi dicatat
-    supaya sesi berikutnya tak salah baca dari komentar kode.
+    direktur") ADA DI DUA TEMPAT — baris ~24 (kepala berkas) DAN baris
+    ~390 (di atas registrasi rute `POST /gl/periode/:id/buka`) — TIDAK
+    diperbaiki keduanya (backend di luar scope), tapi dicatat DUA
+    lokasinya supaya sesi berikutnya yang menyentuh backend tak memperbaiki
+    satu lalu berhenti mengira sudah tuntas.
 
 - [ ] **Step 9: Commit**
 
