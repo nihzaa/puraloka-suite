@@ -28352,3 +28352,77 @@ disentuh, konsisten dengan gap lingkungan lokal-vs-CI (env var CI-only
 hilang, artefak coverage belum ada) — bukan regresi task ini.
 
 Test scoped (5 berkas yang disentuh/ditambah task ini): **43 lulus / 43**.
+
+## 2026-08-22 (lanjutan 2) — n8n shared multi-tenant: deploy live selesai, ditemukan 2 CRITICAL sebelum sempat merugikan
+
+Melanjutkan entri sebelumnya hari ini. User menyalakan n8n; final
+whole-branch review (dispatch terpisah, model paling mampu) menemukan
+**2 cacat KRITIS** sebelum deploy sungguhan terjadi:
+
+1. `simpulPeristiwa()` (node "Susun pesan") kehilangan `const isi = d.body
+   || d` — webhook n8n v2 membungkus payload POST di `.body`, jadi tanpa
+   unwrap ini `pesan`/`companyId`/`wa` SEMUA `undefined` saat dieksekusi
+   sungguhan. Ini akan meruntuhkan SELURUH mekanisme forwarding-kredensial
+   yang jadi inti proyek ini.
+2. Guard `if (!isi.pesan) return []` ikut hilang — tanpa itu, setiap
+   panggilan webhook (bahkan tanpa data) akan mengirim WA berbunyi
+   "(tanpa pesan)" ke penerima.
+
+Keduanya HILANG karena kode pengganti di plan brief saya sendiri tidak
+lengkap (dibandingkan terhadap kode dasar yang digantikan via
+`git show`), BUKAN kesalahan implementer — implementer mengikuti brief
+persis. Diperbaiki 1 commit (`02dfbc19`), re-review terpisah membuktikan
+perbaikannya benar dengan MENJALANKAN kode yang dihasilkan lewat
+`new Function()` dan payload realistis (bukan cuma baca statis).
+
+### Deploy live — hasil terukur langsung, bukan cuma baca kode
+
+Setelah fix di atas, dijalankan `bangun-alur.mjs` sungguhan ke n8n live
+(:5680): 5 workflow peristiwa ter-update in-place (matched by name).
+Verifikasi LANGSUNG ke n8n REST API (bukan cuma baca source):
+
+- Node "Kirim WhatsApp" yang ter-deploy: dikonfirmasi baca
+  `$json.wa.{url,apiKey,instance,nomorTujuan}` — nol kredensial dipatok.
+- Node "Susun pesan" yang ter-deploy: dikonfirmasi punya fix kritis di
+  atas — SUDAH LIVE, bukan cuma di source.
+- Uji jalur negatif (kredensial sengaja salah, 2 skenario): kedua-duanya
+  gagal SECARA TERLIHAT di riwayat eksekusi n8n (status=error, data
+  lengkap tersimpan) — bukan senyap.
+- Uji jalur sukses (endpoint dummy yang membalas 200): eksekusi sukses
+  TIDAK meninggalkan jejak sama sekali — awalnya dikira bug (kenapa tak
+  ada execution baru?), ternyata justru PEMBUKTIAN `EXECUTIONS_DATA_
+  SAVE_ON_SUCCESS=none` bekerja benar (§7.1 spec). Dibuktikan lewat
+  perbandingan count `status=success` sebelum/sesudah, bukan tebakan.
+- **Jebakan yang saya buat sendiri**: sempat menyalakan n8n dari path
+  CHECKOUT UTAMA (`E:\Project\puraloka-suite\scripts\jalankan-n8n.cmd`)
+  alih-alih worktree — n8n jalan dengan config LAMA (tanpa retensi
+  asimetris) karena commit Task 7 baru ada di branch worktree yang
+  belum merge. Ketahuan dari eksekusi sukses yang MENYIMPAN data
+  (harusnya tidak). Diperbaiki: stop proses, nyalakan ulang dari
+  copy WORKTREE. Bukan cacat kode — murni salah pilih path saat
+  menjalankan proses lokal.
+
+8 workflow resep-jadwal lama: DIKONFIRMASI semuanya `active=true` (bukan
+"kebanyakan sudah nonaktif" seperti dugaan plan) — dinonaktifkan semua
+lewat n8n API, dikonfirmasi `active=false`.
+
+### Yang MASIH tertunda, dan kenapa BUKAN kelalaian
+
+1. **Uji kirim WA sungguhan (Task 4 Step 4)** — butuh
+   `WA_NOMOR_NOTIFIKASI` (kredensial baru Task 1) yang MASIH KOSONG untuk
+   tenant satu-satunya yang ada. Ini nomor tujuan sungguhan — data milik
+   founder, bukan sesuatu yang aman ditebak (nomor salah = pesan
+   nyasar ke orang yang tak terkait, tak bisa ditarik). Semua bagian
+   LAIN dari jalur sukses sudah terbukti benar (lihat di atas, versi
+   endpoint dummy) — yang belum terbukti murni "apakah pesannya sampai
+   ke WhatsApp sungguhan", bukan "apakah mekanismenya benar".
+2. **Hapus 8 workflow lama + baris `otomasi_alur`-nya (Task 5 Step
+   11/12)** — plan SENGAJA mensyaratkan jendela observasi sesudah
+   nonaktif sebelum hapus permanen. Baru dinonaktifkan sesi ini — belum
+   pantas dihapus hari yang sama. Ini jeda yang disengaja plan, bukan
+   pekerjaan yang terlewat.
+3. **Branch worktree belum di-merge ke main** — seluruh perubahan
+   `apps/api/src/**` di atas baru berlaku untuk API SUNGGUHAN setelah
+   merge + restart server. Deploy n8n di atas SUDAH nyata (workflow
+   n8n hidup di server n8n terpisah dari kode API), tapi sisi aplikasi
+   (kredensial baru, `terbitkanPeristiwa()`) masih menunggu merge.
