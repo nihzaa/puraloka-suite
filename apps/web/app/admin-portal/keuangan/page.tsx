@@ -28,11 +28,17 @@
 // auth.ts:222`) berbunyi "Akses ditolak. Butuh permission: finance:view:all",
 // TIDAK PERNAH mengandung kata "izin". `GalatApi` (`_bersama/tipe.ts`) sudah
 // punya `response.status`, tak perlu field baru.
+//
+// Task 15 (Tahap 3) menambah tautan ketiga: General Ledger
+// (`/admin-portal/keuangan/gl`) — pola sama Piutang/IPC di bawah, dijangkau
+// dari sini karena `g-keuangan`/`g-tagih` belum diaktifkan di kategori
+// "Lainnya". Gerbang `gl:manage`/`gl:post`/`gl:void` (admin-only, direktur
+// TIDAK) hidup di halaman GL itu sendiri — lihat komentar kepala berkasnya.
 // ============================================================================
 
 import { useMemo } from "react";
 import Link from "next/link";
-import { Wallet, TrendingUp, AlertTriangle, Clock, Landmark, FileCheck2, ChevronRight } from "lucide-react";
+import { Wallet, TrendingUp, AlertTriangle, Clock, Landmark, FileCheck2, BookOpen, ChevronRight } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { Tabel } from "@/components/dasar";
 import { formatRupiah, formatRupiahSingkat } from "@/lib/format";
@@ -67,10 +73,11 @@ export default function AdminDashboardKeuanganPage() {
         Dashboard Keuangan
       </h1>
 
-      {/* Tautan ke Piutang dan IPC — keduanya bukan bagian NAV_ITEMS bottom
-          nav (grup g-keuangan/g-tagih belum diaktifkan di kategori
-          "Lainnya", lihat layout.tsx), jadi jalur masuk utamanya dari sini,
-          pola sama lima tautan kontrak/jadwal di `kontrak/register/page.tsx`. */}
+      {/* Tautan ke Piutang, IPC, dan General Ledger — ketiganya bukan bagian
+          NAV_ITEMS bottom nav (grup g-keuangan/g-tagih belum diaktifkan di
+          kategori "Lainnya", lihat layout.tsx), jadi jalur masuk utamanya
+          dari sini, pola sama lima tautan kontrak/jadwal di
+          `kontrak/register/page.tsx`. GL ditambahkan Task 15 (Tahap 3). */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <Link
           href="/admin-portal/keuangan/piutang"
@@ -98,6 +105,21 @@ export default function AdminDashboardKeuanganPage() {
           <FileCheck2 size={18} color="var(--navy)" aria-hidden="true" />
           <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
             Sertifikat IPC
+          </span>
+          <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
+        </Link>
+
+        <Link
+          href="/admin-portal/keuangan/gl"
+          style={{
+            display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu)",
+            borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)",
+            textDecoration: "none",
+          }}
+        >
+          <BookOpen size={18} color="var(--navy)" aria-hidden="true" />
+          <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            General Ledger
           </span>
           <ChevronRight size={16} color="var(--text-muted)" aria-hidden="true" />
         </Link>
