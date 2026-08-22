@@ -3406,7 +3406,7 @@ items:
 
   - id: RATCHET-DRIFT-ADMIN-PORTAL-TAHAP1
     fase: null
-    judul: "kerapatan-ratchet.mjs dan judul-ratchet.mjs sudah RED di main sebelum Portal Admin/Direktur dimulai — Tahap 1 menambah +2/+1 di atasnya, bukan penyebab aslinya"
+    judul: "kerapatan-ratchet.mjs dan judul-ratchet.mjs sudah RED di main sebelum Portal Admin/Direktur dimulai — Tahap 1 menambah +2/+1, Tahap 2 menambah lagi +0/+9 di atasnya, bukan penyebab aslinya"
     blokir_oleh: []
     kriteria_selesai:
       - "Keputusan founder diambil untuk kerapatan-ratchet.mjs: (a) migrasi halaman pelanggar ke token --pad-kartu/--pad-kartu-lega/--gap-grid/--gap-bagian lalu turunkan kerapatan-lantai.json, ATAU (b) naikkan lantai dengan pengakuan eksplisit drift pra-eksisting"
@@ -3447,6 +3447,26 @@ items:
       lantai 4, tapi bukan drift baru — arahnya turun, bukan naik) —
       dicatat di sini untuk konteks, TIDAK butuh item QUEUE terpisah
       karena tidak memburuk.
+
+      DIPERBARUI Task 12 (2026-08-22, verifikasi akhir Tahap 2 Portal
+      Admin/Direktur Lengkap — Task 7-11: Proyek, Kontrak, Jadwal).
+      Dibandingkan lewat worktree terpisah pada commit f52d9db8 (akhir
+      Task 6, SEBELUM satu baris kode Task 7-11 ditulis) vs sesudah Task
+      12: kerapatan-ratchet TETAP 291 (delta 0 dari Tahap 2), uji-tombol-
+      primer-seragam TETAP 11 (delta 0), format-ratchet TETAP 215 (delta
+      0) — TAPI judul-ratchet naik 112 → 121, **+9 drift baru dari Task
+      7-11** (halaman admin-portal/kontrak/* dan admin-portal/jadwal*
+      mengulang pola <h1> mentah alih-alih <KepalaHalaman>, sama seperti
+      Task 3/4 sebelumnya). Task 12 sendiri (dua file navigasi murni)
+      menambah NOL drift baru di keempat guard — diverifikasi angka
+      IDENTIK antara akhir Task 11 (commit 88208c4f) dan sesudah Task 12.
+      jalankan-semua-penjaga.mjs full-suite: 127 hijau/44 merah (baseline
+      f52d9db8) → 128 hijau/43 merah (sesudah Task 12) — satu-satunya beda
+      NAMA skrip adalah gen-indeks-docs.mjs membaik (merah→hijau, tak
+      terkait), NOL guard baru merah dari Tahap 2. Kriteria selesai &
+      cara_verifikasi item ini TIDAK berubah — masih menunggu keputusan
+      founder yang sama, sekarang mencakup +9 tambahan judul-ratchet dari
+      Tahap 2 di atas +1 dari Tahap 1.
 
   - id: A11Y-RECONFIRM-MINICHART-ADMIN-PORTAL
     fase: null

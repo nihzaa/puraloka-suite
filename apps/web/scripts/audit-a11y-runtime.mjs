@@ -136,6 +136,9 @@ const CONTOH_ID = {
   // merender cabang "Kategori tidak ditemukan" — itu tetap halaman sungguhan
   // yang sah diaudit a11y-nya (EmptyState), bukan alasan melewati rute ini.
   '/admin-portal/kategori/[key]': 'g-master',
+  // Portal Admin/Direktur Tahap 2, Task 7 — detail proyek (projects.id).
+  // Memakai id proyek yang sama dengan `/proyek/[id]` — bukan entitas baru.
+  '/admin-portal/proyek/[id]': process.env.LAYAR_ID_PROYEK,
   // Portal PM Lengkap Tahap 3, Task 19 — detail RAB (estimate_versions.id).
   '/pm-portal/cecep/rab/[id]': process.env.LAYAR_ID_RAB,
   // Portal PM Lengkap Tahap 3, Task 20 — detail RAP (rap_budget.id).

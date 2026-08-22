@@ -31,8 +31,29 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * item lain grup itu yang statusnya 'hidup' ikut tampil dengan fallback
  * href web (lihat `PETA_HREF_PORTAL` di `kategori/[key]/page.tsx` dan
  * catatan Task 5 Step 1).
+ *
+ * Tahap 2 (Task 7-11): "Kontrak" (g-kontrak, 12 item di `peta-menu.ts`
+ * baris 121-136 — 8 punya halaman admin-portal sungguhan: kt-register,
+ * kt-asuransi, kt-co, kt-eot, kt-ld, kt-bond, kt-claims, kt-surat; 4
+ * sisanya — kt-termin, kt-retensi, kt-rfi, kt-subkon — di luar scope
+ * Task 6-11, jatuh ke fallback href web) dan "Perencanaan" (g-jadwal,
+ * 11 item di baris 138-152 — 4 punya halaman admin-portal, SEMUANYA
+ * menunjuk satu halaman `/admin-portal/jadwal` yang ber-SegmentedTab
+ * 4-arah (Task 11): jd-cpm (tab "Jalur Kritis"), jd-histogram (tab
+ * "Sumber Daya"), jd-method (tab "Method Statement"), jd-baseline (tab
+ * "Baseline") — pola identik web sendiri di mana `/jadwal?bagian=cpm`
+ * dan `/jadwal?bagian=histogram` juga satu halaman yang sama (lihat
+ * `href` jd-cpm/jd-histogram/jd-method di peta-menu.ts, semuanya
+ * `/jadwal` dengan query berbeda). jd-delay dapat halamannya sendiri
+ * (`/admin-portal/jadwal/keterlambatan`). Sisanya — jd-wbs, jd-gantt,
+ * jd-kurva-s, jd-lookahead, jd-milestone, jd-evm — fallback href web,
+ * karena keenamnya sudah punya jalur sendiri di halaman detail proyek
+ * web (`tabProyek`) yang belum direplikasi ke admin-portal. Proyek
+ * TIDAK di sini — bukan grup `peta-menu.ts` tersendiri, diakses lewat
+ * NAV_ITEMS langsung (`admin-portal/layout.tsx`, href
+ * /admin-portal/proyek).
  */
-const KATEGORI_AKTIF: string[] = ["g-laporan", "g-sistem"]; // Tahap 1
+const KATEGORI_AKTIF: string[] = ["g-laporan", "g-sistem", "g-kontrak", "g-jadwal"]; // Tahap 1-2
 
 export function kategoriUntukAdmin(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));

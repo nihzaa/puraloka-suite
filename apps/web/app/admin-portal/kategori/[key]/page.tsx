@@ -30,10 +30,37 @@ import { Folder } from "lucide-react";
  * `admin-portal-kategori.ts` (level grup) — item lain kedua grup itu yang
  * key-nya TAK ADA di bawah ini (bi-proyek, bi-biaya, sys-impor, sy-audit,
  * dst) sengaja jatuh ke fallback `it.href` web, pola sama persis pm-portal.
+ *
+ * Tahap 2 (Task 7-11, diaktifkan Task 12): grup `g-kontrak`/`g-jadwal`
+ * (Kontrak & Perencanaan). 8 dari 12 item g-kontrak dan 4 dari 11 item
+ * g-jadwal punya halaman admin-portal sungguhan (diverifikasi ke
+ * `find apps/web/app/admin-portal -name page.tsx`, bukan ditebak dari
+ * brief) — didaftarkan di bawah. Sisanya (kt-termin/kt-retensi/kt-rfi/
+ * kt-subkon; jd-wbs/jd-gantt/jd-kurva-s/jd-lookahead/jd-milestone/jd-evm)
+ * di luar scope Tahap 2, jatuh ke fallback `it.href` web — perilaku
+ * disengaja, sama seperti item Tahap 1 yang belum dibangun.
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
   "bi-eksekutif": "/admin-portal",
   "sy-inbox-approval": "/admin-portal/inbox",
+  // Tahap 2 — Kontrak (g-kontrak)
+  "kt-register": "/admin-portal/kontrak/register",
+  "kt-asuransi": "/admin-portal/kontrak/asuransi",
+  "kt-co": "/admin-portal/kontrak/change-order",
+  "kt-eot": "/admin-portal/kontrak/eot-ld-bond",
+  "kt-ld": "/admin-portal/kontrak/eot-ld-bond",
+  "kt-bond": "/admin-portal/kontrak/eot-ld-bond",
+  "kt-claims": "/admin-portal/kontrak/klaim",
+  "kt-surat": "/admin-portal/kontrak/surat",
+  // Tahap 2 — Perencanaan (g-jadwal). Keempat key di bawah menunjuk SATU
+  // halaman ber-SegmentedTab 4-arah (Task 11) — pola identik web sendiri
+  // (jd-cpm/jd-histogram/jd-method semua `/jadwal` dengan query berbeda
+  // di peta-menu.ts baris 144/146/151).
+  "jd-cpm": "/admin-portal/jadwal",
+  "jd-histogram": "/admin-portal/jadwal",
+  "jd-method": "/admin-portal/jadwal",
+  "jd-baseline": "/admin-portal/jadwal",
+  "jd-delay": "/admin-portal/jadwal/keterlambatan",
   // Tahap berikutnya menambah baris di sini, sesuai key ItemMenu.
 };
 

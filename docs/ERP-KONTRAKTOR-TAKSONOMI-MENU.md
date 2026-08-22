@@ -96,6 +96,22 @@ lapisan mana yang sudah ada.
 | Surat masuk/keluar (correspondence) | 🟡 | UI hidup: `surat-section.tsx` → `/api/v1/projects/{id}/letters` (diukur 2026-08-06) |
 | Kontrak subkontraktor | 🟡 | `work_scopes` + rencana signing internal (Modul 11b ERP_MASTER_PLAN) |
 
+**Portal Admin/Direktur (`admin-portal/*`)** — Tahap 2 selesai (Task 7-12,
+2026-08-22): 8 dari 12 item grup `g-kontrak` kini punya halaman admin-portal
+sendiri — `kt-register` (`/admin-portal/kontrak/register`, company-wide),
+`kt-asuransi` (`/admin-portal/kontrak/asuransi`), `kt-co` (`/admin-portal/
+kontrak/change-order`, gerbang `change_order:approve` admin-only — direktur
+TIDAK bisa approve, tombolnya HILANG dari DOM bukan sekadar disabled),
+`kt-eot`/`kt-ld`/`kt-bond` (SATU halaman `/admin-portal/kontrak/eot-ld-bond`
+ber-SegmentedTab 3-arah, per-proyek), `kt-claims` (`/admin-portal/kontrak/
+klaim`), `kt-surat` (`/admin-portal/kontrak/surat`). Grup `g-kontrak`
+diaktifkan PENUH di `kategoriUntukAdmin()` (Task 12) — 4 item sisa
+(`kt-termin`, `kt-retensi`, `kt-rfi`, `kt-subkon`) di luar scope Tahap 2,
+TAMPIL di `/admin-portal/kategori/g-kontrak` tapi fallback ke href web,
+pola sama Tahap 1. Halaman kontrak/asuransi, eot-ld-bond, klaim, surat, dan
+change-order juga dicapai lewat cross-link di badan `/admin-portal/kontrak/
+register` (dipertahankan sebagai pintasan, bukan diganti oleh kategori).
+
 ---
 
 ## 4. PERENCANAAN & PENJADWALAN
@@ -113,6 +129,19 @@ lapisan mana yang sudah ada.
 | **Earned Value Management** | ✅ | `routes/v1/kurva-s.ts` `meta.evm` (BAC/AC/EV/PV/CPI/SPI/EAC/ETC/VAC/TCPI) + `kurva-s-section.tsx` EVM cards |
 | Analisa keterlambatan | ✅ | migrasi 198 · `/proyek/keterlambatan` · EOT disetujui mengurangi telat · 8/8 mutasi |
 | Method statement | ✅ | Migrasi 212 · `method_statement` · `/jadwal`. Penolakan WAJIB beralasan (≥10 huruf) dan keputusan wajib bertanggal — **constraint DB**, bukan aturan UI. Kolom pengendalian risiko K3 ditandai merah kalau kosong: method statement tanpa itu adalah jadwal kerja yang menyamar, dan justru bagian itu yang ditanya saat ada kecelakaan |
+
+**Portal Admin/Direktur (`admin-portal/*`)** — Tahap 2 selesai (Task 11-12,
+2026-08-22): 4 dari 11 item grup `g-jadwal` punya halaman admin-portal,
+SEMUANYA menunjuk SATU halaman `/admin-portal/jadwal` ber-SegmentedTab
+4-arah (per-proyek) — `jd-cpm` (tab "Jalur Kritis"), `jd-histogram` (tab
+"Sumber Daya"), `jd-method` (tab "Method Statement"), `jd-baseline` (tab
+"Baseline", tetapkan baseline baru). `jd-delay` dapat halaman sendiri
+(`/admin-portal/jadwal/keterlambatan`, company-wide). Grup `g-jadwal`
+diaktifkan PENUH di `kategoriUntukAdmin()` (Task 12) — 6 item sisa
+(`jd-wbs`, `jd-gantt`, `jd-kurva-s`, `jd-lookahead`, `jd-milestone`,
+`jd-evm`) di luar scope Tahap 2 (masing-masing sudah punya jalur `tabProyek`
+sendiri di halaman detail proyek web, belum direplikasi ke admin-portal),
+TAMPIL di `/admin-portal/kategori/g-jadwal` tapi fallback ke href web.
 
 ---
 
