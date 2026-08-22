@@ -62,6 +62,8 @@ const WAJAR = new Map([
   ['/uji-gulir', 'halaman uji internal, sengaja tak dipasarkan'],
   ['/mandor-portal/progress', 'subhalaman portal, dicapai dari badan halaman'],
   ['/mandor-portal/laporan', 'subhalaman portal, dicapai dari badan halaman'],
+  ['/admin-portal/kontrak/asuransi',
+   'subhalaman portal, dicapai dari badan halaman `/admin-portal/kontrak/register` \n    (tautan "Register Asuransi" di atas daftar kontrak, Task 8 Step 3) — pola sama \n    dengan mandor-portal/progress dan mandor-portal/laporan di atas. Grup `g-kontrak` \n    belum diaktifkan di `lib/admin-portal-kategori.ts` (menunggu Task 12), jadi \n    halaman ini tak muncul di grid kategori "Lainnya" untuk sementara.'],
   ['/pm-portal/gudang/lokasi',
    'subhalaman portal, dicapai dari badan halaman `/pm-portal/gudang` (tautan \n    "Kelola Lokasi" di header ikhtisar, Task 25 Step 2/3) — pola sama dengan \n    mandor-portal/progress dan mandor-portal/laporan di atas. `md-gudang` di \n    PETA_HREF_PORTAL sengaja menunjuk ikhtisar dulu, bukan langsung ke lokasi, \n    supaya PM melihat ringkasan lintas-gudang sebelum masuk mode kelola.'],
   ['/kalender',

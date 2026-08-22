@@ -17,7 +17,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getStoredUser, logout, type PuralokaUser } from "@/lib/api";
 import PortalShell, { type NavItem } from "@/components/portal/PortalShell";
-import { LayoutGrid, Inbox, FolderKanban, MoreHorizontal } from "lucide-react";
+import { LayoutGrid, Inbox, FolderKanban, FileSignature, MoreHorizontal } from "lucide-react";
 
 // Tahap 1 (Task 4): "Approval" ditambahkan — halaman `/admin-portal/inbox`
 // sudah dibangun (review Task 4: sempat YATIM di `audit-nav-yatim.mjs`
@@ -41,14 +41,44 @@ import { LayoutGrid, Inbox, FolderKanban, MoreHorizontal } from "lucide-react";
 // ini sebelum Task 7 hanya berisi Beranda/Approval/Lainnya).
 // `audit-nav-yatim.mjs` menangkapnya sebagai YATIM sebelum entri ini
 // ditambahkan — kelas cacat yang sama dengan orphan "Approval" di Task 4.
-// Slot ke-3, TEPAT SESUDAH Approval, meniru urutan pm-portal persis. Kini 4
-// entri: semuanya masuk 4 item PERTAMA yang ditampilkan `PortalShell` di
-// bottom nav, jadi "Lainnya" tetap terlihat di sana juga (belum melebihi 4).
+// Slot ke-3, TEPAT SESUDAH Approval, meniru urutan pm-portal persis.
+//
+// Tahap 2 (Task 8): "Kontrak" ditambahkan (menunjuk /kontrak/register) —
+// sama pola dengan "Proyek" di atas. Brief Task 8 mengaitkan
+// `/admin-portal/kontrak/*` ke kategori `g-kontrak` yang akan "diaktifkan
+// Task 12", tapi `KATEGORI_AKTIF` di `lib/admin-portal-kategori.ts` HANYA
+// berisi `["g-laporan", "g-sistem"]` — menunggu Task 12 berarti dua halaman
+// ini YATIM sampai tahap itu tiba, pola cacat identik "Proyek" di atas.
+// Diperbaiki cara yang sama: entri NAV_ITEMS langsung, BUKAN lewat aktivasi
+// kategori. Ditaruh slot ke-5 (SESUDAH "Lainnya") — `PortalShell` hanya
+// menampilkan 4 item PERTAMA di bottom nav (`primaryItems =
+// navItems.slice(0, 4)`), jadi urutan bottom nav yang sudah ada
+// (Beranda/Approval/Proyek/Lainnya) TIDAK berubah; "Kontrak" hanya menambah
+// satu tujuan terdaftar & dijangkau lewat `audit-nav-yatim.mjs` (yang
+// memindai literal atribut tujuan di SELURUH berkas layout, bukan hanya 4
+// slot pertama).
+//
+// ⚠️ Penulisan komentar di sekitar sini SENGAJA menghindari pola literal
+// "kata-tujuan diikuti tanda kutip" — `audit-nav-yatim.mjs` memindai SELURUH
+// berkas ini dengan regex yang tak tahu bedanya kode dari komentar, dan
+// komentar versi sebelumnya (menyebut pola itu apa adanya) sempat tertangkap
+// sebagai "link mati" palsu bernama "di SELURUH berkas" — diperbaiki di sini
+// dengan mengganti kutipnya jadi prosa biasa.
+//
+// `/admin-portal/kontrak/asuransi` TIDAK dapat entri NAV_ITEMS sendiri —
+// dijangkau lewat tautan di badan halaman Register Kontrak (dan
+// sebaliknya), pola sama dengan `mandor-portal/progress`/`laporan` yang
+// didaftarkan WAJAR di `audit-nav-yatim.mjs` sebagai "subhalaman portal,
+// dicapai dari badan halaman". Halaman ini juga akan terlihat langsung di
+// bottom nav begitu urutan array diprioritaskan ulang di tahap berikutnya
+// (Task 12 mengaktifkan `g-kontrak`), tanpa perlu menyentuh dua halaman
+// kontrak itu sendiri.
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin-portal", label: "Beranda", icon: LayoutGrid, exact: true },
   { href: "/admin-portal/inbox", label: "Approval", icon: Inbox },
   { href: "/admin-portal/proyek", label: "Proyek", icon: FolderKanban },
   { href: "/admin-portal/kategori", label: "Lainnya", icon: MoreHorizontal },
+  { href: "/admin-portal/kontrak/register", label: "Kontrak", icon: FileSignature },
 ];
 
 export default function AdminPortalLayout({
