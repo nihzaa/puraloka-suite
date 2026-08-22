@@ -3439,3 +3439,25 @@ items:
       fase 3 karena ADR-004 (permission bukan role) juga fase 3, dan
       perbaikan ini pada dasarnya penyempurnaan trigger dari era
       pra-multi-tenant — cocok dikerjakan bersamaan sapuan literal-role.
+
+      Kejadian KEDUA 2026-08-22 (Task D1a, migrasi 507 —
+      fn_provision_tenant_step1): pola identik terulang persis, ditangani
+      dgn workaround lokal yang sama (bukti trigger yang sama menghambat
+      pekerjaan berulang, bukan cuma sekali).
+
+      Kejadian KETIGA 2026-08-22 (Task D1b, lib/provisioning.test.ts di
+      repo admin-saas): `afterEach`-nya sendiri (ditulis verbatim sesuai
+      brief plan, tak diubah implementer) mencoba `roles.delete()` saat
+      cleanup — GAGAL SENYAP karena trigger yang sama, tapi supabase-js
+      tak throw (mengembalikan `{data,error}`), dan test tak pernah
+      mengecek `.error` pemanggilan itu. Akibatnya: setiap kali test
+      provisioning dijalankan, baris `roles`+`role_permissions` milik
+      company uji BOCOR selamanya (company-nya sendiri berhasil di-retire
+      lewat rename `code`, tapi role hasil salinannya tak pernah hilang).
+      Reviewer Task D1 menilai ini Minor (tak merusak assertion apa pun
+      hari ini, tak ada test yang bergantung pada role benar-benar
+      terhapus) dan di luar scope ruling controller soal `code` reuse —
+      dicatat di sini, bukan diperbaiki, karena akar masalahnya SAMA
+      dengan item ini: begitu trigger diperbaiki (scope company_id),
+      DELETE role tenant akan berhasil dan kebocoran baris uji ini pun
+      otomatis berhenti tanpa perlu sentuhan terpisah ke test-nya.
