@@ -41,12 +41,18 @@
  * tempat gejala seharusnya muncul, dan repo ini sudah pernah kehilangan rantai
  * notifikasi berbulan-bulan karenanya.
  *
- * ── Kenapa muatannya tipis
+ * ── Kenapa muatannya tipis (TAPI kini membawa kredensial WA)
  *
- * Yang dikirim hanya jenis, judul, pesan, dan id proyek — bukan seluruh baris
- * entitas. Dua alasan: n8n punya kunci API untuk mengambil sendiri apa yang ia
- * butuh lewat `/api/v1/otomasi/umpan/*`, dan muatan gemuk berarti data
- * operasional keluar dari server ke tempat yang aturan retensinya berbeda.
+ * Yang dikirim hanya jenis, judul, pesan, id proyek, DAN — sejak migrasi
+ * n8n shared (2026-08-22) — kredensial WA tenant (wa.url/apiKey/instance/
+ * nomorTujuan). BUKAN seluruh baris entitas: n8n tak lagi mengambil data
+ * sendiri (lihat docs/superpowers/specs/2026-08-22-n8n-shared-multi-tenant-design.md
+ * §0 untuk kenapa asumsi lama soal itu salah), tapi payload tetap tak
+ * membawa data operasional mentah — hanya yang perlu ditampilkan/dikirim.
+ *
+ * Kredensial WA transit di payload ini SADAR dan diterima sebagai
+ * trade-off (spec §5.2) — mitigasinya retensi log eksekusi n8n yang
+ * diperketat (spec §7.1), bukan menghindari payload ini sama sekali.
  */
 import { ambilKredensialTanpaRequest } from '../lib/kredensial.js'
 import { jalankanAlur, konfigurasiN8n } from '../lib/otomasi-n8n.js'
@@ -79,6 +85,35 @@ const PETA_PERISTIWA: Record<string, string> = {
   kedua di berkas ini berarti dua sumber kebenaran untuk satu perilaku, dan
   yang tak dipakai akan membusuk diam-diam.
 */
+
+/**
+ * Kumpulan kredensial WA tenant, dibaca sekali untuk disertakan di muatan
+ * `jalankanAlur()`.
+ *
+ * Diekspor terpisah dari `terbitkanPeristiwa()` SUPAYA bisa diuji langsung —
+ * fungsi ini TIDAK punya pagar `NODE_ENV==='test'` sendiri (pagar itu tetap
+ * di `terbitkanPeristiwa()`, sebelum baris yang memanggil fungsi ini). Tanpa
+ * pemisahan ini, bentuk objek `wa` hanya bisa diverifikasi lewat panggilan
+ * jaringan n8n sungguhan — persis yang pagar itu ada untuk mencegah di suite
+ * test.
+ *
+ * companyId tanpa baris kredensial (tenant belum memasang apa pun) memulangkan
+ * keempat field `null` — bukan galat, lihat `ambilKredensialTanpaRequest`.
+ */
+export async function muatanWaPeristiwa(companyId: string): Promise<{
+  url: string | null
+  apiKey: string | null
+  instance: string | null
+  nomorTujuan: string | null
+}> {
+  const [url, apiKey, instance, nomorTujuan] = await Promise.all([
+    ambilKredensialTanpaRequest(companyId, 'WA_BASE_URL'),
+    ambilKredensialTanpaRequest(companyId, 'WA_API_KEY'),
+    ambilKredensialTanpaRequest(companyId, 'WA_INSTANCE'),
+    ambilKredensialTanpaRequest(companyId, 'WA_NOMOR_NOTIFIKASI'),
+  ])
+  return { url, apiKey, instance, nomorTujuan }
+}
 
 /**
  * Menerbitkan satu peristiwa ke alur otomasi yang menunggunya.
@@ -191,6 +226,8 @@ export async function terbitkanPeristiwa(
   }
   if (!cfg) return // otomasi belum dikonfigurasi tenant ini — diam, bukan galat
 
+  const wa = await muatanWaPeristiwa(companyId)
+
   const hasil = await jalankanAlur({
     db: createTenantDb(companyId),
     companyId,
@@ -199,12 +236,14 @@ export async function terbitkanPeristiwa(
     sumber: 'peristiwa',
     oleh: null,
     muatan: {
+      companyId,
       jenis,
       kode,
       judul: contoh.title,
       pesan: contoh.message,
       proyek_id: contoh.project_id ?? null,
       penerima: jumlahPenerima,
+      wa,
     },
   })
 

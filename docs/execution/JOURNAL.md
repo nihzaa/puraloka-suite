@@ -28281,3 +28281,202 @@ perubahan kode Task 44.
 **Tahap 7 SELESAI** — sebelas halaman baru (Task 39-43) semua tersambung
 navigasi, plus satu cacat lama (`g-hse`) diperbaiki bersamaan. Semua enam
 tahap kini punya kategori portal PM yang aktif dan halaman yang terjangkau.
+
+## 2026-08-22 (lanjutan) — n8n shared multi-tenant: 7/8 task selesai, deploy live tertunda
+
+Brainstorming → spec → plan → implementasi (subagent-driven-development,
+worktree `.claude/worktrees/n8n-shared-multi-tenant`) untuk migrasi n8n ke
+instance shared multi-tenant. Spec sempat salah di draf pertama (mengira
+SEMUA otomasi terjadwal lewat n8n) — dikoreksi 3x lewat pembacaan kode
+langsung sebelum plan ditulis; detail koreksi ada di §0
+`docs/superpowers/specs/2026-08-22-n8n-shared-multi-tenant-design.md`.
+
+### Yang selesai (7 dari 8 task, semua review bersih)
+
+1. `WA_NOMOR_NOTIFIKASI` ditambahkan ke `KATALOG_KREDENSIAL` — nomor
+   tujuan notifikasi kini kredensial tenant, bukan env build-time skrip.
+2. `terbitkanPeristiwa()` menyertakan kredensial WA (url/apiKey/instance/
+   nomorTujuan) di payload `jalankanAlur()` — via `muatanWaPeristiwa()`
+   baru, diekspor terpisah supaya testable tanpa melanggar pagar
+   `NODE_ENV==='test'` yang mencegah CI mengirim WA sungguhan.
+3. Node "Kirim WhatsApp" di 5 workflow peristiwa n8n dibaca ulang dari
+   `$json.wa.*` (payload), bukan dipatok `cfg.*` saat build — plus tag
+   `tenant_id`. Satu bug kritis ditemukan review (rename node webhook tak
+   diikuti update `SAMBUNG_PERISTIWA`) dan diperbaiki round 1 fix-loop.
+4. **Deploy ke n8n live — TERTUNDA**, lihat di bawah.
+5. 8 resep "jadwal" n8n generasi lama (cron + Ambil-umpan + X-API-Key
+   dipatok) dipensiunkan — diukur produksi (§5.5 spec): 6/8 nol eksekusi
+   seumur hidup, 2/8 tepat sekali >seminggu lalu. `JENIS_TERSEDIA` di
+   `otomasi-umpan.ts` dikosongkan, test file (255→152 baris) ditulis
+   ulang karena `ringkasan-harian` ternyata jadi fixture tak-terkait untuk
+   3 test gerbang auth — bukan cuma "tambah satu test negatif" seperti
+   draf plan pertama kira.
+6. Teks kredensial `N8N_BASE_URL`/`N8N_API_KEY` diperbarui — kotak tetap
+   tampil, tapi jujur bahwa mengisinya tak berpengaruh untuk tenant
+   non-operator sejak instance-nya shared.
+7. Retensi eksekusi n8n: `EXECUTIONS_DATA_SAVE_ON_SUCCESS=none` +
+   `..._ON_ERROR=all` + prune 72 jam (payload kini bawa kredensial hidup).
+
+### Yang TERTUNDA — n8n tidak hidup saat implementasi
+
+n8n (`http://localhost:5680`) tak terjangkau (curl exit 7) selama seluruh
+sesi implementasi. Task 4 (deploy 5 workflow ke n8n + uji end-to-end kirim
+WA sungguhan) di-skip total — menyalakan layanan lokal bersama di luar
+worktree ini butuh keputusan yang bukan milik agent untuk diambil sendiri.
+Task 5 & 7 punya langkah yang sama-sama butuh n8n hidup (nonaktifkan/hapus
+8 workflow lama, restart n8n untuk verifikasi retensi) — juga ditunda.
+
+**Sebelum tenant KEDUA masuk produksi, WAJIB:**
+1. Nyalakan n8n (`scripts\jalankan-n8n.cmd`).
+2. Jalankan Task 4 lengkap: push 5 workflow, uji kirim WA sungguhan
+   (positif DAN negatif — kunci salah harus tercatat `gagal` di
+   `otomasi_jalan`, bukan senyap), verifikasi isolasi 2 tenant dummy.
+3. Task 5 sisa: nonaktifkan lalu (setelah observasi) hapus 8 workflow
+   lama di UI n8n, jalankan `--daftar` versi live untuk konfirmasi,
+   DELETE baris `otomasi_alur` untuk 8 kode yang dipensiunkan.
+4. Task 7 sisa: restart n8n, verifikasi retensi asimetris jalan sesuai
+   rencana (eksekusi sukses tak tersimpan, gagal tersimpan penuh).
+
+### Yang MERAH dan bukan milik saya
+
+`node scripts/jalankan-semua-penjaga.mjs`: ~30 penjaga merah. Diperiksa:
+hanya SATU yang menyebut salah satu dari 7 berkas yang disentuh task ini
+(`audit-webhook-bergerbang.mjs` G-1 menuduh `otomasi-umpan.ts` tanpa
+gerbang) — dan itu PUN pre-existing: `requireApiKey` sudah ada di berkas
+itu SEBELUM task ini (`git show` commit dasar plan mengonfirmasi), guard-nya
+sendiri hanya mengenali pola `authenticate`/`_SECRET` sebagai gerbang sah,
+tak mengenali `requireApiKey` — gap penjaga itu sendiri, bukan regresi.
+Sisa ~29 merah lainnya (coverage, schema-fingerprint, CI_DIRECT_URL,
+berbagai ratchet apps/web) tak menyebut satu pun dari 7 berkas yang
+disentuh, konsisten dengan gap lingkungan lokal-vs-CI (env var CI-only
+hilang, artefak coverage belum ada) — bukan regresi task ini.
+
+Test scoped (5 berkas yang disentuh/ditambah task ini): **43 lulus / 43**.
+
+## 2026-08-22 (lanjutan 2) — n8n shared multi-tenant: deploy live selesai, ditemukan 2 CRITICAL sebelum sempat merugikan
+
+Melanjutkan entri sebelumnya hari ini. User menyalakan n8n; final
+whole-branch review (dispatch terpisah, model paling mampu) menemukan
+**2 cacat KRITIS** sebelum deploy sungguhan terjadi:
+
+1. `simpulPeristiwa()` (node "Susun pesan") kehilangan `const isi = d.body
+   || d` — webhook n8n v2 membungkus payload POST di `.body`, jadi tanpa
+   unwrap ini `pesan`/`companyId`/`wa` SEMUA `undefined` saat dieksekusi
+   sungguhan. Ini akan meruntuhkan SELURUH mekanisme forwarding-kredensial
+   yang jadi inti proyek ini.
+2. Guard `if (!isi.pesan) return []` ikut hilang — tanpa itu, setiap
+   panggilan webhook (bahkan tanpa data) akan mengirim WA berbunyi
+   "(tanpa pesan)" ke penerima.
+
+Keduanya HILANG karena kode pengganti di plan brief saya sendiri tidak
+lengkap (dibandingkan terhadap kode dasar yang digantikan via
+`git show`), BUKAN kesalahan implementer — implementer mengikuti brief
+persis. Diperbaiki 1 commit (`02dfbc19`), re-review terpisah membuktikan
+perbaikannya benar dengan MENJALANKAN kode yang dihasilkan lewat
+`new Function()` dan payload realistis (bukan cuma baca statis).
+
+### Deploy live — hasil terukur langsung, bukan cuma baca kode
+
+Setelah fix di atas, dijalankan `bangun-alur.mjs` sungguhan ke n8n live
+(:5680): 5 workflow peristiwa ter-update in-place (matched by name).
+Verifikasi LANGSUNG ke n8n REST API (bukan cuma baca source):
+
+- Node "Kirim WhatsApp" yang ter-deploy: dikonfirmasi baca
+  `$json.wa.{url,apiKey,instance,nomorTujuan}` — nol kredensial dipatok.
+- Node "Susun pesan" yang ter-deploy: dikonfirmasi punya fix kritis di
+  atas — SUDAH LIVE, bukan cuma di source.
+- Uji jalur negatif (kredensial sengaja salah, 2 skenario): kedua-duanya
+  gagal SECARA TERLIHAT di riwayat eksekusi n8n (status=error, data
+  lengkap tersimpan) — bukan senyap.
+- Uji jalur sukses (endpoint dummy yang membalas 200): eksekusi sukses
+  TIDAK meninggalkan jejak sama sekali — awalnya dikira bug (kenapa tak
+  ada execution baru?), ternyata justru PEMBUKTIAN `EXECUTIONS_DATA_
+  SAVE_ON_SUCCESS=none` bekerja benar (§7.1 spec). Dibuktikan lewat
+  perbandingan count `status=success` sebelum/sesudah, bukan tebakan.
+- **Jebakan yang saya buat sendiri**: sempat menyalakan n8n dari path
+  CHECKOUT UTAMA (`E:\Project\puraloka-suite\scripts\jalankan-n8n.cmd`)
+  alih-alih worktree — n8n jalan dengan config LAMA (tanpa retensi
+  asimetris) karena commit Task 7 baru ada di branch worktree yang
+  belum merge. Ketahuan dari eksekusi sukses yang MENYIMPAN data
+  (harusnya tidak). Diperbaiki: stop proses, nyalakan ulang dari
+  copy WORKTREE. Bukan cacat kode — murni salah pilih path saat
+  menjalankan proses lokal.
+
+8 workflow resep-jadwal lama: DIKONFIRMASI semuanya `active=true` (bukan
+"kebanyakan sudah nonaktif" seperti dugaan plan) — dinonaktifkan semua
+lewat n8n API, dikonfirmasi `active=false`.
+
+### Yang MASIH tertunda, dan kenapa BUKAN kelalaian
+
+1. **Uji kirim WA sungguhan (Task 4 Step 4)** — butuh
+   `WA_NOMOR_NOTIFIKASI` (kredensial baru Task 1) yang MASIH KOSONG untuk
+   tenant satu-satunya yang ada. Ini nomor tujuan sungguhan — data milik
+   founder, bukan sesuatu yang aman ditebak (nomor salah = pesan
+   nyasar ke orang yang tak terkait, tak bisa ditarik). Semua bagian
+   LAIN dari jalur sukses sudah terbukti benar (lihat di atas, versi
+   endpoint dummy) — yang belum terbukti murni "apakah pesannya sampai
+   ke WhatsApp sungguhan", bukan "apakah mekanismenya benar".
+2. **Hapus 8 workflow lama + baris `otomasi_alur`-nya (Task 5 Step
+   11/12)** — plan SENGAJA mensyaratkan jendela observasi sesudah
+   nonaktif sebelum hapus permanen. Baru dinonaktifkan sesi ini — belum
+   pantas dihapus hari yang sama. Ini jeda yang disengaja plan, bukan
+   pekerjaan yang terlewat.
+3. **Branch worktree belum di-merge ke main** — seluruh perubahan
+   `apps/api/src/**` di atas baru berlaku untuk API SUNGGUHAN setelah
+   merge + restart server. Deploy n8n di atas SUDAH nyata (workflow
+   n8n hidup di server n8n terpisah dari kode API), tapi sisi aplikasi
+   (kredensial baru, `terbitkanPeristiwa()`) masih menunggu merge.
+
+## 2026-08-22 (lanjutan 3) — Nomor WA sungguhan diisi, mekanisme terbukti benar sampai satu langkah terakhir
+
+Founder memberi nomor WhatsApp sungguhan (+6281311081813) untuk
+`WA_NOMOR_NOTIFIKASI`. Ditulis lewat jalur enkripsi RESMI
+(`kunciNilai()`/`empatAkhir()` dari `kredensial-sandi.ts` — fungsi yang
+sama dipakai rute `PUT /api/v1/kredensial/:kunci`, bukan kripto
+tulis-ulang), diverifikasi terbaca kembali lewat
+`ambilKredensialTanpaRequest()`.
+
+Payload uji dibangun pakai `muatanWaPeristiwa()` SUNGGUHAN (fungsi yang
+sudah di-commit, bukan tiruan), dikirim ke webhook n8n live. Hasil dari
+permintaan HTTP KELUAR yang sungguhan dikirim n8n:
+
+```
+number: "6281311081813"        ← nomor asli, ternormalisasi benar
+apikey: <kunci Evolution asli tenant, cocok WA_API_KEY>
+text:   pesan tersusun benar dengan tag tenant
+uri:    http://localhost:8081/message/sendText/puraloka-48befb54113d
+```
+
+**Seluruh mekanisme forwarding-kredensial-lewat-payload — inti proyek
+ini — terbukti benar sampai detik terakhir.** Gagal HANYA di:
+`ECONNREFUSED ::1:8081` — Evolution API (gateway WhatsApp sungguhan,
+LAYANAN TERPISAH dari n8n, port 8081) tidak sedang berjalan.
+
+Evolution butuh setup pertama kali (`scripts/siapkan-evolution.cmd`) DAN
+pemindaian kode QR di HP sungguhan untuk memasangkan nomor — tindakan
+fisik yang cuma bisa dilakukan founder, bukan sesuatu yang bisa
+dinyalakan sepihak seperti n8n. Ini titik henti verifikasi otomatis yang
+wajar: semua yang bisa dibuktikan lewat kode sudah dibuktikan dengan
+data sungguhan; yang tersisa murni "apakah WhatsApp-nya menyala",
+sesuatu di luar proyek migrasi n8n ini sama sekali (Evolution sudah ada
+sebelum proyek ini, tak terkait migrasinya).
+
+**Kesimpulan migrasi n8n shared multi-tenant: SELESAI secara teknis.**
+Tinggal menunggu (1) founder menyalakan Evolution + scan QR kalau mau
+uji kirim WA sungguhan, dan (2) jendela observasi sebelum hapus 8
+workflow lama, sebelum branch ini pantas dianggap tuntas total.
+
+## 2026-08-22 (lanjutan 4) — DIKONFIRMASI: pesan WA sungguhan sampai. Migrasi n8n shared multi-tenant TUNTAS.
+
+Founder mengonfirmasi langsung: pesan uji end-to-end (nomor asli, payload
+`muatanWaPeristiwa()` sungguhan, n8n live, Evolution live) sampai di
+WhatsApp-nya. Ini bukti terakhir yang dibutuhkan — seluruh jalur
+kredensial-lewat-payload kini terbukti benar di SETIAP lapisan dengan
+data produksi sungguhan, bukan simulasi: penyimpanan kredensial
+terenkripsi → pembacaan lewat fungsi resmi → payload webhook n8n →
+eksekusi node → panggilan Evolution → WhatsApp benar-benar terkirim.
+
+**Migrasi n8n shared multi-tenant: SELESAI TUNTAS.** Sisa: hapus 8
+workflow lama (Task 5 Step 11/12, sengaja ditunda untuk jendela
+observasi) dan merge branch `worktree-n8n-shared-multi-tenant` ke
+`main`.

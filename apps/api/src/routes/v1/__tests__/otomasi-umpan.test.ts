@@ -8,20 +8,22 @@ import otomasiUmpanRoutes from '../otomasi-umpan.js'
 /**
  * UMPAN n8n — pintu masuk read-only untuk workflow otomasi.
  *
- * Yang dijaga di sini bukan bentuk JSON-nya, melainkan tiga hal yang kalau
- * salah TIDAK menghasilkan galat apa pun:
+ * Yang dijaga di sini bukan bentuk JSON-nya, melainkan hal yang kalau salah
+ * TIDAK menghasilkan galat apa pun:
  *
  *   1. Kunci API benar-benar jadi gerbang. Rute yang lupa `requireApiKey`
  *      tetap menjawab 200 — dan seluruh data tenant terbuka ke siapa saja
  *      yang tahu URL-nya.
  *
- *   2. Kolom yang di-`.select()` BENAR-BENAR ADA. Versi pertama berkas rute
- *      menyaring `company_id` pada `invoices`/`milestones`/`progress_logs` —
- *      ketiganya tak punya kolom itu. Gejalanya bukan crash, melainkan umpan
- *      kosong permanen: alur n8n "berhasil" tiap hari tanpa mengirim apa pun.
- *
- *   3. Jenis karangan ditolak. Alur yang salah ketik harus tahu sebabnya,
+ *   2. Jenis karangan ditolak. Alur yang salah ketik harus tahu sebabnya,
  *      bukan menerima daftar kosong yang terlihat sah.
+ *
+ * Sejak 8 resep jadwal generasi lama dipensiunkan (spec 2026-08-22 §5.5,
+ * evidence: 6/8 nol eksekusi seumur hidup, 2/8 sekali & sudah lewat
+ * seminggu), `JENIS_TERSEDIA` kosong — tak ada lagi business logic
+ * (`bangunUmpan()` per-jenis, keamanan kolom `.select()`, isolasi tenant per
+ * query) untuk diuji di sini. Rute tetap hidup sebagai infrastruktur dorman,
+ * siap menerima `jenis` berikutnya yang butuh umpan n8n.
  */
 
 const PENANDA = `__uji_umpan_${process.pid}__`
@@ -72,13 +74,21 @@ afterAll(async () => {
 })
 
 describe('Gerbang kunci API', () => {
+  // `'jenis-yang-tak-pernah-ada'` dipakai sebagai fixture di tiga test gerbang
+  // ini SENGAJA — bukan kelalaian. `requireApiKey` adalah `preHandler`, yang
+  // di Fastify berjalan SEBELUM badan handler (tempat `JENIS_TERSEDIA`
+  // diperiksa). Ketiga test ini menguji gerbang kunci, bukan business logic
+  // suatu `jenis` — jadi `jenis`-nya tak perlu valid untuk test ini tetap
+  // membuktikan apa yang mereka buktikan. Sejak `JENIS_TERSEDIA` dikosongkan
+  // (spec 2026-08-22 §5.5), tak ada lagi satu pun jenis "valid" yang bisa
+  // dipinjam sebagai fixture.
   it('tanpa header X-API-Key ditolak 401', async () => {
-    const r = await panggil('ringkasan-harian')
+    const r = await panggil('jenis-yang-tak-pernah-ada')
     expect(r.statusCode).toBe(401)
   }, 30_000)
 
   it('kunci karangan ditolak 401 — dan TIDAK membocorkan sebabnya', async () => {
-    const r = await panggil('ringkasan-harian', 'plk_kunci_yang_tidak_pernah_ada')
+    const r = await panggil('jenis-yang-tak-pernah-ada', 'plk_kunci_yang_tidak_pernah_ada')
     expect(r.statusCode).toBe(401)
     // Pesan penolakan seragam: membedakan "tak dikenal" dari "kedaluwarsa"
     // sudah mengkonfirmasi kunci itu pernah ada.
@@ -107,15 +117,18 @@ describe('Gerbang kunci API', () => {
 
     try {
       // Sah dulu — supaya 401 sesudahnya terbukti berasal dari pencabutan,
-      // bukan dari kunci yang memang tak pernah sah.
-      expect((await panggil('ringkasan-harian', k.kunci)).statusCode).toBe(200)
+      // bukan dari kunci yang memang tak pernah sah. Kunci yang sah tapi
+      // BELUM dicabut menembus gerbang `requireApiKey` dan sampai ke badan
+      // handler, yang membalas 404 (bukan 200) karena `JENIS_TERSEDIA`
+      // sekarang kosong — itu tetap membuktikan "gerbang belum menutup".
+      expect((await panggil('jenis-yang-tak-pernah-ada', k.kunci)).statusCode).toBe(404)
 
       // `alasan_cabut` wajib ikut (`chk_api_key_cabut_beralasan`).
       await db.query(
         `UPDATE api_key SET dicabut_pada=now(), alasan_cabut=$2 WHERE id=$1`,
         [idSekaliPakai, 'dicabut oleh test gerbang kunci'],
       )
-      expect((await panggil('ringkasan-harian', k.kunci)).statusCode).toBe(401)
+      expect((await panggil('jenis-yang-tak-pernah-ada', k.kunci)).statusCode).toBe(401)
     } finally {
       await db.query('DELETE FROM api_key WHERE id=$1', [idSekaliPakai])
     }
@@ -123,132 +136,18 @@ describe('Gerbang kunci API', () => {
 })
 
 describe('Jenis umpan', () => {
-  it('jenis karangan ditolak 404 dan MENYEBUT yang tersedia', async () => {
+  it('jenis karangan ditolak 404, daftar tersedia kosong (belum ada umpan aktif)', async () => {
     const r = await panggil('jenis-yang-tak-pernah-ada', kunciSah)
     expect(r.statusCode).toBe(404)
     const b = JSON.parse(r.body)
     expect(Array.isArray(b.tersedia)).toBe(true)
-    expect(b.tersedia.length).toBeGreaterThan(0)
+    expect(b.tersedia).toEqual([])
   }, 30_000)
 
-  /**
-   * Inilah test yang menangkap cacat kolom-karangan.
-   *
-   * Query dengan kolom yang tak ada SELALU gagal di PostgREST. Rute melempar,
-   * jadi statusnya BUKAN 200 — dan itu yang diperiksa di sini untuk KELIMA
-   * jenis sekaligus. Memeriksa satu jenis saja tak cukup: tiap jenis menyentuh
-   * tabel berbeda dengan bentuk tenancy yang berbeda pula.
-   */
-  it.each([
-    'invoice-terlambat',
-    'persetujuan-tertahan',
-    'ncr-belum-ditutup',
-    'milestone-terlambat',
-    'ringkasan-harian',
-  ])('umpan %s menjawab 200 dengan bentuk yang dibaca n8n', async (jenis) => {
-    const r = await panggil(jenis, kunciSah)
-    expect(r.statusCode, r.body).toBe(200)
-
+  it('katalog jenis kosong sejak resep jadwal lama dipensiunkan (spec 2026-08-22 §5.5)', async () => {
+    const r = await panggil('apa-saja', kunciSah)
+    expect(r.statusCode).toBe(404)
     const b = JSON.parse(r.body)
-    expect(b.jenis).toBe(jenis)
-    expect(typeof b.jml).toBe('number')
-    expect(Array.isArray(b.baris)).toBe(true)
-    // `jml` HARUS cocok dengan panjang baris. Kalau tidak, simpul "Susun
-    // pesan" di n8n berhenti pada `!d.jml` padahal ada isinya — alur diam
-    // tanpa satu pun galat.
-    expect(b.jml).toBe(b.baris.length)
-  }, 30_000)
-
-  it('umpan berjenjang membawa TINGKAT eskalasi, bukan cuma umur', async () => {
-    const r = await panggil('invoice-terlambat', kunciSah)
-    expect(r.statusCode).toBe(200)
-    const b = JSON.parse(r.body)
-    // Ambang eskalasi adalah KEBIJAKAN dan harus diputuskan di sini, bukan di
-    // n8n — kalau `tingkat` hilang, alur n8n terpaksa menghitung sendiri, dan
-    // dua tempat yang memutuskan hal sama akan berselisih diam-diam.
-    for (const baris of b.baris) {
-      expect(['pic', 'manajer', 'direktur']).toContain(baris.tingkat)
-      expect(typeof baris.umur_hari).toBe('number')
-    }
-  }, 30_000)
-})
-
-describe('Isolasi tenant', () => {
-  /**
-   * Kunci menentukan tenant — bukan sesi manusia, karena tak ada manusia di
-   * jalur ini. Kalau saringan tenant hilang dari salah satu query, tenant A
-   * menerima daftar tagihan tenant B lewat WhatsApp, tanpa galat apa pun.
-   */
-  it('umpan hanya memuat proyek milik company pemegang kunci', async () => {
-    const r = await panggil('milestone-terlambat', kunciSah)
-    expect(r.statusCode).toBe(200)
-    const b = JSON.parse(r.body)
-    if (b.jml === 0) return
-
-    const { rows } = await db.query(
-      `SELECT p.name FROM projects p WHERE p.company_id=$1 AND p.is_deleted=false`,
-      [companyId],
-    )
-    const namaSah = new Set(rows.map((x: { name: string }) => x.name))
-    for (const baris of b.baris) {
-      if (baris.proyek) expect(namaSah.has(baris.proyek)).toBe(true)
-    }
-  }, 30_000)
-
-  /**
-   * Test di atas TIDAK CUKUP, dan itu dibuktikan dengan mutasi.
-   *
-   * Menghapus saringan tenant dari sebuah umpan membuatnya memuat SELURUH
-   * tenant — dan test di atas tetap hijau, karena tenant lain di basis dev
-   * kebetulan tak punya baris yang memenuhi syarat. "Kebetulan tak ada data"
-   * adalah dasar yang rapuh untuk menyatakan isolasi bekerja.
-   *
-   * Test ini MENANAM datanya sendiri: satu kasbon tertahan milik company
-   * LAIN. Kalau saringan tenant hilang, baris itu ikut muncul dan test ini
-   * merah.
-   *
-   * ── Kenapa kasbon, bukan milestone
-   *
-   * `milestones` menempel ke tenant lewat `projects`, dan `projects.client_id`
-   * NOT NULL menyeret `clients` yang sendiri menuntut `client_type` +
-   * `created_by`. Menanam satu baris jadi menuntut empat tabel, dan test yang
-   * menyentuh empat tabel master lebih mungkin gagal karena setup-nya sendiri
-   * daripada karena cacat yang diburunya.
-   *
-   * `kasbons` punya `company_id` LANGSUNG — satu insert, satu tabel.
-   */
-  it('kasbon tertahan milik company LAIN tidak pernah ikut terbawa', async () => {
-    const { rows: lain } = await db.query(
-      'SELECT id FROM companies WHERE id <> $1 LIMIT 1', [companyId],
-    )
-    if (!lain[0]) return // basis satu-tenant: tak ada yang bisa bocor
-
-    const keperluanPenanda = `${PENANDA}_kasbon_tenant_lain`
-    let idKasbonLain: string | null = null
-
-    try {
-      // `requested_by` NOT NULL → dipinjam dari user mana pun yang ada.
-      // Nilainya tak diperiksa umpan; yang diuji hanyalah company-nya.
-      const { rows: u } = await db.query('SELECT id FROM users LIMIT 1')
-      if (!u[0]) return
-
-      const k = await db.query(
-        `INSERT INTO kasbons
-           (company_id, amount, purpose, fund_source, requested_by, status, kasbon_date, created_at)
-         VALUES ($1, 12345, $2, 'owner_advance', $3, 'pending', current_date, now() - interval '10 days')
-         RETURNING id`,
-        [lain[0].id, keperluanPenanda, u[0].id],
-      )
-      idKasbonLain = k.rows[0].id
-
-      const r = await panggil('persetujuan-tertahan', kunciSah)
-      expect(r.statusCode, r.body).toBe(200)
-      const b = JSON.parse(r.body)
-      const bocor = (b.baris as Array<{ keperluan?: string }>)
-        .filter((x) => x.keperluan === keperluanPenanda)
-      expect(bocor, 'kasbon tenant lain ikut terbawa ke umpan').toHaveLength(0)
-    } finally {
-      if (idKasbonLain) await db.query('DELETE FROM kasbons WHERE id=$1', [idKasbonLain])
-    }
+    expect(b.tersedia).toEqual([])
   }, 30_000)
 })

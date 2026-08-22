@@ -53,247 +53,6 @@ import { buatClient } from '../db/_koneksi.mjs'
 
 const HANYA_DAFTAR = process.argv.includes('--daftar')
 
-// ── Resep alur ─────────────────────────────────────────────────────────────
-//
-// `umpan` menunjuk jenis di `/api/v1/otomasi/umpan/:jenis`. Alur tanpa umpan
-// (pemicu webhook) TIDAK dibuat di sini — pemicunya peristiwa dari aplikasi,
-// dan jalur itu belum ada. Menyertakannya berarti workflow yang menunggu
-// panggilan yang tak pernah datang, dan itu tampak "siap" padahal mati.
-const RESEP = [
-  {
-    kode: 'eskalasi-invoice-terlambat',
-    nama: 'Puraloka — Eskalasi Invoice Terlambat',
-    umpan: 'invoice-terlambat',
-    cron: '0 9 * * 1-6',
-    judul: 'INVOICE LEWAT JATUH TEMPO',
-    baris: (r) =>
-      `• ${r.nomor} — ${r.proyek ?? 'tanpa proyek'}\n` +
-      `  Rp ${new Intl.NumberFormat('id-ID').format(r.sisa || r.nominal)} · telat ${r.umur_hari} hari · eskalasi: ${r.tingkat}`,
-  },
-  {
-    kode: 'ingatkan-persetujuan-tertahan',
-    nama: 'Puraloka — Persetujuan Tertahan',
-    umpan: 'persetujuan-tertahan',
-    cron: '0 10 * * 1-5',
-    judul: 'MENUNGGU PUTUSAN ANDA',
-    baris: (r) =>
-      `• Kasbon Rp ${new Intl.NumberFormat('id-ID').format(r.nominal)} — ${r.proyek ?? 'tanpa proyek'}\n` +
-      `  ${r.keperluan ?? '-'} · tertahan ${r.tertahan_hari} hari`,
-  },
-  {
-    kode: 'eskalasi-ncr-belum-ditutup',
-    nama: 'Puraloka — NCR Belum Ditutup',
-    umpan: 'ncr-belum-ditutup',
-    cron: '30 9 * * 1-6',
-    judul: 'TEMUAN MUTU LEWAT TENGGAT',
-    baris: (r) =>
-      `• ${r.nomor} — ${r.judul}\n` +
-      `  ${r.proyek ?? 'tanpa proyek'} · ${r.keparahan ?? '-'} · lewat ${r.lewat_hari} hari · eskalasi: ${r.tingkat}`,
-  },
-  {
-    kode: 'eskalasi-milestone-terlambat',
-    nama: 'Puraloka — Milestone Terlambat',
-    umpan: 'milestone-terlambat',
-    cron: '15 7 * * *',
-    judul: 'MILESTONE LEWAT TENGGAT',
-    baris: (r) =>
-      `• ${r.judul} — ${r.proyek ?? 'tanpa proyek'}\n` +
-      `  lewat ${r.lewat_hari} hari · status: ${r.status} · eskalasi: ${r.tingkat}`,
-  },
-  {
-    kode: 'ringkasan-harian-pemilik',
-    nama: 'Puraloka — Ringkasan Harian Pemilik',
-    umpan: 'ringkasan-harian',
-    cron: '0 18 * * 1-6',
-    judul: 'RINGKASAN HARI INI',
-    baris: (r) =>
-      `Laporan progres : ${r.laporan_progres}\n` +
-      `Kasbon diajukan : ${r.kasbon_diajukan}\n` +
-      `Temuan mutu baru: ${r.temuan_mutu_baru}`,
-  },
-
-  // ── Tiga resep berikut ditambahkan 2026-08-14 ────────────────────────────
-  //
-  // Ketiganya ADA di `otomasi_alur` sejak awal tetapi tak pernah punya
-  // `n8n_id` — tercatat di daftar, tak pernah terpasang. Yang menghalanginya
-  // bukan resepnya melainkan UMPANNYA: `otomasi-umpan.ts` hanya menyediakan
-  // lima jenis, dan alur tanpa umpan adalah workflow yang menunggu data yang
-  // tak pernah datang.
-  //
-  // Ketiga umpannya ditambahkan hari ini juga (`invoice-jatuh-tempo`,
-  // `milestone-mendekat`, `rekap-mingguan-proyek`), jadi resep-resep ini
-  // sekarang punya sumbernya.
-  //
-  // `cron` disalin dari baris DB-nya masing-masing, bukan dikarang ulang —
-  // jadwal yang berbeda antara DB dan n8n adalah dua kebenaran yang tak
-  // pernah menyatakan dirinya berbeda.
-  {
-    kode: 'tagih-invoice-jatuh-tempo',
-    nama: 'Puraloka — Invoice Mendekati Jatuh Tempo',
-    umpan: 'invoice-jatuh-tempo',
-    cron: '0 8 * * 1-6',
-    judul: 'INVOICE JATUH TEMPO PEKAN INI',
-    baris: (r) =>
-      `• ${r.nomor} — ${r.proyek ?? 'tanpa proyek'}\n` +
-      `  Rp ${new Intl.NumberFormat('id-ID').format(r.sisa || r.nominal)} · ` +
-      `jatuh tempo ${r.jatuh_tempo} (${r.sisa_hari} hari lagi)`,
-  },
-  {
-    kode: 'peringatan-milestone-mendekat',
-    nama: 'Puraloka — Milestone Mendekat',
-    umpan: 'milestone-mendekat',
-    cron: '10 7 * * *',
-    judul: 'MILESTONE JATUH TEMPO 3 HARI LAGI',
-    baris: (r) =>
-      `• ${r.judul} — ${r.proyek ?? 'tanpa proyek'}\n` +
-      `  target ${r.jatuh_tempo} (${r.sisa_hari} hari lagi) · status: ${r.status}`,
-  },
-  {
-    kode: 'laporan-mingguan-klien',
-    nama: 'Puraloka — Rekap Mingguan Proyek',
-    umpan: 'rekap-mingguan-proyek',
-    cron: '0 16 * * 6',
-    judul: 'REKAP PEKAN INI',
-    // ⚠ Tanpa nominal apa pun. Alur ini bernama "laporan mingguan KLIEN", dan
-    // laporan ke klien yang memuat angka internal (kasbon, upah mandor) adalah
-    // kebocoran yang tak bisa ditarik kembali. Umpannya pun sudah tak
-    // mengirim uang — dua lapis, karena satu lapis bisa lupa.
-    baris: (r) =>
-      `• ${r.proyek}\n` +
-      `  progres ${r.progres_pct}% · ${r.laporan_pekan_ini} laporan pekan ini` +
-      (r.target_selesai ? ` · target selesai ${r.target_selesai}` : ''),
-  },
-]
-
-/**
- * Simpul n8n untuk satu alur: Jadwal → Ambil umpan → Susun pesan → Kirim WA.
- *
- * Simpul "Susun pesan" memakai Code, bukan rangkaian Set/IF. Alasannya:
- * memformat daftar panjang jadi satu pesan menuntut perulangan, dan
- * merangkainya dari simpul visual menghasilkan sepuluh kotak yang tak
- * seorang pun bisa baca ulang enam bulan lagi.
- *
- * `jml === 0` menghentikan alur SEBELUM kirim — pesan "tidak ada apa-apa"
- * yang datang tiap hari melatih orang mengabaikan seluruh pesannya.
- */
-function simpul(resep, cfg) {
-  const kodeSusun = `
-const d = $input.first().json;
-if (!d || !d.jml) { return []; }
-const baris = d.baris.map((r) => (${resep.baris.toString()})(r)).join('\\n');
-const teks = '*${resep.judul}*\\n\\n' + baris + '\\n\\n_Puraloka Suite · ${resep.kode}_';
-return [{ json: { teks, jml: d.jml } }];
-`.trim()
-
-  return [
-    {
-      parameters: { rule: { interval: [{ field: 'cronExpression', expression: resep.cron }] } },
-      id: 'jadwal',
-      name: 'Jadwal',
-      type: 'n8n-nodes-base.scheduleTrigger',
-      typeVersion: 1.2,
-      position: [0, 0],
-    },
-    /*
-      PEMICU KEDUA: webhook, sejajar dengan jadwal.
-
-      ── Kenapa perlu, ditemukan 2026-08-14
-
-      n8n public API TIDAK punya endpoint eksekusi manual — `/execute` dan
-      `/run` sama-sama membalas 405. Yang tersedia hanya `/activate`.
-
-      Akibatnya `jalankanAlur()` di `lib/otomasi-n8n.ts` memanggil `/activate`
-      untuk alur berjadwal, lalu melaporkan `ok: true`. Itu benar secara
-      teknis (n8n menerima permintaannya) dan MENYESATKAN secara makna:
-      tombol "Jalankan sekarang" di halaman Alur Otomasi sebenarnya cuma
-      MENYALAKAN alurnya. Diukur: sesudah `ok:true`, riwayat eksekusi n8n
-      tetap NOL.
-
-      Dengan webhook sejajar, `jalankanAlur` mengambil cabang `jalur_webhook`
-      (yang memang sudah ada di kodenya) dan alurnya benar-benar berjalan.
-
-      ── Kenapa dua pemicu, bukan mengganti jadwal dengan webhook
-
-      Jadwal tetap yang menjalankannya tiap hari tanpa siapa pun menekan apa
-      pun — itu inti otomasi. Webhook hanya menambah jalan masuk kedua untuk
-      menguji dan memicu di luar jadwal. Menggantinya berarti alur yang hanya
-      jalan kalau ada yang mengklik, dan itu bukan otomasi lagi.
-
-      Keduanya menyambung ke simpul yang SAMA (lihat `SAMBUNG`), jadi tak ada
-      dua jalur logika yang bisa menyimpang.
-    */
-    {
-      parameters: {
-        httpMethod: 'POST',
-        path: resep.kode,
-        /*
-          `onReceived`, BUKAN `lastNode`.
-
-          Dengan `lastNode`, n8n membalas HTTP 500 ketika alur berhenti
-          sebelum simpul terakhir — dan alur ini MEMANG berhenti kalau
-          `jml === 0` (pesan "tidak ada apa-apa" tiap hari melatih orang
-          mengabaikan seluruh pesannya).
-
-          Diukur 2026-08-14: dua alur membalas 500 padahal riwayat
-          eksekusinya `success`. Tidak-ada-data terbaca sebagai gagal, dan
-          siapa pun yang memantau lewat kode HTTP akan mengejar kegagalan
-          yang tak pernah terjadi.
-
-          `onReceived` membalas 200 begitu pemicunya diterima; hasil
-          sebenarnya tetap terbaca di riwayat eksekusi n8n, tempat yang
-          memang untuk itu.
-        */
-        responseMode: 'onReceived',
-        options: {},
-      },
-      id: 'pemicu-manual',
-      name: 'Pemicu manual',
-      type: 'n8n-nodes-base.webhook',
-      typeVersion: 2,
-      position: [0, 180],
-      webhookId: resep.kode,
-    },
-    {
-      parameters: {
-        url: `${cfg.apiUrl}/api/v1/otomasi/umpan/${resep.umpan}`,
-        sendHeaders: true,
-        headerParameters: { parameters: [{ name: 'X-API-Key', value: cfg.apiKey }] },
-        options: { timeout: 30000 },
-      },
-      id: 'umpan',
-      name: 'Ambil umpan',
-      type: 'n8n-nodes-base.httpRequest',
-      typeVersion: 4.2,
-      position: [220, 0],
-    },
-    {
-      parameters: { jsCode: kodeSusun },
-      id: 'susun',
-      name: 'Susun pesan',
-      type: 'n8n-nodes-base.code',
-      typeVersion: 2,
-      position: [440, 0],
-    },
-    {
-      parameters: {
-        method: 'POST',
-        url: `${cfg.waUrl}/message/sendText/${cfg.waInstance}`,
-        sendHeaders: true,
-        headerParameters: { parameters: [{ name: 'apikey', value: cfg.waApiKey }] },
-        sendBody: true,
-        specifyBody: 'json',
-        jsonBody: `={{ JSON.stringify({ number: "${cfg.nomorTujuan}", text: $json.teks }) }}`,
-        options: { timeout: 30000 },
-      },
-      id: 'kirim',
-      name: 'Kirim WhatsApp',
-      type: 'n8n-nodes-base.httpRequest',
-      typeVersion: 4.2,
-      position: [660, 0],
-    },
-  ]
-}
-
 /**
  * ── ALUR BERPEMICU PERISTIWA (webhook), bukan jadwal ────────────────────────
  *
@@ -347,36 +106,36 @@ const RESEP_PERISTIWA = [
  * untuk kejadian yang sama — satu di lonceng notifikasi, satu di WhatsApp.
  */
 function simpulPeristiwa(resep, cfg) {
-  const kodeSusun = `
-const d = $input.first().json;
-const isi = d.body || d;
-if (!isi || !isi.pesan) { return []; }
-const teks = '*${resep.judul}*\\n\\n' + isi.pesan +
-  (isi.judul ? '\\n\\n_' + isi.judul + '_' : '') +
-  '\\n\\n_Puraloka Suite · ${resep.kode}_';
-return [{ json: { teks } }];
-`.trim()
-
+  // cfg tak lagi dipakai di sini — parameter dipertahankan agar tanda tangan
+  // tetap stabil untuk pemanggilnya.
   return [
     {
       parameters: {
         httpMethod: 'POST',
         path: resep.kode,
-        // `onReceived`: aplikasi yang memanggil ini TIDAK menunggu hasilnya
-        // (fire-and-forget), jadi membalas cepat lebih benar daripada
-        // membalas lengkap. Lihat catatan yang sama di alur jadwal.
         responseMode: 'onReceived',
         options: {},
       },
       id: 'pemicu',
-      name: 'Peristiwa',
+      name: 'Pemicu peristiwa',
       type: 'n8n-nodes-base.webhook',
       typeVersion: 2,
       position: [0, 0],
       webhookId: resep.kode,
     },
     {
-      parameters: { jsCode: kodeSusun },
+      parameters: {
+        jsCode: `
+const d = $input.first().json;
+const isi = d.body || d;
+if (!isi || !isi.pesan) { return []; }
+// Tag tenant_id eksplisit untuk audit lintas eksekusi (spec §5.1/§3.4.2).
+const tenantId = isi.companyId || 'tak-diketahui';
+const teks = '*${resep.judul}*\\n\\n' + isi.pesan +
+  '\\n\\n_Puraloka Suite · ${resep.kode} · tenant:' + tenantId + '_';
+return [{ json: { teks, wa: isi.wa || {}, companyId: tenantId } }];
+`.trim(),
+      },
       id: 'susun',
       name: 'Susun pesan',
       type: 'n8n-nodes-base.code',
@@ -386,12 +145,17 @@ return [{ json: { teks } }];
     {
       parameters: {
         method: 'POST',
-        url: `${cfg.waUrl}/message/sendText/${cfg.waInstance}`,
+        // BUKAN dipatok — $json.wa.* datang dari payload webhook,
+        // dibaca aplikasi lewat ambilKredensialTanpaRequest() per tenant
+        // (lihat terbit-peristiwa.ts, muatanWaPeristiwa()).
+        url: '={{ $json.wa.url }}/message/sendText/{{ $json.wa.instance }}',
         sendHeaders: true,
-        headerParameters: { parameters: [{ name: 'apikey', value: cfg.waApiKey }] },
+        headerParameters: {
+          parameters: [{ name: 'apikey', value: '={{ $json.wa.apiKey }}' }],
+        },
         sendBody: true,
         specifyBody: 'json',
-        jsonBody: `={{ JSON.stringify({ number: "${cfg.nomorTujuan}", text: $json.teks }) }}`,
+        jsonBody: '={{ JSON.stringify({ number: $json.wa.nomorTujuan, text: $json.teks }) }}',
         options: { timeout: 30000 },
       },
       id: 'kirim',
@@ -404,17 +168,7 @@ return [{ json: { teks } }];
 }
 
 const SAMBUNG_PERISTIWA = {
-  Peristiwa: { main: [[{ node: 'Susun pesan', type: 'main', index: 0 }]] },
-  'Susun pesan': { main: [[{ node: 'Kirim WhatsApp', type: 'main', index: 0 }]] },
-}
-
-const SAMBUNG = {
-  Jadwal: { main: [[{ node: 'Ambil umpan', type: 'main', index: 0 }]] },
-  // Pemicu manual masuk ke simpul yang SAMA dengan jadwal — satu rantai
-  // logika, dua jalan masuk. Kalau ia punya cabang sendiri, yang diuji lewat
-  // tombol bukan lagi yang berjalan tiap pagi.
-  'Pemicu manual': { main: [[{ node: 'Ambil umpan', type: 'main', index: 0 }]] },
-  'Ambil umpan': { main: [[{ node: 'Susun pesan', type: 'main', index: 0 }]] },
+  'Pemicu peristiwa': { main: [[{ node: 'Susun pesan', type: 'main', index: 0 }]] },
   'Susun pesan': { main: [[{ node: 'Kirim WhatsApp', type: 'main', index: 0 }]] },
 }
 
@@ -442,46 +196,11 @@ if (!companyId) throw new Error('tak ada company beranggota')
 const cfg = {
   n8nUrl: (process.env.N8N_URL || 'http://localhost:5680').replace(/\/$/, ''),
   n8nKey: process.env.N8N_KEY || '',
-  /*
-    `127.0.0.1`, BUKAN `localhost` — dan ini bukan gaya penulisan.
-
-    ── Diukur 2026-08-14, sesudah alur pertama gagal
-
-    Alur berjalan, lalu simpul "Ambil umpan" membalas *"The service refused
-    the connection - perhaps it is offline"* — padahal API-nya hidup dan
-    `curl` dari shell yang sama membalas 200.
-
-    Sebabnya terlihat begitu interface-nya diperiksa:
-
-        API  0.0.0.0:3007          ← IPv4 saja
-        n8n  0.0.0.0:5680 + [::]   ← ikut IPv6
-
-    n8n me-resolve `localhost` ke `::1` lebih dulu, dan di sana port 3007
-    memang kosong. Dibuktikan langsung:
-
-        http://127.0.0.1:3007/... = 200
-        http://[::1]:3007/...     = 000 (gagal)
-
-    Galat "refused" tak menyebut IPv6 sama sekali, jadi tebakan pertama
-    selalu salah alamat: server dikira mati, port dikira salah, kredensial
-    dikira kedaluwarsa. Menulis alamat IPv4 secara eksplisit menutup seluruh
-    kelas kekeliruan itu.
-
-    `WA_URL` di bawah dibiarkan memakai default `localhost` karena Evolution
-    mendengarkan di keduanya — tapi kalau ia pernah gagal dengan pesan yang
-    sama, ini tempat pertama yang harus diperiksa.
-  */
-  apiUrl: (process.env.PURALOKA_API_URL || 'http://127.0.0.1:3007').replace(/\/$/, ''),
-  apiKey: process.env.PURALOKA_API_KEY || '',
-  waUrl: (process.env.WA_URL || 'http://localhost:8081').replace(/\/$/, ''),
-  waApiKey: process.env.WA_KEY || '',
-  waInstance: process.env.WA_INSTANCE || 'puraloka-bot',
-  nomorTujuan: process.env.WA_TUJUAN || '',
 }
-for (const k of ['n8nKey', 'apiKey', 'waApiKey', 'nomorTujuan']) {
+for (const k of ['n8nKey']) {
   if (!cfg[k]) {
     console.error(`[x] ${k} kosong. Setel lewat env sebelum menjalankan skrip ini.`)
-    console.error('    N8N_KEY, PURALOKA_API_KEY, WA_KEY, WA_TUJUAN')
+    console.error('    N8N_KEY')
     process.exit(2)
   }
 }
@@ -489,16 +208,18 @@ for (const k of ['n8nKey', 'apiKey', 'waApiKey', 'nomorTujuan']) {
 const adaSekarang = await n8nApi(cfg, '/api/v1/workflows?limit=250')
 const peta = new Map((adaSekarang.data ?? []).map((w) => [w.name, w.id]))
 
-// Dua keluarga resep, satu daftar kerja. `jenis` menentukan bentuk simpulnya —
-// alur jadwal punya "Ambil umpan", alur peristiwa tidak (datanya ikut pemicu).
-const SEMUA = [
-  ...RESEP.map((r) => ({ ...r, jenis: 'jadwal' })),
-  ...RESEP_PERISTIWA.map((r) => ({ ...r, jenis: 'peristiwa' })),
-]
+// Dulu dua keluarga resep (jadwal + peristiwa), satu daftar kerja. Keluarga
+// `jadwal` (`RESEP`, dan `simpul()`/`SAMBUNG` yang menyusun simpulnya)
+// dipensiunkan 2026-08-22 (spec §5.5, lihat CLAUDE.md) — hanya
+// `RESEP_PERISTIWA` tersisa. Angka `jadwal` di baris log tetap dituliskan
+// sebagai `0` literal (bukan dihitung dari array yang sudah tak ada) supaya
+// operator yang membaca output skrip tahu keluarga itu memang kosong by
+// design, bukan diam-diam hilang dari perhitungan.
+const SEMUA = RESEP_PERISTIWA.map((r) => ({ ...r, jenis: 'peristiwa' }))
 
 console.log(
   `n8n: ${peta.size} workflow terpasang · resep: ${SEMUA.length} ` +
-  `(${RESEP.length} jadwal + ${RESEP_PERISTIWA.length} peristiwa)`,
+  `(0 jadwal + ${RESEP_PERISTIWA.length} peristiwa)`,
 )
 if (HANYA_DAFTAR) {
   for (const r of SEMUA) {
@@ -509,11 +230,12 @@ if (HANYA_DAFTAR) {
 }
 
 for (const resep of SEMUA) {
-  const peristiwa = resep.jenis === 'peristiwa'
+  // Satu-satunya keluarga tersisa adalah `peristiwa` — keluarga `jadwal`
+  // dipensiunkan bersama `simpul()`/`SAMBUNG` di atas.
   const badan = {
     name: resep.nama,
-    nodes: peristiwa ? simpulPeristiwa(resep, cfg) : simpul(resep, cfg),
-    connections: peristiwa ? SAMBUNG_PERISTIWA : SAMBUNG,
+    nodes: simpulPeristiwa(resep, cfg),
+    connections: SAMBUNG_PERISTIWA,
     settings: { executionOrder: 'v1' },
   }
 

@@ -124,6 +124,25 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
     grup: 'WhatsApp',
   },
   {
+    /*
+     * ── NOMOR TUJUAN NOTIFIKASI — sebelumnya env build-time, sekarang kredensial tenant
+     *
+     * Sampai migrasi n8n shared (2026-08-22), nomor ini dipatok lewat
+     * `WA_TUJUAN` di environment SAAT `scripts/n8n/bangun-alur.mjs`
+     * dijalankan — bukan kredensial tenant sama sekali. Setiap tenant baru
+     * akan butuh workflow n8n dibangun ulang dengan env berbeda, yang
+     * bertentangan langsung dengan tujuan instance shared.
+     *
+     * Sekarang dibaca `terbitkanPeristiwa()` per-tenant lewat jalur
+     * kredensial yang sama dengan WA_BASE_URL dkk, dan disertakan di
+     * payload webhook ke n8n — bukan dipatok ke node workflow.
+     */
+    kunci: 'WA_NOMOR_NOTIFIKASI',
+    label: 'WhatsApp — nomor tujuan notifikasi',
+    keterangan: 'Nomor yang menerima notifikasi otomatis (kasbon diajukan, invoice dibayar, dst), format 62xxxxxxxxxx tanpa +. Kosong = notifikasi otomatis tidak terkirim.',
+    grup: 'WhatsApp',
+  },
+  {
     kunci: 'ANTHROPIC_API_KEY',
     label: 'Anthropic (Claude)',
     keterangan: 'Dipakai asisten AI dan ringkasan dasbor.',
@@ -273,15 +292,19 @@ export const KATALOG_KREDENSIAL: MetaKredensial[] = [
     kunci: 'N8N_BASE_URL',
     label: 'n8n — alamat server',
     keterangan:
-      'Alamat server n8n Anda, mis. http://localhost:5680. Tanpa garis miring di akhir.',
+      'Sejak migrasi ke instance shared (2026-08-22), n8n dikelola operator ' +
+      'Puraloka — mengisi kotak ini di sini TIDAK berpengaruh untuk tenant ' +
+      'selain operator. Dibiarkan tampil untuk keterlihatan konfigurasi, ' +
+      'bukan untuk diisi.',
     grup: 'Otomasi (n8n)',
   },
   {
     kunci: 'N8N_API_KEY',
     label: 'n8n — kunci API',
     keterangan:
-      'Dari n8n: Settings → n8n API → Create an API key. Boleh dikosongkan bila ' +
-      'instance-nya tak menuntut autentikasi API.',
+      'Sejak migrasi ke instance shared (2026-08-22), kunci ini dikelola ' +
+      'operator Puraloka — mengisi kotak ini di sini TIDAK berpengaruh untuk ' +
+      'tenant selain operator.',
     grup: 'Otomasi (n8n)',
   },
 ]

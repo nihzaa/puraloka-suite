@@ -35,13 +35,6 @@ const ALUR = [
     n8n_id: 'wf-stock-003', aktif: true,
   },
   {
-    kode: 'eskalasi-ncr-belum-ditutup',
-    nama: 'Eskalasi NCR yang belum ditutup lewat tenggat',
-    keterangan: 'Naik ke PM setelah 3 hari, ke direktur setelah 7 hari.',
-    pemicu: 'jadwal', jadwal_cron: '0 9 * * *', kategori: 'mutu',
-    n8n_id: 'wf-ncr-004', aktif: true,
-  },
-  {
     kode: 'arsip-dokumen-ke-drive',
     nama: 'Arsip dokumen kontrak ke Google Drive',
     keterangan: 'Menyalin dokumen berstatus final. NONAKTIF sementara — kredensial Drive kedaluwarsa.',
@@ -76,9 +69,6 @@ const JEJAK = {
         'jalur webhook "puraloka/stok-menipis" masih terpasang di alur yang aktif.',
     },
     { status: 'sukses', sumber: 'peristiwa', durasi_ms: 934, menitLalu: 1_200 },
-  ],
-  'eskalasi-ncr-belum-ditutup': [
-    { status: 'jalan', sumber: 'jadwal', menitLalu: 2 },
   ],
 }
 
