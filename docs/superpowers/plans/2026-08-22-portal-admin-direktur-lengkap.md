@@ -2586,17 +2586,97 @@ sama Task 5.
 
 ---
 
-## Tahap 3-7: Belum di-breakdown
+## Tahap 3: Keuangan + Akuntansi
 
-Mengikuti pola Portal PM: setiap Tahap (3: Keuangan+Akuntansi, 4:
-Procurement+Gudang+Aset, 5: Mutu/K3+Risiko+Dokumen+Kepatuhan, 6:
-SDM+Klien+Tender, 7: Sistem/Settings/AI [read-only]+Audit+Users/Roles+
-Master+sisa) dimulai dengan SATU task "riset & breakdown" yang menulis
-task-task konkret ke dokumen ini begitu tahap sebelumnya selesai — BUKAN
-ditulis sekaligus di awal (perkiraan skala terlalu tak pasti untuk
-menulis kode konkret sebelum tahap sebelumnya membuktikan pola yang
-sesungguhnya berlaku, persis alasan yang sama kenapa Portal PM
-membengkak 32→78 halaman).
+### Task 13: Riset & breakdown — Keuangan + Akuntansi (Tahap 3)
+
+**Files:**
+- Modify (dokumen ini): tambah Task 14+ dengan breakdown lengkap Tahap 3
+  berdasar riset task ini.
+
+**Interfaces:**
+- Consumes: hasil Tahap 1-2 (shell+layout+gerbang+Dashboard+Inbox+Proyek+
+  Kontrak+Jadwal berfungsi, pola `useData`/`hasPermission`/token kerapatan/
+  `formatRupiah`/`formatTanggal`/cross-link+WAJAR established).
+- Produces: daftar Task konkret bernomor untuk Tahap 3, ditulis LANGSUNG
+  ke dokumen plan ini (pola sama Task 2/6).
+
+- [ ] **Step 1: Baca halaman web yang sudah ada untuk Keuangan + Akuntansi**
+
+  Baca `apps/web/app/(dashboard)/keuangan/*` (dashboard, kas, gl,
+  rekonsiliasi-bank, piutang, ipc, pengadaan-lanjutan — verifikasi struktur
+  PERSIS ke `lib/peta-menu.ts` grup `g-keuangan`/`g-tagih`, JANGAN
+  menebak dari nama folder) dan `apps/web/app/(dashboard)/akuntansi/*`
+  (kalau ada folder terpisah — cek `peta-menu.ts` untuk grup yang benar,
+  akuntansi mungkin bagian `g-keuangan` juga, bukan grup sendiri).
+
+- [ ] **Step 2: Baca endpoint backend**
+
+  `apps/api/src/routes/v1/finance.ts`, `cash.ts`, `gl.ts`,
+  `rekonsiliasi-bank.ts`, `pengadaan-lanjutan.ts` (atau nama sebenarnya).
+  Rujuk Portal PM Tahap 6 (`docs/superpowers/plans/
+  2026-08-20-portal-pm-lengkap.md`, Task 32-37) sebagai peta AWAL kalau
+  ada, TAPI verifikasi ULANG semua endpoint/field/permission untuk
+  konteks admin — JANGAN asumsikan sama persis (pola sama Task 6:
+  Register Kontrak PM vs admin punya shape company-wide BERBEDA).
+
+  **PERHATIAN KHUSUS — money-safety hard constraint (CLAUDE.md §6):**
+  `payments` adalah SATU-SATUNYA entitas tulis tanpa kolom `status`.
+  `cash_account_id` DIPAKU NULL sengaja di `apps/api/src/lib/
+  tulis-klaim.ts` untuk cegah kalimat WhatsApp salah dengar memindahkan
+  uang sungguhan. JANGAN PERNAH menyentuh file itu atau "melengkapi"
+  kolom itu — ini larangan PERMANEN, bukan spesifik plan ini.
+
+  **GL void non-atomicity** (dicatat JOURNAL.md dari Portal PM Task 34):
+  `PATCH /gl/journal/:id/void` kurang `.eq('status','posted')` — bug
+  backend YANG SUDAH DIKETAHUI, JANGAN diperbaiki di sini (backend-only,
+  di luar scope plan frontend-only ini), cukup diwarisi sebagai catatan
+  kalau halaman GL admin-portal menyentuh area ini.
+
+- [ ] **Step 3: Live query permission admin+direktur untuk SEMUA sub-modul**
+
+  Pisah per role_id (2 baris masing-masing, KONSISTEN pola 6 task
+  sebelumnya). Permission APA yang menggerbangi `gl:post`/`gl:void`/
+  `gl:periode:reopen` (INGAT: riset Task 6 mengoreksi `gl:periode:reopen`
+  BUKAN direktur-eksklusif seperti tercatat semula di spec — dipegang
+  admin JUGA, verifikasi ulang untuk memastikan koreksi itu masih akurat).
+
+- [ ] **Step 4: Tentukan company-wide vs per-proyek per sub-modul**
+
+  Dashboard Keuangan/Piutang/IPC kemungkinan company-wide (agregat).
+  Kas/GL/Rekonsiliasi Bank kemungkinan company-wide juga (akun kas/GL
+  milik company, bukan proyek). Pengadaan-lanjutan (kontrak
+  payung/expediting/nota kredit) verifikasi ke endpoint — bisa jadi
+  campuran.
+
+- [ ] **Step 5: Tulis Task 14+ ke dokumen ini**
+
+  Kode LENGKAP untuk: Dashboard Keuangan/Piutang/IPC, Kas Management, GL
+  (dengan perhatian KHUSUS pada gerbang `gl:post`/`gl:void`/
+  `gl:periode:reopen` — verifikasi render-gate bukan disabled, pola sama
+  Task 10 Change Order), Rekonsiliasi Bank, Kontrak Payung/Expediting/
+  Nota Kredit. Sertakan task navigasi+verifikasi akhir Tahap 3 di akhir
+  (pola sama Task 5/12).
+
+- [ ] **Step 6: Commit breakdown**
+
+  ```bash
+  git add docs/superpowers/plans/2026-08-22-portal-admin-direktur-lengkap.md
+  git commit -m "docs(plan): breakdown Tahap 3 — Keuangan + Akuntansi"
+  ```
+
+---
+
+## Tahap 4-7: Belum di-breakdown
+
+Mengikuti pola Portal PM: setiap Tahap (4: Procurement+Gudang+Aset, 5:
+Mutu/K3+Risiko+Dokumen+Kepatuhan, 6: SDM+Klien+Tender, 7: Sistem/Settings/
+AI [read-only]+Audit+Users/Roles+Master+sisa) dimulai dengan SATU task
+"riset & breakdown" yang menulis task-task konkret ke dokumen ini begitu
+tahap sebelumnya selesai — BUKAN ditulis sekaligus di awal (perkiraan
+skala terlalu tak pasti untuk menulis kode konkret sebelum tahap
+sebelumnya membuktikan pola yang sesungguhnya berlaku, persis alasan yang
+sama kenapa Portal PM membengkak 32→78 halaman).
 
 **Final**: task terakhir plan ini adalah verifikasi menyeluruh SELURUH
 portal admin/direktur (typecheck, build, SEMUA penjaga CI, test backend
