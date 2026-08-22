@@ -94,7 +94,12 @@ BEGIN
   UPDATE roles SET is_builtin = false WHERE company_id = v_test_company_id;
   DELETE FROM role_permissions WHERE role_id IN (SELECT id FROM roles WHERE company_id = v_test_company_id);
   DELETE FROM roles WHERE company_id = v_test_company_id;
-  UPDATE companies SET is_active = false WHERE id = v_test_company_id;
+  -- `code` WAJIB ikut diganti dalam UPDATE yang sama — companies.code UNIQUE
+  -- dan companies tak bisa di-hard-delete (anti-casual-delete trigger). Tanpa
+  -- ini, menjalankan ulang migrasi ini pada DB yang sudah pernah menjalankannya
+  -- akan gagal unique_violation saat INSERT baris uji berikutnya.
+  UPDATE companies SET is_active = false, code = 'retired-' || substring(v_test_company_id::text, 1, 8)
+    WHERE id = v_test_company_id;
 
   RAISE NOTICE '506 OK: fn_instantiate_tenant_roles terbukti bekerja & idempoten (% role tersalin)', n;
 END $$;

@@ -90,7 +90,12 @@ BEGIN
   DELETE FROM roles WHERE company_id = v_result.company_id;
   DELETE FROM company_saas_meta WHERE company_id = v_result.company_id;
   DELETE FROM subscriptions WHERE company_id = v_result.company_id;
-  UPDATE companies SET is_active = false WHERE id = v_result.company_id;
+  -- `code` WAJIB ikut diganti dalam UPDATE yang sama — companies.code UNIQUE
+  -- dan companies tak bisa di-hard-delete (anti-casual-delete trigger). Tanpa
+  -- ini, menjalankan ulang migrasi ini pada DB yang sudah pernah menjalankannya
+  -- akan gagal unique_violation saat INSERT 'test-507-provision' berikutnya.
+  UPDATE companies SET is_active = false, code = 'retired-' || substring(v_result.company_id::text, 1, 8)
+    WHERE id = v_result.company_id;
 
   RAISE NOTICE '507 OK: fn_provision_tenant_step1 atomik & menolak code bentrok dgn benar';
 END $$;
