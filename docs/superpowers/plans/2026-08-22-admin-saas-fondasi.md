@@ -1636,8 +1636,8 @@ git commit -m "feat: provisionTenantStep1 — transaksi 1 provisioning tenant (s
 - Modify: `E:\Project\admin-saas\lib/provisioning.test.ts`
 
 **Interfaces:**
-- Consumes: `supabaseAdmin.auth.admin` (Supabase Auth Admin API), `companyId`+`adminRoleId` dari `provisionTenantStep1`.
-- Produces: `provisionTenantStep2(input: { companyId: string; adminRoleId: string; adminEmail: string }): Promise<{ authUserId: string } | { error: string }>` — implementasi spec §5.1a langkah 2a (cek-lalu-buat `auth.users`, idempoten) + 2b (upsert `company_members`, idempoten).
+- Consumes: `supabaseAdmin.auth.admin` (Supabase Auth Admin API), `companyId`+`adminRoleId` dari `provisionTenantStep1`, tabel `public.users` (perantara wajib — lihat catatan "celah yang ketahuan saat eksekusi" di Step 3).
+- Produces: `provisionTenantStep2(input: { companyId: string; adminRoleId: string; adminEmail: string; adminName: string }): Promise<{ authUserId: string } | { error: string }>` — implementasi spec §5.1a langkah 2a (cek-lalu-buat `auth.users`, idempoten) + 2a-bis (cek-lalu-buat `public.users`, idempoten — WAJIB, ditemukan saat eksekusi, bukan di draft awal) + 2b (upsert `company_members` dgn `user_id` = `public.users.id`, idempoten). `adminName` WAJIB (`users.name` bertipe `NOT NULL`).
 
 - [ ] **Step 1: Tulis test — sukses, dan idempotency saat dipanggil dua kali**
 
@@ -1744,14 +1744,54 @@ export async function provisionTenantStep2(input: {
     authUserId = created.user.id
   }
 
+  // 2a-bis — public.users adalah tabel PERANTARA, WAJIB, ditemukan saat
+  // eksekusi (bukan diasumsikan dari desain awal): `company_members.user_id`
+  // FK ke `users(id)` — TABEL `public.users` milik puraloka-suite, BUKAN
+  // langsung ke `auth.users(id)`. `public.users` py PK sendiri + kolom
+  // `auth_id` yang menaut ke `auth.users.id`, dan `role_id NOT NULL` (peran
+  // GLOBAL lama, fallback TERAKHIR — bukan peran per-tenant, itu tetap di
+  // `company_members.role_id`). Pola pembuatannya sudah ada persis di
+  // `apps/api/src/routes/v1/auth.ts` (rute register): sesudah
+  // `auth.admin.createUser()`, INSERT `users` dgn `auth_id` menaut ke user
+  // Auth yang baru dibuat.
+  //
+  // Idempoten sama seperti 2a: cek dulu by `auth_id`, insert kalau belum ada.
+  const { data: existingPublicUser } = await supabaseAdmin
+    .from('users')
+    .select('id')
+    .eq('auth_id', authUserId)
+    .maybeSingle()
+
+  let publicUserId: string
+  if (existingPublicUser) {
+    publicUserId = existingPublicUser.id
+  } else {
+    const { data: createdPublicUser, error: publicUserError } = await supabaseAdmin
+      .from('users')
+      .insert({
+        auth_id: authUserId,
+        name: input.adminName,
+        email: input.adminEmail,
+        role_id: input.adminRoleId, // fallback global — peran sesungguhnya di company_members.role_id (2b)
+      })
+      .select('id')
+      .single()
+    if (publicUserError || !createdPublicUser) {
+      return { error: `Gagal membuat baris users: ${publicUserError?.message ?? 'unknown'}` }
+    }
+    publicUserId = createdPublicUser.id
+  }
+
   // 2b — upsert company_members (DO UPDATE semantics via delete+insert,
   // supaBase-js belum punya native upsert dgn composite unique yg presisi
   // untuk kasus ini — cek dulu, lalu insert/update eksplisit).
+  // user_id DI SINI adalah publicUserId (users.id), BUKAN authUserId
+  // (auth.users.id) — lihat catatan 2a-bis di atas.
   const { data: existingMember } = await supabaseAdmin
     .from('company_members')
     .select('id')
     .eq('company_id', input.companyId)
-    .eq('user_id', authUserId)
+    .eq('user_id', publicUserId)
     .maybeSingle()
 
   if (existingMember) {
@@ -1765,7 +1805,7 @@ export async function provisionTenantStep2(input: {
   } else {
     const { error: insertError } = await supabaseAdmin.from('company_members').insert({
       company_id: input.companyId,
-      user_id: authUserId,
+      user_id: publicUserId,
       role_id: input.adminRoleId,
       is_default: true,
       is_active: true,
@@ -1779,6 +1819,21 @@ export async function provisionTenantStep2(input: {
 }
 ```
 
+**Celah yang ketahuan SAAT EKSEKUSI (bukan review dokumen)**: draft pertama
+task ini mengasumsikan `company_members.user_id` FK langsung ke
+`auth.users.id` — keliru, terbukti oleh implementer yang menjalankan test
+sungguhan dan mendapat FK violation `company_members_user_id_fkey`.
+Verifikasi silang: `db/migrations/126_multitenant_core.sql:86` —
+`user_id UUID NOT NULL REFERENCES users(id)`, dan `public.users` adalah
+tabel employee/staff puraloka-suite sendiri (py `auth_id`, `role_id NOT
+NULL`, dst), bukan alias `auth.users`. Pola pembuatannya SUDAH ADA di
+`apps/api/src/routes/v1/auth.ts` rute register — diikuti persis di atas,
+bukan ditebak. `input.adminName` ditambahkan ke parameter fungsi (Interfaces
+block di atas WAJIB diperbarui: `provisionTenantStep2(input: { companyId:
+string; adminRoleId: string; adminEmail: string; adminName: string })`) —
+`users.name` bertipe `NOT NULL`, jadi provisioning butuh nama admin, bukan
+cuma email.
+
 - [ ] **Step 4: Jalankan test, pastikan lulus**
 
 Run: `npx vitest run lib/provisioning.test.ts`
@@ -1788,7 +1843,7 @@ Expected: PASS — semua test (Step1 + Step2 termasuk idempotency) lulus.
 
 ```bash
 git add lib/provisioning.ts lib/provisioning.test.ts
-git commit -m "feat: provisionTenantStep2 — auth.users+company_members idempoten (spec §5.1a 2a/2b)"
+git commit -m "feat: provisionTenantStep2 — auth.users+public.users+company_members idempoten (spec §5.1a 2a/2b)"
 ```
 
 ---
