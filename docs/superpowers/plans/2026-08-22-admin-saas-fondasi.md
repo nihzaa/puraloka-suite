@@ -1866,24 +1866,35 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { supabaseAdmin } from './supabase'
 import { validateTenantTarget } from './validate-tenant-target'
 
+// TEST_CODE tetap (bukan literal berulang di tiap assertion) supaya jelas
+// satu-satunya nilai yang harus dibebaskan saat afterAll.
+const TEST_CODE = 'uji-validate-target'
 let companyId: string
 
 beforeAll(async () => {
   const { data } = await supabaseAdmin
     .from('companies')
-    .insert({ code: 'uji-validate-target', name: 'PT Uji Validate' })
+    .insert({ code: TEST_CODE, name: 'PT Uji Validate' })
     .select('id')
     .single()
   companyId = data!.id
 })
 
 afterAll(async () => {
-  await supabaseAdmin.from('companies').update({ is_active: false }).eq('id', companyId)
+  // companies.code UNIQUE + companies tak bisa hard-delete (trigger
+  // anti-hapus-kasual) — is_active=false SAJA tak membebaskan TEST_CODE
+  // untuk run berikutnya (bug kelas sama ditemukan & diperbaiki di
+  // provisioning.test.ts, Task D1 fix round 1). Ganti code JUGA supaya
+  // suite ini bisa dijalankan ulang tanpa unique_violation.
+  await supabaseAdmin
+    .from('companies')
+    .update({ is_active: false, code: `retired-${companyId.slice(0, 8)}` })
+    .eq('id', companyId)
 })
 
 describe('validateTenantTarget', () => {
   it('valid=true kalau code yang dikirim client cocok dgn company_id', async () => {
-    const result = await validateTenantTarget(companyId, 'uji-validate-target')
+    const result = await validateTenantTarget(companyId, TEST_CODE)
     expect(result.valid).toBe(true)
   })
 
@@ -1981,13 +1992,15 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { supabaseAdmin } from './supabase'
 import { suspendTenant } from './suspend-tenant'
 
+// TEST_CODE tetap — lihat catatan afterAll soal kenapa harus dibebaskan.
+const TEST_CODE = 'uji-suspend-d4'
 let companyId: string
 let adminUserId: string
 
 beforeAll(async () => {
   const { data: company } = await supabaseAdmin
     .from('companies')
-    .insert({ code: 'uji-suspend-d4', name: 'PT Uji Suspend' })
+    .insert({ code: TEST_CODE, name: 'PT Uji Suspend' })
     .select('id')
     .single()
   companyId = company!.id
@@ -2018,14 +2031,21 @@ beforeAll(async () => {
 afterAll(async () => {
   await supabaseAdmin.from('admin_saas_users').delete().eq('id', adminUserId)
   await supabaseAdmin.from('company_saas_meta').delete().eq('company_id', companyId)
-  await supabaseAdmin.from('companies').update({ is_active: false }).eq('id', companyId)
+  // is_active SAJA tak membebaskan TEST_CODE untuk run berikutnya —
+  // companies.code UNIQUE + tak bisa hard-delete (bug kelas sama
+  // ditemukan & diperbaiki di provisioning.test.ts, Task D1 fix round 1;
+  // diulang lagi di validate-tenant-target.test.ts, Task D3 fix round 1).
+  await supabaseAdmin
+    .from('companies')
+    .update({ is_active: false, code: `retired-${companyId.slice(0, 8)}` })
+    .eq('id', companyId)
 })
 
 describe('suspendTenant', () => {
   it('mengubah lifecycle_status+access_mode kalau code cocok & status lama sesuai', async () => {
     const result = await suspendTenant({
       companyId,
-      expectedCode: 'uji-suspend-d4',
+      expectedCode: TEST_CODE,
       expectedCurrentStatus: 'active',
       reason: 'Uji suspend otomatis',
       accessMode: 'read_only',
@@ -2059,7 +2079,7 @@ describe('suspendTenant', () => {
     // Status sekarang 'suspended' (dari test pertama), tapi kita klaim 'active'.
     const result = await suspendTenant({
       companyId,
-      expectedCode: 'uji-suspend-d4',
+      expectedCode: TEST_CODE,
       expectedCurrentStatus: 'active', // SALAH — sudah suspended
       reason: 'Staf kedua yang telat sadar',
       accessMode: 'blocked',
@@ -2168,12 +2188,13 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import { supabaseAdmin } from './supabase'
 import { listTenants } from './list-tenants'
 
+const TEST_CODE = 'uji-list-tenants-d5'
 let companyId: string
 
 beforeAll(async () => {
   const { data } = await supabaseAdmin
     .from('companies')
-    .insert({ code: 'uji-list-tenants-d5', name: 'PT Uji List Tenants' })
+    .insert({ code: TEST_CODE, name: 'PT Uji List Tenants' })
     .select('id')
     .single()
   companyId = data!.id
@@ -2184,7 +2205,13 @@ beforeAll(async () => {
 
 afterAll(async () => {
   await supabaseAdmin.from('company_saas_meta').delete().eq('company_id', companyId)
-  await supabaseAdmin.from('companies').update({ is_active: false }).eq('id', companyId)
+  // is_active SAJA tak membebaskan TEST_CODE untuk run berikutnya — lihat
+  // catatan sama di provisioning.test.ts (Task D1 fix round 1) dan
+  // validate-tenant-target.test.ts (Task D3 fix round 1).
+  await supabaseAdmin
+    .from('companies')
+    .update({ is_active: false, code: `retired-${companyId.slice(0, 8)}` })
+    .eq('id', companyId)
 })
 
 describe('listTenants', () => {
