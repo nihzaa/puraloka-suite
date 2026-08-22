@@ -1205,6 +1205,1385 @@ benar) — tapi hidup di file BERBEDA: inline di
   git commit -m "docs(plan): breakdown Tahap 2 — Proyek + Kontrak + Jadwal"
   ```
 
+### Hasil riset Task 6 (2026-08-22) — ringkasan sebelum Task 7-12
+
+**Proyek** — `GET /api/v1/projects` (`apps/api/src/routes/v1/projects.ts:14-48`)
+sudah COMPANY-WIDE APA ADANYA untuk admin/direktur: satu-satunya penyempitan
+di kode adalah `role === 'client'` (baris 34), tak ada cabang untuk `pm`
+sama sekali — daftar proyek yang dikembalikan API untuk PM pun sebenarnya
+SUDAH seluruh tenant; `pm-portal/proyek/page.tsx` menyaringnya sendiri di
+KLIEN lewat `.filter((p) => p.pm)` (yang sebetulnya bukan "proyek milik saya"
+melainkan "proyek yang punya PM apa pun" — potensi bug PM Portal, DI LUAR
+scope Task ini, dicatat sebagai temuan bukan diperbaiki). Untuk admin-portal:
+**tidak perlu filter apa pun**, tampilkan `projects` apa adanya.
+
+`GET /api/v1/projects/:id` (baris 51+) sudah menangani ownership per-role —
+`admin bebas` (baris 137-140 hanya menolak `pm`/lainnya, admin lolos tanpa
+syarat). `pm-portal/proyek/[id]/page.tsx` (16 baris) TERBUKTI **hanya
+redirect** ke `/proyek/:id` (dashboard web, bukan halaman portal sendiri) —
+komentar di kode menyatakan eksplisit "PM punya akses penuh ke detail
+proyek". Untuk admin-portal: pola IDENTIK berlaku, bahkan lebih sederhana
+(admin memang sudah pemilik penuh) — Task 7 membangun List sebagai halaman
+admin-portal sungguhan, tapi Detail cukup REDIRECT ke `/proyek/:id` yang
+sudah ada, TIDAK membangun tab-hub baru.
+
+⚠ **Halaman `/proyek/:id` (`apps/web/app/(dashboard)/proyek/[id]/page.tsx`,
+2082 baris) adalah dashboard WEB biasa** — bukan komponen portal (tidak
+pakai `PortalShell`/token `--portal-*`), dan berat untuk viewport mobile
+(tab CPM/Gantt/Kurva-S/Milestone/Change-Order/dst semuanya HIDUP DI SINI
+sebagai tab, dikonfirmasi `peta-menu.ts` — `jd-gantt`/`jd-kurva-s`/`kt-co`/
+dst semua `tabProyek: 'sec-*'` menunjuk `href: '/proyek'`). Redirect keluar
+dari `admin-portal/*` ke halaman non-portal ini SAMA PERSIS pola PM
+(`pm-portal/proyek/[id]/page.tsx`) — bukan penyimpangan baru, dan
+alternatifnya (membangun ulang 2082 baris + belasan tab jadi versi portal)
+di luar skala breakdown yang masuk akal untuk satu Tahap.
+
+**Kontrak (`g-kontrak`, 12 item, urutan 30)** — TIGA pola berbeda ditemukan,
+harus dipecah task sesuai polanya (bukan satu task generik "Kontrak"):
+
+| Sub-modul | Endpoint | Company-wide? | Permission |
+|---|---|---|---|
+| Register Kontrak (`kt-register`) | `GET/POST /api/v1/kontrak`, `PATCH /api/v1/kontrak/:id/status` | **YA** — `GET /api/v1/kontrak` tanpa `project_id` sudah company-wide (`kontrak.ts:42-63`, hanya `.eq('company_id', ...)`), PM Portal TIDAK memakainya (pilih endpoint per-proyek `/kontrak/proyek/:id` + picker) | `projects:view` (baca), `projects:contract` (tulis) |
+| Asuransi (`kt-asuransi`) | `GET/POST /api/v1/asuransi` | **YA** — `project_id` OPSIONAL (`asuransi.ts:32-46`, default `idProyek` = SELURUH `db.projectIds()`); PM Portal SUDAH memakainya company-wide by default (`url = ... : "/api/v1/asuransi"` tanpa query saat `proyekId` kosong) | `projects:contract` (baca DAN tulis — satu permission untuk keduanya, tak ada endpoint PATCH) |
+| EOT + LD + Bond (`kt-eot`/`kt-ld`/`kt-bond`) | `GET/POST /api/v1/projects/:id/eot`, `GET /api/v1/projects/:id/liquidated-damages`, `GET/POST/PATCH /api/v1/bonds` | **TIDAK** — ketiganya butuh `:id` proyek di path (EOT/LD) atau `project_id` di body (Bond POST); PM Portal pakai project-picker wajib | `projects:view` (baca), `projects:edit` (tulis EOT+Bond; LD baca-saja, nol POST/PATCH) |
+| Klaim Kontraktual (`kt-claims`) | `GET/POST /api/v1/projects/:id/claims`, `PATCH /api/v1/claims/:id/decide` | **TIDAK** — per-proyek, `PATCH` mewarisi tenancy lewat `project_id` di BODY | `projects:view` (baca), `projects:edit` (tulis) |
+| Surat (`kt-surat`) | `GET /api/v1/letters` (lintas-proyek), `GET/POST /api/v1/projects/:id/letters`, `PATCH /api/v1/letters/:id` | **YA** untuk BACA (`GET /letters` sengaja lintas-proyek — dipakai PM Portal sebagai default) — form "Surat Baru" tetap pilih SATU proyek karena `POST` per-proyek | `documents:manage` (baca DAN tulis, live 2026-08-22: admin DAN direktur sama-sama punya) |
+| Change Order (`kt-co`) | `GET/POST /api/v1/projects/:id/change-orders`, item CRUD, `PATCH .../submit`, `PATCH /api/v1/change-orders/:id/{approve,reject}` | **TIDAK** — per-proyek murni | `projects:edit` (create/edit/submit — admin DAN direktur punya); `change_order:approve` (approve/reject — **HANYA admin, direktur TIDAK**, live 2026-08-22, konsisten dengan temuan Task 2) |
+
+`kt-termin`/`kt-retensi`/`kt-rfi`/`kt-subkon` (4 item sisa grup `g-kontrak`)
+TIDAK masuk breakdown Task 7-11 — hrefnya menunjuk modul LAIN (`/keuangan/
+pembayaran`, `/piutang`, `/kontrak/rfi`, `/kontrak/subkon`) yang bukan bagian
+riset ini (Termin/Retensi masuk Tahap 3 Keuangan; RFI/Subkon belum
+diriset). Task navigasi (Task 12) tetap mengaktifkan grup `g-kontrak` penuh
+sehingga keempatnya TAMPIL dengan fallback href web, pola sama Task 5.
+
+**Jadwal (`g-jadwal`, 9 item, urutan 40)** — SEMUA per-proyek kecuali satu:
+
+| Sub-modul | Endpoint | Company-wide? |
+|---|---|---|
+| CPM + Kalender + Sumber Daya + Method Statement (`jd-cpm`, sebagian `jd-histogram`) | `GET /api/v1/jadwal-cpm/:projectId` | TIDAK — `:projectId` wajib di path |
+| Baseline (`jd-baseline`) | `GET/POST /api/v1/proyek/:id/baseline`, `GET /api/v1/proyek/:id/baseline/pergeseran` | TIDAK — per-proyek |
+| Analisa Keterlambatan (`jd-delay`) | `GET /api/v1/analisa-keterlambatan?project_id=` | **YA** — `project_id` OPSIONAL (PM Portal sudah default company-wide, `url = proyekId ? ...?project_id=... : "/api/v1/analisa-keterlambatan"`), READ-ONLY (nol POST/PATCH — "angka yang bisa disunting berhenti jadi dasar apa pun") |
+
+`jd-wbs`/`jd-gantt`/`jd-kurva-s`/`jd-lookahead`/`jd-milestone`/`jd-evm` (6
+item sisa) semuanya `tabProyek` — hidup sebagai tab `/proyek/[id]`, BUKAN
+halaman jadwal-cpm ini. Tak ada endpoint company-wide untuk keenamnya (belum
+diriset — di luar cakupan Task 6).
+
+**Permission live 2026-08-22** (pisah role_id, format sama Task 2):
+
+```
+projects:view                 admin ✅  direktur ✅  (global+tenant, keduanya)
+projects:create                admin ✅  direktur ✅
+projects:edit                  admin ✅  direktur ✅
+projects:contract              admin ✅  direktur ✅
+projects:baseline:manage       admin ✅  direktur ✅
+documents:manage               admin ✅  direktur ✅
+change_order:approve           admin ✅  direktur ❌   ← satu-satunya beda di Tahap 2
+```
+
+`direktur` tetap SUBSET murni admin (konsisten Task 2) — tapi `change_order:
+approve` adalah kasus KONKRET pertama di Tahap 2 di mana perbedaan itu
+bermakna di UI (bukan cuma di approval inbox): tombol Setujui/Tolak Change
+Order harus digerbang eksplisit, disalin APA ADANYA dari pola
+`pm-portal/kontrak-lengkap/change-order/page.tsx` (`useSyncExternalStore` +
+`hasPermission("change_order:approve")`, tombol TIDAK DIRENDER — bukan
+disabled — saat izin tak ada).
+
+**Komponen & tipe yang dipakai ulang** — SELURUH tipe respons (`ProyekPM`,
+`DokumenKontrak`, `RespKontrakProyek`, `NilaiKontrakBerjalan`,
+`BandingNilaiKontrak`, `PolisAsuransi`, `RespAsuransi`, `EotProyek`,
+`TanggalEfektifKontrak`, `RespEot`, `HasilLD`, `RespLd`, `BondProyek`,
+`BarisBondRingkas`, `RingkasBond`, `RespBond`, `KlaimKontraktual`,
+`BatasPemberitahuan`, `RespKlaimKontraktual`, `SuratProyek`, `BatasBalas`,
+`RespSuratLintasProyek`) SUDAH ada diverifikasi di
+`apps/web/app/pm-portal/_bersama/tipe.ts` — Task 7-11 MENYALIN definisinya
+ke `admin-portal/_bersama/tipe.ts` (pola duplikasi antar-portal yang sudah
+dipakai Task 4), BUKAN menulis ulang dari nol. `ChangeOrderProyek`/
+`RespChangeOrder`/`RespApproveCo` (dipakai Task 10) ada di file yang sama,
+belum dibaca detail — Task 10 membacanya ulang sebelum menyalin (Step 1
+task itu). Komponen: `BottomSheet`, `SegmentedTab` (props: `opsi: {value,
+label}[]`, `aktif: string`, `onUbah: (v)=>void` — dibaca `SegmentedTab.tsx`
+langsung), `EmptyState`, `SkeletonCard`, `StatusBadge` (+ `VarianStatus`) —
+semuanya generik, sudah dipakai lintas 3 portal.
+
+---
+
+## Tahap 2 lanjutan: Task 7-12
+
+### Task 7: Proyek — List company-wide + Detail (deep-link)
+
+**Files:**
+- Create: `apps/web/app/admin-portal/proyek/page.tsx`
+- Create: `apps/web/app/admin-portal/proyek/[id]/page.tsx` (redirect, pola
+  `pm-portal/proyek/[id]/page.tsx`)
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah `ProyekPM`,
+  disalin dari `pm-portal/_bersama/tipe.ts:58-84`)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/projects` (company-wide, TANPA filter — lihat
+  riset Task 6: satu-satunya penyempitan di endpoint ini adalah
+  `role === 'client'`, admin/direktur menerima seluruh tenant apa adanya).
+- Produces: `/admin-portal/proyek` (sudah ada di `NAV_ITEMS` Task 1 Step 2),
+  `/admin-portal/proyek/:id` redirect ke `/proyek/:id` (dashboard web).
+
+⚠ **Halaman ini BUKAN salinan PM Portal apa adanya** — PM Portal MENYARING
+`.filter((p) => p.pm)` (temuan Task 6: sebenarnya "proyek berpunya PM apa
+pun", bukan "proyek saya" — kemungkinan bug PM Portal, DI LUAR scope Task
+ini, JANGAN diperbaiki di sini karena berisiko mengubah perilaku modul lain
+tanpa riset terpisah). Admin-portal TIDAK menyaring apa pun — seluruh
+`projects` tampil, termasuk yang belum punya PM ditugaskan (`draft`/baru
+dibuat), karena admin justru pihak yang MENUGASKAN PM.
+
+- [ ] **Step 1: Baca ulang `pm-portal/proyek/page.tsx` PENUH sebelum
+  menulis (146 baris)** — kerangka di bawah adalah TURUNAN, bukan salinan
+  identik (lihat catatan filter di atas).
+
+- [ ] **Step 2: Tambah `ProyekPM` ke `_bersama/tipe.ts`**
+
+  Salin PERSIS `pm-portal/_bersama/tipe.ts:58-84` — field `contract_value`,
+  `progress_pct`, `end_date`, `clients`, `pm` semuanya dipakai kartu daftar.
+
+- [ ] **Step 3: `admin-portal/proyek/page.tsx`**
+
+  ```tsx
+  "use client";
+
+  // ============================================================================
+  // Proyek — Portal Admin/Direktur (Task 7). COMPANY-WIDE tanpa saringan
+  // kepemilikan — beda dari `pm-portal/proyek/page.tsx` yang menyaring
+  // `.filter((p) => p.pm)` (riset Task 6: `GET /api/v1/projects` TIDAK
+  // menyempitkan apa pun untuk role selain `client`; PM Portal menyaring di
+  // klien, bukan endpoint). Admin melihat SELURUH proyek tenant, termasuk
+  // yang belum ditugaskan PM-nya — admin adalah pihak yang menugaskan.
+  // ============================================================================
+
+  import { useState } from "react";
+  import Link from "next/link";
+  import { useData } from "@/lib/data-cache";
+  import { MapPin, Calendar, ChevronRight, AlertCircle, FolderKanban } from "lucide-react";
+  import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+  import SkeletonCard from "@/components/portal/SkeletonCard";
+  import EmptyState from "@/components/portal/EmptyState";
+  import type { ProyekPM, GalatApi } from "../_bersama/tipe";
+  import { pesanGalat } from "../_bersama/tipe";
+
+  interface RespProyek { projects: ProyekPM[] }
+
+  function fmt(n: number) {
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+  }
+  function fmtDate(s: string | null | undefined) {
+    if (!s) return "—";
+    return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  const LABEL_STATUS: Record<string, string> = {
+    planning: "Perencanaan", active: "Aktif", on_hold: "Ditunda",
+    completed: "Selesai", cancelled: "Dibatalkan",
+  };
+  const VARIAN_STATUS: Record<string, VarianStatus> = {
+    planning: "info", active: "approved", on_hold: "pending",
+    completed: "approved", cancelled: "netral",
+  };
+  const FILTER_OPSI = ["all", "active", "planning", "on_hold", "completed"];
+
+  export default function AdminProyekPage() {
+    const [filter, setFilter] = useState("all");
+    const { data, memuat, galat } = useData<RespProyek>("/api/v1/projects");
+    // TANPA `.filter((p) => p.pm)` — company-wide sungguhan, lihat komentar berkas.
+    const projects = data?.projects ?? [];
+    const filtered = filter === "all" ? projects : projects.filter((p) => p.status === filter);
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+          Proyek
+        </h1>
+
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {FILTER_OPSI.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setFilter(s)}
+              aria-pressed={filter === s}
+              style={{
+                padding: "6px 14px", borderRadius: "var(--portal-radius-pill)", fontSize: 12, fontWeight: 600,
+                cursor: "pointer", minHeight: 32,
+                border: `1px solid ${filter === s ? "var(--navy)" : "var(--border)"}`,
+                background: filter === s ? "var(--info-bg)" : "var(--surface)",
+                color: filter === s ? "var(--navy)" : "var(--text-secondary)",
+              }}
+            >
+              {s === "all" ? "Semua" : LABEL_STATUS[s] ?? s}
+            </button>
+          ))}
+        </div>
+
+        {memuat && <><SkeletonCard tinggi={110} /><SkeletonCard tinggi={110} /></>}
+
+        {!memuat && galat && (
+          <EmptyState icon={AlertCircle} judul="Gagal memuat proyek" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang halaman ini.")} />
+        )}
+
+        {!memuat && !galat && filtered.length === 0 && (
+          <EmptyState icon={FolderKanban} judul="Belum ada proyek" deskripsi="Proyek perusahaan akan muncul di sini." />
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {filtered.map((p) => {
+            const terlambat = p.status === "active" && p.end_date && new Date(p.end_date) < new Date();
+            const progres = p.progress_pct ?? 0;
+            return (
+              <Link key={p.id} href={`/admin-portal/proyek/${p.id}`} style={{ textDecoration: "none" }}>
+                <div style={{
+                  background: "var(--surface)", borderRadius: 16, padding: 16,
+                  border: `1px solid ${terlambat ? "var(--danger-border)" : "var(--border)"}`,
+                  display: "flex", flexDirection: "column", gap: 8,
+                }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+                        <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{p.name}</h2>
+                        <StatusBadge status={VARIAN_STATUS[p.status ?? ""] ?? "netral"} label={LABEL_STATUS[p.status ?? ""] ?? p.status ?? "—"} />
+                        {terlambat && <StatusBadge status="rejected" label="Terlambat" />}
+                        {/* Beda dari PM: admin butuh tahu proyek BELUM berpenanggung jawab — sinyal yang tak relevan buat PM sendiri. */}
+                        {!p.pm && <StatusBadge status="pending" label="Belum ada PM" />}
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 16px" }}>
+                        {p.pm?.name && <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>PM: {p.pm.name}</div>}
+                        {p.clients?.contact_person && <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{p.clients.contact_person}</div>}
+                        {p.location && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--text-secondary)" }}>
+                            <MapPin size={12} aria-hidden="true" />{p.location}
+                          </div>
+                        )}
+                        {p.start_date && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: "var(--text-secondary)" }}>
+                            <Calendar size={12} aria-hidden="true" />{fmtDate(p.start_date)} – {fmtDate(p.end_date)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight size={18} color="var(--text-muted)" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+                  </div>
+
+                  {p.status === "active" && (
+                    <div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                        <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Serapan Anggaran</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)", fontVariantNumeric: "tabular-nums" }}>{progres}%</span>
+                      </div>
+                      <div style={{ height: 6, background: "var(--surface-subtle)", borderRadius: 999, overflow: "hidden" }}>
+                        <div style={{
+                          height: "100%", borderRadius: 999, width: `${progres}%`,
+                          background: terlambat ? "var(--danger)" : "var(--grad-aksen)",
+                          transition: "width 0.5s",
+                        }} />
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)", fontVariantNumeric: "tabular-nums" }}>
+                    {fmt(Number(p.contract_value) || 0)}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+  ```
+
+  ⚠ Label KPI "Serapan Anggaran" (bukan "Progres Fisik" seperti PM Portal) —
+  konsisten dengan koreksi istilah yang SUDAH ditulis `(dashboard)/proyek/
+  page.tsx` (§header berkas itu): `progress_pct` adalah bobot RAB terserap,
+  BUKAN kemajuan fisik lapangan. PM Portal-nya sendiri memakai label lama
+  "Progres Fisik" yang keliru — JANGAN disalin labelnya, hanya strukturnya.
+
+- [ ] **Step 4: `admin-portal/proyek/[id]/page.tsx` — redirect**
+
+  ```tsx
+  "use client";
+
+  // Redirect ke halaman detail proyek dashboard web — admin punya akses
+  // penuh ke SELURUH tab (`/proyek/[id]`, 2082 baris, CPM/Gantt/Kurva-S/
+  // Change-Order/dst semuanya tab di sana, bukan halaman terpisah — lihat
+  // riset Task 6). Pola IDENTIK `pm-portal/proyek/[id]/page.tsx`. Membangun
+  // versi portal (PortalShell + belasan tab) adalah pekerjaan tersendiri
+  // yang JAUH melebihi skala satu Task — di luar cakupan Tahap 2.
+  import { useEffect } from "react";
+  import { useParams, useRouter } from "next/navigation";
+
+  export default function AdminProyekDetailRedirect() {
+    const { id } = useParams();
+    const router = useRouter();
+
+    useEffect(() => {
+      if (id) router.replace(`/proyek/${id}`);
+    }, [id, router]);
+
+    return null;
+  }
+  ```
+
+- [ ] **Step 5: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 6: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/proyek apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): proyek company-wide + deep-link detail — Tahap 2"
+  ```
+
+### Task 8: Kontrak — Register + Asuransi (company-wide)
+
+**Files:**
+- Create: `apps/web/app/admin-portal/kontrak/register/page.tsx`
+- Create: `apps/web/app/admin-portal/kontrak/asuransi/page.tsx`
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah
+  `DokumenKontrak`, `NilaiKontrakBerjalan`, `BandingNilaiKontrak`,
+  `RespKontrakProyek`, `PolisAsuransi`, `RespAsuransi`)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/kontrak` (company-wide, opsional `?project_id=`/
+  `?status=`/`?jenis=`), `POST /api/v1/kontrak`, `PATCH /api/v1/kontrak/:id/
+  status` — semuanya `projects:contract`; `GET/POST /api/v1/asuransi`
+  (company-wide, opsional `?project_id=`) — `projects:contract` (baca+tulis,
+  satu permission, nol endpoint PATCH).
+- Produces: `/admin-portal/kontrak/register`, `/admin-portal/kontrak/
+  asuransi` (dua rute terpisah — BEDA dari PM Portal yang menaruh keduanya
+  di `kontrak-lengkap/`, penamaan `admin-portal/kontrak/*` dipilih supaya
+  konsisten dengan grup `g-kontrak` yang akan diaktifkan Task 12).
+
+⚠ **Register Kontrak DITULIS ULANG untuk company-wide** (BUKAN salinan
+`pm-portal/kontrak-lengkap/register/page.tsx` apa adanya) — riset Task 6
+menemukan `GET /api/v1/kontrak` (tanpa `project_id`) sudah company-wide dan
+PM Portal SENGAJA tidak memakainya (pilih endpoint per-proyek +
+picker-wajib, karena "kontrak tercatat per proyek" cocok untuk PM yang
+memang kerja di satu/sedikit proyek). Untuk admin yang perlu **melihat
+seluruh kontrak lintas proyek sekaligus**, endpoint list company-wide lebih
+tepat — form create/ubah-status TETAP perlu memilih satu proyek (endpoint
+POST mewajibkan `project_id`), tapi LIST-nya tidak.
+
+⚠ **Asuransi HAMPIR salinan langsung** — `pm-portal/kontrak-lengkap/
+asuransi/page.tsx` SUDAH default company-wide (opsi "Semua proyek" di
+picker, `url` tanpa `project_id` bila `proyekId` kosong). Task ini menyalin
+strukturnya, hanya mengubah kepala halaman & path impor.
+
+- [ ] **Step 1: Baca ulang KEDUA halaman PM PENUH** sebelum menulis
+  (`register/page.tsx` 369 baris, `asuransi/page.tsx` 251 baris) — pahami
+  BottomSheet form create, alur pembatalan (Register) sebelum menulis
+  turunannya.
+
+- [ ] **Step 2: Tambah tipe ke `_bersama/tipe.ts`**
+
+  Salin PERSIS dari `pm-portal/_bersama/tipe.ts:208-323` — `DokumenKontrak`,
+  `NilaiKontrakBerjalan`, `BandingNilaiKontrak`, `RespKontrakProyek`,
+  `PolisAsuransi`, `RespAsuransi` (6 interface, kode di riset Task 6 di
+  atas).
+
+- [ ] **Step 3: `admin-portal/kontrak/register/page.tsx` — LIST company-wide**
+
+  ```tsx
+  "use client";
+
+  // ============================================================================
+  // Register Kontrak — Portal Admin/Direktur (Task 8). COMPANY-WIDE:
+  // `GET /api/v1/kontrak` TANPA `project_id` sudah mengembalikan SELURUH
+  // kontrak tenant (`kontrak.ts:42-63`, hanya `.eq('company_id', ...)`) —
+  // riset Task 6 menemukan PM Portal TIDAK memakai endpoint ini (pilih
+  // per-proyek `/kontrak/proyek/:id` + picker wajib). Admin butuh melihat
+  // seluruh kontrak lintas proyek sekaligus, jadi halaman ini BEDA STRUKTUR
+  // dari versi PM — bukan salinan.
+  //
+  // Endpoint:
+  //   GET   /api/v1/kontrak                — projects:view
+  //   POST  /api/v1/kontrak                — projects:contract (wajib project_id)
+  //   PATCH /api/v1/kontrak/:id/status     — projects:contract
+  //
+  // ⚠️ `banding.cocok: true` = SESUAI — dibanding PER-PROYEK, jadi field itu
+  // hanya relevan saat memilih SATU kontrak induk untuk lihat detail; list
+  // company-wide di sini menampilkan status & nilai per baris tanpa banding
+  // (banding butuh proyek spesifik, endpoint `/kontrak/proyek/:id` terpisah
+  // yang TIDAK dipanggil halaman ini).
+  // ============================================================================
+
+  import { useMemo, useState } from "react";
+  import { FileSignature, Plus } from "lucide-react";
+  import { useData, invalidasi } from "@/lib/data-cache";
+  import { api } from "@/lib/api";
+  import EmptyState from "@/components/portal/EmptyState";
+  import SkeletonCard from "@/components/portal/SkeletonCard";
+  import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+  import BottomSheet from "@/components/portal/BottomSheet";
+  import type { ProyekPM, DokumenKontrak, GalatApi } from "../../_bersama/tipe";
+  import { pesanGalat } from "../../_bersama/tipe";
+
+  interface RespProyek { projects: ProyekPM[] }
+  interface RespKontrakList { kontrak: DokumenKontrak[] }
+
+  function fmtRupiah(v: number | string | null | undefined): string {
+    if (v === null || v === undefined) return "—";
+    const n = typeof v === "string" ? Number(v) : v;
+    if (!Number.isFinite(n)) return "—";
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(n);
+  }
+  function fmtTanggal(s: string | null): string {
+    if (!s) return "—";
+    return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  const LABEL_STATUS: Record<string, string> = {
+    draf: "Draf", berlaku: "Berlaku", selesai: "Selesai", dibatalkan: "Dibatalkan",
+  };
+  const VARIAN_STATUS: Record<string, VarianStatus> = {
+    draf: "netral", berlaku: "approved", selesai: "info", dibatalkan: "rejected",
+  };
+  const TRANSISI: Record<string, string[]> = {
+    draf: ["berlaku", "dibatalkan"],
+    berlaku: ["selesai", "dibatalkan"],
+    selesai: [],
+    dibatalkan: [],
+  };
+  const FILTER_STATUS = ["semua", "draf", "berlaku", "selesai", "dibatalkan"] as const;
+
+  export default function AdminRegisterKontrakPage() {
+    const [filterStatus, setFilterStatus] = useState<typeof FILTER_STATUS[number]>("semua");
+    const [sheetTerbuka, setSheetTerbuka] = useState(false);
+    const [jenisBaru, setJenisBaru] = useState<"induk" | "addendum">("induk");
+    const [indukDipilih, setIndukDipilih] = useState<DokumenKontrak | null>(null);
+    const [proyekForm, setProyekForm] = useState("");
+    const [form, setForm] = useState({ nomor: "", judul: "", tanggal_tanda_tangan: "", nilai: "", retensi_pct: "", syarat_pembayaran: "" });
+    const [mengirim, setMengirim] = useState(false);
+    const [galatForm, setGalatForm] = useState<string | null>(null);
+
+    const [galatHalaman, setGalatHalaman] = useState<string | null>(null);
+    const [batalTarget, setBatalTarget] = useState<DokumenKontrak | null>(null);
+    const [alasanBatal, setAlasanBatal] = useState("");
+    const [mengirimBatal, setMengirimBatal] = useState(false);
+    const [galatBatal, setGalatBatal] = useState<string | null>(null);
+
+    // Company-wide — TANPA project_id, beda dari versi PM.
+    const url = "/api/v1/kontrak";
+    const { data, memuat, galat } = useData<RespKontrakList>(url);
+    const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+    const daftarProyek = dataProyek?.projects ?? [];
+
+    const daftar = useMemo(() => {
+      const semua = data?.kontrak ?? [];
+      return filterStatus === "semua" ? semua : semua.filter((k) => k.status === filterStatus);
+    }, [data, filterStatus]);
+    const induk = useMemo(() => daftar.filter((k) => k.jenis === "induk"), [daftar]);
+    const addendumPerInduk = useMemo(() => {
+      const m = new Map<string, DokumenKontrak[]>();
+      for (const k of daftar) {
+        if (k.jenis !== "addendum" || !k.kontrak_induk_id) continue;
+        m.set(k.kontrak_induk_id, [...(m.get(k.kontrak_induk_id) ?? []), k]);
+      }
+      return m;
+    }, [daftar]);
+
+    function bukaForm(jenis: "induk" | "addendum", indukBaris?: DokumenKontrak) {
+      setJenisBaru(jenis);
+      setIndukDipilih(indukBaris ?? null);
+      setProyekForm(indukBaris?.project_id ?? daftarProyek[0]?.id ?? "");
+      setForm({ nomor: "", judul: "", tanggal_tanda_tangan: "", nilai: "", retensi_pct: "", syarat_pembayaran: "" });
+      setGalatForm(null);
+      setSheetTerbuka(true);
+    }
+
+    async function simpanKontrak() {
+      if (!proyekForm) {
+        setGalatForm("Pilih proyek terlebih dulu.");
+        return;
+      }
+      if (form.nomor.trim().length === 0 || form.judul.trim().length === 0) {
+        setGalatForm("Nomor dan judul wajib diisi.");
+        return;
+      }
+      setMengirim(true);
+      setGalatForm(null);
+      try {
+        await api.post("/api/v1/kontrak", {
+          project_id: proyekForm,
+          jenis: jenisBaru,
+          kontrak_induk_id: jenisBaru === "addendum" ? indukDipilih?.id : undefined,
+          nomor: form.nomor.trim(),
+          judul: form.judul.trim(),
+          tanggal_tanda_tangan: form.tanggal_tanda_tangan || undefined,
+          nilai: form.nilai ? Number(form.nilai) : undefined,
+          retensi_pct: form.retensi_pct ? Number(form.retensi_pct) : undefined,
+          syarat_pembayaran: form.syarat_pembayaran.trim() || undefined,
+        });
+        setSheetTerbuka(false);
+        invalidasi(url);
+      } catch (e) {
+        setGalatForm(pesanGalat(e as GalatApi, "Gagal menyimpan kontrak"));
+      } finally {
+        setMengirim(false);
+      }
+    }
+
+    async function ubahStatus(k: DokumenKontrak, status: string) {
+      if (status === "dibatalkan") {
+        setBatalTarget(k);
+        setAlasanBatal("");
+        setGalatBatal(null);
+        return;
+      }
+      setGalatHalaman(null);
+      try {
+        await api.patch(`/api/v1/kontrak/${k.id}/status`, { status });
+        invalidasi(url);
+      } catch (e) {
+        setGalatHalaman(pesanGalat(e as GalatApi, "Gagal mengubah status kontrak"));
+      }
+    }
+
+    async function konfirmasiBatal() {
+      if (!batalTarget) return;
+      if (alasanBatal.trim().length === 0) {
+        setGalatBatal("Alasan pembatalan wajib diisi.");
+        return;
+      }
+      setMengirimBatal(true);
+      setGalatBatal(null);
+      try {
+        await api.patch(`/api/v1/kontrak/${batalTarget.id}/status`, {
+          status: "dibatalkan",
+          alasan: alasanBatal.trim(),
+        });
+        setBatalTarget(null);
+        invalidasi(url);
+      } catch (e) {
+        setGalatBatal(pesanGalat(e as GalatApi, "Gagal membatalkan kontrak"));
+      } finally {
+        setMengirimBatal(false);
+      }
+    }
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+          Register Kontrak
+        </h1>
+
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {FILTER_STATUS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setFilterStatus(s)}
+              aria-pressed={filterStatus === s}
+              style={{
+                padding: "6px 14px", borderRadius: "var(--portal-radius-pill)", fontSize: 12, fontWeight: 600,
+                cursor: "pointer", minHeight: 32,
+                border: `1px solid ${filterStatus === s ? "var(--navy)" : "var(--border)"}`,
+                background: filterStatus === s ? "var(--info-bg)" : "var(--surface)",
+                color: filterStatus === s ? "var(--navy)" : "var(--text-secondary)",
+              }}
+            >
+              {s === "semua" ? "Semua" : LABEL_STATUS[s]}
+            </button>
+          ))}
+        </div>
+
+        {memuat && <SkeletonCard tinggi={160} />}
+        {galat && <EmptyState icon={FileSignature} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+
+        {galatHalaman && (
+          <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+            {galatHalaman}
+          </div>
+        )}
+
+        {!memuat && induk.length === 0 && (
+          <EmptyState icon={FileSignature} judul="Belum ada kontrak" deskripsi="Kontrak induk perusahaan akan muncul di sini." />
+        )}
+
+        {!memuat && induk.map((k) => (
+          <div key={k.id} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{k.nomor}</div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{k.judul}</div>
+                {/* Beda dari PM: company-wide berarti nama proyek WAJIB tampil (PM sudah tahu proyeknya sendiri). */}
+                {k.proyek?.name && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{k.proyek.name}</div>}
+              </div>
+              <StatusBadge status={VARIAN_STATUS[k.status] ?? "netral"} label={LABEL_STATUS[k.status] ?? k.status} />
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--navy)" }}>{fmtRupiah(k.nilai)}</div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              TTD {fmtTanggal(k.tanggal_tanda_tangan)}
+            </div>
+
+            {(addendumPerInduk.get(k.id) ?? []).map((a) => (
+              <div key={a.id} style={{ marginLeft: 16, paddingLeft: 12, borderLeft: "2px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)" }}>{a.nomor} · {a.judul}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{fmtRupiah(a.nilai)}</div>
+                </div>
+                <StatusBadge status={VARIAN_STATUS[a.status] ?? "netral"} label={LABEL_STATUS[a.status] ?? a.status} />
+              </div>
+            ))}
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+              {(TRANSISI[k.status] ?? []).map((tujuan) => (
+                <button
+                  key={tujuan}
+                  type="button"
+                  onClick={() => void ubahStatus(k, tujuan)}
+                  style={{ minHeight: 36, padding: "0 12px", borderRadius: "var(--portal-radius-pill)", background: "var(--surface-subtle)", color: "var(--text-primary)", border: "1px solid var(--border)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                >
+                  → {LABEL_STATUS[tujuan]}
+                </button>
+              ))}
+              {k.status === "berlaku" && (
+                <button
+                  type="button"
+                  onClick={() => bukaForm("addendum", k)}
+                  style={{ minHeight: 36, padding: "0 12px", borderRadius: "var(--portal-radius-pill)", background: "var(--info-bg)", color: "var(--navy)", border: "none", fontSize: 12, fontWeight: 600, cursor: "pointer" }}
+                >
+                  + Addendum
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={() => bukaForm("induk")}
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "var(--pad-kartu-lega)", borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
+        >
+          <Plus size={18} aria-hidden="true" /> Kontrak Induk Baru
+        </button>
+
+        <BottomSheet terbuka={sheetTerbuka} onTutup={() => setSheetTerbuka(false)} judul={jenisBaru === "induk" ? "Kontrak Induk Baru" : `Addendum — ${indukDipilih?.nomor ?? ""}`}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {/* Company-wide berarti proyek WAJIB dipilih di form — beda dari PM
+                yang sudah dalam konteks satu proyek lewat picker halaman. */}
+            {jenisBaru === "induk" && (
+              <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+                Proyek
+                <select value={proyekForm} onChange={(e) => setProyekForm(e.target.value)}
+                  style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box" }}>
+                  <option value="">Pilih proyek</option>
+                  {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </label>
+            )}
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Nomor
+              <input type="text" value={form.nomor} onChange={(e) => setForm((f) => ({ ...f, nomor: e.target.value }))}
+                style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box" }} />
+            </label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Judul
+              <input type="text" value={form.judul} onChange={(e) => setForm((f) => ({ ...f, judul: e.target.value }))}
+                style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box" }} />
+            </label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Tanggal Tanda Tangan
+              <input type="date" value={form.tanggal_tanda_tangan} onChange={(e) => setForm((f) => ({ ...f, tanggal_tanda_tangan: e.target.value }))}
+                style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box" }} />
+            </label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Nilai (Rp)
+              <input type="number" value={form.nilai} onChange={(e) => setForm((f) => ({ ...f, nilai: e.target.value }))}
+                style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box" }} />
+            </label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Retensi (%)
+              <input type="number" value={form.retensi_pct} onChange={(e) => setForm((f) => ({ ...f, retensi_pct: e.target.value }))}
+                style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box" }} />
+            </label>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Syarat Pembayaran (opsional)
+              <input type="text" value={form.syarat_pembayaran} onChange={(e) => setForm((f) => ({ ...f, syarat_pembayaran: e.target.value }))}
+                style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box" }} />
+            </label>
+            {galatForm && (
+              <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+                {galatForm}
+              </div>
+            )}
+            <button type="button" onClick={() => void simpanKontrak()} disabled={mengirim}
+              style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer" }}>
+              {mengirim ? "Menyimpan…" : "Simpan"}
+            </button>
+          </div>
+        </BottomSheet>
+
+        <BottomSheet terbuka={!!batalTarget} onTutup={() => setBatalTarget(null)} judul={`Batalkan — ${batalTarget?.nomor ?? ""}`}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0 }}>
+              {batalTarget?.judul} akan ditandai <strong>Dibatalkan</strong>. Tindakan ini
+              butuh alasan — pihak yang menandatangani berhak tahu kenapa kontraknya ditarik.
+            </p>
+            <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              Alasan pembatalan
+              <textarea
+                value={alasanBatal}
+                onChange={(e) => setAlasanBatal(e.target.value)}
+                rows={3}
+                style={{ width: "100%", marginTop: 6, padding: 12, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)", boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }}
+              />
+            </label>
+            {galatBatal && (
+              <div role="alert" style={{ fontSize: 12, color: "var(--on-danger-bg)", padding: 10, borderRadius: 10, background: "var(--danger-bg)", border: "1px solid var(--danger-border)" }}>
+                {galatBatal}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button" onClick={() => setBatalTarget(null)} disabled={mengirimBatal}
+                style={{ flex: 1, minHeight: 48, padding: "0 14px", borderRadius: "var(--portal-radius-pill)", background: "var(--surface-subtle)", color: "var(--text-secondary)", border: "1px solid var(--border)", fontSize: 14, fontWeight: 700, cursor: mengirimBatal ? "default" : "pointer" }}
+              >
+                Batal
+              </button>
+              <button
+                type="button" onClick={() => void konfirmasiBatal()} disabled={mengirimBatal}
+                style={{ flex: 1, minHeight: 48, padding: "0 14px", borderRadius: "var(--portal-radius-pill)", background: "var(--danger)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirimBatal ? "default" : "pointer" }}
+              >
+                {mengirimBatal ? "Membatalkan…" : "Ya, Batalkan Kontrak"}
+              </button>
+            </div>
+          </div>
+        </BottomSheet>
+      </div>
+    );
+  }
+  ```
+
+- [ ] **Step 4: `admin-portal/kontrak/asuransi/page.tsx`**
+
+  Salin `pm-portal/kontrak-lengkap/asuransi/page.tsx` HAMPIR APA ADANYA
+  (sudah company-wide by default) — hanya ganti:
+  1. Judul halaman "Register Asuransi" tetap sama (tak perlu diubah).
+  2. Path impor `../../_bersama/tipe` → `../../_bersama/tipe` (relatif SAMA
+     — struktur folder `admin-portal/kontrak/asuransi/` persis
+     `pm-portal/kontrak-lengkap/asuransi/`, dua level ke `_bersama`).
+  3. Komentar kepala berkas — jelaskan ini Task 8 Portal Admin, BUKAN Task
+     12 Portal PM.
+
+  Fungsionalitas (picker "Semua proyek" sebagai default, form Polis Baru,
+  4 kartu ringkas aktif/segera-berakhir/kadaluarsa/tanpa-polis) disalin
+  IDENTIK — tak ada logic baru.
+
+- [ ] **Step 5: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && node scripts/uji-tombol-primer-seragam.mjs
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 6: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/kontrak apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): register kontrak company-wide + asuransi — Tahap 2"
+  ```
+
+### Task 9: Kontrak — EOT + Denda Keterlambatan + Register Jaminan + Klaim Kontraktual (per-proyek)
+
+**Files:**
+- Create: `apps/web/app/admin-portal/kontrak/eot-ld-bond/page.tsx`
+- Create: `apps/web/app/admin-portal/kontrak/klaim/page.tsx`
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah `EotProyek`,
+  `TanggalEfektifKontrak`, `RespEot`, `HasilLD`, `RespLd`, `BondProyek`,
+  `BarisBondRingkas`, `RingkasBond`, `RespBond`, `KlaimKontraktual`,
+  `BatasPemberitahuan`, `RespKlaimKontraktual`)
+
+**Interfaces:**
+- Consumes: `GET/POST /api/v1/projects/:id/eot`, `PATCH /api/v1/eot/:id/
+  decide`, `GET /api/v1/projects/:id/liquidated-damages` (baca-saja),
+  `GET/POST/PATCH /api/v1/bonds` — semuanya per-proyek, `projects:view`
+  (baca)/`projects:edit` (tulis); `GET/POST /api/v1/projects/:id/claims`,
+  `PATCH /api/v1/claims/:id/decide` — per-proyek, `projects:view`/
+  `projects:edit`.
+- Produces: `/admin-portal/kontrak/eot-ld-bond`, `/admin-portal/kontrak/
+  klaim` — DUA halaman terpisah (bukan digabung satu SegmentedTab 4-arah)
+  supaya tiap halaman tetap fokus satu domain; EOT/LD/Bond sudah 3-arah
+  sendiri lewat SegmentedTab, menambah klaim jadi tab ke-4 di halaman yang
+  sama membuatnya terlalu padat untuk satu layar HP.
+
+⚠ **KEDUANYA per-proyek murni — project-picker WAJIB**, beda dari Task 7-8.
+Salinan APA ADANYA dari PM Portal (endpoint backend tak beda per role
+pemanggil, admin/direktur punya `projects:view`+`projects:edit` PERSIS sama
+seperti PM — live 2026-08-22).
+
+- [ ] **Step 1: Baca ulang KEDUA halaman PM PENUH sebelum menulis**
+  (`eot-ld-bond/page.tsx` 474 baris, `klaim/page.tsx` 354 baris).
+
+- [ ] **Step 2: Tambah tipe ke `_bersama/tipe.ts`**
+
+  Salin PERSIS `pm-portal/_bersama/tipe.ts:1038-1198` (11 interface + 1 type
+  alias — `EotProyek`, `TanggalEfektifKontrak`, `RespEot`, `HasilLD`,
+  `RespLd`, `BondProyek`, `BarisBondRingkas`, `RingkasBond`, `RespBond`,
+  `KeadaanBatasPemberitahuan`, `BatasPemberitahuan`, `KlaimKontraktual`,
+  `RespKlaimKontraktual` — kode lengkap di riset Task 6 di atas).
+
+- [ ] **Step 3: `admin-portal/kontrak/eot-ld-bond/page.tsx`**
+
+  Salin `pm-portal/kontrak-lengkap/eot-ld-bond/page.tsx` (474 baris) APA
+  ADANYA — struktur SegmentedTab 3-arah (EOT/LD/Bond), project-picker,
+  form pengajuan EOT + keputusan, form jaminan baru. HANYA ubah:
+  1. Komentar kepala berkas (Task 9 Portal Admin, bukan Task 13 Portal PM).
+  2. Path impor tipe (`../../_bersama/tipe` — struktur folder sama persis).
+  3. `daftarProyek` TIDAK memfilter `.filter((p) => p.pm)` — pola sama
+     Task 7 (`GET /api/v1/projects` company-wide, admin lihat SEMUA proyek
+     sebagai kandidat picker, bukan hanya yang PM-nya assigned).
+
+  ⚠ Poin 3 adalah SATU-SATUNYA perbedaan fungsional dari versi PM — picker
+  di sini menawarkan proyek TANPA PM assigned juga (relevan buat admin yang
+  mungkin mengurus proyek sebelum PM ditugaskan).
+
+- [ ] **Step 4: `admin-portal/kontrak/klaim/page.tsx`**
+
+  Salin `pm-portal/kontrak-lengkap/klaim/page.tsx` (354 baris) APA ADANYA
+  dengan perubahan IDENTIK 3 poin Step 3 (komentar kepala, path impor,
+  `daftarProyek` tanpa filter `.pm`).
+
+  ⚠ Perhatikan komentar asli soal validasi: `validasiKeputusanKlaim` menolak
+  422 bila status `disetujui` tapi `amount_approved !== amount_claimed` —
+  form di halaman PM sudah menyediakan field nilai disetujui untuk KEDUA
+  status (disetujui/disetujui_sebagian) supaya galat 422 tersurfeskan lewat
+  `galatForm`, bukan disembunyikan. Perilaku ini disalin apa adanya.
+
+- [ ] **Step 5: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && node scripts/uji-tombol-primer-seragam.mjs
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 6: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/kontrak apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): EOT+LD+Bond dan klaim kontraktual per-proyek — Tahap 2"
+  ```
+
+### Task 10: Kontrak — Surat (lintas-proyek) + Change Order (per-proyek, gerbang approve admin-only)
+
+**Files:**
+- Create: `apps/web/app/admin-portal/kontrak/surat/page.tsx`
+- Create: `apps/web/app/admin-portal/kontrak/change-order/page.tsx`
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah
+  `SuratProyek`, `KeadaanBalas`, `BatasBalas`, `RespSuratLintasProyek`, dan
+  — SETELAH Step 1 membaca ulang bentuk asli — `ChangeOrderProyek`/
+  `RespChangeOrder`/`RespApproveCo` dari `pm-portal/_bersama/tipe.ts`)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/letters` (lintas-proyek, opsional `?arah=`/
+  `?status=`/`?project_id=`), `GET/POST /api/v1/projects/:id/letters`,
+  `PATCH /api/v1/letters/:id` — `documents:manage` (admin DAN direktur,
+  live 2026-08-22); `GET/POST /api/v1/projects/:id/change-orders` + item
+  CRUD + `PATCH .../submit` — `projects:edit` (admin+direktur); `PATCH
+  /api/v1/change-orders/:id/{approve,reject}` — otoritas SESUNGGUHNYA di
+  `approval_chains`/`approval_steps` (`required_permission =
+  'change_order:approve'`, HANYA admin, live 2026-08-22 — direktur TIDAK).
+- Produces: `/admin-portal/kontrak/surat` (company-wide baca), `/admin-
+  portal/kontrak/change-order` (per-proyek, tombol approve/reject
+  disembunyikan TOTAL untuk direktur).
+
+⚠ **Surat HAMPIR salinan langsung** (`GET /api/v1/letters` SENGAJA dirancang
+lintas-proyek, PM Portal sudah memakainya sebagai default) — perubahan
+hanya komentar kepala + path impor, TANPA perubahan filter (tak ada
+`.filter((p) => p.pm)` di halaman aslinya untuk disunting — form "Surat
+Baru" memang sudah memilih project_id dari SELURUH daftar proyek yang
+tersedia lewat select, bukan daftar yang difilter kepemilikan).
+
+⚠ **Change Order WAJIB menyalin gerbang `change_order:approve` PERSIS** —
+ini kasus KONKRET pertama Tahap 2 di mana direktur (subset permission
+murni admin) benar-benar kehilangan sebuah kemampuan tulis: direktur bisa
+membuat CO, menambah item, submit — TAPI TIDAK bisa approve/reject. Tombol
+itu TIDAK DIRENDER (bukan `disabled`) untuk direktur, pola identik PM
+Portal (`useSyncExternalStore` + `hasPermission`).
+
+- [ ] **Step 1: Baca ulang KEDUA halaman PM PENUH sebelum menulis** —
+  `surat/page.tsx` (267 baris) dan `change-order/page.tsx` (605 baris,
+  BACA SELURUHNYA termasuk komentar riset Task 21 PM di kepala berkas
+  perihal bentuk `ChangeOrderProyek` — brief lama menebak salah total,
+  dan Task 21 sudah mengoreksinya lewat riset langsung ke
+  `change-orders.ts`, 1017 baris). Salin bentuk `ChangeOrderProyek`/
+  `RespChangeOrder`/`RespApproveCo` PERSIS dari `pm-portal/_bersama/
+  tipe.ts` yang sudah diverifikasi Task 21 — JANGAN meriset ulang dari nol.
+
+- [ ] **Step 2: Tambah tipe ke `_bersama/tipe.ts`**
+
+  Salin PERSIS `pm-portal/_bersama/tipe.ts:1216-1249` (`KeadaanBalas`,
+  `BatasBalas`, `SuratProyek`, `RespSuratLintasProyek` — kode lengkap di
+  riset Task 6 di atas) DAN bentuk `ChangeOrderProyek`/`RespChangeOrder`/
+  `RespApproveCo` dibaca ulang Step 1 (tak disalin di sini karena belum
+  dibaca detail saat breakdown ini ditulis — Task 10 WAJIB membacanya
+  sendiri sebelum menyalin, bukan menebak dari nama field).
+
+- [ ] **Step 3: `admin-portal/kontrak/surat/page.tsx`**
+
+  Salin `pm-portal/kontrak-lengkap/surat/page.tsx` (267 baris) APA ADANYA —
+  SegmentedTab masuk/keluar, `GET /api/v1/letters?arah=` sebagai default,
+  form Surat Baru dengan pemilih proyek + saklar butuh-balasan. HANYA ubah
+  komentar kepala berkas (Task 10 Portal Admin) dan path impor.
+
+- [ ] **Step 4: `admin-portal/kontrak/change-order/page.tsx`**
+
+  Salin `pm-portal/kontrak-lengkap/change-order/page.tsx` (605 baris) APA
+  ADANYA — TERMASUK gerbang `bolehApprove = useSyncExternalStore(langganan,
+  () => hasPermission("change_order:approve"), () => false)` dan seluruh
+  logic `billing_mode`/item CRUD/`recalcTotalDelta()` sisi klien. HANYA
+  ubah:
+  1. Komentar kepala berkas (Task 10 Portal Admin) — TETAP JELASKAN gerbang
+     permission (komentar asli sudah akurat: `change_order:approve` HANYA
+     admin/`project_manager_senior` — untuk admin-portal berarti admin
+     LOLOS, direktur TIDAK, dikonfirmasi ulang live 2026-08-22).
+  2. Path impor tipe.
+  3. `daftarProyek` TIDAK memfilter `.filter((p) => p.pm)` — pola sama
+     Task 7/9.
+
+  ⚠ JANGAN mengubah gerbang `bolehApprove` dengan asumsi "admin-portal
+  pasti admin, jadi tak perlu digerbang" — portal ini dipakai DUA role
+  (admin+direktur), dan direktur genuinely tak boleh approve. Menghapus
+  gerbang berarti direktur mendapat tombol yang pasti 403 saat diklik.
+
+- [ ] **Step 5: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && node scripts/uji-tombol-primer-seragam.mjs
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 6: Verifikasi manual — akun direktur uji (0 user aktif, wajib
+  akun sengaja dibuat)**
+
+  Buka `/admin-portal/kontrak/change-order` dengan akun direktur uji —
+  konfirmasi tombol Setujui/Tolak TIDAK TAMPIL sama sekali (bukan
+  disabled), sementara form buat CO + tambah item tetap berfungsi.
+
+- [ ] **Step 7: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/kontrak apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): surat lintas-proyek + change order (gerbang approve admin-only) — Tahap 2"
+  ```
+
+### Task 11: Jadwal — CPM + Histogram + Method Statement + Baseline (per-proyek) + Analisa Keterlambatan (company-wide)
+
+**Files:**
+- Create: `apps/web/app/admin-portal/jadwal/page.tsx`
+- Create: `apps/web/app/admin-portal/jadwal/keterlambatan/page.tsx`
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah tipe CPM/
+  histogram/method-statement/baseline dari `pm-portal/jadwal/page.tsx`
+  inline interfaces — file itu mendefinisikan tipenya LOKAL, bukan di
+  `_bersama/tipe.ts`, lihat Step 1)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/jadwal-cpm/:projectId` (per-proyek,
+  `projects:view`), `GET/POST /api/v1/proyek/:id/baseline`, `GET /api/v1/
+  proyek/:id/baseline/pergeseran` (per-proyek, baca `projects:view`, tulis
+  `projects:baseline:manage` — admin+direktur SAMA-SAMA punya, live
+  2026-08-22); `GET /api/v1/analisa-keterlambatan?project_id=` (company-
+  wide, `project_id` opsional, READ-ONLY — nol endpoint tulis).
+- Produces: `/admin-portal/jadwal` (sudah ada di grup navigasi yang akan
+  diaktifkan Task 12), `/admin-portal/jadwal/keterlambatan`.
+
+⚠ **`pm-portal/jadwal/page.tsx` mendefinisikan tipe CPM/histogram/method-
+statement/baseline SEBAGAI INTERFACE LOKAL di file itu sendiri** (`
+PekerjaanCpm`, `PeriodeSumberDaya`, `HistogramSumberDaya`,
+`MethodStatementItem`, `RespJadwalCpm`, `BaselineRingkas`,
+`RespBaselineList`, `RingkasPergeseran`, `BarisPergeseran`,
+`RespPergeseran` — 10 interface, baris 36-98 file itu) — BUKAN di
+`_bersama/tipe.ts` seperti modul lain. Task ini punya DUA pilihan yang sah:
+(a) salin kesepuluh interface itu ke `admin-portal/_bersama/tipe.ts`
+mengikuti pola modul lain di plan ini, atau (b) definisikan lokal di
+`admin-portal/jadwal/page.tsx` sendiri mengikuti pola PM Portal APA ADANYA.
+**Pilih (b)** — konsisten dengan sumber aslinya, dan tipe CPM/histogram
+genuinely spesifik untuk satu halaman ini saja (tak dipakai halaman admin
+lain), beda dari `DokumenKontrak`/`EotProyek`/dst yang dipakai lintas
+beberapa file portal.
+
+- [ ] **Step 1: Baca ulang KEDUA halaman PM PENUH** — `jadwal/page.tsx`
+  (403 baris, termasuk 10 interface lokal baris 36-98) dan
+  `kontrak-lengkap/keterlambatan/page.tsx` (159 baris).
+
+- [ ] **Step 2: `admin-portal/jadwal/page.tsx`**
+
+  Salin `pm-portal/jadwal/page.tsx` (403 baris, TERMASUK 10 interface
+  lokal) APA ADANYA — SegmentedTab 4-arah (CPM/Histogram/Method
+  Statement/Baseline), project-picker, form "Tetapkan Baseline Baru".
+  HANYA ubah:
+  1. Komentar kepala berkas (Task 11 Portal Admin, bukan versi PM).
+  2. Path impor `../_bersama/tipe` (struktur folder sama — satu level ke
+     `_bersama`).
+  3. `daftarProyek` TIDAK memfilter `.filter((p) => p.pm)` — pola sama
+     Task 7/9/10.
+
+  ⚠ Baseline TETAP append-only (tak bisa disunting/dihapus) — peringatan
+  di BottomSheet form disalin apa adanya, ini invariant backend (trigger
+  DB), bukan sekadar teks UI.
+
+- [ ] **Step 3: `admin-portal/jadwal/keterlambatan/page.tsx`**
+
+  ```tsx
+  "use client";
+
+  // ============================================================================
+  // Analisa Keterlambatan — Portal Admin/Direktur (Task 11). COMPANY-WIDE:
+  // `GET /api/v1/analisa-keterlambatan` TANPA `project_id` sudah lintas
+  // seluruh proyek tenant (`analisa-keterlambatan.ts`, riset Task 6) — PM
+  // Portal SUDAH memakainya company-wide by default (proyekId kosong =
+  // "Semua proyek"). Salinan HAMPIR langsung, hanya beda kepala berkas.
+  //
+  // GET /api/v1/analisa-keterlambatan?project_id=  — projects:view, READ-ONLY.
+  //
+  // Kenapa read-only (komentar route asli, apps/api/src/routes/v1/
+  // analisa-keterlambatan.ts): "Angka yang bisa disunting berhenti jadi
+  // dasar apa pun — dan yang paling berkepentingan menyuntingnya adalah
+  // pihak yang sedang dituduh terlambat." Tidak ada tombol tulis di
+  // halaman ini sama sekali.
+  // ============================================================================
+
+  import { useMemo, useState } from "react";
+  import { AlarmClock } from "lucide-react";
+  import { useData } from "@/lib/data-cache";
+  import EmptyState from "@/components/portal/EmptyState";
+  import SkeletonCard from "@/components/portal/SkeletonCard";
+  import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+  import type { ProyekPM, GalatApi } from "../../_bersama/tipe";
+  import { pesanGalat } from "../../_bersama/tipe";
+
+  interface RespProyek { projects: ProyekPM[] }
+
+  /** Bentuk `BarisAnalisa`, `apps/api/src/lib/analisa-keterlambatan.ts:75-105`. */
+  interface BarisAnalisa {
+    milestone_id: string;
+    project_id: string;
+    project_name: string;
+    title: string;
+    target_date: string;
+    completed_at: string | null;
+    telat_kotor: number;
+    eot_hari: number;
+    telat_efektif: number;
+    status: "tepat_waktu" | "belum_jatuh_tempo" | "selesai_terlambat" | "berjalan_terlambat" | "dimaafkan_eot";
+    estimasi_paparan: number | null;
+    kena_cap: boolean;
+    masih_bertambah: boolean;
+  }
+
+  /** Bentuk `HasilAnalisa`, `apps/api/src/lib/analisa-keterlambatan.ts:107-125`. */
+  interface RespAnalisaKeterlambatan {
+    baris: BarisAnalisa[];
+    jumlah_selesai_terlambat: number;
+    jumlah_berjalan_terlambat: number;
+    jumlah_dimaafkan_eot: number;
+    jumlah_tepat_waktu: number;
+    jumlah_belum_jatuh_tempo: number;
+    telat_terparah: number;
+    total_estimasi_paparan: number;
+    jumlah_proyek_denda_mati: number;
+  }
+
+  function fmtRupiah(v: number | null | undefined): string {
+    if (v === null || v === undefined) return "—";
+    return new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(v);
+  }
+  function fmtTanggal(s: string | null): string {
+    if (!s) return "—";
+    return new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+  }
+
+  const LABEL_STATUS: Record<string, string> = {
+    tepat_waktu: "Tepat Waktu", belum_jatuh_tempo: "Belum Jatuh Tempo",
+    selesai_terlambat: "Selesai Terlambat", berjalan_terlambat: "Berjalan Terlambat", dimaafkan_eot: "Dimaafkan EOT",
+  };
+  const VARIAN_STATUS: Record<string, VarianStatus> = {
+    tepat_waktu: "approved", belum_jatuh_tempo: "netral",
+    selesai_terlambat: "rejected", berjalan_terlambat: "rejected", dimaafkan_eot: "info",
+  };
+
+  export default function AdminAnalisaKeterlambatanPage() {
+    const [proyekId, setProyekId] = useState("");
+    // Company-wide — TANPA filter `.pm`, beda dari versi PM (pola Task 7/9/10).
+    const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+    const daftarProyek = dataProyek?.projects ?? [];
+
+    const url = proyekId ? `/api/v1/analisa-keterlambatan?project_id=${proyekId}` : "/api/v1/analisa-keterlambatan";
+    const { data, memuat, galat } = useData<RespAnalisaKeterlambatan>(url);
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+          Analisa Keterlambatan
+        </h1>
+
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
+          <select
+            value={proyekId}
+            onChange={(e) => setProyekId(e.target.value)}
+            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}
+          >
+            <option value="">Semua proyek</option>
+            {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+
+        {memuat && <SkeletonCard tinggi={140} />}
+        {galat && <EmptyState icon={AlarmClock} judul="Gagal memuat" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />}
+
+        {!memuat && data && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {[
+              { label: "Berjalan Terlambat", value: String(data.jumlah_berjalan_terlambat), warna: "var(--danger)" },
+              { label: "Telat Terparah (hari)", value: String(data.telat_terparah), warna: "var(--warning)" },
+              { label: "Estimasi Paparan", value: fmtRupiah(data.total_estimasi_paparan), warna: "var(--navy)" },
+            ].map((k) => (
+              <div key={k.label} style={{ flex: "1 1 30%", padding: "var(--pad-kartu)", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: k.warna }}>{k.value}</div>
+                <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{k.label}</div>
+              </div>
+            ))}
+            {data.jumlah_proyek_denda_mati > 0 && (
+              <div style={{ flex: "1 1 100%", fontSize: 11, color: "var(--text-secondary)" }}>
+                {data.jumlah_proyek_denda_mati} proyek punya milestone telat tapi dendanya tidak aktif — estimasi paparan di atas TIDAK mencakupnya.
+              </div>
+            )}
+          </div>
+        )}
+
+        {!memuat && (data?.baris?.length ?? 0) === 0 && (
+          <EmptyState icon={AlarmClock} judul="Tidak ada keterlambatan" deskripsi="Seluruh milestone tepat waktu atau belum jatuh tempo." />
+        )}
+
+        {!memuat && data?.baris.map((b) => (
+          <div key={b.milestone_id} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{b.title}</div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{b.project_name}</div>
+              </div>
+              <StatusBadge status={VARIAN_STATUS[b.status] ?? "netral"} label={LABEL_STATUS[b.status] ?? b.status} />
+            </div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              Target: {fmtTanggal(b.target_date)}{b.completed_at && ` · Selesai: ${fmtTanggal(b.completed_at)}`}
+            </div>
+            {b.telat_efektif > 0 && (
+              <div style={{ fontSize: 13, color: "var(--danger)", fontWeight: 700 }}>
+                Telat {b.telat_efektif} hari{b.masih_bertambah ? " (masih berjalan)" : ""}
+                {b.telat_kotor !== b.telat_efektif && ` · kotor ${b.telat_kotor} hari, EOT ${b.eot_hari} hari`}
+              </div>
+            )}
+            {b.estimasi_paparan !== null && (
+              <div style={{ fontSize: 13, color: "var(--warning)" }}>
+                Estimasi paparan: {fmtRupiah(b.estimasi_paparan)}{b.kena_cap ? " (menyentuh batas)" : ""}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  ```
+
+  ⚠ Beda SATU baris dari versi PM: `daftarProyek` tanpa filter `.filter((p)
+  => p.pm)` (pola konsisten Task 7/9/10 — company-wide berarti admin
+  melihat SEMUA proyek di picker, bukan hanya yang PM-nya sudah assigned).
+
+- [ ] **Step 4: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && node scripts/uji-tombol-primer-seragam.mjs
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 5: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/jadwal apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): jadwal CPM+baseline per-proyek + analisa keterlambatan company-wide — Tahap 2"
+  ```
+
+### Task 12: Navigasi kategori Tahap 2 + verifikasi akhir tahap
+
+**Files:**
+- Modify: `apps/web/lib/admin-portal-kategori.ts` (tambah `g-kontrak`,
+  `g-jadwal` ke `KATEGORI_AKTIF`)
+- Modify: `apps/web/app/admin-portal/kategori/[key]/page.tsx` (tambah 8
+  entri ke `PETA_HREF_PORTAL`)
+- Modify: `apps/web/app/admin-portal/layout.tsx` (opsional — pertimbangkan
+  menambah "Kontrak"/"Jadwal" ke `NAV_ITEMS` bottom-nav bila ruang cukup;
+  default TETAP lewat `/admin-portal/kategori` seperti Tahap 1 bila
+  bottom-nav sudah padat, lihat Step 1)
+
+**Interfaces:**
+- Consumes: hasil Task 7-11 (Proyek + Kontrak + Jadwal berfungsi).
+- Produces: kategori `g-kontrak` (Kontrak) dan `g-jadwal` (Perencanaan)
+  AKTIF di `/admin-portal/kategori`, dengan 8 item mengarah ke halaman
+  admin-portal sungguhan (bukan fallback href web).
+
+⚠ Mengikuti KOREKSI MEKANISME Task 5 — `KATEGORI_AKTIF` level GRUP
+(`g-kontrak`/`g-jadwal`), `PETA_HREF_PORTAL` level ITEM (kunci `ItemMenu`
+seperti `kt-register`), dan mengaktifkan grup berarti item LAIN di grup
+yang sama (`kt-termin`/`kt-retensi`/`kt-rfi`/`kt-subkon` di `g-kontrak`;
+`jd-wbs`/`jd-gantt`/`jd-kurva-s`/`jd-lookahead`/`jd-milestone`/`jd-evm` di
+`g-jadwal`) IKUT TAMPIL dengan fallback href web — perilaku disengaja, pola
+sama Task 5.
+
+- [ ] **Step 1: Konfirmasi ulang isi grup `g-kontrak`/`g-jadwal` PENUH di
+  `peta-menu.ts`** sebelum commit — baca ulang baris 121-151 (riset Task 6
+  di atas mengutipnya, TAPI verifikasi ke file nyata kalau sudah berubah
+  antara riset dan implementasi Task 12). Putuskan penambahan `NAV_ITEMS`
+  di Step Files berdasar jumlah entri final (bottom-nav mobile biasanya
+  maksimal 5 item termasuk "Lainnya" — Tahap 1 sudah pakai 4, cek
+  `PortalShell` apakah ada batas keras sebelum menambah).
+
+- [ ] **Step 2: Update `admin-portal-kategori.ts`**
+
+  ```ts
+  // Tahap 2 (Task 7-11): "Kontrak" (g-kontrak, item kt-register/kt-
+  // asuransi/kt-co/kt-eot/kt-ld/kt-bond/kt-claims/kt-surat — 8 dari 12 item
+  // grup ini) dan "Perencanaan" (g-jadwal, item jd-cpm/jd-delay — 2 dari 9
+  // item grup ini). Proyek TIDAK di sini — bukan grup `peta-menu.ts`
+  // tersendiri (Proyek adalah entitas inti, bukan menu), diakses lewat
+  // NAV_ITEMS langsung (Task 1 Step 2, href /admin-portal/proyek).
+  const KATEGORI_AKTIF: string[] = ["g-laporan", "g-sistem", "g-kontrak", "g-jadwal"]; // Tahap 1-2
+  ```
+
+- [ ] **Step 3: Update `PETA_HREF_PORTAL` inline di `kategori/[key]/page.tsx`**
+
+  ```ts
+  const PETA_HREF_PORTAL: Record<string, string> = {
+    "bi-eksekutif": "/admin-portal",
+    "sy-inbox-approval": "/admin-portal/inbox",
+    // Tahap 2 — Kontrak (g-kontrak)
+    "kt-register": "/admin-portal/kontrak/register",
+    "kt-asuransi": "/admin-portal/kontrak/asuransi",
+    "kt-co": "/admin-portal/kontrak/change-order",
+    "kt-eot": "/admin-portal/kontrak/eot-ld-bond",
+    "kt-ld": "/admin-portal/kontrak/eot-ld-bond",
+    "kt-bond": "/admin-portal/kontrak/eot-ld-bond",
+    "kt-claims": "/admin-portal/kontrak/klaim",
+    "kt-surat": "/admin-portal/kontrak/surat",
+    // Tahap 2 — Perencanaan (g-jadwal)
+    "jd-cpm": "/admin-portal/jadwal",
+    "jd-delay": "/admin-portal/jadwal/keterlambatan",
+  };
+  ```
+
+  ⚠ `kt-eot`/`kt-ld`/`kt-bond` SAMA-SAMA menunjuk satu halaman
+  (`eot-ld-bond`, SegmentedTab 3-arah) — pola sama `jd-cpm` yang menaungi
+  4 tab (CPM/Histogram/Method/Baseline) dalam satu href. Ini KONSISTEN
+  dengan `peta-menu.ts` sendiri, yang juga memakai satu `href` untuk
+  beberapa `tabProyek` berbeda pada item lain.
+
+- [ ] **Step 4: Verifikasi lantai penjaga ratchet TIDAK naik dari baseline
+  Task 5**
+
+  ```bash
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && node scripts/format-ratchet.mjs
+  cd apps/web && node scripts/audit-halaman-pakai-cache.mjs
+  ```
+
+  Bandingkan angka ke commit Task 5 — laporkan SELISIH, bukan cuma exit
+  code.
+
+- [ ] **Step 5: typecheck + build + guard lengkap**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && pnpm build
+  cd apps/api && node scripts/jalankan-semua-penjaga.mjs
+  ```
+
+  Tempel ringkasan run sungguhan (CHARTER §7) — SEMUA penjaga.
+
+- [ ] **Step 6: a11y runtime penuh (akun admin) + catatan direktur**
+
+  ```bash
+  LAYAR_EMAIL=$(grep '^LAYAR_EMAIL' apps/web/.env.local|cut -d= -f2-|tr -d '"\r') \
+  LAYAR_SANDI=$(grep '^LAYAR_SANDI' apps/web/.env.local|cut -d= -f2-|tr -d '"\r') \
+    node apps/web/scripts/jalankan-a11y-lengkap.mjs
+  ```
+
+  Cek `/admin-portal/proyek`, `/admin-portal/proyek/:id` (redirect — pastikan
+  TIDAK di-flag sebagai pelanggaran karena halaman kosong sesaat),
+  `/admin-portal/kontrak/*` (6 halaman), `/admin-portal/jadwal`,
+  `/admin-portal/jadwal/keterlambatan` termasuk yang di-scan. Catat di
+  JOURNAL: tombol approve/reject Change Order TIDAK bisa di-a11y-scan untuk
+  kondisi "direktur tanpa tombol itu" memakai akun admin (0 user direktur
+  aktif) — butuh akun uji terpisah untuk memverifikasi keadaan itu benar2
+  hilang dari DOM (bukan cuma disabled), bukan hanya dari kode.
+
+- [ ] **Step 7: Verifikasi backend terkait**
+
+  ```bash
+  cd apps/api && npx vitest run kontrak
+  cd apps/api && npx vitest run asuransi
+  cd apps/api && npx vitest run rantai-kontrak
+  cd apps/api && npx vitest run jadwal-cpm
+  cd apps/api && npx vitest run analisa-keterlambatan
+  cd apps/api && npx vitest run surat
+  ```
+
+  Tempel ringkasan run sungguhan — memastikan Tahap 2 tidak menyentuh
+  backend (constraint global plan ini), test yang ADA tetap hijau tanpa
+  perubahan.
+
+- [ ] **Step 8: Update dokumen**
+
+  - `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` — tandai `kt-register`,
+    `kt-asuransi`, `kt-co`, `kt-eot`, `kt-ld`, `kt-bond`, `kt-claims`,
+    `kt-surat`, `jd-cpm`, `jd-delay` sebagai punya halaman admin-portal.
+  - `docs/execution/JOURNAL.md` — entri ringkas Tahap 2 selesai, termasuk
+    catatan direktur/`change_order:approve` dari Step 6.
+
+- [ ] **Step 9: Commit**
+
+  ```bash
+  git add apps/web/lib/admin-portal-kategori.ts apps/web/app/admin-portal/kategori/\[key\]/page.tsx apps/web/app/admin-portal/layout.tsx docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md docs/execution/JOURNAL.md
+  git commit -m "feat(admin-portal): navigasi kategori Tahap 2 + verifikasi akhir tahap"
+  ```
+
 ---
 
 ## Tahap 3-7: Belum di-breakdown
