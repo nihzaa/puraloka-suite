@@ -2665,6 +2665,1045 @@ sama Task 5.
   git commit -m "docs(plan): breakdown Tahap 3 — Keuangan + Akuntansi"
   ```
 
+### Hasil riset Task 13 (2026-08-22) — ringkasan sebelum Task 14-19
+
+**Struktur `peta-menu.ts` — VERIFIKASI, bukan tebakan dari nama folder.**
+Keuangan + Akuntansi hidup di **DUA grup**, bukan satu, dan "Akuntansi" BUKAN
+grup sendiri:
+
+- `g-keuangan` (Keuangan, urutan 140) — 18 item: GL/Jurnal (`fn-gl`/
+  `fn-jurnal` → `/akuntansi?tab=besar`/`?tab=jurnal`), Kunci API/Markup
+  (`set-api-key`/`set-markup`, TIDAK relevan Tahap 3 — sudah `pengaturan`),
+  Peta Akun/Jurnalkan Invoice (`gl-peta-akun`/`gl-jurnalkan` →
+  `/akuntansi/peta-akun`/`/akuntansi/jurnalkan`), Utang Supplier (`fn-ap` →
+  `/procurement/hutang`, LUAR cakupan Tahap 3 — domain procurement), Piutang
+  Klien (`fn-ar` → `/piutang`), Kas & Bank + Rekonsiliasi + Kas Kecil
+  (`fn-kas`/`fn-rekonsiliasi`/`fn-petty` → `/kas`/`/kas/rekonsiliasi`),
+  Aset Tetap (`fn-aset-tetap` → `/aset`, LUAR cakupan — domain Aset Tahap
+  4), PPN & PPh/e-Faktur (`fn-pajak`/`fn-efaktur` → `/laporan?tab=pajak`,
+  LUAR cakupan Tahap 3 — laporan pajak, bukan GL/Kas), Laporan Keuangan/
+  Pengakuan Pendapatan (`fn-laporan`/`fn-wip` → `/akuntansi?tab=laporan`/
+  `/laporan?tab=wip`), Tutup Buku (`fn-tutup-buku` → `/akuntansi/periode`),
+  Audit Trail (`fn-audit` → `/audit`, LUAR cakupan — modul Sistem Tahap 7).
+- `g-tagih` (Penagihan, urutan 150) — 8 item: Progress Billing/Termin/
+  Tagihan Pekerjaan Tambah (`tg-progress`/`tg-termin`/`tg-tambah` →
+  `/keuangan`), IPC (`tg-ipc` → `/keuangan/ipc`), Retensi/Uang Muka
+  (`tg-retensi`/`tg-uangmuka` → `/piutang`), Invoice & Faktur Pajak
+  (`tg-invoice` → `/keuangan/invoice`, LUAR cakupan — form invoice detail,
+  tak diriset Task 2/6 sebagai pola portal), Follow-Up Penagihan
+  (`tg-followup` → `/piutang`), Nota Kredit (`tg-nota-kredit` →
+  `/procurement/lanjutan?bagian=nota`).
+
+**Tak ada folder `apps/web/app/(dashboard)/akuntansi/` terpisah secara
+konsep** — ia ADA sebagai folder fisik (`akuntansi/page.tsx` 883 baris +
+`akuntansi/{jurnalkan,periode,peta-akun}`), tapi `peta-menu.ts` memetakannya
+ke item-item `g-keuangan` (`fn-gl`, `fn-jurnal`, `fn-laporan`, `fn-wip`,
+`fn-tutup-buku`, `gl-peta-akun`, `gl-jurnalkan`) — bukan grup navigasi
+sendiri. Portal ini karena itu punya SATU kategori "Keuangan" yang
+menaungi keduanya, konsisten pendekatan Task 3 (Dashboard Eksekutif sudah
+company-wide tanpa distingsi GL-vs-Kas).
+
+**Cakupan Tahap 3 dipersempit dari 26 item mentah jadi 6 sub-modul** —
+Dashboard Keuangan/Piutang/IPC, Kas, GL, Rekonsiliasi Bank, Pengadaan
+Lanjutan (Kontrak Payung/Expediting/Nota Kredit). Item yang DIKELUARKAN
+eksplisit (dan alasannya): Utang Supplier + PPN&PPh/e-Faktur (domain
+procurement/pajak, bukan Keuangan inti), Aset Tetap (Tahap 4), Audit Trail
+(Tahap 7), Kunci API/Markup (`pengaturan`, sudah tercakup gerbang settings
+read-only Tahap 7), Invoice & Faktur Pajak detail (form kompleks, di luar
+pola ringkas mobile — dicatat sebagai concern, bukan silent drop).
+
+**Portal PM SUDAH membangun modul yang HAMPIR identik** —
+`apps/web/app/pm-portal/keuangan/{dashboard,piutang,ipc,kas,kas/[id],
+gl,gl/jurnal/[id],rekonsiliasi-bank,rekonsiliasi-bank/[id],
+pengadaan-lanjutan}/page.tsx` (Portal PM Task 32-36, 3.106 baris total).
+Pola breakdown Tahap 3 karena itu **menyalin APA ADANYA + menghapus filter
+`.pm`/menambah tombol yang PM tak punya tapi admin/direktur punya** — BUKAN
+menulis dari nol. Ini kasus PALING BANYAK PENYIMPANGAN dari pola "salin
+lurus" sejauh plan ini, karena permission admin/direktur BERBEDA dari PM
+di banyak titik (tabel di bawah), bukan cuma "admin+direktur = superset PM".
+
+**GL detail jurnal (`pm-portal/keuangan/gl/jurnal/[id]/page.tsx`) TIDAK
+PUNYA render-gate `hasPermission` sama sekali** untuk tombol "+ Akun"/
+"+ Jurnal"/"Posting"/"Batalkan" — PM mengandalkan backend 403 murni karena
+SELURUH PM yang mencapai modul Keuangan sudah dipastikan `gl:manage`/
+`gl:post`/`gl:void` (dikonfirmasi komentar kepala `gl/page.tsx`: "PM di
+modul ini punya akses PENUH... BUKAN cuma view"). **Untuk admin-portal, pola
+itu TIDAK BOLEH disalin apa adanya** — live query 2026-08-22 membuktikan
+`direktur` TIDAK punya `gl:manage`/`gl:post`/`gl:void` sama sekali (lihat
+tabel di bawah), jadi Task 15 WAJIB menambah render-gate yang tak ada di
+sumber PM-nya. Ini kebalikan pola Task 10 (di mana PM SUDAH gerbang dan
+admin-portal tinggal menyalin) — di sini admin-portal MENAMBAH gerbang baru.
+
+**Live query permission admin vs direktur 2026-08-22** (pisah per role_id,
+tenant uji `48befb54-…d8a0`, dikonfirmasi juga IDENTIK di seluruh 53
+company_id tenant yang ada — satu SET permission unik per role, bukan
+kebetulan company uji ini):
+
+| permission | admin | direktur | menggerbangi |
+|---|---|---|---|
+| `finance:view:all` | ✅ | ❌ | `finance/summary`, `/cashflow-chart`, `/ar-aging`, `/retention-register`, `/dp-register`, `keuangan/ikhtisar` |
+| `finance:view` | ✅ | ✅ | `sertifikat-ipc` GET (daftar+detail) |
+| `finance:invoice:create` | ✅ | ✅ | `sertifikat-ipc` POST+setujui, `finance/invoices` POST |
+| `finance:invoice:pay` | ✅ | ✅ | `finance/payments` (bayar invoice) |
+| `finance:penalty:waive` | ✅ | ❌ | pembebasan denda keterlambatan (di luar cakupan 6 sub-modul Tahap 3 ini) |
+| `cash:view` | ✅ | ✅ | `cash/accounts/:id` detail |
+| `cash:account:manage` | ✅ | ✅ | buat akun kas, `cash/transfers/:id/cancel` |
+| `cash:transfer:create` | ✅ | ✅ | `cash/transfers` POST |
+| `cash:transfer:confirm` | ✅ | ✅ | `cash/transfers/:id/confirm` |
+| `cash:expense:approve` | ✅ | ✅ | approve pengeluaran (lewat Inbox Task 4, TIDAK dibangun ulang di Kas) |
+| `gl:view` | ✅ | ✅ | SEMUA GET `/gl/*` (accounts, journal-entries, ledger, trial-balance, laporan) |
+| `gl:manage` | ✅ | ❌ | POST akun baru, POST jurnal baru |
+| `gl:post` | ✅ | ❌ | `PATCH /gl/journal-entries/:id/post` |
+| `gl:void` | ✅ | ❌ | `PATCH /gl/journal-entries/:id/void` |
+| `gl:periode:view` | ✅ | ✅ | `GET /gl/periode`, `/kesiapan`, `/riwayat` |
+| `gl:periode:manage` | ✅ | ✅ | `POST /gl/periode` (buat), `POST /gl/periode/:id/tutup` |
+| `gl:periode:reopen` | ✅ | ✅ | `POST /gl/periode/:id/buka` — **koreksi Task 6 TERKONFIRMASI ULANG akurat**: BUKAN direktur-eksklusif seperti komentar kepala `tutup-buku.ts` ("hanya peran direktur"), admin JUGA punya. Komentar kode itu SENDIRI basi — dicatat sebagai temuan, TIDAK diperbaiki (backend di luar scope). |
+| `rekonsiliasi:view` | ✅ | ✅ | `GET /rekonsiliasi`, `/:id` |
+| `rekonsiliasi:manage` | ✅ | ❌ | `POST /rekonsiliasi` (impor), `/cocokkan`, `/penyesuaian`, `DELETE /cocokkan/:id` |
+| `rekonsiliasi:lock` | ✅ | ❌ | `POST /rekonsiliasi/:id/kunci` |
+| `procurement:view` | ✅ | ✅ | `GET /pengadaan-lanjutan` |
+| `procurement:po:manage` | ✅ | ✅ | POST kontrak payung/expediting/nota-kredit (MEMBUAT) |
+| `procurement:payment:manage` | ✅ | ✅ | `PATCH .../nota-kredit/:id/{putuskan,terapkan}` — **BEDA dari PM**: PM Portal TIDAK punya izin ini (dicatat eksplisit di komentar `pm-portal/keuangan/pengadaan-lanjutan/page.tsx`), admin+direktur PUNYA — Task 18 WAJIB menambah tombol putuskan/terapkan yang TIDAK ADA di versi PM. |
+
+⚠ **Temuan paling penting: `finance:view:all` adalah gerbang BACA yang
+direktur TIDAK punya** — beda dari pola dominan plan ini ("direktur subset
+permission murni, kehilangan kapabilitas TULIS tapi tetap bisa baca").
+Dashboard Keuangan (`keuangan/ikhtisar`), Piutang (`ar-aging`/
+`retention-register`/`dp-register`), dan ringkasan arus kas
+(`finance/summary`/`cashflow-chart`) SEMUANYA di baliknya —
+direktur mengakses `/admin-portal/keuangan` akan mendapat **403 pada
+seluruh dashboard+piutang**, bukan sekadar tombol tulis yang hilang. Ini
+kasus KEDUA (sesudah `change_order`/`estimate_version`/`lessons_learned` di
+Task 2) di mana direktur genuinely kehilangan sesuatu — dan yang PERTAMA
+di mana yang hilang adalah KEMAMPUAN BACA, bukan tulis. Task 14 WAJIB
+menangani ini sebagai empty-state/pesan yang jelas ("Dashboard Keuangan
+memerlukan izin `finance:view:all`"), BUKAN sebagai galat generik "gagal
+memuat" yang terlihat seperti bug.
+
+⚠ **GL benar-benar terbelah ADMIN vs DIREKTUR** — direktur hanya bisa
+MELIHAT (`gl:view`, `gl:periode:view`) dan MENUTUP/MEMBUKA PERIODE
+(`gl:periode:manage`/`gl:periode:reopen`), TAPI TIDAK bisa membuat akun/
+jurnal baru maupun posting/void (`gl:manage`/`gl:post`/`gl:void` — nol
+untuk direktur). Ini pola yang MASUK AKAL secara bisnis (direktur
+mengawasi & mengunci buku, staf keuangan/admin yang menjurnal harian) tapi
+BERBEDA TOTAL dari PM (yang justru sebaliknya: `gl:manage`/`gl:post`/
+`gl:void` PENUH, tapi tak pernah disebut apakah PM punya `gl:periode:*`
+sama sekali — tak relevan karena PM tak dapat modul Tutup Buku).
+
+⚠ **Kas & Bank company-wide TANPA gerbang permission untuk baca** —
+`cash/accounts` dan `cash/summary` hanya `authenticate` (bukan
+`requirePermission`), sama untuk admin MAUPUN direktur. Ini beda dari
+Piutang/Dashboard yang digerbang `finance:view:all`. `cash_accounts` bisa
+terikat `project_id` (kolom `projects` di-join, filterable via query
+`?project_id=`) TAPI defaultnya menampilkan SEMUA akun tenant — Kas karena
+itu company-wide by default dengan opsi penyempitan per-proyek, BUKAN
+per-proyek dengan agregasi company-wide seperti Dashboard Keuangan.
+
+⚠ **`gl:void` non-atomicity (JOURNAL.md, Portal PM Task 34) DIWARISI apa
+adanya** — `PATCH /gl/journal-entries/:id/void` (`gl.ts:287-321`) TIDAK
+menyertakan `.eq('status','posted')` di WHERE update (beda dari `/post`
+yang atomik lewat `.eq('status','draft')`). Diverifikasi ULANG langsung ke
+kode saat riset Task 13 (baris 302-310) — bug backend YANG SUDAH ADA,
+TIDAK diperbaiki di sini (backend di luar scope plan frontend-only ini).
+Dampaknya dibatasi trigger `fn_gl_posted_immutable` (field lain tak bisa
+berubah pada baris posted) — race window hanya bisa menimpa `notes` dua
+kali, bukan memindahkan uang atau mengubah saldo. Task 15 mewarisi
+peringatan ini di komentar kepala berkas, PERSIS pola PM Portal Task 34.
+
+**Company-wide vs per-proyek — dikonfirmasi per sub-modul:**
+
+| sub-modul | cakupan | alasan |
+|---|---|---|
+| Dashboard Keuangan (`keuangan/ikhtisar`) | company-wide | `db.projectIds()` = SEMUA proyek tenant untuk admin (tak ada penyempitan `pm_id` di route ini) |
+| Piutang (`ar-aging`/`retention-register`/`dp-register`) | company-wide | tabel lintas-proyek, tanpa parameter `project_id` |
+| IPC (`sertifikat-ipc`) | **per-proyek** | `?project_id=` WAJIB, satu proyek satu waktu — project-picker sama pola Task 7/9 (TANPA filter `.pm`) |
+| Kas (`cash/accounts`, `/summary`, `/transfers`, `/expenses`) | company-wide (opsional per-proyek) | akun kas MILIK company, sebagian `project_id`-linked; default tampil semua |
+| GL (`gl/*`) | company-wide | akun/jurnal milik badan usaha (`viaCompany`, BUKAN `viaProject` — komentar kepala `gl.ts`), `project_id` di baris jurnal cuma dimensi laporan |
+| Rekonsiliasi Bank (`rekonsiliasi`) | company-wide | per AKUN KAS (yang company-wide), bukan per proyek |
+| Pengadaan Lanjutan (kontrak payung/expediting/nota kredit) | company-wide | milik SUPPLIER, bukan proyek — `GET /pengadaan-lanjutan` tanpa `project_id` sama sekali |
+
+Prediksi awal brief ("Kas/GL/Rekonsiliasi kemungkinan company-wide,
+Pengadaan-lanjutan bisa campuran") **TERKONFIRMASI SEMUANYA company-wide,
+TANPA campuran** — satu-satunya sub-modul per-proyek genuine adalah IPC
+(sertifikat pembayaran memang diterbitkan per kontrak/proyek).
+
+**Konfirmasi eksplisit — `apps/api/src/lib/tulis-klaim.ts` TIDAK disentuh**
+riset ini sama sekali (dibaca 0 kali, diedit 0 kali) — larangan permanen
+CLAUDE.md §6 dipatuhi penuh. Endpoint `payments` (`finance.ts:1232`,
+`finance:invoice:pay`) yang dipakai Task 14 untuk "Terbayar" HANYA
+DIBACA sebagai agregat lewat `keuangan/ikhtisar`, bukan ditulis lewat jalur
+WhatsApp/asisten yang jadi alasan larangan itu.
+
+---
+
+## Tahap 3 lanjutan: Task 14-19
+
+### Task 14: Dashboard Keuangan + Piutang + IPC — halaman baru (company-wide + per-proyek)
+
+**Files:**
+- Create: `apps/web/app/admin-portal/keuangan/page.tsx` (Dashboard, company-wide)
+- Create: `apps/web/app/admin-portal/keuangan/piutang/page.tsx` (company-wide)
+- Create: `apps/web/app/admin-portal/keuangan/ipc/page.tsx` (per-proyek)
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah
+  `RespKeuanganIkhtisar`, `BarisArAging`/`RespArAging`, `BarisRetensi`/
+  `RespRetensi`, `BarisDp`/`RespDp`, `HasilIpc`/`SertifikatIpc`/
+  `RespSertifikatDaftar` — salinan PERSIS `pm-portal/_bersama/tipe.ts:
+  2657-2769`, tabel referensi lengkap di riset Task 13 di atas)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/keuangan/ikhtisar` (`finance:view:all`,
+  company-wide via `db.projectIds()`), `GET /api/v1/finance/ar-aging`,
+  `GET /api/v1/finance/retention-register`, `GET /api/v1/finance/
+  dp-register` (ketiganya `finance:view:all`, company-wide), `GET /api/v1/
+  sertifikat-ipc?project_id=` + `POST /api/v1/sertifikat-ipc` + `PATCH
+  /api/v1/sertifikat-ipc/:id/setujui` (`finance:view`/`finance:invoice:
+  create`, admin+direktur SAMA-SAMA punya — per-proyek).
+- Produces: `/admin-portal/keuangan` (Beranda modul — KPI + grafik + per
+  proyek + invoice tertunggak), `/admin-portal/keuangan/piutang` (3 tab:
+  Aging/Retensi/Uang Muka), `/admin-portal/keuangan/ipc` (project-picker +
+  terbitkan + setujui).
+
+⚠ **Dashboard dan Piutang WAJIB menangani 403 `finance:view:all` untuk
+direktur secara EKSPLISIT** — beda dari pola dominan plan ini di mana
+direktur tetap bisa BACA. Bila `useData` memulangkan status 403 untuk
+kedua endpoint ini, tampilkan `EmptyState` yang menyebut IZIN yang kurang
+("Dashboard Keuangan memerlukan izin `finance:view:all`, hubungi admin"),
+BUKAN pesan galat generik "Gagal memuat, coba muat ulang" yang terbaca
+seperti bug transien. IPC TIDAK terkena ini (`finance:view`, direktur
+punya) — halaman itu render normal untuk kedua role.
+
+- [ ] **Step 1: Baca ulang KETIGA halaman PM PENUH sebelum menulis** —
+  `pm-portal/keuangan/dashboard/page.tsx` (197 baris), `pm-portal/keuangan/
+  piutang/page.tsx` (160 baris), `pm-portal/keuangan/ipc/page.tsx` (246
+  baris). Baca juga `apps/api/src/lib/keuangan-ikhtisar.ts` header komentar
+  (kenapa RAB SENGAJA tak dipakai — keputusan founder 2026-08-09, JANGAN
+  menambah agregasi RAB kalau kepikiran "lebih lengkap") dan `finance.ts`
+  baris 237-444 (`ar-aging`/`retention-register`/`dp-register`).
+
+- [ ] **Step 2: Tambah tipe ke `_bersama/tipe.ts`**
+
+  Salin PERSIS `pm-portal/_bersama/tipe.ts:2657-2769` — `RespKeuanganIkhtisar`
+  (nominal SEMUA STRING, `.toFixed(2)` backend), `BarisArAging`/`RespArAging`
+  (nominal NUMBER — endpoint BEDA dari ikhtisar), `BarisRetensi`/`RespRetensi`,
+  `BarisDp`/`RespDp`, `HasilIpc`/`SertifikatIpc`/`RespSertifikatDaftar`.
+  JANGAN menyeragamkan tipe nominal antara `RespKeuanganIkhtisar` (string)
+  dan `RespArAging`/dst (number) — keduanya endpoint berbeda dengan
+  konvensi serialisasi berbeda, diverifikasi baris-per-baris di PM Portal
+  Task 32, bukan asumsi yang bisa "dirapikan".
+
+- [ ] **Step 3: `admin-portal/keuangan/page.tsx` — salin `pm-portal/
+  keuangan/dashboard/page.tsx` APA ADANYA**
+
+  KPI grid (nilai kontrak/tertagih/terbayar/piutang/kasbon beredar/invoice
+  lewat tempo) + grafik batang tagih-vs-bayar 12 bulan + komposisi kasbon +
+  umur piutang + tabel per-proyek (`<Tabel>` bersama `@/components/dasar`,
+  BUKAN `<table>` mentah) + invoice tertunggak. HANYA ubah:
+  1. Komentar kepala berkas (Task 14 Portal Admin, sebut gerbang
+     `finance:view:all` admin-only secara eksplisit — BEDA dari PM yang
+     tak perlu menyebutnya karena semua PM yang sampai modul ini otomatis
+     punya izin viewnya sendiri).
+  2. Path impor tipe (`../_bersama/tipe`, satu level — bukan `../../_bersama/
+     tipe` seperti PM yang bersarang dua level `keuangan/dashboard/`).
+  3. TAMBAH penanganan 403 eksplisit (lihat catatan ⚠ di atas Task ini) —
+     ini SATU-SATUNYA tambahan logic di luar "salin", karena versi PM tak
+     pernah menghadapi kasus role yang kehilangan `finance:view:all`.
+
+  ```tsx
+  // Tambahan di atas render normal, sebelum blok `{!memuat && data && (...)}`
+  // yang disalin dari PM:
+  {!memuat && galat && (galat as GalatApi)?.error?.includes("izin") && (
+    <EmptyState
+      icon={AlertTriangle}
+      judul="Akses terbatas"
+      deskripsi="Dashboard Keuangan memerlukan izin finance:view:all. Peran Anda saat ini tidak memilikinya — hubungi admin bila ini keliru."
+    />
+  )}
+  {!memuat && galat && !(galat as GalatApi)?.error?.includes("izin") && (
+    <EmptyState icon={AlertTriangle} judul="Gagal memuat"
+      deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")}
+      aksi={{ label: "Muat ulang", onClick: () => void muatUlang() }} />
+  )}
+  ```
+
+  ⚠ **Verifikasi PERSIS pesan galat 403 yang dikembalikan `requirePermission`**
+  sebelum commit — baca `apps/api/src/plugins/auth.ts` fungsi
+  `requirePermission` untuk bentuk pesan sesungguhnya (kemungkinan
+  `{ error: "Izin tidak mencukupi" }` atau serupa, BUKAN ditebak dari nama
+  variabel `galat.error?.includes("izin")` di atas — sesuaikan string
+  pencarian ke pesan asli sebelum commit, kerangka ini adalah TEMPLATE).
+
+- [ ] **Step 4: `admin-portal/keuangan/piutang/page.tsx` — salin `pm-portal/
+  keuangan/piutang/page.tsx` APA ADANYA**
+
+  3 tab `SegmentedTab` (Umur Piutang/Retensi/Uang Muka). HANYA ubah
+  komentar kepala + path impor + tambahan penanganan 403 (pola sama Step 3,
+  ketiga `useData` di halaman ini gerbang `finance:view:all` yang sama).
+
+- [ ] **Step 5: `admin-portal/keuangan/ipc/page.tsx` — salin `pm-portal/
+  keuangan/ipc/page.tsx` APA ADANYA**
+
+  Project-picker + terbitkan (BottomSheet form) + setujui (tombol per
+  kartu, `disabled` saat `!s.hitung.layak_diajukan` — INI logic bisnis
+  bawaan endpoint, BUKAN gerbang permission, tetap `disabled` bukan
+  disembunyikan). HANYA ubah:
+  1. Komentar kepala berkas (Task 14 Portal Admin — `finance:view`,
+     admin+direktur SAMA-SAMA punya, TAK PERLU penanganan 403 khusus
+     seperti Step 3/4).
+  2. Path impor tipe.
+  3. `daftarProyek` TIDAK memfilter `.filter((p) => p.pm)` — pola sama
+     Task 7/9/10/11.
+
+- [ ] **Step 6: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && node scripts/uji-tombol-primer-seragam.mjs
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 7: Verifikasi manual — akun direktur uji untuk 403**
+
+  Buka `/admin-portal/keuangan` dan `/admin-portal/keuangan/piutang` dengan
+  akun direktur uji (0 user aktif, wajib akun sengaja dibuat) — konfirmasi
+  EmptyState "Akses terbatas" tampil, BUKAN pesan galat generik atau
+  halaman kosong tanpa penjelasan. Buka `/admin-portal/keuangan/ipc` dengan
+  akun yang SAMA — konfirmasi halaman itu render NORMAL (KPI/daftar
+  sertifikat tampil), membuktikan `finance:view` ≠ `finance:view:all`.
+
+- [ ] **Step 8: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/keuangan apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): dashboard keuangan + piutang + ipc — Tahap 3"
+  ```
+
+### Task 15: General Ledger — Chart of Accounts, Jurnal, Buku Besar, Laporan (gerbang gl:manage/gl:post/gl:void admin-only)
+
+**Files:**
+- Create: `apps/web/app/admin-portal/keuangan/gl/page.tsx`
+- Create: `apps/web/app/admin-portal/keuangan/gl/jurnal/[id]/page.tsx`
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah `AkunGl`/
+  `RespAkunGl`, `JurnalGl`/`RespJurnalDaftar`, `BarisJurnalGl`/
+  `RespJurnalDetail`, `BarisBukuBesar`/`RespBukuBesar`,
+  `KelompokLaporanGl`/`NeracaGl`/`LabaRugiGl`/`RespLaporanGl` — salinan
+  PERSIS `pm-portal/_bersama/tipe.ts:2868-2981`)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/gl/accounts` + `POST` (`gl:view`/`gl:manage`),
+  `GET /api/v1/gl/journal-entries` + `GET /:id` + `POST`
+  (`gl:view`/`gl:manage`), `PATCH /api/v1/gl/journal-entries/:id/post`
+  (`gl:post`), `PATCH /api/v1/gl/journal-entries/:id/void` (`gl:void`),
+  `GET /api/v1/gl/ledger` (`gl:view`), `GET /api/v1/gl/laporan`
+  (`gl:view`).
+- Produces: `/admin-portal/keuangan/gl` (4 tab: Jurnal/Bagan Akun/Buku
+  Besar/Neraca & Laba-Rugi), `/admin-portal/keuangan/gl/jurnal/:id`
+  (detail + posting/void).
+
+⚠ **INI TASK PALING KRITIS Tahap 3 — GL benar-benar terbelah admin vs
+direktur, dan sumber PM TIDAK punya render-gate untuk disalin.** Live
+query Task 13: direktur `gl:view`/`gl:periode:*` ✅, TAPI `gl:manage`/
+`gl:post`/`gl:void` ❌ TOTAL. Tombol "+ Akun", "+ Jurnal", "Posting
+Jurnal", "Batalkan Jurnal" WAJIB digerbang `hasPermission()` +
+`useSyncExternalStore` (pola PERSIS Task 10 Change Order) — TIDAK DIRENDER
+(bukan `disabled`) untuk direktur. Tab "Bagan Akun"/"Buku Besar"/"Neraca &
+Laba-Rugi" dan LIST jurnal tetap tampil penuh untuk direktur (`gl:view`
+dimiliki keduanya) — hanya AKSI TULIS yang tersembunyi.
+
+- [ ] **Step 1: Baca ulang KEDUA halaman PM PENUH** — `pm-portal/keuangan/
+  gl/page.tsx` (551 baris) dan `pm-portal/keuangan/gl/jurnal/[id]/page.tsx`
+  (218 baris). Perhatikan KEDUANYA TIDAK punya satu pun `hasPermission()`
+  — ini pengecualian dari pola "salin gerbang PM apa adanya" karena
+  gerbangnya memang tak ada di sumbernya (dijelaskan di riset Task 13 di
+  atas). Baca ulang `gl.ts:52-321` (chart of accounts + jurnal + post +
+  void) untuk memastikan bentuk respons belum berubah sejak PM Portal
+  Task 34.
+
+- [ ] **Step 2: Tambah tipe ke `_bersama/tipe.ts`**
+
+  Salin PERSIS `pm-portal/_bersama/tipe.ts:2868-2981` (`AkunGl`,
+  `RespAkunGl`, `JurnalGl`, `BarisJurnalGl`, `RespJurnalDaftar`,
+  `RespJurnalDetail`, `BarisBukuBesar`, `RespBukuBesar`,
+  `KelompokLaporanGl`, `NeracaGl`, `LabaRugiGl`, `RespLaporanGl`) —
+  TERMASUK komentar `BarisJurnalGl.accounts` NULLABLE (`gl.ts:157` tak
+  menormalisasi embed gagal, akses WAJIB `?.`, bukan langsung). JANGAN
+  menyalin `RespTrialBalance`/`BarisSaldoAkun` — endpoint `/gl/trial-balance`
+  nyata tapi TAK DIPAKAI halaman manapun (dead import kalau ditambahkan).
+
+- [ ] **Step 3: `admin-portal/keuangan/gl/page.tsx` — salin `pm-portal/
+  keuangan/gl/page.tsx`, TAMBAH gerbang `bolehTulisGl`/`bolehPost`/
+  `bolehVoid` yang TIDAK ADA di sumber**
+
+  Salin struktur 4-tab + BottomSheet "Akun Baru"/"Jurnal Manual" APA
+  ADANYA (validasi `seimbangLini` sisi klien, batas 2+ baris, dst — SEMUA
+  logic form tak berubah). TAMBAHKAN gerbang render pada:
+
+  ```tsx
+  import { useSyncExternalStore } from "react";
+  import { hasPermission } from "@/lib/api";
+
+  // `langganan`: pola PERSIS Task 10 — perubahan permission (login/switch
+  // company) tercermin tanpa reload.
+  const langganan = (cb: () => void) => { window.addEventListener("storage", cb); return () => window.removeEventListener("storage", cb); };
+
+  export default function AdminGlPage() {
+    // gl:manage HANYA admin (live 2026-08-22) — direktur TIDAK bisa buat
+    // akun/jurnal baru. TIDAK DIRENDER (bukan disabled) saat tak ada,
+    // pola sama `bolehApprove` Task 10 — JANGAN "perbaiki" jadi selalu
+    // tampil dengan asumsi "direktur biasanya subset admin".
+    const bolehTulisGl = useSyncExternalStore(
+      langganan, () => hasPermission("gl:manage"), () => false);
+    // ... sisa state SAMA PERSIS pm-portal/keuangan/gl/page.tsx
+  ```
+
+  Bungkus KEDUA tombol header ("+ Akun"/"+ Jurnal") dengan
+  `{bolehTulisGl && (...)}`. Tab "Bagan Akun"/"Buku Besar"/"Laporan" dan
+  list Jurnal TETAP dirender tanpa gerbang tambahan (`gl:view` dimiliki
+  admin+direktur). HANYA ubah komentar kepala berkas (jelaskan pembelahan
+  admin/direktur, RUJUK tabel live-query Task 13) dan path impor.
+
+- [ ] **Step 4: `admin-portal/keuangan/gl/jurnal/[id]/page.tsx` — salin
+  `pm-portal/keuangan/gl/jurnal/[id]/page.tsx`, TAMBAH gerbang `bolehPost`/
+  `bolehVoid`**
+
+  Salin kepala jurnal + tabel baris + BottomSheet "Batalkan Jurnal" APA
+  ADANYA (termasuk komentar atomisitas `post` vs non-atomisitas `void` —
+  WARISI, JANGAN perbaiki, lihat peringatan riset Task 13 di atas).
+  TAMBAHKAN:
+
+  ```tsx
+  const bolehPost = useSyncExternalStore(langganan, () => hasPermission("gl:post"), () => false);
+  const bolehVoid = useSyncExternalStore(langganan, () => hasPermission("gl:void"), () => false);
+  ```
+
+  Bungkus tombol "Posting Jurnal" (`j.status === "draft"`) dengan
+  `{j.status === "draft" && bolehPost && (...)}` dan tombol "Batalkan
+  Jurnal" (`j.status === "posted"`) dengan `{j.status === "posted" &&
+  bolehVoid && (...)}`. Direktur yang membuka jurnal draft/posted TETAP
+  bisa melihat SELURUH detail (kepala, baris, total debit/kredit) — hanya
+  dua tombol aksi yang hilang total.
+
+  ⚠ Komentar kepala berkas WAJIB mewarisi peringatan non-atomicity `void`
+  PERSIS dari PM Portal Task 34 (`gl.ts:287-321` tak punya
+  `.eq('status','posted')` di WHERE) — jangan dihapus dengan alasan "sudah
+  dicatat di riset Task 13", pembaca kode di masa depan tak selalu
+  membuka dokumen plan ini.
+
+- [ ] **Step 5: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && node scripts/uji-tombol-primer-seragam.mjs
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 6: Verifikasi manual — akun direktur uji (0 user aktif)**
+
+  Buka `/admin-portal/keuangan/gl` dengan akun direktur uji — konfirmasi
+  tombol "+ Akun"/"+ Jurnal" TIDAK TAMPIL sama sekali, sementara 4 tab
+  tetap bisa dibuka dan menampilkan data. Buka detail jurnal draft —
+  konfirmasi tombol "Posting Jurnal" TIDAK TAMPIL. Buka detail jurnal
+  posted — konfirmasi tombol "Batalkan Jurnal" TIDAK TAMPIL. Bandingkan
+  dengan akun admin — SEMUA tombol tampil di keempat kasus.
+
+- [ ] **Step 7: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/keuangan/gl apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): general ledger — gerbang gl:manage/post/void admin-only — Tahap 3"
+  ```
+
+### Task 16: Rekonsiliasi Bank — halaman baru (gerbang rekonsiliasi:manage/lock admin-only)
+
+**Files:**
+- Create: `apps/web/app/admin-portal/keuangan/rekonsiliasi-bank/page.tsx`
+- Create: `apps/web/app/admin-portal/keuangan/rekonsiliasi-bank/[id]/page.tsx`
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah
+  `BarisKoranRek`/`TransaksiBukuRek`/`UsulCocokRek`/`LaporanRekBank`/
+  `KoranRekening`/`RespRekonsiliasiDaftar`/`KoranRekeningDetail`/
+  `RespRekonsiliasiDetail` — salinan PERSIS `pm-portal/_bersama/tipe.ts:
+  2991-3053`)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/rekonsiliasi` (`rekonsiliasi:view`, daftar
+  koran), `GET /api/v1/rekonsiliasi/:id` (`rekonsiliasi:view`, detail +
+  laporan + usul pencocokan), `POST /api/v1/rekonsiliasi/:id/cocokkan`
+  (`rekonsiliasi:manage`), `DELETE .../cocokkan/:cocokId`
+  (`rekonsiliasi:manage`), `POST .../penyesuaian` (`rekonsiliasi:manage`),
+  `POST .../kunci` (`rekonsiliasi:lock`).
+- Produces: `/admin-portal/keuangan/rekonsiliasi-bank` (daftar koran),
+  `/admin-portal/keuangan/rekonsiliasi-bank/:id` (detail + aksi).
+
+⚠ **Sama polanya dengan GL (Task 15) — direktur hanya `rekonsiliasi:view`
+(baca), TIDAK `rekonsiliasi:manage`/`rekonsiliasi:lock`.** Halaman daftar
+(`page.tsx`) TIDAK punya tombol tulis sama sekali di versi PM (murni list
++ link, `POST /rekonsiliasi` impor koran memang TIDAK dibangun di mobile —
+warisi keputusan itu, lihat komentar kepala `pm-portal/keuangan/
+rekonsiliasi-bank/page.tsx`), jadi Task ini HANYA perlu menggerbang
+halaman DETAIL (`[id]/page.tsx`): tombol "+ Penyesuaian", "Kunci Periode",
+dan "Cocokkan (dari usul)".
+
+- [ ] **Step 1: Baca ulang KEDUA halaman PM PENUH** — `pm-portal/keuangan/
+  rekonsiliasi-bank/page.tsx` (115 baris) dan `[id]/page.tsx` (399 baris,
+  termasuk komentar atomisitas `kunci` ATOMIK vs `cocokkan` non-atomik
+  ringan — race window dibatasi UNIQUE constraint, WARISI apa adanya).
+
+- [ ] **Step 2: Tambah tipe ke `_bersama/tipe.ts`**
+
+  Salin PERSIS `pm-portal/_bersama/tipe.ts:2991-3053` — TERMASUK komentar
+  yang membedakan `KoranRekening` (bentuk DAFTAR, dengan
+  `jumlah_baris`/`jumlah_cocok`/`belum_cocok` DIHITUNG rute) dari
+  `KoranRekeningDetail` (bentuk DETAIL, TANPA ketiga field itu — endpoint
+  detail menyebar baris mentah + `nama_akun` saja). Menyamakan keduanya
+  membuat kode membaca field yang `undefined` senyap di satu endpoint.
+
+- [ ] **Step 3: `admin-portal/keuangan/rekonsiliasi-bank/page.tsx` — salin
+  `pm-portal/keuangan/rekonsiliasi-bank/page.tsx` APA ADANYA**
+
+  Daftar koran + status badge (terbuka/dikunci) + ringkasan cocok/belum
+  cocok. TIDAK ADA tombol tulis di halaman ini di versi PM — TIDAK PERLU
+  gerbang tambahan, salin murni ganti komentar kepala + path impor.
+
+- [ ] **Step 4: `admin-portal/keuangan/rekonsiliasi-bank/[id]/page.tsx` —
+  salin `pm-portal/keuangan/rekonsiliasi-bank/[id]/page.tsx`, TAMBAH
+  gerbang `bolehKelola`/`bolehKunci`**
+
+  Salin laporan 4-baris + baris belum cocok + BottomSheet penyesuaian APA
+  ADANYA. TAMBAHKAN:
+
+  ```tsx
+  const bolehKelola = useSyncExternalStore(langganan, () => hasPermission("rekonsiliasi:manage"), () => false);
+  const bolehKunci = useSyncExternalStore(langganan, () => hasPermission("rekonsiliasi:lock"), () => false);
+  ```
+
+  Bungkus tombol "+ Penyesuaian" dengan `{koran.status === "terbuka" &&
+  bolehKelola && (...)}`, tombol "Cocokkan (dari usul)" dengan `{u &&
+  koran.status === "terbuka" && bolehKelola && (...)}`, dan tombol "Kunci
+  Periode" dengan `{koran.status === "terbuka" && bolehKunci && (...)}` —
+  TIGA gerbang terpisah (bukan satu gabungan), karena `rekonsiliasi:manage`
+  dan `rekonsiliasi:lock` adalah permission BERBEDA yang bisa saja
+  suatu hari dipegang role berbeda pula (saat ini direktur nol keduanya,
+  tapi kode tak boleh mengasumsikan keduanya SELALU sepasang).
+
+  ⚠ Direktur yang membuka koran TERBUKA tanpa `rekonsiliasi:manage`/`:lock`
+  akan melihat laporan + baris belum cocok TANPA satu pun tombol aksi —
+  ini KEADAAN SAH (baca-saja), bukan bug tampilan setengah-jadi. Pastikan
+  tak ada `<div>` kosong yang tertinggal dari struktur flex tombol yang
+  dihapus render-nya.
+
+- [ ] **Step 5: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 6: Verifikasi manual — akun direktur uji**
+
+  Buka koran berstatus terbuka dengan akun direktur uji — konfirmasi TIDAK
+  ADA tombol "+ Penyesuaian"/"Cocokkan"/"Kunci Periode", laporan tetap
+  tampil penuh. Bandingkan akun admin — ketiga tombol tampil.
+
+- [ ] **Step 7: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/keuangan/rekonsiliasi-bank apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): rekonsiliasi bank — gerbang manage/lock admin-only — Tahap 3"
+  ```
+
+### Task 17: Kas Management — halaman baru (company-wide, admin dapat cancel transfer yang PM tak punya)
+
+**Files:**
+- Create: `apps/web/app/admin-portal/keuangan/kas/page.tsx`
+- Create: `apps/web/app/admin-portal/keuangan/kas/[id]/page.tsx`
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah
+  `RespCashSummary`, `CashAccount`/`RespCashAccounts`, `CashTransfer`/
+  `RespCashTransfers`, `RespCashAccountDetail`, `ProjectExpense`/
+  `RespCashExpenses`, `KategoriPengeluaran`/`RespKategoriPengeluaran` —
+  salinan PERSIS `pm-portal/_bersama/tipe.ts:2781-2858`)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/cash/summary` (`authenticate` saja, company-wide),
+  `GET /api/v1/cash/accounts` (`authenticate` saja), `GET /api/v1/cash/
+  accounts/:id` (`cash:view`), `POST /api/v1/cash/transfers`
+  (`cash:transfer:create`), `PATCH .../confirm` (`cash:transfer:confirm`),
+  `PATCH .../cancel` (`cash:account:manage` — **BEDA dari PM**: admin+
+  direktur PUNYA, PM tidak), `POST /api/v1/cash/expenses` (`authenticate`
+  saja — auto-approve untuk admin/pm sesuai `cash.ts:565`, VERIFIKASI
+  ULANG baris ini untuk peran `direktur` sebelum menulis kode Step 4),
+  `GET /api/v1/cash/categories`.
+- Produces: `/admin-portal/keuangan/kas` (2 tab: Akun Kas/Pengeluaran),
+  `/admin-portal/keuangan/kas/:id` (detail + konfirmasi + BARU: batalkan
+  transfer).
+
+⚠ **Satu-satunya penambahan FUNGSIONAL (bukan cuma gerbang) di seluruh
+Tahap 3** — admin/direktur punya `cash:account:manage` yang PM tidak,
+sehingga tombol "Batalkan" transfer (`PATCH /cash/transfers/:id/cancel`)
+yang SENGAJA TAK DIBANGUN di PM Portal (komentar kepala `pm-portal/
+keuangan/kas/[id]/page.tsx`: "TIDAK ADA tombol Batalkan... PM TIDAK
+PUNYA") WAJIB ditambahkan di sini, bukan disalin sebagai ketiadaan.
+
+- [ ] **Step 1: Baca ulang KEDUA halaman PM PENUH + verifikasi `cash.ts`
+  baris 565 untuk `auto-approve`** — `pm-portal/keuangan/kas/page.tsx`
+  (348 baris), `pm-portal/keuangan/kas/[id]/page.tsx` (149 baris), dan
+  `apps/api/src/routes/v1/cash.ts` baris 355-385 (`PATCH .../cancel`,
+  gerbang `cash:account:manage`) + sekitar baris 565 (logic auto-approve
+  pengeluaran per-role) untuk memastikan `direktur` diperlakukan SAMA
+  dengan `admin` di jalur itu (bukan diasumsikan dari nama variabel).
+
+- [ ] **Step 2: Tambah tipe ke `_bersama/tipe.ts`**
+
+  Salin PERSIS `pm-portal/_bersama/tipe.ts:2781-2858`.
+
+- [ ] **Step 3: `admin-portal/keuangan/kas/page.tsx` — salin `pm-portal/
+  keuangan/kas/page.tsx` APA ADANYA**
+
+  2 tab (`SegmentedTab`) Akun Kas/Pengeluaran + tombol Transfer/Pengeluaran
+  + BottomSheet form. HANYA ubah:
+  1. Komentar kepala berkas (Task 17 Portal Admin — sebut BEDA
+     `cash:account:manage` dari PM).
+  2. Path impor tipe.
+  3. `daftarProyek` (dipakai dropdown proyek form Pengeluaran) TIDAK
+     memfilter `.filter((p) => p.pm)` — pola sama Task 7/9/10/11/14.
+
+  TIDAK menambah tombol approve/reject pengeluaran di halaman ini —
+  WARISI keputusan PM (Temuan #2 Task 31 PM): approve/reject
+  `cash:expense:approve` HANYA lewat Inbox terpusat (Task 4 plan ini),
+  BUKAN diduplikasi di modul Kas. `cash:expense:approve` admin+direktur
+  SAMA-SAMA punya (tabel Task 13), tapi jalurnya tetap satu pintu.
+
+- [ ] **Step 4: `admin-portal/keuangan/kas/[id]/page.tsx` — salin
+  `pm-portal/keuangan/kas/[id]/page.tsx`, TAMBAH tombol "Batalkan"**
+
+  Salin saldo + riwayat transfer + tombol "Konfirmasi Diterima" (transfer
+  pending masuk, `cash:transfer:confirm`) + riwayat pengeluaran APA
+  ADANYA. TAMBAHKAN gerbang + tombol baru:
+
+  ```tsx
+  const bolehBatalkan = useSyncExternalStore(langganan, () => hasPermission("cash:account:manage"), () => false);
+
+  async function batalkan(transferId: string) {
+    setMembatalkan(transferId);
+    setGalatAksi(null);
+    try {
+      await api.patch(`/api/v1/cash/transfers/${transferId}/cancel`, {});
+      if (url) invalidasi(url);
+    } catch (e) {
+      setGalatAksi(pesanGalat(e as GalatApi, "Gagal membatalkan transfer"));
+    } finally {
+      setMembatalkan(null);
+    }
+  }
+  ```
+
+  Render tombol "Batalkan" DI SAMPING tombol "Konfirmasi Diterima" yang
+  sudah ada, hanya untuk transfer `status === "pending"` DAN `bolehBatalkan`
+  — TIDAK bergantung pada `masuk`/`keluar` (pembatalan berlaku dari kedua
+  sisi akun, beda dari konfirmasi yang HANYA sisi `to_account`). Style
+  tombol: outline `var(--danger-border)` (sekunder, bukan aksi utama
+  halaman), pola sama tombol "Tolak" di `admin-portal/inbox`.
+
+  ⚠ Verifikasi ULANG bentuk respons `PATCH .../cancel` sebelum menulis
+  (baca `cash.ts:355-385` PENUH) — apakah ia mengembalikan `{ transfer }`
+  seperti `/confirm`, dan apakah ada syarat status selain "bukan sudah
+  confirmed/cancelled" yang perlu ditampilkan sebagai pesan galat spesifik.
+
+- [ ] **Step 5: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && node scripts/uji-tombol-primer-seragam.mjs
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 6: Verifikasi manual — kedua role**
+
+  Buka detail akun kas dengan transfer pending, akun admin DAN direktur —
+  konfirmasi tombol "Batalkan" tampil untuk KEDUANYA (beda dari GL/
+  Rekonsiliasi yang membelah admin-vs-direktur, di sini keduanya SAMA).
+  Konfirmasi tombol itu TIDAK tampil untuk transfer berstatus
+  confirmed/cancelled.
+
+- [ ] **Step 7: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/keuangan/kas apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): kas management + batalkan transfer — Tahap 3"
+  ```
+
+### Task 18: Pengadaan Lanjutan — Kontrak Payung + Expediting + Nota Kredit (admin/direktur bisa putuskan, PM tidak)
+
+**Files:**
+- Create: `apps/web/app/admin-portal/keuangan/pengadaan-lanjutan/page.tsx`
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah
+  `ItemPayungPM`/`StatusPayungPM`/`HasilPayungPM`/`RespKontrakPayungPM`,
+  `HasilExpeditingPM`/`RespExpeditingPM`, `HasilNotaKreditPM`/
+  `RespNotaKreditPM`, `RespPengadaanLanjutan` — salinan PERSIS
+  `pm-portal/_bersama/tipe.ts:3068-3117`; `RespSupplierDaftar` SUDAH ADA
+  sejak Task 8/9, JANGAN duplikasi)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/pengadaan-lanjutan` (`procurement:view`,
+  company-wide, SATU fetch tiga sub-modul), `POST .../kontrak` + `POST
+  .../expediting` + `PATCH .../expediting/:id` + `POST .../nota-kredit`
+  (`procurement:po:manage`, admin+direktur SAMA dengan PM), `PATCH
+  .../nota-kredit/:id/putuskan` + `PATCH .../nota-kredit/:id/terapkan`
+  (`procurement:payment:manage` — **BEDA dari PM**: admin+direktur PUNYA,
+  PM TIDAK — inilah tombol yang WAJIB DITAMBAHKAN, bukan disalin sebagai
+  ketiadaan).
+- Produces: `/admin-portal/keuangan/pengadaan-lanjutan` (3 tab: Kontrak
+  Payung/Expediting/Nota Kredit).
+
+⚠ **Kebalikan pola Task 15/16 (yang MENGURANGI tombol PM untuk direktur)
+— Task ini MENAMBAH tombol yang PM tak pernah punya untuk KEDUA role
+admin+direktur.** SoD (segregation of duties) diperiksa BACKEND
+(`pengadaan-lanjutan.ts:585-589`, `diajukan_oleh === currentUser.id` →
+403 "pemutus harus orang lain") — tombol putuskan TETAP dirender untuk
+admin/direktur yang mengajukan nota kredit sendiri (backend yang menolak
+dengan pesan jelas), BUKAN disembunyikan di klien berdasar
+`n.diajukan_oleh === user.id` (menduplikasi logic SoD di klien berisiko
+menyimpang dari aturan backend yang sesungguhnya — ikuti pola "render,
+biarkan backend menolak dengan pesan manusiawi" seperti approval inbox
+Task 4).
+
+- [ ] **Step 1: Baca ulang PENUH `pm-portal/keuangan/pengadaan-lanjutan/
+  page.tsx`** (538 baris, TERMASUK komentar kepala yang menjelaskan SoD
+  dan kenapa tombol putuskan/terapkan sengaja tak ada). Baca ulang
+  `pengadaan-lanjutan.ts:561-673` (`putuskan`/`terapkan`) untuk bentuk
+  body request (`{ setujui: boolean; alasan_tolak?: string }` untuk
+  putuskan, body kosong untuk terapkan) dan respons (`{ notaKredit: {...} }`).
+
+- [ ] **Step 2: Tambah tipe ke `_bersama/tipe.ts`**
+
+  Salin PERSIS `pm-portal/_bersama/tipe.ts:3068-3117` — TERMASUK komentar
+  yang MENJELASKAN kenapa PM tak punya tombol putuskan (untuk konteks
+  historis), tapi TAMBAHKAN catatan bahwa admin-portal BERBEDA di titik
+  ini (lihat Step 4).
+
+- [ ] **Step 3: `admin-portal/keuangan/pengadaan-lanjutan/page.tsx` — salin
+  kerangka 3-tab + form Kontrak Baru/Nota Kredit Baru APA ADANYA**
+
+  Tab Kontrak Payung (list + BottomSheet buat, dengan item dinamis) dan
+  Expediting (list read-only, tak ada aksi di PM MAUPUN admin — expediting
+  dicatat dari detail PO, di luar cakupan halaman ringkasan ini) disalin
+  MURNI tanpa perubahan logic. HANYA ubah komentar kepala + path impor.
+
+- [ ] **Step 4: Tab Nota Kredit — TAMBAH tombol Setujui/Tolak/Terapkan
+  yang TIDAK ADA di versi PM**
+
+  ```tsx
+  const bolehPutuskan = useSyncExternalStore(langganan, () => hasPermission("procurement:payment:manage"), () => false);
+  const [sheetPutuskan, setSheetPutuskan] = useState<HasilNotaKreditPM | null>(null);
+  const [alasanTolak, setAlasanTolak] = useState("");
+  const [memutuskan, setMemutuskan] = useState(false);
+  const [galatPutus, setGalatPutus] = useState<string | null>(null);
+  const [menerapkan, setMenerapkan] = useState<string | null>(null);
+
+  async function putuskan(id: string, setujui: boolean) {
+    if (!setujui && alasanTolak.trim().length < 10) {
+      setGalatPutus("Alasan penolakan wajib minimal 10 karakter.");
+      return;
+    }
+    setMemutuskan(true);
+    setGalatPutus(null);
+    try {
+      await api.patch(`/api/v1/pengadaan-lanjutan/nota-kredit/${id}/putuskan`, {
+        setujui,
+        alasan_tolak: setujui ? undefined : alasanTolak.trim(),
+      });
+      setSheetPutuskan(null);
+      setAlasanTolak("");
+      invalidasi("/api/v1/pengadaan-lanjutan");
+    } catch (e) {
+      // SoD ("pemutus harus orang lain") dan status invalid ("hanya yang
+      // diajukan bisa diputuskan") DATANG dari backend sebagai 403/422
+      // berpesan manusiawi — diteruskan apa adanya, TIDAK diduplikasi
+      // logicnya di klien.
+      setGalatPutus(pesanGalat(e as GalatApi, "Gagal memutuskan nota kredit"));
+    } finally {
+      setMemutuskan(false);
+    }
+  }
+
+  async function terapkan(id: string) {
+    setMenerapkan(id);
+    try {
+      await api.patch(`/api/v1/pengadaan-lanjutan/nota-kredit/${id}/terapkan`, {});
+      invalidasi("/api/v1/pengadaan-lanjutan");
+    } catch (e) {
+      setGalatPutus(pesanGalat(e as GalatApi, "Gagal menerapkan nota kredit"));
+    } finally {
+      setMenerapkan(null);
+    }
+  }
+  ```
+
+  Ganti komentar PM *"Keputusan (setujui/tolak) dan penerapan HANYA lewat
+  peran ber-procurement:payment:manage, PM tidak punya — TIDAK ADA tombol
+  di sini"* dengan tombol nyata, dirender kondisional per status:
+
+  ```tsx
+  {n.status === "diajukan" && bolehPutuskan && (
+    <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+      <button type="button" onClick={() => { setSheetPutuskan(n); setGalatPutus(null); }}
+        style={{ /* outline danger, pola tombol Tolak Task 4 */ }}>
+        Tolak
+      </button>
+      <button type="button" onClick={() => void putuskan(n.id, true)} disabled={memutuskan}
+        style={{ /* solid success, pola tombol Setuju Task 4 */ }}>
+        {memutuskan ? "Menyetujui…" : "Setujui"}
+      </button>
+    </div>
+  )}
+  {n.status === "disetujui" && bolehPutuskan && (
+    <button type="button" onClick={() => void terapkan(n.id)} disabled={menerapkan === n.id}
+      style={{ /* solid navy/grad-aksen, aksi utama baris ini */ }}>
+      {menerapkan === n.id ? "Menerapkan…" : "Terapkan Potongan"}
+    </button>
+  )}
+  ```
+
+  BottomSheet "Tolak Nota Kredit" (textarea alasan, min 10 karakter, tombol
+  submit memanggil `putuskan(sheetPutuskan.id, false)`) — pola sama
+  BottomSheet penolakan di `admin-portal/inbox` (Task 4).
+
+  ⚠ **JANGAN sembunyikan tombol berdasar `n.diajukan_oleh === user.id`
+  di klien** — biarkan backend menolak dengan pesan SoD-nya sendiri.
+  Alasannya: kalau logic SoD klien menyimpang dari backend (mis. field
+  `diajukan_oleh` ternyata tak selalu terisi untuk nota kredit lama),
+  klien akan menyembunyikan tombol yang SEBENARNYA valid, atau
+  menampilkan tombol yang PASTI 403 — kedua arah salah, dan hanya backend
+  yang tahu aturan sesungguhnya (pola sama arahan Task 10 untuk approval
+  chain).
+
+- [ ] **Step 5: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && node scripts/uji-tombol-primer-seragam.mjs
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 6: Verifikasi manual — SoD + kedua role**
+
+  Buat nota kredit dengan akun admin, coba putuskan dengan akun admin YANG
+  SAMA — konfirmasi 403 "pemutus harus orang lain" tampil sebagai pesan
+  galat yang bisa dibaca (bukan JSON mentah). Putuskan dengan akun
+  direktur (atau admin lain) — konfirmasi berhasil. Terapkan nota yang
+  sudah disetujui — konfirmasi status berubah `diterapkan`.
+
+- [ ] **Step 7: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/keuangan/pengadaan-lanjutan apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): pengadaan lanjutan — tombol putuskan/terapkan nota kredit — Tahap 3"
+  ```
+
+### Task 19: Navigasi kategori Tahap 3 + verifikasi akhir tahap
+
+**Files:**
+- Modify: `apps/web/lib/admin-portal-kategori.ts` (tambah `g-keuangan`,
+  `g-tagih` ke `KATEGORI_AKTIF`)
+- Modify: `apps/web/app/admin-portal/kategori/[key]/page.tsx` (tambah
+  entri `PETA_HREF_PORTAL` untuk 6 sub-modul dibangun)
+- Modify: `apps/web/app/admin-portal/layout.tsx` (`NAV_ITEMS` sudah
+  memuat `{ href: "/admin-portal/keuangan", label: "Keuangan", icon:
+  Wallet }` sejak Task 1 — TIDAK perlu diubah, cek ulang saja Step 1)
+
+**Interfaces:**
+- Consumes: hasil Task 14-18 (Dashboard/Piutang/IPC/GL/Rekonsiliasi/
+  Kas/Pengadaan Lanjutan berfungsi).
+- Produces: kategori `g-keuangan`/`g-tagih` AKTIF di `/admin-portal/
+  kategori`, dengan item yang sudah dibangun mengarah ke halaman
+  admin-portal sungguhan.
+
+⚠ Mengikuti KOREKSI MEKANISME Task 5/12 — `KATEGORI_AKTIF` level GRUP,
+`PETA_HREF_PORTAL` level ITEM, dan mengaktifkan grup berarti item LAIN
+di grup yang sama (`fn-ap`/`fn-aset-tetap`/`fn-pajak`/`fn-efaktur`/
+`fn-audit`/`set-api-key`/`set-markup` di `g-keuangan`; `tg-invoice` di
+`g-tagih`) IKUT TAMPIL dengan fallback href web — perilaku disengaja,
+pola sama Task 5/12.
+
+- [ ] **Step 1: Konfirmasi ulang isi grup `g-keuangan`/`g-tagih` PENUH di
+  `peta-menu.ts`** sebelum commit — baca ulang baris 291-327 (riset Task
+  13 di atas mengutipnya, VERIFIKASI ke file nyata kalau sudah berubah
+  antara riset dan implementasi Task 19). Cek `NAV_ITEMS` di
+  `admin-portal/layout.tsx` — `{ href: "/admin-portal/keuangan", label:
+  "Keuangan", icon: Wallet }` SUDAH ada sejak Task 1 Step 2 (bottom-nav 4
+  item), jadi Task ini TIDAK menambah entri nav baru, hanya memastikan
+  href itu benar-benar mengarah ke halaman Task 14 (bukan lagi placeholder).
+
+- [ ] **Step 2: Update `admin-portal-kategori.ts`**
+
+  ```ts
+  // Tahap 3 (Task 14-18): "Keuangan" (g-keuangan, item fn-gl/fn-jurnal/
+  // gl-peta-akun/gl-jurnalkan/fn-ar/fn-kas/fn-rekonsiliasi/fn-petty/
+  // fn-laporan/fn-wip/fn-tutup-buku — 11 dari 18 item grup ini) dan
+  // "Penagihan" (g-tagih, item tg-progress/tg-termin/tg-ipc/tg-retensi/
+  // tg-uangmuka/tg-tambah/tg-followup/tg-nota-kredit — 8 dari 8 item grup
+  // ini, SELURUHNYA tercakup karena "Progress Billing"/"Termin"/"Tagihan
+  // Pekerjaan Tambah" sama-sama mengarah ke Beranda Dashboard Keuangan
+  // Task 14, bukan halaman terpisah).
+  const KATEGORI_AKTIF: string[] = ["g-laporan", "g-sistem", "g-kontrak", "g-jadwal", "g-keuangan", "g-tagih"]; // Tahap 1-3
+  ```
+
+- [ ] **Step 3: Update `PETA_HREF_PORTAL` inline di `kategori/[key]/page.tsx`**
+
+  ```ts
+  const PETA_HREF_PORTAL: Record<string, string> = {
+    "bi-eksekutif": "/admin-portal",
+    "sy-inbox-approval": "/admin-portal/inbox",
+    // Tahap 2 — Kontrak (g-kontrak) & Perencanaan (g-jadwal)
+    "kt-register": "/admin-portal/kontrak/register",
+    "kt-asuransi": "/admin-portal/kontrak/asuransi",
+    "kt-co": "/admin-portal/kontrak/change-order",
+    "kt-eot": "/admin-portal/kontrak/eot-ld-bond",
+    "kt-ld": "/admin-portal/kontrak/eot-ld-bond",
+    "kt-bond": "/admin-portal/kontrak/eot-ld-bond",
+    "kt-claims": "/admin-portal/kontrak/klaim",
+    "kt-surat": "/admin-portal/kontrak/surat",
+    "jd-cpm": "/admin-portal/jadwal",
+    "jd-delay": "/admin-portal/jadwal/keterlambatan",
+    // Tahap 3 — Keuangan (g-keuangan)
+    "fn-gl": "/admin-portal/keuangan/gl",
+    "fn-jurnal": "/admin-portal/keuangan/gl",
+    "gl-peta-akun": "/admin-portal/keuangan/gl",
+    "gl-jurnalkan": "/admin-portal/keuangan/gl",
+    "fn-ar": "/admin-portal/keuangan/piutang",
+    "fn-kas": "/admin-portal/keuangan/kas",
+    "fn-rekonsiliasi": "/admin-portal/keuangan/rekonsiliasi-bank",
+    "fn-petty": "/admin-portal/keuangan/kas",
+    "fn-laporan": "/admin-portal/keuangan/gl",
+    "fn-wip": "/admin-portal/keuangan/gl",
+    "fn-tutup-buku": "/admin-portal/keuangan/gl",
+    // Tahap 3 — Penagihan (g-tagih)
+    "tg-progress": "/admin-portal/keuangan",
+    "tg-termin": "/admin-portal/keuangan",
+    "tg-ipc": "/admin-portal/keuangan/ipc",
+    "tg-retensi": "/admin-portal/keuangan/piutang",
+    "tg-uangmuka": "/admin-portal/keuangan/piutang",
+    "tg-tambah": "/admin-portal/keuangan",
+    "tg-followup": "/admin-portal/keuangan/piutang",
+    "tg-nota-kredit": "/admin-portal/keuangan/pengadaan-lanjutan",
+  };
+  ```
+
+  ⚠ `fn-gl`/`fn-jurnal`/`gl-peta-akun`/`gl-jurnalkan`/`fn-laporan`/`fn-wip`/
+  `fn-tutup-buku` SEMUA menunjuk SATU halaman (`gl`, SegmentedTab 4-arah) —
+  pola sama `kt-eot`/`kt-ld`/`kt-bond` di Task 12. `peta-akun`/`jurnalkan`/
+  `periode` yang di web desktop punya halaman TERPISAH (`/akuntansi/
+  peta-akun`, dst) SENGAJA digabung ke satu tab admin-portal — layar HP
+  tak punya ruang untuk memisahkan konfigurasi jarang-diakses (peta akun,
+  tutup buku) dari operasional harian (jurnal), dan keduanya sama-sama
+  hidup di tab yang relevan pada halaman GL Task 15 (Bagan Akun/Laporan).
+
+- [ ] **Step 4: Verifikasi lantai penjaga ratchet TIDAK naik dari baseline
+  Task 12**
+
+  ```bash
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && node scripts/format-ratchet.mjs
+  cd apps/web && node scripts/audit-halaman-pakai-cache.mjs
+  ```
+
+  Bandingkan angka ke commit Task 12 — laporkan SELISIH, bukan cuma exit
+  code.
+
+- [ ] **Step 5: typecheck + build + guard lengkap**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && pnpm build
+  cd apps/api && node scripts/jalankan-semua-penjaga.mjs
+  ```
+
+  Tempel ringkasan run sungguhan (CHARTER §7) — SEMUA penjaga.
+
+- [ ] **Step 6: a11y runtime penuh (akun admin) + catatan direktur**
+
+  ```bash
+  LAYAR_EMAIL=$(grep '^LAYAR_EMAIL' apps/web/.env.local|cut -d= -f2-|tr -d '"\r') \
+  LAYAR_SANDI=$(grep '^LAYAR_SANDI' apps/web/.env.local|cut -d= -f2-|tr -d '"\r') \
+    node apps/web/scripts/jalankan-a11y-lengkap.mjs
+  ```
+
+  Cek `/admin-portal/keuangan`, `/admin-portal/keuangan/piutang`,
+  `/admin-portal/keuangan/ipc`, `/admin-portal/keuangan/gl`,
+  `/admin-portal/keuangan/gl/jurnal/:id`, `/admin-portal/keuangan/
+  rekonsiliasi-bank`, `/admin-portal/keuangan/rekonsiliasi-bank/:id`,
+  `/admin-portal/keuangan/kas`, `/admin-portal/keuangan/kas/:id`,
+  `/admin-portal/keuangan/pengadaan-lanjutan` (10 halaman). Catat di
+  JOURNAL: akun admin TIDAK BISA memverifikasi keadaan "tombol GL/
+  Rekonsiliasi hilang untuk direktur" maupun "403 Dashboard/Piutang untuk
+  direktur" secara otomatis (0 user direktur aktif) — kedua kondisi itu
+  hanya diverifikasi MANUAL lewat akun uji direktur di Task 15/16/14 Step
+  6/7 masing-masing, bukan lewat scan a11y otomatis.
+
+- [ ] **Step 7: Verifikasi backend terkait**
+
+  ```bash
+  cd apps/api && npx vitest run keuangan-ikhtisar
+  cd apps/api && npx vitest run finance
+  cd apps/api && npx vitest run cash
+  cd apps/api && npx vitest run gl
+  cd apps/api && npx vitest run tutup-buku
+  cd apps/api && npx vitest run rekonsiliasi-bank
+  cd apps/api && npx vitest run pengadaan-lanjutan
+  cd apps/api && npx vitest run sertifikat-ipc
+  ```
+
+  Tempel ringkasan run sungguhan — memastikan Tahap 3 tidak menyentuh
+  backend (constraint global plan ini, dan LARANGAN PERMANEN terhadap
+  `lib/tulis-klaim.ts` — CLAUDE.md §6), test yang ADA tetap hijau tanpa
+  perubahan.
+
+- [ ] **Step 8: Update dokumen**
+
+  - `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` — tandai `fn-gl`, `fn-jurnal`,
+    `gl-peta-akun`, `gl-jurnalkan`, `fn-ar`, `fn-kas`, `fn-rekonsiliasi`,
+    `fn-petty`, `fn-laporan`, `fn-wip`, `fn-tutup-buku`, `tg-progress`,
+    `tg-termin`, `tg-ipc`, `tg-retensi`, `tg-uangmuka`, `tg-tambah`,
+    `tg-followup`, `tg-nota-kredit` sebagai punya halaman admin-portal.
+  - `docs/execution/JOURNAL.md` — entri ringkas Tahap 3 selesai, termasuk
+    catatan: (a) `finance:view:all` sebagai gerbang BACA admin-only
+    (bukan cuma tulis) — kasus baru yang belum ada di Tahap 1-2; (b) GL
+    dan Rekonsiliasi terbelah admin-vs-direktur untuk AKSI TULIS; (c)
+    Pengadaan Lanjutan justru MENAMBAH kapabilitas admin+direktur di atas
+    PM; (d) komentar basi `tutup-buku.ts` ("gl:periode:reopen hanya
+    direktur") — TIDAK diperbaiki (backend di luar scope), tapi dicatat
+    supaya sesi berikutnya tak salah baca dari komentar kode.
+
+- [ ] **Step 9: Commit**
+
+  ```bash
+  git add apps/web/lib/admin-portal-kategori.ts apps/web/app/admin-portal/kategori/\[key\]/page.tsx apps/web/app/admin-portal/layout.tsx docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md docs/execution/JOURNAL.md
+  git commit -m "feat(admin-portal): navigasi kategori Tahap 3 + verifikasi akhir tahap"
+  ```
+
 ---
 
 ## Tahap 4-7: Belum di-breakdown
