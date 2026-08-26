@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/ui/Card';
+import { PenandaAntrean } from '@/components/PenandaAntrean';
 import { Galat } from '@/components/ui/Galat';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -65,6 +66,7 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#003366" />}
       >
+        <PenandaAntrean />
         {galat ? <Galat judul="Ringkasan tidak bisa dimuat" pesan={galat} /> : null}
         <View style={styles.topRow}>
           <View>

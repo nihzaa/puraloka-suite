@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
+import { antrekan } from '@/lib/antrean';
 
 interface Project { id: string; name: string }
 interface RabItem { id: string; no_urut: string; uraian: string; progress_pct: number; weight_pct: number }
@@ -127,7 +128,64 @@ export default function InputProgressScreen() {
         setPctCompletion('');
       }
     } catch (err: any) {
-      Alert.alert('Gagal', err?.response?.data?.error ?? 'Terjadi kesalahan');
+      /*
+        ══════════════════════════════════════════════════════════════════
+        TAK ADA SINYAL ≠ KIRIMAN DITOLAK
+        ══════════════════════════════════════════════════════════════════
+
+        Inilah layar yang paling butuh antrean: mandor MENGISI progres justru
+        saat berada di proyek, dan proyek adalah tempat sinyalnya paling
+        buruk. Sebelumnya kegagalan jaringan berarti pekerjaan sehari itu
+        tak tercatat sama sekali.
+
+        Fotonya DISALIN ke folder aplikasi saat diantrekan (lihat
+        `lib/antrean.ts`) — URI dari kamera menunjuk direktori cache, dan
+        Android boleh mengosongkannya kapan saja. Menyimpan URI-nya saja akan
+        menghasilkan antrean yang fotonya lenyap saat sinyal kembali.
+
+        Formulir dikosongkan SESUDAH diantrekan, sama seperti sesudah berhasil
+        kirim: bagi mandor keduanya berarti "sudah tercatat". Membiarkan
+        formulir terisi akan mengundang ia mengisi ulang, dan itu menghasilkan
+        dua kiriman dengan kunci idempotensi BERBEDA — yang tak bisa ditahan
+        gerbang mana pun.
+      */
+      if (!err?.response) {
+        const tanggal = new Date().toISOString().split('T')[0];
+        if (mode === 'daily') {
+          await antrekan({
+            jenis: 'progres-harian',
+            jalur: `/api/v1/projects/${selectedProject}/progress-logs`,
+            muatan: {
+              mode: 'daily',
+              log_date: tanggal,
+              pct_overall: parseFloat(progress),
+              ...(notes.trim() ? { notes: notes.trim() } : {}),
+            },
+            fotoUri: photos,
+            ringkas: `Progres harian ${progress}%${photos.length ? ` · ${photos.length} foto` : ''}`,
+          });
+          setProgress(''); setNotes(''); setPhotos([]);
+        } else {
+          await antrekan({
+            jenis: 'progres-detail',
+            jalur: `/api/v1/projects/${selectedProject}/progress-logs`,
+            muatan: {
+              mode: 'detail',
+              log_date: tanggal,
+              rab_item_id: selectedRabItem,
+              pct_completion: parseFloat(pctCompletion),
+            },
+            ringkas: `Item pekerjaan ${pctCompletion}%`,
+          });
+          setPctCompletion('');
+        }
+        Alert.alert(
+          'Disimpan — menunggu sinyal',
+          'Tidak ada koneksi saat ini. Catatan Anda sudah disimpan di HP (termasuk fotonya) dan akan dikirim otomatis begitu sinyal kembali.',
+        );
+      } else {
+        Alert.alert('Gagal', err?.response?.data?.error ?? 'Terjadi kesalahan');
+      }
     } finally {
       setLoading(false);
     }

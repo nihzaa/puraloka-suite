@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge, statusLabel, statusVariant } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { PenandaAntrean } from '@/components/PenandaAntrean';
 import { Galat } from '@/components/ui/Galat';
 import { api } from '@/lib/api';
 import { pesanGalat } from '@/lib/galat';
@@ -127,6 +128,7 @@ export default function KasbonListScreen() {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#003366" />}
       >
+        <PenandaAntrean />
         {/*
           Galat MUAT dan keadaan KOSONG dipisah — persis disiplin yang
           ditegakkan `uji-galat-muat-terpisah.mjs` di apps/web. "Belum ada

@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
+import { antrekan } from '@/lib/antrean';
 
 interface Project { id: string; name: string }
 interface WorkScope { id: string; scope_name: string; project_id: string; assignment?: { project?: { id: string; name: string } } }
@@ -83,23 +84,52 @@ export default function AjukanKasbonScreen() {
     if (isNaN(amt) || amt <= 0) { Alert.alert('Masukkan jumlah kasbon yang valid'); return; }
 
     setLoading(true);
-    try {
-      const body: Record<string, any> = {
-        project_id: selectedProject,
-        amount: amt,
-        purpose,
-        fund_source: fundSource,
-        notes: notes.trim() || undefined,
-      };
-      // Scope opsional — hanya kirim jika dipilih
-      if (selectedScope) body.work_scope_id = selectedScope;
 
+    // Disusun DI LUAR `try` supaya `catch` bisa mengantrekannya. Di dalam
+    // `try`, `const` tak terlihat dari blok catch — ditangkap tsc, bukan review.
+    const body: Record<string, any> = {
+      project_id: selectedProject,
+      amount: amt,
+      purpose,
+      fund_source: fundSource,
+      notes: notes.trim() || undefined,
+    };
+    // Scope opsional — hanya kirim jika dipilih
+    if (selectedScope) body.work_scope_id = selectedScope;
+
+    try {
       await api.post('/api/v1/kasbons', body);
       Alert.alert('Berhasil', 'Pengajuan kasbon telah dikirim, menunggu persetujuan.', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (err: any) {
-      Alert.alert('Gagal', err?.response?.data?.error ?? 'Terjadi kesalahan');
+      /*
+        TAK ADA BALASAN = tak ada sinyal, BUKAN pengajuan yang ditolak.
+
+        Sebelumnya keduanya jatuh ke satu `Alert('Gagal')` dan pengajuannya
+        HILANG — mandor di proyek tanpa sinyal tak bisa mengajukan kasbon sama
+        sekali. Sekarang ia diantrekan dan dikirim sendiri begitu sinyal
+        kembali, membawa kunci idempotensi supaya kiriman ulang yang timeout
+        tak menjadi DUA kasbon.
+
+        Galat ber-STATUS tetap ditampilkan apa adanya: server menjawab, jadi
+        isinyalah yang bermasalah, dan mengantrekannya hanya akan gagal terus.
+      */
+      if (!err?.response) {
+        await antrekan({
+          jenis: 'kasbon',
+          jalur: '/api/v1/kasbons',
+          muatan: body,
+          ringkas: `Kasbon ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(amt)}`,
+        });
+        Alert.alert(
+          'Disimpan — menunggu sinyal',
+          'Tidak ada koneksi saat ini. Pengajuan Anda sudah disimpan di HP dan akan dikirim otomatis begitu sinyal kembali.',
+          [{ text: 'OK', onPress: () => router.back() }],
+        );
+      } else {
+        Alert.alert('Gagal', err?.response?.data?.error ?? 'Terjadi kesalahan');
+      }
     } finally {
       setLoading(false);
     }

@@ -131,9 +131,30 @@ penggunanya.*
 - **Play Store.** Butuh akun pengembang berbayar, kebijakan privasi, dan
   peninjauan. Untuk aplikasi internal yang dipakai belasan mandor, sebar APK
   lewat tautan lebih cepat dan tak menambah pihak yang harus dipercaya.
+
 - **iOS.** `bundleIdentifier` sudah ada, tetapi build iOS menuntut akun Apple
   Developer berbayar. Ukur dulu: berapa mandor yang benar-benar memakai
   iPhone?
+
+> ### ✅ Antrean offline SUDAH ADA (2026-08-27)
+>
+> §3 Langkah 3 menyebut *"sinyal buruk di proyek — apa yang terjadi saat
+> unggahan foto putus di tengah?"* sebagai hal yang harus dicari saat uji
+> lapangan. Sampai 2026-08-27 jawabannya: **kirimannya hilang**, dan mandor
+> hanya melihat `Alert('Gagal')`.
+>
+> Sekarang kiriman yang gagal karena tak ada sinyal diantrekan di HP —
+> **termasuk fotonya**, yang disalin ke direktori aplikasi supaya tak ikut
+> terhapus saat Android mengosongkan cache — lalu dikirim sendiri begitu
+> sinyal kembali.
+>
+> Tiap kiriman membawa `Idempotency-Key` yang dibuat SEKALI saat mengantre,
+> jadi pengiriman ulang tak menggandakan log progres (yang masuk kurva-S &
+> EVM) maupun kasbon. Gerbangnya di `progress-logs` dan `kasbons`.
+>
+> Yang MASIH harus dicari saat uji lapangan: apakah mandor benar-benar
+> menunggu antrean terkirim atau menutup aplikasi, dan berapa lama foto
+> menumpuk di HP berpenyimpanan kecil. Keduanya tak bisa dijawab dari kode.
 
 > ### ⚠ Koreksi 2026-08-27 — dua baris di dokumen ini sudah basi
 >

@@ -350,6 +350,9 @@ importers:
       expo-device:
         specifier: ^7.1.4
         version: 7.1.4(expo@53.0.27(@babel/core@7.29.7(supports-color@5.5.0))(@expo/metro-runtime@4.0.1(react-native@0.76.9(@babel/core@7.29.7(supports-color@5.5.0))(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@5.5.0)))(@types/react@18.3.31)(react@18.3.1)))(react-native@0.76.9(@babel/core@7.29.7(supports-color@5.5.0))(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@5.5.0)))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1)(supports-color@5.5.0))
+      expo-file-system:
+        specifier: 18.1.11
+        version: 18.1.11(expo@53.0.27(@babel/core@7.29.7(supports-color@5.5.0))(@expo/metro-runtime@4.0.1(react-native@0.76.9(@babel/core@7.29.7(supports-color@5.5.0))(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@5.5.0)))(@types/react@18.3.31)(react@18.3.1)))(react-native@0.76.9(@babel/core@7.29.7(supports-color@5.5.0))(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@5.5.0)))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1)(supports-color@5.5.0))(react-native@0.76.9(@babel/core@7.29.7(supports-color@5.5.0))(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@5.5.0)))(@types/react@18.3.31)(react@18.3.1))
       expo-image-picker:
         specifier: ~16.1.4
         version: 16.1.4(expo@53.0.27(@babel/core@7.29.7(supports-color@5.5.0))(@expo/metro-runtime@4.0.1(react-native@0.76.9(@babel/core@7.29.7(supports-color@5.5.0))(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@5.5.0)))(@types/react@18.3.31)(react@18.3.1)))(react-native@0.76.9(@babel/core@7.29.7(supports-color@5.5.0))(@babel/preset-env@7.29.7(@babel/core@7.29.7(supports-color@5.5.0)))(@types/react@18.3.31)(react@18.3.1))(react@18.3.1)(supports-color@5.5.0))

@@ -28568,3 +28568,93 @@ bisa dibuat. Tak ada satu baris kode pun yang bisa menutup itu dari sini.
 Juga belum: **antrean offline**. `RILIS-MOBILE.md` sendiri menyebut "sinyal
 buruk di proyek" sebagai risiko utama, dan tak ada satu pun test untuk mobile.
 Keduanya pekerjaan tersendiri, bukan tambalan.
+
+## 2026-08-27 (lanjutan) — antrean offline mobile, dan cacat gerbang idempotensi yang sudah lama ada di cash.ts
+
+Founder memilih cakupan penuh: **termasuk foto**, plus migrasi.
+
+### Yang dibangun
+
+`apps/mobile/lib/antrean.ts` — kiriman yang gagal karena TAK ADA SINYAL
+diantrekan, bukan hilang. Sebelumnya `handleSubmit` memanggil `api.post`
+langsung dan mandor mendapat `Alert('Gagal')`; mandor di proyek tanpa sinyal
+**tak bisa mencatat pekerjaan sama sekali** — persis tempat aplikasi ini
+seharusnya berguna.
+
+Foto **disalin** ke direktori dokumen aplikasi, tidak ditunjuk: URI dari
+kamera menunjuk cache, dan Android boleh mengosongkannya kapan saja — justru
+pada HP lama, HP yang dipakai mandor. `expo-file-system@18.1.11` ternyata
+SUDAH ada di pnpm store (ditarik transitif, cocok SDK 53), jadi cukup
+`--filter @puraloka/mobile add --offline`: **downloaded 0, added 0**.
+node_modules workspace lain diukur sebelum & sesudah — api 23, web 36, tak
+berubah; `tsc` api tetap exit 0.
+
+Galat ber-STATUS tetap ditampilkan apa adanya. Yang diantrekan HANYA
+`!err.response` — server yang menjawab berarti isinya yang bermasalah, dan
+mengantrekannya hanya akan gagal terus.
+
+### ⚠ Menemukan cacat yang SUDAH ADA di cash.ts
+
+Rencana awal: tambah constraint unik ke `progress_logs`. **Diukur dulu, dan
+ternyata tak perlu** — `idempotency_keys` (migrasi 177) sudah punya
+`UNIQUE (company_id, operasi, kunci)`. Constraint unik pada `progress_logs`
+sendiri malah SALAH secara bisnis, alasan yang sama seperti dicatat 177 untuk
+`payments`: dua log sah bisa identik pada hari yang sama.
+
+Saat memasang gerbangnya, enam test geotag mendadak merah. Saya cek terhadap
+commit sebelumnya lewat **worktree** (bukan `git stash`): 6 lulus tanpa
+perubahan saya, 6 gagal dengan. Jadi memang saya.
+
+Sebabnya: `gerbangIdempotensi` memulangkan `null` untuk DUA keadaan
+berlawanan — "sudah dibalas" DAN "pemanggil tak mengirim kunci". Pola
+`if (kunciIdem === null) return` karena itu menghentikan handler untuk
+keadaan kedua juga: dibalas 200, **tak menulis apa pun**.
+
+Saya menyalin pola itu dari `cash.ts:222` — dan **cacatnya ada di sana sejak
+gerbang itu dipasang**. `POST /cash/transfers` tanpa header `Idempotency-Key`
+dibalas 200 tanpa membuat transfer. Tak pernah terlihat karena web app selalu
+mengirim kunci. Ditutup dengan `sudahDibalas(reply)` yang menanyakan FAKTA
+(apakah Fastify sudah mengirim balasan), bukan menebaknya dari nilai kembalian.
+
+Pelajarannya: **menyalin pola yang "sudah dipakai di produksi" tidak sama
+dengan menyalin pola yang benar.** Yang membedakan cuma satu hal — pemanggil
+`cash.ts` kebetulan selalu mengirim kunci.
+
+### Migrasi 508 — bukan yang direncanakan
+
+Yang benar-benar kurang, terlihat saat memeriksa 177: `idempotency_keys`
+**tak pernah dibersihkan**. Komentarnya sendiri menyiapkan
+`idx_idempotency_umur` untuk itu lalu tak ada satu pun DELETE di seluruh
+apps/api. Belum mendesak selama hanya transfer kas yang memakainya; berubah
+sifat begitu tiap kiriman dari tiap HP mandor menulis satu baris.
+`fn_bersihkan_idempotency_kadaluarsa(7)`, idempoten, ber-blok verifikasi yang
+MENJALANKAN fungsinya (fungsi yang terbentuk tapi meledak saat dipanggil sama
+tak bergunanya dengan yang tak terbentuk).
+
+### Bukti
+
+- `uji-antrean.mjs` — 16 uji terhadap **modul sungguhan** `lib/antrean.ts`
+  (bukan salinan logikanya; percobaan pertama menyalin, dan itu menguji
+  salinan yang bisa menyimpang). Mutasi kunci-dibuat-ulang → MERAH → pulih.
+- `idempotensi-antrean-mobile.test.ts` — 3 uji terhadap Postgres NYATA:
+  kunci sama → SATU baris, kunci beda → dua, tanpa kunci → tetap tersimpan.
+  **Tiga mutasi**: gerbang dicabut sebagian (tetap hijau — benar, gerbangnya
+  masih membalas), gerbang dihapus total → MERAH, pola `=== null` lama
+  dikembalikan → MERAH "expected 200 to be 201". Semua pulih HIJAU.
+- 24 test API hijau (geotag + kasbons + cash-nominal + idempotensi baru).
+- Migrasi 508 diterapkan; artefak diverifikasi FISIK (fungsi ada, tercatat di
+  buku, bisa dijalankan) — bukan dari penebakan nama.
+- **Penjaga CI: dasar 42 merah → kini 37. NOL merah baru.** Dibandingkan
+  lewat worktree di commit c70990f6, bukan dari ingatan.
+
+⚠ Satu merah sempat MILIK SAYA: `audit-akhir-baris.mjs` — 9 berkas berubah
+jadi CRLF karena penyuntingan lewat Python di Windows. Dikembalikan ke LF.
+Kalau lolos, diff 70 baris membengkak jadi ribuan dan perubahan nyata
+tenggelam — persis yang tercatat terjadi dua kali pada 2026-08-07.
+
+### Belum
+
+Pemanggil terjadwal untuk `fn_bersihkan_idempotency_kadaluarsa` (repo ini
+memakai rute `otomasi/jalankan/*`, bukan pg_cron). Dan antrean ini belum
+pernah diuji di HP sungguhan dengan sinyal yang benar-benar putus — itu hanya
+bisa dijawab uji lapangan, sesudah APK ada.
