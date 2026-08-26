@@ -140,6 +140,16 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   */
   "crm-tender": "/admin-portal/tender",
   "sk-tender": "/admin-portal/tender",
+  /*
+    Tahap 7 — Pengguna, Peran & Audit (g-sistem, sudah aktif sejak Tahap 1).
+
+    `sy-permission` (Matriks Izin) ikut ke halaman Pengguna: tab "Peran" di
+    sana menampilkan jumlah izin per peran. Penyuntingannya tetap di web —
+    keputusan berkonsekuensi sengaja satu pintu.
+  */
+  "sy-user": "/admin-portal/pengguna",
+  "sy-permission": "/admin-portal/pengguna",
+  "sy-audit": "/admin-portal/audit",
   "bi-eksekutif": "/admin-portal",
   "sy-inbox-approval": "/admin-portal/inbox",
   // Tahap 2 — Kontrak (g-kontrak)

@@ -1262,6 +1262,83 @@ export interface RespQuotaCheck {
  * tombolnya, bukan memasang tautan ke nomor ngawur."*
  */
 /* ══════════════════════════════════════════════════════════════════════════
+   TAHAP 7 — Pengguna, Peran & Jejak Audit
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/** Bentuk PERSIS `GET /api/v1/users` — `users.ts:42`. */
+export interface PenggunaRingkas {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role_id: string | null;
+  /*
+    Embed Supabase — bisa OBJEK atau ARRAY, tergantung bentuk relasinya.
+    Server TIDAK meratakannya di sini (beda dari `audit.ts` yang meratakan
+    sendiri), jadi klien wajib: `Array.isArray(r) ? r[0] : r`.
+  */
+  roles: { name: string } | { name: string }[] | null;
+  is_active: boolean;
+  created_at: string;
+}
+/**
+ * ⚠ `GET /users` hanya ber-`authenticate`, TANPA `users:manage` — daftarnya
+ * dipakai banyak dropdown. Yang menuntut `users:manage` adalah POST/PATCH-nya.
+ */
+export interface RespPengguna { users: PenggunaRingkas[] }
+
+/**
+ * Bentuk PERSIS `GET /api/v1/roles` — `roles.ts:46-47, 100-103`.
+ *
+ * `permission_count` & `user_count` SUDAH diratakan server dari embed
+ * `role_permissions(count)`; jangan diambil ulang dari array.
+ */
+export interface PeranRingkas {
+  id: string;
+  company_id: string | null;
+  name: string;
+  label: string | null;
+  description: string | null;
+  is_builtin: boolean;
+  portal: string | null;
+  color: string | null;
+  sort_order: number | null;
+  created_at: string;
+  permission_count: number;
+  user_count: number;
+}
+export interface RespPeran { roles: PeranRingkas[] }
+
+/** Bentuk PERSIS `GET /api/v1/audit` — `audit.ts:43-90`. */
+export interface BarisAudit {
+  id: string;
+  table_name: string;
+  record_id: string | null;
+  action: string;
+  old_values: unknown;
+  new_values: unknown;
+  created_at: string;
+  /*
+    Ketiganya sudah lama diisi `logAuditEvent` tapi BARU sampai ke pembaca
+    belakangan. Komentar servernya: "kolom yang terisi dan tak pernah terbaca
+    sama saja dengan kolom kosong, hanya lebih menyesatkan."
+
+    Halaman WAJIB menampilkan `reason` & `severity` — kalau tidak, cacat yang
+    baru diperbaiki itu terulang di sisi klien.
+  */
+  reason: string | null;
+  severity: string | null;
+  correlation_id: string | null;
+  /** Server MERATAKAN `roles` jadi `role` string (audit.ts:70-78). */
+  user: { id: string; name: string; email: string; role: string | null } | null;
+}
+export interface RespAudit {
+  logs: BarisAudit[];
+  meta: { total: number; page: number; limit: number; pages: number };
+}
+export interface RespAuditMeta { tables: string[]; actions: string[] }
+
+/* ══════════════════════════════════════════════════════════════════════════
    TAHAP 6 — Klien & Tender Subkon
    ══════════════════════════════════════════════════════════════════════════ */
 
