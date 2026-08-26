@@ -13,7 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge, statusLabel, statusVariant } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { Galat } from '@/components/ui/Galat';
 import { api } from '@/lib/api';
+import { pesanGalat } from '@/lib/galat';
 
 interface Kasbon {
   id: string;
@@ -21,8 +23,17 @@ interface Kasbon {
   purpose: string;
   status: string;
   created_at: string;
+  kasbon_date?: string;
   notes?: string;
-  projects?: { name?: string };
+  /*
+    `project`, BUKAN `projects`.
+
+    API meng-alias-kan relasinya: `project:projects!kasbons_project_id_fkey`
+    (kasbons.ts:27). Versi sebelumnya berkas ini membaca `k.projects` —
+    selalu undefined, jadi nama proyek TAK PERNAH tampil di kartu kasbon.
+    Tak ada galat: `?.` menelannya, dan barisnya sekadar tak dirender.
+  */
+  project?: { id?: string; name?: string };
 }
 
 const PURPOSE_LABEL: Record<string, string> = {
@@ -47,12 +58,43 @@ export default function KasbonListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [galat, setGalat] = useState('');
+
+  /*
+    ══════════════════════════════════════════════════════════════════════
+    TIGA CACAT SEKALIGUS DI PEMANGGILAN INI — semuanya gagal TANPA SUARA
+    ══════════════════════════════════════════════════════════════════════
+
+    1. RUTENYA TAK ADA. Sebelumnya `/api/v1/mandor/kasbons`. Disisir seluruh
+       apps/api/src/routes/v1: yang ada hanya `/api/v1/kasbons` dan
+       `/api/v1/mandor/worker-kasbons` (kasbon TUKANG milik mandor — entitas
+       lain sama sekali). Jadi tiap muat dibalas 404.
+
+    2. BENTUK BALASANNYA SALAH. API memulangkan `{ kasbons: [...] }`
+       (kasbons.ts:59), bukan array telanjang. `res.data ?? []` menyimpan
+       OBJEK ke dalam state bertipe array — `.map()` di bawah lalu meledak
+       atau merender kosong.
+
+    3. GALATNYA DITELAN. `catch {}` kosong membuat 404 tampil sebagai
+       "Belum ada kasbon" — layar yang meyakinkan mandor bahwa pengajuannya
+       HILANG. Untuk layar uang, itu lebih buruk daripada pesan galat.
+
+    Ketiganya saling menutupi: (1) memastikan tak ada data, (3) memastikan
+    tak ada yang bertanya kenapa. Cacat kelas inilah yang dijaga
+    `audit-catch-senyap.mjs` di sisi API — apps/mobile tak pernah tercakup.
+
+    Penyaringan "hanya milik mandor ini" TIDAK perlu dikirim dari sini:
+    kasbons.ts:44-56 sudah membatasi ke proyek tempat mandor ber-assignment
+    DAN `requested_by = user.id`. Menyaring ulang di klien hanya akan
+    menduplikasi aturan yang bisa menyimpang diam-diam.
+  */
   const fetchKasbons = useCallback(async () => {
     try {
-      const res = await api.get('/api/v1/mandor/kasbons');
-      setKasbons(res.data ?? []);
-    } catch {
-      // keep
+      const res = await api.get('/api/v1/kasbons');
+      setKasbons(res.data?.kasbons ?? []);
+      setGalat('');
+    } catch (err: unknown) {
+      setGalat(pesanGalat(err, 'kasbon'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -85,11 +127,23 @@ export default function KasbonListScreen() {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#003366" />}
       >
-        {kasbons.length === 0 && (
+        {/*
+          Galat MUAT dan keadaan KOSONG dipisah — persis disiplin yang
+          ditegakkan `uji-galat-muat-terpisah.mjs` di apps/web. "Belum ada
+          kasbon" pada layar yang sebenarnya GAGAL MEMUAT adalah kebohongan
+          yang tenang: mandor menyimpulkan pengajuannya lenyap, lalu
+          mengajukan ulang.
+        */}
+        {galat ? (
+          <Galat judul="Kasbon tidak bisa dimuat" pesan={galat} />
+        ) : kasbons.length === 0 ? (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>Belum ada kasbon</Text>
+            <Text style={styles.emptyPetunjuk}>
+              Pengajuan yang Anda buat akan muncul di sini.
+            </Text>
           </View>
-        )}
+        ) : null}
         {kasbons.map((k) => (
           <Card key={k.id} style={styles.card}>
             <View style={styles.cardTop}>
@@ -99,10 +153,17 @@ export default function KasbonListScreen() {
               </View>
               <Badge label={statusLabel(k.status)} variant={statusVariant(k.status)} />
             </View>
-            {(k.projects as any)?.name
-              ? <Text style={styles.meta}>🏗️ {(k.projects as any).name}</Text>
+            {k.project?.name
+              ? <Text style={styles.meta}>🏗️ {k.project.name}</Text>
               : null}
-            <Text style={styles.meta}>📅 {fmtDate(k.created_at)}</Text>
+            {/*
+              `kasbon_date` = tanggal kasbonnya, `created_at` = kapan barisnya
+              dibuat. Keduanya bisa berbeda (pengajuan mundur), dan yang
+              relevan bagi mandor adalah tanggal kasbon. API mengurutkan
+              dengan kolom itu juga, jadi memakai created_at membuat tanggal
+              yang tampil tak sejalan dengan urutan daftarnya.
+            */}
+            <Text style={styles.meta}>📅 {fmtDate(k.kasbon_date ?? k.created_at)}</Text>
             {k.notes ? <Text style={styles.notes}>{k.notes}</Text> : null}
           </Card>
         ))}
@@ -127,6 +188,7 @@ const styles = StyleSheet.create({
   purpose: { fontSize: 13, color: '#374151', marginTop: 2 },
   meta: { fontSize: 12, color: '#6B7280' },
   notes: { fontSize: 13, color: '#374151', fontStyle: 'italic' },
-  empty: { alignItems: 'center', paddingTop: 60 },
-  emptyText: { fontSize: 15, color: '#9CA3AF' },
+  empty: { alignItems: 'center', paddingTop: 60, gap: 6 },
+  emptyText: { fontSize: 15, color: '#6B7280', fontWeight: '600' },
+  emptyPetunjuk: { fontSize: 13, color: '#9CA3AF', textAlign: 'center' },
 });

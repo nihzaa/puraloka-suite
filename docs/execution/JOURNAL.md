@@ -28480,3 +28480,91 @@ eksekusi node → panggilan Evolution → WhatsApp benar-benar terkirim.
 workflow lama (Task 5 Step 11/12, sengaja ditunda untuk jendela
 observasi) dan merge branch `worktree-n8n-shared-multi-tenant` ke
 `main`.
+
+## 2026-08-27 — apps/mobile: aset merek + 5 cacat senyap, dan penjaga pertama yang menjangkau mobile
+
+Diminta founder: "tuntaskan modul mobile", lalu "splash pakai logo Puraloka
+yang sudah ada di web, buat immersive".
+
+**Ukuran awal.** RN app 2.479 baris, 9 layar, `tsc` bersih — bukan kerangka
+kosong. Tapi nol APK pernah dibuat, dan `apps/mobile` **tak tercakup satu pun
+dari 167 penjaga CI**. Di situlah semuanya bersembunyi.
+
+⚠ Catatan istilah: hit "mobile" di `QUEUE.yaml` semuanya soal `pm-portal`
+(portal WEB berbentuk mobile), bukan aplikasi RN. Mudah tertukar.
+
+### Yang ditemukan — semuanya gagal TANPA SUARA
+
+| Cacat | Gejalanya |
+|---|---|
+| `assets/` tak ada | `app.json` menunjuk 3 PNG yang tak pernah dibuat — `eas build` gagal sebelum compile |
+| `extra.eas.projectId` tak ada | `getExpoPushTokenAsync()` gagal di build rilis; push yang sudah dikoding rapi diam |
+| `GET /api/v1/mandor/kasbons` | rute TAK PERNAH ADA. 404 tiap muat |
+| `catch {}` kosong ×5 | 404 di atas tampil sebagai **"Belum ada kasbon"** — mandor menyimpulkan pengajuannya hilang |
+| bentuk balasan salah | API memulangkan `{kasbons:[...]}`, layar membaca `res.data` |
+| alias relasi salah | API alias `project`, layar baca `k.projects` → nama proyek tak pernah tampil |
+| literal peran (ADR-004) | `role === 'mandor'` sebagai gerbang tab. Server SUDAH kirim `permissions`; mobile **membuangnya** |
+
+Tiga cacat kasbon saling menutupi: rute hantu memastikan tak ada data, `catch`
+kosong memastikan tak ada yang bertanya kenapa.
+
+`expo-splash-screen` juga terdaftar di package.json tapi **tak pernah
+di-import** — splash hilang sebelum `useAuth` selesai baca SecureStore, jadi
+layar login berkedip sebelum diganti dashboard.
+
+### Yang dikerjakan
+
+- **Aset merek** dibangkitkan dari `puraloka-lambang.svg` yang SAMA dengan web
+  (Playwright — `sharp`/`resvg` tak terpasang, `@playwright/test` sudah ada
+  beserta browsernya, pola yang sama dengan `banding-aksen.mjs`).
+- **Splash bergerak** — pilar naik berurutan terpendek→tertinggi, lalu alas &
+  wordmark. Lambangnya membangun dirinya sendiri: gerak yang menyampaikan
+  pekerjaan perusahaan ini, bukan fade/zoom yang bisa ditempel ke logo mana pun.
+  Reduce Motion dihormati (WCAG, §8a.3) — bukan animasi dipercepat, TANPA gerak.
+  Dibuat pakai `View` biasa, BUKAN `react-native-svg`: paketnya tak terpasang,
+  dan `pnpm install` saat sesi lain hidup bisa mengosongkan node_modules
+  workspace lain (§8a.1).
+- **Otorisasi izin** menggantikan literal peran. Kunci diambil dari migrasi 050,
+  bukan dikarang: `mandor:kasbon:create`, `reports:progress`, `mandor:assign`.
+- **`lib/galat.ts`** — 404 pada layar muat berbunyi "laporkan ke admin,
+  kemungkinan ada pembaruan yang belum terpasang", bukan "tidak ditemukan"
+  yang membuat mandor mengira datanya hilang.
+
+### Dua koreksi visual dari MELIHAT hasil render
+
+Logo melenceng kanan-bawah: `getBBox()` menunjukkan isinya `x6→99` dalam
+viewBox selebar 120 — sisa 6px kiri, **21px kanan**. Tak pernah terlihat di web
+karena logo di sana bersebelahan dengan teks. Lalu terbaca melorot walau sudah
+center matematis (bobot menumpuk di atas) → angkat optis 3%.
+
+### ⚠ Penjaga saya sendiri memberi TUDUHAN PALSU — dan itu hampir lolos
+
+`audit-mobile-sehat.mjs` versi pertama menuduh `/projects/:id/rab` sebagai rute
+hantu. **Rutenya ada** (`rab.ts:416`) — regex saya hanya mengenali
+`app.get('...')` dan buta terhadap `app.get<{Params:…}>(\n  '/api/...'`.
+Ketahuan karena saya periksa temuannya sebelum mempercayainya. Sesudah
+diperbaiki, rute terdeteksi naik **354 → 668** — separuh permukaan API tadinya
+tak terlihat.
+
+Penjaga yang menuduh palsu lebih berbahaya daripada yang tak ada: orang belajar
+mengabaikannya, lalu tuduhan yang BENAR ikut diabaikan.
+
+### Bukti
+
+- `tsc --noEmit` exit 0 — dibuktikan benar-benar memeriksa lewat probe error
+  sengaja (TS2322 muncul), bukan lolos karena tak melihat berkas.
+- `audit-aset-merek-sinkron.mjs`: HIJAU → mutasi lambang web → MERAH (menyebut
+  path persisnya) → pulih → HIJAU. `git status` bersih.
+- `audit-mobile-sehat.mjs`: **ketiga** pemeriksaan dimutasi satu per satu →
+  MERAH masing-masing → pulih → HIJAU.
+- Animasi splash dirender 6 keyframe dan DILIHAT, bukan diasumsikan.
+
+### Yang TIDAK selesai, dan kenapa
+
+`EXPO_PUBLIC_API_URL` dan `projectId` keduanya keputusan founder — alamat yang
+terjangkau jaringan seluler, dan id dari `eas init`. Tanpa keduanya APK tak
+bisa dibuat. Tak ada satu baris kode pun yang bisa menutup itu dari sini.
+
+Juga belum: **antrean offline**. `RILIS-MOBILE.md` sendiri menyebut "sinyal
+buruk di proyek" sebagai risiko utama, dan tak ada satu pun test untuk mobile.
+Keduanya pekerjaan tersendiri, bukan tambalan.

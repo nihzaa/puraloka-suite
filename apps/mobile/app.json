@@ -28,13 +28,24 @@
       "expo-secure-store",
       [
         "expo-camera",
-        { "cameraPermission": "Izinkan Puraloka Suite mengakses kamera untuk foto progress lapangan." }
+        {
+          "cameraPermission": "Izinkan Puraloka Suite mengakses kamera untuk foto progress lapangan."
+        }
       ],
       [
         "expo-image-picker",
-        { "photosPermission": "Izinkan Puraloka Suite mengakses galeri untuk upload foto progress." }
+        {
+          "photosPermission": "Izinkan Puraloka Suite mengakses galeri untuk upload foto progress."
+        }
       ],
-      "expo-notifications"
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#003366",
+          "defaultChannel": "default"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

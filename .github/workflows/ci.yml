@@ -2380,6 +2380,25 @@ jobs:
         run: node apps/mobile/scripts/audit-alamat-api-terisi.mjs
         working-directory: .
 
+      # Lambang mobile disalin dari apps/web/public/puraloka-lambang.svg —
+      # Expo menuntut PNG dan React Native tak membaca SVG tanpa dependensi
+      # tambahan, jadi salinannya tak terhindarkan. Yang bisa dihindari adalah
+      # salinan yang menyimpang DIAM-DIAM: lambang web diperbarui, HP mandor
+      # membawa bentuk lama, dan tak ada yang memberi tahu. Ambang NOL.
+      - name: Lambang mobile sinkron dengan web
+        run: node apps/mobile/scripts/audit-aset-merek-sinkron.mjs
+        working-directory: .
+
+      # apps/mobile tak pernah tercakup satu pun dari penjaga CI repo ini, dan
+      # tiga cacat hidup di sana tanpa ada yang menyebut: rute `/mandor/kasbons`
+      # yang TIDAK ADA (404 tiap muat), 5 `catch {}` kosong yang membuat 404 itu
+      # tampil sebagai "belum ada data", dan literal peran sebagai gerbang tab
+      # (ADR-004 — peran custom per-tenant kehilangan seluruh menunya).
+      # Ketiganya kelas yang sudah dijaga di sisi API; yang kurang jangkauannya.
+      - name: apps/mobile sehat (rute, catch, ADR-004)
+        run: node apps/mobile/scripts/audit-mobile-sehat.mjs
+        working-directory: .
+
       # Env yang hilang di repo ini TIDAK melempar — ia jatuh ke bawaan yang
       # TERLIHAT benar. APP_URL kosong jadi localhost:3000 di tautan surel KE
       # KLIEN; RESEND_API_KEY kosong membuat sendEmail() no-op tanpa galat,

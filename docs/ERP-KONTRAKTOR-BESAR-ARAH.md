@@ -342,6 +342,26 @@ menciptakan hutang yang tak ada:
   lapangan punya HP lama, sinyal buruk, dan kebiasaan yang tak bisa ditebak
   dari kode.
 
+  > **Diukur ulang 2026-08-27 — "kodenya lengkap" benar untuk layar progres,
+  > dan MENYESATKAN untuk aplikasinya.** Tiga hal menahan build & sebar, dan
+  > tak satu pun tercatat di mana pun:
+  >
+  > | Temuan | Keadaan |
+  > |---|---|
+  > | `assets/` (ikon, splash, adaptive) | **tak ada** — `eas build` gagal sebelum compile. **Ditutup**: dibangkitkan dari lambang web |
+  > | `extra.eas.projectId` | **tak ada** — push gagal di build rilis. **Belum** (keputusan founder, dari `eas init`) |
+  > | `GET /api/v1/mandor/kasbons` | **rute tak pernah ada** — 404 tiap muat, ditelan `catch {}` jadi "Belum ada kasbon". **Ditutup** |
+  >
+  > Dua cacat lain ikut ditutup: gerbang tab memakai literal peran (melanggar
+  > ADR-004 — peran custom per-tenant kehilangan seluruh menunya, padahal
+  > server SUDAH mengirim `permissions` dan mobile membuangnya), dan 5 layar
+  > ber-`catch {}` kosong. Dijaga `audit-mobile-sehat.mjs` (ambang NOL, tiga
+  > pemeriksaan, ketiganya terbukti bisa merah lewat mutasi).
+  >
+  > Pelajaran ukurannya: **"kodenya lengkap" diukur dari layar, bukan dari
+  > aplikasi.** Layar yang sempurna di dalam aplikasi yang tak bisa dibuild
+  > tetap nol bagi mandor.
+
 ---
 
 ## 6. Cara mengukur ulang seluruh angka di dokumen ini

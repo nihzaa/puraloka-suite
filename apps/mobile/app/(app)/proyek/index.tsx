@@ -12,7 +12,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge, statusLabel, statusVariant } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { Galat } from '@/components/ui/Galat';
 import { api } from '@/lib/api';
+import { pesanGalat } from '@/lib/galat';
 
 interface Project {
   id: string;
@@ -33,13 +35,15 @@ export default function ProyekListScreen() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [galat, setGalat] = useState('');
 
   const fetchProjects = useCallback(async () => {
     try {
       const res = await api.get('/api/v1/projects');
       setProjects(res.data?.projects ?? []);
-    } catch {
-      // keep old data
+      setGalat('');
+    } catch (err: unknown) {
+      setGalat(pesanGalat(err, 'daftar proyek'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -68,7 +72,8 @@ export default function ProyekListScreen() {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#003366" />}
       >
-        {projects.length === 0 && (
+        {galat ? <Galat judul="Proyek tidak bisa dimuat" pesan={galat} /> : null}
+        {!galat && projects.length === 0 && (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>Belum ada proyek</Text>
           </View>
