@@ -98,6 +98,14 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "iv-opname": "/admin-portal/gudang",
   "as-register": "/admin-portal/gudang",
   "as-utilisasi": "/admin-portal/gudang",
+  /*
+    Tahap 4 (Task 23) — alat operasional. Dua key ini menunjuk halaman
+    TERSENDIRI (`/admin-portal/aset`), bukan ikhtisar gudang: yang dijawab
+    di sana adalah kesehatan alat & jatuh tempo perawatan, pertanyaan yang
+    berbeda dari "apa isi gudang saya".
+  */
+  "as-maintenance": "/admin-portal/aset",
+  "as-opex": "/admin-portal/aset",
   "bi-eksekutif": "/admin-portal",
   "sy-inbox-approval": "/admin-portal/inbox",
   // Tahap 2 — Kontrak (g-kontrak)

@@ -1262,6 +1262,87 @@ export interface RespQuotaCheck {
  * tombolnya, bukan memasang tautan ke nomor ngawur."*
  */
 /* ══════════════════════════════════════════════════════════════════════════
+   TAHAP 4 (Task 23) — Alat operasional
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/** Satu jadwal perawatan beserta hitungan jatuh temponya (dari server). */
+export interface PerawatanAlat {
+  id: string;
+  nama: string;
+  jenis?: string | null;
+  jatuhTempo: {
+    /** 'aman' | 'segera' (>=80% ambang) | 'jatuh_tempo' — lib/alat-operasional.ts:42. */
+    status: string;
+    /** null bila jadwalnya tak memakai ambang jam. */
+    sisaJam: number | null;
+    /** null bila jadwalnya tak memakai ambang hari. */
+    sisaHari: number | null;
+  };
+}
+
+/**
+ * Bentuk PERSIS `GET /api/v1/alat-operasional` — diverifikasi ke
+ * `alat-operasional.ts:160-187` dan `lib/alat-operasional.ts`.
+ */
+export interface AlatOperasional {
+  id: string;
+  asset_code: string;
+  name: string;
+  category: string;
+  brand: string | null;
+  model: string | null;
+  status: string;
+  condition: string;
+  purchase_price: number | string | null;
+  meter: number | null;
+  /** Sudah dibulatkan 2 desimal di server. */
+  jamOperasi: number;
+  hariDipakai: number;
+  perawatan: PerawatanAlat[];
+  /*
+    Perawatan paling mendesak — SUDAH disaring ('jatuh_tempo'/'segera') lalu
+    diurut `sisaJam` menaik OLEH SERVER. Komentar servernya: "layar tak boleh
+    menuntut pembacanya membandingkan sendiri belasan baris."
+    `null` bila semua jadwal masih aman.
+  */
+  palingMendesak: PerawatanAlat | null;
+  biaya: {
+    /*
+      Operasional DITAMBAH perawatan — keduanya, bukan salah satu.
+
+      Biaya servis tinggal di tabel berbeda, dan menjumlah hanya biaya
+      operasional membuat alat yang paling sering rusak justru terlihat
+      PALING MURAH. Contoh yang tercatat di server: dump truck dengan empat
+      kerusakan mendadak senilai Rp 19,85 juta tampil "Rp 0" karena tak
+      sekali pun mengisi BBM lewat modul ini.
+
+      JANGAN menjumlah ulang dari `perJenis` di klien — itu mengulang cacat
+      yang sama.
+    */
+    total: number;
+    perJenis: Record<string, number>;
+    perJam: number | null;
+    bbmPerJam: number | null;
+  };
+  kesehatan: {
+    servisTerjadwal: number;
+    servisMendadak: number;
+    /** Persen, satu desimal. `null` bila belum ada riwayat servis. */
+    rasioMendadak: number | null;
+    /** >= 50% mendadak: preventifnya tak mencegah apa pun. Ambang di server. */
+    preventifGagal: boolean;
+  };
+  riwayat: unknown[];
+  penyusutan: Array<{ jurnal_status: string | null; jurnal_nomor: string | null }>;
+}
+
+export interface RespAlatOperasional {
+  alat: AlatOperasional[];
+  total: number;
+  tanggal: string;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    TAHAP 4 (Task 22) — Gudang & Aset company-wide
    ══════════════════════════════════════════════════════════════════════════ */
 

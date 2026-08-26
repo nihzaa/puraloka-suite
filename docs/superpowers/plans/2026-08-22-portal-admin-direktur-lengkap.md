@@ -4927,6 +4927,117 @@ Memetakannya ke halaman ini akan menjanjikan layar yang tak ada.
 
 ---
 
+### Task 23: Alat Operasional — kesehatan alat + perawatan jatuh tempo
+
+**Hasil riset 2026-08-27 — DIUKUR ke `alat-operasional.ts` + `lib/alat-operasional.ts`.**
+
+Task 21 membuktikan rencana yang rinci pun bisa salah kontrak (tiga tempat,
+semuanya gagal senyap). Task 22 membuktikan tipe `string` tak memberi tahu
+apakah isinya sudah diformat. Karena itu seluruh bentuk di bawah dibaca dari
+kode, bukan dari nama field.
+
+**Endpoint (5 rute, `alat-operasional.ts`):**
+
+| rute | metode | izin |
+|---|---|---|
+| `/api/v1/alat-operasional` | GET | `assets:view` |
+| `/api/v1/alat-operasional/pemakaian` | POST | `assets:manage` |
+| `/api/v1/alat-operasional/biaya` | POST | `assets:manage` |
+| `/api/v1/alat-operasional/perawatan` | POST | `assets:manage` |
+| `/api/v1/alat-operasional/penyusutan/jurnalkan` | POST | `gl:manage` |
+
+**Kenapa halaman ini HANYA-BACA (tiga POST tidak dipakai):**
+
+Ketiganya adalah pencatatan LAPANGAN — jam pakai alat, isi BBM, servis
+selesai. Yang mencatatnya operator/mekanik di lokasi, bukan direktur di
+kantor. Portal admin menjawab pertanyaan yang berbeda: *"alat mana yang
+paling mahal, mana yang mau jatuh tempo, mana yang preventifnya gagal."*
+
+`penyusutan/jurnalkan` sengaja TIDAK dipasang: ia menuntut `gl:manage` dan
+MENULIS ke buku besar. Aksi akuntansi berkonsekuensi seperti itu sudah punya
+rumahnya sendiri di `/admin-portal/keuangan/gl` (Tahap 3) — menaruh tombol
+kedua di sini berarti dua pintu menuju jurnal yang sama.
+
+**Bentuk `GET /api/v1/alat-operasional` — diverifikasi baris-per-baris
+(`alat-operasional.ts:160-187`, tipe dari `lib/alat-operasional.ts`):**
+
+```typescript
+export interface AlatOperasional {
+  id: string; asset_code: string; name: string;
+  category: string; brand: string | null; model: string | null;
+  status: string; condition: string;
+  purchase_price: number | string | null;
+  meter: number | null;
+  jamOperasi: number;      // sudah dibulatkan 2 desimal di server
+  hariDipakai: number;
+  perawatan: Array<{
+    id: string; nama: string;
+    jatuhTempo: {
+      // 'aman' | 'segera' (>=80% ambang) | 'jatuh_tempo' | dst — lib:42
+      status: string;
+      sisaJam: number | null;   // null bila jadwalnya tak pakai jam
+      sisaHari: number | null;  // null bila jadwalnya tak pakai hari
+    };
+  }>;
+  /** Perawatan paling mendesak, SUDAH dipilih & diurut server. null bila aman. */
+  palingMendesak: { id: string; nama: string; jatuhTempo: {...} } | null;
+  biaya: {
+    /** Operasional + PERAWATAN. Server menjumlah keduanya — lihat ⚠ di bawah. */
+    total: number;
+    perJenis: Record<string, number>;
+    perJam: number | null;
+    bbmPerJam: number | null;
+  };
+  kesehatan: {
+    servisTerjadwal: number;
+    servisMendadak: number;
+    rasioMendadak: number | null;
+    /** >= 50% mendadak: preventifnya tak mencegah apa pun. */
+    preventifGagal: boolean;
+  };
+  riwayat: unknown[];
+  penyusutan: Array<{ jurnal_status: string | null; jurnal_nomor: string | null }>;
+}
+export interface RespAlatOperasional {
+  alat: AlatOperasional[]; total: number; tanggal: string;
+}
+```
+
+⚠ **EMPAT hal DIHITUNG SERVER — jangan dihitung ulang di UI:**
+
+1. `palingMendesak` — sudah disaring (`jatuh_tempo`/`segera`) lalu diurut
+   `sisaJam` menaik. Komentar servernya: *"layar tak boleh menuntut
+   pembacanya membandingkan sendiri belasan baris."*
+2. `biaya.total` — operasional **+ perawatan**. Komentarnya menjelaskan
+   akibat kalau dipisah: *"dump truck dengan empat kerusakan mendadak senilai
+   Rp 19,85 juta tampil Rp 0 karena tak sekali pun mengisi BBM lewat modul
+   ini."* Menghitung ulang di klien dari `perJenis` akan mengulang cacat itu.
+3. `kesehatan.preventifGagal` — ambang 50%, satu tempat.
+4. `jatuhTempo.status` — ambang 80%, satu tempat.
+
+⚠ **`purchase_price` bertipe `number | string | null`** (dari kolom numeric).
+`formatRupiah` menerima keduanya. TIDAK sama dengan kasus Task 22: di sini
+tak ada `toFixed()` di server, jadi nilainya bisa `number` asli.
+
+**Files:**
+- Create: `apps/web/app/admin-portal/aset/page.tsx`
+- Modify: `_bersama/tipe.ts` (tambah `RespAlatOperasional` + `AlatOperasional`)
+- Modify: `kategori/[key]/page.tsx` (petakan `as-maintenance`, `as-opex`)
+
+**Key yang DIPETAKAN:** `as-maintenance`, `as-opex` → `/admin-portal/aset`.
+`as-penyusutan`/`as-sewa`/`as-gl`/`as-mutasi` tetap fallback href web —
+halamannya belum ada di admin-portal.
+
+- [ ] **Step 1: tipe** sesuai bentuk di atas.
+- [ ] **Step 2: halaman** — urut alat paling mendesak di atas; kartu per alat
+  memuat kesehatan (rasio mendadak + penanda preventif gagal), biaya total &
+  per-jam, dan perawatan paling mendesak.
+- [ ] **Step 3: navigasi** — petakan dua key.
+- [ ] **Step 4: verifikasi** — tsc, token CSS diadu globals.css, RENDER
+  390x844 dan LIHAT, axe-core 0, seluruh penjaga diadu baseline.
+
+---
+
 ## Tahap 5-7: Belum di-breakdown
 
 Mengikuti pola Portal PM: setiap Tahap (5: Mutu/K3+Risiko+Dokumen+
