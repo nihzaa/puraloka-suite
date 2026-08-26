@@ -2,8 +2,7 @@
 
 import {
   BarChart2, ClipboardList, Users, CreditCard, Receipt, HardHat,
-  ShieldAlert, ClipboardCheck, FileQuestion, FileStack, Landmark,
-} from "lucide-react";
+  ShieldAlert, ClipboardCheck, FileQuestion, FileStack, Landmark, CalendarDays } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import ActionCard from "@/components/portal/ActionCard";
 import type { Penugasan } from "../_bersama/tipe";
@@ -36,6 +35,16 @@ export default function MandorLainnyaPage() {
   const hasProgressPct = allScopes.some((s) => s.payment_system === "progress_pct");
 
   const items = [
+    /*
+      Absensi harian — HANYA untuk lingkup bersistem upah harian, syarat yang
+      sama dengan Laporan Upah di bawahnya. Lingkup borongan tak punya
+      absensi: upahnya dibayar per volume pekerjaan, bukan per hari hadir,
+      jadi menu ini di sana hanya membingungkan.
+
+      Ditaruh PALING ATAS: ini satu-satunya kerja di daftar ini yang
+      dilakukan SETIAP PAGI. Yang lain dibuka sesekali.
+    */
+    hasHarian && { href: "/mandor-portal/absensi", label: "Absensi Harian", icon: CalendarDays },
     hasHarian && { href: "/mandor-portal/laporan-upah", label: "Laporan Upah", icon: ClipboardList },
     hasProgressPct && { href: "/mandor-portal/penagihan", label: "Penagihan", icon: Receipt },
     { href: "/mandor-portal/kasbon-tukang", label: "Kasbon Tukang", icon: CreditCard },
