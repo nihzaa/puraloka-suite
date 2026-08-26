@@ -106,6 +106,25 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   */
   "as-maintenance": "/admin-portal/aset",
   "as-opex": "/admin-portal/aset",
+  /*
+    Tahap 5 — Mutu (g-qaqc), K3 (g-hse), Dokumen (g-dokumen).
+
+    ⚠ Grupnya bernama `g-qaqc`, BUKAN `g-mutu`. Diverifikasi ke peta-menu.ts:
+    `g-mutu` tak pernah ada. Memakai nama yang salah menghasilkan grup yang
+    tak pernah muncul — gagal senyap.
+
+    LIMA key menunjuk `/admin-portal/mutu`, karena `GET /mutu/ikhtisar`
+    memang menjawab kelimanya sekaligus (NCR, inspeksi, punch, dokumen,
+    izin kerja, K3).
+
+    Item lain keempat grup sengaja jatuh ke fallback href web — halamannya
+    belum ada di admin-portal.
+  */
+  "qc-ncr": "/admin-portal/mutu",
+  "qc-checklist": "/admin-portal/mutu",
+  "hse-insiden": "/admin-portal/mutu",
+  "hse-inspeksi": "/admin-portal/mutu",
+  "dk-register": "/admin-portal/mutu",
   "bi-eksekutif": "/admin-portal",
   "sy-inbox-approval": "/admin-portal/inbox",
   // Tahap 2 — Kontrak (g-kontrak)

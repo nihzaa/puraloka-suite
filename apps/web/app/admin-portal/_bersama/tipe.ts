@@ -1262,6 +1262,65 @@ export interface RespQuotaCheck {
  * tombolnya, bukan memasang tautan ke nomor ngawur."*
  */
 /* ══════════════════════════════════════════════════════════════════════════
+   TAHAP 5 — Mutu + K3 + Risiko + Dokumen
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Bentuk PERSIS `GET /api/v1/mutu/ikhtisar` — diverifikasi ke
+ * `mutu-ikhtisar.ts:143-191`.
+ *
+ * ⚠ Endpoint ini TANPA `requirePermission`, hanya `authenticate`. Itu
+ * disengaja dan tertulis alasannya di servernya: sub-menu grup ini pun tak
+ * menyaring permission, jadi menuntut izin di ikhtisar membuat halaman
+ * induknya lebih ketat daripada isinya.
+ */
+export interface RespMutuIkhtisar {
+  ncr: {
+    total: number;
+    terbuka: number;
+    /*
+      NCR BERAT yang masih terbuka — sudah dipisah dari `terbuka` di server.
+      Komentar servernya: "satu NCR major menuntut tindakan berbeda dari
+      sepuluh yang minor, dan jumlah total menyamarkan bedanya."
+
+      ⚠ JANGAN dihitung ulang dari `daftar`: `daftar` hanya 8 teratas,
+      sedangkan `berat` menghitung SEMUA yang terbuka.
+    */
+    berat: number;
+    daftar: Array<{
+      nomor: string; judul: string; severity: string; status: string;
+      /** Negatif berarti target selesai sudah TERLEWAT. */
+      sisa_hari: number | null;
+    }>;
+  };
+  inspeksi: { total: number; menunggu: number };
+  punch: { total: number; terbuka: number };
+  dokumen: {
+    total: number;
+    belum_terverifikasi: number;
+    /** Sudah lewat masa berlaku (`sisa_hari < 0` di server). */
+    kedaluwarsa: number;
+    segera_habis: number;
+    daftar: Array<{
+      pihak: string; jenis: string;
+      /** Negatif = sudah kedaluwarsa. Tampilkan "lewat N hari". */
+      sisa_hari: number | null;
+    }>;
+  };
+  izin_kerja: { total: number; aktif: number; menunggu: number };
+  k3: {
+    /*
+      Dijumlahkan dari evaluasi subkon — satu-satunya tempat angkanya
+      tercatat hari ini. Kalau kelak ada tabel insiden tersendiri, sumbernya
+      berpindah ke sana dan angkanya TIDAK boleh dijumlahkan dua kali.
+    */
+    kecelakaan: number;
+    daftar_hitam: number;
+    skor_k3_terendah: number | null;
+  };
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    TAHAP 4 (Task 23) — Alat operasional
    ══════════════════════════════════════════════════════════════════════════ */
 

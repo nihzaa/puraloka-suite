@@ -5075,10 +5075,139 @@ mudah diikuti tanpa diperiksa.
 
 ---
 
-## Tahap 5-7: Belum di-breakdown
+## Tahap 5: Mutu + K3 + Risiko + Dokumen
 
-Mengikuti pola Portal PM: setiap Tahap (5: Mutu/K3+Risiko+Dokumen+
-Kepatuhan, 6: SDM+Klien+Tender, 7: Sistem/Settings/AI [read-only]+Audit+
+**Riset breakdown 2026-08-27 — DIUKUR ke kode, bukan ditebak dari nama menu.**
+
+Tiga kekeliruan rencana di Tahap 4 (semuanya gagal senyap) membuat aturan ini
+mengikat: setiap bentuk balasan dan setiap izin di bawah dibaca langsung dari
+`apps/api/src/routes/v1/`.
+
+### Yang DITEMUKAN berbeda dari dugaan
+
+| Dugaan dari nama | Kenyataan di kode |
+|---|---|
+| grup `g-mutu` | **`g-qaqc`** — `g-mutu` TIDAK ADA di `peta-menu.ts` |
+| `risiko.ts`, `mitigasi.ts` | rutenya di **`jadwal.ts`** |
+| `temuan-audit.ts` | rutenya di **`audit-mutu.ts`** |
+| `itp-titik.ts` | rutenya di **`rencana-mutu.ts`** |
+| K3 tanpa izin | K3 **PAKAI** `k3:inspeksi:view`, `k3:insiden:view/manage` |
+
+Memakai `g-mutu` akan menghasilkan grup yang tak pernah muncul — gagal senyap,
+persis kelas yang sama dengan `override_quota`.
+
+### Endpoint yang tersedia (55 rute di 8 berkas)
+
+| berkas | rute | catatan |
+|---|---|---|
+| `mutu-ikhtisar.ts` | 1 | `GET /api/v1/mutu/ikhtisar` — **titik masuk** |
+| `rencana-mutu.ts` | 7 | termasuk ITP |
+| `ncr.ts` | 6 | register NCR |
+| `inspeksi.ts` | 4 | |
+| `k3-lapangan.ts` | 16 | per-proyek (`/proyek/:id/k3/*`) |
+| `kepatuhan-k3.ts` | 7 | |
+| `kendali-dokumen.ts` | 9 | |
+| `documents.ts` | 5 | |
+
+### Kenapa SATU halaman ikhtisar, bukan empat halaman terpisah
+
+`GET /mutu/ikhtisar` sudah menjawab keempat grup sekaligus — bentuknya
+memuat `ncr`, `inspeksi`, `punch`, `dokumen`, `izin_kerja`, dan `k3` dalam
+satu balasan. Pola identik dengan Task 22 (Gudang & Aset), dan alasannya sama:
+memecahnya berarti memanggil endpoint yang sama empat kali lalu membuang
+tiga-perempat hasilnya di masing-masing.
+
+⚠ **`GET /mutu/ikhtisar` TANPA `requirePermission`, hanya `authenticate`.**
+Itu DISENGAJA dan tertulis alasannya di `mutu-ikhtisar.ts:207-217`: sub-menu
+grup ini pun tak menyaring permission (`menu_items.required_permissions`
+semuanya array KOSONG). Menuntut izin di ikhtisar berarti halaman induknya
+lebih ketat daripada isinya — orang melihat "akses ditolak" untuk ringkasan
+dari data yang boleh ia buka satu per satu.
+
+Jadi halaman ini TIDAK memasang `useIzin` sebagai gerbang masuk. Tenancy tetap
+dijaga `request.db` di server.
+
+### Bentuk `GET /api/v1/mutu/ikhtisar` — diverifikasi `mutu-ikhtisar.ts:143-191`
+
+```typescript
+export interface RespMutuIkhtisar {
+  ncr: {
+    total: number; terbuka: number;
+    /** NCR berat yang masih terbuka — DIPISAH dari total di server. */
+    berat: number;
+    daftar: Array<{ nomor: string; judul: string; severity: string;
+      status: string; sisa_hari: number | null }>;
+  };
+  inspeksi: { total: number; menunggu: number };
+  punch: { total: number; terbuka: number };
+  dokumen: {
+    total: number; belum_terverifikasi: number;
+    kedaluwarsa: number; segera_habis: number;
+    daftar: Array<{ pihak: string; jenis: string; sisa_hari: number | null }>;
+  };
+  izin_kerja: { total: number; aktif: number; menunggu: number };
+  k3: {
+    kecelakaan: number; daftar_hitam: number;
+    skor_k3_terendah: number | null;
+  };
+}
+```
+
+⚠ **`ncr.berat` sudah DIPISAH di server** dari `terbuka`. Komentar servernya:
+*"satu NCR major menuntut tindakan berbeda dari sepuluh yang minor, dan jumlah
+total menyamarkan bedanya."* Menghitung ulang di klien dari `daftar` akan
+SALAH — `daftar` hanya 8 teratas, sedangkan `berat` menghitung SEMUA.
+
+⚠ **`dokumen.kedaluwarsa` vs `segera_habis`** dipisah lewat tanda `sisa_hari`
+(`< 0` = sudah lewat). `sisa_hari` NEGATIF di `daftar` berarti kedaluwarsa —
+tampilkan "lewat N hari", bukan "sisa -N hari" (cacat yang sama sudah
+ditemukan & diperbaiki di Task 23).
+
+⚠ **`k3.kecelakaan` dijumlahkan dari evaluasi subkon** — satu-satunya tempat
+angkanya tercatat hari ini. Komentar servernya mencatat: kalau kelak ada tabel
+insiden sendiri, sumbernya berpindah dan angkanya TIDAK boleh dijumlahkan dua
+kali.
+
+### Files
+
+- Create: `apps/web/app/admin-portal/mutu/page.tsx`
+- Modify: `_bersama/tipe.ts` (tambah `RespMutuIkhtisar`)
+- Modify: `kategori/[key]/page.tsx` (petakan key)
+- Modify: `lib/admin-portal-kategori.ts` (aktifkan 4 grup)
+
+### Key yang DIPETAKAN
+
+`qc-ncr`, `qc-checklist` → `/admin-portal/mutu`
+`hse-insiden`, `hse-inspeksi` → `/admin-portal/mutu`
+`dk-register` → `/admin-portal/mutu`
+
+Sisanya (qc-rencana, qc-itp, qc-uji, qc-capa, mutu-pelajaran, qc-audit,
+hse-rk3k, hse-jsa, hse-induksi, hse-apd, hse-lingkungan, rk-*, dk-transmittal,
+dk-gambar, dk-notulen, dk-approval, dk-distribusi, dk-esign,
+dk-verifikasi-ttd) SENGAJA jatuh ke fallback href web — halamannya belum ada
+di admin-portal, dan memetakannya menjanjikan layar yang tak ada.
+
+⚠ `g-risiko` diaktifkan TAPI nol key dipetakan: seluruh itemnya (register
+risiko, mitigasi, perizinan, kepatuhan, sengketa) belum punya halaman
+admin-portal. Grupnya tetap muncul di kategori dengan seluruh item menunjuk
+href web — itu perilaku yang sama dengan item Tahap 1-4 yang belum dibangun,
+dan lebih baik daripada menyembunyikan grupnya sama sekali.
+
+### Langkah
+
+- [ ] **Step 1: tipe** `RespMutuIkhtisar` sesuai bentuk di atas.
+- [ ] **Step 2: halaman** — NCR terbuka (berat disorot), dokumen kedaluwarsa,
+  izin kerja, ringkasan K3, inspeksi & punch list.
+- [ ] **Step 3: navigasi** — aktifkan 4 grup, petakan 5 key.
+- [ ] **Step 4: verifikasi** — tsc, token CSS diadu globals.css, RENDER
+  390×844 dan LIHAT, axe-core 0, seluruh penjaga diadu baseline, dan cek
+  pemetaan key (skrip sekali-pakai pola Tahap 4).
+
+---
+
+## Tahap 6-7: Belum di-breakdown
+
+Mengikuti pola Portal PM: setiap Tahap (6: SDM+Klien+Tender, 7: Sistem/Settings/AI [read-only]+Audit+
 Users/Roles+Master+sisa) dimulai dengan SATU task "riset & breakdown" yang
 menulis task-task konkret ke dokumen ini begitu tahap sebelumnya selesai —
 BUKAN ditulis sekaligus di awal.
