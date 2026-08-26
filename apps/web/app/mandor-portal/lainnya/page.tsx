@@ -2,7 +2,7 @@
 
 import {
   BarChart2, ClipboardList, Users, CreditCard, Receipt, HardHat,
-  ShieldAlert, ClipboardCheck, FileQuestion, FileStack, Landmark, CalendarDays } from "lucide-react";
+  ShieldAlert, ClipboardCheck, FileQuestion, FileStack, Landmark, CalendarDays, PiggyBank } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import ActionCard from "@/components/portal/ActionCard";
 import type { Penugasan } from "../_bersama/tipe";
@@ -50,6 +50,15 @@ export default function MandorLainnyaPage() {
     { href: "/mandor-portal/kasbon-tukang", label: "Kasbon Tukang", icon: CreditCard },
     { href: "/mandor-portal/tukang", label: "Daftar Tukang", icon: Users },
     { href: "/mandor-portal/pembayaran", label: "Riwayat Bayar", icon: Landmark },
+    /*
+      Retensi — uang mandor yang DITAHAN sebagai jaminan mutu. TANPA syarat
+      sistem upah: retensi dipotong dari pembayaran progres, dan itu berlaku
+      pada borongan maupun harian.
+
+      Hanya-baca. Pencairannya menuntut `mandor:kasbon:approve` yang mandor
+      tak punya — lihat komentar di halamannya.
+    */
+    { href: "/mandor-portal/retensi", label: "Retensi Saya", icon: PiggyBank },
     { href: "/mandor-portal/rekapitulasi", label: "Rekapitulasi", icon: BarChart2 },
     { href: "/mandor-portal/k3", label: "K3 Lapangan", icon: ShieldAlert },
     { href: "/mandor-portal/punch-list", label: "Punch List", icon: ClipboardCheck },
