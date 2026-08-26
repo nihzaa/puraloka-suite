@@ -3404,6 +3404,158 @@ items:
       membaca komentar kode untuk menemukannya lagi — pola sama dengan
       A11Y-PM-PORTAL di atas.
 
+  - id: RATCHET-DRIFT-ADMIN-PORTAL-TAHAP1
+    fase: null
+    judul: "kerapatan-ratchet.mjs dan judul-ratchet.mjs sudah RED di main sebelum Portal Admin/Direktur dimulai — Tahap 1 menambah +2/+1, Tahap 2 menambah lagi +0/+9 di atasnya, bukan penyebab aslinya"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "Keputusan founder diambil untuk kerapatan-ratchet.mjs: (a) migrasi halaman pelanggar ke token --pad-kartu/--pad-kartu-lega/--gap-grid/--gap-bagian lalu turunkan kerapatan-lantai.json, ATAU (b) naikkan lantai dengan pengakuan eksplisit drift pra-eksisting"
+      - "Keputusan founder diambil untuk judul-ratchet.mjs: (a) migrasi <h1> mentah ke <KepalaHalaman> (atau padanan shell portal, lihat JUDUL-RATCHET-PORTAL-MOBILE untuk masalah serupa di Portal PM) lalu turunkan judul-lantai.json, ATAU (b) naikkan lantai dengan pengakuan eksplisit"
+      - "Kalau opsi (a) dipilih untuk salah satu: node apps/web/scripts/kerapatan-ratchet.mjs / judul-ratchet.mjs — exit 0 pada lantai yang sudah diturunkan"
+    cara_verifikasi: "node apps/web/scripts/kerapatan-ratchet.mjs && node apps/web/scripts/judul-ratchet.mjs — bandingkan angka dengan catatan_kemajuan di bawah"
+    bobot: M
+    status: menunggu
+    catatan_kemajuan: >-
+      Ditemukan Task 5 (2026-08-22, verifikasi akhir Tahap 1 Portal
+      Admin/Direktur Lengkap). Dibandingkan lewat worktree terpisah
+      (`git worktree add --detach` pada commit a0df4762, commit SEBELUM
+      Task 3 dimulai) menjalankan skrip yang SAMA persis:
+      kerapatan-ratchet.mjs sudah 289 (vs lantai 181, BERTAMBAH 108) DAN
+      judul-ratchet.mjs sudah 111 (vs lantai 27, BERTAMBAH 84) di baseline
+      itu — SEBELUM satu baris kode Portal Admin/Direktur pun ditulis.
+      Task 3 (Dashboard Eksekutif) + Task 4 (Approval Inbox) menambah
+      kerapatan-ratchet 289→291 (+2, halaman baru mengulang pola padding
+      dipaku yang sudah menyebar di seluruh dashboard admin) dan
+      judul-ratchet 111→112 (+1, satu <h1> mentah di
+      admin-portal/kategori/[key]/page.tsx yang dibangun Task 1 — bukan
+      Task 3/4 — dan tak tersentuh Task 5). Task 5 sendiri (dua file,
+      admin-portal-kategori.ts + kategori/[key]/page.tsx) TIDAK menambah
+      satu padding/gap dipaku maupun satu <h1> baru — diff Task 5 murni
+      isian array string dan komentar.
+      Pola dan akar masalah IDENTIK dengan JUDUL-RATCHET-PORTAL-MOBILE /
+      FORMAT-RATCHET-PORTAL-MOBILE (Portal PM, ditemukan Task 45 branch
+      lain): kedua penjaga menegakkan lantai yang sudah basi terhadap
+      `main` jauh sebelum plan Portal Admin/Direktur ini ada — modul admin
+      lama (dashboard, dst.) sudah menyalin pola <h1>/padding-dipaku yang
+      sama sebelum KepalaHalaman/token kerapatan konsisten dipakai semua
+      halaman. Bukan cacat baru cabang ini; dicatat di sini SUPAYA
+      keputusan menaikkan lantai (atau memigrasi backlog-nya) jadi
+      keputusan founder terpisah, bukan diputuskan sendiri di tengah task
+      navigasi yang scope-nya cuma dua array pemetaan.
+      uji-tombol-primer-seragam.mjs (guard lain yang disebut brief Task 5)
+      justru MEMBAIK selama rentang yang sama: 12 → 11 (masih di atas
+      lantai 4, tapi bukan drift baru — arahnya turun, bukan naik) —
+      dicatat di sini untuk konteks, TIDAK butuh item QUEUE terpisah
+      karena tidak memburuk.
+
+      DIPERBARUI Task 12 (2026-08-22, verifikasi akhir Tahap 2 Portal
+      Admin/Direktur Lengkap — Task 7-11: Proyek, Kontrak, Jadwal).
+      Dibandingkan lewat worktree terpisah pada commit f52d9db8 (akhir
+      Task 6, SEBELUM satu baris kode Task 7-11 ditulis) vs sesudah Task
+      12: kerapatan-ratchet TETAP 291 (delta 0 dari Tahap 2), uji-tombol-
+      primer-seragam TETAP 11 (delta 0), format-ratchet TETAP 215 (delta
+      0) — TAPI judul-ratchet naik 112 → 121, **+9 drift baru dari Task
+      7-11** (halaman admin-portal/kontrak/* dan admin-portal/jadwal*
+      mengulang pola <h1> mentah alih-alih <KepalaHalaman>, sama seperti
+      Task 3/4 sebelumnya). Task 12 sendiri (dua file navigasi murni)
+      menambah NOL drift baru di keempat guard — diverifikasi angka
+      IDENTIK antara akhir Task 11 (commit 88208c4f) dan sesudah Task 12.
+      jalankan-semua-penjaga.mjs full-suite: 127 hijau/44 merah (baseline
+      f52d9db8) → 128 hijau/43 merah (sesudah Task 12) — satu-satunya beda
+      NAMA skrip adalah gen-indeks-docs.mjs membaik (merah→hijau, tak
+      terkait), NOL guard baru merah dari Tahap 2. Kriteria selesai &
+      cara_verifikasi item ini TIDAK berubah — masih menunggu keputusan
+      founder yang sama, sekarang mencakup +9 tambahan judul-ratchet dari
+      Tahap 2 di atas +1 dari Tahap 1.
+
+      DIPERBARUI Task 19 (2026-08-22, verifikasi akhir Tahap 3 Portal
+      Admin/Direktur Lengkap — Task 14-18: Dashboard Keuangan+Piutang+IPC,
+      GL, Rekonsiliasi Bank, Kas, Pengadaan Lanjutan). Dibandingkan lewat
+      worktree terpisah pada commit 28bdc206 (akhir Task 13, SEBELUM satu
+      baris kode Task 14-18 ditulis) vs sesudah Task 19: kerapatan-ratchet
+      TETAP 291/lantai 181 (delta 0), format-ratchet TETAP 215/lantai 215
+      (delta 0), audit-halaman-pakai-cache TETAP lantai 24 (24/272 →
+      24/282, delta 0 meski 10 halaman baru ditambahkan). judul-ratchet
+      TIDAK dijalankan ulang eksplisit di Task 19 (di luar daftar Step 4
+      brief), tapi jalankan-semua-penjaga.mjs full-suite membuktikan
+      DIAM-DIAM lewat perbandingan nama skrip merah: 110 hijau/61 merah
+      (baseline 28bdc206) → 111 hijau/60 merah (sesudah Task 19) — diff
+      daftar nama skrip merah HANYA 2 baris (uji-rute-dinamis-teraudit.mjs
+      baru merah lalu diperbaiki di task yang sama; gen-indeks-docs.mjs
+      membaik, tak terkait) — judul-ratchet TIDAK ada di kedua daftar,
+      artinya angkanya tidak berubah dari 121 (kalau sudah bertambah, ia
+      akan muncul di kedua daftar sebagai entri merah baru dengan pesan
+      berbeda, dan diff akan menangkapnya). Kriteria selesai & cara_verifikasi
+      item ini TIDAK berubah — masih menunggu keputusan founder yang sama,
+      sekarang dikonfirmasi Tahap 3 juga NOL drift baru di ketiga guard ini.
+
+  - id: KERAPATAN-DRIFT-PRA-TAHAP3
+    fase: null
+    judul: "kerapatan-ratchet.mjs sudah 291 vs lantai 181 (BERTAMBAH 110) di branch admin-direktur-lengkap SEBELUM Tahap 3 dimulai — beda kelas masalah dari RATCHET-DRIFT-ADMIN-PORTAL-TAHAP1 (itu soal ANGKA lantai basi terhadap main; ini soal drift yang sudah terjadi di riwayat branch feature ini sendiri, di luar berkas admin-portal manapun)"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "110 pelanggaran padding/gap dipaku diidentifikasi berkasnya satu-per-satu (pelanggar terbesar diukur 2026-08-22: 6x app/mandor-portal/laporan-upah/page.tsx, 5x app/mandor-portal/jadwal/page.tsx, 4x masing-masing app/(dashboard)/lapangan/inspeksi, lapangan/punch-list, mandor/[id], mutu/ncr)"
+      - "Keputusan founder diambil: (a) migrasi berkas-berkas itu ke token --pad-kartu/--pad-kartu-lega/--gap-grid/--gap-bagian lalu turunkan kerapatan-lantai.json ke angka baru, ATAU (b) naikkan lantai 181→291 dengan pengakuan eksplisit bahwa 110 pelanggaran itu sudah ada sebelum Portal Admin/Direktur Lengkap dan bukan tanggung jawab plan ini"
+      - "node apps/web/scripts/kerapatan-ratchet.mjs — exit 0 pada lantai yang sudah disepakati"
+    cara_verifikasi: "node apps/web/scripts/kerapatan-ratchet.mjs — bandingkan ke catatan_kemajuan di bawah"
+    bobot: M
+    status: menunggu
+    catatan_kemajuan: >-
+      Ditemukan Task 19 (2026-08-22, verifikasi akhir Tahap 3 Portal
+      Admin/Direktur Lengkap), saat memverifikasi klaim reviewer Task 18
+      soal exit-code kerapatan-ratchet.mjs (lihat JOURNAL 2026-08-22 —
+      klaim exit-code TIDAK terkonfirmasi, tapi angka 291/181 yang dilaporkan
+      reviewer ITU SENDIRI nyata). Dibandingkan lewat worktree terpisah pada
+      commit 28bdc206 (akhir Task 13, sebelum Tahap 3 mulai): hasilnya
+      IDENTIK — 291 vs lantai 181, BERTAMBAH 110. Drift ini SUDAH ADA di
+      titik itu, bukan diperkenalkan Task 14-19. Diverifikasi `28bdc206`
+      BUKAN ancestor `main` (`git merge-base --is-ancestor` mengembalikan
+      NO) — jadi kemungkinan besar drift ini berasal dari pekerjaan
+      mandor-portal/lapangan di commit lain pada riwayat branch
+      `feat/admin-direktur-lengkap` sebelum titik divergensinya dari `main`,
+      BUKAN dari `main` itu sendiri. Sengaja dibuat TERPISAH dari
+      RATCHET-DRIFT-ADMIN-PORTAL-TAHAP1: item itu soal lantai kerapatan yang
+      SUDAH basi di `main` sebelum plan ini dimulai (skala keputusan:
+      apakah token kerapatan dipaksakan retroaktif ke seluruh app lama);
+      item ini soal 110 pelanggaran KONKRET yang bisa diidentifikasi
+      berkasnya satu-per-satu HARI INI dan tak satu pun ada di
+      admin-portal/* — pembersihannya independen dari keputusan lantai itu
+      dan bisa dikerjakan sesi mana pun yang menyentuh mandor-portal/
+      lapangan tanpa menunggu ratifikasi arah token kerapatan secara umum.
+      TIDAK diperbaiki di Task 19 — bukan berkas yang disentuh Tahap 3 sama
+      sekali, dan memperbaikinya berarti menyentuh 6+ halaman di luar scope
+      plan Portal Admin/Direktur.
+
+  - id: A11Y-RECONFIRM-MINICHART-ADMIN-PORTAL
+    fase: null
+    judul: "Fix aria-hidden-focus MiniChart (admin-portal) belum dikonfirmasi ulang runtime axe-core, mode gelap belum pernah dijalankan"
+    blokir_oleh: []
+    kriteria_selesai:
+      - "jalankan-a11y-lengkap.mjs dijalankan penuh mode TERANG terhadap /admin-portal (dan idealnya seluruh admin-portal/*) sesudah fix accessibilityLayer={false} — 0 pelanggaran aria-hidden-focus dikonfirmasi hilang (bukan diasumsikan dari pembacaan source Recharts)"
+      - "jalankan-a11y-lengkap.mjs --gelap dijalankan MINIMAL sekali untuk admin-portal — belum pernah sama sekali sejak portal ini dimulai"
+    cara_verifikasi: "LAYAR_EMAIL=… LAYAR_SANDI=… node apps/web/scripts/jalankan-a11y-lengkap.mjs (lalu --gelap) — filter hasil JSON untuk url yang mengandung admin-portal, laporkan JUMLAH halaman admin-portal yang benar-benar ter-scan (bukan cuma total keseluruhan)"
+    bobot: S
+    status: menunggu
+    catatan_kemajuan: >-
+      Ditemukan Task 5 (2026-08-22, verifikasi akhir Tahap 1 Portal
+      Admin/Direktur Lengkap). Run a11y mode terang PERTAMA (159 halaman)
+      menemukan 4 pelanggaran aria-hidden-focus (serious) di /admin-portal
+      — kontainer aria-hidden="true" di sekitar chart Recharts yang
+      accessibilityLayer default true memasang tabIndex=0 fokusable pada
+      SVG (dikonfirmasi independen sampai baris kode Recharts 3.8.1 exact
+      yang menyetel tabIndex — bukan dugaan). Diperbaiki:
+      accessibilityLayer={false} pada <AreaChart>/<BarChart> di
+      MiniChart.tsx. tsc/build bersih sesudah fix, TAPI dua percobaan
+      re-scan axe-core runtime dihentikan (satu tak selesai wajar, satu
+      dihentikan atas instruksi eksplisit koordinator supaya task tak
+      berlarut) — jadi perbaikan BELUM dikonfirmasi ulang di runtime
+      sungguhan. Mode gelap TIDAK PERNAH dijalankan sama sekali untuk
+      admin-portal dalam sesi ini. Reviewer independen (Task 5) menilai
+      Approved TANPA menunggu ini (mekanisme fix dikonfirmasi solid sampai
+      source code, disclosure jujur bukan overclaim — beda dari insiden
+      Task 30 Portal PM), tapi merekomendasikan item QUEUE ini dibuat
+      supaya konfirmasi runtime tak hilang begitu JOURNAL/plan bertambah
+      panjang.
   - id: TRG-PROTECT-BUILTIN-ROLES-TENANT-SCOPE
     fase: 3
     judul: "trg_protect_builtin_roles (migrasi 050) menolak DELETE atas role is_builtin=true TANPA memandang company_id — tenant asli tak bisa hapus role hasil salinan"

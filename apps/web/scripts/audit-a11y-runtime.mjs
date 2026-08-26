@@ -130,6 +130,15 @@ const CONTOH_ID = {
   // `key` BUKAN id dari DB — nilai literal tetap dari KATEGORI_AKTIF di
   // lib/pm-portal-kategori.ts ("g-subkon" | "g-lapangan"). Tak butuh env var.
   '/pm-portal/kategori/[key]': 'g-subkon',
+  // Portal Admin/Direktur Tahap 0, Task 1 — sama pola persis baris di atas.
+  // `KATEGORI_AKTIF` di lib/admin-portal-kategori.ts KOSONG di Tahap 0, jadi
+  // `key` apa pun (termasuk `g-master`, grup nyata di PETA_MENU) akan
+  // merender cabang "Kategori tidak ditemukan" — itu tetap halaman sungguhan
+  // yang sah diaudit a11y-nya (EmptyState), bukan alasan melewati rute ini.
+  '/admin-portal/kategori/[key]': 'g-master',
+  // Portal Admin/Direktur Tahap 2, Task 7 — detail proyek (projects.id).
+  // Memakai id proyek yang sama dengan `/proyek/[id]` — bukan entitas baru.
+  '/admin-portal/proyek/[id]': process.env.LAYAR_ID_PROYEK,
   // Portal PM Lengkap Tahap 3, Task 19 — detail RAB (estimate_versions.id).
   '/pm-portal/cecep/rab/[id]': process.env.LAYAR_ID_RAB,
   // Portal PM Lengkap Tahap 3, Task 20 — detail RAP (rap_budget.id).
@@ -165,6 +174,19 @@ const CONTOH_ID = {
   '/pm-portal/keuangan/rekonsiliasi-bank/[id]': process.env.LAYAR_ID_REKENING_KORAN,
   // Portal PM Lengkap Tahap 7, Task 41 — detail Klien (clients.id).
   '/pm-portal/klien/[id]': process.env.LAYAR_ID_KLIEN,
+  // Portal Admin/Direktur Tahap 3, Task 17/15/16 — tiga rute dinamis
+  // SAMA BENTUK dengan pm-portal di atas (entitas identik, cash_accounts/
+  // journal_entries/rekening_koran bukan per-role), ditemukan TERLEWAT saat
+  // verifikasi akhir Task 19 lewat `uji-rute-dinamis-teraudit.mjs` — gap
+  // yang sama persis dengan yang dicatat Task 37 untuk versi pm-portal:
+  // halamannya dibangun Task 15-17 tanpa menambah entri di sini. Semua tiga
+  // memakai `useParams` polos, tak butuh query string tambahan (dikonfirmasi
+  // baca `[id]/page.tsx` masing-masing). Env var DIPAKAI ULANG dari
+  // `jalankan-a11y-lengkap.mjs` — sudah ada sejak Task 33-35, tak perlu
+  // query SQL baru.
+  '/admin-portal/keuangan/kas/[id]': process.env.LAYAR_ID_CASH_ACCOUNT,
+  '/admin-portal/keuangan/gl/jurnal/[id]': process.env.LAYAR_ID_JOURNAL,
+  '/admin-portal/keuangan/rekonsiliasi-bank/[id]': process.env.LAYAR_ID_REKENING_KORAN,
 }
 
 function halamanDariBerkas() {

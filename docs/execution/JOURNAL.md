@@ -5,6 +5,257 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-22 (Portal Admin/Direktur Lengkap, Task 12) — Tahap 2 SELESAI: navigasi kategori + verifikasi menyeluruh
+
+Task 12 adalah task TERAKHIR Tahap 2 (Task 7: Proyek, Task 8: Register
+Kontrak+Asuransi, Task 9: EOT/LD/Bond+Klaim, Task 10: Surat+Change Order,
+Task 11: Jadwal CPM+Baseline+Analisa Keterlambatan) — bukan fitur baru,
+mengaktifkan `g-kontrak`/`g-jadwal` level GRUP di `KATEGORI_AKTIF`
+(`lib/admin-portal-kategori.ts`) dan mengisi 13 baris `PETA_HREF_PORTAL`
+level ITEM inline di `admin-portal/kategori/[key]/page.tsx`, lalu verifikasi
+menyeluruh Tahap 2. Detail lengkap:
+`.superpowers/sdd/2026-08-22-portal-admin-direktur-lengkap/task-12-report.md`.
+
+**Pemetaan diverifikasi ke KODE NYATA, bukan disalin dari brief**: brief
+Step 3 hanya mencontohkan `jd-cpm` → `/admin-portal/jadwal`, tapi membaca
+`admin-portal/jadwal/page.tsx` langsung menunjukkan halaman itu ber-
+SegmentedTab EMPAT arah (CPM/Histogram/Method/Baseline, Task 11), bukan
+satu. Jadi `jd-histogram`/`jd-method`/`jd-baseline` DITAMBAHKAN ke
+`PETA_HREF_PORTAL` menunjuk halaman yang sama — pola identik `peta-menu.ts`
+sendiri, di mana `jd-cpm`/`jd-histogram`/`jd-method` web semuanya `/jadwal`
+dengan query berbeda (baris 144/146/151). Tanpa verifikasi ini, tiga item
+grup `g-jadwal` yang SEBENARNYA punya halaman admin-portal akan salah
+jatuh ke fallback href web.
+
+**13 baris `PETA_HREF_PORTAL` ditambahkan**: `kt-register`, `kt-asuransi`,
+`kt-co`, `kt-eot`, `kt-ld`, `kt-bond` (tiga terakhir satu halaman
+`eot-ld-bond` ber-SegmentedTab 3-arah), `kt-claims`, `kt-surat`, `jd-cpm`,
+`jd-histogram`, `jd-method`, `jd-baseline` (empat terakhir satu halaman
+`jadwal` ber-SegmentedTab 4-arah), `jd-delay`.
+
+**Cross-link Task 8-11 DIPERTAHANKAN, bukan dihapus** — dievaluasi eksplisit
+sesuai brief. Delapan tautan di badan `/admin-portal/kontrak/register`
+("Register Asuransi", "EOT, Denda & Jaminan", "Klaim Kontraktual", "Surat
+Masuk & Keluar", "Change Order", "Jadwal & Baseline", "Analisa
+Keterlambatan") kini punya jalur KEDUA lewat grid kategori "Lainnya", tapi
+tetap berguna sebagai pintasan: orang yang sedang membaca daftar kontrak
+tak perlu kembali ke grid kategori untuk membuka modul terkait. Delapan
+entri `WAJAR` di `audit-nav-yatim.mjs` DIPERBARUI (bukan dihapus) — teks
+lama "menunggu Task 12" sudah basi begitu Task 12 selesai, diganti
+penjelasan "dicapai DUA jalur" supaya tidak jadi catatan basi yang
+menyesatkan sesi berikutnya (pelajaran pembuka `CLAUDE.md`).
+
+**Ditemukan & diperbaiki di luar scope literal brief**: `uji-rute-dinamis-
+teraudit.mjs` MERAH — `/admin-portal/proyek/[id]` (dibangun Task 7) tak
+punya entri `CONTOH_ID` di `audit-a11y-runtime.mjs`, jadi rute itu TAK BISA
+dipindai a11y runtime sama sekali sejak Task 7, tanpa satu pun guard
+menegur sampai verifikasi menyeluruh ini. Ditambahkan (memakai
+`LAYAR_ID_PROYEK` yang sama dengan `/proyek/[id]`, bukan entitas baru) —
+diverifikasi MERAH → HIJAU. Efek samping teknis: `Edit` pertama pada
+`audit-a11y-runtime.mjs` menormalkan SELURUH file jadi CRLF (environment
+Windows), yang membuat `audit-akhir-baris.mjs` sempat merah pada satu run
+suite-lengkap — diperbaiki dengan menormalkan file itu kembali ke LF,
+diverifikasi hijau lagi (baik sendiri maupun di run suite berikutnya).
+
+**Typecheck**: 0 error (`tsc --noEmit`, apps/web).
+
+**Build produksi**: `pnpm build` exit 0, tanpa error (satu warning
+`turbopack.root` pra-eksisting, tak terkait perubahan ini).
+
+**Guard CI dibandingkan ke baseline `f52d9db8`** (commit sebelum Task 7
+dimulai, akhir Task 6 riset&breakdown) lewat worktree terpisah
+(`git worktree add --detach`), menjalankan `jalankan-semua-penjaga.mjs`
+yang SAMA persis: **127 hijau · 44 MERAH · 2 tak ketemu** (baseline) vs
+**128 hijau · 43 MERAH · 2 tak ketemu** (sekarang) — diff nama skrip
+persis satu baris: `gen-indeks-docs.mjs` MERAH di baseline → HIJAU sekarang
+(docs sempat diregenerasi di suatu commit Tahap 2, perbaikan yang tak
+disengaja tapi valid, bukan bagian scope Task 12). **NOL regresi baru dari
+Task 12 maupun dari Tahap 2 secara keseluruhan** — seluruh 43 guard merah
+sisanya SUDAH merah di baseline sebelum Task 7 ditulis.
+
+Empat ratchet UI diverifikasi TERPISAH di tiga titik waktu (baseline Task
+6-end, akhir Task 11, sesudah Task 12) — semuanya angka IDENTIK
+291/121/11/215 di akhir Task 11 dan sesudah Task 12 (Task 12 sendiri
+menambah NOL drift baru), tapi `judul-ratchet` naik dari 112 (akhir Task 6)
+ke 121 (akhir Task 11) — **+9 drift dari Task 7-11**, bukan dari Task 12:
+
+| Guard | Task-6-end (f52d9db8) | Task-11-end (88208c4f) | Sesudah Task 12 | Delta Tahap 2 | Delta Task 12 |
+|---|---|---|---|---|---|
+| `kerapatan-ratchet.mjs` | 291 (lantai 181) | 291 | 291 | 0 | 0 |
+| `judul-ratchet.mjs` | 112 (lantai 27) | 121 | 121 | **+9** | 0 |
+| `uji-tombol-primer-seragam.mjs` | 11 (lantai 4) | 11 | 11 | 0 | 0 |
+| `format-ratchet.mjs` | 215 (lantai 215) | 215 | 215 | 0 | 0 |
+
++9 `judul-ratchet` dari Task 7-11 diwariskan sebagai konteks tambahan ke
+item QUEUE `RATCHET-DRIFT-ADMIN-PORTAL-TAHAP1` (sudah ada sejak Task 5;
+DIPERBARUI, bukan dibuat baru — judulnya masih benar mencakup Tahap 2 karena
+akar masalahnya sama: lantai `judul-ratchet.mjs`/`kerapatan-ratchet.mjs`
+sudah basi terhadap `main` jauh sebelum plan ini, dan halaman admin-portal
+baru mengulang pola `<h1>` mentah yang sudah menyebar). **Tidak dinaikkan
+sendiri** — keputusan founder, sesuai brief.
+
+`audit-halaman-pakai-cache.mjs` (path benar: `apps/api/scripts/`): lantai
+24 tak bergerak.
+
+**a11y runtime (mode terang, kredensial admin)**: `jalankan-a11y-lengkap.mjs`
+selesai penuh — **168 halaman dipindai, 0 pelanggaran**. Seluruh 9 halaman
+admin-portal yang dibangun Tahap 2 dikonfirmasi individual 0 pelanggaran:
+`/admin-portal/proyek`, `/admin-portal/kontrak/register`, `/admin-portal/
+kontrak/asuransi`, `/admin-portal/kontrak/change-order`, `/admin-portal/
+kontrak/eot-ld-bond`, `/admin-portal/kontrak/klaim`, `/admin-portal/kontrak/
+surat`, `/admin-portal/jadwal`, `/admin-portal/jadwal/keterlambatan`.
+`/admin-portal/proyek/[id]` (rute dinamis) TIDAK ikut terpindai run ini —
+fix `CONTOH_ID` di atas ditulis SESUDAH run ini dimulai (module dibaca sekali
+di awal proses). Run KEDUA (konfirmasi ulang) dipicu, tapi TIDAK SEMPAT
+SELESAI — dihentikan eksplisit sesudah >9 menit tanpa satu baris output
+(pola identik run kedua Task 5, dua server + Playwright headless di mesin
+yang sama). **Dicatat JUJUR mengikuti pelajaran Task 5**: 168/0 di atas
+TIDAK mencakup `/admin-portal/proyek/[id]` — halaman itu SUDAH terbukti 0
+pelanggaran secara TIDAK LANGSUNG (`/proyek/[id]` web, komponen yang sama,
+dikonfirmasi 0 pelanggaran di run yang sama; `/admin-portal/proyek/[id]`
+adalah shell mobile Task 7 di atas fetch data yang identik), tapi belum
+dikonfirmasi LANGSUNG lewat axe-core pada URL admin-portal itu sendiri.
+Diwariskan sebagai concern eksplisit ke task-12-report.md, BUKAN diklaim
+tercakup dari kepercayaan bahwa fix `CONTOH_ID` otomatis benar.
+
+**Catatan direktur (Change Order approve)**: gerbang `change_order:approve`
+di `/admin-portal/kontrak/change-order` bersifat admin-only, direktur
+TIDAK — tombolnya dihilangkan dari DOM (bukan `disabled`) berdasar peran,
+per komentar kepala berkas Task 10. Kondisi ini TIDAK BISA di-a11y-scan
+dengan akun uji yang tersedia (`LAYAR_EMAIL` berperan admin, 0 user
+`direktur` aktif di basis dev) — memverifikasi tombol benar-benar hilang
+dari DOM (bukan cuma disabled secara visual) untuk peran direktur butuh
+akun uji terpisah berperan direktur. Diwariskan sebagai concern eksplisit,
+sama pola dengan cakupan a11y peran-terbatas Portal PM.
+
+**Test backend terkait (constraint global: backend TIDAK disentuh)**:
+`kontrak` 206/206 lulus · `rantai-kontrak` 33/33 · `cpm` (nama file
+sungguhan pengganti filter `jadwal-cpm` yang brief sebut, tak ada file
+bernama itu) 33/33 · `baseline-jadwal` (lib+endpoint) 44/44 · `analisa-
+keterlambatan` 21/21 · `surat` 36/36. **Satu kegagalan pra-eksisting**:
+`otomasi-asuransi.test.ts` — "polis 60 hari ditegur pada ambang bawaan 30:
+expected 12 to be +0". Diselidiki sampai akar: komentar kepala test
+menyatakan "`polis_asuransi` kosong di basis dev (diukur: 0 baris)", tapi
+basis dev SEKARANG punya 9 baris (dibuat 2026-08-16, SEBELUM Task 7 pun
+dimulai — bukan data yang ditanam Tahap 2). Test menghitung SEMUA
+notifikasi `polis_segera_berakhir` milik company tanpa menyaring hanya
+milik data uji `[UJI-ASURANSI]`-nya sendiri, jadi polis asli (`CAR/2025/
+0203`, jatuh tempo 2026-09-04, dalam jangkauan 90 hari) ikut tertegur dan
+mengotori hitungan. **Dibuktikan pra-eksisting**: dijalankan di worktree
+terpisah pada commit `f52d9db8` (akhir Task 6, sebelum satu baris kode
+Task 7-11 pun ditulis) — kegagalan IDENTIK persis. Bukan regresi Tahap 2,
+bukan disebabkan Task 12. Tidak diperbaiki di sini (backend read-only per
+constraint plan ini) — kandidat perbaikan test: saring hitungan
+`bawaan[0].n` hanya notifikasi yang `action_data.record_id` menunjuk polis
+bertanda `[UJI-ASURANSI]`.
+
+**Dokumen diperbarui**: `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` (§3
+Manajemen Kontrak, §4 Perencanaan & Penjadwalan — catatan Portal
+Admin/Direktur Tahap 2 menyusul pola catatan Tahap 1 di dokumen yang sama),
+`docs/execution/QUEUE.yaml` (`RATCHET-DRIFT-ADMIN-PORTAL-TAHAP1` diperbarui
+dengan angka Tahap 2, bukan item baru — akar masalah sama).
+
+**Tahap 2 SELESAI** — enam halaman baru (Task 7-11) semua tersambung
+navigasi lewat aktivasi `g-kontrak`/`g-jadwal`, plus satu celah a11y lama
+(rute dinamis `/admin-portal/proyek/[id]` tak terpindai) ditemukan dan
+diperbaiki bersamaan. Kedua tahap kini punya kategori portal admin/direktur
+yang aktif dan halaman yang terjangkau dua jalur (kategori + cross-link).
+
+## 2026-08-22 (Portal Admin/Direktur Lengkap, Task 5) — Tahap 1 SELESAI: navigasi kategori + verifikasi akhir tahap
+
+Task 5 adalah task TERAKHIR Tahap 1 (Task 3: Dashboard Eksekutif, Task 4:
+Approval Inbox) — bukan fitur baru, mengisi `KATEGORI_AKTIF` level GRUP
+(`lib/admin-portal-kategori.ts`) dengan `["g-laporan", "g-sistem"]` dan
+`PETA_HREF_PORTAL` level ITEM inline di `admin-portal/kategori/[key]/
+page.tsx` (`bi-eksekutif` → `/admin-portal`, `sy-inbox-approval` →
+`/admin-portal/inbox`), lalu verifikasi menyeluruh Tahap 1. Detail lengkap:
+`.superpowers/sdd/2026-08-22-portal-admin-direktur-lengkap/task-5-report.md`.
+
+**Koreksi mekanisme dari riset Task 2 dikonfirmasi BENAR sebelum implementasi**
+(brief Task 5 sudah menandainya): `KATEGORI_AKTIF` disaring level GRUP
+(`PETA_MENU.filter(g => KATEGORI_AKTIF.includes(g.key))`), bukan level item —
+draf lama yang mengisi kunci ITEM di sana akan membuat halaman kategori
+kosong selamanya tanpa galat. Diverifikasi ulang ke `peta-menu.ts` nyata:
+`bi-eksekutif` di `g-laporan` (baris 354), `sy-inbox-approval` di `g-sistem`
+(baris 373) — tak berubah dari riset sebelumnya.
+
+**Efek samping yang DISENGAJA, bukan cacat**: mengaktifkan `g-laporan`/
+`g-sistem` level grup membuat SEMUA item `status: 'hidup'` lain di kedua
+grup itu (bi-proyek, bi-biaya, bi-arus-kas, bi-portofolio, bi-kpi,
+lap-susun, bi-export · sys-impor, sy-user, sy-permission, sy-approval,
+sy-notifikasi, sy-kredensial, ai-*, sy-audit, dst.) ikut tampil di
+`/admin-portal/kategori/{g-laporan,g-sistem}` — tapi TANPA entri di
+`PETA_HREF_PORTAL`, jadi fallback ke `it.href` web (pola sama persis
+Portal PM). Diverifikasi baca kode: fallback `href={PETA_HREF_PORTAL[it.key]
+?? it.href ?? "#"}` tak pernah crash, tak pernah 404 dari sisi navigasi.
+
+**Typecheck**: 0 error (`tsc --noEmit`).
+
+**Build produksi**: `pnpm build` exit 0, 248 halaman ter-generate termasuk
+`/admin-portal/kategori/[key]`.
+
+**Guard CI dibandingkan ke baseline `a0df4762` (commit sebelum Task 3)**
+lewat worktree terpisah (`git worktree add --detach`) menjalankan skrip
+yang SAMA persis, diff NAMA SKRIP (bukan cuma angka total): **128 hijau ·
+43 MERAH · 2 tak ketemu di KEDUA sisi** — himpunan skrip merah identik,
+nol regresi baru dari Tahap 1. Hanya tiga angka numerik berbeda:
+
+| Guard | Baseline (a0df4762) | Sekarang | Delta |
+|---|---|---|---|
+| `kerapatan-ratchet.mjs` | 289 (lantai 181) | 291 | +2 (dari Task 3/4, BUKAN Task 5 — diff Task 5 sendiri nol padding baru) |
+| `judul-ratchet.mjs` | 111 (lantai 27) | 112 | +1 (satu `<h1>` di `kategori/[key]/page.tsx` dari Task 1, bukan Task 3/4/5) |
+| `uji-tombol-primer-seragam.mjs` | 12 (lantai 4) | 11 | **membaik** −1, bukan drift |
+
+Kedua drift (+2/+1) sudah pra-eksisting SEBELUM Task 3 dimulai (289/111 di
+baseline, jauh di atas lantai 181/27) — Tahap 1 menambah sedikit di atas
+utang yang sudah ada, pola identik JUDUL-RATCHET-PORTAL-MOBILE/
+FORMAT-RATCHET-PORTAL-MOBILE dari Portal PM. Dicatat sebagai item QUEUE
+baru `RATCHET-DRIFT-ADMIN-PORTAL-TAHAP1` (bukan diperbaiki di Task 5 —
+scope task ini murni dua array pemetaan, dan menaikkan/menurunkan lantai
+adalah keputusan founder terpisah).
+
+`audit-halaman-pakai-cache.mjs` (path benar: `apps/api/scripts/`, BUKAN
+`apps/web/scripts/` seperti tertulis di brief Step 4 — dikoreksi saat
+eksekusi): 24/261 (baseline) → 24/262 (sekarang), lantai 24 tak bergerak.
+
+**a11y runtime**: server worktree ini dijalankan di port non-bentrok
+(API 3017, web 3099 — port 3000/3007 baku sudah dipakai proses live LAIN
+di checkout `E:\Project\puraloka-suite` root, bukan worktree ini, jadi
+TIDAK diganggu sesuai aturan §8a.1). `jalankan-a11y-lengkap.mjs` dipicu
+dengan `LAYAR_BASIS=http://localhost:3099` — **run PERTAMA selesai
+lengkap** (159 halaman dipindai mode terang, exit 0) dan menemukan cacat
+NYATA: 4 pelanggaran `aria-hidden-focus` (serious) di `/admin-portal`,
+satu per instance `MiniChart` — SVG Recharts memasang `tabIndex` fokus
+keyboard sendiri (accessibilityLayer default TRUE di Recharts 3) di dalam
+kontainer `aria-hidden="true"`, jadi pengguna keyboard bisa Tab masuk ke
+chart yang sengaja disembunyikan dari assistive tech (datanya sudah ada
+sebagai teks di `KpiCard`) lalu terjebak tanpa satu pun konten terumumkan.
+**DIPERBAIKI**: `accessibilityLayer={false}` ditambahkan ke `AreaChart`/
+`BarChart` di `components/portal/MiniChart.tsx`. `tsc --noEmit` dan
+`pnpm build` sesudah fix keduanya bersih.
+**Run KEDUA (verifikasi fix) TIDAK SEMPAT SELESAI** — dua percobaan
+dihentikan (satu pulang hasil ganjil hanya berisi dump env tanpa bagian
+hasil dalam waktu jauh lebih singkat dari run pertama, mengindikasikan
+proses berhenti dini bukan selesai wajar; satu lagi masih berjalan >9
+menit saat dihentikan atas instruksi eksplisit supaya task ini tak
+berlarut). **Dicatat JUJUR**: perbaikan `accessibilityLayer={false}` benar
+secara kode (didukung `tsc`+`build` bersih dan pembacaan API Recharts 3
+langsung dari source paket terpasang), TAPI belum dikonfirmasi ulang lewat
+axe-core runtime sesudah perubahan — bukan diklaim "sudah tercakup"
+(pelajaran Task 30 Portal PM). Mode gelap TIDAK sempat dijalankan sama
+sekali (run pertama hanya mode terang). `/admin-portal/inbox` dan
+`/admin-portal/kategori*` (termasuk `g-master`) SUDAH terkonfirmasi 0
+pelanggaran dari run pertama, sebelum fix MiniChart — tak terpengaruh
+perubahan ini karena chart hanya dipakai di Beranda `/admin-portal`.
+
+**Dokumen diperbarui**: `docs/ERP-KONTRAKTOR-TAKSONOMI-MENU.md` (§18 Laporan
+& BI, §19 Administrasi Sistem — catatan Portal Admin/Direktur menyusul
+pola catatan Portal PM yang sudah ada di dokumen yang sama), `docs/
+INDEKS-DOKUMEN.md` diregenerasi (`gen-indeks-docs.mjs`, guard ini pra-eksisting
+merah di baseline karena isi `docs/` berubah lebih dulu — regenerasi
+membuatnya hijau, bukan bagian scope wajib Task 5 tapi tak berbiaya
+tambahan karena docs sudah disentuh).
+
 ## 2026-08-22 (Portal PM Lengkap, Task 45) — Verifikasi akhir MENYELURUH: PLAN SELESAI (32 modul, 8 tahap, 78 halaman pm-portal)
 
 Task 45 adalah task TERAKHIR dari plan 45-task "Portal PM Lengkap". Bukan
@@ -28282,6 +28533,286 @@ perubahan kode Task 44.
 navigasi, plus satu cacat lama (`g-hse`) diperbaiki bersamaan. Semua enam
 tahap kini punya kategori portal PM yang aktif dan halaman yang terjangkau.
 
+## 2026-08-22 (Portal Admin/Direktur Lengkap, Tahap 3) — Task 19 tuntas: navigasi Keuangan+Penagihan tersambung, Tahap 3 SELESAI TANPA Critical/Important
+
+Worktree `admin-direktur-lengkap` (`feat/admin-direktur-lengkap`), plan
+`docs/superpowers/plans/2026-08-22-portal-admin-direktur-lengkap.md` Tahap 3
+(Task 13-19). Task 14-18 (Dashboard Keuangan+Piutang+IPC, GL, Rekonsiliasi
+Bank, Kas, Pengadaan Lanjutan — 10 halaman baru) sudah selesai dan tercommit
+sebelum sesi ini; disengaja YATIM (tanpa link kategori "Lainnya") sampai
+Task 19 menyambungkannya sekaligus — pola identik Task 12/16/44 di plan
+Portal PM.
+
+**Tahap 3 (Task 14-18) adalah modul finansial paling sensitif di SELURUH
+plan ini, dan lolos verifikasi akhir TANPA satu pun temuan Critical/Important
+di logic gerbang permission** — dikonfirmasi ulang lewat pembacaan langsung
+komentar kepala tiap halaman (`gl/page.tsx`, `rekonsiliasi-bank/page.tsx`,
+`kas/page.tsx`, `pengadaan-lanjutan/page.tsx`), yang masing-masing sudah
+mendokumentasikan verifikasi gerbangnya langsung ke rute backend saat
+dibangun (bukan diasumsikan dari nama fungsi).
+
+**Task 19 — navigasi + verifikasi akhir Tahap 3:**
+
+- `apps/web/lib/admin-portal-kategori.ts`: `KATEGORI_AKTIF` bertambah
+  `"g-keuangan"`, `"g-tagih"` (dari `["g-laporan","g-sistem","g-kontrak",
+  "g-jadwal"]`). Isi grup diverifikasi ULANG ke `peta-menu.ts` baris 291-327
+  (bukan disalin dari brief) — `g-keuangan` 18 item, `g-tagih` **9 item**,
+  bukan 8 seperti tertulis di brief Task 19 Step 2 (`tg-invoice` terlewat
+  dari hitungan brief; lihat catatan koreksi di bawah).
+- `apps/web/app/admin-portal/kategori/[key]/page.tsx`: `PETA_HREF_PORTAL`
+  bertambah 18 entri. Tujuh key (`fn-gl`/`fn-jurnal`/`gl-peta-akun`/
+  `gl-jurnalkan`/`fn-laporan`/`fn-wip`/`fn-tutup-buku`) menunjuk SATU
+  halaman `/admin-portal/keuangan/gl` (SegmentedTab 4-arah, Task 15) — pola
+  identik `jd-cpm`/`jd-histogram`/`jd-method`/`jd-baseline` Tahap 2.
+  `fn-ar`/`fn-kas`/`fn-rekonsiliasi`/`fn-petty` dan `tg-ipc`/`tg-retensi`/
+  `tg-uangmuka`/`tg-tambah`/`tg-followup`/`tg-nota-kredit`/`tg-progress`/
+  `tg-termin` mengarah ke lima halaman Task 14/16/17/18 sesuai kecocokan
+  makna. Sisa 7 item `g-keuangan` (set-api-key, set-markup, fn-ap,
+  fn-aset-tetap, fn-pajak, fn-efaktur, fn-audit) di luar scope Task 14-18,
+  fallback href web — disengaja, pola sama Tahap 1-2.
+
+### Koreksi terhadap brief: `g-tagih` 9 item, bukan 8 — `tg-invoice` terlewat
+
+Brief Task 19 Step 2 menulis komentar "tg-progress/tg-termin/tg-ipc/
+tg-retensi/tg-uangmuka/tg-tambah/tg-followup/tg-nota-kredit — 8 dari 8 item
+grup ini, SELURUHNYA tercakup". Dihitung ULANG langsung ke `peta-menu.ts`
+baris 316-326: grup `g-tagih` punya **9** item, key kesembilan adalah
+`tg-invoice` ("Invoice & Faktur Pajak") yang tak disebut brief sama sekali.
+Diverifikasi: Task 14-18 TIDAK membangun invoice CRUD di admin-portal (nol
+halaman `admin-portal/keuangan/**invoice**`), jadi `tg-invoice` sengaja
+TIDAK dipetakan di `PETA_HREF_PORTAL` — fallback ke `/keuangan/invoice` web,
+pola identik `pm-portal/kategori/[key]/page.tsx` yang mengecualikan key yang
+SAMA dengan alasan yang sama (dikonfirmasi lewat pembacaan komentar existing
+di berkas itu, bukan ditebak). Klaim "8 dari 8" brief diperbaiki jadi "8
+dari 9" di komentar kepala kedua berkas yang diedit.
+
+### Empat catatan gerbang izin yang belum ada di Tahap 1-2
+
+1. `finance:view:all` adalah gerbang BACA admin-only (bukan cuma tulis) —
+   kasus baru di plan ini; Tahap 1-2 semua gerbangnya di aksi TULIS.
+2. GL dan Rekonsiliasi Bank terbelah admin-vs-direktur untuk AKSI TULIS
+   (dikonfirmasi di komentar kepala `gl/page.tsx` dan
+   `rekonsiliasi-bank/page.tsx` — detail permission per aksi ada di sana).
+3. Pengadaan Lanjutan justru MENAMBAH kapabilitas admin+direktur di atas PM
+   — arah TERBALIK dari Task 15/16 yang mengurangi tombol PM untuk
+   direktur (lihat komentar kepala `pengadaan-lanjutan/page.tsx`: tombol
+   Setujui/Tolak/Terapkan Potongan Nota Kredit digerbang
+   `procurement:payment:manage`, yang PM tidak punya sama sekali).
+4. Komentar basi `tutup-buku.ts` ("gl:periode:reopen hanya direktur") ADA
+   DI DUA TEMPAT — baris ~24 (kepala berkas) DAN baris ~390 (di atas
+   registrasi rute `POST /gl/periode/:id/buka`). TIDAK diperbaiki keduanya
+   di sini (backend di luar scope Task 19), tapi dicatat DUA lokasinya
+   supaya sesi berikutnya yang menyentuh backend tak memperbaiki satu lalu
+   berhenti mengira sudah tuntas.
+
+### Enam cross-link Task 14-18 DIPERTAHANKAN — WAJAR ditambah di audit-nav-yatim.mjs
+
+Dashboard Keuangan (`admin-portal/keuangan/page.tsx`) punya 6 tautan badan
+halaman ke Piutang/IPC/GL/Rekonsiliasi Bank/Kas/Pengadaan Lanjutan yang
+dibangun SEBELUM `g-keuangan`/`g-tagih` aktif (komentar lama di berkas itu
+sendiri menyebut alasannya: "grup belum diaktifkan, jalur masuk utamanya
+dari sini"). Sekarang keenamnya bisa dicapai DUA jalur — dievaluasi, dan
+KEPUTUSANNYA DIPERTAHANKAN sebagai pintasan, pola identik 5 tautan
+kontrak/jadwal yang dipertahankan Task 12. Ditambahkan 6 entri WAJAR baru
+di `scripts/audit-nav-yatim.mjs` (piutang, ipc, gl, rekonsiliasi-bank, kas,
+pengadaan-lanjutan) plus komentar diperbarui di `keuangan/page.tsx` sendiri
+(komentar lama menyebut grup "belum diaktifkan" — sudah basi sejak commit
+ini). Rute dinamis (`gl/jurnal/[id]`, `rekonsiliasi-bank/[id]`, `kas/[id]`)
+SENGAJA tidak diberi entri WAJAR — `audit-nav-yatim.mjs` sendiri sudah
+mengecualikan path ber-`[` dari pemeriksaan yatim (dicapai dari badan
+halaman induk, bukan tautan nav bernilai tetap), jadi entri WAJAR di sana
+tak pernah dievaluasi — ditambahkan lalu DIHAPUS lagi setelah dikonfirmasi
+mubazir (lihat kode `yatim = rute.filter((p) => !p.includes('[') ...)`).
+
+### TEMUAN PENTING: 3 rute dinamis Tahap 3 TERLEWAT dari audit a11y — DIPERBAIKI
+
+`uji-rute-dinamis-teraudit.mjs` (bagian dari `jalankan-semua-penjaga.mjs`)
+merah SEBELUM Task 19 menyentuhnya: `/admin-portal/keuangan/gl/jurnal/[id]`,
+`/admin-portal/keuangan/kas/[id]`, `/admin-portal/keuangan/rekonsiliasi-
+bank/[id]` tak punya entri di `CONTOH_ID` (`audit-a11y-runtime.mjs`), jadi
+audit a11y runtime SELALU melewati ketiganya sambil tetap melaporkan "0
+pelanggaran" — gap yang sama persis dengan yang dicatat Task 37 (plan PM)
+untuk versi pm-portal-nya. Diperbaiki dengan MENAMBAH 3 entri baru yang
+MEMAKAI ULANG env var yang SUDAH ADA di `jalankan-a11y-lengkap.mjs`
+(`LAYAR_ID_CASH_ACCOUNT`, `LAYAR_ID_JOURNAL`, `LAYAR_ID_REKENING_KORAN` —
+disediakan Task 33-35 plan PM untuk entitas yang SAMA, bukan per-role), tak
+perlu query SQL baru. Dibuktikan: `uji-rute-dinamis-teraudit.mjs` 21/24 →
+24/24 sesudah perbaikan.
+
+### TEMUAN BARU DAN TERPISAH: klaim exit-code `kerapatan-ratchet.mjs` TIDAK TERKONFIRMASI
+
+Brief Task 19 meminta verifikasi klaim reviewer Task 18 bahwa
+`kerapatan-ratchet.mjs` "mencetak BERTAMBAH N tapi exit code 0 — tak pernah
+bisa merah di CI". **Diverifikasi LANGSUNG membaca kode DAN menjalankan
+skripnya: klaim ini TIDAK TERKONFIRMASI.** `process.exit(1)` ADA di baris
+163 (cabang `sekarang > lantai.nilai`), sudah ada sejak skrip ditulis
+(commit `6cd42011`, 2026-08-07) dan tak pernah diubah sesudahnya (hanya
+`c16cf3fa` mengubah logic pengecualian keadaan kosong, bukan exit code).
+Dijalankan langsung: `node scripts/kerapatan-ratchet.mjs` mencetak
+"❌ BERTAMBAH 110" DAN `echo $?` memulangkan **1**, bukan 0. CI
+(`.github/workflows/ci.yml:1955`) memanggilnya TANPA `continue-on-error`
+dan tanpa pipe yang menelan exit code — kegagalan skrip akan menggagalkan
+step CI itu apa adanya.
+
+Yang BENAR dari laporan reviewer: angka BERTAMBAH 110 itu SENDIRI nyata dan
+SUDAH ADA sejak sebelum Tahap 3 dimulai — dikonfirmasi dengan menjalankan
+skrip yang SAMA persis di worktree terpisah pada commit `28bdc206` (baseline
+Task 13, akhir riset sebelum Tahap 3): hasilnya IDENTIK, 291 vs lantai 181,
+BERTAMBAH 110. Drift ini bukan dari `main` (`28bdc206` bukan ancestor
+`main`) — kemungkinan besar dari pekerjaan mandor-portal/lapangan di
+worktree/branch lain yang mendahului titik divergensi branch ini. Tidak
+diperbaiki di sini (di luar scope Task 19 — bukan berkas yang disentuh
+Tahap 3, dan G-5 tetap berlaku untuk skrip PENJAGA itu sendiri seandainya
+ADA yang perlu diperbaiki, yang ternyata tidak ada). Item QUEUE baru dibuat
+(`KERAPATAN-DRIFT-PRA-TAHAP3`, terpisah dari `RATCHET-DRIFT-ADMIN-PORTAL-
+TAHAP1` yang sudah ada) — BUKAN untuk exit-code (yang ternyata berfungsi
+benar), tapi untuk drift 110 pelanggaran padding yang menunggu pembersihan
+di luar file mana pun yang disentuh plan admin/direktur ini.
+
+### Guard suite — dibandingkan baris demi baris ke baseline Task 13 (`28bdc206`)
+
+`jalankan-semua-penjaga.mjs` SEBELUM perbaikan a11y: **110 hijau, 61 merah,
+2 tak ketemu**. Baseline `28bdc206` (sebelum Tahap 3 mulai): **110 hijau, 61
+merah, 2 tak ketemu** — JUMLAH IDENTIK. Diff daftar nama skrip merah
+baris-demi-baris: **HANYA 2 selisih** — (a) `uji-rute-dinamis-teraudit.mjs`
+baru merah (TEMUAN di atas, sekarang diperbaiki); (b) `gen-indeks-docs.mjs`
+merah di baseline tapi hijau sekarang (diperbaiki oleh pekerjaan Task 14-18
+yang MEMPERBARUI indeks docs sebagai bagian pekerjaannya sendiri, bukan oleh
+Task 19). SESUDAH perbaikan a11y: **111 hijau, 60 merah** — satu-satunya
+selisih tersisa terhadap baseline adalah `gen-indeks-docs.mjs` yang membaik.
+**Kesimpulan: Tahap 3 (Task 14-19) tidak menaikkan satu pun ratchet CI.**
+
+Dua guard lain diverifikasi TERPISAH dengan angka eksplisit:
+
+- `kerapatan-ratchet.mjs`: 291 vs lantai 181 (BERTAMBAH 110) — IDENTIK
+  baseline vs sekarang, exit 1 kedua kalinya (lihat temuan di atas).
+- `format-ratchet.mjs`: 215 vs lantai 215 — IDENTIK baseline vs sekarang,
+  exit 0 kedua kalinya, tidak bertambah.
+- `audit-halaman-pakai-cache.mjs` (lokasi sebenarnya `apps/api/scripts/`,
+  BUKAN `apps/web/scripts/` seperti tertulis di brief Step 4/5 — koreksi
+  path dicatat di sini): baseline 24/272 halaman tanpa cache (lantai 24);
+  sekarang 24/282 (lantai 24, TIDAK bertambah meski 10 halaman baru
+  ditambahkan Tahap 3 — seluruhnya sudah pakai `useData()` atau tak
+  mengambil data client-side).
+
+### `tsc --noEmit` dan `pnpm build` — 46 error pra-eksisting, identik ke baseline
+
+`tsc --noEmit` (apps/web): 46 error, SEMUANYA modul hilang dari node_modules
+(`xlsx`, `@supabase/supabase-js`) atau tipe jest-dom tak ter-augmentasi di
+berkas test — dibandingkan baris-demi-baris ke baseline `28bdc206`: **DIFF
+KOSONG, 46=46 identik**. Nol berkas Task 19 muncul di keluarannya.
+`pnpm build` GAGAL pada modul yang sama (`xlsx`, `@supabase/supabase-js`) —
+lingkungan node_modules worktree ini rusak lebih dalam dari yang terlihat
+awalnya: bahkan `picocolors` (dependensi transitif `postcss`) hilang dari
+tautan `.pnpm`, ditemukan saat mencoba `pnpm dev` untuk uji a11y (lihat di
+bawah) — `/login` pun menjawab 500. Root cause SAMA dengan `pg` yang sudah
+diketahui menghalangi seluruh guard ber-DB dan seluruh test backend: entri
+`.pnpm` ADA secara fisik (dikonfirmasi `find node_modules/.pnpm -iname
+"xlsx@*"` dkk semua ketemu) tapi symlink di `node_modules/` masing-masing
+workspace TIDAK ADA — kelas kerusakan sama persis dengan kejadian
+`@anthropic-ai/sdk` 2026-08-08 yang didokumentasikan CLAUDE.md §7. TIDAK
+diperbaiki dengan `pnpm install` (dilarang eksplisit — berisiko menghapus
+node_modules sesi lain yang sedang berjalan bersamaan).
+
+### Backend test Step 7 — TIDAK BISA DIJALANKAN, dilaporkan jujur
+
+`npx vitest run keuangan-ikhtisar finance cash gl tutup-buku
+rekonsiliasi-bank pengadaan-lanjutan sertifikat-ipc` GAGAL start:
+`vitest.config.ts` sendiri tak bisa dimuat (`Cannot find package 'vitest'`,
+`'dotenv'` juga hilang). Dikonfirmasi `vitest` ADA di `.pnpm` store tapi
+TIDAK ter-link ke `apps/api/node_modules` — root cause SAMA dengan `pg`/
+`xlsx` di atas. Tidak ada cara menjalankan test backend di worktree ini
+tanpa `pnpm install`, yang dilarang. Dilaporkan APA ADANYA, bukan diklaim
+hijau tanpa bukti (CHARTER §7).
+
+### a11y runtime Step 6 — TIDAK BISA DIJALANKAN, dilaporkan jujur
+
+Dicoba `pnpm dev --port 3091` untuk membuktikan web bisa disajikan sebelum
+menjalankan `jalankan-a11y-lengkap.mjs` — server Next.js START (Turbopack,
+"Ready in 366ms"), tapi `/login` menjawab **500** begitu benar-benar
+diakses: `@supabase/supabase-js` hilang dari resolusi modul (dipakai
+`lib/supabase.ts`, otomatis kena tiap halaman ber-auth), DAN `picocolors`
+(dependensi `postcss`) juga hilang — dua lapis kerusakan node_modules yang
+berbeda pada satu request yang sama. Next dev meng-compile route SECARA
+MALAS (lazy), jadi server "Ready" tak membuktikan apa pun sampai route
+sungguhan diakses — pelajaran yang sama dengan peringatan CLAUDE.md §7
+tentang jangan mempercayai satu lapisan menjawab benar untuk dirinya
+sendiri. Server dev dihentikan (`taskkill`) sesudah diagnosis selesai —
+tidak dibiarkan menyala tanpa guna. **a11y runtime TIDAK bisa dijalankan
+sama sekali di worktree ini** — bukan hanya "10 halaman Tahap 3 terlewat",
+seluruh aplikasi web tak bisa disajikan. Dilaporkan sebagai BLOCKED, bukan
+diklaim "0 pelanggaran" yang akan terbaca sebagai cakupan penuh padahal nol
+halaman terperiksa (persis peringatan CLAUDE.md §8a.3 soal kredensial
+hilang membuat SEMUA halaman ke `/login` — di sini akarnya beda, tapi
+akibatnya sama: nol bukti).
+
+Catatan direktur (brief Step 6, berlaku terlepas dari blocker di atas): akun
+admin TIDAK BISA memverifikasi keadaan "tombol GL/Rekonsiliasi hilang untuk
+direktur" maupun "403 Dashboard/Piutang untuk direktur" secara otomatis (0
+user direktur aktif) — kedua kondisi itu hanya diverifikasi MANUAL lewat
+akun uji direktur di Task 15/16/14 masing-masing, bukan lewat scan a11y
+otomatis, terlepas dari apakah scan itu sendiri bisa dijalankan.
+
+### `audit-nav-yatim.mjs` — TIDAK BISA DIJALANKAN (dicoba ulang, masih gagal)
+
+Brief meminta dicoba lagi kalau-kalau `pg` sudah stabil. Dicoba: masih
+`Cannot find module 'pg'` — sama seperti dilaporkan Task 12/16. Evaluasi
+cross-link (bagian di atas) dan penambahan WAJAR dilakukan lewat pembacaan
+kode statis (pola sudah terbukti identik Task 12), BUKAN dikonfirmasi
+lewat menjalankan skripnya sendiri.
+
+### Bukti
+
+- `tsc --noEmit`: 46 error, identik baseline `28bdc206` (diff kosong).
+- `pnpm build`: GAGAL, module-not-found `xlsx`/`@supabase/supabase-js` —
+  pra-eksisting, bukan regresi Task 19 (berkas yang gagal build tak satu
+  pun disentuh Task 19).
+- `jalankan-semua-penjaga.mjs`: 111 hijau/60 merah (naik dari 110/61
+  sebelum perbaikan a11y). Diff nama skrip merah vs baseline `28bdc206`:
+  KOSONG.
+- `kerapatan-ratchet.mjs`: 291/181 (BERTAMBAH 110), identik baseline, exit 1.
+- `format-ratchet.mjs`: 215/215, identik baseline, exit 0.
+- `audit-halaman-pakai-cache.mjs`: 24/282 (lantai 24), tak bertambah dari
+  baseline 24/272.
+- `uji-rute-dinamis-teraudit.mjs`: 21/24 → 24/24 sesudah perbaikan.
+- `uji-token-css-ada.mjs`: 0 token hantu, exit 0.
+- `uji-tombol-primer-seragam.mjs`: 11 tombol padat (lantai 4) — IDENTIK
+  baseline, nol berkas Task 19 dalam daftar offender.
+- Backend test (Step 7): TIDAK BISA DIJALANKAN — `vitest`/`dotenv` hilang
+  dari `apps/api/node_modules`.
+- a11y runtime (Step 6): TIDAK BISA DIJALANKAN — web tak bisa disajikan
+  sama sekali (`@supabase/supabase-js`, `picocolors` hilang).
+- `audit-nav-yatim.mjs`: TIDAK BISA DIJALANKAN — `pg` hilang. Dicoba ulang
+  sesuai brief, masih gagal.
+
+### Yang MERAH dan bukan milik saya
+
+60 dari 61 skrip merah (`jalankan-semua-penjaga.mjs`) SAMA PERSIS dengan
+baseline `28bdc206` — didominasi modul `pg`/`vitest`/`xlsx`/`picocolors`
+hilang dari `node_modules` (kerusakan lingkungan lintas-worktree, bukan
+kode), plus drift migrasi/tenancy/lint pra-eksisting yang tak terkait
+berkas yang disentuh Task 19 (hanya 5 berkas: `admin-portal-kategori.ts`,
+`kategori/[key]/page.tsx`, `keuangan/page.tsx` [komentar saja],
+`audit-nav-yatim.mjs`, `audit-a11y-runtime.mjs`).
+
+### Item QUEUE
+
+- `RATCHET-DRIFT-ADMIN-PORTAL-TAHAP1` diperbarui dengan angka Tahap 3
+  (kerapatan 291/181, format 215/215, cache 24/282 — tak ada satu pun yang
+  BERUBAH akibat Tahap 3, jadi hanya angka konteksnya yang diperbarui).
+- `KERAPATAN-DRIFT-PRA-TAHAP3` (BARU, terpisah dari item di atas): 110
+  pelanggaran padding dipaku yang sudah ada SEBELUM Tahap 3 dimulai
+  (dikonfirmasi identik di baseline `28bdc206`), lokasinya di luar berkas
+  admin-portal manapun (mandor-portal/lapangan) — pembersihan menunggu
+  sesi yang menyentuh berkas-berkas itu.
+
+**Tahap 3 SELESAI** — modul finansial paling sensitif di plan ini (GL,
+Rekonsiliasi Bank, Kas, Pengadaan Lanjutan, Piutang, IPC) lolos Task 14-19
+tanpa satu pun temuan Critical/Important pada logic gerbang permission, dan
+navigasinya tersambung penuh ke kategori "Lainnya". Lingkungan node_modules
+worktree ini rusak cukup dalam sehingga build/test/a11y runtime semuanya
+BLOCKED — dilaporkan jujur di setiap bagian di atas, bukan diklaim lulus
+tanpa bukti.
 ## 2026-08-22 (lanjutan) — n8n shared multi-tenant: 7/8 task selesai, deploy live tertunda
 
 Brainstorming → spec → plan → implementasi (subagent-driven-development,
