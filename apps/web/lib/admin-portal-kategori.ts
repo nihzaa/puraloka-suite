@@ -78,6 +78,7 @@ const KATEGORI_AKTIF: string[] = [
   "g-kontrak", "g-jadwal",              // Tahap 2
   "g-keuangan", "g-tagih",              // Tahap 3
   "g-procurement",                      // Tahap 4 (Task 21) — MR/PO/GR
+  "g-inventory", "g-aset",              // Tahap 4 (Task 22) — Gudang & Aset
 ];
 
 export function kategoriUntukAdmin(): GrupMenu[] {

@@ -4819,6 +4819,114 @@ yang admin/direktur benar-benar punya.
 
 ---
 
+### Task 22: Gudang & Aset — ikhtisar company-wide + transfer stok
+
+**Hasil riset 2026-08-27 — DIUKUR KE KODE, bukan ditebak dari nama menu.**
+
+Pelajaran Task 21 masih berlaku: rencananya sendiri salah di tiga tempat
+kontrak API, dan ketiganya gagal SENYAP. Karena itu seluruh bentuk di bawah
+diverifikasi langsung ke `apps/api/src/routes/v1/`.
+
+**Endpoint yang BENAR-BENAR ada (22 total di 6 berkas):**
+
+| berkas | rute | izin |
+|---|---|---|
+| `gudang-ikhtisar.ts` | `GET /api/v1/gudang/ikhtisar` | `gudang:view` |
+| `gudang-kelola.ts` | `GET/POST/PATCH /api/v1/gudang` | `gudang:view` / `gudang:manage` |
+| `transfer-stok.ts` | `GET/POST /api/v1/transfer-stok` | `procurement:view` / `procurement:material:manage` |
+| `rekonsiliasi-material.ts` | `GET /api/v1/projects/:projectId/rekonsiliasi-material` | `procurement:view` |
+| `assets.ts` | 10 rute `/api/v1/assets*` | (ukur per-rute) |
+| `alat-operasional.ts` | 5 rute | (ukur per-rute) |
+
+**Kenapa SATU halaman, bukan dua (Gudang terpisah dari Aset):**
+
+`GET /gudang/ikhtisar` sudah MENGGABUNGKAN keduanya dalam satu balasan —
+`kpi` memuat `total_aset`, `nilai_buku`, `akumulasi_susut` (aset) BERSAMA
+`jenis_material_gudang`, `proyek_belum_ditarik` (stok). Memecahnya jadi dua
+halaman berarti memanggil endpoint yang sama dua kali lalu membuang separuh
+hasilnya di masing-masing.
+
+Itu juga cerminan kenyataannya: gudang menyimpan ALAT dan MATERIAL sekaligus,
+dan orang yang membukanya bertanya "apa yang ada di gudang saya", bukan
+"tunjukkan aset saja".
+
+**Bentuk balasan `GET /gudang/ikhtisar` — diverifikasi baris-per-baris
+(`gudang-ikhtisar.ts:190-260`):**
+
+```typescript
+export interface RespGudangIkhtisar {
+  kpi: {
+    total_aset: number; di_gudang: number; di_lapangan: number;
+    perlu_perhatian: number; jenis_material_gudang: number;
+    proyek_belum_ditarik: number;
+    // ⚠ Ketiganya STRING, bukan number — server melewatkannya lewat
+    // `rp = (n) => n.toFixed(2)` (gudang-ikhtisar.ts:45). Isinya angka
+    // MENTAH berdesimal ("18750000.00"), BUKAN rupiah terformat.
+    nilai_perolehan: string; nilai_buku: string; akumulasi_susut: string;
+  };
+  gudang: Array<{ id: string; kode: string; nama: string; alamat: string | null;
+    jumlah_aset: number; jenis_material: number }>;
+  aset_per_kategori: Record<string, number>;
+  aset_per_kondisi: Record<string, number>;
+  isi_gudang: Array<{ id: string; kode: string; nama: string; kategori: string;
+    kondisi: string; status: string; gudang: string | null }>;
+  pergerakan: Array<{ id: string; jenis: string; tanggal: string | null;
+    hari_lalu: number | null; dari: string | null; ke: string | null;
+    kondisi_sebelum: string | null; kondisi_sesudah: string | null;
+    // Dihitung SERVER — jangan dibandingkan ulang di UI. Komentar di
+    // `gudang-ikhtisar.ts` menjelaskan alasannya: urutan tingkat kondisi yang
+    // ditulis ulang di tiap tempat akan salah di salah satunya, dan alat
+    // sehat tertandai rusak.
+    memburuk: boolean }>;
+  material_gudang: Array<{ id: string; material_id: string; qty: string;
+    asal: string | null }>;
+  /** Proyek yang materialnya belum ditarik kembali ke gudang. */
+  belum_ditarik: unknown[];
+}
+```
+
+⚠ **Ketiganya `string`, dan itu MUDAH salah dibaca dua arah.**
+
+Dugaan pertama saya: "sudah terformat, jangan diformat lagi". SALAH — diukur
+ke `gudang-ikhtisar.ts:45`, `rp` hanyalah `(n) => n.toFixed(2)`. Isinya
+`"18750000.00"`: angka mentah berdesimal, bukan rupiah.
+
+Jadi UI **WAJIB** memformatnya (`formatRupiah` menerima `number | string` dan
+menangani ini). Yang berbahaya adalah menampilkannya apa adanya — layar
+keuangan yang berbunyi "18750000.00" terbaca seperti data rusak.
+
+Pelajaran yang sama dengan Task 21: tipe `string` TIDAK memberi tahu apakah
+isinya sudah diformat. Hanya membaca fungsinya yang memberi tahu.
+
+**Files:**
+- Create: `apps/web/app/admin-portal/gudang/page.tsx`
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah
+  `RespGudangIkhtisar` + `RespTransferStok`)
+- Modify: `apps/web/app/admin-portal/kategori/[key]/page.tsx` (petakan key)
+- Modify: `apps/web/lib/admin-portal-kategori.ts` (aktifkan `g-inventory`,
+  `g-aset`)
+
+**Key yang DIPETAKAN — hanya yang halamannya benar-benar ada:**
+
+`iv-gudang`, `iv-mutasi`, `iv-opname` → `/admin-portal/gudang`
+`as-register`, `as-utilisasi` → `/admin-portal/gudang`
+
+Sisanya (`iv-transfer`, `iv-minstok`, `iv-rekonsiliasi`, `iv-waste`,
+`gd-susut`, `as-mutasi`, `as-penyusutan`, `as-sewa`, `as-maintenance`,
+`as-opex`, `as-gl`) SENGAJA jatuh ke fallback href web — pola sama Tahap 1-3.
+Memetakannya ke halaman ini akan menjanjikan layar yang tak ada.
+
+- [ ] **Step 1: tipe** — `RespGudangIkhtisar` sesuai bentuk di atas.
+- [ ] **Step 2: halaman** — KPI ringkas, daftar gudang, isi gudang (10 teratas,
+  kondisi buruk di atas — urutan sudah dari server), pergerakan terakhir
+  dengan penanda `memburuk`, material teratas.
+- [ ] **Step 3: navigasi** — aktifkan dua grup, petakan 5 key.
+- [ ] **Step 4: verifikasi** — tsc, token CSS diadu ke globals.css, RENDER
+  390x844 dan LIHAT, axe-core 0 pelanggaran, seluruh penjaga CI diadu ke
+  baseline.
+
+---
+
 ## Tahap 5-7: Belum di-breakdown
 
 Mengikuti pola Portal PM: setiap Tahap (5: Mutu/K3+Risiko+Dokumen+

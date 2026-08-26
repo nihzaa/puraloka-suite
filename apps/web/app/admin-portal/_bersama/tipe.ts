@@ -1261,6 +1261,67 @@ export interface RespQuotaCheck {
  * `procurement.ts` menuliskannya sendiri: *"UI WAJIB menyembunyikan
  * tombolnya, bukan memasang tautan ke nomor ngawur."*
  */
+/* ══════════════════════════════════════════════════════════════════════════
+   TAHAP 4 (Task 22) — Gudang & Aset company-wide
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Bentuk PERSIS `GET /api/v1/gudang/ikhtisar` — diverifikasi baris-per-baris
+ * ke `gudang-ikhtisar.ts:190-265`, bukan ditebak.
+ */
+export interface RespGudangIkhtisar {
+  kpi: {
+    total_aset: number;
+    di_gudang: number;
+    di_lapangan: number;
+    perlu_perhatian: number;
+    jenis_material_gudang: number;
+    proyek_belum_ditarik: number;
+    /*
+      ⚠ TIGA NILAI DI BAWAH BERTIPE STRING, DAN ITU BUKAN RUPIAH TERFORMAT.
+
+      Server melewatkannya lewat `rp = (n) => n.toFixed(2)`
+      (gudang-ikhtisar.ts:45), jadi isinya "18750000.00" — angka MENTAH
+      berdesimal. UI WAJIB memformatnya; menampilkan apa adanya membuat
+      layar keuangan berbunyi "18750000.00" dan terbaca seperti data rusak.
+
+      Dugaan pertama saya justru sebaliknya ("sudah terformat, jangan
+      diformat lagi") dan itu SALAH. Tipe `string` tak memberi tahu apakah
+      isinya sudah diformat — hanya membaca fungsinya yang memberi tahu.
+    */
+    nilai_perolehan: string;
+    nilai_buku: string;
+    akumulasi_susut: string;
+  };
+  gudang: Array<{
+    id: string; kode: string; nama: string; alamat: string | null;
+    jumlah_aset: number; jenis_material: number;
+  }>;
+  aset_per_kategori: Record<string, number>;
+  aset_per_kondisi: Record<string, number>;
+  /** Sudah TERURUT dari server: kondisi terburuk di atas, 10 teratas. */
+  isi_gudang: Array<{
+    id: string; kode: string; nama: string;
+    kategori: string; kondisi: string; status: string;
+    gudang: string | null;
+  }>;
+  pergerakan: Array<{
+    id: string; jenis: string; tanggal: string | null; hari_lalu: number | null;
+    dari: string | null; ke: string | null;
+    kondisi_sebelum: string | null; kondisi_sesudah: string | null;
+    /*
+      Dihitung SERVER — JANGAN dibandingkan ulang di UI. Alasannya tertulis
+      di `gudang-ikhtisar.ts`: urutan tingkat kondisi yang ditulis ulang di
+      tiap tempat akan salah di salah satunya, dan alat sehat tertandai rusak.
+    */
+    memburuk: boolean;
+  }>;
+  material_gudang: Array<{
+    id: string; material_id: string; qty: string; asal: string | null;
+  }>;
+  belum_ditarik: unknown[];
+}
+
 export interface RespPesanPo {
   po_number: string | null;
   pesan: string;

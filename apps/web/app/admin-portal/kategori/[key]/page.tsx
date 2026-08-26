@@ -81,6 +81,23 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "pr-mr": "/admin-portal/procurement",
   "pr-po": "/admin-portal/procurement",
   "pr-grn": "/admin-portal/procurement",
+  /*
+    Tahap 4 (Task 22) — Gudang (g-inventory) & Aset (g-aset).
+
+    LIMA key dipetakan ke SATU halaman `/admin-portal/gudang`, karena
+    `GET /gudang/ikhtisar` memang menjawab kelimanya sekaligus: daftar
+    gudang, isi gudang, pergerakan alat, register & utilisasi aset.
+
+    Sisanya (iv-transfer, iv-minstok, iv-rekonsiliasi, iv-waste, gd-susut,
+    as-mutasi, as-penyusutan, as-sewa, as-maintenance, as-opex, as-gl)
+    SENGAJA jatuh ke fallback href web — halamannya belum dibangun di
+    admin-portal, dan memetakannya akan menjanjikan layar yang tak ada.
+  */
+  "iv-gudang": "/admin-portal/gudang",
+  "iv-mutasi": "/admin-portal/gudang",
+  "iv-opname": "/admin-portal/gudang",
+  "as-register": "/admin-portal/gudang",
+  "as-utilisasi": "/admin-portal/gudang",
   "bi-eksekutif": "/admin-portal",
   "sy-inbox-approval": "/admin-portal/inbox",
   // Tahap 2 — Kontrak (g-kontrak)
