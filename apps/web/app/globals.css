@@ -1615,3 +1615,66 @@ a {
     transition: box-shadow var(--gerak-cepat) linear;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANGKA PEMIMPIN — satu per layar
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Aturan "satu aksen per layar" (ARAH-VISUAL §3d) punya pasangan yang tak
+   pernah ditulis: SATU ANGKA PEMIMPIN per layar.
+
+   Diukur pada halaman portal yang saya tulis: skalanya 11 · 12 · 13 · 20 ·
+   22 · 24 — empat ukuran berdesakan di bawah, lalu tiga yang nyaris sama di
+   atas. Akibatnya tak ada yang memimpin: "Rp 1,24 M" dan "Stok terbanyak di
+   gudang" terbaca setara, dan mata tak punya titik masuk.
+
+   Kelas ini memberi angka utama ukuran yang tak bisa dikira judul biasa,
+   dengan tracking rapat (angka besar butuh lebih rapat daripada teks) dan
+   rata digit supaya kolomnya tak bergoyang.
+
+   ⚠ SATU per layar. Kalau dua angka memakainya, tak ada yang memimpin —
+   sama persis dengan tiga hal berwarna aksen.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.angka-pemimpin {
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(30px, 9vw, 38px);
+  font-weight: 700;
+  /* Angka besar butuh tracking lebih rapat daripada teks: pada ukuran ini
+     jarak bawaan membuat digitnya tampak berserakan. Lantai -0.04em. */
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  color: var(--navy);
+}
+
+/*
+  ⚠ Mode gelap repo ini memakai KELAS `.dark`, BUKAN `[data-theme]`.
+
+  Versi pertama aturan ini memakai `:root[data-theme="dark"]` — pola yang
+  lazim di tempat lain, dan SALAH di sini: seluruh token gelap tinggal di
+  blok `.dark` (globals.css:595). Akibatnya angka pemimpin tetap navy pekat
+  di latar gelap — nyaris tak terbaca.
+
+  Diukur di peramban: `rgb(0, 51, 102)` di latar gelap. Typecheck bersih,
+  penjaga hijau; hanya pengukuran warna terhitung yang menangkapnya.
+*/
+.dark .angka-pemimpin {
+  color: var(--aksen);
+}
+
+/*
+  LABEL EYEBROW untuk angka pemimpin.
+
+  Bukan "kicker di atas judul" yang dilarang — ini LABEL SATUAN untuk sebuah
+  angka, dan angka tanpa label bukan informasi. Bedanya: label ini menjelaskan
+  angkanya ("nilai buku aset"), bukan mengulang apa yang sudah jelas.
+*/
+.label-angka {
+  font-size: var(--t-kecil);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}

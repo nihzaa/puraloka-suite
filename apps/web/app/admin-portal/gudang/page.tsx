@@ -85,19 +85,38 @@ export default function AdminGudangPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+      <h1 style={{
+        fontSize: "var(--t-judul)", fontWeight: 700,
+        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
+      }}>
         Gudang &amp; Aset
       </h1>
 
-      {/* ── Nilai aset ─────────────────────────────────────────────────── */}
-      <Kartu menonjol>
-        <div style={labelKecil}>Nilai buku aset</div>
-        <div style={angkaBesar}>{formatRupiah(kpi.nilai_buku)}</div>
-        <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
+      {/*
+        ── ANGKA PEMIMPIN — sengaja TANPA kartu ──────────────────────────
+
+        Versi sebelumnya membungkusnya dalam kartu seperti enam bagian
+        lainnya, dan akibatnya tak ada yang memimpin: nilai aset terbaca
+        setara dengan "Stok terbanyak di gudang".
+
+        Di luar kartu, ia jadi pernyataan pembuka halaman — bukan kartu
+        pertama dari tujuh. Angka pendukung berbagi baris di bawahnya,
+        dipisah garis rambut, bukan dijadikan kartu sendiri-sendiri.
+      */}
+      <header style={{ marginTop: 2 }}>
+        <div className="label-angka">Nilai buku aset</div>
+        <div className="angka-pemimpin" style={{ marginTop: 6 }}>
+          {formatRupiah(kpi.nilai_buku)}
+        </div>
+        <div style={{
+          display: "flex", gap: 20, marginTop: 14, paddingTop: 12,
+          borderTop: "1px solid color-mix(in srgb, var(--border) 55%, transparent)",
+          flexWrap: "wrap",
+        }}>
           <Mini label="Perolehan" nilai={formatRupiah(kpi.nilai_perolehan)} />
           <Mini label="Akumulasi susut" nilai={formatRupiah(kpi.akumulasi_susut)} />
         </div>
-      </Kartu>
+      </header>
 
       {/* ── Sebaran aset ───────────────────────────────────────────────── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
@@ -127,7 +146,7 @@ export default function AdminGudangPage() {
           data.gudang.map((g) => (
             <div key={g.id} style={barisDaftar}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+                <div style={{ fontSize: "var(--t-badan)", fontWeight: 600, color: "var(--text-primary)" }}>
                   {g.nama}
                 </div>
                 <div style={metaKecil}>
@@ -150,7 +169,7 @@ export default function AdminGudangPage() {
           data.isi_gudang.map((a) => (
             <div key={a.id} style={barisDaftar}>
               <div>
-                <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{a.nama}</div>
+                <div style={{ fontSize: "var(--t-badan)", color: "var(--text-primary)" }}>{a.nama}</div>
                 <div style={metaKecil}>
                   {a.kode} · {a.kategori}{a.gudang ? ` · ${a.gudang}` : ""}
                 </div>
@@ -175,7 +194,7 @@ export default function AdminGudangPage() {
           data.pergerakan.map((m) => (
             <div key={m.id} style={barisDaftar}>
               <div>
-                <div style={{ fontSize: 13, color: "var(--text-primary)" }}>
+                <div style={{ fontSize: "var(--t-badan)", color: "var(--text-primary)" }}>
                   {m.dari ?? "—"} → {m.ke ?? "—"}
                 </div>
                 <div style={metaKecil}>
@@ -218,7 +237,7 @@ export default function AdminGudangPage() {
         ) : (
           data.material_gudang.map((s) => (
             <div key={s.id} style={barisDaftar}>
-              <div style={{ fontSize: 13, color: "var(--text-primary)" }}>
+              <div style={{ fontSize: "var(--t-badan)", color: "var(--text-primary)" }}>
                 {s.asal ? `Sisa dari ${s.asal}` : "Stok gudang"}
               </div>
               <div style={{ ...metaKecil, fontVariantNumeric: "tabular-nums" }}>
@@ -244,7 +263,7 @@ function Kpi({
         {label}
       </div>
       <div style={{
-        marginTop: 4, fontSize: 22, fontWeight: 700,
+        marginTop: 4, fontSize: "var(--t-angka)", fontWeight: 700,
         color: sorot ? "var(--on-danger-bg)" : "var(--text-primary)",
         fontVariantNumeric: "tabular-nums",
       }}>
@@ -259,7 +278,7 @@ function Mini({ label, nilai }: { label: string; nilai: string }) {
     <div>
       <div style={labelKecil}>{label}</div>
       <div style={{
-        fontSize: 13, fontWeight: 600, color: "var(--text-primary)",
+        fontSize: "var(--t-badan)", fontWeight: 600, color: "var(--text-primary)",
         fontVariantNumeric: "tabular-nums",
       }}>
         {nilai}
@@ -271,7 +290,7 @@ function Mini({ label, nilai }: { label: string; nilai: string }) {
 function Bagian({ judul, children }: { judul: string; children: React.ReactNode }) {
   return (
     <Kartu sebagai="section">
-      <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px" }}>
+      <h2 style={{ fontSize: "var(--t-badan)", fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px" }}>
         {judul}
       </h2>
       {children}
@@ -286,25 +305,21 @@ function Kosong({ teks }: { teks: string }) {
 }
 
 const labelKecil: React.CSSProperties = {
-  fontSize: 12, fontWeight: 600, color: "var(--text-secondary)",
+  fontSize: "var(--t-data)", fontWeight: 600, color: "var(--text-secondary)",
 };
 const metaKecil: React.CSSProperties = {
-  fontSize: 12, color: "var(--text-secondary)",
-};
-const angkaBesar: React.CSSProperties = {
-  marginTop: 4, fontSize: 24, fontWeight: 700,
-  color: "var(--navy)", fontVariantNumeric: "tabular-nums",
+  fontSize: "var(--t-data)", color: "var(--text-secondary)",
 };
 const barisDaftar: React.CSSProperties = {
   display: "flex", justifyContent: "space-between", alignItems: "center",
   gap: 12, padding: "8px 0", borderTop: "1px solid var(--border)",
 };
 const pil: React.CSSProperties = {
-  fontSize: 11, fontWeight: 700, padding: "3px 8px",
+  fontSize: "var(--t-kecil)", fontWeight: 700, padding: "3px 8px",
   borderRadius: "var(--portal-radius-pill)", flexShrink: 0,
 };
 const kotakPeringatan: React.CSSProperties = {
   padding: 12, borderRadius: 12,
   background: "var(--warning-bg)", color: "var(--on-warning-bg)",
-  fontSize: 12, lineHeight: 1.5,
+  fontSize: "var(--t-data)", lineHeight: 1.5,
 };
