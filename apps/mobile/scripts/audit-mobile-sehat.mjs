@@ -67,7 +67,7 @@ for (const f of berkasBer(['.ts'], RUTE_API)) {
     Karena itu `[\s\S]*?` melintasi baris, dan `<[^>]*>` menerima generic.
   */
   for (const m of isi.matchAll(
-    /app\.(?:get|post|put|patch|delete)\s*(?:<[\s\S]*?>)?\s*\(\s*'([^']+)'/g,
+    /app\.(?:get|post|put|patch|delete)\s*(?:<[\s\S]*?>)?\s*\(\s*(?:(?:\/\/[^\n]*\n|\/\*[\s\S]*?\*\/)\s*)*'([^']+)'/g,
   )) {
     rutePunyaApi.add(m[1])
   }
