@@ -40,6 +40,7 @@ import { useData } from "@/lib/data-cache";
 import { formatRupiah } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
+import Kartu from "@/components/portal/Kartu";
 import type { RespGudangIkhtisar, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
 
@@ -89,14 +90,14 @@ export default function AdminGudangPage() {
       </h1>
 
       {/* ── Nilai aset ─────────────────────────────────────────────────── */}
-      <div style={kartu}>
+      <Kartu menonjol>
         <div style={labelKecil}>Nilai buku aset</div>
         <div style={angkaBesar}>{formatRupiah(kpi.nilai_buku)}</div>
         <div style={{ display: "flex", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
           <Mini label="Perolehan" nilai={formatRupiah(kpi.nilai_perolehan)} />
           <Mini label="Akumulasi susut" nilai={formatRupiah(kpi.akumulasi_susut)} />
         </div>
-      </div>
+      </Kartu>
 
       {/* ── Sebaran aset ───────────────────────────────────────────────── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
@@ -237,7 +238,7 @@ function Kpi({
   ikon: typeof Warehouse; label: string; nilai: number; sorot?: boolean;
 }) {
   return (
-    <div style={kartu}>
+    <Kartu>
       <div style={{ display: "flex", alignItems: "center", gap: 6, ...labelKecil }}>
         <Ikon size={14} aria-hidden="true" />
         {label}
@@ -249,7 +250,7 @@ function Kpi({
       }}>
         {nilai}
       </div>
-    </div>
+    </Kartu>
   );
 }
 
@@ -269,12 +270,12 @@ function Mini({ label, nilai }: { label: string; nilai: string }) {
 
 function Bagian({ judul, children }: { judul: string; children: React.ReactNode }) {
   return (
-    <section style={kartu}>
+    <Kartu sebagai="section">
       <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", margin: "0 0 4px" }}>
         {judul}
       </h2>
       {children}
-    </section>
+    </Kartu>
   );
 }
 
@@ -284,10 +285,6 @@ function Kosong({ teks }: { teks: string }) {
   );
 }
 
-const kartu: React.CSSProperties = {
-  padding: 14, borderRadius: 14,
-  background: "var(--surface)", border: "1px solid var(--border)",
-};
 const labelKecil: React.CSSProperties = {
   fontSize: 12, fontWeight: 600, color: "var(--text-secondary)",
 };

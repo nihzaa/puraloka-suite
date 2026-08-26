@@ -1505,3 +1505,113 @@ details > summary:focus-visible {
     animation: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PERMUKAAN PERAMBAN — bagian yang tak kita gambar, tapi tetap membawa desain
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Sorotan teks, kursor ketik, dan garis bawah tautan datang dengan bawaan
+   peramban yang tak menjadi milik sistem desain mana pun. Membiarkannya
+   adalah selisih antara antarmuka yang DIBANGUN dan yang DIRAKIT — dan ini
+   justru bagian yang paling sering terlewat karena tak pernah muncul di
+   tangkapan layar mana pun sampai seseorang menyeret kursornya.
+
+   Diukur 2026-08-27: `::selection`, `caret-color`, dan
+   `text-underline-offset` NOL kemunculan di seluruh berkas ini.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+::selection {
+  /* Navy merek pada 18% — cukup untuk terbaca sebagai pilihan, tak cukup
+     untuk menenggelamkan teks di bawahnya. */
+  background: color-mix(in srgb, var(--aksen) 18%, transparent);
+  color: var(--text-primary);
+}
+
+/* Kursor ketik mengikuti aksen: satu-satunya bagian isian yang bergerak
+   sendiri, dan bawaannya hitam pekat di kedua mode. */
+input, textarea, select, [contenteditable] {
+  caret-color: var(--aksen);
+}
+
+/*
+  Garis bawah tautan turun dari garis dasar dan menipis.
+
+  Bawaan peramban menempelkannya tepat di huruf, memotong ekor huruf 'g'/'y'
+  dan membuat tautan terbaca lebih berat daripada teks sekitarnya.
+*/
+a {
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+
+/*
+  ANGKA RATA DIGIT di seluruh permukaan yang menampilkan nominal.
+
+  Tanpa `tabular-nums`, angka '1' lebih sempit daripada '8' — kolom rupiah
+  bergoyang antar-baris dan mata kehilangan garis bantu vertikalnya. Pada
+  layar keuangan, itu bukan soal estetika: membandingkan dua angka jadi
+  menuntut membaca keduanya utuh, bukan sekilas.
+*/
+.angka-rata,
+[data-angka] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   KARTU PORTAL — elevasi dinyatakan SEKALI, dan satu gerakan
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Dipakai `components/portal/Kartu.tsx`. Alasan lengkapnya ada di sana;
+   ringkasnya: seluruh halaman portal sebelumnya memakai border 1px TANPA
+   bayangan, padahal `--naik-1/2/3` sudah ada sejak lama.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.kartu-portal {
+  background: var(--surface);
+  border-radius: 14px;
+  padding: var(--pad-kartu, 14px);
+  /*
+    Garis rambut, bukan pembatas — 40% opasitas dari warna border biasa.
+    Tugasnya memisahkan permukaan putih dari latar yang juga terang; pada
+    mode gelap `--naik-*` sudah membawa inset highlight sendiri.
+  */
+  border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  transition:
+    box-shadow var(--gerak-sedang) var(--gerak-kurva),
+    transform   var(--gerak-sedang) var(--gerak-kurva);
+}
+
+/*
+  SATU gerakan: naik 1px, bayangan menguat. Bukan skala, bukan warna berubah.
+  Kartu bisa berjejer belasan — gerakan yang lebih besar membuat halaman
+  gelisah, dan gelisah adalah kebalikan dari mahal.
+*/
+.kartu-portal--interaktif:hover,
+.kartu-portal--interaktif:focus-within {
+  transform: translateY(-1px);
+  box-shadow: var(--naik-2);
+}
+
+.kartu-portal--interaktif:active {
+  transform: translateY(0);
+  box-shadow: var(--naik-1);
+  transition-duration: var(--gerak-cepat);
+}
+
+/*
+  Hormati "kurangi gerak" untuk TRANSFORM juga.
+
+  Blok global di atas hanya mematikan `animation`; transisi transform lolos
+  darinya. Yang dimatikan cuma perpindahannya — bayangan tetap menguat,
+  supaya umpan baliknya tak hilang sama sekali.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .kartu-portal,
+  .kartu-portal--interaktif:hover,
+  .kartu-portal--interaktif:focus-within,
+  .kartu-portal--interaktif:active {
+    transform: none;
+    transition: box-shadow var(--gerak-cepat) linear;
+  }
+}
