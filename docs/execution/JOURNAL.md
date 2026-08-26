@@ -29011,3 +29011,181 @@ eksekusi node → panggilan Evolution → WhatsApp benar-benar terkirim.
 workflow lama (Task 5 Step 11/12, sengaja ditunda untuk jendela
 observasi) dan merge branch `worktree-n8n-shared-multi-tenant` ke
 `main`.
+
+## 2026-08-27 — apps/mobile: aset merek + 5 cacat senyap, dan penjaga pertama yang menjangkau mobile
+
+Diminta founder: "tuntaskan modul mobile", lalu "splash pakai logo Puraloka
+yang sudah ada di web, buat immersive".
+
+**Ukuran awal.** RN app 2.479 baris, 9 layar, `tsc` bersih — bukan kerangka
+kosong. Tapi nol APK pernah dibuat, dan `apps/mobile` **tak tercakup satu pun
+dari 167 penjaga CI**. Di situlah semuanya bersembunyi.
+
+⚠ Catatan istilah: hit "mobile" di `QUEUE.yaml` semuanya soal `pm-portal`
+(portal WEB berbentuk mobile), bukan aplikasi RN. Mudah tertukar.
+
+### Yang ditemukan — semuanya gagal TANPA SUARA
+
+| Cacat | Gejalanya |
+|---|---|
+| `assets/` tak ada | `app.json` menunjuk 3 PNG yang tak pernah dibuat — `eas build` gagal sebelum compile |
+| `extra.eas.projectId` tak ada | `getExpoPushTokenAsync()` gagal di build rilis; push yang sudah dikoding rapi diam |
+| `GET /api/v1/mandor/kasbons` | rute TAK PERNAH ADA. 404 tiap muat |
+| `catch {}` kosong ×5 | 404 di atas tampil sebagai **"Belum ada kasbon"** — mandor menyimpulkan pengajuannya hilang |
+| bentuk balasan salah | API memulangkan `{kasbons:[...]}`, layar membaca `res.data` |
+| alias relasi salah | API alias `project`, layar baca `k.projects` → nama proyek tak pernah tampil |
+| literal peran (ADR-004) | `role === 'mandor'` sebagai gerbang tab. Server SUDAH kirim `permissions`; mobile **membuangnya** |
+
+Tiga cacat kasbon saling menutupi: rute hantu memastikan tak ada data, `catch`
+kosong memastikan tak ada yang bertanya kenapa.
+
+`expo-splash-screen` juga terdaftar di package.json tapi **tak pernah
+di-import** — splash hilang sebelum `useAuth` selesai baca SecureStore, jadi
+layar login berkedip sebelum diganti dashboard.
+
+### Yang dikerjakan
+
+- **Aset merek** dibangkitkan dari `puraloka-lambang.svg` yang SAMA dengan web
+  (Playwright — `sharp`/`resvg` tak terpasang, `@playwright/test` sudah ada
+  beserta browsernya, pola yang sama dengan `banding-aksen.mjs`).
+- **Splash bergerak** — pilar naik berurutan terpendek→tertinggi, lalu alas &
+  wordmark. Lambangnya membangun dirinya sendiri: gerak yang menyampaikan
+  pekerjaan perusahaan ini, bukan fade/zoom yang bisa ditempel ke logo mana pun.
+  Reduce Motion dihormati (WCAG, §8a.3) — bukan animasi dipercepat, TANPA gerak.
+  Dibuat pakai `View` biasa, BUKAN `react-native-svg`: paketnya tak terpasang,
+  dan `pnpm install` saat sesi lain hidup bisa mengosongkan node_modules
+  workspace lain (§8a.1).
+- **Otorisasi izin** menggantikan literal peran. Kunci diambil dari migrasi 050,
+  bukan dikarang: `mandor:kasbon:create`, `reports:progress`, `mandor:assign`.
+- **`lib/galat.ts`** — 404 pada layar muat berbunyi "laporkan ke admin,
+  kemungkinan ada pembaruan yang belum terpasang", bukan "tidak ditemukan"
+  yang membuat mandor mengira datanya hilang.
+
+### Dua koreksi visual dari MELIHAT hasil render
+
+Logo melenceng kanan-bawah: `getBBox()` menunjukkan isinya `x6→99` dalam
+viewBox selebar 120 — sisa 6px kiri, **21px kanan**. Tak pernah terlihat di web
+karena logo di sana bersebelahan dengan teks. Lalu terbaca melorot walau sudah
+center matematis (bobot menumpuk di atas) → angkat optis 3%.
+
+### ⚠ Penjaga saya sendiri memberi TUDUHAN PALSU — dan itu hampir lolos
+
+`audit-mobile-sehat.mjs` versi pertama menuduh `/projects/:id/rab` sebagai rute
+hantu. **Rutenya ada** (`rab.ts:416`) — regex saya hanya mengenali
+`app.get('...')` dan buta terhadap `app.get<{Params:…}>(\n  '/api/...'`.
+Ketahuan karena saya periksa temuannya sebelum mempercayainya. Sesudah
+diperbaiki, rute terdeteksi naik **354 → 668** — separuh permukaan API tadinya
+tak terlihat.
+
+Penjaga yang menuduh palsu lebih berbahaya daripada yang tak ada: orang belajar
+mengabaikannya, lalu tuduhan yang BENAR ikut diabaikan.
+
+### Bukti
+
+- `tsc --noEmit` exit 0 — dibuktikan benar-benar memeriksa lewat probe error
+  sengaja (TS2322 muncul), bukan lolos karena tak melihat berkas.
+- `audit-aset-merek-sinkron.mjs`: HIJAU → mutasi lambang web → MERAH (menyebut
+  path persisnya) → pulih → HIJAU. `git status` bersih.
+- `audit-mobile-sehat.mjs`: **ketiga** pemeriksaan dimutasi satu per satu →
+  MERAH masing-masing → pulih → HIJAU.
+- Animasi splash dirender 6 keyframe dan DILIHAT, bukan diasumsikan.
+
+### Yang TIDAK selesai, dan kenapa
+
+`EXPO_PUBLIC_API_URL` dan `projectId` keduanya keputusan founder — alamat yang
+terjangkau jaringan seluler, dan id dari `eas init`. Tanpa keduanya APK tak
+bisa dibuat. Tak ada satu baris kode pun yang bisa menutup itu dari sini.
+
+Juga belum: **antrean offline**. `RILIS-MOBILE.md` sendiri menyebut "sinyal
+buruk di proyek" sebagai risiko utama, dan tak ada satu pun test untuk mobile.
+Keduanya pekerjaan tersendiri, bukan tambalan.
+
+## 2026-08-27 (lanjutan) — antrean offline mobile, dan cacat gerbang idempotensi yang sudah lama ada di cash.ts
+
+Founder memilih cakupan penuh: **termasuk foto**, plus migrasi.
+
+### Yang dibangun
+
+`apps/mobile/lib/antrean.ts` — kiriman yang gagal karena TAK ADA SINYAL
+diantrekan, bukan hilang. Sebelumnya `handleSubmit` memanggil `api.post`
+langsung dan mandor mendapat `Alert('Gagal')`; mandor di proyek tanpa sinyal
+**tak bisa mencatat pekerjaan sama sekali** — persis tempat aplikasi ini
+seharusnya berguna.
+
+Foto **disalin** ke direktori dokumen aplikasi, tidak ditunjuk: URI dari
+kamera menunjuk cache, dan Android boleh mengosongkannya kapan saja — justru
+pada HP lama, HP yang dipakai mandor. `expo-file-system@18.1.11` ternyata
+SUDAH ada di pnpm store (ditarik transitif, cocok SDK 53), jadi cukup
+`--filter @puraloka/mobile add --offline`: **downloaded 0, added 0**.
+node_modules workspace lain diukur sebelum & sesudah — api 23, web 36, tak
+berubah; `tsc` api tetap exit 0.
+
+Galat ber-STATUS tetap ditampilkan apa adanya. Yang diantrekan HANYA
+`!err.response` — server yang menjawab berarti isinya yang bermasalah, dan
+mengantrekannya hanya akan gagal terus.
+
+### ⚠ Menemukan cacat yang SUDAH ADA di cash.ts
+
+Rencana awal: tambah constraint unik ke `progress_logs`. **Diukur dulu, dan
+ternyata tak perlu** — `idempotency_keys` (migrasi 177) sudah punya
+`UNIQUE (company_id, operasi, kunci)`. Constraint unik pada `progress_logs`
+sendiri malah SALAH secara bisnis, alasan yang sama seperti dicatat 177 untuk
+`payments`: dua log sah bisa identik pada hari yang sama.
+
+Saat memasang gerbangnya, enam test geotag mendadak merah. Saya cek terhadap
+commit sebelumnya lewat **worktree** (bukan `git stash`): 6 lulus tanpa
+perubahan saya, 6 gagal dengan. Jadi memang saya.
+
+Sebabnya: `gerbangIdempotensi` memulangkan `null` untuk DUA keadaan
+berlawanan — "sudah dibalas" DAN "pemanggil tak mengirim kunci". Pola
+`if (kunciIdem === null) return` karena itu menghentikan handler untuk
+keadaan kedua juga: dibalas 200, **tak menulis apa pun**.
+
+Saya menyalin pola itu dari `cash.ts:222` — dan **cacatnya ada di sana sejak
+gerbang itu dipasang**. `POST /cash/transfers` tanpa header `Idempotency-Key`
+dibalas 200 tanpa membuat transfer. Tak pernah terlihat karena web app selalu
+mengirim kunci. Ditutup dengan `sudahDibalas(reply)` yang menanyakan FAKTA
+(apakah Fastify sudah mengirim balasan), bukan menebaknya dari nilai kembalian.
+
+Pelajarannya: **menyalin pola yang "sudah dipakai di produksi" tidak sama
+dengan menyalin pola yang benar.** Yang membedakan cuma satu hal — pemanggil
+`cash.ts` kebetulan selalu mengirim kunci.
+
+### Migrasi 508 — bukan yang direncanakan
+
+Yang benar-benar kurang, terlihat saat memeriksa 177: `idempotency_keys`
+**tak pernah dibersihkan**. Komentarnya sendiri menyiapkan
+`idx_idempotency_umur` untuk itu lalu tak ada satu pun DELETE di seluruh
+apps/api. Belum mendesak selama hanya transfer kas yang memakainya; berubah
+sifat begitu tiap kiriman dari tiap HP mandor menulis satu baris.
+`fn_bersihkan_idempotency_kadaluarsa(7)`, idempoten, ber-blok verifikasi yang
+MENJALANKAN fungsinya (fungsi yang terbentuk tapi meledak saat dipanggil sama
+tak bergunanya dengan yang tak terbentuk).
+
+### Bukti
+
+- `uji-antrean.mjs` — 16 uji terhadap **modul sungguhan** `lib/antrean.ts`
+  (bukan salinan logikanya; percobaan pertama menyalin, dan itu menguji
+  salinan yang bisa menyimpang). Mutasi kunci-dibuat-ulang → MERAH → pulih.
+- `idempotensi-antrean-mobile.test.ts` — 3 uji terhadap Postgres NYATA:
+  kunci sama → SATU baris, kunci beda → dua, tanpa kunci → tetap tersimpan.
+  **Tiga mutasi**: gerbang dicabut sebagian (tetap hijau — benar, gerbangnya
+  masih membalas), gerbang dihapus total → MERAH, pola `=== null` lama
+  dikembalikan → MERAH "expected 200 to be 201". Semua pulih HIJAU.
+- 24 test API hijau (geotag + kasbons + cash-nominal + idempotensi baru).
+- Migrasi 508 diterapkan; artefak diverifikasi FISIK (fungsi ada, tercatat di
+  buku, bisa dijalankan) — bukan dari penebakan nama.
+- **Penjaga CI: dasar 42 merah → kini 37. NOL merah baru.** Dibandingkan
+  lewat worktree di commit c70990f6, bukan dari ingatan.
+
+⚠ Satu merah sempat MILIK SAYA: `audit-akhir-baris.mjs` — 9 berkas berubah
+jadi CRLF karena penyuntingan lewat Python di Windows. Dikembalikan ke LF.
+Kalau lolos, diff 70 baris membengkak jadi ribuan dan perubahan nyata
+tenggelam — persis yang tercatat terjadi dua kali pada 2026-08-07.
+
+### Belum
+
+Pemanggil terjadwal untuk `fn_bersihkan_idempotency_kadaluarsa` (repo ini
+memakai rute `otomasi/jalankan/*`, bukan pg_cron). Dan antrean ini belum
+pernah diuji di HP sungguhan dengan sinyal yang benar-benar putus — itu hanya
+bisa dijawab uji lapangan, sesudah APK ada.

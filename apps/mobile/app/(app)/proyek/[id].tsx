@@ -13,7 +13,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Badge, statusLabel, statusVariant } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { Galat } from '@/components/ui/Galat';
 import { api } from '@/lib/api';
+import { pesanGalat } from '@/lib/galat';
 
 type Tab = 'ringkasan' | 'rab' | 'progress';
 
@@ -104,6 +106,7 @@ export default function ProyekDetailScreen() {
   const [project, setProject] = useState<ProjectDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [galat, setGalat] = useState('');
   const [tab, setTab] = useState<Tab>('ringkasan');
   const [rabTree, setRabTree] = useState<RabItem[]>([]);
   const [loadingRab, setLoadingRab] = useState(false);
@@ -112,8 +115,9 @@ export default function ProyekDetailScreen() {
     try {
       const res = await api.get(`/api/v1/projects/${id}`);
       setProject(res.data);
-    } catch {
-      // keep
+      setGalat('');
+    } catch (err: unknown) {
+      setGalat(pesanGalat(err, 'detail proyek'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -142,10 +146,22 @@ export default function ProyekDetailScreen() {
     );
   }
 
+  /*
+    GAGAL MUAT dan TIDAK DITEMUKAN dibedakan.
+
+    Sebelumnya keduanya jatuh ke satu cabang `!project` yang berbunyi "Proyek
+    tidak ditemukan" — jadi jaringan mati di lokasi proyek tampil sebagai
+    proyeknya DIHAPUS. Mandor yang melihat itu akan menelepon kantor
+    menanyakan proyek yang sebenarnya baik-baik saja.
+  */
   if (!project) {
     return (
       <SafeAreaView style={styles.centered}>
-        <Text style={styles.errorText}>Proyek tidak ditemukan</Text>
+        <View style={{ paddingHorizontal: 20, width: '100%' }}>
+          {galat
+            ? <Galat judul="Proyek tidak bisa dimuat" pesan={galat} />
+            : <Text style={styles.errorText}>Proyek tidak ditemukan</Text>}
+        </View>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtnWrap}>
           <Text style={styles.backBtnText}>← Kembali</Text>
         </TouchableOpacity>

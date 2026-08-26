@@ -21,8 +21,13 @@ Tanpa `eas.json`, `eas build` menolak jalan — jadi tak pernah ada satu pun
 APK yang bisa dipasang siapa pun. Itulah sebabnya `mb-progres` bernilai
 `sebagian` dengan alasan "menunggu rilis".
 
-`eas.json` sekarang ada. Yang tersisa **satu isian**, dan hanya founder yang
-tahu jawabannya: alamat API yang bisa dijangkau dari jaringan seluler.
+`eas.json` sekarang ada.
+
+⚠ **Baris berikutnya dulu berbunyi "yang tersisa satu isian" — dan itu salah.**
+Diukur 2026-08-27, aset ikon/splash tak pernah dibuat sama sekali dan
+`projectId` tak ada; keduanya sama-sama mematikan `eas build`. Rinciannya di
+kotak koreksi §3. Aset sudah ditutup; yang tersisa **dua keputusan founder**:
+alamat API yang bisa dijangkau jaringan seluler, dan `projectId` dari `eas init`.
 
 ---
 
@@ -126,8 +131,58 @@ penggunanya.*
 - **Play Store.** Butuh akun pengembang berbayar, kebijakan privasi, dan
   peninjauan. Untuk aplikasi internal yang dipakai belasan mandor, sebar APK
   lewat tautan lebih cepat dan tak menambah pihak yang harus dipercaya.
+
 - **iOS.** `bundleIdentifier` sudah ada, tetapi build iOS menuntut akun Apple
   Developer berbayar. Ukur dulu: berapa mandor yang benar-benar memakai
   iPhone?
-- **Push notification.** Belum ada di aplikasi mobile, dan menambahkannya
-  sebelum ada yang memakai aplikasinya adalah menebak kebutuhan.
+
+> ### ✅ Antrean offline SUDAH ADA (2026-08-27)
+>
+> §3 Langkah 3 menyebut *"sinyal buruk di proyek — apa yang terjadi saat
+> unggahan foto putus di tengah?"* sebagai hal yang harus dicari saat uji
+> lapangan. Sampai 2026-08-27 jawabannya: **kirimannya hilang**, dan mandor
+> hanya melihat `Alert('Gagal')`.
+>
+> Sekarang kiriman yang gagal karena tak ada sinyal diantrekan di HP —
+> **termasuk fotonya**, yang disalin ke direktori aplikasi supaya tak ikut
+> terhapus saat Android mengosongkan cache — lalu dikirim sendiri begitu
+> sinyal kembali.
+>
+> Tiap kiriman membawa `Idempotency-Key` yang dibuat SEKALI saat mengantre,
+> jadi pengiriman ulang tak menggandakan log progres (yang masuk kurva-S &
+> EVM) maupun kasbon. Gerbangnya di `progress-logs` dan `kasbons`.
+>
+> Yang MASIH harus dicari saat uji lapangan: apakah mandor benar-benar
+> menunggu antrean terkirim atau menutup aplikasi, dan berapa lama foto
+> menumpuk di HP berpenyimpanan kecil. Keduanya tak bisa dijawab dari kode.
+
+> ### ⚠ Koreksi 2026-08-27 — dua baris di dokumen ini sudah basi
+>
+> **(1) "Push notification belum ada" — SALAH sejak commit `a4200560`.**
+> Push natif Expo sudah terpasang: `apps/mobile/lib/push.ts` (mendaftar saat
+> login, mencabut saat logout) dan `apps/api/src/utils/push-natif.ts`
+> (pengirim, berpagar `NODE_ENV==='test'`). Ukur sendiri:
+>
+> ```bash
+> grep -c expo-notifications apps/mobile/package.json   # 1, bukan 0
+> ```
+>
+> **(2) "Yang tersisa SATU isian" — juga salah.** Dokumen ini menyatakan
+> alamat API adalah satu-satunya penahan. Diukur 2026-08-27, ada DUA lagi
+> yang sama-sama mematikan `eas build`:
+>
+> | Penahan | Keadaan saat diukur |
+> |---|---|
+> | `assets/icon.png`, `splash.png`, `adaptive-icon.png` | **tak ada satu pun** — `app.json` menunjuk berkas yang tak pernah dibuat |
+> | `extra.eas.projectId` di `app.json` | **tak ada** — `getExpoPushTokenAsync()` gagal di build rilis |
+>
+> Aset sudah ditutup: `node apps/mobile/scripts/buat-aset-merek.mjs`
+> membangkitkan keempatnya dari lambang web, dan
+> `audit-aset-merek-sinkron.mjs` (CI, ambang NOL) menahannya tetap sama.
+>
+> `projectId` **belum** — ia terbit dari akun Expo saat `eas init`, jadi ia
+> keputusan founder seperti halnya alamat API.
+>
+> Pelajarannya sama dengan pembuka CLAUDE.md: dokumen yang menyatakan
+> *"tinggal satu langkah lagi"* paling berbahaya justru ketika salah, karena
+> ia menghentikan orang dari memeriksa.

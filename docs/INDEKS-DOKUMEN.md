@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 295 dokumen** — antrean 16 · acuan 212 · riwayat 67.
+**Total 299 dokumen** — antrean 17 · acuan 214 · riwayat 68.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -127,6 +127,8 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [2026-08-07-landing-publik-tahap-1](superpowers/plans/2026-08-07-landing-publik-tahap-1.md) | antrean | ✓ | Landing Publik Tahap 1 — Implementation Plan |
 | [2026-08-19-portal-mobile-rombak](superpowers/plans/2026-08-19-portal-mobile-rombak.md) | antrean | ✓ | Rombak Portal Mandor, PM, Klien — Gaya Aplikasi Mobile — Implementation Plan |
 | [2026-08-20-portal-pm-lengkap](superpowers/plans/2026-08-20-portal-pm-lengkap.md) | antrean | ✓ | Portal PM Lengkap Implementation Plan |
+| [2026-08-22-admin-saas-fondasi](superpowers/plans/2026-08-22-admin-saas-fondasi.md) | antrean |  | Admin SaaS — Fondasi Implementation Plan |
+| [2026-08-22-n8n-shared-multi-tenant](superpowers/plans/2026-08-22-n8n-shared-multi-tenant.md) | riwayat |  | n8n Shared Multi-Tenant Implementation Plan |
 | [2026-08-22-portal-admin-direktur-lengkap](superpowers/plans/2026-08-22-portal-admin-direktur-lengkap.md) | antrean |  | Portal Admin/Direktur Lengkap Implementation Plan |
 
 ### `docs/superpowers/specs`
@@ -140,6 +142,8 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [2026-08-16-cecep-rombak-ui-design](superpowers/specs/2026-08-16-cecep-rombak-ui-design.md) | riwayat |  | CECEP — Rombak UI & Alur Kerja (Estimasi/RAB/RAP) |
 | [2026-08-19-portal-mobile-rombak-design](superpowers/specs/2026-08-19-portal-mobile-rombak-design.md) | acuan |  | Rombak Portal Mandor, PM, dan Klien — Gaya Aplikasi Mobile |
 | [2026-08-20-portal-pm-lengkap-design](superpowers/specs/2026-08-20-portal-pm-lengkap-design.md) | acuan |  | Portal PM Lengkap — Design Spec |
+| [2026-08-22-admin-saas-platform-design](superpowers/specs/2026-08-22-admin-saas-platform-design.md) | acuan |  | Spec: Admin SaaS Platform (back-office vendor console) |
+| [2026-08-22-n8n-shared-multi-tenant-design](superpowers/specs/2026-08-22-n8n-shared-multi-tenant-design.md) | acuan |  | Spec: n8n Shared Multi-Tenant |
 | [2026-08-22-portal-admin-direktur-design](superpowers/specs/2026-08-22-portal-admin-direktur-design.md) | acuan |  | Portal Admin/Direktur Lengkap — Design Spec |
 
 ### `docs/superpowers/specs/2026-07-18-enterprise-architecture`

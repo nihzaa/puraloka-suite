@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate } from '../../plugins/auth.js'
+import { gerbangIdempotensi, catatIdempotensi, sudahDibalas } from '../../utils/idempotency.js'
 import { createNotifications } from '../../utils/notifications.js'
 import { resolveRecipients } from '../../utils/notification-routing.js'
 import { logAuditEvent } from '../../utils/audit.js'
@@ -66,6 +67,21 @@ export default async function kasbonRoutes(app: FastifyInstance) {
   app.post('/api/v1/kasbons', {
     preHandler: [authenticate]
   }, async (request, reply) => {
+    /*
+      GERBANG IDEMPOTENSI — untuk antrean offline mobile (2026-08-27).
+
+      Kasbon adalah pengajuan UANG. Antrean offline mengirim ulang kiriman
+      yang timeout, dan tanpa gerbang ini satu pengajuan yang putus di tengah
+      menjadi DUA kasbon menunggu persetujuan — dengan nominal sama, di hari
+      sama, dari mandor sama. Penyetuju tak punya cara membedakannya dari dua
+      pengajuan sah yang kebetulan kembar.
+
+      Diperiksa sebelum validasi & tulis apa pun, termasuk sebelum
+      `enforceKasbonLimit` — supaya kiriman ulang tak ikut memakan kuota.
+    */
+    const kunciIdem = await gerbangIdempotensi(request, reply, 'kasbon:create')
+    if (sudahDibalas(reply)) return
+
     const user = request.currentUser!
     const body = request.body as {
       project_id?: string
@@ -222,10 +238,12 @@ export default async function kasbonRoutes(app: FastifyInstance) {
       }
     }
 
-    return reply.status(201).send({
+    const hasilKasbon = {
       message: autoApprove ? 'Kasbon berhasil dibuat dan disetujui' : 'Kasbon berhasil diajukan, menunggu persetujuan',
       kasbon: data,
-    })
+    }
+    await catatIdempotensi(request, 'kasbon:create', kunciIdem ?? null, 201, hasilKasbon)
+    return reply.status(201).send(hasilKasbon)
   })
 
   // PATCH /api/v1/kasbons/:id/status — approve/reject kasbon mandor

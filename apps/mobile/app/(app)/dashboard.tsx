@@ -10,8 +10,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/ui/Card';
+import { PenandaAntrean } from '@/components/PenandaAntrean';
+import { Galat } from '@/components/ui/Galat';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
+import { pesanGalat } from '@/lib/galat';
 
 interface DashboardData {
   active_projects: number;
@@ -30,13 +33,15 @@ export default function DashboardScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [galat, setGalat] = useState('');
 
   const fetchData = useCallback(async () => {
     try {
       const res = await api.get('/api/v1/dashboard?period=last_30_days');
       setData(res.data);
-    } catch {
-      // keep old data
+      setGalat('');
+    } catch (err: unknown) {
+      setGalat(pesanGalat(err, 'ringkasan dashboard'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -61,6 +66,8 @@ export default function DashboardScreen() {
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#003366" />}
       >
+        <PenandaAntrean />
+        {galat ? <Galat judul="Ringkasan tidak bisa dimuat" pesan={galat} /> : null}
         <View style={styles.topRow}>
           <View>
             <Text style={styles.greeting}>Halo, {user?.name?.split(' ')[0]} 👋</Text>

@@ -9,12 +9,48 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
 
 const C = { navy: '#003366', gray: '#9CA3AF' };
 
-export default function AppLayout() {
-  const { user } = useAuth();
-  const role = user?.role ?? 'client';
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  TAB DITENTUKAN IZIN, BUKAN PERAN — ADR-004
+  ══════════════════════════════════════════════════════════════════════════
 
-  const showMandorTabs = role === 'mandor' || role === 'admin';
-  const showPMTabs = role === 'pm' || role === 'admin';
+  Bentuk sebelumnya:
+
+      const role = user?.role ?? 'client'
+      const showMandorTabs = role === 'mandor' || role === 'admin'
+      const showPMTabs     = role === 'pm'     || role === 'admin'
+
+  Tiga literal peran sebagai gerbang otorisasi — persis yang dilarang
+  ADR-004 dan CLAUDE.md §5.1. Akibat nyatanya bukan soal gaya penulisan:
+  tenant yang membuat peran sendiri lewat UI (`direktur`, `kepala_proyek`,
+  `pengawas`) mendapat aplikasi mobile TANPA tab kasbon, progres, maupun
+  mandor. Tak ada galat, tak ada 403 — menunya sekadar tidak ada, dan tak
+  seorang pun bisa menebak kenapa.
+
+  ── Kunci yang dipakai, dan dari mana asalnya
+
+  Diambil dari `db/migrations/050_rbac_foundation.sql`, bukan dikarang:
+
+    mandor:kasbon:create   dimiliki mandor (dan admin)   → tab Kasbon
+    reports:progress       dimiliki mandor, client, admin → tab Progress
+    mandor:assign          dimiliki pm & admin, BUKAN mandor → tab Mandor
+
+  ⚠ `reports:progress` juga dimiliki CLIENT. Itu benar untuk MELIHAT laporan
+  progres, tetapi tab ini MENGISI progres. Karena rutenya sendiri
+  (`POST /projects/:id/progress-logs`) hanya ber-`authenticate` tanpa
+  `requirePermission`, tak ada kunci yang persis memagarinya — jadi tab ini
+  menuntut `reports:progress` DAN `mandor:kasbon:create` sekaligus. Yang
+  kedua tak dimiliki client, dan itulah yang memisahkan keduanya.
+
+  Ini bukan tebakan: kalau nanti rutenya diberi izin sendiri
+  (mis. `progress:create`), gantilah syarat di bawah dengan kunci itu.
+*/
+export default function AppLayout() {
+  const { punyaIzin } = useAuth();
+
+  const bolehKasbon = punyaIzin('mandor:kasbon:create');
+  const bolehProgres = punyaIzin('reports:progress') && punyaIzin('mandor:kasbon:create');
+  const bolehMandor = punyaIzin('mandor:assign');
 
   return (
     <Tabs
@@ -53,7 +89,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="progress/input"
         options={
-          showMandorTabs
+          bolehProgres
             ? {
                 title: 'Progress',
                 tabBarIcon: ({ focused }) => <TabIcon emoji="📷" focused={focused} />,
@@ -64,7 +100,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="kasbon/index"
         options={
-          showMandorTabs
+          bolehKasbon
             ? {
                 title: 'Kasbon',
                 tabBarIcon: ({ focused }) => <TabIcon emoji="💵" focused={focused} />,
@@ -81,7 +117,7 @@ export default function AppLayout() {
       <Tabs.Screen
         name="mandor/index"
         options={
-          showPMTabs
+          bolehMandor
             ? {
                 title: 'Mandor',
                 tabBarIcon: ({ focused }) => <TabIcon emoji="👷" focused={focused} />,

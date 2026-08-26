@@ -147,3 +147,37 @@ export async function gerbangIdempotensi(
   }
   return p.kunci
 }
+
+/**
+ * Apakah gerbang SUDAH membalas permintaan ini?
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA FUNGSI INI ADA — `kunciIdem === null` AMBIGU, DAN ITU MEMAKAN KORBAN
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * `gerbangIdempotensi` memulangkan `null` untuk DUA keadaan yang berlawanan:
+ *
+ *   1. permintaan ini pengiriman ulang → sudah dibalas, handler harus berhenti
+ *   2. pemanggil TIDAK mengirim `Idempotency-Key` → tak ada jaminan, tetapi
+ *      handler harus JALAN TERUS seperti biasa
+ *
+ * Pola `if (kunciIdem === null) return` karena itu SALAH: ia menghentikan
+ * handler untuk keadaan (2) juga. Akibatnya permintaan tanpa kunci dibalas
+ * 200 dengan badan kosong dan TIDAK MENULIS APA PUN — gagal senyap yang
+ * sempurna, karena statusnya sukses.
+ *
+ * Ditemukan 2026-08-27 saat memasang gerbang di `progress-logs`: enam test
+ * geotag mendadak merah dengan "expected [] to have a length of 1". Testnya
+ * benar; gerbangnya yang menelan seluruh permintaan.
+ *
+ * ⚠ `cash.ts:222` memakai pola `=== null` yang sama dan **punya cacat yang
+ * sama**: `POST /cash/transfers` tanpa header akan dibalas 200 tanpa membuat
+ * transfer. Belum pernah terlihat hanya karena web app selalu mengirim kunci.
+ * Ikut diperbaiki di commit yang sama.
+ *
+ * Yang ditanya di sini adalah FAKTA, bukan tebakan dari nilai kembalian:
+ * apakah Fastify sudah mengirim balasan.
+ */
+export function sudahDibalas(reply: FastifyReply): boolean {
+  return reply.sent
+}

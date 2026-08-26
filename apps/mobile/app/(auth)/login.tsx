@@ -17,7 +17,7 @@ import { login } from '@/lib/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { setUser } = useAuth();
+  const { setUser, setIzin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,11 @@ export default function LoginScreen() {
     setError('');
     setLoading(true);
     try {
-      const user = await login(email.trim(), password);
+      const { user, izin } = await login(email.trim(), password);
+      // Izin dipasang SEBELUM user: `RootGuard` berpindah rute begitu `user`
+      // terisi, dan tab bar dirender dari izin. Urutan terbalik membuat
+      // bingkai pertama sesudah login kehilangan tab-nya.
+      setIzin(izin);
       setUser(user);
       router.replace('/(app)/dashboard');
     } catch (err: unknown) {

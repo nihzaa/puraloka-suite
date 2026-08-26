@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, hasPermission } from '../../plugins/auth.js'
+import { gerbangIdempotensi, catatIdempotensi, sudahDibalas } from '../../utils/idempotency.js'
 import { bubbleUpProgress } from '../../lib/rab-aggregation.js'
 import { validateMime } from '../../utils/mime.js'
 import { barisGeotag } from '../../lib/geotag.js'
@@ -220,6 +221,28 @@ export default async function progressRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { projectId } = request.params as { projectId: string }
 
+    /*
+      GERBANG IDEMPOTENSI — dipasang untuk antrean offline mobile (2026-08-27).
+
+      `progress_logs` diukur TAK PUNYA satu pun constraint unik, dan handler
+      ini INSERT polos. Antrean offline mengirim ulang kiriman yang timeout —
+      dan HTTP tak menjanjikan apakah yang timeout itu sudah sampai atau
+      belum. Tanpa gerbang ini, satu kiriman yang putus di tengah menjadi DUA
+      log progres.
+
+      Angkanya bukan hiasan: ia masuk ke bubble-up rab_items → kategori →
+      proyek → Kurva S → EVM (SPI/CPI). Proyek terlihat lebih maju daripada
+      kenyataannya, tanpa satu pun galat, dan yang menemukannya jauh kemudian.
+
+      Diperiksa SEBELUM apa pun ditulis — termasuk sebelum unggah foto, supaya
+      kiriman ulang tak menumpuk berkas yatim di Storage.
+    */
+    const kunciIdem = await gerbangIdempotensi(request, reply, 'progress:log:create')
+    // `sudahDibalas`, BUKAN `kunciIdem === null`: null juga berarti "pemanggil
+    // tak mengirim kunci", dan handler harus tetap jalan untuk keadaan itu.
+    // Lihat penjelasan lengkap di utils/idempotency.ts.
+    if (sudahDibalas(reply)) return
+
     if (!(await proyekMilikTenant(request, projectId))) {
       return reply.status(404).send({ error: 'Proyek tidak ditemukan' })
     }
@@ -375,6 +398,7 @@ export default async function progressRoutes(app: FastifyInstance) {
         .eq('id', log.id)
         .single()
 
+      await catatIdempotensi(request, 'progress:log:create', kunciIdem ?? null, 201, { data: fullLog, new_overall_pct: newOverall })
       return reply.status(201).send({ data: fullLog, new_overall_pct: newOverall })
     }
 
@@ -436,6 +460,7 @@ export default async function progressRoutes(app: FastifyInstance) {
 
     if (fetchError) return reply.status(500).send({ error: fetchError.message })
 
+    await catatIdempotensi(request, 'progress:log:create', kunciIdem ?? null, 201, { data: fullLog })
     return reply.status(201).send({ data: fullLog })
   })
 

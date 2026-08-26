@@ -11,7 +11,9 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Card } from '@/components/ui/Card';
+import { Galat } from '@/components/ui/Galat';
 import { api } from '@/lib/api';
+import { pesanGalat } from '@/lib/galat';
 
 interface Notification {
   id: string;
@@ -38,14 +40,16 @@ export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [galat, setGalat] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await api.get('/api/v1/notifications');
       setNotifications(res.data?.notifications ?? []);
-    } catch {
-      // keep
+      setGalat('');
+    } catch (err: unknown) {
+      setGalat(pesanGalat(err, 'notifikasi'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -107,7 +111,8 @@ export default function NotificationsScreen() {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#003366" />}
       >
-        {notifications.length === 0 && (
+        {galat ? <Galat judul="Notifikasi tidak bisa dimuat" pesan={galat} /> : null}
+        {!galat && notifications.length === 0 && (
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>🔔</Text>
             <Text style={styles.emptyText}>Tidak ada notifikasi</Text>

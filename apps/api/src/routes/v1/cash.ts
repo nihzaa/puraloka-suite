@@ -5,7 +5,7 @@ import { validateMime } from '../../utils/mime.js'
 import { evaluateEntityApproval, recordApproval, clearApprovalProgress, canParticipateInChain, idAlurPersetujuan, periksaGerbangSod } from '../../utils/approval.js'
 import { logAuditEvent } from '../../utils/audit.js'
 import { proyekBolehDibaca, proyekMilikTenant } from '../../utils/tenant-guard.js'
-import { gerbangIdempotensi, catatIdempotensi } from '../../utils/idempotency.js'
+import { gerbangIdempotensi, catatIdempotensi, sudahDibalas } from '../../utils/idempotency.js'
 import { bacaNominal, bulatkanRupiah } from '../../lib/nominal.js'
 
 const ALLOWED_IMAGE_PDF = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
@@ -219,7 +219,19 @@ export default async function cashRoutes(app: FastifyInstance) {
     // `trg_cash_transfer_balance` — satu baris ganda = saldo dua rekening
     // bergeser dua kali. Diperiksa sebelum apa pun divalidasi atau ditulis.
     const kunciIdem = await gerbangIdempotensi(request, reply, 'cash:transfer:create')
-    if (kunciIdem === null) return
+    /*
+      `sudahDibalas`, BUKAN `kunciIdem === null` (bentuk sebelumnya).
+
+      `null` juga dipulangkan saat pemanggil TIDAK mengirim Idempotency-Key —
+      dan pola lama menghentikan handler untuk keadaan itu juga. Akibatnya
+      `POST /cash/transfers` tanpa header dibalas 200 tanpa membuat transfer
+      apa pun: gagal senyap dengan status sukses.
+
+      Tak pernah terlihat karena web app selalu mengirim kunci. Ditemukan
+      2026-08-27 saat pola ini disalin ke progress-logs, dan enam test geotag
+      langsung merah.
+    */
+    if (sudahDibalas(reply)) return
 
     const body = request.body as {
       from_account_id: string
