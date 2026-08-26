@@ -65,6 +65,22 @@ import { Folder } from "lucide-react";
  * dengan alasan yang sama.
  */
 const PETA_HREF_PORTAL: Record<string, string> = {
+  /*
+    Tahap 4 (Task 21) — Pengadaan (g-procurement).
+
+    HANYA tiga key yang dipetakan, karena hanya tiga itu yang halamannya
+    BENAR-BENAR dibangun: MR, PO, dan Goods Receipt — ketiganya menunjuk SATU
+    halaman ber-SegmentedTab 3-arah (`/admin-portal/procurement`), pola yang
+    sama dengan jd-cpm/jd-histogram (Tahap 2) dan fn-gl/fn-jurnal (Tahap 3).
+
+    Enam item lain grup ini — pr-rfq, pr-tabulasi, pr-blanket (sudah tercakup
+    Task 18 lewat `/keuangan/pengadaan-lanjutan`), pr-evaluasi,
+    pr-jadwal-bayar, pr-expediting — SENGAJA jatuh ke fallback href web.
+    Memetakannya ke halaman ini akan menjanjikan layar yang tak ada.
+  */
+  "pr-mr": "/admin-portal/procurement",
+  "pr-po": "/admin-portal/procurement",
+  "pr-grn": "/admin-portal/procurement",
   "bi-eksekutif": "/admin-portal",
   "sy-inbox-approval": "/admin-portal/inbox",
   // Tahap 2 — Kontrak (g-kontrak)

@@ -1176,6 +1176,50 @@ export interface SupplierRingkas {
 }
 export interface RespSupplierDaftar { suppliers: SupplierRingkas[] }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   TAHAP 4 (Task 21) — Procurement company-wide
+
+   `MrRingkas`, `PoRingkas`, `MrDetail`, `PoDetail`, `RespMrDetail`,
+   `RespPoDetail`, dan `SupplierRingkas` SUDAH ADA sejak Task 4 — jangan
+   ditulis ulang. Yang ditambahkan di sini hanya pembungkus daftar dan dua
+   bentuk yang belum pernah dipakai admin-portal.
+
+   Bentuknya disalin dari `pm-portal/_bersama/tipe.ts` yang membaca ENDPOINT
+   YANG SAMA. Menulis ulang dari tebakan akan melahirkan dua tipe yang 90%
+   sama, dan yang berbahaya bukan ketidakcocokannya melainkan kemiripannya —
+   pembacanya berhenti memeriksa perbedaan yang 10%.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+export interface RespMrDaftar { material_requests: MrRingkas[] }
+export interface RespPoDaftar { purchase_orders: PoRingkas[] }
+
+/** Bentuk PERSIS `GET /api/v1/procurement/goods-receipts`. */
+export interface GrRingkas {
+  id: string;
+  gr_number: string | null;
+  status: "draft" | "confirmed" | string;
+  receipt_date: string | null;
+  delivery_note_number: string | null;
+  delivery_note_url: string | null;
+  notes: string | null;
+  confirmed_at: string | null;
+  created_at: string;
+  project: { id: string; name: string } | null;
+  supplier: { id: string; name: string } | null;
+  po: { id: string; po_number: string | null } | null;
+  received_by: { id: string; name: string } | null;
+  items: Array<{ id: string; qty_received: number | string; unit: string; unit_price: number | string; material: { id: string; name: string } | null }>;
+}
+export interface RespGrDaftar { goods_receipts: GrRingkas[] }
+
+/** Bentuk PERSIS `GET /api/v1/procurement/materials` — picker item MR/PO. */
+export interface MaterialRingkas {
+  id: string; code: string | null; name: string; unit: string;
+  unit_price: number | string | null; description: string | null; is_active: boolean;
+  category: { id: string; name: string } | null;
+}
+export interface RespMaterialDaftar { materials: MaterialRingkas[] }
+
 /**
  * Kontrak Payung / Expediting / Nota Kredit (Task 18, Tahap 3). Salinan
  * PERSIS `pm-portal/_bersama/tipe.ts:3068-3117` (Task 36 PM) — bentuk

@@ -73,7 +73,12 @@ import { PETA_MENU, type GrupMenu } from "@/lib/peta-menu";
  * `pm-portal/kategori/[key]/page.tsx` yang mengecualikan key yang sama
  * dengan alasan yang sama).
  */
-const KATEGORI_AKTIF: string[] = ["g-laporan", "g-sistem", "g-kontrak", "g-jadwal", "g-keuangan", "g-tagih"]; // Tahap 1-3
+const KATEGORI_AKTIF: string[] = [
+  "g-laporan", "g-sistem",              // Tahap 1
+  "g-kontrak", "g-jadwal",              // Tahap 2
+  "g-keuangan", "g-tagih",              // Tahap 3
+  "g-procurement",                      // Tahap 4 (Task 21) — MR/PO/GR
+];
 
 export function kategoriUntukAdmin(): GrupMenu[] {
   return PETA_MENU.filter((g) => KATEGORI_AKTIF.includes(g.key));

@@ -94,13 +94,33 @@ import { LayoutGrid, Inbox, FolderKanban, FileSignature, MoreHorizontal, Wallet 
 // Lainnya, tak berubah. `/admin-portal/keuangan/piutang` dan `.../ipc` TIDAK
 // dapat entri NAV_ITEMS sendiri — dijangkau lewat tautan di badan halaman
 // Dashboard Keuangan, pola sama lima tautan kontrak/jadwal di atas.
+/*
+  ⚠ URUTAN MENGIKAT — "Lainnya" TIDAK BOLEH masuk empat slot pertama.
+
+  `PortalShell` menampilkan `navItems.slice(0, 4)` DI BAWAH nav, LALU
+  menambahkan tombol "Lainnya"-nya SENDIRI bila `navItems.length > 4`
+  (PortalShell.tsx:167). Jadi menaruh "Lainnya" di indeks 3 membuatnya
+  tergambar DUA KALI berdampingan.
+
+  Terlihat di potret 2026-08-27 — dua tombol "Lainnya" bersebelahan di bar
+  bawah. Typecheck bersih, seluruh penjaga hijau; hanya potret yang
+  menangkapnya.
+
+  pm-portal & mandor-portal menaruhnya di indeks 4 (TEPAT di luar slice), dan
+  itulah pola yang benar. Slot bawah kini: Beranda · Approval · Proyek ·
+  Keuangan, lalu "Lainnya" dari PortalShell.
+
+  "Keuangan" dinaikkan ke slot ke-4 karena ia tujuan paling sering dibuka
+  admin/direktur di antara sisanya; "Kontrak" tetap terdaftar (terjangkau
+  `audit-nav-yatim.mjs`) meski tak muncul di bar bawah.
+*/
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin-portal", label: "Beranda", icon: LayoutGrid, exact: true },
   { href: "/admin-portal/inbox", label: "Approval", icon: Inbox },
   { href: "/admin-portal/proyek", label: "Proyek", icon: FolderKanban },
+  { href: "/admin-portal/keuangan", label: "Keuangan", icon: Wallet },
   { href: "/admin-portal/kategori", label: "Lainnya", icon: MoreHorizontal },
   { href: "/admin-portal/kontrak/register", label: "Kontrak", icon: FileSignature },
-  { href: "/admin-portal/keuangan", label: "Keuangan", icon: Wallet },
 ];
 
 export default function AdminPortalLayout({
@@ -130,6 +150,14 @@ export default function AdminPortalLayout({
     memulangkan SEMUA orang ke /dashboard pada bingkai pertama.
   */
   const bolehKelola = useIzin("settings:manage");
+
+  /*
+    Penanda bahwa hidrasi sudah lewat. Efek hanya berjalan di klien, jadi
+    efek kosong ini menyala tepat SESUDAH pass hidrasi pertama — saat itulah
+    `useIzin` sudah memulangkan nilai klien yang sebenarnya.
+  */
+  const [hidrasiSelesai, setHidrasiSelesai] = useState(false);
+  useEffect(() => { setHidrasiSelesai(true); }, []);
 
   useEffect(() => {
     const u = getStoredUser();
@@ -162,13 +190,33 @@ export default function AdminPortalLayout({
       (`hasPermission("gl:post")`, `"rekonsiliasi:lock"`, dst) — ini gerbang
       PINTU MASUK, bukan pengganti gerbang per-aksi.
     */
+    /*
+      ⚠ `hidrasiSelesai` WAJIB — tanpa itu gerbang ini menendang SEMUA ORANG.
+
+      `useIzin` memulangkan `false` selama render server DAN pada pass
+      hidrasi pertama di klien (snapshot servernya memang `false`, lihat
+      `lib/use-izin.ts`). Efek ini berjalan sesudah pass pertama itu — jadi
+      `bolehKelola` masih `false` walau penggunanya punya izinnya, dan
+      `router.replace("/dashboard")` sudah telanjur jalan.
+
+      Terbukti 2026-08-27: akun admin dengan 227 izin (termasuk
+      `settings:manage`, diperiksa langsung di localStorage) tetap
+      dipulangkan ke /dashboard. Typecheck bersih, penjaga hijau, dan portal
+      itu TAK BISA DIBUKA SIAPA PUN.
+
+      `useEffect` yang menunggu satu tick memberi `useSyncExternalStore`
+      kesempatan beralih ke nilai klien lebih dulu. Selama menunggu, layout
+      merender `null` — bukan mengalihkan.
+    */
+    if (!hidrasiSelesai) return;
+
     if (!bolehKelola) {
       router.replace("/dashboard");
       return;
     }
     setUser(u);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bolehKelola]);
+  }, [bolehKelola, hidrasiSelesai]);
 
   if (!user) return null;
 
