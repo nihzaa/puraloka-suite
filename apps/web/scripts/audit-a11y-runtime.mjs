@@ -147,6 +147,14 @@ const CONTOH_ID = {
   // dan detail Purchase Order (purchase_orders.id).
   '/pm-portal/procurement/mr/[id]': process.env.LAYAR_ID_MR,
   '/pm-portal/procurement/po/[id]': process.env.LAYAR_ID_PO,
+  // Portal Admin/Direktur Tahap 4, Task 21 — MR/PO detail company-wide.
+  // Memakai ULANG env var yang sama dengan pm-portal: id-nya diambil dari
+  // tabel yang sama (`material_requests`/`purchase_orders`), dan
+  // `jalankan-a11y-lengkap.mjs` sudah mengisinya. Menambah env var baru
+  // hanya akan menciptakan isian yang tak pernah diisi siapa pun — persis
+  // cacat yang membuat tujuh rute terlewat sampai 2026-08-16.
+  '/admin-portal/procurement/mr/[id]': process.env.LAYAR_ID_MR,
+  '/admin-portal/procurement/po/[id]': process.env.LAYAR_ID_PO,
   // Portal PM Lengkap Tahap 7, Task 40 — detail Aset & Alat (assets.id).
   '/pm-portal/aset/[id]': process.env.LAYAR_ID_ASET,
   // Portal PM Lengkap Tahap 5, Task 29 — detail NCR (ncr_items.id). Halaman

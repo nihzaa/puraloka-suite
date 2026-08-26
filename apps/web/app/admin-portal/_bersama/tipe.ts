@@ -1221,6 +1221,55 @@ export interface MaterialRingkas {
 export interface RespMaterialDaftar { materials: MaterialRingkas[] }
 
 /**
+ * Bentuk PERSIS `GET /material-requests/:id/quota-check`.
+ *
+ * ⚠ DIVERIFIKASI KE KODE, BUKAN KE RENCANA. Plan Task 21 Step 1 menuliskan
+ * `pelanggaran: Array<{ material_id, material_name?, diminta, sisa }>` dan
+ * `tanpa_kuota: Array<{ material_id, material_name? }>` — KEDUANYA KELIRU.
+ *
+ * Yang sebenarnya dikirim server (`lib/kuota-rab-material.ts:24-45`, disebar
+ * ke respons lewat `...hasil` di `procurement.ts:607`):
+ *   - `pelanggaran` punya `rab_quantity`, `sudah_di_mr`, `total`,
+ *     `kelebihan`, `unit` — TIDAK punya field bernama `sisa`.
+ *   - `tanpa_kuota` adalah `string[]` (daftar id), BUKAN array objek.
+ *
+ * Mengikuti plan akan menghasilkan `undefined` di layar tanpa satu pun galat
+ * — persis kelas cacat yang berulang kali tercatat di repo ini.
+ */
+export interface RespQuotaCheck {
+  mr_number: string | null;
+  lolos: boolean;
+  pelanggaran: Array<{
+    material_id: string;
+    material_name: string;
+    unit: string | null;
+    rab_quantity: number;
+    sudah_di_mr: number;
+    diminta: number;
+    total: number;
+    kelebihan: number;
+  }>;
+  tanpa_kuota: string[];
+  /** TRUE untuk pemegang `procurement:mr:override_quota` — admin/direktur. */
+  bisa_override: boolean;
+}
+
+/**
+ * Bentuk PERSIS `GET /purchase-orders/:id/delivery-message`.
+ *
+ * ⚠ `wa_url` NULL saat nomor telepon supplier tak sah — komentar di
+ * `procurement.ts` menuliskannya sendiri: *"UI WAJIB menyembunyikan
+ * tombolnya, bukan memasang tautan ke nomor ngawur."*
+ */
+export interface RespPesanPo {
+  po_number: string | null;
+  pesan: string;
+  wa_url: string | null;
+  email_tujuan: string | null;
+  sudah_dikirim: { whatsapp_at: string | null; email_at: string | null };
+}
+
+/**
  * Kontrak Payung / Expediting / Nota Kredit (Task 18, Tahap 3). Salinan
  * PERSIS `pm-portal/_bersama/tipe.ts:3068-3117` (Task 36 PM) — bentuk
  * respons SAMA, diverifikasi baris-per-baris ke `apps/api/src/lib/
