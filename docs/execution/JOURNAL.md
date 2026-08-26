@@ -29374,3 +29374,60 @@ Kepatuhan, SDM, Klien, Tender, Sistem, Users/Roles, Audit.
 
 Ekstrapolasi dari Tahap 0-3 (24 halaman): realistis **40-60 halaman lagi**,
 plus menulis breakdown tiga tahap lebih dulu. Ini pekerjaan banyak sesi.
+
+## 2026-08-27 (lanjutan 4) — Tahap 4 Portal Admin/Direktur SELESAI
+
+Task 21 (Procurement), 22 (Gudang & Aset), 23 (Alat Operasional).
+Halaman admin-portal: **24 → 29**.
+
+### Pola kerja yang dipakai — dan kenapa
+
+Tiap task: riset ke KODE → tulis breakdown ke plan → tipe → halaman →
+navigasi → tsc → token CSS diadu globals.css → RENDER 390×840 dan LIHAT →
+axe-core → seluruh penjaga diadu ke baseline main.
+
+Task 22 & 23 breakdown-nya BELUM ADA (plan cuma menyebut namanya di header —
+saya sempat salah membacanya sebagai "sudah ada"). Jadi ditulis lebih dulu,
+sesuai instruksi plan itu sendiri.
+
+### ⚠ TIGA KEKELIRUAN RENCANA — semuanya gagal SENYAP kalau diikuti
+
+1. `override_quota: true` → sebenarnya `override_reason` (TEKS, min 10
+   karakter). Boolean SELALU ditolak 422, dan pemakainya tak akan tahu kenapa.
+2. `pelanggaran[].sisa` tidak ada; `tanpa_kuota` `string[]` bukan objek.
+3. Dugaan SAYA SENDIRI saat menulis breakdown Task 22: `nilai_buku` dkk
+   dikira "sudah terformat, jangan diformat lagi". Diukur ke
+   `gudang-ikhtisar.ts:45` — `rp` ternyata cuma `toFixed(2)`, angka MENTAH.
+   Kalau diikuti, layar keuangan berbunyi "1243500000.00".
+
+Nomor 1 & 2 dikonfirmasi silang: tipe pm-portal yang membaca endpoint SAMA
+persis cocok dengan bacaan saya dari kode. Jadi plan yang keliru.
+
+**Pelajarannya: rencana yang rinci dan percaya diri tetap harus diadu ke
+kode.** Justru kerinciannya yang membuatnya mudah diikuti tanpa diperiksa —
+dan `string` tak pernah memberi tahu apakah isinya sudah diformat.
+
+### Cacat yang HANYA tertangkap POTRET
+
+- **Gerbang izin admin-portal menendang SEMUA orang** (cacat hidrasi milik
+  saya dari merge kemarin) — portal mati total, tsc bersih, 167 penjaga hijau.
+- Tombol "Lainnya" tergambar DUA KALI di bar bawah.
+- "sisa -18 jam" untuk perawatan yang sudah LEWAT jadwal.
+
+Tak satu pun terlihat typecheck maupun penjaga.
+
+### Verifikasi penutup Tahap 4
+
+| Yang diperiksa | Hasil |
+|---|---|
+| Pemetaan key → halaman nyata | 44 pemetaan, **0 masalah** |
+| Grup aktif ada di peta-menu | 9 grup, **0 hantu** |
+| axe-core WCAG 2.1 AA | **0 pelanggaran** (5 halaman baru) |
+| Token CSS | 52 token, **0 hilang** |
+| Penjaga CI | 38 → 37 di TIAP commit, nol merah baru |
+
+### Sisa
+
+Tahap 5, 6, 7 masih *"Belum di-breakdown"*: Mutu/K3, Risiko, Dokumen,
+Kepatuhan, SDM, Klien, Tender, Sistem, Users/Roles, Audit. Masing-masing
+perlu riset breakdown lebih dulu, pola sama Task 22/23.

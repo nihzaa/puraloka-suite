@@ -5038,6 +5038,43 @@ halamannya belum ada di admin-portal.
 
 ---
 
+## ✅ Tahap 4 SELESAI — 2026-08-27
+
+Task 21 (Procurement: daftar 3-tab + detail MR + detail PO), Task 22 (Gudang
+& Aset ikhtisar), Task 23 (Alat Operasional). Halaman admin-portal: 24 → 29.
+
+**Verifikasi penutup tahap (Task 24-25), dijalankan 2026-08-27:**
+
+| Yang diperiksa | Hasil |
+|---|---|
+| `tsc apps/web` | exit 0 |
+| Penjaga CI penuh, diadu ke baseline main | 38 → 37, **NOL merah baru** |
+| Pemetaan key → halaman nyata | 44 pemetaan, **0 masalah** |
+| Grup aktif ada di `peta-menu.ts` | 9 grup, **0 hantu** |
+| axe-core WCAG 2.1 AA per halaman baru | **0 pelanggaran** (5 halaman) |
+| Token CSS diadu ke `globals.css` | 52 token, **0 hilang** |
+| Tiap halaman dirender 390×844 dan DILIHAT | ya — 3 cacat tata letak ditemukan & diperbaiki |
+
+**Tiga kekeliruan RENCANA yang tertangkap karena diadu ke kode:**
+
+1. Task 21: `override_quota: true` → sebenarnya `override_reason` (teks,
+   min 10 karakter). Boolean SELALU ditolak 422.
+2. Task 21: `pelanggaran[].sisa` tak ada; `tanpa_kuota` `string[]`, bukan objek.
+3. Task 22 (dugaan saya sendiri saat menulis breakdown): `nilai_buku` dkk
+   dikira "sudah terformat" — ternyata `toFixed(2)`, angka MENTAH.
+
+Semuanya gagal SENYAP kalau diikuti. Pelajarannya: **rencana yang rinci dan
+percaya diri tetap harus diadu ke kode** — justru kerinciannya yang membuatnya
+mudah diikuti tanpa diperiksa.
+
+**Cacat yang HANYA tertangkap POTRET, bukan typecheck/penjaga:**
+
+- Gerbang izin admin-portal menendang SEMUA orang (hidrasi) — portal mati total.
+- Tombol "Lainnya" tergambar dua kali di bar bawah.
+- "sisa -18 jam" untuk perawatan yang sudah lewat jadwal.
+
+---
+
 ## Tahap 5-7: Belum di-breakdown
 
 Mengikuti pola Portal PM: setiap Tahap (5: Mutu/K3+Risiko+Dokumen+
