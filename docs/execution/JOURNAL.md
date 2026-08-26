@@ -29189,3 +29189,89 @@ Pemanggil terjadwal untuk `fn_bersihkan_idempotency_kadaluarsa` (repo ini
 memakai rute `otomasi/jalankan/*`, bukan pg_cron). Dan antrean ini belum
 pernah diuji di HP sungguhan dengan sinyal yang benar-benar putus — itu hanya
 bisa dijawab uji lapangan, sesudah APK ada.
+
+## 2026-08-27 (lanjutan 2) — merge Portal Admin/Direktur + mobile ke main; dua cacat ADR-004/hydration ditemukan SAAT merge
+
+Founder: "merge aja deh, dan kerjakan secara autopilot".
+
+### Yang di-merge
+
+1. `feat/admin-direktur-lengkap` — Portal Admin/Direktur Tahap 0-3, **24
+   halaman**, 29 commit. Sebelumnya HANYA hidup di worktree, tak pernah
+   masuk main.
+2. `feat/mobile-aset-merek-dan-cacat-senyap` — seluruh kerja mobile sesi ini.
+
+### Diverifikasi SEBELUM merge, bukan sesudah
+
+Baseline penjaga main dicatat lebih dulu: **38 merah**. Tanpa angka itu, tiap
+merah sesudah merge tak bisa dibedakan antara "bawaan" dan "akibat merge" —
+dan menebaknya berarti memperbaiki hal yang salah.
+
+`tsc apps/web` di branch juga dijalankan lebih dulu (HIJAU), dan berkas yang
+beririsan dengan main dihitung: hanya `JOURNAL.md` + `QUEUE.yaml`.
+
+### Konflik: append-only, SIMPAN KEDUA SISI
+
+Keduanya catatan kerja nyata. Membuang salah satu = menghapus riwayat yang
+tak bisa dipulihkan dari mana pun. Diselesaikan dengan skrip yang menyusun
+ulang kedua sisi, lalu diverifikasi: kedua entri ADA, YAML tetap sah
+(111 item), dan `id` ganda (`ASISTEN-6/7`) dibuktikan **SUDAH ada di main
+sebelum merge** (108 item) — sengaja, ada komentarnya, supaya tautan JOURNAL
+tak putus. Bukan akibat merge.
+
+### DUA cacat ditemukan justru KARENA penjaga
+
+**(1) ADR-004 — `adr004-ratchet` ambang NOL.** `admin-portal/layout.tsx`
+menggerbangi portal dengan `u.role !== "admin" && u.role !== "direktur"`.
+
+Rencana branch itu memang merancangnya begitu, dan alasannya masuk akal:
+`middleware.ts` SENGAJA melewatkan custom role ke layout supaya layout yang
+memverifikasi. Tapi whitelist literal berarti tenant yang membuat role
+sendiri (`general_manager`, `owner`) **dipulangkan ke /dashboard meskipun
+punya seluruh permission yang dituntut halaman di dalamnya**. Middleware
+mengizinkan masuk, layout menendang keluar — tanpa galat, tanpa pesan.
+
+Diganti `settings:manage`, dipilih dari migrasi 050 BUKAN ditebak: dimiliki
+admin, TIDAK dimiliki pm/mandor/client (ketiganya dikecualikan eksplisit di
+seed `role_permissions`). Memisahkan persis kelompok yang dimaksud whitelist
+lama, tanpa nama jabatan.
+
+**(2) Hydration — `uji-izin-hydration` ambang NOL.** Perbaikan (1) memakai
+`hasPermission()` langsung, dan ITU cacat baru: ia membaca localStorage yang
+tak ada di server, jadi `false` saat SSR dan `true` di klien. React membuang
+seluruh pohon hasil server lalu merender ulang — ongkos yang paling terasa di
+HP lapangan.
+
+Diganti `useIzin()` (`useSyncExternalStore`, snapshot server `false`).
+⚠ Konsekuensinya: nilai `false` sampai hydration selesai, jadi pengalihan
+HANYA boleh di dalam `useEffect`. Menaruhnya di jalur render akan
+memulangkan SEMUA orang ke /dashboard di bingkai pertama.
+
+Penjaga kedua ini juga mengajarkan hal lain: dijalankan dari akar repo ia
+melaporkan "✅ 0 berkas dipindai" — **lulus palsu**. Harus dari `apps/web`.
+
+### ⚠ Skrip perbaikan CRLF saya MERUSAK empat PNG
+
+Skrip pengembali LF mengambil daftar dari `git diff --cached --name-only` —
+termasuk `apps/mobile/assets/*.png`. Ia melucuti pasangan byte `\r\n` dari
+data BINER: keempat PNG rusak (tanda tangan `89504e47` hilang).
+
+Tertangkap sebelum commit karena signature-nya diperiksa, bukan diasumsikan.
+Dipulihkan dari branch, diverifikasi ulang (4 PNG sah + ikon dirender dan
+DILIHAT). Pelajaran: perkakas teks tak boleh menyentuh berkas biner, dan
+"berkas yang berubah" bukan alasan cukup untuk menulisinya.
+
+### Bukti akhir
+
+- Penjaga CI: **38 sebelum → 37 sesudah kedua merge. NOL merah baru.**
+- `tsc` HIJAU di ketiga workspace (web, mobile, api).
+- 16 uji antrean HIJAU, `audit-mobile-sehat` + `audit-aset-merek-sinkron` HIJAU.
+- `gen-indeks-docs --check` HIJAU (299 dokumen).
+
+### Sisa
+
+Portal Admin/Direktur **Tahap 4-7 belum digarap** — Tahap 5-7 bahkan belum
+di-breakdown (plannya menulis sendiri "Belum di-breakdown"). Worktree
+`admin-direktur-lengkap` sengaja TIDAK dihapus: ia ber-junction, dan
+menghapus direktori ber-junction bisa menghancurkan `node_modules` sungguhan
+(CLAUDE.md §8a.1).
