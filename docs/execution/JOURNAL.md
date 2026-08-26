@@ -29275,3 +29275,102 @@ di-breakdown (plannya menulis sendiri "Belum di-breakdown"). Worktree
 `admin-direktur-lengkap` sengaja TIDAK dihapus: ia ber-junction, dan
 menghapus direktori ber-junction bisa menghancurkan `node_modules` sungguhan
 (CLAUDE.md §8a.1).
+
+## 2026-08-27 (lanjutan 3) — absensi & retensi masuk portal mandor; Task 21 admin-portal tuntas
+
+### Portal mandor: koreksi klaim saya sendiri
+
+Saya sempat melapor "8 halaman disunat dari portal mandor". **Salah** — saya
+membandingkan NAMA FOLDER. Diukur ulang lewat IZIN yang menggerbangi tiap
+endpoint:
+
+| halaman | butuh izin | mandor punya? |
+|---|---|---|
+| spk | `spk:kelola` | tidak |
+| mitra | `mitra:*` | tidak |
+| tender | `projects:contract` | tidak |
+| opname | `opname:kelola` | tidak |
+| upah, penugasan | — | **sudah ada** di portal, nama halaman beda |
+
+Yang benar-benar hilang cuma DUA: absensi dan retensi. Keduanya kini ada.
+Sisanya kerja kantor — menaruhnya di portal mandor justru salah.
+
+Retensi sengaja HANYA-BACA: pencairan menuntut `mandor:kasbon:approve` yang
+mandor tak punya. Tombol yang pasti kena 403 lebih buruk daripada tak ada.
+
+### Task 21 (admin-portal procurement) — 3 halaman
+
+Daftar 3-tab company-wide + detail MR (override kuota RAB) + detail PO
+(kirim WA + catat GR). Halaman admin-portal: 24 → 27.
+
+### ⚠ RENCANA SALAH DI TIGA TEMPAT
+
+Plan Task 21 menuliskan kontrak yang TIDAK COCOK dengan server:
+
+  1. `override_quota: true` → yang benar `override_reason` (teks, min 10 char)
+  2. `pelanggaran[].sisa` → field itu tak ada
+  3. `tanpa_kuota` objek → sebenarnya `string[]`
+
+Ketiganya gagal SENYAP kalau diikuti. Dikonfirmasi silang: tipe milik
+pm-portal yang membaca endpoint SAMA persis cocok dengan yang saya turunkan
+dari `lib/kuota-rab-material.ts`. Jadi plan yang keliru.
+
+**Pelajarannya: rencana yang rinci dan percaya diri tetap harus diadu ke
+kode.** Justru kerinciannya yang membuatnya mudah diikuti tanpa diperiksa.
+
+### ⚠ CACAT PALING SERIUS SESI INI — MILIK SAYA
+
+Gerbang `useIzin("settings:manage")` yang saya pasang saat merge kemarin
+membuat **SELURUH Portal Admin/Direktur tak bisa dibuka siapa pun.**
+
+`useIzin` memulangkan `false` pada pass hidrasi pertama, jadi
+`router.replace("/dashboard")` jalan sebelum izin sebenarnya diketahui. Akun
+admin dengan 227 izin — termasuk `settings:manage`, diperiksa langsung di
+localStorage — tetap ditendang keluar.
+
+**Typecheck bersih. SELURUH 167 penjaga hijau. Portalnya mati total.**
+
+Ironisnya saya MENULIS peringatan soal jebakan ini di komentar berkas yang
+sama, lalu tetap menulis kodenya salah. Diperbaiki dengan penanda
+`hidrasiSelesai`.
+
+Ini berarti laporan "nol merah baru" pada merge kemarin **benar secara
+harfiah dan menyesatkan secara praktis** — penjaganya memang tak bisa
+melihat cacat ini. Hanya potret yang bisa.
+
+### Cacat lain yang ditangkap POTRET, bukan penjaga
+
+- Tombol "Simpan absensi" TERTUTUP navigasi bawah (mandor-portal).
+- Tombol "Lainnya" tergambar DUA KALI di admin-portal — NAV_ITEMS menaruhnya
+  di indeks 3, di dalam `slice(0,4)` yang PortalShell render, lalu PortalShell
+  menambah tombolnya sendiri.
+- Kolom angka uang tak sejajar antar kartu retensi.
+
+### Cacat yang ditangkap PENJAGA
+
+- `format-ratchet`: saya bikin `Intl.NumberFormat` sendiri. Lalu merah LAGI
+  karena KOMENTAR saya menyebut `Intl.NumberFormat` — pemindainya tak
+  memisahkan kode dari komentar (kelas sama dengan ADR-004).
+- `uji-rute-dinamis-teraudit`: dua rute `[id]` baru akan DILEWATI audit a11y
+  sambil tetap melapor "0 pelanggaran".
+- Form PO saya SELALU gagal 400 — `items` wajib, saya tak mengirimnya.
+  Ketahuan dari membaca kontrak server; typecheck tak tahu bentuk body.
+
+### Bukti
+
+- 5 halaman baru, semuanya dirender 390x844 dan DILIHAT.
+- Perilaku diuji di peramban: override kuota (kosong/6/14 karakter),
+  wa_url (ada/null), tombol simpan (nonaktif→aktif).
+- axe-core WCAG 2.1 AA: **0 pelanggaran** di kelima halaman.
+- 60+ token CSS diverifikasi ada di globals.css.
+- Penjaga CI: 38 → 37 di setiap commit, NOL merah baru.
+
+### Sisa — dan ini besar
+
+Tahap 4 BARU Task 21. Task 22-25 (Gudang + Aset) **disebut di header tapi tak
+pernah di-breakdown** — saya sempat salah membacanya sebagai "sudah ada".
+Tahap 5, 6, 7 eksplisit *"Belum di-breakdown"*: Mutu/K3, Risiko, Dokumen,
+Kepatuhan, SDM, Klien, Tender, Sistem, Users/Roles, Audit.
+
+Ekstrapolasi dari Tahap 0-3 (24 halaman): realistis **40-60 halaman lagi**,
+plus menulis breakdown tiga tahap lebih dulu. Ini pekerjaan banyak sesi.
