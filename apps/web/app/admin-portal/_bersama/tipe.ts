@@ -1262,6 +1262,61 @@ export interface RespQuotaCheck {
  * tombolnya, bukan memasang tautan ke nomor ngawur."*
  */
 /* ══════════════════════════════════════════════════════════════════════════
+   TAHAP 6 — Klien & Tender Subkon
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/** Bentuk PERSIS `GET /api/v1/clients` — `clients.ts:5-8`. */
+export interface KlienRingkas {
+  id: string;
+  company_name: string | null;
+  contact_person: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  npwp: string | null;
+  id_number: string | null;
+  client_type: string | null;
+  notes: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string | null;
+}
+/**
+ * ⚠ TANPA `?all=1`, server HANYA memulangkan klien AKTIF
+ * (`q.eq('is_active', true)`). Halaman wajib menyatakan penyaringnya, bukan
+ * diam-diam menampilkan sebagian.
+ */
+export interface RespKlien { clients: KlienRingkas[] }
+
+/** Bentuk PERSIS `GET /api/v1/tender-subkon` — `tender-subkon.ts:182-211`. */
+export interface TenderSubkon {
+  id: string;
+  nomor: string | null;
+  judul: string | null;
+  lingkup_kerja: string | null;
+  nilai_perkiraan: number | string | null;
+  tanggal: string | null;
+  batas_masuk: string | null;
+  status: string | null;
+  alasan_pilih: string | null;
+  created_at: string;
+  proyek: { id: string; name: string } | null;
+  pembuat: { id: string; name: string } | null;
+  /*
+    ⚠ ARRAY berisi objek `{ count }`, BUKAN angka — itu bentuk embed `count`
+    milik Supabase. Menulis nilainya langsung ke layar menghasilkan
+    "[object Object]". Ambil `penawaran_subkon?.[0]?.count ?? 0`.
+
+    Server mencatat kenapa angka ini penting: "tanpa angka ini layar tak punya
+    cara memilih tender mana yang dibuka lebih dulu, dan urutan `tanggal DESC`
+    membuat tender TERBARU yang menang — yang justru paling mungkin belum ada
+    penawarannya."
+  */
+  penawaran_subkon: Array<{ count: number }>;
+}
+export interface RespTenderSubkon { tender: TenderSubkon[]; total: number }
+
+/* ══════════════════════════════════════════════════════════════════════════
    TAHAP 5 — Mutu + K3 + Risiko + Dokumen
    ══════════════════════════════════════════════════════════════════════════ */
 

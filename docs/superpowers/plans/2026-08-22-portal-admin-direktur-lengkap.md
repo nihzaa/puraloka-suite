@@ -5205,9 +5205,142 @@ dan lebih baik daripada menyembunyikan grupnya sama sekali.
 
 ---
 
-## Tahap 6-7: Belum di-breakdown
+## Tahap 6: SDM + Klien + Tender Subkon
 
-Mengikuti pola Portal PM: setiap Tahap (6: SDM+Klien+Tender, 7: Sistem/Settings/AI [read-only]+Audit+
+**Riset breakdown 2026-08-27 — DIUKUR ke kode.**
+
+### ⚠ TAHAP INI BERBEDA SIFATNYA DARI TAHAP 4 & 5
+
+Tiga tahap sebelumnya punya endpoint IKHTISAR yang menggabungkan banyak modul
+dalam satu balasan (`/gudang/ikhtisar`, `/mutu/ikhtisar`, `/keuangan/...`),
+jadi satu halaman company-wide adalah bentuk yang wajar.
+
+**Tahap 6 TIDAK punya endpoint ikhtisar sama sekali** — diukur:
+`ls routes/v1 | grep ikhtisar` hanya memulangkan gudang, keuangan, mutu.
+
+Lebih penting lagi: **sebagian besar rute SDM bersifat PER-PEGAWAI**, bukan
+daftar company-wide:
+
+```
+/api/v1/sdm/pegawai/:id/cuti          ← butuh id pegawai
+/api/v1/sdm/pegawai/:id/cuti-hak      ← butuh id pegawai
+/api/v1/sdm/pegawai/:id/kompetensi    ← butuh id pegawai
+/api/v1/sdm/pegawai/:id/penilaian     ← butuh id pegawai
+/api/v1/sdm/lamaran                   ← company-wide (rekrutmen)
+```
+
+Artinya halaman "SDM company-wide" TIDAK BISA dibangun tanpa daftar pegawai
+lebih dulu, dan daftar itu harus datang dari `/users` (modul lain, Tahap 7).
+
+**Keputusan: Tahap 6 dibatasi pada dua hal yang BENAR-BENAR company-wide —
+Klien dan Tender Subkon.** SDM ditunda ke Tahap 7 bersama Users/Roles, tempat
+daftar pegawainya berada.
+
+Menyeret SDM ke sini akan melahirkan halaman yang memanggil `/pegawai/:id/*`
+tanpa punya sumber id-nya — persis kelas cacat "rute hantu" yang sudah
+tercatat dua kali di repo ini.
+
+### Endpoint yang dipakai
+
+| rute | izin | catatan |
+|---|---|---|
+| `GET /api/v1/clients` | `authenticate` saja | `?all=1` menyertakan nonaktif |
+| `GET /api/v1/tender-subkon` | `projects:view` | lintas proyek, `?project_id=` opsional |
+
+Keduanya company-wide sungguhan — tak menuntut memilih proyek/pegawai dulu.
+
+### Bentuk `GET /api/v1/clients` (clients.ts:5-8, 37)
+
+```typescript
+export interface KlienRingkas {
+  id: string; company_name: string | null; contact_person: string | null;
+  phone: string | null; email: string | null; address: string | null;
+  npwp: string | null; id_number: string | null;
+  client_type: string | null; notes: string | null;
+  is_active: boolean; created_at: string; updated_at: string | null;
+}
+export interface RespKlien { clients: KlienRingkas[] }
+```
+
+⚠ Diurut server `contact_person` MENAIK, dan **tanpa `?all=1` hanya yang
+aktif** (`q.eq('is_active', true)`). Halaman harus menyatakan penyaring itu,
+bukan diam-diam menampilkan sebagian.
+
+### Bentuk `GET /api/v1/tender-subkon` (tender-subkon.ts:182-211)
+
+```typescript
+export interface TenderSubkon {
+  id: string; nomor: string | null; judul: string | null;
+  lingkup_kerja: string | null;
+  nilai_perkiraan: number | string | null;
+  tanggal: string | null; batas_masuk: string | null;
+  status: string | null; alasan_pilih: string | null; created_at: string;
+  proyek: { id: string; name: string } | null;
+  pembuat: { id: string; name: string } | null;
+  /** Supabase count embed — bentuknya `[{ count: n }]`, BUKAN angka. */
+  penawaran_subkon: Array<{ count: number }>;
+}
+export interface RespTenderSubkon { tender: TenderSubkon[]; total: number }
+```
+
+⚠ **`penawaran_subkon` adalah ARRAY berisi objek `{count}`**, bukan angka —
+itu bentuk embed `count` Supabase. Menulis `t.penawaran_subkon` langsung ke
+layar menghasilkan `[object Object]`. Ambil `t.penawaran_subkon?.[0]?.count ?? 0`.
+
+⚠ Server sendiri mencatat kenapa angka itu penting: *"tanpa angka ini layar
+tak punya cara memilih tender mana yang dibuka lebih dulu, dan urutan
+`tanggal DESC` membuat tender TERBARU yang menang — yang justru paling
+mungkin belum ada penawarannya."*
+
+Jadi halaman WAJIB menampilkan jumlah penawaran per tender, dan sebaiknya
+menyorot yang nol.
+
+### Files
+
+- Create: `apps/web/app/admin-portal/klien/page.tsx`
+- Create: `apps/web/app/admin-portal/tender/page.tsx`
+- Modify: `_bersama/tipe.ts` (tambah `RespKlien`, `RespTenderSubkon`)
+- Modify: `kategori/[key]/page.tsx` (petakan key)
+- Modify: `lib/admin-portal-kategori.ts` (aktifkan `g-crm`, `g-subkon`)
+
+### Key yang DIPETAKAN
+
+`crm-tender` → `/admin-portal/tender`
+`sk-tender` → `/admin-portal/tender`
+
+⚠ **Key klien adalah `md-klien`, dan ia ada di grup `g-master` — grup TAHAP 7,
+bukan Tahap 6.** Diverifikasi ke `peta-menu.ts:92`.
+
+Jadi halaman klien dibangun di tahap ini, tetapi PEMETAAN key-nya menunggu
+`g-master` diaktifkan di Tahap 7. Sementara itu ia dijangkau lewat tautan di
+badan halaman Tender (klien & tender sama-sama pra-konstruksi).
+
+Memaksa `md-klien` dipetakan sekarang berarti mengaktifkan `g-master` lebih
+awal — dan seluruh item lain grup itu (Users, Roles, Master data) belum punya
+halaman admin-portal, jadi grupnya akan tampil hampir kosong.
+
+Sisanya (crm-lead, crm-gonogo, crm-prakualifikasi, crm-estimating, crm-boq,
+crm-skenario, crm-markup, crm-eskalasi, crm-proposal, crm-bidbond, sk-*
+selain sk-tender) sengaja jatuh ke fallback href web.
+
+### Langkah
+
+- [ ] **Step 1: tipe** sesuai bentuk di atas.
+- [ ] **Step 2: halaman klien** — daftar, penyaring aktif/semua dinyatakan,
+  kontak & NPWP.
+- [ ] **Step 3: halaman tender** — jumlah penawaran per tender (nol disorot),
+  nilai perkiraan, batas masuk (negatif = lewat, pola Task 23/Tahap 5),
+  penyaring proyek OPSIONAL (pola Task 21).
+- [ ] **Step 4: navigasi** — aktifkan `g-crm`+`g-subkon`, petakan
+  `crm-tender`/`sk-tender`. `md-klien` DITUNDA ke Tahap 7 bersama `g-master`.
+- [ ] **Step 5: verifikasi** — tsc, token CSS, RENDER 390×844 dan LIHAT,
+  axe-core 0, cek pemetaan, seluruh penjaga diadu baseline.
+
+---
+
+## Tahap 7: Belum di-breakdown
+
+Mengikuti pola Portal PM: Tahap 7 ( Sistem/Settings/AI [read-only]+Audit+
 Users/Roles+Master+sisa) dimulai dengan SATU task "riset & breakdown" yang
 menulis task-task konkret ke dokumen ini begitu tahap sebelumnya selesai —
 BUKAN ditulis sekaligus di awal.

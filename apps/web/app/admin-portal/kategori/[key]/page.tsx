@@ -125,6 +125,21 @@ const PETA_HREF_PORTAL: Record<string, string> = {
   "hse-insiden": "/admin-portal/mutu",
   "hse-inspeksi": "/admin-portal/mutu",
   "dk-register": "/admin-portal/mutu",
+  /*
+    Tahap 6 — Tender Subkon (g-crm & g-subkon).
+
+    Dua key menunjuk halaman yang sama: tender subkon muncul di grup
+    Pra-Konstruksi (crm-tender) MAUPUN Mandor & Subkon (sk-tender), dan
+    keduanya memang tender yang sama.
+
+    ⚠ Klien TIDAK dipetakan di sini: key-nya `md-klien` dan ia ada di grup
+    `g-master` — grup Tahap 7. Mengaktifkan g-master sekarang membuat grup
+    itu tampil hampir kosong (Users/Roles/Master belum punya halaman).
+    Halaman klien dijangkau lewat tautan di badan halaman Tender, pola sama
+    `kontrak/asuransi` di Tahap 2.
+  */
+  "crm-tender": "/admin-portal/tender",
+  "sk-tender": "/admin-portal/tender",
   "bi-eksekutif": "/admin-portal",
   "sy-inbox-approval": "/admin-portal/inbox",
   // Tahap 2 — Kontrak (g-kontrak)

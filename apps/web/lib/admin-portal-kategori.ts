@@ -81,6 +81,7 @@ const KATEGORI_AKTIF: string[] = [
   "g-inventory", "g-aset",              // Tahap 4 (Task 22) — Gudang & Aset
   "g-qaqc", "g-hse",                    // Tahap 5 — Mutu & K3
   "g-risiko", "g-dokumen",              // Tahap 5 — Risiko & Dokumen
+  "g-crm", "g-subkon",                  // Tahap 6 — Pra-Konstruksi & Subkon
 ];
 
 export function kategoriUntukAdmin(): GrupMenu[] {
