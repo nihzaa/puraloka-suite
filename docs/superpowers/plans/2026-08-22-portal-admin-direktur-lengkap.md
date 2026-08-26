@@ -3792,6 +3792,1031 @@ pola sama Task 5/12.
   git commit -m "docs(plan): breakdown Tahap 4 — Procurement + Gudang + Aset"
   ```
 
+### Hasil riset Task 20 (2026-08-22) — ringkasan sebelum Task 21-25
+
+**Struktur `peta-menu.ts` — VERIFIKASI, bukan tebakan dari nama folder.**
+Tiga grup terpisah, PERSIS seperti dugaan brief:
+
+- `g-procurement` (Pengadaan, urutan 60) — 10 item: Material Request
+  (`pr-mr` → `/procurement/permintaan`), RFQ ke Vendor (`pr-rfq` →
+  `/procurement/rfq`), Perbandingan Penawaran (`pr-tabulasi` →
+  `/procurement/rfq`, satu layar dg RFQ), Purchase Order (`pr-po` →
+  `/procurement/pesanan`), Kontrak Payung (`pr-blanket` →
+  `/procurement/lanjutan?bagian=payung`, **SUDAH tercakup Task 18**),
+  Goods Receipt (`pr-grn` → `/procurement/penerimaan`), 3-Way Match
+  (`pr-3way` → `/procurement`), Evaluasi Kinerja Vendor (`pr-evaluasi` →
+  `/procurement/kualifikasi`), Jadwal Bayar Vendor (`pr-jadwal-bayar` →
+  `/procurement`), Expediting & Logistik (`pr-expediting` →
+  `/procurement/lanjutan?bagian=expediting`, **SUDAH tercakup Task 18**).
+- `g-inventory` (Gudang & Material, urutan 70) — **8 item**: Gudang Proyek
+  (`iv-gudang` → `/procurement`, sebenarnya `/gudang` — catatan
+  `peta-menu.ts` basi, lihat temuan di bawah), Stok Masuk & Keluar
+  (`iv-mutasi` → `/procurement/stok`), Transfer Antar Proyek
+  (`iv-transfer` → `/gudang/transfer`), Stock Opname (`iv-opname` →
+  `/procurement`), Minimum Stok (`iv-minstok` → `/procurement/material`),
+  Rekonsiliasi Material (`iv-rekonsiliasi` → `/gudang/rekonsiliasi`),
+  Tracking Waste (`iv-waste` → `/gudang/rekonsiliasi`, SATU halaman
+  dengan `iv-rekonsiliasi`), **`gd-susut`** (Rencana Susut, → `/gudang/
+  susut`, CRUD referensi peta resource↔material + rencana target susut
+  per material — company-wide, `gudang:susut:view`/`:manage`).
+- `g-aset` (Alat & Aset, urutan 130) — 7 item: Register Aset
+  (`as-register` → `/aset`), Mutasi Antar Proyek (`as-mutasi` →
+  `/aset`), Penyusutan (`as-penyusutan` → `/aset`), Sewa Alat
+  (`as-sewa` → `/aset?tab=sewa`), Utilisasi (`as-utilisasi` → `/aset`),
+  Maintenance Terjadwal (`as-maintenance` → `/aset/operasional`), Biaya
+  Operasional Alat (`as-opex` → `/aset/operasional`), Penyusutan → Jurnal
+  (`as-gl` → `/aset/operasional`). SEMUANYA satu dari dua halaman fisik
+  (`/aset` atau `/aset/operasional`) — pola SAMA `g-keuangan` Task 13
+  (banyak item menu, sedikit halaman fisik).
+
+⚠ **`iv-gudang` catatan `peta-menu.ts` menyebut href `/procurement` tapi
+teksnya sendiri bilang "Tabel `gudang` + `gudang_stok`... halaman /gudang
+beserta rekonsiliasi & susut"** — href FIELD-nya basi (menunjuk halaman
+Procurement lama sebelum modul Gudang berdiri sendiri), TAPI catatan
+prosa-nya benar. Portal admin memetakan `iv-gudang` ke halaman
+`/admin-portal/gudang` (Task 22) mengikuti CATATAN, bukan field `href`
+yang basi — pola sama `audit-taksonomi-vs-kode.mjs` yang dibangun untuk
+menangkap kelas cacat ini.
+
+**File route backend — SEMUA nama PERSIS tebakan brief**, diverifikasi
+`ls`:
+
+```
+apps/api/src/routes/v1/procurement.ts            (MR/PO/GR/supplier-
+                                                   invoice/payment/stocks/
+                                                   dashboard/reports, 2048
+                                                   baris — nomor baris
+                                                   IDENTIK riset PM Task 23)
+apps/api/src/routes/v1/gudang-ikhtisar.ts         (dashbor lintas-proyek)
+apps/api/src/routes/v1/gudang-kelola.ts           (CRUD lokasi gudang)
+apps/api/src/routes/v1/transfer-stok.ts           (transfer dua-sisi)
+apps/api/src/routes/v1/rekonsiliasi-material.ts   (RAB vs beli/pakai,
+                                                   read-only, per-proyek)
+apps/api/src/routes/v1/susut-material.ts          (jembatan AHSP↔material
+                                                   + rencana susut — DATA
+                                                   REFERENSI, company-wide)
+apps/api/src/routes/v1/assets.ts                  (register/mutasi/sewa/
+                                                   penyusutan aset)
+apps/api/src/routes/v1/alat-operasional.ts        (pemakaian/perawatan/
+                                                   biaya/jurnalkan alat)
+apps/api/src/routes/v1/material-klien.ts          (free-issue material —
+                                                   TIDAK ADA di peta-menu.ts
+                                                   sama sekali, LUAR
+                                                   cakupan navigasi resmi)
+```
+
+**Live query permission admin vs direktur 2026-08-22** (pisah per
+role_id, dikonfirmasi IDENTIK di seluruh **98 tenant** yang punya kedua
+role — dua signature unik: satu utk `admin`, satu utk `direktur`, 0
+variasi antar tenant, konsisten metodologi Task 13/17):
+
+| permission | admin | direktur | menggerbangi |
+|---|---|---|---|
+| `procurement:view` | ✅ | ✅ | SEMUA GET material-requests/purchase-orders/goods-receipts/stocks/dashboard/reports |
+| `procurement:mr:manage` | ✅ | ✅ | POST/PATCH/DELETE material-requests + items, `PATCH .../submit` |
+| `procurement:mr:override_quota` | ✅ | ✅ | melampaui kuota RAB saat submit MR — **BEDA dari PM** (PM Task 23 TIDAK punya ini) |
+| `procurement:po:manage` | ✅ | ✅ | POST/PATCH/cancel purchase-orders, POST goods-receipts, confirm GR, delivery-message/log |
+| `procurement:payment:manage` | ✅ | ✅ | supplier-invoices/payments (LUAR cakupan Tahap 4 — sudah Task 18 Pengadaan Lanjutan utk nota kredit; supplier-invoice/payment sendiri TIDAK di `peta-menu.ts` sebagai item terpisah) |
+| `procurement:material:manage` | ✅ | ✅ | POST/PATCH materials, PATCH min-stock, POST material-klien, POST transfer-stok |
+| `procurement:supplier:manage` | ✅ | ✅ | POST/PATCH suppliers |
+| `gudang:view` | ✅ | ✅ | GET `/gudang`, `/gudang/ikhtisar` |
+| `gudang:manage` | ✅ | ❌ | POST/PATCH `/gudang` (buat & edit lokasi gudang) — **direktur TIDAK bisa kelola lokasi gudang** |
+| `gudang:susut:view` | ✅ | ✅ | GET peta resource↔material, rencana susut |
+| `gudang:susut:manage` | ✅ | ❌ | PUT/DELETE peta resource↔material, PUT rencana susut — **direktur TIDAK bisa edit data referensi susut** |
+| `rekonsiliasi:view` | ✅ | ✅ | dipakai modul Keuangan Task 16 (Rekonsiliasi Bank) — **BUKAN** `rekonsiliasi-material.ts` (yang bergerbang `procurement:view`, lihat baris di atas — nama mirip TAPI dua fitur berbeda total, jangan tertukar) |
+| `rekonsiliasi:manage` | ✅ | ❌ | idem, domain Rekonsiliasi Bank |
+| `rekonsiliasi:lock` | ✅ | ❌ | idem, domain Rekonsiliasi Bank |
+| `assets:view` | ✅ | ✅ | SEMUA GET `/assets`, `/asset-rentals`, `/alat-operasional`, movements, depreciation |
+| `assets:manage` | ✅ | ❌ | POST/PATCH `/assets`, movements, depreciation; POST/PATCH `/asset-rentals`; POST pemakaian/perawatan/biaya `alat-operasional` — **direktur HANYA BISA MELIHAT aset & alat, TIDAK bisa mendaftarkan/memutasi/mencatat apa pun** |
+| `gl:manage` | ✅ | ❌ | `POST /alat-operasional/penyusutan/jurnalkan` (dikonfirmasi ULANG Task 13 — direktur TIDAK punya `gl:manage` sama sekali, konsisten) |
+
+⚠ **PENTING — `rekonsiliasi:*` dipakai DUA modul yang TAK BERHUBUNGAN.**
+`rekonsiliasi-material.ts` (Gudang & Material, Tahap 4, halaman
+`/gudang/rekonsiliasi`) bergerbang `procurement:view` — BUKAN
+`rekonsiliasi:*`. Permission `rekonsiliasi:view`/`manage`/`lock` yang
+tabelnya di atas HANYA berlaku untuk Rekonsiliasi BANK (`rekonsiliasi-
+bank.ts`, sudah dibangun Task 16). Kemiripan nama ini sempat membuat
+draf pertama riset ini salah menyimpulkan "Rekonsiliasi Material terbelah
+admin-direktur" — SALAH, `rekonsiliasi-material.ts` (baca-saja,
+`procurement:view`) sama-sama bisa diakses admin MAUPUN direktur.
+
+⚠ **Pola dominan Tahap 4: admin+direktur SAMA untuk procurement (kecuali
+nol — semua sama), TERBELAH untuk gudang-lokasi/susut-manage/aset/alat**
+— campuran dua pola sebelumnya, bukan salah satu murni:
+
+- **Procurement (MR/PO/GR/Material/Supplier) — pola Task 17/18 (SAMA)**:
+  admin dan direktur punya PERSIS permission yang sama, termasuk
+  `procurement:mr:override_quota` yang PM TIDAK punya. TIDAK ADA
+  render-gate berbeda admin-vs-direktur di modul Procurement Tahap 4 ini
+  — kalau ada tombol yang disembunyikan, itu perbandingan terhadap PM
+  (Task 24 di bawah), bukan terhadap direktur.
+- **Gudang Lokasi (buat/edit) + Susut (edit referensi) — pola Task 15/16
+  (BEDA)**: `gudang:manage`/`gudang:susut:manage` admin-only. Ikhtisar
+  gudang dan lihat data susut tetap sama-sama bisa (`gudang:view`/
+  `gudang:susut:view`).
+- **Aset & Alat Operasional — pola Task 15/16 (BEDA), PALING EKSTRIM
+  Tahap 4**: `assets:manage` admin-only berarti direktur TIDAK bisa
+  membuat SATU PUN tulisan di modul ini — bukan cuma satu tombol
+  hilang seperti GL (yang direktur masih bisa tutup/buka periode),
+  direktur di modul Aset murni PEMBACA. Sama seperti GL, `gl:manage`
+  utk tombol Jurnalkan Penyusutan JUGA admin-only.
+- **Rekonsiliasi Material — company-wide-baca utk KEDUANYA**: satu-
+  satunya sub-modul Tahap 4 yang justru TIDAK py pembedaan sama sekali
+  (read-only utk siapa pun ber-`procurement:view`, admin dan direktur
+  identik).
+
+**Company-wide vs per-proyek — dikonfirmasi per sub-modul (kode nyata,
+BUKAN dugaan brief):**
+
+| sub-modul | cakupan | alasan (verifikasi kode) |
+|---|---|---|
+| Material Request | **per-proyek, TAPI `project_id` OPSIONAL** | `proyekBolehDibaca()` (`procurement.ts:82-89`) — tanpa `project_id`, memulangkan SEMUA proyek tenant (`request.db!.projectIds()`) sekaligus; DIBERI `project_id`, mempersempit ke SATU. Admin/direktur BISA lihat lintas-proyek dalam SATU panggilan (beda dari PM yang wajib pilih satu proyek dulu) |
+| Purchase Order | **per-proyek, opsional** | fungsi HELPER SAMA `proyekBolehDibaca()`, baris 871/912 |
+| Goods Receipt | **per-proyek, opsional** | fungsi HELPER SAMA, baris 1153 |
+| Stocks (kartu stok) | **per-proyek, opsional** | fungsi HELPER SAMA, baris 1653 |
+| Transfer Stok | **company-wide** (dua sisi proyek asal+tujuan tenant) | `transfer-stok.ts:42` — `request.db!.projectIds()` dipakai menyaring KEDUA `project_asal_id`/`project_tujuan_id` sekaligus, TIDAK ada mode "satu proyek wajib" |
+| Gudang (ikhtisar+lokasi) | **company-wide MURNI** | `gudang-ikhtisar.ts`/`gudang-kelola.ts` — `company_id`, NOL kolom `project_id` di tabel `gudang` |
+| Rekonsiliasi Material | **per-proyek WAJIB** | `GET /projects/:projectId/rekonsiliasi-material` — `:projectId` di PATH, bukan query opsional; BEDA dari MR/PO/GR yang opsional |
+| Susut (referensi) | **company-wide MURNI** | `susut-material.ts` — peta resource↔material & rencana susut per MATERIAL, tanpa dimensi proyek sama sekali |
+| Aset (register+mutasi+penyusutan+sewa) | **company-wide MURNI** | `assets.ts` — `current_project_id` HANYA metadata "sedang di proyek mana", BUKAN filter akses; `assets:view`/`manage` company-scoped |
+| Alat Operasional (pemakaian+perawatan+biaya+jurnalkan) | **company-wide MURNI** | `alat-operasional.ts` — `request.companyId!`, alat dipakai bergantian lintas proyek sesuai dugaan awal brief |
+
+Prediksi awal brief ("Procurement per-proyek tapi approval company-wide,
+Gudang campuran, Aset company-wide") **SEBAGIAN BENAR, dengan koreksi
+penting**: Procurement memang per-proyek TAPI opsional (bisa company-
+wide sekali panggil tanpa filter — bukan "per-proyek wajib + approval
+terpisah company-wide" seperti dugaan), dan APPROVAL MR/PO TIDAK
+dibangun sebagai tombol di modul ini sama sekali (lihat temuan approval
+di bawah) — sudah tercakup Inbox Task 4.
+
+**Temuan kritis #1 — APPROVAL MR/PO SATU PINTU, dan SUDAH TERCAKUP PENUH
+sejak Task 4 (Inbox), SEBELUM riset Procurement ini ada.** `PATCH
+/material-requests/:id/approve` dan `PATCH /purchase-orders/:id/status`
+(transisi ke `sent`) SAMA-SAMA lewat `evaluateEntityApproval`/
+`canParticipateInChain` (ADR-007), BUKAN `requirePermission` langsung —
+identik temuan PM Task 23. Diverifikasi LANGSUNG ke
+`admin-portal/inbox/page.tsx`: `material_request` (baris ~109) dan
+`purchase_order` (baris ~126) SUDAH terdaftar PENUH di peta `AKSI`
+(approve/reject URL, `tolakDinonaktifkan` utk `purchase_order` — pola
+sama `rencana_mutu`), lengkap dengan `useData` detail per-jenis (baris
+~273-305). **TIDAK ADA lubang yang perlu ditutup** — Task 4 sudah
+menuntaskan approval MR/PO sebelum Tahap 4 ini dimulai. Task 21 KARENA
+ITU TIDAK membangun tombol approve terpisah di halaman Procurement sama
+sekali — bukan sekadar "menghindari", tapi karena tombolnya SUDAH ADA
+di Inbox dan menambah jalur kedua akan melanggar
+`audit-approval-satu-pintu.mjs`.
+
+**Temuan kritis #2 — `POST /procurement/stocks/opname` bergerbang
+`procurement:view` (BACA) padahal MENULIS**, PRA-EKSISTING (identik
+temuan PM Task 23 Temuan #2, `procurement.ts:2023`). TIDAK diperbaiki
+di sini (backend di luar scope plan frontend-only). Task 22 (Gudang)
+KARENA ITU TIDAK membangun halaman Stock Opname — konsisten keputusan
+PM Task 26 (menghindari mengekspos jalur tulis-massal bergerbang-baca
+ke LEBIH BANYAK pengguna).
+
+**Temuan kritis #3 — `iv-opname`/`iv-minstok` TIDAK dapat halaman baru**,
+sama alasan PM (Temuan #2 di atas utk opname; minstok adalah master data
+kuota RAB yang sudah tercakup `quota-check` MR — lihat Task 21). Kedua
+key ini fallback ke href web `peta-menu.ts` di Task 24 (nav), BUKAN
+dibiarkan tak dipetakan sama sekali seperti kelalaian PM Task 26 sempat
+lakukan pada `iv-minstok` — Task 24 mengisi eksplisit dengan alasan
+tertulis, bukan diam-diam kosong.
+
+**Temuan kritis #4 — modul Aset py TIGA gerbang tulis berbeda dalam SATU
+halaman gabungan**: `assets:manage` (register/mutasi/sewa/catat-
+penyusutan) dan `gl:manage` (jurnalkan penyusutan) adalah DUA permission
+TERPISAH yang KEBETULAN sama-sama admin-only untuk direktur — halaman
+Task 23 WAJIB dua render-gate independen (`bolehKelolaAset` DAN
+`bolehJurnalkan`), BUKAN satu gate gabungan, supaya kalau suatu saat
+`gl:manage` diberikan ke role lain tanpa `assets:manage` (atau
+sebaliknya), UI tetap benar tanpa perlu disentuh ulang.
+
+**Konfirmasi eksplisit — TIDAK ADA duplikasi dengan Task 18 (Pengadaan
+Lanjutan).** `pr-blanket`/`pr-expediting`/`tg-nota-kredit` SUDAH
+dibangun Task 18 (`/admin-portal/keuangan/pengadaan-lanjutan`,
+`GET /pengadaan-lanjutan`). Task 21 (Procurement Tahap 4 ini) HANYA
+membangun MR/PO/GR — TIDAK menyentuh tiga item itu lagi. Namun
+`PETA_HREF_PORTAL` untuk `pr-blanket`/`pr-expediting` **BELUM diisi**
+sejak Task 19 (hanya `tg-nota-kredit` yang dipetakan) — Task 24 (nav
+Tahap 4 ini) WAJIB menutup kekurangan Task 19 itu sekalian, supaya
+mengaktifkan `g-procurement` tidak membuat dua item itu tampil dengan
+fallback href web padahal halamannya SUDAH ADA sejak Task 18.
+
+**Perbandingan eksplisit dengan Portal PM (Task 23-26, 40) — DELTA yang
+mengubah breakdown, bukan sekadar "salin, hapus filter `.pm`":**
+
+| aspek | Portal PM | Portal Admin/Direktur (Tahap 4 ini) |
+|---|---|---|
+| MR/PO list | WAJIB pilih satu proyek dulu (`daftarProyek.filter(p => p.pm)`, single `project_id`) | Opsional — company-wide sekali panggil TANPA filter proyek dulu (`proyekBolehDibaca` tanpa `project_id` = SEMUA), project-picker jadi PENYARING bukan PRASYARAT |
+| `procurement:mr:override_quota` | PM TIDAK punya | Admin+direktur PUNYA — Task 21 WAJIB menambah tombol/opsi override yang TIDAK ADA di versi PM |
+| `procurement:payment:manage` | PM TIDAK punya | Admin+direktur PUNYA, TAPI sudah tercakup Task 18 (luar cakupan Task 21) |
+| `gudang:manage`/`susut:manage` | PM PUNYA PENUH | Direktur TIDAK punya — Task 22 WAJIB menambah render-gate yang TIDAK ADA di versi PM (PM tak pernah butuh gate ini) |
+| `assets:manage`/`gl:manage` (aset) | PM PUNYA PENUH (dikonfirmasi ulang Task 40 review) | Direktur TIDAK punya SATU PUN dari keduanya — Task 23 WAJIB dua render-gate independen yang TIDAK ADA di versi PM |
+| Rekonsiliasi Material | per-proyek PM sendiri (proyek yang sedang ditangani PM) | per-proyek TAPI admin/direktur pilih dari SEMUA proyek tenant (bukan hanya proyek sendiri) |
+
+Kesimpulan pola: **Tahap 4 adalah kasus PALING BANYAK render-gate baru
+dari SELURUH plan ini sejauh Task 20** — tiga sub-modul (Gudang-manage,
+Susut-manage, Aset+Alat) SEMUANYA butuh gate admin-vs-direktur yang
+tidak ada preseden di versi PM manapun, sementara Procurement sendiri
+adalah kasus SAMA PERSIS Task 17/18 (admin=direktur, beda dari PM).
+
+**Temuan bonus — `_bersama/tipe.ts` SUDAH memuat `MrRingkas`/`MrDetail`/
+`RespMrDetail`/`PoRingkas`/`PoDetail`/`RespPoDetail` (baris 186-239)**,
+ditambahkan Task 4 untuk kebutuhan detail Inbox approval MR/PO —
+diverifikasi PERSIS baris-per-baris sama dengan bentuk yang dipakai di
+sini. Task 21 KARENA ITU tidak menulis ulang enam tipe itu — cukup
+IMPOR dari `_bersama/tipe.ts` yang sudah ada, dan hanya MENAMBAH tipe
+yang belum ada (`RespMrDaftar`, `RespPoDaftar`, `RespGrDaftar`,
+`RespQuotaCheck`, `RespMaterialDaftar`, `RespSupplierDaftar`,
+`RespPesanPo`, `RespDeliveryLog`, `RespKuotaRab`).
+
+---
+
+## Tahap 4 lanjutan: Task 21-25
+
+### Task 21: Procurement — daftar 3-tab company-wide + buat MR/PO + detail & aksi
+
+**Files:**
+- Create: `apps/web/app/admin-portal/procurement/page.tsx`
+- Create: `apps/web/app/admin-portal/procurement/mr/[id]/page.tsx`
+- Create: `apps/web/app/admin-portal/procurement/po/[id]/page.tsx`
+- Modify: `apps/web/app/admin-portal/_bersama/tipe.ts` (tambah 9 tipe
+  BARU — `MrRingkas`/`MrDetail`/`RespMrDetail`/`PoRingkas`/`PoDetail`/
+  `RespPoDetail` SUDAH ADA sejak Task 4, JANGAN ditulis ulang)
+
+**Interfaces:**
+- Consumes: `GET /api/v1/procurement/material-requests?project_id=`
+  (opsional — `procurement:view`, admin+direktur SAMA), `GET .../
+  purchase-orders?project_id=`, `GET .../goods-receipts?project_id=`
+  (ketiganya `procurement:view`, `project_id` OPSIONAL — lihat catatan
+  ⚠ di bawah), `POST .../material-requests` + `POST .../purchase-
+  orders` (`procurement:mr:manage`/`po:manage`, admin+direktur SAMA),
+  `GET .../material-requests/:id/quota-check` (`procurement:view`),
+  `PATCH .../material-requests/:id/submit` (`procurement:mr:manage`,
+  body `{ override_quota?: true }` bila `procurement:mr:override_quota`
+  — admin+direktur SAMA-SAMA PUNYA, BEDA dari PM), `GET .../materials`,
+  `GET .../suppliers` (picker item), `GET .../purchase-orders/:id/
+  delivery-message` + `POST/GET .../delivery-log` (kirim WA ke
+  vendor), `POST .../goods-receipts` (buat GR dari PO).
+- Produces: `/admin-portal/procurement` (list 3-tab MR/PO/GR, TANPA
+  wajib pilih proyek dulu — project-picker OPSIONAL sebagai penyaring),
+  `/admin-portal/procurement/mr/[id]` (detail + quota-check + submit +
+  override), `/admin-portal/procurement/po/[id]` (detail + kirim WA +
+  buat GR).
+
+⚠ **BEDA STRUKTURAL dari Portal PM (Task 24) — project-picker OPSIONAL,
+bukan WAJIB.** PM mewajibkan `daftarProyek.filter(p => p.pm)` lalu pilih
+SATU proyek sebelum apa pun tampil (`proyekAktif = proyekId ||
+daftarProyek[0]?.id`). Admin/direktur company-wide: TANPA memilih
+proyek, list MR/PO/GR menampilkan SEMUA proyek tenant sekaligus (server
+`proyekBolehDibaca()` tanpa `project_id` mengembalikan
+`db.projectIds()` penuh). Project-picker di halaman ini adalah OPSI
+"Semua Proyek" (default) + daftar proyek individual — BUKAN prasyarat
+sebelum data muncul. Field `project.name` pada tiap baris WAJIB
+ditampilkan di kartu (PM tidak perlu — satu proyek per layar; admin
+company-wide butuh, atau baris-baris dari proyek berbeda tak
+terbedakan).
+
+⚠ **`procurement:mr:override_quota` — admin+direktur PUNYA, PM TIDAK.**
+Detail MR (Task 21 Step 4) WAJIB menampilkan checkbox/toggle "Lampaui
+kuota RAB" saat `quota-check` mengembalikan `lolos: false`, dan
+mengirim `override_quota: true` ke `submit` — kapabilitas yang TIDAK
+ADA di `pm-portal/procurement/mr/[id]/page.tsx` versi manapun (PM hanya
+menampilkan pelanggaran sebagai info, tombol submit tetap terkunci).
+Menyalin versi PM apa adanya di sini akan MENYEMBUNYIKAN kapabilitas
+yang admin/direktur benar-benar punya.
+
+- [ ] **Step 1: Tambah 9 tipe BARU ke `_bersama/tipe.ts`** (di bawah
+  `RespPoDetail` yang sudah ada, baris ~239) — bentuk diverifikasi
+  baris-per-baris ke `procurement.ts` (Task 20 Step 2):
+
+  ```typescript
+  /** Bentuk PERSIS `GET /api/v1/procurement/material-requests`,
+   * `procurement.ts:263-268`. Memakai `MrRingkas` yang SUDAH ADA
+   * (baris 187, ditambahkan Task 4 untuk kebutuhan Inbox). */
+  export interface RespMrDaftar { material_requests: MrRingkas[] }
+
+  /** Bentuk PERSIS `GET /material-requests/:id/quota-check`,
+   * `procurement.ts:593-610`. `bisa_override` TRUE untuk admin/
+   * direktur (`procurement:mr:override_quota` — BEDA dari PM). */
+  export interface RespQuotaCheck {
+    mr_number: string | null;
+    lolos: boolean;
+    pelanggaran: Array<{ material_id: string; material_name?: string; diminta: number; sisa: number }>;
+    tanpa_kuota: Array<{ material_id: string; material_name?: string }>;
+    bisa_override: boolean;
+  }
+
+  /** Bentuk PERSIS `GET /api/v1/procurement/purchase-orders`,
+   * `procurement.ts:861-866`. Memakai `PoRingkas` yang SUDAH ADA. */
+  export interface RespPoDaftar { purchase_orders: PoRingkas[] }
+
+  /** Bentuk PERSIS `GET /purchase-orders/:id/delivery-message`,
+   * `procurement.ts:363-428`. `wa_url` NULL kalau nomor telepon
+   * supplier tak sah — UI WAJIB menyembunyikan tombol kirim WA saat
+   * null, bukan memasang tautan ke nomor ngawur. */
+  export interface RespPesanPo {
+    po_number: string | null;
+    pesan: string;
+    wa_url: string | null;
+    email_tujuan: string | null;
+    sudah_dikirim: { whatsapp_at: string | null; email_at: string | null };
+  }
+
+  /** Bentuk PERSIS `GET /purchase-orders/:id/delivery-log`,
+   * `procurement.ts:486-505` — kunci `data`, bukan `logs`. */
+  export interface RespDeliveryLog {
+    data: Array<{ id: string; channel: "whatsapp" | "email" | "manual"; recipient: string | null; status: string | null; notes: string | null; sent_at: string; sender: { name: string } | null }>;
+  }
+
+  /** Bentuk PERSIS `GET /api/v1/procurement/goods-receipts`,
+   * `procurement.ts:1136-1149`. */
+  export interface GrRingkas {
+    id: string;
+    gr_number: string | null;
+    status: "draft" | "confirmed" | string;
+    receipt_date: string | null;
+    delivery_note_number: string | null;
+    delivery_note_url: string | null;
+    notes: string | null;
+    confirmed_at: string | null;
+    created_at: string;
+    project: { id: string; name: string } | null;
+    supplier: { id: string; name: string } | null;
+    po: { id: string; po_number: string | null } | null;
+    received_by: { id: string; name: string } | null;
+    items: Array<{ id: string; qty_received: number | string; unit: string; unit_price: number | string; material: { id: string; name: string } | null }>;
+  }
+  export interface RespGrDaftar { goods_receipts: GrRingkas[] }
+
+  /** Bentuk PERSIS `GET /api/v1/procurement/materials`,
+   * `procurement.ts:114-134` — dipakai picker item MR/PO. */
+  export interface MaterialRingkas {
+    id: string; code: string | null; name: string; unit: string;
+    unit_price: number | string | null; description: string | null; is_active: boolean;
+    category: { id: string; name: string } | null;
+  }
+  export interface RespMaterialDaftar { materials: MaterialRingkas[] }
+
+  /** Bentuk PERSIS `GET /api/v1/procurement/suppliers`,
+   * `procurement.ts:174-197`. */
+  export interface SupplierRingkas {
+    id: string; code: string | null; name: string;
+    contact_person: string | null; phone: string | null; email: string | null;
+    payment_terms: string | null; is_active: boolean;
+  }
+  export interface RespSupplierDaftar { suppliers: SupplierRingkas[] }
+
+  /** Bentuk PERSIS `GET /projects/:projectId/rab-materials`,
+   * `procurement.ts:506-552` — dipakai memperingatkan kuota SEBELUM
+   * `submit` (bukan menggantikan `quota-check`, keduanya dipakai). */
+  export interface KuotaRabMaterial {
+    id: string; material_id: string; rab_quantity: number | string; rab_unit_cost: number | string | null;
+    notes: string | null;
+    material: { id: string; name: string; unit: string } | null;
+    terpakai: number; sisa: number; serapan_pct: number | null;
+  }
+  export interface RespKuotaRab { data: KuotaRabMaterial[] }
+  ```
+
+- [ ] **Step 2: `procurement/page.tsx`** — list 3-tab (MR/PO/GR),
+  project-picker OPSIONAL ("Semua Proyek" default + daftar individual,
+  TANPA filter `.pm`/`.filter((p) => p.pm)` — pola sama Task 7/9/10/11),
+  tombol "+ Buat" per tab SELALU tampil (admin+direktur SAMA-SAMA punya
+  `mr:manage`/`po:manage` penuh, tak perlu render-gate berbeda role).
+
+  ```tsx
+  "use client";
+
+  import { useMemo, useState } from "react";
+  import Link from "next/link";
+  import { ShoppingCart, Plus } from "lucide-react";
+  import { useData, invalidasi } from "@/lib/data-cache";
+  import { api } from "@/lib/api";
+  import { formatRupiah, formatTanggal } from "@/lib/format";
+  import SegmentedTab from "@/components/portal/SegmentedTab";
+  import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+  import EmptyState from "@/components/portal/EmptyState";
+  import SkeletonCard from "@/components/portal/SkeletonCard";
+  import BottomSheet from "@/components/portal/BottomSheet";
+  import type {
+    ProyekPM, GalatApi, RespMrDaftar, RespPoDaftar, RespGrDaftar,
+    RespMaterialDaftar, RespSupplierDaftar, MaterialRingkas, SupplierRingkas,
+  } from "../_bersama/tipe";
+  import { pesanGalat } from "../_bersama/tipe";
+
+  interface RespProyek { projects: ProyekPM[] }
+
+  const LABEL_MR: Record<string, string> = {
+    draft: "Draf", submitted: "Diajukan", approved: "Disetujui", rejected: "Ditolak",
+    partially_ordered: "Sebagian Dipesan", fully_ordered: "Selesai Dipesan",
+  };
+  const VARIAN_MR: Record<string, VarianStatus> = {
+    draft: "netral", submitted: "pending", approved: "approved", rejected: "rejected",
+    partially_ordered: "info", fully_ordered: "approved",
+  };
+  const LABEL_PO: Record<string, string> = {
+    draft: "Draf", sent: "Terkirim", confirmed: "Dikonfirmasi", cancelled: "Dibatalkan",
+  };
+  const VARIAN_PO: Record<string, VarianStatus> = {
+    draft: "netral", sent: "pending", confirmed: "approved", cancelled: "rejected",
+  };
+  const LABEL_GR: Record<string, string> = { draft: "Draf", confirmed: "Dikonfirmasi" };
+  const VARIAN_GR: Record<string, VarianStatus> = { draft: "pending", confirmed: "approved" };
+
+  export default function AdminProcurementPage() {
+    const [tab, setTab] = useState<"mr" | "po" | "gr">("mr");
+    const [proyekId, setProyekId] = useState(""); // "" = SEMUA PROYEK (company-wide)
+    const [sheetMr, setSheetMr] = useState(false);
+    const [sheetPo, setSheetPo] = useState(false);
+
+    const { data: dataProyek } = useData<RespProyek>("/api/v1/projects");
+    // TANPA filter `.pm` — admin/direktur lihat SEMUA proyek tenant, beda dari PM.
+    const daftarProyek = useMemo(() => dataProyek?.projects ?? [], [dataProyek]);
+
+    const qs = proyekId ? `?project_id=${proyekId}` : ""; // kosong = company-wide, server proyekBolehDibaca() tanpa project_id
+    const { data: dataMr, memuat: memuatMr, galat: galatMr } = useData<RespMrDaftar>(tab === "mr" ? `/api/v1/procurement/material-requests${qs}` : null);
+    const { data: dataPo, memuat: memuatPo, galat: galatPo } = useData<RespPoDaftar>(tab === "po" ? `/api/v1/procurement/purchase-orders${qs}` : null);
+    const { data: dataGr, memuat: memuatGr, galat: galatGr } = useData<RespGrDaftar>(tab === "gr" ? `/api/v1/procurement/goods-receipts${qs}` : null);
+
+    const { data: dataMaterial } = useData<RespMaterialDaftar>(sheetMr ? "/api/v1/procurement/materials?limit=200" : null);
+    const { data: dataSupplier } = useData<RespSupplierDaftar>(sheetPo ? "/api/v1/procurement/suppliers?limit=200" : null);
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Procurement</h1>
+          {tab === "mr" && (
+            <button type="button" onClick={() => setSheetMr(true)} aria-label="Buat Material Request baru"
+              style={{ minHeight: 40, padding: "0 14px", borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              <Plus size={16} aria-hidden="true" /> MR
+            </button>
+          )}
+          {tab === "po" && (
+            <button type="button" onClick={() => setSheetPo(true)} aria-label="Buat Purchase Order baru"
+              style={{ minHeight: 40, padding: "0 14px", borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+              <Plus size={16} aria-hidden="true" /> PO
+            </button>
+          )}
+        </div>
+
+        <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>
+          <select value={proyekId} onChange={(e) => setProyekId(e.target.value)}
+            style={{ minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)", color: "var(--text-primary)" }}>
+            <option value="">Semua Proyek</option>
+            {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+        </label>
+
+        <SegmentedTab
+          opsi={[{ value: "mr", label: "Material Request" }, { value: "po", label: "Purchase Order" }, { value: "gr", label: "Penerimaan" }]}
+          aktif={tab}
+          onUbah={(v) => setTab(v as typeof tab)}
+        />
+
+        {tab === "mr" && (
+          <>
+            {memuatMr && <SkeletonCard tinggi={80} />}
+            {galatMr && <EmptyState icon={ShoppingCart} judul="Gagal memuat MR" deskripsi={pesanGalat(galatMr as GalatApi, "Coba muat ulang.")} />}
+            {!memuatMr && !galatMr && (dataMr?.material_requests?.length ?? 0) === 0 && (
+              <EmptyState icon={ShoppingCart} judul="Belum ada Material Request" deskripsi="Buat permintaan material pertama." />
+            )}
+            {!memuatMr && (dataMr?.material_requests ?? []).map((mr) => (
+              <Link key={mr.id} href={`/admin-portal/procurement/mr/${mr.id}`}
+                style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", textDecoration: "none" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{mr.mr_number ?? "MR"}</span>
+                  <StatusBadge status={VARIAN_MR[mr.status] ?? "netral"} label={LABEL_MR[mr.status] ?? mr.status} />
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                  {mr.project?.name ?? "—"} · {mr.request_date ? formatTanggal(mr.request_date) : "—"} · {mr.items.length} item
+                </div>
+                {mr.requested_by?.name && <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Diminta: {mr.requested_by.name}</div>}
+              </Link>
+            ))}
+          </>
+        )}
+
+        {tab === "po" && (
+          <>
+            {memuatPo && <SkeletonCard tinggi={80} />}
+            {galatPo && <EmptyState icon={ShoppingCart} judul="Gagal memuat PO" deskripsi={pesanGalat(galatPo as GalatApi, "Coba muat ulang.")} />}
+            {!memuatPo && !galatPo && (dataPo?.purchase_orders?.length ?? 0) === 0 && (
+              <EmptyState icon={ShoppingCart} judul="Belum ada Purchase Order" deskripsi="PO ke supplier akan muncul di sini." />
+            )}
+            {!memuatPo && (dataPo?.purchase_orders ?? []).map((po) => (
+              <Link key={po.id} href={`/admin-portal/procurement/po/${po.id}`}
+                style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", textDecoration: "none" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{po.po_number ?? "PO"}</span>
+                  <StatusBadge status={VARIAN_PO[po.status] ?? "netral"} label={LABEL_PO[po.status] ?? po.status} />
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{po.project?.name ?? "—"} · {po.supplier?.name ?? "—"} · {formatRupiah(po.total_amount)}</div>
+                {po.expected_delivery_date && <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Estimasi kirim: {formatTanggal(po.expected_delivery_date)}</div>}
+              </Link>
+            ))}
+          </>
+        )}
+
+        {tab === "gr" && (
+          <>
+            {memuatGr && <SkeletonCard tinggi={80} />}
+            {galatGr && <EmptyState icon={ShoppingCart} judul="Gagal memuat penerimaan" deskripsi={pesanGalat(galatGr as GalatApi, "Coba muat ulang.")} />}
+            {!memuatGr && !galatGr && (dataGr?.goods_receipts?.length ?? 0) === 0 && (
+              <EmptyState icon={ShoppingCart} judul="Belum ada penerimaan barang" deskripsi="Penerimaan dibuat dari halaman detail PO." />
+            )}
+            {!memuatGr && (dataGr?.goods_receipts ?? []).map((gr) => (
+              <div key={gr.id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{gr.gr_number ?? "GR"}</span>
+                  <StatusBadge status={VARIAN_GR[gr.status] ?? "netral"} label={LABEL_GR[gr.status] ?? gr.status} />
+                </div>
+                <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                  {gr.project?.name ?? "—"} · {gr.supplier?.name ?? "—"} · PO {gr.po?.po_number ?? "—"} · {gr.receipt_date ? formatTanggal(gr.receipt_date) : "—"}
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+
+        <SheetBuatMr terbuka={sheetMr} onTutup={() => setSheetMr(false)} proyekId={proyekId} daftarProyek={daftarProyek} material={dataMaterial?.materials ?? []} />
+        <SheetBuatPo terbuka={sheetPo} onTutup={() => setSheetPo(false)} proyekId={proyekId} daftarProyek={daftarProyek} supplier={dataSupplier?.suppliers ?? []} />
+      </div>
+    );
+  }
+
+  interface BarisItemForm { material_id: string; qty: string; unit: string }
+
+  function SheetBuatMr({ terbuka, onTutup, proyekId, daftarProyek, material }: {
+    terbuka: boolean; onTutup: () => void; proyekId: string; daftarProyek: ProyekPM[]; material: MaterialRingkas[];
+  }) {
+    const [proyekForm, setProyekForm] = useState(proyekId);
+    const [neededDate, setNeededDate] = useState("");
+    const [notes, setNotes] = useState("");
+    const [items, setItems] = useState<BarisItemForm[]>([{ material_id: "", qty: "", unit: "" }]);
+    const [mengirim, setMengirim] = useState(false);
+    const [galat, setGalat] = useState<string | null>(null);
+
+    function tambahBaris() { setItems((p) => [...p, { material_id: "", qty: "", unit: "" }]); }
+    function hapusBaris(i: number) { setItems((p) => p.filter((_, idx) => idx !== i)); }
+    function ubahBaris(i: number, patch: Partial<BarisItemForm>) {
+      setItems((p) => p.map((b, idx) => {
+        if (idx !== i) return b;
+        const next = { ...b, ...patch };
+        if (patch.material_id) {
+          const m = material.find((x) => x.id === patch.material_id);
+          if (m) next.unit = m.unit;
+        }
+        return next;
+      }));
+    }
+
+    async function simpan() {
+      if (!proyekForm) { setGalat("Pilih proyek untuk MR ini."); return; }
+      const valid = items.filter((it) => it.material_id && Number(it.qty) > 0);
+      if (valid.length === 0) { setGalat("Isi minimal satu item dengan qty > 0."); return; }
+      setMengirim(true); setGalat(null);
+      try {
+        await api.post("/api/v1/procurement/material-requests", {
+          project_id: proyekForm,
+          needed_date: neededDate || undefined,
+          notes: notes.trim() || undefined,
+          items: valid.map((it) => ({ material_id: it.material_id, qty_requested: Number(it.qty), unit: it.unit })),
+        });
+        invalidasi(`/api/v1/procurement/material-requests`); // menyapu SEMUA varian query (company-wide + per-proyek)
+        setItems([{ material_id: "", qty: "", unit: "" }]); setNeededDate(""); setNotes(""); onTutup();
+      } catch (e) {
+        setGalat(pesanGalat(e as GalatApi, "Gagal membuat MR"));
+      } finally { setMengirim(false); }
+    }
+
+    return (
+      <BottomSheet terbuka={terbuka} onTutup={onTutup} judul="Material Request Baru">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Proyek
+            <select value={proyekForm} onChange={(e) => setProyekForm(e.target.value)}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)" }}>
+              <option value="">Pilih proyek…</option>
+              {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Tanggal dibutuhkan
+            <input type="date" value={neededDate} onChange={(e) => setNeededDate(e.target.value)}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+          </label>
+
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Item</div>
+          {items.map((it, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, borderRadius: 12, background: "var(--surface-subtle)" }}>
+              <select value={it.material_id} onChange={(e) => ubahBaris(i, { material_id: e.target.value })}
+                aria-label={`Material item ${i + 1}`}
+                style={{ minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13, background: "var(--surface)" }}>
+                <option value="">Pilih material…</option>
+                {material.map((m) => <option key={m.id} value={m.id}>{m.name} ({m.unit})</option>)}
+              </select>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <input type="number" min="0" step="0.01" value={it.qty} onChange={(e) => ubahBaris(i, { qty: e.target.value })}
+                  placeholder="Qty" aria-label={`Kuantitas item ${i + 1}`}
+                  style={{ flex: 1, minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13 }} />
+                {items.length > 1 && (
+                  <button type="button" onClick={() => hapusBaris(i)} aria-label={`Hapus item ${i + 1}`}
+                    style={{ minHeight: 36, minWidth: 36, borderRadius: 8, border: "1px solid var(--border)", background: "var(--surface)", cursor: "pointer" }}>×</button>
+                )}
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={tambahBaris}
+            style={{ minHeight: 40, padding: "0 14px", borderRadius: 10, border: "1px dashed var(--border)", background: "transparent", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            + Tambah item
+          </button>
+
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Catatan
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
+              style={{ width: "100%", marginTop: 6, padding: 10, borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, resize: "vertical" }} />
+          </label>
+
+          {galat && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galat}</div>}
+
+          <button type="button" onClick={simpan} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer", opacity: mengirim ? 0.6 : 1 }}>
+            {mengirim ? "Menyimpan…" : "Simpan MR"}
+          </button>
+        </div>
+      </BottomSheet>
+    );
+  }
+
+  interface BarisItemPoForm { material_id: string; qty: string; unit: string; harga: string }
+
+  function SheetBuatPo({ terbuka, onTutup, proyekId, daftarProyek, supplier }: {
+    terbuka: boolean; onTutup: () => void; proyekId: string; daftarProyek: ProyekPM[]; supplier: SupplierRingkas[];
+  }) {
+    const [proyekForm, setProyekForm] = useState(proyekId);
+    const [supplierId, setSupplierId] = useState("");
+    const [items, setItems] = useState<BarisItemPoForm[]>([{ material_id: "", qty: "", unit: "", harga: "" }]);
+    const [mengirim, setMengirim] = useState(false);
+    const [galat, setGalat] = useState<string | null>(null);
+
+    async function simpan() {
+      if (!proyekForm) { setGalat("Pilih proyek untuk PO ini."); return; }
+      if (!supplierId) { setGalat("Pilih supplier."); return; }
+      const valid = items.filter((it) => it.material_id && Number(it.qty) > 0 && Number(it.harga) >= 0);
+      if (valid.length === 0) { setGalat("Isi minimal satu item dengan qty > 0 dan harga terisi."); return; }
+      setMengirim(true); setGalat(null);
+      try {
+        await api.post("/api/v1/procurement/purchase-orders", {
+          project_id: proyekForm,
+          supplier_id: supplierId,
+          items: valid.map((it) => ({ material_id: it.material_id, qty_ordered: Number(it.qty), unit: it.unit, unit_price: Number(it.harga) })),
+        });
+        invalidasi(`/api/v1/procurement/purchase-orders`);
+        setItems([{ material_id: "", qty: "", unit: "", harga: "" }]); setSupplierId(""); onTutup();
+      } catch (e) {
+        setGalat(pesanGalat(e as GalatApi, "Gagal membuat PO"));
+      } finally { setMengirim(false); }
+    }
+
+    return (
+      <BottomSheet terbuka={terbuka} onTutup={onTutup} judul="Purchase Order Baru">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Proyek
+            <select value={proyekForm} onChange={(e) => setProyekForm(e.target.value)}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)" }}>
+              <option value="">Pilih proyek…</option>
+              {daftarProyek.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+            Supplier
+            <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}
+              style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14, background: "var(--surface)" }}>
+              <option value="">Pilih supplier…</option>
+              {supplier.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </label>
+
+          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Item</div>
+          {items.map((it, i) => (
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 8, padding: 10, borderRadius: 12, background: "var(--surface-subtle)" }}>
+              <input value={it.material_id} onChange={(e) => setItems((p) => p.map((b, idx) => idx === i ? { ...b, material_id: e.target.value } : b))}
+                placeholder="ID material (dari MR/katalog)" aria-label={`Material id item ${i + 1}`}
+                style={{ minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13 }} />
+              <div style={{ display: "flex", gap: 8 }}>
+                <input type="number" min="0" step="0.01" value={it.qty} onChange={(e) => setItems((p) => p.map((b, idx) => idx === i ? { ...b, qty: e.target.value } : b))}
+                  placeholder="Qty" aria-label={`Kuantitas item ${i + 1}`}
+                  style={{ flex: 1, minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13 }} />
+                <input type="number" min="0" step="1" value={it.harga} onChange={(e) => setItems((p) => p.map((b, idx) => idx === i ? { ...b, harga: e.target.value } : b))}
+                  placeholder="Harga satuan" aria-label={`Harga satuan item ${i + 1}`}
+                  style={{ flex: 1, minHeight: 44, padding: "0 10px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 13 }} />
+              </div>
+            </div>
+          ))}
+
+          {galat && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galat}</div>}
+
+          <button type="button" onClick={simpan} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer", opacity: mengirim ? 0.6 : 1 }}>
+            {mengirim ? "Menyimpan…" : "Simpan PO"}
+          </button>
+        </div>
+      </BottomSheet>
+    );
+  }
+  ```
+
+  ⚠ **Picker item PO SENGAJA pakai input ID mentah, BUKAN dropdown
+  material seperti MR** — `purchase_orders` tak WAJIB berasal dari MR
+  (PO langsung tanpa MR sah, `procurement.ts:903-956` tak mensyaratkan
+  `mr_id`), TAPI memilih material lewat nama di form PO mobile tanpa
+  konteks proyek/kuota berisiko salah pilih. Keputusan sengaja: form PO
+  MOBILE mengarahkan alur "dari MR" (via tombol "Buat PO dari MR ini" di
+  Step 4 detail MR), dan form buat-PO-langsung ini TETAP disediakan
+  untuk kasus supplier non-material (jasa, dst.) dengan input manual.
+  Dicatat sebagai keterbatasan mobile, BUKAN kelalaian — desktop
+  `/procurement/pesanan` tetap tersedia untuk PO material kompleks.
+
+- [ ] **Step 3: `procurement/mr/[id]/page.tsx`** — detail MR: header
+  (nomor/status/proyek/tanggal), daftar item, panel quota-check
+  (`GET .../quota-check`), tombol Submit (`PATCH .../submit`) dengan
+  checkbox "Lampaui kuota RAB" YANG TAMPIL saat `lolos: false` DAN
+  `bisa_override: true` (admin/direktur SELALU `true` — beda dari PM).
+  Tombol Approve/Reject **TIDAK ADA di halaman ini** — approval lewat
+  Inbox (Task 4), link "Lihat di Inbox Approval" ditampilkan sebagai
+  gantinya saat `status === 'submitted'`.
+
+  ```tsx
+  "use client";
+
+  import { useState } from "react";
+  import Link from "next/link";
+  import { FileText, AlertTriangle } from "lucide-react";
+  import { useData, invalidasi } from "@/lib/data-cache";
+  import { api } from "@/lib/api";
+  import { formatRupiah, formatTanggal } from "@/lib/format";
+  import EmptyState from "@/components/portal/EmptyState";
+  import SkeletonCard from "@/components/portal/SkeletonCard";
+  import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+  import type { RespMrDetail, RespQuotaCheck, GalatApi } from "../../../_bersama/tipe";
+  import { pesanGalat } from "../../../_bersama/tipe";
+
+  const LABEL_MR: Record<string, string> = {
+    draft: "Draf", submitted: "Diajukan", approved: "Disetujui", rejected: "Ditolak",
+    partially_ordered: "Sebagian Dipesan", fully_ordered: "Selesai Dipesan",
+  };
+  const VARIAN_MR: Record<string, VarianStatus> = {
+    draft: "netral", submitted: "pending", approved: "approved", rejected: "rejected",
+    partially_ordered: "info", fully_ordered: "approved",
+  };
+
+  export default function AdminMrDetailPage({ params }: { params: { id: string } }) {
+    const { data, memuat, galat } = useData<RespMrDetail>(`/api/v1/procurement/material-requests/${params.id}`);
+    const mr = data?.material_request ?? null;
+
+    const { data: quota } = useData<RespQuotaCheck>(mr ? `/api/v1/procurement/material-requests/${params.id}/quota-check` : null);
+
+    const [override, setOverride] = useState(false);
+    const [mengirim, setMengirim] = useState(false);
+    const [galatSubmit, setGalatSubmit] = useState<string | null>(null);
+
+    async function submit() {
+      setMengirim(true); setGalatSubmit(null);
+      try {
+        await api.patch(`/api/v1/procurement/material-requests/${params.id}/submit`, override ? { override_quota: true } : {});
+        invalidasi(`/api/v1/procurement/material-requests/${params.id}`);
+        invalidasi(`/api/v1/procurement/material-requests`);
+      } catch (e) {
+        setGalatSubmit(pesanGalat(e as GalatApi, "Gagal mengajukan MR"));
+      } finally { setMengirim(false); }
+    }
+
+    if (memuat) return <SkeletonCard tinggi={220} />;
+    if (galat || !mr) return <EmptyState icon={FileText} judul="Gagal memuat MR" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />;
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{mr.mr_number ?? "MR"}</h1>
+          <StatusBadge status={VARIAN_MR[mr.status] ?? "netral"} label={LABEL_MR[mr.status] ?? mr.status} />
+        </div>
+        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+          {mr.project?.name ?? "—"} · Diminta: {mr.requested_by?.name ?? "—"} · {mr.request_date ? formatTanggal(mr.request_date) : "—"}
+        </div>
+
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Item</div>
+        {mr.items.map((it) => (
+          <div key={it.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{it.material?.name ?? "—"}</div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Diminta {it.qty_requested} {it.unit} · Dipesan {it.qty_ordered ?? 0} {it.unit}</div>
+            </div>
+          </div>
+        ))}
+
+        {quota && !quota.lolos && (
+          <div style={{ padding: 14, borderRadius: 14, background: "var(--warning-bg)", border: "1px solid var(--warning-border)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <AlertTriangle size={18} color="var(--on-warning-bg)" aria-hidden="true" />
+              <span style={{ fontSize: 13, fontWeight: 700, color: "var(--on-warning-bg)" }}>Melampaui kuota RAB</span>
+            </div>
+            {quota.pelanggaran.map((p, i) => (
+              <div key={i} style={{ fontSize: 12, color: "var(--on-warning-bg)" }}>{p.material_name ?? p.material_id}: diminta {p.diminta}, sisa kuota {p.sisa}</div>
+            ))}
+            {/* `bisa_override` SELALU true utk admin/direktur (procurement:mr:override_quota) —
+                BEDA dari Portal PM yang tak pernah menampilkan checkbox ini. */}
+            {quota.bisa_override && mr.status === "draft" && (
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--on-warning-bg)" }}>
+                <input type="checkbox" checked={override} onChange={(e) => setOverride(e.target.checked)} />
+                Lampaui kuota RAB dan tetap ajukan
+              </label>
+            )}
+          </div>
+        )}
+
+        {mr.status === "draft" && (
+          <>
+            {galatSubmit && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galatSubmit}</div>}
+            <button type="button" onClick={submit} disabled={mengirim || (quota ? !quota.lolos && !override : false)}
+              style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer", opacity: mengirim ? 0.6 : 1 }}>
+              {mengirim ? "Mengajukan…" : "Ajukan MR"}
+            </button>
+          </>
+        )}
+
+        {mr.status === "submitted" && (
+          <Link href="/admin-portal/inbox" style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)", textDecoration: "none" }}>
+            Lihat & putuskan di Inbox Approval →
+          </Link>
+        )}
+      </div>
+    );
+  }
+  ```
+
+  ⚠ **`disabled` tombol Submit MENGUNCI, bukan menyembunyikan** — MR
+  yang melanggar kuota tanpa override dicentang tetap TERLIHAT
+  tombolnya (nonaktif), supaya pengguna tahu alasannya lewat panel
+  peringatan di atasnya, bukan bertanya-tanya kenapa tombolnya hilang.
+
+- [ ] **Step 4: `procurement/po/[id]/page.tsx`** — detail PO: header,
+  item, tombol "Kirim WA ke Vendor" (`GET delivery-message` → tampilkan
+  pesan tersusun → `wa_url` sebagai link, DISEMBUNYIKAN bila null),
+  riwayat kirim (`GET delivery-log`), tombol "Buat Penerimaan" (buka
+  BottomSheet form GR sederhana: qty diterima per item →
+  `POST /goods-receipts`).
+
+  ```tsx
+  "use client";
+
+  import { useState } from "react";
+  import { Truck, MessageCircle, Send } from "lucide-react";
+  import { useData, invalidasi } from "@/lib/data-cache";
+  import { api } from "@/lib/api";
+  import { formatRupiah, formatTanggal } from "@/lib/format";
+  import EmptyState from "@/components/portal/EmptyState";
+  import SkeletonCard from "@/components/portal/SkeletonCard";
+  import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+  import BottomSheet from "@/components/portal/BottomSheet";
+  import type { RespPoDetail, RespPesanPo, RespDeliveryLog, GalatApi } from "../../../_bersama/tipe";
+  import { pesanGalat } from "../../../_bersama/tipe";
+
+  const LABEL_PO: Record<string, string> = { draft: "Draf", sent: "Terkirim", confirmed: "Dikonfirmasi", cancelled: "Dibatalkan" };
+  const VARIAN_PO: Record<string, VarianStatus> = { draft: "netral", sent: "pending", confirmed: "approved", cancelled: "rejected" };
+
+  export default function AdminPoDetailPage({ params }: { params: { id: string } }) {
+    const { data, memuat, galat } = useData<RespPoDetail>(`/api/v1/procurement/purchase-orders/${params.id}`);
+    const po = data?.purchase_order ?? null;
+    const { data: pesan } = useData<RespPesanPo>(po ? `/api/v1/procurement/purchase-orders/${params.id}/delivery-message` : null);
+    const { data: log } = useData<RespDeliveryLog>(po ? `/api/v1/procurement/purchase-orders/${params.id}/delivery-log` : null);
+    const [sheetGr, setSheetGr] = useState(false);
+
+    async function catatKirimWa() {
+      if (!pesan?.wa_url) return;
+      window.open(pesan.wa_url, "_blank", "noopener,noreferrer");
+      try {
+        await api.post(`/api/v1/procurement/purchase-orders/${params.id}/delivery-log`, { channel: "whatsapp" });
+        invalidasi(`/api/v1/procurement/purchase-orders/${params.id}/delivery-log`);
+      } catch { /* pengiriman WA-nya sendiri sudah terjadi via window.open; jejak gagal tak membatalkan itu */ }
+    }
+
+    if (memuat) return <SkeletonCard tinggi={220} />;
+    if (galat || !po) return <EmptyState icon={Truck} judul="Gagal memuat PO" deskripsi={pesanGalat(galat as GalatApi, "Coba muat ulang.")} />;
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{po.po_number ?? "PO"}</h1>
+          <StatusBadge status={VARIAN_PO[po.status] ?? "netral"} label={LABEL_PO[po.status] ?? po.status} />
+        </div>
+        <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+          {po.project?.name ?? "—"} · {po.supplier?.name ?? "—"} · {formatRupiah(po.total_amount)}
+        </div>
+
+        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Item</div>
+        {po.items.map((it) => (
+          <div key={it.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{it.material?.name ?? "—"}</div>
+              <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Dipesan {it.qty_ordered} {it.unit} · Diterima {it.qty_received ?? 0} {it.unit}</div>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{formatRupiah(it.total_price)}</div>
+          </div>
+        ))}
+
+        {pesan?.wa_url && (
+          <button type="button" onClick={catatKirimWa}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <MessageCircle size={18} aria-hidden="true" /> Kirim WA ke Vendor
+          </button>
+        )}
+        {pesan && !pesan.wa_url && (
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Nomor telepon supplier tak tersedia/tak sah — kirim manual.</div>
+        )}
+
+        {(log?.data.length ?? 0) > 0 && (
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            Terakhir dikirim: {log!.data[0].channel} · {formatTanggal(log!.data[0].sent_at)} oleh {log!.data[0].sender?.name ?? "—"}
+          </div>
+        )}
+
+        <button type="button" onClick={() => setSheetGr(true)}
+          style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text-primary)", fontSize: 14, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <Send size={18} aria-hidden="true" /> Buat Penerimaan (GR)
+        </button>
+
+        <SheetBuatGr terbuka={sheetGr} onTutup={() => setSheetGr(false)} po={po} />
+      </div>
+    );
+  }
+
+  function SheetBuatGr({ terbuka, onTutup, po }: { terbuka: boolean; onTutup: () => void; po: NonNullable<RespPoDetail["purchase_order"]> }) {
+    const [qty, setQty] = useState<Record<string, string>>({});
+    const [mengirim, setMengirim] = useState(false);
+    const [galat, setGalat] = useState<string | null>(null);
+
+    async function simpan() {
+      const items = po.items
+        .map((it) => ({ po_item_id: it.id, material_id: it.material?.id, qty_received: Number(qty[it.id] || 0), unit: it.unit }))
+        .filter((it) => it.qty_received > 0);
+      if (items.length === 0) { setGalat("Isi qty diterima minimal satu item."); return; }
+      setMengirim(true); setGalat(null);
+      try {
+        await api.post("/api/v1/procurement/goods-receipts", { po_id: po.id, project_id: po.project?.id, items });
+        invalidasi("/api/v1/procurement/goods-receipts");
+        invalidasi(`/api/v1/procurement/purchase-orders/${po.id}`);
+        onTutup();
+      } catch (e) {
+        setGalat(pesanGalat(e as GalatApi, "Gagal membuat penerimaan"));
+      } finally { setMengirim(false); }
+    }
+
+    return (
+      <BottomSheet terbuka={terbuka} onTutup={onTutup} judul="Penerimaan Barang">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {po.items.map((it) => (
+            <label key={it.id} style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
+              {it.material?.name ?? "—"} (sisa {Number(it.qty_ordered) - Number(it.qty_received ?? 0)} {it.unit})
+              <input type="number" min="0" step="0.01" value={qty[it.id] ?? ""} onChange={(e) => setQty((p) => ({ ...p, [it.id]: e.target.value }))}
+                style={{ width: "100%", marginTop: 6, minHeight: 44, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", fontSize: 14 }} />
+            </label>
+          ))}
+          {galat && <div role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{galat}</div>}
+          <button type="button" onClick={simpan} disabled={mengirim}
+            style={{ minHeight: 48, borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer", opacity: mengirim ? 0.6 : 1 }}>
+            {mengirim ? "Menyimpan…" : "Simpan Penerimaan"}
+          </button>
+        </div>
+      </BottomSheet>
+    );
+  }
+  ```
+
+- [ ] **Step 5: Jalankan verifikasi**
+
+  ```bash
+  cd apps/web && pnpm exec tsc --noEmit
+  cd apps/web && node scripts/uji-token-css-ada.mjs
+  cd apps/web && node scripts/uji-judul-halaman-ada.mjs
+  cd apps/web && node scripts/uji-tombol-primer-seragam.mjs
+  cd apps/web && node scripts/kerapatan-ratchet.mjs
+  cd apps/web && node scripts/audit-halaman-pakai-cache.mjs
+  cd apps/web && pnpm build
+  ```
+
+  Tempel ringkasan run sungguhan.
+
+- [ ] **Step 6: Commit**
+
+  ```bash
+  git add apps/web/app/admin-portal/procurement apps/web/app/admin-portal/_bersama/tipe.ts
+  git commit -m "feat(admin-portal): procurement MR/PO/GR company-wide — Tahap 4"
+  ```
+
 ---
 
 ## Tahap 5-7: Belum di-breakdown
