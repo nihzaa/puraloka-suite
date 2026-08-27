@@ -85,6 +85,24 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
   },
 
   /*
+    Kunci idempotensi menumpuk TANPA GEJALA.
+
+    Migrasi 177 menyiapkan `idx_idempotency_umur` untuk pembersihan lalu tak
+    ada satu pun kode yang menghapus (diukur 2026-08-27: nol DELETE di
+    seluruh apps/api). Belum mendesak selama hanya transfer kas yang
+    memakainya — berubah sifat begitu antrean offline mobile hidup, karena
+    TIAP kiriman progres & kasbon dari TIAP HP mandor menulis satu baris.
+
+    Batas 7 hari adalah keputusan teknis, bukan kebijakan tenant: kunci tak
+    berguna bagi siapa pun sesudah jendela pengiriman ulang lewat.
+  */
+  'bersih-idempotensi': {
+    label: 'Bersihkan Kunci Idempotensi',
+    keterangan: 'Menghapus kunci idempotensi yang lebih tua dari 7 hari.',
+    jalur: '/api/v1/idempotensi/bersihkan',
+  },
+
+  /*
    * Sapaan proaktif — SATU-SATUNYA tugas yang memakai jendela acak.
    *
    * Founder menolak jam kaku ("emang ga tepat seperti yang dijadwalkan"), jadi

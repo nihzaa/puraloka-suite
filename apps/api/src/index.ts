@@ -14,6 +14,7 @@ import aiRoutes from './routes/v1/ai.js'
 import aiConfigRoutes from './routes/v1/ai-config.js'
 import aiChatRoutes from './routes/v1/ai-chat.js'
 import aiRetensiRoutes from './routes/v1/ai-retensi.js'
+import idempotensiRetensiRoutes from './routes/v1/idempotensi-retensi.js'
 import waNomorRoutes, { waTemplateRoutes } from './routes/v1/wa-nomor.js'
 import waWebhookRoutes from './routes/v1/wa-webhook.js'
 import aiSetujuiRoutes from './routes/v1/ai-setujui.js'
@@ -329,6 +330,7 @@ await app.register(aiRoutes)
 await app.register(aiConfigRoutes)
 await app.register(aiChatRoutes)
 await app.register(aiRetensiRoutes)
+await app.register(idempotensiRetensiRoutes)
 await app.register(waNomorRoutes)
 await app.register(waTemplateRoutes)
 await app.register(waWebhookRoutes)
