@@ -33,33 +33,74 @@ export async function fetchRoleStates(roleIdSedangDiubah?: string): Promise<Role
     dialah yang punya) — yang disaring adalah yang KOSONG dari pengguna.
   */
   /*
-    ── `roles` JUGA berhalaman (ditemukan 2026-08-27)
+    ══════════════════════════════════════════════════════════════════════════
+    URUTANNYA: users DULU, lalu HANYA peran & izin yang benar-benar terpakai
+    ══════════════════════════════════════════════════════════════════════════
 
-    Bacaan ini luput saat `role_permissions` dan `users` diperbaiki 2026-08-14.
-    Waktu itu `roles` masih ratusan baris, jadi batas 1.000 belum menggigit —
-    dan "belum menggigit" terbaca seperti "aman".
+    Fungsi ini berakhir dengan `.filter(r => r.activeUserCount > 0 || ...)` —
+    peran tanpa pengguna aktif DIBUANG. Jadi menarik seluruh tabel lebih dulu
+    berarti mengangkut ribuan baris hanya untuk membuangnya.
 
-    Hari ini `roles` **5.754 baris**: suite test menyemai ulang set peran
-    bawaan tiap kali berjalan tanpa membersihkan yang lama, jadi nama yang sama
-    (`admin`, `pm`, `mandor`) ada ribuan kali. PostgREST memulangkan 1.000,
-    4.754 sisanya TAK PERNAH TERBACA — tanpa galat, tanpa penanda.
+    Diukur 2026-08-27: `roles` 5.754 baris dan `role_permissions` 229.612
+    untuk 29 pengguna (suite test menyemai ulang set peran bawaan tiap kali
+    jalan tanpa membersihkan yang lama). Menariknya berhalaman butuh 230+
+    permintaan, dan satu panggilan `assertNoCriticalLockout` memakan
+    **98 detik** — cukup untuk membuat `roles-replace-all.test.ts` timeout,
+    bukan sekadar lambat.
 
-    Akibatnya persis kebalikan dari yang dijaga, sama seperti 2026-08-14:
-    peran yang benar-benar dipegang orang bisa berada di luar potongan, dan
-    penjaga anti-lockout menghitung penyelamat yang tak ia lihat.
+    Versi sebelum itu memang lebih cepat, tetapi TERPOTONG di 1.000 baris
+    tanpa galat — jadi keduanya salah dengan cara berbeda: yang satu diam-diam
+    tak lengkap, yang satu tak selesai sama sekali.
+
+    Mulai dari `users` menyelesaikan keduanya. Ia himpunan terkecil (puluhan),
+    dan ia pula yang MENENTUKAN peran mana yang relevan — jadi tak ada baris
+    yang ditarik untuk kemudian dibuang.
   */
   const HALAMAN = 1000
-  const roles: { id: string; name: string; is_builtin: boolean }[] = []
+
+  const activeByRole = new Map<string, number>()
   for (let dari = 0; ; dari += HALAMAN) {
+    const { data, error: uErr } = await supabase
+      .from('users')
+      .select('role_id')
+      .eq('is_active', true)
+      .order('id', { ascending: true })
+      .range(dari, dari + HALAMAN - 1)
+    if (uErr) throw new Error(`role-guard: gagal baca users: ${uErr.message}`)
+    if (!data || data.length === 0) break
+    for (const u of data) {
+      if (u.role_id) activeByRole.set(u.role_id as string, (activeByRole.get(u.role_id as string) ?? 0) + 1)
+    }
+    if (data.length < HALAMAN) break
+  }
+
+  /*
+    Peran yang RELEVAN: yang dipegang pengguna aktif, ditambah yang sedang
+    diubah. Yang kedua wajib ikut meski tak berpengguna — ia subjek
+    perubahannya, dan tanpanya `findLockout` tak punya apa pun untuk diperiksa.
+  */
+  const idRelevan = [...new Set([
+    ...activeByRole.keys(),
+    ...(roleIdSedangDiubah ? [roleIdSedangDiubah] : []),
+  ])]
+
+  if (idRelevan.length === 0) return []
+
+  /*
+    `.in()` atas daftar sebesar jumlah PENGGUNA, bukan sebesar tabel — jadi
+    tak pernah mendekati batas potong. Tetap berhalaman: pemasangan dengan
+    ribuan pengguna aktif akan sampai ke sana, dan di situ ia harus sudah
+    benar tanpa ada yang menyadarinya.
+  */
+  const roles: { id: string; name: string; is_builtin: boolean }[] = []
+  for (let dari = 0; dari < idRelevan.length; dari += HALAMAN) {
+    const potong = idRelevan.slice(dari, dari + HALAMAN)
     const { data, error: rErr } = await supabase
       .from('roles')
       .select('id, name, is_builtin')
-      .order('id', { ascending: true })
-      .range(dari, dari + HALAMAN - 1)
+      .in('id', potong)
     if (rErr) throw new Error(`role-guard: gagal baca roles: ${rErr.message}`)
-    if (!data || data.length === 0) break
-    roles.push(...(data as { id: string; name: string; is_builtin: boolean }[]))
-    if (data.length < HALAMAN) break
+    roles.push(...((data ?? []) as { id: string; name: string; is_builtin: boolean }[]))
   }
 
   /*
@@ -89,42 +130,24 @@ export async function fetchRoleStates(roleIdSedangDiubah?: string): Promise<Role
     permintaan memulangkan seluruh tabel — asumsi itulah yang tak berbunyi saat
     salah.
   */
+  /*
+    Izin HANYA untuk peran relevan. Sebelumnya seluruh tabel dibaca berhalaman
+    — 229.612 baris, 230 permintaan — padahal yang dipakai hanya izin milik
+    segelintir peran yang benar-benar dipegang orang.
+
+    Halaman di sini membatasi ukuran DAFTAR `.in()`, bukan jumlah baris
+    hasilnya: satu peran bisa memegang ratusan izin, dan hasil per potongan
+    itulah yang dikumpulkan.
+  */
   const rp: { role_id: string; permissions: unknown }[] = []
-  for (let dari = 0; ; dari += HALAMAN) {
+  for (let dari = 0; dari < idRelevan.length; dari += HALAMAN) {
+    const potong = idRelevan.slice(dari, dari + HALAMAN)
     const { data, error: rpErr } = await supabase
       .from('role_permissions')
       .select('role_id, permissions:permission_id ( key )')
-      .order('role_id', { ascending: true })
-      .range(dari, dari + HALAMAN - 1)
+      .in('role_id', potong)
     if (rpErr) throw new Error(`role-guard: gagal baca role_permissions: ${rpErr.message}`)
-    if (!data || data.length === 0) break
-    rp.push(...(data as unknown as { role_id: string; permissions: unknown }[]))
-    if (data.length < HALAMAN) break
-  }
-
-  /*
-    Jumlah user aktif per `role_id` — juga berhalaman, dengan alasan yang sama.
-
-    Tabel `users` hari ini masih puluhan baris, jadi batas 1.000 belum
-    menggigit. Tapi ia akan menggigit persis seperti `role_permissions`
-    menggigit: tanpa galat, tanpa penanda, dan pada pemasangan yang paling
-    besar — pelanggan dengan pengguna terbanyak justru yang penjaganya bocor
-    lebih dulu.
-  */
-  const activeByRole = new Map<string, number>()
-  for (let dari = 0; ; dari += HALAMAN) {
-    const { data, error: uErr } = await supabase
-      .from('users')
-      .select('role_id')
-      .eq('is_active', true)
-      .order('id', { ascending: true })
-      .range(dari, dari + HALAMAN - 1)
-    if (uErr) throw new Error(`role-guard: gagal baca users: ${uErr.message}`)
-    if (!data || data.length === 0) break
-    for (const u of data) {
-      if (u.role_id) activeByRole.set(u.role_id as string, (activeByRole.get(u.role_id as string) ?? 0) + 1)
-    }
-    if (data.length < HALAMAN) break
+    rp.push(...((data ?? []) as unknown as { role_id: string; permissions: unknown }[]))
   }
 
   const permsByRole = new Map<string, string[]>()
