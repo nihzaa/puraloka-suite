@@ -680,6 +680,35 @@ jobs:
       - name: Katalog tool asisten tak membengkak
         run: node scripts/audit-katalog-tool-tak-membengkak.mjs
 
+      # Fungsi yang diekspor wajib punya pemanggil.
+      #
+      # Tiga cacat dari kelas yang SAMA ditemukan dalam satu hari (2026-08-27),
+      # dan ketiganya lolos dari seluruh penjaga lain karena kode yang tak
+      # dipanggil TAK BISA GAGAL:
+      #
+      #   1. fn_bersihkan_idempotency_kadaluarsa() — fungsi SQL pembersih
+      #      tanpa pemanggil; `idempotency_keys` tumbuh tanpa batas.
+      #   2. hapusDariAntrean() (mobile) — satu-satunya jalan keluar bagi
+      #      kiriman macet; penanda antrean jadi tak pernah padam.
+      #   3. pastikanProfilDidukung() — YANG TERMAHAL. Dokumentasinya berbunyi
+      #      "Dipanggil di awal tiap fungsi analisa" dan itu keliru sejak modul
+      #      dibuat. Kanal & siku dihitung pakai rumus profil I: verdict
+      #      IDENTIK dengan WF sampai digit terakhir, kapasitas 20-40% terlalu
+      #      besar, salah ke arah TIDAK AMAN, mengaku "SNI 1729 §F2".
+      #
+      # `noUnusedLocals` tak melihat ini: dari sudut pandang berkasnya, ekspor
+      # selalu "terpakai". Yang harus diperiksa seluruh repo sekaligus.
+      #
+      # Ambang NOL — bukan ratchet. Diukur 2026-08-27: nol tersisa setelah
+      # keempat sisanya disambungkan atau dibuang.
+      #
+      # Bukti merah (2026-08-27): fungsi hantu disuntik → exit 1 menyebut
+      # namanya; `dirname` dikurangi satu tingkat sehingga korpus jadi 0 berkas
+      # → exit 1 ("jalur pencarian meleset"), BUKAN hijau palsu. Dipulihkan →
+      # exit 0, korpus 1.775 berkas.
+      - name: Fungsi diekspor punya pemanggil
+        run: node scripts/audit-ekspor-tanpa-pemanggil.mjs
+
       # Kredensial tak boleh dipakai tenant yang bukan pemiliknya.
       #
       # Founder 2026-08-14: "harus disiapkan kalo nanti banyak perusahaan".

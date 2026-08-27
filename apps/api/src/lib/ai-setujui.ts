@@ -57,7 +57,7 @@
 import type { FastifyRequest } from 'fastify'
 import { randomBytes } from 'node:crypto'
 import type { TenantDb } from '../utils/tenant-db.js'
-import { SUMBER_INBOX, type SumberInbox } from './inbox-approval.js'
+import { SUMBER_INBOX, sumberInbox, type SumberInbox } from './inbox-approval.js'
 
 /** Umur token. Cukup untuk membaca dan memutuskan, tak cukup untuk terlupakan. */
 export const UMUR_TOKEN_MS = 15 * 60_000
@@ -136,7 +136,13 @@ export type JenisDidukung = (typeof JENIS_DIDUKUNG)[number]
 
 export function sumberUntuk(jenis: string): SumberInbox | undefined {
   if (!(JENIS_DIDUKUNG as readonly string[]).includes(jenis)) return undefined
-  return SUMBER_INBOX.find((s) => s.jenis === jenis)
+  /*
+    `sumberInbox()`, bukan `SUMBER_INBOX.find(...)` yang ditulis ulang di sini
+    sampai 2026-08-27. Keduanya identik isinya, jadi duplikasinya tak pernah
+    menghasilkan galat — dan justru itu masalahnya: pencarian yang berubah di
+    satu tempat (mis. jadi tak peka huruf) akan menyisakan yang lain diam-diam.
+  */
+  return sumberInbox(jenis)
 }
 
 /**

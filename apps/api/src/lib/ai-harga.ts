@@ -89,9 +89,16 @@ export function hargaModel(model: string): HargaModel {
   return HARGA_MODEL[model] ?? TERMAHAL
 }
 
-export function modelDikenal(model: string): boolean {
-  return model in HARGA_MODEL
-}
+/*
+  `modelDikenal()` pernah ada di sini dan dibuang 2026-08-27 — nol pemanggil.
+
+  Dibuang, bukan disambungkan, karena keberadaannya BERTENTANGAN dengan desain
+  di atasnya. `hargaModel()` sengaja jatuh ke tarif TERMAHAL untuk model tak
+  dikenal: biaya yang ditaksir terlalu tinggi menahan pemakaian, biaya yang
+  ditaksir nol membiarkannya lewat. Fungsi boolean terpisah mengundang pola
+  `if (!modelDikenal(m)) tolak` — menolak model baru yang sebenarnya sah,
+  sekaligus melewatkan pagar biaya yang sudah bekerja tanpa perlu ditanya.
+*/
 
 export interface PemakaianToken {
   masuk: number

@@ -2403,7 +2403,19 @@ export function entriKatalog(kunci: string): EntriKatalog | null {
   return KATALOG_OTOMASI.find((e) => e.kunci === kunci) ?? null
 }
 
-/** Kunci yang MEMANG rute terjadwal — dipakai penjaga dan rute ikhtisar. */
-export function kunciRuteTerjadwal(): string[] {
-  return KATALOG_OTOMASI.filter((e) => !e.kunci_bukan_rute).map((e) => e.kunci)
-}
+/*
+  `kunciRuteTerjadwal()` pernah ada di sini dan dibuang 2026-08-27.
+
+  Komentarnya berbunyi "dipakai penjaga dan rute ikhtisar" dan itu KELIRU pada
+  keduanya — nol pemanggil sejak ditulis. Penjaganya (`audit-katalog-otomasi-
+  nyata.mjs`) skrip `.mjs` dan membaca `kunci_bukan_rute` lewat regex terhadap
+  TEKS berkas ini, karena mengimpor modul TypeScript dari sana menuntut
+  transpile; itu pola yang memang dipakai repo ini. Rute ikhtisar
+  (`otomasi-alur.ts:600`) sengaja memetakan SELURUH katalog termasuk yang
+  bukan rute, karena ikhtisar harus menampilkan semuanya.
+
+  Bentuk cacat yang sama dengan `pastikanProfilDidukung` di `struktur-baja.ts`:
+  komentar yang menyatakan sebuah fungsi dipanggil, padahal tidak. Bedanya, di
+  sana ketiadaan panggilan itu MERUSAK hitungan; di sini fungsinya memang tak
+  dibutuhkan — jadi dibuang, bukan disambungkan.
+*/

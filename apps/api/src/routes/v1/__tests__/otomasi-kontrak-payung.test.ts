@@ -33,7 +33,7 @@ import type { Client } from 'pg'
 import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import otomasiTerjadwalRoutes from '../otomasi-terjadwal.js'
-import { KATALOG_OTOMASI } from '../../../lib/katalog-otomasi.js'
+import { entriKatalog } from '../../../lib/katalog-otomasi.js'
 
 const TANDA = 'UJI-BO-PAYUNG'
 
@@ -211,7 +211,7 @@ describe('kontrak payung segera habis', () => {
       mengklaim lebih dari yang dikerjakan adalah bentuk kebohongan yang paling
       sulit ditemukan, karena ia terlihat seperti kemajuan.
     */
-    const entri = KATALOG_OTOMASI.find((e) => e.kunci === 'kontrak-payung-habis')
+    const entri = entriKatalog('kontrak-payung-habis')
     expect(entri, 'entri katalog hilang').toBeDefined()
     expect(entri!.nomor,
       'entri ini mengklaim nomor katalog — 7.10 soal kontrak KLIEN, bukan pemasok')
