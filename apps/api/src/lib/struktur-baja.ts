@@ -391,6 +391,31 @@ const rasio = (tuntutan: number, kapasitas: number) =>
  */
 export function analisaBalokBaja(input: InputBalokBaja): HasilBalokBaja {
   const { profil, mutu, bentangM, jarakPengakuM, muKnm, vuKn, bebanLayanKnPerM } = input
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    PALING DULU — sebelum satu angka pun dihitung.
+
+    Dokumentasi `pastikanProfilDidukung` berbunyi "Dipanggil di awal tiap
+    fungsi analisa". Sampai 2026-08-27 ia TAK PUNYA SATU PUN PEMANGGIL, dan
+    kalimat itu keliru selama itu pula.
+
+    Yang terjadi tanpa panggilan ini, diukur langsung terhadap rumus di
+    berkas ini — WF, CNP, dan siku dengan dimensi sama:
+
+        WF   (didukung)      φMn = 20.005036533333172 kNm   aman: true
+        CNP  (TIDAK)         φMn = 20.005036533333172 kNm   aman: true
+        L    (TIDAK)         φMn = 20.005036533333172 kNm   aman: true
+
+    Identik sampai digit terakhir — karena rumus profil I dipakai apa adanya
+    pada penampang yang bukan profil I. Kanal MEMUNTIR saat dibebani (titik
+    pusat gesernya di luar penampang) dan siku punya sumbu utama yang miring;
+    `ALASAN_TAK_DIDUKUNG` di berkas ini menyebut akibatnya: kapasitas
+    **20-40% terlalu besar**.
+
+    Salahnya ke arah TIDAK AMAN, dan hasilnya mengaku "SNI 1729 §F2" — jadi
+    tak ada apa pun di layar yang memberi tahu bahwa angkanya tak berlaku.
+  */
+  pastikanProfilDidukung(profil)
   bilanganPositif('Bentang', bentangM)
   bilanganPositif('Tinggi profil', profil.hMm)
   bilanganPositif('fy', mutu.fyMpa)
@@ -673,6 +698,12 @@ export function kapasitasTekan(
  */
 export function analisaKolomBaja(input: InputKolomBaja): HasilKolomBaja {
   const { profil, mutu, tinggiM, puKn } = input
+  /*
+    Sama seperti di `analisaBalokBaja` — dan untuk kolom taruhannya lebih
+    besar lagi: kanal yang tak simetris tekuk secara TORSI-LENTUR, ragam yang
+    rumus tekuk lentur murni di berkas ini tak punya sukunya sama sekali.
+  */
+  pastikanProfilDidukung(profil)
   bilanganPositif('Tinggi kolom', tinggiM)
   bilanganPositif('fy', mutu.fyMpa)
 

@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
-  analisaBalokBaja, luasPenampang, inersiaX, modulusElastis, modulusPlastis,
-  radiusGirasiY, klasifikasiPenampang, kapasitasLentur, kapasitasGeser,
-  lendutanMerata, ES_BAJA_STRUKTUR, PHI,
+  analisaBalokBaja, analisaKolomBaja, luasPenampang, inersiaX, modulusElastis,
+  modulusPlastis, radiusGirasiY, klasifikasiPenampang, kapasitasLentur,
+  kapasitasGeser, lendutanMerata, ES_BAJA_STRUKTUR, PHI, PROFIL_DIDUKUNG,
   type ProfilBaja, type MutuBaja,
 } from '../struktur-baja'
 
@@ -415,5 +415,102 @@ describe('konstanta & faktor', () => {
 
   it('E baja 200.000 MPa', () => {
     expect(ES_BAJA_STRUKTUR).toBe(200_000)
+  })
+})
+
+
+describe('profil yang BUKAN profil I ditolak, bukan dihitung diam-diam', () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KENAPA BLOK INI ADA
+    ══════════════════════════════════════════════════════════════════════════
+
+    `pastikanProfilDidukung()` ada di modul ini sejak awal, lengkap dengan
+    pesan galat yang menjelaskan tiap bentuk penampang. Sampai 2026-08-27 ia
+    **tak punya satu pun pemanggil** — dan tak ada satu test pun di berkas ini
+    yang memeriksanya, jadi ketiadaannya tak pernah membuat apa pun merah.
+
+    Yang terjadi selama itu, diukur langsung dengan memanggil rumusnya pada
+    tiga profil berdimensi SAMA:
+
+        WF   (didukung)      phi.Mn = 20.005036533333172 kNm   aman: true
+        CNP  (TIDAK)         phi.Mn = 20.005036533333172 kNm   aman: true
+        L    (TIDAK)         phi.Mn = 20.005036533333172 kNm   aman: true
+
+    Identik sampai digit terakhir, karena rumus profil I dipakai apa adanya
+    pada penampang yang memuntir. `ALASAN_TAK_DIDUKUNG` menyebut akibatnya:
+    kapasitas 20-40% TERLALU BESAR — salah ke arah tidak aman — sambil
+    mengaku "SNI 1729 F2" di kolom rumusnya.
+
+    Test ini yang menahan supaya panggilan itu tak terhapus lagi tanpa gejala.
+  */
+
+  const dasarBalok = {
+    mutu: BJ37, bentangM: 6, jarakPengakuM: 0,
+    muKnm: 30, vuKn: 60, bebanLayanKnPerM: 3,
+  }
+
+  /** Profil sama persis dengan WF200, HANYA `profile_type`-nya beda. */
+  const sepertiWf = (jenis: string): ProfilBaja => ({
+    ...WF200, profile_type: jenis, designation: `${jenis} 200x100`,
+  })
+
+  it('hanya WF dan H yang didukung', () => {
+    expect([...PROFIL_DIDUKUNG]).toEqual(['WF', 'H'])
+  })
+
+  it.each(['CNP', 'C', 'INP', 'L'])('balok profil %s ditolak', (jenis) => {
+    expect(() => analisaBalokBaja({ ...dasarBalok, profil: sepertiWf(jenis) }))
+      .toThrow(/belum bisa dihitung modul ini/)
+  })
+
+  it.each(['CNP', 'C', 'INP', 'L'])('kolom profil %s ditolak', (jenis) => {
+    expect(() => analisaKolomBaja({
+      profil: sepertiWf(jenis), mutu: BJ37, tinggiM: 3, puKn: 200,
+    })).toThrow(/belum bisa dihitung modul ini/)
+  })
+
+  it('galatnya MENYEBUT alasan bentuknya, bukan sekadar "tak didukung"', () => {
+    /*
+      Pesan generik memaksa pengguna menebak. Yang dibutuhkan estimator adalah
+      alasan yang bisa dibawa ke perencana: kanal memuntir karena titik pusat
+      gesernya di luar penampang.
+    */
+    expect(() => analisaBalokBaja({ ...dasarBalok, profil: sepertiWf('CNP') }))
+      .toThrow(/MEMUNTIR/)
+    expect(() => analisaBalokBaja({ ...dasarBalok, profil: sepertiWf('L') }))
+      .toThrow(/sumbu utama yang MIRING/)
+  })
+
+  it('menyebutkan bahwa VOLUME tetap bisa dipakai — yang gugur hanya kekuatannya', () => {
+    /*
+      Penolakan yang berbunyi "profil ini tak bisa dihitung" saja akan membuat
+      orang mengira profilnya tak bisa dipakai sama sekali, lalu menggantinya
+      tanpa alasan teknis. Berat per meter dari tabel tetap sah untuk RAB.
+    */
+    expect(() => analisaBalokBaja({ ...dasarBalok, profil: sepertiWf('CNP') }))
+      .toThrow(/RAB/)
+  })
+
+  it('jenis tak dikenal pun ditolak, dengan alasan bawaan', () => {
+    expect(() => analisaBalokBaja({ ...dasarBalok, profil: sepertiWf('ZZZ') }))
+      .toThrow(/tak dikenali rumus profil I/)
+  })
+
+  it('huruf kecil tetap ditolak — pencocokannya tak peka huruf', () => {
+    /*
+      Data profil datang dari tabel `steel_profiles`; satu baris ber-`cnp`
+      huruf kecil akan lolos kalau pencocokannya peka huruf, dan lolosnya
+      DIAM-DIAM.
+    */
+    expect(() => analisaBalokBaja({ ...dasarBalok, profil: sepertiWf('cnp') }))
+      .toThrow(/belum bisa dihitung modul ini/)
+  })
+
+  it('WF dan H TETAP lolos — penjaga tak boleh menahan yang sah', () => {
+    expect(analisaBalokBaja({ ...dasarBalok, profil: WF200 }).aman).toBe(true)
+    expect(analisaBalokBaja({ ...dasarBalok, profil: sepertiWf('H') }).aman).toBe(true)
+    // huruf kecil yang SAH juga harus lolos, konsekuensi dari tak-peka-huruf.
+    expect(analisaBalokBaja({ ...dasarBalok, profil: sepertiWf('wf') }).aman).toBe(true)
   })
 })

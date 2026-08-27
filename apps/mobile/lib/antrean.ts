@@ -197,9 +197,16 @@ export async function daftarAntrean(): Promise<Kiriman[]> {
   return baca()
 }
 
-export async function jumlahAntrean(): Promise<number> {
-  return (await baca()).length
-}
+/*
+  `jumlahAntrean()` pernah ada di sini dan dibuang 2026-08-27: nol pemanggil,
+  dan ia hanya `(await baca()).length` — persis yang sudah bisa dilakukan
+  pemanggil `daftarAntrean()` tanpa membaca penyimpanan DUA KALI.
+
+  Dibuang, bukan disambungkan. Beda dari `hapusDariAntrean` yang juga nol
+  pemanggil pada hari yang sama: yang itu satu-satunya jalan keluar bagi
+  kiriman macet, jadi ketiadaannya adalah cacat. Yang ini cuma pembungkus,
+  jadi ketiadaan pemanggilnya adalah jawaban.
+*/
 
 export async function hapusDariAntrean(id: string): Promise<void> {
   const daftar = await baca()
