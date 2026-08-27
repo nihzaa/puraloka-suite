@@ -43,6 +43,41 @@ const kumpul = (akar, filter) => {
   return out
 }
 
+/**
+ * Buang komentar sebelum memindai.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA INI PERLU — 17 LAPORAN PALSU
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Versi sebelumnya menyatakan asumsinya terus terang: "kelebihan-tangkap hanya
+ * berarti satu-dua path ekstra diperiksa". Asumsi itu SALAH, dan diukur
+ * 2026-08-27: penjaga ini melaporkan **17 path menunjuk rute yang TIDAK ADA**,
+ * dan tiga di antaranya berasal dari KOMENTAR yang justru menjelaskan bahwa
+ * path itu TIDAK dipakai:
+ *
+ *     // GET/POST /api/v1/projects/:projectId/punch-items   (bukan flat
+ *     // `/api/v1/punch-items` seperti pola K3 — modul ini SELALU
+ *     // project-scoped …)
+ *
+ * Kodenya benar (`/api/v1/projects/${id}/punch-items`); yang dilaporkan
+ * hilang adalah kalimat yang menerangkan kenapa bentuk itu TIDAK dipakai.
+ * Sama untuk `/api/v1/k3/inspeksi` dan `/api/v1/cash` — ketiganya hanya ada
+ * di komentar penjelas.
+ *
+ * Penjaga yang berisik akan diabaikan, dan penjaga yang diabaikan tak menjaga
+ * apa pun — kalimat itu tertulis di berkas ini sendiri, lalu dilanggar oleh
+ * berkas ini sendiri.
+ *
+ * Pembuangannya sengaja sederhana (baris `//` dan blok `/* … *\/`). Ia bisa
+ * salah pada string yang MEMUAT `//` — mis. URL `https://…` — tetapi path yang
+ * dicari selalu diawali `/api/`, tak pernah punya skema, jadi kerugiannya nol
+ * di sini.
+ */
+const tanpaKomentar = (isi) => isi
+  .replace(/\/\*[\s\S]*?\*\//g, ' ')
+  .replace(/(^|[^:])\/\/[^\n]*/g, '$1')
+
 const norm = (p) =>
   // Query string dibuang LEBIH DULU. Kalau tidak, `?q=${x}` ikut terkonversi
   // jadi `?q=*` dan path-nya tak akan pernah cocok — persis yang terjadi pada
@@ -55,7 +90,14 @@ const norm = (p) =>
 // ── Rute yang DIDAFTARKAN di API ──────────────────────────────────────────
 const TERDAFTAR = new Set()
 for (const f of kumpul(join('apps', 'api', 'src', 'routes'), (n) => n.endsWith('.ts') && !n.includes('.test.'))) {
-  const isi = readFileSync(f, 'utf8')
+  /*
+    Komentar dibuang di sisi API juga — tetapi alasannya BERBEDA dan lebih
+    lemah: di sini kelebihan-tangkap membuat daftar TERDAFTAR lebih longgar,
+    yang aman. Yang tak aman adalah kebalikannya: rute yang disebut hanya di
+    komentar lalu dianggap ADA, sehingga path web yang benar-benar salah
+    lolos. Itulah yang ditutup di sini.
+  */
+  const isi = tanpaKomentar(readFileSync(f, 'utf8'))
 
   // ⚠️ Path TIDAK selalu di baris yang sama dengan `app.patch<...>(`.
   // Beberapa rute menyelipkan komentar penjelas di antaranya:
@@ -94,7 +136,7 @@ for (const f of kumpul(join('apps', 'web'), (n) => /\.(tsx?|mjs)$/.test(n))) {
     f.includes(`${sep}scripts${sep}`) ||
     /\.(test|spec)\.[tj]sx?$/.test(f)
   ) continue
-  const isi = readFileSync(f, 'utf8')
+  const isi = tanpaKomentar(readFileSync(f, 'utf8'))
   // Path diambil sampai pemisah yang PASTI mengakhirinya — bukan sampai
   // kutip berikutnya. Sebabnya: template literal seperti
   //   `/api/v1/cecep/resources?q=${encodeURIComponent(q)}&limit=20`
@@ -111,11 +153,42 @@ for (const f of kumpul(join('apps', 'web'), (n) => /\.(tsx?|mjs)$/.test(n))) {
   //   `[^`'"]+` berhenti di kutip DI DALAM `${encodeURIComponent(q)}`
   //   `[\s\S]{0,220}` tak cukup untuk tipe generik yang panjang
   //
-  // Pendekatan sederhana ini tak bisa membedakan path yang dipanggil dari
-  // path yang cuma disebut di komentar. Itu diterima: kelebihan-tangkap
-  // hanya berarti satu-dua path ekstra diperiksa, sedangkan yang dicari —
-  // path yang TAK ADA padanannya di API — tetap ketahuan.
+  /*
+    Komentar SUDAH dibuang di atas (`tanpaKomentar`), jadi catatan lama di
+    sini — "tak bisa membedakan path yang dipanggil dari path yang cuma
+    disebut di komentar, itu diterima" — sudah tak berlaku. Catatan itu
+    terbukti keliru: ia menghasilkan 17 laporan palsu (lihat `tanpaKomentar`).
+
+    Yang MASIH belum dibedakan: path di dalam string biasa yang bukan
+    pemanggilan. Itu tetap diterima, karena kerugiannya hanya satu path ekstra
+    yang diperiksa — bukan satu path yang dilaporkan HILANG.
+  */
   for (const m of isi.matchAll(/[`'"](\/api\/v\d[^`'"?\s]*)/g)) {
+    /*
+      Potongan yang berhenti DI TENGAH interpolasi dibuang.
+
+      `/api/v1/procurement/stocks${projectFilter` bukan path — ia hasil regex
+      yang berhenti sebelum `}`. Lima laporan palsu 2026-08-27 berbentuk
+      begini, semuanya dari halaman procurement yang kodenya benar.
+
+      `norm()` mengubah `${…}` UTUH jadi `*`; yang tersisa berisi `${` berarti
+      kurungnya tak pernah tertutup di dalam potongan itu.
+    */
+    if (m[1].includes('${')) continue
+    /*
+      Path yang diakhiri `/` adalah AWALAN, bukan endpoint.
+
+      `invalidasi("/api/v1/cash/")` membuang seluruh cache yang berawalan itu —
+      garis miringnya SENGAJA, supaya `/cash/accounts` dan `/cash/summary` ikut
+      terbuang tanpa ikut membuang `/cash-flow`. Semantiknya tertulis di nama
+      test `data-cache.test.ts`: "invalidasi berawalan membuang yang cocok
+      saja".
+
+      `norm()` melucuti garis miring akhir, jadi awalan itu menjadi
+      `/api/v1/cash` — rute yang memang tak pernah ada, dan dilaporkan hilang
+      2026-08-27 di dua halaman portal yang kodenya benar.
+    */
+    if (m[1].endsWith('/')) continue
     const p = norm(m[1])
     if (!dipakai.has(p)) dipakai.set(p, [])
     dipakai.get(p).push(f.split(sep).join('/'))

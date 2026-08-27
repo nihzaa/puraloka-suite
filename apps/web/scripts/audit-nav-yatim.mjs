@@ -60,15 +60,28 @@ const WAJAR = new Map([
   ['/login', 'pra-sesi; sidebar belum ada'],
   ['/auth/callback', 'pra-sesi; tujuan OAuth, bukan halaman'],
   ['/uji-gulir', 'halaman uji internal, sengaja tak dipasarkan'],
+  /*
+    ⚠ Ditulis sebagai template literal, BUKAN kutipan tunggal multi-baris.
+
+    Versi pertama entri ini (2026-08-27) memakai `'…'` yang membentang lima
+    baris — JavaScript tak menerimanya, dan seluruh penjaga ini MATI dengan
+    SyntaxError sejak saat itu. Runner CI hanya mencetak "Node.js v24.16.0"
+    tanpa satu pun temuan, jadi merahnya menyatu dengan merah lain dan tak ada
+    yang memeriksa sebabnya.
+
+    Penjaga yang crash tidak menjaga apa pun — kelas cacat yang sama dengan
+    `audit-klaim-layar-nyata` (ENOENT dari cwd) dan `audit-baca-tak-terpotong`
+    (hijau karena tak memuat .env).
+  */
   ['/admin-portal/klien',
-   'subhalaman portal, dicapai dari tautan di badan halaman Tender Subkon 
-    (`/admin-portal/tender`) dan sebaliknya — keduanya sama-sama 
-    pra-konstruksi. TIDAK dapat entri kategori karena key menunya 
-    (`md-klien`) ada di grup `g-master`, dan grup itu SENGAJA belum 
-    diaktifkan: seluruh item lainnya (Users, Roles, Master data) adalah CRUD 
-    katalog lebar yang tak wajar disunting di layar 390px, jadi 
-    mengaktifkannya membuat grup itu tampil hampir kosong. Pola sama dengan 
-    /admin-portal/kontrak/asuransi sebelum Task 12.'],
+   'subhalaman portal, dicapai dari tautan di badan halaman Tender Subkon '
+   + '(`/admin-portal/tender`) dan sebaliknya — keduanya sama-sama '
+   + 'pra-konstruksi. TIDAK dapat entri kategori karena key menunya '
+   + '(`md-klien`) ada di grup `g-master`, dan grup itu SENGAJA belum '
+   + 'diaktifkan: seluruh item lainnya (Users, Roles, Master data) adalah CRUD '
+   + 'katalog lebar yang tak wajar disunting di layar 390px, jadi '
+   + 'mengaktifkannya membuat grup itu tampil hampir kosong. Pola sama dengan '
+   + '/admin-portal/kontrak/asuransi sebelum Task 12.'],
   ['/mandor-portal/progress', 'subhalaman portal, dicapai dari badan halaman'],
   ['/mandor-portal/laporan', 'subhalaman portal, dicapai dari badan halaman'],
   ['/admin-portal/kontrak/asuransi',
