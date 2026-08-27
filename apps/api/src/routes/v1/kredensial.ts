@@ -35,7 +35,7 @@ import {
   KATALOG_KREDENSIAL, metaKredensial, lupakanKredensial, sumberKredensial,
 } from '../../lib/kredensial.js'
 
-const ALASAN = 'kredensial kategori B; disaring company_id oleh wrapper'
+const _ALASAN = 'kredensial kategori B; disaring company_id oleh wrapper'
 
 /** Baris yang disimpan tenant ini — TANPA `nilai_enc`. */
 async function barisTenant(request: FastifyRequest) {

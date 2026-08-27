@@ -44,7 +44,27 @@ const AMBANG = {
   // 10 -> 8 (2026-08-14): tujuh impor mati dibuang (FastifyRequest yang tak
   // dipakai, calculateTax/getTaxRate di termin-payment, renderDariDb di
   // wa-nomor) dan enam variabel lokal mati dibereskan.
-  '@typescript-eslint/no-unused-vars': 8,
+  // 8 -> 3 (2026-08-27): 19 sisa dibersihkan. Tiga di antaranya BUKAN
+  // sekadar berisik lint, melainkan cacat yang tak punya gejala lain:
+  //
+  //   blokPenanya (ai-jalankan)  identitas penanya dibaca dari basis tiap
+  //                              percakapan, disusun jadi blok konteks, lalu
+  //                              DIBUANG — `susunPromptSistem` dipanggil
+  //                              dengan empat argumen, parameter kelimanya
+  //                              selalu jatuh ke ''. Asisten tak pernah tahu
+  //                              siapa yang bertanya, dan tak ada galat.
+  //
+  //   analisaKolom (struktur.ts) fungsi yang SALAH untuk rute itu berada
+  //                              dalam jangkauan tangan; komentar di
+  //                              dispatcher menyebut varian polos membuat
+  //                              kolom bermomen besar lolos dengan 'aman'.
+  //
+  //   sendMilestoneReminderEmail di-destructure lalu tak pernah dipanggil,
+  //                              membuat pembacanya mengira jalur emailnya
+  //                              ada (R-021).
+  //
+  // Sisa 3 adalah variabel lokal berawalan `_` yang memang sengaja.
+  '@typescript-eslint/no-unused-vars': 3,
 }
 
 /** Rule apa pun DI LUAR daftar di atas harus NOL — termasuk rule baru. */

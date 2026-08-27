@@ -4,8 +4,20 @@ import { logAuditEvent } from '../../utils/audit.js'
 import { proyekMilikTenant } from '../../utils/tenant-guard.js'
 import { supabase } from '../../utils/supabase.js'
 
-import { analisaBalok, analisaKolom, rekapVolume, type VolumeElemen } from '../../lib/struktur-beton.js'
-import { analisaKolomBulat } from '../../lib/struktur-kolom-bulat.js'
+/*
+  `analisaKolom` dan `analisaKolomBulat` polos SENGAJA tak diimpor.
+
+  Keduanya sempat diimpor lalu tak pernah dipanggil — rute ini memakai varian
+  LENGKAP (`analisaKolomLengkap`, `analisaKolomBulatLengkap`). Komentar di
+  dispatcher menyebut alasannya: varian polos mengembalikan batas Fase 1 yang
+  sudah ditutup Fase 2, dan dengannya **kolom bermomen besar lolos dengan
+  verdict 'aman'**.
+
+  Jadi impor yang menganggur ini bukan sekadar berisik di lint: ia menaruh
+  fungsi yang SALAH untuk rute ini dalam jangkauan tangan, dengan nama yang
+  terbaca lebih wajar daripada yang benar. Dibuang, bukan diberi awalan `_`.
+*/
+import { analisaBalok, rekapVolume, type VolumeElemen } from '../../lib/struktur-beton.js'
 import { analisaPlat } from '../../lib/struktur-plat.js'
 import { analisaFootplat } from '../../lib/struktur-footplat.js'
 import { analisaPilecap } from '../../lib/struktur-pilecap.js'

@@ -57,7 +57,7 @@
 import type { FastifyRequest } from 'fastify'
 import { randomBytes } from 'node:crypto'
 import type { TenantDb } from '../utils/tenant-db.js'
-import { SUMBER_INBOX, sumberInbox, type SumberInbox } from './inbox-approval.js'
+import { sumberInbox, type SumberInbox } from './inbox-approval.js'
 
 /** Umur token. Cukup untuk membaca dan memutuskan, tak cukup untuk terlupakan. */
 export const UMUR_TOKEN_MS = 15 * 60_000

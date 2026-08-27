@@ -559,11 +559,27 @@ export async function jalankanGiliranAi(opsi: OpsiJalan): Promise<HasilJalan> {
     adaptor: dibuat.adaptor,
     model: gerbang.konfigurasi.model,
     maxToken: gerbang.konfigurasi.maxToken,
+    /*
+      `blokPenanya` IKUT — sampai 2026-08-27 tidak.
+
+      Identitas penanya dibaca dari basis dan disusun jadi blok konteks
+      (lihat `susunKonteksPenanya` di atas), lalu hasilnya DIBUANG:
+      variabelnya tak pernah sampai ke sini, dan parameter kelima
+      `susunPromptSistem` selalu jatuh ke bawaannya (`''`).
+
+      Akibatnya persis yang ditulis di dokumentasi parameter itu sendiri:
+      "tanpa ini 'kasbon minggu ini' tak bisa dijawab (model tak punya
+      jam) dan asisten menyapa pemiliknya dengan 'Anda' datar".
+
+      Tak ada galat sepanjang itu — pekerjaan membaca basisnya tetap
+      dilakukan tiap percakapan, hasilnya saja yang tak dipakai.
+    */
     sistem: susunPromptSistem(
       gerbang.konfigurasi.promptSistem,
       opsi.gayaKanal ?? '',
       gerbang.konfigurasi.sifatBicara,
       blokIngatan,
+      blokPenanya,
     ),
     maksRonde: gerbang.konfigurasi.maksRonde,
     // Teks pengguna masuk sebagai pesan `user`, TIDAK disambung ke prompt

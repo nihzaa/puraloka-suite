@@ -54,7 +54,7 @@ const isiSah = (o: Record<string, unknown> = {}) => ({
 })
 
 /** Terbitkan lalu tandatangani — pintasan yang dipakai beberapa test. */
-async function terbitDanTtd(o: Record<string, unknown> = {}) {
+async function _terbitDanTtd(o: Record<string, unknown> = {}) {
   const r = await buat(isiSah(o))
   expect(r.statusCode, r.body).toBe(201)
   const id = r.json().serah_terima.id as string
@@ -73,7 +73,7 @@ beforeAll(async () => {
   vi.spyOn(supabaseAuth.auth, 'getUser')
     .mockResolvedValue({ data: { user: { id: auth } }, error: null } as never)
 
-  const { rows: u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [auth])
+  const { rows: _u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [auth])
   // Company dipilih yang BENAR-BENAR berisi data yang dibutuhkan.
   //
   // Menuntut proyek yang punya punch item.

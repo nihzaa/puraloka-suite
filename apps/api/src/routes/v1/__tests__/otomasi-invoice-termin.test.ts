@@ -37,7 +37,7 @@ const PENANDA = '[TEST-5.1]'
 let app: FastifyInstance
 let db: Client
 let projectId: string
-let companyId: string
+let _companyId: string
 
 const panggil = () =>
   app.inject({
@@ -70,7 +70,7 @@ beforeAll(async () => {
   `)
   if (!rows[0]) throw new Error('basis tak punya proyek aktif')
   projectId = rows[0].id
-  companyId = rows[0].company_id
+  _companyId = rows[0].company_id
 
   await bersihkan()
 

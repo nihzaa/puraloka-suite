@@ -3,6 +3,35 @@ import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission, hasPermission } from '../../plugins/auth.js'
 import { tokenExpoSah } from '../../utils/push-natif.js'
 
+/**
+ * Ratakan embed relasi proyek dari PostgREST.
+ *
+ * Bentuknya bisa OBJEK atau ARRAY tergantung relasinya, dan lima tempat di
+ * berkas ini menuliskannya `as any` — lima kali pola yang sama, lima kali
+ * TypeScript berhenti memeriksa apa pun sesudahnya.
+ *
+ * Bahayanya bukan teoretis: `proj.status` yang salah eja tak akan berbunyi di
+ * bawah `any`, dan cabang "lewati proyek yang dibatalkan" akan diam-diam tak
+ * pernah aktif — notifikasi terkirim untuk proyek yang sudah batal.
+ *
+ * Medan yang didaftarkan di sini adalah yang BENAR-BENAR dipakai berkas ini
+ * (`id`, `name`, `status`, `progress_pct`), bukan seluruh kolom `projects`:
+ * tipe yang lebih sempit dari kenyataan tetap aman, sedangkan yang lebih luas
+ * menjanjikan medan yang belum tentu ikut di-`select`.
+ */
+type ProyekEmbed = {
+  id?: string
+  name?: string
+  status?: string
+  progress_pct?: number | null
+}
+
+function ratakanProyek(embed: unknown): ProyekEmbed | null {
+  if (!embed) return null
+  const e = Array.isArray(embed) ? embed[0] : embed
+  return (e ?? null) as ProyekEmbed | null
+}
+
 export default async function notificationRoutes(app: FastifyInstance) {
 
   // ── GET /api/v1/notifications ─────────────────────────────────────────────
@@ -424,7 +453,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
     // Approaching milestones
     for (const ms of approachingRes.data ?? []) {
-      const proj = ms.projects as any
+      const proj = ratakanProyek(ms.projects)
       const recipients = await resolveRecipients('milestone_approaching', { projectId: ms.project_id, companyId: request.companyId! })
 
       // Cek apakah sudah ada notif approaching untuk milestone ini hari ini
@@ -458,7 +487,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
 
     // Overdue milestones
     for (const ms of overdueRes.data ?? []) {
-      const proj = ms.projects as any
+      const proj = ratakanProyek(ms.projects)
       const recipients = await resolveRecipients('milestone_overdue', { projectId: ms.project_id, companyId: request.companyId! })
 
       // Maksimal sekali per hari per milestone
@@ -505,8 +534,23 @@ export default async function notificationRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const { createNotification } = await import('../../utils/notifications.js')
     const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    /*
+      `sendMilestoneReminderEmail` SENGAJA tak di-destructure di sini.
+
+      Fungsinya ADA di `utils/email.ts` dan sampai 2026-08-27 ikut
+      dibongkar di sini — lalu tak pernah dipanggil, di berkas ini maupun
+      di mana pun di repo. Diukur: nol pemanggil.
+
+      Rute `check-milestones` (baris ~397) MEMANG memberi tahu tentang
+      milestone, tetapi hanya lewat notifikasi dalam aplikasi; nol email
+      terkirim dari sana. Jadi nama yang dibongkar di sini membuat
+      pembacanya mengira jalur emailnya ada.
+
+      Apakah milestone LAYAK dikirimi email adalah keputusan produk
+      (empat jenis lain di bawah dapat email; milestone tidak). Dicatat
+      sebagai R-021 di RATIFIKASI.md, bukan diputuskan sendiri di sini.
+    */
     const {
-      sendMilestoneReminderEmail,
       sendTerminReminderEmail,
       sendInvoiceOverdueEmail,
       sendKasbonPendingEmail,
@@ -557,7 +601,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       .not('projects.status', 'in', '("cancelled","completed")')
 
     for (const t of termins ?? []) {
-      const proj = t.project as any
+      const proj = ratakanProyek(t.project)
       if (!proj || proj.status === 'cancelled') continue
 
       const isTriggered =
@@ -592,7 +636,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
           action_data: { record_id: t.id, termin_number: t.termin_number },
         })
         const email = await getUserEmail(uid)
-        if (email) sendTerminReminderEmail({ to: email, terminNumber: t.termin_number, amount: Number(t.amount), projectName: proj.name, projectId: proj.id, dueDate: t.due_date ?? undefined })
+        if (email) sendTerminReminderEmail({ to: email, terminNumber: t.termin_number, amount: Number(t.amount), projectName: proj.name ?? '(tanpa nama)', projectId: proj.id ?? '', dueDate: t.due_date ?? undefined })
         created++
       }
     }
@@ -667,7 +711,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       .lte('kasbon_date', ago7)   // pending lebih dari 7 hari
 
     for (const k of stalKasbons ?? []) {
-      const proj = k.project as any
+      const proj = ratakanProyek(k.project)
       if (!proj) continue
       if (await alreadySent('kasbon_pending', k.id)) continue
 
@@ -689,7 +733,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
           action_data: { record_id: k.id, days_waiting: daysWaiting },
         })
         const email = await getUserEmail(uid)
-        if (email) sendKasbonPendingEmail({ to: email, mandorName, amount: Number(k.amount), projectName: proj.name, daysWaiting })
+        if (email) sendKasbonPendingEmail({ to: email, mandorName, amount: Number(k.amount), projectName: proj.name ?? '(tanpa nama)', daysWaiting })
         created++
       }
     }
@@ -711,7 +755,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
       .lt('due_date', today)
 
     for (const inv of overdueInvoices ?? []) {
-      const proj = inv.project as any
+      const proj = ratakanProyek(inv.project)
       if (!proj) continue
       if (await alreadySent('invoice_overdue', inv.id)) continue
 
@@ -732,7 +776,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
           action_data: { record_id: inv.id, days_late: daysLate },
         })
         const email = await getUserEmail(uid)
-        if (email) sendInvoiceOverdueEmail({ to: email, invoiceNumber: inv.invoice_number, amountDue: Number(inv.amount_due), projectName: proj.name, daysLate, dueDate: inv.due_date })
+        if (email) sendInvoiceOverdueEmail({ to: email, invoiceNumber: inv.invoice_number, amountDue: Number(inv.amount_due), projectName: proj.name ?? '(tanpa nama)', daysLate, dueDate: inv.due_date })
         created++
       }
     }

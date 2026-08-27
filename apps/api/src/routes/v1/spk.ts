@@ -586,7 +586,7 @@ export default async function spkRoutes(app: FastifyInstance) {
           .text(String(s.penerbit?.name ?? kop.nama), M, yTtd, { width: kolomW, align: 'center' })
           .text('(...............................)', M + kolomW + 30, yTtd,
             { width: kolomW, align: 'center' })
-        let yBawah = doc.y + 2
+        const yBawah = doc.y + 2
         doc.font('Helvetica').fontSize(8)
           .text(s.ttd_penerbit_pada ? `ditandatangani ${tgl(s.ttd_penerbit_pada)}` : 'belum ditandatangani',
             M, yBawah, { width: kolomW, align: 'center' })

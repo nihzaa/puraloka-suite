@@ -27,7 +27,7 @@ import penyediaRoutes from '../penyedia.js'
 let app: FastifyInstance
 let db: Client
 let adminAuth: string
-let companyId: string
+let _companyId: string
 
 const TANDA = '[UJI-S1]'
 
@@ -51,7 +51,7 @@ beforeAll(async () => {
   adminAuth = auth
 
   const { rows } = await db.query(`SELECT id FROM companies WHERE code = 'puraloka-persada'`)
-  companyId = rows[0].id
+  _companyId = rows[0].id
 
   app = Fastify()
   await app.register(penyediaRoutes)

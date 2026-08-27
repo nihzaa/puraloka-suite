@@ -41,7 +41,6 @@
 import type { Periksa, VolumeElemen } from './struktur-beton'
 import {
   luasPenampang, radiusGirasiY, kapasitasTekan, klasifikasiPenampang,
-  pastikanProfilDidukung,
   PHI, type ProfilBaja, type MutuBaja,
 } from './struktur-baja'
 

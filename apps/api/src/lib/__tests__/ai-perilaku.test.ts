@@ -240,6 +240,32 @@ describe('kode BENAR-BENAR memakainya — bukan kolom hiasan', () => {
     expect(chat).toMatch(/susunPromptSistem\(\s*gerbang\.konfigurasi\.promptSistem/)
   })
 
+  it('konteks PENANYA benar-benar sampai ke prompt, bukan cuma disusun', () => {
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      CACAT YANG DIJAGA — dan kenapa test fungsinya saja tak cukup
+      ══════════════════════════════════════════════════════════════════════
+
+      `susunKonteksPenanya` punya testnya sendiri dan hijau. Yang TIDAK diuji
+      siapa pun: apakah hasilnya sampai ke prompt.
+
+      Sampai 2026-08-27 ternyata TIDAK. Identitas penanya dibaca dari basis
+      tiap percakapan, disusun jadi blok konteks, lalu variabelnya berhenti di
+      situ — `susunPromptSistem` dipanggil dengan empat argumen, dan parameter
+      kelimanya (`blokPenanya`) selalu jatuh ke bawaan `''`.
+
+      Akibatnya persis yang ditulis di dokumentasi parameter itu sendiri:
+      "kasbon minggu ini" tak bisa dijawab karena model tak punya jam, dan
+      asisten menyapa pemiliknya dengan "Anda" datar.
+
+      Tak ada galat sepanjang itu — pekerjaan membaca basisnya tetap berjalan,
+      hasilnya saja yang dibuang. Ditemukan lewat `no-unused-vars`, bukan lewat
+      satu pun test.
+    */
+    expect(chat).toContain('blokPenanya = susunKonteksPenanya(')
+    expect(chat).toMatch(/susunPromptSistem\([\s\S]{0,400}?blokPenanya,/)
+  })
+
   it('prompt tenant DISAMBUNG, tidak menggantikan prompt dasar', () => {
     // Kalau tenant bisa mengganti seluruh prompt, satu kalimat ceroboh
     // menghapus instruksi yang menahan injeksi — dan tak ada gejala sampai

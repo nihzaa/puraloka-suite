@@ -1121,7 +1121,7 @@ export function gambarTiang(input: InputGambarTiang, opsi: OpsiGambar = {}): str
     karena itulah yang dibaca.
   */
   const lebarGambar = Math.max(D * 3.4, L / 12)
-  const skalaX = lebarGambar / D
+  const _skalaX = lebarGambar / D
 
   const margin = L * 0.07
   const pakaiDimensi = opsi.dimensi ?? true

@@ -56,7 +56,7 @@ beforeAll(async () => {
   vi.spyOn(supabaseAuth.auth, 'getUser')
     .mockResolvedValue({ data: { user: { id: auth } }, error: null } as never)
 
-  const { rows: u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [auth])
+  const { rows: _u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [auth])
   // Company dipilih yang BENAR-BENAR berisi data yang dibutuhkan.
   //
   // Menuntut company yang punya proyek sama sekali.

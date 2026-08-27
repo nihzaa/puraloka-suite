@@ -66,7 +66,7 @@ async function skenarioIdsTenant(request: FastifyRequest): Promise<string[]> {
 }
 
 /** Idem untuk scenario_id. */
-async function skenarioMilikTenant(request: FastifyRequest, scenarioId: string): Promise<boolean> {
+async function _skenarioMilikTenant(request: FastifyRequest, scenarioId: string): Promise<boolean> {
   const { data } = await supabase
     .from('scenarios').select('project_id').eq('id', scenarioId).maybeSingle()
   if (!data?.project_id) return false

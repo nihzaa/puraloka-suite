@@ -6,6 +6,57 @@ bawah entrinya.
 
 ---
 
+# 📧 R-021 · Notifikasi milestone tak pernah dikirim lewat email — fungsinya ada, jalurnya tidak (2026-08-27)
+
+## Yang ditemukan
+
+Aplikasi mengirim email untuk empat jenis pengingat: termin jatuh tempo,
+invoice lewat tempo, kasbon menunggu persetujuan, dan proyek mendekati selesai.
+
+Untuk **milestone**, fungsinya juga ada — `sendMilestoneReminderEmail` di
+`utils/email.ts` — dan namanya bahkan ikut dibongkar di rute notifikasi bersama
+keempat yang lain. Tetapi ia **tak pernah dipanggil**, di berkas itu maupun di
+mana pun di aplikasi.
+
+Jadi yang terjadi hari ini: milestone yang mendekati atau melewati tenggat
+memunculkan notifikasi **di dalam aplikasi**, tetapi tak ada email yang keluar.
+Orang yang tak sedang membuka aplikasi tak tahu apa-apa.
+
+Tak ada galat sepanjang itu. Nama fungsinya berdiri di sana dan membuat siapa
+pun yang membaca kode itu mengira jalur emailnya sudah ada.
+
+## Yang SUDAH saya kerjakan (tak perlu keputusan Anda)
+
+Nama yang menyesatkan itu dibuang dari rutenya, diganti catatan yang menyebut
+keadaan sebenarnya. Fungsi emailnya TIDAK dihapus — ia siap dipakai begitu
+Anda memutuskan.
+
+## Yang perlu diputuskan founder
+
+Ini keputusan produk, bukan teknis: **apakah milestone layak dikirimi email?**
+
+**Pilihan A — Ya, samakan dengan empat jenis lain.**
+Milestone adalah tonggak jadwal proyek; terlewat berarti keterlambatan yang
+merembet. Pekerjaannya kecil (fungsinya sudah ada, tinggal disambung ke rute
+yang sudah menghitung siapa penerimanya).
+
+**Pilihan B — Tidak, cukup notifikasi dalam aplikasi.**
+Alasannya masuk akal: milestone dicek berkala oleh PM yang memang membuka
+aplikasi tiap hari, dan menambah email untuk tiap milestone berisiko membuat
+orang berhenti membaca email dari sistem — yang justru merusak keempat
+pengingat lain yang lebih mendesak (uang dan tenggat pembayaran).
+
+**Kalau Anda diam, yang berlaku adalah B** — keadaan hari ini, hanya kini
+tercatat sebagai pilihan alih-alih kelalaian.
+
+Yang saya sarankan: **B**. Empat jenis yang sudah dapat email semuanya
+menyangkut UANG atau tenggat yang punya akibat hukum. Milestone adalah
+informasi jadwal, dan menaruhnya di saluran yang sama menurunkan bobot yang
+tiga lainnya. Kalau nanti ternyata milestone sering terlewat, A tetap murah
+dikerjakan.
+
+---
+
 # 🧬 R-020 · Penjaga sidik jari skema MATI sejak lama — sudah dihidupkan, acuannya perlu Anda putuskan (2026-08-27)
 
 ## Yang ditemukan

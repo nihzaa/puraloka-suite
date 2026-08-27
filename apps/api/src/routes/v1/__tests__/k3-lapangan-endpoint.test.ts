@@ -42,7 +42,7 @@ const get = (url: string) =>
 const kirim = (method: 'POST' | 'PATCH', url: string, payload: Record<string, unknown> = {}) =>
   app.inject({ method, url, payload, headers: { authorization: 'Bearer t' } })
 
-const hariIni = () => new Date().toISOString().slice(0, 10)
+const _hariIni = () => new Date().toISOString().slice(0, 10)
 
 async function purge() {
   await client.query(
