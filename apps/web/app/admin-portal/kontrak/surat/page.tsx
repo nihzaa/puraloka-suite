@@ -42,6 +42,7 @@ import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import { formatTanggal } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import BottomSheet from "@/components/portal/BottomSheet";
@@ -129,12 +130,7 @@ export default function AdminSuratPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{
-        fontSize: "var(--t-judul)", fontWeight: 700,
-        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
-      }}>
-        Surat Masuk &amp; Keluar
-      </h1>
+      <KepalaPortal judul="Surat Masuk &amp; Keluar" />
 
       <SegmentedTab
         opsi={[{ value: "keluar", label: "Keluar" }, { value: "masuk", label: "Masuk" }]}

@@ -44,6 +44,7 @@ import { api } from "@/lib/api";
 import { useIzin } from "@/lib/use-izin";
 import { formatRupiah } from "@/lib/format";
 import SegmentedTab from "@/components/portal/SegmentedTab";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
@@ -109,12 +110,7 @@ export default function AdminProcurementPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={kepala}>
-        <h1 style={{
-        fontSize: "var(--t-judul)", fontWeight: 700,
-        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
-      }}>
-          Procurement
-        </h1>
+        <KepalaPortal judul="Procurement" />
         {tab === "mr" && bolehBuatMr && (
           <button type="button" onClick={() => setSheetMr(true)} aria-label="Buat Material Request baru" style={tombolBuat}>
             <Plus size={16} aria-hidden="true" /> MR

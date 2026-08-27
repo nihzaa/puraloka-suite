@@ -20,6 +20,7 @@ import Link from "next/link";
 import { FileSpreadsheet, Search } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import SegmentedTab from "@/components/portal/SegmentedTab";
@@ -83,9 +84,7 @@ export default function PmRabDaftarPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        RAB
-      </h1>
+      <KepalaPortal judul="RAB" />
 
       <div style={{ position: "relative" }}>
         <Search

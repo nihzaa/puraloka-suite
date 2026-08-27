@@ -25,6 +25,7 @@ import { AlarmClock } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import type { ProyekPM, GalatApi } from "../../_bersama/tipe";
@@ -82,12 +83,7 @@ export default function AdminAnalisaKeterlambatanPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{
-        fontSize: "var(--t-judul)", fontWeight: 700,
-        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
-      }}>
-        Analisa Keterlambatan
-      </h1>
+      <KepalaPortal judul="Analisa Keterlambatan" />
 
       <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Proyek</span>

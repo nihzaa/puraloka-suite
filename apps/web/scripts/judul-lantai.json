@@ -1,11 +1,13 @@
 {
-  "nilai": 27,
-  "_catatan": "Dihitung SESUDAH komentar dibuang — enam 'dua <h1>' yang sempat terukur ternyata artefak komentar, nol yang nyata. Sisa 51 termasuk yang memang bukan judul halaman (sapaan dinamis beranda, portal ber-shell lain).",
-  "_diukur": "2026-08-19",
+  "nilai": 31,
+  "_catatan": "Dihitung SESUDAH komentar dibuang. Naik dari 27 karena portal (admin/pm/mandor) dibangun SESUDAH lantai itu diukur, dan portal tak punya komponen kepala sendiri — tiap halamannya menulis <h1> tangan. 2026-08-27 dibuatkan <KepalaPortal>, dan 109 di antaranya dipindahkan ke sana. Sisa 31 diperiksa satu per satu: hero beranda & proyek/[id] (font display + clamp, sengaja beda), keadaan tanpa-izin, header khusus m/[key], dan admin-portal/kategori yang <h1>-nya WAJIB menurut catatan di berkasnya.",
+  "_diukur": "2026-08-27",
   "_riwayat": [
     "61 → 51 (UIR-2: 10 halaman ke KepalaHalaman — 5 kepala polos, 5 ber-ubin ikon)",
     "51 → 31 (otomatis)",
     "31 → 28 (otomatis)",
-    "28 → 27 (otomatis)"
+    "28 → 27 (otomatis)",
+    "27 → 143 (portal dibangun; lantai lama tak pernah disesuaikan, jadi penjaga ini merah terus dan tak ada yang membacanya)",
+    "143 → 31 (2026-08-27: <KepalaPortal> dibuat, 109 h1 portal dipindah + audit & preferensi-pesan ke KepalaHalaman)"
   ]
 }

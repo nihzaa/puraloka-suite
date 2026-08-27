@@ -25,6 +25,7 @@ import { CalendarClock, AlertTriangle, Send } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import BottomSheet from "@/components/portal/BottomSheet";
 import type { RespDaftarPegawai, RespTimesheetPegawai, GalatApi } from "../../_bersama/tipe";
@@ -94,9 +95,7 @@ export default function PmTimesheetPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Timesheet
-      </h1>
+      <KepalaPortal judul="Timesheet" />
 
       {memuatPegawai && <SkeletonCard tinggi={44} />}
       {!memuatPegawai && galatPegawai && (

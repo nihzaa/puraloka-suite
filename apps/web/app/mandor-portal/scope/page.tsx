@@ -18,6 +18,7 @@ import { type Penugasan, type LingkupKerja, type GalatApi, pesanGalat } from "..
 import { ChevronDown, ChevronUp, Layers, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import { Tabel, type Kolom } from "@/components/dasar";
 
@@ -120,9 +121,7 @@ export default function MandorScopePage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Scope & Progress
-      </h1>
+      <KepalaPortal judul="Scope & Progress" />
 
       {loading && (
         <>

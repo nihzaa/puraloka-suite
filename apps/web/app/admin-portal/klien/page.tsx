@@ -31,6 +31,7 @@ import Link from "next/link";
 import { Building2, Phone, Mail } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import SegmentedTab from "@/components/portal/SegmentedTab";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { RespKlien, GalatApi } from "../_bersama/tipe";
@@ -78,12 +79,7 @@ export default function AdminKlienPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{
-        fontSize: "var(--t-judul)", fontWeight: 700,
-        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
-      }}>
-        Daftar Klien
-      </h1>
+      <KepalaPortal judul="Daftar Klien" />
 
       <SegmentedTab
         opsi={[

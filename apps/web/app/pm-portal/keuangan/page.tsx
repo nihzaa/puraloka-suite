@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 
 function fmt(n: number) {
@@ -69,9 +70,7 @@ export default function PmKeuanganPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Keuangan — Kasbon
-      </h1>
+      <KepalaPortal judul="Keuangan — Kasbon" />
 
       {!loading && pendingCount > 0 && (
         <div role="status" style={{ background: "var(--warning-bg)", border: "1px solid var(--warning-border)", borderRadius: 12, padding: "12px 16px", display: "flex", alignItems: "center", gap: 8 }}>

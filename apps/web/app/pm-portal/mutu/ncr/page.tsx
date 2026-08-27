@@ -29,6 +29,7 @@ import { FileWarning, Plus } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import SegmentedTab from "@/components/portal/SegmentedTab";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
@@ -69,7 +70,7 @@ export default function PmNcrPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>NCR</h1>
+        <KepalaPortal judul="NCR" />
         {proyekAktif && (
           <button type="button" onClick={() => setSheetBuat(true)} aria-label="Catat ketidaksesuaian baru"
             style={{ minHeight: 40, padding: "0 14px", borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>

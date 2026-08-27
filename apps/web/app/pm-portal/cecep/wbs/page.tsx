@@ -18,6 +18,7 @@
 import { GitBranch } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import type { RespTemplateWbsList, TemplateWbsRingkas, GalatApi } from "../../_bersama/tipe";
@@ -33,9 +34,7 @@ export default function PmTemplateWbsPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-          Template WBS
-        </h1>
+        <KepalaPortal judul="Template WBS" />
         <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
           Kerangka pekerjaan siap pakai. Menerapkan template ke proyek hanya
           tersedia di web — aksi ini menolak proyek yang sudah punya RAB.

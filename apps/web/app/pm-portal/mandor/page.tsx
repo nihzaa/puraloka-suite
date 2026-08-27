@@ -15,6 +15,7 @@ import { useData } from "@/lib/data-cache";
 import { CheckCircle, XCircle, Clock, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { Tabel } from "@/components/dasar";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 
 /** Satu baris upah pekerja di dalam laporan mingguan. */
@@ -81,9 +82,7 @@ export default function PmMandorPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Mandor &amp; Laporan Upah
-      </h1>
+      <KepalaPortal judul="Mandor &amp; Laporan Upah" />
 
       {!loading && galatMuat && (
         <div role="alert" style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 12, padding: "12px 16px", fontSize: 13, color: "var(--on-danger-bg)" }}>

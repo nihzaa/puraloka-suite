@@ -31,6 +31,7 @@ import { ShieldAlert, HardHat, ClipboardCheck, Plus } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import SegmentedTab from "@/components/portal/SegmentedTab";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
@@ -132,9 +133,7 @@ export default function PmK3Page() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        K3 Lapangan
-      </h1>
+      <KepalaPortal judul="K3 Lapangan" />
 
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>

@@ -39,6 +39,7 @@ import { ambilLokasi } from "@/lib/lokasi-perangkat";
 import { uploadProgressPhoto, attachProgressPhoto } from "@/lib/storage";
 import { Plus, ImageIcon, X, Check, Loader2, ClipboardList, Calendar, MapPin } from "lucide-react";
 import BottomSheet from "@/components/portal/BottomSheet";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import { antrekan as antrekanFoto, tautkanKeLog, companyAktif } from "@/lib/antrean-foto";
@@ -326,7 +327,7 @@ export default function MandorProgressPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Input Progress</h1>
+        <KepalaPortal judul="Input Progress" />
         <button
           onClick={() => { setGalatForm(null); setSheetTerbuka(true); }}
           style={{

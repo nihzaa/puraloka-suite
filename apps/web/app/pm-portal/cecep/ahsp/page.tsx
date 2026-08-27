@@ -22,6 +22,7 @@ import { useEffect, useState } from "react";
 import { Search, Layers, ChevronRight } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import BottomSheet from "@/components/portal/BottomSheet";
 import type { RespAssemblyKatalog, AssemblyKatalog, GalatApi } from "../../_bersama/tipe";
@@ -49,9 +50,7 @@ export default function PmKatalogAhspPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-          Katalog AHSP
-        </h1>
+        <KepalaPortal judul="Katalog AHSP" />
         <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
           Analisa harga satuan pekerjaan nasional — rujukan, bukan alat sunting.
         </p>

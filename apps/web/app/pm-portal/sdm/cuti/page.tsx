@@ -22,6 +22,7 @@ import { Plane, AlertTriangle, Plus } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
@@ -98,9 +99,7 @@ export default function PmCutiPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-          Cuti & Izin
-        </h1>
+        <KepalaPortal judul="Cuti & Izin" />
         <button type="button" onClick={() => { setGalatForm(null); setSheetAjukan(true); }} disabled={!pegawaiAktif}
           style={{
             display: "flex", alignItems: "center", gap: 4, padding: "8px 14px",

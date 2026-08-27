@@ -28,6 +28,7 @@ import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { ClipboardList, Plus, Trash2 } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import SegmentedTab from "@/components/portal/SegmentedTab";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
@@ -226,7 +227,7 @@ export default function LaporanUpahPage() {
       )}
 
       <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Laporan Upah</h1>
+        <KepalaPortal judul="Laporan Upah" />
         <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
           Kirim dan lihat riwayat laporan upah mingguan
         </p>

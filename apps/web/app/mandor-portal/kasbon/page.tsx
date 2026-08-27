@@ -6,6 +6,7 @@ import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { type Kasbon, type GalatApi, pesanGalat } from "../_bersama/tipe";
 import { Plus, Wallet } from "lucide-react";
 import BottomSheet from "@/components/portal/BottomSheet";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
@@ -186,7 +187,7 @@ export default function MandorKasbonPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Kasbon</h1>
+        <KepalaPortal judul="Kasbon" />
         <button
           onClick={() => setSheetTerbuka(true)}
           style={{

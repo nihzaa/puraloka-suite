@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Wallet, ClipboardList, Briefcase, TrendingUp, ChevronRight } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import KpiCard from "@/components/portal/KpiCard";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import EmptyState from "@/components/portal/EmptyState";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
@@ -116,9 +117,7 @@ export default function MandorBerandaPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Beranda
-      </h1>
+      <KepalaPortal judul="Beranda" />
 
       {memuat ? (
         <>

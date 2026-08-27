@@ -15,6 +15,7 @@ import { useData } from "@/lib/data-cache";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import { MapPin, Calendar, ChevronRight, AlertCircle, FolderKanban } from "lucide-react";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import EmptyState from "@/components/portal/EmptyState";
 import type { ProyekPM, GalatApi } from "../_bersama/tipe";
@@ -41,12 +42,7 @@ export default function AdminProyekPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{
-        fontSize: "var(--t-judul)", fontWeight: 700,
-        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
-      }}>
-        Proyek
-      </h1>
+      <KepalaPortal judul="Proyek" />
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {FILTER_OPSI.map((s) => (

@@ -24,6 +24,7 @@ import { CalendarDays, Flag, AlertTriangle, ClipboardList, Users2 } from "lucide
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import BottomSheet from "@/components/portal/BottomSheet";
@@ -158,9 +159,7 @@ export default function PmJadwalPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Jadwal &amp; Baseline
-      </h1>
+      <KepalaPortal judul="Jadwal &amp; Baseline" />
 
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>

@@ -32,6 +32,7 @@ import { useMemo, useState } from "react";
 import { Scale } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { ProyekPM, RespVarians, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
@@ -60,7 +61,7 @@ export default function PmVariansPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Varians Cost Code</h1>
+      <KepalaPortal judul="Varians Cost Code" />
 
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>

@@ -21,6 +21,7 @@ import Link from "next/link";
 import { Users, Search, AlertCircle } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
 import type { RespDaftarKlien, GalatApi } from "../_bersama/tipe";
@@ -50,9 +51,7 @@ export default function PmKlienPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Klien
-      </h1>
+      <KepalaPortal judul="Klien" />
 
       <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface)", minHeight: 44 }}>
         <Search size={16} color="var(--text-secondary)" aria-hidden="true" />

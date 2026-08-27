@@ -21,6 +21,7 @@ import { useMemo, useState } from "react";
 import { DollarSign, ChevronDown } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import type { RespHargaSatuan, HargaSatuan, GalatApi } from "../../_bersama/tipe";
@@ -69,9 +70,7 @@ export default function PmPriceBookPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-          Price Book
-        </h1>
+        <KepalaPortal judul="Price Book" />
         <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
           Harga satuan tersimpan — hanya status Aktif yang dipakai menghitung RAB.
         </p>

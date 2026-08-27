@@ -20,6 +20,7 @@ import { useState } from "react";
 import { Landmark, AlertCircle } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
 import type { RespArAging, RespRetensi, RespDp, GalatApi } from "../../_bersama/tipe";
@@ -52,9 +53,7 @@ export default function PmPiutangPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Register Piutang
-      </h1>
+      <KepalaPortal judul="Register Piutang" />
 
       <SegmentedTab
         opsi={[

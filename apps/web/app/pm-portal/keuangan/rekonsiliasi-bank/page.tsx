@@ -25,6 +25,7 @@ import Link from "next/link";
 import { Landmark } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import type { RespRekonsiliasiDaftar, GalatApi } from "../../_bersama/tipe";
@@ -50,9 +51,7 @@ export default function PmRekonsiliasiBankPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Rekonsiliasi Bank
-      </h1>
+      <KepalaPortal judul="Rekonsiliasi Bank" />
 
       {memuat && <SkeletonCard tinggi={120} />}
       {galat && (

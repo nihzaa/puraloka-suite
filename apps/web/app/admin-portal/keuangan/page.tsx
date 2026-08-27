@@ -63,6 +63,7 @@ import { useData } from "@/lib/data-cache";
 import { Tabel } from "@/components/dasar";
 import { formatRupiah, formatRupiahSingkat } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { RespKeuanganIkhtisar, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
@@ -89,12 +90,7 @@ export default function AdminDashboardKeuanganPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{
-        fontSize: "var(--t-judul)", fontWeight: 700,
-        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
-      }}>
-        Dashboard Keuangan
-      </h1>
+      <KepalaPortal judul="Dashboard Keuangan" />
 
       {/* Tautan ke Piutang, IPC, GL, Rekonsiliasi Bank, Kas, dan Pengadaan
           Lanjutan — keenamnya bukan bagian NAV_ITEMS bottom nav (bottom nav

@@ -20,6 +20,7 @@ import { FileBarChart, AlertTriangle, Play } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { RespSumberLaporan, RespHasilLaporanSusun, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
@@ -71,9 +72,7 @@ export default function PmSusunLaporanPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Susun Laporan
-      </h1>
+      <KepalaPortal judul="Susun Laporan" />
 
       {memuat && <SkeletonCard tinggi={100} />}
       {galatMuat && (

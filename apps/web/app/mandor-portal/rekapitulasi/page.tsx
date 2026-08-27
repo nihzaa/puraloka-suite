@@ -31,6 +31,7 @@ import { useData } from "@/lib/data-cache";
 import { TrendingUp, Wallet, CheckCircle, AlertCircle, MinusCircle, BarChart2 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import KpiCard from "@/components/portal/KpiCard";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { GalatApi } from "../_bersama/tipe";
@@ -71,7 +72,7 @@ export default function RekapitulasiPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Rekapitulasi Keuangan</h1>
+        <KepalaPortal judul="Rekapitulasi Keuangan" />
         <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
           Ringkasan earned vs dibayar vs kasbon beredar
         </p>

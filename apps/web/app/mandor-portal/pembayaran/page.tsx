@@ -32,6 +32,7 @@ import { useMemo, useState } from "react";
 import { useData } from "@/lib/data-cache";
 import { Wallet, FileText, TrendingUp, CheckCircle, AlertCircle } from "lucide-react";
 import SegmentedTab from "@/components/portal/SegmentedTab";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import KpiCard, { type TrenPeriode } from "@/components/portal/KpiCard";
@@ -283,7 +284,7 @@ export default function RiwayatPembayaranPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Riwayat Pembayaran</h1>
+        <KepalaPortal judul="Riwayat Pembayaran" />
         <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
           Semua pembayaran yang telah diterima
         </p>

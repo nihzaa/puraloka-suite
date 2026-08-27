@@ -44,6 +44,7 @@ import { useMemo } from "react";
 import { Percent } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { RespMarkupList, PeriodeMarkup, MarkupTerpilih, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
@@ -110,7 +111,7 @@ export default function PmMarkupPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Markup &amp; Margin</h1>
+      <KepalaPortal judul="Markup &amp; Margin" />
       <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>
         Angka yang menentukan laba tiap penawaran. Mengubah aturan hanya tersedia di web.
       </p>

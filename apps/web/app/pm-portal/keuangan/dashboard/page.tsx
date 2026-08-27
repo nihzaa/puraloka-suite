@@ -26,6 +26,7 @@ import { Wallet, TrendingUp, AlertTriangle, Clock } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { Tabel } from "@/components/dasar";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { RespKeuanganIkhtisar, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
@@ -70,9 +71,7 @@ export default function PmDashboardKeuanganPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Dashboard Keuangan
-      </h1>
+      <KepalaPortal judul="Dashboard Keuangan" />
 
       {memuat && <SkeletonCard tinggi={160} />}
       {galat && (

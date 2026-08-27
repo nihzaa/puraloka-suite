@@ -17,6 +17,7 @@ import { Warehouse, Plus, Pencil } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge from "@/components/portal/StatusBadge";
 import BottomSheet from "@/components/portal/BottomSheet";
@@ -33,7 +34,7 @@ export default function PmGudangLokasiPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Lokasi Gudang</h1>
+        <KepalaPortal judul="Lokasi Gudang" />
         <button type="button" onClick={() => setSheetTambah(true)} aria-label="Tambah lokasi gudang"
           style={{ minHeight: 40, padding: "0 14px", borderRadius: "var(--portal-radius-pill)", background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
           <Plus size={16} aria-hidden="true" /> Tambah

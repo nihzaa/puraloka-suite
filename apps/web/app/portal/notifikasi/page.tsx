@@ -18,6 +18,7 @@ import { api } from "@/lib/api";
 import { useData } from "@/lib/data-cache";
 import { Bell, CheckCheck } from "lucide-react";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 
 interface Notif {
@@ -63,7 +64,7 @@ export default function PortalNotifPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Notifikasi</h1>
+          <KepalaPortal judul="Notifikasi" />
           {unread > 0 && <div style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>{unread} belum dibaca</div>}
         </div>
         {unread > 0 && (

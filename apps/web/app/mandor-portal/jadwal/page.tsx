@@ -41,6 +41,7 @@ import { useMemo, useState } from "react";
 import { CalendarDays, AlertTriangle, Flag } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge from "@/components/portal/StatusBadge";
 import type { Penugasan, GalatApi } from "../_bersama/tipe";
@@ -119,9 +120,7 @@ export default function JadwalProyekPage() {
   if (galatAsg) {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-          Jadwal Proyek
-        </h1>
+        <KepalaPortal judul="Jadwal Proyek" />
         <EmptyState
           icon={CalendarDays}
           judul="Gagal memuat penugasan"
@@ -133,9 +132,7 @@ export default function JadwalProyekPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Jadwal Proyek
-      </h1>
+      <KepalaPortal judul="Jadwal Proyek" />
 
       {memuatAsg && <SkeletonCard tinggi={44} />}
 

@@ -24,6 +24,7 @@ import { FileCheck2, Plus, AlertTriangle } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import BottomSheet from "@/components/portal/BottomSheet";
@@ -109,9 +110,7 @@ export default function PmSertifikatIpcPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-          Sertifikat IPC
-        </h1>
+        <KepalaPortal judul="Sertifikat IPC" />
         <button type="button" onClick={() => { setGalatForm(null); setSheetBaru(true); }} disabled={!proyekAktif}
           style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", border: "none", background: proyekAktif ? "var(--grad-aksen)" : "var(--surface-subtle)", color: proyekAktif ? "var(--on-navy)" : "var(--text-muted)", fontSize: 13, fontWeight: 700, cursor: proyekAktif ? "pointer" : "default", minHeight: 40 }}>
           <Plus size={16} aria-hidden="true" /> Terbitkan

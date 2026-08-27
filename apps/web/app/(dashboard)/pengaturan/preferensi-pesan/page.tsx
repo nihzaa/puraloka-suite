@@ -100,8 +100,7 @@ export default function PreferensiPesanPage() {
   if (memuat) {
     return (
       <div style={{ padding: "var(--pad-atas) var(--pad-x)", maxWidth: "var(--w-page)", margin: "0 auto" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text }}>Preferensi Pesan</h1>
-        <p style={{ fontSize: 13, color: C.muted, marginTop: 8 }}>Memuat…</p>
+        <KepalaHalaman judul="Preferensi Pesan" keterangan="Memuat…" />
       </div>
     );
   }
@@ -109,7 +108,16 @@ export default function PreferensiPesanPage() {
   if (galat || !p) {
     return (
       <div style={{ padding: "var(--pad-atas) var(--pad-x)", maxWidth: "var(--w-page)", margin: "0 auto" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text }}>Preferensi Pesan</h1>
+        {/*
+          Judul lewat `<KepalaHalaman>` juga di cabang GALAT — halaman yang
+          gagal memuat tetap halaman yang sama, dan judul yang "meloncat"
+          gayanya justru saat ada masalah membuat layarnya terasa rusak
+          lebih dari yang sebenarnya.
+
+          Pesan galatnya TIDAK dijadikan `keterangan`: keterangan bernada
+          netral, sementara ini kabar buruk yang perlu warnanya sendiri.
+        */}
+        <KepalaHalaman judul="Preferensi Pesan" />
         <p style={{ fontSize: 13, color: C.danger, marginTop: 8 }}>{galat ?? "Preferensi tak tersedia."}</p>
       </div>
     );

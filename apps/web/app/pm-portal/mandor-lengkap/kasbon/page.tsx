@@ -25,6 +25,7 @@ import { Banknote, Plus } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import BottomSheet from "@/components/portal/BottomSheet";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
@@ -60,9 +61,7 @@ export default function PmKasbonTukangPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-          Kasbon Tukang
-        </h1>
+        <KepalaPortal judul="Kasbon Tukang" />
         <button
           type="button"
           onClick={() => setShowForm(true)}

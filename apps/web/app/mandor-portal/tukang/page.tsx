@@ -7,6 +7,7 @@ import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { type GalatApi, pesanGalat } from "../_bersama/tipe";
 import { Users, Plus, Phone, Edit2, ToggleLeft, ToggleRight } from "lucide-react";
 import BottomSheet from "@/components/portal/BottomSheet";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
@@ -127,7 +128,7 @@ export default function DaftarTukangPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Daftar Tukang</h1>
+          <KepalaPortal judul="Daftar Tukang" />
           <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>{activeCount} tukang aktif terdaftar</p>
         </div>
         <button

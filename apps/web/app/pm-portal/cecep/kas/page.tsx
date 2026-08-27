@@ -26,6 +26,7 @@ import { useMemo, useState } from "react";
 import { Banknote } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { ProyekPM, RespRabDaftar, RespCashflowForecast, GalatApi } from "../../_bersama/tipe";
 import { pesanGalat } from "../../_bersama/tipe";
@@ -72,7 +73,7 @@ export default function PmCashflowPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Proyeksi Kas</h1>
+      <KepalaPortal judul="Proyeksi Kas" />
       <p style={{ fontSize: 12, color: "var(--text-secondary)", margin: 0 }}>
         Perkiraan pencairan dana per periode dari RAB terkunci/disetujui — bukan kas aktual.
       </p>

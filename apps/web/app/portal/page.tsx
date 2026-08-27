@@ -18,6 +18,7 @@ import Link from "next/link";
 import { FolderKanban, TrendingUp, AlertTriangle, ChevronRight, MapPin, Calendar } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import KpiCard from "@/components/portal/KpiCard";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import MiniChart from "@/components/portal/MiniChart";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import SkeletonCard from "@/components/portal/SkeletonCard";
@@ -66,9 +67,7 @@ export default function PortalKlienBerandaPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Proyek Saya
-      </h1>
+      <KepalaPortal judul="Proyek Saya" />
 
       {/* LAPIS 1 — KEADAAN: empat KPI, bukan dua */}
       {memuat ? (

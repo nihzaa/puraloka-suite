@@ -160,6 +160,7 @@ import { Inbox, AlertTriangle, ArrowUpCircle, X } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import BottomSheet from "@/components/portal/BottomSheet";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import StatusBadge from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
@@ -523,9 +524,7 @@ export default function PmApprovalPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Approval
-      </h1>
+      <KepalaPortal judul="Approval" />
 
       {dilewati.length > 0 && (
         <div

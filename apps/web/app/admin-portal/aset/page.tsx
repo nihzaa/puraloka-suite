@@ -40,6 +40,7 @@ import { Wrench, AlertTriangle, Gauge, Activity } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { formatRupiah } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { RespAlatOperasional, AlatOperasional, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
@@ -103,12 +104,7 @@ export default function AdminAsetPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{
-        fontSize: "var(--t-judul)", fontWeight: 700,
-        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
-      }}>
-        Alat Operasional
-      </h1>
+      <KepalaPortal judul="Alat Operasional" />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
         <Kpi label="Total alat" nilai={data.total} />

@@ -18,6 +18,7 @@ import { useMemo, useState } from "react";
 import { AlarmClock } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import type { ProyekPM, GalatApi } from "../../_bersama/tipe";
@@ -83,9 +84,7 @@ export default function PmAnalisaKeterlambatanPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Analisa Keterlambatan
-      </h1>
+      <KepalaPortal judul="Analisa Keterlambatan" />
 
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>

@@ -42,6 +42,7 @@
 import { ShieldCheck, FileWarning, HardHat, ClipboardCheck } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { RespMutuIkhtisar, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
@@ -90,12 +91,7 @@ export default function AdminMutuPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{
-        fontSize: "var(--t-judul)", fontWeight: 700,
-        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
-      }}>
-        Mutu, K3 &amp; Dokumen
-      </h1>
+      <KepalaPortal judul="Mutu, K3 &amp; Dokumen" />
 
       {/* ── Empat angka yang menuntut tindakan ─────────────────────────── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>

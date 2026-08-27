@@ -63,6 +63,7 @@ import { useData, invalidasi } from "@/lib/data-cache";
 import { api } from "@/lib/api";
 import { formatTanggalJam } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
 import BottomSheet from "@/components/portal/BottomSheet";
@@ -229,9 +230,7 @@ export default function PmDokumenKendaliPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Kendali Dokumen
-      </h1>
+      <KepalaPortal judul="Kendali Dokumen" />
 
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>

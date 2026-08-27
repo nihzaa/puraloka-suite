@@ -36,6 +36,7 @@ import { Landmark, TrendingUp, Wallet } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { formatRupiah, formatRupiahSingkat } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 
 /** Bentuk disalin dari `GET /api/v1/mandor/retensi-register` (mandor.ts:2712). */
@@ -88,9 +89,7 @@ export default function RetensiPortalPage() {
 
   return (
     <div style={{ display: "grid", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: "var(--t-judul)", fontWeight: 700, margin: 0 }}>
-        Retensi Saya
-      </h1>
+      <KepalaPortal judul="Retensi Saya" />
 
       {/*
         Galat MUAT berdiri sendiri — tak berbagi state dengan galat aksi

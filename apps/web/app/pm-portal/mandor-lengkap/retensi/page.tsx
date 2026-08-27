@@ -20,6 +20,7 @@ import { Lock, HandCoins, AlertTriangle } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { api, hasPermission } from "@/lib/api";
 import BottomSheet from "@/components/portal/BottomSheet";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { RetensiScope, ResponsRetensiRegister, GalatApi } from "../../_bersama/tipe";
@@ -58,9 +59,7 @@ export default function PmRetensiPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-        Retensi Subkontraktor
-      </h1>
+      <KepalaPortal judul="Retensi Subkontraktor" />
       <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>
         Uang mandor yang ditahan sebagai jaminan mutu. Angka ini <strong>utang perusahaan</strong>, bukan kas bebas.
       </p>

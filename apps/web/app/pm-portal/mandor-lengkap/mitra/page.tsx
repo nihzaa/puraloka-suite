@@ -26,6 +26,7 @@ import { api, hasPermission } from "@/lib/api";
 import { useData, invalidasi } from "@/lib/data-cache";
 import { Building2, User, Plus, Edit2, Search, Ban, Phone, Info } from "lucide-react";
 import BottomSheet from "@/components/portal/BottomSheet";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
@@ -143,7 +144,7 @@ export default function PmMitraPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Mitra</h1>
+          <KepalaPortal judul="Mitra" />
           <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
             {r ? `${r.total} mitra · ${r.orang} orang · ${r.badan_usaha} badan usaha` : "Tukang, pemasok, dan penawar tender"}
           </p>

@@ -16,6 +16,7 @@ import { Warehouse, AlertTriangle, TrendingDown } from "lucide-react";
 import Link from "next/link";
 import { useData } from "@/lib/data-cache";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import StatusBadge from "@/components/portal/StatusBadge";
 import type { RespGudangIkhtisar, GalatApi } from "../_bersama/tipe";
@@ -48,7 +49,7 @@ export default function PmGudangPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Gudang & Material</h1>
+        <KepalaPortal judul="Gudang & Material" />
         <Link href="/pm-portal/gudang/lokasi" style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)", textDecoration: "none" }}>Kelola Lokasi</Link>
       </div>
 

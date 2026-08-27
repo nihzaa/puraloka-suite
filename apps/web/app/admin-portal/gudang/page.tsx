@@ -39,6 +39,7 @@ import { Warehouse, PackageSearch, TrendingDown, MapPin } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { formatRupiah } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import Kartu from "@/components/portal/Kartu";
 import type { RespGudangIkhtisar, GalatApi } from "../_bersama/tipe";
@@ -85,12 +86,7 @@ export default function AdminGudangPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{
-        fontSize: "var(--t-judul)", fontWeight: 700,
-        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
-      }}>
-        Gudang &amp; Aset
-      </h1>
+      <KepalaPortal judul="Gudang &amp; Aset" />
 
       {/*
         ── ANGKA PEMIMPIN — sengaja TANPA kartu ──────────────────────────

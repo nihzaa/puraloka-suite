@@ -27,6 +27,7 @@ import { type LingkupKerja, type PembayaranProgres, type GalatApi, pesanGalat } 
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { TrendingUp, Plus, Clock, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import BottomSheet from "@/components/portal/BottomSheet";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
@@ -175,7 +176,7 @@ export default function PenagihanProgressPage() {
       )}
 
       <div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Penagihan Progress</h1>
+        <KepalaPortal judul="Penagihan Progress" />
         <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
           Ajukan penagihan berdasarkan persentase pekerjaan selesai
         </p>

@@ -33,6 +33,7 @@ import { api } from "@/lib/api";
 import { formatRupiah as fmtRupiah } from "@/lib/format";
 import Link from "next/link";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
 import BottomSheet from "@/components/portal/BottomSheet";
@@ -99,9 +100,7 @@ function IsiAsetPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-          Alat & Aset
-        </h1>
+        <KepalaPortal judul="Alat & Aset" />
         <button type="button" onClick={() => { setSheetBaru(true); setGalatForm(null); }}
           style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 14px", borderRadius: "var(--portal-radius-pill)", border: "none", background: "var(--grad-aksen)", color: "var(--on-navy)", fontSize: 13, fontWeight: 700, cursor: "pointer", minHeight: 40 }}>
           <Plus size={16} aria-hidden="true" /> Aset

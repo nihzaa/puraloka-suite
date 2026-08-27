@@ -6,6 +6,7 @@ import { type Kasbon, type Tukang, type Penugasan, type GalatApi, pesanGalat } f
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import { CreditCard, Plus } from "lucide-react";
 import BottomSheet from "@/components/portal/BottomSheet";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import EmptyState from "@/components/portal/EmptyState";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 
@@ -111,7 +112,7 @@ export default function KasbonTukangPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Kasbon Tukang</h1>
+          <KepalaPortal judul="Kasbon Tukang" />
           <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>Ajukan kasbon untuk tukang di bawah Anda</p>
         </div>
         <button

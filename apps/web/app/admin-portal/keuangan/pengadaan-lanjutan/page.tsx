@@ -57,6 +57,7 @@ import { useData, invalidasi } from "@/lib/data-cache";
 import { api, hasPermission } from "@/lib/api";
 import { formatRupiah, formatTanggal } from "@/lib/format";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import BottomSheet from "@/components/portal/BottomSheet";
 import type {
@@ -217,12 +218,7 @@ export default function AdminPengadaanLanjutanPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{
-        fontSize: "var(--t-judul)", fontWeight: 700,
-        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
-      }}>
-        Kontrak Payung & Pengadaan Lanjutan
-      </h1>
+      <KepalaPortal judul="Kontrak Payung & Pengadaan Lanjutan" />
 
       <div role="tablist" aria-label="Bagian pengadaan lanjutan" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {([

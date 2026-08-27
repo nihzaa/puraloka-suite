@@ -41,6 +41,7 @@ import { useData } from "@/lib/data-cache";
 import { useIzin } from "@/lib/use-izin";
 import { kirimLapangan } from "@/lib/kirim-lapangan";
 import EmptyState from "@/components/portal/EmptyState";
+import KepalaPortal from "@/components/portal/KepalaPortal";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import SegmentedTab from "@/components/portal/SegmentedTab";
 
@@ -234,9 +235,7 @@ export default function AbsensiPortalPage() {
 
   return (
     <div style={{ display: "grid", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: "var(--t-judul)", fontWeight: 700, margin: 0 }}>
-        Absensi Harian
-      </h1>
+      <KepalaPortal judul="Absensi Harian" />
 
       {galatMuat && (
         <div role="alert" style={gayaGalat}>

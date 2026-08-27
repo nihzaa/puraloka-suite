@@ -6,6 +6,7 @@ import { useIzin } from "@/lib/use-izin";
 import { useToast } from "@/components/toast";
 import { Paginasi } from "@/components/paginasi";
 import { GAYA_KARTU } from "@/components/ui-dasar";
+import { KepalaHalaman } from "@/components/dasar";
 import {
   ShieldCheck, Search,
   Clock, User, Database, RefreshCw, AlertCircle, FileText,
@@ -220,30 +221,30 @@ export default function AuditPage() {
 
   return (
     <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{
-            width: 42, height: 42, borderRadius: 10,
-            background: "linear-gradient(135deg, var(--navy), var(--aksen-terang))",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <ShieldCheck size={20} color="#fff" />
-          </div>
-          <div>
-            <h1 style={{ fontSize: 20, fontWeight: 800, color: "var(--text-primary)", margin: 0 }}>Audit Trail</h1>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-              {meta.total.toLocaleString("id-ID")} entri total
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => fetchLogs(page)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
-        >
-          <RefreshCw size={13} style={{ color: "var(--text-muted)" }} /> Refresh
-        </button>
-      </div>
+      {/*
+        `<KepalaHalaman>`, bukan header buatan sendiri.
+
+        Yang digambar di sini persis apa yang komponen itu sediakan: ikon,
+        judul, keterangan, dan satu tombol aksi. Bedanya cuma `fontWeight:
+        800` — satu-satunya di repo ini yang memakai 800, sementara 105
+        halaman lain memakai 700 lewat komponennya.
+
+        Selisih satu langkah bobot tak terlihat sendirian dan langsung
+        terasa saat berpindah halaman: judulnya "meloncat" lebih tebal.
+      */}
+      <KepalaHalaman
+        ikon={<ShieldCheck size={19} />}
+        judul="Audit Trail"
+        keterangan={`${meta.total.toLocaleString("id-ID")} entri total`}
+        aksi={(
+          <button
+            onClick={() => fetchLogs(page)}
+            style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--surface)", fontSize: 12, fontWeight: 500, cursor: "pointer" }}
+          >
+            <RefreshCw size={13} style={{ color: "var(--text-muted)" }} /> Refresh
+          </button>
+        )}
+      />
 
       {/* Filters */}
       <div style={{ ...GAYA_KARTU, padding: "16px 20px", marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
