@@ -76,13 +76,66 @@ async function usersWithRoles(roleNames: string[], idAnggota: string[]): Promise
   return out
 }
 
+/**
+ * Penerima per kunci izin.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * ARAHNYA DIBALIK 2026-08-27 — DAN ITU YANG MEMPERBAIKI CACATNYA
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * Versi sebelumnya berjalan dari IZIN ke pengguna:
+ *
+ *     role_permissions (semua peran pemegang izin)  →  users
+ *
+ * Langkah pertama itu memulangkan TEPAT 1.000 baris — batas potong PostgREST,
+ * tanpa galat dan tanpa penanda. Diukur 2026-08-27: `role_permissions` berisi
+ * 229.612 baris dan 1.644 peran memegang `procurement:mr:manage`, sementara
+ * `roles` sendiri 5.754 baris untuk 29 pengguna (suite test menyemai ulang set
+ * peran bawaan tiap kali berjalan tanpa membersihkan yang lama, jadi nama yang
+ * sama ada ribuan kali).
+ *
+ * Akibatnya: peran yang BENAR-BENAR dipakai orang — `mandor`, `pm`, `admin`,
+ * ketiganya memang memegang izin itu — berada DI LUAR 1.000 pertama. Hasil
+ * akhirnya nol penerima, dan notifikasi `stok_menipis` tak pernah terbit.
+ * Tanpa satu pun galat: `data` terisi, `error` null.
+ *
+ * Arah yang benar dimulai dari yang JUMLAHNYA KECIL dan sudah terbatas:
+ *
+ *     anggota company aktif (puluhan)  →  peran mereka  →  izin peran itu
+ *
+ * `idAnggota` sudah dibatasi pemanggil ke anggota company aktif, jadi
+ * himpunannya kecil sejak langkah pertama dan tak ada yang bisa terpotong.
+ * Ini bukan sekadar menghindari batas 1.000 — ia juga membuang pekerjaan
+ * memeriksa ribuan peran yang tak seorang pun memakainya.
+ */
 async function usersWithPermissions(keys: string[], idAnggota: string[]): Promise<Record<string, string[]>> {
   if (keys.length === 0 || idAnggota.length === 0) return {}
-  // user aktif → role_id → role_permissions → permissions.key
+
+  /*
+    Langkah 1 — pengguna aktif yang jadi anggota company. `idAnggota` datang
+    dari `anggotaCompany()` dan sudah tersaring; inilah pagar jumlahnya.
+  */
+  const { data: users, error: uErr } = await supabase
+    .from('users').select('id, role_id')
+    .in('id', idAnggota).eq('is_active', true).not('role_id', 'is', null)
+  if (uErr) {
+    console.error('[notif-routing] gagal resolusi user per role:', uErr.message)
+    return Object.fromEntries(keys.map(k => [k, []]))
+  }
+
+  /*
+    Langkah 2 — izin dari peran yang BENAR-BENAR dipakai mereka. Daftar
+    `role_id`-nya sebanyak-banyaknya sejumlah pengguna, jadi `.in()` di bawah
+    tak pernah mendekati batas potong.
+  */
+  const roleDipakai = [...new Set((users ?? []).map((u: { role_id: string }) => u.role_id))]
+  if (roleDipakai.length === 0) return Object.fromEntries(keys.map(k => [k, [] as string[]]))
+
   const { data, error } = await supabase
     .from('role_permissions')
     .select('role_id, permissions!inner(key)')
     .in('permissions.key', keys)
+    .in('role_id', roleDipakai)
 
   if (error) {
     console.error('[notif-routing] gagal resolusi permission:', error.message)
@@ -93,17 +146,6 @@ async function usersWithPermissions(keys: string[], idAnggota: string[]): Promis
   for (const rp of (data ?? []) as { role_id: string; permissions: { key: string } | { key: string }[] }[]) {
     const key = Array.isArray(rp.permissions) ? rp.permissions[0]?.key : rp.permissions?.key
     if (key && rolesByKey[key]) rolesByKey[key].push(rp.role_id)
-  }
-
-  const allRoleIds = [...new Set(Object.values(rolesByKey).flat())]
-  if (allRoleIds.length === 0) return Object.fromEntries(keys.map(k => [k, [] as string[]]))
-
-  const { data: users, error: uErr } = await supabase
-    .from('users').select('id, role_id')
-    .in('role_id', allRoleIds).in('id', idAnggota).eq('is_active', true)
-  if (uErr) {
-    console.error('[notif-routing] gagal resolusi user per role:', uErr.message)
-    return Object.fromEntries(keys.map(k => [k, []]))
   }
 
   const usersByRole: Record<string, string[]> = {}

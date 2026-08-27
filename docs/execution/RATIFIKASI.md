@@ -6,6 +6,104 @@ bawah entrinya.
 
 ---
 
+# 🧹 R-019 · Basis penuh sisa test — 1.328 perusahaan untuk 29 pengguna, dan itu MENGUBAH HASIL (2026-08-27)
+
+**Yang perlu Anda putuskan ada di bagian terakhir.** Sisanya penjelasan.
+
+## Yang ditemukan
+
+Basis berisi tumpukan besar data sisa pengujian. Diukur hari ini:
+
+| Tabel | Jumlah baris | Yang wajar |
+|---|---|---|
+| `companies` (perusahaan) | **1.328** | 1 |
+| `roles` (peran) | **5.754** | ± 21 |
+| `role_permissions` | **229.612** | ± 1.600 |
+| `users` (pengguna) | 29 | 29 |
+| `projects` (proyek) | 25 | 25 |
+
+Dari 1.328 perusahaan, **hanya `puraloka-persada` yang nyata.** Sisanya:
+841 berkode `uji-…`, 381 berkode `retired-…`, dan 5 sisanya campuran.
+
+Penyebabnya: pengujian otomatis membuat perusahaan, peran, dan izin untuk
+mencoba sesuatu, lalu **tidak membersihkannya** setelah selesai. Setelah
+ratusan kali dijalankan, sisanya menumpuk.
+
+## Kenapa ini bukan sekadar "tempat terpakai"
+
+Tumpukan itu **mengubah hasil yang dilihat pengguna** — inilah bagian yang
+membuatnya perlu Anda ketahui.
+
+Sistem punya batas teknis: satu permintaan data hanya memulangkan **1.000
+baris**, sisanya dipotong **tanpa pesan galat apa pun**.
+
+Saat sistem mencari "siapa yang harus menerima notifikasi stok menipis", ia
+menelusuri 229.612 baris izin. Potongan 1.000 pertama isinya peran-peran sisa
+pengujian yang tak dipakai siapa pun — sementara peran yang **benar-benar
+dipegang orang** (`mandor`, `pm`, `admin`) berada **di luar potongan itu**.
+
+Hasilnya: **notifikasi stok menipis tidak pernah terkirim ke siapa pun**, dan
+tidak ada satu pun pesan kesalahan yang muncul. Sistem tampak bekerja normal.
+
+## Yang SUDAH saya kerjakan (tak perlu keputusan Anda)
+
+**1. Pencarian penerima notifikasi diperbaiki — arahnya dibalik.**
+Dulu: dari daftar izin (ratusan ribu baris) → cari penggunanya.
+Sekarang: dari daftar pengguna (puluhan) → periksa izinnya.
+Karena dimulai dari yang jumlahnya kecil, tak ada lagi yang bisa terpotong.
+Diuji langsung: sebelumnya **0 penerima**, sekarang **14 penerima**.
+
+**2. Dua pembacaan lain yang juga terpotong diperbaiki** (`role-guard.ts`,
+`roles.ts`) — keduanya kini membaca bertahap per 1.000 baris sampai habis.
+
+**3. Penjaga yang seharusnya menangkap ini — ternyata mati.**
+`audit-baca-tak-terpotong.mjs` selama ini mencetak "DILEWATI" lalu lulus,
+karena ia tak memuat berkas konfigurasi `.env` sehingga tak menemukan alamat
+basis. Hijau karena tak memeriksa apa pun. Sudah diperbaiki; begitu dijalankan
+dengan benar ia **langsung merah** dan menunjuk dua cacat di atas.
+
+**4. Alat ukur baru:** `node apps/api/scripts/lapor-sampah-uji.mjs` —
+melaporkan jumlahnya kapan saja, **tanpa menghapus apa pun.**
+
+## Yang perlu diputuskan founder
+
+Data sisa ini masih ada. Menghapus data yang sudah ada butuh persetujuan Anda
+(aturan §8a.5), dan penghapusan lintas-perusahaan berisiko — jadi saya tidak
+melakukannya sendiri.
+
+**Pilihan A — Bersihkan yang jelas sisa pengujian.**
+Hapus 1.323 perusahaan berkode `uji-…` dan `retired-…` beserta peran & izin
+yang menempel padanya. **Tidak** menyentuh `puraloka-persada`, dan **tidak**
+menyentuh `grup-uji-properti` / `grup-uji-nusantara` — dua yang terakhir masih
+dipakai pengujian multi-perusahaan yang berjalan.
+
+**Pilihan B — Biarkan, karena semuanya data dummy.**
+Boleh saja, tetapi tumpukannya akan terus tumbuh tiap kali pengujian
+dijalankan, dan cacat "terpotong diam-diam" akan muncul lagi di tempat yang
+belum saya perbaiki.
+
+**Pilihan C — Bersihkan sekarang DAN perbaiki sebabnya**, yaitu membuat
+pengujian membersihkan buatannya sendiri. Ini yang paling menyelesaikan, tetapi
+menyentuh banyak berkas pengujian sekaligus.
+
+**Kalau Anda diam, yang berlaku adalah B** — tidak ada yang dihapus.
+
+Yang saya sarankan: **A sekarang** (cepat, risikonya kecil, langsung
+mengembalikan basis ke ukuran wajar), lalu **C secara bertahap** — setiap kali
+menyentuh sebuah berkas pengujian, sekalian dirapikan pembersihannya. Menyisir
+seluruh berkas pengujian sekaligus hanya untuk ini bukan pemakaian waktu yang
+sepadan hari ini.
+
+## Catatan jujur
+
+Sebagian pengujian otomasi masih merah, dan sebabnya bercampur dengan hal ini:
+pengujian memilih proyek dengan cara "ambil satu, mana saja" — sehingga kadang
+mendapat proyek milik perusahaan sisa pengujian, dan data yang baru disiapkan
+tak pernah terlihat oleh yang diuji. Itu cacat di pengujiannya, bukan di
+aplikasinya, dan tidak memengaruhi pemakaian nyata.
+
+---
+
 # 🏗️ R-018 · Hitungan baja untuk KANAL & SIKU memakai rumus profil I — sudah diungkapkan, arah perbaikannya milik Anda (2026-08-27)
 
 **Yang perlu Anda putuskan ada di bagian terakhir.** Bagian sebelumnya

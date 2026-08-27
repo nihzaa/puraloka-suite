@@ -32,10 +32,35 @@ export async function fetchRoleStates(roleIdSedangDiubah?: string): Promise<Role
     Baris template tetap dibaca (ia bisa punya pengguna, dan hari ini justru
     dialah yang punya) — yang disaring adalah yang KOSONG dari pengguna.
   */
-  const { data: roles, error: rErr } = await supabase
-    .from('roles')
-    .select('id, name, is_builtin')
-  if (rErr || !roles) throw new Error(`role-guard: gagal baca roles: ${rErr?.message}`)
+  /*
+    ── `roles` JUGA berhalaman (ditemukan 2026-08-27)
+
+    Bacaan ini luput saat `role_permissions` dan `users` diperbaiki 2026-08-14.
+    Waktu itu `roles` masih ratusan baris, jadi batas 1.000 belum menggigit —
+    dan "belum menggigit" terbaca seperti "aman".
+
+    Hari ini `roles` **5.754 baris**: suite test menyemai ulang set peran
+    bawaan tiap kali berjalan tanpa membersihkan yang lama, jadi nama yang sama
+    (`admin`, `pm`, `mandor`) ada ribuan kali. PostgREST memulangkan 1.000,
+    4.754 sisanya TAK PERNAH TERBACA — tanpa galat, tanpa penanda.
+
+    Akibatnya persis kebalikan dari yang dijaga, sama seperti 2026-08-14:
+    peran yang benar-benar dipegang orang bisa berada di luar potongan, dan
+    penjaga anti-lockout menghitung penyelamat yang tak ia lihat.
+  */
+  const HALAMAN = 1000
+  const roles: { id: string; name: string; is_builtin: boolean }[] = []
+  for (let dari = 0; ; dari += HALAMAN) {
+    const { data, error: rErr } = await supabase
+      .from('roles')
+      .select('id, name, is_builtin')
+      .order('id', { ascending: true })
+      .range(dari, dari + HALAMAN - 1)
+    if (rErr) throw new Error(`role-guard: gagal baca roles: ${rErr.message}`)
+    if (!data || data.length === 0) break
+    roles.push(...(data as { id: string; name: string; is_builtin: boolean }[]))
+    if (data.length < HALAMAN) break
+  }
 
   /*
     ── BATAS BARIS PostgREST MEMATIKAN PENJAGA INI (ditemukan 2026-08-14)
@@ -64,7 +89,6 @@ export async function fetchRoleStates(roleIdSedangDiubah?: string): Promise<Role
     permintaan memulangkan seluruh tabel — asumsi itulah yang tak berbunyi saat
     salah.
   */
-  const HALAMAN = 1000
   const rp: { role_id: string; permissions: unknown }[] = []
   for (let dari = 0; ; dari += HALAMAN) {
     const { data, error: rpErr } = await supabase

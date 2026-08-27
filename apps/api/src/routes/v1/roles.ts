@@ -41,15 +41,44 @@ export default async function rolesRoutes(app: FastifyInstance) {
     // Bukan cuma berisik — dua baris bernama "admin" berarti admin harus
     // menebak yang mana yang ia sunting, dan menyunting yang salah (template)
     // mengubah cetakan untuk SELURUH tenant.
-    const { data: roles, error } = await request.db!
-      .from('roles')
-      .select(`
-        id, company_id, name, label, description, is_builtin, portal, color, sort_order, created_at,
-        role_permissions(count)
-      `)
-      .order('sort_order')
+    /*
+      BERHALAMAN — meski hari ini hasilnya kecil.
 
-    if (error) return reply.status(500).send({ error: error.message })
+      `request.db` menyaring "template (NULL) ATAU milik company ini", jadi
+      yang terkirim hanya 42 baris (diukur 2026-08-27: 21 milik tenant + 21
+      template) — jauh di bawah batas 1.000 PostgREST.
+
+      Tetapi TABELNYA sendiri sudah 5.754 baris, dan ambang itu bergerak
+      bersama jumlah tenant, bukan bersama ukuran satu tenant. Yang dihapus di
+      sini adalah ASUMSI bahwa satu permintaan memulangkan seluruh hasil —
+      asumsi yang tak berbunyi saat salah, dan yang persis melewatkan cacat
+      ini di `role-guard.ts` selama dua minggu ("belum menggigit" terbaca
+      seperti "aman").
+    */
+    const HALAMAN = 1000
+    /*
+      Tipe ditulis untuk medan yang BENAR-BENAR dipakai di bawah (`name`,
+      `company_id`), bukan `Record<string, unknown>` — yang longgar itu
+      memaksa `as` di tiap pemakaian dan menghilangkan justru pemeriksaan
+      yang berguna.
+    */
+    type BarisRole = { name: string; company_id: string | null; [k: string]: unknown }
+    const roles: BarisRole[] = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const { data, error } = await request.db!
+        .from('roles')
+        .select(`
+          id, company_id, name, label, description, is_builtin, portal, color, sort_order, created_at,
+          role_permissions(count)
+        `)
+        .order('sort_order')
+        .range(dari, dari + HALAMAN - 1)
+
+      if (error) return reply.status(500).send({ error: error.message })
+      if (!data || data.length === 0) break
+      roles.push(...(data as unknown as BarisRole[]))
+      if (data.length < HALAMAN) break
+    }
 
     /*
       SATU BARIS PER NAMA — salinan tenant menang atas template.

@@ -58,14 +58,46 @@ import { createRequire } from 'node:module'
 import { globSync } from 'node:fs'
 
 const AKAR_API = join(dirname(fileURLToPath(import.meta.url)), '..')
+const requireDari = createRequire(join(AKAR_API, 'package.json'))
+
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  `.env` DIMUAT SENDIRI — dan kenapa itu bukan kenyamanan, melainkan syarat
+  ══════════════════════════════════════════════════════════════════════════
+
+  Sampai 2026-08-27 penjaga ini TIDAK memuat `.env`. `DATABASE_URL` ADA di
+  `apps/api/.env`, tetapi tak pernah masuk ke `process.env` — jadi tiap kali
+  ia dijalankan (termasuk lewat `jalankan-semua-penjaga.mjs`) ia mencetak
+  "DILEWATI" lalu keluar dengan exit 0.
+
+  Hijau karena tak memeriksa apa pun. Dan yang lolos di baliknya bukan
+  kemungkinan teoretis: begitu env-nya dimuat, ia langsung MERAH —
+  `roles` 5.754 baris, PostgREST memulangkan 1.000, 4.754 tak pernah terbaca.
+
+  Akibatnya nyata sampai ke pengguna: penerima notifikasi dicari lewat
+  `role_permissions`, daftarnya terpotong di 1.000, dan peran yang benar-benar
+  dipakai orang (`mandor`, `pm`, `admin`) berada DI LUAR potongan. Notifikasi
+  `stok_menipis` tak pernah punya penerima — tanpa satu pun galat.
+
+  Pelajaran yang sama dengan `audit-ekspor-tanpa-pemanggil`: penjaga yang
+  hijau karena tak membaca apa pun lebih buruk daripada tak ada, karena ia
+  menempati baris di daftar CI dan membuat orang mengira kelasnya terjaga.
+*/
+try {
+  requireDari('dotenv').config({ path: join(AKAR_API, '.env') })
+} catch { /* di CI env datang dari luar; ketiadaan dotenv bukan galat */ }
 
 const DB = process.env.DATABASE_URL || process.env.DIRECT_URL
 if (!DB) {
-  console.log('  ⏭  baca tak terpotong: DILEWATI (tak ada DATABASE_URL)')
+  /*
+    Tetap boleh dilewati — di sebagian lingkungan basis memang tak tersedia.
+    Tetapi pesannya sekarang menyebut ke mana ia sudah mencari, supaya
+    "DILEWATI" tak terbaca sebagai "tak ada yang perlu diperiksa".
+  */
+  console.log('  ⏭  baca tak terpotong: DILEWATI — DATABASE_URL/DIRECT_URL tak ada')
+  console.log(`     (sudah dicoba dari ${join(AKAR_API, '.env')})`)
   process.exit(0)
 }
-
-const requireDari = createRequire(join(AKAR_API, 'package.json'))
 let pg = null
 try { pg = requireDari('pg') } catch { /* dilaporkan di bawah */ }
 if (!pg) {
