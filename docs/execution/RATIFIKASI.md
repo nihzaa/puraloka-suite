@@ -6,6 +6,103 @@ bawah entrinya.
 
 ---
 
+# 🏗️ R-018 · Hitungan baja untuk KANAL & SIKU memakai rumus profil I — sudah diungkapkan, arah perbaikannya milik Anda (2026-08-27)
+
+**Yang perlu Anda putuskan ada di bagian terakhir.** Bagian sebelumnya
+menjelaskan apa yang saya temukan dan apa yang sudah saya kerjakan.
+
+## Yang ditemukan
+
+Modul analisa baja memakai rumus **profil I** (WF/H) untuk **semua** bentuk
+penampang — termasuk kanal (CNP) dan siku (L), yang bentuknya berbeda dan
+berperilaku berbeda saat dibebani.
+
+Ini bukan taksiran. Tiga profil dengan dimensi **sama persis**, hanya jenisnya
+yang beda, dijalankan lewat rumusnya:
+
+| Profil | Hasil kapasitas lentur |
+|---|---|
+| WF (memang untuk rumus ini) | 20.005036533333172 kNm |
+| CNP (kanal) | 20.005036533333172 kNm |
+| L (siku) | 20.005036533333172 kNm |
+
+**Identik sampai digit terakhir** — artinya bentuk penampangnya tak
+berpengaruh sama sekali pada hitungan, padahal seharusnya sangat berpengaruh.
+
+Kenapa itu masalah, dengan bahasa yang tak teknis:
+
+- **Kanal C** bersayap hanya di satu sisi. Saat dibebani ia tidak hanya melendut
+  ke bawah, tetapi juga **memuntir**. Rumus profil I tak punya perhitungan untuk
+  puntiran itu.
+- **Siku** punya sumbu kuat yang **miring**, bukan tegak-datar seperti WF.
+
+Catatan di dalam kode modul itu sendiri sudah menyebut akibatnya: kapasitas
+yang dihasilkan **20–40% lebih besar** daripada yang sebenarnya.
+
+⚠ **Arah kesalahannya ke sisi yang tidak aman** — hitungan mengatakan batang
+lebih kuat daripada kenyataannya, bukan sebaliknya. Dan hasilnya mencantumkan
+rujukan **"SNI 1729 §F2"**, sehingga di layar ia tampak seperti angka resmi.
+
+## Yang SUDAH saya kerjakan (tak perlu keputusan Anda)
+
+**1. Balok & kolom baja — sekarang DITOLAK.**
+Modul `analisaBalokBaja` dan `analisaKolomBaja` memang hanya dirancang untuk
+WF/H; fungsi penolaknya sudah ada di kode sejak awal tetapi **tak pernah
+dipanggil**. Sekarang dipanggil. Kanal dan siku ditolak dengan pesan yang
+menjelaskan alasannya, dan menyebutkan bahwa **berat & volume tetap sah untuk
+RAB** — yang gugur hanya pemeriksaan kekuatannya.
+
+**2. Gording, bracing, batang rangka — DIBERI PERINGATAN, tidak ditolak.**
+Berbeda dari balok/kolom: keempat modul ini memang **dirancang untuk kanal dan
+siku**, karena itulah yang dipakai di lapangan (gording pakai CNP, bracing dan
+diagonal rangka pakai siku). Berat, volume, dan potong-batang standar 6 m
+semuanya sudah benar.
+
+Saya sempat memasang penolakan di sini juga, lalu **mencabutnya pada hari yang
+sama**: ia merahkan 33 pengujian yang sah dan mematikan perhitungan volume yang
+sudah benar — obat yang lebih merusak dari penyakitnya.
+
+Gantinya, tiap hasil hitungan untuk kanal/siku kini membawa peringatan yang
+menyebut: bagian mana yang tak bisa dipercaya, **ke arah mana** salahnya
+(terlalu besar), dan bagian mana yang tetap sah.
+
+## Yang perlu diputuskan founder
+
+Rumus yang benar untuk kanal dan siku belum ditulis. Menulisnya bukan pekerjaan
+kecil dan **arahnya keputusan Anda**, bukan saya:
+
+**Pilihan A — Tulis rumusnya (SNI 1729 lengkap).**
+Kanal: tekuk torsi-lentur. Siku: sumbu utama miring + *shear lag* pada sambungan
+satu kaki. Hasilnya: aplikasi menghitung gording dan bracing dengan benar tanpa
+perlu perencana luar.
+
+**Pilihan B — Biarkan peringatan sebagai jawaban akhir.**
+Aplikasi tetap memberi angka untuk perbandingan cepat, dan hitungan resminya
+diserahkan ke perencana. Tak ada pekerjaan tambahan.
+
+**Pilihan C — Tolak sepenuhnya seperti balok/kolom.**
+Paling aman, tetapi menutup pemakaian yang paling lazim (gording CNP), dan
+mematikan perhitungan volume yang sudah benar.
+
+**Kalau Anda diam, yang berlaku adalah B** — keadaan hari ini: angka tetap
+keluar, peringatannya menempel, tak ada yang tersembunyi.
+
+Yang saya sarankan: **B untuk sekarang**, dan A hanya bila nanti ada permintaan
+nyata menghitung gording/bracing sebagai dasar pelaksanaan — bukan sebagai
+perbandingan. Menulis rumus SNI lengkap untuk dua bentuk penampang adalah
+pekerjaan berhari-hari, dan hari ini belum ada yang memakainya untuk itu.
+
+## Bukti
+
+    npx vitest run struktur-baja  →  6 berkas, 194 lulus, 0 gagal
+    npx tsc --noEmit              →  exit 0
+
+Penolakan dan peringatan keduanya **dibuktikan bisa merah** lewat mutasi
+sengaja (panggilan dicabut → merah; peringatan dimatikan → 9 merah;
+perbandingan dibuat peka huruf → merah). Dipulihkan → hijau.
+
+---
+
 # ✅ R-017 · Dua keputusan Anda SUDAH TURUN — dan keduanya lebih baik dari usulan saya (2026-08-19)
 
 > **Status: DIJAWAB.** Entri ini semula dua pertanyaan. Founder menjawab

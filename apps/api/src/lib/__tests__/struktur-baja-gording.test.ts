@@ -285,3 +285,99 @@ describe('volume — bentuknya sama dengan modul lain', () => {
     expect(g.volume.besi[0].jumlahBatang).toBe(1)
   })
 })
+
+
+describe('profil pinjaman rumus DIUNGKAPKAN, bukan didiamkan', () => {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KENAPA BLOK INI ADA
+    ══════════════════════════════════════════════════════════════════════════
+
+    Modul ini memang DIRANCANG untuk kanal dan siku — `CNP 150x65x20x3.2` dan
+    `L 70x70x7` adalah data ujinya, karena itulah profil yang dipakai di
+    lapangan untuk gording dan bracing. Berat, volume, dan potong-batang
+    semuanya sudah benar untuk keduanya.
+
+    Yang DIPINJAM hanya rumus kekuatannya. `inersiaY()` di modul ini adalah
+    rumus profil I bersayap DUA sisi; kanal bersayap satu sisi, dan siku punya
+    sumbu utama yang MIRING. Diukur 2026-08-27 — WF, CNP, dan siku berdimensi
+    sama menghasilkan angka IDENTIK sampai digit terakhir:
+
+        gording   rasio interaksi  0.4155385014771352
+        interaksi rasio            3.4835937579027876
+
+    `pastikanProfilDidukung` sempat dipasang di sini dan DICABUT pada hari yang
+    sama: ia merahkan 15 test yang sah dan mematikan volume yang benar — obat
+    yang lebih merusak dari penyakit. Gantinya peringatan pada HASIL, tempat ia
+    terbaca oleh yang memakai angkanya.
+
+    Test ini yang menahan supaya peringatan itu tak hilang diam-diam — persis
+    kelas cacat yang menghasilkan seluruh temuan hari itu: sesuatu yang ada di
+    kode, terbaca benar, dan tak pernah dijalankan.
+  */
+
+  const mk = (jenis: string): ProfilBaja => ({
+    designation: `${jenis} uji`, profile_type: jenis,
+    hMm: 150, bMm: 75, t1Mm: 5, t2Mm: 7,
+    beratKgPerM: 14, panjangStandarM: 6,
+  })
+
+  const gording = (p: ProfilBaja) => analisaGording({
+    profil: p, mutu: BJ37, bentangM: 4, kemiringanDerajat: 15,
+    bebanVertikalKnPerM: 2, bebanLayanKnPerM: 1.5,
+  })
+  const interaksi = (p: ProfilBaja) => analisaInteraksiTekanMomen({
+    profil: p, mutu: BJ37, panjangM: 3, puKn: 100, muxKnm: 10, muyKnm: 2,
+  })
+  const bracing = (p: ProfilBaja) => analisaBracing({
+    profil: p, mutu: BJ37, panjangM: 4, gayaKn: 80,
+  })
+
+  const peringatan = (h: { catatan?: string[] }) =>
+    (h.catatan ?? []).filter((c) => /rumus profil I|kelangsingan profil I/.test(c))
+
+  it.each(['CNP', 'C', 'INP', 'L'])('gording profil %s diberi peringatan', (j) => {
+    expect(peringatan(gording(mk(j)))).toHaveLength(1)
+  })
+
+  it.each(['CNP', 'L'])('interaksi & bracing profil %s diberi peringatan', (j) => {
+    expect(peringatan(interaksi(mk(j)))).toHaveLength(1)
+    expect(peringatan(bracing(mk(j)))).toHaveLength(1)
+  })
+
+  it.each(['WF', 'H'])('profil %s TIDAK diberi peringatan — rumusnya memang untuknya', (j) => {
+    expect(peringatan(gording(mk(j)))).toHaveLength(0)
+    expect(peringatan(interaksi(mk(j)))).toHaveLength(0)
+    expect(peringatan(bracing(mk(j)))).toHaveLength(0)
+  })
+
+  it('huruf kecil ikut terdeteksi — data profil datang dari tabel', () => {
+    /*
+      `steel_profiles` bisa memuat `cnp` huruf kecil. Perbandingan peka huruf
+      akan melewatkannya DIAM-DIAM, dan diam adalah bentuk kegagalan yang
+      persis hendak ditutup di sini.
+    */
+    expect(peringatan(gording(mk('cnp')))).toHaveLength(1)
+    expect(peringatan(gording(mk('wf')))).toHaveLength(0)
+  })
+
+  it('peringatannya MENYEBUT apa yang masih sah — bukan sekadar melarang', () => {
+    /*
+      Peringatan yang cuma bilang "angka ini salah" membuat orang membuang
+      seluruh hasilnya, termasuk berat & volume yang benar dan sudah masuk RAB.
+    */
+    const c = peringatan(gording(mk('CNP')))[0]
+    expect(c).toMatch(/Berat, volume/)
+    expect(c).toMatch(/perencana/)
+  })
+
+  it('menyebut ARAH kesalahannya — terlalu besar, bukan sekadar "berbeda"', () => {
+    /*
+      Arahnya yang menentukan tindakan. Kapasitas yang terlalu BESAR berarti
+      hasilnya tak aman; yang terlalu kecil hanya boros. Peringatan yang tak
+      menyebut arah membiarkan pembacanya menebak.
+    */
+    expect(peringatan(interaksi(mk('CNP')))[0]).toMatch(/terlalu besar/i)
+    expect(peringatan(bracing(mk('L')))[0]).toMatch(/terlalu besar/i)
+  })
+})

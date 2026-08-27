@@ -41,6 +41,7 @@
 import type { Periksa, VolumeElemen } from './struktur-beton'
 import {
   luasPenampang, radiusGirasiY, kapasitasTekan, klasifikasiPenampang,
+  pastikanProfilDidukung,
   PHI, type ProfilBaja, type MutuBaja,
 } from './struktur-baja'
 
@@ -175,9 +176,51 @@ export function kapasitasTarik(
 export function analisaBatangRangka(
   b: BatangRangka, mutu: MutuBaja,
 ): HasilBatangRangka {
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KENAPA `pastikanProfilDidukung` TIDAK dipanggil di sini — dan apa gantinya
+    ══════════════════════════════════════════════════════════════════════════
+
+    Sempat dipasang 2026-08-27, lalu DICABUT pada hari yang sama setelah diukur:
+    ia merahkan 33 test yang sah. Sebabnya modul ini memang DIRANCANG untuk
+    siku — `L 70x70x7` adalah data ujinya, karena siku profil paling lazim
+    untuk batang diagonal rangka — dan bagian yang menanganinya sudah benar:
+    berat per meter dari tabel, volume, dan potong-batang standar 6 m.
+
+    Yang meminjam rumus profil I hanya bagian KEKUATAN TEKAN: `radiusGirasiY`
+    memakai Iy profil I, sementara siku menekuk terhadap sumbu utama yang
+    MIRING (dan bisa tekuk torsi-lentur). Pagar total mematikan volume & tarik
+    yang sah demi menahan satu bagian — obat yang lebih merusak dari penyakit.
+
+    Karena itu peringatannya ditempel pada hasilnya (`catatan`), tempat ia
+    terbaca oleh yang memakai angkanya, bukan lemparan yang menutup modul.
+
+    ⚠ Ini bukan perbaikan, melainkan pengungkapan. Rumus siku yang benar
+    (sumbu utama miring + shear lag pada sambungan satu kaki, SNI 1729)
+    tercatat sebagai keputusan terbuka di `RATIFIKASI.md` (R-018) — arah teknisnya
+    milik founder, bukan saya.
+  */
+  const jenisProfil = (b.profil.profile_type || '').toUpperCase()
+  const pinjamRumusI = !['WF', 'H'].includes(jenisProfil)
   bilanganPositif(`Panjang batang ${b.nama}`, b.panjangM)
 
   const catatan: string[] = []
+
+  /*
+    Peringatan ditempel pada TIAP hasil yang memakai rumus pinjaman — bukan
+    sekali di dokumentasi. Yang membaca angka kapasitas tekan di layar tak
+    pernah membuka berkas ini.
+  */
+  if (pinjamRumusI) {
+    catatan.push(
+      `Batang ${b.nama} berprofil ${b.profil.profile_type} memakai rumus `
+      + 'kelangsingan profil I. Untuk siku (sumbu utama MIRING) dan kanal, '
+      + 'kapasitas TEKAN yang dihasilkan TERLALU BESAR — periksakan ke '
+      + 'perencana sebelum dipakai sebagai dasar. Berat, volume, dan '
+      + 'kapasitas TARIK tetap sah.',
+    )
+  }
+
   const k = b.faktorK ?? 1.0
   const ry = radiusGirasiY(b.profil)
   const kelangsingan = (k * b.panjangM * 1000) / ry

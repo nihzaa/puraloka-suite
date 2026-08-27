@@ -132,6 +132,35 @@ export function analisaGording(input: InputGording): HasilGording {
     profil, mutu, bentangM, kemiringanDerajat,
     bebanVertikalKnPerM, bebanLayanKnPerM,
   } = input
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    KENAPA TIDAK DITOLAK, PADAHAL RUMUSNYA DIPINJAM
+    ══════════════════════════════════════════════════════════════════════════
+
+    `pastikanProfilDidukung` sempat dipasang di sini 2026-08-27 dan DICABUT
+    pada hari yang sama: ia merahkan 15 test yang sah. Modul ini memang
+    DIRANCANG untuk kanal — `CNP 150x65x20x3.2` adalah data ujinya, karena
+    gording di lapangan justru paling sering memakai kanal.
+
+    Yang dipinjam hanya RUMUSNYA. `inersiaY()` di berkas ini adalah rumus
+    profil I bersayap DUA sisi:
+
+        2 * tf * b^3 / 12  +  hDalam * tw^3 / 12
+
+    Kanal C bersayap satu sisi, dan sumbu lemah justru yang MENENTUKAN pada
+    gording (lihat catatan `inersiaY`). Diukur sebelum penanda ini: WF, CNP,
+    dan siku berdimensi sama menghasilkan rasio IDENTIK 0.4155385014771352.
+
+    Menolaknya akan mematikan berat, volume, dan potong-batang yang semuanya
+    sudah benar untuk kanal — obat yang lebih merusak dari penyakit. Jadi
+    peringatannya ditempel pada HASIL, tempat ia terbaca oleh yang memakai
+    angkanya, bukan lemparan yang menutup modul.
+
+    ⚠ Ini pengungkapan, bukan perbaikan. Rumus kanal yang benar tercatat
+    sebagai keputusan terbuka di `RATIFIKASI.md` (R-018) — arah teknisnya milik
+    founder.
+  */
+  const pinjamRumusI = !['WF', 'H'].includes((profil.profile_type || '').toUpperCase())
   bilanganPositif('Bentang gording', bentangM)
   bilanganPositif('Beban vertikal', bebanVertikalKnPerM)
   if (kemiringanDerajat < 0 || kemiringanDerajat >= 90) {
@@ -141,6 +170,20 @@ export function analisaGording(input: InputGording): HasilGording {
   const jumlah = input.jumlah ?? 1
   const batas = input.batasLendutan ?? 240
   const catatan: string[] = []
+
+  /*
+    Peringatan ditempel pada TIAP hasil yang memakai rumus pinjaman —
+    bukan sekali di dokumentasi. Yang membaca angkanya di layar tak
+    pernah membuka berkas ini.
+  */
+  if (pinjamRumusI) {
+    catatan.push(
+      `Gording profil ${profil.profile_type} memakai rumus profil I bersayap dua `
+      + 'sisi. Untuk kanal, kekakuan sumbu LEMAH — yang justru menentukan pada '
+      + 'gording — jadi terlalu besar. Periksakan ke perencana sebelum dipakai '
+      + 'sebagai dasar. Berat, volume, dan potong-batang tetap sah.',
+    )
+  }
 
   const theta = (kemiringanDerajat * Math.PI) / 180
   const angin = input.bebanAnginKnPerM ?? 0
@@ -322,12 +365,33 @@ export interface InputInteraksi {
  */
 export function analisaInteraksiTekanMomen(input: InputInteraksi): HasilGording {
   const { profil, mutu, panjangM, puKn, muxKnm } = input
+  /*
+    Sama seperti `analisaGording` — `kapasitasLentur`, `kapasitasTekan`, dan
+    `modulusElastisY` semuanya rumus profil I. Diukur 2026-08-27: WF, CNP, dan
+    siku berdimensi sama menghasilkan rasio interaksi IDENTIK
+    3.4835937579027876.
+  */
+  const pinjamRumusI = !['WF', 'H'].includes((profil.profile_type || '').toUpperCase())
   bilanganPositif('Panjang batang', panjangM)
 
   const k = input.faktorK ?? 1.0
   const muy = input.muyKnm ?? 0
   const lb = input.jarakPengakuM ?? panjangM
   const catatan: string[] = []
+
+  /*
+    Peringatan ditempel pada TIAP hasil yang memakai rumus pinjaman —
+    bukan sekali di dokumentasi. Yang membaca angkanya di layar tak
+    pernah membuka berkas ini.
+  */
+  if (pinjamRumusI) {
+    catatan.push(
+      `Batang profil ${profil.profile_type} memakai rumus kelangsingan profil I. `
+      + 'Kanal dan siku bisa tekuk TORSI-LENTUR, ragam yang rumus ini tak '
+      + 'punya sukunya — kapasitas tekan yang dihasilkan terlalu besar. '
+      + 'Periksakan ke perencana sebelum dipakai sebagai dasar.',
+    )
+  }
 
   const tekan = kapasitasTekan(profil, mutu, panjangM, k)
   const phiPn = PHI.tekan * tekan.pnKn
@@ -419,9 +483,35 @@ export interface InputBracing {
  */
 export function analisaBracing(input: InputBracing): HasilGording {
   const { profil, mutu, panjangM, gayaKn } = input
+  /*
+    `luasPenampang` dan `kapasitasTekan` keduanya rumus profil I — dan bracing
+    justru sering memakai siku (data uji modul ini `L 70x70x7`).
+
+    Untuk siku ada kekeliruan KEDUA: kapasitas tariknya dihitung `Fy x Ag`
+    penuh, padahal siku yang disambung lewat SATU kakinya mengalami
+    keterlambatan geser (shear lag) — SNI 1729 menuntut `Ae = U x An` dengan
+    U < 1. Menghitungnya sebagai Ag penuh melebihkan kapasitas tarik justru
+    pada pemakaian yang paling lazim. Keduanya masuk peringatan di bawah.
+  */
+  const pinjamRumusI = !['WF', 'H'].includes((profil.profile_type || '').toUpperCase())
   bilanganPositif('Panjang bracing', panjangM)
 
   const catatan: string[] = []
+
+  /*
+    Peringatan ditempel pada TIAP hasil yang memakai rumus pinjaman —
+    bukan sekali di dokumentasi. Yang membaca angkanya di layar tak
+    pernah membuka berkas ini.
+  */
+  if (pinjamRumusI) {
+    catatan.push(
+      `Bracing profil ${profil.profile_type} memakai rumus profil I. Untuk `
+      + 'siku, kapasitas TEKAN terlalu besar (sumbu utama miring), dan '
+      + 'kapasitas TARIK dihitung Fy x Ag penuh tanpa faktor shear lag '
+      + '(SNI 1729 menuntut Ae = U x An untuk sambungan satu kaki). '
+      + 'Periksakan ke perencana sebelum dipakai sebagai dasar.',
+    )
+  }
   const tarikSaja = input.tarikSaja ?? false
   const arah = gayaKn >= 0 ? 'tarik' : 'tekan'
   const besar = Math.abs(gayaKn)

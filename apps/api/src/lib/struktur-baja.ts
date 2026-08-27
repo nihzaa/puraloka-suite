@@ -185,8 +185,24 @@ export const ALASAN_TAK_DIDUKUNG: Record<string, string> = {
 /**
  * Pastikan profil boleh dihitung rumus di berkas ini.
  *
- * Dipanggil di awal tiap fungsi analisa. Melempar, bukan memulangkan
- * peringatan — lihat alasannya di `PROFIL_DIDUKUNG`.
+ * Dipanggil di awal `analisaBalokBaja` dan `analisaKolomBaja` — dua pintu
+ * masuk dari rute. Melempar, bukan memulangkan peringatan; alasannya di
+ * `PROFIL_DIDUKUNG`.
+ *
+ * ⚠ Kalimat pertama di atas dulu berbunyi "Dipanggil di awal tiap fungsi
+ * analisa" dan **keliru sejak modul ini dibuat**: nol pemanggil sampai
+ * 2026-08-27. Akibatnya kanal dan siku dihitung dengan rumus profil I —
+ * verdict identik dengan WF sampai digit terakhir, kapasitas 20-40% terlalu
+ * besar, salah ke arah TIDAK AMAN.
+ *
+ * Yang menahan supaya itu tak terulang bukan kalimat ini, melainkan dua hal
+ * yang bisa merah: blok test "profil yang BUKAN profil I ditolak" di
+ * `__tests__/struktur-baja.test.ts` (terbukti merah lewat mutasi dua arah),
+ * dan `scripts/audit-ekspor-tanpa-pemanggil.mjs` yang menolak fungsi
+ * diekspor tanpa pemanggil di seluruh repo.
+ *
+ * Dokumentasi tak bisa menjaga dirinya sendiri. Kalau menambah fungsi analisa
+ * baru di berkas ini, panggil ini di barisnya yang pertama.
  */
 export function pastikanProfilDidukung(p: ProfilBaja): void {
   const jenis = (p.profile_type || '').toUpperCase()
