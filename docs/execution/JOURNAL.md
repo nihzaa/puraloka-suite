@@ -29431,3 +29431,81 @@ Tak satu pun terlihat typecheck maupun penjaga.
 Tahap 5, 6, 7 masih *"Belum di-breakdown"*: Mutu/K3, Risiko, Dokumen,
 Kepatuhan, SDM, Klien, Tender, Sistem, Users/Roles, Audit. Masing-masing
 perlu riset breakdown lebih dulu, pola sama Task 22/23.
+
+## 2026-08-27 (lanjutan 5) — Tahap 5-7 SELESAI + lapis kerajinan visual
+
+Portal Admin/Direktur **Tahap 0-7 TUNTAS**: 24 → 34 halaman.
+Tahap 5 (Mutu/K3/Dokumen), 6 (Tender & Klien), 7 (Pengguna/Peran/Audit).
+
+### Pola yang terbukti: riset ke KODE sebelum menulis breakdown
+
+Tiap tahap: riset endpoint & izin ke `routes/v1/` → tulis breakdown ke plan →
+tipe → halaman → navigasi → tsc → token CSS diadu globals.css → RENDER dan
+LIHAT → axe → penjaga diadu baseline.
+
+**Yang ditangkap pola ini — semuanya SEBELUM jadi kode:**
+
+| Dugaan | Kenyataan |
+|---|---|
+| grup `g-mutu` | `g-qaqc`; `g-mutu` tak pernah ada |
+| `risiko.ts`/`mitigasi.ts` | rutenya di `jadwal.ts` |
+| `temuan-audit.ts` | di `audit-mutu.ts` |
+| K3 tanpa izin | pakai `k3:inspeksi:view` dkk |
+| key `sy-audit` tak ada | ADA, di grup yang sudah aktif |
+| `role_permissions(count)` perlu diratakan | server SUDAH meratakan |
+| `nilai_buku` sudah terformat | `toFixed(2)` — angka MENTAH |
+
+Tujuh dugaan salah. Kalau ditebak dari nama, ketujuhnya jadi cacat senyap.
+
+### Tahap 6 mengubah rancangannya sendiri
+
+Diukur: Tahap 6 TIDAK punya endpoint ikhtisar (beda dari Tahap 4/5), dan
+sebagian besar rute SDM bersifat PER-PEGAWAI (`/sdm/pegawai/:id/*`).
+Halaman "SDM company-wide" TAK BISA dibangun tanpa daftar pegawai, dan
+daftar itu ada di Tahap 7.
+
+Jadi Tahap 6 dibatasi ke Klien + Tender. Menyeretnya masuk akan melahirkan
+halaman yang memanggil `/pegawai/:id/*` tanpa sumber id — kelas "rute hantu".
+
+### Lapis kerajinan visual (arah founder: "presisi senyap")
+
+Detektor mekanis skill desain: **0 temuan**. Itu justru menegaskan kenapa
+pekerjaan ini perlu — tidak melanggar aturan BUKAN berarti terasa mahal.
+
+**Tiga cacat yang saya ulang di 12 halaman:**
+
+1. Kartu rata — `border 1px` tanpa elevasi, padahal `--naik-1/2/3` ada
+   sejak lama.
+2. Nol gerak — `--gerak-kurva` ada, tak pernah dipakai.
+3. Permukaan peramban tak bertema — `::selection`, `caret-color`,
+   `text-underline-offset` NOL di seluruh globals.css.
+
+**Masalah struktural, diukur:** skala tipografi 11·12·13·20·22·24 — empat
+berdesakan di bawah, tiga nyaris sama di atas. Tak ada yang memimpin.
+Padahal skala benar SUDAH ADA (`--t-mikro/kecil/data/badan/sedang/judul/
+halaman/angka`). Saya memaku angka sendiri — kelas yang sama dengan token
+CSS yang saya karang di Tahap 5.
+
+Angka pemimpin dikeluarkan DARI kartu: 35px vs 13px = rasio 2,70x.
+
+### ⚠ Cacat mode gelap — tertangkap PENGUKURAN, bukan potret
+
+Aturan saya memakai `[data-theme="dark"]`; repo ini memakai KELAS `.dark`.
+Angka pemimpin tetap navy pekat di latar gelap: kontras **1,50:1**.
+Sesudah diperbaiki: **9,48:1**.
+
+tsc bersih, penjaga hijau, dan POTRET pun tak menunjukkannya (emulateMedia
+tak menyentuh kelas). Hanya membaca warna terhitung yang menangkapnya.
+
+### ⚠ Satu pendekatan penyebaran DIBATALKAN
+
+Rencana pertama: skrip mengganti `<div style={kartu}>` jadi `<Kartu>` di 30
+berkas, lalu andalkan tsc menunjukkan penutup mana yang perlu disesuaikan.
+Dibatalkan — merusak 30 berkas sekaligus dan menyerahkan perbaikan pada
+tebakan. Diganti: ubah NILAI gaya saja, struktur JSX tak tersentuh.
+
+### Sisa
+
+pm-portal (1852 ukuran dipaku) & mandor-portal (361) belum disentuh lapis
+visual ini. Master Data & konfigurasi sengaja tak dibangun di admin-portal —
+CRUD katalog lebar bukan pekerjaan layar 390px.
