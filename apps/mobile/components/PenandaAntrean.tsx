@@ -19,10 +19,34 @@
  * Mandor tak seharusnya perlu tahu bahwa ada antrean. Ia menekan simpan,
  * aplikasinya mengurus sisanya. Tombol hanya disediakan untuk yang sudah
  * berkali-kali gagal — di situ, keputusannya memang milik manusia.
+ *
+ * ── Kenapa ada jalur BUANG, dan kenapa hanya untuk yang macet
+ *
+ * `hapusDariAntrean()` ada sejak antrean dibangun dan sampai kini TAK PUNYA
+ * SATU PUN PEMANGGIL. Akibatnya kiriman yang ditolak server secara permanen
+ * — muatan salah bentuk, proyek yang sudah dihapus, sesi yang sudah dicabut
+ * — terkunci di penyimpanan SELAMANYA, lengkap dengan foto salinan yang
+ * ikut menahan ruang HP.
+ *
+ * Lebih buruk dari sekadar sampah: penanda ini lalu tak pernah hilang dari
+ * layar, dan penanda yang selalu menyala berhenti berarti apa-apa. Mandor
+ * mengabaikannya — termasuk saat isinya kiriman BARU yang benar-benar
+ * tertahan sinyal.
+ *
+ * Buang hanya ditawarkan untuk yang `perluPerhatian()`. Kiriman yang masih
+ * menunggu sinyal TIDAK boleh punya tombol buang: ia akan terkirim sendiri,
+ * dan tombol di sebelahnya hanya mengundang orang membuang pekerjaan yang
+ * sebenarnya sehat.
+ *
+ * Konfirmasinya menyebut ISI kirimannya (`ringkas`), bukan "kiriman ini" —
+ * yang menekan harus tahu absensi hari apa yang sedang ia hapus, karena
+ * sesudah dibuang datanya tak bisa dipulihkan dari mana pun.
  */
 import React, { useCallback, useEffect, useState } from 'react'
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import { daftarAntrean, prosesAntrean, perluPerhatian, type Kiriman } from '@/lib/antrean'
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import {
+  daftarAntrean, prosesAntrean, perluPerhatian, hapusDariAntrean, type Kiriman,
+} from '@/lib/antrean'
 
 export function PenandaAntrean() {
   const [isi, setIsi] = useState<Kiriman[]>([])
@@ -40,6 +64,34 @@ export function PenandaAntrean() {
       setSedangKirim(false)
       await segarkan()
     }
+  }, [segarkan])
+
+  /**
+   * Buang kiriman macet — dengan konfirmasi yang menyebut isinya.
+   *
+   * `Alert` bawaan sistem dipakai, bukan modal buatan sendiri: ini keputusan
+   * menghapus data yang tak bisa dipulihkan, dan dialog sistem sudah menahan
+   * sentuhan tak sengaja lebih baik daripada apa pun yang bisa digambar di
+   * dalam kartu sekecil ini.
+   */
+  const buang = useCallback((k: Kiriman) => {
+    Alert.alert(
+      'Buang kiriman ini?',
+      `${k.ringkas}\n\nData ini belum sampai ke server dan TIDAK bisa dipulihkan setelah dibuang. Isi ulang dari awal bila masih dibutuhkan.`,
+      [
+        { text: 'Batal', style: 'cancel' },
+        {
+          text: 'Buang',
+          style: 'destructive',
+          onPress: () => {
+            void (async () => {
+              await hapusDariAntrean(k.id)
+              await segarkan()
+            })()
+          },
+        },
+      ],
+    )
   }, [segarkan])
 
   useEffect(() => {
@@ -70,38 +122,68 @@ export function PenandaAntrean() {
 
   if (isi.length === 0) return null
 
-  const macet = isi.filter(perluPerhatian).length
+  const yangMacet = isi.filter(perluPerhatian)
+  const macet = yangMacet.length
 
   return (
     <View style={[styles.kotak, macet > 0 && styles.kotakMacet]}>
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.judul, macet > 0 && styles.judulMacet]}>
-          {macet > 0
-            ? `${macet} kiriman perlu diperiksa`
-            : `${isi.length} kiriman menunggu sinyal`}
-        </Text>
-        <Text style={styles.rinci} numberOfLines={2}>
-          {macet > 0
-            ? 'Sudah dicoba berkali-kali dan ditolak server. Tunjukkan ke admin.'
-            : isi.map((k) => k.ringkas).join(' · ')}
-        </Text>
+      <View style={styles.baris}>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.judul, macet > 0 && styles.judulMacet]}>
+            {macet > 0
+              ? `${macet} kiriman perlu diperiksa`
+              : `${isi.length} kiriman menunggu sinyal`}
+          </Text>
+          <Text style={styles.rinci} numberOfLines={2}>
+            {macet > 0
+              ? 'Sudah dicoba berkali-kali dan ditolak server. Tunjukkan ke admin, atau buang bila memang tak terpakai.'
+              : isi.map((k) => k.ringkas).join(' · ')}
+          </Text>
+        </View>
+        {sedangKirim ? (
+          <ActivityIndicator size="small" color="#92400E" />
+        ) : (
+          <TouchableOpacity onPress={coba} style={styles.tombol} accessibilityRole="button">
+            <Text style={styles.tombolTeks}>Coba kirim</Text>
+          </TouchableOpacity>
+        )}
       </View>
-      {sedangKirim ? (
-        <ActivityIndicator size="small" color="#92400E" />
-      ) : (
-        <TouchableOpacity onPress={coba} style={styles.tombol} accessibilityRole="button">
-          <Text style={styles.tombolTeks}>Coba kirim</Text>
-        </TouchableOpacity>
-      )}
+
+      {/*
+        Rincian per-kiriman HANYA untuk yang macet. Yang masih menunggu sinyal
+        sengaja tak dirinci di sini: ia akan hilang sendiri, dan daftar yang
+        berubah tiap 30 detik hanya menambah kebisingan.
+      */}
+      {yangMacet.map((k) => (
+        <View key={k.id} style={styles.barisMacet}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.macetRingkas} numberOfLines={1}>{k.ringkas}</Text>
+            {/*
+              Alasan penolakan server ditampilkan APA ADANYA. Menerjemahkannya
+              jadi "terjadi kesalahan" menghapus satu-satunya petunjuk yang
+              bisa dibawa mandor ke admin.
+            */}
+            <Text style={styles.macetGalat} numberOfLines={2}>
+              {k.galatTerakhir ?? 'Ditolak server'} · {k.percobaan}× dicoba
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => buang(k)}
+            style={styles.tombolBuang}
+            accessibilityRole="button"
+            accessibilityLabel={`Buang kiriman ${k.ringkas}`}
+          >
+            <Text style={styles.tombolBuangTeks}>Buang</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   kotak: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    gap: 10,
     backgroundColor: '#FFFBEB',
     borderWidth: 1,
     borderColor: '#FDE68A',
@@ -127,4 +209,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tombolTeks: { fontSize: 12, fontWeight: '600', color: '#92400E' },
+  baris: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  barisMacet: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#FECACA',
+  },
+  macetRingkas: { fontSize: 12, fontWeight: '600', color: '#7F1D1D' },
+  // #B91C1C di atas #FEF2F2 = 6,4:1 — lolos WCAG AA.
+  macetGalat: { fontSize: 11, color: '#B91C1C', marginTop: 1 },
+  tombolBuang: {
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    // 44x44 — WCAG 2.5.5, sama seperti tombol "Coba kirim" di atasnya.
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  tombolBuangTeks: { fontSize: 12, fontWeight: '700', color: '#B91C1C' },
 })
