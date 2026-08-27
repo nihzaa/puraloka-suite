@@ -23,6 +23,7 @@ import { C } from "@/lib/warna-ui";
 import {
   Skeleton, InvoiceRow, CreateInvoiceModal, PayInvoiceModal, unduhInvoicePdf,
 } from "../_bersama/komponen";
+import { Kosong } from "@/components/ui-dasar";
 import type { Invoice } from "../_bersama/tipe";
 import { ModalTagihanCo } from "@/components/tagihan-co";
 
@@ -249,13 +250,31 @@ function InvoicePageInner() {
           ))}
         </div>
       ) : invoices.length === 0 ? (
-        <div style={{ padding: "48px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
-          <Receipt size={36} aria-hidden="true" style={{ color: "var(--border)", marginBottom: 12 }} />
-          <p style={{ fontWeight: 600, color: C.text, marginBottom: 4 }}>
-            {gagal ? "Daftar tak bisa dimuat" : "Tidak ada invoice"}
-          </p>
-          <p>{status !== "all" || cari ? "Coba longgarkan saringannya." : "Buat invoice pertama lewat tombol di atas."}</p>
-        </div>
+        /*
+          `<Kosong>`, bukan digambar sendiri.
+
+          91 halaman lain memakainya; yang digambar sendiri menyimpang cepat
+          atau lambat — padding 48 vs 40, ikon 36 vs 28, judul `<p>` vs `<div>`.
+          Selisih itu tak terlihat sendirian, dan langsung terasa saat berpindah
+          dari halaman berisi ke halaman kosong.
+
+          ⚠ Cabang `gagal` DIPERTAHANKAN. Galat MUAT dan "memang belum ada
+          isinya" adalah dua keadaan berbeda dengan langkah lanjut berbeda:
+          yang satu "coba lagi", yang satu "buat yang pertama". Menyamakannya
+          membuat kegagalan jaringan tampil sebagai kabar baik — persis cacat
+          yang `uji-galat-muat-terpisah.mjs` jaga.
+        */
+        <Kosong
+          ikon={<Receipt size={28} />}
+          judul={gagal ? "Daftar tak bisa dimuat" : "Tidak ada invoice"}
+          sebab={
+            gagal
+              ? "Sambungan ke server terputus saat memuat daftar. Coba muat ulang."
+              : status !== "all" || cari
+                ? "Tidak ada invoice yang cocok dengan saringan ini. Coba longgarkan saringannya."
+                : "Invoice menagihkan progres pekerjaan ke klien. Buat yang pertama lewat tombol di atas."
+          }
+        />
       ) : (
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontVariantNumeric: "tabular-nums" }}>
