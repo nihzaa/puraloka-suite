@@ -303,7 +303,11 @@ export default function AdminGlPage() {
             {(dataAkun?.data ?? []).map((a) => (
               <div key={a.id} style={{
                 display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
-                padding: "10px 12px", background: "var(--surface)", borderRadius: 10, border: "1px solid var(--border)",
+                /* `--pad-kartu-lega` (16px), bukan 12px dipaku: baris ini memuat kode +
+                   nama + saldo dalam satu lebar 390px, dan sisi yang sempit
+                   membuat isinya terlihat menepel ke tepi kartu — keluhan
+                   "mepet" yang dijaga `uji-baris-tak-mepet`. */
+                padding: "10px var(--pad-kartu-lega)", background: "var(--surface)", borderRadius: 10, border: "1px solid var(--border)",
               }}>
                 <div>
                   <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{a.code}</span>

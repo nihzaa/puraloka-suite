@@ -102,9 +102,52 @@ for (const berkas of [
 
   if (rel === PINTU_SAKLAR.replace(/\\/g, '/')) continue
 
+  /*
+    ══════════════════════════════════════════════════════════════════════
+    KOMENTAR DIBUANG SEBELUM DIPINDAI
+    ══════════════════════════════════════════════════════════════════════
+
+    Tanpa ini, kalimat yang MENJELASKAN kenapa checkbox mentah tak dipakai
+    ikut terhitung sebagai pelanggaran:
+
+        // `<Saklar>`, bukan `<input type="checkbox">` mentah — sasaran
+        // sentuhnya 44px (WCAG 2.5.5) …
+
+    Diukur 2026-08-27: dua berkas yang BARU SAJA diperbaiki langsung
+    dilaporkan melanggar, karena catatan perbaikannya menyebut pola
+    terlarang itu sebagai teks. Penjaga yang menghukum dokumentasi
+    perbaikannya sendiri mengajari orang untuk tidak menulis alasan.
+
+    Bentuk cacat yang sama ditemukan hari itu di `uji-endpoint-ada.mjs`
+    (17 laporan palsu, tiga di antaranya dari komentar penjelas).
+
+    Pembuangannya sengaja sederhana: komentar baris, komentar blok, dan
+    komentar JSX. (Contoh sintaksnya sengaja TIDAK ditulis di sini —
+    penutup komentar blok di dalam komentar blok mengakhirinya lebih awal,
+    dan itu persis yang membuat berkas ini gagal di-parse saat catatan ini
+    pertama ditulis.)
+    Baris diganti string kosong, BUKAN dihapus, supaya nomor barisnya tetap
+    menunjuk tempat yang benar.
+  */
   const isi = readFileSync(berkas, 'utf8')
   const baris = isi.split('\n')
-  baris.forEach((b, i) => {
+  let dalamBlok = false
+  const bersih = baris.map((b) => {
+    if (dalamBlok) {
+      if (b.includes('*/')) dalamBlok = false
+      return ''
+    }
+    const buka = Math.max(b.lastIndexOf('{/*'), b.lastIndexOf('/*'))
+    if (buka >= 0 && b.indexOf('*/', buka) === -1) {
+      dalamBlok = true
+      return b.slice(0, buka)
+    }
+    return b
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/.*$/, '$1')
+  })
+  bersih.forEach((b, i) => {
     if (/type=["']radio["']/.test(b)) {
       pelanggaran.push(
         `R-1 ${rel}:${i + 1} memakai <input type="radio"> sendiri — ` +

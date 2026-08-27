@@ -31,6 +31,7 @@ import SegmentedTab from "@/components/portal/SegmentedTab";
 import BottomSheet from "@/components/portal/BottomSheet";
 import StatusBadge, { type VarianStatus } from "@/components/portal/StatusBadge";
 import EmptyState from "@/components/portal/EmptyState";
+import { Saklar } from "@/components/saklar";
 import SkeletonCard from "@/components/portal/SkeletonCard";
 import type { InsidenK3, JsaK3, InspeksiK3, Penugasan, GalatApi } from "../_bersama/tipe";
 import { pesanGalat } from "../_bersama/tipe";
@@ -413,15 +414,17 @@ export default function K3Page() {
             />
           </label>
 
-          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: "var(--text-primary)", minHeight: 44 }}>
-            <input
-              type="checkbox"
-              checked={melukai}
-              onChange={(e) => setMelukai(e.target.checked)}
-              style={{ width: 20, height: 20 }}
-            />
-            Ada korban terluka
-          </label>
+          {/*
+            `<Saklar>` — dan di layar ini taruhannya lebih besar: jawabannya
+            menentukan apakah borang korban muncul. Kontrol sekecil 20px yang
+            salah tersentuh di layar 390px, oleh tangan berdebu di lapangan,
+            mengubah isi laporan insiden.
+          */}
+          <Saklar
+            nyala={melukai}
+            onUbah={setMelukai}
+            label="Ada korban terluka"
+          />
 
           {melukai && (
             <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>

@@ -60,6 +60,7 @@ import { useMemo, useState } from "react";
 import { FileSignature, TriangleAlert, RefreshCw, HandCoins } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
+import { Saklar } from "@/components/saklar";
 import { Kosong, GAYA_KARTU } from "@/components/ui-dasar";
 import { KepalaHalaman, Tabel, type Kolom, Galat, Rangka } from "@/components/dasar";
 
@@ -391,14 +392,16 @@ export default function KontrakSubkonPage() {
           display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center",
           marginBottom: "var(--gap-grid)",
         }}>
-          <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, color: C.mid, cursor: "pointer" }}>
-            <input
-              type="checkbox"
-              checked={hanyaMendahului}
-              onChange={(e) => setHanyaMendahului(e.target.checked)}
-            />
-            Hanya yang uangnya mendahului
-          </label>
+          {/*
+            `<Saklar>`, bukan `<input type="checkbox">` mentah — sasaran
+            sentuhnya 44px (WCAG 2.5.5) dan keadaannya terbaca pembaca layar
+            lewat `role="switch"`. Checkbox mentah di sini hanya ~13px.
+          */}
+          <Saklar
+            nyala={hanyaMendahului}
+            onUbah={setHanyaMendahului}
+            label="Hanya yang uangnya mendahului"
+          />
           <span style={{ fontSize: 12, color: C.muted }}>
             {terlihat.length} dari {kontrak.length} borongan
           </span>

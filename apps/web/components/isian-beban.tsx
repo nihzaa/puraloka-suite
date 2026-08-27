@@ -37,6 +37,7 @@ import { useMemo } from "react";
 import { Weight, Info } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";
+import { PilihanKartu } from "@/components/pilihan-kartu";
 import { Isian, PilihanIsian, KotakIsian } from "@/components/isian";
 
 interface FungsiRuang {
@@ -225,38 +226,45 @@ export function IsianBeban({
         <div style={{ display: "grid", gap: 10 }}>
           {lapisPerKelompok.map(([kelompok, daftar]) => (
             <div key={kelompok}>
-              <div style={{
-                fontSize: "var(--teks-delta)", color: C.mid, fontWeight: 600, marginBottom: 4,
-              }}>{kelompok}</div>
-              <div style={{ display: "grid", gap: 4 }}>
-                {daftar.map((l) => (
-                  <label key={l.kunci} style={{
-                    display: "flex", gap: 8, alignItems: "flex-start",
-                    fontSize: "var(--teks-delta)", color: C.text, cursor: nonaktif ? "not-allowed" : "pointer",
-                  }}>
-                    <input
-                      type="checkbox"
-                      checked={terpilih.includes(l.kunci)}
-                      disabled={nonaktif}
-                      onChange={(e) => {
-                        const baru = e.target.checked
-                          ? [...terpilih, l.kunci]
-                          : terpilih.filter((x) => x !== l.kunci);
-                        onUbah({ ...nilai, lapisMati: baru });
-                      }}
-                      style={{ marginTop: 3, flexShrink: 0 }}
-                    />
-                    <span>
-                      {l.nama} <span style={{ color: C.mid }}>({l.knM2} kN/m²)</span>
-                      {l.catatan && (
-                        <span style={{ display: "block", color: C.mid, fontSize: "var(--teks-delta)" }}>
-                          {l.catatan}
-                        </span>
-                      )}
-                    </span>
-                  </label>
-                ))}
-              </div>
+
+              {/*
+                `<PilihanKartu ganda>`, bukan `<input type="checkbox">` mentah.
+
+                Checkbox bawaan peramban berukuran ~13px — jauh di bawah 44px
+                (WCAG 2.5.5), dan di sini daftarnya panjang serta berjarak 4px,
+                jadi salah-sentuh berarti lapis beban yang keliru ikut terhitung
+                ke struktur. `PilihanKartu` membuat SELURUH kartu jadi sasaran
+                sentuh, dan keterpilihannya terbaca pembaca layar.
+
+                Angka beban (kN/m²) masuk `ringkas` supaya terbaca sebagai
+                keterangan opsi, bukan menempel di judulnya.
+              */}
+              <PilihanKartu
+                nama={`lapis-mati-${kelompok}`}
+                /*
+                  Nama kelompok jadi `label` komponen, bukan `<div>` lepas di
+                  atasnya. `<div>` hanya terlihat MATA; sebagai label ia terbaca
+                  pembaca layar sebagai judul kelompok pilihannya — pengguna tahu
+                  "Lantai" dan "Atap" itu dua daftar berbeda, bukan satu daftar
+                  panjang.
+                */
+                label={kelompok}
+                ganda
+                nonaktif={nonaktif}
+                nilai={terpilih}
+                onUbah={(k) => {
+                  const baru = terpilih.includes(k)
+                    ? terpilih.filter((x) => x !== k)
+                    : [...terpilih, k];
+                  onUbah({ ...nilai, lapisMati: baru });
+                }}
+                opsi={daftar.map((l) => ({
+                  nilai: l.kunci,
+                  label: l.nama,
+                  ringkas: `${l.knM2} kN/m²`,
+                  detail: l.catatan,
+                }))}
+              />
             </div>
           ))}
         </div>
