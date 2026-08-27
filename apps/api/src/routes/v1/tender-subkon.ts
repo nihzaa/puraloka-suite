@@ -605,11 +605,27 @@ export default async function tenderSubkonRoutes(app: FastifyInstance) {
     // disisipkan terakhir.
     //
     // Tiap batas commit di antaranya menyimpan keadaan yang SAH.
-    // `viaProject` untuk tabel ini menyaring lewat `penawaran_id` (kategori C,
-    // induknya penawaran — bukan project). Yang diserahkan karena itu `pid`,
-    // dan kepemilikannya sudah diverifikasi lewat tender di atas.
+    /*
+      `unsafe`, bukan `viaProject` — dan itu membuat maksudnya JUJUR.
+
+      Keduanya menghasilkan query yang SAMA di sini: registry menyetel
+      `penawaran_subkon_item.lewat = 'penawaran_id'`, jadi `viaProject(tabel,
+      pid)` menyusun `.eq('penawaran_id', pid)` — dan `pid` memang id
+      PENAWARAN dari URL (`/tender-subkon/:id/penawaran/:pid/item`).
+
+      Jadi kodenya benar. Yang salah NAMANYA: `viaProject` dipanggil dengan
+      sesuatu yang bukan project id, dan pembaca berikutnya harus membuka
+      registry untuk tahu itu tidak keliru. `audit-viaproject-argumen.mjs`
+      menandainya justru karena bentuk itu — dan penjaga itu ada karena kelas
+      cacat yang sama sudah dua kali menyembunyikan data (rap.ts 2026-07-30,
+      cost-control.ts 2026-08-08 dengan Rp 243 juta upah).
+
+      Benar-karena-kebetulan-cocok bukan alasan mempertahankan bentuk yang
+      tak bisa dibedakan dari yang salah. Kepemilikan tenant-nya sendiri sudah
+      diverifikasi lewat tender di atas.
+    */
     const { error: eDel } = await db
-      .viaProject('penawaran_subkon_item', pid)
+      .unsafe('penawaran_subkon_item', 'penawaran milik tenant sudah diverifikasi lewat tender di atas; disaring .eq(penawaran_id, pid)')
       .delete()
       .eq('penawaran_id', pid)
     if (eDel) return reply.status(500).send({ error: eDel.message })
@@ -632,8 +648,18 @@ export default async function tenderSubkonRoutes(app: FastifyInstance) {
     }
 
     if (baris.length > 0) {
+      /*
+        `unsafe` pada INSERT — dan di sini `viaProject` lebih menyesatkan lagi
+        daripada pada DELETE di atas: saringan tenant TIDAK BERLAKU pada
+        insert sama sekali, jadi namanya menjanjikan gerbang yang secara
+        struktural tak mungkin ada.
+
+        Yang benar-benar menjaga baris ini: tiap elemen `baris` membawa
+        `penawaran_id: pid`, dan kepemilikan `pid` sudah diverifikasi lewat
+        tender di atas.
+      */
       const { error: eIns } = await db
-        .viaProject('penawaran_subkon_item', pid)
+        .unsafe('penawaran_subkon_item', 'insert; tiap baris membawa penawaran_id = pid yang kepemilikannya sudah diverifikasi lewat tender di atas')
         .insert(baris)
       if (eIns) {
         if (eIns.code === '23505') {

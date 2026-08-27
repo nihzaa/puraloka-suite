@@ -1022,9 +1022,35 @@ export default async function mandorRoutes(app: FastifyInstance) {
     // diresolusi di atas. Gerbang peran di atas memeriksa PEMILIK; ini
     // memeriksa TENANT. Keduanya perlu: pm milik tenant lain yang kebetulan
     // ber-id sama tak boleh lolos hanya karena perbandingan id-nya cocok.
+    /*
+      ⚠ `viaProject('work_scope_items', …)` TIDAK BOLEH dipakai di sini —
+      dan sampai 2026-08-27 ia dipakai.
+
+      `work_scope_items` mewarisi tenancy lewat rantai BERHOP-JAUH:
+
+          work_scope_items → work_scopes → mandor_assignments → projects
+
+      Registry-nya karena itu menyetel `lewat: 'work_scope_id'`, sehingga
+      `viaProject(tabel, projectId)` menyusun `.eq('work_scope_id', <id
+      PROYEK>)` — membandingkan dua jenis id yang berbeda. Hasilnya NOL BARIS
+      tanpa satu pun galat.
+
+      Pada rute DELETE ini akibatnya bukan laporan kosong melainkan penghapusan
+      yang TIDAK PERNAH TERJADI: balasan 204, dan barisnya masih ada.
+
+      Kelas cacat yang sama sudah TERULANG dua kali di repo ini — rap.ts
+      (2026-07-30) dan cost-control.ts (2026-08-08, menyembunyikan Rp 243 juta
+      upah).
+
+      Yang benar: kumpulkan id scope milik company lebih dulu lewat
+      `workScopeIds()` (helper yang memang dibuat untuk tabel berhop-jauh),
+      lalu saring dengan `.in()`. Gerbang tenant-nya tetap ada — hanya kini
+      benar-benar bekerja.
+    */
+    const idScope = await request.db!.workScopeIds()
     const { error } = await request.db!
-      .viaProject('work_scope_items', ownership.project_id)
-      .delete().eq('id', id)
+      .unsafe('work_scope_items', 'disaring .in(work_scope_id, workScopeIds()) — rantai berhop-jauh')
+      .delete().eq('id', id).in('work_scope_id', idScope)
     if (error) return reply.status(500).send({ error: error.message })
     return reply.status(204).send()
   })

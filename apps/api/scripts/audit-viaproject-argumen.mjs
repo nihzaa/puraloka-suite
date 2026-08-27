@@ -111,8 +111,35 @@ for (const p of SUMBER.flatMap(berkasTs)) {
   const rel = p.replace(AKAR, '').replace(/\\/g, '/').replace(/^\//, '')
   const baris = readFileSync(p, 'utf8').split('\n')
 
+  /*
+    Komentar BLOK dilacak, bukan hanya baris berawalan `//` atau `*`.
+
+    Versi sebelumnya menyatakan "komentar dilewati" dan hanya memeriksa awalan
+    baris. Isi komentar blok yang ditulis rata tanpa `*` di depan karena itu
+    LOLOS — dan `otomasi-terjadwal.ts` menyimpan catatan panjang yang
+    menceritakan cacat ini beserta bentuk kodenya:
+
+        Saya sempat menulis `viaProject('work_scopes', pid)` — mengoper id
+        PROYEK ke tempat yang menunggu id PENUGASAN.
+
+    Kalimat yang MENJELASKAN cacat yang sudah diperbaiki dilaporkan sebagai
+    cacat. Penjaga yang menghukum dokumentasi perbaikannya sendiri mengajari
+    orang berhenti menulis alasan — dan justru catatan itulah yang mencegah
+    cacatnya terulang untuk ketiga kalinya.
+  */
+  let dalamBlok = false
+
   baris.forEach((b, i) => {
-    // Komentar dilewati: penjelasan yang MENYEBUT bug ini bukan bug.
+    if (dalamBlok) {
+      if (b.includes('*/')) dalamBlok = false
+      return
+    }
+    const buka = b.lastIndexOf('/*')
+    if (buka >= 0 && b.indexOf('*/', buka) === -1) {
+      dalamBlok = true
+      return
+    }
+    // Komentar satu baris: penjelasan yang MENYEBUT bug ini bukan bug.
     if (/^\s*(\/\/|\*)/.test(b)) return
 
     const m = b.match(/viaProject\(\s*'([a-z_]+)'\s*,\s*([A-Za-z_][A-Za-z0-9_.]*)/)
