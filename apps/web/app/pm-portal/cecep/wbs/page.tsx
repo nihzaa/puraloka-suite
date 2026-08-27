@@ -51,7 +51,7 @@ export default function PmTemplateWbsPage() {
       )}
 
       {daftar.map((t: TemplateWbsRingkas) => (
-        <div key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--gap-grid)", padding: "var(--pad-kartu)", borderRadius: "var(--portal-radius-card)", background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div key={t.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--gap-grid)", padding: "var(--pad-kartu)", borderRadius: "var(--portal-radius-card)", background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>
               {t.code} · {t.name}

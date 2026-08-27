@@ -205,7 +205,7 @@ function IsiDetailNcr({ params }: { params: Promise<{ id: string }> }) {
           ditutup (ditegakkan backend `ncr.ts` PATCH `/status`). Selalu bisa
           diedit terlepas dari status, backend tak membatasi PATCH ini ke
           status tertentu. */}
-      <section style={{ display: "flex", flexDirection: "column", gap: 10, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+      <section style={{ display: "flex", flexDirection: "column", gap: 10, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Tindakan Perbaikan & Akar Masalah</div>
         <label style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>
           Tindakan perbaikan
@@ -227,7 +227,7 @@ function IsiDetailNcr({ params }: { params: Promise<{ id: string }> }) {
       {/* Disposisi — hanya relevan saat status terbuka/perbaikan (backend
           menerima kapan saja lewat permission, tapi TRANSISI_SAH membatasi
           status HASILNYA — form tetap ditampilkan, backend penegak akhir). */}
-      <section style={{ display: "flex", flexDirection: "column", gap: 10, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+      <section style={{ display: "flex", flexDirection: "column", gap: 10, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Disposisi</div>
         {ncr.disposisi && (
           <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>
@@ -263,7 +263,7 @@ function IsiDetailNcr({ params }: { params: Promise<{ id: string }> }) {
       </section>
 
       {/* Transisi status — termasuk TUTUP dengan gerbang SoD. */}
-      <section style={{ display: "flex", flexDirection: "column", gap: 10, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+      <section style={{ display: "flex", flexDirection: "column", gap: 10, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Ubah Status</div>
         {transisiTersedia.length === 0 && (
           <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Tidak ada transisi tersedia dari status ini.</div>

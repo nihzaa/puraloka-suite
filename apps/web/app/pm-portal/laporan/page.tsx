@@ -93,13 +93,13 @@ export default function PmLaporanPage() {
           {!memuatKpi && dataKpi && (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 140px" }}>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 140px" }}>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>CPI Perusahaan</div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: WARNA_KEADAAN[dataKpi.evm.statusCpi.keadaan] }}>
                     {dataKpi.evm.cpi?.toFixed(2) ?? "—"}
                   </div>
                 </div>
-                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 140px" }}>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 140px" }}>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>SPI Perusahaan</div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: WARNA_KEADAAN[dataKpi.evm.statusSpi.keadaan] }}>
                     {dataKpi.evm.spi?.toFixed(2) ?? "—"}
@@ -124,7 +124,7 @@ export default function PmLaporanPage() {
                 </div>
               )}
 
-              <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+              <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                   <Landmark size={16} color="var(--navy)" aria-hidden="true" />
                   <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Umur Piutang</span>
@@ -143,7 +143,7 @@ export default function PmLaporanPage() {
                 </div>
               </div>
 
-              <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+              <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                   <Briefcase size={16} color="var(--navy)" aria-hidden="true" />
                   <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Backlog &amp; Tender</span>
@@ -176,15 +176,15 @@ export default function PmLaporanPage() {
                 Periode {dataCf.period.dateFrom} s.d. {dataCf.period.dateTo}
               </div>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Masuk</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: "var(--success)" }}>{fmtRupiahRingkas(dataCf.summary.totalIn)}</div>
                 </div>
-                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Keluar</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: "var(--danger)" }}>{fmtRupiahRingkas(dataCf.summary.totalOut)}</div>
                 </div>
-                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Net</div>
                   <div style={{ fontSize: 15, fontWeight: 700, color: dataCf.summary.netFlow >= 0 ? "var(--success)" : "var(--danger)" }}>
                     {fmtRupiahRingkas(dataCf.summary.netFlow)}

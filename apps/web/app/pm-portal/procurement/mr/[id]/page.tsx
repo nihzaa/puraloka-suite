@@ -81,7 +81,7 @@ export default function PmMrDetailPage() {
         <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{mr.project?.name ?? "—"}</div>
       </div>
 
-      <div style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Status</span>
           <StatusBadge status={VARIAN_STATUS[mr.status] ?? "netral"} label={LABEL_STATUS[mr.status] ?? mr.status} />
@@ -118,7 +118,7 @@ export default function PmMrDetailPage() {
       )}
 
       {cekKuota && (
-        <div style={{ padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div style={{ padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
           {memuatKuota && <SkeletonCard tinggi={60} />}
           {dataKuota && dataKuota.lolos && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--success)" }}>
@@ -156,7 +156,7 @@ export default function PmMrDetailPage() {
 
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Item ({mr.items.length})</div>
       {mr.items.map((it) => (
-        <div key={it.id} style={{ display: "flex", justifyContent: "space-between", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div key={it.id} style={{ display: "flex", justifyContent: "space-between", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{it.material?.name ?? "—"}</div>
             <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>

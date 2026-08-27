@@ -79,7 +79,7 @@ export default function PmRencanaMutuPage() {
       )}
       {proyekAktif && !memuat && (data?.rencana ?? []).map((r: RencanaMutu) => (
         <Link key={r.id} href={`/pm-portal/mutu/rencana/${r.id}?proyek=${proyekAktif}`}
-          style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", textDecoration: "none" }}>
+          style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", textDecoration: "none" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
             <div>
               <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{r.nomor}</span>

@@ -196,7 +196,7 @@ export default function PmJadwalPage() {
             <EmptyState icon={CalendarDays} judul="Belum ada jadwal" deskripsi="Milestone dan dependensi proyek ini belum diatur." />
           )}
           {!memuatCpm && pekerjaan.map((p) => (
-            <div key={p.id} style={{ padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div key={p.id} style={{ padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{p.nama}</span>
                 {p.kritis && <StatusBadge status="rejected" label="Kritis" />}
@@ -217,7 +217,7 @@ export default function PmJadwalPage() {
             <EmptyState icon={Users2} judul="Belum ada kebutuhan sumber daya" deskripsi="Kebutuhan tenaga/alat per milestone belum diatur." />
           )}
           {!memuatCpm && dataCpm?.histogram.map((h) => (
-            <div key={`${h.jenis}-${h.nama}`} style={{ padding: "var(--pad-kartu)", borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div key={`${h.jenis}-${h.nama}`} style={{ padding: "var(--pad-kartu)", borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{h.nama}</span>
                 <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>Puncak {h.puncak}{h.tersedia !== null ? ` / tersedia ${h.tersedia}` : ""}</span>
@@ -246,7 +246,7 @@ export default function PmJadwalPage() {
             <EmptyState icon={ClipboardList} judul="Belum ada method statement" deskripsi="Cara kerja pekerjaan berisiko belum diajukan." />
           )}
           {!memuatCpm && dataCpm?.methodStatement.map((m) => (
-            <div key={m.id} style={{ padding: "var(--pad-kartu)", borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div key={m.id} style={{ padding: "var(--pad-kartu)", borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{m.nomor ?? m.judul}</span>
                 <StatusBadge status={VARIAN_METHOD[m.status] ?? "netral"} label={LABEL_METHOD[m.status] ?? m.status} />
@@ -278,7 +278,7 @@ export default function PmJadwalPage() {
           )}
 
           {!memuatPergeseran && dataPergeseran?.baseline && (
-            <div style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>
                   #{dataPergeseran.baseline.nomor} {dataPergeseran.baseline.nama}

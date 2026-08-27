@@ -73,7 +73,7 @@ export default function PmRetensiPage() {
           </div>
           <div style={{ fontSize: 18, fontWeight: 700, color: "var(--warning)" }}>{memuat ? "—" : rpRingkas(data?.total_outstanding ?? 0)}</div>
         </div>
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: "var(--pad-kartu)" }}>
+        <div style={{ background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", borderRadius: 14, padding: "var(--pad-kartu)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
             <HandCoins size={13} aria-hidden="true" style={{ color: "var(--success)" }} />
             <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Dicairkan</span>

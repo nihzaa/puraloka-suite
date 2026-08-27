@@ -64,7 +64,7 @@ export default function PmDokumenPage() {
           rel="noreferrer"
           style={{
             display: "flex", alignItems: "center", gap: 12, padding: 14,
-            borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)",
+            borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)",
             textDecoration: "none",
           }}
         >

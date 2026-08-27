@@ -49,7 +49,7 @@ export default function PmTransferPage() {
       )}
 
       {(data?.transfers ?? []).map((t) => (
-        <div key={t.id} style={{ padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 4 }}>
+        <div key={t.id} style={{ padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{t.material?.name ?? "—"} · {t.qty} {t.material?.unit ?? ""}</div>
           <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t.asal?.name ?? "—"} → {t.tujuan?.name ?? "—"} · {t.tanggal}</div>
           {t.alasan && <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>{t.alasan}</div>}

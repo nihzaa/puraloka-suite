@@ -90,7 +90,7 @@ export default function PmPriceBookPage() {
         if (baris.length === 0) return null;
         const buka = terbuka.has(status);
         return (
-          <div key={status} style={{ borderRadius: "var(--portal-radius-card)", background: "var(--surface)", border: "1px solid var(--border)", overflow: "hidden" }}>
+          <div key={status} style={{ borderRadius: "var(--portal-radius-card)", background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", overflow: "hidden" }}>
             <button
               type="button"
               onClick={() => toggle(status)}

@@ -279,11 +279,11 @@ export default function PmDokumenKendaliPage() {
                 <Plus size={16} aria-hidden="true" /> Gambar
               </button>
               <div style={{ display: "flex", gap: 10 }}>
-                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: 1 }}>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: 1 }}>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Judul Unik</div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{data.gambar.jumlahJudul}</div>
                 </div>
-                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: 1 }}>
+                <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: 1 }}>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Usang</div>
                   <div style={{ fontSize: 17, fontWeight: 700, color: data.gambar.usang > 0 ? "var(--danger)" : "var(--text-primary)" }}>
                     {data.gambar.usang}

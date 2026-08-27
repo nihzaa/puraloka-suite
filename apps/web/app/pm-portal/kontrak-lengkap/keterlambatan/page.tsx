@@ -111,7 +111,7 @@ export default function PmAnalisaKeterlambatanPage() {
             { label: "Telat Terparah (hari)", value: String(data.telat_terparah), warna: "var(--warning)" },
             { label: "Estimasi Paparan", value: fmtRupiah(data.total_estimasi_paparan), warna: "var(--navy)" },
           ].map((k) => (
-            <div key={k.label} style={{ flex: "1 1 30%", padding: "var(--pad-kartu)", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div key={k.label} style={{ flex: "1 1 30%", padding: "var(--pad-kartu)", borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: k.warna }}>{k.value}</div>
               <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{k.label}</div>
             </div>
@@ -130,7 +130,7 @@ export default function PmAnalisaKeterlambatanPage() {
       )}
 
       {!memuat && data?.baris.map((b) => (
-        <div key={b.milestone_id} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div key={b.milestone_id} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{b.title}</div>

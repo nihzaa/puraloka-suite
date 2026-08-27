@@ -96,7 +96,7 @@ export default function PmKatalogAhspPage() {
           key={a.id}
           type="button"
           onClick={() => setDipilih(a)}
-          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--gap-grid)", padding: "var(--pad-kartu)", borderRadius: "var(--portal-radius-card)", background: "var(--surface)", border: "1px solid var(--border)", textAlign: "left", cursor: "pointer" }}
+          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--gap-grid)", padding: "var(--pad-kartu)", borderRadius: "var(--portal-radius-card)", background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", textAlign: "left", cursor: "pointer" }}
         >
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--navy)" }}>{a.code}</div>

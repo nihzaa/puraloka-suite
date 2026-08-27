@@ -183,7 +183,7 @@ export default function PmKlaimKontraktualPage() {
             { label: "Berisiko Gugur", value: String(data.ringkas.berisiko_gugur), warna: "var(--danger)" },
             { label: "Mendesak", value: String(data.ringkas.mendesak), warna: "var(--warning)" },
           ].map((k) => (
-            <div key={k.label} style={{ flex: "1 1 30%", padding: "var(--pad-kartu)", borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div key={k.label} style={{ flex: "1 1 30%", padding: "var(--pad-kartu)", borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: k.warna }}>{k.value}</div>
               <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{k.label}</div>
             </div>
@@ -196,7 +196,7 @@ export default function PmKlaimKontraktualPage() {
       )}
 
       {!memuat && data?.data.map((k) => (
-        <div key={k.id} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div key={k.id} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{k.claim_number}</div>

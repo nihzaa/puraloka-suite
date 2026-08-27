@@ -157,7 +157,7 @@ function IsiDetailRencanaMutu({ params }: { params: Promise<{ id: string }> }) {
       {titik.length === 0 && <EmptyState icon={BadgeCheck} judul="Belum ada titik ITP" deskripsi="Titik pemeriksaan wajib (hold/witness/review) akan muncul di sini." />}
       {titik.map((t) => (
         <button key={t.id} type="button" onClick={() => setTitikPeriksa(t)}
-          style={{ textAlign: "left", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6, cursor: "pointer" }}>
+          style={{ textAlign: "left", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 6, cursor: "pointer" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
             <div>
               <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{t.tahap_pekerjaan}</span>

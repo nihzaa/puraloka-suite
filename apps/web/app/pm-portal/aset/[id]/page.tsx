@@ -136,15 +136,15 @@ export default function PmAsetDetailPage() {
       {tab === "ringkas" && (
         <>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
               <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Meter</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{aset.meter ?? "—"}</div>
             </div>
-            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
               <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Biaya/Jam</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{aset.biaya.perJam !== null ? fmtRupiah(aset.biaya.perJam) : "—"}</div>
             </div>
-            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
               <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Servis Mendadak</div>
               <div style={{ fontSize: 15, fontWeight: 700, color: aset.kesehatan.preventifGagal ? "var(--danger)" : "var(--text-primary)" }}>
                 {aset.kesehatan.rasioMendadak !== null ? `${aset.kesehatan.rasioMendadak}%` : "—"}
@@ -157,7 +157,7 @@ export default function PmAsetDetailPage() {
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {aset.perawatan.map((p) => (
-              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: 10, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)" }}>
+              <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: 10, borderRadius: 10, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
                 <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{p.nama}</span>
                 <span style={{ fontSize: 12, fontWeight: 700, color: p.jatuhTempo.status === "jatuh_tempo" ? "var(--danger)" : p.jatuhTempo.status === "segera" ? "var(--on-warning-bg)" : "var(--text-primary)" }}>
                   {LABEL_JATUH_TEMPO[p.jatuhTempo.status]}
@@ -200,7 +200,7 @@ export default function PmAsetDetailPage() {
               )}
               {dataSusut.meta.dapat_disusutkan && (
                 <>
-                  <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+                  <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
                       <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Nilai Buku Kini</span>
                       <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{fmtRupiah(dataSusut.meta.nilai_buku_kini)}</span>
@@ -231,7 +231,7 @@ export default function PmAsetDetailPage() {
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {dataSusut.data.tercatat.map((l) => (
-                  <div key={l.id} style={{ display: "flex", justifyContent: "space-between", padding: 10, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                  <div key={l.id} style={{ display: "flex", justifyContent: "space-between", padding: 10, borderRadius: 10, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
                     <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{l.period_month}/{l.period_year}</span>
                     <span style={{ fontSize: 12, fontWeight: 700, color: l.journal_entry_id ? "var(--on-success-bg)" : "var(--on-warning-bg)" }}>
                       {fmtRupiah(l.depreciation_amount)} {l.journal_entry_id ? "· Terjurnal" : "· Belum Dijurnalkan"}

@@ -146,7 +146,7 @@ export default function PmCutiPage() {
 
       {!memuat && !galat && data && (
         <>
-          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
               <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Hak {tahun}</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{data.saldo.hak} hari</span>

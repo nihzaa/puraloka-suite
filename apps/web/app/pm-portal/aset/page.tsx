@@ -110,15 +110,15 @@ function IsiAsetPage() {
 
       {dataAset && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
             <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Total</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{dataAset.meta.total}</div>
           </div>
-          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
             <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Nilai Buku</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{fmtRupiah(dataAset.meta.nilai_buku)}</div>
           </div>
-          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
             <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Perawatan</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: "var(--on-warning-bg)" }}>{dataAset.meta.perawatan}</div>
           </div>
@@ -147,7 +147,7 @@ function IsiAsetPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {(dataAset?.data ?? []).map((a) => (
               <Link key={a.id} href={`/pm-portal/aset/${a.id}`}
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", textDecoration: "none" }}>
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", textDecoration: "none" }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{a.name}</div>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{a.asset_code} · {a.ownership === "milik" ? "Milik" : "Sewa"}</div>

@@ -43,7 +43,7 @@ export default function PmKlienDetailPage() {
         {data.client.company_name ?? data.client.contact_person}
       </h1>
 
-      <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
           <Building2 size={16} color="var(--text-secondary)" aria-hidden="true" />
           <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{data.client.contact_person}</span>
@@ -60,17 +60,17 @@ export default function PmKlienDetailPage() {
       </div>
 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
           <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Proyek</div>
           <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{data.summary.total_projects}</div>
         </div>
-        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+        <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
           <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Nilai Kontrak</div>
           <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)" }}>{fmtRupiah(data.summary.total_contract_value)}</div>
         </div>
       </div>
 
-      <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
           <Landmark size={16} color="var(--navy)" aria-hidden="true" />
           <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Ringkasan Invoice</span>
@@ -100,7 +100,7 @@ export default function PmKlienDetailPage() {
         {data.projects.map((p) => (
           <div
             key={p.id}
-            style={{ display: "flex", justifyContent: "space-between", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}
+            style={{ display: "flex", justifyContent: "space-between", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}
           >
             <span style={{ fontSize: 13, color: "var(--text-primary)" }}>{p.name}</span>
             <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{p.progress_pct ?? 0}%</span>

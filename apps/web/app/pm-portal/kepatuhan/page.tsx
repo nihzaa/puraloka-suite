@@ -185,7 +185,7 @@ export default function PmKepatuhanPage() {
             <EmptyState icon={ShieldCheck} judul="Belum ada data kesiapan" deskripsi="Kesiapan dihitung dari dokumen & evaluasi yang sudah tercatat." />
           )}
           {!memuatKepatuhan && (dataKepatuhan?.kesiapan ?? []).map((k: KesiapanPihak) => (
-            <div key={k.supplier_id ?? k.nama} style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div key={k.supplier_id ?? k.nama} style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{k.nama}</span>
                 <StatusBadge status={k.bolehBekerja ? "approved" : "rejected"} label={k.bolehBekerja ? "Boleh Bekerja" : "Ditahan"} />
@@ -220,7 +220,7 @@ export default function PmKepatuhanPage() {
             <EmptyState icon={FileWarning} judul="Belum ada dokumen kepatuhan" deskripsi="Sertifikat, izin, dan asuransi pemasok/subkon akan muncul di sini." />
           )}
           {!memuatKepatuhan && (dataKepatuhan?.dokumen?.dokumen ?? []).map((d: DokumenDinilai) => (
-            <div key={d.id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div key={d.id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{d.pihak_nama ?? "—"}</span>
@@ -262,7 +262,7 @@ export default function PmKepatuhanPage() {
             <button key={z.id} type="button"
               onClick={() => z.status === "diajukan" && setIzinDipilih(z)}
               disabled={z.status !== "diajukan"}
-              style={{ textAlign: "left", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6, cursor: z.status === "diajukan" ? "pointer" : "default" }}>
+              style={{ textAlign: "left", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 6, cursor: z.status === "diajukan" ? "pointer" : "default" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{z.nomor}</span>
@@ -295,7 +295,7 @@ export default function PmKepatuhanPage() {
             <EmptyState icon={Award} judul="Belum ada evaluasi subkon" deskripsi="Skor mutu, waktu, K3, dan kepatuhan subkon akan muncul di sini." />
           )}
           {!memuatKepatuhan && (dataKepatuhan?.evaluasi ?? []).map((e: EvaluasiDinilai) => (
-            <div key={e.id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <div key={e.id} style={{ display: "flex", flexDirection: "column", gap: 6, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{e.pihak_nama ?? "—"}</span>

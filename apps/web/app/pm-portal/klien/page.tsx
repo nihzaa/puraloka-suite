@@ -90,7 +90,7 @@ export default function PmKlienPage() {
             <Link
               key={c.id}
               href={`/pm-portal/klien/${c.id}`}
-              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", textDecoration: "none" }}
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", textDecoration: "none" }}
             >
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>

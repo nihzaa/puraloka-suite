@@ -188,17 +188,17 @@ export default function PmRisikoPage() {
               {!memuatRisiko && !galatRisiko && dataRisiko && (
                 <>
                   <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                    <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                    <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
                       <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Total</div>
                       <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{dataRisiko.ringkas.total}</div>
                     </div>
-                    <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                    <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
                       <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Mendesak</div>
                       <div style={{ fontSize: 17, fontWeight: 700, color: dataRisiko.ringkas.mendesak > 0 ? "var(--danger)" : "var(--text-primary)" }}>
                         {dataRisiko.ringkas.mendesak}
                       </div>
                     </div>
-                    <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 100px" }}>
+                    <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 100px" }}>
                       <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Ekstrem</div>
                       <div style={{ fontSize: 17, fontWeight: 700, color: dataRisiko.ringkas.per_tingkat.ekstrem > 0 ? "var(--danger)" : "var(--text-primary)" }}>
                         {dataRisiko.ringkas.per_tingkat.ekstrem}

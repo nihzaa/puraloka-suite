@@ -30,7 +30,7 @@ function fmtRupiah(v: string | number | null | undefined): string {
 
 function KartuKpi({ label, nilai }: { label: string; nilai: string | number }) {
   return (
-    <div style={{ padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)", flex: "1 1 45%", minWidth: 130 }}>
+    <div style={{ padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 45%", minWidth: 130 }}>
       <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{label}</div>
       <div style={{ fontSize: 18, fontWeight: 700, color: "var(--navy)", marginTop: 2 }}>{nilai}</div>
     </div>
@@ -74,7 +74,7 @@ export default function PmGudangPage() {
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Lokasi Gudang</div>
       {data.gudang.length === 0 && <EmptyState icon={Warehouse} judul="Belum ada gudang" deskripsi="Tambahkan lokasi gudang pertama." />}
       {data.gudang.map((g) => (
-        <div key={g.id} style={{ display: "flex", justifyContent: "space-between", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div key={g.id} style={{ display: "flex", justifyContent: "space-between", padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{g.kode} · {g.nama}</div>
             <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{g.jumlah_aset} aset · {g.jenis_material} jenis material</div>
@@ -85,7 +85,7 @@ export default function PmGudangPage() {
       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>Pergerakan Terakhir</div>
       {data.pergerakan.length === 0 && <EmptyState icon={TrendingDown} judul="Belum ada pergerakan" deskripsi="Perpindahan aset akan tercatat di sini." />}
       {data.pergerakan.slice(0, 8).map((m) => (
-        <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid var(--border)" }}>
+        <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: 12, borderRadius: 12, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
           <div style={{ fontSize: 12, color: "var(--text-primary)" }}>{m.dari ?? "—"} → {m.ke ?? "—"}</div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
             <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{m.hari_lalu != null ? `${m.hari_lalu}h lalu` : "—"}</span>

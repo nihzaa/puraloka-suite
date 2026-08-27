@@ -96,7 +96,7 @@ export default function PmMandorPage() {
           <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Ringkasan Mandor</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
             {summary.map((m) => (
-              <div key={m.mandor_id} style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6 }}>
+              <div key={m.mandor_id} style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 6 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{m.mandor_name}</div>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12 }}>
                   <span style={{ color: "var(--text-secondary)" }}>Scope aktif</span>

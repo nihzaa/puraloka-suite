@@ -48,7 +48,7 @@ export default function PmGudangLokasiPage() {
 
       {(data?.gudang ?? []).map((g) => (
         <button key={g.id} type="button" onClick={() => setDiedit(g)}
-          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid var(--border)", textAlign: "left", cursor: "pointer" }}>
+          style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, padding: 14, borderRadius: 14, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", textAlign: "left", cursor: "pointer" }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{g.kode} · {g.nama}</div>
             <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>{g.alamat ?? "Tanpa alamat"} · {g.jenis_material} jenis material · penjaga {g.penjaga?.name ?? "—"}</div>

@@ -130,7 +130,7 @@ export default function PmKompetensiSdmPage() {
           )}
           {!memuat && !galat && data && data.kinerja.tren.length > 0 && (
             <>
-              <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid var(--border)" }}>
+              <div style={{ background: "var(--surface)", borderRadius: 14, padding: 14, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
                 <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Rata-rata (final)</div>
                 <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>
                   {data.kinerja.rata_final !== null ? `${data.kinerja.rata_final}%` : "—"}
@@ -138,7 +138,7 @@ export default function PmKompetensiSdmPage() {
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {data.kinerja.tren.map((t) => (
-                  <div key={t.periode} style={{ display: "flex", justifyContent: "space-between", padding: 10, borderRadius: 10, background: "var(--surface)", border: "1px solid var(--border)" }}>
+                  <div key={t.periode} style={{ display: "flex", justifyContent: "space-between", padding: 10, borderRadius: 10, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)" }}>
                     <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>{t.periode}{t.status === "draf" ? " (draf)" : ""}</span>
                     <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{t.persen !== null ? `${t.persen}%` : "—"}</span>
                   </div>

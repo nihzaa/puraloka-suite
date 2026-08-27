@@ -134,15 +134,15 @@ export default function PmTimesheetPage() {
       {!memuat && !galat && data && (
         <>
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 120px" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 120px" }}>
               <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Jam Kerja</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{data.ringkasan.total_jam_kerja}</div>
             </div>
-            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 120px" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 120px" }}>
               <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Jam Lembur</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{data.ringkasan.total_jam_lembur}</div>
             </div>
-            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid var(--border)", flex: "1 1 120px" }}>
+            <div style={{ background: "var(--surface)", borderRadius: 14, padding: 12, border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", flex: "1 1 120px" }}>
               <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>Hari Terisi</div>
               <div style={{ fontSize: 17, fontWeight: 700, color: "var(--text-primary)" }}>{data.ringkasan.hari_terisi}</div>
             </div>
