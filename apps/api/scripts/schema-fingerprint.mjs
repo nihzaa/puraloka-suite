@@ -60,13 +60,41 @@ const Q = {
     SELECT tablename, indexname, indexdef
     FROM pg_indexes WHERE schemaname = 'public'
     ORDER BY tablename, indexdef`,
+  /*
+    ⚠ `prokind = 'f'` WAJIB — dan ketiadaannya membuat penjaga ini MATI TOTAL.
+
+    `pg_get_functiondef()` MELEMPAR untuk agregat, window function, dan
+    prosedur; itu perilaku Postgres yang terdokumentasi, bukan gangguan.
+    Basis ini punya empat agregat di skema `public` (`avg` dan `sum`
+    masing-masing dua, untuk tipe kustom dari ekstensi), jadi query lama
+    gagal seluruhnya dengan:
+
+        FATAL: "avg" is an aggregate function
+
+    Bukan sebagian hasil yang hilang — SATU baris agregat menggagalkan
+    SELURUH query, sehingga sidik jari skema tak pernah terbentuk dan
+    penjaganya merah tiap kali jalan tanpa pernah membandingkan apa pun.
+
+    Agregat sengaja TIDAK diambil definisinya: ia ditentukan lewat
+    `CREATE AGGREGATE` (fungsi state + fungsi final), bukan badan yang bisa
+    dibandingkan sebagai teks. Yang dicatat cukup keberadaan & tanda
+    tangannya — itulah yang berubah kalau ada agregat ditambah/dibuang.
+  */
   functions: `
     SELECT p.proname,
            pg_get_function_identity_arguments(p.oid) AS args,
            pg_get_functiondef(p.oid) AS def
     FROM pg_proc p
     JOIN pg_namespace ns ON ns.oid = p.pronamespace
-    WHERE ns.nspname = 'public'
+    WHERE ns.nspname = 'public' AND p.prokind = 'f'
+    ORDER BY p.proname, pg_get_function_identity_arguments(p.oid)`,
+  aggregates: `
+    SELECT p.proname,
+           pg_get_function_identity_arguments(p.oid) AS args,
+           p.prokind AS def
+    FROM pg_proc p
+    JOIN pg_namespace ns ON ns.oid = p.pronamespace
+    WHERE ns.nspname = 'public' AND p.prokind <> 'f'
     ORDER BY p.proname, pg_get_function_identity_arguments(p.oid)`,
   triggers: `
     SELECT rel.relname AS table_name, t.tgname, pg_get_triggerdef(t.oid) AS def

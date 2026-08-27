@@ -6,6 +6,69 @@ bawah entrinya.
 
 ---
 
+# 🧬 R-020 · Penjaga sidik jari skema MATI sejak lama — sudah dihidupkan, acuannya perlu Anda putuskan (2026-08-27)
+
+## Yang ditemukan
+
+`schema-fingerprint.mjs` membandingkan struktur basis data pengembangan dengan
+acuan tersimpan, supaya perubahan skema yang tak disengaja ketahuan. Ia
+terdaftar di CI dan berjalan tiap kali.
+
+Selama ini ia **selalu gagal sebelum sempat membandingkan apa pun**:
+
+    FATAL: "avg" is an aggregate function
+
+Sebabnya satu baris query. Perintah Postgres `pg_get_functiondef()` tak bisa
+menangani fungsi **agregat** — itu perilaku bawaan, bukan gangguan. Basis ini
+punya empat agregat (`avg` dan `sum` untuk tipe khusus dari ekstensi), dan
+**satu** baris agregat menggagalkan seluruh pembacaan.
+
+Jadi penjaganya merah tiap kali jalan, merahnya menyatu dengan merah lain, dan
+tak ada yang memeriksa sebabnya — sementara perubahan skema yang tak disengaja
+lewat tanpa tersaring.
+
+## Yang SUDAH saya kerjakan (tak perlu keputusan Anda)
+
+Query disaring ke fungsi biasa saja, dan agregat dicatat terpisah (cukup
+keberadaan + tanda tangannya; definisi agregat memang bukan teks yang bisa
+dibandingkan).
+
+Penjaganya kini **hidup**: kedua modenya berjalan, dan pembandingannya
+menghasilkan angka. Dibuktikan dengan mencabut kembali saringannya — langsung
+mati lagi dengan galat yang sama, lalu hidup saat dipulihkan.
+
+## Yang perlu diputuskan founder
+
+Begitu hidup, ia langsung melaporkan **3.970 perbedaan** antara skema
+pengembangan dan acuannya.
+
+Angka itu bukan kejutan: acuannya dibuat **2 Agustus 2026** — 25 hari dan
+puluhan migrasi yang lalu. (Commit yang membuatnya bahkan berjudul "baseline
+schema basi 6 hari", jadi ini pola yang sudah pernah terjadi.)
+
+**Pilihan A — Segarkan acuannya sekarang.**
+Satu perintah; acuan baru dibuat dari skema hari ini, dan penjaganya mulai
+menjaga dari titik itu. Konsekuensinya: perbedaan yang menumpuk 25 hari
+terakhir diterima apa adanya tanpa diperiksa satu per satu.
+
+**Pilihan B — Periksa dulu 3.970 perbedaannya, baru segarkan.**
+Paling teliti, tetapi 3.970 baris adalah pekerjaan berhari-hari, dan sebagian
+besar hampir pasti perubahan sah dari migrasi yang memang dijalankan.
+
+**Pilihan C — Biarkan seperti sekarang.**
+Penjaganya hidup dan melaporkan, tetapi merah terus sehingga tak ada yang
+membacanya. Ini keadaan yang baru saja kita keluar darinya.
+
+**Kalau Anda diam, yang berlaku adalah C** — dan itu pilihan terburuk dari
+ketiganya, karena penjaga yang selalu merah sama tak bergunanya dengan penjaga
+yang mati.
+
+Yang saya sarankan: **A**. Acuan yang basi 25 hari tak bisa dipakai menilai
+apa pun, dan penjaga ini gunanya menangkap perubahan BARU yang tak disengaja —
+bukan mengaudit sejarah. Menyegarkannya mengembalikan fungsinya hari ini juga.
+
+---
+
 # 🧹 R-019 · Basis penuh sisa test — 1.328 perusahaan untuk 29 pengguna, dan itu MENGUBAH HASIL (2026-08-27)
 
 **Yang perlu Anda putuskan ada di bagian terakhir.** Sisanya penjelasan.
