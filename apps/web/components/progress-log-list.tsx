@@ -242,7 +242,7 @@ function PhotoGrid({ photos }: { photos: ProgressLog["photos"] }) {
 
 function LogSkeleton() {
   return (
-    <div style={{ display: "flex", gap: 16, paddingBottom: 20, position: "relative" }}>
+    <div style={{ display: "flex", gap: "var(--gap-bagian)", paddingBottom: 20, position: "relative" }}>
       <div style={{ width: 44, flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center" }}>
         <div style={{
           width: 44, height: 52, borderRadius: 10,

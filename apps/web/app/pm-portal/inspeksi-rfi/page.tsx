@@ -127,7 +127,7 @@ export default function PmInspeksiRfiPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Inspeksi &amp; RFI" />
 
       {daftarProyek.length > 1 && (
@@ -163,7 +163,7 @@ export default function PmInspeksiRfiPage() {
               key={item.id}
               type="button"
               onClick={() => { setInspeksiDipilih(item); setCatatanHasil(""); setGalatForm(null); }}
-              style={{ textAlign: "left", padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8, cursor: "pointer" }}
+              style={{ textAlign: "left", padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8, cursor: "pointer" }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div style={{ flex: 1 }}>
@@ -186,7 +186,7 @@ export default function PmInspeksiRfiPage() {
             <EmptyState icon={FileQuestion} judul="Belum ada RFI" deskripsi="Pertanyaan resmi ke konsultan/pemberi kerja akan muncul di sini." />
           )}
           {!memuatRfi && (dataRfi?.data ?? []).map((item) => (
-            <div key={item.id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div key={item.id} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{item.perihal ?? item.nomor}</span>

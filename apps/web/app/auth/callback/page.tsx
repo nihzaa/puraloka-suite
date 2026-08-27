@@ -89,7 +89,7 @@ export default function AuthCallbackPage() {
       justifyContent: "center",
       background: "var(--bg)",
       flexDirection: "column",
-      gap: 16,
+      gap: "var(--gap-bagian)",
     }}>
       <div style={{
         width: 40, height: 40, borderRadius: 10,

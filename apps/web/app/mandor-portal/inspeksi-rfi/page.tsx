@@ -132,7 +132,7 @@ export default function InspeksiRfiPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Inspeksi &amp; RFI" />
 
       {daftarProyek.length > 1 && (
@@ -212,7 +212,7 @@ export default function InspeksiRfiPage() {
             <div
               key={item.id}
               style={{
-                padding: 16, borderRadius: 16, background: "var(--surface)",
+                padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)",
                 border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8,
               }}
             >
@@ -276,7 +276,7 @@ export default function InspeksiRfiPage() {
             <div
               key={item.id}
               style={{
-                padding: 16, borderRadius: 16, background: "var(--surface)",
+                padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)",
                 border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8,
               }}
             >

@@ -373,7 +373,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
 
           {/* ── STEP 1: Info Dasar ── */}
           {step === 1 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
               <Field label="Nama Proyek *" error={errors.name}>
                 <input style={inputStyle} value={form.name} onChange={e => set("name", e.target.value)} placeholder="Contoh: Renovasi Rumah Pak Budi" />
               </Field>
@@ -411,7 +411,7 @@ export function ProjectModal({ mode, initialData, projectId, onClose, onSuccess 
 
           {/* ── STEP 2: Kontrak ── */}
           {step === 2 && (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
               <Field label="Model Kontrak">
                 <div style={{ display: "flex", gap: 12 }}>
                   {(["termin", "komisi"] as const).map(m => (

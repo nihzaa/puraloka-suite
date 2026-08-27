@@ -316,7 +316,7 @@ export default function PermintaanPage() {
 
       {detailMr && (
         <Modal title={`Detail ${detailMr.mr_number}`} onClose={() => setDetailMr(null)} width={640}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
               <div><span style={{ color: C.muted }}>Proyek: </span>{detailMr.project?.name ?? "—"}</div>
               <div><span style={{ color: C.muted }}>Diminta oleh: </span>{detailMr.requested_by?.name ?? "—"}</div>

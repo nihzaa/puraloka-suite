@@ -183,7 +183,7 @@ function RuleCard({ rule, roles, perms, canManage, onToggle, onAdd, onRemove }: 
   const needsValue = type === "role" || type === "permission";
 
   return (
-    <div style={{ ...GAYA_KARTU, padding: 16, opacity: rule.is_active ? 1 : 0.62 }}>
+    <div style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", opacity: rule.is_active ? 1 : 0.62 }}>
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div>
           <div style={{ fontWeight: 600, fontSize: 15, color: C.text }}>{rule.label}</div>

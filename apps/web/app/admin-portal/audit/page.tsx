@@ -92,7 +92,7 @@ export default function AdminAuditPage() {
   const meta = data?.meta;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Jejak Audit" />
 
       {(dataMeta?.tables?.length ?? 0) > 0 && (

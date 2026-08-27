@@ -669,7 +669,7 @@ function ModalJurnal({
       style={{
         position: "fixed", inset: 0, zIndex: 200,
         background: "rgba(0,0,0,0.42)", backdropFilter: "blur(2px)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)",
       }}
     >
       <div

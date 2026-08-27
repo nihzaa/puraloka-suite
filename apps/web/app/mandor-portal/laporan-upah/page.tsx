@@ -198,7 +198,7 @@ export default function LaporanUpahPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       {toast && (
         // Toast sebagai TOMBOL, bukan `<div onClick>`: ia memang bisa ditekan
         // (untuk menutup), jadi harus bisa difokus dan menanggapi Enter/Space.
@@ -244,7 +244,7 @@ export default function LaporanUpahPage() {
 
       {/* RIWAYAT TAB */}
       {tab === "riwayat" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
           {loading && (
             <>
               <SkeletonCard tinggi={140} />
@@ -272,7 +272,7 @@ export default function LaporanUpahPage() {
           {!loading && !galatMuat && dataMingguan.length > 1 && (
             <div
               style={{
-                padding: 16, borderRadius: "var(--portal-radius-card)", background: "var(--surface)",
+                padding: "var(--pad-kartu-lega)", borderRadius: "var(--portal-radius-card)", background: "var(--surface)",
                 border: "1px solid var(--border)",
               }}
             >
@@ -312,7 +312,7 @@ export default function LaporanUpahPage() {
                 <div
                   key={r.id}
                   style={{
-                    padding: 16, borderRadius: 16, background: "var(--surface)",
+                    padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)",
                     border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8,
                   }}
                 >
@@ -330,7 +330,7 @@ export default function LaporanUpahPage() {
                       label={LABEL_STATUS[r.status ?? ""] ?? (r.status ?? "—")}
                     />
                   </div>
-                  <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap" }}>
                     <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
                       Subtotal:{" "}
                       <span style={{ fontWeight: 600, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>
@@ -369,7 +369,7 @@ export default function LaporanUpahPage() {
 
       {/* BUAT LAPORAN TAB */}
       {tab === "buat" && (
-        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div>
               <label htmlFor="selected-assignment" style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", display: "block", marginBottom: 6 }}>

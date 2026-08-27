@@ -111,7 +111,7 @@ export default function PmDetailJurnalPage() {
   const totalKredit = j.lines.reduce((s, l) => s + Number(l.credit), 0);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{j.entry_number}</h1>
@@ -122,7 +122,7 @@ export default function PmDetailJurnalPage() {
         <StatusBadge status={VARIAN_STATUS[j.status] ?? "netral"} label={LABEL_STATUS[j.status] ?? j.status} />
       </div>
 
-      <div style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: "1px solid var(--border)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)", border: "1px solid var(--border)" }}>
         <div style={{ fontSize: 13, color: "var(--text-primary)" }}>{j.description}</div>
         {j.notes && (
           <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4, whiteSpace: "pre-wrap" }}>{j.notes}</div>

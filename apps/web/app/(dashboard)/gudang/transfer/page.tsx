@@ -204,7 +204,7 @@ export default function TransferStokPage() {
       ) : (
         <>
           {/* ── Formulir ────────────────────────────────────────────────── */}
-          <div className="rise rise-2" style={{ ...kartu, padding: 16, marginBottom: 18 }}>
+          <div className="rise rise-2" style={{ ...kartu, padding: "var(--pad-kartu-lega)", marginBottom: 18 }}>
             {/* Asal → panah → tujuan, sebaris.
                 Versi pertama menaruh keduanya sebagai dua dropdown kembar di
                 grid seragam: tak ada apa pun yang menunjukkan bahwa barang

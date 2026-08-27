@@ -160,7 +160,7 @@ export default function PmKasPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Kas & Pengeluaran" />
 
       {dataSummary && (
@@ -212,7 +212,7 @@ export default function PmKasPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {(dataAkun?.accounts ?? []).map((a) => (
               <Link key={a.id} href={`/pm-portal/keuangan/kas/${a.id}`} style={{ textDecoration: "none" }}>
-                <div style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: "1px solid var(--border)" }}>
+                <div style={{ background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)", border: "1px solid var(--border)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{a.name}</div>
@@ -236,7 +236,7 @@ export default function PmKasPage() {
           )}
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {(dataExpense?.expenses ?? []).map((e) => (
-              <div key={e.id} style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: "1px solid var(--border)" }}>
+              <div key={e.id} style={{ background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)", border: "1px solid var(--border)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <div>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

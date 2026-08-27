@@ -32,7 +32,7 @@ export default function PmGudangLokasiPage() {
   const [diedit, setDiedit] = useState<GudangLokasi | null>(null);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <KepalaPortal judul="Lokasi Gudang" />
         <button type="button" onClick={() => setSheetTambah(true)} aria-label="Tambah lokasi gudang"

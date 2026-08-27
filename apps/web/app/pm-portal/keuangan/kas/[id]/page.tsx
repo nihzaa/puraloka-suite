@@ -78,10 +78,10 @@ export default function PmDetailAkunKasPage() {
   const { account, transfers, expenses } = data;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{account.name}</h1>
 
-      <div style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: "1px solid var(--border)" }}>
+      <div style={{ background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)", border: "1px solid var(--border)" }}>
         <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Saldo Saat Ini</div>
         <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums" }}>{fmtRupiah(account.balance)}</div>
         {account.projects && <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 4 }}>{account.projects.name}</div>}

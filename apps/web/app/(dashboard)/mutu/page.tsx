@@ -164,7 +164,7 @@ function Konten() {
       // halaman lain 1380px — terlihat seperti dua aplikasi berbeda.
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
-      display: "grid", gap: 16,
+      display: "grid", gap: "var(--gap-bagian)",
     }}>
       <KepalaHalaman
         judul="Mutu & K3"
@@ -242,7 +242,7 @@ function Konten() {
       >
         <Panel judul="Keselamatan kerja">
           {memuat ? (
-            <div style={{ padding: 16, color: C.muted, fontSize: 13 }}>Memuat…</div>
+            <div style={{ padding: "var(--pad-kartu-lega)", color: C.muted, fontSize: 13 }}>Memuat…</div>
           ) : (
             <div style={{ display: "grid", gap: 10, fontSize: 14 }}>
               <Baris
@@ -274,7 +274,7 @@ function Konten() {
 
         <Panel judul="Pemeriksaan">
           {memuat ? (
-            <div style={{ padding: 16, color: C.muted, fontSize: 13 }}>Memuat…</div>
+            <div style={{ padding: "var(--pad-kartu-lega)", color: C.muted, fontSize: 13 }}>Memuat…</div>
           ) : (
             <div style={{ display: "grid", gap: 10, fontSize: 14 }}>
               <Baris

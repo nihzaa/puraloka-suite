@@ -185,7 +185,7 @@ export default function MandorKasbonPage() {
   const filtered = filter === "all" ? kasbons : kasbons.filter((k) => k.status === filter);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <KepalaPortal judul="Kasbon" />
         <button
@@ -236,7 +236,7 @@ export default function MandorKasbonPage() {
               <div
                 key={k.id}
                 style={{
-                  padding: 16, borderRadius: 16, background: "var(--surface)",
+                  padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)",
                   border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8,
                 }}
               >

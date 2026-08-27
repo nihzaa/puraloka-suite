@@ -94,7 +94,7 @@ export default function PmPunchListPage() {
   const isPelaksanaSendiri = dipilih?.ditugaskan_ke != null; // penanda visual saja — gerbang sebenarnya di backend
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Punch List" />
 
       {daftarProyek.length > 1 && (
@@ -138,7 +138,7 @@ export default function PmPunchListPage() {
           onClick={() => item.status === "menunggu_cek" && bukaAksi(item)}
           disabled={item.status !== "menunggu_cek"}
           style={{
-            textAlign: "left", padding: 16, borderRadius: 16, background: "var(--surface)",
+            textAlign: "left", padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)",
             border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8,
             cursor: item.status === "menunggu_cek" ? "pointer" : "default",
           }}

@@ -443,7 +443,7 @@ export default function KlienPage() {
           // daftar yang memang masih kosong, dan daftar berisi yang tersaring
           // habis. Satu pesan untuk keduanya membuat orang mencari tombol
           // "tambah" padahal datanya ada, cuma tersembunyi filter.
-          <div style={{ padding: 16 }}>
+          <div style={{ padding: "var(--pad-kartu-lega)" }}>
             {clients.length === 0 ? (
               <Kosong
                 ikon={<Users size={28} />}

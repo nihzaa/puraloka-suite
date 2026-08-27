@@ -349,7 +349,7 @@ export default function ContingencyPage() {
       ) : (
         <>
           {/* ── Form pos baru ────────────────────────────────────────── */}
-          <div className="rise rise-2" style={{ ...GAYA_KARTU, padding: 16, marginBottom: 16 }}>
+          <div className="rise rise-2" style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", marginBottom: 16 }}>
             <div style={{
               display: "grid", gap: 12,
               gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",

@@ -119,7 +119,7 @@ export default function JadwalProyekPage() {
 
   if (galatAsg) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
         <KepalaPortal judul="Jadwal Proyek" />
         <EmptyState
           icon={CalendarDays}
@@ -131,7 +131,7 @@ export default function JadwalProyekPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Jadwal Proyek" />
 
       {memuatAsg && <SkeletonCard tinggi={44} />}
@@ -184,7 +184,7 @@ export default function JadwalProyekPage() {
           {/* Ringkasan proyek */}
           <div
             style={{
-              padding: 16, borderRadius: "var(--portal-radius-card)", background: "var(--navy-light)",
+              padding: "var(--pad-kartu-lega)", borderRadius: "var(--portal-radius-card)", background: "var(--navy-light)",
               display: "flex", flexDirection: "column", gap: 10,
             }}
           >
@@ -199,7 +199,7 @@ export default function JadwalProyekPage() {
                 {fmtTanggal(data.cpm.selesaiProyek)}
               </span>
             </div>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontSize: 11, color: "var(--navy)" }}>Total pekerjaan</div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "var(--navy)" }}>{pekerjaan.length}</div>
@@ -250,7 +250,7 @@ export default function JadwalProyekPage() {
               <div
                 key={p.id}
                 style={{
-                  padding: 16, borderRadius: 16, background: "var(--surface)",
+                  padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)",
                   border: p.kritis ? "1px solid var(--danger-border)" : "1px solid var(--border)",
                   display: "flex", flexDirection: "column", gap: 8,
                 }}

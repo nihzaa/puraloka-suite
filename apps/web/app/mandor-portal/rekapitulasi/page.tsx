@@ -70,7 +70,7 @@ export default function RekapitulasiPage() {
     : [];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div>
         <KepalaPortal judul="Rekapitulasi Keuangan" />
         <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>
@@ -95,7 +95,7 @@ export default function RekapitulasiPage() {
       )}
 
       {!loading && data && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
           {/* Hero: sisa bersih */}
           <div
             style={{
@@ -145,7 +145,7 @@ export default function RekapitulasiPage() {
           {dataKomposisi.length > 0 && (
             <div
               style={{
-                padding: 16, borderRadius: "var(--portal-radius-card)", background: "var(--surface)",
+                padding: "var(--pad-kartu-lega)", borderRadius: "var(--portal-radius-card)", background: "var(--surface)",
                 border: "1px solid var(--border)",
               }}
             >
@@ -197,7 +197,7 @@ export default function RekapitulasiPage() {
           {data.projects.length > 1 && (
             <div
               style={{
-                padding: 16, borderRadius: "var(--portal-radius-card)", background: "var(--surface)",
+                padding: "var(--pad-kartu-lega)", borderRadius: "var(--portal-radius-card)", background: "var(--surface)",
                 border: "1px solid var(--border)",
               }}
             >
@@ -218,7 +218,7 @@ export default function RekapitulasiPage() {
                       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)", marginBottom: 8 }}>
                         {proj.name}
                       </div>
-                      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                      <div style={{ display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap" }}>
                         <div>
                           <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2, fontWeight: 700, textTransform: "uppercase" }}>
                             Earned

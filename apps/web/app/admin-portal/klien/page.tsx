@@ -78,7 +78,7 @@ export default function AdminKlienPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Daftar Klien" />
 
       <SegmentedTab

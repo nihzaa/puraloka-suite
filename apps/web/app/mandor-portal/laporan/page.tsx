@@ -72,7 +72,7 @@ export default function MandorLaporanPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Laporan Upah Mingguan" />
 
       {loading && (
@@ -122,7 +122,7 @@ export default function MandorLaporanPage() {
                   onClick={() => toggle(r.id)}
                   aria-expanded={isOpen}
                   style={{
-                    width: "100%", minHeight: 44, padding: 16, display: "flex", alignItems: "center",
+                    width: "100%", minHeight: 44, padding: "var(--pad-kartu-lega)", display: "flex", alignItems: "center",
                     justifyContent: "space-between", gap: 8, background: "none", border: "none",
                     cursor: "pointer", textAlign: "left",
                   }}
@@ -151,7 +151,7 @@ export default function MandorLaporanPage() {
                 </button>
 
                 {isOpen && (
-                  <div style={{ borderTop: "1px solid var(--border)", padding: 16 }}>
+                  <div style={{ borderTop: "1px solid var(--border)", padding: "var(--pad-kartu-lega)" }}>
                     {r.notes && (
                       <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "0 0 14px", fontStyle: "italic" }}>
                         {r.notes}

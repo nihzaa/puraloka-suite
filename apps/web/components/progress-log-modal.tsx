@@ -356,7 +356,7 @@ export function ProgressLogModal({
 
           {/* Body */}
           <div style={{ overflowY: "auto", flex: 1, padding: "16px 24px" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
 
               {/* Success result for detail mode */}
               {submitResult && (

@@ -23,7 +23,7 @@ export default function PmLainnyaPage() {
   const kategori = kategoriUntukPm();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1
         style={{
           fontSize: 22,
@@ -46,7 +46,7 @@ export default function PmLainnyaPage() {
                 display: "flex",
                 alignItems: "center",
                 gap: 14,
-                padding: 16,
+                padding: "var(--pad-kartu-lega)",
                 borderRadius: 16,
                 background: "var(--surface)",
                 border: "1px solid var(--border)",

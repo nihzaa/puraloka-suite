@@ -94,7 +94,7 @@ export function LookAheadSection({ projectId }: { projectId: string }) {
   }
   if (galat) {
     return (
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: 16, fontSize: 13, color: C.red }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "var(--pad-kartu-lega)", fontSize: 13, color: C.red }}>
         <AlertTriangle size={15} aria-hidden="true" /> {galat}
       </div>
     );

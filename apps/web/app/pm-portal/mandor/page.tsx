@@ -81,7 +81,7 @@ export default function PmMandorPage() {
   const pendingReports = reports.filter((r) => r.status === "submitted");
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Mandor &amp; Laporan Upah" />
 
       {!loading && galatMuat && (

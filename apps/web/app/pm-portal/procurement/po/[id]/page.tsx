@@ -84,13 +84,13 @@ export default function PmPoDetailPage() {
   const adaSisaTerima = po.items.some((it) => Number(it.qty_received ?? 0) < Number(it.qty_ordered));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div>
         <h1 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{po.po_number ?? "PO"}</h1>
         <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 2 }}>{po.project?.name ?? "—"} · {po.supplier?.name ?? "—"}</div>
       </div>
 
-      <div style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>Status</span>
           <StatusBadge status={VARIAN_STATUS[po.status] ?? "netral"} label={LABEL_STATUS[po.status] ?? po.status} />

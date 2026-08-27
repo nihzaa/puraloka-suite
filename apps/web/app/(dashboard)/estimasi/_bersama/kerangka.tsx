@@ -23,7 +23,7 @@ export function Modal({ title, onClose, children }: {
       style={{
         position: "fixed", inset: 0, background: "rgba(17,24,39,.45)",
         zIndex: 60, display: "flex", alignItems: "center",
-        justifyContent: "center", padding: 16,
+        justifyContent: "center", padding: "var(--pad-kartu-lega)",
       }}
       onClick={onClose}
     >

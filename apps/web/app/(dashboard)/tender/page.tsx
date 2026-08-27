@@ -199,7 +199,7 @@ export default function TenderPage() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
+      <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--gap-bagian)", flexWrap: "wrap", marginBottom: 20 }}>
         <div style={{ minWidth: 0 }}>
           <KepalaHalaman judul="Register Tender" keterangan="Tender yang diikuti, alasan menang/kalah, dan backlog yang sudah dimenangkan."         ikon={<Gavel size={19} />}
       />
@@ -337,7 +337,7 @@ export default function TenderPage() {
 
       {memuat && <div style={{ padding: 24, color: C.mid, fontSize: 13 }}>Memuat…</div>}
       {galat && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: 16, fontSize: 13, color: C.red }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "var(--pad-kartu-lega)", fontSize: 13, color: C.red }}>
           <AlertTriangle size={15} aria-hidden="true" /> {galat}
         </div>
       )}
@@ -525,7 +525,7 @@ function FormTender({ onSelesai }: { onSelesai: () => void }) {
   const lbl: React.CSSProperties = { display: "block", fontSize: 12, color: C.mid, marginBottom: 4 };
 
   return (
-    <form onSubmit={simpan} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, marginBottom: 20 }}>
+    <form onSubmit={simpan} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}`, background: C.surface, marginBottom: 20 }}>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 12 }}>
         <div>
           <label htmlFor="t-judul" style={lbl}>Judul tender *</label>

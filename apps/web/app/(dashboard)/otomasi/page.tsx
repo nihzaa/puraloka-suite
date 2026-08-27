@@ -218,7 +218,7 @@ function Konten() {
       // halaman lain 1380px — terlihat seperti dua aplikasi berbeda.
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
-      display: "grid", gap: 16,
+      display: "grid", gap: "var(--gap-bagian)",
     }}>
       <KepalaHalaman
         judul="AI & Otomasi"
@@ -298,9 +298,9 @@ function Konten() {
       >
         <Panel judul="Aktivitas terakhir">
           {memuat ? (
-            <div style={{ padding: 16, color: C.muted, fontSize: 13 }}>Memuat…</div>
+            <div style={{ padding: "var(--pad-kartu-lega)", color: C.muted, fontSize: 13 }}>Memuat…</div>
           ) : (data?.aktivitas.length ?? 0) === 0 ? (
-            <div style={{ padding: 16, color: C.muted, fontSize: 13 }}>
+            <div style={{ padding: "var(--pad-kartu-lega)", color: C.muted, fontSize: 13 }}>
               Belum ada aktivitas tercatat. Pesan WhatsApp dan uji koneksi akan muncul di sini.
             </div>
           ) : (
@@ -351,9 +351,9 @@ function Konten() {
 
         <Panel judul="Percakapan terakhir">
           {memuat ? (
-            <div style={{ padding: 16, color: C.muted, fontSize: 13 }}>Memuat…</div>
+            <div style={{ padding: "var(--pad-kartu-lega)", color: C.muted, fontSize: 13 }}>Memuat…</div>
           ) : (data?.percakapan_terakhir.length ?? 0) === 0 ? (
-            <div style={{ padding: 16, color: C.muted, fontSize: 13 }}>
+            <div style={{ padding: "var(--pad-kartu-lega)", color: C.muted, fontSize: 13 }}>
               Belum ada percakapan dengan asisten.
             </div>
           ) : (

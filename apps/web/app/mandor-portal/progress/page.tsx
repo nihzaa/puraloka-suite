@@ -325,7 +325,7 @@ export default function MandorProgressPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
         <KepalaPortal judul="Input Progress" />
         <button
@@ -439,7 +439,7 @@ export default function MandorProgressPage() {
       {!loading && !galatMuat && logs.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {logs.map((log) => (
-            <div key={log.id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div key={log.id} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                 <Calendar size={14} color="var(--text-secondary)" aria-hidden="true" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{fmtDate(log.log_date ?? null)}</span>

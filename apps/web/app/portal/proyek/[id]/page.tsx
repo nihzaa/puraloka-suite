@@ -173,7 +173,7 @@ function KurvaSTab({ projectId }: { projectId: string }) {
   const warnaSpi = meta.evm.spi === null ? "var(--text-primary)" : meta.evm.spi >= 1 ? "var(--success)" : meta.evm.spi >= 0.8 ? "var(--warning)" : "var(--danger)";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         {[
           { label: "Progress Fisik", value: `${meta.latestActualPct.toFixed(1)}%`, warna: "var(--navy)" },
@@ -313,7 +313,7 @@ function FotoTab({ projectId }: { projectId: string }) {
   if (loading) return <SkeletonCard tinggi={200} />;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {cats.map((cat) => (
           <button
@@ -572,7 +572,7 @@ export default function PortalProyekDetailPage() {
   if (!project) return null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <button
         type="button"
         onClick={() => router.back()}
@@ -630,7 +630,7 @@ export default function PortalProyekDetailPage() {
       {activeTab === "dokumen" && <DokumenTab projectId={project.id} />}
 
       {activeTab === "overview" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
           {project.pm && (
             <div style={{ ...kartu, padding: "var(--pad-kartu-lega)" }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.05em" }}>Project Manager</div>

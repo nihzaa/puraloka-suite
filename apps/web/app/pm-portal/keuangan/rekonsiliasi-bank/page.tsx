@@ -50,7 +50,7 @@ export default function PmRekonsiliasiBankPage() {
   const { data, memuat, galat } = useData<RespRekonsiliasiDaftar>("/api/v1/rekonsiliasi");
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Rekonsiliasi Bank" />
 
       {memuat && <SkeletonCard tinggi={120} />}
@@ -76,7 +76,7 @@ export default function PmRekonsiliasiBankPage() {
               style={{
                 background: "var(--surface)",
                 borderRadius: 16,
-                padding: 16,
+                padding: "var(--pad-kartu-lega)",
                 border: "1px solid var(--border)",
               }}
             >

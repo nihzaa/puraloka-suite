@@ -47,7 +47,7 @@ export function RangkaBaris({ jumlah = 3, tinggi = 18 }: { jumlah?: number; ting
   return (
     <div aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {Array.from({ length: jumlah }, (_, i) => (
-        <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}>
+        <div key={i} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}` }}>
           <Skeleton h={tinggi} />
         </div>
       ))}

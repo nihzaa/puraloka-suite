@@ -214,7 +214,7 @@ export default function KalenderPage() {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: "var(--gap-bagian)" }}>
         {/* Calendar grid */}
         <div style={GAYA_KARTU}>
           {/* Month nav */}

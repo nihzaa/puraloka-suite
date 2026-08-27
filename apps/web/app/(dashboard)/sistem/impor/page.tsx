@@ -251,7 +251,7 @@ export default function ImporPage() {
 
       {galat && <Galat pesan={galat} />}
 
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+      <div style={{ display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap", alignItems: "center" }}>
         {langkah(1, "Unggah")}
         <ArrowRight size={13} aria-hidden="true" style={{ color: C.muted }} />
         {langkah(2, "Petakan kolom")}

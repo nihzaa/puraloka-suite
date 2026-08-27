@@ -47,7 +47,7 @@ export default function PmGudangPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <KepalaPortal judul="Gudang & Material" />
         <Link href="/pm-portal/gudang/lokasi" style={{ fontSize: 12, fontWeight: 700, color: "var(--navy)", textDecoration: "none" }}>Kelola Lokasi</Link>

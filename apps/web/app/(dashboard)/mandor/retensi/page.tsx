@@ -99,7 +99,7 @@ export default function RetensiPage() {
     }}>
       <div className="rise" style={{
         display: "flex", justifyContent: "space-between",
-        alignItems: "flex-start", gap: 16, marginBottom: 18, flexWrap: "wrap",
+        alignItems: "flex-start", gap: "var(--gap-bagian)", marginBottom: 18, flexWrap: "wrap",
       }}>
         <div>
           {/* `<h2>`, bukan `<h1>`: judul halaman ("Mandor") sekarang milik

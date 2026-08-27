@@ -120,7 +120,7 @@ export default function MandorScopePage() {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Scope & Progress" />
 
       {loading && (
@@ -147,7 +147,7 @@ export default function MandorScopePage() {
       )}
 
       {!loading && !galatMuat && scopes.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
           {Object.entries(byProject).map(([pid, { projectName, scopes: projectScopes }]) => {
             const activeCount = projectScopes.filter((s) => s.status === "active").length;
             const groupKey = `group_${pid}`;

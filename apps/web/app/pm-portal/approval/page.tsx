@@ -523,7 +523,7 @@ export default function PmApprovalPage() {
   const dilewati = data?.dilewati ?? [];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Approval" />
 
       {dilewati.length > 0 && (
@@ -566,7 +566,7 @@ export default function PmApprovalPage() {
             type="button"
             onClick={() => setDipilih(baris)}
             style={{
-              textAlign: "left", padding: 16, borderRadius: "var(--portal-radius-card)",
+              textAlign: "left", padding: "var(--pad-kartu-lega)", borderRadius: "var(--portal-radius-card)",
               background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)",
               display: "flex", flexDirection: "column", gap: 8, cursor: "pointer",
               minHeight: 44, width: "100%",

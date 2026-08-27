@@ -327,7 +327,7 @@ export default function PenyediaPage() {
       // halaman lain 1380px — terlihat seperti dua aplikasi berbeda.
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-page)", margin: "0 auto",
-      display: "grid", gap: 16,
+      display: "grid", gap: "var(--gap-bagian)",
     }}>
       <KepalaHalaman
         judul="Penyedia Layanan"

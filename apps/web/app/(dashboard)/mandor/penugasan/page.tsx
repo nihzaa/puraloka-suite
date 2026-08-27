@@ -101,7 +101,7 @@ export default function PenugasanPage() {
       {loading ? (
         <div style={{ textAlign: "center", padding: 60, color: C.muted }}>Memuat data...</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
           {tersaring.length === 0 ? (
             <div style={{ ...card, padding: 48, textAlign: "center", color: C.muted }}>
               <HardHat size={32} color={C.border} style={{ marginBottom: 12 }} />

@@ -161,14 +161,14 @@ export default function PmDetailRekonsiliasiBankPage() {
   const usulPerBaris = new Map(usul.map((u) => [u.baris_id, u]));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{koran.nama_akun}</h1>
 
       <div
         style={{
           background: laporan.tuntas ? "var(--success-bg)" : "var(--surface)",
           borderRadius: 16,
-          padding: 16,
+          padding: "var(--pad-kartu-lega)",
           border: `1px solid ${laporan.tuntas ? "var(--success-border)" : "var(--border)"}`,
         }}
       >

@@ -256,7 +256,7 @@ export default function KasbonPage() {
 
             {loadingKasbon ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[1,2,3].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={14} /></div>)}
+                {[1,2,3].map(i => <div key={i} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={14} /></div>)}
               </div>
             ) : kasbons.length === 0 ? (
               <Kosong
@@ -505,7 +505,7 @@ export default function KasbonPage() {
 
             {loadingWorkerKasbon ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {[1, 2, 3].map(i => <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={14} /></div>)}
+                {[1, 2, 3].map(i => <div key={i} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}` }}><Skeleton h={14} /></div>)}
               </div>
             ) : workerKasbons.length === 0 ? (
               <Kosong

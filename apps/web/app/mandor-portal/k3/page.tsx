@@ -161,7 +161,7 @@ export default function K3Page() {
   const korbanValid = !melukai || korbanNama.trim().length > 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="K3 Lapangan" />
 
       {daftarProyek.length > 1 && (
@@ -231,7 +231,7 @@ export default function K3Page() {
             <div
               key={item.id}
               style={{
-                padding: 16, borderRadius: 16, background: "var(--surface)",
+                padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)",
                 border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8,
               }}
             >
@@ -281,7 +281,7 @@ export default function K3Page() {
             <div
               key={item.id}
               style={{
-                padding: 16, borderRadius: 16, background: "var(--surface)",
+                padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)",
                 border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8,
               }}
             >
@@ -335,7 +335,7 @@ export default function K3Page() {
             <div
               key={item.id}
               style={{
-                padding: 16, borderRadius: 16, background: "var(--surface)",
+                padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)",
                 border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 6,
               }}
             >

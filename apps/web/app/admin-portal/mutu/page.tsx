@@ -90,7 +90,7 @@ export default function AdminMutuPage() {
   const { ncr, inspeksi, punch, dokumen, izin_kerja: izin, k3 } = data;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Mutu, K3 &amp; Dokumen" />
 
       {/* ── Empat angka yang menuntut tindakan ─────────────────────────── */}

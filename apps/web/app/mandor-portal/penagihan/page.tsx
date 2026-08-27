@@ -154,7 +154,7 @@ export default function PenagihanProgressPage() {
   // sudah cair, berapa yang masih diproses".
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       {toast && (
         <div role="alert" aria-live="polite">
           <button
@@ -237,7 +237,7 @@ export default function PenagihanProgressPage() {
                     overflow: "hidden",
                   }}
                 >
-                  <div style={{ padding: 16, background: isActive ? "var(--surface-subtle)" : "transparent" }}>
+                  <div style={{ padding: "var(--pad-kartu-lega)", background: isActive ? "var(--surface-subtle)" : "transparent" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", marginBottom: 2 }}>
@@ -358,7 +358,7 @@ export default function PenagihanProgressPage() {
 
       <BottomSheet terbuka={sheetTerbuka} onTutup={() => setSheetTerbuka(false)} judul="Ajukan Penagihan">
         {selectedScope && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
             <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>{selectedScope.scope_name}</div>
 
             <div

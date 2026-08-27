@@ -287,7 +287,7 @@ export default function AbsensiPortalPage() {
           </div>
 
           {/* ── Ringkasan ─────────────────────────────────────────────── */}
-          <div style={{ ...kartu, display: "flex", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ ...kartu, display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap" }}>
             <Ringkas label="Tukang" nilai={String(workers.length)} />
             <Ringkas label="Total hari" nilai={totalHari.toFixed(1).replace(/\.0$/, "")} />
             <Ringkas

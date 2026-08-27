@@ -91,7 +91,7 @@ function IsiDetailRencanaMutu({ params }: { params: Promise<{ id: string }> }) {
     : ringkasan.boleh_lanjut ? "Boleh lanjut" : "Ada yang menahan pekerjaan";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <button type="button" onClick={() => router.back()} aria-label="Kembali"
         style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer", padding: 0 }}>
         <ChevronLeft size={16} aria-hidden="true" /> Kembali
@@ -102,7 +102,7 @@ function IsiDetailRencanaMutu({ params }: { params: Promise<{ id: string }> }) {
         <div style={{ fontSize: 14, color: "var(--text-primary)" }}>{rencana.judul} · Rev.{rencana.revisi}</div>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: 16, borderRadius: 16, background: "var(--surface)", border: `1px solid ${verdictWarna}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: `1px solid ${verdictWarna}` }}>
         <VerdictIcon size={28} color={verdictWarna} aria-hidden="true" />
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: verdictWarna }}>{verdictTeks}</div>

@@ -85,7 +85,7 @@ export default function AdminGudangPage() {
   const { kpi } = data;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Gudang &amp; Aset" />
 
       {/*

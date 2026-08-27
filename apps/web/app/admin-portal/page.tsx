@@ -40,7 +40,7 @@ export default function AdminPortalBeranda() {
   const { data: deret } = useData<DashboardDeret>("/api/v1/dashboard/deret");
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1 style={{
         fontSize: "var(--t-judul)", fontWeight: 700,
         color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
@@ -105,7 +105,7 @@ export default function AdminPortalBeranda() {
           href="/admin-portal/inbox"
           style={{
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-            padding: 16, borderRadius: "var(--portal-radius-card)", background: "var(--warning-bg)",
+            padding: "var(--pad-kartu-lega)", borderRadius: "var(--portal-radius-card)", background: "var(--warning-bg)",
             border: "1px solid var(--warning-border)", textDecoration: "none", minHeight: 44,
           }}
         >
@@ -124,7 +124,7 @@ export default function AdminPortalBeranda() {
           href={fokus!.tautan}
           style={{
             display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
-            padding: 16, borderRadius: "var(--portal-radius-card)", background: "var(--danger-bg)",
+            padding: "var(--pad-kartu-lega)", borderRadius: "var(--portal-radius-card)", background: "var(--danger-bg)",
             border: "1px solid var(--danger-border)", textDecoration: "none", minHeight: 44,
           }}
         >

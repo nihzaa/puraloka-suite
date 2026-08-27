@@ -136,7 +136,7 @@ export default function DaftarTukangPage() {
             // kolom Status menuliskannya dengan kata (WCAG 1.4.1).
             tandaiBaris={(w) => (w.is_active ? undefined : "var(--surface-subtle)")}
             kosong={
-              <div style={{ padding: 16 }}>
+              <div style={{ padding: "var(--pad-kartu-lega)" }}>
                 <Kosong
                   ikon={<Users size={28} />}
                   judul="Belum ada pekerja terdaftar"

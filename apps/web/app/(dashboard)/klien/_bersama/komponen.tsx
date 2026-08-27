@@ -157,7 +157,7 @@ export function ClientModal({
   if (!mounted) return null;
 
   return createPortal(
-    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}>
       <div style={{ background: "var(--surface)", borderRadius: 14, width: "100%", maxWidth: 540, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "var(--naik-3)" }}>
         <div style={{ padding: "20px 24px 16px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, color: C.text }}>
@@ -303,7 +303,7 @@ export function DetailPanel({ clientId, onClose, onEdit, onCreateProject }: {
           {loading ? (
             <div style={{ padding: 24, color: C.muted, fontSize: 13 }}>Memuat...</div>
           ) : detail ? (
-            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
 
               {/* Avatar + info dasar */}
               <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>

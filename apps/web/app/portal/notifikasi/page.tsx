@@ -61,7 +61,7 @@ export default function PortalNotifPage() {
   const unread = notifs.filter((n) => !n.is_read).length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <KepalaPortal judul="Notifikasi" />
@@ -103,7 +103,7 @@ export default function PortalNotifPage() {
               }
             }}
             style={{
-              background: "var(--surface)", borderRadius: 14, padding: 16,
+              background: "var(--surface)", borderRadius: 14, padding: "var(--pad-kartu-lega)",
               border: "1px solid var(--border)",
               borderLeft: !n.is_read ? "3px solid var(--navy)" : "1px solid var(--border)",
               cursor: !n.is_read ? "pointer" : "default",

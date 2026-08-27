@@ -241,7 +241,7 @@ export default function PiutangPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
       {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div>
@@ -367,7 +367,7 @@ export default function PiutangPage() {
       </div>
 
       {/* ── Register Retensi + Register Uang Muka ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: "var(--gap-bagian)" }}>
         {/* Retensi */}
         <div style={{ ...GAYA_KARTU, overflow: "hidden" }}>
           <div style={{ padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>

@@ -613,7 +613,7 @@ function ProyekRingkasan() {
             // Sisa ruang yang tak cukup untuk satu kolom lagi dibagi rata jadi
             // jarak antar-kartu, bukan ditumpuk jadi rongga di ujung kanan.
             justifyContent: "space-between",
-            gap: 16,
+            gap: "var(--gap-bagian)",
           }}
         >
           {filtered.map(p => (

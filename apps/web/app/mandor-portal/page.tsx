@@ -116,7 +116,7 @@ export default function MandorBerandaPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Beranda" />
 
       {memuat ? (
@@ -135,7 +135,7 @@ export default function MandorBerandaPage() {
         <Link
           href="/mandor-portal/laporan-upah"
           style={{
-            display: "flex", alignItems: "center", gap: 10, padding: 16,
+            display: "flex", alignItems: "center", gap: 10, padding: "var(--pad-kartu-lega)",
             borderRadius: "var(--portal-radius-card)", background: "var(--warning-bg)",
             border: "1px solid var(--warning-border)", textDecoration: "none",
           }}

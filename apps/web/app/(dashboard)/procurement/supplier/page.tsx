@@ -124,7 +124,7 @@ export default function SupplierPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, flexWrap: "wrap" }}>
                 <div>
                   <div style={{ fontWeight: 600, color: C.text, fontSize: 15 }}>{s.name}</div>
-                  <div style={{ fontSize: 13, color: C.mid, marginTop: 4, display: "flex", gap: 16, flexWrap: "wrap" }}>
+                  <div style={{ fontSize: 13, color: C.mid, marginTop: 4, display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap" }}>
                     {s.contact_person && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><Phone size={11} aria-hidden="true" />{s.contact_person}</span>}
                     {s.phone && <span>{s.phone}</span>}
                     {s.city && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={11} aria-hidden="true" />{s.city}</span>}

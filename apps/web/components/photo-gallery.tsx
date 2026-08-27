@@ -154,7 +154,7 @@ function LightboxContent({
       </div>
 
       {/* Main image area */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 16, padding: "0 16px", minHeight: 0 }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "var(--gap-bagian)", padding: "0 16px", minHeight: 0 }}>
         {/* Prev */}
         <button aria-label="Foto sebelumnya"
           onClick={prev}
@@ -187,7 +187,7 @@ function LightboxContent({
       {/* Bottom info bar */}
       <div style={{
         background: "rgba(0,0,0,0.7)", padding: "12px 20px", flexShrink: 0,
-        display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--gap-bagian)",
       }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {photo.caption && (

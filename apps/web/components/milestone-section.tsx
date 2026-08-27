@@ -461,7 +461,7 @@ export function MilestoneSection({ projectId, userRole }: MilestoneSectionProps)
           <div style={{
             position: "fixed", inset: 0, zIndex: 1050,
             display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 16,
+            padding: "var(--pad-kartu-lega)",
           }}>
             <div style={{
               position: "absolute", inset: 0,

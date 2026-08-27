@@ -118,7 +118,7 @@ function PembayaranInner() {
       {memuat ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {[1, 2, 3].map((i) => (
-            <div key={i} style={{ padding: 16, borderRadius: 10, border: `1px solid ${C.border}` }}>
+            <div key={i} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}` }}>
               <Skeleton h={14} />
             </div>
           ))}
@@ -141,7 +141,7 @@ function PembayaranInner() {
               <div key={p.id} style={{
                 display: "grid",
                 gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1.3fr) 150px 110px",
-                alignItems: "center", gap: 16, padding: "12px 16px",
+                alignItems: "center", gap: "var(--gap-bagian)", padding: "12px 16px",
                 borderRadius: 10, border: `1px solid ${C.border}`,
                 background: "var(--surface-subtle)",
               }}>

@@ -510,7 +510,7 @@ function FormOverride({ proyekId, onTutup, onSimpan }: {
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="ovr-judul"
       style={{ position: "fixed", inset: 0, zIndex: 60, background: "rgba(17,24,39,0.45)",
-        display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+        display: "flex", alignItems: "center", justifyContent: "center", padding: "var(--pad-kartu-lega)" }}>
       <div style={{ background: "var(--surface)", borderRadius: 10, width: "100%", maxWidth: 460,
         maxHeight: "92vh", display: "flex", flexDirection: "column", overflow: "hidden",
         boxShadow: "var(--naik-3)" }}>
@@ -524,7 +524,7 @@ function FormOverride({ proyekId, onTutup, onSimpan }: {
               minWidth: 34, minHeight: 34 }}>✕</button>
         </header>
 
-        <div style={{ padding: 16, overflowY: "auto", display: "grid", gap: 12 }}>
+        <div style={{ padding: "var(--pad-kartu-lega)", overflowY: "auto", display: "grid", gap: 12 }}>
           <div>
             <label htmlFor="ovr-kode" style={gaya.label}>Resource</label>
             {terpilih ? (

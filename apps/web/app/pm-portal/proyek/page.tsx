@@ -48,7 +48,7 @@ export default function PmProyekPage() {
   const filtered = filter === "all" ? projects : projects.filter((p) => p.status === filter);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Proyek Saya" />
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -88,7 +88,7 @@ export default function PmProyekPage() {
           return (
             <Link key={p.id} href={`/pm-portal/proyek/${p.id}`} style={{ textDecoration: "none" }}>
               <div style={{
-                background: "var(--surface)", borderRadius: 16, padding: 16,
+                background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)",
                 border: `1px solid ${terlambat ? "var(--danger-border)" : "var(--border)"}`,
                 display: "flex", flexDirection: "column", gap: 8,
               }}>

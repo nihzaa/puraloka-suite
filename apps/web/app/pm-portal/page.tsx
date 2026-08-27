@@ -33,7 +33,7 @@ export default function PmBerandaPage() {
   const galatMuat = galatInbox ?? galatProyek;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
         Halo, {namaSapaan(user?.name)}
       </h1>
@@ -70,7 +70,7 @@ export default function PmBerandaPage() {
         <Link
           href="/pm-portal/approval"
           style={{
-            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: 16,
+            display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "var(--pad-kartu-lega)",
             borderRadius: "var(--portal-radius-card)", background: "var(--warning-bg)",
             border: "1px solid var(--warning-border)", textDecoration: "none", minHeight: 44,
           }}

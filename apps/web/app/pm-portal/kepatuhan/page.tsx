@@ -126,7 +126,7 @@ export default function PmKepatuhanPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Kepatuhan & Izin Kerja" />
 
       {daftarProyek.length > 1 && (

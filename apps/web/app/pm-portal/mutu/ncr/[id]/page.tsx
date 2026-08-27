@@ -174,7 +174,7 @@ function IsiDetailNcr({ params }: { params: Promise<{ id: string }> }) {
   const butuhTindakanSebelumTutup = !ncr.tindakan_perbaikan?.trim() || !ncr.akar_masalah?.trim();
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <button type="button" onClick={() => router.back()} aria-label="Kembali"
         style={{ display: "flex", alignItems: "center", gap: 4, background: "none", border: "none", color: "var(--text-secondary)", fontSize: 13, cursor: "pointer", padding: 0 }}>
         <ChevronLeft size={16} aria-hidden="true" /> Kembali

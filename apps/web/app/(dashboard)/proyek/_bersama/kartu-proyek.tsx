@@ -315,7 +315,7 @@ export function ProjectCardList({ project: p, hariIni, onClick }: {
         ...kartu, padding: "16px 20px", cursor: "pointer",
         display: "grid",
         gridTemplateColumns: "1fr 160px 160px 120px 36px",
-        alignItems: "center", gap: 16,
+        alignItems: "center", gap: "var(--gap-bagian)",
         transition: "all 0.15s ease",
         borderColor: lewat ? C.redBorder : "var(--border)",
       }}

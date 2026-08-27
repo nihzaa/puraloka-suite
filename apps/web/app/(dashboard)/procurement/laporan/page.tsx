@@ -267,7 +267,7 @@ export default function LaporanPage() {
                 {(purchases.summary?.by_supplier ?? []).slice(0, 8).map(s => (
                   <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: C.surface, borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13 }}>
                     <span style={{ fontWeight: 500 }}>{s.name}</span>
-                    <div style={{ display: "flex", gap: 16, color: C.mid }}>
+                    <div style={{ display: "flex", gap: "var(--gap-bagian)", color: C.mid }}>
                       <span>{s.count} PO</span>
                       <span style={{ fontWeight: 600, color: C.text, fontVariantNumeric: "tabular-nums" }}>{fmt(s.total)}</span>
                     </div>

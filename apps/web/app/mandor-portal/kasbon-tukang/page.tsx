@@ -109,7 +109,7 @@ export default function KasbonTukangPage() {
     .reduce((s, k) => s + (Number(k.amount) - Number(k.amount_settled ?? 0)), 0);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
         <div>
           <KepalaPortal judul="Kasbon Tukang" />
@@ -130,11 +130,11 @@ export default function KasbonTukangPage() {
 
       {!loading && !galatMuat && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: "1px solid var(--border)" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)", border: "1px solid var(--border)" }}>
             <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600, marginBottom: 6 }}>Kasbon Aktif</div>
             <div style={{ fontSize: 26, fontWeight: 800, color: "var(--on-warning-bg)" }}>{pending}</div>
           </div>
-          <div style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: "1px solid var(--border)" }}>
+          <div style={{ background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)", border: "1px solid var(--border)" }}>
             <div style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 600, marginBottom: 6 }}>Total Outstanding</div>
             <div style={{ fontSize: 15, fontWeight: 800, color: "var(--on-danger-bg)" }}>{fmt(totalOutstanding)}</div>
           </div>
@@ -170,7 +170,7 @@ export default function KasbonTukangPage() {
             <div
               key={k.id}
               style={{
-                padding: 16, borderRadius: 16, background: "var(--surface)",
+                padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)",
                 border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8,
               }}
             >

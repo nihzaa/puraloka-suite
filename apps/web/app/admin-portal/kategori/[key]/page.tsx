@@ -210,7 +210,7 @@ export default function AdminKategoriPage() {
 
   if (!grup) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
         <button
           type="button"
           onClick={() => router.back()}
@@ -227,7 +227,7 @@ export default function AdminKategoriPage() {
   const ekstra = EKSTRA_PORTAL[grup.key] ?? [];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <button
         type="button"
         onClick={() => router.back()}
@@ -248,7 +248,7 @@ export default function AdminKategoriPage() {
             href={PETA_HREF_PORTAL[it.key] ?? it.href ?? "#"}
             style={{
               display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
-              padding: 16, borderRadius: 14, background: "var(--surface)",
+              padding: "var(--pad-kartu-lega)", borderRadius: 14, background: "var(--surface)",
               border: "1px solid var(--border)", textDecoration: "none",
             }}
           >
@@ -264,7 +264,7 @@ export default function AdminKategoriPage() {
               href={it.href}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
-                padding: 16, borderRadius: 14, background: "var(--surface)",
+                padding: "var(--pad-kartu-lega)", borderRadius: 14, background: "var(--surface)",
                 border: "1px solid var(--border)", textDecoration: "none",
               }}
             >

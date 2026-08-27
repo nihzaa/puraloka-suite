@@ -132,7 +132,7 @@ export default function PmK3Page() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="K3 Lapangan" />
 
       {daftarProyek.length > 1 && (
@@ -180,7 +180,7 @@ export default function PmK3Page() {
               onClick={() => item.status !== "ditutup" && bukaTutup(item)}
               disabled={item.status === "ditutup"}
               style={{
-                textAlign: "left", padding: 16, borderRadius: 16, background: "var(--surface)",
+                textAlign: "left", padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)",
                 border: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8,
                 cursor: item.status === "ditutup" ? "default" : "pointer",
               }}
@@ -224,7 +224,7 @@ export default function PmK3Page() {
             <EmptyState icon={HardHat} judul="Belum ada Job Safety Analysis" deskripsi="JSA yang berlaku untuk proyek ini akan tampil di sini." />
           )}
           {!memuatJsa && (dataJsa?.jsa ?? []).map((item) => (
-            <div key={item.id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div key={item.id} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                 <div style={{ flex: 1 }}>
                   <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{item.jenis_pekerjaan ?? "—"}</span>
@@ -251,7 +251,7 @@ export default function PmK3Page() {
             <EmptyState icon={ClipboardCheck} judul="Belum ada inspeksi K3 rutin" deskripsi="Inspeksi rutin K3 di proyek ini akan muncul di sini." />
           )}
           {proyekAktif && !memuatInspeksi && (dataK3Proyek?.inspeksi ?? []).map((item) => (
-            <div key={item.id} style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 6 }}>
+            <div key={item.id} style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 6 }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>{item.area ?? item.nomor ?? "Inspeksi"}</span>
               <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
                 {item.tanggal ?? "—"}{item.pemeriksa_nama ? ` · ${item.pemeriksa_nama}` : ""}

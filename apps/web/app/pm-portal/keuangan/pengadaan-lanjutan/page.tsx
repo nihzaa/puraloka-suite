@@ -156,7 +156,7 @@ export default function PmPengadaanLanjutanPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Kontrak Payung & Pengadaan Lanjutan" />
 
       <div role="tablist" aria-label="Bagian pengadaan lanjutan" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -175,7 +175,7 @@ export default function PmPengadaanLanjutanPage() {
             onClick={() => setTab(t.key)}
             style={{
               padding: "6px 14px", borderRadius: "var(--portal-radius-pill)", fontSize: 12, fontWeight: 600,
-              cursor: "pointer", minHeight: 32,
+              cursor: "pointer", minHeight: 44,   // 44px WCAG 2.5.5 — sebelumnya 32
               border: `1px solid ${tab === t.key ? "var(--navy)" : "var(--border)"}`,
               background: tab === t.key ? "var(--info-bg)" : "var(--surface)",
               color: tab === t.key ? "var(--navy)" : "var(--text-secondary)",
@@ -213,7 +213,7 @@ export default function PmPengadaanLanjutanPage() {
               <div
                 key={k.id}
                 style={{
-                  background: "var(--surface)", borderRadius: 16, padding: 16,
+                  background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)",
                   border: `1px solid ${k.aktifTapiTakBisaDipakai ? "var(--danger-border)" : "var(--border)"}`,
                 }}
               >
@@ -272,7 +272,7 @@ export default function PmPengadaanLanjutanPage() {
             <div
               key={e.id}
               style={{
-                background: "var(--surface)", borderRadius: 16, padding: 16,
+                background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)",
                 border: `1px solid ${e.kritis ? "var(--danger-border)" : "var(--border)"}`,
               }}
             >
@@ -324,7 +324,7 @@ export default function PmPengadaanLanjutanPage() {
               <div
                 key={n.id}
                 style={{
-                  background: "var(--surface)", borderRadius: 16, padding: 16,
+                  background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)",
                   border: `1px solid ${n.menggantung ? "var(--danger-border)" : "var(--border)"}`,
                 }}
               >

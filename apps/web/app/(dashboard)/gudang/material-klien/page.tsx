@@ -184,7 +184,7 @@ export default function MaterialKlienPage() {
       ) : (
         <>
           {/* ── Formulir ────────────────────────────────────────────────── */}
-          <div className="rise rise-2" style={{ ...kartu, padding: 16, marginBottom: 18 }}>
+          <div className="rise rise-2" style={{ ...kartu, padding: "var(--pad-kartu-lega)", marginBottom: 18 }}>
             <div style={{
               display: "grid", gap: 12,
               gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",

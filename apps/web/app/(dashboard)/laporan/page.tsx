@@ -217,7 +217,7 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
     <div style={{ background: "var(--surface)", border: `1px solid ${C.border}`, borderRadius: 10, padding: "8px 12px", fontSize: 12, boxShadow: "var(--naik-2)" }}>
       <p style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>{label}</p>
       {payload.map((p, i) => (
-        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 16, marginBottom: 3 }}>
+        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "var(--gap-bagian)", marginBottom: 3 }}>
           <span style={{ color: C.mid }}>{p.name}</span>
           <span style={{ fontWeight: 600, color: p.color }}>{fmtCompact(p.value)}</span>
         </div>

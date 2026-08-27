@@ -1808,7 +1808,7 @@ function ProjectDetailContent() {
               {/* Project header */}
               <div style={{ marginBottom: 20, paddingBottom: 16, borderBottom: "2px solid var(--border)" }}>
                 <div style={{ fontSize: 20, fontWeight: 800, color: C.navy, fontFamily: "var(--font-display)", marginBottom: 4 }}>{p.name}</div>
-                <div style={{ display: "flex", gap: 16, fontSize: 12, color: C.mid, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "var(--gap-bagian)", fontSize: 12, color: C.mid, flexWrap: "wrap" }}>
                   <span>📍 {p.location}</span>
                   <span>👤 Klien: {(p.clients as any)?.name ?? "—"}</span>
                   <span>🗓 {fmtDate(p.start_date)} — {fmtDate(p.end_date)}</span>

@@ -216,7 +216,7 @@ export default function MandorRingkasanPage() {
       <GrafikModul modul="mandor" />
 
       {/* ══ LAPIS 2 — POLA ═══════════════════════════════════════════════ */}
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap" }}>
         {/* Komposisi laporan menurut status */}
         <div style={{ ...card, padding: "14px 16px", flex: "1 1 340px", minWidth: 300 }}>
           <JudulBagian tautan="/mandor/upah" labelTautan="Buka daftar">

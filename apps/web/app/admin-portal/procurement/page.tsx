@@ -108,7 +108,7 @@ export default function AdminProcurementPage() {
     useData<RespSupplierDaftar>(sheetPo ? "/api/v1/procurement/suppliers?limit=200" : null);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={kepala}>
         <KepalaPortal judul="Procurement" />
         {tab === "mr" && bolehBuatMr && (

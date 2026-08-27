@@ -47,7 +47,7 @@ export default function PmKontrakPage() {
   const proyek = daftarProyek.find((p) => p.id === proyekAktif);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Kontrak" />
 
       {daftarProyek.length > 1 && (
@@ -67,7 +67,7 @@ export default function PmKontrakPage() {
       {!memuat && !proyek && <EmptyState icon={Landmark} judul="Pilih proyek" deskripsi="Ringkasan kontrak tercatat per proyek." />}
 
       {!memuat && proyek && (
-        <div style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>Nilai Kontrak</div>
             <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text-primary)" }}>{fmtRupiah(proyek.contract_value)}</div>

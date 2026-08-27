@@ -231,7 +231,7 @@ export default function PenawaranPage() {
     }}>
       <header style={{
         display: "flex", alignItems: "flex-start", justifyContent: "space-between",
-        gap: 16, flexWrap: "wrap", marginBottom: 20,
+        gap: "var(--gap-bagian)", flexWrap: "wrap", marginBottom: 20,
       }}>
         <div style={{ minWidth: 0 }}>
           <KepalaHalaman

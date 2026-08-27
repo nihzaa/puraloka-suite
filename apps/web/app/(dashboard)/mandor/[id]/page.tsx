@@ -131,13 +131,13 @@ export default function MandorProfilePage() {
     // Menambahkannya lagi di sini membuat jaraknya ganda.
     <div style={{ width: "100%", maxWidth: "var(--w-page)", margin: "0 auto" }}>
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 16, marginBottom: 28 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--gap-bagian)", marginBottom: 28 }}>
         <button
           onClick={() => router.back()}
           style={{ padding: "var(--pad-tombol)", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: C.mid, flexShrink: 0, marginTop: 2 }}>
           <ArrowLeft size={14} /> Kembali
         </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--gap-bagian)" }}>
           <div style={{ width: 56, height: 56, borderRadius: 14, background: C.navyLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800, color: C.navy, flexShrink: 0 }}>
             {mandor.name.charAt(0).toUpperCase()}
           </div>

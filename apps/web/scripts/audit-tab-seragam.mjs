@@ -51,8 +51,63 @@ import { fileURLToPath } from 'node:url'
 
 const AKAR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 
-// Komponen bersama itu sendiri — ia memang tempat `role="tab"` ditulis.
-const SAH = new Set(['apps/web/components/tab-bagian.tsx'])
+/*
+  Komponen bersama itu sendiri — memang di sanalah `role="tab"` ditulis.
+
+  ── Kenapa `SegmentedTab` ikut (ditambahkan 2026-08-27)
+
+  Portal (admin/pm/mandor) punya shell sendiri: lebar 390px, tanpa sidebar.
+  `<TabBagian>` dirancang untuk dashboard — pil bergaris bawah selebar
+  halaman — dan di 390px ia memenuhi seluruh baris. Portal karena itu punya
+  komponen bersamanya sendiri, `SegmentedTab`, berbentuk segmen pil.
+
+  Yang penjaga ini jaga adalah SIFATNYA, bukan nama komponennya, dan
+  `SegmentedTab` memenuhi seluruhnya — diperiksa ke kodenya, bukan
+  diasumsikan:
+
+    · `role="tablist"` pada wadahnya
+    · `role="tab"` + `aria-selected` pada tiap tombol
+    · `minHeight: 44` (WCAG 2.5.5)
+    · penanda aktif TIGA LAPIS — latar, warna teks, DAN bobot 700 —
+      jadi tak bergantung warna saja (WCAG 1.4.1)
+
+  Empat halaman yang dilaporkan melanggar (`gl` dan `pengadaan-lanjutan` di
+  dua portal) hanya MEMAKAI komponen ini. Menuruti laporannya berarti
+  memindahkan portal ke `<TabBagian>` yang tak muat di layarnya — merusak
+  tampilan demi menghijaukan penjaga.
+
+  ⚠ Daftar ini menerima berkas berdasarkan JALURNYA, jadi ia hanya sah
+  selama isinya masih memenuhi keempat sifat di atas. Kalau `SegmentedTab`
+  kelak kehilangan `aria-selected` atau penanda non-warnanya, penjaga ini
+  TIDAK akan berbunyi. Yang menjaganya di situ adalah `a11y-ratchet` dan
+  audit a11y runtime (axe-core), bukan berkas ini.
+*/
+const SAH = new Set([
+  'apps/web/components/tab-bagian.tsx',
+  'apps/web/components/portal/SegmentedTab.tsx',
+  /*
+    ── Dua halaman pengadaan-lanjutan: ARIA-nya LEBIH LENGKAP dari komponen
+
+    Keduanya menulis `role="tab"` sendiri, dan pemindahannya ke
+    `SegmentedTab` akan MENURUNKAN aksesibilitasnya — bukan menaikkan:
+
+        halaman ini      role=tablist + aria-label + id + aria-controls
+        SegmentedTab     role=tablist + aria-selected  (tanpa aria-controls)
+
+    `aria-controls` menautkan tiap tab ke panel isinya. Tanpa itu pembaca
+    layar tahu ada tab terpilih tetapi tidak tahu bagian mana yang berubah.
+
+    Yang benar-benar kurang di sini hanya sasaran sentuhnya (`minHeight: 32`,
+    di bawah 44px WCAG 2.5.5) — dan ITU yang diperbaiki 2026-08-27, bukan
+    polanya.
+
+    Arah yang benar sebaliknya: `SegmentedTab` kelak menerima `aria-controls`,
+    lalu keduanya pindah ke sana. Sampai itu terjadi, memaksa pindah berarti
+    membuang ARIA yang sudah benar demi menghijaukan penjaga.
+  */
+  'apps/web/app/admin-portal/keuangan/pengadaan-lanjutan/page.tsx',
+  'apps/web/app/pm-portal/keuangan/pengadaan-lanjutan/page.tsx',
+])
 
 const berkas = execSync(
   'find apps/web/app apps/web/components -name "*.tsx"',

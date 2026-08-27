@@ -132,7 +132,7 @@ export default function HalamanRk3k() {
 
       <Kartu pad="sedang">
         <div style={{
-          display: "flex", gap: 16, flexWrap: "wrap",
+          display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap",
           alignItems: "flex-end", justifyContent: "space-between",
         }}>
           <div style={{ flex: "1 1 280px", minWidth: 0 }}>

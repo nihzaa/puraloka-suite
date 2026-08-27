@@ -68,7 +68,7 @@ export default function PmNcrPage() {
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <KepalaPortal judul="NCR" />
         {proyekAktif && (

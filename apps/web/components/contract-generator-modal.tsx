@@ -121,7 +121,7 @@ export function ContractGeneratorModal({ projectId, projectName, onClose }: Prop
         position: "fixed", inset: 0, zIndex: 9999,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: "rgba(0,0,0,0.4)", backdropFilter: "blur(2px)",
-        padding: 16,
+        padding: "var(--pad-kartu-lega)",
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >

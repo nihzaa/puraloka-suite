@@ -177,7 +177,7 @@ export function RantaiKontrakSection({ projectId }: { projectId: string }) {
   return (
     <section style={{
       borderRadius: 10, border: `1px solid ${C.border}`,
-      background: C.surface, padding: 16, marginTop: 20,
+      background: C.surface, padding: "var(--pad-kartu-lega)", marginTop: 20,
     }}>
       <header style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
         <div>

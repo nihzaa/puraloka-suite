@@ -679,7 +679,7 @@ function CreateCoModal({
     background: "var(--surface)", borderRadius: 14, padding: "28px 28px 24px",
     width: "min(480px, 92vw)", maxHeight: "90vh", overflowY: "auto",
     boxShadow: "var(--naik-3)",
-    display: "flex", flexDirection: "column", gap: 16,
+    display: "flex", flexDirection: "column", gap: "var(--gap-bagian)",
   };
 
   return createPortal(

@@ -3209,7 +3209,7 @@ function Status({ el }: { el: BarisElemen }) {
 
 export default function HalamanStruktur() {
   return (
-    <Suspense fallback={<div style={{ padding: 16, color: C.mid }}>Memuat…</div>}>
+    <Suspense fallback={<div style={{ padding: "var(--pad-kartu-lega)", color: C.mid }}>Memuat…</div>}>
       <StrukturLayar />
     </Suspense>
   );

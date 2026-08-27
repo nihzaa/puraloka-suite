@@ -318,7 +318,7 @@ function KartuHari({ hari, namaProyek }: { hari: Hari; namaProyek: Map<string, s
       {hari.progres.length > 0 && (
         <div style={{
           padding: "10px var(--pad-kartu-lega)", borderTop: `1px solid ${C.border}`,
-          background: "var(--surface-subtle)", display: "flex", gap: 16,
+          background: "var(--surface-subtle)", display: "flex", gap: "var(--gap-bagian)",
           flexWrap: "wrap", fontSize: 12, color: C.mid,
         }}>
           <TrendingUp size={13} aria-hidden="true" style={{ marginTop: 1 }} />

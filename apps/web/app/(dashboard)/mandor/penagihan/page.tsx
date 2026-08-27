@@ -170,7 +170,7 @@ export default function PenagihanPage() {
     // antar bagian, cacat yang sama yang sudah ditambal di modul Keuangan.
     <div style={{
       width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto",
-      display: "flex", flexDirection: "column", gap: 16,
+      display: "flex", flexDirection: "column", gap: "var(--gap-bagian)",
     }}>
       {/* Kesiapan opname DI ATAS daftar pengajuan.
           Yang dicari pembacanya sebelum menyetujui apa pun adalah "boleh
@@ -420,7 +420,7 @@ function PanelBackCharge({ baris, ringkas, bolehSetujui, onPutuskan }: {
         </p>
       </div>
 
-      <div style={{ display: "flex", gap: 16, padding: "10px 16px", borderBottom: `1px solid ${C.border}`, flexWrap: "wrap", fontSize: 12 }}>
+      <div style={{ display: "flex", gap: "var(--gap-bagian)", padding: "10px 16px", borderBottom: `1px solid ${C.border}`, flexWrap: "wrap", fontSize: 12 }}>
         <span style={{ color: "var(--danger)" }}>
           Siap memotong: <strong style={{ fontVariantNumeric: "tabular-nums" }}>{rupiah(ringkas.siapDipotong)}</strong>
         </span>

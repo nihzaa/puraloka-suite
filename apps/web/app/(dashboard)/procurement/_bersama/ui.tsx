@@ -122,7 +122,7 @@ export function Card({ children, style, onClick }: {
     // dipakai sebagai pembungkus biasa, dan menandai wadah non-interaktif
     // sebagai tombol justru menyesatkan pembaca layar.
     <div
-      style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16, ...style }}
+      style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: "var(--pad-kartu-lega)", ...style }}
       onClick={onClick}
       role={onClick ? "button" : undefined}
       tabIndex={onClick ? 0 : undefined}

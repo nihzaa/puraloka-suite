@@ -448,7 +448,7 @@ export default function AuditPage() {
                 {/* Expanded detail */}
                 {isExpanded && (
                   <div style={{ padding: "0 20px 16px 20px", background: "var(--surface-subtle)", borderTop: "1px solid var(--surface-hover)" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 14 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--gap-bagian)", marginTop: 14 }}>
                       {/* Metadata */}
                       <div style={{ background: "var(--surface)", borderRadius: 10, padding: "12px 12px", border: "1px solid var(--border)" }}>
                         <div style={{ fontSize: 10, fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>Detail</div>

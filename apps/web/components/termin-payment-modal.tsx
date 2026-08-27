@@ -240,7 +240,7 @@ function TerminPaymentModalContent({ projectId, termin, onClose, onSuccess }: Pr
               )}
             </div>
           ) : (
-            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
 
               {/* Tanggal bayar + Nominal */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

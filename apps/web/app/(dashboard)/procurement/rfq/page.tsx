@@ -712,7 +712,7 @@ export default function RfqPage() {
               {rfqAktif && (
                 <div className="rise rise-2b" style={{
                   ...kartu, padding: "12px 16px", marginBottom: 16,
-                  display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap",
+                  display: "flex", gap: "var(--gap-bagian)", alignItems: "center", flexWrap: "wrap",
                 }}>
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{rfqAktif.nomor}</div>

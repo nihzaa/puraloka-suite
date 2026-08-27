@@ -30,10 +30,10 @@
 // ⚠️ DEVIASI dari "salin APA ADANYA" (dilaporkan jujur, bukan diklaim
 // persis): (1) `fmtTanggal()` lokal versi PM diganti `formatTanggal()` dari
 // `@/lib/format` — pola wajib repo ini (lihat peringatan format function di
-// task ini), PM sendiri belum memakainya di halaman ini. (2) dua `gap: 16`
+// task ini), PM sendiri belum memakainya di halaman ini. (2) dua `gap: "var(--gap-bagian)"`
 // dipaku (baris pembuka & baris ringkasan KPI baseline) diganti
-// `var(--gap-bagian)`, dan (3) `padding: 16` dipaku di kartu ringkasan
-// baseline (co-located dengan salah satu `gap: 16` di atas, sempat terlewat
+// `var(--gap-bagian)`, dan (3) `padding: "var(--pad-kartu-lega)"` dipaku di kartu ringkasan
+// baseline (co-located dengan salah satu `gap: "var(--gap-bagian)"` di atas, sempat terlewat
 // review pertama) diganti `var(--pad-kartu-lega)` — supaya
 // `kerapatan-ratchet.mjs` tidak naik. Ketiganya nilainya SAMA PERSIS (16px),
 // token bukan desain baru.

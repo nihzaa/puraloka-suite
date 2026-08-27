@@ -125,7 +125,7 @@ export default function DaftarTukangPage() {
   const activeCount = workers.filter((w) => w.is_active).length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
         <div>
           <KepalaPortal judul="Daftar Tukang" />
@@ -182,7 +182,7 @@ export default function DaftarTukangPage() {
               <div
                 key={w.id}
                 style={{
-                  padding: 16, borderRadius: 16,
+                  padding: "var(--pad-kartu-lega)", borderRadius: 16,
                   background: w.is_active ? "var(--surface)" : "var(--surface-subtle)",
                   border: "1px solid var(--border)",
                 }}

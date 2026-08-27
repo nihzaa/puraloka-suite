@@ -1,7 +1,7 @@
 {
-  "nilai": 181,
+  "nilai": 88,
   "_catatan": "181 sejak 2026-08-13: penjaga kini MELEWATI keadaan kosong/memuat (padding 40-80 pada 'Memuat…' / 'Belum ada…'), yang memang sengaja lapang dan salah kalau dipaksa memakai token kerapatan 12-16px. Turunnya 307→181 BUKAN perbaikan 126 tempat, melainkan koreksi alat ukur. Sebelumnya: 307 dicapai NYATA 2026-08-08 (UIR-0B).",
-  "_diukur": "2026-08-13",
+  "_diukur": "2026-08-27",
   "_riwayat": [
     "422 → 422",
     "422 → 394 (otomatis)",
@@ -9,6 +9,7 @@
     "369 → 358 (otomatis)",
     "358 → 307 (otomatis)",
     "307 dikonfirmasi nyata 2026-08-08 — document-section.tsx gap:16 → var(--gap-bagian)",
-    "307 → 181 (2026-08-13) — keadaan kosong/memuat dikecualikan, bukan diperbaiki"
+    "307 → 181 (2026-08-13) — keadaan kosong/memuat dikecualikan, bukan diperbaiki",
+    "181 -> 88 (2026-08-27): 241 nilai dipaku diganti token di 141 berkas. HANYA nilai yang PERSIS sama dengan tokennya — gap:16 -> var(--gap-bagian), padding:16 -> var(--pad-kartu-lega), keduanya bernilai 16px, jadi tampilannya identik dan yang berubah cuma sumbernya. padding 20/24/28 sengaja DIBIARKAN: tak ada token bernilai itu, dan memaksanya ke 16 akan mengubah layar demi menghijaukan penjaga."
   ]
 }

@@ -117,7 +117,7 @@ export default function Content() {
           </button>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
           {chains.map(ch => (
             <ChainCard key={ch.id} chain={ch} perms={perms} canManage={canManage}
               onToggle={toggleChain} onAdd={addStep} onPatch={patchStep} onDelete={delStep} />

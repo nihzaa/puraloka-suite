@@ -237,7 +237,7 @@ export default function PmMitraPage() {
               <div
                 key={m.id}
                 style={{
-                  padding: 16, borderRadius: 16,
+                  padding: "var(--pad-kartu-lega)", borderRadius: 16,
                   background: m.daftar_hitam ? "var(--danger-bg)" : "var(--surface)",
                   border: `1px solid ${m.daftar_hitam ? "var(--danger-border)" : "var(--border)"}`,
                 }}

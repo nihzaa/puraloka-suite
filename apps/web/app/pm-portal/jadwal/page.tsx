@@ -158,7 +158,7 @@ export default function PmJadwalPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Jadwal &amp; Baseline" />
 
       {daftarProyek.length > 1 && (
@@ -277,7 +277,7 @@ export default function PmJadwalPage() {
           )}
 
           {!memuatPergeseran && dataPergeseran?.baseline && (
-            <div style={{ padding: 16, borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ padding: "var(--pad-kartu-lega)", borderRadius: 16, background: "var(--surface)", border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", boxShadow: "var(--naik-1)", display: "flex", flexDirection: "column", gap: 10 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)" }}>
                   #{dataPergeseran.baseline.nomor} {dataPergeseran.baseline.nama}
@@ -288,7 +288,7 @@ export default function PmJadwalPage() {
                 Ditetapkan {fmtTanggal(dataPergeseran.baseline.ditetapkan_pada)}
               </div>
               {dataPergeseran.ringkas && (
-                <div style={{ display: "flex", gap: 16, marginTop: 4, flexWrap: "wrap" }}>
+                <div style={{ display: "flex", gap: "var(--gap-bagian)", marginTop: 4, flexWrap: "wrap" }}>
                   <div>
                     <div style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)" }}>{dataPergeseran.ringkas.mundur}</div>
                     <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>dari {dataPergeseran.ringkas.total_item} mundur</div>

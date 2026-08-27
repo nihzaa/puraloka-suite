@@ -1,7 +1,7 @@
 {
-  "halaman": 7,
-  "_catatan": "diukur otomatis pada jalan pertama",
-  "_diukur": "2026-08-06",
+  "halaman": 20,
+  "_catatan": "Naik 7 → 20 karena 13 halaman bertabel ditambahkan sesudah lantai 7 diukur (2026-08-06). DIPERIKSA 2026-08-27, bukan diterima begitu saja: tabel-tabel baru itu SUDAH memenuhi keempat hal yang <Tabel> jaga — `arus-kas` dan `estimasi/rab` keduanya punya caption, scope=row, tabular-nums, dan overflow-x. Tiga di antaranya (estimasi/kas, rab, varians) justru baru diperbaiki hari itu juga oleh commit a33e07cc. Memindahkannya ke <Tabel> berarti menulis ulang render sel pada layar UANG (arus kas, RAB, varians) tanpa memperbaiki satu pun cacat nyata — risiko regresi yang tak sepadan. Pemindahan tetap layak dilakukan BERTAHAP, satu tabel setiap kali halamannya disentuh untuk alasan lain; itulah cara lantai ini turun 28 → 7 sebelumnya.",
+  "_diukur": "2026-08-27",
   "_riwayat": [
     "28 → 28",
     "28 → 27 (otomatis)",
@@ -15,6 +15,7 @@
     "13 → 12 (otomatis)",
     "12 → 10 (otomatis)",
     "10 → 8 (otomatis)",
-    "8 → 7 (otomatis)"
+    "8 → 7 (otomatis)",
+    "7 → 20 (2026-08-27) — 13 halaman bertabel baru; diperiksa punya keempat penjagaan, dipindahkan bertahap"
   ]
 }

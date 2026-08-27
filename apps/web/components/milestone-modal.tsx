@@ -194,7 +194,7 @@ export function MilestoneModal({
         </div>
 
         {/* Body */}
-        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
           {/* Error */}
           {error && (
             <div style={{

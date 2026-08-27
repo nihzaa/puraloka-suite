@@ -236,7 +236,7 @@ export default function AdminPengadaanLanjutanPage() {
             onClick={() => setTab(t.key)}
             style={{
               padding: "6px 14px", borderRadius: "var(--portal-radius-pill)", fontSize: 12, fontWeight: 600,
-              cursor: "pointer", minHeight: 32,
+              cursor: "pointer", minHeight: 44,   // 44px WCAG 2.5.5 — sebelumnya 32
               border: `1px solid ${tab === t.key ? "var(--navy)" : "var(--border)"}`,
               background: tab === t.key ? "var(--info-bg)" : "var(--surface)",
               color: tab === t.key ? "var(--navy)" : "var(--text-secondary)",

@@ -27,13 +27,13 @@ export default function PortalProfilPage() {
   ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
         Profil
       </h1>
 
       <div style={{ background: "var(--surface)", borderRadius: 16, border: "1px solid var(--border)", overflow: "hidden" }}>
-        <div style={{ background: "var(--grad-merek)", padding: 24, display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ background: "var(--grad-merek)", padding: 24, display: "flex", alignItems: "center", gap: "var(--gap-bagian)" }}>
           <div style={{
             width: 56, height: 56, borderRadius: "50%",
             background: "rgba(255,255,255,0.2)", display: "flex",
@@ -47,7 +47,7 @@ export default function PortalProfilPage() {
           </div>
         </div>
 
-        <div style={{ padding: 16, display: "flex", flexDirection: "column" }}>
+        <div style={{ padding: "var(--pad-kartu-lega)", display: "flex", flexDirection: "column" }}>
           {info.map((item, i) => (
             <div
               key={item.label}

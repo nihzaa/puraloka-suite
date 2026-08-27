@@ -118,7 +118,7 @@ function AddCard({ existing, onDone, onError }: { existing: WorkCategoryRow[]; o
     );
   }
   return (
-    <div style={{ ...card, marginBottom: 18, padding: 16 }}>
+    <div style={{ ...card, marginBottom: 18, padding: "var(--pad-kartu-lega)" }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 12, alignItems: "end" }}>
         <div>
           <label htmlFor="code" style={{ display: "block", fontSize: 11, fontWeight: 600, color: C.mid, marginBottom: 5 }}>Kode (unik)</label>

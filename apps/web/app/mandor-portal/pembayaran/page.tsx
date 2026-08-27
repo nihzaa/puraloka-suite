@@ -282,7 +282,7 @@ export default function RiwayatPembayaranPage() {
   });
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div>
         <KepalaPortal judul="Riwayat Pembayaran" />
         <p style={{ fontSize: 13, color: "var(--text-secondary)", margin: "4px 0 0" }}>

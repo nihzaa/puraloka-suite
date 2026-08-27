@@ -398,7 +398,7 @@ function LoginPageInner() {
             </p>
 
             <div className="login-card">
-              <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
                 <div>
                   <label className="login-label" htmlFor="login-email">Email</label>
                   <input

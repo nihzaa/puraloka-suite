@@ -216,7 +216,7 @@ export default function PesananPage() {
 
       {detailPo && (
         <Modal title={`Detail ${detailPo.po_number}`} onClose={() => setDetailPo(null)} width={680}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 13 }}>
               <div><span style={{ color: C.muted }}>Supplier: </span><strong>{detailPo.supplier?.name}</strong></div>
               <div><span style={{ color: C.muted }}>Proyek: </span>{detailPo.project?.name}</div>

@@ -31,7 +31,7 @@ export default function PmDokumenPage() {
   const { data, memuat, galat } = useData<RespDokumen>(urlDokumen);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Dokumen Proyek" />
 
       {daftarProyek.length > 1 && (

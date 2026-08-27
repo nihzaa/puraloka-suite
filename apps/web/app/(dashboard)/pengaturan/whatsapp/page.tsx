@@ -750,7 +750,7 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
   // memang belum berisi template.
   if (galatMuat) {
     return (
-      <section style={{ ...GAYA_KARTU, padding: 16, marginTop: 16 }}>
+      <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", marginTop: 16 }}>
         <p role="alert" style={{ fontSize: 13, color: "var(--danger)", margin: 0 }}>
           Gagal memuat template.{" "}
           <button type="button" onClick={() => void muat()} style={{ color: "inherit", background: "none", border: "none", padding: 0, cursor: "pointer", font: "inherit", textDecoration: "underline" }}>
@@ -762,7 +762,7 @@ function PanelTemplate({ bolehUbah }: { bolehUbah: boolean }) {
   }
 
   return (
-    <section style={{ ...GAYA_KARTU, padding: 16, marginTop: 16 }}>
+    <section style={{ ...GAYA_KARTU, padding: "var(--pad-kartu-lega)", marginTop: 16 }}>
       <h2 style={{ fontSize: 15, fontWeight: 600, margin: "0 0 4px", color: C.text }}>
         Isi pesan
       </h2>

@@ -202,7 +202,7 @@ function EditDateModal({
       style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ background: "var(--surface)", borderRadius: 14, padding: "24px 24px 20px", width: "min(560px, 94vw)", maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ background: "var(--surface)", borderRadius: 14, padding: "24px 24px 20px", width: "min(560px, 94vw)", maxHeight: "90vh", overflowY: "auto", boxShadow: "var(--naik-3)", display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: C.text }}>Edit Timeline</h2>
           <p style={{ margin: "3px 0 0", fontSize: 12, color: C.mid }}>
@@ -1098,7 +1098,7 @@ export function GanttSection({ projectId, userRole, projectStart, projectEnd }: 
         </div>
 
         {/* Legend */}
-        <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)", background: "var(--surface-subtle)", display: "flex", gap: 16, flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ padding: "8px 16px", borderTop: "1px solid var(--border)", background: "var(--surface-subtle)", display: "flex", gap: "var(--gap-bagian)", flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase" }}>Legenda:</span>
           <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, color: C.mid }}>
             <div style={{ width: 24, height: 8, border: `2px dashed ${C.navy}`, borderRadius: 0, background: "var(--navy-light)" }} />

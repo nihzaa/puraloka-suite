@@ -233,7 +233,7 @@ function IsiAset() {
       padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)",
       width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
-      <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap", marginBottom: 20 }}>
+      <header style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--gap-bagian)", flexWrap: "wrap", marginBottom: 20 }}>
         <div style={{ minWidth: 0 }}>
           <KepalaHalaman judul="Aset &amp; Alat" keterangan="Alat milik perusahaan, lokasinya sekarang, nilai bukunya, dan biaya sewa yang berjalan."         ikon={<Boxes size={19} />}
       />
@@ -717,7 +717,7 @@ function FormBaru({ jenis, onSelesai, onBatal }: {
 
   return (
     <form onSubmit={kirim} style={{
-      padding: 16, borderRadius: 10, border: `1px solid ${C.border}`,
+      padding: "var(--pad-kartu-lega)", borderRadius: 10, border: `1px solid ${C.border}`,
       background: C.surface, marginBottom: 20,
     }}>
       <h2 style={{ margin: "0 0 13px", fontSize: 15, fontWeight: 700, color: C.text }}>

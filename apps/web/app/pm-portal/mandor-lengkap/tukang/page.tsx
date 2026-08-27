@@ -232,7 +232,7 @@ export default function PmTukangPage() {
               <div
                 key={w.id}
                 style={{
-                  padding: 16, borderRadius: 16,
+                  padding: "var(--pad-kartu-lega)", borderRadius: 16,
                   background: w.is_active ? "var(--surface)" : "var(--surface-subtle)",
                   border: "1px solid var(--border)",
                 }}

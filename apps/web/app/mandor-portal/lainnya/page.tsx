@@ -68,7 +68,7 @@ export default function MandorLainnyaPage() {
   ].filter((x): x is { href: string; label: string; icon: typeof ClipboardList } => Boolean(x));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <h1
         style={{
           fontSize: 22,

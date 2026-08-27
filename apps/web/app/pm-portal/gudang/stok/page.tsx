@@ -62,7 +62,7 @@ export default function PmStokPage() {
   const { data: dataMutasi, memuat: memuatMutasi } = useData<RespMutasiDaftar>(urlMutasi);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <KepalaPortal judul="Kartu Stok" />
         {proyekAktif && (

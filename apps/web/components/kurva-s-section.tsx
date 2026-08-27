@@ -134,7 +134,7 @@ function CustomTooltip({ active, payload, label }: {
       <p style={{ fontWeight: 700, color: C.text, marginBottom: 6 }}>{label}</p>
       {payload.map((p, i) =>
         p.value !== null && p.value !== undefined ? (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 16, marginBottom: 3 }}>
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: "var(--gap-bagian)", marginBottom: 3 }}>
             <span style={{ color: C.mid }}>{p.name}</span>
             <span style={{ fontWeight: 600, color: p.color }}>{fmtPct(p.value)}</span>
           </div>
@@ -575,7 +575,7 @@ export function KurvaSSection({ projectId, userRole }: Props) {
         </ResponsiveContainer>
 
         {/* Legend tambahan */}
-        <div style={{ display: "flex", gap: 16, paddingTop: 4, paddingLeft: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--gap-bagian)", paddingTop: 4, paddingLeft: 8, flexWrap: "wrap" }}>
           {milestoneMarkers.length > 0 && (
             <div style={{ fontSize: 11, color: C.muted, display: "flex", alignItems: "center", gap: 4 }}>
               <span style={{ display: "inline-block", width: 16, borderBottom: `1.5px dashed ${C.yellow}` }} />

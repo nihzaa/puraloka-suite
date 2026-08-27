@@ -34,7 +34,7 @@ export default function PmTransferPage() {
   const daftarProyek = useMemo(() => (dataProyek?.projects ?? []).filter((p) => p.pm), [dataProyek]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <KepalaPortal judul="Transfer Antar Proyek" />
         <button type="button" onClick={() => setSheetBuka(true)}

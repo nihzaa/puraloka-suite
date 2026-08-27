@@ -161,7 +161,7 @@ function AddUnitCard({ existing, onDone, onError }: { existing: UnitRow[]; onDon
     );
   }
   return (
-    <div style={{ ...card, marginBottom: 18, padding: 16 }}>
+    <div style={{ ...card, marginBottom: 18, padding: "var(--pad-kartu-lega)" }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.4fr 1fr", gap: 12, alignItems: "end" }}>
         <Labeled label="Kode (unik)">
           <input className="isian-fokus" value={code} onChange={e => setCode(e.target.value)} placeholder="cth: dus" style={GAYA_ISIAN} />

@@ -69,7 +69,7 @@ export default function PmKeuanganPage() {
   const pendingCount = kasbons.filter((k) => k.status === "pending").length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <KepalaPortal judul="Keuangan — Kasbon" />
 
       {!loading && pendingCount > 0 && (
@@ -109,7 +109,7 @@ export default function PmKeuanganPage() {
           const isPending = k.status === "pending";
           const aksiNonaktif = actioningId === k.id;
           return (
-            <div key={k.id} style={{ background: "var(--surface)", borderRadius: 16, padding: 16, border: `1px solid ${isPending ? "var(--warning-border)" : "var(--border)"}` }}>
+            <div key={k.id} style={{ background: "var(--surface)", borderRadius: 16, padding: "var(--pad-kartu-lega)", border: `1px solid ${isPending ? "var(--warning-border)" : "var(--border)"}` }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
