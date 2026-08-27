@@ -72,7 +72,7 @@ export function RailPengingat({
         display: "flex", alignItems: "center", gap: 10,
         padding: "12px var(--pad-kartu)",
         borderRadius: "var(--rad-besar)",
-        background: "var(--navy)",
+        background: "var(--grad-aksen)",
         color: "var(--on-navy)",
         textDecoration: "none",
         // ── TANPA `marginTop: auto` — sengaja, dan ini bukan kelalaian

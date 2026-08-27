@@ -776,7 +776,7 @@ export default function PmApprovalPage() {
                     disabled={mengirim || dipilih.saya_pengajunya || detailGagal}
                     style={detailGagal ? GAYA_TOMBOL_NONAKTIF : {
                       flex: 1, minHeight: 48, padding: "0 14px", borderRadius: "var(--portal-radius-pill)",
-                      background: "var(--navy)", color: "var(--on-navy)", border: "none",
+                      background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none",
                       fontSize: 14, fontWeight: 700,
                       cursor: mengirim || dipilih.saya_pengajunya ? "default" : "pointer",
                     }}
@@ -822,7 +822,7 @@ export default function PmApprovalPage() {
                 onClick={tutupSheet}
                 style={{
                   minHeight: 48, padding: "0 14px", borderRadius: "var(--portal-radius-pill)",
-                  background: "var(--navy)", color: "var(--on-navy)", border: "none",
+                  background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none",
                   fontSize: 14, fontWeight: 700, cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                 }}

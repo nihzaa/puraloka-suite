@@ -46,7 +46,7 @@ export default function EmptyState({ icon: Icon, judul, deskripsi, aksi }: Empty
             minHeight: 44,
             padding: "10px 20px",
             borderRadius: "var(--portal-radius-pill)",
-            background: "var(--navy)",
+            background: "var(--grad-aksen)",
             color: "var(--on-navy)",
             border: "none",
             fontSize: 13,

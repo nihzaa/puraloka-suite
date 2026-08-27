@@ -741,7 +741,7 @@ function Gelembung({
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 5,
                     padding: "6px 12px", borderRadius: "var(--rad-sedang)",
-                    border: "none", background: C.navy, color: C.onNavy,
+                    border: "none", background: "var(--grad-aksen)", color: C.onNavy,
                     fontSize: 11.5, fontWeight: 600, cursor: "pointer",
                   }}
                 >
@@ -815,7 +815,7 @@ function Gelembung({
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 5,
                     padding: "6px 12px", borderRadius: "var(--rad-sedang)",
-                    border: "none", background: C.navy, color: C.onNavy,
+                    border: "none", background: "var(--grad-aksen)", color: C.onNavy,
                     fontSize: 11.5, fontWeight: 600, cursor: "pointer",
                   }}
                 >

@@ -445,7 +445,7 @@ export default function K3Page() {
             disabled={mengirim || !kronologiValid || !korbanValid}
             style={{
               padding: 14, borderRadius: "var(--portal-radius-pill)",
-              background: "var(--navy)", color: "var(--on-navy)", border: "none",
+              background: "var(--grad-aksen)", color: "var(--on-navy)", border: "none",
               fontSize: 14, fontWeight: 700, cursor: mengirim ? "default" : "pointer",
               opacity: mengirim || !kronologiValid || !korbanValid ? 0.5 : 1,
             }}

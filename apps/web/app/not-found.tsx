@@ -125,7 +125,7 @@ export default function TidakDitemukan() {
               minHeight: 44,
               padding: "0 22px",
               borderRadius: 10,
-              background: "var(--navy)",
+              background: "var(--grad-aksen)",
               color: "var(--on-aksen)",
               fontSize: "var(--t-sedang)",
               fontWeight: 600,
