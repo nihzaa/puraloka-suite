@@ -92,7 +92,10 @@ export default function AdminAuditPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+      <h1 style={{
+        fontSize: "var(--t-judul)", fontWeight: 700,
+        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
+      }}>
         Jejak Audit
       </h1>
 
@@ -188,7 +191,9 @@ export default function AdminAuditPage() {
 
 const kartu: React.CSSProperties = {
   padding: 14, borderRadius: 14,
-  background: "var(--surface)", border: "1px solid var(--border)",
+  background: "var(--surface)",
+  border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)",
+  boxShadow: "var(--naik-1)",
 };
 const metaKecil: React.CSSProperties = {
   fontSize: 12, color: "var(--text-secondary)",

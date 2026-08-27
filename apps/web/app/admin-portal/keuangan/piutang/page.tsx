@@ -59,7 +59,10 @@ export default function AdminPiutangPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+      <h1 style={{
+        fontSize: "var(--t-judul)", fontWeight: 700,
+        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
+      }}>
         Register Piutang
       </h1>
 

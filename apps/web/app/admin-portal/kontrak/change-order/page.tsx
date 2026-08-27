@@ -266,7 +266,10 @@ export default function AdminChangeOrderPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Change Order</h1>
+      <h1 style={{
+        fontSize: "var(--t-judul)", fontWeight: 700,
+        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
+      }}>Change Order</h1>
 
       {daftarProyek.length > 1 && (
         <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>

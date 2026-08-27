@@ -111,7 +111,10 @@ export default function AdminSertifikatIpcPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        <h1 style={{
+        fontSize: "var(--t-judul)", fontWeight: 700,
+        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
+      }}>
           Sertifikat IPC
         </h1>
         <button type="button" onClick={() => { setGalatForm(null); setSheetBaru(true); }} disabled={!proyekAktif}

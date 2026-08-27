@@ -133,7 +133,10 @@ export default function AdminDetailJurnalPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>{j.entry_number}</h1>
+          <h1 style={{
+        fontSize: "var(--t-judul)", fontWeight: 700,
+        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
+      }}>{j.entry_number}</h1>
           <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
             {formatTanggal(j.entry_date)}{j.source ? ` · ${j.source}` : ""}
           </div>

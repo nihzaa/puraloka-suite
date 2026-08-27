@@ -206,7 +206,10 @@ export default function AdminGlPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--gap-bagian)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>General Ledger</h1>
+        <h1 style={{
+        fontSize: "var(--t-judul)", fontWeight: 700,
+        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
+      }}>General Ledger</h1>
         {bolehTulisGl && (
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" onClick={bukaSheetAkun}

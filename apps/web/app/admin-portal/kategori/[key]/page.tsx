@@ -235,7 +235,10 @@ export default function AdminKategoriPage() {
       >
         <ChevronLeft size={16} aria-hidden="true" /> Kembali
       </button>
-      <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+      <h1 style={{
+        fontSize: "var(--t-judul)", fontWeight: 700,
+        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
+      }}>
         {grup.label}
       </h1>
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

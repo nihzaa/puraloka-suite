@@ -153,7 +153,10 @@ export default function AdminMrDetailPage() {
       </Link>
 
       <div style={kepala}>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+        <h1 style={{
+        fontSize: "var(--t-judul)", fontWeight: 700,
+        color: "var(--text-primary)", margin: 0, letterSpacing: "-0.01em",
+      }}>
           {mr.mr_number ?? "Material Request"}
         </h1>
         <StatusBadge
@@ -331,7 +334,9 @@ const kepala: React.CSSProperties = {
 };
 const kartu: React.CSSProperties = {
   padding: 14, borderRadius: 14,
-  background: "var(--surface)", border: "1px solid var(--border)",
+  background: "var(--surface)",
+  border: "1px solid color-mix(in srgb, var(--border) 40%, transparent)",
+  boxShadow: "var(--naik-1)",
 };
 const barisItem: React.CSSProperties = {
   display: "flex", justifyContent: "space-between", alignItems: "center",
