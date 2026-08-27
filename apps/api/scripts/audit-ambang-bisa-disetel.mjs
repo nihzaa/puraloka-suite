@@ -70,7 +70,24 @@ const isiAmbang = readFileSync(BERKAS_AMBANG, 'utf8')
   cukup di sini karena bentuk berkasnya seragam, dan kalau kelak berubah,
   penjaga ini MERAH — bukan diam.
 */
-const blok = [...isiAmbang.matchAll(/^ {2}'(otomasi\.[^']+)': \{\n([\s\S]*?)^ {2}\},$/gm)]
+/*
+  WAJIB `\r?` di KEDUA tempat — dan ketiadaannya membuat penjaga ini BUTA.
+
+  `ambang-otomasi.ts` berakhiran CRLF, sementara pola lama menuntut `\n`
+  telanjang untuk pembuka blok dan `$` untuk penutupnya. Hasilnya NOL dari
+  72 entri terbaca — bukan sebagian, melainkan seluruhnya.
+
+  Yang menyelamatkan keadaan ini adalah penjaga itu SENDIRI: ia menolak
+  melapor hijau saat tak satu pun entri terbaca ("bentuk berkasnya berubah,
+  dan penjaga ini berhenti memeriksa apa pun"). Tanpa penolakan itu ia akan
+  hijau selamanya tanpa memeriksa apa pun — nasib LIMA penjaga lain yang
+  ditemukan mati pada hari yang sama (2026-08-27).
+
+  Pelajarannya: tiap penjaga yang membaca kode lewat regex butuh pemeriksaan
+  "apakah saya menemukan apa pun", dan harus memperlakukan NOL sebagai
+  KEGAGALAN — bukan sebagai kebersihan.
+*/
+const blok = [...isiAmbang.matchAll(/^ {2}'(otomasi\.[^']+)': \{\r?\n([\s\S]*?)^ {2}\},\r?$/gm)]
 
 if (blok.length === 0) {
   gagal('tak satu pun entri ambang terbaca — bentuk berkasnya berubah, dan '

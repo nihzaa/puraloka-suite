@@ -87,9 +87,33 @@ for (const berkas of semuaBerkas(ROUTES)) {
   if (isi.includes('authenticate')) continue
   if (PUBLIK_DISENGAJA.has(nama)) continue
 
-  // Tanpa `authenticate`, satu-satunya gerbang yang tersisa adalah rahasia.
+  /*
+    ── Gerbang KETIGA: kunci API ber-scope (ditambahkan 2026-08-27)
+
+    Komentar lama di sini berbunyi "satu-satunya gerbang yang tersisa adalah
+    rahasia", dan itu tak lagi benar sejak `plugins/api-key-auth.ts` ada.
+    Akibatnya `otomasi-umpan.ts` dilaporkan TERBUKA padahal rutenya berpagar
+    `requireApiKey('otomasi:umpan:baca')`.
+
+    `requireApiKey` bukan gerbang yang lebih lemah dari rahasia bersama —
+    ia lebih KUAT. Diukur ke kodenya:
+
+      · 401 bila header `X-API-Key` tak ada
+      · 401 bila bentuk kuncinya salah (dan mencatat IP-nya)
+      · dicocokkan ke `hash_kunci` di basis, bukan dibandingkan mentah
+      · 503 GAGAL-TERTUTUP bila verifikasinya sendiri gagal
+      · ber-SCOPE, jadi satu kunci tak otomatis membuka rute lain
+
+    Rahasia bersama tak punya satu pun dari lima itu: satu nilai untuk semua
+    pemanggil, tak bisa dicabut per-klien, tak ber-scope.
+
+    Laporan palsu di penjaga keamanan sangat mahal: ia melatih pembacanya
+    mengabaikan keluaran penjaga yang ambangnya NOL — dan yang berikutnya
+    mungkin rute yang benar-benar terbuka.
+  */
   const adaRahasia = /_SECRET|_WEBHOOK_SECRET|x-webhook-secret/.test(isi)
-  if (!adaRahasia) {
+  const adaKunciApi = /requireApiKey\s*\(/.test(isi)
+  if (!adaRahasia && !adaKunciApi) {
     lapor(
       'G-1',
       `${nama} mendaftarkan route TANPA authenticate dan TANPA verifikasi rahasia.\n` +
