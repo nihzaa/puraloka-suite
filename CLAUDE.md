@@ -95,6 +95,47 @@ UJI_EMAIL=… UJI_SANDI=… UJI_BASIS=http://127.0.0.1:3001 \
   node apps/api/scripts/uji-otomasi-terjadwal.mjs
 ```
 
+**Cakupan uji struktur** — pondasi sampai atap. Jangan menjawab dari ingatan;
+angkanya berubah tiap jenis ditambahkan, dan laporannya mengurutkan yang belum
+ada berdasarkan PEMAKAIAN NYATA di RAB, bukan kerumitan teorinya:
+
+```bash
+cd apps/api && node -r dotenv/config scripts/lapor-cakupan-struktur.mjs
+```
+
+Diukur 2026-08-19: **34 dari 34 (100%)** — pondasi sampai atap, beton dan baja.
+Angka itu akan basi begitu ada elemen ke-35 yang layak ditambahkan; jalankan
+skripnya, jangan percaya angka ini.
+
+**Cakupan GAMBAR KERJA — dan JANGAN percaya laporannya.**
+
+```bash
+# Perkiraan cepat, TAK butuh API hidup. Membaca BENTUK kode.
+cd apps/api && node scripts/lapor-cakupan-gambar.mjs
+
+# YANG BERWENANG — membuat elemen tiap jenis lewat rute sungguhan,
+# meminta gambarnya, lalu MEMBUKA SVG-nya. Butuh API hidup + akun.
+cd apps/api && UJI_EMAIL=… UJI_SANDI=… UJI_BASIS=http://127.0.0.1:3017 \
+  node scripts/uji-gambar-semua-jenis.mjs
+```
+
+⚠ Yang pertama salah **EMPAT KALI dalam satu sesi** (2026-08-19), tiap kali
+karena cabang baru ditulis dengan bentuk yang belum dikenali pembacaan teksnya,
+dan tiap kali angkanya terlihat masuk akal: 7/32 saat 17/32 · 26/32 saat 29/32 ·
+31/32 saat 32/32 · dan yang terburuk **32/32 saat sesungguhnya 30/32**.
+
+Yang terakhir melapor SUDAH LENGKAP saat dua jenis masih kosong — laporan yang
+salah ke arah "sudah selesai" menghentikan pekerjaan yang belum selesai.
+
+**Dan sesudah 32/32 pun, MEMOTRET LAYAR masih menemukan tiga cacat** yang tak
+satu pun dari 1.028 test tangkap: `Infinity%` di batang kekuatan, judul gambar
+berupa kunci mentah, dan dua baris angka keamanan yang saling menimpa.
+
+```bash
+# Dari akar repo. Web + API harus hidup; ukur portnya (§7).
+node apps/web/scripts/potret-struktur.mjs   # → apps/web/.layar/*.png
+```
+
 **Otomasi mana yang hidup** — jangan dibaca dari katalog, UKUR:
 
 ```bash
@@ -262,6 +303,27 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-konfirmasi-wa-tak-longgar.mjs` | "ya" dari WhatsApp dicocokkan UTUH, bukan `includes()`; jendela < umur token; token disaring per-user (ambang NOL) |
 | `audit-jenis-tulis-punya-label.mjs` | tiap jenis tulis & persetujuan wajib punya label UI — kunci mentah muncul di layar keputusan uang (ambang NOL) |
 | `audit-katalog-tool-tak-membengkak.mjs` | skema tool asisten dikirim ULANG tiap ronde; katalog yang membengkak menaikkan tagihan tiap tenant tanpa gejala (ratchet) |
+| `audit-harga-satuan-waras.mjs` | harga bahan wajib masuk akal untuk SATUANNYA — harga per m³ yang tersalin ke baris kg membuat 1 m³ beton terhitung Rp 626 juta, menyebar ke 32 AHSP, tanpa satu pun galat (ambang NOL) |
+| `audit-sektor-takeoff-cocok.mjs` | daftar sektor take-off di kode wajib sama dengan CHECK di basis, dan tiap sektor wajib punya satuan + cabang perhitungan (ambang NOL) |
+| `audit-klaim-layar-nyata.mjs` | catatan peta-menu yang menjanjikan LAYAR wajib punya jejaknya di kode — `crm-boq` mengklaim tab "Take-off Volume" SELESAI atas layar yang tak pernah dibangun (ratchet, lantai 0) |
+| `audit-baris-besi-dibedakan.mjs` | baris `besi` memuat tulangan DAN profil baja; pembacanya wajib membedakan — tanpa itu WF 200×100 tampil sebagai "Ulir D200", besi yang tak ada di pasar (ambang NOL) |
+| `audit-jenis-volume-terdaftar.mjs` | jenis tanpa volume wajib terdaftar — yang tak terdaftar dituduh "cacat modul" padahal benar, dan yang salah terdaftar volumenya HILANG senyap dari rekap proyek (ambang NOL) |
+| `audit-medan-jumlah-tak-bentrok.mjs` | rute menimpakan `{ ...input, jumlah }` sebagai BANYAKNYA ELEMEN; modul yang memakai nama itu untuk mencacah baut/angkur/paku kehilangan angka penggunanya — rute memberi 117% terpakai sementara fungsinya sendiri memberi 29%, tanpa satu pun galat (ambang NOL) |
+| `audit-gambar-punya-judul.mjs` | tiap kunci gambar yang ditulis rute wajib punya judul di halaman detail; halaman memakai `JUDUL_GAMBAR[nama] ?? nama`, jadi kunci tak terdaftar MUNCUL APA ADANYA sebagai kepala gambar — kata teknis mentah di layar orang yang justru tak paham istilah teknis (ambang NOL) |
+| `audit-takeoff-kembar-sepakat.mjs` | rumus take-off ditulis DUA kali (modul API + kalkulator di layar, sengaja — kalkulator yang memanggil API tiap ketukan tombol tak dipakai orang); dijaga daftar sektor, ambang kemiringan, dan satuannya. Dua implementasi yang menyimpang tak mengeluarkan galat: layar memperlihatkan satu angka, RAB memakai yang tersimpan (ambang NOL) |
+| `audit-batas-tak-basi.mjs` | catatan "BELUM diperiksa" tak boleh menyebut yang SUDAH ADA — catatan itu TAMPIL DI LAYAR, dan pembacanya menyimpulkan pemeriksaannya tak ada lalu mencari konsultan lain untuk hal yang sudah dihitung. Dua catatan terbukti basi 2026-08-20 (ambang NOL) |
+| `audit-batas-terpetakan.mjs` | tiap catatan batas wajib SUDAH DITIMBANG terhadap daftar klaim — penjaga di atasnya bekerja dari daftar tulisan tangan, jadi ia hanya menjaga yang didaftarkan. Dua catatan basi berjam-jam tanpa terdeteksi 2026-08-20. Penjaga yang tak bisa tahu dirinya tertinggal akan pelan-pelan berhenti menjaga tanpa gejala (ambang NOL) |
+
+**Alur take-off → RAB — MANUAL, butuh API hidup:**
+
+```bash
+cd apps/api && UJI_EMAIL=… UJI_SANDI=… UJI_BASIS=http://127.0.0.1:3017 \n  node scripts/uji-takeoff-ke-rab-hidup.mjs
+```
+
+Membuktikan baris take-off TERSIMPAN, BISA DIBACA KEMBALI, volumenya sama
+dengan yang dihitung kalkulator, dan `terapkan` menyalinnya ke kuantitas item
+RAB. Diukur 2026-08-20: metode volume 12 m³ dan dinding 24 m² keduanya
+tembus sampai kuantitas RAB.
 
 **Uang lewat percakapan — dijaga test, bukan penjaga skrip.** `payments` adalah
 satu-satunya entitas tulis yang **tak punya kolom `status`**, jadi tak ada
@@ -535,6 +597,22 @@ Pakai **`jalankan-a11y-lengkap.mjs`**, bukan `audit-a11y-runtime.mjs`
 langsung. Yang kedua butuh empat env id contoh untuk rute `[id]`, dan tanpa
 itu ia MELEWATI tujuh rute — termasuk `/proyek/[id]`, halaman terkaya di
 aplikasi ini — sambil tetap melaporkan "0 pelanggaran".
+
+⚠ **`--url /apa/pun` DIRUSAK Git Bash.** MSYS mengubah argumen yang diawali
+`/` menjadi path Windows, jadi `--url "/estimasi/struktur"` sampai ke skrip
+sebagai `C:/Program Files/Git/estimasi/struktur`. Halamannya lalu "dialihkan
+ke /dashboard" — gejala yang terbaca persis seperti login gagal atau izin
+kurang, dan tak menyebut argumen sama sekali.
+
+```bash
+MSYS_NO_PATHCONV=1 LAYAR_EMAIL=… LAYAR_SANDI=… \
+  node apps/web/scripts/audit-a11y-runtime.mjs --url "/estimasi/struktur"
+```
+
+Diukur 2026-08-19 (halaman Analisa Struktur, sesudah 32 jenis bergambar):
+**0 pelanggaran di mode terang DAN gelap.** Laporannya sekarang menyebut
+tujuan pengalihan (`/x → /dashboard`); tanpa itu, sebabnya tak bisa
+didiagnosis — yang dilaporkan tanpa tujuannya hanya bisa ditebak.
 
 Mekanisme env-nya ada sejak 2026-08-07 dan tak pernah terpakai sekali pun:
 tak ada yang tahu id apa yang harus diisi. Pembungkusnya mengambil sendiri

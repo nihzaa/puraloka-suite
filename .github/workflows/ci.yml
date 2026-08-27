@@ -647,6 +647,24 @@ jobs:
       - name: Jenis tulis punya label UI
         run: node scripts/audit-jenis-tulis-punya-label.mjs
 
+      # Padanan mutu beton K <-> f'c wajib SAMA di sisi API dan sisi WEB.
+      #
+      # Tabelnya hidup di DUA berkas karena `apps/web` tak boleh mengimpor
+      # dari `apps/api`, dan `packages/shared` masih kosong:
+      #
+      #   apps/api/src/lib/struktur-mutu-nyata.ts   (lembar PDF, rute)
+      #   apps/web/lib/mutu-beton.ts                (label isian, panel)
+      #
+      # Kalau menyimpang, angka K di LAYAR tak lagi cocok dengan f'c yang
+      # dipakai MENGHITUNG — yang membaca layar memesan beton kelas yang
+      # salah, dan tak ada satu pun gejala: dua-duanya menampilkan angka
+      # yang terlihat wajar, hanya berbeda.
+      #
+      # Bukti merah (2026-08-20): faktor web 0,83 -> 0,85 => exit 1;
+      # padanan fc25 K-300 -> K-325 => exit 1; keduanya pulih => exit 0.
+      - name: Padanan mutu beton K sepakat (API vs WEB)
+        run: node scripts/audit-mutu-beton-sepakat.mjs
+
       # Katalog tool asisten tak boleh membengkak diam-diam.
       #
       # Skema tool dikirim ULANG tiap ronde. Diukur 2026-08-16: 40 tool =
@@ -743,6 +761,217 @@ jobs:
       # dipulihkan → exit 0.
       - name: Kunci izin benar-benar ada di basis
         run: node scripts/audit-izin-benar-ada.mjs
+
+      # Tiap modul analisa struktur wajib terdaftar di penjaga terjemahan awam
+      # (`lib/__tests__/struktur-awam.test.ts`). Penjaga itu menuntut tiap
+      # pemeriksaan punya penjelasan non-teknis — tetapi ia hanya menjalankan
+      # modul yang DIDAFTARKAN di dalamnya, sehingga modul baru lolos tanpa
+      # gejala. Sudah terjadi DUA KALI dalam satu hari (baja balok: 3
+      # pemeriksaan tanpa terjemahan; kolom baja + sambungan: 7 lagi), dan
+      # keduanya ketahuan hanya dari audit manual yang kebetulan dijalankan.
+      #
+      # Akibat kalau lolos: istilah teknik bocor ke layar orang non-teknis —
+      # dan verdict merah yang tak dipahami akan dilewati.
+      #
+      # Bukti merah: impor `struktur-baja-sambungan` dihapus dari berkas
+      # penjaga → exit 1 menyebut modulnya → dipulihkan → exit 0.
+      - name: Modul analisa struktur terdaftar di penjaga terjemahan awam
+        run: node scripts/audit-modul-struktur-terdaftar.mjs
+
+      # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
+      # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
+      # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan
+      # keduanya menyesatkan — yang ada di kode tetapi tak di basis ditolak
+      # dengan pesan constraint MENTAH; yang ada di basis tetapi tak di kode
+      # jadi tak terjangkau lewat aplikasi tanpa satu pun galat.
+      #
+      # Bukti merah: jenis karangan ditambahkan ke konstanta JENIS → exit 1
+      # menyebut namanya → dipulihkan → exit 0.
+      - name: Jenis elemen struktur cocok antara kode dan basis
+        run: node scripts/audit-jenis-struktur-cocok.mjs
+
+      # Harga bahan wajib masuk akal untuk SATUANNYA. Ditemukan 2026-08-19:
+      # harga per m3 tersalin apa adanya ke resource bersatuan kg — pasir beton
+      # Rp 370.200/kg, kerikil Rp 352.300/kg — dan akibatnya 1 m3 beton f'c 25
+      # terhitung **Rp 626.849.988**, bukan Rp 1,2 juta. Menyebar ke 32 AHSP.
+      #
+      # Tak ada satu pun yang salah secara struktural: resource ada, satuan
+      # terisi, harga angka positif, resolver dan AHSP menghitung benar. Yang
+      # salah cuma BESARAN — dan besaran tak punya penjaga sampai penjaga ini.
+      #
+      # Cara memutuskannya tak memakai daftar harga wajar (daftar begitu ikut
+      # membusuk): bahan yang sama muncul di satuan ruah DAN massa dengan harga
+      # SAMA PERSIS. Satu m3 pasir ~1.400 kg, jadi keduanya tak mungkin bertemu
+      # di angka yang sama kecuali salah satunya hasil salin.
+      #
+      # Bukti merah: memilih entri harga TERLAMA alih-alih yang berlaku → exit 1
+      # menyebut 4 pasangan → dipulihkan → exit 0.
+      - name: Harga bahan masuk akal untuk satuannya
+        run: node scripts/audit-harga-satuan-waras.mjs
+
+      # Daftar SEKTOR take-off ada di dua tempat yang harus sama: CHECK
+      # `takeoff_sektor_sah` (migrasi 465) dan konstanta SEKTOR_SAH di
+      # `lib/takeoff-sektor.ts`. Yang ada di kode tetapi tak di basis membuat
+      # rute menghitung volumenya lalu basis menolak dengan pesan constraint
+      # MENTAH; yang ada di basis tetapi tak di kode membuat sektornya tak
+      # terjangkau siapa pun lewat aplikasi, tanpa satu pun galat.
+      #
+      # Ikut memeriksa tiap sektor punya satuan DAN cabang perhitungan —
+      # sektor tanpa cabang lolos typecheck dan melempar di jalan, pada layar
+      # estimator, sesudah ia mengisi seluruh dimensinya.
+      #
+      # Bukti merah: 4 mutasi (sektor karangan di kode · sektor dihapus dari
+      # kode · cabang dihapus · satuan dihapus) → keempatnya exit 1 dengan
+      # pesan yang menyebut sektornya → dipulihkan → exit 0.
+      - name: Sektor take-off cocok antara kode dan basis
+        run: node scripts/audit-sektor-takeoff-cocok.mjs
+
+      # Baris `besi` memuat DUA barang berbeda: tulangan beton (BjTP/BjTS,
+      # berdiameter, dijual per lonjor) dan profil baja (WF/H/CNP/INP,
+      # berdesignation, per batang). Pembedanya cuma awalan `'profil '` pada
+      # `peran` — kontrak tersirat yang tak dipaksa apa pun.
+      #
+      # Ditemukan 2026-08-19 dengan MEMOTRET layar: tabel menampilkan
+      # "Ulir (BjTS) · D200 · profil WF 200x100x5.5x8". Besi ulir D200 tak ada
+      # di pasar, dan "D200" itu TINGGI profil bukan diameter — estimator
+      # memesan barang yang tak bisa dipenuhi supplier. 597 test struktur
+      # hijau sepanjang waktu: tak satu pun memeriksa bagaimana barisnya
+      # DITAMPILKAN, hanya bagaimana ia dihitung.
+      #
+      # Bukti merah: cacat aslinya dikembalikan (pembeda dilumpuhkan di UI)
+      # → exit 1; penulis lupa awalan → exit 1; dipulihkan → exit 0.
+      - name: Baris besi membedakan tulangan dari profil baja
+        run: node scripts/audit-baris-besi-dibedakan.mjs
+
+      # Rute rekap-volume membedakan dua keadaan yang terlihat sama: jenis yang
+      # TERDAFTAR di TANPA_VOLUME dilaporkan "sengaja tak bervolume", yang tidak
+      # terdaftar dilaporkan GAGAL ("cacat modul"). Pembedaan itu benar; yang tak
+      # ada adalah apa pun yang memastikan daftarnya tetap sepadan.
+      #
+      # Ditemukan 2026-08-19: dua jenis baru tak masuk daftar (dituduh cacat
+      # padahal benar), dan satu jenis LAMA (baja_interaksi) terdaftar padahal
+      # BERVOLUME — volumenya dilewati senyap dari rekap proyek.
+      #
+      # Bukti merah: cacat aslinya dikembalikan → exit 1; jenis dihapus dari
+      # daftar → exit 1; dipulihkan → exit 0.
+      - name: Jenis tanpa volume terdaftar sepadan dengan modulnya
+        run: node scripts/audit-jenis-volume-terdaftar.mjs
+
+      # Medan `jumlah` milik RUTE, bukan milik modul.
+      #
+      # Rute menyusun input tiap modul sebagai `{ ...input, jumlah }`, dan
+      # `jumlah` di sana berarti BANYAKNYA ELEMEN — pengali volume. Ia ditimpakan
+      # DI ATAS input pengguna, jadi modul yang memakai nama medan yang sama
+      # untuk mencacah hal LAIN (baut, angkur, paku, sekrup) kehilangan angka
+      # yang ditulis penggunanya.
+      #
+      # Ditemukan 2026-08-19 lewat rute HIDUP, bukan lewat test: pemanggilan
+      # langsung fungsinya memberi 29% terpakai, rute memberi 117% — dua angka
+      # dari fungsi yang SAMA, tanpa satu pun galat di antaranya. Tiga modul
+      # terkena: sambungan kayu (paku), sambungan baut, dan angkur.
+      #
+      # Arah kesalahannya dua-duanya berbahaya: elemen berjumlah 1 membuat
+      # sambungan berpaku 14 dihitung berpaku 1 (merah palsu), dan elemen
+      # berjumlah 20 membuat sambungan berbaut 4 dihitung berbaut 20 —
+      # HIJAU PALSU pada sambungan yang sesungguhnya kurang.
+      #
+      # Bukti merah: nama medan dikembalikan ke `jumlah` → exit 1;
+      # dipulihkan → exit 0.
+      - name: Medan `jumlah` tak bentrok dengan pengali elemen
+        run: node scripts/audit-medan-jumlah-tak-bentrok.mjs
+
+      # Laporan cakupan gambar kerja — TIDAK menggagalkan CI.
+      #
+      # Diukur 2026-08-19: dari 32 jenis elemen, hanya TUJUH menghasilkan
+      # gambar, dan ketujuhnya beton. Seluruh sisi baja tak punya satu pun.
+      # Sesudah penampang profil baja masuk: 17/32.
+      #
+      # Dijalankan supaya angkanya terlihat di log tiap kali, bukan diingat.
+      # Cakupan yang belum lengkap adalah urutan kerja, bukan cacat — karena
+      # itu laporan, bukan penjaga.
+      - name: Cakupan gambar kerja per jenis (laporan)
+        run: node scripts/lapor-cakupan-gambar.mjs
+
+      # ⚠ Laporan di atas PERKIRAAN — ia membaca BENTUK kode dan sudah salah
+      # empat kali, sekali melapor 32/32 saat sesungguhnya 30/32.
+      #
+      # Yang berwenang `uji-gambar-semua-jenis.mjs`: ia MEMBUAT elemen untuk
+      # tiap jenis lewat rute sungguhan, meminta gambarnya, dan MEMBUKA SVG-nya
+      # (viewBox positif, aria-label ada, tak ada medan `…Gagal`). Contoh
+      # inputnya dibaca dari halaman UI, jadi contoh UI yang rusak juga merah.
+      #
+      # TIDAK dijalankan di CI: ia butuh API hidup + akun. Dijalankan manual —
+      # perintahnya di kepala berkasnya. Dicatat di sini supaya keberadaannya
+      # tak hilang dari ingatan orang yang membaca daftar ini.
+
+      # Tiap kunci gambar yang ditulis rute wajib punya JUDUL di halaman detail.
+      #
+      # Halaman memakai `JUDUL_GAMBAR[nama] ?? nama`, jadi kunci yang tak
+      # terdaftar TIDAK menghilang dan TIDAK menggagalkan apa pun — ia muncul
+      # apa adanya sebagai kepala gambar. Pengguna melihat kata "pola" atau
+      # "tampak", dan itu terbaca seperti cacat aplikasi.
+      #
+      # Ditemukan 2026-08-19 dengan MEMOTRET LAYAR: sepuluh jenis gambar baru
+      # lahir, tiga kunci baru bersamanya, dan tabel judulnya tetap 4 entri.
+      # Tak ada yang salah secara teknis, jadi tak ada test yang bisa merah.
+      #
+      # Bukti merah: judul "pola" dicabut → exit 1; dipulihkan → exit 0.
+      # Kalkulator volume di LAYAR wajib sepakat dengan modul take-off di API.
+      #
+      # Rumusnya sengaja ditulis DUA KALI: estimator ingin melihat volumenya
+      # seketika saat mengetik dimensi, dan memanggil API tiap ketukan tombol
+      # berarti layar yang tersendat — kalkulator tersendat tak dipakai orang.
+      #
+      # Tetapi dua implementasi rumus yang sama akan MENYIMPANG, dan
+      # penyimpangannya tak mengeluarkan galat: layar memperlihatkan satu angka,
+      # basis menyimpan angka lain, dan RAB memakai yang tersimpan. Estimator
+      # memeriksa yang di layar.
+      #
+      # Dijaga: daftar sektor, ambang kemiringan (60 derajat, ditulis telanjang
+      # di kedua sisi), dan satuan tiap sektor.
+      #
+      # Bukti merah: ambang layar diubah 60 ke 75 → exit 1; satu sektor
+      # dihilangkan dari layar → exit 1; satuan API diubah → exit 1.
+      # Catatan "BELUM diperiksa" tak boleh menyebut yang SUDAH ADA.
+      #
+      # Tiap modul struktur membawa catatan jujur tentang batasnya, dan
+      # kejujuran itu berharga — justru karena itu ia berbahaya saat BASI.
+      #
+      # Diukur 2026-08-20: dua catatan menyebut hal yang sudah dibangun
+      # berjam-jam sebelumnya (Mononobe-Okabe di struktur-dinding, penurunan
+      # di struktur-pondasi-dangkal). Catatan itu TAMPIL DI LAYAR, dan
+      # pembacanya menyimpulkan pemeriksaannya tak ada — lalu mencari
+      # konsultan lain untuk hal yang sudah dihitung aplikasi ini.
+      #
+      # Bukti merah: kedua catatan basi dipulihkan → exit 1 masing-masing.
+      # Tiap catatan batas WAJIB sudah ditimbang terhadap daftar klaim.
+      #
+      # Penjaga di bawah bekerja dari DAFTAR yang ditulis tangan, jadi ia
+      # hanya menjaga yang didaftarkan. Diukur 2026-08-20: dua catatan
+      # "BELUM diperiksa: SAMBUNGAN" di struktur-atap-ringan BASI berjam-jam,
+      # dan penjaganya LOLOS karena frasa itu tak ada di daftarnya.
+      #
+      # Penjaga yang tak bisa tahu dirinya tertinggal adalah penjaga yang
+      # pelan-pelan berhenti menjaga tanpa satu pun gejala: ia tetap hijau,
+      # cakupannya yang menyusut.
+      #
+      # Yang dijaga BUKAN isi catatannya melainkan RASIONYA — berapa catatan
+      # batas yang ada, berapa yang sudah ditimbang. Menambah catatan tanpa
+      # menimbangnya = MERAH.
+      #
+      # Bukti merah: catatan batas baru disuntik ke struktur-sloof → exit 1.
+      - name: Tiap catatan batas sudah ditimbang
+        run: node scripts/audit-batas-terpetakan.mjs
+
+      - name: Catatan batas tak menyangkal kemampuan yang sudah ada
+        run: node scripts/audit-batas-tak-basi.mjs
+
+      - name: Kalkulator layar sepakat dengan modul take-off API
+        run: node scripts/audit-takeoff-kembar-sepakat.mjs
+
+      - name: Tiap jenis gambar punya judul di layar
+        run: node scripts/audit-gambar-punya-judul.mjs
+
 
       # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
       # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
@@ -2297,6 +2526,27 @@ jobs:
       # dan tabel `menu_items` (sidebar). `gen-migrasi-menu.mjs` meramalkan
       # keduanya akan berpisah diam-diam — dan itu terjadi: 23 href berbeda,
       # yang melahirkan empat halaman lengkap tak bisa dicapai siapa pun.
+      # Catatan di peta-menu yang MENJANJIKAN sebuah layar wajib punya jejak
+      # layar itu di kode. Ditemukan 2026-08-19: entri `crm-boq` menyatakan
+      # "SELESAI 2026-08-16 — ditutup migrasi 431 + tab 'Take-off Volume'".
+      # Migrasinya ada, endpoint-nya ada, TAB ITU TIDAK PERNAH DIBANGUN —
+      # `/estimasi/rab` memuat NOL rujukan takeoff. Akibatnya seluruh take-off
+      # dimensional hanya terjangkau lewat API, jadi estimator tetap mengetik
+      # volume langsung ke RAB: persis masalah yang hendak diselesaikan 431.
+      #
+      # Kelas cacat yang sama dengan tujuh sub-menu yang pernah ditandai merah
+      # padahal UI-nya hidup (F5-1 §3a), tetapi BERLAWANAN ARAH — dan arah ini
+      # lebih berbahaya: yang membacanya menyilang pekerjaan itu dari daftar
+      # dan tak pernah kembali. `audit-taksonomi-vs-kode` tak menangkapnya
+      # karena ia memeriksa TABEL, dan tabelnya memang ada.
+      #
+      # Bukti merah: cacat aslinya dikembalikan ke peta-menu → exit 1 menyebut
+      # entrinya → dipulihkan → exit 0. Ditambah satu mutasi kedua (rujukan ke
+      # halaman yang tak ada) yang juga merah.
+      - name: Klaim layar di peta-menu terbukti di kode
+        run: node apps/web/scripts/audit-klaim-layar-nyata.mjs
+        working-directory: apps/web
+
       - name: Drift peta-menu.ts vs menu_items
         run: node apps/web/scripts/audit-peta-menu-vs-db.mjs
         working-directory: .

@@ -32,6 +32,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { Tabel } from "@/components/dasar";
+import { KebutuhanMaterial } from "@/components/kebutuhan-material";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { formatRupiah, formatAngka, formatKuantitas, formatTanggalJam } from "@/lib/format";
@@ -279,6 +280,24 @@ function RapTab() {
               <Package size={15} color={C.navy} />
               <strong style={{ fontSize: 13 }}>Material</strong>
               <span style={{ fontSize: 11, color: C.muted }}>({detail.material.length} item)</span>
+            </div>
+            {/*
+              KEBUTUHAN MATERIAL — ditaruh SEBELUM tabel penyesuaian.
+
+              Tabel di bawah menjawab "berapa yang saya anggarkan": qty yang
+              sudah disesuaikan tangan, harga supplier, pagu. Yang ini
+              menjawab pertanyaan yang datang LEBIH DULU: "sebenarnya butuh
+              berapa, dan dari pekerjaan mana saja?"
+
+              Urutannya disengaja. Menyesuaikan qty tanpa tahu asal angkanya
+              adalah menebak — dan angka tebakan yang sudah masuk pagu
+              terlihat persis sama dengan angka yang dihitung.
+
+              Rutenya (`material-takeoff`) sudah ada sejak lama dan benar,
+              tapi diukur 2026-08-20: NOL halaman memakainya.
+            */}
+            <div style={{ marginBottom: 16 }}>
+              <KebutuhanMaterial estimateVersionId={detail.data.estimate_version_id} />
             </div>
             {/* Dipindahkan ke <Tabel> 2026-08-07 (UI-0-4) — caption sr-only,
                 scope="row", tabular-nums, dan overflow-x dijamin komponen.

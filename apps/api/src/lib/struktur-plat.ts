@@ -9,6 +9,7 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { beta1, RHO_BETON, KOEF_BERAT_BESI, type MutuBahan, type Periksa, type VolumeElemen, type BarisBesi } from './struktur-beton'
+import { fungsiRuang, lapisMatiDari } from './struktur-katalog-beban.js'
 import { koefisienMomen, tentukanKondisi, type KondisiPelat, type Tumpuan } from './struktur-tabel-plat'
 
 /** Satu komponen beban mati — dipisah supaya rinciannya bisa ditampilkan. */
@@ -46,9 +47,26 @@ export interface InputPlat {
    * terlihat wajar. Di sini berat sendiri turunan dari `hM` — berubah
    * bersamaan, selalu.
    */
-  bebanMatiTambahan: BebanMati[]
+  bebanMatiTambahan?: BebanMati[]
+  /*
+    Atau: kunci lapisan dari katalog (`LAPIS_MATI`).
+
+    Angkanya datang dari daftar yang bisa diperiksa, bukan dari ingatan
+    orang yang mengisi form. Keduanya boleh dipakai bersama — sebagian
+    proyek memakai katalog untuk lapisan baku lalu menambah satu beban
+    khusus yang tak ada daftarnya.
+  */
+  lapisMati?: readonly string[]
   /** Beban hidup, kN/m². */
-  bebanHidupKnM2: number
+  bebanHidupKnM2?: number
+  /*
+    Atau: fungsi ruang (SNI 1727:2020 Tabel 4.3-1).
+
+    Lebih disukai — selisih antar-fungsi besar (hunian 1,92 · kantor 2,40 ·
+    ruang rapat 4,79 · rak perpustakaan 7,18), dan angka yang diketik dari
+    ingatan tak punya "rasa salah".
+  */
+  fungsiRuangKunci?: string
   /** Luas total pelat untuk volume, m². Kosong = lx × ly. */
   luasM2?: number
 }
@@ -85,10 +103,58 @@ export function analisaPlat(input: InputPlat): HasilPlat {
   // ── 1. Beban
   // Berat sendiri DITURUNKAN dari tebal, tidak diminta ke pengguna.
   const beratSendiriKnM2 = hM * (RHO_BETON * 9.81 / 1000)  // kg/m³ → kN/m³
-  const qdTambahan = input.bebanMatiTambahan.reduce(
-    (s, b) => s + (b.tebalM != null ? b.nilai * b.tebalM : b.nilai), 0)
+  /*
+    Divalidasi, bukan langsung di-`reduce`.
+
+    Tanpa penjagaan ini, input yang tak memuat `bebanMatiTambahan` gagal dengan
+    `Cannot read properties of undefined (reading 'reduce')` — pesan yang tak
+    menyebut satu pun medan, dan yang membacanya akan mencari cacat di modulnya.
+
+    Modul ini SUDAH memvalidasi medan lain dengan pesan yang menyebut namanya
+    ("Tebal pelat harus > 0"); yang satu ini terlewat, dan terlewatnya baru
+    ketahuan saat rute hidup dijalankan dengan input tanpa medan itu.
+
+    Array KOSONG sah — pelat tanpa beban mati tambahan memang mungkin. Yang
+    tak sah adalah tidak ada sama sekali.
+  */
+  const dariKatalog = input.lapisMati?.length
+    ? lapisMatiDari(input.lapisMati).map((x) => ({ nama: x.nama, nilai: x.nilai }))
+    : []
+  const dariAngka = Array.isArray(input.bebanMatiTambahan) ? input.bebanMatiTambahan : null
+
+  if (!dariAngka && !input.lapisMati) {
+    throw new Error(
+      'Beban mati tambahan wajib diisi: `lapisMati` (kunci katalog) atau '
+      + '`bebanMatiTambahan` (daftar angka). Pakai daftar kosong bila pelat tak '
+      + 'memikul beban mati selain berat sendirinya. Berat sendiri dihitung dari '
+      + 'tebalnya, tak perlu ditulis.',
+    )
+  }
+
+  /*
+    Fungsi ruang MENANG atas angka yang diketik — kalau angka bebas bisa
+    menimpa tabel SNI, tabelnya cuma hiasan.
+  */
+  let hidupEfektif = input.bebanHidupKnM2
+  let namaFungsi: string | null = null
+  if (input.fungsiRuangKunci) {
+    const f = fungsiRuang(input.fungsiRuangKunci)
+    if (!f) throw new Error(`Fungsi ruang "${input.fungsiRuangKunci}" tak dikenal.`)
+    hidupEfektif = f.bebanHidupKnM2
+    namaFungsi = f.nama
+  }
+  if (hidupEfektif === undefined || hidupEfektif === null) {
+    throw new Error(
+      'Beban hidup wajib: pilih `fungsiRuangKunci` (SNI 1727 Tabel 4.3-1) '
+      + 'atau isi `bebanHidupKnM2` langsung.')
+  }
+
+  const qdTambahan = [...dariKatalog, ...(dariAngka ?? [])].reduce(
+    (s, b) => s + ((b as BebanMati).tebalM != null
+      ? b.nilai * ((b as BebanMati).tebalM as number)
+      : b.nilai), 0)
   const qdKnM2 = beratSendiriKnM2 + qdTambahan
-  const quKnM2 = 1.2 * qdKnM2 + 1.6 * input.bebanHidupKnM2
+  const quKnM2 = 1.2 * qdKnM2 + 1.6 * hidupEfektif
 
   // ── 2. Koefisien momen
   // Ly/Lx SELALU ≥ 1: tabel PBI mendefinisikan Ly sebagai sisi panjang.
@@ -182,6 +248,36 @@ export function analisaPlat(input: InputPlat): HasilPlat {
     catatan.push('Rn melebihi Rn,maks — pelat terlalu tipis untuk momen ini. '
       + 'Menambah tulangan tidak menolong; tebalkan pelat atau perkecil bentang.')
   }
+
+  /*
+    Batas yang SELALU berlaku, bukan peringatan situasional.
+
+    Batang pelat dihitung sepanjang bentang saja — tanpa kait ujung dan tanpa
+    sambungan lewatan. Sama seperti balok & kolom, dan alasannya sama: panjang
+    lewatan bergantung detail sambungan yang belum diketahui saat estimasi,
+    dan menebaknya di sini menyembunyikan asumsi di dalam angka.
+
+    Yang membedakannya dari catatan `bisaDitulangi` di atas: yang itu hanya
+    muncul kalau pelatnya bermasalah, yang ini berlaku pada SETIAP hasil —
+    termasuk yang seluruh pemeriksaannya hijau. Batas yang hanya muncul saat
+    ada masalah tak pernah terbaca oleh orang yang hasilnya baik-baik saja,
+    dan justru merekalah yang memakai angkanya untuk memesan besi.
+  */
+  /*
+    Sumber beban hidupnya DISEBUT. Angka 4,79 kN/m2 tanpa keterangan tak bisa
+    diperiksa siapa pun; "Restoran (SNI 1727 Tabel 4.3-1)" bisa.
+  */
+  if (namaFungsi) {
+    catatan.push(
+      `Beban hidup ${hidupEfektif} kN/m2 dari fungsi ruang "${namaFungsi}" `
+      + '(SNI 1727:2020 Tabel 4.3-1) — dipilih dari katalog, bukan diketik.',
+    )
+  }
+
+  catatan.push(
+    'Volume besi BELUM termasuk kait ujung dan sambungan lewatan — batang '
+    + 'dihitung sepanjang bentang saja. Tambahkan sendiri saat menyusun RAP.',
+  )
 
   return {
     periksa,

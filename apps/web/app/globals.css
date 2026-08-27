@@ -20,6 +20,21 @@
 :root {
   --bg:               #F8F9FA;
   --surface:          #FFFFFF;
+
+  /*
+    KERTAS GAMBAR TEKNIK — sengaja TIDAK berbalik di mode gelap.
+
+    Gambar kerja (penampang, potongan, denah pondasi) memakai garis gelap di
+    atas kertas putih, dan itu konvensi yang dibaca orang di lapangan dari
+    cetakan. Di mode gelap, membiarkannya mengikuti `--surface` membuat garis
+    hitamnya nyaris hilang.
+
+    Karena itu nilainya sama di kedua mode — satu dari sedikit token yang
+    memang begitu. Ia tetap TOKEN, bukan hex yang dipaku di komponen, supaya
+    white-label per tenant tetap bisa mengubahnya kalau memang perlu (mis.
+    kertas krem untuk cetakan tertentu).
+  */
+  --kertas-gambar:    #FFFFFF;
   --surface-raised:   #FFFFFF;
   --surface-subtle:   #F9FAFB;
   --surface-hover:    #F3F4F6;

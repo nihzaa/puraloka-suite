@@ -242,7 +242,24 @@ export function analisaPilecap(input: InputPilecap): HasilPilecap {
     aman: periksa.every((p) => p.aman),
     volume: volumePilecap(input, lxM, lyM),
     tiang,
-    catatan,
+    /*
+      Dua batang yang SELALU dipasang tetapi tak bisa dihitung dari input di
+      sini, jadi batasnya dinyatakan alih-alih ditebak — alasan yang sama
+      dengan `struktur-footplat.ts`:
+
+        • stek kolom  — jumlah & diameternya milik kolom di atasnya
+        • stek tiang  — panjang tulangan tiang yang dibobok masuk ke pilecap,
+                        milik tiang pancang/bor di bawahnya
+
+      Keduanya nyata dan tidak kecil. Menaruh angka tebakan untuk keduanya
+      akan membuat RAP terlihat lengkap sambil salah.
+    */
+    catatan: [
+      ...catatan,
+      'Volume besi BELUM termasuk stek kolom (dowel) maupun stek tiang yang '
+      + 'dibobok masuk ke pilecap — keduanya mengikuti elemen di atas dan di '
+      + 'bawahnya, bukan pilecap ini. Tambahkan saat menyusun RAP.',
+    ],
     antara: {
       lxM, lyM, n, puMaksKn, puMinKn, puRataKn: pukKn / n,
       sumX2: tiang.reduce((s, t) => s + t.xM * t.xM, 0),

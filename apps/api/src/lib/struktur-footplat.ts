@@ -1,3 +1,6 @@
+import {
+  analisaPenurunan, type JenisTanahPenurunan,
+} from './struktur-penurunan.js'
 // Pondasi footplat (telapak setempat) — tegangan tanah, geser, tulangan.
 //
 // ══════════════════════════════════════════════════════════════════════════════
@@ -64,6 +67,26 @@ export interface InputFootplat {
   muyKnm: number
   /** Daya dukung ijin tanah, kN/m². Dari `struktur-tanah.ts`. */
   qaKnM2: number
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    PENURUNAN — tiga medan opsional, dan ketiadaannya BUKAN "aman".
+
+    Daya dukung izin (`qaKnM2`) di atas menahan KERUNTUHAN tanah, bukan
+    penurunan. Pada pasir padat batasan penurunan hampir selalu terpenuhi
+    dengan sendirinya; pada LEMPUNG LUNAK tidak — pondasi bisa lulus daya
+    dukung dengan angka keamanan 3 dan tetap turun berlebihan.
+
+    Diisi, pemeriksaan penurunan ikut dijalankan. Tak diisi, catatannya
+    MENYATAKAN bahwa penurunan belum diperiksa — bukan diam-diam
+    menganggapnya aman.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  /** Jenis tanah pendukung, untuk perkiraan penurunan. */
+  jenisTanahPenurunan?: JenisTanahPenurunan
+  /** N-SPT rata-rata pada kedalaman pengaruh (~2B di bawah dasar telapak). */
+  nSptPenurunan?: number
+  /** Jarak ke kolom tetangga, m — untuk distorsi sudut (yang meretakkan). */
+  jarakKolomM?: number
   jumlah?: number
 }
 
@@ -225,6 +248,71 @@ export function analisaFootplat(input: InputFootplat): HasilFootplat {
     catatan.push('qmin negatif — sebagian dasar pondasi terangkat. Tegangan '
       + 'nyata di sisi tertekan LEBIH BESAR daripada qmax yang dihitung rumus '
       + 'linier ini; perbesar pondasi atau kurangi eksentrisitas.')
+  }
+
+  /*
+    Batas yang SELALU berlaku — berbeda dari dua catatan situasional di atas.
+
+    STEK KOLOM (dowel) TIDAK ikut ditimbang. Batang itu selalu dipasang: ia
+    yang menyambungkan tulangan kolom ke fondasi. Ia tak bisa dihitung di sini
+    karena jumlah & diameternya milik KOLOM di atasnya, bukan milik fondasi —
+    dan menebaknya berarti menaruh angka karangan di dalam RAP.
+
+    Besarnya bukan pembulatan: untuk fondasi 2×2 m dengan kolom 8D19 dan
+    panjang stek ~1,5 m, steknya ~27 kg terhadap ~97 kg tulangan fondasi —
+    sekitar 28%. Angka sebesar itu tak boleh hanya "tidak ada"; ia harus
+    tertulis, supaya yang menyusun RAP menambahkannya sadar-sadar.
+  */
+  catatan.push(
+    'Volume besi BELUM termasuk stek kolom (dowel) — jumlah dan diameternya '
+    + 'mengikuti tulangan kolom di atasnya, bukan fondasi ini. Pada fondasi '
+    + '2×2 m dengan kolom 8D19, steknya sekitar 28% dari tulangan fondasi.',
+  )
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    PENURUNAN — dijalankan DI SINI, bukan sebagai jenis elemen terpisah.
+
+    Satu telapak punya satu verdict. Memisahkannya berarti estimator
+    memasukkan pondasi yang sama DUA KALI, dan volumenya terhitung ganda di
+    RAB — cacat yang jauh lebih mahal daripada kerapian struktur kode.
+
+    Tekanan neto memakai `qmax` yang sudah dihitung di atas DIKURANGI tekanan
+    tanah timbunan (`qKnM2`): yang menekan tanah di bawah hanya beban
+    TAMBAHAN dari bangunan, bukan berat tanah yang memang sudah ada di situ
+    sebelum dibangun. Memakai qmax mentah melebihkan penurunannya.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  if (input.jenisTanahPenurunan != null && input.nSptPenurunan != null) {
+    try {
+      const turun = analisaPenurunan({
+        lebarM: Math.min(lxM, lyM),
+        panjangM: Math.max(lxM, lyM),
+        tekananNetoKnM2: Math.max(qmax - qKnM2, 1),
+        jenisTanah: input.jenisTanahPenurunan,
+        nSpt: input.nSptPenurunan,
+        jarakKolomM: input.jarakKolomM,
+      })
+      periksa.push(...turun.periksa)
+      catatan.push(...turun.catatan)
+    } catch (e) {
+      /*
+        Penurunan yang tak bisa dihitung tak boleh menggagalkan analisa
+        strukturnya — pemeriksaan lain tetap berguna. Tetapi juga tak boleh
+        DIAM: sebabnya dicatat apa adanya.
+      */
+      catatan.push(
+        `Perkiraan PENURUNAN tak dapat dijalankan: ${(e as Error).message}`,
+      )
+    }
+  } else {
+    catatan.push(
+      'Penurunan (settlement) TIDAK diperiksa karena jenis tanah dan N-SPT '
+      + 'belum diisi. Daya dukung izin di atas menahan KERUNTUHAN tanah, '
+      + 'bukan penurunan — dan pada tanah lempung, penurunanlah yang lebih '
+      + 'dulu merusak bangunan. Isi `jenisTanahPenurunan` dan `nSptPenurunan` '
+      + 'dari hasil penyelidikan tanah.',
+    )
   }
 
   return {

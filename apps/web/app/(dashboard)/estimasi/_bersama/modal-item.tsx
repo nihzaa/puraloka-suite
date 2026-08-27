@@ -38,6 +38,7 @@ import { C } from "@/lib/warna-ui";
 import { PilihCari } from "@/components/pilih-cari";
 import { GAYA_ISIAN } from "@/components/isian";
 import { formatRupiah, formatAngka, formatKuantitas } from "@/lib/format";
+import { HitungVolume, type MasukanTakeoff } from "./hitung-volume";
 import { Plus, X } from "lucide-react";
 import { Modal, label, btnPrimary, btnGhost } from "./kerangka";
 
@@ -168,12 +169,72 @@ export function AddItemModal({ version, onClose, onDone }:
     return () => { batal = true; };
   }, [version.edition]);
 
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    MASUKAN TAKE-OFF DISIMPAN, bukan cuma hasilnya.
+
+    Volume yang tersimpan tanpa asal-usul tak bisa diperiksa siapa pun enam
+    bulan kemudian — dan itu justru alasan `takeoff_dimensi` dibangun (431).
+    Kalau orang memakai kalkulator, barisnya ikut tersimpan; kalau ia mengetik
+    angkanya langsung, tak ada yang disimpan dan itu memang benar.
+
+    Server MENGHITUNG ULANG dari masukan ini; angka klien tak pernah dipercaya
+    untuk apa pun yang jadi rupiah.
+    ══════════════════════════════════════════════════════════════════════════
+  */
+  const [takeoff, setTakeoff] = useState<MasukanTakeoff | null>(null);
+
+  /**
+   * Simpan baris take-off untuk item yang baru dibuat.
+   *
+   * Kegagalannya TIDAK menggagalkan penambahan item: itemnya sudah tersimpan
+   * dan bernilai benar, yang hilang cuma jejak perhitungannya. Melempar di sini
+   * membuat orang menekan "Tambah" lagi dan menghasilkan item KEMBAR.
+   */
+  const simpanTakeoff = async (itemId: string) => {
+    if (!takeoff) return;
+    try {
+      await api.post(
+        `/api/v1/estimate-versions/${version.id}/items/${itemId}/takeoff-dimensi`,
+        { ...takeoff, uraian: `Take-off ${takeoff.sektor ?? "dimensional"}` },
+      );
+    } catch (e) {
+      /*
+        ══════════════════════════════════════════════════════════════════════
+        DILAPORKAN KE LAYAR, bukan cuma ke console.
+
+        Versi pertama memakai `console.warn` saja — dan console tak dilihat
+        siapa pun kecuali programmer yang sedang membukanya. Bagi estimator,
+        take-off yang gagal tersimpan TIDAK MENINGGALKAN GEJALA: itemnya
+        masuk, angkanya benar, dan jejak perhitungannya hilang tanpa suara.
+
+        Justru jejak itulah seluruh alasan take-off dibangun. Volume 12 yang
+        tak bisa ditanya "dari mana?" sama saja dengan volume yang diketik
+        langsung — dan itu masalah yang hendak diselesaikannya.
+
+        Tetap TIDAK melempar: itemnya sudah tersimpan dan bernilai benar.
+        Melempar di sini membuat orang menekan "Tambah" lagi dan menghasilkan
+        item KEMBAR.
+        ══════════════════════════════════════════════════════════════════════
+      */
+      console.warn("Baris take-off gagal disimpan (item tetap tersimpan):", e);
+      setErr(
+        "Item tersimpan, tetapi RINCIAN take-off-nya gagal disimpan. "
+        + "Volumenya benar, yang hilang catatan asal-usulnya — buka item ini "
+        + "dan isi ulang take-off-nya kalau rinciannya perlu ditelusuri nanti.",
+      );
+    }
+  };
+
   const submitKatalog = async () => {
-    await api.post(`/api/v1/estimate-versions/${version.id}/items`, {
-      item_type: "assembly", assembly_id: assemblyId, quantity: Number(qty), price_date: priceDate,
-      location: location || null, buk_fraction: Number(bukPct) / 100,
-      rounding: { mode: roundMode, step: Number(roundStep) },
-    });
+    const r = await api.post<{ item?: { id: string }; id?: string }>(
+      `/api/v1/estimate-versions/${version.id}/items`, {
+        item_type: "assembly", assembly_id: assemblyId, quantity: Number(qty), price_date: priceDate,
+        location: location || null, buk_fraction: Number(bukPct) / 100,
+        rounding: { mode: roundMode, step: Number(roundStep) },
+      });
+    const itemId = r.data.item?.id ?? r.data.id;
+    if (itemId) await simpanTakeoff(itemId);
   };
   const submitCustom = async () => {
     const created = await api.post<{ id: string }>("/api/v1/cecep/assemblies", {
@@ -184,11 +245,14 @@ export function AddItemModal({ version, onClose, onDone }:
         .map(c => ({ resource_code: c.resource_code.trim(), coefficient: Number(c.coefficient) })),
       created_in_estimate_id: version.id,
     });
-    await api.post(`/api/v1/estimate-versions/${version.id}/items`, {
-      item_type: "assembly", assembly_id: created.data.id, quantity: Number(qty), price_date: priceDate,
-      location: location || null, buk_fraction: Number(bukPct) / 100,
-      rounding: { mode: roundMode, step: Number(roundStep) },
-    });
+    const r = await api.post<{ item?: { id: string }; id?: string }>(
+      `/api/v1/estimate-versions/${version.id}/items`, {
+        item_type: "assembly", assembly_id: created.data.id, quantity: Number(qty), price_date: priceDate,
+        location: location || null, buk_fraction: Number(bukPct) / 100,
+        rounding: { mode: roundMode, step: Number(roundStep) },
+      });
+    const itemId = r.data.item?.id ?? r.data.id;
+    if (itemId) await simpanTakeoff(itemId);
   };
   const submitLumpsum = async () => {
     await api.post(`/api/v1/estimate-versions/${version.id}/items`, {
@@ -284,6 +348,7 @@ export function AddItemModal({ version, onClose, onDone }:
           </button>
           {label("Volume")}
           <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} />
+          <HitungVolume onPakai={(v, m) => { setQty(String(v)); setTakeoff(m); }} />
         </>
       )}
 
@@ -291,7 +356,16 @@ export function AddItemModal({ version, onClose, onDone }:
         <>
           {mode === "katalog" && (
             <>{label("Volume")}
-              <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} placeholder="mis. 518.4" /></>
+              <input className="isian-fokus" style={GAYA_ISIAN} type="number" min="0" step="any" value={qty} onChange={e => setQty(e.target.value)} placeholder="mis. 518.4" />
+              {/*
+                KALKULATOR di sebelah isian angkanya, bukan di layar terpisah.
+
+                Take-off yang harus dibuka di halaman lain tak akan dipakai saat
+                orang sedang menyusun RAB — dan itu persis yang terjadi pada
+                migrasi 431: endpoint-nya lengkap sejak 2026-08-16, layarnya tak
+                pernah ada, jadi volume tetap diketik tangan.
+              */}
+              <HitungVolume onPakai={(v, m) => { setQty(String(v)); setTakeoff(m); }} /></>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
             <div>{label("Tanggal harga (price book)")}

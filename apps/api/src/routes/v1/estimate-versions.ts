@@ -19,6 +19,9 @@ import {
   hitungBarisTakeoff, rekapTakeoff, bandingkanTerapan, GalatTakeoff,
   SATUAN_HASIL, type MetodeTakeoff,
 } from '../../lib/takeoff-dimensi.js'
+import {
+  hitungBarisSektor, SEKTOR_SAH, type Sektor, type Bukaan,
+} from '../../lib/takeoff-sektor.js'
 import { resolvePrices, type PriceBookEntryRow, type ProjectPriceOverrideRow } from '../../lib/price-resolver.js'
 import { getTaxRate } from '../../utils/financial-config.js'
 
@@ -867,7 +870,15 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
   app.post<{ Params: { id: string; itemId: string }
              Body: { uraian?: string; metode?: MetodeTakeoff
                      panjang_m?: number | null; lebar_m?: number | null; tinggi_m?: number | null
-                     jumlah?: number | null; faktor?: number | null; catatan?: string } }>(
+                     jumlah?: number | null; faktor?: number | null; catatan?: string
+                     /*
+                       Kolom SEKTOR. Kehadiran `sektor` yang memilih jalur
+                       hitung: ada → `lib/takeoff-sektor.ts`, tak ada → empat
+                       metode generik migrasi 431, persis seperti sebelumnya.
+                     */
+                     sektor?: string; lokasi?: string
+                     kemiringan_derajat?: number | null; cacah?: number | null
+                     bukaan?: Bukaan[] | null } }>(
     '/api/v1/estimate-versions/:id/items/:itemId/takeoff-dimensi',
     { preHandler: [authenticate, requirePermission('cecep:takeoff:manage')] },
     async (request, reply) => {
@@ -884,6 +895,120 @@ export default async function estimateVersionRoutes(app: FastifyInstance) {
         .from('estimate_items').select('id').eq('id', request.params.itemId)
         .eq('estimate_version_id', request.params.id).maybeSingle()
       if (!item) return reply.status(404).send({ error: 'Item tidak ditemukan di versi ini' })
+
+      /*
+        ══════════════════════════════════════════════════════════════════════
+        DUA JALUR HITUNG DI SATU RUTE — `sektor` yang memilihnya.
+
+        Baris tanpa `sektor` memakai empat metode generik migrasi 431 (volume,
+        luas, dinding, panjang) dan berperilaku PERSIS seperti sebelumnya.
+        Baris ber-`sektor` memakai `lib/takeoff-sektor.ts`, yang menjawab tiga
+        hal yang tak bisa dijawab metode generik dan ketiganya berujung rupiah:
+
+          · bukaan dikurangkan  — dinding 4×3 m dengan satu pintu dan satu
+            jendela bukan 12 m² melainkan 8,67 m². Kelebihan 28%, di sektor
+            yang paling banyak barisnya (plesteran, acian, cat).
+          · kemiringan atap     — luas atap BUKAN luas denah; 30° = 1,1547×.
+          · cacah titik         — sanitair & MEP dihitung barang, bukan ukuran.
+
+        Rute KEDUA akan lebih pendek ditulis dan salah dipakai: keduanya
+        menulis ke tabel yang sama, dan yang kedua akan terlupa saat orang
+        bertanya "volume ini dari mana".
+        ══════════════════════════════════════════════════════════════════════
+      */
+      const sektorDiminta = typeof b.sektor === 'string' ? b.sektor : null
+      if (sektorDiminta && !SEKTOR_SAH.includes(sektorDiminta as Sektor)) {
+        return reply.status(400).send({
+          error: `sektor tak dikenal: ${sektorDiminta}. Yang sah: ${SEKTOR_SAH.join(', ')}`,
+        })
+      }
+
+      if (sektorDiminta) {
+        let sk
+        try {
+          sk = hitungBarisSektor({
+            uraian: b.uraian ?? '',
+            sektor: sektorDiminta as Sektor,
+            lokasi: b.lokasi,
+            /*
+              `?? undefined` bukan basa-basi tipe: lib sengaja MEMBEDAKAN
+              "tak diisi" dari "diisi nol". Meneruskan null membuat pesan
+              galatnya berbunyi "diterima: null" alih-alih menyebut dimensi
+              mana yang kurang.
+            */
+            panjangM: b.panjang_m ?? undefined,
+            lebarM: b.lebar_m ?? undefined,
+            tinggiM: b.tinggi_m ?? undefined,
+            jumlah: b.jumlah ?? undefined,
+            faktor: b.faktor ?? undefined,
+            kemiringanDerajat: b.kemiringan_derajat ?? undefined,
+            cacah: b.cacah ?? undefined,
+            bukaan: b.bukaan ?? undefined,
+          })
+        } catch (e) {
+          /*
+            Masukan cacat memulangkan 400 (salah pengguna), bukan 500 (salah
+            server) — dua hal yang menuntut tindakan berbeda. `hitungBarisSektor`
+            melempar Error biasa dengan pesan yang sudah bisa dibaca orang.
+          */
+          return reply.status(400).send({ error: (e as Error).message })
+        }
+
+        /*
+          `metode` tetap diisi supaya CHECK lama dan pembaca lama tak melihat
+          kolom kosong. Dipetakan dari satuan hasil, bukan ditebak: m² → luas,
+          m → panjang, unit/titik → panjang (cacah, tak berdimensi).
+        */
+        const metodeSetara = sk.satuan === 'm2' ? 'luas' : 'panjang'
+
+        const { data: rowS, error: eS } = await request.db!
+          .unsafe(
+            'takeoff_dimensi',
+            'Kepemilikan sudah diverifikasi dua tingkat tepat di atas: versi '
+            + 'lewat skenarioIdsTenant, lalu item lewat estimate_version_id. '
+            + 'Kategori C dengan rantai tiga tingkat (estimate_item_id → '
+            + 'estimate_items → estimate_versions → scenarios.project_id) yang '
+            + 'tak dijangkau viaProject.',
+          )
+          .insert({
+            estimate_item_id: item.id,
+            uraian: sk.uraian,
+            metode: metodeSetara,
+            sektor: sk.sektor,
+            lokasi: sk.lokasi ?? null,
+            panjang_m: b.panjang_m ?? null,
+            lebar_m: b.lebar_m ?? null,
+            tinggi_m: b.tinggi_m ?? null,
+            jumlah: b.jumlah ?? 1,
+            faktor: b.faktor ?? 1,
+            kemiringan_derajat: b.kemiringan_derajat ?? null,
+            cacah: b.cacah ?? null,
+            bukaan: b.bukaan ?? null,
+            hasil_volume: sk.volume,
+            /*
+              RINCIAN disimpan di `catatan`, dan itu bukan sekadar tempat
+              kosong yang kebetulan cocok. `estimate_items.quantity` masuk
+              sebagai angka jadi; sesudah masuk, volume yang benar dan yang
+              salah ketik terlihat identik. Kalimat ini satu-satunya yang
+              menjawab "kenapa volumenya segini?" tanpa membuka gambar.
+            */
+            catatan: [sk.rincian, ...sk.catatan, b.catatan].filter(Boolean).join(' · '),
+            created_by: request.currentUser!.id,
+          })
+          .select('id').single()
+        if (eS) return reply.status(500).send({ error: eS.message })
+
+        void logAuditEvent(request, {
+          tableName: 'takeoff_dimensi', recordId: rowS.id,
+          action: 'cecep.takeoff_sektor_added',
+          actorId: request.currentUser!.id,
+          newValues: {
+            item: item.id, uraian: sk.uraian, sektor: sk.sektor,
+            hasil: sk.volume, bukaanM2: sk.bukaanM2,
+          },
+        })
+        return reply.status(201).send({ id: rowS.id, ...sk })
+      }
 
       // Hitung lewat lib PURE ber-golden-test — nol aritmetika ad-hoc di route,
       // pola yang sama dengan `computeRebarBar` di atas. `GalatTakeoff` dibedakan

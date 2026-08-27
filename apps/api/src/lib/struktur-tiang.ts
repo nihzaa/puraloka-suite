@@ -228,6 +228,28 @@ export function analisaTiang(input: InputTiang): HasilTiang {
   }
 
   const jumlah = input.jumlah ?? 1
+
+  /*
+    Batas KUANTITAS yang selalu berlaku — dan yang paling mudah salah dibaca.
+
+    Tiang pancang pracetak: besi 0 kg dan bekisting 0 m² adalah jawaban yang
+    BENAR (tulangan sudah terpasang dari pabrik, tak ada bekisting di proyek).
+    Tetapi nol di layar rekap tak bisa membedakan dirinya dari "belum
+    dihitung" — estimator yang melihat "6 tiang · besi 0,0 kg" menyimpulkan
+    tiang tak butuh besi, lalu tak menganggarkan tiangnya sebagai barang jadi.
+
+    Sempat hanya hidup sebagai komentar di dalam berkas ini, tempat yang tak
+    pernah dibaca orang yang memakai angkanya. Kelas cacat yang sama dengan
+    batas penyaluran pada balok, dan diperbaiki dengan cara yang sama:
+    tuliskan pada keluarannya, jangan simpan di sumbernya.
+  */
+  catatan.push(
+    'Besi dan bekisting NOL karena tiang pancang PRACETAK — tulangan sudah '
+    + 'terpasang dari pabrik dan tak ada bekisting di proyek. Nol di sini '
+    + 'BUKAN "belum dihitung": anggarkan tiang sebagai barang jadi per meter '
+    + 'atau per batang, bukan lewat volume beton dan besinya.',
+  )
+
   return {
     pIjinBahanKn: bahan.pIjinKn,
     tanah,

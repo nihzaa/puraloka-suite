@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify'
+import { klausaCari } from '../../lib/cari-mutu-beton.js'
 import { supabase } from '../../utils/supabase.js'
 import { authenticate, requirePermission } from '../../plugins/auth.js'
 import { logAuditEvent } from '../../utils/audit.js'
@@ -305,8 +306,23 @@ export default async function ahspRoutes(app: FastifyInstance) {
       // dan pemakai tak mendapat tanda apa pun bahwa pencariannya tak lengkap.
       const cari = request.query.q?.trim()
       if (cari) {
-        const aman = cari.replace(/[%,()]/g, ' ')
-        q = q.or(`name.ilike.%${aman}%,code.ilike.%${aman}%`)
+        /*
+          Kata kunci BERBENTUK MUTU BETON diperluas ke DUA bahasa katalog.
+
+          Katalog ini memakai keduanya untuk hal yang sama. Diukur 2026-08-20
+          pada 90 AHSP beton bersatuan m3: 26 memakai f'c, 44 memakai K.
+          Pencarian cocok-substring polos membuat separuhnya tak terjangkau:
+
+              cari "K-300"  ->  1 hasil   (tak menjangkau yang ber-f'c)
+              cari "K300"   ->  0 hasil   (tanpa tanda hubung: NOL)
+
+          Yang kedua paling merugikan: NOL hasil tak pernah terbaca sebagai
+          salah ketik. Estimator menyimpulkan analisanya memang tak ada,
+          padahal ada 25 baris K-250 di sana.
+
+          Kata kunci biasa lewat apa adanya — "bekisting" tak berubah.
+        */
+        q = q.or(klausaCari(cari))
       }
 
       // PostgREST membatasi respons di 1.000 baris — batas KERAS yang tak bisa

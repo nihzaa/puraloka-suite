@@ -310,7 +310,21 @@ const total = dipindai.reduce((n, s) => n + s.langgar.reduce((m, v) => m + v.jum
 
 console.log(`\n══ AUDIT A11Y RUNTIME (axe-core · WCAG 2.1 AA · mode ${mode}) ══\n`)
 console.log(`  halaman dipindai : ${dipindai.length}`)
-if (dialihkan.length) console.log(`  dialihkan        : ${dialihkan.length} (bukan halaman ini)`)
+if (dialihkan.length) {
+  console.log(`  dialihkan        : ${dialihkan.length} (bukan halaman ini)`)
+  /*
+    KE MANA dialihkannya wajib disebut.
+
+    Tanpa ini, laporan hanya berbunyi "1 dialihkan" — dan sebabnya bisa apa
+    saja: login gagal, izin kurang, halaman memang mengalihkan sendiri, atau
+    URL-nya salah tulis. Diukur 2026-08-19: satu jalan melaporkan "1 dialihkan"
+    dan menghabiskan waktu dikira login gagal, padahal halamannya memang
+    mengalihkan diri saat proyeknya belum dipilih.
+
+    Yang dilaporkan tanpa tujuannya tak bisa didiagnosis.
+  */
+  for (const s of dialihkan) console.log(`     ${s.url} → ${s.dialihkan}`)
+}
 if (DINAMIS_TERLEWAT.length) {
   // Cakupan yang berkurang HARUS terlihat. "Nol pelanggaran" dari audit yang
   // diam-diam melewati halaman terpenting adalah rasa aman yang tak dibayar.

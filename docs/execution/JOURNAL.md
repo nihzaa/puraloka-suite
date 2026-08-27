@@ -5,6 +5,2090 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-20 (lanjutan) — beban, material, dan enam kali alat ukur saya berbohong
+
+**Ringkasan run (apps/api):**
+
+```
+vitest run struktur    47 berkas · 1288 test · LULUS · exit 0
+tsc --noEmit           api & web · exit 0 · TANPA disaring
+```
+
+**Tujuh commit**, dua arah kerja yang diminta founder.
+
+### A. Kebutuhan material — mesinnya sudah ada, layarnya tidak
+
+Founder minta "semua bahan material terlihat per jenis pekerjaan + rekapan
+0 sampai selesai". Diukur dulu, dan premisnya terbalik:
+
+| Yang diukur | Hasil |
+|---|---|
+| AHSP di basis | **3.043, 100% punya koefisien** |
+| Cakupan harga | **100%** (hanya 1 labor kosong) |
+| `material-takeoff` | **sudah ada, sudah benar** |
+| Halaman yang memakainya | **NOL** |
+
+Jadi tak ada yang perlu dibangun ulang. Yang hilang layarnya.
+
+⚠ **Saya hampir membangun "engine hitung bata".** AHSP sudah menjawabnya
+(1 m² pasangan = 140 buah + 64,03 kg semen). Membangunnya lagi = sumber
+kebenaran kedua yang pasti berselisih diam-diam.
+
+⚠ **Pesan galat yang menyesatkan.** `"Harga tidak ter-resolve dari price
+book"` terbaca seperti *harga belum diisi*. Sebenarnya: harganya ADA, aktif,
+tak kedaluwarsa — hanya terikat lokasi "Kabupaten Bandung" sementara
+permintaan tak menyebut lokasi. Dua hal yang penanganannya beda jauh.
+
+### B. Beban mati & hidup, dari nol sampai lembar bertanda tangan
+
+Sebelumnya `muKnm`/`puKn` adalah ANGKA JADI — dihitung di kertas lalu
+diketik. Itu persis yang modul sloof sengaja hindari.
+
+Yang dibangun berurutan: balok → katalog SNI → layar → kolom → pelat →
+pondasi → diagram di PDF.
+
+**Koreksi founder di tengah jalan** ("beban mati juga diinput? harusnya
+engga kan?") mengubah arahnya, dan hasilnya jauh lebih baik:
+
+- berat sendiri balok/pelat/kolom **dihitung dari dimensi**, tak diminta
+- finishing **dipilih dari katalog** (tak bisa diturunkan dari geometri)
+- beban hidup **dari SNI 1727 Tabel 4.3-1**, 24 fungsi ruang
+
+Selisih antar-fungsi besar: hunian 1,92 · kantor 2,40 · ruang rapat 4,79 ·
+rak perpustakaan 7,18 kN/m². Mengetik 2,5 untuk ruang rapat **terlihat
+wajar**, dan baloknya LOLOS dengan beban separuh — sampai lantainya dipakai
+rapat.
+
+**Reduksi beban hidup kolom (SNI §4.7)** — pada kasus acuan 52%. Tapi TIDAK
+untuk tempat berkumpul, parkir, dan atap: di sana orang memang berkerumun
+serentak, dan menerapkannya membuat kolom KURANG kuat.
+
+---
+
+### Enam kali alat ukur saya sendiri berbohong
+
+| # | Yang terjadi |
+|---|---|
+| 1 | mencetak "✓ 2 item ditambahkan" tepat di bawah DUA baris galat penambahan |
+| 2 | mencocokkan `resource.id` — daftar AHSP memulangkan `code`, tanpa `id`. Selalu kosong |
+| 3 | cabang "tak berbagi material" jadi jalan keluar diam-diam — pemeriksa LULUS tanpa menguji apa pun |
+| 4 | test tata letak diagram: ambang 12 px, tabrakan nyatanya 15,4 px. **Mutasi LOLOS** |
+| 5 | `select` pertama ternyata pemilih PROYEK, bukan jenis elemen — menuduh produk atas kesalahan sendiri |
+| 6 | pemeriksa "isian beban tak boleh muncul untuk kolom" jadi USANG sesudah kolom bisa dihitung |
+
+Nomor 4 yang paling menyakitkan: saya MELIHAT tabrakan itu di gambar, menulis
+test untuk menjaganya, lalu test-nya tak menangkap mutasi yang saya suntik
+sendiri. Ambangnya baru benar sesudah **diukur**, bukan ditebak.
+
+Nomor 6 penting dibedakan: pemeriksanya benar SAAT DITULIS. Yang salah adalah
+membiarkannya tak ikut berubah — ia lalu menuduh produk atas perubahan yang
+disengaja.
+
+### Penguraian id: kali KEEMPAT
+
+Rute memulangkan `{ id }` di puncak; saya menulis `.data.id`. Empat kali di
+satu sesi, dan tiga di antaranya membocorkan baris uji ke basis sungguhan.
+
+**Aturannya tetap:** pembersihan tak boleh bergantung pada penguraian jawaban
+berhasil. Pakai kode/nomor yang sudah ditentukan SEBELUM permintaan dikirim.
+
+### Penjaga yang menuduh saya, dan benar
+
+`audit-catch-senyap` merah — saya menulis `catch {}` kosong untuk kegagalan
+menggambar diagram. Diperbaiki mengikuti pola yang sudah ada di fungsi yang
+sama: medan `diagramBebanGagal` yang DIBACA LAYAR.
+
+### Cacat yang hanya ketahuan dari MERENDER lalu MELIHAT
+
+- `rgba()` tak dikenali perender SVG → seluruh bidang **hitam pekat**
+- label bertumpuk (tiga kali, di tiga tempat berbeda)
+- `16.800,000 buah` — tiga desimal pada barang butiran
+- kurva momen **terpotong** di PDF karena panelnya 96 pt
+
+Keempatnya keluaran yang SAH secara teknis. Tak satu pun ditangkap test
+sebelum dilihat.
+
+### Keputusan yang SENGAJA tidak diambil
+
+- **engine hitung bata** — AHSP sudah menjawabnya
+- **momen kolom dihitung** — ia lahir dari kekakuan portal; menghitungnya di
+  sini berarti mengarang angka yang terlihat sah
+- **menanam SVG ke PDF** — pdfkit butuh pustaka tambahan. Diagram digambar
+  ULANG dengan primitif pdfkit, jadi nol dependensi baru
+- **berat pondasi ditambahkan ke Pu** — modul footplat sudah menghitungnya
+
+---
+
+## 2026-08-20 — empat fitur struktur, dan lima kebohongan alat ukur saya sendiri
+
+**Ringkasan run (apps/api):**
+
+```
+vitest run struktur    43 berkas · 1211 test · LULUS · exit 0
+tsc --noEmit           api & web · exit 0 · TANPA disaring
+```
+
+**Yang dibangun** — empat commit, masing-masing menutup satu hal yang
+menggantung:
+
+| Commit | Yang tadinya menggantung |
+|---|---|
+| `e4170124` lembar PDF | modul mengaku "membantu insinyur", tapi insinyur tak punya LEMBAR untuk ditandatangani |
+| `0e20def8` riwayat revisi | hitung ulang menimpa satu-satunya salinan; "kenapa dulu 300×500?" tak terjawab |
+| `3e5cf20b` banding alternatif | "kalau 450 saja masih kuat?" dijawab dengan ubah→hitung→kembalikan |
+| `1d6954c4` mutu nyata vs desain | `uji_material` mencatat "tidak memenuhi" lalu BERHENTI |
+
+Yang terakhir memakai data yang sudah ada di basis: K-250 zona A datang
+**231 dari 250**. Sistem mencatatnya, tapi tak pernah bertanya apakah balok
+yang dihitung dengan fc 25 MPa masih aman pada mutu itu.
+
+**Migrasi:** 470 `struktur_riwayat` — diterapkan, blok verifikasi lulus,
+jalan KEDUA juga lulus (idempoten). Buku migrasi TIDAK disentuh (G-2).
+
+---
+
+### Yang sebenarnya menemukan cacat di sesi ini
+
+Bukan test. Urutan yang produktif, sama seperti sesi sebelumnya:
+
+**jalankan rutenya → LIHAT hasilnya → mutasi → baru test.**
+
+Empat cacat lolos dari `tsc --noEmit` yang **exit 0**, dan dua mutasi lolos
+dari pengujinya sendiri.
+
+**1. `as never` mematikan pemeriksaan persis di tempat yang perlu diperiksa.**
+`ambilElemen()` tak mengambil `company_id`; insert riwayat masuk dengan
+`undefined` dan ditolak RLS. Penyuntingan tetap berhasil, layar tetap normal,
+riwayat diam-diam kosong SELAMANYA. tsc exit 0.
+
+**2. Mutasi lolos karena FIXTURE-nya tak pernah memicunya.** Mutasi "simpan
+kandidat aman ke basis" lolos — bukan karena pengujinya buruk, tapi karena
+seluruh kandidat variasi tinggi tetap tidak aman (balok contoh gagal di
+selimut api), jadi `find(x => x.aman)` tak menemukan apa pun. **Jaminan yang
+tak pernah benar-benar diuji adalah hiasan.**
+
+**3. Ambang longgar = pemeriksa yang berpura-pura memeriksa.** Uji hidup
+menuntut `fcNyata < 15`. Mutasi yang mematikan faktor kubus→silinder
+(0,83 → 1,0) menghasilkan **11,77 MPa** — lolos ambang itu dengan mulus.
+Diganti ke nilai hitungan tangan ±0,1.
+
+**4. Probe saya sendiri berbohong.** Saya mengukur karakter mana yang bisa
+dicetak WinAnsi, lalu membaca "hasil tidak kosong" sebagai "BISA". Untuk
+`—` hasilnya justru string KOSONG — tanda ia DIBUANG. Saya lalu mengeluarkan
+em-dash dari alihaksara dan merusak **17 kalimat** di lembar bertanda tangan
+("SNI 2847:2019  Persyaratan"). Ketahuan dari MELIHAT PDF-nya, karena
+pemeriksa rumus tak menyentuh prosa.
+
+**5. Asersi yang menuntut temuan yang seharusnya TAK ADA.** Pada 9,77 MPa
+balok itu masih lolos (95%), jadi `berubahJadiTidakAman: false` **benar**.
+Yang salah tuntutannya. Menuntut temuan palsu sama buruknya dengan
+melewatkan yang nyata — keduanya membuat pemeriksa berbohong.
+
+---
+
+### Kebocoran ke basis SUNGGUHAN: tiga kali, satu sebab
+
+Ketiganya dari **penguraian id jawaban**, dan ketiganya melapor BERHASIL:
+
+| # | Sebab | Akibat |
+|---|---|---|
+| 1 | rute struktur memulangkan `{ id }`, saya urai `.data.id` | 3 baris di proyek sungguhan |
+| 2 | jalur `_koneksi.mjs` salah hitung tingkat (worktree bersarang 2 tingkat di bawah `.claude/`) | 2 baris `uji_material` |
+| 3 | rute uji-material memulangkan `{ uji: data }` | 3 baris, skrip exit 0 |
+
+**Aturannya:** pembersihan tak boleh bergantung pada penguraian jawaban
+berhasil. Yang dipakai sekarang KODE/NOMOR — yang sudah kita tentukan sendiri
+SEBELUM permintaan dikirim — dan `finally` menyapu berdasarkan itu.
+Jalur berkas diturunkan dari `import.meta.url`, bukan dihitung tangan.
+
+Basis diperiksa sesudah tiap jalan: `struktur_elemen` 0, `struktur_riwayat` 0,
+`uji_material` 5 (kembali ke jumlah aslinya).
+
+---
+
+### Penjaga yang merah, dan yang BUKAN dari sini
+
+`uji-tabel-terbaca` merah oleh `kas`/`rab`/`varians`. Diukur dengan
+**mencabut edit saya lalu menjalankannya ulang**: angkanya SAMA (0→3, 3→6).
+`audit-migrasi-skema-dipaku` merah oleh 9 migrasi lama (371/372/437) — ia
+memeriksa `CREATE OR REPLACE FUNCTION public.`, dan migrasi 470 membuat
+TABEL, bukan fungsi.
+
+Penjaga yang dijalankan dan HIJAU: tenancy · catch-senyap · kegagalan-senyap ·
+tulis-tanpa-periksa · baca-tak-terpotong · izin-benar-ada ·
+halaman-pakai-cache · galat-muat-terpisah · rute-id-tak-basi ·
+judul-halaman-ada.
+
+---
+
+### Keputusan yang SENGAJA tidak diambil
+
+- **Optimasi biaya di banding** — harga lahir dari AHSP × price book pada
+  TANGGAL tertentu. Jalur kedua yang menghitung harga sendiri berarti dua
+  rumus harga di satu aplikasi.
+- **Hasil uji menimpa input desain** — desain adalah KEPUTUSAN, hasil uji
+  adalah PENGUKURAN. Menimpanya menghapus jejak apa yang direncanakan, dan
+  itu justru yang dicari saat proyek disengketakan.
+- **Banding menulis ke basis** — mencoba-coba bukan keputusan; riwayat yang
+  penuh percobaan menenggelamkan perubahan yang sungguhan.
+
+---
+
+## 2026-08-20 — enam batas struktur ditutup, dan tiga penjaga yang menuduh hal yang BENAR
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur takeoff        1238 lulus / 44 berkas
+$ npx tsc --noEmit  (api & web)          exit=0 keduanya
+$ uji-gambar-semua-jenis.mjs (3017)      exit=0 — BERGAMBAR 32/32
+$ uji-takeoff-ke-rab-hidup.mjs           exit=0 — 2 kasus tembus ke RAB
+$ jalankan-semua-penjaga.mjs             vs baseline: NOL penjaga baru merah
+$ suite PENUH vs baseline 59902edc       79 gagal vs 81 — LEBIH SEDIKIT
+```
+
+### Enam batas, semuanya dengan dua lapis
+
+| batas | kenapa berbahaya | kalimat awamnya |
+|---|---|---|
+| **Mononobe-Okabe** | dinding aman statis roboh saat gempa | "Dinding tetap berdiri saat tanah bergoyang" |
+| **Penurunan** | yang meretakkan bukan turunnya, tapi turun tak rata | "Bangunan turun MERATA, tidak miring sebelah" |
+| **P-Delta** | satu-satunya batas yang TAK memberi peringatan | "Miringnya berhenti, tidak makin menjadi" |
+| **Hankinson** | pada 45° kapasitas tinggal 40% | (sudut serat, di dalam sambungan kayu) |
+| **Ketahanan api** | beton tak terbakar, TULANGANNYA meleleh | "Besinya cukup terlindung kalau terjadi kebakaran" |
+| **Panel zone** | sambungan berputar meski bautnya cukup | "Kolomnya tidak melintir di tempat balok menempel" |
+
+Tiap angka dicocokkan ke PUSTAKA atau HITUNGAN TANGAN, bukan ke keluaran kode
+sendiri. Kae pada kh=0 runtuh persis ke Rankine; θ P-Delta cocok sampai empat
+desimal; φRn panel zone 388,8 kN cocok persis.
+
+### Empat kesalahan saya, semuanya ketahuan bukan dari test
+
+1. **588 mm** penurunan lempung lunak — modulus seperlima pustaka DAN faktor
+   konsolidasi ditumpuk. Dua kesalahan berlipat. Ketahuan karena saya LIHAT
+   angkanya; 24 test bentuk semuanya hijau.
+2. **Batang hijau bertuliskan 128%** — bagi orang non-teknis, di atas 100%
+   berarti melewati batas. Dipindahkan ke catatan.
+3. **Bendera bertentangan** — `tidakStabil: true` bersama
+   `perluDihitung: false`, karena θmaks (0,0909) bisa DI BAWAH ambang abaikan
+   (0,10). Ketahuan saat menguji keadaan batas dengan tangan.
+4. **Dua catatan "BELUM diperiksa" yang BASI** — menyebut Mononobe-Okabe dan
+   penurunan yang sudah dibangun berjam-jam sebelumnya. Catatan itu tampil DI
+   LAYAR; pembacanya akan mencari konsultan lain untuk hal yang sudah dihitung.
+
+### Tiga penjaga yang menuduh hal yang BENAR
+
+Pola yang berulang dan layak dicatat sendiri:
+
+| penjaga | tuduhan palsunya | sebabnya |
+|---|---|---|
+| `audit-medan-jumlah-tak-bentrok` | `InputGambarPolaSambungan` | menyaring dari daftar IMPOR, bukan dari fungsi yang dipanggil `hitung()` |
+| `audit-jenis-volume-terdaftar` | `sambungan_kayu` bervolume | membaca kata `dasar,` di dalam KOMENTAR sebagai kode |
+| `audit-batas-tak-basi` | tiga catatan yang masih berlaku | mencocokkan kata kunci telanjang, bukan bentuk kalimat yang menyangkal |
+
+Ketiganya diperbaiki, dan ketiganya tetap terbukti merah pada cacat aslinya.
+**Penjaga yang menuduh hal yang benar akan dimatikan orang — dan yang
+dimatikan tak lagi menjaga yang sungguhan.**
+
+### Baseline penuh: NOL regresi, terbukti
+
+Sempat saya ragukan sendiri. Diukur berurutan (bukan paralel — CLAUDE.md §7):
+
+```
+baseline 59902edc   81 gagal / 32 berkas
+cabang ini          79 gagal / 30 berkas
+```
+
+Cabang ini **lebih sedikit merah**, dan tiga berkas justru jadi hijau. Satu
+berkas yang tampak baru merah (`ai-tulis`) ternyata juga merah di baseline
+saat dijalankan sendiri — pesan galatnya sama persis.
+
+### Take-off → RAB: tujuh tebakan salah, semuanya diperbaiki dengan MENGUKUR
+
+Alurnya belum pernah diuji lewat rute hidup. Sekarang terbukti: volume 12 m³
+dan 24 m² tersimpan, terbaca kembali, dan tembus sampai kuantitas RAB.
+
+Tujuh tebakan saya salah (endpoint versi, tipe item, path assembly, nama
+medan, bentuk balasan). Tiap kali rutenya menolak dengan menyebut PILIHAN YANG
+SAH — "metode wajib salah satu dari: volume, luas, dinding, panjang" — dan itu
+yang membuat tujuh kesalahan selesai dalam beberapa menit. Pesan galat yang
+menyebut pilihannya jauh lebih menolong daripada "input tak sah".
+
+Ditemukan juga: kegagalan simpan take-off hanya masuk `console.warn`. Bagi
+estimator itu TIDAK MENINGGALKAN GEJALA — itemnya masuk, angkanya benar, dan
+jejak perhitungannya hilang tanpa suara. Sekarang tampil di layar.
+
+---
+
+## 2026-08-19 (lanjutan 19) — MEMOTRET LAYAR menemukan tiga cacat yang 1.028 test lewatkan
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur                 1035 lulus / 36 berkas
+$ npx tsc --noEmit  (api & web)           exit=0 keduanya
+$ uji-gambar-semua-jenis.mjs (rute 3017)  exit=0 — BERGAMBAR 32 / 32
+$ audit-gambar-punya-judul.mjs            exit=0  (mutasi → 1 → pulih → 0)
+$ audit-akhir-baris.mjs                   exit=0
+$ jalankan-semua-penjaga.mjs              vs baseline: NOL penjaga baru merah
+```
+
+Modul dinyatakan 32/32 bergambar dan seluruh penjaga hijau. Lalu layarnya
+DIBUKA — dan tiga cacat muncul, tak satu pun tertangkap 1.028 test.
+
+### 1. `Infinity%` di batang kekuatan
+
+Balok baja yang kehilangan dua medan wajib menampilkan **Infinity%** dan
+lendutan **NaN**. Sebabnya sebaris: `undefined < 0` adalah **FALSE**, jadi
+`if (jarakPengakuM < 0) throw` TIDAK menahan medan yang HILANG.
+
+Yang membuatnya berbahaya bukan angka anehnya, melainkan verdict di atasnya:
+"TIDAK AMAN — 2 pemeriksaan tidak terpenuhi". Itu terbaca sebagai kesimpulan
+TEKNIK, bukan keluhan tentang input. Pembacanya akan memperbesar profilnya —
+dan angkanya tetap Infinity.
+
+Dijaga di `struktur-awam.test.ts`: SELURUH modul dijalankan, tiap `rasio`
+wajib berhingga dan tak negatif. Memakai fixture yang SAMA dengan penjaga
+terjemahan awam — dua tuntutan berbeda dari satu himpunan input yang sudah
+terbukti sah, bukan dua daftar yang bisa menyimpang.
+
+### 2. Judul gambar berupa KUNCI MENTAH
+
+Halaman detail memakai `JUDUL_GAMBAR[nama] ?? nama`. Tiga kunci baru
+(`denah`, `tampak`, `pola`) lahir bersama sepuluh gambar terakhir, dan
+tabel judulnya tetap berisi EMPAT entri. Gambarnya terbit dengan benar — hanya
+kepalanya berbunyi "pola" dan "tampak", kata teknis mentah di layar orang yang
+justru memakai layar ini karena tak paham istilah teknis.
+
+Tak ada yang salah secara teknis, jadi tak ada test yang bisa merah. Dijaga
+`audit-gambar-punya-judul.mjs` (ambang NOL) — membandingkan `g.<kunci>` di
+rute terhadap `JUDUL_GAMBAR` di halaman.
+
+### 3. Dua baris SF SALING MENIMPA
+
+Jarak antar baris `uk * 1.05` untuk teks setinggi `uk * 0.82`. SVG-nya sah,
+angkanya benar, dan yang membacanya melihat "SF guling 4.76" dengan garis merah
+menyilang di tengahnya — terbaca seperti peringatan pada angka yang justru aman.
+
+**Ambang ujinya sendiri butuh dua kali koreksi, dan mutasi yang menemukannya:**
+
+| ambang | mutasi `uk*1.05` (cacat aslinya) |
+|---|---|
+| 1,0 × tinggi teks | **LOLOS** — 1,05·uk memang > 0,82·uk |
+| 1,25 × | **LOLOS** — rasionya 1,28 |
+| 1,4 × | MERAH ✓ (yang terpasang: 1,65) |
+
+Dua ambang pertama adalah uji yang lolos pada cacat yang justru melahirkannya.
+Tanpa mutasi, keduanya akan terlihat seperti uji yang bekerja.
+
+### Skrip potret yang berbohong tiga kali
+
+`apps/web/scripts/potret-struktur.mjs`, dan tiap kali potretnya TERLIHAT
+berhasil:
+
+1. **`?project=`** — parameternya `proyek`. Potretnya memperlihatkan
+   "Pilih proyek dulu"; tak satu pun elemen pernah dibuka.
+2. **`.first()` untuk ketiganya** — ketiga potret memperlihatkan elemen yang
+   SAMA. Sekarang tiap elemen dibuka lewat kode uniknya, dan panel WAJIB
+   memperlihatkan kode itu sebelum dipotret.
+3. **`fullPage: true` hanya setinggi viewport** pada halaman ini (panel detail
+   memakai kontainer bergulir sendiri), jadi galeri gambar — yang letaknya
+   paling bawah — tak pernah ikut terpotret. Sekarang `<figure>`-nya dipotret
+   langsung, dan nol `<figure>` dilaporkan sebagai galat.
+
+### Yang perlu dicatat
+
+Ketiga cacat aplikasi di atas ditemukan **sesudah** modulnya dinyatakan lengkap
+dan seluruh penjaga hijau. Urutan yang produktif di arc ini tetap sama seperti
+yang tercatat berkali-kali: **(1) menjalankan rute, (2) memotret layar,
+(3) mutasi, (4) test biasa** — dan test biasa belum sekali pun menjadi yang
+pertama menemukan cacat.
+
+Empat elemen uji `UJI-SAMB-*` juga ditemukan tertinggal di proyek sungguhan,
+sisa jalan pertama sebelum kode unik dan perbaikan header DELETE. Sudah dihapus.
+
+---
+
+## 2026-08-19 (lanjutan 18) — 32/32 bergambar, dan laporan yang berbohong empat kali
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur                 1028 lulus / 36 berkas
+$ npx tsc --noEmit  (api & web)           exit=0 keduanya
+$ uji-gambar-semua-jenis.mjs (rute 3017)  exit=0 — BERGAMBAR 32 / 32
+$ uji-gambar-hidup.mjs                    exit=0 — 8 kasus
+$ uji-sambungan-hidup.mjs                 exit=0 — 5 kasus
+$ audit-medan-jumlah-tak-bentrok.mjs      exit=0  (mutasi → 1 → pulih → 0)
+$ audit-akhir-baris.mjs                   exit=0
+$ jalankan-semua-penjaga.mjs              vs baseline: NOL penjaga baru merah
+```
+
+### Sepuluh gambar terakhir
+
+`tangga` · `kolom_komposit` · `bondek` · `dinding_geser` · `raft` ·
+`pondasi_menerus` · `pola sambungan` (baut/angkur/paku/sekrup/momen — satu
+fungsi) · `gusset` · `las` · `kayu`. Cakupan 20/32 → **32/32**.
+
+Yang membuat tiap gambar berarti bukan bentuknya, melainkan hal yang tak bisa
+dibaca dari daftar angka:
+
+- **Tangga** — satu-satunya elemen yang kegagalannya BUKAN runtuh. Tangga yang
+  kuat sempurna tetap gagal kalau orang terjatuh di atasnya. Blondel di luar
+  600–650 mm dimerahkan.
+- **Bondek** — gelombangnya yang membuat lembaran 0,75 mm sanggup memikul beton
+  basah. Lendutan tahap pelaksanaan yang lewat batas memunculkan
+  "BUTUH PERANCAH SEMENTARA".
+- **Gusset** — hanya SEPOTONG pelat yang bekerja (lebar efektif Whitmore, sebar
+  30°). Pelat 400 mm bisa jadi hanya 180 mm-nya bekerja, dan MEMPERLEBAR pelat
+  tak menolong.
+- **Las** — yang menahan TENGGOROKAN (0,707 × kaki), bukan kakinya. Las 6 mm
+  hanya setebal 4,24 mm di bidang yang menentukan.
+- **Kayu** — digambar dengan arah serat, karena dua kegagalan tersering (tumpuan
+  yang PENYOK, belah mengikuti serat) keduanya soal arah.
+- **Raft** — yang berbahaya TEPI, bukan rata-rata; inti sepertiga tengah digambar.
+- **Dinding geser** — hw/lw dicetak beserta ARTINYA ("gemuk — GESER cenderung
+  menentukan"), dan retak menyilang muncul HANYA bila geser memang menentukan.
+
+### Laporan yang berbohong empat kali
+
+`lapor-cakupan-gambar.mjs` membaca BENTUK kode, dan salah **empat kali dalam
+satu sesi** — tiap kali karena cabang baru ditulis dengan bentuk yang belum
+dikenalinya, dan tiap kali angkanya terlihat masuk akal:
+
+| # | sebab | melapor | sesungguhnya |
+|---|---|---|---|
+| 1 | penampang baja dipilih dari `input.profil` | 7/32 | 17/32 |
+| 2 | empat sambungan memakai TABEL berkunci jenis | 26/32 | 29/32 |
+| 3 | satu entri tabel berbadan blok `() => { … }` | 31/32 | 32/32 |
+| 4 | `kuda_kuda_kayu`/`baja_ringan` disangka bergambar karena modulnya menyebut `profil` — padahal itu KUNCI KATALOG berupa teks | **32/32** | **30/32** |
+
+Yang keempat paling berbahaya: ia melapor **SUDAH LENGKAP** saat dua jenis
+masih kosong. Laporan yang salah ke arah "sudah selesai" menghentikan pekerjaan
+yang belum selesai.
+
+Perbaikannya bukan menambal pola kelima. `uji-gambar-semua-jenis.mjs`
+MEMBUAT elemen untuk tiap jenis lewat rute sungguhan, meminta gambarnya, lalu
+MEMBUKA SVG-nya — viewBox positif, aria-label ada, tak ada medan `…Gagal`. Ia
+tak membaca kode sama sekali, jadi tak bisa dibohongi oleh cara kode ditulis.
+Laporan lama sekarang MENYATAKAN SENDIRI bahwa ia perkiraan, dan menunjuk ke
+penguji itu.
+
+Contoh inputnya dibaca dari `CONTOH` di halaman UI, bukan ditulis ulang —
+efek sampingnya berharga: contoh UI yang rusak membuat penguji ini merah.
+
+### Merah yang memikul dua arti
+
+Uji "gambar aman TIDAK memuat merah" merah, dan **yang salah bukan ujinya**:
+`#dc2626` dipakai untuk BAHAYA (SF kurang, tumit terangkat, jarak dilanggar)
+sekaligus untuk HIASAN lewat `WARNA.tulangan` yang kebetulan bernilai sama —
+garis ukur, anak panah gaya, isian penanda.
+
+Dua arti pada satu warna membuat warna itu berhenti berarti apa-apa: pembaca
+yang melihat merah pada gambar yang sehat belajar bahwa merah tak selalu
+berarti masalah, dan pelajaran itu terbawa ke gambar berikutnya yang merahnya
+sungguhan. Dipisah jadi `WARNA_BAHAYA`, `WARNA_TEKAN` (ungu), dan
+`WARNA_AKSEN` (oranye).
+
+### Penjaga sendiri yang menuduh salah
+
+`audit-medan-jumlah-tak-bentrok.mjs` — yang saya tulis kemarin — merah pada
+`InputGambarPolaSambungan`, medan `jumlah` yang sah sepenuhnya karena ia
+input GAMBAR dan tak pernah lewat `{ ...input, jumlah }` di rute. Penyaringnya
+memakai daftar impor; diperbaiki jadi "fungsi yang benar-benar dipanggil
+`switch` di `hitung()`" (25 → 20 modul).
+
+Penjaga yang menuduh hal yang benar akan dimatikan orang, dan yang dimatikan
+tak lagi menjaga yang sungguhan. Tetap terbukti merah pada cacat aslinya.
+
+### Bukti mutasi (12, semuanya tertangkap)
+
+Blondel tak diperiksa · jenis komposit diabaikan · tenggorokan = kaki ·
+perancah tak diperingatkan · inti raft diabaikan · pondasi terbalik lolos ·
+jarak kurang tak dimerahkan · retak geser tak muncul · dan empat dari sesi
+sebelumnya.
+
+---
+
+## 2026-08-19 (lanjutan 17) — sloof, balok T, dan dinding penahan yang MENJELASKAN verdict-nya
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur              983 lulus / 35 berkas
+$ npx tsc --noEmit  (api)              exit=0
+$ uji-gambar-hidup.mjs (rute 3017)     exit=0 — 8 kasus, SVG dibuka & diperiksa
+$ lapor-cakupan-gambar.mjs             BERGAMBAR 20 / 32  (dari 17, dari 7)
+$ audit-akhir-baris.mjs                exit=0
+$ jalankan-semua-penjaga.mjs           vs baseline: NOL penjaga baru merah
+```
+
+### Sloof & balok T — primitif yang sudah ada, tak pernah disambungkan
+
+Keduanya berpenampang b × h bertulangan atas-bawah, persis bentuk yang
+`gambarPenampang()` sudah tangani untuk balok sejak lama. Yang kurang bukan
+kemampuan menggambarnya, melainkan dua baris yang menyambungkannya.
+
+Balok T digambar sebagai PERSEGI badannya, dan itu disengaja: sayapnya adalah
+PELAT, dan pelat punya gambarnya sendiri. Menggambar keduanya menyatu membuat
+besi pelat terlihat sebagai bagian balok dan **terpesan dua kali**.
+
+### Dinding penahan — gambar yang menjelaskan verdict, bukan bentuk
+
+Ini satu-satunya elemen di aplikasi ini yang bisa runtuh **tanpa satu pun
+bahannya gagal**: betonnya utuh, tulangannya utuh, dan dindingnya terguling
+atau tergeser sebagai satu benda. Tiga dari empat pemeriksaannya bukan tentang
+kekuatan bahan sama sekali.
+
+Karena itu gambarnya memuat tiga hal yang tak ada di gambar elemen lain:
+
+1. **Segitiga tekanan tanah** di belakang badan — dan bentuk segitiganya
+   menjelaskan kenapa dorongan tumbuh dengan KUADRAT tinggi. Menggambarnya
+   sebagai persegi (dorongan merata) adalah kesalahpahaman yang membuat orang
+   menyangka menaikkan dinding setengah meter hanya menambah dorongan sedikit.
+2. **Trapesium tekanan tumpu** di bawah telapak — dan bila resultan keluar dari
+   inti sepertiga tengah, ujung tumitnya **TERANGKAT**, ditandai merah. Itu
+   keadaan yang tak terbaca dari satu angka pun tanpa gambar, dan yang membuat
+   dinding berputar pelan-pelan bertahun-tahun tanpa pernah benar-benar runtuh.
+3. **SF guling & SF geser dicetak di gambarnya**, merah bila di bawah 1,5.
+
+Alasannya sederhana: meteran kekuatan menjawab "seberapa terpakai", sementara
+untuk dinding penahan pertanyaannya adalah **"apa yang harus saya UBAH"** — dan
+jawabannya hampir selalu GEOMETRI (perpanjang tumit, tambah kaki), bukan mutu
+beton. Geometri hanya bisa ditunjukkan dengan gambar.
+
+Bukti mutasi: tumit-terangkat tak dibedakan → MERAH; batas qMin jadi eksklusif
+(q = 0 dianggap aman) → MERAH; SF kurang tak dimerahkan → MERAH; geometri
+mustahil (badan menjorok keluar telapak) diterima → MERAH; dipulihkan → HIJAU.
+
+### Saya salah
+
+Dua kali dalam satu sesi `audit-akhir-baris.mjs` merah karena saya sendiri:
+sekali karena Edit menulis CRLF ke berkas yang LF di HEAD, sekali karena
+penggabungan berkas saya paksa jadi CRLF berdasarkan pembacaan yang keliru
+tentang berkas induknya.
+
+Yang menarik: penjaga itu **hijau saat dijalankan sendiri dari `apps/api`**
+dan merah dari akar worktree — jadi sempat terbaca seperti "transien". Bukan
+transien; alat ukurnya yang saya jalankan dari tempat yang salah. Ini pola
+yang sama dengan `| tail` menelan exit code kemarin: **yang gagal alat
+ukurnya, dan kesimpulan dari alat ukur yang salah selalu terdengar meyakinkan.**
+
+---
+
+## 2026-08-19 (lanjutan 16) — gambar kerja untuk sisi BAJA: sepuluh jenis, satu gambar
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur              969 lulus / 33 berkas
+$ npx tsc --noEmit  (api)              exit=0
+$ uji-gambar-hidup.mjs (rute 3017)     exit=0 — 5 kasus, SVG DIBUKA & diperiksa
+$ uji-sambungan-hidup.mjs              exit=0 — 5 kasus (tak regresi)
+$ lapor-cakupan-gambar.mjs             BERGAMBAR 17 / 32  (dari 7/32)
+$ jalankan-semua-penjaga.mjs           vs baseline: NOL penjaga baru merah
+```
+
+### Yang diukur lebih dulu
+
+`lapor-cakupan-gambar.mjs` — ditulis sebelum menambah apa pun, dan angkanya
+mengejutkan: **7 dari 32 jenis** yang menghasilkan gambar, dan **ketujuhnya
+beton**. Seluruh sisi baja — balok, kolom, gording, bracing, rangka, base
+plate, angkur, sambungan, interaksi — tak punya satu pun.
+
+Termasuk `baja_rangka`, yang justru elemen dengan batang terbanyak.
+
+### Satu gambar untuk sepuluh jenis
+
+`gambarProfilBaja()` + `titikProfilBaja()`. Profil diambil dari
+`input.profil`, medan yang **sudah ada** di tiap modul baja (dipakai untuk
+berat per meter di RAB) — tak ada data baru yang perlu diminta ke pengguna.
+
+Geometrinya dipisah dari penggambarannya supaya bisa diuji sebagai ANGKA,
+pelajaran yang sama dengan `posisiTulangan()`. Kanal (C) digambar dengan badan
+di SATU sisi, bukan di tengah: menggambarnya sebagai I membuat sumbu lemahnya
+terlihat simetris padahal tidak, dan justru ketaksimetrisan itu yang membuat
+kanal terpuntir saat dibebani.
+
+**Tebal badan dan tebal sayap ditunjuk TERPISAH,** dengan garis penunjuk
+masing-masing. Itu alasan utama gambar ini ada: keduanya berdampingan di
+penamaan profil ("200x100x5,5x8") dan tertukar tanpa gejala sampai batangnya
+datang ke lapangan. Angka di daftar tak mencegah itu.
+
+Dijaga mutasi: badan/sayap ditukar → MERAH; badan digeser dari tengah → MERAH;
+kanal digambar sebagai WF → MERAH; dipulihkan → HIJAU.
+
+### Cacat yang ditemukan, lagi-lagi dengan MENJALANKAN
+
+Input pelat tanpa `bebanMatiTambahan` gagal dengan
+`Cannot read properties of undefined (reading 'reduce')` — pesan yang tak
+menyebut satu pun medan. Modul itu SUDAH memvalidasi medan lain dengan pesan
+yang menyebut namanya ("Tebal pelat harus > 0"); yang satu ini terlewat, dan
+terlewatnya baru ketahuan saat rutenya dijalankan dengan input yang kurang.
+
+Sekarang menyebut nama medannya, dan menerangkan bahwa daftar KOSONG sah —
+pelat yang hanya memikul berat sendirinya nyata ada.
+
+### Penguji yang MEMBUKA gambarnya
+
+`uji-gambar-hidup.mjs` tidak memeriksa "ada medan gambar". Ia memeriksa:
+
+1. ada `<svg` sungguhan,
+2. **viewBox berukuran positif** — viewBox nol menghasilkan gambar KOSONG tanpa
+   satu pun galat, dan berkasnya tetap terlihat wajar dari luar,
+3. tak ada medan `…Gagal` yang terisi,
+4. angka yang dijanjikan **benar-benar muncul di dalam SVG-nya**
+   ("badan 5.5", "sayap 8").
+
+Rute sengaja tidak menggagalkan permintaan saat gambar gagal — hasil analisa
+tetap berguna tanpa SVG. Keputusan itu benar, dan justru karena itu gambar yang
+gagal DIAM.
+
+### Saya salah, dua kali
+
+**Laporan cakupan mengukur bentuk kode, bukan akibatnya.** Versi pertamanya
+membaca `el.jenis === …` saja, jadi sesudah sepuluh jenis baja mulai
+bergambar ia tetap melapor 7/32 — karena cabang barunya memilih lewat
+`input.profil`. Laporan yang salah ukur lebih buruk daripada tak ada laporan.
+
+**Satu uji lulus karena kebetulan angka.** Uji "kanal tak simetris" saya tulis
+sebagai "jumlah simpul kiri ≠ kanan", dan pada profil itu kebetulan 4 lawan 4.
+Diganti dengan yang benar-benar membedakan: tepi kiri kanal LURUS PENUH (hanya
+dua titik di x=0), sisi kanan bertakik empat kali.
+
+---
+
+## 2026-08-19 (lanjutan 15) — sambungan rangka atap, dan medan `jumlah` yang menimpa angka pengguna
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur              949 lulus / 32 berkas
+$ npx tsc --noEmit  (api)              exit=0
+$ npx tsc --noEmit  (web)              exit=0
+$ uji-sambungan-hidup.mjs (rute 3017)  exit=0 — 5 kasus
+$ audit-medan-jumlah-tak-bentrok.mjs   exit=0  (mutasi → exit 1 → pulih exit 0)
+$ audit-jenis-volume-terdaftar.mjs     exit=0 — 32 jenis
+$ audit-jenis-struktur-cocok.mjs       exit=0 — kode & basis cocok
+$ lapor-cakupan-struktur.mjs           ADA 34 / 34 (100%)
+$ jalankan-semua-penjaga.mjs           136 hijau · 38 MERAH
+    baseline 59902edc                  135 hijau · 39 MERAH
+    → NOL penjaga baru merah; `gen-indeks-docs` justru jadi hijau
+```
+
+### Yang dibangun
+
+Sambungan kayu (paku/baut/pelat bergigi) dan sekrup baja ringan — dua jenis
+baru, total 32. **Empat modul lain menyebut hal yang sama sebagai batasnya:**
+"pada kuda-kuda kayu, sambungan hampir selalu lebih lemah daripada batangnya".
+Sampai sekarang aplikasi menghitung batang dengan teliti lalu menyerahkan titik
+gagal sesungguhnya ke perkiraan.
+
+Kapasitas paku dihitung dari **moda leleh** (SNI 7973 §12.3), bukan tumpu penuh.
+Selisihnya bukan halus: `Fe·d·t` polos memberi 8,29 kN untuk paku yang
+sesungguhnya memikul sekitar 0,54 kN — **tujuh kali lipat, ke arah yang
+berbahaya.** Yang menemukannya bukan test, melainkan membandingkan ke angka
+lapangan yang sudah diketahui.
+
+Keduanya `TANPA_VOLUME`: alat sambung dibeli per kilogram sebagai bahan
+pembantu, bukan item RAB tersendiri.
+
+### Cacat yang ditemukan — dan cara ia ditemukan
+
+Rute menyusun input tiap modul sebagai:
+
+```ts
+const dgnJumlah = { ...input, jumlah }
+```
+
+`jumlah` di sana berarti **banyaknya elemen** — 12 kolom yang sama, 40 m sloof
+yang sama — dan dipakai sebagai pengali volume. Ia ditimpakan **di atas** input
+pengguna.
+
+Modul sambungan saya tulis dengan medan `jumlah` yang berarti **jumlah alat
+sambung**. Akibatnya angka yang ditulis pengguna HILANG, diganti banyaknya
+elemen.
+
+Dan bukan hanya modul baru. Penjaganya, begitu ditulis, langsung menemukan
+**dua modul lama yang sudah berjalan**: `analisaSambunganBaut` (jumlah baut)
+dan `analisaAngkur` (jumlah angkur). Keduanya terjangkau rute, dan UI-nya
+bahkan sudah menampilkan medan "Jumlah baut" / "Jumlah angkur" yang nilainya
+dibuang diam-diam.
+
+**Arah kesalahannya dua-duanya berbahaya:**
+
+| Keadaan | Akibat |
+|---|---|
+| elemen berjumlah 1, sambungan 14 paku | dihitung 1 paku → **merah palsu** |
+| elemen berjumlah 20, sambungan 4 baut | dihitung 20 baut → **HIJAU PALSU** |
+
+Yang kedua yang menakutkan: sambungan yang sesungguhnya kurang dinyatakan aman.
+
+**Bagaimana ia ketahuan.** Bukan dari test — 949 test hijau melewatinya, karena
+semuanya memanggil fungsinya LANGSUNG. Ia ketahuan karena satu jalan lewat rute
+hidup memberi `117%` terpakai sementara pemanggilan langsung memberi `29%` —
+dua angka dari fungsi yang SAMA. Tak ada galat di antaranya.
+
+Ini keempat kalinya di arc ini cacat ditemukan dengan MENJALANKAN, bukan dengan
+menguji. Tiga sebelumnya: `satuan-beli.ts` yang tak pernah dipanggil, profil WF
+tertulis "Ulir (BjTS) D200", dan `rekap-volume` runtuh HTTP 500.
+
+Perbaikannya rename: `jumlahAlat`, `jumlahSekrup`, `jumlahBaut`,
+`jumlahAngkur`. Typecheck menemukan tiap call site — itulah gunanya.
+
+Dijaga `audit-medan-jumlah-tak-bentrok.mjs` (ambang NOL), yang membaca pola
+`{ ...input, jumlah }` **dari rutenya**, bukan menulis ulang aturannya — kalau
+rute berhenti memakai pola itu, penjaganya melapor supaya diperiksa, bukan
+bertahan hijau tanpa menjaga apa pun.
+
+### Dua koreksi pada contoh saya sendiri
+
+Contoh "praktik lapangan biasa" yang saya tulis GAGAL dua kali berturut-turut,
+dan keduanya benar:
+
+1. **8 paku untuk 6 kN** → 139% terpakai. Diukur: kapasitas per paku 540 N,
+   tepat di rentang lapangan. Butuh ~12 paku, bukan 8.
+2. **14 paku pada jarak 45 mm** → 137% pada jarak antar alat sambung. Menambah
+   paku pada baris yang sudah rapat tidak menguatkan — keempat belasnya menekan
+   serat yang sama dan justru membelah kayunya.
+
+Modul ini ditulis persis untuk menahan dua kesalahan itu, dan yang pertama
+tertipu olehnya adalah saya sendiri.
+
+### Saya salah
+
+Dua kali dalam sesi ini saya menulis `node skrip.mjs | tail` lalu membaca
+`$?` — yang dipulangkan status `tail`, bukan status skripnya. Sekali ia
+melaporkan `exit=0` untuk penjaga yang sebenarnya MERAH, dan saya sempat
+menyatakan penjaga itu hijau padahal ia belum pernah hijau. Alat ukur yang salah
+lebih berbahaya daripada tak mengukur.
+
+---
+
+## 2026-08-19 (lanjutan 14) — cakupan uji struktur 100%: pondasi sampai atap, beton dan baja
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur          887 lulus (887)
+$ npx tsc --noEmit  (api)          exit=0
+$ npx tsc --noEmit  (web)          exit=0
+$ lapor-cakupan-struktur.mjs       ADA 34 / 34  (100%)
+12 penjaga terkait                 exit=0 semuanya
+```
+
+Founder meminta ini dituntaskan tanpa mempertimbangkan penghematan. Dikerjakan
+dalam empat commit; cakupan 53% → 59% → 71% → 82% → **100%**.
+
+### Enam modul terakhir
+
+**KOMPOSIT** — kolom komposit & bondek. Beton menyumbang lebih dari separuh
+kapasitas kolom komposit; menghitungnya sebagai kolom baja saja mengabaikan
+porsi itu. Kolom TERISI mendapat kekangan dari pipanya (koef 0,95 bukan 0,85).
+
+Bondek diperiksa DUA tahap, dan tahap PELAKSANAAN yang paling sering
+menentukan: sebelum beton mengeras, bondek memikul sendiri beton basah +
+pekerja. Bondek yang melendut membuat beton di tengah lebih tebal, dan tambahan
+berat itu membuatnya melendut lebih jauh — lingkaran yang memperkuat dirinya
+sendiri. Diukur: bentang 2,5 m tanpa penyangga melendut 15,9 mm (batas 13,9);
+dengan penyangga di tengah lendutannya seperenambelas, karena lendutan
+sebanding L⁴.
+
+**SAMBUNGAN LANJUT** — pelat buhul & sambungan momen. Lebar efektif Whitmore
+(menyebar 30° dari baris baut pertama) bukan lebar penuh pelat. TEKUK pelat
+buhul terjadi KELUAR BIDANG — arah yang tak terlihat pada gambar sambungan yang
+selalu digambar dari samping; perancang memeriksa bautnya, memeriksa lasnya,
+dan pelatnya sendiri melengkung.
+
+Sambungan momen memeriksa KEKAKUAN, bukan hanya kekuatan. Diukur pada contoh
+nyata: kekakuan 50.000 kNm/rad terdengar besar, tetapi Ki·L/EI = 6,33 —
+SEMI-RIGID, bukan kaku. Momen yang dihitung tak sampai ke sana, dan momen
+lapangan justru lebih besar daripada rencana.
+
+**ATAP RINGAN** — kuda-kuda kayu & baja ringan. Pada kayu, TUMPU TEGAK LURUS
+SERAT paling sering gagal dan paling jarang diperiksa: kelas II kuat tekan
+sejajar 42,5 MPa tetapi tegak lurus hanya 15 MPa. Yang terjadi di lapangan
+gording menekan kuda-kuda, kayunya penyok, atapnya turun — dan tak ada yang
+mengira sebabnya tumpuan karena batangnya sendiri utuh.
+
+Faktor durasi beban diterapkan (kayu yang dibebani terus-menerus patah pada
+beban yang sanggup ditahannya sesaat), tetapi TIDAK pada tumpu — Fc⊥ adalah
+kegagalan penyok, bukan patah, jadi creep rupture tak berlaku.
+
+Pada baja ringan, TEKUK LOKAL mengendalikan: C75 setebal 0,75 mm hanya 33%
+efektif. Lapisan antikarat diperiksa karena ia menentukan UMUR bukan kekuatan —
+rangka kuat berlapis tipis habis dalam belasan tahun, dan menggantinya berarti
+membongkar seluruh penutup atap.
+
+### Mutasi — 23 pada tahap ini, dan DUA yang lolos
+
+Semua akhirnya merah. Dua yang sempat lolos, keduanya karena FIXTURE-nya tak
+membedakan:
+
+- **"baja ringan pakai luas bruto"** lolos karena fixture dasar sudah gagal
+  pada kedua versi (2,98 kN vs gaya 4 kN) — menaikkan kapasitas 3× tak
+  mengubah verdict. Ditutup dengan gaya yang jatuh DI ANTARA kapasitas efektif
+  dan bruto.
+- **"kekakuan sambungan tak diperiksa"** lolos karena test lain memeriksa
+  KLASIFIKASINYA (semi-rigid/kaku/sendi) dan catatannya, tetapi tak satu pun
+  memeriksa bahwa klasifikasi itu benar-benar MEMENGARUHI verdict.
+
+Pola yang sama dengan "raft pakai rata-rata" di commit sebelumnya: test yang
+memeriksa angka tanpa memeriksa akibatnya pada keputusan.
+
+### Yang tersambung penuh
+
+Migrasi 469 (30 jenis, idempoten) · dispatcher · 12 terjemahan awam baru · UI
+lengkap dengan kelompok ketiga "Atap ringan & kayu" — dipisahkan dari "Baja
+profil" karena bahannya berbeda perilakunya, dan menaruhnya bersama membuat
+orang menyangka rumusnya sama.
+
+Diuji lewat API sungguhan: keenam jenis tersimpan, `hitung-semua` berhasil 6
+gagal 0.
+
+### Cakupan akhir
+
+```
+TANAH      daya dukung tanah
+PONDASI    footplat · pilecap · tiang · sloof · menerus · raft
+BAWAH      dinding penahan tanah
+KOLOM      persegi · bulat · baja · komposit
+BALOK      beton · baja · balok T
+PELAT      beton · bondek
+TANGGA     beton
+DINDING    geser
+SAMBUNGAN  baut · las · base plate · angkur · gusset · momen
+ATAP       kuda-kuda baja · gording · bracing · kuda-kuda kayu · baja ringan
+GLOBAL     interaksi P-M · gempa · angin · drift
+```
+
+Angka 100% ini akan basi begitu ada elemen ke-35 yang layak ditambahkan —
+karena itu ia diukur `lapor-cakupan-struktur.mjs`, bukan ditulis di dokumen.
+
+---
+
+## 2026-08-19 (lanjutan 13) — "sudah komplit?" diukur, dan jawabannya 53%
+
+Founder bertanya tiga hal: apakah semuanya aman tanpa cacat, apakah UI-nya
+sudah baik, dan apakah uji strukturnya komplit dari pondasi sampai atap untuk
+beton maupun baja. Ketiganya dijawab dengan MENGUKUR.
+
+### 1. Uji struktur: 18 dari 34 — **53%**
+
+```
+$ node -r dotenv/config scripts/lapor-cakupan-struktur.mjs
+  ADA 18 / 34  (53%)
+
+  BELUM ADA, tetapi DIPAKAI di RAB nyata — urut paling sering:
+       15x  PONDASI    sloof / tie beam
+        8x  TANGGA     tangga beton
+        2x  PONDASI    pondasi menerus batu kali
+        1x  BALOK      balok anak / balok T
+```
+
+Yang SUDAH: tanah, footplat, pilecap, tiang, kolom (persegi/bulat/baja), balok
+(beton/baja), pelat, sambungan (baut/las/base plate/angkur), atap
+(rangka/gording/bracing), interaksi P-M.
+
+Yang BELUM dan **sudah dipakai orang**: sloof, tangga, pondasi batu kali, balok
+anak. Sloof yang paling mendesak — 15 baris RAB nyata menyebutnya, dan secara
+mekanika ia balok, jadi modulnya sudah ada; yang kurang hanya jenisnya
+terdaftar.
+
+Yang BELUM dan belum dipakai (12): raft, dinding penahan tanah, kolom komposit,
+bondek, shear wall, gusset, sambungan momen, kuda-kuda kayu, baja ringan, beban
+gempa, beban angin, drift antar tingkat.
+
+**Laporannya SKRIP, bukan dokumen** — angka cakupan basi begitu satu jenis
+ditambahkan, dan CLAUDE.md sendiri mencabut seluruh angkanya karena alasan itu.
+Ia juga bukan penjaga: tak pernah exit 1, karena cakupan yang belum lengkap
+adalah urutan kerja, bukan cacat. Yang membuatnya berguna: pengurutan
+berdasarkan **pemakaian nyata di RAB**, bukan kerumitan teori.
+
+### 2. UI: satu cacat yang salah secara TEKNIS, bukan kosmetik
+
+Ditemukan dengan memotret layar berisi. Tabel "Kebutuhan besi per diameter"
+menampilkan:
+
+```
+Ulir (BjTS)  ·  D200  ·  profil WF 200x100x5.5x8
+```
+
+**Besi ulir D200 tidak ada di pasar.** Yang tertulis "D200" itu TINGGI profil,
+bukan diameter. Estimator yang membaca tabel ini memesan barang yang tak bisa
+dipenuhi supplier.
+
+Sebabnya: baris `besi` memuat dua barang berbeda — tulangan beton
+(berdiameter, per lonjor) dan profil baja (berdesignation, per batang) —
+dibedakan hanya oleh awalan `'profil '` pada `peran`. Render tabel cuma
+mengenal dua tipe tulangan.
+
+597 test struktur hijau sepanjang waktu: tak satu pun memeriksa bagaimana
+barisnya DITAMPILKAN, hanya bagaimana ia dihitung.
+
+Diperbaiki: kolom "Jenis" mengenali "Baja profil", kolom "Diameter" berganti
+jadi "Ukuran" (kolom bernama Diameter yang berisi designation adalah label yang
+berbohong), judul kartu jadi "Kebutuhan besi & baja profil". Dijaga
+`audit-baris-besi-dibedakan.mjs` (ambang NOL), dibuktikan merah dengan
+MENGEMBALIKAN cacat aslinya.
+
+Selebihnya UI-nya baik: layar kosong menjelaskan apa yang akan muncul dan
+mengapa kosong, catatan batas ditampilkan tidak dilipat, selisih antar-angka
+diterangkan, a11y 0 pelanggaran.
+
+### 3. "Aman tanpa cacat?" — tidak, dan ini daftarnya
+
+Yang **sudah** aman: 597+81+21 test hijau, 10 penjaga hijau, typecheck bersih
+di API dan web, nol regresi terhadap baseline (diukur per berkas), a11y nol
+pelanggaran.
+
+Yang **masih** terbuka, dan saya sebutkan alih-alih mendiamkannya:
+
+- 16 elemen struktur belum punya penguji (4 di antaranya dipakai di RAB nyata)
+- baris `takeoff_dimensi` tersimpan, tetapi belum ada layar untuk MEMBACANYA
+  kembali — jejaknya ada, pembacanya belum
+- penjaga UI lain masih merah (`uji-opacity-teks`, `medan-hantu-ratchet`,
+  `catch-senyap-ratchet`, `uji-tabel-terbaca`, `uji-warna-buta-mode`) —
+  semuanya menunjuk berkas yang tak disentuh pekerjaan ini, diukur satu per
+  satu, bukan diasumsikan
+
+---
+
+## 2026-08-19 (lanjutan 12) — dokumen mengklaim layar yang tak pernah dibangun
+
+**Ringkasan run:**
+
+```
+$ npx vitest run hitung-volume        (apps/web)
+ Test Files  1 passed (1)
+      Tests  21 passed (21)
+
+$ node scripts/audit-klaim-layar-nyata.mjs
+✅ Tiap klaim layar di peta-menu punya jejak di halaman yang ditunjuknya   exit=0
+
+$ audit-a11y-runtime --url /estimasi/rab   →  0 pelanggaran
+$ npx tsc --noEmit  (apps/web)             →  exit=0
+```
+
+### Temuan: klaim SELESAI atas layar yang tak ada
+
+Entri `crm-boq` di `peta-menu.ts` berbunyi:
+
+> `status: 'hidup'` — "SELESAI 2026-08-16 — celah terakhirnya ditutup migrasi
+> 431 + tab **Take-off Volume** … layarnya menampilkan RANTAI perhitungannya"
+
+Migrasinya ADA. Endpoint-nya ADA. **Tab itu tidak pernah dibangun.** Diukur:
+`/estimasi/rab` memuat NOL rujukan takeoff, dan pencarian di seluruh `apps/web`
+hanya menemukan satu penyebutan — di peta-menu itu sendiri.
+
+Akibatnya bukan sekadar dokumen keliru: seluruh take-off dimensional hanya
+terjangkau lewat API, jadi estimator tetap mengetik volume langsung ke RAB —
+persis masalah yang hendak diselesaikan migrasi 431.
+
+Ini kelas cacat yang sama dengan tujuh sub-menu yang pernah ditandai 🔴 padahal
+UI-nya hidup (F5-1 §3a), tetapi **berlawanan arah**. Dan arah ini lebih
+berbahaya: yang membacanya menyilang pekerjaan itu dari daftar dan tak pernah
+kembali. Saya sendiri hampir melakukannya — entri itu yang saya baca saat
+mencari tempat menaruh UI sektor.
+
+`audit-taksonomi-vs-kode` tak menangkapnya karena ia memeriksa TABEL, dan
+tabelnya memang ada.
+
+### Yang dikerjakan
+
+1. **Klaimnya dikoreksi** — status turun ke `sebagian`, catatannya menuliskan
+   apa yang benar-benar ada (endpoint) dan apa yang tidak (layar).
+
+2. **Penjaga baru `audit-klaim-layar-nyata.mjs`** — catatan yang menjanjikan
+   sebuah layar wajib punya jejaknya di kode halaman yang ditunjuk. Dibuktikan
+   merah dengan MENGEMBALIKAN cacat aslinya, bukan mutasi karangan.
+
+3. **Layarnya dibangun** — `HitungVolume`, kalkulator take-off tepat di sebelah
+   isian Volume di modal item, bukan di halaman terpisah. Take-off yang harus
+   dibuka di layar lain tak akan dipakai saat orang sedang menyusun RAB, dan
+   itu persis yang terjadi pada 431.
+
+   Sembilan sektor + metode generik, medan menyesuaikan sektornya, baris bukaan
+   bisa ditambah/dihapus, rantai perhitungan ditampilkan, dan hasilnya
+   **MENGUSULKAN** — baru mengisi isian Volume kalau ditekan.
+
+### Penjaga yang hampir jadi hiasan — lagi
+
+Versi pertamanya memulangkan positif palsu: `md-resource` berbunyi "layarnya di
+/gudang/susut", halaman itu ADA, tetapi penjaganya mencari kata "gudang" dan
+"susut" di dalam `/master/ahsp`. Dipisahkan jadi dua pola dengan cara periksa
+yang berbeda.
+
+Positif palsu pada penjaga dokumen sangat mahal: yang membacanya berhenti
+memercayai seluruh keluarannya, lalu mematikannya.
+
+### Mutasi — dan satu yang "lolos" karena ALAT UKURNYA gagal senyap
+
+Lima dari enam langsung merah. Yang keenam (menghapus pemeriksaan dimensi
+plafon) tampak LOLOS — dan hampir saya catat sebagai test yang lemah.
+
+Ternyata mutasinya **tidak pernah diterapkan**: skrip penggantinya mencari baris
+ber-tanda-kutip tunggal sementara berkasnya memakai kutip ganda, jadi
+`str.replace` memulangkan string yang sama tanpa galat apa pun. Sesudah
+ditambahi `assert` sebelum mengganti, mutasinya benar-benar masuk dan test-nya
+**merah**.
+
+Satu mutasi lain (M4: `Number("")` alih-alih NaN) benar-benar setara — cek
+`.trim() === ''` di pemanggil sudah menanganinya lewat jalur lain. Itu diukur,
+bukan diasumsikan.
+
+Pelajarannya sama dengan yang berulang sepanjang sesi ini: **`assert` sebelum
+mengganti.** Penggantian yang gagal senyap membuat mutasi yang tak pernah
+terjadi terbaca sebagai test yang lemah — dan "memperbaiki" test yang sudah
+benar adalah cara paling rapi membuang waktu.
+
+### Barisnya IKUT TERSIMPAN — ditutup di commit yang sama
+
+Kalkulator menghitung di klien sebagai pratinjau, tetapi masukan mentahnya
+dibawa keluar bersama hasilnya dan disimpan lewat
+`POST …/items/:itemId/takeoff-dimensi` sesudah itemnya dibuat. Server
+MENGHITUNG ULANG dari masukan itu — angka klien tak pernah dipercaya untuk apa
+pun yang jadi rupiah.
+
+Diuji lewat API sungguhan, dan yang penting adalah pembacaan ULANGNYA:
+
+```
+item dibuat : 201
+takeoff     : 201  8.67 m2
+dibaca ulang: 200  | baris: 1
+   Take-off dinding | 8.67 | 4 × 3 × 1 = 12 m² − bukaan 3,33 m² (P1 0,9×2,1×1 + J1 1,2×1,2×1)
+```
+
+Itulah yang membedakan volume yang bisa diperiksa dari angka yang sekadar ada.
+
+Kegagalan menyimpan baris takeoff SENGAJA tidak menggagalkan penambahan item:
+itemnya sudah tersimpan dan bernilai benar, yang hilang cuma jejaknya. Melempar
+di sana membuat orang menekan "Tambah" lagi dan menghasilkan item KEMBAR.
+Galatnya tetap dicatat, tidak ditelan.
+
+Rumus klien dikunci test yang angkanya sama persis dengan test sisi API supaya
+keduanya tak menyimpang diam-diam.
+
+---
+
+## 2026-08-19 (lanjutan 11) — suite penuh dibandingkan terhadap baseline: nol regresi, dan angka yang tak stabil
+
+**Diukur BERURUTAN, bukan paralel** (CLAUDE.md §7: run yang tumpang tindih
+menghasilkan angka yang tidak sah).
+
+```
+baseline 7a044928   Test Files  28 failed | 403 passed (431)
+                          Tests  73 failed | 6050 passed | 19 skipped (6142)
+
+sesudah  542554ef   Test Files  32 failed | 399 passed (432)
+                          Tests  96 failed | 6063 passed | 19 skipped (6178)
+```
+
+Selisih 23 test merah. Angka itu TIDAK boleh dibaca sebagai 23 regresi, dan
+menelusurinya berkas per berkas memberi jawaban yang berbeda sama sekali.
+
+### Lima berkas yang merah HANYA sesudah — semuanya bukan regresi
+
+| Berkas | Sendirian di branch | Sendirian di baseline | Kesimpulan |
+|---|---|---|---|
+| `kontrak` | 206 lulus | — | tabrakan data paralel |
+| `approval-satu-pintu` | 6 lulus | — | tabrakan data paralel |
+| `ai-tulis` | 1 gagal | **1 gagal** | sudah merah sebelumnya |
+| `otomasi-gr-matching` | 3 gagal | **3 gagal** | sudah merah sebelumnya |
+| `otomasi-stok-menipis` | 3 gagal | **3 gagal** | sudah merah sebelumnya |
+
+Dua di antaranya HIJAU saat dijalankan sendirian — yang memerahkannya adalah
+berkas lain yang berjalan bersamaan dan menggeser fixture-nya. Tiga sisanya
+merah dengan jumlah yang PERSIS SAMA di baseline.
+
+28 berkas merah di baseline tetap merah sesudahnya, dan **nol** berkas yang
+tadinya merah jadi hijau — jadi tak ada yang tertutupi.
+
+### Yang benar-benar milik pekerjaan ini
+
+```
+$ npx vitest run struktur     597 lulus (597)
+$ npx vitest run takeoff       81 lulus  (81)
+penjaga: audit-harga-satuan-waras · audit-sektor-takeoff-cocok ·
+         audit-modul-struktur-terdaftar · audit-jenis-struktur-cocok  → exit 0
+```
+
+### Pelajaran tentang ALAT UKURNYA
+
+Angka ringkasan suite penuh di repo ini **tidak cukup untuk menyimpulkan
+regresi**. Test memakai Postgres sungguhan, satu basis, dan banyak fixture
+memilih barisnya lewat `LIMIT 1` — dua berkas yang menyisip dan membersihkan
+baris bersamaan saling menggeser fixture. Ini sudah tercatat di CLAUDE.md §7
+untuk kasus dua RUN yang tumpang tindih; yang terlihat di sini adalah bentuk
+yang lebih halus: satu run, berkas-berkas di dalamnya saling mengganggu.
+
+Satu-satunya perbandingan yang sah adalah **per berkas, dijalankan sendirian,
+di kedua commit**. Itu yang dilakukan di sini, dan hasilnya nol regresi.
+
+---
+
+## 2026-08-19 (lanjutan 10) — take-off sektor: bukaan akhirnya dikurangi, atap akhirnya miring
+
+**Ringkasan run:**
+
+```
+$ npx vitest run takeoff
+ Test Files  5 passed (5)
+      Tests  81 passed (81)
+
+$ node -r dotenv/config scripts/audit-sektor-takeoff-cocok.mjs
+✅ 9 sektor take-off — kode dan basis cocok, semuanya punya satuan & cabang   exit=0
+
+$ npx tsc --noEmit   exit=0
+```
+
+Founder minta SEMUA sektor pekerjaan bisa dihitung volumenya, bukan struktur
+saja. AHSP-nya sudah lengkap — diukur di basis: atap 57 assembly m², plafon 19,
+keramik 39, cat 27, plesteran 34, pipa 299 m + 98 buah, sanitair 2 buah. Yang
+tak ada: apa pun yang MENGHITUNG angka yang dikalikan ke AHSP itu.
+
+### Yang sudah ada, dan kenapa belum cukup
+
+`takeoff-dimensi.ts` (migrasi 431) sudah menyediakan empat metode generik —
+volume, luas, dinding, panjang. Modul baru TIDAK menggantikannya; baris tanpa
+`sektor` berperilaku persis seperti sebelumnya, dan test lamanya tetap hijau.
+
+Tiga hal yang tak bisa dijawabnya, ketiganya berujung rupiah:
+
+1. **Bukaan tak pernah dikurangi.** Dinding 4×3 m dengan satu pintu 0,9×2,1
+   dan satu jendela 1,2×1,2 dihitung 12 m² penuh; yang diplester 8,67 m².
+   Kelebihan **28%**, di sektor yang paling banyak barisnya — plesteran,
+   acian, cat.
+
+2. **Kemiringan atap tak ada.** Luas atap BUKAN luas denah: 100 m² denah pada
+   30° berukuran **115,47 m²**. Estimator yang memakai luas denah kekurangan
+   15% genteng, dan kekurangannya baru ketahuan saat pemasangan berhenti.
+
+3. **Yang dihitung per titik.** Sanitair dan MEP volumenya cacah, bukan
+   ukuran — tetapi tetap perlu tercatat per ruangan supaya bisa ditelusuri.
+
+### Kenapa MEMPERLUAS tabel, bukan tabel kedua
+
+Kolom yang dibutuhkan hanya lima, dan seluruh alur di sekitarnya sudah ada: FK
+ke `estimate_items`, jejak penerapan, rute baca-tulis, izin `cecep:takeoff:*`.
+Tabel kedua berarti dua tempat yang harus dibaca setiap kali orang bertanya
+"volume ini dari mana" — dan yang kedua akan terlupa.
+
+Rutenya pun satu, bukan dua: kehadiran `sektor` yang memilih jalur hitung.
+
+### CHECK lama menolak baris yang SAH — ketahuan saat diuji
+
+`takeoff_dimensi_dimensi_wajib` (431) menuntut dimensi berdasarkan `metode`:
+`luas` wajib punya panjang DAN lebar. Benar untuk baris generik, salah untuk
+baris sektor — `sanitair` volumenya cacah, `kusen` diukur dari lebar+tinggi
+bukaannya.
+
+Kalau dibiarkan, satu-satunya jalan keluar adalah mengisi kolom dimensi dengan
+angka karangan supaya lolos — dan angka karangan di kolom yang justru dibaca
+orang untuk memeriksa volume adalah kerusakan yang lebih besar daripada
+constraint yang menolak. CHECK-nya diperluas: aturan lama tetap berlaku persis
+untuk baris tanpa `sektor`.
+
+Diuji dua arah, 13 kasus: 7 ditolak oleh constraint yang TEPAT (bukan sekadar
+ditolak), 6 diterima termasuk baris generik lama.
+
+⚠ Uji pertama saya tak membuktikan apa-apa: kelima penolakan bertipe `23502`
+(NOT NULL), bukan `23514` (CHECK) — yang menahan adalah `estimate_item_id`,
+bukan constraint yang saya tulis. Diulang dengan FK yang sah.
+
+### Subquery dilarang di CHECK
+
+`cannot use subquery in check constraint`. Validasi bentuk array JSONB memang
+butuh iterasi, jadi dipindah ke fungsi `fn_bukaan_berbentuk` IMMUTABLE — cara
+yang sah, dan tetap menahan (terbukti: lebarM string, lebarM nol, dan objek
+tanpa nama ketiganya ditolak `takeoff_bukaan_berbentuk`).
+
+### Mutasi — enam, semuanya merah
+
+bukaan tak dikurangi · kemiringan pakai cos alih-alih 1/cos · kusen pakai luas
+alih-alih keliling · bukaan ≥ dinding tak ditolak · rekap mencampur sektor ·
+batas kemiringan dilepas.
+
+Penjaga `audit-sektor-takeoff-cocok.mjs` juga dibuktikan merah 4×: sektor
+karangan di kode, sektor dihapus dari kode, cabang perhitungan dihapus, satuan
+dihapus.
+
+### Satu cacat yang ditangkap test, bukan mata
+
+Helper `ang()` memotong nol trailing dari SELURUH string, jadi `ang(30, 0)`
+memulangkan `"3"` — rincian atap berbunyi **"÷ cos 3°"** untuk kemiringan 30°.
+Volumenya benar; kalimat penjelasnya yang berbohong. Angka salah di kalimat
+penjelas lebih berbahaya daripada tak ada kalimat sama sekali: pembacanya
+memeriksa hitungan yang tak pernah dilakukan.
+
+### Diuji lewat API sungguhan, bukan hanya unit test
+
+8 kasus lewat rute hidup: dinding 8,67 m² (rinciannya menyebut P1 dan J1),
+atap 115,47 m², kusen 24 m keliling, sanitair 3 unit, pipa 18,5 m, metode
+generik lama tetap 12 m², dan dua masukan cacat ditolak 400 dengan pesan yang
+bisa dibaca orang.
+
+Ini pelajaran dari entri sebelumnya yang saya bayar mahal: `satuan-beli.ts`
+ditulis lengkap dengan 25 aturan lalu tak pernah dipanggil sekali pun, dan 36
+test tetap hijau. Modul yang tak terpanggil sama dengan modul yang tak ada.
+
+### Belum dikerjakan
+
+UI-nya belum ada — sektor baru hanya terjangkau lewat API. Layar take-off yang
+sudah ada (`estimate-versions`) menampilkan empat metode generik saja.
+
+---
+
+## 2026-08-19 (lanjutan 9) — jembatan volume→RAB tersambung, dan sebuah harga yang salah 509×
+
+**Ringkasan run:**
+
+```
+$ npx vitest run struktur-ke-rab
+ Test Files  1 passed (1)
+      Tests  36 passed (36)
+
+$ node -r dotenv/config scripts/audit-harga-satuan-waras.mjs
+  pasangan harga identik lintas satuan ruah/massa : 0
+✅ Tak ada harga bahan yang identik lintas satuan ruah/massa      exit=0
+
+$ npx tsc --noEmit          (apps/api)   exit=0
+$ npx tsc --noEmit          (apps/web)   exit=0
+```
+
+Tujuan awal seluruh modul struktur akhirnya tersambung: volume yang dihitung di
+layar analisa tak perlu lagi diketik ulang ke RAB.
+
+### Jalur yang dipilih: struktur → ESTIMASI → RAB
+
+Menulis langsung ke `rab_items` lebih pendek dan salah. RAB butuh `unit_price`
+yang benar, dan harga itu lahir dari AHSP × price book pada TANGGAL tertentu
+berikut BUK, pembulatan, dan `hsp_snapshot` yang membuat angkanya bisa
+ditelusuri. Semua itu sudah dikerjakan `POST /estimate-versions/:id/items`.
+Jalur kedua yang menghitung harga sendiri berarti dua rumus harga di satu
+aplikasi — dan yang kedua tak ikut berubah saat yang pertama diperbaiki.
+
+Endpoint barunya memanggil rute itu lewat `app.inject`, bukan menyalin
+logikanya, sehingga auth, izin, gerbang tenant, dan perhitungan harganya persis
+sama.
+
+### Empat kegagalan pencocokan AHSP, masing-masing senyap
+
+1. `.or(name.ilike.…)` PostgREST **putus** oleh koma dan garis miring dalam
+   pola (`tulangan beton dengan besi polos / ulir`) — hasil salah, `error` null.
+   Sembilan dari sembilan usulan jadi "tak ketemu", termasuk yang tadinya jalan.
+2. Memuat SELURUH assembly lalu cocokkan di memori — **PostgREST memotong
+   senyap di 1.000 baris**, sementara ada 3.043 assembly. AHSP pembesian ada di
+   sepertiga yang tak pernah termuat. Repo ini bahkan punya penjaga untuk kelas
+   cacat ini (`audit-baca-tak-terpotong`), dan saya tetap melakukannya.
+3. Pencocokan frasa utuh gagal karena nama aslinya berspasi GANDA:
+   `"1 KG TULANGAN  BETON  DENGAN BESI POLOS / ULIR  (SNI.2013)"`.
+4. Pencocokan kata-lepas gagal pada ANGKA: setiap nama AHSP beton memuat
+   `slump (100 ± 25) mm`, jadi pola `beton 25 mpa` menemukan `25` pada SLUMP-nya
+   dan memilih **f'c 7,5 MPa** untuk balok f'c 25. Kolom f'c 30 kebetulan benar
+   — jadi hasil yang tampak benar pun tak membuktikan apa-apa.
+
+Sekarang: satu kueri per kata pertama tiap pola (menyaring di basis, jauh di
+bawah 1.000), pola frasa berawalan `~` untuk angka bermakna, dan pola kata-lepas
+untuk sisanya. Batas 400 per kata yang TERCAPAI dilaporkan, bukan dilewati.
+
+### Harga yang salah 509× — dan tak satu pun lapisan yang keliru
+
+Uji hidup pertama memulangkan **1 m³ beton f'c 25 = Rp 626.849.988**.
+
+Sebabnya di price book: harga per m³ tersalin apa adanya ke resource bersatuan
+**kg**.
+
+```
+AHSP-R0101  "Pasir beton (quarry…)"  m3  Rp 370.200   ← benar
+AHSP-R0076  "Pasir beton"            kg  Rp 370.200   ← angka m³ di baris kg
+AHSP-R0009  "Kerikil"                m3  Rp 352.300   ← benar
+AHSP-R0077  "Kerikil"                kg  Rp 352.300   ← angka yang sama persis
+```
+
+Koefisiennya justru BENAR — diukur: 731 kg pasir + 1.009 kg kerikil + 407 kg
+semen + 202 liter air ≈ 2.349 kg/m³, cocok dengan densitas beton nyata. Yang
+salah cuma harganya. Menyebar ke **32 AHSP**, seluruh keluarga beton.
+
+**Kenapa tak pernah ketahuan:** resource ada, satuan terisi, harga angka
+positif, resolver bekerja benar, AHSP menghitung benar. Setiap lapisan menjawab
+benar untuk dirinya sendiri. Yang salah cuma BESARAN — dan besaran tak punya
+penjaga.
+
+Migrasi `464` mengoreksinya. Percobaan pertama meng-UPDATE di tempat dan
+**ditolak basis** (`fn_price_book_immutable`): harga yang sudah diverifikasi tak
+boleh berubah retroaktif karena estimasi yang merujuknya akan bernilai lain
+tanpa jejak. Penolakan itu benar dan tidak dilemahkan — yang ditambahkan entri
+versi berikutnya, yang lama dibiarkan utuh sebagai riwayat. Jejak
+`verified_by`/`verified_at` disalin dari entri yang dikoreksi (CHECK
+`price_book_verified_trace` mensyaratkannya, dan itu juga benar).
+
+Hasilnya: pasir Rp 370.200/kg → **Rp 264,43/kg**; beton f'c 25 → **Rp 1.230.982
+per m³**.
+
+Penjaga baru `audit-harga-satuan-waras.mjs` (ambang NOL) menahannya. Ia tidak
+memakai daftar harga wajar per bahan — daftar begitu ikut membusuk. Yang dipakai:
+bahan sama muncul di satuan ruah DAN massa dengan harga SAMA PERSIS; satu m³
+pasir ~1.400 kg, jadi keduanya tak mungkin bertemu di angka yang sama.
+
+### Penjaga yang hampir jadi hiasan — dua kali
+
+Versi pertama penjaga itu mensyaratkan NAMA yang sama persis, dan **melewatkan
+justru baris yang melahirkannya** (`AHSP-R0076` "Pasir beton" vs `AHSP-R0101`
+"Pasir beton (quarry…)"). Diperbaiki jadi mencocokkan harga.
+
+Versi kedua membaca SELURUH entri termasuk arsip, jadi ia **tetap merah sesudah
+perbaikannya dijalankan** — dan penjaga yang tak bisa hijau akan dimatikan
+orang. Diperbaiki jadi menilai harga yang BERLAKU saja.
+
+Versi ketiga masih salah: `WHERE amount >= AMBANG` dievaluasi SEBELUM
+`DISTINCT ON`, jadi entri koreksi yang murah tersaring dan entri lama yang mahal
+tersisa sebagai "yang berlaku".
+
+### `satuan-beli.ts` — 25 aturan yang tak pernah dipanggil sekali pun
+
+Ketahuan bukan dari test (36 hijau) melainkan dari MEMOTRET halamannya: kolom
+"Dibeli" berisi `—` pada sembilan barisnya. Field `beli` dideklarasikan di tipe,
+modulnya ditulis lengkap, dan tak ada satu pun yang memanggilnya.
+
+Disambungkan, lalu ketahuan cacat kedua yang sama kelasnya: `gabungUsulan`
+membangun objek baru **tanpa menyalin `beli`** — dan seluruh test menguji
+`usulanDariElemen`, tak satu pun menguji jalur yang benar-benar dipakai
+endpoint. Ditambahkan blok test untuk jalur itu.
+
+Penggabungannya juga menghitung ULANG jumlah batang dari total gabungan, bukan
+menjumlahkan pembulatan tiap elemen — sisa potongan dari batang yang sama
+dipakai untuk elemen berikutnya, seperti besi dipotong di lapangan.
+
+### Mutasi — dan tiga yang LOLOS
+
+Semua akhirnya merah, tetapi tiga sempat lolos dan masing-masing menunjuk test
+yang lemah, bukan kode yang benar:
+
+- **normalisasi spasi ganda** lolos karena pola kata-lepas memang tak peduli
+  spasi; yang bergantung padanya adalah pola FRASA, dan tak ada frasa yang diuji
+  terhadap nama berspasi ganda.
+- **rumus baja profil ditukar rumus besi beton** lolos karena fixture-nya 256 kg
+  — persis satu batang, dan rumus salah pun membulatkan ke 1. Diukur, keduanya
+  jauh berbeda: 2.400 kg → 10 batang vs 1 batang. Fixture diperbesar.
+- Test yang sama semula mengunci `toBe(1)`, yaitu **mengunci angka yang salah**.
+
+### Kiriman ganda
+
+Uji kedua menghasilkan 14 baris estimasi dari 9 usulan. Ditahan lewat penanda
+`notes`, dengan `izinkanGanda` untuk kasus yang sah (desain berubah, volumenya
+beda). Tombol "Kirim lagi sebagai baris baru" hanya muncul SESUDAH ada yang
+ditahan — menampilkannya sejak awal menjadikan RAB berlipat dua sebagai pilihan
+sejajar.
+
+### Yang saya rapikan karena ratchet, dan yang bukan milik saya
+
+`struktur_elemen` belum ada di peta tenancy (gerbang P3 ADR-011) — diperbaiki
+lewat `gen-tenant-map.mjs emit`, kategori **B** (`company_id NOT NULL`).
+
+Ratchet supabase mentah naik 371 → 375 karena 4 akses baru saya; keempatnya
+dipindah ke `request.db` (`.from`, `.shared`, `.unsafe` beralasan) dan angkanya
+**kembali persis ke 371**. Sisanya (371 vs ambang 345) sudah ada sebelum sesi
+ini, dari sesi lain — diukur dengan `git stash`, bukan ditebak.
+
+Beberapa penjaga UI juga merah (`uji-tabel-terbaca`, `medan-hantu-ratchet`,
+`audit-nav-yatim`, dll). Semuanya menunjuk berkas yang tak saya sentuh
+(`estimasi/kas`, `estimasi/rab`, `kontrak/rfi`, …); halaman struktur bersih.
+
+### Yang saya salah
+
+Saya membangun pemuatan seluruh assembly ke memori padahal repo ini punya
+penjaga khusus untuk batas 1.000 baris PostgREST, lengkap dengan penjelasan di
+kepala berkasnya. Saya membaca penjaga itu SESUDAH cacatnya muncul, bukan
+sebelum menulis kuerinya.
+
+Dan saya menulis penjaga harga tiga kali sebelum benar — dua di antaranya
+gagal pada kasus yang justru melahirkannya. "Penjaga yang tak pernah merah
+adalah hiasan" ternyata punya pasangan: penjaga yang tak pernah bisa HIJAU juga.
+
+---
+
+## 2026-08-19 (lanjutan 8) — pemilih profil baja: 82 profil yang sudah ada akhirnya bisa dipilih
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur satuan-beli   580 passed
+apps/api  npx tsc --noEmit                      exit 0
+apps/web  npx tsc --noEmit · next build         exit 0
+a11y runtime terang + gelap                     1/1 halaman, 0 pelanggaran
+```
+
+### Endpoint sudah ada — yang kurang cuma layarnya
+
+Diukur sebelum membangun: `GET /api/v1/cecep/steel-profiles` sudah ada di
+`ahsp.ts` sejak migrasi 122/123, lengkap dengan filter tipe dan pencarian.
+Diverifikasi lewat API hidup:
+
+    WF   23 profil      CNP  13 profil
+    H     9 profil      INP  11 profil
+    L    26 profil      ──────────────
+                        total 82
+
+Jadi tak ada endpoint baru yang perlu ditulis. Yang kurang: profil masih diisi
+lewat JSON mentah.
+
+### Kenapa JSON mentah itu bermasalah — bukan bentuknya, melainkan akibatnya
+
+Contoh WF 200 selalu dipakai apa adanya, sehingga SELURUH proyek dihitung
+memakai profil yang sama — dan angkanya terlihat wajar karena WF 200 memang
+profil yang wajar. Tak ada gejala apa pun.
+
+### Dimensi & berat ikut ditampilkan, bukan cuma nama
+
+"WF 200x100x5.5x8" dan "WF 198x99x4.5x7" berdampingan di daftar, berbeda 2 mm,
+dan berat per meternya berbeda 17%. Yang memilih dari nama saja mudah mengambil
+yang salah — berat per meter ditampilkan karena itulah yang langsung jadi
+rupiah, dan panjang batang karena CNP dijual 6 m sementara WF 12 m.
+
+### Dibuktikan dengan ANGKA, bukan dengan "pemilihnya muncul"
+
+Dipilih WF 400x200x8x13 (66,0 kg/m) lewat peramban, disimpan, lalu dihitung:
+
+    besiKg = 792   →  66,0 kg/m x 12 m batang
+
+Kalau pemilihnya tak bekerja, hasilnya 256 kg (WF 200 contoh). Selisihnya
+3,1x — cukup jauh untuk memastikan yang terpilih benar-benar dipakai.
+
+### `baja_rangka` SENGAJA tak memakai pemilih ini
+
+Tiap batangnya punya profil sendiri, jadi satu dropdown akan menimpa seluruh
+batang sekaligus — kebalikan dari yang dibutuhkan. Rangka tetap memakai editor
+JSON sampai ada pemilih per-batang, dan itu dinyatakan di layar.
+
+### Penjaga yang MATI karena lingkungan, bukan karena temuan
+
+`audit-jenis-struktur-cocok.mjs` gagal dengan "DIRECT_URL tak diset" saat
+dijalankan tanpa `-r dotenv/config`. Pesan itu menyesatkan: yang membacanya
+menyimpulkan penjaganya rusak, alih-alih melihat bahwa ia tak pernah
+dijalankan.
+
+Diperbaiki mengikuti pola `audit-izin-benar-ada`: DILEWATI dengan pesan yang
+jelas bila basis tak terjangkau. Diverifikasi dua arah — tanpa env exit 0
+dengan "DILEWATI", dengan env exit 0 memeriksa 17 jenis.
+
+---
+
+## 2026-08-19 (lanjutan 7) — 10 jenis baja tersambung ke API & UI
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur satuan-beli   580 passed (dari 572)
+apps/api  npx tsc --noEmit                      exit 0
+apps/web  npx tsc --noEmit                      exit 0
+apps/web  npx next build                        exit 0
+a11y runtime terang + gelap                     1/1 halaman, 0 pelanggaran
+10 jenis baja lewat API hidup                   10/10 tersimpan & terhitung
+```
+
+Sebelum ini seluruh modul baja (8 fungsi analisa, 572 test) berhenti di
+lapisan perhitungan: rute hanya mengenal 7 jenis beton, dan CHECK di basis
+menolak sisanya. Ia lulus test tetapi tak seorang pun bisa memakainya.
+
+### Migrasi 463 + penjaga dua-arah
+
+CHECK diperluas ke 17 jenis. Blok verifikasinya MENYIMPAN baris nyata untuk
+tiap jenis — membaca definisi CHECK dengan regex akan lulus meski
+constraint-nya tak berlaku. Dan jenis karangan diuji TETAP ditolak: CHECK yang
+menerima apa pun sama saja dengan tak ada CHECK.
+
+`audit-jenis-struktur-cocok.mjs` menjaga daftar di KODE tetap sama dengan
+CHECK di BASIS. Kalau berbeda, kegagalannya berbeda arah dan keduanya
+menyesatkan:
+
+    ada di KODE, tak di BASIS  → pesan constraint MENTAH, tak menyebut
+                                  jenis apa yang salah
+    ada di BASIS, tak di KODE  → baris SAH tetapi tak terjangkau lewat
+                                  aplikasi, tanpa satu pun galat
+
+Dibuktikan bisa merah, didaftarkan ke CI.
+
+### Dua cacat yang ditemukan dari MENJALANKAN, bukan membaca
+
+**1. Base plate tak punya volume.** `analisaBasePlate` tak memulangkan
+`volume` sama sekali. Ketahuannya bukan dari test — melainkan dari penjaga
+yang saya tulis di rute, yang membedakan "jenis yang MEMANG tak bervolume"
+(sambungan baut/las/angkur) dari "jenis yang seharusnya punya tetapi tak
+memulangkannya".
+
+Tanpa itu, base plate hilang diam-diam dari rekap RAP. Satu gedung baja bisa
+punya puluhan pelat landas 20–30 mm; pelat 350×350×30 beratnya 28,9 kg.
+Sesudah diperbaiki: rekap naik dari 6 jadi 7 elemen bervolume, 1.160 → 1.838 kg.
+
+**2. Rangka melaporkan "terpakai 0% dari kapasitasnya".** Verdict-nya benar,
+kalimatnya omong kosong: "seluruh batang aman" adalah pemeriksaan BINER yang
+tak punya konsep cadangan. Kini "Aman — seluruh pemeriksaan terpenuhi".
+
+Keduanya hanya terlihat dari MENJALANKAN 10 jenis lewat API hidup — tak satu
+pun muncul di 572 test yang sudah hijau.
+
+### UI: 17 jenis dikelompokkan, dan editor JSON yang dinyatakan sementara
+
+Jenis dikelompokkan BETON vs BAJA lewat `<optgroup>`: tujuh belas jenis dalam
+daftar datar membuat "Balok" dan "Balok baja" berdampingan tanpa penanda, dan
+salah pilih menghasilkan verdict untuk bahan yang salah.
+
+Profil baja, mutu, dan daftar batang rangka adalah objek bersarang — diisi
+lewat editor JSON yang DINYATAKAN sementara di layar. Pemilih profil yang
+membaca 58 baris `steel_profiles` adalah pekerjaan berikutnya; membuatnya
+setengah jadi lebih buruk daripada tak ada, karena orang akan mengira
+daftarnya lengkap.
+
+Teks JSON disimpan TERPISAH dari objek input — kalau layar merender
+`JSON.stringify(input)` langsung, tiap ketikan yang belum sah dibuang dan
+kursor melompat.
+
+### Dua penjaga UI merah — BUKAN dari kerja ini
+
+`audit-nav-yatim` dan `audit-peta-menu-vs-db` naik 25 → 27. Diukur: keduanya
+dari `md-subkon` (Mitra & Subkontraktor), commit `ac53a723` di branch
+`feat/sumbu-ui-roadmap` — sesi lain mengubah menu di basis yang SAMA, dan
+halaman `/mandor/mitra` ada di branch mereka, bukan di worktree ini.
+
+Tidak diperbaiki dari sini: menyunting `peta-menu.ts` yang sedang mereka
+kerjakan justru mengulang tabrakan yang worktree ini ada untuk mencegahnya.
+
+---
+
+## 2026-08-19 (lanjutan 6) — tiga sisa baja ditutup: gording, bracing, interaksi P-M
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur satuan-beli   572 passed (dari 550)
+apps/api  npx tsc --noEmit                      exit 0
+penjaga-modul + 4 penjaga lama                  exit 0
+```
+
+Ketiganya sebelumnya DINYATAKAN belum dihitung di catatan keluaran modul baja —
+supaya tak dikira sudah diperiksa. Sekarang ditutup.
+
+### Gording: beban terurai ke DUA sumbu
+
+Gording dipasang MIRING mengikuti atap, jadi beban gravitasi (yang selalu tegak
+lurus ke bawah) terurai:
+
+    tegak lurus atap  →  sumbu KUAT
+    sejajar atap      →  sumbu LEMAH   ← yang sering dilupakan
+
+Untuk atap 30°, SETENGAH bebannya jatuh ke sumbu lemah — dan sumbu lemah kanal
+C hanya sekitar seperlima kekuatan sumbu kuatnya. Gording yang dihitung sebagai
+balok biasa melendut KE SAMPING dan memuntir, meski hitungan sumbu kuatnya
+aman.
+
+Keduanya diperiksa BERSAMA lewat rumus interaksi, bukan sendiri-sendiri:
+tegangan di sudut penampang adalah JUMLAH keduanya, dan sudut itulah yang leleh
+lebih dulu.
+
+**Sagrod** memotong bentang sumbu lemah. Momen berbanding kuadrat bentang, jadi
+sagrod di tengah membuat momennya SEPEREMPAT — perbaikan yang jauh lebih murah
+daripada memperbesar profil. Dijaga test dengan angka.
+
+**Angin hisap** membalik arah lendutan dan membuat sayap BAWAH jadi sayap tekan
+— dan sayap bawah tak terpegang penutup atap.
+
+### Interaksi tekan+momen: kolom yang lulus keduanya sendiri, gagal bersama
+
+Diukur dan dijadikan test: WF200, Pu 100 kN, Mux 10 kNm →
+
+    rasio tekan   0,623   AMAN sendiri
+    rasio momen   0,766   AMAN sendiri
+    interaksi     1,304   GAGAL bersama
+
+Sebabnya: gaya tekan MEMPERBESAR momen. Kolom yang sudah melengkung sedikit
+karena momen melengkung lebih jauh karena tekannya bekerja pada lengkungan itu.
+
+Dua rumus berbeda (tekan dominan vs lentur dominan) karena perilakunya memang
+berbeda: batang bertekan besar berperilaku seperti kolom, bertekan kecil
+seperti balok.
+
+### Bracing: harus KUAT dan KAKU
+
+Syarat yang tak dimiliki batang lain. Bracing yang kuat tetapi lentur
+membiarkan rangka bergoyang lebih dulu sebelum bracingnya sempat bekerja — dan
+goyangan itulah yang meretakkan dinding pengisi serta memecahkan kaca, meski
+strukturnya sendiri tak runtuh.
+
+Bracing SILANG "tarik saja" dibedakan dari bracing TUNGGAL: yang pertama
+membiarkan batang tekannya menekuk (pasangannya yang bekerja), yang kedua wajib
+menahan tekan. Sistem silang HANYA sah bila kedua diagonal benar-benar
+terpasang — bila satu hilang atau kendur, rangkanya tak terkekang sama sekali.
+
+### Catatan lama yang jadi basi — lagi
+
+`analisaKolomBaja` menyatakan "interaksi §H1 BELUM dihitung di sini". Benar
+sampai modulnya ada; sesudah itu ia menyuruh orang mencari sendiri sesuatu yang
+sudah tersedia. Diperbarui, dan test yang menguncinya ikut merah — persis
+fungsinya. Ini kejadian KETIGA dalam sesi ini (sambungan, lalu ini).
+
+### Penjaga menangkap kelalaian untuk KETIGA kalinya
+
+`audit-modul-struktur-terdaftar.mjs` langsung merah menyebut
+`struktur-baja-gording`. Lalu penjaga terjemahan awam merah menyebut 6
+pemeriksaan baru tanpa penjelasan non-teknis. Keduanya ditutup.
+
+Pola ini sekarang jelas: tiap modul analisa baru PASTI melewatkan pendaftaran
+dan terjemahan kalau tak ada yang memaksa. Penjaganya bekerja.
+
+---
+
+## 2026-08-19 (lanjutan 5) — uji struktur baja LENGKAP: base plate, angkur, rangka batang
+
+Founder: *"ada uji struktur untuk baja juga, mulai dari pondasi, sambungan,
+baut, kuda kuda, dll, pokoknya semua harus ada uji strukturnya"*.
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur satuan-beli   550 passed (dari 504)
+apps/api  npx tsc --noEmit                      exit 0
+penjaga-modul-struktur + 3 penjaga lama         exit 0
+```
+
+### Peta uji struktur baja — sesudah sesi ini
+
+| Bagian | Modul | Status |
+|---|---|---|
+| Balok | `analisaBalokBaja` | ✅ |
+| Kolom | `analisaKolomBaja` | ✅ |
+| Sambungan baut | `analisaSambunganBaut` | ✅ |
+| Sambungan las | `analisaSambunganLas` | ✅ |
+| **Base plate** | `analisaBasePlate` | ✅ BARU |
+| **Angkur** | `analisaAngkur` | ✅ BARU |
+| **Kuda-kuda / rangka batang** | `analisaRangka` | ✅ BARU |
+
+### Base plate — jebakan yang paling sering salah ditaksir
+
+Orang memperbesar pelat supaya tegangan betonnya turun, lalu lupa bahwa pelat
+yang makin lebar makin mudah MELENGKUNG di bagian yang menjorok. Pelat yang
+melengkung tak menyebarkan beban — sehingga pemeriksaan tumpu beton pun batal.
+
+Dijaga test dengan angka: pelat 500×500 menuntut tebal LEBIH BESAR daripada
+300×300 untuk beban yang sama.
+
+Fixture "memadai" saya sendiri MERAH pada percobaan pertama: pelat 350×350
+berbeban 500 kN menuntut 26,2 mm, dan saya menulis 20 mm. Itu justru
+memperlihatkan gunanya — 20 mm terasa tebal bagi yang menaksir, dan tetap
+kurang.
+
+### Angkur — jebol beton, bukan putusnya baja
+
+Kedalaman tanam berpangkat 1,5: menanam 1,5× lebih dalam memberi 1,84×
+kapasitas. Sebaliknya angkur yang dipasang lebih DANGKAL dari rencana — lazim
+terjadi karena tulangan pondasi menghalangi — kehilangan kapasitas jauh lebih
+cepat daripada yang diduga di lapangan.
+
+Dan memakai angkur bermutu lebih tinggi TIDAK menolong sama sekali untuk
+kegagalan ini. Dibuktikan test: A490 vs A325 menghasilkan kapasitas jebol beton
+yang IDENTIK, sementara kapasitas bajanya naik.
+
+### Rangka batang — gaya BALIK, penyebab runtuh kuda-kuda paling sering
+
+Angin hisap MEMBALIK arah gaya: batang bawah yang biasanya tarik jadi TEKAN,
+dan batang tipis yang dirancang untuk tarik akan menekuk. Atap terangkat saat
+angin kencang — bukan roboh karena beban berat.
+
+Modul MENUNTUT gaya balik dinyatakan, dan memperingatkan bila sebuah batang
+tarik hanya diperiksa untuk satu arah. Dijaga test: batang yang aman untuk
+tarik 60 kN GAGAL untuk tekan 60 kN pada panjang yang sama.
+
+Batas kelangsingan dibedakan: tekan 200 (soal bisa-dibangun), tarik 300
+(batang tarik tak menekuk, tetapi yang terlalu langsing melendut & bergetar,
+dan getaran melelahkan sambungannya).
+
+### Cacat desain yang ditangkap test sendiri
+
+`kapasitasTarik` memulangkan nilai NOMINAL sementara keputusan "mana yang
+menentukan" dibuat SESUDAH φ diterapkan — sehingga nilainya bisa tak konsisten
+dengan penentunya. Test merah: 444 kN nominal leleh vs 415 kN ber-φ putus.
+Kini hanya nilai ber-φ yang dipulangkan; nilai nominal tak dipakai siapa pun
+dan memulangkannya cuma mengundang pemakaian yang salah.
+
+### Penjaga menangkap kelalaian saya SEBELUM lolos
+
+`audit-modul-struktur-terdaftar.mjs` — dibuat sesi sebelumnya karena kelalaian
+yang sama sudah terjadi dua kali — langsung merah menyebut `struktur-baja-rangka`
+dan `struktur-baja-tumpuan`. Kali ini penjaga skripnya yang menemukan, bukan
+audit manual.
+
+Lalu penjaga terjemahan awam merah lagi, menyebut keenam pemeriksaan baru yang
+belum punya penjelasan non-teknis. Keduanya ditutup.
+
+---
+
+## 2026-08-19 (lanjutan 4) — baja WF: 58 profil ada di basis, NOL yang menghitung kekuatannya
+
+Founder minta perluasan volume ke semua item pekerjaan, terutama baja WF, dan
+menyebut perlu perencanaan khusus untuk itu.
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur    485 passed (18 files)   ← dari 426
+apps/api  npx tsc --noEmit           exit 0
+penjaga baru + 3 penjaga lama        exit 0
+```
+
+### Peta cakupan yang terukur — jawaban atas "apakah semua sudah bisa?"
+
+| Pekerjaan | Sebelum | Sesudah |
+|---|---|---|
+| Beton struktur (7 jenis) | desain + volume | sama |
+| Galian/urugan/pasangan/plesteran/keramik | volume saja (`takeoff-dimensi`) | sama |
+| **Baja WF/H/siku** | **58 profil di basis, NOL yang menghitung** | **desain + volume** |
+| Atap, kusen, plafon, sanitair, MEP | tak ada | tak ada |
+
+Jadi jawabannya: **belum semua**, dan sekarang lubang terbesarnya tertutup.
+
+### Temuan yang menentukan arah
+
+`steel_profiles` (migrasi 122) sudah berisi **58 profil** — 23 WF, 9 H, 26
+siku — lengkap dengan dimensi, berat/m, dan panjang standar. Yang TIDAK ada:
+apa pun yang menghitung apakah profil itu kuat.
+
+Akibatnya estimator memilih profil, mengalikan panjang × berat/m, dan mendapat
+rupiah yang terlihat wajar tanpa seorang pun memeriksa kekuatannya.
+
+### Kenapa BUKAN replikasi workbook
+
+Sembilan workbook "Auto Structure Pro" seluruhnya beton dan tanah — nol modul
+baja (diukur dari daftar berkasnya). Rujukannya SNI 1729:2020, dan tiap
+besaran diuji terhadap perhitungan tangan yang ditulis penuh di test.
+
+Pemeriksaan silang paling berguna: luas penampang hitungan × 7850 = 20,50 kg/m
+terhadap 21,3333 kg/m di tabel — selisih 3,9% ke arah yang MASUK AKAL (fillet
+diabaikan, dan fillet menambah material). Selisih berlawanan arah berarti
+rumusnya salah.
+
+### LENDUTAN diperlakukan sejajar dengan kekuatan
+
+Pada baja, lendutan sering yang MENENTUKAN — kebalikan dari beton. Balok yang
+gagal lendutan tetap `aman: false`. Dijaga test: balok 9 m LULUS lentur tetapi
+GAGAL lendutan → elemen tidak aman.
+
+### SAMBUNGAN — dan catatan saya sendiri yang jadi basi
+
+Modul baja awalnya menyatakan "sambungan TIDAK dihitung" di catatan. Jujur,
+tetapi berarti bagian paling berbahaya dibiarkan di luar — dan catatan yang
+menyebut sesuatu tak dihitung tak pernah menghentikan siapa pun membangun.
+
+`struktur-baja-sambungan.ts`: baut (geser + tumpu) dan las (las + logam induk
++ ukuran minimum). Dua keputusan yang bukan kerapian:
+
+**Geser dan tumpu diperiksa TERPISAH**, tak diambil yang terkecil diam-diam —
+keduanya menuntut tindakan berbeda. Geser kurang → baut lebih besar. Tumpu
+kurang → tebalkan PELAT; baut lebih kuat tak menolong sama sekali. Dijaga test
+yang membuktikan A490 tak menaikkan kapasitas tumpu sedikit pun.
+
+**Ukuran las minimum diperiksa** meski kekuatannya cukup — itu batas TEKNOLOGI
+(las kecil pada pelat tebal mendingin terlalu cepat lalu getas), bukan batas
+tegangan, dan justru karena itu mudah dilanggar.
+
+Catatan lama diperbarui, dan test yang menguncinya ikut merah — persis
+fungsinya.
+
+### Kelemahan penjaga yang terulang DUA KALI dalam satu hari
+
+`struktur-awam.test.ts` menuntut tiap pemeriksaan punya terjemahan awam —
+tetapi ia hanya menjalankan modul yang DIDAFTARKAN di dalamnya:
+
+1. baja balok ditambahkan → 3 pemeriksaan tanpa terjemahan
+2. kolom baja + sambungan → 7 lagi
+
+Keduanya ketahuan dari audit MANUAL yang kebetulan saya jalankan. Kalau tidak,
+istilah teknik bocor ke layar orang awam tanpa satu pun test merah.
+
+Ditutup penjaga skrip `audit-modul-struktur-terdaftar.mjs` yang MEMINDAI
+berkas. Penjaganya sendiri sempat cacat: versi pertama mencari `Periksa[]` dan
+MELEWATKAN `struktur-tiang` yang menulis tipenya inline — kegagalan yang persis
+sama dengan yang ia ada untuk mencegah. Deteksinya dilonggarkan ke arah yang
+aman.
+
+Dibuktikan bisa merah, dan didaftarkan ke CI.
+
+---
+
+## 2026-08-19 (lanjutan 3) — kekuatan struktur bisa dibaca orang yang tak mengerti teknik
+
+Founder: *"untuk kekuatan struktur saya mau tidak hanya angka, tapi bisa
+divisualkan juga agar yg tidak mengerti teknis bisa mengerti"*.
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur    426 passed (15 files)   ← dari 401
+apps/api  npx tsc --noEmit           exit 0
+apps/web  npx tsc --noEmit           exit 0
+apps/web  npx next build             exit 0
+penjaga UI (69 skrip)                25 merah — IDENTIK baseline
+a11y runtime terang + gelap          1/1 halaman, 0 pelanggaran
+```
+
+### Masalahnya bukan angkanya kurang, tapi tak bisa ditindak
+
+Keluaran modul sebelumnya berbunyi:
+
+```
+Lentur   φMn = 0.9 · As · fy · (d − a/2)   153,15 ≥ 83,20 kNm   aman
+```
+
+Benar, lengkap, bisa diperiksa insinyur. Tetapi yang MEMUTUSKAN membangun
+sering bukan insinyur — pemilik proyek, klien, manajer, pengawas pemberi
+kerja. Bagi mereka baris itu tak bisa ditindak, dan yang tak bisa ditindak
+diterima begitu saja **termasuk saat ia merah**.
+
+Diukur: 26 jenis pemeriksaan, **nol** yang punya penjelasan non-teknis.
+
+### Yang dibangun
+
+`lib/struktur-awam.ts` — kamus 25 terjemahan, tiap satu wajib menyebut:
+
+  1. APA yang diperiksa (kalimat yang bisa dibayangkan)
+  2. APA RISIKONYA — akibat fisiknya, bukan istilahnya
+  3. APA TINDAKANNYA — langkah nyata
+
+Contoh: *"Tanah yang kelebihan beban akan AMBLAS — bangunan turun tak merata,
+dinding retak diagonal, pintu dan jendela macet"* → *"Perluas ukuran pondasi
+(paling murah), atau ganti ke pondasi tiang bila tanah kerasnya dalam."*
+
+`gambarMeteranKekuatan` — batang per pemeriksaan, panjangnya sebanding
+pemakaian kapasitas, dengan garis batas 100%.
+
+### Empat keputusan yang bukan selera
+
+**Garis batas digambar, bukan cuma warna.** ~8% laki-laki buta warna
+merah-hijau; bagi mereka batang merah dan hijau nyaris sama. Garis batas
+membuat "lewat batas" terbaca dari POSISI.
+
+**"Aman tapi mepet" tidak dibulatkan jadi "aman".** Rasio 0,98 dan 0,42
+sama-sama lulus, tetapi cuma satu yang bertahan kalau beban bertambah sedikit
+— dan beban bertambah sedikit PASTI terjadi.
+
+**Lapisan awam ditampilkan LEBIH DULU, tabel teknis di `<details>`.** Kalau
+yang pertama terlihat adalah rumus, pemilik proyek berhenti membaca di situ.
+Keduanya turunan verdict yang SAMA, jadi tak bisa berselisih.
+
+**Hanya pemeriksaan bermasalah yang dijelaskan.** Menampilkan kelimanya
+membuat yang penting tenggelam.
+
+### Dua cacat yang hanya terlihat dari gambar
+
+**Batang 148% dan 260% berakhir di titik yang SAMA.** Skala linier 0–130%
+membuat keduanya mentok di ujung — dua tingkat kekurangan yang jauh berbeda
+tergambar identik. Diganti skala dua bagian: 0–100% memakai 70% lebar,
+100–400% logaritmik di sisanya.
+
+**"Pondasi tidak terjungkit — 0%"** dengan batang kosong. Pemeriksaan itu
+BINER (terjadi atau tidak), rasionya 0 saat lulus. Digambar sebagai persen,
+pembaca menyangka kapasitasnya nol — kebalikan artinya. Kini lencana
+"terpenuhi".
+
+### Penjaga yang menangkap kekurangan saya sendiri
+
+`struktur-awam.test.ts` menjalankan SELURUH modul, mengumpulkan tiap nama
+pemeriksaan yang NYATA muncul, lalu menuntut semuanya punya terjemahan —
+dan menuntut terjemahannya tidak memakai istilah yang justru mau dihindari
+(φ, ρ, Mn, Mu, As, f'c, fy, kNm, MPa).
+
+Ia langsung merah pada tiga penjelasan yang saya tulis menumpang ("Sama dengan
+arah X"), yang panjangnya di bawah ambang. Ditulis lengkap.
+
+### Soal "menunggu founder"
+
+Founder bertanya kenapa apa-apa harus menunggu. Jawabannya: G-2 (menulis buku
+migrasi) memang butuh ratifikasi — tapi CHARTER §5 sendiri menyatakan
+*"berhenti di gerbang tidak pernah berarti berhenti bekerja"*, dan saya salah
+menaruhnya di akhir tiap laporan seolah pekerjaan tertahan. Tidak ada yang
+tertahan: semua migrasi sudah berjalan, yang tertunda hanya pencatatan agar CI
+ikut menjalankannya. Berhenti mengangkatnya tiap kali.
+
+---
+
+## 2026-08-19 (lanjutan 2) — "sudah sempurna?" ternyata belum: 5 dari 7 jenis tak punya gambar
+
+Founder bertanya apakah benar-benar tak ada kekurangan. Saya jawab "matang"
+berdasarkan penjaga hijau — padahal fase ini sendiri sudah membuktikan penjaga
+hijau bukan bukti. Audit ulang menemukan enam kekurangan nyata.
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur    401 passed (14 files)   ← dari 373
+apps/api  npx tsc --noEmit           exit 0
+apps/web  npx tsc --noEmit           exit 0
+apps/web  npx next build             exit 0
+penjaga UI (69 skrip)                25 merah — IDENTIK baseline
+a11y runtime terang + gelap          1/1 halaman, 0 pelanggaran
+7 jenis lewat API hidup              7/7 punya gambar   ← dari 2/7
+```
+
+### 1. Lima dari tujuh jenis TAK punya gambar sama sekali
+
+Diukur lewat API hidup, bukan dibaca dari kode: hanya balok & kolom persegi
+yang menghasilkan SVG. Kolom bulat cuma punya diagram P-M — kurva kapasitas
+tanpa pernah memperlihatkan susunan tulangan yang menghasilkannya. Pelat,
+footplat, pilecap, tiang: kosong.
+
+Pelat justru elemen bertonase besi TERBESAR (1.746 kg pada contoh 200 m², dua
+puluh kali balok tunggal). Estimator memesan besi terbanyak untuk elemen yang
+tak bisa ia lihat gambarnya.
+
+Ditambah empat penggambar: penampang lingkaran, potongan pelat, denah+potongan
+pondasi (footplat & pilecap), dan potongan tiang berikut profil tanahnya.
+
+### 2. Halaman TAK PERNAH menampilkan gambar
+
+Endpoint `?gambar=1` ada sejak Fase 5 dan tak pernah dipanggil UI. Seluruh
+penggambar — kini 900+ baris — tak terlihat pengguna. Kelas cacat yang sudah
+tercatat di repo ini (lapis cache dibangun lalu tak dipakai satu halaman pun).
+Ditambah panel detail: verdict ber-angka + rasio + gambar kerja + catatan batas.
+
+### 3. Tiang melaporkan "besi 0,0 kg" tanpa satu kata keterangan
+
+Nol-nya BENAR (precast, tulangan pabrikan) dan berkomentar rapi — di berkas
+sumber. Tempat yang tak pernah dibaca orang yang memakai angkanya. Estimator
+yang merekap 6 tiang melihat "0,0 kg" dan menyimpulkan tiang tak butuh besi.
+
+Penjaga lintas-modul saya sendiri MENGECUALIKAN tiang, dengan alasan "tiang tak
+punya batas penyaluran". Benar, tetapi itu membuat batasnya lebih berbahaya,
+bukan tak ada. **Penjaga yang mengecualikan kasus tersulitnya sendiri bukan
+penjaga.** Tiang kini masuk daftar.
+
+### 4. Notasi "0D10-150" di gambar kerja
+
+`notasiTulangan(0, …)` menghasilkan angka nol di depan. Tulangan menerus
+dinotasikan "D10-150", bukan "0D10-150" — yang kedua omong kosong bagi yang
+memesan besi. Terlihat di tangkapan layar; lolos tsc dan lolos 42 test.
+
+### 5. Enam cacat tata letak, semuanya hanya terlihat dari GAMBAR
+
+Label "POTONGAN" tertimpa kolom · judul menempel garis dimensi · denah tak
+diarsir sementara potongan diarsir · tulangan pelat mendominasi tebalnya ·
+batang merah tertutup garis biru (urutan gambar salah) · viewBox tiang
+memotong judul di kiri DAN baris "ditentukan SPT (Meyerhof)" di kanan.
+
+Yang terakhir terjadi DUA KALI: saya menaksir viewBox dari kelipatan margin,
+diperbaiki, lalu menaksir lagi untuk baris bawah. Sekarang tiap tepi dihitung
+dari elemen terjauh ke arah itu.
+
+### 6. Penjaga penyisipan SVG — dan tiga assertion saya yang salah
+
+Halaman menanam SVG lewat `dangerouslySetInnerHTML` (satu-satunya cara gambar
+teknik tetap bisa diperbesar tanpa buram dan terbaca pembaca layar). Itu boleh
+karena seluruh teks lewat `amankanTeks()` — tetapi "boleh" itu bergantung pada
+satu fungsi yang bisa dilewati penggambar berikutnya.
+
+Menulis penjaganya butuh tiga percobaan, dan ketiganya layak dicatat:
+
+    /onload=/           MERAH untuk keluaran yang BENAR — menguji huruf,
+                        bukan bahaya
+    /<[^>]*\sonload=/   juga merah; `[^>]*` ikut mencakup teks DI DALAM nilai
+                        atribut, karena di sana memang tak ada `>`
+    DOMParser           tak tersedia di lingkungan test node ini
+
+Yang benar: buang isi nilai atribut DAN isi teks, lalu cari di sisanya.
+Dibuktikan bisa merah — melepas pelolosan kutip → 2 test MERAH.
+
+### Yang saya pelajari dari pertanyaan founder
+
+Saya menyatakan "matang" dengan bukti yang tak menyentuh lima dari tujuh jenis
+elemen. Cakupan yang tak diukur terbaca seperti cakupan penuh — kelas kesalahan
+yang sama dengan "0 pelanggaran dari 0 halaman terpindai" kemarin.
+
+---
+
+## 2026-08-19 (lanjutan) — Fase 6 UI, dan cacat yang hanya terlihat dari GAMBAR
+
+Halaman `/estimasi/struktur` + migrasi 461 (menu). Pekerjaan dipindahkan ke
+worktree `.claude/worktrees/struktur` (branch `feat/struktur-analisa`) supaya
+bisa jalan paralel dengan sesi lain tanpa saling menimpa.
+
+**Ringkasan run:**
+
+```
+apps/api  npx vitest run struktur    373 passed (14 files)
+apps/api  npx tsc --noEmit           exit 0
+apps/web  npx tsc --noEmit           exit 0
+apps/web  npx next build             exit 0
+penjaga UI (69 skrip)                25 merah — IDENTIK dengan baseline
+a11y runtime terang + gelap          1/1 halaman, 0 pelanggaran
+```
+
+Baseline 25 merah diukur SEBELUM menulis sebaris pun. Nol penjaga naik.
+
+### Kenapa worktree — sesi lain menyapu pekerjaan saya
+
+Sesi paralel menjalankan `git stash -u` untuk membandingkan baseline, dan itu
+menyapu `struktur.ts` + migrasi 458/459 yang sedang saya kerjakan. Ia mencatat
+sendiri pelanggarannya. Ditambah `pnpm install` yang mengosongkan
+`apps/api/node_modules` di tengah audit saya — `npx tsc` mati dengan "This is
+not the tsc command you are looking for", galat yang sama sekali tak menunjuk
+sebabnya.
+
+Perpindahan dilakukan lewat PATCH, bukan `git stash`: perintah itu justru yang
+menyebabkan masalahnya.
+
+### Tiga cacat visual yang penjaga TIDAK tangkap
+
+Semuanya lolos seluruh 69 penjaga dan baru terlihat di tangkapan layar:
+
+1. **Judul "Analisa Struktur" muncul DUA KALI** — layout `estimasi` sudah
+   menyediakan judul dari entri menu; `KepalaHalaman` saya menambah yang kedua.
+   `uji-judul-halaman-ada` tetap hijau: ia memastikan judul ADA, bukan TUNGGAL.
+   `layout.tsx` sudah mencatat cacat identik untuk halaman markup — saya
+   mengulanginya karena membaca kodenya, bukan hasilnya.
+
+2. **Keterangan halaman salah** — berbunyi "RAB dari analisa AHSP…", milik
+   halaman lain, karena rute ini belum terdaftar di `KETERANGAN`.
+
+3. **Tombol nonaktif tampak aktif** — `btnGhost` gaya statis, `cursor: pointer`
+   tetap terpasang meski `disabled`. Tombol yang tak merespons klik terbaca
+   sebagai aplikasi rusak.
+
+Dan satu yang hanya muncul dengan data tertentu: **ubin "Besi" 90,5 kg vs tabel
+125,2 kg di layar yang sama**. Keduanya benar — ubin membaca kolom ringkasan
+(mengecualikan basi), tabel menghitung ulang dari input (memasukkannya) —
+tetapi bagi pembaca itu kontradiksi. Kini dijelaskan, dan hanya saat bedanya
+benar-benar ada.
+
+### Mutasi yang LOLOS, dan yang ditemukannya
+
+Mengganti `el.jumlah` jadi `1` di rekap-volume TIDAK memerahkan satu test pun:
+seluruh fixture memakai jumlah 1. Akibatnya di dunia nyata besar — proyek
+dengan 20 balok identik melaporkan volume SATU balok, angkanya tetap terlihat
+wajar, dan tak ada galat. Ditambah test ber-`jumlah: 20`; mutasi kini MERAH.
+
+### Test yang hijau karena basis kebetulan kosong
+
+Tiga test merah dengan "expected 3 to be 2" sesudah satu elemen tertinggal dari
+uji lewat peramban. Sebabnya tak terlihat sama sekali dari pesannya: test
+memeriksa `rekap.jumlahElemen` seluruh proyek, padahal ia hanya mengendalikan
+elemen berprefiks sendiri. Kini disaring ke prefiksnya; angka global diperiksa
+lewat batas bawah, bukan nilai mutlak.
+
+Kelas yang sama dengan pemilihan proyek tanpa `ORDER BY` kemarin: **test yang
+bergantung pada isi basis yang tak ia kendalikan tak bisa dipercaya, baik saat
+merah maupun saat hijau.**
+
+### Alat ukurnya sendiri sempat berbohong
+
+`audit-a11y-runtime --url /estimasi/struktur` melaporkan "dialihkan, 0 dari 1
+terpindai". Halamannya baik-baik saja: **Git Bash mengonversi** `/estimasi/struktur`
+jadi `C:/Program Files/Git/estimasi/struktur`. Yang dibuka URL ngawur.
+`MSYS_NO_PATHCONV=1` menutupnya. Skrip itu tak melaporkan KE MANA halaman
+dialihkan — kalau ia melaporkannya, sebabnya ketahuan dalam satu jalan.
+
+### Menunggu ratifikasi (G-2)
+
+458, 459, 460, 461 **belum dicatat** di `supabase_migrations.schema_migrations`.
+Artefak fisiknya terbukti (blok verifikasi tiap migrasi lulus; 461 dibuktikan
+bisa merah lewat 3 mutasi). Menulis ke buku migrasi adalah Gerbang Keras G-2.
 ## 2026-08-22 (Portal Admin/Direktur Lengkap, Task 12) — Tahap 2 SELESAI: navigasi kategori + verifikasi menyeluruh
 
 Task 12 adalah task TERAKHIR Tahap 2 (Task 7: Proyek, Task 8: Register

@@ -137,6 +137,37 @@ describe('analisaPlat — kapasitas', () => {
     expect(() => analisaPlat({ ...INPUT, lxM: 0 })).toThrow()
     expect(() => analisaPlat({ ...INPUT, hM: 0.04, selimutMm: 40 })).toThrow(/melebihi tebal/)
   })
+
+  it('beban mati tambahan yang HILANG disebut namanya, bukan "reading reduce"', () => {
+    /*
+      ══════════════════════════════════════════════════════════════════════
+      Ditemukan 2026-08-19 lewat rute HIDUP, bukan lewat test.
+
+      Input tanpa `bebanMatiTambahan` gagal dengan
+      `Cannot read properties of undefined (reading 'reduce')` — pesan yang
+      tak menyebut satu pun medan. Yang membacanya akan mencari cacat di
+      modulnya, padahal yang kurang adalah satu medan di inputnya.
+
+      Modul ini SUDAH memvalidasi medan lain dengan pesan yang menyebut
+      namanya ("Tebal pelat harus > 0"); yang satu ini terlewat.
+      ══════════════════════════════════════════════════════════════════════
+    */
+    const tanpa = { ...INPUT } as Partial<InputPlat>
+    delete tanpa.bebanMatiTambahan
+    expect(() => analisaPlat(tanpa as InputPlat)).toThrow(/bebanMatiTambahan/)
+    /* Dan pesannya TIDAK boleh berupa galat runtime mentah. */
+    expect(() => analisaPlat(tanpa as InputPlat)).not.toThrow(/Cannot read/)
+  })
+
+  it('daftar beban mati KOSONG tetap sah — pelat boleh tanpa beban tambahan', () => {
+    /*
+      Yang ditolak adalah medan yang HILANG, bukan yang kosong. Pelat yang
+      hanya memikul berat sendirinya nyata ada, dan menolaknya akan memaksa
+      pengguna mengarang beban yang tak ada.
+    */
+    const h = analisaPlat({ ...INPUT, bebanMatiTambahan: [] })
+    expect(h.periksa.length).toBeGreaterThan(0)
+  })
 })
 
 describe('analisaPlat — volume untuk RAP', () => {

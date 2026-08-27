@@ -60,6 +60,15 @@ const WAJAR = new Map([
   ['/login', 'pra-sesi; sidebar belum ada'],
   ['/auth/callback', 'pra-sesi; tujuan OAuth, bukan halaman'],
   ['/uji-gulir', 'halaman uji internal, sengaja tak dipasarkan'],
+  ['/admin-portal/klien',
+   'subhalaman portal, dicapai dari tautan di badan halaman Tender Subkon 
+    (`/admin-portal/tender`) dan sebaliknya — keduanya sama-sama 
+    pra-konstruksi. TIDAK dapat entri kategori karena key menunya 
+    (`md-klien`) ada di grup `g-master`, dan grup itu SENGAJA belum 
+    diaktifkan: seluruh item lainnya (Users, Roles, Master data) adalah CRUD 
+    katalog lebar yang tak wajar disunting di layar 390px, jadi 
+    mengaktifkannya membuat grup itu tampil hampir kosong. Pola sama dengan 
+    /admin-portal/kontrak/asuransi sebelum Task 12.'],
   ['/mandor-portal/progress', 'subhalaman portal, dicapai dari badan halaman'],
   ['/mandor-portal/laporan', 'subhalaman portal, dicapai dari badan halaman'],
   ['/admin-portal/kontrak/asuransi',
