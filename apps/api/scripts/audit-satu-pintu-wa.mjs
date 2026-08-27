@@ -104,6 +104,46 @@ function tanpaKomentar(src) {
   }).join('\n')
 }
 
+/**
+ * Berkas yang MEMAKAI kredensial WA tetapi BUKAN jalur kirim pesan.
+ *
+ * Yang dijaga penjaga ini adalah SATU PINTU KELUAR PESAN — bukan larangan
+ * menyentuh kredensial. Dua berkas di bawah menyentuhnya untuk tujuan lain,
+ * dan menuntut keduanya lewat `wa-kirim.ts` tak masuk akal: yang satu tak
+ * mengirim pesan sama sekali, yang satu memang sudah diputuskan lewat spec.
+ *
+ * Tiap entri WAJIB menyebut alasannya. Daftar pengecualian tanpa alasan
+ * berubah jadi tempat pembuangan, dan penjaganya kehilangan gigi.
+ */
+const SAH_BUKAN_KIRIM = new Map([
+  ['routes/v1/wa-instance.ts',
+   'MANAJEMEN SAMBUNGAN, bukan kirim pesan. Endpoint Evolution yang '
+   + 'dipanggilnya hanya /instance/connect, /instance/connection, dan '
+   + '/instance/logout — diukur ke kodenya, nol pemanggilan /message/*. '
+   + 'Rute ini yang memasangkan QR dan membaca status sambungan; ia BUTUH '
+   + 'kredensial untuk itu, dan memaksanya lewat pintu kirim pesan berarti '
+   + 'memberi pintu itu tanggung jawab yang bukan miliknya.'],
+
+  ['utils/terbit-peristiwa.ts',
+   'Kredensial DITERUSKAN ke n8n, yang mengirimkan pesannya. Ini memang '
+   + 'jalur kirim kedua, dan itu keputusan arsitektur yang sudah diambil '
+   + 'SADAR — spec 2026-08-22-n8n-shared-multi-tenant-design §5.2 '
+   + 'menyebutnya trade-off yang diterima, dengan mitigasi retensi log '
+   + 'eksekusi n8n yang diperketat (§7.1). Berkasnya sendiri mencatat itu '
+   + 'di kepalanya. Menandainya sebagai pelanggaran berarti penjaga ini '
+   + 'melawan keputusan yang sudah diratifikasi, tiap kali dijalankan.'],
+])
+
+/*
+  ⚠ Pengecualian ini berlaku atas JALUR BERKAS, jadi ia hanya sah selama isi
+  berkasnya masih seperti yang dijelaskan di atas. Kalau `wa-instance.ts`
+  kelak benar-benar mengirim pesan, penjaga ini TIDAK akan berbunyi.
+
+  Yang menutup celah itu: `audit-alur-tercatat.mjs` (webhook n8n wajib lewat
+  `jalankanAlur()`) dan `audit-saluran-keluar-berpagar.mjs` (modul ber-fetch
+  wajib berpagar NODE_ENV==='test'), keduanya berambang NOL.
+*/
+
 const gagal = []
 
 // ── W-1 & W-2: nol jejak penyedia di luar pintu ──────────────────────────
@@ -111,6 +151,7 @@ for (const path of berkasTs(SRC)) {
   const rel = path.slice(SRC.length + 1).replace(/\\/g, '/')
   if (rel === PINTU) continue
   if (rel.includes('__tests__') || rel.endsWith('.test.ts') || rel.includes('test-utils')) continue
+  if (SAH_BUKAN_KIRIM.has(rel)) continue
 
   const src = tanpaKomentar(readFileSync(path, 'utf8'))
   src.split('\n').forEach((isi, i) => {
