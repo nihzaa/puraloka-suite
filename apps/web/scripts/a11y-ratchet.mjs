@@ -231,6 +231,76 @@ for (const f of [...berkasTsx(join(AKAR, 'app')), ...berkasTsx(join(AKAR, 'compo
         else if (ch === '>' && kedalaman === 0) break
       }
       if (blok.includes('aria-label') || blok.includes('aria-labelledby')) continue
+
+      /*
+        ══════════════════════════════════════════════════════════════════════
+        `<label>` PEMBUNGKUS sudah memberi nama — dan penjaga ini buta padanya
+        ══════════════════════════════════════════════════════════════════════
+
+        Pola paling standar di HTML untuk menamai sebuah kontrol:
+
+            <label>
+              <span>Dari Akun *</span>
+              <select value={...}>…</select>
+            </label>
+
+        `<label>` yang MEMBUNGKUS kontrol memberinya nama aksesibel tanpa
+        `aria-label`, `for`, atau `id` — ini perilaku baku, bukan trik.
+
+        Sampai 2026-08-27 penjaga ini melaporkan **118 `<select>` tanpa nama**,
+        dan pola di atas adalah sebab hampir seluruhnya. Diuji dengan alat yang
+        berwenang, bukan pembacaan teks:
+
+            node apps/web/scripts/audit-a11y-runtime.mjs --url <halaman>
+            (axe-core, WCAG 2.1 AA, sesi ber-login)
+
+            /admin-portal/audit         → 0 pelanggaran
+            /admin-portal/keuangan/kas  → 0 pelanggaran
+            /admin-portal/jadwal        → 0 pelanggaran
+            /admin-portal/procurement   → 0 pelanggaran
+
+        Empat halaman yang penjaga ini tuduh bermasalah, seluruhnya bersih
+        menurut axe. Jadi yang salah penjaganya, bukan halamannya.
+
+        Ini bahaya yang berkas ini sendiri sudah catat berulang: "angka yang
+        digelembungkan laporan palsu melatih pembacanya mengabaikan penjaga
+        ini". 118 laporan palsu adalah bentuk paling parahnya — mengikutinya
+        berarti menaburkan `aria-label` yang MENGGANDAKAN nama yang sudah ada,
+        dan pembaca layar lalu membacakan labelnya dua kali.
+
+        ── Cara memeriksanya
+
+        Ditelusuri ke ATAS dari baris `<select>`: bila bertemu `<label` sebelum
+        bertemu `</label>`, kontrol ini berada di dalamnya. Batas 10 baris
+        mengikuti gaya penjaga ini (14 ke bawah untuk tag multi-baris).
+
+        Sengaja TIDAK menuntut `<label>` itu berisi teks. Membedakan label
+        berisi teks dari yang kosong menuntut pembacaan JSX sungguhan, dan
+        `<label>` kosong di repo ini tak ada — sementara salah menuduh
+        halaman yang benar terbukti jauh lebih mahal.
+      */
+      let dalamLabel = false
+      for (let j = i; j >= Math.max(0, i - 10); j--) {
+        if (baris[j].includes('</label>')) break
+        if (baris[j].includes('<label')) { dalamLabel = true; break }
+        /*
+          Pembungkus ber-prop `label=` — mis. `<Isian label="Proyek">` di
+          `admin-portal/procurement`, yang merender `<label><span>{label}</span>
+          {children}</label>`. Sama benarnya dengan `<label>` langsung, hanya
+          lewat komponen.
+
+          Dicocokkan pada PROP `label="…"` di sebuah tag berhuruf besar
+          (konvensi komponen React), bukan pada nama komponennya — menyebut
+          `Isian` dan kawan-kawannya satu per satu akan membusuk begitu ada
+          pembungkus baru, dan penjaga yang daftarnya basi berhenti menjaga
+          tanpa gejala.
+
+          Terbukti benar oleh axe-core: /admin-portal/procurement → 0
+          pelanggaran, padahal enam `<select>`-nya dilaporkan "tanpa nama".
+        */
+        if (/<[A-Z]\w*\s[^>]*\blabel=["'{]/.test(baris[j])) { dalamLabel = true; break }
+      }
+      if (dalamLabel) continue
       // Kontrol yang SENGAJA disembunyikan dari pohon aksesibilitas tak punya
       // nama karena ia memang tak boleh punya — pembaca layar tak pernah
       // menemuinya. Menuntut `aria-label` di sini bukan sekadar mubazir: ia

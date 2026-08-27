@@ -510,14 +510,20 @@ export default function PmGlPage() {
           <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>Baris Jurnal</div>
           {lini.map((l, i) => (
             <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              <select value={l.account_id} onChange={(e) => ubahLini(i, "account_id", e.target.value)}
+              {/*
+                    Nomor baris ikut disebut: baris jurnal berulang, dan tanpa
+                    itu pembaca layar mengucapkan "Akun jurnal" berkali-kali
+                    tanpa cara membedakan baris mana yang sedang diisi.
+                    Judul "Baris Jurnal" di atas hanya <div>, bukan label.
+                  */}
+                  <select aria-label={`Akun jurnal baris ${i + 1}`} value={l.account_id} onChange={(e) => ubahLini(i, "account_id", e.target.value)}
                 style={{ minHeight: 40, padding: "0 8px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, flex: 2 }}>
                 <option value="">Akun</option>
                 {(dataAkun?.data ?? []).map((a) => <option key={a.id} value={a.id}>{a.code} {a.name}</option>)}
               </select>
-              <input type="number" min={0} placeholder="Debit" value={l.debit} onChange={(e) => ubahLini(i, "debit", e.target.value)}
+              <input aria-label={`Debit baris ${i + 1}`} type="number" min={0} placeholder="Debit" value={l.debit} onChange={(e) => ubahLini(i, "debit", e.target.value)}
                 style={{ minHeight: 40, padding: "0 8px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, flex: 1, width: 0 }} />
-              <input type="number" min={0} placeholder="Kredit" value={l.credit} onChange={(e) => ubahLini(i, "credit", e.target.value)}
+              <input aria-label={`Kredit baris ${i + 1}`} type="number" min={0} placeholder="Kredit" value={l.credit} onChange={(e) => ubahLini(i, "credit", e.target.value)}
                 style={{ minHeight: 40, padding: "0 8px", borderRadius: 10, border: "1px solid var(--border)", fontSize: 12, flex: 1, width: 0 }} />
             </div>
           ))}

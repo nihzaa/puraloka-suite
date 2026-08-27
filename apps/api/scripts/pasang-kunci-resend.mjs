@@ -110,13 +110,17 @@ function bacaBaris(pertanyaan, sembunyikan = false) {
         }
 
         // Ctrl-C: saat raw mode aktif, shell tak lagi menanganinya.
-        if (ch === '') {
+        // `\u0003` ditulis sebagai escape TERLIHAT, bukan byte mentah:
+        // byte kontrol di sumber tak terlihat di diff, di review, maupun
+        // di penyunting — dan yang tak terlihat tak bisa diperiksa siapa pun.
+        // Dijaga `audit-byte-kontrol.mjs`.
+        if (ch === '\u0003') {
           if (bisaSembunyi) process.stdin.setRawMode(false)
           process.stdout.write('\n')
           process.exit(130)
         }
 
-        if (ch === '' || ch === '\b') {
+        if (ch === '\u007f' || ch === '\b') {
           buf = buf.slice(0, -1)
           if (bisaSembunyi) process.stdout.write('\b \b')
           continue

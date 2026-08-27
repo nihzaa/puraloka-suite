@@ -361,7 +361,19 @@ export async function createNotifications(list: NotificationParams[]): Promise<v
   */
   const perPeristiwa = new Map<string, { p: NotificationParams; n: number }>()
   for (const p of list) {
-    const kunci = `${p.company_id} ${p.type}`
+    /*
+    Pemisah `\u0000` ditulis sebagai escape TERLIHAT, bukan byte mentah.
+
+    NUL dipilih karena ia tak mungkin muncul di dalam UUID maupun nama
+    jenis notifikasi, jadi kunci gabungan tak bisa bentrok — pemisah
+    biasa seperti `:` atau `-` bisa, kalau salah satu bagiannya
+    kebetulan memuatnya.
+
+    Yang diperbaiki di sini hanya BENTUK TULISNYA: byte kontrol mentah
+    tak terlihat di diff, di review, maupun di penyunting — dan yang tak
+    terlihat tak bisa diperiksa siapa pun. Dijaga `audit-byte-kontrol.mjs`.
+  */
+  const kunci = `${p.company_id}\u0000${p.type}`
     const ada = perPeristiwa.get(kunci)
     if (ada) ada.n += 1
     else perPeristiwa.set(kunci, { p, n: 1 })
