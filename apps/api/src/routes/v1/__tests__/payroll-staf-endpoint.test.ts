@@ -163,8 +163,18 @@ beforeAll(async () => {
 afterAll(async () => {
   await purge()
   await pulihkanTarifSeed()
-  // Pastikan basis kembali ke NOL tarif — keadaan yang benar menurut R-011.
-  const { rows } = await client.query(`SELECT count(*)::int n FROM tarif_payroll_baris`)
+  /*
+    Pastikan basis kembali ke NOL tarif — keadaan yang benar menurut R-011.
+
+    Disaring ke periode bertanda `[TEST-PR]` milik test ini, bukan seluruh
+    tabel. Di CI enam shard paralel, hitungan global ikut menghitung baris
+    shard LAIN — peringatan ini lalu menyala tiap kali tanpa ada yang bocor,
+    dan peringatan yang selalu menyala berhenti dibaca orang.
+  */
+  const { rows } = await client.query(
+    `SELECT count(*)::int n FROM tarif_payroll_baris b
+       JOIN tarif_payroll_periode p ON p.id = b.periode_id
+      WHERE p.dasar_hukum LIKE '[TEST-PR]%'`)
   if (rows[0].n > 0) {
     console.warn(`⚠ ${rows[0].n} baris tarif tersisa sesudah test — periksa purge()`)
   }

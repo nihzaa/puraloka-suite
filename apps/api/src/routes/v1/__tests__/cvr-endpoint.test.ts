@@ -214,7 +214,22 @@ describe('GET /projects/:id/cvr', () => {
 
   it('TIDAK MENULIS apa pun', async () => {
     const hitung = async () => {
-      const { rows } = await client.query(`SELECT count(*)::int n FROM work_scopes`)
+      /*
+        Disaring ke PROYEK milik test, bukan `count(*)` seluruh tabel.
+
+        Di CI enam shard berjalan paralel atas satu basis. Hitungan global
+        bisa berubah karena shard LAIN menyisipkan baris di antara dua
+        panggilan — test merah tanpa ada yang rusak, dan bacaan pertamanya
+        menuduh endpoint ini menulis (atau lebih buruk: menuduh RLS bocor).
+
+        Maksud testnya tak berubah: yang dibuktikan tetap 'endpoint ini
+        tidak menulis apa pun', hanya kini atas data yang benar-benar
+        miliknya.
+      */
+      const { rows } = await client.query(
+        `SELECT count(*)::int n FROM work_scopes ws
+           JOIN mandor_assignments ma ON ma.id = ws.assignment_id
+          WHERE ma.project_id = $1`, [projectId])
       return rows[0].n as number
     }
     const sebelum = await hitung()

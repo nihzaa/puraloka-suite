@@ -96,7 +96,24 @@ for (const p of telusuri(AKAR)) {
 
     // (2) Tersaring ke data milik sendiri → aman.
     const konteks = L.slice(i, i + 4).join(' ')
-    if (/WHERE/i.test(konteks) && /(LIKE|= ?\$|IN ?\(|id ?=)/i.test(konteks)) return
+    /*
+      Saringan LITERAL ikut dikenali — mis. `WHERE model = 'uji-ronde'` atau
+      `WHERE nama_berkas = '[TEST] cacat.csv'`.
+
+      Versi sebelumnya hanya menerima `LIKE`, parameter (`= $1`), `IN (…)`,
+      dan `id =`. Test yang menyaring ke penanda miliknya sendiri dengan
+      literal string karena itu dilaporkan sebagai hitungan GLOBAL — padahal
+      itu persis cara yang penjaga ini sarankan di pesan galatnya.
+
+      Diukur 2026-08-27: 3 dari 9 temuan berbentuk begini. Penjaga yang
+      menghukum cara yang ia sarankan sendiri melatih pembacanya mengabaikan
+      keluarannya.
+
+      Yang dituntut tetap ada: sebuah literal berkutip DI SISI KANAN
+      perbandingan. `WHERE 1 = 1` atau `WHERE aktif = true` TIDAK lolos —
+      keduanya tak menyaring ke data milik test.
+    */
+    if (/WHERE/i.test(konteks) && /(LIKE|= ?\$|IN ?\(|id ?=|= ?'[^']+')/i.test(konteks)) return
 
     // (1) Satu query dua angka (FILTER) → aman.
     if (/FILTER\s*\(/i.test(konteks)) return
