@@ -767,7 +767,11 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
         </div>
 
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--teks-tabel)" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--teks-tabel)", fontVariantNumeric: "tabular-nums" }}>
+            <caption className="sr-only">
+              Rincian anggaran biaya: kode pekerjaan, uraian, volume, harga
+              satuan, dan jumlahnya.
+            </caption>
             <thead>
               <tr>
                 <th style={th}>Kode</th>
@@ -784,9 +788,15 @@ function TabelItem({ versi, rollup, onKunci, onTambah, onJelaskan, onTerapkan, o
                 const sel = akhir ? tdAkhir : td;
                 return (
                 <tr key={it.id} style={i % 2 === 1 ? { background: "var(--surface-subtle)" } : undefined}>
-                  <td style={{ ...sel, color: C.aksen, fontWeight: 600, whiteSpace: "nowrap" }}>
+                  {/*
+                    `th scope="row"`, bukan `td` — kode pekerjaan adalah
+                    IDENTITAS barisnya. Tanpa itu pembaca layar membacakan
+                    "1.250.000" tanpa menyebut baris mana yang punya, dan
+                    tabel RAB berisi puluhan angka yang mirip satu sama lain.
+                  */}
+                  <th scope="row" style={{ ...sel, color: C.aksen, fontWeight: 600, whiteSpace: "nowrap", textAlign: "left" }}>
                     {it.assembly?.code ?? it.cost_code?.code ?? "—"}
-                  </td>
+                  </th>
                   <td style={sel}>
                     {it.assembly?.name ?? it.description ?? it.cost_code?.name ?? "—"}
                     {/* Item lump-sum tak punya analisa — dinyatakan, bukan

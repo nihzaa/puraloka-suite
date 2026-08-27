@@ -211,7 +211,10 @@ function IsiProyeksiKas() {
             background: C.surface, overflow: "hidden",
           }}>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--teks-tabel)" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--teks-tabel)", fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">
+                  Proyeksi arus kas per periode: nilai pencairan dan akumulasinya.
+                </caption>
                 <thead>
                   <tr>
                     <th style={th}>Periode</th>
@@ -222,7 +225,7 @@ function IsiProyeksiKas() {
                 <tbody>
                   {jawab.forecast.map((t) => (
                     <tr key={t.period}>
-                      <td style={td}>Periode {t.period}</td>
+                      <th scope="row" style={{ ...td, fontWeight: 400, textAlign: "left" }}>Periode {t.period}</th>
                       <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                         {angka(t.disbursement)}
                       </td>

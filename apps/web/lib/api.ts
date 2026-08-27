@@ -56,9 +56,14 @@ export function simpanCompanyAktif(id: string | null | undefined): void {
       localStorage.setItem("puraloka_company_id", id);
     }
   } catch {
-    // Mode privat tertentu menolak menulis. Bukan alasan menjatuhkan
-    // permintaannya — header tetap terkirim tanpa nilai, dan backend memakai
-    // default penggunanya.
+    // best-effort: mode privat tertentu menolak menulis localStorage, dan
+    // itu BUKAN alasan menjatuhkan permintaannya — header tetap terkirim
+    // tanpa nilai, dan backend memakai default penggunanya.
+    //
+    // Memberi tahu pengguna di sini justru merugikan: ia tak menekan tombol
+    // apa pun (fungsi ini dipanggil dari interceptor tiap balasan), jadi
+    // pesan galat akan muncul tanpa sebab yang bisa ia hubungkan dengan
+    // tindakannya, berulang kali, atas sesuatu yang tak bisa ia perbaiki.
   }
 }
 

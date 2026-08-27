@@ -139,6 +139,30 @@ for (const f of berkas) {
     // MENCERAHKAN warna lain, dan warna dasarnya sudah beradaptasi mode.
     // Menolaknya akan mematikan pola pencerahan yang benar di grafik
     // profitabilitas dan umur piutang.
+    //
+    // Penanda `putih-disengaja: <alasan>` pada baris SEBELUMNYA membebaskan
+    // baris ini. Ditambahkan 2026-08-27 untuk kanvas kode QR WhatsApp, tempat
+    // putih BUKAN pilihan gaya melainkan syarat teknis: pemindai membaca
+    // kontras modul hitam di atas kuiet-zone terang, dan `var(--surface)` di
+    // mode gelap membuat QR-nya tak terbaca sama sekali.
+    //
+    // Alasannya sengaja ditulis DI TEMPAT PEMAKAIAN, bukan sebagai daftar
+    // berkas di penjaga ini. Daftar terpusat membusuk diam-diam saat berkasnya
+    // pindah atau berubah isi; penanda sebaris ikut ke mana kodenya pergi, dan
+    // hilang bersamanya kalau kodenya dihapus.
+    // Dipindai BEBERAPA baris ke belakang, bukan satu.
+    //
+    // Alasan yang layak ditulis jarang muat sebaris, dan komentar blok
+    // berakhir dengan `*/` — jadi baris tepat sebelum kodenya justru bukan
+    // penandanya. Versi pertama (satu baris) gagal karena itu, pada
+    // pemakaian pertamanya sendiri.
+    const AWAS_MUNDUR = 12;
+    let dibebaskan = false;
+    for (let j = Math.max(0, i - AWAS_MUNDUR); j < i; j++) {
+      if (/putih-disengaja:/.test(baris[j])) { dibebaskan = true; break; }
+    }
+    if (dibebaskan) continue;
+
     if (PUTIH_LATAR.test(b) && !/color-mix/.test(b)) {
       temuan.push({ di: `${f}:${i + 1}`, jenis: "putih-latar", isi: b.trim().slice(0, 100) });
     }

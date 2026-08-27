@@ -821,7 +821,7 @@ export default function TenderSubkonPage() {
                       jumlah penawar, jadi ia menggulir sendiri — bukan
                       memaksa seluruh halaman menggulir mendatar. */}
                   <div style={{ ...kartu, overflowX: "auto" }}>
-                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 520 }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, minWidth: 520, fontVariantNumeric: "tabular-nums" }}>
                       <caption style={{
                         textAlign: "left", padding: "10px 12px 8px",
                         fontSize: 12, color: C.mid,

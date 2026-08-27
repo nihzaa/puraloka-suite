@@ -297,6 +297,16 @@ export default function KartuSambungan({
             <div style={{ marginTop: 16, display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
               <div
                 style={{
+                  /*
+                    putih-disengaja: kanvas kode QR. Pemindai WhatsApp membaca
+                    kontras modul GELAP di atas kuiet-zone TERANG; ini syarat
+                    teknis pemindaian, bukan pilihan gaya.
+
+                    `var(--surface)` di mode gelap membuat QR-nya tak terbaca
+                    sama sekali — bukan sekadar kurang nyaman dilihat, tetapi
+                    gagal berfungsi, dan gagalnya diam: pengguna mengira
+                    sambungannya yang bermasalah.
+                  */
                   width: 240, height: 240, borderRadius: 12, background: "#fff",
                   display: "grid", placeItems: "center", flexShrink: 0,
                   border: `1px solid ${C.border}`,

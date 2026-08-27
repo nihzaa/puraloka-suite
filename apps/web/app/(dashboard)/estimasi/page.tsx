@@ -341,8 +341,7 @@ function GrupProyek({
           style={{
             width: "100%",
             borderCollapse: "collapse",
-            fontSize: "var(--teks-tabel)",
-          }}
+            fontSize: "var(--teks-tabel)", fontVariantNumeric: "tabular-nums" }}
         >
           <thead>
             <tr>

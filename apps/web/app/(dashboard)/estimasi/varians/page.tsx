@@ -153,7 +153,11 @@ function IsiVarians() {
             background: C.surface, overflow: "hidden",
           }}>
             <div style={{ overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--teks-tabel)" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--teks-tabel)", fontVariantNumeric: "tabular-nums" }}>
+                <caption className="sr-only">
+                  Varians anggaran per cost code: pagu, komitmen, aktual, dan
+                  selisihnya.
+                </caption>
                 <thead>
                   <tr>
                     <th style={th}>Cost code</th>
@@ -168,10 +172,11 @@ function IsiVarians() {
                     const lewat = b.variance != null && b.variance < 0;
                     return (
                       <tr key={b.cost_code_id ?? b.code}>
-                        <td style={td}>
+                        {/* `th scope="row"` — cost code adalah identitas barisnya. */}
+                        <th scope="row" style={{ ...td, textAlign: "left", fontWeight: 400 }}>
                           <span style={{ color: C.aksen, fontWeight: 600 }}>{b.code}</span>
                           <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{b.name}</div>
-                        </td>
+                        </th>
                         <td style={{ ...td, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
                           {b.pagu ? angka(b.pagu) : "—"}
                         </td>
