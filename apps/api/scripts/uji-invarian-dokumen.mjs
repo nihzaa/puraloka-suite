@@ -73,7 +73,49 @@ let bocor = 0
 let seri = 0
 
 const DITOLAK = new Set(['23514', '23502', '23503', '23505', '22003', '22P02'])
-const nom = (awalan) => `${awalan}-UJI-${++seri}`
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  NAMA UNIK PER-JALAN — dan kenapa `++seri` saja tak cukup
+  ══════════════════════════════════════════════════════════════════════════
+
+  `seri` mulai dari nol tiap kali skrip dijalankan, jadi nomor pertamanya
+  SELALU `GB-UJI-1`. Selama tiap jalan bersih, itu aman — `coba()` menghapus
+  barisnya sendiri.
+
+  Tetapi satu jalan yang mati di tengah (koneksi putus, Ctrl-C, atau
+  invarian yang memang bocor) meninggalkan barisnya. Jalan BERIKUTNYA lalu
+  menabrak nomor yang sama dan mati dengan:
+
+      duplicate key value violates unique constraint "gambar_unik"
+
+  Diukur 2026-08-27: satu baris sisa di `register_gambar`, dan skrip ini
+  merah di CI sejak entah kapan — bukan karena ada invarian yang bocor,
+  melainkan karena sampahnya sendiri. Kegagalannya menuduh BASIS, padahal
+  seluruh 8 pemeriksaannya lulus tepat sebelum galat itu.
+
+  Cap waktu + acak membuat tiap jalan memakai ruang nomornya sendiri, jadi
+  sisa dari jalan yang gagal tak pernah menghalangi jalan berikutnya.
+*/
+const CAP = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+const nom = (awalan) => `${awalan}-UJI-${CAP}-${++seri}`
+
+/*
+  Sapu sisa jalan-jalan sebelumnya. Idempoten, dan sengaja HANYA menyentuh
+  baris bertanda `-UJI-` — pola yang tak mungkin dipakai nomor sungguhan.
+
+  Dijalankan di AWAL, bukan hanya di akhir: yang perlu dibersihkan justru
+  sisa dari jalan yang TIDAK sampai ke akhir.
+*/
+for (const t of ['register_gambar', 'transmittal']) {
+  try {
+    const { rowCount } = await db.query(
+      `DELETE FROM ${t} WHERE nomor LIKE '%-UJI-%'`)
+    if (rowCount > 0) console.log(`  🧹 ${t}: ${rowCount} baris sisa uji dibersihkan`)
+  } catch (e) {
+    // Tabel bisa saja belum ada di lingkungan tertentu — bukan alasan gagal.
+    console.log(`  ⏭  ${t}: lewati pembersihan (${e.code ?? e.message.slice(0, 40)})`)
+  }
+}
 
 async function coba(tabel, nama, isi, harusMasuk) {
   const k = Object.keys(isi)
@@ -118,10 +160,71 @@ await coba('register_gambar', 'gambar sah', gb({ revisi: 0, tahap: 'IFC' }), tru
      VALUES ($1,$2,$3,'A',1) RETURNING id`, [CID, PID, n])
   await coba('register_gambar', 'gambar GANDA (proyek+nomor+revisi sama)',
     { company_id: CID, project_id: PID, nomor: n, judul: 'B', revisi: 1 }, false)
-  // Revisi BERBEDA untuk nomor sama HARUS boleh — itu inti register gambar.
-  await coba('register_gambar', 'revisi berbeda untuk nomor sama',
-    { company_id: CID, project_id: PID, nomor: n, judul: 'B', revisi: 2 }, true)
+  /*
+    ════════════════════════════════════════════════════════════════════════
+    REVISI BARU MENUNTUT YANG LAMA DIGANTIKAN LEBIH DULU
+    ════════════════════════════════════════════════════════════════════════
+
+    Versi sebelumnya menyisipkan revisi 2 begitu saja dan menuntutnya
+    DITERIMA, dengan alasan "revisi berbeda untuk nomor sama HARUS boleh —
+    itu inti register gambar". Niatnya benar, tetapi alurnya keliru, dan ia
+    dilaporkan sebagai BOCOR sejak skrip ini bisa berjalan sampai selesai:
+
+        duplicate key ... constraint "register_gambar_satu_berlaku"
+
+    Yang menghalangi bukan `gambar_unik (project_id, nomor, revisi)` —
+    revisi 2 memang berbeda dari revisi 1 — melainkan indeks parsial
+
+        UNIQUE (project_id, nomor) WHERE status = 'berlaku'
+
+    dan `status` berbawaan `'berlaku'`. Jadi revisi 2 masuk sebagai gambar
+    kedua yang BERLAKU untuk nomor yang sama.
+
+    Basisnya BENAR, dan justru inilah inti kendali dokumen: mustahil ada dua
+    revisi gambar yang sama-sama berlaku di lapangan. Tukang yang memegang
+    Rev-1 dan tukang yang memegang Rev-2 akan membangun dua hal berbeda dari
+    gambar yang "sama-sama sah".
+
+    Yang benar diuji adalah ALUR SUNGGUHAN: revisi lama ditandai
+    `digantikan` (menyebut penggantinya), baru revisi barunya masuk.
+  */
+  await coba('register_gambar', 'revisi baru saat yang lama MASIH berlaku',
+    { company_id: CID, project_id: PID, nomor: n, judul: 'B', revisi: 2 }, false)
+
+  const { rows: baru2 } = await db.query(
+    `INSERT INTO register_gambar (company_id, project_id, nomor, judul, revisi, status)
+     VALUES ($1,$2,$3,'B',2,'ditarik') RETURNING id`, [CID, PID, n])
+  await db.query(
+    `UPDATE register_gambar SET status = 'digantikan', digantikan_oleh = $1 WHERE id = $2`,
+    [baru2[0].id, rows[0].id])
+  await db.query(
+    `UPDATE register_gambar SET status = 'berlaku' WHERE id = $1`, [baru2[0].id])
+  {
+    const { rows: cek } = await db.query(
+      `SELECT count(*)::int AS n FROM register_gambar
+        WHERE project_id = $1 AND nomor = $2 AND status = 'berlaku'`, [PID, n])
+    if (cek[0].n === 1) {
+      console.log('  ✅ diterima revisi baru setelah yang lama DIGANTIKAN')
+      lolos++
+    } else {
+      console.log(`  ❌ BOCOR   ${cek[0].n} revisi berlaku sekaligus untuk satu nomor`)
+      bocor++
+    }
+  }
+  /*
+    URUTAN HAPUS PENTING — yang MENUNJUK dibuang lebih dulu.
+
+    Baris lama menunjuk penggantinya lewat `digantikan_oleh`. Menghapus
+    penggantinya duluan membuat FK men-set kolom itu NULL, dan
+
+        CHECK (status <> 'digantikan' OR digantikan_oleh IS NOT NULL)
+
+    langsung dilanggar — skrip mati di pembersihan, SESUDAH seluruh
+    pemeriksaannya lulus. Kegagalan yang terbaca seperti invarian bocor,
+    padahal cuma urutan hapus.
+  */
   await db.query('DELETE FROM register_gambar WHERE id = $1', [rows[0].id])
+  await db.query('DELETE FROM register_gambar WHERE id = $1', [baru2[0].id])
 }
 
 // ── transmittal ───────────────────────────────────────────────────────────
