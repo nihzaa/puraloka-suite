@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTerpasang } from "@/lib/use-terpasang";
 import { KepalaHalaman } from "@/components/dasar";
 import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import { useData } from "@/lib/data-cache";
 import { BellRing, Plus, Trash2, Info, ShieldCheck, UserCog, Users, HardHat } from "lucide-react";
 
@@ -25,18 +25,10 @@ const TARGET_META: Record<TargetType, { icon: typeof Users; text: string; hint: 
   project_mandors: { icon: HardHat,    text: "Mandor proyek",  hint: "Mandor dengan penugasan aktif di proyek tersebut" },
 };
 
-function hasPerm(key: string): boolean {
-  try { const raw = localStorage.getItem("puraloka_permissions"); return raw ? (JSON.parse(raw) as string[]).includes(key) : false; } catch { return false; }
-}
 
-export default function NotifikasiPage() {
-  const mounted = useTerpasang();
-  if (!mounted) return null;
-  return <Content />;
-}
 
-function Content() {
-  const canManage = hasPerm("notifications:rules:manage");
+export default function Content() {
+  const canManage = useIzin("notifications:rules:manage");
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
   /*

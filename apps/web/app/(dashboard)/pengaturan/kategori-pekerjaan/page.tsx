@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import { useData } from "@/lib/data-cache";
 import { Layers, Plus, Check, X, AlertTriangle, Save, EyeOff, Eye } from "lucide-react";
 import type { WorkCategoryRow } from "@/lib/use-work-categories";
@@ -16,18 +16,10 @@ const card: React.CSSProperties = {
   background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "var(--naik-1)",
 };
 
-function hasPerm(key: string): boolean {
-  try { const raw = localStorage.getItem("puraloka_permissions"); return raw ? (JSON.parse(raw) as string[]).includes(key) : false; } catch { return false; }
-}
 
-export default function KategoriPage() {
-  const mounted = useTerpasang();
-  if (!mounted) return null;
-  return <KategoriContent />;
-}
 
-function KategoriContent() {
-  const canManage = hasPerm("work_categories:manage");
+export default function KategoriContent() {
+  const canManage = useIzin("work_categories:manage");
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   /*

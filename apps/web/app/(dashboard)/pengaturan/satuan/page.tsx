@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import { useData } from "@/lib/data-cache";
 import { Ruler, Plus, Check, X, AlertTriangle, Save, EyeOff, Eye } from "lucide-react";
 import type { UnitRow } from "@/lib/use-units";
@@ -24,22 +24,11 @@ const CATEGORIES = [
   { value: "count", label: "Unit/Buah" }, { value: "set", label: "Set/Lot" },
   { value: "time", label: "Waktu" },
 ];
-function hasPerm(key: string): boolean {
-  try {
-    const raw = localStorage.getItem("puraloka_permissions");
-    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
-  } catch { return false; }
-}
 
 
-export default function SatuanPage() {
-  const mounted = useTerpasang();
-  if (!mounted) return null;
-  return <SatuanContent />;
-}
 
-function SatuanContent() {
-  const canManage = hasPerm("units:manage");
+export default function SatuanContent() {
+  const canManage = useIzin("units:manage");
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   /*

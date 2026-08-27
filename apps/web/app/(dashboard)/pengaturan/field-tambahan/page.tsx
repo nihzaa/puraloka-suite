@@ -27,8 +27,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import { useData } from "@/lib/data-cache";
 import { SlidersHorizontal, Plus, Check, AlertTriangle, EyeOff, Eye } from "lucide-react";
 
@@ -78,21 +78,10 @@ const NAMA_TIPE: Record<string, string> = {
   uang: "Uang (Rp)",
 };
 
-function hasPerm(key: string): boolean {
-  try {
-    const raw = localStorage.getItem("puraloka_permissions");
-    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
-  } catch { return false; }
-}
 
-export default function FieldTambahanPage() {
-  const mounted = useTerpasang();
-  if (!mounted) return null;
-  return <Konten />;
-}
 
-function Konten() {
-  const bolehKelola = hasPerm("settings:customfield:manage");
+export default function Konten() {
+  const bolehKelola = useIzin("settings:customfield:manage");
   const [entitas, setEntitas] = useState("projects");
   const [toast, setToast] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 

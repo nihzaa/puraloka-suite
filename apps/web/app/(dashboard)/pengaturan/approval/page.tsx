@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import { useData } from "@/lib/data-cache";
 import { GitBranch, Plus, Trash2, Check, X, AlertTriangle, Info } from "lucide-react";
 
@@ -19,18 +19,10 @@ interface Permission { key: string; label?: string; module?: string }
 
 const fmtRp = (n: number) => new Intl.NumberFormat("id-ID").format(n);
 
-function hasPerm(key: string): boolean {
-  try { const raw = localStorage.getItem("puraloka_permissions"); return raw ? (JSON.parse(raw) as string[]).includes(key) : false; } catch { return false; }
-}
 
-export default function ApprovalPage() {
-  const mounted = useTerpasang();
-  if (!mounted) return null;
-  return <Content />;
-}
 
-function Content() {
-  const canManage = hasPerm("approval:chains:manage");
+export default function Content() {
+  const canManage = useIzin("approval:chains:manage");
   const [toast, setToast] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
   /*

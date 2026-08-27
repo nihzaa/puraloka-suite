@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { KepalaHalaman } from "@/components/dasar";
-import { useTerpasang } from "@/lib/use-terpasang";
 import { api } from "@/lib/api";
+import { useIzin } from "@/lib/use-izin";
 import { useData } from "@/lib/data-cache";
 import { Globe, Save, Check, X, AlertTriangle, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { C } from "@/lib/warna-ui";
@@ -67,21 +67,10 @@ const LABEL_SEKSI: Record<string, string> = {
 type Seksi = { kunci: string; aktif: boolean; urutan: number; varian: string };
 type Merek = { warna_utama: string; warna_aksen: string; logo_path: string | null };
 
-function hasPerm(key: string): boolean {
-  try {
-    const raw = localStorage.getItem("puraloka_permissions");
-    return raw ? (JSON.parse(raw) as string[]).includes(key) : false;
-  } catch { return false; }
-}
 
-export default function SitusPage() {
-  const mounted = useTerpasang();
-  if (!mounted) return null;
-  return <SitusContent />;
-}
 
-function SitusContent() {
-  const canManage = hasPerm("situs:manage");
+export default function SitusContent() {
+  const canManage = useIzin("situs:manage");
 
   const [konten, setKonten] = useState<Record<string, string>>({});
   // Kosong, BUKAN "#003366"/"#FFD600".
