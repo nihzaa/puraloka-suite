@@ -30,7 +30,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, companyBerisi } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import otomasiTerjadwalRoutes from '../otomasi-terjadwal.js'
 import { entriKatalog } from '../../../lib/katalog-otomasi.js'
@@ -71,13 +71,27 @@ beforeAll(async () => {
     { data: { user: { id: auth } }, error: null } as never,
   )
 
-  const { rows: c } = await db.query(
-    `SELECT id FROM companies WHERE code = 'puraloka-persada'`)
-  companyId = c[0].id
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    COMPANY DARI AKUN UJI — bukan `code = 'puraloka-persada'` yang dipaku
+    ══════════════════════════════════════════════════════════════════════════
+
+    Memaku kodenya membuat test ini bergantung pada asumsi bahwa akun uji
+    adalah anggota company ITU. Kalau tidak — dan basis ini punya 1.328
+    company (diukur 2026-08-27, hampir semuanya sisa test) — data disisipkan
+    ke satu company sementara rute membaca dari company LAIN, lalu memulangkan
+    nol baris tanpa galat.
+
+    `companyBerisi()` memilih company yang benar-benar dimiliki akun uji DAN
+    punya bahan yang diminta, dengan urutan stabil. Catatan panjang alasannya
+    ada di `rls-harness.ts`.
+  */
+  companyId = await companyBerisi(db, auth, ['suppliers'])
 
   const { rows: s } = await db.query(
-    `SELECT id FROM suppliers WHERE company_id = $1 LIMIT 1`, [companyId])
-  if (!s[0]) throw new Error('tak ada pemasok untuk diuji')
+    `SELECT id FROM suppliers WHERE company_id = $1 ORDER BY created_at, id LIMIT 1`,
+    [companyId])
+  if (!s[0]) throw new Error('company akun uji tak punya pemasok untuk diuji')
   supplierId = s[0].id
 
   app = Fastify()

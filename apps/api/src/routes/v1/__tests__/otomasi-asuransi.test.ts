@@ -33,7 +33,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, companyBerisi } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import otomasiTerjadwalRoutes from '../otomasi-terjadwal.js'
 import { AMBANG_SEGERA_HARI } from '../../../lib/register-asuransi.js'
@@ -88,15 +88,21 @@ beforeAll(async () => {
     { data: { user: { id: auth } }, error: null } as never,
   )
 
-  const { rows: c } = await db.query(
-    `SELECT id FROM companies WHERE code = 'puraloka-persada'`,
-  )
-  companyId = c[0].id
+  /*
+    Company dari AKUN UJI, bukan `code` yang dipaku — dan proyeknya berurutan
+    stabil. Alasan lengkapnya di `rls-harness.ts`: basis punya 1.328 company
+    (diukur 2026-08-27, hampir semuanya sisa test), jadi data bisa disisipkan
+    ke company yang BUKAN yang dibaca rute, lalu nol baris tanpa galat.
+  */
+  companyId = await companyBerisi(db, auth, ['projects'])
 
   const { rows: p } = await db.query(
-    `SELECT id FROM projects WHERE company_id = $1 AND status = 'active' LIMIT 1`,
+    `SELECT id FROM projects
+      WHERE company_id = $1 AND status = 'active'
+      ORDER BY created_at, id LIMIT 1`,
     [companyId],
   )
+  if (!p[0]) throw new Error('company akun uji tak punya proyek aktif')
   projectId = p[0].id
 
   app = Fastify()
@@ -174,19 +180,42 @@ describe('5.7 — polis yang segera berakhir', () => {
 
     // Bawaan 30 — di luar jangkauan, tak boleh ditegur.
     await panggil()
+    /*
+      Dihitung HANYA untuk polis bertanda uji.
+
+      Versi sebelumnya menghitung semua notifikasi jenis ini di company, dan
+      lolos hanya karena kebetulan: `resolveRecipients` waktu itu memulangkan
+      NOL penerima (query-nya terpotong 1.000 baris — diperbaiki 2026-08-27),
+      jadi tak ada notifikasi apa pun yang terbit. Begitu penerimanya ketemu
+      lagi, satu polis NYATA yang memang segera berakhir × 12 penerima membuat
+      hitungan ini 12, dan test merah dengan pesan yang menuduh AMBANG.
+
+      Test yang hijau karena cacat lain adalah test yang tak menguji apa pun.
+    */
     const { rows: bawaan } = await db.query(
-      `SELECT count(*)::int n FROM notifications
-        WHERE type = 'polis_segera_berakhir' AND company_id = $1`,
-      [companyId],
+      `SELECT count(*)::int n FROM notifications n
+        WHERE n.type = 'polis_segera_berakhir' AND n.company_id = $1
+          AND EXISTS (
+            SELECT 1 FROM polis_asuransi pa
+             WHERE pa.id::text = n.action_data->>'record_id'
+               AND pa.catatan = $2
+          )`,
+      [companyId, TANDA],
     )
     expect(bawaan[0].n, 'polis 60 hari ditegur pada ambang bawaan 30').toBe(0)
 
     // Ambang 90 — masuk jangkauan, wajib ditegur.
     await panggil('?hari=90')
+    // Sama seperti di atas: hanya polis bertanda uji yang dihitung.
     const { rows: lebar } = await db.query(
-      `SELECT count(*)::int n FROM notifications
-        WHERE type = 'polis_segera_berakhir' AND company_id = $1`,
-      [companyId],
+      `SELECT count(*)::int n FROM notifications n
+        WHERE n.type = 'polis_segera_berakhir' AND n.company_id = $1
+          AND EXISTS (
+            SELECT 1 FROM polis_asuransi pa
+             WHERE pa.id::text = n.action_data->>'record_id'
+               AND pa.catatan = $2
+          )`,
+      [companyId, TANDA],
     )
     expect(lebar[0].n,
       'ambang 90 tak berpengaruh — nilainya tak dioper ke hitungRegisterAsuransi')

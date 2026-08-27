@@ -26,7 +26,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, companyBerisi } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import otomasiTerjadwalRoutes from '../otomasi-terjadwal.js'
 import { KATALOG_TUGAS } from '../jadwal.js'
@@ -63,12 +63,35 @@ beforeAll(async () => {
   // pernah mereka setel.
   //
   // Barisnya dihapus di `afterAll`, jadi tak ada jejak yang tertinggal.
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    PROYEK DIPILIH DARI COMPANY AKUN UJI — bukan "ambil satu, mana saja"
+    ══════════════════════════════════════════════════════════════════════════
+
+    Versi sebelumnya memakai `LIMIT 1` TANPA `ORDER BY` dan tanpa saringan
+    company. Basis ini berisi **1.328 company** (diukur 2026-08-27; hanya SATU
+    yang nyata, sisanya sisa test), jadi baris yang terambil sering milik
+    company uji ASING.
+
+    Akibatnya rute yang diuji — yang menyaring `.in('project_id',
+    projectIds())` menurut company pemanggil — tak pernah melihat stok yang
+    baru saja disiapkan di sini. Test merah dengan pesan yang menuduh LOGIKA
+    rutenya, padahal rutenya benar dan yang salah pilihan proyeknya.
+
+    `companyBerisi()` sudah ada di harness sejak 2026-08-16, dibangun untuk
+    cacat yang persis sama (lihat catatan panjang di `rls-harness.ts`). Ia
+    memilih company yang BENAR-BENAR punya bahan yang diminta, dengan urutan
+    yang stabil.
+  */
+  const companyId = await companyBerisi(db, auth, ['projects'])
   const p = await db.query(`
     SELECT id, company_id FROM projects
      WHERE is_deleted = false AND status NOT IN ('cancelled','completed')
+       AND company_id = $1
+     ORDER BY created_at, id
      LIMIT 1
-  `)
-  if (!p.rows[0]) throw new Error('basis tak punya proyek aktif')
+  `, [companyId])
+  if (!p.rows[0]) throw new Error('company akun uji tak punya proyek aktif')
   projectId = p.rows[0].id
 
   const m = await db.query(

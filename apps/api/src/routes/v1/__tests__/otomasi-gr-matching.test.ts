@@ -26,7 +26,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, companyBerisi } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import otomasiTerjadwalRoutes from '../otomasi-terjadwal.js'
 import { KATALOG_TUGAS } from '../jadwal.js'
@@ -90,20 +90,55 @@ beforeAll(async () => {
     { data: { user: { id: auth } }, error: null } as never,
   )
 
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    SEMUA BAHAN DARI SATU COMPANY — company milik akun uji
+    ══════════════════════════════════════════════════════════════════════════
+
+    Versi sebelumnya memakai empat `LIMIT 1` TANPA `ORDER BY` dan TANPA
+    saringan company. Basis ini punya 1.328 company (diukur 2026-08-27; hanya
+    satu yang nyata, sisanya sisa test), jadi proyek, pemasok, material, dan
+    pengguna bisa datang dari EMPAT company berbeda sekaligus.
+
+    Akibatnya bukan galat FK — ketiga tabel itu memang tak saling menuntut —
+    melainkan rute yang menyaring per-company tak pernah melihat baris yang
+    baru dibuat, lalu memulangkan nol tanpa satu pun galat. Test merah dengan
+    pesan yang menuduh LOGIKA deteksinya.
+
+    `companyBerisi()` (harness, 2026-08-16) memilih company yang benar-benar
+    dimiliki akun uji DAN punya bahannya, dengan urutan stabil.
+  */
+  const companyId = await companyBerisi(db, auth, ['projects', 'suppliers', 'materials'])
+
   const p = await db.query(
-    `SELECT id, company_id FROM projects WHERE is_deleted = false LIMIT 1`)
-  if (!p.rows[0]) throw new Error('basis tak punya proyek')
+    `SELECT id FROM projects
+      WHERE is_deleted = false AND company_id = $1
+      ORDER BY created_at, id LIMIT 1`, [companyId])
+  if (!p.rows[0]) throw new Error('company akun uji tak punya proyek')
   projectId = p.rows[0].id
 
-  const s = await db.query(`SELECT id FROM suppliers LIMIT 1`)
-  if (!s.rows[0]) throw new Error('basis tak punya supplier')
+  const s = await db.query(
+    `SELECT id FROM suppliers WHERE company_id = $1 ORDER BY created_at, id LIMIT 1`,
+    [companyId])
+  if (!s.rows[0]) throw new Error('company akun uji tak punya supplier')
   supplierId = s.rows[0].id
 
-  const m = await db.query(`SELECT id FROM materials LIMIT 1`)
-  if (!m.rows[0]) throw new Error('basis tak punya material')
+  const m = await db.query(
+    `SELECT id FROM materials WHERE company_id = $1 ORDER BY created_at, id LIMIT 1`,
+    [companyId])
+  if (!m.rows[0]) throw new Error('company akun uji tak punya material')
   materialId = m.rows[0].id
 
-  const u = await db.query(`SELECT id FROM users LIMIT 1`)
+  /*
+    Pengguna diambil dari KEANGGOTAAN company itu, bukan `users` mentah —
+    `users` tak punya `company_id`, keanggotaannya ada di `company_members`.
+  */
+  const u = await db.query(
+    `SELECT u.id FROM users u
+       JOIN company_members cm ON cm.user_id = u.id
+      WHERE cm.company_id = $1 AND cm.is_active = true
+      ORDER BY u.created_at, u.id LIMIT 1`, [companyId])
+  if (!u.rows[0]) throw new Error('company akun uji tak punya anggota aktif')
   userId = u.rows[0].id
 
   await bersihkan()
