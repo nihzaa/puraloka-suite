@@ -6,6 +6,77 @@ bawah entrinya.
 
 ---
 
+# 🛒 R-022 · Pembuat PO bisa mengirimkannya sendiri ke vendor — tak ada pemisahan tugas (2026-08-27)
+
+## Yang ditemukan
+
+Aplikasi punya aturan **pemisahan tugas** (SoD — *segregation of duties*):
+orang yang MENGAJUKAN sesuatu tak boleh menjadi orang yang MENYETUJUINYA.
+Dua belas jenis dokumen sudah memakainya — kasbon, change order, permintaan
+material, pengeluaran proyek, cuti, klaim perjalanan, dan seterusnya.
+
+**Purchase Order tidak.**
+
+Transisi PO ke status `sent` (= dikirim ke vendor) memang melewati rantai
+persetujuan — ia memeriksa apakah orangnya berhak ikut rantai itu. Yang TIDAK
+diperiksa: apakah orang itu yang membuat PO-nya.
+
+Jadi staf yang membuat PO senilai berapa pun bisa langsung mengirimkannya
+sendiri ke vendor, tanpa mata kedua.
+
+Diukur di basis hari ini:
+
+    PO ber-`created_by`     : 8
+    PO sudah lewat draft    : 7
+    rantai persetujuan PO   : 1 (aktif)
+    kolom pengaju terdaftar : `created_by` — datanya SUDAH siap
+
+Yang kurang cuma satu baris aturan di `lib/sod.ts`. Penjaganya
+(`audit-sod-gerbang.mjs`) sudah menandai ini, ambang NOL.
+
+## Kenapa saya TIDAK langsung memperbaikinya
+
+Menambahkan aturan SoD **mengubah alur kerja orang**. Staf yang selama ini
+bisa membuat lalu langsung mengirim PO akan tertahan, dan harus menunggu orang
+lain. Kalau tim pengadaan Anda hari ini cuma satu orang, PO akan MACET TOTAL —
+tak ada orang kedua yang bisa mengirimnya.
+
+Itu keputusan tentang cara kerja perusahaan, bukan keputusan teknis.
+
+Perlu juga dicatat: R-016 (2026-08-14) memutuskan **PO boleh dikirim ke vendor
+tanpa ambang nominal**, dan komentar di kode menyebut `purchase_order`
+ditambahkan hari itu untuk "pengiriman PO ke vendor". Jadi ketiadaan SoD ini
+mungkin memang bagian dari keputusan itu — tetapi tak tertulis di mana pun,
+dan penjaganya tetap merah karenanya.
+
+## Yang perlu diputuskan founder
+
+**Pilihan A — Tambahkan SoD untuk PO.**
+Pembuat PO tak bisa mengirimkannya sendiri; harus orang lain yang berwenang.
+Ini standar pengendalian internal untuk pengeluaran, dan pekerjaannya kecil
+(satu baris aturan; kolom pengajunya sudah terdaftar).
+
+⚠ Syaratnya: harus ada **minimal dua orang** berwenang mengirim PO. Kalau
+hanya satu, PO tak akan pernah bisa dikirim.
+
+**Pilihan B — Nyatakan PO memang SENGAJA tanpa SoD.**
+Alasannya bisa sah: PO di sini bukan persetujuan pengeluaran melainkan
+pengiriman dokumen ke vendor, dan pengendaliannya ada di tempat lain
+(penerimaan barang, pencocokan invoice). Kalau ini pilihan Anda, saya
+daftarkan pengecualiannya di penjaga dengan alasan tertulis — supaya ia
+berhenti merah dan keputusannya terekam, bukan terlupa.
+
+**Kalau Anda diam, yang berlaku adalah keadaan hari ini** — tak ada SoD, dan
+penjaganya tetap merah. Itu pilihan terburuk: kontrolnya tak ada DAN
+peringatannya diabaikan.
+
+Yang saya sarankan: **A, bila tim pengadaan Anda lebih dari satu orang.**
+PO adalah komitmen uang ke pihak luar; itu justru tempat mata kedua paling
+berharga. Kalau timnya masih satu orang, **B** dengan catatan bahwa ini
+ditinjau ulang saat orang kedua masuk.
+
+---
+
 # 📧 R-021 · Notifikasi milestone tak pernah dikirim lewat email — fungsinya ada, jalurnya tidak (2026-08-27)
 
 ## Yang ditemukan
