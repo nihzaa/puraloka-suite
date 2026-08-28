@@ -6,6 +6,92 @@ bawah entrinya.
 
 ---
 
+# 🔒 R-023 · Isolasi antar-tenant kini dijamin BASIS DATA, bukan disiplin kode — dan satu kebocoran nyata ditutup (2026-08-28)
+
+## Yang ditemukan
+
+Sebelum hari ini, **775 aturan keamanan baris (RLS) di basis data tak pernah
+dijalankan sekali pun.** Bukan salah tulis — memang tak pernah dievaluasi.
+
+Dua sebab bertumpuk. Peran yang dipakai API punya izin melewati RLS, dan bahkan
+tanpa izin itu, PEMILIK sebuah tabel otomatis melewati RLS kecuali tabelnya
+ditandai `FORCE` — sementara pemilik seluruh 291 tabel adalah peran yang sama.
+
+Artinya, sampai kemarin **pemisahan data antar perusahaan bergantung
+sepenuhnya pada kedisiplinan kode.** Selama hanya ada satu perusahaan, itu tak
+menimbulkan masalah. Begitu pelanggan kedua masuk, satu rute yang lupa memakai
+pembungkus tenant sudah cukup membuat data PT A terlihat oleh PT B — **tanpa
+satu pun pesan galat.**
+
+## Yang sudah dikerjakan
+
+**1. RLS dipaksa berlaku pada 149 tabel** (dari 60). Enam tabel sengaja
+dilewati karena belum punya aturan sama sekali; memaksanya justru akan membuat
+tabel itu tak terbaca siapa pun.
+
+**2. Satu kebocoran nyata ditemukan dan ditutup.** Diuji dengan admin yang
+hanya anggota satu perusahaan, membaca 101 tabel berisi data perusahaan lain:
+
+    document_number_series : 27 dari 27 baris TERBACA PENUH
+
+Itu tabel penomoran dokumen — nomor SPK, invoice, dan sejenisnya.
+
+Sebabnya menarik, dan layak Anda ketahui karena bentuknya akan berulang:
+tabel itu punya **empat** aturan, dan dua di antaranya hanya memeriksa *"apakah
+orang ini punya izin melihat penomoran?"* tanpa memeriksa *"dari perusahaan
+mana?"*. Aturan-aturan semacam ini digabung dengan **ATAU**, sehingga satu
+aturan yang lupa menyaring perusahaan **membatalkan** penyaringan yang
+dilakukan aturan lain. **Menambah aturan justru melonggarkan keamanan** —
+kebalikan dari yang orang duga, dan itulah kenapa cacat begini lolos berkali-kali.
+
+**3. Empat aturan yang namanya berbohong.** Ada empat aturan bernama
+`*_tenant_isolation` — nama yang menjanjikan "isolasi antar-perusahaan" —
+yang karena satu kata kunci hilang saat ditulis, **tidak mengisolasi apa pun.**
+Ini jenis cacat paling sulit terlihat saat pemeriksaan kode: namanya sendiri
+yang meyakinkan pembaca bahwa perkaranya sudah beres.
+
+**4. Enam test yang selama ini hijau KARENA ada lubang keamanan.** Setelah
+kebocoran ditutup, enam test penomoran berubah merah. Setelah ditelusuri:
+test-nya sendiri yang cacat — ia menulis data ke perusahaan A lalu mencarinya
+di perusahaan B, dan selama ini "berhasil" justru karena kebocoran lintas
+perusahaan menutupi ketidakcocokan itu. Sudah diperbaiki.
+
+**5. Penjaga otomatis dipasang** supaya bentuk cacat ini tak bisa lahir lagi
+tanpa ketahuan, dan sudah dibuktikan bisa berubah merah.
+
+## Yang PERLU keputusan Anda
+
+**Langkah berikutnya belum dikerjakan, dan sengaja.**
+
+Yang tersisa adalah mengganti peran basis data yang dipakai API dengan peran
+yang **tidak bisa** melewati RLS. Hari ini pagarnya sudah terpasang tapi belum
+menggigit — API masih memakai peran istimewa.
+
+Saya berhenti di sini karena kegagalannya, kalau ada yang terlewat, **berbentuk
+halaman kosong tanpa pesan galat** — bukan sesuatu yang menunjuk sebabnya.
+Sebelum peran ditukar, isolasinya perlu dibuktikan lewat jalur aplikasi
+sungguhan (membuka halaman, bukan hanya menjalankan SQL), dan itu butuh
+aplikasi hidup plus akun uji untuk beberapa peran.
+
+**Pertanyaan untuk Anda: kapan ini dijalankan?**
+
+| Pilihan | Untung | Rugi |
+|---|---|---|
+| **Sekarang**, sebelum pelanggan pertama | Kalau ada yang jebol, korbannya data dummy | Butuh satu sesi khusus + pengujian menyeluruh lewat layar |
+| **Saat pelanggan kedua mendekat** | Tak menahan pekerjaan lain | Risiko menunda: makin banyak rute baru yang perlu diperiksa ulang |
+
+Rekomendasi saya: **sekarang**, karena biaya kesalahannya hari ini nol
+(seluruh isi basis masih data dummy), sementara nanti tidak.
+
+## Yang TIDAK berubah
+
+Tak ada perilaku aplikasi yang berubah untuk pengguna. Pagar yang dipasang
+menahan akses lintas perusahaan, dan akses yang sah tetap utuh — diverifikasi:
+101 tabel terbaca normal oleh admin, fitur pindah-perusahaan tetap hidup
+(pengujian khusus, karena pagar yang salah bentuk akan mematikannya diam-diam).
+
+---
+
 # 🛒 R-022 · Pembuat PO bisa mengirimkannya sendiri ke vendor — tak ada pemisahan tugas (2026-08-27)
 
 ## Yang ditemukan
