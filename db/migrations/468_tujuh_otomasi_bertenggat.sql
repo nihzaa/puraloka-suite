@@ -98,7 +98,7 @@ SELECT c.id, x.x_kunci, x.x_nilai::jsonb, 'number', 'otomasi', x.x_uraian
   FROM companies c
  CROSS JOIN (VALUES
    ('otomasi.tenggat_mutu.hari', '3',
-    'Hari sebelum tenggat mutu (punch list, NCR, inspeksi) diperingatkan. Yang sudah lewat tetap dilaporkan berapa pun angkanya; ambang ini hanya mengatur seberapa dini peringatan pencegahan datang.'),
+    'Hari sebelum tenggat mutu (punch list, NCR, inspeksi) diperingatkan. Yang sudah lewat tetap dilaporkan berapa pun angkanya, dan ambang ini hanya mengatur seberapa dini peringatan pencegahan datang.'),
    ('otomasi.tenggat_k3.hari', '3',
     'Hari sebelum tenggat perbaikan temuan K3 diperingatkan. Yang sudah lewat selalu dikirim sebagai mendesak, tak peduli tingkatnya.'),
    ('otomasi.tenggat_risiko.hari', '7',
