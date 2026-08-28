@@ -31593,3 +31593,99 @@ tebakan. Diganti: ubah NILAI gaya saja, struktur JSX tak tersentuh.
 pm-portal (1852 ukuran dipaku) & mandor-portal (361) belum disentuh lapis
 visual ini. Master Data & konfigurasi sengaja tak dibangun di admin-portal —
 CRUD katalog lebar bukan pekerjaan layar 390px.
+
+## 2026-08-28 — Penjadwal mati dengan status hijau, dan enam otomasi yang terlepas dari HEAD
+
+Dua temuan, dan keduanya bentuk kegagalan yang sama: **sesuatu berhenti bekerja
+tanpa satu pun gejala.**
+
+### A. 72 tugas terjadwal, nol pernah dipanggil
+
+```
+tugas terjadwal aktif di basis   72
+jumlah yang pernah dipanggil      0
+SCHEDULER_SECRET di GitHub       ADA (sejak 9 Agustus)
+SCHEDULER_URL di GitHub          TIDAK ADA
+workflow jadwal-tugas.yml        TIDAK terdaftar di GitHub
+commit lokal belum ter-push      930
+```
+
+Migrasi lulus verifikasi, katalog UI menampilkan semuanya sebagai terpasang,
+CI hijau — dan tak satu pun tugas pernah berjalan.
+
+**Yang membuatnya bertahan adalah `exit 0` yang niatnya benar.**
+`jadwal-tugas.yml` sengaja melewati langkahnya saat rahasia belum disetel,
+supaya CI tak merah tiap 15 menit dan orang tak belajar mengabaikannya.
+Alasan itu tetap benar. Yang salah cuma tingkat anotasinya: `::notice::`
+**tidak muncul** di ringkasan run, `::warning::` muncul.
+
+Diperbaiki jadi `::warning::` — `exit 0` tetap dipertahankan.
+
+Penjaga baru `audit-penjadwal-hidup.mjs` (ambang NOL) menutup titik **keempat**
+pada rantai yang tiga titik pertamanya sudah dijaga:
+
+```
+jadwal_tugas → KATALOG_TUGAS → app.get(jalur) → WORKFLOW → GitHub
+   ^ dijaga      ^ dijaga        ^ dijaga        ^ INI     ^ di luar repo
+```
+
+⚠ Ia **tidak** bisa memeriksa GitHub — berjalan di CI tanpa kewenangan
+membaca daftar rahasia. Yang dijamin: kalau penjadwalnya mati, keadaannya
+**terlihat**. Bukan bahwa ia hidup. Perbedaan itu ditulis eksplisit di
+kepalanya supaya sesi berikutnya tak salah baca jaminannya.
+
+`docs/execution/SIAP-DEPLOY.md` baru — dan tiap barisnya punya **perintah
+pengukurnya sendiri**, bukan angka yang membusuk.
+
+### B. Enam otomasi kepatuhan HILANG dari pohon kerja
+
+Commit `4cf71ccf` **tidak lagi leluhur HEAD**. Sesi lain yang bekerja di
+checkout yang sama melakukan rebase/merge, dan tiga berkas hilang sepenuhnya:
+
+```
+apps/api/src/lib/kepatuhan-menggantung.ts
+apps/api/src/lib/__tests__/kepatuhan-menggantung.test.ts
+db/migrations/469_enam_otomasi_kepatuhan.sql
+```
+
+Enam rutenya ikut hilang: rute otomasi **70 → 65**. Tak ada galat; `tsc` bersih,
+test lain hijau. Yang membongkarnya cuma satu hal — `audit-penjadwal-hidup.mjs`
+melapor migrasi 469 tak ada saat saya memeriksa jalur berkasnya.
+
+**Pemulihannya tak menimpa kerja siapa pun.** Tiap berkas diukur dulu:
+
+| Berkas | Baris sesi lain | Tindakan |
+|---|---|---|
+| `ambang-otomasi.ts`, `notifications.ts` | 0 | dipulihkan utuh |
+| `jadwal.ts` | 1 entri (`bersih-idempotensi`) | **disisipkan ulang** |
+| `otomasi-terjadwal.ts`, `katalog-otomasi.ts`, test | selisihnya milik saya sendiri | dipulihkan utuh |
+
+Akhir baris tiap berkas dipertahankan apa adanya — CRLF untuk yang CRLF, LF
+untuk yang LF. `audit-akhir-baris` hijau.
+
+⚠ **Diff pertama saya menyesatkan**: `otomasi-terjadwal.ts` dilaporkan punya
+11.458 baris "milik sesi lain" — seluruh berkas. Sebabnya akhir baris berbeda
+(commit LF, disk CRLF), bukan kode berbeda. Setelah dinormalkan: 103 baris,
+dan hampir semuanya ternyata milik saya sendiri.
+
+Kalau saya percaya angka pertama, saya akan menyimpulkan berkas itu ditulis
+ulang total oleh orang lain dan tak berani menyentuhnya.
+
+Migrasi **469 → 509** karena nomor 469 sudah dipakai dua migrasi lain sementara
+itu. Repo ini sudah punya **dua belas nomor ganda** (427, 431, 461–470) — tak
+perlu menambah satu lagi.
+
+### Bukti
+
+- 30 test fungsi murni hijau · `otomasi-terjadwal.test.ts` **79 lulus**
+- migrasi 509 dijalankan: 6 aturan + target, 8 setelan, 1 harian + 5 mingguan
+- penjaga baru: **5 mutasi → 5 merah**, termasuk M1 yang mengembalikan
+  `::notice::` — cacat aslinya
+- `tsc --noEmit` exit 0, tanpa filter
+- `audit-rute-otomasi-punya-entri` 70 = 70
+
+### Menunggu founder
+
+1. **Push 930 commit + pasang `SCHEDULER_URL`** — tanpa ini 72 tugas tetap diam
+2. Migrasi **466, 467, 468, 509** ke buku migrasi (G-2)
+3. Survei kepuasan klien (7.11) — mengirim WhatsApp ke pihak luar
