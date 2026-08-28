@@ -730,6 +730,27 @@ jobs:
       - name: Identitas aplikasi mobile konsisten
         run: node scripts/audit-identitas-mobile.mjs
 
+      # Nama produk tak dipaku di keluaran yang dilihat TENANT.
+      #
+      # Untuk SaaS multi-tenant, nama produk di kop PDF / footer / e-mail
+      # berarti PT lain menerima dokumen berkop nama pesaingnya. Tak ada galat
+      # yang menunjukkannya — yang melihatnya adalah PENERIMA dokumen.
+      #
+      # `lib/ekspor-tabel.ts` sudah mencatat cacat ini dan menyebutnya
+      # diperbaiki; perbaikannya ternyata hanya di jalur ekspor BARU, sementara
+      # tiga laporan PDF lama tetap salah. Catatan yang bilang 'sudah
+      # diperbaiki' padahal sebagian adalah kebusukan dokumen yang paling
+      # menipu.
+      #
+      # RATCHET, lantai 9: kop PDF sudah beres & terkunci; `utils/email.ts`
+      # tercatat sebagai utang terukur (identitas tenant perlu mengalir sampai
+      # ke pengirim e-mail — perubahan lebih besar dari mengganti literal).
+      #
+      # Bukti merah (2026-08-27): pakuan disisipkan ke pdfHeader -> 10 > 9,
+      # exit 1 menyebut berkas & barisnya. Dipulihkan -> exit 0.
+      - name: Nama produk tak dipaku di keluaran tenant
+        run: node scripts/audit-nama-produk-tak-dipaku.mjs
+
       # Kredensial tak boleh dipakai tenant yang bukan pemiliknya.
       #
       # Founder 2026-08-14: "harus disiapkan kalo nanti banyak perusahaan".

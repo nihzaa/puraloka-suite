@@ -64,9 +64,58 @@ function drawTableHeader(
   return y + h
 }
 
-function pdfHeader(doc: InstanceType<typeof PDFDocument>, title: string, subtitle: string) {
+/**
+ * Ambil nama tenant untuk kop laporan.
+ *
+ * Kosong → 'Laporan', BUKAN nama siapa pun. Pola yang sama dipakai
+ * `lib/ekspor-tabel.ts`, dan alasannya sama: kop yang salah nama lebih
+ * buruk daripada kop tanpa nama.
+ */
+async function namaTenant(request: FastifyRequest): Promise<string> {
+  try {
+    const { data } = await request.db!
+      .from('companies')
+      .select('name')
+      .eq('id', request.companyId!)
+      .maybeSingle()
+    const nama = (data as { name?: string } | null)?.name?.trim()
+    return nama || 'Laporan'
+  } catch {
+    /*
+      Gagal membaca nama BUKAN alasan menggagalkan laporannya — orang
+      menunggu angkanya, bukan kopnya. Yang tak boleh: jatuh ke nama
+      tenant lain.
+    */
+    return 'Laporan'
+  }
+}
+
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  KOP MEMAKAI NAMA TENANT — bukan nama produk
+  ══════════════════════════════════════════════════════════════════════════
+
+  Sampai 2026-08-27 baris di bawah memaku tulisan 'Puraloka Suite' di kop
+  TIAP laporan PDF. Untuk aplikasi satu perusahaan itu benar; untuk SaaS
+  multi-tenant artinya **PT lain menerima laporan berkop nama pesaingnya**.
+
+  Cacat ini sudah dikenali saat `lib/ekspor-tabel.ts` dibangun — komentarnya
+  menyebut `pdfHeader()` sebagai contoh yang harus diperbaiki. Tetapi
+  perbaikannya hanya dipasang di jalur ekspor BARU; tiga laporan lama
+  (proyek, mandor & upah, keuangan) tetap memakai jalur ini.
+
+  Catatan yang menyebut cacat sebagai 'sudah diperbaiki' padahal hanya
+  sebagian adalah bentuk kebusukan dokumen yang paling menipu: ia membuat
+  pembaca berikutnya menyilangnya dari daftar.
+*/
+function pdfHeader(
+  doc: InstanceType<typeof PDFDocument>,
+  title: string,
+  subtitle: string,
+  kop: string,
+) {
   doc.rect(0, 0, doc.page.width, 70).fill('#003366')
-  doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold').text('Puraloka Suite', 40, 18)
+  doc.fillColor('#ffffff').fontSize(18).font('Helvetica-Bold').text(kop, 40, 18)
   doc.fontSize(10).font('Helvetica').text(title, 40, 42)
   doc.fontSize(9).fillColor('#93C5FD').text(subtitle, 40, 56)
   doc.fillColor('#111827').font('Helvetica')
@@ -672,7 +721,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     const dateFrom  = q.date_from ?? new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]
     const dateTo    = q.date_to   ?? new Date().toISOString().split('T')[0]
 
-    const doc = new PDFDocument({ size: 'A4', margin: 40, info: { Title: `Laporan ${type}`, Author: 'Puraloka Suite' } })
+    const doc = new PDFDocument({ size: 'A4', margin: 40, info: { Title: `Laporan ${type}`, Author: await namaTenant(request) } })
     const chunks: Buffer[] = []
     doc.on('data', (chunk: Buffer) => chunks.push(chunk))
 
@@ -695,7 +744,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
       const logs       = progRes.data ?? []
       const invoices   = invRes.data ?? []
 
-      let y = pdfHeader(doc, `Laporan Proyek: ${proj.name}`, `Dicetak: ${fmtDate(new Date().toISOString())}`)
+      let y = pdfHeader(doc, `Laporan Proyek: ${proj.name}`, `Dicetak: ${fmtDate(new Date().toISOString())}`, await namaTenant(request))
 
       // Project info block
       doc.rect(40, y, doc.page.width - 80, 60).fill('#F8F9FA').stroke('#E5E7EB').fillColor('#111827')
@@ -831,7 +880,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
       const grandWage   = wages.reduce((s, w) => s + Number(w.net_amount), 0)
       const grandKasbon = kasbons.reduce((s, k) => s + Number(k.amount), 0)
 
-      let y = pdfHeader(doc, 'Laporan Mandor & Upah', `Periode: ${fmtDate(dateFrom)} — ${fmtDate(dateTo)}   Dicetak: ${fmtDate(new Date().toISOString())}`)
+      let y = pdfHeader(doc, 'Laporan Mandor & Upah', `Periode: ${fmtDate(dateFrom)} — ${fmtDate(dateTo)}   Dicetak: ${fmtDate(new Date().toISOString())}`, await namaTenant(request))
 
       // Summary KPI
       doc.rect(40, y, 160, 44).fill('#F0FDF4').stroke('#BBF7D0').fillColor('#15803d')
@@ -922,7 +971,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
       const totalOutstanding = invoices.reduce((s, i) => s + Number(i.amount_due), 0)
       const overdueCount     = invoices.filter(i => i.status !== 'paid' && new Date(i.due_date) < new Date()).length
 
-      let y = pdfHeader(doc, 'Laporan Keuangan', `Periode: ${fmtDate(dateFrom)} — ${fmtDate(dateTo)}   Dicetak: ${fmtDate(new Date().toISOString())}`)
+      let y = pdfHeader(doc, 'Laporan Keuangan', `Periode: ${fmtDate(dateFrom)} — ${fmtDate(dateTo)}   Dicetak: ${fmtDate(new Date().toISOString())}`, await namaTenant(request))
 
       // KPI boxes
       const kpis = [
@@ -993,7 +1042,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     }
 
     // Footer on last page
-    doc.fontSize(7).fillColor('#9CA3AF').text(`Laporan ini dibuat otomatis oleh Puraloka Suite — ${new Date().toLocaleString('id-ID')}`, 40, doc.page.height - 28, { width: doc.page.width - 80, align: 'center' })
+    doc.fontSize(7).fillColor('#9CA3AF').text(`Laporan ini dibuat otomatis — ${new Date().toLocaleString('id-ID')}`, 40, doc.page.height - 28, { width: doc.page.width - 80, align: 'center' })
 
     doc.end()
     await new Promise<void>(resolve => doc.on('end', resolve))
