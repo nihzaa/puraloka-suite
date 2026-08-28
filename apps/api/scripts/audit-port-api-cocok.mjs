@@ -116,6 +116,7 @@ const PASANGAN = [
     label: 'nyata (.env)',
     api: join(AKAR_REPO, 'apps/api/.env'),
     web: join(AKAR_REPO, 'apps/web/.env.local'),
+    mobile: join(AKAR_REPO, 'apps/mobile/.env'),
     /*
       Berkas nyata tak ikut ter-commit, jadi ketidakhadirannya di CI WAJAR dan
       bukan pelanggaran. Yang tak wajar: ada tetapi tak cocok.
@@ -126,13 +127,14 @@ const PASANGAN = [
     label: 'contoh (.env.example)',
     api: join(AKAR_REPO, 'apps/api/.env.example'),
     web: join(AKAR_REPO, 'apps/web/.env.example'),
+    mobile: join(AKAR_REPO, 'apps/mobile/.env.example'),
     // Contoh WAJIB ada dan WAJIB konsisten — dari sinilah mesin berikutnya
     // menyalin, dan contoh yang tak konsisten menyebarkan jebakannya.
     wajibAda: true,
   },
 ]
 
-console.log('══ Port API yang dilayani vs yang dituju web ═══════════════')
+console.log('══ Port API yang dilayani vs yang dituju web & mobile ══════')
 console.log(`  bawaan di src/index.ts : ${bawaan ?? '(tak terbaca)'}`)
 
 if (bawaan === null) {
@@ -171,6 +173,54 @@ for (const p of PASANGAN) {
       + `     Sumber nilai API: ${sumberApi}\n`
       + `     Web: NEXT_PUBLIC_API_URL=${envWeb.NEXT_PUBLIC_API_URL}`,
     )
+  }
+
+  /*
+    ── MOBILE ikut diperiksa (ditambahkan 2026-08-27)
+
+    Penjaga ini semula hanya membandingkan api↔web, dan `apps/mobile/.env`
+    lolos begitu saja. Diukur hari itu: mobile menunjuk **3001** sementara
+    API melayani **3007** — persis jebakan yang berkas ini dibuat untuk
+    mencegah, hanya di aplikasi yang tak ia lihat.
+
+    Gejalanya di HP lebih buruk daripada di web: tak ada konsol peramban
+    untuk melihat 404-nya. Yang terlihat pengguna hanya layar yang tak
+    pernah selesai memuat.
+  */
+  const envMobile = bacaEnv(p.mobile)
+  if (envMobile) {
+    const urlMobile = envMobile.EXPO_PUBLIC_API_URL ?? ''
+    const portMobile = portDariUrl(urlMobile)
+    const cocokMobile = portApi !== null && portApi === portMobile
+    console.log(
+      `  ${'  └ mobile'.padEnd(22)}: ${urlMobile || '(kosong)'}`
+      + `  ${cocokMobile ? '✓' : '✗'}`,
+    )
+    if (!cocokMobile) {
+      masalah.push(
+        `${p.label} (mobile): API melayani ${portApi} tetapi mobile menuju ${portMobile}.\n`
+        + `     EXPO_PUBLIC_API_URL=${urlMobile}`,
+      )
+    }
+
+    /*
+      `localhost` di aplikasi HP TIDAK PERNAH benar — ia menunjuk ponselnya
+      sendiri, bukan komputer yang melayani API. Berbeda dari web, yang
+      berjalan di peramban komputer yang sama.
+
+      Ini kesalahan yang tak berbunyi: aplikasi terpasang, login gagal, dan
+      tak ada pesan yang menyebut alamat.
+    */
+    if (/\/\/(localhost|127\.0\.0\.1)/.test(urlMobile)) {
+      masalah.push(
+        `${p.label} (mobile): EXPO_PUBLIC_API_URL menunjuk localhost.\n`
+        + `     HP tak bisa menjangkau localhost komputer — pakai alamat LAN\n`
+        + `     (mis. http://192.168.x.x:PORT) atau host yang benar-benar terjangkau.\n`
+        + `     Nilai sekarang: ${urlMobile}`,
+      )
+    }
+  } else if (p.wajibAda) {
+    masalah.push(`${p.label}: apps/mobile/.env.example tak ada — mesin berikutnya menyalin dari mana?`)
   }
 
   /*
