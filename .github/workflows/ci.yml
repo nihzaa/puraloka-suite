@@ -709,6 +709,27 @@ jobs:
       - name: Fungsi diekspor punya pemanggil
         run: node scripts/audit-ekspor-tanpa-pemanggil.mjs
 
+      # Identitas aplikasi mobile — dan yang TERKUNCI dinyatakan.
+      #
+      # Founder bertanya 2026-08-27: "kalau nama aplikasinya nanti bukan
+      # puraloka-suite lagi, apa masih relevan?" Jawabannya berbeda per medan:
+      #
+      #   name, slug, scheme        bisa diubah kapan saja
+      #   bundleIdentifier, package TERKUNCI PERMANEN setelah rilis ke store
+      #
+      # Yang terkunci tak punya gejala saat salah. Ia menggigit berbulan
+      # kemudian: mengubahnya = aplikasi BARU di mata store, pengguna lama tak
+      # dapat pembaruan, harus pasang ulang, data lokal hilang.
+      #
+      # Penjaga ini TIDAK menuntut nama tertentu — nama produk memang masih
+      # keputusan terbuka founder. Yang dijaga KONSISTENSI-nya.
+      #
+      # Bukti merah (2026-08-27): package dibedakan dari bundleId -> exit 1;
+      # keduanya diubah jadi bukan reverse-DNS -> exit 1 (dua temuan).
+      # Dipulihkan -> exit 0.
+      - name: Identitas aplikasi mobile konsisten
+        run: node scripts/audit-identitas-mobile.mjs
+
       # Kredensial tak boleh dipakai tenant yang bukan pemiliknya.
       #
       # Founder 2026-08-14: "harus disiapkan kalo nanti banyak perusahaan".
