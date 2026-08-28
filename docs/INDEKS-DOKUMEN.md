@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 299 dokumen** — antrean 16 · acuan 214 · riwayat 69.
+**Total 300 dokumen** — antrean 16 · acuan 215 · riwayat 69.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -110,6 +110,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 | [RENCANA-PERBAIKAN-SIDEBAR](execution/RENCANA-PERBAIKAN-SIDEBAR.md) | riwayat |  | Rencana perbaikan navigasi — sidebar, tab-bagian, dan route |
 | [RENCANA-SISA-SEBAGIAN](execution/RENCANA-SISA-SEBAGIAN.md) | riwayat |  | Rencana Menuntaskan Entri sebagian |
 | [ROADMAP-WORKFLOW](execution/ROADMAP-WORKFLOW.md) | riwayat |  | ROADMAP WORKFLOW — checklist, dan di mana tiap bagian dipasang |
+| [SIAP-DEPLOY](execution/SIAP-DEPLOY.md) | acuan |  | Siap Deploy — daftar yang harus benar sebelum produksi hidup |
 | [TUGAS-FOUNDER-WHATSAPP-AI](execution/TUGAS-FOUNDER-WHATSAPP-AI.md) | acuan |  | Tugas yang HARUS dikerjakan founder sendiri — WhatsApp & AI |
 
 ### `docs/ops`

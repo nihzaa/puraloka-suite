@@ -585,8 +585,26 @@ describe('CAKUPAN — ketujuh tugas terjadwal bisa dipanggil dan selesai', () =>
     'inspeksi-terlewat',
     'mitigasi-lewat-tenggat',
     'notulen-tak-ditindak',
-    'temuan-k3-lewat-tenggat',
     'rfq-lewat-batas',
+    /*
+      ENAM OTOMASI KEPATUHAN (2026-08-19). Tak berbagi satu fungsi seperti
+      kelompok bertenggat — tiga bentuk berbeda: ambang terukur, umur
+      menggantung, masa berlaku.
+
+      Tiga di antaranya butuh DUA LOMPATAN tenancy (temuan_audit lewat
+      audit_mutu, itp_titik lewat rencana_mutu, cuti_ambil lewat pegawai —
+      yang terakhir tak lewat proyek sama sekali).
+
+      ⚠ `induksi-k3-kedaluwarsa` dan `temuan-k3-lewat-tenggat` SENGAJA tak ada
+      di sini. Keduanya sempat dibangun lalu dibatalkan sesudah diukur:
+      `k3-kepatuhan` sudah menanganinya dengan cakupan lebih luas.
+    */
+    'lingkungan-lampaui-baku',
+    'temuan-audit-menggantung',
+    'itp-belum-diperiksa',
+    'ipc-mengendap-draf',
+    'cuti-belum-diputus',
+    'nota-kredit-menggantung',
   ] as const
 
   it.each(TUGAS)('rute %s terdaftar dan selesai tanpa melempar', async (tugas) => {

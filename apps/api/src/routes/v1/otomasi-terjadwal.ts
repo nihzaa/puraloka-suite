@@ -11080,130 +11080,6 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
     })
   })
 
-  // ── GET /api/v1/otomasi/jalankan/temuan-k3-lewat-tenggat ──────────────────
-  //
-  // Keselamatan. Temuan inspeksi K3 yang lewat tenggat perbaikan berarti
-  // bahayanya masih ada di lapangan hari ini, dan orang masih bekerja di
-  // sekitarnya.
-  //
-  // ⚠ TENANCY DUA LOMPATAN: temuan_k3.inspeksi_id → inspeksi_k3.project_id
-  //
-  // Diukur 2026-08-19: 3 temuan belum ditutup, terlama 9 hari lewat.
-  app.get('/api/v1/otomasi/jalankan/temuan-k3-lewat-tenggat', {
-    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
-  }, async (request, reply) => {
-    const { createNotification } = await import('../../utils/notifications.js')
-    const { resolveRecipients } = await import('../../utils/notification-routing.js')
-    const { nilaiTenggat } = await import('../../lib/tenggat-terlewat.js')
-
-    const q = request.query as { hari?: string }
-    const ambang = await ambilAmbang(request, 'otomasi.tenggat_k3.hari', q.hari)
-
-    const today = new Date().toISOString().split('T')[0]
-    const sudah = await pembuatDedup(request, today, ['temuan_k3_lewat_tenggat'])
-
-    const p = await proyekAktif(request)
-    if (p.error) return reply.status(500).send({ error: p.error })
-    if (p.id.length === 0) {
-      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
-    }
-
-    // Lompatan 1: inspeksi milik proyek tenant ini.
-    const inspeksi = await bacaViaKolom(request, 'inspeksi_k3', 'project_id', p.id,
-      'id, project_id, nomor, tanggal, area')
-    if (inspeksi.error) return reply.status(500).send({ error: inspeksi.error })
-
-    const petaInspeksi = new Map(inspeksi.data.map((i) => [i.id as string, i]))
-    if (petaInspeksi.size === 0) {
-      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: p.id.length, inspeksi: 0 } })
-    }
-
-    // Lompatan 2: temuan milik inspeksi itu.
-    const baca = await bacaViaKolom(request, 'temuan_k3', 'inspeksi_id', [...petaInspeksi.keys()],
-      'id, inspeksi_id, uraian, kategori, tingkat, tindakan, tenggat, status, ditutup_pada')
-    if (baca.error) return reply.status(500).send({ error: baca.error })
-
-    const acuan = Date.parse(today + 'T00:00:00Z')
-    const HARI = 86_400_000
-    let dibuat = 0
-    const hitung = { aman: 0, selesai: 0, lewat: 0, segera: 0, tanpa_tenggat: 0 }
-
-    for (const x of baca.data) {
-      const induk = petaInspeksi.get(x.inspeksi_id as string)
-      if (!induk) continue
-
-      const t = Date.parse(String(x.tenggat ?? '').slice(0, 10) + 'T00:00:00Z')
-      const h = nilaiTenggat({
-        sisaHari: Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI),
-        selesai: x.ditutup_pada != null || String(x.status ?? '') === 'ditutup',
-        /*
-          ⚠ `temuan_k3.tingkat` adalah SMALLINT (1·2·3), bukan kata.
-
-          Saya sempat menulisnya sebagai string bahasa Indonesia di sini, dan
-          rutenya balas 500 dengan `.trim is not a function`. Diukur: nilai
-          yang ada di basis cuma 2 dan 3.
-
-          Ambang 3 berarti hanya tingkat tertinggi yang dianggap berat — dan
-          itu pun hanya menggeser ambang peringatan dini, karena temuan K3
-          yang SUDAH lewat selalu dikirim mendesak apa pun tingkatnya.
-        */
-        keparahan: x.tingkat == null ? null : Number(x.tingkat),
-        ambangBerat: 3,
-      }, ambang)
-
-      hitung[h.sebab]++
-      if (!h.perlu) continue
-      const id = x.id as string
-      if (sudah('temuan_k3_lewat_tenggat', id)) continue
-
-      const pid = induk.project_id as string
-      const area = String(induk.area ?? '').trim()
-      const uraian = String(x.uraian ?? 'Temuan K3').trim()
-      const tindakan = String(x.tindakan ?? '').trim()
-      const sisa = Number.isNaN(t) ? null : Math.floor((t - acuan) / HARI)
-
-      const pesan = {
-        lewat: `"${uraian}"${area ? ` di ${area}` : ''} LEWAT ${Math.abs(sisa ?? 0)} hari `
-          + `dari tenggat perbaikan.${tindakan ? ` Tindakan yang disepakati: ${tindakan}.` : ''} `
-          + 'Bahayanya masih ada di lapangan hari ini, dan orang masih bekerja di sekitarnya.',
-        segera: `"${uraian}"${area ? ` di ${area}` : ''} jatuh tempo dalam ${sisa} hari.`
-          + `${tindakan ? ` Tindakan: ${tindakan}.` : ''}`,
-        tanpa_tenggat: `"${uraian}"${area ? ` di ${area}` : ''} belum diberi tenggat perbaikan. `
-          + 'Temuan keselamatan tanpa tanggal adalah temuan yang tak pernah ditutup.',
-        aman: '', selesai: '',
-      }[h.sebab]
-
-      for (const uid of await resolveRecipients('temuan_k3_lewat_tenggat', {
-        companyId: request.companyId!, projectId: pid,
-      })) {
-        await createNotification({
-          company_id: request.companyId!, user_id: uid,
-          title: h.sebab === 'lewat' ? 'Temuan K3 lewat tenggat perbaikan' : 'Temuan K3 menunggu perbaikan',
-          message: `${p.nama.get(pid) ?? 'Proyek'}: ${pesan}`,
-          /*
-            Yang LEWAT selalu mendesak di K3, tak peduli tingkatnya.
-
-            Ini satu-satunya dari tujuh otomasi bertenggat yang begitu. Di
-            enam lainnya keterlambatan berarti biaya atau jadwal; di sini ia
-            berarti seseorang bisa celaka hari ini.
-          */
-          priority: h.sebab === 'lewat' ? 'urgent' : (h.mendesak ? 'high' : 'normal'),
-          type: 'temuan_k3_lewat_tenggat', project_id: pid,
-          action_url: '/k3/inspeksi',
-          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
-        })
-        dibuat++
-      }
-    }
-
-    return reply.send({
-      success: true, notifications_created: dibuat,
-      checked: {
-        proyek_aktif: p.id.length, inspeksi: petaInspeksi.size,
-        dibaca: baca.data.length, ...hitung, ambang_hari: ambang,
-      },
-    })
-  })
 
   // ── GET /api/v1/otomasi/jalankan/rfq-lewat-batas ──────────────────────────
   //
@@ -11295,6 +11171,782 @@ export default async function otomasiTerjadwalRoutes(app: FastifyInstance) {
       checked: { proyek_aktif: p.id.length, dibaca: baca.data.length, ...hitung, ambang_hari: ambang },
     })
   })
+
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    TUJUH OTOMASI KEPATUHAN — tiga bentuk yang sengaja TIDAK disatukan
+    ══════════════════════════════════════════════════════════════════════════
+
+    Berbeda dari tujuh otomasi bertenggat di atas, yang ini TIDAK berbagi satu
+    fungsi. Masing-masing menjawab pertanyaan berbeda, dan memaksanya jadi satu
+    fungsi berparameter menghasilkan sesuatu yang benar untuk semuanya dan
+    jelas untuk tak satu pun.
+
+      MASA BERLAKU     induksi K3 — yang diukur tanggal, akibatnya biner
+      AMBANG           pemantauan lingkungan — yang diukur ANGKA, bukan tanggal
+      MENGGANTUNG      lima sisanya — yang diukur UMUR, karena tak ada kolom
+                       tenggat mana pun
+
+    Diukur 2026-08-19:
+
+      induksi_k3             25 catatan, 2 KEDALUWARSA (terlama sejak 15 Juni)
+      pemantauan_lingkungan   5 pengukuran, 1 MELAMPAUI baku mutu
+      temuan_audit            5 belum ditutup
+      itp_titik               4 belum diperiksa
+      sertifikat_ipc          3 draf, terlama 13 hari
+      cuti_ambil              2 diajukan belum diputus, 8 hari
+      nota_kredit             1 diajukan, 12 hari
+
+    ⚠ TENANCY, dan tiga di antaranya DUA LOMPATAN:
+
+      induksi_k3 · pemantauan_lingkungan · sertifikat_ipc   C lewat project_id
+      nota_kredit                                           B (punya company_id)
+      temuan_audit   C lewat audit_id        → audit_mutu.project_id
+      itp_titik      C lewat rencana_mutu_id → rencana_mutu.project_id
+      cuti_ambil     C lewat pegawai_id      → pegawai (BUKAN proyek)
+  */
+
+
+  // ── GET /api/v1/otomasi/jalankan/lingkungan-lampaui-baku ──────────────────
+  //
+  // Satu-satunya otomasi di berkas ini yang mengukur ANGKA terhadap ambang,
+  // bukan tanggal terhadap hari ini.
+  //
+  // Pelanggaran baku mutu lingkungan berujung sanksi administratif sampai
+  // penghentian kegiatan, dan yang menentukan bukan seberapa lama ia
+  // berlangsung melainkan bahwa ia PERNAH tercatat. Karena itu tak ada ambang
+  // umur di sini: begitu terukur melampaui, ia dilaporkan.
+  //
+  // Diukur 2026-08-19: 1 dari 5 pengukuran melampaui baku mutunya.
+  app.get('/api/v1/otomasi/jalankan/lingkungan-lampaui-baku', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiPengukuran } = await import('../../lib/kepatuhan-menggantung.js')
+
+    const q = request.query as { margin?: string; hari?: string }
+    const margin = await ambilAmbang(request, 'otomasi.lingkungan.margin_persen', q.margin)
+    const jendela = await ambilAmbang(request, 'otomasi.lingkungan.jendela_hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['lingkungan_lampaui_baku'])
+
+    const p = await proyekAktif(request)
+    if (p.error) return reply.status(500).send({ error: p.error })
+    if (p.id.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    const baca = await bacaViaKolom(request, 'pemantauan_lingkungan', 'project_id', p.id,
+      'id, project_id, parameter, tanggal, lokasi, nilai, satuan, baku_mutu, metode')
+    if (baca.error) return reply.status(500).send({ error: baca.error })
+
+    /*
+      Parameter yang BAIK justru saat nilainya TINGGI.
+
+      Untuk kebisingan, debu, dan limbah, melampaui berarti melanggar. Untuk pH
+      minimum dan oksigen terlarut, yang melanggar justru yang di BAWAH baku
+      mutu — dan tanpa daftar ini, parameter seperti itu dilaporkan aman persis
+      ketika ia paling berbahaya.
+
+      Dicocokkan longgar karena penamaan parameter tidak baku: "DO", "oksigen
+      terlarut", dan "Dissolved Oxygen" ketiganya dipakai di lapangan.
+    */
+    const ARAH_TERBALIK = ['ph', 'oksigen', 'do ', 'dissolved']
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { memenuhi: 0, melampaui: 0, mendekati: 0, tak_terukur: 0 }
+    let luarJendela = 0
+
+    for (const x of baca.data) {
+      /*
+        Hanya pengukuran BARU yang dilaporkan.
+
+        Pengukuran tahun lalu yang melampaui baku mutu adalah catatan sejarah,
+        bukan keadaan hari ini — dan menegurnya tiap hari membuat orang
+        berhenti membaca peringatan lingkungan sama sekali. Yang di luar
+        jendela dihitung terpisah supaya ketiadaannya terlihat di jawaban rute.
+      */
+      const t = Date.parse(String(x.tanggal ?? '').slice(0, 10) + 'T00:00:00Z')
+      if (!Number.isNaN(t) && Math.floor((acuan - t) / HARI) > jendela) {
+        luarJendela++
+        continue
+      }
+
+      const nama = String(x.parameter ?? '').toLowerCase()
+      const h = nilaiPengukuran({
+        nilai: x.nilai == null ? null : Number(x.nilai),
+        bakuMutu: x.baku_mutu == null ? null : Number(x.baku_mutu),
+        makinRendahMakinBaik: !ARAH_TERBALIK.some((k) => nama.includes(k)),
+      }, margin)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('lingkungan_lampaui_baku', id)) continue
+
+      const pid = x.project_id as string
+      const parameter = String(x.parameter ?? 'Parameter').trim()
+      const lokasi = String(x.lokasi ?? '').trim()
+      const satuan = String(x.satuan ?? '').trim()
+      const angka = `${Number(x.nilai)} ${satuan}`.trim()
+      const baku = `${Number(x.baku_mutu)} ${satuan}`.trim()
+      const persen = h.rasio == null ? '' : ` (${Math.round(h.rasio * 100)}% dari baku mutu)`
+
+      const pesan = h.sebab === 'melampaui'
+        ? `${parameter}${lokasi ? ` di ${lokasi}` : ''} terukur ${angka} terhadap baku mutu `
+          + `${baku}${persen} — MELANGGAR. Pelanggaran baku mutu berujung sanksi `
+          + 'administratif sampai penghentian kegiatan, dan yang menentukan bukan '
+          + 'lamanya melainkan bahwa ia pernah tercatat.'
+        : `${parameter}${lokasi ? ` di ${lokasi}` : ''} terukur ${angka} terhadap baku mutu `
+          + `${baku}${persen} — belum melanggar, tetapi sudah di ambang. `
+          + 'Pengukuran berikutnya bisa melewatinya.'
+
+      for (const uid of await resolveRecipients('lingkungan_lampaui_baku', {
+        companyId: request.companyId!, projectId: pid,
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: h.sebab === 'melampaui' ? 'Baku mutu lingkungan TERLAMPAUI' : 'Pengukuran mendekati baku mutu',
+          message: `${p.nama.get(pid) ?? 'Proyek'}: ${pesan}`,
+          priority: h.sebab === 'melampaui' ? 'urgent' : 'normal',
+          type: 'lingkungan_lampaui_baku', project_id: pid,
+          action_url: '/k3/lingkungan',
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_aktif: p.id.length, dibaca: baca.data.length,
+        ...hitung, luar_jendela: luarJendela,
+        margin_persen: margin, jendela_hari: jendela,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/temuan-audit-menggantung ─────────────────
+  //
+  // Temuan audit internal yang tak ditutup membuat audit BERIKUTNYA menemukan
+  // hal yang sama, dan sertifikasi mutu menilai justru dari situ: bukan berapa
+  // temuan yang ada, melainkan berapa yang berulang.
+  //
+  // ⚠ TENANCY DUA LOMPATAN: temuan_audit.audit_id → audit_mutu.project_id
+  //
+  // Diukur 2026-08-19: 5 temuan belum ditutup.
+  app.get('/api/v1/otomasi/jalankan/temuan-audit-menggantung', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiMenggantung } = await import('../../lib/kepatuhan-menggantung.js')
+
+    const q = request.query as { hari?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.temuan_audit.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['temuan_audit_menggantung'])
+
+    const p = await proyekAktif(request)
+    if (p.error) return reply.status(500).send({ error: p.error })
+    if (p.id.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    // Lompatan 1: audit milik proyek tenant ini.
+    /*
+      ⚠ Kolomnya `tanggal_mulai`, BUKAN `tanggal`.
+
+      Saya menebaknya `tanggal` dan rutenya balas 500 dengan "column
+      audit_mutu.tanggal does not exist". `audit_mutu` punya TIGA kolom
+      tanggal — `tanggal_rencana`, `tanggal_mulai`, `tanggal_selesai` — dan
+      yang menentukan umur temuan adalah kapan auditnya BERJALAN.
+    */
+    const audit = await bacaViaKolom(request, 'audit_mutu', 'project_id', p.id,
+      'id, project_id, nomor, judul, tanggal_mulai, tanggal_rencana')
+    if (audit.error) return reply.status(500).send({ error: audit.error })
+
+    const petaAudit = new Map(audit.data.map((a) => [a.id as string, a]))
+    if (petaAudit.size === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: p.id.length, audit: 0 } })
+    }
+
+    // Lompatan 2: temuan milik audit itu.
+    const baca = await bacaViaKolom(request, 'temuan_audit', 'audit_id', [...petaAudit.keys()],
+      'id, audit_id, kode, uraian, klausul, klasifikasi, ncr_id, ditutup_pada, created_at')
+    if (baca.error) return reply.status(500).send({ error: baca.error })
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { bergerak: 0, selesai: 0, menggantung: 0, tak_tertanggal: 0 }
+
+    for (const x of baca.data) {
+      const induk = petaAudit.get(x.audit_id as string)
+      if (!induk) continue
+
+      /*
+        Umur dihitung dari TANGGAL AUDIT, bukan `created_at` barisnya.
+
+        `created_at` adalah kapan temuan itu diketik ke sistem — bisa berminggu
+        setelah auditnya, atau saat migrasi data. Yang menentukan berapa lama
+        temuan itu menggantung adalah kapan ia DITEMUKAN.
+      */
+      /*
+        `tanggal_mulai` lebih dulu, `tanggal_rencana` sebagai cadangan.
+
+        Audit yang sudah berjalan punya tanggal mulai. Audit yang baru
+        direncanakan belum — dan temuan pada audit yang belum berjalan
+        seharusnya tak ada, tetapi kalau ada, tanggal rencananya lebih baik
+        daripada memperlakukannya tak tertanggal.
+      */
+      const t = Date.parse(
+        String(induk.tanggal_mulai ?? induk.tanggal_rencana ?? '').slice(0, 10) + 'T00:00:00Z')
+      const kelas = String(x.klasifikasi ?? '').trim().toLowerCase()
+
+      const h = nilaiMenggantung({
+        umurHari: Number.isNaN(t) ? null : Math.floor((acuan - t) / HARI),
+        selesai: x.ditutup_pada != null,
+        // Ketidaksesuaian MAJOR menahan sertifikasi; yang minor tidak.
+        berat: kelas === 'major' || kelas === 'mayor' || kelas === 'kritis',
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('temuan_audit_menggantung', id)) continue
+
+      const pid = induk.project_id as string
+      const kode = String(x.kode ?? '').trim()
+      const uraian = String(x.uraian ?? 'Temuan audit').trim()
+      const klausul = String(x.klausul ?? '').trim()
+      const audit_nomor = String(induk.nomor ?? 'audit').trim()
+      const punyaNcr = x.ncr_id != null
+
+      const pesan = h.sebab === 'tak_tertanggal'
+        ? `${kode ? kode + ' ' : ''}"${uraian}" dari ${audit_nomor} belum ditutup, dan `
+          + 'auditnya tak bertanggal — umurnya tak bisa dihitung sama sekali.'
+        : `${kode ? kode + ' ' : ''}"${uraian}" dari ${audit_nomor}`
+          + `${klausul ? ` (klausul ${klausul})` : ''} belum ditutup. `
+          + (punyaNcr
+            ? 'Sudah ditindaklanjuti lewat NCR tetapi temuannya sendiri belum ditutup.'
+            : 'Belum ditindaklanjuti lewat NCR mana pun.')
+          + ' Temuan yang tak ditutup membuat audit berikutnya menemukan hal yang sama, '
+          + 'dan sertifikasi mutu menilai justru dari pengulangan itu.'
+
+      for (const uid of await resolveRecipients('temuan_audit_menggantung', {
+        companyId: request.companyId!, projectId: pid,
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: 'Temuan audit belum ditutup',
+          message: `${p.nama.get(pid) ?? 'Proyek'}: ${pesan}`,
+          priority: h.mendesak ? 'high' : 'normal',
+          type: 'temuan_audit_menggantung', project_id: pid,
+          action_url: '/mutu/audit',
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_aktif: p.id.length, audit: petaAudit.size,
+        dibaca: baca.data.length, ...hitung, ambang_hari: ambang,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/itp-belum-diperiksa ──────────────────────
+  //
+  // ITP (Inspection & Test Plan) menetapkan TITIK HENTI: tahap yang tak boleh
+  // dilewati tanpa verifikasi. Titik `hold` yang terlewat berarti pekerjaan
+  // berikutnya sudah berjalan di atas sesuatu yang tak pernah diperiksa — dan
+  // membongkarnya untuk memeriksa belakangan biasanya mustahil.
+  //
+  // ⚠ TENANCY DUA LOMPATAN: itp_titik.rencana_mutu_id → rencana_mutu.project_id
+  //
+  // Diukur 2026-08-19: 4 titik belum diperiksa.
+  app.get('/api/v1/otomasi/jalankan/itp-belum-diperiksa', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiMenggantung } = await import('../../lib/kepatuhan-menggantung.js')
+
+    const q = request.query as { hari?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.itp.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['itp_belum_diperiksa'])
+
+    const p = await proyekAktif(request)
+    if (p.error) return reply.status(500).send({ error: p.error })
+    if (p.id.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    // Lompatan 1: rencana mutu milik proyek tenant ini.
+    const rencana = await bacaViaKolom(request, 'rencana_mutu', 'project_id', p.id,
+      'id, project_id, nomor, judul, created_at')
+    if (rencana.error) return reply.status(500).send({ error: rencana.error })
+
+    const petaRencana = new Map(rencana.data.map((r) => [r.id as string, r]))
+    if (petaRencana.size === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: p.id.length, rencana_mutu: 0 } })
+    }
+
+    // Lompatan 2: titik ITP milik rencana itu.
+    const baca = await bacaViaKolom(request, 'itp_titik', 'rencana_mutu_id', [...petaRencana.keys()],
+      'id, rencana_mutu_id, kode, tahap_pekerjaan, uraian, jenis_titik, kriteria, pihak_verifikasi, lolos, diperiksa_pada, created_at')
+    if (baca.error) return reply.status(500).send({ error: baca.error })
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { bergerak: 0, selesai: 0, menggantung: 0, tak_tertanggal: 0 }
+
+    for (const x of baca.data) {
+      const induk = petaRencana.get(x.rencana_mutu_id as string)
+      if (!induk) continue
+
+      const t = Date.parse(String(x.created_at ?? '').slice(0, 10) + 'T00:00:00Z')
+      const jenis = String(x.jenis_titik ?? '').trim().toLowerCase()
+
+      const h = nilaiMenggantung({
+        umurHari: Number.isNaN(t) ? null : Math.floor((acuan - t) / HARI),
+        /*
+          `lolos` yang terisi FALSE bukan berarti selesai.
+
+          Titik yang diperiksa dan TIDAK lolos menuntut pemeriksaan ulang; yang
+          menutup perkaranya adalah `diperiksa_pada` TERISI DAN `lolos` true.
+          Menganggap keduanya selesai membuat titik yang gagal justru berhenti
+          ditegur.
+        */
+        selesai: x.diperiksa_pada != null && x.lolos === true,
+        // `hold` adalah titik henti sejati — pekerjaan tak boleh lanjut.
+        // `witness` dan `review` boleh dilewati dengan catatan.
+        berat: jenis === 'hold',
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('itp_belum_diperiksa', id)) continue
+
+      const pid = induk.project_id as string
+      const kode = String(x.kode ?? '').trim()
+      const tahap = String(x.tahap_pekerjaan ?? '').trim()
+      const uraian = String(x.uraian ?? 'Titik pemeriksaan').trim()
+      const pihak = String(x.pihak_verifikasi ?? '').trim()
+      const gagal = x.diperiksa_pada != null && x.lolos === false
+
+      const pesan = gagal
+        ? `${kode ? kode + ' ' : ''}${uraian}${tahap ? ` (${tahap})` : ''} sudah diperiksa dan `
+          + 'TIDAK LOLOS, tetapi belum ada pemeriksaan ulang.'
+          + (jenis === 'hold' ? ' Ini titik HOLD — pekerjaan berikutnya tak boleh berjalan.' : '')
+        : `${kode ? kode + ' ' : ''}${uraian}${tahap ? ` (${tahap})` : ''} belum diperiksa`
+          + `${pihak ? `; verifikasi oleh ${pihak}` : ''}.`
+          + (jenis === 'hold'
+            ? ' Ini titik HOLD: pekerjaan berikutnya tak boleh berjalan sebelum diverifikasi, '
+              + 'dan membongkarnya untuk memeriksa belakangan biasanya mustahil.'
+            : '')
+
+      for (const uid of await resolveRecipients('itp_belum_diperiksa', {
+        companyId: request.companyId!, projectId: pid,
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: jenis === 'hold' ? 'Titik HOLD belum diverifikasi' : 'Titik ITP belum diperiksa',
+          message: `${p.nama.get(pid) ?? 'Proyek'}: ${pesan}`,
+          priority: h.mendesak ? 'high' : 'normal',
+          type: 'itp_belum_diperiksa', project_id: pid,
+          action_url: '/mutu/rencana-mutu',
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: {
+        proyek_aktif: p.id.length, rencana_mutu: petaRencana.size,
+        dibaca: baca.data.length, ...hitung, ambang_hari: ambang,
+      },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/ipc-mengendap-draf ───────────────────────
+  //
+  // Sertifikat IPC (Interim Payment Certificate) adalah dasar penagihan termin.
+  // Yang mengendap sebagai draf berarti UANG YANG SUDAH DIKERJAKAN belum
+  // ditagihkan — dan tak ada yang mengeluh, karena kliennya tak tahu ada yang
+  // seharusnya datang.
+  //
+  // Diukur 2026-08-19: 3 draf, terlama 13 hari.
+  app.get('/api/v1/otomasi/jalankan/ipc-mengendap-draf', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiMenggantung } = await import('../../lib/kepatuhan-menggantung.js')
+
+    const q = request.query as { hari?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.ipc_draf.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['ipc_mengendap_draf'])
+
+    const p = await proyekAktif(request)
+    if (p.error) return reply.status(500).send({ error: p.error })
+    if (p.id.length === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { proyek_aktif: 0 } })
+    }
+
+    const baca = await bacaViaKolom(request, 'sertifikat_ipc', 'project_id', p.id,
+      'id, project_id, nomor, tanggal, status, progres_diakui_pct, nilai_kontrak, retensi_pct, kumulatif_sebelumnya, disetujui_pada, invoice_id')
+    if (baca.error) return reply.status(500).send({ error: baca.error })
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { bergerak: 0, selesai: 0, menggantung: 0, tak_tertanggal: 0 }
+
+    for (const x of baca.data) {
+      const t = Date.parse(String(x.tanggal ?? '').slice(0, 10) + 'T00:00:00Z')
+
+      /*
+        Perkiraan nilai yang tertahan, dipakai HANYA untuk menentukan
+        mendesak-tidaknya — bukan untuk disebut sebagai angka tagihan.
+
+        Rumus IPC sungguhan melibatkan retensi, potongan DP, potongan lain, dan
+        kumulatif sebelumnya; menghitungnya di sini berarti menduplikasi logika
+        finansial yang tempatnya di `lib/`. Yang dibutuhkan peringatan ini cuma
+        "besar atau tidak", dan progres × nilai kontrak sudah cukup untuk itu.
+      */
+      const pct = x.progres_diakui_pct == null ? 0 : Number(x.progres_diakui_pct)
+      const kontrak = x.nilai_kontrak == null ? 0 : Number(x.nilai_kontrak)
+      const kumulatif = x.kumulatif_sebelumnya == null ? 0 : Number(x.kumulatif_sebelumnya)
+      const kasar = Math.max(0, (pct / 100) * kontrak - kumulatif)
+
+      const h = nilaiMenggantung({
+        umurHari: Number.isNaN(t) ? null : Math.floor((acuan - t) / HARI),
+        // Yang sudah disetujui atau sudah jadi invoice tak lagi mengendap.
+        selesai: x.disetujui_pada != null || x.invoice_id != null
+          || String(x.status ?? '') !== 'draft',
+        berat: kasar >= 100_000_000,
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('ipc_mengendap_draf', id)) continue
+
+      const pid = x.project_id as string
+      const nomor = String(x.nomor ?? 'IPC').trim()
+      const rp = kasar > 0
+        ? ` Perkiraan kasar nilai yang tertahan Rp ${Math.round(kasar).toLocaleString('id-ID')} `
+          + '(sebelum retensi dan potongan).'
+        : ''
+
+      const pesan = `${nomor} masih berstatus DRAF dan belum diajukan.${rp} `
+        + 'Sertifikat IPC adalah dasar penagihan termin — yang mengendap berarti '
+        + 'pekerjaan yang sudah dikerjakan belum ditagihkan, dan tak ada yang '
+        + 'mengeluh karena klien tak tahu ada yang seharusnya datang.'
+
+      for (const uid of await resolveRecipients('ipc_mengendap_draf', {
+        companyId: request.companyId!, projectId: pid,
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: 'Sertifikat IPC mengendap sebagai draf',
+          message: `${p.nama.get(pid) ?? 'Proyek'}: ${pesan}`,
+          priority: h.mendesak ? 'high' : 'normal',
+          type: 'ipc_mengendap_draf', project_id: pid,
+          action_url: '/keuangan/termin',
+          action_data: { record_id: id, project_id: pid, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { proyek_aktif: p.id.length, dibaca: baca.data.length, ...hitung, ambang_hari: ambang },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/cuti-belum-diputus ───────────────────────
+  //
+  // Pengajuan cuti yang tak diputus adalah masalah kecil bagi perusahaan dan
+  // masalah besar bagi yang mengajukan: ia tak bisa memesan tiket, tak bisa
+  // memberi kabar keluarga, dan pada akhirnya berangkat tanpa keputusan resmi —
+  // yang lalu tercatat sebagai mangkir.
+  //
+  // ⚠ TENANCY lewat `pegawai_id`, BUKAN proyek. Ini satu-satunya dari
+  //   empat belas otomasi baru yang tenancy-nya tidak lewat proyek sama sekali.
+  //
+  // Diukur 2026-08-19: 2 pengajuan menunggu, 8 hari.
+  app.get('/api/v1/otomasi/jalankan/cuti-belum-diputus', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiMenggantung } = await import('../../lib/kepatuhan-menggantung.js')
+
+    const q = request.query as { hari?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.cuti.hari', q.hari)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['cuti_belum_diputus'])
+
+    const HALAMAN = 1000
+
+    /*
+      `cuti_ambil` kategori C lewat `pegawai_id` — bukan proyek.
+
+      Jadi yang dikumpulkan lebih dulu adalah pegawai milik badan usaha ini,
+      lalu cutinya disaring dengan `.in('pegawai_id', ...)`.
+    */
+    const pegawai: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        /*
+          ⚠ `pegawai` TIDAK punya kolom nama.
+
+          Saya menebaknya `nama` dan rutenya balas 500 dengan "column
+          pegawai.nama does not exist". Namanya hidup di `users.name` lewat
+          `user_id` — pemisahan yang disengaja (ADR-011 D6): identitas orang
+          lintas-tenant, kepegawaiannya per-tenant.
+        */
+        .from('pegawai').select('id, user_id, nomor_induk, jabatan, departemen')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      pegawai.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    /*
+      Nama diambil terpisah dari `users` (kategori D, lintas-tenant), dan
+      pesannya TIDAK bergantung padanya.
+
+      Pegawai yang `user_id`-nya kosong atau menunjuk akun terhapus tetap
+      dilaporkan dengan nomor induk atau jabatannya. Menjadikan nama syarat
+      pelaporan berarti pengajuan cuti dari orang yang datanya paling tak rapi
+      justru yang paling sunyi.
+    */
+    const namaOrang = new Map<string, string>()
+    const idUser = [...new Set(pegawai.map((x) => x.user_id).filter(Boolean) as string[])]
+    for (let i = 0; i < idUser.length; i += 200) {
+      const r = await request.db!
+        .unsafe('users', 'hanya membaca nama untuk label notifikasi; disaring .in(id, ...) pegawai tenant ini')
+        .select('id, name')
+        .in('id', idUser.slice(i, i + 200))
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      for (const u of (r.data ?? []) as Array<Record<string, unknown>>) {
+        namaOrang.set(u.id as string, String(u.name ?? ''))
+      }
+    }
+
+    const petaPegawai = new Map(pegawai.map((x) => [x.id as string, x]))
+    if (petaPegawai.size === 0) {
+      return reply.send({ success: true, notifications_created: 0, checked: { pegawai: 0 } })
+    }
+
+    const baca = await bacaViaKolom(request, 'cuti_ambil', 'pegawai_id', [...petaPegawai.keys()],
+      'id, pegawai_id, jenis, tanggal_mulai, tanggal_selesai, jumlah_hari, status, diputuskan_pada, created_at')
+    if (baca.error) return reply.status(500).send({ error: baca.error })
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { bergerak: 0, selesai: 0, menggantung: 0, tak_tertanggal: 0 }
+
+    for (const x of baca.data) {
+      const orang = petaPegawai.get(x.pegawai_id as string)
+      if (!orang) continue
+
+      const t = Date.parse(String(x.created_at ?? '').slice(0, 10) + 'T00:00:00Z')
+      const mulai = Date.parse(String(x.tanggal_mulai ?? '').slice(0, 10) + 'T00:00:00Z')
+
+      /*
+        Cuti yang tanggal mulainya SUDAH DEKAT dianggap berat.
+
+        Bukan lamanya menunggu yang paling merugikan, melainkan seberapa dekat
+        keberangkatan: pengajuan tiga bulan lagi yang menunggu seminggu masih
+        wajar, pengajuan lusa yang menunggu seminggu berarti orangnya sudah
+        harus memutuskan sendiri.
+      */
+      const sisaKeberangkatan = Number.isNaN(mulai) ? null : Math.floor((mulai - acuan) / HARI)
+
+      const h = nilaiMenggantung({
+        umurHari: Number.isNaN(t) ? null : Math.floor((acuan - t) / HARI),
+        selesai: x.diputuskan_pada != null || String(x.status ?? '') !== 'diajukan',
+        berat: sisaKeberangkatan != null && sisaKeberangkatan <= 7,
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('cuti_belum_diputus', id)) continue
+
+      // Nama → nomor induk → jabatan → "Pegawai". Yang penting pesannya bisa
+      // menunjuk SESEORANG, bukan bahwa namanya lengkap.
+      const nama = (orang.user_id ? namaOrang.get(orang.user_id as string) : '')?.trim()
+        || String(orang.nomor_induk ?? '').trim()
+        || String(orang.jabatan ?? '').trim()
+        || 'Pegawai'
+      const jenis = String(x.jenis ?? 'cuti').trim()
+      const hari = x.jumlah_hari == null ? null : Number(x.jumlah_hari)
+      const kapan = sisaKeberangkatan == null
+        ? ''
+        : sisaKeberangkatan < 0
+          ? ' Tanggal mulainya SUDAH LEWAT — pengajuan ini tak lagi bisa diputus tepat waktu.'
+          : ` Mulai ${sisaKeberangkatan} hari lagi.`
+
+      const pesan = `Pengajuan ${jenis} atas nama ${nama}`
+        + `${hari ? ` (${hari} hari)` : ''} belum diputus.${kapan} `
+        + 'Yang mengajukan tak bisa memesan tiket maupun memberi kabar keluarga, dan '
+        + 'pada akhirnya berangkat tanpa keputusan resmi — yang lalu tercatat sebagai mangkir.'
+
+      for (const uid of await resolveRecipients('cuti_belum_diputus', {
+        companyId: request.companyId!,
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: 'Pengajuan cuti menunggu keputusan',
+          message: pesan,
+          priority: h.mendesak ? 'high' : 'normal',
+          type: 'cuti_belum_diputus',
+          action_url: '/sdm/cuti',
+          action_data: { record_id: id, pegawai_id: x.pegawai_id, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { pegawai: petaPegawai.size, dibaca: baca.data.length, ...hitung, ambang_hari: ambang },
+    })
+  })
+
+  // ── GET /api/v1/otomasi/jalankan/nota-kredit-menggantung ──────────────────
+  //
+  // Nota kredit adalah uang yang HARUS KEMBALI — dari pemasok karena barang
+  // cacat, kelebihan tagih, atau retur. Yang menggantung berarti perusahaan
+  // sudah membayar sesuatu yang seharusnya tidak, dan diamnya tak menimbulkan
+  // gejala apa pun karena kasnya sudah keluar sejak lama.
+  //
+  // `nota_kredit` kategori B — punya `company_id`, terbaca langsung.
+  //
+  // Diukur 2026-08-19: 1 diajukan, 12 hari.
+  app.get('/api/v1/otomasi/jalankan/nota-kredit-menggantung', {
+    preHandler: [authenticate, requirePermission('notifications:milestone:check')],
+  }, async (request, reply) => {
+    const { createNotification } = await import('../../utils/notifications.js')
+    const { resolveRecipients } = await import('../../utils/notification-routing.js')
+    const { nilaiMenggantung } = await import('../../lib/kepatuhan-menggantung.js')
+
+    const q = request.query as { hari?: string; nilai?: string }
+    const ambang = await ambilAmbang(request, 'otomasi.nota_kredit.hari', q.hari)
+    const ambangNilai = await ambilAmbang(request, 'otomasi.nota_kredit.nilai_besar', q.nilai)
+
+    const today = new Date().toISOString().split('T')[0]
+    const sudah = await pembuatDedup(request, today, ['nota_kredit_menggantung'])
+
+    const HALAMAN = 1000
+    const baca: Array<Record<string, unknown>> = []
+    for (let dari = 0; ; dari += HALAMAN) {
+      const r = await request.db!
+        .from('nota_kredit')
+        .select('id, project_id, nomor, tanggal, jenis, jumlah, alasan, status, diajukan_pada, diputuskan_pada, diterapkan_pada')
+        .order('id', { ascending: true }).range(dari, dari + HALAMAN - 1)
+      if (r.error) return reply.status(500).send({ error: r.error.message })
+      if (!r.data || r.data.length === 0) break
+      baca.push(...(r.data as Array<Record<string, unknown>>))
+      if (r.data.length < HALAMAN) break
+    }
+
+    const acuan = Date.parse(today + 'T00:00:00Z')
+    const HARI = 86_400_000
+    let dibuat = 0
+    const hitung = { bergerak: 0, selesai: 0, menggantung: 0, tak_tertanggal: 0 }
+
+    for (const x of baca) {
+      const st = String(x.status ?? '')
+      const t = Date.parse(
+        String(x.diajukan_pada ?? x.tanggal ?? '').slice(0, 10) + 'T00:00:00Z')
+      const jumlah = x.jumlah == null ? 0 : Number(x.jumlah)
+
+      /*
+        DUA keadaan menggantung yang berbeda, dan keduanya dilaporkan:
+
+          `diajukan`  menunggu KEPUTUSAN
+          `disetujui` sudah diputus tetapi belum DITERAPKAN ke tagihan
+
+        Yang kedua paling mudah luput: statusnya terbaca positif, laporan mana
+        pun menghitungnya sebagai "beres", dan uangnya tetap tak kembali.
+      */
+      const menunggu = st === 'diajukan' || (st === 'disetujui' && x.diterapkan_pada == null)
+
+      const h = nilaiMenggantung({
+        umurHari: Number.isNaN(t) ? null : Math.floor((acuan - t) / HARI),
+        selesai: !menunggu,
+        berat: jumlah >= ambangNilai,
+      }, ambang)
+
+      hitung[h.sebab]++
+      if (!h.perlu) continue
+      const id = x.id as string
+      if (sudah('nota_kredit_menggantung', id)) continue
+
+      const nomor = String(x.nomor ?? 'Nota kredit').trim()
+      const alasan = String(x.alasan ?? '').trim()
+      const rp = jumlah > 0 ? ` Nilai Rp ${Math.round(jumlah).toLocaleString('id-ID')}.` : ''
+
+      const pesan = st === 'disetujui'
+        ? `${nomor} sudah DISETUJUI tetapi belum diterapkan ke tagihan.${rp}`
+          + `${alasan ? ` Alasan: ${alasan}.` : ''} Statusnya terbaca positif dan laporan `
+          + 'mana pun menghitungnya beres — sementara uangnya tetap tak kembali.'
+        : `${nomor} menunggu keputusan.${rp}${alasan ? ` Alasan: ${alasan}.` : ''} `
+          + 'Nota kredit adalah uang yang harus kembali; diamnya tak menimbulkan gejala '
+          + 'apa pun karena kasnya sudah keluar sejak lama.'
+
+      for (const uid of await resolveRecipients('nota_kredit_menggantung', {
+        companyId: request.companyId!,
+        ...(x.project_id ? { projectId: x.project_id as string } : {}),
+      })) {
+        await createNotification({
+          company_id: request.companyId!, user_id: uid,
+          title: st === 'disetujui' ? 'Nota kredit belum diterapkan' : 'Nota kredit menunggu keputusan',
+          message: pesan,
+          priority: h.mendesak ? 'high' : 'normal',
+          type: 'nota_kredit_menggantung',
+          ...(x.project_id ? { project_id: x.project_id as string } : {}),
+          action_url: '/keuangan/nota-kredit',
+          action_data: { record_id: id, sebab: h.sebab },
+        })
+        dibuat++
+      }
+    }
+
+    return reply.send({
+      success: true, notifications_created: dibuat,
+      checked: { dibaca: baca.length, ...hitung, ambang_hari: ambang, ambang_nilai: ambangNilai },
+    })
+  })
+
 }
 
 /**

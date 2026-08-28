@@ -85,24 +85,6 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
   },
 
   /*
-    Kunci idempotensi menumpuk TANPA GEJALA.
-
-    Migrasi 177 menyiapkan `idx_idempotency_umur` untuk pembersihan lalu tak
-    ada satu pun kode yang menghapus (diukur 2026-08-27: nol DELETE di
-    seluruh apps/api). Belum mendesak selama hanya transfer kas yang
-    memakainya — berubah sifat begitu antrean offline mobile hidup, karena
-    TIAP kiriman progres & kasbon dari TIAP HP mandor menulis satu baris.
-
-    Batas 7 hari adalah keputusan teknis, bukan kebijakan tenant: kunci tak
-    berguna bagi siapa pun sesudah jendela pengiriman ulang lewat.
-  */
-  'bersih-idempotensi': {
-    label: 'Bersihkan Kunci Idempotensi',
-    keterangan: 'Menghapus kunci idempotensi yang lebih tua dari 7 hari.',
-    jalur: '/api/v1/idempotensi/bersihkan',
-  },
-
-  /*
    * Sapaan proaktif — SATU-SATUNYA tugas yang memakai jendela acak.
    *
    * Founder menolak jam kaku ("emang ga tepat seperti yang dijadwalkan"), jadi
@@ -139,6 +121,25 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
   //
   // Dedup harian ada di endpoint-nya masing-masing (ledger = tabel
   // `notifications`), jadi denyut 15 menit tak menghasilkan pesan berulang.
+
+  /*
+    Kunci idempotensi menumpuk TANPA GEJALA.
+
+    Migrasi 177 menyiapkan `idx_idempotency_umur` untuk pembersihan lalu tak
+    ada satu pun kode yang menghapus (diukur 2026-08-27: nol DELETE di
+    seluruh apps/api). Belum mendesak selama hanya transfer kas yang
+    memakainya — berubah sifat begitu antrean offline mobile hidup, karena
+    TIAP kiriman progres & kasbon dari TIAP HP mandor menulis satu baris.
+
+    Batas 7 hari adalah keputusan teknis, bukan kebijakan tenant: kunci tak
+    berguna bagi siapa pun sesudah jendela pengiriman ulang lewat.
+  */
+  'bersih-idempotensi': {
+    label: 'Bersihkan Kunci Idempotensi',
+    keterangan: 'Menghapus kunci idempotensi yang lebih tua dari 7 hari.',
+    jalur: '/api/v1/idempotensi/bersihkan',
+  },
+
   'kasbon-outstanding': {
     label: 'Kasbon Belum Lunas',
     keterangan: 'Kasbon yang sudah disetujui tapi belum dilunasi melewati ambang hari.',
@@ -535,15 +536,53 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     keterangan: 'Keputusan rapat berpenanggung jawab dan bertenggat yang tak dikerjakan.',
     jalur: '/api/v1/otomasi/jalankan/notulen-tak-ditindak',
   },
-  'temuan-k3-lewat-tenggat': {
-    label: 'Temuan K3 Lewat Tenggat',
-    keterangan: 'Temuan inspeksi K3 yang belum diperbaiki — bahayanya masih ada di lapangan.',
-    jalur: '/api/v1/otomasi/jalankan/temuan-k3-lewat-tenggat',
-  },
   'rfq-lewat-batas': {
     label: 'RFQ Lewat Batas Masuk',
     keterangan: 'Permintaan penawaran yang batas masuknya lewat tanpa keputusan — pengadaan berhenti tanpa gejala.',
     jalur: '/api/v1/otomasi/jalankan/rfq-lewat-batas',
+  },
+
+  /*
+    ── ENAM OTOMASI KEPATUHAN (2026-08-19)
+    ────────────────────────────────────────────────────────────────────────
+
+    Tak berbagi satu fungsi seperti kelompok bertenggat — bentuknya berbeda:
+    ambang terukur (lingkungan), umur menggantung (lima sisanya).
+
+    ⚠ Dua yang sempat direncanakan DIBATALKAN sesudah diukur:
+    `induksi-k3-kedaluwarsa` dan `temuan-k3-lewat-tenggat` sudah ditangani
+    otomasi `k3-kepatuhan` yang cakupannya LEBIH LUAS. Membangunnya berarti
+    dua notifikasi untuk satu keadaan.
+  */
+  'lingkungan-lampaui-baku': {
+    label: 'Baku Mutu Lingkungan Terlampaui',
+    keterangan: 'Pengukuran lingkungan yang melanggar baku mutu, atau sudah di ambangnya.',
+    jalur: '/api/v1/otomasi/jalankan/lingkungan-lampaui-baku',
+  },
+  'temuan-audit-menggantung': {
+    label: 'Temuan Audit Belum Ditutup',
+    keterangan: 'Temuan audit internal yang menggantung — audit berikutnya akan menemukan hal yang sama.',
+    jalur: '/api/v1/otomasi/jalankan/temuan-audit-menggantung',
+  },
+  'itp-belum-diperiksa': {
+    label: 'Titik ITP Belum Diperiksa',
+    keterangan: 'Titik henti mutu yang belum diverifikasi — titik HOLD menahan pekerjaan berikutnya.',
+    jalur: '/api/v1/otomasi/jalankan/itp-belum-diperiksa',
+  },
+  'ipc-mengendap-draf': {
+    label: 'Sertifikat IPC Mengendap Draf',
+    keterangan: 'Dasar penagihan termin yang belum diajukan — pekerjaan selesai tapi belum ditagihkan.',
+    jalur: '/api/v1/otomasi/jalankan/ipc-mengendap-draf',
+  },
+  'cuti-belum-diputus': {
+    label: 'Pengajuan Cuti Menunggu',
+    keterangan: 'Cuti yang diajukan tapi tak diputus — yang mengajukan tak bisa merencanakan apa pun.',
+    jalur: '/api/v1/otomasi/jalankan/cuti-belum-diputus',
+  },
+  'nota-kredit-menggantung': {
+    label: 'Nota Kredit Menggantung',
+    keterangan: 'Uang yang harus kembali — yang menunggu keputusan, dan yang disetujui tapi belum diterapkan.',
+    jalur: '/api/v1/otomasi/jalankan/nota-kredit-menggantung',
   },
 }
 

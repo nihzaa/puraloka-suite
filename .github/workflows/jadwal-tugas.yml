@@ -55,8 +55,23 @@ jobs:
           RAHASIA: ${{ secrets.SCHEDULER_SECRET }}
         run: |
           if [ -z "$URL" ] || [ -z "$RAHASIA" ]; then
-            echo "::notice::SCHEDULER_URL / SCHEDULER_SECRET belum disetel — dilewati."
+            # ⚠ `::warning::`, BUKAN `::notice::` — dan bedanya bukan gaya.
+            #
+            # Versi pertama memakai `::notice::`, yang TIDAK muncul di ringkasan
+            # run. Akibatnya diukur 2026-08-20: 72 tugas terjadwal berstatus
+            # aktif di basis, `SCHEDULER_URL` tak pernah disetel, dan tak satu
+            # pun tugas pernah dipanggil — berhari-hari, dengan status HIJAU
+            # dan nol gejala.
+            #
+            # Niat aslinya benar: gagal MERAH tiap 15 menit akan melatih orang
+            # mengabaikan notifikasi CI, jadi `exit 0` tetap dipertahankan.
+            # Yang salah cuma tingkat anotasinya — warning terlihat di
+            # ringkasan tanpa menandai run-nya gagal.
+            #
+            # Dijaga `apps/api/scripts/audit-penjadwal-hidup.mjs` (ambang NOL).
+            echo "::warning::PENJADWAL MATI — SCHEDULER_URL / SCHEDULER_SECRET belum disetel. Seluruh tugas terjadwal TIDAK berjalan."
             echo "Setel keduanya di Settings → Secrets → Actions untuk menghidupkan penjadwal."
+            echo "Lihat docs/execution/SIAP-DEPLOY.md."
             exit 0
           fi
 

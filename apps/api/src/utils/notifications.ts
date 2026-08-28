@@ -194,6 +194,25 @@ export type NotificationType =
   | 'notulen_tak_ditindak'
   | 'temuan_k3_lewat_tenggat'
   | 'rfq_lewat_batas'
+  /*
+    ENAM JENIS KEPATUHAN (2026-08-19) — tak berbagi satu fungsi, karena
+    bentuknya memang berbeda: ambang terukur, umur menggantung, masa berlaku.
+
+    ⚠ `induksi_k3_kedaluwarsa` dan `temuan_k3_lewat_tenggat` SENGAJA TIDAK ADA
+    di sini. Keduanya sempat saya bangun, lalu dibatalkan sesudah diukur:
+    `k3_induksi_kedaluwarsa` dan `k3_temuan_berat_menggantung` sudah menangani
+    keduanya, dan cakupan yang lama LEBIH LUAS (persentase kepatuhan per
+    proyek, pekerja yang belum pernah diinduksi, temuan berulang).
+
+    Dua notifikasi untuk satu keadaan adalah persis kebisingan yang jeda
+    melandai dibangun untuk menghilangkan.
+  */
+  | 'lingkungan_lampaui_baku'
+  | 'temuan_audit_menggantung'
+  | 'itp_belum_diperiksa'
+  | 'ipc_mengendap_draf'
+  | 'cuti_belum_diputus'
+  | 'nota_kredit_menggantung'
   | 'konflik_mandor'
   | 'rab_harga_menyimpang'
   | 'upah_menyimpang'
@@ -361,19 +380,7 @@ export async function createNotifications(list: NotificationParams[]): Promise<v
   */
   const perPeristiwa = new Map<string, { p: NotificationParams; n: number }>()
   for (const p of list) {
-    /*
-    Pemisah `\u0000` ditulis sebagai escape TERLIHAT, bukan byte mentah.
-
-    NUL dipilih karena ia tak mungkin muncul di dalam UUID maupun nama
-    jenis notifikasi, jadi kunci gabungan tak bisa bentrok — pemisah
-    biasa seperti `:` atau `-` bisa, kalau salah satu bagiannya
-    kebetulan memuatnya.
-
-    Yang diperbaiki di sini hanya BENTUK TULISNYA: byte kontrol mentah
-    tak terlihat di diff, di review, maupun di penyunting — dan yang tak
-    terlihat tak bisa diperiksa siapa pun. Dijaga `audit-byte-kontrol.mjs`.
-  */
-  const kunci = `${p.company_id}\u0000${p.type}`
+    const kunci = `${p.company_id} ${p.type}`
     const ada = perPeristiwa.get(kunci)
     if (ada) ada.n += 1
     else perPeristiwa.set(kunci, { p, n: 1 })

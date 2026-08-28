@@ -1083,6 +1083,140 @@ export const AMBANG_OTOMASI = {
     langkah: 1,
   },
 
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    ENAM OTOMASI KEPATUHAN — ambangnya TIDAK seragam karena bentuknya berbeda
+    ══════════════════════════════════════════════════════════════════════════
+
+    Berbeda dari tujuh otomasi bertenggat yang berbagi satu bentuk, kelompok
+    ini punya tiga bentuk: ambang terukur (lingkungan), umur menggantung
+    (audit, ITP, IPC, cuti, nota kredit), dan nilai rupiah.
+
+    Semua ambang UMUR di sini berarti "berapa hari SESUDAH mulai menunggu" —
+    kebalikan dari kelompok bertenggat, yang berarti "berapa hari SEBELUM
+    tenggat". Akibatnya perkara berat ditegur dengan ambang yang lebih KECIL
+    di sini, dan lebih BESAR di sana. Menyamakan keduanya karena terlihat mirip
+    akan membuat perkara berat justru ditegur paling lambat.
+  */
+  'otomasi.lingkungan.margin_persen': {
+    bawaan: 10,
+    min: 0,
+    max: 50,
+    label: 'Seberapa dekat ke baku mutu sudah diperingatkan',
+    judul: 'Baku mutu lingkungan terlampaui',
+    akibat:
+      'Pengukuran yang belum melanggar tetapi sudah di dalam margin ini ikut '
+      + 'dilaporkan, supaya masih ada waktu bertindak sebelum pengukuran '
+      + 'berikutnya melewatinya. Nol berarti hanya pelanggaran nyata yang '
+      + 'dilaporkan.',
+    satuan: '%',
+    langkah: 1,
+  },
+
+  'otomasi.lingkungan.jendela_hari': {
+    bawaan: 90,
+    min: 7,
+    max: 730,
+    label: 'Umur pengukuran yang masih dianggap menggambarkan keadaan sekarang',
+    judul: 'Baku mutu lingkungan terlampaui',
+    akibat:
+      'Pengukuran yang lebih tua dari ini tidak dilaporkan — ia catatan '
+      + 'sejarah, bukan keadaan hari ini. Menegurnya tiap hari membuat orang '
+      + 'berhenti membaca peringatan lingkungan sama sekali. Jumlah yang '
+      + 'dilewati tetap terlihat di jawaban rute sebagai `luar_jendela`.',
+    satuan: 'hari',
+    langkah: 7,
+  },
+
+  'otomasi.temuan_audit.hari': {
+    bawaan: 30,
+    min: 1,
+    max: 365,
+    label: 'Umur temuan audit sebelum diingatkan',
+    judul: 'Temuan audit belum ditutup',
+    akibat:
+      'Dihitung dari TANGGAL AUDIT, bukan kapan temuannya diketik ke sistem. '
+      + 'Temuan yang tak ditutup membuat audit berikutnya menemukan hal yang '
+      + 'sama, dan sertifikasi mutu menilai justru dari pengulangan itu. '
+      + 'Ketidaksesuaian major diingatkan dua kali lebih cepat.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.itp.hari': {
+    bawaan: 14,
+    min: 1,
+    max: 180,
+    label: 'Umur titik ITP belum diperiksa sebelum diingatkan',
+    judul: 'Titik ITP belum diperiksa',
+    akibat:
+      'Titik HOLD adalah titik henti sejati — pekerjaan berikutnya tak boleh '
+      + 'berjalan sebelum diverifikasi, dan membongkarnya untuk memeriksa '
+      + 'belakangan biasanya mustahil; karena itu titik HOLD diingatkan dua '
+      + 'kali lebih cepat. Titik yang diperiksa dan TIDAK lolos tetap dihitung '
+      + 'belum selesai.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.ipc_draf.hari': {
+    bawaan: 7,
+    min: 1,
+    max: 90,
+    label: 'Umur sertifikat IPC berstatus draf sebelum diingatkan',
+    judul: 'Sertifikat IPC mengendap sebagai draf',
+    akibat:
+      'IPC adalah dasar penagihan termin. Yang mengendap berarti pekerjaan '
+      + 'yang sudah dikerjakan belum ditagihkan — dan tak ada yang mengeluh, '
+      + 'karena klien tak tahu ada yang seharusnya datang.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.cuti.hari': {
+    bawaan: 3,
+    min: 1,
+    max: 60,
+    label: 'Umur pengajuan cuti sebelum diingatkan',
+    judul: 'Pengajuan cuti menunggu keputusan',
+    akibat:
+      'Pengajuan yang tanggal mulainya tinggal seminggu lagi diingatkan dua '
+      + 'kali lebih cepat: bukan lamanya menunggu yang paling merugikan, '
+      + 'melainkan seberapa dekat keberangkatan. Yang mengajukan tak bisa '
+      + 'memesan tiket, dan pada akhirnya berangkat tanpa keputusan resmi.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.nota_kredit.hari': {
+    bawaan: 7,
+    min: 1,
+    max: 120,
+    label: 'Umur nota kredit menggantung sebelum diingatkan',
+    judul: 'Nota kredit menggantung',
+    akibat:
+      'Berlaku untuk DUA keadaan: yang menunggu keputusan, dan yang sudah '
+      + 'DISETUJUI tetapi belum diterapkan ke tagihan. Yang kedua paling mudah '
+      + 'luput — statusnya terbaca positif, laporan mana pun menghitungnya '
+      + 'beres, dan uangnya tetap tak kembali.',
+    satuan: 'hari',
+    langkah: 1,
+  },
+
+  'otomasi.nota_kredit.nilai_besar': {
+    bawaan: 10_000_000,
+    min: 0,
+    max: 10_000_000_000,
+    label: 'Nilai nota kredit yang dianggap besar',
+    judul: 'Nota kredit menggantung',
+    akibat:
+      'Di atas angka ini diingatkan dua kali lebih cepat dan berprioritas '
+      + 'tinggi. Yang di bawahnya tetap dilaporkan, hanya tidak membangunkan '
+      + 'siapa pun.',
+    satuan: 'Rp',
+    langkah: 1_000_000,
+  },
+
   'otomasi.bbm_melonjak.hari': {
     bawaan: 30,
     min: 7,

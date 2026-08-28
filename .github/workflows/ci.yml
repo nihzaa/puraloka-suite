@@ -353,6 +353,24 @@ jobs:
       - name: Rute otomasi punya entri katalog tugas
         run: node scripts/audit-rute-otomasi-punya-entri.mjs
 
+      # Titik KEEMPAT — di luar kode, dan yang paling lama tak terjaga.
+      #
+      #   jadwal_tugas → KATALOG_TUGAS → app.get(jalur) → WORKFLOW → GitHub
+      #      ^ dijaga      ^ dijaga        ^ dijaga        ^ INI
+      #
+      # Diukur 2026-08-20: 72 tugas terjadwal aktif di basis, NOL pernah
+      # dipanggil. Sebabnya `SCHEDULER_URL` tak pernah disetel, dan cabang
+      # "dilewati" di jadwal-tugas.yml memakai `::notice::` — anotasi yang
+      # TIDAK muncul di ringkasan run.
+      #
+      # Penjadwal mati berhari-hari dengan status HIJAU dan nol gejala.
+      #
+      # Penjaga ini tak bisa memeriksa GitHub (tak punya kewenangan membaca
+      # daftar rahasia). Yang dijamin: kalau penjadwalnya mati, keadaannya
+      # TERLIHAT — bukan bahwa ia hidup.
+      - name: Penjadwal yang dilewati tetap terlihat
+        run: node scripts/audit-penjadwal-hidup.mjs
+
       # Sepupu L-4 untuk arah sebaliknya: bukan "kolom punya pembaca" melainkan
       # "peristiwa punya alur". `utils/terbit-peristiwa.ts` memetakan jenis
       # notifikasi ke kode alur otomasi, dan kode itu jadi `path` webhook n8n.

@@ -1526,33 +1526,6 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
     ambang: 'otomasi.tenggat_notulen.hari',
   },
   {
-    kunci: 'temuan-k3-lewat-tenggat',
-    nama: 'Temuan K3 lewat tenggat perbaikan',
-    pemicu: 'jadwal',
-    penjelasan:
-      'Menandai temuan inspeksi K3 yang belum diperbaiki melewati tenggat. Temuan '
-      + 'yang lewat berarti bahayanya masih ada di lapangan hari ini, dan orang '
-      + 'masih bekerja di sekitarnya. Ini SATU-SATUNYA dari tujuh otomasi '
-      + 'bertenggat yang mengirim temuan terlambat sebagai MENDESAK tanpa melihat '
-      + 'tingkatnya: di enam lainnya keterlambatan berarti biaya atau jadwal, di '
-      + 'sini ia berarti seseorang bisa celaka. Temuan tanpa tenggat perbaikan '
-      + 'juga dilaporkan.',
-    penerima: 'Petugas K3 & pengawas lapangan',
-    alur: [
-      ...LANGKAH_JADWAL,
-      { di: 'sistem', teks: 'Membaca inspeksi K3 proyek yang masih berjalan.' },
-      { di: 'sistem', teks: 'Membaca temuan milik inspeksi itu.' },
-      { di: 'sistem', teks: 'Memisahkan yang lewat tenggat, yang segera, dan yang tak bertenggat.' },
-      { di: 'sistem', teks: 'Menandai SEMUA yang lewat sebagai mendesak, apa pun tingkatnya.' },
-      ...LANGKAH_KIRIM,
-    ],
-    ambang: 'otomasi.tenggat_k3.hari',
-    catatan:
-      'Tenancy-nya DUA LOMPATAN: temuan_k3.inspeksi_id → inspeksi_k3.project_id. '
-      + 'Tabel ini juga memakai kolom `tingkat` (bahasa Indonesia), bukan '
-      + '`severity` seperti punch list dan NCR — fungsi bersamanya menerima keduanya.',
-  },
-  {
     kunci: 'rfq-lewat-batas',
     nama: 'RFQ lewat batas masuk penawaran',
     pemicu: 'jadwal',
@@ -1572,6 +1545,173 @@ export const KATALOG_OTOMASI: ReadonlyArray<EntriKatalog> = [
       ...LANGKAH_KIRIM,
     ],
     ambang: 'otomasi.tenggat_pengadaan.hari',
+  },
+  /*
+    ══════════════════════════════════════════════════════════════════════════
+    ENAM OTOMASI KEPATUHAN — tiga bentuk, sengaja TIDAK disatukan
+    ══════════════════════════════════════════════════════════════════════════
+
+    Berbeda dari tujuh otomasi bertenggat di atas yang berbagi satu fungsi,
+    kelompok ini punya bentuk yang berlainan: satu mengukur ANGKA terhadap
+    ambang, lima mengukur UMUR karena tak ada kolom tenggat mana pun.
+
+    ⚠ Dua yang sempat direncanakan DIBATALKAN sesudah diukur. Otomasi
+    `k3-kepatuhan` sudah menangani induksi kedaluwarsa DAN temuan K3 berat
+    yang lewat tenggat, dengan cakupan lebih luas (persentase kepatuhan per
+    proyek, pekerja yang belum pernah diinduksi, temuan berulang).
+  */
+  {
+    kunci: 'lingkungan-lampaui-baku',
+    nama: 'Baku mutu lingkungan terlampaui',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai hasil pemantauan lingkungan yang melanggar baku mutu, dan yang '
+      + 'sudah di ambangnya. Ini satu-satunya otomasi di katalog yang mengukur '
+      + 'ANGKA terhadap ambang, bukan tanggal terhadap hari ini — dan karena itu '
+      + 'tak punya ambang umur: begitu terukur melampaui, ia dilaporkan. '
+      + 'Pelanggaran baku mutu berujung sanksi administratif sampai penghentian '
+      + 'kegiatan, dan yang menentukan bukan lamanya melainkan bahwa ia pernah '
+      + 'tercatat. Parameter yang ARAHNYA TERBALIK — pH minimum, oksigen '
+      + 'terlarut — diperlakukan berbeda: yang melanggar justru yang di BAWAH '
+      + 'baku mutu; tanpa pembedaan itu ia dilaporkan aman persis ketika paling '
+      + 'berbahaya. Pengukuran yang terlalu lama tak dilaporkan karena ia catatan '
+      + 'sejarah, bukan keadaan sekarang.',
+    penerima: 'Petugas K3 & lingkungan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca pemantauan lingkungan proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Melewati pengukuran yang lebih tua dari jendela yang disetel.' },
+      { di: 'sistem', teks: 'Membedakan parameter arah biasa dari yang arahnya terbalik.' },
+      { di: 'sistem', teks: 'Memisahkan yang melanggar dari yang mendekati ambang.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.lingkungan.margin_persen',
+    catatan:
+      'Baku mutu bernilai NOL diperlakukan sebagai belum terukur, bukan dibagi. '
+      + 'Pembagian dengan nol menghasilkan Infinity yang lolos pemeriksaan naif '
+      + 'dan melaporkan "melampaui" untuk setiap parameter yang baku mutunya '
+      + 'belum diisi.',
+  },
+  {
+    kunci: 'temuan-audit-menggantung',
+    nama: 'Temuan audit belum ditutup',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai temuan audit internal yang belum ditutup. Temuan yang menggantung '
+      + 'membuat audit BERIKUTNYA menemukan hal yang sama — dan sertifikasi mutu '
+      + 'menilai justru dari situ: bukan berapa temuan yang ada, melainkan berapa '
+      + 'yang berulang. Umurnya dihitung dari TANGGAL AUDIT, bukan dari kapan '
+      + 'temuannya diketik ke sistem; yang kedua bisa berminggu sesudahnya atau '
+      + 'bahkan saat migrasi data. Ketidaksesuaian major diingatkan dua kali lebih '
+      + 'cepat karena ia yang menahan sertifikasi.',
+    penerima: 'Penanggung jawab mutu',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca audit mutu proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Membaca temuan milik audit itu.' },
+      { di: 'sistem', teks: 'Menghitung umur dari tanggal audit, bukan tanggal pencatatan.' },
+      { di: 'sistem', teks: 'Menyebutkan apakah sudah ditindaklanjuti lewat NCR.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.temuan_audit.hari',
+    catatan:
+      'Tenancy-nya DUA LOMPATAN: temuan_audit.audit_id → audit_mutu.project_id.',
+  },
+  {
+    kunci: 'itp-belum-diperiksa',
+    nama: 'Titik ITP belum diperiksa',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai titik Inspection & Test Plan yang belum diverifikasi. ITP '
+      + 'menetapkan TITIK HENTI: tahap yang tak boleh dilewati tanpa pemeriksaan. '
+      + 'Titik berjenis HOLD diingatkan dua kali lebih cepat karena ia titik henti '
+      + 'sejati — pekerjaan berikutnya sudah berjalan di atas sesuatu yang tak '
+      + 'pernah diperiksa, dan membongkarnya untuk memeriksa belakangan biasanya '
+      + 'mustahil. Titik yang SUDAH diperiksa tetapi TIDAK LOLOS tetap dihitung '
+      + 'belum selesai: menganggapnya beres membuat titik yang gagal justru '
+      + 'berhenti ditegur.',
+    penerima: 'Penanggung jawab mutu & pengawas lapangan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca rencana mutu proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Membaca titik ITP milik rencana itu.' },
+      { di: 'sistem', teks: 'Memisahkan yang belum diperiksa dari yang diperiksa tapi tidak lolos.' },
+      { di: 'sistem', teks: 'Menaikkan prioritas untuk titik berjenis HOLD.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.itp.hari',
+    catatan:
+      'Tenancy-nya DUA LOMPATAN: itp_titik.rencana_mutu_id → rencana_mutu.project_id.',
+  },
+  {
+    kunci: 'ipc-mengendap-draf',
+    nama: 'Sertifikat IPC mengendap sebagai draf',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai sertifikat IPC (Interim Payment Certificate) yang masih berstatus '
+      + 'draf. IPC adalah dasar penagihan termin: yang mengendap berarti pekerjaan '
+      + 'yang SUDAH DIKERJAKAN belum ditagihkan — dan tak ada yang mengeluh, '
+      + 'karena kliennya tak tahu ada yang seharusnya datang. Yang sudah disetujui '
+      + 'atau sudah menjadi invoice tak lagi dihitung mengendap. Nilai yang '
+      + 'tertahan diperkirakan kasar hanya untuk menentukan prioritas, bukan untuk '
+      + 'disebut sebagai angka tagihan — rumus IPC sungguhnya melibatkan retensi '
+      + 'dan potongan yang tempatnya bukan di otomasi ini.',
+    penerima: 'Penanggung jawab keuangan proyek',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca sertifikat IPC proyek yang masih berjalan.' },
+      { di: 'sistem', teks: 'Melewati yang sudah disetujui atau sudah menjadi invoice.' },
+      { di: 'sistem', teks: 'Memperkirakan nilai tertahan untuk menentukan prioritas.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.ipc_draf.hari',
+  },
+  {
+    kunci: 'cuti-belum-diputus',
+    nama: 'Pengajuan cuti menunggu keputusan',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai pengajuan cuti yang belum diputus. Ini masalah kecil bagi '
+      + 'perusahaan dan masalah besar bagi yang mengajukan: ia tak bisa memesan '
+      + 'tiket, tak bisa memberi kabar keluarga, dan pada akhirnya berangkat tanpa '
+      + 'keputusan resmi — yang lalu tercatat sebagai mangkir. Pengajuan yang '
+      + 'tanggal mulainya tinggal seminggu lagi diingatkan dua kali lebih cepat: '
+      + 'bukan lamanya menunggu yang paling merugikan, melainkan seberapa dekat '
+      + 'keberangkatan.',
+    penerima: 'Atasan & bagian SDM',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca pegawai milik badan usaha ini.' },
+      { di: 'sistem', teks: 'Membaca pengajuan cuti milik pegawai itu.' },
+      { di: 'sistem', teks: 'Menaikkan prioritas untuk yang tanggal mulainya sudah dekat.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.cuti.hari',
+    catatan:
+      'SATU-SATUNYA otomasi di katalog yang tenancy-nya tidak lewat proyek sama '
+      + 'sekali — `cuti_ambil` menggantung di `pegawai_id`.',
+  },
+  {
+    kunci: 'nota-kredit-menggantung',
+    nama: 'Nota kredit menggantung',
+    pemicu: 'jadwal',
+    penjelasan:
+      'Menandai nota kredit yang belum tuntas — uang yang HARUS KEMBALI dari '
+      + 'pemasok karena barang cacat, kelebihan tagih, atau retur. DUA keadaan '
+      + 'dilaporkan, dan yang kedua paling mudah luput: yang menunggu KEPUTUSAN, '
+      + 'dan yang sudah DISETUJUI tetapi belum diterapkan ke tagihan. Yang kedua '
+      + 'statusnya terbaca positif, laporan mana pun menghitungnya beres, dan '
+      + 'uangnya tetap tak kembali. Diamnya tak menimbulkan gejala apa pun karena '
+      + 'kasnya sudah keluar sejak lama.',
+    penerima: 'Penanggung jawab keuangan & pengadaan',
+    alur: [
+      ...LANGKAH_JADWAL,
+      { di: 'sistem', teks: 'Membaca nota kredit milik badan usaha ini.' },
+      { di: 'sistem', teks: 'Memisahkan yang menunggu keputusan dari yang disetujui tapi belum diterapkan.' },
+      { di: 'sistem', teks: 'Menaikkan prioritas untuk nilai di atas ambang.' },
+      ...LANGKAH_KIRIM,
+    ],
+    ambang: 'otomasi.nota_kredit.hari',
   },
   {
     kunci: 'bbm-melonjak',
@@ -2403,19 +2543,7 @@ export function entriKatalog(kunci: string): EntriKatalog | null {
   return KATALOG_OTOMASI.find((e) => e.kunci === kunci) ?? null
 }
 
-/*
-  `kunciRuteTerjadwal()` pernah ada di sini dan dibuang 2026-08-27.
-
-  Komentarnya berbunyi "dipakai penjaga dan rute ikhtisar" dan itu KELIRU pada
-  keduanya — nol pemanggil sejak ditulis. Penjaganya (`audit-katalog-otomasi-
-  nyata.mjs`) skrip `.mjs` dan membaca `kunci_bukan_rute` lewat regex terhadap
-  TEKS berkas ini, karena mengimpor modul TypeScript dari sana menuntut
-  transpile; itu pola yang memang dipakai repo ini. Rute ikhtisar
-  (`otomasi-alur.ts:600`) sengaja memetakan SELURUH katalog termasuk yang
-  bukan rute, karena ikhtisar harus menampilkan semuanya.
-
-  Bentuk cacat yang sama dengan `pastikanProfilDidukung` di `struktur-baja.ts`:
-  komentar yang menyatakan sebuah fungsi dipanggil, padahal tidak. Bedanya, di
-  sana ketiadaan panggilan itu MERUSAK hitungan; di sini fungsinya memang tak
-  dibutuhkan — jadi dibuang, bukan disambungkan.
-*/
+/** Kunci yang MEMANG rute terjadwal — dipakai penjaga dan rute ikhtisar. */
+export function kunciRuteTerjadwal(): string[] {
+  return KATALOG_OTOMASI.filter((e) => !e.kunci_bukan_rute).map((e) => e.kunci)
+}
