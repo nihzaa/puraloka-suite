@@ -47,28 +47,29 @@ const LOMPATAN_LAMA = {
   30: 'nomor tak pernah dipakai; tak ada berkas 030_* di histori git mana pun',
   59: 'dipakai `db/seeds/seed_dummy_data.sql` — tercatat di schema_migrations sebagai versi 059, tetapi memang SEED, bukan migrasi',
   64: 'nomor tak pernah dipakai; tak ada berkas 064_* di histori git mana pun',
-  // 471-501: dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren
+  // 434-436: sama kelasnya dengan 30/59/64 — diperiksa 2026-08-29 dengan
+  // `git log --all --diff-filter=A` dan tak ada berkas 434_*/435_*/436_*
+  // yang pernah ada di histori mana pun, juga tak tercatat di
+  // schema_migrations. Bukan migrasi hilang, melainkan nomor yang tak
+  // pernah lahir.
+  434: 'nomor tak pernah dipakai; nihil di histori git DAN di schema_migrations (diperiksa 2026-08-29)',
+  435: 'nomor tak pernah dipakai; nihil di histori git DAN di schema_migrations (diperiksa 2026-08-29)',
+  436: 'nomor tak pernah dipakai; nihil di histori git DAN di schema_migrations (diperiksa 2026-08-29)',
+  // 471-477 & 483-488 TIDAK lagi di sini: nomor-nomor itu DIPAKAI 2026-08-29
+  // untuk menomori ulang 13 migrasi yang sebelumnya bertabrakan (lihat commit
+  // "13 migrasi tak pernah jalan di server baru"). Nomor bebas dipilih di
+  // rentang ini justru supaya urutannya tetap SESUDAH aslinya (≤470) dan
+  // SEBELUM 511/512 yang bergantung pada tabel struktur.
+  //
+  // 478-482 & 489-501: dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren
   // memegang nomor-nomor ini di database hidup saat migrasi cabang ini
   // didispatch, jadi penomoran ulang dinamis melompatinya untuk menghindari
   // tabrakan. Praktik yang disengaja & sudah disetujui, bukan kecelakaan.
-  471: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  472: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  473: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  474: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  475: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  476: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  477: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
   478: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
   479: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
   480: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
   481: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
   482: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  483: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  484: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  485: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  486: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  487: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
-  488: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
   489: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
   490: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',
   491: 'dilewati saat renumbering Admin SaaS 2026-08-22 — sesi konkuren memegang nomor ini di database hidup saat migrasi ini didispatch',

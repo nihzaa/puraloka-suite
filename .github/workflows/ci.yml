@@ -1246,6 +1246,19 @@ jobs:
       - name: Penomoran migrasi (nol ganda, nol lompatan baru)
         run: node scripts/audit-penomoran-migrasi.mjs
 
+      # Arah sebaliknya dari penjaga di atas, dan yang menjawab pertanyaan
+      # sesungguhnya: bukan "apakah nomornya rapi" melainkan "apakah tiap
+      # migrasi BENAR-BENAR JALAN di lingkungan baru".
+      #
+      # Diukur 2026-08-29: 13 migrasi TAK PERNAH jalan di basis kosong —
+      # seluruh modul struktur, take-off sektor, mitra, tujuh otomasi
+      # bertenggat. Di basis pengembangan semuanya tampak sehat karena
+      # tabelnya sudah terlanjur ada; yang rusak justru SERVER BARU.
+      #
+      # Tak menyentuh basis, jadi tak butuh kredensial apa pun.
+      - name: Replay bersih — nol migrasi dilewati senyap
+        run: node scripts/audit-replay-bersih.mjs
+
       # R-001 syarat 3 — dua migrasi mendefinisikan tabel yang sama.
       #
       # `CREATE TABLE IF NOT EXISTS` melindungi dari "sudah dibuat oleh migrasi
