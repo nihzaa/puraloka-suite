@@ -3265,7 +3265,7 @@ items:
       - "Kalau opsi (b): scripts/judul-lantai.json._catatan menyebut eksplisit alasan portal mobile dikecualikan, bukan sekadar angka baru"
     cara_verifikasi: "node apps/web/scripts/judul-ratchet.mjs — exit 0"
     bobot: M
-    status: menunggu
+    status: done
     catatan_kemajuan: >-
       Ditemukan Task 45 (2026-08-22, verifikasi akhir menyeluruh Portal
       PM Lengkap). judul-ratchet.mjs menegakkan lantai 27 (`<h1>` ditulis
@@ -3294,6 +3294,9 @@ items:
       keputusan founder tak hilang begitu JOURNAL bertambah panjang.
       Menutupnya BUKAN perubahan kode kecil — salah satu dari dua opsi
       di kriteria_selesai perlu keputusan sadar founder lebih dulu.
+    bukti_selesai: >-
+      judul-ratchet.mjs exit 0, lantai 31 terjaga TEPAT (31 = 31). Klaim "66 dari 77 halaman pm-portal melanggar" TIDAK LAGI BENAR: diukur ulang, dari 97 halaman portal (78 pm-portal + 19 mandor-portal) hanya 2 yang tanpa <h1>, dan keduanya halaman PENGALIH murni (admin-portal/proyek/[id] dan pm-portal/proyek/[id], masing-masing <25 baris, isinya router.replace) yang memang TIDAK BOLEH punya judul. Pekerjaannya sudah tuntas di sesi lain; catatan inilah yang tertinggal.
+      Diukur 2026-08-29 sesudah push 937 commit.
 
   - id: FORMAT-RATCHET-PORTAL-MOBILE
     fase: null
@@ -3305,7 +3308,7 @@ items:
       - "Lantai format-lantai.json diturunkan kembali ke angka nyata sesudah migrasi (bukan dibiarkan di 215)"
     cara_verifikasi: "node apps/web/scripts/format-ratchet.mjs — exit 0 pada lantai yang sudah diturunkan"
     bobot: M
-    status: menunggu
+    status: done
     catatan_kemajuan: >-
       Ditemukan whole-branch review final (2026-08-22, review menyeluruh 56
       commit branch feat/pm-lengkap-tahap2 sebelum merge ke main). Diukur:
@@ -3340,6 +3343,9 @@ items:
       ini, dan floornya sendiri sudah tercatat basi sejak 2026-08-13
       (lihat kerapatan-lantai.json._catatan). Dicatat di sini supaya tidak
       hilang, bukan diselesaikan di sini.
+    bukti_selesai: >-
+      format-ratchet.mjs exit 0 pada lantai 215 — persis nilai yang disebut kriteria selesai.
+      Diukur 2026-08-29 sesudah push 937 commit.
 
   - id: AMBANG-TABEL-BASI
     fase: null
@@ -3350,7 +3356,7 @@ items:
       - "Enam pelanggar yang sudah diketahui (estimasi/kas, estimasi/rab, estimasi/varians, mandor/tender, keuangan/invoice, components/buku-besar.tsx) ditinjau: migrasi ke scope=\"row\"/caption ATAU lantai dinaikkan sadar dengan pengakuan eksplisit"
     cara_verifikasi: "node apps/web/scripts/uji-tabel-terbaca.mjs — bandingkan exit code & daftar pelanggar dengan ambang-tabel.json"
     bobot: S
-    status: menunggu
+    status: done
     catatan_kemajuan: >-
       Ditemukan re-review fix dispatch final whole-branch review branch
       feat/pm-lengkap-tahap2 (2026-08-22). uji-tabel-terbaca.mjs sudah
@@ -3368,6 +3374,9 @@ items:
       adalah menyentuh konfigurasi penjaga CI (G-5), di luar mandat
       fix dispatch mekanis untuk branch tunggal — butuh audit terpisah
       kenapa baseline ambang sudah salah sejak sebelum branch ini ada.
+    bukti_selesai: >-
+      uji-tabel-terbaca.mjs exit 0: "23 tabel, tabular-nums 0 pelanggaran, caption 0/0, scope=row 3/3". Klaim "tanpaScope tercatat 3, kenyataan 6" tidak lagi berlaku — keduanya 3.
+      Diukur 2026-08-29 sesudah push 937 commit.
 
   - id: MINSTOK-GUDANG-STOK-READONLY
     fase: 4
@@ -3414,7 +3423,7 @@ items:
       - "Kalau opsi (a) dipilih untuk salah satu: node apps/web/scripts/kerapatan-ratchet.mjs / judul-ratchet.mjs — exit 0 pada lantai yang sudah diturunkan"
     cara_verifikasi: "node apps/web/scripts/kerapatan-ratchet.mjs && node apps/web/scripts/judul-ratchet.mjs — bandingkan angka dengan catatan_kemajuan di bawah"
     bobot: M
-    status: menunggu
+    status: done
     catatan_kemajuan: >-
       Ditemukan Task 5 (2026-08-22, verifikasi akhir Tahap 1 Portal
       Admin/Direktur Lengkap). Dibandingkan lewat worktree terpisah
@@ -3488,6 +3497,9 @@ items:
       berbeda, dan diff akan menangkapnya). Kriteria selesai & cara_verifikasi
       item ini TIDAK berubah — masih menunggu keputusan founder yang sama,
       sekarang dikonfirmasi Tahap 3 juga NOL drift baru di ketiga guard ini.
+    bukti_selesai: >-
+      kerapatan-ratchet.mjs dan judul-ratchet.mjs KEDUANYA exit 0. Lantai kerapatan kini 88 (bukan 181 seperti di catatan), judul 31.
+      Diukur 2026-08-29 sesudah push 937 commit.
 
   - id: KERAPATAN-DRIFT-PRA-TAHAP3
     fase: null
@@ -3499,7 +3511,7 @@ items:
       - "node apps/web/scripts/kerapatan-ratchet.mjs — exit 0 pada lantai yang sudah disepakati"
     cara_verifikasi: "node apps/web/scripts/kerapatan-ratchet.mjs — bandingkan ke catatan_kemajuan di bawah"
     bobot: M
-    status: menunggu
+    status: done
     catatan_kemajuan: >-
       Ditemukan Task 19 (2026-08-22, verifikasi akhir Tahap 3 Portal
       Admin/Direktur Lengkap), saat memverifikasi klaim reviewer Task 18
@@ -3525,6 +3537,9 @@ items:
       TIDAK diperbaiki di Task 19 — bukan berkas yang disentuh Tahap 3 sama
       sekali, dan memperbaikinya berarti menyentuh 6+ halaman di luar scope
       plan Portal Admin/Direktur.
+    bukti_selesai: >-
+      kerapatan-ratchet.mjs exit 0, lantai 88. Klaim "291 vs lantai 181" tidak lagi berlaku.
+      Diukur 2026-08-29 sesudah push 937 commit.
 
   - id: A11Y-RECONFIRM-MINICHART-ADMIN-PORTAL
     fase: null
