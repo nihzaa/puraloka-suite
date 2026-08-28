@@ -249,20 +249,6 @@ jobs:
       - name: Penulisan senyap (update/delete/insert tanpa cek hasil)
         run: node scripts/audit-tulis-tanpa-periksa.mjs
 
-      # Report builder (G6d) bersandar sepenuhnya pada daftar sumber di
-      # `lib/laporan-susun.ts`: apa pun yang tak ada di daftar ditolak. Yang
-      # TIDAK dijaga siapa pun sebelum ini: apakah yang ADA di daftar benar-
-      # benar ada di basis. Kolom karangan LOLOS seluruh pemeriksaan pustaka
-      # — ia ada di daftar, jadi sah — lalu gagal di basis dengan pesan yang
-      # menunjuk query, sehingga yang membacanya mengira query-nya yang salah.
-      # Sudah terjadi sekali (`project_expenses.amount`, yang benar
-      # `total_amount`). Yang paling mahal kalau salah: sumber yang keliru
-      # menyatakan cara penyaringan tenant-nya menarik data perusahaan lain,
-      # dan hasilnya terlihat seperti laporan yang wajar. Ambang NOL.
-      - name: Sumber laporan cocok dengan skema nyata
-        run: node scripts/audit-sumber-laporan-nyata.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # `catch {}` kosong membuang justru pesan yang dibutuhkan untuk menemukan
       # sebab kegagalan. 18 di antaranya membungkus pengiriman notifikasi — dan
@@ -373,92 +359,9 @@ jobs:
       - name: Penjadwal yang dilewati tetap terlihat
         run: node scripts/audit-penjadwal-hidup.mjs
 
-      # Sepupu L-4 untuk arah sebaliknya: bukan "kolom punya pembaca" melainkan
-      # "peristiwa punya alur". `utils/terbit-peristiwa.ts` memetakan jenis
-      # notifikasi ke kode alur otomasi, dan kode itu jadi `path` webhook n8n.
-      #
-      # Kalau kodenya salah ketik atau alurnya hilang, panggilannya membalas
-      # 404 — dan `terbitkanPeristiwa` SENGAJA diam pada 404, karena itu
-      # keadaan wajar selama alur belum dinyalakan. Jadi salah ketik terlihat
-      # persis sama dengan "belum dinyalakan", dan satu-satunya gejalanya
-      # adalah WhatsApp yang tak pernah datang.
-      #
-      # Memeriksa empat hal: kode punya resep di `bangun-alur.mjs`, kodenya sah
-      # sebagai path URL, dan (bila ada DATABASE_URL) barisnya ada di
-      # `otomasi_alur`. Ambang NOL. Bukti merah: dua mutasi (salah ketik kode;
-      # kode berspasi), keduanya MERAH lalu HIJAU sesudah dipulihkan.
-      - name: Peristiwa otomasi menunjuk alur yang ada
-        run: node scripts/audit-peristiwa-punya-alur.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
-      # Fungsi izin tak boleh RUNTUH saat konteks tenant tak ada.
-      #
-      # Migrasi 366 membuat `get_role_permissions` sadar-tenant, dan
-      # penyaringnya benar saat `auth_company_id()` terisi — lalu runtuh diam
-      # saat tidak: `NULL = NULL` bukan TRUE, jadi hanya baris template lolos.
-      # `plugins/auth.ts` memanggilnya lewat service_role TANPA konteks, dan
-      # diukur 2026-08-14 ia mengembalikan 1 izin, bukan 217. Seluruh
-      # `requirePermission` menolak dengan 403.
-      #
-      # Login TIDAK ikut rusak (API menyetel app.company_id per-request), dan
-      # itu yang membuatnya berbahaya: jalur normal benar, jalur tanpa konteks
-      # diam. Gejalanya muncul sepuluh langkah dari sebabnya.
-      #
-      # Menguji JAWABAN fungsinya, bukan teks SQL-nya — bentuk boleh berubah.
-      # Ambang NOL. Bukti merah: cacat 366 dikembalikan (izin 217 → 1),
-      # penjaga MERAH, lalu HIJAU sesudah 372 dipulihkan.
-      - name: Fungsi izin tidak kosong tanpa konteks tenant
-        run: node scripts/audit-izin-tanpa-konteks.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
-      # Dedup notifikasi harian wajib benar-benar MENAHAN.
-      #
-      # Founder bertanya 2026-08-14 "kenapa banyak banget?" — diukur: 14.568
-      # notifikasi, 5.598 belum dibaca di akun founder sendiri. Sebabnya dedup
-      # yang mati karena SATU BYTE: kunci ditulis dengan pemisah `NUL`, dicari
-      # dengan SPASI. Tak terlihat di editor mana pun.
-      #
-      # Sudah diperbaiki commit e8ba8d02, dan test dedupnya hijau. Tetapi test
-      # hanya membuktikan fungsinya benar untuk dua panggilan berturut — ia tak
-      # pernah bertanya "berapa kembar yang sudah terlanjur ada di basis". Dari
-      # 11 Agustus: 8.478 baris untuk 234 kombinasi unik, 36× lipat.
-      #
-      # Yang diukur: kembar HARI INI (ambang NOL). Residu lama dilaporkan tanpa
-      # memerahkan — penjaga yang merah selamanya berhenti dibaca, pelajaran
-      # `rls-initplan`. Bukti merah: satu notifikasi kembar disisipkan → MERAH,
-      # dihapus → HIJAU.
-      - name: Notifikasi tidak kembar (dedup harian menahan)
-        run: node scripts/audit-notifikasi-tak-kembar.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
-      # Pembacaan tabel penuh tak boleh terpotong diam-diam di 1.000 baris.
-      #
-      # PostgREST memulangkan maksimal 1.000 baris TANPA galat dan TANPA
-      # penanda: `data` terisi, `error` null, kode jalan terus dengan data
-      # yang tak lengkap.
-      #
-      # `utils/role-guard.ts` membaca seluruh `role_permissions` (1.640 baris
-      # sejak migrasi 364) untuk memutuskan apakah pencabutan izin akan
-      # mengunci sistem. 640 baris terakhir tak pernah terbaca, jadi role yang
-      # SEBENARNYA memegang izin kritikal terbaca kosong — dan penjaga
-      # anti-lockout MELOLOSKAN pencabutan yang ia dirancang cegah.
-      #
-      # Gejalanya menyamar sebagai test flaky: merah/hijau bergantian pada run
-      # berturut dengan keadaan basis identik (diukur 217/217 sebelum & sesudah
-      # tiap run). Yang bergeser hanya baris mana yang masuk 1.000 pertama.
-      #
-      # Yang diukur KENYATAAN, bukan teks: untuk tiap tabel yang dibaca utuh
-      # tanpa pembatas, berapa baris yang benar-benar ada. Ambang NOL di 1.000,
-      # peringatan di 800 — cacat yang tak berbunyi harus tertangkap SEBELUM
-      # garisnya terlewati. Bukti merah: paging di `role-guard` dilepas →
-      # MERAH (exit 1, menunjuk role-guard.ts:69) → dipulihkan → HIJAU (exit 0).
-      - name: Baca tabel penuh tidak terpotong di 1.000 baris
-        run: node scripts/audit-baca-tak-terpotong.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Saluran keluar wajib berpagar terhadap test.
       #
@@ -810,60 +713,7 @@ jobs:
       - name: Kredensial tidak bocor lintas tenant
         run: node scripts/audit-kredensial-lintas-tenant.mjs
 
-      # Tiap pengguna aktif wajib punya keanggotaan default.
-      #
-      # Cacat yang SAMA dibersihkan DUA KALI dalam satu hari: migrasi 379
-      # (3 pengguna, verifikasi lulus nol tersisa) lalu migrasi 394 (13 lagi).
-      # Keduanya membersihkan gejala tanpa menutup sumbernya — celah di
-      # `PATCH /my/companies/:id/default`, yang menurunkan SEMUA default lebih
-      # dulu lalu menaikkan yang dipilih. Kegagalan penurunan sudah diperiksa;
-      # kegagalan KENAIKAN tidak, dan di situ pengguna tertinggal nol default.
-      # Urutannya sudah dibalik di commit yang sama.
-      #
-      # Kenapa nol default melumpuhkan: `auth_company_id()` jatuh ke
-      # keanggotaan default. Tanpa satu pun ia NULL, lalu `tenant_isolation`
-      # RESTRICTIVE (migrasi 373) menyaring HABIS — pengguna melihat NOL data
-      # tanpa galat, layar merah, maupun baris log.
-      #
-      # Sekali ini menjatuhkan `t5b-kill-switch` dengan pesan yang menunjuk ke
-      # arah SALAH: "kebocoran lintas-tenant". Sepuluh langkah dari sebabnya.
-      #
-      # Ambang NOL untuk keanggotaan TUNGGAL (tak ada yang perlu ditebak).
-      # Yang berkeanggotaan ganda dilaporkan tanpa memerahkan — memilih company
-      # mana yang terbuka saat login adalah preferensi pemiliknya.
-      #
-      # Bukti merah: satu `is_default` dicabut → exit 1 → dipulihkan → exit 0.
-      - name: Pengguna aktif punya keanggotaan default
-        run: node scripts/audit-keanggotaan-punya-default.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
-      # Kunci izin yang dipakai kode wajib benar-benar ada di `permissions`.
-      #
-      # Saat membangun automation 1.1 (2026-08-15) saya menulis
-      # `izin: 'expenses:create'` — kunci yang TIDAK ADA. Yang benar
-      # `cash:expense:create`. Ketahuannya kebetulan, saat mengukur hal lain.
-      #
-      # Kenapa kunci hantu tak pernah berbunyi: `requirePermission` untuk kunci
-      # yang tak ada TIDAK melempar. Ia memeriksa kepemilikan, dan tak seorang
-      # pun memiliki kunci hantu — jadi fiturnya menolak SEMUA ORANG dengan 403
-      # yang terbaca seperti "Anda tak punya izin", bukan seperti "kuncinya
-      # salah ketik". Orang akan memeriksa peran, menambah permission ke role,
-      # memeriksa RBAC — dan tak satu pun menolong.
-      #
-      # Ambang NOL, dan itu bukan ambisi: diukur 180 kunci dipakai di kode, NOL
-      # hantu. Penjaga ini mengunci keadaan yang sudah bersih.
-      #
-      # Hanya LITERAL yang diperiksa; `requirePermission(variabel)` dilewati —
-      # nilainya baru diketahui saat berjalan, dan menebaknya menghasilkan
-      # positif palsu yang membuat penjaga berhenti dibaca.
-      #
-      # Bukti merah: izin karangan dikembalikan → exit 1 menunjuk kuncinya →
-      # dipulihkan → exit 0.
-      - name: Kunci izin benar-benar ada di basis
-        run: node scripts/audit-izin-benar-ada.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Tiap modul analisa struktur wajib terdaftar di penjaga terjemahan awam
       # (`lib/__tests__/struktur-awam.test.ts`). Penjaga itu menuntut tiap
@@ -881,59 +731,8 @@ jobs:
       - name: Modul analisa struktur terdaftar di penjaga terjemahan awam
         run: node scripts/audit-modul-struktur-terdaftar.mjs
 
-      # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
-      # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
-      # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan
-      # keduanya menyesatkan — yang ada di kode tetapi tak di basis ditolak
-      # dengan pesan constraint MENTAH; yang ada di basis tetapi tak di kode
-      # jadi tak terjangkau lewat aplikasi tanpa satu pun galat.
-      #
-      # Bukti merah: jenis karangan ditambahkan ke konstanta JENIS → exit 1
-      # menyebut namanya → dipulihkan → exit 0.
-      - name: Jenis elemen struktur cocok antara kode dan basis
-        run: node scripts/audit-jenis-struktur-cocok.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
-      # Harga bahan wajib masuk akal untuk SATUANNYA. Ditemukan 2026-08-19:
-      # harga per m3 tersalin apa adanya ke resource bersatuan kg — pasir beton
-      # Rp 370.200/kg, kerikil Rp 352.300/kg — dan akibatnya 1 m3 beton f'c 25
-      # terhitung **Rp 626.849.988**, bukan Rp 1,2 juta. Menyebar ke 32 AHSP.
-      #
-      # Tak ada satu pun yang salah secara struktural: resource ada, satuan
-      # terisi, harga angka positif, resolver dan AHSP menghitung benar. Yang
-      # salah cuma BESARAN — dan besaran tak punya penjaga sampai penjaga ini.
-      #
-      # Cara memutuskannya tak memakai daftar harga wajar (daftar begitu ikut
-      # membusuk): bahan yang sama muncul di satuan ruah DAN massa dengan harga
-      # SAMA PERSIS. Satu m3 pasir ~1.400 kg, jadi keduanya tak mungkin bertemu
-      # di angka yang sama kecuali salah satunya hasil salin.
-      #
-      # Bukti merah: memilih entri harga TERLAMA alih-alih yang berlaku → exit 1
-      # menyebut 4 pasangan → dipulihkan → exit 0.
-      - name: Harga bahan masuk akal untuk satuannya
-        run: node scripts/audit-harga-satuan-waras.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
-      # Daftar SEKTOR take-off ada di dua tempat yang harus sama: CHECK
-      # `takeoff_sektor_sah` (migrasi 465) dan konstanta SEKTOR_SAH di
-      # `lib/takeoff-sektor.ts`. Yang ada di kode tetapi tak di basis membuat
-      # rute menghitung volumenya lalu basis menolak dengan pesan constraint
-      # MENTAH; yang ada di basis tetapi tak di kode membuat sektornya tak
-      # terjangkau siapa pun lewat aplikasi, tanpa satu pun galat.
-      #
-      # Ikut memeriksa tiap sektor punya satuan DAN cabang perhitungan —
-      # sektor tanpa cabang lolos typecheck dan melempar di jalan, pada layar
-      # estimator, sesudah ia mengisi seluruh dimensinya.
-      #
-      # Bukti merah: 4 mutasi (sektor karangan di kode · sektor dihapus dari
-      # kode · cabang dihapus · satuan dihapus) → keempatnya exit 1 dengan
-      # pesan yang menyebut sektornya → dipulihkan → exit 0.
-      - name: Sektor take-off cocok antara kode dan basis
-        run: node scripts/audit-sektor-takeoff-cocok.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Baris `besi` memuat DUA barang berbeda: tulangan beton (BjTP/BjTS,
       # berdiameter, dijual per lonjor) dan profil baja (WF/H/CNP/INP,
@@ -1082,27 +881,6 @@ jobs:
         run: node scripts/audit-gambar-punya-judul.mjs
 
 
-      # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
-      # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
-      # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris
-      # dan memulangkan sukses, dan rutenya membalas 200 dengan
-      # `notifications_created: 0` — tak bisa dibedakan dari "hari ini tak ada
-      # temuan". Otomasinya terlihat sehat selamanya sambil tak memberi tahu
-      # siapa pun.
-      #
-      # Yang diperiksa argumen `resolveRecipients`, BUKAN `type:`. Bentuk
-      # pertama memeriksa `type:` dan salah menuduh delapan dari sepuluh:
-      # `type` itu kategori tampilan, kunci routing string yang lain
-      # (`resolveRecipients('material_request_submitted')` + `type: 'general'`).
-      #
-      # Ambang NOL: diukur 73 kunci dipakai, 73 punya aturan, 0 aturan yatim.
-      #
-      # Bukti merah: satu huruf dihapus dari kunci → exit 1; target satu-satunya
-      # sebuah aturan dihapus → exit 1; keduanya dipulihkan → exit 0.
-      - name: Kunci routing notifikasi punya aturan dan penerima
-        run: node scripts/audit-jenis-notifikasi-punya-aturan.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Halaman yang mengambil data wajib lewat lapis cache bersama (F4-2).
       #
@@ -1184,15 +962,6 @@ jobs:
       - name: Approval satu pintu
         run: node scripts/audit-approval-satu-pintu.mjs
 
-      # Tiap jenis approval WAJIB muncul di inbox terpusat.
-      # Inbox yang tak lengkap mengajarkan approver bahwa antrean kosong
-      # berarti tak ada pekerjaan — lalu ia berhenti memeriksa modul yang tak
-      # pernah muncul. Dokumennya tertahan, pengajunya menunggu, dan tak ada
-      # error yang menandainya.
-      - name: Inbox approval lengkap
-        run: node scripts/audit-inbox-lengkap.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Jejak audit tak boleh hilang diam-diam.
       # `audit_logs.record_id` bertipe uuid, dan LIMA modul memakai `recordId`
@@ -1579,46 +1348,7 @@ jobs:
       - name: Argumen viaProject cocok dengan kolom tenancy-nya
         run: node scripts/audit-viaproject-argumen.mjs
 
-      # TJS-P4 — Segregation of Duties. Diukur 2026-08-12: `recordApproval`
-      # (satu-satunya pintu approval, ADR-007) menerima `approvedBy` dan tak
-      # pernah membandingkannya dengan pengaju. Sembilan jenis, 18 pemanggilan,
-      # nol pengecekan — seorang mandor bisa mengajukan kasbon lalu
-      # menyetujuinya sendiri dalam dua ketukan.
-      #
-      # Yang ADA hanyalah lencana "pengajuan Anda" di inbox dan tombol yang
-      # disembunyikan. Tombol tersembunyi itu UX, bukan batas keamanan.
-      #
-      # Terbukti bisa merah lewat EMPAT mutasi: gerbang dicabut dari satu rute,
-      # satu jenis dihapus dari registri, kolom pengaju dikarang (dicek ke
-      # information_schema), dan nama `recordApproval` diubah sehingga satu
-      # berkas keluar dari pengawasan — yang terakhir ini sempat LOLOS pada
-      # versi pertama penjaga, dan itulah alasan ada LANTAI_PEMANGGIL.
-      - name: Gerbang SoD di tiap jalur persetujuan (TJS-P4)
-        run: node scripts/audit-sod-gerbang.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
-      # TJS-P5 — enum `cf_entitas` hanya boleh menyebut TABEL YANG ADA.
-      #
-      # Migrasi 321 versi pertama menulis 'vendors'; tabelnya bernama
-      # `suppliers`. Enum tidak memvalidasi apa pun ke katalog — bagi Postgres
-      # itu label sah. Akibatnya entitas yang tak pernah bisa dipakai, tanpa
-      # satu pun galat: tenant memilih "Vendor", membuat field, mengisinya,
-      # dan nilainya menggantung di `entitas_id` yang tak menunjuk baris mana
-      # pun.
-      #
-      # Yang menangkapnya kebetulan — saya mengukur nama tabel sebelum
-      # menjalankan migrasi. Ini penjaganya supaya tak bergantung kebetulan.
-      #
-      # Terbukti bisa merah lewat tiga mutasi: 'vendors' disuntik ke enum
-      # (cacat aslinya), tabel ber-id bigint disuntik, dan entitas tak
-      # terklasifikasi tenancy.
-      - name: Entitas custom field menunjuk tabel nyata (TJS-P5)
-        run: node scripts/audit-custom-field-entitas.mjs
-        env:
-          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       # Status sub-menu yang membusuk sementara kode maju. Terbukti terjadi
       # TUJUH kali (F5-1 §3a satu item, §3b enam item) tanpa satu pun penjaga
@@ -1688,6 +1418,349 @@ jobs:
 
       - name: Indeks dokumen mutakhir
         run: node scripts/gen-indeks-docs.mjs --check
+
+
+
+
+
+
+      # F1-5 — berkas contoh env harus benar-benar sampai ke orang yang mengklon.
+      #
+      # `apps/web/.gitignore` punya `.env*` yang ikut menelan `.env.example`.
+      # Cacatnya TAK BERGEJALA di mesin mana pun yang berkasnya sudah tertinggal
+      # secara lokal — hanya klon bersih yang merasakannya. Terungkap saat waktu
+      # klon→siap diukur pada klon sungguhan, bukan diperkirakan.
+      - name: Contoh env ter-track git
+        run: node scripts/audit-contoh-env-terlacak.mjs
+
+      - name: Dokumen rencana harus terhubung ke ROADMAP
+        run: node scripts/audit-docs-vs-roadmap.mjs
+
+      # Fase 0 (0.3) — racun konteks agent.
+      #
+      # `CLAUDE.md` dibaca agent AI di awal setiap sesi. Versi lamanya menyatakan
+      # jumlah migrasi & tabel yang sudah lama tidak benar, dan bahkan tambalan
+      # koreksinya ikut basi. Memperbaiki angkanya sekali tidak menyelesaikan apa
+      # pun — ia akan basi lagi tanpa gejala. Dua penjaga di bawah membuat repo
+      # MENOLAK kelas kesalahan itu masuk kembali.
+      - name: Dokumen konteks bebas angka yang membusuk
+        run: node scripts/audit-docs-freshness.mjs
+
+      - name: Tidak ada dokumen kembar di dua lokasi
+        run: node scripts/audit-no-stale-docs-path.mjs
+
+
+      - name: Penjaga saldo (pemeriksaan tak boleh bisa dilewati)
+        run: node scripts/audit-penjaga-saldo.mjs
+
+      - name: Guard sadar-schema (to_regclass tanpa kualifikasi)
+        run: node scripts/audit-guard-schema.mjs
+
+      # Apply-pending migrasi + seed uji ke project CI (idempoten: skip yang sudah
+      # applied, apply yang baru, re-seed jika hilang). BUKAN push-semua tiap run.
+      - name: Prepare CI project (apply pending migrations + seed)
+        run: node scripts/ci-project-setup.mjs
+        env:
+          CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # ── Penjaga yang MENGUKUR KEADAAN BASIS ────────────────────────
+      #
+      # Kesembilan belas langkah di bawah ini semula berjalan di ATAS,
+      # sebelum `ci-project-setup` menerapkan migrasi. Dua akibatnya:
+      #
+      #   1. Tanpa `DIRECT_URL` mereka keluar kode 2 dengan
+      #      "DIRECT_URL tidak ditemukan" dan menjatuhkan seluruh job.
+      #   2. Sesudah env-nya dipasang, mereka gagal lebih jauh dengan
+      #      `relation "otomasi_alur" does not exist` — basis CI belum
+      #      punya tabelnya, karena migrasinya memang belum jalan.
+      #
+      # Keduanya gejala dari satu sebab: penjaga yang bertanya kepada
+      # skema harus berjalan SESUDAH skema itu ada. Pola ini sudah
+      # dinyatakan di langkah "Kolom .select() harus ada di skema":
+      # "Berjalan SESUDAH migrasi karena skema adalah wasitnya."
+      # Report builder (G6d) bersandar sepenuhnya pada daftar sumber di
+      # `lib/laporan-susun.ts`: apa pun yang tak ada di daftar ditolak. Yang
+      # TIDAK dijaga siapa pun sebelum ini: apakah yang ADA di daftar benar-
+      # benar ada di basis. Kolom karangan LOLOS seluruh pemeriksaan pustaka
+      # — ia ada di daftar, jadi sah — lalu gagal di basis dengan pesan yang
+      # menunjuk query, sehingga yang membacanya mengira query-nya yang salah.
+      # Sudah terjadi sekali (`project_expenses.amount`, yang benar
+      # `total_amount`). Yang paling mahal kalau salah: sumber yang keliru
+      # menyatakan cara penyaringan tenant-nya menarik data perusahaan lain,
+      # dan hasilnya terlihat seperti laporan yang wajar. Ambang NOL.
+      - name: Sumber laporan cocok dengan skema nyata
+        run: node scripts/audit-sumber-laporan-nyata.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Sepupu L-4 untuk arah sebaliknya: bukan "kolom punya pembaca" melainkan
+      # "peristiwa punya alur". `utils/terbit-peristiwa.ts` memetakan jenis
+      # notifikasi ke kode alur otomasi, dan kode itu jadi `path` webhook n8n.
+      #
+      # Kalau kodenya salah ketik atau alurnya hilang, panggilannya membalas
+      # 404 — dan `terbitkanPeristiwa` SENGAJA diam pada 404, karena itu
+      # keadaan wajar selama alur belum dinyalakan. Jadi salah ketik terlihat
+      # persis sama dengan "belum dinyalakan", dan satu-satunya gejalanya
+      # adalah WhatsApp yang tak pernah datang.
+      #
+      # Memeriksa empat hal: kode punya resep di `bangun-alur.mjs`, kodenya sah
+      # sebagai path URL, dan (bila ada DATABASE_URL) barisnya ada di
+      # `otomasi_alur`. Ambang NOL. Bukti merah: dua mutasi (salah ketik kode;
+      # kode berspasi), keduanya MERAH lalu HIJAU sesudah dipulihkan.
+      - name: Peristiwa otomasi menunjuk alur yang ada
+        run: node scripts/audit-peristiwa-punya-alur.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Fungsi izin tak boleh RUNTUH saat konteks tenant tak ada.
+      #
+      # Migrasi 366 membuat `get_role_permissions` sadar-tenant, dan
+      # penyaringnya benar saat `auth_company_id()` terisi — lalu runtuh diam
+      # saat tidak: `NULL = NULL` bukan TRUE, jadi hanya baris template lolos.
+      # `plugins/auth.ts` memanggilnya lewat service_role TANPA konteks, dan
+      # diukur 2026-08-14 ia mengembalikan 1 izin, bukan 217. Seluruh
+      # `requirePermission` menolak dengan 403.
+      #
+      # Login TIDAK ikut rusak (API menyetel app.company_id per-request), dan
+      # itu yang membuatnya berbahaya: jalur normal benar, jalur tanpa konteks
+      # diam. Gejalanya muncul sepuluh langkah dari sebabnya.
+      #
+      # Menguji JAWABAN fungsinya, bukan teks SQL-nya — bentuk boleh berubah.
+      # Ambang NOL. Bukti merah: cacat 366 dikembalikan (izin 217 → 1),
+      # penjaga MERAH, lalu HIJAU sesudah 372 dipulihkan.
+      - name: Fungsi izin tidak kosong tanpa konteks tenant
+        run: node scripts/audit-izin-tanpa-konteks.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Dedup notifikasi harian wajib benar-benar MENAHAN.
+      #
+      # Founder bertanya 2026-08-14 "kenapa banyak banget?" — diukur: 14.568
+      # notifikasi, 5.598 belum dibaca di akun founder sendiri. Sebabnya dedup
+      # yang mati karena SATU BYTE: kunci ditulis dengan pemisah `NUL`, dicari
+      # dengan SPASI. Tak terlihat di editor mana pun.
+      #
+      # Sudah diperbaiki commit e8ba8d02, dan test dedupnya hijau. Tetapi test
+      # hanya membuktikan fungsinya benar untuk dua panggilan berturut — ia tak
+      # pernah bertanya "berapa kembar yang sudah terlanjur ada di basis". Dari
+      # 11 Agustus: 8.478 baris untuk 234 kombinasi unik, 36× lipat.
+      #
+      # Yang diukur: kembar HARI INI (ambang NOL). Residu lama dilaporkan tanpa
+      # memerahkan — penjaga yang merah selamanya berhenti dibaca, pelajaran
+      # `rls-initplan`. Bukti merah: satu notifikasi kembar disisipkan → MERAH,
+      # dihapus → HIJAU.
+      - name: Notifikasi tidak kembar (dedup harian menahan)
+        run: node scripts/audit-notifikasi-tak-kembar.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Pembacaan tabel penuh tak boleh terpotong diam-diam di 1.000 baris.
+      #
+      # PostgREST memulangkan maksimal 1.000 baris TANPA galat dan TANPA
+      # penanda: `data` terisi, `error` null, kode jalan terus dengan data
+      # yang tak lengkap.
+      #
+      # `utils/role-guard.ts` membaca seluruh `role_permissions` (1.640 baris
+      # sejak migrasi 364) untuk memutuskan apakah pencabutan izin akan
+      # mengunci sistem. 640 baris terakhir tak pernah terbaca, jadi role yang
+      # SEBENARNYA memegang izin kritikal terbaca kosong — dan penjaga
+      # anti-lockout MELOLOSKAN pencabutan yang ia dirancang cegah.
+      #
+      # Gejalanya menyamar sebagai test flaky: merah/hijau bergantian pada run
+      # berturut dengan keadaan basis identik (diukur 217/217 sebelum & sesudah
+      # tiap run). Yang bergeser hanya baris mana yang masuk 1.000 pertama.
+      #
+      # Yang diukur KENYATAAN, bukan teks: untuk tiap tabel yang dibaca utuh
+      # tanpa pembatas, berapa baris yang benar-benar ada. Ambang NOL di 1.000,
+      # peringatan di 800 — cacat yang tak berbunyi harus tertangkap SEBELUM
+      # garisnya terlewati. Bukti merah: paging di `role-guard` dilepas →
+      # MERAH (exit 1, menunjuk role-guard.ts:69) → dipulihkan → HIJAU (exit 0).
+      - name: Baca tabel penuh tidak terpotong di 1.000 baris
+        run: node scripts/audit-baca-tak-terpotong.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Tiap pengguna aktif wajib punya keanggotaan default.
+      #
+      # Cacat yang SAMA dibersihkan DUA KALI dalam satu hari: migrasi 379
+      # (3 pengguna, verifikasi lulus nol tersisa) lalu migrasi 394 (13 lagi).
+      # Keduanya membersihkan gejala tanpa menutup sumbernya — celah di
+      # `PATCH /my/companies/:id/default`, yang menurunkan SEMUA default lebih
+      # dulu lalu menaikkan yang dipilih. Kegagalan penurunan sudah diperiksa;
+      # kegagalan KENAIKAN tidak, dan di situ pengguna tertinggal nol default.
+      # Urutannya sudah dibalik di commit yang sama.
+      #
+      # Kenapa nol default melumpuhkan: `auth_company_id()` jatuh ke
+      # keanggotaan default. Tanpa satu pun ia NULL, lalu `tenant_isolation`
+      # RESTRICTIVE (migrasi 373) menyaring HABIS — pengguna melihat NOL data
+      # tanpa galat, layar merah, maupun baris log.
+      #
+      # Sekali ini menjatuhkan `t5b-kill-switch` dengan pesan yang menunjuk ke
+      # arah SALAH: "kebocoran lintas-tenant". Sepuluh langkah dari sebabnya.
+      #
+      # Ambang NOL untuk keanggotaan TUNGGAL (tak ada yang perlu ditebak).
+      # Yang berkeanggotaan ganda dilaporkan tanpa memerahkan — memilih company
+      # mana yang terbuka saat login adalah preferensi pemiliknya.
+      #
+      # Bukti merah: satu `is_default` dicabut → exit 1 → dipulihkan → exit 0.
+      - name: Pengguna aktif punya keanggotaan default
+        run: node scripts/audit-keanggotaan-punya-default.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Kunci izin yang dipakai kode wajib benar-benar ada di `permissions`.
+      #
+      # Saat membangun automation 1.1 (2026-08-15) saya menulis
+      # `izin: 'expenses:create'` — kunci yang TIDAK ADA. Yang benar
+      # `cash:expense:create`. Ketahuannya kebetulan, saat mengukur hal lain.
+      #
+      # Kenapa kunci hantu tak pernah berbunyi: `requirePermission` untuk kunci
+      # yang tak ada TIDAK melempar. Ia memeriksa kepemilikan, dan tak seorang
+      # pun memiliki kunci hantu — jadi fiturnya menolak SEMUA ORANG dengan 403
+      # yang terbaca seperti "Anda tak punya izin", bukan seperti "kuncinya
+      # salah ketik". Orang akan memeriksa peran, menambah permission ke role,
+      # memeriksa RBAC — dan tak satu pun menolong.
+      #
+      # Ambang NOL, dan itu bukan ambisi: diukur 180 kunci dipakai di kode, NOL
+      # hantu. Penjaga ini mengunci keadaan yang sudah bersih.
+      #
+      # Hanya LITERAL yang diperiksa; `requirePermission(variabel)` dilewati —
+      # nilainya baru diketahui saat berjalan, dan menebaknya menghasilkan
+      # positif palsu yang membuat penjaga berhenti dibaca.
+      #
+      # Bukti merah: izin karangan dikembalikan → exit 1 menunjuk kuncinya →
+      # dipulihkan → exit 0.
+      - name: Kunci izin benar-benar ada di basis
+        run: node scripts/audit-izin-benar-ada.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
+      # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
+      # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan
+      # keduanya menyesatkan — yang ada di kode tetapi tak di basis ditolak
+      # dengan pesan constraint MENTAH; yang ada di basis tetapi tak di kode
+      # jadi tak terjangkau lewat aplikasi tanpa satu pun galat.
+      #
+      # Bukti merah: jenis karangan ditambahkan ke konstanta JENIS → exit 1
+      # menyebut namanya → dipulihkan → exit 0.
+      - name: Jenis elemen struktur cocok antara kode dan basis
+        run: node scripts/audit-jenis-struktur-cocok.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Harga bahan wajib masuk akal untuk SATUANNYA. Ditemukan 2026-08-19:
+      # harga per m3 tersalin apa adanya ke resource bersatuan kg — pasir beton
+      # Rp 370.200/kg, kerikil Rp 352.300/kg — dan akibatnya 1 m3 beton f'c 25
+      # terhitung **Rp 626.849.988**, bukan Rp 1,2 juta. Menyebar ke 32 AHSP.
+      #
+      # Tak ada satu pun yang salah secara struktural: resource ada, satuan
+      # terisi, harga angka positif, resolver dan AHSP menghitung benar. Yang
+      # salah cuma BESARAN — dan besaran tak punya penjaga sampai penjaga ini.
+      #
+      # Cara memutuskannya tak memakai daftar harga wajar (daftar begitu ikut
+      # membusuk): bahan yang sama muncul di satuan ruah DAN massa dengan harga
+      # SAMA PERSIS. Satu m3 pasir ~1.400 kg, jadi keduanya tak mungkin bertemu
+      # di angka yang sama kecuali salah satunya hasil salin.
+      #
+      # Bukti merah: memilih entri harga TERLAMA alih-alih yang berlaku → exit 1
+      # menyebut 4 pasangan → dipulihkan → exit 0.
+      - name: Harga bahan masuk akal untuk satuannya
+        run: node scripts/audit-harga-satuan-waras.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Daftar SEKTOR take-off ada di dua tempat yang harus sama: CHECK
+      # `takeoff_sektor_sah` (migrasi 465) dan konstanta SEKTOR_SAH di
+      # `lib/takeoff-sektor.ts`. Yang ada di kode tetapi tak di basis membuat
+      # rute menghitung volumenya lalu basis menolak dengan pesan constraint
+      # MENTAH; yang ada di basis tetapi tak di kode membuat sektornya tak
+      # terjangkau siapa pun lewat aplikasi, tanpa satu pun galat.
+      #
+      # Ikut memeriksa tiap sektor punya satuan DAN cabang perhitungan —
+      # sektor tanpa cabang lolos typecheck dan melempar di jalan, pada layar
+      # estimator, sesudah ia mengisi seluruh dimensinya.
+      #
+      # Bukti merah: 4 mutasi (sektor karangan di kode · sektor dihapus dari
+      # kode · cabang dihapus · satuan dihapus) → keempatnya exit 1 dengan
+      # pesan yang menyebut sektornya → dipulihkan → exit 0.
+      - name: Sektor take-off cocok antara kode dan basis
+        run: node scripts/audit-sektor-takeoff-cocok.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Kunci routing notifikasi wajib punya aturan, dan aturan wajib punya
+      # penerima. Keduanya berujung sama bila dilanggar: `resolveRecipients`
+      # memulangkan himpunan KOSONG, `createNotifications([])` menulis nol baris
+      # dan memulangkan sukses, dan rutenya membalas 200 dengan
+      # `notifications_created: 0` — tak bisa dibedakan dari "hari ini tak ada
+      # temuan". Otomasinya terlihat sehat selamanya sambil tak memberi tahu
+      # siapa pun.
+      #
+      # Yang diperiksa argumen `resolveRecipients`, BUKAN `type:`. Bentuk
+      # pertama memeriksa `type:` dan salah menuduh delapan dari sepuluh:
+      # `type` itu kategori tampilan, kunci routing string yang lain
+      # (`resolveRecipients('material_request_submitted')` + `type: 'general'`).
+      #
+      # Ambang NOL: diukur 73 kunci dipakai, 73 punya aturan, 0 aturan yatim.
+      #
+      # Bukti merah: satu huruf dihapus dari kunci → exit 1; target satu-satunya
+      # sebuah aturan dihapus → exit 1; keduanya dipulihkan → exit 0.
+      - name: Kunci routing notifikasi punya aturan dan penerima
+        run: node scripts/audit-jenis-notifikasi-punya-aturan.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # Tiap jenis approval WAJIB muncul di inbox terpusat.
+      # Inbox yang tak lengkap mengajarkan approver bahwa antrean kosong
+      # berarti tak ada pekerjaan — lalu ia berhenti memeriksa modul yang tak
+      # pernah muncul. Dokumennya tertahan, pengajunya menunggu, dan tak ada
+      # error yang menandainya.
+      - name: Inbox approval lengkap
+        run: node scripts/audit-inbox-lengkap.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
+      # TJS-P4 — Segregation of Duties. Diukur 2026-08-12: `recordApproval`
+      # (satu-satunya pintu approval, ADR-007) menerima `approvedBy` dan tak
+      # pernah membandingkannya dengan pengaju. Sembilan jenis, 18 pemanggilan,
+      # nol pengecekan — seorang mandor bisa mengajukan kasbon lalu
+      # menyetujuinya sendiri dalam dua ketukan.
+      #
+      # Yang ADA hanyalah lencana "pengajuan Anda" di inbox dan tombol yang
+      # disembunyikan. Tombol tersembunyi itu UX, bukan batas keamanan.
+      #
+      # Terbukti bisa merah lewat EMPAT mutasi: gerbang dicabut dari satu rute,
+      # satu jenis dihapus dari registri, kolom pengaju dikarang (dicek ke
+      # information_schema), dan nama `recordApproval` diubah sehingga satu
+      # berkas keluar dari pengawasan — yang terakhir ini sempat LOLOS pada
+      # versi pertama penjaga, dan itulah alasan ada LANTAI_PEMANGGIL.
+      - name: Gerbang SoD di tiap jalur persetujuan (TJS-P4)
+        run: node scripts/audit-sod-gerbang.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      # TJS-P5 — enum `cf_entitas` hanya boleh menyebut TABEL YANG ADA.
+      #
+      # Migrasi 321 versi pertama menulis 'vendors'; tabelnya bernama
+      # `suppliers`. Enum tidak memvalidasi apa pun ke katalog — bagi Postgres
+      # itu label sah. Akibatnya entitas yang tak pernah bisa dipakai, tanpa
+      # satu pun galat: tenant memilih "Vendor", membuat field, mengisinya,
+      # dan nilainya menggantung di `entitas_id` yang tak menunjuk baris mana
+      # pun.
+      #
+      # Yang menangkapnya kebetulan — saya mengukur nama tabel sebelum
+      # menjalankan migrasi. Ini penjaganya supaya tak bergantung kebetulan.
+      #
+      # Terbukti bisa merah lewat tiga mutasi: 'vendors' disuntik ke enum
+      # (cacat aslinya), tabel ber-id bigint disuntik, dan entitas tak
+      # terklasifikasi tenancy.
+      - name: Entitas custom field menunjuk tabel nyata (TJS-P5)
+        run: node scripts/audit-custom-field-entitas.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       # F3-1 — ADR-004 Rule #2: RLS tak boleh mengotorisasi dari nama peran.
       #
@@ -1762,44 +1835,6 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
-      # F1-5 — berkas contoh env harus benar-benar sampai ke orang yang mengklon.
-      #
-      # `apps/web/.gitignore` punya `.env*` yang ikut menelan `.env.example`.
-      # Cacatnya TAK BERGEJALA di mesin mana pun yang berkasnya sudah tertinggal
-      # secara lokal — hanya klon bersih yang merasakannya. Terungkap saat waktu
-      # klon→siap diukur pada klon sungguhan, bukan diperkirakan.
-      - name: Contoh env ter-track git
-        run: node scripts/audit-contoh-env-terlacak.mjs
-
-      - name: Dokumen rencana harus terhubung ke ROADMAP
-        run: node scripts/audit-docs-vs-roadmap.mjs
-
-      # Fase 0 (0.3) — racun konteks agent.
-      #
-      # `CLAUDE.md` dibaca agent AI di awal setiap sesi. Versi lamanya menyatakan
-      # jumlah migrasi & tabel yang sudah lama tidak benar, dan bahkan tambalan
-      # koreksinya ikut basi. Memperbaiki angkanya sekali tidak menyelesaikan apa
-      # pun — ia akan basi lagi tanpa gejala. Dua penjaga di bawah membuat repo
-      # MENOLAK kelas kesalahan itu masuk kembali.
-      - name: Dokumen konteks bebas angka yang membusuk
-        run: node scripts/audit-docs-freshness.mjs
-
-      - name: Tidak ada dokumen kembar di dua lokasi
-        run: node scripts/audit-no-stale-docs-path.mjs
-
-
-      - name: Penjaga saldo (pemeriksaan tak boleh bisa dilewati)
-        run: node scripts/audit-penjaga-saldo.mjs
-
-      - name: Guard sadar-schema (to_regclass tanpa kualifikasi)
-        run: node scripts/audit-guard-schema.mjs
-
-      # Apply-pending migrasi + seed uji ke project CI (idempoten: skip yang sudah
-      # applied, apply yang baru, re-seed jika hilang). BUKAN push-semua tiap run.
-      - name: Prepare CI project (apply pending migrations + seed)
-        run: node scripts/ci-project-setup.mjs
-        env:
-          CI_DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Nama kolom di `.select()` adalah STRING — TypeScript tak bisa
       # menjaganya. Query dengan kolom yang tak ada SELALU gagal, lalu `?? []`
