@@ -62,7 +62,7 @@
 -- ── Idempoten: CREATE OR REPLACE FUNCTION, trigger tak disentuh.
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION public.protect_builtin_roles()
+CREATE OR REPLACE FUNCTION protect_builtin_roles()
 RETURNS trigger
 LANGUAGE plpgsql
 AS $$
