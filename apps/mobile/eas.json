@@ -24,6 +24,22 @@
     "`lib/api.ts` melempar saat modul dimuat kalau ia kosong, jadi build yang",
     "salah konfigurasi GAGAL DI TANGAN PEMBUILD — bukan di tangan mandor.",
     "",
+    "── `development` juga DIKOSONGKAN (2026-08-27)",
+    "",
+    "Profil itu semula berisi http://localhost:3001 — dua kesalahan sekaligus:",
+    "port salah (API melayani 3007) DAN localhost, yang di HP menunjuk HP itu",
+    "sendiri. Persis yang diperingatkan komentar di atas, di berkas yang sama.",
+    "",
+    "Build `development` TETAP dipasang di HP (hanya dengan dev-client), jadi",
+    "ia butuh alamat LAN yang sama seperti profil lain. Dikosongkan supaya",
+    "`lib/api.ts` melempar saat modul dimuat — gagal di tangan pembuild, bukan",
+    "di tangan mandor.",
+    "",
+    "Dijaga `apps/api/scripts/audit-port-api-cocok.mjs`, yang sejak hari itu",
+    "ikut membaca berkas INI — bukan hanya .env. Bedanya menentukan:",
+    "`EXPO_PUBLIC_*` dipanggang saat BUILD, jadi .env yang benar tidak",
+    "menyelamatkan eas.json yang salah.",
+    "",
     "── Urutan pakai",
     "",
     "  1. isi `EXPO_PUBLIC_API_URL` profil `preview` & `production` di bawah",
@@ -43,7 +59,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://localhost:3001"
+        "EXPO_PUBLIC_API_URL": ""
       }
     },
     "preview": {

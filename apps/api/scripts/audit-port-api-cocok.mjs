@@ -238,6 +238,72 @@ for (const p of PASANGAN) {
   }
 }
 
+/*
+  ══════════════════════════════════════════════════════════════════════════
+  `eas.json` DIPERIKSA TERPISAH — dan ini yang paling menentukan
+  ══════════════════════════════════════════════════════════════════════════
+
+  `.env` hanya dipakai saat `expo start` di mesin pengembang. Yang dipanggang
+  ke dalam APK/AAB adalah `env` di `eas.json`: `EXPO_PUBLIC_*` disisipkan SAAT
+  BUILD, bukan dibaca saat aplikasi berjalan.
+
+  Jadi `.env` yang benar TIDAK menyelamatkan build yang salah. Berkas
+  `eas.json` sendiri sudah mencatat itu di komentarnya:
+
+      "Profil tanpa `env` akan memakai apa pun yang kebetulan ada di .env
+       mesin yang membuild — dan .env di repo ini berisi
+       http://localhost:3001, yang di HP mandor berarti HP-nya sendiri."
+
+  Diukur 2026-08-27: profil `development` MASIH berisi localhost:3001 — persis
+  yang komentarnya peringatkan, di berkas yang sama.
+
+  ── Kenapa profil KOSONG justru BENAR
+
+  `lib/api.ts` melempar saat modul dimuat bila URL-nya kosong, jadi build yang
+  salah konfigurasi GAGAL DI TANGAN PEMBUILD, bukan di tangan mandor.
+  Kosong = belum diisi dengan sadar. `localhost` = salah tapi terlihat benar.
+*/
+const easPath = join(AKAR_REPO, 'apps/mobile/eas.json')
+if (existsSync(easPath)) {
+  let eas = null
+  try {
+    eas = JSON.parse(readFileSync(easPath, 'utf8'))
+  } catch (e) {
+    masalah.push(`apps/mobile/eas.json tak bisa dibaca: ${e.message}`)
+  }
+
+  console.log('')
+  console.log('  eas.json (nilai yang DIPANGGANG ke APK/AAB):')
+
+  for (const [nama, isi] of Object.entries(eas?.build ?? {})) {
+    const url = isi?.env?.EXPO_PUBLIC_API_URL
+
+    if (url === undefined) {
+      console.log(`     ${nama.padEnd(14)} (tanpa env — memakai .env mesin pembuild)  ✗`)
+      masalah.push(
+        `eas.json profil "${nama}": tak menyatakan EXPO_PUBLIC_API_URL.\n`
+        + `     Build akan memakai .env mesin yang kebetulan membuild.`,
+      )
+      continue
+    }
+
+    if (url === '') {
+      console.log(`     ${nama.padEnd(14)} (sengaja kosong — diisi saat rilis)  ✓`)
+      continue
+    }
+
+    const buruk = /\/\/(localhost|127\.0\.0\.1)/.test(url)
+    console.log(`     ${nama.padEnd(14)} ${url}  ${buruk ? '✗' : '✓'}`)
+    if (buruk) {
+      masalah.push(
+        `eas.json profil "${nama}": EXPO_PUBLIC_API_URL menunjuk localhost.\n`
+        + `     Nilai ini DIPANGGANG ke dalam APK — di HP ia menunjuk HP itu sendiri.\n`
+        + `     Nilai sekarang: ${url}`,
+      )
+    }
+  }
+}
+
 if (masalah.length > 0) {
   console.error('')
   console.error('❌ Port API tak konsisten:')
