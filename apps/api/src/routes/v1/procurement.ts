@@ -1067,6 +1067,24 @@ export default async function procurementRoutes(app: FastifyInstance) {
         return reply.status(403).send({ error: 'Akses ditolak' })
       }
 
+      // R-022 (founder, 2026-08-29) — pembuat PO tak boleh mengirimkannya
+      // sendiri ke vendor.
+      //
+      // Sama seperti di jalur Material Request di atas, gerbang ini TIDAK
+      // boleh disatukan ke `evaluateEntityApproval`: yang di atas menjawab
+      // "punya wewenang di level ini?", yang di sini menjawab "bolehkah orang
+      // INI atas dokumen INI?". Menggabungkannya membuat override SoD tak
+      // bisa dibedakan dari wewenang yang kurang.
+      //
+      // `draft → sent` adalah satu-satunya transisi PO yang MENGIKAT KE LUAR:
+      // sesudahnya vendor sudah menerima pesanan, dan membatalkannya bukan
+      // lagi urusan basis data melainkan urusan hubungan dagang.
+      const sod = await periksaGerbangSod(request, 'purchase_order', id, {
+        alasanOverride: (request.body as { alasan_override?: string } | undefined)?.alasan_override,
+        level: decision.step?.level,
+      })
+      if (!sod.ok) return reply.status(403).send({ error: sod.pesan })
+
       if (decision.step) {
         const rec = await recordApproval({
           entityType: 'purchase_order', entityId: id, level: decision.step.level,

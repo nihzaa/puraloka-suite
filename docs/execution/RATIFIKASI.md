@@ -213,6 +213,30 @@ ingatan. Diukur langsung ke basis, menghitung pengguna aktif yang punya izin
 **Perusahaan Anda punya enam orang berwenang.** Pilihan A tidak akan
 memacetkan PO — syarat yang saya sebut di atas terpenuhi dengan selisih besar.
 
+## ✅ DIPUTUSKAN 2026-08-29 — Pilihan A
+
+Founder memilih **A**: pembuat PO tak bisa mengirimkannya sendiri ke vendor.
+
+Yang dikerjakan:
+
+- `lib/sod.ts` — `purchase_order` / `purchase_orders` / `created_by` masuk
+  `ATURAN_SOD`. Registri kini 13/13, cocok schema (diverifikasi dengan basis).
+- `routes/v1/procurement.ts` — `periksaGerbangSod` dipanggil pada transisi
+  `draft → sent`. **Aturan di tabel saja tidak menahan apa pun**: rutenya
+  sebelumnya tak pernah memanggil gerbangnya, jadi menambah baris aturan tanpa
+  ini hanya membuat penjaga hijau tanpa mengubah perilaku.
+- `po-approval-gerbang.test.ts` — fixture-nya dulu membuat PO atas nama admin
+  lalu mengirimnya sebagai admin yang sama, jadi ia MEMERANKAN pelanggaran.
+  Kini PO dibuat atas nama orang kedua di company yang sama, dan test berhenti
+  dengan sebabnya kalau orang kedua itu tak ada.
+
+Bukti: 6/6 lulus, termasuk test baru yang menuntut 403 + status tetap `draft`
++ `sent_at` tetap NULL. Dibuktikan bisa merah — gerbangnya dilumpuhkan
+(`if (false && …)`) → test R-022 MERAH → dipulihkan → hijau.
+
+Override tetap tersedia lewat `approval:override_sod` untuk tenant satu-orang,
+dan pemakaiannya tercatat.
+
 Tiga tenant lain hanya satu orang, tetapi ketiganya sisa data uji. Kalaupun
 kelak ada pelanggan sungguhan bertim satu orang, SoD di repo ini **per-tenant
 lewat data** (rantai approval dikonfigurasi masing-masing), jadi kasus itu

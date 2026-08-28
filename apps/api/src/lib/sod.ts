@@ -96,6 +96,25 @@ export const ATURAN_SOD: readonly AturanSod[] = [
   // baris ini adalah pencatatan override lewat satu pintu, bukan deteksi
   // pengajunya.
   { jenis: 'klaim_perjalanan', tabel: 'klaim_perjalanan',       kolomPengaju: 'dibuat_oleh',   label: 'Klaim Perjalanan' },
+  // R-022 (diputuskan founder 2026-08-29, Pilihan A).
+  //
+  // Sampai hari ini PO adalah SATU-SATUNYA dari 13 jenis approval yang tak
+  // punya SoD: staf yang membuat PO bisa langsung mengirimkannya sendiri ke
+  // vendor, nominal berapa pun — sementara kasbon Rp 1 juta lewat rantai.
+  // Ketimpangan itu ditemukan saat mengukur prasyarat automation 4.6, bukan
+  // dari laporan galat: jalur ini tak pernah gagal, ia cuma tak pernah
+  // bertanya.
+  //
+  // `draft → sent` adalah satu-satunya transisi PO yang MENGIKAT KE LUAR —
+  // sesudahnya vendor sudah menerima pesanan, dan membatalkannya bukan lagi
+  // urusan basis data melainkan urusan hubungan dagang. Justru transisi itu
+  // yang paling butuh mata kedua.
+  //
+  // Syarat yang dinyatakan di RATIFIKASI.md sudah diukur ke basis: enam
+  // pengguna aktif ber-`procurement:po:manage` di puraloka-persada, jadi
+  // aturan ini tak memacetkan PO. Tenant satu-orang tetap bisa lewat
+  // `approval:override_sod`, dan pemakaiannya TERCATAT.
+  { jenis: 'purchase_order',  tabel: 'purchase_orders',         kolomPengaju: 'created_by',    label: 'Purchase Order' },
 ] as const
 
 export function aturanSod(jenis: string): AturanSod | undefined {

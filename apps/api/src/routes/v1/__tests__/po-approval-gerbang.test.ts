@@ -51,6 +51,8 @@ let app: FastifyInstance
 let client: Client
 let adminAuth: string
 let adminUserId: string
+/** Pembuat PO — WAJIB orang lain, lihat R-022 di bawah. */
+let pembuatUserId: string
 let projectId: string
 let supplierId: string
 let poId: string
@@ -72,7 +74,7 @@ async function buatPo(nominal: number): Promise<string> {
     `INSERT INTO purchase_orders (po_number, project_id, supplier_id, status,
                                   total_amount, order_date, created_by)
      VALUES ($1, $2, $3, 'draft', $4, CURRENT_DATE, $5) RETURNING id`,
-    [`${TANDA}-${Date.now()}-${Math.floor(nominal)}`, projectId, supplierId, nominal, adminUserId],
+    [`${TANDA}-${Date.now()}-${Math.floor(nominal)}`, projectId, supplierId, nominal, pembuatUserId],
   )
   return rows[0].id as string
 }
@@ -97,6 +99,20 @@ beforeAll(async () => {
   adminUserId = wajibAda(u[0]?.id, 'baris users untuk admin')
 
   /*
+    R-022 (founder, 2026-08-29) — pembuat PO tak boleh mengirimkannya sendiri.
+
+    Sebelum aturan itu, fixture ini membuat PO ber-`created_by = adminUserId`
+    lalu MENGIRIMNYA sebagai admin yang sama. Begitu SoD dipasang, tiga test
+    di berkas ini merah dengan "Anda tidak bisa menyetujui pengajuan Anda
+    sendiri" — bukan karena gerbangnya salah, melainkan karena fixture-nya
+    memang memerankan pelanggaran.
+
+    Jadi PO dibuat atas nama ORANG LAIN di perusahaan yang sama. Kalau tak ada
+    orang kedua, test BERHENTI dengan sebabnya — bukan lulus diam-diam atas
+    skenario yang tak lagi menguji apa pun.
+  */
+
+  /*
     Proyek & supplier dipilih menurut SYARAT, bukan `LIMIT 1` atas urutan yang
     kebetulan — pelajaran migrasi 328, dan cacat yang memakan waktu hari ini
     juga (`audit-mutu` mencari NCR di proyek yang tak punya).
@@ -113,6 +129,20 @@ beforeAll(async () => {
 
   const { rows: s } = await client.query(`SELECT id FROM suppliers LIMIT 1`)
   supplierId = wajibAda(s[0]?.id, 'supplier mana pun')
+
+  // Orang KEDUA di perusahaan yang sama — lihat R-022 di atas.
+  const { rows: lain } = await client.query(
+    `SELECT u.id FROM users u
+       JOIN company_members m ON m.user_id = u.id AND m.is_active
+      WHERE m.company_id = (SELECT company_id FROM projects WHERE id = $1)
+        AND u.id <> $2
+      ORDER BY u.id LIMIT 1`,
+    [projectId, adminUserId],
+  )
+  pembuatUserId = wajibAda(
+    lain[0]?.id,
+    'pengguna KEDUA di company yang sama (R-022: pembuat PO tak boleh pengirimnya)',
+  )
 
   /*
     Prasyarat yang menentukan sahih-tidaknya seluruh berkas ini: rantai
@@ -176,6 +206,41 @@ describe('Gerbang approval pada pengiriman PO ke vendor', () => {
     const { rows } = await client.query(`SELECT status, sent_at FROM purchase_orders WHERE id = $1`, [poId])
     expect(rows[0].status).toBe('sent')
     expect(rows[0].sent_at, '`sent_at` tak terisi — jejak kapan PO dikirim hilang').not.toBeNull()
+  }, 60_000)
+
+  /*
+    R-022 (founder, 2026-08-29) — inti keputusannya, dan test yang membedakan
+    "aturannya terdaftar di tabel" dari "gerbangnya benar-benar menahan".
+
+    Sebelum ini PO adalah SATU-SATUNYA dari 13 jenis approval tanpa SoD: staf
+    yang membuat PO bisa langsung mengirimkannya sendiri ke vendor, nominal
+    berapa pun — sementara kasbon Rp 1 juta lewat rantai.
+  */
+  it('R-022: PEMBUAT PO tak bisa mengirimkannya sendiri ke vendor', async () => {
+    // PO dibuat atas nama si ADMIN — lalu admin yang sama mencoba mengirim.
+    const { rows } = await client.query(
+      `INSERT INTO purchase_orders (po_number, project_id, supplier_id, status,
+                                    total_amount, order_date, created_by)
+       VALUES ($1, $2, $3, 'draft', $4, CURRENT_DATE, $5) RETURNING id`,
+      [`${TANDA}-SENDIRI-${Date.now()}`, projectId, supplierId, 9_000_000, adminUserId],
+    )
+    const poSendiri = rows[0].id as string
+
+    actAsAdmin()
+    const r = await setStatus(poSendiri, 'sent')
+
+    expect(
+      r.statusCode,
+      'pembuat PO berhasil mengirimkannya SENDIRI ke vendor — SoD tak menahan. '
+      + `Body: ${r.body}`,
+    ).toBe(403)
+    expect(r.body, 'pesannya tak menyebut sebabnya, jadi stafnya menebak').toMatch(/sendiri/i)
+
+    // Dan yang paling penting: PO-nya BENAR-BENAR tak terkirim.
+    const { rows: cek } = await client.query(
+      `SELECT status, sent_at FROM purchase_orders WHERE id = $1`, [poSendiri])
+    expect(cek[0].status, 'status berubah padahal permintaannya ditolak').toBe('draft')
+    expect(cek[0].sent_at, 'sent_at terisi padahal PO tak pernah dikirim').toBeNull()
   }, 60_000)
 
   it('WIRING: rute benar-benar memanggil engine — jejak persetujuan tercatat', async () => {
