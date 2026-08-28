@@ -50,6 +50,41 @@ const DIKECUALIKAN = new Map([
    'auth_role() dipanggil policy RLS yang hidup di `public` — memindahkannya mengubah arti policy'],
   ['165_fungsi_kasbon_expense_sadar_schema.sql',
    'menyebut `public.` hanya di dalam komentar yang menjelaskan cacat migrasi 100'],
+
+  /*
+    ── Lima migrasi lama, didaftarkan 2026-08-29
+
+    Alasannya SAMA dengan `100_...` di atas: sudah ter-apply, jadi mengeditnya
+    tak mengubah apa pun di basis yang sudah berjalan — ia hanya membuat berkas
+    menyimpang dari kenyataan, dan itu justru cacat yang lebih sulit dilihat.
+
+    Dibuktikan lewat ARTEFAK FISIK, bukan buku migrasi (buku bisa memuat entri
+    palsu — pelajaran `ledger-diff`):
+
+        363  kolom `roles.is_template`        ADA
+        366  fungsi `has_permission`          ADA
+        371  fungsi `t5_company_dari_klaim`   ADA
+        372  fungsi `get_role_permissions`    ADA
+        437  tabel `penawaran_subkon_item`    ADA
+
+    Yang TIDAK dilakukan: menaikkan ambang. Penjaga ini bukan ratchet, dan
+    kepala berkasnya menyatakan alasannya — memaku skema TANPA alasan tertulis
+    adalah cacat, bukan hutang yang dicicil. Karena itu tiap nama di sini
+    membawa alasannya sendiri, dan yang baru harus menjelaskan diri.
+
+    Kalau kelak salah satunya perlu diubah, jalurnya migrasi MAJU yang sadar
+    skema (pola 165), bukan mengedit yang lama.
+  */
+  ['363_roles_per_tenant.sql',
+   'sudah ter-apply (kolom roles.is_template ada) — `ALTER TABLE public.roles` tak bisa diedit tanpa membuat berkas menyimpang dari basis'],
+  ['366_fungsi_izin_sadar_tenant.sql',
+   'sudah ter-apply (fungsi has_permission ada); digantikan 372 yang menulis ulang fungsi yang sama'],
+  ['371_tenancy_dua_tabel_turunan.sql',
+   'sudah ter-apply (fungsi t5_company_dari_klaim ada) — dipanggil policy RLS yang hidup di `public`, sama alasannya dengan 144'],
+  ['372_izin_peran_tanpa_konteks_tenant.sql',
+   'sudah ter-apply (fungsi get_role_permissions ada) — dipanggil policy RLS di `public`'],
+  ['437_penawaran_subkon_item.sql',
+   'sudah ter-apply (tabel penawaran_subkon_item ada); fungsinya trigger atas tabel `public` itu sendiri'],
 ])
 
 // `CREATE [OR REPLACE] FUNCTION public.nama(` — hanya baris kode, bukan komentar.
