@@ -261,6 +261,8 @@ jobs:
       # dan hasilnya terlihat seperti laporan yang wajar. Ambang NOL.
       - name: Sumber laporan cocok dengan skema nyata
         run: node scripts/audit-sumber-laporan-nyata.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # `catch {}` kosong membuang justru pesan yang dibutuhkan untuk menemukan
       # sebab kegagalan. 18 di antaranya membungkus pengiriman notifikasi — dan
@@ -387,6 +389,8 @@ jobs:
       # kode berspasi), keduanya MERAH lalu HIJAU sesudah dipulihkan.
       - name: Peristiwa otomasi menunjuk alur yang ada
         run: node scripts/audit-peristiwa-punya-alur.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Fungsi izin tak boleh RUNTUH saat konteks tenant tak ada.
       #
@@ -406,6 +410,8 @@ jobs:
       # penjaga MERAH, lalu HIJAU sesudah 372 dipulihkan.
       - name: Fungsi izin tidak kosong tanpa konteks tenant
         run: node scripts/audit-izin-tanpa-konteks.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Dedup notifikasi harian wajib benar-benar MENAHAN.
       #
@@ -425,6 +431,8 @@ jobs:
       # dihapus → HIJAU.
       - name: Notifikasi tidak kembar (dedup harian menahan)
         run: node scripts/audit-notifikasi-tak-kembar.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Pembacaan tabel penuh tak boleh terpotong diam-diam di 1.000 baris.
       #
@@ -449,6 +457,8 @@ jobs:
       # MERAH (exit 1, menunjuk role-guard.ts:69) → dipulihkan → HIJAU (exit 0).
       - name: Baca tabel penuh tidak terpotong di 1.000 baris
         run: node scripts/audit-baca-tak-terpotong.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Saluran keluar wajib berpagar terhadap test.
       #
@@ -825,6 +835,8 @@ jobs:
       # Bukti merah: satu `is_default` dicabut → exit 1 → dipulihkan → exit 0.
       - name: Pengguna aktif punya keanggotaan default
         run: node scripts/audit-keanggotaan-punya-default.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Kunci izin yang dipakai kode wajib benar-benar ada di `permissions`.
       #
@@ -850,6 +862,8 @@ jobs:
       # dipulihkan → exit 0.
       - name: Kunci izin benar-benar ada di basis
         run: node scripts/audit-izin-benar-ada.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Tiap modul analisa struktur wajib terdaftar di penjaga terjemahan awam
       # (`lib/__tests__/struktur-awam.test.ts`). Penjaga itu menuntut tiap
@@ -878,6 +892,8 @@ jobs:
       # menyebut namanya → dipulihkan → exit 0.
       - name: Jenis elemen struktur cocok antara kode dan basis
         run: node scripts/audit-jenis-struktur-cocok.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Harga bahan wajib masuk akal untuk SATUANNYA. Ditemukan 2026-08-19:
       # harga per m3 tersalin apa adanya ke resource bersatuan kg — pasir beton
@@ -897,6 +913,8 @@ jobs:
       # menyebut 4 pasangan → dipulihkan → exit 0.
       - name: Harga bahan masuk akal untuk satuannya
         run: node scripts/audit-harga-satuan-waras.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Daftar SEKTOR take-off ada di dua tempat yang harus sama: CHECK
       # `takeoff_sektor_sah` (migrasi 465) dan konstanta SEKTOR_SAH di
@@ -914,6 +932,8 @@ jobs:
       # pesan yang menyebut sektornya → dipulihkan → exit 0.
       - name: Sektor take-off cocok antara kode dan basis
         run: node scripts/audit-sektor-takeoff-cocok.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Baris `besi` memuat DUA barang berbeda: tulangan beton (BjTP/BjTS,
       # berdiameter, dijual per lonjor) dan profil baja (WF/H/CNP/INP,
@@ -1081,6 +1101,8 @@ jobs:
       # sebuah aturan dihapus → exit 1; keduanya dipulihkan → exit 0.
       - name: Kunci routing notifikasi punya aturan dan penerima
         run: node scripts/audit-jenis-notifikasi-punya-aturan.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Halaman yang mengambil data wajib lewat lapis cache bersama (F4-2).
       #
@@ -1169,6 +1191,8 @@ jobs:
       # error yang menandainya.
       - name: Inbox approval lengkap
         run: node scripts/audit-inbox-lengkap.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Jejak audit tak boleh hilang diam-diam.
       # `audit_logs.record_id` bertipe uuid, dan LIMA modul memakai `recordId`
@@ -1572,6 +1596,7 @@ jobs:
       - name: Gerbang SoD di tiap jalur persetujuan (TJS-P4)
         run: node scripts/audit-sod-gerbang.mjs
         env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       # TJS-P5 — enum `cf_entitas` hanya boleh menyebut TABEL YANG ADA.
@@ -1592,6 +1617,7 @@ jobs:
       - name: Entitas custom field menunjuk tabel nyata (TJS-P5)
         run: node scripts/audit-custom-field-entitas.mjs
         env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
       # Status sub-menu yang membusuk sementara kode maju. Terbukti terjadi
@@ -1674,6 +1700,8 @@ jobs:
       # mematikan tabel. Yang mendesak adalah menghentikan pertumbuhannya.
       - name: RLS literal peran (ADR-004 Rule #2)
         run: node scripts/audit-rls-literal-peran.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # F2-6 — tripwire keputusan "tidak memaksa RLS".
       #
@@ -1686,6 +1714,8 @@ jobs:
       # tak-berguna jadi WAJIB, dan keputusannya kedaluwarsa tanpa memberi tahu.
       - name: Tripwire FORCE RLS (F2-6)
         run: node scripts/audit-force-rls.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # F2-2 — tabel BARU wajib punya jalur tenancy yang jelas.
       #
@@ -1699,6 +1729,8 @@ jobs:
       # terlihat di diff, bukan efek samping.
       - name: Klasifikasi tenancy (F2-2)
         run: node scripts/audit-klasifikasi-tenancy.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Tabel di-FORCE RLS ber-company_id WAJIB punya pagar RESTRICTIVE.
       #
@@ -1717,6 +1749,8 @@ jobs:
       # data perusahaan lain seolah miliknya sendiri. Ember [C].
       - name: Tabel FORCE wajib berpagar tenant
         run: node scripts/audit-tabel-force-berpagar.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Test tak boleh membandingkan dua hitungan GLOBAL atas schema bersama.
       #
@@ -1725,6 +1759,8 @@ jobs:
       # menambal satu per satu; setelah ketujuh jelas menambal bukan jawabannya.
       - name: Test tanpa asumsi global
         run: node scripts/audit-asumsi-global-test.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # F1-5 — berkas contoh env harus benar-benar sampai ke orang yang mengklon.
       #
@@ -2777,6 +2813,8 @@ jobs:
       - name: Env produksi terdokumentasi di .env.example
         run: node apps/api/scripts/audit-env-siap-deploy.mjs
         working-directory: .
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
       # Audit a11y runtime (axe-core) MELEWATI rute dinamis yang tak diberi
       # contoh id — dan tetap melaporkan "0 pelanggaran". Diukur 2026-08-07:
