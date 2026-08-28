@@ -15,7 +15,7 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
-import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
+import { createRlsClient, authIdForRole, companyRute } from '../../../test-utils/rls-harness.js'
 import { supabaseAuth } from '../../../utils/supabase.js'
 import penomoranRoutes from '../penomoran.js'
 
@@ -37,10 +37,12 @@ beforeAll(async () => {
   vi.spyOn(supabaseAuth.auth, 'getUser')
     .mockResolvedValue({ data: { user: { id: auth } }, error: null } as never)
 
-  const { rows: u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [auth])
-  const { rows: co } = await db.query(
-    'SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1', [u[0].id])
-  companyId = co[0].company_id
+  // `companyRute`, bukan `company_members ... LIMIT 1`: pengguna admin yang
+  // dipilih harness anggota TIGA company, dan `LIMIT 1` tanpa `ORDER BY`
+  // memulangkan yang lain daripada `auth_company_id()` yang dipakai rute.
+  // Seri lalu ditulis ke tenant A dan dicari di tenant B - 404, bukan galat
+  // izin, jadi gejalanya menuduh rute alih-alih fixture. Diukur 2026-08-28.
+  companyId = await companyRute(db, auth)
 
   await db.query('DELETE FROM document_number_series WHERE doc_type LIKE $1', [`${JENIS}%`])
   // Dua periode supaya pengelompokan & "periode terbaru" benar-benar teruji.

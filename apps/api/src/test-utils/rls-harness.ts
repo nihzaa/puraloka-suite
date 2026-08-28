@@ -133,6 +133,68 @@ export async function authIdForRole(client: Client, role: string): Promise<strin
 }
 
 /**
+ * Company yang BENAR-BENAR dipakai rute untuk pengguna ini — yaitu nilai
+ * `auth_company_id()`, bukan baris pertama `company_members`.
+ *
+ * ── Kenapa helper ini ada, ditemukan 2026-08-28
+ *
+ * Pola yang tersebar di banyak berkas test:
+ *
+ *     SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1
+ *
+ * `LIMIT 1` tanpa `ORDER BY` memulangkan baris SEMBARANG. Untuk pengguna yang
+ * anggota satu company itu tak apa-apa — dan seluruh suite hijau selama
+ * pengguna seed admin memang begitu.
+ *
+ * Diukur: pengguna admin yang dipilih `authIdForRole` anggota TIGA company.
+ * `LIMIT 1` memberi `8e7e65b0…`, sementara `auth_company_id()` — yang dipakai
+ * rute — memberi `48befb54…`. Fixture menulis seri ke tenant A, rute
+ * mencarinya di tenant B, dan jawabannya 404 "belum ada seri".
+ *
+ * Selama RLS belum di-FORCE (migrasi 510), kebocoran lintas tenant menutupi
+ * ketidakcocokan ini: baris tenant A tetap terbaca dari konteks tenant B, jadi
+ * test hijau KARENA ada lubang keamanan. Menutup lubangnya membuat enam test
+ * `penomoran` merah — bukan regresi, melainkan cacat fixture yang selama ini
+ * tersembunyi.
+ *
+ * Pakai helper ini di mana pun fixture menyisipkan baris ber-`company_id` yang
+ * nanti dibaca lewat rute. Kalau nilainya beda, gejalanya bukan galat izin —
+ * melainkan "data tidak ditemukan", yang menuduh rute atau query, bukan setup.
+ *
+ * Melempar bila NULL: pengguna tanpa konteks company berarti pilihan
+ * `authIdForRole` salah, dan diam-diam memakai company lain hanya memindahkan
+ * kegagalan ke tempat yang lebih jauh dari sebabnya.
+ */
+export async function companyRute(client: Client, authId: string): Promise<string> {
+  /*
+    Bentuknya SENGAJA menyalin `auth_company_id()` — `is_default AND is_active`,
+    bukan "baris pertama". Kalau fungsi SQL-nya berubah, helper ini harus ikut;
+    menebak bentuk sendiri akan memulangkan company yang berbeda tanpa galat.
+
+    `app.company_id` (cabang pertama fungsi itu) sengaja TIDAK ditiru: ia
+    disetel per-permintaan oleh lapis tenancy, sementara fixture berjalan
+    sebelum permintaan mana pun ada.
+  */
+  const { rows } = await client.query(
+    `SELECT cm.company_id FROM public.company_members cm
+       JOIN public.users u ON u.id = cm.user_id
+      WHERE u.auth_id = $1 AND cm.is_default = true AND cm.is_active = true
+      LIMIT 1`,
+    [authId]
+  )
+  const id = rows[0]?.company_id
+  if (!id) {
+    throw new Error(
+      `companyRute: pengguna ${authId} tak punya keanggotaan DEFAULT yang aktif. ` +
+        '`auth_company_id()` akan memulangkan NULL, jadi rute tak akan pernah ' +
+        'menemukan baris yang ditulis fixture. Perbaiki datanya, jangan ' +
+        'memilih company lain — itu memindahkan kegagalan menjauh dari sebabnya.'
+    )
+  }
+  return id as string
+}
+
+/**
  * Pengguna LAIN yang bukan `bukanUserId` — dipakai sebagai PENGAJU di fixture
  * approval.
  *

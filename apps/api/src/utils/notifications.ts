@@ -380,7 +380,11 @@ export async function createNotifications(list: NotificationParams[]): Promise<v
   */
   const perPeristiwa = new Map<string, { p: NotificationParams; n: number }>()
   for (const p of list) {
-    const kunci = `${p.company_id} ${p.type}`
+    // Pemisah `\u0000` dipilih karena tak pernah muncul di UUID maupun
+    // nama jenis, jadi dua kunci berbeda tak bisa bertabrakan. Ditulis
+    // sebagai escape, BUKAN byte mentah: versi mentahnya tak kasat mata di
+    // editor mana pun, dan `audit-byte-kontrol` merah karenanya.
+    const kunci = `${p.company_id}\u0000${p.type}`
     const ada = perPeristiwa.get(kunci)
     if (ada) ada.n += 1
     else perPeristiwa.set(kunci, { p, n: 1 })

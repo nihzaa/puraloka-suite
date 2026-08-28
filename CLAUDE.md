@@ -338,6 +338,7 @@ salah dengar memindahkan uang.
 | `audit-kredensial-lintas-tenant.mjs` | kunci tenant lain hanya lewat warisan induk berpagar; jatuhan `.env` hanya grup AI (ambang NOL) |
 | `audit-keanggotaan-punya-default.mjs` | pengguna aktif wajib punya keanggotaan default — tanpa itu RLS menyaring habis (ambang NOL) |
 | `audit-izin-benar-ada.mjs` | kunci `requirePermission` wajib ada di tabel `permissions` — kunci hantu menolak SEMUA orang tanpa gejala (ambang NOL) |
+| `audit-tabel-force-berpagar.mjs` | tabel di-FORCE RLS ber-`company_id` wajib punya pagar RESTRICTIVE. Policy PERMISSIVE digabung **OR**, jadi satu policy yang hanya memeriksa izin — tanpa `company_id` — MEMBATALKAN penyaringan saudaranya; `document_number_series` membocorkan 27 dari 27 baris ke admin tenant lain, tanpa satu pun galat. Yang menyelamatkan 129 tabel lain adalah lapis `tenant_isolation` yang digabung AND (ambang NOL) |
 | `audit-jenis-notifikasi-punya-aturan.mjs` | kunci `resolveRecipients` wajib punya aturan, dan aturan wajib punya penerima — keduanya membuat notifikasi hilang tanpa jejak (ambang NOL) |
 | `audit-halaman-pakai-cache.mjs` | halaman yang mengambil data wajib lewat `useData()` — lapis cache dibangun 2026-08-04 lalu tak dipakai satu halaman pun (ratchet) |
 | `uji-galat-muat-terpisah.mjs` | galat MUAT dan galat AKSI tak boleh berbagi satu state — gagal simpan menghapus pesan gagal muat, ditemukan di 11 halaman (ambang NOL) |

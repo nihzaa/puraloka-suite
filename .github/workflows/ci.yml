@@ -1700,6 +1700,24 @@ jobs:
       - name: Klasifikasi tenancy (F2-2)
         run: node scripts/audit-klasifikasi-tenancy.mjs
 
+      # Tabel di-FORCE RLS ber-company_id WAJIB punya pagar RESTRICTIVE.
+      #
+      # 2026-08-28: `document_number_series` membocorkan 27 dari 27 baris ke
+      # admin tenant lain. Tabelnya punya EMPAT policy permissive, dua di
+      # antaranya hanya memeriksa izin tanpa menyebut `company_id`.
+      #
+      # PERMISSIVE digabung dengan OR: satu policy yang lupa menyaring tenant
+      # MEMBATALKAN penyaringan saudaranya. Menambah policy justru
+      # melonggarkan — intuisi terbalik, dan itu sebabnya cacat ini lolos.
+      #
+      # Yang menyelamatkan 129 tabel lain: lapis RESTRICTIVE `tenant_isolation`
+      # yang digabung dengan AND. Sembilan tabel tak punya lapis itu.
+      #
+      # AMBANG NOL. Bocornya tak mengeluarkan galat — halaman menampilkan
+      # data perusahaan lain seolah miliknya sendiri. Ember [C].
+      - name: Tabel FORCE wajib berpagar tenant
+        run: node scripts/audit-tabel-force-berpagar.mjs
+
       # Test tak boleh membandingkan dua hitungan GLOBAL atas schema bersama.
       #
       # TUJUH kali dalam rantai ini CI merah oleh cacat yang sama: asumsi global

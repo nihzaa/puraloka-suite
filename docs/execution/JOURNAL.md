@@ -5,6 +5,140 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-28 — RLS dipaksa menggigit, satu kebocoran nyata, dan tiga kali saya salah ukur sebelum menemukannya
+
+**T5c langkah 1.** Sebelum hari ini, 775 policy RLS di basis ini **tak pernah
+dievaluasi sekali pun**. Dua sebab bertumpuk: peran koneksi ber-`bypassrls`,
+dan — bahkan tanpa itu — pemilik tabel melewati RLS kecuali tabelnya di-`FORCE`,
+sementara pemilik seluruh 291 tabel adalah peran yang sama.
+
+Isolasi antar-tenant karena itu bergantung sepenuhnya pada disiplin kode
+(`request.db`). Untuk satu perusahaan tak apa-apa. Begitu ada pelanggan kedua,
+satu rute yang lupa memakai `request.db` berarti data PT A terlihat oleh PT B,
+tanpa satu pun galat.
+
+Migrasi **510** memaksa RLS pada tabel yang sudah punya policy permissive:
+**60 → 149**. Enam tabel sengaja dilewati karena punya NOL policy permissive —
+mem-`FORCE` mereka akan mematikan tabelnya total, persis cacat migrasi 149 yang
+gejalanya "halaman aset kosong tanpa error".
+
+### Saya salah ukur TIGA kali sebelum sampai ke temuan yang benar
+
+Ini bagian yang paling perlu dicatat, karena ketiganya menghasilkan angka yang
+kelihatan masuk akal dan mengarah ke kesimpulan yang salah arah.
+
+**Salah 1 — "99 dari 101 tabel BUTA".** Saya menyetel klaim JWT dengan
+`users.id`, padahal `auth_user_id()` mencocokkan `users.auth_id = auth.uid()`.
+Jadi seluruh fungsi auth memulangkan NULL dan setiap tabel tampak buta. Saya
+sempat menulis di badan commit 510 bahwa langkah 2 terhalang 99 tabel tanpa
+policy admin. **Itu keliru.** Dengan `auth_id` yang benar: **101 terlihat,
+0 buta.**
+
+**Salah 2 — user uji berperan `client`, bukan admin.** `LIMIT 1` tanpa
+`ORDER BY` mengambil siapa saja. Kelas cacat yang sama persis dengan yang
+diperingatkan CLAUDE.md soal fixture.
+
+**Salah 3 — "nol kebocoran" dari uji yang tak menguji apa pun.** Alias SQL
+`cb.id AS idB` dilipat Postgres jadi `idb`, sehingga `p.idB` `undefined` dan
+tiap query menyaring `company_id = undefined`. Nol tabel diuji, dan skripnya
+tetap mencetak "nol kebocoran — RLS menahan". Sesudah itu saya tambahkan
+`if (diuji === 0) exit(2)` di tiap skrip ukur.
+
+Pelajaran yang sama tiga kali: **hasil yang menyenangkan wajib dicurigai lebih
+keras daripada hasil yang mengganggu.** Yang menyelamatkan hanya membandingkan
+dua sisi — helper vs fungsi SQL sungguhan, 9 pengguna, 9 cocok.
+
+### Kebocoran yang sungguhan
+
+Uji yang sah — admin yang HANYA anggota satu tenant, membaca 101 tabel berisi
+data tenant lain:
+
+    document_number_series : 27 dari 27 baris TERBACA PENUH
+
+Sebabnya bukan kekurangan policy, justru sebaliknya. Tabel itu punya **empat**
+policy permissive, dan dua di antaranya hanya memeriksa izin
+(`has_permission('penomoran:view')`) tanpa menyebut `company_id` sama sekali.
+
+**Policy PERMISSIVE digabung dengan OR.** Satu policy yang lupa menyaring tenant
+MEMBATALKAN penyaringan yang dilakukan saudaranya. Menambah policy justru
+melonggarkan — intuisi terbalik dari kebanyakan sistem izin, dan itu sebabnya
+cacat begini lolos review berkali-kali.
+
+Pola "permissive tanpa jejak tenant" terhitung **226 policy**, termasuk
+`qual :: true` polos pada tabel uang dan AI. Hampir semuanya tidak berbahaya,
+karena 129 dari 138 tabel punya lapis RESTRICTIVE `tenant_isolation` yang
+digabung dengan AND. **Sembilan tabel tak punya lapis itu** — dan satu sudah
+terbukti bocor. Delapan sisanya aman hari ini hanya karena kebetulan kosong.
+
+Migrasi **511** memasang pagar pada kesembilannya. `company_members` dapat
+bentuk khusus (`OR user_id = auth_user_id()`) — tanpa itu user multi-tenant tak
+bisa melihat keanggotaannya di tenant lain, dan fitur pindah-perusahaan mati
+tanpa galat.
+
+### Policy bernama "tenant_isolation" yang tidak mengisolasi apa pun
+
+`rls-initplan.test.ts` lalu menemukan empat policy — dari migrasi 450, 454, 458,
+470 — bernama `*_tenant_isolation` tetapi dibuat **tanpa `AS RESTRICTIVE`**.
+Namanya menjanjikan isolasi, isinya menyebut `company_id`, dan tetap saja ia
+tak menyaring apa pun.
+
+Ini jenis cacat yang paling sulit terlihat: **namanya sendiri yang meyakinkan
+pembaca bahwa perkaranya sudah beres.**
+
+Migrasi **512** membungkus keenamnya jadi InitPlan (empat itu plus
+`takeoff_dimensi` dari migrasi 431, yang telanjang memanggil `has_permission` —
+join 3 tabel dikali jumlah baris). Nama policy sengaja tidak diubah: mengganti
+nama tak menambah keamanan, sementara nama lama sudah ada di dump dan runbook.
+Yang menutup risikonya adalah keberadaan pagar RESTRICTIVE-nya.
+
+### Test yang hijau KARENA ada lubang keamanan
+
+Menutup kebocoran membuat 6 test `penomoran` merah. Bukan regresi — cacat
+fixture yang selama ini tersembunyi:
+
+    test  (LIMIT 1)          : 8e7e65b0…
+    rute  (auth_company_id)  : 48befb54…
+
+Pengguna admin yang dipilih harness anggota **tiga** company. Fixture menulis
+seri ke tenant A, rute mencarinya di tenant B → 404. Selama RLS belum
+di-`FORCE`, kebocoran lintas tenant menutupi ketidakcocokan itu.
+
+Perbaikannya di harness, bukan di data: helper `companyRute()` yang menyalin
+bentuk `auth_company_id()` (`is_default AND is_active`) alih-alih menebak
+"baris pertama". Diverifikasi terhadap fungsi SQL sungguhan: **9 pengguna,
+9 cocok, 0 beda.**
+
+### Bukti
+
+- migrasi 510 · `89 tabel di-FORCE RLS; 6 dilewati` · FORCE 60 → 149
+- migrasi 511 · `9 pagar tenant dipasang; nol tabel FORCE tersisa tanpa pagar`
+- migrasi 512 · `6 policy dibungkus InitPlan; nol helper telanjang tersisa`
+- kebocoran lintas tenant: **1 → 0** dari 101 tabel diuji
+- penjaga baru `audit-tabel-force-berpagar.mjs` — 138 diperiksa, 0 telanjang;
+  mutasi (DROP pagar `struktur_elemen`) → **MERAH menyebut nama tabelnya** →
+  pulih → HIJAU
+- `penomoran` **53 lulus**; struktur/klausul/spk/penawaran/takeoff **1.564 lulus**
+- `tsc --noEmit` exit 0, **tanpa filter**
+- penjaga CI: **11 merah, sama dengan sebelum sesi ini** — nol regresi
+  (`audit-akhir-baris` sempat terlihat merah; exit code-nya 0, yang tertangkap
+  hanya peringatan CRLF dari git di stderr)
+
+### Yang TIDAK dikerjakan, dan kenapa
+
+**T5c langkah 2 — mengganti peran DB API supaya tak bypass RLS.** FORCE sudah
+terpasang tapi belum menggigit. Sebelum peran ditukar, isolasi perlu dibuktikan
+di jalur aplikasi sungguhan (lewat rute, bukan hanya SQL langsung), karena
+kegagalannya berbentuk halaman kosong tanpa pesan — bukan galat yang menunjuk
+sebabnya.
+
+### Menunggu founder
+
+Tak bertambah dari sesi sebelumnya. Yang lama masih berlaku, termasuk
+penomoran migrasi (12 nomor ganda) dan `audit-klasifikasi-tenancy` (13 tabel
+perlu kategori ADR-011).
+
+---
+
 ## 2026-08-20 (lanjutan) — beban, material, dan enam kali alat ukur saya berbohong
 
 **Ringkasan run (apps/api):**
