@@ -5,6 +5,164 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-29 — push 937 commit, dan enam penjaga yang menuduh kode yang benar
+
+Founder meminta push lalu deploy. Push berhasil (`ec831d41..5ceac200`), tapi
+GitHub melaporkan **11 status check dilewati** karena hak bypass — dan CI-nya
+merah. CI hijau terakhir **2026-08-06**, jadi merahnya menumpuk sepanjang 937
+commit itu.
+
+### Tiga sebab CI, semuanya urutan atau lingkungan
+
+**19 penjaga ber-basis-data jalan tanpa `DIRECT_URL`.** Job mati dengan
+`FATAL: DIRECT_URL tidak ditemukan` sebelum satu test pun berjalan. Disapu
+menyeluruh: tiap langkah `run: node scripts/*.mjs` dicocokkan dengan ISI
+berkasnya (`DIRECT_URL`, `_koneksi.mjs`, `from 'pg'`), lalu yang butuh basis
+diberi env-nya. 19 dipasang, 20 memang sudah punya.
+
+**Lalu gagal lebih jauh:** `relation "otomasi_alur" does not exist`. Tabel itu
+ada di dev, dibuat migrasi 272. Yang belum ada di basis CI — karena
+`ci-project-setup` (apply migrations) berjalan di baris 1799, sementara
+kesembilan belas penjaga itu di baris 262-458.
+
+Penjaga yang bertanya kepada skema berjalan sebelum skemanya ada. Polanya
+sudah dinyatakan di repo ini pada langkah lain: *"Berjalan SESUDAH migrasi
+karena skema adalah wasitnya."* Dipindahkan seluruhnya — dan dibuktikan murni
+pemindahan: **217 langkah = 217, nol hilang, nol duplikat.**
+
+⚠ Percobaan pertama memindahkan `ci-project-setup` ikut serta, yang menghapus
+penandanya sendiri. Skripnya gagal keras sebelum menulis, jadi `ci.yml` tak
+pernah rusak.
+
+**Em-dash di dua baris `situs_media.alt`** — data, bukan kode. Diganti titik dua.
+
+### Enam penjaga merah yang ternyata menuduh kode yang BENAR
+
+Ini pola sesi ini, dan layak dicatat sebagai kelas tersendiri.
+
+**`audit-tulis-berkonfirmasi` — 4 pelanggaran, NOL nyata.** W-1/W-2 menuduh
+rute tulis kehilangan klaim token; klaimnya ADA, atomik, dan terjadi sebelum
+baris dibentuk — ia hanya PINDAH ke `lib/tulis-klaim.ts`. W-3 menuduh
+`kasbons` dan `payments` masuk daftar putih; keduanya memang masuk, dan itu
+keputusan founder 2026-08-15 yang alasannya diperiksa satu per satu.
+
+Penjaga yang tetap melarang sesudah keputusan turun tidak menjaga apa pun — ia
+membuat CI merah atas keadaan yang disengaja, dan yang memperbaikinya akan
+tergoda mematikan penjaganya sekalian.
+
+**Sekalian dipasang W-6**, yang selama ini tak ada: `payments` boleh ditulis
+HANYA karena `cash_account_id` dipaku NULL. Pagar itu dijelaskan panjang di
+kode dan diuji, tapi tak ada yang menghubungkannya dengan IZIN MASUKNYA. Kalau
+sesi berikutnya "melengkapi" kolom itu, satu kalimat WhatsApp salah dengar
+memindahkan uang — dan daftar putihnya tetap hijau. Dibuktikan bisa merah.
+
+**`audit-migrasi-pertenant-aktif` — dibutakan satu titik koma.** Ia menandai
+migrasi 468 melanggar; migrasi itu sudah punya `WHERE c.is_active` sejak awal.
+Yang membutakan: titik koma di dalam TEKS deskripsi
+
+    'berapa pun angkanya; ambang ini hanya mengatur ...'
+
+Penjaga memotong dengan `potongan.split(';')[0]` — keterbatasan yang ia akui
+sendiri. Titik komanya memotong tepat sebelum `WHERE`.
+
+⚠ Percobaan pertama saya justru MENAMBAH `WHERE EXISTS` di atas
+`WHERE c.is_active` yang sudah ada — dua WHERE berturut-turut, **syntax
+error**, dan penjaganya tetap HIJAU atas berkas yang tak bisa dijalankan sama
+sekali. Ketahuan karena migrasinya dijalankan sungguhan di transaksi rollback,
+bukan karena penjaganya. Yang tersisa: satu karakter.
+
+**`audit-ekspor-tanpa-pemanggil`** — `kunciRuteTerjadwal()` nol pemanggil.
+Komentarnya mengklaim "dipakai penjaga dan rute ikhtisar"; keduanya tidak.
+Dibuang.
+
+### Dua cacat nyata
+
+**Role bawaan tenant terkunci selamanya** (516). Trigger dari migrasi 050 —
+ditulis saat basis masih satu perusahaan — mengunci **1.440 role milik
+tenant**, bukan hanya 20 template global. Bukan kasus langka: itu perilaku
+DEFAULT provisioning. Tiap perusahaan yang di-onboard tak akan pernah bisa
+menghapus 20 dari 21 role bawaannya sendiri.
+
+Dan galatnya menyesatkan: "Role bawaan tidak bisa dihapus" terbaca seperti
+aturan yang disengaja, jadi orang berhenti mencari.
+
+**`template_penerapan` RLS aktif, NOL policy** (517). Diukur sebelum
+perbaikan: pengguna sah melihat **0 dari 5** baris. Tabel itu sudah mati untuk
+siapa pun yang tunduk RLS. Ditemukan penjaga saya sendiri, sesudah peta
+tenancy di-regenerate menaikkan kategori C dari 117 ke 118.
+
+### 13 tabel akhirnya diklasifikasi
+
+`admin_saas_*` (konsol vendor lintas-tenant), `marketing_*` (situs publik
+untuk pengunjung anonim), `plan*` (katalog paket). Ketiganya memang di luar
+model tenant — dan membiarkannya menggantung berbahaya: tabel tak
+terklasifikasi yang kelak dipakai lewat `request.db` akan disaring dengan
+kolom yang tak ada, atau dianggap katalog bersama dan terbaca semua tenant.
+
+Didaftarkan kategori D di DUA berkas (generator + penjaga CI), tiap nama
+dengan alasannya sendiri. Peta: 269 → 294 tabel.
+
+### Lima entri QUEUE ditutup — catatannya basi, penjaganya hijau
+
+Kelimanya menyatakan penjaga visual "sudah RED, menunggu keputusan founder".
+Kelimanya exit 0. Yang paling menyesatkan menyebut *"66 dari 77 halaman
+pm-portal melanggar"* — kenyataannya **2 dari 97**, dan keduanya halaman
+PENGALIH di bawah 25 baris yang memang tak boleh punya judul.
+
+Angka lain yang sudah tak berlaku: kerapatan "291 vs lantai 181" (lantai kini
+88), tabel "tercatat 3, nyata 6" (keduanya 3).
+
+QUEUE: 92 → 97 selesai.
+
+### R-022 tak lagi menunggu angka
+
+Entri itu menanyakan apakah tim pengadaan lebih dari satu orang — syarat agar
+SoD untuk PO tak memacetkan pekerjaan. Diukur: **puraloka-persada 6 orang**
+ber-`procurement:po:manage`; tiga tenant lain 1 orang, semuanya data uji.
+
+Syaratnya terpenuhi. Yang masih milik founder murni pilihan cara kerja, bukan
+angka yang belum diketahui.
+
+### Bukti
+
+- penjaga CI: **10 → 6 merah**
+- migrasi 516 & 517 dijalankan, keduanya diuji di transaksi rollback lebih dulu
+- `audit-tabel-force-berpagar` hijau: 0 telanjang · 0 buntu · 0 kategori C
+  tanpa pagar (dari 118)
+- `audit-klasifikasi-tenancy` hijau: 291 diperiksa, lantai tak naik
+- `gen-tenant-map check` exit 0 · `tsc --noEmit` exit 0, tanpa filter
+- W-6 dibuktikan bisa merah (4 kemunculan `cash_account_id` dihapus → MERAH →
+  pulih → HIJAU)
+- isolasi `template_penerapan` diuji dua arah: pemilik 5, tenant lain 0
+
+### Sisa enam merah, dan mengapa
+
+Tiga bukan cacat kode: `ci-project-setup` dan `gabung-coverage` butuh
+lingkungan CI, `schema-fingerprint` butuh acuan yang diputuskan founder (R-020).
+
+`audit-sod-gerbang` menunggu R-022 — dan memang seharusnya: gerbangnya
+fail-closed, jadi mendaftarkan aturan asal-asalan akan MEMATIKAN approval
+`purchase_order` sama sekali.
+
+`audit-penomoran-migrasi` (12 nomor ganda) Gerbang Keras G-2.
+
+`audit-migrasi-skema-dipaku` tersisa 9, semuanya migrasi lama (363-437).
+Pelanggaran ke-10 dari migrasi 516 saya sendiri sudah dibuang.
+
+### Yang menahan deploy
+
+Bukan CI. **Domain** — keputusan founder. `docs/SIAP-DEPLOY.md` sudah
+memetakan langkahnya, dan `audit-env-siap-deploy` hijau (22 dari 22 env
+terdokumentasi).
+
+Yang masih merah dan bukan urusan domain: `lint-ratchet` web
+(`no-unused-vars` 77 vs ambang 0) dan dependency audit. `eslint --fix` dicoba
+dan JUSTRU MERUSAK — ia menghapus `// eslint-disable-next-line no-new-func`
+yang sengaja dipasang di skrip potret dan menggantinya dengan spasi.
+Dibatalkan seluruhnya.
+
+---
+
 ## 2026-08-28 (lanjutan) — T5c langkah 2, dan cacat yang saya buat lalu temukan sendiri
 
 **RLS akhirnya menggigit.** Migrasi 510 memasang `FORCE` pada 149 tabel, tapi
