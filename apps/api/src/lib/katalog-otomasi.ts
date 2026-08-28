@@ -2543,7 +2543,3 @@ export function entriKatalog(kunci: string): EntriKatalog | null {
   return KATALOG_OTOMASI.find((e) => e.kunci === kunci) ?? null
 }
 
-/** Kunci yang MEMANG rute terjadwal — dipakai penjaga dan rute ikhtisar. */
-export function kunciRuteTerjadwal(): string[] {
-  return KATALOG_OTOMASI.filter((e) => !e.kunci_bukan_rute).map((e) => e.kunci)
-}

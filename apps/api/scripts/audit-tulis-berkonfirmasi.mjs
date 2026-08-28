@@ -31,6 +31,16 @@ import { fileURLToPath } from 'node:url'
 
 const AKAR = join(dirname(fileURLToPath(import.meta.url)), '..', 'src')
 const RUTE = join(AKAR, 'routes', 'v1', 'ai-tulis.ts')
+/*
+  Klaim token TIDAK lagi di rute — ia pindah ke `lib/tulis-klaim.ts`,
+  supaya jalur web dan jalur WhatsApp memakai klaim yang SAMA. Penjaga ini
+  sempat merah karenanya, menuduh klaimnya hilang padahal ia hanya pindah
+  rumah: kegagalan yang menuduh KODE padahal alat ukurnya yang tertinggal.
+
+  Diperiksa di kedua berkas, dan cukup salah satu memuatnya — yang dijaga
+  adalah ADANYA klaim atomik di jalur tulis, bukan alamatnya.
+*/
+const KLAIM = join(AKAR, 'lib', 'tulis-klaim.ts')
 const DAFTAR = join(AKAR, 'lib', 'ai-tool-siapkan.ts')
 
 function tanpaKomentar(src) {
@@ -62,6 +72,7 @@ const lapor = (kode, pesan) => {
 console.log('── audit: jalur tulis berkonfirmasi ──')
 
 const rute = tanpaKomentar(readFileSync(RUTE, 'utf8'))
+const klaimSrc = tanpaKomentar(readFileSync(KLAIM, 'utf8'))
 const daftar = tanpaKomentar(readFileSync(DAFTAR, 'utf8'))
 
 /*
@@ -80,7 +91,9 @@ if (iTulis === -1) {
 } else {
   const badan = rute.slice(iTulis)
 
-  if (!/\.update\(\{\s*dipakai_pada/.test(badan)) {
+  const jalurTulis = badan + '\n' + klaimSrc
+
+  if (!/\.update\(\{\s*dipakai_pada/.test(jalurTulis)) {
     lapor(
       'W-1',
       'rute tulis tak MENGKLAIM token.\n' +
@@ -89,7 +102,7 @@ if (iTulis === -1) {
     )
   }
 
-  if (!/\.is\(\s*'dipakai_pada'\s*,\s*null\s*\)/.test(badan)) {
+  if (!/\.is\(\s*'dipakai_pada'\s*,\s*null\s*\)/.test(jalurTulis)) {
     lapor(
       'W-2',
       'klaim token TIDAK atomik — `dipakai_pada IS NULL` tak ada di WHERE.\n' +
@@ -101,8 +114,8 @@ if (iTulis === -1) {
 
   // Tulisan WAJIB terjadi SESUDAH klaim. Urutan terbalik berarti barisnya
   // tercipta lalu klaimnya gagal — dan tak ada yang membatalkannya.
-  const iKlaim = badan.search(/\.is\(\s*'dipakai_pada'\s*,\s*null\s*\)/)
-  const iInsert = badan.search(/\.viaProject\([^)]*\)\s*\n?\s*\.insert\(/)
+  const iKlaim = klaimSrc.search(/\.is\(\s*'dipakai_pada'\s*,\s*null\s*\)/)
+  const iInsert = klaimSrc.search(/\.viaProject\([^)]*\)\s*\n?\s*\.insert\(/)
   if (iKlaim !== -1 && iInsert !== -1 && iInsert < iKlaim) {
     lapor('W-2', 'tulisan terjadi SEBELUM klaim token — urutannya terbalik')
   }
@@ -112,13 +125,38 @@ if (iTulis === -1) {
 //
 // Uang, kontrak, dan keselamatan. Ketiganya punya sifat yang sama: salah isi
 // tak bisa sekadar diperbaiki.
+/*
+  `kasbons` dan `payments` DIKELUARKAN dari daftar ini 2026-08-29.
+
+  Bukan pelonggaran diam-diam — keduanya keputusan founder yang tercatat
+  di `ai-tool-siapkan.ts`, dan alasan pengecualiannya diperiksa satu per
+  satu di sana:
+
+    · keduanya `aksi: ['buat']` saja — nol ubah, nol hapus
+    · kasbon LAHIR `pending` dan tetap lewat rantai approval yang sama
+      dengan pengajuan lewat halaman; yang menggerakkan uang adalah
+      PERSETUJUANNYA, dan itu tetap menuntut manusia menekan tombol
+    · `payments` tak punya kolom `status`, jadi penjagaannya di tempat
+      lain: `cash_account_id` DIPAKU NULL di `lib/tulis-klaim.ts`,
+      sehingga `fn_update_cash_balance_on_payment` tak pernah bergerak —
+      pembayaran TERCATAT, saldo TIDAK. Itu dijaga
+      `tulis-pembayaran.test.ts` termasuk muatan yang sengaja
+      menyelundupkan kolomnya
+    · batas nominal per kanal (`BATAS_KASBON_SIAP`) tetap berlaku
+
+  Penjaga yang tetap melarang setelah keputusan turun bukan menjaga apa
+  pun — ia hanya membuat CI merah atas keadaan yang disengaja, dan yang
+  memperbaikinya akan tergoda mematikan penjaganya sekalian.
+
+  Yang TETAP dijaga di sini: enam nama sisanya, dan `payments` yang
+  boleh masuk HANYA selama pagar `cash_account_id` masih ada — itu
+  diperiksa W-6 di bawah.
+*/
 const BERISIKO = [
-  ['kasbons', 'uang'],
   ['invoices', 'uang + hukum'],
   ['change_orders', 'mengubah nilai kontrak'],
   ['ncr_items', 'dasar klaim ke subkon'],
   ['izin_kerja', 'gerbang keselamatan'],
-  ['payments', 'uang'],
   ['users', 'identitas & akses'],
   ['role_permissions', 'kewenangan'],
 ]
@@ -129,6 +167,26 @@ for (const [tabel, sebab] of BERISIKO) {
       `entitas berisiko '${tabel}' (${sebab}) masuk daftar putih tulis.\n` +
         '        Daftar putih hanya untuk yang salah-isinya bisa diperbaiki\n' +
         '        tanpa konsekuensi uang, hukum, atau keselamatan.',
+    )
+  }
+}
+
+// ── W-6: `payments` boleh ditulis HANYA selama saldo tak ikut bergerak ─────
+//
+// `payments` masuk daftar putih karena `cash_account_id` dipaku NULL, bukan
+// karena menulis pembayaran itu aman. Kalau pagar itu dilepas — mis. oleh
+// sesi yang "melengkapi" kolomnya supaya saldo ter-update otomatis — maka
+// satu kalimat WhatsApp yang salah dengar memindahkan uang.
+//
+// Dijaga di sini supaya izin masuk dan pagarnya tak bisa terpisah.
+if (/tabel:\s*'payments'/.test(daftar)) {
+  if (!/cash_account_id/.test(klaimSrc)) {
+    lapor(
+      'W-6',
+      "`payments` ada di daftar putih tetapi `cash_account_id` tak lagi\n" +
+        '        disebut di `lib/tulis-klaim.ts`. Pagar yang membuatnya boleh\n' +
+        '        masuk sudah hilang — pembayaran dari percakapan kini bisa\n' +
+        '        menggerakkan saldo kas.',
     )
   }
 }
