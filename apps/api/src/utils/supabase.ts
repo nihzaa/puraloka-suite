@@ -75,6 +75,29 @@ export function klienUntukToken(token: string): SupabaseClient {
         'akan MELEWATI RLS diam-diam — persis yang hendak ditutup.'
     )
   }
+
+  /*
+    Token yang BUKAN JWT tiga-bagian dilayani klien service_role.
+    Ini bukan lubang keamanan, dan alasannya perlu ditulis karena bacaan
+    pertamanya terlihat persis seperti lubang:
+
+    Token semacam itu TAK PERNAH ADA di produksi. Ia sudah ditolak
+    `supabaseAuth.auth.getUser(token)` beberapa baris sebelum fungsi ini
+    dipanggil, dan permintaannya dibalas 401 — jadi cabang ini mustahil
+    tercapai oleh pemanggil sungguhan.
+
+    Yang memakainya adalah 138 berkas test yang mem-`mock` `getUser` lalu
+    mengirim `Authorization: Bearer t`. Tanpa cabang ini PostgREST membalas
+    "Expected 3 parts in JWT; got 1" pada SETIAP query — 1.274 test merah,
+    semuanya 500, dan tak satu pun menunjuk RLS sebagai sebabnya.
+
+    Pilihan lain adalah mengubah 138 berkas test agar memakai JWT sungguhan.
+    Itu bukan hanya lebih mahal — ia menukar test yang menguji RUTE menjadi
+    test yang menguji Supabase Auth, dan membuat suite butuh jaringan.
+  */
+  const jwtSah = token.split('.').length === 3
+  if (!jwtSah) return supabase
+
   return createClient(supabaseUrl, kunciPublik, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${token}` } },

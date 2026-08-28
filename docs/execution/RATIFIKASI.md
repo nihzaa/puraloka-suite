@@ -6,7 +6,7 @@ bawah entrinya.
 
 ---
 
-# 🔒 R-023 · Isolasi antar-tenant kini dijamin BASIS DATA, bukan disiplin kode — dan satu kebocoran nyata ditutup (2026-08-28)
+# ✅ 🔒 R-023 · Isolasi antar-tenant kini dijamin BASIS DATA — SELESAI, termasuk langkah yang semula menunggu Anda (2026-08-28)
 
 ## Yang ditemukan
 
@@ -59,29 +59,70 @@ perusahaan menutupi ketidakcocokan itu. Sudah diperbaiki.
 **5. Penjaga otomatis dipasang** supaya bentuk cacat ini tak bisa lahir lagi
 tanpa ketahuan, dan sudah dibuktikan bisa berubah merah.
 
-## Yang PERLU keputusan Anda
+## Langkah terakhir SUDAH dikerjakan — dan rencananya ternyata salah
 
-**Langkah berikutnya belum dikerjakan, dan sengaja.**
+Entri ini semula menanyakan kapan langkah terakhir dijalankan. Anda menjawab
+"kerjakan sekarang", dan hasilnya perlu Anda ketahui karena **rencana yang
+tertulis di ROADMAP ternyata akan mematikan aplikasi.**
 
-Yang tersisa adalah mengganti peran basis data yang dipakai API dengan peran
-yang **tidak bisa** melewati RLS. Hari ini pagarnya sudah terpasang tapi belum
-menggigit — API masih memakai peran istimewa.
+Rencana itu berbunyi: *"buat peran basis data khusus yang tidak bisa melewati
+RLS"*. Saya ukur dulu sebelum mengerjakannya:
 
-Saya berhenti di sini karena kegagalannya, kalau ada yang terlewat, **berbentuk
-halaman kosong tanpa pesan galat** — bukan sesuatu yang menunjuk sebabnya.
-Sebelum peran ditukar, isolasinya perlu dibuktikan lewat jalur aplikasi
-sungguhan (membuka halaman, bukan hanya menjalankan SQL), dan itu butuh
-aplikasi hidup plus akun uji untuk beberapa peran.
+    tabel berisi data : 115
+    jadi NOL baris    : 112
 
-**Pertanyaan untuk Anda: kapan ini dijalankan?**
+Aplikasi mati total — tanpa satu pun pesan galat, hanya halaman kosong.
+Sebabnya: mengganti peran saja tidak memberi tahu basis data SIAPA yang sedang
+bertanya, sehingga semua aturan menolak semua orang.
 
-| Pilihan | Untung | Rugi |
-|---|---|---|
-| **Sekarang**, sebelum pelanggan pertama | Kalau ada yang jebol, korbannya data dummy | Butuh satu sesi khusus + pengujian menyeluruh lewat layar |
-| **Saat pelanggan kedua mendekat** | Tak menahan pekerjaan lain | Risiko menunda: makin banyak rute baru yang perlu diperiksa ulang |
+Jalan yang benar ternyata sudah tersedia sejak awal dan hanya tak pernah
+dipakai: **meneruskan identitas pengguna yang sedang login** ke lapisan data.
 
-Rekomendasi saya: **sekarang**, karena biaya kesalahannya hari ini nol
-(seluruh isi basis masih data dummy), sementara nanti tidak.
+    dengan identitas pengguna : 114 dari 115 tabel terbaca
+    rencana semula            :   3 dari 115
+
+Kalau saya mengerjakan rencana apa adanya, aplikasi mati dan sebabnya tak
+menunjuk ke mana-mana.
+
+## Tiga kebocoran lagi yang tersingkap saat mengerjakannya
+
+Begitu aturan keamanan benar-benar dijalankan, tiga hal muncul:
+
+1. **Dimensi take-off bocor lintas perusahaan.** Siapa pun yang boleh melihat
+   take-off bisa membaca panjang, lebar, dan volume tiap elemen pekerjaan
+   perusahaan lain — itu isi RAB mereka. Tabelnya punya dua aturan izin dan
+   **nol** pagar perusahaan.
+
+2. **Dua tabel item penawaran** punya pagar yang isinya benar tapi jenisnya
+   salah, sehingga tak menahan apa pun.
+
+3. **Dua tabel yang SAYA sendiri rusak** beberapa jam sebelumnya — perbaikan
+   pagar di langkah pertama justru membuat `penawaran` dan `pengingat_asisten`
+   tak terbaca siapa pun. Ditemukan, diperbaiki, dan penjaganya sekarang
+   memeriksa arah itu juga.
+
+Ketiganya jenis tabel yang tak punya kolom penanda perusahaan sendiri —
+mewarisi dari induknya. Di situlah pagar paling mudah terlupa, karena tak ada
+apa pun di tabelnya yang mengingatkan bahwa isinya milik seseorang.
+
+## Bukti
+
+Diuji lewat aplikasi sungguhan (bukan hanya perintah basis data), dengan akun
+yang benar-benar login:
+
+    8 halaman data diuji — semuanya menampilkan jumlah yang BENAR
+    proyek milik perusahaan lain: tidak terbaca
+
+Dan satu angka yang membuktikan penyaringannya nyata, bukan sekadar terpasang:
+notifikasi yang terlihat lewat identitas pengguna **1.348**, sementara lewat
+jalur lama **6.290** — selisihnya adalah notifikasi milik orang lain, yang
+memang tak seharusnya terlihat.
+
+## Yang masih tersisa
+
+17 dari 141 rute masih memakai jalur lama. Itu sudah dijaga penjaga yang ada
+(`audit-gerbang-tenancy`) dan turun sendiri seiring rute dipindahkan — tak
+perlu keputusan Anda, dan tak menahan penjualan.
 
 ## Yang TIDAK berubah
 

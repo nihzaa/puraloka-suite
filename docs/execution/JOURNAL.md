@@ -5,6 +5,196 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-28 (lanjutan) — T5c langkah 2, dan cacat yang saya buat lalu temukan sendiri
+
+**RLS akhirnya menggigit.** Migrasi 510 memasang `FORCE` pada 149 tabel, tapi
+peran API memakai kunci `service_role` yang `bypassrls` — pagarnya terpasang
+tanpa pernah menyentuh siapa pun.
+
+### Rencana semula salah, dan pengukuran yang menyelamatkannya
+
+ROADMAP menyebut langkah 2 sebagai *"buat peran DB khusus yang tidak bypass
+RLS"*. Saya ukur dulu sebelum mengerjakannya:
+
+    tabel FORCE berisi data : 115
+    jadi NOL baris          : 112
+
+Aplikasi mati total — dan tanpa satu pun galat, hanya halaman kosong. Sebabnya:
+menukar peran saja tak memberi tahu PostgREST SIAPA yang bertanya, jadi
+`auth_user_id()` NULL dan tiap policy menolak semua.
+
+Jalur yang benar ternyata sudah tersedia sejak awal: token pengguna ada di
+`authenticate()`, hanya tak pernah diteruskan ke lapisan data.
+
+    klien ber-token pengguna terbaca : 114 dari 115
+    peran ditukar tanpa token        :   3 dari 115
+
+Kalau saya mengerjakan rencana apa adanya, saya akan mematikan aplikasi dan
+menghabiskan sisa sesi mencari sebab yang tak menunjuk ke mana-mana.
+
+### Yang dibangun
+
+`klienUntukToken(token)` — klien PostgREST per-permintaan, kunci PUBLIK +
+token pengguna, sehingga koneksi berperan `authenticated`. Sengaja
+per-permintaan: klien yang di-cache akan membawa identitas pengguna
+SEBELUMNYA, kebocoran yang lebih buruk daripada yang sedang ditutup.
+
+`createTenantDb(companyId, klien?)` menerima klien, bawaannya `supabase` —
+jadi **124 rute yang memakai `request.db` tak perlu diubah satu pun.**
+
+Penyaringan aplikasi tidak dilepas. RLS menahan lintas-tenant; `createTenantDb`
+menahan lintas-company untuk pengguna yang anggota beberapa company sekaligus,
+karena `auth_company_id()` hanya tahu company DEFAULT — bukan yang sedang
+dipilih di UI.
+
+### Saya mengulangi cacat yang saya sendiri tulis peringatannya
+
+Migrasi 511 (sesi ini juga) membuat **`penawaran` dan `pengingat_asisten` tak
+terbaca siapa pun.** Keduanya sudah punya policy bernama `tenant_isolation`
+yang dibuat tanpa `AS RESTRICTIVE` — jadi PERMISSIVE — dan `DROP … IF EXISTS`
+saya membuang satu-satunya pemberi akses yang ada.
+
+Itu persis cacat migrasi 149, yang saya tulis panjang lebar di kepala migrasi
+510 beberapa jam sebelumnya.
+
+Yang membuatnya lolos: pemeriksaan 511 hanya bertanya *"apakah tiap tabel FORCE
+punya pagar?"* — pertanyaan yang jawabannya YA **justru karena kerusakannya.**
+Penjaga yang hanya bertanya "apakah terkunci?" akan menyetujui tabel yang
+terkunci untuk semua orang.
+
+Diperbaiki migrasi **513**.
+
+### Dua kebocoran lama yang tersingkap
+
+**514** — `penawaran_item` dan `penawaran_subkon_item`: pagar kategori C yang
+isinya benar tapi sifatnya PERMISSIVE, jadi tak menahan apa pun.
+
+**515** — `takeoff_dimensi` punya DUA policy izin dan **NOL pagar tenant**.
+Pemegang `cecep:takeoff:view` membaca dimensi take-off SELURUH tenant: panjang,
+lebar, volume tiap elemen pekerjaan perusahaan lain. Itu isi RAB mereka.
+
+Ketiganya kategori C — mewarisi tenancy lewat induk, tanpa kolom `company_id`
+sendiri. Justru di situ pagar paling mudah terlupa: **tak ada kolom yang
+mengingatkan penulis migrasi bahwa barisnya milik seseorang.**
+
+Ditemukan `t5a-policy-tenant.test.ts`, bukan penjaga skrip — test yang sudah
+ada sejak lama dan merah karena alasan yang benar.
+
+### Penjaga kini memeriksa tiga arah
+
+1. tabel FORCE ber-`company_id` wajib berpagar RESTRICTIVE
+2. tabel FORCE wajib punya PERMISSIVE — yang tanpa itu buntu
+3. tabel kategori C wajib berpagar meski tak punya `company_id`
+
+Arah 2 dan 3 lahir dari cacat nyata sesi ini, bukan dari teori. Ketiganya
+dibuktikan bisa merah lewat mutasi, dan tiap merah menyebut nama tabelnya.
+
+### Dan satu regresi besar yang hampir saya lewatkan
+
+Suite penuh pertama sesudah perubahan: **1.274 test merah dari 7.092.**
+
+Sebabnya satu baris di keluaran: `Expected 3 parts in JWT; got 1`. 138 berkas
+test mem-`mock` `getUser` lalu mengirim `Authorization: Bearer t` — dan
+`klienUntukToken` meneruskan token itu apa adanya ke PostgREST, yang menolaknya
+pada SETIAP query. Semua 500, tak satu pun menunjuk RLS sebagai sebabnya.
+
+Yang hampir membuat saya melewatkannya: sepanjang suite berjalan saya
+menghitung dengan `grep -c '✓'` dan `grep -c FAIL`, dan angkanya membaca
+`619 lulus · 0 FAIL` — karena kegagalan baru ditulis di RINGKASAN AKHIR,
+bukan per baris. Saya sempat menulis "nol regresi" di entri ini atas dasar
+angka itu.
+
+**Hitungan berjalan bukan hasil.** Yang sah hanya baris `Tests …` di akhir.
+
+Perbaikannya: token yang bukan JWT tiga-bagian dilayani klien service_role.
+Bacaan pertamanya terlihat seperti lubang, jadi alasannya ditulis di kode —
+token semacam itu sudah ditolak `getUser()` dengan 401 beberapa baris
+sebelumnya, jadi cabang itu mustahil tercapai pemanggil sungguhan.
+
+Dan dibuktikan lewat PERILAKU, bukan identitas objek:
+
+    notifications lewat token asli  : 1.348   (tersaring `notifications_own_select`)
+    notifications lewat token palsu : 6.290   (service_role, semua)
+
+Kalau fallback-nya terlalu longgar, kedua angka itu akan sama — dan seluruh
+T5c langkah 2 jadi sia-sia tanpa satu pun gejala.
+
+### Bukti
+
+- `uji-rls-jalur-nyata.mjs` (baru) — **8 rute HTTP dengan token sungguhan**:
+  projects 19/19 · clients 10/10 · kasbons 67/67 · assets 18/18 ·
+  suppliers 5/5 · materials 24 (AB, katalog bersama) · PO 8 · notifikasi 30.
+  Isolasi: GET proyek tenant lain → 404
+- 3 mutasi penjaga → 3 MERAH bernama → 3 pulih HIJAU
+- `t5a-policy-tenant` + `t5a0-policy-dasar`: **3 gagal → 1**
+- migrasi 513/514/515 terbukti **idempoten**
+- suite penuh (run bersih, sendirian): **7.002 lulus · 83 gagal · 8 dilewati**
+  Selisih terhadap baseline 70 seluruhnya terbukti PRA-ADA: `kontrak` (14),
+  `otomasi-proyeksi-selesai` (2), `ai-tulis` (1) — diuji di worktree terpisah
+  pada 89abfc14, `kontrak` gagal dengan jumlah yang sama persis. Arah
+  sebaliknya: tiga test yang tadinya merah kini hijau, dua di antaranya
+  `t5a-policy-tenant` yang memang ditutup migrasi 514/515.
+- `tsc --noEmit` exit 0, **tanpa filter**
+- penjaga CI: **10 merah, sama dengan awal sesi** — nol regresi
+  (dua merah baru dari kode saya sendiri — `SUPABASE_ANON_KEY` tak terdaftar
+  di `.env.example`, dan angka "129 tabel" yang saya tulis di CLAUDE.md
+  melanggar aturan dokumen ini sendiri — keduanya ditutup)
+
+### Regresi kedua: mock yang tak tahu ada ekspor baru
+
+Suite kedua: **86 merah** (dari 1.274). Turun jauh, tapi baseline 69 — jadi
+masih ada selisih, dan selisih yang tak dijelaskan bukan selisih yang aman.
+
+Membandingkan daftar berkas gagal terhadap baseline memberi empat tersangka.
+Tiga di antaranya (`kontrak`, `ai-tulis`, `otomasi-proyeksi-selesai`) ternyata
+**sudah merah di commit sebelum perubahan saya** — dibuktikan dengan worktree
+terpisah pada 89abfc14, bukan dengan `git stash`. `kontrak.test.ts` bahkan
+gagal dengan jumlah yang sama persis, 14.
+
+Yang tersisa satu berkas, tiga test: `auth-peran-company.test.ts`.
+
+    [vitest] No "klienUntukToken" export is defined on the
+             "../../utils/supabase.js" mock.
+
+`vi.mock` mengganti SELURUH modul. Menambah satu ekspor ke `utils/supabase.ts`
+karena itu memutus tiap test yang mem-`mock` modul itu — dan pesannya menuduh
+mock, bukan kode yang menambah ekspor.
+
+Sekalian diperbaiki lebih jauh dari sekadar hijau: mock `createTenantDb`
+sekarang MEREKAM klien yang diterimanya, dan ada test baru yang memastikan
+klien itu berasal dari token permintaan. Tanpa itu, jalur token bisa dilepas
+kapan saja tanpa satu pun test merah — aplikasi tetap jalan, dan yang hilang
+cuma lapis yang seharusnya menahan rute yang lupa memakai `request.db`.
+
+Dibuktikan bisa merah: melepas `klienUntukToken(token)` dari `auth.ts` membuat
+test itu gagal dengan pesan yang menyebut sebabnya —
+*"createTenantDb dipanggil TANPA klien — request.db jatuh ke service_role"* —
+lalu hijau lagi setelah dipulihkan.
+
+### Cara saya membandingkan, dan kenapa cara pertama salah
+
+Percobaan pertama membandingkan nama berkas yang muncul di log dan memulangkan
+"475 berkas gagal" di kedua sisi — yaitu SELURUH berkas, karena `grep` menangkap
+tiap penyebutan nama, bukan hanya baris kegagalan. Nol selisih dari perbandingan
+yang salah terbaca persis seperti nol regresi.
+
+Yang sah: saring `^ *FAIL ` dulu. Sesudah itu angkanya 29 vs 26, dan keempat
+tersangkanya bisa diperiksa satu per satu.
+
+### Sisa satu merah yang BUKAN dari sesi ini
+
+`t5a0-policy-dasar` menyebut 23 tabel RLS-aktif-tanpa-policy (`admin_saas_*`,
+`marketing_*`). **Nol di antaranya di-FORCE**, jadi tak ada yang tak terbaca —
+utang lama, dan migrasi 510 memang sengaja melewatinya.
+
+### Yang TIDAK dikerjakan
+
+17 rute masih memakai `supabase` mentah alih-alih `request.db`, jadi masih
+lewat `service_role`. Itu ratchet `audit-gerbang-tenancy` yang sudah ada dan
+turun sendiri seiring rute dipindahkan.
+
+---
+
 ## 2026-08-28 — RLS dipaksa menggigit, satu kebocoran nyata, dan tiga kali saya salah ukur sebelum menemukannya
 
 **T5c langkah 1.** Sebelum hari ini, 775 policy RLS di basis ini **tak pernah

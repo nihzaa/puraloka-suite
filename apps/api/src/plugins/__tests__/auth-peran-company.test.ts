@@ -47,11 +47,20 @@ vi.mock('../../utils/supabase.js', () => {
     supabaseAuth: {
       auth: { getUser: vi.fn(async () => ({ data: { user: { id: AUTH_ID } }, error: null })) },
     },
+    // `authenticate()` merakit `request.db` dari klien ber-token pengguna
+    // (T5c langkah 2). Mock modul mengganti SELURUH modul, jadi ekspor yang
+    // tak disebut di sini akan melempar "No export is defined" — bukan
+    // undefined yang lolos diam-diam.
+    //
+    // Dikembalikan sebagai penanda yang bisa dikenali, supaya test di bawah
+    // bisa memastikan klien itu BENAR-BENAR diteruskan ke `createTenantDb` —
+    // bukan sekadar tak melempar.
+    klienUntukToken: vi.fn((token: string) => ({ _token: token })),
   }
 })
 
 vi.mock('../../utils/tenant-db.js', () => ({
-  createTenantDb: vi.fn((cid: string) => ({ _company: cid })),
+  createTenantDb: vi.fn((cid: string, klien?: unknown) => ({ _company: cid, _klien: klien })),
 }))
 
 const { authenticate } = await import('../auth.js')
@@ -144,5 +153,24 @@ describe('authenticate() — peran dari company aktif', () => {
 
     expect((req.db as unknown as { _company: string })._company).toBe(COMPANY_B)
     expect(req.currentUser?.role).toBe('mandor')
+  })
+
+  it('`request.db` memakai klien ber-TOKEN PENGGUNA, bukan service_role', async () => {
+    // T5c langkah 2. Tanpa ini, seluruh akses data lewat kunci service_role
+    // yang `bypassrls` — 775 policy RLS terpasang tapi tak pernah dievaluasi,
+    // dan isolasi antar-tenant bergantung sepenuhnya pada disiplin kode.
+    //
+    // Kegagalannya kalau jalur ini dilepas TIDAK terlihat: aplikasi tetap
+    // jalan, test lain tetap hijau, dan yang hilang hanya lapis kedua yang
+    // seharusnya menahan rute yang lupa memakai `request.db`.
+    //
+    // Yang diperiksa: klien yang sampai ke `createTenantDb` berasal dari
+    // token permintaan ini — bukan klien modul, dan bukan token orang lain.
+    const req = buatRequest(COMPANY_B)
+    await authenticate(req, buatReply())
+
+    const klien = (req.db as unknown as { _klien?: { _token?: string } })._klien
+    expect(klien, 'createTenantDb dipanggil TANPA klien — request.db jatuh ke service_role').toBeDefined()
+    expect(klien?._token).toBe('token-uji')
   })
 })
