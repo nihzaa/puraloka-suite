@@ -191,7 +191,7 @@ bukan mengaudit sejarah. Menyegarkannya mengembalikan fungsinya hari ini juga.
 
 ---
 
-# 🧹 R-019 · Basis penuh sisa test — 1.328 perusahaan untuk 29 pengguna, dan itu MENGUBAH HASIL (2026-08-27)
+# ✅ R-019 · Basis penuh sisa test — 1.328 perusahaan untuk 29 pengguna, dan itu MENGUBAH HASIL (2026-08-27)
 
 **Yang perlu Anda putuskan ada di bagian terakhir.** Sisanya penjelasan.
 
@@ -286,6 +286,63 @@ pengujian memilih proyek dengan cara "ambil satu, mana saja" — sehingga kadang
 mendapat proyek milik perusahaan sisa pengujian, dan data yang baru disiapkan
 tak pernah terlihat oleh yang diuji. Itu cacat di pengujiannya, bukan di
 aplikasinya, dan tidak memengaruhi pemakaian nyata.
+
+
+---
+
+## ✅ DIKERJAKAN 2026-08-27 — founder menyetujui pilihan A
+
+> Founder: *"oke saya setuju bersihkan yang uji-/retired-"*
+
+### Hasilnya
+
+    role_permissions   352.798 → 2.514     (356.150 baris dibuang)
+    roles                8.988 → 63
+
+Cacat yang jadi alasan entri ini **terbukti tuntas**. Query pencarian penerima
+notifikasi yang dulu memulangkan tepat 1.000 baris terpotong:
+
+    sebelum : 1000 baris (TERPOTONG) → 0 penerima
+    sesudah :   18 baris (utuh)      → 14 penerima
+
+### Yang TIDAK jadi dihapus, dan kenapa — basis menolak TIGA kali
+
+Rencana awal menghapus tenant-nya sekalian. Basis menolak, dan tiap penolakan
+adalah pengaman yang benar:
+
+| Pengaman | Yang dilindunginya |
+|---|---|
+| `trg_protect_builtin_roles` | role bawaan tak bisa dihapus — yang terhapus mengunci orang keluar dari sistemnya sendiri |
+| `audit_logs` append-only | **Ember [C]** (CLAUDE.md §5.3) — immutability audit log, tak boleh dilemahkan |
+| `fn_company_no_casual_delete` | *"Company tidak boleh dihapus. Nonaktifkan atau jalankan prosedur off-boarding tenant. Penghapusan tenant = kehilangan data lintas puluhan tabel dan tidak dapat di-rollback lewat aplikasi."* |
+
+Yang ketiga tak punya pengecualian. Menembusnya berarti mematikan pengaman
+yang dipasang persis untuk mencegah kehilangan data massal — dan itu tak
+sepadan, karena ternyata **tidak perlu**.
+
+### Kenapa tidak perlu
+
+Yang merusak bukan jumlah barisnya di tabel `companies`, melainkan
+`role_permissions` yang membengkak. Membersihkan peran & izinnya
+menyelesaikan cacatnya sepenuhnya, tanpa menyentuh satu pun pengaman.
+
+1.546 baris `companies` yang tertinggal tak berbahaya: ia hanya nama tanpa
+peran, tanpa izin, tanpa proyek.
+
+### Yang masih tersisa
+
+**Pilihan C** dari entri ini belum dikerjakan: membuat test membersihkan
+buatannya sendiri. Selama belum, tumpukan ini akan kembali — terbukti selama
+sesi ini sendiri, `roles` naik 8.778 → 8.925 hanya dalam beberapa menit karena
+test terus berjalan.
+
+Alatnya sudah ada dan idempoten, jadi pembersihan ulang murah:
+
+    node apps/api/scripts/bersihkan-tenant-uji.mjs            # lapor saja
+    node apps/api/scripts/bersihkan-tenant-uji.mjs --tulis    # bersihkan
+
+Prosedur off-boarding tenant (yang bisa menghapus barisnya dengan benar) juga
+belum ada — pesan trigger di atas menyebutnya, tetapi ia belum dibangun.
 
 ---
 
