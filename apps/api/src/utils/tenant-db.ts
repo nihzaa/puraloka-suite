@@ -151,9 +151,10 @@ function scoped(
   tabel: string,
   filter: (q: any) => any,
   opsi: { isiCompanyId: boolean },
-  companyId?: string
+  companyId?: string,
+  klien: SupabaseClient = supabase
 ): ScopedTable {
-  const t = () => (supabase.from as (n: string) => any)(tabel)
+  const t = () => (klien.from as (n: string) => any)(tabel)
   const isi = (nilai: any) => {
     if (!opsi.isiCompanyId || !companyId) return nilai
     // Nilai eksplisit dari pemanggil TIDAK ditimpa — ada kasus sah menulis
@@ -180,7 +181,10 @@ function scoped(
  * bug tenancy yang gagal diam-diam adalah kebocoran data; yang gagal keras
  * adalah error 500 yang langsung terlihat. (ADR-011 §6 lapis 3)
  */
-export function createTenantDb(companyId: string | null | undefined): TenantDb {
+export function createTenantDb(
+  companyId: string | null | undefined,
+  klien: SupabaseClient = supabase
+): TenantDb {
   if (!companyId || !UUID_RE.test(companyId)) {
     throw new TenantDbError(
       `createTenantDb butuh companyId berupa UUID, dapat: ${JSON.stringify(companyId)}. ` +
@@ -201,18 +205,18 @@ export function createTenantDb(companyId: string | null | undefined): TenantDb {
   /** Ambil kolom `id` dari tabel, disaring `kolom IN (nilai)`. Fail-loud. */
   const idsVia = async (tabel: string, kolom: string, nilai: string[]) => {
     if (nilai.length === 0) return []
-    const { data, error } = await supabase.from(tabel).select('id').in(kolom, nilai)
+    const { data, error } = await klien.from(tabel).select('id').in(kolom, nilai)
     if (error) throw new TenantDbError(`Gagal memuat id ${tabel}: ${error.message}`)
     return (data ?? []).map((r: { id: string }) => r.id)
   }
 
   return {
     companyId,
-    raw: supabase,
+    raw: klien,
 
     projectIds() {
       memoProjectIds ??= (async () => {
-        const { data, error } = await supabase
+        const { data, error } = await klien
           .from('projects').select('id').eq('company_id', companyId)
         if (error) {
           // Fail-loud: mengembalikan [] akan membuat handler menampilkan "nol
@@ -254,16 +258,16 @@ export function createTenantDb(companyId: string | null | undefined): TenantDb {
       switch (e.kategori) {
         case 'B':
         case 'ANCHOR':
-          return scoped(tabel, (q) => q.eq('company_id', companyId), { isiCompanyId: true }, companyId)
+          return scoped(tabel, (q) => q.eq('company_id', companyId), { isiCompanyId: true }, companyId, klien)
         case 'AB':
           // NULL = baris acuan milik bersama (mis. 2.620 AHSP nasional);
           // terisi = milik tenant ini. Keduanya sah dibaca tenant ini.
           // INSERT: diisi companyId — baris baru buatan tenant adalah miliknya,
           // bukan tambahan ke katalog bersama.
           return scoped(tabel, (q) => q.or(`company_id.is.null,company_id.eq.${companyId}`),
-            { isiCompanyId: true }, companyId)
+            { isiCompanyId: true }, companyId, klien)
         case 'A':
-          return scoped(tabel, (q) => q, { isiCompanyId: false })
+          return scoped(tabel, (q) => q, { isiCompanyId: false }, undefined, klien)
         case 'C':
           throw new TenantDbError(
             `'${tabel}' mewarisi tenancy lewat project — pakai db.viaProject('${tabel}', projectId). ` +
@@ -280,7 +284,7 @@ export function createTenantDb(companyId: string | null | undefined): TenantDb {
     },
 
     shared(tabel) {
-      return supabase.from(tabel)
+      return klien.from(tabel)
     },
 
     viaProject(tabel, projectId) {
@@ -291,7 +295,7 @@ export function createTenantDb(companyId: string | null | undefined): TenantDb {
       }
       const e = entri(tabel)
       const kolom = (e as { lewat?: string } | undefined)?.lewat ?? 'project_id'
-      return scoped(tabel, (q) => q.eq(kolom, projectId), { isiCompanyId: false })
+      return scoped(tabel, (q) => q.eq(kolom, projectId), { isiCompanyId: false }, undefined, klien)
     },
 
     unsafe(tabel, alasan) {
@@ -301,7 +305,7 @@ export function createTenantDb(companyId: string | null | undefined): TenantDb {
             'Alasan ini dibaca saat review dan saat audit tenancy.'
         )
       }
-      return supabase.from(tabel)
+      return klien.from(tabel)
     },
   }
 }

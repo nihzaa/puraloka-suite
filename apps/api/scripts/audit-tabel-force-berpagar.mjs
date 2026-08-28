@@ -32,11 +32,31 @@
  */
 import 'dotenv/config'
 import pg from 'pg'
+import { readFileSync } from 'fs'
 
 const url = process.env.DIRECT_URL || process.env.DATABASE_URL
 if (!url) {
   console.error('❌ DIRECT_URL/DATABASE_URL kosong — penjaga tak bisa mengukur apa pun.')
   console.error('   Nol temuan tanpa koneksi BUKAN bukti tak ada pelanggaran.')
+  process.exit(1)
+}
+
+/*
+  Kategori C dibaca dari peta tenancy — sumber yang SAMA dengan `request.db`,
+  supaya daftar ini tak bisa menyimpang diam-diam dari yang dipakai kode.
+
+  Dibaca sebagai TEKS, bukan di-`import`: petanya berkas `.ts`, dan penjaga ini
+  berjalan di node polos tanpa loader TypeScript. `import()` padanya gagal
+  ERR_MODULE_NOT_FOUND — dan penjaga yang mati saat start tak menjaga apa pun.
+*/
+const petaSrc = readFileSync(
+  new URL('../src/utils/tenant-map.generated.ts', import.meta.url), 'utf8')
+const TABEL_C = [...petaSrc.matchAll(/'([a-z0-9_]+)':\s*\{[^}]*kategori:\s*'C'[^}]*\}/g)]
+  .filter((m) => !/view:\s*true/.test(m[0]))
+  .map((m) => m[1])
+if (TABEL_C.length === 0) {
+  console.error('❌ NOL tabel kategori C terbaca dari peta — pembacaan meleset, bukan basis yang bersih.')
+  console.error('   Penjaga yang tak membaca apa-apa akan selalu hijau.')
   process.exit(1)
 }
 
@@ -65,6 +85,46 @@ const { rows: [{ n: diperiksa }] } = await c.query(`
      AND EXISTS (SELECT 1 FROM information_schema.columns co
                   WHERE co.table_schema='public' AND co.table_name=cl.relname
                     AND co.column_name='company_id')`)
+
+const { rows: buntu } = await c.query(`
+  SELECT cl.relname
+    FROM pg_class cl
+   WHERE cl.relnamespace = 'public'::regnamespace
+     AND cl.relkind = 'r'
+     AND cl.relforcerowsecurity
+     AND NOT EXISTS (SELECT 1 FROM pg_policies p
+                      WHERE p.schemaname = 'public' AND p.tablename = cl.relname
+                        AND p.permissive = 'PERMISSIVE')
+   ORDER BY cl.relname`)
+
+/*
+  Pemeriksaan KETIGA — tabel kategori C, titik buta dua pemeriksaan di atas.
+
+  Keduanya menyaring `column_name = 'company_id'`, jadi tabel yang mewarisi
+  tenancy lewat induknya tak pernah diperiksa. `takeoff_dimensi` duduk di titik
+  buta itu dengan DUA policy izin dan NOL pagar tenant: pemegang
+  `cecep:takeoff:view` membaca dimensi take-off — panjang, lebar, volume tiap
+  elemen — milik SELURUH tenant.
+
+  Justru di tabel kategori C pagar paling mudah terlupa: tak ada kolom
+  `company_id` yang mengingatkan penulis migrasi bahwa baris ini milik
+  seseorang.
+
+  Yang dijaga: tiap tabel ber-RLS yang PETA_TENANCY nyatakan berkategori C
+  wajib punya policy RESTRICTIVE. Bentuk pagarnya tak diperiksa di sini —
+  rantai induknya berbeda-beda — hanya keberadaannya.
+*/
+const { rows: kategoriC } = await c.query(`
+  SELECT cl.relname
+    FROM pg_class cl
+   WHERE cl.relnamespace = 'public'::regnamespace
+     AND cl.relkind = 'r'
+     AND cl.relrowsecurity
+     AND cl.relname = ANY($1::text[])
+     AND NOT EXISTS (SELECT 1 FROM pg_policies p
+                      WHERE p.schemaname = 'public' AND p.tablename = cl.relname
+                        AND p.permissive = 'RESTRICTIVE')
+   ORDER BY cl.relname`, [TABEL_C])
 
 await c.end()
 
@@ -96,4 +156,57 @@ if (telanjang.length > 0) {
   process.exit(1)
 }
 
-console.log('\n✅ Nol tabel telanjang.')
+/*
+  Pemeriksaan KEDUA — arah sebaliknya, dan yang ini lahir dari cacat nyata.
+
+  Migrasi 511 memasang pagar RESTRICTIVE pada dua tabel yang policy
+  PERMISSIVE-nya bernama sama (`tenant_isolation`, dibuat tanpa
+  `AS RESTRICTIVE` di migrasi 414 dan 442). `DROP … IF EXISTS` lalu
+  membuang satu-satunya pemberi akses yang ada.
+
+  Hasilnya: `penawaran` dan `pengingat_asisten` tak terbaca SIAPA PUN —
+  himpunan permissive yang kosong bernilai FALSE. Pemeriksaan pertama di
+  atas menjawab "YA, berpagar" justru KARENA kerusakannya.
+
+  Penjaga yang hanya bertanya "apakah terkunci?" akan menyetujui tabel yang
+  terkunci untuk semua orang. Ia harus juga bertanya "apakah masih ada yang
+  bisa membacanya?"
+*/
+if (buntu.length > 0) {
+  console.error(`\n❌ ${buntu.length} tabel di-FORCE TANPA satu pun policy PERMISSIVE:`)
+  for (const t of buntu) console.error('     ·', t.relname)
+  console.error(`
+   Tabel ini tak terbaca siapa pun — himpunan permissive kosong bernilai
+   FALSE. Diamnya BUKAN galat: halaman kosong tanpa pesan, kegagalan yang
+   paling lama dilacak di repo ini (cacat migrasi 149, terulang di 511).
+
+   Perbaikan — pasang pemberi akses, JANGAN lepas pagarnya:
+
+     CREATE POLICY <tabel>_akses ON public.<tabel>
+       FOR ALL USING (true) WITH CHECK (true);
+
+   Isolasi tenant tetap dijamin lapis RESTRICTIVE yang digabung AND.`)
+  process.exit(1)
+}
+
+console.log('  tanpa PERMISSIVE:', buntu.length)
+console.log('  kategori C tanpa pagar:', kategoriC.length, `(dari ${TABEL_C.length} tabel C)`)
+
+if (kategoriC.length > 0) {
+  console.error(`\n❌ ${kategoriC.length} tabel kategori C tanpa pagar RESTRICTIVE:`)
+  for (const t of kategoriC) console.error('     ·', t.relname)
+  console.error(`
+   Tabel kategori C mewarisi tenancy lewat induknya dan TAK punya kolom
+   \`company_id\` sendiri — tak ada yang mengingatkan bahwa barisnya milik
+   seseorang. Tanpa pagar, satu policy izin sudah cukup membocorkan seluruh
+   tabel ke tenant lain.
+
+   Perbaikan — telusuri induk sampai ketemu company (pola migrasi 515):
+
+     CREATE POLICY tenant_isolation ON public.<tabel> AS RESTRICTIVE FOR ALL
+       USING (EXISTS (SELECT 1 FROM <induk> i
+                       WHERE i.id = <tabel>.<fk>
+                         AND i.company_id = (SELECT auth_company_id())));`)
+  process.exit(1)
+}
+console.log('\n✅ Nol tabel telanjang, nol tabel buntu.')

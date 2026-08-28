@@ -1,5 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
-import { supabase, supabaseAuth } from '../utils/supabase.js'
+import { supabase, supabaseAuth, klienUntukToken } from '../utils/supabase.js'
 import { createTenantDb, type TenantDb } from '../utils/tenant-db.js'
 
 // Tipe untuk user yang sudah terautentikasi
@@ -187,7 +187,21 @@ export async function authenticate(request: FastifyRequest, reply: FastifyReply)
   request.currentUser = { ...user, role: hasil.peran ?? peranGlobal } as AuthUser
 
   request.companyId = hasil.companyId
-  request.db = createTenantDb(hasil.companyId)
+  // `request.db` memakai klien ber-TOKEN PENGGUNA, bukan service_role.
+  //
+  // Sebelum ini seluruh akses data lewat kunci service_role (`bypassrls`),
+  // sehingga 775 policy RLS tak pernah dievaluasi dan isolasi antar-tenant
+  // bergantung sepenuhnya pada penyaringan di lapis aplikasi. Satu rute yang
+  // lupa `request.db` = data tenant lain di layar, tanpa satu pun galat.
+  //
+  // Dengan token diteruskan, koneksi PostgREST berperan `authenticated` dan RLS
+  // ikut menyaring. Dua lapis, dan yang kedua tak bisa dilupakan pemrogram.
+  //
+  // Penyaringan aplikasi TIDAK dilepas: RLS menahan lintas-tenant, sementara
+  // `createTenantDb` menahan lintas-company untuk pengguna yang anggota
+  // beberapa company sekaligus — `auth_company_id()` hanya tahu company DEFAULT,
+  // bukan company yang sedang dipilih di UI.
+  request.db = createTenantDb(hasil.companyId, klienUntukToken(token))
 }
 
 // Load permission set untuk role user ke cache per-request (sekali per request, no N+1).
