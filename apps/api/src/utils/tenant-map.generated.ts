@@ -4,7 +4,7 @@
 // Penegak: `node scripts/gen-tenant-map.mjs check` (CI) — build MERAH kalau
 // ada tabel yang belum terklasifikasi (ADR-011 §9.5 P3).
 //
-// 269 tabel · A=11 · AB=17 · ANCHOR=1 · B=116 · C=117 · D=7
+// 294 tabel · A=14 · AB=19 · ANCHOR=1 · B=121 · C=118 · D=21
 //
 // Arti kategori (ADR-011 §5 + audit T1):
 //   ANCHOR akar tenancy (projects) — company_id NOT NULL
@@ -38,6 +38,11 @@ export interface EntriTenancy {
 export const PETA_TENANCY = {
   'absensi_harian': { kategori: 'C', lewat: 'scope_id' },  // absensi_harian.scope_id → work_scopes.assignment_id → mandor_assignments.project_id
   'accounts': { kategori: 'B' },
+  'admin_saas_audit_log': { kategori: 'D' },  // Jejak perbuatan STAF VENDOR di konsol. Sengaja lintas-tenant: yang dicatat justru tindakan atas banyak tenant sekaligus.
+  'admin_saas_permissions': { kategori: 'D' },  // Izin konsol vendor. Katalog tetap, bukan data milik satu company.
+  'admin_saas_role_permissions': { kategori: 'D' },  // Peta peran-izin konsol vendor. Turunan dua tabel di atas.
+  'admin_saas_roles': { kategori: 'D' },  // Peran DI KONSOL VENDOR, terpisah dari peran tenant. Bukan data milik satu company.
+  'admin_saas_users': { kategori: 'D' },  // Konsol vendor lintas-tenant (admin-saas) — staf Puraloka, bukan pengguna tenant. Bukan data milik satu company.
   'ahsp_editions': { kategori: 'A' },
   'ai_akses_ditolak': { kategori: 'A' },
   'ai_batas_setujui': { kategori: 'B' },
@@ -81,6 +86,7 @@ export const PETA_TENANCY = {
   'company_members': { kategori: 'D' },  // Tabel keanggotaan itu sendiri. Di-scope manual per kasus.
   'company_menu_settings': { kategori: 'B' },
   'company_profile': { kategori: 'D' },  // Deprecated — digantikan companies (dibuang setelah T4).
+  'company_saas_meta': { kategori: 'B' },
   'company_settings': { kategori: 'B' },
   'contract_bonds': { kategori: 'B' },
   'contract_claims': { kategori: 'C', lewat: 'project_id' },  // contract_claims.project_id
@@ -149,6 +155,11 @@ export const PETA_TENANCY = {
   'lesson_propagation_proposals': { kategori: 'C', lewat: 'lesson_id' },  // lesson_propagation_proposals.lesson_id → lessons_learned_records.project_id
   'lessons_learned_records': { kategori: 'C', lewat: 'project_id' },  // lessons_learned_records.project_id
   'mandor_assignments': { kategori: 'C', lewat: 'project_id' },  // mandor_assignments.project_id
+  'marketing_faqs': { kategori: 'D' },  // FAQ situs publik — konten pemasaran, bukan data pelanggan.
+  'marketing_pages': { kategori: 'D' },  // Halaman situs publik — dibaca pengunjung anonim, tak ada konteks tenant.
+  'marketing_pricing_plans': { kategori: 'D' },  // Tampilan harga di situs publik. Yang mengikat langganan adalah `plans`, ini presentasinya.
+  'marketing_sections': { kategori: 'D' },  // Seksi halaman situs publik. Turunan marketing_pages.
+  'marketing_testimonials': { kategori: 'D' },  // Testimoni di situs publik — konten pemasaran yang dikurasi vendor.
   'markup_periode': { kategori: 'B' },
   'material_categories': { kategori: 'A' },
   'material_pack': { kategori: 'B' },
@@ -200,6 +211,9 @@ export const PETA_TENANCY = {
   'permissions': { kategori: 'A' },
   'peta_akun_jurnal': { kategori: 'B' },
   'peta_resource_material': { kategori: 'B' },
+  'plan_feature_values': { kategori: 'D' },  // Nilai fitur per paket. Turunan plans + plan_features.
+  'plan_features': { kategori: 'D' },  // Daftar fitur yang bisa dipaketkan. Katalog vendor.
+  'plans': { kategori: 'D' },  // Katalog paket langganan — sama untuk semua pelanggan. Penyimpangan per-tenant hidup di tenant_feature_overrides.
   'po_delivery_log': { kategori: 'C', lewat: 'project_id' },  // po_delivery_log.project_id
   'pola_kerja': { kategori: 'B' },
   'polis_asuransi': { kategori: 'C', lewat: 'project_id' },  // polis_asuransi.project_id
@@ -230,6 +244,7 @@ export const PETA_TENANCY = {
   'rap_change_log': { kategori: 'C', lewat: 'rap_budget_id' },  // rap_change_log.rap_budget_id → rap_budget.project_id
   'rap_labor_line': { kategori: 'C', lewat: 'rap_budget_id' },  // rap_labor_line.rap_budget_id → rap_budget.project_id
   'rap_material_line': { kategori: 'C', lewat: 'rap_budget_id' },  // rap_material_line.rap_budget_id → rap_budget.project_id
+  'rap_realisasi': { kategori: 'D', view: true },  // VIEW tanpa company_id — tentukan tenancy-nya secara sadar
   'rebar_takeoff': { kategori: 'C', lewat: 'estimate_item_id' },  // rebar_takeoff.estimate_item_id → estimate_items.estimate_version_id → estimate_versions.scenario_id → scenarios.project_id
   'register_gambar': { kategori: 'B' },
   'rekening_koran': { kategori: 'B' },
@@ -244,6 +259,8 @@ export const PETA_TENANCY = {
   'role_permissions': { kategori: 'AB' },
   'roles': { kategori: 'AB' },
   'root_cause_analyses': { kategori: 'C', lewat: 'lesson_id' },  // root_cause_analyses.lesson_id → lessons_learned_records.project_id
+  'saas_invoice_line_items': { kategori: 'A' },
+  'saas_invoices': { kategori: 'AB' },
   'scenarios': { kategori: 'C', lewat: 'project_id' },  // scenarios.project_id
   'sengketa': { kategori: 'C', lewat: 'project_id' },  // sengketa.project_id
   'serah_terima': { kategori: 'B' },
@@ -264,9 +281,11 @@ export const PETA_TENANCY = {
   'stock_movements': { kategori: 'C', lewat: 'project_id' },  // stock_movements.project_id
   'stock_transfers': { kategori: 'C', lewat: 'project_asal_id' },  // stock_transfers.project_asal_id
   'struktur_elemen': { kategori: 'B' },
+  'struktur_riwayat': { kategori: 'B' },
   'subcontract_retention_releases': { kategori: 'B' },
   'submittal_documents': { kategori: 'C', lewat: 'document_id' },  // submittal_documents.document_id → documents.project_id
   'submittals': { kategori: 'C', lewat: 'project_id' },  // submittals.project_id
+  'subscriptions': { kategori: 'B' },
   'supplier_invoices': { kategori: 'B' },
   'supplier_payment_allocations': { kategori: 'B' },
   'supplier_payments': { kategori: 'B' },
@@ -277,8 +296,14 @@ export const PETA_TENANCY = {
   'tarif_payroll_baris': { kategori: 'C', lewat: 'periode_id' },  // tarif_payroll_baris.periode_id
   'tarif_payroll_periode': { kategori: 'B' },
   'tax_records': { kategori: 'AB' },
+  'template_input': { kategori: 'A' },
+  'template_item': { kategori: 'A' },
+  'template_penerapan': { kategori: 'C', lewat: 'estimate_version_id' },  // template_penerapan.estimate_version_id → estimate_versions.scenario_id → scenarios.project_id
+  'template_rab': { kategori: 'AB' },
   'temuan_audit': { kategori: 'C', lewat: 'audit_id' },  // temuan_audit.audit_id → audit_mutu.project_id
   'temuan_k3': { kategori: 'C', lewat: 'inspeksi_id' },  // temuan_k3.inspeksi_id → inspeksi_k3.project_id
+  'tenant_feature_overrides': { kategori: 'B' },
+  'tenant_usage_counters': { kategori: 'B' },
   'tender_subkon': { kategori: 'C', lewat: 'project_id' },  // tender_subkon.project_id
   'termin_schedules': { kategori: 'C', lewat: 'project_id' },  // termin_schedules.project_id
   'timesheet_staf': { kategori: 'C', lewat: 'pegawai_id' },  // timesheet_staf.pegawai_id

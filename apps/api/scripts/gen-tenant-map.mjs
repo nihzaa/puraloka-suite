@@ -45,6 +45,50 @@ const KATEGORI_D = {
   company_profile: 'Deprecated — digantikan companies (dibuang setelah T4).',
   document_number_series: 'Counter penomoran per company; di-scope eksplisit oleh pemakainya.',
   audit_logs: 'Punya company_id NOT NULL tapi ditulis langsung (tak pernah lewat join) supaya trail tetap terbaca meski baris induk hilang. Append-only (073).',
+
+  /*
+    ── Tiga kelompok yang HIDUP DI LUAR model tenant (didaftarkan 2026-08-29)
+    ────────────────────────────────────────────────────────────────────────
+
+    Ketiga belas tabel di bawah ini dilaporkan `audit-klasifikasi-tenancy`
+    sebagai "PERLU-MATA-MANUSIA: nol rantai FK ke tabel ber-company_id" — dan
+    laporan itu BENAR. Mereka memang tak punya jalur ke `companies`, karena
+    memang bukan data milik tenant mana pun.
+
+    Yang berbahaya bukan ketiadaan `company_id`-nya, melainkan menebak: tabel
+    tak terklasifikasi yang kemudian dipakai lewat `request.db` akan disaring
+    dengan `company_id` yang tak ada, atau lebih buruk, dianggap katalog
+    bersama dan terbaca semua tenant. Karena itu ketiganya dinyatakan D —
+    "di luar model tenant, penyaringannya diputuskan pemakainya" — bukan
+    dibiarkan menggantung.
+  */
+
+  // ── Konsol vendor (admin-saas). LINTAS tenant secara desain: yang memakainya
+  //    adalah staf Puraloka yang mengelola SELURUH pelanggan, bukan pelanggan
+  //    itu sendiri. Memberi `company_id` justru akan membuatnya salah — konsol
+  //    yang hanya melihat satu tenant tak bisa menagih atau menonaktifkan
+  //    tenant lain. Penjagaannya izin admin-saas + RLS-nya sendiri.
+  admin_saas_users: 'Konsol vendor lintas-tenant (admin-saas) — staf Puraloka, bukan pengguna tenant. Bukan data milik satu company.',
+  admin_saas_roles: 'Peran DI KONSOL VENDOR, terpisah dari peran tenant. Bukan data milik satu company.',
+  admin_saas_permissions: 'Izin konsol vendor. Katalog tetap, bukan data milik satu company.',
+  admin_saas_role_permissions: 'Peta peran-izin konsol vendor. Turunan dua tabel di atas.',
+  admin_saas_audit_log: 'Jejak perbuatan STAF VENDOR di konsol. Sengaja lintas-tenant: yang dicatat justru tindakan atas banyak tenant sekaligus.',
+
+  // ── Situs publik (marketing). Dibaca pengunjung yang BELUM login — tak ada
+  //    tenant sama sekali di konteksnya. Menyaringnya per-company akan membuat
+  //    halaman jual kosong bagi siapa pun yang belum jadi pelanggan.
+  marketing_pages: 'Halaman situs publik — dibaca pengunjung anonim, tak ada konteks tenant.',
+  marketing_sections: 'Seksi halaman situs publik. Turunan marketing_pages.',
+  marketing_faqs: 'FAQ situs publik — konten pemasaran, bukan data pelanggan.',
+  marketing_testimonials: 'Testimoni di situs publik — konten pemasaran yang dikurasi vendor.',
+  marketing_pricing_plans: 'Tampilan harga di situs publik. Yang mengikat langganan adalah `plans`, ini presentasinya.',
+
+  // ── Katalog paket langganan. Sama untuk semua pelanggan — itulah gunanya.
+  //    Kalau kelak ada harga khusus per pelanggan, tempatnya
+  //    `tenant_feature_overrides` (sudah ada, kategori B), bukan di sini.
+  plans: 'Katalog paket langganan — sama untuk semua pelanggan. Penyimpangan per-tenant hidup di tenant_feature_overrides.',
+  plan_features: 'Daftar fitur yang bisa dipaketkan. Katalog vendor.',
+  plan_feature_values: 'Nilai fitur per paket. Turunan plans + plan_features.',
 }
 
 function loadUrl() {

@@ -198,6 +198,32 @@ penjaganya tetap merah. Itu pilihan terburuk: kontrolnya tak ada DAN
 peringatannya diabaikan.
 
 Yang saya sarankan: **A, bila tim pengadaan Anda lebih dari satu orang.**
+
+## ✅ Syarat itu SUDAH diukur (2026-08-29) — dan terpenuhi
+
+Pertanyaan "apakah timnya lebih dari satu orang" tak perlu Anda jawab dari
+ingatan. Diukur langsung ke basis, menghitung pengguna aktif yang punya izin
+`procurement:po:manage`:
+
+    puraloka-persada         6 orang
+    grup-uji-nusantara       1 orang   (tenant uji)
+    grup-uji-properti        1 orang   (tenant uji)
+    uji-iso-…                1 orang   (tenant uji)
+
+**Perusahaan Anda punya enam orang berwenang.** Pilihan A tidak akan
+memacetkan PO — syarat yang saya sebut di atas terpenuhi dengan selisih besar.
+
+Tiga tenant lain hanya satu orang, tetapi ketiganya sisa data uji. Kalaupun
+kelak ada pelanggan sungguhan bertim satu orang, SoD di repo ini **per-tenant
+lewat data** (rantai approval dikonfigurasi masing-masing), jadi kasus itu
+ditangani konfigurasi — bukan alasan menahan keputusan ini.
+
+**Yang masih milik Anda: pilihan A atau B.** Angkanya sudah tak jadi
+penghalang; yang tersisa murni soal cara kerja yang Anda inginkan — apakah
+pembuat PO boleh mengirimkannya sendiri.
+
+Sementara belum diputuskan, penjaganya tetap merah dan CI ikut merah. Itu
+sebabnya saya menaruh angka ini di sini alih-alih menebak jawabannya.
 PO adalah komitmen uang ke pihak luar; itu justru tempat mata kedua paling
 berharga. Kalau timnya masih satu orang, **B** dengan catatan bahwa ini
 ditinjau ulang saat orang kedua masuk.

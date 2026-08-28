@@ -69,6 +69,45 @@ const D_KHUSUS = new Map([
   // Isinya sengaja minimal: pengenal, kanal, alasan. Tanpa isi pesan —
   // orang tak dikenal tak pernah menyetujui apa pun. (C-9, migrasi 249.)
   ['ai_akses_ditolak', 'TANPA company_id by design — yang ditolak belum punya tenant (C-9)'],
+
+  /*
+    ── Tiga kelompok yang hidup DI LUAR model tenant (2026-08-29)
+
+    Dilaporkan "PERLU-MATA-MANUSIA: nol rantai FK ke tabel ber-company_id",
+    dan laporan itu benar — mereka memang tak punya jalur ke `companies`.
+
+    Yang berbahaya bukan ketiadaan `company_id`-nya, melainkan membiarkannya
+    menggantung: tabel tak terklasifikasi yang kelak dipakai lewat
+    `request.db` akan disaring dengan kolom yang tak ada, atau dianggap
+    katalog bersama dan terbaca semua tenant.
+
+    Didaftarkan juga di `apps/api/scripts/gen-tenant-map.mjs` (KATEGORI_D) —
+    dua berkas karena keduanya sumber yang berbeda: yang satu meng-emit peta
+    untuk kode, yang ini menjaga klasifikasinya di CI.
+  */
+
+  // Konsol vendor: LINTAS tenant secara desain. Yang memakainya staf Puraloka
+  // yang mengelola seluruh pelanggan — konsol yang hanya melihat satu tenant
+  // tak bisa menagih atau menonaktifkan tenant lain.
+  ['admin_saas_users', 'konsol vendor lintas-tenant — staf Puraloka, bukan pengguna tenant'],
+  ['admin_saas_roles', 'peran DI KONSOL VENDOR, terpisah dari peran tenant'],
+  ['admin_saas_permissions', 'izin konsol vendor — katalog tetap'],
+  ['admin_saas_role_permissions', 'peta peran-izin konsol vendor'],
+  ['admin_saas_audit_log', 'jejak perbuatan STAF VENDOR — sengaja lintas-tenant'],
+
+  // Situs publik: dibaca pengunjung yang BELUM login. Menyaringnya per-company
+  // membuat halaman jual kosong bagi siapa pun yang belum jadi pelanggan.
+  ['marketing_pages', 'situs publik — pengunjung anonim, tak ada konteks tenant'],
+  ['marketing_sections', 'seksi halaman situs publik'],
+  ['marketing_faqs', 'FAQ situs publik — konten pemasaran'],
+  ['marketing_testimonials', 'testimoni situs publik — konten pemasaran'],
+  ['marketing_pricing_plans', 'tampilan harga di situs publik; yang mengikat langganan adalah `plans`'],
+
+  // Katalog paket: sama untuk semua pelanggan — itulah gunanya. Harga khusus
+  // per pelanggan tempatnya `tenant_feature_overrides` (kategori B), bukan di sini.
+  ['plans', 'katalog paket langganan — sama untuk semua pelanggan'],
+  ['plan_features', 'daftar fitur yang bisa dipaketkan — katalog vendor'],
+  ['plan_feature_values', 'nilai fitur per paket — turunan plans + plan_features'],
 ])
 
 // Akar tenancy: tabel yang MEMBAWA company_id dan jadi ujung rantai FK.
