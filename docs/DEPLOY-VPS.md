@@ -216,6 +216,38 @@ dipaku di kode.
 
 ---
 
+## 8b. CAKUPAN PENUH — semua yang harus naik
+
+Diminta founder 2026-08-30: *"deploy semuanya, beserta n8n, evo, dan semuanya
+yang ada di repo lokal ini."*
+
+Diukur dari repo, bukan diingat:
+
+| Komponen | Sumber | Port lokal | Status rencana |
+|---|---|---|---|
+| API (Fastify) | `apps/api` | 3007 | ✅ di `docker-compose.yml` → 127.0.0.1:3101 |
+| Web ERP (Next) | `apps/web` | 3000 | ✅ di `docker-compose.yml` → 127.0.0.1:3102 |
+| **Web publik** | `apps/web-publik` | 3002 | ⬜ BELUM ada di compose |
+| **n8n Puraloka** | `scripts/jalankan-n8n.cmd` | 5680 (+5681 broker) | ⬜ BELUM |
+| **Evolution API** | `scripts/jalankan-evolution.cmd` | 8081 | ⬜ BELUM |
+| **Penjadwal** | `scripts/jalankan-penjadwal.cmd` | — (denyut 15 mnt) | ⬜ BELUM — di VPS jadi cron |
+| Mobile (Expo) | `apps/mobile` | — | ❌ bukan server; rilis lewat EAS |
+
+⚠ **n8n & Evolution: JANGAN pakai instance TJS.** CLAUDE.md §7 mencatat mesin
+ini punya DUA pasang, dan tertukarnya sudah pernah terjadi:
+
+    :5678 n8n  → TJS        :8080 Evolution → TJS  (clientName evolution_tjs)
+    :5680 n8n  → PURALOKA   :8081 Evolution → PURALOKA
+
+Mengarahkan Puraloka ke :5678/:8080 membuat pesan masuk Puraloka dikirim ke
+webhook TJS, dan riwayat chat dua perusahaan bercampur di satu database —
+tanpa satu pun galat.
+
+⚠ **Penjadwal jadi cron, bukan proses.** `jalankan-penjadwal.cmd` adalah
+denyut 15 menit untuk mesin pengembangan. Di VPS, pola yang sudah terbukti
+adalah cron — persis seperti `/api/cron/otomasi` milik admin-saas yang sudah
+live. Prosesnya tak perlu ikut naik.
+
 ## 9. Yang TIDAK ikut deploy ini — dan itu disengaja
 
 | Hal | Sebab |
