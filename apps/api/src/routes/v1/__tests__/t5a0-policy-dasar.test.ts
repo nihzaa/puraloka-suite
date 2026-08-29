@@ -49,9 +49,20 @@ afterAll(async () => { await c?.end() })
                         §7 menyatakan tabel ini SENGAJA tak dipakai: billing
                         hidup di DB Vendor, dan yang di sini dibiarkan kosong.
 
-    template_input, template_item
-                        katalog template BERSAMA, sengaja lintas tenant —
-                        pola yang sama dengan 2.620 AHSP nasional.
+  ⚠ KOREKSI 2026-08-30: `template_input`, `template_item`, dan
+  `saas_invoice_line_items` SEMPAT ada di daftar ini dengan alasan "katalog
+  bersama". Alasan itu benar secara harfiah — mereka memang tak punya
+  `company_id` — dan SALAH secara akibat.
+
+  `f2-3-batch3-tenancy-turunan` menemukannya dengan cara yang lebih dapat
+  dipercaya daripada peta kategori: ia membaca FK dari SKEMA. Ketiganya anak
+  dari tabel yang PUNYA `company_id` — `template_rab` dan `saas_invoices` —
+  dan `template_rab` justru yang dipagari 518 karena memuat struktur harga.
+  Anaknya membawa ISI template itu (71 dan 161 baris).
+
+  Pagar induk tanpa pagar anak hampir tak berarti: yang bocor bukan judul
+  templatenya, melainkan isinya. Ketiganya kini dipagari lewat induk —
+  migrasi 519.
 
   ⚠ Daftar ini BUKAN tempat membuang tabel yang merepotkan. Syarat masuk:
   tabelnya harus TAK PUNYA kunci tenant apa pun. Begitu sebuah tabel di sini
@@ -72,9 +83,6 @@ const TANPA_KUNCI_TENANT = [
   'plan_feature_values',
   'plan_features',
   'plans',
-  'saas_invoice_line_items',
-  'template_input',
-  'template_item',
 ]
 
 describe('T5a-0 — tak boleh ada tabel RLS-enabled tanpa policy', () => {
