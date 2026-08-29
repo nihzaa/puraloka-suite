@@ -64,18 +64,63 @@ async function buatTokenBayar(jumlah: number, invId = invoiceId): Promise<string
   return token
 }
 
+/** Invoice yang dipinjam sementara — dipulihkan di afterAll. */
+let dipinjam: { id: string; status: string; amountPaid: string } | null = null
+
 beforeAll(async () => {
   db = await createRlsClient()
 
   // Invoice BELUM LUNAS yang sungguhan — bukan fixture baru. Membuat invoice
   // sendiri menuntut rantai termin/pajak yang panjang, dan yang diuji di sini
   // adalah perilaku pembayaran, bukan penerbitan invoice.
-  const { rows } = await db.query(`
+  let { rows } = await db.query(`
     SELECT i.id, i.project_id, i.amount_due, p.company_id, p.created_by
       FROM invoices i JOIN projects p ON p.id = i.project_id
      WHERE i.status <> 'paid' AND i.amount_due > 1000000 AND p.created_by IS NOT NULL
      ORDER BY i.amount_due DESC LIMIT 1`)
-  if (rows.length === 0) throw new Error('Butuh satu invoice belum lunas untuk test ini')
+  /*
+    ⚠ Kalau NOL invoice belum lunas, satu DIPINJAM lalu dikembalikan.
+
+    Diukur 2026-08-30: seluruh 26 invoice di basis dev berstatus `paid` dengan
+    `amount_due = 0`. Akibatnya `beforeAll` melempar, dan vitest melaporkan
+    berkas ini "failed" dengan ENAM test ter-SKIP — bukan merah.
+
+    Itu bentuk kegagalan yang paling berbahaya untuk berkas INI. Yang dijaga di
+    sini satu-satunya pagar antara "salah dengar nominal di WhatsApp" dan
+    "saldo kas berpindah": `payments` tak punya kolom status, jadi tak ada
+    approval yang bisa menahannya. Berkas yang diam-diam berhenti menguji itu
+    sama saja dengan pagarnya dicabut — dan tak ada yang berbunyi.
+
+    Meminjam lebih baik daripada membuat: menerbitkan invoice menuntut rantai
+    termin/pajak yang panjang, dan yang diuji di sini perilaku PEMBAYARAN.
+    Barisnya dipulihkan utuh di `afterAll`.
+  */
+  if (rows.length === 0) {
+    const { rows: pinjam } = await db.query(`
+      SELECT i.id, i.project_id, i.status, i.amount_paid, i.amount_due,
+             p.company_id, p.created_by
+        FROM invoices i JOIN projects p ON p.id = i.project_id
+       WHERE p.created_by IS NOT NULL AND i.total_amount > 2000000
+       ORDER BY i.total_amount DESC LIMIT 1`)
+    if (pinjam.length === 0) {
+      throw new Error(
+        'prasyarat gagal: nol invoice yang bisa dipinjam (butuh total > 2 juta ' +
+        'pada proyek ber-created_by). Test pagar-uang ini tak bisa berjalan.')
+    }
+    dipinjam = {
+      id: pinjam[0].id,
+      status: pinjam[0].status,
+      amountPaid: pinjam[0].amount_paid,
+    }
+    // Dikosongkan pembayarannya supaya ada sisa tagihan untuk diuji.
+    await db.query(
+      `UPDATE invoices SET amount_paid = 0, status = 'sent' WHERE id = $1`,
+      [dipinjam.id])
+    rows = (await db.query(
+      `SELECT i.id, i.project_id, i.amount_due, p.company_id, p.created_by
+         FROM invoices i JOIN projects p ON p.id = i.project_id
+        WHERE i.id = $1`, [dipinjam.id])).rows
+  }
 
   invoiceId = rows[0].id
   projectId = rows[0].project_id
@@ -93,6 +138,20 @@ afterAll(async () => {
     [`${TANDA} catatan`, `${TANDA}%`],
   )
   await db.query(`DELETE FROM ai_token_tulis WHERE ringkasan LIKE $1`, [`${TANDA}%`])
+
+  /*
+    Invoice yang dipinjam DIKEMBALIKAN utuh — sesudah `payments` dihapus di
+    atas, supaya trigger tak menimpanya lagi.
+
+    Urutannya penting: memulihkan lebih dulu lalu menghapus payments membuat
+    trigger menghitung ulang `amount_paid` dari baris yang sudah hilang, dan
+    invoice-nya berakhir di keadaan ketiga yang bukan asalnya maupun yang diuji.
+  */
+  if (dipinjam) {
+    await db.query(
+      `UPDATE invoices SET amount_paid = $2, status = $3::invoice_status WHERE id = $1`,
+      [dipinjam.id, dipinjam.amountPaid, dipinjam.status])
+  }
   await db.end()
 })
 
