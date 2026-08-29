@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest
 import Fastify, { type FastifyInstance } from 'fastify'
 import type { Client } from 'pg'
 import { createRlsClient, authIdForRole } from '../../../test-utils/rls-harness.js'
-import { supabaseAuth } from '../../../utils/supabase.js'
+import { supabaseAuth, supabase } from '../../../utils/supabase.js'
 import authRoutes from '../auth.js'
 
 // ============================================================================
@@ -48,9 +48,33 @@ const daftar = (payload: Record<string, unknown>) =>
     payload: payload as never, headers: { authorization: 'Bearer t' },
   })
 
+/*
+  ⚠ Membersihkan `users` SAJA tidak cukup.
+
+  Pendaftaran membuat DUA hal: baris `users` DAN akun di Supabase Auth
+  (GoTrue). Versi pertama pembersih ini cuma menghapus yang pertama, jadi
+  jalan berikutnya gagal dengan "A user with this email address has already
+  been registered" — galat yang menuduh TEST, padahal pembersihnya yang bocor.
+
+  `auth_id` diambil SEBELUM barisnya dihapus; sesudah itu tak ada lagi cara
+  menemukannya.
+*/
 async function bersihkan() {
+  const { rows } = await client.query(
+    `SELECT id, auth_id FROM users WHERE name LIKE $1 OR email LIKE $2`,
+    [`${TANDA}%`, `%regrole.uji%`])
+
+  // Keanggotaan lebih dulu — FK-nya menunjuk users.
+  await client.query(
+    `DELETE FROM company_members WHERE user_id IN
+       (SELECT id FROM users WHERE name LIKE $1 OR email LIKE $2)`,
+    [`${TANDA}%`, `%regrole.uji%`])
   await client.query(`DELETE FROM users WHERE name LIKE $1 OR email LIKE $2`,
     [`${TANDA}%`, `%regrole.uji%`])
+
+  for (const r of rows) {
+    if (r.auth_id) await supabase.auth.admin.deleteUser(r.auth_id).catch(() => {})
+  }
 }
 
 beforeAll(async () => {
@@ -137,6 +161,50 @@ describe('pendaftaran user — pencarian role', () => {
       expect(r.statusCode, `role '${name}' ditolak. Body: ${r.body}`).toBe(201)
     }
   }, 120_000)
+
+  /*
+    Dilaporkan founder 2026-08-29: akun yang BARU didaftarkan tak muncul di
+    /users, tapi pendaftaran ulang ditolak "email sudah terpakai".
+
+    Diukur: barisnya ADA dan benar (nama, email, role=pm, aktif) — yang tak ada
+    adalah `company_members`. Rute register menyimpan ke `users` lalu berhenti.
+
+    Akibatnya `auth_company_id()` NULL untuk orang itu, seluruh query
+    tersaring habis, dan ia HILANG dari layar sambil tetap memblokir emailnya.
+    Tak ada satu pun galat.
+
+    Penjaga `audit-keanggotaan-punya-default.mjs` tak menangkapnya: ia memakai
+    `AND EXISTS (SELECT 1 FROM company_members …)`, jadi ia hanya memeriksa
+    orang yang SUDAH punya keanggotaan. Nol keanggotaan tak terlihat olehnya.
+  */
+  it('R-KEANGGOTAAN: user baru DAPAT keanggotaan perusahaan + default', async () => {
+    actAsAdmin()
+    const r = await daftar({
+      name: `${TANDA} Uji Anggota`,
+      email: 'anggota.regrole.uji@puraloka.test',
+      password: 'sandi-panjang-uji-123',
+      role: 'pm',
+    })
+    expect(r.statusCode, `Body: ${r.body}`).toBe(201)
+
+    const { rows } = await client.query(
+      `SELECT m.company_id, m.is_active, m.is_default
+         FROM company_members m
+         JOIN users u ON u.id = m.user_id
+        WHERE u.email = 'anggota.regrole.uji@puraloka.test'`)
+
+    expect(
+      rows.length,
+      'user baru NOL keanggotaan perusahaan — ia tak akan terlihat di layar ' +
+        'mana pun (auth_company_id() NULL → semua query tersaring habis), ' +
+        'sementara emailnya tetap memblokir pendaftaran ulang',
+    ).toBeGreaterThan(0)
+    expect(rows[0].is_active, 'keanggotaan dibuat tapi TIDAK aktif').toBe(true)
+    expect(
+      rows[0].is_default,
+      'keanggotaan tanpa is_default — auth_company_id() tetap NULL, gejalanya sama persis',
+    ).toBe(true)
+  }, 60_000)
 
   it('role yang BENAR-BENAR tak ada tetap ditolak 400', async () => {
     actAsAdmin()

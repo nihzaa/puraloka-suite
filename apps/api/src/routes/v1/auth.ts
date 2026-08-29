@@ -213,6 +213,49 @@ export default async function authRoutes(app: FastifyInstance) {
       return reply.status(500).send({ error: 'Gagal menyimpan data user' })
     }
 
+    /*
+      KEANGGOTAAN PERUSAHAAN — tanpa ini user yang baru dibuat HILANG.
+
+      Dilaporkan founder 2026-08-29: akun yang baru didaftarkan tak muncul di
+      /users, tapi pendaftaran ulang ditolak "email sudah terpakai".
+
+      Sebabnya rute ini menyimpan ke `users` lalu berhenti. Tanpa baris di
+      `company_members`, `auth_company_id()` NULL untuk orang itu, lalu
+      `tenant_isolation` RESTRICTIVE (migrasi 373) menyaring HABIS: ia tak
+      terlihat siapa pun, tak bisa masuk ke data apa pun, sementara emailnya
+      tetap memblokir pendaftaran ulang. Nol galat.
+
+      `is_default` WAJIB true: keanggotaan tanpa default membuat
+      `auth_company_id()` tetap NULL, dan gejalanya sama persis. Cacat itu
+      sudah dibersihkan DUA KALI (migrasi 379 lalu 394) karena sumbernya tak
+      ikut ditutup — ini salah satu sumbernya.
+
+      Gagal di sini = ROLLBACK, bukan diteruskan. User yang setengah jadi
+      lebih buruk daripada pendaftaran yang gagal terang-terangan: yang kedua
+      bisa diulang, yang pertama memblokir emailnya selamanya.
+    */
+    const { error: galatAnggota } = await supabase.from('company_members').insert({
+      user_id: user.id,
+      company_id: request.companyId!,
+      // `role_id` NOT NULL dan tanpa default — keanggotaan membawa perannya
+      // SENDIRI, bukan mewarisi dari `users`. Percobaan pertama melewatkannya
+      // dan insert-nya gagal; rollback bekerja, jadi gejalanya "pendaftaran
+      // dibatalkan" — jujur, tapi menuduh keanggotaan alih-alih kolomnya.
+      role_id: roleRow.id,
+      is_active: true,
+      is_default: true,
+      created_by: request.currentUser?.id ?? null,
+    })
+
+    if (galatAnggota) {
+      request.log.error({ galatAnggota, userId: user.id }, 'gagal membuat keanggotaan perusahaan')
+      await supabase.from('users').delete().eq('id', user.id)
+      await supabase.auth.admin.deleteUser(authData.user.id)
+      return reply.status(500).send({
+        error: 'Gagal mendaftarkan keanggotaan perusahaan — pendaftaran dibatalkan',
+      })
+    }
+
     // Fire-and-forget welcome email
     sendWelcomeEmail({ to: email, name, role, password }).catch(() => {})
 

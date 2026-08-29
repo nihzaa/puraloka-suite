@@ -43,9 +43,41 @@ export default async function userRoutes(app: FastifyInstance) {
       .order('name')
 
     if (role) {
-      // Filter by nama role → resolve role_id dulu.
-      const { data: roleRow } = await supabase.from('roles').select('id').eq('name', role).single()
-      query = query.eq('role_id', roleRow?.id ?? '00000000-0000-0000-0000-000000000000')
+      /*
+        Filter by nama role → resolve role_id dulu.
+
+        ⚠ SATU NAMA MEMULANGKAN LEBIH DARI SATU BARIS, dan itu SAH.
+
+        `roles` punya template global (company_id NULL) plus salinan milik tiap
+        tenant — diukur 2026-08-29: 73 baris bernama `pm`. Versi lama memakai
+        `.single()`, yang MELEMPAR kalau >1 baris; galatnya tak diperiksa,
+        `roleRow` jadi null, lalu jatuh ke UUID nol yang tak cocok apa pun.
+
+        Hasilnya dropdown "Project Manager" di form Tambah Proyek KOSONG —
+        tanpa satu pun galat, dan tanpa cara menebak sebabnya dari layar.
+        Dilaporkan founder: "pas mau bikin proyek baru, gabisa pilih pm".
+
+        Kelas cacat yang sama persis dengan register (auth.ts): dua baris +
+        single/maybeSingle + galat tak diperiksa.
+
+        Yang benar: role MILIK TENANT INI menang atas template — dan itu juga
+        menutup lubang tenancy, karena versi lama memakai `supabase` mentah
+        yang bisa memungut baris role tenant lain.
+      */
+      const { data: kandidat, error: galatRole } = await request.db!
+        .from('roles').select('id, company_id').eq('name', role)
+
+      if (galatRole) {
+        request.log.error({ galatRole, role }, 'gagal membaca roles saat menyaring users')
+        return reply.status(500).send({ error: 'Gagal memeriksa role' })
+      }
+
+      const daftar = (kandidat ?? []) as { id: string; company_id: string | null }[]
+      const terpilih =
+        daftar.find((r) => r.company_id !== null) ?? daftar.find((r) => r.company_id === null)
+
+      // Role yang benar-benar tak ada → hasil kosong, dan itu memang benar.
+      query = query.eq('role_id', terpilih?.id ?? '00000000-0000-0000-0000-000000000000')
     }
     if (!showAll) query = query.eq('is_active', true)
     query = query.in('id', idAnggota)
