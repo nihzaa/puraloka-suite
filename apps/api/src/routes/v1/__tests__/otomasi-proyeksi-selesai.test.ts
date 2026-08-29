@@ -68,12 +68,30 @@ beforeAll(async () => {
     oleh baris yang disisipkan test. Meminjam proyek yang sudah berisi membuat
     hasilnya bergantung pada isi seed.
   */
+  /*
+    Proyek dipilih menurut SYARAT, bukan `LIMIT 1` atas urutan yang kebetulan.
+
+    `siapkan()` di bawah memundurkan `end_date` sampai 60 hari ke belakang.
+    Basis punya CHECK `chk_end_date_after_start`, jadi proyek yang
+    `start_date`-nya baru MENOLAK pembaruan itu — dan gejalanya galat
+    Postgres mentah yang menuduh test, bukan "fixture salah pilih".
+
+    Syaratnya: `start_date` harus cukup lama supaya end_date mundur tetap sah.
+  */
   const { rows: p } = await db.query(`
     SELECT id, status, end_date FROM projects
      WHERE company_id = $1
        AND NOT EXISTS (SELECT 1 FROM progress_logs l WHERE l.project_id = projects.id)
+       AND start_date IS NOT NULL
+       AND start_date < (CURRENT_DATE - INTERVAL '90 days')
+     ORDER BY start_date
      LIMIT 1`, [companyId])
-  if (!p[0]) throw new Error('tak ada proyek tanpa catatan progres')
+  if (!p[0]) {
+    throw new Error(
+      'prasyarat gagal: tak ada proyek tanpa catatan progres yang start_date-nya ' +
+      'lebih tua dari 90 hari. Test ini memundurkan end_date sampai 60 hari, dan ' +
+      'CHECK chk_end_date_after_start menolaknya pada proyek yang baru dimulai.')
+  }
   proyek = p[0].id
   statusAsli = p[0].status
   akhirAsli = p[0].end_date

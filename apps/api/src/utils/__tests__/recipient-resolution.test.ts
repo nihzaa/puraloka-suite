@@ -81,9 +81,31 @@ describe('Resolusi penerima (terhadap skema nyata)', () => {
     // T4g: companyId diambil dari PROYEKNYA, bukan ditebak — resolusi penerima
     // kini dibatasi keanggotaan company, jadi memakai company yang salah akan
     // menghasilkan nol penerima dan test jadi hampa.
+    /*
+      Proyek dipilih menurut SYARAT, bukan `LIMIT 1` atas urutan yang kebetulan.
+
+      Aturan notifikasi hidup PER COMPANY (`notification_rules.company_id`).
+      Diukur 2026-08-30: aturan `invoice_created` hanya ada untuk Puraloka
+      Persada. `LIMIT 1` telanjang bisa memilih proyek company LAIN, dan
+      `resolveRecipients` lalu memulangkan daftar KOSONG — bukan karena
+      resolusinya rusak, melainkan karena company itu memang tak punya
+      aturannya.
+
+      Gejalanya ("daftar admin kosong") menuduh resolusi, bukan fixture.
+    */
     const { rows } = await client.query(
-      `SELECT id, pm_id, company_id FROM projects
-        WHERE pm_id IS NOT NULL AND is_deleted = false AND company_id IS NOT NULL LIMIT 1`)
+      `SELECT p.id, p.pm_id, p.company_id FROM projects p
+        WHERE p.pm_id IS NOT NULL AND p.is_deleted = false AND p.company_id IS NOT NULL
+          AND EXISTS (SELECT 1 FROM notification_rules nr
+                       WHERE nr.company_id = p.company_id
+                         AND nr.event_type = 'invoice_created' AND nr.is_active)
+        ORDER BY p.created_at LIMIT 1`)
+    if (!rows.length) {
+      throw new Error(
+        'prasyarat gagal: nol proyek di company yang punya aturan notifikasi ' +
+        '`invoice_created` aktif. Test ini tak bisa menguji resolusi penerima ' +
+        'tanpa aturannya ada.')
+    }
     expect(rows.length, 'prasyarat: butuh 1 proyek ber-PM').toBe(1)
     const { id: projectId, pm_id, company_id: companyId } = rows[0]
 
