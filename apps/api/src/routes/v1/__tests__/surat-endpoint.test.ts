@@ -69,7 +69,7 @@ beforeAll(async () => {
   await purge()
 
   const { rows: u } = await client.query(
-    `SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1`)
+    `SELECT id FROM users WHERE auth_id = $1`, [adminAuth])
   adminUserId = u[0].id
 
   // `company_id` EKSPLISIT — `fn_isi_company_id()` menolak menebak saat ada

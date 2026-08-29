@@ -68,8 +68,29 @@ beforeAll(async () => {
 
   const { rows: c } = await db.query(`SELECT id FROM companies WHERE code = 'puraloka-persada'`)
   companyId = c[0].id
+  /*
+    Proyek dipilih menurut SYARAT, bukan `LIMIT 1` atas urutan yang kebetulan.
+
+    Test pengeluaran di bawah menyebut kategori "Beton". Kategori pengeluaran
+    hidup PER PROYEK (`project_expense_categories`), dan diukur 2026-08-30
+    hanya SATU proyek yang punya katalog lengkap — sisanya nol atau dua
+    kategori saja.
+
+    Dengan `LIMIT 1` telanjang, fixture ini memilih proyek tanpa "Beton", lalu
+    rute menolak dengan 422 "Kategori tak dikenali dari Beton" — pesan yang
+    BENAR, dan gejala yang menuduh RUTE padahal fixture-nya yang salah pilih.
+  */
   const { rows: p } = await db.query(
-    `SELECT id FROM projects WHERE company_id = $1 LIMIT 1`, [companyId])
+    `SELECT pr.id FROM projects pr
+      WHERE pr.company_id = $1
+        AND EXISTS (SELECT 1 FROM project_expense_categories c
+                     WHERE c.project_id = pr.id AND c.name ILIKE '%beton%')
+      ORDER BY pr.created_at LIMIT 1`, [companyId])
+  if (!p.length) {
+    throw new Error(
+      'prasyarat gagal: nol proyek punya kategori pengeluaran ber-"beton". ' +
+      'Test kategori di bawah tak bisa menguji apa pun tanpa itu.')
+  }
   projectId = p[0].id
 
   app = Fastify()

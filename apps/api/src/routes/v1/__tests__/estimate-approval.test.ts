@@ -86,7 +86,7 @@ beforeAll(async () => {
   adminAuth = (await authIdForRole(client, 'admin')) ?? ''
   pmAuth = (await authIdForRole(client, 'pm')) ?? ''
   const { rows: au } = await client.query(
-    `SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1`)
+    `SELECT id FROM users WHERE auth_id = $1`, [adminAuth])
   adminUserId = au[0].id
   // Pengaju ORANG LAIN — gerbang SoD (TJS-P4, 2026-08-12) melarang pengaju
   // menyetujui pengajuannya sendiri. Fixture ini dulu memakai satu orang

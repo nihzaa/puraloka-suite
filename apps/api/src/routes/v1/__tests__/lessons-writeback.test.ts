@@ -128,7 +128,20 @@ beforeAll(async () => {
   client = await createRlsClient()
   adminAuth = (await authIdForRole(client, 'admin')) ?? ''
   pmAuth = (await authIdForRole(client, 'pm')) ?? ''
-  const { rows: au } = await client.query(`SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1`)
+  /*
+    Diambil dari `adminAuth`, BUKAN `LIMIT 1` atas semua admin.
+
+    Basis ini punya lebih dari satu pengguna ber-role admin. `authIdForRole`
+    memilih satu (yang punya auth_id), sementara `LIMIT 1` di sini memilih
+    yang mana saja — dan test lalu membandingkan `verified_by` milik pengguna
+    A dengan id pengguna B.
+
+    Diukur 2026-08-30: rute menulis a0000000-…-0001 sementara test menuntut
+    ca951b9f-…, dan gejalanya menuduh RUTE salah mencatat penyetuju.
+  */
+  const { rows: au } = await client.query(
+    `SELECT id FROM users WHERE auth_id = $1`, [adminAuth])
+  if (!au.length) throw new Error('prasyarat gagal: adminAuth tak punya baris users')
   adminUserId = au[0].id
   // Pengaju ORANG LAIN — gerbang SoD (TJS-P4, 2026-08-12) melarang pengaju
   // menyetujui pengajuannya sendiri. Fixture ini dulu memakai satu orang

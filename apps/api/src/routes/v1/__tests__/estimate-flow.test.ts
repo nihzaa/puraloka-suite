@@ -47,7 +47,7 @@ beforeAll(async () => {
   adminAuth = (await authIdForRole(client, 'admin')) as string
   await purge()
   const { rows: u } = await client.query(
-    `SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name='admin' LIMIT 1`)
+    `SELECT id FROM users WHERE auth_id = $1`, [adminAuth])
   adminUserId = u[0].id
   await client.query(
     `INSERT INTO ahsp_editions (code, name) VALUES ('SE-TEST-FLOW', '[TEST] Edisi Flow')`)
