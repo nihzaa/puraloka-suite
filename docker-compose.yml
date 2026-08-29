@@ -39,6 +39,9 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    # Nama dipaku supaya `docker inspect` di infra/perbarui-vps.sh bisa
+    # menanyakan kesehatannya tanpa menebak awalan proyek.
+    container_name: puraloka-api
     restart: unless-stopped
     env_file: [.env]
     environment:
@@ -65,6 +68,7 @@ services:
       args:
         # Dipanggang saat build — lihat peringatan di apps/web/Dockerfile.
         NEXT_PUBLIC_API_URL: ${API_URL_PUBLIK:?API_URL_PUBLIK wajib diisi di .env}
+    container_name: puraloka-web
     restart: unless-stopped
     env_file: [.env]
     environment:
