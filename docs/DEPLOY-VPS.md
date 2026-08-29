@@ -12,9 +12,9 @@
 
 | Layanan | Alamat | Port dalam | Image |
 |---|---|---|---|
-| Web (Next.js) | `https://puraloka-suite.duckdns.org` | 3000 | dibangun dari `apps/web/Dockerfile` |
-| API (Fastify) | `https://api.puraloka-suite.duckdns.org` | 3001 | dibangun dari `apps/api/Dockerfile` |
-| Caddy | :80 / :443 | — | `caddy:2-alpine` |
+| Web (Next.js) | `https://puraloka-suite.duckdns.org` | 127.0.0.1:3102 | dibangun dari `apps/web/Dockerfile` |
+| API (Fastify) | `https://api.puraloka-suite.duckdns.org` | 127.0.0.1:3101 | dibangun dari `apps/api/Dockerfile` |
+| nginx (host) | :80 / :443 | — | sudah ada, melayani 4 situs lain |
 
 **Basis data TIDAK ikut** — ia tetap di Supabase. Yang di-deploy hanya proses
 aplikasi.
@@ -116,6 +116,31 @@ Di basis pengembangan semuanya tampak sehat. Yang rusak justru server baru —
 dan itu persis yang sedang Anda buat.
 
 ---
+
+## 5b. Vhost nginx — SEBELUM menyalakan
+
+⚠ Mesin ini **sudah menjalankan nginx** untuk empat situs: `tjs`, `n8n`,
+`brilliante-next-chapter`, dan `admin-saas`. Caddy TIDAK dipakai — ia akan
+gagal bind di :80/:443 dan berisiko menjatuhkan TJS.
+
+```bash
+cp infra/nginx-puraloka.conf /etc/nginx/sites-available/puraloka-suite
+ln -sf /etc/nginx/sites-available/puraloka-suite /etc/nginx/sites-enabled/
+nginx -t                       # WAJIB hijau sebelum reload
+systemctl reload nginx
+
+# Bukti situs lain tak terganggu — jalankan SETIAP kali sesudah reload:
+for h in tjs-command-center.duckdns.org n8n.tjs-command-center.duckdns.org          admin.puraloka-suite.duckdns.org; do
+  printf '%s → ' $h; curl -s -o /dev/null -w '%{http_code}
+' --max-time 8 https://$h/
+done
+```
+
+Lalu sertifikatnya:
+
+```bash
+certbot --nginx -d puraloka-suite.duckdns.org -d api.puraloka-suite.duckdns.org   --non-interactive --agree-tos --register-unsafely-without-email --redirect
+```
 
 ## 6. Nyalakan
 
