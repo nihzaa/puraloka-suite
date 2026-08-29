@@ -19,7 +19,92 @@ let c: Client
 beforeAll(async () => { c = await createRlsClient() }, 60_000)
 afterAll(async () => { await c?.end() })
 
+/*
+  ── TABEL YANG SENGAJA TAK BERPOLICY, dan kenapa itu bukan lubang ───────────
+
+  Diukur 2026-08-30: 22 tabel ber-RLS punya nol policy. Enam di antaranya
+  BISA dipagari dan sudah — migrasi 518.
+
+  Enam belas sisanya TIDAK PUNYA kunci tenant sama sekali: nol `company_id`,
+  nol `tenant_id`, nol `project_id`. Tak ada yang bisa dipakai menyaring.
+
+  Satu-satunya cara "memberi policy" pada mereka adalah MENGARANG kolom tenant
+  untuk data yang memang bukan milik tenant, atau MENGUBAH KATEGORINYA supaya
+  penjaga diam. Berkas t5a (tetangga berkas ini) sudah menuliskan kenapa itu
+  paling berbahaya di gerbang tenancy — dan penjaga yang hijau karena
+  kategorinya dipalsukan lebih buruk daripada penjaga yang merah dengan jujur.
+
+  Tiga kelompok, masing-masing dengan alasannya:
+
+    admin_saas_*        izin & pengguna KONSOL VENDOR, bukan data tenant.
+                        Ia dikelola repo terpisah (admin-saas) yang memakai
+                        basisnya sendiri; tabel di sini peninggalan sebelum
+                        konsol itu dipisah.
+
+    marketing_*         halaman jual publik. Isinya memang untuk dibaca
+                        siapa pun — menyaringnya per-tenant justru salah.
+
+    plans, plan_features, plan_feature_values, saas_invoice_line_items
+                        katalog paket. `docs/specs/2026-08-28-billing-design.md`
+                        §7 menyatakan tabel ini SENGAJA tak dipakai: billing
+                        hidup di DB Vendor, dan yang di sini dibiarkan kosong.
+
+    template_input, template_item
+                        katalog template BERSAMA, sengaja lintas tenant —
+                        pola yang sama dengan 2.620 AHSP nasional.
+
+  ⚠ Daftar ini BUKAN tempat membuang tabel yang merepotkan. Syarat masuk:
+  tabelnya harus TAK PUNYA kunci tenant apa pun. Begitu sebuah tabel di sini
+  mendapat `company_id`, ia keluar dari daftar dan wajib dipagari — dan test
+  di bawah menegakkan syarat itu, bukan sekadar mempercayai daftarnya.
+*/
+const TANPA_KUNCI_TENANT = [
+  'admin_saas_audit_log',
+  'admin_saas_permissions',
+  'admin_saas_role_permissions',
+  'admin_saas_roles',
+  'admin_saas_users',
+  'marketing_faqs',
+  'marketing_pages',
+  'marketing_pricing_plans',
+  'marketing_sections',
+  'marketing_testimonials',
+  'plan_feature_values',
+  'plan_features',
+  'plans',
+  'saas_invoice_line_items',
+  'template_input',
+  'template_item',
+]
+
 describe('T5a-0 — tak boleh ada tabel RLS-enabled tanpa policy', () => {
+  it('tabel yang dikecualikan BENAR-BENAR tak punya kunci tenant', async () => {
+    /*
+      Penjaga atas daftar pengecualian itu sendiri.
+
+      Tanpa test ini, `TANPA_KUNCI_TENANT` pelan-pelan berubah jadi tempat
+      pembuangan: sekali sebuah tabel masuk, tak ada yang memeriksanya lagi
+      walau ia kemudian mendapat `company_id`. Yang dijaga di sini adalah
+      SYARAT masuknya, bukan isinya.
+    */
+    const { rows } = await c.query(
+      `SELECT table_name, string_agg(column_name, ', ') AS kunci
+         FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = ANY($1)
+          AND column_name IN ('company_id', 'tenant_id', 'project_id')
+        GROUP BY table_name
+        ORDER BY table_name`,
+      [TANPA_KUNCI_TENANT],
+    )
+    expect(
+      rows.map((r) => `${r.table_name} (${r.kunci})`),
+      'Tabel ini dikecualikan sebagai "tak punya kunci tenant", TAPI ternyata ' +
+        'punya. Ia harus dipagari seperti enam tabel di migrasi 518 — bukan ' +
+        'tetap di daftar pengecualian.',
+    ).toEqual([])
+  }, 60_000)
+
   it('nol tabel ber-RLS yang tak punya policy sama sekali', async () => {
     const { rows } = await c.query(`
       SELECT ct.relname AS t
@@ -28,7 +113,7 @@ describe('T5a-0 — tak boleh ada tabel RLS-enabled tanpa policy', () => {
          AND NOT EXISTS (SELECT 1 FROM pg_policies p
                           WHERE p.schemaname = 'public' AND p.tablename = ct.relname)
        ORDER BY 1`)
-    const namaTabel = rows.map((r) => r.t)
+    const namaTabel = rows.map((r) => r.t).filter((t) => !TANPA_KUNCI_TENANT.includes(t))
     expect(
       namaTabel,
       'Tabel ini RLS-nya aktif tapi NOL policy. Begitu policy RESTRICTIVE ' +
