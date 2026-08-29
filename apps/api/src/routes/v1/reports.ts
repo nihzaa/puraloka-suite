@@ -1590,9 +1590,28 @@ export default async function reportsRoutes(app: FastifyInstance) {
         // Sumbernya disamakan dengan `kurva-s.ts` supaya CPI perusahaan dan
         // CPI per proyek tak bercerita hal yang berbeda. Ketiganya menuju
         // proyek lewat `work_scopes → mandor_assignments`.
+        /*
+          ⚠ Disaring lewat `project_id`, BUKAN lewat `work_scopes!inner`.
+
+          Versi sebelumnya menempuh rantai `work_scopes → mandor_assignments`
+          dengan INNER join. Kasbon yang tak terikat work scope karena itu
+          DIBUANG dari AC — diam-diam, tanpa satu pun galat.
+
+          Diukur 2026-08-30 di basis dev: satu kasbon approved senilai
+          Rp 2.500.000 tanpa `work_scope_id` hilang dari perhitungan, membuat
+          AC perusahaan 1.362.255.000 sementara jumlah sebenarnya
+          1.364.755.000. Arah kesalahannya berbahaya: AC yang terlalu KECIL
+          membuat CPI terlihat lebih BAIK dari kenyataan.
+
+          `kasbons` punya `project_id` sendiri (48 dari 48 kasbon approved
+          terisi) dan `company_id`, jadi rantai itu tak pernah dibutuhkan.
+          `work_scope_id` memang nullable — kasbon boleh diajukan untuk proyek
+          tanpa menunjuk lingkup kerja tertentu.
+        */
         db.from('kasbons')
-          .select('amount, work_scopes!inner(mandor_assignments!inner(project_id))')
-          .eq('status', 'approved'),
+          .select('amount, project_id')
+          .eq('status', 'approved')
+          .in('project_id', await db.projectIds()),
 
         // Keduanya kategori C lewat `work_scope_id` — `db.from()` MENOLAKNYA,
         // dan gerbang tenancy menabrak percobaan pertama endpoint ini dengan
@@ -1642,7 +1661,10 @@ export default async function reportsRoutes(app: FastifyInstance) {
         return (ma?.project_id as string) ?? null
       }
       for (const k of (kasbon.data ?? []) as Array<Record<string, unknown>>) {
-        tambahAc(idDariScope(k), Number(k.amount) || 0)
+        // `project_id` LANGSUNG — kasbon tak lagi menempuh rantai work_scopes
+        // (lihat alasannya di kuerinya). `idDariScope` akan memulangkan
+        // undefined di sini karena embed-nya sudah tak ada.
+        tambahAc(k.project_id as string | undefined, Number(k.amount) || 0)
       }
       for (const p of (bayarProgres.data ?? []) as Array<Record<string, unknown>>) {
         // `net_payment`, bukan gross: kasbon yang dipotong sudah masuk AC

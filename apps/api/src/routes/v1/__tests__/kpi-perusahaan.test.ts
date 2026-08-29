@@ -47,7 +47,8 @@ beforeAll(async () => {
 
   const { rows: u } = await db.query(
     `SELECT m.company_id FROM users us JOIN company_members m ON m.user_id = us.id
-      WHERE us.auth_id = $1 LIMIT 1`, [auth])
+      WHERE us.auth_id = $1
+        AND m.is_default AND m.is_active LIMIT 1`, [auth])
   if (!u.length) throw new Error('admin tak punya company_members')
   companyId = u[0].company_id
 

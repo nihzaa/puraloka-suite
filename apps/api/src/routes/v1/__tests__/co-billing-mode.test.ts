@@ -112,7 +112,7 @@ beforeAll(async () => {
   // yang tak pernah dipakai di produksi.
   const { rows: lain } = await db.query(
     `SELECT u.id FROM users u JOIN company_members m ON m.user_id = u.id
-      WHERE m.company_id = $1 AND u.id <> $2 LIMIT 1`, [companyId, userId])
+      WHERE m.company_id = $1 AND u.id <> $2 AND m.is_default AND m.is_active LIMIT 1`, [companyId, userId])
   if (!lain.length) throw new Error('butuh pengguna kedua di company ini untuk memenuhi SoD')
   pengajuId = lain[0].id
 
