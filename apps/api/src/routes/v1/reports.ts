@@ -427,7 +427,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
     const fromTs    = dateFrom + 'T00:00:00'
     const toTs      = dateTo   + 'T23:59:59'
 
-    let payQ = supabase.from('payments').select(`
+    let payQ = request.db!.unsafe('payments', 'disaring .in(invoices.project_id, idProyekCf) beberapa baris di bawah').select(`
       id, amount_paid, paid_at, payment_method,
       invoices!inner(id, invoice_number, project_id, projects!inner(id, name))
     `).gte('paid_at', fromTs).lte('paid_at', toTs)
@@ -438,7 +438,7 @@ export default async function reportsRoutes(app: FastifyInstance) {
       category:project_expense_categories(id, name, type, parent_id)
     `).eq('status', 'approved').gte('expense_date', dateFrom).lte('expense_date', dateTo)
 
-    let wageQ = supabase.from('weekly_wage_reports').select(`
+    let wageQ = request.db!.unsafe('weekly_wage_reports', 'kategori C; disaring .in(assignment.project_id, idProyekCf) beberapa baris di bawah').select(`
       id, net_amount, paid_at, week_start, week_end,
       assignment:mandor_assignments!inner(
         mandor:users!mandor_assignments_mandor_id_fkey(id, name),

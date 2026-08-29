@@ -2372,16 +2372,13 @@ export default async function mandorRoutes(app: FastifyInstance) {
         .select('work_scope_id, amount, status')
         .in('work_scope_id', scopeIds)
         .in('status', ['approved', 'settled']),
-      supabase
-        .from('progress_payments')
+      request.db!.unsafe('progress_payments', 'kategori C; disaring .in(work_scope_id, scopeIds) di baris berikutnya — scopeIds turunan assignments milik tenant')
         .select('work_scope_id, gross_payment, net_payment, status')
         .in('work_scope_id', scopeIds),
-      supabase
-        .from('borongan_settlements')
+      request.db!.unsafe('borongan_settlements', 'kategori C; disaring .in(work_scope_id, scopeIds) di baris berikutnya — scopeIds turunan assignments milik tenant')
         .select('work_scope_id, borongan_value, total_kasbon, net_payment, remaining_balance, settled_at')
         .in('work_scope_id', scopeIds),
-      supabase
-        .from('work_scope_items')
+      request.db!.unsafe('work_scope_items', 'kategori C; disaring .in(work_scope_id, scopeIds) di baris berikutnya — scopeIds turunan assignments milik tenant')
         .select('work_scope_id, subtotal')
         .in('work_scope_id', scopeIds),
     ])

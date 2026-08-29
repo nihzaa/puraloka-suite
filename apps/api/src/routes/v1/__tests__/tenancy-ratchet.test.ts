@@ -166,7 +166,24 @@ const DIR_ROUTES = join(import.meta.dirname, '..', '..')
 //
 // Angka nyata sesudahnya: 343. Ambang disetel 345 — dua di atas kenyataan,
 // bukan pas, supaya satu konversi wajar tak langsung memerahkan CI orang lain.
-const AMBANG_SUPABASE_MENTAH = 345
+//
+// ── DITURUNKAN 2026-08-30: 345 → 314
+//
+// Ambang ini sempat TERTINGGAL: kenyataan naik ke 365 tanpa ada yang tahu,
+// karena CI repo ini tak berjalan sejak 2026-08-06. Ratchet yang tak pernah
+// dijalankan tak menjaga apa pun.
+//
+// 53 akses dikonversi ke `request.db!.unsafe(tabel, alasan)` — BUKAN
+// dihapus, dan bukan ambangnya yang dinaikkan. Yang dikonversi hanya yang
+// tenancy-nya sudah TERBUKTI di baris sekitarnya:
+//
+//   estimate-versions.ts  48  digerbangi versiMilikTenant(request, id)
+//   mandor.ts              3  .in('work_scope_id', scopeIds) di baris berikutnya
+//   reports.ts             2  .in(..., idProyekCf) beberapa baris di bawah
+//
+// Kenyataan sesudahnya 312; ambang 314 — dua di atas, mengikuti alasan yang
+// sama seperti semula.
+const AMBANG_SUPABASE_MENTAH = 314
 
 /**
  * TRIPWIRE R-011 — kenaikan BERIKUTNYA ditolak, dan penjaganya sendiri yang

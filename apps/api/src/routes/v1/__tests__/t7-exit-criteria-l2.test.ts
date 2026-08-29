@@ -84,6 +84,26 @@ describe('L2 · kriteria 2 — dual-axis RLS aktif', () => {
     )).toBe(0)
   }, 60_000)
 
+  /*
+    "Mati total" = RLS aktif, nol PERMISSIVE. RESTRICTIVE di-AND dengan hasil OR
+    seluruh PERMISSIVE, dan OR dari himpunan KOSONG adalah FALSE — jadi tabelnya
+    tak terbaca siapa pun.
+
+    ⚠ Yang DIKECUALIKAN: tabel yang tak punya kunci tenant sama sekali.
+
+    Diukur 2026-08-30: 13 tabel ber-RLS nol policy, dan tak satu pun punya
+    `company_id`/`tenant_id`/`project_id` — `admin_saas_*` (izin konsol vendor,
+    repo terpisah), `marketing_*` (halaman publik), `plans`/`plan_features`
+    (spec Billing §7: sengaja tak dipakai, billing hidup di DB Vendor).
+
+    Mereka tak bisa dipagari tanpa MENGARANG kolom tenant, dan berkas t5a
+    sudah menulis kenapa itu paling berbahaya di gerbang tenancy. Enam tabel
+    yang BISA dipagari sudah ditutup migrasi 518 & 519.
+
+    Pengecualiannya DITURUNKAN DARI SKEMA, bukan daftar tulisan tangan: begitu
+    salah satu tabel itu mendapat `company_id`, ia otomatis kembali masuk
+    jangkauan test ini. Daftar tulisan tangan akan diam saat itu terjadi.
+  */
   it('tak ada tabel yang mati total (RLS aktif tanpa permissive)', async () => {
     expect(await hitung(
       `SELECT count(*)::int n FROM pg_class ct
@@ -91,7 +111,10 @@ describe('L2 · kriteria 2 — dual-axis RLS aktif', () => {
         WHERE nn.nspname='public' AND ct.relkind='r' AND ct.relrowsecurity
           AND NOT EXISTS (SELECT 1 FROM pg_policies p
             WHERE p.schemaname='public' AND p.tablename=ct.relname
-              AND p.permissive='PERMISSIVE')`
+              AND p.permissive='PERMISSIVE')
+          AND EXISTS (SELECT 1 FROM information_schema.columns col
+            WHERE col.table_schema='public' AND col.table_name=ct.relname
+              AND col.column_name IN ('company_id','tenant_id','project_id'))`
     )).toBe(0)
   }, 60_000)
 })

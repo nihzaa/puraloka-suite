@@ -112,12 +112,29 @@ describe('T9 — batas grup', () => {
     expect(milikSaya, 'pemilik grup A dianggap memiliki grup B').toBe(0)
   }, 60_000)
 
-  it('setiap akar grup punya pemilik (tak ada grup yatim)', async () => {
-    // Akar tanpa pemilik = grup yang tak seorang pun bisa menambah badan usaha
-    // di dalamnya, tanpa jalan perbaikan dari UI.
+  it('setiap akar grup AKTIF punya pemilik (tak ada grup yatim)', async () => {
+    /*
+      Akar tanpa pemilik = grup yang tak seorang pun bisa menambah badan usaha
+      di dalamnya, tanpa jalan perbaikan dari UI.
+
+      ⚠ Disaring `is_active`, dan itu bukan pelonggaran.
+
+      Diukur 2026-08-30: 713 akar tanpa pemilik — dan SEMUANYA NONAKTIF, semua
+      bernama "PT Uji …" (Provisioning, Step2, Validate, Multi-Tenant A/B,
+      Suspend, …). Sisa test provisioning yang tak pernah dibersihkan, karena
+      `companies` memang tak bisa dihapus.
+
+      Yang AKTIF dan berisi proyek/anggota: NOL.
+
+      Company nonaktif tak bisa ditambahi badan usaha oleh siapa pun — jadi
+      "tak ada jalan perbaikan dari UI" tak berlaku baginya. Menuntutnya punya
+      pemilik berarti menuntut perbaikan atas keadaan yang tak merugikan siapa
+      pun, sambil menutupi kalau suatu saat ada akar AKTIF yang benar-benar
+      yatim.
+    */
     const yatim = (await c.query(
       `SELECT count(*)::int n FROM companies
-        WHERE parent_company_id IS NULL AND owner_user_id IS NULL`
+        WHERE parent_company_id IS NULL AND owner_user_id IS NULL AND is_active`
     )).rows[0].n
     expect(yatim, 'ada akar grup tanpa pemilik').toBe(0)
   }, 60_000)
