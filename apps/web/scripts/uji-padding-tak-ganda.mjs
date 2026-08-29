@@ -89,10 +89,27 @@ await hal.goto(BASIS + '/login', { waitUntil: 'domcontentloaded' })
 await hal.fill('input[type="email"]', env.LAYAR_EMAIL)
 await hal.fill('input[type="password"]', env.LAYAR_SANDI)
 await hal.click('form button[type="submit"]')
-await hal.waitForURL((u) => !u.pathname.startsWith('/login'), {
-  timeout: 40000,
-  waitUntil: 'domcontentloaded',
-})
+/*
+  Menunggu SESI, bukan navigasi.
+
+  `waitForURL` melewatkan perpindahan yang terjadi lebih cepat daripada
+  pemasangan pengamatnya — dan saat dev server baru selesai kompilasi,
+  perpindahannya memang secepat itu. Gejalanya timeout yang terbaca seperti
+  LOGIN GAGAL, padahal log server menunjukkan /dashboard 200.
+
+  Yang ditunggu di sini keadaan yang sesungguhnya penting: URL tak lagi
+  /login. Diperiksa berulang, jadi tak peduli kapan perpindahannya terjadi.
+*/
+for (let i = 0; i < 40; i++) {
+  if (!new URL(hal.url()).pathname.startsWith('/login')) break
+  await hal.waitForTimeout(1000)
+}
+if (new URL(hal.url()).pathname.startsWith('/login')) {
+  console.error('Gagal masuk — masih di /login sesudah 40 detik.')
+  console.error('Teks layar: ' + (await hal.locator('body').innerText()).replace(/\s+/g, ' ').slice(0, 160))
+  await browser.close()
+  process.exit(1)
+}
 
 const PEMERIKSA = () => {
   const AMBANG = 8

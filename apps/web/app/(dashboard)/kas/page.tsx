@@ -192,7 +192,11 @@ function KasRingkasan() {
       {/* ── LAPIS 1 — KEADAAN ── */}
       {gagalRingkas ? (
         <div style={{
-          padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", borderRadius: 10, marginBottom: 18,
+          /* Padding DIHAPUS: layout bagian ini (kas/keuangan/mandor/layout.tsx)
+         sudah memberi `20px 24px 24px` pada pembungkusnya. Menambahkan
+         `--pad-x` di sini membuat jarak tepi terhitung DUA KALI —
+         diukur 24+36=60px, sementara halaman lain 36px. */
+      padding: 0, borderRadius: 10, marginBottom: 18,
           background: C.redBg, border: `1px solid ${C.redBorder}`,
           display: "flex", alignItems: "center", gap: 8,
         }}>

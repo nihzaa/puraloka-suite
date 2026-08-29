@@ -137,7 +137,11 @@ function KeuanganContent() {
   //   /keuangan/arus-kas · /keuangan/profitabilitas
 
   return (
-    <div style={{ padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
+    <div style={{ /* Padding DIHAPUS: layout bagian ini (kas/keuangan/mandor/layout.tsx)
+         sudah memberi `20px 24px 24px` pada pembungkusnya. Menambahkan
+         `--pad-x` di sini membuat jarak tepi terhitung DUA KALI —
+         diukur 24+36=60px, sementara halaman lain 36px. */
+      padding: 0, width: "100%", maxWidth: "var(--w-luas)", margin: "0 auto" }}>
 
     {/*
       `padding: 0`, sebelumnya `20`.

@@ -95,7 +95,11 @@ export default function RetensiPage() {
     // Padding disediakan `mandor/layout.tsx` — lihat catatan di sana.
     // Menambahkannya lagi di sini membuat jaraknya ganda.
     <div style={{
-      width: "100%", padding: "var(--pad-atas) var(--pad-x) var(--pad-bawah)", maxWidth: "var(--w-luas)", margin: "0 auto",
+      width: "100%", /* Padding DIHAPUS: layout bagian ini (kas/keuangan/mandor/layout.tsx)
+         sudah memberi `20px 24px 24px` pada pembungkusnya. Menambahkan
+         `--pad-x` di sini membuat jarak tepi terhitung DUA KALI —
+         diukur 24+36=60px, sementara halaman lain 36px. */
+      padding: 0, maxWidth: "var(--w-luas)", margin: "0 auto",
     }}>
       <div className="rise" style={{
         display: "flex", justifyContent: "space-between",
