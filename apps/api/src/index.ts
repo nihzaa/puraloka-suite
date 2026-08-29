@@ -297,7 +297,27 @@ app.get('/health', async (_request, reply) => {
   let dbStatus: 'ok' | 'error' = 'ok'
   let dbError: string | undefined
   try {
-    const probe = supabase.from('roles').select('id', { head: true, count: 'exact' }).limit(1)
+    /*
+      ⚠ TANPA `count: 'exact'`. Yang dibuktikan probe ini cuma "koneksi hidup
+      dan PostgREST menjawab" — bukan berapa baris yang ada. `count: 'exact'`
+      memaksa penghitungan penuh (1.533 baris di `roles`) pada SETIAP
+      pemanggilan /health, termasuk dari healthcheck container tiap 30 detik.
+
+      Diukur 2026-08-29 saat menelusuri /health yang berkedip 503: penyebab
+      utamanya bukan ini melainkan `pgrst_ddl_watch` — event trigger yang
+      menyuruh PostgREST memuat ulang cache skema tiap ada DDL. Skema ini 294
+      tabel / 3.737 kolom / 511 fungsi, jadi introspeksinya mahal, dan selama
+      itu berjalan PostgREST TIDAK melayani permintaan.
+
+      Dibuktikan dengan eksperimen terkendali: 5 perintah DDL menaikkan TTFB
+      PostgREST dari 143ms → 1.449ms, lalu pulih. Suite integration repo ini
+      menjalankan ribuan DDL, jadi selama ia berjalan /health berkedip 503 —
+      dan itu PERILAKU YANG BENAR, bukan cacat. Yang salah adalah menyimpulkan
+      "API rusak" dari gejala yang sebenarnya beban uji.
+
+      Menghapus `count` tak menyembuhkan itu; ia hanya berhenti menambahi.
+    */
+    const probe = supabase.from('roles').select('id', { head: true }).limit(1)
     const timeout = new Promise<never>((_, rej) =>
       setTimeout(() => rej(new Error('db probe timeout 3s')), 3000))
     const { error } = await Promise.race([probe, timeout]) as { error?: { message: string } }
