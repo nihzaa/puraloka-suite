@@ -1,0 +1,33 @@
+# Caddy menerbitkan & memperbarui sertifikat Let's Encrypt sendiri. Yang perlu
+# benar cuma satu: DNS kedua nama ini sudah menunjuk ke IP VPS.
+#
+# Diverifikasi 2026-08-29 — DuckDNS meneruskan sub-subdomain otomatis:
+#   puraloka-suite.duckdns.org      → 187.52.124.41
+#   api.puraloka-suite.duckdns.org  → 187.52.124.41  (tanpa perlu didaftarkan)
+#
+# Ganti domain nanti = ubah .env.deploy lalu `docker compose up -d`. Tak ada
+# alamat yang dipaku di berkas ini.
+
+{$DOMAIN_WEB} {
+	encode zstd gzip
+	reverse_proxy web:3000
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+}
+
+{$DOMAIN_API} {
+	encode zstd gzip
+	reverse_proxy api:3001
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+}

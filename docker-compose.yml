@@ -1,0 +1,92 @@
+# ============================================================================
+# Puraloka Suite — susunan produksi VPS
+# ============================================================================
+#   docker compose up -d --build
+#
+# Basis data TIDAK ada di sini: ia hidup di Supabase (lihat apps/api/.env).
+# Yang dijalankan berkas ini cuma tiga proses aplikasi + satu reverse proxy.
+#
+# ⚠ Sebelum `up` pertama kali, isi `.env` di sebelah berkas ini.
+#   Contohnya ada di `.env.deploy.example`. Tanpa itu compose berhenti dengan
+#   menyebut variabel yang kosong — bukan jalan dengan nilai bawaan yang salah.
+#
+# ⚠ KENAPA `.env`, BUKAN `.env.deploy` — perbedaan yang memakan waktu kalau
+#   tak diketahui: `env_file:` memberi variabel kepada PROSES DI DALAM
+#   container, sedangkan `${...}` di berkas compose ini di-interpolasi oleh
+#   compose SENDIRI, dan itu hanya membaca `.env` (atau shell). Jadi dua-duanya
+#   menunjuk berkas yang sama: `.env`.
+#
+#   Terbukti saat menulisnya: dengan nama `.env.deploy`, `docker compose config`
+#   gagal dengan "required variable API_URL_PUBLIK is missing a value" padahal
+#   berkasnya ada dan terisi.
+# ============================================================================
+
+name: puraloka
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+    expose: ["3001"]
+    # TIDAK ada `ports:` — API hanya dijangkau lewat Caddy. Membukanya ke host
+    # berarti ia bisa diakses langsung tanpa TLS, melewati seluruh proxy.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Dipanggang saat build — lihat peringatan di apps/web/Dockerfile.
+        NEXT_PUBLIC_API_URL: ${API_URL_PUBLIK:?API_URL_PUBLIK wajib diisi di .env}
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      NODE_ENV: production
+    expose: ["3000"]
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # ⚠ sertifikat TLS hidup di sini — JANGAN dihapus
+      - caddy_config:/config
+    environment:
+      DOMAIN_WEB: ${DOMAIN_WEB:?DOMAIN_WEB wajib diisi di .env}
+      DOMAIN_API: ${DOMAIN_API:?DOMAIN_API wajib diisi di .env}
+    depends_on:
+      web: { condition: service_healthy }
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  caddy_data:
+  caddy_config:

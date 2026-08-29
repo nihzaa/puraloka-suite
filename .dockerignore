@@ -1,0 +1,47 @@
+# Konteks build dikirim UTUH ke daemon Docker sebelum satu baris Dockerfile
+# pun dijalankan. Tanpa berkas ini, `.worktrees/` + node_modules + .next
+# membuat tiap build mengirim beberapa GB — lambat, dan sebagian isinya
+# rahasia yang tak boleh masuk image.
+
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+build
+**/build
+
+# ⚠ RAHASIA — jangan pernah masuk image.
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Worktree berisi SALINAN LAIN dari seluruh repo (lihat CLAUDE.md §4).
+.worktrees
+.claude/worktrees
+
+.git
+.github
+coverage
+**/coverage
+coverage-shards
+*.log
+.DS_Store
+.vscode
+.idea
+
+# Artefak uji & tangkapan layar
+apps/web/.layar
+**/test-results
+**/playwright-report
+
+# Mobile tak ikut image mana pun
+apps/mobile
+
+docs
+*.md
+!README.md

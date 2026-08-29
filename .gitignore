@@ -66,3 +66,6 @@ evolution-api/
 
 # Kredensial uji layar (Playwright) — TIDAK boleh ter-commit
 .env.uji-layar
+
+# Rahasia deploy VPS — lihat .env.deploy.example
+.env.deploy
