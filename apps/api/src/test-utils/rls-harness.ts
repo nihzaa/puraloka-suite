@@ -412,7 +412,7 @@ export async function companyBerisi(
  * KENAPA ADA — cacat yang berulang EMPAT KALI
  * ══════════════════════════════════════════════════════════════════════════
  *
- * Pola `SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1`
+ * Pola `SELECT company_id FROM company_members WHERE user_id = $1 AND is_default AND is_active LIMIT 1`
  * muncul di 16 berkas test. Tanpa `ORDER BY`, pilihannya diserahkan ke
  * Postgres — dan begitu akun uji jadi anggota beberapa company, yang terpilih
  * belum tentu yang punya data/pengguna yang dibutuhkan.

@@ -126,7 +126,7 @@ describe('tool portofolio grup', () => {
       return
     }
     const { rows } = await db.query(
-      `SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1`,
+      `SELECT company_id FROM company_members WHERE user_id = $1 AND is_default AND is_active LIMIT 1`,
       [userTunggal],
     )
     const h = await ringkasPortofolioGrup(

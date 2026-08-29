@@ -80,8 +80,34 @@ beforeAll(async () => {
 
   const { rows: u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [auth])
   userId = u[0].id
+  /*
+    ⚠ `is_default`, BUKAN `LIMIT 1`.
+
+    Admin di basis ini punya TIGA keanggotaan (Puraloka Persada, PT Puraloka
+    Nusantara, PT Puraloka Properti). `LIMIT 1` tanpa ORDER BY memulangkan
+    yang mana saja — diukur 2026-08-30 ia memilih PT Puraloka Nusantara,
+    sementara API memakai `is_default` dan bekerja sebagai Puraloka Persada.
+
+    Akibatnya seluruh fixture di bawah menunjuk perusahaan yang SALAH:
+    `pegawaiSaya`/`pegawaiLain` jadi null (nol pegawai di perusahaan itu), dan
+    `pegawaiAsing` justru terisi pegawai PURALOKA — yang bagi rute memang
+    miliknya sendiri.
+
+    Enam test lalu merah dengan gejala yang menuduh RUTE:
+      "menolak pegawai milik tenant LAIN → 201, bukan 404"
+    Padahal rutenya benar; fixture-nya yang memerankan skenario yang salah.
+
+    Ini persis cacat `LIMIT 1 tanpa ORDER BY` yang tercatat di CLAUDE.md.
+  */
   const { rows: co } = await db.query(
-    'SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1', [userId])
+    `SELECT company_id FROM company_members
+      WHERE user_id = $1 AND is_default AND is_active LIMIT 1`, [userId])
+  if (!co.length) {
+    throw new Error(
+      'prasyarat gagal: admin tak punya keanggotaan DEFAULT yang aktif. ' +
+      'API memakai is_default untuk menentukan tenant, jadi tanpa itu test ini ' +
+      'dan aplikasi bekerja di perusahaan yang berbeda.')
+  }
   companyId = co[0].company_id
 
   // Pegawai yang TERHUBUNG ke user yang login — dipilih menurut SYARAT, bukan

@@ -139,7 +139,7 @@ beforeAll(async () => {
   const { rows: u } = await db.query('SELECT id FROM users WHERE auth_id = $1', [auth])
   userId = u[0].id
   const { rows: co } = await db.query(
-    'SELECT company_id FROM company_members WHERE user_id = $1 LIMIT 1', [userId])
+    'SELECT company_id FROM company_members WHERE user_id = $1 AND is_default AND is_active LIMIT 1', [userId])
   companyId = co[0].company_id
 
   await bersihkan()
