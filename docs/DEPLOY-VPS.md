@@ -142,6 +142,33 @@ Lalu sertifikatnya:
 certbot --nginx -d puraloka-suite.duckdns.org -d api.puraloka-suite.duckdns.org   --non-interactive --agree-tos --register-unsafely-without-email --redirect
 ```
 
+## 5c. ⚠ `next build` GAGAL di Windows — dan itu BUKAN cacat
+
+Diukur 2026-08-30 di laptop:
+
+```
+✓ Compiled successfully in 7.9s
+  Finished TypeScript in 22.9s
+  Generating static pages (275) …
+> Build error occurred
+Error: EPERM: operation not permitted, symlink '..\client-only@0.0.1\…'
+```
+
+Semua tahap NYATA lulus — kompilasi, TypeScript, 275 halaman. Yang gagal
+langkah TERAKHIR `output: standalone`: ia menyalin `node_modules` dengan
+symlink, dan Windows menolaknya tanpa hak administrator.
+
+Linux di dalam container tak punya batasan itu. Jangan "memperbaiki" ini
+dengan mematikan `output: standalone` — tanpanya image memuat seluruh
+node_modules monorepo (ratusan MB dependensi build yang tak pernah dipakai
+runtime).
+
+Untuk membuktikan build web di laptop, pakai Docker-nya langsung:
+
+```bash
+docker build -f apps/web/Dockerfile   --build-arg NEXT_PUBLIC_API_URL=https://api.puraloka-suite.duckdns.org   -t puraloka-web .
+```
+
 ## 6. Nyalakan
 
 ```bash
