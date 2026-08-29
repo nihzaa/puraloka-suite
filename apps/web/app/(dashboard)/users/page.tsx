@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
@@ -16,14 +16,66 @@ import { KepalaHalaman } from "@/components/dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import { Kosong } from "@/components/ui-dasar";
 
-const ROLES = [
-  { key: "admin",  label: "Administrator", icon: ShieldCheck, color: C.purple, bg: C.purpleBg, border: C.purpleBorder },
-  { key: "pm",     label: "Project Manager", icon: Briefcase,  color: C.blue,   bg: C.blueBg,   border: C.blueBorder },
-  { key: "mandor", label: "Mandor",          icon: HardHat,    color: C.yellow, bg: C.yellowBg, border: C.yellowBorder },
-  { key: "client", label: "Klien",           icon: User,       color: C.mid,    bg: "var(--surface-hover)",  border: C.border },
-] as const;
+/*
+  ── ROLE DIBACA DARI BASIS, BUKAN DIPAKU DI SINI (2026-08-29)
 
-type RoleKey = "admin" | "pm" | "mandor" | "client";
+  Sebelumnya berkas ini memaku empat role: admin, pm, mandor, client.
+  Diukur di basis hari itu: perusahaan punya DUA PULUH SATU role, lengkap
+  dengan label Indonesia, warna, portal, dan urutannya masing-masing —
+  estimator, manajer keuangan, kasir, penagihan, staf pengadaan, logistik,
+  QA/QC, K3, QHSE, HRD, payroll, auditor internal, direktur, dan seterusnya.
+
+  Tujuh belas di antaranya TAK BISA dipilih dari layar ini, walau izinnya
+  sudah dikurasi di basis. Founder menanyakannya: "role yg lengkap untuk staff
+  kantor kok gaada".
+
+  Selain menyembunyikan role yang ada, daftar yang dipaku juga melanggar
+  mandat config-first: role adalah data konfigurasi per-tenant (ADR-004), dan
+  role baru yang dibuat lewat Matriks Izin harus langsung bisa dipakai di sini
+  tanpa menyentuh kode.
+
+  `/api/v1/roles` sudah menyelesaikan bagian yang sulit — ia memilih SATU baris
+  per nama (salinan tenant menang atas template) dan berhalaman. Yang kurang
+  cuma pemakaiannya.
+*/
+interface RoleRecord {
+  id: string;
+  name: string;
+  label: string | null;
+  color: string | null;
+  portal: string | null;
+  sort_order: number | null;
+}
+
+type RoleKey = string;
+
+/* Ikon dipetakan dari nama role. Yang tak dikenal memakai ikon netral —
+   role baru buatan tenant tetap tampil, tak jatuh ke layar kosong. */
+const IKON_ROLE: Record<string, typeof ShieldCheck> = {
+  admin: ShieldCheck,
+  direktur: ShieldCheck,
+  pm: Briefcase,
+  project_manager_senior: Briefcase,
+  site_manager: HardHat,
+  mandor: HardHat,
+  client: User,
+};
+
+/* Pengelompokan untuk pemilih role. Dua puluh satu tombol dalam satu grid
+   tak bisa dipindai mata; dikelompokkan, ia terbaca seperti struktur
+   organisasi. Role yang tak terdaftar di sini masuk "Lainnya" — jadi role
+   baru tetap muncul, bukan hilang diam-diam. */
+const GRUP_ROLE: { judul: string; anggota: string[] }[] = [
+  { judul: "Pimpinan & Sistem", anggota: ["direktur", "admin"] },
+  { judul: "Proyek & Lapangan", anggota: ["pm", "project_manager_senior", "site_manager", "mandor"] },
+  { judul: "Teknik & Estimasi", anggota: ["estimator", "qaqc"] },
+  { judul: "K3 & Mutu", anggota: ["qhse_manager", "k3_officer"] },
+  { judul: "Keuangan", anggota: ["manajer_keuangan", "akuntan", "kasir", "penagihan"] },
+  { judul: "Pengadaan & Logistik", anggota: ["procurement_officer", "logistik"] },
+  { judul: "SDM", anggota: ["hrd", "payroll_officer"] },
+  { judul: "Legal & Audit", anggota: ["kontrak_admin", "auditor_internal"] },
+  { judul: "Eksternal", anggota: ["client"] },
+];
 
 interface UserRecord {
   id: string;
@@ -36,8 +88,47 @@ interface UserRecord {
 }
 
 
-function roleInfo(role: RoleKey) {
-  return ROLES.find(r => r.key === role) ?? ROLES[3];
+/* Tampilan satu role. Kalau namanya tak ada di daftar basis (mis. user lama
+   yang rolenya sudah dihapus), ia tetap TAMPIL apa adanya — bukan diam-diam
+   ditampilkan sebagai "Klien", yang pernah terjadi karena fallback ROLES[3]
+   dan membuat orang salah baca siapa punya akses apa. */
+/*
+  ⚠ Warna dari basis (`roles.color`) SENGAJA tidak dipakai langsung.
+
+  Nilainya hex mentah (mis. `#D97706` untuk mandor, `#6B7280` untuk sebagian
+  besar role) dan dipakai untuk label 11px di atas permukaan terang. Diukur
+  axe-core 2026-08-29: 9 pelanggaran `color-contrast` [serious] — teks yang
+  tak terbaca oleh pengguna berpenglihatan rendah, dan repo ini punya banyak
+  pengguna berperangkat lama.
+
+  Token `--warning`/`--info`/dst. sudah dikurasi untuk kontras di mode terang
+  DAN gelap; hex di basis tidak. Jadi warna basis dipetakan ke token, dan yang
+  tak dikenali jatuh ke `C.text` — gelap, terbaca, tak pernah melanggar.
+
+  Konsekuensinya disengaja: mengubah `color` sebuah role di basis tidak
+  mengubah warna di layar ini. Yang diatur dari basis adalah role dan izinnya;
+  kontras teks bukan hal yang boleh dikonfigurasi menjadi tak terbaca.
+*/
+const WARNA_ROLE: Record<string, string> = {
+  admin: C.purple,
+  direktur: C.purple,
+  pm: C.blue,
+  project_manager_senior: C.blue,
+  site_manager: C.text,
+  mandor: C.text,
+  client: C.text,
+};
+
+function roleInfo(role: RoleKey, daftar: RoleRecord[]) {
+  const r = daftar.find(x => x.name === role);
+  return {
+    key: role,
+    label: r?.label ?? role,
+    icon: IKON_ROLE[role] ?? User,
+    color: WARNA_ROLE[role] ?? C.text,
+    bg: "var(--surface-hover)",
+    border: C.border,
+  };
 }
 
 export default function UsersPage() {
@@ -60,6 +151,15 @@ export default function UsersPage() {
   */
   const { data, memuat: loading, muatUlang } = useData<{ users: UserRecord[] }>("/api/v1/users?all=true");
   const users = data?.users ?? [];
+
+  // Daftar role dari BASIS. `/api/v1/roles` sudah memilih satu baris per nama
+  // (salinan tenant menang atas template) dan berhalaman — lihat catatan di
+  // atas berkas ini.
+  const { data: dataRole } = useData<{ roles: RoleRecord[] }>("/api/v1/roles");
+  const semuaRole = useMemo(
+    () => (dataRole?.roles ?? []).slice().sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999)),
+    [dataRole],
+  );
   const load = useCallback(async () => { await muatUlang(); }, [muatUlang]);
 
   async function toggleActive(user: UserRecord) {
@@ -85,7 +185,22 @@ export default function UsersPage() {
     return true;
   });
 
-  const counts = ROLES.map(r => ({ ...r, count: users.filter(u => u.role === r.key).length }));
+  /*
+    Kartu ringkasan hanya untuk role yang BENAR-BENAR dipakai — plus role yang
+    sedang disaring, supaya saringannya tak lenyap saat hasilnya nol.
+
+    Menampilkan 21 kartu berarti mayoritasnya "0", dan angka nol yang berjejer
+    menenggelamkan yang bermakna. Yang lengkap ada di Matriks Izin; halaman ini
+    menjawab "siapa saja yang ada", bukan "role apa saja yang mungkin".
+  */
+  const counts = useMemo(() => {
+    return semuaRole
+      .map(r => ({
+        ...roleInfo(r.name, semuaRole),
+        count: users.filter(u => u.role === r.name).length,
+      }))
+      .filter(r => r.count > 0 || filterRole === r.key);
+  }, [semuaRole, users, filterRole]);
   // ADR-004: capability, bukan nama jabatan — diverifikasi ke `requirePermission`.
   const isAdmin = useIzin("users:manage");
 
@@ -152,7 +267,7 @@ export default function UsersPage() {
       ) : (
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden", background: "var(--surface)" }}>
           {filtered.map((u, i) => {
-            const ri = roleInfo(u.role);
+            const ri = roleInfo(u.role, semuaRole);
             const Icon = ri.icon;
             const isSelf = u.id === currentUser?.id;
             return (
@@ -209,14 +324,128 @@ export default function UsersPage() {
       )}
 
       {/* Modals */}
-      {showAdd && <AddUserModal onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); load(); }} />}
-      {editUser && <EditUserModal user={editUser} onClose={() => setEditUser(null)} onSuccess={() => { setEditUser(null); load(); }} />}
+      {showAdd && <AddUserModal daftarRole={semuaRole} onClose={() => setShowAdd(false)} onSuccess={() => { setShowAdd(false); load(); }} />}
+      {editUser && <EditUserModal user={editUser} daftarRole={semuaRole} onClose={() => setEditUser(null)} onSuccess={() => { setEditUser(null); load(); }} />}
+    </div>
+  );
+}
+
+/* ─── Pemilih role ────────────────────────────────────────────────────────────
+
+   Dikelompokkan, bukan grid rata. Dua puluh satu tombol sejajar tak bisa
+   dipindai mata; dikelompokkan menurut fungsi, ia terbaca seperti struktur
+   organisasi dan orang menemukan "Kasir" tanpa membaca dua puluh nama lain.
+
+   Role yang tak terdaftar di GRUP_ROLE jatuh ke "Lainnya" — jadi role baru
+   yang dibuat lewat Matriks Izin TETAP MUNCUL, bukan hilang diam-diam. Itu
+   syaratnya supaya daftar ini benar-benar config-first, bukan sekadar daftar
+   panjang yang tetap harus disunting di kode.
+*/
+function PemilihRole({
+  daftar, nilai, onPilih, idLabel = "role",
+}: {
+  daftar: RoleRecord[];
+  nilai: RoleKey;
+  onPilih: (r: RoleKey) => void;
+  idLabel?: string;
+}) {
+  const kelompok = useMemo(() => {
+    const sisa = new Set(daftar.map(r => r.name));
+    const hasil: { judul: string; anggota: RoleRecord[] }[] = [];
+    for (const g of GRUP_ROLE) {
+      const anggota = g.anggota
+        .map(n => daftar.find(r => r.name === n))
+        .filter((r): r is RoleRecord => r != null);
+      for (const a of anggota) sisa.delete(a.name);
+      if (anggota.length) hasil.push({ judul: g.judul, anggota });
+    }
+    const lainnya = daftar.filter(r => sisa.has(r.name));
+    if (lainnya.length) hasil.push({ judul: "Lainnya", anggota: lainnya });
+    return hasil;
+  }, [daftar]);
+
+  if (!daftar.length) {
+    // Bukan grid kosong tanpa keterangan: daftar role datang dari jaringan,
+    // dan "belum termuat" berbeda dari "tak ada role".
+    return (
+      <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Memuat daftar role…</p>
+    );
+  }
+
+  return (
+    /*
+      Pembungkus + selubung gradien di tepi bawah.
+
+      Daftar ini SELALU lebih tinggi dari kotaknya (21 role), jadi baris
+      terakhir yang terlihat pasti terpotong. Tanpa penanda, potongan itu
+      terbaca seperti CACAT RENDER — bukan seperti "masih ada di bawah".
+      Gradien membuatnya terbaca sebagai gulir, dan `pointerEvents: none`
+      menjaga tombol di baliknya tetap bisa diklik.
+    */
+    <div style={{ position: "relative" }}>
+    <div
+      role="group"
+      aria-labelledby={idLabel}
+      style={{
+        maxHeight: 260, overflowY: "auto",
+        border: `1px solid ${C.border}`, borderRadius: 8,
+        padding: "8px 8px 14px",
+      }}
+    >
+      {kelompok.map(g => (
+        <div key={g.judul} style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: C.muted, textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: 6 }}>
+            {g.judul}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+            {g.anggota.map(r => {
+              const info = roleInfo(r.name, daftar);
+              const Icon = info.icon;
+              const active = nilai === r.name;
+              return (
+                <button
+                  key={r.name}
+                  type="button"
+                  onClick={() => onPilih(r.name)}
+                  aria-pressed={active}
+                  style={{
+                    padding: "7px 10px", borderRadius: 6,
+                    border: `2px solid ${active ? info.color : C.border}`,
+                    background: active ? info.bg : "var(--surface)",
+                    cursor: "pointer", textAlign: "left",
+                    display: "flex", alignItems: "center", gap: 7,
+                    // Tinggi seragam: tanpa ini baris yang labelnya dua baris
+                    // ("Manajer Lapangan / Pelaksana") membuat tetangganya
+                    // ikut meninggi dan gridnya terlihat rusak.
+                    minHeight: 40,
+                  }}
+                >
+                  <Icon size={13} color={active ? info.color : C.muted} />
+                  <span style={{ fontSize: 12, fontWeight: active ? 700 : 400, color: active ? info.color : C.mid }}>
+                    {info.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+    <div
+      aria-hidden="true"
+      style={{
+        position: "absolute", left: 1, right: 1, bottom: 1, height: 24,
+        borderRadius: "0 0 8px 8px",
+        background: "linear-gradient(to bottom, transparent, var(--surface))",
+        pointerEvents: "none",
+      }}
+    />
     </div>
   );
 }
 
 // ─── Modal: Tambah User Baru ──────────────────────────────────────────────────
-function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+function AddUserModal({ daftarRole, onClose, onSuccess }: { daftarRole: RoleRecord[]; onClose: () => void; onSuccess: () => void }) {
   useTutupEsc(onClose);
   const mounted = useTerpasang();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
@@ -275,19 +504,7 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
           </div>
           <div>
             <span id="role" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 8 }}>Role</span>
-            <div role="group" aria-labelledby="role" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {ROLES.map(r => {
-                const Icon = r.icon;
-                const active = role === r.key;
-                return (
-                  <button key={r.key} type="button" onClick={() => setRole(r.key)}
-                    style={{ padding: "8px 12px", borderRadius: 6, border: `2px solid ${active ? r.color : C.border}`, background: active ? r.bg : "var(--surface)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
-                    <Icon size={14} color={active ? r.color : C.muted} />
-                    <span style={{ fontSize: 12, fontWeight: active ? 700 : 400, color: active ? r.color : C.mid }}>{r.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <PemilihRole daftar={daftarRole} nilai={role} onPilih={setRole} />
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>
@@ -303,7 +520,7 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 }
 
 // ─── Modal: Edit Data User ────────────────────────────────────────────────────
-function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose: () => void; onSuccess: () => void }) {
+function EditUserModal({ user, daftarRole, onClose, onSuccess }: { user: UserRecord; daftarRole: RoleRecord[]; onClose: () => void; onSuccess: () => void }) {
   useTutupEsc(onClose);
   const mounted = useTerpasang();
   useEffect(() => { document.body.style.overflow = "hidden"; return () => { document.body.style.overflow = ""; }; }, []);
@@ -351,19 +568,7 @@ function EditUserModal({ user, onClose, onSuccess }: { user: UserRecord; onClose
           </div>
           <div>
             <span id="role-2" style={{ fontSize: 12, fontWeight: 600, color: C.text, display: "block", marginBottom: 8 }}>Role</span>
-            <div role="group" aria-labelledby="role-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {ROLES.map(r => {
-                const Icon = r.icon;
-                const active = role === r.key;
-                return (
-                  <button key={r.key} type="button" onClick={() => setRole(r.key)}
-                    style={{ padding: "8px 12px", borderRadius: 6, border: `2px solid ${active ? r.color : C.border}`, background: active ? r.bg : "var(--surface)", cursor: "pointer", textAlign: "left", display: "flex", alignItems: "center", gap: 8 }}>
-                    <Icon size={14} color={active ? r.color : C.muted} />
-                    <span style={{ fontSize: 12, fontWeight: active ? 700 : 400, color: active ? r.color : C.mid }}>{r.label}</span>
-                  </button>
-                );
-              })}
-            </div>
+            <PemilihRole daftar={daftarRole} nilai={role} onPilih={setRole} idLabel="role-2" />
           </div>
           <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
             <button type="button" onClick={onClose} style={{ flex: 1, padding: "8px", borderRadius: 6, border: `1px solid ${C.border}`, background: "var(--surface)", cursor: "pointer", fontSize: 13, color: C.mid }}>Batal</button>

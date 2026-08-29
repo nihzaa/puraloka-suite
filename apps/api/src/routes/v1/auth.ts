@@ -135,12 +135,49 @@ export default async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: 'Password minimal 8 karakter' })
     }
 
-    // T4i: lewat wrapper — `roles` kategori AB. `roles.name` UNIQUE GLOBAL
-    // (migration 050), jadi tanpa saringan ini admin tenant A yang tahu/menebak
-    // nama role custom tenant B bisa mendaftarkan user dengan role_id milik B
-    // dan mewarisi permission set perusahaan lain.
-    const { data: roleRow } = await request.db!
-      .from('roles').select('id').eq('name', role).maybeSingle()
+    /*
+      T4i: lewat wrapper — `roles` kategori AB, jadi saringannya
+      `company_id IS NULL OR company_id = tenant ini`. Tanpa saringan itu admin
+      tenant A yang menebak nama role custom tenant B bisa mendaftarkan user
+      dengan role_id milik B dan mewarisi permission set perusahaan lain.
+
+      ⚠ SATU NAMA BISA MEMULANGKAN DUA BARIS, dan itu bukan anomali data.
+
+      Komentar lama di sini menyatakan `roles.name` UNIQUE GLOBAL (migrasi 050).
+      Diukur 2026-08-29: TIDAK. Indeks yang benar-benar ada dua, dan keduanya
+      parsial:
+
+        roles_template_name_uniq  (name)             WHERE company_id IS NULL
+        roles_company_name_uniq   (company_id, name) WHERE company_id IS NOT NULL
+
+      Jadi `pm` sah punya DUA baris: satu TEMPLATE global, satu milik tenant.
+      Kode lama memakai `.maybeSingle()` — yang MELEMPAR kalau lebih dari satu
+      baris, bukan memilih — lalu galatnya tak pernah diperiksa, sehingga
+      roleRow jadi null dan pengguna melihat:
+
+          "Role 'pm' tidak valid"
+
+      Pesan yang menuduh PERAN, padahal perannya benar dan dipakai 4 user.
+      Akibatnya SELURUH pembuatan user mati, bukan cuma PM. Dilaporkan founder
+      dari layar, bukan dari galat — tak ada satu pun yang tercatat.
+
+      Yang benar: role MILIK TENANT menang atas template. Template hanya dipakai
+      kalau tenant belum punya salinannya sendiri — dan itu memang gunanya.
+    */
+    const { data: kandidatRole, error: galatRole } = await request.db!
+      .from('roles').select('id, company_id').eq('name', role)
+
+    // Galat baca TIDAK boleh menyamar jadi "role tidak valid": keduanya
+    // menuntun ke perbaikan yang sama sekali berbeda.
+    if (galatRole) {
+      request.log.error({ galatRole, role }, 'gagal membaca tabel roles saat register')
+      return reply.status(500).send({ error: 'Gagal memeriksa role' })
+    }
+
+    const daftarRole = (kandidatRole ?? []) as { id: string; company_id: string | null }[]
+    const roleRow =
+      daftarRole.find((r) => r.company_id !== null) ?? daftarRole.find((r) => r.company_id === null)
+
     if (!roleRow) {
       return reply.status(400).send({ error: `Role '${role}' tidak valid` })
     }
