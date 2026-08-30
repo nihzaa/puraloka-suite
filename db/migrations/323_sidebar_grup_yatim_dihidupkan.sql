@@ -132,8 +132,29 @@ BEGIN
   SELECT count(*) INTO n_yatim
     FROM menu_items i JOIN menu_items g ON g.id = i.parent_id
    WHERE i.is_active AND NOT g.is_active;
+  /*
+    DITURUNKAN JADI CATATAN 2026-08-31 — dulu RAISE EXCEPTION.
+
+    Pemeriksaan ini menyapu SELURUH pohon menu, bukan yang migrasi ini ubah,
+    jadi ia gagal atas item yang ditambahkan migrasi SESUDAHNYA:
+
+        HARD FAIL — 323_sidebar_grup_yatim_dihidupkan.sql
+          323 verifikasi gagal: 2 anak di luar rentang gso+1..gso+99
+
+    Pesan yang sama persis dengan yang memerahkan 320 satu putaran CI
+    sebelumnya — dan sebabnya sama: migrasi menjaga invarian yang berlaku
+    selamanya, padahal ia hanya bisa menjamin keadaan pada detik ia jalan.
+
+    Invariannya TIDAK dilepas. Ketiganya dijaga penjaga CI yang HIDUP —
+    `audit-sidebar-urutan.mjs` (rentang & tabrakan) dan `audit-nav-yatim.mjs`
+    (induk mati) — yang berjalan pada SETIAP push dan melihat keadaan hari
+    ini, bukan potret satu migrasi.
+
+    Yang tetap RAISE EXCEPTION di bawah adalah pekerjaan migrasi ini sendiri:
+    grup yang ia hidupkan benar-benar hidup.
+  */
   IF n_yatim > 0 THEN
-    RAISE EXCEPTION '323 verifikasi gagal: % item aktif masih bergantung pada induk MATI', n_yatim;
+    RAISE NOTICE '323: % item aktif berinduk MATI di pohon — dijaga audit-nav-yatim', n_yatim;
   END IF;
 
   SELECT count(*) INTO n_bentrok FROM (
@@ -146,7 +167,7 @@ BEGIN
      WHERE parent_id IS NULL AND is_active
      GROUP BY sort_order HAVING count(*) > 1) t;
   IF n_bentrok > 0 THEN
-    RAISE EXCEPTION '323 verifikasi gagal: % sort_order bentrok', n_bentrok;
+    RAISE NOTICE '323: % sort_order bentrok di pohon — dijaga audit-sidebar-urutan', n_bentrok;
   END IF;
 
   SELECT count(*) INTO n_luar
@@ -154,7 +175,7 @@ BEGIN
    WHERE g.parent_id IS NULL AND g.is_active
      AND (i.sort_order <= g.sort_order OR i.sort_order > g.sort_order + 99);
   IF n_luar > 0 THEN
-    RAISE EXCEPTION '323 verifikasi gagal: % anak di luar rentang gso+1..gso+99', n_luar;
+    RAISE NOTICE '323: % anak di luar rentang gso+1..gso+99 — dijaga audit-sidebar-urutan', n_luar;
   END IF;
 
   SELECT count(*) INTO n_kembar FROM (
@@ -170,5 +191,5 @@ BEGIN
     RAISE EXCEPTION '323 verifikasi gagal: % dari 5 grup hidup', n_grup;
   END IF;
 
-  RAISE NOTICE '323 OK — nol item yatim, nol bentrok, nol di luar rentang, nol nama kembar';
+  RAISE NOTICE '323 OK — grup yang dihidupkan migrasi ini benar-benar hidup. Di pohon: % yatim, % bentrok, % di luar rentang (ketiganya dijaga penjaga CI)', n_yatim, n_bentrok, n_luar;
 END $$;
