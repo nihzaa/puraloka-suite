@@ -84,6 +84,17 @@ function RemahIsi({ modul }: { modul: string }) {
     // kode: `sidebar.tsx:538` menulisnya ke `localStorage`.
     try {
       const mentah = localStorage.getItem(MENU_CACHE_KEY);
+      /*
+        Hidrasi dari localStorage — nilainya tak ada saat render pertama.
+
+        Peta menu ditulis ke localStorage oleh `sidebar.tsx`; breadcrumb
+        membacanya supaya tak menampilkan dua tingkat generik sebelum jaringan
+        menjawab. Nilai itu tak bisa jadi state awal karena localStorage tak ada
+        di server.
+
+        Effect ini berdependensi kosong dan berjalan sekali.
+      */
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (mentah) setMenu(JSON.parse(mentah));
     } catch {
       /* cache rusak/ditolak — breadcrumb tetap dua tingkat, bukan crash */

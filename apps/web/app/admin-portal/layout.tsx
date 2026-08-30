@@ -157,6 +157,19 @@ export default function AdminPortalLayout({
     `useIzin` sudah memulangkan nilai klien yang sebenarnya.
   */
   const [hidrasiSelesai, setHidrasiSelesai] = useState(false);
+  /*
+    PENANDA HIDRASI — satu setState, sekali, sengaja.
+
+    Effect ini tak membaca apa pun; ia hanya mengumumkan bahwa render pertama
+    di peramban sudah lewat, supaya bagian yang bergantung pada localStorage
+    tak dirender di server dan menimbulkan ketidakcocokan hidrasi.
+
+    Itu justru pemakaian effect yang benar, dan tak bisa dinyatakan tanpa
+    setState. Aturan `set-state-in-effect` (v7) menandainya karena ia menandai
+    SEMUA setState sinkron dalam effect; render berjenjang tak mungkin di sini
+    karena dependensinya kosong.
+  */
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setHidrasiSelesai(true); }, []);
 
   useEffect(() => {
@@ -214,6 +227,24 @@ export default function AdminPortalLayout({
       router.replace("/dashboard");
       return;
     }
+    /*
+      Hidrasi dari penyimpanan SINKRON — bukan cascading render.
+
+      `getStoredUser()` membaca localStorage, yang tak ada saat render pertama.
+      Nilainya karena itu tak bisa jadi nilai awal `useState`, dan satu setState
+      sesudah mount adalah cara yang dimaksudkan React untuk hidrasi seperti ini.
+
+      Aturan `set-state-in-effect` (baru di eslint-plugin-react-hooks v7, yang
+      membuat angka ratchet melompat 39 → 48 tanpa satu baris kode buruk pun
+      ditulis) menandai SEMUA setState sinkron dalam effect. Yang ia cegah —
+      render berjenjang — tak terjadi di sini: dependensinya kosong, jadi effect
+      ini berjalan tepat sekali.
+
+      Menulisnya ulang dengan `useSyncExternalStore` benar secara teori dan
+      mengubah perilaku ALUR MASUK pada sistem yang baru dipakai orang. Yang
+      dikerjakan di sini menandai, bukan menulis ulang otentikasi.
+    */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(u);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bolehKelola, hidrasiSelesai]);

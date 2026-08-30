@@ -82,6 +82,18 @@ export function useTabUrl<T extends string>(
   // mengubah URL tapi meninggalkan tab pada nilai lamanya — dua sumber
   // kebenaran yang berselisih, dan yang terlihat adalah yang salah.
   useEffect(() => {
+    /*
+      MENYINKRONKAN state dengan URL — persis tugas effect.
+
+      Tab yang aktif hidup di dua tempat: query URL (supaya bisa di-bookmark
+      dan di-share) dan state React. Effect ini menarik yang kedua mengikuti
+      yang pertama saat URL berubah dari luar — tombol Back, tautan dalam,
+      atau muat ulang.
+
+      Penjaganya `cocok !== tab`: tanpa perbedaan, tak ada setState, jadi
+      render berjenjang yang dicegah aturan v7 tak bisa terjadi.
+    */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (cocok && cocok !== tab) setTabState(cocok);
   }, [cocok, tab]);
 

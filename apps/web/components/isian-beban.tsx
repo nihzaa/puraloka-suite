@@ -113,7 +113,21 @@ export function IsianBeban({
     return [...p.entries()];
   }, [data]);
 
-  const terpilih = nilai.lapisMati ?? [];
+  /*
+    Dibungkus useMemo — DIPERBAIKI 2026-08-31, bukan dibungkam.
+
+    `?? []` membuat array BARU tiap render, jadi `useMemo` di bawah menerima
+    dependensi yang selalu berbeda dan TAK PERNAH menahan hasilnya. Perhitungan
+    di dalamnya berjalan ulang pada setiap render, termasuk render yang tak ada
+    hubungannya dengan data ini.
+
+    Jadi peringatan `exhaustive-deps` di sini menunjuk pemborosan yang nyata,
+    bukan sekadar kerewelan aturan. Membungkus sumbernya membuat rujukannya
+    stabil selama datanya sama, dan `useMemo` di bawah kembali bekerja.
+
+    Perilakunya tidak berubah: nilai yang dihasilkan sama persis.
+  */
+  const terpilih = useMemo(() => nilai.lapisMati ?? [], [nilai.lapisMati]);
   const fungsi = (data?.fungsiRuang ?? []).find((f) => f.kunci === nilai.fungsiRuangKunci);
 
   /* Jumlah beban mati yang DIPILIH — supaya angkanya terlihat sebelum dihitung. */

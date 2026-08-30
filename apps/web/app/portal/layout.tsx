@@ -22,6 +22,24 @@ export default function PortalKlienLayout({ children }: { children: React.ReactN
     const u = getStoredUser();
     if (!u) { router.replace("/login"); return; }
     if (u.role !== "client") { router.replace("/dashboard"); return; }
+    /*
+      Hidrasi dari penyimpanan SINKRON — bukan cascading render.
+
+      `getStoredUser()` membaca localStorage, yang tak ada saat render pertama.
+      Nilainya karena itu tak bisa jadi nilai awal `useState`, dan satu setState
+      sesudah mount adalah cara yang dimaksudkan React untuk hidrasi seperti ini.
+
+      Aturan `set-state-in-effect` (baru di eslint-plugin-react-hooks v7, yang
+      membuat angka ratchet melompat 39 → 48 tanpa satu baris kode buruk pun
+      ditulis) menandai SEMUA setState sinkron dalam effect. Yang ia cegah —
+      render berjenjang — tak terjadi di sini: dependensinya kosong, jadi effect
+      ini berjalan tepat sekali.
+
+      Menulisnya ulang dengan `useSyncExternalStore` benar secara teori dan
+      mengubah perilaku ALUR MASUK pada sistem yang baru dipakai orang. Yang
+      dikerjakan di sini menandai, bukan menulis ulang otentikasi.
+    */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(u);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

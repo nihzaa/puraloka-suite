@@ -162,7 +162,16 @@ const AMBANG = {
   '@typescript-eslint/no-unused-vars': 0,   // 1 -> 0 (2026-08-13, .layar/ diabaikan + 4 ikon mati + KETERANGAN disatukan)
   // 10 → 6 (2026-08-16, turunan array dibungkus useMemo saat halaman pindah
   //        ke `useData` — dependensi jadi stabil, bukan referensi baru tiap render)
-  'react-hooks/exhaustive-deps': 6,   // 22 -> 10 (2026-08-13, 35 salinan hook 'sudah terpasang' disatukan ke useTerpasang)
+  // 6 → 5 (2026-08-31): tiga `?? []` di useData dibungkus useMemo.
+  //
+  //   `const users = data?.users ?? []` membuat array BARU tiap render, jadi
+  //   `useMemo` yang bergantung padanya tak pernah menahan hasilnya — semua
+  //   perhitungan di dalamnya berjalan ulang setiap render, termasuk render
+  //   yang tak ada hubungannya dengan data itu.
+  //
+  //   Jadi peringatannya menunjuk pemborosan nyata, bukan kerewelan aturan.
+  //   Diperbaiki, bukan ditandai: users/page, mutu/insiden/page, isian-beban.
+  'react-hooks/exhaustive-deps': 5,   // 22 -> 10 (2026-08-13, 35 salinan hook 'sudah terpasang' disatukan ke useTerpasang)
   'react/no-unescaped-entities': 0,   // 18 -> 0 (2026-08-13, kutip tipografis; contoh curl pakai &quot; supaya tetap bisa disalin)
   // 14 → 8 (2026-08-04): `Tab` di halaman mandor diangkat ke level modul.
   // Ia dulu dibuat DI DALAM render, jadi tiap pemakaiannya dihitung — 6

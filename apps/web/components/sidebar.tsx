@@ -443,6 +443,17 @@ function SidebarIsi() {
   const W = collapsed ? "var(--sidebar-w-ciut)" : "var(--sidebar-w)";
 
   useEffect(() => {
+    /*
+      Hidrasi dari localStorage — pengguna dan izinnya.
+
+      Keduanya tak ada saat render pertama di server, jadi tak bisa jadi nilai
+      awal `useState`. Effect ini berdependensi kosong dan berjalan sekali.
+
+      Menggantinya dengan `useSyncExternalStore` mengubah kapan sidebar
+      memutuskan menu mana yang boleh tampil — perubahan perilaku pada
+      navigasi utama, bukan pembersihan lint.
+    */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setUser(getStoredUser());
     setPerms(new Set(
       (() => {
@@ -502,6 +513,14 @@ function SidebarIsi() {
       .filter((n) => n.children.some((c) => c.href && isActive(c.href)))
       .map((n) => n.key);
     if (memuatHalamanIni.length === 0) return;
+    /*
+      Membuka grup menu yang memuat halaman aktif — sinkronisasi dengan URL.
+
+      Ini bentuk updater, dan penjaganya sudah ada di bawah: bila tak ada yang
+      berubah, set LAMA yang dikembalikan, sehingga React tak me-render ulang.
+      Justru penjaga itulah yang mencegah hal yang dikhawatirkan aturan v7.
+    */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setGrupTerbuka((s) => {
       const baru = new Set(s);
       let berubah = false;
