@@ -113,8 +113,38 @@ let applied = 0, alreadyThere = 0
 const skippedList = []
 for (const f of files) {
   const version = f.match(/^(\d+)_/)[1]
-  const { rows } = await c.query(`SELECT 1 FROM supabase_migrations.schema_migrations WHERE version=$1`, [version])
-  if (rows.length) { alreadyThere++; continue }
+  /*
+    Entri ber-`[SKIP:…]` TIDAK dihitung "sudah jalan" — ia DICOBA ULANG.
+
+    ⚠ Diukur 2026-08-31, dan ini kelas cacat G-2 yang paling berbahaya.
+
+    Satu run menulis `212_… [SKIP:cacat-tertambal]` ke buku migrasi CI saat
+    migrasinya masuk allowlist. Migrasinya lalu DIPERBAIKI, tetapi run
+    berikutnya melewatinya — karena versinya sudah tercatat.
+
+    Akibatnya: 212 tak pernah dijalankan lagi, kelima tabelnya tak pernah
+    dibuat, dan 213 tetap gagal `relation "hari_libur" does not exist` —
+    dengan CI yang tak menyebut 212 sama sekali. Perbaikannya benar; yang
+    menghalangi catatannya sendiri.
+
+    Ini persis yang CLAUDE.md §5.5 sebut: "entri palsu = migrasi dilewati
+    senyap selamanya".
+
+    Entri `[SKIP:]` menandai migrasi yang DILEWATI, bukan yang berhasil.
+    Mencobanya ulang tiap kali adalah satu-satunya cara perbaikannya bisa
+    berlaku — dan bila ia masih rusak, allowlist tetap menangkapnya seperti
+    sebelumnya.
+  */
+  const { rows } = await c.query(
+    `SELECT name FROM supabase_migrations.schema_migrations WHERE version=$1`,
+    [version],
+  )
+  const tercatatSkip = rows.length > 0 && /\[SKIP:/.test(rows[0].name ?? '')
+  if (rows.length && !tercatatSkip) { alreadyThere++; continue }
+  if (tercatatSkip) {
+    console.log(`  retry(bekas-skip) ${f} — dicoba ulang; perbaikan tak boleh terhalang catatannya sendiri`)
+    await c.query(`DELETE FROM supabase_migrations.schema_migrations WHERE version=$1`, [version])
+  }
   const sql = fs.readFileSync(path.join(dir, f), 'utf8')
   try {
     await c.query('BEGIN')
