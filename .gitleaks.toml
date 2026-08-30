@@ -41,6 +41,40 @@ useDefault = true
     # dikirim ke browser saat mendaftarkan subscription. Pasangan privatnya
     # (`VAPID_PRIVATE_KEY`) ada di `apps/api/.env` yang ter-gitignore.
     '''BCtMWjpUmaiZBRRSHvp19e0NjD-z7LwJj9f5u5xnthnL4hxVsi18SOE6CBigwFC6auq5lZkfEJbA9vhoRfk1bRA''',
+
+    # `sandi-panjang-uji-123` — sandi HARFIAH di berkas test.
+    #
+    # Diukur 2026-08-31: gitleaks melaporkan 4 temuan, seluruhnya string yang
+    # sama di `apps/api/src/routes/v1/__tests__/register-role.test.ts`.
+    #
+    # Kenapa terbukti bukan rahasia — tiap poin bisa diperiksa ulang:
+    #
+    #   1. Nilainya HARFIAH ada di kode, dan namanya sendiri mengatakannya:
+    #        grep -rn "sandi-panjang-uji-123" apps/api/src
+    #      Nol tempat di mana ia dibaca dari env atau basis.
+    #
+    #   2. Dipakai untuk MEMBUAT akun uji lalu menghapusnya di `afterEach` —
+    #      akunnya tak pernah ada di luar satu jalan test.
+    #
+    #   3. Akun yang dibuatnya berdomain `.test` — TLD yang RFC 2606 cadangkan
+    #      khusus untuk pengujian dan tak pernah bisa diresolusi di internet.
+    #      Verifikasi:
+    #        SELECT email FROM users WHERE email ILIKE '%uji%';
+    #      Diukur 2026-08-31: 6 akun, seluruhnya `@puraloka.test` /
+    #      `@ujicoba.test`. Nol akun produksi.
+    #
+    #      ⚠ Versi pertama catatan ini menulis "tak ada akun produksi
+    #        memakainya" dengan verifikasi `count(*) … LIKE '%uji%'` — dan
+    #        jawabannya 6, yang terbaca seperti membantah klaimnya sendiri.
+    #        Yang menentukan bukan CACAHNYA melainkan DOMAINNYA. Perintah
+    #        verifikasi yang memulangkan angka menyesatkan lebih buruk
+    #        daripada tak ada verifikasi.
+    #
+    # Panjangnya sengaja > 12 karakter supaya lolos syarat Supabase Auth —
+    # itulah yang menaikkan entropinya dan memicu deteksi. Memendekkannya akan
+    # membuat test gagal; menggantinya dengan nilai acak justru membuat
+    # SETIAP jalan menghasilkan temuan baru.
+    '''sandi-panjang-uji-\d+''',
   ]
 
   paths = [

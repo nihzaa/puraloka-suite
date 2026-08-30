@@ -195,18 +195,47 @@ async function hitung() {
   const hasil = await eslint.lintFiles(['.'])
 
   const perRule = {}
+  /*
+    Lokasi disimpan, bukan cuma cacahnya.
+
+    Diukur 2026-08-31: CI melaporkan `(tanpa-rule): 1 (ambang 0)` sementara
+    lokal nol — dan tak ada cara mengetahui warning MANA, karena penjaga ini
+    hanya mencetak jumlah.
+
+    Warning yang tak menyebut lokasinya tak bisa diperbaiki siapa pun. Yang
+    membacanya di CI hanya bisa menebak, dan tebakan yang salah menghabiskan
+    waktu lebih banyak daripada yang dihemat penjaga ini.
+
+    Disimpan maksimal lima per rule — cukup untuk menemukan polanya, tak cukup
+    untuk menenggelamkan keluaran.
+  */
+  const contoh = {}
   let error = 0
   for (const berkas of hasil) {
     for (const pesan of berkas.messages) {
       const rule = pesan.ruleId ?? '(tanpa-rule)'
       perRule[rule] = (perRule[rule] ?? 0) + 1
       if (pesan.severity === 2) error++
+      ;(contoh[rule] ??= [])
+      if (contoh[rule].length < 5) {
+        const rel = berkas.filePath.replace(process.cwd(), '').replace(/^[\\/]/, '')
+        /*
+          Newline DIRATAKAN sebelum dipotong.
+
+          Pesan `react-hooks` bisa 1.000+ karakter dan MEMUAT baris baru —
+          memotongnya begitu saja menghasilkan keluaran yang terpecah di
+          tengah kalimat ("Effe" lalu baris kosong), yang justru lebih sulit
+          dibaca daripada tak ada contoh sama sekali.
+        */
+        const ringkas = (pesan.message ?? '').replace(/\s+/g, ' ').trim().slice(0, 96)
+        contoh[rule].push(`${rel}:${pesan.line} — ${ringkas}`)
+      }
     }
   }
-  return { perRule, error }
+  return { perRule, error, contoh }
 }
 
-const { perRule, error } = await hitung()
+const { perRule, error, contoh } = await hitung()
 const pelanggaran = []
 
 // 1. NOL ERROR. Ini garis keras — `warn` boleh menumpuk (dijaga ambang),
@@ -221,7 +250,10 @@ for (const [rule, jumlah] of Object.entries(perRule)) {
   if (jumlah > ambang) {
     pelanggaran.push(
       `${rule}: ${jumlah} (ambang ${ambang})` +
-      (AMBANG[rule] === undefined ? ' — rule BARU, harus nol sejak awal' : ''),
+      (AMBANG[rule] === undefined ? ' — rule BARU, harus nol sejak awal' : '') +
+      // Contoh lokasinya ikut dicetak. Tanpa ini, yang membaca di CI tak punya
+      // cara menemukan warning mana yang dimaksud — dan lokal bisa saja nol.
+      (contoh[rule]?.length ? '\n' + contoh[rule].map((c) => `        ${c}`).join('\n') : ''),
     )
   }
 }

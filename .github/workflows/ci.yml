@@ -3386,10 +3386,55 @@ jobs:
       - name: Em-dash (berkas + konten DB)
         run: node scripts/audit-em-dash.mjs
 
-      # Build memerlukan env: `ambilKonten()` dipanggil saat prerender.
-      # Nilai di sini hanya untuk memuaskan pemeriksaan bentuk — build
-      # menoleransi API yang tak terjangkau, dan halaman akan di-render ulang
-      # saat runtime.
+      # ⚠ KOMENTAR LAMA DI SINI KELIRU, dan CI merah 12 run berturut-turut
+      #   karenanya. Ia menyatakan "build menoleransi API yang tak terjangkau,
+      #   dan halaman akan di-render ulang saat runtime". Diukur: TIDAK.
+      #
+      #     TypeError: fetch failed
+      #     Error occurred prerendering page "/"
+      #     Export encountered an error on /page: /, exiting the build.
+      #
+      #   `ambilKonten()` MELEMPAR saat API tak terjangkau, dan `app/page.tsx`
+      #   memanggilnya di server component — jadi prerender gagal dan build
+      #   berhenti.
+      #
+      # Yang TIDAK dilakukan untuk memperbaikinya:
+      #
+      #   a. Menandai halaman `dynamic = 'force-dynamic'` — itu membatalkan
+      #      cache tag yang sengaja dirancang (`revalidateTag('situs')` supaya
+      #      admin melihat perubahannya seketika tanpa deploy). Merusak fitur
+      #      demi lulus CI.
+      #
+      #   b. Membuat `ambilKonten()` memulangkan konten kosong saat gagal —
+      #      itu menerbitkan SITUS KOSONG diam-diam di produksi, kelas cacat
+      #      yang jauh lebih buruk daripada build merah.
+      #
+      # Yang dilakukan: menyalakan server API tiruan yang membalas bentuk yang
+      # benar. Build lalu menguji apa yang memang ingin diuji — bahwa halaman
+      # bisa dirender dari konten yang sah — bukan sekadar bahwa TypeScript-nya
+      # lolos.
+      - name: Server konten tiruan (untuk prerender)
+        run: |
+          cat > /tmp/situs-tiruan.mjs <<'EOF'
+          import { createServer } from 'node:http'
+          // Bentuk minimum yang membuat `app/page.tsx` bisa dirender: daftar
+          // seksi kosong berarti halaman terbit tanpa satu pun seksi — sah,
+          // dan cukup untuk membuktikan pipeline render-nya utuh.
+          const data = { seksi: [], merek: {}, kategori: [], konten: {}, media: [], milestone: [], legalitas: [] }
+          createServer((req, res) => {
+            res.writeHead(200, { 'content-type': 'application/json' })
+            res.end(JSON.stringify({ data }))
+          }).listen(3001, () => console.log('situs tiruan siap di :3001'))
+          EOF
+          node /tmp/situs-tiruan.mjs &
+          # Tunggu sampai benar-benar menjawab — `sleep` tetap adalah tebakan.
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3001/api/v1/public/situs >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:3001/api/v1/public/situs >/dev/null \
+            || { echo "::error::server tiruan tak pernah menjawab"; exit 1; }
+
       - name: Build
         run: pnpm exec next build
         env:
