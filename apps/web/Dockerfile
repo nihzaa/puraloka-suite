@@ -36,6 +36,14 @@ COPY packages/ packages/
 COPY apps/web/ apps/web/
 
 ARG NEXT_PUBLIC_API_URL
+# ⚠ Supabase dibutuhkan SAAT BUILD, bukan cuma runtime.
+#
+# `/auth/callback` di-PRERENDER oleh `next build`, dan modul Supabase-nya
+# dievaluasi saat itu juga. Tanpa keduanya build gagal dengan
+#   "Error: supabaseUrl is required."
+# — pesan yang benar, di tempat yang mudah disalahartikan sebagai cacat kode.
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_KEY
 # Gagal SEKARANG, bukan nanti. Tanpa pemeriksaan ini next.config.ts jatuh ke
 # bawaan `http://localhost:3001`, dan itu dipanggang ke bundel: di peramban
 # pengguna, `localhost` adalah KOMPUTER PENGGUNA SENDIRI. Gejalanya galat
@@ -43,6 +51,8 @@ ARG NEXT_PUBLIC_API_URL
 RUN test -n "$NEXT_PUBLIC_API_URL" || \
     (echo "FATAL: --build-arg NEXT_PUBLIC_API_URL wajib diisi (lihat header Dockerfile)" && exit 1)
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_KEY=$NEXT_PUBLIC_SUPABASE_KEY
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN cd apps/web && pnpm build
