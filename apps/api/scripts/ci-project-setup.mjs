@@ -62,16 +62,28 @@ const SKIP_ALLOWLIST = {
     kelas ini jadi tempat membuang kegagalan yang belum dipahami — persis yang
     komentar di atas peringatkan ("yang tak dikenal HARUS gagal keras").
   */
-  '212': {
-    class: 'cacat-tertambal',
-    pengganti: '526_perbaiki_format_212.sql',
-    reason:
-      '`format()` kurang argumen: dua %I, satu argumen (baris 209-213). '
-      + 'Galat "too few arguments for format()". Tak pernah terlihat di dev '
-      + 'karena kelima tabelnya sudah berpolicy lengkap dari migrasi lain — '
-      + 'hanya muncul di lingkungan BERSIH. 212 TIDAK diedit (riwayat tak '
-      + 'boleh berbohong, CLAUDE.md §5.5); akibatnya ditutup migrasi 526.',
-  },
+  /*
+    ⚠ 212 SEMPAT ADA DI SINI, LALU DICABUT — dan itu jalan yang benar.
+
+    Migrasi 212 gagal `too few arguments for format()`, dan saya sempat
+    memasukkannya ke allowlist dengan penambal terpisah (526). Itu KELIRU:
+
+    Tiap migrasi dijalankan dalam transaksi (BEGIN … ROLLBACK di bawah), jadi
+    kegagalan di baris 210 membuang SELURUH 212 — termasuk kelima tabel yang
+    dibuat di baris 37-141. Yang hilang bukan policy-nya; TABELNYA.
+
+    Penambal terpisah tak bisa menolong keadaan itu. Ketahuannya baru sesudah
+    CI melaporkan kegagalan BERIKUTNYA: `213 → relation "hari_libur" does not
+    exist`.
+
+    212 kini diperbaiki di tempatnya, mengikuti preseden 016 yang dicatat di
+    `181_f2_5_storage_tenant_scoped.sql`.
+
+    Pelajaran untuk kelas `cacat-tertambal` di bawah: ia HANYA sah bila
+    migrasinya gagal SESUDAH bagian yang penting berhasil di-commit. Untuk
+    migrasi yang gagal di tengah transaksi, tak ada penambal yang cukup —
+    yang rusak harus diperbaiki.
+  */
 }
 
 /*

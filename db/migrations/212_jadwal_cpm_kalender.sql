@@ -206,11 +206,40 @@ BEGIN
     -- Nama yang bervariasi memaksa penjaganya menebak pola — dan penjaga
     -- yang menebak akan melewatkan tabel yang polanya sedikit berbeda.
     EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
+    /*
+      ⚠ DIPERBAIKI DI TEMPAT 2026-08-31 — dua `%I`, satu argumen.
+
+      Baris ini semula memberi `t` saja untuk DUA penampung, dan Postgres
+      menolak dengan `too few arguments for format()`. Seluruh migrasi ini
+      dibungkus transaksi oleh `ci-project-setup.mjs`, jadi kegagalannya
+      me-ROLLBACK SEMUANYA — termasuk kelima tabel yang dibuat di atas.
+
+      Akibatnya berantai: migrasi 213 lalu gagal dengan `relation "hari_libur"
+      does not exist`, dan seluruh penyiapan basis CI berhenti. Keenam shard
+      "API — test" merah karenanya.
+
+      Tak pernah terlihat di basis pengembangan: kelima tabelnya sudah
+      berpolicy lengkap dari migrasi lain, jadi keadaan akhirnya benar dan tak
+      ada gejala. Hanya lingkungan BERSIH yang membongkarnya — dan itulah yang
+      dipakai saat membangun server baru.
+
+      ── Kenapa DIEDIT, bukan ditambal migrasi baru
+
+      Mengikuti preseden 016 yang dicatat di `181_f2_5_storage_tenant_scoped.sql`:
+      "Menambal hanya di 181 akan meninggalkan lubang yang terbuka kembali di
+      setiap lingkungan baru."
+
+      Di sini lebih tegas lagi: migrasi penambal TAK BISA menolong, karena yang
+      hilang bukan policy-nya melainkan TABELNYA — transaksinya membuang
+      semua. Migrasi 526 yang saya tulis lebih dulu ternyata memperbaiki gejala
+      yang salah, dan itu baru ketahuan sesudah CI melaporkan kegagalan
+      BERIKUTNYA di 213.
+    */
     EXECUTE format(
       'CREATE POLICY %I ON %I AS RESTRICTIVE FOR ALL
          USING (company_id = auth_company_id())
          WITH CHECK (company_id = auth_company_id())',
-      t);
+      'tenant_isolation', t);
 
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', t || '_baca', t);
     EXECUTE format(

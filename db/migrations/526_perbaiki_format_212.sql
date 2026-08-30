@@ -1,59 +1,39 @@
 -- ============================================================================
--- 526 - MENUTUP CACAT `format()` DI MIGRASI 212
+-- 526 - MEMPERBAIKI GEJALA YANG SALAH — dipertahankan sebagai PENEGAS
 -- ============================================================================
 --
--- ── YANG DITEMUKAN, diukur 2026-08-31 dari CI
+-- ⚠ MIGRASI INI SEMULA MENAMBAL AKIBAT, BUKAN PENYEBAB — dan itu keliru.
 --
---     HARD FAIL — migrasi GAGAL di LUAR allowlist: 212_jadwal_cpm_kalender.sql
+-- Ia ditulis untuk memasang policy yang migrasi 212 gagal pasang. Yang tak
+-- saya lihat saat menulisnya: apps/api/scripts/ci-project-setup.mjs membungkus
+-- TIAP migrasi dalam transaksi, jadi kegagalan di baris 210 me-ROLLBACK
+-- seluruh 212 — termasuk KELIMA TABEL yang dibuat di baris 37-141.
 --
--- Keenam shard "API — test" gagal karena penyiapan basis CI berhenti di situ.
--- Galat sesungguhnya baru terlihat saat migrasinya dijalankan langsung:
+-- Yang hilang bukan policy-nya. Yang hilang TABELNYA.
 --
---     too few arguments for format()
+-- Ketahuannya baru sesudah CI melaporkan kegagalan BERIKUTNYA:
 --
--- Barisnya 209-213 di migrasi 212:
+--     HARD FAIL — 213_libur_unik_nulls_not_distinct.sql
+--       relation "hari_libur" does not exist
 --
---     EXECUTE format(
---       'CREATE POLICY %I ON %I AS RESTRICTIVE FOR ALL
---          USING (company_id = auth_company_id())
---          WITH CHECK (company_id = auth_company_id())',
---       t);                                    <-- DUA %I, SATU argumen
+-- 212 kini DIPERBAIKI DI TEMPATNYA (dua argumen untuk dua %I), mengikuti
+-- preseden 016 yang dicatat di 181: "Menambal hanya di 181 akan meninggalkan
+-- lubang yang terbuka kembali di setiap lingkungan baru."
 --
--- Nama policy-nya hilang. Dua `%I` menuntut dua argumen; yang diberikan satu.
+-- ── KENAPA TIDAK DIHAPUS SAJA
 --
--- ── KENAPA TAK PERNAH TERLIHAT SEBELUM INI
+-- Nomornya sudah ter-commit dan ter-push. Berkas migrasi yang lenyap membuat
+-- riwayat punya lubang, dan lingkungan yang sudah mencatatnya di buku migrasi
+-- akan mencari berkas yang tak ada.
 --
--- Di basis pengembangan kelima tabelnya SUDAH punya `tenant_isolation`,
--- RLS aktif, FORCE aktif — dipasang migrasi lain sesudahnya. Diukur:
+-- Isinya dipertahankan sebagai PENEGAS: idempoten, no-op pada basis yang
+-- sudah benar, dan blok verifikasinya tetap berguna — ia membuktikan kelima
+-- tabel berpolicy RESTRICTIVE, bukan sekadar berpolicy.
 --
---     hari_libur · kebutuhan_sumber_daya · method_statement
---     milestone_dependencies · pola_kerja
---     → tenant_isolation=1, total_policy=3, rls=true, force=true (kelimanya)
---
--- Jadi keadaan akhirnya benar, dan tak ada gejala apa pun. Yang rusak hanya
--- terlihat di LINGKUNGAN BERSIH — tempat migrasi diputar ulang dari nol, yang
--- justru dipakai saat membangun server baru.
---
--- Kelas cacat yang sama dengan yang melahirkan `audit-replay-bersih`:
--- benar di dev, mati di server baru.
---
--- ── KENAPA MIGRASI BARU, BUKAN MENGEDIT 212
---
--- 212 sudah ter-commit dan sudah dijalankan di basis nyata. Mengeditnya
--- membuat riwayat berbohong: berkas yang berbeda dari yang pernah berjalan,
--- dengan nomor yang sama. CLAUDE.md §5.5 melarangnya.
---
--- Migrasi ini memasang policy yang 212 gagal pasang. Untuk basis yang sudah
--- punya (seperti dev), ia no-op — `DROP ... IF EXISTS` lalu `CREATE` dengan
--- definisi yang sama.
---
--- ⚠ 212 SENDIRI TETAP GAGAL di lingkungan bersih. Yang diperbaiki AKIBATNYA,
---   bukan penyebabnya — dan itu disengaja: menambal 212 berarti mengedit
---   riwayat. `ci-project-setup.mjs` perlu memasukkannya ke allowlist dengan
---   alasan yang menunjuk migrasi ini. Itu dikerjakan terpisah, supaya
---   allowlist tak pernah jadi tempat membuang kegagalan yang belum dipahami.
+-- Pelajarannya layak ditulis: saya memperbaiki gejala pertama yang terlihat,
+-- dan baru tahu itu salah sasaran karena CI melaporkan gejala KEDUA. Kalau
+-- 213 kebetulan tak ada, cacatnya akan tampak sudah beres.
 -- ============================================================================
-
 DO $$
 DECLARE
   t TEXT;
