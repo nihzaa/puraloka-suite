@@ -108,10 +108,29 @@ try {
     dan `audit-migrasi-pertenant-aktif` ada justru karena kesalahan itu pernah
     menulis 9.164 baris untuk tenant mati.
   */
+  /*
+    TENANT UJI DIKECUALIKAN — dan ini bukan kelonggaran.
+
+    Diukur 2026-08-31: penjaga ini merah menyebut `PT Uji Validate`, tenant
+    yang dibuat DAN dihapus oleh test sesi lain dalam hitungan detik. Saat
+    migrasi 523 dijalankan beberapa saat kemudian, tenantnya sudah tak ada.
+
+    Tenant sementara milik test tak pernah punya tugas terjadwal dan tak pernah
+    dijalankan penjadwal — mendaftarkannya tak memperbaiki apa pun. Yang
+    dirusaknya nyata: penjaga yang merah-berkedip mengikuti test orang lain
+    adalah penjaga yang cepat atau lambat dimatikan, dan yang dimatikan tak
+    menjaga apa pun.
+
+    Polanya mengikuti konvensi repo ini — nama tenant uji berawalan kurung
+    siku (`[UJI-ISOLASI]`, `[UJI-C2]`, `[MUT-523]`) atau memuat kata "Uji".
+    Tenant produksi tak pernah dinamai begitu.
+  */
   const kurang = await c.query(
     `SELECT co.id, co.name
        FROM companies co
       WHERE co.is_active
+        AND co.name NOT LIKE '[%'
+        AND co.name !~* '\\muji\\M'
         AND NOT EXISTS (
           SELECT 1 FROM company_members m
            WHERE m.company_id = co.id AND m.user_id = $1
@@ -120,11 +139,21 @@ try {
     [uid],
   )
 
-  const total = await c.query('SELECT count(*)::int n FROM companies WHERE is_active')
+  // Cacah dengan saringan yang SAMA — kalau berbeda, angkanya bertentangan
+  // dengan daftarnya dan pembacanya tak tahu mana yang benar.
+  const total = await c.query(
+    `SELECT count(*)::int n FROM companies
+      WHERE is_active AND name NOT LIKE '[%' AND name !~* '\\muji\\M'`,
+  )
+  const uji = await c.query(
+    `SELECT count(*)::int n FROM companies
+      WHERE is_active AND (name LIKE '[%' OR name ~* '\\muji\\M')`,
+  )
 
   console.log('Penjaga: akun penjadwal anggota tiap tenant aktif')
-  console.log(`  akun            : ${emailPenjadwal}`)
-  console.log(`  tenant aktif    : ${total.rows[0].n}`)
+  console.log(`  akun             : ${emailPenjadwal}`)
+  console.log(`  tenant aktif     : ${total.rows[0].n}`)
+  console.log(`  tenant uji (dilewati): ${uji.rows[0].n}`)
   console.log(`  tanpa keanggotaan: ${kurang.rowCount}`)
 
   if (kurang.rowCount > 0) {

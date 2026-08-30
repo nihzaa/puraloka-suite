@@ -140,6 +140,24 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     jalur: '/api/v1/idempotensi/bersihkan',
   },
 
+  /*
+    Notifikasi menumpuk TANPA GEJALA — diukur 2026-08-31 di produksi:
+    8.893 notifikasi, 0 dibaca, tertua 15 hari. Tak ada retensi, tak ada
+    pembersih.
+
+    Kotak masuk berisi ribuan baris tak terbaca berhenti berfungsi sebagai
+    kotak masuk: orang berhenti membukanya, dan yang mendesak tenggelam
+    bersama yang tidak.
+
+    ⚠ Yang berprioritas `urgent` dan BELUM dibaca tak pernah dihapus, berapa
+    pun umurnya — makin lama tak dibaca, makin mendesak dibaca.
+  */
+  'bersih-notifikasi': {
+    label: 'Bersihkan Notifikasi Lama',
+    keterangan: 'Menghapus notifikasi kedaluwarsa. Yang mendesak & belum dibaca tak pernah dihapus.',
+    jalur: '/api/v1/notifikasi/bersihkan',
+  },
+
   'kasbon-outstanding': {
     label: 'Kasbon Belum Lunas',
     keterangan: 'Kasbon yang sudah disetujui tapi belum dilunasi melewati ambang hari.',
