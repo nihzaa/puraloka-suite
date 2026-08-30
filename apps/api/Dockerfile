@@ -92,7 +92,17 @@ COPY --chown=fastify:nodejs packages/ packages/
 
 # `--prod`: hanya dependensi runtime. `--frozen-lockfile`: versi yang dipasang
 # WAJIB sama dengan yang diuji CI.
-RUN pnpm install --prod --frozen-lockfile --filter @puraloka/api...
+#
+# ⚠ TANPA titik-tiga di belakang nama filter.
+#
+# `--filter @puraloka/api...` (dengan `...`) berarti "api DAN paket-paket yang
+# ia butuhkan dari workspace" — dan di tahap runtime ini hasilnya store terisi
+# 266 paket TETAPI nol symlink di `apps/api/node_modules`. Container lalu mati
+# dengan "Cannot find package 'fastify'" walau paketnya ada di disk.
+#
+# Yang dibutuhkan justru filter POLOS: pasang untuk paket `@puraloka/api` itu
+# sendiri, lengkap dengan tautannya.
+RUN pnpm install --prod --frozen-lockfile --filter @puraloka/api
 
 COPY --from=build --chown=fastify:nodejs /repo/apps/api/dist ./apps/api/dist
 
