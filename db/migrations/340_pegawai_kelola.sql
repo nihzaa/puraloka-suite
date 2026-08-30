@@ -189,6 +189,40 @@ BEGIN
      OR (company_id = co AND nomor_induk IS NULL AND jam_standar = 8
          AND created_at > now() - INTERVAL '1 minute');
 
+  /*
+    CADANGAN PEMBERIAN — DITAMBAHKAN 2026-08-31.
+
+    Kepala berkas ini menyatakan izin `sdm:pegawai:*` "ADA di permissions,
+    DIBERIKAN ke dua peran". Itu diukur di basis dev 2026-08-12, dan TIDAK
+    berlaku di basis yang baru lahir — di sana izinnya ada (dibuat migrasi
+    lain) tetapi tak dipegang siapa pun.
+
+    Akibatnya migrasi ini gagal atas keadaan yang bukan pekerjaannya:
+
+        HARD FAIL — 340_pegawai_kelola.sql
+          340 gagal: 2 izin pegawai tak diberikan ke peran mana pun
+
+    dan menghentikan seluruh rantai. Bentuk yang sama sudah menggigit di 271,
+    295, dan 337 hari ini: migrasi yang MEMERIKSA sesuatu tanpa MENGERJAKANNYA.
+
+    Diberikan ke `admin` hanya bila belum ada pemegang sama sekali; di basis
+    yang izinnya sudah tersebar ia no-op. Tunduk ADR-004 — satu pemegang awal
+    supaya fiturnya bisa dicapai, sisanya lewat UI peran.
+
+    Ini juga menutup kegagalan 341 (`menu_karyawan`), yang bergantung pada
+    izin yang sama dan hanya memeriksanya.
+  */
+  INSERT INTO role_permissions (role_id, permission_id)
+  SELECT r.id, p.id
+    FROM roles r
+    CROSS JOIN permissions p
+   WHERE r.name = 'admin'
+     AND p.key IN ('sdm:pegawai:view', 'sdm:pegawai:manage')
+     AND NOT EXISTS (
+       SELECT 1 FROM role_permissions rp WHERE rp.permission_id = p.id
+     )
+  ON CONFLICT DO NOTHING;
+
   -- 10. Izin ada DAN diberikan.
   SELECT count(*) INTO n
     FROM permissions p

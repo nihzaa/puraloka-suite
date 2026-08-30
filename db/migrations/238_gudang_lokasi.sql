@@ -211,6 +211,37 @@ SELECT rp.role_id, p.id
  WHERE p.key = 'gudang:view'
 ON CONFLICT DO NOTHING;
 
+/*
+  CADANGAN — DITAMBAHKAN 2026-08-31.
+
+  Kedua pemberian di atas menurunkan izin gudang dari pemegang `assets:manage`
+  dan `assets:view`. Itu benar sebagai kebijakan: yang boleh melihat aset boleh
+  melihat gudangnya.
+
+  Tapi bila TAK ADA peran yang memegang izin aset — keadaan basis yang baru
+  lahir — kedua INSERT memasukkan NOL baris tanpa galat, dan migrasi 342
+  gagal jauh di belakang:
+
+      HARD FAIL — 342_menu_gudang_lokasi.sql
+        342 gagal: gudang:view tak diberikan ke peran mana pun
+
+  Galat yang menunjuk 342, sebab di 238. Diberikan ke `admin` hanya bila belum
+  ada pemegang sama sekali; di basis yang izin asetnya sudah tersebar ia no-op.
+
+  Tunduk ADR-004 — satu pemegang awal supaya fiturnya bisa dicapai, sisanya
+  lewat UI peran. Pola yang sama dengan 271, 295, 337, dan 340.
+*/
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+  FROM roles r
+  CROSS JOIN permissions p
+ WHERE r.name = 'admin'
+   AND p.key IN ('gudang:view', 'gudang:manage')
+   AND NOT EXISTS (
+     SELECT 1 FROM role_permissions rp WHERE rp.permission_id = p.id
+   )
+ON CONFLICT DO NOTHING;
+
 -- ------------------------------------------------------------
 -- 7. SEED: satu gudang per company yang punya aset
 --
