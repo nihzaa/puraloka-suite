@@ -94,6 +94,51 @@ export function bacaEnv() {
  * Hanya `connectionString` yang diteruskan — tidak ada host/user/password
  * terpisah — supaya variabel lingkungan tak bisa menyusup diam-diam.
  */
+/**
+ * Adakah connection string yang bisa dipakai? — TANPA mematikan proses.
+ *
+ * ══════════════════════════════════════════════════════════════════════════
+ * KENAPA ADA — cacat nyata di ENAM penjaga sekaligus, diukur 2026-08-31
+ * ══════════════════════════════════════════════════════════════════════════
+ *
+ * `buatClient()` memanggil `process.exit(2)` saat DSN tak ada. Itu benar untuk
+ * skrip yang memang menuntut basis — mati keras lebih baik daripada berjalan
+ * setengah.
+ *
+ * Tetapi PENJAGA CI berbeda: sebagian dijalankan di job yang sengaja tak
+ * diberi kredensial, dan mereka semua menulis pola yang sama —
+ *
+ *     try { c = buatClient(); await c.connect() }
+ *     catch { console.log('DILEWATI'); process.exit(0) }
+ *
+ * — yang TIDAK PERNAH BEKERJA. `process.exit` tak bisa ditangkap `catch`;
+ * prosesnya mati sebelum blok penangkap sempat berjalan.
+ *
+ * Diukur dengan menyembunyikan `apps/api/.env` lalu menjalankan tiap penjaga:
+ *
+ *     exit 2  audit-menu-berbagi-href · audit-nav-yatim · audit-peta-menu-vs-db
+ *     exit 2  audit-rute-terkunci · audit-sidebar-urutan · uji-menu-halaman-hidup
+ *     exit 0  audit-replay-bersih   (memang tak menyentuh basis)
+ *
+ * Keenamnya menulis komentar yang menjanjikan "DILEWATI dengan jujur", dan
+ * keenamnya gagal keras. Komentar yang menjanjikan perilaku tanpa kodenya
+ * lebih buruk daripada tak ada komentar: yang membacanya berhenti memeriksa.
+ *
+ * ⚠ `buatClient()` SENGAJA TIDAK DIUBAH. Melunakkannya jadi memulangkan
+ * `null` akan membuat SETIAP pemanggil lama diam-diam berjalan tanpa basis —
+ * termasuk skrip migrasi. Yang ditambahkan cuma cara BERTANYA lebih dulu.
+ */
+export function adaKoneksi(namaEnv = null) {
+  const env = bacaEnv()
+  return Boolean(
+    (namaEnv && env[namaEnv])
+    || env.DIRECT_URL
+    || env.DATABASE_URL
+    || process.env.DIRECT_URL
+    || process.env.DATABASE_URL,
+  )
+}
+
 export function buatClient(namaEnv = null) {
   const env = bacaEnv()
   const conn =
@@ -104,6 +149,8 @@ export function buatClient(namaEnv = null) {
     process.env.DATABASE_URL
   if (!conn) {
     console.error('FATAL: DIRECT_URL/DATABASE_URL tidak ditemukan di apps/api/.env maupun environment.')
+    console.error('       Penjaga CI yang boleh dilewati: pakai `adaKoneksi()` SEBELUM memanggil ini —')
+    console.error('       `try/catch` tak menangkap `process.exit`.')
     process.exit(2)
   }
   if (!/^postgres(ql)?:\/\//.test(conn)) {

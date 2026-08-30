@@ -51,6 +51,14 @@ let yatim
 try {
   const koneksi = await import(
     'file://' + join(AKAR, 'scripts', 'db', '_koneksi.mjs').replace(/\\/g, '/'))
+  // Diperiksa SEBELUM buatClient(): ia `process.exit(2)` saat DSN tak ada,
+  // dan `process.exit` TIDAK bisa ditangkap `try/catch` di sekelilingnya.
+  // Diukur 2026-08-31: enam penjaga menulis penangkap yang tak pernah bekerja,
+  // dan keenamnya mati exit 2 di job CI yang memang tak diberi kredensial.
+  if (!koneksi.adaKoneksi('DIRECT_URL')) {
+    console.log('  ⏭  DILEWATI (tak ada DIRECT_URL/DATABASE_URL) — bukan LULUS.')
+    process.exit(0)
+  }
   const db = koneksi.buatClient('DIRECT_URL')
   await db.connect()
   const r = await db.query(`

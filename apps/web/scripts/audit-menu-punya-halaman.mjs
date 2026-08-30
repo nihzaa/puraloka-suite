@@ -107,8 +107,32 @@ async function utama() {
   // pada `.env` repo ini (jebakan yang tertulis di CLAUDE.md §7), dan `pg`
   // ter-resolve dari sana sementara dari `apps/web/scripts` tidak. Parser env
   // buatan sendiri pernah memulangkan galat `ENOTFOUND base` karena keduanya.
+  /*
+    KREDENSIAL DIPERIKSA SENDIRI, SEBELUM `buatClient()`.
+
+    `try/catch` di bawah TIDAK cukup: `buatClient()` memanggil `process.exit(2)`
+    saat DIRECT_URL/DATABASE_URL tak ada, dan `process.exit` TAK BISA ditangkap
+    `catch` — prosesnya mati sebelum blok penangkap sempat berjalan.
+
+    Diukur di CI 2026-08-31: keenam shard "API — test" gagal dengan exit code 2
+    pada langkah ini. Bukan test yang merah (itu exit 1) — penjaga yang mati
+    karena job-nya memang tak diberi kredensial basis.
+
+    Komentar di bawah sudah menjanjikan perilaku yang benar ("DILEWATI dengan
+    jujur"); yang tak ada kodenya. Kelas cacat yang sama persis dengan
+    `apps/web-publik/scripts/audit-em-dash.mjs`, diperbaiki pada hari yang
+    sama — dan keduanya memakai `_koneksi.mjs` yang sama, jadi penjaga lain
+    yang memakainya patut diperiksa dengan pertanyaan yang sama.
+  */
+  const ADA_DSN = Boolean(
+    process.env.DIRECT_URL
+    || process.env.DATABASE_URL
+    || existsSync(join(DIR, '..', '..', 'api', '.env')),
+  )
+
   let c
   try {
+    if (!ADA_DSN) throw new Error('tak ada DIRECT_URL/DATABASE_URL')
     c = buatClient()
     await c.connect()
   } catch (e) {

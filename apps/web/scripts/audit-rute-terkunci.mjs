@@ -72,7 +72,7 @@ const LANTAI = 0
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { buatClient } from '../../../scripts/db/_koneksi.mjs'
+import { buatClient, adaKoneksi } from '../../../scripts/db/_koneksi.mjs'
 
 const AKAR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 const MIDDLEWARE = join(AKAR, 'apps/web/middleware.ts')
@@ -128,6 +128,13 @@ const bolehDibuka = (href) => {
   return izin.some((p) => j === p || j.startsWith(p + '/'))
 }
 
+// Diperiksa SEBELUM buatClient(): ia `process.exit(2)` saat DSN tak ada,
+// dan `process.exit` TIDAK bisa ditangkap `try/catch` di bawah. Diukur
+// 2026-08-31 — enam penjaga menulis penangkap yang tak pernah bekerja.
+if (!adaKoneksi()) {
+  console.log('  ⏭  DILEWATI (tak ada DIRECT_URL/DATABASE_URL) — bukan LULUS.')
+  process.exit(0)
+}
 const c = buatClient()
 await c.connect()
 const { rows } = await c.query(
