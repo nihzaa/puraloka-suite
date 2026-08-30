@@ -64,7 +64,37 @@ import { sudahWaktunya } from '../../lib/jadwal-acak.js'
  * "terjadwal" tanpa pernah berjalan — kelas cacat yang sama dengan yang
  * penjaga L-4 cegah.
  */
-export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; jalur: string }> = {
+export const KATALOG_TUGAS: Record<
+  string,
+  {
+    label: string
+    keterangan: string
+    jalur: string
+    /**
+     * Metode HTTP. Bawaannya `GET`.
+     *
+     * ⚠ DITAMBAHKAN 2026-08-30 sesudah cacat nyata. `jalankanTugas()`
+     * memanggil SEMUA tugas dengan `method: 'GET'` — dipaku, tanpa cara
+     * mengubahnya.
+     *
+     * Rute otomasi yang hanya MEMERIKSA & mengirim notifikasi memang GET.
+     * Tetapi rute yang MENGHAPUS baris memakai POST (pola `ai/retensi/
+     * bersihkan`, `idempotensi/bersihkan`, `notifikasi/bersihkan`) — dan
+     * penjadwal memanggilnya dengan GET, yang dijawab 404.
+     *
+     * Gejalanya menyesatkan: "Route GET:/api/v1/notifikasi/bersihkan not
+     * found" terbaca seperti rutenya belum ter-deploy, padahal ia ada dengan
+     * metode lain.
+     *
+     * Diukur: `bersih-notifikasi` gagal 404 di ketiga tenant sesudah deploy
+     * berhasil. Dua tugas POST lain (`bersih-idempotensi`,
+     * `bersih-percakapan-ai`) belum pernah dipasang di `jadwal_tugas`, jadi
+     * cacatnya tak pernah muncul — mereka akan gagal dengan cara yang sama
+     * begitu dipasang.
+     */
+    metode?: 'GET' | 'POST'
+  }
+> = {
   'cek-tenggat': {
     label: 'Cek Tenggat',
     keterangan: 'Termin jatuh tempo, invoice lewat tenggat, kasbon menggantung, proyek mendekati akhir.',
@@ -82,6 +112,7 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     label: 'Bersihkan Riwayat AI',
     keterangan: 'Menghapus percakapan asisten yang melewati batas retensi tiap tenant.',
     jalur: '/api/v1/ai/retensi/bersihkan',
+    metode: 'POST',   // MENGHAPUS baris — lihat catatan pada tipe KATALOG_TUGAS
   },
 
   /*
@@ -138,6 +169,7 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     label: 'Bersihkan Kunci Idempotensi',
     keterangan: 'Menghapus kunci idempotensi yang lebih tua dari 7 hari.',
     jalur: '/api/v1/idempotensi/bersihkan',
+    metode: 'POST',   // MENGHAPUS baris — lihat catatan pada tipe KATALOG_TUGAS
   },
 
   /*
@@ -156,6 +188,7 @@ export const KATALOG_TUGAS: Record<string, { label: string; keterangan: string; 
     label: 'Bersihkan Notifikasi Lama',
     keterangan: 'Menghapus notifikasi kedaluwarsa. Yang mendesak & belum dibaca tak pernah dihapus.',
     jalur: '/api/v1/notifikasi/bersihkan',
+    metode: 'POST',   // MENGHAPUS baris — lihat catatan pada tipe KATALOG_TUGAS
   },
 
   'kasbon-outstanding': {
@@ -1107,7 +1140,19 @@ async function jalankanTugas(
   if (!meta) throw new Error(`Tugas '${tugas}' tidak dikenal`)
 
   const res = await request.server.inject({
-    method: 'GET',
+    /*
+      Metode dari KATALOG, bukan dipaku GET.
+
+      Sebelumnya `method: 'GET'` ditulis langsung di sini, dan seluruh tugas
+      dipanggil begitu. Rute otomasi yang hanya memeriksa memang GET — tetapi
+      tiga rute pembersih memakai POST karena mereka MENGHAPUS baris, dan
+      penjadwal memanggilnya dengan GET yang dijawab 404.
+
+      Gejalanya menyesatkan: "Route GET:… not found" terbaca seperti rutenya
+      belum ter-deploy, padahal ia ada dengan metode lain. Saya sendiri sempat
+      menyimpulkan begitu dan menjalankan deploy ulang untuk kedua kalinya.
+    */
+    method: meta.metode ?? 'GET',
     url: meta.jalur,
     headers: {
       // Token akun layanan SUNGGUHAN — bukan bypass.

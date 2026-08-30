@@ -77,11 +77,25 @@ if (mulai === -1) {
   process.exit(2)
 }
 
+/*
+  Metode ikut dibaca — DITAMBAHKAN 2026-08-30 sesudah cacat nyata.
+
+  Sebelumnya penjaga ini hanya mencocokkan JALUR, dan menerima pendaftaran
+  rute dengan metode apa pun. Akibatnya ia HIJAU untuk `bersih-notifikasi`
+  yang jalurnya benar tetapi metodenya tidak: katalog memanggil GET,
+  rutenya POST.
+
+  Diukur di produksi: 404 di ketiga tenant, dengan pesan "Route
+  GET:/api/v1/notifikasi/bersihkan not found" — yang terbaca seperti rutenya
+  belum ter-deploy, padahal ia ada dengan metode lain.
+
+  `metode` opsional; tugas tanpa itu berarti GET, sama seperti di kode.
+*/
 const tugas = []
-const reBlok = /'([a-z0-9-]+)':\s*\{[^}]*?jalur:\s*'([^']+)'/gs
+const reBlok = /'([a-z0-9-]+)':\s*\{[^}]*?jalur:\s*'([^']+)'(?:[^}]*?metode:\s*'([A-Z]+)')?/gs
 let m
 while ((m = reBlok.exec(jadwalSrc.slice(mulai))) !== null) {
-  tugas.push({ kode: m[1], jalur: m[2] })
+  tugas.push({ kode: m[1], jalur: m[2], metode: (m[3] ?? 'GET').toLowerCase() })
 }
 
 if (tugas.length === 0) {
@@ -89,15 +103,30 @@ if (tugas.length === 0) {
   process.exit(2)
 }
 
-// Petakan jalur → berkas yang mendaftarkannya.
+/*
+  Petakan `metode jalur` → berkas yang mendaftarkannya.
+
+  KUNCINYA MEMUAT METODE, bukan jalur saja. Peta lama berkunci jalur membuat
+  `POST /x` memuaskan tugas yang memanggil `GET /x` — dan itu persis cacat
+  2026-08-30.
+*/
 const daftarRute = new Map()
 for (const f of berkasRute(join(SRC, 'routes'))) {
   const isi = readFileSync(f, 'utf8')
-  const re = /app\.(?:get|post|put|patch|delete)\(\s*'([^']+)'/g
+  const re = /app\.(get|post|put|patch|delete)\(\s*'([^']+)'/g
   let r
   while ((r = re.exec(isi)) !== null) {
-    if (!daftarRute.has(r[1])) daftarRute.set(r[1], f)
+    const kunci = `${r[1]} ${r[2]}`
+    if (!daftarRute.has(kunci)) daftarRute.set(kunci, f)
   }
+}
+
+/** Jalur mana saja yang terdaftar, tanpa memandang metode — untuk pesan galat. */
+const jalurAdaMetodeLain = new Map()
+for (const kunci of daftarRute.keys()) {
+  const [met, jalur] = kunci.split(' ')
+  if (!jalurAdaMetodeLain.has(jalur)) jalurAdaMetodeLain.set(jalur, [])
+  jalurAdaMetodeLain.get(jalur).push(met.toUpperCase())
 }
 
 /**
@@ -113,9 +142,28 @@ const tanpaKueri = (j) => j.split('?')[0]
 
 const pelanggaran = []
 for (const t of tugas) {
-  const berkas = daftarRute.get(tanpaKueri(t.jalur))
+  const jalur = tanpaKueri(t.jalur)
+  const berkas = daftarRute.get(`${t.metode} ${jalur}`)
   if (!berkas) {
-    pelanggaran.push(`${t.kode}\n    jalur '${t.jalur}' tak cocok dengan satu pun pendaftaran rute`)
+    /*
+      Dibedakan: jalurnya TAK ADA sama sekali, atau ADA dengan metode lain.
+
+      Pesan generik "tak cocok dengan pendaftaran rute" mengirim orang mencari
+      rute yang sebenarnya ada — dan itu yang terjadi di produksi: 404-nya
+      terbaca seperti kode belum ter-deploy, dan deploy diulang sia-sia.
+    */
+    const metodeLain = jalurAdaMetodeLain.get(jalur)
+    if (metodeLain && metodeLain.length > 0) {
+      pelanggaran.push(
+        `${t.kode}\n    jalur '${jalur}' ADA, tetapi terdaftar sebagai `
+        + `${metodeLain.join('/')} — katalog memanggilnya ${t.metode.toUpperCase()}.\n`
+        + `    Perbaikan: setel \`metode: '${metodeLain[0]}'\` pada entri KATALOG_TUGAS.`,
+      )
+    } else {
+      pelanggaran.push(
+        `${t.kode}\n    jalur '${t.jalur}' tak cocok dengan satu pun pendaftaran rute`,
+      )
+    }
     continue
   }
   // Berkasnya ada — tapi apakah dipasang di index.ts?
