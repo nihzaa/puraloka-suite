@@ -323,6 +323,41 @@ SELECT r.id, p.id
      SELECT 1 FROM role_permissions x WHERE x.role_id = r.id AND x.permission_id = p.id
    );
 
+/*
+  CADANGAN — DITAMBAHKAN 2026-08-31.
+
+  Kedua pemberian di atas BERSYARAT: mereka menurunkan izin klaim hanya ke
+  peran yang SUDAH memegang `sdm:pegawai:view` atau `mandor:kasbon:approve`.
+
+  Itu benar sebagai kebijakan — izin menyetujui uang perjalanan pantas
+  mengikuti izin menyetujui kasbon. Tapi bila TAK ADA peran yang memegang izin
+  syaratnya, kedua INSERT memasukkan NOL baris tanpa galat, dan verifikasi di
+  ujung berkas gagal:
+
+      HARD FAIL — 337_klaim_perjalanan.sql
+        337 gagal: 4 izin klaim tak diberikan ke peran mana pun —
+                   rutenya 403 untuk semua
+
+  Itulah keadaan basis yang baru lahir: perannya ada, pemberiannya belum.
+
+  Cadangan ini memberi keempatnya ke `admin` HANYA bila belum ada pemegang
+  sama sekali. Di basis yang izin syaratnya sudah tersebar, ia no-op —
+  kebijakan di atas tetap yang menentukan.
+
+  Tunduk ADR-004: satu pemegang awal supaya fiturnya bisa dicapai, sisanya
+  diatur lewat UI peran. Pola yang sama dengan perbaikan 271 dan 295.
+*/
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+  FROM roles r
+  CROSS JOIN permissions p
+ WHERE r.name = 'admin'
+   AND p.key IN ('klaim:view', 'klaim:kelola', 'klaim:setujui', 'klaim:bayar')
+   AND NOT EXISTS (
+     SELECT 1 FROM role_permissions rp WHERE rp.permission_id = p.id
+   )
+ON CONFLICT DO NOTHING;
+
 -- ════════════════════════════════════════════════════════════════════════════
 -- 10. `kasbons.settled_at` — kolom yang DIBACA laporan tapi tak pernah DITULIS
 -- ════════════════════════════════════════════════════════════════════════════
@@ -375,14 +410,52 @@ DECLARE
   k1     UUID;
   n      INT;
   gagal  BOOLEAN;
+  peg_dibuat BOOLEAN := FALSE;
 BEGIN
   -- Fixture dipilih menurut SYARAT, bukan LIMIT 1 (pelajaran migrasi 328).
   SELECT p.company_id, p.id, p.user_id INTO co, peg, us
     FROM pegawai p
    WHERE p.user_id IS NOT NULL
    LIMIT 1;
+  /*
+    ⚠ FIXTURE DIBUAT SENDIRI BILA TAK ADA — DIPERBAIKI 2026-08-31.
+
+    Versi sebelumnya menyerah:
+
+        HARD FAIL — 337_klaim_perjalanan.sql
+          337 gagal: nol pegawai ber-user_id — verifikasi tak bisa dipercaya
+
+    Penilaiannya benar; kesimpulannya tidak. Basis yang baru lahir memang
+    belum punya satu pegawai pun, jadi migrasi ini menghentikan SELURUH rantai
+    di CI, VPS baru, dan mesin developer baru.
+
+    Verifikasi ini sudah membuat dan membuang fixture-nya sendiri (klaim
+    VERIF337-*, dibersihkan di ujung blok), jadi ia boleh membuat pegawai uji
+    dengan cara yang sama. Sama seperti perbaikan 335 pada putaran CI
+    sebelumnya.
+
+    `peg_dibuat` menandai supaya yang lahir di sini dibuang lagi, dan pegawai
+    sungguhan tak pernah tersentuh.
+  */
   IF peg IS NULL THEN
-    RAISE EXCEPTION '337 gagal: nol pegawai ber-user_id — verifikasi tak bisa dipercaya';
+    SELECT id INTO co FROM companies ORDER BY created_at LIMIT 1;
+    IF co IS NULL THEN
+      RAISE EXCEPTION '337 gagal: nol company — basis belum berisi apa pun';
+    END IF;
+
+    SELECT id INTO us FROM users ORDER BY created_at LIMIT 1;
+    IF us IS NULL THEN
+      RAISE EXCEPTION '337 gagal: nol users — basis belum berisi apa pun';
+    END IF;
+
+    -- `pegawai` tak punya kolom nama: identitasnya ada di `users` lewat
+    -- `user_id`. Diukur, bukan ditebak — tebakan pertama memakai `nama` dan
+    -- ditolak `column "nama" of relation "pegawai" does not exist`.
+    INSERT INTO pegawai (company_id, user_id, jabatan)
+    VALUES (co, us, '[UJI 337] verifikasi migrasi')
+    RETURNING id INTO peg;
+    peg_dibuat := TRUE;
+    RAISE NOTICE '337: pegawai uji dibuat sementara — basis ini belum punya pegawai.';
   END IF;
 
   SELECT u.id INTO usLain FROM users u WHERE u.id <> us LIMIT 1;
@@ -496,6 +569,12 @@ BEGIN
   END IF;
 
   DELETE FROM klaim_perjalanan WHERE nomor LIKE 'VERIF337-%';
+
+  -- Pegawai uji dibuang bila memang kita yang membuatnya. Pegawai sungguhan
+  -- tak pernah tersentuh.
+  IF peg_dibuat THEN
+    DELETE FROM pegawai WHERE id = peg;
+  END IF;
 
   -- 11. `settled_at` tertambal untuk SELURUH kasbon settled.
   SELECT count(*) INTO n FROM kasbons WHERE status = 'settled' AND settled_at IS NULL;
