@@ -53,18 +53,21 @@ COPY apps/api/ apps/api/
 ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN cd apps/api && pnpm build
 
-# Buang dependensi pengembangan SESUDAH build — `tsc` butuh mereka, runtime
-# tidak. Ini yang memangkas image, bukan trik lain.
-# ⚠ `CI=true` WAJIB, dan `--force` BUKAN jawabannya.
+# ⚠ `pnpm prune --prod` TIDAK DIPAKAI, dan itu diukur.
 #
-# Tanpa TTY pnpm menolak menghapus node_modules:
-#   [ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY]
+# Percobaan pertama memakainya untuk memangkas dependensi build. Hasilnya
+# container start lalu mati:
 #
-# Perlindungan yang masuk akal di terminal orang, penghalang di build otomatis
-# yang memang BERMAKSUD menghapusnya. Percobaan pertama memakai `--force` dan
-# ditolak — `[ERROR] Unknown option: 'force'`; prune tak punya bendera itu.
-# Yang dikenali pnpm adalah `CI=true`.
-RUN CI=true pnpm prune --prod
+#   Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'fastify'
+#
+# Padahal `fastify` ADA di `dependencies`, bukan devDependencies. Sebabnya
+# pnpm menyimpan paket sebagai SYMLINK ke store (`.pnpm/`), dan prune
+# memutus tautan itu alih-alih menyisakan yang produksi — di dalam image yang
+# store-nya lalu ikut terbuang, hasilnya nol paket yang bisa di-resolve.
+#
+# Yang dipakai: pasang ulang HANYA dependensi produksi di tahap runtime.
+# Lebih lambat sedikit, tetapi hasilnya pohon yang benar-benar lengkap dan
+# tak bergantung pada bentuk store tahap sebelumnya.
 
 # ── Tahap 3: runtime ────────────────────────────────────────────────────────
 FROM node:22-alpine AS runtime
@@ -79,10 +82,19 @@ ENV NODE_ENV=production
 # Non-root. Nomor UID dipaku supaya kepemilikan berkas tak berubah antar build.
 RUN addgroup -g 1001 -S nodejs && adduser -u 1001 -S fastify -G nodejs
 
-COPY --from=build --chown=fastify:nodejs /repo/node_modules ./node_modules
-COPY --from=build --chown=fastify:nodejs /repo/apps/api/node_modules ./apps/api/node_modules
+RUN corepack enable
+
+# Manifest dulu, lalu pasang — supaya lapisan install ter-cache dan tak
+# diulang tiap kali `dist` berubah.
+COPY --chown=fastify:nodejs package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY --chown=fastify:nodejs apps/api/package.json apps/api/
+COPY --chown=fastify:nodejs packages/ packages/
+
+# `--prod`: hanya dependensi runtime. `--frozen-lockfile`: versi yang dipasang
+# WAJIB sama dengan yang diuji CI.
+RUN pnpm install --prod --frozen-lockfile --filter @puraloka/api...
+
 COPY --from=build --chown=fastify:nodejs /repo/apps/api/dist ./apps/api/dist
-COPY --from=build --chown=fastify:nodejs /repo/apps/api/package.json ./apps/api/
 
 USER fastify
 
