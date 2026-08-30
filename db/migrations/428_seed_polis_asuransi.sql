@@ -162,6 +162,30 @@ BEGIN
   SELECT count(*) INTO n_aktif FROM projects
    WHERE is_deleted = false AND status = 'active';
 
+  /*
+    GERBANG — ditambahkan 2026-08-31.
+
+    Ketiga celah di bawah menguji bahwa ADA proyek yang belum terlindungi,
+    supaya automation 9.2 punya sesuatu untuk diteriakkan. Itu benar di basis
+    yang punya proyek.
+
+    Di basis KOSONG — CI, VPS baru, tenant baru — nol proyek aktif berarti
+    `n_tanpa` juga nol, dan cek pertama meledak:
+
+        428 gagal: SEMUA 0 proyek aktif punya polis —
+                   automation 9.2 tak akan pernah berbunyi
+
+    Kalimatnya sendiri memperlihatkan kekeliruannya: "SEMUA 0". Tak ada
+    proyek yang bisa tak terlindungi kalau tak ada proyek sama sekali.
+
+    Ditemukan sebelum CI menemukannya, dengan membayangi `projects` dan
+    `companies` lewat skema kosong — cara yang sama yang memergoki 239.
+  */
+  IF n_aktif = 0 THEN
+    RAISE NOTICE '428 verifikasi dilewati: nol proyek aktif di basis ini. Bukan galat.';
+    RETURN;
+  END IF;
+
   -- Celah 4: proyek aktif tanpa polis APA PUN.
   SELECT count(*) INTO n_tanpa FROM projects p
    WHERE p.is_deleted = false AND p.status = 'active'

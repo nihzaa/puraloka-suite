@@ -48,6 +48,36 @@
 -- Harga perolehan diisi supaya kartu "nilai inventori" punya bahan, dan
 -- `useful_life_months` supaya penyusutan bisa dihitung.
 -- ------------------------------------------------------------
+-- ════════════════════════════════════════════════════════════════════════════
+-- GERBANG — seed ini butuh gudang GD-01 yang mungkin tak ada
+-- ════════════════════════════════════════════════════════════════════════════
+--
+-- ⚠ DITAMBAHKAN 2026-08-31, sesudah membunuh CI:
+--
+--     HARD FAIL — 239_seed_gudang_dummy.sql
+--       239 gagal: assets hanya 0, diharapkan >= 16
+--
+-- Bentuknya berbeda dari 237 (yang memaku id perusahaan) tetapi kelasnya sama:
+-- seed yang mengandaikan data pendahulu yang hanya ada di basis DEV.
+--
+-- Semua INSERT di bawah bersumber `CROSS JOIN LATERAL (… FROM gudang WHERE
+-- kode = 'GD-01' …)`. Kalau gudang itu tak ada, LATERAL-nya kosong dan setiap
+-- INSERT memasukkan NOL baris — tanpa galat. Yang GAGAL kemudian adalah blok
+-- verifikasi di ujung berkas, yang menuntut >= 16 aset dan mendapati nol.
+--
+-- Jadi galatnya menunjuk verifikasi, sementara sebabnya di baris pertama —
+-- dan angkanya (0) terbaca seperti INSERT-nya rusak, bukan seperti sumbernya
+-- kosong.
+--
+-- Tidak dimasukkan SKIP_ALLOWLIST: allowlist hanya menolong CI, sementara
+-- VPS/mesin baru/tenant baru menabrak kegagalan yang sama.
+DO $seed_gudang$
+BEGIN
+IF NOT EXISTS (SELECT 1 FROM gudang WHERE kode = 'GD-01') THEN
+  RAISE NOTICE '239 dilewati: gudang GD-01 tak ada di basis ini. Seed dummy — bukan galat.';
+  RETURN;
+END IF;
+
 INSERT INTO assets (
   id, company_id, asset_code, name, category, ownership, brand,
   purchase_date, purchase_price, residual_value, useful_life_months,
@@ -222,11 +252,25 @@ ON CONFLICT (gudang_id, material_id) DO NOTHING;
 -- ------------------------------------------------------------
 -- 4. VERIFIKASI
 -- ------------------------------------------------------------
+END $seed_gudang$;
+
 DO $$
 DECLARE
   n_aset INT; n_gudang INT; n_lapangan INT;
   n_pindah INT; n_kembali INT; n_stok INT; n_kondisi INT;
 BEGIN
+  /*
+    VERIFIKASI TUNDUK PADA GERBANG YANG SAMA — pelajaran dari 237.
+
+    Tanpa ini blok ini tetap jalan di lingkungan yang seed-nya di-no-op, dan
+    RAISE EXCEPTION karena mendapati nol. Gerbang di satu tempat saja tidak
+    menolong: migrasinya tetap mematikan rantai, hanya dengan pesan lain.
+  */
+  IF NOT EXISTS (SELECT 1 FROM gudang WHERE kode = 'GD-01') THEN
+    RAISE NOTICE '239 verifikasi dilewati: seed tak dijalankan di basis ini.';
+    RETURN;
+  END IF;
+
   SELECT count(*) INTO n_aset FROM assets;
   SELECT count(*) INTO n_gudang FROM assets WHERE gudang_id IS NOT NULL;
   SELECT count(*) INTO n_lapangan FROM assets WHERE current_project_id IS NOT NULL;
