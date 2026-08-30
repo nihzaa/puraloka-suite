@@ -46,8 +46,14 @@ RUN test -n "$NEXT_PUBLIC_SUPABASE_URL" || \
 RUN test -n "$NEXT_PUBLIC_API_URL" || \
     (echo "FATAL: --build-arg NEXT_PUBLIC_API_URL wajib diisi" && exit 1)
 
+RUN test -n "$SITUS_COMPANY_ID" || \
+    (echo "FATAL: --build-arg SITUS_COMPANY_ID wajib — halaman / di-prerender saat build" && exit 1)
+
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
+    SITUS_COMPANY_ID=$SITUS_COMPANY_ID \
+    SUPABASE_SECRET_KEY=$SUPABASE_SECRET_KEY \
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY \
     NEXT_TELEMETRY_DISABLED=1
 
 RUN cd apps/web-publik && pnpm build

@@ -101,6 +101,14 @@ services:
         # di peramban pengunjung — tanpa galat di server.
         NEXT_PUBLIC_API_URL: ${API_URL_PUBLIK:?wajib diisi di .env}
         NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:?wajib diisi di .env}
+        # Halaman `/` di-PRERENDER saat build dan benar-benar mengambil
+        # datanya — jadi ketiganya dibutuhkan di tahap BUILD, bukan runtime.
+        # Tanpa SITUS_COMPANY_ID build gagal dengan "Situs publik tidak tahu
+        # konten milik siapa", di tempat yang mudah disalahartikan sebagai
+        # cacat kode.
+        SITUS_COMPANY_ID: ${SITUS_COMPANY_ID:?wajib diisi di .env}
+        SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:?wajib diisi di .env}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${SUPABASE_PUBLISHABLE_KEY:?wajib diisi di .env}
     container_name: puraloka-web-publik
     restart: unless-stopped
     env_file: [.env]
