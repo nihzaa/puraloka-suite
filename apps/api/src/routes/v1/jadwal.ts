@@ -875,11 +875,69 @@ export default async function jadwalRoutes(app: FastifyInstance) {
         }
       }
 
+      /*
+        `tak_dikenal` IKUT DIHITUNG — dan itu memperbaiki celah nyata.
+
+        Diukur 2026-08-30 pada jalan pertama sesudah `SCHEDULER_URL` dipasang:
+
+            diperiksa 117 · sukses 0 · gagal 0 · dilewati 114
+
+        117 ≠ 0 + 0 + 114. Tiga baris hilang dari ringkasan — ketiganya
+        `bersih-notifikasi`, tugas yang sudah dipasang migrasi 524 tetapi
+        rutenya belum ada di API produksi.
+
+        Workflow `jadwal-tugas.yml` hanya memperingatkan bila `gagal != 0`.
+        Jadi tugas yang namanya salah ketik, atau yang migrasinya sudah jalan
+        sementara kodenya belum ter-deploy, akan DIAM SELAMANYA dengan CI
+        hijau dan ringkasan yang terlihat sehat.
+
+        Kelas cacat yang sama dengan `::notice::` pada cabang dilewati: bukan
+        salah, cuma tak terlihat.
+
+        Dihitung TERPISAH dari `gagal`, bukan digabung — sebabnya berbeda dan
+        tindakannya berbeda. `gagal` berarti rutenya ada tapi menolak;
+        `tak_dikenal` berarti rutenya tak ada sama sekali, dan yang perlu
+        dikerjakan adalah men-deploy atau membuang barisnya.
+      */
+      const takDikenal = hasil.filter((h) => h.status === 'tak-dikenal')
+      if (takDikenal.length > 0) {
+        request.log.error(
+          { tugas: [...new Set(takDikenal.map((h) => h.tugas))] },
+          'pemicu jadwal: tugas TAK DIKENAL di jadwal_tugas — kodenya belum ter-deploy, atau namanya salah ketik',
+        )
+      }
+
+      /*
+        `gagal_klaim` — DITEMUKAN test invarian, bukan pembacaan kode.
+
+        Status ini sudah ada sejak lama dan tak pernah dicacah di mana pun,
+        persis seperti `tak-dikenal`. Artinya penjadwal gagal MENULIS penanda
+        `terakhir_jalan` ke basis — tugasnya sendiri mungkin sudah berjalan,
+        tetapi jejaknya tak tersimpan.
+
+        Akibatnya khusus dan buruk: tugas yang penandanya gagal ditulis akan
+        dijalankan LAGI pada denyut berikutnya, karena basis masih menganggap
+        ia belum jalan. Untuk tugas yang mengirim notifikasi, itu berarti
+        pesan ganda; untuk yang menulis data, itu berarti pekerjaan ganda.
+
+        Dicacah terpisah dari `gagal` karena sebabnya beda: `gagal` berarti
+        rutenya menolak, `gagal_klaim` berarti basisnya yang menolak.
+      */
+      const gagalKlaim = hasil.filter((h) => h.status === 'gagal-klaim')
+      if (gagalKlaim.length > 0) {
+        request.log.error(
+          { tugas: [...new Set(gagalKlaim.map((h) => h.tugas))] },
+          'pemicu jadwal: GAGAL MENGKLAIM — penanda terakhir_jalan tak tersimpan, tugas akan berjalan lagi pada denyut berikutnya',
+        )
+      }
+
       const ringkas = {
         diperiksa: semua.length,
         sukses: hasil.filter((h) => h.status === 'sukses').length,
         gagal: hasil.filter((h) => h.status === 'gagal').length,
         dilewati: hasil.filter((h) => h.status === 'dilewati').length,
+        tak_dikenal: takDikenal.length,
+        gagal_klaim: gagalKlaim.length,
       }
       request.log.info(ringkas, 'pemicu jadwal selesai')
       return reply.send({ ok: true, waktu: now.toISOString(), ...ringkas, hasil })

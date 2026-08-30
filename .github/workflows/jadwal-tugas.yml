@@ -98,3 +98,50 @@ jobs:
           if [ "$gagal" != "0" ]; then
             echo "::warning::$gagal tugas terjadwal GAGAL — periksa terakhir_galat di tabel jadwal_tugas"
           fi
+
+          # TUGAS TAK DIKENAL — celah yang ditemukan 2026-08-30 pada jalan
+          # pertama sesudah SCHEDULER_URL dipasang:
+          #
+          #   diperiksa 117 · sukses 0 · gagal 0 · dilewati 114
+          #
+          # 117 ≠ 0 + 0 + 114. Tiga baris `bersih-notifikasi` berstatus
+          # `tak-dikenal` — migrasinya sudah jalan, kodenya belum ter-deploy.
+          #
+          # Tanpa pemeriksaan ini, tugas semacam itu DIAM SELAMANYA dengan
+          # ringkasan yang terlihat sehat dan CI hijau.
+          tak=$(node -e "const h=require('./hasil.json'); console.log(h.tak_dikenal ?? 0)")
+          if [ "$tak" != "0" ]; then
+            echo "::warning::$tak tugas TAK DIKENAL — rutenya belum ter-deploy, atau namanya salah ketik. Tugas ini tak akan pernah berjalan."
+            node -e "const h=require('./hasil.json');
+              const t=[...new Set((h.hasil??[]).filter(x=>x.status==='tak-dikenal').map(x=>x.tugas))];
+              console.log('Tugas tak dikenal: ' + t.join(', '))"
+          fi
+
+          # GAGAL KLAIM — ditemukan test invarian pada hari yang sama, dan
+          # sudah diam JAUH lebih lama daripada `tak-dikenal`.
+          #
+          # Artinya penanda `terakhir_jalan` gagal ditulis ke basis. Tugasnya
+          # mungkin sudah berjalan, tetapi jejaknya tak tersimpan — jadi ia
+          # akan berjalan LAGI pada denyut berikutnya. Untuk yang mengirim
+          # notifikasi itu berarti pesan ganda; untuk yang menulis data,
+          # pekerjaan ganda.
+          klaim=$(node -e "const h=require('./hasil.json'); console.log(h.gagal_klaim ?? 0)")
+          if [ "$klaim" != "0" ]; then
+            echo "::warning::$klaim tugas GAGAL DIKLAIM — penanda terakhir_jalan tak tersimpan; tugas akan berjalan lagi pada denyut berikutnya"
+          fi
+
+          # ⚠ Penjumlahan WAJIB utuh. Kalau nanti ada status BARU yang tak
+          # masuk ringkasan, ia akan hilang persis seperti `tak-dikenal` dan
+          # `gagal-klaim` sebelum hari ini — dan kali ini kita akan tahu.
+          #
+          # Dijaga juga dari sisi kode oleh
+          # `apps/api/src/lib/__tests__/jadwal-ringkas.test.ts`, yang menuntut
+          # tiap status yang di-push punya pencacahnya. Dua lapis, karena yang
+          # satu memeriksa BENTUK kode dan yang satu memeriksa JAWABAN nyata.
+          node -e "const h=require('./hasil.json');
+            const jml=(h.sukses??0)+(h.gagal??0)+(h.dilewati??0)+(h.tak_dikenal??0)+(h.gagal_klaim??0);
+            if (jml !== (h.diperiksa??0)) {
+              console.log('::warning::Ringkasan TIDAK UTUH: diperiksa=' + h.diperiksa +
+                ' tetapi jumlah seluruh status=' + jml +
+                ' — ada status yang tak terhitung di mana pun.');
+            }"
