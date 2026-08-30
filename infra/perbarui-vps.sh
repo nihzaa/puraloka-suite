@@ -88,7 +88,26 @@ echo ""
 echo "== 5. Bukti dari luar ====================================="
 # Dijalankan terhadap alamat PUBLIK, bukan 127.0.0.1: yang diuji jalur yang
 # benar-benar dilewati pengguna, termasuk nginx dan TLS-nya.
-for U in https://puraloka-suite.duckdns.org/login \
+#
+# ⚠ ERP-nya di `app.`, BUKAN di domain akar.
+#
+# Skrip ini semula menembak `https://puraloka-suite.duckdns.org/login` dan
+# melapor "GAGAL: bukan 200" pada TIAP pembaruan — padahal deploy-nya berhasil
+# setiap kali. Domain akar itu COMPRO, dan compro memang tak punya `/login`.
+#
+# Diukur 2026-08-30:
+#   puraloka-suite.duckdns.org/         200   (compro)
+#   puraloka-suite.duckdns.org/login    404   (memang tak ada)
+#   app.puraloka-suite.duckdns.org/login 200  (ERP — INI yang dimaksud)
+#
+# Ditulis sebelum compro dipisah ke domain sendiri, lalu tak pernah
+# diperbarui. Kegagalan palsu yang berulang tiap deploy adalah cara tercepat
+# melatih orang mengabaikan langkah verifikasi — dan langkah verifikasi yang
+# diabaikan tak memverifikasi apa pun.
+#
+# Compro ikut diuji di `/`, karena ia juga bagian dari yang di-deploy.
+for U in https://puraloka-suite.duckdns.org/ \
+         https://app.puraloka-suite.duckdns.org/login \
          https://api.puraloka-suite.duckdns.org/health; do
   KODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$U" || echo 000)
   printf '   %-52s %s\n' "$U" "$KODE"
