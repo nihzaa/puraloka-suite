@@ -359,6 +359,24 @@ jobs:
       - name: Penjadwal yang dilewati tetap terlihat
         run: node scripts/audit-penjadwal-hidup.mjs
 
+      # Diukur 2026-08-30, jalan PERTAMA penjadwal di produksi:
+      #   diperiksa 114 · sukses 49 · GAGAL 29 · dilewati 36
+      #
+      # Kedua puluh sembilan bergalat 403 "bukan anggota perusahaan tersebut" —
+      # akun penjadwal cuma anggota 1 dari 3 tenant aktif, sementara dua tenant
+      # lain punya proyek nyata.
+      #
+      # Itu BUKAN cacat penjadwal: `lib/akun-layanan.ts` sengaja menolak bypass
+      # autentikasi, jadi 403 adalah pagar yang bekerja. Yang kurang cuma
+      # pendaftarannya (diperbaiki migrasi 523).
+      #
+      # Migrasi memperbaiki keadaan HARI ITU. Tenant baru yang dibuat besok
+      # lahir tanpa keanggotaan penjadwal, seluruh tugasnya gagal sejak hari
+      # pertama, dan kegagalannya cuma tercatat di `terakhir_galat` yang tak
+      # dibuka siapa pun. Penjaga ini yang menangkapnya.
+      - name: Akun penjadwal anggota tiap tenant aktif
+        run: node scripts/audit-penjadwal-anggota-tiap-tenant.mjs
+
 
 
 
