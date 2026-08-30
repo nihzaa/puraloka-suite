@@ -170,8 +170,29 @@ CREATE POLICY perangkat_pengguna_self ON public.perangkat_pengguna
 -- ⚠️ `auth_company_id()` NULL tak boleh berarti "lolos semua" (penjaga
 -- `audit-izin-tanpa-konteks.mjs`), karena itu dibandingkan lurus: NULL = NULL
 -- memulangkan NULL, dan NULL bukan TRUE — barisnya tersaring, gagal-tertutup.
+--
+-- ⚠ DINAMAI `tenant_isolation`, DIPERBAIKI DI TEMPAT 2026-08-31.
+--
+-- Semula `perangkat_pengguna_tenant` — nama yang migrasi 216 justru dibuat
+-- untuk MENGHAPUS. 216 mengganti `<tabel>_tenant` → `tenant_isolation` di
+-- seluruh repo, lalu memeriksa nol sisa dengan pemindaian GLOBAL:
+--
+--     FROM pg_policy WHERE polname LIKE '%\_tenant'
+--
+-- Migrasi ini lahir SESUDAH 216, jadi namanya lolos daftar rename-nya tetapi
+-- tetap tertangkap pemindaian globalnya. Akibatnya 216 gagal saat diputar
+-- ulang di lingkungan bersih:
+--
+--     Masih ada 1 policy bernama <tabel>_tenant
+--
+-- Tak pernah terlihat karena penyiapan basis CI selalu berhenti lebih dulu di
+-- migrasi 212. Baru muncul sesudah 212-214 diperbaiki hari ini.
+--
+-- Nama lamanya tetap di-DROP supaya basis yang sudah terlanjur memakainya
+-- ikut bersih.
 DROP POLICY IF EXISTS perangkat_pengguna_tenant ON public.perangkat_pengguna;
-CREATE POLICY perangkat_pengguna_tenant ON public.perangkat_pengguna
+DROP POLICY IF EXISTS tenant_isolation ON public.perangkat_pengguna;
+CREATE POLICY tenant_isolation ON public.perangkat_pengguna
   FOR ALL
   USING (company_id = (SELECT auth_company_id()));
 

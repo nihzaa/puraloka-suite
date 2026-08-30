@@ -33,54 +33,34 @@
 -- Pelajarannya layak ditulis: saya memperbaiki gejala pertama yang terlihat,
 -- dan baru tahu itu salah sasaran karena CI melaporkan gejala KEDUA. Kalau
 -- 213 kebetulan tak ada, cacatnya akan tampak sudah beres.
+-- ⚠⚠ DAN PERBAIKAN ITU PUN SALAH DUA KALI.
+--
+-- Versi kedua migrasi ini memasang policy bernama `tenant_isolation`. Itu
+-- membuat migrasi 214 gagal:
+--
+--     Policy tak lengkap sesudah dipasang ulang: 20 (harusnya 15)
+--
+-- 214 memasang ulang policy-nya sebagai `<tabel>_tenant`, dan
+-- `tenant_isolation` yang migrasi ini buat tetap tinggal — lima policy ekstra.
+--
+-- Urutan sesungguhnya di repo ini:
+--
+--     212  memasang `<tabel>_tenant`
+--     214  memasang ulang, tetap `<tabel>_tenant` (bungkus InitPlan)
+--     216  RENAME semuanya ke `tenant_isolation`
+--
+-- Nama akhirnya memang `tenant_isolation`, tetapi 216 yang berhak memberinya.
+--
+-- ── KARENA ITU MIGRASI INI KINI NO-OP SEPENUHNYA
+--
+-- Yang tersisa hanya blok VERIFIKASI: ia membuktikan kelima tabel berpolicy
+-- RESTRICTIVE ber-`auth_company_id()`, TANPA menuntut nama tertentu — karena
+-- namanya berubah sepanjang rantai 212 → 214 → 216, dan verifikasi yang
+-- mematok satu nama akan salah di dua dari tiga titik itu.
+--
+-- Tiga kali salah pada satu cacat, dan tiap kali karena memperbaiki apa yang
+-- TERLIHAT alih-alih mengukur rantainya sampai habis.
 -- ============================================================================
-DO $$
-DECLARE
-  t TEXT;
-  TABEL TEXT[] := ARRAY['milestone_dependencies', 'hari_libur', 'pola_kerja',
-                        'kebutuhan_sumber_daya', 'method_statement'];
-BEGIN
-  FOREACH t IN ARRAY TABEL LOOP
-    -- Tabelnya mungkin belum ada bila 212 berhenti SEBELUM membuatnya.
-    -- Dilewati, bukan gagal: migrasi ini menutup satu cacat, bukan
-    -- menggantikan 212.
-    IF to_regclass('public.' || t) IS NULL THEN
-      RAISE NOTICE '526: tabel % belum ada — dilewati', t;
-      CONTINUE;
-    END IF;
-
-    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
-    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);
-
-    /*
-      DUA argumen untuk DUA `%I` — inilah yang hilang di 212.
-
-      Nama policy-nya `tenant_isolation` HARFIAH, bukan bervariasi per tabel:
-      `t5a-policy-tenant.test.ts` mencarinya secara harfiah, dan nama yang
-      bervariasi memaksa penjaganya menebak pola. Penjaga yang menebak akan
-      melewatkan tabel yang polanya sedikit berbeda.
-    */
-    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
-    EXECUTE format(
-      'CREATE POLICY %I ON %I AS RESTRICTIVE FOR ALL
-         USING (company_id = auth_company_id())
-         WITH CHECK (company_id = auth_company_id())',
-      'tenant_isolation', t);
-
-    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', t || '_baca', t);
-    EXECUTE format(
-      'CREATE POLICY %I ON %I FOR SELECT USING (has_permission(''projects:view''))',
-      t || '_baca', t);
-
-    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', t || '_tulis', t);
-    EXECUTE format(
-      'CREATE POLICY %I ON %I FOR ALL
-         USING (has_permission(''milestones:manage''))
-         WITH CHECK (has_permission(''milestones:manage''))',
-      t || '_tulis', t);
-  END LOOP;
-END $$;
-
 -- ── Verifikasi (pola migrasi 142) ───────────────────────────────────────────
 DO $$
 DECLARE
@@ -92,29 +72,36 @@ BEGIN
     IF to_regclass('public.' || t) IS NULL THEN CONTINUE; END IF;
 
     /*
-      TIGA policy per tabel — dan ketiganya punya peran berbeda:
+      DIPERIKSA BENTUKNYA, BUKAN NAMANYA.
 
-        tenant_isolation  RESTRICTIVE, memagari company_id
-        <t>_baca          PERMISSIVE, izin melihat
-        <t>_tulis         PERMISSIVE, izin mengubah
+      Tiga policy per tabel, dan yang menentukan perannya bukan nama melainkan
+      sifatnya:
 
-      RESTRICTIVE digabung dengan AND; PERMISSIVE dengan OR. Kehilangan yang
-      pertama membuat tabel terbaca LINTAS TENANT tanpa satu pun galat —
-      persis cacat `document_number_series` yang tercatat di CLAUDE.md §6.
+        satu RESTRICTIVE   memagari company_id — digabung dengan AND
+        dua  PERMISSIVE    izin baca & tulis   — digabung dengan OR
+
+      Kehilangan yang RESTRICTIVE membuat tabel terbaca LINTAS TENANT tanpa
+      satu pun galat — persis cacat `document_number_series` di CLAUDE.md §6.
+
+      ⚠ NAMA SENGAJA TIDAK DIPATOK. Versi sebelumnya menuntut
+      `tenant_isolation` secara harfiah, dan itu salah di DUA dari TIGA titik
+      rantai ini: 212 dan 214 memasangnya sebagai `<tabel>_tenant`; barulah
+      216 me-rename-nya.
+
+      Verifikasi yang mematok nama akan merah di lingkungan bersih yang baru
+      sampai migrasi 213 — padahal keadaannya benar untuk titik itu.
     */
     SELECT count(*) INTO n FROM pg_policy
-     WHERE polrelid = ('public.' || t)::regclass
-       AND polname IN ('tenant_isolation', t || '_baca', t || '_tulis');
+     WHERE polrelid = ('public.' || t)::regclass;
     IF n <> 3 THEN
-      kurang := kurang || format('%s(%s policy) ', t, n);
+      kurang := kurang || format('%s(%s policy, harusnya 3) ', t, n);
     END IF;
 
-    -- RESTRICTIVE wajib RESTRICTIVE, bukan sekadar ada.
+    -- Tepat SATU yang RESTRICTIVE, apa pun namanya.
     SELECT count(*) INTO n FROM pg_policy
-     WHERE polrelid = ('public.' || t)::regclass
-       AND polname = 'tenant_isolation' AND NOT polpermissive;
+     WHERE polrelid = ('public.' || t)::regclass AND NOT polpermissive;
     IF n <> 1 THEN
-      kurang := kurang || format('%s(tenant_isolation bukan RESTRICTIVE) ', t);
+      kurang := kurang || format('%s(%s policy RESTRICTIVE, harusnya 1) ', t, n);
     END IF;
 
     SELECT count(*) INTO n FROM pg_class

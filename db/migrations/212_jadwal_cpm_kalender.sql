@@ -205,7 +205,7 @@ BEGIN
     -- nama itu, dan `t5a-policy-tenant.test.ts` mencarinya secara harfiah.
     -- Nama yang bervariasi memaksa penjaganya menebak pola — dan penjaga
     -- yang menebak akan melewatkan tabel yang polanya sedikit berbeda.
-    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', t || '_tenant', t);
     /*
       ⚠ DIPERBAIKI DI TEMPAT 2026-08-31 — dua `%I`, satu argumen.
 
@@ -234,12 +234,33 @@ BEGIN
       semua. Migrasi 526 yang saya tulis lebih dulu ternyata memperbaiki gejala
       yang salah, dan itu baru ketahuan sesudah CI melaporkan kegagalan
       BERIKUTNYA di 213.
+
+      ⚠ NAMANYA `<tabel>_tenant`, BUKAN `tenant_isolation` — dan itu DISENGAJA.
+
+      Percobaan pertama saya memakai `tenant_isolation` karena komentar di
+      atas menyebutnya sebagai nama yang benar. Akibatnya migrasi 214 gagal:
+
+          Policy tak lengkap sesudah dipasang ulang: 20 (harusnya 15)
+
+      214 memasang ulang policy-nya dengan nama `<tabel>_tenant`, dan
+      `tenant_isolation` yang saya buat tetap tinggal — lima policy ekstra.
+
+      Urutan sesungguhnya di repo ini:
+
+          212  memasang `<tabel>_tenant`
+          214  memasang ulang, tetap `<tabel>_tenant` (bungkus InitPlan)
+          216  RENAME semuanya ke `tenant_isolation`
+
+      Jadi nama akhirnya memang `tenant_isolation`, tetapi 216 yang berhak
+      memberinya. Migrasi yang memakai nama akhir terlalu dini merusak yang
+      di antaranya — dan komentar di atas menjelaskan TUJUAN, bukan keadaan
+      pada baris ini.
     */
     EXECUTE format(
       'CREATE POLICY %I ON %I AS RESTRICTIVE FOR ALL
          USING (company_id = auth_company_id())
          WITH CHECK (company_id = auth_company_id())',
-      'tenant_isolation', t);
+      t || '_tenant', t);
 
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', t || '_baca', t);
     EXECUTE format(
