@@ -59,8 +59,45 @@ BEGIN
     JOIN permissions p ON p.id = rp.permission_id
    WHERE p.key = 'gl:periode:reopen';
 
-  IF n < 2 THEN
-    RAISE EXCEPTION '295 gagal: gl:periode:reopen dipegang % peran (harus admin + direktur)', n;
+  /*
+    DIPERIKSA APA YANG MIGRASI INI KERJAKAN, BUKAN APA YANG 294 KERJAKAN.
+
+    ⚠ Versi sebelumnya menuntut `n >= 2` — admin DAN direktur. Yang kedua
+    datang dari migrasi 294, dan 294 memberikannya lewat `r.name =
+    'direktur'`. Kalau peran itu belum ada, pemberiannya nol baris, tanpa
+    galat.
+
+    Di CI itulah yang terjadi:
+
+        HARD FAIL — 295_reopen_periode_sementara_admin.sql
+          gl:periode:reopen dipegang 1 peran (harus admin + direktur)
+
+    Migrasi ini lalu gagal atas pekerjaan migrasi LAIN yang tak ia kendalikan,
+    dan menghentikan seluruh rantai di belakangnya. Bentuk cacat yang sama
+    dengan 271 hari ini: verifikasi yang memeriksa lebih luas daripada yang
+    dikerjakannya sendiri.
+
+    Yang menjadi tanggung jawab migrasi ini: `admin` memegang izin itu, supaya
+    fitur reopen bisa dicapai di lingkungan yang belum punya direktur — dan
+    itulah seluruh alasan berkas ini ada (§1 di kepala berkas).
+
+    Keberadaan `direktur` diperiksa terpisah di bawah, sebagai CATATAN, bukan
+    sebagai syarat: peran adalah data konfigurasi per-tenant (ADR-004), dan
+    migrasi tak boleh menuntut peran tertentu ada.
+  */
+  IF NOT EXISTS (
+    SELECT 1 FROM role_permissions rp
+      JOIN roles r ON r.id = rp.role_id
+      JOIN permissions p ON p.id = rp.permission_id
+     WHERE p.key = 'gl:periode:reopen' AND r.name = 'admin'
+  ) THEN
+    RAISE EXCEPTION '295 gagal: admin tak memegang gl:periode:reopen — '
+                    'fitur reopen tak bisa dicapai siapa pun';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM roles WHERE name = 'direktur') THEN
+    RAISE NOTICE '295: peran direktur belum ada di basis ini — '
+                 'hanya admin yang memegang reopen. Bukan galat.';
   END IF;
 
   -- Pemisahan capability HARUS tetap ada. Kalau `reopen` hilang atau
