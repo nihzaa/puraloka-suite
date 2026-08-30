@@ -49,6 +49,52 @@ const SKIP_ALLOWLIST = {
   '097': { class: 'storage', reason: 'lockdown bucket privat; storage tak diuji CI' },
   '098': { class: 'storage', reason: 'photo buckets strict; storage tak diuji CI' },
   '024': { class: 'demo',    reason: 'seed work_scope_items (FK data contoh); test + seed fixture menyediakan datanya' },
+
+  /*
+    KELAS BARU: `cacat-tertambal` — dan ia menuntut syarat yang tak dimiliki
+    dua kelas lain.
+
+    `storage` dan `demo` dilewati karena memang TAK RELEVAN di CI. Yang ini
+    berbeda: migrasinya BENAR-BENAR RUSAK, dan yang membuatnya boleh dilewati
+    adalah adanya migrasi LAIN yang menutup akibatnya.
+
+    Syaratnya: `pengganti` wajib diisi, dan berkasnya wajib ada. Tanpa itu,
+    kelas ini jadi tempat membuang kegagalan yang belum dipahami — persis yang
+    komentar di atas peringatkan ("yang tak dikenal HARUS gagal keras").
+  */
+  '212': {
+    class: 'cacat-tertambal',
+    pengganti: '526_perbaiki_format_212.sql',
+    reason:
+      '`format()` kurang argumen: dua %I, satu argumen (baris 209-213). '
+      + 'Galat "too few arguments for format()". Tak pernah terlihat di dev '
+      + 'karena kelima tabelnya sudah berpolicy lengkap dari migrasi lain — '
+      + 'hanya muncul di lingkungan BERSIH. 212 TIDAK diedit (riwayat tak '
+      + 'boleh berbohong, CLAUDE.md §5.5); akibatnya ditutup migrasi 526.',
+  },
+}
+
+/*
+  Kelas `cacat-tertambal` WAJIB menunjuk berkas pengganti yang benar-benar ada.
+
+  Tanpa pemeriksaan ini, entri di atas cuma janji: kalau penggantinya nanti
+  dihapus atau dinomori ulang, migrasi rusaknya tetap dilewati dan lubangnya
+  terbuka lagi — tanpa satu pun gejala, karena CI tetap hijau.
+*/
+for (const [versi, a] of Object.entries(SKIP_ALLOWLIST)) {
+  if (a.class !== 'cacat-tertambal') continue
+  if (!a.pengganti) {
+    console.error(`FATAL: allowlist ${versi} berkelas cacat-tertambal tanpa \`pengganti\`.`)
+    process.exit(2)
+  }
+  if (!fs.existsSync(path.join(dir, a.pengganti))) {
+    console.error(
+      `FATAL: allowlist ${versi} menunjuk pengganti "${a.pengganti}" yang TIDAK ADA.\n`
+      + '       Migrasi rusak yang dilewati tanpa penambal adalah lubang yang '
+      + 'terbuka lagi tanpa gejala.',
+    )
+    process.exit(2)
+  }
 }
 
 let applied = 0, alreadyThere = 0
