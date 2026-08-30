@@ -32274,5 +32274,123 @@ env kurang akan diabaikan orang, dan yang diabaikan tak menjaga apa pun.
    GitHub (diblokir, dan itu benar). Alamatnya sudah terverifikasi:
    `https://api.puraloka-suite.duckdns.org/api/v1/jadwal/jalankan`
    (401 tanpa token, `/health` 200).
-2. Migrasi **466, 467, 468, 509, 523** belum dicatat di `schema_migrations` (G-2).
+2. ~~Migrasi 466, 467, 468, 509, 523 belum dicatat (G-2).~~ **DICORET — lihat
+   entri 2026-08-31.** Diukur ulang: buku migrasi TIDAK menentukan apa yang
+   di-replay; yang menentukan berkas .sql di repo, dan `audit-replay-bersih`
+   membuktikan 499 dari 499 akan jalan, nol dilewati senyap. Mencatatnya tak
+   menambah keamanan — justru menambah risiko.
 3. Survei kepuasan klien (7.11) — mengirim WhatsApp ke pihak luar.
+
+## 2026-08-31 — Retensi notifikasi, dan koreksi soal buku migrasi
+
+### G-2 diukur ulang — dan saya sebelumnya menyesatkan founder
+
+Empat entri jurnal terakhir menyebut migrasi "belum dicatat di
+`schema_migrations`, menunggu ratifikasi G-2", seolah itu pekerjaan tertunda.
+
+Diukur hari ini, dan arahnya salah:
+
+```
+cd apps/api && node scripts/audit-replay-bersih.mjs
+  berkas migrasi   : 499
+  akan dijalankan  : 499
+  DILEWATI SENYAP  : 0
+```
+
+**Buku migrasi tidak menentukan apa yang di-replay.** Yang menentukan adalah
+berkas `.sql` di repo — dan penjaga `audit-replay-bersih` (dibangun sesi lain
+2026-08-29, sesudah menemukan **13 migrasi dilewati senyap**) membuktikan
+semuanya akan jalan di lingkungan baru.
+
+Artefak fisik kelima migrasi saya juga terbukti ada: 14 dari 14 tugas hidup.
+
+Jadi mencatatnya **tidak menambah keamanan apa pun, tapi menambah risiko** —
+satu entri salah tulis membuat migrasi itu dilewati **selamanya**. Persis
+bahaya yang G-2 dibuat untuk mencegah.
+
+**Yang benar: biarkan.** Entri lama dikoreksi, bukan dihapus.
+
+Pelajarannya sama dengan pembuka `CLAUDE.md`: peringatan pun bisa basi, dan
+yang punya syarat pencabutan harus menulis cara mengukur syaratnya.
+
+### 8.893 notifikasi menumpuk, nol dibaca, tak pernah dibersihkan
+
+```
+0-1 hari    1.941
+1-7 hari    2.553
+7-30 hari   4.399
+```
+
+Tak ada setelan retensi, tak ada tugas pembersih.
+
+Akar yang sama dengan cacat 2026-08-16 (9.009 notifikasi, 3 dibaca) yang
+melahirkan jeda melandai. Bedanya: **jeda melandai bekerja** — diukur hari ini,
+17 notifikasi berarti 17 catatan berbeda, bukan satu ditagih 17 kali. Yang
+belum ditangani: yang tak relevan tinggal selamanya.
+
+**Yang tidak pernah dihapus:** `urgent` yang belum dibaca. Makin lama tak
+dibaca, makin mendesak dibaca. Diukur: **1.017 dilindungi**, dan angkanya tetap
+1.017 pada setiap ambang yang disimulasikan.
+
+Simulasi pada 8.893 baris nyata:
+
+| ambang | terhapus | dilindungi |
+|---|---|---|
+| 30/90 (bawaan) | **0** | 1.017 |
+| 7/14 | 412 | 1.017 |
+| 7/7 | 4.341 | 1.017 |
+
+Bawaan aman — data tertua baru 15 hari, jadi nol terhapus hari ini.
+
+### Mutasi membongkar kesalahan saya, bukan kesalahan test
+
+Saya menulis di komentar bahwa urutan blok `mendesak` terhadap blok
+`sudahDibaca` "load-bearing". Mutasi menukar keduanya, test tetap hijau, dan
+saya menyimpulkan **test-nya lemah** lalu menambah test untuk mengejarnya.
+
+Diperiksa langsung pada keempat kombinasi masukan: **keluarannya sama persis.**
+Kondisi kedua blok saling eksklusif (`sudahDibaca` vs `!sudahDibaca`) — tak ada
+masukan yang bisa masuk keduanya, jadi urutannya memang tak berpengaruh.
+
+Mutasi itu tak mengubah perilaku apa pun. Test yang dibuat untuk mengejarnya
+akan menguji **bentuk kode**, bukan perilakunya.
+
+Yang benar-benar load-bearing: kondisi `!n.sudahDibaca`. Membuangnya membuat
+urgent yang sudah dibaca ikut abadi — dan **itu** tertangkap.
+
+> Mutasi yang lolos selalu memberi tahu sesuatu. Kadang tentang test-nya,
+> kadang tentang mutasinya — dan membedakan keduanya butuh mengukur, bukan
+> menduga.
+
+### Penjaga kemarin menangkap sesuatu dalam hitungan detik
+
+`audit-penjadwal-anggota-tiap-tenant` — dibangun sesi ini — langsung merah
+menyebut `PT Uji Validate`, tenant yang dibuat **dan dihapus** test sesi lain
+dalam beberapa detik.
+
+Tenant uji kini dikecualikan. Itu **bukan kelonggaran**: penjaga yang
+merah-berkedip mengikuti test orang lain adalah penjaga yang cepat atau lambat
+dimatikan, dan yang dimatikan tak menjaga apa pun. Dibuktikan masih menangkap
+tenant nyata lewat mutasi.
+
+### Bukti
+
+- 10 test fungsi hijau · **5 mutasi bermakna → 5 merah**
+- migrasi 524: 2 setelan retensi, jadwal harian 03:00
+- invarian migrasi: `tak_dibaca >= dibaca`, dan jam **< 06:00** — sebelum
+  otomasi pagi mulai menulis notifikasi baru
+- `tsc --noEmit` exit 0, tanpa filter
+- 9 penjaga HIJAU
+
+`audit-tulis-tanpa-periksa` MERAH (18 > 17) — dibuktikan **bukan milik saya**:
+angkanya 18 juga saat berkas saya disingkirkan dari pohon.
+
+### Yang menunggu founder
+
+1. **`SCHEDULER_URL`** — panduan lengkap + link ada di `SIAP-DEPLOY.md` §1.
+2. **Deploy ulang** supaya rute `/api/v1/notifikasi/bersihkan` hidup di VPS
+   (sekarang 404 di produksi — kodenya baru ada di lokal).
+3. Survei kepuasan klien (7.11) — mengirim WhatsApp ke pihak luar.
+
+~~Migrasi belum dicatat di schema_migrations~~ — **dicoret, lihat bagian
+pertama entri ini.**
