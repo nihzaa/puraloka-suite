@@ -17,7 +17,7 @@
 //   POST /api/v1/asuransi              — projects:contract
 // ============================================================================
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ShieldCheck, FileSignature, ChevronRight, Plus } from "lucide-react";
 import { useData, invalidasi } from "@/lib/data-cache";

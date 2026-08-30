@@ -64,6 +64,21 @@ overrides:
   sharp: '>=0.35.0'
   postcss: '>=8.5.18'
   find-my-way: '>=9.6.1'
+  # nanoid — DUA advisory, ambang berbeda (GHSA-28wg-ghj8-5hjv butuh >=3.3.16,
+  # GHSA-2v37-7h3g-55p8 butuh >=3.3.18). Dipakai yang lebih tinggi.
+  #
+  # Ditarik dari dua arah: apps/mobile lewat expo-router → @react-navigation,
+  # dan apps/api lewat @vitest/coverage-v8 → vitest. Keduanya transitif; nol
+  # pemakaian langsung di kode kita.
+  #
+  # Diverifikasi ADA di registry sebelum dipasang:
+  #   pnpm view nanoid@3.3.18 version   → 3.3.18
+  #
+  # ⚠ Dibatasi `<4`: `>=3.3.18` saja menarik nanoid 6.0.1 — lompatan DUA mayor
+  #   yang mengubah bentuk ekspor (v4+ ESM-only). Override yang menambal lubang
+  #   sambil memutus impor bukan perbaikan, dan putusnya tak terlihat sampai
+  #   sesuatu yang jarang dipanggil gagal di produksi.
+  nanoid: '>=3.3.18 <4'
 
 # ── auditConfig — HANYA untuk temuan yang terbukti tidak berlaku ────────────
 #
@@ -138,3 +153,39 @@ auditConfig:
     # Cabut bersamaan dengan GHSA-mh99 begitu ekosistem eslint meninggalkan
     # minimatch@3.
     - GHSA-rgw5-rvv9-x895 # brace-expansion DoS (patch memutus ESLint web)
+
+    # image-size — DoS lewat parser ICNS dan JXL/HEIF (butuh >=2.0.3).
+    #
+    # ⚠️ VERSI TAMBALANNYA BELUM ADA. Diverifikasi 2026-08-31:
+    #     pnpm view image-size version         → 2.0.2
+    #     pnpm view image-size@2.0.3 version   → ERR_PNPM_PACKAGE_NOT_FOUND
+    #
+    # Advisory menuntut >=2.0.3, dan 2.0.2 adalah rilis TERTINGGI yang ada.
+    # Override ke versi yang belum dipublikasi akan membuat `pnpm install`
+    # gagal total — bukan menambal apa pun.
+    #
+    # Penilaian paparan (tiap poin bisa diperiksa ulang):
+    #
+    #   1. Ditarik HANYA lewat apps/mobile:
+    #        apps__mobile>@expo/vector-icons>expo-font>expo>expo-asset>
+    #        expo-constants>react-native>@react-native/community-cli-*
+    #      Verifikasi: `pnpm audit --audit-level=high` lalu baca kolom `Paths`.
+    #
+    #   2. `apps/mobile` TIDAK ter-deploy. Verifikasi:
+    #        grep -n mobile docker-compose.yml    → nol hasil
+    #      Yang berjalan di VPS cuma api, web, web-publik.
+    #
+    #   3. Nol pemakaian langsung di kode kita. Verifikasi:
+    #        grep -rn "image-size\|imageSize" apps/*/src apps/*/app apps/*/lib
+    #
+    #   4. Jalurnya `community-cli` — perkakas PENGEMBANGAN React Native, bukan
+    #      runtime aplikasi. Ia mem-parse gambar dari proyek sendiri saat build,
+    #      bukan dari unggahan pengguna.
+    #
+    # Tak ada permukaan serang: DoS pada parser gambar menuntut penyerang bisa
+    # MEMASOK gambarnya, dan tak ada jalur di mana itu terjadi.
+    #
+    # ⚠ CABUT BEGITU 2.0.3 TERBIT. Periksa berkala:
+    #     pnpm view image-size version
+    - GHSA-w3rx-r6r6-pgpr # image-size ICNS DoS (2.0.3 belum dirilis)
+    - GHSA-5p2g-fcmc-qvqq # image-size JXL/HEIF DoS (2.0.3 belum dirilis)

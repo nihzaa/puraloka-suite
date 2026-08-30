@@ -28,7 +28,7 @@ import { api } from "@/lib/api";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { C } from "@/lib/warna-ui";
 import { Tabel } from "@/components/dasar";
-import { formatRupiah, formatAngka, formatKuantitas } from "@/lib/format";
+import { formatRupiah } from "@/lib/format";
 
 const fmtRp = formatRupiah;
 

@@ -14,28 +14,24 @@
  */
 
 import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
-import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { useVirtualList } from "@/lib/use-virtual-list";
-import { PilihCari } from "@/components/pilih-cari";
 import { C } from "@/lib/warna-ui";
 import { Tabel, KepalaHalaman } from "@/components/dasar";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
 import {
-  formatRupiah, formatAngka, formatKuantitas, formatTanggalJam,
+  formatRupiah, formatAngka, 
 } from "@/lib/format";
 import {
-  Check, ChevronDown, ChevronRight, Copy, Pencil, Plus, Search, X,
-  AlertTriangle, BookOpen, Coins, CheckCircle2, PlayCircle, CircleOff,
-  Clock, TrendingUp, Info, BadgeCheck,
+  ChevronDown, ChevronRight, Plus, 
+  Coins, CheckCircle2, PlayCircle, CircleOff,
+  BadgeCheck,
 } from "lucide-react";
 import {
   Modal, label, StatusBadge, btnPrimary, btnGhost,
-  type Project, type Edition, type Assembly, type AsmComponent,
-  type PriceEntry, type CostCodeRingkas,
-  th, td, lbl, tfLabel, tfAngka,
+  type PriceEntry, 
+  th, td, 
 } from "../_cecep/dasar";
 
 const fmtRp = formatRupiah;

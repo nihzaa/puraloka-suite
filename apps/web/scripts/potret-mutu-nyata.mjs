@@ -50,7 +50,13 @@ for (const nama of new Set([...tanpaStr.matchAll(/\b([A-Z][A-Z0-9_]{2,})\b/g)].m
   const m = isiHal.match(new RegExp(`^const ${nama} = ([\\s\\S]*?);$`, 'm'))
   if (m) konst.push(`const ${nama} = ${m[1]};`)
 }
-// eslint-disable-next-line no-new-func
+// `new Function` disengaja: berkas ini MEMBACA contoh data dari sumber
+// TypeScript lalu mengevaluasinya, supaya potret selalu memakai contoh
+// yang sama dengan yang dipakai kode — bukan salinan yang bisa menyimpang.
+//
+// Direktif `eslint-disable no-new-func` yang dulu di sini DIBUANG: aturan
+// itu tak pernah dikonfigurasi di repo ini, jadi direktifnya menonaktifkan
+// sesuatu yang tak ada — dan ESLint melaporkannya sebagai warning sendiri.
 const CONTOH = new Function(konst.join('\n') + '\nreturn (' + badan + ')')()
 
 const masuk = await fetch(`${API}/api/v1/auth/login`, {

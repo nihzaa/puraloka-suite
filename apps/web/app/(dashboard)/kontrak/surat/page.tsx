@@ -47,7 +47,7 @@
 
 import { useMemo, useState } from "react";
 import {
-  Mails, ArrowDownLeft, ArrowUpRight, TriangleAlert, Clock, RefreshCw,
+  Mails, ArrowDownLeft, ArrowUpRight, Clock, RefreshCw,
 } from "lucide-react";
 import { useData } from "@/lib/data-cache";
 import { C } from "@/lib/warna-ui";

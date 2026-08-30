@@ -148,7 +148,12 @@ console.log(`→ apps/web/.layar/struktur-daftar${GELAP ? '-gelap' : ''}.png`)
   membuktikan apa pun tentang dua elemen lainnya. Ketahuan hanya karena
   potretnya dibuka dan dibaca.
 */
-for (const [idx, [id, jenis]] of dibuat.entries()) {
+// Elemen pertama tuple (`id`) sengaja dilewati dengan koma kosong: potret
+// mencari tombolnya lewat `kode` yang dirakit dari `idx`, bukan lewat id.
+//
+// Diberi nama `_id` tak menolong — repo ini tak mengonfigurasi
+// `varsIgnorePattern`, jadi ESLint tetap melaporkannya.
+for (const [idx, [, jenis]] of dibuat.entries()) {
   const kode = `POTRET-${JALAN}-${idx + 1}`
   const tombol = page.locator(`[aria-label*="${kode}"]`).first()
   if (!(await tombol.count())) {

@@ -30,22 +30,14 @@
  * RAB" satu proyek.
  */
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { api } from "@/lib/api";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
-import { useVirtualList } from "@/lib/use-virtual-list";
-import { PilihCari } from "@/components/pilih-cari";
 import { C } from "@/lib/warna-ui";
-import { Tabel } from "@/components/dasar";
-import { GAYA_KARTU } from "@/components/ui-dasar";
-import { GAYA_ISIAN } from "@/components/isian";
 import {
   formatRupiah, formatAngka, formatKuantitas, formatTanggalJam,
 } from "@/lib/format";
 import {
-  Check, ChevronDown, ChevronRight, Copy, Pencil, Plus, Search, X,
-  AlertTriangle, Info, Layers,
+  X,
 } from "lucide-react";
 
 export const fmtRp = formatRupiah;

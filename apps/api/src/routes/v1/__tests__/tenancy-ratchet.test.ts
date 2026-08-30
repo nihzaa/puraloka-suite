@@ -225,7 +225,33 @@ function hitungSupabaseMentah(): { total: number; perFile: Record<string, number
         continue
       }
       if (!entri.name.endsWith('.ts')) continue
-      const isi = readFileSync(path, 'utf8')
+      /*
+        BLOK KOMENTAR DIBUANG LEBIH DULU — bukan disaring per baris.
+
+        Penyaring lama membuang baris berawalan `//` dan `*`, tetapi TIDAK
+        baris di dalam blok `/* … *\/` yang tak diawali bintang:
+
+            \/*
+              Versi pertama menghapus lewat `supabase.from('notifications')…`
+            *\/
+
+        Baris kedua itu terhitung sebagai akses mentah. Diukur 2026-08-31:
+        `notifikasi-retensi.ts` sudah nol akses nyata — penghapusannya pindah
+        ke fungsi basis (migrasi 525) — tetapi ratchet tetap melaporkan 315,
+        dan yang dihitungnya adalah KOMENTAR yang menjelaskan perpindahan itu.
+
+        Kelas cacat yang sudah berulang di repo ini: komentar dibaca sebagai
+        kode. Yang diperbaiki penghitungnya, bukan komentarnya — menulis ulang
+        komentar agar tak menyebut nama fungsi berarti membuang penjelasan
+        demi menyenangkan alat ukur.
+
+        Diganti dengan baris kosong, bukan dihapus, supaya nomor barisnya tetap
+        cocok kalau nanti ada yang melaporkan posisi.
+      */
+      const isi = readFileSync(path, 'utf8').replace(
+        /\/\*[\s\S]*?\*\//g,
+        (blok) => blok.replace(/[^\n]/g, ' '),
+      )
       // Hitung BARIS, bukan kemunculan: pola multi-baris `supabase\n  .from(`
       // adalah satu akses, bukan dua.
       const n = isi.split('\n').filter((baris) => {

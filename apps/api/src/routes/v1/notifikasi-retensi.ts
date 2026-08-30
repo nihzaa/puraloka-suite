@@ -85,9 +85,6 @@ function rahasiaCocok(diberikan: string, benar: string): boolean {
 const BAWAAN_DIBACA = 30
 const BAWAAN_TAK_DIBACA = 90
 
-/** Berapa baris dihapus sekali jalan. Melindungi dari kunci tabel panjang. */
-const UKURAN_BATCH = 500
-
 export default async function notifikasiRetensiRoutes(app: FastifyInstance) {
   app.post('/api/v1/notifikasi/bersihkan', async (request, reply) => {
     /*
@@ -203,19 +200,47 @@ export default async function notifikasiRetensiRoutes(app: FastifyInstance) {
     let terhapus = 0
     if (!kering) {
       /*
-        Dihapus per potongan, bukan sekaligus.
+        PENGHAPUSAN DIKERJAKAN FUNGSI BASIS, bukan `.from().delete()` di sini.
 
-        `.in('id', [...8000 id])` menghasilkan URL yang melewati batas panjang
-        PostgREST dan gagal — dengan galat yang menyebut URL, bukan jumlahnya.
-        Potongan juga menahan kunci tabel lebih pendek.
+        Versi pertama menghapus lewat `supabase.from('notifications').delete()`
+        per potongan. Itu bekerja — diuji di produksi — tetapi `tenancy-ratchet`
+        merah: akses supabase mentah 314 → 317.
+
+        Ratchet itu menjaga hal nyata (query tanpa saringan tenant membaca data
+        perusahaan lain), dan meski kasus ini sah — pembersihan memang lintas
+        tenant — "sah" bukan alasan menaikkan ambang.
+
+        Dua rute pembersih yang sudah ada TIDAK menaikkan angkanya sama sekali:
+        `ai-retensi` dan `idempotensi-retensi` keduanya NOL, karena keduanya
+        memanggil fungsi basis. Migrasi 525 memberi notifikasi pola yang sama.
+
+        ── Kenapa ambangnya tetap dibaca DI SINI, bukan di dalam fungsi
+
+        Retensi adalah kebijakan PER-TENANT, dan fungsinya menerima satu pasang
+        ambang. Rute ini yang tahu tenant mana punya setelan apa; ia memanggil
+        fungsinya sekali per pasangan ambang yang berbeda.
+
+        Untuk tenant yang ambangnya sama — keadaan biasa — itu satu panggilan.
       */
-      for (let i = 0; i < buang.length; i += UKURAN_BATCH) {
-        const potongan = buang.slice(i, i + UKURAN_BATCH)
-        const { error } = await supabase.from('notifications').delete().in('id', potongan)
+      const perAmbang = new Map<string, { dibaca: number; takDibaca: number }>()
+      for (const a of ambang.values()) {
+        perAmbang.set(`${a.dibaca}|${a.takDibaca}`, a)
+      }
+      // Tenant tanpa setelan memakai bawaan; pastikan bawaannya ikut dijalankan.
+      perAmbang.set(`${BAWAAN_DIBACA}|${BAWAAN_TAK_DIBACA}`, {
+        dibaca: BAWAAN_DIBACA,
+        takDibaca: BAWAAN_TAK_DIBACA,
+      })
+
+      for (const a of perAmbang.values()) {
+        const { data, error } = await supabase.rpc('fn_bersihkan_notifikasi_kadaluarsa', {
+          p_hari_dibaca: a.dibaca,
+          p_hari_tak_dibaca: a.takDibaca,
+        })
         if (error) {
           request.log.error(
-            { err: error, sudah_terhapus: terhapus, sisa: buang.length - terhapus },
-            'notifikasi/bersihkan: gagal menghapus potongan',
+            { err: error, sudah_terhapus: terhapus, ambang: a },
+            'notifikasi/bersihkan: fungsi basis gagal',
           )
           /*
             Dilaporkan sebagai kegagalan SEBAGIAN, bukan 500 polos.
@@ -224,12 +249,11 @@ export default async function notifikasiRetensiRoutes(app: FastifyInstance) {
             galat generik membuat jalan berikutnya tak tahu berapa yang tersisa.
           */
           return reply.status(500).send({
-            error: 'Gagal menghapus sebagian notifikasi',
+            error: 'Gagal membersihkan notifikasi',
             terhapus,
-            sisa: buang.length - terhapus,
           })
         }
-        terhapus += potongan.length
+        terhapus += Number(data ?? 0)
       }
     }
 

@@ -35,12 +35,12 @@ import { Tabel } from "@/components/dasar";
 import { KebutuhanMaterial } from "@/components/kebutuhan-material";
 import { GAYA_KARTU } from "@/components/ui-dasar";
 import { GAYA_ISIAN } from "@/components/isian";
-import { formatRupiah, formatAngka, formatKuantitas, formatTanggalJam } from "@/lib/format";
+import { formatRupiah, formatKuantitas, formatTanggalJam } from "@/lib/format";
 import {
-  CheckCircle2, ClipboardList, Lock, Package, Plus, Users, History, X,
+  CheckCircle2, ClipboardList, Lock, Package, Plus, History, 
   Pencil, HardHat, ChevronDown, ChevronRight,
 } from "lucide-react";
-import { Modal, label, StatusBadge, btnPrimary, btnGhost } from "../_bersama/kerangka";
+import { Modal, StatusBadge, btnPrimary, btnGhost } from "../_bersama/kerangka";
 import { LayarKosong } from "@/components/layar-kosong";
 
 const fmtRp = formatRupiah;

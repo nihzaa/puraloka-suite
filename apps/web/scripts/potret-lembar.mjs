@@ -23,7 +23,7 @@
            node scripts/potret-lembar.mjs
 */
 import { chromium } from '@playwright/test'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const BASIS = process.env.LAYAR_BASIS ?? 'http://localhost:3030'
@@ -88,7 +88,13 @@ for (const nama of new Set([...tanpaString.matchAll(/\b([A-Z][A-Z0-9_]{2,})\b/g)
 }
 let CONTOH
 try {
-  // eslint-disable-next-line no-new-func
+  // `new Function` disengaja: berkas ini MEMBACA contoh data dari sumber
+  // TypeScript lalu mengevaluasinya, supaya potret selalu memakai contoh
+  // yang sama dengan yang dipakai kode — bukan salinan yang bisa menyimpang.
+  //
+  // Direktif `eslint-disable no-new-func` yang dulu di sini DIBUANG: aturan
+  // itu tak pernah dikonfigurasi di repo ini, jadi direktifnya menonaktifkan
+  // sesuatu yang tak ada — dan ESLint melaporkannya sebagai warning sendiri.
   CONTOH = new Function(konstanta.join(String.fromCharCode(10)) + String.fromCharCode(10)
     + 'return (' + badanContoh + ')')()
 } catch (e) { console.error(`tak bisa mengurai CONTOH: ${e.message}`); process.exit(1) }

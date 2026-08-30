@@ -37,12 +37,10 @@ import { api } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import { PilihCari } from "@/components/pilih-cari";
 import { GAYA_ISIAN } from "@/components/isian";
-import { formatRupiah, formatAngka, formatKuantitas } from "@/lib/format";
 import { HitungVolume, type MasukanTakeoff } from "./hitung-volume";
 import { Plus, X } from "lucide-react";
 import { Modal, label, btnPrimary, btnGhost } from "./kerangka";
 
-const fmtRp = formatRupiah;
 
 
 // ── Tipe respons API yang dipakai modal ini ──────────────────────────────

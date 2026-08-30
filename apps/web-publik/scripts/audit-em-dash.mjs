@@ -85,7 +85,37 @@ console.log(`  berkas melanggar : ${pelanggarBerkas.length}`)
 // ── 2. Basis ────────────────────────────────────────────────────────────────
 let pelanggarDb = []
 let dbTerperiksa = false
+/*
+  KREDENSIAL DIPERIKSA SENDIRI, SEBELUM `buatClient()`.
+
+  `try/catch` di bawah TIDAK cukup: `buatClient()` memanggil `process.exit(2)`
+  saat DIRECT_URL/DATABASE_URL tak ada, dan `process.exit` tak bisa ditangkap
+  `catch` — prosesnya sudah mati sebelum blok penangkap sempat berjalan.
+
+  Diukur di CI 2026-08-30: job "Situs publik" tak diberi kredensial basis, dan
+  langkah ini gagal dengan exit 2 pada TIAP jalan. Padahal komentar langkah itu
+  di `ci.yml` sendiri menjanjikan: "Tanpa DB, langkah ini menyatakan bagian
+  yang dilewatinya alih-alih diam-diam lulus."
+
+  Janji itu benar; yang tak ada adalah kodenya.
+
+  ⚠ Yang TIDAK dilakukan di sini: memberi kredensial ke job itu. Situs publik
+  tak butuh basis untuk typecheck/test/build — memberinya akses hanya untuk
+  memuaskan satu langkah berarti memperluas jangkauan kredensial tanpa alasan.
+
+  Yang dilaporkan tetap jujur: bagian berkas diperiksa, bagian DB dinyatakan
+  DILEWATI. Penjaga yang melewati sebagian dan mengatakannya lebih berguna
+  daripada penjaga merah yang orang matikan.
+*/
+const ADA_DSN = Boolean(
+  process.env.DIRECT_URL
+  || process.env.DATABASE_URL
+  || existsSync(join(AKAR, '..', 'api', '.env')),
+)
+
 try {
+  if (!ADA_DSN) throw new Error('tak ada DIRECT_URL/DATABASE_URL')
+
   const { buatClient } = await import(
     new URL('../../../scripts/db/_koneksi.mjs', import.meta.url).href)
   const c = buatClient()

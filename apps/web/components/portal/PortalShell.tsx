@@ -39,7 +39,18 @@ function isActive(pathname: string, href: string, exact?: boolean) {
 }
 
 export default function PortalShell({
-  user,
+  /*
+    `user` sengaja TIDAK di-destructure di sini.
+
+    Ia tetap ada di `PortalShellProps` — pemanggil mengirimnya, dan
+    membuangnya dari tipe akan memutus ketiga portal sekaligus. Tetapi
+    komponen ini tak memakainya: identitas ditampilkan komponen anak, bukan
+    di kerangka.
+
+    Menghapusnya dari destructuring, bukan dari tipe, adalah perbedaan antara
+    "prop ini tak dipakai di sini" dan "prop ini tak ada" — yang kedua akan
+    membuat pemanggil gagal typecheck tanpa alasan yang sebenarnya.
+  */
   portalLabel,
   navItems,
   onLogout,
