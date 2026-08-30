@@ -294,6 +294,21 @@ jobs:
       - name: Kolom jadwal punya pembaca (L-4)
         run: node scripts/audit-jadwal-punya-pembaca.mjs
 
+      # `format()` di migrasi SQL — placeholder harus punya argumennya.
+      #
+      # Migrasi 212 dan 215 keduanya menulis dua `%I` dengan satu argumen.
+      # Postgres menolaknya saat DIJALANKAN dengan `too few arguments for
+      # format()` — galat yang tak menyebut baris, nama policy, atau tabel.
+      # Dan karena tiap migrasi dibungkus transaksi, kegagalan di blok policy
+      # me-ROLLBACK tabel yang dibuat ratusan baris di atasnya, sehingga gejala
+      # berikutnya berbunyi `relation "..." does not exist` di migrasi LAIN.
+      #
+      # Yang paling mahal: 215 tak pernah terlihat selama 212 masih ada, karena
+      # rantainya berhenti di yang pertama. Tiga putaran CI habis untuk dua
+      # cacat yang bentuknya identik dan bisa dipindai sekaligus.
+      - name: format() di migrasi punya argumen cukup
+        run: node scripts/audit-format-argumen-cukup.mjs
+
       # Satu lapis LEBIH JAUH dari L-4, dan celah di antara keduanya nyata.
       # L-4 menjawab "adakah yang membaca kolom jadwal ini?" — jawabannya YA,
       # `jadwal.ts` membacanya dengan benar. Yang bolong: jalur yang dibaca itu

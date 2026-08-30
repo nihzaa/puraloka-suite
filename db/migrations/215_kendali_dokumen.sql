@@ -313,8 +313,27 @@ BEGIN
     -- Nama yang bervariasi memaksa penjaganya menebak pola — dan penjaga
     -- yang menebak akan melewatkan tabel yang polanya sedikit berbeda.
     EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
+    /*
+      ⚠ DIPERBAIKI 2026-08-31 — cacat yang SAMA BENTUKNYA dengan 212.
+
+      Versi sebelumnya menulis DUA `%I` tetapi memberi SATU argumen:
+
+          'CREATE POLICY %I ON %I AS RESTRICTIVE ...', t
+
+      dan Postgres menolaknya dengan `too few arguments for format()`.
+      Galat itu tak menyebut baris, tak menyebut nama policy, dan tak
+      menyebut tabelnya — hanya nama berkas migrasinya.
+
+      Nama policy di sini memang literal `tenant_isolation` (lihat komentar
+      di atas), jadi yang benar bukan menambah argumen melainkan MEMBUANG
+      placeholder pertama. Satu `%I` tersisa, satu argumen.
+
+      Cacat ini tak pernah terlihat sebelum hari ini karena 212 selalu gagal
+      lebih dulu dan menghentikan rantai — kesalahan yang menyembunyikan
+      kesalahan berikutnya.
+    */
     EXECUTE format(
-      'CREATE POLICY %I ON %I AS RESTRICTIVE FOR ALL
+      'CREATE POLICY tenant_isolation ON %I AS RESTRICTIVE FOR ALL
          USING (company_id = (SELECT auth_company_id()))
          WITH CHECK (company_id = (SELECT auth_company_id()))',
       t);

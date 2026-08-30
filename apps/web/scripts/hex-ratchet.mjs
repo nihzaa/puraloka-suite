@@ -70,6 +70,27 @@ for (const dir of ['app', 'components', 'lib']) {
     // mentah akan cocok di satu tempat lalu gagal senyap di tempat lain.
     if (p.replace(/\\/g, '/').endsWith('lib/warna-merek.ts')) continue
 
+    /*
+      BERKAS PDF - hex di sini BUKAN pelanggaran, melainkan KEWAJIBAN.
+
+      `@react-pdf/renderer` bukan peramban: tak ada CSSOM, jadi `var(--navy)`
+      tak pernah di-resolve dan jatuh ke hitam - termasuk `backgroundColor`.
+      Invoice INV/PRL/2026/016 keluar HITAM PEKAT dengan teks hitam di atasnya,
+      tanpa satu pun galat, sampai founder membuka berkas yang benar-benar
+      diunduh (diperbaiki di 3ac2ab4e).
+
+      Repo ini malah punya penjaga yang MENUNTUT hex di sini:
+      `audit-pdf-tanpa-var-css.mjs`, ambang NOL. Tanpa pengecualian ini kedua
+      penjaga saling bertentangan - satu merah apa pun yang dikerjakan.
+
+      Diukur 2026-08-31: ratchet melompat 48 -> 67, dan KESELURUHAN 19 selisih
+      itu ada di `components/invoice-pdf.tsx`. Menaikkan lantainya jadi 67
+      akan menyembunyikan 19 slot untuk hex layar sungguhan di kemudian hari;
+      mengecualikan berkasnya menjaga lantai tetap 48 untuk kode yang memang
+      bisa ditokenkan.
+    */
+    if (/-pdf[.]tsx$/.test(p.replace(/\\/g, '/'))) continue
+
     const isi = readFileSync(p, 'utf8')
 
     /**
