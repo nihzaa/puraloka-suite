@@ -47,6 +47,18 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3001
+      # ⚠ WAJIB `0.0.0.0` DI DALAM CONTAINER.
+      #
+      # `index.ts` memakai `process.env.HOST ?? '127.0.0.1'` — bawaan yang
+      # BENAR untuk mesin pengembangan (API tak terbuka ke jaringan lokal),
+      # dan salah total di dalam container: ia mengikat ke loopback CONTAINER,
+      # jadi pemetaan port Docker tak punya apa pun untuk diteruskan.
+      #
+      # Gejalanya menyesatkan: container "healthy" (healthcheck-nya berjalan DI
+      # DALAM container, jadi 127.0.0.1 memang terjangkau), port terpetakan dan
+      # docker-proxy mendengarkan — tetapi host mendapat 000 dan nginx 502.
+      # Semua tanda menunjuk jaringan, padahal yang salah alamat bind.
+      HOST: 0.0.0.0
     # 127.0.0.1 SAJA — nginx yang menghadap internet (lihat catatan di kepala
     # berkas). Membukanya ke 0.0.0.0 berarti API bisa diakses tanpa TLS,
     # melewati seluruh proxy.
