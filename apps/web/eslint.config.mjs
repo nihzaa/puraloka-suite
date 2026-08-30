@@ -135,6 +135,39 @@ const eslintConfig = defineConfig([
       "react-hooks/rules-of-hooks": "warn",
     },
   },
+
+  /*
+    Rute ImageResponse — `no-img-element` tidak berlaku di sini.
+
+    `app/icon.tsx` bukan komponen halaman melainkan rute `ImageResponse`
+    (next/og) yang dirender Satori DI SERVER menjadi PNG: tak ada DOM, tak
+    ada peramban, dan `next/image` — yang aturan itu sarankan — tidak
+    berlaku sama sekali. `<img>` memang satu-satunya cara.
+
+    ── Kenapa dimatikan per-berkas, bukan ditandai per-baris
+
+    Arahan `eslint-disable-next-line` di sana membuat CI merah:
+
+        (tanpa-rule): 1 (ambang 0)
+          app/icon.tsx:121 — Unused eslint-disable directive
+
+    dan MENGHAPUSNYA membuat lokal merah:
+
+        @next/next/no-img-element: 12 (ambang 11)
+
+    Aturannya menyala di satu lingkungan dan diam di lingkungan lain. Selama
+    ia aktif untuk berkas ini, TAK ADA bentuk arahan yang benar di keduanya:
+    memasangnya salah di CI, tak memasangnya salah di lokal.
+
+    Mematikannya untuk berkas yang memang di luar jangkauan aturan itu
+    menyelesaikan keduanya, dan menyatakan alasannya sekali.
+  */
+  {
+    files: ["app/icon.tsx", "app/**/opengraph-image.tsx"],
+    rules: {
+      "@next/next/no-img-element": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

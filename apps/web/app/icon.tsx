@@ -118,7 +118,23 @@ export default async function Icon() {
             benar — di 16px, teks apa pun memang tak terbaca; yang harus tetap
             terbaca adalah BENTUK lambangnya.
           */
-          /* eslint-disable-next-line @next/next/no-img-element */
+          /*
+            ⚠ JANGAN pasang `eslint-disable @next/next/no-img-element` di sini.
+
+            Berkas ini bukan komponen halaman: ia rute `ImageResponse` (next/og),
+            dirender Satori DI SERVER menjadi PNG. Tak ada DOM, tak ada peramban, dan
+            `next/image` — yang aturan itu sarankan — tidak berlaku sama sekali.
+            `<img>` memang satu-satunya cara di sini.
+
+            Arahan disable-nya PERNAH ada, dan justru itu yang memerahkan CI:
+
+                (tanpa-rule): 1 (ambang 0)
+                  app/icon.tsx:121 — Unused eslint-disable directive
+                  (no problems were reported from '@next/next/no-img-element')
+
+            Lokal diam soal ini, CI bicara — jadi arahan yang "aman dipasang saja"
+            malah menjadi pelanggaran sendiri, di satu lingkungan saja.
+          */
           <img
             src={logo}
             alt=""
