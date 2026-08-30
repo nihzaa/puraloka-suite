@@ -89,6 +89,17 @@ services:
     env_file: [.env]
     environment:
       NODE_ENV: production
+      # ⚠ PORT WAJIB ditimpa di sini.
+      #
+      # `.env` bersama memuat `PORT=3001` untuk API, dan `env_file` memberikan
+      # SELURUH isinya ke tiap layanan. Next lalu mendengarkan 3001 sementara
+      # pemetaan menunggu 3000 — container hidup, log menulis "Ready", dan host
+      # mendapat 000.
+      #
+      # Kelas cacat yang sama dengan admin-saas (bawaan `-p 3100`), dan sama
+      # sunyinya: tak ada yang salah kecuali angkanya.
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
     ports: ["127.0.0.1:3102:3000"]
     depends_on:
       api: { condition: service_healthy }
@@ -130,6 +141,9 @@ services:
     env_file: [.env]
     environment:
       NODE_ENV: production
+      # Sama dengan `web`: `.env` bersama memuat PORT=3001 milik API.
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
     ports: ["127.0.0.1:3103:3000"]
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
