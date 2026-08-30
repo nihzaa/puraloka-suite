@@ -123,6 +123,37 @@ describe('ringkasan pemicu jadwal', () => {
     expect(kode).toMatch(/tak_dikenal:\s*/)
   })
 
+  it('tugas ber-metode POST membawa rahasia penjadwal', () => {
+    /*
+      Tiga rute pembersih (`ai/retensi`, `idempotensi`, `notifikasi`) tidak
+      memakai `authenticate` + `requirePermission` — mereka berpagar
+      `x-scheduler-secret` karena LINTAS TENANT: pembersihan tak punya konteks
+      tenant, jadi tak ada permission per-tenant yang masuk akal.
+
+      Diukur di produksi 2026-08-30, dua kegagalan berturut-turut:
+
+        404  metode salah (penjadwal GET, rute POST)          → diperbaiki
+        401  "Rahasia penjadwal tidak cocok"                  → ini
+
+      Tanpa header itu, ketiganya tak akan pernah bisa dijalankan penjadwal —
+      dan itu menjelaskan kenapa dua di antaranya tak pernah dipasang di
+      `jadwal_tugas` sama sekali.
+    */
+    expect(kode, 'penjadwal wajib meneruskan x-scheduler-secret')
+      .toMatch(/'x-scheduler-secret':/)
+  })
+
+  it('metode diambil dari katalog, tidak dipaku GET', () => {
+    /*
+      `method: 'GET'` yang dipaku membuat seluruh rute POST dijawab 404 —
+      dengan pesan yang terbaca seperti rutenya belum ter-deploy.
+
+      Dijaga juga dari sisi lain oleh `audit-tugas-punya-rute`, yang kini
+      mencocokkan METODE, bukan jalur saja.
+    */
+    expect(kode).toMatch(/method:\s*meta\.metode\s*\?\?\s*'GET'/)
+  })
+
   it('tugas tak dikenal & gagal klaim DICATAT ke log, bukan diam', () => {
     /*
       Menghitungnya di ringkasan membuatnya terlihat di jawaban rute. Tetapi

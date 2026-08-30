@@ -1173,6 +1173,33 @@ async function jalankanTugas(
       // kewenangan yang tak pernah diberikan siapa pun.
       authorization: `Bearer ${token}`,
       'x-company-id': companyId,
+
+      /*
+        RAHASIA PENJADWAL ikut dikirim — untuk rute pembersih.
+
+        Tiga rute yang MENGHAPUS baris (`ai/retensi/bersihkan`,
+        `idempotensi/bersihkan`, `notifikasi/bersihkan`) tidak memakai
+        `authenticate` + `requirePermission`. Mereka berpagar
+        `x-scheduler-secret` dan gagal-TERTUTUP, karena mereka LINTAS TENANT:
+        pembersihan tak punya konteks tenant, jadi tak ada permission
+        per-tenant yang masuk akal untuk menjaganya.
+
+        Diukur di produksi 2026-08-30: sesudah metodenya diperbaiki, ketiganya
+        berubah dari 404 menjadi **401 "Rahasia penjadwal tidak cocok"** —
+        gerbangnya bekerja, pemanggilnya yang tak membawa kunci.
+
+        Itu juga menjelaskan kenapa `bersih-idempotensi` dan
+        `bersih-percakapan-ai` tak pernah dipasang di `jadwal_tugas`: siapa
+        pun yang mencoba pasti menemui tembok yang sama.
+
+        Header ini TIDAK melemahkan apa pun: rute biasa mengabaikannya
+        sepenuhnya, dan yang membacanya tetap menuntut nilainya cocok. Yang
+        berubah cuma bahwa penjadwal kini membawa kedua kunci — token untuk
+        rute ber-permission, rahasia untuk rute lintas-tenant.
+      */
+      ...(process.env.SCHEDULER_SECRET
+        ? { 'x-scheduler-secret': process.env.SCHEDULER_SECRET.trim() }
+        : {}),
     },
   })
 
