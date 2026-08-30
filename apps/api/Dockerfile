@@ -55,13 +55,16 @@ RUN cd apps/api && pnpm build
 
 # Buang dependensi pengembangan SESUDAH build — `tsc` butuh mereka, runtime
 # tidak. Ini yang memangkas image, bukan trik lain.
-# ⚠ `--force` WAJIB di dalam container.
+# ⚠ `CI=true` WAJIB, dan `--force` BUKAN jawabannya.
 #
-# Tanpa TTY, pnpm menolak menghapus node_modules dan gagal dengan
+# Tanpa TTY pnpm menolak menghapus node_modules:
 #   [ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY]
-# — perlindungan yang masuk akal di terminal orang, dan penghalang di build
-# otomatis yang memang bermaksud menghapusnya.
-RUN pnpm prune --prod --force
+#
+# Perlindungan yang masuk akal di terminal orang, penghalang di build otomatis
+# yang memang BERMAKSUD menghapusnya. Percobaan pertama memakai `--force` dan
+# ditolak — `[ERROR] Unknown option: 'force'`; prune tak punya bendera itu.
+# Yang dikenali pnpm adalah `CI=true`.
+RUN CI=true pnpm prune --prod
 
 # ── Tahap 3: runtime ────────────────────────────────────────────────────────
 FROM node:22-alpine AS runtime
