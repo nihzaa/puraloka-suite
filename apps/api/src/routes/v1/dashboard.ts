@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest } from 'fastify'
 import { supabase } from '../../utils/supabase.js'
-import { authenticate } from '../../plugins/auth.js'
+import { authenticate, hasPermission } from '../../plugins/auth.js'
 
 type Period = 'last_30_days' | 'last_3_months' | 'last_6_months' | 'this_year' | 'all_time'
 
@@ -59,6 +59,30 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     // halaman depan mencampur angka dua perusahaan.
     const db = request.db!
     const [idProyek, idInvoice] = await Promise.all([db.projectIds(), db.invoiceIds()])
+
+    /*
+      ── PENYARINGAN PER-PERAN ────────────────────────────────────────────
+      Sampai 2026-08-29, rute ini hanya ber-`authenticate` — SIAPA PUN yang
+      login menerima nilai kontrak, kas masuk, piutang, dan proyeksi kas
+      SELURUH perusahaan. Itulah sebabnya middleware melarang PM dan mandor
+      masuk `/dashboard` sama sekali: pagar dipasang di pintu halaman karena
+      datanya sendiri tak berpagar.
+
+      Melarang di pintu tidak cukup. Middleware Next.js menjaga HALAMAN;
+      rute ini dipanggil langsung dengan token siapa pun yang punya akun.
+
+      Dua kunci yang dipakai — keduanya SUDAH ADA di tabel `permissions`,
+      tidak dikarang (`audit-izin-benar-ada` merahkan yang dikarang):
+
+        finance:view      'dashboard keuangan, invoice, kasbon'
+        finance:view:all  'laporan finansial lintas proyek & invoice
+                           organisasi (bukan hanya data ter-scope)'
+
+      Perbedaannya persis memisahkan "keuangan yang saya urus" dari
+      "keuangan perusahaan" — jadi tak perlu kunci baru.
+    */
+    const bolehUang = await hasPermission(request, 'finance:view')
+    const bolehUangSemua = await hasPermission(request, 'finance:view:all')
 
     /** Alasan tercatat untuk `db.unsafe()` — wajib, dan itu memang gunanya. */
     const ALASAN_LINTAS = 'dashboard lintas-proyek milik company; disaring lewat idProyek dari db.projectIds()'
@@ -252,20 +276,37 @@ export default async function dashboardRoutes(app: FastifyInstance) {
 
     return {
       period,
+      /*
+        KPI uang tingkat PERUSAHAAN hanya untuk `finance:view:all`.
+
+        Kuncinya DIHILANGKAN, bukan diisi 0. Nol berarti "perusahaan tak
+        punya kontrak" — itu berbohong, dan grafik yang menggambarnya
+        terlihat sah. Yang tak berhak tak menerima kuncinya sama sekali,
+        sehingga UI bisa membedakan "tak berhak" dari "memang nol".
+      */
       kpis: {
         active_projects: activeProjects.length,
-        total_contract_value: totalContractValue,
-        invoice_outstanding: invoiceOutstanding,
-        income_this_month: incomePeriod,
-        kasbon_active_total: kasbonActiveTotal,
-        net_cash_estimate: incomePeriod - kasbonActiveTotal,
+        ...(bolehUangSemua
+          ? {
+              total_contract_value: totalContractValue,
+              invoice_outstanding: invoiceOutstanding,
+              income_this_month: incomePeriod,
+              net_cash_estimate: incomePeriod - kasbonActiveTotal,
+            }
+          : {}),
+        /* Kasbon: `finance:view` cukup — mandor mengajukannya, dan angka
+           yang dilihatnya sudah ter-scope tenant lewat `request.db`. */
+        ...(bolehUang ? { kasbon_active_total: kasbonActiveTotal } : {}),
       },
       alerts: {
         kasbon_pending: pendingKasbons.length,
         invoice_overdue: invoiceOverdueCount,
         milestone_late: milestoneLateCount,
       },
-      cashflow_8w: buildCashflowWeeks(today, numWeeks, payments as any[], allKasbons as any[], supplierPayments as any[]),
+      /* Proyeksi kas 8 minggu = arus kas perusahaan. `finance:view:all`. */
+      ...(bolehUangSemua
+        ? { cashflow_8w: buildCashflowWeeks(today, numWeeks, payments as any[], allKasbons as any[], supplierPayments as any[]) }
+        : {}),
       status_distribution: Object.entries(statusMap).map(([status, count]) => ({ status, count })),
       active_progress: activeProjects.map((p: any) => ({
         id: p.id,
@@ -274,12 +315,14 @@ export default async function dashboardRoutes(app: FastifyInstance) {
         end_date: p.end_date,
         contract_value: Number(p.contract_value ?? 0),
       })),
-      outstanding_invoices: invoices,
-      pending_kasbons: pendingKasbons,
+      ...(bolehUangSemua ? { outstanding_invoices: invoices } : {}),
+      ...(bolehUang ? { pending_kasbons: pendingKasbons } : {}),
       today_activity: recentActivity,
       upcoming_milestones: milestones,
       mandor_overview: mandorAssignments,
       projects_list: projects,
+      /* Ringkasan pajak = kewajiban perusahaan. `finance:view:all`. */
+      ...(bolehUangSemua ? {
       tax_summary: {
         records: (taxRecords as any[]).slice(0, 12),
         reported_count: (taxRecords as any[]).filter((t: any) => t.status === 'reported').length,
@@ -288,6 +331,7 @@ export default async function dashboardRoutes(app: FastifyInstance) {
         this_month_reported: thisMonthTax.filter((t: any) => t.status === 'reported').length,
         this_month_pending: thisMonthTax.filter((t: any) => t.status === 'pending').length,
       },
+      } : {}),
     }
   })
 
