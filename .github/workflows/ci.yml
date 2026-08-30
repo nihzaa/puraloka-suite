@@ -1706,6 +1706,29 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Peran tak boleh memegang izin di luar wewenangnya.
+      #
+      # 2026-08-29: `client` — PIHAK LUAR yang membayar kontraktor — memegang
+      # `gl:view` (buku besar), `gudang:susut:view` (rencana susut = MARGIN
+      # kontraktor), `assets:view`, `gudang:view`, `finance:view` (termasuk
+      # kasbon karyawan). Dan `mandor` memegang empat dari lima yang sama,
+      # padahal `mandor-portal` tak memanggil satu pun rute itu — diukur nol.
+      #
+      # Middleware TIDAK menahannya: ia menjaga halaman web, sementara rute API
+      # dijaga permission saja. Klien yang memanggil `GET /api/v1/gl/…` dengan
+      # tokennya sendiri menerima buku besar, tanpa satu pun galat.
+      #
+      # Migrasi 526 menutupnya. Penjaga ini menjaga agar tak kembali: yang
+      # mengembalikannya cukup satu baris INSERT di seed atau UI pengaturan
+      # peran, dan kebocorannya tak bergejala — yang melihat terlalu banyak
+      # adalah PELANGGAN, yang tak akan melapor.
+      #
+      # AMBANG NOL, di company mana pun termasuk template.
+      - name: Peran tak kelebihan izin
+        run: node scripts/audit-peran-tak-kelebihan.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan
