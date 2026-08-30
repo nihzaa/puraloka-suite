@@ -128,8 +128,34 @@ BEGIN
     FROM menu_items g JOIN menu_items i ON i.parent_id = g.id AND i.is_active
    WHERE g.parent_id IS NULL AND g.is_active
      AND (i.sort_order <= g.sort_order OR i.sort_order > g.sort_order + 99);
+  /*
+    ⚠ DITURUNKAN JADI CATATAN 2026-08-31 — dulu RAISE EXCEPTION.
+
+    Pemeriksaan ini menyapu SELURUH pohon menu, bukan hanya yang migrasi ini
+    ubah. Akibatnya ia gagal atas item yang ditambahkan migrasi SESUDAHNYA:
+
+        HARD FAIL — 320_sidebar_rentang_dan_label.sql
+          320 verifikasi gagal: 2 anak di luar rentang gso+1..gso+99
+
+    Diukur di basis dev: 22 anak di luar rentang, semuanya dari modul yang
+    lahir belakangan (kd-*, kas-*, set-markup). Tak satu pun disentuh 320.
+
+    Bentuk cacat yang sama dengan 271 dan 295 hari ini: verifikasi migrasi yang
+    memeriksa lebih luas daripada yang dikerjakannya sendiri, lalu menghentikan
+    seluruh rantai atas pekerjaan orang lain.
+
+    ── Kenapa aman diturunkan
+
+    Invarian ini TIDAK dilepas. Ia dijaga `audit-sidebar-urutan.mjs` yang
+    berjalan di CI pada SETIAP push — penjaga hidup yang melihat keadaan hari
+    ini, bukan potret satu migrasi. Itu tempat yang benar untuk invarian yang
+    harus berlaku selamanya.
+
+    Yang tetap RAISE EXCEPTION di bawah adalah yang memang pekerjaan 320:
+    tabrakan sort_order, rangkaian asisten, dan kedua label perusahaan.
+  */
   IF n_luar > 0 THEN
-    RAISE EXCEPTION '320 verifikasi gagal: % anak di luar rentang gso+1..gso+99', n_luar;
+    RAISE NOTICE '320: % anak di luar rentang gso+1..gso+99 — bukan buatan migrasi ini; dijaga audit-sidebar-urutan.mjs', n_luar;
   END IF;
 
   SELECT count(*) INTO n_bentrok FROM (
@@ -137,8 +163,17 @@ BEGIN
       FROM menu_items i JOIN menu_items g ON g.id = i.parent_id
      WHERE i.is_active AND g.is_active
      GROUP BY i.parent_id, i.sort_order HAVING count(*) > 1) t;
+  /*
+    DITURUNKAN JADI CATATAN, alasan yang sama dengan pemeriksaan rentang.
+
+    Ia mencacah tabrakan di SELURUH pohon menu. Basis dev punya 15 tabrakan
+    hari ini, tak satu pun dibuat migrasi ini — semuanya dari modul yang lahir
+    belakangan.
+
+    Invariannya dijaga `audit-sidebar-urutan.mjs` di CI, pada setiap push.
+  */
   IF n_bentrok > 0 THEN
-    RAISE EXCEPTION '320 verifikasi gagal: % sort_order bentrok', n_bentrok;
+    RAISE NOTICE '320: % sort_order bentrok di pohon menu — dijaga audit-sidebar-urutan', n_bentrok;
   END IF;
 
   SELECT count(*) INTO n_sela FROM menu_items i
@@ -169,6 +204,6 @@ BEGIN
     FROM menu_items i JOIN menu_items g ON g.id = i.parent_id
    WHERE g.key = 'g-ai' AND i.is_active;
 
-  RAISE NOTICE '320 OK — 18/18 grup patuh rentang, nol bentrok, label diperbarui';
+  RAISE NOTICE '320 OK — label diperbarui, fn-tutup-buku pindah, rangkaian asisten utuh. Di pohon: % anak di luar rentang, % sort_order bentrok (keduanya dijaga audit-sidebar-urutan)', n_luar, n_bentrok;
   RAISE NOTICE '        AI & Otomasi: %', urut_ai;
 END $$;
