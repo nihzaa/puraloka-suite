@@ -1729,6 +1729,19 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # `ROLE_HOME` dan `ROLE_ALLOWED` di middleware.ts harus sepakat: home
+      # sebuah peran WAJIB tercakup daftar izinnya. Kalau tidak, redirect ke
+      # home ditolak lagi — tanpa akhir. ERR_TOO_MANY_REDIRECTS, layar kosong,
+      # dan tak satu pun galat menyebut middleware.
+      #
+      # Sudah 3x terjadi di repo ini: `pm` (2026-08-02), tiga sub-menu Master
+      # Data (2026-08-17), `/admin-portal` nyaris (2026-08-22). Tiap kali
+      # halamannya ADA, dan tiap kali orang menyimpulkan modulnya belum jadi.
+      #
+      # Tak butuh basis — memeriksa kesepakatan dua konstanta, bukan runtime.
+      - name: Home tiap peran ada di daftar izinnya
+        run: node scripts/audit-home-peran-diizinkan.mjs
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan

@@ -15,16 +15,30 @@ const PUBLIC_ROUTES = [
 const ROLE_HOME: Record<string, string> = {
   client: "/portal",
   mandor: "/mandor-portal",
-  // `/pm-portal`, BUKAN `/dashboard`. PM tak diizinkan masuk `/dashboard`
-  // (lihat ROLE_ALLOWED di bawah), jadi memakainya sebagai home membuat setiap
-  // redirect ditolak lagi dan berulang tanpa akhir — ERR_TOO_MANY_REDIRECTS,
-  // layar kosong. Ditemukan lewat uji browser 2026-08-02.
+  // ⚠ SEJARAH — dibaca sebelum mengubah baris ini.
   //
-  // Diperbaiki dengan menurunkan home ke halaman yang MEMANG haknya, bukan
-  // dengan menambahkan `/dashboard` ke izinnya: `routes/v1/dashboard.ts` tak
-  // menyaring apa pun per-role, jadi membukanya untuk PM berarti memberi angka
-  // keuangan seluruh perusahaan — memperluas hak, bukan memulihkan.
-  pm: "/pm-portal",
+  // Sampai 2026-08-29 home PM adalah `/pm-portal`, dan `/dashboard` DILARANG
+  // untuknya. Alasannya ditulis terus terang waktu itu: "routes/v1/dashboard.ts
+  // tak menyaring apa pun per-role, jadi membukanya untuk PM berarti memberi
+  // angka keuangan seluruh perusahaan".
+  //
+  // Pagar dipasang di PINTU HALAMAN karena datanya sendiri tak berpagar. Itu
+  // tak pernah cukup: middleware menjaga halaman Next.js, sementara
+  // `/api/v1/dashboard` dijawab untuk siapa pun yang memanggilnya langsung
+  // dengan token yang sah.
+  //
+  // Sekarang datanya YANG berpagar (`finance:view` / `finance:view:all` di
+  // `routes/v1/dashboard.ts`), dan dibuktikan lewat HTTP sungguhan dengan lima
+  // akun uji per peran — `scripts/uji-dashboard-per-peran.mjs`:
+  //
+  //     admin · direktur · pm   4/4 angka perusahaan diterima
+  //     mandor · client         0/4
+  //
+  // Home PM karena itu boleh naik ke `/dashboard`. Yang TIDAK boleh: menaikkan
+  // home tanpa menambahkan prefiksnya ke ROLE_ALLOWED — itu yang melahirkan
+  // ERR_TOO_MANY_REDIRECTS pada 2026-08-02, karena redirect ke halaman yang
+  // tak diizinkan akan ditolak lagi, tanpa akhir.
+  pm: "/dashboard",
   admin: "/dashboard",
 };
 
@@ -41,7 +55,12 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // persis alasan `evaluasi_subkon.jumlah_kecelakaan` dulu diketik dari
   // ingatan. Apa yang boleh DILAKUKAN tetap dijaga permission: mandor punya
   // `k3:insiden:manage` tetapi tidak `k3:inspeksi:manage`.
-  mandor:  ["/mandor-portal", "/pm-portal", "/proyek", "/verify", "/mutu", "/lapangan", "/k3"],
+  // `/dashboard` dibuka 2026-08-29 — angka perusahaan disaring di sumbernya,
+  // dan mandor terbukti menerima 0/4 lewat uji HTTP. Home-nya TETAP
+  // `/mandor-portal`: mandor bekerja dari HP di lapangan, dan mendaratkannya
+  // di dashboard desktop berarti memaksanya menempuh dua ketukan tambahan
+  // untuk pekerjaan yang setiap hari ia buka.
+  mandor:  ["/dashboard", "/mandor-portal", "/pm-portal", "/proyek", "/verify", "/mutu", "/lapangan", "/k3"],
   // `/m` = halaman peta menu (`/m/<key>`). Satu rute untuk 100+ menu yang
   // belum punya halamannya sendiri — mendaftarkannya satu per satu di sini
   // akan jadi daftar 100 baris yang pasti ketinggalan saat menu bertambah.
@@ -79,7 +98,7 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   // Itu DISENGAJA untuk sekarang: membukanya butuh rute register dipisah dari
   // induk yang menaungi sengketa — pekerjaan tersendiri, bukan tambalan satu
   // baris yang kebetulan lolos penjaga.
-  pm:      ["/pm-portal", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/approval-inbox", "/risiko/izin", "/k3", "/m"],
+  pm:      ["/dashboard", "/pm-portal", "/proyek", "/kepatuhan", "/dokumen", "/jadwal", "/verify", "/estimasi", "/tender", "/piutang", "/aset", "/mutu", "/lapangan", "/kontrak", "/approval-inbox", "/risiko/izin", "/k3", "/m"],
   // `/gudang` = rekonsiliasi material. Ditahan di admin: angkanya menuduh —
   // "susut 12%" pada material yang dipegang mandor tertentu. Yang dituduh
   // tidak boleh jadi yang pertama membacanya.
