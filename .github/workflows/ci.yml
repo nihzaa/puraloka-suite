@@ -1742,6 +1742,23 @@ jobs:
       - name: Home tiap peran ada di daftar izinnya
         run: node scripts/audit-home-peran-diizinkan.mjs
 
+      # Token mobile WAJIB lewat lapisan terenkripsi (SecureStore), bukan
+      # AsyncStorage polos.
+      #
+      # 2026-08-31: access_token DAN refresh_token tersimpan di AsyncStorage —
+      # file SQLite biasa di Android, file sandbox di iOS, keduanya ikut backup
+      # yang tak terenkripsi. `refresh_token` memperpanjang dirinya sendiri,
+      # jadi satu kali terbaca berarti akses yang tak kedaluwarsa sampai
+      # seseorang mencabutnya — dan tak ada gejala yang memberi tahu.
+      #
+      # `expo-secure-store` sudah terpasang sejak awal dan NOL berkas
+      # memakainya. Paket terpasang yang tak dipakai adalah cacat yang paling
+      # mudah lolos: package.json terlihat benar.
+      #
+      # Tak butuh basis maupun emulator — yang diperiksa keputusan di kode.
+      - name: Token mobile terenkripsi
+        run: node scripts/audit-token-mobile-terenkripsi.mjs
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan
