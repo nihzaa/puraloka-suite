@@ -86,3 +86,33 @@ services:
       driver: json-file
       options: { max-size: "10m", max-file: "3" }
 
+  # ── Compro publik ─────────────────────────────────────────────────────────
+  # Halaman jual, dibaca siapa pun tanpa sesi. Ia TIDAK bergantung pada api
+  # untuk merender — datanya dari Supabase langsung — jadi tak ada
+  # `depends_on`: compro yang ikut mati saat API bermasalah adalah kerugian
+  # tanpa alasan.
+  web-publik:
+    build:
+      context: .
+      dockerfile: apps/web-publik/Dockerfile
+      args:
+        # Keduanya DIPANGGANG saat build. `NEXT_PUBLIC_SUPABASE_URL` kosong
+        # membuat next/image jatuh ke `localhost` dan SELURUH foto compro mati
+        # di peramban pengunjung — tanpa galat di server.
+        NEXT_PUBLIC_API_URL: ${API_URL_PUBLIK:?wajib diisi di .env}
+        NEXT_PUBLIC_SUPABASE_URL: ${SUPABASE_URL:?wajib diisi di .env}
+    container_name: puraloka-web-publik
+    restart: unless-stopped
+    env_file: [.env]
+    environment:
+      NODE_ENV: production
+    ports: ["127.0.0.1:3103:3000"]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }

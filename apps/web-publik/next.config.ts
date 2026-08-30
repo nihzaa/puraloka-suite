@@ -1,6 +1,17 @@
 import type { NextConfig } from 'next'
+import path from 'node:path'
 
 const nextConfig: NextConfig = {
+  // Deploy VPS (2026-08-30). Tanpa ini image Docker harus memuat SELURUH
+  // node_modules monorepo — ratusan MB dependensi build yang tak pernah
+  // dipakai saat runtime.
+  //
+  // ⚠ Konsekuensinya: `next start` TIDAK dipakai di produksi. Yang dijalankan
+  // `node apps/web-publik/server.js`, dan `.next/static` + `public/` harus
+  // DISALIN manual ke sebelahnya — kalau terlewat, halaman terbuka TANPA CSS.
+  output: 'standalone',
+  // Monorepo: akar jejak berkas di akar repo, bukan apps/web-publik.
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   // Foto compro dilayani Supabase Storage (bucket `situs`, public). Host-nya
   // didaftarkan supaya next/image boleh mengoptimasinya.
   //
