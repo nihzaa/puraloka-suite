@@ -5,6 +5,123 @@ Entri terbaru di ATAS.
 
 ---
 
+## 2026-08-31 — klien membaca buku besar, dan lima sektor yang menutupnya
+
+Founder meminta empat hal: portal bisa tampilan PC, mobile native digarap
+serius, peta peran dibenahi, dan kerjakan berurutan dengan perencanaan matang.
+Yang ditemukan di tengah jalan menggeser urutannya.
+
+### Yang tak diminta, dan paling mendesak
+
+Mengaudit 21 role template terhadap tugas nyatanya menemukan **peran `client`
+memegang `gl:view`** — bagan akun, jurnal, buku besar. Juga
+`gudang:susut:view`, yang isinya rencana susut per material: **itu margin
+kontraktor**. Klien yang melihatnya tahu persis berapa yang dilebihkan.
+
+Middleware menahan klien di `/portal`, tetapi itu menjaga HALAMAN. Rute GL
+dijaga hanya `requirePermission('gl:view')`, dan klien memilikinya — jadi
+`GET /api/v1/gl/…` dengan tokennya sendiri akan dijawab.
+
+Dibuktikan lewat `get_role_permissions('client')`, fungsi yang SAMA yang
+dipakai gerbang API — bukan dari membaca kode. Ada 3 akun klien aktif, dua
+beralamat Gmail.
+
+`mandor` memegang empat dari lima izin yang sama, dan tak satu pun dipakai:
+`mandor-portal` (18 halaman) nol pemanggilan rute `gl`/`assets`/`finance`.
+
+### Lima sektor, berurutan
+
+**2a — peta peran** (migrasi 526). client 13→8, mandor 31→27 (`gudang:view`
+tetap: ia perlu tahu stok), direktur 143→**227** setara admin sesuai keputusan
+founder. Template + 72 tenant: 365 + 292 dicabut, 6.132 ditambah.
+
+Tiga izin yang tak dipegang siapa pun TETAP kosong — `approval:override_sod`
+(menyetujui pengajuan sendiri, membatalkan pemisahan tugas), `mitra:daftar_hitam`,
+`otomasi:umpan:baca` (untuk akun mesin).
+
+Delapan peran lain diperiksa dan TIDAK disentuh. Yang ber-izin sedikit
+(`payroll_officer` 6, `penagihan` 7, `kasir` 9) memang peran sempit.
+
+**2b — penyaringan dashboard.** `/api/v1/dashboard` hanya ber-`authenticate`:
+siapa pun yang login menerima nilai kontrak, kas masuk, piutang, proyeksi kas,
+pajak SELURUH perusahaan. Kini disaring `finance:view` / `finance:view:all`.
+
+Kuncinya DIHILANGKAN, bukan diisi 0 — nol berarti "perusahaan tak punya
+kontrak", dan grafik yang menggambarnya terlihat sah.
+
+`/deret` hampir terlewat: ia riwayat dari angka yang sama, pintu kedua ke isi
+yang identik.
+
+**2c — middleware dibuka.** Sesudah dibuktikan lewat HTTP sungguhan, lima
+peran, lima akun uji:
+
+    admin · direktur · pm    4/4 angka perusahaan
+    mandor · client          0/4
+
+Home PM naik ke `/dashboard`; home mandor TETAP `/mandor-portal` — ia bekerja
+dari HP di lapangan.
+
+**3 — layout adaptif.** 131 halaman portal 100% mobile-only; `PortalShell`
+inline style tanpa satu pun breakpoint. Kini < 1024px bottom-nav, >= 1024px
+sidebar. CSS, bukan `matchMedia`: deteksi JS baru tahu sesudah hidrasi, jadi
+bottom-nav sempat tergambar lalu hilang.
+
+**4 — mobile.** `access_token` dan `refresh_token` tersimpan di AsyncStorage
+tanpa enkripsi, sementara `expo-secure-store` sudah terpasang dan NOL berkas
+memakainya. `refresh_token` memperpanjang dirinya sendiri: satu kali terbaca
+= akses tak kedaluwarsa sampai seseorang mencabutnya, tanpa gejala.
+
+Dipindah berlapis — rahasia ke SecureStore, antrean offline tetap
+AsyncStorage (batas ~2 KB, dan antrean memuat rujukan foto).
+
+Alamat API rilis diisi: `api.puraloka-suite.duckdns.org`, diverifikasi
+`/health` 200 lebih dulu. Kedua penjaga alamat otomatis mengencang.
+
+### Tiga kali saya salah, dan bagaimana ketahuan
+
+**Skrip uji saya HIJAU PALSU.** Versi pertama `uji-dashboard-per-peran`
+mengambil pengguna sungguhan dari basis, lalu hanya bisa login sebagai satu di
+antaranya — sandi yang lain memang tak ada. Hasilnya 1 dari 4 peran teruji,
+tiga TERLEWAT, dan ringkasannya tetap mencetak ✅.
+
+Yang terlewat justru peran yang penyaringannya perlu dibuktikan. Diperbaiki
+dua arah: `siapkan-akun-uji-peran.mjs` membuat satu akun per peran, dan skrip
+ujinya kini MENOLAK lulus kalau ada yang terlewat.
+
+**Media query tak berlaku SAMA SEKALI.** Inline style menang atas selector CSS
+berapa pun spesifisitasnya. `tsc` hijau, CSS ada di halaman, `.portal-shell`
+ada di DOM — dan `getComputedStyle` tetap memulangkan `display: flex` di layar
+1440px. Ketahuan HANYA karena memotret.
+
+**Tiga cacat visual** yang tak terlihat dari kode: tombol keluar menggantung di
+bawah judul (terbaca seperti tombol nyasar), konten menempel kiri meninggalkan
+pita kosong, dan tombol aksi nyaris tak terlihat di atas navy — latar
+`rgba(255,255,255,0.10)` dirancang untuk header terang di HP.
+
+### Bukti
+
+- migrasi 526 diuji ROLLBACK dulu: 8/8 lulus, termasuk bahwa klien tetap bisa
+  lihat proyek dan mandor tetap bisa ajukan kasbon
+- idempoten: jalan kedua 0/0/0, verifikasi tetap 4/4
+- tiga penjaga baru, semuanya dibuktikan bisa MERAH lewat mutasi:
+  `audit-peran-tak-kelebihan` (2 mutasi), `audit-home-peran-diizinkan`
+  (mereproduksi cacat redirect-loop 2026-08-02), `audit-token-mobile-terenkripsi`
+  (2 mutasi)
+- potret MENGUKUR, bukan sekadar menyimpan: HP 390px bottom-nav, PC 1176px
+  sidebar, lebar baca terjaga di bawah ~90 karakter
+- `tsc --noEmit` exit 0 tanpa filter (api, web, mobile)
+- test: 5/5 penyaringan dashboard, 29 izin/peran
+- penjaga CI repo utama: **10 merah, semuanya pra-ada** (menu/sidebar sedang
+  digarap sesi lain). Nol regresi dari pekerjaan ini.
+
+### Yang menghalangi rilis mobile, dan bukan saya yang bisa menutupnya
+
+`extra.eas.projectId` kosong. Hanya `eas init` dengan akun Expo founder yang
+bisa mengisinya. Selebihnya siap: name, slug, version, bundleIdentifier
+(`com.puraloka.suite`), package Android, dan kini alamat API.
+
+---
+
 ## 2026-08-29 — push 937 commit, dan enam penjaga yang menuduh kode yang benar
 
 Founder meminta push lalu deploy. Push berhasil (`ec831d41..5ceac200`), tapi
