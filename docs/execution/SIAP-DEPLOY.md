@@ -147,6 +147,36 @@ SELECT tugas, jenis, aktif, terakhir_jalan, jumlah_jalan
 `terakhir_jalan` yang tetap NULL berjam-jam sesudah deploy berarti penjadwalnya
 **tidak** hidup, apa pun warna CI-nya.
 
+### ⚠ Cron GitHub minta 15 menit, memberi 2–6 jam
+
+Diukur 2026-08-30 pada enam run berturut-turut:
+
+```
+16:25 → 11:46 → 05:56 → 00:44 → 22:35 → 19:56
+jarak: 279 · 351 · 311 · 130 · 159 menit
+```
+
+`cron: '*/15 * * * *'` adalah **permintaan, bukan jaminan**. GitHub menunda
+cron pada repo beraktivitas rendah, dan tak ada notifikasi saat itu terjadi.
+
+**Yang tidak rusak karenanya:** aturan pemicu di server adalah *"sudah lewat
+jamnya DAN belum jalan di periode ini"*, jadi tak ada tugas yang terlewat —
+jadwal sungguhan hidup di basis, bukan di cron.
+
+**Yang berubah:** tugas **harian** berjadwal 06:00–09:30 bisa baru berjalan
+beberapa jam sesudahnya. Untuk mingguan itu tak berarti apa pun; untuk temuan
+K3 dan mutu, keterlambatan setengah hari layak diketahui.
+
+Ukur sendiri kapan pun:
+
+```bash
+gh run list --workflow=jadwal-tugas.yml -L 10
+```
+
+Kalau ketepatan jam benar-benar dibutuhkan, cron GitHub bukan alatnya — yang
+tepat adalah cron di VPS yang sama dengan API-nya. Itu keputusan operasional,
+bukan perubahan kode: endpoint-nya sama, rahasianya sama.
+
 Penjaga yang menjaga sisi repo-nya:
 
 ```bash

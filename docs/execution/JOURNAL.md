@@ -32171,3 +32171,108 @@ perlu menambah satu lagi.
 1. **Push 930 commit + pasang `SCHEDULER_URL`** — tanpa ini 72 tugas tetap diam
 2. Migrasi **466, 467, 468, 509** ke buku migrasi (G-2)
 3. Survei kepuasan klien (7.11) — mengirim WhatsApp ke pihak luar
+
+## 2026-08-30 — Otomasi hidup untuk pertama kalinya, dan 29 tugas yang ditolak pagarnya sendiri
+
+Founder men-deploy ke VPS. Penjadwal berjalan sungguhan untuk **pertama
+kalinya**, dan langsung menghasilkan dua temuan yang tak mungkin terlihat di
+laptop.
+
+### Penjaga yang dibangun kemarin TERBUKTI BEKERJA
+
+Log run 2026-08-30 16:25 memuat:
+
+```
+##[warning]PENJADWAL MATI — SCHEDULER_URL / SCHEDULER_SECRET belum disetel.
+env:
+  URL:
+  RAHASIA: ***
+```
+
+`URL` kosong, `RAHASIA` terisi — persis keadaan yang saya ukur kemarin. Kalau
+anotasinya masih `::notice::`, peringatan itu **tidak akan terlihat** di
+ringkasan run, dan workflow "success" 8 detik akan terbaca seperti berhasil.
+
+### 29 tugas gagal 403 — dan itu pagar yang BEKERJA
+
+Jalan pertama: `diperiksa 114 · sukses 49 · GAGAL 29 · dilewati 36`.
+
+Semua 29 bergalat `403 "Anda bukan anggota perusahaan tersebut"`. Diukur:
+
+| Tenant | Tugas | Status | Proyek nyata |
+|---|---|---|---|
+| Puraloka Persada | 72 | sukses | 19 |
+| PT Puraloka Nusantara | 18 | **GAGAL** | 3 |
+| PT Puraloka Properti | 18 | **GAGAL** | 2 |
+
+`lib/akun-layanan.ts` sengaja menolak bypass autentikasi — penjadwal tunduk
+pada batas tenant yang sama persis dengan manusia. **403 di sini adalah pagar
+yang berfungsi**, bukan pagar yang rusak. Yang kurang cuma pendaftarannya.
+
+Deploy tidak *menciptakan* cacat ini. Ia **menyalakan lampu di ruangan yang
+sudah lama begitu** — di laptop, penjadwalnya tak pernah berjalan sama sekali.
+
+Migrasi 523 mendaftarkan akun penjadwal ke tiap tenant aktif dengan **peran
+template** (`roles.company_id IS NULL`) — pola yang sudah dipakai kedua PT itu
+sendiri. Isolasi tetap utuh: yang lintas-tenant cuma *definisi* perannya.
+
+Sesudah perbaikan, diukur lewat API produksi:
+
+```
+diperiksa 114 · sukses 36 · GAGAL 0 · dilewati 78
+108 tugas · terakhir_status = sukses di KETIGA tenant
+1.666 notifikasi terbit dalam satu jam
+```
+
+### Mutasi membongkar dua pemeriksaan yang MUSTAHIL merah
+
+Versi pertama migrasi 523 memeriksa "tiap keanggotaan punya `role_id`" dan
+"tepat satu default". Mutasi membuktikan keduanya tak mungkin gagal — basis
+sudah menjaminnya lebih kuat:
+
+- `company_members.role_id` adalah **NOT NULL**
+- `idx_company_members_one_default` — `UNIQUE (user_id) WHERE is_default`
+
+Keduanya dibuang, dan alasannya ditulis di tempatnya. Pemeriksaan yang mustahil
+merah bukan sekadar mubazir: ia **menyesatkan** pembaca berikutnya, yang akan
+mengira invariannya dijaga di situ padahal dijaga di tempat lain — dan karena
+itu tak akan mencarinya saat sesuatu berubah.
+
+⚠ Satu mutasi sempat melapor **LOLOS palsu**: saya memakai `UID` sebagai nama
+variabel bash, yang **readonly** dan berisi UID sistem. Mutasinya tak pernah
+terjadi. Nol perubahan bukan bukti penjaga buta — periksa dulu mutasinya benar
+diterapkan.
+
+### Cron GitHub minta 15 menit, memberi 2–6 jam
+
+Diukur pada enam run berturut-turut: jarak **130–351 menit**.
+
+`cron: '*/15 * * * *'` adalah permintaan, bukan jaminan — GitHub menunda cron
+pada repo beraktivitas rendah, tanpa notifikasi.
+
+Tak ada tugas yang terlewat, karena aturan pemicunya *"sudah lewat jamnya DAN
+belum jalan periode ini"* dan jadwal sungguhan hidup di basis. Yang berubah:
+tugas **harian** berjadwal 06:00–09:30 bisa baru berjalan beberapa jam
+kemudian. Untuk mingguan tak berarti apa pun; untuk temuan K3 dan mutu, layak
+diketahui. Dicatat di `SIAP-DEPLOY.md` §5.
+
+### Penjaga baru
+
+`audit-penjadwal-anggota-tiap-tenant.mjs` (ambang NOL, di CI). Migrasi
+memperbaiki keadaan **hari itu**; tenant baru besok lahir tanpa keanggotaan
+penjadwal, seluruh tugasnya gagal sejak hari pertama, dan kegagalannya cuma
+tercatat di `terakhir_galat` yang tak dibuka siapa pun.
+
+Ia **melewati** (bukan merah) tanpa `DATABASE_URL` — penjaga yang merah karena
+env kurang akan diabaikan orang, dan yang diabaikan tak menjaga apa pun.
+
+**2 mutasi → 2 merah.**
+
+### Yang masih menunggu founder
+
+1. **`SCHEDULER_URL` belum terpasang** — saya tak diizinkan menulis rahasia ke
+   GitHub (diblokir, dan itu benar). Alamatnya sudah terverifikasi:
+   `https://api.puraloka-suite.duckdns.org/api/v1/jadwal/jalankan`
+   (401 tanpa token, `/health` 200).
+2. Migrasi **466, 467, 468, 509, 523** belum dicatat di `schema_migrations` (G-2).
+3. Survei kepuasan klien (7.11) — mengirim WhatsApp ke pihak luar.

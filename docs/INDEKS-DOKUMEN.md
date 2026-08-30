@@ -16,7 +16,7 @@ memuat **setiap** dokumen, tanpa kecuali.
 | **acuan** | aturan/keputusan yang dirujuk saat bekerja | dibaca saat mengerjakan hal terkait; tak "selesai" |
 | **riwayat** | catatan fase yang sudah lewat | bukti apa yang pernah terjadi; jangan dikutip sebagai rencana |
 
-**Total 300 dokumen** — antrean 16 · acuan 215 · riwayat 69.
+**Total 301 dokumen** — antrean 16 · acuan 216 · riwayat 69.
 
 Kolom **RM** = disebut langsung di `ROADMAP.md`.
 
@@ -26,6 +26,7 @@ Kolom **RM** = disebut langsung di `ROADMAP.md`.
 |---|---|:-:|---|
 | [API_ENDPOINTS](API_ENDPOINTS.md) | acuan |  | API Endpoints — Puraloka Suite |
 | [DATABASE_SCHEMA](DATABASE_SCHEMA.md) | acuan |  | Database Schema — Puraloka Suite |
+| [DEPLOY-VPS](DEPLOY-VPS.md) | acuan |  | Deploy ke VPS — runbook |
 | [DEVELOPMENT_LOG](DEVELOPMENT_LOG.md) | riwayat | ✓ | Puraloka Suite — Development Log |
 | [ERP_MASTER_PLAN](ERP_MASTER_PLAN.md) | riwayat | ✓ | Puraloka Suite — ERP Master Plan |
 | [ERP-KONTRAKTOR-BESAR-ARAH](ERP-KONTRAKTOR-BESAR-ARAH.md) | riwayat |  | ERP Kontraktor Besar — apa yang membedakannya, dan bagaimana 8 sisa sebagian t |
