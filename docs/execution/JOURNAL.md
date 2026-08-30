@@ -32476,3 +32476,102 @@ nyata**.
 1. rute `/api/v1/notifikasi/bersihkan` (sekarang `tak-dikenal` di produksi)
 2. pencacah `tak_dikenal` + `gagal_klaim` di ringkasan penjadwal
 3. enam otomasi kepatuhan yang dipulihkan kemarin
+
+## 2026-08-30 (lanjutan 2) — Deploy penuh, dan rantai kegagalan bertingkat yang hanya terlihat di produksi
+
+Founder memberi persetujuan berjalan untuk push/merge/deploy. Dicatat: itu
+berlaku untuk pekerjaan rutin, **bukan** untuk lima Gerbang Keras `CHARTER.md`
+— aturan itu justru ada untuk saat founder sedang tak sempat memeriksa.
+
+Dan saya keliru menyatakan tak punya akses SSH ke VPS. **Punya** — sesi lain
+sudah menyiapkan kuncinya, lengkap dengan `infra/perbarui-vps.sh`. Diukur,
+bukan diasumsikan.
+
+### Push: 42 commit, dan cabang yang salah
+
+`git push origin deploy/vps-perdana:main` — fast-forward bersih, nol commit
+`main` yang tak ada di cabang saya.
+
+Tetapi **VPS melacak `origin/deploy/vps-perdana`**, sementara saya push ke
+`main`. `git pull` di sana tak menarik apa pun, dan build pertama menghasilkan
+container dari kode lama — sukses, sehat, dan **tanpa perubahan apa pun**.
+
+Dipindahkan ke `main`, yang memang sumber kebenaran.
+
+### Tiga kegagalan bertingkat pada satu tugas
+
+`bersih-notifikasi` gagal tiga kali berturut-turut, dan **tiap perbaikan
+membuka lapisan berikutnya**:
+
+| # | Gejala | Sebab sesungguhnya |
+|---|---|---|
+| 1 | `tak-dikenal` × 3 | kodenya belum ter-deploy |
+| 2 | `404 Route GET:… not found` | penjadwal memaku `method: 'GET'`; rutenya POST |
+| 3 | `401 Rahasia penjadwal tidak cocok` | rute pembersih berpagar `x-scheduler-secret`, penjadwal tak membawanya |
+
+Yang kedua paling menyesatkan: "Route GET:… **not found**" terbaca seperti
+kode belum ter-deploy — dan saya menyimpulkan begitu, lalu menjalankan deploy
+ulang sia-sia. Rutenya ada; metodenya yang beda.
+
+Yang ketiga menjelaskan misteri lama: **`bersih-idempotensi` dan
+`bersih-percakapan-ai` tak pernah dipasang di `jadwal_tugas` sama sekali.**
+Siapa pun yang mencoba pasti menemui tembok yang sama, dan menyerah tanpa
+mencatat sebabnya.
+
+Ketiga rute itu berpagar rahasia — bukan `requirePermission` — karena mereka
+**lintas tenant**: pembersihan tak punya konteks tenant, jadi tak ada
+permission per-tenant yang masuk akal menjaganya. Penjadwal kini membawa dua
+kunci: token akun layanan untuk rute ber-permission, rahasia untuk yang
+lintas-tenant.
+
+### Penjaga yang ada BUTA terhadap cacat kedua
+
+`audit-tugas-punya-rute` mencocokkan **jalur saja** dan menerima pendaftaran
+bermetode apa pun. Ia hijau untuk tugas yang jalurnya benar tetapi metodenya
+tidak.
+
+Diperbaiki: kunci petanya kini `metode jalur`, dan pesan galatnya
+**membedakan** "jalur tak ada" dari "jalur ada dengan metode lain" — yang
+kedua menyebut perbaikannya langsung:
+
+```
+bersih-notifikasi
+    jalur '/api/v1/notifikasi/bersihkan' ADA, tetapi terdaftar sebagai POST
+    — katalog memanggilnya GET.
+    Perbaikan: setel `metode: 'POST'` pada entri KATALOG_TUGAS.
+```
+
+Pesan yang mengirim orang mencari rute yang sebenarnya ada adalah pesan yang
+memakan waktu dua kali.
+
+### Hasil akhir di produksi
+
+```
+diperiksa 117 · sukses 3 · gagal 0 · dilewati 114 · tak_dikenal 0 · gagal_klaim 0
+penjumlahan utuh: 117 = 117
+```
+
+Rute pembersih hidup dan terbukti:
+
+```
+POST /api/v1/notifikasi/bersihkan?dryrun=1  → 200
+dibaca 8.893 · akan_dihapus 0 · mendesak_dilindungi 1.017
+```
+
+### Bukti
+
+- 4.233 test fungsi murni hijau (dijalankan sebelum push)
+- 5 test invarian ringkasan hijau
+- mutasi: buang metode POST → **merah dengan pesan yang tepat**;
+  buang header rahasia → **merah**
+- `tsc --noEmit` exit 0, tanpa filter
+- `audit-tugas-punya-rute` hijau, kini mencocokkan metode
+
+### Satu cacat kecil yang tersisa (bukan aplikasi)
+
+`infra/perbarui-vps.sh` langkah 5 memverifikasi
+`https://puraloka-suite.duckdns.org/login` → 404, lalu melapor GAGAL.
+
+Itu **skripnya yang salah alamat**: domain itu compro, dan ERP-nya di
+`app.puraloka-suite.duckdns.org` — yang menjawab **200**. Skripnya ditulis
+sebelum compro dipisah. Deploy-nya sendiri berhasil setiap kali.
