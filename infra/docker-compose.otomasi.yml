@@ -60,7 +60,11 @@ volumes:
 
 services:
   n8n:
-    image: n8nio/n8n:1.68.0
+    # ⚠ Tag DIVERIFIKASI ke Docker Hub 2026-08-30, bukan disalin dari dokumen.
+    # Percobaan pertama memakai 1.68.0 dan GAGAL — tag itu tak ada. Verifikasi
+    # ulang kapan saja:
+    #   curl -s "https://hub.docker.com/v2/repositories/n8nio/n8n/tags?page_size=100&ordering=last_updated"
+    image: n8nio/n8n:2.37.4
     container_name: puraloka-n8n
     restart: unless-stopped
     environment:
@@ -101,7 +105,10 @@ services:
       options: { max-size: "10m", max-file: "3" }
 
   evolution:
-    image: atendai/evolution-api:v2.1.1
+    # ⚠ REPO-nya `evoapicloud`, BUKAN `atendai`. Percobaan pertama memakai
+    # atendai/evolution-api:v2.1.1 dan ditolak registry ("pull access denied").
+    # `atendai` masih ada tapi berhenti di v2.2.3; yang dirawat evoapicloud.
+    image: evoapicloud/evolution-api:v2.3.7
     container_name: puraloka-evolution
     restart: unless-stopped
     environment:
@@ -124,8 +131,22 @@ services:
       DEL_INSTANCE: "false"
     volumes:
       - evolution-puraloka-instances:/evolution/instances
-    ports: ["127.0.0.1:8091:8091"]
-    networks: [puraloka-otomasi-net]
+    # ⚠ `network_mode: host`, dan itu keputusan yang diukur — bukan kemalasan.
+    #
+    # Postgres di mesin ini mendengarkan `127.0.0.1:5432` SAJA, dan itu benar:
+    # basis yang memegang data TJS tak boleh terbuka ke jaringan Docker,
+    # apalagi ke internet. Container di jaringan bridge tak bisa menjangkaunya
+    # — percobaan pertama memakai `172.17.0.1` dan gagal dengan
+    # `P1001: Can't reach database server`.
+    #
+    # Dua jalan keluar, dan salah satunya berbahaya:
+    #   ✗ membuka bind Postgres ke 0.0.0.0  → membuka basis TJS juga
+    #   ✓ Evolution memakai network host    → ia melihat 127.0.0.1 yang sama
+    #
+    # Dengan host network `ports:` tak berlaku lagi; yang menentukan adalah
+    # `SERVER_PORT: 8091` di atas, dan firewall (hanya 22/80/443 terbuka) yang
+    # membuat 8091 tak terjangkau dari luar.
+    network_mode: host
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8091/ || exit 1"]
       interval: 30s
