@@ -28,8 +28,8 @@
 //   salah, yang lebih berbahaya daripada tak menghitung sama sekali.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import type { Periksa } from './struktur-beton'
-import type { MutuBaja } from './struktur-baja'
+import type { Periksa } from './struktur-beton.js'
+import type { MutuBaja } from './struktur-baja.js'
 
 /** Faktor reduksi sambungan (SNI 1729 §J3.6) — lebih ketat daripada batang. */
 export const PHI_SAMBUNGAN = 0.75

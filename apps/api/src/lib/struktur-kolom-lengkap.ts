@@ -29,12 +29,12 @@
 // yang menguji titik beban secara aljabar.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import { analisaKolom, type InputKolom, type HasilElemen, type Periksa } from './struktur-beton'
-import { analisaKolomBulat, FAKTOR_PN_MAX, PHI_TEKAN, type InputKolomBulat, type HasilKolomBulat } from './struktur-kolom-bulat'
+import { analisaKolom, type InputKolom, type HasilElemen, type Periksa } from './struktur-beton.js'
+import { analisaKolomBulat, FAKTOR_PN_MAX, PHI_TEKAN, type InputKolomBulat, type HasilKolomBulat } from './struktur-kolom-bulat.js'
 import {
   diagramPM, cekTitikBeban, penampangPersegi, penampangLingkaran,
   type DiagramPM, type HasilCekTitik,
-} from './struktur-diagram-pm'
+} from './struktur-diagram-pm.js'
 
 export interface HasilKolomLengkap {
   /** Hasil pemeriksaan detail dari modul kolom. */

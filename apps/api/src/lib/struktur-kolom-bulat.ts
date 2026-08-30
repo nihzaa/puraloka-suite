@@ -22,7 +22,7 @@
 import {
   beta1, RHO_BETON, KOEF_BERAT_BESI,
   type MutuBahan, type Periksa, type VolumeElemen, type BarisBesi,
-} from './struktur-beton'
+} from './struktur-beton.js'
 
 /**
  * Jenis pengekang — MENENTUKAN faktor reduksi, dan sering tertukar.

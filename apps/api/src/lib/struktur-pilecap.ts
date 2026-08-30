@@ -20,8 +20,8 @@
 import {
   RHO_BETON, KOEF_BERAT_BESI,
   type MutuBahan, type Periksa, type VolumeElemen, type BarisBesi,
-} from './struktur-beton'
-import { ALPHA_S, type LetakKolom } from './struktur-footplat'
+} from './struktur-beton.js'
+import { ALPHA_S, type LetakKolom } from './struktur-footplat.js'
 
 export interface InputPilecap {
   /** Jumlah tiang arah X. */

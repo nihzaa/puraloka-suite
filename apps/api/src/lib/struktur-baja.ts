@@ -45,7 +45,7 @@
 // sering, jadi ia tak boleh terlewat hanya karena berada di berkas lain.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import type { Periksa, VolumeElemen, BarisBesi } from './struktur-beton'
+import type { Periksa, VolumeElemen, BarisBesi } from './struktur-beton.js'
 
 /** Modulus elastisitas baja struktur, MPa. */
 export const ES_BAJA_STRUKTUR = 200_000

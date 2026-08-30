@@ -30,12 +30,12 @@
 // menggantikan perhitungan bertanda tangan insinyur.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import type { Periksa, VolumeElemen } from './struktur-beton'
+import type { Periksa, VolumeElemen } from './struktur-beton.js'
 import {
   inersiaX, modulusElastis, modulusPlastis, luasPenampang, radiusGirasiY,
   kapasitasLentur, kapasitasTekan, ES_BAJA_STRUKTUR, PHI,
   type ProfilBaja, type MutuBaja,
-} from './struktur-baja'
+} from './struktur-baja.js'
 
 function bilanganPositif(nama: string, v: number): void {
   if (!(v > 0)) throw new Error(`${nama} harus > 0`)

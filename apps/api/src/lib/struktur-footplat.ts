@@ -18,7 +18,7 @@ import {
 // terpisah beserta angkanya, bukan diringkas jadi satu "aman".
 // ══════════════════════════════════════════════════════════════════════════════
 
-import { RHO_BETON, KOEF_BERAT_BESI, type MutuBahan, type Periksa, type VolumeElemen, type BarisBesi } from './struktur-beton'
+import { RHO_BETON, KOEF_BERAT_BESI, type MutuBahan, type Periksa, type VolumeElemen, type BarisBesi } from './struktur-beton.js'
 
 /**
  * Letak kolom pada footplat — menentukan αs pada rumus geser pons.

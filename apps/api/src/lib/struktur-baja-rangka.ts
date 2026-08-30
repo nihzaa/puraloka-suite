@@ -38,11 +38,11 @@
 // buhulnya. Gaya batang harus datang dari perhitungan atau perangkat lain.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import type { Periksa, VolumeElemen } from './struktur-beton'
+import type { Periksa, VolumeElemen } from './struktur-beton.js'
 import {
   luasPenampang, radiusGirasiY, kapasitasTekan, klasifikasiPenampang,
   PHI, type ProfilBaja, type MutuBaja,
-} from './struktur-baja'
+} from './struktur-baja.js'
 
 /** Arah gaya pada satu batang rangka. */
 export type ArahGaya = 'tarik' | 'tekan'

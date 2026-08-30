@@ -27,9 +27,9 @@
 // program lain.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import { beta1, ES_BAJA, REGANGAN_BETON_ULTIMIT } from './struktur-beton'
-import { batangLingkaran } from './struktur-kolom-bulat'
-import type { MutuBahan } from './struktur-beton'
+import { beta1, ES_BAJA, REGANGAN_BETON_ULTIMIT } from './struktur-beton.js'
+import { batangLingkaran } from './struktur-kolom-bulat.js'
+import type { MutuBahan } from './struktur-beton.js'
 
 /** Satu lapis/batang tulangan pada penampang yang ditinjau. */
 export interface LapisTulangan {

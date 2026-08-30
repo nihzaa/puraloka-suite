@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import type { Client } from 'pg'
-import { createTestClient, assertTestIsolation, ensureTestSchema, closeTestClient, TEST_SCHEMA } from './test-db'
+import { createTestClient, assertTestIsolation, ensureTestSchema, closeTestClient, TEST_SCHEMA } from './test-db.js'
 
 // Task 1.1.2 — verifikasi infrastruktur test database, BUKAN test bisnis.
 // Membuktikan: schema test bisa dibuat, koneksi terkunci ke schema test,

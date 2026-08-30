@@ -42,7 +42,7 @@
 // dilewati — item RAB yang hilang diam-diam adalah kekurangan anggaran.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import type { VolumeElemen } from './struktur-beton'
+import type { VolumeElemen } from './struktur-beton.js'
 import { labelK } from './struktur-mutu-nyata.js'
 import {
   konversiBesiBeton, konversiBajaProfil, type SatuanBeli,

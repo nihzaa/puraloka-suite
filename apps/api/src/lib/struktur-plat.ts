@@ -8,9 +8,9 @@
 // bukan logika, dan tiga koreksi terhadap sumbernya tercatat di sana.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import { beta1, RHO_BETON, KOEF_BERAT_BESI, type MutuBahan, type Periksa, type VolumeElemen, type BarisBesi } from './struktur-beton'
+import { beta1, RHO_BETON, KOEF_BERAT_BESI, type MutuBahan, type Periksa, type VolumeElemen, type BarisBesi } from './struktur-beton.js'
 import { fungsiRuang, lapisMatiDari } from './struktur-katalog-beban.js'
-import { koefisienMomen, tentukanKondisi, type KondisiPelat, type Tumpuan } from './struktur-tabel-plat'
+import { koefisienMomen, tentukanKondisi, type KondisiPelat, type Tumpuan } from './struktur-tabel-plat.js'
 
 /** Satu komponen beban mati — dipisah supaya rinciannya bisa ditampilkan. */
 export interface BebanMati {

@@ -15,7 +15,7 @@
 // yang benar — dan arah kesalahannya tak bisa ditebak tanpa menghitung.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import { RHO_BETON, type VolumeElemen } from './struktur-beton'
+import { RHO_BETON, type VolumeElemen } from './struktur-beton.js'
 
 /** Satu lapisan data uji tanah sepanjang kedalaman tiang. */
 export interface LapisanTanah {

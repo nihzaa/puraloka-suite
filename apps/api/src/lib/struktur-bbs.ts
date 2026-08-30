@@ -24,7 +24,7 @@
 // angka. Rumus-rumusnya diverifikasi ulang dan tercatat di test.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import { KOEF_BERAT_BESI } from './struktur-beton'
+import { KOEF_BERAT_BESI } from './struktur-beton.js'
 
 /** Panjang lonjor baku di Indonesia, m. */
 export const PANJANG_LONJOR_M = 12

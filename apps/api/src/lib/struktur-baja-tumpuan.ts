@@ -33,9 +33,9 @@
 // angkur bertarik — itu perhitungan yang berbeda dan lebih panjang.
 // ══════════════════════════════════════════════════════════════════════════════
 
-import type { Periksa, VolumeElemen } from './struktur-beton'
-import type { MutuBaja, ProfilBaja } from './struktur-baja'
-import { PHI_SAMBUNGAN, type MutuBaut } from './struktur-baja-sambungan'
+import type { Periksa, VolumeElemen } from './struktur-beton.js'
+import type { MutuBaja, ProfilBaja } from './struktur-baja.js'
+import { PHI_SAMBUNGAN, type MutuBaut } from './struktur-baja-sambungan.js'
 
 export interface InputBasePlate {
   /** Profil kolom yang ditumpu. */
