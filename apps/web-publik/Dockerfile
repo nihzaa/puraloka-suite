@@ -35,6 +35,14 @@ COPY apps/web-publik/ apps/web-publik/
 
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_SUPABASE_URL
+# ⚠ Ketiganya dibutuhkan SAAT BUILD, bukan cuma saat runtime.
+#
+# Halaman `/` di-PRERENDER oleh `next build`, dan prerender itu benar-benar
+# mengambil datanya. Tanpa ketiganya build gagal dengan
+#   "SITUS_COMPANY_ID belum diset. Situs publik tidak tahu konten milik siapa."
+ARG SITUS_COMPANY_ID
+ARG SUPABASE_SECRET_KEY
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
 # Gagal SEKARANG, bukan nanti.
 #
 # `next.config.ts` memakai `new URL(NEXT_PUBLIC_SUPABASE_URL ?? 'https://localhost')`
