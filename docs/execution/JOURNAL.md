@@ -32394,3 +32394,85 @@ angkanya 18 juga saat berkas saya disingkirkan dari pohon.
 
 ~~Migrasi belum dicatat di schema_migrations~~ — **dicoret, lihat bagian
 pertama entri ini.**
+
+## 2026-08-30 (lanjutan) — SCHEDULER_URL terpasang, dan dua status yang hilang dari ringkasan
+
+Founder memasang `SCHEDULER_URL`. Penjadwal langsung bekerja penuh:
+
+```
+diperiksa 117 · sukses 0 · gagal 0 · dilewati 114
+```
+
+Nol gagal, dan `dilewati` dengan alasan `sudah-jalan-periode-ini` — klaim
+atomiknya bekerja.
+
+### Tapi 117 ≠ 0 + 0 + 114
+
+**Tiga baris hilang dari ringkasan.** Ketiganya `bersih-notifikasi` berstatus
+`tak-dikenal` — tugas yang sudah dipasang migrasi 524 tetapi rutenya belum ada
+di API produksi.
+
+Workflow hanya memperingatkan bila `gagal != 0`. Status yang tak terhitung di
+mana pun **tak pernah memicu apa pun** — jadi tugas yang namanya salah ketik,
+atau yang migrasinya sudah jalan sementara kodenya belum ter-deploy, diam
+selamanya dengan ringkasan yang terlihat sehat dan CI hijau.
+
+Kelas cacat yang sama dengan `::notice::` pada cabang dilewati: bukan salah,
+cuma **tak terlihat**.
+
+### Test invarian menemukan cacat KEDUA, yang sudah diam jauh lebih lama
+
+`gagal-klaim` juga tak pernah dicacah. Artinya penanda `terakhir_jalan` gagal
+ditulis ke basis — tugasnya mungkin sudah berjalan, tetapi jejaknya tak
+tersimpan, jadi ia berjalan **lagi** pada denyut berikutnya. Untuk yang
+mengirim notifikasi itu berarti pesan ganda; untuk yang menulis data,
+pekerjaan ganda.
+
+Keduanya kini dicacah **terpisah**, bukan digabung ke `gagal` — sebab dan
+tindakannya berbeda:
+
+| status | artinya | yang dikerjakan |
+|---|---|---|
+| `gagal` | rutenya ada tapi menolak | periksa izin/data |
+| `tak_dikenal` | rutenya tak ada sama sekali | deploy, atau buang barisnya |
+| `gagal_klaim` | basisnya yang menolak | periksa koneksi/kunci |
+
+### Dua kali test saya salah sasaran, dan mutasi yang membongkarnya
+
+**Pertama:** versi awal memeriksa `h.status === '...'` di **seluruh** berkas.
+Membuang `gagal_klaim:` dari objek `ringkas` tetap LOLOS, karena penyaringnya
+(`const gagalKlaim = …`) masih ada beberapa baris di atas.
+
+Yang menentukan bukan apakah statusnya **disaring**, melainkan apakah hasilnya
+**masuk objek yang dikirim**.
+
+**Kedua:** regex log memakai alternasi tanpa kurung —
+
+```js
+/log\.error\([\s\S]{0,200}tak_dikenal|takDikenal/
+```
+
+`|` mengikat **seluruh** pola, jadi cukup kata `takDikenal` muncul di mana pun
+(termasuk di `const takDikenal = …`) dan test lolos meski log-nya dibuang.
+
+Dua-duanya ditemukan mutasi, bukan pembacaan kode. Dan dua-duanya bentuk yang
+sama: **test yang mengukur sesuatu di dekat yang dimaksud, bukan yang dimaksud.**
+
+### Bukti
+
+- 13 test hijau (3 invarian ringkasan + 10 retensi notifikasi)
+- **4 mutasi → 4 merah**: buang pencacah `tak_dikenal`, buang pencacah
+  `gagal_klaim`, buang log `tak-dikenal`, buang log `gagal-klaim`
+- `tsc --noEmit` exit 0, tanpa filter
+- 6 penjaga hijau
+
+Workflow juga memperingatkan keduanya, plus memeriksa penjumlahan ringkasan
+utuh — dua lapis: test memeriksa **bentuk kode**, workflow memeriksa **jawaban
+nyata**.
+
+### Yang menunggu founder
+
+**Deploy ulang.** Tiga hal baru butuh kode di VPS:
+1. rute `/api/v1/notifikasi/bersihkan` (sekarang `tak-dikenal` di produksi)
+2. pencacah `tak_dikenal` + `gagal_klaim` di ringkasan penjadwal
+3. enam otomasi kepatuhan yang dipulihkan kemarin
