@@ -309,6 +309,18 @@ jobs:
       - name: format() di migrasi punya argumen cukup
         run: node scripts/audit-format-argumen-cukup.mjs
 
+      # Migrasi yang memaku id perusahaan WAJIB bergerbang.
+      #
+      # `237_seed_lapangan_dummy.sql` memaku id perusahaan basis DEV. Di basis
+      # CI — yang dimulai kosong — baris itu tak pernah ada, jadi FK-nya
+      # menolak dan SELURUH rantai migrasi berhenti di situ. Enam shard test
+      # merah berhari-hari karena data hiasan dashboard.
+      #
+      # Allowlist tak dipakai: ia hanya menolong CI. VPS, mesin developer baru,
+      # dan tenant baru menabrak kegagalan yang sama.
+      - name: Seed tak memaku id perusahaan tanpa gerbang
+        run: node scripts/audit-seed-perusahaan-dipaku.mjs
+
       # Satu lapis LEBIH JAUH dari L-4, dan celah di antara keduanya nyata.
       # L-4 menjawab "adakah yang membaca kolom jadwal ini?" — jawabannya YA,
       # `jadwal.ts` membacanya dengan benar. Yang bolong: jalur yang dibaca itu

@@ -45,6 +45,45 @@
 -- hari berturut-turut tak pernah terjadi di lapangan mana pun.
 -- ════════════════════════════════════════════════════════════════════════════
 
+-- ════════════════════════════════════════════════════════════════════════════
+-- GERBANG — seed ini terikat pada SATU perusahaan yang id-nya dipaku
+-- ════════════════════════════════════════════════════════════════════════════
+--
+-- ⚠ DITAMBAHKAN 2026-08-31. Migrasi ini MEMBUNUH CI selama berhari-hari:
+--
+--     HARD FAIL — 237_seed_lapangan_dummy.sql
+--       insert or update on table "workers"
+--       violates foreign key constraint "workers_company_id_fkey"
+--
+-- Sebabnya bukan cacat SQL. `company_id` di sini adalah id perusahaan di basis
+-- DEV, dipaku sebagai literal. Basis CI dimulai kosong dan tak pernah punya
+-- baris itu, jadi FK-nya menolak — dan karena tiap migrasi dibungkus transaksi,
+-- kegagalan ini menghentikan SELURUH rantai di belakangnya.
+--
+-- ── Kenapa TIDAK dimasukkan ke SKIP_ALLOWLIST
+--
+-- Allowlist membuat CI melewatinya. Itu memperbaiki CI, dan hanya CI. Lingkungan
+-- baru mana pun — VPS, mesin developer baru, tenant baru — akan menabrak
+-- kegagalan yang sama, dan di sana tak ada allowlist yang menolong.
+--
+-- Preseden repo ini (016 → dicatat di 181, dan 212 pada 2026-08-31) sudah jelas:
+-- yang rusak diperbaiki di tempatnya, bukan dilewati.
+--
+-- ── Yang dilakukan gerbang ini
+--
+-- Kalau perusahaannya ada  → seed berjalan seperti biasa (dev).
+-- Kalau tidak ada          → NO-OP dengan catatan, bukan galat (CI, lingkungan baru).
+--
+-- Data ini murni dummy untuk mengisi dashboard (lihat kepala berkas), jadi
+-- ketiadaannya di lingkungan bersih bukan kerugian. Yang merugikan adalah
+-- rantai migrasi yang berhenti karenanya.
+DO $seed_lapangan$
+BEGIN
+IF NOT EXISTS (SELECT 1 FROM companies WHERE id = '48befb54-113d-4e1b-b4dd-91cf79d6d8a0'::uuid) THEN
+  RAISE NOTICE '237 dilewati: perusahaan dev 48befb54-113d-4e1b-b4dd-91cf79d6d8a0 tak ada di basis ini. Seed dummy — bukan galat.';
+  RETURN;
+END IF;
+
 -- ------------------------------------------------------------
 -- 1. TUKANG — 57 tambahan (3 sudah ada, total 60)
 --
@@ -410,6 +449,9 @@ ON CONFLICT (id) DO NOTHING;
 -- disaring (hari Minggu, kehadiran bolong), dan mematok angka persis akan
 -- membuat migrasi ini merah setiap kali tanggal berganti.
 -- ------------------------------------------------------------
+
+END $seed_lapangan$;
+
 DO $$
 DECLARE
   n_worker  INT;
@@ -418,6 +460,23 @@ DECLARE
   n_ncr     INT;
   n_inspek  INT;
 BEGIN
+  /*
+    VERIFIKASI TUNDUK PADA GERBANG YANG SAMA.
+
+    Tanpa ini, blok ini tetap berjalan di lingkungan yang seed-nya di-no-op
+    dan RAISE EXCEPTION karena mendapati nol baris — jadi gerbang di atas
+    tak menolong apa pun: migrasinya tetap mematikan rantai, hanya dengan
+    pesan yang berbeda.
+
+    Diukur 2026-08-31: gerbang dipasang, no-op berhasil, lalu blok INI yang
+    gagal. Memasang gerbang di satu tempat dan lupa tempat kedua adalah cara
+    paling mudah menyimpulkan "sudah beres" atas sesuatu yang belum.
+  */
+  IF NOT EXISTS (SELECT 1 FROM companies WHERE id = '48befb54-113d-4e1b-b4dd-91cf79d6d8a0'::uuid) THEN
+    RAISE NOTICE '237 verifikasi dilewati: seed tak dijalankan di basis ini.';
+    RETURN;
+  END IF;
+
   SELECT count(*) INTO n_worker FROM workers WHERE is_active;
   SELECT count(*) INTO n_absen  FROM absensi_harian;
   SELECT count(*) INTO n_punch  FROM punch_items;

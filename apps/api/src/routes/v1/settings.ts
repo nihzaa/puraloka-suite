@@ -368,13 +368,47 @@ export default async function settingsRoutes(app: FastifyInstance) {
   app.get('/api/v1/settings/finance', {
     preHandler: [authenticate],
   }, async (request, reply) => {
-    const { data, error } = await request.db!
-      .from('financial_config')
-      .select('key, value, value_type, effective_from, effective_to, note, updated_at:created_at')
-      .order('key', { ascending: true })
-      .order('effective_from', { ascending: false })
-    if (error) return reply.status(500).send({ error: error.message })
-    return reply.send({ config: data ?? [] })
+    /*
+      DIAMBIL BERHALAMAN — PostgREST memotong di 1.000 baris TANPA GALAT.
+
+      Diukur 2026-08-31: `financial_config` berisi 9.179 baris; pembacaan ini
+      memulangkan 1.000. Yang 8.179 tak pernah terbaca, `error` null.
+
+      ⚠ DIUKUR SESUDAHNYA, DAN ANGKANYA TAK SEBURUK ITU. Baris-baris itu
+      tersebar di ratusan tenant; RLS menyaring per-tenant lebih dulu, dan
+      tenant terbesar hari ini punya 14 baris. Jadi pemotongan 1.000 BELUM
+      pernah menggigit pengguna mana pun.
+
+      Perbaikannya tetap benar — batas itu akan menggigit begitu satu tenant
+      melewati 1.000, dan saat itu terjadi ia diam. Tapi klaim "8.179 baris
+      tak pernah terbaca" TIDAK akurat: yang tak terbaca adalah baris milik
+      tenant LAIN, yang memang tak boleh terbaca.
+
+      Tabel ini menyimpan riwayat effective-dated tarif pajak, retensi, dan
+      denda. Diurutkan `key` menaik, jadi pemotongan di 1.000 membuang kunci
+      di akhir abjad SELURUHNYA — bukan sekadar riwayat lamanya. Halaman
+      pengaturan lalu memperlihatkan bahwa tarif itu belum pernah diatur,
+      dan orang menetapkannya lagi di atas nilai yang sebenarnya ada.
+
+      `.limit()` tak menolong: 1.000 itu batas keras PostgREST (diverifikasi
+      di `ahsp.ts`). Menaikkannya hanya memindahkan ambangnya.
+
+      Dijaga `audit-baca-tak-terpotong.mjs` (ambang NOL).
+    */
+    const HALAMAN = 1000
+    const config: unknown[] = []
+    for (let mulai = 0; ; mulai += HALAMAN) {
+      const { data, error } = await request.db!
+        .from('financial_config')
+        .select('key, value, value_type, effective_from, effective_to, note, updated_at:created_at')
+        .order('key', { ascending: true })
+        .order('effective_from', { ascending: false })
+        .range(mulai, mulai + HALAMAN - 1)
+      if (error) return reply.status(500).send({ error: error.message })
+      config.push(...(data ?? []))
+      if (!data || data.length < HALAMAN) break
+    }
+    return reply.send({ config })
   })
 
   // ── GET /api/v1/settings/penalty ──────────────────────────────────────────────

@@ -13,12 +13,48 @@ export default async function approvalChainRoutes(app: FastifyInstance) {
 
   // ── GET /api/v1/approval-chains — semua rantai + langkahnya ────────────────
   app.get('/api/v1/approval-chains', { preHandler: [authenticate] }, async (request, reply) => {
-    const { data, error } = await request.db!
-      .from('approval_chains')
-      .select('id, entity_type, label, is_active, approval_steps ( id, level, required_permission, min_amount, max_amount, label )')
-      .order('entity_type', { ascending: true })
-    if (error) return reply.status(500).send({ error: error.message })
-    const chains = (data ?? []).map(c => ({
+    /*
+      DIAMBIL BERHALAMAN — PostgREST memotong di 1.000 baris TANPA GALAT.
+
+      Diukur 2026-08-31: `approval_chains` berisi 1.847 baris, dan pembacaan
+      ini memulangkan 1.000. Yang 847 tak pernah terbaca, `error` null, dan
+      halaman pengaturan menampilkan daftar rantai persetujuan yang tak
+      lengkap — tanpa satu pun gejala.
+
+      ⚠ DIUKUR SESUDAHNYA, DAN ANGKANYA TAK SEBURUK ITU. Baris-baris itu
+      tersebar di ratusan tenant; RLS menyaring per-tenant lebih dulu, dan
+      tenant terbesar hari ini punya 13 baris. Jadi pemotongan 1.000 BELUM
+      pernah menggigit pengguna mana pun.
+
+      Perbaikannya tetap benar — batas itu akan menggigit begitu satu tenant
+      melewati 1.000, dan saat itu terjadi ia diam. Tapi klaim "8.179 baris
+      tak pernah terbaca" TIDAK akurat: yang tak terbaca adalah baris milik
+      tenant LAIN, yang memang tak boleh terbaca.
+
+      Untuk tabel INI akibatnya bukan kosmetik: rantai yang tak terbaca tak
+      bisa disunting, dan pemakai menyimpulkan rantainya tidak ada lalu
+      membuat yang baru — dua rantai untuk entitas yang sama.
+
+      `.limit()` tak menolong: batas 1.000 itu keras di sisi PostgREST
+      (dicatat di `ahsp.ts` sesudah diverifikasi — minta 5.000 tetap dapat
+      1.000). Menaikkannya hanya memindahkan ambang, dan cacat yang sama
+      kembali diam-diam saat tabelnya tumbuh.
+
+      Dijaga `audit-baca-tak-terpotong.mjs` (ambang NOL).
+    */
+    const HALAMAN = 1000
+    const data: unknown[] = []
+    for (let mulai = 0; ; mulai += HALAMAN) {
+      const { data: bagian, error } = await request.db!
+        .from('approval_chains')
+        .select('id, entity_type, label, is_active, approval_steps ( id, level, required_permission, min_amount, max_amount, label )')
+        .order('entity_type', { ascending: true })
+        .range(mulai, mulai + HALAMAN - 1)
+      if (error) return reply.status(500).send({ error: error.message })
+      data.push(...(bagian ?? []))
+      if (!bagian || bagian.length < HALAMAN) break
+    }
+    const chains = (data as { approval_steps?: unknown[] }[]).map(c => ({
       ...c,
       approval_steps: [...((c.approval_steps ?? []) as { level: number }[])].sort((a, b) => a.level - b.level),
     }))
