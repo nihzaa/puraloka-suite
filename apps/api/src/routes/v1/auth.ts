@@ -249,7 +249,52 @@ export default async function authRoutes(app: FastifyInstance) {
 
     if (galatAnggota) {
       request.log.error({ galatAnggota, userId: user.id }, 'gagal membuat keanggotaan perusahaan')
-      await supabase.from('users').delete().eq('id', user.id)
+
+      /*
+        HASIL PEMBERSIHAN DIPERIKSA — meski kita sudah di jalur galat.
+
+        Godaannya jelas: pendaftarannya sudah gagal, jadi apa gunanya memeriksa
+        pembersihannya? Gunanya ini — kalau `delete` juga gagal, tertinggal
+        akun `users` TANPA keanggotaan apa pun. Akun seperti itu bisa masuk,
+        lalu `auth_company_id()` NULL membuat RLS menyaring habis SEGALANYA:
+        pengguna melihat aplikasi kosong dan menyimpulkan sistemnya rusak.
+
+        Itu persis cacat yang menghabiskan waktu 2026-08-18, saat
+        `authIdForRole` memilih admin tanpa keanggotaan dan tiga test merah
+        403 di tempat yang menuduh kode lain.
+
+        Yang TIDAK diubah: alurnya tetap membalas 500 apa pun hasilnya —
+        pendaftarannya memang gagal. Yang ditambahkan cuma JEJAK, supaya akun
+        yatim bisa ditemukan alih-alih ditemukan oleh pemakainya.
+
+        Dijaga `scripts/audit-tulis-tanpa-periksa.mjs` (ambang 17); baris ini
+        yang menaikkannya ke 18 sejak commit ada7df51.
+
+        ⚠ `{ error }` SAJA TIDAK CUKUP, dan itu ambang KEDUA penjaga yang sama.
+        `error` hanya terisi kalau QUERY-nya gagal — `delete` yang tak cocok
+        dengan satu baris pun membalas sukses dengan nol baris tersentuh.
+
+        Percobaan pertama saya memakai `{ error }` saja, dan penjaganya naik
+        72 → 73: pelanggarannya cuma berpindah pintu. `.select('id')`
+        membuatnya memulangkan baris yang BENAR-BENAR terhapus.
+      */
+      const { data: terhapus, error: galatBersih } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', user.id)
+        .select('id')
+
+      if (galatBersih || !terhapus || terhapus.length === 0) {
+        request.log.error(
+          {
+            galatBersih,
+            baris_terhapus: terhapus?.length ?? 0,
+            userId: user.id,
+            authUserId: authData.user.id,
+          },
+          'AKUN YATIM: pendaftaran gagal DAN pembersihannya tak menyentuh satu baris pun — user tanpa keanggotaan tertinggal di basis',
+        )
+      }
       await supabase.auth.admin.deleteUser(authData.user.id)
       return reply.status(500).send({
         error: 'Gagal mendaftarkan keanggotaan perusahaan — pendaftaran dibatalkan',
