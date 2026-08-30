@@ -35,7 +35,27 @@ BEGIN
   FOREACH t IN ARRAY ARRAY['milestone_dependencies','hari_libur','pola_kerja',
                            'kebutuhan_sumber_daya','method_statement']
   LOOP
+    /*
+      DUA nama di-DROP, bukan satu — DITAMBAHKAN 2026-08-31.
+
+      Migrasi ini memasang ulang policy tenant sebagai `<tabel>_tenant`.
+      Kalau basisnya sudah pernah melewati migrasi 216 — yang me-rename nama
+      itu jadi `tenant_isolation` — maka yang lama tak ada untuk di-DROP, dan
+      `CREATE` di bawah MENAMBAH policy kedua alih-alih menggantikan.
+
+      Hasilnya 20 policy, sementara verifikasi di bawah menuntut 15:
+
+          Policy tak lengkap sesudah dipasang ulang: 20 (harusnya 15)
+
+      Diukur di CI 2026-08-31. Basisnya bukan lingkungan bersih sungguhan —
+      ia menyimpan `tenant_isolation` dari run sebelumnya, dan migrasi ini
+      diputar ulang di atasnya.
+
+      Membuang KEDUA nama membuat migrasi ini idempoten terhadap keadaan
+      mana pun: sebelum 216, sesudah 216, atau di tengah pengulangan.
+    */
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', t || '_tenant', t);
+    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
     EXECUTE format(
       'CREATE POLICY %I ON %I AS RESTRICTIVE FOR ALL
          USING (company_id = (SELECT auth_company_id()))

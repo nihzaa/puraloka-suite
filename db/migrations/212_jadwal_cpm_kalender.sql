@@ -205,7 +205,20 @@ BEGIN
     -- nama itu, dan `t5a-policy-tenant.test.ts` mencarinya secara harfiah.
     -- Nama yang bervariasi memaksa penjaganya menebak pola — dan penjaga
     -- yang menebak akan melewatkan tabel yang polanya sedikit berbeda.
+    /*
+      DUA nama di-DROP, bukan satu.
+
+      Kalau basisnya sudah pernah melewati migrasi 216 — yang me-rename
+      `<tabel>_tenant` jadi `tenant_isolation` — maka nama lama tak ada untuk
+      di-DROP, dan `CREATE` di bawah MENAMBAH policy kedua alih-alih
+      menggantikan. Hasilnya 20 policy, dan verifikasi menuntut 15.
+
+      Diukur 2026-08-31 saat memutar ulang rantai ini di atas basis yang sudah
+      sampai 216. Migrasi idempoten harus tahan terhadap keadaan mana pun,
+      bukan hanya terhadap basis kosong.
+    */
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', t || '_tenant', t);
+    EXECUTE format('DROP POLICY IF EXISTS tenant_isolation ON %I', t);
     /*
       ⚠ DIPERBAIKI DI TEMPAT 2026-08-31 — dua `%I`, satu argumen.
 
