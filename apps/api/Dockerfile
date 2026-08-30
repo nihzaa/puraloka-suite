@@ -39,6 +39,18 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/ packages/
 COPY apps/api/ apps/api/
 
+# ⚠ Heap dinaikkan — `tsc` kehabisan memori di VPS.
+#
+# Diukur 2026-08-30: build gagal dengan
+#   FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
+#
+# Bawaan Node ~2 GB pada mesin 8 GB, dan proyek ini besar (494 migrasi, ratusan
+# rute, tipe yang saling merujuk dalam). Ini BUKAN kebocoran memori: kompilasi
+# sekali jalan memang butuh lebih, dan angkanya turun lagi begitu build selesai.
+#
+# 4 GB dipilih karena VPS punya ~6 GB tersedia — menyisakan ruang untuk
+# container lain yang sedang berjalan (TJS, n8n, Evolution, admin-saas).
+ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN cd apps/api && pnpm build
 
 # Buang dependensi pengembangan SESUDAH build — `tsc` butuh mereka, runtime
