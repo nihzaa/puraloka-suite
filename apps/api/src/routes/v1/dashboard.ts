@@ -587,15 +587,32 @@ export default async function dashboardRoutes(app: FastifyInstance) {
       return rataUrut(peta)
     }
 
+    /*
+      Deret ini adalah RIWAYAT dari angka yang sama dengan `/api/v1/dashboard`
+      — nilai kontrak, piutang, kas masuk perusahaan. Menyaring KPI-nya tapi
+      membiarkan sparkline-nya berarti angkanya tetap sampai, hanya lewat
+      pintu lain. Aturan yang dipakai karena itu SAMA PERSIS.
+    */
+    const bolehUang = await hasPermission(request, 'finance:view')
+    const bolehUangSemua = await hasPermission(request, 'finance:view:all')
+
     return {
       bulan: BULAN,
       mulai: mulai.toISOString().slice(0, 7),
       deret: {
+        /* Cacah proyek — bukan nilainya. Aman untuk semua yang bisa melihat
+           proyek, dan tanpa ini sparkline pertama kosong untuk semua orang. */
         proyek_aktif: hitung(proyek.data as Record<string, unknown>[], 'start_date'),
-        nilai_kontrak: hitung(proyek.data as Record<string, unknown>[], 'start_date', 'contract_value'),
-        invoice_belum_lunas: hitung(invoice.data as Record<string, unknown>[], 'issued_date', 'amount_due'),
-        kas_masuk: hitung(bayar.data as Record<string, unknown>[], 'paid_at', 'amount_paid'),
-        kasbon: hitung(kasbon.data as Record<string, unknown>[], 'kasbon_date', 'amount'),
+        ...(bolehUangSemua
+          ? {
+              nilai_kontrak: hitung(proyek.data as Record<string, unknown>[], 'start_date', 'contract_value'),
+              invoice_belum_lunas: hitung(invoice.data as Record<string, unknown>[], 'issued_date', 'amount_due'),
+              kas_masuk: hitung(bayar.data as Record<string, unknown>[], 'paid_at', 'amount_paid'),
+            }
+          : {}),
+        ...(bolehUang
+          ? { kasbon: hitung(kasbon.data as Record<string, unknown>[], 'kasbon_date', 'amount') }
+          : {}),
       },
     }
   })

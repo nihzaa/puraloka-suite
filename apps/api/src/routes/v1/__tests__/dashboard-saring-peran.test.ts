@@ -42,6 +42,19 @@ const UANG_PERUSAHAAN = [
 let db: Client
 let app: FastifyInstance
 
+async function sebagaiDeret(peran: string) {
+  const auth = await authIdForRole(db, peran)
+  if (!auth) return null
+  vi.spyOn(supabaseAuth.auth, 'getUser').mockResolvedValue(
+    { data: { user: { id: auth } }, error: null } as never
+  )
+  return app.inject({
+    method: 'GET',
+    url: '/api/v1/dashboard/deret',
+    headers: { authorization: 'Bearer t' },
+  })
+}
+
 async function sebagai(peran: string) {
   const auth = await authIdForRole(db, peran)
   if (!auth) return null
@@ -110,6 +123,23 @@ describe('dashboard — angka perusahaan hanya untuk finance:view:all', () => {
     expect(b.kpis, 'klien menerima total kasbon karyawan').not.toHaveProperty('kasbon_active_total')
     expect(b, 'klien menerima daftar kasbon karyawan').not.toHaveProperty('pending_kasbons')
     expect(b, 'klien menerima ringkasan pajak perusahaan').not.toHaveProperty('tax_summary')
+  }, 60_000)
+
+  it('/deret disaring dengan aturan yang SAMA', async () => {
+    /* Deret adalah RIWAYAT dari angka yang sama. Menyaring KPI tapi
+       membiarkan sparkline berarti angkanya tetap sampai lewat pintu lain. */
+    const r = await sebagaiDeret('mandor')
+    expect(r, 'tak ada pengguna mandor').not.toBeNull()
+    expect(r!.statusCode).toBe(200)
+    const d = r!.json().deret
+    expect(d, 'mandor menerima riwayat nilai kontrak').not.toHaveProperty('nilai_kontrak')
+    expect(d, 'mandor menerima riwayat piutang').not.toHaveProperty('invoice_belum_lunas')
+    expect(d, 'mandor menerima riwayat kas masuk').not.toHaveProperty('kas_masuk')
+    /* Cacah proyek tetap ada — tanpa itu sparkline pertama kosong utk semua. */
+    expect(d, 'mandor kehilangan cacah proyek aktif').toHaveProperty('proyek_aktif')
+
+    const ra = await sebagaiDeret('admin')
+    expect(ra!.json().deret, 'admin kehilangan riwayat nilai kontrak').toHaveProperty('nilai_kontrak')
   }, 60_000)
 
   it('yang tak berhak TETAP menerima blok non-uang', async () => {
