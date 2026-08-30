@@ -49,6 +49,45 @@ SELECT r.id, p.id
    AND p.key IN ('settings:wa:template', 'ai:tulis')
 ON CONFLICT DO NOTHING;
 
+/*
+  PEMBERIAN MENYELURUH — ditambahkan 2026-08-31.
+
+  ── Kenapa dua baris di atas tidak cukup
+
+  Verifikasi di bawah memeriksa SELURUH modul `ai` dan `settings`, sementara
+  pemberian di atas menyebut dua kunci. Selama ini keduanya tampak sepakat
+  karena di basis dev izin lain sudah diberikan LEWAT UI — tindakan manual di
+  satu mesin, persis yang kepala berkas ini peringatkan.
+
+  Di CI, tempat tak ada yang pernah mengklik apa pun, jaraknya terlihat:
+
+      HARD FAIL — 271_izin_yatim_diberikan.sql
+        masih ada izin yatim di modul ai/settings: ai:setujui,
+        settings:ai:batas, settings:penyedia:view, settings:penyedia:manage
+
+  Keempatnya lahir dari migrasi 260 dan 266 — sebelum berkas ini — dan tak
+  satu pun migrasi memberikannya ke peran mana pun.
+
+  Jadi migrasi ini menuntut sesuatu yang tak ia kerjakan sendiri. Yang benar
+  bukan melonggarkan verifikasinya, melainkan menyamakan pemberiannya dengan
+  apa yang ia periksa.
+
+  ── Tetap tunduk ADR-004
+
+  Yang diberikan hanya SATU pemegang awal, ke peran `admin`, supaya fiturnya
+  bisa dicapai; sisanya diatur lewat UI peran. Migrasi tidak memutuskan siapa
+  boleh apa untuk selamanya — alasan lengkapnya di kepala berkas.
+*/
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+  FROM roles r
+ CROSS JOIN permissions p
+ WHERE r.name = 'admin'
+   AND p.module IN ('ai', 'settings')
+   AND NOT EXISTS (
+     SELECT 1 FROM role_permissions rp WHERE rp.permission_id = p.id)
+ON CONFLICT DO NOTHING;
+
 -- ------------------------------------------------------------
 -- Verifikasi — pola migrasi 142.
 -- ------------------------------------------------------------
