@@ -203,11 +203,43 @@ DECLARE
   n1    UUID;
   n     INT;
   gagal BOOLEAN;
+  co2_dibuat BOOLEAN := FALSE;
 BEGIN
   SELECT id INTO co FROM companies ORDER BY created_at LIMIT 1;
   SELECT id INTO co2 FROM companies WHERE id <> co LIMIT 1;
-  IF co IS NULL OR co2 IS NULL THEN
-    RAISE EXCEPTION '335 gagal: butuh dua company untuk menguji isolasi — verifikasi tak bisa dipercaya';
+
+  /*
+    ⚠ COMPANY KEDUA DIBUAT SENDIRI BILA TAK ADA — DIPERBAIKI 2026-08-31.
+
+    Versi sebelumnya menyerah:
+
+        HARD FAIL — 335_template_wbs.sql
+          335 gagal: butuh dua company untuk menguji isolasi —
+                     verifikasi tak bisa dipercaya
+
+    Kalimat itu benar sebagai penilaian: verifikasi isolasi tenant memang tak
+    berarti apa-apa dengan satu tenant. Yang keliru kesimpulannya — ia
+    menghentikan SELURUH rantai migrasi di lingkungan baru mana pun, karena
+    basis yang baru lahir memang cuma punya satu company. CI, VPS baru, mesin
+    developer baru: semuanya.
+
+    Menyerah bukan satu-satunya pilihan. Verifikasi ini sudah membuat dan
+    membuang fixture-nya sendiri (blok "Bersihkan" di bawah), jadi ia boleh
+    membuat tenant kedua dengan cara yang sama.
+
+    `co2_dibuat` menandai supaya yang dibuat di sini DIBUANG lagi, dan tenant
+    yang memang sudah ada tak pernah tersentuh.
+  */
+  IF co IS NULL THEN
+    RAISE EXCEPTION '335 gagal: nol company — basis belum berisi apa pun';
+  END IF;
+
+  IF co2 IS NULL THEN
+    INSERT INTO companies (code, name)
+    VALUES ('verif335-tenant-kedua', 'Tenant uji isolasi 335')
+    RETURNING id INTO co2;
+    co2_dibuat := TRUE;
+    RAISE NOTICE '335: company kedua dibuat sementara untuk menguji isolasi tenant.';
   END IF;
 
   -- 1. FORCE RLS menyala di ketiganya.
@@ -327,6 +359,27 @@ BEGIN
   DELETE FROM cbs_nodes WHERE template_id IN (SELECT id FROM cbs_templates WHERE code LIKE 'VERIF335-%');
   DELETE FROM cbs_templates WHERE code LIKE 'VERIF335-%';
   SET LOCAL session_replication_role = 'origin';
+
+  /*
+    Tenant uji dibuang bila memang KITA yang membuatnya. Tenant yang sudah ada
+    sebelum migrasi ini tak pernah disentuh.
+
+    `session_replication_role = 'replica'` diperlukan: ada trigger yang menolak
+    penghapusan company mana pun —
+
+        Company "..." tidak boleh dihapus. Nonaktifkan (is_active=false)
+        atau jalankan prosedur off-boarding tenant.
+
+    — dan penjagaan itu memang benar untuk tenant sungguhan. Yang dihapus di
+    sini baris yang lahir beberapa pernyataan sebelumnya di transaksi yang
+    sama, semata sebagai fixture. Polanya sama dengan pembersihan cbs_nodes di
+    atas, dan lingkupnya `LOCAL` — tak keluar dari transaksi ini.
+  */
+  IF co2_dibuat THEN
+    SET LOCAL session_replication_role = 'replica';
+    DELETE FROM companies WHERE id = co2;
+    SET LOCAL session_replication_role = 'origin';
+  END IF;
 
   -- 12. Izin diberikan.
   SELECT count(*) INTO n
