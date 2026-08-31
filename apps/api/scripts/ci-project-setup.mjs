@@ -627,6 +627,49 @@ await seed('kasbon x2 (approved + pending, bahan uji saringan status)', async ()
   if (rows[0].b === 0) throw new Error('SEMUA kasbon approved — saringan status tak akan teruji')
 })
 
+/*
+  Laporan upah mingguan — rantai FK TIGA lapis, diukur dari basis:
+
+      mandor_assignments  →  work_scopes  →  weekly_wage_reports
+      (sudah di-seed)        (perlu)         (yang dibutuhkan test)
+
+  Test `otomasi-rab-upah-klien` mencari laporan berstatus `submitted` untuk
+  membandingkan upah terhadap median historis. Tanpa satu pun baris, ia
+  menyatakan dirinya tak menguji apa pun:
+
+      tak ada laporan `submitted` sama sekali — test ini tak menguji apa pun
+
+  TIGA laporan, bukan satu: pembandingnya memakai `percentile_cont(0.5)` atas
+  riwayat, dan median dari satu titik tak membedakan apa pun. Nominalnya
+  sengaja berjauhan supaya median dan pencilan benar-benar berbeda.
+*/
+await seed('work_scope + weekly_wage_reports x3 (bahan uji upah menyimpang)', async () => {
+  await c.query(
+    `INSERT INTO work_scopes (assignment_id, scope_name, payment_system, status)
+     SELECT ma.id, 'CI Seed Lingkup Upah', 'harian', 'active'
+       FROM mandor_assignments ma
+      ORDER BY ma.created_at LIMIT 1`)
+
+  await c.query(
+    `INSERT INTO weekly_wage_reports (assignment_id, scope_id, week_start, week_end,
+                                      status, subtotal, total_deduction, net_amount,
+                                      submitted_at)
+     SELECT ws.assignment_id, ws.id,
+            (CURRENT_DATE - v.geser)::date,
+            (CURRENT_DATE - v.geser + 6)::date,
+            'submitted', v.jml, 0, v.jml, now()
+       FROM work_scopes ws
+       CROSS JOIN (VALUES (21, 3000000), (14, 3200000), (7, 3100000)) AS v(geser, jml)
+      WHERE ws.scope_name = 'CI Seed Lingkup Upah'
+        AND NOT EXISTS (
+          SELECT 1 FROM weekly_wage_reports w
+           WHERE w.scope_id = ws.id AND w.week_start = (CURRENT_DATE - v.geser)::date)`)
+
+  const { rows } = await c.query(
+    `SELECT count(*)::int n FROM weekly_wage_reports WHERE status='submitted'`)
+  if (rows[0].n === 0) throw new Error('nol weekly_wage_reports submitted sesudah seed')
+})
+
 // ── DIAGNOSTIK state (evidence, bukan tebakan) ─────────────────────────────
 const one = async (q) => { try { return JSON.stringify((await c.query(q)).rows) } catch (e) { return 'ERR ' + e.message.split('\n')[0] } }
 console.log('\n[DIAG] roles:', await one(`SELECT count(*)::int n FROM roles`))
