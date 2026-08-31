@@ -15,10 +15,11 @@
  * daftar penuh yang harus disaring ulang dengan tangan.
  */
 
-import { Suspense, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Suspense, useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useData } from "@/lib/data-cache";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FilePlus2, Plus, Receipt, RefreshCw, Search } from "lucide-react";
-import { api, hasPermission, makeAbortController } from "@/lib/api";
+import { hasPermission } from "@/lib/api";
 import { C } from "@/lib/warna-ui";
 import {
   Skeleton, InvoiceRow, CreateInvoiceModal, PayInvoiceModal, unduhInvoicePdf,
@@ -43,9 +44,52 @@ function InvoicePageInner() {
   const status = params.get("status") ?? "all";
   const cari = params.get("q") ?? "";
 
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [memuat, setMemuat] = useState(true);
-  const [gagal, setGagal] = useState<string | null>(null);
+  /*
+    Lapis cache bersama (F4-2). URL ikut `status` saja — `cari` TIDAK masuk
+    URL karena endpoint ini tak menerima parameter `search` (mengirimkannya
+    diam-diam diabaikan), jadi pencarian disaring di sisi klien.
+
+    Akibatnya bagus: mengetik di kotak cari tak menembak API sama sekali, dan
+    bolak-balik antar status memakai cache.
+
+    Awalan `finance/` WAJIB — versi pertama halaman ini menghilangkannya dan
+    menghasilkan 404 yang hanya terlihat di konsol, sementara halamannya
+    tampil rapi bertuliskan "Tidak ada invoice". Kegagalan yang menyamar jadi
+    kabar baik. Dijaga `scripts/uji-endpoint-ada.mjs`.
+  */
+  const urlInvoice = useMemo(() => {
+    const q = new URLSearchParams({ limit: "200" });
+    if (status !== "all") q.set("status", status);
+    return `/api/v1/finance/invoices?${q}`;
+  }, [status]);
+
+  const sumber = useData<{ invoices: Invoice[] }>(urlInvoice);
+  const memuat = sumber.memuat;
+
+  /*
+    Daftar kosong dan daftar-yang-gagal-dimuat terlihat SAMA PERSIS di layar.
+    Membedakannya penting di sini: "tak ada invoice jatuh tempo" adalah kabar
+    BAIK yang salah kalau sebenarnya API-nya mati.
+  */
+  const gagalMuat = sumber.galat ? "Gagal memuat daftar invoice." : null;
+
+  /*
+    Galat AKSI (unduh PDF) punya state SENDIRI — dijaga
+    `uji-galat-muat-terpisah.mjs`. Kalau keduanya berbagi, gagal unduh PDF
+    akan MENGHAPUS pesan "gagal memuat daftar", dan orang kehilangan alasan
+    daftarnya kosong.
+  */
+  const [gagalAksi, setGagalAksi] = useState<string | null>(null);
+  const gagal = gagalMuat ?? gagalAksi;
+
+  const invoices = useMemo(() => {
+    const semua = sumber.data?.invoices ?? [];
+    const k = cari.trim().toLowerCase();
+    if (!k) return semua;
+    return semua.filter((i) =>
+      i.invoice_number.toLowerCase().includes(k) ||
+      (i.projects?.name ?? "").toLowerCase().includes(k));
+  }, [sumber.data, cari]);
   const [cariKetik, setCariKetik] = useState(cari);
   const [bayar, setBayar] = useState<Invoice | null>(null);
   const [pdfId, setPdfId] = useState<string | null>(null);
@@ -81,38 +125,7 @@ function InvoicePageInner() {
     router.replace(`/keuangan/invoice${p.size ? `?${p}` : ""}`, { scroll: false });
   }, [params, router]);
 
-  const muat = useCallback((signal?: AbortSignal) => {
-    setMemuat(true);
-    // Awalan `finance/` WAJIB — versi pertama halaman ini menghilangkannya
-    // dan menghasilkan 404 yang hanya terlihat di konsol, sementara
-    // halamannya tampil rapi bertuliskan "Tidak ada invoice". Kegagalan yang
-    // menyamar jadi kabar baik. Dijaga `scripts/uji-endpoint-ada.mjs`.
-    const q: Record<string, string> = { limit: "200" };
-    if (status !== "all") q.status = status;
-    return api.get<{ invoices: Invoice[] }>("/api/v1/finance/invoices", { params: q, signal })
-      .then((r) => {
-        // Pencarian disaring di SISI KLIEN — endpoint ini tak menerima
-        // parameter `search`, dan mengirimkannya diam-diam diabaikan.
-        // Daftar dibatasi 200 baris, jadi menyaring di sini tak berat.
-        const k = cari.trim().toLowerCase();
-        const semua = r.data.invoices;
-        setInvoices(k
-          ? semua.filter((i) =>
-              i.invoice_number.toLowerCase().includes(k) ||
-              (i.projects?.name ?? "").toLowerCase().includes(k))
-          : semua);
-        setGagal(null);
-      })
-      .catch((e) => {
-        if (e?.name === "CanceledError") return;
-        // Daftar kosong dan daftar-yang-gagal-dimuat terlihat sama persis di
-        // layar. Membedakannya penting di sini: "tak ada invoice jatuh tempo"
-        // adalah kabar baik yang salah kalau sebenarnya API-nya mati.
-        setInvoices([]);
-        setGagal(e?.response?.data?.error ?? "Gagal memuat daftar invoice.");
-      })
-      .finally(() => setMemuat(false));
-  }, [status, cari]);
+  const muat = useCallback(async () => { await sumber.muatUlang(); }, [sumber]);
 
   // `queueMicrotask`, bukan panggilan langsung: `muat()` memanggil
   // `setMemuat(true)` di baris pertamanya, dan setState SINKRON di dalam
@@ -120,11 +133,10 @@ function InvoicePageInner() {
   // (`react-hooks/set-state-in-effect`). Menunda satu microtask
   // memindahkannya keluar dari fase render tanpa jeda yang terlihat.
   // Pola yang sama dipakai di /akuntansi dan /aset.
-  useEffect(() => {
-    const ac = makeAbortController();
-    queueMicrotask(() => { void muat(ac.signal); });
-    return () => ac.abort();
-  }, [muat]);
+  /*
+    Effect pemuatan awal DIHAPUS — `useData` yang mengambil datanya,
+    termasuk pembatalan saat komponen lepas.
+  */
 
   function ketik(v: string) {
     setCariKetik(v);
@@ -139,7 +151,7 @@ function InvoicePageInner() {
     } catch {
       // Gagal mengunduh tak boleh diam: orang akan menekan tombolnya
       // berulang kali dan menyimpulkan aplikasinya menggantung.
-      setGagal("Gagal membuat PDF. Coba lagi, atau muat ulang halaman.");
+      setGagalAksi("Gagal membuat PDF. Coba lagi, atau muat ulang halaman.");
     } finally {
       setPdfId(null);
     }
