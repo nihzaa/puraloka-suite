@@ -1794,6 +1794,19 @@ jobs:
       - name: A11y mobile (tombol punya role)
         run: node scripts/audit-a11y-mobile.mjs
 
+      # Tabel penjaga di CLAUDE.md tak boleh menjanjikan yang tak ada. Penjaga
+      # yang TERCATAT tapi tak dijalankan CI membuat pembacanya berhenti
+      # memeriksa hal yang sebenarnya tak dijaga siapa pun — dan berhentinya
+      # tak punya gejala. Bentuk yang sama dengan `audit-klaim-layar-nyata`.
+      #
+      # Arah sebaliknya (jalan tapi tak tertabel) SENGAJA tidak dijaga: diukur
+      # 2026-08-31, 206 penjaga jalan dan 49 tertabel. Tabel itu bukan daftar
+      # isi melainkan penjaga yang ALASANNYA perlu diketahui sebelum menyentuh
+      # kode terkait; menuntutnya lengkap menghasilkan 206 baris yang tak
+      # seorang pun baca. Kepala bagian 6 CLAUDE.md menyatakan itu eksplisit.
+      - name: Penjaga tercatat wajib jalan
+        run: node scripts/audit-penjaga-tercatat-jalan.mjs
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan

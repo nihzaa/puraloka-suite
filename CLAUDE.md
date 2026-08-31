@@ -282,7 +282,35 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 
 ## 6. Penjaga CI (jangan dilemahkan — G-5)
 
-`.github/workflows/ci.yml` menjalankan, selain lint/typecheck/test/build:
+⚠ **Tabel di bawah TIDAK lengkap, dan tak dimaksudkan lengkap.** Diukur
+2026-08-31: `ci.yml` menjalankan **206** penjaga; tabel ini memuat **49**.
+Yang 151 lainnya bukan penjaga kelas dua — sebagian besar penjaga visual dan
+invarian domain yang lahir belakangan dan tak pernah didaftarkan.
+
+Kalimat lama di sini berbunyi "`ci.yml` menjalankan, selain
+lint/typecheck/test/build:" dan terbaca sebagai daftar lengkap. Yang membaca
+lalu menyimpulkan sesuatu tak dijaga padahal dijaga — bentuk yang sama
+dengan racun konteks di pembuka dokumen ini.
+
+**Ukur, jangan hitung dari tabel:**
+
+```bash
+# Semua penjaga yang benar-benar dijalankan CI, dengan hasilnya
+cd apps/api && node scripts/jalankan-semua-penjaga.mjs
+```
+
+Diukur 2026-08-31: **203 hijau · 3 MERAH · 0 tak ketemu** — ketiga merah
+butuh lingkungan CI (`CI_DIRECT_URL`, fingerprint, coverage-shards), bukan
+cacat kode.
+
+⚠ Pelari itu sendiri pernah melewatkan dua penjaga nyata karena mencari di
+tiga akar dan `apps/web-publik` bukan salah satunya. Ia melapor "199 hijau"
+atas 197, dan "tak ketemu" muncul sebagai catatan kaki — tempat yang paling
+mudah dilewati mata. **Baris "tak ketemu" wajib NOL**; kalau tidak, angka
+hijaunya tak berarti apa-apa.
+
+Yang ditabelkan di bawah adalah penjaga yang **alasannya perlu diketahui
+sebelum menyentuh kode terkait** — bukan sekadar daftar isi.
 
 | Penjaga | Yang dijaga |
 |---|---|
@@ -315,6 +343,7 @@ selamanya. Verdict "sudah jalan" hanya sah bila **artefak fisiknya terbukti ada*
 | `audit-batas-terpetakan.mjs` | tiap catatan batas wajib SUDAH DITIMBANG terhadap daftar klaim — penjaga di atasnya bekerja dari daftar tulisan tangan, jadi ia hanya menjaga yang didaftarkan. Dua catatan basi berjam-jam tanpa terdeteksi 2026-08-20. Penjaga yang tak bisa tahu dirinya tertinggal akan pelan-pelan berhenti menjaga tanpa gejala (ambang NOL) |
 | `audit-token-mobile-terenkripsi.mjs` | token mobile wajib lewat `expo-secure-store`, bukan AsyncStorage — file SQLite biasa di Android yang ikut backup tak terenkripsi; `refresh_token` memperpanjang dirinya sendiri, jadi sekali terbaca berarti akses tanpa kedaluwarsa (ambang NOL) |
 | `audit-a11y-mobile.mjs` | tiap `Pressable`/`TouchableOpacity` wajib punya `accessibilityRole` atau `accessibilityLabel` — axe-core tak jalan di React Native, jadi 137 halaman web yang nol pelanggaran tak menjaga mobile sama sekali. Diukur 2026-08-31: 25 dari 43 telanjang, termasuk "Keluar" dan "Kembali". Pembaca layar menyebutnya teks biasa (ambang NOL) |
+| `audit-penjaga-tercatat-jalan.mjs` | penjaga yang TERCATAT di tabel ini wajib benar-benar dijalankan `ci.yml` — dokumen yang menjanjikan perlindungan tak ada membuat pembacanya berhenti memeriksa hal yang tak dijaga siapa pun, tanpa gejala. Arah sebaliknya (jalan tapi tak tertabel) sengaja TIDAK dijaga: 206 jalan vs 49 tertabel, dan tabel 206 baris tak seorang pun baca (ambang NOL) |
 
 **Alur take-off → RAB — MANUAL, butuh API hidup:**
 
