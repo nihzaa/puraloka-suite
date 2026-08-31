@@ -1963,6 +1963,21 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
 
+      # Tabel yang lahir DI LUAR jalur migrasi hidup nyaman di dev dan HILANG
+      # di tiap basis baru — VPS termasuk. Tiga kali terjadi 2026-08-31, dan
+      # tiap kali gejalanya menunjuk ke tempat lain:
+      #
+      #   template_rab        terbaca LINTAS TENANT di basis baru (migrasi 541)
+      #   template_penerapan  tak dibuat migrasi mana pun (migrasi 542),
+      #                       padahal tenant-map mendaftarkannya kategori C
+      #   dua sektor take-off CHECK basis 11 sektor, migrasi 477 menulis 9
+      #
+      # Ketiganya tak mengeluarkan satu pun galat di dev. AMBANG NOL.
+      - name: Tiap tabel wajib punya migrasi yang membuatnya
+        run: node scripts/audit-tabel-punya-migrasi.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       # Test tak boleh membandingkan dua hitungan GLOBAL atas schema bersama.
       #
       # TUJUH kali dalam rantai ini CI merah oleh cacat yang sama: asumsi global
