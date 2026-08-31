@@ -21,6 +21,12 @@ import { antrekan } from '@/lib/antrean';
 interface Project { id: string; name: string }
 interface RabItem { id: string; no_urut: string; uraian: string; progress_pct: number; weight_pct: number }
 
+/*
+  Saklar satu tempat, supaya menyalakannya kembali cukup satu baris begitu
+  rute unggahnya ada — bukan mencari-cari `false` di tengah JSX.
+*/
+const FOTO_AKTIF = false;
+
 export default function InputProgressScreen() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>('');
@@ -292,7 +298,37 @@ export default function InputProgressScreen() {
                     <View style={styles.removeX}><Text style={styles.removeXText}>✕</Text></View>
                   </TouchableOpacity>
                 ))}
-                {photos.length < 5 && (
+                {/*
+                  ⚠ FOTO BELUM SAMPAI KE SERVER — diukur 2026-09-01.
+
+                  Antrean mengirim foto sebagai multipart (`FormData`,
+                  field `photos`), sementara rute progres membaca
+                  `body.photos` sebagai array JSON berisi `{ url }`. Dua
+                  bentuk yang tak cocok.
+
+                  Diuji ke API produksi:
+
+                      JSON tanpa foto  -> 201  tersimpan
+                      multipart+foto   -> 500  Internal Server Error
+
+                  Dan `@fastify/multipart` TERDAFTAR di index.ts tetapi NOL
+                  rute memakainya — plugin terpasang yang tak pernah dipakai,
+                  pola yang sama dengan `expo-secure-store` dulu. Itu yang
+                  membuat 500-nya: plugin mem-parsing multipart, lalu
+                  `body.photos` berisi objek berkas alih-alih array URL.
+
+                  `project_photos` 36 baris, NOL dalam 30 hari terakhir.
+
+                  Perbaikannya di API (rute unggah yang memulangkan `url`,
+                  atau `file_base64` seperti `/mandor/kasbon-photo/upload`) —
+                  di luar lingkup sesi ini, dan sudah dilaporkan.
+
+                  Sampai itu ada, tombolnya DIMATIKAN alih-alih membiarkan
+                  mandor memotret lalu kirimannya tertahan di antrean dengan
+                  "500" yang tak ia mengerti. Yang dimatikan dengan sebab
+                  tertulis lebih jujur daripada yang gagal diam-diam.
+                */}
+                {FOTO_AKTIF && photos.length < 5 && (
                   <>
                     <TouchableOpacity style={styles.addPhoto} onPress={takePhoto} accessibilityRole="button">
                       <Text style={styles.addPhotoIcon}>📷</Text>
@@ -303,6 +339,12 @@ export default function InputProgressScreen() {
                       <Text style={styles.addPhotoText}>Galeri</Text>
                     </TouchableOpacity>
                   </>
+                )}
+                {!FOTO_AKTIF && (
+                  <Text style={styles.fotoMati}>
+                    Foto belum bisa dikirim dari aplikasi — sedang diperbaiki.
+                    Laporan tanpa foto tetap terkirim seperti biasa.
+                  </Text>
                 )}
               </View>
             </Card>
@@ -409,6 +451,9 @@ const styles = StyleSheet.create({
      20px + gap 4 + teks = tinggi isi ~40px dari 72 tersedia; "Kamera" pada
      12px sekitar 43px lebar. Tak ada yang bergeser. */
   addPhotoText: { fontSize: 12, color: '#6B7280' },
+  /* Cokelat-oranye, bukan merah: ini keadaan sementara yang diketahui, bukan
+     galat yang baru terjadi. Merah membuat mandor mengira laporannya gagal. */
+  fotoMati: { fontSize: 12, color: '#92400E', lineHeight: 17, flex: 1 },
   rabList: { maxHeight: 280, marginTop: 4 },
   rabItem: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 6, backgroundColor: '#fff' },
   rabItemActive: { backgroundColor: '#003366', borderColor: '#003366' },
