@@ -23,6 +23,21 @@ useDefault = true
   description = "Temuan yang terbukti bukan rahasia"
 
   regexes = [
+    # Kunci FITUR paket (`modul.*`) di migrasi gerbang modul.
+    #
+    # gitleaks menandai `WHERE key = 'modul.k3_lingkungan'` sebagai
+    # `generic-api-key` (entropi 3,58) — dan itu temuan PALSU: yang ada di
+    # sana nama fitur yang dipakai untuk menyalakan/mematikan modul per paket
+    # langganan, bukan rahasia. Nama-nama itu memang harus dikenali kode dan
+    # tampil di layar pengaturan paket.
+    #
+    # Polanya SENGAJA SEMPIT: hanya `modul.<nama>` di dalam kutip, bukan
+    # `WHERE key = '...'` apa pun. Melonggarkannya jadi "abaikan semua
+    # WHERE key" akan menyembunyikan rahasia SUNGGUHAN yang kebetulan
+    # tersimpan lewat kolom bernama `key` — dan tabel `app_credentials`
+    # di basis ini persis berbentuk begitu.
+    '''['"]modul.[a-z0-9_]+['"]''',
+
     # Supabase PUBLISHABLE key (`sb_publishable_…`) di
     # `apps/web/.design-sync/lib/bundle.mjs`.
     #
