@@ -151,7 +151,24 @@ const MODUL: Modul[] = [
     gejala R-017 di RATIFIKASI (PM kehilangan 183 izin). Begitu founder
     memutuskan, entri ini ikut terbuka sendiri tanpa perubahan kode.
   */
-  { kunci: 'lapangan', judul: 'Lapangan', ringkas: 'Harian, inspeksi, punch list, serah terima', emoji: '🏗️', izin: null },
+  /*
+    Izin `projects:view` DIAMBIL DARI GERBANG RUTENYA
+    (`/api/v1/lapangan/ringkasan`, `requirePermission('projects:view')`),
+    bukan dari `menu_items` yang mengosongkannya.
+
+    Diukur 2026-08-31: 88 dari 163 menu web tak punya `required_permissions`,
+    dan sidebar web memperlakukan daftar kosong sebagai "tampilkan ke semua"
+    (`length === 0 → return true`). Klien yang cuma punya 8 izin karena itu
+    melihat 88 menu yang hampir semuanya buntu. Datanya AMAN — API-nya
+    berpagar — tetapi pintu yang tampil lalu menolak mengajari orang bahwa
+    aplikasinya suka gagal.
+
+    Mobile tak mewarisi cacat itu: entri di sini disaring izin yang
+    BENAR-BENAR menjaga rutenya. Klien tetap melihat entri ini — ia memang
+    memegang `projects:view`, dan isi halamannya (punch, ncr, inspeksi,
+    submittal) semuanya izin yang klien punya.
+  */
+  { kunci: 'lapangan', judul: 'Lapangan', ringkas: 'Harian, inspeksi, punch list, serah terima', emoji: '🏗️', izin: 'projects:view' },
   { kunci: 'k3', judul: 'K3', ringkas: 'Inspeksi, insiden, JSA, RK3K', emoji: '🦺', izin: 'k3:inspeksi:view' },
   { kunci: 'proyek', judul: 'Proyek', ringkas: 'Daftar proyek & baseline', emoji: '📁', izin: 'projects:view' },
   { kunci: 'kalender', judul: 'Kalender', ringkas: 'Jadwal kerja', emoji: '📅', izin: ['projects:view', 'mandor:view'] },
