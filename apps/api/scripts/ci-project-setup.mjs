@@ -580,20 +580,51 @@ await seed('cash_account (bahan uji kas & alokasi dana)', async () => {
 */
 await seed('worker x2 (bahan uji tukang & beban mandor)', async () => {
   await c.query(
-    `INSERT INTO workers (company_id, mandor_id, name, phone, is_active)
+    `INSERT INTO workers (company_id, mandor_id, name, phone, is_active, skills)
      SELECT (SELECT id FROM companies WHERE parent_company_id IS NULL ORDER BY created_at LIMIT 1),
             COALESCE(
               (SELECT id FROM public.users WHERE email LIKE 'ci-mandor%' ORDER BY created_at LIMIT 1),
               (SELECT id FROM public.users ORDER BY created_at LIMIT 1)),
-            v.nama, v.telp, true
-       FROM (VALUES ('CI Seed Tukang A', '0811000001'),
-                    ('CI Seed Tukang B', '0811000002')) AS v(nama, telp)
+            v.nama, v.telp, v.aktif, v.keahlian
+       FROM (VALUES
+              -- AKTIF + BERKEAHLIAN: bahan skillTerbanyak; tanpa ini
+              -- pencocokan keahlian tak punya apa pun untuk dicocokkan.
+              ('CI Seed Tukang A', '0811000001', true,  ARRAY['tukang batu','tukang besi']),
+              ('CI Seed Tukang B', '0811000002', true,  ARRAY['tukang batu']),
+              -- AKTIF TANPA keahlian. Array KOSONG, bukan NULL: kolom skills
+              -- NOT NULL (diukur — SQL-nya meledak saat diuji). Test memakai
+              -- array_length(skills,1) IS NULL, dan itu benar untuk array kosong.
+              ('CI Seed Tukang C', '0811000003', true,  ARRAY[]::text[]),
+              -- NONAKTIF tapi berkeahlian: cabang "cocok tapi tak aktif"
+              -- (baris 89 test) — tanpa ini cabang itu tak teruji.
+              ('CI Seed Tukang D', '0811000004', false, ARRAY['tukang kayu'])
+            ) AS v(nama, telp, aktif, keahlian)
       WHERE NOT EXISTS (SELECT 1 FROM workers w WHERE w.name = v.nama)
         AND EXISTS (SELECT 1 FROM public.users)`)
 
+  /*
+    Diperiksa TIGA golongan, bukan sekadar "ada tukang aktif".
+
+    `ai-tool-tukang-cocok.test.ts` menuntut ketiganya sekaligus, dan seed
+    yang memenuhi satu sambil mengosongkan yang lain MEMINDAHKAN kegagalan
+    alih-alih menghilangkannya:
+
+        aktif + berkeahlian    bahan pencocokan keahlian
+        aktif tanpa keahlian   kalimat "N tukang aktif BELUM punya keahlian"
+        nonaktif berkeahlian   cabang "cocok tapi tak aktif"
+  */
   const { rows } = await c.query(
-    `SELECT count(*)::int n FROM workers WHERE is_active`)
-  if (rows[0].n === 0) throw new Error('nol tukang aktif sesudah seed')
+    `SELECT count(*) FILTER (WHERE is_active AND skills IS NOT NULL
+                               AND array_length(skills,1) > 0)::int AS mahir,
+            count(*) FILTER (WHERE is_active AND (skills IS NULL
+                               OR array_length(skills,1) IS NULL))::int AS polos,
+            count(*) FILTER (WHERE is_active = false AND skills IS NOT NULL
+                               AND array_length(skills,1) > 0)::int AS rehat
+       FROM workers`)
+  const { mahir, polos, rehat } = rows[0]
+  if (mahir === 0) throw new Error('nol tukang aktif BERKEAHLIAN')
+  if (polos === 0) throw new Error('nol tukang aktif TANPA keahlian — cabang tak teruji')
+  if (rehat === 0) throw new Error('nol tukang NONAKTIF berkeahlian — cabang tak teruji')
 })
 
 /*
