@@ -95,7 +95,26 @@ Worktree memisahkan BERKAS. Tiga hal ini tetap satu untuk semua sesi:
 |---|---|
 | **Basis Postgres** | satu basis, dipakai semua worktree. Suite penuh **BERGILIRAN**, jangan tumpang tindih |
 | **`node_modules`** | di-junction ke yang sama. Jangan `pnpm install` saat sesi lain jalan |
-| **Buku migrasi** | nomor migrasi diambil dari yang sama. Cek `db/migrations/` sebelum memilih nomor — dua sesi bisa memilih angka yang sama |
+| **Buku migrasi** | nomor migrasi diambil dari yang sama. **Jalankan `node apps/api/scripts/nomor-migrasi-berikutnya.mjs`** sebelum memilih nomor — ia memindai SELURUH worktree |
+
+⚠ **Nomor migrasi bentrok TIGA KALI dalam satu jam** pada 2026-08-31, semuanya
+antar-sesi paralel:
+
+```
+535  menu-grup-mati    ↔  535  rls-tiga-tabel
+526  perbaiki-format   ↔  526  peta-peran-dibenahi
+537  menu-grup-mati    ↔  537  pulihkan-peta-peran
+```
+
+Tiap bentrok membuat SALAH SATU berkas **tak pernah jalan** di lingkungan baru.
+Yang terlewat termasuk migrasi RLS (Ember [C]) dan pemulihan izin PM — keduanya
+tanpa satu pun galat, karena di basis pengembangan efeknya sudah terlanjur ada.
+Yang rusak justru server berikutnya.
+
+`audit-replay-bersih.mjs` menangkapnya, tetapi SESUDAH berkasnya ditulis dan
+sering sesudah di-commit. Alat di atas menjawab pertanyaannya SEBELUM — dan ia
+membedakan kembar DI SATU CHECKOUT (cacat sungguhan) dari kembar
+LINTAS-WORKTREE (dua cabang belum di-merge; belum tentu salah).
 
 Test yang MENYASAR (satu berkas, satu modul) aman dijalankan bersamaan; yang
 berbahaya adalah suite penuh, karena ia menyentuh hampir semua fixture.
