@@ -2018,6 +2018,35 @@ jobs:
       - name: Rantai hook build EAS utuh
         run: node scripts/audit-hook-eas-utuh.mjs
 
+      # `overrides` tanpa batas ATAS menarik versi yang menuntut Node lebih
+      # baru dari server EAS. Build kesembilan gagal begitu: undici 8.9.0
+      # butuh Node >= 22.19, server memakai 20.19.2, dan galatnya menyebut
+      # nama fungsi internal undici — `webidl.util.markAsUncloneable is not
+      # a function` — bukan nama paket atau versinya.
+      #
+      # Tak terlihat di mesin mana pun di sini: pengembang, API, dan web
+      # semuanya Node 24.
+      - name: engines.node vs lingkungan build tertua
+        run: node scripts/audit-engines-node-cocok.mjs
+
+      # Paket ber-kode NATIVE hanya boleh satu versi. Build kesebelas gagal
+      # di perakitan Android dengan galat yang menuduh berkas yang tak
+      # seorang pun tulis:
+      #
+      #     PackageList.java: cannot find symbol
+      #     import expo.core.ExpoModulesPackage;
+      #
+      # Sebabnya lockfile memuat dua pohon paralel — web memakai React
+      # 19.2.4, mobile dikunci 19.0.0 oleh Expo, dan react-native-webview
+      # ikut bercabang bersamanya. Autolinking memungut versi mana pun yang
+      # ditemuinya lebih dulu.
+      #
+      # React SENGAJA tidak diperiksa: dua React memang boleh berbeda.
+      # Yang tak boleh adalah paket native, karena hanya satu yang bisa
+      # dirakit ke dalam APK.
+      - name: Paket native satu versi
+        run: node scripts/audit-native-satu-versi.mjs
+
       # Daftar jenis elemen struktur ada di DUA tempat yang harus sama: CHECK
       # `struktur_elemen_jenis_check` di basis, dan konstanta JENIS di
       # `routes/v1/struktur.ts`. Kalau berbeda, kegagalannya berbeda arah dan
