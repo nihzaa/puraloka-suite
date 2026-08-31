@@ -3464,7 +3464,7 @@ Anda kehendaki untuk membawanya ke CI.
 
 ---
 
-## R-0xx · Peran PM kehilangan 183 izin — termasuk `projects:view`
+## R-017 · Peran PM kehilangan 183 izin — termasuk `projects:view`
 
 **Diajukan 2026-08-31. MENUNGGU FOUNDER — belum ada yang diubah.**
 
@@ -3711,7 +3711,7 @@ tanpa memeriksa `pg_policies`. Dua lapis, dan saya hanya mengukur satu.
 
 ---
 
-## R-0xx · Dua sektor take-off ada di BASIS tanpa migrasi — dan hilang di VPS
+## R-018 · Dua sektor take-off ada di BASIS tanpa migrasi — dan hilang di VPS
 
 **Diajukan 2026-08-31. Belum ada yang diubah.**
 
@@ -3786,3 +3786,75 @@ terhitung Rp 626 juta, menyebar ke 32 AHSP).
 
 Sampai salah satunya dipilih, penjaga ini akan tetap merah di CI — dan itu
 benar: ia sedang melaporkan sesuatu yang nyata.
+
+---
+
+## R-019 · Enam belas peran template TANPA satu pun izin — dan migrasi 364 melanggar tuntutannya sendiri
+
+**Diajukan 2026-08-31. MENUNGGU FOUNDER — belum ada yang diubah.**
+
+Dipisahkan dari R-017 karena ini keputusan yang BERBEDA: R-017 soal seberapa
+luas kewenangan PM; yang ini soal enam belas peran yang tak dipakai siapa pun.
+
+### Yang diukur
+
+```
+akuntan · auditor_internal · estimator · hrd · k3_officer · kasir
+kontrak_admin · logistik · manajer_keuangan · payroll_officer
+penagihan · procurement_officer · project_manager_senior · qaqc
+qhse_manager · site_manager
+```
+
+Keenam belas dibuat migrasi **364**, semuanya **0 izin** dan **0 pengguna**.
+Yang dipakai orang cuma lima peran lama (migrasi 050): admin 4 · pm 4 ·
+mandor 8 · client 13 · direktur 0.
+
+Memutar ulang blok pemberian 364 di transaksi yang dibatalkan memasang
+**287 baris** — jadi INSERT-nya sah, hasilnya yang tak pernah ada. Dan bukan
+karena kuncinya lahir belakangan: ke-143 kunci izinnya sudah ada, nol yang
+muncul di migrasi > 364.
+
+### Yang membuatnya lebih dari sekadar kerapian
+
+Migrasi 364 **tercatat sukses** di buku migrasi, dan ia diakhiri tuntutan ini:
+
+```sql
+IF n_kosong > 0 THEN
+  RAISE EXCEPTION '364 gagal: % role template tanpa satu pun izin', n_kosong;
+```
+
+Diukur terhadap basis dev sekarang: **`n_kosong = 16`**.
+
+Migrasi yang tercatat sukses meninggalkan basis dalam keadaan yang ia sendiri
+nyatakan GAGAL. CI tetap hijau karena CI memutar rantai dari basis kosong — di
+sana 364 berjalan utuh dan tuntutannya terpenuhi.
+
+**Hijaunya CI bukan bukti basis yang dipakai orang benar.** Bentuk yang sama
+dengan cacat 047↔167 yang dicatat CLAUDE.md §5.5.
+
+### Yang perlu diputuskan
+
+1. **Dihidupkan** — jalankan pemberian 364 (287 baris) supaya peran yang sudah
+   dirancang bisa dipakai. Tak menyentuh `pm`, jadi tak bertabrakan dengan
+   R-017. Tapi `project_manager_senior` memegang `change_order:approve`, dan
+   itu MENGUBAH NILAI KONTRAK tanpa batas nominal (lihat R-017).
+2. **Dihapus** — kalau memang tak akan dipakai. Nama peran kosong di layar
+   pemilihan lebih berbahaya daripada tak ada: admin bisa memberikan peran
+   yang ternyata tak bisa apa-apa, dan orangnya terkunci tanpa gejala.
+3. **Dibiarkan** — tapi kalau begitu verifikasi 364 HARUS diperbaiki lewat
+   migrasi maju, supaya ia tak menuntut sesuatu yang sengaja tak dipenuhi.
+
+Yang **tidak boleh**: dibiarkan seperti sekarang. Migrasi tercatat sukses
+sementara tuntutannya dilanggar membuat penjaga berhenti menjaga tanpa gejala
+— dan penjaga berikutnya yang membacanya akan menyimpulkan basisnya sehat.
+
+### Cara mengukur ulang
+
+```sql
+SELECT r.name, count(rp.*) izin,
+       (SELECT count(*) FROM users u WHERE u.role_id = r.id) pengguna
+  FROM roles r
+  LEFT JOIN role_permissions rp ON rp.role_id = r.id
+ WHERE r.company_id IS NULL
+ GROUP BY r.name, r.id ORDER BY 2, 1;
+```
