@@ -33584,3 +33584,69 @@ akun sungguhan lewat Origin produksi   200
 
 ⚠ **Perbaikan ini baru berlaku SESUDAH deploy.** Sampai VPS diperbarui, web
 produksi tetap tak bisa login.
+
+---
+
+## 2026-09-01 — Menjalankan 164 migrasi tertinggal ke basis
+
+Founder memberi izin menjalankannya. Alatnya dibuat lebih dulu
+(`jalankan-migrasi-tertinggal.mjs`): urut nomor, berhenti di kegagalan
+pertama, buku tak ditulis bila gagal, `--batas N` untuk bertahap.
+
+### Kemajuan
+
+```
+tercatat  376 → 424     dijalankan 48
+tersisa   164 → 116
+```
+
+### Empat migrasi berhenti — dan SEMUANYA sebab yang sama
+
+Bukan cacat SQL. Keempatnya punya **verifikasi yang membusuk**: aturan yang
+benar saat ditulis, lalu jadi mustahil dipenuhi karena migrasi BERIKUTNYA
+mengubah keadaan yang diaturnya.
+
+| Migrasi | Menuntut | Kenyataannya |
+|---|---|---|
+| **216** | nol policy berakhiran `_tenant` di SELURUH basis | migrasi 544 membuat `entitlement_baca_tenant` pada tabel yang belum ada saat 216 ditulis |
+| **231** | sepuluh KUNCI menu tetap ber-href halaman nyata | kesepuluhnya sudah **nonaktif** — dipensiunkan penataan menu berikutnya |
+| **247** | NOL baris `approved_by` kosong | tiga baris kosong itu berstatus `pending` — **hasil yang dituju migrasi ini sendiri** |
+| **322** | ada item ber-`sort_order = 59` | migrasi 530 menomori ulang seluruh pohon; menunya ada di 164 |
+
+Yang paling tajam **247**: ia membuat kolom nullable supaya pembayaran
+`pending` bisa jujur mengaku belum punya penyetuju — lalu verifikasinya
+menolak keadaan itu. **Migrasi yang menolak keberhasilannya sendiri.**
+
+### Aturan yang saya tarik
+
+**Verifikasi migrasi hanya boleh menuntut hal yang migrasi itu sendiri
+kerjakan.** Menuntut keadaan SELURUH basis, atau memaku angka yang memang
+ditata ulang dari waktu ke waktu (`sort_order`, nama kunci menu), berarti
+membekukan masa lalu — dan satu tuntutan basi menghentikan seluruh rantai
+di belakangnya.
+
+Yang perlu dijaga menyeluruh, tempatnya penjaga CI: daftarnya dibaca dari
+basis + kode, jadi ikut berubah. Verifikasi migrasi beku di masa lalu.
+
+Menyunting keempatnya sah — diperiksa satu per satu ke buku migrasi,
+**belum pernah tercatat**. G-2 melarang menyunting yang SUDAH tercatat.
+
+### Dua percobaan saya yang salah di 231
+
+1. mempersempit ke kunci lama → tetap gagal, kuncinya memang pensiun
+2. menebak URL halamannya → **8 dari 10 tebakan meleset**
+
+Yang benar: mengakui pemeriksaannya usang, bukan menambalnya. Dan yang
+menjaga hal itu sekarang `audit-nav-yatim.mjs` di CI — ambang NOL, daftar
+dibaca dari basis.
+
+### Jejak commit tertukar (arah sebaliknya dari kemarin)
+
+Ketiga perbaikan migrasi saya (216, 231, 247) ikut ter-commit di
+`4e9c3a9d` — commit sesi lain berjudul *"mesin rekomendasi tulangan"*.
+Kodenya benar dan tak ada yang hilang; yang salah jejaknya.
+
+Kemarin saya yang menelan kerja orang; hari ini kebalikannya. Bentuk yang
+sama: `git add` yang menyapu berkas ter-stage sesi lain di checkout bersama.
+Aturan sebut-nama sudah di CLAUDE.md §8a.1 — dan rupanya perlu dipatuhi
+dua arah.
