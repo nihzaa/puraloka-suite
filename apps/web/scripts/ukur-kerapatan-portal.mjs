@@ -200,6 +200,26 @@ if (laporan.every((l) => l.galat)) {
   process.exit(2)
 }
 
+/*
+  Kegagalan SEBAGIAN juga dilaporkan — 2026-08-31.
+
+  `adaGalat` diisi di atas tetapi tak pernah dibaca (`no-unused-vars` yang
+  memerahkan ratchet lint), dan itu bukan sekadar variabel menganggur: cek di
+  atas hanya menyerah bila SELURUH halaman gagal terukur. Satu halaman yang
+  gagal di antara empat lewat tanpa jejak di exit code, dan angka yang
+  dilaporkan alat ini terbaca lengkap padahal tidak.
+
+  Alat ukur yang diam soal apa yang tak terukur adalah alat ukur yang
+  membohongi pembacanya — dan seluruh gunanya justru sebagai sumber angka.
+*/
+if (adaGalat) {
+  const gagal = laporan.filter((l) => l.galat).length
+  console.error(
+    `
+⚠ ${gagal} dari ${laporan.length} halaman GAGAL terukur — angka di bawah ` +
+    'hanya mewakili yang berhasil, bukan seluruh portal.')
+}
+
 /* Temuan dinyatakan sebagai SELISIH terhadap acuan, bukan sebagai penilaian. */
 console.log('── Yang menyimpang dari acuan ────────────────────────────────')
 let temuan = 0

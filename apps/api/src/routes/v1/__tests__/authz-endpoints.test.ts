@@ -51,11 +51,40 @@ interface Spec {
   payload?: Record<string, unknown>
 }
 
+/*
+  ⚠ `allow` dan `deny` WAJIB dicocokkan ke tabel `role_permissions`, bukan
+  ditebak dari nama jabatan.
+
+  Tiga spek di bawah semula menulis `allow: 'pm'` untuk buat-invoice,
+  bayar-invoice, dan approve-kasbon. Diukur 2026-08-31, template `pm` tak
+  memegang satu pun dari ketiganya — yang memegang hanya `admin` dan
+  `direktur`. Ketiga test itu MERAH sejak commit yang melahirkannya
+  (f80654b0): spek dan test ditulis bersamaan, dan `allow`-nya tak pernah
+  diverifikasi ke basis.
+
+  Yang diuji berkas ini adalah WIRING preHandler — apakah gerbangnya
+  terpasang — bukan kebijakan siapa boleh apa. `allow` karena itu hanya label
+  untuk "peran yang PUNYA izin ini", persis seperti komentar di tipe `Spec`.
+  Salah label = test merah atas gerbang yang justru bekerja benar.
+
+  Menaikkan izin `pm` agar test hijau adalah arah yang SALAH: `finance:invoice:pay`
+  memindahkan uang, dan memperluas kewenangan demi kehijauan test menukar
+  pengendalian internal dengan kenyamanan. Kalau PM memang perlu ketiganya,
+  itu keputusan produk yang ditulis di RATIFIKASI lalu diberikan lewat
+  migrasi — bukan efek samping perbaikan test.
+
+  Cara memeriksa sebelum menambah spek baru:
+
+      SELECT r.name FROM roles r
+        JOIN role_permissions rp ON rp.role_id = r.id
+        JOIN permissions p ON p.id = rp.permission_id
+       WHERE p.key = '<izin>' AND r.company_id IS NULL;
+*/
 const SPECS: Spec[] = [
-  { name: 'buat invoice',            routes: financeRoutes,     method: 'POST',   url: '/api/v1/finance/invoices',                     permission: 'finance:invoice:create',  allow: 'pm',    deny: 'mandor', payload: {} },
-  { name: 'bayar invoice',           routes: financeRoutes,     method: 'POST',   url: `/api/v1/finance/invoice/${UUID}/pay`,          permission: 'finance:invoice:pay',     allow: 'pm',    deny: 'mandor', payload: {} },
+  { name: 'buat invoice',            routes: financeRoutes,     method: 'POST',   url: '/api/v1/finance/invoices',                     permission: 'finance:invoice:create',  allow: 'direktur', deny: 'pm',     payload: {} },
+  { name: 'bayar invoice',           routes: financeRoutes,     method: 'POST',   url: `/api/v1/finance/invoice/${UUID}/pay`,          permission: 'finance:invoice:pay',     allow: 'direktur', deny: 'pm',     payload: {} },
   { name: 'putihkan denda',          routes: financeRoutes,     method: 'PATCH',  url: `/api/v1/finance/invoice/${UUID}/waive-penalty`,permission: 'finance:penalty:waive',   allow: 'admin', deny: 'pm',     payload: { reason: 'uji' } },
-  { name: 'approve/reject kasbon',   routes: kasbonRoutes,      method: 'PATCH',  url: `/api/v1/kasbons/${UUID}/status`,               permission: 'mandor:kasbon:approve',   allow: 'pm',    deny: 'mandor', payload: { status: 'approved' } },
+  { name: 'approve/reject kasbon',   routes: kasbonRoutes,      method: 'PATCH',  url: `/api/v1/kasbons/${UUID}/status`,               permission: 'mandor:kasbon:approve',   allow: 'direktur', deny: 'pm',     payload: { status: 'approved' } },
   { name: 'approve change order',    routes: changeOrderRoutes, method: 'PATCH',  url: `/api/v1/change-orders/${UUID}/approve`,        permission: 'change_order:approve',    allow: 'admin', deny: 'pm',     payload: {} },
   { name: 'reject change order',     routes: changeOrderRoutes, method: 'PATCH',  url: `/api/v1/change-orders/${UUID}/reject`,         permission: 'change_order:approve',    allow: 'admin', deny: 'pm',     payload: {} },
   { name: 'approve expense kas',     routes: cashRoutes,        method: 'PATCH',  url: `/api/v1/cash/expenses/${UUID}/status`,         permission: 'cash:expense:approve',    allow: 'admin', deny: 'pm',     payload: { status: 'approved' } },
@@ -105,10 +134,40 @@ function actAs(role: string) {
 
 beforeAll(async () => {
   client = await createRlsClient()
-  // 'client' ditambahkan untuk MR: `procurement:mr:manage` dipegang admin/pm/mandor/
-  // direktur, jadi satu-satunya role yang benar-benar TIDAK berhak adalah client.
-  for (const role of ['admin', 'pm', 'mandor', 'client']) {
+  /*
+    Peran diturunkan DARI SPECS, bukan didaftar tangan.
+
+    Daftar tangan `['admin','pm','mandor','client']` membuat spek yang memakai
+    peran di luar keempatnya gagal dengan "Tidak ada user ber-auth_id" — galat
+    yang menuduh DATA UJI, padahal daftarnya yang tertinggal. Terjadi
+    2026-08-31 saat tiga spek dipindah ke `direktur`.
+
+    'client' tetap disertakan meski tak selalu muncul di SPECS: ia dipakai
+    sebagai `deny` untuk MR (`procurement:mr:manage` dipegang admin/pm/mandor/
+    direktur, jadi satu-satunya yang benar-benar tak berhak adalah client).
+  */
+  const peranDipakai = new Set<string>(['client'])
+  for (const spec of SPECS) {
+    peranDipakai.add(spec.allow)
+    peranDipakai.add(spec.deny)
+  }
+  const tanpaAkun: string[] = []
+  for (const role of peranDipakai) {
     AUTH[role] = (await authIdForRole(client, role)) ?? ''
+    if (!AUTH[role]) tanpaAkun.push(role)
+  }
+  /*
+    Gagal KERAS di sini, bukan nanti per-test.
+
+    Tanpa ini, tiap spek yang memakai peran tak ber-akun gagal sendiri-sendiri
+    dengan pesan yang sama — dan yang membaca hasilnya menghitung 3 kegagalan
+    berbeda alih-alih satu sebab tunggal.
+  */
+  if (tanpaAkun.length > 0) {
+    throw new Error(
+      `Tak ada pengguna ber-auth_id untuk peran: ${tanpaAkun.join(', ')}. ` +
+        'Jalankan `UJI_SANDI_PERAN=… node scripts/siapkan-akun-uji-peran.mjs`.',
+    )
   }
 }, 60_000)
 
