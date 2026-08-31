@@ -56,6 +56,47 @@
 -- Berlaku untuk peran `pm` di SEMUA company, bukan hanya template — tenant
 -- yang sudah berdiri juga menderita cacat yang sama.
 
+/*
+  ── CABUT DULU, BARU BERI — ditambahkan 2026-09-01
+  ────────────────────────────────────────────────────────────────────────
+  Versi pertama migrasi ini hanya MENOLAK bila menemukan pm memegang izin
+  uang. Pagar itu memang menangkap cacat nyata (migrasi 050 memberi PM
+  "semua kecuali sepuluh", dan izin keuangan tak ada di sepuluh larangan
+  itu) — tapi ia MEMBLOKIR PERBAIKANNYA SENDIRI:
+
+      HARD FAIL — 545_pm_izin_lapangan.sql
+        545 gagal: pm memegang izin UANG/kewenangan: ...
+
+  545 gagal -> tak tercatat -> diulang tiap run -> rantai berhenti di 545,
+  dan migrasi 550 (yang justru mencabut izin itu) TAK PERNAH TERCAPAI.
+  Buntu yang memperbaiki dirinya sendiri hanya kalau seseorang menyadarinya.
+
+  Menyunting 545 SAH di sini justru karena ia BELUM PERNAH berhasil: nol
+  lingkungan yang mencatatnya, jadi tak ada yang melewatkan suntingan ini
+  (bandingkan G-2 di CLAUDE.md §5.5 — larangan itu berlaku untuk migrasi
+  yang SUDAH tercatat).
+
+  Daftar cabutnya SAMA dengan migrasi 550. Dua tempat sengaja: 550 tetap
+  ada untuk lingkungan yang 545-nya kadung tercatat sebelum perbaikan ini.
+*/
+DELETE FROM role_permissions rp
+ USING roles r, permissions p
+ WHERE rp.role_id = r.id
+   AND rp.permission_id = p.id
+   AND r.name = 'pm'
+   AND p.key IN (
+     'klaim:bayar', 'klaim:setujui',
+     'finance:invoice:create', 'finance:invoice:pay', 'finance:termin:pay',
+     'finance:penalty:waive',
+     'mandor:kasbon:approve', 'mandor:wage:approve',
+     'backcharge:setujui', 'change_order:approve',
+     'cash:expense:approve', 'cash:transfer:confirm',
+     'approval:chains:manage', 'approval:override_sod',
+     'cecep:estimate:approve', 'cecep:lessons:approve',
+     'settings:finance:manage', 'users:roles:manage',
+     'mitra:daftar_hitam'
+   );
+
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
   FROM roles r
