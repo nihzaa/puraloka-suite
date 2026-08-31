@@ -34,7 +34,8 @@ SELECT 'md-field-tambahan',
        'Field Tambahan',
        '/pengaturan/field-tambahan',
        'SlidersHorizontal',
-       (SELECT id FROM menu_items WHERE key = 'g-master-data' LIMIT 1),
+       (SELECT id FROM menu_items WHERE key IN ('g-master','g-master-data')
+          ORDER BY key LIMIT 1),
        ARRAY['settings:customfield:view']::text[],
        59,
        (SELECT section FROM menu_items WHERE key = 'pengaturan-satuan' LIMIT 1),
@@ -71,15 +72,44 @@ BEGIN
     RAISE EXCEPTION '322 gagal: % menu aktif menunjuk /pengaturan/field-tambahan (harus 1)', n;
   END IF;
 
-  -- `sort_order` TAK BOLEH bentrok dalam satu grup — migrasi 319 baru
-  -- memperbaiki lima bentrokan pada hari yang sama.
+  -- ── Kenapa angka 59 dihapus (2026-09-01)
+  --
+  -- Versi asli memaku sort_order = 59 — celah kosong di g-master-data saat
+  -- migrasi ini ditulis (terisi 51-58 lalu 61-64).
+  --
+  -- Angka itu MEMBUSUK begitu migrasi 530 menomori ulang seluruh pohon menu
+  -- berjarak. Diukur ke basis 2026-09-01:
+  --
+  --     md-field-tambahan   ADA, sort_order = 164, aktif = false
+  --
+  -- Menunya ada; nomornya yang berpindah. Verifikasi lama menuntut 59,
+  -- menemukan nol, lalu gagal — dan MENGHENTIKAN seluruh rantai:
+  --
+  --     x 322  0 item aktif ber-sort_order 59 di g-master-data (harus 1)
+  --       BERHENTI - sisa 116 tak pernah dijalankan
+  --
+  -- Nomor urut MEMANG ditata ulang dari waktu ke waktu. Memakunya di
+  -- verifikasi migrasi berarti melarang penataan itu selamanya.
+  --
+  -- Bentrokan sort_order tetap dijaga penjaga sidebar di CI, dengan daftar
+  -- yang dibaca dari basis - tak membeku seperti angka di sini.
+  --
+  -- Nama GRUP pun tak dipaku — diukur 2026-09-01, induknya `g-master`,
+  -- bukan `g-master-data` seperti yang ditulis migrasi ini. Grupnya
+  -- dinamai ulang belakangan, dan itu sebabnya INSERT di atas dulu tak
+  -- pernah menemukan induknya.
+  --
+  -- Menyunting 322 sah: diperiksa ke buku migrasi, BELUM PERNAH tercatat.
+  -- Yang diperiksa: menunya ADA di grupnya — BUKAN angka sort_order.
+  --
   SELECT count(*) INTO n
     FROM menu_items m
-   WHERE m.is_active
-     AND m.parent_id = (SELECT id FROM menu_items WHERE key = 'g-master-data' LIMIT 1)
-     AND m.sort_order = 59;
+   WHERE m.key = 'md-field-tambahan'
+     AND m.parent_id = (SELECT id FROM menu_items WHERE key IN ('g-master','g-master-data')
+                         ORDER BY key LIMIT 1);
+  --
   IF n <> 1 THEN
-    RAISE EXCEPTION '322 gagal: % item aktif ber-sort_order 59 di g-master-data (harus 1)', n;
+    RAISE EXCEPTION '322 gagal: md-field-tambahan tak ada di grup Master (ketemu %)', n;
   END IF;
 
   -- Izin yang menjaga menunya harus ADA, kalau tidak menu tak pernah tampil
