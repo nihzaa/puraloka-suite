@@ -32795,3 +32795,76 @@ nilai polosnya — lebih ketat pada yang benar.
 - `audit-tabel-force-berpagar.mjs` → exit 0
 - migrasi 541: mutasi **merah** dengan pesan yang tepat, idempoten
 - tiap seed diuji di transaksi yang **dibatalkan**, nol perubahan bertahan
+
+### Lanjutan hari yang sama — tabel kedua, dan kelasnya dijaga
+
+`template_rab` ternyata bukan satu-satunya. CI shard 3 menyebut **dua**:
+
+```
+expected [ "template_penerapan", "template_rab" ] to deeply equal []
+```
+
+Sebab yang kedua berbeda dan lebih dalam: **tak satu pun migrasi membuat
+`template_penerapan`.** Nol `CREATE TABLE` di seluruh `db/migrations`.
+Migrasi 532 (punya saya) membuat tiga tabel template dan melewatkan yang
+keempat.
+
+517 memagarinya, tapi melewati dirinya sendiri kalau tabelnya belum ada —
+pagar yang menunggu tabel yang tak akan pernah datang. Sementara
+`tenant-map.generated.ts` mendaftarkannya kategori C, jadi **kode yakin ia
+ada dan basis tidak**, tanpa satu pun galat.
+
+Ditutup **migrasi 542**, bentuknya disalin dari `information_schema` +
+`pg_constraint`, diuji empat cara: idempoten terhadap 5 baris yang ada,
+membuat + memagari dari nol, dijalankan dua kali, dan mutasi merah.
+
+### Kelasnya, bukan tiga contohnya
+
+Tiga kali dalam satu hari sebuah artefak lahir di luar jalur migrasi:
+`template_rab`, `template_penerapan`, dan dua sektor take-off. Jadi
+dibuatkan penjaga tetap — `audit-tabel-punya-migrasi.mjs`, ambang NOL:
+
+```
+291 tabel · 300 dibuat migrasi · YATIM 0
+```
+
+### Saya nyaris menerima hijau palsu — dan ini yang paling perlu diingat
+
+Mutasi **pertama** terhadap penjaga baru itu gagal disuntik: pola `sed`
+dengan titik tak di-escape. Penjaganya tetap hijau, dan saya hampir
+menuliskan "terbukti bisa merah".
+
+Sesudah suntikannya dibuktikan berlaku lebih dulu:
+
+```
+✅ mutasi terbukti berlaku (CREATE TABLE tersembunyi)
+❌ 1 tabel TANPA migrasi: template_penerapan (5 baris)
+```
+
+**Prosedur barunya: buktikan mutasinya BERLAKU sebelum menilai hasilnya.**
+Hijau dari mutasi yang tak berlaku terlihat persis seperti penjaga yang
+bekerja — dan tak punya gejala apa pun.
+
+Ini kejadian ketiga dalam sehari dengan bentuk sama: `grep` yang memulangkan
+nol karena akhiran CR (CLAUDE.md §7), pemindai `format()` yang buta pada
+panggilan multi-baris, dan sekarang mutasi yang tak menempel. **Nol hasil
+bukan bukti ketiadaan.**
+
+### Satu temuan palsu yang ditutup sebelum menggigit
+
+VIEW tak pernah punya `CREATE TABLE`, jadi pemindai tanpa saringan `relkind`
+menuduh tiap view sebagai yatim. Disebutkan sesi `puraloka-suite-e7` yang
+menabraknya lebih dulu (`v_situs_publik`). Penjaga ini menyaring
+`relkind='r'` — diukur: 291 tabel (r) + 3 view (v).
+
+### Pelari penjaga sendiri melewatkan dua penjaga
+
+Ditemukan sesi lain (`7c59d2dd`): `KANDIDAT_CWD` tak memuat
+`apps/web-publik`, jadi `kontras-situs.mjs` dan `audit-em-dash.mjs` tak
+pernah dijalankan. "199 hijau" sebenarnya atas 197.
+
+Yang penting bukan angkanya melainkan **tempat ia mengaku**: "hijau" di
+baris utama, "tak ketemu" sebagai catatan kaki. Dua sesi membaca laporan itu
+hari ini dan tak satu pun menoleh ke baris kaki.
+
+Sesudah diperbaiki, diverifikasi dari sisi ini: **200 hijau · 0 tak ketemu.**
