@@ -50,6 +50,23 @@ const POLA_LINGKUNGAN = [
   /coverage-shards/i,
   /coverage.*tidak ada/i,
   /mode tak dikenal/i, // schema-fingerprint tanpa argumen CI
+  /*
+    `FP_URL tidak di-set dan DIRECT_URL tak ditemukan` — ditambahkan 2026-08-31.
+
+    Ini SAH sebagai "lingkungan hilang", dan buktinya bisa diukur dua arah:
+
+      lokal  : `schema-fingerprint.mjs compare ...` JALAN sampai selesai,
+               karena ia jatuh ke `DIRECT_URL` dari apps/api/.env
+               (=== TOTAL DRIFT public-schema: 161 ===)
+      CI     : runner penjaga tak punya apps/api/.env, dan `FP_URL` hanya
+               diberikan ke langkah ci.yml-nya sendiri — bukan ke runner ini
+
+    Jadi yang hilang memang LINGKUNGAN (berkas .env + rahasia CI), bukan
+    kode yang melanggar. Tanpa pola ini penjaga menuduh entri yang jujur,
+    dan tuduhan palsu melatih orang mengabaikan laporannya — persis lawan
+    dari tujuan penjaga ini.
+  */
+  /FP_URL tidak di-set/i,
   /ENOENT/,
   /ECONNREFUSED/,
   /getaddrinfo/,
