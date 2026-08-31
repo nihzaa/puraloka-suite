@@ -1317,6 +1317,20 @@ jobs:
       - name: Replay bersih — nol migrasi dilewati senyap
         run: node scripts/audit-replay-bersih.mjs
 
+      # Kunci fitur paket menghubungkan DUA repo: konsol vendor MENJANJIKAN
+      # ("paket X dapat 3 proyek"), ERP MENEGAKKAN. Keduanya bertemu hanya
+      # lewat string kunci — tak ada foreign key, karena basisnya terpisah.
+      #
+      # Kunci yang menyimpang tak mengeluarkan galat: ERP mencari, tak
+      # menemukan, lalu pulang "TAK DIBATASI". Pelanggan paket 3-proyek bisa
+      # membuat 300, dan yang bergejala cuma tagihan yang tak naik-naik.
+      #
+      # Repo konsol vendor terpisah, jadi penjaga ini MELEWATI (bukan gagal)
+      # bila repo itu tak ter-checkout — dan mengatakannya, supaya "0 kunci
+      # diperiksa" tak terbaca sebagai lulus.
+      - name: Kunci fitur paket sepakat ERP ↔ konsol vendor
+        run: node scripts/audit-kunci-fitur-sepakat.mjs
+
       # R-001 syarat 3 — dua migrasi mendefinisikan tabel yang sama.
       #
       # `CREATE TABLE IF NOT EXISTS` melindungi dari "sudah dibuat oleh migrasi
