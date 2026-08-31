@@ -127,9 +127,28 @@ const WARNA_SEVERITY: Record<string, string> = {
 };
 
 /*
-  Berapa proyek yang diperiksa sekali muat. Lihat alasannya di `muat()`.
+  Proyek yang dimuat GELOMBANG PERTAMA — bukan batas, melainkan urutan.
+
+  Versi pertama layar ini memotong di 6 proyek dan berhenti di situ, dengan
+  alasan 19 proyek = 39 permintaan terlalu berat. Diukur, alasan itu SALAH
+  di kedua sisinya:
+
+      13 permintaan (6 proyek)  → 2.448 ms
+      39 permintaan (19 proyek) → 3.587 ms
+
+  Selisihnya 1,1 detik, bukan tiga kali lipat — permintaannya paralel.
+  Sementara ongkos pemotongannya besar: dari 25 hal MENDESAK di 19 proyek,
+  enam proyek pertama hanya memuat 3. Dua puluh dua temuan berat dan kritis
+  tak akan pernah terlihat, dan yang membacanya menyimpulkan pekerjaannya
+  bersih.
+
+  Kompromi yang menyembunyikan 88% hal mendesak bukan kompromi.
+
+  Jadi SEMUA proyek dimuat. Enam pertama diselesaikan lebih dulu supaya
+  layar terisi cepat, sisanya menyusul dan digabungkan — pengguna melihat
+  sesuatu dalam ~2,4 detik alih-alih menunggu 3,6 detik untuk layar kosong.
 */
-const MAKS_PROYEK = 6;
+const GELOMBANG_PERTAMA = 6;
 
 const LABEL_JENIS: Record<Jenis, string> = {
   punch: 'Temuan',
@@ -152,7 +171,7 @@ export default function PekerjaanSaya() {
   const [memuat, setMemuat] = useState(true);
   const [galatMuat, setGalatMuat] = useState<string | null>(null);
   const [gagalSebagian, setGagalSebagian] = useState(0);
-  const [proyekTerlewat, setProyekTerlewat] = useState(0);
+  const [memuatSisa, setMemuatSisa] = useState(0);
   const [tampilSelesai, setTampilSelesai] = useState(false);
 
   const bolehPunch = punyaIzin('punch:view');
@@ -163,7 +182,7 @@ export default function PekerjaanSaya() {
   const muat = useCallback(async () => {
     setGalatMuat(null);
     setGagalSebagian(0);
-    setProyekTerlewat(0);
+    setMemuatSisa(0);
     try {
       const rp = await api.get('/api/v1/projects');
       const proyek: Proyek[] = (rp.data?.projects ?? rp.data ?? []).map(
@@ -172,132 +191,163 @@ export default function PekerjaanSaya() {
       const namaProyek = new Map(proyek.map((p) => [p.id, p.nama]));
 
       /*
-        Semua panggilan dikumpulkan lebih dulu, lalu `allSettled` sekali.
-        Menunggu berurutan (await di dalam for) membuat sepuluh proyek jadi
-        sepuluh perjalanan berantai — di jaringan lapangan itu belasan detik
-        layar kosong.
+        Semua panggilan dikumpulkan lebih dulu, lalu `allSettled` sekali per
+        gelombang. Menunggu berurutan (await di dalam for) membuat sembilan
+        belas proyek jadi sembilan belas perjalanan berantai — di jaringan
+        lapangan itu menit, bukan detik.
       */
-      const tugas: Promise<{ jenis: Jenis; proyekId?: string; data: unknown }>[] = [];
-
-      /*
-        DIBATASI ke MAKS_PROYEK, dan batasnya disebutkan di layar.
-
-        Punch dan NCR hanya punya rute PER-PROYEK; tak ada rute lintas
-        proyek di API (diukur: nol `'/api/v1/punch-items'` tanpa
-        `:projectId`). Akun uji hari ini memegang 19 proyek — itu 38
-        permintaan tiap layar dibuka, di jaringan yang justru paling buruk
-        tempat layar ini dipakai.
-
-        Enam proyek pertama adalah kompromi, bukan jawaban. Jawabannya rute
-        lintas-proyek di API (satu panggilan, disaring server) — pekerjaan
-        API, bukan mobile. Sampai itu ada, layar MENYEBUTKAN berapa proyek
-        yang tak diperiksa: daftar yang diam-diam sebagian membuat mandor
-        menyimpulkan tak ada yang menggantung, padahal ada.
-
-        Urutan `/projects` menentukan mana yang enam — server mengurutnya,
-        dan yang aktif ada di depan.
-      */
-      const dipakai = proyek.slice(0, MAKS_PROYEK);
-      setProyekTerlewat(Math.max(0, proyek.length - dipakai.length));
-
-      for (const p of dipakai) {
-        if (bolehPunch) {
-          tugas.push(
-            api.get(`/api/v1/projects/${p.id}/punch-items`)
-              .then((r) => ({ jenis: 'punch' as Jenis, proyekId: p.id, data: r.data })),
-          );
+      const buatTugas = (daftar: Proyek[]) => {
+        const tg: Promise<{ jenis: Jenis; proyekId?: string; data: unknown }>[] = [];
+        for (const p of daftar) {
+          if (bolehPunch) {
+            tg.push(
+              api.get(`/api/v1/projects/${p.id}/punch-items`)
+                .then((r) => ({ jenis: 'punch' as Jenis, proyekId: p.id, data: r.data })),
+            );
+          }
+          if (bolehNcr) {
+            tg.push(
+              api.get(`/api/v1/projects/${p.id}/ncr`)
+                .then((r) => ({ jenis: 'ncr' as Jenis, proyekId: p.id, data: r.data })),
+            );
+          }
         }
-        if (bolehNcr) {
-          tugas.push(
-            api.get(`/api/v1/projects/${p.id}/ncr`)
-              .then((r) => ({ jenis: 'ncr' as Jenis, proyekId: p.id, data: r.data })),
-          );
-        }
-      }
+        return tg;
+      };
+
+      const gel1 = proyek.slice(0, GELOMBANG_PERTAMA);
+      const gel2 = proyek.slice(GELOMBANG_PERTAMA);
+
+      const tugas = buatTugas(gel1);
       if (bolehIzin) {
+        /* Izin kerja ikut gelombang PERTAMA meski satu panggilan untuk semua
+           proyek: ia yang paling mendesak dilihat — pekerjaan berbahaya
+           menunggu keputusannya. */
         tugas.push(
           api.get('/api/v1/kepatuhan/izin-kerja')
             .then((r) => ({ jenis: 'izin' as Jenis, data: r.data })),
         );
       }
 
-      const hasil = await Promise.allSettled(tugas);
-      const kumpul: Baris[] = [];
-      let gagal = 0;
+      /*
+        Pengurai dipisah supaya bisa dipanggil DUA KALI — sekali per
+        gelombang. Menyalinnya akan membuat gelombang kedua pelan-pelan
+        menyimpang dari yang pertama tanpa satu pun galat.
+      */
+      const urai = (
+        hasil: PromiseSettledResult<{ jenis: Jenis; proyekId?: string; data: unknown }>[],
+      ) => {
+        const kumpul: Baris[] = [];
+        let gagal = 0;
+        for (const h of hasil) {
+          if (h.status === 'rejected') { gagal++; continue; }
+          const { jenis, proyekId, data } = h.value;
+          const d = data as { data?: unknown[]; izin?: unknown[] };
 
-      for (const h of hasil) {
-        if (h.status === 'rejected') { gagal++; continue; }
-        const { jenis, proyekId, data } = h.value;
-        const d = data as { data?: unknown[]; izin?: unknown[] };
+          if (jenis === 'izin') {
+            for (const x of (d.izin ?? []) as Record<string, unknown>[]) {
+              /*
+                `statusNyata` — camelCase, BUKAN snake_case. Server
+                menghitungnya di `nilaiIzinKerja()` terhadap jam sekarang
+                (kedaluwarsa, belum_mulai); kolom `status` mentah di basis
+                hanya tahu diajukan/disetujui.
 
-        if (jenis === 'izin') {
-          for (const x of (d.izin ?? []) as Record<string, unknown>[]) {
-            /*
-              `statusNyata` — camelCase, BUKAN snake_case. Server
-              menghitungnya di `nilaiIzinKerja()` terhadap jam sekarang
-              (kedaluwarsa, belum_mulai); kolom `status` mentah di basis
-              hanya tahu diajukan/disetujui.
+                Saya sempat menulis `status_nyata` di sini dengan meniru gaya
+                kolom basis. Cacatnya DIAM: nilainya undefined, jatuh ke
+                `x.status` = 'diajukan', yang tak ada di STATUS_IZIN — dan
+                yang tampil di layar adalah kata mentah itu. Tak ada galat,
+                tak ada nol, hanya satu kata teknis di layar orang yang justru
+                tak paham istilah teknis.
+              */
+              const st = String(x.statusNyata ?? x.status ?? '');
+              kumpul.push({
+                kunci: `izin-${x.id}`,
+                jenis: 'izin',
+                nomor: x.nomor as string | undefined,
+                judul: (x.uraian_pekerjaan as string) ?? 'Izin kerja',
+                lokasi: x.lokasi as string | undefined,
+                status: st,
+                proyek: namaProyek.get(x.project_id as string),
+                tanggal: x.berlaku_dari as string | undefined,
+                beres: st === 'kedaluwarsa' || st === 'tak_berlaku',
+                /* Izin yang MENUNGGU adalah yang menahan pekerjaan — itulah
+                   yang mendesak, bukan yang sudah disetujui. */
+                mendesak: st === 'menunggu',
+              });
+            }
+            continue;
+          }
 
-              Saya sempat menulis `status_nyata` di sini dengan meniru gaya
-              kolom basis. Cacatnya DIAM: nilainya undefined, jatuh ke
-              `x.status` = 'diajukan', yang tak ada di STATUS_IZIN — dan
-              yang tampil di layar adalah kata mentah itu. Tak ada galat,
-              tak ada nol, hanya satu kata teknis di layar orang yang justru
-              tak paham istilah teknis.
-            */
-            const st = String(x.statusNyata ?? x.status ?? '');
+          const petaStatus = jenis === 'punch' ? STATUS_PUNCH : STATUS_NCR;
+          const selesai = jenis === 'punch'
+            ? ['ditutup', 'ditolak']
+            : ['ditutup', 'dibatalkan'];
+
+          for (const x of (d.data ?? []) as Record<string, unknown>[]) {
+            const st = String(x.status ?? '');
+            const sev = String(x.severity ?? '');
+            const beres = selesai.includes(st);
             kumpul.push({
-              kunci: `izin-${x.id}`,
-              jenis: 'izin',
+              kunci: `${jenis}-${x.id}`,
+              jenis,
               nomor: x.nomor as string | undefined,
-              judul: (x.uraian_pekerjaan as string) ?? 'Izin kerja',
+              judul: (x.judul as string) ?? petaStatus[st] ?? 'Tanpa judul',
               lokasi: x.lokasi as string | undefined,
+              severity: sev || undefined,
               status: st,
-              proyek: namaProyek.get(x.project_id as string),
-              tanggal: x.berlaku_dari as string | undefined,
-              beres: st === 'kedaluwarsa' || st === 'tak_berlaku',
-              /* Izin yang MENUNGGU adalah yang menahan pekerjaan — itulah
-                 yang mendesak, bukan yang sudah disetujui. */
-              mendesak: st === 'menunggu',
+              proyek: namaProyek.get(proyekId ?? ''),
+              tanggal: x.created_at as string | undefined,
+              beres,
+              mendesak: !beres && (sev === 'kritis' || sev === 'berat'),
             });
           }
-          continue;
         }
+        return { kumpul, gagal };
+      };
 
-        const petaStatus = jenis === 'punch' ? STATUS_PUNCH : STATUS_NCR;
-        const selesai = jenis === 'punch'
-          ? ['ditutup', 'ditolak']
-          : ['ditutup', 'dibatalkan'];
+      const urut = (a: Baris[]) => a.slice().sort((x, y) => {
+        if (x.mendesak !== y.mendesak) return x.mendesak ? -1 : 1;
+        if (x.beres !== y.beres) return x.beres ? 1 : -1;
+        return (y.tanggal ?? '').localeCompare(x.tanggal ?? '');
+      });
 
-        for (const x of (d.data ?? []) as Record<string, unknown>[]) {
-          const st = String(x.status ?? '');
-          const sev = String(x.severity ?? '');
-          const beres = selesai.includes(st);
-          kumpul.push({
-            kunci: `${jenis}-${x.id}`,
-            jenis,
-            nomor: x.nomor as string | undefined,
-            judul: (x.judul as string) ?? petaStatus[st] ?? 'Tanpa judul',
-            lokasi: x.lokasi as string | undefined,
-            severity: sev || undefined,
-            status: st,
-            proyek: namaProyek.get(proyekId ?? ''),
-            tanggal: x.created_at as string | undefined,
-            beres,
-            mendesak: !beres && (sev === 'kritis' || sev === 'berat'),
-          });
+      const h1 = urai(await Promise.allSettled(tugas));
+      setBaris(urut(h1.kumpul));
+      setGagalSebagian(h1.gagal);
+      setMemuat(false);
+
+      /*
+        Gelombang KEDUA. Layar sudah terisi; sisanya menyusul dan digabung.
+        `setMemuatSisa` membuat layar mengatakan bahwa ia masih menambah —
+        tanpa itu, daftar yang tiba-tiba bertambah panjang terbaca seperti
+        cacat.
+      */
+      if (gel2.length > 0) {
+        setMemuatSisa(gel2.length);
+        try {
+          const h2 = urai(await Promise.allSettled(buatTugas(gel2)));
+          setBaris((lama) => urut([...lama, ...h2.kumpul]));
+          setGagalSebagian((g) => g + h2.gagal);
+        } catch {
+          /*
+            Gelombang kedua punya `catch` SENDIRI, dan sengaja.
+
+            Tanpa ini, kegagalan gelombang kedua jatuh ke `catch` luar dan
+            memasang "Gagal memuat daftar" DI ATAS daftar yang sudah terisi
+            dari gelombang pertama — pesan yang menyangkal apa yang sedang
+            dilihat orangnya. Dan `memuatSisa` tak akan pernah kembali nol,
+            jadi "Menambahkan 13 proyek lagi…" menggantung selamanya.
+
+            Yang benar: gelombang pertama berhasil, sebagian kedua tidak.
+            Itu keadaan "daftar belum lengkap", yang sudah punya penampilnya
+            sendiri lewat `gagalSebagian`.
+          */
+          setGagalSebagian((g) => g + gel2.length);
+        } finally {
+          setMemuatSisa(0);
         }
       }
 
-      /* Mendesak di atas, lalu yang belum beres, lalu yang terbaru. */
-      kumpul.sort((a, b) => {
-        if (a.mendesak !== b.mendesak) return a.mendesak ? -1 : 1;
-        if (a.beres !== b.beres) return a.beres ? 1 : -1;
-        return (b.tanggal ?? '').localeCompare(a.tanggal ?? '');
-      });
-
-      setBaris(kumpul);
-      setGagalSebagian(gagal);
     } catch {
       /* Galat MUAT terpisah dari galat aksi — cacat yang sudah ditemukan di
          11 halaman web. Layar ini tak punya aksi, tapi polanya dijaga. */
@@ -359,11 +409,10 @@ export default function PekerjaanSaya() {
         kurang lebih berbahaya daripada daftar yang mengaku tak lengkap:
         mandor menyimpulkan tak ada yang menggantung, padahal ada.
       */}
-      {proyekTerlewat > 0 && (
+      {memuatSisa > 0 && (
         <View style={s.peringatan}>
           <Text style={s.peringatanTeks}>
-            Menampilkan {MAKS_PROYEK} proyek terbaru. {proyekTerlewat} proyek lain belum
-            diperiksa — buka lewat portal bila yang Anda cari tak ada di sini.
+            Menambahkan {memuatSisa} proyek lagi… Daftar di bawah belum lengkap.
           </Text>
         </View>
       )}
