@@ -39,8 +39,35 @@ import { readFileSync, existsSync } from 'node:fs'
 /** Ekstensi yang isinya dibaca sebagai teks oleh test/alat. */
 const DIPERIKSA = /\.(ts|tsx|mjs|js|json|md|yaml|yml|sql|css)$/
 
+/**
+ * ⚠ `cwd` DIPAKU ke akar repo, dan itu bukan kerapian.
+ *
+ * Tanpa ini `git diff --name-only HEAD` berjalan di direktori PEMANGGIL, dan
+ * git membatasi hasilnya ke direktori itu. Akibatnya penjaga ini memberi
+ * jawaban BERBEDA tergantung dari mana dipanggil — diukur 2026-08-31:
+ *
+ *     dari akar repo   → exit 1, menyebut berkas yang akhir barisnya berubah
+ *     dari apps/api    → exit 0, "tak ada berkas yang berubah"
+ *
+ * Dan yang dipakai `jalankan-semua-penjaga.mjs` adalah `apps/api` — jadi
+ * penjaga ini BUTA di tempat ia sebenarnya dijalankan. Ia melapor hijau atas
+ * perubahan yang tak pernah ia lihat.
+ *
+ * Bentuk cacat yang sama sudah tercatat di header runner-nya (2026-08-18,
+ * penjaga ini juga): jawaban yang bergantung cwd tak bisa dipercaya ke dua
+ * arah — merah palsu membuat orang memperbaiki yang tak rusak, hijau palsu
+ * membuat yang rusak lolos.
+ */
+const AKAR_REPO = execFileSync('git', ['rev-parse', '--show-toplevel'], {
+  encoding: 'utf8',
+}).trim()
+
 function git(...arg) {
-  return execFileSync('git', arg, { encoding: 'buffer', maxBuffer: 64 * 1024 * 1024 })
+  return execFileSync('git', arg, {
+    cwd: AKAR_REPO,
+    encoding: 'buffer',
+    maxBuffer: 64 * 1024 * 1024,
+  })
 }
 
 let berubah

@@ -1715,6 +1715,23 @@ jobs:
       #
       # Bukti merah: izin karangan dikembalikan → exit 1 menunjuk kuncinya →
       # dipulihkan → exit 0.
+      # Daftar-lewat `BUTUH_CI` di jalankan-semua-penjaga.mjs melewati penjaga
+      # TANPA menjalankannya. Itu sah untuk yang mustahil dijalankan di laptop —
+      # tapi dibuktikan lewat mutasi 2026-08-31 bahwa mekanismenya bisa dipakai
+      # mematikan penjaga secara diam-diam: penjaga dirusak + namanya ditambahkan
+      # ke daftar → kegagalannya muncul sebagai "dilewati", bukan "MERAH", dan
+      # yang berubah cuma satu angka hijau yang tak ada yang hafal.
+      #
+      # Penjaga ini MENJALANKAN tiap entri, lalu menuntut kegagalannya berupa
+      # lingkungan yang hilang — bukan cacat kode yang sedang ditutupi.
+      #
+      # Bukti merah: penjaga sehat diselundupkan ke daftar → exit 1; penjaga
+      # MERAH-sungguhan diselundupkan → exit 1; dipulihkan → exit 0.
+      - name: Daftar-lewat penjaga jujur (ambang NOL)
+        run: node scripts/audit-daftar-lewat-jujur.mjs
+        env:
+          DIRECT_URL: ${{ secrets.CI_DIRECT_URL }}
+
       - name: Kunci izin benar-benar ada di basis
         run: node scripts/audit-izin-benar-ada.mjs
         env:
