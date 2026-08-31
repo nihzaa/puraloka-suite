@@ -3858,3 +3858,99 @@ SELECT r.name, count(rp.*) izin,
  WHERE r.company_id IS NULL
  GROUP BY r.name, r.id ORDER BY 2, 1;
 ```
+
+---
+
+## R-020 · 116 menu tanpa izin — klien melihat 121 dari 191 pintu
+
+**Diajukan 2026-08-31. Belum ada yang diubah. Ditemukan sesi `puraloka-suite-e7`,
+diukur ulang di sini.**
+
+### Yang diukur
+
+`apps/web/components/sidebar.tsx:616` memperlakukan daftar izin kosong
+sebagai "tampilkan ke semua":
+
+```ts
+if (!node.required_permissions || node.required_permissions.length === 0) return true;
+```
+
+Diukur ke basis:
+
+```
+menu aktif                        191
+TANPA required_permissions        116   (88 di antaranya punya href)
+klien (8 izin) MELIHAT            121 dari 191
+```
+
+Termasuk `/piutang`, `/keuangan/arus-kas`, `/keuangan/profitabilitas`,
+`/procurement/hutang`, `/sistem/recycle-bin`, `/sistem/impor`.
+
+### ⚠ DATANYA AMAN — yang bocor PINTU, bukan isi
+
+Diperiksa sebelum disimpulkan: `finance.ts` memagari rutenya dengan
+`requirePermission('finance:view:all')`, dan klien tak memegangnya. Klien
+yang menekan menu itu ditolak API.
+
+Jadi ini **cacat pengalaman**, bukan kebocoran data. Tapi 116 pintu yang
+tampil lalu menolak mengajari orang bahwa aplikasinya memang suka gagal —
+dan saat suatu hari ada satu rute yang LUPA dipagari, tak seorang pun akan
+menyadarinya, karena menu buntu sudah jadi hal biasa.
+
+### Kenapa TIDAK saya perbaiki sendiri
+
+Saya mencoba menurunkan izinnya secara otomatis dari gerbang
+`requirePermission` di rute API. **Hasilnya tak layak dipakai** — dan itu
+temuan tersendiri:
+
+```
+88 menu ber-href tanpa izin
+   punya usul :  26      <- hanya 30%
+   tanpa usul :  62
+```
+
+Dan dari 26 itu pun sebagiannya SALAH ARAH:
+
+| Menu | Usul otomatis | Masalahnya |
+|---|---|---|
+| `/mandor/absensi` | `mandor:assign` | izin MENUGASKAN untuk halaman yang cuma perlu MELIHAT — padahal `mandor:view` ADA di katalog |
+| `/notifications` | `notifications:milestone:check` | itu izin CRON, bukan izin membuka halaman |
+
+Usul yang terlalu ketat **menghilangkan menu dari orang yang berhak**, dan
+gejalanya "menu saya kok tidak ada" tanpa satu pun galat — kelas cacat yang
+sama dengan yang sedang diperbaiki, hanya berbalik arah.
+
+Hipotesis awal bahwa ini "satu pola pewarisan induk" juga **tidak benar**:
+
+```
+anak-kosong yang induknya BERIZIN   : 0 dari 116
+anak-kosong yang induknya juga kosong: 87
+akar (tanpa induk)                  : 29
+```
+
+Jadi bukan pewarisan yang tak ditulis — memang tak pernah diisi sejak awal.
+
+### Yang perlu diputuskan
+
+1. **Kebijakan bawaan sidebar.** Daftar kosong sekarang = "tampil ke semua".
+   Membaliknya jadi "sembunyikan" menutup 116 pintu sekaligus — tapi juga
+   menyembunyikan menu dari admin yang berhak, sampai ke-116 diisi. Ini
+   pilihan yang tak bisa ditebak: mana yang lebih buruk bagi Puraloka —
+   pintu buntu, atau menu hilang?
+
+2. **Kalau diisi, siapa yang menentukan izinnya?** Otomatis hanya menutup
+   30% dan sebagiannya salah. Sisanya butuh keputusan per-modul.
+
+Saran saya (bukan keputusan): kerjakan **bertahap per modul**, dimulai dari
+yang paling menyinggung — `/keuangan/*`, `/piutang`, `/procurement/hutang` —
+karena itu yang paling terlihat salah saat dibuka klien. Modul lapangan bisa
+menyusul.
+
+### Cara mengukur ulang
+
+```sql
+SELECT count(*) FILTER (WHERE required_permissions IS NULL
+         OR array_length(required_permissions,1) IS NULL) AS tanpa_izin,
+       count(*) AS total
+  FROM menu_items WHERE is_active;
+```
