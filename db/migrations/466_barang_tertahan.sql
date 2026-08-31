@@ -88,16 +88,30 @@ DO $$
 DECLARE n_aktif INT; n_ang INT; n INT; a_tahan NUMERIC; a_lambat NUMERIC;
 BEGIN
   SELECT count(*) INTO n_aktif FROM companies WHERE is_active;
-  SELECT count(*) INTO n_ang FROM companies c
-   WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
+  /*
+    `is_active` DITAMBAHKAN 2026-08-31.
 
-  SELECT count(*) INTO n FROM notification_rules
-   WHERE event_type = 'barang_tertahan' AND is_active;
+    `n_ang` dipakai sebagai patokan jumlah jadwal, dan jadwalnya kini hanya
+    dihitung untuk company AKTIF. Tanpa saringan yang sama di sini, patokannya
+    memuat company yang sudah dinonaktifkan dan arahnya terbalik:
+
+        jadwal HARIAN ada 2 baris, harus 4
+
+    Dua pemeriksaan yang mengukur populasi berbeda tak boleh dibandingkan.
+  */
+  SELECT count(*) INTO n_ang FROM companies c
+   WHERE c.is_active
+     AND EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
+
+  SELECT count(*) INTO n FROM notification_rules r
+    JOIN companies c ON c.id = r.company_id AND c.is_active
+   WHERE r.event_type = 'barang_tertahan' AND r.is_active;
   IF n <> n_aktif THEN
     RAISE EXCEPTION '466 gagal: aturan ada % baris, harus %', n, n_aktif;
   END IF;
 
   SELECT count(*) INTO n FROM notification_rules r
+    JOIN companies c ON c.id = r.company_id AND c.is_active
     JOIN notification_rule_targets t ON t.rule_id = r.id
    WHERE r.event_type = 'barang_tertahan' AND t.permission_key = 'procurement:po:manage';
   IF n <> n_aktif THEN
@@ -109,8 +123,9 @@ BEGIN
     RAISE EXCEPTION '466 gagal: izin procurement:po:manage tidak ada di permissions';
   END IF;
 
-  SELECT count(*) INTO n FROM company_settings
-   WHERE key IN ('otomasi.expediting.hari_tertahan', 'otomasi.expediting.hari_terlambat');
+  SELECT count(*) INTO n FROM company_settings cs
+    JOIN companies c ON c.id = cs.company_id AND c.is_active
+   WHERE cs.key IN ('otomasi.expediting.hari_tertahan', 'otomasi.expediting.hari_terlambat');
   IF n <> n_aktif * 2 THEN
     RAISE EXCEPTION '466 gagal: setelan ada % baris, harus % (2 per badan usaha)', n, n_aktif * 2;
   END IF;
@@ -143,8 +158,9 @@ BEGIN
       a_tahan, a_lambat;
   END IF;
 
-  SELECT count(*) INTO n FROM jadwal_tugas
-   WHERE tugas = 'barang-tertahan' AND aktif AND jenis = 'harian';
+  SELECT count(*) INTO n FROM jadwal_tugas jt
+    JOIN companies c ON c.id = jt.company_id AND c.is_active
+   WHERE jt.tugas = 'barang-tertahan' AND aktif AND jenis = 'harian';
   IF n <> n_ang THEN
     RAISE EXCEPTION '466 gagal: jadwal HARIAN ada % baris, harus %', n, n_ang;
   END IF;

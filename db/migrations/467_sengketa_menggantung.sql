@@ -103,16 +103,30 @@ DO $$
 DECLARE n_aktif INT; n_ang INT; n INT; a_nomor NUMERIC; a_forum NUMERIC; a_diam NUMERIC; a_nilai NUMERIC;
 BEGIN
   SELECT count(*) INTO n_aktif FROM companies WHERE is_active;
-  SELECT count(*) INTO n_ang FROM companies c
-   WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
+  /*
+    `is_active` DITAMBAHKAN 2026-08-31.
 
-  SELECT count(*) INTO n FROM notification_rules
-   WHERE event_type = 'sengketa_menggantung' AND is_active;
+    `n_ang` dipakai sebagai patokan jumlah jadwal, dan jadwalnya kini hanya
+    dihitung untuk company AKTIF. Tanpa saringan yang sama di sini, patokannya
+    memuat company yang sudah dinonaktifkan dan arahnya terbalik:
+
+        jadwal HARIAN ada 2 baris, harus 4
+
+    Dua pemeriksaan yang mengukur populasi berbeda tak boleh dibandingkan.
+  */
+  SELECT count(*) INTO n_ang FROM companies c
+   WHERE c.is_active
+     AND EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
+
+  SELECT count(*) INTO n FROM notification_rules r
+    JOIN companies c ON c.id = r.company_id AND c.is_active
+   WHERE r.event_type = 'sengketa_menggantung' AND r.is_active;
   IF n <> n_aktif THEN
     RAISE EXCEPTION '467 gagal: aturan ada % baris, harus %', n, n_aktif;
   END IF;
 
   SELECT count(*) INTO n FROM notification_rules r
+    JOIN companies c ON c.id = r.company_id AND c.is_active
     JOIN notification_rule_targets t ON t.rule_id = r.id
    WHERE r.event_type = 'sengketa_menggantung' AND t.permission_key = 'sengketa:manage';
   IF n <> n_aktif THEN
@@ -124,8 +138,9 @@ BEGIN
     RAISE EXCEPTION '467 gagal: izin sengketa:manage tidak ada di permissions';
   END IF;
 
-  SELECT count(*) INTO n FROM company_settings
-   WHERE key IN ('otomasi.sengketa.hari_nomor', 'otomasi.sengketa.hari_forum',
+  SELECT count(*) INTO n FROM company_settings cs
+    JOIN companies c ON c.id = cs.company_id AND c.is_active
+   WHERE cs.key IN ('otomasi.sengketa.hari_nomor', 'otomasi.sengketa.hari_forum',
                  'otomasi.sengketa.hari_diam', 'otomasi.sengketa.nilai_besar');
   IF n <> n_aktif * 4 THEN
     RAISE EXCEPTION '467 gagal: setelan ada % baris, harus % (4 per badan usaha)', n, n_aktif * 4;
@@ -170,8 +185,9 @@ BEGIN
     keputusan yang memang butuh waktu - dan itu cara tercepat membuat orang
     berhenti membaca notifikasi sengketa sama sekali.
   */
-  SELECT count(*) INTO n FROM jadwal_tugas
-   WHERE tugas = 'sengketa-menggantung' AND aktif AND jenis = 'mingguan';
+  SELECT count(*) INTO n FROM jadwal_tugas jt
+    JOIN companies c ON c.id = jt.company_id AND c.is_active
+   WHERE jt.tugas = 'sengketa-menggantung' AND aktif AND jenis = 'mingguan';
   IF n <> n_ang THEN
     RAISE EXCEPTION '467 gagal: jadwal MINGGUAN ada % baris, harus %', n, n_ang;
   END IF;

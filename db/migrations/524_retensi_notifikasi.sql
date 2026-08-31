@@ -86,8 +86,9 @@ BEGIN
   SELECT count(*) INTO n_ang FROM companies c
    WHERE c.is_active AND EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
 
-  SELECT count(*) INTO n FROM company_settings
-   WHERE key IN ('notifikasi.retensi.hari_dibaca', 'notifikasi.retensi.hari_tak_dibaca');
+  SELECT count(*) INTO n FROM company_settings cs
+    JOIN companies c ON c.id = cs.company_id AND c.is_active
+   WHERE cs.key IN ('notifikasi.retensi.hari_dibaca', 'notifikasi.retensi.hari_tak_dibaca');
   IF n <> n_aktif * 2 THEN
     RAISE EXCEPTION '524 gagal: setelan ada % baris, harus % (2 ambang x % badan usaha)',
       n, n_aktif * 2, n_aktif;
@@ -130,8 +131,9 @@ BEGIN
       a_tak, a_dibaca;
   END IF;
 
-  SELECT count(*) INTO n FROM jadwal_tugas
-   WHERE tugas = 'bersih-notifikasi' AND aktif AND jenis = 'harian';
+  SELECT count(*) INTO n FROM jadwal_tugas jt
+    JOIN companies c ON c.id = jt.company_id AND c.is_active
+   WHERE jt.tugas = 'bersih-notifikasi' AND aktif AND jenis = 'harian';
   IF n <> n_ang THEN
     RAISE EXCEPTION '524 gagal: jadwal HARIAN ada % baris, harus %', n, n_ang;
   END IF;

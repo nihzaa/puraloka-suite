@@ -207,8 +207,20 @@ DECLARE
   k TEXT;
 BEGIN
   SELECT count(*) INTO n_aktif FROM companies WHERE is_active;
+  /*
+    `is_active` DITAMBAHKAN 2026-08-31.
+
+    `n_ang` dipakai sebagai patokan jumlah jadwal, dan jadwalnya kini hanya
+    dihitung untuk company AKTIF. Tanpa saringan yang sama di sini, patokannya
+    memuat company yang sudah dinonaktifkan dan arahnya terbalik:
+
+        jadwal HARIAN ada 2 baris, harus 4
+
+    Dua pemeriksaan yang mengukur populasi berbeda tak boleh dibandingkan.
+  */
   SELECT count(*) INTO n_ang FROM companies c
-   WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
+   WHERE c.is_active
+     AND EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
 
   /*
     ATURAN MILIK COMPANY MATI DINONAKTIFKAN — DITAMBAHKAN 2026-08-31.
@@ -278,6 +290,7 @@ BEGIN
     sama. Sekarang keduanya menghitung yang AKTIF.
   */
   SELECT count(*) INTO n FROM notification_rules r
+    JOIN companies c ON c.id = r.company_id AND c.is_active
     JOIN notification_rule_targets t ON t.rule_id = r.id
    WHERE r.event_type = ANY(V_JENIS) AND r.is_active
      AND t.permission_key = ANY(V_IZIN);
@@ -337,14 +350,16 @@ BEGIN
     RAISE EXCEPTION '509 gagal: ambang nilai nota kredit % negatif', nilai;
   END IF;
 
-  SELECT count(*) INTO n FROM jadwal_tugas
-   WHERE tugas = 'lingkungan-lampaui-baku' AND aktif AND jenis = 'harian';
+  SELECT count(*) INTO n FROM jadwal_tugas jt
+   JOIN companies c ON c.id = jt.company_id AND c.is_active
+   WHERE jt.tugas = 'lingkungan-lampaui-baku' AND aktif AND jenis = 'harian';
   IF n <> n_ang THEN
     RAISE EXCEPTION '509 gagal: jadwal HARIAN lingkungan ada % baris, harus %', n, n_ang;
   END IF;
 
-  SELECT count(*) INTO n FROM jadwal_tugas
-   WHERE tugas = ANY(V_MINGGUAN) AND aktif AND jenis = 'mingguan';
+  SELECT count(*) INTO n FROM jadwal_tugas jt
+   JOIN companies c ON c.id = jt.company_id AND c.is_active
+   WHERE jt.tugas = ANY(V_MINGGUAN) AND aktif AND jenis = 'mingguan';
   IF n <> n_ang * 5 THEN
     RAISE EXCEPTION '509 gagal: jadwal MINGGUAN ada % baris, harus % (5 tugas x %)',
       n, n_ang * 5, n_ang;
@@ -362,6 +377,7 @@ BEGIN
   END IF;
 
   SELECT count(*) INTO n FROM notification_rules r
+    JOIN companies c ON c.id = r.company_id AND c.is_active
     JOIN notification_rule_targets t ON t.rule_id = r.id
    WHERE r.event_type = 'temuan_k3_lewat_tenggat';
   IF n <> 0 THEN

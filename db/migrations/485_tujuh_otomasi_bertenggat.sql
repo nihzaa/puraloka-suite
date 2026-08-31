@@ -169,12 +169,25 @@ DECLARE
   k TEXT;
 BEGIN
   SELECT count(*) INTO n_aktif FROM companies WHERE is_active;
+  /*
+    `is_active` DITAMBAHKAN 2026-08-31.
+
+    `n_ang` dipakai sebagai patokan jumlah jadwal, dan jadwalnya kini hanya
+    dihitung untuk company AKTIF. Tanpa saringan yang sama di sini, patokannya
+    memuat company yang sudah dinonaktifkan dan arahnya terbalik:
+
+        jadwal HARIAN ada 2 baris, harus 4
+
+    Dua pemeriksaan yang mengukur populasi berbeda tak boleh dibandingkan.
+  */
   SELECT count(*) INTO n_ang FROM companies c
-   WHERE EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
+   WHERE c.is_active
+     AND EXISTS (SELECT 1 FROM company_members m WHERE m.company_id = c.id);
 
   -- Tujuh aturan, satu per badan usaha aktif.
-  SELECT count(*) INTO n FROM notification_rules
-   WHERE event_type = ANY(V_JENIS) AND is_active;
+  SELECT count(*) INTO n FROM notification_rules r
+    JOIN companies c ON c.id = r.company_id AND c.is_active
+   WHERE r.event_type = ANY(V_JENIS) AND r.is_active;
   IF n <> n_aktif * 7 THEN
     RAISE EXCEPTION '468 gagal: aturan ada % baris, harus % (7 jenis x % badan usaha)',
       n, n_aktif * 7, n_aktif;
@@ -197,6 +210,7 @@ BEGIN
 
   -- Tujuh target, satu per aturan.
   SELECT count(*) INTO n FROM notification_rules r
+    JOIN companies c ON c.id = r.company_id AND c.is_active
     JOIN notification_rule_targets t ON t.rule_id = r.id
    WHERE r.event_type = ANY(V_JENIS) AND t.permission_key = ANY(IZIN);
   IF n <> n_aktif * 7 THEN
@@ -204,7 +218,13 @@ BEGIN
   END IF;
 
   -- Lima ambang, satu per badan usaha aktif.
-  SELECT count(*) INTO n FROM company_settings WHERE key = ANY(AMBANG);
+  -- Disaring ke company AKTIF, alasan sama dengan cek-cek di atasnya:
+  -- `company_settings` menyimpan setelan setiap company yang pernah ada,
+  -- termasuk yang kemudian dinonaktifkan.
+  SELECT count(*) INTO n
+    FROM company_settings cs
+    JOIN companies c ON c.id = cs.company_id AND c.is_active
+   WHERE cs.key = ANY(AMBANG);
   IF n <> n_aktif * 5 THEN
     RAISE EXCEPTION '468 gagal: setelan ada % baris, harus % (5 ambang x % badan usaha)',
       n, n_aktif * 5, n_aktif;
@@ -236,15 +256,17 @@ BEGIN
     INI. Punch list dan NCR menahan berita acara serah terima, dan retensi yang
     tertahan berjalan tiap hari, bukan tiap pekan.
   */
-  SELECT count(*) INTO n FROM jadwal_tugas
-   WHERE tugas = ANY(TUGAS_HARIAN) AND aktif AND jenis = 'harian';
+  SELECT count(*) INTO n FROM jadwal_tugas jt
+    JOIN companies c ON c.id = jt.company_id AND c.is_active
+   WHERE jt.tugas = ANY(TUGAS_HARIAN) AND aktif AND jenis = 'harian';
   IF n <> n_ang * 4 THEN
     RAISE EXCEPTION '468 gagal: jadwal HARIAN ada % baris, harus % (4 tugas x % badan usaha)',
       n, n_ang * 4, n_ang;
   END IF;
 
-  SELECT count(*) INTO n FROM jadwal_tugas
-   WHERE tugas = ANY(TUGAS_MINGGUAN) AND aktif AND jenis = 'mingguan';
+  SELECT count(*) INTO n FROM jadwal_tugas jt
+   JOIN companies c ON c.id = jt.company_id AND c.is_active
+   WHERE jt.tugas = ANY(TUGAS_MINGGUAN) AND aktif AND jenis = 'mingguan';
   IF n <> n_ang * 3 THEN
     RAISE EXCEPTION '468 gagal: jadwal MINGGUAN ada % baris, harus % (3 tugas x % badan usaha)',
       n, n_ang * 3, n_ang;
