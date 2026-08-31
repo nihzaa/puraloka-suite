@@ -48,7 +48,9 @@ import {
   SISTEM_STRUKTUR, KATEGORI_RISIKO, KOEF_PERIODA, EKSPOSUR,
 } from '../../lib/struktur-beban-lateral.js'
 import { analisaKolomLengkap, analisaKolomBulatLengkap } from '../../lib/struktur-kolom-lengkap.js'
-import { sarankanBalok, sarankanKolom } from '../../lib/struktur-saran.js'
+import {
+  sarankanBalok, sarankanKolom, sarankanBalokDariBeban,
+} from '../../lib/struktur-saran.js'
 import { jelaskan, ringkasanAwam, tingkatBahaya, apakahBiner } from '../../lib/struktur-awam.js'
 import {
   usulanDariElemen, gabungUsulan, assemblyCocok,
@@ -1666,6 +1668,16 @@ export default async function strukturRoutes(app: FastifyInstance) {
       mutu?: { fcMpa?: number; fyMpa?: number; fyvMpa?: number }
       muKnm?: number; vuKn?: number; puKn?: number
       jumlah?: number
+      /*
+        Mode "hitungkan dari beban" — HANYA untuk balok.
+
+        Bila `beban` ada, Mu/Vu DIHITUNG dari isinya dan `muKnm`/`vuKn` di
+        badan permintaan diabaikan. Kolom belum punya jalur ini: beban aksial
+        kolom datang dari tributari lantai di atasnya, bentuk masukan yang
+        berbeda sama sekali (lihat `analisaBebanKolom`), dan memaksanya masuk
+        medan yang sama akan membuat dua arti pada satu nama.
+      */
+      beban?: Record<string, unknown>
     }
   }>(
     '/api/v1/struktur/saran-pembesian',
@@ -1688,6 +1700,29 @@ export default async function strukturRoutes(app: FastifyInstance) {
           fcMpa: Number(b.mutu?.fcMpa),
           fyMpa: Number(b.mutu?.fyMpa),
           ...(b.mutu?.fyvMpa == null ? {} : { fyvMpa: Number(b.mutu.fyvMpa) }),
+        }
+
+        /*
+          Beban + kolom = permintaan yang tak bisa dipenuhi, dan MENOLAKNYA
+          lebih baik daripada diam-diam mengabaikan `beban` lalu memakai
+          `muKnm` yang mungkin tak diisi sama sekali. Yang diam menghasilkan
+          usulan untuk beban yang BUKAN yang dimaksud pemanggil.
+        */
+        if (b.beban && b.jenis === 'kolom') {
+          return reply.status(400).send({
+            error: 'Mode "dari beban" baru tersedia untuk balok. '
+              + 'Untuk kolom, isi Pu dan Mu langsung.',
+          })
+        }
+
+        if (b.beban && b.jenis === 'balok') {
+          const hasilBeban = sarankanBalokDariBeban({
+            bMm: Number(b.bMm), hMm: Number(b.hMm),
+            panjangM: Number(b.panjangM), selimutMm: Number(b.selimutMm),
+            mutu, beban: b.beban as never,
+            ...(b.jumlah == null ? {} : { jumlah: Number(b.jumlah) }),
+          })
+          return reply.send({ jenis: b.jenis, ...hasilBeban })
         }
 
         const hasil = b.jenis === 'balok'

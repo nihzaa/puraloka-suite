@@ -55,6 +55,11 @@ import {
   type MutuBahan,
   type HasilElemen,
 } from './struktur-beton.js'
+import {
+  analisaBebanBalok,
+  type InputBebanBalok,
+  type HasilBebanBalok,
+} from './struktur-beban-balok.js'
 
 // ── Ruang pencarian ──────────────────────────────────────────────────────────
 
@@ -594,4 +599,92 @@ export function sarankanKolom(input: InputSaranKolom): HasilSaran<UsulanKolom> {
   catatan.push(...CATATAN_BATAS_KOLOM)
 
   return { berhasil: false, alternatif: [], kandidatDicoba: dicoba, catatan }
+}
+
+// ── DARI BEBAN ───────────────────────────────────────────────────────────────
+//
+// Semua di atas menerima Mu/Vu sebagai ANGKA JADI. Bagian ini menutup celah
+// terakhir: menghitungnya dari beban lebih dulu, lalu mengusulkan tulangannya.
+//
+// Kenapa ini penting — alasannya sudah ditulis `struktur-beban-balok.ts` dan
+// layak diulang di sini karena berlaku dua kali lipat untuk mesin saran:
+//
+//     "Dimensi yang salah ketik terlihat (balok 3000 mm jelas keliru). Momen
+//      yang salah TIDAK: 120 kNm dan 210 kNm sama-sama terlihat wajar."
+//
+// Mesin saran memperbesar akibatnya. Pemeriksa yang diberi momen salah menjawab
+// "aman" untuk balok yang tak kuat — satu kesalahan. Mesin saran yang diberi
+// momen salah MENGUSULKAN tulangan untuk balok yang tak kuat, dan usulan
+// terbaca sebagai jawaban resmi, bukan sebagai sesuatu yang perlu diperiksa.
+
+/** Beban balok — bentuk yang sama dengan `InputBebanBalok`, tanpa dimensinya. */
+export type BebanBalok = Omit<InputBebanBalok, 'bMm' | 'hMm'>
+
+export interface InputSaranDariBeban {
+  bMm: number
+  hMm: number
+  panjangM: number
+  selimutMm: number
+  mutu: MutuBahan
+  /** Beban — dari katalog SNI 1727, bukan angka ingatan. */
+  beban: BebanBalok
+  jumlah?: number
+}
+
+export interface HasilSaranDariBeban extends HasilSaran<UsulanBalok> {
+  /**
+   * Beban yang DIPAKAI, apa adanya dari `analisaBebanBalok`.
+   *
+   * WAJIB ditampilkan pemanggil, tidak boleh sekadar dipakai diam-diam.
+   * Pemakai yang tak pernah melihat "Mu = 120 kNm" tak punya kesempatan
+   * berkata "kok kecil sekali untuk bentang segitu" — dan itu satu-satunya
+   * pemeriksaan yang tersisa, karena momen salah tak menimbulkan galat.
+   */
+  beban: HasilBebanBalok
+}
+
+/**
+ * Usulkan pembesian balok DARI BEBAN — Mu/Vu dihitung, bukan diminta.
+ *
+ * ⚠ TIDAK menghitung ulang apa pun. Mu dan Vu datang utuh dari
+ * `analisaBebanBalok` dan diteruskan apa adanya ke `sarankanBalok`. Sekali
+ * angkanya dibulatkan di sini "biar rapi di layar", yang tampil di layar dan
+ * yang dipakai memilih tulangan menjadi dua angka berbeda — keduanya terlihat
+ * wajar, keduanya konsisten sendiri, dan tak ada satu pun galat yang menunjuk
+ * selisihnya. Dijaga test `struktur-saran-dari-beban.test.ts`.
+ *
+ * `catatan` menggabungkan batas KEDUA modul. Batas beban ("koefisien
+ * perkiraan, bukan analisa rangka") sama pentingnya dengan batas tulangan:
+ * tanpa itu pemakainya mengira angkanya lebih pasti daripada sebenarnya.
+ */
+export function sarankanBalokDariBeban(
+  input: InputSaranDariBeban,
+): HasilSaranDariBeban {
+  // Modul beban memvalidasi masukannya sendiri dan MELEMPAR bila tak lengkap.
+  // Galat itu sengaja TIDAK ditangkap: beban hidup yang hilang diam-diam
+  // menjadi nol akan mengusulkan tulangan untuk balok yang tak memikul apa pun.
+  const beban = analisaBebanBalok({
+    ...input.beban,
+    bMm: input.bMm,
+    hMm: input.hMm,
+  })
+
+  const saran = sarankanBalok({
+    bMm: input.bMm,
+    hMm: input.hMm,
+    panjangM: input.panjangM,
+    selimutMm: input.selimutMm,
+    mutu: input.mutu,
+    muKnm: beban.muKnm,
+    vuKn: beban.vuKn,
+    ...(input.jumlah == null ? {} : { jumlah: input.jumlah }),
+  })
+
+  return {
+    ...saran,
+    beban,
+    // Batas beban lebih dulu: ia menjelaskan DARI MANA angkanya, dan itu
+    // yang perlu dibaca sebelum menilai usulannya.
+    catatan: [...beban.catatan, ...saran.catatan],
+  }
 }
