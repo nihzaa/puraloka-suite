@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useData } from "@/lib/data-cache";
 import { useTerpasang } from "@/lib/use-terpasang";
 import { useTutupEsc } from "@/lib/use-tutup-esc";
 import { createPortal } from "react-dom";
@@ -250,9 +251,25 @@ function ProjectDetailContent() {
   const bolehBayarTermin = useIzin("finance:termin:pay");
   const bolehAturMandor = useIzin("mandor:assign");
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  /*
+    Lapis cache bersama (F4-2) — dan di rute [id] ini BUKAN sekadar
+    penghematan permintaan.
+
+    `useData` mengikat data ke URL-nya dan MENGOSONGKANNYA saat `id`
+    berganti. Tanpa itu, /proyek/A → /proyek/B menampilkan data proyek A di
+    bawah URL proyek B selama jawaban baru belum tiba — kebocoran identitas
+    yang dijaga `uji-rute-id-tak-basi.mjs` (ambang NOL).
+  */
+  const sProyek = useData<{ project: Project }>(id ? `/api/v1/projects/${id}` : null);
+  const project = sProyek.data?.project ?? null;
+  const loading = sProyek.memuat;
+  /*
+    Galat MUAT saja — halaman ini TAK punya galat aksi yang ditampilkan
+    inline: hapus/sunting memakai `showToast`, jadi tak ada state galat
+    kedua untuk ditumpuk. Diperiksa: `setError` sudah nol pemanggil sesudah
+    pindah ke `useData`, jadi statenya dibuang alih-alih dibiarkan mati.
+  */
+  const galatTampil = sProyek.galat ? "Proyek tidak ditemukan atau gagal memuat." : null;
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showContractModal, setShowContractModal] = useState(false);
@@ -264,10 +281,10 @@ function ProjectDetailContent() {
   const [showAbsorptionModal, setShowAbsorptionModal] = useState(false);
   const [serapanPct, setSerapanPct] = useState<number | null>(null);
   const [serapanRefreshKey, setSerapanRefreshKey] = useState(0);
-  const [evmData, setEvmData] = useState<{
+  type EvmRingkas = {
     bac: number; ac: number; ev: number; pv: number;
     cpi: number; spi: number; eac: number; vac: number;
-  } | null>(null);
+  };
   const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Modal yang dirender LANGSUNG oleh komponen halaman ini (bukan komponen
@@ -291,26 +308,31 @@ function ProjectDetailContent() {
 
   useEffect(() => { if (id) fetchProject(); }, [id]);
 
-  useEffect(() => { setSerapanPct(null); setEvmData(null); }, [id]);
+  /*
+    `setEvmData(null)` tak perlu lagi: `useData` mengosongkan datanya
+    sendiri saat `id` berganti. Yang tersisa `serapanPct`, yang memang
+    state lokal dari komponen anak.
+  */
+  useEffect(() => { setSerapanPct(null); }, [id]);
 
-  useEffect(() => {
-    if (!id) return;
-    api.get<{ meta?: { evm?: typeof evmData } }>(`/api/v1/projects/${id}/kurva-s`)
-      .then(res => { if (res.data.meta?.evm) setEvmData(res.data.meta.evm as typeof evmData); })
-      .catch(() => {});
-  }, [id]);
+  /*
+    EVM ikut cache, dan ikut terikat `id` — angka EVM proyek LAIN yang
+    tertinggal di layar adalah kesalahan yang mahal: ia dipakai menilai
+    apakah proyek untung atau rugi.
 
+    Galatnya sengaja diam: kurva-S adalah panel BANTU di halaman ini, dan
+    proyek yang belum punya baseline memang wajar tak punya EVM.
+  */
+  const sEvm = useData<{ meta?: { evm?: EvmRingkas } }>(
+    id ? `/api/v1/projects/${id}/kurva-s` : null);
+  const evmData = sEvm.data?.meta?.evm ?? null;
+
+  /*
+    Hanya untuk MUAT ULANG sesudah sunting — pengambilan pertama dikerjakan
+    `useData`, termasuk pengosongan saat `id` berganti.
+  */
   async function fetchProject() {
-    setLoading(true);
-    setError("");
-    try {
-      const { data } = await api.get<{ project: Project }>(`/api/v1/projects/${id}`);
-      setProject(data.project);
-    } catch {
-      setError("Proyek tidak ditemukan atau gagal memuat.");
-    } finally {
-      setLoading(false);
-    }
+    await sProyek.muatUlang();
   }
 
   async function handleDelete() {
@@ -370,12 +392,12 @@ function ProjectDetailContent() {
     );
   }
 
-  if (error || !project) {
+  if (galatTampil || !project) {
     return (
       <div style={{ padding: "32px 36px" }}>
         <div style={{ ...card, padding: "48px 32px", textAlign: "center" }}>
           <AlertCircle size={40} style={{ color: "var(--danger-border)", marginBottom: 12 }} />
-          <p style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 6 }}>{error || "Proyek tidak ditemukan"}</p>
+          <p style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 6 }}>{galatTampil || "Proyek tidak ditemukan"}</p>
           <button onClick={fetchProject} style={{ color: C.navy, background: "none", border: "none", cursor: "pointer", fontSize: 13, display: "inline-flex", alignItems: "center", gap: 4, fontWeight: 500 }}>
             <RefreshCw size={13} /> Coba lagi
           </button>
