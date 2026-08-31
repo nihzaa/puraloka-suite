@@ -5,6 +5,44 @@ import { useAuth } from '@/hooks/useAuth';
 import { PenandaAntrean } from '@/components/PenandaAntrean';
 
 /*
+  Apakah WebView benar-benar bisa dipakai?
+
+  Dua belas modul kantor di daftar ini semuanya menuju layar WebView. Kalau
+  `react-native-webview` tak terpasang, layar itu sudah menangani
+  ketiadaannya dengan pesan yang menyebut perintah pemasangannya — tapi orang
+  baru tahu SESUDAH menekan, dan daftar yang menampilkan dua belas pintu yang
+  semuanya buntu mengajari orang bahwa aplikasinya tak bisa dipercaya.
+
+  Diperiksa SEKALI saat modul dimuat, bukan tiap render: `require` yang gagal
+  itu mahal, dan hasilnya tak berubah selama aplikasi hidup.
+
+  Keadaannya DIPERIKSA, bukan ditulis sebagai konstanta yang harus diingat
+  seseorang untuk diubah — jadi begitu paketnya ada, penanda hilang sendiri.
+
+  ── Yang TIDAK bisa dibuktikan dari luar aplikasi
+
+  `require` ini hanya berhasil di bawah Metro. Paketnya menunjuk
+  `"react-native": "src/index.ts"` sebagai entry, sementara Node memakai
+  `"main": "index.js"` yang meminta `lib/WebView` — berkas yang hanya ada
+  sebagai `WebView.android.js` / `WebView.ios.js` dan diselesaikan Metro
+  lewat ekstensi platform.
+
+  Artinya menjalankan pemeriksaan ini di Node SELALU memulangkan false,
+  bahkan saat paketnya terpasang benar (diukur 2026-08-31: terpasang
+  14.0.1, `require` dari Node gagal dengan "Cannot find module …
+  lib/WebView"). Jadi jangan memakai skrip Node untuk membuktikan penanda
+  ini bekerja — yang membuktikannya cuma menjalankan aplikasinya.
+*/
+const WEBVIEW_SIAP = (() => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return !!require('react-native-webview')?.WebView;
+  } catch {
+    return false;
+  }
+})();
+
+/*
   ══════════════════════════════════════════════════════════════════════════
   LAINNYA — pintu ke modul kantor
   ══════════════════════════════════════════════════════════════════════════
@@ -147,7 +185,11 @@ export default function Lainnya() {
             <Text style={s.emoji}>{m.emoji}</Text>
             <View style={s.teks}>
               <Text style={s.barisJudul}>{m.judul}</Text>
-              <Text style={s.barisRingkas}>{m.ringkas}</Text>
+              <Text style={m.nativeJalur || WEBVIEW_SIAP ? s.barisRingkas : s.barisBelumSiap}>
+                {m.nativeJalur || WEBVIEW_SIAP
+                  ? m.ringkas
+                  : 'Belum tersedia di aplikasi — buka lewat browser'}
+              </Text>
             </View>
             <Text style={s.panah}>›</Text>
           </Pressable>
@@ -178,6 +220,10 @@ const s = StyleSheet.create({
   teks: { flex: 1 },
   barisJudul: { fontSize: 15, fontWeight: '600', color: '#111827' },
   barisRingkas: { fontSize: 12, color: '#5A616B', marginTop: 2 },
+  /* Bukan merah: ini bukan galat melainkan keadaan yang wajar pada build
+     tertentu. Merah di dua belas baris sekaligus membuat layar terbaca
+     seperti rusak. */
+  barisBelumSiap: { fontSize: 12, color: '#92400E', marginTop: 2 },
   panah: { fontSize: 22, color: '#9CA3AF', marginLeft: 8 },
   kosong: { paddingVertical: 40, alignItems: 'center' },
   kosongJudul: { fontSize: 15, fontWeight: '600', color: '#111827', marginBottom: 6 },
