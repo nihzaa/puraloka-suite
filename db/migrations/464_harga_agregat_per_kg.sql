@@ -143,6 +143,29 @@ DECLARE
   harga numeric;
   sisa  int;
 BEGIN
+  /*
+    GERBANG — DITAMBAHKAN 2026-08-31.
+
+    Verifikasi di bawah menilai HASIL backfill harga pada katalog AHSP. Di
+    basis yang baru lahir katalog itu belum terisi, dan `harga` jadi NULL:
+
+        HARD FAIL — 464_harga_agregat_per_kg.sql
+          Harga berlaku pasir beton per kg di luar akal: <NULL>
+
+    "NULL di luar akal" tak sama dengan "harga salah" — itu ketiadaan bahan.
+    Yang kedua yang cek ini ada untuk menangkap, dan pesannya menyebut
+    keduanya dengan kalimat yang sama.
+
+    Gerbang ini memisahkannya. Kalau katalognya terisi, kedua cek di bawah
+    berlaku penuh — termasuk ambang 150..600 per kg yang justru paling
+    berharga (harga per m³ yang tersalin ke baris kg membuat 1 m³ beton
+    terhitung ratusan juta; itu kelas cacat yang dicatat di CLAUDE.md §6).
+  */
+  IF NOT EXISTS (SELECT 1 FROM resources WHERE code = 'AHSP-R0076') THEN
+    RAISE NOTICE '464 verifikasi dilewati: katalog AHSP belum terisi di basis ini. Bukan galat.';
+    RETURN;
+  END IF;
+
   -- Harga BERLAKU (entri terbaru) untuk pasir beton harus masuk akal.
   SELECT p.amount INTO harga
     FROM price_book_entries p JOIN resources r ON r.id = p.resource_id
